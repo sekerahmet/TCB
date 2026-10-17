@@ -79,6 +79,7 @@ func New() *VM {
 	v.registerAIBuiltins()
 	v.registerGUIAndWebBuiltins()
 	v.registerDatabaseBuiltins()
+	v.registerTestBuiltins()
 	return v
 }
 
@@ -462,6 +463,10 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 			env.Define(k, modDict.Pairs[k], false)
 		}
 		return val, sig, nil
+
+	case *ast.TestStatement:
+		// Test blokları normal çalıştırmada atlanır; 'tr test' bunları RunTest ile çalıştırır.
+		return NULL, signalNone, nil
 
 	case *ast.BreakpointStatement:
 		if s.Condition != nil {

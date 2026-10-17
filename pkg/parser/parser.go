@@ -260,6 +260,11 @@ func (p *Parser) parseStatement() ast.Statement {
 	case lexer.TOKEN_KESME_NOKTASI:
 		return p.parseBreakpointStatement()
 	case lexer.TOKEN_IDENT:
+		// test "ad" { ... } — 'test' yalnızca deyim başında ve ardından metin geldiğinde
+		// anahtar kelimedir; başka her yerde sıradan bir addır (değişken test = 5).
+		if p.curToken().Literal == "test" && p.peekTokenIs(lexer.TOKEN_STRING) {
+			return p.parseTestStatement()
+		}
 		// x := 5 kısa değişken tanımı kontrolü
 		if p.peekTokenIs(lexer.TOKEN_WALRUS) {
 			return p.parseShortVarStatement()
@@ -268,6 +273,17 @@ func (p *Parser) parseStatement() ast.Statement {
 	default:
 		return p.parseExpressionOrAssignmentStatement()
 	}
+}
+
+func (p *Parser) parseTestStatement() ast.Statement {
+	tok := p.curToken() // test
+	p.nextToken()       // test adı (metin)
+	name := unescapeBraces(p.curToken().Literal)
+	if !p.expectPeek(lexer.TOKEN_LBRACE) {
+		return nil
+	}
+	body := p.parseBlockStatement()
+	return &ast.TestStatement{Token: tok, Name: name, Body: body}
 }
 
 func (p *Parser) parseBreakpointStatement() *ast.BreakpointStatement {

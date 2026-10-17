@@ -205,3 +205,25 @@ func TestYzSorReportsUnreachableServer(t *testing.T) {
 		t.Fatalf("\"Merhaba!\" bekleniyordu, alınan: %v, %v", val, err)
 	}
 }
+
+// Test blokları normal çalıştırmada atlanır; doğrula/eşit_mi her yerde çalışır.
+func TestTestBlocksSkippedAndAssertions(t *testing.T) {
+	out, _, err := runTROut(t, `test "atlanmalı" { yazdır("TEST ÇALIŞTI") }
+doğrula(1 + 1 == 2)
+esit_mi([1, 2], [1, 2])
+yazdır("tamam")`)
+	if err != nil {
+		t.Fatalf("beklenmeyen hata: %v", err)
+	}
+	if strings.Contains(out, "TEST ÇALIŞTI") || !strings.Contains(out, "tamam") {
+		t.Fatalf("çıktı yanlış: %q", out)
+	}
+	_, _, err = runTROut(t, `eşit_mi("5", 5)`)
+	if err == nil || !strings.Contains(err.Error(), `beklenen "5" (Metin), gerçek 5 (Tam)`) {
+		t.Fatalf("eşit_mi hata mesajı yanlış: %v", err)
+	}
+	_, _, err = runTROut(t, "\n\ndoğrula(yanlış)")
+	if err == nil || !strings.Contains(err.Error(), "Satır 3: doğrulama başarısız") {
+		t.Fatalf("doğrula hata mesajı yanlış: %v", err)
+	}
+}

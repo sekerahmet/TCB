@@ -73,6 +73,10 @@ func main() {
 			webMode := len(args) >= 3 && (args[2] == "--web" || args[2] == "-w")
 			debugFile(args[1], webMode)
 		}
+	case "test":
+		testKomutu(args[1:])
+	case "biçimle", "bicimle":
+		bicimleKomutu(args[1:])
 	case "çalıştır", "calistir":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr çalıştır ornek.tr")
@@ -112,6 +116,8 @@ func printHelp() {
 	fmt.Println("  tr kontrol <dosya.tr>       Sözdizimi ve akıllı tip kontrolü yapar")
 	fmt.Println("  tr bytecode <dosya.tr>      Derlenen TR Sanal Makinesi (VM) bytecode komutlarını gösterir")
 	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını tek başına çalışan bağımsız .exe dosyasına dönüştürür")
+	fmt.Println("  tr test [dosya.tr|klasör]   Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)")
+	fmt.Println("  tr biçimle [--kontrol] <dosya.tr|klasör>  Kodu standart biçime getirir (--kontrol: yalnızca denetler)")
 }
 
 func runFile(path string) {

@@ -23,6 +23,23 @@ type Lexer struct {
 	line         int
 	column       int
 	errors       []string
+	tokenStart   int // son okunan sözcük biriminin başladığı karakter (rune) indeksi
+}
+
+// SonAralik son NextToken çağrısının döndürdüğü sözcük biriminin kaynaktaki karakter
+// (rune) aralığını verir: [bas, son). Biçimlendirici, sözcük birimlerinin ham metnini
+// (kaçış dizileri çözülmemiş hâlde) ve aralarındaki yorumları bu sayede korur.
+func (l *Lexer) SonAralik() (bas, son int) {
+	son = l.position
+	if son > len(l.input) {
+		son = len(l.input)
+	}
+	return l.tokenStart, son
+}
+
+// Girdi sözcük çözümleyicinin okuduğu kaynağı (BOM atılmış, rune dizisi olarak) döndürür.
+func (l *Lexer) Girdi() []rune {
+	return l.input
 }
 
 // Errors sözcük çözümleme sırasında bulunan hataları (ör. kapatılmamış metin) döndürür.
@@ -81,6 +98,7 @@ func (l *Lexer) peekCharN(n int) rune {
 
 func (l *Lexer) NextToken() Token {
 	l.skipWhitespaceAndComments()
+	l.tokenStart = l.position
 
 	line := l.line
 	col := l.column
