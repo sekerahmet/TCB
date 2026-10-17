@@ -1262,11 +1262,11 @@ func (v *VM) registerAIBuiltins() {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_çöz(metin) 1 parametre bekler")
 		}
-		var raw interface{}
-		if err := json.Unmarshal([]byte(args[0].Inspect()), &raw); err != nil {
+		val, err := jsonToTR([]byte(args[0].Inspect()))
+		if err != nil {
 			return nil, fmt.Errorf("JSON çözümleme hatası: %v", err)
 		}
-		return goToTRValue(raw), nil
+		return val, nil
 	})
 
 	v.RegisterBuiltin("json_metin", "json_yaz", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -1428,9 +1428,8 @@ func (v *VM) registerAIBuiltins() {
 		if netErr != nil {
 			return nil, fmt.Errorf("Web bağlantı hatası (%s): %v", url, netErr)
 		}
-		var raw interface{}
-		if json.Unmarshal(body, &raw) == nil {
-			return goToTRValue(raw), nil
+		if val, err := jsonToTR(body); err == nil {
+			return val, nil
 		}
 		return &StringVal{Val: string(body)}, nil
 	})
@@ -1452,9 +1451,8 @@ func (v *VM) registerAIBuiltins() {
 		if netErr != nil {
 			return nil, fmt.Errorf("Web gönderim hatası (%s): %v", url, netErr)
 		}
-		var raw interface{}
-		if json.Unmarshal(body, &raw) == nil {
-			return goToTRValue(raw), nil
+		if val, err := jsonToTR(body); err == nil {
+			return val, nil
 		}
 		return &StringVal{Val: string(body)}, nil
 	})

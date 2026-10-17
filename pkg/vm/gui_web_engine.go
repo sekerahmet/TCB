@@ -230,9 +230,12 @@ func (w *WebServerVal) startServer(background bool) error {
 		bodyStr := strings.TrimSpace(string(bodyBytes))
 		if bodyStr != "" {
 			// Gövde yalnızca Content-Type JSON ise JSON olarak çözülür.
-			var parsed interface{}
-			if strings.HasPrefix(strings.ToLower(req.Header.Get("Content-Type")), "application/json") && json.Unmarshal(bodyBytes, &parsed) == nil {
-				reqDict.Set("veri", goToTRValue(parsed))
+			var parsed Value
+			if strings.HasPrefix(strings.ToLower(req.Header.Get("Content-Type")), "application/json") {
+				parsed, _ = jsonToTR(bodyBytes)
+			}
+			if parsed != nil {
+				reqDict.Set("veri", parsed)
 			} else {
 				reqDict.Set("veri", &StringVal{Val: bodyStr})
 			}
