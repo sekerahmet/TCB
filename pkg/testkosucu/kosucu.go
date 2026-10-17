@@ -53,7 +53,7 @@ func (o Ozet) String() string {
 func TestDosyalari(hedef string) ([]string, error) {
 	bilgi, err := os.Stat(hedef)
 	if err != nil {
-		return nil, fmt.Errorf("%s bulunamadı: %v", hedef, err)
+		return nil, fmt.Errorf("%s bulunamadı", hedef)
 	}
 	if !bilgi.IsDir() {
 		return []string{hedef}, nil

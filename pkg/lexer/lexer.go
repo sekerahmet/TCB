@@ -65,6 +65,15 @@ func New(input string) *Lexer {
 	return l
 }
 
+// NewAt, kaynağı verilen satır ve sütundan başlıyormuş gibi okuyan bir sözcük çözümleyici
+// döndürür. Metin içi yerleştirmelerdeki ("{ifade}") ifadeler böylece hata mesajlarında
+// dosyadaki gerçek konumlarıyla görünür.
+func NewAt(input string, line, column int) *Lexer {
+	l := &Lexer{input: []rune(input), line: line, column: column - 1}
+	l.readChar()
+	return l
+}
+
 func (l *Lexer) readChar() {
 	if l.readPosition >= len(l.input) {
 		l.ch = 0

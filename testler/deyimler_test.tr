@@ -1,0 +1,129 @@
+// DIL_TANIMI.md §5 — Deyimler ve kontrol yapıları
+
+test "5.1 değişken ve := tanımı" {
+    değişken a = 1
+    b := 2
+    değişken c
+    eşit_mi(3, a + b)
+    eşit_mi(yok, c)
+}
+
+test "5.2 sabit: tanımlandıktan sonra değiştirilemez" {
+    sabit PI = 3.14
+    eşit_mi(3.14, PI)
+}
+
+test "5.3 çoklu tanım, takas ve listeden açma" {
+    değişken a, b = 1, 2
+    a, b = b, a
+    eşit_mi([2, 1], [a, b])
+    değişken ad, soyad = ["Mustafa", "Kemal"]
+    eşit_mi("Kemal", soyad)
+}
+
+test "5.4 atama ve bileşik atama" {
+    değişken x = 5
+    x += 3
+    x -= 1
+    x *= 2
+    x /= 7
+    eşit_mi(2, x)
+    değişken l = [1, 2]
+    l[0] = 9
+    eşit_mi([9, 2], l)
+}
+
+test "5.4 tanımsız bir ada atama hatadır" {
+    değişken mesaj = ""
+    dene { tanimsiz_ad = 3 } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("tanımsız değişken"), mesaj)
+}
+
+test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
+    fonksiyon sınıflandır(n) {
+        sonuç eğer n < 0 { "negatif" } değilse eğer n == 0 { "sıfır" } değilse { "pozitif" }
+    }
+    eşit_mi("negatif", sınıflandır(-5))
+    eşit_mi("sıfır", sınıflandır(0))
+    eşit_mi("pozitif", sınıflandır(7))
+    eşit_mi(yok, eğer yanlış { 1 })
+}
+
+test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
+    fonksiyon not_adı(n) {
+        sonuç eşle n {
+            100 => "tam puan"
+            90..100 => "pekiyi"
+            50, 60, 70 => "yuvarlak"
+            varsayılan => "diğer"
+        }
+    }
+    eşit_mi("tam puan", not_adı(100))
+    eşit_mi("pekiyi", not_adı(95))
+    eşit_mi("yuvarlak", not_adı(60))
+    eşit_mi("diğer", not_adı(3))
+    eşit_mi("x", eşle 1 { _ => "x" })
+    eşit_mi(yok, eşle 9 { 1 => "bir" })
+}
+
+test "5.7 döngü ... içinde: liste, aralık, sözlük, metin" {
+    değişken toplam = 0
+    döngü x içinde [1, 2, 3] { toplam += x }
+    eşit_mi(6, toplam)
+    değişken çiftler = []
+    döngü i, x içinde ["a", "b"] { çiftler.ekle("{i}{x}") }
+    eşit_mi(["0a", "1b"], çiftler)
+    değişken anahtarlar = []
+    döngü k, v içinde {"a": 1, "b": 2} { anahtarlar.ekle(k + metin(v)) }
+    eşit_mi(["a1", "b2"], anahtarlar)
+    değişken harfler = []
+    döngü h içinde "çay" { harfler.ekle(h) }
+    eşit_mi(["ç", "a", "y"], harfler)
+    değişken geri = []
+    döngü i içinde 3..0 { geri.ekle(i) }
+    eşit_mi([3, 2, 1], geri)
+}
+
+test "5.8 koşullu döngü ve iken" {
+    değişken i = 0
+    iken i < 3 { i += 1 }
+    eşit_mi(3, i)
+    döngü i < 5 { i += 1 }
+    eşit_mi(5, i)
+}
+
+test "5.9 sonsuz döngü ve çık / kır" {
+    değişken i = 0
+    döngü {
+        i += 1
+        eğer i == 4 { çık }
+    }
+    eşit_mi(4, i)
+    döngü x içinde 1..100 { eğer x == 2 { kır } }
+}
+
+test "5.10 devam sonraki turdan sürdürür" {
+    değişken tekler = []
+    döngü i içinde 1..6 {
+        eğer i % 2 == 0 { devam }
+        tekler.ekle(i)
+    }
+    eşit_mi([1, 3, 5], tekler)
+}
+
+test "5.11 liste üreteci" {
+    eşit_mi([1, 9, 25], [x * x döngü x içinde 1..=5 eğer x % 2 == 1])
+    eşit_mi([2, 4], [x * 2 döngü x içinde [1, 2]])
+}
+
+test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
+    değişken dış = 0
+    eğer doğru {
+        değişken iç = 1
+        dış = 5
+    }
+    eşit_mi(5, dış)
+    değişken görünür = doğru
+    dene { iç } yakala { görünür = yanlış }
+    doğrula(değil görünür)
+}

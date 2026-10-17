@@ -157,3 +157,19 @@ func TestTestIsContextualKeyword(t *testing.T) {
 		t.Fatal("gövdesiz test hata vermedi")
 	}
 }
+
+// Metin içi yerleştirmedeki ifadeler dosyadaki gerçek konumlarını taşımalı (eskiden Satır 1, Sütun 1).
+func TestInterpolationKeepsSourcePosition(t *testing.T) {
+	p := New(lexer.New("değişken a = 1\nyazdır(\"x = {toplm + 1}\")"))
+	prog := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		t.Fatalf("beklenmeyen hata: %v", p.Errors())
+	}
+	call := prog.Statements[1].(*ast.ExpressionStatement).Expression.(*ast.CallExpression)
+	interp := call.Arguments[0].(*ast.InterpolatedString)
+	infix := interp.Parts[1].(*ast.InfixExpression)
+	id := infix.Left.(*ast.Identifier)
+	if id.Token.Line != 2 || id.Token.Column != 14 {
+		t.Fatalf("konum Satır 2, Sütun 14 olmalıydı, alınan: Satır %d, Sütun %d", id.Token.Line, id.Token.Column)
+	}
+}

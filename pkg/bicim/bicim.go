@@ -63,7 +63,12 @@ func (e *SozdizimiHatasi) Error() string {
 // Bicimle kaynağı standart biçime getirir. Kaynak ayrıştırılamıyorsa *SozdizimiHatasi,
 // sonuç özgün kodla aynı anlama gelmiyorsa *AnlamDegistiHatasi döner.
 func Bicimle(kaynak string) (string, error) {
-	kaynak = strings.TrimPrefix(kaynak, "\xef\xbb\xbf")
+	// Dosya başındaki UTF-8 BOM korunur (kodlama biçimlendiricinin işi değildir)
+	bom := ""
+	if strings.HasPrefix(kaynak, "\xef\xbb\xbf") {
+		bom = "\xef\xbb\xbf"
+		kaynak = kaynak[len(bom):]
+	}
 	p := parser.New(lexer.New(kaynak))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
@@ -73,7 +78,7 @@ func Bicimle(kaynak string) (string, error) {
 	if err := AnlamAyniMi(kaynak, cikti); err != nil {
 		return "", err
 	}
-	return cikti, nil
+	return bom + cikti, nil
 }
 
 // AnlamAyniMi iki kaynağın aynı sözcük birimi dizisine ve aynı AST'ye sahip olduğunu

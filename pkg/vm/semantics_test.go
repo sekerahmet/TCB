@@ -227,3 +227,27 @@ yazdır("tamam")`)
 		t.Fatalf("doğrula hata mesajı yanlış: %v", err)
 	}
 }
+
+// Tam sayı toplama/çıkarma/çarpma taşması sessizce sarmak yerine hata verir ('**' gibi).
+func TestIntegerOverflowIsError(t *testing.T) {
+	for _, kod := range []string{"sonuç 9223372036854775807 + 1", "sonuç -9223372036854775807 - 2", "sonuç 4294967296 * 4294967296"} {
+		if _, err := runTR(t, kod); err == nil || !strings.Contains(err.Error(), "taşma") {
+			t.Fatalf("%s: taşma hatası bekleniyordu, alınan: %v", kod, err)
+		}
+	}
+	val, err := runTR(t, "sonuç 9223372036854775806 + 1 - 5 * 2")
+	if err != nil || val.Inspect() != "9223372036854775797" {
+		t.Fatalf("sınır içindeki işlem bozuldu: %v %v", val, err)
+	}
+}
+
+// Ondalık sayılarda '%' (kalan) desteklenir.
+func TestFloatModulo(t *testing.T) {
+	val, err := runTR(t, "sonuç 5.5 % 2")
+	if err != nil || val.Inspect() != "1.5" {
+		t.Fatalf("5.5 %% 2 = 1.5 bekleniyordu, alınan: %v %v", val, err)
+	}
+	if _, err := runTR(t, "sonuç 1.5 % 0"); err == nil {
+		t.Fatal("sıfıra göre mod hata vermedi")
+	}
+}

@@ -1,0 +1,7 @@
+// moduller_test.tr tarafından aktarılan yardımcı modül (kendisi test dosyası değildir)
+değişken PI = 3
+değişken kayıt = []
+
+fonksiyon kare(x) {
+    sonuç x * x
+}

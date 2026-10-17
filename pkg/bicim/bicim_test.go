@@ -190,3 +190,10 @@ func TestDepodakiDosyalar(t *testing.T) {
 		}
 	}
 }
+
+func TestBOMKorunur(t *testing.T) {
+	cikti := bicimleT(t, "\xef\xbb\xbfa=1\n")
+	if cikti != "\xef\xbb\xbfa = 1\n" {
+		t.Fatalf("BOM korunmadı: %q", cikti)
+	}
+}
