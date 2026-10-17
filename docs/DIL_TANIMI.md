@@ -93,7 +93,7 @@ uzunluk("şeker")   // 5
 
 **3.4** `Mantık`: `doğru` ve `yanlış`.
 
-**3.5** `yok`: değerin yokluğu; değer döndürmeyen fonksiyonlar, eksik argümanlar ve bulunamayan indeksler `yok` verir.
+**3.5** `yok`: değerin yokluğu; değer döndürmeyen fonksiyonlar ve bulunamayan indeksler `yok` verir.
 
 **3.6** `Liste`: sıralı, karışık tipli, değiştirilebilir dizi: `[1, "iki", 3.0]`. Negatif indeks sondan sayar, okuma sırasında sınır dışı indeks `yok` verir (yazmada hatadır), `l[a..b]` dilim verir. Listeler, sözlükler ve nesneler **başvuruyla** paylaşılır: `b = a` aynı listeyi gösterir.
 
@@ -227,7 +227,9 @@ eşle puan {
 
 **6.2** `sonuç ifade` (ya da `döndür`) fonksiyondan değer döndürür; yalnız `sonuç` `yok` döndürür. `sonuç` hiç çalışmazsa son deyimin değeri döner.
 
-**6.3** Parametrelere varsayılan değer verilebilir (`ek = "!"`); varsayılanı olmayan eksik argüman `yok` olur, fazla argümanlar yok sayılır.
+**6.3** Parametrelere varsayılan değer verilebilir (`ek = "!"`). Varsayılanı olmayan bir parametre için argüman verilmezse, fazla argüman verilirse ya da bilinmeyen bir adla argüman verilirse çağrı satırında hata oluşur (`'topla' fonksiyonu 2 argüman bekler, 1 verildi (eksik: 'b')`). Yerleşik fonksiyonların geri çağırdığı fonksiyonlar (ör. `filtrele`, web işleyicileri) bu denetime girmez.
+
+**6.3a** İç içe fonksiyon çağrısı derinliği 10000 ile sınırlıdır; aşılırsa `dene/yakala` ile yakalanabilen "Özyineleme derinliği sınırı aşıldı" hatası oluşur.
 
 **6.4** Argümanlar adla da verilebilir: `böl(bölen: 2, bölünen: 10)`. Konumlu argümanlar önce yerleşir.
 

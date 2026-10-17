@@ -31,12 +31,24 @@ test "6.2 sonuç değer döndürür; yoksa son deyimin değeri döner" {
     eşit_mi(yok, boş_dönüş())
 }
 
-test "6.3 varsayılan parametreler; eksik argüman yok olur" {
+test "6.3 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
     fonksiyon selam(ad, ek = "!") { sonuç "Selam " + ad + ek }
     eşit_mi("Selam Ali!", selam("Ali"))
     eşit_mi("Selam Ali?", selam("Ali", "?"))
     fonksiyon ikinci(a, b) { sonuç b }
-    eşit_mi(yok, ikinci(1))
+    değişken eksik = ""
+    dene { ikinci(1) } yakala hata { eksik = hata }
+    doğrula(eksik.içerir("2 argüman bekler, 1 verildi (eksik: 'b')"), eksik)
+    değişken fazla = ""
+    dene { ikinci(1, 2, 3) } yakala hata { fazla = hata }
+    doğrula(fazla.içerir("en fazla 2 argüman alır, 3 verildi"), fazla)
+}
+
+test "6.3a özyineleme derinliği sınırı yakalanabilir hata verir" {
+    fonksiyon sonsuz(n) { sonuç sonsuz(n + 1) }
+    değişken mesaj = ""
+    dene { sonsuz(0) } yakala hata { mesaj = hata }
+    doğrula(mesaj.içerir("Özyineleme derinliği sınırı aşıldı"), mesaj)
 }
 
 test "6.4 adlı argümanlar" {
