@@ -1,0 +1,56 @@
+/* İzleme Masası stilleri (extension.js içindeki izlemeMasasiHtml tarafından yüklenir). */
+html, body { height: 100%; margin: 0; }
+body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); display: flex; flex-direction: column; }
+#ust { flex: 1 1 auto; min-height: 80px; overflow: auto; padding: 6px 12px; }
+.baslik { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--vscode-focusBorder); padding-bottom: 6px; margin-bottom: 6px; gap: 12px; }
+.baslik b { font-size: 1.05em; }
+.soluk { color: var(--vscode-descriptionForeground); }
+.arac { display: flex; gap: 10px; align-items: center; margin: 6px 0; }
+input { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-focusBorder)); padding: 3px 8px; font-family: var(--vscode-editor-font-family); }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--vscode-editorWidget-border, #555); padding: 3px 8px; text-align: left; vertical-align: top; overflow: hidden; }
+th { background: var(--vscode-editorWidget-background); user-select: none; white-space: nowrap; }
+#degiskenTablosu { table-layout: fixed; }
+col.kapsam { width: 64px; } col.ad { width: 24%; } col.tip { width: 120px; } col.islem { width: 34px; }
+td.kapsam { color: var(--vscode-descriptionForeground); white-space: nowrap; }
+td.ad, td.tip, td.deger { white-space: nowrap; text-overflow: ellipsis; }
+td.tip { color: var(--vscode-symbolIcon-classForeground, var(--vscode-foreground)); }
+td.deger { font-family: var(--vscode-editor-font-family); }
+tr.degisti td.deger, tr.degisti td.ad { color: var(--vscode-debugTokenExpression-number, #d19a66); font-weight: 600; }
+#degiskenler > tr:nth-child(even) > td { background: var(--vscode-list-hoverBackground); }
+tr.acik > td { background: var(--vscode-list-inactiveSelectionBackground) !important; }
+tr.tablo-satiri { cursor: pointer; }
+button.kalem { background: none; border: none; cursor: pointer; padding: 0 2px; }
+.ikon { display: inline-block; width: 1.6em; text-align: center; font-weight: 700; margin-right: 4px; font-size: .9em; }
+.ikon.tablo { color: var(--vscode-charts-blue, #3794ff); } .ikon.liste { color: var(--vscode-charts-purple, #b180d7); }
+.ikon.sozluk { color: var(--vscode-charts-orange, #d18616); } .ikon.yapi { color: var(--vscode-charts-red, #f14c4c); }
+.ikon.matris { color: var(--vscode-charts-green, #89d185); } .ikon.sayi { color: var(--vscode-debugTokenExpression-number, #b5cea8); }
+.ikon.metin { color: var(--vscode-debugTokenExpression-string, #ce9178); } .ikon.mantik, .ikon.yok, .ikon.diger { color: var(--vscode-descriptionForeground); }
+.link { color: var(--vscode-textLink-foreground); text-decoration: underline; cursor: pointer; }
+.link:hover { color: var(--vscode-textLink-activeForeground); }
+.bos { color: var(--vscode-descriptionForeground); padding: 10px; }
+#yonlendirme { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+#yonlendirme button { background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background)); color: var(--vscode-button-secondaryForeground, var(--vscode-foreground)); border: 1px solid var(--vscode-button-border, var(--vscode-editorWidget-border, #555)); border-radius: 3px; padding: 3px 10px; cursor: pointer; font: inherit; white-space: nowrap; }
+#yonlendirme button:hover:not(:disabled) { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
+#yonlendirme button.ana { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: transparent; }
+#yonlendirme button.ana:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
+#yonlendirme button:disabled { opacity: .45; cursor: default; }
+#yonlendirme .kisayol { opacity: .7; font-size: .85em; margin-left: 4px; }
+
+/* Alt tablo penceresi: sekmeler + ızgara; üstteki çubuk sürüklenerek boyutlandırılır */
+#ayirici { flex: 0 0 5px; cursor: row-resize; background: var(--vscode-editorWidget-border, #555); display: none; }
+#pencere { flex: 0 0 auto; height: 45vh; min-height: 90px; display: none; flex-direction: column; border-top: 1px solid var(--vscode-focusBorder); }
+#sekmeler { display: flex; align-items: stretch; background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editorWidget-background)); overflow-x: auto; flex: 0 0 auto; }
+.sekme { display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; cursor: pointer; border-right: 1px solid var(--vscode-tab-border, #444); white-space: nowrap; color: var(--vscode-tab-inactiveForeground, var(--vscode-descriptionForeground)); background: var(--vscode-tab-inactiveBackground, transparent); }
+.sekme.etkin { color: var(--vscode-tab-activeForeground, var(--vscode-foreground)); background: var(--vscode-tab-activeBackground, var(--vscode-editor-background)); border-top: 2px solid var(--vscode-focusBorder); }
+.sekme .kapat { border: none; background: none; color: inherit; cursor: pointer; padding: 0 4px; border-radius: 3px; font-size: 1em; line-height: 1; }
+.sekme .kapat:hover { background: var(--vscode-toolbar-hoverBackground, rgba(128,128,128,.25)); }
+#sekmeler .bosluk { flex: 1; }
+#hepsiniKapat { border: none; background: none; color: var(--vscode-descriptionForeground); cursor: pointer; padding: 0 10px; }
+#pencereArac { padding: 4px 10px; flex: 0 0 auto; }
+#izgaraKutu { flex: 1 1 auto; overflow: auto; padding: 0 10px 8px; }
+#izgaraKutu th { position: sticky; top: 0; cursor: pointer; }
+#izgaraKutu td { white-space: nowrap; }
+#izgaraKutu td.sayi { text-align: right; font-variant-numeric: tabular-nums; }
+#izgaraKutu tbody tr:nth-child(even) td { background: var(--vscode-list-hoverBackground); }
+#izgaraKutu td:focus { outline: 2px solid var(--vscode-focusBorder); outline-offset: -2px; }

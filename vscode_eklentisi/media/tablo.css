@@ -1,0 +1,12 @@
+/* Tablo görünümü stilleri (extension.js içindeki tabloHtml tarafından yüklenir). */
+body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); padding: 8px 12px; }
+h2 { font-size: 1.1em; margin: 4px 0 10px; }
+.arac { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+input { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, transparent); padding: 4px 8px; min-width: 240px; }
+.sayac { color: var(--vscode-descriptionForeground); }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--vscode-editorWidget-border, #444); padding: 4px 8px; text-align: left; white-space: nowrap; }
+th { position: sticky; top: 0; background: var(--vscode-editorWidget-background); cursor: pointer; user-select: none; }
+td.sayi { text-align: right; font-variant-numeric: tabular-nums; }
+tr:nth-child(even) td { background: var(--vscode-list-hoverBackground); }
+th .ok { opacity: .6; margin-left: 4px; }

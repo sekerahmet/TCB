@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; script-src 'nonce-{{nonce}}';">
+<link rel="stylesheet" href="{{css}}"></head>
+<body>
+<h2 id="baslik"></h2>
+<div class="arac"><input id="ara" placeholder="Tabloda ara..."><span class="sayac" id="sayac"></span></div>
+<table><thead><tr id="basliklar"></tr></thead><tbody id="govde"></tbody></table>
+<script nonce="{{nonce}}">const veri = {{veri}};</script>
+<script nonce="{{nonce}}" src="{{js}}"></script></body></html>

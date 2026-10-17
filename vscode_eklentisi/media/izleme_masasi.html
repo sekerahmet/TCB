@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; script-src 'nonce-{{nonce}}';">
+<link rel="stylesheet" href="{{css}}"></head>
+<body>
+<div id="ust">
+  <div class="baslik"><b id="konum">Hata ayıklama bekleniyor…</b><span class="soluk" id="neden"></span></div>
+  <div id="yonlendirme">
+    <button data-komut="next" class="ana" title="Sonraki satıra geç; fonksiyon çağrılarının içine girmez">⤼ Sonraki satır<span class="kisayol">F10</span></button>
+    <button data-komut="stepIn" title="Bu satırdaki fonksiyonun içine gir">↓ İçine gir<span class="kisayol">F11</span></button>
+    <button data-komut="stepOut" title="İçinde bulunulan fonksiyondan çık">↑ Dışarı çık<span class="kisayol">Shift+F11</span></button>
+    <button data-komut="continue" title="Bir sonraki kesme noktasına kadar devam et">▶ Devam<span class="kisayol">F5</span></button>
+    <button data-komut="stop" title="Hata ayıklamayı durdur">■ Durdur<span class="kisayol">Shift+F5</span></button>
+  </div>
+  <div class="arac"><input id="degiskenAra" placeholder="Değişken ara…" style="width:220px"><span class="soluk" id="degiskenSayac"></span></div>
+  <table id="degiskenTablosu">
+    <colgroup><col class="kapsam"><col class="ad"><col class="tip"><col><col class="islem"></colgroup>
+    <thead><tr><th>Kapsam</th><th>Değişken</th><th>Tip</th><th>Değer</th><th></th></tr></thead>
+    <tbody id="degiskenler"></tbody>
+  </table>
+</div>
+<div id="ayirici" title="Sürükleyerek boyutlandırın"></div>
+<div id="pencere">
+  <div id="sekmeler"></div>
+  <div id="pencereArac" class="arac"><input id="tabloAra" placeholder="Tabloda ara…" style="width:220px"><span class="soluk" id="tabloSayac"></span></div>
+  <div id="izgaraKutu"></div>
+</div>
+<script nonce="{{nonce}}" src="{{js}}"></script></body></html>
