@@ -1,0 +1,7 @@
+değişken n = 512
+değişken a = rastgele_matris(n, n)
+değişken b = rastgele_matris(n, n)
+değişken bas = zaman_ms()
+değişken c = a @ b
+değişken c2 = c @ b
+yazdır("matris_yerlesik - {zaman_ms() - bas}")

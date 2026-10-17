@@ -1,0 +1,7 @@
+fonksiyon fib(n) {
+    eğer n < 2 { sonuç n }
+    sonuç fib(n - 1) + fib(n - 2)
+}
+değişken bas = zaman_ms()
+değişken s = fib(27)
+yazdır("fib {s} {zaman_ms() - bas}")

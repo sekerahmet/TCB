@@ -1,0 +1,43 @@
+değişken n = 120
+değişken a = []
+değişken b = []
+değişken i = 0
+iken i < n {
+    değişken sa = []
+    değişken sb = []
+    değişken j = 0
+    iken j < n {
+        sa.ekle((i * j) % 7)
+        sb.ekle((i + j) % 5)
+        j += 1
+    }
+    a.ekle(sa)
+    b.ekle(sb)
+    i += 1
+}
+değişken bas = zaman_ms()
+değişken c = []
+i = 0
+iken i < n {
+    değişken satir = []
+    değişken j = 0
+    iken j < n {
+        değişken t = 0
+        değişken k = 0
+        iken k < n {
+            t += a[i][k] * b[k][j]
+            k += 1
+        }
+        satir.ekle(t)
+        j += 1
+    }
+    c.ekle(satir)
+    i += 1
+}
+değişken iz = 0
+i = 0
+iken i < n {
+    iz += c[i][i]
+    i += 1
+}
+yazdır("matris_dongu {iz} {zaman_ms() - bas}")

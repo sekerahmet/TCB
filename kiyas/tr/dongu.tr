@@ -1,0 +1,8 @@
+değişken bas = zaman_ms()
+değişken toplam = 0
+değişken i = 0
+iken i < 3000000 {
+    toplam += i
+    i += 1
+}
+yazdır("dongu {toplam} {zaman_ms() - bas}")

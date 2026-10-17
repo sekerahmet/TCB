@@ -1,0 +1,9 @@
+değişken bas = zaman_ms()
+değişken toplam = 0
+değişken i = 0
+iken i < 200000 {
+    değişken s = "kelime" + metin(i)
+    toplam += uzunluk(s)
+    i += 1
+}
+yazdır("metin {toplam} {zaman_ms() - bas}")
