@@ -1,4 +1,10 @@
-package vm
+// Package baytkod, 'tr bytecode' (baytkod) komutunun gösterdiği komut listesini üretir.
+//
+// Bu liste yalnızca gösterim içindir: yorumlayıcı (pkg/vm) programları doğrudan sözdizimi
+// ağacı üzerinden çalıştırır ve burada üretilen komutları hiçbir zaman yürütmez. Paket,
+// kullanıcıların bir programın hangi temel adımlara ayrıldığını görebilmesi için 'tr bytecode'
+// komutuyla birlikte korunur; sözdizimi ağacından (pkg/ast) başka hiçbir pakete bağlı değildir.
+package baytkod
 
 import (
 	"fmt"

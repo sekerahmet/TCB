@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"tr_dili/pkg/baytkod"
 	"tr_dili/pkg/checker"
 	"tr_dili/pkg/hataayiklama"
 	"tr_dili/pkg/lexer"
@@ -161,7 +162,7 @@ func checkFile(path string) {
 
 func showBytecode(path string) {
 	_, prog := dosyaHazirla(path, baytkodHazirligi)
-	chunk := vm.CompileToBytecode(prog)
+	chunk := baytkod.CompileToBytecode(prog)
 	fmt.Print(chunk.Disassemble())
 }
 

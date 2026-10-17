@@ -716,4 +716,3 @@ func formatNumberVal(f float64) Value {
 	}
 	return &FloatVal{Val: f}
 }
-

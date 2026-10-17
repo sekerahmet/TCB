@@ -38,9 +38,9 @@ type IntVal struct {
 	Val int64
 }
 
-func (i *IntVal) Type() ValueType  { return VAL_INT }
-func (i *IntVal) Inspect() string  { return fmt.Sprintf("%d", i.Val) }
-func (i *IntVal) IsTruthy() bool   { return i.Val != 0 }
+func (i *IntVal) Type() ValueType { return VAL_INT }
+func (i *IntVal) Inspect() string { return fmt.Sprintf("%d", i.Val) }
+func (i *IntVal) IsTruthy() bool  { return i.Val != 0 }
 
 type FloatVal struct {
 	Val float64
