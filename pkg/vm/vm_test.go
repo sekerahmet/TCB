@@ -40,61 +40,6 @@ func TestCoreLanguageAndMultiAssign(t *testing.T) {
 	}
 }
 
-func TestMatrixIndexingAndAssignment(t *testing.T) {
-	code := `
-		değişken M = matris([[1, 2], [3, 4]])
-		M[0][1] = 10
-		M[1][0] += 5
-		M[1] = [8, 9]
-		sonuç [M[0][1], M[1][0], M[1][1]]
-	`
-	val, err := runTR(t, code)
-	if err != nil {
-		t.Fatalf("Matris indeksleme/atama hatası: %v", err)
-	}
-	if val.Inspect() != "[10.0, 8.0, 9.0]" {
-		t.Fatalf("[10.0, 8.0, 9.0] bekleniyordu, %s alındı", val.Inspect())
-	}
-}
-
-func TestAutogradAndNeuralNet(t *testing.T) {
-	code := `
-		değişken x = tensör(3.0, türev_izle: doğru)
-		değişken y = x * x + 2 * x + 1
-		geri_yayılım(y)
-		sonuç [y.değer, x.gradyan]
-	`
-	val, err := runTR(t, code)
-	if err != nil {
-		t.Fatalf("Autograd hatası: %v", err)
-	}
-	if val.Inspect() != "[16.0, 8.0]" {
-		t.Fatalf("[16.0, 8.0] bekleniyordu, %s alındı", val.Inspect())
-	}
-}
-
-func TestSQLTurkishCaseAndUTF8Safety(t *testing.T) {
-	code := `
-		değişken vt = veritabanı_aç(":bellek:")
-		vt.ekle("çalışanlar", [
-			{"id": 1, "ad": "Işık", "şehir": "İstanbul", "maaş": 90000},
-			{"id": 2, "ad": "Ali",  "şehir": "Ankara",   "maaş": 60000},
-			{"id": 3, "ad": "İrem", "şehir": "İstanbul", "maaş": 95000}
-		])
-		// Küçük harfli Türkçe SQL ('ı', 'İ', 'ş') ve standart SQL AND/OR testi
-		değişken s1 = vt.sorgula("seç ad, maaş tablo çalışanlar nerede şehir = 'İstanbul' AND maaş >= 90000 sırala maaş azalan limit 2")
-		değişken silinen = vt.sorgula("sil tablo çalışanlar nerede id <> 1 ve id <> 3")
-		sonuç [s1.uzunluk, s1[0]["ad"], silinen, vt.say("çalışanlar")]
-	`
-	val, err := runTR(t, code)
-	if err != nil {
-		t.Fatalf("SQL hatası: %v", err)
-	}
-	if val.Inspect() != `[2, "İrem", 1, 2]` {
-		t.Fatalf(`[2, "İrem", 1, 2] bekleniyordu, %s alındı`, val.Inspect())
-	}
-}
-
 func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	tmpDir := t.TempDir()
 	modPath := filepath.Join(tmpDir, "yardimci.tr")

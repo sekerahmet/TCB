@@ -87,15 +87,3 @@ func TestUnknownNameErrorHasColumnAndSuggestion(t *testing.T) {
 		}
 	}
 }
-
-func TestDebuggerJumpMessageUsesCorrectSuffix(t *testing.T) {
-	d := NewDebugger("t.tr", strings.Repeat("x\n", 50), false)
-	d.webWaitCh = make(chan webDebugAction, 1)
-	for line, want := range map[int]string{6: "Satır 6'ya zıplandı", 9: "Satır 9'a zıplandı", 3: "Satır 3'e zıplandı", 40: "Satır 40'a zıplandı"} {
-		d.webWaitCh <- webDebugAction{Action: "jump", Line: line}
-		d.waitForWebAction(New(), 1, NewEnvironment(nil))
-		if !strings.Contains(d.PauseReason, want) {
-			t.Errorf("%q bekleniyordu, %q alındı", want, d.PauseReason)
-		}
-	}
-}

@@ -32,12 +32,12 @@ func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, err
 
 	switch op {
 	case "==":
-		if valuesEqual(left, right) {
+		if ValuesEqual(left, right) {
 			return TRUE, nil
 		}
 		return FALSE, nil
 	case "!=":
-		if !valuesEqual(left, right) {
+		if !ValuesEqual(left, right) {
 			return TRUE, nil
 		}
 		return FALSE, nil
@@ -87,20 +87,20 @@ func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, err
 				}
 				return &IntVal{Val: res}, nil
 			case "<":
-				return boolToVal(li.Val < ri.Val), nil
+				return BoolToVal(li.Val < ri.Val), nil
 			case ">":
-				return boolToVal(li.Val > ri.Val), nil
+				return BoolToVal(li.Val > ri.Val), nil
 			case "<=":
-				return boolToVal(li.Val <= ri.Val), nil
+				return BoolToVal(li.Val <= ri.Val), nil
 			case ">=":
-				return boolToVal(li.Val >= ri.Val), nil
+				return BoolToVal(li.Val >= ri.Val), nil
 			}
 		}
 	}
 
 	// Ondalık (veya Tam + Ondalık) sayı işlemleri
-	lf, ok1 := toFloat(left)
-	rf, ok2 := toFloat(right)
+	lf, ok1 := ToFloat(left)
+	rf, ok2 := ToFloat(right)
 	if ok1 && ok2 {
 		switch op {
 		case "+":
@@ -122,13 +122,13 @@ func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, err
 		case "**":
 			return &FloatVal{Val: math.Pow(lf, rf)}, nil
 		case "<":
-			return boolToVal(lf < rf), nil
+			return BoolToVal(lf < rf), nil
 		case ">":
-			return boolToVal(lf > rf), nil
+			return BoolToVal(lf > rf), nil
 		case "<=":
-			return boolToVal(lf <= rf), nil
+			return BoolToVal(lf <= rf), nil
 		case ">=":
-			return boolToVal(lf >= rf), nil
+			return BoolToVal(lf >= rf), nil
 		}
 	}
 
@@ -158,7 +158,7 @@ func tasmaHatasi(line int, a int64, op string, b int64) error {
 	return fmt.Errorf("Satır %d: Tam sayı taşması (%d %s %d); ondalık sonuç için örn. %d.0 %s %d yazın", line, a, op, b, a, op, b)
 }
 
-func toFloat(v Value) (float64, bool) {
+func ToFloat(v Value) (float64, bool) {
 	switch n := v.(type) {
 	case *IntVal:
 		return float64(n.Val), true
@@ -169,19 +169,19 @@ func toFloat(v Value) (float64, bool) {
 	}
 }
 
-func boolToVal(b bool) Value {
+func BoolToVal(b bool) Value {
 	if b {
 		return TRUE
 	}
 	return FALSE
 }
 
-func valuesEqual(a, b Value) bool {
+func ValuesEqual(a, b Value) bool {
 	if a.Type() == VAL_NULL && b.Type() == VAL_NULL {
 		return true
 	}
-	if af, ok1 := toFloat(a); ok1 {
-		if bf, ok2 := toFloat(b); ok2 {
+	if af, ok1 := ToFloat(a); ok1 {
+		if bf, ok2 := ToFloat(b); ok2 {
 			return af == bf
 		}
 	}

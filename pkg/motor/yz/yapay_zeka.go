@@ -1,4 +1,4 @@
-package vm
+package yz
 
 import (
 	"bytes"
@@ -13,27 +13,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
+	"tr_dili/pkg/vm"
 )
-
-// ============================================================================
-// 1. MATRİS TİPİ (Çok Çekirdekli Matris ve @ Operatörü)
-// ============================================================================
-
-type MatrixVal struct {
-	Rows int
-	Cols int
-	Data [][]float64
-}
-
-func NewMatrix(rows, cols int) *MatrixVal {
-	data := make([][]float64, rows)
-	for i := range data {
-		data[i] = make([]float64, cols)
-	}
-	return &MatrixVal{Rows: rows, Cols: cols, Data: data}
-}
 
 // httpFetch bir HTTP yanıtının gövdesini okuyup kapatır.
 func httpFetch(resp *http.Response, err error) ([]byte, error) {
@@ -45,7 +27,7 @@ func httpFetch(resp *http.Response, err error) ([]byte, error) {
 }
 
 // loadedMatrix dosyadan okunan iç içe diziyi boş veya düzensiz (satır uzunlukları farklı) olmadığını denetleyerek matrise çevirir.
-func loadedMatrix(data [][]float64) (*MatrixVal, error) {
+func loadedMatrix(data [][]float64) (*vm.MatrixVal, error) {
 	if len(data) == 0 || len(data[0]) == 0 {
 		return nil, fmt.Errorf("boş matris")
 	}
@@ -54,7 +36,7 @@ func loadedMatrix(data [][]float64) (*MatrixVal, error) {
 			return nil, fmt.Errorf("%d. satırın uzunluğu %d, %d bekleniyordu", i+1, len(row), len(data[0]))
 		}
 	}
-	return &MatrixVal{Rows: len(data), Cols: len(data[0]), Data: data}, nil
+	return &vm.MatrixVal{Rows: len(data), Cols: len(data[0]), Data: data}, nil
 }
 
 // checkMatrixDims negatif / sıfır veya aşırı büyük matris boyutlarını panik yerine hata olarak bildirir.
@@ -62,219 +44,10 @@ func checkMatrixDims(fn string, rows, cols int64) error {
 	if rows <= 0 || cols <= 0 {
 		return fmt.Errorf("%s: satır ve sütun sayısı pozitif olmalıdır (%d x %d verildi)", fn, rows, cols)
 	}
-	if rows > maxCollectionSize || cols > maxCollectionSize || rows*cols > maxCollectionSize {
-		return fmt.Errorf("%s: matris çok büyük (%d x %d), en fazla %d eleman", fn, rows, cols, maxCollectionSize)
+	if rows > vm.MaxCollectionSize || cols > vm.MaxCollectionSize || rows*cols > vm.MaxCollectionSize {
+		return fmt.Errorf("%s: matris çok büyük (%d x %d), en fazla %d eleman", fn, rows, cols, vm.MaxCollectionSize)
 	}
 	return nil
-}
-
-func (m *MatrixVal) Type() ValueType { return VAL_MATRIX }
-func (m *MatrixVal) IsTruthy() bool  { return m.Rows > 0 && m.Cols > 0 }
-func (m *MatrixVal) Inspect() string {
-	var rows []string
-	for i := 0; i < m.Rows; i++ {
-		var cols []string
-		for j := 0; j < m.Cols; j++ {
-			cols = append(cols, fmt.Sprintf("%8.4f", m.Data[i][j]))
-		}
-		rows = append(rows, "  ["+strings.Join(cols, ", ")+"]")
-	}
-	return fmt.Sprintf("Matris(%dx%d) [\n%s\n]", m.Rows, m.Cols, strings.Join(rows, ",\n"))
-}
-
-func (m *MatrixVal) Add(other Value) (Value, error) {
-	if om, ok := other.(*MatrixVal); ok {
-		// Broadcasting (1xCols satır vektörü ekleme desteği)
-		if m.Rows == om.Rows && m.Cols == om.Cols {
-			res := NewMatrix(m.Rows, m.Cols)
-			for i := 0; i < m.Rows; i++ {
-				for j := 0; j < m.Cols; j++ {
-					res.Data[i][j] = m.Data[i][j] + om.Data[i][j]
-				}
-			}
-			return res, nil
-		}
-		if om.Rows == 1 && m.Cols == om.Cols {
-			res := NewMatrix(m.Rows, m.Cols)
-			for i := 0; i < m.Rows; i++ {
-				for j := 0; j < m.Cols; j++ {
-					res.Data[i][j] = m.Data[i][j] + om.Data[0][j]
-				}
-			}
-			return res, nil
-		}
-		return nil, fmt.Errorf("Matris toplama boyut uyuşmazlığı: (%dx%d) ile (%dx%d)", m.Rows, m.Cols, om.Rows, om.Cols)
-	}
-	if scalar, ok := toFloat(other); ok {
-		res := NewMatrix(m.Rows, m.Cols)
-		for i := 0; i < m.Rows; i++ {
-			for j := 0; j < m.Cols; j++ {
-				res.Data[i][j] = m.Data[i][j] + scalar
-			}
-		}
-		return res, nil
-	}
-	return nil, fmt.Errorf("Matris ile %s toplanamaz", other.Type())
-}
-
-func (m *MatrixVal) Sub(other Value) (Value, error) {
-	if om, ok := other.(*MatrixVal); ok {
-		if m.Rows != om.Rows || m.Cols != om.Cols {
-			return nil, fmt.Errorf("Matris çıkarma boyut uyuşmazlığı: (%dx%d) ile (%dx%d)", m.Rows, m.Cols, om.Rows, om.Cols)
-		}
-		res := NewMatrix(m.Rows, m.Cols)
-		for i := 0; i < m.Rows; i++ {
-			for j := 0; j < m.Cols; j++ {
-				res.Data[i][j] = m.Data[i][j] - om.Data[i][j]
-			}
-		}
-		return res, nil
-	}
-	if scalar, ok := toFloat(other); ok {
-		res := NewMatrix(m.Rows, m.Cols)
-		for i := 0; i < m.Rows; i++ {
-			for j := 0; j < m.Cols; j++ {
-				res.Data[i][j] = m.Data[i][j] - scalar
-			}
-		}
-		return res, nil
-	}
-	return nil, fmt.Errorf("Matris'ten %s çıkarılamaz", other.Type())
-}
-
-func (m *MatrixVal) Mul(other Value) (Value, error) {
-	if om, ok := other.(*MatrixVal); ok {
-		if m.Rows != om.Rows || m.Cols != om.Cols {
-			return nil, fmt.Errorf("Eleman bazlı çarpım boyut uyuşmazlığı: (%dx%d) ile (%dx%d)", m.Rows, m.Cols, om.Rows, om.Cols)
-		}
-		res := NewMatrix(m.Rows, m.Cols)
-		for i := 0; i < m.Rows; i++ {
-			for j := 0; j < m.Cols; j++ {
-				res.Data[i][j] = m.Data[i][j] * om.Data[i][j]
-			}
-		}
-		return res, nil
-	}
-	if scalar, ok := toFloat(other); ok {
-		res := NewMatrix(m.Rows, m.Cols)
-		for i := 0; i < m.Rows; i++ {
-			for j := 0; j < m.Cols; j++ {
-				res.Data[i][j] = m.Data[i][j] * scalar
-			}
-		}
-		return res, nil
-	}
-	return nil, fmt.Errorf("Matris ile %s çarpılamaz", other.Type())
-}
-
-func (m *MatrixVal) Div(other Value) (Value, error) {
-	if scalar, ok := toFloat(other); ok {
-		if scalar == 0 {
-			return nil, fmt.Errorf("Matris sıfıra bölünemez")
-		}
-		res := NewMatrix(m.Rows, m.Cols)
-		for i := 0; i < m.Rows; i++ {
-			for j := 0; j < m.Cols; j++ {
-				res.Data[i][j] = m.Data[i][j] / scalar
-			}
-		}
-		return res, nil
-	}
-	return nil, fmt.Errorf("Matris %s tipine bölünemez", other.Type())
-}
-
-// MatMul ('@' operatörü): Büyük matrislerde tüm CPU çekirdeklerini paralel kullanır
-func (m *MatrixVal) MatMul(other Value) (Value, error) {
-	om, ok := other.(*MatrixVal)
-	if !ok {
-		return nil, fmt.Errorf("'@' (Matris çarpımı) sağ tarafta Matris bekler, %s verildi", other.Type())
-	}
-	if m.Cols != om.Rows {
-		return nil, fmt.Errorf("Matris çarpımı ('@') boyut hatası: (%dx%d) @ (%dx%d) — sol sütun (%d) ile sağ satır (%d) eşit olmalıdır",
-			m.Rows, m.Cols, om.Rows, om.Cols, m.Cols, om.Rows)
-	}
-
-	res := NewMatrix(m.Rows, om.Cols)
-	if m.Rows >= 16 {
-		var wg sync.WaitGroup
-		for i := 0; i < m.Rows; i++ {
-			wg.Add(1)
-			go func(row int) {
-				defer wg.Done()
-				for k := 0; k < m.Cols; k++ {
-					aik := m.Data[row][k]
-					for j := 0; j < om.Cols; j++ {
-						res.Data[row][j] += aik * om.Data[k][j]
-					}
-				}
-			}(i)
-		}
-		wg.Wait()
-	} else {
-		for i := 0; i < m.Rows; i++ {
-			for k := 0; k < m.Cols; k++ {
-				aik := m.Data[i][k]
-				for j := 0; j < om.Cols; j++ {
-					res.Data[i][j] += aik * om.Data[k][j]
-				}
-			}
-		}
-	}
-	return res, nil
-}
-
-func (m *MatrixVal) Transpose() *MatrixVal {
-	res := NewMatrix(m.Cols, m.Rows)
-	for i := 0; i < m.Rows; i++ {
-		for j := 0; j < m.Cols; j++ {
-			res.Data[j][i] = m.Data[i][j]
-		}
-	}
-	return res
-}
-
-func (m *MatrixVal) GetProperty(prop string) (Value, error) {
-	switch prop {
-	case "şekil", "sekil", "boyut":
-		return &ListVal{Elements: []Value{&IntVal{Val: int64(m.Rows)}, &IntVal{Val: int64(m.Cols)}}}, nil
-	case "satır", "satir":
-		return &IntVal{Val: int64(m.Rows)}, nil
-	case "sütun", "sutun":
-		return &IntVal{Val: int64(m.Cols)}, nil
-	case "devrik", "T":
-		return m.Transpose(), nil
-	case "toplam":
-		sum := 0.0
-		for i := 0; i < m.Rows; i++ {
-			for j := 0; j < m.Cols; j++ {
-				sum += m.Data[i][j]
-			}
-		}
-		return &FloatVal{Val: sum}, nil
-	case "ortalama":
-		sum := 0.0
-		count := float64(m.Rows * m.Cols)
-		if count == 0 {
-			return &FloatVal{Val: 0}, nil
-		}
-		for i := 0; i < m.Rows; i++ {
-			for j := 0; j < m.Cols; j++ {
-				sum += m.Data[i][j]
-			}
-		}
-		return &FloatVal{Val: sum / count}, nil
-	case "liste":
-		rows := make([]Value, m.Rows)
-		for i := 0; i < m.Rows; i++ {
-			cols := make([]Value, m.Cols)
-			for j := 0; j < m.Cols; j++ {
-				cols[j] = &FloatVal{Val: m.Data[i][j]}
-			}
-			rows[i] = &ListVal{Elements: cols}
-		}
-		return &ListVal{Elements: rows}, nil
-	}
-	return nil, fmt.Errorf("Matris üzerinde %q özelliği bulunamadı", prop)
 }
 
 // ============================================================================
@@ -297,8 +70,8 @@ func NewTensor(val float64, reqGrad bool) *TensorVal {
 	}
 }
 
-func (t *TensorVal) Type() ValueType { return VAL_TENSOR }
-func (t *TensorVal) IsTruthy() bool  { return t.Val != 0 }
+func (t *TensorVal) Type() vm.ValueType { return vm.VAL_TENSOR }
+func (t *TensorVal) IsTruthy() bool     { return t.Val != 0 }
 func (t *TensorVal) Inspect() string {
 	if t.RequiresGrad {
 		return fmt.Sprintf("Tensör(değer: %.4f, gradyan: %.4f)", t.Val, t.Grad)
@@ -306,17 +79,17 @@ func (t *TensorVal) Inspect() string {
 	return fmt.Sprintf("Tensör(%.4f)", t.Val)
 }
 
-func asTensor(v Value) (*TensorVal, error) {
+func asTensor(v vm.Value) (*TensorVal, error) {
 	if tv, ok := v.(*TensorVal); ok {
 		return tv, nil
 	}
-	if fv, ok := toFloat(v); ok {
+	if fv, ok := vm.ToFloat(v); ok {
 		return NewTensor(fv, false), nil
 	}
 	return nil, fmt.Errorf("%s tipi Tensör işlemine dönüştürülemez", v.Type())
 }
 
-func (t *TensorVal) Add(other Value) (Value, error) {
+func (t *TensorVal) Add(other vm.Value) (vm.Value, error) {
 	ot, err := asTensor(other)
 	if err != nil {
 		return nil, err
@@ -337,7 +110,7 @@ func (t *TensorVal) Add(other Value) (Value, error) {
 	return out, nil
 }
 
-func (t *TensorVal) Sub(other Value) (Value, error) {
+func (t *TensorVal) Sub(other vm.Value) (vm.Value, error) {
 	ot, err := asTensor(other)
 	if err != nil {
 		return nil, err
@@ -358,7 +131,7 @@ func (t *TensorVal) Sub(other Value) (Value, error) {
 	return out, nil
 }
 
-func (t *TensorVal) Mul(other Value) (Value, error) {
+func (t *TensorVal) Mul(other vm.Value) (vm.Value, error) {
 	ot, err := asTensor(other)
 	if err != nil {
 		return nil, err
@@ -379,7 +152,7 @@ func (t *TensorVal) Mul(other Value) (Value, error) {
 	return out, nil
 }
 
-func (t *TensorVal) Div(other Value) (Value, error) {
+func (t *TensorVal) Div(other vm.Value) (vm.Value, error) {
 	ot, err := asTensor(other)
 	if err != nil {
 		return nil, err
@@ -403,16 +176,16 @@ func (t *TensorVal) Div(other Value) (Value, error) {
 	return out, nil
 }
 
-func (t *TensorVal) MatMul(other Value) (Value, error) {
+func (t *TensorVal) MatMul(other vm.Value) (vm.Value, error) {
 	return t.Mul(other)
 }
 
-func (t *TensorVal) GetProperty(prop string) (Value, error) {
+func (t *TensorVal) GetProperty(prop string) (vm.Value, error) {
 	switch prop {
 	case "gradyan", "türev", "turev":
-		return &FloatVal{Val: t.Grad}, nil
+		return &vm.FloatVal{Val: t.Grad}, nil
 	case "değer", "deger":
-		return &FloatVal{Val: t.Val}, nil
+		return &vm.FloatVal{Val: t.Val}, nil
 	}
 	return nil, fmt.Errorf("Tensör üzerinde %q özelliği bulunamadı", prop)
 }
@@ -451,27 +224,27 @@ func (t *TensorVal) Backward() {
 type NeuralNetVal struct {
 	LayerSizes []int
 	Activation string
-	Weights    []*MatrixVal
-	Biases     []*MatrixVal
+	Weights    []*vm.MatrixVal
+	Biases     []*vm.MatrixVal
 }
 
 func NewNeuralNet(sizes []int, activation string, seed int64) *NeuralNetVal {
 	rng := rand.New(rand.NewSource(seed))
 	numLayers := len(sizes) - 1
-	weights := make([]*MatrixVal, numLayers)
-	biases := make([]*MatrixVal, numLayers)
+	weights := make([]*vm.MatrixVal, numLayers)
+	biases := make([]*vm.MatrixVal, numLayers)
 
 	for l := 0; l < numLayers; l++ {
 		inDim := sizes[l]
 		outDim := sizes[l+1]
 		scale := math.Sqrt(2.0 / float64(inDim+outDim))
-		w := NewMatrix(inDim, outDim)
+		w := vm.NewMatrix(inDim, outDim)
 		for i := 0; i < inDim; i++ {
 			for j := 0; j < outDim; j++ {
 				w.Data[i][j] = rng.NormFloat64() * scale
 			}
 		}
-		b := NewMatrix(1, outDim)
+		b := vm.NewMatrix(1, outDim)
 		weights[l] = w
 		biases[l] = b
 	}
@@ -484,8 +257,8 @@ func NewNeuralNet(sizes []int, activation string, seed int64) *NeuralNetVal {
 	}
 }
 
-func (nn *NeuralNetVal) Type() ValueType { return ValueType("SinirAğı") }
-func (nn *NeuralNetVal) IsTruthy() bool  { return true }
+func (nn *NeuralNetVal) Type() vm.ValueType { return vm.ValueType("SinirAğı") }
+func (nn *NeuralNetVal) IsTruthy() bool     { return true }
 func (nn *NeuralNetVal) Inspect() string {
 	var dims []string
 	for _, s := range nn.LayerSizes {
@@ -534,9 +307,9 @@ func (nn *NeuralNetVal) activateDeriv(activatedVal float64, rawVal float64, isOu
 	}
 }
 
-func (nn *NeuralNetVal) Forward(X *MatrixVal) ([]*MatrixVal, []*MatrixVal, error) {
-	activations := []*MatrixVal{X}
-	zs := []*MatrixVal{}
+func (nn *NeuralNetVal) Forward(X *vm.MatrixVal) ([]*vm.MatrixVal, []*vm.MatrixVal, error) {
+	activations := []*vm.MatrixVal{X}
+	zs := []*vm.MatrixVal{}
 	cur := X
 
 	for l := 0; l < len(nn.Weights); l++ {
@@ -545,14 +318,14 @@ func (nn *NeuralNetVal) Forward(X *MatrixVal) ([]*MatrixVal, []*MatrixVal, error
 		if err != nil {
 			return nil, nil, err
 		}
-		zMat, err := mmVal.(*MatrixVal).Add(nn.Biases[l])
+		zMat, err := mmVal.(*vm.MatrixVal).Add(nn.Biases[l])
 		if err != nil {
 			return nil, nil, err
 		}
-		z := zMat.(*MatrixVal)
+		z := zMat.(*vm.MatrixVal)
 		zs = append(zs, z)
 
-		a := NewMatrix(z.Rows, z.Cols)
+		a := vm.NewMatrix(z.Rows, z.Cols)
 		for i := 0; i < z.Rows; i++ {
 			for j := 0; j < z.Cols; j++ {
 				a.Data[i][j] = nn.activate(z.Data[i][j], isOut)
@@ -565,7 +338,7 @@ func (nn *NeuralNetVal) Forward(X *MatrixVal) ([]*MatrixVal, []*MatrixVal, error
 	return activations, zs, nil
 }
 
-func (nn *NeuralNetVal) Train(X, Y *MatrixVal, epochs int, lr float64) ([]float64, error) {
+func (nn *NeuralNetVal) Train(X, Y *vm.MatrixVal, epochs int, lr float64) ([]float64, error) {
 	if X.Rows != Y.Rows {
 		return nil, fmt.Errorf("Eğitim girdi satır sayısı (%d) ile hedef satır sayısı (%d) eşit olmalıdır", X.Rows, Y.Rows)
 	}
@@ -594,7 +367,7 @@ func (nn *NeuralNetVal) Train(X, Y *MatrixVal, epochs int, lr float64) ([]float6
 
 		// MSE Kaybı ve son katman deltası
 		loss := 0.0
-		delta := NewMatrix(pred.Rows, pred.Cols)
+		delta := vm.NewMatrix(pred.Rows, pred.Cols)
 		for i := 0; i < pred.Rows; i++ {
 			for j := 0; j < pred.Cols; j++ {
 				diff := pred.Data[i][j] - Y.Data[i][j]
@@ -607,8 +380,8 @@ func (nn *NeuralNetVal) Train(X, Y *MatrixVal, epochs int, lr float64) ([]float6
 		lossHistory = append(lossHistory, loss)
 
 		// Geri yayılım (Backpropagation)
-		gradW := make([]*MatrixVal, numLayers)
-		gradB := make([]*MatrixVal, numLayers)
+		gradW := make([]*vm.MatrixVal, numLayers)
+		gradB := make([]*vm.MatrixVal, numLayers)
 
 		for l := numLayers - 1; l >= 0; l-- {
 			prevActT := activations[l].Transpose()
@@ -616,9 +389,9 @@ func (nn *NeuralNetVal) Train(X, Y *MatrixVal, epochs int, lr float64) ([]float6
 			if err != nil {
 				return nil, err
 			}
-			gradW[l] = gwVal.(*MatrixVal)
+			gradW[l] = gwVal.(*vm.MatrixVal)
 
-			gb := NewMatrix(1, delta.Cols)
+			gb := vm.NewMatrix(1, delta.Cols)
 			for i := 0; i < delta.Rows; i++ {
 				for j := 0; j < delta.Cols; j++ {
 					gb.Data[0][j] += delta.Data[i][j]
@@ -632,7 +405,7 @@ func (nn *NeuralNetVal) Train(X, Y *MatrixVal, epochs int, lr float64) ([]float6
 				if err != nil {
 					return nil, err
 				}
-				nextDelta := nextDeltaVal.(*MatrixVal)
+				nextDelta := nextDeltaVal.(*vm.MatrixVal)
 				for i := 0; i < nextDelta.Rows; i++ {
 					for j := 0; j < nextDelta.Cols; j++ {
 						nextDelta.Data[i][j] *= nn.activateDeriv(activations[l].Data[i][j], zs[l-1].Data[i][j], false)
@@ -659,18 +432,28 @@ func (nn *NeuralNetVal) Train(X, Y *MatrixVal, epochs int, lr float64) ([]float6
 }
 
 // NeuralNetVal ayrıca MatrixOperator üzerinden .eğit, .tahmin_et, .ağırlıklar metodlarını sunar
-func (nn *NeuralNetVal) Add(other Value) (Value, error)    { return nil, fmt.Errorf("SinirAğı toplanamaz") }
-func (nn *NeuralNetVal) Sub(other Value) (Value, error)    { return nil, fmt.Errorf("SinirAğı çıkarılamaz") }
-func (nn *NeuralNetVal) Mul(other Value) (Value, error)    { return nil, fmt.Errorf("SinirAğı çarpılamaz") }
-func (nn *NeuralNetVal) Div(other Value) (Value, error)    { return nil, fmt.Errorf("SinirAğı bölünemez") }
-func (nn *NeuralNetVal) MatMul(other Value) (Value, error) { return nil, fmt.Errorf("SinirAğı @ ile çarpılamaz") }
+func (nn *NeuralNetVal) Add(other vm.Value) (vm.Value, error) {
+	return nil, fmt.Errorf("SinirAğı toplanamaz")
+}
+func (nn *NeuralNetVal) Sub(other vm.Value) (vm.Value, error) {
+	return nil, fmt.Errorf("SinirAğı çıkarılamaz")
+}
+func (nn *NeuralNetVal) Mul(other vm.Value) (vm.Value, error) {
+	return nil, fmt.Errorf("SinirAğı çarpılamaz")
+}
+func (nn *NeuralNetVal) Div(other vm.Value) (vm.Value, error) {
+	return nil, fmt.Errorf("SinirAğı bölünemez")
+}
+func (nn *NeuralNetVal) MatMul(other vm.Value) (vm.Value, error) {
+	return nil, fmt.Errorf("SinirAğı @ ile çarpılamaz")
+}
 
-func (nn *NeuralNetVal) GetProperty(prop string) (Value, error) {
+func (nn *NeuralNetVal) GetProperty(prop string) (vm.Value, error) {
 	switch prop {
 	case "eğit", "egit":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "model.eğit",
-			Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("model.eğit(Girdi, Hedef, [devir: 500], [öğrenme_hızı: 0.1]) en az 2 parametre bekler")
 				}
@@ -686,27 +469,27 @@ func (nn *NeuralNetVal) GetProperty(prop string) (Value, error) {
 				lr := 0.1
 				if named != nil {
 					if v, ok := named["devir"]; ok {
-						if iv, ok := v.(*IntVal); ok {
+						if iv, ok := v.(*vm.IntVal); ok {
 							epochs = int(iv.Val)
 						}
 					}
 					if v, ok := named["öğrenme_hızı"]; ok {
-						if fv, ok := toFloat(v); ok {
+						if fv, ok := vm.ToFloat(v); ok {
 							lr = fv
 						}
 					} else if v, ok := named["ogrenme_hizi"]; ok {
-						if fv, ok := toFloat(v); ok {
+						if fv, ok := vm.ToFloat(v); ok {
 							lr = fv
 						}
 					}
 				}
 				if len(args) >= 3 {
-					if iv, ok := args[2].(*IntVal); ok {
+					if iv, ok := args[2].(*vm.IntVal); ok {
 						epochs = int(iv.Val)
 					}
 				}
 				if len(args) >= 4 {
-					if fv, ok := toFloat(args[3]); ok {
+					if fv, ok := vm.ToFloat(args[3]); ok {
 						lr = fv
 					}
 				}
@@ -714,18 +497,18 @@ func (nn *NeuralNetVal) GetProperty(prop string) (Value, error) {
 				if err != nil {
 					return nil, err
 				}
-				res := NewDictVal()
-				res.Set("ilk_kayıp", &FloatVal{Val: history[0]})
-				res.Set("son_kayıp", &FloatVal{Val: history[len(history)-1]})
-				res.Set("devir", &IntVal{Val: int64(epochs)})
+				res := vm.NewDictVal()
+				res.Set("ilk_kayıp", &vm.FloatVal{Val: history[0]})
+				res.Set("son_kayıp", &vm.FloatVal{Val: history[len(history)-1]})
+				res.Set("devir", &vm.IntVal{Val: int64(epochs)})
 				return res, nil
 			},
 		}, nil
 
 	case "tahmin_et", "tahmin":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "model.tahmin_et",
-			Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) != 1 {
 					return nil, fmt.Errorf("model.tahmin_et(Girdi) 1 parametre bekler")
 				}
@@ -742,16 +525,16 @@ func (nn *NeuralNetVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "ağırlıklar", "agirliklar":
-		elems := make([]Value, len(nn.Weights))
+		elems := make([]vm.Value, len(nn.Weights))
 		for i, w := range nn.Weights {
 			elems[i] = w
 		}
-		return &ListVal{Elements: elems}, nil
+		return &vm.ListVal{Elements: elems}, nil
 
 	case "kaydet":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "model.kaydet",
-			Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) != 1 {
 					return nil, fmt.Errorf("model.kaydet(dosya_yolu) 1 parametre bekler")
 				}
@@ -777,7 +560,7 @@ func (nn *NeuralNetVal) GetProperty(prop string) (Value, error) {
 				if err := os.WriteFile(path, data, 0644); err != nil {
 					return nil, fmt.Errorf("Model kaydedilemedi: %v", err)
 				}
-				return TRUE, nil
+				return vm.TRUE, nil
 			},
 		}, nil
 	}
@@ -788,27 +571,27 @@ func (nn *NeuralNetVal) GetProperty(prop string) (Value, error) {
 // 4. YARDIMCI DÖNÜŞTÜRÜCÜLER VE FAZ 2 YERLEŞİK FONKSİYON KAYITLARI
 // ============================================================================
 
-func valueToMatrix(v Value) (*MatrixVal, error) {
-	if m, ok := v.(*MatrixVal); ok {
+func valueToMatrix(v vm.Value) (*vm.MatrixVal, error) {
+	if m, ok := v.(*vm.MatrixVal); ok {
 		return m, nil
 	}
-	list, ok := v.(*ListVal)
+	list, ok := v.(*vm.ListVal)
 	if !ok || len(list.Elements) == 0 {
 		return nil, fmt.Errorf("Matris oluşturmak için boş olmayan bir Liste gereklidir")
 	}
 
 	// 2 boyutlu liste: [[1, 2], [3, 4]]
-	if firstRow, ok := list.Elements[0].(*ListVal); ok {
+	if firstRow, ok := list.Elements[0].(*vm.ListVal); ok {
 		rows := len(list.Elements)
 		cols := len(firstRow.Elements)
-		mat := NewMatrix(rows, cols)
+		mat := vm.NewMatrix(rows, cols)
 		for i, rVal := range list.Elements {
-			rList, ok := rVal.(*ListVal)
+			rList, ok := rVal.(*vm.ListVal)
 			if !ok || len(rList.Elements) != cols {
 				return nil, fmt.Errorf("Matrisin tüm satırları eşit uzunlukta olmalıdır")
 			}
 			for j, cVal := range rList.Elements {
-				f, ok := toFloat(cVal)
+				f, ok := vm.ToFloat(cVal)
 				if !ok {
 					return nil, fmt.Errorf("Matris elemanları sayısal olmalıdır")
 				}
@@ -820,9 +603,9 @@ func valueToMatrix(v Value) (*MatrixVal, error) {
 
 	// 1 boyutlu liste -> 1xN satır matrisi
 	cols := len(list.Elements)
-	mat := NewMatrix(1, cols)
+	mat := vm.NewMatrix(1, cols)
 	for j, cVal := range list.Elements {
-		f, ok := toFloat(cVal)
+		f, ok := vm.ToFloat(cVal)
 		if !ok {
 			return nil, fmt.Errorf("Matris elemanları sayısal olmalıdır")
 		}
@@ -831,53 +614,55 @@ func valueToMatrix(v Value) (*MatrixVal, error) {
 	return mat, nil
 }
 
-func (v *VM) registerAIBuiltins() {
+// Kaydet matris, tensör, sinir ağı, istatistik, JSON/CSV, model ve web isteği
+// yerleşiklerini VM'ye kaydeder.
+func Kaydet(v *vm.VM) {
 	// --- Matris Oluşturucular ---
-	v.RegisterBuiltin("matris", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("matris", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("matris(liste) 1 parametre bekler")
 		}
 		return valueToMatrix(args[0])
 	})
 
-	v.RegisterBuiltin("sıfırlar", "sifirlar", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("sıfırlar", "sifirlar", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) == 1 {
-			n, ok := args[0].(*IntVal)
+			n, ok := args[0].(*vm.IntVal)
 			if !ok {
 				return nil, fmt.Errorf("sıfırlar() Tam sayı bekler")
 			}
 			if err := checkMatrixDims("sıfırlar", 1, n.Val); err != nil {
 				return nil, err
 			}
-			return NewMatrix(1, int(n.Val)), nil
+			return vm.NewMatrix(1, int(n.Val)), nil
 		}
 		if len(args) >= 2 {
-			r, ok1 := args[0].(*IntVal)
-			c, ok2 := args[1].(*IntVal)
+			r, ok1 := args[0].(*vm.IntVal)
+			c, ok2 := args[1].(*vm.IntVal)
 			if !ok1 || !ok2 {
 				return nil, fmt.Errorf("sıfırlar(satır, sütun) Tam sayı bekler")
 			}
 			if err := checkMatrixDims("sıfırlar", r.Val, c.Val); err != nil {
 				return nil, err
 			}
-			return NewMatrix(int(r.Val), int(c.Val)), nil
+			return vm.NewMatrix(int(r.Val), int(c.Val)), nil
 		}
 		return nil, fmt.Errorf("sıfırlar(satır, [sütun]) en az 1 parametre bekler")
 	})
 
-	v.RegisterBuiltin("birler", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("birler", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("birler(satır, sütun) 2 parametre bekler")
 		}
-		r, ok1 := args[0].(*IntVal)
-		c, ok2 := args[1].(*IntVal)
+		r, ok1 := args[0].(*vm.IntVal)
+		c, ok2 := args[1].(*vm.IntVal)
 		if !ok1 || !ok2 {
 			return nil, fmt.Errorf("birler(satır, sütun) Tam sayı bekler")
 		}
 		if err := checkMatrixDims("birler", r.Val, c.Val); err != nil {
 			return nil, err
 		}
-		m := NewMatrix(int(r.Val), int(c.Val))
+		m := vm.NewMatrix(int(r.Val), int(c.Val))
 		for i := 0; i < m.Rows; i++ {
 			for j := 0; j < m.Cols; j++ {
 				m.Data[i][j] = 1.0
@@ -886,30 +671,30 @@ func (v *VM) registerAIBuiltins() {
 		return m, nil
 	})
 
-	v.RegisterBuiltin("birim_matris", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("birim_matris", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("birim_matris(n) 1 parametre bekler")
 		}
-		n, ok := args[0].(*IntVal)
+		n, ok := args[0].(*vm.IntVal)
 		if !ok {
 			return nil, fmt.Errorf("birim_matris(n) Tam sayı bekler")
 		}
 		if err := checkMatrixDims("birim_matris", n.Val, n.Val); err != nil {
 			return nil, err
 		}
-		m := NewMatrix(int(n.Val), int(n.Val))
+		m := vm.NewMatrix(int(n.Val), int(n.Val))
 		for i := 0; i < m.Rows; i++ {
 			m.Data[i][i] = 1.0
 		}
 		return m, nil
 	})
 
-	v.RegisterBuiltin("rastgele_matris", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("rastgele_matris", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("rastgele_matris(satır, sütun, [tohum]) en az 2 parametre bekler")
 		}
-		r, ok1 := args[0].(*IntVal)
-		c, ok2 := args[1].(*IntVal)
+		r, ok1 := args[0].(*vm.IntVal)
+		c, ok2 := args[1].(*vm.IntVal)
 		if !ok1 || !ok2 {
 			return nil, fmt.Errorf("rastgele_matris(satır, sütun) Tam sayı bekler")
 		}
@@ -918,19 +703,19 @@ func (v *VM) registerAIBuiltins() {
 		}
 		seed := int64(42)
 		if len(args) >= 3 {
-			if s, ok := args[2].(*IntVal); ok {
+			if s, ok := args[2].(*vm.IntVal); ok {
 				seed = s.Val
 			}
 		}
 		if named != nil {
 			if s, ok := named["tohum"]; ok {
-				if iv, ok := s.(*IntVal); ok {
+				if iv, ok := s.(*vm.IntVal); ok {
 					seed = iv.Val
 				}
 			}
 		}
 		rng := rand.New(rand.NewSource(seed))
-		m := NewMatrix(int(r.Val), int(c.Val))
+		m := vm.NewMatrix(int(r.Val), int(c.Val))
 		for i := 0; i < m.Rows; i++ {
 			for j := 0; j < m.Cols; j++ {
 				m.Data[i][j] = rng.NormFloat64() * 0.5
@@ -939,7 +724,7 @@ func (v *VM) registerAIBuiltins() {
 		return m, nil
 	})
 
-	v.RegisterBuiltin("devrik", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("devrik", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("devrik(matris) 1 parametre bekler")
 		}
@@ -951,11 +736,11 @@ func (v *VM) registerAIBuiltins() {
 	})
 
 	// --- Tensör ve Otomatik Türev (Autograd) ---
-	v.RegisterBuiltin("tensör", "tensor", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("tensör", "tensor", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("tensör(değer, [türev_izle: doğru]) en az 1 parametre bekler")
 		}
-		f, ok := toFloat(args[0])
+		f, ok := vm.ToFloat(args[0])
 		if !ok {
 			return nil, fmt.Errorf("tensör() sayısal değer bekler")
 		}
@@ -973,7 +758,7 @@ func (v *VM) registerAIBuiltins() {
 		return NewTensor(f, reqGrad), nil
 	})
 
-	v.RegisterBuiltin("geri_yayılım", "geri_yayilim", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("geri_yayılım", "geri_yayilim", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("geri_yayılım(tensör) 1 parametre bekler")
 		}
@@ -982,11 +767,11 @@ func (v *VM) registerAIBuiltins() {
 			return nil, fmt.Errorf("geri_yayılım() bir Tensör bekler, %s verildi", args[0].Type())
 		}
 		tv.Backward()
-		return TRUE, nil
+		return vm.TRUE, nil
 	})
 
 	// --- Aktivasyon Fonksiyonları (relu, sigmoid, tanh, softmax) ---
-	v.RegisterBuiltin("relu", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("relu", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("relu(x) 1 parametre bekler")
 		}
@@ -1003,7 +788,7 @@ func (v *VM) registerAIBuiltins() {
 		})
 	})
 
-	v.RegisterBuiltin("sigmoid", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("sigmoid", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("sigmoid(x) 1 parametre bekler")
 		}
@@ -1015,7 +800,7 @@ func (v *VM) registerAIBuiltins() {
 		})
 	})
 
-	v.RegisterBuiltin("tanh", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("tanh", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("tanh(x) 1 parametre bekler")
 		}
@@ -1025,12 +810,12 @@ func (v *VM) registerAIBuiltins() {
 		})
 	})
 
-	v.RegisterBuiltin("softmax", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("softmax", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("softmax(x) 1 parametre bekler")
 		}
-		if mat, ok := args[0].(*MatrixVal); ok {
-			res := NewMatrix(mat.Rows, mat.Cols)
+		if mat, ok := args[0].(*vm.MatrixVal); ok {
+			res := vm.NewMatrix(mat.Rows, mat.Cols)
 			for i := 0; i < mat.Rows; i++ {
 				maxVal := mat.Data[i][0]
 				for j := 1; j < mat.Cols; j++ {
@@ -1049,7 +834,7 @@ func (v *VM) registerAIBuiltins() {
 			}
 			return res, nil
 		}
-		nums := extractNumericSlice(args)
+		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return nil, fmt.Errorf("softmax() sayısal Liste veya Matris bekler")
 		}
@@ -1065,15 +850,15 @@ func (v *VM) registerAIBuiltins() {
 			exps[i] = math.Exp(v - maxVal)
 			sum += exps[i]
 		}
-		elems := make([]Value, len(nums))
+		elems := make([]vm.Value, len(nums))
 		for i, e := range exps {
-			elems[i] = &FloatVal{Val: e / sum}
+			elems[i] = &vm.FloatVal{Val: e / sum}
 		}
-		return &ListVal{Elements: elems}, nil
+		return &vm.ListVal{Elements: elems}, nil
 	})
 
 	// --- Kayıp (Loss) ve Yüksek Seviye Sinir Ağı ---
-	v.RegisterBuiltin("kayıp_mse", "kayip_mse", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("kayıp_mse", "kayip_mse", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("kayıp_mse(tahmin, gerçek) 2 parametre bekler")
 		}
@@ -1090,22 +875,22 @@ func (v *VM) registerAIBuiltins() {
 					sum += d * d
 				}
 			}
-			return &FloatVal{Val: sum / float64(m1.Rows*m1.Cols)}, nil
+			return &vm.FloatVal{Val: sum / float64(m1.Rows*m1.Cols)}, nil
 		}
 		return nil, fmt.Errorf("kayıp_mse() Liste veya Matris bekler")
 	})
 
-	v.RegisterBuiltin("sinir_ağı", "sinir_agi", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("sinir_ağı", "sinir_agi", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("sinir_ağı(katman_boyutları, [aktivasyon: 'tanh'], [tohum: 42]) en az 1 parametre bekler")
 		}
-		list, ok := args[0].(*ListVal)
+		list, ok := args[0].(*vm.ListVal)
 		if !ok || len(list.Elements) < 2 {
 			return nil, fmt.Errorf("sinir_ağı() en az 2 katman boyutu içeren bir Liste bekler (Örn: [2, 8, 1])")
 		}
 		sizes := make([]int, len(list.Elements))
 		for i, el := range list.Elements {
-			iv, ok := el.(*IntVal)
+			iv, ok := el.(*vm.IntVal)
 			if !ok || iv.Val <= 0 {
 				return nil, fmt.Errorf("Katman boyutları pozitif Tam sayı olmalıdır")
 			}
@@ -1121,7 +906,7 @@ func (v *VM) registerAIBuiltins() {
 				act = v.Inspect()
 			}
 			if v, ok := named["tohum"]; ok {
-				if iv, ok := v.(*IntVal); ok {
+				if iv, ok := v.(*vm.IntVal); ok {
 					seed = iv.Val
 				}
 			}
@@ -1130,22 +915,22 @@ func (v *VM) registerAIBuiltins() {
 	})
 
 	// --- Veri Bilimi, İstatistik ve Vektör Benzerlik ---
-	v.RegisterBuiltin("ortalama", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		nums := extractNumericSlice(args)
+	v.RegisterBuiltin("ortalama", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
-			return &FloatVal{Val: 0}, nil
+			return &vm.FloatVal{Val: 0}, nil
 		}
 		sum := 0.0
 		for _, x := range nums {
 			sum += x
 		}
-		return &FloatVal{Val: sum / float64(len(nums))}, nil
+		return &vm.FloatVal{Val: sum / float64(len(nums))}, nil
 	})
 
-	v.RegisterBuiltin("standart_sapma", "std_sapma", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		nums := extractNumericSlice(args)
+	v.RegisterBuiltin("standart_sapma", "std_sapma", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
-			return &FloatVal{Val: 0}, nil
+			return &vm.FloatVal{Val: 0}, nil
 		}
 		mean := 0.0
 		for _, x := range nums {
@@ -1158,28 +943,28 @@ func (v *VM) registerAIBuiltins() {
 			variance += d * d
 		}
 		variance /= float64(len(nums))
-		return &FloatVal{Val: math.Sqrt(variance)}, nil
+		return &vm.FloatVal{Val: math.Sqrt(variance)}, nil
 	})
 
-	v.RegisterBuiltin("medyan", "ortanca", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		nums := extractNumericSlice(args)
+	v.RegisterBuiltin("medyan", "ortanca", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
-			return &FloatVal{Val: 0}, nil
+			return &vm.FloatVal{Val: 0}, nil
 		}
 		sorted := make([]float64, len(nums))
 		copy(sorted, nums)
 		sort.Float64s(sorted)
 		mid := len(sorted) / 2
 		if len(sorted)%2 == 1 {
-			return &FloatVal{Val: sorted[mid]}, nil
+			return &vm.FloatVal{Val: sorted[mid]}, nil
 		}
-		return &FloatVal{Val: (sorted[mid-1] + sorted[mid]) / 2.0}, nil
+		return &vm.FloatVal{Val: (sorted[mid-1] + sorted[mid]) / 2.0}, nil
 	})
 
-	v.RegisterBuiltin("normalize_et", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		nums := extractNumericSlice(args)
+	v.RegisterBuiltin("normalize_et", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
-			return &ListVal{Elements: []Value{}}, nil
+			return &vm.ListVal{Elements: []vm.Value{}}, nil
 		}
 		minV, maxV := nums[0], nums[0]
 		for _, x := range nums[1:] {
@@ -1191,23 +976,23 @@ func (v *VM) registerAIBuiltins() {
 			}
 		}
 		span := maxV - minV
-		elems := make([]Value, len(nums))
+		elems := make([]vm.Value, len(nums))
 		for i, x := range nums {
 			if span == 0 {
-				elems[i] = &FloatVal{Val: 0.0}
+				elems[i] = &vm.FloatVal{Val: 0.0}
 			} else {
-				elems[i] = &FloatVal{Val: (x - minV) / span}
+				elems[i] = &vm.FloatVal{Val: (x - minV) / span}
 			}
 		}
-		return &ListVal{Elements: elems}, nil
+		return &vm.ListVal{Elements: elems}, nil
 	})
 
-	v.RegisterBuiltin("nokta_çarpım", "nokta_carpim", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("nokta_çarpım", "nokta_carpim", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("nokta_çarpım(v1, v2) 2 parametre bekler")
 		}
-		v1 := extractNumericSlice([]Value{args[0]})
-		v2 := extractNumericSlice([]Value{args[1]})
+		v1 := vm.ExtractNumericSlice([]vm.Value{args[0]})
+		v2 := vm.ExtractNumericSlice([]vm.Value{args[1]})
 		if len(v1) != len(v2) || len(v1) == 0 {
 			return nil, fmt.Errorf("nokta_çarpım() eşit uzunlukta iki sayısal liste bekler")
 		}
@@ -1215,15 +1000,15 @@ func (v *VM) registerAIBuiltins() {
 		for i := range v1 {
 			dot += v1[i] * v2[i]
 		}
-		return &FloatVal{Val: dot}, nil
+		return &vm.FloatVal{Val: dot}, nil
 	})
 
-	v.RegisterBuiltin("kosinüs_benzerliği", "kosinus_benzerligi", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("kosinüs_benzerliği", "kosinus_benzerligi", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("kosinüs_benzerliği(v1, v2) 2 parametre bekler")
 		}
-		v1 := extractNumericSlice([]Value{args[0]})
-		v2 := extractNumericSlice([]Value{args[1]})
+		v1 := vm.ExtractNumericSlice([]vm.Value{args[0]})
+		v2 := vm.ExtractNumericSlice([]vm.Value{args[1]})
 		if len(v1) != len(v2) || len(v1) == 0 {
 			return nil, fmt.Errorf("kosinüs_benzerliği() eşit uzunlukta iki vektör bekler")
 		}
@@ -1235,17 +1020,17 @@ func (v *VM) registerAIBuiltins() {
 		}
 		denom := math.Sqrt(n1) * math.Sqrt(n2)
 		if denom == 0 {
-			return &FloatVal{Val: 0}, nil
+			return &vm.FloatVal{Val: 0}, nil
 		}
-		return &FloatVal{Val: dot / denom}, nil
+		return &vm.FloatVal{Val: dot / denom}, nil
 	})
 
-	v.RegisterBuiltin("öklid_uzaklığı", "oklid_uzakligi", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("öklid_uzaklığı", "oklid_uzakligi", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("öklid_uzaklığı(v1, v2) 2 parametre bekler")
 		}
-		v1 := extractNumericSlice([]Value{args[0]})
-		v2 := extractNumericSlice([]Value{args[1]})
+		v1 := vm.ExtractNumericSlice([]vm.Value{args[0]})
+		v2 := vm.ExtractNumericSlice([]vm.Value{args[1]})
 		if len(v1) != len(v2) || len(v1) == 0 {
 			return nil, fmt.Errorf("öklid_uzaklığı() eşit uzunlukta iki vektör bekler")
 		}
@@ -1254,33 +1039,33 @@ func (v *VM) registerAIBuiltins() {
 			d := v1[i] - v2[i]
 			sum += d * d
 		}
-		return &FloatVal{Val: math.Sqrt(sum)}, nil
+		return &vm.FloatVal{Val: math.Sqrt(sum)}, nil
 	})
 
 	// --- JSON ve CSV Veri Araçları ---
-	v.RegisterBuiltin("json_çöz", "json_coz", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("json_çöz", "json_coz", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_çöz(metin) 1 parametre bekler")
 		}
-		val, err := jsonToTR([]byte(args[0].Inspect()))
+		val, err := vm.JSONToTR([]byte(args[0].Inspect()))
 		if err != nil {
 			return nil, fmt.Errorf("JSON çözümleme hatası: %v", err)
 		}
 		return val, nil
 	})
 
-	v.RegisterBuiltin("json_metin", "json_yaz", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("json_metin", "json_yaz", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_metin(değer) 1 parametre bekler")
 		}
-		b, err := json.Marshal(trToGoValue(args[0]))
+		b, err := json.Marshal(vm.TRToGoValue(args[0]))
 		if err != nil {
 			return nil, err
 		}
-		return &StringVal{Val: string(b)}, nil
+		return &vm.StringVal{Val: string(b)}, nil
 	})
 
-	v.RegisterBuiltin("csv_oku", "tablo_oku", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("csv_oku", "tablo_oku", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("csv_oku(dosya_veya_metin) 1 parametre bekler")
 		}
@@ -1293,26 +1078,26 @@ func (v *VM) registerAIBuiltins() {
 		if err != nil {
 			return nil, fmt.Errorf("CSV okuma hatası: %v", err)
 		}
-		var rows []Value
+		var rows []vm.Value
 		for _, rec := range records {
-			var cols []Value
+			var cols []vm.Value
 			for _, cell := range rec {
 				cell = strings.TrimSpace(cell)
 				if iv, err := strconv.ParseInt(cell, 10, 64); err == nil {
-					cols = append(cols, &IntVal{Val: iv})
+					cols = append(cols, &vm.IntVal{Val: iv})
 				} else if fv, err := strconv.ParseFloat(cell, 64); err == nil {
-					cols = append(cols, &FloatVal{Val: fv})
+					cols = append(cols, &vm.FloatVal{Val: fv})
 				} else {
-					cols = append(cols, &StringVal{Val: cell})
+					cols = append(cols, &vm.StringVal{Val: cell})
 				}
 			}
-			rows = append(rows, &ListVal{Elements: cols})
+			rows = append(rows, &vm.ListVal{Elements: cols})
 		}
-		return &ListVal{Elements: rows}, nil
+		return &vm.ListVal{Elements: rows}, nil
 	})
 
 	// --- Büyük Dil Modeli (LLM: yz_sor) ---
-	v.RegisterBuiltin("yz_sor", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("yz_sor", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("yz_sor(istem, [model: 'llama3']) en az 1 parametre bekler")
 		}
@@ -1339,7 +1124,7 @@ func (v *VM) registerAIBuiltins() {
 		var resp *http.Response
 		var err error
 		var body []byte
-		vm.Blocking(func() {
+		makine.Blocking(func() {
 			resp, err = client.Post(endpoint, "application/json", bytes.NewReader(payload))
 			if err == nil {
 				defer resp.Body.Close()
@@ -1361,14 +1146,14 @@ func (v *VM) registerAIBuiltins() {
 		var parsed map[string]interface{}
 		if json.Unmarshal(body, &parsed) == nil {
 			if ans, ok := parsed["response"].(string); ok {
-				return &StringVal{Val: strings.TrimSpace(ans)}, nil
+				return &vm.StringVal{Val: strings.TrimSpace(ans)}, nil
 			}
 		}
 		return nil, fmt.Errorf("yz_sor: YZ sunucusunun (%s) yanıtı çözümlenemedi; Ollama /api/generate biçiminde 'response' alanı bekleniyordu", endpoint)
 	})
 
 	// --- Model Yükleme (model_yükle) ---
-	v.RegisterBuiltin("model_yükle", "model_yukle", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("model_yükle", "model_yukle", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("model_yükle(dosya_yolu) 1 parametre bekler")
 		}
@@ -1389,8 +1174,8 @@ func (v *VM) registerAIBuiltins() {
 		nn := &NeuralNetVal{
 			LayerSizes: saved.LayerSizes,
 			Activation: saved.Activation,
-			Weights:    make([]*MatrixVal, len(saved.Weights)),
-			Biases:     make([]*MatrixVal, len(saved.Biases)),
+			Weights:    make([]*vm.MatrixVal, len(saved.Weights)),
+			Biases:     make([]*vm.MatrixVal, len(saved.Biases)),
 		}
 		if len(saved.Weights) == 0 || len(saved.Weights) != len(saved.Biases) {
 			return nil, fmt.Errorf("Model dosyası bozuk (%s): %d ağırlık ve %d sapma katmanı var", path, len(saved.Weights), len(saved.Biases))
@@ -1416,7 +1201,7 @@ func (v *VM) registerAIBuiltins() {
 	})
 
 	// --- Yerleşik Web/API İstemcisi (web_al, web_gönder) ---
-	v.RegisterBuiltin("web_al", "http_al", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("web_al", "http_al", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("web_al(url) 1 parametre bekler")
 		}
@@ -1424,22 +1209,22 @@ func (v *VM) registerAIBuiltins() {
 		client := &http.Client{Timeout: 10 * time.Second}
 		var body []byte
 		var netErr error
-		vm.Blocking(func() { body, netErr = httpFetch(client.Get(url)) })
+		makine.Blocking(func() { body, netErr = httpFetch(client.Get(url)) })
 		if netErr != nil {
 			return nil, fmt.Errorf("Web bağlantı hatası (%s): %v", url, netErr)
 		}
-		if val, err := jsonToTR(body); err == nil {
+		if val, err := vm.JSONToTR(body); err == nil {
 			return val, nil
 		}
-		return &StringVal{Val: string(body)}, nil
+		return &vm.StringVal{Val: string(body)}, nil
 	})
 
-	v.RegisterBuiltin("web_gönder", "web_gonder", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("web_gönder", "web_gonder", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("web_gönder(url, veri) 2 parametre bekler")
 		}
 		url := args[0].Inspect()
-		payloadBytes, err := json.Marshal(trToGoValue(args[1]))
+		payloadBytes, err := json.Marshal(vm.TRToGoValue(args[1]))
 		if err != nil {
 			return nil, err
 		}
@@ -1447,18 +1232,18 @@ func (v *VM) registerAIBuiltins() {
 		var body []byte
 		var netErr error
 		// Ağ beklemesi sırasında yorumlayıcı kilidini bırak (aynı programın kendi sunucusuna istek atabilmesi için)
-		vm.Blocking(func() { body, netErr = httpFetch(client.Post(url, "application/json", bytes.NewReader(payloadBytes))) })
+		makine.Blocking(func() { body, netErr = httpFetch(client.Post(url, "application/json", bytes.NewReader(payloadBytes))) })
 		if netErr != nil {
 			return nil, fmt.Errorf("Web gönderim hatası (%s): %v", url, netErr)
 		}
-		if val, err := jsonToTR(body); err == nil {
+		if val, err := vm.JSONToTR(body); err == nil {
 			return val, nil
 		}
-		return &StringVal{Val: string(body)}, nil
+		return &vm.StringVal{Val: string(body)}, nil
 	})
 }
 
-func applyUnaryActivation(val Value, fn func(float64) float64, deriv func(float64) float64) (Value, error) {
+func applyUnaryActivation(val vm.Value, fn func(float64) float64, deriv func(float64) float64) (vm.Value, error) {
 	switch v := val.(type) {
 	case *TensorVal:
 		out := &TensorVal{
@@ -1472,16 +1257,16 @@ func applyUnaryActivation(val Value, fn func(float64) float64, deriv func(float6
 			}
 		}
 		return out, nil
-	case *MatrixVal:
-		res := NewMatrix(v.Rows, v.Cols)
+	case *vm.MatrixVal:
+		res := vm.NewMatrix(v.Rows, v.Cols)
 		for i := 0; i < v.Rows; i++ {
 			for j := 0; j < v.Cols; j++ {
 				res.Data[i][j] = fn(v.Data[i][j])
 			}
 		}
 		return res, nil
-	case *ListVal:
-		elems := make([]Value, len(v.Elements))
+	case *vm.ListVal:
+		elems := make([]vm.Value, len(v.Elements))
 		for i, el := range v.Elements {
 			mapped, err := applyUnaryActivation(el, fn, deriv)
 			if err != nil {
@@ -1489,78 +1274,11 @@ func applyUnaryActivation(val Value, fn func(float64) float64, deriv func(float6
 			}
 			elems[i] = mapped
 		}
-		return &ListVal{Elements: elems}, nil
+		return &vm.ListVal{Elements: elems}, nil
 	default:
-		if f, ok := toFloat(val); ok {
-			return &FloatVal{Val: fn(f)}, nil
+		if f, ok := vm.ToFloat(val); ok {
+			return &vm.FloatVal{Val: fn(f)}, nil
 		}
 		return nil, fmt.Errorf("Aktivasyon fonksiyonu %s tipine uygulanamaz", val.Type())
-	}
-}
-
-func goToTRValue(raw interface{}) Value {
-	switch v := raw.(type) {
-	case nil:
-		return NULL
-	case bool:
-		return boolToVal(v)
-	case int:
-		return &IntVal{Val: int64(v)}
-	case int64:
-		return &IntVal{Val: v}
-	case float64:
-		if v == float64(int64(v)) {
-			return &IntVal{Val: int64(v)}
-		}
-		return &FloatVal{Val: v}
-	case string:
-		return &StringVal{Val: v}
-	case []interface{}:
-		elems := make([]Value, len(v))
-		for i, el := range v {
-			elems[i] = goToTRValue(el)
-		}
-		return &ListVal{Elements: elems}
-	case map[string]interface{}:
-		d := NewDictVal()
-		for k, val := range v {
-			d.Set(k, goToTRValue(val))
-		}
-		return d
-	default:
-		return &StringVal{Val: fmt.Sprintf("%v", v)}
-	}
-}
-
-func trToGoValue(val Value) interface{} {
-	switch v := val.(type) {
-	case *NullVal:
-		return nil
-	case *BoolVal:
-		return v.Val
-	case *IntVal:
-		return v.Val
-	case *FloatVal:
-		return v.Val
-	case *StringVal:
-		return v.Val
-	case *ListVal:
-		res := make([]interface{}, len(v.Elements))
-		for i, el := range v.Elements {
-			res[i] = trToGoValue(el)
-		}
-		return res
-	case *DictVal:
-		res := make(map[string]interface{})
-		for k, el := range v.Pairs {
-			// JSON/veritabanı anahtarları metin olmak zorundadır; metin olmayan anahtarlar
-			// görünen hâlleriyle yazılır (1 -> "1").
-			res[v.DisplayKey(k)] = trToGoValue(el)
-		}
-		return res
-	case *MatrixVal:
-		return v.Data
-	default:
-		return v.Inspect()
 	}
 }

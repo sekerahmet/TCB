@@ -1,4 +1,4 @@
-package vm
+package hataayiklama
 
 import (
 	"bufio"
@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"tr_dili/pkg/vm"
 )
 
 // dapClient, testlerde VS Code'un yerine geçen küçük bir DAP istemcisidir.
@@ -145,8 +146,8 @@ func (c *dapClient) varsOf(ref int) map[string]string {
 	c.t.Helper()
 	out := map[string]string{}
 	for _, v := range c.request("variables", map[string]interface{}{"variablesReference": ref})["variables"].([]interface{}) {
-		vm := v.(map[string]interface{})
-		out[vm["name"].(string)] = vm["value"].(string)
+		makine := v.(map[string]interface{})
+		out[makine["name"].(string)] = makine["value"].(string)
 	}
 	return out
 }
@@ -356,7 +357,7 @@ func TestTableData(t *testing.T) {
 	if fmt.Sprint(cols) != "[ad yaş şehir]" || fmt.Sprint(rows) != "[[Ali 30 ] [Ayşe  İzmir]]" {
 		t.Fatalf("beklenmeyen tablo: %v %v", cols, rows)
 	}
-	if _, _, err := TableData(&IntVal{Val: 5}); err == nil {
+	if _, _, err := TableData(&vm.IntVal{Val: 5}); err == nil {
 		t.Fatal("sayı için tablo hatası bekleniyordu")
 	}
 }

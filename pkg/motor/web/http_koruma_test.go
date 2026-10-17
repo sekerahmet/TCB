@@ -1,4 +1,4 @@
-package vm
+package web
 
 import (
 	"fmt"
@@ -8,13 +8,14 @@ import (
 	"testing"
 	"tr_dili/pkg/lexer"
 	"tr_dili/pkg/parser"
+	"tr_dili/pkg/vm"
 )
 
 // Güvenlik raporu Y1 / test raporu Y3: web_sunucu her siteye açıktı (CORS *, Host denetimi
 // yok, text/plain ile CSRF). O2: '<' ile başlayan her yanıt HTML sayılıyordu (yansıyan XSS).
 func TestWebServerRejectsCrossSiteAndForeignHost(t *testing.T) {
 	port := freePort(t)
-	machine := New()
+	machine := vm.New()
 	machine.Out = io.Discard
 	prog := parser.New(lexer.New(fmt.Sprintf(`
 		değişken sayac = 0
@@ -96,7 +97,7 @@ func TestWebServerRejectsCrossSiteAndForeignHost(t *testing.T) {
 // Güvenlik raporu O5: görsel arayüz sunucusunun ana sayfası Host denetimsiz ve çerçevelenebilirdi.
 func TestGUIServerHostCheckAndFraming(t *testing.T) {
 	port := freePort(t)
-	g := &GUIAppVal{Title: "Deneme", vmRef: New()}
+	g := &GUIAppVal{Title: "Deneme", vmRef: vm.New()}
 	g.vmRef.Out = io.Discard
 	if err := g.startGUIServer(port, true, false); err != nil {
 		t.Fatal(err)

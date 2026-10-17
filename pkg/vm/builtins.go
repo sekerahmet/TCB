@@ -217,8 +217,8 @@ func (v *VM) registerBuiltins() {
 		copied := make([]Value, len(list.Elements))
 		copy(copied, list.Elements)
 		sort.SliceStable(copied, func(i, j int) bool {
-			fi, ok1 := toFloat(copied[i])
-			fj, ok2 := toFloat(copied[j])
+			fi, ok1 := ToFloat(copied[i])
+			fj, ok2 := ToFloat(copied[j])
 			if ok1 && ok2 {
 				return fi < fj
 			}
@@ -300,7 +300,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	v.RegisterBuiltin("min", "en_küçük", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		elems := extractNumericSlice(args)
+		elems := ExtractNumericSlice(args)
 		if len(elems) == 0 {
 			return NULL, nil
 		}
@@ -314,7 +314,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	v.RegisterBuiltin("maks", "en_büyük", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		elems := extractNumericSlice(args)
+		elems := ExtractNumericSlice(args)
 		if len(elems) == 0 {
 			return NULL, nil
 		}
@@ -337,7 +337,7 @@ func (v *VM) registerBuiltins() {
 			}
 			return iv, nil
 		}
-		if fv, ok := toFloat(args[0]); ok {
+		if fv, ok := ToFloat(args[0]); ok {
 			return &FloatVal{Val: math.Abs(fv)}, nil
 		}
 		return nil, fmt.Errorf("mutlak() sayısal değer bekler")
@@ -347,7 +347,7 @@ func (v *VM) registerBuiltins() {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("karekök(x) 1 parametre bekler")
 		}
-		if fv, ok := toFloat(args[0]); ok {
+		if fv, ok := ToFloat(args[0]); ok {
 			return &FloatVal{Val: math.Sqrt(fv)}, nil
 		}
 		return nil, fmt.Errorf("karekök() sayısal değer bekler")
@@ -357,7 +357,7 @@ func (v *VM) registerBuiltins() {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("yuvarla(sayı, [basamak]) en az 1 parametre bekler")
 		}
-		fv, ok := toFloat(args[0])
+		fv, ok := ToFloat(args[0])
 		if !ok {
 			return nil, fmt.Errorf("yuvarla() sayısal değer bekler")
 		}
@@ -414,7 +414,7 @@ func (v *VM) registerBuiltins() {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("bekle(saniye) 1 parametre bekler")
 		}
-		sec, ok := toFloat(args[0])
+		sec, ok := ToFloat(args[0])
 		if !ok {
 			return nil, fmt.Errorf("bekle() sayısal saniye değeri bekler")
 		}
@@ -423,13 +423,13 @@ func (v *VM) registerBuiltins() {
 	})
 }
 
-// maxCollectionSize tek bir yerleşik çağrının üretebileceği en fazla eleman sayısıdır (bellek taşmasını önler).
-const maxCollectionSize = 50_000_000
+// MaxCollectionSize tek bir yerleşik çağrının üretebileceği en fazla eleman sayısıdır (bellek taşmasını önler).
+const MaxCollectionSize = 50_000_000
 
 // checkRangeSize aralık(başlangıç, bitiş) için boyut denetimi yapar; boş aralık (bitiş <= başlangıç) geçerlidir.
 func checkRangeSize(start, end int64) error {
-	if end > start && (end-start > maxCollectionSize || end-start < 0) {
-		return fmt.Errorf("aralık() çok büyük: en fazla %d eleman üretilebilir", maxCollectionSize)
+	if end > start && (end-start > MaxCollectionSize || end-start < 0) {
+		return fmt.Errorf("aralık() çok büyük: en fazla %d eleman üretilebilir", MaxCollectionSize)
 	}
 	return nil
 }
@@ -478,21 +478,21 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 				if len(args) < 1 {
 					return FALSE, nil
 				}
-				return boolToVal(strings.Contains(inst.Val, args[0].Inspect())), nil
+				return BoolToVal(strings.Contains(inst.Val, args[0].Inspect())), nil
 			}}, nil
 		case "başlar", "baslar":
 			return &BuiltinVal{Name: "başlar", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 				if len(args) < 1 {
 					return FALSE, nil
 				}
-				return boolToVal(strings.HasPrefix(inst.Val, args[0].Inspect())), nil
+				return BoolToVal(strings.HasPrefix(inst.Val, args[0].Inspect())), nil
 			}}, nil
 		case "biter":
 			return &BuiltinVal{Name: "biter", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 				if len(args) < 1 {
 					return FALSE, nil
 				}
-				return boolToVal(strings.HasSuffix(inst.Val, args[0].Inspect())), nil
+				return BoolToVal(strings.HasSuffix(inst.Val, args[0].Inspect())), nil
 			}}, nil
 		case "ters_çevir", "ters_cevir":
 			return &BuiltinVal{Name: "ters_çevir", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -555,8 +555,8 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 				copied := make([]Value, len(inst.Elements))
 				copy(copied, inst.Elements)
 				sort.SliceStable(copied, func(i, j int) bool {
-					fi, ok1 := toFloat(copied[i])
-					fj, ok2 := toFloat(copied[j])
+					fi, ok1 := ToFloat(copied[i])
+					fj, ok2 := ToFloat(copied[j])
 					if ok1 && ok2 {
 						return fi < fj
 					}
@@ -590,7 +590,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 					return FALSE, nil
 				}
 				for _, el := range inst.Elements {
-					if valuesEqual(el, args[0]) {
+					if ValuesEqual(el, args[0]) {
 						return TRUE, nil
 					}
 				}
@@ -602,7 +602,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 				for _, el := range inst.Elements {
 					exists := false
 					for _, u := range unique {
-						if valuesEqual(el, u) {
+						if ValuesEqual(el, u) {
 							exists = true
 							break
 						}
@@ -639,7 +639,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 			}}, nil
 		case "ortalama":
 			return &BuiltinVal{Name: "ortalama", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				nums := extractNumericSlice([]Value{inst})
+				nums := ExtractNumericSlice([]Value{inst})
 				if len(nums) == 0 {
 					return &FloatVal{Val: 0}, nil
 				}
@@ -675,7 +675,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 					return FALSE, nil
 				}
 				_, ok := inst.GetValue(args[0])
-				return boolToVal(ok), nil
+				return BoolToVal(ok), nil
 			}}, nil
 		}
 		if val, ok := inst.Pairs[prop]; ok {
@@ -690,12 +690,12 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği veya metodu bulunamadı", line, obj.Type(), prop)
 }
 
-func extractNumericSlice(args []Value) []float64 {
+func ExtractNumericSlice(args []Value) []float64 {
 	var res []float64
 	if len(args) == 1 {
 		if list, ok := args[0].(*ListVal); ok {
 			for _, el := range list.Elements {
-				if f, ok := toFloat(el); ok {
+				if f, ok := ToFloat(el); ok {
 					res = append(res, f)
 				}
 			}
@@ -703,7 +703,7 @@ func extractNumericSlice(args []Value) []float64 {
 		}
 	}
 	for _, a := range args {
-		if f, ok := toFloat(a); ok {
+		if f, ok := ToFloat(a); ok {
 			res = append(res, f)
 		}
 	}

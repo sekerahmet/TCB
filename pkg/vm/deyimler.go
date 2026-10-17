@@ -181,7 +181,7 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 		v.wg.Add(1)
 		asyncEnv := NewEnvironment(env)
 		asyncEnv.IsFuncRoot = true // görev içindeki 'ertele' blokları görev bitince çalışır
-		task := v.newTaskVM(true)
+		task := v.NewTaskVM(true)
 		go func(body *ast.BlockStatement, call ast.Expression, e *Environment) {
 			defer v.wg.Done()
 			task.acquireGIL()
@@ -304,15 +304,15 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 				return NULL, signalNone, nil
 			}
 		}
-		if v.Debugger == nil {
-			v.Debugger = NewDebugger(v.SourceFile, v.SourceCode, true)
+		if v.Debugger == nil && YeniHataAyiklayici != nil {
+			v.Debugger = YeniHataAyiklayici(v.SourceFile, v.SourceCode)
 		}
-		v.Debugger.Mode = StepInto
-		v.Debugger.pauseKind = "breakpoint"
-		if s.Condition != nil {
-			v.Debugger.PauseReason = fmt.Sprintf("Koşullu kesme noktası (Satır %d)", s.Line())
-		} else {
-			v.Debugger.PauseReason = "Koddaki kesme noktası (kesme_noktası)"
+		if v.Debugger != nil {
+			if s.Condition != nil {
+				v.Debugger.KesmeNoktasi(fmt.Sprintf("Koşullu kesme noktası (Satır %d)", s.Line()))
+			} else {
+				v.Debugger.KesmeNoktasi("Koddaki kesme noktası (kesme_noktası)")
+			}
 		}
 		return NULL, signalNone, nil
 

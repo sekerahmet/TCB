@@ -27,7 +27,7 @@ func (v *VM) registerTestBuiltins() {
 		if len(args) < 2 || len(args) > 3 {
 			return nil, fmt.Errorf("eşit_mi() 2 ya da 3 parametre bekler (beklenen, gerçek, [mesaj]), %d verildi", len(args))
 		}
-		if valuesEqual(args[0], args[1]) {
+		if ValuesEqual(args[0], args[1]) {
 			return TRUE, nil
 		}
 		ek := ""

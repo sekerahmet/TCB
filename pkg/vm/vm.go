@@ -28,6 +28,27 @@ type MatrixOperator interface {
 	GetProperty(prop string) (Value, error)
 }
 
+// PropertyGetter nokta (.) operatörüyle özel nesne metodlarına erişim sağlar.
+type PropertyGetter interface {
+	GetProperty(prop string) (Value, error)
+}
+
+// HataAyiklayici, VM'nin her deyimden önce danıştığı hata ayıklayıcıdır. Uygulaması
+// tr_dili/pkg/hataayiklama paketindedir; pkg/vm onu içe aktarmaz.
+type HataAyiklayici interface {
+	// BeforeStatement her deyim çalışmadan önce çağrılır. 0'dan büyük bir satır
+	// döndürürse yürütme o satıra atlar.
+	BeforeStatement(v *VM, stmt ast.Statement, env *Environment) int
+	// KesmeNoktasi koddaki kesme_noktası deyimi çalıştığında, bir sonraki deyimde
+	// verilen gerekçeyle durmak için çağrılır.
+	KesmeNoktasi(gerekce string)
+}
+
+// YeniHataAyiklayici, kesme_noktası deyimi çalıştığında henüz bir hata ayıklayıcı
+// bağlı değilse onu oluşturur. tr_dili/pkg/motor tarafından atanır; nil ise
+// kesme_noktası yok sayılır.
+var YeniHataAyiklayici func(sourceFile, sourceCode string) HataAyiklayici
+
 // vmShared tüm görevlerin (ana program, eşzamanlı bloklar, web/GUI istekleri) paylaştığı yorumlayıcı durumudur.
 type vmShared struct {
 	GlobalEnv *Environment
@@ -36,7 +57,7 @@ type vmShared struct {
 	// modunda standart giriş protokole ayrıldığı için burası değiştirilir.
 	Stdin      io.Reader
 	wg         sync.WaitGroup
-	Debugger   *Debugger
+	Debugger   HataAyiklayici
 	SourceFile string
 	SourceCode string
 	importedMu sync.Mutex
@@ -50,8 +71,13 @@ type vmShared struct {
 	gil sync.Mutex
 }
 
+type StackFrame struct {
+	FuncName string
+	Line     int
+}
+
 // VM, bir yürütme görevinin görünümüdür: paylaşılan durum + göreve özel çağrı yığını.
-// Her 'eşzamanlı' blok ve her web/GUI isteği kendi VM görünümüyle çalışır (bkz. newTaskVM).
+// Her 'eşzamanlı' blok ve her web/GUI isteği kendi VM görünümüyle çalışır (bkz. NewTaskVM).
 type VM struct {
 	*vmShared
 	stackMu   sync.RWMutex
@@ -73,15 +99,13 @@ func New() *VM {
 		CallStack: []StackFrame{},
 	}
 	v.registerBuiltins()
-	v.registerAIBuiltins()
-	v.registerGUIAndWebBuiltins()
-	v.registerDatabaseBuiltins()
+	v.registerMotors()
 	v.registerTestBuiltins()
 	return v
 }
 
-// newTaskVM aynı paylaşılan durum üzerinde, kendi çağrı yığınına sahip yeni bir görev görünümü üretir.
-func (v *VM) newTaskVM(async bool) *VM {
+// NewTaskVM aynı paylaşılan durum üzerinde, kendi çağrı yığınına sahip yeni bir görev görünümü üretir.
+func (v *VM) NewTaskVM(async bool) *VM {
 	return &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: async}
 }
 
@@ -107,9 +131,9 @@ func (v *VM) Blocking(fn func()) {
 	fn()
 }
 
-// runTask fn'i bu görünüm üzerinde yorumlayıcı kilidini alarak çalıştırır ve olası bir
+// RunTask fn'i bu görünüm üzerinde yorumlayıcı kilidini alarak çalıştırır ve olası bir
 // paniği (programı çökertmek yerine) hataya dönüştürür. Web/GUI istek işleyicileri kullanır.
-func (v *VM) runTask(fn func() (Value, error)) (res Value, err error) {
+func (v *VM) RunTask(fn func() (Value, error)) (res Value, err error) {
 	v.acquireGIL()
 	defer v.releaseGIL()
 	defer func() {

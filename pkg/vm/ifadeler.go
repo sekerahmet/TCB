@@ -303,7 +303,7 @@ func (v *VM) evalMatch(e *ast.MatchExpression, env *Environment) (Value, flowSig
 							break
 						}
 					}
-				} else if valuesEqual(subj, patVal) {
+				} else if ValuesEqual(subj, patVal) {
 					matched = true
 					break
 				}

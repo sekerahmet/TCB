@@ -84,7 +84,7 @@ func (v *VM) execAssign(target ast.Expression, op string, rightVal Value, line i
 				if err != nil {
 					return err
 				}
-				fv, ok := toFloat(finalVal)
+				fv, ok := ToFloat(finalVal)
 				if !ok {
 					return fmt.Errorf("Satır %d: Matris hücresine sayısal değer atanmalıdır", line)
 				}
@@ -137,7 +137,7 @@ func (v *VM) execAssign(target ast.Expression, op string, rightVal Value, line i
 				return fmt.Errorf("Satır %d: Matris satır ataması %d elemanlı sayısal Liste bekler", line, container.Cols)
 			}
 			for j, el := range rowList.Elements {
-				fv, ok := toFloat(el)
+				fv, ok := ToFloat(el)
 				if !ok {
 					return fmt.Errorf("Satır %d: Matris elemanları sayısal olmalıdır", line)
 				}

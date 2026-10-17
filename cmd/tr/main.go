@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 	"tr_dili/pkg/checker"
+	"tr_dili/pkg/hataayiklama"
 	"tr_dili/pkg/lexer"
+	_ "tr_dili/pkg/motor"
 	"tr_dili/pkg/parser"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
@@ -79,7 +81,7 @@ func main() {
 		bicimleKomutu(args[1:])
 	case "dap":
 		// VS Code hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
-		if err := vm.ServeDAP(os.Stdin, os.Stdout); err != nil {
+		if err := hataayiklama.ServeDAP(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "❌ Hata ayıklama sunucusu: %v\n", err)
 			os.Exit(1)
 		}
@@ -139,7 +141,7 @@ func debugFile(path string, webMode bool) {
 	machine := vm.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
-	dbg := vm.NewDebugger(path, code, true)
+	dbg := hataayiklama.NewDebugger(path, code, true)
 	machine.Debugger = dbg
 
 	if webMode {
@@ -273,13 +275,14 @@ func startREPL() {
 			break
 		}
 		if line == "/h" || line == "/H" {
-			machine.Debugger = vm.NewDebugger("<etkileşimli-kabuk>", "", true)
+			machine.Debugger = hataayiklama.NewDebugger("<etkileşimli-kabuk>", "", true)
 			fmt.Println("🐞 [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım (F5/F6/F7/F8) çalışacak.")
 			continue
 		}
 
-		if machine.Debugger != nil {
-			machine.Debugger.SourceLines = strings.Split(line, "\n")
+		// kesme_noktası deyimi de hata ayıklayıcıyı açmış olabilir
+		if dbg, ok := machine.Debugger.(*hataayiklama.Debugger); ok {
+			dbg.SourceLines = strings.Split(line, "\n")
 		}
 
 		l := lexer.New(line)

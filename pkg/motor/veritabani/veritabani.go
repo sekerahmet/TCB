@@ -1,4 +1,4 @@
-package vm
+package veritabani
 
 import (
 	"encoding/json"
@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"tr_dili/pkg/vm"
 )
 
-const VAL_DATABASE ValueType = "Veritabanı"
+const VAL_DATABASE vm.ValueType = "Veritabanı"
 
 type dbTable struct {
 	Name    string                   `json:"name"`
@@ -23,10 +24,10 @@ type DatabaseVal struct {
 	FilePath string              `json:"file_path"`
 	Tables   map[string]*dbTable `json:"tables"`
 	mu       sync.RWMutex
-	vmRef    *VM
+	vmRef    *vm.VM
 }
 
-func (db *DatabaseVal) Type() ValueType { return VAL_DATABASE }
+func (db *DatabaseVal) Type() vm.ValueType { return VAL_DATABASE }
 func (db *DatabaseVal) Inspect() string {
 	loc := db.FilePath
 	if loc == "" || loc == ":bellek:" {
@@ -102,26 +103,26 @@ func (db *DatabaseVal) ensureTable(name string) *dbTable {
 	return t
 }
 
-func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
+func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
 	switch prop {
 	case "tablolar":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "vt.tablolar",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				db.mu.RLock()
 				defer db.mu.RUnlock()
-				var names []Value
+				var names []vm.Value
 				for _, t := range db.Tables {
-					names = append(names, &StringVal{Val: t.Name})
+					names = append(names, &vm.StringVal{Val: t.Name})
 				}
-				return &ListVal{Elements: names}, nil
+				return &vm.ListVal{Elements: names}, nil
 			},
 		}, nil
 
 	case "tablo_oluştur", "tablo_olustur":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "vt.tablo_oluştur",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("tablo_oluştur(tablo_adı, [sütunlar]) en az 1 argüman bekler")
 				}
@@ -129,7 +130,7 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				defer db.mu.Unlock()
 				t := db.ensureTable(args[0].Inspect())
 				if len(args) >= 2 {
-					if lv, ok := args[1].(*ListVal); ok {
+					if lv, ok := args[1].(*vm.ListVal); ok {
 						t.Columns = nil
 						for _, col := range lv.Elements {
 							colName := strings.Split(col.Inspect(), ":")[0]
@@ -143,9 +144,9 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "ekle", "kayıt_ekle", "kayit_ekle":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "vt.ekle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("vt.ekle(tablo_adı, sözlük_veya_liste) 2 argüman bekler")
 				}
@@ -153,14 +154,14 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				defer db.mu.Unlock()
 				t := db.ensureTable(args[0].Inspect())
 
-				insertDict := func(d *DictVal) {
+				insertDict := func(d *vm.DictVal) {
 					row := make(map[string]interface{})
 					if _, hasID := d.Pairs["id"]; !hasID {
 						row["id"] = t.NextID
 					}
 					t.NextID++
 					for k, val := range d.Pairs {
-						row[k] = trToGoValue(val)
+						row[k] = vm.TRToGoValue(val)
 						hasCol := false
 						for _, c := range t.Columns {
 							if c == k {
@@ -176,11 +177,11 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				}
 
 				switch data := args[1].(type) {
-				case *DictVal:
+				case *vm.DictVal:
 					insertDict(data)
-				case *ListVal:
+				case *vm.ListVal:
 					for _, el := range data.Elements {
-						if d, ok := el.(*DictVal); ok {
+						if d, ok := el.(*vm.DictVal); ok {
 							insertDict(d)
 						}
 					}
@@ -189,14 +190,14 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				}
 
 				_ = db.saveToDisk()
-				return &IntVal{Val: int64(len(t.Rows))}, nil
+				return &vm.IntVal{Val: int64(len(t.Rows))}, nil
 			},
 		}, nil
 
 	case "sorgula", "sorgu", "seç", "sec":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "vt.sorgula",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("vt.sorgula(sql_sorgusu, [parametreler]) en az 1 argüman bekler")
 				}
@@ -209,14 +210,14 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "güncelle", "guncelle":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "vt.güncelle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("vt.güncelle(tablo_adı, yeni_değerler_sözlüğü, [koşul]) en az 2 argüman bekler")
 				}
 				tableName := strings.ToLower(args[0].Inspect())
-				updates, ok := args[1].(*DictVal)
+				updates, ok := args[1].(*vm.DictVal)
 				if !ok {
 					return nil, fmt.Errorf("vt.güncelle ikinci argüman olarak Sözlük bekler")
 				}
@@ -232,7 +233,7 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				defer db.mu.Unlock()
 				t, exists := db.Tables[tableName]
 				if !exists {
-					return &IntVal{Val: 0}, nil
+					return &vm.IntVal{Val: 0}, nil
 				}
 				matched, _, err := filterRows(t.Rows, cond, tableColumnSet(t), params)
 				if err != nil {
@@ -240,18 +241,18 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				}
 				for _, row := range matched {
 					for k, val := range updates.Pairs {
-						row[k] = trToGoValue(val)
+						row[k] = vm.TRToGoValue(val)
 					}
 				}
 				_ = db.saveToDisk()
-				return &IntVal{Val: int64(len(matched))}, nil
+				return &vm.IntVal{Val: int64(len(matched))}, nil
 			},
 		}, nil
 
 	case "sil":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "vt.sil",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("vt.sil(tablo_adı, [koşul]) en az 1 argüman bekler")
 				}
@@ -268,7 +269,7 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				defer db.mu.Unlock()
 				t, exists := db.Tables[tableName]
 				if !exists {
-					return &IntVal{Val: 0}, nil
+					return &vm.IntVal{Val: 0}, nil
 				}
 				deleted, kept, err := filterRows(t.Rows, cond, tableColumnSet(t), params)
 				if err != nil {
@@ -276,14 +277,14 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				}
 				t.Rows = kept
 				_ = db.saveToDisk()
-				return &IntVal{Val: int64(len(deleted))}, nil
+				return &vm.IntVal{Val: int64(len(deleted))}, nil
 			},
 		}, nil
 
 	case "hepsini_al", "tablo_al":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "vt.tablo_al",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("vt.tablo_al(tablo_adı) 1 argüman bekler")
 				}
@@ -291,16 +292,16 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				defer db.mu.RUnlock()
 				t, exists := db.Tables[strings.ToLower(args[0].Inspect())]
 				if !exists {
-					return &ListVal{Elements: []Value{}}, nil
+					return &vm.ListVal{Elements: []vm.Value{}}, nil
 				}
 				return rowsToListVal(t.Rows, nil), nil
 			},
 		}, nil
 
 	case "say":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "vt.say",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("vt.say(tablo_adı, [koşul]) en az 1 argüman bekler")
 				}
@@ -308,10 +309,10 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				defer db.mu.RUnlock()
 				t, exists := db.Tables[strings.ToLower(args[0].Inspect())]
 				if !exists {
-					return &IntVal{Val: 0}, nil
+					return &vm.IntVal{Val: 0}, nil
 				}
 				if len(args) < 2 {
-					return &IntVal{Val: int64(len(t.Rows))}, nil
+					return &vm.IntVal{Val: int64(len(t.Rows))}, nil
 				}
 				params, err := paramsArg(args, 2, named)
 				if err != nil {
@@ -321,20 +322,20 @@ func (db *DatabaseVal) GetProperty(prop string) (Value, error) {
 				if err != nil {
 					return nil, err
 				}
-				return &IntVal{Val: int64(len(matched))}, nil
+				return &vm.IntVal{Val: int64(len(matched))}, nil
 			},
 		}, nil
 
 	case "kaydet":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "vt.kaydet",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				db.mu.Lock()
 				defer db.mu.Unlock()
 				if err := db.saveToDisk(); err != nil {
 					return nil, err
 				}
-				return TRUE, nil
+				return vm.TRUE, nil
 			},
 		}, nil
 	}
@@ -438,11 +439,11 @@ func findSQLKeyword(s string, keywords ...string) (int, int) {
 // executeSQL Türkçe SQL ("SEÇ * TABLO personel NEREDE maas > 50000 SIRALA maas AZALAN LİMİT 5")
 // ve standart SQL ("SELECT * FROM personel WHERE maas > 50000 ORDER BY maas DESC LIMIT 5") sorgularını çalıştırır.
 // Koşuldaki '?' yer tutucuları params listesindeki değerlere güvenli şekilde bağlanır.
-func (db *DatabaseVal) executeSQL(rawQuery string, params []Value) (Value, error) {
+func (db *DatabaseVal) executeSQL(rawQuery string, params []vm.Value) (vm.Value, error) {
 	q := strings.TrimSpace(rawQuery)
 	tokens := strings.Fields(q)
 	if len(tokens) == 0 {
-		return &ListVal{Elements: []Value{}}, nil
+		return &vm.ListVal{Elements: []vm.Value{}}, nil
 	}
 
 	firstFold := foldUpperASCII(tokens[0])
@@ -456,7 +457,7 @@ func (db *DatabaseVal) executeSQL(rawQuery string, params []Value) (Value, error
 	}
 }
 
-func (db *DatabaseVal) executeSelectSQL(q string, params []Value) (Value, error) {
+func (db *DatabaseVal) executeSelectSQL(q string, params []vm.Value) (vm.Value, error) {
 	// 1. FROM / TABLO / DAN bul
 	fromStart, fromEnd := findSQLKeyword(q, "TABLO", "DAN", "FROM")
 	if fromStart == -1 {
@@ -517,7 +518,7 @@ func (db *DatabaseVal) executeSelectSQL(q string, params []Value) (Value, error)
 	defer db.mu.RUnlock()
 	t, exists := db.Tables[strings.ToLower(tableName)]
 	if !exists {
-		return &ListVal{Elements: []Value{}}, nil
+		return &vm.ListVal{Elements: []vm.Value{}}, nil
 	}
 
 	found, _, err := filterRows(t.Rows, whereCond, tableColumnSet(t), params)
@@ -538,7 +539,7 @@ func (db *DatabaseVal) executeSelectSQL(q string, params []Value) (Value, error)
 	return rowsToListVal(matched, selectedCols), nil
 }
 
-func (db *DatabaseVal) executeDeleteSQL(q string, params []Value) (Value, error) {
+func (db *DatabaseVal) executeDeleteSQL(q string, params []vm.Value) (vm.Value, error) {
 	fromStart, fromEnd := findSQLKeyword(q, "TABLO", "DAN", "FROM")
 	if fromStart == -1 {
 		return nil, fmt.Errorf("SQL SİL hatası: 'TABLO' veya 'FROM' belirtilmeli")
@@ -555,7 +556,7 @@ func (db *DatabaseVal) executeDeleteSQL(q string, params []Value) (Value, error)
 	defer db.mu.Unlock()
 	t, exists := db.Tables[strings.ToLower(tableName)]
 	if !exists {
-		return &IntVal{Val: 0}, nil
+		return &vm.IntVal{Val: 0}, nil
 	}
 	deleted, kept, err := filterRows(t.Rows, whereCond, tableColumnSet(t), params)
 	if err != nil {
@@ -563,15 +564,15 @@ func (db *DatabaseVal) executeDeleteSQL(q string, params []Value) (Value, error)
 	}
 	t.Rows = kept
 	_ = db.saveToDisk()
-	return &IntVal{Val: int64(len(deleted))}, nil
+	return &vm.IntVal{Val: int64(len(deleted))}, nil
 }
 
 func sortRowsByColumn(rows []map[string]interface{}, col string, desc bool) {
 	sort.SliceStable(rows, func(i, j int) bool {
-		vi := goToTRValue(rows[i][col])
-		vj := goToTRValue(rows[j][col])
-		fi, ok1 := toFloat(vi)
-		fj, ok2 := toFloat(vj)
+		vi := vm.GoToTRValue(rows[i][col])
+		vj := vm.GoToTRValue(rows[j][col])
+		fi, ok1 := vm.ToFloat(vi)
+		fj, ok2 := vm.ToFloat(vj)
 		if ok1 && ok2 {
 			if desc {
 				return fi > fj
@@ -587,14 +588,14 @@ func sortRowsByColumn(rows []map[string]interface{}, col string, desc bool) {
 	})
 }
 
-func rowsToListVal(rows []map[string]interface{}, cols []string) *ListVal {
-	var elements []Value
+func rowsToListVal(rows []map[string]interface{}, cols []string) *vm.ListVal {
+	var elements []vm.Value
 	for _, r := range rows {
-		d := NewDictVal()
+		d := vm.NewDictVal()
 		if len(cols) > 0 {
 			for _, c := range cols {
 				if val, exists := r[c]; exists {
-					d.Set(c, goToTRValue(val))
+					d.Set(c, vm.GoToTRValue(val))
 				}
 			}
 		} else {
@@ -607,20 +608,21 @@ func rowsToListVal(rows []map[string]interface{}, cols []string) *ListVal {
 			}
 			sort.Strings(keys)
 			if val, hasID := r["id"]; hasID {
-				d.Set("id", goToTRValue(val))
+				d.Set("id", vm.GoToTRValue(val))
 			}
 			for _, k := range keys {
-				d.Set(k, goToTRValue(r[k]))
+				d.Set(k, vm.GoToTRValue(r[k]))
 			}
 		}
 		elements = append(elements, d)
 	}
-	return &ListVal{Elements: elements}
+	return &vm.ListVal{Elements: elements}
 }
 
-func (v *VM) registerDatabaseBuiltins() {
+// Kaydet veritabanı yerleşiklerini VM'ye kaydeder.
+func Kaydet(v *vm.VM) {
 	// 1. veritabanı_aç("dosya.trdb" veya ":bellek:")
-	openDB := func(v *VM, args []Value, named map[string]Value) (Value, error) {
+	openDB := func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		path := ":bellek:"
 		if len(args) >= 1 {
 			path = args[0].Inspect()
@@ -640,11 +642,11 @@ func (v *VM) registerDatabaseBuiltins() {
 
 	// 2. Bellekteki listeyi tablo gibi sorgulama:
 	// tablo_sorgula(siparisler, "tutar > 20000", sırala: "tutar:azalan", alanlar: ["musteri", "tutar"], limit: 5)
-	v.RegisterBuiltin("tablo_sorgula", "", func(v *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("tablo_sorgula", "", func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("tablo_sorgula(liste, [koşul], [sırala], [alanlar], [limit]) en az 1 argüman bekler")
 		}
-		lv, ok := args[0].(*ListVal)
+		lv, ok := args[0].(*vm.ListVal)
 		if !ok {
 			return nil, fmt.Errorf("tablo_sorgula ilk argüman olarak sözlüklerden oluşan bir Liste bekler")
 		}
@@ -666,10 +668,10 @@ func (v *VM) registerDatabaseBuiltins() {
 		var all []map[string]interface{}
 		known := map[string]bool{}
 		for _, el := range lv.Elements {
-			if d, ok := el.(*DictVal); ok {
+			if d, ok := el.(*vm.DictVal); ok {
 				row := make(map[string]interface{})
 				for k, val := range d.Pairs {
-					row[k] = trToGoValue(val)
+					row[k] = vm.TRToGoValue(val)
 					known[k] = true
 				}
 				all = append(all, row)
@@ -698,7 +700,7 @@ func (v *VM) registerDatabaseBuiltins() {
 
 		// Limit
 		if limVal, ok := named["limit"]; ok {
-			if iv, ok := limVal.(*IntVal); ok && int(iv.Val) < len(rows) {
+			if iv, ok := limVal.(*vm.IntVal); ok && int(iv.Val) < len(rows) {
 				rows = rows[:int(iv.Val)]
 			}
 		}
@@ -706,7 +708,7 @@ func (v *VM) registerDatabaseBuiltins() {
 		// Alanlar (Projection)
 		var cols []string
 		if fVal, ok := named["alanlar"]; ok {
-			if fl, ok := fVal.(*ListVal); ok {
+			if fl, ok := fVal.(*vm.ListVal); ok {
 				for _, item := range fl.Elements {
 					cols = append(cols, item.Inspect())
 				}

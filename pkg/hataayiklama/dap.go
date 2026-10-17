@@ -1,4 +1,4 @@
-package vm
+package hataayiklama
 
 // ============================================================================
 // VS CODE HATA AYIKLAMA SUNUCUSU (Debug Adapter Protocol) — tr dap
@@ -32,6 +32,7 @@ import (
 	"tr_dili/pkg/lexer"
 	"tr_dili/pkg/parser"
 	"tr_dili/pkg/turkce"
+	"tr_dili/pkg/vm"
 )
 
 type dapMessage struct {
@@ -54,9 +55,9 @@ type dapRequest struct {
 
 // dapHandle, VS Code'un "variablesReference" ile açtığı bir kapsamı ya da değeri tanımlar.
 type dapHandle struct {
-	scope    *Environment // Yerel / Genel kapsam (değer yoksa)
+	scope    *vm.Environment // Yerel / Genel kapsam (değer yoksa)
 	isGlobal bool
-	value    Value
+	value    vm.Value
 	expr     string // değerin TR ifadesi (evaluateName)
 }
 
@@ -73,14 +74,14 @@ type dapServer struct {
 	cmds        chan *dapRequest
 
 	// Yalnızca VM goroutine'i duraklatılmışken kullanılır.
-	curVM      *VM
-	curEnv     *Environment
+	curVM      *vm.VM
+	curEnv     *vm.Environment
 	curLine    int
 	curReason  string
 	handles    map[int]*dapHandle
 	nextHandle int
 
-	machine     *VM
+	machine     *vm.VM
 	dbg         *Debugger
 	prog        *ast.Program
 	programPath string
@@ -345,7 +346,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	if a.Cwd != "" {
 		_ = os.Chdir(a.Cwd)
 	}
-	machine := New()
+	machine := vm.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
 	machine.Out = dapOutput{s}
@@ -454,7 +455,7 @@ func samePath(a, b string) bool {
 
 // breakpointHit satırda durulup durulmayacağına karar verir: koşul sağlanmazsa
 // durmaz; iz noktası (logMessage) ise mesajı yazar ve durmaz.
-func (s *dapServer) breakpointHit(v *VM, line int, env *Environment) bool {
+func (s *dapServer) breakpointHit(v *vm.VM, line int, env *vm.Environment) bool {
 	s.mu.Lock()
 	bp, ok := s.breakpoints[line]
 	s.mu.Unlock()
@@ -479,7 +480,7 @@ func (s *dapServer) breakpointHit(v *VM, line int, env *Environment) bool {
 }
 
 // interpolate iz noktası mesajındaki {ifade} parçalarını değerleriyle doldurur.
-func (s *dapServer) interpolate(v *VM, env *Environment, text string) string {
+func (s *dapServer) interpolate(v *vm.VM, env *vm.Environment, text string) string {
 	var sb strings.Builder
 	runes := []rune(text)
 	for i := 0; i < len(runes); i++ {
@@ -507,7 +508,7 @@ func (s *dapServer) interpolate(v *VM, env *Environment, text string) string {
 }
 
 // evalQuiet bir ifadeyi debugger'ı tetiklemeden hesaplar.
-func (s *dapServer) evalQuiet(v *VM, env *Environment, expr string) (Value, error) {
+func (s *dapServer) evalQuiet(v *vm.VM, env *vm.Environment, expr string) (vm.Value, error) {
 	p := parser.New(lexer.New(expr))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
@@ -520,10 +521,10 @@ func (s *dapServer) evalQuiet(v *VM, env *Environment, expr string) (Value, erro
 	if !ok {
 		return nil, fmt.Errorf("tek bir ifade bekleniyordu: %s", expr)
 	}
-	return s.quietly(func() (Value, error) { return v.evalExpression(es.Expression, env) })
+	return s.quietly(func() (vm.Value, error) { return v.EvalExpression(es.Expression, env) })
 }
 
-func (s *dapServer) quietly(fn func() (Value, error)) (Value, error) {
+func (s *dapServer) quietly(fn func() (vm.Value, error)) (vm.Value, error) {
 	if s.dbg == nil {
 		return fn()
 	}
@@ -537,7 +538,7 @@ func (s *dapServer) quietly(fn func() (Value, error)) (Value, error) {
 // Duraklama: VM goroutine'i burada bekler ve gelen istekleri işler
 // ---------------------------------------------------------------------------
 
-func (s *dapServer) waitForCommand(v *VM, line int, env *Environment) int {
+func (s *dapServer) waitForCommand(v *vm.VM, line int, env *vm.Environment) int {
 	d := s.dbg
 	d.mu.Lock()
 	reason, kind := d.PauseReason, d.pauseKind
@@ -704,22 +705,20 @@ func (s *dapServer) scopeVariables(h *dapHandle) []varEntry {
 	global := s.curVM.GlobalEnv
 	seen := map[string]bool{}
 	var list []varEntry
-	for cur := h.scope; cur != nil; cur = cur.outer {
+	for cur := h.scope; cur != nil; cur = cur.Outer() {
 		if !h.isGlobal && cur == global {
 			break
 		}
-		cur.mu.RLock()
-		for k, v := range cur.store {
+		cur.EachLocal(func(k string, v vm.Value) {
 			if seen[k] {
-				continue
+				return
 			}
 			seen[k] = true
-			if v.Type() == VAL_BUILTIN || v.Type() == VAL_STRUCT || v.Type() == VAL_FUNC {
-				continue
+			if v.Type() == vm.VAL_BUILTIN || v.Type() == vm.VAL_STRUCT || v.Type() == vm.VAL_FUNC {
+				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})
-		}
-		cur.mu.RUnlock()
+		})
 		if h.isGlobal {
 			break
 		}
@@ -730,22 +729,22 @@ func (s *dapServer) scopeVariables(h *dapHandle) []varEntry {
 
 type dapChild struct {
 	name, expr string
-	val        Value
+	val        vm.Value
 }
 
 // children açılabilir bir değerin alt elemanlarını döndürür.
-func children(val Value, expr string) []dapChild {
+func children(val vm.Value, expr string) []dapChild {
 	const limit = 5000
 	var out []dapChild
 	switch v := val.(type) {
-	case *ListVal:
+	case *vm.ListVal:
 		for i, el := range v.Elements {
 			if i >= limit {
 				break
 			}
 			out = append(out, dapChild{name: fmt.Sprintf("[%d]", i), expr: fmt.Sprintf("%s[%d]", expr, i), val: el})
 		}
-	case *DictVal:
+	case *vm.DictVal:
 		for _, k := range v.Order {
 			el, ok := v.Pairs[k]
 			if !ok {
@@ -753,7 +752,7 @@ func children(val Value, expr string) []dapChild {
 			}
 			key := v.KeyValue(k)
 			keyExpr := key.Inspect()
-			if sv, isStr := key.(*StringVal); isStr {
+			if sv, isStr := key.(*vm.StringVal); isStr {
 				keyExpr = trStringLiteral(sv.Val)
 			}
 			out = append(out, dapChild{name: v.DisplayKey(k), expr: expr + "[" + keyExpr + "]", val: el})
@@ -761,7 +760,7 @@ func children(val Value, expr string) []dapChild {
 				break
 			}
 		}
-	case *StructInstanceVal:
+	case *vm.StructInstanceVal:
 		seen := map[string]bool{}
 		for _, f := range v.Def.Fields {
 			if fv, ok := v.Fields[f.Name]; ok {
@@ -779,36 +778,36 @@ func children(val Value, expr string) []dapChild {
 		for _, k := range rest {
 			out = append(out, dapChild{name: k, expr: expr + "." + k, val: v.Fields[k]})
 		}
-	case *MatrixVal:
+	case *vm.MatrixVal:
 		for i, row := range v.Data {
 			if i >= limit {
 				break
 			}
-			elems := make([]Value, len(row))
+			elems := make([]vm.Value, len(row))
 			for j, x := range row {
-				elems[j] = &FloatVal{Val: x}
+				elems[j] = &vm.FloatVal{Val: x}
 			}
-			out = append(out, dapChild{name: fmt.Sprintf("[%d]", i), expr: fmt.Sprintf("%s[%d]", expr, i), val: &ListVal{Elements: elems}})
+			out = append(out, dapChild{name: fmt.Sprintf("[%d]", i), expr: fmt.Sprintf("%s[%d]", expr, i), val: &vm.ListVal{Elements: elems}})
 		}
 	}
 	return out
 }
 
-func expandable(val Value) bool {
+func expandable(val vm.Value) bool {
 	switch v := val.(type) {
-	case *ListVal:
+	case *vm.ListVal:
 		return len(v.Elements) > 0
-	case *DictVal:
+	case *vm.DictVal:
 		return len(v.Pairs) > 0
-	case *StructInstanceVal:
+	case *vm.StructInstanceVal:
 		return len(v.Fields) > 0
-	case *MatrixVal:
+	case *vm.MatrixVal:
 		return v.Rows > 0
 	}
 	return false
 }
 
-func (s *dapServer) refFor(val Value, expr string) int {
+func (s *dapServer) refFor(val vm.Value, expr string) int {
 	if val == nil || !expandable(val) {
 		return 0
 	}
@@ -816,17 +815,17 @@ func (s *dapServer) refFor(val Value, expr string) int {
 }
 
 // display değişkenin yanında gösterilecek kısa metindir.
-func display(val Value) string {
+func display(val vm.Value) string {
 	if val == nil {
 		return "yok"
 	}
 	var prefix string
 	switch v := val.(type) {
-	case *ListVal:
+	case *vm.ListVal:
 		prefix = fmt.Sprintf("(%d) ", len(v.Elements))
-	case *DictVal:
+	case *vm.DictVal:
 		prefix = fmt.Sprintf("{%d} ", len(v.Pairs))
-	case *MatrixVal:
+	case *vm.MatrixVal:
 		prefix = fmt.Sprintf("Matris(%dx%d) ", v.Rows, v.Cols)
 		return prefix
 	}
@@ -837,7 +836,7 @@ func display(val Value) string {
 	return text
 }
 
-func (s *dapServer) variableEntry(name, expr string, val Value) map[string]interface{} {
+func (s *dapServer) variableEntry(name, expr string, val vm.Value) map[string]interface{} {
 	return map[string]interface{}{
 		"name": name, "value": display(val), "type": string(val.Type()),
 		"evaluateName": expr, "variablesReference": s.refFor(val, expr),
@@ -898,16 +897,16 @@ func (s *dapServer) setVariable(msg *dapMessage) {
 			}
 			found, expr = true, c.expr
 			switch container := h.value.(type) {
-			case *ListVal:
+			case *vm.ListVal:
 				idx, _ := strconv.Atoi(strings.Trim(a.Name, "[]"))
 				container.Elements[idx] = val
-			case *DictVal:
+			case *vm.DictVal:
 				for _, k := range container.Order {
 					if container.DisplayKey(k) == a.Name {
 						container.Pairs[k] = val
 					}
 				}
-			case *StructInstanceVal:
+			case *vm.StructInstanceVal:
 				container.Fields[a.Name] = val
 			default:
 				s.respondErr(msg, "Bu değerin elemanları değiştirilemez")
@@ -938,14 +937,13 @@ func (s *dapServer) evaluate(msg *dapMessage) {
 		s.respondErr(msg, "%s", p.Errors()[0])
 		return
 	}
-	var val Value
+	var val vm.Value
 	var err error
 	if es, ok := singleExpression(prog); ok {
-		val, err = s.quietly(func() (Value, error) { return s.curVM.evalExpression(es.Expression, s.curEnv) })
+		val, err = s.quietly(func() (vm.Value, error) { return s.curVM.EvalExpression(es.Expression, s.curEnv) })
 	} else if a.Context == "repl" {
-		val, err = s.quietly(func() (Value, error) {
-			v, _, e := s.curVM.execStatements(prog.Statements, s.curEnv)
-			return v, e
+		val, err = s.quietly(func() (vm.Value, error) {
+			return s.curVM.ExecStatements(prog.Statements, s.curEnv)
 		})
 	} else {
 		err = fmt.Errorf("yalnızca ifade değerlendirilebilir")
@@ -955,7 +953,7 @@ func (s *dapServer) evaluate(msg *dapMessage) {
 		return
 	}
 	if val == nil {
-		val = NULL
+		val = vm.NULL
 	}
 	s.respond(msg, map[string]interface{}{
 		"result": display(val), "type": string(val.Type()), "variablesReference": s.refFor(val, a.Expression),
@@ -1048,44 +1046,44 @@ func (s *dapServer) variablesTable(msg *dapMessage) {
 }
 
 // valueKind panelde ikon seçmek için değerin türünü verir.
-func valueKind(val Value) string {
+func valueKind(val vm.Value) string {
 	switch v := val.(type) {
-	case *ListVal:
+	case *vm.ListVal:
 		if cols, _, err := TableData(v); err == nil && !(len(cols) == 1 && cols[0] == "Değer") {
 			return "tablo"
 		}
 		return "liste"
-	case *DictVal:
+	case *vm.DictVal:
 		return "sozluk"
-	case *StructInstanceVal:
+	case *vm.StructInstanceVal:
 		return "yapi"
-	case *MatrixVal:
+	case *vm.MatrixVal:
 		return "matris"
-	case *IntVal, *FloatVal:
+	case *vm.IntVal, *vm.FloatVal:
 		return "sayi"
-	case *StringVal:
+	case *vm.StringVal:
 		return "metin"
-	case *BoolVal:
+	case *vm.BoolVal:
 		return "mantik"
-	case *NullVal:
+	case *vm.NullVal:
 		return "yok"
 	}
 	return "diger"
 }
 
 // typeLabel tip sütununda değerin yapısını özetler (ör. Tablo [3×3]).
-func typeLabel(val Value) string {
+func typeLabel(val vm.Value) string {
 	switch v := val.(type) {
-	case *ListVal:
+	case *vm.ListVal:
 		if cols, rows, err := TableData(v); err == nil && !(len(cols) == 1 && cols[0] == "Değer") {
 			return fmt.Sprintf("Tablo [%d×%d]", len(rows), len(cols))
 		}
 		return fmt.Sprintf("Liste [%d]", len(v.Elements))
-	case *DictVal:
+	case *vm.DictVal:
 		return fmt.Sprintf("Sözlük [%d]", len(v.Pairs))
-	case *MatrixVal:
+	case *vm.MatrixVal:
 		return fmt.Sprintf("Matris [%d×%d]", v.Rows, v.Cols)
-	case *StructInstanceVal:
+	case *vm.StructInstanceVal:
 		return "Yapı " + v.Def.Name
 	}
 	return string(val.Type())
@@ -1115,14 +1113,14 @@ func (s *dapServer) table(msg *dapMessage) {
 
 // TableData bir değeri tabloya (sütunlar + satırlar) dönüştürür:
 // sözlük/yapı listeleri, düz listeler, sözlükler ve matrisler desteklenir.
-func TableData(val Value) ([]string, [][]string, error) {
+func TableData(val vm.Value) ([]string, [][]string, error) {
 	const limit = 10000
 	switch v := val.(type) {
-	case *ListVal:
+	case *vm.ListVal:
 		records := true
 		for _, el := range v.Elements {
 			switch el.(type) {
-			case *DictVal, *StructInstanceVal:
+			case *vm.DictVal, *vm.StructInstanceVal:
 			default:
 				records = false
 			}
@@ -1163,19 +1161,19 @@ func TableData(val Value) ([]string, [][]string, error) {
 			rows = append(rows, []string{plainText(el)})
 		}
 		return []string{"Değer"}, rows, nil
-	case *DictVal:
+	case *vm.DictVal:
 		var rows [][]string
 		for _, k := range v.Order {
 			rows = append(rows, []string{v.DisplayKey(k), plainText(v.Pairs[k])})
 		}
 		return []string{"Anahtar", "Değer"}, rows, nil
-	case *StructInstanceVal:
+	case *vm.StructInstanceVal:
 		var rows [][]string
 		for _, c := range children(v, "") {
 			rows = append(rows, []string{c.name, plainText(c.val)})
 		}
 		return []string{"Alan", "Değer"}, rows, nil
-	case *MatrixVal:
+	case *vm.MatrixVal:
 		cols := make([]string, v.Cols)
 		for j := range cols {
 			cols[j] = fmt.Sprintf("Sütun %d", j+1)
@@ -1197,11 +1195,11 @@ func TableData(val Value) ([]string, [][]string, error) {
 }
 
 // plainText hücrede gösterilecek metindir: metinler tırnaksız yazılır.
-func plainText(val Value) string {
+func plainText(val vm.Value) string {
 	if val == nil {
 		return ""
 	}
-	if s, ok := val.(*StringVal); ok {
+	if s, ok := val.(*vm.StringVal); ok {
 		return s.Val
 	}
 	return val.Inspect()

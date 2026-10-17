@@ -1,4 +1,4 @@
-package vm
+package hataayiklama
 
 import (
 	"bufio"
@@ -19,6 +19,7 @@ import (
 	"tr_dili/pkg/lexer"
 	"tr_dili/pkg/parser"
 	"tr_dili/pkg/turkce"
+	"tr_dili/pkg/vm"
 )
 
 type StepMode int
@@ -30,11 +31,6 @@ const (
 	StepContinue                 // F8: Kesme noktasına / Watchpoint'e kadar devam et
 )
 
-type StackFrame struct {
-	FuncName string
-	Line     int
-}
-
 type Watchpoint struct {
 	ID         int
 	Expression string // Değişken adı veya koşul ifadesi (örn: "bakiye" veya "bakiye < 0")
@@ -43,16 +39,16 @@ type Watchpoint struct {
 }
 
 type Debugger struct {
-	SourceFile   string
-	SourceLines  []string
-	Mode         StepMode
-	TargetDepth  int
-	Breakpoints  map[int]bool
-	Watchpoints  []*Watchpoint
-	Reader       *bufio.Reader
-	Active       bool
-	PauseReason  string
-	StepCount    int
+	SourceFile  string
+	SourceLines []string
+	Mode        StepMode
+	TargetDepth int
+	Breakpoints map[int]bool
+	Watchpoints []*Watchpoint
+	Reader      *bufio.Reader
+	Active      bool
+	PauseReason string
+	StepCount   int
 
 	// pauseKind duraklamanın türüdür (VS Code'a bildirilir): "entry", "step",
 	// "breakpoint", "data breakpoint", "pause", "goto".
@@ -70,9 +66,9 @@ type Debugger struct {
 	webToken  string
 	webServer *http.Server
 	webWaitCh chan webDebugAction
-	curEnv    *Environment
+	curEnv    *vm.Environment
 	curLine   int
-	curVM     *VM
+	curVM     *vm.VM
 }
 
 type webDebugAction struct {
@@ -103,9 +99,16 @@ func NewDebugger(sourceFile string, sourceCode string, startPaused bool) *Debugg
 	}
 }
 
+// KesmeNoktasi koddaki kesme_noktası deyiminde çağrılır: bir sonraki deyimde durur.
+func (d *Debugger) KesmeNoktasi(gerekce string) {
+	d.Mode = StepInto
+	d.pauseKind = "breakpoint"
+	d.PauseReason = gerekce
+}
+
 // BeforeStatement her deyim çalışmadan önce VM tarafından çağrılır.
 // Eğer kullanıcı 'zıpla <satır>' (Goto Statement) yaptıysa hedef satırı (>0) döndürür.
-func (d *Debugger) BeforeStatement(v *VM, stmt ast.Statement, env *Environment) int {
+func (d *Debugger) BeforeStatement(v *vm.VM, stmt ast.Statement, env *vm.Environment) int {
 	if !d.Active || stmt == nil {
 		return 0
 	}
@@ -205,7 +208,7 @@ func (d *Debugger) hasBreakpoint(line int) bool {
 	return d.Breakpoints[line]
 }
 
-func (d *Debugger) checkWatchpoints(v *VM, env *Environment) string {
+func (d *Debugger) checkWatchpoints(v *vm.VM, env *vm.Environment) string {
 	for _, wp := range d.Watchpoints {
 		if wp.IsCond {
 			l := lexer.New(wp.Expression)
@@ -213,7 +216,7 @@ func (d *Debugger) checkWatchpoints(v *VM, env *Environment) string {
 			prog := p.ParseProgram()
 			if len(p.Errors()) == 0 && len(prog.Statements) > 0 {
 				if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
-					val, err := v.evalExpression(es.Expression, env)
+					val, err := v.EvalExpression(es.Expression, env)
 					if err == nil && val.IsTruthy() {
 						curStr := "doğru"
 						if wp.LastVal != curStr {
@@ -240,7 +243,7 @@ func (d *Debugger) checkWatchpoints(v *VM, env *Environment) string {
 	return ""
 }
 
-func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
+func (d *Debugger) promptCLI(v *vm.VM, line int, env *vm.Environment) int {
 	d.renderDebugScreen(v, line, env)
 	d.PauseReason = ""
 
@@ -300,7 +303,7 @@ func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
 				continue
 			}
 			if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
-				newVal, err := v.evalExpression(es.Expression, env)
+				newVal, err := v.EvalExpression(es.Expression, env)
 				if err != nil {
 					fmt.Printf("  ❌ Hesaplama hatası: %v\n", err)
 					continue
@@ -393,7 +396,7 @@ func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
 			prog := p.ParseProgram()
 			if len(p.Errors()) == 0 && len(prog.Statements) > 0 {
 				if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
-					val, err := v.evalExpression(es.Expression, env)
+					val, err := v.EvalExpression(es.Expression, env)
 					if err != nil {
 						fmt.Printf("  ❌ Hata: %v\n", err)
 					} else {
@@ -423,7 +426,7 @@ func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
 	}
 }
 
-func (d *Debugger) renderDebugScreen(v *VM, currentLine int, env *Environment) {
+func (d *Debugger) renderDebugScreen(v *vm.VM, currentLine int, env *vm.Environment) {
 	fmt.Println("\n╔══════════════════════════════════════════════════════════════════════════════╗")
 	fmt.Printf("║ 🛠️  TR HATA AYIKLAYICI  | Dosya: %-35s ║\n", d.SourceFile)
 	if d.PauseReason != "" {
@@ -473,7 +476,7 @@ func (d *Debugger) renderDebugScreen(v *VM, currentLine int, env *Environment) {
 	fmt.Println("╚══════════════════════════════════════════════════════════════════════════════╝")
 }
 
-func (d *Debugger) inspectTable(name string, env *Environment) {
+func (d *Debugger) inspectTable(name string, env *vm.Environment) {
 	val, ok := env.Get(name)
 	if !ok {
 		fmt.Printf("  ❌ %q adında bir değişken bulunamadı.\n", name)
@@ -482,19 +485,19 @@ func (d *Debugger) inspectTable(name string, env *Environment) {
 	fmt.Printf("\n  📋 TABLO / NESNE İNCELEYİCİ: %s (%s)\n", name, val.Type())
 	fmt.Println("  " + strings.Repeat("─", 56))
 	switch t := val.(type) {
-	case *ListVal:
+	case *vm.ListVal:
 		fmt.Printf("  Toplam Satır Sayısı: %d\n", len(t.Elements))
 		fmt.Printf("  %-8s | %-12s | %s\n", "İNDEKS", "TİP", "DEĞER")
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for i, el := range t.Elements {
 			fmt.Printf("  [%-6d] | %-12s | %s\n", i, el.Type(), el.Inspect())
 		}
-	case *MatrixVal:
+	case *vm.MatrixVal:
 		fmt.Printf("  Matris Boyutu: %d Satır x %d Sütun\n", t.Rows, t.Cols)
 		for i := 0; i < t.Rows; i++ {
 			fmt.Printf("  Satır %-3d | %v\n", i, t.Data[i])
 		}
-	case *DictVal:
+	case *vm.DictVal:
 		fmt.Printf("  Toplam Alan Sayısı: %d\n", len(t.Order))
 		fmt.Printf("  %-18s | %-12s | %s\n", "ANAHTAR", "TİP", "DEĞER")
 		fmt.Println("  " + strings.Repeat("─", 56))
@@ -502,7 +505,7 @@ func (d *Debugger) inspectTable(name string, env *Environment) {
 			v := t.Pairs[k]
 			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), v.Type(), v.Inspect())
 		}
-	case *StructInstanceVal:
+	case *vm.StructInstanceVal:
 		fmt.Printf("  Yapı Türü: %s\n", t.Def.Name)
 		for k, v := range t.Fields {
 			fmt.Printf("  • %-16s (%s) = %s\n", k, v.Type(), v.Inspect())
@@ -530,28 +533,26 @@ func (d *Debugger) printDebugHelp() {
 
 type varEntry struct {
 	Name string
-	Val  Value
+	Val  vm.Value
 }
 
-func collectVisibleVariables(env *Environment) []varEntry {
+func collectVisibleVariables(env *vm.Environment) []varEntry {
 	seen := make(map[string]bool)
 	var list []varEntry
 	cur := env
 	for cur != nil {
-		cur.mu.RLock()
-		for k, v := range cur.store {
+		cur.EachLocal(func(k string, v vm.Value) {
 			if seen[k] {
-				continue
+				return
 			}
 			seen[k] = true
 			// Yerleşik fonksiyonları ve yapı tanımlarını kalabalık yapmaması için gizle
-			if v.Type() == VAL_BUILTIN || v.Type() == VAL_STRUCT || v.Type() == VAL_FUNC {
-				continue
+			if v.Type() == vm.VAL_BUILTIN || v.Type() == vm.VAL_STRUCT || v.Type() == vm.VAL_FUNC {
+				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})
-		}
-		cur.mu.RUnlock()
-		cur = cur.outer
+		})
+		cur = cur.Outer()
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	return list
@@ -576,7 +577,7 @@ func newDebugToken() string {
 // StartWebServer görsel debugger'ı yalnızca 127.0.0.1 üzerinde başlatır ve rastgele bir
 // erişim anahtarı üretir. Anahtarı bilmeyen (başka bir site, ağdaki başka bir makine)
 // hiçbir API'yi çağıramaz. Port kullanılamıyorsa hata döner.
-func (d *Debugger) StartWebServer(v *VM, port int) error {
+func (d *Debugger) StartWebServer(v *vm.VM, port int) error {
 	d.WebMode = true
 	d.WebPort = port
 	d.webWaitCh = make(chan webDebugAction)
@@ -763,7 +764,7 @@ func (d *Debugger) StopWebServer() {
 	}
 }
 
-func (d *Debugger) waitForWebAction(v *VM, line int, env *Environment) int {
+func (d *Debugger) waitForWebAction(v *vm.VM, line int, env *vm.Environment) int {
 	d.mu.Lock()
 	d.curVM = v
 	d.curLine = line
@@ -803,7 +804,7 @@ func (d *Debugger) waitForWebAction(v *VM, line int, env *Environment) int {
 }
 
 // applyModify ✏️ canlı değişken değiştirme: ifadeyi duraklatılmış VM üzerinde hesaplar ve atar.
-func (d *Debugger) applyModify(v *VM, env *Environment, name, expr string) error {
+func (d *Debugger) applyModify(v *vm.VM, env *vm.Environment, name, expr string) error {
 	l := lexer.New(expr)
 	p := parser.New(l)
 	prog := p.ParseProgram()
@@ -817,7 +818,7 @@ func (d *Debugger) applyModify(v *VM, env *Environment, name, expr string) error
 	// İfade içindeki fonksiyon çağrıları debugger'ı yeniden durdurmasın
 	wasActive := d.Active
 	d.Active = false
-	val, err := v.evalExpression(es.Expression, env)
+	val, err := v.EvalExpression(es.Expression, env)
 	d.Active = wasActive
 	if err != nil {
 		return err

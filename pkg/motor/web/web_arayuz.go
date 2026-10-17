@@ -1,4 +1,4 @@
-package vm
+package web
 
 import (
 	"context"
@@ -16,17 +16,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"tr_dili/pkg/vm"
 )
 
 const (
-	VAL_WEB_SERVER ValueType = "WebSunucu"
-	VAL_GUI_APP    ValueType = "GörselArayüz"
+	VAL_WEB_SERVER vm.ValueType = "WebSunucu"
+	VAL_GUI_APP    vm.ValueType = "GörselArayüz"
 )
-
-// PropertyGetter nokta (.) operatörüyle özel nesne metodlarına erişim sağlar.
-type PropertyGetter interface {
-	GetProperty(prop string) (Value, error)
-}
 
 // ============================================================================
 // 1. WEB SUNUCU VE REST API MOTORU
@@ -35,7 +31,7 @@ type PropertyGetter interface {
 type routeHandler struct {
 	Method  string
 	Path    string
-	Handler Value
+	Handler vm.Value
 }
 
 type WebServerVal struct {
@@ -44,26 +40,26 @@ type WebServerVal struct {
 	StaticDirs map[string]string
 	server     *http.Server
 	mu         sync.RWMutex
-	vmRef      *VM
+	vmRef      *vm.VM
 }
 
-func (w *WebServerVal) Type() ValueType { return VAL_WEB_SERVER }
+func (w *WebServerVal) Type() vm.ValueType { return VAL_WEB_SERVER }
 func (w *WebServerVal) Inspect() string {
 	return fmt.Sprintf("<WebSunucu http://localhost:%d (%d rota)>", w.Port, len(w.Routes))
 }
 func (w *WebServerVal) IsTruthy() bool { return true }
 
-func (w *WebServerVal) GetProperty(prop string) (Value, error) {
+func (w *WebServerVal) GetProperty(prop string) (vm.Value, error) {
 	switch prop {
 	case "adres", "url":
-		return &StringVal{Val: fmt.Sprintf("http://localhost:%d", w.Port)}, nil
+		return &vm.StringVal{Val: fmt.Sprintf("http://localhost:%d", w.Port)}, nil
 	case "port":
-		return &IntVal{Val: int64(w.Port)}, nil
+		return &vm.IntVal{Val: int64(w.Port)}, nil
 
 	case "al", "get":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "sunucu.al",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("sunucu.al(yol, fonksiyon) 2 argüman bekler")
 				}
@@ -79,9 +75,9 @@ func (w *WebServerVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "gönder", "gonder", "post":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "sunucu.gönder",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("sunucu.gönder(yol, fonksiyon) 2 argüman bekler")
 				}
@@ -97,15 +93,15 @@ func (w *WebServerVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "rota_ekle", "rota":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "sunucu.rota_ekle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("sunucu.rota_ekle(yol, [metod], fonksiyon) en az 2 argüman bekler")
 				}
 				path := args[0].Inspect()
 				method := "ALL"
-				var handler Value
+				var handler vm.Value
 				if len(args) == 2 {
 					handler = args[1]
 				} else {
@@ -124,9 +120,9 @@ func (w *WebServerVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "statik_klasör", "statik_klasor":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "sunucu.statik_klasör",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("sunucu.statik_klasör(url_yolu, klasör_yolu) 2 argüman bekler")
 				}
@@ -138,21 +134,21 @@ func (w *WebServerVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "arka_planda_başlat", "arka_planda_baslat":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "sunucu.arka_planda_başlat",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				w.vmRef = v
 				if err := w.startServer(true); err != nil {
 					return nil, err
 				}
-				return &StringVal{Val: fmt.Sprintf("http://localhost:%d", w.Port)}, nil
+				return &vm.StringVal{Val: fmt.Sprintf("http://localhost:%d", w.Port)}, nil
 			},
 		}, nil
 
 	case "başlat", "baslat":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "sunucu.başlat",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				w.vmRef = v
 				bg := false
 				if b, ok := named["arka_plan"]; ok && b.IsTruthy() {
@@ -161,20 +157,20 @@ func (w *WebServerVal) GetProperty(prop string) (Value, error) {
 				if err := w.startServer(bg); err != nil {
 					return nil, err
 				}
-				return &StringVal{Val: fmt.Sprintf("http://localhost:%d", w.Port)}, nil
+				return &vm.StringVal{Val: fmt.Sprintf("http://localhost:%d", w.Port)}, nil
 			},
 		}, nil
 
 	case "durdur", "kapat":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "sunucu.durdur",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if w.server != nil {
 					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 					defer cancel()
 					_ = w.server.Shutdown(ctx)
 				}
-				return TRUE, nil
+				return vm.TRUE, nil
 			},
 		}, nil
 	}
@@ -210,14 +206,14 @@ func (w *WebServerVal) startServer(background bool) error {
 		}
 
 		// İstek (Request) sözlüğünü hazırla
-		reqDict := NewDictVal()
-		reqDict.Set("yol", &StringVal{Val: req.URL.Path})
-		reqDict.Set("metod", &StringVal{Val: req.Method})
+		reqDict := vm.NewDictVal()
+		reqDict.Set("yol", &vm.StringVal{Val: req.URL.Path})
+		reqDict.Set("metod", &vm.StringVal{Val: req.Method})
 
-		queryDict := NewDictVal()
+		queryDict := vm.NewDictVal()
 		for k, vals := range req.URL.Query() {
 			if len(vals) > 0 {
-				queryDict.Set(k, &StringVal{Val: vals[0]})
+				queryDict.Set(k, &vm.StringVal{Val: vals[0]})
 			}
 		}
 		reqDict.Set("parametreler", queryDict)
@@ -230,24 +226,24 @@ func (w *WebServerVal) startServer(background bool) error {
 		bodyStr := strings.TrimSpace(string(bodyBytes))
 		if bodyStr != "" {
 			// Gövde yalnızca Content-Type JSON ise JSON olarak çözülür.
-			var parsed Value
+			var parsed vm.Value
 			if strings.HasPrefix(strings.ToLower(req.Header.Get("Content-Type")), "application/json") {
-				parsed, _ = jsonToTR(bodyBytes)
+				parsed, _ = vm.JSONToTR(bodyBytes)
 			}
 			if parsed != nil {
 				reqDict.Set("veri", parsed)
 			} else {
-				reqDict.Set("veri", &StringVal{Val: bodyStr})
+				reqDict.Set("veri", &vm.StringVal{Val: bodyStr})
 			}
 		} else {
-			reqDict.Set("veri", NULL)
+			reqDict.Set("veri", vm.NULL)
 		}
 
 		// Her istek kendi görev görünümüyle ve yorumlayıcı kilidi altında çalışır:
 		// ana programla aynı anda paylaşılan değerlere yazıp süreci çökertemez.
-		task := w.vmRef.newTaskVM(false)
-		resVal, err := task.runTask(func() (Value, error) {
-			return task.ApplyFunction(matched.Handler, []Value{reqDict}, nil, 0)
+		task := w.vmRef.NewTaskVM(false)
+		resVal, err := task.RunTask(func() (vm.Value, error) {
+			return task.ApplyFunction(matched.Handler, []vm.Value{reqDict}, nil, 0)
 		})
 
 		if err != nil {
@@ -258,11 +254,11 @@ func (w *WebServerVal) startServer(background bool) error {
 		}
 
 		switch rv := resVal.(type) {
-		case *DictVal, *ListVal:
+		case *vm.DictVal, *vm.ListVal:
 			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
-			jsonBytes, _ := json.MarshalIndent(trToGoValue(rv), "", "  ")
+			jsonBytes, _ := json.MarshalIndent(vm.TRToGoValue(rv), "", "  ")
 			_, _ = rw.Write(jsonBytes)
-		case *StringVal:
+		case *vm.StringVal:
 			trimmed := strings.TrimSpace(rv.Val)
 			if isFullHTMLDocument(trimmed) {
 				rw.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -310,11 +306,11 @@ type guiWidget struct {
 	Subtitle string
 	Value    string
 	Color    string
-	Data     Value
+	Data     vm.Value
 	Labels   []string
 	Numbers  []float64
 	Fields   []string
-	Callback Value
+	Callback vm.Value
 }
 
 type GUIAppVal struct {
@@ -326,22 +322,22 @@ type GUIAppVal struct {
 	KPIs    []guiWidget
 	server  *http.Server
 	Port    int
-	vmRef   *VM
+	vmRef   *vm.VM
 	mu      sync.Mutex
 }
 
-func (g *GUIAppVal) Type() ValueType { return VAL_GUI_APP }
+func (g *GUIAppVal) Type() vm.ValueType { return VAL_GUI_APP }
 func (g *GUIAppVal) Inspect() string {
 	return fmt.Sprintf("<GörselArayüz %q (%d bileşen)>", g.Title, len(g.Widgets)+len(g.KPIs))
 }
 func (g *GUIAppVal) IsTruthy() bool { return true }
 
-func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
+func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 	switch prop {
 	case "kart_ekle", "metrik_ekle":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.kart_ekle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("kart_ekle(başlık, değer, [alt_bilgi], [renk]) en az 2 argüman bekler")
 				}
@@ -371,9 +367,9 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "başlık_ekle", "baslik_ekle":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.başlık_ekle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("başlık_ekle(metin, [alt_metin]) argüman bekler")
 				}
@@ -391,9 +387,9 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "metin_ekle", "bilgi_ekle":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.metin_ekle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("metin_ekle(metin) 1 argüman bekler")
 				}
@@ -406,9 +402,9 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "tablo_ekle", "alv_ekle":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.tablo_ekle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("tablo_ekle(başlık, liste_veya_matris) 2 argüman bekler")
 				}
@@ -423,22 +419,22 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "grafik_ekle":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.grafik_ekle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 3 {
 					return nil, fmt.Errorf("grafik_ekle(başlık, etiketler_listesi, değerler_listesi) 3 argüman bekler")
 				}
 				var labels []string
-				if lv, ok := args[1].(*ListVal); ok {
+				if lv, ok := args[1].(*vm.ListVal); ok {
 					for _, el := range lv.Elements {
 						labels = append(labels, el.Inspect())
 					}
 				}
 				var nums []float64
-				if lv, ok := args[2].(*ListVal); ok {
+				if lv, ok := args[2].(*vm.ListVal); ok {
 					for _, el := range lv.Elements {
-						if f, ok := toFloat(el); ok {
+						if f, ok := vm.ToFloat(el); ok {
 							nums = append(nums, f)
 						}
 					}
@@ -463,14 +459,14 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "form_ekle":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.form_ekle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 3 {
 					return nil, fmt.Errorf("form_ekle(başlık, alanlar_listesi, gönder_fonksiyonu) 3 argüman bekler")
 				}
 				var fields []string
-				if lv, ok := args[1].(*ListVal); ok {
+				if lv, ok := args[1].(*vm.ListVal); ok {
 					for _, el := range lv.Elements {
 						fields = append(fields, el.Inspect())
 					}
@@ -487,9 +483,9 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "buton_ekle":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.buton_ekle",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("buton_ekle(etiket, fonksiyon) 2 argüman bekler")
 				}
@@ -504,9 +500,9 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 		}, nil
 
 	case "html_kaydet", "kaydet":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.html_kaydet",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("html_kaydet(dosya_yolu) 1 argüman bekler")
 				}
@@ -514,30 +510,30 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 				if err := os.WriteFile(args[0].Inspect(), []byte(htmlStr), 0644); err != nil {
 					return nil, err
 				}
-				return TRUE, nil
+				return vm.TRUE, nil
 			},
 		}, nil
 
 	case "html_üret", "html_uret":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.html_üret",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
-				return &StringVal{Val: g.renderHTML()}, nil
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+				return &vm.StringVal{Val: g.renderHTML()}, nil
 			},
 		}, nil
 
 	case "arka_planda_başlat", "arka_planda_baslat":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.arka_planda_başlat",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				port := 8095
 				if len(args) >= 1 {
-					if iv, ok := args[0].(*IntVal); ok {
+					if iv, ok := args[0].(*vm.IntVal); ok {
 						port = int(iv.Val)
 					}
 				}
 				if p, ok := named["port"]; ok {
-					if iv, ok := p.(*IntVal); ok {
+					if iv, ok := p.(*vm.IntVal); ok {
 						port = int(iv.Val)
 					}
 				}
@@ -549,22 +545,22 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 				if err := g.startGUIServer(port, true, openWin); err != nil {
 					return nil, err
 				}
-				return &StringVal{Val: fmt.Sprintf("http://localhost:%d", port)}, nil
+				return &vm.StringVal{Val: fmt.Sprintf("http://localhost:%d", port)}, nil
 			},
 		}, nil
 
 	case "başlat", "baslat", "göster", "goster":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.başlat",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				port := 8095
 				if len(args) >= 1 {
-					if iv, ok := args[0].(*IntVal); ok {
+					if iv, ok := args[0].(*vm.IntVal); ok {
 						port = int(iv.Val)
 					}
 				}
 				if p, ok := named["port"]; ok {
-					if iv, ok := p.(*IntVal); ok {
+					if iv, ok := p.(*vm.IntVal); ok {
 						port = int(iv.Val)
 					}
 				}
@@ -580,20 +576,20 @@ func (g *GUIAppVal) GetProperty(prop string) (Value, error) {
 				if err := g.startGUIServer(port, bg, openWin); err != nil {
 					return nil, err
 				}
-				return &StringVal{Val: fmt.Sprintf("http://localhost:%d", port)}, nil
+				return &vm.StringVal{Val: fmt.Sprintf("http://localhost:%d", port)}, nil
 			},
 		}, nil
 
 	case "durdur", "kapat":
-		return &BuiltinVal{
+		return &vm.BuiltinVal{
 			Name: "arayüz.durdur",
-			Fn: func(v *VM, args []Value, named map[string]Value) (Value, error) {
+			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if g.server != nil {
 					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 					defer cancel()
 					_ = g.server.Shutdown(ctx)
 				}
-				return TRUE, nil
+				return vm.TRUE, nil
 			},
 		}, nil
 	}
@@ -639,9 +635,9 @@ func (g *GUIAppVal) startGUIServer(port int, background bool, openWindow bool) e
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 		// Bileşenlerdeki TR değerleri (Liste/Sözlük) ana programla aynı anda okunmasın diye kilit altında üret
 		var page string
-		_, _ = g.vmRef.newTaskVM(false).runTask(func() (Value, error) {
+		_, _ = g.vmRef.NewTaskVM(false).RunTask(func() (vm.Value, error) {
 			page = g.renderHTML()
-			return NULL, nil
+			return vm.NULL, nil
 		})
 		_, _ = rw.Write([]byte(page))
 	})
@@ -674,14 +670,14 @@ func (g *GUIAppVal) startGUIServer(port int, background bool, openWindow bool) e
 
 		for _, w := range g.Widgets {
 			if w.ID == payload.WidgetID && w.Callback != nil {
-				formDict := NewDictVal()
+				formDict := vm.NewDictVal()
 				for k, v := range payload.Values {
-					formDict.Set(k, &StringVal{Val: v})
+					formDict.Set(k, &vm.StringVal{Val: v})
 				}
-				task := g.vmRef.newTaskVM(false)
+				task := g.vmRef.NewTaskVM(false)
 				cb := w.Callback
-				res, err := task.runTask(func() (Value, error) {
-					return task.ApplyFunction(cb, []Value{formDict}, nil, 0)
+				res, err := task.RunTask(func() (vm.Value, error) {
+					return task.ApplyFunction(cb, []vm.Value{formDict}, nil, 0)
 				})
 				if err != nil {
 					_, _ = fmt.Fprintf(rw, `{"durum":"hata","mesaj":%q}`, err.Error())
@@ -859,8 +855,8 @@ func (g *GUIAppVal) renderTableHTML(w guiWidget) string {
   </div>
   <table id="%s">`, html.EscapeString(w.Title), jsStringAttr(w.ID), html.EscapeString(w.ID)))
 
-	if lv, ok := w.Data.(*ListVal); ok && len(lv.Elements) > 0 {
-		if firstDict, ok := lv.Elements[0].(*DictVal); ok {
+	if lv, ok := w.Data.(*vm.ListVal); ok && len(lv.Elements) > 0 {
+		if firstDict, ok := lv.Elements[0].(*vm.DictVal); ok {
 			cols := firstDict.Order
 			if len(cols) == 0 {
 				for k := range firstDict.Pairs {
@@ -874,7 +870,7 @@ func (g *GUIAppVal) renderTableHTML(w guiWidget) string {
 			}
 			sb.WriteString(`</tr></thead><tbody>`)
 			for _, rowEl := range lv.Elements {
-				if d, ok := rowEl.(*DictVal); ok {
+				if d, ok := rowEl.(*vm.DictVal); ok {
 					sb.WriteString(`<tr>`)
 					for _, c := range cols {
 						val := d.Pairs[c]
@@ -946,17 +942,18 @@ func (g *GUIAppVal) renderFormHTML(w guiWidget) string {
 	return sb.String()
 }
 
-func (v *VM) registerGUIAndWebBuiltins() {
+// Kaydet web sunucu ve görsel arayüz yerleşiklerini VM'ye kaydeder.
+func Kaydet(v *vm.VM) {
 	// 1. web_sunucu(port: 8080)
-	v.RegisterBuiltin("web_sunucu", "web_sunucusu", func(v *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("web_sunucu", "web_sunucusu", func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		port := 8080
 		if len(args) >= 1 {
-			if iv, ok := args[0].(*IntVal); ok {
+			if iv, ok := args[0].(*vm.IntVal); ok {
 				port = int(iv.Val)
 			}
 		}
 		if p, ok := named["port"]; ok {
-			if iv, ok := p.(*IntVal); ok {
+			if iv, ok := p.(*vm.IntVal); ok {
 				port = int(iv.Val)
 			}
 		}
@@ -969,7 +966,7 @@ func (v *VM) registerGUIAndWebBuiltins() {
 	})
 
 	// 2. arayüz_oluştur(başlık, genişlik: 1050, yükseklik: 750)
-	createGUI := func(v *VM, args []Value, named map[string]Value) (Value, error) {
+	createGUI := func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		title := "TR Görsel Uygulaması"
 		if len(args) >= 1 {
 			title = args[0].Inspect()
@@ -977,12 +974,12 @@ func (v *VM) registerGUIAndWebBuiltins() {
 		width := 1080
 		height := 760
 		if w, ok := named["genişlik"]; ok {
-			if iv, ok := w.(*IntVal); ok {
+			if iv, ok := w.(*vm.IntVal); ok {
 				width = int(iv.Val)
 			}
 		}
 		if h, ok := named["yükseklik"]; ok {
-			if iv, ok := h.(*IntVal); ok {
+			if iv, ok := h.(*vm.IntVal); ok {
 				height = int(iv.Val)
 			}
 		}

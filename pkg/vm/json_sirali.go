@@ -12,9 +12,9 @@ import (
 // JSON aldığı için sınırsız derinlik yığın taşmasına yol açabilirdi.
 const maxJSONDepth = 1000
 
-// jsonToTR JSON metnini TR değerine çevirir. Go'nun map tabanlı çözümlemesinden farklı olarak
+// JSONToTR JSON metnini TR değerine çevirir. Go'nun map tabanlı çözümlemesinden farklı olarak
 // nesnelerdeki anahtar sırasını korur: json_çöz("{\"b\": 1, \"a\": 2}") sözlüğü b, a sırasıyla döner.
-func jsonToTR(data []byte) (Value, error) {
+func JSONToTR(data []byte) (Value, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
 	val, err := jsonValue(dec, 0)
@@ -84,10 +84,10 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 		if err != nil {
 			return nil, fmt.Errorf("geçersiz JSON sayısı %q", t)
 		}
-		// Önceki davranışla uyumlu: tam sayı değerli ondalıklar Tam olur (goToTRValue gibi)
-		return goToTRValue(f), nil
+		// Önceki davranışla uyumlu: tam sayı değerli ondalıklar Tam olur (GoToTRValue gibi)
+		return GoToTRValue(f), nil
 	case bool:
-		return boolToVal(t), nil
+		return BoolToVal(t), nil
 	case nil:
 		return NULL, nil
 	}

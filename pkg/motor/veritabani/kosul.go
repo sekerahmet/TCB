@@ -1,9 +1,10 @@
-package vm
+package veritabani
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
+	"tr_dili/pkg/vm"
 	"unicode"
 )
 
@@ -32,7 +33,7 @@ const (
 type condTok struct {
 	kind condTokKind
 	text string
-	num  Value
+	num  vm.Value
 	pos  int
 }
 
@@ -103,19 +104,19 @@ func tokenizeCondition(s string) ([]condTok, error) {
 				i++
 			}
 			lit := strings.ReplaceAll(string(rs[start:i]), "_", "")
-			var num Value
+			var num vm.Value
 			if isFloat {
 				f, err := strconv.ParseFloat(lit, 64)
 				if err != nil {
 					return nil, fmt.Errorf("geçersiz sayı %q", lit)
 				}
-				num = &FloatVal{Val: f}
+				num = &vm.FloatVal{Val: f}
 			} else {
 				iv, err := strconv.ParseInt(lit, 10, 64)
 				if err != nil {
 					return nil, fmt.Errorf("geçersiz sayı %q", lit)
 				}
-				num = &IntVal{Val: iv}
+				num = &vm.IntVal{Val: iv}
 			}
 			toks = append(toks, condTok{kind: ctNum, text: lit, num: num, pos: start})
 		case unicode.IsLetter(r) || r == '_':
@@ -155,10 +156,10 @@ type rowCondition struct {
 }
 
 type condNode interface {
-	eval(row map[string]interface{}) (Value, error)
+	eval(row map[string]interface{}) (vm.Value, error)
 }
 
-type condLiteral struct{ val Value }
+type condLiteral struct{ val vm.Value }
 
 type condColumn struct{ name string }
 
@@ -175,7 +176,7 @@ type condBinary struct {
 type condParser struct {
 	toks   []condTok
 	pos    int
-	params []Value
+	params []vm.Value
 	pIdx   int
 	known  map[string]bool
 }
@@ -183,7 +184,7 @@ type condParser struct {
 // compileRowCondition koşul metnini güvenli ifade ağacına dönüştürür.
 // known: geçerli sütun adları (boşsa her ad kabul edilir, olmayan sütun 'yok' olur).
 // params: '?' yer tutucularına sırayla bağlanacak değerler.
-func compileRowCondition(cond string, known map[string]bool, params []Value) (*rowCondition, error) {
+func compileRowCondition(cond string, known map[string]bool, params []vm.Value) (*rowCondition, error) {
 	toks, err := tokenizeCondition(cond)
 	if err != nil {
 		return nil, fmt.Errorf("Koşul hatası (%s): %v", cond, err)
@@ -357,14 +358,14 @@ func (p *condParser) parsePrimary() (condNode, error) {
 	case ctNum:
 		return &condLiteral{val: t.num}, nil
 	case ctStr:
-		return &condLiteral{val: &StringVal{Val: t.text}}, nil
+		return &condLiteral{val: &vm.StringVal{Val: t.text}}, nil
 	case ctParam:
 		if p.pIdx >= len(p.params) {
 			return nil, fmt.Errorf("'?' için parametre verilmedi")
 		}
 		v := p.params[p.pIdx]
 		p.pIdx++
-		return &condLiteral{val: goToTRValue(trToGoValue(v))}, nil
+		return &condLiteral{val: vm.GoToTRValue(vm.TRToGoValue(v))}, nil
 	case ctLParen:
 		x, err := p.parseOr()
 		if err != nil {
@@ -378,11 +379,11 @@ func (p *condParser) parsePrimary() (condNode, error) {
 	case ctIdent:
 		switch condWord(t) {
 		case "DOGRU", "TRUE":
-			return &condLiteral{val: TRUE}, nil
+			return &condLiteral{val: vm.TRUE}, nil
 		case "YANLIS", "FALSE":
-			return &condLiteral{val: FALSE}, nil
+			return &condLiteral{val: vm.FALSE}, nil
 		case "YOK", "NULL":
-			return &condLiteral{val: NULL}, nil
+			return &condLiteral{val: vm.NULL}, nil
 		}
 		if p.peek().kind == ctLParen {
 			return nil, fmt.Errorf("koşul içinde fonksiyon çağrısı yapılamaz (%s)", t.text)
@@ -398,36 +399,36 @@ func (p *condParser) parsePrimary() (condNode, error) {
 	}
 }
 
-func (n *condLiteral) eval(row map[string]interface{}) (Value, error) { return n.val, nil }
+func (n *condLiteral) eval(row map[string]interface{}) (vm.Value, error) { return n.val, nil }
 
-func (n *condColumn) eval(row map[string]interface{}) (Value, error) {
+func (n *condColumn) eval(row map[string]interface{}) (vm.Value, error) {
 	if raw, ok := row[n.name]; ok {
-		return goToTRValue(raw), nil
+		return vm.GoToTRValue(raw), nil
 	}
-	return NULL, nil
+	return vm.NULL, nil
 }
 
-func (n *condUnary) eval(row map[string]interface{}) (Value, error) {
+func (n *condUnary) eval(row map[string]interface{}) (vm.Value, error) {
 	x, err := n.x.eval(row)
 	if err != nil {
 		return nil, err
 	}
 	switch n.op {
 	case "değil":
-		return boolToVal(!x.IsTruthy()), nil
+		return vm.BoolToVal(!x.IsTruthy()), nil
 	case "-":
 		switch v := x.(type) {
-		case *IntVal:
-			return &IntVal{Val: -v.Val}, nil
-		case *FloatVal:
-			return &FloatVal{Val: -v.Val}, nil
+		case *vm.IntVal:
+			return &vm.IntVal{Val: -v.Val}, nil
+		case *vm.FloatVal:
+			return &vm.FloatVal{Val: -v.Val}, nil
 		}
 		return nil, fmt.Errorf("'-' işleci %s tipine uygulanamaz", x.Type())
 	}
 	return nil, fmt.Errorf("bilinmeyen işleç %q", n.op)
 }
 
-func (n *condBinary) eval(row map[string]interface{}) (Value, error) {
+func (n *condBinary) eval(row map[string]interface{}) (vm.Value, error) {
 	l, err := n.l.eval(row)
 	if err != nil {
 		return nil, err
@@ -436,22 +437,22 @@ func (n *condBinary) eval(row map[string]interface{}) (Value, error) {
 	switch n.op {
 	case "ve":
 		if !l.IsTruthy() {
-			return FALSE, nil
+			return vm.FALSE, nil
 		}
 		r, err := n.r.eval(row)
 		if err != nil {
 			return nil, err
 		}
-		return boolToVal(r.IsTruthy()), nil
+		return vm.BoolToVal(r.IsTruthy()), nil
 	case "veya":
 		if l.IsTruthy() {
-			return TRUE, nil
+			return vm.TRUE, nil
 		}
 		r, err := n.r.eval(row)
 		if err != nil {
 			return nil, err
 		}
-		return boolToVal(r.IsTruthy()), nil
+		return vm.BoolToVal(r.IsTruthy()), nil
 	}
 
 	r, err := n.r.eval(row)
@@ -461,23 +462,23 @@ func (n *condBinary) eval(row map[string]interface{}) (Value, error) {
 
 	switch n.op {
 	case "==":
-		return boolToVal(valuesEqual(l, r)), nil
+		return vm.BoolToVal(vm.ValuesEqual(l, r)), nil
 	case "!=":
-		return boolToVal(!valuesEqual(l, r)), nil
+		return vm.BoolToVal(!vm.ValuesEqual(l, r)), nil
 	case "<", "<=", ">", ">=":
 		// Boş (yok) değerli sütunlar sıralama karşılaştırmasında eşleşmez
-		if l.Type() == VAL_NULL || r.Type() == VAL_NULL {
-			return FALSE, nil
+		if l.Type() == vm.VAL_NULL || r.Type() == vm.VAL_NULL {
+			return vm.FALSE, nil
 		}
 		var c int
-		if lf, ok1 := toFloat(l); ok1 {
-			rf, ok2 := toFloat(r)
+		if lf, ok1 := vm.ToFloat(l); ok1 {
+			rf, ok2 := vm.ToFloat(r)
 			if !ok2 {
 				return nil, fmt.Errorf("%s ile %s karşılaştırılamaz", l.Type(), r.Type())
 			}
 			c = compareFloat(lf, rf)
-		} else if ls, ok1 := l.(*StringVal); ok1 {
-			rs, ok2 := r.(*StringVal)
+		} else if ls, ok1 := l.(*vm.StringVal); ok1 {
+			rs, ok2 := r.(*vm.StringVal)
 			if !ok2 {
 				return nil, fmt.Errorf("%s ile %s karşılaştırılamaz", l.Type(), r.Type())
 			}
@@ -487,56 +488,56 @@ func (n *condBinary) eval(row map[string]interface{}) (Value, error) {
 		}
 		switch n.op {
 		case "<":
-			return boolToVal(c < 0), nil
+			return vm.BoolToVal(c < 0), nil
 		case "<=":
-			return boolToVal(c <= 0), nil
+			return vm.BoolToVal(c <= 0), nil
 		case ">":
-			return boolToVal(c > 0), nil
+			return vm.BoolToVal(c > 0), nil
 		default:
-			return boolToVal(c >= 0), nil
+			return vm.BoolToVal(c >= 0), nil
 		}
 	case "+", "-", "*", "/", "%":
 		if n.op == "+" {
-			if ls, ok := l.(*StringVal); ok {
-				if rs, ok := r.(*StringVal); ok {
-					return &StringVal{Val: ls.Val + rs.Val}, nil
+			if ls, ok := l.(*vm.StringVal); ok {
+				if rs, ok := r.(*vm.StringVal); ok {
+					return &vm.StringVal{Val: ls.Val + rs.Val}, nil
 				}
 			}
 		}
-		li, lInt := l.(*IntVal)
-		ri, rInt := r.(*IntVal)
+		li, lInt := l.(*vm.IntVal)
+		ri, rInt := r.(*vm.IntVal)
 		if lInt && rInt {
 			switch n.op {
 			case "+":
-				return &IntVal{Val: li.Val + ri.Val}, nil
+				return &vm.IntVal{Val: li.Val + ri.Val}, nil
 			case "-":
-				return &IntVal{Val: li.Val - ri.Val}, nil
+				return &vm.IntVal{Val: li.Val - ri.Val}, nil
 			case "*":
-				return &IntVal{Val: li.Val * ri.Val}, nil
+				return &vm.IntVal{Val: li.Val * ri.Val}, nil
 			case "%":
 				if ri.Val == 0 {
 					return nil, fmt.Errorf("sıfıra bölme hatası")
 				}
-				return &IntVal{Val: li.Val % ri.Val}, nil
+				return &vm.IntVal{Val: li.Val % ri.Val}, nil
 			}
 		}
-		lf, ok1 := toFloat(l)
-		rf, ok2 := toFloat(r)
+		lf, ok1 := vm.ToFloat(l)
+		rf, ok2 := vm.ToFloat(r)
 		if !ok1 || !ok2 {
 			return nil, fmt.Errorf("'%s' işleci %s ve %s tiplerine uygulanamaz", n.op, l.Type(), r.Type())
 		}
 		switch n.op {
 		case "+":
-			return &FloatVal{Val: lf + rf}, nil
+			return &vm.FloatVal{Val: lf + rf}, nil
 		case "-":
-			return &FloatVal{Val: lf - rf}, nil
+			return &vm.FloatVal{Val: lf - rf}, nil
 		case "*":
-			return &FloatVal{Val: lf * rf}, nil
+			return &vm.FloatVal{Val: lf * rf}, nil
 		case "/":
 			if rf == 0 {
 				return nil, fmt.Errorf("sıfıra bölme hatası")
 			}
-			return &FloatVal{Val: lf / rf}, nil
+			return &vm.FloatVal{Val: lf / rf}, nil
 		default:
 			return nil, fmt.Errorf("'%%' işleci yalnızca tam sayılarla kullanılabilir")
 		}
@@ -569,7 +570,7 @@ func tableColumnSet(t *dbTable) map[string]bool {
 }
 
 // filterRows koşulu bir kez derler ve satırları eşleşen / eşleşmeyen olarak ayırır.
-func filterRows(rows []map[string]interface{}, cond string, known map[string]bool, params []Value) (matched, rest []map[string]interface{}, err error) {
+func filterRows(rows []map[string]interface{}, cond string, known map[string]bool, params []vm.Value) (matched, rest []map[string]interface{}, err error) {
 	if strings.TrimSpace(cond) == "" {
 		if len(params) > 0 {
 			return nil, nil, fmt.Errorf("Koşul hatası: parametre verildi ama koşul boş")
@@ -595,8 +596,8 @@ func filterRows(rows []map[string]interface{}, cond string, known map[string]boo
 }
 
 // paramsArg isteğe bağlı parametre listesini (Liste) []Value olarak döndürür.
-func paramsArg(args []Value, idx int, named map[string]Value) ([]Value, error) {
-	var raw Value
+func paramsArg(args []vm.Value, idx int, named map[string]vm.Value) ([]vm.Value, error) {
+	var raw vm.Value
 	if idx < len(args) {
 		raw = args[idx]
 	}
@@ -605,10 +606,10 @@ func paramsArg(args []Value, idx int, named map[string]Value) ([]Value, error) {
 			raw = pv
 		}
 	}
-	if raw == nil || raw.Type() == VAL_NULL {
+	if raw == nil || raw.Type() == vm.VAL_NULL {
 		return nil, nil
 	}
-	lv, ok := raw.(*ListVal)
+	lv, ok := raw.(*vm.ListVal)
 	if !ok {
 		return nil, fmt.Errorf("parametreler bir Liste olmalıdır (örn: [\"Yapay Zeka\", 80000])")
 	}

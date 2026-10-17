@@ -14,6 +14,7 @@ import (
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/checker"
 	"tr_dili/pkg/lexer"
+	_ "tr_dili/pkg/motor" // testler dilin tamamıyla (motor yerleşikleri dahil) çalışır
 	"tr_dili/pkg/parser"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
