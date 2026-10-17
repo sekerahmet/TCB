@@ -75,6 +75,9 @@ func (t *Tensor) BackwardWith(seed *Tensor) {
 	if !t.requiresGrad {
 		panic("tensor: gradyan istemeyen bir tensörden geri yayılım yapılamaz")
 	}
+	// Önce çizgeyi kur: bırakılmış bir ara tensöre rastlanırsa gradyan
+	// biriktirmeden hata ver (aksi halde yaprakların gradyanı sessizce eksik kalırdı).
+	order := topoOrder(t)
 	g := t.accGrad()
 	if seed == nil {
 		bir := t.be.Alloc(t.Numel())
@@ -88,7 +91,6 @@ func (t *Tensor) BackwardWith(seed *Tensor) {
 		t.be.AddTo(g, seed.denseStorage(), 1)
 	}
 
-	order := topoOrder(t)
 	// order sonradan-sıralıdır (kök en sonda); tersten gezmek her düğümü,
 	// ona bağlı tüm düğümler işlendikten sonra ziyaret eder.
 	for i := len(order) - 1; i >= 0; i-- {
@@ -102,6 +104,7 @@ func (t *Tensor) BackwardWith(seed *Tensor) {
 		n.grad = nil
 		n.backward = nil
 		n.parents = nil
+		n.serbest = true
 	}
 }
 
@@ -112,6 +115,14 @@ func topoOrder(root *Tensor) []*Tensor {
 		t *Tensor
 		i int
 	}
+	ikinciGeri := func(n *Tensor) {
+		panic(fmt.Sprintf("tensor: %q işleminin sonucu üzerinden geri yayılım zaten yapıldı ve ara sonuçlar "+
+			"bellek için bırakıldı; aynı çizgeden ikinci kez geri yayılım yapılamaz. Birden çok kayıp "+
+			"varsa önce toplayıp tek seferde geri yayın", n.op))
+	}
+	if root.serbest {
+		ikinciGeri(root)
+	}
 	visited := map[*Tensor]bool{root: true}
 	var order []*Tensor
 	stack := []cerceve{{root, 0}}
@@ -121,6 +132,9 @@ func topoOrder(root *Tensor) []*Tensor {
 			p := top.t.parents[top.i]
 			top.i++
 			if p != nil && p.requiresGrad && !visited[p] {
+				if p.serbest {
+					ikinciGeri(p)
+				}
 				visited[p] = true
 				stack = append(stack, cerceve{p, 0})
 			}

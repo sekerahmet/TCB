@@ -41,6 +41,9 @@ type Tensor struct {
 	parents  []*Tensor
 	backward func()
 	op       string // hata ayıklama için işlem adı
+	// serbest, geri yayılımdan sonra çizge bağları bırakılmış bir ara tensörü
+	// işaretler; böyle bir tensör üzerinden ikinci kez geri yayılım yapılamaz.
+	serbest bool
 }
 
 // ----------------------------------------------------------------------------
