@@ -4,10 +4,10 @@
 
 | Komut | Açıklama |
 | :--- | :--- |
-| `.\tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile ABAP Debugger açılır) |
+| `.\tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile hata ayıklayıcı açılır) |
 | `.\tr.exe dosya.tr` | `.tr` kaynak dosyasını derler ve anında çalıştırır |
-| `.\tr.exe debug dosya.tr` | SAP ABAP tarzı etkileşimli Terminal Hata Ayıklayıcıyı (Debugger) başlatır |
-| `.\tr.exe debug --web dosya.tr` | Tarayıcı tabanlı **Görsel ABAP Debugger Studio**'yu başlatır. Yalnızca `127.0.0.1:8090` üzerinde dinler; terminalde yazdırılan **anahtarlı bağlantıyı** (`http://127.0.0.1:8090/?anahtar=...`) açın |
+| `.\tr.exe debug dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
+| `.\tr.exe debug --web dosya.tr` | Tarayıcı tabanlı **görsel hata ayıklayıcıyı** başlatır. Yalnızca `127.0.0.1:8090` üzerinde dinler; terminalde yazdırılan **anahtarlı bağlantıyı** (`http://127.0.0.1:8090/?anahtar=...`) açın |
 | `.\tr.exe kontrol dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar |
 | `.\tr.exe bytecode dosya.tr` | Derlenen Türkçe Sanal Makine (VM) bytecode komutlarını gösterir |
 | `.\tr.exe derle dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |
@@ -71,13 +71,13 @@ Hatalar konumuyla, kaynak satırıyla ve mümkünse bir öneriyle gösterilir:
 
 ## 4. Yerleşik Yapay Zeka ("İkisi Bir Arada") ve Veri Bilimi Komutları
 
-### A. Düşük Seviye Matris ve Otomatik Türev (PyTorch Tarzı)
+### A. Düşük Seviye Matris ve Otomatik Türev
 - `matris([[1, 2], [3, 4]])`, `sıfırlar(satır, sütun)`, `birler(satır, sütun)`, `birim_matris(n)`, `rastgele_matris(satır, sütun, tohum: 42)`
 - `A @ B` (Çok çekirdekli matris çarpımı), `devrik(A)` (veya `A.devrik`, `A.şekil`)
 - `tensör(3.0, türev_izle: doğru)`, `geri_yayılım(y)`, `x.gradyan`, `x.değer`
 - Aktivasyonlar ve Kayıp: `relu(x)`, `sigmoid(x)`, `tanh(x)`, `softmax(x)`, `kayıp_mse(tahmin, gerçek)`
 
-### B. Yüksek Seviye Hazır Yapay Sinir Ağı + Kaydet/Yükle (Keras Tarzı)
+### B. Yüksek Seviye Hazır Yapay Sinir Ağı + Kaydet/Yükle
 ```tr
 değişken model = sinir_ağı([2, 8, 1], aktivasyon: "tanh", tohum: 42)
 model.eğit(X_veri, Y_hedef, devir: 800, öğrenme_hızı: 0.15)
@@ -94,37 +94,37 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 
 ---
 
-## 5. SAP ABAP Tarzı Hata Ayıklayıcı (ABAP Debugger)
+## 5. TR Hata Ayıklayıcı
 
-TR dili, SAP ABAP New Debugger (SE80 / `/h`) mimarisinden ilham alan hem **Terminal** hem de **Görsel Web Studio** hata ayıklayıcısına sahiptir:
+TR'nin hem **terminalde** (`tr debug dosya.tr`, kabukta `/h`) hem de **tarayıcıda** (`tr debug --web dosya.tr`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`tr dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `vscode_eklentisi/README.md`).
 
-1. **Kod İçi Kesme Noktası (`BREAK-POINT`):**
+1. **Kod İçi Kesme Noktası (`kesme_noktası`):**
    - Koşulsuz: `kesme_noktası`
    - Koşullu: `kesme_noktası eğer bakiye < 0`
 2. **Adımlama ve Kontrol Komutları:**
    - `f5` (`adım` veya boş `Enter`): Tek adım ilerle (fonksiyonun içine girer)
    - `f6` (`geç`): Üstten geç (fonksiyonu tek adımda çalıştırır)
    - `f7` (`dön`): Mevcut fonksiyondan çıkana kadar çalıştır
-   - `f8` (`devam`): Bir sonraki kesme noktasına veya izleme noktasına (Watchpoint) kadar devam et
-3. **Canlı Değişken Değiştirme (ABAP ✏️ Kalem İkonu):**
+   - `f8` (`devam`): Bir sonraki kesme noktasına ya da izleme noktasına kadar devam et
+3. **Canlı Değişken Değiştirme (✏️):**
    - `değiştir vergi_orani = 0.20` (Programı durdurmadan çalışma anında değişkenin değerini değiştirir)
-4. **Satıra Zıplama (ABAP `Shift+F12` — Jump to Statement):**
+4. **Satıra Zıplama:**
    - `zıpla 25` (Çalışma okunu geçmiş veya gelecek bir satıra taşır; kodu baştan başlatmadan tekrar deneme imkanı verir)
-5.- **İç Tablo / Matris İnceleyici (ABAP ALV / ITAB Viewer) & Watchpoint:**
+5. **Tablo Görünümü ve İzleme Noktası:**
    - `tablo siparisler` (Liste, Sözlük veya Yapay Zeka Matrislerini tablo görünümünde açar)
    - `izle bakiye` veya `izle bakiye < 0` (Değişken değiştiğinde veya koşul sağlandığında otomatik durur)
    - `yığın` (Aktif fonksiyon çağrı yığınını gösterir)
 
 ---
 
-## 6. Görsel Arayüz (SAP Fiori / ALV Grid & Grafik) ve Web Sunucu Motoru
+## 6. Görsel Arayüz ve Web Sunucu Motoru
 
 ### A. Görsel Arayüz Motoru (`arayüz_oluştur` / `pencere_oluştur`)
 ```tr
 değişken ekran = arayüz_oluştur("Kurumsal ERP Kokpiti", genişlik: 1100, yükseklik: 780)
 ekran.kart_ekle("Toplam Ciro", "1.450.000 TL", "+%18 Artış", "yeşil")
 ekran.grafik_ekle("Aylık Satışlar", ["Ocak", "Şubat", "Mart"], [420, 510, 520], "çubuk")
-ekran.tablo_ekle("SAP ALV Sipariş Tablosu", siparis_listesi)
+ekran.tablo_ekle("Sipariş Tablosu", siparis_listesi)
 ekran.form_ekle("Hızlı Sipariş Girişi", ["Müşteri", "Tutar"], fonksiyon(form) {
     sonuç "{form['Müşteri']} için {form['Tutar']} TL kaydedildi!"
 })
@@ -146,7 +146,7 @@ api.başlat() // veya api.arka_planda_başlat()
 
 ---
 
-## 7. Yerleşik Türkçe SQL Veritabanı ve ABAP OpenSQL İç Tablo Sorgulama
+## 7. Yerleşik Türkçe SQL Veritabanı ve Listeyi Tablo Gibi Sorgulama
 
 ```tr
 // 1. Kalıcı Disk Veritabanı (.trdb) veya Bellek Veritabanı (":bellek:")
@@ -165,7 +165,7 @@ vt.sil("personel", "id == ?", [silinecek_id])   // güncelle(..., koşul, [param
 // doğru/yanlış/yok, + - * / %, karşılaştırmalar, ve/veya/değil (AND/OR/NOT) ve parantez desteklenir.
 // Bilinmeyen sütun veya hatalı koşul artık sessizce boş liste döndürmez, hata verir.
 
-// 2. ABAP OpenSQL Tarzı Doğrudan Bellek-İçi Liste (ITAB) Sorgulama
+// 2. Bellekteki bir listeyi tablo gibi sorgulama
 değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", alanlar: ["ad", "maas"])
 ```
 

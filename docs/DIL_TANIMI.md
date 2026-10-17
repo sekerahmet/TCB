@@ -25,8 +25,8 @@ yazdır("Merhaba, dünya!")
 **2.2** Yorumlar üç biçimdedir: satır sonuna kadar `#` ve `//`, çok satırlı `/* ... */`. Kapanmayan `/*` bir hatadır.
 
 ```tr
-değişken x = 1  # Python tarzı
-// C tarzı
+değişken x = 1  # satır sonuna kadar yorum
+// bu da satır yorumu
 /* çok
    satırlı */
 ```
