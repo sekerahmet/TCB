@@ -107,9 +107,15 @@ func (l *ListVal) Inspect() string {
 }
 func (l *ListVal) IsTruthy() bool { return len(l.Elements) > 0 }
 
+// DictVal sıralı bir sözlüktür. Metin anahtarlar Pairs/Order içinde olduğu gibi
+// saklanır (Go tarafındaki d.Pairs["ad"] erişimleri bu sayede çalışmaya devam eder).
+// Metin olmayan anahtarlar (Tam, Ondalık, Mantık, ...) DictKey ile türüne göre
+// kodlanır; böylece d[1] ile d["1"] farklı girdilerdir. Özgün anahtar değeri
+// KeyVals içinde tutulur ve döngü/anahtarlar()/yazdırma sırasında geri verilir.
 type DictVal struct {
-	Order []string
-	Pairs map[string]Value
+	Order   []string
+	Pairs   map[string]Value
+	KeyVals map[string]Value // yalnızca metin olmayan anahtarlar için
 }
 
 func NewDictVal() *DictVal {
@@ -119,11 +125,57 @@ func NewDictVal() *DictVal {
 	}
 }
 
+// nonStringKeyPrefix metin olmayan anahtarların iç kodlamasını başlatır. NUL
+// karakteri normal metinlerde bulunmadığından metin anahtarlarla çakışmaz.
+const nonStringKeyPrefix = "\x00"
+
+// DictKey bir değeri sözlük içindeki türe duyarlı anahtarına dönüştürür.
+func DictKey(v Value) string {
+	if s, ok := v.(*StringVal); ok {
+		return s.Val
+	}
+	return nonStringKeyPrefix + string(v.Type()) + ":" + v.Inspect()
+}
+
 func (d *DictVal) Set(key string, val Value) {
 	if _, exists := d.Pairs[key]; !exists {
 		d.Order = append(d.Order, key)
 	}
 	d.Pairs[key] = val
+}
+
+// SetValue anahtarı bir TR değeri olarak alır (d[1] = ..., {1: ...}).
+func (d *DictVal) SetValue(key Value, val Value) {
+	k := DictKey(key)
+	if _, isStr := key.(*StringVal); !isStr {
+		if d.KeyVals == nil {
+			d.KeyVals = make(map[string]Value)
+		}
+		d.KeyVals[k] = key
+	}
+	d.Set(k, val)
+}
+
+// GetValue anahtarı bir TR değeri olarak arar.
+func (d *DictVal) GetValue(key Value) (Value, bool) {
+	val, ok := d.Pairs[DictKey(key)]
+	return val, ok
+}
+
+// KeyValue iç anahtarın özgün TR değerini döndürür.
+func (d *DictVal) KeyValue(k string) Value {
+	if kv, ok := d.KeyVals[k]; ok {
+		return kv
+	}
+	return &StringVal{Val: k}
+}
+
+// DisplayKey iç anahtarın kullanıcıya gösterilecek metin hâlini döndürür.
+func (d *DictVal) DisplayKey(k string) string {
+	if kv, ok := d.KeyVals[k]; ok {
+		return kv.Inspect()
+	}
+	return k
 }
 
 func (d *DictVal) Type() ValueType { return VAL_DICT }
@@ -135,7 +187,11 @@ func (d *DictVal) Inspect() string {
 		if v.Type() == VAL_STRING {
 			valStr = fmt.Sprintf("%q", valStr)
 		}
-		parts = append(parts, fmt.Sprintf("%q: %s", k, valStr))
+		keyStr := fmt.Sprintf("%q", k)
+		if kv, ok := d.KeyVals[k]; ok {
+			keyStr = kv.Inspect()
+		}
+		parts = append(parts, fmt.Sprintf("%s: %s", keyStr, valStr))
 	}
 	return "{" + strings.Join(parts, ", ") + "}"
 }
@@ -289,7 +345,7 @@ func (e *Environment) Assign(name string, val Value) error {
 	if e.outer != nil {
 		return e.outer.Assign(name, val)
 	}
-	// Eğer üst kapsamlarda yoksa mevcut kapsamda tanımla
-	e.Define(name, val, false)
-	return nil
+	// Hiçbir kapsamda yoksa sessizce genel değişken oluşturmak yazım hatalarını
+	// gizler (ör. fonksiyon içinde 'toplm = 1'); bu yüzden açık tanım istenir.
+	return fmt.Errorf("tanımsız değişken: %s (önce 'değişken' ile tanımlayın)", name)
 }

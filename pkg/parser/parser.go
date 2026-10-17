@@ -20,8 +20,8 @@ const (
 	RANGE_PREC        // .. ..=
 	SUM_PREC          // + -
 	PRODUCT_PREC      // * / % @
-	POWER_PREC        // **
-	PREFIX_PREC       // -X !X değil X
+	PREFIX_PREC       // -X !X  ('değil X' ise karşılaştırmalardan gevşek bağlanır, bkz. parsePrefixExpression)
+	POWER_PREC        // **  (sağdan birleşir ve tekli eksiden sıkı bağlanır: -2 ** 2 = -4)
 	CALL_PREC         // fn(X) dizi[i] nesne.alan nesne?.alan
 )
 
@@ -69,10 +69,13 @@ func New(l *lexer.Lexer) *Parser {
 			break
 		}
 	}
+	// Sözcük çözümleme hataları (kapatılmamış metin vb.) önce gelir; ardından
+	// gelen sözdizimi hataları çoğunlukla bunların sonucudur.
+	errs := append([]string{}, l.Errors()...)
 	return &Parser{
 		tokens: tokens,
 		pos:    0,
-		errors: []string{},
+		errors: errs,
 	}
 }
 
@@ -726,12 +729,19 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		case lexer.TOKEN_RANGE, lexer.TOKEN_RANGE_INCL:
 			p.nextToken()
 			leftExp = p.parseRangeExpression(leftExp)
-		case lexer.TOKEN_LPAREN:
+		case lexer.TOKEN_LPAREN, lexer.TOKEN_LBRACKET:
+			// Yeni satırda başlayan '(' veya '[' önceki ifadeyi sürdürmez; yeni bir
+			// deyim başlatır. Aksi hâlde 'değişken f = 5' ardından gelen
+			// '(1 + 2) |> yazdır' satırı '5(1 + 2)' çağrısı olarak okunurdu.
+			if p.peekToken().Line > p.curToken().Line {
+				return leftExp
+			}
 			p.nextToken()
-			leftExp = p.parseCallExpression(leftExp)
-		case lexer.TOKEN_LBRACKET:
-			p.nextToken()
-			leftExp = p.parseIndexExpression(leftExp)
+			if p.curTokenIs(lexer.TOKEN_LPAREN) {
+				leftExp = p.parseCallExpression(leftExp)
+			} else {
+				leftExp = p.parseIndexExpression(leftExp)
+			}
 		case lexer.TOKEN_DOT, lexer.TOKEN_SAFE_DOT:
 			p.nextToken()
 			leftExp = p.parseMemberExpression(leftExp)
@@ -768,9 +778,7 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 	raw := tok.Literal
 
 	if !strings.Contains(raw, "{") {
-		clean := strings.ReplaceAll(raw, "\\{", "{")
-		clean = strings.ReplaceAll(clean, "\\}", "}")
-		return &ast.StringLiteral{Token: tok, Value: clean}
+		return &ast.StringLiteral{Token: tok, Value: unescapeBraces(raw)}
 	}
 
 	// Metin içi {ifade} ayrıştırması
@@ -780,11 +788,6 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 	i := 0
 
 	for i < len(runes) {
-		if runes[i] == '\\' && i+1 < len(runes) && (runes[i+1] == '{' || runes[i+1] == '}') {
-			textBuf.WriteRune(runes[i+1])
-			i += 2
-			continue
-		}
 		if runes[i] == '{' {
 			i++ // '{' geç
 			depth := 1
@@ -822,11 +825,11 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 				}
 			}
 			if !interpolated {
-				textBuf.WriteString("{" + exprBuf.String() + "}")
+				textBuf.WriteString("{" + unescapeBraces(exprBuf.String()) + "}")
 			}
 			continue
 		}
-		textBuf.WriteRune(runes[i])
+		textBuf.WriteString(unescapeBraces(string(runes[i])))
 		i++
 	}
 
@@ -843,6 +846,13 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 	return &ast.InterpolatedString{Token: tok, Parts: parts}
 }
 
+// unescapeBraces sözcük çözümleyicinin '\{' ve '\}' için ürettiği işaretçi
+// karakterleri düz süslü parantezlere çevirir.
+func unescapeBraces(s string) string {
+	s = strings.ReplaceAll(s, string(lexer.EscapedLBrace), "{")
+	return strings.ReplaceAll(s, string(lexer.EscapedRBrace), "}")
+}
+
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	tok := p.curToken()
 	op := tok.Literal
@@ -850,7 +860,13 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 		op = "!"
 	}
 	p.nextToken()
-	right := p.parseExpression(PREFIX_PREC)
+	prec := PREFIX_PREC
+	if tok.Type == lexer.TOKEN_DEGIL {
+		// Python'daki 'not' gibi: 'değil 1 == 2' -> değil (1 == 2), ancak
+		// 'değil a ve b' -> (değil a) ve b
+		prec = AND_PREC
+	}
+	right := p.parseExpression(prec)
 	return &ast.PrefixExpression{Token: tok, Operator: op, Right: right}
 }
 
@@ -863,6 +879,10 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 		op = "||"
 	}
 	prec := p.curPrecedence()
+	if tok.Type == lexer.TOKEN_POWER {
+		// '**' sağdan birleşir: 2 ** 3 ** 2 = 2 ** (3 ** 2)
+		prec--
+	}
 	p.nextToken()
 	right := p.parseExpression(prec)
 	return &ast.InfixExpression{Token: tok, Left: left, Operator: op, Right: right}

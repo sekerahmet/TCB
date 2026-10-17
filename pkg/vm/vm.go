@@ -618,8 +618,7 @@ func (v *VM) execAssign(target ast.Expression, op string, rightVal Value, line i
 			}
 			return nil
 		case *DictVal:
-			key := idx.Inspect()
-			cur := container.Pairs[key]
+			cur, _ := container.GetValue(idx)
 			if cur == nil {
 				cur = NULL
 			}
@@ -627,7 +626,7 @@ func (v *VM) execAssign(target ast.Expression, op string, rightVal Value, line i
 			if err != nil {
 				return err
 			}
-			container.Set(key, finalVal)
+			container.SetValue(idx, finalVal)
 			return nil
 		}
 		return fmt.Errorf("Satır %d: Bu tipe indeks ile atama yapılamaz (%s)", line, left.Type())
@@ -733,10 +732,10 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 		for _, k := range it.Order {
 			loopEnv := NewEnvironment(env)
 			if s.KeyVar != "" {
-				loopEnv.Define(s.KeyVar, &StringVal{Val: k}, false)
+				loopEnv.Define(s.KeyVar, it.KeyValue(k), false)
 				loopEnv.Define(s.ValueVar, it.Pairs[k], false)
 			} else {
-				loopEnv.Define(s.ValueVar, &StringVal{Val: k}, false)
+				loopEnv.Define(s.ValueVar, it.KeyValue(k), false)
 			}
 			val, sig, err := v.execStatements(s.Body.Statements, loopEnv)
 			if err != nil {
@@ -889,7 +888,7 @@ func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Va
 			if err != nil {
 				return nil, signalNone, err
 			}
-			dict.Set(kVal.Inspect(), vVal)
+			dict.SetValue(kVal, vVal)
 		}
 		return dict, signalNone, nil
 
@@ -1295,7 +1294,7 @@ func (v *VM) evalListComprehension(lc *ast.ListComprehension, env *Environment) 
 		}
 	case *DictVal:
 		for _, k := range it.Order {
-			items = append(items, &StringVal{Val: k})
+			items = append(items, it.KeyValue(k))
 		}
 	case *StringVal:
 		for _, ch := range []rune(it.Val) {
@@ -1392,7 +1391,7 @@ func (v *VM) evalIndex(e *ast.IndexExpression, env *Environment) (Value, error) 
 		return &ListVal{Elements: rowElems}, nil
 
 	case *DictVal:
-		val, exists := container.Pairs[idx.Inspect()]
+		val, exists := container.GetValue(idx)
 		if !exists {
 			return NULL, nil
 		}
@@ -1539,7 +1538,14 @@ func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, err
 				}
 				return &IntVal{Val: li.Val % ri.Val}, nil
 			case "**":
-				return &FloatVal{Val: math.Pow(float64(li.Val), float64(ri.Val))}, nil
+				if ri.Val < 0 {
+					return &FloatVal{Val: math.Pow(float64(li.Val), float64(ri.Val))}, nil
+				}
+				res, ok := intPow(li.Val, ri.Val)
+				if !ok {
+					return nil, fmt.Errorf("Satır %d: Tam sayı taşması (%d ** %d); ondalık sonuç için örn. %d.0 ** %d yazın", line, li.Val, ri.Val, li.Val, ri.Val)
+				}
+				return &IntVal{Val: res}, nil
 			case "<":
 				return boolToVal(li.Val < ri.Val), nil
 			case ">":
@@ -1633,4 +1639,33 @@ func valuesEqual(a, b Value) bool {
 		return false
 	}
 	return a.Inspect() == b.Inspect()
+}
+
+// intPow tam sayı üssünü kare-çarp yöntemiyle hesaplar; int64 taşmasında ok=false döner.
+func intPow(base, exp int64) (int64, bool) {
+	result := int64(1)
+	for exp > 0 {
+		if exp&1 == 1 {
+			if !mulFits(result, base) {
+				return 0, false
+			}
+			result *= base
+		}
+		exp >>= 1
+		if exp > 0 {
+			if !mulFits(base, base) {
+				return 0, false
+			}
+			base *= base
+		}
+	}
+	return result, true
+}
+
+func mulFits(a, b int64) bool {
+	if a == 0 || b == 0 {
+		return true
+	}
+	c := a * b
+	return c/b == a && !(a == -1 && b == math.MinInt64) && !(b == -1 && a == math.MinInt64)
 }

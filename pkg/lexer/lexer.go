@@ -1,8 +1,18 @@
 package lexer
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
+)
+
+// Metin içinde '\{' ve '\}' ile kaçışlanmış süslü parantezler, sözcük biriminde
+// bu özel kullanım alanı karakterleriyle taşınır; ayrıştırıcı bunları düz '{' ve
+// '}' karakterlerine çevirir. Böylece '\\{' (ters bölü + interpolasyon) ile '\{'
+// (düz süslü parantez) birbirine karışmaz.
+const (
+	EscapedLBrace = '\uE000'
+	EscapedRBrace = '\uE001'
 )
 
 type Lexer struct {
@@ -12,6 +22,17 @@ type Lexer struct {
 	ch           rune // incelenen mevcut karakter
 	line         int
 	column       int
+	errors       []string
+}
+
+// Errors sözcük çözümleme sırasında bulunan hataları (ör. kapatılmamış metin) döndürür.
+func (l *Lexer) Errors() []string {
+	return l.errors
+}
+
+func (l *Lexer) addError(line, col int, format string, args ...interface{}) {
+	prefix := fmt.Sprintf("Satır %d, Sütun %d: ", line, col)
+	l.errors = append(l.errors, prefix+fmt.Sprintf(format, args...))
 }
 
 func New(input string) *Lexer {
@@ -193,7 +214,7 @@ func (l *Lexer) NextToken() Token {
 		tok = Token{Type: TOKEN_RBRACKET, Literal: "]", Line: line, Column: col}
 	case '"', '\'':
 		quote := l.ch
-		str := l.readString(quote)
+		str := l.readString(quote, line, col)
 		tok = Token{Type: TOKEN_STRING, Literal: str, Line: line, Column: col}
 		return tok
 	case 0:
@@ -291,12 +312,28 @@ func (l *Lexer) readNumber() (string, bool) {
 	return sb.String(), isFloat
 }
 
-func (l *Lexer) readString(quote rune) string {
+// readString bir metin sabitini okur. Metin içindeki '{ifade}' bölümleri
+// (interpolasyon) ayrıştırıcıya olduğu gibi aktarılır; bu bölümlerin içinde
+// tırnaklı alt metinler bulunabilir ("{p['ad']}"). Bir interpolasyon aynı satırda
+// kapanmalıdır; kapanmazsa veya metnin kapanış tırnağı hiç gelmezse açık bir
+// hata kaydedilir. Düz süslü parantez için '\{' ve '\}' kullanılır.
+func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 	var sb strings.Builder
 	l.readChar() // açılış tırnağını geç
 	braceDepth := 0
+	braceLine, braceCol := 0, 0
+	var inner rune // interpolasyon içindeki alt metnin tırnağı (0 = alt metin yok)
 
-	for l.ch != 0 {
+	for {
+		if l.ch == 0 || (braceDepth > 0 && l.ch == '\n') {
+			if braceDepth > 0 {
+				l.addError(braceLine, braceCol, "metin içindeki '{' kapatılmamış (interpolasyon aynı satırda '}' ile bitmeli; düz süslü parantez için '\\{' yazın)")
+			} else {
+				l.addError(startLine, startCol, "kapatılmamış metin: %c ile başlayan metin dosya sonuna kadar kapanmadı", quote)
+			}
+			return sb.String()
+		}
+
 		if l.ch == '\\' {
 			l.readChar()
 			switch l.ch {
@@ -314,9 +351,11 @@ func (l *Lexer) readString(quote rune) string {
 				sb.WriteRune('\\')
 			case '{':
 				// Kaçışlı süslü parantez (interpolasyon değil)
-				sb.WriteString("\\{")
+				sb.WriteRune(EscapedLBrace)
 			case '}':
-				sb.WriteString("\\}")
+				sb.WriteRune(EscapedRBrace)
+			case 0:
+				continue // dosya sonu: yukarıdaki kontrol hatayı bildirir
 			default:
 				sb.WriteRune(l.ch)
 			}
@@ -324,19 +363,27 @@ func (l *Lexer) readString(quote rune) string {
 			continue
 		}
 
-		if l.ch == '{' {
+		if inner != 0 {
+			if l.ch == inner {
+				inner = 0
+			}
+		} else if braceDepth > 0 && (l.ch == '"' || l.ch == '\'') {
+			inner = l.ch
+		} else if l.ch == '{' {
+			if braceDepth == 0 {
+				braceLine, braceCol = l.line, l.column
+			}
 			braceDepth++
 		} else if l.ch == '}' && braceDepth > 0 {
 			braceDepth--
 		} else if l.ch == quote && braceDepth == 0 {
 			l.readChar() // kapanış tırnağını geç
-			break
+			return sb.String()
 		}
 
 		sb.WriteRune(l.ch)
 		l.readChar()
 	}
-	return sb.String()
 }
 
 func isLetter(ch rune) bool {

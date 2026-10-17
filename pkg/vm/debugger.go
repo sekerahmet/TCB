@@ -476,7 +476,7 @@ func (d *Debugger) inspectTable(name string, env *Environment) {
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for _, k := range t.Order {
 			v := t.Pairs[k]
-			fmt.Printf("  %-18s | %-12s | %s\n", k, v.Type(), v.Inspect())
+			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), v.Type(), v.Inspect())
 		}
 	case *StructInstanceVal:
 		fmt.Printf("  Yapı Türü: %s\n", t.Def.Name)

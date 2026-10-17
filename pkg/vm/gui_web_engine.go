@@ -867,7 +867,7 @@ func (g *GUIAppVal) renderALVTableHTML(w guiWidget) string {
 			}
 			sb.WriteString(`<thead><tr>`)
 			for _, c := range cols {
-				sb.WriteString(fmt.Sprintf(`<th>%s</th>`, html.EscapeString(strings.ToUpper(c))))
+				sb.WriteString(fmt.Sprintf(`<th>%s</th>`, html.EscapeString(strings.ToUpper(firstDict.DisplayKey(c)))))
 			}
 			sb.WriteString(`</tr></thead><tbody>`)
 			for _, rowEl := range lv.Elements {

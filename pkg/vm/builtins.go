@@ -648,7 +648,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 			return &BuiltinVal{Name: "anahtarlar", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 				elems := make([]Value, len(inst.Order))
 				for i, k := range inst.Order {
-					elems[i] = &StringVal{Val: k}
+					elems[i] = inst.KeyValue(k)
 				}
 				return &ListVal{Elements: elems}, nil
 			}}, nil
@@ -665,7 +665,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 				if len(args) < 1 {
 					return FALSE, nil
 				}
-				_, ok := inst.Pairs[args[0].Inspect()]
+				_, ok := inst.GetValue(args[0])
 				return boolToVal(ok), nil
 			}}, nil
 		}

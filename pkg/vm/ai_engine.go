@@ -1329,13 +1329,14 @@ func (v *VM) registerAIBuiltins() {
 			}
 		}
 
-		// Yerel Ollama sunucusu denemesi (2 saniye zaman aşımı ile)
+		// Yerel Ollama sunucusuna istek. Sunucu kapalıysa bağlantı hemen reddedilir;
+		// zaman aşımı yalnızca modelin yanıt üretme süresini sınırlar.
 		payload, _ := json.Marshal(map[string]interface{}{
 			"model":  model,
 			"prompt": prompt,
 			"stream": false,
 		})
-		client := &http.Client{Timeout: 2 * time.Second}
+		client := &http.Client{Timeout: 120 * time.Second}
 		var resp *http.Response
 		var err error
 		var body []byte
@@ -1346,19 +1347,25 @@ func (v *VM) registerAIBuiltins() {
 				body, _ = io.ReadAll(resp.Body)
 			}
 		})
-		if err == nil && resp.StatusCode == 200 {
-			var parsed map[string]interface{}
-			if json.Unmarshal(body, &parsed) == nil {
-				if ans, ok := parsed["response"].(string); ok {
-					return &StringVal{Val: strings.TrimSpace(ans)}, nil
-				}
+		// Sunucuya ulaşılamazsa sahte bir "yanıt" döndürmek yerine açık hata verilir;
+		// aksi hâlde program uydurma bir metni gerçek model çıktısı sanabilir.
+		if err != nil {
+			return nil, fmt.Errorf("yz_sor: yerel YZ sunucusuna (%s) ulaşılamadı: %v (Ollama'yı 'ollama serve' ile başlatın ve modeli 'ollama pull %s' ile indirin)", endpoint, err, model)
+		}
+		if resp.StatusCode != http.StatusOK {
+			detay := strings.TrimSpace(string(body))
+			if len(detay) > 300 {
+				detay = detay[:300] + "..."
+			}
+			return nil, fmt.Errorf("yz_sor: YZ sunucusu %d durum kodu döndürdü (model: %s): %s", resp.StatusCode, model, detay)
+		}
+		var parsed map[string]interface{}
+		if json.Unmarshal(body, &parsed) == nil {
+			if ans, ok := parsed["response"].(string); ok {
+				return &StringVal{Val: strings.TrimSpace(ans)}, nil
 			}
 		}
-
-		// Eğer yerel LLM sunucusu açık değilse yerleşik çevrimdışı yanıt üretici
-		return &StringVal{
-			Val: fmt.Sprintf("[TR Yerleşik YZ Yanıtı] İstem alındı (%q). (Not: Canlı yerel model için Ollama %s adresinde çalıştırılabilir)", prompt, endpoint),
-		}, nil
+		return nil, fmt.Errorf("yz_sor: YZ sunucusunun (%s) yanıtı çözümlenemedi; Ollama /api/generate biçiminde 'response' alanı bekleniyordu", endpoint)
 	})
 
 	v.RegisterBuiltin("python_çalıştır", "python_calistir", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -1569,7 +1576,9 @@ func trToGoValue(val Value) interface{} {
 	case *DictVal:
 		res := make(map[string]interface{})
 		for k, el := range v.Pairs {
-			res[k] = trToGoValue(el)
+			// JSON/veritabanı anahtarları metin olmak zorundadır; metin olmayan anahtarlar
+			// görünen hâlleriyle yazılır (1 -> "1").
+			res[v.DisplayKey(k)] = trToGoValue(el)
 		}
 		return res
 	case *MatrixVal:
