@@ -127,67 +127,15 @@ func printHelp() {
 }
 
 func runFile(path string) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası (%s): %v\n", path, err)
-		os.Exit(1)
-	}
-	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
-
-	l := lexer.New(code)
-	p := parser.New(l)
-	prog := p.ParseProgram()
-
-	if len(p.Errors()) > 0 {
-		fmt.Fprintln(os.Stderr, "❌ Sözdizimi Hataları:")
-		for _, e := range p.Errors() {
-			printError(e, code)
-		}
-		os.Exit(1)
-	}
-
-	chk := checker.New()
-	typeErrors := chk.CheckProgram(prog)
-	if len(typeErrors) > 0 {
-		fmt.Fprintln(os.Stderr, "❌ Tip ve Güvenlik Denetimi Hataları:")
-		for _, e := range typeErrors {
-			printError(e, code)
-		}
-		os.Exit(1)
-	}
-
+	code, prog := dosyaHazirla(path, calistirmaHazirligi)
 	machine := vm.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
-	_, err = machine.Run(prog)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "❌ Çalışma Zamanı Hatası:")
-		printError(err.Error(), code)
-		os.Exit(1)
-	}
-	machine.WaitAsync()
+	programCalistir(machine, prog, code)
 }
 
 func debugFile(path string, webMode bool) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası (%s): %v\n", path, err)
-		os.Exit(1)
-	}
-	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
-
-	l := lexer.New(code)
-	p := parser.New(l)
-	prog := p.ParseProgram()
-
-	if len(p.Errors()) > 0 {
-		fmt.Fprintln(os.Stderr, "❌ Sözdizimi Hataları:")
-		for _, e := range p.Errors() {
-			printError(e, code)
-		}
-		os.Exit(1)
-	}
-
+	code, prog := dosyaHazirla(path, hataAyiklamaHazirligi)
 	machine := vm.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
@@ -201,67 +149,16 @@ func debugFile(path string, webMode bool) {
 		}
 	}
 
-	_, err = machine.Run(prog)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "❌ Çalışma Zamanı Hatası:")
-		printError(err.Error(), code)
-		os.Exit(1)
-	}
-	machine.WaitAsync()
+	programCalistir(machine, prog, code)
 }
 
 func checkFile(path string) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası (%s): %v\n", path, err)
-		os.Exit(1)
-	}
-	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
-
-	l := lexer.New(code)
-	p := parser.New(l)
-	prog := p.ParseProgram()
-
-	if len(p.Errors()) > 0 {
-		fmt.Fprintln(os.Stderr, "❌ Sözdizimi Hataları:")
-		for _, e := range p.Errors() {
-			printError(e, code)
-		}
-		os.Exit(1)
-	}
-
-	chk := checker.New()
-	typeErrors := chk.CheckProgram(prog)
-	if len(typeErrors) > 0 {
-		fmt.Fprintln(os.Stderr, "❌ Tip ve Güvenlik Denetimi Hataları:")
-		for _, e := range typeErrors {
-			printError(e, code)
-		}
-		os.Exit(1)
-	}
-
+	dosyaHazirla(path, calistirmaHazirligi)
 	fmt.Printf("✅ %s başarıyla denetlendi: Sözdizimi ve tip güvenliği hatasız!\n", path)
 }
 
 func showBytecode(path string) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası (%s): %v\n", path, err)
-		os.Exit(1)
-	}
-	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
-
-	l := lexer.New(code)
-	p := parser.New(l)
-	prog := p.ParseProgram()
-
-	if len(p.Errors()) > 0 {
-		for _, e := range p.Errors() {
-			fmt.Fprintln(os.Stderr, e)
-		}
-		os.Exit(1)
-	}
-
+	_, prog := dosyaHazirla(path, baytkodHazirligi)
 	chunk := vm.CompileToBytecode(prog)
 	fmt.Print(chunk.Disassemble())
 }
@@ -303,54 +200,15 @@ func readEmbeddedBundle() (string, bool) {
 }
 
 func runEmbeddedCode(code string) {
-	l := lexer.New(code)
-	p := parser.New(l)
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		fmt.Fprintln(os.Stderr, "❌ Gömülü Uygulama Sözdizimi Hataları:")
-		for _, e := range p.Errors() {
-			printError(e, code)
-		}
-		os.Exit(1)
-	}
+	prog := kaynakHazirla(code, gomuluHazirlik)
 	machine := vm.New()
 	machine.SourceFile = "<derlenmiş-uygulama>"
 	machine.SourceCode = code
-	if _, err := machine.Run(prog); err != nil {
-		fmt.Fprintln(os.Stderr, "❌ Çalışma Zamanı Hatası:")
-		printError(err.Error(), code)
-		os.Exit(1)
-	}
-	machine.WaitAsync()
+	programCalistir(machine, prog, code)
 }
 
 func compileToExe(srcPath string, outPath string) {
-	data, err := os.ReadFile(srcPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası (%s): %v\n", srcPath, err)
-		os.Exit(1)
-	}
-	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
-
-	l := lexer.New(code)
-	p := parser.New(l)
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		fmt.Fprintln(os.Stderr, "❌ Derleme Öncesi Sözdizimi Hataları:")
-		for _, e := range p.Errors() {
-			printError(e, code)
-		}
-		os.Exit(1)
-	}
-
-	chk := checker.New()
-	if errs := chk.CheckProgram(prog); len(errs) > 0 {
-		fmt.Fprintln(os.Stderr, "❌ Derleme Öncesi Tip Güvenliği Hataları:")
-		for _, e := range errs {
-			printError(e, code)
-		}
-		os.Exit(1)
-	}
+	code, _ := dosyaHazirla(srcPath, derlemeHazirligi)
 
 	if outPath == "" {
 		base := strings.TrimSuffix(srcPath, filepath.Ext(srcPath))
