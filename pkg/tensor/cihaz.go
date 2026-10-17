@@ -1,0 +1,263 @@
+package tensor
+
+import (
+	"fmt"
+	"sync"
+)
+
+// ============================================================================
+// Cihaz, depolama ve arka uç soyutlaması
+// ============================================================================
+//
+// Tensörün verisi doğrudan bir dilimde değil, bir cihaza ait Storage içinde
+// durur. Tüm hesaplar (ileri ve geri yön) Backend arayüzü üzerinden yapılır;
+// tensör katmanı ve otomatik türev depolamanın içeriğine hiç dokunmaz, yalnızca
+// şekil/adım bilgisi tutar ve arka uç yöntemlerini çağırır. Böylece yeni bir
+// cihaz (ör. GPU) yalnızca Backend'i uygulayıp RegisterBackend ile kaydolarak
+// eklenebilir; otomatik türev ve üst katman kodu değişmez.
+//
+// Kurallar (her arka uç için):
+//   - Alloc ile ayrılan depolama sıfırlanmış olmalıdır.
+//   - "Bitişik" denen çıktı/gradyan depolamaları satır öncelikli ve ofseti 0'dır.
+//   - Girdiler View olarak gelir: herhangi bir ofset ve adımla (yayın için adım 0
+//     dahil) okunabilmelidir; aksi belirtilmedikçe.
+//   - "Grad" ile biten yöntemler hedefin üzerine EKLER (gradyan birikimi).
+//   - Konak (host) tarafındaki []int indeksler (Embedding, CrossEntropy) arka
+//     uç tarafından gerekirse cihaza aktarılır.
+
+// DeviceKind cihaz türü.
+type DeviceKind int
+
+const (
+	// KindCPU ana işlemci.
+	KindCPU DeviceKind = iota
+	// KindGPU grafik işlemci (henüz arka ucu yok; yer tutucu).
+	KindGPU
+)
+
+// Device bir hesap cihazını tanımlar.
+type Device struct {
+	Kind  DeviceKind
+	Index int
+}
+
+// CPU ana işlemci cihazı.
+var CPU = Device{Kind: KindCPU}
+
+// GPU verilen sıradaki grafik işlemci cihazı (arka ucu kayıtlı değilse
+// kullanılamaz).
+func GPU(index int) Device { return Device{Kind: KindGPU, Index: index} }
+
+func (d Device) String() string {
+	switch d.Kind {
+	case KindCPU:
+		return "cpu"
+	case KindGPU:
+		return fmt.Sprintf("gpu:%d", d.Index)
+	}
+	return fmt.Sprintf("cihaz(%d:%d)", d.Kind, d.Index)
+}
+
+// Storage bir cihazdaki düz float32 bellek bloğu.
+type Storage interface {
+	Device() Device
+	Len() int
+}
+
+// View bir depolamaya ofset, şekil ve adımlarla bakan salt okunur tanım.
+type View struct {
+	S       Storage
+	Offset  int
+	Shape   []int
+	Strides []int
+}
+
+// Numel görünümdeki eleman sayısı.
+func (v View) Numel() int { return numelOf(v.Shape) }
+
+// IsContiguous görünümün satır öncelikli ve boşluksuz olup olmadığı.
+func (v View) IsContiguous() bool { return isContiguous(v.Shape, v.Strides) }
+
+// BinOp ikili eleman bazlı işlem.
+type BinOp int
+
+const (
+	OpAdd BinOp = iota
+	OpSub
+	OpMul
+	OpDiv
+)
+
+// UnOp tekli eleman bazlı işlem; bazıları bir skaler parametre (p) alır.
+type UnOp int
+
+const (
+	OpExp        UnOp = iota
+	OpLog             // doğal logaritma
+	OpSqrt            // karekök
+	OpPow             // x^p
+	OpTanh            // tanh
+	OpRelu            // max(0,x)
+	OpGelu            // tanh yaklaşımlı GELU
+	OpSigmoid         // lojistik
+	OpAddScalar       // x+p
+	OpMulScalar       // x·p
+	OpRSubScalar      // p-x
+	OpRDivScalar      // p/x
+)
+
+// GradMode ikili işlemlerin geri yayılımında hedefe eklenecek terim:
+// g çıktı gradyanı, o diğer işlenen, y çıktı.
+type GradMode int
+
+const (
+	GradPlus  GradMode = iota // g
+	GradMinus                 // -g
+	GradMul                   // g·o
+	GradDiv                   // g/o
+	GradDivB                  // -g·y/o (bölmenin paydaya göre türevi)
+)
+
+// Backend bir cihazdaki tüm tensör işlemlerini uygular.
+type Backend interface {
+	Device() Device
+
+	// --- Bellek ---
+
+	// Alloc n elemanlı sıfırlanmış depolama ayırır.
+	Alloc(n int) Storage
+	// FromHost konak verisini kopyalayarak depolama oluşturur.
+	FromHost(data []float32) Storage
+	// ToHost görünümün elemanlarını mantıksal sırayla konağa kopyalar.
+	ToHost(src View) []float32
+	// Copy src'yi dst'ye dstOff'tan başlayarak bitişik yazar.
+	Copy(dst Storage, dstOff int, src View)
+	// Fill tüm elemanları v yapar.
+	Fill(dst Storage, v float32)
+
+	// --- Gradyan biriktirme ---
+
+	// AddTo dst += scale·src (eşit uzunluklu bitişik depolamalar).
+	AddTo(dst, src Storage, scale float32)
+	// ScatterAdd bitişik src'yi (şekil shape) dst'ye dstOff/dstStrides
+	// eşlemesiyle ekler (görünümlerin geri yayılımı).
+	ScatterAdd(dst Storage, dstOff int, dstStrides []int, src Storage, shape []int)
+	// ExpandAdd dst (dstShape, bitişik) += scale·yayın(src (srcShape, bitişik)).
+	ExpandAdd(dst Storage, dstShape []int, src Storage, srcShape []int, scale float32)
+
+	// --- Eleman bazlı ---
+
+	// Binary out (outShape, bitişik) = a op b (yayınlamalı).
+	Binary(op BinOp, out Storage, outShape []int, a, b View)
+	// BinaryGrad g'den (outShape) türetilen terimi dstShape'e indirgeyerek dst'ye ekler.
+	// o (diğer işlenen) ve y (çıktı) yalnızca gereken kiplerde kullanılır.
+	BinaryGrad(mode GradMode, dst Storage, dstShape, outShape []int, g Storage, o View, y Storage)
+	// Unary out (bitişik) = f(x).
+	Unary(op UnOp, p float32, out Storage, x View)
+	// UnaryGrad gx += g·f'(x, y).
+	UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Storage)
+
+	// --- İndirgemeler ---
+
+	// Sum eksen boyunca toplam·scale; out bitişik ve eksensiz şekilde.
+	Sum(out Storage, x View, axis int, scale float32)
+	// SumAll tüm elemanların toplamı·scale; out tek elemanlı.
+	SumAll(out Storage, x View, scale float32)
+	// Max eksen boyunca en büyük değer.
+	Max(out Storage, x View, axis int)
+	// MaxGrad g'yi her satırın (ilk) en büyük elemanına ekler.
+	MaxGrad(gx, g Storage, x View, axis int)
+	// ArgMax eksen boyunca en büyük elemanın indeksleri (konakta).
+	ArgMax(x View, axis int) []int
+	// Softmax eksen boyunca (log) softmax; out bitişik.
+	Softmax(out Storage, x View, axis int, log bool)
+	// SoftmaxGrad gx += softmax geri yayılımı (y: ileri çıktı, bitişik).
+	SoftmaxGrad(gx, g, y Storage, shape []int, axis int, log bool)
+
+	// --- Matris çarpımı ---
+
+	// Gemm her toplu eleman için C += op(A)·op(B). C (batch, M, N) bitişik;
+	// A bitişik (batch, M, K) ya da transA ise (batch, K, M); B bitişik
+	// (batch, K, N) ya da transB ise (batch, N, K). Ofsetler serbesttir.
+	Gemm(batch, M, N, K int, a View, transA bool, b View, transB bool, c Storage)
+
+	// --- Sinir ağı işlemleri ---
+
+	Embedding(out Storage, w View, idx []int, D int)
+	EmbeddingGrad(gw, g Storage, idx []int, D int)
+	// CrossEntropy satır başına log-sum-exp (lse) ve geçerli hedefler üzerinden
+	// ortalama kaybı (loss, tek eleman) üretir; negatif hedefler yok sayılır.
+	CrossEntropy(x View, targets []int, C int) (loss, lse Storage)
+	CrossEntropyGrad(gx, g Storage, x View, lse Storage, targets []int, C int)
+	// LayerNorm son eksen (D) boyunca; gamma/beta nil olabilir. Satır başına
+	// ortalama ve ters standart sapmayı geri yayılım için döndürür.
+	LayerNorm(out Storage, x View, gamma, beta *View, D int, eps float32) (mean, rstd Storage)
+	LayerNormGrad(gx, ggamma, gbeta, g Storage, x View, gamma *View, mean, rstd Storage, D int)
+	// RMSNorm son eksen boyunca; satır başına 1/rms döndürür.
+	RMSNorm(out Storage, x View, gamma *View, D int, eps float32) (rinv Storage)
+	RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv Storage, D int)
+
+	// --- İyileştirici ---
+
+	// SGDStep p -= lr·(momentumlu) (g + wd·p); vel nil ise momentum yok.
+	SGDStep(p, g, vel Storage, lr, momentum, wd float32)
+	// AdamWStep ayrık ağırlık çürümeli Adam adımı; bc1, bc2 sapma düzeltmeleri.
+	AdamWStep(p, g, m, v Storage, lr, b1, b2, eps, wd, bc1, bc2 float32)
+	// SumSquares Σ s² (konakta, float64).
+	SumSquares(s Storage) float64
+	// Scale s *= k.
+	Scale(s Storage, k float32)
+}
+
+var (
+	backendMu sync.RWMutex
+	backends  = map[Device]Backend{}
+	// varsayilanCihaz oluşturucuların (Zeros, New, ...) kullandığı cihaz.
+	varsayilanCihaz = CPU
+)
+
+func init() {
+	RegisterBackend(cpuBackend{})
+}
+
+// RegisterBackend bir cihazın arka ucunu kaydeder (ör. GPU arka ucu
+// paketinin init işlevinden).
+func RegisterBackend(b Backend) {
+	backendMu.Lock()
+	backends[b.Device()] = b
+	backendMu.Unlock()
+}
+
+// BackendFor cihazın arka ucunu verir; kayıtlı değilse panik.
+func BackendFor(d Device) Backend {
+	backendMu.RLock()
+	b, ok := backends[d]
+	backendMu.RUnlock()
+	if !ok {
+		panic(fmt.Sprintf("tensor: %s cihazı için arka uç kayıtlı değil", d))
+	}
+	return b
+}
+
+// HasDevice cihazın arka ucu kayıtlı mı.
+func HasDevice(d Device) bool {
+	backendMu.RLock()
+	_, ok := backends[d]
+	backendMu.RUnlock()
+	return ok
+}
+
+// SetDefaultDevice oluşturucuların kullanacağı cihazı ayarlar.
+func SetDefaultDevice(d Device) {
+	BackendFor(d)
+	backendMu.Lock()
+	varsayilanCihaz = d
+	backendMu.Unlock()
+}
+
+// DefaultDevice oluşturucuların kullandığı cihaz.
+func DefaultDevice() Device {
+	backendMu.RLock()
+	defer backendMu.RUnlock()
+	return varsayilanCihaz
+}

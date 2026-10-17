@@ -1,0 +1,57 @@
+package tensor
+
+import "fmt"
+
+// MatMul matris çarpımı (cihazdan bağımsız katman):
+//   - (M,K) @ (K,N) -> (M,N)
+//   - (..., M, K) @ (K, N) -> (..., M, N)   (ör. doğrusal katman, öndeki eksenler satıra katlanır)
+//   - (..., M, K) @ (..., K, N) -> (..., M, N)  (toplu; öndeki eksenler eşit olmalı)
+//
+// Bitişik olmayan girdiler (ör. devrik görünümler) arka uca verilmeden önce
+// bitişik hale getirilir. Geri yayılım devrikleri kopyalamaz; arka ucun
+// transA/transB bayraklarını kullanır.
+func MatMul(a, b *Tensor) *Tensor {
+	be := sameDevice("matmul", a, b)
+	if len(a.shape) < 2 || len(b.shape) < 2 {
+		panic(fmt.Sprintf("tensor: MatMul en az 2 boyutlu girdiler ister, %v @ %v", a.shape, b.shape))
+	}
+	K := a.shape[len(a.shape)-1]
+	if b.shape[len(b.shape)-2] != K {
+		panic(fmt.Sprintf("tensor: MatMul iç boyutlar uyuşmuyor: %v @ %v", a.shape, b.shape))
+	}
+	N := b.shape[len(b.shape)-1]
+
+	var batch, M int
+	outShape := copyInts(a.shape)
+	outShape[len(outShape)-1] = N
+	if len(b.shape) == 2 {
+		// Sağ taraf tek matris: soldaki öndeki eksenler satırlara katlanır.
+		batch = 1
+		M = numelOf(a.shape[:len(a.shape)-1])
+	} else {
+		if len(a.shape) != len(b.shape) || !sameShape(a.shape[:len(a.shape)-2], b.shape[:len(b.shape)-2]) {
+			panic(fmt.Sprintf("tensor: toplu MatMul öndeki eksenlerin eşit olmasını ister: %v @ %v", a.shape, b.shape))
+		}
+		batch = numelOf(a.shape[:len(a.shape)-2])
+		M = a.shape[len(a.shape)-2]
+	}
+
+	av, bv := a.contigView(), b.contigView()
+	out := zerosOn(be, outShape)
+	be.Gemm(batch, M, N, K, av, false, bv, false, out.storage)
+
+	return track(out, "matmul", []*Tensor{a, b}, func() {
+		g := out.gradView()
+		if a.requiresGrad {
+			// dA (M×K) += dC (M×N) · Bᵀ
+			be.Gemm(batch, M, K, N, g, false, bv, true, a.accGrad())
+		}
+		if b.requiresGrad {
+			// dB (K×N) += Aᵀ · dC
+			be.Gemm(batch, K, N, M, av, true, g, false, b.accGrad())
+		}
+	})
+}
+
+// MatMul yöntem biçimi.
+func (t *Tensor) MatMul(o *Tensor) *Tensor { return MatMul(t, o) }
