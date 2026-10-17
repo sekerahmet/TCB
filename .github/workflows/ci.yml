@@ -1,0 +1,57 @@
+# Sürekli tümleştirme: her gönderimde ve çekme isteğinde Windows ve Linux üzerinde
+# biçim denetimi, go vet, Go testleri, dil tanımı testleri (tr test) ve VS Code eklentisi
+# denetimleri çalışır.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  denetim:
+    name: Denetim (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Biçim (gofmt)
+        run: |
+          degisecek="$(gofmt -l .)"
+          if [ -n "$degisecek" ]; then
+            echo "gofmt ile biçimlenmesi gereken dosyalar:"
+            echo "$degisecek"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Go testleri
+        run: go test ./...
+
+      - name: tr derle ve dil tanımı testleri (tr test)
+        run: |
+          uzanti=""
+          if [ "$RUNNER_OS" = "Windows" ]; then uzanti=".exe"; fi
+          go build -o "$RUNNER_TEMP/tr$uzanti" ./cmd/tr
+          "$RUNNER_TEMP/tr$uzanti" test testler
+
+      - name: VS Code eklentisi
+        run: |
+          node --check vscode_eklentisi/extension.js
+          for f in vscode_eklentisi/media/*.js; do node --check "$f"; done
+          node -e "JSON.parse(require('fs').readFileSync('vscode_eklentisi/package.json', 'utf8')); console.log('package.json geçerli')"
