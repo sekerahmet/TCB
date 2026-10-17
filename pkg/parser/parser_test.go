@@ -173,3 +173,36 @@ func TestInterpolationKeepsSourcePosition(t *testing.T) {
 		t.Fatalf("konum Satır 2, Sütun 14 olmalıydı, alınan: Satır %d, Sütun %d", id.Token.Line, id.Token.Column)
 	}
 }
+
+// Test raporu Y1: kapatılmamış '{' hatasız kabul ediliyor, sonraki kod sessizce bloğa giriyordu.
+func TestUnclosedBlockBraceIsReported(t *testing.T) {
+	for code, want := range map[string]string{
+		"eğer yanlış {\n    yazdır(\"gizli\")\nyazdır(\"son\")":    "Satır 1, Sütun 13: '{' kapatılmadı",
+		"fonksiyon f() {\n    sonuç 1\nyazdır(f())":                "Satır 1, Sütun 15: '{' kapatılmadı",
+		"yapı Kişi {\n    ad: Metin\n":                             "Satır 1, Sütun 11: '{' kapatılmadı",
+		"değişken x = eşle 1 {\n    1 => \"bir\"\n":                "'{' kapatılmadı",
+		"döngü i içinde 1..3 {\n    eğer i == 2 {\n        çık\n}": "Satır 1, Sütun 21: '{' kapatılmadı",
+	} {
+		errs := parseErrors(code)
+		if len(errs) == 0 || !strings.Contains(strings.Join(errs, "\n"), want) {
+			t.Errorf("%q için %q bekleniyordu, alınan: %v", code, want, errs)
+		}
+	}
+	if errs := parseErrors("eğer doğru {\n    yazdır(1)\n}\n"); len(errs) != 0 {
+		t.Fatalf("kapatılmış blok hata vermemeli: %v", errs)
+	}
+}
+
+// Metin içinde ifade olarak çözümlenemeyen süslü parantezler (JSON, Python kodu gibi)
+// bilinçli olarak düz metin kalır; bu meşru kullanımlar hata vermemeli.
+func TestNonExpressionBracesStayLiteral(t *testing.T) {
+	for _, code := range []string{
+		`yazdır("{\"kod\": 5}")`,
+		`yazdır("Nokta{x: 1, y: 2}")`,
+		`python_çalıştır("print({'a': 1})")`,
+	} {
+		if errs := parseErrors(code); len(errs) != 0 {
+			t.Errorf("%s hata vermemeli: %v", code, errs)
+		}
+	}
+}

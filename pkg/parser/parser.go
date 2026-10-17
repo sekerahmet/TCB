@@ -504,8 +504,19 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		}
 		p.nextToken()
 	}
+	p.requireClosingBrace(block.Token)
 
 	return block
+}
+
+// requireClosingBrace, '{' ile açılan bir gövde dosya sonuna kadar kapatılmadıysa hata kaydeder.
+// Aksi hâlde sonraki tüm kod sessizce bloğun içine girerdi (test raporu Y1).
+func (p *Parser) requireClosingBrace(open lexer.Token) {
+	if p.curTokenIs(lexer.TOKEN_EOF) {
+		p.errors = append(p.errors, fmt.Sprintf(
+			"Satır %d, Sütun %d: '{' kapatılmadı; dosya bitti ama bu bloğu kapatan '}' bulunamadı",
+			open.Line, open.Column))
+	}
 }
 
 func (p *Parser) parseForStatement() ast.Statement {
@@ -602,6 +613,8 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
+	structOpen := p.curToken()
+	defer func() { p.requireClosingBrace(structOpen) }()
 	p.nextToken()
 
 	for !p.curTokenIs(lexer.TOKEN_RBRACE) && !p.curTokenIs(lexer.TOKEN_EOF) {
@@ -1131,6 +1144,8 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
+	matchOpen := p.curToken()
+	defer func() { p.requireClosingBrace(matchOpen) }()
 	p.nextToken()
 
 	var cases []ast.MatchCase

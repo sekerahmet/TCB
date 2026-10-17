@@ -144,6 +144,14 @@ api.gönder("/api/ekle", fonksiyon(istek) {
 api.başlat() // veya api.arka_planda_başlat()
 ```
 
+**Güvenlik:** Web sunucusu ve görsel arayüz yalnızca bu bilgisayardan (127.0.0.1) erişilebilir ve tarayıcıda açık başka web sitelerine karşı korunur:
+- Başka sitelere okuma izni (CORS) verilmez.
+- Başka bir siteden gelen veri değiştiren istekler (POST, PUT, DELETE) reddedilir.
+- `localhost` dışındaki Host başlıkları reddedilir.
+- İstek gövdesi en fazla 10 MB olabilir.
+- `istek["veri"]` yalnızca istek `Content-Type: application/json` ile gelirse sözlük/liste olarak çözülür; aksi hâlde metindir.
+- İşleyicinin döndürdüğü metin yalnızca tam bir HTML belgesiyse (`<!DOCTYPE html>` ya da `<html>` ile başlıyorsa) sayfa olarak sunulur; diğer metinler düz metin olarak gönderilir.
+
 ---
 
 ## 7. Yerleşik Türkçe SQL Veritabanı ve Listeyi Tablo Gibi Sorgulama
