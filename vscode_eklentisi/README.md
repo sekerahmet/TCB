@@ -23,14 +23,35 @@
 | Komut | Kimlik | Çalıştırılan |
 | --- | --- | --- |
 | TR: Dosyayı Çalıştır | `tr.calistir` | `tr.exe <dosya>` |
+| TR: Hata Ayıkla (VS Code) | `tr.hataAyiklaBaslat` | VS Code hata ayıklayıcısı (`tr.exe dap`) |
 | TR: Dosyayı Denetle | `tr.denetle` | `tr.exe kontrol <dosya>` |
-| TR: Hata Ayıklayıcıda Aç | `tr.hataAyikla` | `tr.exe debug <dosya>` |
+| TR: Terminal Hata Ayıklayıcısında Aç | `tr.hataAyikla` | `tr.exe debug <dosya>` |
 | TR: Görsel Hata Ayıklayıcı (Tarayıcı) | `tr.gorselHataAyikla` | `tr.exe debug --web <dosya>` |
+| TR: Tablo Görünümü | `tr.tabloGoster` | Hata ayıklarken değişkeni tablo olarak gösterir |
+| TR: İzleme Masası | `tr.izlemeMasasi` | Hata ayıklarken tüm değişkenleri tablo hâlinde gösteren paneli açar |
 
 - Komutlar dosyayı önce kaydeder, sonra terminal panelinde çalıştırır. Hata ayıklayıcı komutlarını bu terminale yazabilirsiniz.
 - Çalışma dizini, dosyanın bulunduğu çalışma alanı klasörüdür; klasör açık değilse dosyanın dizinidir.
-- **F5** veya **Ctrl+F5**: Dosyayı Çalıştır (hata ayıklama oturumu açık değilken).
-- Düzenleyicinin başlık çubuğundaki **▶** düğmesi dosyayı çalıştırır. Dört komutun hepsi sağ tık menüsünde ve Komut Paleti'nde (`Ctrl+Shift+P`, "TR:") de bulunur.
+- Düzenleyicinin başlık çubuğundaki **▶** düğmesi dosyayı çalıştırır, yanındaki **🐞** düğmesi hata ayıklamayı başlatır. Komutlar sağ tık menüsünde ve Komut Paleti'nde (`Ctrl+Shift+P`, "TR:") de bulunur.
+
+## Hata ayıklama
+
+**F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için).
+
+**İzleme Masası:** Program her durduğunda editörün yanında açılır. Tüm değişkenler tek tabloda görünür (Kapsam, Değişken, Tip, Değer); son adımda değişen değerler vurgulanır. Tip sütununda `Tablo [3×3]` yazan bir değişkenin adına tıklayınca içeriği altta sıralanabilir, aranabilir bir tablo olarak açılır ve adım attıkça güncellenir. ✏️ ile değeri doğrudan değiştirebilirsiniz. İstemiyorsanız `tr.izlemeMasasi` ayarını kapatın.
+
+| Ne yapmak istiyorsunuz? | Nasıl |
+| --- | --- |
+| Kesme noktası koymak | Satır numarasının soluna tıklayın. Sağ tık → koşullu kesme noktası (`bakiye < 0`) veya iz noktası (`bakiye = {bakiye}` — durmadan Debug Console'a yazar). Koddaki `kesme_noktası` da durdurur. |
+| Adım adım ilerlemek | F11 adım içine, F10 üstten geç, Shift+F11 fonksiyondan çık, F5 devam |
+| Değişkenleri görmek | İzleme Masası ya da Variables paneli (Yerel ve Genel kapsamlar; listeler, sözlükler, yapılar ve matrisler açılır) |
+| Değeri değiştirmek | İzleme Masası'nda ✏️ ya da Variables panelinde çift tıklama; TR ifadesi yazın (`0.20`, `[1, 2]`, `fiyat * 2`) |
+| Değer değişince durmak (izleme noktası) | Variables panelinde sağ tık → **Break on Value Change** |
+| Bir satıra zıplamak | Satırda sağ tık → **Jump to Cursor** |
+| Çağrı yığınını görmek | Call Stack paneli |
+| Komut çalıştırmak | Debug Console: ifade değerlendirin veya deyim çalıştırın (`bakiye = 0`) |
+
+Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (`aktar` ile yüklenen modüllerde değil); hata ayıklama oturumunda `girdi()` kullanılamaz.
 
 ## Ayar
 
@@ -46,4 +67,4 @@ Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen
 
 - En iyi deneyim için tek dosya yerine proje **klasörünü** açın (Dosya → Klasör Aç). Klasör açılmadan da çalıştırma çalışır: program bu durumda dosyanın bulunduğu klasörde, ayrı bir terminalde başlatılır.
 - `.tr` dosyalarında VS Code'un "belirsiz karakter" uyarısı kapalıdır; Türkçe `ı` harfi artık Latin `i` ile karıştırılabilir diye sarı kutuyla işaretlenmez.
-- **F5 her yerden çalışır:** TR, VS Code'a hata ayıklanabilir bir dil olarak tanıtılır. F5, Ctrl+F5 ya da "Çalıştır" menüsü, imleç kodun içinde olmasa bile açık `.tr` dosyasını çalıştırır; "You don't have an extension for debugging" uyarısı çıkmaz. `launch.json` içinde `"hataAyikla": true` verilirse dosya terminal hata ayıklayıcısında (`tr debug`) açılır.
+- `launch.json` ile özelleştirme: `"program"`, `"cwd"` ve `"stopOnEntry": true` (ilk satırda dur) desteklenir.

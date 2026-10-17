@@ -54,7 +54,13 @@ type Debugger struct {
 	PauseReason  string
 	StepCount    int
 
-	// Görsel Web Arayüzü (ABAP Web Studio) kanalları
+	// pauseKind duraklamanın türüdür (VS Code'a bildirilir): "entry", "step",
+	// "breakpoint", "data breakpoint", "pause", "goto".
+	pauseKind string
+	// dap, VS Code hata ayıklama oturumu (tr dap) etkinse bağlı sunucudur.
+	dap *dapServer
+
+	// Görsel web hata ayıklayıcısının kanalları
 	// mu: web arayüzünün HTTP goroutine'i ile VM arasında paylaşılan alanları korur
 	// (Breakpoints, Mode, PauseReason, StepCount, cur*, paused).
 	mu        sync.Mutex
@@ -119,16 +125,25 @@ func (d *Debugger) BeforeStatement(v *VM, stmt ast.Statement, env *Environment) 
 	// 1. Watchpoint (İzleme Noktası) kontrolü
 	wpReason := d.checkWatchpoints(v, env)
 
+	// VS Code oturumunda kesme noktaları koşul ve iz mesajı taşıyabilir; ifade
+	// değerlendirmesi kilit dışında yapılır (iç içe deyimler BeforeStatement'ı çağırır).
+	bpHit := false
+	if d.dap != nil {
+		bpHit = d.dap.breakpointHit(v, line, env)
+	}
+
 	d.mu.Lock()
 	if wpReason != "" {
 		shouldPause = true
 		d.PauseReason = wpReason
+		d.pauseKind = "data breakpoint"
 	}
 
 	// 2. Satır kesme noktası (Breakpoint) kontrolü
-	if !shouldPause && d.Breakpoints[line] {
+	if !shouldPause && (bpHit || (d.dap == nil && d.Breakpoints[line])) {
 		shouldPause = true
 		d.PauseReason = fmt.Sprintf("Kesme Noktası (Satır %d)", line)
+		d.pauseKind = "breakpoint"
 	}
 
 	// 3. Adım modu (F5 / F6 / F7) kontrolü
@@ -139,15 +154,20 @@ func (d *Debugger) BeforeStatement(v *VM, stmt ast.Statement, env *Environment) 
 			if d.PauseReason == "" {
 				d.PauseReason = "F5 Tek Adım"
 			}
+			if d.pauseKind == "" {
+				d.pauseKind = "step"
+			}
 		case StepOver:
 			if depth <= d.TargetDepth {
 				shouldPause = true
 				d.PauseReason = "F6 Üstten Adım"
+				d.pauseKind = "step"
 			}
 		case StepOut:
 			if depth < d.TargetDepth {
 				shouldPause = true
 				d.PauseReason = "F7 Fonksiyondan Çıkış"
+				d.pauseKind = "step"
 			}
 		}
 	}
@@ -158,6 +178,9 @@ func (d *Debugger) BeforeStatement(v *VM, stmt ast.Statement, env *Environment) 
 		return 0
 	}
 
+	if d.dap != nil {
+		return d.dap.waitForCommand(v, line, env)
+	}
 	if d.WebMode {
 		return d.waitForWebAction(v, line, env)
 	}
@@ -218,11 +241,11 @@ func (d *Debugger) checkWatchpoints(v *VM, env *Environment) string {
 }
 
 func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
-	d.renderABAPScreen(v, line, env)
+	d.renderDebugScreen(v, line, env)
 	d.PauseReason = ""
 
 	for {
-		fmt.Print("\n[ABAP-TR Debug] (F5:adım | F6:geç | F7:dön | F8:devam | değiştir | zıpla | tablo | izle) > ")
+		fmt.Print("\n[TR Hata Ayıklayıcı] (F5:adım | F6:geç | F7:dön | F8:devam | değiştir | zıpla | tablo | izle) > ")
 		input, err := d.Reader.ReadString('\n')
 		if err != nil {
 			d.Mode = StepContinue
@@ -302,7 +325,7 @@ func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
 			}
 			fmt.Printf("  ⏭️ [SATIRA ZIPLANDI] Akış %d. satıra taşınıyor...\n", targetLine)
 			d.Mode = StepInto
-			d.PauseReason = fmt.Sprintf("Satır %s zıplandı (Shift+F12)", turkce.SayiEk(int64(targetLine), turkce.Yonelme))
+			d.PauseReason = fmt.Sprintf("Satır %s zıplandı", turkce.SayiEk(int64(targetLine), turkce.Yonelme))
 			return targetLine
 
 		case "kesme", "k", "b", "break":
@@ -351,7 +374,7 @@ func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
 			d.inspectTable(parts[1], env)
 
 		case "yığın", "yigin", "stack", "bt":
-			fmt.Println("  📚 ÇAĞRI YIĞINI (ABAP Call Stack):")
+			fmt.Println("  📚 ÇAĞRI YIĞINI:")
 			fmt.Printf("    #0 [Aktif] Satır %d\n", line)
 			stack := v.StackSnapshot()
 			for i := len(stack) - 1; i >= 0; i-- {
@@ -380,7 +403,7 @@ func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
 			}
 
 		case "ekran", "göster", "goster", "l":
-			d.renderABAPScreen(v, line, env)
+			d.renderDebugScreen(v, line, env)
 
 		case "yardım", "yardim", "h", "help":
 			d.printDebugHelp()
@@ -400,9 +423,9 @@ func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
 	}
 }
 
-func (d *Debugger) renderABAPScreen(v *VM, currentLine int, env *Environment) {
+func (d *Debugger) renderDebugScreen(v *VM, currentLine int, env *Environment) {
 	fmt.Println("\n╔══════════════════════════════════════════════════════════════════════════════╗")
-	fmt.Printf("║ 🛠️  TR ABAP-TARZI HATA AYIKLAYICI (DEBUGGER) | Dosya: %-22s ║\n", d.SourceFile)
+	fmt.Printf("║ 🛠️  TR HATA AYIKLAYICI  | Dosya: %-35s ║\n", d.SourceFile)
 	if d.PauseReason != "" {
 		fmt.Printf("║ 📌 Durum: %-66s ║\n", d.PauseReason)
 	}
@@ -432,7 +455,7 @@ func (d *Debugger) renderABAPScreen(v *VM, currentLine int, env *Environment) {
 	}
 
 	fmt.Println("╟──────────────────────────────────────────────────────────────────────────────╢")
-	// Sistem ve Kullanıcı Değişkenleri Özeti (ABAP Locals / Globals)
+	// Yerel ve genel değişkenlerin özeti
 	vars := collectVisibleVariables(env)
 	fmt.Printf("  📊 SİSTEM: SY-LINNO=%d | SY-STEP=%d | YIĞIN_DERİNLİĞİ=%d\n", currentLine, d.StepCount, v.StackDepth())
 	if len(vars) == 0 {
@@ -456,7 +479,7 @@ func (d *Debugger) inspectTable(name string, env *Environment) {
 		fmt.Printf("  ❌ %q adında bir değişken bulunamadı.\n", name)
 		return
 	}
-	fmt.Printf("\n  📋 ABAP TABLO / NESNE İNCELEYİCİ: %s (%s)\n", name, val.Type())
+	fmt.Printf("\n  📋 TABLO / NESNE İNCELEYİCİ: %s (%s)\n", name, val.Type())
 	fmt.Println("  " + strings.Repeat("─", 56))
 	switch t := val.(type) {
 	case *ListVal:
@@ -490,16 +513,16 @@ func (d *Debugger) inspectTable(name string, env *Environment) {
 }
 
 func (d *Debugger) printDebugHelp() {
-	fmt.Println("\n  🛠️  TR ABAP-TARZI DEBUGGER KOMUT REHBERİ:")
+	fmt.Println("\n  🛠️  TR HATA AYIKLAYICI KOMUT REHBERİ:")
 	fmt.Println("  • f5 / adım / Enter       : Tek adım ilerle (Fonksiyonların içine girer)")
 	fmt.Println("  • f6 / geç                : Üstten geç (Fonksiyonu tek adımda çalıştırır)")
 	fmt.Println("  • f7 / dön                : Mevcut fonksiyondan çıkana kadar çalıştır")
 	fmt.Println("  • f8 / devam              : Sonraki kesme veya izleme noktasına kadar devam et")
 	fmt.Println("  • değiştir x = 100        : ✏️ Çalışma anında 'x' değişkeninin değerini canlı değiştir!")
-	fmt.Println("  • zıpla 15                : ⏭️ (Shift+F12) Çalışma sırasını 15. satıra geri/ileri taşı!")
+	fmt.Println("  • zıpla 15                : ⏭️ Çalışma sırasını 15. satıra geri/ileri taşı!")
 	fmt.Println("  • izle bakiye < 0         : 👁️ (Watchpoint) Koşul sağlandığında veya değişken değiştiğinde dur!")
 	fmt.Println("  • kesme 20                : 🔴 20. satıra kesme noktası (Breakpoint) ekle/kaldır")
-	fmt.Println("  • tablo liste_adı         : 📋 Liste, Matris veya Sözlüğü ABAP tablo görünümünde aç")
+	fmt.Println("  • tablo liste_adı         : 📋 Liste, Matris veya Sözlüğü tablo görünümünde aç")
 	fmt.Println("  • yığın                   : 📚 Çağrı yığınını (Call Stack) göster")
 	fmt.Println("  • hesapla x * 2           : 💡 Herhangi bir TR ifadesini anında hesapla")
 	fmt.Println("  • çıkış                   : Hata ayıklayıcıyı sonlandır")
@@ -535,7 +558,7 @@ func collectVisibleVariables(env *Environment) []varEntry {
 }
 
 // ============================================================================
-// GÖRSEL WEB ABAP DEBUGGER STÜDYOSU (tr debug --web dosya.tr)
+// GÖRSEL WEB HATA AYIKLAYICISI (tr debug --web dosya.tr)
 // ============================================================================
 
 // debugTokenHeader web arayüzünün her API isteğinde göndermesi gereken erişim anahtarı başlığıdır.
@@ -607,7 +630,7 @@ func (d *Debugger) StartWebServer(v *VM, port int) error {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write([]byte(strings.Replace(abapWebDebuggerHTML, "__TR_ANAHTAR__", d.webToken, 1)))
+		_, _ = w.Write([]byte(strings.Replace(webDebuggerHTML, "__TR_ANAHTAR__", d.webToken, 1)))
 	})
 
 	mux.HandleFunc("/api/state", guard(false, func(w http.ResponseWriter, r *http.Request) {
@@ -728,7 +751,7 @@ func (d *Debugger) StartWebServer(v *VM, port int) error {
 	if out == nil {
 		out = os.Stdout
 	}
-	fmt.Fprintf(out, "🐞 Görsel ABAP Debugger Studio: http://127.0.0.1:%d/?anahtar=%s\n", port, d.webToken)
+	fmt.Fprintf(out, "🐞 Görsel TR Hata Ayıklayıcı: http://127.0.0.1:%d/?anahtar=%s\n", port, d.webToken)
 	fmt.Fprintln(out, "   (Bu bağlantı gizli bir erişim anahtarı içerir; başkasıyla paylaşmayın.)")
 	return nil
 }
@@ -773,13 +796,13 @@ func (d *Debugger) waitForWebAction(v *VM, line int, env *Environment) int {
 		d.Mode = StepContinue
 	case "jump":
 		d.Mode = StepInto
-		d.PauseReason = fmt.Sprintf("Satır %s zıplandı (Shift+F12)", turkce.SayiEk(int64(act.Line), turkce.Yonelme))
+		d.PauseReason = fmt.Sprintf("Satır %s zıplandı", turkce.SayiEk(int64(act.Line), turkce.Yonelme))
 		return act.Line
 	}
 	return 0
 }
 
-// applyModify ABAP ✏️ canlı değişken değiştirme: ifadeyi duraklatılmış VM üzerinde hesaplar ve atar.
+// applyModify ✏️ canlı değişken değiştirme: ifadeyi duraklatılmış VM üzerinde hesaplar ve atar.
 func (d *Debugger) applyModify(v *VM, env *Environment, name, expr string) error {
 	l := lexer.New(expr)
 	p := parser.New(l)
@@ -806,11 +829,11 @@ func (d *Debugger) applyModify(v *VM, env *Environment, name, expr string) error
 	return nil
 }
 
-const abapWebDebuggerHTML = `<!DOCTYPE html>
+const webDebuggerHTML = `<!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>TR ABAP-Tarzı Görsel Hata Ayıklayıcı (Debugger)</title>
+<title>TR Görsel Hata Ayıklayıcı</title>
 <style>
   body { margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background: #1e2227; color: #e0e6ed; display: flex; flex-direction: column; height: 100vh; }
   header { background: #282c34; padding: 10px 18px; border-bottom: 2px solid #f0b429; display: flex; align-items: center; justify-content: space-between; }
@@ -832,7 +855,7 @@ const abapWebDebuggerHTML = `<!DOCTYPE html>
 </head>
 <body>
 <header>
-  <div class="brand">🇹🇷 TR ABAP-Tarzı Görsel Debugger — <span id="fileName"></span></div>
+  <div class="brand">🇹🇷 TR Görsel Hata Ayıklayıcı — <span id="fileName"></span></div>
   <div class="toolbar">
     <button onclick="sendStep('f5')">F5: Tek Adım</button>
     <button onclick="sendStep('f6')">F6: Üstten Geç</button>
@@ -892,7 +915,7 @@ async function refresh() {
     const num = el('span', (isBp ? '🔴' : '') + ln, 'line-num');
     num.addEventListener('click', () => toggleBp(ln));
     const jb = el('button', '⏭️ Zıpla', 'jump-btn');
-    jb.title = 'Shift+F12: Bu satıra zıpla';
+    jb.title = 'Bu satıra zıpla';
     jb.addEventListener('click', () => jumpTo(ln));
     const code = el('span', (isAct ? '==> ' : '    ') + txt);
     code.style.whiteSpace = 'pre';

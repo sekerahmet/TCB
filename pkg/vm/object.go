@@ -322,6 +322,11 @@ func (e *Environment) Get(name string) (Value, bool) {
 
 func (e *Environment) Define(name string, val Value, isConst bool) {
 	e.mu.Lock()
+	// Yerleşik bir fonksiyonun adıyla (ör. 'toplam', 'uzunluk') değişken tanımlamak onu
+	// gölgeler; yeni değişken sabit değildir. Kullanıcının 'sabit' tanımları korunur.
+	if _, wasBuiltin := e.store[name].(*BuiltinVal); wasBuiltin && !isConst {
+		delete(e.consts, name)
+	}
 	e.store[name] = val
 	if isConst {
 		e.consts[name] = true

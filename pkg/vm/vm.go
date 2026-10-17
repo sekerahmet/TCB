@@ -36,8 +36,11 @@ type MatrixOperator interface {
 
 // vmShared tüm görevlerin (ana program, eşzamanlı bloklar, web/GUI istekleri) paylaştığı yorumlayıcı durumudur.
 type vmShared struct {
-	GlobalEnv  *Environment
-	Out        io.Writer
+	GlobalEnv *Environment
+	Out       io.Writer
+	// Stdin girdi() için okunacak kaynaktır (nil ise os.Stdin). VS Code hata ayıklama
+	// modunda standart giriş protokole ayrıldığı için burası değiştirilir.
+	Stdin      io.Reader
 	wg         sync.WaitGroup
 	Debugger   *Debugger
 	SourceFile string
@@ -482,10 +485,11 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 			v.Debugger = NewDebugger(v.SourceFile, v.SourceCode, true)
 		}
 		v.Debugger.Mode = StepInto
+		v.Debugger.pauseKind = "breakpoint"
 		if s.Condition != nil {
-			v.Debugger.PauseReason = fmt.Sprintf("Koşullu Kesme Noktası (Satır %d: BREAK-POINT)", s.Line())
+			v.Debugger.PauseReason = fmt.Sprintf("Koşullu kesme noktası (Satır %d)", s.Line())
 		} else {
-			v.Debugger.PauseReason = "Kod İçi Kesme Noktası (ABAP BREAK-POINT)"
+			v.Debugger.PauseReason = "Koddaki kesme noktası (kesme_noktası)"
 		}
 		return NULL, signalNone, nil
 

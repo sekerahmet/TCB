@@ -638,15 +638,15 @@ func (v *VM) registerDatabaseBuiltins() {
 	v.RegisterBuiltin("veritabanı_aç", "veritabani_ac", openDB)
 	v.RegisterBuiltin("veritabanı", "veritabani", openDB)
 
-	// 2. ABAP OpenSQL Tarzı Doğrudan İç Tablo (Liste) Sorgulama:
+	// 2. Bellekteki listeyi tablo gibi sorgulama:
 	// tablo_sorgula(siparisler, "tutar > 20000", sırala: "tutar:azalan", alanlar: ["musteri", "tutar"], limit: 5)
-	v.RegisterBuiltin("tablo_sorgula", "itab_sorgula", func(v *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("tablo_sorgula", "", func(v *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("tablo_sorgula(liste, [koşul], [sırala], [alanlar], [limit]) en az 1 argüman bekler")
 		}
 		lv, ok := args[0].(*ListVal)
 		if !ok {
-			return nil, fmt.Errorf("tablo_sorgula ilk argüman olarak Liste (İç Tablo) bekler")
+			return nil, fmt.Errorf("tablo_sorgula ilk argüman olarak sözlüklerden oluşan bir Liste bekler")
 		}
 		cond := ""
 		if len(args) >= 2 {

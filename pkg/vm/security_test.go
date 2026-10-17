@@ -209,7 +209,7 @@ func TestWebDebuggerRequiresTokenAndLocalhost(t *testing.T) {
 		t.Fatalf("yetkisiz istek değişkeni değiştirdi: %s", v.Inspect())
 	}
 
-	// Yetkili istek hâlâ çalışmalı (ABAP canlı değişken değiştirme)
+	// Yetkili istek hâlâ çalışmalı (canlı değişken değiştirme)
 	if c := do("POST", "/api/modify", `{"name":"bakiye","value":"42"}`, d.webToken, ""); c != http.StatusOK {
 		t.Fatalf("yetkili /api/modify 200 vermeliydi, %d", c)
 	}

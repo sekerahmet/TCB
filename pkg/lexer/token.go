@@ -98,7 +98,7 @@ const (
 	TOKEN_AKTAR      = "AKTAR"      // aktar
 	TOKEN_ESZAMANLI     = "EŞZAMANLI"     // eşzamanlı / eszamanli
 	TOKEN_ERTELE        = "ERTELE"        // ertele (defer)
-	TOKEN_KESME_NOKTASI = "KESME_NOKTASI" // kesme_noktası / dur_noktası / break_point (ABAP BREAK-POINT)
+	TOKEN_KESME_NOKTASI = "KESME_NOKTASI" // kesme_noktası / dur_noktası / break_point
 )
 
 // Çift modlu (Hem Türkçe karakterli hem ASCII) anahtar kelime haritası
@@ -157,7 +157,7 @@ var keywords = map[string]TokenType{
 	"sinif": TOKEN_SINIF,
 	"kendi": TOKEN_KENDI,
 
-	// Hata yönetimi, Modül, Eşzamanlılık, Ertele, Kesme Noktası (ABAP BREAK-POINT)
+	// Hata yönetimi, Modül, Eşzamanlılık, Ertele, Kesme Noktası
 	"dene":          TOKEN_DENE,
 	"yakala":        TOKEN_YAKALA,
 	"fırlat":        TOKEN_FIRLAT,
