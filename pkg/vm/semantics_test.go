@@ -205,3 +205,23 @@ func TestYzSorReportsUnreachableServer(t *testing.T) {
 		t.Fatalf("\"Merhaba!\" bekleniyordu, alınan: %v, %v", val, err)
 	}
 }
+
+// Yerleşik bir fonksiyon adıyla tanımlanan değişken sabit kalmamalı ('toplam += 5' çalışmalı);
+// kullanıcının kendi 'sabit' tanımları ise korunmalı.
+func TestShadowingBuiltinCreatesMutableVariable(t *testing.T) {
+	val, err := runTR(t, `
+		değişken toplam = 0
+		toplam += 5
+		değişken uzunluk = 1
+		uzunluk = uzunluk + 1
+		sonuç [toplam, uzunluk]`)
+	if err != nil {
+		t.Fatalf("yerleşik adı gölgeleyen değişken değiştirilebilmeli: %v", err)
+	}
+	if val.Inspect() != "[5, 2]" {
+		t.Fatalf("[5, 2] bekleniyordu, %s alındı", val.Inspect())
+	}
+	if _, err := runTR(t, "sabit PI_DEGERI = 3\nPI_DEGERI = 4"); err == nil || !strings.Contains(err.Error(), "sabit") {
+		t.Fatalf("kullanıcı sabiti korunmalı, alınan: %v", err)
+	}
+}

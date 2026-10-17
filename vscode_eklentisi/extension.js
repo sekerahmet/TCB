@@ -218,32 +218,187 @@ const gorevSaglayici = {
     }
 };
 
-// F5 / Ctrl+F5 ve "Çalıştır" menüsü VS Code'un hata ayıklama altyapısından geçer. TR bir
-// hata ayıklama türü olarak tanıtılır; ama ayrı bir hata ayıklama oturumu açmak yerine dosya
-// yorumlayıcıyla çalıştırılır ve oturum başlatılmaz (undefined döndürmek oturumu iptal eder).
-// Yapılandırmada "hataAyikla": true ise terminal hata ayıklayıcısı (tr debug) açılır.
+// ---------------------------------------------------------------------------
+// VS Code hata ayıklayıcısı (F5): 'tr dap' sürecine bağlanır. Kesme noktaları, adımlama,
+// değişkenler, değer değiştirme, izleme noktası, satıra zıplama ve Debug Console çalışır.
+// Ctrl+F5 ("Run Without Debugging") dosyayı terminalde çalıştırır (girdi() kullanılabilir).
+// ---------------------------------------------------------------------------
+
+function hataAyiklamaYapilandirmasi(belge) {
+    const klasor = vscode.workspace.getWorkspaceFolder(belge.uri);
+    return {
+        type: GOREV_TURU,
+        request: 'launch',
+        name: 'TR: Hata Ayıkla',
+        program: belge.uri.fsPath,
+        cwd: klasor ? klasor.uri.fsPath : path.dirname(belge.uri.fsPath),
+        stopOnEntry: false
+    };
+}
+
 const hataAyiklamaSaglayici = {
     provideDebugConfigurations() {
-        return [{ type: GOREV_TURU, request: 'launch', name: 'TR: Dosyayı Çalıştır', program: '${file}' }];
+        return [{ type: GOREV_TURU, request: 'launch', name: 'TR: Hata Ayıkla', program: '${file}', cwd: '${workspaceFolder}', stopOnEntry: false }];
     },
-    resolveDebugConfiguration(klasor, yapilandirma) {
-        const y = yapilandirma || {};
-        let uri;
-        if (y.program && !String(y.program).includes('${')) {
-            uri = vscode.Uri.file(path.isAbsolute(y.program) || !klasor ? y.program : path.join(klasor.uri.fsPath, y.program));
+    async resolveDebugConfiguration(klasor, yapilandirma) {
+        let y = yapilandirma || {};
+        const editor = vscode.window.activeTextEditor;
+        // launch.json yokken F5: açık .tr dosyası için yapılandırma üret
+        if (!y.type && !y.request && !y.name) {
+            if (!editor || editor.document.languageId !== 'tr') {
+                vscode.window.showErrorMessage('Hata ayıklamak için bir .tr dosyası açın.');
+                return undefined;
+            }
+            y = hataAyiklamaYapilandirmasi(editor.document);
         }
-        const tanim = y.hataAyikla ? KOMUTLAR.hataAyikla : KOMUTLAR.calistir;
-        calistir(tanim, uri);
-        return undefined;
+        if (!vscode.workspace.isTrusted) {
+            vscode.window.showWarningMessage('TR dosyalarında hata ayıklamak için bu çalışma alanına güvenmeniz gerekir (Çalışma Alanı Güveni).');
+            return undefined;
+        }
+        // Ctrl+F5: hata ayıklamadan çalıştır → terminalde (girdi() için)
+        if (y.noDebug) {
+            let uri;
+            if (y.program && !String(y.program).includes('${')) {
+                uri = vscode.Uri.file(y.program);
+            }
+            calistir(KOMUTLAR.calistir, uri);
+            return undefined;
+        }
+        return y;
     }
 };
+
+const hataAyiklamaSureciFabrikasi = {
+    createDebugAdapterDescriptor(oturum) {
+        const yapilandirma = oturum.configuration || {};
+        const program = yapilandirma.program;
+        if (!program) {
+            throw new Error("Hata ayıklanacak .tr dosyası belirtilmedi ('program').");
+        }
+        const bulunan = yorumlayiciyiBul(vscode.Uri.file(program));
+        if (!bulunan || bulunan.hata) {
+            const mesaj = bulunan ? bulunan.hata : 'TR yorumlayıcısı (' + YORUMLAYICI_ADI + ') bulunamadı.';
+            yorumlayiciBulunamadi(mesaj);
+            throw new Error(mesaj);
+        }
+        return new vscode.DebugAdapterExecutable(bulunan.yol, ['dap'], { cwd: yapilandirma.cwd || path.dirname(program) });
+    }
+};
+
+async function hataAyiklamayiBaslat(uri) {
+    const belge = await hedefBelge(uri);
+    if (!belge || belge.languageId !== 'tr') {
+        vscode.window.showErrorMessage('Hata ayıklamak için bir .tr dosyası açın.');
+        return;
+    }
+    if (belge.isDirty) {
+        await belge.save();
+    }
+    await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(belge.uri), hataAyiklamaYapilandirmasi(belge));
+}
+
+// ---------------------------------------------------------------------------
+// ABAP ALV tarzı tablo görünümü: Variables / Watch panelinde sağ tık → "Tablo Görünümü"
+// ---------------------------------------------------------------------------
+
+async function tabloGoster(arg) {
+    const oturum = vscode.debug.activeDebugSession;
+    if (!oturum || oturum.type !== GOREV_TURU) {
+        vscode.window.showErrorMessage('Tablo görünümü için duraklatılmış bir TR hata ayıklama oturumu gerekir.');
+        return;
+    }
+    let ifade = arg && arg.variable ? (arg.variable.evaluateName || arg.variable.name) : undefined;
+    if (!ifade) {
+        ifade = await vscode.window.showInputBox({ prompt: 'Tablo olarak gösterilecek değişken veya ifade', placeHolder: 'örn. siparisler' });
+    }
+    if (!ifade) {
+        return;
+    }
+    let veri;
+    try {
+        veri = await oturum.customRequest('trTablo', { ifade });
+    } catch (e) {
+        vscode.window.showErrorMessage('Tablo gösterilemedi: ' + (e && e.message ? e.message : e));
+        return;
+    }
+    const panel = vscode.window.createWebviewPanel('trTablo', 'ALV: ' + ifade, vscode.ViewColumn.Beside, { enableScripts: true });
+    panel.webview.html = tabloHtml(panel.webview, veri);
+}
+
+function tabloHtml(webview, veri) {
+    const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    // Veri betiğe JSON olarak gömülür; '<' kaçışlanır ki </script> enjeksiyonu olmasın.
+    const json = JSON.stringify(veri).replace(/</g, '\\u003c');
+    return `<!DOCTYPE html>
+<html lang="tr"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+<style>
+  body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); padding: 8px 12px; }
+  h2 { font-size: 1.1em; margin: 4px 0 10px; }
+  .arac { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+  input { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, transparent); padding: 4px 8px; min-width: 240px; }
+  .sayac { color: var(--vscode-descriptionForeground); }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid var(--vscode-editorWidget-border, #444); padding: 4px 8px; text-align: left; white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--vscode-editorWidget-background); cursor: pointer; user-select: none; }
+  td.sayi { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:nth-child(even) td { background: var(--vscode-list-hoverBackground); }
+  th .ok { opacity: .6; margin-left: 4px; }
+</style></head>
+<body>
+<h2 id="baslik"></h2>
+<div class="arac"><input id="ara" placeholder="Tabloda ara..."><span class="sayac" id="sayac"></span></div>
+<table><thead><tr id="basliklar"></tr></thead><tbody id="govde"></tbody></table>
+<script nonce="${nonce}">
+const veri = ${json};
+const sutunlar = ['#'].concat(veri.sutunlar || []);
+const satirlar = (veri.satirlar || []).map((s, i) => [String(i)].concat(s));
+let sirala = { sutun: -1, azalan: false };
+const sayiMi = (x) => x !== '' && !isNaN(Number(x));
+document.getElementById('baslik').textContent = veri.baslik + ' — ' + (veri.tip || '') + ' (' + satirlar.length + ' satır)';
+function ciz() {
+  const q = document.getElementById('ara').value.toLocaleLowerCase('tr');
+  let liste = satirlar.filter(s => !q || s.some(h => String(h).toLocaleLowerCase('tr').includes(q)));
+  if (sirala.sutun >= 0) {
+    const k = sirala.sutun;
+    liste = liste.slice().sort((a, b) => {
+      const x = a[k], y = b[k];
+      const c = sayiMi(x) && sayiMi(y) ? Number(x) - Number(y) : String(x).localeCompare(String(y), 'tr');
+      return sirala.azalan ? -c : c;
+    });
+  }
+  const bas = document.getElementById('basliklar');
+  bas.replaceChildren();
+  sutunlar.forEach((ad, i) => {
+    const th = document.createElement('th');
+    th.textContent = ad;
+    if (sirala.sutun === i) { const o = document.createElement('span'); o.className = 'ok'; o.textContent = sirala.azalan ? '▼' : '▲'; th.appendChild(o); }
+    th.addEventListener('click', () => { sirala = { sutun: i, azalan: sirala.sutun === i ? !sirala.azalan : false }; ciz(); });
+    bas.appendChild(th);
+  });
+  const govde = document.getElementById('govde');
+  govde.replaceChildren();
+  liste.forEach(s => {
+    const tr = document.createElement('tr');
+    s.forEach(h => { const td = document.createElement('td'); td.textContent = h; if (sayiMi(h)) td.className = 'sayi'; tr.appendChild(td); });
+    govde.appendChild(tr);
+  });
+  document.getElementById('sayac').textContent = liste.length + ' / ' + satirlar.length + ' satır';
+}
+document.getElementById('ara').addEventListener('input', ciz);
+ciz();
+</script></body></html>`;
+}
 
 function activate(context) {
     for (const tanim of Object.values(KOMUTLAR)) {
         context.subscriptions.push(vscode.commands.registerCommand(tanim.komut, (uri) => calistir(tanim, uri)));
     }
+    context.subscriptions.push(vscode.commands.registerCommand('tr.hataAyiklaBaslat', hataAyiklamayiBaslat));
+    context.subscriptions.push(vscode.commands.registerCommand('tr.tabloGoster', tabloGoster));
     context.subscriptions.push(vscode.tasks.registerTaskProvider(GOREV_TURU, gorevSaglayici));
     context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(GOREV_TURU, hataAyiklamaSaglayici));
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory(GOREV_TURU, hataAyiklamaSureciFabrikasi));
 }
 
 function deactivate() {}

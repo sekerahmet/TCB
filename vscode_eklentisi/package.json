@@ -2,7 +2,7 @@
   "name": "tr-dili-vscode",
   "displayName": "TR (.tr) Programlama ve Yapay Zeka Dili",
   "description": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets), çalıştırma ve hata ayıklama komutları.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -20,7 +20,9 @@
     "onTaskType:tr",
     "onDebugResolve:tr",
     "onDebugInitialConfigurations",
-    "onDebugDynamicConfigurations:tr"
+    "onDebugDynamicConfigurations:tr",
+    "onCommand:tr.hataAyiklaBaslat",
+    "onCommand:tr.tabloGoster"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -67,6 +69,12 @@
         "icon": "$(play)"
       },
       {
+        "command": "tr.hataAyiklaBaslat",
+        "title": "Hata Ayıkla (VS Code)",
+        "category": "TR",
+        "icon": "$(debug-alt)"
+      },
+      {
         "command": "tr.denetle",
         "title": "Dosyayı Denetle",
         "category": "TR",
@@ -74,28 +82,44 @@
       },
       {
         "command": "tr.hataAyikla",
-        "title": "Hata Ayıklayıcıda Aç",
+        "title": "Terminal Hata Ayıklayıcısında Aç",
         "category": "TR",
-        "icon": "$(debug-alt)"
+        "icon": "$(terminal)"
       },
       {
         "command": "tr.gorselHataAyikla",
         "title": "Görsel Hata Ayıklayıcı (Tarayıcı)",
         "category": "TR",
         "icon": "$(browser)"
+      },
+      {
+        "command": "tr.tabloGoster",
+        "title": "Tablo Görünümü (ALV)",
+        "category": "TR",
+        "icon": "$(table)"
       }
     ],
     "menus": {
       "editor/title": [
         {
           "command": "tr.calistir",
-          "when": "editorLangId == tr",
-          "group": "navigation"
+          "when": "editorLangId == tr && !inDebugMode",
+          "group": "navigation@1"
+        },
+        {
+          "command": "tr.hataAyiklaBaslat",
+          "when": "editorLangId == tr && !inDebugMode",
+          "group": "navigation@2"
         }
       ],
       "editor/context": [
         {
           "command": "tr.calistir",
+          "when": "editorLangId == tr",
+          "group": "1_tr@1"
+        },
+        {
+          "command": "tr.hataAyiklaBaslat",
           "when": "editorLangId == tr",
           "group": "1_tr@1"
         },
@@ -131,21 +155,31 @@
         {
           "command": "tr.gorselHataAyikla",
           "when": "editorLangId == tr"
+        },
+        {
+          "command": "tr.hataAyiklaBaslat",
+          "when": "editorLangId == tr"
+        },
+        {
+          "command": "tr.tabloGoster",
+          "when": "debugType == 'tr' && inDebugMode"
+        }
+      ],
+      "debug/variables/context": [
+        {
+          "command": "tr.tabloGoster",
+          "when": "debugType == 'tr'",
+          "group": "navigation"
+        }
+      ],
+      "debug/watch/context": [
+        {
+          "command": "tr.tabloGoster",
+          "when": "debugType == 'tr'",
+          "group": "navigation"
         }
       ]
     },
-    "keybindings": [
-      {
-        "command": "tr.calistir",
-        "key": "f5",
-        "when": "resourceLangId == tr && !inDebugMode"
-      },
-      {
-        "command": "tr.calistir",
-        "key": "ctrl+f5",
-        "when": "resourceLangId == tr && !inDebugMode"
-      }
-    ],
     "configuration": {
       "title": "TR Dili",
       "properties": {
@@ -196,16 +230,24 @@
         ],
         "configurationAttributes": {
           "launch": {
+            "required": [
+              "program"
+            ],
             "properties": {
               "program": {
                 "type": "string",
-                "description": "Çalıştırılacak .tr dosyası (boşsa açık dosya)",
+                "description": "Hata ayıklanacak .tr dosyası",
                 "default": "${file}"
               },
-              "hataAyikla": {
+              "stopOnEntry": {
                 "type": "boolean",
-                "description": "true ise dosya terminal hata ayıklayıcısında (tr debug) açılır",
+                "description": "true ise program ilk satırda durur",
                 "default": false
+              },
+              "cwd": {
+                "type": "string",
+                "description": "Programın çalışma klasörü (göreli dosya yolları buna göre çözülür)",
+                "default": "${workspaceFolder}"
               }
             }
           }
@@ -214,22 +256,31 @@
           {
             "type": "tr",
             "request": "launch",
-            "name": "TR: Dosyayı Çalıştır",
-            "program": "${file}"
+            "name": "TR: Hata Ayıkla",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false
           }
         ],
         "configurationSnippets": [
           {
-            "label": "TR: Dosyayı Çalıştır",
-            "description": "Açık .tr dosyasını çalıştırır",
+            "label": "TR: Hata Ayıkla",
+            "description": "Açık .tr dosyasında VS Code hata ayıklayıcısını başlatır",
             "body": {
               "type": "tr",
               "request": "launch",
-              "name": "TR: Dosyayı Çalıştır",
-              "program": "^\"\\${file}\""
+              "name": "TR: Hata Ayıkla",
+              "program": "^\"\\${file}\"",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "stopOnEntry": false
             }
           }
         ]
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "tr"
       }
     ]
   }

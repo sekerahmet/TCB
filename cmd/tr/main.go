@@ -73,6 +73,12 @@ func main() {
 			webMode := len(args) >= 3 && (args[2] == "--web" || args[2] == "-w")
 			debugFile(args[1], webMode)
 		}
+	case "dap":
+		// VS Code hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
+		if err := vm.ServeDAP(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "❌ Hata ayıklama sunucusu: %v\n", err)
+			os.Exit(1)
+		}
 	case "çalıştır", "calistir":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr çalıştır ornek.tr")

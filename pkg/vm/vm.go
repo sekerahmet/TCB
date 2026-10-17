@@ -38,6 +38,9 @@ type MatrixOperator interface {
 type vmShared struct {
 	GlobalEnv  *Environment
 	Out        io.Writer
+	// Stdin girdi() için okunacak kaynaktır (nil ise os.Stdin). VS Code hata ayıklama
+	// modunda standart giriş protokole ayrıldığı için burası değiştirilir.
+	Stdin io.Reader
 	wg         sync.WaitGroup
 	Debugger   *Debugger
 	SourceFile string
@@ -477,6 +480,7 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 			v.Debugger = NewDebugger(v.SourceFile, v.SourceCode, true)
 		}
 		v.Debugger.Mode = StepInto
+		v.Debugger.pauseKind = "breakpoint"
 		if s.Condition != nil {
 			v.Debugger.PauseReason = fmt.Sprintf("Koşullu Kesme Noktası (Satır %d: BREAK-POINT)", s.Line())
 		} else {

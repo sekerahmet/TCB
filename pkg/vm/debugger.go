@@ -54,6 +54,12 @@ type Debugger struct {
 	PauseReason  string
 	StepCount    int
 
+	// pauseKind duraklamanın türüdür (VS Code'a bildirilir): "entry", "step",
+	// "breakpoint", "data breakpoint", "pause", "goto".
+	pauseKind string
+	// dap, VS Code hata ayıklama oturumu (tr dap) etkinse bağlı sunucudur.
+	dap *dapServer
+
 	// Görsel Web Arayüzü (ABAP Web Studio) kanalları
 	// mu: web arayüzünün HTTP goroutine'i ile VM arasında paylaşılan alanları korur
 	// (Breakpoints, Mode, PauseReason, StepCount, cur*, paused).
@@ -119,16 +125,25 @@ func (d *Debugger) BeforeStatement(v *VM, stmt ast.Statement, env *Environment) 
 	// 1. Watchpoint (İzleme Noktası) kontrolü
 	wpReason := d.checkWatchpoints(v, env)
 
+	// VS Code oturumunda kesme noktaları koşul ve iz mesajı taşıyabilir; ifade
+	// değerlendirmesi kilit dışında yapılır (iç içe deyimler BeforeStatement'ı çağırır).
+	bpHit := false
+	if d.dap != nil {
+		bpHit = d.dap.breakpointHit(v, line, env)
+	}
+
 	d.mu.Lock()
 	if wpReason != "" {
 		shouldPause = true
 		d.PauseReason = wpReason
+		d.pauseKind = "data breakpoint"
 	}
 
 	// 2. Satır kesme noktası (Breakpoint) kontrolü
-	if !shouldPause && d.Breakpoints[line] {
+	if !shouldPause && (bpHit || (d.dap == nil && d.Breakpoints[line])) {
 		shouldPause = true
 		d.PauseReason = fmt.Sprintf("Kesme Noktası (Satır %d)", line)
+		d.pauseKind = "breakpoint"
 	}
 
 	// 3. Adım modu (F5 / F6 / F7) kontrolü
@@ -139,15 +154,20 @@ func (d *Debugger) BeforeStatement(v *VM, stmt ast.Statement, env *Environment) 
 			if d.PauseReason == "" {
 				d.PauseReason = "F5 Tek Adım"
 			}
+			if d.pauseKind == "" {
+				d.pauseKind = "step"
+			}
 		case StepOver:
 			if depth <= d.TargetDepth {
 				shouldPause = true
 				d.PauseReason = "F6 Üstten Adım"
+				d.pauseKind = "step"
 			}
 		case StepOut:
 			if depth < d.TargetDepth {
 				shouldPause = true
 				d.PauseReason = "F7 Fonksiyondan Çıkış"
+				d.pauseKind = "step"
 			}
 		}
 	}
@@ -158,6 +178,9 @@ func (d *Debugger) BeforeStatement(v *VM, stmt ast.Statement, env *Environment) 
 		return 0
 	}
 
+	if d.dap != nil {
+		return d.dap.waitForCommand(v, line, env)
+	}
 	if d.WebMode {
 		return d.waitForWebAction(v, line, env)
 	}

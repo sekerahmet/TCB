@@ -3,6 +3,7 @@ package vm
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"sort"
@@ -39,9 +40,17 @@ func (v *VM) registerBuiltins() {
 		if len(args) > 0 {
 			fmt.Fprint(vm.Out, args[0].Inspect())
 		}
-		reader := bufio.NewReader(os.Stdin)
+		var src io.Reader = os.Stdin
+		if vm.Stdin != nil {
+			src = vm.Stdin
+		}
+		reader := bufio.NewReader(src)
 		var line string
-		vm.Blocking(func() { line, _ = reader.ReadString('\n') })
+		var readErr error
+		vm.Blocking(func() { line, readErr = reader.ReadString('\n') })
+		if readErr != nil && readErr != io.EOF && line == "" {
+			return nil, fmt.Errorf("girdi okunamadı: %v", readErr)
+		}
 		line = strings.TrimRight(line, "\r\n")
 		return &StringVal{Val: line}, nil
 	})
