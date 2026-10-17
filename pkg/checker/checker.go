@@ -242,6 +242,9 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	case *ast.BreakpointStatement:
 		c.inferExpression(s.Condition)
 
+	case *ast.TestStatement:
+		c.checkStatement(s.Body)
+
 	case *ast.ExpressionStatement:
 		c.inferExpression(s.Expression)
 	}

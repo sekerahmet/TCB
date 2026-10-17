@@ -206,6 +206,52 @@ func TestYzSorReportsUnreachableServer(t *testing.T) {
 	}
 }
 
+// Test blokları normal çalıştırmada atlanır; doğrula/eşit_mi her yerde çalışır.
+func TestTestBlocksSkippedAndAssertions(t *testing.T) {
+	out, _, err := runTROut(t, `test "atlanmalı" { yazdır("TEST ÇALIŞTI") }
+doğrula(1 + 1 == 2)
+esit_mi([1, 2], [1, 2])
+yazdır("tamam")`)
+	if err != nil {
+		t.Fatalf("beklenmeyen hata: %v", err)
+	}
+	if strings.Contains(out, "TEST ÇALIŞTI") || !strings.Contains(out, "tamam") {
+		t.Fatalf("çıktı yanlış: %q", out)
+	}
+	_, _, err = runTROut(t, `eşit_mi("5", 5)`)
+	if err == nil || !strings.Contains(err.Error(), `beklenen "5" (Metin), gerçek 5 (Tam)`) {
+		t.Fatalf("eşit_mi hata mesajı yanlış: %v", err)
+	}
+	_, _, err = runTROut(t, "\n\ndoğrula(yanlış)")
+	if err == nil || !strings.Contains(err.Error(), "Satır 3: doğrulama başarısız") {
+		t.Fatalf("doğrula hata mesajı yanlış: %v", err)
+	}
+}
+
+// Tam sayı toplama/çıkarma/çarpma taşması sessizce sarmak yerine hata verir ('**' gibi).
+func TestIntegerOverflowIsError(t *testing.T) {
+	for _, kod := range []string{"sonuç 9223372036854775807 + 1", "sonuç -9223372036854775807 - 2", "sonuç 4294967296 * 4294967296"} {
+		if _, err := runTR(t, kod); err == nil || !strings.Contains(err.Error(), "taşma") {
+			t.Fatalf("%s: taşma hatası bekleniyordu, alınan: %v", kod, err)
+		}
+	}
+	val, err := runTR(t, "sonuç 9223372036854775806 + 1 - 5 * 2")
+	if err != nil || val.Inspect() != "9223372036854775797" {
+		t.Fatalf("sınır içindeki işlem bozuldu: %v %v", val, err)
+	}
+}
+
+// Ondalık sayılarda '%' (kalan) desteklenir.
+func TestFloatModulo(t *testing.T) {
+	val, err := runTR(t, "sonuç 5.5 % 2")
+	if err != nil || val.Inspect() != "1.5" {
+		t.Fatalf("5.5 %% 2 = 1.5 bekleniyordu, alınan: %v %v", val, err)
+	}
+	if _, err := runTR(t, "sonuç 1.5 % 0"); err == nil {
+		t.Fatal("sıfıra göre mod hata vermedi")
+	}
+}
+
 // Yerleşik bir fonksiyon adıyla tanımlanan değişken sabit kalmamalı ('toplam += 5' çalışmalı);
 // kullanıcının kendi 'sabit' tanımları ise korunmalı.
 func TestShadowingBuiltinCreatesMutableVariable(t *testing.T) {

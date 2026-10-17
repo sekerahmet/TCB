@@ -1,0 +1,74 @@
+// DIL_TANIMI.md §8 — Hata yönetimi, §9 — ertele
+
+test "8.1 dene / yakala; hata değişkeninin varsayılan adı hata" {
+    değişken yakalanan = ""
+    dene { fırlat "patladı" } yakala { yakalanan = hata }
+    eşit_mi("patladı", yakalanan)
+    dene { fırlat "a" } yakala h { yakalanan = h }
+    eşit_mi("a", yakalanan)
+    dene { fırlat "b" } yakala (e) { yakalanan = e }
+    eşit_mi("b", yakalanan)
+}
+
+test "8.1 hata yoksa yakala bloğu çalışmaz" {
+    değişken çalıştı = yanlış
+    dene { değişken x = 1 } yakala { çalıştı = doğru }
+    doğrula(değil çalıştı)
+}
+
+test "8.2 fırlat her değeri hata metnine çevirir" {
+    değişken yakalanan = yok
+    dene { fırlat {"kod": 5} } yakala h { yakalanan = h }
+    eşit_mi("Metin", tip(yakalanan))
+    eşit_mi("{\"kod\": 5}", yakalanan)
+}
+
+test "8.3 çalışma zamanı hataları yakalanabilir; mesaj satır bilgisi içerir" {
+    değişken mesaj = ""
+    dene { değişken z = [1] + 1 } yakala h { mesaj = h }
+    doğrula(mesaj.başlar("Satır "), mesaj)
+}
+
+test "8.3 hata fonksiyon çağrılarından yukarı yayılır" {
+    fonksiyon iç() { fırlat "derinde" }
+    fonksiyon dış() { iç() }
+    değişken mesaj = ""
+    dene { dış() } yakala h { mesaj = h }
+    eşit_mi("derinde", mesaj)
+}
+
+test "9.1 ertele fonksiyon bitince ters sırayla çalışır" {
+    değişken iz = []
+    fonksiyon f() {
+        ertele iz.ekle("1. ertele")
+        ertele { iz.ekle("2. ertele") }
+        iz.ekle("gövde")
+    }
+    f()
+    eşit_mi(["gövde", "2. ertele", "1. ertele"], iz)
+}
+
+test "9.2 ertele erken sonuç ve hata durumunda da çalışır" {
+    değişken iz = []
+    fonksiyon erken() {
+        ertele iz.ekle("temizlik")
+        sonuç 1
+    }
+    erken()
+    fonksiyon hatalı() {
+        ertele iz.ekle("hata sonrası temizlik")
+        fırlat "x"
+    }
+    dene { hatalı() } yakala { iz.ekle("yakalandı") }
+    eşit_mi(["temizlik", "hata sonrası temizlik", "yakalandı"], iz)
+}
+
+test "9.3 blok içindeki ertele, bloğu değil fonksiyonu bekler" {
+    değişken iz = []
+    fonksiyon f() {
+        eğer doğru { ertele iz.ekle("ertele") }
+        iz.ekle("blok sonrası")
+    }
+    f()
+    eşit_mi(["blok sonrası", "ertele"], iz)
+}

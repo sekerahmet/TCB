@@ -446,4 +446,14 @@ func (bp *BreakpointStatement) statementNode()       {}
 func (bp *BreakpointStatement) TokenLiteral() string { return bp.Token.Literal }
 func (bp *BreakpointStatement) Line() int            { return bp.Token.Line }
 
+// TestStatement bir test bloğudur: test "toplama doğru" { doğrula(topla(2, 2) == 4) }
+// Dosya normal çalıştırıldığında atlanır; yalnızca 'tr test' çalıştırır.
+type TestStatement struct {
+	Token lexer.Token // test
+	Name  string
+	Body  *BlockStatement
+}
 
+func (ts *TestStatement) statementNode()       {}
+func (ts *TestStatement) TokenLiteral() string { return ts.Token.Literal }
+func (ts *TestStatement) Line() int            { return ts.Token.Line }

@@ -1,0 +1,43 @@
+// DIL_TANIMI.md §12 — Testler
+
+değişken test = "test sıradan bir ad olarak da kullanılabilir"
+değişken genel_sayaç = 0
+
+test "12.1 test bloğu adıyla birlikte tanımlanır ve ayrı çalışır" {
+    doğrula(doğru)
+}
+
+test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar kelimedir" {
+    eşit_mi("Metin", tip(test))
+    fonksiyon test_et(test) { sonuç test + 1 }
+    eşit_mi(2, test_et(1))
+}
+
+test "12.3 doğrula(koşul, [mesaj])" {
+    doğrula(1 < 2)
+    dogrula(doğru, "ASCII biçimi")
+    değişken mesaj = ""
+    dene { doğrula(yanlış, "özel mesaj") } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("doğrulama başarısız: özel mesaj"), mesaj)
+}
+
+test "12.4 eşit_mi(beklenen, gerçek) iki değeri de gösterir" {
+    eşit_mi([1, 2], [1, 2])
+    esit_mi("a", "a")
+    değişken mesaj = ""
+    dene { eşit_mi("5", 5) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("beklenen \"5\" (Metin), gerçek 5 (Tam)"), mesaj)
+}
+
+test "12.5a her test yeni bir kapsamda çalışır" {
+    değişken yerel = 1
+    genel_sayaç += 1
+    eşit_mi(1, yerel)
+}
+
+test "12.5b önceki testin yerel adı görünmez, üst düzey tanımlar görünür" {
+    değişken görünür = doğru
+    dene { yerel } yakala { görünür = yanlış }
+    doğrula(değil görünür)
+    eşit_mi(1, genel_sayaç)
+}

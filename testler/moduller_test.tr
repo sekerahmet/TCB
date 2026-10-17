@@ -1,0 +1,18 @@
+// DIL_TANIMI.md §11 — Modüller
+aktar "yardimci_modul"
+aktar "yardimci_modul.tr" olarak ym
+
+test "11.1 aktar modülün üst düzey adlarını getirir; .tr uzantısı isteğe bağlıdır" {
+    eşit_mi(9, kare(PI))
+}
+
+test "11.2 olarak ile modül tek bir Sözlük olarak bağlanır" {
+    eşit_mi("Sözlük", tip(ym))
+    eşit_mi(4, ym.kare(2))
+    eşit_mi(3, ym["PI"])
+}
+
+test "11.3 modül bir kez çalıştırılır; sonraki aktarımlar aynı değerleri paylaşır" {
+    ym.kayıt.ekle("x")
+    eşit_mi(["x"], kayıt)
+}

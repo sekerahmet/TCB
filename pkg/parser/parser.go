@@ -260,6 +260,11 @@ func (p *Parser) parseStatement() ast.Statement {
 	case lexer.TOKEN_KESME_NOKTASI:
 		return p.parseBreakpointStatement()
 	case lexer.TOKEN_IDENT:
+		// test "ad" { ... } — 'test' yalnızca deyim başında ve ardından metin geldiğinde
+		// anahtar kelimedir; başka her yerde sıradan bir addır (değişken test = 5).
+		if p.curToken().Literal == "test" && p.peekTokenIs(lexer.TOKEN_STRING) {
+			return p.parseTestStatement()
+		}
 		// x := 5 kısa değişken tanımı kontrolü
 		if p.peekTokenIs(lexer.TOKEN_WALRUS) {
 			return p.parseShortVarStatement()
@@ -268,6 +273,17 @@ func (p *Parser) parseStatement() ast.Statement {
 	default:
 		return p.parseExpressionOrAssignmentStatement()
 	}
+}
+
+func (p *Parser) parseTestStatement() ast.Statement {
+	tok := p.curToken() // test
+	p.nextToken()       // test adı (metin)
+	name := unescapeBraces(p.curToken().Literal)
+	if !p.expectPeek(lexer.TOKEN_LBRACE) {
+		return nil
+	}
+	body := p.parseBlockStatement()
+	return &ast.TestStatement{Token: tok, Name: name, Body: body}
 }
 
 func (p *Parser) parseBreakpointStatement() *ast.BreakpointStatement {
@@ -846,6 +862,7 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 	for i < len(runes) {
 		if runes[i] == '{' {
 			i++ // '{' geç
+			exprStart := i
 			depth := 1
 			var exprBuf strings.Builder
 			for i < len(runes) && depth > 0 {
@@ -863,10 +880,15 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 			if i < len(runes) && runes[i] == '}' {
 				i++ // '}' geç
 			}
-			exprCode := strings.TrimSpace(exprBuf.String())
+			rawExpr := exprBuf.String()
+			exprCode := strings.TrimSpace(rawExpr)
 			interpolated := false
 			if exprCode != "" {
-				subLex := lexer.New(exprCode)
+				// İfadenin dosyadaki konumu: metnin açılış tırnağından sonraki karakter
+				// sayısı kadar ilerisi (önündeki kaçış dizileri konumu bir-iki sütun kaydırabilir)
+				line, col := interpolationPos(tok, runes[:exprStart])
+				col += len([]rune(rawExpr)) - len([]rune(strings.TrimLeft(rawExpr, " \t")))
+				subLex := lexer.NewAt(exprCode, line, col)
 				subParser := New(subLex)
 				subProg := subParser.ParseProgram()
 				if len(subParser.Errors()) == 0 && len(subProg.Statements) == 1 {
@@ -900,6 +922,21 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 	}
 
 	return &ast.InterpolatedString{Token: tok, Parts: parts}
+}
+
+// interpolationPos metin sabitinde, 'onceki' karakterlerinden sonra başlayan yerleştirme
+// ifadesinin dosyadaki satır ve sütununu hesaplar.
+func interpolationPos(tok lexer.Token, onceki []rune) (int, int) {
+	line, col := tok.Line, tok.Column+1 // açılış tırnağından sonraki ilk karakter
+	for _, r := range onceki {
+		if r == '\n' {
+			line++
+			col = 1
+		} else {
+			col++
+		}
+	}
+	return line, col
 }
 
 // unescapeBraces sözcük çözümleyicinin '\{' ve '\}' için ürettiği işaretçi

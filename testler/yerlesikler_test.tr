@@ -1,0 +1,39 @@
+// DIL_TANIMI.md §13 — Yerleşik fonksiyonlar ve metotlar (seçki)
+
+test "13.1 genel yerleşikler" {
+    eşit_mi(3, uzunluk([1, 2, 3]))
+    eşit_mi(6, toplam([1, 2, 3]))
+    eşit_mi(1, min([3, 1, 2]))
+    eşit_mi(3, maks([3, 1, 2]))
+    eşit_mi(5, mutlak(-5))
+    eşit_mi(3.0, karekök(9))
+    eşit_mi([0, 1, 2], aralık(0, 3))
+}
+
+test "13.2 metin metotları" {
+    eşit_mi("İSTANBUL", "istanbul".büyük_harf())
+    eşit_mi("ılık", "ILIK".küçük_harf())
+    eşit_mi("a", "  a ".kırp())
+    eşit_mi(["a", "b"], "a,b".böl(","))
+    eşit_mi("axc", "abc".değiştir("b", "x"))
+    doğrula("abc".içerir("b") ve "abc".başlar("a") ve "abc".biter("c"))
+    eşit_mi("cba", "abc".ters_çevir())
+}
+
+test "13.3 liste metotları" {
+    değişken l = [3, 1, 2, 2]
+    eşit_mi([1, 2, 2, 3], l.sırala())
+    eşit_mi([3, 1, 2], l.benzersiz())
+    eşit_mi("3-1-2-2", l.birleştir("-"))
+    eşit_mi(3, l.ilk)
+    eşit_mi(2, l.son)
+    eşit_mi(2.0, l.ortalama())
+    doğrula(l.içerir(1))
+}
+
+test "13.4 sözlük metotları" {
+    değişken d = {"a": 1, "b": 2}
+    eşit_mi(["a", "b"], d.anahtarlar())
+    eşit_mi([1, 2], d.değerler())
+    doğrula(d.içerir("a"))
+}

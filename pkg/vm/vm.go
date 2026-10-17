@@ -82,6 +82,7 @@ func New() *VM {
 	v.registerAIBuiltins()
 	v.registerGUIAndWebBuiltins()
 	v.registerDatabaseBuiltins()
+	v.registerTestBuiltins()
 	return v
 }
 
@@ -465,6 +466,10 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 			env.Define(k, modDict.Pairs[k], false)
 		}
 		return val, sig, nil
+
+	case *ast.TestStatement:
+		// Test blokları normal çalıştırmada atlanır; 'tr test' bunları RunTest ile çalıştırır.
+		return NULL, signalNone, nil
 
 	case *ast.BreakpointStatement:
 		if s.Condition != nil {
@@ -1608,10 +1613,21 @@ func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, err
 		if ri, ok2 := right.(*IntVal); ok2 {
 			switch op {
 			case "+":
-				return &IntVal{Val: li.Val + ri.Val}, nil
+				sonuc := li.Val + ri.Val
+				if (sonuc > li.Val) != (ri.Val > 0) {
+					return nil, tasmaHatasi(line, li.Val, op, ri.Val)
+				}
+				return &IntVal{Val: sonuc}, nil
 			case "-":
-				return &IntVal{Val: li.Val - ri.Val}, nil
+				sonuc := li.Val - ri.Val
+				if (sonuc < li.Val) != (ri.Val > 0) {
+					return nil, tasmaHatasi(line, li.Val, op, ri.Val)
+				}
+				return &IntVal{Val: sonuc}, nil
 			case "*":
+				if !mulFits(li.Val, ri.Val) {
+					return nil, tasmaHatasi(line, li.Val, op, ri.Val)
+				}
 				return &IntVal{Val: li.Val * ri.Val}, nil
 			case "/":
 				if ri.Val == 0 {
@@ -1663,6 +1679,11 @@ func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, err
 				return nil, fmt.Errorf("Satır %d: Sıfıra bölme hatası", line)
 			}
 			return &FloatVal{Val: lf / rf}, nil
+		case "%":
+			if rf == 0 {
+				return nil, fmt.Errorf("Satır %d: Sıfıra göre mod alma hatası", line)
+			}
+			return &FloatVal{Val: math.Mod(lf, rf)}, nil
 		case "**":
 			return &FloatVal{Val: math.Pow(lf, rf)}, nil
 		case "<":
@@ -1695,6 +1716,11 @@ func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, err
 	}
 
 	return nil, fmt.Errorf("Satır %d: %s ve %s tipleri arasında %q işlemi desteklenmiyor", line, left.Type(), right.Type(), op)
+}
+
+// tasmaHatasi int64 sınırını aşan tam sayı işlemleri için hata üretir (sessizce sarmak yerine).
+func tasmaHatasi(line int, a int64, op string, b int64) error {
+	return fmt.Errorf("Satır %d: Tam sayı taşması (%d %s %d); ondalık sonuç için örn. %d.0 %s %d yazın", line, a, op, b, a, op, b)
 }
 
 func toFloat(v Value) (float64, bool) {

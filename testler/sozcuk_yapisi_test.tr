@@ -1,0 +1,77 @@
+// DIL_TANIMI.md §2 — Sözcük yapısı
+aktar "bom_ornegi"
+
+test "2.1 kaynak UTF-8, baştaki BOM yok sayılır" {
+    doğrula(bom_okundu)
+}
+
+test "2.2 yorumlar: #, // ve /* */" {
+    değişken x = 1 # satır sonu yorumu
+    // tam satır yorumu
+    /* çok
+       satırlı yorum */
+    x = x /* satır içi */ + 1
+    eşit_mi(2, x)
+}
+
+test "2.3 tanımlayıcılar Türkçe harf, rakam ve _ içerebilir" {
+    değişken öğrenci_sayısı2 = 30
+    değişken _gizli = 1
+    eşit_mi(31, öğrenci_sayısı2 + _gizli)
+}
+
+test "2.4 tam sayılar _ ile gruplanabilir" {
+    eşit_mi(1000000, 1_000_000)
+    eşit_mi("Tam", tip(42))
+}
+
+test "2.5 ondalık sayılar noktayla yazılır" {
+    eşit_mi("Ondalık", tip(3.14))
+    eşit_mi(0.5, 1_0.5 - 10)
+}
+
+test "2.6 metinler çift ya da tek tırnakla, kaçış dizileriyle yazılır" {
+    eşit_mi('tek', "tek")
+    eşit_mi(3, uzunluk("a\tb"))
+    eşit_mi("\"", '"')
+    eşit_mi("a\b", 'a\b')
+    değişken iki_satir = "bir
+iki"
+    eşit_mi(2, iki_satir.böl("\n").uzunluk)
+}
+
+test "2.7 metin içinde \{ifade\} yerleştirme, düz süslü parantez için kaçış" {
+    değişken ad = "Ali"
+    eşit_mi("Merhaba Ali, 1 + 2 = 3", "Merhaba {ad}, 1 + 2 = {1 + 2}")
+    eşit_mi(5, uzunluk("\{düz\}"))
+    eşit_mi("\{", "\{düz\}"[0])
+    değişken p = {"ad": "Ayşe"}
+    eşit_mi("Ayşe", "{p['ad']}")
+}
+
+test "2.8 deyim sonu gerekmez; ; isteğe bağlıdır" {
+    değişken a = 1; değişken b = 2;
+    eşit_mi(3, a + b)
+}
+
+test "2.8 yeni satırdaki ( ve [ yeni deyim başlatır" {
+    değişken f = 5
+    (1 + 2) |> metin
+    eşit_mi(5, f)
+}
+
+test "2.8 satır sonundaki operatörden sonra ifade sürer" {
+    değişken t = 1 +
+        2
+    eşit_mi(3, t)
+}
+
+test "2.9 anahtar kelimelerin ASCII biçimleri eşdeğerdir" {
+    degisken x = 1
+    eger x == 1 { x = 2 } degilse { x = 3 }
+    eşit_mi(2, x)
+    islev f(a) { sonuc a * 2 }
+    eşit_mi(4, f(x))
+    eşit_mi(dogru, doğru)
+    eşit_mi(yanlis, yanlış)
+}

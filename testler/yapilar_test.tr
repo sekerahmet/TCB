@@ -1,0 +1,55 @@
+// DIL_TANIMI.md §7 — Yapılar
+
+yapı Nokta {
+    x: Tam = 0
+    y = 0
+    fonksiyon uzaklık_kare() {
+        sonuç kendi.x ** 2 + kendi.y ** 2
+    }
+    fonksiyon taşı(dx, dy) {
+        kendi.x += dx
+        kendi.y += dy
+    }
+}
+
+test "7.1 yapı alanları ve varsayılan değerleri" {
+    değişken p = Nokta()
+    eşit_mi(0, p.x)
+    eşit_mi(0, p.y)
+}
+
+test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
+    eşit_mi(3, Nokta(3, 4).x)
+    eşit_mi(4, Nokta(y: 4).y)
+    eşit_mi(0, Nokta(y: 4).x)
+}
+
+test "7.3 metotlar kendi ile nesneye erişir" {
+    değişken p = Nokta(3, 4)
+    eşit_mi(25, p.uzaklık_kare())
+    p.taşı(1, 1)
+    eşit_mi(41, p.uzaklık_kare())
+}
+
+test "7.4 kurucu metodu oluşturmada çağrılır; sınıf eş anlamlıdır" {
+    sınıf Hesap {
+        bakiye
+        fonksiyon kurucu(b) { kendi.bakiye = b * 2 }
+    }
+    eşit_mi(10, Hesap(5).bakiye)
+}
+
+test "7.5 alanlar atanabilir; olmayan alan hata verir" {
+    değişken p = Nokta()
+    p.x = 7
+    eşit_mi(7, p.x)
+    değişken mesaj = ""
+    dene { p.z } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("bulunamadı"), mesaj)
+}
+
+test "7.6 nesneler içerikle karşılaştırılır; tip() yapı adını verir" {
+    doğrula(Nokta(1, 2) == Nokta(1, 2))
+    eşit_mi("Nokta{x: 1, y: 2}", metin(Nokta(1, 2)))
+    eşit_mi("Nokta", tip(Nokta()))
+}

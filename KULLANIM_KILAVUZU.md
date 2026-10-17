@@ -4,13 +4,16 @@
 
 | Komut | Açıklama |
 | :--- | :--- |
-| `.\tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile ABAP Debugger açılır) |
+| `.\tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile hata ayıklayıcı açılır) |
 | `.\tr.exe dosya.tr` | `.tr` kaynak dosyasını derler ve anında çalıştırır |
-| `.\tr.exe debug dosya.tr` | SAP ABAP tarzı etkileşimli Terminal Hata Ayıklayıcıyı (Debugger) başlatır |
-| `.\tr.exe debug --web dosya.tr` | Tarayıcı tabanlı **Görsel ABAP Debugger Studio**'yu başlatır. Yalnızca `127.0.0.1:8090` üzerinde dinler; terminalde yazdırılan **anahtarlı bağlantıyı** (`http://127.0.0.1:8090/?anahtar=...`) açın |
+| `.\tr.exe debug dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
+| `.\tr.exe debug --web dosya.tr` | Tarayıcı tabanlı **görsel hata ayıklayıcıyı** başlatır. Yalnızca `127.0.0.1:8090` üzerinde dinler; terminalde yazdırılan **anahtarlı bağlantıyı** (`http://127.0.0.1:8090/?anahtar=...`) açın |
 | `.\tr.exe kontrol dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar |
 | `.\tr.exe bytecode dosya.tr` | Derlenen Türkçe Sanal Makine (VM) bytecode komutlarını gösterir |
 | `.\tr.exe derle dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |
+| `.\tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §9) |
+| `.\tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (`bicimle` da olur, bkz. §10) |
+| `.\tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
 
 ---
 
@@ -24,7 +27,10 @@
 - **Mantıksal & Boş:** `doğru` (`dogru`), `yanlış` (`yanlis`), `yok`, `ve` (`&&`), `veya` (`||`), `değil` (`!`), `??`, `?.`
 - **Tipler:** `Tam`, `Ondalık`, `Metin`, `Mantık`, `Liste`, `Sözlük`, `Matris`, `Tensör`
 - **Yapı / Sınıf:** `yapı` (`yapi`), `sınıf` (`sinif`), `kendi`
-- **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat` (`firlat`), `ertele`, `kesme_noktası` (`kesme_noktası eğer koşul`), `aktar`, `eşzamanlı` (`eszamanli`), `bekle(saniye)`, `bekle_hepsi()`
+- **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat` (`firlat`), `ertele`, `kesme_noktası` (`dur_noktası`, `durdurma_noktası`; koşullu: `kesme_noktası eğer koşul`), `aktar`, `eşzamanlı` (`eszamanli`), `bekle(saniye)`, `bekle_hepsi()`
+- **Test:** `test "ad" { ... }`, `doğrula(koşul, [mesaj])` (`dogrula`), `eşit_mi(beklenen, gerçek, [mesaj])` (`esit_mi`)
+
+Dilin kuralları örnekleriyle birlikte [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) dosyasında tanımlanmıştır; her kuralın `testler/` klasöründe çalıştırılabilir bir testi vardır (`tr test testler`).
 
 ---
 
@@ -65,13 +71,13 @@ Hatalar konumuyla, kaynak satırıyla ve mümkünse bir öneriyle gösterilir:
 
 ## 4. Yerleşik Yapay Zeka ("İkisi Bir Arada") ve Veri Bilimi Komutları
 
-### A. Düşük Seviye Matris ve Otomatik Türev (PyTorch Tarzı)
+### A. Düşük Seviye Matris ve Otomatik Türev
 - `matris([[1, 2], [3, 4]])`, `sıfırlar(satır, sütun)`, `birler(satır, sütun)`, `birim_matris(n)`, `rastgele_matris(satır, sütun, tohum: 42)`
 - `A @ B` (Çok çekirdekli matris çarpımı), `devrik(A)` (veya `A.devrik`, `A.şekil`)
 - `tensör(3.0, türev_izle: doğru)`, `geri_yayılım(y)`, `x.gradyan`, `x.değer`
 - Aktivasyonlar ve Kayıp: `relu(x)`, `sigmoid(x)`, `tanh(x)`, `softmax(x)`, `kayıp_mse(tahmin, gerçek)`
 
-### B. Yüksek Seviye Hazır Yapay Sinir Ağı + Kaydet/Yükle (Keras Tarzı)
+### B. Yüksek Seviye Hazır Yapay Sinir Ağı + Kaydet/Yükle
 ```tr
 değişken model = sinir_ağı([2, 8, 1], aktivasyon: "tanh", tohum: 42)
 model.eğit(X_veri, Y_hedef, devir: 800, öğrenme_hızı: 0.15)
@@ -88,37 +94,37 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 
 ---
 
-## 5. SAP ABAP Tarzı Hata Ayıklayıcı (ABAP Debugger)
+## 5. TR Hata Ayıklayıcı
 
-TR dili, SAP ABAP New Debugger (SE80 / `/h`) mimarisinden ilham alan hem **Terminal** hem de **Görsel Web Studio** hata ayıklayıcısına sahiptir:
+TR'nin hem **terminalde** (`tr debug dosya.tr`, kabukta `/h`) hem de **tarayıcıda** (`tr debug --web dosya.tr`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`tr dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `vscode_eklentisi/README.md`).
 
-1. **Kod İçi Kesme Noktası (`BREAK-POINT`):**
+1. **Kod İçi Kesme Noktası (`kesme_noktası`):**
    - Koşulsuz: `kesme_noktası`
    - Koşullu: `kesme_noktası eğer bakiye < 0`
 2. **Adımlama ve Kontrol Komutları:**
    - `f5` (`adım` veya boş `Enter`): Tek adım ilerle (fonksiyonun içine girer)
    - `f6` (`geç`): Üstten geç (fonksiyonu tek adımda çalıştırır)
    - `f7` (`dön`): Mevcut fonksiyondan çıkana kadar çalıştır
-   - `f8` (`devam`): Bir sonraki kesme noktasına veya izleme noktasına (Watchpoint) kadar devam et
-3. **Canlı Değişken Değiştirme (ABAP ✏️ Kalem İkonu):**
+   - `f8` (`devam`): Bir sonraki kesme noktasına ya da izleme noktasına kadar devam et
+3. **Canlı Değişken Değiştirme (✏️):**
    - `değiştir vergi_orani = 0.20` (Programı durdurmadan çalışma anında değişkenin değerini değiştirir)
-4. **Satıra Zıplama (ABAP `Shift+F12` — Jump to Statement):**
+4. **Satıra Zıplama:**
    - `zıpla 25` (Çalışma okunu geçmiş veya gelecek bir satıra taşır; kodu baştan başlatmadan tekrar deneme imkanı verir)
-5.- **İç Tablo / Matris İnceleyici (ABAP ALV / ITAB Viewer) & Watchpoint:**
+5. **Tablo Görünümü ve İzleme Noktası:**
    - `tablo siparisler` (Liste, Sözlük veya Yapay Zeka Matrislerini tablo görünümünde açar)
    - `izle bakiye` veya `izle bakiye < 0` (Değişken değiştiğinde veya koşul sağlandığında otomatik durur)
    - `yığın` (Aktif fonksiyon çağrı yığınını gösterir)
 
 ---
 
-## 6. Görsel Arayüz (SAP Fiori / ALV Grid & Grafik) ve Web Sunucu Motoru
+## 6. Görsel Arayüz ve Web Sunucu Motoru
 
 ### A. Görsel Arayüz Motoru (`arayüz_oluştur` / `pencere_oluştur`)
 ```tr
 değişken ekran = arayüz_oluştur("Kurumsal ERP Kokpiti", genişlik: 1100, yükseklik: 780)
 ekran.kart_ekle("Toplam Ciro", "1.450.000 TL", "+%18 Artış", "yeşil")
 ekran.grafik_ekle("Aylık Satışlar", ["Ocak", "Şubat", "Mart"], [420, 510, 520], "çubuk")
-ekran.tablo_ekle("SAP ALV Sipariş Tablosu", siparis_listesi)
+ekran.tablo_ekle("Sipariş Tablosu", siparis_listesi)
 ekran.form_ekle("Hızlı Sipariş Girişi", ["Müşteri", "Tutar"], fonksiyon(form) {
     sonuç "{form['Müşteri']} için {form['Tutar']} TL kaydedildi!"
 })
@@ -140,7 +146,7 @@ api.başlat() // veya api.arka_planda_başlat()
 
 ---
 
-## 7. Yerleşik Türkçe SQL Veritabanı ve ABAP OpenSQL İç Tablo Sorgulama
+## 7. Yerleşik Türkçe SQL Veritabanı ve Listeyi Tablo Gibi Sorgulama
 
 ```tr
 // 1. Kalıcı Disk Veritabanı (.trdb) veya Bellek Veritabanı (":bellek:")
@@ -159,7 +165,7 @@ vt.sil("personel", "id == ?", [silinecek_id])   // güncelle(..., koşul, [param
 // doğru/yanlış/yok, + - * / %, karşılaştırmalar, ve/veya/değil (AND/OR/NOT) ve parantez desteklenir.
 // Bilinmeyen sütun veya hatalı koşul artık sessizce boş liste döndürmez, hata verir.
 
-// 2. ABAP OpenSQL Tarzı Doğrudan Bellek-İçi Liste (ITAB) Sorgulama
+// 2. Bellekteki bir listeyi tablo gibi sorgulama
 değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", alanlar: ["ad", "maas"])
 ```
 
@@ -177,3 +183,60 @@ değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", a
 - `tensor` $\rightarrow$ Otomatik türev (`tensör` + `geri_yayılım`) şablonu oluşturur
 
 
+
+---
+
+## 9. Test Yazma ve Çalıştırma (`tr test`)
+
+Testler kodun yanına `test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır.
+
+```tr
+// hesap_test.tr
+fonksiyon topla(a, b) { sonuç a + b }
+
+test "toplama doğru" {
+    doğrula(topla(2, 2) == 4)
+}
+
+test "eşitlik" {
+    eşit_mi(5, topla(2, 2))   // beklenen önce, gerçek sonra
+}
+```
+
+- `doğrula(koşul, [mesaj])` (ASCII: `dogrula`): koşul yanlışsa test kalır.
+- `eşit_mi(beklenen, gerçek, [mesaj])` (ASCII: `esit_mi`): değerler `==` anlamında eşit değilse ikisini de tipiyle gösterir.
+- `test` yalnızca deyim başında ve ardından bir metin gelince test başlatır; `değişken test = 5` gibi kullanımlar çalışmaya devam eder.
+- Önce dosyanın kendisi çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde **yeni bir kapsamda** çalışır. Kalan ya da hata veren test diğerlerini durdurmaz. (Üst düzey bir değişkene atama yapan test, sonrakilerin gördüğü değeri değiştirir.)
+
+```text
+> tr test .
+📄 hesap_test.tr
+  ✓ toplama doğru
+  ✗ eşitlik — Satır 9: eşitlik başarısız: beklenen 5 (Tam), gerçek 4 (Tam)
+       9 |     eşit_mi(5, topla(2, 2))   // beklenen önce, gerçek sonra
+
+❌ 2 test, 1 geçti, 1 kaldı
+```
+
+`tr test dosya.tr` yalnızca o dosyayı, `tr test klasör` klasördeki (alt klasörler dahil, gizli klasörler hariç) tüm `*_test.tr` dosyalarını çalıştırır. Sözdizimi ya da tip hatası olan dosya "yüklenemedi" olarak sayılır. Bir test kalırsa ya da bir dosya yüklenemezse çıkış kodu 1'dir; böylece CI'da kapı olarak kullanılabilir.
+
+---
+
+## 10. Kod Biçimlendirme (`tr biçimle`)
+
+`tr biçimle` (ASCII: `tr bicimle`) kodu tek bir standart biçime getirir:
+
+- 4 boşluk girinti; `{` her zaman aynı satırda, `değilse` / `yakala` kapanan `}` ile aynı satırda,
+- ikili operatörlerin iki yanında ve virgülden sonra birer boşluk (aralıklar bitişik: `1..=10`; sözlükler `{"a": 1}`, sondaki bloklar `{ o > 2 }`),
+- satır sonunda boşluk yok, art arda en fazla bir boş satır, dosya sonunda tek satır sonu.
+
+**Yorumlar korunur**, metin sabitlerine bayt bayt dokunulmaz ve satır yapısı (hangi kodun hangi satırda olduğu) değişmez. Biçimlendirici sonucu yeniden ayrıştırıp özgün kodla karşılaştırır: anlam değişecek olursa dosyaya **dokunmaz** ve bunu bildirir. Sözdizimi hatası olan dosyalar biçimlenmez. Aynı dosyayı iki kez biçimlemek bir kez biçimlemekle aynıdır.
+
+```text
+> tr biçimle --kontrol .
+biçimlenmeli: hesap.tr
+3 dosyadan 1 tanesi biçimlenmeli. Düzeltmek için: tr biçimle <dosya|klasör>
+> tr biçimle .
+biçimlendi: hesap.tr
+3 dosya incelendi, 1 dosya biçimlendi.
+```

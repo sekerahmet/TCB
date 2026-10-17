@@ -123,3 +123,53 @@ func TestCallOnNextLineStartsNewStatement(t *testing.T) {
 		t.Fatalf("4 deyim bekleniyordu, %d alındı", len(prog.Statements))
 	}
 }
+
+// 'test' yalnızca deyim başında ve ardından metin geldiğinde anahtar kelimedir.
+func TestTestIsContextualKeyword(t *testing.T) {
+	p := New(lexer.New("test \"toplama\" { doğrula(1 + 1 == 2) }"))
+	prog := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		t.Fatalf("beklenmeyen hata: %v", p.Errors())
+	}
+	ts, ok := prog.Statements[0].(*ast.TestStatement)
+	if !ok || ts.Name != "toplama" || len(ts.Body.Statements) != 1 {
+		t.Fatalf("test deyimi bekleniyordu, %T alındı", prog.Statements[0])
+	}
+
+	// Ad olarak kullanım bozulmamalı
+	for _, code := range []string{"değişken test = 5\ntest = test + 1\nyazdır(test)", "test := [1]\ntest[0]", "fonksiyon test(a) { sonuç a }\ntest(\"x\")"} {
+		p := New(lexer.New(code))
+		prog := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			t.Fatalf("%q: beklenmeyen hata: %v", code, p.Errors())
+		}
+		for _, st := range prog.Statements {
+			if _, ok := st.(*ast.TestStatement); ok {
+				t.Fatalf("%q: 'test' adı test deyimi olarak okundu", code)
+			}
+		}
+	}
+
+	// Gövdesiz test bir sözdizimi hatasıdır
+	p = New(lexer.New("test \"ad\" doğrula(doğru)"))
+	p.ParseProgram()
+	if len(p.Errors()) == 0 {
+		t.Fatal("gövdesiz test hata vermedi")
+	}
+}
+
+// Metin içi yerleştirmedeki ifadeler dosyadaki gerçek konumlarını taşımalı (eskiden Satır 1, Sütun 1).
+func TestInterpolationKeepsSourcePosition(t *testing.T) {
+	p := New(lexer.New("değişken a = 1\nyazdır(\"x = {toplm + 1}\")"))
+	prog := p.ParseProgram()
+	if len(p.Errors()) != 0 {
+		t.Fatalf("beklenmeyen hata: %v", p.Errors())
+	}
+	call := prog.Statements[1].(*ast.ExpressionStatement).Expression.(*ast.CallExpression)
+	interp := call.Arguments[0].(*ast.InterpolatedString)
+	infix := interp.Parts[1].(*ast.InfixExpression)
+	id := infix.Left.(*ast.Identifier)
+	if id.Token.Line != 2 || id.Token.Column != 14 {
+		t.Fatalf("konum Satır 2, Sütun 14 olmalıydı, alınan: Satır %d, Sütun %d", id.Token.Line, id.Token.Column)
+	}
+}
