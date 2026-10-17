@@ -69,7 +69,7 @@ değişken t = 1 +
 | `iken` | | | `aktar` | |
 | `çık` | `cik`, `kır`, `kir` | | `eşzamanlı` | `eszamanli` |
 | `devam` | | | `ertele` | |
-| `kesme_noktası` | `kesme_noktasi`, `dur_noktası`, `dur_noktasi`, `break_point` | | | |
+| `kesme_noktası` | `kesme_noktasi`, `dur_noktası`, `dur_noktasi`, `durdurma_noktası`, `durdurma_noktasi` | | | |
 
 Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak`/`as` (yalnızca `aktar` içinde), `_` (yalnızca `eşle` kolunda varsayılan).
 

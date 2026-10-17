@@ -98,7 +98,7 @@ const (
 	TOKEN_AKTAR      = "AKTAR"      // aktar
 	TOKEN_ESZAMANLI     = "EŞZAMANLI"     // eşzamanlı / eszamanli
 	TOKEN_ERTELE        = "ERTELE"        // ertele (defer)
-	TOKEN_KESME_NOKTASI = "KESME_NOKTASI" // kesme_noktası / dur_noktası / break_point
+	TOKEN_KESME_NOKTASI = "KESME_NOKTASI" // kesme_noktası / dur_noktası / durdurma_noktası
 )
 
 // Çift modlu (Hem Türkçe karakterli hem ASCII) anahtar kelime haritası
@@ -170,7 +170,8 @@ var keywords = map[string]TokenType{
 	"kesme_noktasi": TOKEN_KESME_NOKTASI,
 	"dur_noktası":   TOKEN_KESME_NOKTASI,
 	"dur_noktasi":   TOKEN_KESME_NOKTASI,
-	"break_point":   TOKEN_KESME_NOKTASI,
+	"durdurma_noktası": TOKEN_KESME_NOKTASI,
+	"durdurma_noktasi": TOKEN_KESME_NOKTASI,
 }
 
 // LookupIdent verilen kelimenin anahtar kelime mi yoksa tanımlayıcı mı olduğunu bulur.

@@ -134,7 +134,7 @@
         },
         {
           "name": "keyword.other.debugger.tr",
-          "match": "\\b(kesme_noktası|kesme_noktasi|dur_noktası|dur_noktasi|break_point)\\b"
+          "match": "\\b(kesme_noktası|kesme_noktasi|dur_noktası|dur_noktasi|durdurma_noktası|durdurma_noktasi)\\b"
         },
         {
           "name": "storage.type.tr",

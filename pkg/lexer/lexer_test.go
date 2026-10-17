@@ -114,7 +114,8 @@ func TestAnahtarKelimeTurkceVeASCIIYazim(t *testing.T) {
 		"sabit": TOKEN_SABIT, "fonksiyon": TOKEN_FONKSIYON, "iken": TOKEN_IKEN,
 		"devam": TOKEN_DEVAM, "yok": TOKEN_YOK, "ve": TOKEN_VE, "veya": TOKEN_VEYA,
 		"kendi": TOKEN_KENDI, "dene": TOKEN_DENE, "yakala": TOKEN_YAKALA,
-		"aktar": TOKEN_AKTAR, "ertele": TOKEN_ERTELE, "break_point": TOKEN_KESME_NOKTASI,
+		"aktar": TOKEN_AKTAR, "ertele": TOKEN_ERTELE, "durdurma_noktası": TOKEN_KESME_NOKTASI,
+		"durdurma_noktasi": TOKEN_KESME_NOKTASI,
 	}
 	for kelime, tur := range tekler {
 		if got := LookupIdent(kelime); got != tur {
@@ -129,6 +130,7 @@ func TestAnahtarKelimeOlmayanlar(t *testing.T) {
 		"Eğer", "EĞER", "Değişken", "DOĞRU", // büyük harfli yazımlar tanımlayıcıdır
 		"eğerki", "değişkenler", "dongu2", "_eger", "sabitler", // anahtar kelime önekli tanımlayıcılar
 		"egér",
+		"break_point", // eski İngilizce yazım kaldırıldı; artık sıradan bir ad
 	} {
 		toks := hatasizTokenlar(t, s)
 		if len(toks) != 2 || toks[0].Type != TOKEN_IDENT || toks[0].Literal != s {
