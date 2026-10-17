@@ -15,8 +15,7 @@ const YORUMLAYICI_ADI = process.platform === 'win32' ? 'tr.exe' : 'tr';
 const KOMUTLAR = {
     calistir: { komut: 'tr.calistir', ad: 'Çalıştır', argumanlar: (dosya) => [dosya] },
     denetle: { komut: 'tr.denetle', ad: 'Denetle', argumanlar: (dosya) => ['kontrol', dosya] },
-    hataAyikla: { komut: 'tr.hataAyikla', ad: 'Hata Ayıkla', argumanlar: (dosya) => ['debug', dosya] },
-    gorselHataAyikla: { komut: 'tr.gorselHataAyikla', ad: 'Görsel Hata Ayıkla', argumanlar: (dosya) => ['debug', '--web', dosya] }
+    hataAyikla: { komut: 'tr.hataAyikla', ad: 'Hata Ayıkla', argumanlar: (dosya) => ['debug', dosya] }
 };
 
 function dosyaVarMi(yol) {

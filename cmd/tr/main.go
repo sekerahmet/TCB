@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"tr_dili/pkg/baytkod"
 	"tr_dili/pkg/checker"
 	"tr_dili/pkg/hataayiklama"
 	"tr_dili/pkg/lexer"
@@ -40,11 +39,8 @@ func main() {
 	case "sürüm", "surum", "--version", "-v":
 		fmt.Printf("TR Programlama ve Yapay Zeka Dili v%s\n", VERSION)
 	case "bytecode", "baytkod":
-		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr bytecode ornek.tr")
-			os.Exit(1)
-		}
-		showBytecode(args[1])
+		fmt.Fprintln(os.Stderr, "Hata: 'tr bytecode' komutu kaldırıldı.")
+		os.Exit(1)
 	case "kontrol":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr kontrol ornek.tr")
@@ -63,19 +59,16 @@ func main() {
 		compileToExe(args[1], outPath)
 	case "debug", "hata_ayıkla", "hata_ayikla":
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Hata: Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr debug ornek.tr veya tr debug --web ornek.tr")
+			fmt.Fprintln(os.Stderr, "Hata: Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr debug ornek.tr")
 			os.Exit(1)
 		}
-		if args[1] == "--web" || args[1] == "-w" {
-			if len(args) < 3 {
-				fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr debug --web ornek.tr")
+		for _, a := range args[1:] {
+			if a == "--web" || a == "-w" {
+				fmt.Fprintln(os.Stderr, "Hata: Tarayıcıdaki hata ayıklayıcı kaldırıldı. VS Code'da F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr debug ornek.tr")
 				os.Exit(1)
 			}
-			debugFile(args[2], true)
-		} else {
-			webMode := len(args) >= 3 && (args[2] == "--web" || args[2] == "-w")
-			debugFile(args[1], webMode)
 		}
+		debugFile(args[1])
 	case "test":
 		testKomutu(args[1:])
 	case "biçimle", "bicimle":
@@ -121,9 +114,7 @@ func printHelp() {
 	fmt.Println("  tr                          Etkileşimli TR kabuğunu (REPL) başlatır")
 	fmt.Println("  tr <dosya.tr>               .tr kaynak dosyasını derler ve çalıştırır")
 	fmt.Println("  tr debug <dosya.tr>         Etkileşimli TR Hata Ayıklayıcısını başlatır")
-	fmt.Println("  tr debug --web <dosya.tr>   Tarayıcı tabanlı görsel hata ayıklayıcıyı başlatır")
 	fmt.Println("  tr kontrol <dosya.tr>       Sözdizimi ve akıllı tip kontrolü yapar")
-	fmt.Println("  tr bytecode <dosya.tr>      Derlenen TR Sanal Makinesi (VM) bytecode komutlarını gösterir")
 	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını tek başına çalışan bağımsız .exe dosyasına dönüştürür")
 	fmt.Println("  tr test [dosya.tr|klasör]   Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)")
 	fmt.Println("  tr biçimle [--kontrol] <dosya.tr|klasör>  Kodu standart biçime getirir (--kontrol: yalnızca denetler)")
@@ -137,7 +128,7 @@ func runFile(path string) {
 	programCalistir(machine, prog, code)
 }
 
-func debugFile(path string, webMode bool) {
+func debugFile(path string) {
 	code, prog := dosyaHazirla(path, hataAyiklamaHazirligi)
 	machine := vm.New()
 	machine.SourceFile = path
@@ -145,25 +136,12 @@ func debugFile(path string, webMode bool) {
 	dbg := hataayiklama.NewDebugger(path, code, true)
 	machine.Debugger = dbg
 
-	if webMode {
-		if err := dbg.StartWebServer(machine, 8090); err != nil {
-			fmt.Fprintf(os.Stderr, "❌ %v\n", err)
-			os.Exit(1)
-		}
-	}
-
 	programCalistir(machine, prog, code)
 }
 
 func checkFile(path string) {
 	dosyaHazirla(path, calistirmaHazirligi)
 	fmt.Printf("✅ %s başarıyla denetlendi: Sözdizimi ve tip güvenliği hatasız!\n", path)
-}
-
-func showBytecode(path string) {
-	_, prog := dosyaHazirla(path, baytkodHazirligi)
-	chunk := baytkod.CompileToBytecode(prog)
-	fmt.Print(chunk.Disassemble())
 }
 
 func readEmbeddedBundle() (string, bool) {

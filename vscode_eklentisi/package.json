@@ -2,7 +2,7 @@
   "name": "tr-dili-vscode",
   "displayName": "TR (.tr) Programlama ve Yapay Zeka Dili",
   "description": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets), çalıştırma ve hata ayıklama komutları.",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -16,7 +16,6 @@
     "onCommand:tr.calistir",
     "onCommand:tr.denetle",
     "onCommand:tr.hataAyikla",
-    "onCommand:tr.gorselHataAyikla",
     "onTaskType:tr",
     "onDebugResolve:tr",
     "onDebugInitialConfigurations",
@@ -89,12 +88,6 @@
         "icon": "$(terminal)"
       },
       {
-        "command": "tr.gorselHataAyikla",
-        "title": "Görsel Hata Ayıklayıcı (Tarayıcı)",
-        "category": "TR",
-        "icon": "$(browser)"
-      },
-      {
         "command": "tr.tabloGoster",
         "title": "Tablo Görünümü",
         "category": "TR",
@@ -140,11 +133,6 @@
           "command": "tr.hataAyikla",
           "when": "editorLangId == tr",
           "group": "1_tr@3"
-        },
-        {
-          "command": "tr.gorselHataAyikla",
-          "when": "editorLangId == tr",
-          "group": "1_tr@4"
         }
       ],
       "commandPalette": [
@@ -158,10 +146,6 @@
         },
         {
           "command": "tr.hataAyikla",
-          "when": "editorLangId == tr"
-        },
-        {
-          "command": "tr.gorselHataAyikla",
           "when": "editorLangId == tr"
         },
         {
@@ -227,8 +211,7 @@
             "enum": [
               "tr.calistir",
               "tr.denetle",
-              "tr.hataAyikla",
-              "tr.gorselHataAyikla"
+              "tr.hataAyikla"
             ],
             "description": "Çalıştırılacak TR komutu."
           },

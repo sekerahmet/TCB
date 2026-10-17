@@ -7,9 +7,7 @@
 | `.\tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile hata ayıklayıcı açılır) |
 | `.\tr.exe dosya.tr` | `.tr` kaynak dosyasını derler ve anında çalıştırır |
 | `.\tr.exe debug dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
-| `.\tr.exe debug --web dosya.tr` | Tarayıcı tabanlı **görsel hata ayıklayıcıyı** başlatır. Yalnızca `127.0.0.1:8090` üzerinde dinler; terminalde yazdırılan **anahtarlı bağlantıyı** (`http://127.0.0.1:8090/?anahtar=...`) açın |
 | `.\tr.exe kontrol dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar |
-| `.\tr.exe bytecode dosya.tr` | Derlenen Türkçe Sanal Makine (VM) bytecode komutlarını gösterir |
 | `.\tr.exe derle dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |
 | `.\tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §9) |
 | `.\tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (`bicimle` da olur, bkz. §10) |
@@ -96,7 +94,7 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 
 ## 5. TR Hata Ayıklayıcı
 
-TR'nin hem **terminalde** (`tr debug dosya.tr`, kabukta `/h`) hem de **tarayıcıda** (`tr debug --web dosya.tr`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`tr dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `vscode_eklentisi/README.md`).
+TR'nin **terminalde** (`tr debug dosya.tr`, kabukta `/h`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`tr dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `vscode_eklentisi/README.md`).
 
 1. **Kod İçi Kesme Noktası (`kesme_noktası`):**
    - Koşulsuz: `kesme_noktası`

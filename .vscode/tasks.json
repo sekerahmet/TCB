@@ -31,15 +31,6 @@
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
       "problemMatcher": []
-    },
-    {
-      "label": "TR: Görsel hata ayıklayıcı (tarayıcı)",
-      "type": "process",
-      "command": "${workspaceFolder}\\tr.exe",
-      "args": ["debug", "--web", "${file}"],
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
-      "problemMatcher": []
     }
   ]
 }

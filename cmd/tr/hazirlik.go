@@ -38,7 +38,6 @@ var (
 	gomuluHazirlik = hazirlik{
 		sozdizimiBasligi: "❌ Gömülü Uygulama Sözdizimi Hataları:",
 	}
-	baytkodHazirligi = hazirlik{}
 )
 
 // kaynakOku dosyayı okur ve baştaki UTF-8 BOM'u atar; okunamazsa hatayı yazıp çıkar.

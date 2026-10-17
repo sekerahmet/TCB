@@ -43,7 +43,7 @@ jobs:
       - name: Go testleri
         run: go test ./...
 
-      - name: tr derle ve dil tanımı testleri (tr test)
+      - name: Dil tanımı testleri (tr test)
         run: |
           uzanti=""
           if [ "$RUNNER_OS" = "Windows" ]; then uzanti=".exe"; fi
