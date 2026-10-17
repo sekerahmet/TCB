@@ -1,0 +1,55 @@
+// =========================================================================
+// 🇹🇷 TR (.tr) Programlama ve Yapay Zeka Dili — 5 Süper Güç Testi
+// =========================================================================
+
+yazdır("=== 1. SÜPER GÜÇ (Python): Liste Üreteci ve Çoklu Atama / Takas ===")
+değişken çift_kareler = [x * x döngü x içinde 1..=10 eğer x % 2 == 0]
+yazdır("Tek satırda 1..=10 çift kareler: {çift_kareler}")
+
+değişken a, b = 10, 20
+yazdır("Takas öncesi -> a: {a}, b: {b}")
+a, b = b, a
+yazdır("Takas sonrası (a, b = b, a) -> a: {a}, b: {b}")
+
+değişken ad, soyad = ["Mustafa", "Kemal"]
+yazdır("Liste açma (Destructuring) -> {ad} {soyad}")
+
+yazdır("\n=== 2. SÜPER GÜÇ (C# / JS / Ruby): Nokta (.) İle Zincirleme Metodlar ===")
+değişken kelimeler = "  merhaba yeni nesil tr dili  ".kırp().büyük_harf().böl(" ")
+yazdır("Metin zinciri (.kırp().büyük_harf().böl()): {kelimeler}")
+yazdır("Kelime birleştir (.birleştir(' - ')): {kelimeler.birleştir(' - ')}")
+
+değişken ham_sayılar = [5, 2, 8, 2, 1, 9, 5, 4]
+değişken işlenmiş = ham_sayılar.benzersiz().filtrele(x => x > 2).sırala().ters_çevir()
+yazdır("Ham liste: {ham_sayılar}")
+yazdır("Zincirleme (.benzersiz().filtrele(>2).sırala().ters_çevir()): {işlenmiş}")
+yazdır("İlk eleman: {işlenmiş.ilk}, Son eleman: {işlenmiş.son}, Toplam: {işlenmiş.toplam()}, Ortalama: {işlenmiş.ortalama()}")
+
+yazdır("\n=== 3. SÜPER GÜÇ (Go / Zig): 'ertele' (Defer) Komutu ===")
+fonksiyon dosya_işlemi() {
+    ertele yazdır("  [ertele 1] Kaynaklar ve bağlantı güvenli şekilde kapatıldı.")
+    ertele yazdır("  [ertele 2] Geçici önbellek temizlendi.")
+    yazdır("  [işlem] Ana veri işlemi yapılıyor...")
+    sonuç "Başarılı"
+}
+değişken işlem_sonucu = dosya_işlemi()
+yazdır("Fonksiyon dönüşü: {işlem_sonucu}")
+
+yazdır("\n=== 4. SÜPER GÜÇ (JS / Go): Zamanlayıcı (bekle) ve Web Hazırlığı ===")
+değişken başlangıç = zaman_ms()
+bekle(0.05)
+değişken geçen_süre = zaman_ms() - başlangıç
+yazdır("bekle(0.05) tamamlandı ({geçen_süre} ms)")
+
+yazdır("\n=== 5. SÜPER GÜÇ (PyTorch / Keras): Yapay Zeka Modeli Kaydet ve Yükle ===")
+değişken X = [[0, 0], [0, 1], [1, 0], [1, 1]]
+değişken Y = [[0], [1], [1], [0]]
+
+değişken model = sinir_ağı([2, 8, 1], aktivasyon: "tanh", tohum: 42)
+model.eğit(X, Y, devir: 600, öğrenme_hızı: 0.15)
+model.kaydet("ornekler/xor_modeli.json")
+yazdır("Eğitilen model 'ornekler/xor_modeli.json' dosyasına kaydedildi!")
+
+// Şimdi hiç eğitim yapmadan doğrudan diskten yükleyip tahmin alalım!
+değişken yüklenen_model = model_yükle("ornekler/xor_modeli.json")
+yazdır("Diskten yüklenen modelin [1, 0] ve [1, 1] tahmini:\n{yüklenen_model.tahmin_et([[1, 0], [1, 1]])}")

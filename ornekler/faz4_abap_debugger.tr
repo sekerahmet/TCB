@@ -1,0 +1,44 @@
+// =========================================================================
+// 🇹🇷 TR (.tr) — Faz 4: SAP ABAP Tarzı Hata Ayıklayıcı (Debugger) Senaryosu
+// =========================================================================
+
+yazdır("============================================================")
+yazdır(" 🐞 TR ABAP DEBUGGER TESTİ — SİPARİŞ & VERGİ HESAPLAMA")
+yazdır("============================================================")
+
+// 1. İç Tablo (ABAP Internal Table - ITAB) hazırlığı
+değişken siparisler = [
+    {"belge_no": "100001", "musteri": "Anadolu Тeknoloji", "tutar": 15000.0, "durum": "AÇIK"},
+    {"belge_no": "100002", "musteri": "Karadeniz Lojistik", "tutar": 28500.0, "durum": "ONAYLI"},
+    {"belge_no": "100003", "musteri": "Ege Enerji A.Ş.", "tutar": 42000.0, "durum": "BEKLEMEDE"}
+]
+
+// Yapay Zeka Matrisi (ABAP Tablo/Matris Görüntüleyicisi için)
+değişken risk_matrisi = matris([
+    [0.12, 0.85, 0.03],
+    [0.45, 0.40, 0.15]
+])
+
+fonksiyon net_tutar_hesapla(brut_toplam: Ondalık) -> Ondalık {
+    // HATA SİMÜLASYONU: Vergi oranı yanlışlıkla %80 (0.80) girilmiş!
+    // ABAP Debugger içinde bunu:
+    //   değiştir vergi_orani = 0.20
+    // komutuyla çalışma anında canlı olarak (✏️) düzeltebiliriz!
+    değişken vergi_orani = 0.80
+
+    // Kod içi ABAP BREAK-POINT (Koşullu kesme noktası):
+    kesme_noktası eğer brut_toplam > 50000
+
+    değişken vergi = brut_toplam * vergi_orani
+    değişken genel_toplam = brut_toplam + vergi
+    sonuç genel_toplam
+}
+
+değişken ara_toplam = 0.0
+döngü s içinde siparisler {
+    ara_toplam += s["tutar"]
+}
+
+yazdır("Sipariş Ara Toplamı : {ara_toplam} TL")
+değişken odenecek = net_tutar_hesapla(ara_toplam)
+yazdır("KDV Dahil Ödenecek  : {odenecek} TL")

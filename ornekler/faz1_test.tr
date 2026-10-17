@@ -1,0 +1,63 @@
+// ==========================================================
+// 🇹🇷 TR (.tr) Programlama Dili — Faz 1 Çekirdek Testi
+// ==========================================================
+
+yazdır("=== 1. Değişkenler, Sabitler ve Boş (Null) Güvenliği ===")
+değişken kullanıcı_adı = yok
+değişken görünen_ad = kullanıcı_adı ?? "Misafir"
+sabit SÜRÜM = "1.0"
+yazdır("Merhaba, {görünen_ad}! (TR Dil Sürümü: {SÜRÜM})")
+
+yazdır("\n=== 2. Fonksiyonlar, Tip Belirtimi ve 'eşle' (Pattern Matching) ===")
+fonksiyon not_durumu(puan: Tam) {
+    eşle puan {
+        90..=100 => sonuç "Pekiyi 🌟"
+        70..90   => sonuç "İyi 👍"
+        50..70   => sonuç "Geçer ✔️"
+        varsayılan => sonuç "Geliştirilmeli 📚"
+    }
+}
+
+döngü p içinde [95, 78, 42] {
+    yazdır("Puan {p} -> {not_durumu(p)}")
+}
+
+yazdır("\n=== 3. Boru Hattı (|>) ve Ok Fonksiyonları (Lambda) ===")
+değişken sayılar = [1, 2, 3, 4, 5, 6]
+değişken çift_kareler = sayılar
+    |> filtrele((x) => x % 2 == 0)
+    |> haritala((x) => x * x)
+
+yazdır("Sayılar: {sayılar}")
+yazdır("Çift sayıların kareleri: {çift_kareler}")
+yazdır("Çift karelerin toplamı: {çift_kareler |> toplam}")
+
+yazdır("\n=== 4. Yapı (Struct/Sınıf) ve 'kendi' Kullanımı ===")
+yapı Geliştirici {
+    ad: Metin
+    deneyim: Tam = 1
+
+    fonksiyon tanıt() {
+        sonuç "{kendi.ad} ({kendi.deneyim} yıl deneyim)"
+    }
+}
+
+değişken dev = Geliştirici("Ahmet", 5)
+yazdır("Geliştirici: {dev.tanıt()}")
+
+yazdır("\n=== 5. Hata Yakalama (dene / yakala) ===")
+dene {
+    değişken x = 10 / 0
+} yakala hata {
+    yazdır("Yakalanan hata başarıyla engellendi: {hata}")
+}
+
+yazdır("\n=== 6. Çift Modlu (ASCII Klavye) Uyumluluk Testi ===")
+degisken toplam_deger = 0
+dongu i icinde 1..=5 {
+    eger i == 4 {
+        devam
+    }
+    toplam_deger += i
+}
+yazdir("1..=5 arası (4 hariç) toplam: {toplam_deger}")

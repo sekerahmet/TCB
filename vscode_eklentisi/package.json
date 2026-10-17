@@ -1,0 +1,42 @@
+{
+  "name": "tr-dili-vscode",
+  "displayName": "TR (.tr) Programlama ve Yapay Zeka Dili",
+  "description": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets) ve editör desteği.",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "tr",
+        "aliases": [
+          "TR Dili",
+          "TR",
+          "tr"
+        ],
+        "extensions": [
+          ".tr"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tr",
+        "scopeName": "source.tr",
+        "path": "./syntaxes/tr.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "tr",
+        "path": "./snippets/tr.code-snippets"
+      }
+    ]
+  }
+}

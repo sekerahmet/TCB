@@ -1,0 +1,92 @@
+{
+  "Fonksiyon Tanımla": {
+    "prefix": ["fonk", "fonksiyon", "işlev"],
+    "body": [
+      "fonksiyon ${1:isim}(${2:parametre}) {",
+      "\t${3:sonuç }",
+      "}"
+    ],
+    "description": "Yeni bir TR fonksiyonu tanımlar"
+  },
+  "Eğer - Değilse Koşulu": {
+    "prefix": ["eger", "eğer"],
+    "body": [
+      "eğer ${1:koşul} {",
+      "\t${2}",
+      "} değilse {",
+      "\t${3}",
+      "}"
+    ],
+    "description": "Eğer / değilse koşul bloğu"
+  },
+  "Eşle (Pattern Matching)": {
+    "prefix": ["esle", "eşle"],
+    "body": [
+      "eşle ${1:değer} {",
+      "\t${2:durum1} => ${3:sonuç1}",
+      "\tvarsayılan => ${4:varsayılan_sonuç}",
+      "}"
+    ],
+    "description": "Durum ve aralık eşleştirme bloğu"
+  },
+  "Döngü (İçinde)": {
+    "prefix": ["dongu", "döngü"],
+    "body": [
+      "döngü ${1:i} içinde ${2:1..=10} {",
+      "\t${3:yazdır(i)}",
+      "}"
+    ],
+    "description": "Liste veya aralık üzerinde döngü"
+  },
+  "Liste Üreteci (List Comprehension)": {
+    "prefix": ["liste_uret", "uret"],
+    "body": [
+      "[${1:x * x} döngü ${2:x} içinde ${3:1..=10} eğer ${4:x % 2 == 0}]"
+    ],
+    "description": "Tek satırda koşullu liste üreteci"
+  },
+  "Yapı / Sınıf Tanımla": {
+    "prefix": ["yapi", "yapı", "sinif", "sınıf"],
+    "body": [
+      "yapı ${1:İsim} {",
+      "\t${2:alan}: ${3:Metin}",
+      "",
+      "\tfonksiyon ${4:metod}() {",
+      "\t\tsonuç kendi.${2:alan}",
+      "\t}",
+      "}"
+    ],
+    "description": "Yeni bir yapı/sınıf ve metod tanımlar"
+  },
+  "Dene - Yakala (Hata Yönetimi)": {
+    "prefix": ["dene"],
+    "body": [
+      "dene {",
+      "\t${1}",
+      "} yakala hata {",
+      "\tyazdır(\"Hata yakalandı: {hata}\")",
+      "}"
+    ],
+    "description": "Hata yakalama bloğu"
+  },
+  "Yapay Sinir Ağı Eğitimi": {
+    "prefix": ["sinir", "sinir_agi", "sinir_ağı"],
+    "body": [
+      "değişken model = sinir_ağı([${1:2, 8, 1}], aktivasyon: \"tanh\", tohum: 42)",
+      "model.eğit(${2:X_veri}, ${3:Y_hedef}, devir: ${4:500}, öğrenme_hızı: ${5:0.1})",
+      "değişken tahmin = model.tahmin_et(${2:X_veri})",
+      "yazdır(tahmin)"
+    ],
+    "description": "3 satırda yapay sinir ağı oluşturur, eğitir ve tahmin alır"
+  },
+  "Otomatik Türev (Tensör & Geri Yayılım)": {
+    "prefix": ["tensor", "tensör", "turev"],
+    "body": [
+      "değişken ${1:x} = tensör(${2:3.0}, türev_izle: doğru)",
+      "değişken ${3:y} = ${4:x * x + 2 * x + 1}",
+      "geri_yayılım(${3:y})",
+      "yazdır(\"Türev: {${1:x}.gradyan}\")"
+    ],
+    "description": "Tensör oluşturur ve otomatik türev (geri yayılım) hesaplar"
+  }
+}

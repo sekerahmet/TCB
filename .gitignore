@@ -1,0 +1,24 @@
+# Derlenmiş ikili dosyalar (go build / tr derle çıktıları)
+*.exe
+*.exe~
+*.test
+*.out
+
+# Örnek programların çalışırken ürettiği dosyalar
+ornekler/kurumsal_panel.html
+ornekler/sirket_erp.trdb
+ornekler/xor_modeli.json
+*.trdb
+
+# Go araç çıktıları
+coverage.*
+*.prof
+
+# Editör / işletim sistemi
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store
