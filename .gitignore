@@ -17,8 +17,12 @@ coverage.*
 # Editör / işletim sistemi
 .vscode/*
 !.vscode/extensions.json
+!.vscode/tasks.json
 .idea/
 *.swp
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Claude oturum kopyaları (git worktree)
+.claude/

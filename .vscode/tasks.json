@@ -1,0 +1,45 @@
+{
+  // TR dosyalarını VS Code içinden çalıştırmak için görevler.
+  // Ctrl+Shift+B  → açık .tr dosyasını çalıştırır (varsayılan görev)
+  // Ctrl+Shift+P → "Tasks: Run Task" → diğer görevler (denetle, hata ayıkla)
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "TR: Bu dosyayı çalıştır",
+      "type": "process",
+      "command": "${workspaceFolder}\\tr.exe",
+      "args": ["${file}"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true, "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "TR: Bu dosyayı denetle (çalıştırmadan)",
+      "type": "process",
+      "command": "${workspaceFolder}\\tr.exe",
+      "args": ["kontrol", "${file}"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "TR: Hata ayıklayıcıda aç (terminal)",
+      "type": "process",
+      "command": "${workspaceFolder}\\tr.exe",
+      "args": ["debug", "${file}"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "TR: Görsel hata ayıklayıcı (tarayıcı)",
+      "type": "process",
+      "command": "${workspaceFolder}\\tr.exe",
+      "args": ["debug", "--web", "${file}"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    }
+  ]
+}
