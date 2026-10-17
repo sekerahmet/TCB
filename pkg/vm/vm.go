@@ -107,8 +107,19 @@ func New() *VM {
 }
 
 // NewTaskVM aynı paylaşılan durum üzerinde, kendi çağrı yığınına sahip yeni bir görev görünümü üretir.
+//
+// async=true ('eşzamanlı' blok): çağıran, yorumlayıcı kilidini tutan VM goroutine'idir; görev
+// başlatıldığı yerin çağrı yığınını devralır (hata ayıklayıcı yığını bu sayede anlamlıdır).
+//
+// async=false (web/arayüz isteği): çağrı sunucu goroutine'inden, kilit ALINMADAN yapılır. Bu
+// sırada ana program kendi CallStack'ine ekleme yapıyor olabilir; dilimi okumak veri yarışı
+// olurdu. Yeni bir istek ana programın yığınının çocuğu da değildir; bu yüzden boş yığınla başlar
+// ve v'nin hiçbir göreve özel alanına dokunulmaz.
 func (v *VM) NewTaskVM(async bool) *VM {
-	return &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: async}
+	if !async {
+		return &VM{vmShared: v.vmShared, CallStack: []StackFrame{}}
+	}
+	return &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: true}
 }
 
 func (v *VM) acquireGIL() {
