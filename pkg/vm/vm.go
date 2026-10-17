@@ -1097,12 +1097,18 @@ func (v *VM) evalPipe(left ast.Expression, right ast.Expression, env *Environmen
 			}
 			named[na.Name] = nv
 		}
+		if err := checkArity(fnVal, len(args), named, callExpr.Line()); err != nil {
+			return nil, err
+		}
 		return v.ApplyFunction(fnVal, args, named, callExpr.Line())
 	}
 
 	// Sağ taraf doğrudan bir fonksiyon ise (örn: veri |> sırala)
 	fnVal, err := v.evalExpression(right, env)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkArity(fnVal, 1, nil, right.Line()); err != nil {
 		return nil, err
 	}
 	return v.ApplyFunction(fnVal, []Value{leftVal}, nil, right.Line())
@@ -1181,7 +1187,66 @@ func (v *VM) evalCall(e *ast.CallExpression, env *Environment) (Value, error) {
 		}
 	}
 
+	if err := checkArity(fnVal, len(args), named, e.Line()); err != nil {
+		return nil, err
+	}
 	return v.ApplyFunction(fnVal, args, named, e.Line())
+}
+
+// maxCallDepth iç içe kullanıcı fonksiyonu çağrılarının üst sınırıdır. Sınırsız özyineleme
+// Go yığınını taşırıp süreci yakalanamaz biçimde çökertirdi; sınırda 'dene/yakala' ile
+// yakalanabilen bir hata döner.
+const maxCallDepth = 10000
+
+// checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
+// sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar
+// (filtrele, web işleyicileri...) bu denetime girmez; onlar fazladan argüman gönderebilir.
+func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error {
+	fn, ok := fnVal.(*FuncVal)
+	if !ok {
+		return nil
+	}
+	ad := "'" + fn.Name + "' fonksiyonu"
+	if fn.Name == "" {
+		ad = "İsimsiz fonksiyon"
+	}
+	known := make(map[string]bool, len(fn.Parameters))
+	for _, p := range fn.Parameters {
+		known[p.Name] = true
+	}
+	for k := range named {
+		if !known[k] {
+			return fmt.Errorf("Satır %d: %s '%s' adında bir parametre almaz%s", line, ad, k, suggestParam(k, fn.Parameters))
+		}
+	}
+	if nargs > len(fn.Parameters) {
+		return fmt.Errorf("Satır %d: %s en fazla %d argüman alır, %d verildi", line, ad, len(fn.Parameters), nargs)
+	}
+	var eksik []string
+	gerekli := 0
+	for i, p := range fn.Parameters {
+		if p.DefaultValue == nil {
+			gerekli++
+		}
+		if i >= nargs && named[p.Name] == nil && p.DefaultValue == nil {
+			eksik = append(eksik, "'"+p.Name+"'")
+		}
+	}
+	if len(eksik) > 0 {
+		return fmt.Errorf("Satır %d: %s %d argüman bekler, %d verildi (eksik: %s)", line, ad, gerekli, nargs+len(named), strings.Join(eksik, ", "))
+	}
+	return nil
+}
+
+func suggestParam(name string, params []ast.Param) string {
+	var names []string
+	for _, p := range params {
+		names = append(names, p.Name)
+	}
+	if o := turkce.EnYakin(name, names); o != "" {
+		return fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+	}
+	return ""
 }
 
 func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, line int) (Value, error) {
@@ -1195,6 +1260,10 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 			fnName = "<anonim>"
 		}
 		v.stackMu.Lock()
+		if len(v.CallStack) >= maxCallDepth {
+			v.stackMu.Unlock()
+			return nil, fmt.Errorf("Satır %d: Özyineleme derinliği sınırı aşıldı (en fazla %d iç içe çağrı); fonksiyon kendini durmadan çağırıyor olabilir", line, maxCallDepth)
+		}
 		v.CallStack = append(v.CallStack, StackFrame{
 			FuncName: fnName,
 			Line:     line,

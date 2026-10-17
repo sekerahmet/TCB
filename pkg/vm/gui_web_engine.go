@@ -188,14 +188,9 @@ func (w *WebServerVal) startServer(background bool) error {
 		mux.Handle(prefix, http.StripPrefix(prefix, http.FileServer(http.Dir(dir))))
 	}
 
+	// Not: CORS izni (Access-Control-Allow-Origin) verilmez, Host ve başka siteden gelen
+	// istekler guardLocalHTTP ile denetlenir (bkz. http_koruma.go).
 	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
-		rw.Header().Set("Access-Control-Allow-Origin", "*")
-		rw.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if req.Method == "OPTIONS" {
-			rw.WriteHeader(http.StatusOK)
-			return
-		}
-
 		w.mu.RLock()
 		var matched *routeHandler
 		for i := range w.Routes {
@@ -227,11 +222,16 @@ func (w *WebServerVal) startServer(background bool) error {
 		}
 		reqDict.Set("parametreler", queryDict)
 
-		bodyBytes, _ := io.ReadAll(req.Body)
+		bodyBytes, err := io.ReadAll(req.Body)
+		if err != nil {
+			http.Error(rw, "istek gövdesi okunamadı veya çok büyük", http.StatusRequestEntityTooLarge)
+			return
+		}
 		bodyStr := strings.TrimSpace(string(bodyBytes))
 		if bodyStr != "" {
+			// Gövde yalnızca Content-Type JSON ise JSON olarak çözülür.
 			var parsed interface{}
-			if err := json.Unmarshal(bodyBytes, &parsed); err == nil {
+			if strings.HasPrefix(strings.ToLower(req.Header.Get("Content-Type")), "application/json") && json.Unmarshal(bodyBytes, &parsed) == nil {
 				reqDict.Set("veri", goToTRValue(parsed))
 			} else {
 				reqDict.Set("veri", &StringVal{Val: bodyStr})
@@ -261,7 +261,7 @@ func (w *WebServerVal) startServer(background bool) error {
 			_, _ = rw.Write(jsonBytes)
 		case *StringVal:
 			trimmed := strings.TrimSpace(rv.Val)
-			if strings.HasPrefix(trimmed, "<") {
+			if isFullHTMLDocument(trimmed) {
 				rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 			} else if strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[") {
 				rw.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -279,7 +279,7 @@ func (w *WebServerVal) startServer(background bool) error {
 	if err != nil {
 		return fmt.Errorf("Port %d dinlenemedi: %v", w.Port, err)
 	}
-	w.server = &http.Server{Handler: mux}
+	w.server = newLocalServer(w.Port, mux)
 
 	if background {
 		go func() {
@@ -695,7 +695,7 @@ func (g *GUIAppVal) startGUIServer(port int, background bool, openWindow bool) e
 	if err != nil {
 		return fmt.Errorf("Arayüz portu (%d) açılamadı: %v", port, err)
 	}
-	g.server = &http.Server{Handler: mux}
+	g.server = newLocalServer(port, mux)
 
 	url := fmt.Sprintf("http://localhost:%d", port)
 	if openWindow {

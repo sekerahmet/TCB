@@ -326,3 +326,52 @@ func TestDebuggerBreakpointToggleIsSafe(t *testing.T) {
 	}
 	<-done
 }
+
+// Test raporu K1: sınırsız özyineleme Go yığınını taşırıp süreci yakalanamaz biçimde
+// çökertiyordu. Artık sınırda 'dene/yakala' ile yakalanabilen bir hata döner.
+func TestDeepRecursionIsCatchableError(t *testing.T) {
+	_, _, err := runTRWithin(t, 30*time.Second, "fonksiyon f(n) { sonuç f(n + 1) }\nf(0)")
+	if err == nil || !strings.Contains(err.Error(), "Özyineleme derinliği sınırı aşıldı") {
+		t.Fatalf("özyineleme sınırı hatası bekleniyordu, alınan: %v", err)
+	}
+	_, val, err := runTRWithin(t, 30*time.Second, `
+		fonksiyon f(n) { sonuç f(n + 1) }
+		değişken yakalandı = yanlış
+		dene { f(0) } yakala hata { yakalandı = doğru }
+		sonuç yakalandı`)
+	if err != nil || val.Inspect() != "doğru" {
+		t.Fatalf("özyineleme hatası dene/yakala ile yakalanmalıydı: %v / %v", val, err)
+	}
+	// Sınırın altındaki derin ama sonlu özyineleme çalışmaya devam etmeli
+	_, val, err = runTRWithin(t, 30*time.Second, "fonksiyon say(n) { eğer n == 0 { sonuç 0 } sonuç 1 + say(n - 1) }\nsonuç say(5000)")
+	if err != nil || val.Inspect() != "5000" {
+		t.Fatalf("5000 derinlik çalışmalı: %v / %v", val, err)
+	}
+}
+
+// Test raporu Y4: eksik argüman sessizce 'yok' oluyor, fazlası yok sayılıyordu.
+func TestUserFunctionArityIsChecked(t *testing.T) {
+	cases := []struct{ code, want string }{
+		{"fonksiyon topla(a, b) { sonuç a + b }\ntopla(1)", "Satır 2: 'topla' fonksiyonu 2 argüman bekler, 1 verildi (eksik: 'b')"},
+		{"fonksiyon topla(a, b) { sonuç a + b }\ntopla(1, 2, 3)", "Satır 2: 'topla' fonksiyonu en fazla 2 argüman alır, 3 verildi"},
+		{"fonksiyon f(isim) { sonuç isim }\nf(isimm: 1)", "'f' fonksiyonu 'isimm' adında bir parametre almaz. Bunu mu demek istediniz: 'isim'?"},
+		{"değişken g = (x, y) => x + y\ng(1)", "İsimsiz fonksiyon 2 argüman bekler, 1 verildi"},
+		{"fonksiyon iki(a, b) { sonuç a }\n5 |> iki", "'iki' fonksiyonu 2 argüman bekler, 1 verildi"},
+	}
+	for _, c := range cases {
+		_, _, err := runTRWithin(t, 5*time.Second, c.code)
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q içeren hata bekleniyordu, alınan: %v", c.want, err)
+		}
+	}
+	// Varsayılan değerler, adlandırılmış argümanlar ve geri çağrılar (fazladan argüman alabilir) çalışmalı
+	_, val, err := runTRWithin(t, 5*time.Second, `
+		fonksiyon selam(ad, ek = "!") { sonuç ad + ek }
+		değişken a = selam("Ali")
+		değişken b = selam(ek: "?", ad: "Ayşe")
+		değişken c = [1, 2, 3].filtrele((x) => x > 1)
+		sonuç [a, b, c]`)
+	if err != nil || val.Inspect() != `["Ali!", "Ayşe?", [2, 3]]` {
+		t.Fatalf("geçerli çağrılar çalışmalı: %v / %v", val, err)
+	}
+}
