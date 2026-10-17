@@ -3,7 +3,6 @@ package vm
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"tr_dili/pkg/ast"
 )
 
@@ -267,10 +266,43 @@ func (si *StructInstanceVal) Inspect() string {
 }
 func (si *StructInstanceVal) IsTruthy() bool { return true }
 
+// --- KÜÇÜK TAMSAYI ÖNBELLEĞİ ---
+
+// Döngü sayaçları, indeksler ve küçük sonuçlar için her seferinde yeni nesne ayırmamak
+// adına -128..1023 aralığındaki tamsayılar önceden oluşturulur. IntVal değişmezdir (hiçbir
+// yerde Val yerinde değiştirilmez); bu yüzden aynı nesne güvenle paylaşılabilir.
+const (
+	kucukIntEnAz  = -128
+	kucukIntEnCok = 1023
+)
+
+var kucukIntler = func() [kucukIntEnCok - kucukIntEnAz + 1]*IntVal {
+	var t [kucukIntEnCok - kucukIntEnAz + 1]*IntVal
+	for i := range t {
+		t[i] = &IntVal{Val: int64(i + kucukIntEnAz)}
+	}
+	return t
+}()
+
+// NewInt bir tamsayı değeri döndürür; küçük değerler önbellekten gelir.
+func NewInt(n int64) *IntVal {
+	if n >= kucukIntEnAz && n <= kucukIntEnCok {
+		return kucukIntler[n-kucukIntEnAz]
+	}
+	return &IntVal{Val: n}
+}
+
 // --- ÇALIŞMA ORTAMI (ENVIRONMENT) ---
 
+// Environment bir kapsamdaki değişkenleri tutar. Kilidi yoktur: TR kodu yalnızca yorumlayıcı
+// kilidini (GIL, bkz. vmShared.gil) tutan görev tarafından çalıştırılır ve hata ayıklayıcının
+// istekleri de duraklatılmış görevin kendi goroutine'inde işlenir. Bu yüzden bir ortama aynı
+// anda iki goroutine erişmez. GIL'i tutmayan kod (Blocking içindeki işlemler, sunucu
+// goroutine'leri) ortamlara dokunmamalıdır; dokunması gerekiyorsa RunTask kullanılır.
+//
+// Haritalar ilk tanımda oluşturulur: değişken tanımlamayan bloklar ve döngü turları için
+// boş harita ayırmaya gerek kalmaz (nil haritadan okuma Go'da güvenlidir).
 type Environment struct {
-	mu         sync.RWMutex
 	store      map[string]Value
 	consts     map[string]bool
 	outer      *Environment
@@ -280,8 +312,6 @@ type Environment struct {
 
 func NewEnvironment(outer *Environment) *Environment {
 	return &Environment{
-		store:      make(map[string]Value),
-		consts:     make(map[string]bool),
 		outer:      outer,
 		IsFuncRoot: outer == nil,
 	}
@@ -292,36 +322,33 @@ func (e *Environment) AddDefer(fn func()) {
 	for target.outer != nil && !target.IsFuncRoot {
 		target = target.outer
 	}
-	target.mu.Lock()
 	target.defers = append(target.defers, fn)
-	target.mu.Unlock()
 }
 
 func (e *Environment) RunDefers() {
-	e.mu.Lock()
+	if len(e.defers) == 0 {
+		return
+	}
 	list := e.defers
 	e.defers = nil
-	e.mu.Unlock()
 	for i := len(list) - 1; i >= 0; i-- {
 		list[i]()
 	}
 }
 
 func (e *Environment) Get(name string) (Value, bool) {
-	e.mu.RLock()
-	val, ok := e.store[name]
-	e.mu.RUnlock()
-	if ok {
-		return val, true
-	}
-	if e.outer != nil {
-		return e.outer.Get(name)
+	for cur := e; cur != nil; cur = cur.outer {
+		if val, ok := cur.store[name]; ok {
+			return val, true
+		}
 	}
 	return nil, false
 }
 
 func (e *Environment) Define(name string, val Value, isConst bool) {
-	e.mu.Lock()
+	if e.store == nil {
+		e.store = make(map[string]Value)
+	}
 	// Yerleşik bir fonksiyonun adıyla (ör. 'toplam', 'uzunluk') değişken tanımlamak onu
 	// gölgeler; yeni değişken sabit değildir. Kullanıcının 'sabit' tanımları korunur.
 	if _, wasBuiltin := e.store[name].(*BuiltinVal); wasBuiltin && !isConst {
@@ -329,26 +356,22 @@ func (e *Environment) Define(name string, val Value, isConst bool) {
 	}
 	e.store[name] = val
 	if isConst {
+		if e.consts == nil {
+			e.consts = make(map[string]bool)
+		}
 		e.consts[name] = true
 	}
-	e.mu.Unlock()
 }
 
 func (e *Environment) Assign(name string, val Value) error {
-	e.mu.Lock()
-	if _, exists := e.store[name]; exists {
-		if e.consts[name] {
-			e.mu.Unlock()
-			return fmt.Errorf("%q bir sabittir ('sabit') ve değeri değiştirilemez", name)
+	for cur := e; cur != nil; cur = cur.outer {
+		if _, exists := cur.store[name]; exists {
+			if cur.consts[name] {
+				return fmt.Errorf("%q bir sabittir ('sabit') ve değeri değiştirilemez", name)
+			}
+			cur.store[name] = val
+			return nil
 		}
-		e.store[name] = val
-		e.mu.Unlock()
-		return nil
-	}
-	e.mu.Unlock()
-
-	if e.outer != nil {
-		return e.outer.Assign(name, val)
 	}
 	// Hiçbir kapsamda yoksa sessizce genel değişken oluşturmak yazım hatalarını
 	// gizler (ör. fonksiyon içinde 'toplm = 1'); bu yüzden açık tanım istenir.
@@ -368,14 +391,12 @@ func (e *Environment) Names() []string {
 	seen := map[string]bool{}
 	var names []string
 	for cur := e; cur != nil; cur = cur.outer {
-		cur.mu.RLock()
 		for k := range cur.store {
 			if !seen[k] {
 				seen[k] = true
 				names = append(names, k)
 			}
 		}
-		cur.mu.RUnlock()
 	}
 	return names
 }

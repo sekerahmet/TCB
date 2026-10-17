@@ -271,11 +271,9 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 		}
 
 		modDict := NewDictVal()
-		modEnv.mu.RLock()
 		for k, exportedVal := range modEnv.store {
 			modDict.Set(k, exportedVal)
 		}
-		modEnv.mu.RUnlock()
 
 		v.importedMu.Lock()
 		v.Imported[absPath] = modDict
@@ -352,9 +350,9 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 		for i := it.Start; (step > 0 && i < end) || (step < 0 && i > end); i += step {
 			loopEnv := NewEnvironment(env)
 			if s.KeyVar != "" {
-				loopEnv.Define(s.KeyVar, &IntVal{Val: idx}, false)
+				loopEnv.Define(s.KeyVar, NewInt(idx), false)
 			}
-			loopEnv.Define(s.ValueVar, &IntVal{Val: i}, false)
+			loopEnv.Define(s.ValueVar, NewInt(i), false)
 			val, sig, err := v.execStatements(s.Body.Statements, loopEnv)
 			if err != nil {
 				return nil, signalNone, err
@@ -373,7 +371,7 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 		for idx, item := range it.Elements {
 			loopEnv := NewEnvironment(env)
 			if s.KeyVar != "" {
-				loopEnv.Define(s.KeyVar, &IntVal{Val: int64(idx)}, false)
+				loopEnv.Define(s.KeyVar, NewInt(int64(idx)), false)
 			}
 			loopEnv.Define(s.ValueVar, item, false)
 			val, sig, err := v.execStatements(s.Body.Statements, loopEnv)
@@ -415,7 +413,7 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 		for idx, ch := range []rune(it.Val) {
 			loopEnv := NewEnvironment(env)
 			if s.KeyVar != "" {
-				loopEnv.Define(s.KeyVar, &IntVal{Val: int64(idx)}, false)
+				loopEnv.Define(s.KeyVar, NewInt(int64(idx)), false)
 			}
 			loopEnv.Define(s.ValueVar, &StringVal{Val: string(ch)}, false)
 			val, sig, err := v.execStatements(s.Body.Statements, loopEnv)

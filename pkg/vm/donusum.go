@@ -11,12 +11,12 @@ func GoToTRValue(raw interface{}) Value {
 	case bool:
 		return BoolToVal(v)
 	case int:
-		return &IntVal{Val: int64(v)}
+		return NewInt(int64(v))
 	case int64:
-		return &IntVal{Val: v}
+		return NewInt(v)
 	case float64:
 		if v == float64(int64(v)) {
-			return &IntVal{Val: int64(v)}
+			return NewInt(int64(v))
 		}
 		return &FloatVal{Val: v}
 	case string:

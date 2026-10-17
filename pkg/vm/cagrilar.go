@@ -53,6 +53,20 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	if !ok {
 		return nil
 	}
+	// Hızlı yol: adlı argüman yoksa ve verilmeyen her parametrenin varsayılanı varsa sorun
+	// yoktur. Hata mesajı için gereken metin ve haritalar yalnızca hata yolunda kurulur.
+	if len(named) == 0 && nargs <= len(fn.Parameters) {
+		tamam := true
+		for _, p := range fn.Parameters[nargs:] {
+			if p.DefaultValue == nil {
+				tamam = false
+				break
+			}
+		}
+		if tamam {
+			return nil
+		}
+	}
 	ad := "'" + fn.Name + "' fonksiyonu"
 	if fn.Name == "" {
 		ad = "İsimsiz fonksiyon"
@@ -106,22 +120,17 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 		if fnName == "" {
 			fnName = "<anonim>"
 		}
-		v.stackMu.Lock()
 		if len(v.CallStack) >= maxCallDepth {
-			v.stackMu.Unlock()
 			return nil, fmt.Errorf("Satır %d: Özyineleme derinliği sınırı aşıldı (en fazla %d iç içe çağrı); fonksiyon kendini durmadan çağırıyor olabilir", line, maxCallDepth)
 		}
 		v.CallStack = append(v.CallStack, StackFrame{
 			FuncName: fnName,
 			Line:     line,
 		})
-		v.stackMu.Unlock()
 		defer func() {
-			v.stackMu.Lock()
 			if len(v.CallStack) > 0 {
 				v.CallStack = v.CallStack[:len(v.CallStack)-1]
 			}
-			v.stackMu.Unlock()
 		}()
 		if fn.BoundSelf != nil {
 			fnEnv.Define("kendi", fn.BoundSelf, false)

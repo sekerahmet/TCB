@@ -62,11 +62,11 @@ func (v *VM) registerBuiltins() {
 		}
 		switch val := args[0].(type) {
 		case *StringVal:
-			return &IntVal{Val: int64(len([]rune(val.Val)))}, nil
+			return NewInt(int64(len([]rune(val.Val)))), nil
 		case *ListVal:
-			return &IntVal{Val: int64(len(val.Elements))}, nil
+			return NewInt(int64(len(val.Elements))), nil
 		case *DictVal:
-			return &IntVal{Val: int64(len(val.Pairs))}, nil
+			return NewInt(int64(len(val.Pairs))), nil
 		default:
 			return nil, fmt.Errorf("uzunluk() %s tipi için desteklenmiyor", args[0].Type())
 		}
@@ -89,18 +89,18 @@ func (v *VM) registerBuiltins() {
 		case *IntVal:
 			return val, nil
 		case *FloatVal:
-			return &IntVal{Val: int64(val.Val)}, nil
+			return NewInt(int64(val.Val)), nil
 		case *StringVal:
 			n, err := strconv.ParseInt(strings.TrimSpace(val.Val), 10, 64)
 			if err != nil {
 				return nil, fmt.Errorf("%q tam sayıya çevrilemedi", val.Val)
 			}
-			return &IntVal{Val: n}, nil
+			return NewInt(n), nil
 		case *BoolVal:
 			if val.Val {
-				return &IntVal{Val: 1}, nil
+				return NewInt(1), nil
 			}
-			return &IntVal{Val: 0}, nil
+			return NewInt(0), nil
 		default:
 			return nil, fmt.Errorf("%s tipi Tam sayıya çevrilemez", args[0].Type())
 		}
@@ -250,7 +250,7 @@ func (v *VM) registerBuiltins() {
 			}
 			elems := []Value{}
 			for i := int64(0); i < end.Val; i++ {
-				elems = append(elems, &IntVal{Val: i})
+				elems = append(elems, NewInt(i))
 			}
 			return &ListVal{Elements: elems}, nil
 		}
@@ -265,7 +265,7 @@ func (v *VM) registerBuiltins() {
 			}
 			elems := []Value{}
 			for i := start.Val; i < end.Val; i++ {
-				elems = append(elems, &IntVal{Val: i})
+				elems = append(elems, NewInt(i))
 			}
 			return &ListVal{Elements: elems}, nil
 		}
@@ -296,7 +296,7 @@ func (v *VM) registerBuiltins() {
 		if hasFloat {
 			return &FloatVal{Val: sumFloat}, nil
 		}
-		return &IntVal{Val: sumInt}, nil
+		return NewInt(sumInt), nil
 	})
 
 	v.RegisterBuiltin("min", "en_küçük", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -333,7 +333,7 @@ func (v *VM) registerBuiltins() {
 		}
 		if iv, ok := args[0].(*IntVal); ok {
 			if iv.Val < 0 {
-				return &IntVal{Val: -iv.Val}, nil
+				return NewInt(-iv.Val), nil
 			}
 			return iv, nil
 		}
@@ -368,7 +368,7 @@ func (v *VM) registerBuiltins() {
 			}
 		}
 		if digits <= 0 {
-			return &IntVal{Val: int64(math.Round(fv))}, nil
+			return NewInt(int64(math.Round(fv))), nil
 		}
 		pow := math.Pow(10, float64(digits))
 		return &FloatVal{Val: math.Round(fv*pow) / pow}, nil
@@ -385,7 +385,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	v.RegisterBuiltin("zaman_ms", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		return &IntVal{Val: time.Now().UnixMilli()}, nil
+		return NewInt(time.Now().UnixMilli()), nil
 	})
 
 	v.RegisterBuiltin("dosya_oku", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -440,7 +440,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 	case *StringVal:
 		switch prop {
 		case "uzunluk", "boy":
-			return &IntVal{Val: int64(len([]rune(inst.Val)))}, nil
+			return NewInt(int64(len([]rune(inst.Val)))), nil
 		case "büyük_harf", "buyuk_harf":
 			return &BuiltinVal{Name: "büyük_harf", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 				return &StringVal{Val: strings.ToUpperSpecial(unicode.TurkishCase, inst.Val)}, nil
@@ -507,7 +507,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 	case *ListVal:
 		switch prop {
 		case "uzunluk", "boy":
-			return &IntVal{Val: int64(len(inst.Elements))}, nil
+			return NewInt(int64(len(inst.Elements))), nil
 		case "ilk":
 			if len(inst.Elements) == 0 {
 				return NULL, nil
@@ -635,7 +635,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 				if hasFloat {
 					return &FloatVal{Val: sumFloat}, nil
 				}
-				return &IntVal{Val: sumInt}, nil
+				return NewInt(sumInt), nil
 			}}, nil
 		case "ortalama":
 			return &BuiltinVal{Name: "ortalama", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -712,7 +712,7 @@ func ExtractNumericSlice(args []Value) []float64 {
 
 func formatNumberVal(f float64) Value {
 	if f == float64(int64(f)) {
-		return &IntVal{Val: int64(f)}
+		return NewInt(int64(f))
 	}
 	return &FloatVal{Val: f}
 }

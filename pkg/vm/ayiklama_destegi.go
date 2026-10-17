@@ -22,10 +22,8 @@ func (e *Environment) Outer() *Environment {
 	return e.outer
 }
 
-// EachLocal yalnızca bu kapsamda tanımlı adları, kapsam okuma kilidi altında fn'e verir.
+// EachLocal yalnızca bu kapsamda tanımlı adları fn'e verir.
 func (e *Environment) EachLocal(fn func(name string, val Value)) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
 	for k, v := range e.store {
 		fn(k, v)
 	}

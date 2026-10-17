@@ -78,7 +78,7 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 		return &StringVal{Val: t}, nil
 	case json.Number:
 		if i, err := t.Int64(); err == nil {
-			return &IntVal{Val: i}, nil
+			return NewInt(i), nil
 		}
 		f, err := t.Float64()
 		if err != nil {

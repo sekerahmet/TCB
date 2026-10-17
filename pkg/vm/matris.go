@@ -192,11 +192,11 @@ func (m *MatrixVal) Transpose() *MatrixVal {
 func (m *MatrixVal) GetProperty(prop string) (Value, error) {
 	switch prop {
 	case "şekil", "sekil", "boyut":
-		return &ListVal{Elements: []Value{&IntVal{Val: int64(m.Rows)}, &IntVal{Val: int64(m.Cols)}}}, nil
+		return &ListVal{Elements: []Value{NewInt(int64(m.Rows)), NewInt(int64(m.Cols))}}, nil
 	case "satır", "satir":
-		return &IntVal{Val: int64(m.Rows)}, nil
+		return NewInt(int64(m.Rows)), nil
 	case "sütun", "sutun":
-		return &IntVal{Val: int64(m.Cols)}, nil
+		return NewInt(int64(m.Cols)), nil
 	case "devrik", "T":
 		return m.Transpose(), nil
 	case "toplam":

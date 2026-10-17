@@ -17,7 +17,7 @@ func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Va
 	}
 	switch e := expr.(type) {
 	case *ast.IntegerLiteral:
-		return &IntVal{Val: e.Value}, signalNone, nil
+		return NewInt(e.Value), signalNone, nil
 	case *ast.FloatLiteral:
 		return &FloatVal{Val: e.Value}, signalNone, nil
 	case *ast.StringLiteral:
@@ -111,7 +111,7 @@ func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Va
 		if e.Operator == "-" {
 			switch rv := right.(type) {
 			case *IntVal:
-				return &IntVal{Val: -rv.Val}, signalNone, nil
+				return NewInt(-rv.Val), signalNone, nil
 			case *FloatVal:
 				return &FloatVal{Val: -rv.Val}, signalNone, nil
 			}
@@ -348,7 +348,7 @@ func (v *VM) evalListComprehension(lc *ast.ListComprehension, env *Environment) 
 			}
 		}
 		for i := it.Start; (step > 0 && i < end) || (step < 0 && i > end); i += step {
-			items = append(items, &IntVal{Val: i})
+			items = append(items, NewInt(i))
 		}
 	case *ListVal:
 		items = it.Elements

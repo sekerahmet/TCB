@@ -78,9 +78,11 @@ type StackFrame struct {
 
 // VM, bir yürütme görevinin görünümüdür: paylaşılan durum + göreve özel çağrı yığını.
 // Her 'eşzamanlı' blok ve her web/GUI isteği kendi VM görünümüyle çalışır (bkz. NewTaskVM).
+//
+// Çağrı yığını kilitsizdir: yalnızca görevin kendi goroutine'i okur ve yazar (hata
+// ayıklayıcının istekleri de duraklatılmış görevin goroutine'inde işlenir).
 type VM struct {
 	*vmShared
-	stackMu   sync.RWMutex
 	CallStack []StackFrame
 
 	holdsGIL  bool // bu görünüm şu an yorumlayıcı kilidini tutuyor mu (yalnızca kendi goroutine'i okur/yazar)
@@ -145,14 +147,10 @@ func (v *VM) RunTask(fn func() (Value, error)) (res Value, err error) {
 }
 
 func (v *VM) StackDepth() int {
-	v.stackMu.RLock()
-	defer v.stackMu.RUnlock()
 	return len(v.CallStack)
 }
 
 func (v *VM) StackSnapshot() []StackFrame {
-	v.stackMu.RLock()
-	defer v.stackMu.RUnlock()
 	snap := make([]StackFrame, len(v.CallStack))
 	copy(snap, v.CallStack)
 	return snap

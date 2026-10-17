@@ -52,31 +52,31 @@ func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, err
 				if (sonuc > li.Val) != (ri.Val > 0) {
 					return nil, tasmaHatasi(line, li.Val, op, ri.Val)
 				}
-				return &IntVal{Val: sonuc}, nil
+				return NewInt(sonuc), nil
 			case "-":
 				sonuc := li.Val - ri.Val
 				if (sonuc < li.Val) != (ri.Val > 0) {
 					return nil, tasmaHatasi(line, li.Val, op, ri.Val)
 				}
-				return &IntVal{Val: sonuc}, nil
+				return NewInt(sonuc), nil
 			case "*":
 				if !mulFits(li.Val, ri.Val) {
 					return nil, tasmaHatasi(line, li.Val, op, ri.Val)
 				}
-				return &IntVal{Val: li.Val * ri.Val}, nil
+				return NewInt(li.Val * ri.Val), nil
 			case "/":
 				if ri.Val == 0 {
 					return nil, fmt.Errorf("Satır %d: Sıfıra bölme hatası", line)
 				}
 				if li.Val%ri.Val == 0 {
-					return &IntVal{Val: li.Val / ri.Val}, nil
+					return NewInt(li.Val / ri.Val), nil
 				}
 				return &FloatVal{Val: float64(li.Val) / float64(ri.Val)}, nil
 			case "%":
 				if ri.Val == 0 {
 					return nil, fmt.Errorf("Satır %d: Sıfıra göre mod alma hatası", line)
 				}
-				return &IntVal{Val: li.Val % ri.Val}, nil
+				return NewInt(li.Val % ri.Val), nil
 			case "**":
 				if ri.Val < 0 {
 					return &FloatVal{Val: math.Pow(float64(li.Val), float64(ri.Val))}, nil
@@ -85,7 +85,7 @@ func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, err
 				if !ok {
 					return nil, fmt.Errorf("Satır %d: Tam sayı taşması (%d ** %d); ondalık sonuç için örn. %d.0 ** %d yazın", line, li.Val, ri.Val, li.Val, ri.Val)
 				}
-				return &IntVal{Val: res}, nil
+				return NewInt(res), nil
 			case "<":
 				return BoolToVal(li.Val < ri.Val), nil
 			case ">":
