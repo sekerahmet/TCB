@@ -5,7 +5,10 @@
   "patterns": [
     { "include": "#comments" },
     { "include": "#strings" },
+    { "include": "#import" },
+    { "include": "#declarations" },
     { "include": "#keywords" },
+    { "include": "#pronoun" },
     { "include": "#types" },
     { "include": "#builtins" },
     { "include": "#numbers" },
@@ -35,33 +38,91 @@
           "name": "string.quoted.double.tr",
           "begin": "\"",
           "end": "\"",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.tr" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.tr" } },
           "patterns": [
-            {
-              "name": "constant.character.escape.tr",
-              "match": "\\\\."
-            },
-            {
-              "name": "meta.interpolation.tr",
-              "begin": "\\{",
-              "end": "\\}",
-              "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.tr" } },
-              "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.tr" } },
-              "patterns": [
-                { "include": "$self" }
-              ]
-            }
+            { "include": "#string-content" }
           ]
         },
         {
           "name": "string.quoted.single.tr",
           "begin": "'",
           "end": "'",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.tr" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.tr" } },
           "patterns": [
-            {
-              "name": "constant.character.escape.tr",
-              "match": "\\\\."
-            }
+            { "include": "#string-content" }
           ]
+        }
+      ]
+    },
+    "string-content": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.brace.tr",
+          "match": "\\\\[{}]"
+        },
+        {
+          "name": "constant.character.escape.tr",
+          "match": "\\\\."
+        },
+        { "include": "#interpolation" }
+      ]
+    },
+    "interpolation": {
+      "name": "meta.interpolation.tr",
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.tr" } },
+      "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.tr" } },
+      "contentName": "meta.embedded.expression.tr",
+      "patterns": [
+        { "include": "#nested-braces" },
+        { "include": "$self" }
+      ]
+    },
+    "nested-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": { "0": { "name": "punctuation.section.braces.begin.tr" } },
+      "endCaptures": { "0": { "name": "punctuation.section.braces.end.tr" } },
+      "patterns": [
+        { "include": "#nested-braces" },
+        { "include": "$self" }
+      ]
+    },
+    "import": {
+      "patterns": [
+        {
+          "match": "\\b(aktar)\\b\\s*(\"[^\"]*\"|'[^']*'|[^\\W\\d][\\w.]*)\\s+(olarak|as)\\b\\s*([^\\W\\d]\\w*)?",
+          "captures": {
+            "1": { "name": "keyword.control.import.tr" },
+            "2": { "name": "string.other.module.tr" },
+            "3": { "name": "keyword.control.import.as.tr" },
+            "4": { "name": "entity.name.namespace.tr" }
+          }
+        },
+        {
+          "name": "keyword.control.import.tr",
+          "match": "\\b(aktar)\\b"
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(fonksiyon|işlev|islev)\\s+([^\\W\\d]\\w*)",
+          "captures": {
+            "1": { "name": "storage.type.function.tr" },
+            "2": { "name": "entity.name.function.tr" }
+          }
+        },
+        {
+          "match": "\\b(yapı|yapi|sınıf|sinif)\\s+([^\\W\\d]\\w*)",
+          "captures": {
+            "1": { "name": "storage.type.struct.tr" },
+            "2": { "name": "entity.name.type.tr" }
+          }
         }
       ]
     },
@@ -69,7 +130,11 @@
       "patterns": [
         {
           "name": "keyword.control.tr",
-          "match": "\\b(eğer|eger|değilse|degilse|eşle|esle|varsayılan|varsayilan|döngü|dongu|içinde|icinde|iken|çık|cik|kır|kir|devam|sonuç|sonuc|döndür|dondur|dene|yakala|fırlat|firlat|aktar|eşzamanlı|eszamanli|ertele|kesme_noktası|kesme_noktasi)\\b"
+          "match": "\\b(eğer|eger|değilse|degilse|eşle|esle|varsayılan|varsayilan|döngü|dongu|içinde|icinde|iken|çık|cik|kır|kir|devam|sonuç|sonuc|döndür|dondur|dene|yakala|fırlat|firlat|eşzamanlı|eszamanli|ertele)\\b"
+        },
+        {
+          "name": "keyword.other.debugger.tr",
+          "match": "\\b(kesme_noktası|kesme_noktasi|dur_noktası|dur_noktasi|break_point)\\b"
         },
         {
           "name": "storage.type.tr",
@@ -81,7 +146,24 @@
         },
         {
           "name": "constant.language.boolean.tr",
-          "match": "\\b(doğru|dogru|yanlış|yanlis|yok|ve|veya|değil|degil)\\b"
+          "match": "\\b(doğru|dogru|yanlış|yanlis)\\b"
+        },
+        {
+          "name": "constant.language.null.tr",
+          "match": "\\b(yok)\\b"
+        },
+        {
+          "name": "keyword.operator.logical.tr",
+          "match": "\\b(ve|veya|değil|degil)\\b"
+        }
+      ]
+    },
+    "pronoun": {
+      "comment": "Sondaki blok (o-lambda) parametresi: liste.filtrele { o > 2 }",
+      "patterns": [
+        {
+          "name": "variable.language.pronoun.tr",
+          "match": "(?<![\\w.])o(?!\\w)"
         }
       ]
     },
@@ -89,7 +171,7 @@
       "patterns": [
         {
           "name": "entity.name.type.tr",
-          "match": "\\b(Tam|Ondalık|Ondalik|Metin|Mantık|Mantik|Liste|Sözlük|Sozluk|Matris|Tensör|Tensor|SinirAğı|Herhangi)\\b"
+          "match": "\\b(Tam|Tamsayı|Tamsayi|Ondalık|Ondalik|Sayı|Sayi|Metin|Yazı|Yazi|Mantık|Mantik|Mantıksal|Mantiksal|Liste|Dizi|Sözlük|Sozluk|Harita|Matris|Tensör|Tensor|SinirAğı|Fonksiyon|Yok|Boş|Bos|Herhangi)\\b"
         }
       ]
     },
@@ -97,11 +179,23 @@
       "patterns": [
         {
           "name": "support.function.builtin.tr",
-          "match": "\\b(yazdır|yazdir|yaz|girdi|oku|uzunluk|boy|tip|tur|tam|ondalık|ondalik|metin|filtrele|haritala|indirge|sırala|sirala|ekle|aralık|aralik|toplam|min|maks|mutlak|karekök|karekok|yuvarla|bekle|bekle_hepsi|zaman_ms|dosya_oku|dosya_yaz|web_al|web_gönder|web_gonder|json_çöz|json_coz|json_yap)\\b"
+          "match": "\\b(yazdır|yazdir|yaz|girdi|oku|uzunluk|boy|tip|tur|tam|ondalık|ondalik|metin|filtrele|haritala|donustur|indirge|ozetle|sırala|sirala|ekle|aralık|aralik|toplam|min|en_küçük|maks|en_büyük|mutlak|karekök|karekok|yuvarla|bekle_hepsi|bekle|uyut|zaman_ms|dosya_oku|dosya_yaz|json_çöz|json_coz|json_metin|json_yaz)\\b"
         },
         {
           "name": "support.function.ai.tr",
-          "match": "\\b(matris|sıfırlar|sifirlar|birler|birim_matris|rastgele_matris|devrik|tensör|tensor|geri_yayılım|geri_yayilim|relu|sigmoid|tanh|softmax|kayıp_mse|kayip_mse|sinir_ağı|sinir_agi|model_yükle|model_yukle|ortalama|standart_sapma|medyan|normalize_et|nokta_çarpım|nokta_carpim|kosinüs_benzerliği|kosinus_benzerligi|öklid_uzaklığı|oklid_uzakligi|json_çöz|json_coz|json_metin|csv_oku|tablo_oku|yz_sor|python_çalıştır|python_calistir|web_al|web_gönder|web_gonder)\\b"
+          "match": "\\b(matris|sıfırlar|sifirlar|birler|birim_matris|rastgele_matris|devrik|tensör|tensor|geri_yayılım|geri_yayilim|relu|sigmoid|tanh|softmax|kayıp_mse|kayip_mse|sinir_ağı|sinir_agi|model_yükle|model_yukle|ortalama|standart_sapma|std_sapma|medyan|ortanca|normalize_et|nokta_çarpım|nokta_carpim|kosinüs_benzerliği|kosinus_benzerligi|öklid_uzaklığı|oklid_uzakligi|yz_sor|python_çalıştır|python_calistir)\\b"
+        },
+        {
+          "name": "support.function.data.tr",
+          "match": "\\b(csv_oku|tablo_oku|tablo_sorgula|itab_sorgula|veritabanı_aç|veritabani_ac|veritabanı|veritabani)\\b"
+        },
+        {
+          "name": "support.function.web.tr",
+          "match": "\\b(web_al|http_al|web_gönder|web_gonder|web_sunucusu|web_sunucu)\\b"
+        },
+        {
+          "name": "support.function.gui.tr",
+          "match": "\\b(arayüz_oluştur|arayuz_olustur|pencere_oluştur|pencere_olustur)\\b"
         }
       ]
     },
@@ -120,8 +214,48 @@
     "operators": {
       "patterns": [
         {
-          "name": "keyword.operator.tr",
-          "match": "(\\bve\\b|\\bveya\\b|\\bdeğil\\b|\\|>=?|\\?\\?|\\?\\.|=>|:=|\\.\\.=|\\.\\.|\\*\\*|@|==|!=|<=|>=|\\+=|-=|\\*=|/=|[+\\-*/%<>!=])"
+          "name": "keyword.operator.range.tr",
+          "match": "\\.\\.=?"
+        },
+        {
+          "name": "keyword.operator.pipe.tr",
+          "match": "\\|>"
+        },
+        {
+          "name": "keyword.operator.null-coalescing.tr",
+          "match": "\\?\\?"
+        },
+        {
+          "name": "punctuation.accessor.optional.tr",
+          "match": "\\?\\."
+        },
+        {
+          "name": "keyword.operator.arrow.tr",
+          "match": "=>"
+        },
+        {
+          "name": "keyword.operator.comparison.tr",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.logical.tr",
+          "match": "&&|\\|\\||!"
+        },
+        {
+          "name": "keyword.operator.assignment.compound.tr",
+          "match": "\\+=|-=|\\*=|/="
+        },
+        {
+          "name": "keyword.operator.assignment.tr",
+          "match": ":=|="
+        },
+        {
+          "name": "keyword.operator.arithmetic.tr",
+          "match": "\\*\\*|@|[+\\-*/%]"
+        },
+        {
+          "name": "keyword.operator.ternary.tr",
+          "match": "\\?"
         }
       ]
     }

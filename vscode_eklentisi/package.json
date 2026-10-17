@@ -1,8 +1,8 @@
 {
   "name": "tr-dili-vscode",
   "displayName": "TR (.tr) Programlama ve Yapay Zeka Dili",
-  "description": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets) ve editör desteği.",
-  "version": "1.0.0",
+  "description": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets), çalıştırma ve hata ayıklama komutları.",
+  "version": "1.1.0",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -10,6 +10,24 @@
     "Programming Languages",
     "Snippets"
   ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:tr",
+    "onCommand:tr.calistir",
+    "onCommand:tr.denetle",
+    "onCommand:tr.hataAyikla",
+    "onCommand:tr.gorselHataAyikla",
+    "onTaskType:tr"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Güvenilmeyen çalışma alanlarında yalnızca renklendirme ve şablonlar çalışır; .tr dosyaları çalıştırılmaz.",
+      "restrictedConfigurations": [
+        "tr.yorumlayiciYolu"
+      ]
+    }
+  },
   "contributes": {
     "languages": [
       {
@@ -36,6 +54,128 @@
       {
         "language": "tr",
         "path": "./snippets/tr.code-snippets"
+      }
+    ],
+    "commands": [
+      {
+        "command": "tr.calistir",
+        "title": "Dosyayı Çalıştır",
+        "category": "TR",
+        "icon": "$(play)"
+      },
+      {
+        "command": "tr.denetle",
+        "title": "Dosyayı Denetle",
+        "category": "TR",
+        "icon": "$(check)"
+      },
+      {
+        "command": "tr.hataAyikla",
+        "title": "Hata Ayıklayıcıda Aç",
+        "category": "TR",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "tr.gorselHataAyikla",
+        "title": "Görsel Hata Ayıklayıcı (Tarayıcı)",
+        "category": "TR",
+        "icon": "$(browser)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "tr.calistir",
+          "when": "editorLangId == tr",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "tr.calistir",
+          "when": "editorLangId == tr",
+          "group": "1_tr@1"
+        },
+        {
+          "command": "tr.denetle",
+          "when": "editorLangId == tr",
+          "group": "1_tr@2"
+        },
+        {
+          "command": "tr.hataAyikla",
+          "when": "editorLangId == tr",
+          "group": "1_tr@3"
+        },
+        {
+          "command": "tr.gorselHataAyikla",
+          "when": "editorLangId == tr",
+          "group": "1_tr@4"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "tr.calistir",
+          "when": "editorLangId == tr"
+        },
+        {
+          "command": "tr.denetle",
+          "when": "editorLangId == tr"
+        },
+        {
+          "command": "tr.hataAyikla",
+          "when": "editorLangId == tr"
+        },
+        {
+          "command": "tr.gorselHataAyikla",
+          "when": "editorLangId == tr"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "tr.calistir",
+        "key": "f5",
+        "when": "editorLangId == tr && !inDebugMode"
+      },
+      {
+        "command": "tr.calistir",
+        "key": "ctrl+f5",
+        "when": "editorLangId == tr && !inDebugMode"
+      }
+    ],
+    "configuration": {
+      "title": "TR Dili",
+      "properties": {
+        "tr.yorumlayiciYolu": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "markdownDescription": "TR yorumlayıcısının (`tr.exe`) yolu. Göreli yollar çalışma alanı klasörüne göre çözülür. Boş bırakılırsa sırasıyla çalışma alanı klasöründeki `tr.exe`, dosyanın dizininden yukarı doğru bulunan ilk `tr.exe` ve PATH üzerindeki `tr` kullanılır."
+        }
+      }
+    },
+    "taskDefinitions": [
+      {
+        "type": "tr",
+        "required": [
+          "komut"
+        ],
+        "properties": {
+          "komut": {
+            "type": "string",
+            "enum": [
+              "tr.calistir",
+              "tr.denetle",
+              "tr.hataAyikla",
+              "tr.gorselHataAyikla"
+            ],
+            "description": "Çalıştırılacak TR komutu."
+          },
+          "dosya": {
+            "type": "string",
+            "description": "Çalıştırılacak .tr dosyasının tam yolu. Boş bırakılırsa etkin düzenleyicideki dosya kullanılır."
+          }
+        }
       }
     ]
   }

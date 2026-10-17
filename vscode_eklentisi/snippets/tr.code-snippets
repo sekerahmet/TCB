@@ -3,7 +3,7 @@
     "prefix": ["fonk", "fonksiyon", "işlev"],
     "body": [
       "fonksiyon ${1:isim}(${2:parametre}) {",
-      "\t${3:sonuç }",
+      "\tsonuç ${3:${2:parametre}}",
       "}"
     ],
     "description": "Yeni bir TR fonksiyonu tanımlar"
@@ -28,6 +28,20 @@
       "}"
     ],
     "description": "Durum ve aralık eşleştirme bloğu"
+  },
+  "Filtrele (o-lambda)": {
+    "prefix": ["filtrele", ".filtrele"],
+    "body": [
+      ".filtrele { o $1 }"
+    ],
+    "description": "Sondaki blokla filtreleme; o, o anki elemandır: liste.filtrele { o > 2 }"
+  },
+  "Haritala (o-lambda)": {
+    "prefix": ["haritala", ".haritala"],
+    "body": [
+      ".haritala { o $1 }"
+    ],
+    "description": "Sondaki blokla dönüştürme; o, o anki elemandır: liste.haritala { o * o }"
   },
   "Döngü (İçinde)": {
     "prefix": ["dongu", "döngü"],
