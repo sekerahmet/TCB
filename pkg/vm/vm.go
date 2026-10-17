@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -11,6 +12,7 @@ import (
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/lexer"
 	"tr_dili/pkg/parser"
+	"tr_dili/pkg/turkce"
 )
 
 type flowSignal int
@@ -169,8 +171,16 @@ func (v *VM) WaitAsync() {
 }
 
 // reportAsyncError eşzamanlı görevde oluşan hatayı sessizce yutmak yerine standart hataya yazar.
+// suggestName kapsamdaki adlar arasında yazıma en yakın olanı "Bunu mu demek istediniz?" olarak önerir.
+func suggestName(name string, env *Environment) string {
+	if o := turkce.EnYakin(name, env.Names()); o != "" {
+		return fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+	}
+	return ""
+}
+
 func (v *VM) reportAsyncError(line int, err error) {
-	fmt.Fprintf(os.Stderr, "⚠️  Eşzamanlı görev hatası (satır %d'de başlatılan): %v\n", line, err)
+	fmt.Fprintf(os.Stderr, "⚠️  Eşzamanlı görev hatası (%s başlatılan): %v\n", "satır "+turkce.SayiEk(int64(line), turkce.Bulunma), err)
 }
 
 func (v *VM) execStatements(stmts []ast.Statement, env *Environment) (Value, flowSignal, error) {
@@ -508,7 +518,8 @@ func (v *VM) execAssign(target ast.Expression, op string, rightVal Value, line i
 		if op != "=" {
 			cur, ok := env.Get(t.Value)
 			if !ok {
-				return fmt.Errorf("Satır %d: %q değişkeni tanımlanmamış", line, t.Value)
+				return fmt.Errorf("Satır %d, Sütun %d: '%s' adında bir değişken yok%s",
+					line, t.Token.Column, t.Value, suggestName(t.Value, env))
 			}
 			var err error
 			finalVal, err = applyOp(cur, rightVal)
@@ -517,6 +528,10 @@ func (v *VM) execAssign(target ast.Expression, op string, rightVal Value, line i
 			}
 		}
 		if err := env.Assign(t.Value, finalVal); err != nil {
+			var tanimsiz *TanimsizDegiskenHatasi
+			if errors.As(err, &tanimsiz) {
+				return fmt.Errorf("Satır %d, Sütun %d: %v%s", line, t.Token.Column, err, suggestName(t.Value, env))
+			}
 			return fmt.Errorf("Satır %d: %v", line, err)
 		}
 		return nil
@@ -858,7 +873,8 @@ func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Va
 	case *ast.Identifier:
 		val, ok := env.Get(e.Value)
 		if !ok {
-			return nil, signalNone, fmt.Errorf("Satır %d: %q tanımlayıcısı bulunamadı", e.Line(), e.Value)
+			return nil, signalNone, fmt.Errorf("Satır %d, Sütun %d: '%s' adında bir değişken ya da fonksiyon yok%s",
+				e.Line(), e.Token.Column, e.Value, suggestName(e.Value, env))
 		}
 		return val, signalNone, nil
 

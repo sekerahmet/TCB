@@ -30,7 +30,7 @@ func runTROut(t *testing.T, code string) (string, Value, error) {
 // Tanımsız bir isme atama eskiden en dış kapsamda sessizce genel değişken oluşturuyordu.
 func TestAssignToUndeclaredNameIsError(t *testing.T) {
 	_, _, err := runTROut(t, "fonksiyon f() { gizli = 42 }\nf()\nyazdır(gizli)")
-	if err == nil || !strings.Contains(err.Error(), "tanımsız değişken: gizli") {
+	if err == nil || !strings.Contains(err.Error(), "tanımsız değişken: 'gizli'") {
 		t.Fatalf("tanımsız değişken hatası bekleniyordu, alınan: %v", err)
 	}
 

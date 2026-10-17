@@ -10,6 +10,7 @@ import (
 	"tr_dili/pkg/checker"
 	"tr_dili/pkg/lexer"
 	"tr_dili/pkg/parser"
+	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
@@ -83,6 +84,24 @@ func main() {
 	}
 }
 
+// printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
+func printError(msg, source string) {
+	fmt.Fprintf(os.Stderr, "  • %s\n", msg)
+	fmt.Fprint(os.Stderr, indentFrame(turkce.KodCercevesi(source, msg)))
+}
+
+// indentFrame kod çerçevesini madde işaretinin altına hizalar.
+func indentFrame(frame string) string {
+	if frame == "" {
+		return ""
+	}
+	var sb strings.Builder
+	for _, l := range strings.Split(strings.TrimRight(frame, "\n"), "\n") {
+		sb.WriteString("    " + l + "\n")
+	}
+	return sb.String()
+}
+
 func printHelp() {
 	fmt.Println("🇹🇷 TR (.tr) Programlama ve Yapay Zeka Dili v" + VERSION)
 	fmt.Println("Kullanım:")
@@ -110,7 +129,7 @@ func runFile(path string) {
 	if len(p.Errors()) > 0 {
 		fmt.Fprintln(os.Stderr, "❌ Sözdizimi Hataları:")
 		for _, e := range p.Errors() {
-			fmt.Fprintf(os.Stderr, "  • %s\n", e)
+			printError(e, code)
 		}
 		os.Exit(1)
 	}
@@ -120,7 +139,7 @@ func runFile(path string) {
 	if len(typeErrors) > 0 {
 		fmt.Fprintln(os.Stderr, "❌ Tip ve Güvenlik Denetimi Hataları:")
 		for _, e := range typeErrors {
-			fmt.Fprintf(os.Stderr, "  • %s\n", e)
+			printError(e, code)
 		}
 		os.Exit(1)
 	}
@@ -130,7 +149,8 @@ func runFile(path string) {
 	machine.SourceCode = code
 	_, err = machine.Run(prog)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "❌ Çalışma Zamanı Hatası:\n  • %v\n", err)
+		fmt.Fprintln(os.Stderr, "❌ Çalışma Zamanı Hatası:")
+		printError(err.Error(), code)
 		os.Exit(1)
 	}
 	machine.WaitAsync()
@@ -151,7 +171,7 @@ func debugFile(path string, webMode bool) {
 	if len(p.Errors()) > 0 {
 		fmt.Fprintln(os.Stderr, "❌ Sözdizimi Hataları:")
 		for _, e := range p.Errors() {
-			fmt.Fprintf(os.Stderr, "  • %s\n", e)
+			printError(e, code)
 		}
 		os.Exit(1)
 	}
@@ -171,7 +191,8 @@ func debugFile(path string, webMode bool) {
 
 	_, err = machine.Run(prog)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "❌ Çalışma Zamanı Hatası:\n  • %v\n", err)
+		fmt.Fprintln(os.Stderr, "❌ Çalışma Zamanı Hatası:")
+		printError(err.Error(), code)
 		os.Exit(1)
 	}
 	machine.WaitAsync()
@@ -192,7 +213,7 @@ func checkFile(path string) {
 	if len(p.Errors()) > 0 {
 		fmt.Fprintln(os.Stderr, "❌ Sözdizimi Hataları:")
 		for _, e := range p.Errors() {
-			fmt.Fprintf(os.Stderr, "  • %s\n", e)
+			printError(e, code)
 		}
 		os.Exit(1)
 	}
@@ -202,7 +223,7 @@ func checkFile(path string) {
 	if len(typeErrors) > 0 {
 		fmt.Fprintln(os.Stderr, "❌ Tip ve Güvenlik Denetimi Hataları:")
 		for _, e := range typeErrors {
-			fmt.Fprintf(os.Stderr, "  • %s\n", e)
+			printError(e, code)
 		}
 		os.Exit(1)
 	}
@@ -276,7 +297,7 @@ func runEmbeddedCode(code string) {
 	if len(p.Errors()) > 0 {
 		fmt.Fprintln(os.Stderr, "❌ Gömülü Uygulama Sözdizimi Hataları:")
 		for _, e := range p.Errors() {
-			fmt.Fprintf(os.Stderr, "  • %s\n", e)
+			printError(e, code)
 		}
 		os.Exit(1)
 	}
@@ -284,7 +305,8 @@ func runEmbeddedCode(code string) {
 	machine.SourceFile = "<derlenmiş-uygulama>"
 	machine.SourceCode = code
 	if _, err := machine.Run(prog); err != nil {
-		fmt.Fprintf(os.Stderr, "❌ Çalışma Zamanı Hatası: %v\n", err)
+		fmt.Fprintln(os.Stderr, "❌ Çalışma Zamanı Hatası:")
+		printError(err.Error(), code)
 		os.Exit(1)
 	}
 	machine.WaitAsync()
@@ -304,7 +326,7 @@ func compileToExe(srcPath string, outPath string) {
 	if len(p.Errors()) > 0 {
 		fmt.Fprintln(os.Stderr, "❌ Derleme Öncesi Sözdizimi Hataları:")
 		for _, e := range p.Errors() {
-			fmt.Fprintf(os.Stderr, "  • %s\n", e)
+			printError(e, code)
 		}
 		os.Exit(1)
 	}
@@ -313,7 +335,7 @@ func compileToExe(srcPath string, outPath string) {
 	if errs := chk.CheckProgram(prog); len(errs) > 0 {
 		fmt.Fprintln(os.Stderr, "❌ Derleme Öncesi Tip Güvenliği Hataları:")
 		for _, e := range errs {
-			fmt.Fprintf(os.Stderr, "  • %s\n", e)
+			printError(e, code)
 		}
 		os.Exit(1)
 	}
@@ -396,6 +418,7 @@ func startREPL() {
 		if len(p.Errors()) > 0 {
 			for _, e := range p.Errors() {
 				fmt.Println("  Hata:", e)
+				fmt.Print(indentFrame(turkce.KodCercevesi(line, e)))
 			}
 			continue
 		}
@@ -411,6 +434,7 @@ func startREPL() {
 		val, err := machine.Run(prog)
 		if err != nil {
 			fmt.Println("  Çalışma Hatası:", err)
+			fmt.Print(indentFrame(turkce.KodCercevesi(line, err.Error())))
 			continue
 		}
 		machine.WaitAsync()

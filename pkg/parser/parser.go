@@ -52,12 +52,60 @@ var precedences = map[lexer.TokenType]int{
 	lexer.TOKEN_DOT:          CALL_PREC,
 	lexer.TOKEN_SAFE_DOT:     CALL_PREC,
 	lexer.TOKEN_ARROW:        PIPE_PREC,
+	lexer.TOKEN_LBRACE:       CALL_PREC, // sondaki blok: liste.filtrele { o > 2 }
 }
 
 type Parser struct {
 	tokens []lexer.Token
 	pos    int
 	errors []string
+
+	// noBlock: 'eğer', 'iken', 'döngü' ve 'eşle' başlıklarında '{' gövdenin başlangıcıdır,
+	// sondaki blok (o-lambda) olarak okunmamalıdır. Parantez/köşeli parantez içinde yeniden açılır.
+	noBlock bool
+}
+
+// parseHeaderExpression bir kontrol yapısının başlık ifadesini (koşul, döngü kaynağı,
+// eşle konusu) sondaki blokları kapatarak ayrıştırır.
+func (p *Parser) parseHeaderExpression() ast.Expression {
+	saved := p.noBlock
+	p.noBlock = true
+	defer func() { p.noBlock = saved }()
+	return p.parseExpression(LOWEST)
+}
+
+// allowBlocks parantez, köşeli parantez ve blok içlerinde sondaki blokları yeniden etkinleştirir.
+func (p *Parser) allowBlocks() func() {
+	saved := p.noBlock
+	p.noBlock = false
+	return func() { p.noBlock = saved }
+}
+
+// isTrailingBlockTarget sondaki bloğun bağlanabileceği ifadeleri seçer:
+// çağrı (f(x) { ... }), üye (liste.filtrele { ... }) ve ad (filtrele { ... }).
+func isTrailingBlockTarget(e ast.Expression) bool {
+	switch e.(type) {
+	case *ast.CallExpression, *ast.MemberExpression, *ast.Identifier:
+		return true
+	}
+	return false
+}
+
+// parseTrailingBlock '{ ... }' bloğunu tek parametresi 'o' olan bir fonksiyona çevirip
+// çağrının son argümanı yapar: sayılar.filtrele { o > 2 } == sayılar.filtrele((o) => o > 2)
+func (p *Parser) parseTrailingBlock(left ast.Expression) ast.Expression {
+	tok := p.curToken() // '{'
+	body := p.parseBlockStatement()
+	fn := &ast.FunctionLiteral{
+		Token:      tok,
+		Parameters: []ast.Param{{Name: "o"}},
+		Body:       body,
+	}
+	if call, ok := left.(*ast.CallExpression); ok {
+		call.Arguments = append(call.Arguments, fn)
+		return call
+	}
+	return &ast.CallExpression{Token: tok, Function: left, Arguments: []ast.Expression{fn}}
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -423,6 +471,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 }
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	defer p.allowBlocks()()
 	block := &ast.BlockStatement{Token: p.curToken()}
 	block.Statements = []ast.Statement{}
 
@@ -477,7 +526,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 			return nil
 		}
 		p.nextToken() // iterable başına gel
-		iterable := p.parseExpression(LOWEST)
+		iterable := p.parseHeaderExpression()
 
 		if !p.expectPeek(lexer.TOKEN_LBRACE) {
 			return nil
@@ -495,7 +544,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 
 	// Koşullu döngü: döngü x < 10 { ... }
 	p.nextToken()
-	cond := p.parseExpression(LOWEST)
+	cond := p.parseHeaderExpression()
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
@@ -510,7 +559,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 func (p *Parser) parseWhileStatement() *ast.WhileStatement {
 	tok := p.curToken() // iken
 	p.nextToken()
-	cond := p.parseExpression(LOWEST)
+	cond := p.parseHeaderExpression()
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
@@ -745,6 +794,13 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		case lexer.TOKEN_DOT, lexer.TOKEN_SAFE_DOT:
 			p.nextToken()
 			leftExp = p.parseMemberExpression(leftExp)
+		case lexer.TOKEN_LBRACE:
+			// Sondaki blok yalnızca aynı satırda ve kontrol yapısı başlığı dışında geçerlidir
+			if p.noBlock || p.peekToken().Line != p.curToken().Line || !isTrailingBlockTarget(leftExp) {
+				return leftExp
+			}
+			p.nextToken()
+			leftExp = p.parseTrailingBlock(leftExp)
 		default:
 			return leftExp
 		}
@@ -903,6 +959,7 @@ func (p *Parser) parseRangeExpression(left ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parseGroupedOrLambdaExpression() ast.Expression {
+	defer p.allowBlocks()()
 	// Önce bunun '(a, b) => ...' bir ok fonksiyonu (lambda) olup olmadığını kontrol et
 	if p.isLambdaAhead() {
 		return p.parseLambdaExpression()
@@ -996,7 +1053,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	expr := &ast.IfExpression{Token: p.curToken()}
 
 	p.nextToken()
-	expr.Condition = p.parseExpression(LOWEST)
+	expr.Condition = p.parseHeaderExpression()
 
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
@@ -1032,7 +1089,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 func (p *Parser) parseMatchExpression() ast.Expression {
 	tok := p.curToken() // eşle
 	p.nextToken()
-	subject := p.parseExpression(LOWEST)
+	subject := p.parseHeaderExpression()
 
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
@@ -1174,6 +1231,7 @@ func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
+	defer p.allowBlocks()()
 	args := []ast.Expression{}
 	named := []ast.NamedArg{}
 
@@ -1212,6 +1270,7 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 }
 
 func (p *Parser) parseListLiteral() ast.Expression {
+	defer p.allowBlocks()()
 	tok := p.curToken()
 	if p.peekTokenIs(lexer.TOKEN_RBRACKET) {
 		p.nextToken()
@@ -1272,6 +1331,7 @@ func (p *Parser) parseListLiteral() ast.Expression {
 }
 
 func (p *Parser) parseDictLiteral() ast.Expression {
+	defer p.allowBlocks()()
 	dict := &ast.DictLiteral{Token: p.curToken(), Pairs: []ast.DictPair{}}
 
 	for !p.peekTokenIs(lexer.TOKEN_RBRACE) && !p.peekTokenIs(lexer.TOKEN_EOF) {
@@ -1304,6 +1364,7 @@ func (p *Parser) parseDictLiteral() ast.Expression {
 }
 
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+	defer p.allowBlocks()()
 	exp := &ast.IndexExpression{Token: p.curToken(), Left: left}
 	p.nextToken()
 	exp.Index = p.parseExpression(LOWEST)

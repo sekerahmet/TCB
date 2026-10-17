@@ -34,6 +34,33 @@
 - **Liste (`Liste`):** `.uzunluk`, `.ilk`, `.son`, `.filtrele(fn)`, `.haritala(fn)`, `.sırala()`, `.ters_çevir()`, `.birleştir(ayırıcı)`, `.benzersiz()`, `.içerir(el)`, `.ekle(el)`, `.toplam()`, `.ortalama()`
 - **Sözlük (`Sözlük`):** `.anahtarlar()`, `.değerler()`, `.içerir(anahtar)`
 
+### `o` zamiri ve sondaki blok
+
+Bir çağrının sonuna aynı satırda yazılan `{ ... }` bloğu, tek parametresi `o` olan bir fonksiyondur. `o` o anki elemanı gösterir:
+
+```tr
+sayılar.filtrele { o > 2 }.haritala { o * o }   // sayılar.filtrele((x) => x > 2)... ile aynı
+personel.haritala { o["ad"] }
+sayılar |> filtrele { o % 2 == 0 }
+```
+
+- İç içe bloklarda `o` en içteki elemanı gösterir: `[[1, 2]].haritala { o.haritala { o * 10 } }`.
+- `eğer`, `iken`, `döngü` ve `eşle` başlıklarında `{` her zaman gövdeyi başlatır. Başlıkta sondaki blok kullanmak için ifadeyi paranteze alın: `eğer (liste.filtrele { o > 2 }).uzunluk > 0 { ... }`.
+- Uzun yazım (`(x) => x > 2`) aynen çalışmaya devam eder.
+
+### Hata mesajları
+
+Hatalar konumuyla, kaynak satırıyla ve mümkünse bir öneriyle gösterilir:
+
+```text
+❌ Çalışma Zamanı Hatası:
+  • Satır 3, Sütun 9: 'toplm' adında bir değişken ya da fonksiyon yok. Bunu mu demek istediniz: 'toplam'?
+     3 |     yazdır(toplm + 1)
+       |            ^^^^^
+```
+
+Öneriler Türkçe/ASCII yazım farkını hata saymaz (`degisken_adi` → `değişken_adı`) ve yazdığınız biçime uyar. Mesajlardaki ekler sayının okunuşuna göre seçilir (`Satır 6'ya`, `Satır 9'a`, `Satır 3'te`).
+
 ---
 
 ## 4. Yerleşik Yapay Zeka ("İkisi Bir Arada") ve Veri Bilimi Komutları

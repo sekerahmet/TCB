@@ -18,6 +18,7 @@ import (
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/lexer"
 	"tr_dili/pkg/parser"
+	"tr_dili/pkg/turkce"
 )
 
 type StepMode int
@@ -301,7 +302,7 @@ func (d *Debugger) promptCLI(v *VM, line int, env *Environment) int {
 			}
 			fmt.Printf("  ⏭️ [SATIRA ZIPLANDI] Akış %d. satıra taşınıyor...\n", targetLine)
 			d.Mode = StepInto
-			d.PauseReason = fmt.Sprintf("Satır %d'e Zıplandı (Shift+F12)", targetLine)
+			d.PauseReason = fmt.Sprintf("Satır %s zıplandı (Shift+F12)", turkce.SayiEk(int64(targetLine), turkce.Yonelme))
 			return targetLine
 
 		case "kesme", "k", "b", "break":
@@ -772,7 +773,7 @@ func (d *Debugger) waitForWebAction(v *VM, line int, env *Environment) int {
 		d.Mode = StepContinue
 	case "jump":
 		d.Mode = StepInto
-		d.PauseReason = fmt.Sprintf("Satır %d'e Zıplandı (Shift+F12)", act.Line)
+		d.PauseReason = fmt.Sprintf("Satır %s zıplandı (Shift+F12)", turkce.SayiEk(int64(act.Line), turkce.Yonelme))
 		return act.Line
 	}
 	return 0

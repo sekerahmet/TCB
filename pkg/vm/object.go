@@ -347,5 +347,30 @@ func (e *Environment) Assign(name string, val Value) error {
 	}
 	// Hiçbir kapsamda yoksa sessizce genel değişken oluşturmak yazım hatalarını
 	// gizler (ör. fonksiyon içinde 'toplm = 1'); bu yüzden açık tanım istenir.
-	return fmt.Errorf("tanımsız değişken: %s (önce 'değişken' ile tanımlayın)", name)
+	return &TanimsizDegiskenHatasi{Ad: name}
+}
+
+// TanimsizDegiskenHatasi tanımlanmamış bir değişkene atama yapıldığında döner; VM bu
+// türü tanıyarak mesaja "Bunu mu demek istediniz?" önerisi ekler.
+type TanimsizDegiskenHatasi struct{ Ad string }
+
+func (e *TanimsizDegiskenHatasi) Error() string {
+	return fmt.Sprintf("tanımsız değişken: '%s' (önce 'değişken' ile tanımlayın)", e.Ad)
+}
+
+// Names bu kapsamdan ve dış kapsamlardan görünen tüm adları döndürür (öneriler için).
+func (e *Environment) Names() []string {
+	seen := map[string]bool{}
+	var names []string
+	for cur := e; cur != nil; cur = cur.outer {
+		cur.mu.RLock()
+		for k := range cur.store {
+			if !seen[k] {
+				seen[k] = true
+				names = append(names, k)
+			}
+		}
+		cur.mu.RUnlock()
+	}
+	return names
 }
