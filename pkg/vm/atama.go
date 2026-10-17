@@ -7,27 +7,24 @@ import (
 )
 
 func (v *VM) execAssign(target ast.Expression, op string, rightVal Value, line int, env *Environment) error {
+	return v.execAssignKod(target, islecKodu(op), rightVal, line, env)
+}
+
+// execAssignKod atamayı işleç koduyla yapar: opAta düz atamadır, opTopla/opCikar/opCarp/opBol
+// bileşik atamalardır (+=, -=, *=, /=).
+func (v *VM) execAssignKod(target ast.Expression, kod uint8, rightVal Value, line int, env *Environment) error {
+	bilesik := kod == opTopla || kod == opCikar || kod == opCarp || kod == opBol
 	applyOp := func(cur Value, rhs Value) (Value, error) {
-		switch op {
-		case "=":
-			return rhs, nil
-		case "+=":
-			return v.evalInfix("+", cur, rhs, line)
-		case "-=":
-			return v.evalInfix("-", cur, rhs, line)
-		case "*=":
-			return v.evalInfix("*", cur, rhs, line)
-		case "/=":
-			return v.evalInfix("/", cur, rhs, line)
-		default:
+		if !bilesik {
 			return rhs, nil
 		}
+		return v.evalInfixKod(kod, atamaIslecMetni(kod), cur, rhs, line)
 	}
 
 	switch t := target.(type) {
 	case *ast.Identifier:
 		var finalVal Value = rightVal
-		if op != "=" {
+		if kod != opAta {
 			cur, ok := env.Get(t.Value)
 			if !ok {
 				return fmt.Errorf("Satır %d, Sütun %d: '%s' adında bir değişken yok%s",

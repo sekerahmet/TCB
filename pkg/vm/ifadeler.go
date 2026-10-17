@@ -16,12 +16,28 @@ func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Va
 		return NULL, signalNone, nil
 	}
 	switch e := expr.(type) {
+	// Sabitler bir kez kutulanıp düğümde saklanır; değerler değişmez olduğundan paylaşılabilir.
 	case *ast.IntegerLiteral:
-		return NewInt(e.Value), signalNone, nil
+		if d, ok := e.Onbellek.(*IntVal); ok {
+			return d, signalNone, nil
+		}
+		d := NewInt(e.Value)
+		e.Onbellek = d
+		return d, signalNone, nil
 	case *ast.FloatLiteral:
-		return &FloatVal{Val: e.Value}, signalNone, nil
+		if d, ok := e.Onbellek.(*FloatVal); ok {
+			return d, signalNone, nil
+		}
+		d := &FloatVal{Val: e.Value}
+		e.Onbellek = d
+		return d, signalNone, nil
 	case *ast.StringLiteral:
-		return &StringVal{Val: e.Value}, signalNone, nil
+		if d, ok := e.Onbellek.(*StringVal); ok {
+			return d, signalNone, nil
+		}
+		d := &StringVal{Val: e.Value}
+		e.Onbellek = d
+		return d, signalNone, nil
 	case *ast.InterpolatedString:
 		var sb strings.Builder
 		for _, part := range e.Parts {
@@ -119,8 +135,27 @@ func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Va
 		}
 
 	case *ast.InfixExpression:
+		kod := e.Kod
+		if kod == opYok {
+			kod = islecKodu(e.Operator)
+			e.Kod = kod
+		}
+		switch kod {
+		case opVe, opVeya, opYoksa, opBoru:
+		default:
+			left, err := v.evalExpression(e.Left, env)
+			if err != nil {
+				return nil, signalNone, err
+			}
+			right, err := v.evalExpression(e.Right, env)
+			if err != nil {
+				return nil, signalNone, err
+			}
+			val, err := v.evalInfixKod(kod, e.Operator, left, right, e.Line())
+			return val, signalNone, err
+		}
 		// Kısa devre ve özel operatörler (&&, ||, ??, |>)
-		if e.Operator == "&&" {
+		if kod == opVe {
 			left, err := v.evalExpression(e.Left, env)
 			if err != nil {
 				return nil, signalNone, err
@@ -137,7 +172,7 @@ func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Va
 			}
 			return FALSE, signalNone, nil
 		}
-		if e.Operator == "||" {
+		if kod == opVeya {
 			left, err := v.evalExpression(e.Left, env)
 			if err != nil {
 				return nil, signalNone, err
@@ -154,7 +189,7 @@ func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Va
 			}
 			return FALSE, signalNone, nil
 		}
-		if e.Operator == "??" {
+		if kod == opYoksa {
 			left, err := v.evalExpression(e.Left, env)
 			if err != nil {
 				return nil, signalNone, err
@@ -165,20 +200,8 @@ func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Va
 			val, err := v.evalExpression(e.Right, env)
 			return val, signalNone, err
 		}
-		if e.Operator == "|>" {
-			val, err := v.evalPipe(e.Left, e.Right, env)
-			return val, signalNone, err
-		}
-
-		left, err := v.evalExpression(e.Left, env)
-		if err != nil {
-			return nil, signalNone, err
-		}
-		right, err := v.evalExpression(e.Right, env)
-		if err != nil {
-			return nil, signalNone, err
-		}
-		val, err := v.evalInfix(e.Operator, left, right, e.Line())
+		// opBoru
+		val, err := v.evalPipe(e.Left, e.Right, env)
 		return val, signalNone, err
 
 	case *ast.IfExpression:

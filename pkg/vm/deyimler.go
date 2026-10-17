@@ -88,7 +88,12 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 		if err != nil {
 			return nil, signalNone, err
 		}
-		err = v.execAssign(s.Target, s.Operator, val, s.Line(), env)
+		kod := s.Kod
+		if kod == opYok {
+			kod = islecKodu(s.Operator)
+			s.Kod = kod
+		}
+		err = v.execAssignKod(s.Target, kod, val, s.Line(), env)
 		if err != nil {
 			return nil, signalNone, err
 		}
