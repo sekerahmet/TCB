@@ -164,7 +164,29 @@ async function calistir(tanim, uri) {
         return;
     }
 
+    // Klasör açılmadan tek dosya açıldığında VS Code, görevlerin kullanıcı klasörü dışında
+    // çalışmasına izin vermez ("Cannot launch a terminal process in an empty workspace").
+    // Bu durumda yorumlayıcı doğrudan bir terminalde, dosyanın klasöründe başlatılır.
+    if (!vscode.workspace.getWorkspaceFolder(belge.uri)) {
+        terminaldeCalistir(tanim, belge.uri, bulunan.yol);
+        return;
+    }
+
     await vscode.tasks.executeTask(gorevOlustur(tanim, belge.uri, bulunan.yol));
+}
+
+// terminaldeCalistir yorumlayıcıyı kabuk kullanmadan doğrudan bir terminal sürecinde başlatır
+// (tırnak/kaçış sorunu olmaz). Program bitince terminal açık kalır, çıktı okunabilir.
+function terminaldeCalistir(tanim, belgeUri, yorumlayici) {
+    const dosya = belgeUri.fsPath;
+    const terminal = vscode.window.createTerminal({
+        name: `TR ${tanim.ad}: ${path.basename(dosya)}`,
+        shellPath: yorumlayici,
+        shellArgs: tanim.argumanlar(dosya),
+        cwd: path.dirname(dosya),
+        isTransient: true
+    });
+    terminal.show(false);
 }
 
 // tasks.json içinde { "type": "tr", "komut": "tr.calistir" } yazılabilmesi için ("dosya" isteğe bağlı).

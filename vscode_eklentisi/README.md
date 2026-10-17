@@ -41,3 +41,8 @@
 3. PATH üzerindeki `tr`
 
 Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen klasörlerde renklendirme ve şablonlar yine kullanılabilir.
+
+## Notlar
+
+- En iyi deneyim için tek dosya yerine proje **klasörünü** açın (Dosya → Klasör Aç). Klasör açılmadan da çalıştırma çalışır: program bu durumda dosyanın bulunduğu klasörde, ayrı bir terminalde başlatılır.
+- `.tr` dosyalarında VS Code'un "belirsiz karakter" uyarısı kapalıdır; Türkçe `ı` harfi artık Latin `i` ile karıştırılabilir diye sarı kutuyla işaretlenmez.
