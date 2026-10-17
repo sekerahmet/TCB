@@ -46,3 +46,4 @@ Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen
 
 - En iyi deneyim için tek dosya yerine proje **klasörünü** açın (Dosya → Klasör Aç). Klasör açılmadan da çalıştırma çalışır: program bu durumda dosyanın bulunduğu klasörde, ayrı bir terminalde başlatılır.
 - `.tr` dosyalarında VS Code'un "belirsiz karakter" uyarısı kapalıdır; Türkçe `ı` harfi artık Latin `i` ile karıştırılabilir diye sarı kutuyla işaretlenmez.
+- **F5 her yerden çalışır:** TR, VS Code'a hata ayıklanabilir bir dil olarak tanıtılır. F5, Ctrl+F5 ya da "Çalıştır" menüsü, imleç kodun içinde olmasa bile açık `.tr` dosyasını çalıştırır; "You don't have an extension for debugging" uyarısı çıkmaz. `launch.json` içinde `"hataAyikla": true` verilirse dosya terminal hata ayıklayıcısında (`tr debug`) açılır.

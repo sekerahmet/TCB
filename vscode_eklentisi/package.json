@@ -2,7 +2,7 @@
   "name": "tr-dili-vscode",
   "displayName": "TR (.tr) Programlama ve Yapay Zeka Dili",
   "description": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets), çalıştırma ve hata ayıklama komutları.",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -17,7 +17,10 @@
     "onCommand:tr.denetle",
     "onCommand:tr.hataAyikla",
     "onCommand:tr.gorselHataAyikla",
-    "onTaskType:tr"
+    "onTaskType:tr",
+    "onDebugResolve:tr",
+    "onDebugInitialConfigurations",
+    "onDebugDynamicConfigurations:tr"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -135,12 +138,12 @@
       {
         "command": "tr.calistir",
         "key": "f5",
-        "when": "editorLangId == tr && !inDebugMode"
+        "when": "resourceLangId == tr && !inDebugMode"
       },
       {
         "command": "tr.calistir",
         "key": "ctrl+f5",
-        "when": "editorLangId == tr && !inDebugMode"
+        "when": "resourceLangId == tr && !inDebugMode"
       }
     ],
     "configuration": {
@@ -183,6 +186,51 @@
         "editor.unicodeHighlight.ambiguousCharacters": false,
         "editor.unicodeHighlight.invisibleCharacters": true
       }
-    }
+    },
+    "debuggers": [
+      {
+        "type": "tr",
+        "label": "TR Dili",
+        "languages": [
+          "tr"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Çalıştırılacak .tr dosyası (boşsa açık dosya)",
+                "default": "${file}"
+              },
+              "hataAyikla": {
+                "type": "boolean",
+                "description": "true ise dosya terminal hata ayıklayıcısında (tr debug) açılır",
+                "default": false
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "tr",
+            "request": "launch",
+            "name": "TR: Dosyayı Çalıştır",
+            "program": "${file}"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "TR: Dosyayı Çalıştır",
+            "description": "Açık .tr dosyasını çalıştırır",
+            "body": {
+              "type": "tr",
+              "request": "launch",
+              "name": "TR: Dosyayı Çalıştır",
+              "program": "^\"\\${file}\""
+            }
+          }
+        ]
+      }
+    ]
   }
 }

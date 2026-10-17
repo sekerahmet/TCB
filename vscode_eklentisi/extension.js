@@ -218,11 +218,32 @@ const gorevSaglayici = {
     }
 };
 
+// F5 / Ctrl+F5 ve "Çalıştır" menüsü VS Code'un hata ayıklama altyapısından geçer. TR bir
+// hata ayıklama türü olarak tanıtılır; ama ayrı bir hata ayıklama oturumu açmak yerine dosya
+// yorumlayıcıyla çalıştırılır ve oturum başlatılmaz (undefined döndürmek oturumu iptal eder).
+// Yapılandırmada "hataAyikla": true ise terminal hata ayıklayıcısı (tr debug) açılır.
+const hataAyiklamaSaglayici = {
+    provideDebugConfigurations() {
+        return [{ type: GOREV_TURU, request: 'launch', name: 'TR: Dosyayı Çalıştır', program: '${file}' }];
+    },
+    resolveDebugConfiguration(klasor, yapilandirma) {
+        const y = yapilandirma || {};
+        let uri;
+        if (y.program && !String(y.program).includes('${')) {
+            uri = vscode.Uri.file(path.isAbsolute(y.program) || !klasor ? y.program : path.join(klasor.uri.fsPath, y.program));
+        }
+        const tanim = y.hataAyikla ? KOMUTLAR.hataAyikla : KOMUTLAR.calistir;
+        calistir(tanim, uri);
+        return undefined;
+    }
+};
+
 function activate(context) {
     for (const tanim of Object.values(KOMUTLAR)) {
         context.subscriptions.push(vscode.commands.registerCommand(tanim.komut, (uri) => calistir(tanim, uri)));
     }
     context.subscriptions.push(vscode.tasks.registerTaskProvider(GOREV_TURU, gorevSaglayici));
+    context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(GOREV_TURU, hataAyiklamaSaglayici));
 }
 
 function deactivate() {}
