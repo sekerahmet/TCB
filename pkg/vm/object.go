@@ -317,6 +317,12 @@ func NewEnvironment(outer *Environment) *Environment {
 	}
 }
 
+// temizle, turlar arasında yeniden kullanılan bir döngü ortamını yeni açılmış gibi boşaltır.
+func (e *Environment) temizle() {
+	clear(e.store)
+	clear(e.consts)
+}
+
 func (e *Environment) AddDefer(fn func()) {
 	target := e
 	for target.outer != nil && !target.IsFuncRoot {

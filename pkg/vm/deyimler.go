@@ -154,6 +154,11 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 		return NULL, signalContinue, nil
 
 	case *ast.BlockStatement:
+		// Ad tanımlamayan bloklar (çoğu 'eğer' dalı) için yeni ortam gerekmez: dışarıdan
+		// görünür hâle gelecek bir tanım yoktur.
+		if blokBayraklari(s)&blokTanimlar == 0 {
+			return v.execStatements(s.Statements, env)
+		}
 		blockEnv := NewEnvironment(env)
 		return v.execStatements(s.Statements, blockEnv)
 
@@ -329,6 +334,38 @@ func (v *VM) execStatement(stmt ast.Statement, env *Environment) (Value, flowSig
 	return NULL, signalNone, nil
 }
 
+// donguOrtami bir döngünün her turunda gövdenin çalışacağı ortamı sağlar. Gövde ad
+// tanımlamıyorsa (ve döngü değişkeni yoksa) dış ortam kullanılır. Gövde ortamı
+// yakalayamıyorsa (içinde fonksiyon, ertele, eşzamanlı, yapı yoksa) tek bir ortam
+// turlar arasında temizlenip yeniden kullanılır; aksi hâlde her tur yeni ortam açılır.
+type donguOrtami struct {
+	dis     *Environment
+	env     *Environment
+	gerekli bool
+	yeniden bool
+}
+
+func yeniDonguOrtami(dis *Environment, govde *ast.BlockStatement, donguDegiskeniVar bool) donguOrtami {
+	f := blokBayraklari(govde)
+	return donguOrtami{
+		dis:     dis,
+		gerekli: donguDegiskeniVar || f&blokTanimlar != 0,
+		yeniden: f&blokYakalar == 0,
+	}
+}
+
+func (d *donguOrtami) yeni() *Environment {
+	if !d.gerekli {
+		return d.dis
+	}
+	if d.env != nil && d.yeniden {
+		d.env.temizle()
+		return d.env
+	}
+	d.env = NewEnvironment(d.dis)
+	return d.env
+}
+
 func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSignal, error) {
 	iterVal, err := v.evalExpression(s.Iterable, env)
 	if err != nil {
@@ -336,6 +373,7 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 	}
 
 	var lastVal Value = NULL
+	tur := yeniDonguOrtami(env, s.Body, true)
 	switch it := iterVal.(type) {
 	case *RangeVal:
 		end := it.End
@@ -353,7 +391,7 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 			}
 		}
 		for i := it.Start; (step > 0 && i < end) || (step < 0 && i > end); i += step {
-			loopEnv := NewEnvironment(env)
+			loopEnv := tur.yeni()
 			if s.KeyVar != "" {
 				loopEnv.Define(s.KeyVar, NewInt(idx), false)
 			}
@@ -374,7 +412,7 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 
 	case *ListVal:
 		for idx, item := range it.Elements {
-			loopEnv := NewEnvironment(env)
+			loopEnv := tur.yeni()
 			if s.KeyVar != "" {
 				loopEnv.Define(s.KeyVar, NewInt(int64(idx)), false)
 			}
@@ -394,7 +432,7 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 
 	case *DictVal:
 		for _, k := range it.Order {
-			loopEnv := NewEnvironment(env)
+			loopEnv := tur.yeni()
 			if s.KeyVar != "" {
 				loopEnv.Define(s.KeyVar, it.KeyValue(k), false)
 				loopEnv.Define(s.ValueVar, it.Pairs[k], false)
@@ -416,7 +454,7 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 
 	case *StringVal:
 		for idx, ch := range []rune(it.Val) {
-			loopEnv := NewEnvironment(env)
+			loopEnv := tur.yeni()
 			if s.KeyVar != "" {
 				loopEnv.Define(s.KeyVar, NewInt(int64(idx)), false)
 			}
@@ -443,6 +481,7 @@ func (v *VM) execForIn(s *ast.ForInStatement, env *Environment) (Value, flowSign
 
 func (v *VM) execWhile(s *ast.WhileStatement, env *Environment) (Value, flowSignal, error) {
 	var lastVal Value = NULL
+	tur := yeniDonguOrtami(env, s.Body, false)
 	for {
 		cond, err := v.evalExpression(s.Condition, env)
 		if err != nil {
@@ -451,7 +490,7 @@ func (v *VM) execWhile(s *ast.WhileStatement, env *Environment) (Value, flowSign
 		if !cond.IsTruthy() {
 			break
 		}
-		loopEnv := NewEnvironment(env)
+		loopEnv := tur.yeni()
 		val, sig, err := v.execStatements(s.Body.Statements, loopEnv)
 		if err != nil {
 			return nil, signalNone, err

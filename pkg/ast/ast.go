@@ -101,6 +101,9 @@ func (es *ExpressionStatement) Line() int            { return es.Token.Line }
 type BlockStatement struct {
 	Token      lexer.Token // {
 	Statements []Statement
+	// Bayraklar yorumlayıcının blok için bir kez hesapladığı kapsam bilgisidir
+	// (ad tanımlıyor mu, ortamı yakalayabilir mi; 0: henüz hesaplanmadı).
+	Bayraklar uint8
 }
 
 func (bs *BlockStatement) statementNode()       {}

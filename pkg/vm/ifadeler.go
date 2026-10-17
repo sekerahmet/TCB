@@ -396,8 +396,15 @@ func (v *VM) evalListComprehension(lc *ast.ListComprehension, env *Environment) 
 	}
 
 	var results []Value
+	// Çıktı ya da koşul fonksiyon oluşturmuyorsa ortam yakalanamaz; tek ortam yeterlidir.
+	yeniden := !ifadeYakalar(lc.Output) && !ifadeYakalar(lc.Condition)
+	var compEnv *Environment
 	for _, item := range items {
-		compEnv := NewEnvironment(env)
+		if compEnv != nil && yeniden {
+			compEnv.temizle()
+		} else {
+			compEnv = NewEnvironment(env)
+		}
 		compEnv.Define(lc.VarName, item, false)
 		if lc.Condition != nil {
 			condVal, err := v.evalExpression(lc.Condition, compEnv)
