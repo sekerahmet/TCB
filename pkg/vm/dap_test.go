@@ -254,10 +254,10 @@ func TestDAPDebugSession(t *testing.T) {
 		dm := d.(map[string]interface{})
 		bulundu[dm["ad"].(string)] = dm
 	}
-	if l := bulundu["liste"]; l == nil || l["tip"] != "Tablo [2×2]" || l["tablo"] != true || l["kapsam"] != "Genel" {
+	if l := bulundu["liste"]; l == nil || l["tip"] != "Tablo [2×2]" || l["tablo"] != true || l["kapsam"] != "Genel" || l["tur"] != "tablo" {
 		t.Fatalf("liste Tablo [2×2] olarak işaretlenmeli: %v", bulundu["liste"])
 	}
-	if tp := bulundu["toplam"]; tp == nil || tp["deger"] != "1100" || tp["tablo"] != false {
+	if tp := bulundu["toplam"]; tp == nil || tp["deger"] != "1100" || tp["tablo"] != false || tp["tur"] != "sayi" {
 		t.Fatalf("toplam = 1100 skaler değişken olmalı: %v", bulundu["toplam"])
 	}
 	if _, var_ := bulundu["yazdır"]; var_ {

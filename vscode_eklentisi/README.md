@@ -38,7 +38,12 @@
 
 **F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için).
 
-**İzleme Masası:** Program her durduğunda editörün yanında açılır. Tüm değişkenler tek tabloda görünür (Kapsam, Değişken, Tip, Değer); son adımda değişen değerler vurgulanır. Tip sütununda `Tablo [3×3]` yazan bir değişkenin adına tıklayınca içeriği altta sıralanabilir, aranabilir bir tablo olarak açılır ve adım attıkça güncellenir. ✏️ ile değeri doğrudan değiştirebilirsiniz. İstemiyorsanız `tr.izlemeMasasi` ayarını kapatın.
+**İzleme Masası:** Program her durduğunda editörün yanında açılır.
+
+- **Yönlendirme düğmeleri:** ⤼ Sonraki satır (F10), ↓ İçine gir (F11), ↑ Dışarı çık (Shift+F11), ▶ Devam (F5), ■ Durdur. Program çalışırken adım düğmeleri pasif görünür.
+- **Değişkenler:** Tüm değişkenler tek tabloda görünür (Kapsam, Değişken, Tip, Değer). Her değişkenin yanında türünü gösteren bir ikon vardır: ▦ tablo, ☰ liste, { } sözlük, ◆ yapı, ⊞ matris, # sayı, Aa metin, ◐ mantık, ∅ yok. Son adımda değişen değerler vurgulanır; ✏️ ile değer doğrudan değiştirilir. Üstteki kutuyla değişkenler aranır.
+- **Tablolar:** Tablo değerlerinin içeriği satıra dökülmez. Değişkenin adına ya da **▸ Tabloyu aç** linkine tıklayınca (veya satıra çift tıklayınca) tablo alttaki pencerede bir **sekme** olarak açılır. Birden çok tablo sekmeler hâlinde açık kalabilir; her sekme kendi **✕** düğmesiyle, hepsi **Tümünü kapat** ile kapanır. Pencere, üstündeki çubuk sürüklenerek büyütülüp küçültülür. Sütun başlığına tıklayınca sıralanır, arama kutusuyla süzülür, hücreler arasında ok tuşlarıyla gezilir. Adım atıldıkça açık tablolar güncellenir.
+- İstemiyorsanız `tr.izlemeMasasi` ayarını kapatın.
 
 | Ne yapmak istiyorsunuz? | Nasıl |
 | --- | --- |

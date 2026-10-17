@@ -1027,7 +1027,7 @@ func (s *dapServer) variablesTable(msg *dapMessage) {
 		for _, e := range s.scopeVariables(h) {
 			_, _, tblErr := TableData(e.Val)
 			list = append(list, map[string]interface{}{
-				"kapsam": kapsam, "ad": e.Name, "tip": typeLabel(e.Val),
+				"kapsam": kapsam, "ad": e.Name, "tip": typeLabel(e.Val), "tur": valueKind(e.Val),
 				"deger": display(e.Val), "tablo": tblErr == nil,
 			})
 		}
@@ -1045,6 +1045,32 @@ func (s *dapServer) variablesTable(msg *dapMessage) {
 		"degiskenler": list, "satir": s.curLine, "neden": s.curReason,
 		"cerceve": frame, "dosya": filepath.Base(s.programPath),
 	})
+}
+
+// valueKind panelde ikon seçmek için değerin türünü verir.
+func valueKind(val Value) string {
+	switch v := val.(type) {
+	case *ListVal:
+		if cols, _, err := TableData(v); err == nil && !(len(cols) == 1 && cols[0] == "Değer") {
+			return "tablo"
+		}
+		return "liste"
+	case *DictVal:
+		return "sozluk"
+	case *StructInstanceVal:
+		return "yapi"
+	case *MatrixVal:
+		return "matris"
+	case *IntVal, *FloatVal:
+		return "sayi"
+	case *StringVal:
+		return "metin"
+	case *BoolVal:
+		return "mantik"
+	case *NullVal:
+		return "yok"
+	}
+	return "diger"
 }
 
 // typeLabel tip sütununda değerin yapısını özetler (ör. Tablo [3×3]).

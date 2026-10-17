@@ -5,6 +5,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const GOREV_TURU = 'tr';
 const AYAR = 'yorumlayiciYolu';
@@ -326,7 +327,7 @@ async function tabloGoster(arg) {
 }
 
 function tabloHtml(webview, veri) {
-    const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const nonce = crypto.randomBytes(16).toString('base64');
     // Veri betiğe JSON olarak gömülür; '<' kaçışlanır ki </script> enjeksiyonu olmasın.
     const json = JSON.stringify(veri).replace(/</g, '\\u003c');
     return `<!DOCTYPE html>
@@ -436,13 +437,28 @@ async function izlemeMasasiGuncelle(oturum) {
 
 async function izlemeMasasiMesaj(m) {
     const oturum = izlemeMasasi.oturum;
-    if (!oturum || !izlemeMasasi.panel) {
+    if (!izlemeMasasi.panel) {
+        return;
+    }
+    if (m.tur === 'panelHatasi') {
+        vscode.window.showErrorMessage('İzleme Masası hatası: ' + m.mesaj);
+        return;
+    }
+    if (!oturum) {
+        // Hata ayıklama oturumu bittiyse istek göndermek "No debugger available" hatası verir.
+        if (m.tur === 'tablo') {
+            izlemeMasasi.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj: 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).' });
+        } else {
+            vscode.window.showWarningMessage('Hata ayıklama oturumu bitti; değer değiştirilemez.');
+        }
         return;
     }
     try {
         if (m.tur === 'tablo') {
             const veri = await oturum.customRequest('trTablo', { ifade: m.ifade });
             izlemeMasasi.panel.webview.postMessage({ tur: 'tablo', veri });
+        } else if (m.tur === 'komut') {
+            await izlemeMasasiKomut(oturum, m.komut);
         } else if (m.tur === 'degistir') {
             await oturum.customRequest('evaluate', { expression: m.ad + ' = ' + m.ifade, context: 'repl', frameId: 1 });
             await izlemeMasasiGuncelle(oturum);
@@ -450,10 +466,43 @@ async function izlemeMasasiMesaj(m) {
     } catch (e) {
         const mesaj = String(e && e.message ? e.message : e);
         if (m.tur === 'tablo') {
-            izlemeMasasi.panel.webview.postMessage({ tur: 'tabloHata', mesaj });
+            izlemeMasasi.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj });
         } else {
             vscode.window.showErrorMessage('Değer değiştirilemedi: ' + mesaj);
         }
+    }
+}
+
+// Yönlendirme düğmeleri: oturum etkin oturumsa VS Code'un kendi komutları kullanılır (araç
+// çubuğu ve editördeki sarı satır da güncellenir); değilse istek doğrudan oturuma gönderilir.
+const IZLEME_KOMUTLARI = {
+    next: 'workbench.action.debug.stepOver',
+    stepIn: 'workbench.action.debug.stepInto',
+    stepOut: 'workbench.action.debug.stepOut',
+    continue: 'workbench.action.debug.continue',
+    stop: 'workbench.action.debug.stop'
+};
+
+async function izlemeMasasiKomut(oturum, komut) {
+    if (!IZLEME_KOMUTLARI[komut]) {
+        return;
+    }
+    if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.id === oturum.id) {
+        await vscode.commands.executeCommand(IZLEME_KOMUTLARI[komut]);
+    } else if (komut === 'stop') {
+        await vscode.debug.stopDebugging(oturum);
+    } else {
+        await oturum.customRequest(komut, { threadId: 1 });
+    }
+}
+
+function izlemeMasasiOturumBitti(oturum) {
+    if (izlemeMasasi.oturum !== oturum) {
+        return;
+    }
+    izlemeMasasi.oturum = undefined;
+    if (izlemeMasasi.panel) {
+        izlemeMasasi.panel.webview.postMessage({ tur: 'bitti' });
     }
 }
 
@@ -466,96 +515,220 @@ const izlemeMasasiIzleyici = {
                 }
                 if (m.event === 'stopped') {
                     izlemeMasasiGuncelle(oturum);
-                } else if ((m.event === 'terminated' || m.event === 'exited') && izlemeMasasi.panel && izlemeMasasi.oturum === oturum) {
-                    izlemeMasasi.panel.webview.postMessage({ tur: 'bitti' });
+                } else if (m.event === 'terminated' || m.event === 'exited') {
+                    izlemeMasasiOturumBitti(oturum);
                 }
-            }
+            },
+            onWillStopSession() { izlemeMasasiOturumBitti(oturum); },
+            onExit() { izlemeMasasiOturumBitti(oturum); }
         };
     }
 };
 
 function izlemeMasasiHtml() {
-    const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const nonce = crypto.randomBytes(16).toString('base64');
     return `<!DOCTYPE html>
 <html lang="tr"><head><meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <style>
-  body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); padding: 6px 12px; }
-  .ust { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--vscode-focusBorder); padding-bottom: 6px; margin-bottom: 8px; }
-  .ust b { font-size: 1.05em; }
-  .neden { color: var(--vscode-descriptionForeground); }
-  h3 { font-size: .95em; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--vscode-descriptionForeground); }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); display: flex; flex-direction: column; }
+  #ust { flex: 1 1 auto; min-height: 80px; overflow: auto; padding: 6px 12px; }
+  .baslik { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--vscode-focusBorder); padding-bottom: 6px; margin-bottom: 6px; gap: 12px; }
+  .baslik b { font-size: 1.05em; }
+  .soluk { color: var(--vscode-descriptionForeground); }
+  .arac { display: flex; gap: 10px; align-items: center; margin: 6px 0; }
+  input { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-focusBorder)); padding: 3px 8px; font-family: var(--vscode-editor-font-family); }
   table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid var(--vscode-editorWidget-border, #555); padding: 3px 8px; text-align: left; vertical-align: top; }
-  th { background: var(--vscode-editorWidget-background); position: sticky; top: 0; cursor: pointer; user-select: none; white-space: nowrap; }
-  td.deger { font-family: var(--vscode-editor-font-family); word-break: break-all; }
+  th, td { border: 1px solid var(--vscode-editorWidget-border, #555); padding: 3px 8px; text-align: left; vertical-align: top; overflow: hidden; }
+  th { background: var(--vscode-editorWidget-background); user-select: none; white-space: nowrap; }
+  #degiskenTablosu { table-layout: fixed; }
+  col.kapsam { width: 64px; } col.ad { width: 24%; } col.tip { width: 120px; } col.islem { width: 34px; }
   td.kapsam { color: var(--vscode-descriptionForeground); white-space: nowrap; }
-  td.tip { white-space: nowrap; color: var(--vscode-symbolIcon-classForeground, var(--vscode-foreground)); }
-  td.sayi { text-align: right; font-variant-numeric: tabular-nums; }
-  tr.tablo td.ad { cursor: pointer; text-decoration: underline dotted; }
-  tr.secili td { background: var(--vscode-list-activeSelectionBackground) !important; color: var(--vscode-list-activeSelectionForeground); }
-  tr.degisti td.deger { color: var(--vscode-debugTokenExpression-number, #d19a66); font-weight: 600; }
-  tbody tr:nth-child(even) td { background: var(--vscode-list-hoverBackground); }
-  button { background: none; border: none; color: var(--vscode-textLink-foreground); cursor: pointer; padding: 0 4px; }
-  input { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-focusBorder); padding: 2px 6px; width: 95%; font-family: var(--vscode-editor-font-family); }
-  .arac { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
-  .bos { color: var(--vscode-descriptionForeground); padding: 12px 0; }
-  .izgara { max-height: 55vh; overflow: auto; }
+  td.ad, td.tip, td.deger { white-space: nowrap; text-overflow: ellipsis; }
+  td.tip { color: var(--vscode-symbolIcon-classForeground, var(--vscode-foreground)); }
+  td.deger { font-family: var(--vscode-editor-font-family); }
+  tr.degisti td.deger, tr.degisti td.ad { color: var(--vscode-debugTokenExpression-number, #d19a66); font-weight: 600; }
+  #degiskenler > tr:nth-child(even) > td { background: var(--vscode-list-hoverBackground); }
+  tr.acik > td { background: var(--vscode-list-inactiveSelectionBackground) !important; }
+  tr.tablo-satiri { cursor: pointer; }
+  button.kalem { background: none; border: none; cursor: pointer; padding: 0 2px; }
+  .ikon { display: inline-block; width: 1.6em; text-align: center; font-weight: 700; margin-right: 4px; font-size: .9em; }
+  .ikon.tablo { color: var(--vscode-charts-blue, #3794ff); } .ikon.liste { color: var(--vscode-charts-purple, #b180d7); }
+  .ikon.sozluk { color: var(--vscode-charts-orange, #d18616); } .ikon.yapi { color: var(--vscode-charts-red, #f14c4c); }
+  .ikon.matris { color: var(--vscode-charts-green, #89d185); } .ikon.sayi { color: var(--vscode-debugTokenExpression-number, #b5cea8); }
+  .ikon.metin { color: var(--vscode-debugTokenExpression-string, #ce9178); } .ikon.mantik, .ikon.yok, .ikon.diger { color: var(--vscode-descriptionForeground); }
+  .link { color: var(--vscode-textLink-foreground); text-decoration: underline; cursor: pointer; }
+  .link:hover { color: var(--vscode-textLink-activeForeground); }
+  .bos { color: var(--vscode-descriptionForeground); padding: 10px; }
+  #yonlendirme { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+  #yonlendirme button { background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background)); color: var(--vscode-button-secondaryForeground, var(--vscode-foreground)); border: 1px solid var(--vscode-button-border, var(--vscode-editorWidget-border, #555)); border-radius: 3px; padding: 3px 10px; cursor: pointer; font: inherit; white-space: nowrap; }
+  #yonlendirme button:hover:not(:disabled) { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
+  #yonlendirme button.ana { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: transparent; }
+  #yonlendirme button.ana:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
+  #yonlendirme button:disabled { opacity: .45; cursor: default; }
+  #yonlendirme .kisayol { opacity: .7; font-size: .85em; margin-left: 4px; }
+
+  /* Alt tablo penceresi: sekmeler + ızgara; üstteki çubuk sürüklenerek boyutlandırılır */
+  #ayirici { flex: 0 0 5px; cursor: row-resize; background: var(--vscode-editorWidget-border, #555); display: none; }
+  #pencere { flex: 0 0 auto; height: 45vh; min-height: 90px; display: none; flex-direction: column; border-top: 1px solid var(--vscode-focusBorder); }
+  #sekmeler { display: flex; align-items: stretch; background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editorWidget-background)); overflow-x: auto; flex: 0 0 auto; }
+  .sekme { display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; cursor: pointer; border-right: 1px solid var(--vscode-tab-border, #444); white-space: nowrap; color: var(--vscode-tab-inactiveForeground, var(--vscode-descriptionForeground)); background: var(--vscode-tab-inactiveBackground, transparent); }
+  .sekme.etkin { color: var(--vscode-tab-activeForeground, var(--vscode-foreground)); background: var(--vscode-tab-activeBackground, var(--vscode-editor-background)); border-top: 2px solid var(--vscode-focusBorder); }
+  .sekme .kapat { border: none; background: none; color: inherit; cursor: pointer; padding: 0 4px; border-radius: 3px; font-size: 1em; line-height: 1; }
+  .sekme .kapat:hover { background: var(--vscode-toolbar-hoverBackground, rgba(128,128,128,.25)); }
+  #sekmeler .bosluk { flex: 1; }
+  #hepsiniKapat { border: none; background: none; color: var(--vscode-descriptionForeground); cursor: pointer; padding: 0 10px; }
+  #pencereArac { padding: 4px 10px; flex: 0 0 auto; }
+  #izgaraKutu { flex: 1 1 auto; overflow: auto; padding: 0 10px 8px; }
+  #izgaraKutu th { position: sticky; top: 0; cursor: pointer; }
+  #izgaraKutu td { white-space: nowrap; }
+  #izgaraKutu td.sayi { text-align: right; font-variant-numeric: tabular-nums; }
+  #izgaraKutu tbody tr:nth-child(even) td { background: var(--vscode-list-hoverBackground); }
+  #izgaraKutu td:focus { outline: 2px solid var(--vscode-focusBorder); outline-offset: -2px; }
 </style></head>
 <body>
-<div class="ust"><b id="konum">Hata ayıklama bekleniyor…</b><span class="neden" id="neden"></span></div>
-<h3>Değişkenler</h3>
-<table><thead><tr><th>Kapsam</th><th>Değişken</th><th>Tip</th><th>Değer</th><th></th></tr></thead><tbody id="degiskenler"></tbody></table>
-<div id="tabloAlani" style="display:none">
-  <h3 id="tabloBaslik"></h3>
-  <div class="arac"><input id="ara" placeholder="Tabloda ara…" style="width:240px"><span class="neden" id="sayac"></span></div>
-  <div class="izgara"><table><thead><tr id="tabloBasliklar"></tr></thead><tbody id="tabloGovde"></tbody></table></div>
+<div id="ust">
+  <div class="baslik"><b id="konum">Hata ayıklama bekleniyor…</b><span class="soluk" id="neden"></span></div>
+  <div id="yonlendirme">
+    <button data-komut="next" class="ana" title="Sonraki satıra geç; fonksiyon çağrılarının içine girmez">⤼ Sonraki satır<span class="kisayol">F10</span></button>
+    <button data-komut="stepIn" title="Bu satırdaki fonksiyonun içine gir">↓ İçine gir<span class="kisayol">F11</span></button>
+    <button data-komut="stepOut" title="İçinde bulunulan fonksiyondan çık">↑ Dışarı çık<span class="kisayol">Shift+F11</span></button>
+    <button data-komut="continue" title="Bir sonraki kesme noktasına kadar devam et">▶ Devam<span class="kisayol">F5</span></button>
+    <button data-komut="stop" title="Hata ayıklamayı durdur">■ Durdur<span class="kisayol">Shift+F5</span></button>
+  </div>
+  <div class="arac"><input id="degiskenAra" placeholder="Değişken ara…" style="width:220px"><span class="soluk" id="degiskenSayac"></span></div>
+  <table id="degiskenTablosu">
+    <colgroup><col class="kapsam"><col class="ad"><col class="tip"><col><col class="islem"></colgroup>
+    <thead><tr><th>Kapsam</th><th>Değişken</th><th>Tip</th><th>Değer</th><th></th></tr></thead>
+    <tbody id="degiskenler"></tbody>
+  </table>
+</div>
+<div id="ayirici" title="Sürükleyerek boyutlandırın"></div>
+<div id="pencere">
+  <div id="sekmeler"></div>
+  <div id="pencereArac" class="arac"><input id="tabloAra" placeholder="Tabloda ara…" style="width:220px"><span class="soluk" id="tabloSayac"></span></div>
+  <div id="izgaraKutu"></div>
 </div>
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
-let durum = null, oncekiDegerler = {}, seciliTablo = null, tablo = null, sirala = { sutun: -1, azalan: false };
+// Paneldeki beklenmeyen hatalar sessizce kaybolmasın: eklentiye bildirilir.
+window.addEventListener('error', (e) => vscode.postMessage({ tur: 'panelHatasi', mesaj: String(e.message) + ' (' + e.lineno + ':' + e.colno + ')' }));
+const IKONLAR = { tablo: '▦', liste: '☰', sozluk: '{}', yapi: '◆', matris: '⊞', sayi: '#', metin: 'Aa', mantik: '◐', yok: '∅', diger: '•' };
+const TUR_ADI = { tablo: 'Tablo', liste: 'Liste', sozluk: 'Sözlük', yapi: 'Yapı', matris: 'Matris', sayi: 'Sayı', metin: 'Metin', mantik: 'Mantık', yok: 'Yok', diger: 'Değer' };
 const sayiMi = (x) => x !== '' && x !== null && !isNaN(Number(x));
 const el = (tag, metin, sinif) => { const e = document.createElement(tag); if (metin !== undefined) e.textContent = metin; if (sinif) e.className = sinif; return e; };
+
+// Durum: değişkenler, açık sekmeler (her biri ayrı tablo), etkin sekme ve sekme başına arama/sıralama.
+let durum = null, oncekiDegerler = {}, oturumBitti = false, duraklatildi = false;
+function dugmeleriAyarla() {
+  document.querySelectorAll('#yonlendirme button').forEach((b) => {
+    // Durdur her zaman (oturum sürdükçe) kullanılabilir; adım düğmeleri yalnızca program duraklatılmışken.
+    b.disabled = oturumBitti || (b.dataset.komut !== 'stop' && !duraklatildi);
+  });
+}
+document.querySelectorAll('#yonlendirme button').forEach((b) => b.addEventListener('click', () => {
+  if (b.disabled) return;
+  if (b.dataset.komut !== 'stop') {
+    duraklatildi = false;
+    document.getElementById('neden').textContent = 'Çalışıyor…';
+  }
+  dugmeleriAyarla();
+  vscode.postMessage({ tur: 'komut', komut: b.dataset.komut });
+}));
+const sekmeler = [];          // { ad, tur, veri, hata, arama, sirala }
+let etkin = null;
 
 window.addEventListener('message', (olay) => {
   const m = olay.data;
   if (m.tur === 'durum') {
-    durum = m.veri;
-    cizDegiskenler();
-    if (seciliTablo) vscode.postMessage({ tur: 'tablo', ifade: seciliTablo });
+    durum = m.veri; oturumBitti = false; duraklatildi = true;
+    cizDegiskenler(); dugmeleriAyarla();
+    // Açık sekmelerin içeriğini yeni adımın değerleriyle yenile
+    sekmeler.forEach((s) => vscode.postMessage({ tur: 'tablo', ifade: s.ad }));
   } else if (m.tur === 'tablo') {
-    tablo = m.veri; cizTablo();
+    const s = sekmeler.find((x) => x.ad === m.veri.baslik);
+    if (s) { s.veri = m.veri; s.hata = ''; if (s.ad === etkin) cizPencere(); }
   } else if (m.tur === 'tabloHata') {
-    tablo = null; document.getElementById('tabloAlani').style.display = 'none'; seciliTablo = null;
+    const s = sekmeler.find((x) => x.ad === m.ifade);
+    if (s) { s.hata = m.mesaj; if (s.ad === etkin) cizPencere(); }
   } else if (m.tur === 'hata') {
     document.getElementById('neden').textContent = m.mesaj;
   } else if (m.tur === 'bitti') {
-    document.getElementById('konum').textContent = 'Program bitti';
+    oturumBitti = true; duraklatildi = false; dugmeleriAyarla();
+    document.getElementById('konum').textContent = 'Program bitti — tablolar son duruştaki değerleri gösteriyor';
     document.getElementById('neden').textContent = '';
   }
 });
 
+// tabloAc: tabloyu alt penceredeki sekmesinde açar (yoksa yeni sekme ekler) ve etkin yapar.
+function tabloAc(d) {
+  let s = sekmeler.find((x) => x.ad === d.ad);
+  if (!s) {
+    s = { ad: d.ad, tur: d.tur || 'tablo', veri: null, hata: '', arama: '', sirala: { sutun: -1, azalan: false } };
+    sekmeler.push(s);
+    if (oturumBitti) s.hata = 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).';
+    else vscode.postMessage({ tur: 'tablo', ifade: d.ad });
+  }
+  etkin = s.ad;
+  cizPencere(); cizDegiskenler();
+}
+
+function sekmeKapat(ad) {
+  const i = sekmeler.findIndex((x) => x.ad === ad);
+  if (i < 0) return;
+  sekmeler.splice(i, 1);
+  if (etkin === ad) etkin = sekmeler.length ? sekmeler[Math.min(i, sekmeler.length - 1)].ad : null;
+  cizPencere(); cizDegiskenler();
+}
+
 function cizDegiskenler() {
-  document.getElementById('konum').textContent = durum.dosya + ' · Satır ' + durum.satir + ' · ' + durum.cerceve;
-  document.getElementById('neden').textContent = durum.neden || '';
+  if (!durum) return;
+  if (!oturumBitti) {
+    document.getElementById('konum').textContent = durum.dosya + ' · Satır ' + durum.satir + ' · ' + durum.cerceve;
+    document.getElementById('neden').textContent = durum.neden || '';
+  }
+  const q = document.getElementById('degiskenAra').value.toLocaleLowerCase('tr');
   const govde = document.getElementById('degiskenler');
   govde.replaceChildren();
   const yeniDegerler = {};
-  if (!durum.degiskenler.length) {
+  durum.degiskenler.forEach((d) => { yeniDegerler[d.kapsam + ':' + d.ad] = d.deger; });
+  const gorunen = durum.degiskenler.filter((d) => !q || d.ad.toLocaleLowerCase('tr').includes(q));
+  document.getElementById('degiskenSayac').textContent = gorunen.length + ' / ' + durum.degiskenler.length + ' değişken';
+  if (!gorunen.length) {
     const tr = el('tr'); const td = el('td', 'Değişken yok', 'bos'); td.colSpan = 5; tr.appendChild(td); govde.appendChild(tr);
   }
-  durum.degiskenler.forEach((d) => {
+  gorunen.forEach((d) => {
     const anahtar = d.kapsam + ':' + d.ad;
-    yeniDegerler[anahtar] = d.deger;
+    const tur = d.tur || 'diger';
+    const acik = sekmeler.some((s) => s.ad === d.ad);
     const tr = el('tr');
-    if (d.tablo) tr.classList.add('tablo');
-    if (seciliTablo === d.ad) tr.classList.add('secili');
+    if (acik) tr.classList.add('acik');
     if (anahtar in oncekiDegerler && oncekiDegerler[anahtar] !== d.deger) tr.classList.add('degisti');
-    const adHucre = el('td', d.ad, 'ad');
-    if (d.tablo) adHucre.title = 'Tabloyu aşağıda göster';
-    adHucre.addEventListener('click', () => { if (d.tablo) { seciliTablo = d.ad; sirala = { sutun: -1, azalan: false }; vscode.postMessage({ tur: 'tablo', ifade: d.ad }); cizDegiskenler(); } });
-    const degerHucre = el('td', d.deger, 'deger');
-    const kalem = el('button', '✏️'); kalem.title = 'Değeri değiştir (TR ifadesi)';
+    const adHucre = el('td', undefined, 'ad'); adHucre.title = d.ad + ' (' + d.tip + ')';
+    const ikon = el('span', IKONLAR[tur] || '•', 'ikon ' + tur); ikon.title = TUR_ADI[tur] || '';
+    adHucre.appendChild(ikon);
+    let degerHucre;
+    if (d.tablo) {
+      // <a href> tıklamalarını VS Code'un web görünümü yakalar; link görünümlü span kullanılır.
+      const adLink = el('span', d.ad, 'link'); adLink.setAttribute('role', 'button'); adLink.tabIndex = 0;
+      adLink.addEventListener('click', (e) => { e.stopPropagation(); tabloAc(d); });
+      adLink.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tabloAc(d); } });
+      adHucre.appendChild(adLink);
+      degerHucre = el('td', undefined, 'deger');
+      const link = el('span', acik ? '● Açık — sekmeye git' : '▸ Tabloyu aç', 'link'); link.setAttribute('role', 'button'); link.tabIndex = 0;
+      link.title = d.tip;
+      link.addEventListener('click', (e) => { e.stopPropagation(); tabloAc(d); });
+      link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tabloAc(d); } });
+      degerHucre.appendChild(link);
+      tr.classList.add('tablo-satiri');
+      tr.title = 'Çift tıklayın: tabloyu alttaki pencerede aç';
+      tr.addEventListener('dblclick', (e) => { if (e.target.tagName !== 'INPUT') tabloAc(d); });
+    } else {
+      adHucre.appendChild(document.createTextNode(d.ad));
+      degerHucre = el('td', d.deger, 'deger'); degerHucre.title = d.deger;
+    }
+    const kalem = el('button', '✏️', 'kalem'); kalem.title = 'Değeri değiştir (TR ifadesi)';
     kalem.addEventListener('click', () => duzenle(degerHucre, d));
     const islem = el('td'); islem.appendChild(kalem);
     tr.append(el('td', d.kapsam, 'kapsam'), adHucre, el('td', d.tip, 'tip'), degerHucre, islem);
@@ -564,45 +737,112 @@ function cizDegiskenler() {
   oncekiDegerler = yeniDegerler;
 }
 
+function cizPencere() {
+  const pencere = document.getElementById('pencere');
+  const ayirici = document.getElementById('ayirici');
+  const goster = sekmeler.length > 0;
+  pencere.style.display = goster ? 'flex' : 'none';
+  ayirici.style.display = goster ? 'block' : 'none';
+  if (!goster) return;
+
+  const serit = document.getElementById('sekmeler');
+  serit.replaceChildren();
+  sekmeler.forEach((s) => {
+    const sek = el('div', undefined, 'sekme' + (s.ad === etkin ? ' etkin' : ''));
+    sek.title = s.ad;
+    sek.append(el('span', IKONLAR[s.tur] || '▦', 'ikon ' + s.tur), el('span', s.ad));
+    const kapat = el('button', '✕', 'kapat'); kapat.title = 'Sekmeyi kapat';
+    kapat.addEventListener('click', (e) => { e.stopPropagation(); sekmeKapat(s.ad); });
+    sek.appendChild(kapat);
+    sek.addEventListener('click', () => { etkin = s.ad; cizPencere(); });
+    sek.addEventListener('auxclick', (e) => { if (e.button === 1) sekmeKapat(s.ad); });
+    serit.appendChild(sek);
+  });
+  serit.appendChild(el('span', undefined, 'bosluk'));
+  const hepsi = el('button', 'Tümünü kapat ✕'); hepsi.id = 'hepsiniKapat';
+  hepsi.addEventListener('click', () => { sekmeler.splice(0); etkin = null; cizPencere(); cizDegiskenler(); });
+  serit.appendChild(hepsi);
+
+  const s = sekmeler.find((x) => x.ad === etkin);
+  const ara = document.getElementById('tabloAra');
+  ara.value = s ? s.arama : '';
+  const kutu = document.getElementById('izgaraKutu');
+  kutu.replaceChildren();
+  const sayac = document.getElementById('tabloSayac');
+  if (!s) { sayac.textContent = ''; return; }
+  if (s.hata) { kutu.appendChild(el('div', 'Tablo gösterilemedi: ' + s.hata, 'bos')); sayac.textContent = ''; return; }
+  if (!s.veri) { kutu.appendChild(el('div', 'Yükleniyor…', 'bos')); sayac.textContent = ''; return; }
+
+  const sutunlar = ['#'].concat(s.veri.sutunlar || []);
+  const satirlar = (s.veri.satirlar || []).map((r, i) => [String(i)].concat(r));
+  const q = s.arama.toLocaleLowerCase('tr');
+  let liste = satirlar.filter((r) => !q || r.some((h) => String(h).toLocaleLowerCase('tr').includes(q)));
+  if (s.sirala.sutun >= 0) {
+    const k = s.sirala.sutun;
+    liste = liste.slice().sort((a, b) => {
+      const c = sayiMi(a[k]) && sayiMi(b[k]) ? Number(a[k]) - Number(b[k]) : String(a[k]).localeCompare(String(b[k]), 'tr');
+      return s.sirala.azalan ? -c : c;
+    });
+  }
+  const t = el('table'); const thead = el('thead'); const bas = el('tr'); const govde = el('tbody');
+  sutunlar.forEach((ad, i) => {
+    const th = el('th', ad + (s.sirala.sutun === i ? (s.sirala.azalan ? ' ▼' : ' ▲') : ''));
+    th.title = 'Sıralamak için tıklayın';
+    th.addEventListener('click', () => { s.sirala = { sutun: i, azalan: s.sirala.sutun === i ? !s.sirala.azalan : false }; cizPencere(); });
+    bas.appendChild(th);
+  });
+  liste.forEach((r) => {
+    const satir = el('tr');
+    r.forEach((h) => { const td = el('td', h, sayiMi(h) ? 'sayi' : ''); td.tabIndex = -1; satir.appendChild(td); });
+    govde.appendChild(satir);
+  });
+  thead.appendChild(bas); t.append(thead, govde); kutu.appendChild(t);
+  sayac.textContent = s.ad + ' — ' + liste.length + ' / ' + satirlar.length + ' satır · ' + (s.veri.sutunlar || []).length + ' sütun';
+}
+
+// Izgarada ok tuşlarıyla hücreden hücreye gezinme
+document.getElementById('izgaraKutu').addEventListener('keydown', (e) => {
+  const td = e.target.closest('td');
+  if (!td) return;
+  const tr = td.parentElement;
+  let hedef = null;
+  if (e.key === 'ArrowRight') hedef = td.nextElementSibling;
+  else if (e.key === 'ArrowLeft') hedef = td.previousElementSibling;
+  else if (e.key === 'ArrowDown' && tr.nextElementSibling) hedef = tr.nextElementSibling.children[td.cellIndex];
+  else if (e.key === 'ArrowUp' && tr.previousElementSibling) hedef = tr.previousElementSibling.children[td.cellIndex];
+  if (hedef) { e.preventDefault(); hedef.focus(); }
+});
+document.getElementById('izgaraKutu').addEventListener('click', (e) => { const td = e.target.closest('td'); if (td) td.focus(); });
+
+document.getElementById('tabloAra').addEventListener('input', (e) => {
+  const s = sekmeler.find((x) => x.ad === etkin);
+  if (s) { s.arama = e.target.value; cizPencere(); document.getElementById('tabloAra').focus(); }
+});
+document.getElementById('degiskenAra').addEventListener('input', cizDegiskenler);
+dugmeleriAyarla();
+
+// Ayırıcı çubukla alt pencereyi boyutlandırma
+(() => {
+  const ayirici = document.getElementById('ayirici');
+  const pencere = document.getElementById('pencere');
+  let surukle = null;
+  ayirici.addEventListener('mousedown', (e) => { surukle = { y: e.clientY, h: pencere.getBoundingClientRect().height }; e.preventDefault(); });
+  window.addEventListener('mousemove', (e) => {
+    if (!surukle) return;
+    const yeni = Math.max(90, Math.min(window.innerHeight - 120, surukle.h - (e.clientY - surukle.y)));
+    pencere.style.height = yeni + 'px';
+  });
+  window.addEventListener('mouseup', () => { surukle = null; });
+})();
+
 function duzenle(hucre, d) {
-  const giris = el('input'); giris.value = d.tablo ? '' : d.deger; giris.placeholder = 'Yeni değer, ör. 0.20 veya [1, 2]';
+  const giris = el('input'); giris.value = d.tablo ? '' : d.deger; giris.placeholder = 'Yeni değer, ör. 0.20 veya [1, 2]'; giris.style.width = '95%';
   hucre.replaceChildren(giris); giris.focus(); giris.select();
   giris.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && giris.value.trim() !== '') vscode.postMessage({ tur: 'degistir', ad: d.ad, ifade: giris.value });
     if (e.key === 'Escape') cizDegiskenler();
   });
 }
-
-function cizTablo() {
-  if (!tablo) return;
-  document.getElementById('tabloAlani').style.display = '';
-  const sutunlar = ['#'].concat(tablo.sutunlar || []);
-  const satirlar = (tablo.satirlar || []).map((s, i) => [String(i)].concat(s));
-  document.getElementById('tabloBaslik').textContent = 'Tablo: ' + tablo.baslik + ' (' + satirlar.length + ' satır)';
-  const q = document.getElementById('ara').value.toLocaleLowerCase('tr');
-  let liste = satirlar.filter((s) => !q || s.some((h) => String(h).toLocaleLowerCase('tr').includes(q)));
-  if (sirala.sutun >= 0) {
-    const k = sirala.sutun;
-    liste = liste.slice().sort((a, b) => {
-      const c = sayiMi(a[k]) && sayiMi(b[k]) ? Number(a[k]) - Number(b[k]) : String(a[k]).localeCompare(String(b[k]), 'tr');
-      return sirala.azalan ? -c : c;
-    });
-  }
-  const bas = document.getElementById('tabloBasliklar'); bas.replaceChildren();
-  sutunlar.forEach((ad, i) => {
-    const th = el('th', ad + (sirala.sutun === i ? (sirala.azalan ? ' ▼' : ' ▲') : ''));
-    th.addEventListener('click', () => { sirala = { sutun: i, azalan: sirala.sutun === i ? !sirala.azalan : false }; cizTablo(); });
-    bas.appendChild(th);
-  });
-  const govde = document.getElementById('tabloGovde'); govde.replaceChildren();
-  liste.forEach((s) => {
-    const tr = el('tr');
-    s.forEach((h) => tr.appendChild(el('td', h, sayiMi(h) ? 'sayi' : '')));
-    govde.appendChild(tr);
-  });
-  document.getElementById('sayac').textContent = liste.length + ' / ' + satirlar.length + ' satır';
-}
-document.getElementById('ara').addEventListener('input', cizTablo);
 </script></body></html>`;
 }
 

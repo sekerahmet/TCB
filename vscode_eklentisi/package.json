@@ -2,7 +2,7 @@
   "name": "tr-dili-vscode",
   "displayName": "TR (.tr) Programlama ve Yapay Zeka Dili",
   "description": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets), çalıştırma ve hata ayıklama komutları.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "engines": {
     "vscode": "^1.70.0"
   },
