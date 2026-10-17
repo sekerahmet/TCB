@@ -13,7 +13,7 @@ import (
 // Koşullar artık TR kodu olarak ÇALIŞTIRILMAZ. Yalnızca şu küçük dil desteklenir:
 //   sütun adları, sayılar, 'metin' / "metin" (enterpolasyon YOK), doğru/yanlış/yok,
 //   ? (parametre), + - * / %, == = != <> < <= > >=, ve/AND/&&, veya/OR/||, değil/NOT/!, ( )
-// Böylece koşul içinden fonksiyon çağrısı (dosya_yaz, python_çalıştır ...) yapılamaz.
+// Böylece koşul içinden fonksiyon çağrısı (dosya_yaz, web_gönder ...) yapılamaz.
 // ============================================================================
 
 type condTokKind int

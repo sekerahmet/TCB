@@ -90,7 +90,7 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 ### C. Veri Bilimi, Vektör Benzerlik, Web ve Dış Köprüler
 - İstatistik: `ortalama(liste)`, `standart_sapma(liste)`, `medyan(liste)`, `normalize_et(liste)`
 - Vektör: `nokta_çarpım(v1, v2)`, `kosinüs_benzerliği(v1, v2)`, `öklid_uzaklığı(v1, v2)`
-- Veri, Web & Köprüler: `csv_oku(yol)`, `json_çöz(metin)`, `json_metin(değer)`, `web_al(url)`, `web_gönder(url, veri)`, `python_çalıştır(kod)`, `yz_sor(istem)`
+- Veri, Web & Köprüler: `csv_oku(yol)`, `json_çöz(metin)`, `json_metin(değer)`, `web_al(url)`, `web_gönder(url, veri)`, `yz_sor(istem)`
 
 ---
 

@@ -199,7 +199,7 @@ func TestNonExpressionBracesStayLiteral(t *testing.T) {
 	for _, code := range []string{
 		`yazdır("{\"kod\": 5}")`,
 		`yazdır("Nokta{x: 1, y: 2}")`,
-		`python_çalıştır("print({'a': 1})")`,
+		`yazdır("şablon: {'a': 1}")`,
 	} {
 		if errs := parseErrors(code); len(errs) != 0 {
 			t.Errorf("%s hata vermemeli: %v", code, errs)

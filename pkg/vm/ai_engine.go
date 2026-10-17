@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
@@ -1312,7 +1311,7 @@ func (v *VM) registerAIBuiltins() {
 		return &ListVal{Elements: rows}, nil
 	})
 
-	// --- Büyük Dil Modeli (LLM: yz_sor) ve Python Köprüsü (python_çalıştır) ---
+	// --- Büyük Dil Modeli (LLM: yz_sor) ---
 	v.RegisterBuiltin("yz_sor", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("yz_sor(istem, [model: 'llama3']) en az 1 parametre bekler")
@@ -1366,26 +1365,6 @@ func (v *VM) registerAIBuiltins() {
 			}
 		}
 		return nil, fmt.Errorf("yz_sor: YZ sunucusunun (%s) yanıtı çözümlenemedi; Ollama /api/generate biçiminde 'response' alanı bekleniyordu", endpoint)
-	})
-
-	v.RegisterBuiltin("python_çalıştır", "python_calistir", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) < 1 {
-			return nil, fmt.Errorf("python_çalıştır(python_kodu) en az 1 parametre bekler")
-		}
-		pyCode := args[0].Inspect()
-		cmd := exec.Command("python", "-X", "utf8", "-c", pyCode)
-		var out []byte
-		var err error
-		vm.Blocking(func() { out, err = cmd.CombinedOutput() })
-		if err != nil {
-			return nil, fmt.Errorf("Python köprüsü hatası: %v (%s)", err, strings.TrimSpace(string(out)))
-		}
-		trimmed := strings.TrimSpace(string(out))
-		var raw interface{}
-		if json.Unmarshal([]byte(trimmed), &raw) == nil {
-			return goToTRValue(raw), nil
-		}
-		return &StringVal{Val: trimmed}, nil
 	})
 
 	// --- Model Yükleme (model_yükle) ---

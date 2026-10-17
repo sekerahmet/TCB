@@ -41,6 +41,8 @@ değişken vektör_a = [1.0, 2.0, 3.0]
 değişken vektör_b = [2.0, 4.0, 6.0]
 yazdır("Kosinüs Benzerliği (A, B): {yuvarla(kosinüs_benzerliği(vektör_a, vektör_b), 4)}")
 
-yazdır("\n=== 5. PYTHON AI KÖPRÜSÜ (python_çalıştır) ===")
-değişken py_sonuç = python_çalıştır("import math, json; print(json.dumps({'pi': round(math.pi, 4), 'durum': 'Python Köprüsü Aktif!'}))")
-yazdır("Python'dan Gelen Sözlük: {py_sonuç}")
+yazdır("\n=== 5. JSON İLE VERİ ALIŞVERİŞİ ===")
+değişken istatistik = {"ortalama": ortalama(veriler), "standart_sapma": yuvarla(standart_sapma(veriler), 4)}
+değişken json_metni = json_metin(istatistik)
+yazdır("JSON metni    : {json_metni}")
+yazdır("Geri çözülen  : {json_çöz(json_metni)}")

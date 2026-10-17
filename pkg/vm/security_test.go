@@ -63,7 +63,7 @@ func TestRowConditionRejectsCodeExecution(t *testing.T) {
 	// Fonksiyon çağrısı ve üye erişimi tamamen reddedilmeli
 	for _, cond := range []string{
 		fmt.Sprintf(`dosya_yaz(%q, "RCE")`, marker),
-		`python_çalıştır("print(1)")`,
+		`web_gönder("http://127.0.0.1:1/", "veri")`,
 		`ad.uzunluk > 0`,
 	} {
 		if _, _, err := filterRows(testRows(), cond, knownCols(), nil); err == nil {
