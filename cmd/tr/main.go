@@ -58,7 +58,7 @@ func main() {
 			outPath = args[2]
 		}
 		compileToExe(args[1], outPath)
-	case "debug", "hata_ayıkla", "hata_ayikla", "abap":
+	case "debug", "hata_ayıkla", "hata_ayikla":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Hata: Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr debug ornek.tr veya tr debug --web ornek.tr")
 			os.Exit(1)
@@ -113,8 +113,8 @@ func printHelp() {
 	fmt.Println("Kullanım:")
 	fmt.Println("  tr                          Etkileşimli TR kabuğunu (REPL) başlatır")
 	fmt.Println("  tr <dosya.tr>               .tr kaynak dosyasını derler ve çalıştırır")
-	fmt.Println("  tr debug <dosya.tr>         SAP ABAP tarzı etkileşimli Hata Ayıklayıcıyı (Debugger) başlatır")
-	fmt.Println("  tr debug --web <dosya.tr>   Tarayıcı tabanlı Görsel ABAP Debugger Studio'yu başlatır")
+	fmt.Println("  tr debug <dosya.tr>         Etkileşimli TR Hata Ayıklayıcısını başlatır")
+	fmt.Println("  tr debug --web <dosya.tr>   Tarayıcı tabanlı görsel hata ayıklayıcıyı başlatır")
 	fmt.Println("  tr kontrol <dosya.tr>       Sözdizimi ve akıllı tip kontrolü yapar")
 	fmt.Println("  tr bytecode <dosya.tr>      Derlenen TR Sanal Makinesi (VM) bytecode komutlarını gösterir")
 	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını tek başına çalışan bağımsız .exe dosyasına dönüştürür")
@@ -390,7 +390,7 @@ func compileToExe(srcPath string, outPath string) {
 
 func startREPL() {
 	fmt.Printf("🇹🇷 TR Programlama ve Yapay Zeka Dili (v%s) — Etkileşimli Kabuk\n", VERSION)
-	fmt.Println("Çıkmak için 'çıkış', ABAP Hata Ayıklayıcıyı açmak için '/h' yazın.")
+	fmt.Println("Çıkmak için 'çıkış', hata ayıklayıcıyı açmak için '/h' yazın.")
 	scanner := bufio.NewScanner(os.Stdin)
 	machine := vm.New()
 	chk := checker.New()
@@ -410,7 +410,7 @@ func startREPL() {
 		}
 		if line == "/h" || line == "/H" {
 			machine.Debugger = vm.NewDebugger("<etkileşimli-kabuk>", "", true)
-			fmt.Println("🐞 [ABAP /h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım (F5/F6/F7/F8) çalışacak.")
+			fmt.Println("🐞 [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım (F5/F6/F7/F8) çalışacak.")
 			continue
 		}
 

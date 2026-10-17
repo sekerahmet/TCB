@@ -1,8 +1,8 @@
 // =========================================================================
 // 🇹🇷 TR (.tr) — Faz 5 & Faz 6:
-//   1. Yerleşik Türkçe SQL Veritabanı (.trdb) ve ABAP OpenSQL İç Tablo Sorgulama
-//   2. Web Sunucu & REST API Motoru (FastAPI / Flask Tarzı)
-//   3. Görsel Arayüz Motoru (SAP Fiori / ALV Grid / Grafik / Form)
+//   1. Yerleşik Türkçe SQL Veritabanı (.trdb) ve listeleri tablo gibi sorgulama
+//   2. Web Sunucu & REST API Motoru
+//   3. Görsel Arayüz Motoru (kart, tablo, grafik, form)
 // =========================================================================
 
 yazdır("==================================================================")
@@ -10,7 +10,7 @@ yazdır(" 🇹🇷 TR FAZ 5 & 6 — VERİTABANI + WEB SUNUCU + GÖRSEL ARAYÜZ T
 yazdır("==================================================================")
 
 // -------------------------------------------------------------------------
-// BÖLÜM 1: YERLEŞİK KALICI TÜRKÇE SQL VERİTABANI VE ABAP ITAB SORGULAMA
+// BÖLÜM 1: YERLEŞİK KALICI TÜRKÇE SQL VERİTABANI VE LİSTE SORGULAMA
 // -------------------------------------------------------------------------
 yazdır("\n[1] Yerleşik Türkçe SQL Veritabanı ('sirket_erp.trdb') Başlatılıyor...")
 
@@ -19,7 +19,7 @@ vt.sil("personel") // Temiz başlangıç için önceki kayıtları temizle
 
 vt.ekle("personel", [
     {"id": 101, "ad": "Ayşe Yılmaz",   "departman": "Yapay Zeka", "maas": 92000.0, "sehir": "İstanbul"},
-    {"id": 102, "ad": "Mehmet Demir",  "departman": "SAP ABAP",   "maas": 88000.0, "sehir": "Ankara"},
+    {"id": 102, "ad": "Mehmet Demir",  "departman": "Yazılım",    "maas": 88000.0, "sehir": "Ankara"},
     {"id": 103, "ad": "Zeynep Kaya",   "departman": "Veri Bilimi","maas": 76000.0, "sehir": "İzmir"},
     {"id": 104, "ad": "Caner Öztürk",  "departman": "Bulut Sistem","maas": 54000.0, "sehir": "Bursa"},
     {"id": 105, "ad": "Elif Çelik",    "departman": "Yapay Zeka", "maas": 98000.0, "sehir": "İstanbul"}
@@ -36,16 +36,16 @@ döngü p içinde yuksek_maaslilar {
 
 // Canlı Güncelleme (UPDATE)
 vt.güncelle("personel", {"maas": 95000.0}, "id == 102")
-değişken abap_uzmani = vt.sorgula("SEÇ ad, maas TABLO personel NEREDE id = 102")
-yazdır("  • Güncelleme Sonrası #102 Maaşı: {abap_uzmani[0]['ad']} -> {abap_uzmani[0]['maas']} TL")
+değişken yazilim_uzmani = vt.sorgula("SEÇ ad, maas TABLO personel NEREDE id = 102")
+yazdır("  • Güncelleme Sonrası #102 Maaşı: {yazilim_uzmani[0]['ad']} -> {yazilim_uzmani[0]['maas']} TL")
 
-// ABAP OpenSQL Tarzı Doğrudan Bellek-İçi Liste (ITAB) Sorgulama
+// Bellekteki listeyi tablo gibi sorgulama (tablo_sorgula)
 değişken tum_liste = vt.tablo_al("personel")
 değişken istanbul_ekibi = tablo_sorgula(tum_liste, "sehir == 'İstanbul'", sırala: "maas:azalan", alanlar: ["ad", "departman", "maas"])
-yazdır("  • ABAP ITAB Sorgusu (İstanbul Ekibi): {istanbul_ekibi}")
+yazdır("  • Liste Sorgusu (İstanbul Ekibi): {istanbul_ekibi}")
 
 // -------------------------------------------------------------------------
-// BÖLÜM 2: WEB SUNUCU VE REST API MOTORU (FastAPI / Flask Tarzı)
+// BÖLÜM 2: WEB SUNUCU VE REST API MOTORU
 // -------------------------------------------------------------------------
 yazdır("\n[2] Web Sunucu & REST API Motoru Başlatılıyor...")
 
@@ -89,9 +89,9 @@ değişken post_yanit = web_gönder("{sunucu_adresi}/api/ekle", {
 yazdır("  • POST /api/ekle Yanıtı: {post_yanit}")
 
 // -------------------------------------------------------------------------
-// BÖLÜM 3: GÖRSEL ARAYÜZ MOTORU (SAP Fiori / ALV Grid & Grafik & Form)
+// BÖLÜM 3: GÖRSEL ARAYÜZ MOTORU (Kart, Tablo, Grafik & Form)
 // -------------------------------------------------------------------------
-yazdır("\n[3] SAP Fiori / ALV Tarzı Görsel Arayüz (GUI) Oluşturuluyor...")
+yazdır("\n[3] Görsel Arayüz (GUI) Oluşturuluyor...")
 
 değişken guncel_personel = vt.sorgula("SEÇ id, ad, departman, sehir, maas TABLO personel SIRALA maas AZALAN")
 değişken maas_listesi = [p["maas"] döngü p içinde guncel_personel]
@@ -108,8 +108,8 @@ ekran.kart_ekle("Veritabanı Durumu", "ÇEVRİMİÇİ", "sirket_erp.trdb", "sar�
 // 2. Etkileşimli Canlı Grafik
 ekran.grafik_ekle("Personel Maaş Dağılım Grafiği (TL)", isim_listesi, maas_listesi, "çubuk")
 
-// 3. Etkileşimli SAP ALV Tablosu (Canlı Arama Filtreli)
-ekran.tablo_ekle("SAP ALV Personel Tablosu (Canlı Filtreleme Destekli)", guncel_personel)
+// 3. Etkileşimli Tablo (Canlı Arama Filtreli)
+ekran.tablo_ekle("Personel Tablosu (Canlı Filtreleme Destekli)", guncel_personel)
 
 // 4. Etkileşimli Seçim Ekranı / Form (TR fonksiyonunu canlı tetikler!)
 ekran.form_ekle("Hızlı Maaş Simülasyonu & Zam Hesaplayıcı", ["Personel_Adı", "Zam_Yüzdesi"], fonksiyon(form) {

@@ -29,7 +29,7 @@ type PropertyGetter interface {
 }
 
 // ============================================================================
-// 1. WEB SUNUCU VE REST API MOTORU (FastAPI / Flask Tarzı)
+// 1. WEB SUNUCU VE REST API MOTORU
 // ============================================================================
 
 type routeHandler struct {
@@ -297,7 +297,7 @@ func (w *WebServerVal) startServer(background bool) error {
 }
 
 // ============================================================================
-// 2. GÖRSEL ARAYÜZ MOTORU (SAP Fiori / ALV Grid & Streamlit Tarzı GUI)
+// 2. GÖRSEL ARAYÜZ MOTORU (panel, kart, tablo, grafik ve form bileşenleri)
 // ============================================================================
 
 type guiWidget struct {
@@ -748,8 +748,8 @@ func (g *GUIAppVal) renderHTML() string {
   .panel { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
   .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
   .panel-title { font-size: 16px; font-weight: 700; color: #f1f5f9; margin: 0; }
-  .alv-toolbar { display: flex; gap: 10px; align-items: center; }
-  .alv-search { background: #0f172a; border: 1px solid #475569; color: #f8fafc; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+  .tablo-arac { display: flex; gap: 10px; align-items: center; }
+  .tablo-ara { background: #0f172a; border: 1px solid #475569; color: #f8fafc; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   th { background: #0f172a; color: #38bdf8; text-align: left; padding: 10px 12px; border-bottom: 2px solid #334155; cursor: pointer; user-select: none; }
   td { padding: 9px 12px; border-bottom: 1px solid #334155; color: #cbd5e1; }
@@ -770,7 +770,7 @@ func (g *GUIAppVal) renderHTML() string {
 <body>
 <header>
   <h1>🇹🇷 ` + html.EscapeString(g.Title) + `</h1>
-  <span class="badge">TR Fiori / ALV Görsel Motoru</span>
+  <span class="badge">TR Görsel Arayüz</span>
 </header>
 <div class="container">`)
 
@@ -797,7 +797,7 @@ func (g *GUIAppVal) renderHTML() string {
 			sb.WriteString(fmt.Sprintf(`<div class="panel"><p style="margin:0;line-height:1.6">%s</p></div>`, html.EscapeString(w.Value)))
 
 		case "table":
-			sb.WriteString(g.renderALVTableHTML(w))
+			sb.WriteString(g.renderTableHTML(w))
 
 		case "chart":
 			sb.WriteString(g.renderChartHTML(w))
@@ -814,7 +814,7 @@ func (g *GUIAppVal) renderHTML() string {
 	sb.WriteString(`
 </div>
 <script>
-function filterALV(inputEl, tableId) {
+function tabloFiltrele(inputEl, tableId) {
   const q = inputEl.value.toLowerCase();
   const rows = document.querySelectorAll('#' + tableId + ' tbody tr');
   rows.forEach(r => {
@@ -845,13 +845,13 @@ async function submitWidget(widgetId, fieldNames) {
 	return sb.String()
 }
 
-func (g *GUIAppVal) renderALVTableHTML(w guiWidget) string {
+func (g *GUIAppVal) renderTableHTML(w guiWidget) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf(`<div class="panel">
   <div class="panel-header">
     <h3 class="panel-title">📋 %s</h3>
-    <div class="alv-toolbar">
-      <input class="alv-search" placeholder="🔍 ALV Tabloda Ara..." oninput="filterALV(this, %s)">
+    <div class="tablo-arac">
+      <input class="tablo-ara" placeholder="🔍 Tabloda ara..." oninput="tabloFiltrele(this, %s)">
     </div>
   </div>
   <table id="%s">`, html.EscapeString(w.Title), jsStringAttr(w.ID), html.EscapeString(w.ID)))

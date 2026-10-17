@@ -184,7 +184,7 @@ yazdır("toplam: {toplam}")
 `
 
 // VS Code'un tipik bir hata ayıklama oturumu: koşullu kesme noktası, çağrı yığını,
-// değişkenler, değer değiştirme, adımlama, ALV tablo ve programın bitişi.
+// değişkenler, değer değiştirme, adımlama, tablo görünümü ve programın bitişi.
 func TestDAPDebugSession(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, dapProgram)
@@ -204,7 +204,7 @@ func TestDAPDebugSession(t *testing.T) {
 		t.Fatalf("toplam 70 olmalıydı, %s", got)
 	}
 
-	// ABAP ✏️: değeri çalışırken değiştir
+	// ✏️ değeri çalışırken değiştir
 	set := c.request("setVariable", map[string]interface{}{"variablesReference": c.scopeRef("Genel"), "name": "toplam", "value": "1000"})
 	if set["value"] != "1000" {
 		t.Fatalf("setVariable 1000 döndürmeliydi: %v", set)
@@ -233,7 +233,7 @@ func TestDAPDebugSession(t *testing.T) {
 		t.Fatalf("değiştirilen değerle toplam 1100 olmalı, %s", got)
 	}
 
-	// Liste değişkeni açılabilir olmalı ve ALV tablosu üretilmeli
+	// Liste değişkeni açılabilir olmalı ve tablo görünümü üretilmeli
 	ev := c.request("evaluate", map[string]interface{}{"expression": "liste", "context": "watch"})
 	children := c.varsOf(int(ev["variablesReference"].(float64)))
 	if !strings.Contains(children["[1]"], "Ayşe") {
@@ -242,6 +242,26 @@ func TestDAPDebugSession(t *testing.T) {
 	tablo := c.request("trTablo", map[string]interface{}{"ifade": "liste"})
 	if fmt.Sprint(tablo["sutunlar"]) != "[ad maas]" || len(tablo["satirlar"].([]interface{})) != 2 {
 		t.Fatalf("2 satırlı [ad maas] tablosu bekleniyordu: %v", tablo)
+	}
+
+	// İzleme Masası: tek tabloda tüm değişkenler, tablolar işaretli
+	panel := c.request("trDegiskenler", nil)
+	if int(panel["satir"].(float64)) != 9 {
+		t.Fatalf("panel 9. satırı göstermeli: %v", panel["satir"])
+	}
+	bulundu := map[string]map[string]interface{}{}
+	for _, d := range panel["degiskenler"].([]interface{}) {
+		dm := d.(map[string]interface{})
+		bulundu[dm["ad"].(string)] = dm
+	}
+	if l := bulundu["liste"]; l == nil || l["tip"] != "Tablo [2×2]" || l["tablo"] != true || l["kapsam"] != "Genel" {
+		t.Fatalf("liste Tablo [2×2] olarak işaretlenmeli: %v", bulundu["liste"])
+	}
+	if tp := bulundu["toplam"]; tp == nil || tp["deger"] != "1100" || tp["tablo"] != false {
+		t.Fatalf("toplam = 1100 skaler değişken olmalı: %v", bulundu["toplam"])
+	}
+	if _, var_ := bulundu["yazdır"]; var_ {
+		t.Fatal("yerleşik fonksiyonlar panelde listelenmemeli")
 	}
 
 	// Debug Console'da deyim çalıştırma
@@ -258,7 +278,7 @@ func TestDAPDebugSession(t *testing.T) {
 	}
 }
 
-// İzleme noktası (ABAP watchpoint) ve iz noktası (durmadan mesaj yazan kesme noktası).
+// İzleme noktası ve iz noktası (durmadan mesaj yazan kesme noktası).
 func TestDAPWatchpointAndLogpoint(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "değişken a = 1\ndeğişken b = 2\na = 5\nb = 3\nyazdır(\"bitti\")\n")
@@ -290,7 +310,7 @@ func TestDAPWatchpointAndLogpoint(t *testing.T) {
 	}
 }
 
-// Satıra zıpla (ABAP Shift+F12 / VS Code "Jump to Cursor") ve hatalı programın bildirilmesi.
+// Satıra zıpla (VS Code "Jump to Cursor") ve hatalı programın bildirilmesi.
 func TestDAPGotoAndLaunchErrors(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "değişken x = 1\nx = 2\nx = 3\nyazdır(x)\n")

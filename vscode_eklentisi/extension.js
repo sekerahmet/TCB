@@ -298,7 +298,7 @@ async function hataAyiklamayiBaslat(uri) {
 }
 
 // ---------------------------------------------------------------------------
-// ABAP ALV tarzı tablo görünümü: Variables / Watch panelinde sağ tık → "Tablo Görünümü"
+// Tablo görünümü: Variables / Watch panelinde sağ tık → "Tablo Görünümü"
 // ---------------------------------------------------------------------------
 
 async function tabloGoster(arg) {
@@ -321,7 +321,7 @@ async function tabloGoster(arg) {
         vscode.window.showErrorMessage('Tablo gösterilemedi: ' + (e && e.message ? e.message : e));
         return;
     }
-    const panel = vscode.window.createWebviewPanel('trTablo', 'ALV: ' + ifade, vscode.ViewColumn.Beside, { enableScripts: true });
+    const panel = vscode.window.createWebviewPanel('trTablo', 'Tablo: ' + ifade, vscode.ViewColumn.Beside, { enableScripts: true });
     panel.webview.html = tabloHtml(panel.webview, veri);
 }
 
@@ -390,7 +390,231 @@ ciz();
 </script></body></html>`;
 }
 
+// ---------------------------------------------------------------------------
+// İzleme Masası: program her durduğunda editörün yanında tüm değişkenleri
+// tek tabloda (Kapsam | Değişken | Tip | Değer) gösterir. Tabloya tıklanınca altta tablo
+// ızgarası açılır ve adım atıldıkça güncellenir; ✏️ ile değer doğrudan değiştirilir.
+// ---------------------------------------------------------------------------
+
+const izlemeMasasi = { panel: undefined, oturum: undefined };
+
+function izlemeMasasiAyari() {
+    return vscode.workspace.getConfiguration('tr').get('izlemeMasasi', true);
+}
+
+function izlemeMasasiAc(oturum, odak) {
+    if (!izlemeMasasi.panel) {
+        izlemeMasasi.panel = vscode.window.createWebviewPanel(
+            'trIzlemeMasasi', 'İzleme Masası',
+            { viewColumn: vscode.ViewColumn.Beside, preserveFocus: !odak },
+            { enableScripts: true, retainContextWhenHidden: true }
+        );
+        izlemeMasasi.panel.webview.html = izlemeMasasiHtml();
+        izlemeMasasi.panel.onDidDispose(() => { izlemeMasasi.panel = undefined; });
+        izlemeMasasi.panel.webview.onDidReceiveMessage(izlemeMasasiMesaj);
+    } else if (odak) {
+        izlemeMasasi.panel.reveal(undefined, false);
+    }
+    izlemeMasasi.oturum = oturum || izlemeMasasi.oturum;
+}
+
+async function izlemeMasasiGuncelle(oturum) {
+    izlemeMasasi.oturum = oturum;
+    if (!izlemeMasasi.panel) {
+        if (!izlemeMasasiAyari()) {
+            return;
+        }
+        izlemeMasasiAc(oturum, false);
+    }
+    try {
+        const veri = await oturum.customRequest('trDegiskenler', {});
+        izlemeMasasi.panel.webview.postMessage({ tur: 'durum', veri });
+    } catch (e) {
+        izlemeMasasi.panel.webview.postMessage({ tur: 'hata', mesaj: String(e && e.message ? e.message : e) });
+    }
+}
+
+async function izlemeMasasiMesaj(m) {
+    const oturum = izlemeMasasi.oturum;
+    if (!oturum || !izlemeMasasi.panel) {
+        return;
+    }
+    try {
+        if (m.tur === 'tablo') {
+            const veri = await oturum.customRequest('trTablo', { ifade: m.ifade });
+            izlemeMasasi.panel.webview.postMessage({ tur: 'tablo', veri });
+        } else if (m.tur === 'degistir') {
+            await oturum.customRequest('evaluate', { expression: m.ad + ' = ' + m.ifade, context: 'repl', frameId: 1 });
+            await izlemeMasasiGuncelle(oturum);
+        }
+    } catch (e) {
+        const mesaj = String(e && e.message ? e.message : e);
+        if (m.tur === 'tablo') {
+            izlemeMasasi.panel.webview.postMessage({ tur: 'tabloHata', mesaj });
+        } else {
+            vscode.window.showErrorMessage('Değer değiştirilemedi: ' + mesaj);
+        }
+    }
+}
+
+const izlemeMasasiIzleyici = {
+    createDebugAdapterTracker(oturum) {
+        return {
+            onDidSendMessage(m) {
+                if (!m || m.type !== 'event') {
+                    return;
+                }
+                if (m.event === 'stopped') {
+                    izlemeMasasiGuncelle(oturum);
+                } else if ((m.event === 'terminated' || m.event === 'exited') && izlemeMasasi.panel && izlemeMasasi.oturum === oturum) {
+                    izlemeMasasi.panel.webview.postMessage({ tur: 'bitti' });
+                }
+            }
+        };
+    }
+};
+
+function izlemeMasasiHtml() {
+    const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    return `<!DOCTYPE html>
+<html lang="tr"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
+<style>
+  body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-editor-background); padding: 6px 12px; }
+  .ust { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--vscode-focusBorder); padding-bottom: 6px; margin-bottom: 8px; }
+  .ust b { font-size: 1.05em; }
+  .neden { color: var(--vscode-descriptionForeground); }
+  h3 { font-size: .95em; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--vscode-descriptionForeground); }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid var(--vscode-editorWidget-border, #555); padding: 3px 8px; text-align: left; vertical-align: top; }
+  th { background: var(--vscode-editorWidget-background); position: sticky; top: 0; cursor: pointer; user-select: none; white-space: nowrap; }
+  td.deger { font-family: var(--vscode-editor-font-family); word-break: break-all; }
+  td.kapsam { color: var(--vscode-descriptionForeground); white-space: nowrap; }
+  td.tip { white-space: nowrap; color: var(--vscode-symbolIcon-classForeground, var(--vscode-foreground)); }
+  td.sayi { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.tablo td.ad { cursor: pointer; text-decoration: underline dotted; }
+  tr.secili td { background: var(--vscode-list-activeSelectionBackground) !important; color: var(--vscode-list-activeSelectionForeground); }
+  tr.degisti td.deger { color: var(--vscode-debugTokenExpression-number, #d19a66); font-weight: 600; }
+  tbody tr:nth-child(even) td { background: var(--vscode-list-hoverBackground); }
+  button { background: none; border: none; color: var(--vscode-textLink-foreground); cursor: pointer; padding: 0 4px; }
+  input { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-focusBorder); padding: 2px 6px; width: 95%; font-family: var(--vscode-editor-font-family); }
+  .arac { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+  .bos { color: var(--vscode-descriptionForeground); padding: 12px 0; }
+  .izgara { max-height: 55vh; overflow: auto; }
+</style></head>
+<body>
+<div class="ust"><b id="konum">Hata ayıklama bekleniyor…</b><span class="neden" id="neden"></span></div>
+<h3>Değişkenler</h3>
+<table><thead><tr><th>Kapsam</th><th>Değişken</th><th>Tip</th><th>Değer</th><th></th></tr></thead><tbody id="degiskenler"></tbody></table>
+<div id="tabloAlani" style="display:none">
+  <h3 id="tabloBaslik"></h3>
+  <div class="arac"><input id="ara" placeholder="Tabloda ara…" style="width:240px"><span class="neden" id="sayac"></span></div>
+  <div class="izgara"><table><thead><tr id="tabloBasliklar"></tr></thead><tbody id="tabloGovde"></tbody></table></div>
+</div>
+<script nonce="${nonce}">
+const vscode = acquireVsCodeApi();
+let durum = null, oncekiDegerler = {}, seciliTablo = null, tablo = null, sirala = { sutun: -1, azalan: false };
+const sayiMi = (x) => x !== '' && x !== null && !isNaN(Number(x));
+const el = (tag, metin, sinif) => { const e = document.createElement(tag); if (metin !== undefined) e.textContent = metin; if (sinif) e.className = sinif; return e; };
+
+window.addEventListener('message', (olay) => {
+  const m = olay.data;
+  if (m.tur === 'durum') {
+    durum = m.veri;
+    cizDegiskenler();
+    if (seciliTablo) vscode.postMessage({ tur: 'tablo', ifade: seciliTablo });
+  } else if (m.tur === 'tablo') {
+    tablo = m.veri; cizTablo();
+  } else if (m.tur === 'tabloHata') {
+    tablo = null; document.getElementById('tabloAlani').style.display = 'none'; seciliTablo = null;
+  } else if (m.tur === 'hata') {
+    document.getElementById('neden').textContent = m.mesaj;
+  } else if (m.tur === 'bitti') {
+    document.getElementById('konum').textContent = 'Program bitti';
+    document.getElementById('neden').textContent = '';
+  }
+});
+
+function cizDegiskenler() {
+  document.getElementById('konum').textContent = durum.dosya + ' · Satır ' + durum.satir + ' · ' + durum.cerceve;
+  document.getElementById('neden').textContent = durum.neden || '';
+  const govde = document.getElementById('degiskenler');
+  govde.replaceChildren();
+  const yeniDegerler = {};
+  if (!durum.degiskenler.length) {
+    const tr = el('tr'); const td = el('td', 'Değişken yok', 'bos'); td.colSpan = 5; tr.appendChild(td); govde.appendChild(tr);
+  }
+  durum.degiskenler.forEach((d) => {
+    const anahtar = d.kapsam + ':' + d.ad;
+    yeniDegerler[anahtar] = d.deger;
+    const tr = el('tr');
+    if (d.tablo) tr.classList.add('tablo');
+    if (seciliTablo === d.ad) tr.classList.add('secili');
+    if (anahtar in oncekiDegerler && oncekiDegerler[anahtar] !== d.deger) tr.classList.add('degisti');
+    const adHucre = el('td', d.ad, 'ad');
+    if (d.tablo) adHucre.title = 'Tabloyu aşağıda göster';
+    adHucre.addEventListener('click', () => { if (d.tablo) { seciliTablo = d.ad; sirala = { sutun: -1, azalan: false }; vscode.postMessage({ tur: 'tablo', ifade: d.ad }); cizDegiskenler(); } });
+    const degerHucre = el('td', d.deger, 'deger');
+    const kalem = el('button', '✏️'); kalem.title = 'Değeri değiştir (TR ifadesi)';
+    kalem.addEventListener('click', () => duzenle(degerHucre, d));
+    const islem = el('td'); islem.appendChild(kalem);
+    tr.append(el('td', d.kapsam, 'kapsam'), adHucre, el('td', d.tip, 'tip'), degerHucre, islem);
+    govde.appendChild(tr);
+  });
+  oncekiDegerler = yeniDegerler;
+}
+
+function duzenle(hucre, d) {
+  const giris = el('input'); giris.value = d.tablo ? '' : d.deger; giris.placeholder = 'Yeni değer, ör. 0.20 veya [1, 2]';
+  hucre.replaceChildren(giris); giris.focus(); giris.select();
+  giris.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && giris.value.trim() !== '') vscode.postMessage({ tur: 'degistir', ad: d.ad, ifade: giris.value });
+    if (e.key === 'Escape') cizDegiskenler();
+  });
+}
+
+function cizTablo() {
+  if (!tablo) return;
+  document.getElementById('tabloAlani').style.display = '';
+  const sutunlar = ['#'].concat(tablo.sutunlar || []);
+  const satirlar = (tablo.satirlar || []).map((s, i) => [String(i)].concat(s));
+  document.getElementById('tabloBaslik').textContent = 'Tablo: ' + tablo.baslik + ' (' + satirlar.length + ' satır)';
+  const q = document.getElementById('ara').value.toLocaleLowerCase('tr');
+  let liste = satirlar.filter((s) => !q || s.some((h) => String(h).toLocaleLowerCase('tr').includes(q)));
+  if (sirala.sutun >= 0) {
+    const k = sirala.sutun;
+    liste = liste.slice().sort((a, b) => {
+      const c = sayiMi(a[k]) && sayiMi(b[k]) ? Number(a[k]) - Number(b[k]) : String(a[k]).localeCompare(String(b[k]), 'tr');
+      return sirala.azalan ? -c : c;
+    });
+  }
+  const bas = document.getElementById('tabloBasliklar'); bas.replaceChildren();
+  sutunlar.forEach((ad, i) => {
+    const th = el('th', ad + (sirala.sutun === i ? (sirala.azalan ? ' ▼' : ' ▲') : ''));
+    th.addEventListener('click', () => { sirala = { sutun: i, azalan: sirala.sutun === i ? !sirala.azalan : false }; cizTablo(); });
+    bas.appendChild(th);
+  });
+  const govde = document.getElementById('tabloGovde'); govde.replaceChildren();
+  liste.forEach((s) => {
+    const tr = el('tr');
+    s.forEach((h) => tr.appendChild(el('td', h, sayiMi(h) ? 'sayi' : '')));
+    govde.appendChild(tr);
+  });
+  document.getElementById('sayac').textContent = liste.length + ' / ' + satirlar.length + ' satır';
+}
+document.getElementById('ara').addEventListener('input', cizTablo);
+</script></body></html>`;
+}
+
 function activate(context) {
+    context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory(GOREV_TURU, izlemeMasasiIzleyici));
+    context.subscriptions.push(vscode.commands.registerCommand('tr.izlemeMasasi', () => {
+        const oturum = vscode.debug.activeDebugSession;
+        izlemeMasasiAc(oturum && oturum.type === GOREV_TURU ? oturum : undefined, true);
+        if (oturum && oturum.type === GOREV_TURU) {
+            izlemeMasasiGuncelle(oturum);
+        }
+    }));
     for (const tanim of Object.values(KOMUTLAR)) {
         context.subscriptions.push(vscode.commands.registerCommand(tanim.komut, (uri) => calistir(tanim, uri)));
     }

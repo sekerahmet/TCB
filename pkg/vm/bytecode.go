@@ -192,7 +192,7 @@ func compileStmt(c *BytecodeChunk, stmt ast.Statement) {
 			compileExpr(c, s.Condition)
 			c.Emit(OP_KESME_NOKTASI, "koşullu", s.Line())
 		} else {
-			c.Emit(OP_KESME_NOKTASI, "BREAK-POINT", s.Line())
+			c.Emit(OP_KESME_NOKTASI, "kesme_noktası", s.Line())
 		}
 	case *ast.AsyncStatement:
 		c.Emit(OP_ESZAMANLI_BASLAT, "görev", s.Line())

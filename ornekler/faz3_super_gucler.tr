@@ -2,7 +2,7 @@
 // 🇹🇷 TR (.tr) Programlama ve Yapay Zeka Dili — 5 Süper Güç Testi
 // =========================================================================
 
-yazdır("=== 1. SÜPER GÜÇ (Python): Liste Üreteci ve Çoklu Atama / Takas ===")
+yazdır("=== 1. SÜPER GÜÇ: Liste Üreteci ve Çoklu Atama / Takas ===")
 değişken çift_kareler = [x * x döngü x içinde 1..=10 eğer x % 2 == 0]
 yazdır("Tek satırda 1..=10 çift kareler: {çift_kareler}")
 
@@ -14,7 +14,7 @@ yazdır("Takas sonrası (a, b = b, a) -> a: {a}, b: {b}")
 değişken ad, soyad = ["Mustafa", "Kemal"]
 yazdır("Liste açma (Destructuring) -> {ad} {soyad}")
 
-yazdır("\n=== 2. SÜPER GÜÇ (C# / JS / Ruby): Nokta (.) İle Zincirleme Metodlar ===")
+yazdır("\n=== 2. SÜPER GÜÇ: Nokta (.) İle Zincirleme Metodlar ===")
 değişken kelimeler = "  merhaba yeni nesil tr dili  ".kırp().büyük_harf().böl(" ")
 yazdır("Metin zinciri (.kırp().büyük_harf().böl()): {kelimeler}")
 yazdır("Kelime birleştir (.birleştir(' - ')): {kelimeler.birleştir(' - ')}")
@@ -25,7 +25,7 @@ yazdır("Ham liste: {ham_sayılar}")
 yazdır("Zincirleme (.benzersiz().filtrele(>2).sırala().ters_çevir()): {işlenmiş}")
 yazdır("İlk eleman: {işlenmiş.ilk}, Son eleman: {işlenmiş.son}, Toplam: {işlenmiş.toplam()}, Ortalama: {işlenmiş.ortalama()}")
 
-yazdır("\n=== 3. SÜPER GÜÇ (Go / Zig): 'ertele' (Defer) Komutu ===")
+yazdır("\n=== 3. SÜPER GÜÇ: 'ertele' Komutu ===")
 fonksiyon dosya_işlemi() {
     ertele yazdır("  [ertele 1] Kaynaklar ve bağlantı güvenli şekilde kapatıldı.")
     ertele yazdır("  [ertele 2] Geçici önbellek temizlendi.")
@@ -35,13 +35,13 @@ fonksiyon dosya_işlemi() {
 değişken işlem_sonucu = dosya_işlemi()
 yazdır("Fonksiyon dönüşü: {işlem_sonucu}")
 
-yazdır("\n=== 4. SÜPER GÜÇ (JS / Go): Zamanlayıcı (bekle) ve Web Hazırlığı ===")
+yazdır("\n=== 4. SÜPER GÜÇ: Zamanlayıcı (bekle) ve Web Hazırlığı ===")
 değişken başlangıç = zaman_ms()
 bekle(0.05)
 değişken geçen_süre = zaman_ms() - başlangıç
 yazdır("bekle(0.05) tamamlandı ({geçen_süre} ms)")
 
-yazdır("\n=== 5. SÜPER GÜÇ (PyTorch / Keras): Yapay Zeka Modeli Kaydet ve Yükle ===")
+yazdır("\n=== 5. SÜPER GÜÇ: Yapay Zeka Modeli Kaydet ve Yükle ===")
 değişken X = [[0, 0], [0, 1], [1, 0], [1, 1]]
 değişken Y = [[0], [1], [1], [0]]
 

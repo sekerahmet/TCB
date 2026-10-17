@@ -4,10 +4,10 @@ package vm
 // VS CODE HATA AYIKLAMA SUNUCUSU (Debug Adapter Protocol) — tr dap
 //
 // VS Code, TR programlarında hata ayıklamak için `tr dap` sürecini başlatır ve
-// standart giriş/çıkış üzerinden DAP iletileri gönderir. Böylece ABAP debugger'ının
+// standart giriş/çıkış üzerinden DAP iletileri gönderir. Böylece TR hata ayıklayıcısının
 // yetenekleri VS Code'un kendi arayüzünde kullanılır: kesme noktaları (koşullu ve iz
 // noktası), F5/F10/F11 adımlama, değişken ağacı, değer değiştirme, izleme noktası
-// (değer değişince dur), satıra zıplama, çağrı yığını, Debug Console ve ALV tablo görünümü.
+// (değer değişince dur), satıra zıplama, çağrı yığını, Debug Console ve tablo görünümü.
 //
 // Eşzamanlılık: program kendi goroutine'inde çalışır. Program duraklatılmışken,
 // durumu okuyan/değiştiren tüm istekler (değişkenler, değerlendirme, adımlar) VM
@@ -76,6 +76,7 @@ type dapServer struct {
 	curVM      *VM
 	curEnv     *Environment
 	curLine    int
+	curReason  string
 	handles    map[int]*dapHandle
 	nextHandle int
 
@@ -284,7 +285,7 @@ func (s *dapServer) dispatch(msg *dapMessage) {
 		s.event("terminated", nil)
 		s.exit(0)
 	case "stackTrace", "scopes", "variables", "setVariable", "evaluate", "continue", "next",
-		"stepIn", "stepOut", "goto", "dataBreakpointInfo", "trTablo":
+		"stepIn", "stepOut", "goto", "dataBreakpointInfo", "trTablo", "trDegiskenler":
 		if s.isPaused() {
 			s.forward(msg)
 			return
@@ -544,7 +545,7 @@ func (s *dapServer) waitForCommand(v *VM, line int, env *Environment) int {
 	if kind == "" {
 		kind = "step"
 	}
-	// Terminal hata ayıklayıcısının ABAP tuş adları (F5/F6/F7) VS Code'da farklıdır.
+	// Terminal hata ayıklayıcısının tuş adları (F5/F6/F7) VS Code'da farklıdır.
 	switch reason {
 	case "F5 Tek Adım", "":
 		if kind == "step" {
@@ -558,7 +559,7 @@ func (s *dapServer) waitForCommand(v *VM, line int, env *Environment) int {
 
 	s.mu.Lock()
 	s.paused = true
-	s.curVM, s.curEnv, s.curLine = v, env, line
+	s.curVM, s.curEnv, s.curLine, s.curReason = v, env, line, reason
 	s.handles = make(map[int]*dapHandle)
 	s.nextHandle = 0
 	s.mu.Unlock()
@@ -638,6 +639,8 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 		s.setDataBreakpoints(msg)
 	case "trTablo":
 		s.table(msg)
+	case "trDegiskenler":
+		s.variablesTable(msg)
 	default:
 		s.respondErr(msg, "Desteklenmeyen istek: %s", msg.Command)
 	}
@@ -862,7 +865,7 @@ func (s *dapServer) variables(msg *dapMessage) {
 	s.respond(msg, map[string]interface{}{"variables": vars})
 }
 
-// setVariable ABAP'taki ✏️ "değeri değiştir": yeni değer bir TR ifadesi olarak hesaplanır.
+// setVariable ✏️ "değeri değiştir": yeni değer bir TR ifadesi olarak hesaplanır.
 func (s *dapServer) setVariable(msg *dapMessage) {
 	var a struct {
 		VariablesReference int    `json:"variablesReference"`
@@ -967,7 +970,7 @@ func singleExpression(prog *ast.Program) (*ast.ExpressionStatement, bool) {
 	return es, ok
 }
 
-// dataBreakpointInfo: Variables panelinde "Break on Value Change" (ABAP izleme noktası).
+// dataBreakpointInfo: Variables panelinde "Break on Value Change" (izleme noktası).
 func (s *dapServer) dataBreakpointInfo(msg *dapMessage) {
 	var a struct {
 		VariablesReference int    `json:"variablesReference"`
@@ -1013,7 +1016,57 @@ func (s *dapServer) setDataBreakpoints(msg *dapMessage) {
 }
 
 // ---------------------------------------------------------------------------
-// ALV tablo görünümü (özel istek: trTablo)
+// İzleme Masası (özel istek: trDegiskenler)
+// ---------------------------------------------------------------------------
+
+// variablesTable tüm değişkenleri tek bir tabloda
+// (Kapsam | Değişken | Tip | Değer) döndürür; tablo olarak açılabilen değerler işaretlenir.
+func (s *dapServer) variablesTable(msg *dapMessage) {
+	list := []interface{}{}
+	add := func(kapsam string, h *dapHandle) {
+		for _, e := range s.scopeVariables(h) {
+			_, _, tblErr := TableData(e.Val)
+			list = append(list, map[string]interface{}{
+				"kapsam": kapsam, "ad": e.Name, "tip": typeLabel(e.Val),
+				"deger": display(e.Val), "tablo": tblErr == nil,
+			})
+		}
+	}
+	if s.curEnv != nil && s.curEnv != s.curVM.GlobalEnv {
+		add("Yerel", &dapHandle{scope: s.curEnv})
+	}
+	add("Genel", &dapHandle{scope: s.curVM.GlobalEnv, isGlobal: true})
+
+	frame := "ana program"
+	if st := s.curVM.StackSnapshot(); len(st) > 0 {
+		frame = st[len(st)-1].FuncName + "()"
+	}
+	s.respond(msg, map[string]interface{}{
+		"degiskenler": list, "satir": s.curLine, "neden": s.curReason,
+		"cerceve": frame, "dosya": filepath.Base(s.programPath),
+	})
+}
+
+// typeLabel tip sütununda değerin yapısını özetler (ör. Tablo [3×3]).
+func typeLabel(val Value) string {
+	switch v := val.(type) {
+	case *ListVal:
+		if cols, rows, err := TableData(v); err == nil && !(len(cols) == 1 && cols[0] == "Değer") {
+			return fmt.Sprintf("Tablo [%d×%d]", len(rows), len(cols))
+		}
+		return fmt.Sprintf("Liste [%d]", len(v.Elements))
+	case *DictVal:
+		return fmt.Sprintf("Sözlük [%d]", len(v.Pairs))
+	case *MatrixVal:
+		return fmt.Sprintf("Matris [%d×%d]", v.Rows, v.Cols)
+	case *StructInstanceVal:
+		return "Yapı " + v.Def.Name
+	}
+	return string(val.Type())
+}
+
+// ---------------------------------------------------------------------------
+// Tablo görünümü (özel istek: trTablo)
 // ---------------------------------------------------------------------------
 
 func (s *dapServer) table(msg *dapMessage) {
@@ -1034,8 +1087,8 @@ func (s *dapServer) table(msg *dapMessage) {
 	s.respond(msg, map[string]interface{}{"baslik": a.Ifade, "sutunlar": cols, "satirlar": rows, "tip": string(val.Type())})
 }
 
-// TableData bir değeri ABAP ALV tarzı tabloya (sütunlar + satırlar) dönüştürür:
-// sözlük/yapı listeleri (iç tablo), düz listeler, sözlükler ve matrisler desteklenir.
+// TableData bir değeri tabloya (sütunlar + satırlar) dönüştürür:
+// sözlük/yapı listeleri, düz listeler, sözlükler ve matrisler desteklenir.
 func TableData(val Value) ([]string, [][]string, error) {
 	const limit = 10000
 	switch v := val.(type) {
