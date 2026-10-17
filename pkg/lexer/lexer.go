@@ -36,6 +36,9 @@ func (l *Lexer) addError(line, col int, format string, args ...interface{}) {
 }
 
 func New(input string) *Lexer {
+	// Bazı Windows editörlerinin dosya başına eklediği UTF-8 BOM'u (U+FEFF) atla;
+	// aksi halde ilk satırda GEÇERSİZ bir sözcük birimi oluşur.
+	input = strings.TrimPrefix(input, string(rune(0xFEFF)))
 	l := &Lexer{
 		input:  []rune(input),
 		line:   1,
@@ -262,6 +265,7 @@ func (l *Lexer) skipWhitespaceAndComments() {
 		}
 		// '/* ... */' çok satırlı yorum
 		if l.ch == '/' && l.peekChar() == '*' {
+			startLine, startCol := l.line, l.column
 			l.readChar()
 			l.readChar()
 			for !(l.ch == '*' && l.peekChar() == '/') && l.ch != 0 {
@@ -270,6 +274,8 @@ func (l *Lexer) skipWhitespaceAndComments() {
 			if l.ch != 0 {
 				l.readChar()
 				l.readChar()
+			} else {
+				l.addError(startLine, startCol, "kapatılmamış yorum: '/*' ile başlayan yorum dosya sonuna kadar '*/' ile kapanmadı")
 			}
 			continue
 		}

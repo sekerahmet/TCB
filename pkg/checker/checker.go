@@ -7,8 +7,8 @@ import (
 )
 
 type TypeInfo struct {
-	TypeName string
-	IsConst  bool
+	TypeName   string
+	IsConst    bool
 	ParamTypes []string
 	ReturnType string
 }
@@ -42,6 +42,8 @@ func (s *Scope) Resolve(name string) (TypeInfo, bool) {
 type Checker struct {
 	scope  *Scope
 	errors []string
+	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
+	returnType string
 }
 
 func New() *Checker {
@@ -129,6 +131,10 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		valType := c.inferExpression(s.Value)
 		if ident, ok := s.Target.(*ast.Identifier); ok {
 			if info, found := c.scope.Resolve(ident.Value); found {
+				// Bileşik atamada (x += y) atanan değer 'x + y' ifadesinin sonucudur
+				if op := strings.TrimSuffix(s.Operator, "="); op != "" {
+					valType = arithmeticType(op, info.TypeName, valType)
+				}
 				if info.IsConst {
 					c.errors = append(c.errors, fmt.Sprintf(
 						"Satır %d: Sabit hatası — %q bir sabittir ('sabit') ve değeri değiştirilemez",
@@ -213,9 +219,46 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.inferExpression(s.Call)
 		}
 
+	case *ast.ReturnStatement:
+		valType := c.inferExpression(s.ReturnValue)
+		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
+			c.errors = append(c.errors, fmt.Sprintf(
+				"Satır %d: Dönüş tipi uyuşmazlığı — fonksiyon %q döndürmeli ancak %q tipinde değer döndürülüyor",
+				s.Line(), c.returnType, valType,
+			))
+		}
+
+	case *ast.ThrowStatement:
+		c.inferExpression(s.Value)
+
+	case *ast.AsyncStatement:
+		if s.Body != nil {
+			c.checkStatement(s.Body)
+		}
+		if s.Call != nil {
+			c.inferExpression(s.Call)
+		}
+
+	case *ast.BreakpointStatement:
+		c.inferExpression(s.Condition)
+
 	case *ast.ExpressionStatement:
 		c.inferExpression(s.Expression)
 	}
+}
+
+// arithmeticType bir aritmetik işlemin sonuç tipini çıkarır.
+func arithmeticType(op, left, right string) string {
+	if left == "Metin" && op == "+" {
+		return "Metin"
+	}
+	if left == "Ondalık" || right == "Ondalık" {
+		return "Ondalık"
+	}
+	if left == "Tam" && right == "Tam" {
+		return "Tam"
+	}
+	return "Herhangi"
 }
 
 func (c *Checker) inferExpression(expr ast.Expression) string {
@@ -266,15 +309,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		case "@":
 			return "Matris"
 		case "+", "-", "*", "/", "%", "**":
-			if left == "Metin" && e.Operator == "+" {
-				return "Metin"
-			}
-			if left == "Ondalık" || right == "Ondalık" {
-				return "Ondalık"
-			}
-			if left == "Tam" && right == "Tam" {
-				return "Tam"
-			}
+			return arithmeticType(e.Operator, left, right)
 		}
 		return "Herhangi"
 	case *ast.FunctionLiteral:
@@ -290,35 +325,43 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 				ReturnType: retType,
 			})
 		}
-		prev := c.scope
+		prev, prevRet := c.scope, c.returnType
 		c.scope = NewScope(prev)
+		c.returnType = ""
+		if e.ReturnType != "" {
+			c.returnType = retType
+		}
 		for _, p := range e.Parameters {
 			c.scope.Define(p.Name, TypeInfo{TypeName: normalizeTypeName(p.TypeName)})
 		}
 		for _, stmt := range e.Body.Statements {
 			c.checkStatement(stmt)
 		}
-		c.scope = prev
+		c.scope, c.returnType = prev, prevRet
 		return "Fonksiyon"
 	case *ast.CallExpression:
-		if ident, ok := e.Function.(*ast.Identifier); ok {
-			if info, found := c.scope.Resolve(ident.Value); found && len(info.ParamTypes) > 0 {
-				for i, arg := range e.Arguments {
-					if i < len(info.ParamTypes) {
-						argType := c.inferExpression(arg)
-						if !typesCompatible(info.ParamTypes[i], argType) {
-							c.errors = append(c.errors, fmt.Sprintf(
-								"Satır %d: Fonksiyon çağrısı tip hatası — %q fonksiyonunun %d. parametresi %q bekliyor ancak %q verildi",
-								e.Line(), ident.Value, i+1, info.ParamTypes[i], argType,
-							))
-						}
-					}
-				}
-				return info.ReturnType
+		var info TypeInfo
+		var found bool
+		ident, isIdent := e.Function.(*ast.Identifier)
+		if isIdent {
+			info, found = c.scope.Resolve(ident.Value)
+		} else {
+			c.inferExpression(e.Function)
+		}
+		for i, arg := range e.Arguments {
+			argType := c.inferExpression(arg)
+			if found && i < len(info.ParamTypes) && !typesCompatible(info.ParamTypes[i], argType) {
+				c.errors = append(c.errors, fmt.Sprintf(
+					"Satır %d: Fonksiyon çağrısı tip hatası — %q fonksiyonunun %d. parametresi %q bekliyor ancak %q verildi",
+					e.Line(), ident.Value, i+1, info.ParamTypes[i], argType,
+				))
 			}
 		}
-		for _, arg := range e.Arguments {
-			c.inferExpression(arg)
+		for _, na := range e.NamedArgs {
+			c.inferExpression(na.Value)
+		}
+		if found && info.TypeName == "Fonksiyon" && info.ReturnType != "" {
+			return info.ReturnType
 		}
 		return "Herhangi"
 	case *ast.IfExpression:
