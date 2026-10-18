@@ -72,7 +72,7 @@ func DuzIfadeAyarlariniAl() DuzIfadeAyarlari { return *duzIfadeAyar.Load() }
 // AdimSiniriHatasi bir çağrının düzenli ifade adım bütçesini ya da geri
 // izleme belleği sınırını aştığını bildirir.
 type AdimSiniriHatasi struct {
-	Desen  string // desenin kaynağı
+	Desen  string // desenin kaynağı (200 bayttan uzunsa kısaltılmış)
 	Konum  int    // sınırın aşıldığı aramanın başladığı bayt konumu
 	Butce  int64  // aşılan adım bütçesi
 	Bellek bool   // aşılan, geri izleme belleği sınırıysa (GeriIzlemeSiniri) doğru

@@ -519,7 +519,7 @@ func (b *dfButce) ekle(bayt int) {
 }
 
 func (d *DuzIfade) eslestirici(s string, b *dfButce) *dfEslestirici {
-	m := &dfEslestirici{s: s, desen: d.kaynak, butce: b.kalan, tavan: b.tavan, yiginS: duzIfadeAyar.Load().GeriIzlemeSiniri}
+	m := &dfEslestirici{s: s, desen: dfKisalt(d.kaynak), butce: b.kalan, tavan: b.tavan, yiginS: duzIfadeAyar.Load().GeriIzlemeSiniri}
 	if d.yuva > 0 {
 		m.reg = make([]int, d.yuva)
 	}

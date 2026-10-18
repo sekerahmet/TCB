@@ -223,7 +223,11 @@ const uzunMetin = 1 << 16
 
 func adimHatasi(fn string, err error) error {
 	var ah *pc.AdimSiniriHatasi
-	if errors.As(err, &ah) {
+	if errors.As(err, &ah) && ah.Bellek {
+		return fmt.Errorf("%s: parçalayıcının düzenli ifadesi %q bu metinde geri izleme belleği sınırını aştı (aramanın başladığı bayt: %d); desen çok uzun bir yinelemeyi geri izlenebilir tutuyor ve işlem güvenlik için durduruldu. Metni daha küçük parçalara bölmeyi ya da olağan dışı uzun tekrarları temizlemeyi deneyin",
+			fn, ah.Desen, ah.Konum)
+	}
+	if ah != nil {
 		return fmt.Errorf("%s: parçalayıcının düzenli ifadesi %q bu metinde adım sınırını (%d adım) aştı (aramanın başladığı bayt: %d); desen bu girdide aşırı geri izleme yapıyor ve işlem güvenlik için durduruldu. Metni daha küçük parçalara bölmeyi ya da olağan dışı uzun tekrarları (ör. binlerce aynı karakter) temizlemeyi deneyin",
 			fn, ah.Desen, ah.Butce, ah.Konum)
 	}
