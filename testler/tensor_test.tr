@@ -290,6 +290,11 @@ test "15.7 iyileştiriciler: küçük doğrusal regresyon" {
     sgd.sıfırla()
     eşit_mi([0.0, 0.0], p.gradyan.değer)
     doğrula(hata_metni(() => AdamW([sıfırlar([2])])).içerir("türev izlemiyor"))
+    // Sayı olmayan ya da sonsuz oranlar reddedilir (tek adımda bütün parametreler NaN olurdu).
+    doğrula(hata_metni(() => AdamW([p], öğrenme_oranı: log(-1.0))).içerir("sonlu bir sayı olmalıdır"))
+    doğrula(hata_metni(() => SGD([p], öğrenme_oranı: üstel(1000.0))).içerir("sonlu bir sayı olmalıdır"))
+    doğrula(hata_metni(() => SGD([p], momentum: log(-1.0))).içerir("sonlu bir sayı olmalıdır"))
+    doğrula(hata_metni(() => AdamW([p], öğrenme_oranı: 1e300)).içerir("sonlu bir sayı olmalıdır"))
 }
 
 test "15.9 maks_indeks ve gradyan_kırp" {

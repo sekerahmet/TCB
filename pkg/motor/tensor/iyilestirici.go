@@ -120,6 +120,11 @@ func adliOran(fn string, named map[string]vm.Value, varsayilan float64, enAz flo
 	if !ok {
 		return 0, fmt.Errorf("%s: %s sayı olmalıdır, %s verildi", fn, ad.TR, tipAdi(v))
 	}
+	// NaN ve sonsuz (float32'ye sığmayan) değerler reddedilir: tek adımda bütün
+	// parametreleri NaN yapardı (f < enAz denetimi NaN için yanlıştır).
+	if math.IsNaN(f) || math.IsInf(float64(float32(f)), 0) {
+		return 0, fmt.Errorf("%s: %s sonlu bir sayı olmalıdır, %s verildi", fn, ad.TR, v.Inspect())
+	}
 	if f < enAz {
 		return 0, fmt.Errorf("%s: %s en az %g olmalıdır, %g verildi", fn, ad.TR, enAz, f)
 	}
