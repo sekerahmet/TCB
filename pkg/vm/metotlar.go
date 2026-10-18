@@ -71,9 +71,6 @@ const (
 // uyeBilgisi bir x.ad erişiminin derleme anında çözülmüş biçimidir.
 type uyeBilgisi struct {
 	kod sozluk.Kod // ad bir üye adı değilse sozluk.Yok
-	// es, adın kodun eş yazımlarından biri olduğudur (bkz. sozluk.Girdi.Es). Metin, Liste
-	// ve Sözlük eş yazım kabul etmez; eş yazımlar yalnızca motor tiplerinde geçerlidir.
-	es bool
 	// cekirdek Metin/Liste/Sözlük metotlarıdır; ad bunların metodu değilse nil.
 	cekirdek *cekirdekMetot
 }
@@ -84,10 +81,7 @@ func uyeCoz(ad string) uyeBilgisi {
 	if u.kod == sozluk.Yok {
 		return u
 	}
-	u.es = sozluk.EsYazimi(u.kod, ad)
-	if !u.es {
-		u.cekirdek = cekirdekMetotlari[u.kod]
-	}
+	u.cekirdek = cekirdekMetotlari[u.kod]
 	return u
 }
 
@@ -320,27 +314,25 @@ func init() {
 // evalBuiltinMember: Metin, Liste ve Sözlük üzerinde nokta (.) ile özellik okur ya da metodu
 // bağlı bir yerleşik olarak döndürür.
 func (v *VM) evalBuiltinMember(obj Value, prop string, u uyeBilgisi, safe bool, line int) (Value, error) {
-	if !u.es {
-		switch inst := obj.(type) {
-		case *StringVal:
-			if u.kod == uyeUzunluk {
-				return NewInt(int64(utf8.RuneCountInString(inst.Val))), nil
+	switch inst := obj.(type) {
+	case *StringVal:
+		if u.kod == uyeUzunluk {
+			return NewInt(int64(utf8.RuneCountInString(inst.Val))), nil
+		}
+	case *ListVal:
+		switch u.kod {
+		case uyeUzunluk:
+			return NewInt(int64(len(inst.Elements))), nil
+		case uyeIlk:
+			if len(inst.Elements) == 0 {
+				return NULL, nil
 			}
-		case *ListVal:
-			switch u.kod {
-			case uyeUzunluk:
-				return NewInt(int64(len(inst.Elements))), nil
-			case uyeIlk:
-				if len(inst.Elements) == 0 {
-					return NULL, nil
-				}
-				return inst.Elements[0], nil
-			case uyeSon:
-				if len(inst.Elements) == 0 {
-					return NULL, nil
-				}
-				return inst.Elements[len(inst.Elements)-1], nil
+			return inst.Elements[0], nil
+		case uyeSon:
+			if len(inst.Elements) == 0 {
+				return NULL, nil
 			}
+			return inst.Elements[len(inst.Elements)-1], nil
 		}
 	}
 	if m := metotBul(obj, u.cekirdek); m != nil {

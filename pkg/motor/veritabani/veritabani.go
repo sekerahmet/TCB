@@ -16,11 +16,11 @@ import (
 
 // Adlı argümanlar; adları sözlüktedir (pkg/sozluk, W9xx).
 var (
-	adKosul        = baglama.KodAd(sozluk.W + 930) // eş yazımı: nerede
+	adKosul        = baglama.KodAd(sozluk.W + 930)
 	adSirala       = baglama.KodAd(sozluk.W + 931)
 	adLimit        = baglama.KodAd(sozluk.W + 932)
 	adAlanlar      = baglama.KodAd(sozluk.W + 933)
-	adParametreler = baglama.KodAd(sozluk.W + 934) // eş yazımı: params
+	adParametreler = baglama.KodAd(sozluk.W + 934)
 )
 
 // parametreYazimlari parametre listesinin adlı argüman yazımlarıdır; sonra gelen öncekini
@@ -137,11 +137,11 @@ func (db *DatabaseVal) ensureTable(name string) *dbTable {
 const (
 	uyeTablolar     = sozluk.Y + 700
 	uyeTabloOlustur = sozluk.Y + 701
-	uyeEkle         = sozluk.Y + 4   // eş yazımı: kayıt_ekle
-	uyeSorgula      = sozluk.Y + 702 // eş yazımları: sorgu, seç
+	uyeEkle         = sozluk.Y + 4
+	uyeSorgula      = sozluk.Y + 702
 	uyeGuncelle     = sozluk.Y + 703
 	uyeSil          = sozluk.Y + 704
-	uyeHepsiniAl    = sozluk.Y + 705 // eş yazımı: tablo_al
+	uyeHepsiniAl    = sozluk.Y + 705
 	uyeSay          = sozluk.Y + 706
 	uyeKaydet       = sozluk.Y + 5
 )
@@ -244,7 +244,7 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				if len(args) < 1 {
 					return nil, fmt.Errorf("vt.sorgula(sql_sorgusu, [parametreler]) en az 1 argüman bekler")
 				}
-				params, err := paramsArg(args, 1, named)
+				params, err := paramsArg("vt.sorgula", args, 1, named)
 				if err != nil {
 					return nil, err
 				}
@@ -268,7 +268,7 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				if len(args) >= 3 {
 					cond = args[2].Inspect()
 				}
-				params, err := paramsArg(args, 3, named)
+				params, err := paramsArg("vt.güncelle", args, 3, named)
 				if err != nil {
 					return nil, err
 				}
@@ -304,7 +304,7 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				if len(args) >= 2 {
 					cond = args[1].Inspect()
 				}
-				params, err := paramsArg(args, 2, named)
+				params, err := paramsArg("vt.sil", args, 2, named)
 				if err != nil {
 					return nil, err
 				}
@@ -326,10 +326,10 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 
 	case uyeHepsiniAl:
 		return &vm.BuiltinVal{
-			Name: "vt.tablo_al",
+			Name: "vt.hepsini_al",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
-					return nil, fmt.Errorf("vt.tablo_al(tablo_adı) 1 argüman bekler")
+					return nil, fmt.Errorf("vt.hepsini_al(tablo_adı) 1 argüman bekler")
 				}
 				db.mu.RLock()
 				defer db.mu.RUnlock()
@@ -357,7 +357,7 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				if len(args) < 2 {
 					return &vm.IntVal{Val: int64(len(t.Rows))}, nil
 				}
-				params, err := paramsArg(args, 2, named)
+				params, err := paramsArg("vt.say", args, 2, named)
 				if err != nil {
 					return nil, err
 				}
@@ -703,7 +703,7 @@ func Kaydet(v *vm.VM) {
 			cond = c.Inspect()
 		}
 
-		params, err := paramsArg(args, 2, named)
+		params, err := paramsArg("tablo_sorgula", args, 2, named, adKosul, adSirala, adLimit, adAlanlar)
 		if err != nil {
 			return nil, err
 		}

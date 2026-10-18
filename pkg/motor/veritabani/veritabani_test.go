@@ -145,7 +145,7 @@ func TestSQLParamsFromTR(t *testing.T) {
 		değişken b = vt.sorgula("SEÇ ad TABLO personel NEREDE departman == ? SIRALA maas AZALAN", ["Satış"])
 		değişken c = vt.say("personel", "maas > ?", [70000])
 		değişken d = vt.güncelle("personel", {"maas": 61000}, "id == ?", [2])
-		değişken e = tablo_sorgula(vt.tablo_al("personel"), "maas < ?", [70000])
+		değişken e = tablo_sorgula(vt.hepsini_al("personel"), "maas < ?", [70000])
 		// Koşul içinde sayma: eskiden kilitlenme (deadlock) yapıyordu
 		değişken f = vt.sil("personel", "id == ?", [vt.say("personel")])
 		sonuç [a.uzunluk, b[0]["ad"], c, d, e[0]["maas"], f, vt.say("personel")]

@@ -17,33 +17,15 @@ func (v *VM) RegisterBuiltinKod(kod sozluk.Kod, fn BuiltinFunc) *BuiltinVal {
 	return v.YerlesikTanimla(kod, &BuiltinVal{Name: sozluk.Ad(kod), Fn: fn})
 }
 
-// YerlesikTanimla hazır bir yerleşik değerini (adı kodun adı olmalı) kodun bütün
-// yazımlarıyla genel kapsama bağlar (ör. tensör motorunun eski yerleşiği saran değeri).
-// Eş yazımlar (sozluk.Girdi.Es) aynı fonksiyonu kendi adlarıyla taşıyan ayrı bir değere
-// bağlanır; böylece <yerleşik veritabanı> gibi gösterimler eskisi gibi kalır.
+// YerlesikTanimla hazır bir yerleşik değerini (adı kodun adı olmalı) kodun kabul edilen
+// yazımıyla (sozluk.Yazimlar: yalnızca ad) genel kapsama bağlar (ör. tensör motorunun eski
+// yerleşiği saran değeri).
 func (v *VM) YerlesikTanimla(kod sozluk.Kod, b *BuiltinVal) *BuiltinVal {
 	if !kod.Yerlesik() {
 		panic(fmt.Sprintf("yerleşik kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kod))
 	}
-	var esler []*BuiltinVal // eş yazımların kendi adlı kopyaları (çoğu kodda yok)
 	for _, yazim := range sozluk.Yazimlar(kod) {
-		d := b
-		if sozluk.EsYazimi(kod, yazim) {
-			ad, _ := sozluk.AsilAdAlanda(sozluk.AlanGenel, yazim)
-			d = nil
-			for _, e := range esler {
-				if e.Name == ad {
-					d = e
-				}
-			}
-			if d == nil {
-				kopya := *b
-				kopya.Name = ad
-				d = &kopya
-				esler = append(esler, d)
-			}
-		}
-		v.GlobalEnv.Define(yazim, d, true)
+		v.GlobalEnv.Define(yazim, b, true)
 	}
 	return b
 }

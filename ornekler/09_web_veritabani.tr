@@ -42,7 +42,7 @@ değişken yazilim_uzmani = vt.sorgula("SEÇ ad, maas TABLO personel NEREDE id =
 yazdır("  • Güncelleme Sonrası #102 Maaşı: {yazilim_uzmani[0]['ad']} -> {yazilim_uzmani[0]['maas']} TL")
 
 // Bellekteki listeyi tablo gibi sorgulama (tablo_sorgula)
-değişken tum_liste = vt.tablo_al("personel")
+değişken tum_liste = vt.hepsini_al("personel")
 değişken istanbul_ekibi = tablo_sorgula(tum_liste, "sehir == 'İstanbul'", sırala: "maas:azalan", alanlar: ["ad", "departman", "maas"])
 yazdır("  • Liste Sorgusu (İstanbul Ekibi): {istanbul_ekibi}")
 

@@ -1,5 +1,5 @@
 // Package veribicim, metin veri biçimlerinin (JSON ve CSV) TR yerleşiklerini içerir:
-// json_çöz, json_metin ve csv_oku (eş yazımlarıyla). Bu yerleşikler ne matematik/yapay
+// json_çöz, json_metin ve csv_oku. Bu yerleşikler ne matematik/yapay
 // zekâ ne de ağ işidir; ayrı bir paket olmaları yz ve web paketlerini kendi işlerine
 // odaklı tutar. Sıralı JSON çözme ve TR→Go dönüşümü çekirdekte (vm.JSONToTR,
 // vm.TRToGoValue) kalır, çünkü web sunucusu ve veritabanı da onları kullanır.

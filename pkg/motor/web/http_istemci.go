@@ -171,7 +171,7 @@ func webIstegi(makine *vm.VM, fn, yontem, adres string, govde []byte) (vm.Value,
 	return &vm.StringVal{Val: string(yanit.Govde)}, nil
 }
 
-// istemciKaydet web_al ve web_gönder yerleşiklerini (ve eş yazımlarını) kaydeder.
+// istemciKaydet web_al ve web_gönder yerleşiklerini kaydeder.
 func istemciKaydet(v *vm.VM) {
 	v.RegisterBuiltinKod(sozluk.W+100, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {

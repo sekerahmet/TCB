@@ -12,7 +12,7 @@ import (
 
 // Tüm motorlar yüklüyken genel kapsamdaki her yerleşiğin sözlükte bir yerleşik kodu
 // (G/T/V/W) olmalı ve kayıtlı ad o kodun adı olmalı; sözlükteki her yerleşik kodu da
-// bütün yazımlarıyla (eş yazımlar dahil) kayıtlı olmalı. Böylece sözlükte adı olmayan
+// adıyla kayıtlı olmalı. Böylece sözlükte adı olmayan
 // bir yerleşik kaydedilemez, sözlükte de kaydı olmayan bir yerleşik kodu kalamaz.
 func TestYerlesiklerSozlukleTutarli(t *testing.T) {
 	m := vm.New()
@@ -41,15 +41,7 @@ func TestYerlesiklerSozlukleTutarli(t *testing.T) {
 			continue
 		}
 		for _, y := range sozluk.Yazimlar(k) {
-			d, _ := m.GlobalEnv.Get(y)
-			if sozluk.EsYazimi(k, y) {
-				// Eş yazım aynı fonksiyonu kendi adıyla taşır.
-				if e, ok := d.(*vm.BuiltinVal); !ok || e == b {
-					t.Errorf("%s eş yazımı %q ayrı adlı bir yerleşiğe bağlı olmalı", k, y)
-				}
-				continue
-			}
-			if d != b {
+			if d, _ := m.GlobalEnv.Get(y); d != b {
 				t.Errorf("%s yazımı %q aynı yerleşiğe bağlı değil", k, y)
 			}
 		}
@@ -121,10 +113,38 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 	if _, err := calistirAyni(t, m, "u_vt.baslik_ekle"); err == nil || strings.Contains(err.Error(), "başlık_ekle") {
 		t.Errorf("veritabanında başlık_ekle önerilmemeli: %v", err)
 	}
-	// Eş yazımlar yalnızca bugün kabul edildikleri tiplerde çalışır.
-	for _, kod := range []string{"u_liste.kayıt_ekle", "u_web.göster", "u_web.goster", "u_metin.kayit_ekle"} {
-		if _, err := calistirAyni(t, m, kod); err == nil || !strings.Contains(err.Error(), "bulunamadı") {
-			t.Errorf("%s hata vermeliydi: %v", kod, err)
+	// Kaldırılan eş yazımlar hata verir ve asıl adı önerir.
+	for _, c := range []struct{ kod, want string }{
+		{"u_vt.sorgu", "'sorgu' TR'de yok; 'sorgula' yazmak mı istediniz?"},
+		{"u_vt.seç", "'seç' TR'de yok; 'sorgula' yazmak mı istediniz?"},
+		{"u_vt.tablo_al", "'tablo_al' TR'de yok; 'hepsini_al' yazmak mı istediniz?"},
+		{"u_vt.kayıt_ekle", "'kayıt_ekle' TR'de yok; 'ekle' yazmak mı istediniz?"},
+		{"u_liste.kayıt_ekle", "'kayıt_ekle' TR'de yok; 'ekle' yazmak mı istediniz?"},
+		{"u_web.url", "'url' TR'de yok; 'adres' yazmak mı istediniz?"},
+		{"u_web.get", "'get' TR'de yok; 'al' yazmak mı istediniz?"},
+		{"u_web.post", "'post' TR'de yok; 'gönder' yazmak mı istediniz?"},
+		{"u_web.rota", "'rota' TR'de yok; 'rota_ekle' yazmak mı istediniz?"},
+		{"u_web.kapat", "'kapat' TR'de yok; 'durdur' yazmak mı istediniz?"},
+		{"u_arayuz.göster", "'göster' TR'de yok; 'başlat' yazmak mı istediniz?"},
+		{"u_arayuz.metrik_ekle", "'metrik_ekle' TR'de yok; 'kart_ekle' yazmak mı istediniz?"},
+		{"u_arayuz.bilgi_ekle", "'bilgi_ekle' TR'de yok; 'metin_ekle' yazmak mı istediniz?"},
+		{"u_model.tahmin", "'tahmin' TR'de yok; 'tahmin_et' yazmak mı istediniz?"},
+		{"u_tensor.türev", "'gradyan'"},
+	} {
+		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
+		}
+	}
+	// Kaldırılan yerleşik eş yazımları da asıl adı önerir.
+	for _, c := range []struct{ kod, want string }{
+		{`veritabanı(":bellek:")`, "'veritabanı' TR'de yok; 'veritabanı_aç' yazmak mı istediniz?"},
+		{`pencere_oluştur("a")`, "'pencere_oluştur' TR'de yok; 'arayüz_oluştur' yazmak mı istediniz?"},
+		{`tablo_sorgula([{"a": 1}], nerede: "a = 1")`, "tablo_sorgula 'nerede' adında bir parametre almaz. Bunu mu demek istediniz: 'koşul'?"},
+		{`tablo_sorgula([{"a": 1}], "a = ?", params: [1])`, "Bunu mu demek istediniz: 'parametreler'?"},
+		{`u_vt.sorgula("SEÇ * TABLO t", params: [1])`, "vt.sorgula 'params' adında bir parametre almaz. Bunu mu demek istediniz: 'parametreler'?"},
+	} {
+		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
 		}
 	}
 }

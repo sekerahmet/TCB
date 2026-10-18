@@ -185,7 +185,7 @@ func (nn *SinirAgi) kaydet(m *vm.VM, yol string) error {
 // SinirAğı üyeleri (adları sözlükte, pkg/sozluk Y51x, Y005).
 const (
 	uyeEgit       = sozluk.Y + 510
-	uyeTahminEt   = sozluk.Y + 511 // eş yazımı: tahmin
+	uyeTahminEt   = sozluk.Y + 511
 	uyeAgirliklar = sozluk.Y + 512
 	uyeKaydet     = sozluk.Y + 5
 )

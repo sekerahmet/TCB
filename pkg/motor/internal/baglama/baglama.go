@@ -59,8 +59,8 @@ var yabanciAdlar = map[string]sozluk.Kod{
 }
 
 // AdliDenetle verilen adlı argümanların bilinen adlardan olduğunu denetler; yazım
-// hatasında (ya da kaldırılmış bir adda ya da İngilizce alışılmış bir adda: lr, axis...)
-// en yakın TR adını önerir.
+// hatasında (ya da Türkçe karaktersiz yazılmış, kaldırılmış ya da İngilizce alışılmış bir
+// adda: ogrenme_orani, nerede, lr, axis...) en yakın TR adını önerir.
 func AdliDenetle(fn string, named map[string]vm.Value, adlar ...Ad) error {
 	for verilen := range named {
 		bilinen := false
@@ -78,7 +78,7 @@ func AdliDenetle(fn string, named map[string]vm.Value, adlar ...Ad) error {
 			adaylar = append(adaylar, a.TR)
 		}
 		o := ""
-		if k, _, ok := sozluk.EskiBul(sozluk.AlanParametre, verilen, nil); ok && slices.Contains(adaylar, sozluk.Ad(k)) {
+		if k, ok := sozluk.Oneri(sozluk.AlanParametre, verilen, nil); ok && slices.Contains(adaylar, sozluk.Ad(k)) {
 			o = sozluk.Ad(k)
 		}
 		if k, ok := yabanciAdlar[strings.ToLower(verilen)]; o == "" && ok && slices.Contains(adaylar, sozluk.Ad(k)) {

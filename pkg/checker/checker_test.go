@@ -54,15 +54,11 @@ func tekHata(t *testing.T, kaynak string, parcalar ...string) {
 
 func TestTipAdiNormallestirme(t *testing.T) {
 	testler := map[string]string{
-		"Tam": "Tam", "tam": "Tam", "tamsayı": "Tam", "int": "Tam", "TAMSAYI": "Tam",
-		"Ondalık": "Ondalık", "sayı": "Ondalık", "float": "Ondalık", "ONDALIK": "Ondalık",
-		"Metin": "Metin", "yazı": "Metin", "str": "Metin", "string": "Metin", "METİN": "Metin",
-		"Mantık": "Mantık", "mantıksal": "Mantık", "bool": "Mantık", "MANTIK": "Mantık",
-		"Liste": "Liste", "dizi": "Liste", "list": "Liste",
-		"Sözlük": "Sözlük", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
-		"Matris": "Tensör", "matrix": "Tensör", "matris": "Tensör",
-		"Tensör": "Tensör",
-		"Yok":    "Yok", "boş": "Yok", "null": "Yok",
+		"Tam": "Tam", "tam": "Tam", "TAM": "Tam",
+		"Ondalık": "Ondalık", "ONDALIK": "Ondalık",
+		"Metin": "Metin", "METİN": "Metin",
+		"Mantık": "Mantık", "MANTIK": "Mantık",
+		"Liste": "Liste", "Sözlük": "Sözlük", "Tensör": "Tensör", "Yok": "Yok",
 		"": "Herhangi",
 		// Bilinmeyen adlar (kullanıcı yapıları) olduğu gibi kalır
 		"Nokta": "Nokta", "Fonksiyon": "Fonksiyon",
@@ -82,6 +78,13 @@ func TestTipAdiASCIIOneri(t *testing.T) {
 değişken b: tensor = yok`, "Satır 2: 'tensor' TR'de bir tip adı değil; 'Tensör' yazmak mı istediniz?")
 	tekHata(t, `fonksiyon f(x: sozluk) { sonuç x }`, "'sozluk' TR'de bir tip adı değil; 'Sözlük'")
 	tekHata(t, `fonksiyon f(x) -> mantik { sonuç doğru }`, "'mantik' TR'de bir tip adı değil; 'Mantık'")
+	// Kaldırılan eş yazımlar da hata verir ve asıl adı önerir.
+	for ad, asil := range map[string]string{"tamsayı": "Tam", "int": "Tam", "sayı": "Ondalık", "float": "Ondalık",
+		"yazı": "Metin", "str": "Metin", "string": "Metin", "mantıksal": "Mantık", "bool": "Mantık", "boş": "Yok",
+		"null": "Yok", "dizi": "Liste", "list": "Liste", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
+		"Matris": "Tensör", "matrix": "Tensör", "TAMSAYI": "Tam"} {
+		tekHata(t, "değişken a: "+ad, "'"+ad+"' TR'de bir tip adı değil; '"+asil+"' yazmak mı istediniz?")
+	}
 }
 
 func TestTipUyumlulugu(t *testing.T) {
@@ -97,8 +100,7 @@ func TestTipUyumlulugu(t *testing.T) {
 		{"Metin", "Herhangi", true},
 		{"Liste", "Yok", true}, // 'yok' her tipe atanabilir
 		{"Yok", "Tam", false},
-		{"int", "tamsayı", true}, // eş anlamlı adlar normalleştirilir
-		{"sayı", "int", true},
+		{"tam", "Tam", true}, // tip adları büyük/küçük harfe duyarsızdır
 		{"Nokta", "Nokta", true},
 		{"Nokta", "Tam", false},
 		{"Liste", "Sözlük", false},
@@ -119,20 +121,20 @@ func TestTipBelirtimliDegiskenUyumlu(t *testing.T) {
 		`değişken a: Tam = 5`,
 		`değişken a: Ondalık = 5`,
 		`değişken a: Ondalık = 2.5`,
-		`değişken a: sayı = 1 + 2.5`,
+		`değişken a: Ondalık = 1 + 2.5`,
 		`değişken a: Metin = "merhaba"`,
 		`değişken x = 1
 		 değişken a: Metin = "x = {x}"`,
 		`değişken a: Metin = "a" + 1`,
 		`değişken a: Mantık = doğru`,
-		`değişken a: bool = 1 < 2`,
+		`değişken a: Mantık = 1 < 2`,
 		`değişken a: Mantık = !5`,
 		`değişken a: Mantık = doğru ve yanlış`,
 		`değişken a: Liste = [1, 2]`,
 		`değişken a: Liste = 1..=5`,
-		`değişken a: dizi = [x * 2 döngü x içinde 1..3]`,
+		`değişken a: Liste = [x * 2 döngü x içinde 1..3]`,
 		`değişken a: Sözlük = {"a": 1}`,
-		`değişken a: Matris = m1 @ m2`,
+		`değişken a: Tensör = m1 @ m2`,
 		`değişken a: Tam = yok`,
 		`değişken a: Tam`, // değer verilmezse 'yok' atanır
 		`değişken a: Tam = tanımsız_bir_şey`,
@@ -142,7 +144,7 @@ func TestTipBelirtimliDegiskenUyumlu(t *testing.T) {
 		`değişken a: Metin = yok ?? "varsayılan"`,
 		`değişken a: Tam = -5`,
 		`değişken a: Tam = 2 ** 3`,
-		`değişken a: TAMSAYI = 7 % 2`,
+		`değişken a: TAM = 7 % 2`,
 		`değişken a: Fonksiyon = fonksiyon(x) { sonuç x }`,
 		`sabit a: Tam = 1`,
 	} {
@@ -166,7 +168,6 @@ func TestTipBelirtimliDegiskenUyumsuz(t *testing.T) {
 		{`değişken a: Tam = 1..5`, "Tam", "Liste"},
 		{`değişken a: Metin = fonksiyon() { }`, "Metin", "Fonksiyon"},
 		{`değişken a: Nokta = 5`, "Nokta", "Tam"},
-		{`değişken a: tamsayı = "x"`, "Tam", "Metin"},
 		{`sabit a: Metin = doğru`, "Metin", "Mantık"},
 		{`değişken a: Metin = 5 ?? "x"`, "Metin", "Tam"},
 	}

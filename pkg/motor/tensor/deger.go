@@ -549,7 +549,7 @@ const (
 	uyeSekil           = sozluk.Y + 400
 	uyeCihaz           = sozluk.Y + 401
 	uyeTur             = sozluk.Y + 402
-	uyeGradyan         = sozluk.Y + 403 // eş yazımı: türev
+	uyeGradyan         = sozluk.Y + 403
 	uyeDeger           = sozluk.Y + 404
 	uyeSekillendir     = sozluk.Y + 410
 	uyeDevrik          = sozluk.Y + 411

@@ -2,18 +2,12 @@ package checker
 
 import "testing"
 
-// Tip açıklamasında kabul edilen yazımlar sözlükten gelir (A2xx ve eş yazımları); kabul
-// edilen küme sözlüğe taşınmadan önceki kümeyle aynı olmalı.
+// Tip açıklamasında kabul edilen yazımlar sözlükten gelir (A2xx); her tipin tek yazımı
+// vardır (büyük/küçük harf fark etmez).
 func TestTipYazimlariAyni(t *testing.T) {
 	beklenen := map[string]string{
-		"tam": "Tam", "tamsayı": "Tam", "int": "Tam",
-		"ondalık": "Ondalık", "sayı": "Ondalık", "float": "Ondalık",
-		"metin": "Metin", "yazı": "Metin", "str": "Metin", "string": "Metin",
-		"mantık": "Mantık", "mantıksal": "Mantık", "bool": "Mantık",
-		"liste": "Liste", "dizi": "Liste", "list": "Liste",
-		"sözlük": "Sözlük", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
-		"tensör": "Tensör", "matris": "Tensör", "matrix": "Tensör",
-		"yok": "Yok", "boş": "Yok", "null": "Yok",
+		"tam": "Tam", "ondalık": "Ondalık", "metin": "Metin", "mantık": "Mantık",
+		"liste": "Liste", "sözlük": "Sözlük", "tensör": "Tensör", "yok": "Yok",
 	}
 	if len(tipYazimlari) != len(beklenen) {
 		t.Errorf("%d yazım bekleniyordu, %d var: %v", len(beklenen), len(tipYazimlari), tipYazimlari)

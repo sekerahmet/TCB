@@ -50,11 +50,11 @@
 //	"G100": { "ad": "yazdır", "eski": ["yaz"], "aile": "giriş ve çıkış" }
 //
 // ad kodun bu dildeki adıdır. eski kaldırılmış adlardır: kabul edilmez, yalnızca hata
-// mesajında ad önerilir; bir ad değiştirildiğinde eski ad buraya eklenir. es bugün adla
-// aynı işi yapan eş yazımlardır (sorgula için sorgu, seç; Tam için tamsayı, int); kabul
-// edilirler ama sonraki bir temizlikte kaldırılacaklardır. "ascii": false adın ASCII
-// biçimini kapatır (bugün yalnızca birkaç adlı argüman). aile insanlar için kısa bir
-// açıklamadır. Girdiler koda göre sıralı ve her biri tek satırdır.
+// mesajında ad önerilir; bir ad değiştirildiğinde ya da kaldırıldığında eski ad buraya
+// eklenir. Her işin tek adı vardır: eş anlamlı ya da eş yazımlı ikinci bir ad kabul
+// edilmez. "ascii": false, ASCIIKabul açılsa bile adın ASCII biçimini kapalı tutar (bugün
+// yalnızca birkaç adlı argüman). aile insanlar için kısa bir açıklamadır. Girdiler koda
+// göre sıralı ve her biri tek satırdır.
 //
 // # ASCII biçim
 //
@@ -149,7 +149,7 @@ type Alan uint8
 const (
 	AlanYok       Alan = iota // ad alanı olmayan kod (H: hata mesajları)
 	AlanGenel                 // anahtar kelimeler, bağlamsal sözcükler, G/T/V/W yerleşikleri
-	AlanTip                   // tip adları ve tip eş yazımları (A2xx, A3xx)
+	AlanTip                   // tip adları (A2xx)
 	AlanUye                   // metot ve özellikler (Y)
 	AlanParametre             // adlı argümanlar (G/T/V/W içindeki x9xx grupları)
 	alanSayisi

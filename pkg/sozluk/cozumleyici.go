@@ -30,7 +30,6 @@ func asciiBicim(s string) string {
 type hamGirdi struct {
 	anahtar string
 	ad      string
-	es      []string
 	eski    []string
 	aile    string
 	ascii   *bool
@@ -156,7 +155,7 @@ func (c *cozumleyici) mantik() (bool, error) {
 	return false, c.hata("true ya da false bekleniyordu")
 }
 
-// girdi { "ad": ..., "es": [...], "eski": [...], "aile": ..., "ascii": ... } nesnesini okur.
+// girdi { "ad": ..., "eski": [...], "aile": ..., "ascii": ... } nesnesini okur.
 func (c *cozumleyici) girdi(g *hamGirdi) error {
 	if err := c.bekle('{'); err != nil {
 		return err
@@ -183,8 +182,6 @@ func (c *cozumleyici) girdi(g *hamGirdi) error {
 			g.ad, err = c.metin()
 		case "aile":
 			g.aile, err = c.metin()
-		case "es":
-			g.es, err = c.metinListesi()
 		case "eski":
 			g.eski, err = c.metinListesi()
 		case "ascii":
@@ -192,7 +189,7 @@ func (c *cozumleyici) girdi(g *hamGirdi) error {
 			b, err = c.mantik()
 			g.ascii = &b
 		default:
-			return c.hata("%s girdisinde bilinmeyen alan %q (geçerli alanlar: ad, es, eski, ascii, aile)", g.anahtar, alan)
+			return c.hata("%s girdisinde bilinmeyen alan %q (geçerli alanlar: ad, eski, ascii, aile)", g.anahtar, alan)
 		}
 		if err != nil {
 			return err

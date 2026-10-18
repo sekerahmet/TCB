@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/vm"
 	"unicode"
 )
@@ -595,8 +596,13 @@ func filterRows(rows []map[string]interface{}, cond string, known map[string]boo
 	return matched, rest, nil
 }
 
-// paramsArg isteğe bağlı parametre listesini (Liste) []Value olarak döndürür.
-func paramsArg(args []vm.Value, idx int, named map[string]vm.Value) ([]vm.Value, error) {
+// paramsArg isteğe bağlı parametre listesini (Liste) []Value olarak döndürür. Önce adlı
+// argümanların yalnızca parametreler (ve fonksiyonun ek adları) olduğunu denetler; bilinmeyen
+// ya da kaldırılmış bir ad (params, nerede) sessizce yok sayılmaz, asıl ad önerilir.
+func paramsArg(fn string, args []vm.Value, idx int, named map[string]vm.Value, ekAdlar ...baglama.Ad) ([]vm.Value, error) {
+	if err := baglama.AdliDenetle(fn, named, append([]baglama.Ad{adParametreler}, ekAdlar...)...); err != nil {
+		return nil, err
+	}
 	var raw vm.Value
 	if idx < len(args) {
 		raw = args[idx]

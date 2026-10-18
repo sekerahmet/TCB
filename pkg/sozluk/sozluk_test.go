@@ -57,13 +57,7 @@ func TestTRSiraliVeSatirSatir(t *testing.T) {
 	}
 }
 
-// tumAdlar kodun adı ve eş yazımlarıdır.
-func tumAdlar(k Kod) []string {
-	g, _ := Etkin().Girdisi(k)
-	return append([]string{g.Ad}, g.Es...)
-}
-
-// Farklı iki ad (eş yazımlar dahil), ad alanları farklı olsa bile aynı ASCII biçime
+// Farklı iki ad, ad alanları farklı olsa bile aynı ASCII biçime
 // düşmemeli: ASCII yazımdan Türkçe yazıma ipucu (Oneri) belirsiz olurdu.
 func TestASCIIBicimlerCakismaz(t *testing.T) {
 	type sahibi struct {
@@ -72,14 +66,13 @@ func TestASCIIBicimlerCakismaz(t *testing.T) {
 	}
 	sahip := map[string]sahibi{}
 	for _, k := range Kodlar() {
-		for _, ad := range tumAdlar(k) {
-			a := turkce.ASCII(ad)
-			if o, ok := sahip[a]; ok && o.ad != ad {
-				t.Errorf("%s %q ile %s %q aynı ASCII biçime (%q) düşüyor", o.kod, o.ad, k, ad, a)
-				continue
-			}
-			sahip[a] = sahibi{k, ad}
+		ad := Ad(k)
+		a := turkce.ASCII(ad)
+		if o, ok := sahip[a]; ok && o.ad != ad {
+			t.Errorf("%s %q ile %s %q aynı ASCII biçime (%q) düşüyor", o.kod, o.ad, k, ad, a)
+			continue
 		}
+		sahip[a] = sahibi{k, ad}
 	}
 	// Ad alanı içinde ASCII biçim ile eski ad çakışması Yukle'de yakalanır (bkz.
 	// TestCakismalarYakalanir). Farklı ad alanları arasındaki çakışma bir hata değildir
@@ -227,8 +220,7 @@ func TestCakismalarYakalanir(t *testing.T) {
 		{`{"G100": {"ad": "a", "eski": ["işlev"]}, "G101": {"ad": "b", "eski": ["islev"]}}`, "\"islev\" hem G100 hem G101"},
 		{`{"G100": {"ad": "a", "eski": ["a"]}}`, "adın kendisi"},
 		{`{"G100": {"ad": "a b"}}`, "boşluk"},
-		{`{"G100": {"ad": "yazdır", "es": ["yaz"]}, "G101": {"ad": "yaz"}}`, "G100 \"yaz\" ile G101 \"yaz\""},
-		{`{"G100": {"ad": "yazdır", "es": ["yaz"]}, "G101": {"ad": "girdi", "eski": ["yaz"]}}`, "G101'in eski adı \"yaz\", G100 \"yaz\""},
+		{`{"G100": {"ad": "yazdır", "es": ["yaz"]}}`, "bilinmeyen alan \"es\""},
 		{`{"X100": {"ad": "a"}}`, "aile harfi"},
 		{`{"H100": {"ad": "a"}}`, "henüz kullanılmıyor"},
 		{`{"G100": {"ad": "a", "bilinmeyen": 1}}`, "bilinmeyen"},
@@ -244,10 +236,12 @@ func TestCakismalarYakalanir(t *testing.T) {
 	}
 }
 
-// "ascii": false olan adın yalnızca Türkçe biçimi kabul edilir.
-func TestASCIIKapali(t *testing.T) {
-	if y := Yazimlar(W + 930); len(y) != 2 || y[0] != "koşul" || y[1] != "nerede" {
-		t.Errorf("W930 yalnızca 'koşul' ve eş yazımı 'nerede' olarak kabul edilmeli: %v", y)
+// Her adın tek yazımı vardır: yalnızca Türkçe biçimi kabul edilir.
+func TestTekYazim(t *testing.T) {
+	for _, k := range Kodlar() {
+		if y := Yazimlar(k); len(y) != 1 || y[0] != Ad(k) {
+			t.Errorf("%s tek yazımlı olmalı (%q): %v", k, Ad(k), y)
+		}
 	}
 	if y := Yazimlar(G + 100); len(y) != 1 || y[0] != "yazdır" {
 		t.Errorf("G100 yalnızca Türkçe biçimiyle kabul edilmeli: %v", y)
@@ -257,21 +251,23 @@ func TestASCIIKapali(t *testing.T) {
 	}
 }
 
-// Eş yazımlar asıl adla aynı koda bağlıdır ve kabul edilir; EsYazimi onları ayırt eder.
-func TestEsYazimlar(t *testing.T) {
+// Kaldırılan eş yazımlar (eskiden kabul edilen ikinci adlar) artık eski adlardır: kabul
+// edilmezler, Oneri asıl adı önerir.
+func TestEsYazimlarKaldirildi(t *testing.T) {
 	for _, c := range []struct {
 		kod   Kod
 		yazim string
-	}{{Y + 702, "sorgu"}, {Y + 702, "seç"}, {Y + 403, "türev"},
-		{W + 200, "veritabanı"}, {A + 200, "tamsayı"}, {A + 212, "matris"}} {
-		if k, ok := Bul(c.kod.Alan(), c.yazim); !ok || k != c.kod {
-			t.Errorf("Bul(%q) = %s, %s bekleniyordu", c.yazim, k, c.kod)
+	}{{Y + 702, "sorgu"}, {Y + 702, "seç"}, {Y + 702, "sec"}, {Y + 403, "türev"}, {Y + 6, "göster"},
+		{Y + 8, "kapat"}, {Y + 511, "tahmin"}, {Y + 800, "url"}, {Y + 802, "get"}, {Y + 803, "post"},
+		{Y + 804, "rota"}, {Y + 900, "metrik_ekle"}, {Y + 902, "bilgi_ekle"}, {Y + 4, "kayıt_ekle"},
+		{Y + 705, "tablo_al"}, {W + 200, "veritabanı"}, {W + 300, "pencere_oluştur"}, {W + 930, "nerede"},
+		{W + 934, "params"}, {A + 200, "tamsayı"}, {A + 200, "int"}, {A + 201, "float"}, {A + 202, "string"},
+		{A + 203, "bool"}, {A + 204, "null"}, {A + 205, "dizi"}, {A + 206, "map"}, {A + 212, "matris"}} {
+		if k, ok := Bul(c.kod.Alan(), c.yazim); ok {
+			t.Errorf("%q kabul edilmemeli (%s)", c.yazim, k)
 		}
-		if !EsYazimi(c.kod, c.yazim) {
-			t.Errorf("%q, %s'in eş yazımı olmalı", c.yazim, c.kod)
+		if k, ok := Oneri(c.kod.Alan(), c.yazim, nil); !ok || k != c.kod {
+			t.Errorf("Oneri(%q) = %s %v, %s bekleniyordu", c.yazim, k, ok, c.kod)
 		}
-	}
-	if EsYazimi(Y+702, "sorgula") || EsYazimi(Y+403, "gradyan") {
-		t.Error("asıl ad eş yazım sayılmamalı")
 	}
 }

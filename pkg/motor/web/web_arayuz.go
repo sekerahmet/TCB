@@ -66,21 +66,21 @@ func (w *WebServerVal) IsTruthy() bool { return true }
 
 // Web sunucusu ve görsel arayüz üyeleri (adları sözlükte, pkg/sozluk Y8xx, Y9xx, Y00x).
 const (
-	uyeBaslat           = sozluk.Y + 6 // eş yazımı (yalnızca arayüzde): göster
+	uyeBaslat           = sozluk.Y + 6
 	uyeArkaPlandaBaslat = sozluk.Y + 7
-	uyeDurdur           = sozluk.Y + 8 // eş yazımı: kapat
+	uyeDurdur           = sozluk.Y + 8
 	uyeKaydet           = sozluk.Y + 5
 
-	uyeAdres        = sozluk.Y + 800 // eş yazımı: url
+	uyeAdres        = sozluk.Y + 800
 	uyePort         = sozluk.Y + 801
-	uyeAl           = sozluk.Y + 802 // eş yazımı: get
-	uyeGonder       = sozluk.Y + 803 // eş yazımı: post
-	uyeRotaEkle     = sozluk.Y + 804 // eş yazımı: rota
+	uyeAl           = sozluk.Y + 802
+	uyeGonder       = sozluk.Y + 803
+	uyeRotaEkle     = sozluk.Y + 804
 	uyeStatikKlasor = sozluk.Y + 805
 
-	uyeKartEkle   = sozluk.Y + 900 // eş yazımı: metrik_ekle
+	uyeKartEkle   = sozluk.Y + 900
 	uyeBaslikEkle = sozluk.Y + 901
-	uyeMetinEkle  = sozluk.Y + 902 // eş yazımı: bilgi_ekle
+	uyeMetinEkle  = sozluk.Y + 902
 	uyeTabloEkle  = sozluk.Y + 903
 	uyeGrafikEkle = sozluk.Y + 904
 	uyeFormEkle   = sozluk.Y + 905
@@ -90,9 +90,6 @@ const (
 )
 
 func (w *WebServerVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
-	if kod == uyeBaslat && sozluk.EsYazimi(uyeBaslat, prop) {
-		kod = sozluk.Yok // 'göster' yalnızca görsel arayüzün eş yazımıdır
-	}
 	switch kod {
 	case uyeAdres:
 		return &vm.StringVal{Val: fmt.Sprintf("http://localhost:%d", w.Port)}, nil
