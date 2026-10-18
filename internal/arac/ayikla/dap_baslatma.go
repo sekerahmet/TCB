@@ -109,7 +109,7 @@ func (s *dapServer) start() {
 			for _, m := range yurut.HataMaddeleri(err, s.machine.SourceCode) {
 				metin += "  • " + m.Mesaj + "\n" + indentLines(m.Cerceve, "    ")
 			}
-			s.output("stderr", metin)
+			s.output("stderr", s.machine.Maskele(metin))
 		} else if u := s.machine.KullanilmayanArgumanUyarisi(); u != "" {
 			s.output("stderr", u+"\n")
 		}

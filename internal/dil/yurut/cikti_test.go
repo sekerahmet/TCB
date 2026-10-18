@@ -3,6 +3,7 @@ package yurut
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"tr_dili/internal/dil/ayristir"
@@ -51,5 +52,40 @@ func TestCanliSatirKancasi(t *testing.T) {
 	vmx.CanliSatirGuncelle(func() { cikti.WriteString("çubuk") })
 	if cikti.String() != "b\nçubuk" {
 		t.Errorf("CanliSatirGuncelle: %q", cikti.String())
+	}
+}
+
+// Gizli değer süzgeci: kayıtlı değerler çıktı noktalarında (yazdır, hata çıktısı, argüman
+// uyarısı) *** ile maskelenir; değerin kendisi (yazdır'ın döndürdüğü, değişkenler) değişmez.
+// Kısa değerler kaydedilmez; biri ötekini içeren değerlerde uzunu bütünüyle maskelenir.
+func TestGizliDegerSuzgeci(t *testing.T) {
+	var cikti bytes.Buffer
+	vmx := New()
+	vmx.Out, vmx.Err = &cikti, &cikti
+	if vmx.Maskele("hf_gizli123") != "hf_gizli123" {
+		t.Error("kayıt yokken metin değişmemeli")
+	}
+	if vmx.GizliDegerEkle("abc") {
+		t.Error("kısa değer kaydedilmemeli")
+	}
+	if !vmx.GizliDegerEkle("hf_gizli123") || !vmx.GizliDegerEkle("hf_gizli123_uzun") || !vmx.GizliDegerEkle("hf_gizli123") {
+		t.Fatal("gizli değer kaydedilemedi")
+	}
+	vmx.GlobalEnv.Define("anahtar", &StringVal{Val: "hf_gizli123"}, false)
+	kodCalistir(t, vmx, "değişken d = yazdır(\"anahtar: {anahtar}, uzun: hf_gizli123_uzun, abc\")\n")
+	if got := cikti.String(); got != "anahtar: ***, uzun: ***, abc\n" {
+		t.Errorf("yazdır çıktısı maskelenmeli: %q", got)
+	}
+	if d, _ := vmx.GlobalEnv.Get("d"); d.Inspect() != "anahtar: hf_gizli123, uzun: hf_gizli123_uzun, abc" {
+		t.Errorf("yazdır'ın döndürdüğü değer (veri) değişmemeli: %s", d.Inspect())
+	}
+	cikti.Reset()
+	vmx.reportAsyncError(1, errors.New("istek reddedildi: hf_gizli123"))
+	if got := cikti.String(); !strings.Contains(got, "istek reddedildi: ***") {
+		t.Errorf("hata çıktısı maskelenmeli: %q", got)
+	}
+	vmx.ArgumanlariAyarla([]string{"--anahtar", "hf_gizli123"})
+	if u := vmx.KullanilmayanArgumanUyarisi(); !strings.Contains(u, "(--anahtar ***)") {
+		t.Errorf("argüman uyarısı maskelenmeli: %q", u)
 	}
 }

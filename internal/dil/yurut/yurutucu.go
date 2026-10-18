@@ -15,6 +15,7 @@ import (
 	"os"
 	"runtime"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"tr_dili/internal/dil/agac"
@@ -109,6 +110,12 @@ type vmShared struct {
 	ciktiMu  sync.Mutex
 	canli    CanliSatir
 	canliVar atomic.Bool
+
+	// gizliler gizli değer süzgecine kayıtlı değerlerdir; maske onlardan kurulmuş
+	// değiştiricidir (gizli değer yoksa nil: çıktı noktalarında maliyet bir atomik okuma).
+	gizliMu  sync.Mutex
+	gizliler []string
+	maske    atomic.Pointer[strings.Replacer]
 
 	// metinOnbellegi son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
 	metinOnbellegi struct {

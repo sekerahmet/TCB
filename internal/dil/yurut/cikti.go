@@ -2,14 +2,29 @@ package yurut
 
 import (
 	"io"
+	"slices"
+	"strings"
 )
 
 // Çıktı noktaları: insanın göreceği her çıktı (yazdır, girdi istemi, hata mesajları,
-// uyarılar; ileride günlük ve ilerleme satırı) CiktiYaz'dan geçer. Canlı satır kancası:
-// terminalin son satırında yeniden çizilen bir çıktı (ilerleme çubuğu) etkinse, metin
-// yazılmadan önce silinir ve sonra yeniden çizilir; çıktılar çubuğa karışmaz.
+// uyarılar; ileride günlük ve ilerleme satırı) CiktiYaz'dan geçer. Burada iki kanca vardır:
 //
-// Kanca kurulmamışsa maliyet bir atomik okumadır.
+//   - Gizli değer süzgeci: kayıtlı gizli değerler (ortam değişkeninden ya da komut satırından
+//     gelen anahtar, parola ...) çıktıda *** ile maskelenir. Bu bir sızıntı azaltma önlemidir,
+//     garanti değildir (metin dönüştürülünce eşleşme kaybolur). Veri çıktıları (dosya_yaz,
+//     JSON, yazdır'ın döndürdüğü değer) değiştirilmez.
+//   - Canlı satır: terminalin son satırında yeniden çizilen bir çıktı (ilerleme çubuğu)
+//     etkinse, metin yazılmadan önce silinir ve sonra yeniden çizilir; çıktılar çubuğa
+//     karışmaz.
+//
+// Kanca kurulmamışsa (gizli değer yok, canlı satır yok) maliyet iki atomik okumadır.
+
+// GizliMaske gizli değerlerin çıktıda yerine yazılan metindir.
+const GizliMaske = "***"
+
+// GizliDegerEnAzUzunluk süzgece alınan bir gizli değerin en az karakter sayısıdır; daha kısa
+// değerler sıradan metinlerde de geçeceğinden (çıktıyı bozmamak için) maskelenmez.
+const GizliDegerEnAzUzunluk = 6
 
 // CanliSatir terminalin son satırında yeniden çizilen bir çıktıdır (ör. ilerleme çubuğu).
 // Sil ve Ciz kendi akışına (çoğunlukla standart hata) yazar; VM onları çıktı kilidi altında
@@ -17,6 +32,38 @@ import (
 type CanliSatir interface {
 	Sil() // satırı ekrandan siler
 	Ciz() // satırı yeniden çizer
+}
+
+// GizliDegerEkle bir değeri gizli değer süzgecine kaydeder; değer en az
+// GizliDegerEnAzUzunluk karakter değilse kaydedilmez ve yanlış döner. Herhangi bir
+// goroutine'den çağrılabilir.
+func (v *VM) GizliDegerEkle(deger string) bool {
+	if len([]rune(deger)) < GizliDegerEnAzUzunluk {
+		return false
+	}
+	v.gizliMu.Lock()
+	defer v.gizliMu.Unlock()
+	if slices.Contains(v.gizliler, deger) {
+		return true
+	}
+	v.gizliler = append(v.gizliler, deger)
+	// Uzun değerler önce denenir: biri ötekini içerirse uzunu bütünüyle maskelensin.
+	sirali := slices.Clone(v.gizliler)
+	slices.SortFunc(sirali, func(a, b string) int { return len(b) - len(a) })
+	ciftler := make([]string, 0, 2*len(sirali))
+	for _, g := range sirali {
+		ciftler = append(ciftler, g, GizliMaske)
+	}
+	v.maske.Store(strings.NewReplacer(ciftler...))
+	return true
+}
+
+// Maskele metindeki kayıtlı gizli değerleri GizliMaske ile değiştirir.
+func (v *VM) Maskele(metin string) string {
+	if r := v.maske.Load(); r != nil {
+		return r.Replace(metin)
+	}
+	return metin
 }
 
 // CanliSatirAyarla etkin canlı satırı ayarlar (nil: kaldırır). Aynı anda tek canlı satır
@@ -36,9 +83,10 @@ func (v *VM) CanliSatirGuncelle(fn func()) {
 	fn()
 }
 
-// CiktiYaz insanın göreceği bir metni w'ye yazar: etkin canlı satır önce silinir, sonra
-// yeniden çizilir.
+// CiktiYaz insanın göreceği bir metni w'ye yazar: gizli değerler maskelenir, etkin canlı
+// satır önce silinir, sonra yeniden çizilir.
 func (v *VM) CiktiYaz(w io.Writer, metin string) {
+	metin = v.Maskele(metin)
 	if !v.canliVar.Load() {
 		_, _ = io.WriteString(w, metin)
 		return

@@ -55,6 +55,19 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `bakim/uret/*` | Üreteçler: Go kod sabitleri, `docs/kodlar.md`, eklentinin renklendirme listeleri (`go generate ./internal/dil/kod`) |
 | `bakim/kiyas/go` | Hız kıyas setinin derlenmiş başvuru sürümü |
 
+### Yorumlayıcı kancaları
+
+Motorlar ve standart kitaplık yorumlayıcıya (`internal/dil/yurut`) şu kancalarla bağlanır; yorumlayıcı onları bilmez:
+
+| Kanca | Görevi |
+| :-- | :-- |
+| `Yinelenebilir`, `Akis` | `döngü x içinde ...` ve liste üreteci: uzunluğu bilinen kaynak (tensör) ya da tembel akış (sıralı okuyucu) |
+| `YolDegerli`, `YolArgumani` | Yol alan yerleşiklerin ortak okuyucusu (Metin ya da ileride `Yol`; sekme/satır sonu ipucu, 13.1a) |
+| `CiktiYaz`, `CanliSatir` | İnsanın göreceği çıktı noktaları: etkin canlı satır (ilerleme çubuğu) silinip yeniden çizilir |
+| `GizliDegerEkle`, `Maskele` | Gizli değer süzgeci: kayıtlı değerler çıktı noktalarında `***` olur (veri çıktılarında değil) |
+| `ArgumanlariAyarla`, `Argumanlar` | Betiğin komut satırı argümanları (okunmazsa çıkışta uyarı) |
+| `Kes`, `ErrKesildi`, `KesilmeMi` | Nazik çıkış: Ctrl+C sonrası yığın çözülür, `ertele`ler çalışır; motorların panik kurtarıcıları `KesilmeMi` ile kesilmeyi yeniden atar |
+
 ## Klasörler
 
 | Klasör | İçerik |

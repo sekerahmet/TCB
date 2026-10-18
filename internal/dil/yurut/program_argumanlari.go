@@ -30,5 +30,5 @@ func (v *VM) KullanilmayanArgumanUyarisi() string {
 		return ""
 	}
 	return fmt.Sprintf("⚠️ Uyarı: programa verilen %d argüman kullanılmadı (%s); program komut satırı argümanlarını okumuyor",
-		len(v.argumanlar), strings.Join(v.argumanlar, " "))
+		len(v.argumanlar), v.Maskele(strings.Join(v.argumanlar, " ")))
 }
