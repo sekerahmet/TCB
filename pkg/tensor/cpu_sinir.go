@@ -4,7 +4,7 @@ import "math"
 
 // CPU arka ucu: sinir ağı işlemleri ve iyileştirici adımları.
 
-func (cpuBackend) Embedding(out Storage, w View, idx []int, D int) {
+func (cpuBackend) f32Embedding(out Storage, w View, idx []int, D int) {
 	wd := gatherCPU(w)
 	od := cd(out)
 	parallelFor(len(idx), D, func(lo, hi int) {
@@ -14,7 +14,7 @@ func (cpuBackend) Embedding(out Storage, w View, idx []int, D int) {
 	})
 }
 
-func (cpuBackend) EmbeddingGrad(gw, g Storage, idx []int, D int) {
+func (cpuBackend) f32EmbeddingGrad(gw, g Storage, idx []int, D int) {
 	wg, gd := cd(gw), cd(g)
 	V := len(wg) / max(D, 1)
 	// Tablo satırları işçilere bölünür; her işçi tüm indeksleri tarar ve yalnızca
@@ -34,7 +34,7 @@ func (cpuBackend) EmbeddingGrad(gw, g Storage, idx []int, D int) {
 	})
 }
 
-func (cpuBackend) CrossEntropy(x View, targets []int, C int) (Storage, Storage) {
+func (cpuBackend) f32CrossEntropy(x View, targets []int, C int) (Storage, Storage) {
 	xd := gatherCPU(x)
 	R := len(targets)
 	lse := make([]float32, R)
@@ -80,7 +80,7 @@ func (cpuBackend) CrossEntropy(x View, targets []int, C int) (Storage, Storage) 
 	return &cpuStorage{d: []float32{float32(ort)}}, &cpuStorage{d: lse}
 }
 
-func (cpuBackend) CrossEntropyGrad(gx, g Storage, x View, lse Storage, targets []int, C int) {
+func (cpuBackend) f32CrossEntropyGrad(gx, g Storage, x View, lse Storage, targets []int, C int) {
 	gecerli := 0
 	for _, t := range targets {
 		if t >= 0 {
@@ -178,7 +178,7 @@ func optGather(v *View) []float32 {
 	return gatherCPU(*v)
 }
 
-func (cpuBackend) LayerNorm(out Storage, x View, gamma, beta *View, D int, eps float32) (Storage, Storage) {
+func (cpuBackend) f32LayerNorm(out Storage, x View, gamma, beta *View, D int, eps float32) (Storage, Storage) {
 	xd := gatherCPU(x)
 	gd, bd := optGather(gamma), optGather(beta)
 	R := len(xd) / max(D, 1)
@@ -217,7 +217,7 @@ func (cpuBackend) LayerNorm(out Storage, x View, gamma, beta *View, D int, eps f
 	return &cpuStorage{d: mean}, &cpuStorage{d: rstd}
 }
 
-func (cpuBackend) LayerNormGrad(gx, ggamma, gbeta, g Storage, x View, gamma *View, mean, rstd Storage, D int) {
+func (cpuBackend) f32LayerNormGrad(gx, ggamma, gbeta, g Storage, x View, gamma *View, mean, rstd Storage, D int) {
 	xd := gatherCPU(x)
 	gd := optGather(gamma)
 	gr0, md, rd := cd(g), cd(mean), cd(rstd)
@@ -271,7 +271,7 @@ func (cpuBackend) LayerNormGrad(gx, ggamma, gbeta, g Storage, x View, gamma *Vie
 	pc.birlestir(gg, bg)
 }
 
-func (cpuBackend) RMSNorm(out Storage, x View, gamma *View, D int, eps float32) Storage {
+func (cpuBackend) f32RMSNorm(out Storage, x View, gamma *View, D int, eps float32) Storage {
 	xd := gatherCPU(x)
 	gd := optGather(gamma)
 	R := len(xd) / max(D, 1)
@@ -299,7 +299,7 @@ func (cpuBackend) RMSNorm(out Storage, x View, gamma *View, D int, eps float32) 
 	return &cpuStorage{d: rinv}
 }
 
-func (cpuBackend) RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv Storage, D int) {
+func (cpuBackend) f32RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv Storage, D int) {
 	xd := gatherCPU(x)
 	gd := optGather(gamma)
 	gr0, rd := cd(g), cd(rinv)
@@ -350,7 +350,7 @@ func (cpuBackend) RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv S
 // İyileştirici adımları
 // ----------------------------------------------------------------------------
 
-func (cpuBackend) SGDStep(p, g, vel Storage, lr, momentum, wd float32) {
+func (cpuBackend) f32SGDStep(p, g, vel Storage, lr, momentum, wd float32) {
 	d, gd, v := cd(p), cd(g), cd(vel)
 	parallelFor(len(d), 4, func(lo, hi int) {
 		for i := lo; i < hi; i++ {
@@ -364,7 +364,7 @@ func (cpuBackend) SGDStep(p, g, vel Storage, lr, momentum, wd float32) {
 	})
 }
 
-func (cpuBackend) AdamWStep(p, g, m, v Storage, lr, b1, b2, eps, wd, bc1, bc2 float32) {
+func (cpuBackend) f32AdamWStep(p, g, m, v Storage, lr, b1, b2, eps, wd, bc1, bc2 float32) {
 	d, gd, md, vd := cd(p), cd(g), cd(m), cd(v)
 	adimLR := lr / bc1
 	bc2s := sqrt32(bc2)
@@ -379,7 +379,7 @@ func (cpuBackend) AdamWStep(p, g, m, v Storage, lr, b1, b2, eps, wd, bc1, bc2 fl
 	})
 }
 
-func (cpuBackend) SumSquares(s Storage) float64 {
+func (cpuBackend) f32SumSquares(s Storage) float64 {
 	d := cd(s)
 	return parallelSum(len(d), 2, func(lo, hi int) float64 {
 		var t0, t1 float64
@@ -396,7 +396,7 @@ func (cpuBackend) SumSquares(s Storage) float64 {
 	})
 }
 
-func (cpuBackend) Scale(s Storage, k float32) {
+func (cpuBackend) f32Scale(s Storage, k float32) {
 	d := cd(s)
 	parallelFor(len(d), 1, func(lo, hi int) {
 		p := d[lo:hi]

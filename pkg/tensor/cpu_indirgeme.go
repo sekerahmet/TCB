@@ -28,7 +28,7 @@ const (
 	sutunBlok = 256
 )
 
-func (cpuBackend) Sum(out Storage, x View, axis int, scale float32) {
+func (cpuBackend) f32Sum(out Storage, x View, axis int, scale float32) {
 	xd := gatherCPU(x)
 	y := cd(out)
 	outer, dim, inner := eksenDuzeni(x.Shape, axis)
@@ -129,7 +129,7 @@ func toplam64(xs []float32) float64 {
 	return (s0 + s1) + (s2 + s3)
 }
 
-func (cpuBackend) SumAll(out Storage, x View, scale float32) {
+func (cpuBackend) f32SumAll(out Storage, x View, scale float32) {
 	xd := gatherCPU(x)
 	s := parallelSum(len(xd), 1, func(lo, hi int) float64 { return toplam64(xd[lo:hi]) })
 	cd(out)[0] = float32(s * float64(scale))
@@ -154,14 +154,14 @@ func argmaxCPU(xd []float32, outer, dim, inner int, fn func(k, d int, v float32)
 	})
 }
 
-func (cpuBackend) Max(out Storage, x View, axis int) {
+func (cpuBackend) f32Max(out Storage, x View, axis int) {
 	xd := gatherCPU(x)
 	y := cd(out)
 	outer, dim, inner := eksenDuzeni(x.Shape, axis)
 	argmaxCPU(xd, outer, dim, inner, func(k, d int, v float32) { y[k] = v })
 }
 
-func (cpuBackend) MaxGrad(gx, g Storage, x View, axis int) {
+func (cpuBackend) f32MaxGrad(gx, g Storage, x View, axis int) {
 	xd := gatherCPU(x)
 	pg, gd := cd(gx), cd(g)
 	outer, dim, inner := eksenDuzeni(x.Shape, axis)
@@ -171,7 +171,7 @@ func (cpuBackend) MaxGrad(gx, g Storage, x View, axis int) {
 	})
 }
 
-func (cpuBackend) ArgMax(x View, axis int) []int {
+func (cpuBackend) f32ArgMax(x View, axis int) []int {
 	xd := gatherCPU(x)
 	outer, dim, inner := eksenDuzeni(x.Shape, axis)
 	res := make([]int, outer*inner)
@@ -179,7 +179,7 @@ func (cpuBackend) ArgMax(x View, axis int) []int {
 	return res
 }
 
-func (cpuBackend) Softmax(out Storage, x View, axis int, logKip bool) {
+func (cpuBackend) f32Softmax(out Storage, x View, axis int, logKip bool) {
 	xd := gatherCPU(x)
 	y := cd(out)
 	outer, dim, inner := eksenDuzeni(x.Shape, axis)
@@ -261,7 +261,7 @@ func softmaxSatir(y, x []float32, logKip bool) {
 	}
 }
 
-func (cpuBackend) SoftmaxGrad(gx, g, y Storage, shape []int, axis int, logKip bool) {
+func (cpuBackend) f32SoftmaxGrad(gx, g, y Storage, shape []int, axis int, logKip bool) {
 	pg, gd, yd := cd(gx), cd(g), cd(y)
 	outer, dim, inner := eksenDuzeni(shape, axis)
 	rows := outer * inner

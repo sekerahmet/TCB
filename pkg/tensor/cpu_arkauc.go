@@ -3,7 +3,6 @@ package tensor
 import (
 	"fmt"
 	"math"
-	"sync"
 )
 
 // ============================================================================
@@ -12,27 +11,6 @@ import (
 //
 // Başvuru (referans) ve test arka ucudur; aynı zamanda çok çekirdekli ve
 // önbellek dostu olacak şekilde yazılmıştır.
-
-// cpuStorage ana bellekte düz float32 dilimi.
-type cpuStorage struct {
-	d    []float32
-	iade bool // havuza iade edildi (yeniden ayrılana kadar kullanılmamalı)
-}
-
-func (s *cpuStorage) Device() Device { return CPU }
-func (s *cpuStorage) Len() int       { return len(s.d) }
-
-// cd depolamanın CPU dilimini verir (nil için nil).
-func cd(s Storage) []float32 {
-	if s == nil {
-		return nil
-	}
-	c, ok := s.(*cpuStorage)
-	if !ok {
-		panic(fmt.Sprintf("tensor: CPU arka ucuna %s cihazından depolama verildi", s.Device()))
-	}
-	return c.d
-}
 
 // cpuBackend Backend arayüzünün CPU uygulaması.
 type cpuBackend struct{}
@@ -229,113 +207,10 @@ func copyPar(dst, src []float32) {
 }
 
 // ----------------------------------------------------------------------------
-// Bellek
-// ----------------------------------------------------------------------------
-
-// havuzEnAz bundan küçük depolamalar havuza alınmaz (küçük ayırmalar ucuzdur).
-const havuzEnAz = 1 << 12
-
-// cpuHavuz iade edilen depolamaları eleman sayısına göre tutar. Eğitimde aynı
-// boyutlar her adımda yinelendiğinden tam boyut eşlemesi yeterlidir; sync.Pool
-// kullanılmayan tamponları çöp toplayıcıya bırakır.
-var cpuHavuz struct {
-	mu sync.RWMutex
-	m  map[int]*sync.Pool
-}
-
-func havuzFor(n int, olustur bool) *sync.Pool {
-	cpuHavuz.mu.RLock()
-	h := cpuHavuz.m[n]
-	cpuHavuz.mu.RUnlock()
-	if h != nil || !olustur {
-		return h
-	}
-	cpuHavuz.mu.Lock()
-	defer cpuHavuz.mu.Unlock()
-	if cpuHavuz.m == nil {
-		cpuHavuz.m = map[int]*sync.Pool{}
-	}
-	if h = cpuHavuz.m[n]; h == nil {
-		h = &sync.Pool{}
-		cpuHavuz.m[n] = h
-	}
-	return h
-}
-
-// Alloc sıfırlanmış depolama verir; uygun boyutta iade edilmiş bir depolama
-// varsa onu (paralel olarak sıfırlayıp) yeniden kullanır.
-func (cpuBackend) Alloc(n int) Storage {
-	if n >= havuzEnAz {
-		if h := havuzFor(n, false); h != nil {
-			if s, ok := h.Get().(*cpuStorage); ok {
-				s.iade = false
-				d := s.d
-				parallelFor(len(d), 1, func(lo, hi int) { clear(d[lo:hi]) })
-				return s
-			}
-		}
-	}
-	return &cpuStorage{d: make([]float32, n)}
-}
-
-// Release depolamayı havuza iade eder (Releaser). Çağıran, depolamaya başka
-// hiçbir görünümün bakmadığını güvence eder.
-func (cpuBackend) Release(s Storage) {
-	c, ok := s.(*cpuStorage)
-	if !ok || len(c.d) < havuzEnAz {
-		return
-	}
-	if c.iade {
-		panic("tensor: depolama havuza iki kez iade edildi")
-	}
-	c.iade = true
-	havuzFor(len(c.d), true).Put(c)
-}
-
-func (cpuBackend) FromHost(data []float32) Storage {
-	d := make([]float32, len(data))
-	copy(d, data)
-	return &cpuStorage{d: d}
-}
-
-func (cpuBackend) ToHost(src View) []float32 {
-	out := make([]float32, src.Numel())
-	copyTo(out, src)
-	return out
-}
-
-func (cpuBackend) Copy(dst Storage, dstOff int, src View) {
-	copyTo(cd(dst)[dstOff:dstOff+src.Numel()], src)
-}
-
-// copyTo görünümü geçici dizi kullanmadan doğrudan hedefe yazar.
-func copyTo(out []float32, src View) {
-	if src.IsContiguous() {
-		copyPar(out, cd(src.S)[src.Offset:src.Offset+len(out)])
-		return
-	}
-	gatherInto(out, src)
-}
-
-func (cpuBackend) Fill(dst Storage, v float32) {
-	d := cd(dst)
-	parallelFor(len(d), 1, func(lo, hi int) {
-		p := d[lo:hi]
-		if v == 0 {
-			clear(p)
-			return
-		}
-		for i := range p {
-			p[i] = v
-		}
-	})
-}
-
-// ----------------------------------------------------------------------------
 // Gradyan biriktirme
 // ----------------------------------------------------------------------------
 
-func (cpuBackend) AddTo(dst, src Storage, scale float32) {
+func (cpuBackend) f32AddTo(dst, src Storage, scale float32) {
 	d, s := cd(dst), cd(src)
 	s = s[:len(d)]
 	parallelFor(len(d), 1, func(lo, hi int) {
@@ -351,7 +226,7 @@ func (cpuBackend) AddTo(dst, src Storage, scale float32) {
 	})
 }
 
-func (cpuBackend) ScatterAdd(dst Storage, dstOff int, dstStrides []int, src Storage, shape []int) {
+func (cpuBackend) f32ScatterAdd(dst Storage, dstOff int, dstStrides []int, src Storage, shape []int) {
 	d, s := cd(dst), cd(src)
 	iterRowsPar(shape, []int{0, dstOff}, [][]int{contiguousStrides(shape), dstStrides}, 1, func(off []int, n int, in []int) {
 		si, di, ss, ds := off[0], off[1], in[0], in[1]
@@ -361,7 +236,7 @@ func (cpuBackend) ScatterAdd(dst Storage, dstOff int, dstStrides []int, src Stor
 	})
 }
 
-func (cpuBackend) ExpandAdd(dst Storage, dstShape []int, src Storage, srcShape []int, scale float32) {
+func (cpuBackend) f32ExpandAdd(dst Storage, dstShape []int, src Storage, srcShape []int, scale float32) {
 	d, s := cd(dst), cd(src)
 	if numelOf(srcShape) == 1 {
 		// Skaler yayın (SumAll/MeanAll geri yayılımı).
@@ -443,7 +318,7 @@ func binStrided(op BinOp, out []float32, oo, os int, a []float32, ao, as int, b 
 	}
 }
 
-func (cpuBackend) Binary(op BinOp, out Storage, outShape []int, a, b View) {
+func (cpuBackend) f32Binary(op BinOp, out Storage, outShape []int, a, b View) {
 	od := cd(out)
 	n := numelOf(outShape)
 	if n == 0 {
@@ -473,7 +348,7 @@ func (cpuBackend) Binary(op BinOp, out Storage, outShape []int, a, b View) {
 	}
 }
 
-func (cpuBackend) BinaryGrad(mode GradMode, dst Storage, dstShape, outShape []int, g Storage, o View, y Storage) {
+func (cpuBackend) f32BinaryGrad(mode GradMode, dst Storage, dstShape, outShape []int, g Storage, o View, y Storage) {
 	dg, gd, yd := cd(dst), cd(g), cd(y)
 	n := numelOf(outShape)
 	var od []float32
@@ -812,7 +687,7 @@ func unaryGradDongu(op UnOp, p float32, gx, g, x, y []float32) {
 	}
 }
 
-func (cpuBackend) Unary(op UnOp, p float32, out Storage, x View) {
+func (cpuBackend) f32Unary(op UnOp, p float32, out Storage, x View) {
 	xd := gatherCPU(x)
 	y := cd(out)
 	parallelFor(len(xd), unaryMaliyet(op), func(lo, hi int) {
@@ -820,7 +695,7 @@ func (cpuBackend) Unary(op UnOp, p float32, out Storage, x View) {
 	})
 }
 
-func (cpuBackend) UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Storage) {
+func (cpuBackend) f32UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Storage) {
 	xd := gatherCPU(x)
 	pg, gd, yd := cd(gx), cd(g), cd(y)
 	parallelFor(len(xd), unaryMaliyet(op), func(lo, hi int) {

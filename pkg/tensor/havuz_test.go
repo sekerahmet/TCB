@@ -26,12 +26,12 @@ func TestHavuzYenidenKullanim(t *testing.T) {
 	}
 
 	be := cpuBackend{}
-	s := be.Alloc(havuzEnAz)
+	s := be.Alloc(havuzEnAz, Float32)
 	be.Fill(s, 7)
 	be.Release(s)
 	panikBekle(t, "iki kez iade", func() { be.Release(s) })
 	for i := 0; i < 3; i++ {
-		y := be.Alloc(havuzEnAz)
+		y := be.Alloc(havuzEnAz, Float32)
 		for _, v := range cd(y) {
 			if v != 0 {
 				t.Fatal("havuzdan gelen depolama sıfırlanmamış")

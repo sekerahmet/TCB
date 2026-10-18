@@ -34,7 +34,7 @@ func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
 			scale = 1 / float32(n)
 		}
 	}
-	out := zerosOn(t.be, reducedShape(t.shape, axis, keepdim))
+	out := zerosOf(t.be, reducedShape(t.shape, axis, keepdim), t.tur)
 	t.be.Sum(out.storage, t.view(), axis, scale)
 	kd := reducedShape(t.shape, axis, true)
 	return track(out, op, []*Tensor{t}, func() {
@@ -57,7 +57,7 @@ func (t *Tensor) allScaled(mean bool) *Tensor {
 			scale = 1 / float32(n)
 		}
 	}
-	out := zerosOn(t.be, nil)
+	out := zerosOf(t.be, nil, t.tur)
 	t.be.SumAll(out.storage, t.view(), scale)
 	return track(out, op, []*Tensor{t}, func() {
 		t.be.ExpandAdd(t.accGrad(), t.shape, out.grad, nil, scale)
@@ -71,11 +71,11 @@ func (t *Tensor) Max(axis int, keepdim bool) *Tensor {
 	if t.shape[axis] == 0 {
 		panic("tensor: boş eksende Max alınamaz")
 	}
-	out := zerosOn(t.be, reducedShape(t.shape, axis, keepdim))
+	out := zerosOf(t.be, reducedShape(t.shape, axis, keepdim), t.tur)
 	t.be.Max(out.storage, t.view(), axis)
 	return track(out, "max", []*Tensor{t}, func() {
 		t.be.MaxGrad(t.accGrad(), out.grad, t.view(), axis)
-	})
+	}, t)
 }
 
 // ArgMax verilen eksen boyunca en büyük elemanın indeksini verir (türevsiz).
@@ -93,7 +93,7 @@ func (t *Tensor) LogSoftmax(axis int) *Tensor { return t.softmaxImpl(axis, true)
 
 func (t *Tensor) softmaxImpl(axis int, logKip bool) *Tensor {
 	axis = normAxis(axis, len(t.shape))
-	out := zerosOn(t.be, t.shape)
+	out := zerosOf(t.be, t.shape, t.tur)
 	t.be.Softmax(out.storage, t.view(), axis, logKip)
 	op := "softmax"
 	if logKip {
@@ -101,5 +101,5 @@ func (t *Tensor) softmaxImpl(axis int, logKip bool) *Tensor {
 	}
 	return track(out, op, []*Tensor{t}, func() {
 		t.be.SoftmaxGrad(t.accGrad(), out.grad, out.storage, t.shape, axis, logKip)
-	})
+	}, out)
 }

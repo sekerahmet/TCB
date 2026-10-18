@@ -3,6 +3,7 @@ package tensor
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 // ============================================================================
@@ -24,6 +25,18 @@ import (
 //   - "Grad" ile biten yöntemler hedefin üzerine EKLER (gradyan birikimi).
 //   - Konak (host) tarafındaki []int indeksler (Embedding, CrossEntropy) arka
 //     uç tarafından gerekirse cihaza aktarılır.
+//   - Veri türü: her depolamanın bir eleman türü (DType) vardır. Girdi
+//     görünümleri ve hedefler herhangi bir kayan noktalı türde olabilir (ör.
+//     bfloat16 girdi, float32 gradyan); arka uç gerekirse türleri dönüştürür.
+//     Çıktının türü, çağıranın ayırdığı çıktı depolamasının türüdür.
+//   - Karışık hassasiyet: hesap türü (girdi/çıktı depolamalarının türü) ile
+//     biriktirme türü ayrıdır. Arka uçlar iç toplamaları (matris çarpımı,
+//     indirgemeler, normlar, softmax) en az float32 hassasiyetle yapar ve
+//     sonucu çıktı türüne bir kez (en yakına-çifte) yuvarlar.
+//   - Yerinde değişiklik: depolamanın içeriğini yerinde değiştiren tensör
+//     katmanı işlemleri (Set, iyileştirici adımları) BumpVersion çağırır;
+//     otomatik türev bunu ileri hesapta kaydedilen girdilerin bozulduğunu
+//     anlamak için kullanır.
 
 // DeviceKind cihaz türü.
 type DeviceKind int
@@ -58,11 +71,84 @@ func (d Device) String() string {
 	return fmt.Sprintf("cihaz(%d:%d)", d.Kind, d.Index)
 }
 
-// Storage bir cihazdaki düz float32 bellek bloğu.
+// DType depolamadaki eleman türü.
+type DType uint8
+
+const (
+	// Float32 32 bitlik kayan nokta (varsayılan).
+	Float32 DType = iota
+	// BFloat16 16 bitlik beyin kayan noktası: float32 ile aynı üs aralığı,
+	// 8 bitlik anlamlı kısım (7 bit saklanır).
+	BFloat16
+	// Float16 IEEE 754 yarım hassasiyet: 5 bit üs, 10 bit anlamlı kısım.
+	Float16
+	// Int8 nicemlenmiş çıkarım için ayrılmıştır (ölçek ayrı tutulur); henüz
+	// hiçbir arka uç hesap desteği sunmaz.
+	Int8
+	// Int4 4 bitlik paketli tamsayı (bir baytta iki eleman), nicemlenmiş
+	// çıkarım için ayrılmıştır; henüz hiçbir arka uç hesap desteği sunmaz.
+	Int4
+)
+
+func (d DType) String() string {
+	switch d {
+	case Float32:
+		return "float32"
+	case BFloat16:
+		return "bfloat16"
+	case Float16:
+		return "float16"
+	case Int8:
+		return "int8"
+	case Int4:
+		return "int4"
+	}
+	return fmt.Sprintf("tür(%d)", uint8(d))
+}
+
+// Bits bir elemanın bit sayısı.
+func (d DType) Bits() int {
+	switch d {
+	case Float32:
+		return 32
+	case BFloat16, Float16:
+		return 16
+	case Int8:
+		return 8
+	case Int4:
+		return 4
+	}
+	return 0
+}
+
+// IsFloat kayan noktalı (türevlenebilir) bir tür mü.
+func (d DType) IsFloat() bool { return d == Float32 || d == BFloat16 || d == Float16 }
+
+// StorageBytes n elemanın bu türde kapladığı bayt (paketli türler yukarı yuvarlanır).
+func (d DType) StorageBytes(n int) int { return (n*d.Bits() + 7) / 8 }
+
+// Storage bir cihazdaki düz bellek bloğu (Len eleman, DType türünde). Her
+// depolamanın, içeriği yerinde her değiştirildiğinde artan bir sürüm sayacı
+// vardır (bkz. VersionCounter).
 type Storage interface {
 	Device() Device
 	Len() int
+	DType() DType
+	// Version depolamanın sürüm sayacı.
+	Version() uint64
+	// BumpVersion sürüm sayacını artırır (yerinde değişiklikten sonra).
+	BumpVersion()
 }
+
+// VersionCounter depolama uygulamalarına gömülebilen, eşzamanlı kullanıma
+// güvenli sürüm sayacı (Storage arayüzünün Version/BumpVersion yöntemleri).
+type VersionCounter struct{ v atomic.Uint64 }
+
+// Version sayacın değeri.
+func (c *VersionCounter) Version() uint64 { return c.v.Load() }
+
+// BumpVersion sayacı bir artırır.
+func (c *VersionCounter) BumpVersion() { c.v.Add(1) }
 
 // View bir depolamaya ofset, şekil ve adımlarla bakan salt okunur tanım.
 type View struct {
@@ -71,6 +157,9 @@ type View struct {
 	Shape   []int
 	Strides []int
 }
+
+// DType görünümün eleman türü.
+func (v View) DType() DType { return v.S.DType() }
 
 // Numel görünümdeki eleman sayısı.
 func (v View) Numel() int { return numelOf(v.Shape) }
@@ -124,13 +213,16 @@ type Backend interface {
 
 	// --- Bellek ---
 
-	// Alloc n elemanlı sıfırlanmış depolama ayırır.
-	Alloc(n int) Storage
-	// FromHost konak verisini kopyalayarak depolama oluşturur.
-	FromHost(data []float32) Storage
-	// ToHost görünümün elemanlarını mantıksal sırayla konağa kopyalar.
+	// Alloc n elemanlı, dt türünde sıfırlanmış depolama ayırır. Arka ucun
+	// desteklemediği türlerde panik verir.
+	Alloc(n int, dt DType) Storage
+	// FromHost konak verisini dt türüne (en yakına-çifte yuvarlayarak)
+	// dönüştürüp kopyalayarak depolama oluşturur.
+	FromHost(data []float32, dt DType) Storage
+	// ToHost görünümün elemanlarını mantıksal sırayla float32 olarak konağa kopyalar.
 	ToHost(src View) []float32
-	// Copy src'yi dst'ye dstOff'tan başlayarak bitişik yazar.
+	// Copy src'yi dst'ye dstOff'tan başlayarak bitişik yazar; türler farklıysa
+	// dönüştürür (en yakına-çifte).
 	Copy(dst Storage, dstOff int, src View)
 	// Fill tüm elemanları v yapar.
 	Fill(dst Storage, v float32)

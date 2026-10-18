@@ -25,7 +25,7 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 		}
 	}
 	ix := append([]int(nil), idx...)
-	out := zerosOn(w.be, append(copyInts(shape), D))
+	out := zerosOf(w.be, append(copyInts(shape), D), w.tur)
 	w.be.Embedding(out.storage, w.view(), ix, D)
 	return track(out, "embedding", []*Tensor{w}, func() {
 		w.be.EmbeddingGrad(w.accGrad(), out.grad, ix, D)
@@ -56,7 +56,7 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	out := fromStorage(be, loss, nil)
 	return track(out, "cross_entropy", []*Tensor{logits}, func() {
 		be.CrossEntropyGrad(logits.accGrad(), out.grad, logits.view(), lse, tg, C)
-	})
+	}, logits)
 }
 
 func optView(t *Tensor) *View {
@@ -82,7 +82,7 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 	checkNormParam("LayerNorm", gamma, D)
 	checkNormParam("LayerNorm", beta, D)
 	be := sameDevice("LayerNorm", x, gamma, beta)
-	out := zerosOn(be, x.shape)
+	out := zerosOf(be, x.shape, x.tur)
 	gv := optView(gamma)
 	mean, rstd := be.LayerNorm(out.storage, x.view(), gv, optView(beta), D, eps)
 	parents := []*Tensor{x}
@@ -94,7 +94,7 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 	}
 	return track(out, "layer_norm", parents, func() {
 		be.LayerNormGrad(optGrad(x), optGrad(gamma), optGrad(beta), out.grad, x.view(), gv, mean, rstd, D)
-	})
+	}, x, gamma)
 }
 
 // RMSNorm son eksen boyunca karekök-ortalama-kare normalleştirmesi:
@@ -103,7 +103,7 @@ func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
 	D := x.shape[len(x.shape)-1]
 	checkNormParam("RMSNorm", gamma, D)
 	be := sameDevice("RMSNorm", x, gamma)
-	out := zerosOn(be, x.shape)
+	out := zerosOf(be, x.shape, x.tur)
 	gv := optView(gamma)
 	rinv := be.RMSNorm(out.storage, x.view(), gv, D, eps)
 	parents := []*Tensor{x}
@@ -112,7 +112,7 @@ func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
 	}
 	return track(out, "rms_norm", parents, func() {
 		be.RMSNormGrad(optGrad(x), optGrad(gamma), out.grad, x.view(), gv, rinv, D)
-	})
+	}, x, gamma)
 }
 
 func checkNormParam(op string, p *Tensor, D int) {

@@ -32,6 +32,7 @@ type Tensor struct {
 	offset  int     // depodaki ilk elemanın konumu
 	shape   []int   // her eksenin uzunluğu
 	strides []int   // her eksende bir adım ilerlemenin depodaki karşılığı
+	tur     DType   // eleman türü (depolamanın türü)
 
 	grad         Storage // bitişik gradyan (şekil = shape), gerekince ayrılır
 	requiresGrad bool
@@ -41,6 +42,9 @@ type Tensor struct {
 	parents  []*Tensor
 	backward func()
 	op       string // hata ayıklama için işlem adı
+	// kayitli, geri yayılımın okuyacağı girdilerin ileri hesap anındaki
+	// depolama sürümleri (yerinde değişiklik denetimi).
+	kayitli []kayitliSurum
 	// serbest, geri yayılımdan sonra çizge bağları bırakılmış bir ara tensörü
 	// işaretler; böyle bir tensör üzerinden ikinci kez geri yayılım yapılamaz.
 	serbest bool
@@ -126,13 +130,16 @@ func normAxis(axis, ndim int) int {
 // fromStorage depolamayı bitişik tensör olarak sarar.
 func fromStorage(be Backend, s Storage, shape []int) *Tensor {
 	sh := copyInts(shape)
-	return &Tensor{storage: s, be: be, shape: sh, strides: contiguousStrides(sh)}
+	return &Tensor{storage: s, be: be, shape: sh, strides: contiguousStrides(sh), tur: s.DType()}
 }
 
-// zerosOn verilen arka uçta sıfırlarla dolu bitişik tensör ayırır.
-func zerosOn(be Backend, shape []int) *Tensor {
+// zerosOn verilen arka uçta sıfırlarla dolu bitişik float32 tensör ayırır.
+func zerosOn(be Backend, shape []int) *Tensor { return zerosOf(be, shape, Float32) }
+
+// zerosOf verilen arka uçta dt türünde sıfırlarla dolu bitişik tensör ayırır.
+func zerosOf(be Backend, shape []int, dt DType) *Tensor {
 	checkShape(shape)
-	return fromStorage(be, be.Alloc(numelOf(shape)), shape)
+	return fromStorage(be, be.Alloc(numelOf(shape), dt), shape)
 }
 
 func defaultBackend() Backend { return BackendFor(DefaultDevice()) }
@@ -144,7 +151,7 @@ func NewOn(dev Device, data []float32, shape ...int) *Tensor {
 		panic(fmt.Sprintf("tensor: %d eleman %v şekline uymuyor", len(data), shape))
 	}
 	be := BackendFor(dev)
-	return fromStorage(be, be.FromHost(data), shape)
+	return fromStorage(be, be.FromHost(data, Float32), shape)
 }
 
 // New veriyi kopyalayarak varsayılan cihazda tensör oluşturur.
@@ -258,8 +265,15 @@ func (t *Tensor) IsLeaf() bool { return t.backward == nil }
 
 // Detach aynı veriyi paylaşan, çizgeden kopuk ve gradyansız bir görünüm verir.
 func (t *Tensor) Detach() *Tensor {
-	return &Tensor{storage: t.storage, be: t.be, offset: t.offset, shape: copyInts(t.shape), strides: copyInts(t.strides)}
+	return &Tensor{storage: t.storage, be: t.be, offset: t.offset, shape: copyInts(t.shape), strides: copyInts(t.strides), tur: t.tur}
 }
+
+// DType tensörün eleman türü.
+func (t *Tensor) DType() DType { return t.tur }
+
+// Version tensörün depolamasının sürüm sayacı (yerinde her değişiklikte artar;
+// aynı depolamayı paylaşan görünümlerde ortaktır).
+func (t *Tensor) Version() uint64 { return t.storage.Version() }
 
 // Data elemanların mantıksal sırayla (satır öncelikli) konaktaki bir kopyasını verir.
 func (t *Tensor) Data() []float32 { return t.be.ToHost(t.view()) }
@@ -288,9 +302,12 @@ func (t *Tensor) At(idx ...int) float32 {
 }
 
 // Set verilen indeksteki değeri yazar (çizgeye kaydedilmez; yaprak verisi
-// düzenlemek içindir).
+// düzenlemek içindir). Yerinde değişiklik olduğundan depolamanın sürümü artar:
+// bu tensörü ileri hesapta kullanmış ve henüz geri yayılmamış bir çizge varsa
+// geri yayılım hata verir.
 func (t *Tensor) Set(v float32, idx ...int) {
-	t.be.Copy(t.storage, t.index(idx), View{S: t.be.FromHost([]float32{v})})
+	t.be.Copy(t.storage, t.index(idx), View{S: t.be.FromHost([]float32{v}, Float32)})
+	t.storage.BumpVersion()
 }
 
 func (t *Tensor) index(idx []int) int {
@@ -334,9 +351,9 @@ func (t *Tensor) To(dev Device) *Tensor {
 		return t
 	}
 	hedef := BackendFor(dev)
-	out := fromStorage(hedef, hedef.FromHost(t.Data()), t.shape)
+	out := fromStorage(hedef, hedef.FromHost(t.Data(), t.tur), t.shape)
 	return track(out, "to", []*Tensor{t}, func() {
-		g := t.be.FromHost(hedef.ToHost(View{S: out.grad, Shape: out.shape, Strides: contiguousStrides(out.shape)}))
+		g := t.be.FromHost(hedef.ToHost(View{S: out.grad, Shape: out.shape, Strides: contiguousStrides(out.shape)}), gradTuru(t.tur))
 		t.be.AddTo(t.accGrad(), g, 1)
 	})
 }
@@ -345,6 +362,9 @@ func (t *Tensor) To(dev Device) *Tensor {
 func (t *Tensor) String() string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "Tensor(şekil=%v, cihaz=%s", t.shape, t.Device())
+	if t.tur != Float32 {
+		fmt.Fprintf(&sb, ", tür=%s", t.tur)
+	}
 	if t.requiresGrad {
 		sb.WriteString(", gradyan")
 	}
@@ -383,7 +403,7 @@ func (t *Tensor) contigView() View {
 	if t.IsContiguous() {
 		return t.view()
 	}
-	s := t.be.Alloc(t.Numel())
+	s := t.be.Alloc(t.Numel(), t.tur)
 	t.be.Copy(s, 0, t.view())
 	return View{S: s, Shape: t.shape, Strides: contiguousStrides(t.shape)}
 }
@@ -393,7 +413,7 @@ func (t *Tensor) denseStorage() Storage {
 	if t.IsContiguous() && t.offset == 0 {
 		return t.storage
 	}
-	s := t.be.Alloc(t.Numel())
+	s := t.be.Alloc(t.Numel(), t.tur)
 	t.be.Copy(s, 0, t.view())
 	return s
 }

@@ -146,7 +146,7 @@ func TestParalelCekirdeklerSiraliylaAyni(t *testing.T) {
 		}},
 		{"kare toplamı", func() []float32 {
 			p := x.Detach().SetRequiresGrad(true)
-			p.grad = p.be.Alloc(p.Numel())
+			p.grad = p.be.Alloc(p.Numel(), Float32)
 			p.be.Copy(p.grad, 0, x.view())
 			n := ClipGradNorm([]*Tensor{p}, 1)
 			return append([]float32{float32(n)}, p.Grad().Data()...)

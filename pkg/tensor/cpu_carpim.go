@@ -288,7 +288,7 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 	wg.Wait()
 }
 
-func (cpuBackend) Gemm(batch, M, N, K int, a View, transA bool, b View, transB bool, c Storage) {
+func (cpuBackend) f32Gemm(batch, M, N, K int, a View, transA bool, b View, transB bool, c Storage) {
 	if !a.IsContiguous() || !b.IsContiguous() {
 		panic(fmt.Sprintf("tensor: Gemm bitişik girdiler ister (%v, %v)", a.Shape, b.Shape))
 	}

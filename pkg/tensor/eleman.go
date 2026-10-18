@@ -78,8 +78,15 @@ var binopAd = [...]string{"add", "sub", "mul", "div"}
 func binary(a, b *Tensor, op BinOp) *Tensor {
 	be := sameDevice(binopAd[op], a, b)
 	outShape := broadcastShapes(a.shape, b.shape)
-	out := zerosOn(be, outShape)
+	out := zerosOf(be, outShape, sonucTuru(a.tur, b.tur))
 	be.Binary(op, out.storage, outShape, a.view(), b.view())
+	var kaydet []*Tensor // geri yayılımın okuduğu girdiler
+	switch op {
+	case OpMul:
+		kaydet = []*Tensor{a, b}
+	case OpDiv:
+		kaydet = []*Tensor{b, out}
+	}
 	return track(out, binopAd[op], []*Tensor{a, b}, func() {
 		g := out.grad
 		sh := out.shape
@@ -111,7 +118,7 @@ func binary(a, b *Tensor, op BinOp) *Tensor {
 				be.BinaryGrad(GradDivB, b.accGrad(), b.shape, sh, g, b.view(), out.storage)
 			}
 		}
-	})
+	}, kaydet...)
 }
 
 // Add eleman bazlı toplama (yayınlamalı).
@@ -149,11 +156,18 @@ var unopAd = map[UnOp]string{
 }
 
 func unary(t *Tensor, op UnOp, p float32) *Tensor {
-	out := zerosOn(t.be, t.shape)
+	out := zerosOf(t.be, t.shape, t.tur)
 	t.be.Unary(op, p, out.storage, t.view())
+	var kaydet []*Tensor
+	switch op {
+	case OpAddScalar, OpMulScalar, OpRSubScalar:
+		// Doğrusal: geri yayılım girdiyi okumaz.
+	default:
+		kaydet = []*Tensor{t, out}
+	}
 	return track(out, unopAd[op], []*Tensor{t}, func() {
 		t.be.UnaryGrad(op, p, t.accGrad(), out.grad, t.view(), out.storage)
-	})
+	}, kaydet...)
 }
 
 // AddScalar her elemana s ekler.

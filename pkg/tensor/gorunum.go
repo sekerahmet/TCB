@@ -8,7 +8,7 @@ import "fmt"
 
 // viewOf ebeveynle depoyu paylaşan yeni bir tensör başlığı üretir.
 func viewOf(t *Tensor, offset int, shape, strides []int) *Tensor {
-	return &Tensor{storage: t.storage, be: t.be, offset: offset, shape: shape, strides: strides}
+	return &Tensor{storage: t.storage, be: t.be, offset: offset, shape: shape, strides: strides, tur: t.tur}
 }
 
 // scatterBackward, görünümün bitişik gradyanını ebeveynin gradyan tamponuna
@@ -26,7 +26,7 @@ func scatterBackward(parent, out *Tensor, gOff int, gStrides []int) func() {
 // ara gradyanı ayrıca bırakmaz/iade etmez). Aksi halde üzerine eklenir.
 func gradDevret(t, out *Tensor) {
 	g := out.grad
-	if t.grad == nil && g.Len() == t.Numel() {
+	if t.grad == nil && g.Len() == t.Numel() && g.DType() == gradTuru(t.tur) {
 		t.grad = g
 		out.grad = nil
 		return
@@ -193,14 +193,14 @@ func (t *Tensor) Contiguous() *Tensor {
 	if t.IsContiguous() {
 		return t
 	}
-	out := zerosOn(t.be, t.shape)
+	out := zerosOf(t.be, t.shape, t.tur)
 	t.be.Copy(out.storage, 0, t.view())
 	return track(out, "contiguous", []*Tensor{t}, func() { gradDevret(t, out) })
 }
 
 // Clone verinin bitişik bir kopyasını üretir (türevlenebilir).
 func (t *Tensor) Clone() *Tensor {
-	out := zerosOn(t.be, t.shape)
+	out := zerosOf(t.be, t.shape, t.tur)
 	t.be.Copy(out.storage, 0, t.view())
 	return track(out, "clone", []*Tensor{t}, func() { gradDevret(t, out) })
 }

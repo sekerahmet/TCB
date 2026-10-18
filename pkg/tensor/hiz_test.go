@@ -69,7 +69,7 @@ func BenchmarkHizScatterAdd(b *testing.B) {
 	// Dilim görünümünün geri yayılımı: (R, 3D) içinden orta D sütun.
 	x := hizRand(hizR, 3*hizD)
 	g := hizRand(hizR, hizD)
-	hedef := x.be.Alloc(x.Numel())
+	hedef := x.be.Alloc(x.Numel(), Float32)
 	st := contiguousStrides(x.shape)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -90,7 +90,7 @@ func BenchmarkHizExpandAdd(b *testing.B) {
 func BenchmarkHizSapmaGradyani(b *testing.B) {
 	// BinaryGrad genel yolu: (R, D) + (D) toplamının sapma gradyanı.
 	g := hizRand(hizR, hizD)
-	hedef := g.be.Alloc(hizD)
+	hedef := g.be.Alloc(hizD, Float32)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		g.be.BinaryGrad(GradPlus, hedef, []int{hizD}, g.shape, g.storage, View{}, nil)
@@ -104,7 +104,7 @@ func BenchmarkHizEmbeddingGrad(b *testing.B) {
 	for i := range idx {
 		idx[i] = i * 31 % V
 	}
-	hedef := g.be.Alloc(V * hizD)
+	hedef := g.be.Alloc(V*hizD, Float32)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		g.be.EmbeddingGrad(hedef, g.storage, idx, hizD)
@@ -149,8 +149,8 @@ func BenchmarkHizRelu(b *testing.B) {
 // Tekli çekirdekler, ayırma dışında (çıktı önceden ayrılmış).
 func BenchmarkHizTekliCekirdek(b *testing.B) {
 	x := hizRand(hizR, 4*hizD)
-	out := x.be.Alloc(x.Numel())
-	g := x.be.Alloc(x.Numel())
+	out := x.be.Alloc(x.Numel(), Float32)
+	g := x.be.Alloc(x.Numel(), Float32)
 	for _, op := range []struct {
 		ad string
 		op UnOp

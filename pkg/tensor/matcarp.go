@@ -10,7 +10,12 @@ import "fmt"
 // Bitişik olmayan girdiler (ör. devrik görünümler) arka uca verilmeden önce
 // bitişik hale getirilir. Geri yayılım devrikleri kopyalamaz; arka ucun
 // transA/transB bayraklarını kullanır.
-func MatMul(a, b *Tensor) *Tensor {
+func MatMul(a, b *Tensor) *Tensor { return MatMulOut(a, b, sonucTuru(a.tur, b.tur)) }
+
+// MatMulOut çıktı türü açıkça verilen matris çarpımı (karışık hassasiyet: ör.
+// bfloat16 girdiler, float32 çıktı). Arka uç iç toplamayı en az float32'de
+// yapar ve sonucu çıktı türüne bir kez yuvarlar.
+func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	be := sameDevice("matmul", a, b)
 	if len(a.shape) < 2 || len(b.shape) < 2 {
 		panic(fmt.Sprintf("tensor: MatMul en az 2 boyutlu girdiler ister, %v @ %v", a.shape, b.shape))
@@ -37,7 +42,7 @@ func MatMul(a, b *Tensor) *Tensor {
 	}
 
 	av, bv := a.contigView(), b.contigView()
-	out := zerosOn(be, outShape)
+	out := zerosOf(be, outShape, outType)
 	be.Gemm(batch, M, N, K, av, false, bv, false, out.storage)
 
 	return track(out, "matmul", []*Tensor{a, b}, func() {
@@ -50,7 +55,7 @@ func MatMul(a, b *Tensor) *Tensor {
 			// dB (K×N) += Aᵀ · dC
 			be.Gemm(batch, K, N, M, av, true, g, false, b.accGrad())
 		}
-	})
+	}, a, b)
 }
 
 // MatMul yöntem biçimi.
