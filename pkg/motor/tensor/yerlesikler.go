@@ -34,6 +34,7 @@ func Kaydet(v *vm.VM) {
 
 	// --- Görünüm ---
 	sar(v, sozluk.T+120, yeniYerlesik(devrikYerlesik))
+	sar(v, sozluk.T+121, yeniYerlesik(birlestirYerlesik)) // model_araclari.go
 
 	// --- Eleman bazlı matematik ---
 	birli(v, sozluk.T+200, (*ct.Tensor).Relu, relu64)
@@ -43,35 +44,37 @@ func Kaydet(v *vm.VM) {
 	birli(v, sozluk.G+404, (*ct.Tensor).Sqrt, nil) // karekök
 	birli(v, sozluk.T+220, (*ct.Tensor).Exp, math.Exp)
 	birli(v, sozluk.T+221, (*ct.Tensor).Log, math.Log)
+	birli(v, sozluk.T+222, (*ct.Tensor).Sin, math.Sin)
+	birli(v, sozluk.T+223, (*ct.Tensor).Cos, math.Cos)
 
 	// --- Softmax ---
 	softmaxKaydet(v, sozluk.T+210, false)
 	softmaxKaydet(v, sozluk.T+211, true)
 
 	// --- İndirgemeler (toplam, ortalama, maks, min) ---
-	indirgeme(v, sozluk.G+400, func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	indirgeme(v, sozluk.G+400, func(t *ct.Tensor, e int, tum, koru bool) *ct.Tensor {
 		if tum {
 			return t.SumAll()
 		}
-		return t.Sum(e, false)
+		return t.Sum(e, koru)
 	})
-	indirgeme(v, sozluk.G+410, func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	indirgeme(v, sozluk.G+410, func(t *ct.Tensor, e int, tum, koru bool) *ct.Tensor {
 		if tum {
 			return t.MeanAll()
 		}
-		return t.Mean(e, false)
+		return t.Mean(e, koru)
 	})
-	indirgeme(v, sozluk.G+402, func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	indirgeme(v, sozluk.G+402, func(t *ct.Tensor, e int, tum, koru bool) *ct.Tensor {
 		if tum {
 			return t.Reshape(-1).Max(0, false)
 		}
-		return t.Max(e, false)
+		return t.Max(e, koru)
 	})
-	indirgeme(v, sozluk.G+401, func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	indirgeme(v, sozluk.G+401, func(t *ct.Tensor, e int, tum, koru bool) *ct.Tensor {
 		if tum {
 			return enKucukTum(t)
 		}
-		return t.Neg().Max(e, false).Neg()
+		return t.Neg().Max(e, koru).Neg()
 	})
 
 	// --- Sinir ağı ---
@@ -80,6 +83,9 @@ func Kaydet(v *vm.VM) {
 	sar(v, sozluk.T+501, yeniYerlesik(katmanNormu))
 	sar(v, sozluk.T+502, yeniYerlesik(rmsNormu))
 	sar(v, sozluk.T+511, yeniYerlesik(kayipMSE))
+	sar(v, sozluk.T+503, yeniYerlesik(dikkatYerlesik)) // model_araclari.go
+	sar(v, sozluk.T+530, yeniYerlesik(parametrelerYerlesik))
+	sar(v, sozluk.T+611, yeniYerlesik(orneklemeYerlesik))
 
 	// --- Hazır sinir ağı modeli (sinir_agi.go) ---
 	sar(v, sozluk.T+520, yeniYerlesik(sinirAgiKur))
@@ -485,7 +491,9 @@ func softmaxKaydet(v *vm.VM, kod sozluk.Kod, logKip bool) {
 
 // indirgeme toplam/ortalama/maks/min'i kaydeder. Eksen verilmezse tüm elemanlar
 // indirgenir ve 0 boyutlu (skaler) tensör döner; eksen verilirse o eksen kaldırılır.
-func indirgeme(v *vm.VM, kod sozluk.Kod, fn func(t *ct.Tensor, eksen int, tum bool) *ct.Tensor) {
+// boyutu_koru: doğru indirgenen ekseni (eksen verilmezse bütün eksenleri) 1 uzunlukta
+// korur: [B, T, D] → [B, T, 1].
+func indirgeme(v *vm.VM, kod sozluk.Kod, fn func(t *ct.Tensor, eksen int, tum, koru bool) *ct.Tensor) {
 	ad := sozluk.Ad(kod)
 	maksMin := kod == sozluk.G+402 || kod == sozluk.G+401 // maks, min
 	sar(v, kod, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
@@ -504,13 +512,16 @@ func indirgeme(v *vm.VM, kod sozluk.Kod, fn func(t *ct.Tensor, eksen int, tum bo
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, eksen: ...) en fazla 2 parametre alır, %d verildi", ad, len(args))
 			}
-			if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
+			if err := baglama.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
+				return nil, err
+			}
+			koru, err := adliMantik(ad, named, adBoyutuKoru, false)
+			if err != nil {
 				return nil, err
 			}
 			t := args[0].(*Deger).t
 			if !maksMin {
 				// Karışık hassasiyet bloğunda toplam/ortalama float32'de yapılır.
-				var err error
 				if t, err = yuksekHassasiyet(m, t); err != nil {
 					return nil, err
 				}
@@ -530,7 +541,17 @@ func indirgeme(v *vm.VM, kod sozluk.Kod, fn func(t *ct.Tensor, eksen int, tum bo
 			} else if maksMin && t.Numel() == 0 {
 				return nil, fmt.Errorf("%s: boş tensörün (%s) en büyük/küçük elemanı yoktur", ad, sekilMetni(sh))
 			}
-			r, err := guvenli(func() *ct.Tensor { return fn(t, e, !verildi) })
+			r, err := guvenli(func() *ct.Tensor {
+				r := fn(t, e, !verildi, koru)
+				if koru && !verildi {
+					birler := make([]int, len(sh))
+					for i := range birler {
+						birler[i] = 1
+					}
+					r = r.Reshape(birler...)
+				}
+				return r
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -598,6 +619,9 @@ func maksIndeks(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value,
 // koruyarak katlar, diğer durumlar açık hata verir.
 func tensorOlmayanIndirgeme(kod sozluk.Kod, eski vm.BuiltinFunc, m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	ad := sozluk.Ad(kod)
+	if _, ok := baglama.AdliAl(named, adBoyutuKoru); ok {
+		return nil, fmt.Errorf("%s: boyutu_koru: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0, boyutu_koru: doğru)", ad, tipAdi(args[0]), ad)
+	}
 	if _, ok := baglama.AdliAl(named, adEksen); ok {
 		return nil, fmt.Errorf("%s: eksen: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0)", ad, tipAdi(args[0]), ad)
 	}

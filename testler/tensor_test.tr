@@ -420,3 +420,144 @@ test "15.7a iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar 
     doğrula(q.değer[0] < 0.99, "varsayılan ana kopyayla değer: {q.değer[0]}")
     doğrula(hata_metni(() => SGD([q], ana_kopya: 1)).içerir("ana_kopya doğru ya da yanlış olmalıdır"))
 }
+
+// en_büyük_fark: iki tensörün elemanları arasındaki en büyük kare fark.
+fonksiyon en_büyük_fark(a, b) {
+    değişken d = a - b
+    sonuç maks(d * d).değer
+}
+
+test "15.14 sinüs ve kosinüs: sayıda, listede ve tensörde; türevli" {
+    eşit_mi(0.0, sinüs(0))
+    eşit_mi(1.0, kosinüs(0.0))
+    eşit_mi("Liste", tip(kosinüs([0, 1])))
+    değişken x = tensör([0.0, 1.0, 3.0], türev_izle: doğru)
+    değişken y = sinüs(x)
+    eşit_mi("Tensör", tip(y))
+    doğrula(mutlak(y.değer[2] - sinüs(3.0)) < 0.0000001)
+    geri_yayılım(toplam(y) + toplam(kosinüs(x)))
+    // d/dx (sin x + cos x) = cos x - sin x
+    doğrula(mutlak(x.gradyan.değer[1] - (kosinüs(1.0) - sinüs(1.0))) < 0.000001)
+}
+
+test "15.15 birleştir ve .böl" {
+    değişken a = tensör([[1, 2], [3, 4]], türev_izle: doğru)
+    değişken b = tensör([[5], [6]], türev_izle: doğru)
+    değişken c = birleştir([a, b], eksen: -1)
+    eşit_mi([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]], c.değer)
+    eşit_mi([[1.0, 2.0], [3.0, 4.0], [1.0, 2.0], [3.0, 4.0]], birleştir([a, a], eksen: 0).değer)
+    geri_yayılım(toplam(c * tensör([1, 2, 3])))
+    eşit_mi([[3.0], [3.0]], b.gradyan.değer)
+    doğrula(hata_metni(() => birleştir([a, tensör([[1, 2, 3]])], eksen: 0)).içerir("0. eksen dışındaki eksenler eşit olmalı"))
+    doğrula(hata_metni(() => birleştir([])).içerir("liste boş"))
+    // .böl eşit parçalar verir; parçalar türev izleyen görünümlerdir.
+    değişken t = tensör([[1, 2, 3, 4, 5, 6]], türev_izle: doğru)
+    değişken parçalar = t.böl(3)
+    eşit_mi(3, uzunluk(parçalar))
+    eşit_mi([[5.0, 6.0]], parçalar[2].değer)
+    eşit_mi([[3.0, 4.0]], tensör([[1, 2], [3, 4]]).böl(2, eksen: 0)[1].değer)
+    geri_yayılım(toplam(parçalar[1]))
+    eşit_mi([[0.0, 0.0, 1.0, 1.0, 0.0, 0.0]], t.gradyan.değer)
+    doğrula(hata_metni(() => tensör([1, 2, 3]).böl(2)).içerir("2 eşit parçaya bölünemez"))
+    // Metin'in .böl'ü aynı addır ve değişmez.
+    eşit_mi(["a", "b"], "a b".böl(" "))
+}
+
+test "15.16 indirgemelerde boyutu_koru" {
+    değişken x = tensör([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    eşit_mi([2, 2, 1], toplam(x, eksen: -1, boyutu_koru: doğru).şekil)
+    eşit_mi([[[2.0], [4.0]], [[6.0], [8.0]]], maks(x, eksen: -1, boyutu_koru: doğru).değer)
+    eşit_mi([2, 1, 2], ortalama(x, eksen: 1, boyutu_koru: doğru).şekil)
+    eşit_mi([1, 2, 2], min(x, eksen: 0, boyutu_koru: doğru).şekil)
+    eşit_mi([1, 1, 1], toplam(x, boyutu_koru: doğru).şekil)
+    eşit_mi([2, 2], toplam(x, eksen: -1).şekil)
+    // Korunan eksen yayınlamayla geri bölünebilir.
+    eşit_mi([[0.25, 0.75]], (tensör([[1.0, 3.0]]) / toplam(tensör([[1.0, 3.0]]), eksen: -1, boyutu_koru: doğru)).değer)
+    doğrula(hata_metni(() => toplam([1, 2], boyutu_koru: doğru)).içerir("yalnızca tensörlerde"))
+}
+
+test "15.17 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli üretim" {
+    değişken q = tensör(rastgele_normal([2, 4, 6, 8], tohum: 1), türev_izle: doğru)
+    değişken k = tensör(rastgele_normal([2, 2, 6, 8], tohum: 2), türev_izle: doğru)
+    değişken v = tensör(rastgele_normal([2, 2, 6, 8], tohum: 3), türev_izle: doğru)
+    // Bileşik sürüm: k ve v başları gruplara kopyalanır, maske toplamsaldır.
+    değişken satırlar = []
+    döngü i içinde 0..6 {
+        değişken s = []
+        döngü j içinde 0..6 { eğer j <= i { s.ekle(0.0) } değilse { s.ekle(-1000000000.0) } }
+        satırlar.ekle(s)
+    }
+    değişken ek = tensör(satırlar)
+    fonksiyon çoğalt(t) {
+        değişken b = t.böl(2, eksen: 1)
+        sonuç birleştir([b[0], b[0], b[1], b[1]], eksen: 1)
+    }
+    değişken beklenen = softmax((q @ çoğalt(k).devrik()) * (1.0 / karekök(8)) + ek, eksen: -1) @ çoğalt(v)
+    değişken o = dikkat(q, k, v)
+    eşit_mi([2, 4, 6, 8], o.şekil)
+    doğrula(en_büyük_fark(o, beklenen) < 0.0000000001)
+    // Gradyanlar da aynıdır.
+    geri_yayılım(toplam(beklenen * beklenen))
+    değişken gq = tensör(q.gradyan)
+    değişken gk = tensör(k.gradyan)
+    değişken q2 = tensör(q, türev_izle: doğru)
+    değişken k2 = tensör(k, türev_izle: doğru)
+    değişken o2 = dikkat(q2, k2, v)
+    geri_yayılım(toplam(o2 * o2))
+    doğrula(en_büyük_fark(q2.gradyan, gq) < 0.0000000001)
+    doğrula(en_büyük_fark(k2.gradyan, gk) < 0.0000000001)
+    // pencere: 1 yalnızca kendi konumuna bakar: çıktı kendi değeridir.
+    doğrula(en_büyük_fark(dikkat(q, k, v, pencere: 1)[0][0], v[0][0]) < 0.0000000001)
+    // Tq < Tk (önbellekli üretim): son sorgu bütün anahtarları görür, nedensellik sondan hizalıdır.
+    değişken son = dikkat(q.dilim(2, 5, 6), k, v)
+    doğrula(en_büyük_fark(son[0][0][0], o[0][0][5]) < 0.0000000001)
+    // Ek maske: 1 bakılır, 0 bakılmaz; yayınlanır.
+    değişken m = birler([6, 6])
+    m[3] = 0
+    m[3][1] = 1
+    doğrula(en_büyük_fark(dikkat(q, k, v, nedensel: yanlış, maske: m)[1][2][3], v[1][1][1]) < 0.0000000001)
+    doğrula(hata_metni(() => dikkat(q, rastgele_normal([2, 3, 6, 8]), rastgele_normal([2, 3, 6, 8]))).içerir("katı olmalıdır"))
+    doğrula(hata_metni(() => dikkat(q, k, v, ölçek: 1)).içerir("'ölçek' adında bir parametre almaz"))
+    // Karışık hassasiyet: girdiler bf16'ya çevrilir, sonuç float32.
+    eşit_mi("float32", karışık_hassasiyet("bf16") { dikkat(q, k, v) }.tür)
+}
+
+test "15.18 örnekle: sıcaklık, en_iyi_k, tohum" {
+    değişken l = tensör([[0.0, 3.0, 1.0], [2.0, 0.0, 0.5]])
+    değişken e = örnekle(l, sıcaklık: 0)
+    eşit_mi([1, 0], e.değer)
+    eşit_mi(maks_indeks(l).değer, e.değer)
+    eşit_mi("Tam", tip(örnekle(tensör([1.0, 2.0])).değer))
+    eşit_mi([], örnekle(tensör([1.0, 2.0])).şekil)
+    eşit_mi(örnekle(l, tohum: 4).değer, örnekle(l, tohum: 4).değer)
+    eşit_mi([1, 0], örnekle(l, en_iyi_k: 1).değer)
+    değişken düz = birler([64, 50])
+    doğrula(örnekle(düz).değer != örnekle(düz).değer, "tohumsuz çağrılar farklı olmalı")
+    // en_iyi_k: 2 en olası ikisi dışında kalanı hiç seçmez.
+    değişken seçilen = örnekle(birler([500, 3]) * tensör([1.0, 1.1, 1.2]), en_iyi_k: 2, tohum: 1).değer
+    doğrula(!seçilen.içerir(0))
+    doğrula(seçilen.içerir(1) ve seçilen.içerir(2))
+    doğrula(hata_metni(() => örnekle(l, sıcaklık: -1)).içerir("sıcaklık negatif olmayan"))
+}
+
+test "15.19 parametreler: sabit sıra, tekillik, yol adları" {
+    fonksiyon p(x) { sonuç tensör([x], türev_izle: doğru) }
+    yapı Dikkat { Wq, Wk }
+    yapı Blok { dikkat, mlp }
+    yapı Model { gömme, bloklar, son }
+    değişken ortak = p(9)
+    değişken m = Model(p(1), [Blok(Dikkat(p(2), ortak), [p(3)]), Blok(Dikkat(p(4), p(5)), {"W1": p(6), "sabit": tensör([0.0])})], ortak)
+    değişken l = parametreler(m)
+    eşit_mi([1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0], [x.değer[0] döngü x içinde l])
+    doğrula(l[0] == m.gömme)
+    değişken adlar = parametreler(m, adlarıyla: doğru)
+    eşit_mi(["gömme", "bloklar.0.dikkat.Wq", "bloklar.0.dikkat.Wk", "bloklar.0.mlp.0", "bloklar.1.dikkat.Wq", "bloklar.1.dikkat.Wk", "bloklar.1.mlp.W1"], adlar.anahtarlar())
+    eşit_mi([4.0], adlar["bloklar.1.dikkat.Wq"].değer)
+    // Ara sonuçlar ve türev izlemeyen tensörler parametre değildir.
+    eşit_mi(0, uzunluk(parametreler([p(1) * 2, tensör([1.0])])))
+    // Sonuç doğrudan iyileştiriciye verilebilir.
+    değişken op = SGD(parametreler(m), öğrenme_oranı: 1.0)
+    geri_yayılım(toplam(m.gömme * 2))
+    op.adım()
+    eşit_mi([-1.0], m.gömme.değer)
+}

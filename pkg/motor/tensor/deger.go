@@ -560,7 +560,7 @@ const (
 )
 
 // tensorUyeKodlari öneri listesinin sırasıdır.
-var tensorUyeKodlari = []sozluk.Kod{uyeSekil, uyeCihaz, uyeTur, uyeGradyan, uyeDeger, uyeSekillendir, uyeDevrik, uyeEksenleriSirala, uyeDilim, uyeCihaza, uyeTure}
+var tensorUyeKodlari = []sozluk.Kod{uyeSekil, uyeCihaz, uyeTur, uyeGradyan, uyeDeger, uyeSekillendir, uyeDevrik, uyeEksenleriSirala, uyeDilim, uyeCihaza, uyeTure, uyeBol}
 
 var tensorUyeleri = sozluk.Adlar(tensorUyeKodlari...)
 
@@ -609,6 +609,8 @@ func (d *Deger) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 		return d.metot(uyeDilim, d.dilim), nil
 	case uyeCihaza:
 		return d.metot(uyeCihaza, d.cihaza), nil
+	case uyeBol:
+		return d.metot(uyeBol, d.bol), nil
 	}
 	oneri := ""
 	if k, _, eski := sozluk.EskiBul(sozluk.AlanUye, prop, tensorUyesi); eski {
