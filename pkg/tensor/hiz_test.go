@@ -138,6 +138,24 @@ func BenchmarkHizRelu(b *testing.B) {
 	}
 }
 
+// Tekli çekirdekler, ayırma dışında (çıktı önceden ayrılmış).
+func BenchmarkHizTekliCekirdek(b *testing.B) {
+	x := hizRand(hizR, 4*hizD)
+	out := x.be.Alloc(x.Numel())
+	g := x.be.Alloc(x.Numel())
+	for _, op := range []struct {
+		ad string
+		op UnOp
+	}{{"relu", OpRelu}, {"gelu", OpGelu}, {"mul_scalar", OpMulScalar}, {"exp", OpExp}} {
+		b.Run(op.ad, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				x.be.Unary(op.op, 0.5, out, x.view())
+				x.be.UnaryGrad(op.op, 0.5, g, out, x.view(), out)
+			}
+		})
+	}
+}
+
 func BenchmarkHizKucukIslem(b *testing.B) {
 	// paralelEsik'in biraz üstünde: işçi sayısı işe göre sınırlanmalı.
 	x := hizRand(64, 1024)

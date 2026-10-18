@@ -557,84 +557,193 @@ func sigmoid32(x float32) float32 {
 	return float32(e / (1 + e))
 }
 
-// unaryFns tekli işlemin ileri işlevini ve yerel türevini (x, y'ye göre) verir.
-func unaryFns(op UnOp, p float32) (func(x float32) float32, func(x, y float32) float32) {
+// gelu32 tanh yaklaşımlı GELU.
+func gelu32(x float32) float32 {
+	xd := float64(x)
+	u := geluC * (xd + geluA*xd*xd*xd)
+	return float32(0.5 * xd * (1 + math.Tanh(u)))
+}
+
+// geluTurev32 GELU'nun x'e göre türevi.
+func geluTurev32(x float32) float32 {
+	xd := float64(x)
+	u := geluC * (xd + geluA*xd*xd*xd)
+	th := math.Tanh(u)
+	du := geluC * (1 + 3*geluA*xd*xd)
+	return float32(0.5*(1+th) + 0.5*xd*(1-th*th)*du)
+}
+
+// unaryMaliyet bir elemanın yaklaşık göreli maliyeti (işçi sayısı seçimi için).
+func unaryMaliyet(op UnOp) int {
+	switch op {
+	case OpAddScalar, OpMulScalar, OpRSubScalar, OpRelu:
+		return 1
+	case OpRDivScalar, OpSqrt:
+		return 4
+	}
+	return 16
+}
+
+// unaryDongu y = f(x). İşlem seçimi döngünün dışındadır: her işlemin kendi sıkı
+// döngüsü vardır, eleman başına dolaylı çağrı yapılmaz.
+func unaryDongu(op UnOp, p float32, y, x []float32) {
+	y = y[:len(x)]
 	switch op {
 	case OpExp:
-		return exp32, func(x, y float32) float32 { return y }
+		for i, v := range x {
+			y[i] = exp32(v)
+		}
 	case OpLog:
-		return log32, func(x, y float32) float32 { return 1 / x }
+		for i, v := range x {
+			y[i] = log32(v)
+		}
 	case OpSqrt:
-		return sqrt32, func(x, y float32) float32 { return 0.5 / y }
+		for i, v := range x {
+			y[i] = sqrt32(v)
+		}
 	case OpPow:
 		switch p {
 		case 1:
-			return func(x float32) float32 { return x }, func(x, y float32) float32 { return 1 }
+			copy(y, x)
 		case 2:
-			return func(x float32) float32 { return x * x }, func(x, y float32) float32 { return 2 * x }
+			for i, v := range x {
+				y[i] = v * v
+			}
+		default:
+			pd := float64(p)
+			for i, v := range x {
+				y[i] = float32(math.Pow(float64(v), pd))
+			}
 		}
-		pd := float64(p)
-		return func(x float32) float32 { return float32(math.Pow(float64(x), pd)) },
-			func(x, y float32) float32 { return p * float32(math.Pow(float64(x), pd-1)) }
 	case OpTanh:
-		return tanh32, func(x, y float32) float32 { return 1 - y*y }
+		for i, v := range x {
+			y[i] = tanh32(v)
+		}
 	case OpRelu:
-		return func(x float32) float32 {
-				if x > 0 {
-					return x
-				}
-				return 0
-			}, func(x, y float32) float32 {
-				if x > 0 {
-					return 1
-				}
-				return 0
+		for i, v := range x {
+			if v > 0 {
+				y[i] = v
+			} else {
+				y[i] = 0
 			}
+		}
 	case OpGelu:
-		return func(x float32) float32 {
-				xd := float64(x)
-				u := geluC * (xd + geluA*xd*xd*xd)
-				return float32(0.5 * xd * (1 + math.Tanh(u)))
-			}, func(x, y float32) float32 {
-				xd := float64(x)
-				u := geluC * (xd + geluA*xd*xd*xd)
-				th := math.Tanh(u)
-				du := geluC * (1 + 3*geluA*xd*xd)
-				return float32(0.5*(1+th) + 0.5*xd*(1-th*th)*du)
-			}
+		for i, v := range x {
+			y[i] = gelu32(v)
+		}
 	case OpSigmoid:
-		return sigmoid32, func(x, y float32) float32 { return y * (1 - y) }
+		for i, v := range x {
+			y[i] = sigmoid32(v)
+		}
 	case OpAddScalar:
-		return func(x float32) float32 { return x + p }, func(x, y float32) float32 { return 1 }
+		for i, v := range x {
+			y[i] = v + p
+		}
 	case OpMulScalar:
-		return func(x float32) float32 { return x * p }, func(x, y float32) float32 { return p }
+		for i, v := range x {
+			y[i] = v * p
+		}
 	case OpRSubScalar:
-		return func(x float32) float32 { return p - x }, func(x, y float32) float32 { return -1 }
+		for i, v := range x {
+			y[i] = p - v
+		}
 	case OpRDivScalar:
-		return func(x float32) float32 { return p / x }, func(x, y float32) float32 { return -y / x }
+		for i, v := range x {
+			y[i] = p / v
+		}
+	default:
+		panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))
 	}
-	panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))
+}
+
+// unaryGradDongu gx += g·f'(x, y); işlem seçimi döngünün dışındadır.
+func unaryGradDongu(op UnOp, p float32, gx, g, x, y []float32) {
+	g = g[:len(gx)]
+	x = x[:len(gx)]
+	y = y[:len(gx)]
+	switch op {
+	case OpExp:
+		for i, v := range g {
+			gx[i] += v * y[i]
+		}
+	case OpLog:
+		for i, v := range g {
+			gx[i] += v * (1 / x[i])
+		}
+	case OpSqrt:
+		for i, v := range g {
+			gx[i] += v * (0.5 / y[i])
+		}
+	case OpPow:
+		switch p {
+		case 1:
+			for i, v := range g {
+				gx[i] += v
+			}
+		case 2:
+			for i, v := range g {
+				gx[i] += v * (2 * x[i])
+			}
+		default:
+			pd := float64(p)
+			for i, v := range g {
+				gx[i] += v * (p * float32(math.Pow(float64(x[i]), pd-1)))
+			}
+		}
+	case OpTanh:
+		for i, v := range g {
+			gx[i] += v * (1 - y[i]*y[i])
+		}
+	case OpRelu:
+		for i, v := range g {
+			if x[i] > 0 {
+				gx[i] += v
+			} else {
+				gx[i] += v * 0 // NaN/sonsuz gradyan yayılımı önceki davranışla aynı
+			}
+		}
+	case OpGelu:
+		for i, v := range g {
+			gx[i] += v * geluTurev32(x[i])
+		}
+	case OpSigmoid:
+		for i, v := range g {
+			gx[i] += v * (y[i] * (1 - y[i]))
+		}
+	case OpAddScalar:
+		for i, v := range g {
+			gx[i] += v
+		}
+	case OpMulScalar:
+		for i, v := range g {
+			gx[i] += v * p
+		}
+	case OpRSubScalar:
+		for i, v := range g {
+			gx[i] -= v
+		}
+	case OpRDivScalar:
+		for i, v := range g {
+			gx[i] += v * (-y[i] / x[i])
+		}
+	default:
+		panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))
+	}
 }
 
 func (cpuBackend) Unary(op UnOp, p float32, out Storage, x View) {
-	f, _ := unaryFns(op, p)
 	xd := gatherCPU(x)
 	y := cd(out)
-	parallelFor(len(xd), 4, func(lo, hi int) {
-		for i := lo; i < hi; i++ {
-			y[i] = f(xd[i])
-		}
+	parallelFor(len(xd), unaryMaliyet(op), func(lo, hi int) {
+		unaryDongu(op, p, y[lo:hi], xd[lo:hi])
 	})
 }
 
 func (cpuBackend) UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Storage) {
-	_, df := unaryFns(op, p)
 	xd := gatherCPU(x)
 	pg, gd, yd := cd(gx), cd(g), cd(y)
-	parallelFor(len(xd), 4, func(lo, hi int) {
-		for i := lo; i < hi; i++ {
-			pg[i] += gd[i] * df(xd[i], yd[i])
-		}
+	parallelFor(len(xd), unaryMaliyet(op), func(lo, hi int) {
+		unaryGradDongu(op, p, pg[lo:hi], gd[lo:hi], xd[lo:hi], yd[lo:hi])
 	})
 }
 
