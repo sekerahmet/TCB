@@ -320,30 +320,27 @@ func (a *dfAyristirici) karakterDugumu(r rune) dfDugum {
 	return k
 }
 
-func (a *dfAyristirici) sinifDugumu(f func(rune) bool) dfDugum {
-	if a.duyarsiz {
-		g := f
-		f = func(r rune) bool {
-			if g(r) {
+// katlamaYorungesi büyük/küçük harf duyarsız eşleşmede r'nin eşdeğerleridir
+// (başvuru uygulamasından çıkarılmış tablo; bkz. ozelliktablo.go).
+func katlamaYorungesi(r rune) []rune { return ifadeKatlama[r] }
+
+// sinifKatla köşeli parantezli bir sınıfı büyük/küçük harf duyarsız yapar:
+// bir karakter, kendisi ya da bir eşdeğeri sınıftaysa eşleşir. Başvurudaki
+// gibi yalnızca köşeli parantezli sınıflara ve olumsuzlamadan önce uygulanır
+// ((?i)[^a-z] "A"yı da dışlar); köşeli parantezsiz \p{..}, \w, \d, \s
+// katlanmaz.
+func sinifKatla(g func(rune) bool) func(rune) bool {
+	return func(r rune) bool {
+		if g(r) {
+			return true
+		}
+		for _, c := range ifadeKatlama[r] {
+			if g(c) {
 				return true
 			}
-			for c := unicode.SimpleFold(r); c != r; c = unicode.SimpleFold(c) {
-				if g(c) {
-					return true
-				}
-			}
-			return false
 		}
+		return false
 	}
-	return &dfSinif{f}
-}
-
-func katlamaYorungesi(r rune) []rune {
-	var out []rune
-	for c := unicode.SimpleFold(r); c != r; c = unicode.SimpleFold(c) {
-		out = append(out, c)
-	}
-	return out
 }
 
 func (a *dfAyristirici) oge() (dfDugum, error) {
@@ -352,11 +349,17 @@ func (a *dfAyristirici) oge() (dfDugum, error) {
 	case '(':
 		return a.grup()
 	case '[':
-		f, err := a.sinif()
+		f, olumsuz, err := a.sinifIc()
 		if err != nil {
 			return nil, err
 		}
-		return a.sinifDugumu(f), nil
+		if a.duyarsiz {
+			f = sinifKatla(f)
+		}
+		if olumsuz {
+			f = dfDegil(f)
+		}
+		return &dfSinif{f}, nil
 	case '.':
 		a.i++
 		return &dfNokta{a.noktaSatir}, nil
@@ -672,7 +675,7 @@ func (a *dfAyristirici) kacis() (dfDugum, error) {
 	if f, ok, err := a.kacisSinifi(c); err != nil {
 		return nil, err
 	} else if ok {
-		return a.sinifDugumu(f), nil
+		return &dfSinif{f}, nil // köşeli parantezsiz sınıflar (?i) ile katlanmaz
 	}
 	if r, ok, err := a.kacisKarakteri(c); err != nil {
 		return nil, err
@@ -682,12 +685,22 @@ func (a *dfAyristirici) kacis() (dfDugum, error) {
 	return a.karakterDugumu(c), nil
 }
 
-// sinif "[...]" karakter sınıfını ayrıştırır.
+// sinif "[...]" karakter sınıfını (olumsuzlaması uygulanmış olarak) ayrıştırır.
 func (a *dfAyristirici) sinif() (func(rune) bool, error) {
+	f, olumsuz, err := a.sinifIc()
+	if err == nil && olumsuz {
+		f = dfDegil(f)
+	}
+	return f, err
+}
+
+// sinifIc "[...]" karakter sınıfının olumsuzlanmamış kümesini ve olumsuz
+// olup olmadığını verir.
+func (a *dfAyristirici) sinifIc() (func(rune) bool, bool, error) {
 	a.i++ // '['
 	defer func() { a.derinlik-- }()
 	if err := a.gir(); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	olumsuz := false
 	if a.bak() == '^' {
@@ -699,7 +712,7 @@ func (a *dfAyristirici) sinif() (func(rune) bool, error) {
 	ilk := true
 	for {
 		if a.son() {
-			return nil, fmt.Errorf("karakter sınıfı kapanmamış")
+			return nil, false, fmt.Errorf("karakter sınıfı kapanmamış")
 		}
 		c := a.bak()
 		if c == ']' && !ilk {
@@ -722,14 +735,14 @@ func (a *dfAyristirici) sinif() (func(rune) bool, error) {
 		if c == '[' {
 			f, err := a.sinif()
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			parcalar = append(parcalar, f)
 			continue
 		}
 		bas, f, err := a.sinifOgesi()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if f != nil {
 			parcalar = append(parcalar, f)
@@ -741,7 +754,7 @@ func (a *dfAyristirici) sinif() (func(rune) bool, error) {
 			a.i++
 			bit, f2, err := a.sinifOgesi()
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			if f2 != nil {
 				// "a-\d" gibi: '-' düz karakterdir.
@@ -750,7 +763,7 @@ func (a *dfAyristirici) sinif() (func(rune) bool, error) {
 				continue
 			}
 			if bit < bas {
-				return nil, fmt.Errorf("geçersiz karakter aralığı")
+				return nil, false, fmt.Errorf("geçersiz karakter aralığı")
 			}
 			lo, hi := bas, bit
 			parcalar = append(parcalar, func(r rune) bool { return r >= lo && r <= hi })
@@ -770,10 +783,7 @@ func (a *dfAyristirici) sinif() (func(rune) bool, error) {
 			return true
 		}
 	}
-	if olumsuz {
-		f = dfDegil(f)
-	}
-	return f, nil
+	return f, olumsuz, nil
 }
 
 func dfTek(c rune) func(rune) bool { return func(r rune) bool { return r == c } }
@@ -834,8 +844,8 @@ func (a *dfAyristirici) posixSinif() (func(rune) bool, bool) {
 	if k+1 >= len(a.s) || a.s[k] != ':' || a.s[k+1] != ']' {
 		return nil, false
 	}
-	f, err := unicodeOzelligi(string(a.s[j:k]))
-	if err != nil {
+	f, ok := dfPosixler()[string(a.s[j:k])]
+	if !ok {
 		return nil, false
 	}
 	a.i = k + 2
@@ -862,7 +872,8 @@ func unicodeOzelligi(ad string) (func(rune) bool, error) {
 
 var (
 	dfOzellikBir     sync.Once
-	dfOzellikTablosu map[string]func(rune) bool
+	dfOzellikTablosu map[string]func(rune) bool // \p{ad}
+	dfPosixTablosu   map[string]func(rune) bool // [[:ad:]]
 )
 
 func dfOzellikler() map[string]func(rune) bool {
@@ -870,71 +881,35 @@ func dfOzellikler() map[string]func(rune) bool {
 	return dfOzellikTablosu
 }
 
+func dfPosixler() map[string]func(rune) bool {
+	dfOzellikBir.Do(dfOzellikKur)
+	return dfPosixTablosu
+}
+
+// dfOzellikKur sınıf tablolarını kurar. Bütün tablolar (genel kategoriler,
+// yazı sistemleri, ikili özellikler, POSIX sınıfları) başvuru uygulamasının
+// düzenli ifade motorundan çıkarılmıştır (karaktertablo.go, ozelliktablo.go):
+// Unicode sürümü ve sınıf tanımları (ör. [[:punct:]] = P ve ASCII simgeleri)
+// onunla aynıdır; başvurunun tanımadığı adlar burada da tanınmaz.
 func dfOzellikKur() {
-	m := make(map[string]func(rune) bool)
-	tablo := func(t *unicode.RangeTable) func(rune) bool { return func(r rune) bool { return unicode.Is(t, r) } }
-	for ad, t := range unicode.Categories {
-		m[strings.ToLower(ad)] = tablo(t)
-	}
-	for ad, t := range unicode.Scripts {
-		m[strings.ToLower(strings.ReplaceAll(ad, "_", ""))] = tablo(t)
-	}
-	for ad, t := range unicode.Properties {
-		m[strings.ToLower(strings.ReplaceAll(ad, "_", ""))] = tablo(t)
-	}
-	atanmis := func(r rune) bool {
-		for _, t := range []*unicode.RangeTable{unicode.L, unicode.M, unicode.N, unicode.P, unicode.S, unicode.Z, unicode.C} {
-			if unicode.Is(t, r) {
-				return true
-			}
-		}
-		return false
-	}
-	m["cn"] = dfDegil(atanmis)
-	m["c"] = func(r rune) bool { return unicode.Is(unicode.C, r) || !atanmis(r) }
-	// Genel kategoriler için başvuru uygulamasından çıkarılmış tablolar
-	// (Go'nun tablolarından daha yeni Unicode sürümünü yansıtabilir).
+	m := make(map[string]func(rune) bool, len(ifadeKategori)+len(ifadeOzellikKategori)+len(ifadeOzellikAdlari))
 	for ad, t := range ifadeKategori {
-		m[ad] = t.icinde
+		if ad != "bosluk" { // \s için iç tablo; bir özellik adı değil
+			m[ad] = t.icinde
+		}
 	}
-	m["unassigned"] = m["cn"]
-	m["assigned"] = dfDegil(m["cn"])
-	m["other"] = m["c"]
-	m["any"] = func(rune) bool { return true }
-	uzun := map[string]string{
-		"letter": "l", "uppercaseletter": "lu", "lowercaseletter": "ll", "titlecaseletter": "lt",
-		"modifierletter": "lm", "otherletter": "lo", "mark": "m", "combiningmark": "m", "nonspacingmark": "mn",
-		"spacingmark": "mc", "enclosingmark": "me", "number": "n", "decimalnumber": "nd", "letternumber": "nl",
-		"othernumber": "no", "punctuation": "p", "connectorpunctuation": "pc", "dashpunctuation": "pd",
-		"openpunctuation": "ps", "closepunctuation": "pe", "initialpunctuation": "pi", "finalpunctuation": "pf",
-		"otherpunctuation": "po", "symbol": "s", "mathsymbol": "sm", "currencysymbol": "sc",
-		"modifiersymbol": "sk", "othersymbol": "so", "separator": "z", "spaceseparator": "zs",
-		"lineseparator": "zl", "paragraphseparator": "zp", "control": "cc", "cntrl": "cc", "format": "cf",
-		"privateuse": "co", "surrogate": "cs",
+	for ad, k := range ifadeOzellikKategori {
+		m[ad] = ifadeKategori[k].icinde
 	}
-	for u, k := range uzun {
-		m[u] = m[k]
+	for ad, i := range ifadeOzellikAdlari {
+		m[ad] = ifadeOzellikTablolari[i].icinde
 	}
-	m["lc"] = func(r rune) bool { return unicode.In(r, unicode.Lu, unicode.Ll, unicode.Lt) }
-	m["l&"] = m["lc"]
-	m["alphabetic"] = func(r rune) bool {
-		return unicode.IsLetter(r) || unicode.In(r, unicode.Nl, unicode.Other_Alphabetic)
+	p := make(map[string]func(rune) bool, len(ifadePosixAdlari)+len(ifadePosixKategori))
+	for ad, k := range ifadePosixKategori {
+		p[ad] = ifadeKategori[k].icinde
 	}
-	m["alpha"] = m["alphabetic"]
-	m["digit"] = dfRakam
-	m["alnum"] = func(r rune) bool { return m["alphabetic"](r) || dfRakam(r) }
-	m["space"] = unicode.IsSpace
-	m["whitespace"] = unicode.IsSpace
-	m["word"] = ifadeSozcuk
-	m["upper"] = func(r rune) bool { return unicode.In(r, unicode.Lu, unicode.Other_Uppercase) }
-	m["uppercase"] = m["upper"]
-	m["lower"] = func(r rune) bool { return unicode.In(r, unicode.Ll, unicode.Other_Lowercase) }
-	m["lowercase"] = m["lower"]
-	m["punct"] = tablo(unicode.P)
-	m["xdigit"] = dfOnaltilik
-	m["blank"] = func(r rune) bool { return r == '\t' || unicode.Is(unicode.Zs, r) }
-	m["graph"] = func(r rune) bool { return !unicode.IsSpace(r) && !unicode.Is(unicode.C, r) && atanmis(r) }
-	m["print"] = func(r rune) bool { return m["graph"](r) || unicode.Is(unicode.Zs, r) }
-	m["ascii"] = func(r rune) bool { return r < 128 }
-	dfOzellikTablosu = m
+	for ad, i := range ifadePosixAdlari {
+		p[ad] = ifadeOzellikTablolari[i].icinde
+	}
+	dfOzellikTablosu, dfPosixTablosu = m, p
 }
