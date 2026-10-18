@@ -7,8 +7,8 @@
 // cmd/tr, internal/motor/gpusinama).
 
 sabit TABAN = yol(yol("veri").mutlak.üst_klasör, "gecici_kontrol_noktasi")
-değişken GEÇİCİ = ortam_değişkeni("TEMP") ?? ortam_değişkeni("TMPDIR") ?? "/tmp"
-değişken GÜNLÜKLER = "{GEÇİCİ}/tr_kontrol_noktasi_{zaman_ms()}"
+// Günlük dosyaları bu koşunun geçici klasöründe (18.14); program bitince silinir.
+değişken GÜNLÜKLER = geçici_klasör()
 
 // hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
 fonksiyon hata_metni(f) {

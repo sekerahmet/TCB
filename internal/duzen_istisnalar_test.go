@@ -69,11 +69,11 @@ var uzunFonksiyonlar = map[string]istisna{
 	"tools/kiyas/go/kiyas.go:main":                          {92, nUretec + " (kıyas programları sırayla)"},
 
 	// Motorlar
-	"internal/motor/ogrenme/ozel_turev.go:turevDenetle":             {181, nYerlesik + " (sayısal türev denetimi)"},
-	"internal/motor/ogrenme/yazdirma.go:Deger.Inspect":              {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
-	"internal/motor/ogrenme/model_araclari.go:orneklemeYerlesik":    {118, nYerlesik},
-	"internal/motor/ogrenme/yerlesik_indirgeme.go:indirgeme":        {85, nYerlesik},
-	"internal/motor/parcalayici/parcalayici.go:Nesne.kodla":         {88, nYerlesik},
+	"internal/motor/ogrenme/ozel_turev.go:turevDenetle":          {181, nYerlesik + " (sayısal türev denetimi)"},
+	"internal/motor/ogrenme/yazdirma.go:Deger.Inspect":           {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
+	"internal/motor/ogrenme/model_araclari.go:orneklemeYerlesik": {118, nYerlesik},
+	"internal/motor/ogrenme/yerlesik_indirgeme.go:indirgeme":     {85, nYerlesik},
+	"internal/motor/parcalayici/parcalayici.go:Nesne.kodla":      {88, nYerlesik},
 
 	// Hesap çekirdekleri
 	"internal/hesap/tensor/cpu_dikkat.go:cpuBackend.f32Attention":  {146, nCekirdek},

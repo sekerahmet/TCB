@@ -387,4 +387,3 @@ func orneklemeYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.V
 	}
 	return YeniTam(r), nil
 }
-
