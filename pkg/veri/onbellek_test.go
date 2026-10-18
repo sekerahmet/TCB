@@ -381,3 +381,74 @@ func TestOnbellekIsciSayilari(t *testing.T) {
 		gorutinBekle(t, taban)
 	}
 }
+
+// Kota yalnızca süren bir önden yükleme kopyası yüzünden geçici olarak
+// doluyken eşzamanlı Getir hata vermemeli; kopyanın bitmesini bekleyip onu
+// silerek yer açmalı. (CI'da kapanan örnekleyicinin istediği sıradaki
+// parçanın kopyası sürerken parça açma ErrOnbellekYetersiz dönüyordu.)
+func TestOnbellekSurenOnYuklemeyiBekler(t *testing.T) {
+	taban := runtime.NumGoroutine()
+	kaynak := t.TempDir()
+	a, boy := dosyaBoyutlu(t, kaynak, "a.npy", 1000, 1)
+	b, _ := dosyaBoyutlu(t, kaynak, "b.npy", 1000, 2)
+	c, _ := dosyaBoyutlu(t, kaynak, "c.npy", 1000, 3)
+	basladi, birak := make(chan struct{}), make(chan struct{})
+	kopyaKancasi = func(k string, onYukleme bool) {
+		if onYukleme && k == b {
+			close(basladi)
+			<-birak
+		}
+	}
+	defer func() { kopyaKancasi = nil }()
+	o, err := OnbellekAc(OnbellekSecenekleri{Dizin: t.TempDir(), Kota: 2 * boy, Isci: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	_, ba, err := o.Getir(ctx, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o.Hazirla([]string{b})
+	<-basladi // b'nin arka plan kopyası sürüyor: kota a + b ile dolu
+
+	// a açıkken c için yer ancak b bitip silinince açılır: Getir beklemeli.
+	type sonuc struct {
+		yol   string
+		birak func()
+		err   error
+	}
+	sc := make(chan sonuc, 1)
+	go func() {
+		y, bb, err := o.Getir(ctx, c)
+		sc <- sonuc{y, bb, err}
+	}()
+	select {
+	case s := <-sc:
+		t.Fatalf("Getir önden yükleme bitmeden döndü: %v", s.err)
+	case <-time.After(20 * time.Millisecond):
+	}
+	close(birak)
+	s := <-sc
+	if s.err != nil || !yereldeMi(o, s.yol) {
+		t.Fatalf("süren önden yükleme beklenmedi: %v", s.err)
+	}
+	s.birak()
+	ba()
+	if ist := o.Istatistik(); ist.Silinen != 1 || ist.Kullanim > 2*boy {
+		t.Fatalf("b silinerek yer açılmadı: %+v", ist)
+	}
+
+	// Süren önden yükleme yokken ve açık dosyalar yer kaplarken beklemeden
+	// hata döner.
+	kopyaKancasi = nil
+	_, ba, _ = o.Getir(ctx, a)
+	_, bc, _ := o.Getir(ctx, c)
+	if _, _, err := o.Getir(ctx, b); !errors.Is(err, ErrOnbellekYetersiz) {
+		t.Fatalf("yer yokken hata bekleniyordu: %v", err)
+	}
+	ba()
+	bc()
+	_ = o.Kapat()
+	gorutinBekle(t, taban)
+}
