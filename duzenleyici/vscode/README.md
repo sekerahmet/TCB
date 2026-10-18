@@ -74,7 +74,7 @@ Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (
 2. Dosyanın dizininden yukarı doğru bulunan ilk `ikili/tr.exe` ya da `tr.exe`
 3. PATH üzerindeki `tr`
 
-Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen klasörlerde renklendirme ve şablonlar yine kullanılabilir.
+Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen (kısıtlı kipteki) klasörlerde renklendirme, şablonlar ve dosya okuma yine kullanılabilir; çalıştırma, denetleme ve hata ayıklama kapalıdır ve bu düğmeler görünmez. Eklenti `.tr` dosyalarında Türkçe harflerin (ş, ğ, ı, ü, ö, ç) Unicode uyarı kutusuyla işaretlenmesini kapatır (`editor.unicodeHighlight.nonBasicASCII` ve `ambiguousCharacters`); görünmez karakterler yine işaretlenir.
 
 ## Notlar
 
