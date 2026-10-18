@@ -517,8 +517,9 @@ func indirgeme(v *vm.VM, adlar []string, ad string, fn func(t *ct.Tensor, eksen 
 
 // maksIndeks verilen eksende en büyük elemanın indeksini verir: maks_indeks(x, eksen: -1).
 // Sonuç her zaman tam sayı değerli bir tensördür (o eksen kaldırılmış şekilde; 1 boyutlu
-// girdide 0 boyutlu) ve türev izlemez. Tam sayı için tam(maks_indeks(x).değer) yazılır;
-// sonuç doğrudan gömme(...) ve çapraz_entropi(...) indeksi olarak kullanılabilir.
+// girdide 0 boyutlu) ve türev izlemez. Tensör tam sayılı olarak işaretlenir: .değer Tam
+// (ya da Tam listesi) verir, böylece liste indeksi olarak doğrudan kullanılabilir; sonuç
+// gömme(...) ve çapraz_entropi(...) indeksi olarak da verilebilir.
 // Eşitlikte ilk en büyük eleman seçilir.
 func maksIndeks(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	const ad = "maks_indeks"
@@ -562,7 +563,9 @@ func maksIndeks(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value,
 	if err != nil {
 		return nil, err
 	}
-	return Yeni(r), nil
+	sonuc := Yeni(r)
+	sonuc.tamSayili = true
+	return sonuc, nil
 }
 
 // tensorOlmayanIndirgeme ilk argümanı tensör olmayan indirgeme çağrılarını işler. Eski

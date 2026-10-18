@@ -31,6 +31,9 @@ type Deger struct {
 	// bilgi oluşturma anında saklanır; böylece ara tensörün .gradyan'ı sessizce 'yok'
 	// dönmez ve ara tensör iyileştirici parametresi olarak kabul edilmez.
 	ara bool
+	// tamSayili, değerlerin tam sayı olduğunu (ör. maks_indeks sonucu) gösterir: .değer
+	// Tam döndürür, yazdırma ondalıksız yapılır. İşlem sonuçlarına geçmez.
+	tamSayili bool
 }
 
 // Yeni çekirdek tensörünü TR değeri olarak sarar.
@@ -78,6 +81,9 @@ func (d *Deger) Inspect() string {
 	if len(sh) == 0 {
 		x := t.Item()
 		s := sayiMetni(x, bilimselMi([]float32{x}))
+		if d.tamSayili {
+			s = strconv.FormatInt(int64(x), 10)
+		}
 		if len(ek) > 0 {
 			s += ", " + strings.Join(ek, ", ")
 		}
@@ -125,7 +131,11 @@ func (d *Deger) Inspect() string {
 	metinler := make([]string, len(hucreler))
 	genislik := 0
 	for i, x := range hucreler {
-		metinler[i] = sayiMetni(x, bilimsel)
+		if d.tamSayili {
+			metinler[i] = strconv.FormatInt(int64(x), 10)
+		} else {
+			metinler[i] = sayiMetni(x, bilimsel)
+		}
 		genislik = max(genislik, len([]rune(metinler[i])))
 	}
 	sira := 0
@@ -628,6 +638,9 @@ func (d *Deger) degerListesi() vm.Value {
 	veri := d.t.Data()
 	sh := d.t.Shape()
 	if len(sh) == 0 {
+		if d.tamSayili {
+			return vm.NewInt(int64(veri[0]))
+		}
 		return &vm.FloatVal{Val: kisaFloat64(veri[0])}
 	}
 	nd := len(sh)
@@ -639,9 +652,12 @@ func (d *Deger) degerListesi() vm.Value {
 	}
 	listeler := make([]vm.ListVal, listeSay)
 	degerler := make([]vm.Value, degerSay)
-	sayilar := make([]vm.FloatVal, len(veri))
-	for i, x := range veri {
-		sayilar[i].Val = kisaFloat64(x)
+	var sayilar []vm.FloatVal
+	if !d.tamSayili {
+		sayilar = make([]vm.FloatVal, len(veri))
+		for i, x := range veri {
+			sayilar[i].Val = kisaFloat64(x)
+		}
 	}
 	li, di := 0, 0 // bu seviyenin ilk listesi ve ilk eleman yeri
 	p = 1          // bu seviyedeki liste sayısı
@@ -653,7 +669,9 @@ func (d *Deger) degerListesi() vm.Value {
 			el := degerler[bas : bas+n : bas+n]
 			for i := range el {
 				m := j*n + i // bu seviyedeki elemanın sırası
-				if k == nd-1 {
+				if k == nd-1 && d.tamSayili {
+					el[i] = vm.NewInt(int64(veri[m]))
+				} else if k == nd-1 {
 					el[i] = &sayilar[m]
 				} else {
 					el[i] = &listeler[sonrakiListe+m]

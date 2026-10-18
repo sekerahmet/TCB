@@ -149,9 +149,12 @@ test "15.7 iyileştiriciler: küçük doğrusal regresyon" {
 
 test "15.9 maks_indeks ve gradyan_kırp" {
     değişken x = tensör([[1, 9, 3], [7, 2, 7]])
-    eşit_mi([1.0, 0.0], maks_indeks(x).değer)
-    eşit_mi([1.0, 0.0, 1.0], maks_indeks(x, eksen: 0).değer)
-    eşit_mi(1, tam(maks_indeks(tensör([4, 8, 1])).değer))
+    eşit_mi([1, 0], maks_indeks(x).değer)
+    eşit_mi([1, 0, 1], maks_indeks(x, eksen: 0).değer)
+    eşit_mi(1, maks_indeks(tensör([4, 8, 1])).değer)
+    // .değer Tam verir; liste indeksi olarak doğrudan kullanılabilir.
+    değişken harfler = ["a", "b", "c"]
+    eşit_mi("b", harfler[maks_indeks(x).değer[0]])
     değişken w = tensör([1.0, 1.0], türev_izle: doğru)
     geri_yayılım(toplam(w * tensör([3.0, 4.0])))
     eşit_mi(5.0, gradyan_kırp([w], en_fazla: 1.0))

@@ -12,8 +12,16 @@ func TestMaksIndeks(t *testing.T) {
 	out := mustCalistir(t, `değişken x = tensör([[1, 9, 3], [7, 2, 7]])
 yazdır(maks_indeks(x).değer, maks_indeks(x, eksen: 0).değer, maks_indeks(tensör([4, 8, 1])).değer)
 yazdır(tam(maks_indeks(tensör([4, 8, 1])).değer), maks_indeks(x).şekil)
-yazdır(gömme(tensör([[0, 0], [1, 1], [2, 2]]), maks_indeks(tensör([[0, 0, 5]]))).değer)`)
-	want := "[1.0, 0.0] [1.0, 0.0, 1.0] 1.0\n1 [2]\n[[2.0, 2.0]]\n"
+yazdır(gömme(tensör([[0, 0], [1, 1], [2, 2]]), maks_indeks(tensör([[0, 0, 5]]))).değer)
+değişken harfler = ["a", "b", "c"]
+değişken i = maks_indeks(tensör([[[0, 9, 1], [5, 0, 0]]]), eksen: -1)
+yazdır(harfler[i.değer[0][0]] + harfler[i.değer[0][1]], tip(i.değer[0][1]), tip(maks_indeks(tensör([1, 3])).değer))
+yazdır(i, maks_indeks(tensör([2, 1])))
+yazdır(tip((i * 2).değer[0][0]), tip(tensör(i).değer[0][0]))`)
+	want := "[1, 0] [1, 0, 1] 1\n1 [2]\n[[2.0, 2.0]]\n" +
+		"ba Tam Tam\n" +
+		"Tensör[1×2] [\n  [1, 0]\n] Tensör(0)\n" +
+		"Ondalık Ondalık\n"
 	if out != want {
 		t.Fatalf("maks_indeks:\n%q\nbeklenen:\n%q", out, want)
 	}
