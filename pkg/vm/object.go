@@ -6,36 +6,36 @@ import (
 	"strconv"
 	"strings"
 	"tr_dili/pkg/ast"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 )
 
 // ValueType bir değerin tip adıdır (tip() sonucu, hata mesajları). Adlar sözlüktedir
-// (pkg/sozluk, A2xx); başlangıçta bir kez okunur.
+// (pkg/kod, A2xx); başlangıçta bir kez okunur.
 type ValueType string
 
 var (
-	VAL_INT      = TipAdi(sozluk.A200) // Tam
-	VAL_FLOAT    = TipAdi(sozluk.A201) // Ondalık
-	VAL_STRING   = TipAdi(sozluk.A202) // Metin
-	VAL_BOOL     = TipAdi(sozluk.A203) // Mantık
-	VAL_NULL     = TipAdi(sozluk.A204) // Yok
-	VAL_LIST     = TipAdi(sozluk.A205) // Liste
-	VAL_DICT     = TipAdi(sozluk.A206) // Sözlük
-	VAL_RANGE    = TipAdi(sozluk.A207) // Aralık
-	VAL_FUNC     = TipAdi(sozluk.A208) // Fonksiyon
-	VAL_BUILTIN  = TipAdi(sozluk.A209) // YerleşikFonksiyon
-	VAL_STRUCT   = TipAdi(sozluk.A210) // YapıTanımı
-	VAL_INSTANCE = TipAdi(sozluk.A211) // Nesne
-	VAL_TENSOR   = TipAdi(sozluk.A212) // Tensör
+	VAL_INT      = TipAdi(kod.A200) // Tam
+	VAL_FLOAT    = TipAdi(kod.A201) // Ondalık
+	VAL_STRING   = TipAdi(kod.A202) // Metin
+	VAL_BOOL     = TipAdi(kod.A203) // Mantık
+	VAL_NULL     = TipAdi(kod.A204) // Yok
+	VAL_LIST     = TipAdi(kod.A205) // Liste
+	VAL_DICT     = TipAdi(kod.A206) // Sözlük
+	VAL_RANGE    = TipAdi(kod.A207) // Aralık
+	VAL_FUNC     = TipAdi(kod.A208) // Fonksiyon
+	VAL_BUILTIN  = TipAdi(kod.A209) // YerleşikFonksiyon
+	VAL_STRUCT   = TipAdi(kod.A210) // YapıTanımı
+	VAL_INSTANCE = TipAdi(kod.A211) // Nesne
+	VAL_TENSOR   = TipAdi(kod.A212) // Tensör
 )
 
 // TipAdi sözlükteki bir tip adı kodunun (A2xx) ValueType'ıdır; motorlar kendi tiplerinin
 // adlarını bununla alır.
-func TipAdi(k sozluk.Kod) ValueType {
-	if k.Alan() != sozluk.AlanTip {
+func TipAdi(k kod.Kod) ValueType {
+	if k.Alan() != kod.AlanTip {
 		panic(fmt.Sprintf("TipAdi: %s bir tip adı kodu (A2xx) değil", k))
 	}
-	return ValueType(sozluk.Ad(k))
+	return ValueType(kod.Ad(k))
 }
 
 type Value interface {

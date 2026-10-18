@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 	"tr_dili/pkg/ast"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/turkce"
 )
 
@@ -16,10 +16,10 @@ const maxCallDepth = 10000
 
 // kendiAdi yapı metotlarında nesneyi gösteren 'kendi' anahtar kelimesinin sözlükteki
 // adıdır (A051).
-var kendiAdi = sozluk.Ad(sozluk.A051)
+var kendiAdi = kod.Ad(kod.A051)
 
 // kurucuAdi nesne oluşturulurken çağrılan metodun adıdır (7.4; sözlükte A102).
-var kurucuAdi = sozluk.Ad(sozluk.A102)
+var kurucuAdi = kod.Ad(kod.A102)
 
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
 // sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar

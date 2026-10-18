@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "comment": "Bu dosya sözlükten (pkg/sozluk/tr.json) üretilir; elle düzenlemeyin: go run ./araclar/eklenti_listeleri",
+  "comment": "Bu dosya kod listesinden (pkg/kod/tr.json) üretilir; elle düzenlemeyin: go run ./araclar/eklenti_listeleri",
   "name": "TR Dili",
   "scopeName": "source.tr",
   "patterns": [

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/turkce"
 )
 
@@ -34,8 +34,8 @@ func TestKaldirilanYerlesikIpucu(t *testing.T) {
 		}
 	}
 	m := New()
-	for _, k := range sozluk.Kodlar() {
-		g, _ := sozluk.Etkin().Girdisi(k)
+	for _, k := range kod.Kodlar() {
+		g, _ := kod.Etkin().Girdisi(k)
 		if !k.Yerlesik() {
 			continue
 		}

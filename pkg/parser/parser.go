@@ -7,19 +7,19 @@ import (
 	"strconv"
 	"strings"
 	"tr_dili/pkg/ast"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/lexer"
-	"tr_dili/pkg/sozluk"
 )
 
 // Bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki bloğun
-// parametresi) yazımları ve 'kendi'nin adı sözlükten gelir (pkg/sozluk: A101, A100, A103,
+// parametresi) yazımları ve 'kendi'nin adı kod listesinden gelir (pkg/kod: A101, A100, A103,
 // A104, A051).
 var (
-	testYazimlari   = sozluk.Yazimlar(sozluk.A101)
-	olarakYazimlari = sozluk.Yazimlar(sozluk.A100)
-	kendiAdi        = sozluk.Ad(sozluk.A051)
-	hataAdi         = sozluk.Ad(sozluk.A103)
-	oAdi            = sozluk.Ad(sozluk.A104)
+	testYazimlari   = kod.Yazimlar(kod.A101)
+	olarakYazimlari = kod.Yazimlar(kod.A100)
+	kendiAdi        = kod.Ad(kod.A051)
+	hataAdi         = kod.Ad(kod.A103)
+	oAdi            = kod.Ad(kod.A104)
 )
 
 const (

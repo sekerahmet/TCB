@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 	"unicode/utf8"
 
 	"tr_dili/pkg/turkce"
@@ -16,7 +16,7 @@ import (
 
 func (v *VM) registerBuiltins() {
 	// 1. Ekrana Yazdırma: yazdır(...)
-	v.RegisterBuiltinKod(sozluk.G100, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G100, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		var parts []string
 		for _, a := range args {
 			parts = append(parts, a.Inspect())
@@ -27,7 +27,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 2. Kullanıcıdan Girdi Alma: girdi("Adınız: ")
-	v.RegisterBuiltinKod(sozluk.G101, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G101, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) > 1 {
 			return nil, ArgumanSayisiHatasi("girdi", "0 ya da 1", len(args), "girdi() ya da girdi(istem)")
 		}
@@ -43,16 +43,16 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 3. Uzunluk / Boyut: uzunluk(x)
-	v.RegisterBuiltinKod(sozluk.G200, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G200, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("uzunluk", "1", len(args), "uzunluk(değer)")
 		}
 		return uzunlukTek(vm, args[0])
 	})
-	v.tekArgumanli(sozluk.G200, uzunlukTek)
+	v.tekArgumanli(kod.G200, uzunlukTek)
 
 	// 4. Tip Sorgulama: tip(x)
-	v.RegisterBuiltinKod(sozluk.G201, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G201, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("tip", "1", len(args), "tip(değer)")
 		}
@@ -60,7 +60,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 5. Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
-	v.RegisterBuiltinKod(sozluk.G210, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G210, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("tam", "1", len(args), "tam(değer)")
 		}
@@ -89,7 +89,7 @@ func (v *VM) registerBuiltins() {
 		}
 	})
 
-	v.RegisterBuiltinKod(sozluk.G211, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G211, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("ondalık", "1", len(args), "ondalık(değer)")
 		}
@@ -109,16 +109,16 @@ func (v *VM) registerBuiltins() {
 		}
 	})
 
-	v.RegisterBuiltinKod(sozluk.G212, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G212, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("metin", "1", len(args), "metin(değer)")
 		}
 		return metinTek(vm, args[0])
 	})
-	v.tekArgumanli(sozluk.G212, metinTek)
+	v.tekArgumanli(kod.G212, metinTek)
 
 	// 6. Liste ve Fonksiyonel Boru Hattı (|>) İşlemleri: filtrele, haritala, indirge, sırala, ekle, sil
-	v.RegisterBuiltinKod(sozluk.G300, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G300, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 2 {
 			return nil, ArgumanSayisiHatasi("filtrele", "2", len(args), "filtrele(liste, fonksiyon)")
 		}
@@ -142,7 +142,7 @@ func (v *VM) registerBuiltins() {
 		return &ListVal{Elements: result}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G301, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G301, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 2 {
 			return nil, ArgumanSayisiHatasi("haritala", "2", len(args), "haritala(liste, fonksiyon)")
 		}
@@ -164,7 +164,7 @@ func (v *VM) registerBuiltins() {
 		return &ListVal{Elements: result}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G302, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G302, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 || len(args) > 3 {
 			return nil, ArgumanSayisiHatasi("indirge", "2 ya da 3", len(args), "indirge(liste, fonksiyon) ya da indirge(liste, fonksiyon, başlangıç)")
 		}
@@ -199,7 +199,7 @@ func (v *VM) registerBuiltins() {
 		return acc, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G303, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G303, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("sırala", "1", len(args), "sırala(liste)")
 		}
@@ -215,7 +215,7 @@ func (v *VM) registerBuiltins() {
 		return &ListVal{Elements: copied}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G304, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G304, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 {
 			return nil, ArgumanSayisiHatasi("ekle", "en az 2", len(args), "ekle(liste, eleman, ...)")
 		}
@@ -227,7 +227,7 @@ func (v *VM) registerBuiltins() {
 		return list, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G305, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G305, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) == 1 {
 			end, ok := args[0].(*IntVal)
 			if !ok {
@@ -264,7 +264,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 7. Temel Matematik Fonksiyonları
-	v.RegisterBuiltinKod(sozluk.G400, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G400, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("toplam", "1", len(args), "toplam(liste)")
 		}
@@ -276,15 +276,15 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// min/maks: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
-	v.RegisterBuiltinKod(sozluk.G401, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G401, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		return enUcArgumanlari("min", args, false)
 	})
 
-	v.RegisterBuiltinKod(sozluk.G402, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G402, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		return enUcArgumanlari("maks", args, true)
 	})
 
-	v.RegisterBuiltinKod(sozluk.G403, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G403, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("mutlak", "1", len(args), "mutlak(sayı)")
 		}
@@ -303,7 +303,7 @@ func (v *VM) registerBuiltins() {
 		return nil, ArgumanTipHatasi("mutlak", 1, sayiTipi, args[0])
 	})
 
-	v.RegisterBuiltinKod(sozluk.G404, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G404, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("karekök", "1", len(args), "karekök(sayı)")
 		}
@@ -313,7 +313,7 @@ func (v *VM) registerBuiltins() {
 		return nil, ArgumanTipHatasi("karekök", 1, sayiTipi, args[0])
 	})
 
-	v.RegisterBuiltinKod(sozluk.G405, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G405, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 || len(args) > 2 {
 			return nil, ArgumanSayisiHatasi("yuvarla", "1 ya da 2", len(args), "yuvarla(sayı) ya da yuvarla(sayı, basamak)")
 		}
@@ -350,7 +350,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 8. Eşzamanlılık, Zaman ve Dosya İşlemleri
-	v.RegisterBuiltinKod(sozluk.G501, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G501, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
 		if vm.asyncTask {
 			return nil, fmt.Errorf("bekle_hepsi() 'eşzamanlı' bloğu içinden çağrılamaz; ana programda kullanın")
@@ -359,11 +359,11 @@ func (v *VM) registerBuiltins() {
 		return TRUE, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G502, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G502, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		return NewInt(time.Now().UnixMilli()), nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G110, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G110, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("dosya_oku", "1", len(args), "dosya_oku(yol)")
 		}
@@ -379,7 +379,7 @@ func (v *VM) registerBuiltins() {
 		return &StringVal{Val: string(data)}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G111, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G111, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 2 {
 			return nil, ArgumanSayisiHatasi("dosya_yaz", "2", len(args), "dosya_yaz(yol, içerik)")
 		}
@@ -394,7 +394,7 @@ func (v *VM) registerBuiltins() {
 		return TRUE, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G500, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G500, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("bekle", "1", len(args), "bekle(saniye)")
 		}
@@ -446,8 +446,8 @@ func metinTek(_ *VM, a Value) (Value, error) {
 // tekArgumanli kayıtlı bir yerleşiğe, tek argümanla (adlı argümansız) çağrıldığında
 // argüman dilimi ayırmadan çalışan gövdesini bağlar. Gövde, Fn'in tek argümanlı
 // durumuyla birebir aynı olmalıdır.
-func (v *VM) tekArgumanli(kod sozluk.Kod, tek func(*VM, Value) (Value, error)) {
-	if b := v.Yerlesik(kod); b != nil {
+func (v *VM) tekArgumanli(kd kod.Kod, tek func(*VM, Value) (Value, error)) {
+	if b := v.Yerlesik(kd); b != nil {
 		b.Tek = tek
 	}
 }

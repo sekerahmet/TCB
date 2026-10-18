@@ -70,7 +70,7 @@ const (
 	TOKEN_RBRACKET  = "]"
 
 	// Anahtar Kelimeler. Tür adları içseldir, kullanıcıya gösterilmez; kullanıcının
-	// yazdığı adlar sözlüktedir (pkg/sozluk, A0xx) ve hangi kodun hangi türü ürettiği
+	// yazdığı adlar sözlüktedir (pkg/kod, A0xx) ve hangi kodun hangi türü ürettiği
 	// anahtar_kelimeler.go'dadır.
 	TOKEN_DEGISKEN      = "DEĞİŞKEN"      // A030
 	TOKEN_SABIT         = "SABİT"         // A031

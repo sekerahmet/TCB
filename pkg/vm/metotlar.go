@@ -6,7 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 )
 
 // Metin, Liste ve Sözlük üzerinde nokta (.) ile çağrılan yerleşik metotlar. Metot gövdeleri
@@ -30,8 +30,8 @@ type cekirdekMetot struct {
 	metin, liste, sozluk *yerlesikMetot
 }
 
-// cekirdekMetotlari üye kodu → Metin/Liste/Sözlük metotları. Adlar sözlüktedir (pkg/sozluk, Y).
-var cekirdekMetotlari = map[sozluk.Kod]*cekirdekMetot{}
+// cekirdekMetotlari üye kodu → Metin/Liste/Sözlük metotları. Adlar kod listesindedir (pkg/kod, Y).
+var cekirdekMetotlari = map[kod.Kod]*cekirdekMetot{}
 
 const (
 	tipMetin = iota
@@ -64,16 +64,16 @@ var tipOneki = map[int]string{tipMetin: "metin", tipListe: "liste", tipSozluk: "
 
 // metotEkle metodu sözlük koduyla kaydeder; ad sözlükten gelir. Gövde çağrılmadan önce
 // argümanlar imzaya göre denetlenir (yerleşik fonksiyonlarla aynı hata biçimi).
-func metotEkle(tip int, kod sozluk.Kod, im imza, f metotGovdesi) {
-	if kod.Alan() != sozluk.AlanUye {
-		panic(fmt.Sprintf("metot kaydı: %s bir üye kodu (Y) değil", kod))
+func metotEkle(tip int, kd kod.Kod, im imza, f metotGovdesi) {
+	if kd.Alan() != kod.AlanUye {
+		panic(fmt.Sprintf("metot kaydı: %s bir üye kodu (Y) değil", kd))
 	}
-	cm := cekirdekMetotlari[kod]
+	cm := cekirdekMetotlari[kd]
 	if cm == nil {
 		cm = &cekirdekMetot{}
-		cekirdekMetotlari[kod] = cm
+		cekirdekMetotlari[kd] = cm
 	}
-	tamAd := tipOneki[tip] + "." + sozluk.Ad(kod)
+	tamAd := tipOneki[tip] + "." + kod.Ad(kd)
 	govde := f
 	f = func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		if len(args) < im.enAz || (im.enCok >= 0 && len(args) > im.enCok) {
@@ -93,7 +93,7 @@ func metotEkle(tip int, kod sozluk.Kod, im imza, f metotGovdesi) {
 		}
 		return govde(vm, inst, args, line)
 	}
-	m := &yerlesikMetot{ad: sozluk.Ad(kod), f: f}
+	m := &yerlesikMetot{ad: kod.Ad(kd), f: f}
 	switch tip {
 	case tipMetin:
 		cm.metin = m
@@ -106,23 +106,23 @@ func metotEkle(tip int, kod sozluk.Kod, im imza, f metotGovdesi) {
 
 // Metin ve Liste özellikleri (metot değil, değer döndürürler).
 const (
-	uyeUzunluk = sozluk.Y001 // uzunluk (Metin, Liste)
-	uyeEkle    = sozluk.Y004 // ekle (Liste)
-	uyeIlk     = sozluk.Y210 // ilk (Liste)
-	uyeSon     = sozluk.Y211 // son (Liste)
+	uyeUzunluk = kod.Y001 // uzunluk (Metin, Liste)
+	uyeEkle    = kod.Y004 // ekle (Liste)
+	uyeIlk     = kod.Y210 // ilk (Liste)
+	uyeSon     = kod.Y211 // son (Liste)
 )
 
 // uyeBilgisi bir x.ad erişiminin derleme anında çözülmüş biçimidir.
 type uyeBilgisi struct {
-	kod sozluk.Kod // ad bir üye adı değilse sozluk.Yok
+	kod kod.Kod // ad bir üye adı değilse kod.Yok
 	// cekirdek Metin/Liste/Sözlük metotlarıdır; ad bunların metodu değilse nil.
 	cekirdek *cekirdekMetot
 }
 
 // uyeCoz adı derleme anında çözer.
 func uyeCoz(ad string) uyeBilgisi {
-	u := uyeBilgisi{kod: sozluk.UyeKodu(ad)}
-	if u.kod == sozluk.Yok {
+	u := uyeBilgisi{kod: kod.UyeKodu(ad)}
+	if u.kod == kod.Yok {
 		return u
 	}
 	u.cekirdek = cekirdekMetotlari[u.kod]
@@ -130,14 +130,14 @@ func uyeCoz(ad string) uyeBilgisi {
 }
 
 // cekirdekUyesi kod Metin, Liste ya da Sözlük üyesi mi (kaldırılmış ad ipuçlarının süzgeci)?
-func cekirdekUyesi(k sozluk.Kod) bool {
+func cekirdekUyesi(k kod.Kod) bool {
 	_, metot := cekirdekMetotlari[k]
 	return metot || k == uyeUzunluk || k == uyeIlk || k == uyeSon
 }
 
 // sozlukUyesiMi ad bir sözlük üyesinin (metot ya da .uzunluk) adı mı?
 func sozlukUyesiMi(ad string) bool {
-	k := sozluk.UyeKodu(ad)
+	k := kod.UyeKodu(ad)
 	if k == uyeUzunluk {
 		return true
 	}
@@ -165,16 +165,16 @@ func metotBul(obj Value, cm *cekirdekMetot) *yerlesikMetot {
 // başlatıcısında kurulsalardı başlatma döngüsü oluşurdu.
 func init() {
 	// --- Metin ---
-	metotEkle(tipMetin, sozluk.Y100, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y100, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.ToUpperSpecial(unicode.TurkishCase, inst.(*StringVal).Val)}, nil
 	})
-	metotEkle(tipMetin, sozluk.Y101, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y101, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.ToLowerSpecial(unicode.TurkishCase, inst.(*StringVal).Val)}, nil
 	})
-	metotEkle(tipMetin, sozluk.Y102, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y102, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil
 	})
-	metotEkle(tipMetin, sozluk.Y103, imza{0, 1, "[ayırıcı]", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y103, imza{0, 1, "[ayırıcı]", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := " "
 		if len(args) > 0 {
 			sep = args[0].Inspect()
@@ -186,19 +186,19 @@ func init() {
 		}
 		return &ListVal{Elements: elems}, nil
 	})
-	metotEkle(tipMetin, sozluk.Y104, imza{2, 2, "eski, yeni", []*argTipi{metinArg, metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y104, imza{2, 2, "eski, yeni", []*argTipi{metinArg, metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.ReplaceAll(inst.(*StringVal).Val, args[0].Inspect(), args[1].Inspect())}, nil
 	})
-	metotEkle(tipMetin, sozluk.Y002, imza{1, 1, "alt", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y002, imza{1, 1, "alt", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.Contains(inst.(*StringVal).Val, args[0].Inspect())), nil
 	})
-	metotEkle(tipMetin, sozluk.Y105, imza{1, 1, "önek", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y105, imza{1, 1, "önek", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.HasPrefix(inst.(*StringVal).Val, args[0].Inspect())), nil
 	})
-	metotEkle(tipMetin, sozluk.Y106, imza{1, 1, "sonek", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y106, imza{1, 1, "sonek", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.HasSuffix(inst.(*StringVal).Val, args[0].Inspect())), nil
 	})
-	metotEkle(tipMetin, sozluk.Y003, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y003, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		runes := []rune(inst.(*StringVal).Val)
 		for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
 			runes[i], runes[j] = runes[j], runes[i]
@@ -207,7 +207,7 @@ func init() {
 	})
 
 	// --- Liste ---
-	metotEkle(tipListe, sozluk.Y200, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y200, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		var result []Value
 		for _, item := range inst.(*ListVal).Elements {
 			keep, err := vm.ApplyFunction(args[0], []Value{item}, nil, line)
@@ -220,7 +220,7 @@ func init() {
 		}
 		return &ListVal{Elements: result}, nil
 	})
-	metotEkle(tipListe, sozluk.Y201, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y201, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		result := make([]Value, 0, len(elems))
 		for _, item := range elems {
@@ -232,7 +232,7 @@ func init() {
 		}
 		return &ListVal{Elements: result}, nil
 	})
-	metotEkle(tipListe, sozluk.Y202, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y202, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		copied := make([]Value, len(elems))
 		copy(copied, elems)
@@ -241,7 +241,7 @@ func init() {
 		}
 		return &ListVal{Elements: copied}, nil
 	})
-	metotEkle(tipListe, sozluk.Y003, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y003, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		copied := make([]Value, len(elems))
 		for i, el := range elems {
@@ -249,7 +249,7 @@ func init() {
 		}
 		return &ListVal{Elements: copied}, nil
 	})
-	metotEkle(tipListe, sozluk.Y203, imza{0, 1, "[ayırıcı]", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y203, imza{0, 1, "[ayırıcı]", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := ""
 		if len(args) > 0 {
 			sep = args[0].Inspect()
@@ -261,7 +261,7 @@ func init() {
 		}
 		return &StringVal{Val: strings.Join(parts, sep)}, nil
 	})
-	metotEkle(tipListe, sozluk.Y002, imza{1, 1, "değer", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y002, imza{1, 1, "değer", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		for _, el := range inst.(*ListVal).Elements {
 			if ValuesEqual(el, args[0]) {
 				return TRUE, nil
@@ -269,7 +269,7 @@ func init() {
 		}
 		return FALSE, nil
 	})
-	metotEkle(tipListe, sozluk.Y204, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y204, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		var unique []Value
 		for _, el := range inst.(*ListVal).Elements {
 			exists := false
@@ -285,15 +285,15 @@ func init() {
 		}
 		return &ListVal{Elements: unique}, nil
 	})
-	metotEkle(tipListe, sozluk.Y004, imza{1, -1, "eleman, ...", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y004, imza{1, -1, "eleman, ...", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		l := inst.(*ListVal)
 		l.Elements = append(l.Elements, args...)
 		return l, nil
 	})
-	metotEkle(tipListe, sozluk.Y205, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y205, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		return sayiTopla("liste.toplam()", inst.(*ListVal).Elements)
 	})
-	metotEkle(tipListe, sozluk.Y206, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y206, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		if len(elems) == 0 {
 			return nil, fmt.Errorf("liste.ortalama(): boş listenin ortalaması yoktur")
@@ -310,7 +310,7 @@ func init() {
 	})
 
 	// --- Sözlük ---
-	metotEkle(tipSozluk, sozluk.Y300, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipSozluk, kod.Y300, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		d := inst.(*DictVal)
 		elems := make([]Value, len(d.Order))
 		for i, k := range d.Order {
@@ -318,7 +318,7 @@ func init() {
 		}
 		return &ListVal{Elements: elems}, nil
 	})
-	metotEkle(tipSozluk, sozluk.Y301, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipSozluk, kod.Y301, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		d := inst.(*DictVal)
 		elems := make([]Value, len(d.Order))
 		for i, k := range d.Order {
@@ -326,7 +326,7 @@ func init() {
 		}
 		return &ListVal{Elements: elems}, nil
 	})
-	metotEkle(tipSozluk, sozluk.Y002, imza{1, 1, "anahtar", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipSozluk, kod.Y002, imza{1, 1, "anahtar", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		_, ok := inst.(*DictVal).GetValue(args[0])
 		return BoolToVal(ok), nil
 	})

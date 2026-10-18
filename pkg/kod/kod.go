@@ -1,4 +1,4 @@
-// Package sozluk, TR'nin kullanıcıya görünen bütün adlarını (anahtar kelimeler, tip
+// Package kod, TR'nin kullanıcıya görünen bütün adlarını (anahtar kelimeler, tip
 // adları, yerleşik fonksiyonlar, metot ve özellikler, adlı argümanlar) sabit kodlara
 // bağlar. Go kodu adları değil kodları kullanır; adların kendisi dil dosyasındadır
 // (Türkçe için tr.json, ikiliye gömülüdür). Bir adı değiştirmek için yalnızca dil
@@ -66,17 +66,17 @@
 //
 // # Go'da kodlar
 //
-// Go kodu kodları sözlükten üretilen adlı sabitlerle yazar (kodlar_uretilmis.go):
+// Go kodu kodları dil dosyasından üretilen adlı sabitlerle yazar (kodlar_uretilmis.go):
 // sozluk.G100, sozluk.A001, sozluk.Y400. Sabitin adı kodun kendisidir, kullanıcıya görünen
 // ad değildir; ad değişse de sabit değişmez. Sözlükte olmayan (ya da taşınmış) bir kod
 // yazılırsa derleme düşer. Sabitler switch deyimlerinde kullanılabilir. Dil dosyasına kod
 // eklendiğinde, kaldırıldığında ya da taşındığında sabitler yeniden üretilir:
 //
-//	go generate ./pkg/sozluk   (ya da: go run ./araclar/kod_sabitleri)
+//	go generate ./pkg/kod   (ya da: go run ./araclar/kod_sabitleri)
 //
 // Her kodun ne işe yaradığı, imzası ve örneği docs/SOZLUK.md'dedir (tanim.json ve tr.json'dan
 // üretilir).
-package sozluk
+package kod
 
 //go:generate go run ../../araclar/kod_sabitleri
 
@@ -130,8 +130,8 @@ func (k Kod) String() string {
 	return fmt.Sprintf("%c%03d", k.Harf(), k.Sayi())
 }
 
-// KodCoz "A001" biçimindeki metni koda çevirir.
-func KodCoz(s string) (Kod, error) {
+// Coz "A001" biçimindeki metni koda çevirir.
+func Coz(s string) (Kod, error) {
 	if len(s) != 4 {
 		return Yok, fmt.Errorf("kod %q geçersiz: bir harf ve üç basamak olmalı (ör. G100)", s)
 	}

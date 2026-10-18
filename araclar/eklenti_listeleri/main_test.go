@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/turkce"
 )
 
@@ -51,8 +51,8 @@ func TestDilbilgisiTekYazim(t *testing.T) {
 			t.Errorf("%q listelerde olmalı", ad)
 		}
 	}
-	for _, k := range sozluk.Kodlar() {
-		g, _ := sozluk.Etkin().Girdisi(k)
+	for _, k := range kod.Kodlar() {
+		g, _ := kod.Etkin().Girdisi(k)
 		if a := turkce.ASCII(g.Ad); a != g.Ad && kelimeler[a] {
 			t.Errorf("%s'in ASCII yazımı %q listelerde olmamalı", k, a)
 		}

@@ -2,12 +2,15 @@ package main
 
 import (
 	"bytes"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 )
 
-// Üretilen sabit dosyası sözlükten üretilenle aynı olmalı: bir kod eklendiğinde,
+// Üretilen sabit dosyası kod listesinden üretilenle aynı olmalı: bir kod eklendiğinde,
 // kaldırıldığında ya da taşındığında `go run ./araclar/kod_sabitleri` çalıştırılmadıysa
 // bu test düşer.
 func TestSabitlerGuncel(t *testing.T) {
@@ -22,5 +25,39 @@ func TestSabitlerGuncel(t *testing.T) {
 	}
 	if !bytes.Equal(bytes.ReplaceAll(eski, []byte("\r\n"), []byte("\n")), yeni) {
 		t.Fatalf("%s güncel değil; depo kökünde `go run ./araclar/kod_sabitleri` çalıştırın", ciktiYolu)
+	}
+}
+
+// Go kaynaklarında (pkg/kod dışında) kodlar yalnızca adlı sabitlerle yazılır: aile + sayı
+// biçimi (kod.G + 100) kalmamalı. Sözlükte olmayan bir sabit yazılırsa derleme zaten düşer.
+func TestCiplakKodYok(t *testing.T) {
+	kok := filepath.Join("..", "..")
+	desen := regexp.MustCompile(`\bkod\.[AGTYVWH] *\+`)
+	err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if d.Name() == ".git" || filepath.ToSlash(yol) == "../../pkg/kod" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(yol, ".go") {
+			return nil
+		}
+		veri, err := os.ReadFile(yol)
+		if err != nil {
+			return err
+		}
+		for i, satir := range strings.Split(string(veri), "\n") {
+			if desen.MatchString(satir) && !strings.Contains(satir, "desen") && !strings.HasPrefix(strings.TrimSpace(satir), "//") {
+				t.Errorf("%s:%d: kod adlı sabitle yazılmalı (kod.G100): %s", yol, i+1, strings.TrimSpace(satir))
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

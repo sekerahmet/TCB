@@ -10,8 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"tr_dili/pkg/ast"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/lexer"
-	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 )
 
@@ -25,11 +25,11 @@ const (
 )
 
 // PropertyGetter nokta (.) operatörüyle özel nesne metodlarına erişim sağlar. kod, adın
-// sözlükteki üye kodudur (pkg/sozluk, Y; ad bir üye adı değilse sozluk.Yok); derleyici onu
+// sözlükteki üye kodudur (pkg/kod, Y; ad bir üye adı değilse kod.Yok); derleyici onu
 // derleme anında bir kez çözer, uygulamalar adlar yerine kodlara göre dallanır. ad
 // kullanıcının yazdığı biçimdir (hata mesajları ve öneriler için).
 type PropertyGetter interface {
-	GetProperty(kod sozluk.Kod, ad string) (Value, error)
+	GetProperty(kd kod.Kod, ad string) (Value, error)
 }
 
 // HataAyiklayici, VM'nin her deyimden önce danıştığı hata ayıklayıcıdır. Uygulaması
@@ -264,7 +264,7 @@ func (v *VM) StackSnapshot() []StackFrame {
 
 // RegisterBuiltin sözlükte olmayan bir yerleşiği (testlerin ve TR'yi gömen Go
 // programlarının kendi yardımcıları) verilen adla genel kapsama kaydeder. Dilin kendi
-// yerleşikleri RegisterBuiltinKod ile sözlük koduyla kaydedilir; adları pkg/sozluk'tadır.
+// yerleşikleri RegisterBuiltinKod ile sözlük koduyla kaydedilir; adları pkg/kod'tadır.
 // Her işin tek yazımı vardır: ikinci bir ad (eş anlamlı ya da Türkçe karaktersiz biçim)
 // kaydedilmez.
 func (v *VM) RegisterBuiltin(name string, fn BuiltinFunc) {

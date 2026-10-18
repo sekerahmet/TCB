@@ -9,7 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
@@ -32,7 +32,7 @@ type SinirAgi struct {
 }
 
 // sinirAgiTipi SinirAğı'nın tip adıdır (sözlükte A230).
-var sinirAgiTipi = vm.TipAdi(sozluk.A230)
+var sinirAgiTipi = vm.TipAdi(kod.A230)
 
 func (nn *SinirAgi) Type() vm.ValueType { return sinirAgiTipi }
 func (nn *SinirAgi) IsTruthy() bool     { return true }
@@ -201,21 +201,21 @@ func (nn *SinirAgi) kaydet(m *vm.VM, yol string) error {
 	return turkce.DosyaHatasi("model.kaydet", yol, "kaydedilemedi", yazHata)
 }
 
-// SinirAğı üyeleri (adları sözlükte, pkg/sozluk Y51x, Y005).
+// SinirAğı üyeleri (adları kod listesinde, pkg/kod Y51x, Y005).
 const (
-	uyeEgit       = sozluk.Y510
-	uyeTahminEt   = sozluk.Y511
-	uyeAgirliklar = sozluk.Y512
-	uyeKaydet     = sozluk.Y005
+	uyeEgit       = kod.Y510
+	uyeTahminEt   = kod.Y511
+	uyeAgirliklar = kod.Y512
+	uyeKaydet     = kod.Y005
 )
 
-func (nn *SinirAgi) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
-	switch kod {
+func (nn *SinirAgi) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
+	switch kd {
 	case uyeEgit:
-		return &vm.BuiltinVal{Name: "model." + sozluk.Ad(uyeEgit), Fn: nn.egitYerlesik}, nil
+		return &vm.BuiltinVal{Name: "model." + kod.Ad(uyeEgit), Fn: nn.egitYerlesik}, nil
 
 	case uyeTahminEt:
-		return &vm.BuiltinVal{Name: "model." + sozluk.Ad(uyeTahminEt), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+		return &vm.BuiltinVal{Name: "model." + kod.Ad(uyeTahminEt), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("model.tahmin_et(Girdi) 1 parametre bekler")
 			}
@@ -239,7 +239,7 @@ func (nn *SinirAgi) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 		return &vm.ListVal{Elements: elems}, nil
 
 	case uyeKaydet:
-		return &vm.BuiltinVal{Name: "model." + sozluk.Ad(uyeKaydet), Fn: func(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+		return &vm.BuiltinVal{Name: "model." + kod.Ad(uyeKaydet), Fn: func(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("model.kaydet(dosya_yolu) 1 parametre bekler")
 			}

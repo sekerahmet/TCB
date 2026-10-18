@@ -17,7 +17,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/motor/tensor"
@@ -27,7 +27,7 @@ import (
 )
 
 // TipAdi parçalayıcı nesnesinin TR'deki tip adıdır (sözlükte A234).
-var TipAdi = string(vm.TipAdi(sozluk.A234))
+var TipAdi = string(vm.TipAdi(kod.A234))
 
 // Nesne TR'de yüklenmiş bir parçalayıcıdır. Salt okunurdur; dosya tutamağı ya da
 // başka bir kaynak tutmaz (dosya yüklemede tümüyle okunup kapatılır).
@@ -71,26 +71,26 @@ func (n *Nesne) TabloVerisi() ([]string, [][]string, error) {
 	return []string{"Kimlik", "Token", "Özel"}, satirlar, nil
 }
 
-// Parçalayıcı üyeleri (adları sözlükte, pkg/sozluk Y61x).
+// Parçalayıcı üyeleri (adları kod listesinde, pkg/kod Y61x).
 const (
-	uyeKodla        = sozluk.Y610
-	uyeCoz          = sozluk.Y611
-	uyeSozlukBoyutu = sozluk.Y612
-	uyeTokenKimligi = sozluk.Y613
+	uyeKodla        = kod.Y610
+	uyeCoz          = kod.Y611
+	uyeSozlukBoyutu = kod.Y612
+	uyeTokenKimligi = kod.Y613
 )
 
-var uyeler = sozluk.Adlar(uyeKodla, uyeCoz, uyeSozlukBoyutu, uyeTokenKimligi)
+var uyeler = kod.Adlar(uyeKodla, uyeCoz, uyeSozlukBoyutu, uyeTokenKimligi)
 
-func (n *Nesne) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
-	switch kod {
+func (n *Nesne) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
+	switch kd {
 	case uyeKodla:
-		return n.metot(sozluk.Ad(uyeKodla), n.kodla), nil
+		return n.metot(kod.Ad(uyeKodla), n.kodla), nil
 	case uyeCoz:
-		return n.metot(sozluk.Ad(uyeCoz), n.coz), nil
+		return n.metot(kod.Ad(uyeCoz), n.coz), nil
 	case uyeSozlukBoyutu:
 		return vm.NewInt(int64(n.p.SozlukBoyutu())), nil
 	case uyeTokenKimligi:
-		return n.metot(sozluk.Ad(uyeTokenKimligi), n.tokenKimligi), nil
+		return n.metot(kod.Ad(uyeTokenKimligi), n.tokenKimligi), nil
 	}
 	oneri := ""
 	if o := turkce.EnYakin(prop, uyeler); o != "" {
@@ -113,7 +113,7 @@ func (n *Nesne) metot(ad string, fn vm.BuiltinFunc) *vm.BuiltinVal {
 
 // Kaydet parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *vm.VM) {
-	v.RegisterBuiltinKod(sozluk.V200, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(kod.V200, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		return baglama.Guvenli("parçalayıcı_yükle", func() (vm.Value, error) { return yukle(m, args, named) })
 	})
 }
@@ -214,8 +214,8 @@ func uyarilariYaz(yol string, p *pc.Parcalayici) {
 // ----------------------------------------------------------------------------
 
 var (
-	adOzel   = baglama.KodAd(sozluk.V910)
-	adIkinci = baglama.KodAd(sozluk.V911)
+	adOzel   = baglama.KodAd(kod.V910)
+	adIkinci = baglama.KodAd(kod.V911)
 )
 
 // uzunMetin bu bayttan uzun tek metinler yorumlayıcı kilidi bırakılarak kodlanır.

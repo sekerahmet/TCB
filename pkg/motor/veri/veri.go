@@ -20,7 +20,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/motor/tensor"
@@ -32,9 +32,9 @@ import (
 
 // Tip adları.
 var (
-	KumeTipi        = string(vm.TipAdi(sozluk.A231)) // VeriKümesi
-	OrnekleyiciTipi = string(vm.TipAdi(sozluk.A232)) // Örnekleyici
-	SiraliTipi      = string(vm.TipAdi(sozluk.A233)) // SıralıOkuyucu
+	KumeTipi        = string(vm.TipAdi(kod.A231)) // VeriKümesi
+	OrnekleyiciTipi = string(vm.TipAdi(kod.A232)) // Örnekleyici
+	SiraliTipi      = string(vm.TipAdi(kod.A233)) // SıralıOkuyucu
 )
 
 // onYuklemeDerinligi arka planda hazır tutulan toplu iş sayısıdır.
@@ -43,18 +43,18 @@ const onYuklemeDerinligi = 4
 // enBuyukTamFloat32 float32'nin tam gösterebildiği en büyük tam sayıdır (2^24).
 const enBuyukTamFloat32 = 1 << 24
 
-// Adlı argümanlar; adları sözlüktedir (pkg/sozluk).
+// Adlı argümanlar; adları kod listesindedir (pkg/kod).
 var (
-	adOnbellek = baglama.KodAd(sozluk.V900)
-	adKota     = baglama.KodAd(sozluk.V901)
-	adToplu    = baglama.KodAd(sozluk.V902)
-	adBaglam   = baglama.KodAd(sozluk.V903)
-	adTohum    = baglama.KodAd(sozluk.T903)
+	adOnbellek = baglama.KodAd(kod.V900)
+	adKota     = baglama.KodAd(kod.V901)
+	adToplu    = baglama.KodAd(kod.V902)
+	adBaglam   = baglama.KodAd(kod.V903)
+	adTohum    = baglama.KodAd(kod.T903)
 )
 
 // Kaydet veri yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *vm.VM) {
-	v.RegisterBuiltinKod(sozluk.V100, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(kod.V100, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		return baglama.Guvenli("veri_kümesi", func() (vm.Value, error) { return kumeAc(m, args, named) })
 	})
 }
@@ -108,21 +108,21 @@ func (k *Kume) TabloVerisi() ([]string, [][]string, error) {
 	return []string{"Parça", "Token", "Boyut"}, satirlar, nil
 }
 
-// Veri kümesi ve okuyucu üyeleri (adları sözlükte, pkg/sozluk Y60x).
+// Veri kümesi ve okuyucu üyeleri (adları kod listesinde, pkg/kod Y60x).
 const (
-	uyeOrnekleyici = sozluk.Y600
-	uyeSirali      = sozluk.Y601
-	uyeSonraki     = sozluk.Y602
+	uyeOrnekleyici = kod.Y600
+	uyeSirali      = kod.Y601
+	uyeSonraki     = kod.Y602
 )
 
-var kumeUyeleri = sozluk.Adlar(uyeOrnekleyici, uyeSirali)
+var kumeUyeleri = kod.Adlar(uyeOrnekleyici, uyeSirali)
 
-func (k *Kume) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
-	switch kod {
+func (k *Kume) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
+	switch kd {
 	case uyeOrnekleyici:
-		return metot(sozluk.Ad(uyeOrnekleyici), k.ornekleyici), nil
+		return metot(kod.Ad(uyeOrnekleyici), k.ornekleyici), nil
 	case uyeSirali:
-		return metot(sozluk.Ad(uyeSirali), k.sirali), nil
+		return metot(kod.Ad(uyeSirali), k.sirali), nil
 	}
 	return nil, uyeHatasi("Veri kümesi", prop, kumeUyeleri)
 }
@@ -341,15 +341,15 @@ func (o *Okuyucu) TabloVerisi() ([]string, [][]string, error) {
 	return nil, nil, fmt.Errorf("okuyucu tablo olarak açılamaz; .sonraki() ile alınan girdi ve hedef tensörlerini inceleyin")
 }
 
-func (o *Okuyucu) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
-	if kod == uyeSonraki {
-		return metot(sozluk.Ad(uyeSonraki), o.sonraki), nil
+func (o *Okuyucu) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
+	if kd == uyeSonraki {
+		return metot(kod.Ad(uyeSonraki), o.sonraki), nil
 	}
 	ne := "Örnekleyici"
 	if o.sirali {
 		ne = "Sıralı okuyucu"
 	}
-	return nil, uyeHatasi(ne, prop, sozluk.Adlar(uyeSonraki))
+	return nil, uyeHatasi(ne, prop, kod.Adlar(uyeSonraki))
 }
 
 // okuyucuArgumanlari toplu, bağlam ve (örnekleyicide) tohum argümanlarını okur. Konumlu

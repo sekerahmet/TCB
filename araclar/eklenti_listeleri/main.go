@@ -1,5 +1,5 @@
 // eklenti_listeleri, VS Code eklentisinin söz dizimi renklendirmesini
-// (vscode_eklentisi/syntaxes/tr.tmLanguage.json) dilin sözlüğünden (pkg/sozluk, tr.json)
+// (vscode_eklentisi/syntaxes/tr.tmLanguage.json) dilin kod listesinden (pkg/kod, tr.json)
 // üretir. Anahtar kelime, tip adı ve yerleşik fonksiyon listeleri elle yazılmaz; sözlükteki
 // adlardan gelir. Böylece bir ad değiştiğinde ya da kaldırıldığında eklenti kendiliğinden
 // güncel kalır ve kaldırılmış adlar (eski adlar, ASCII yazımlar) renklendirilmez: her işin
@@ -23,7 +23,7 @@ import (
 	"regexp"
 	"strings"
 
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 )
 
 // dilbilgisiYolu depo köküne göre üretilen dosyadır.
@@ -63,22 +63,22 @@ func main() {
 // --- sözlükten listeler ---
 
 // adlar kodların adlarıdır (sözlük sırasıyla).
-func adlar(kodlar ...sozluk.Kod) []string { return sozluk.Adlar(kodlar...) }
+func adlar(kodlar ...kod.Kod) []string { return kod.Adlar(kodlar...) }
 
 // grubundakiler harf ailesinin grup numaralı grubundaki (grup < 0 ise bütün ailedeki) ve
 // uygun(kod) doğru olan sözlük kodlarının adlarıdır.
-func grubundakiler(harf byte, grup int, uygun func(sozluk.Kod) bool) []string {
+func grubundakiler(harf byte, grup int, uygun func(kod.Kod) bool) []string {
 	var out []string
-	for _, k := range sozluk.Kodlar() {
+	for _, k := range kod.Kodlar() {
 		if k.Harf() == harf && (grup < 0 || k.Grup() == grup) && (uygun == nil || uygun(k)) {
-			out = append(out, sozluk.Ad(k))
+			out = append(out, kod.Ad(k))
 		}
 	}
 	return out
 }
 
 // yerlesik kodun genel kapsamdaki bir yerleşik fonksiyon olup olmadığıdır.
-func yerlesik(k sozluk.Kod) bool { return k.Yerlesik() }
+func yerlesik(k kod.Kod) bool { return k.Yerlesik() }
 
 // kelimeler bir ad listesini \b(a|b|c)\b düzenli ifadesine çevirir. Adlar düzenli ifade
 // karakterleri içermez; yine de kaçışlanır.
@@ -157,10 +157,10 @@ func ekle(desenler ...string) []nesne {
 
 // Uret dil bilgisi dosyasının içeriğini sözlükten üretir.
 func Uret() ([]byte, error) {
-	ad := sozluk.Ad
+	ad := kod.Ad
 
-	kontrol := adlar(sozluk.A001, sozluk.A002, sozluk.A003, sozluk.A004, sozluk.A010, sozluk.A011, sozluk.A012, sozluk.A013, sozluk.A014, sozluk.A021, sozluk.A060, sozluk.A061, sozluk.A062, sozluk.A080, sozluk.A081)
-	bildirim := adlar(sozluk.A030, sozluk.A031, sozluk.A020, sozluk.A050)
+	kontrol := adlar(kod.A001, kod.A002, kod.A003, kod.A004, kod.A010, kod.A011, kod.A012, kod.A013, kod.A014, kod.A021, kod.A060, kod.A061, kod.A062, kod.A080, kod.A081)
+	bildirim := adlar(kod.A030, kod.A031, kod.A020, kod.A050)
 	tipler := grubundakiler('A', 2, nil)
 	genel := grubundakiler('G', -1, yerlesik)
 	yz := append(grubundakiler('T', -1, yerlesik), grubundakiler('V', -1, yerlesik)...)
@@ -172,7 +172,7 @@ func Uret() ([]byte, error) {
 
 	dilbilgisi := nesne{
 		{"$schema", "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json"},
-		{"comment", "Bu dosya sözlükten (pkg/sozluk/tr.json) üretilir; elle düzenlemeyin: go run ./araclar/eklenti_listeleri"},
+		{"comment", "Bu dosya kod listesinden (pkg/kod/tr.json) üretilir; elle düzenlemeyin: go run ./araclar/eklenti_listeleri"},
 		{"name", "TR Dili"},
 		{"scopeName", "source.tr"},
 		{"patterns", ekle("#comments", "#strings", "#import", "#declarations", "#keywords", "#pronoun", "#types", "#builtins", "#numbers", "#operators")},
@@ -210,22 +210,22 @@ func Uret() ([]byte, error) {
 				{"patterns", ekle("#nested-braces", "$self")},
 			}},
 			{"import", nesne{{"patterns", []nesne{
-				{{"match", `\b(` + ic(ad(sozluk.A070)) + `)\b\s*("[^"]*"|'[^']*'|[^\W\d][\w.]*)\s+(` + ic(ad(sozluk.A100)) + `)\b\s*([^\W\d]\w*)?`},
+				{{"match", `\b(` + ic(ad(kod.A070)) + `)\b\s*("[^"]*"|'[^']*'|[^\W\d][\w.]*)\s+(` + ic(ad(kod.A100)) + `)\b\s*([^\W\d]\w*)?`},
 					{"captures", yakala("keyword.control.import.tr", "string.other.module.tr", "keyword.control.import.as.tr", "entity.name.namespace.tr")}},
-				kural("keyword.control.import.tr", kelimeler(adlar(sozluk.A070))),
+				kural("keyword.control.import.tr", kelimeler(adlar(kod.A070))),
 			}}}},
 			{"declarations", nesne{{"patterns", []nesne{
-				{{"match", `\b(` + ic(ad(sozluk.A020)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.function.tr", "entity.name.function.tr")}},
-				{{"match", `\b(` + ic(ad(sozluk.A050)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.struct.tr", "entity.name.type.tr")}},
+				{{"match", `\b(` + ic(ad(kod.A020)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.function.tr", "entity.name.function.tr")}},
+				{{"match", `\b(` + ic(ad(kod.A050)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.struct.tr", "entity.name.type.tr")}},
 			}}}},
 			{"keywords", nesne{{"patterns", []nesne{
 				kural("keyword.control.tr", kelimeler(kontrol)),
-				kural("keyword.other.debugger.tr", kelimeler(adlar(sozluk.A090))),
+				kural("keyword.other.debugger.tr", kelimeler(adlar(kod.A090))),
 				kural("storage.type.tr", kelimeler(bildirim)),
-				kural("variable.language.self.tr", kelimeler(adlar(sozluk.A051))),
-				kural("constant.language.boolean.tr", kelimeler(adlar(sozluk.A040, sozluk.A041))),
-				kural("constant.language.null.tr", kelimeler(adlar(sozluk.A042))),
-				kural("keyword.operator.logical.tr", kelimeler(adlar(sozluk.A043, sozluk.A044, sozluk.A045))),
+				kural("variable.language.self.tr", kelimeler(adlar(kod.A051))),
+				kural("constant.language.boolean.tr", kelimeler(adlar(kod.A040, kod.A041))),
+				kural("constant.language.null.tr", kelimeler(adlar(kod.A042))),
+				kural("keyword.operator.logical.tr", kelimeler(adlar(kod.A043, kod.A044, kod.A045))),
 			}}}},
 			{"pronoun", nesne{
 				{"comment", "Sondaki blok (o-lambda) parametresi: liste.filtrele { o > 2 }"},

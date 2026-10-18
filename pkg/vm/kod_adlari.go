@@ -4,35 +4,35 @@ import (
 	"fmt"
 	"strings"
 
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 )
 
-// Yorumlayıcının kaydettiği adlar sözlükten gelir (pkg/sozluk). Adlar kayıt sırasında
+// Yorumlayıcının kaydettiği adlar kod listesinden gelir (pkg/kod). Adlar kayıt sırasında
 // (VM kurulurken) bir kez okunur; çalışma anında sözlüğe bakılmaz.
 
 // RegisterBuiltinKod sözlükteki bir yerleşik kodunu (G/T/V/W) genel kapsama kaydeder.
 // Ad sözlükten gelir; her işin tek adı vardır. Kod bir yerleşik kodu değilse ya da
 // sözlükte yoksa bu bir geliştirici hatasıdır ve kayıt sırasında panikler.
-func (v *VM) RegisterBuiltinKod(kod sozluk.Kod, fn BuiltinFunc) *BuiltinVal {
-	return v.YerlesikTanimla(kod, &BuiltinVal{Name: sozluk.Ad(kod), Fn: fn})
+func (v *VM) RegisterBuiltinKod(kd kod.Kod, fn BuiltinFunc) *BuiltinVal {
+	return v.YerlesikTanimla(kd, &BuiltinVal{Name: kod.Ad(kd), Fn: fn})
 }
 
 // YerlesikTanimla hazır bir yerleşik değerini (adı kodun adı olmalı) kodun kabul edilen
-// yazımıyla (sozluk.Yazimlar: yalnızca ad) genel kapsama bağlar (ör. tensör motorunun eski
+// yazımıyla (kod.Yazimlar: yalnızca ad) genel kapsama bağlar (ör. tensör motorunun eski
 // yerleşiği saran değeri).
-func (v *VM) YerlesikTanimla(kod sozluk.Kod, b *BuiltinVal) *BuiltinVal {
-	if !kod.Yerlesik() {
-		panic(fmt.Sprintf("yerleşik kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kod))
+func (v *VM) YerlesikTanimla(kd kod.Kod, b *BuiltinVal) *BuiltinVal {
+	if !kd.Yerlesik() {
+		panic(fmt.Sprintf("yerleşik kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kd))
 	}
-	for _, yazim := range sozluk.Yazimlar(kod) {
+	for _, yazim := range kod.Yazimlar(kd) {
 		v.GlobalEnv.Define(yazim, b, true)
 	}
 	return b
 }
 
 // Yerlesik kodun genel kapsamda kayıtlı yerleşiğini verir; yoksa nil.
-func (v *VM) Yerlesik(kod sozluk.Kod) *BuiltinVal {
-	b, _ := v.GlobalEnv.yerelDeger(sozluk.Ad(kod)).(*BuiltinVal)
+func (v *VM) Yerlesik(kd kod.Kod) *BuiltinVal {
+	b, _ := v.GlobalEnv.yerelDeger(kod.Ad(kd)).(*BuiltinVal)
 	return b
 }
 
@@ -42,21 +42,21 @@ func (v *VM) Yerlesik(kod sozluk.Kod) *BuiltinVal {
 // (ör. değişken boy = 180); yalnızca tanımsız ad hatasında, alışkanlıkla yazılmış
 // olabilecekleri için asıl (Türkçe) ad önerilir.
 func KaldirilanYerlesikIpucu(ad string) string {
-	k, ok := sozluk.Oneri(sozluk.AlanGenel, ad, sozluk.Kod.Yerlesik)
+	k, ok := kod.Oneri(kod.AlanGenel, ad, kod.Kod.Yerlesik)
 	if !ok {
 		return ""
 	}
-	return yokIpucu(ad, sozluk.Ad(k))
+	return yokIpucu(ad, kod.Ad(k))
 }
 
 // kaldirilanUyeIpucu Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
 // kaldırılmış adı için ipucunu döndürür.
 func kaldirilanUyeIpucu(ad string) string {
-	k, ok := sozluk.Oneri(sozluk.AlanUye, ad, cekirdekUyesi)
+	k, ok := kod.Oneri(kod.AlanUye, ad, cekirdekUyesi)
 	if !ok {
 		return ""
 	}
-	return yokIpucu(ad, sozluk.Ad(k))
+	return yokIpucu(ad, kod.Ad(k))
 }
 
 func yokIpucu(ad, asil string) string {
@@ -69,15 +69,15 @@ func yokIpucu(ad, asil string) string {
 // geçerli olduğu asıl adla yeniden okunarak doğrulanır (üye okumak yan etkisizdir:
 // metotlar bağlı değer olarak döner, çağrılmaz). Yalnızca hata yolunda çalışır.
 func uyeOneriHatasi(pg PropertyGetter, obj Value, prop string, err error) error {
-	k, ok := sozluk.Oneri(sozluk.AlanUye, prop, nil)
+	k, ok := kod.Oneri(kod.AlanUye, prop, nil)
 	if !ok {
 		return err
 	}
-	if strings.Contains(err.Error(), "'"+sozluk.Ad(k)) {
+	if strings.Contains(err.Error(), "'"+kod.Ad(k)) {
 		return err // tipin kendi hata mesajı asıl adı zaten öneriyor (ör. 'devrik()')
 	}
-	if _, e := pg.GetProperty(k, sozluk.Ad(k)); e != nil {
+	if _, e := pg.GetProperty(k, kod.Ad(k)); e != nil {
 		return err
 	}
-	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", obj.Type(), prop, yokIpucu(prop, sozluk.Ad(k)))
+	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", obj.Type(), prop, yokIpucu(prop, kod.Ad(k)))
 }

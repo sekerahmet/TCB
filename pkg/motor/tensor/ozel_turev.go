@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"strings"
 
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/motor/internal/baglama"
-	"tr_dili/pkg/sozluk"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/vm"
 )
@@ -32,16 +32,16 @@ import (
 // görev, çekirdeğe BackwardCtx ile bağlam olarak verilir.
 
 var (
-	adIleri    = baglama.KodAd(sozluk.T980)
-	adGeri     = baglama.KodAd(sozluk.T981)
-	adAdim     = baglama.KodAd(sozluk.T982)
-	adTolerans = baglama.KodAd(sozluk.T983)
+	adIleri    = baglama.KodAd(kod.T980)
+	adGeri     = baglama.KodAd(kod.T981)
+	adAdim     = baglama.KodAd(kod.T982)
+	adTolerans = baglama.KodAd(kod.T983)
 )
 
 // ozelTurevKaydet özel_türev ve türev_denetle yerleşiklerini kaydeder (bkz. Kaydet).
 func ozelTurevKaydet(v *vm.VM) {
-	sar(v, sozluk.T310, yeniYerlesik(ozelTurev))
-	sar(v, sozluk.T311, yeniYerlesik(turevDenetle))
+	sar(v, kod.T310, yeniYerlesik(ozelTurev))
+	sar(v, kod.T311, yeniYerlesik(turevDenetle))
 }
 
 const ozelTurevOrnek = "özel_türev(ileri: fonksiyon(x) { sonuç [x * x, [x]] }, geri: fonksiyon(saklananlar, g) { sonuç [g * 2 * saklananlar[0]] })"

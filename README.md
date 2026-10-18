@@ -116,7 +116,7 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 | Klasör | İçerik |
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
-| `pkg/sozluk` | Dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) tek yerde: `tr.json` |
+| `pkg/kod` | Dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) tek yerde: `tr.json` |
 | `pkg/lexer` | Kaynak metni sözcüklere ayırır |
 | `pkg/parser` | Sözcüklerden sözdizimi ağacı kurar |
 | `pkg/ast` | Sözdizimi ağacı düğümleri |

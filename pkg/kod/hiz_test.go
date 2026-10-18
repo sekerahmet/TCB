@@ -1,4 +1,4 @@
-package sozluk
+package kod
 
 import "testing"
 

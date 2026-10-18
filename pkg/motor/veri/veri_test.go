@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 
 	"tr_dili/pkg/hataayiklama"
 	"tr_dili/pkg/lexer"
@@ -23,9 +23,9 @@ import (
 )
 
 // calistir TR kodunu tam dille (motorlar dahil) çalıştırır; çıktıyı ve VM'yi döndürür.
-func calistir(t *testing.T, kod string) (string, *vm.VM, error) {
+func calistir(t *testing.T, kd string) (string, *vm.VM, error) {
 	t.Helper()
-	p := parser.New(lexer.New(kod))
+	p := parser.New(lexer.New(kd))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())
@@ -38,11 +38,11 @@ func calistir(t *testing.T, kod string) (string, *vm.VM, error) {
 	return out.String(), m, err
 }
 
-func mustCalistir(t *testing.T, kod string) (string, *vm.VM) {
+func mustCalistir(t *testing.T, kd string) (string, *vm.VM) {
 	t.Helper()
-	out, m, err := calistir(t, kod)
+	out, m, err := calistir(t, kd)
 	if err != nil {
-		t.Fatalf("beklenmeyen hata: %v\nkod:\n%s", err, kod)
+		t.Fatalf("beklenmeyen hata: %v\nkod:\n%s", err, kd)
 	}
 	return out, m
 }
@@ -212,7 +212,7 @@ func mustUye(t *testing.T, v vm.Value, ad string) vm.Value {
 	if !ok {
 		t.Fatalf("%T üyesi yok", v)
 	}
-	u, err := pg.GetProperty(sozluk.UyeKodu(ad), ad)
+	u, err := pg.GetProperty(kod.UyeKodu(ad), ad)
 	if err != nil {
 		t.Fatal(err)
 	}

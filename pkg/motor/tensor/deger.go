@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/turkce"
@@ -591,37 +591,37 @@ func matCarpTur(a, b *ct.Tensor, karisik ct.DType) (*ct.Tensor, error) {
 // Özellikler ve metotlar
 // ----------------------------------------------------------------------------
 
-// Tensör üyeleri (adları sözlükte, pkg/sozluk Y4xx).
+// Tensör üyeleri (adları kod listesinde, pkg/kod Y4xx).
 const (
-	uyeSekil           = sozluk.Y400
-	uyeCihaz           = sozluk.Y401
-	uyeTur             = sozluk.Y402
-	uyeGradyan         = sozluk.Y403
-	uyeDeger           = sozluk.Y404
-	uyeSekillendir     = sozluk.Y410
-	uyeDevrik          = sozluk.Y411
-	uyeEksenleriSirala = sozluk.Y412
-	uyeDilim           = sozluk.Y413
-	uyeCihaza          = sozluk.Y414
-	uyeTure            = sozluk.Y415
+	uyeSekil           = kod.Y400
+	uyeCihaz           = kod.Y401
+	uyeTur             = kod.Y402
+	uyeGradyan         = kod.Y403
+	uyeDeger           = kod.Y404
+	uyeSekillendir     = kod.Y410
+	uyeDevrik          = kod.Y411
+	uyeEksenleriSirala = kod.Y412
+	uyeDilim           = kod.Y413
+	uyeCihaza          = kod.Y414
+	uyeTure            = kod.Y415
 )
 
 // tensorUyeKodlari öneri listesinin sırasıdır.
-var tensorUyeKodlari = []sozluk.Kod{uyeSekil, uyeCihaz, uyeTur, uyeGradyan, uyeDeger, uyeSekillendir, uyeDevrik, uyeEksenleriSirala, uyeDilim, uyeCihaza, uyeTure, uyeBol}
+var tensorUyeKodlari = []kod.Kod{uyeSekil, uyeCihaz, uyeTur, uyeGradyan, uyeDeger, uyeSekillendir, uyeDevrik, uyeEksenleriSirala, uyeDilim, uyeCihaza, uyeTure, uyeBol}
 
-var tensorUyeleri = sozluk.Adlar(tensorUyeKodlari...)
+var tensorUyeleri = kod.Adlar(tensorUyeKodlari...)
 
-func tensorUyesi(k sozluk.Kod) bool { return slices.Contains(tensorUyeKodlari, k) }
+func tensorUyesi(k kod.Kod) bool { return slices.Contains(tensorUyeKodlari, k) }
 
 // matristenKalanYerlesikler kaldırılan matris türünün tensörde üye değil yerleşik olarak
 // karşılığı olan üyeleridir (m.toplam → toplam(m)); hata mesajında yerleşik önerilir.
 // Matrisin öbür eski üyeleri (boyut, satır, T, liste ...) sözlükte tensör üyelerinin
 // "eski" adlarıdır.
-var matristenKalanYerlesikler = []sozluk.Kod{sozluk.G400, sozluk.G410} // toplam, ortalama
+var matristenKalanYerlesikler = []kod.Kod{kod.G400, kod.G410} // toplam, ortalama
 
-func (d *Deger) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
+func (d *Deger) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 	t := d.t
-	switch kod {
+	switch kd {
 	case uyeSekil:
 		return intListesi(t.Shape()), nil
 	case uyeCihaz:
@@ -660,13 +660,13 @@ func (d *Deger) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 		return d.metot(uyeBol, d.bol), nil
 	}
 	oneri := ""
-	if k, _, eski := sozluk.EskiBul(sozluk.AlanUye, prop, tensorUyesi); eski {
-		o := sozluk.Ad(k)
+	if k, _, eski := kod.EskiBul(kod.AlanUye, prop, tensorUyesi); eski {
+		o := kod.Ad(k)
 		if k == uyeDevrik {
 			o += "()" // metot
 		}
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
-	} else if i := slices.IndexFunc(matristenKalanYerlesikler, func(k sozluk.Kod) bool { return sozluk.Ad(k) == prop }); i >= 0 {
+	} else if i := slices.IndexFunc(matristenKalanYerlesikler, func(k kod.Kod) bool { return kod.Ad(k) == prop }); i >= 0 {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s(x)'?", prop)
 	} else if o := turkce.EnYakin(prop, tensorUyeleri); o != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
@@ -674,8 +674,8 @@ func (d *Deger) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 	return nil, fmt.Errorf("Tensör üzerinde %q özelliği ya da metodu bulunamadı%s", prop, oneri)
 }
 
-func (d *Deger) metot(kod sozluk.Kod, fn vm.BuiltinFunc) *vm.BuiltinVal {
-	return &vm.BuiltinVal{Name: sozluk.Ad(kod), Fn: fn}
+func (d *Deger) metot(kd kod.Kod, fn vm.BuiltinFunc) *vm.BuiltinVal {
+	return &vm.BuiltinVal{Name: kod.Ad(kd), Fn: fn}
 }
 
 func intListesi(sh []int) *vm.ListVal {

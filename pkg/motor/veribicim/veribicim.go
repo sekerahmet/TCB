@@ -12,7 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/motor/internal/jsonyaz"
@@ -22,7 +22,7 @@ import (
 
 // Kaydet JSON ve CSV yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *vm.VM) {
-	v.RegisterBuiltinKod(sozluk.G600, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(kod.G600, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_çöz(metin) 1 parametre bekler")
 		}
@@ -33,7 +33,7 @@ func Kaydet(v *vm.VM) {
 		return val, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G601, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(kod.G601, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_metin(değer) 1 parametre bekler")
 		}
@@ -44,7 +44,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.StringVal{Val: string(b)}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G602, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(kod.G602, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("csv_oku(dosya_veya_metin) 1 parametre bekler")
 		}

@@ -1,7 +1,7 @@
 // Package baglama, Go paketlerini TR diline bağlayan motor paketlerinin (tensör,
 // parçalayıcı, veri) ortak yardımcılarıdır: adlı argüman denetimi, göreli yol çözme,
 // paniği hataya çevirme ve sayıların Türkçe kısa yazımı. Kullanıcıya görünen hiçbir ad
-// tanımlamaz: adlı argümanların adları sözlüktedir (pkg/sozluk, x9xx kodları).
+// tanımlamaz: adlı argümanların adları kod listesindedir (pkg/kod, x9xx kodları).
 package baglama
 
 import (
@@ -12,15 +12,15 @@ import (
 	"strconv"
 	"strings"
 
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
 // Ad bir adlı argümandır: sözlükteki kodu (x9xx), adı ve kabul edilen yazımları. Adlar
-// sözlükten gelir (pkg/sozluk); Go kodu yalnızca kodu bilir.
+// kod listesinden gelir (pkg/kod); Go kodu yalnızca kodu bilir.
 type Ad struct {
-	Kod sozluk.Kod
+	Kod kod.Kod
 	// TR adın kendisidir (hata mesajlarında ve önerilerde gösterilir).
 	TR       string
 	yazimlar []string
@@ -28,11 +28,11 @@ type Ad struct {
 
 // KodAd sözlükteki bir adlı argüman kodunun Ad'ıdır. Paket düzeyinde (başlangıçta) bir
 // kez çağrılır; kod bir adlı argüman kodu değilse panikler.
-func KodAd(k sozluk.Kod) Ad {
-	if k.Alan() != sozluk.AlanParametre {
+func KodAd(k kod.Kod) Ad {
+	if k.Alan() != kod.AlanParametre {
 		panic(fmt.Sprintf("baglama.KodAd: %s bir adlı argüman kodu (x9xx) değil", k))
 	}
-	return Ad{Kod: k, TR: sozluk.Ad(k), yazimlar: sozluk.Yazimlar(k)}
+	return Ad{Kod: k, TR: kod.Ad(k), yazimlar: kod.Yazimlar(k)}
 }
 
 // Yazimlar adlı argümanın kabul edilen yazımlarıdır (önce adın kendisi). Dönen dilim
@@ -44,18 +44,18 @@ func (a Ad) Kabul(yazim string) bool { return slices.Contains(a.yazimlar, yazim)
 
 // yabanciAdlar başka dillerden alışılmış parametre adlarının TR karşılıklarıdır. Bu adlar
 // KABUL EDİLMEZ; yalnızca hata mesajında doğru TR adı önerilir.
-var yabanciAdlar = map[string]sozluk.Kod{
-	"lr":            sozluk.T910, // öğrenme_oranı
-	"learning_rate": sozluk.T910,
-	"axis":          sozluk.T902, // eksen
-	"dim":           sozluk.T902,
-	"requires_grad": sozluk.T900, // türev_izle
-	"weight_decay":  sozluk.T911, // ağırlık_çürümesi
-	"eps":           sozluk.T905, // epsilon
-	"seed":          sozluk.T903, // tohum
-	"weight":        sozluk.T920, // ağırlık
-	"bias":          sozluk.T921, // sapma
-	"betas":         sozluk.T912, // beta1
+var yabanciAdlar = map[string]kod.Kod{
+	"lr":            kod.T910, // öğrenme_oranı
+	"learning_rate": kod.T910,
+	"axis":          kod.T902, // eksen
+	"dim":           kod.T902,
+	"requires_grad": kod.T900, // türev_izle
+	"weight_decay":  kod.T911, // ağırlık_çürümesi
+	"eps":           kod.T905, // epsilon
+	"seed":          kod.T903, // tohum
+	"weight":        kod.T920, // ağırlık
+	"bias":          kod.T921, // sapma
+	"betas":         kod.T912, // beta1
 }
 
 // AdliDenetle verilen adlı argümanların bilinen adlardan olduğunu denetler; yazım
@@ -78,11 +78,11 @@ func AdliDenetle(fn string, named map[string]vm.Value, adlar ...Ad) error {
 			adaylar = append(adaylar, a.TR)
 		}
 		o := ""
-		if k, ok := sozluk.Oneri(sozluk.AlanParametre, verilen, nil); ok && slices.Contains(adaylar, sozluk.Ad(k)) {
-			o = sozluk.Ad(k)
+		if k, ok := kod.Oneri(kod.AlanParametre, verilen, nil); ok && slices.Contains(adaylar, kod.Ad(k)) {
+			o = kod.Ad(k)
 		}
-		if k, ok := yabanciAdlar[strings.ToLower(verilen)]; o == "" && ok && slices.Contains(adaylar, sozluk.Ad(k)) {
-			o = sozluk.Ad(k)
+		if k, ok := yabanciAdlar[strings.ToLower(verilen)]; o == "" && ok && slices.Contains(adaylar, kod.Ad(k)) {
+			o = kod.Ad(k)
 		}
 		if o == "" {
 			o = turkce.EnYakin(verilen, adaylar)

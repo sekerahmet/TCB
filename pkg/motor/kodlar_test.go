@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/lexer"
 	"tr_dili/pkg/parser"
-	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/vm"
 )
 
@@ -22,25 +22,25 @@ func TestYerlesiklerSozlukleTutarli(t *testing.T) {
 		if !ok {
 			continue
 		}
-		k, ok := sozluk.Bul(sozluk.AlanGenel, ad)
+		k, ok := kod.Bul(kod.AlanGenel, ad)
 		if !ok || !k.Yerlesik() {
 			t.Errorf("kayıtlı yerleşik %q sözlükte bir yerleşik kodu değil", ad)
 			continue
 		}
-		if asil, _ := sozluk.AsilAdAlanda(sozluk.AlanGenel, ad); b.Name != asil {
+		if asil, _ := kod.AsilAdAlanda(kod.AlanGenel, ad); b.Name != asil {
 			t.Errorf("%q (%s) yerleşiğinin adı %q, sözlükte %q", ad, k, b.Name, asil)
 		}
 	}
-	for _, k := range sozluk.Kodlar() {
+	for _, k := range kod.Kodlar() {
 		if !k.Yerlesik() {
 			continue
 		}
 		b := m.Yerlesik(k)
 		if b == nil {
-			t.Errorf("sözlükteki %s (%s) kayıtlı değil", k, sozluk.Ad(k))
+			t.Errorf("sözlükteki %s (%s) kayıtlı değil", k, kod.Ad(k))
 			continue
 		}
-		for _, y := range sozluk.Yazimlar(k) {
+		for _, y := range kod.Yazimlar(k) {
 			if d, _ := m.GlobalEnv.Get(y); d != b {
 				t.Errorf("%s yazımı %q aynı yerleşiğe bağlı değil", k, y)
 			}
@@ -49,12 +49,12 @@ func TestYerlesiklerSozlukleTutarli(t *testing.T) {
 }
 
 // calistirAyni TR kodunu verilen VM'de çalıştırır (genel tanımlar korunur).
-func calistirAyni(t *testing.T, m *vm.VM, kod string) (vm.Value, error) {
+func calistirAyni(t *testing.T, m *vm.VM, kd string) (vm.Value, error) {
 	t.Helper()
-	p := parser.New(lexer.New(kod))
+	p := parser.New(lexer.New(kd))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), kod)
+		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), kd)
 	}
 	return m.Run(prog)
 }
@@ -81,11 +81,11 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		t.Fatal(err)
 	}
 	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_model", "u_vt", "u_web", "u_arayuz", "u_parcalayici"}
-	for _, k := range sozluk.Kodlar() {
-		if k.Alan() != sozluk.AlanUye || (k >= sozluk.Y600 && k <= sozluk.Y602) {
+	for _, k := range kod.Kodlar() {
+		if k.Alan() != kod.AlanUye || (k >= kod.Y600 && k <= kod.Y602) {
 			continue
 		}
-		for _, y := range sozluk.Yazimlar(k) {
+		for _, y := range kod.Yazimlar(k) {
 			bulundu := false
 			for _, o := range ornekler {
 				if _, err := calistirAyni(t, m, o+"."+y); err == nil {

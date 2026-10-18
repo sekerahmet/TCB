@@ -3,14 +3,14 @@ package vm
 import (
 	"fmt"
 	"tr_dili/pkg/ast"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 )
 
 // registerTestBuiltins test yazmak için doğrulama yerleşiklerini kaydeder.
 // İkisi de test blokları dışında da çalışır (bir tür "assert").
 func (v *VM) registerTestBuiltins() {
 	// doğrula(koşul, [mesaj]): koşul yanlışsa hata fırlatır.
-	v.RegisterBuiltinKod(sozluk.G700, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G700, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 || len(args) > 2 {
 			return nil, fmt.Errorf("doğrula() 1 ya da 2 parametre bekler (koşul, [mesaj]), %d verildi", len(args))
 		}
@@ -24,7 +24,7 @@ func (v *VM) registerTestBuiltins() {
 	})
 
 	// eşit_mi(beklenen, gerçek, [mesaj]): iki değer '==' ile eşit değilse ikisini de gösteren hata fırlatır.
-	v.RegisterBuiltinKod(sozluk.G701, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(kod.G701, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 || len(args) > 3 {
 			return nil, fmt.Errorf("eşit_mi() 2 ya da 3 parametre bekler (beklenen, gerçek, [mesaj]), %d verildi", len(args))
 		}
@@ -69,14 +69,14 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 	if t.Body != nil {
 		stmts = t.Body.Statements
 	}
-	kod, bilgi := v.genelAltindaDerle(stmts)
+	kd, bilgi := v.genelAltindaDerle(stmts)
 	env := yeniOrtam(v.GlobalEnv, bilgi)
 	env.IsFuncRoot = true
 	func() {
 		// Testin ertelenen işleri test bitince çalışır; hataları testin hatasına eklenir (9.4)
 		defer func() { err = erteleHatasiEkle(err, env.RunDefers()) }()
 		if t.Body != nil {
-			_, _, err = kod.calistir(v, env)
+			_, _, err = kd.calistir(v, env)
 		}
 	}()
 	v.Blocking(v.wg.Wait)

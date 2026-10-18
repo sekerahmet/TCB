@@ -3,7 +3,7 @@ package vm
 import (
 	"fmt"
 	"tr_dili/pkg/ast"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 )
 
 // Bu dosyada derlenmiş kodun değer düzeyinde kullandığı yardımcılar vardır (indeksleme,
@@ -146,7 +146,7 @@ func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression, u uyeBilgisi) (Value,
 	// Tensör, SinirAğı, WebSunucu, GörselArayüz ve Veritabanı özellikleri
 	if pg, ok := obj.(PropertyGetter); ok {
 		val, err := pg.GetProperty(u.kod, e.Property)
-		if err != nil && u.kod == sozluk.Yok {
+		if err != nil && u.kod == kod.Yok {
 			err = uyeOneriHatasi(pg, obj, e.Property, err)
 		}
 		return val, satirEki(e.Line(), err)

@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strconv"
 
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/motor/internal/baglama"
-	"tr_dili/pkg/sozluk"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/vm"
 )
@@ -16,20 +16,20 @@ import (
 // Bu dosya model yazmak için gereken yapı taşlarını TR'ye bağlar: tensör birleştirme ve
 // bölme, birleşik dikkat, token örnekleme ve bir modelin parametrelerini toplama.
 
-// Adlı argümanlar (adları sözlükte, pkg/sozluk T9xx).
+// Adlı argümanlar (adları kod listesinde, pkg/kod T9xx).
 var (
-	adBoyutuKoru = baglama.KodAd(sozluk.T906)
-	adNedensel   = baglama.KodAd(sozluk.T950)
-	adPencere    = baglama.KodAd(sozluk.T951)
-	adMaske      = baglama.KodAd(sozluk.T952)
-	adSicaklik   = baglama.KodAd(sozluk.T960)
-	adEnIyiK     = baglama.KodAd(sozluk.T961)
-	adAdlariyla  = baglama.KodAd(sozluk.T970)
+	adBoyutuKoru = baglama.KodAd(kod.T906)
+	adNedensel   = baglama.KodAd(kod.T950)
+	adPencere    = baglama.KodAd(kod.T951)
+	adMaske      = baglama.KodAd(kod.T952)
+	adSicaklik   = baglama.KodAd(kod.T960)
+	adEnIyiK     = baglama.KodAd(kod.T961)
+	adAdlariyla  = baglama.KodAd(kod.T970)
 )
 
 // uyeBol tensörün .böl(parça_sayısı, eksen: -1) metodudur. Üye adları tipten bağımsız
 // benzersiz olduğundan Metin'in .böl'üyle aynı koddur (Y103).
-const uyeBol = sozluk.Y103
+const uyeBol = kod.Y103
 
 // adliMantik adlı bir Mantık argümanını okur; verilmemişse varsayilan döner.
 func adliMantik(fn string, named map[string]vm.Value, a baglama.Ad, varsayilan bool) (bool, error) {

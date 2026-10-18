@@ -17,28 +17,28 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/motor/internal/jsonyaz"
-	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
-// Adlı argümanlar; adları sözlüktedir (pkg/sozluk, W9xx).
+// Adlı argümanlar; adları kod listesindedir (pkg/kod, W9xx).
 var (
-	adPort      = baglama.KodAd(sozluk.W900)
-	adArkaPlan  = baglama.KodAd(sozluk.W901)
-	adGenislik  = baglama.KodAd(sozluk.W910)
-	adYukseklik = baglama.KodAd(sozluk.W911)
-	adPencereAc = baglama.KodAd(sozluk.W912)
-	adAltBilgi  = baglama.KodAd(sozluk.W920)
-	adRenk      = baglama.KodAd(sozluk.W921)
-	adTip       = baglama.KodAd(sozluk.W922)
+	adPort      = baglama.KodAd(kod.W900)
+	adArkaPlan  = baglama.KodAd(kod.W901)
+	adGenislik  = baglama.KodAd(kod.W910)
+	adYukseklik = baglama.KodAd(kod.W911)
+	adPencereAc = baglama.KodAd(kod.W912)
+	adAltBilgi  = baglama.KodAd(kod.W920)
+	adRenk      = baglama.KodAd(kod.W921)
+	adTip       = baglama.KodAd(kod.W922)
 )
 
 var (
-	VAL_WEB_SERVER = vm.TipAdi(sozluk.A241) // WebSunucu
-	VAL_GUI_APP    = vm.TipAdi(sozluk.A242) // GörselArayüz
+	VAL_WEB_SERVER = vm.TipAdi(kod.A241) // WebSunucu
+	VAL_GUI_APP    = vm.TipAdi(kod.A242) // GörselArayüz
 )
 
 // ============================================================================
@@ -88,33 +88,33 @@ func (w *WebServerVal) Inspect() string {
 }
 func (w *WebServerVal) IsTruthy() bool { return true }
 
-// Web sunucusu ve görsel arayüz üyeleri (adları sözlükte, pkg/sozluk Y8xx, Y9xx, Y00x).
+// Web sunucusu ve görsel arayüz üyeleri (adları kod listesinde, pkg/kod Y8xx, Y9xx, Y00x).
 const (
-	uyeBaslat           = sozluk.Y006
-	uyeArkaPlandaBaslat = sozluk.Y007
-	uyeDurdur           = sozluk.Y008
-	uyeKaydet           = sozluk.Y005
+	uyeBaslat           = kod.Y006
+	uyeArkaPlandaBaslat = kod.Y007
+	uyeDurdur           = kod.Y008
+	uyeKaydet           = kod.Y005
 
-	uyeAdres        = sozluk.Y800
-	uyePort         = sozluk.Y801
-	uyeAl           = sozluk.Y802
-	uyeGonder       = sozluk.Y803
-	uyeRotaEkle     = sozluk.Y804
-	uyeStatikKlasor = sozluk.Y805
+	uyeAdres        = kod.Y800
+	uyePort         = kod.Y801
+	uyeAl           = kod.Y802
+	uyeGonder       = kod.Y803
+	uyeRotaEkle     = kod.Y804
+	uyeStatikKlasor = kod.Y805
 
-	uyeKartEkle   = sozluk.Y900
-	uyeBaslikEkle = sozluk.Y901
-	uyeMetinEkle  = sozluk.Y902
-	uyeTabloEkle  = sozluk.Y903
-	uyeGrafikEkle = sozluk.Y904
-	uyeFormEkle   = sozluk.Y905
-	uyeButonEkle  = sozluk.Y906
-	uyeHTMLKaydet = sozluk.Y907
-	uyeHTMLUret   = sozluk.Y908
+	uyeKartEkle   = kod.Y900
+	uyeBaslikEkle = kod.Y901
+	uyeMetinEkle  = kod.Y902
+	uyeTabloEkle  = kod.Y903
+	uyeGrafikEkle = kod.Y904
+	uyeFormEkle   = kod.Y905
+	uyeButonEkle  = kod.Y906
+	uyeHTMLKaydet = kod.Y907
+	uyeHTMLUret   = kod.Y908
 )
 
-func (w *WebServerVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
-	switch kod {
+func (w *WebServerVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
+	switch kd {
 	case uyeAdres:
 		return &vm.StringVal{Val: fmt.Sprintf("http://localhost:%d", w.Port)}, nil
 	case uyePort:
@@ -448,8 +448,8 @@ func (g *GUIAppVal) geriCagri(id string) vm.Value {
 }
 func (g *GUIAppVal) IsTruthy() bool { return true }
 
-func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
-	switch kod {
+func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
+	switch kd {
 	case uyeKartEkle:
 		return &vm.BuiltinVal{
 			Name: "arayüz.kart_ekle",
@@ -1096,7 +1096,7 @@ func Kaydet(v *vm.VM) {
 	istemciKaydet(v)
 
 	// 1. web_sunucu(port: 8080)
-	v.RegisterBuiltinKod(sozluk.W110, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(kod.W110, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		port, err := portAl("web_sunucu", args, named, 8080)
 		if err != nil {
 			return nil, err
@@ -1137,5 +1137,5 @@ func Kaydet(v *vm.VM) {
 			vmRef:   v,
 		}, nil
 	}
-	v.RegisterBuiltinKod(sozluk.W300, createGUI)
+	v.RegisterBuiltinKod(kod.W300, createGUI)
 }

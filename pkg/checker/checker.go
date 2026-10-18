@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"tr_dili/pkg/ast"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/turkce"
 	"unicode"
 )
@@ -71,25 +71,25 @@ func (c *Checker) Warnings() []string {
 // golgeDenetle ad bir yerleşik fonksiyonun adıysa (sözlükte G/T/V/W yerleşik kodu) uyarı
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
 func (c *Checker) golgeDenetle(ad string, satir int) {
-	if k, ok := sozluk.Bul(sozluk.AlanGenel, ad); ok && k.Yerlesik() {
+	if k, ok := kod.Bul(kod.AlanGenel, ad); ok && k.Yerlesik() {
 		c.uyarilar = append(c.uyarilar, fmt.Sprintf(
 			"Satır %d: '%s' yerleşik bir ad; bu kapsamda yerleşik '%s' artık kullanılamaz", satir, ad, ad))
 	}
 }
 
-// Denetleyicinin kullandığı tip adları sözlüktedir (pkg/sozluk, A2xx).
+// Denetleyicinin kullandığı tip adları kod listesindedir (pkg/kod, A2xx).
 var (
-	tipTam       = sozluk.Ad(sozluk.A200)
-	tipOndalik   = sozluk.Ad(sozluk.A201)
-	tipMetin     = sozluk.Ad(sozluk.A202)
-	tipMantik    = sozluk.Ad(sozluk.A203)
-	tipYok       = sozluk.Ad(sozluk.A204)
-	tipListe     = sozluk.Ad(sozluk.A205)
-	tipSozluk    = sozluk.Ad(sozluk.A206)
-	tipAralik    = sozluk.Ad(sozluk.A207)
-	tipFonksiyon = sozluk.Ad(sozluk.A208)
-	tipTensor    = sozluk.Ad(sozluk.A212)
-	tipHerhangi  = sozluk.Ad(sozluk.A213)
+	tipTam       = kod.Ad(kod.A200)
+	tipOndalik   = kod.Ad(kod.A201)
+	tipMetin     = kod.Ad(kod.A202)
+	tipMantik    = kod.Ad(kod.A203)
+	tipYok       = kod.Ad(kod.A204)
+	tipListe     = kod.Ad(kod.A205)
+	tipSozluk    = kod.Ad(kod.A206)
+	tipAralik    = kod.Ad(kod.A207)
+	tipFonksiyon = kod.Ad(kod.A208)
+	tipTensor    = kod.Ad(kod.A212)
+	tipHerhangi  = kod.Ad(kod.A213)
 )
 
 // tipSayi denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
@@ -99,8 +99,8 @@ const tipSayi = "Tam ya da Ondalık"
 
 // aciklamaTipleri tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
-var aciklamaTipleri = []sozluk.Kod{sozluk.A200, sozluk.A201, sozluk.A202, sozluk.A203,
-	sozluk.A205, sozluk.A206, sozluk.A207, sozluk.A208, sozluk.A209, sozluk.A212, sozluk.A204}
+var aciklamaTipleri = []kod.Kod{kod.A200, kod.A201, kod.A202, kod.A203,
+	kod.A205, kod.A206, kod.A207, kod.A208, kod.A209, kod.A212, kod.A204}
 
 // tipYazimlari tip açıklamasında kabul edilen yazımların küçük harfli biçimi → tip adıdır.
 // Yazımlar sözlükten gelir (yalnızca Türkçe biçim; büyük/küçük harf fark etmez). Matris 2
@@ -108,8 +108,8 @@ var aciklamaTipleri = []sozluk.Kod{sozluk.A200, sozluk.A201, sozluk.A202, sozluk
 var tipYazimlari = func() map[string]string {
 	m := map[string]string{}
 	for _, k := range aciklamaTipleri {
-		for _, y := range sozluk.Yazimlar(k) {
-			m[kucukHarf(y)] = sozluk.Ad(k)
+		for _, y := range kod.Yazimlar(k) {
+			m[kucukHarf(y)] = kod.Ad(k)
 		}
 	}
 	return m
@@ -126,7 +126,7 @@ var tipOnerileri = func() map[string]string {
 		}
 	}
 	for _, k := range aciklamaTipleri {
-		g, _ := sozluk.Etkin().Girdisi(k)
+		g, _ := kod.Etkin().Girdisi(k)
 		ekle(turkce.ASCII(g.Ad), g.Ad)
 		for _, e := range g.Eski {
 			ekle(e, g.Ad)

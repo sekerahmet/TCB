@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
@@ -37,18 +37,18 @@ func (o *Iyilestirici) Inspect() string {
 		len(o.params), f(s.LR), f(s.Momentum), f(s.WeightDecay))
 }
 
-// İyileştirici üyeleri (adları sözlükte, pkg/sozluk Y50x).
+// İyileştirici üyeleri (adları kod listesinde, pkg/kod Y50x).
 const (
-	uyeAdim    = sozluk.Y500
-	uyeSifirla = sozluk.Y501
+	uyeAdim    = kod.Y500
+	uyeSifirla = kod.Y501
 )
 
-var iyilestiriciUyeleri = sozluk.Adlar(uyeAdim, uyeSifirla)
+var iyilestiriciUyeleri = kod.Adlar(uyeAdim, uyeSifirla)
 
-func (o *Iyilestirici) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
-	switch kod {
+func (o *Iyilestirici) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
+	switch kd {
 	case uyeAdim:
-		return &vm.BuiltinVal{Name: sozluk.Ad(uyeAdim), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+		return &vm.BuiltinVal{Name: kod.Ad(uyeAdim), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 0 {
 				return nil, fmt.Errorf("adım() argüman almaz")
 			}
@@ -58,7 +58,7 @@ func (o *Iyilestirici) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 			return vm.NULL, nil
 		}}, nil
 	case uyeSifirla:
-		return &vm.BuiltinVal{Name: sozluk.Ad(uyeSifirla), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+		return &vm.BuiltinVal{Name: kod.Ad(uyeSifirla), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 0 {
 				return nil, fmt.Errorf("sıfırla() argüman almaz")
 			}
@@ -181,7 +181,7 @@ func iyilestiriciParametreleri(fn string, args []vm.Value) ([]*ct.Tensor, error)
 }
 
 func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	fn := sozluk.Ad(sozluk.T400) // AdamW (tip adı da budur)
+	fn := kod.Ad(kod.T400) // AdamW (tip adı da budur)
 	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon, adAnaKopya); err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 }
 
 func sgdKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	fn := sozluk.Ad(sozluk.T401) // SGD (tip adı da budur)
+	fn := kod.Ad(kod.T401) // SGD (tip adı da budur)
 	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi, adAnaKopya); err != nil {
 		return nil, err
 	}

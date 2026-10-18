@@ -1,4 +1,4 @@
-package sozluk
+package kod
 
 import (
 	_ "embed"
@@ -45,7 +45,7 @@ type eskiEslesme struct {
 	ascii bool
 }
 
-// Dil bir dil dosyasından (tr.json) kurulan sözlüktür. Kurulduktan sonra değişmez;
+// Dil bir dil dosyasından (tr.json) kurulan kod listesidir. Kurulduktan sonra değişmez;
 // eşzamanlı okunabilir.
 type Dil struct {
 	// Kodu dilin ISO 639-1 kodudur ("tr"; gerekirse bölgeli: "pt-BR").
@@ -70,14 +70,14 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 
 	ham, err := dosyaCoz(veri)
 	if err != nil {
-		return nil, fmt.Errorf("sözlük %s: dosya okunamadı (bir JSON nesnesi { \"G100\": { \"ad\": ... }, ... } olmalı): %v", kodu, err)
+		return nil, fmt.Errorf("kod listesi %s: dosya okunamadı (bir JSON nesnesi { \"G100\": { \"ad\": ... }, ... } olmalı): %v", kodu, err)
 	}
 
 	d := &Dil{Kodu: kodu, girdiler: make(map[Kod]*Girdi, len(ham)), yazimlar: make(map[Kod][]string, len(ham))}
 	var alanBoyu [alanSayisi]int // ad alanı başına yazım sayısı (haritaların boyu için)
 	var enBuyuk [len(aileHarfleri)]int
 	for _, g := range ham {
-		k, err := KodCoz(g.anahtar)
+		k, err := Coz(g.anahtar)
 		if err != nil {
 			hata("%v", err)
 			continue
@@ -174,7 +174,7 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 		}
 	}
 	if len(hatalar) > 0 {
-		return nil, errors.New("sözlük " + kodu + ":\n  " + strings.Join(hatalar, "\n  "))
+		return nil, errors.New("kod listesi " + kodu + ":\n  " + strings.Join(hatalar, "\n  "))
 	}
 	return d, nil
 }
@@ -199,7 +199,7 @@ func (d *Dil) Ad(k Kod) string {
 			return a
 		}
 	}
-	panic(fmt.Sprintf("sözlük %s: %s kodu dil dosyasında yok", d.Kodu, k))
+	panic(fmt.Sprintf("kod listesi %s: %s kodu dil dosyasında yok", d.Kodu, k))
 }
 
 // Yazimlar kodun kabul edilen bütün yazımlarıdır. Her işin tek yazımı olduğundan bu
@@ -208,7 +208,7 @@ func (d *Dil) Ad(k Kod) string {
 func (d *Dil) Yazimlar(k Kod) []string {
 	y, ok := d.yazimlar[k]
 	if !ok {
-		panic(fmt.Sprintf("sözlük %s: %s kodu dil dosyasında yok", d.Kodu, k))
+		panic(fmt.Sprintf("kod listesi %s: %s kodu dil dosyasında yok", d.Kodu, k))
 	}
 	return y
 }

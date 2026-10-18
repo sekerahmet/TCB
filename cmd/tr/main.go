@@ -6,10 +6,10 @@ import (
 	"strings"
 	"tr_dili/pkg/checker"
 	"tr_dili/pkg/hataayiklama"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/lexer"
 	_ "tr_dili/pkg/motor"
 	"tr_dili/pkg/parser"
-	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
@@ -242,7 +242,7 @@ func startREPL() {
 
 // yazdirIleBaslar satır yazdır yerleşiğinin (G100) bir yazımıyla mı başlıyor?
 func yazdirIleBaslar(satir string) bool {
-	for _, y := range sozluk.Yazimlar(sozluk.G100) {
+	for _, y := range kod.Yazimlar(kod.G100) {
 		if strings.HasPrefix(satir, y) {
 			return true
 		}

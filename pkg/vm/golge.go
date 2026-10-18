@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"tr_dili/pkg/ast"
-	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/kod"
 )
 
 // Yerleşik ad gölgeleme: kullanıcı bir yerleşiğin adını (uzunluk, toplam, girdi ...)
@@ -22,7 +22,7 @@ type golgeTanimi struct {
 
 // yerlesikAdi ad sözlükteki bir yerleşik fonksiyonun (G/T/V/W) adı mı?
 func yerlesikAdi(ad string) bool {
-	k, ok := sozluk.Bul(sozluk.AlanGenel, ad)
+	k, ok := kod.Bul(kod.AlanGenel, ad)
 	return ok && k.Yerlesik()
 }
 
@@ -66,9 +66,9 @@ func (k *derleyiciKapsam) deyimGolgeleri(st ast.Statement) {
 // golgeliCagri, adı gölgelenmiş bir yerleşik olan çağrının kodunu sarar: çağrı hata
 // verirse ve ad çağrılamaz bir değere bağlıysa hata gölgelemeyi anlatan mesajla
 // değiştirilir.
-func golgeliCagri(kod ifadeKodu, fonk ifadeKodu, ad string, g golgeTanimi, line int) ifadeKodu {
+func golgeliCagri(kd ifadeKodu, fonk ifadeKodu, ad string, g golgeTanimi, line int) ifadeKodu {
 	return func(v *VM, env *Environment) (Value, error) {
-		val, err := kod(v, env)
+		val, err := kd(v, env)
 		if err == nil {
 			return val, nil
 		}

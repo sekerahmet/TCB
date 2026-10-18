@@ -51,7 +51,7 @@ Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdad�
 
 `.tr` dosyasında kısayolu yazıp `Tab`a basın: `fonk`, `eğer`, `eşle`, `döngü`, `liste_üret`, `yapı`, `dene`, `filtrele`, `haritala`, `sinir` ve `tensör` (tensörler, `AdamW`, `geri_yayılım`, `iyileştirici.adım()` ve `iyileştirici.sıfırla()` ile küçük bir eğitim döngüsü).
 
-Renklendirmenin anahtar kelime, tip ve yerleşik listeleri elle yazılmaz; dilin sözlüğünden (`pkg/sozluk/tr.json`) üretilir. Sözlükte bir ad değişince depo kökünde `go run ./araclar/eklenti_listeleri` çalıştırın (`go test ./...` dosyanın güncel olduğunu denetler). Her işin tek yazımı vardır: yalnızca Türkçe biçimler renklendirilir; `#` yorum değildir, yorumlar `//` ve `/* */` ile yazılır.
+Renklendirmenin anahtar kelime, tip ve yerleşik listeleri elle yazılmaz; dilin kod listesinden (`pkg/kod/tr.json`) üretilir. Kod listesinde bir ad değişince depo kökünde `go run ./araclar/eklenti_listeleri` çalıştırın (`go test ./...` dosyanın güncel olduğunu denetler). Her işin tek yazımı vardır: yalnızca Türkçe biçimler renklendirilir; `#` yorum değildir, yorumlar `//` ve `/* */` ile yazılır.
 
 | Ne yapmak istiyorsunuz? | Nasıl |
 | --- | --- |

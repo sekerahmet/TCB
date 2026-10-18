@@ -7,26 +7,26 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"tr_dili/pkg/kod"
 	"tr_dili/pkg/motor/internal/baglama"
-	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
-// Adlı argümanlar; adları sözlüktedir (pkg/sozluk, W9xx).
+// Adlı argümanlar; adları kod listesindedir (pkg/kod, W9xx).
 var (
-	adKosul        = baglama.KodAd(sozluk.W930)
-	adSirala       = baglama.KodAd(sozluk.W931)
-	adLimit        = baglama.KodAd(sozluk.W932)
-	adAlanlar      = baglama.KodAd(sozluk.W933)
-	adParametreler = baglama.KodAd(sozluk.W934)
+	adKosul        = baglama.KodAd(kod.W930)
+	adSirala       = baglama.KodAd(kod.W931)
+	adLimit        = baglama.KodAd(kod.W932)
+	adAlanlar      = baglama.KodAd(kod.W933)
+	adParametreler = baglama.KodAd(kod.W934)
 )
 
 // parametreYazimlari parametre listesinin adlı argüman yazımlarıdır; sonra gelen öncekini
 // geçersiz kılar.
 var parametreYazimlari = adParametreler.Yazimlar()
 
-var VAL_DATABASE = vm.TipAdi(sozluk.A240) // Veritabanı
+var VAL_DATABASE = vm.TipAdi(kod.A240) // Veritabanı
 
 // dbTable bir tablodur. Satır değerleri: nil, bool, int64 (Tam), ondalik (Ondalık), string,
 // []interface{}, map[string]interface{} (bkz. depo.go).
@@ -249,21 +249,21 @@ func sutunVar(t *dbTable, ad string) bool {
 	return false
 }
 
-// Veritabanı üyeleri (adları sözlükte, pkg/sozluk Y7xx, Y004, Y005).
+// Veritabanı üyeleri (adları kod listesinde, pkg/kod Y7xx, Y004, Y005).
 const (
-	uyeTablolar     = sozluk.Y700
-	uyeTabloOlustur = sozluk.Y701
-	uyeEkle         = sozluk.Y004
-	uyeSorgula      = sozluk.Y702
-	uyeGuncelle     = sozluk.Y703
-	uyeSil          = sozluk.Y704
-	uyeHepsiniAl    = sozluk.Y705
-	uyeSay          = sozluk.Y706
-	uyeKaydet       = sozluk.Y005
+	uyeTablolar     = kod.Y700
+	uyeTabloOlustur = kod.Y701
+	uyeEkle         = kod.Y004
+	uyeSorgula      = kod.Y702
+	uyeGuncelle     = kod.Y703
+	uyeSil          = kod.Y704
+	uyeHepsiniAl    = kod.Y705
+	uyeSay          = kod.Y706
+	uyeKaydet       = kod.Y005
 )
 
-func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
-	switch kod {
+func (db *DatabaseVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
+	switch kd {
 	case uyeTablolar:
 		return &vm.BuiltinVal{
 			Name: "vt.tablolar",
@@ -851,11 +851,11 @@ func Kaydet(v *vm.VM) {
 		}
 		return db, nil
 	}
-	v.RegisterBuiltinKod(sozluk.W200, openDB)
+	v.RegisterBuiltinKod(kod.W200, openDB)
 
 	// 2. Bellekteki listeyi tablo gibi sorgulama:
 	// tablo_sorgula(siparisler, "tutar > 20000", sırala: "tutar:azalan", alanlar: ["musteri", "tutar"], limit: 5)
-	v.RegisterBuiltinKod(sozluk.W210, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(kod.W210, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		const fn = "tablo_sorgula"
 		if len(args) < 1 {
 			return nil, fmt.Errorf("tablo_sorgula(liste, [koşul], [sırala], [alanlar], [limit]) en az 1 argüman bekler")

@@ -1,4 +1,4 @@
-package sozluk
+package kod
 
 import (
 	"bytes"
@@ -33,7 +33,7 @@ func TestTRSiraliVeSatirSatir(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		k, err := KodCoz(tk.(string))
+		k, err := Coz(tk.(string))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -174,13 +174,13 @@ func TestKodBicimi(t *testing.T) {
 		if c.k.String() != c.s {
 			t.Errorf("%d: %s, %s bekleniyordu", c.k, c.k, c.s)
 		}
-		if k, err := KodCoz(c.s); err != nil || k != c.k {
-			t.Errorf("KodCoz(%q) = %v, %v", c.s, k, err)
+		if k, err := Coz(c.s); err != nil || k != c.k {
+			t.Errorf("Coz(%q) = %v, %v", c.s, k, err)
 		}
 	}
 	for _, s := range []string{"", "A01", "A0001", "Z001", "A000", "a001", "A0x1"} {
-		if _, err := KodCoz(s); err == nil {
-			t.Errorf("KodCoz(%q) hata vermeliydi", s)
+		if _, err := Coz(s); err == nil {
+			t.Errorf("Coz(%q) hata vermeliydi", s)
 		}
 	}
 	if (A+13).Alan() != AlanGenel || (A+200).Alan() != AlanTip || (Y+1).Alan() != AlanUye ||
@@ -209,7 +209,7 @@ func TestEskiBul(t *testing.T) {
 	}
 }
 
-// Yukle sözlük hatalarını hangi kodların çakıştığını söyleyerek yakalar.
+// Yukle kod listesi hatalarını hangi kodların çakıştığını söyleyerek yakalar.
 func TestCakismalarYakalanir(t *testing.T) {
 	for _, c := range []struct{ json, want string }{
 		{`{"G100": {"ad": "a"}, "G100": {"ad": "b"}}`, "G100 iki kez"},
