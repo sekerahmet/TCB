@@ -195,7 +195,7 @@ test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör i�
     eşit_mi(2.0, ortalama(l))
     eşit_mi(6, l.indirge(0, (a, x) => a + x))
     eşit_mi(6, l.indirge((a, x) => a * x))
-    eşit_mi(4, l.indirge(10) { o[0] - o[1] })
+    eşit_mi(4, l.indirge(10) { birikim - o })
     eşit_mi(yok, [].indirge((a, x) => a + x))
     eşit_mi(7, [].indirge(7, (a, x) => a + x))
     eşit_mi([[1, 2]], tensör([[1], [2]]).devrik().değer)

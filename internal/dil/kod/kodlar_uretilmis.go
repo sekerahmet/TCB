@@ -39,6 +39,7 @@ const (
 	A102 Kod = A + 102 // kurucu
 	A103 Kod = A + 103 // hata
 	A104 Kod = A + 104 // o
+	A105 Kod = A + 105 // birikim
 	A200 Kod = A + 200 // Tam
 	A201 Kod = A + 201 // Ondalık
 	A202 Kod = A + 202 // Metin

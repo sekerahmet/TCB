@@ -14,7 +14,7 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/kodlar.md`](../kodlar.md)
 'liste.toplam()' TR'de yok; 'toplam(liste)' yazın
 ```
 
-- `l.indirge([başlangıç], fn)` listeyi soldan sağa `fn(birikim, eleman)` ile tek değere indirger: `[1, 2, 3].indirge(0, (a, x) => a + x)` → `6`. Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (yoksa `yok`) döner. Fonksiyon son argümandır, böylece sondaki blokla da yazılır; tek parametreli blokta `o`, `[birikim, eleman]` listesidir: `[1, 2, 3].indirge(1) { o[0] * o[1] }` → `6`.
+- `l.indirge([başlangıç], fn)` listeyi soldan sağa `fn(birikim, eleman)` ile tek değere indirger: `[1, 2, 3].indirge(0, (a, x) => a + x)` → `6`. Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (yoksa `yok`) döner. Fonksiyon son argümandır, böylece sondaki blokla da yazılır; blokta `birikim` önceki sonuç, `o` sıradaki elemandır: `[1, 2, 3].indirge(1) { birikim * o }` → `6`.
 - `ortalama(l)` boş listede ve sayı olmayan elemanda hata verir (`ortalama(): boş listenin ortalaması yoktur`), `toplam(l)` sayı olmayan elemanda hata verir.
 - `l.sırala()` yalnızca sayılardan ya da yalnızca metinlerden oluşan listeyi sıralar; karışık liste hatadır (`liste.sırala(): Tam (2) ile Metin ("a") karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır`). `min` ve `maks` sayı olmayan değerde (metin dahil) hata, boş listede `yok` verir.
 - Metotlar da yerleşikler gibi argüman sayısını ve tipini denetler: `metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))`, `liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi`.

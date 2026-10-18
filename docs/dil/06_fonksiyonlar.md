@@ -21,7 +21,7 @@ fonksiyon sayaç_yap() {
 
 **6.6** Ok fonksiyonları: `x => ifade`, `(a, b) => ifade` ya da `(x) => { blok }`; adsız `fonksiyon(x) { ... }` de bir değerdir.
 
-**6.7** Sondaki blok: bir çağrının, üye erişiminin ya da adın hemen ardından **aynı satırda** yazılan `{ ... }`, tek parametresi `o` olan bir fonksiyondur ve çağrının son argümanı olur: `l.filtrele { o > 2 }` ≡ `l.filtrele((o) => o > 2)`. İç içe bloklarda `o` en içteki elemanı gösterir. `eğer`, `iken`, `döngü` ve `eşle` başlıklarında `{` her zaman gövdeyi başlatır; orada sondaki blok için ifade paranteze alınır.
+**6.7** Sondaki blok: bir çağrının, üye erişiminin ya da adın hemen ardından **aynı satırda** yazılan `{ ... }`, tek parametresi `o` olan bir fonksiyondur ve çağrının son argümanı olur: `l.filtrele { o > 2 }` ≡ `l.filtrele((o) => o > 2)`. İç içe bloklarda `o` en içteki elemanı gösterir. `liste.indirge`'nin bloğu iki parametrelidir: `birikim` o ana kadarki sonuç, `o` sıradaki elemandır (`l.indirge(0) { birikim + o }` ≡ `l.indirge(0, (birikim, o) => birikim + o)`); eski `o[0]`/`o[1]` biçimi (o, `[birikim, eleman]` listesiyken) sözdizimi hatasıdır ve `birikim` ile `o` yazmayı önerir. `eğer`, `iken`, `döngü` ve `eşle` başlıklarında `{` her zaman gövdeyi başlatır; orada sondaki blok için ifade paranteze alınır.
 
 ```tr
 değişken sayılar = [1, 2, 3, 4]

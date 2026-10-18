@@ -120,6 +120,23 @@ test "6.7 sondaki blok: tek parametresi o olan fonksiyon" {
     eşit_mi(10, uygula(5) { o * 2 })
 }
 
+test "6.7 indirge'nin sondaki bloğunda birikim önceki sonuç, o elemandır" {
+    eşit_mi(10, [1, 2, 3, 4].indirge(0) { birikim + o })
+    eşit_mi(24, [1, 2, 3, 4].indirge { birikim * o })
+    eşit_mi([3, 2, 1], [1, 2, 3].indirge([]) { [o] + birikim })
+    // Elemanlar liste olsa da o elemandır
+    eşit_mi(10, [[1, 2], [3, 4]].indirge(0) { birikim + o[0] + o[1] })
+    // birikim başka her yerde sıradan bir addır
+    değişken birikim = 5
+    eşit_mi(5, birikim)
+    eşit_mi(2, [1, 2].indirge(birikim) { birikim - o })
+    değişken mesaj = ""
+    dene { [1, 2].indirge(0, (x) => x) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("liste.indirge(): fonksiyon iki parametre almalı (birikim, eleman), 1 parametreli verildi"), mesaj)
+    dene { aktar "olumsuz/eski_indirge" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("indirge'nin sondaki bloğunda birikim önceki sonuç, o sıradaki elemandır; o[0] ve o[1] yerine birikim ve o yazın"), mesaj)
+}
+
 test "6.7 kontrol yapısı başlığında \{ gövdeyi başlatır" {
     değişken l = [1, 5]
     değişken sonuç_ = ""

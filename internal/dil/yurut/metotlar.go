@@ -381,10 +381,10 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u uyeBilgisi, safe bool, 
 }
 
 // listeIndirge liste.indirge([başlangıç], fonksiyon) metodunun gövdesidir. Fonksiyon son
-// argümandır (sondaki blokla da yazılabilsin diye): liste.indirge(0) { ... }. Fonksiyon
-// (birikim, eleman) ile çağrılır; tek parametreli bir fonksiyon (sondaki bloğun 'o'su)
-// ikisini [birikim, eleman] listesi olarak alır. Başlangıç verilmezse ilk eleman
-// başlangıçtır; boş listede başlangıç (verilmemişse yok) döner.
+// argümandır (sondaki blokla da yazılabilsin diye: liste.indirge(0) { birikim + o }) ve
+// (birikim, eleman) ile çağrılır; kullanıcı fonksiyonu iki parametreli olmalıdır.
+// Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (verilmemişse yok)
+// döner.
 func listeIndirge(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	const ad = "liste.indirge"
 	f := args[len(args)-1]
@@ -394,9 +394,9 @@ func listeIndirge(y *VM, elems []Value, args []Value, line int) (Value, error) {
 		}
 		return nil, ArgumanTipHatasi(ad, len(args), "Fonksiyon", f)
 	}
-	tekParametre := false
-	if fn, ok := f.(*FuncVal); ok && len(fn.Parameters) == 1 {
-		tekParametre = true
+	if fn, ok := f.(*FuncVal); ok && len(fn.Parameters) != 2 {
+		return nil, fmt.Errorf("%s(): fonksiyon iki parametre almalı (birikim, eleman), %d parametreli verildi; ör. %s(0, (birikim, x) => birikim + x) ya da %s(0) { %s + %s }",
+			ad, len(fn.Parameters), ad, ad, kod.Ad(kod.A105), kod.Ad(kod.A104))
 	}
 	var acc Value
 	bas := 0
@@ -410,11 +410,7 @@ func listeIndirge(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	}
 	for _, el := range elems[bas:] {
 		var err error
-		if tekParametre {
-			acc, err = y.ApplyFunction(f, []Value{&ListVal{Elements: []Value{acc, el}}}, nil, line)
-		} else {
-			acc, err = y.ApplyFunction(f, []Value{acc, el}, nil, line)
-		}
+		acc, err = y.ApplyFunction(f, []Value{acc, el}, nil, line)
 		if err != nil {
 			return nil, err
 		}

@@ -14,14 +14,16 @@ import (
 )
 
 // Bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki bloğun
-// parametresi) yazımları ve 'kendi'nin adı kod listesinden gelir (internal/dil/kod: A101, A100, A103,
-// A104, A051).
+// parametresi, indirge bloğunun birikimi) yazımları ve 'kendi'nin adı kod listesinden gelir
+// (internal/dil/kod: A101, A100, A103, A104, A105, A051).
 var (
-	testYazimlari   = kod.Yazimlar(kod.A101)
-	olarakYazimlari = kod.Yazimlar(kod.A100)
-	kendiAdi        = kod.Ad(kod.A051)
-	hataAdi         = kod.Ad(kod.A103)
-	oAdi            = kod.Ad(kod.A104)
+	testYazimlari    = kod.Yazimlar(kod.A101)
+	olarakYazimlari  = kod.Yazimlar(kod.A100)
+	kendiAdi         = kod.Ad(kod.A051)
+	hataAdi          = kod.Ad(kod.A103)
+	oAdi             = kod.Ad(kod.A104)
+	birikimAdi       = kod.Ad(kod.A105)
+	indirgeYazimlari = kod.Yazimlar(kod.Y207)
 )
 
 const (
@@ -136,13 +138,21 @@ func isTrailingBlockTarget(e agac.Expression) bool {
 }
 
 // parseTrailingBlock '{ ... }' bloğunu tek parametresi 'o' olan bir fonksiyona çevirip
-// çağrının son argümanı yapar: sayılar.filtrele { o > 2 } == sayılar.filtrele((o) => o > 2)
+// çağrının son argümanı yapar: sayılar.filtrele { o > 2 } == sayılar.filtrele((o) => o > 2).
+// liste.indirge'nin bloğu iki parametrelidir: 'birikim' önceki sonuç, 'o' eleman
+// (l.indirge(0) { birikim + o } == l.indirge(0, (birikim, o) => birikim + o)).
 func (p *Parser) parseTrailingBlock(left agac.Expression) agac.Expression {
 	tok := p.curToken() // '{'
+	bas := p.pos
 	body := p.fonksiyonGovdesi()
+	params := []agac.Param{{Name: oAdi}}
+	if indirgeHedefi(left) {
+		params = []agac.Param{{Name: birikimAdi}, {Name: oAdi}}
+		p.eskiIndirgeBlogu(tok, bas)
+	}
 	fn := &agac.FunctionLiteral{
 		Token:      tok,
-		Parameters: []agac.Param{{Name: oAdi}},
+		Parameters: params,
 		Body:       body,
 	}
 	if call, ok := left.(*agac.CallExpression); ok {

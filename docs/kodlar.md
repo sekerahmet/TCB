@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 186 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 19 tip, 62 fonksiyon, 32 metot, 9 özellik, 31 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 187 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 19 tip, 62 fonksiyon, 32 metot, 9 özellik, 31 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -351,6 +351,18 @@ Sondaki blok { ... } tek parametreli bir fonksiyondur ve parametresinin adı o'd
 ```tr
 yazdır([1, 2, 3, 4].filtrele { o > 2 }.haritala { o * 10 })
 ```
+
+İlişkili: A105 `birikim`
+
+#### A105 `birikim`
+
+liste.indirge(...) { ... } sondaki bloğunda birikim o ana kadarki sonuçtur, o sıradaki elemandır. Başka her yerde sıradan bir addır.
+
+```tr
+yazdır([1, 2, 3, 4].indirge(0) { birikim + o }, [1, 2, 3].indirge(1) { birikim * o })
+```
+
+İlişkili: Y207 `indirge`, A104 `o`
 
 ### Tip adları (A2xx)
 
@@ -2044,10 +2056,10 @@ Taşındı: G410 `ortalama` → `ortalama(...)`. Kaldırıldı: ortalama matemat
 
     Liste.indirge([Herhangi], Fonksiyon) → Herhangi
 
-Listeyi soldan sağa (birikim, eleman) alan bir fonksiyonla tek değere indirger; başlangıç verilmezse ilk eleman başlangıçtır, boş listede başlangıç (yoksa yok) döner. Fonksiyon son argümandır; sondaki blokla yazılınca o, [birikim, eleman] listesidir.
+Listeyi soldan sağa (birikim, eleman) alan bir fonksiyonla tek değere indirger; başlangıç verilmezse ilk eleman başlangıçtır, boş listede başlangıç (yoksa yok) döner. Fonksiyon son argümandır ve iki parametre alır; sondaki blokla yazılınca birikim önceki sonuç, o eleman olur.
 
 ```tr
-yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1) { o[0] * o[1] })
+yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1) { birikim * o })
 ```
 
 İlişkili: Y200 `filtrele`, Y201 `haritala` · Önceki biçim: `indirge(...)` (G302, kaldırıldı)
