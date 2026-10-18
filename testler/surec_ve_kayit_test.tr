@@ -18,8 +18,8 @@ değişken GEÇİCİ = ortam_değişkeni("TEMP") ?? ortam_değişkeni("TMPDIR") 
 değişken KOŞU = "{GEÇİCİ}/tr_surec_ve_kayit_{zaman_ms()}"
 
 // satırlar: günlük dosyasının JSON satırlarını sözlük listesi olarak verir.
-fonksiyon satırlar(yol) {
-    sonuç dosya_oku(yol).kırp().böl("\n").haritala { json_çöz(o) }
+fonksiyon satırlar(dosya_yolu) {
+    sonuç dosya_oku(dosya_yolu).kırp().böl("\n").haritala { json_çöz(o) }
 }
 
 // Programın tek komut_satırı çağrısı (19.2, 19.4 bunu kullanır).
@@ -61,20 +61,20 @@ test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
 test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda maskelenir, veride değişmez" {
     // Değerin kendisi programda değişmez (yazdır'ın döndürdüğü metin de veridir).
     eşit_mi("anahtar-varsayılan-1", AYAR.api_anahtarı)
-    değişken yol = "{KOŞU}/gizli.jsonl"
-    günlük(yol).ekle({anahtar: AYAR.api_anahtarı})
-    değişken içerik = dosya_oku(yol)
+    değişken dosya_yolu = "{KOŞU}/gizli.jsonl"
+    günlük(dosya_yolu).ekle({anahtar: AYAR.api_anahtarı})
+    değişken içerik = dosya_oku(dosya_yolu)
     doğrula(içerik.içerir("\"anahtar\":\"***\""), içerik)
     doğrula(değil içerik.içerir("anahtar-varsayılan-1"))
 }
 
 test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler" {
-    değişken yol = "{KOŞU}/kayit/egitim.jsonl"
-    değişken g = günlük(yol)
+    değişken dosya_yolu = "{KOŞU}/kayit/egitim.jsonl"
+    değişken g = günlük(dosya_yolu)
     eşit_mi(Günlük, tip(g))
     eşit_mi(doğru, g.ekle({kayıp: 2.5, adım: 3, nan: ondalık("NaN"), kayıp_t: tensör([0.25])}))
     g.ekle("ilk dönem bitti")
-    değişken s = satırlar(yol)
+    değişken s = satırlar(dosya_yolu)
     eşit_mi(3, s.uzunluk)
     eşit_mi("başlangıç", s[0].tür)
     eşit_mi(1, s[0].sürüm)
@@ -87,8 +87,8 @@ test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler" {
     eşit_mi(Metin, tip(s[1].zaman))
     eşit_mi("ilk dönem bitti", s[2].mesaj)
     // Yeniden açılan günlük sonuna ekler, yeni bir başlangıç kaydıyla.
-    günlük(yol).ekle({kayıp: 1.0})
-    değişken s2 = satırlar(yol)
+    günlük(dosya_yolu).ekle({kayıp: 1.0})
+    değişken s2 = satırlar(dosya_yolu)
     eşit_mi(5, s2.uzunluk)
     eşit_mi("başlangıç", s2[3].tür)
 }
@@ -136,12 +136,12 @@ test "19.8 ilerleme hataları" {
 }
 
 test "19.9 günlüğe bağlı çubuk her güncellemeyi ve bitişi yazar" {
-    değişken yol = "{KOŞU}/cubuk.jsonl"
-    değişken g = günlük(yol)
+    değişken dosya_yolu = "{KOŞU}/cubuk.jsonl"
+    değişken g = günlük(dosya_yolu)
     değişken ç = ilerleme(2, günlük: g)
     ç.güncelle({kayıp: 0.9})
     ç.güncelle({kayıp: 0.7})
-    değişken s = satırlar(yol)
+    değişken s = satırlar(dosya_yolu)
     eşit_mi(4, s.uzunluk)
     eşit_mi(2, s[0].toplam)
     eşit_mi(1, s[1].adım)

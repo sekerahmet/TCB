@@ -67,7 +67,7 @@ func (g *Gunluk) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 func (d *durum) gunlukAc(m *yurut.VM, args []yurut.Value) (yurut.Value, error) {
 	fn := yurut.Cagri(kod.G810)
 	if len(args) != 1 {
-		return nil, yurut.ArgumanSayisiHatasi(kod.G810, "1", len(args), "yol")
+		return nil, yurut.ArgumanSayisiHatasi(kod.G810, "1", len(args), "dosya")
 	}
 	yol, ok, err := yurut.YolArgumani(fn, args[0])
 	if err != nil {
