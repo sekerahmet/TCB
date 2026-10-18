@@ -60,5 +60,12 @@ python kiyas/py/karakter_modeli.py 300 2
 TR en iyi 13,5, çoğunlukla 13,5–16 ms/adım, yükün arttığı anlarda 18–22 ms/adım; Python sürümü
 12–13,5 ms/adım. Yüklü makinede farklar büyür; karşılaştırmayı boş makinede yineleyin.
 
+**Birleşik dikkat (`dikkat(...)`) sonrası (18.10.2026, 2 çekirdek, 300 adım, `GOAMD64=v3`, makine
+yüklü):** örnek elle kurulan maske ve softmax yerine `dikkat(q, k, v)` kullanır; kayıp eğrisi önceki
+sürümle 4 basamağa kadar aynıdır. Aynı veriyle art arda çalıştırılan çiftlerde TR önce/sonra 26,8/21,6,
+24,1/19,8, 31,7/27,3, 29,0/19,8 ms/adım (en iyi: 20,6 → 18,8); Python sürümü 20,8 ms/adım. Yalnızca
+dikkatin ileri+geri süresi bu şekilde (toplu 16, 4 baş, T 64, dh 16) 3,8 ms'den 1,8 ms'ye iner
+(`go test ./pkg/tensor -run XXX -bench KarakterModeli`).
+
 Geçmiş ölçümler (aynı gün, 2 çekirdek): ilk sürüm TR 161 ms/adım (sürenin %69'u matris çarpımında);
 vektör komutlu (AVX2/FMA) matris çarpımı ve float32 üstel/tanh sonrası, makine yüklüyken TR 22–31 ms/adım.

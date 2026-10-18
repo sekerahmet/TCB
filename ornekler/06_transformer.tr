@@ -1,7 +1,7 @@
 // 06 — Transformer: 05'teki yapı taşlarıyla elle yazılmış küçük bir transformer.
 // Öğrettikleri: gömme ve konum gömmesi, çok başlı nedensel dikkat (şekillendir,
-// eksenleri_sırala, devrik, maske), katman normu, gelu ile ileri besleme, çapraz_entropi
-// kaybı ve AdamW ile eğitim döngüsü, türevsiz çıkarım.
+// eksenleri_sırala ve birleşik dikkat(...)), katman normu, gelu ile ileri besleme,
+// çapraz_entropi kaybı ve AdamW ile eğitim döngüsü, türevsiz çıkarım.
 // Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki tokenı tahmin etmek.
 // Çalıştırma (proje kökünden): tr ornekler/06_transformer.tr
 
@@ -33,16 +33,6 @@ değişken g2 = tensör(birler([D]), türev_izle: doğru)
 değişken s2 = tensör(sıfırlar([D]), türev_izle: doğru)
 değişken Wu = parametre([D, V], 0.2)
 
-// Nedensel maske: her konum yalnızca kendisine ve öncekilere bakabilir.
-değişken maske_satırları = []
-döngü i içinde 0..T {
-    değişken satır = []
-    döngü j içinde 0..T {
-        eğer j <= i { satır.ekle(0.0) } değilse { satır.ekle(-1000000000.0) }
-    }
-    maske_satırları.ekle(satır)
-}
-değişken maske = tensör(maske_satırları)
 değişken konumlar = aralık(T)
 
 fonksiyon başlara_ayır(x) {
@@ -55,8 +45,11 @@ fonksiyon ileri(girdiler) {
     değişken q = başlara_ayır(x @ Wq)
     değişken k = başlara_ayır(x @ Wk)
     değişken v = başlara_ayır(x @ Wv)
-    değişken dikkat = softmax((q @ k.devrik()) * (1.0 / karekök(Dh)) + maske, eksen: -1)
-    değişken y = (dikkat @ v).eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, D])
+    // Nedensel dikkat: her konum yalnızca kendisine ve öncekilere bakar. Elle yazılmış
+    // karşılığı softmax((q @ k.devrik()) / karekök(Dh) + maske, eksen: -1) @ v'dir (maske
+    // gelecekteki konumlarda çok büyük bir eksi sayı); dikkat(...) aynı sonucu T×T puan
+    // matrisini tutmadan, tek adımda hesaplar.
+    değişken y = dikkat(q, k, v, nedensel: doğru).eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, D])
     değişken h = katman_normu(x + y @ Wo, g1, s1)
     değişken m = gelu(h @ W1) @ W2
     değişken çıkış = katman_normu(h + m, g2, s2)
