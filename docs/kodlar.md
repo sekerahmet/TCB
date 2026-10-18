@@ -2608,9 +2608,9 @@ Kaldırıldı: 'sorgula' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 Kaldırıldı: 'güncelle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### Y704 `sil` — kaldırıldı
+#### Y704 `Y704` — kaldırıldı
 
-Kaldırıldı: 'sil' TR'den kaldırıldı; yerine geçen bir kod yoktur.
+Kaldırıldı: veritabanı metodu; adı (sil) dosya silen genel sil(...) fonksiyonuyla karışmasın diye serbest bırakıldı.
 
 #### Y705 `hepsini_al` — kaldırıldı
 

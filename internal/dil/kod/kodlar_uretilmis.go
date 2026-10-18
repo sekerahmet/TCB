@@ -282,7 +282,7 @@ var kaldirilanlar = map[Kod]bool{
 	Y + 701: true, // Y701 tablo_oluştur
 	Y + 702: true, // Y702 sorgula
 	Y + 703: true, // Y703 güncelle
-	Y + 704: true, // Y704 sil
+	Y + 704: true, // Y704 Y704
 	Y + 705: true, // Y705 hepsini_al
 	Y + 706: true, // Y706 say
 	Y + 800: true, // Y800 adres

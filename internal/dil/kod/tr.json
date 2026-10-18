@@ -262,7 +262,7 @@
   "Y701": { "ad": "tablo_oluştur", "aile": "Veritabanı", "açıklama": "Kaldırıldı: 'tablo_oluştur' TR'den kaldırıldı; yerine geçen bir kod yoktur." },
   "Y702": { "ad": "sorgula", "eski": ["sorgu", "seç"], "aile": "Veritabanı", "açıklama": "Kaldırıldı: 'sorgula' TR'den kaldırıldı; yerine geçen bir kod yoktur." },
   "Y703": { "ad": "güncelle", "aile": "Veritabanı", "açıklama": "Kaldırıldı: 'güncelle' TR'den kaldırıldı; yerine geçen bir kod yoktur." },
-  "Y704": { "ad": "sil", "aile": "Veritabanı", "açıklama": "Kaldırıldı: 'sil' TR'den kaldırıldı; yerine geçen bir kod yoktur." },
+  "Y704": { "ad": "Y704", "aile": "Veritabanı", "açıklama": "Kaldırıldı: veritabanı metodu; adı (sil) dosya silen genel sil(...) fonksiyonuyla karışmasın diye serbest bırakıldı." },
   "Y705": { "ad": "hepsini_al", "eski": ["tablo_al"], "aile": "Veritabanı", "açıklama": "Kaldırıldı: 'hepsini_al' TR'den kaldırıldı; yerine geçen bir kod yoktur." },
   "Y706": { "ad": "say", "aile": "Veritabanı", "açıklama": "Kaldırıldı: 'say' TR'den kaldırıldı; yerine geçen bir kod yoktur." },
   "Y800": { "ad": "adres", "eski": ["url"], "aile": "WebSunucu", "açıklama": "Kaldırıldı: 'adres' TR'den kaldırıldı; yerine geçen bir kod yoktur." },
