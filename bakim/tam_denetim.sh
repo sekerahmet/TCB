@@ -36,8 +36,8 @@ fi
 
 adim "TR testleri ve örnekler"
 mkdir -p ikili && GOAMD64=v3 go build -o "$TR" ./cmd/tr || kalir "derleme"
-"$TR" test testler | tail -1 || kalir "tr test testler"
-"$TR" test ornekler | tail -1 || kalir "tr test ornekler"
+"$TR" test testler | tail -1; [ "${PIPESTATUS[0]}" -eq 0 ] || kalir "tr test testler"
+"$TR" test ornekler | tail -1; [ "${PIPESTATUS[0]}" -eq 0 ] || kalir "tr test ornekler"
 for f in ornekler/0*.tr; do
 	cikti=$(timeout 300 "$TR" "$f" </dev/null 2>&1 >/dev/null)
 	kod=$?
