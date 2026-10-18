@@ -171,7 +171,7 @@ func (l *Lexer) kacisliAd(line, col int) Token {
 
 // nulKarakteri kaynağın ortasındaki NUL (U+0000) karakterini hata olarak bildirir. Sözcük
 // çözümleyici girdinin sonunu 0 karakteriyle tanır; NUL eskiden dosyanın sonu sayılır, ardından
-// gelen kod sessizce yok sayılırdı (biçimlendirici de onu silerdi).
+// gelen kod sessizce yok sayılırdı.
 func (l *Lexer) nulKarakteri(line, col int) Token {
 	l.addError(line, col, "kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir")
 	l.readChar()
