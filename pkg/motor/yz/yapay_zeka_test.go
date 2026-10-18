@@ -43,7 +43,7 @@ func TestYzSorReportsUnreachableServer(t *testing.T) {
 		http.Error(w, `{"error":"model not found"}`, http.StatusNotFound)
 	}))
 	defer notFound.Close()
-	_, err = runTR(t, fmt.Sprintf(`sonuç yz_sor("merhaba", adres: %q)`, notFound.URL))
+	_, err = runTR(t, fmt.Sprintf(`sonuç yz_sor("merhaba", model: "m", adres: %q)`, notFound.URL))
 	if err == nil || !strings.Contains(err.Error(), "404") {
 		t.Fatalf("404 hatası bekleniyordu, alınan: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestYzSorReportsUnreachableServer(t *testing.T) {
 		fmt.Fprint(w, `{"response": "  Merhaba!  "}`)
 	}))
 	defer ok.Close()
-	val, err := runTR(t, fmt.Sprintf(`sonuç yz_sor("merhaba", adres: %q)`, ok.URL))
+	val, err := runTR(t, fmt.Sprintf(`sonuç yz_sor("merhaba", model: "m", adres: %q)`, ok.URL))
 	if err != nil || val.Inspect() != "Merhaba!" {
 		t.Fatalf("\"Merhaba!\" bekleniyordu, alınan: %v, %v", val, err)
 	}
@@ -75,7 +75,7 @@ func TestYzSorTimeout(t *testing.T) {
 	defer yavas.Close()
 	defer close(birak)
 
-	_, err := runTR(t, fmt.Sprintf(`sonuç yz_sor("merhaba", adres: %q)`, yavas.URL))
+	_, err := runTR(t, fmt.Sprintf(`sonuç yz_sor("merhaba", model: "m", adres: %q)`, yavas.URL))
 	if err == nil || !strings.Contains(err.Error(), "zaman aşımı") || strings.Contains(err.Error(), "ulaşılamadı") {
 		t.Fatalf("zaman aşımı hatası bekleniyordu, alınan: %v", err)
 	}

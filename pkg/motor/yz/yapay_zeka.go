@@ -156,50 +156,104 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: math.Sqrt(sum)}, nil
 	})
 
-	// --- Büyük Dil Modeli (LLM: yz_sor) ---
-	v.RegisterBuiltinKod(sozluk.T+610, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) < 1 {
-			return nil, fmt.Errorf("yz_sor(istem, [model: 'llama3']) en az 1 parametre bekler")
-		}
-		prompt := args[0].Inspect()
-		model := "llama3"
-		endpoint := "http://localhost:11434/api/generate"
-		if named != nil {
-			if m, ok := baglama.AdliAl(named, adModel); ok {
-				model = m.Inspect()
-			}
-			if u, ok := baglama.AdliAl(named, adAdres); ok {
-				endpoint = u.Inspect()
-			}
-		}
+	// --- Yerel dil modeline soru (yz_sor) ---
+	v.RegisterBuiltinKod(sozluk.T+610, yzSor)
+}
 
-		// Yerel Ollama sunucusuna istek. Sunucu kapalıysa bağlantı hemen reddedilir;
-		// zaman aşımı yalnızca modelin yanıt üretme süresini sınırlar. HTTP kısmı (gövde
-		// boyutu sınırı, zaman aşımı, kilidi bırakma) web paketinin ortak istemcisindedir.
-		payload, _ := json.Marshal(map[string]interface{}{
-			"model":  model,
-			"prompt": prompt,
-			"stream": false,
-		})
-		yanit, err := web.Iste(makine, http.MethodPost, endpoint, payload, "application/json", yzSorZamanAsimi)
-		// Sunucuya ulaşılamazsa sahte bir "yanıt" döndürmek yerine açık hata verilir;
-		// aksi hâlde program uydurma bir metni gerçek model çıktısı sanabilir.
-		if err != nil {
-			var ih *web.IstekHatasi
-			if errors.As(err, &ih) && (ih.ZamanAsim || ih.Buyuk) {
-				return nil, fmt.Errorf("yz_sor: YZ sunucusu (%s, model: %s): %v", endpoint, model, err)
-			}
-			return nil, fmt.Errorf("yz_sor: yerel YZ sunucusuna (%s) ulaşılamadı: %v (Ollama'yı 'ollama serve' ile başlatın ve modeli 'ollama pull %s' ile indirin)", endpoint, err, model)
+// yzVarsayilanAdres yz_sor'un varsayılan adresidir: bu bilgisayarda 11434 portunda çalışan
+// yerel dil modeli sunucusunun metin üretme uç noktası.
+const yzVarsayilanAdres = "http://localhost:11434/api/generate"
+
+const yzSorKullanim = `yz_sor(istem, model: "model_adı", adres: "http://localhost:11434/api/generate")`
+
+// yzSor yerel dil modeli sunucusuna bir istem gönderir ve üretilen metni döndürür. Model
+// verilmezse sunucunun yüklü modellerinin ilki kullanılır (ürüne bir model adı gömülmez).
+// Sunucu kapalıysa bağlantı hemen reddedilir; zaman aşımı yalnızca modelin yanıt üretme
+// süresini sınırlar. HTTP kısmı (gövde boyutu sınırı, zaman aşımı, kilidi bırakma) web
+// paketinin ortak istemcisindedir.
+func yzSor(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	if len(args) != 1 {
+		return nil, vm.ArgumanSayisiHatasi("yz_sor", "1", len(args), yzSorKullanim)
+	}
+	istem, ok := args[0].(*vm.StringVal)
+	if !ok {
+		return nil, vm.ArgumanTipHatasi("yz_sor", 1, "Metin (istem)", args[0])
+	}
+	if err := baglama.AdliDenetle("yz_sor", named, adModel, adAdres); err != nil {
+		return nil, err
+	}
+	adres := yzVarsayilanAdres
+	if u, ok := baglama.AdliAl(named, adAdres); ok {
+		adres = u.Inspect()
+	}
+	model := ""
+	if m, ok := baglama.AdliAl(named, adModel); ok {
+		model = m.Inspect()
+	}
+	if model == "" {
+		var err error
+		if model, err = yzIlkModel(makine, adres); err != nil {
+			return nil, err
 		}
-		if yanit.Durum != http.StatusOK {
-			return nil, fmt.Errorf("yz_sor: YZ sunucusu %d durum kodu döndürdü (model: %s): %s", yanit.Durum, model, yanit.GovdeOzeti(300))
-		}
-		var parsed map[string]interface{}
-		if json.Unmarshal(yanit.Govde, &parsed) == nil {
-			if ans, ok := parsed["response"].(string); ok {
-				return &vm.StringVal{Val: strings.TrimSpace(ans)}, nil
-			}
-		}
-		return nil, fmt.Errorf("yz_sor: YZ sunucusunun (%s) yanıtı çözümlenemedi; Ollama /api/generate biçiminde 'response' alanı bekleniyordu", endpoint)
+	}
+	payload, _ := json.Marshal(map[string]interface{}{
+		"model":  model,
+		"prompt": istem.Val,
+		"stream": false,
 	})
+	yanit, err := web.Iste(makine, http.MethodPost, adres, payload, "application/json", yzSorZamanAsimi)
+	if err != nil {
+		return nil, yzAgHatasi(adres, model, err)
+	}
+	if yanit.Durum != http.StatusOK {
+		return nil, fmt.Errorf("yz_sor: yerel dil modeli sunucusu %d durum kodu döndürdü (model: %s): %s", yanit.Durum, model, yanit.GovdeOzeti(300))
+	}
+	var parsed map[string]interface{}
+	if json.Unmarshal(yanit.Govde, &parsed) == nil {
+		if ans, ok := parsed["response"].(string); ok {
+			return &vm.StringVal{Val: strings.TrimSpace(ans)}, nil
+		}
+	}
+	return nil, fmt.Errorf("yz_sor: yerel dil modeli sunucusunun (%s) yanıtı çözümlenemedi; metin üretme yanıtında 'response' alanı bekleniyordu", adres)
+}
+
+// yzAgHatasi ağ hatasını açıklar. Sunucuya ulaşılamazsa sahte bir "yanıt" döndürmek yerine
+// açık hata verilir; aksi hâlde program uydurma bir metni gerçek model çıktısı sanabilir.
+func yzAgHatasi(adres, model string, err error) error {
+	var ih *web.IstekHatasi
+	if errors.As(err, &ih) && (ih.ZamanAsim || ih.Buyuk) {
+		if model != "" {
+			return fmt.Errorf("yz_sor: yerel dil modeli sunucusu (%s, model: %s): %v", adres, model, err)
+		}
+		return fmt.Errorf("yz_sor: yerel dil modeli sunucusu (%s): %v", adres, err)
+	}
+	return fmt.Errorf("yz_sor: yerel dil modeli sunucusuna (%s) ulaşılamadı: %v (yz_sor, bu bilgisayarda 11434 portunda çalışan bir yerel dil modeli sunucusu ister; sunucuyu başlatıp bir model indirin ya da adres: ile başka bir sunucu verin)", adres, err)
+}
+
+// yzIlkModel model verilmediğinde sunucunun yüklü modellerinin listesinden (aynı sunucunun
+// /api/tags uç noktası) ilkini seçer.
+func yzIlkModel(makine *vm.VM, adres string) (string, error) {
+	liste := adres
+	if i := strings.Index(liste, "/api/"); i >= 0 {
+		liste = liste[:i]
+	}
+	liste = strings.TrimSuffix(liste, "/") + "/api/tags"
+	yanit, err := web.Iste(makine, http.MethodGet, liste, nil, "", yzSorZamanAsimi)
+	if err != nil {
+		return "", yzAgHatasi(adres, "", err)
+	}
+	var govde struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if yanit.Durum != http.StatusOK || json.Unmarshal(yanit.Govde, &govde) != nil {
+		return "", fmt.Errorf("yz_sor: yerel dil modeli sunucusundan (%s) yüklü modellerin listesi alınamadı; modeli model: ile verin", liste)
+	}
+	for _, m := range govde.Models {
+		if m.Name != "" {
+			return m.Name, nil
+		}
+	}
+	return "", fmt.Errorf("yz_sor: yerel dil modeli sunucusunda (%s) yüklü model yok; bir model indirip adını model: ile verin", liste)
 }

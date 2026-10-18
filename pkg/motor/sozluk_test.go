@@ -73,7 +73,7 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		`değişken u_iyilestirici = SGD([u_tensor])`,
 		`değişken u_model = sinir_ağı([2, 1])`,
 		`değişken u_vt = veritabanı_aç(":bellek:")`,
-		`değişken u_web = web_sunucu(port: 0)`,
+		`değişken u_web = web_sunucu(port: 18080)`, // başlatılmaz; port yalnızca geçerli olmalı
 		`değişken u_arayuz = arayüz_oluştur("deneme")`,
 		`değişken u_parcalayici = parçalayıcı_yükle("../parcalayici/testdata/p_bayt_bpe.json")`,
 	}, "\n")

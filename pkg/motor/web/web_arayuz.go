@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -17,10 +18,10 @@ import (
 	"sync"
 	"time"
 	"tr_dili/pkg/motor/internal/baglama"
+	"tr_dili/pkg/motor/internal/jsonyaz"
 	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
-	"unicode"
 )
 
 // Adlı argümanlar; adları sözlüktedir (pkg/sozluk, W9xx).
@@ -51,12 +52,34 @@ type routeHandler struct {
 }
 
 type WebServerVal struct {
-	Port       int
-	Routes     []routeHandler
+	Port   int
+	Routes []routeHandler
+	// StaticDirs URL öneki ("/dosyalar/") → statik klasörün çözülmüş yolu (bkz. statik.go).
 	StaticDirs map[string]string
 	server     *http.Server
 	mu         sync.RWMutex
 	vmRef      *vm.VM
+}
+
+// portAl web_sunucu ve arayüz başlatma çağrılarının portunu okur (konumlu ilk argüman ya da
+// port:). Port 1–65535 arasında bir Tam olmalıdır; port 0 (rastgele port) desteklenmez, çünkü
+// Host denetimi ve gösterilen adres bilinen bir port ister.
+func portAl(fn string, args []vm.Value, named map[string]vm.Value, varsayilan int) (int, error) {
+	var deger vm.Value
+	if len(args) >= 1 {
+		deger = args[0]
+	}
+	if p, ok := baglama.AdliAl(named, adPort); ok {
+		deger = p
+	}
+	if deger == nil {
+		return varsayilan, nil
+	}
+	iv, ok := deger.(*vm.IntVal)
+	if !ok || iv.Val < 1 || iv.Val > 65535 {
+		return 0, fmt.Errorf("%s: port 1 ile 65535 arasında bir Tam olmalı, %s verildi", fn, vm.TipVeOzet(deger))
+	}
+	return int(iv.Val), nil
 }
 
 func (w *WebServerVal) Type() vm.ValueType { return VAL_WEB_SERVER }
@@ -167,8 +190,12 @@ func (w *WebServerVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				if len(args) < 2 {
 					return nil, fmt.Errorf("sunucu.statik_klasör(url_yolu, klasör_yolu) 2 argüman bekler")
 				}
+				onek, kok, err := statikKlasorHazirla(v, args[0].Inspect(), args[1].Inspect())
+				if err != nil {
+					return nil, err
+				}
 				w.mu.Lock()
-				w.StaticDirs[args[0].Inspect()] = args[1].Inspect()
+				w.StaticDirs[onek] = kok
 				w.mu.Unlock()
 				return w, nil
 			},
@@ -221,12 +248,9 @@ func (w *WebServerVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 func (w *WebServerVal) startServer(background bool) error {
 	mux := http.NewServeMux()
 
-	for prefix, dir := range w.StaticDirs {
-		mux.Handle(prefix, http.StripPrefix(prefix, http.FileServer(http.Dir(dir))))
-	}
-
 	// Not: CORS izni (Access-Control-Allow-Origin) verilmez, Host ve başka siteden gelen
-	// istekler guardLocalHTTP ile denetlenir (bkz. http_koruma.go).
+	// istekler guardLocalHTTP ile denetlenir (bkz. http_koruma.go). Rotalar statik
+	// klasörlerden önce gelir; "/" önekli statik klasör de böylece rotalarla çakışmaz.
 	mux.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
 		w.mu.RLock()
 		var matched *routeHandler
@@ -237,12 +261,15 @@ func (w *WebServerVal) startServer(background bool) error {
 				break
 			}
 		}
+		onek, kok := enUzunOnek(w.StaticDirs, req.URL.Path)
 		w.mu.RUnlock()
 
+		if matched == nil && onek != "" && (req.Method == http.MethodGet || req.Method == http.MethodHead) {
+			statikSun(rw, req, kok, strings.TrimPrefix(req.URL.Path, onek))
+			return
+		}
 		if matched == nil {
-			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
-			rw.WriteHeader(http.StatusNotFound)
-			_, _ = fmt.Fprintf(rw, `{"hata": "Rota bulunamadı", "yol": %q}`, req.URL.Path)
+			jsonHata(rw, http.StatusNotFound, "Rota bulunamadı", "yol", req.URL.Path)
 			return
 		}
 
@@ -269,7 +296,13 @@ func (w *WebServerVal) startServer(background bool) error {
 			// Gövde yalnızca Content-Type JSON ise JSON olarak çözülür.
 			var parsed vm.Value
 			if strings.HasPrefix(strings.ToLower(req.Header.Get("Content-Type")), "application/json") {
-				parsed, _ = vm.JSONToTR(bodyBytes)
+				var jerr error
+				parsed, jerr = JSONSinirli(bodyBytes)
+				var ih *IstekHatasi
+				if errors.As(jerr, &ih) {
+					jsonHata(rw, http.StatusRequestEntityTooLarge, ih.Neden)
+					return
+				}
 			}
 			if parsed != nil {
 				reqDict.Set("veri", parsed)
@@ -288,16 +321,28 @@ func (w *WebServerVal) startServer(background bool) error {
 		})
 
 		if err != nil {
-			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
-			rw.WriteHeader(http.StatusInternalServerError)
-			_, _ = fmt.Fprintf(rw, `{"hata": %q}`, err.Error())
+			// Ayrıntı (satır, kod çerçevesi) yalnızca sunucuyu çalıştıranın ekranına yazılır;
+			// istemciye genel bir mesaj gider.
+			fmt.Fprintf(hataGunlugu, "⚠️  web_sunucu: %s %s işleyicisi hata verdi: %v\n", req.Method, req.URL.Path, err)
+			jsonHata(rw, http.StatusInternalServerError, "Sunucu hatası: işleyici çalışırken bir hata oluştu")
 			return
 		}
 
 		switch rv := resVal.(type) {
 		case *vm.DictVal, *vm.ListVal:
+			var jsonBytes []byte
+			var jerr error
+			// Yanıt TR değerlerini okur; ana programla aynı anda okunmasın diye kilit altında yazılır
+			_, _ = w.vmRef.NewTaskVM(false).RunTask(func() (vm.Value, error) {
+				jsonBytes, jerr = jsonyaz.YazGirintili(rv, "  ")
+				return vm.NULL, nil
+			})
+			if jerr != nil {
+				fmt.Fprintf(hataGunlugu, "⚠️  web_sunucu: %s %s yanıtı JSON'a çevrilemedi: %v\n", req.Method, req.URL.Path, jerr)
+				jsonHata(rw, http.StatusInternalServerError, "Sunucu hatası: yanıt JSON'a çevrilemedi")
+				return
+			}
 			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
-			jsonBytes, _ := json.MarshalIndent(vm.TRToGoValue(rv), "", "  ")
 			_, _ = rw.Write(jsonBytes)
 		case *vm.StringVal:
 			trimmed := strings.TrimSpace(rv.Val)
@@ -369,7 +414,37 @@ type GUIAppVal struct {
 
 func (g *GUIAppVal) Type() vm.ValueType { return VAL_GUI_APP }
 func (g *GUIAppVal) Inspect() string {
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	return fmt.Sprintf("<GörselArayüz %q (%d bileşen)>", g.Title, len(g.Widgets)+len(g.KPIs))
+}
+
+// bilesenEkle bir bileşeni g.mu altında ekler; ID öneki ("btn_") verilmişse sıra numarası
+// eklenir. /api/etkilesim bileşen listesini yorumlayıcı kilidi olmadan okuduğu için bütün
+// eklemeler ve okumalar g.mu ile korunur.
+func (g *GUIAppVal) bilesenEkle(kpi bool, w guiWidget) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if kpi {
+		g.KPIs = append(g.KPIs, w)
+		return
+	}
+	if w.ID != "" {
+		w.ID = fmt.Sprintf("%s%d", w.ID, len(g.Widgets)+1)
+	}
+	g.Widgets = append(g.Widgets, w)
+}
+
+// geriCagri kimliği verilen bileşenin geri çağrı işlevini g.mu altında bulur.
+func (g *GUIAppVal) geriCagri(id string) vm.Value {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for _, w := range g.Widgets {
+		if w.ID == id && w.Callback != nil {
+			return w.Callback
+		}
+	}
+	return nil
 }
 func (g *GUIAppVal) IsTruthy() bool { return true }
 
@@ -404,7 +479,7 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 					}
 					color = c
 				}
-				g.KPIs = append(g.KPIs, guiWidget{
+				g.bilesenEkle(true, guiWidget{
 					Kind:     "kpi",
 					Title:    args[0].Inspect(),
 					Value:    args[1].Inspect(),
@@ -426,7 +501,7 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 				if len(args) >= 2 {
 					sub = args[1].Inspect()
 				}
-				g.Widgets = append(g.Widgets, guiWidget{
+				g.bilesenEkle(false, guiWidget{
 					Kind:     "header",
 					Title:    args[0].Inspect(),
 					Subtitle: sub,
@@ -442,7 +517,7 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("metin_ekle(metin) 1 argüman bekler")
 				}
-				g.Widgets = append(g.Widgets, guiWidget{
+				g.bilesenEkle(false, guiWidget{
 					Kind:  "text",
 					Value: args[0].Inspect(),
 				})
@@ -457,8 +532,8 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("tablo_ekle(başlık, liste_veya_matris) 2 argüman bekler")
 				}
-				g.Widgets = append(g.Widgets, guiWidget{
-					ID:    fmt.Sprintf("tbl_%d", len(g.Widgets)+1),
+				g.bilesenEkle(false, guiWidget{
+					ID:    "tbl_",
 					Kind:  "table",
 					Title: args[0].Inspect(),
 					Data:  args[1],
@@ -495,8 +570,8 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 				if ct, ok := baglama.AdliAl(named, adTip); ok {
 					chartType = ct.Inspect()
 				}
-				g.Widgets = append(g.Widgets, guiWidget{
-					ID:       fmt.Sprintf("chart_%d", len(g.Widgets)+1),
+				g.bilesenEkle(false, guiWidget{
+					ID:       "chart_",
 					Kind:     "chart",
 					Title:    args[0].Inspect(),
 					Subtitle: chartType,
@@ -520,8 +595,8 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 						fields = append(fields, el.Inspect())
 					}
 				}
-				g.Widgets = append(g.Widgets, guiWidget{
-					ID:       fmt.Sprintf("form_%d", len(g.Widgets)+1),
+				g.bilesenEkle(false, guiWidget{
+					ID:       "form_",
 					Kind:     "form",
 					Title:    args[0].Inspect(),
 					Fields:   fields,
@@ -538,8 +613,8 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("buton_ekle(etiket, fonksiyon) 2 argüman bekler")
 				}
-				g.Widgets = append(g.Widgets, guiWidget{
-					ID:       fmt.Sprintf("btn_%d", len(g.Widgets)+1),
+				g.bilesenEkle(false, guiWidget{
+					ID:       "btn_",
 					Kind:     "button",
 					Title:    args[0].Inspect(),
 					Callback: args[1],
@@ -581,16 +656,9 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 		return &vm.BuiltinVal{
 			Name: "arayüz.arka_planda_başlat",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-				port := 8095
-				if len(args) >= 1 {
-					if iv, ok := args[0].(*vm.IntVal); ok {
-						port = int(iv.Val)
-					}
-				}
-				if p, ok := baglama.AdliAl(named, adPort); ok {
-					if iv, ok := p.(*vm.IntVal); ok {
-						port = int(iv.Val)
-					}
+				port, err := portAl("arayüz.arka_planda_başlat", args, named, 8095)
+				if err != nil {
+					return nil, err
 				}
 				openWin := false
 				if ow, ok := baglama.AdliAl(named, adPencereAc); ok && ow.IsTruthy() {
@@ -608,16 +676,9 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 		return &vm.BuiltinVal{
 			Name: "arayüz.başlat",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-				port := 8095
-				if len(args) >= 1 {
-					if iv, ok := args[0].(*vm.IntVal); ok {
-						port = int(iv.Val)
-					}
-				}
-				if p, ok := baglama.AdliAl(named, adPort); ok {
-					if iv, ok := p.(*vm.IntVal); ok {
-						port = int(iv.Val)
-					}
+				port, err := portAl("arayüz.başlat", args, named, 8095)
+				if err != nil {
+					return nil, err
 				}
 				openWin := true
 				if ow, ok := baglama.AdliAl(named, adPencereAc); ok {
@@ -670,7 +731,7 @@ var ingilizceRenkler = map[string]string{
 // renkCoz bir renk adını ya da renk kodunu CSS rengine çevirir.
 func renkCoz(c string) (string, error) {
 	c = strings.TrimSpace(c)
-	kucuk := strings.ToLowerSpecial(unicode.TurkishCase, c)
+	kucuk := turkce.KucukHarf(c)
 	if hex, ok := renkler[kucuk]; ok {
 		return hex, nil
 	}
@@ -722,52 +783,53 @@ func (g *GUIAppVal) startGUIServer(port int, background bool, openWindow bool) e
 		_, _ = rw.Write([]byte(page))
 	})
 
-	// Form ve Buton etkileşim API uç noktası
+	// Form ve Buton etkileşim API uç noktası. Host ve başka siteden gelen istekler bütün yerel
+	// sunucuların ortak denetimiyle (guardLocalHTTP) süzülür; burada ayrıca yalnızca JSON POST
+	// kabul edilir (application/json başka sitelerden ön kontrolsüz gönderilemez).
 	mux.HandleFunc("/api/etkilesim", func(rw http.ResponseWriter, req *http.Request) {
-		// CSRF / DNS rebinding koruması: yalnızca kendi sayfamızdan gelen JSON POST istekleri.
-		// application/json başka sitelerden ön kontrolsüz (preflight) gönderilemez.
-		host := strings.ToLower(req.Host)
-		if host != fmt.Sprintf("localhost:%d", port) && host != fmt.Sprintf("127.0.0.1:%d", port) {
-			http.Error(rw, "yasak: geçersiz Host", http.StatusForbidden)
-			return
-		}
 		if req.Method != http.MethodPost || !strings.HasPrefix(req.Header.Get("Content-Type"), "application/json") {
 			http.Error(rw, "yalnızca application/json POST", http.StatusUnsupportedMediaType)
 			return
 		}
-		rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+		yaz := func(govde map[string]string) {
+			b, _ := json.Marshal(govde) // metinlerden oluşan sözlük her zaman yazılabilir
+			rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+			_, _ = rw.Write(b)
+		}
 		var payload struct {
 			WidgetID string            `json:"widget_id"`
 			Values   map[string]string `json:"values"`
 		}
 		if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
-			_, _ = fmt.Fprintf(rw, `{"durum":"hata","mesaj":%q}`, err.Error())
+			yaz(map[string]string{"durum": "hata", "mesaj": "geçersiz istek: JSON çözülemedi"})
 			return
 		}
 
-		g.mu.Lock()
-		defer g.mu.Unlock()
-
-		for _, w := range g.Widgets {
-			if w.ID == payload.WidgetID && w.Callback != nil {
-				formDict := vm.NewDictVal()
-				for k, v := range payload.Values {
-					formDict.Set(k, &vm.StringVal{Val: v})
-				}
-				task := g.vmRef.NewTaskVM(false)
-				cb := w.Callback
-				res, err := task.RunTask(func() (vm.Value, error) {
-					return task.ApplyFunction(cb, []vm.Value{formDict}, nil, 0)
-				})
-				if err != nil {
-					_, _ = fmt.Fprintf(rw, `{"durum":"hata","mesaj":%q}`, err.Error())
-					return
-				}
-				_, _ = fmt.Fprintf(rw, `{"durum":"tamam","sonuc":%q}`, res.Inspect())
-				return
-			}
+		cb := g.geriCagri(payload.WidgetID)
+		if cb == nil {
+			yaz(map[string]string{"durum": "hata", "mesaj": "Etkileşim bileşeni bulunamadı"})
+			return
 		}
-		_, _ = fmt.Fprintf(rw, `{"durum":"hata","mesaj":"Etkileşim bileşeni bulunamadı"}`)
+		formDict := vm.NewDictVal()
+		for k, v := range payload.Values {
+			formDict.Set(k, &vm.StringVal{Val: v})
+		}
+		// Geri çağrı g.mu tutulmadan çalışır; böylece kendisi de bileşen ekleyebilir.
+		task := g.vmRef.NewTaskVM(false)
+		var sonuc string
+		_, err := task.RunTask(func() (vm.Value, error) {
+			r, err := task.ApplyFunction(cb, []vm.Value{formDict}, nil, 0)
+			if err == nil {
+				sonuc = r.Inspect()
+			}
+			return r, err
+		})
+		if err != nil {
+			fmt.Fprintf(hataGunlugu, "⚠️  arayüz: %q bileşeninin işlevi hata verdi: %v\n", payload.WidgetID, err)
+			yaz(map[string]string{"durum": "hata", "mesaj": "İşlev çalışırken bir hata oluştu"})
+			return
+		}
+		yaz(map[string]string{"durum": "tamam", "sonuc": sonuc})
 	})
 
 	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
@@ -797,7 +859,8 @@ func (g *GUIAppVal) startGUIServer(port int, background bool, openWindow bool) e
 
 func launchNativeAppWindow(url string, width, height int) {
 	if runtime.GOOS == "windows" {
-		// Edge veya Chrome'u masaüstü uygulama penceresi (--app) modunda aç
+		// Sistemdeki tarayıcıyı masaüstü uygulama penceresi (--app) kipinde aç; olmazsa
+		// varsayılan tarayıcıyla aç
 		edgeCmd := exec.Command("cmd", "/c", "start", "msedge", fmt.Sprintf("--app=%s", url), fmt.Sprintf("--window-size=%d,%d", width, height))
 		if err := edgeCmd.Start(); err != nil {
 			_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
@@ -806,6 +869,10 @@ func launchNativeAppWindow(url string, width, height int) {
 }
 
 func (g *GUIAppVal) renderHTML() string {
+	g.mu.Lock()
+	kpis := append([]guiWidget(nil), g.KPIs...)
+	widgets := append([]guiWidget(nil), g.Widgets...)
+	g.mu.Unlock()
 	var sb strings.Builder
 	sb.WriteString(`<!DOCTYPE html>
 <html lang="tr">
@@ -853,9 +920,9 @@ func (g *GUIAppVal) renderHTML() string {
 </header>
 <div class="container">`)
 
-	if len(g.KPIs) > 0 {
+	if len(kpis) > 0 {
 		sb.WriteString(`<div class="kpi-grid">`)
-		for _, k := range g.KPIs {
+		for _, k := range kpis {
 			sb.WriteString(fmt.Sprintf(`
   <div class="kpi-card" style="border-left-color: %s">
     <div class="kpi-title">%s</div>
@@ -866,7 +933,7 @@ func (g *GUIAppVal) renderHTML() string {
 		sb.WriteString(`</div>`)
 	}
 
-	for _, w := range g.Widgets {
+	for _, w := range widgets {
 		switch w.Kind {
 		case "header":
 			sb.WriteString(fmt.Sprintf(`<div class="panel"><h2 class="panel-title">%s</h2><p style="color:#94a3b8;margin:6px 0 0 0;font-size:13.5px">%s</p></div>`,
@@ -1030,16 +1097,9 @@ func Kaydet(v *vm.VM) {
 
 	// 1. web_sunucu(port: 8080)
 	v.RegisterBuiltinKod(sozluk.W+110, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		port := 8080
-		if len(args) >= 1 {
-			if iv, ok := args[0].(*vm.IntVal); ok {
-				port = int(iv.Val)
-			}
-		}
-		if p, ok := baglama.AdliAl(named, adPort); ok {
-			if iv, ok := p.(*vm.IntVal); ok {
-				port = int(iv.Val)
-			}
+		port, err := portAl("web_sunucu", args, named, 8080)
+		if err != nil {
+			return nil, err
 		}
 		return &WebServerVal{
 			Port:       port,

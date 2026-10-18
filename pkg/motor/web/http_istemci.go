@@ -2,7 +2,6 @@ package web
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"tr_dili/pkg/sozluk"
 	"unicode/utf8"
 
+	"tr_dili/pkg/motor/internal/jsonyaz"
 	"tr_dili/pkg/vm"
 )
 
@@ -26,8 +26,61 @@ import (
 var EnFazlaGovde int64 = 50 << 20
 
 // webZamanAsimi web_al ve web_gönder isteklerinin toplam süre sınırıdır (bağlanma,
-// gönderme ve gövdeyi okuma dahil). Testler kısaltabilir.
+// gönderme, gövdeyi okuma ve JSON gövdeyi TR değerine çevirme dahil). Testler kısaltabilir.
 var webZamanAsimi = 30 * time.Second
+
+// EnFazlaJSONDegeri bir JSON gövdesinin (web_al/web_gönder yanıtı, web sunucusuna gelen
+// istek) TR değerine çevrilebilecek en çok değer sayısıdır. Gövde boyutu sınırı tek başına
+// belleği sınırlamaz: 50 MB'lık "[0,0,…]" 26 milyon değer, yaklaşık 1 GB bellek demektir.
+// 5 milyon değer birkaç yüz MB'tır. Testler küçültebilir.
+var EnFazlaJSONDegeri = 5_000_000
+
+// jsonDegerSayisi JSON metnindeki değer sayısının bir üst sınırını tek geçişte, ayırmadan
+// sayar: metin dışındaki her virgül ve açılan parantez bir değerdir.
+func jsonDegerSayisi(b []byte) int {
+	n := 1
+	metinde, kacis := false, false
+	for _, c := range b {
+		if metinde {
+			switch {
+			case kacis:
+				kacis = false
+			case c == '\\':
+				kacis = true
+			case c == '"':
+				metinde = false
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			metinde = true
+		case ',', '[', '{':
+			n++
+		}
+	}
+	return n
+}
+
+// jsonGibi gövdenin bir JSON nesnesi ya da dizisi gibi başlayıp başlamadığını söyler.
+func jsonGibi(b []byte) bool {
+	t := bytes.TrimLeft(b, " \t\r\n")
+	return len(t) > 0 && (t[0] == '{' || t[0] == '[')
+}
+
+// JSONSinirli JSON gövdesini EnFazlaJSONDegeri sınırıyla TR değerine çevirir. Sınır aşılırsa
+// çevirmeye hiç başlanmadan açık bir hata döner.
+func JSONSinirli(b []byte) (vm.Value, error) {
+	if jsonGibi(b) {
+		if n := jsonDegerSayisi(b); n > EnFazlaJSONDegeri {
+			return nil, &IstekHatasi{
+				Neden: fmt.Sprintf("JSON'da çok fazla değer var (yaklaşık %d; en fazla %d çevrilir)", n, EnFazlaJSONDegeri),
+				Buyuk: true,
+			}
+		}
+	}
+	return vm.JSONToTR(b)
+}
 
 // Yanit bir HTTP isteğinin durum kodu ve (sınırla okunmuş) gövdesidir.
 type Yanit struct {
@@ -144,13 +197,57 @@ func baytMetni(n int64) string {
 }
 
 // webIstegi web_al ve web_gönder'in ortak gövdesidir: isteği atar, 2xx dışı durum
-// kodunu açık hataya çevirir, gövde JSON ise TR değerine, değilse metne dönüştürür.
+// kodunu açık hataya çevirir, gövde JSON ise TR değerine, değilse metne dönüştürür. İstek
+// ve JSON çevirisi yorumlayıcı kilidi bırakılarak, toplam webZamanAsimi içinde yapılır
+// (çeviri yeni değerler üretir, paylaşılan hiçbir TR değerine dokunmaz).
 func webIstegi(makine *vm.VM, fn, yontem, adres string, govde []byte) (vm.Value, error) {
 	icerikTipi := ""
 	if govde != nil {
 		icerikTipi = "application/json"
 	}
-	yanit, err := Iste(makine, yontem, adres, govde, icerikTipi, webZamanAsimi)
+	var (
+		yanit   *Yanit
+		cozulen vm.Value
+		err     error
+	)
+	calistir := func() {
+		bas := time.Now()
+		yanit, err = Iste(nil, yontem, adres, govde, icerikTipi, webZamanAsimi)
+		if err != nil || !yanit.Basarili() || !jsonGibi(yanit.Govde) {
+			return
+		}
+		kalan := webZamanAsimi - time.Since(bas)
+		type sonuc struct {
+			v   vm.Value
+			err error
+		}
+		bitti := make(chan sonuc, 1)
+		g := yanit.Govde
+		go func() {
+			v, e := JSONSinirli(g)
+			bitti <- sonuc{v, e}
+		}()
+		select {
+		case s := <-bitti:
+			var ih *IstekHatasi
+			if errors.As(s.err, &ih) {
+				err = ih
+			} else if s.err == nil {
+				cozulen = s.v
+			}
+		case <-time.After(kalan):
+			// Çeviri arka planda biter (EnFazlaJSONDegeri ile sınırlı) ve sonucu atılır.
+			err = &IstekHatasi{
+				Neden:     fmt.Sprintf("zaman aşımı: yanıt %s içinde okunup çözülemedi", sureMetni(webZamanAsimi)),
+				ZamanAsim: true,
+			}
+		}
+	}
+	if makine != nil {
+		makine.Blocking(calistir)
+	} else {
+		calistir()
+	}
 	if err != nil {
 		etiket := "Web bağlantı hatası"
 		if yontem == http.MethodPost {
@@ -165,8 +262,8 @@ func webIstegi(makine *vm.VM, fn, yontem, adres string, govde []byte) (vm.Value,
 		}
 		return nil, fmt.Errorf("%s: %s adresi %s durum kodu döndürdü%s", fn, adres, yanit.Metin, ozet)
 	}
-	if val, err := vm.JSONToTR(yanit.Govde); err == nil {
-		return val, nil
+	if cozulen != nil {
+		return cozulen, nil
 	}
 	return &vm.StringVal{Val: string(yanit.Govde)}, nil
 }
@@ -184,9 +281,9 @@ func istemciKaydet(v *vm.VM) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("web_gönder(url, veri) 2 parametre bekler")
 		}
-		payload, err := json.Marshal(vm.TRToGoValue(args[1]))
+		payload, err := jsonyaz.Yaz(args[1])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("web_gönder: gönderilecek veri JSON'a çevrilemedi: %v", err)
 		}
 		return webIstegi(makine, "web_gönder", http.MethodPost, args[0].Inspect(), payload)
 	})
