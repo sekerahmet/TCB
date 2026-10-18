@@ -19,6 +19,21 @@ func scatterBackward(parent, out *Tensor, gOff int, gStrides []int) func() {
 	}
 }
 
+// gradDevret, düzeni ebeveyninkiyle aynı olan (aynı elemanlar, aynı satır
+// öncelikli sıra) bir çıktının gradyanını ebeveyne aktarır. Ebeveynin henüz
+// gradyanı yoksa depolama kopyalanmadan devredilir ve çıktıdan alınır; böylece
+// her gradyan depolamasının tek bir sahibi olur (geri yayılım, sahibi kalmayan
+// ara gradyanı ayrıca bırakmaz/iade etmez). Aksi halde üzerine eklenir.
+func gradDevret(t, out *Tensor) {
+	g := out.grad
+	if t.grad == nil && g.Len() == t.Numel() {
+		t.grad = g
+		out.grad = nil
+		return
+	}
+	t.be.AddTo(t.accGrad(), g, 1)
+}
+
 // Reshape tensörü yeni şekle sokar; bir eksen -1 olabilir (çıkarsanır).
 // Bitişik tensörlerde kopyasızdır; değilse önce Contiguous ile kopyalanır.
 func (t *Tensor) Reshape(shape ...int) *Tensor {
@@ -52,7 +67,7 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 		return t.Contiguous().Reshape(sh...)
 	}
 	out := viewOf(t, t.offset, sh, contiguousStrides(sh))
-	return track(out, "reshape", []*Tensor{t}, func() { t.be.AddTo(t.accGrad(), out.grad, 1) })
+	return track(out, "reshape", []*Tensor{t}, func() { gradDevret(t, out) })
 }
 
 // Flatten tensörü tek boyuta indirir.
@@ -180,12 +195,12 @@ func (t *Tensor) Contiguous() *Tensor {
 	}
 	out := zerosOn(t.be, t.shape)
 	t.be.Copy(out.storage, 0, t.view())
-	return track(out, "contiguous", []*Tensor{t}, func() { t.be.AddTo(t.accGrad(), out.grad, 1) })
+	return track(out, "contiguous", []*Tensor{t}, func() { gradDevret(t, out) })
 }
 
 // Clone verinin bitişik bir kopyasını üretir (türevlenebilir).
 func (t *Tensor) Clone() *Tensor {
 	out := zerosOn(t.be, t.shape)
 	t.be.Copy(out.storage, 0, t.view())
-	return track(out, "clone", []*Tensor{t}, func() { t.be.AddTo(t.accGrad(), out.grad, 1) })
+	return track(out, "clone", []*Tensor{t}, func() { gradDevret(t, out) })
 }
