@@ -778,17 +778,6 @@ func children(val vm.Value, expr string) []dapChild {
 		for _, k := range rest {
 			out = append(out, dapChild{name: k, expr: expr + "." + k, val: v.Fields[k]})
 		}
-	case *vm.MatrixVal:
-		for i, row := range v.Data {
-			if i >= limit {
-				break
-			}
-			elems := make([]vm.Value, len(row))
-			for j, x := range row {
-				elems[j] = &vm.FloatVal{Val: x}
-			}
-			out = append(out, dapChild{name: fmt.Sprintf("[%d]", i), expr: fmt.Sprintf("%s[%d]", expr, i), val: &vm.ListVal{Elements: elems}})
-		}
 	}
 	return out
 }
@@ -801,8 +790,6 @@ func expandable(val vm.Value) bool {
 		return len(v.Pairs) > 0
 	case *vm.StructInstanceVal:
 		return len(v.Fields) > 0
-	case *vm.MatrixVal:
-		return v.Rows > 0
 	}
 	return false
 }
@@ -829,9 +816,6 @@ func display(val vm.Value) string {
 		prefix = fmt.Sprintf("(%d) ", len(v.Elements))
 	case *vm.DictVal:
 		prefix = fmt.Sprintf("{%d} ", len(v.Pairs))
-	case *vm.MatrixVal:
-		prefix = fmt.Sprintf("Matris(%dx%d) ", v.Rows, v.Cols)
-		return prefix
 	}
 	text := prefix + val.Inspect()
 	if r := []rune(text); len(r) > 200 {
@@ -1076,8 +1060,6 @@ func valueKind(val vm.Value) string {
 		return "sozluk"
 	case *vm.StructInstanceVal:
 		return "yapi"
-	case *vm.MatrixVal:
-		return "matris"
 	case *vm.IntVal, *vm.FloatVal:
 		return "sayi"
 	case *vm.StringVal:
@@ -1103,8 +1085,6 @@ func typeLabel(val vm.Value) string {
 		return fmt.Sprintf("Liste [%d]", len(v.Elements))
 	case *vm.DictVal:
 		return fmt.Sprintf("Sözlük [%d]", len(v.Pairs))
-	case *vm.MatrixVal:
-		return fmt.Sprintf("Matris [%d×%d]", v.Rows, v.Cols)
 	case *vm.StructInstanceVal:
 		return "Yapı " + v.Def.Name
 	}
@@ -1134,7 +1114,8 @@ func (s *dapServer) table(msg *dapMessage) {
 }
 
 // TableData bir değeri tabloya (sütunlar + satırlar) dönüştürür:
-// sözlük/yapı listeleri, düz listeler, sözlükler ve matrisler desteklenir.
+// sözlük/yapı listeleri, düz listeler, sözlükler, yapılar ve (IzlemeDegeri ile) tensörler
+// desteklenir.
 func TableData(val vm.Value) ([]string, [][]string, error) {
 	const limit = 10000
 	if iz, ok := val.(IzlemeDegeri); ok {
@@ -1198,25 +1179,8 @@ func TableData(val vm.Value) ([]string, [][]string, error) {
 			rows = append(rows, []string{c.name, plainText(c.val)})
 		}
 		return []string{"Alan", "Değer"}, rows, nil
-	case *vm.MatrixVal:
-		cols := make([]string, v.Cols)
-		for j := range cols {
-			cols[j] = fmt.Sprintf("Sütun %d", j+1)
-		}
-		var rows [][]string
-		for i, r := range v.Data {
-			if i >= limit {
-				break
-			}
-			row := make([]string, len(r))
-			for j, x := range r {
-				row[j] = strconv.FormatFloat(x, 'g', 8, 64)
-			}
-			rows = append(rows, row)
-		}
-		return cols, rows, nil
 	}
-	return nil, nil, fmt.Errorf("tablo görünümü yalnızca liste, sözlük, yapı, matris ve tensörler için kullanılabilir (bu değer: %s)", val.Type())
+	return nil, nil, fmt.Errorf("tablo görünümü yalnızca liste, sözlük, yapı ve tensörler için kullanılabilir (bu değer: %s)", val.Type())
 }
 
 // plainText hücrede gösterilecek metindir: metinler tırnaksız yazılır.

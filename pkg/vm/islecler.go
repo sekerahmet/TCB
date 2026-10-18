@@ -91,8 +91,8 @@ func atamaIslecMetni(kod uint8) string {
 
 // evalInfixKod ikili işlemi işleç koduyla yapar; op yalnızca hata mesajları içindir.
 func (v *VM) evalInfixKod(kod uint8, op string, left Value, right Value, line int) (Value, error) {
-	// Hızlı yol: Tam ve Ondalık sayılar. Sayılar MatrixOperator olmadığından bu denetim
-	// matris denetiminden önce yapılabilir.
+	// Hızlı yol: Tam ve Ondalık sayılar. Sayılar işleç kancası uygulamadığından bu denetim
+	// kancalardan önce yapılabilir.
 	switch l := left.(type) {
 	case *IntVal:
 		switch r := right.(type) {
@@ -123,36 +123,8 @@ func (v *VM) evalInfixKod(kod uint8, op string, left Value, right Value, line in
 		}
 	}
 
-	// Matris / Tensör operatörleri (hatalarına satır bilgisi eklenir)
-	if mop, ok := left.(MatrixOperator); ok && (kod == opTopla || kod == opCikar || kod == opCarp || kod == opBol || kod == opMatCarp) {
-		var val Value
-		var err error
-		switch kod {
-		case opTopla:
-			val, err = mop.Add(right)
-		case opCikar:
-			val, err = mop.Sub(right)
-		case opCarp:
-			val, err = mop.Mul(right)
-		case opBol:
-			val, err = mop.Div(right)
-		default:
-			val, err = mop.MatMul(right)
-		}
-		return val, satirEki(line, err)
-	}
-	if mop, ok := right.(MatrixOperator); ok {
-		switch kod {
-		case opTopla:
-			val, err := mop.Add(left)
-			return val, satirEki(line, err)
-		case opCarp:
-			val, err := mop.Mul(left)
-			return val, satirEki(line, err)
-		}
-	}
-
-	// Diğer işleçler için değerlerin kendi kancaları (ör. 2 - tensör, tensör < 0)
+	// Değerlerin kendi işleç kancaları (ör. tensör @ tensör, 2 - tensör, tensör < 0);
+	// hatalarına satır bilgisi eklenir.
 	switch kod {
 	case opEsit, opEsitDegil:
 	default:

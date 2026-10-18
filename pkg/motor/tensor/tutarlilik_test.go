@@ -12,7 +12,7 @@ yazdır(üstel([0, [0]]), log(1), tip(üstel(matris([[0, 1]]))), tip(log_softmax
 yazdır(tip(üstel(tensör([0]))), tip(log_softmax(tensör([1.0, 2.0]))))
 değişken l = log_softmax([1, 2, 3])
 yazdır(yuvarla(üstel(l[0]) + üstel(l[1]) + üstel(l[2]), 6))`)
-	want := "Liste Liste Liste Ondalık Liste\n[1.0, [1.0]] 0.0 Matris Matris\nTensör Tensör\n1.0\n"
+	want := "Liste Liste Liste Ondalık Liste\n[1.0, [1.0]] 0.0 Tensör Tensör\nTensör Tensör\n1.0\n"
 	if out != want {
 		t.Fatalf("dönüş tipleri:\n%q\nbeklenen:\n%q", out, want)
 	}

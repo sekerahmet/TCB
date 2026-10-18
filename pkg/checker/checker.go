@@ -71,9 +71,8 @@ func normalizeTypeName(t string) string {
 		return "Liste"
 	case "sözlük", "sozluk", "harita", "dict", "map":
 		return "Sözlük"
-	case "matris", "matrix":
-		return "Matris"
-	case "tensör", "tensor":
+	case "tensör", "tensor", "matris", "matrix":
+		// Matris 2 boyutlu tensördür; ayrı bir tip değildir.
 		return "Tensör"
 	case "yok", "boş", "bos", "null":
 		return "Yok"
@@ -310,7 +309,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		case "|>":
 			return "Herhangi"
 		case "@":
-			return "Matris"
+			return "Tensör"
 		case "+", "-", "*", "/", "%", "**":
 			return arithmeticType(e.Operator, left, right)
 		}

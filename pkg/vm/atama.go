@@ -17,36 +17,6 @@ func (v *VM) atamaIslemi(kod uint8, cur Value, rhs Value, line int) (Value, erro
 	return rhs, nil
 }
 
-// matrisHucresineAta A[satır][sütun] = değer atamasını yapar.
-func (v *VM) matrisHucresineAta(mat *MatrixVal, rIdxVal, cIdxVal Value, kod uint8, rightVal Value, line int) error {
-	rInt, ok1 := rIdxVal.(*IntVal)
-	cInt, ok2 := cIdxVal.(*IntVal)
-	if !ok1 || !ok2 {
-		return fmt.Errorf("Satır %d: Matris satır ve sütun indeksleri Tam sayı olmalıdır", line)
-	}
-	rPos := int(rInt.Val)
-	if rPos < 0 {
-		rPos = mat.Rows + rPos
-	}
-	cPos := int(cInt.Val)
-	if cPos < 0 {
-		cPos = mat.Cols + cPos
-	}
-	if rPos < 0 || rPos >= mat.Rows || cPos < 0 || cPos >= mat.Cols {
-		return fmt.Errorf("Satır %d: Matris indeksi sınır dışı ([%d][%d])", line, rInt.Val, cInt.Val)
-	}
-	finalVal, err := v.atamaIslemi(kod, &FloatVal{Val: mat.Data[rPos][cPos]}, rightVal, line)
-	if err != nil {
-		return err
-	}
-	fv, ok := ToFloat(finalVal)
-	if !ok {
-		return fmt.Errorf("Satır %d: Matris hücresine sayısal değer atanmalıdır", line)
-	}
-	mat.Data[rPos][cPos] = fv
-	return nil
-}
-
 // indekseAta kap[idx] = değer atamasını yapar.
 func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line int) error {
 	switch container := left.(type) {
@@ -68,30 +38,6 @@ func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line i
 		}
 		container.Elements[pos] = finalVal
 		return nil
-	case *MatrixVal:
-		iv, ok := idx.(*IntVal)
-		if !ok {
-			return fmt.Errorf("Satır %d: Matris satır indeksi Tam sayı olmalıdır", line)
-		}
-		rPos := int(iv.Val)
-		if rPos < 0 {
-			rPos = container.Rows + rPos
-		}
-		if rPos < 0 || rPos >= container.Rows {
-			return fmt.Errorf("Satır %d: Matris satır indeksi sınır dışı (%d)", line, iv.Val)
-		}
-		rowList, ok := rightVal.(*ListVal)
-		if !ok || len(rowList.Elements) != container.Cols {
-			return fmt.Errorf("Satır %d: Matris satır ataması %d elemanlı sayısal Liste bekler", line, container.Cols)
-		}
-		for j, el := range rowList.Elements {
-			fv, ok := ToFloat(el)
-			if !ok {
-				return fmt.Errorf("Satır %d: Matris elemanları sayısal olmalıdır", line)
-			}
-			container.Data[rPos][j] = fv
-		}
-		return nil
 	case *DictVal:
 		if kod == opAta {
 			// Düz atamada mevcut değer gerekmez (atamaIslemi sağ tarafı olduğu gibi verir)
@@ -108,6 +54,23 @@ func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line i
 		}
 		container.SetValue(idx, finalVal)
 		return nil
+	case IndeksAtanabilir:
+		// Dış değerler (ör. tensör): bileşik atamada mevcut değer Indeks ile okunur.
+		finalVal := rightVal
+		if kod != opAta {
+			okunan, ok := left.(Indekslenebilir)
+			if !ok {
+				return fmt.Errorf("Satır %d: %s tipinde indeksli bileşik atama yapılamaz", line, left.Type())
+			}
+			cur, err := okunan.Indeks(idx)
+			if err != nil {
+				return satirEki(line, err)
+			}
+			if finalVal, err = v.atamaIslemi(kod, cur, rightVal, line); err != nil {
+				return err
+			}
+		}
+		return satirEki(line, container.IndekseAta(idx, finalVal))
 	}
 	return fmt.Errorf("Satır %d: Bu tipe indeks ile atama yapılamaz (%s)", line, left.Type())
 }

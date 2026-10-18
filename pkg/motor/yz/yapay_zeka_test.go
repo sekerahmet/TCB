@@ -18,14 +18,9 @@ func TestBuiltinsRejectBadSizesWithoutPanic(t *testing.T) {
 		t.Fatalf("[[], [], [0, 1, 2]] bekleniyordu, %s alındı", val.Inspect())
 	}
 
+	// Matris oluşturucularının boyut denetimi pkg/motor/tensor testlerindedir.
 	for _, code := range []string{
 		`aralık(10000000000)`,
-		`sıfırlar(-2, 2)`,
-		`sıfırlar(-3)`,
-		`birler(0, 4)`,
-		`birim_matris(-1)`,
-		`rastgele_matris(2, -7)`,
-		`sıfırlar(100000, 100000)`,
 	} {
 		_, _, err := runTRWithin(t, 5*time.Second, code)
 		if err == nil {
@@ -60,23 +55,6 @@ func TestYzSorReportsUnreachableServer(t *testing.T) {
 	val, err := runTR(t, fmt.Sprintf(`sonuç yz_sor("merhaba", adres: %q)`, ok.URL))
 	if err != nil || val.Inspect() != "Merhaba!" {
 		t.Fatalf("\"Merhaba!\" bekleniyordu, alınan: %v, %v", val, err)
-	}
-}
-
-func TestMatrixIndexingAndAssignment(t *testing.T) {
-	code := `
-		değişken M = matris([[1, 2], [3, 4]])
-		M[0][1] = 10
-		M[1][0] += 5
-		M[1] = [8, 9]
-		sonuç [M[0][1], M[1][0], M[1][1]]
-	`
-	val, err := runTR(t, code)
-	if err != nil {
-		t.Fatalf("Matris indeksleme/atama hatası: %v", err)
-	}
-	if val.Inspect() != "[10.0, 8.0, 9.0]" {
-		t.Fatalf("[10.0, 8.0, 9.0] bekleniyordu, %s alındı", val.Inspect())
 	}
 }
 

@@ -994,33 +994,11 @@ func (c *derleyici) atamaHedefi(k *derleyiciKapsam, target ast.Expression, kod u
 		}
 
 	case *ast.IndexExpression:
-		var icSol, icIndeks ifadeKodu
-		innerIdx, is2D := t.Left.(*ast.IndexExpression)
-		if is2D {
-			icSol = c.ifade(k, innerIdx.Left)
-			icIndeks = c.ifade(k, innerIdx.Index)
-		}
+		// A[i][j] = değer, A[i] okumasının sonucuna [j] ile atamadır (tensör satırı veriyi
+		// paylaşan bir görünümdür; bkz. IndeksAtanabilir).
 		sol := c.ifade(k, t.Left)
 		indeks := c.ifade(k, t.Index)
 		return func(v *VM, env *Environment, rhs Value) error {
-			// 2 boyutlu Matris hücre ataması kontrolü: A[satır][sütun] = değer
-			if is2D {
-				baseObj, err := icSol(v, env)
-				if err != nil {
-					return err
-				}
-				if mat, isMat := baseObj.(*MatrixVal); isMat {
-					rIdxVal, err := icIndeks(v, env)
-					if err != nil {
-						return err
-					}
-					cIdxVal, err := indeks(v, env)
-					if err != nil {
-						return err
-					}
-					return v.matrisHucresineAta(mat, rIdxVal, cIdxVal, kod, rhs, line)
-				}
-			}
 			left, err := sol(v, env)
 			if err != nil {
 				return err

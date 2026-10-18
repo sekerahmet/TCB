@@ -23,7 +23,6 @@ const (
 	VAL_BUILTIN  ValueType = "YerleşikFonksiyon"
 	VAL_STRUCT   ValueType = "YapıTanımı"
 	VAL_INSTANCE ValueType = "Nesne"
-	VAL_MATRIX   ValueType = "Matris"
 	VAL_TENSOR   ValueType = "Tensör"
 )
 

@@ -4,14 +4,34 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
-
-	"tr_dili/pkg/vm"
 )
 
-// Başarım ölçümleri. Mevcut dil içi matris çarpımı (pkg/vm MatrixVal.MatMul,
-// [][]float64) ile aynı boyutlarda karşılaştırma içerir:
+// Başarım ölçümleri:
 //
 //	go test ./pkg/tensor/ -run '^$' -bench . -benchtime 5x
+
+// Eşdeğerlik: çarpım, float64 ile yapılan düz üçlü döngüyle aynı sonucu vermeli
+// (float32 toleransı).
+func TestMatMulFloat64IleEsdeger(t *testing.T) {
+	rng := rand.New(rand.NewSource(2))
+	n := 70
+	x, y := make([]float64, n*n), make([]float64, n*n)
+	for i := range x {
+		x[i], y[i] = rng.NormFloat64(), rng.NormFloat64()
+	}
+	want := make([]float32, n*n)
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			s := 0.0
+			for k := 0; k < n; k++ {
+				s += x[i*n+k] * y[k*n+j]
+			}
+			want[i*n+j] = float32(s)
+		}
+	}
+	got := MatMul(FromFloat64(x, n, n), FromFloat64(y, n, n)).Data()
+	yakin(t, "float64 eşdeğerlik", got, want, 1e-4)
+}
 
 func benchMatMul(b *testing.B, n int) {
 	rng := rand.New(rand.NewSource(1))
@@ -27,27 +47,6 @@ func benchMatMul(b *testing.B, n int) {
 
 func BenchmarkMatMul512(b *testing.B)  { benchMatMul(b, 512) }
 func BenchmarkMatMul1024(b *testing.B) { benchMatMul(b, 1024) }
-
-func benchVMMatMul(b *testing.B, n int) {
-	rng := rand.New(rand.NewSource(1))
-	x, y := vm.NewMatrix(n, n), vm.NewMatrix(n, n)
-	for i := 0; i < n; i++ {
-		for j := 0; j < n; j++ {
-			x.Data[i][j] = rng.NormFloat64()
-			y.Data[i][j] = rng.NormFloat64()
-		}
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		if _, err := x.MatMul(y); err != nil {
-			b.Fatal(err)
-		}
-	}
-	b.ReportMetric(2*float64(n)*float64(n)*float64(n)*float64(b.N)/b.Elapsed().Seconds()/1e9, "GFLOPS")
-}
-
-func BenchmarkVMMatMul512(b *testing.B)  { benchVMMatMul(b, 512) }
-func BenchmarkVMMatMul1024(b *testing.B) { benchVMMatMul(b, 1024) }
 
 // İleri + geri matris çarpımı (eğitimdeki tipik maliyet: 3 çarpım).
 func BenchmarkMatMulIleriGeri1024(b *testing.B) {
@@ -94,35 +93,4 @@ func BenchmarkCrossEntropyIleriGeri(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		CrossEntropy(x, hedef).Backward()
 	}
-}
-
-// Eşdeğerlik: aynı girdilerde iki çarpım aynı sonucu vermeli (float32 toleransı).
-func TestVMMatMulIleEsdeger(t *testing.T) {
-	rng := rand.New(rand.NewSource(2))
-	n := 70
-	x, y := vm.NewMatrix(n, n), vm.NewMatrix(n, n)
-	for i := 0; i < n; i++ {
-		for j := 0; j < n; j++ {
-			x.Data[i][j] = rng.NormFloat64()
-			y.Data[i][j] = rng.NormFloat64()
-		}
-	}
-	r, err := x.MatMul(y)
-	if err != nil {
-		t.Fatal(err)
-	}
-	flat := func(m *vm.MatrixVal) []float64 {
-		out := make([]float64, 0, n*n)
-		for _, row := range m.Data {
-			out = append(out, row...)
-		}
-		return out
-	}
-	got := MatMul(FromFloat64(flat(x), n, n), FromFloat64(flat(y), n, n)).Data()
-	want := flat(r.(*vm.MatrixVal))
-	w32 := make([]float32, len(want))
-	for i, v := range want {
-		w32[i] = float32(v)
-	}
-	yakin(t, "vm eşdeğerlik", got, w32, 1e-4)
 }

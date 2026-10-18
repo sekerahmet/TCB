@@ -64,7 +64,7 @@ func BenchmarkIkiliToplama(b *testing.B) {
 	y := Yeni(ct.Zeros(64))
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		if _, err := x.Add(y); err != nil {
+		if _, err := x.ikili("+", y); err != nil {
 			b.Fatal(err)
 		}
 	}

@@ -463,10 +463,17 @@ func (d *Debugger) inspectTable(name string, env *vm.Environment) {
 		for i, el := range t.Elements {
 			fmt.Printf("  [%-6d] | %-12s | %s\n", i, el.Type(), el.Inspect())
 		}
-	case *vm.MatrixVal:
-		fmt.Printf("  Matris Boyutu: %d Satır x %d Sütun\n", t.Rows, t.Cols)
-		for i := 0; i < t.Rows; i++ {
-			fmt.Printf("  Satır %-3d | %v\n", i, t.Data[i])
+	case IzlemeDegeri:
+		// Motor değerleri (ör. tensör): tablo verisi satır satır yazılır.
+		cols, rows, err := t.TabloVerisi()
+		if err != nil {
+			fmt.Printf("  %s\n  Değer: %s\n", t.IzlemeEtiketi(), val.Inspect())
+			break
+		}
+		fmt.Printf("  %s\n", t.IzlemeEtiketi())
+		fmt.Printf("  %-9s | %s\n", "SATIR", strings.Join(cols, " | "))
+		for i, r := range rows {
+			fmt.Printf("  %-9d | %s\n", i, strings.Join(r, " | "))
 		}
 	case *vm.DictVal:
 		fmt.Printf("  Toplam Alan Sayısı: %d\n", len(t.Order))
@@ -496,7 +503,7 @@ func (d *Debugger) printDebugHelp() {
 	fmt.Println("  • zıpla 15                : ⏭️ Çalışma sırasını 15. satıra geri/ileri taşı!")
 	fmt.Println("  • izle bakiye < 0         : 👁️ (Watchpoint) Koşul sağlandığında veya değişken değiştiğinde dur!")
 	fmt.Println("  • kesme 20                : 🔴 20. satıra kesme noktası (Breakpoint) ekle/kaldır")
-	fmt.Println("  • tablo liste_adı         : 📋 Liste, Matris veya Sözlüğü tablo görünümünde aç")
+	fmt.Println("  • tablo liste_adı         : 📋 Liste, Tensör veya Sözlüğü tablo görünümünde aç")
 	fmt.Println("  • yığın                   : 📚 Çağrı yığınını (Call Stack) göster")
 	fmt.Println("  • hesapla x * 2           : 💡 Herhangi bir TR ifadesini anında hesapla")
 	fmt.Println("  • çıkış                   : Hata ayıklayıcıyı sonlandır")

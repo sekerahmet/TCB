@@ -8,14 +8,21 @@ import (
 )
 
 // Bu dosya tensör değerinin VM kancalarını (bkz. pkg/vm/kancalar.go) uygular: eşitlik,
-// sağ işlenen olarak işleçler, '**', karşılaştırmalar, tekli eksi ve indeksleme.
+// işleçler (@ + - * / ** ve karşılaştırmalar), tekli eksi, indeksleme, indeksle atama ve
+// dış biçimlere (JSON) dönüşüm.
 
 var (
 	_ vm.Esitlik          = (*Deger)(nil)
 	_ vm.IslecKancasi     = (*Deger)(nil)
 	_ vm.Olumsuzlanabilir = (*Deger)(nil)
 	_ vm.Indekslenebilir  = (*Deger)(nil)
+	_ vm.IndeksAtanabilir = (*Deger)(nil)
+	_ vm.DuzDegerli       = (*Deger)(nil)
 )
+
+// DuzDeger tensörü JSON gibi dış biçimlere yazmak için .değer'le aynı iç içe Ondalık
+// listesine (0 boyutluda Ondalık'a) çevirir.
+func (d *Deger) DuzDeger() vm.Value { return d.degerListesi() }
 
 // Esit iki tensörün şekli ve tüm elemanları aynıysa doğrudur ('==' ve '!='). 0 boyutlu
 // tensör, değeri (.değer ile aynı biçimde okunan) sayıya eşittir: m[1][0] == 7.0. Diğer
@@ -61,13 +68,20 @@ func (d *Deger) Olumsuz() (vm.Value, error) {
 // desteklenenIslecler hata mesajlarında gösterilir.
 const desteklenenIslecler = "+ - * / @ ** < > <= >= == !="
 
-// Islec MatrixOperator'ın karşılamadığı işleçleri uygular: sağ işlenenken '-', '/', '@';
-// sol işlenenken '**' (sayı üs); her iki yönde '<', '>', '<=', '>=' (0/1 maskesi).
+// Islec tensörün ikili işleçlerini uygular: '+', '-', '*', '/' (eleman bazlı, yayınlamalı;
+// diğer işlenen sayı, liste ya da tensör) ve '@' (matris çarpımı) her iki yönde; '**' sol
+// işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (0/1 maskesi).
 func (d *Deger) Islec(op string, diger vm.Value, sagda bool) (vm.Value, bool, error) {
 	switch op {
+	case "+", "*":
+		// Değişmeli: yön sonucu değiştirmez.
+		v, err := d.ikili(op, diger)
+		return v, true, err
+
 	case "-", "/":
 		if !sagda {
-			return nil, false, nil // sol işlenende MatrixOperator (Sub/Div) çalışır
+			v, err := d.ikili(op, diger)
+			return v, true, err
 		}
 		if s, ok := vm.ToFloat(diger); ok {
 			f := float32(s)
@@ -104,15 +118,19 @@ func (d *Deger) Islec(op string, diger vm.Value, sagda bool) (vm.Value, bool, er
 		return Yeni(r), true, nil
 
 	case "@":
-		if !sagda {
-			return nil, false, nil
-		}
-		o, err := tensoreCevir("tensör matris çarpımı", diger)
+		o, err := tensoreCevir("matris çarpımı (@)", diger)
 		if err != nil {
 			return nil, true, err
 		}
-		v, err := Yeni(o).MatMul(d)
-		return v, true, err
+		a, b := d.t, o
+		if sagda {
+			a, b = o, d.t
+		}
+		r, err := matCarp(a, b)
+		if err != nil {
+			return nil, true, err
+		}
+		return Yeni(r), true, nil
 
 	case "**":
 		s, ok := vm.ToFloat(diger)
@@ -222,4 +240,55 @@ func (d *Deger) Indeks(idx vm.Value) (vm.Value, error) {
 		return nil, err
 	}
 	return Yeni(r), nil
+}
+
+// IndekseAta t[i] = değer ve t[baş..son] = değer atamasıdır (t[i][j] = değer, t[i]
+// görünümüne atamadır). Değer bir sayıysa hedefin tüm elemanlarına yazılır; liste ya da
+// tensörse şekli hedefin şekliyle aynı olmalıdır. Veri yerinde değişir: bu tensörü kullanmış,
+// henüz geri yayılmamış bir hesap çizgesi varsa geri yayılım hata verir. Türev izlenen bir
+// tensöre yalnızca türevsiz { ... } içinde atanabilir.
+func (d *Deger) IndekseAta(idx, deger vm.Value) error {
+	if d.t.RequiresGrad() && ct.GradEnabled() {
+		return fmt.Errorf("türev izlenen tensöre indeksle atama yapılamaz; değeri türevsiz { ... } içinde değiştirin")
+	}
+	var hedef *ct.Tensor
+	var err error
+	ct.NoGrad(func() {
+		var v vm.Value
+		if v, err = d.Indeks(idx); err == nil {
+			hedef = v.(*Deger).t
+		}
+	})
+	if err != nil {
+		return err
+	}
+	sh := hedef.Shape()
+	var veri []float32
+	if f, ok := vm.ToFloat(deger); ok {
+		veri = []float32{float32(f)}
+	} else {
+		kaynak, err := tensoreCevir("tensör ataması", deger)
+		if err != nil {
+			return err
+		}
+		if ks := kaynak.Shape(); sekilMetni(ks) != sekilMetni(sh) {
+			return fmt.Errorf("tensör ataması: %s şeklindeki yere %s şeklinde veri atanamaz (şekiller aynı olmalı)", sekilMetni(sh), sekilMetni(ks))
+		}
+		veri = kaynak.Data()
+	}
+	_, err = guvenli(func() bool {
+		konum := make([]int, len(sh))
+		for k := 0; k < hedef.Numel(); k++ {
+			hedef.Set(veri[min(k, len(veri)-1)], konum...)
+			// Satır öncelikli sıradaki bir sonraki konum.
+			for e := len(sh) - 1; e >= 0; e-- {
+				if konum[e]++; konum[e] < sh[e] {
+					break
+				}
+				konum[e] = 0
+			}
+		}
+		return true
+	})
+	return err
 }
