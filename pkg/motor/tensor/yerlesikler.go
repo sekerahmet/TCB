@@ -71,7 +71,7 @@ func Kaydet(v *vm.VM) {
 	})
 	indirgeme(v, []string{"min", "en_küçük"}, "min", func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
 		if tum {
-			return t.Neg().Reshape(-1).Max(0, false).Neg()
+			return enKucukTum(t)
 		}
 		return t.Neg().Max(e, false).Neg()
 	})
@@ -89,6 +89,26 @@ func Kaydet(v *vm.VM) {
 	// --- İyileştiriciler ---
 	sar(v, []string{"AdamW"}, yeniYerlesik("AdamW", adamWKur))
 	sar(v, []string{"SGD"}, yeniYerlesik("SGD", sgdKur))
+}
+
+// enKucukTum tüm elemanların en küçüğünü 0 boyutlu tensör olarak verir. Çekirdekte Min
+// işlemi yoktur; türev gerekiyorsa -maks(-x) ile (gradyan doğru elemana gider) hesaplanır.
+// Türev gerekmiyorsa ara tensör ayırmadan konakta tek geçişle bulunur.
+func enKucukTum(t *ct.Tensor) *ct.Tensor {
+	if t.RequiresGrad() && ct.GradEnabled() {
+		return t.Neg().Reshape(-1).Max(0, false).Neg()
+	}
+	veri := t.Data()
+	m := veri[0]
+	for _, x := range veri[1:] {
+		if x < m || x != x { // NaN yayılır (maks ile tutarlı)
+			m = x
+			if x != x {
+				break
+			}
+		}
+	}
+	return ct.Scalar(m).To(t.Device())
 }
 
 // sar adların hepsine aynı yeni yerleşiği bağlar. Eski yerleşik ilk addan okunur

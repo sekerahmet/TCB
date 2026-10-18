@@ -75,9 +75,9 @@ func (d *Deger) Inspect() string {
 	if t.RequiresGrad() {
 		ek = append(ek, "türev izleniyor")
 	}
-	veri := t.Data()
 	if len(sh) == 0 {
-		s := sayiMetni(veri[0])
+		x := t.Item()
+		s := sayiMetni(x, bilimselMi([]float32{x}))
 		if len(ek) > 0 {
 			s += ", " + strings.Join(ek, ", ")
 		}
@@ -87,15 +87,13 @@ func (d *Deger) Inspect() string {
 	if len(ek) > 0 {
 		baslik += " (" + strings.Join(ek, ", ") + ")"
 	}
-	kisalt := len(veri) > yazdirmaSiniri
-	// Tüm hücreler aynı genişlikte yazılır.
-	genislik := 0
-	metinler := make([]string, len(veri))
-	for i, x := range veri {
-		metinler[i] = sayiMetni(x)
-		if n := len(metinler[i]); n > genislik {
-			genislik = n
-		}
+	kisalt := t.Numel() > yazdirmaSiniri
+	// Gösterilecek hücreler: kısaltılmamış tensörde hepsi (tek kopya), kısaltılmışta
+	// yalnızca eksen başı/sonu hücreleri tek tek okunur; tüm veri kopyalanıp
+	// biçimlenmez. Hücreler gezinme sırasıyla toplanır, sonra aynı sırayla yazılır.
+	var veri []float32
+	if !kisalt {
+		veri = t.Data()
 	}
 	adimlar := make([]int, len(sh))
 	s := 1
@@ -103,10 +101,38 @@ func (d *Deger) Inspect() string {
 		adimlar[i] = s
 		s *= sh[i]
 	}
+	idx := make([]int, len(sh))
+	var hucreler []float32
+	var topla func(eksen, ofset int)
+	topla = func(eksen, ofset int) {
+		for _, i := range gosterilecek(sh[eksen], kisalt) {
+			if i < 0 {
+				continue
+			}
+			idx[eksen] = i
+			if eksen < len(sh)-1 {
+				topla(eksen+1, ofset+i*adimlar[eksen])
+			} else if kisalt {
+				hucreler = append(hucreler, t.At(idx...))
+			} else {
+				hucreler = append(hucreler, veri[ofset+i])
+			}
+		}
+	}
+	topla(0, 0)
+	// Tüm hücreler aynı biçimde ve genişlikte yazılır.
+	bilimsel := bilimselMi(hucreler)
+	metinler := make([]string, len(hucreler))
+	genislik := 0
+	for i, x := range hucreler {
+		metinler[i] = sayiMetni(x, bilimsel)
+		genislik = max(genislik, len([]rune(metinler[i])))
+	}
+	sira := 0
 	var sb strings.Builder
 	sb.WriteString(baslik + " ")
-	var yaz func(eksen, ofset int, girinti string)
-	yaz = func(eksen, ofset int, girinti string) {
+	var yaz func(eksen int, girinti string)
+	yaz = func(eksen int, girinti string) {
 		n := sh[eksen]
 		indeksler := gosterilecek(n, kisalt)
 		if eksen == len(sh)-1 {
@@ -119,8 +145,12 @@ func (d *Deger) Inspect() string {
 					sb.WriteString("…")
 					continue
 				}
-				m := metinler[ofset+i*adimlar[eksen]]
-				sb.WriteString(strings.Repeat(" ", genislik-len(m)) + m)
+				m := metinler[sira]
+				sira++
+				for p := len([]rune(m)); p < genislik; p++ {
+					sb.WriteByte(' ')
+				}
+				sb.WriteString(m)
 			}
 			sb.WriteString("]")
 			return
@@ -136,12 +166,28 @@ func (d *Deger) Inspect() string {
 				sb.WriteString("…")
 				continue
 			}
-			yaz(eksen+1, ofset+i*adimlar[eksen], ic)
+			yaz(eksen+1, ic)
 		}
 		sb.WriteString("\n" + girinti + "]")
 	}
-	yaz(0, 0, "")
+	yaz(0, "")
 	return sb.String()
+}
+
+// bilimselMi sabit noktalı (%.4f) gösterimin bilgi kaybettireceği durumda bilimsel
+// gösterime geçilip geçilmeyeceğini söyler: sıfır olmayan bir değer 0.0001'den küçükse
+// (0.0000 görünürdü) ya da bir değer 1e8 ve üzerindeyse.
+func bilimselMi(x []float32) bool {
+	for _, v := range x {
+		a := math.Abs(float64(v))
+		if math.IsNaN(a) || math.IsInf(a, 0) {
+			continue
+		}
+		if (a != 0 && a < 1e-4) || a >= 1e8 {
+			return true
+		}
+	}
+	return false
 }
 
 // gosterilecek bir eksende yazılacak indeksleri verir; -1 "…" yerini gösterir.
@@ -164,17 +210,22 @@ func gosterilecek(n int, kisalt bool) []int {
 	return out
 }
 
-func sayiMetni(x float32) string {
+// sayiMetni bir hücreyi yazar. Sayı olmayan değerler Türkçe ve tutarlıdır:
+// "Tanımsız" (NaN), "Sonsuz", "-Sonsuz".
+func sayiMetni(x float32, bilimsel bool) string {
 	f := float64(x)
 	switch {
 	case math.IsNaN(f):
-		return "NaN"
+		return "Tanımsız"
 	case math.IsInf(f, 1):
-		return "+Sonsuz"
+		return "Sonsuz"
 	case math.IsInf(f, -1):
 		return "-Sonsuz"
 	}
-	return fmt.Sprintf("%.4f", f)
+	if bilimsel {
+		return strconv.FormatFloat(f, 'e', 4, 64)
+	}
+	return strconv.FormatFloat(f, 'f', 4, 64)
 }
 
 // ----------------------------------------------------------------------------
