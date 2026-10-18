@@ -12,7 +12,7 @@ yazdır(üstel([0, [0]]), log(1), tip(üstel(matris([[0, 1]]))), tip(log_softmax
 yazdır(tip(üstel(tensör([0]))), tip(log_softmax(tensör([1.0, 2.0]))))
 değişken l = log_softmax([1, 2, 3])
 yazdır(yuvarla(üstel(l[0]) + üstel(l[1]) + üstel(l[2]), 6))`)
-	want := "Liste Liste Liste Ondalık Liste\n[1.0, [1.0]] 0.0 Matris Matris\nTensör Tensör\n1.0\n"
+	want := "Liste Liste Liste Ondalık Liste\n[1.0, [1.0]] 0.0 Tensör Tensör\nTensör Tensör\n1.0\n"
 	if out != want {
 		t.Fatalf("dönüş tipleri:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -20,11 +20,12 @@ yazdır(yuvarla(üstel(l[0]) + üstel(l[1]) + üstel(l[2]), 6))`)
 
 func TestMesajTutarliligi(t *testing.T) {
 	durumlar := []struct{ kod, beklenen string }{
-		{"AdamW([tensör(3.0)])", "1. parametre çok boyutlu bir tensör olmalıdır, tek sayılık türev değeri (tensör(3.0)) verildi; iyileştirici parametresi için tensör([3.0], türev_izle: doğru)"},
-		{"gömme(tensör(3.0), [0])", "tablo bir tensör olmalıdır, tek sayılık türev değeri (tensör(3.0)) verildi"},
-		{"tensör(3.0) + tensör([1.0])", "tek sayılık türev değeri (tensör(3.0)) çok boyutlu tensörle işleme giremez"},
-		{"üstel(tensör(3.0))", "üstel: tek sayılık türev değeri (tensör(3.0)) desteklenmez"},
-		{"toplam([tensör(1.0), tensör([2.0])])", "tek sayılık türev değeri (tensör(3.0)) ile çok boyutlu tensör karışık"},
+		{"AdamW([tensör(3.0)])", "1. parametre ([]) türev izlemiyor; tensör(..., türev_izle: doğru) ile oluşturun"},
+		{"AdamW([3.0])", "1. parametre bir tensör olmalıdır, Ondalık verildi"},
+		{"gömme(tensör(3.0), [0])", "tablo 2 boyutlu (satır sayısı × boyut) olmalıdır, [] verildi"},
+		{"gömme(3.0, [0])", "tablo bir tensör olmalıdır, Ondalık verildi"},
+		{"geri_yayılım(3.0)", "geri_yayılım() bir tensör bekler, Ondalık verildi"},
+		{"geri_yayılım(tensör(3.0) * 2)", "kayıp türev izlenen hiçbir tensöre bağlı değil"},
 		{"çapraz_entropi(sıfırlar([3, 4]), [[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]])", "hedef sınıf indeksleri olmalı (ör. [2, 0, 1]); one-hot verdiniz gibi görünüyor"},
 		{"log_softmax([1, 2], eksen: 0)", "log_softmax: eksen yalnızca tensörlerde kullanılır"},
 		{"log_softmax([[1, 2]])", "log_softmax: liste düz sayı listesi olmalıdır"},

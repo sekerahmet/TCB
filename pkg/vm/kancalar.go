@@ -7,8 +7,8 @@ import (
 )
 
 // Bu dosyadaki arayüzler, VM dışında tanımlanan değerlerin (ör. pkg/motor/tensor'daki
-// tensör) dilin işleçlerine ve indekslemesine katılabilmesi için kancalardır. Bir değer
-// arayüzü uygulamıyorsa VM'nin eski davranışı geçerlidir.
+// tensör) dilin işleçlerine, indekslemesine ve dış biçimlere dönüşümüne katılabilmesi için
+// kancalardır. Bir değer arayüzü uygulamıyorsa VM'nin genel davranışı geçerlidir.
 
 // Esitlik, '==' ve '!=' için değerin kendi eşitlik kuralını sağlar. Uygulamayan değerler
 // tip ve görünen metinle karşılaştırılır.
@@ -16,11 +16,12 @@ type Esitlik interface {
 	Esit(diger Value) bool
 }
 
-// IslecKancasi, MatrixOperator'ın karşılamadığı ikili işleçleri sağlar: sağ işlenenken
-// '-', '/', '**', '%' ile '<', '>', '<=', '>=' gibi işleçler. op işlecin metnidir ("-",
-// "**", "<" ...). sagda=false ise değer sol işlenendir (değer op diger), sagda=true ise
-// sağ işlenendir (diger op değer). İşleç desteklenmiyorsa ok=false döner ve VM genel
-// hatayı üretir; değer daha açıklayıcı bir hata vermek isterse ok=true ile hata döndürür.
+// IslecKancasi ikili işleçleri ('+', '-', '*', '/', '@', '**', '%', '<', '>', '<=', '>='
+// ...) sağlar. op işlecin metnidir ("-", "**", "<" ...). sagda=false ise değer sol
+// işlenendir (değer op diger), sagda=true ise sağ işlenendir (diger op değer); önce sol
+// işlenenin kancası denenir. İşleç desteklenmiyorsa ok=false döner ve VM genel hatayı
+// üretir; değer daha açıklayıcı bir hata vermek isterse ok=true ile hata döndürür. '==' ve
+// '!=' bu kancadan geçmez (bkz. Esitlik).
 type IslecKancasi interface {
 	Islec(op string, diger Value, sagda bool) (sonuc Value, ok bool, err error)
 }
@@ -36,10 +37,24 @@ type Indekslenebilir interface {
 	Indeks(idx Value) (Value, error)
 }
 
+// IndeksAtanabilir 'x[i] = değer' atamasını sağlar. t[i][j] = değer ataması, t[i]
+// okumasının döndürdüğü değere (ör. veriyi paylaşan bir görünüm) [j] ile atamadır. Bileşik
+// atamada ('x[i] += 1') VM önce Indeks ile mevcut değeri okur, işlemi yapar ve sonucu
+// IndekseAta ile yazar.
+type IndeksAtanabilir interface {
+	IndekseAta(idx Value, deger Value) error
+}
+
+// DuzDegerli, değerin dış biçimlere (JSON, veritabanı, Go değerleri) yazılırken yerine
+// geçen düz TR değerini verir (ör. tensör → iç içe Ondalık listesi).
+type DuzDegerli interface {
+	DuzDeger() Value
+}
+
 // SatirliHata satır bilgisi eklenmiş bir çalışma zamanı hatasıdır. Yerleşiklerin ve dış
-// değerlerin (tensör, matris) hataları bununla sarılır; zaten satır bilgisi taşıyan bir
-// hata (ör. yerleşiğin geri çağırdığı fonksiyonun hatası) ikinci kez sarılmaz, böylece
-// mesaj ve kod çerçevesi asıl hatanın satırını gösterir.
+// değerlerin (ör. tensör) hataları bununla sarılır; zaten satır bilgisi taşıyan bir hata
+// (ör. yerleşiğin geri çağırdığı fonksiyonun hatası) ikinci kez sarılmaz, böylece mesaj ve
+// kod çerçevesi asıl hatanın satırını gösterir.
 type SatirliHata struct {
 	Satir int
 	Hata  error

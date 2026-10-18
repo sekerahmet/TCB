@@ -20,9 +20,9 @@ test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     eşit_mi([1.0, 1.0, 1.0], birler([3]).değer)
     eşit_mi([4, 5], rastgele_normal([4, 5]).şekil)
     eşit_mi(rastgele_normal([3], tohum: 7).değer, rastgele_normal([3], tohum: 7).değer)
-    // Eski biçimler değişmez: iki tam sayı matris, tek sayı eski tek sayılık tensör verir.
-    eşit_mi("Matris", tip(sıfırlar(2, 3)))
-    eşit_mi("Matris", tip(birler(2, 2)))
+    // Eski biçimler: iki tam sayı 2 boyutlu tensör (matris), tek sayı 0 boyutlu tensör verir.
+    eşit_mi("Tensör", tip(sıfırlar(2, 3)))
+    eşit_mi("Tensör", tip(birler(2, 2)))
     değişken x = tensör(3.0, türev_izle: doğru)
     eşit_mi(3.0, x.değer)
 }
@@ -166,7 +166,7 @@ test "15.10 tensör_kaydet ve tensör_yükle hataları" {
     doğrula(hata_metni(() => tensör_yükle("bu_dosya_yok_12345.trt")).içerir("dosya bulunamadı"))
     doğrula(hata_metni(() => tensör_yükle(".")).içerir("bir klasör, tensör dosyası değil"))
     doğrula(hata_metni(() => tensör_kaydet("x.trt", [1])).içerir("adları tensör olan bir sözlük olmalıdır"))
-    doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("çok boyutlu bir tensör olmalıdır"))
+    doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("değeri bir tensör olmalıdır"))
 }
 
 test "15.8 hatalar şekli gösterir ve yakalanabilir" {
@@ -177,5 +177,5 @@ test "15.8 hatalar şekli gösterir ve yakalanabilir" {
     doğrula(hata_metni(() => tensör([[1, 2], [3]])).içerir("iç içe liste düzensiz"))
     doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [5])).içerir("tablonun dışında"))
     doğrula(hata_metni(() => çapraz_entropi(sıfırlar([2, 3]), [[0, 1, 0], [1, 0, 0]])).içerir("one-hot verdiniz gibi görünüyor"))
-    doğrula(hata_metni(() => AdamW([tensör(3.0)])).içerir("tek sayılık türev değeri (tensör(3.0)) verildi"))
+    doğrula(hata_metni(() => AdamW([tensör(3.0)])).içerir("1. parametre ([]) türev izlemiyor"))
 }

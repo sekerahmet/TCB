@@ -26,7 +26,7 @@ yazdır(tip((i * 2).değer[0][0]), tip(tensör(i).değer[0][0]))`)
 		t.Fatalf("maks_indeks:\n%q\nbeklenen:\n%q", out, want)
 	}
 	for _, d := range []struct{ kod, beklenen string }{
-		{"maks_indeks([1, 2])", "maks_indeks: çok boyutlu bir tensör bekler, Liste verildi"},
+		{"maks_indeks([1, 2])", "maks_indeks: bir tensör bekler, Liste verildi"},
 		{"maks_indeks(tensör([1, 2]), 0)", "maks_indeks(x, eksen: 0): eksen adlı verilir"},
 		{"maks_indeks(tensör([1, 2]), eksen: 1)", "eksen 1, [2] şeklindeki 1 boyutlu tensör için geçersiz"},
 		{"maks_indeks(sıfırlar([0]))", "boş"},
@@ -120,8 +120,7 @@ yazdır(z["sapma"].gradyan.değer)`)
 		}
 	}
 	for _, d := range []struct{ kod, beklenen string }{
-		{`tensör_kaydet("` + yol + `", {"a": 1})`, "\"a\" değeri çok boyutlu bir tensör olmalıdır, Tam verildi"},
-		{`tensör_kaydet("` + yol + `", {"a": tensör(3.0)})`, "tek sayılık türev değeri (tensör(3.0)) verildi"},
+		{`tensör_kaydet("` + yol + `", {"a": 1})`, "\"a\" değeri bir tensör olmalıdır, Tam verildi"},
 		{`tensör_kaydet("` + yol + `", {1: tensör([1])})`, "sözlük anahtarları metin olmalıdır"},
 		{`tensör_kaydet("` + yol + `", [tensör([1])])`, "adları tensör olan bir sözlük olmalıdır"},
 		{`tensör_kaydet("", {})`, "dosya yolu boş"},

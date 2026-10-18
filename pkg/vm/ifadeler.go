@@ -31,14 +31,6 @@ func uretecOgeleri(iterVal Value, line int) ([]Value, error) {
 		}
 	case *ListVal:
 		items = it.Elements
-	case *MatrixVal:
-		for i := 0; i < it.Rows; i++ {
-			row := make([]Value, it.Cols)
-			for j := 0; j < it.Cols; j++ {
-				row[j] = &FloatVal{Val: it.Data[i][j]}
-			}
-			items = append(items, &ListVal{Elements: row})
-		}
 	case *DictVal:
 		for _, k := range it.Order {
 			items = append(items, it.KeyValue(k))
@@ -88,24 +80,6 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 			return &ListVal{Elements: sliced}, nil
 		}
 		return nil, fmt.Errorf("Satır %d: Liste indeksi Tam sayı olmalıdır", line)
-
-	case *MatrixVal:
-		iv, ok := idx.(*IntVal)
-		if !ok {
-			return nil, fmt.Errorf("Satır %d: Matris indeksi Tam sayı olmalıdır", line)
-		}
-		pos := int(iv.Val)
-		if pos < 0 {
-			pos = container.Rows + pos
-		}
-		if pos < 0 || pos >= container.Rows {
-			return NULL, nil
-		}
-		rowElems := make([]Value, container.Cols)
-		for j := 0; j < container.Cols; j++ {
-			rowElems[j] = &FloatVal{Val: container.Data[pos][j]}
-		}
-		return &ListVal{Elements: rowElems}, nil
 
 	case *DictVal:
 		val, exists := container.GetValue(idx)
@@ -189,7 +163,7 @@ func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression) (Value, error) {
 		return nil, fmt.Errorf("Satır %d: 'yok' (null) değerin %q özelliğine erişilemez ('?.' güvenli erişim kullanabilirsiniz)", e.Line(), e.Property)
 	}
 
-	// Matris, Tensör, SinirAğı, WebSunucu, GörselArayüz ve Veritabanı özellikleri
+	// Tensör, SinirAğı, WebSunucu, GörselArayüz ve Veritabanı özellikleri
 	if pg, ok := obj.(PropertyGetter); ok {
 		val, err := pg.GetProperty(e.Property)
 		return val, satirEki(e.Line(), err)

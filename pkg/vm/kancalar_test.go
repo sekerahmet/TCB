@@ -2,6 +2,7 @@ package vm
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -170,16 +171,46 @@ func TestOndalikYazdirmaVeBilimselYazim(t *testing.T) {
 	}
 }
 
-// Matris işleç ve özellik hataları satır bilgisi taşır.
-func TestMatrisHatalariSatirli(t *testing.T) {
-	m := NewMatrix(2, 2)
+// atanabilirDeger indeksli atama ve dış biçime dönüşüm kancalarını sınar: a[i] = d, i
+// konumuna d yazar; a[i] okuması yazılmış değeri (yoksa 0) verir.
+type atanabilirDeger struct{ hucre map[int64]Value }
+
+func (a *atanabilirDeger) Type() ValueType { return "Atanabilir" }
+func (a *atanabilirDeger) Inspect() string { return "atanabilir" }
+func (a *atanabilirDeger) IsTruthy() bool  { return true }
+func (a *atanabilirDeger) Indeks(i Value) (Value, error) {
+	if v, ok := a.hucre[i.(*IntVal).Val]; ok {
+		return v, nil
+	}
+	return NewInt(0), nil
+}
+func (a *atanabilirDeger) IndekseAta(i, d Value) error {
+	n := i.(*IntVal).Val
+	if n < 0 {
+		return errors.New("negatif indeks")
+	}
+	a.hucre[n] = d
+	return nil
+}
+func (a *atanabilirDeger) DuzDeger() Value {
+	return &ListVal{Elements: []Value{a.hucre[0], a.hucre[1]}}
+}
+
+func TestIndeksAtamaVeDuzDegerKancalari(t *testing.T) {
+	a := &atanabilirDeger{hucre: map[int64]Value{}}
 	vmx := New()
-	vmx.GlobalEnv.Define("m", m, false)
-	vmx.GlobalEnv.Define("k", NewMatrix(3, 3), false)
-	for kod, onek := range map[string]string{"m @ k": "Satır 1: Matris çarpımı", "m.yok_boyle": "Satır 1: Matris üzerinde"} {
-		_, err := vmx.EvalExpression(ifadeAyristir(t, kod), vmx.GlobalEnv)
-		if err == nil || !strings.HasPrefix(err.Error(), onek) {
-			t.Errorf("%s: %q önekli hata bekleniyordu: %v", kod, onek, err)
-		}
+	vmx.GlobalEnv.Define("a", a, false)
+	vmx.GlobalEnv.Define("l", &ListVal{Elements: []Value{a}}, false)
+	p := parser.New(lexer.New("a[0] = 5\na[1] += 2\na[1] *= 4\nl[0][0] -= 1\na[-1] = 3"))
+	prog := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		t.Fatal(p.Errors())
+	}
+	_, err := vmx.Run(prog)
+	if err == nil || err.Error() != "Satır 5: negatif indeks" {
+		t.Fatalf("kanca hatası satır önekli olmalı: %v", err)
+	}
+	if got := TRToGoValue(a); fmt.Sprint(got) != "[4 8]" {
+		t.Fatalf("atamalar ya da düz değer: %v", got)
 	}
 }

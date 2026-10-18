@@ -64,8 +64,9 @@ func TRToGoValue(val Value) interface{} {
 			res[v.DisplayKey(k)] = TRToGoValue(el)
 		}
 		return res
-	case *MatrixVal:
-		return v.Data
+	case DuzDegerli:
+		// Dış değerler (ör. tensör → iç içe sayı listesi)
+		return TRToGoValue(v.DuzDeger())
 	default:
 		return v.Inspect()
 	}

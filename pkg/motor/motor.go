@@ -28,8 +28,9 @@ func init() {
 	vm.MotorEkle(veribicim.Kaydet)
 	vm.MotorEkle(web.Kaydet)
 	vm.MotorEkle(veritabani.Kaydet)
-	// Tensör motoru eski yerleşikleri (toplam, relu, sıfırlar, tensör...) sarar; bu yüzden
-	// çekirdek yerleşiklerden ve yapay zekâ motorundan SONRA kaydedilmelidir.
+	// Tensör motoru (tensör, matris, otomatik türev, sinir ağı) çekirdek ve yapay zekâ
+	// yerleşiklerini (toplam, ortalama, min, maks, karekök) sarar; bu yüzden onlardan SONRA
+	// kaydedilmelidir.
 	vm.MotorEkle(tensor.Kaydet)
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
 	vm.MotorEkle(parcalayici.Kaydet)

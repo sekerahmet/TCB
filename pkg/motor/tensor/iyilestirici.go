@@ -5,7 +5,7 @@ import (
 	"math"
 	"strconv"
 
-	"tr_dili/pkg/motor/yz"
+	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
@@ -83,11 +83,7 @@ func parametreler(fn string, v vm.Value) ([]*ct.Tensor, error) {
 	for i, el := range liste {
 		d, ok := el.(*Deger)
 		if !ok {
-			ipucu := ""
-			if _, eski := el.(*yz.TensorVal); eski {
-				ipucu = "; iyileştirici parametresi için tensör([3.0], türev_izle: doğru) gibi çok boyutlu tensör kullanın"
-			}
-			return nil, fmt.Errorf("%s: %d. parametre çok boyutlu bir tensör olmalıdır, %s verildi%s", fn, i+1, tipAdi(el), ipucu)
+			return nil, fmt.Errorf("%s: %d. parametre bir tensör olmalıdır, %s verildi", fn, i+1, tipAdi(el))
 		}
 		t := d.t
 		if !t.RequiresGrad() {
@@ -106,17 +102,17 @@ func parametreler(fn string, v vm.Value) ([]*ct.Tensor, error) {
 }
 
 // adliOran adlı sayısal bir argümanı okur.
-func adliOran(fn string, named map[string]vm.Value, varsayilan float64, enAz float64, adlar ...string) (float32, error) {
-	v, ok := adliAl(named, adlar...)
+func adliOran(fn string, named map[string]vm.Value, varsayilan float64, enAz float64, ad baglama.Ad) (float32, error) {
+	v, ok := baglama.AdliAl(named, ad)
 	if !ok {
 		return float32(varsayilan), nil
 	}
 	f, ok := vm.ToFloat(v)
 	if !ok {
-		return 0, fmt.Errorf("%s: %s sayı olmalıdır, %s verildi", fn, adlar[0], tipAdi(v))
+		return 0, fmt.Errorf("%s: %s sayı olmalıdır, %s verildi", fn, ad.TR, tipAdi(v))
 	}
 	if f < enAz {
-		return 0, fmt.Errorf("%s: %s en az %g olmalıdır, %g verildi", fn, adlar[0], enAz, f)
+		return 0, fmt.Errorf("%s: %s en az %g olmalıdır, %g verildi", fn, ad.TR, enAz, f)
 	}
 	return float32(f), nil
 }
@@ -128,7 +124,7 @@ func gradyanKirp(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(parametreler, en_fazla: 1.0) 1 konumlu parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := adliDenetle(fn+"()", named, "en_fazla"); err != nil {
+	if err := baglama.AdliDenetle(fn+"()", named, adEnFazla); err != nil {
 		return nil, err
 	}
 	params, err := parametreler(fn, args[0])
@@ -136,7 +132,7 @@ func gradyanKirp(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 		return nil, err
 	}
 	enFazla := 1.0
-	if v, ok := named["en_fazla"]; ok {
+	if v, ok := baglama.AdliAl(named, adEnFazla); ok {
 		f, ok := vm.ToFloat(v)
 		if !ok || !(f > 0) || math.IsInf(f, 0) {
 			return nil, fmt.Errorf("%s: en_fazla pozitif bir sayı olmalıdır, %s verildi", fn, v.Inspect())
@@ -160,33 +156,33 @@ func iyilestiriciParametreleri(fn string, args []vm.Value) ([]*ct.Tensor, error)
 
 func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	const fn = "AdamW"
-	if err := adliDenetle(fn, named, "öğrenme_oranı", "ogrenme_orani", "ağırlık_çürümesi", "agirlik_curumesi", "beta1", "beta2", "epsilon"); err != nil {
+	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon); err != nil {
 		return nil, err
 	}
 	params, err := iyilestiriciParametreleri(fn, args)
 	if err != nil {
 		return nil, err
 	}
-	lr, err := adliOran(fn, named, 0.001, 0, "öğrenme_oranı", "ogrenme_orani")
+	lr, err := adliOran(fn, named, 0.001, 0, adOgrenmeOrani)
 	if err != nil {
 		return nil, err
 	}
-	wd, err := adliOran(fn, named, 0.01, 0, "ağırlık_çürümesi", "agirlik_curumesi")
+	wd, err := adliOran(fn, named, 0.01, 0, adAgirlikCurumesi)
 	if err != nil {
 		return nil, err
 	}
-	b1, err := adliOran(fn, named, 0.9, 0, "beta1")
+	b1, err := adliOran(fn, named, 0.9, 0, adBeta1)
 	if err != nil {
 		return nil, err
 	}
-	b2, err := adliOran(fn, named, 0.999, 0, "beta2")
+	b2, err := adliOran(fn, named, 0.999, 0, adBeta2)
 	if err != nil {
 		return nil, err
 	}
 	if b1 >= 1 || b2 >= 1 {
 		return nil, fmt.Errorf("%s: beta1 ve beta2 [0, 1) aralığında olmalıdır", fn)
 	}
-	eps, err := adliOran(fn, named, 1e-8, 0, "epsilon")
+	eps, err := adliOran(fn, named, 1e-8, 0, adEpsilon)
 	if err != nil {
 		return nil, err
 	}
@@ -200,22 +196,22 @@ func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 
 func sgdKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	const fn = "SGD"
-	if err := adliDenetle(fn, named, "öğrenme_oranı", "ogrenme_orani", "momentum", "ağırlık_çürümesi", "agirlik_curumesi"); err != nil {
+	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi); err != nil {
 		return nil, err
 	}
 	params, err := iyilestiriciParametreleri(fn, args)
 	if err != nil {
 		return nil, err
 	}
-	lr, err := adliOran(fn, named, 0.01, 0, "öğrenme_oranı", "ogrenme_orani")
+	lr, err := adliOran(fn, named, 0.01, 0, adOgrenmeOrani)
 	if err != nil {
 		return nil, err
 	}
-	mom, err := adliOran(fn, named, 0, 0, "momentum")
+	mom, err := adliOran(fn, named, 0, 0, adMomentum)
 	if err != nil {
 		return nil, err
 	}
-	wd, err := adliOran(fn, named, 0, 0, "ağırlık_çürümesi", "agirlik_curumesi")
+	wd, err := adliOran(fn, named, 0, 0, adAgirlikCurumesi)
 	if err != nil {
 		return nil, err
 	}

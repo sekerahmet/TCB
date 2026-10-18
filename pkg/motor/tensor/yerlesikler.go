@@ -7,40 +7,37 @@ import (
 	"sync"
 	"time"
 
-	"tr_dili/pkg/motor/yz"
+	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/vm"
 )
 
-// Kaydet tensör yerleşiklerini VM'ye kaydeder. Aynı adlı eski yerleşikler sarılır:
-// argüman tensörse tensör yolu, değilse eski yerleşik çalışır.
+// Kaydet tensör yerleşiklerini VM'ye kaydeder. Aynı adlı çekirdek ve yapay zekâ
+// yerleşikleri (toplam, ortalama, min, maks, karekök) sarılır: argüman tensörse tensör
+// yolu, değilse eski yerleşik çalışır.
 func Kaydet(v *vm.VM) {
 	// --- Oluşturucular ---
-	sar(v, []string{"tensör", "tensor"}, tensorYerlesik)
-	sar(v, []string{"sıfırlar", "sifirlar"}, sekilliOlusturucu("sıfırlar", func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
+	sar(v, []string{"tensör", "tensor"}, yeniYerlesik("tensör", tensorYerlesik))
+	sar(v, []string{"sıfırlar", "sifirlar"}, yeniYerlesik("sıfırlar", sekilliOlusturucu("sıfırlar", true, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
 		return ct.Zeros(sh...), nil
-	}))
-	sar(v, []string{"birler"}, sekilliOlusturucu("birler", func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
+	})))
+	sar(v, []string{"birler"}, yeniYerlesik("birler", sekilliOlusturucu("birler", true, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
 		return ct.Ones(sh...), nil
-	}))
-	sar(v, []string{"rastgele_normal"}, sekilliOlusturucu("rastgele_normal", rastgeleNormal))
+	})))
+	sar(v, []string{"rastgele_normal"}, yeniYerlesik("rastgele_normal", sekilliOlusturucu("rastgele_normal", false, rastgeleNormal)))
+
+	// --- Matris (2 boyutlu tensör) oluşturucuları (matris.go) ---
+	sar(v, []string{"matris"}, yeniYerlesik("matris", matrisYerlesik))
+	sar(v, []string{"birim_matris"}, yeniYerlesik("birim_matris", birimMatris))
+	sar(v, []string{"rastgele_matris"}, yeniYerlesik("rastgele_matris", rastgeleMatris))
 
 	// --- Görünüm ---
-	sar(v, []string{"devrik"}, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
-		return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-			if len(args) == 1 {
-				if d, ok := args[0].(*Deger); ok {
-					return devrik(d.t)
-				}
-			}
-			return eskiCagir("devrik", eski, m, args, named)
-		}
-	})
+	sar(v, []string{"devrik"}, yeniYerlesik("devrik", devrikYerlesik))
 
 	// --- Eleman bazlı matematik ---
-	birli(v, []string{"relu"}, (*ct.Tensor).Relu, nil)
-	birli(v, []string{"sigmoid"}, (*ct.Tensor).Sigmoid, nil)
-	birli(v, []string{"tanh"}, (*ct.Tensor).Tanh, nil)
+	birli(v, []string{"relu"}, (*ct.Tensor).Relu, relu64)
+	birli(v, []string{"sigmoid"}, (*ct.Tensor).Sigmoid, sigmoid64)
+	birli(v, []string{"tanh"}, (*ct.Tensor).Tanh, math.Tanh)
 	birli(v, []string{"gelu"}, (*ct.Tensor).Gelu, gelu64)
 	birli(v, []string{"karekök", "karekok"}, (*ct.Tensor).Sqrt, nil)
 	birli(v, []string{"üstel", "ustel"}, (*ct.Tensor).Exp, math.Exp)
@@ -81,9 +78,14 @@ func Kaydet(v *vm.VM) {
 	sar(v, []string{"çapraz_entropi", "capraz_entropi"}, yeniYerlesik("çapraz_entropi", caprazEntropi))
 	sar(v, []string{"katman_normu"}, yeniYerlesik("katman_normu", katmanNormu))
 	sar(v, []string{"rms_normu"}, yeniYerlesik("rms_normu", rmsNormu))
+	sar(v, []string{"kayıp_mse", "kayip_mse"}, yeniYerlesik("kayıp_mse", kayipMSE))
+
+	// --- Hazır sinir ağı modeli (sinir_agi.go) ---
+	sar(v, []string{"sinir_ağı", "sinir_agi"}, yeniYerlesik("sinir_ağı", sinirAgiKur))
+	sar(v, []string{"model_yükle", "model_yukle"}, yeniYerlesik("model_yükle", modelYukle))
 
 	// --- Türev ---
-	sar(v, []string{"geri_yayılım", "geri_yayilim"}, geriYayilim)
+	sar(v, []string{"geri_yayılım", "geri_yayilim"}, yeniYerlesik("geri_yayılım", geriYayilim))
 	sar(v, []string{"türevsiz", "turevsiz"}, yeniYerlesik("türevsiz", turevsiz))
 
 	// --- İyileştiriciler ---
@@ -166,95 +168,91 @@ func turevIzle(named map[string]vm.Value, konumlu vm.Value, varsayilan bool) boo
 	if konumlu != nil {
 		varsayilan = konumlu.IsTruthy()
 	}
-	if v, ok := adliAl(named, "türev_izle", "turev_izle"); ok {
+	if v, ok := baglama.AdliAl(named, adTurevIzle); ok {
 		return v.IsTruthy()
 	}
 	return varsayilan
 }
 
-func tensorYerlesik(eski vm.BuiltinFunc) vm.BuiltinFunc {
-	return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) < 1 {
-			return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en az 1 parametre bekler")
-		}
-		switch args[0].(type) {
-		case *vm.ListVal, *vm.MatrixVal, *Deger:
-		default:
-			// Tek sayı: eski tek sayılık otomatik türev değeri (geriye uyumluluk).
-			return eskiCagir("tensör", eski, m, args, named)
-		}
-		if len(args) > 2 {
-			return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en fazla 2 parametre alır, %d verildi", len(args))
-		}
-		if err := adliDenetle("tensör()", named, "türev_izle", "turev_izle"); err != nil {
+// tensorYerlesik tensör(veri, türev_izle: yanlış) yerleşiğidir. Veri tek sayı (0 boyutlu
+// tensör), iç içe sayı listesi ya da tensör olabilir.
+func tensorYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	if len(args) < 1 {
+		return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en az 1 parametre bekler")
+	}
+	if len(args) > 2 {
+		return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en fazla 2 parametre alır, %d verildi", len(args))
+	}
+	if err := baglama.AdliDenetle("tensör()", named, adTurevIzle); err != nil {
+		return nil, err
+	}
+	var konumlu vm.Value
+	if len(args) == 2 {
+		konumlu = args[1]
+	}
+	izle := turevIzle(named, konumlu, false)
+	var t *ct.Tensor
+	if d, ok := args[0].(*Deger); ok {
+		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak.
+		t = ct.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...)
+	} else {
+		var err error
+		t, err = tensoreCevir("tensör", args[0])
+		if err != nil {
 			return nil, err
 		}
-		var konumlu vm.Value
-		if len(args) == 2 {
-			konumlu = args[1]
-		}
-		izle := turevIzle(named, konumlu, false)
-		var t *ct.Tensor
-		if d, ok := args[0].(*Deger); ok {
-			// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak.
-			t = ct.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...)
-		} else {
-			var err error
-			t, err = tensoreCevir("tensör", args[0])
-			if err != nil {
-				return nil, err
-			}
-		}
-		t.SetRequiresGrad(izle)
-		return Yeni(t), nil
 	}
+	t.SetRequiresGrad(izle)
+	return Yeni(t), nil
 }
 
 // sekilliOlusturucu şekli liste olarak alan oluşturucular (sıfırlar([2, 3]) ...) içindir.
-// Şekil liste değilse eski yerleşik (sıfırlar(2, 3) → Matris) çağrılır.
-func sekilliOlusturucu(ad string, olustur func(sh []int, named map[string]vm.Value) (*ct.Tensor, error)) func(vm.BuiltinFunc) vm.BuiltinFunc {
-	return func(eski vm.BuiltinFunc) vm.BuiltinFunc {
-		return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-			if len(args) == 0 {
-				return nil, fmt.Errorf("%s([2, 3]) şekli liste olarak bekler", ad)
+// matrisBicimi doğruysa tam sayılar eski matris biçimidir: sıfırlar(2, 3) 2 boyutlu,
+// sıfırlar(n) [1, n] şeklinde tensör verir. Değilse tam sayılar da şekil sayılır:
+// rastgele_normal(2, 3, 4).
+func sekilliOlusturucu(ad string, matrisBicimi bool, olustur func(sh []int, named map[string]vm.Value) (*ct.Tensor, error)) vm.BuiltinFunc {
+	return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+		if len(args) == 0 {
+			return nil, fmt.Errorf("%s([2, 3]) şekli liste olarak bekler", ad)
+		}
+		izinli := []baglama.Ad{adTurevIzle}
+		if ad == "rastgele_normal" {
+			izinli = append(izinli, adTohum)
+		}
+		var sh []int
+		var err error
+		if _, liste := args[0].(*vm.ListVal); !liste && matrisBicimi {
+			// Eski biçim (sıfırlar(2, 3)) adlı argüman almaz; sessizce yok saymak yerine
+			// şekil listeli biçime yönlendir.
+			if len(named) > 0 {
+				return nil, fmt.Errorf("%s(%s) eski matris biçimidir ve adlı argüman almaz; %s([%s], ...) yazın",
+					ad, argMetni(args), ad, argMetni(args))
 			}
-			if _, liste := args[0].(*vm.ListVal); !liste {
-				if eski != nil {
-					// Eski biçim (sıfırlar(2, 3)) adlı argüman almaz; sessizce yok saymak
-					// yerine tensör biçimine yönlendir.
-					if len(named) > 0 {
-						return nil, fmt.Errorf("%s(%s) Matris döndürür ve adlı argüman almaz; tensör için %s([%s], ...) yazın",
-							ad, argMetni(args), ad, argMetni(args))
-					}
-					return eski(m, args, named)
-				}
+			sh, err = matrisSekli(ad, args)
+		} else {
+			if !liste {
 				if _, tam := args[0].(*vm.IntVal); !tam {
 					return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", ad, tipAdi(args[0]))
 				}
-				// Eski karşılığı olmayanlarda tam sayılar da şekil sayılır: rastgele_normal(2, 3).
 				args = []vm.Value{&vm.ListVal{Elements: args}}
 			}
 			if len(args) != 1 {
 				return nil, fmt.Errorf("%s([2, 3]) tek parametre (şekil listesi) bekler, %d verildi", ad, len(args))
 			}
-			izinli := []string{"türev_izle", "turev_izle"}
-			if ad == "rastgele_normal" {
-				izinli = append(izinli, "tohum")
-			}
-			if err := adliDenetle(ad+"()", named, izinli...); err != nil {
+			if err := baglama.AdliDenetle(ad+"()", named, izinli...); err != nil {
 				return nil, err
 			}
-			sh, err := sekilListesi(ad, args[0])
-			if err != nil {
-				return nil, err
-			}
-			t, err := olustur(sh, named)
-			if err != nil {
-				return nil, err
-			}
-			t.SetRequiresGrad(turevIzle(named, nil, false))
-			return Yeni(t), nil
+			sh, err = sekilListesi(ad, args[0])
 		}
+		if err != nil {
+			return nil, err
+		}
+		t, err := olustur(sh, named)
+		if err != nil {
+			return nil, err
+		}
+		t.SetRequiresGrad(turevIzle(named, nil, false))
+		return Yeni(t), nil
 	}
 }
 
@@ -284,9 +282,19 @@ func gelu64(x float64) float64 {
 	return 0.5 * x * (1 + math.Tanh(math.Sqrt(2/math.Pi)*(x+0.044715*x*x*x)))
 }
 
-// birli tek argümanlı eleman bazlı bir fonksiyonu kaydeder. Eski yerleşiği varsa tensör
-// olmayan argümanlar ona gider; yoksa sayılar sayi64 ile hesaplanır, listeler/matrisler
-// tensöre çevrilir.
+func relu64(x float64) float64 {
+	if x > 0 {
+		return x
+	}
+	return 0
+}
+
+func sigmoid64(x float64) float64 { return 1.0 / (1.0 + math.Exp(-x)) }
+
+// birli tek argümanlı eleman bazlı bir fonksiyonu kaydeder. Tensör (matris dahil)
+// girdisinde tensör yolu çalışır. Tensör olmayan girdide eski yerleşiği varsa (karekök)
+// o çağrılır; yoksa sonuç girdinin biçimindedir: sayı → Ondalık (sayi64 ile), liste → aynı
+// yapıda liste.
 func birli(v *vm.VM, adlar []string, fn func(*ct.Tensor) *ct.Tensor, sayi64 func(float64) float64) {
 	ad := adlar[0]
 	sar(v, adlar, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
@@ -298,11 +306,9 @@ func birli(v *vm.VM, adlar []string, fn func(*ct.Tensor) *ct.Tensor, sayi64 func
 				if len(args) != 1 {
 					return nil, fmt.Errorf("%s(x) 1 parametre bekler, %d verildi", ad, len(args))
 				}
-				// Eski karşılığı olmayan yeni adlar da tensör olmayan girdide eski biçimi
-				// izler: sayı → Ondalık, liste → aynı yapıda liste, matris → Matris.
 				return eskiBicimdeUygula(ad, args[0], sayi64)
 			}
-			if err := adliDenetle(ad+"()", named); err != nil {
+			if err := baglama.AdliDenetle(ad+"()", named); err != nil {
 				return nil, err
 			}
 			t, err := tensoreCevir(ad, args[0])
@@ -321,8 +327,7 @@ func birli(v *vm.VM, adlar []string, fn func(*ct.Tensor) *ct.Tensor, sayi64 func
 // eskiBicimdeUygula eleman bazlı fonksiyonu tensör olmayan bir değere, değerin kendi
 // biçimini koruyarak (float64 ile) uygular.
 func eskiBicimdeUygula(ad string, v vm.Value, f func(float64) float64) (vm.Value, error) {
-	switch x := v.(type) {
-	case *vm.ListVal:
+	if x, ok := v.(*vm.ListVal); ok {
 		el := make([]vm.Value, len(x.Elements))
 		for i, e := range x.Elements {
 			r, err := eskiBicimdeUygula(ad, e, f)
@@ -332,65 +337,48 @@ func eskiBicimdeUygula(ad string, v vm.Value, f func(float64) float64) (vm.Value
 			el[i] = r
 		}
 		return &vm.ListVal{Elements: el}, nil
-	case *vm.MatrixVal:
-		m := vm.NewMatrix(x.Rows, x.Cols)
-		for i := range x.Data {
-			for j, e := range x.Data[i] {
-				m.Data[i][j] = f(e)
-			}
-		}
-		return m, nil
-	case *yz.TensorVal:
-		return nil, fmt.Errorf("%s: tek sayılık türev değeri (tensör(3.0)) desteklenmez; tensör([...]) ile çok boyutlu tensör kullanın", ad)
 	}
 	if s, ok := vm.ToFloat(v); ok {
 		return &vm.FloatVal{Val: f(s)}, nil
 	}
-	return nil, fmt.Errorf("%s: sayı, liste, matris ya da tensör bekleniyor, %s verildi", ad, tipAdi(v))
+	return nil, fmt.Errorf("%s: sayı, liste ya da tensör bekleniyor, %s verildi", ad, tipAdi(v))
 }
 
-// logSoftmaxListe log_softmax'ı düz sayı listesine (liste döner) ya da matrisin
-// satırlarına (Matris döner) eski softmax'ın biçimiyle uygular.
-func logSoftmaxListe(v vm.Value) (vm.Value, error) {
-	satir := func(x []float64) []float64 {
-		enb := math.Inf(-1)
-		for _, e := range x {
-			enb = math.Max(enb, e)
-		}
-		s := 0.0
-		for _, e := range x {
-			s += math.Exp(e - enb)
-		}
-		lse := enb + math.Log(s)
-		out := make([]float64, len(x))
-		for i, e := range x {
-			out[i] = e - lse
-		}
-		return out
+// softmaxListe softmax'ı (logKip ise log_softmax'ı) düz sayı listesine float64 ile uygular
+// ve liste döndürür.
+func softmaxListe(ad string, v vm.Value, logKip bool) (vm.Value, error) {
+	x, ok := v.(*vm.ListVal)
+	if !ok {
+		return nil, fmt.Errorf("%s: liste ya da tensör bekleniyor, %s verildi", ad, tipAdi(v))
 	}
-	switch x := v.(type) {
-	case *vm.MatrixVal:
-		m := vm.NewMatrix(x.Rows, x.Cols)
-		for i := range x.Data {
-			copy(m.Data[i], satir(x.Data[i]))
-		}
-		return m, nil
-	case *vm.ListVal:
-		sayilar := make([]float64, len(x.Elements))
-		for i, e := range x.Elements {
-			f, ok := vm.ToFloat(e)
-			if !ok {
-				return nil, fmt.Errorf("log_softmax: liste düz sayı listesi olmalıdır (%d. eleman %s); iç içe veri için log_softmax(tensör(...), eksen: -1) yazın", i+1, tipAdi(e))
-			}
-			sayilar[i] = f
-		}
-		el := make([]vm.Value, len(sayilar))
-		for i, f := range satir(sayilar) {
-			el[i] = &vm.FloatVal{Val: f}
-		}
-		return &vm.ListVal{Elements: el}, nil
+	if len(x.Elements) == 0 {
+		return nil, fmt.Errorf("%s: boş liste", ad)
 	}
-	return nil, fmt.Errorf("log_softmax: liste, matris ya da tensör bekleniyor, %s verildi", tipAdi(v))
+	sayilar := make([]float64, len(x.Elements))
+	enb := math.Inf(-1)
+	for i, e := range x.Elements {
+		f, ok := vm.ToFloat(e)
+		if !ok {
+			return nil, fmt.Errorf("%s: liste düz sayı listesi olmalıdır (%d. eleman %s); iç içe veri için %s(tensör(...), eksen: -1) yazın", ad, i+1, tipAdi(e), ad)
+		}
+		sayilar[i] = f
+		enb = math.Max(enb, f)
+	}
+	ustel := make([]float64, len(sayilar))
+	toplam := 0.0
+	for i, f := range sayilar {
+		ustel[i] = math.Exp(f - enb)
+		toplam += ustel[i]
+	}
+	el := make([]vm.Value, len(sayilar))
+	for i := range sayilar {
+		if logKip {
+			el[i] = &vm.FloatVal{Val: sayilar[i] - (enb + math.Log(toplam))}
+		} else {
+			el[i] = &vm.FloatVal{Val: ustel[i] / toplam}
+		}
+	}
+	return &vm.ListVal{Elements: el}, nil
 }
 
 // eksenArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.
@@ -415,27 +403,25 @@ func eksenArg(fn string, args []vm.Value, named map[string]vm.Value) (int, bool,
 	return e, true, nil
 }
 
+// softmaxKaydet softmax/log_softmax'ı kaydeder: tensörde (matris dahil) verilen eksende
+// (varsayılan son eksen) çalışır; düz sayı listesinde liste döndürür.
 func softmaxKaydet(v *vm.VM, adlar []string, logKip bool) {
 	ad := adlar[0]
-	sar(v, adlar, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
+	sar(v, adlar, func(vm.BuiltinFunc) vm.BuiltinFunc {
 		return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 			if len(args) == 0 || !tensorMu(args[:1]) {
-				if eski != nil {
-					return eski(m, args, named)
-				}
 				if len(args) == 0 {
 					return nil, fmt.Errorf("%s(x, eksen: -1) en az 1 parametre bekler", ad)
 				}
-				// log_softmax'ın eski karşılığı yok; softmax'ın liste/matris biçimini izler.
 				if len(args) > 1 || len(named) > 0 {
 					return nil, fmt.Errorf("%s: eksen yalnızca tensörlerde kullanılır; %s(tensör(...), eksen: -1) yazın", ad, ad)
 				}
-				return logSoftmaxListe(args[0])
+				return softmaxListe(ad, args[0], logKip)
 			}
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, eksen: -1) en fazla 2 parametre alır, %d verildi", ad, len(args))
 			}
-			if err := adliDenetle(ad+"()", named, "eksen"); err != nil {
+			if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
 				return nil, err
 			}
 			t, err := tensoreCevir(ad, args[0])
@@ -487,7 +473,7 @@ func indirgeme(v *vm.VM, adlar []string, ad string, fn func(t *ct.Tensor, eksen 
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, eksen: ...) en fazla 2 parametre alır, %d verildi", ad, len(args))
 			}
-			if err := adliDenetle(ad+"()", named, "eksen"); err != nil {
+			if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
 				return nil, err
 			}
 			t := args[0].(*Deger).t
@@ -529,12 +515,12 @@ func maksIndeks(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value,
 		}
 		return nil, fmt.Errorf("%s(x, eksen: -1) 1 konumlu parametre bekler, %d verildi", ad, len(args))
 	}
-	if err := adliDenetle(ad+"()", named, "eksen"); err != nil {
+	if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*Deger)
 	if !ok {
-		return nil, fmt.Errorf("%s: çok boyutlu bir tensör bekler, %s verildi; liste için %s(tensör(liste)) yazın", ad, tipAdi(args[0]), ad)
+		return nil, fmt.Errorf("%s: bir tensör bekler, %s verildi; liste için %s(tensör(liste)) yazın", ad, tipAdi(args[0]), ad)
 	}
 	t := d.t
 	e, verildi, err := eksenArg(ad, args, named)
@@ -577,21 +563,16 @@ func tensorOlmayanIndirgeme(ad string, eski vm.BuiltinFunc, m *vm.VM, args []vm.
 		return nil, fmt.Errorf("%s: eksen: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0)", ad, tipAdi(args[0]), ad)
 	}
 	if l, ok := args[0].(*vm.ListVal); ok && len(args) == 1 {
-		var tensorVar, eskiTensorVar bool
+		var tensorVar bool
 		for _, el := range l.Elements {
 			switch el.(type) {
 			case *vm.ListVal:
 				return nil, fmt.Errorf("%s: iç içe liste indirgenemez (eski liste davranışı yalnızca düz sayı listesi alır); tensöre çevirin: %s(tensör(liste)) ya da eksen için %s(tensör(liste), eksen: 0)", ad, ad, ad)
 			case *Deger:
 				tensorVar = true
-			case *yz.TensorVal:
-				eskiTensorVar = true
 			}
 		}
 		if tensorVar {
-			if eskiTensorVar {
-				return nil, fmt.Errorf("%s: listede tek sayılık türev değeri (tensör(3.0)) ile çok boyutlu tensör karışık; hepsini tensör([...]) ile oluşturun", ad)
-			}
 			if ad != "toplam" && ad != "ortalama" {
 				return nil, fmt.Errorf("%s: tensör listesinin en %s elemanı tanımsız; tek bir tensör verin: %s(x) ya da %s(x, eksen: 0)", ad, map[bool]string{true: "büyük", false: "küçük"}[ad == "maks"], ad, ad)
 			}
@@ -689,7 +670,7 @@ func gomme(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, erro
 	if len(args) != 2 {
 		return nil, fmt.Errorf("gömme(tablo, indeksler) 2 parametre bekler, %d verildi", len(args))
 	}
-	if err := adliDenetle("gömme()", named); err != nil {
+	if err := baglama.AdliDenetle("gömme()", named); err != nil {
 		return nil, err
 	}
 	tablo, ok := args[0].(*Deger)
@@ -726,7 +707,7 @@ func caprazEntropi(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Val
 	if len(args) != 2 {
 		return nil, fmt.Errorf("çapraz_entropi(çıktı, hedef) 2 parametre bekler, %d verildi", len(args))
 	}
-	if err := adliDenetle("çapraz_entropi()", named); err != nil {
+	if err := baglama.AdliDenetle("çapraz_entropi()", named); err != nil {
 		return nil, err
 	}
 	cikti, err := tensoreCevir("çapraz_entropi", args[0])
@@ -789,12 +770,8 @@ func normParam(fn, ad string, v vm.Value, D int) (*ct.Tensor, error) {
 }
 
 // normArgs x, ağırlık, sapma ve epsilon argümanlarını konumlu ya da adlı olarak okur.
-func normArgs(fn string, args []vm.Value, named map[string]vm.Value, adlar []string) (*ct.Tensor, []vm.Value, float32, error) {
-	izinli := []string{"epsilon"}
-	for _, a := range adlar {
-		izinli = append(izinli, a, asciiAd(a))
-	}
-	if err := adliDenetle(fn+"()", named, izinli...); err != nil {
+func normArgs(fn string, args []vm.Value, named map[string]vm.Value, adlar []baglama.Ad) (*ct.Tensor, []vm.Value, float32, error) {
+	if err := baglama.AdliDenetle(fn+"()", named, append([]baglama.Ad{adEpsilon}, adlar...)...); err != nil {
 		return nil, nil, 0, err
 	}
 	if len(args) < 1 || len(args) > 1+len(adlar) {
@@ -812,15 +789,15 @@ func normArgs(fn string, args []vm.Value, named map[string]vm.Value, adlar []str
 		if 1+i < len(args) {
 			degerler[i] = args[1+i]
 		}
-		if v, ok := adliAl(named, a, asciiAd(a)); ok {
+		if v, ok := baglama.AdliAl(named, a); ok {
 			if degerler[i] != nil {
-				return nil, nil, 0, fmt.Errorf("%s: %s hem konumlu hem adlı verildi", fn, a)
+				return nil, nil, 0, fmt.Errorf("%s: %s hem konumlu hem adlı verildi", fn, a.TR)
 			}
 			degerler[i] = v
 		}
 	}
 	eps := float32(1e-5)
-	if v, ok := named["epsilon"]; ok {
+	if v, ok := baglama.AdliAl(named, adEpsilon); ok {
 		f, ok := vm.ToFloat(v)
 		if !ok || f <= 0 {
 			return nil, nil, 0, fmt.Errorf("%s: epsilon pozitif bir sayı olmalıdır, %s verildi", fn, v.Inspect())
@@ -830,29 +807,8 @@ func normArgs(fn string, args []vm.Value, named map[string]vm.Value, adlar []str
 	return x, degerler, eps, nil
 }
 
-func asciiAd(s string) string {
-	r := []rune(s)
-	for i, c := range r {
-		switch c {
-		case 'ı':
-			r[i] = 'i'
-		case 'ğ':
-			r[i] = 'g'
-		case 'ü':
-			r[i] = 'u'
-		case 'ş':
-			r[i] = 's'
-		case 'ö':
-			r[i] = 'o'
-		case 'ç':
-			r[i] = 'c'
-		}
-	}
-	return string(r)
-}
-
 func katmanNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	x, p, eps, err := normArgs("katman_normu", args, named, []string{"ağırlık", "sapma"})
+	x, p, eps, err := normArgs("katman_normu", args, named, []baglama.Ad{adAgirlik, adSapma})
 	if err != nil {
 		return nil, err
 	}
@@ -874,7 +830,7 @@ func katmanNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 }
 
 func rmsNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	x, p, eps, err := normArgs("rms_normu", args, named, []string{"ağırlık"})
+	x, p, eps, err := normArgs("rms_normu", args, named, []baglama.Ad{adAgirlik})
 	if err != nil {
 		return nil, err
 	}
@@ -894,23 +850,30 @@ func rmsNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 // Türev
 // ----------------------------------------------------------------------------
 
-func geriYayilim(eski vm.BuiltinFunc) vm.BuiltinFunc {
-	return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) != 1 || !tensorMu(args) {
-			return eskiCagir("geri_yayılım", eski, m, args, named)
-		}
-		t := args[0].(*Deger).t
-		if t.Numel() != 1 {
-			return nil, fmt.Errorf("geri_yayılım tek elemanlı (skaler) bir kayıp ister, %s şeklinde tensör verildi; önce toplam(...) ya da ortalama(...) ile indirgeyin", sekilMetni(t.Shape()))
-		}
-		if !t.RequiresGrad() {
-			return nil, fmt.Errorf("geri_yayılım: kayıp türev izlenen hiçbir tensöre bağlı değil; parametreleri tensör(..., türev_izle: doğru) ile oluşturun (türevsiz bloğu içinde hesaplanan değerler izlenmez)")
-		}
-		if _, err := guvenli(func() bool { t.Backward(); return true }); err != nil {
-			return nil, err
-		}
-		return vm.TRUE, nil
+// geriYayilim geri_yayılım(kayıp) yerleşiğidir: tek elemanlı kayıptan geri yayılım yapar;
+// yaprak tensörlerin gradyanları birikir.
+func geriYayilim(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("geri_yayılım(kayıp) 1 parametre bekler, %d verildi", len(args))
 	}
+	if err := baglama.AdliDenetle("geri_yayılım()", named); err != nil {
+		return nil, err
+	}
+	d, ok := args[0].(*Deger)
+	if !ok {
+		return nil, fmt.Errorf("geri_yayılım() bir tensör bekler, %s verildi", tipAdi(args[0]))
+	}
+	t := d.t
+	if t.Numel() != 1 {
+		return nil, fmt.Errorf("geri_yayılım tek elemanlı (skaler) bir kayıp ister, %s şeklinde tensör verildi; önce toplam(...) ya da ortalama(...) ile indirgeyin", sekilMetni(t.Shape()))
+	}
+	if !t.RequiresGrad() {
+		return nil, fmt.Errorf("geri_yayılım: kayıp türev izlenen hiçbir tensöre bağlı değil; parametreleri tensör(..., türev_izle: doğru) ile oluşturun (türevsiz bloğu içinde hesaplanan değerler izlenmez)")
+	}
+	if _, err := guvenli(func() bool { t.Backward(); return true }); err != nil {
+		return nil, err
+	}
+	return vm.TRUE, nil
 }
 
 // turevsiz iki biçimde çalışır: türevsiz { ... } bloğu türev izlemeden çalıştırır ve
@@ -919,14 +882,12 @@ func turevsiz(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 	if len(args) != 1 {
 		return nil, fmt.Errorf("türevsiz { ... } bir blok ya da türevsiz(x) bir tensör bekler, %d parametre verildi", len(args))
 	}
-	if err := adliDenetle("türevsiz()", named); err != nil {
+	if err := baglama.AdliDenetle("türevsiz()", named); err != nil {
 		return nil, err
 	}
 	switch x := args[0].(type) {
 	case *Deger:
 		return Yeni(x.t.Detach()), nil
-	case *yz.TensorVal:
-		return yz.NewTensor(x.Val, false), nil
 	case *vm.FuncVal, *vm.BuiltinVal:
 		var sonuc vm.Value
 		var err error

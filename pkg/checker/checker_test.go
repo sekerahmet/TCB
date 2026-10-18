@@ -60,7 +60,7 @@ func TestTipAdiNormallestirme(t *testing.T) {
 		"Mantık": "Mantık", "mantik": "Mantık", "mantıksal": "Mantık", "mantiksal": "Mantık", "bool": "Mantık", "MANTIK": "Mantık",
 		"Liste": "Liste", "dizi": "Liste", "list": "Liste",
 		"Sözlük": "Sözlük", "sozluk": "Sözlük", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
-		"Matris": "Matris", "matrix": "Matris",
+		"Matris": "Tensör", "matrix": "Tensör", "matris": "Tensör",
 		"Tensör": "Tensör", "tensor": "Tensör",
 		"Yok": "Yok", "boş": "Yok", "bos": "Yok", "null": "Yok",
 		"": "Herhangi",

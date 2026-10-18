@@ -1,11 +1,13 @@
 // Package tensor, n-boyutlu tensör çekirdeğini (tr_dili/pkg/tensor) TR diline bağlar:
 // tensör değeri, işleçleri (@ + - * /), özellik ve metotları, matematik ve sinir ağı
-// fonksiyonları, türevsiz çalışma ve iyileştiriciler.
+// fonksiyonları, türevsiz çalışma, iyileştiriciler ve hazır sinir ağı modeli.
 //
-// Aynı adı taşıyan eski yerleşikler (toplam, min, maks, karekök, sıfırlar, birler, devrik,
-// softmax, relu, sigmoid, tanh, ortalama, tensör, geri_yayılım) silinmez; kayıt sırasında
-// sarılır: argüman tensörse yeni yol, değilse eski yerleşik çalışır. Bu yüzden bu motor
-// çekirdek yerleşiklerden ve yapay zekâ motorundan SONRA kaydedilmelidir (bkz. pkg/motor).
+// Dilin tek sayısal dizi türü tensördür: tek sayıdan tensör 0 boyutlu, matris adlı
+// oluşturucuların (matris, sıfırlar(2, 3), birim_matris ...) sonucu 2 boyutlu tensördür.
+//
+// Aynı adı taşıyan çekirdek ve yapay zekâ yerleşikleri (toplam, ortalama, min, maks,
+// karekök) silinmez; kayıt sırasında sarılır: argüman tensörse yeni yol, değilse eski
+// yerleşik çalışır. Bu yüzden bu motor onlardan SONRA kaydedilmelidir (bkz. pkg/motor).
 package tensor
 
 import (
@@ -17,7 +19,6 @@ import (
 	"strings"
 	"sync"
 
-	"tr_dili/pkg/motor/yz"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
@@ -250,7 +251,7 @@ func sayiMetni(x float32, bilimsel bool) string {
 // TR değerinden tensöre dönüşüm
 // ----------------------------------------------------------------------------
 
-// tensoreCevir sayı, iç içe liste, matris ya da tensörü çekirdek tensörüne çevirir.
+// tensoreCevir sayı, iç içe liste ya da tensörü çekirdek tensörüne çevirir.
 // Tensör verilirse kendisi döner (kopyalanmaz, hesap çizgesi korunur).
 func tensoreCevir(fn string, v vm.Value) (*ct.Tensor, error) {
 	switch x := v.(type) {
@@ -260,16 +261,6 @@ func tensoreCevir(fn string, v vm.Value) (*ct.Tensor, error) {
 		return ct.Scalar(float32(x.Val)), nil
 	case *vm.FloatVal:
 		return ct.Scalar(float32(x.Val)), nil
-	case *yz.TensorVal:
-		return ct.Scalar(float32(x.Val)), nil
-	case *vm.MatrixVal:
-		veri := make([]float32, 0, x.Rows*x.Cols)
-		for _, satir := range x.Data {
-			for _, e := range satir {
-				veri = append(veri, float32(e))
-			}
-		}
-		return ct.New(veri, x.Rows, x.Cols), nil
 	case *vm.ListVal:
 		veri, sh, err := listeVerisi(fn, x)
 		if err != nil {
@@ -277,7 +268,11 @@ func tensoreCevir(fn string, v vm.Value) (*ct.Tensor, error) {
 		}
 		return ct.New(veri, sh...), nil
 	}
-	return nil, fmt.Errorf("%s: %s tipi tensöre dönüştürülemez (sayı, iç içe liste, matris ya da tensör bekleniyor)", fn, tipAdi(v))
+	ipucu := ""
+	if b, ok := v.(*vm.BuiltinVal); ok {
+		ipucu = fmt.Sprintf("; metodu çağırmak için parantez ekleyin: %s()", b.Name)
+	}
+	return nil, fmt.Errorf("%s: %s tipi tensöre dönüştürülemez (sayı, iç içe liste ya da tensör bekleniyor)%s", fn, tipAdi(v), ipucu)
 }
 
 // listeVerisi iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
@@ -337,16 +332,8 @@ func listeVerisi(fn string, l *vm.ListVal) ([]float32, []int, error) {
 	return veri, sh, nil
 }
 
-// skalerMi değerin tek bir sayı (ya da eski tek sayılık tensör) olup olmadığını söyler.
-func skalerMi(v vm.Value) (float64, bool) {
-	if t, ok := v.(*yz.TensorVal); ok {
-		return t.Val, true
-	}
-	return vm.ToFloat(v)
-}
-
 // ----------------------------------------------------------------------------
-// İşleçler (vm.MatrixOperator)
+// İşleçler (VM kancaları vm_kancalari.go'dadır)
 // ----------------------------------------------------------------------------
 
 var islemAdi = map[string]string{"+": "toplama", "-": "çıkarma", "*": "çarpma", "/": "bölme"}
@@ -432,7 +419,7 @@ func yayinUyarisi(op string, a, b *ct.Tensor) {
 }
 
 func (d *Deger) ikili(op string, other vm.Value) (vm.Value, error) {
-	if s, ok := skalerMi(other); ok {
+	if s, ok := vm.ToFloat(other); ok {
 		f := float32(s)
 		r, err := guvenli(func() *ct.Tensor {
 			switch op {
@@ -489,32 +476,7 @@ func (d *Deger) ikili(op string, other vm.Value) (vm.Value, error) {
 	return Yeni(r), nil
 }
 
-// Add tensör toplaması. VM, sol işlenen tensör değilse sağdaki tensörün Add'ini
-// çağırır; toplama değişmeli olduğu için sonuç aynıdır.
-func (d *Deger) Add(other vm.Value) (vm.Value, error) { return d.ikili("+", other) }
-
-// Sub tensör çıkarması (tensör sol işlenendir).
-func (d *Deger) Sub(other vm.Value) (vm.Value, error) { return d.ikili("-", other) }
-
-// Mul eleman bazlı çarpma (yayınlamalı).
-func (d *Deger) Mul(other vm.Value) (vm.Value, error) { return d.ikili("*", other) }
-
-// Div eleman bazlı bölme (tensör sol işlenendir).
-func (d *Deger) Div(other vm.Value) (vm.Value, error) { return d.ikili("/", other) }
-
-// MatMul '@' işleci: matris çarpımı. 1 boyutlu işlenenler vektör sayılır.
-func (d *Deger) MatMul(other vm.Value) (vm.Value, error) {
-	o, err := tensoreCevir("matris çarpımı (@)", other)
-	if err != nil {
-		return nil, err
-	}
-	r, err := matCarp(d.t, o)
-	if err != nil {
-		return nil, err
-	}
-	return Yeni(r), nil
-}
-
+// matCarp '@' işlecidir: matris çarpımı. 1 boyutlu işlenenler vektör sayılır.
 func matCarp(a, b *ct.Tensor) (*ct.Tensor, error) {
 	as, bs := a.Shape(), b.Shape()
 	if len(as) == 0 || len(bs) == 0 {
@@ -569,6 +531,13 @@ func matCarp(a, b *ct.Tensor) (*ct.Tensor, error) {
 
 var tensorUyeleri = []string{"şekil", "cihaz", "gradyan", "değer", "şekillendir", "devrik", "eksenleri_sırala", "dilim", "cihaza"}
 
+// eskiMatrisUyeleri kaldırılan matris türünün (matris artık 2 boyutlu tensördür) tensörde
+// karşılığı olan üyeleridir; hata mesajında karşılıkları önerilir.
+var eskiMatrisUyeleri = map[string]string{
+	"boyut": "şekil", "satır": "şekil", "satir": "şekil", "sütun": "şekil", "sutun": "şekil",
+	"T": "devrik()", "liste": "değer", "toplam": "toplam(x)", "ortalama": "ortalama(x)",
+}
+
 func (d *Deger) GetProperty(prop string) (vm.Value, error) {
 	t := d.t
 	switch prop {
@@ -604,7 +573,9 @@ func (d *Deger) GetProperty(prop string) (vm.Value, error) {
 		return d.metot("cihaza", d.cihaza), nil
 	}
 	oneri := ""
-	if o := turkce.EnYakin(prop, tensorUyeleri); o != "" {
+	if o, eski := eskiMatrisUyeleri[prop]; eski {
+		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+	} else if o := turkce.EnYakin(prop, tensorUyeleri); o != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 	}
 	return nil, fmt.Errorf("Tensör üzerinde %q özelliği ya da metodu bulunamadı%s", prop, oneri)

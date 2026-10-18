@@ -21,16 +21,6 @@ const (
 	signalContinue
 )
 
-// MatrixOperator Faz 2'deki Yapay Zeka Matris/Tensör motorunun VM'ye bağlanması için kancadır.
-type MatrixOperator interface {
-	Add(other Value) (Value, error)
-	Sub(other Value) (Value, error)
-	Mul(other Value) (Value, error)
-	Div(other Value) (Value, error)
-	MatMul(other Value) (Value, error)
-	GetProperty(prop string) (Value, error)
-}
-
 // PropertyGetter nokta (.) operatörüyle özel nesne metodlarına erişim sağlar.
 type PropertyGetter interface {
 	GetProperty(prop string) (Value, error)
