@@ -8,14 +8,16 @@ const path = require('path');
 const crypto = require('crypto');
 const { izlemeKomutuCoz } = require('./izleme_komutlari');
 const { yorumlayiciyiBul: yorumlayiciyiBulKurali, yorumlayiciAdi, IKILI_KLASORU } = require('./yorumlayici_bul');
+const { programArgumanlari } = require('./program_argumanlari');
 
 const GOREV_TURU = 'tr';
 const AYAR = 'yorumlayiciYolu';
 const YORUMLAYICI_ADI = yorumlayiciAdi(process.platform);
 
-// komut kimliği -> yorumlayıcıya verilecek argümanlar ve görev adı
+// komut kimliği -> yorumlayıcıya verilecek argümanlar ve görev adı. Çalıştırmada dosyadan
+// sonraki argümanlar (ek) programa iletilir: 'tr dosya.tr --adım 5'.
 const KOMUTLAR = {
-    calistir: { komut: 'tr.calistir', ad: 'Çalıştır', argumanlar: (dosya) => [dosya] },
+    calistir: { komut: 'tr.calistir', ad: 'Çalıştır', argumanlar: (dosya, ek) => [dosya, ...(ek || [])] },
     denetle: { komut: 'tr.denetle', ad: 'Denetle', argumanlar: (dosya) => ['kontrol', dosya] },
     hataAyikla: { komut: 'tr.hataAyikla', ad: 'Hata Ayıkla', argumanlar: (dosya) => ['hata_ayıkla', dosya] }
 };
@@ -65,7 +67,7 @@ async function hedefBelge(uri) {
     return editor ? editor.document : undefined;
 }
 
-function gorevOlustur(tanim, belgeUri, yorumlayici) {
+function gorevOlustur(tanim, belgeUri, yorumlayici, ek) {
     const dosya = belgeUri.fsPath;
     const klasor = vscode.workspace.getWorkspaceFolder(belgeUri);
     const cwd = klasor ? klasor.uri.fsPath : path.dirname(dosya);
@@ -75,7 +77,7 @@ function gorevOlustur(tanim, belgeUri, yorumlayici) {
         klasor || vscode.TaskScope.Workspace,
         `${tanim.ad}: ${path.basename(dosya)}`,
         'TR',
-        new vscode.ProcessExecution(yorumlayici, tanim.argumanlar(dosya), { cwd }),
+        new vscode.ProcessExecution(yorumlayici, tanim.argumanlar(dosya, ek), { cwd }),
         []
     );
     // Görev terminali odaklanır; hata ayıklayıcının komutları buradan yazılır.
@@ -90,7 +92,9 @@ function gorevOlustur(tanim, belgeUri, yorumlayici) {
     return gorev;
 }
 
-async function calistir(tanim, uri) {
+// calistir komutu (tanim) dosyada çalıştırır; ek, dosyadan sonra yorumlayıcıya verilen
+// program argümanlarıdır (Ctrl+F5'te launch.json'daki "args").
+async function calistir(tanim, uri, ek) {
     if (!vscode.workspace.isTrusted) {
         vscode.window.showWarningMessage('TR dosyalarını çalıştırmak için bu çalışma alanına güvenmeniz gerekir (Çalışma Alanı Güveni).');
         return;
@@ -128,21 +132,21 @@ async function calistir(tanim, uri) {
     // çalışmasına izin vermez ("Cannot launch a terminal process in an empty workspace").
     // Bu durumda yorumlayıcı doğrudan bir terminalde, dosyanın klasöründe başlatılır.
     if (!vscode.workspace.getWorkspaceFolder(belge.uri)) {
-        terminaldeCalistir(tanim, belge.uri, bulunan.yol);
+        terminaldeCalistir(tanim, belge.uri, bulunan.yol, ek);
         return;
     }
 
-    await vscode.tasks.executeTask(gorevOlustur(tanim, belge.uri, bulunan.yol));
+    await vscode.tasks.executeTask(gorevOlustur(tanim, belge.uri, bulunan.yol, ek));
 }
 
 // terminaldeCalistir yorumlayıcıyı kabuk kullanmadan doğrudan bir terminal sürecinde başlatır
 // (tırnak/kaçış sorunu olmaz). Program bitince terminal açık kalır, çıktı okunabilir.
-function terminaldeCalistir(tanim, belgeUri, yorumlayici) {
+function terminaldeCalistir(tanim, belgeUri, yorumlayici, ek) {
     const dosya = belgeUri.fsPath;
     const terminal = vscode.window.createTerminal({
         name: `TR ${tanim.ad}: ${path.basename(dosya)}`,
         shellPath: yorumlayici,
-        shellArgs: tanim.argumanlar(dosya),
+        shellArgs: tanim.argumanlar(dosya, ek),
         cwd: path.dirname(dosya),
         isTransient: true
     });
@@ -203,28 +207,35 @@ const hataAyiklamaSaglayici = {
     async resolveDebugConfiguration(klasor, yapilandirma) {
         let y = yapilandirma || {};
         const editor = vscode.window.activeTextEditor;
-        // launch.json yokken F5: açık .tr dosyası için yapılandırma üret
+        // launch.json yokken F5 (ya da Ctrl+F5): açık .tr dosyası için yapılandırma üret;
+        // Ctrl+F5'in "hata ayıklamadan" işareti korunur.
         if (!y.type && !y.request && !y.name) {
             if (!editor || editor.document.languageId !== 'tr') {
                 vscode.window.showErrorMessage('Hata ayıklamak için bir .tr dosyası açın.');
                 return undefined;
             }
-            y = hataAyiklamaYapilandirmasi(editor.document);
+            y = Object.assign(hataAyiklamaYapilandirmasi(editor.document), y.noDebug ? { noDebug: true } : {});
         }
         if (!vscode.workspace.isTrusted) {
             vscode.window.showWarningMessage('TR dosyalarında hata ayıklamak için bu çalışma alanına güvenmeniz gerekir (Çalışma Alanı Güveni).');
             return undefined;
         }
-        // Ctrl+F5: hata ayıklamadan çalıştır → terminalde (girdi() için)
-        if (y.noDebug) {
-            let uri;
-            if (y.program && !String(y.program).includes('${')) {
-                uri = vscode.Uri.file(y.program);
-            }
-            calistir(KOMUTLAR.calistir, uri);
+        const a = programArgumanlari(y);
+        if (a.hata) {
+            vscode.window.showErrorMessage(a.hata);
             return undefined;
         }
         return y;
+    },
+    // Ctrl+F5 ("Run Without Debugging"): hata ayıklamadan terminalde çalıştırır (girdi() için).
+    // Burada ${file}, ${workspaceFolder} gibi değişkenler çözülmüştür; "args" programa iletilir.
+    resolveDebugConfigurationWithSubstitutedVariables(klasor, y) {
+        if (!y || !y.noDebug) {
+            return y;
+        }
+        const uri = y.program ? vscode.Uri.file(String(y.program)) : undefined;
+        calistir(KOMUTLAR.calistir, uri, programArgumanlari(y).argumanlar || []);
+        return undefined;
     }
 };
 

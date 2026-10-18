@@ -1,7 +1,7 @@
 {
   "name": "tr-dili-vscode",
-  "displayName": "TR (.tr) Programlama ve Yapay Zeka Dili",
-  "description": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets), çalıştırma ve hata ayıklama komutları.",
+  "displayName": "%eklenti.ad%",
+  "description": "%eklenti.aciklama%",
   "version": "1.7.0",
   "license": "Apache-2.0",
   "engines": {
@@ -29,7 +29,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "Güvenilmeyen (kısıtlı kipteki) çalışma alanlarında renklendirme, şablonlar ve dosya okuma çalışır; .tr dosyalarını çalıştırma, denetleme ve hata ayıklama kapalıdır (yorumlayıcı çalıştırılmaz).",
+      "description": "%guven.kisitliKip%",
       "restrictedConfigurations": [
         "tr.yorumlayiciYolu"
       ]
@@ -66,37 +66,37 @@
     "commands": [
       {
         "command": "tr.calistir",
-        "title": "Dosyayı Çalıştır",
+        "title": "%komut.calistir%",
         "category": "TR",
         "icon": "$(play)"
       },
       {
         "command": "tr.hataAyiklaBaslat",
-        "title": "Hata Ayıkla (VS Code)",
+        "title": "%komut.hataAyiklaBaslat%",
         "category": "TR",
         "icon": "$(debug-alt)"
       },
       {
         "command": "tr.denetle",
-        "title": "Dosyayı Denetle",
+        "title": "%komut.denetle%",
         "category": "TR",
         "icon": "$(check)"
       },
       {
         "command": "tr.hataAyikla",
-        "title": "Terminal Hata Ayıklayıcısında Aç",
+        "title": "%komut.hataAyikla%",
         "category": "TR",
         "icon": "$(terminal)"
       },
       {
         "command": "tr.tabloGoster",
-        "title": "Tablo Görünümü",
+        "title": "%komut.tabloGoster%",
         "category": "TR",
         "icon": "$(table)"
       },
       {
         "command": "tr.izlemeMasasi",
-        "title": "İzleme Masası",
+        "title": "%komut.izlemeMasasi%",
         "category": "TR",
         "icon": "$(table)"
       }
@@ -184,19 +184,19 @@
       ]
     },
     "configuration": {
-      "title": "TR Dili",
+      "title": "%ayar.baslik%",
       "properties": {
         "tr.yorumlayiciYolu": {
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "TR yorumlayıcısının (`tr.exe`) tam yolu. Yalnızca kullanıcı ayarlarından okunur; bir çalışma alanının kendi ayar dosyası bu yolu değiştiremez. Göreli yol yalnızca güvenilen bir çalışma alanı klasörüne göre çözülür. Boş bırakılırsa: güvenilen çalışma alanında klasörün kökündeki `ikili/tr.exe` ya da `tr.exe`, sonra PATH üzerindeki `tr`. Üst klasörlere bakılmaz; klasörsüz pencerede yalnızca bu ayar ve PATH kullanılır."
+          "markdownDescription": "%ayar.yorumlayiciYolu%"
         },
         "tr.izlemeMasasi": {
           "type": "boolean",
           "default": true,
           "scope": "window",
-          "markdownDescription": "Hata ayıklama sırasında program her durduğunda **İzleme Masası**nı (değişken tablosu ve tablo ızgarası) editörün yanında otomatik açar."
+          "markdownDescription": "%ayar.izlemeMasasi%"
         }
       }
     },
@@ -214,11 +214,11 @@
               "tr.denetle",
               "tr.hataAyikla"
             ],
-            "description": "Çalıştırılacak TR komutu."
+            "description": "%gorev.komut%"
           },
           "dosya": {
             "type": "string",
-            "description": "Çalıştırılacak .tr dosyasının tam yolu. Boş bırakılırsa etkin düzenleyicideki dosya kullanılır."
+            "description": "%gorev.dosya%"
           }
         }
       }
@@ -247,7 +247,7 @@
     "debuggers": [
       {
         "type": "tr",
-        "label": "TR Dili",
+        "label": "%ayiklayici.etiket%",
         "languages": [
           "tr"
         ],
@@ -259,17 +259,25 @@
             "properties": {
               "program": {
                 "type": "string",
-                "description": "Hata ayıklanacak .tr dosyası",
+                "description": "%ayiklayici.program%",
                 "default": "${file}"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "%ayiklayici.args%",
+                "default": []
               },
               "stopOnEntry": {
                 "type": "boolean",
-                "description": "true ise program ilk satırda durur",
+                "description": "%ayiklayici.stopOnEntry%",
                 "default": false
               },
               "cwd": {
                 "type": "string",
-                "description": "Programın çalışma klasörü (göreli dosya yolları buna göre çözülür)",
+                "description": "%ayiklayici.cwd%",
                 "default": "${workspaceFolder}"
               }
             }
@@ -287,8 +295,8 @@
         ],
         "configurationSnippets": [
           {
-            "label": "TR: Hata Ayıkla",
-            "description": "Açık .tr dosyasında VS Code hata ayıklayıcısını başlatır",
+            "label": "%ayiklayici.parcacik.etiket%",
+            "description": "%ayiklayici.parcacik.aciklama%",
             "body": {
               "type": "tr",
               "request": "launch",
