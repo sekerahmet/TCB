@@ -46,16 +46,18 @@ jobs:
       # Eylemler tam commit özetiyle sabitlenir (etiket sonradan başka bir commit'e
       # taşınabilir); yorumdaki sürüm adı yalnızca okuyan içindir.
       - name: Kaynağı al
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Depo kimlik bilgisi sonraki adımlara (ve onların çalıştırdığı koda) bırakılmaz.
           persist-credentials: false
 
       - name: Go kurulumu
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # go.mod'daki 'go' ve 'toolchain' satırları yerelde ve burada aynı sürümü seçer.
           go-version-file: go.mod
+          # Bağımlılık yok (go.sum yok); modül önbelleğine gerek yok.
+          cache: false
 
       - name: Tam denetim
         run: bash bakim/tam_denetim.sh --kip=${{ matrix.goamd64 }}
@@ -66,14 +68,16 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Kaynağı al
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Go kurulumu
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+          # Bağımlılık yok (go.sum yok); modül önbelleğine gerek yok.
+          cache: false
 
       # Eşzamanlı kod: yorumlayıcı kilidi ve eşzamanlı görevler, motorların kilitleri,
       # önden yükleme ve önbellek. Yarış dedektörü cgo ister (Linux koşucusunda hazır).
