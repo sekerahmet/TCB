@@ -103,8 +103,16 @@ func TestKodluDosyalarAyniCiktiyiVerir(t *testing.T) {
 		t.Fatalf("yalnızca %d dosya kodlandı", n)
 	}
 
+	// Çıktıda geçen kopya klasörlerinin yolları (ör. kontrol noktasının "Kaldığı yerden
+	// devam: ..." satırı) karşılaştırmadan çıkarılır.
+	kokuSoy := func(s sonuc, kok string) sonuc {
+		for _, k := range []string{filepath.ToSlash(kok), kok} {
+			s.cikti, s.hata = strings.ReplaceAll(s.cikti, k, "<kök>"), strings.ReplaceAll(s.hata, k, "<kök>")
+		}
+		return s
+	}
 	for _, klasor := range []string{"testler", "ornekler"} {
-		s1, s2 := tr(t, tr1, "test", klasor), tr(t, tr2, "test", klasor)
+		s1, s2 := kokuSoy(tr(t, tr1, "test", klasor), tr1), kokuSoy(tr(t, tr2, "test", klasor), tr2)
 		if s1.kod != 0 || s1.kod != s2.kod || s1.cikti != s2.cikti || s1.hata != s2.hata {
 			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", klasor, s1.kod, s2.kod, satirFarki(s1.cikti+s1.hata, s2.cikti+s2.hata))
 		}

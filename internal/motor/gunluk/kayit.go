@@ -294,8 +294,9 @@ func (g *Gunluk) Uzunluk() (int64, error) {
 }
 
 // DevamYaz kontrol noktasından sürdürülen eğitimin {"tür":"devam","adım":N} kaydını yazar.
-// Okuyucu kuralı: bir devam kaydından önce gelen ve adımı N'den büyük ya da eşit olan
-// kayıtlar geçersizdir (kesilmeden önce yazılmış, yeniden hesaplanacak adımlar silinmez).
+// N kaydedilen noktanın tamamlanmış adım sayısıdır. Okuyucu kuralı: bir devam kaydından önce
+// gelen ve adımı N'den büyük olan ölçü kayıtları geçersizdir (kesilmeden önce yazılmış,
+// yeniden hesaplanacak adımlar silinmez; adımı N olan kayıt noktaya dahildir).
 func (g *Gunluk) DevamYaz(adim int64) error {
 	k := yurut.NewDictVal()
 	k.Set(aTur, &yurut.StringVal{Val: turDevam})

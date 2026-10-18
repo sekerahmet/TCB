@@ -29,7 +29,7 @@ Bir eğitim betiğinin dış dünyayla dört bağı vardır: ortam değişkenler
 
 **19.6** Günlük hataları: başka uzantı (`.csv` ve `.json` dahil; bugün yalnız JSON satırları), `ekle`'de `tür` anahtarı (kayıt türlerine ayrılmış: `başlangıç`, `bitiş`, `devam`), sayı, metin, mantık, liste, sözlük ya da tensör olmayan değer, Sözlük ya da Metin olmayan argüman. Dosya hataları dosya adıyla ve nedeniyle bildirilir.
 
-Günlük okuyucuları için kurallar: `tür` taşımayan satırlar ölçü kayıtlarıdır. Kontrol noktasından sürdürülen bir eğitim `{"tür":"devam","adım":1500}` kaydı yazar; bir `devam` kaydından **önce** gelen ve adımı ondan büyük ya da eşit olan kayıtlar geçersizdir (kesilmeden önce yazılmış, yeniden hesaplanan adımlar silinmez). Günlük dosyası program bitince (hata ya da kesilmeyle bitse de) kapanır; açık bir kapatma adı yoktur.
+Günlük okuyucuları için kurallar: `tür` taşımayan satırlar ölçü kayıtlarıdır. Kontrol noktasından sürdürülen bir eğitim `{"tür":"devam","adım":1500}` kaydı yazar; bir `devam` kaydından **önce** gelen ve adımı ondan **büyük** olan ölçü kayıtları geçersizdir (kesilmeden önce yazılmış, yeniden hesaplanan adımlar silinmez; adımı devamın adımına eşit olan kayıt kaydedilen noktaya dahildir ve geçerlidir, bkz. §20). Günlük dosyası program bitince (hata ya da kesilmeyle bitse de) kapanır; açık bir kapatma adı yoktur.
 
 ## İlerleme çubuğu
 

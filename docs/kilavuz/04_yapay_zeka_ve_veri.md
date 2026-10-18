@@ -222,6 +222,6 @@ adım 1200/2000 ▕█████████▌░░░░░░▏ %60 · ka
 adım 2000/2000 · kayıp 1,84 · 24 sn sürdü
 ```
 
-**Günlük.** `günlük("kayit/egitim.jsonl")` her satırı bir JSON kaydı olan bir dosya açar; `ilerleme(..., günlük: g)` her adımın ölçülerini oraya da yazar, `g.ekle({doğrulama_kaybı: d})` ayrı kayıt ekler. Dosyanın başında programın adı ve komut satırı ayarları durur: hangi ayarla hangi kaybın alındığı sonradan da okunur. Dosya varsa sonuna eklenir; kayıpta NaN belirirse gizlenmez, `"NaN"` olarak yazılır.
+**Günlük.** `günlük("kayit/egitim.jsonl")` her satırı bir JSON kaydı olan bir dosya açar; `ilerleme(..., günlük: g)` her adımın ölçülerini oraya da yazar, `g.ekle({doğrulama_kaybı: d})` ayrı kayıt ekler. Dosyanın başında programın adı ve komut satırı ayarları durur: hangi ayarla hangi kaybın alındığı sonradan da okunur. Dosya varsa sonuna eklenir; kayıpta NaN belirirse gizlenmez, `"NaN"` olarak yazılır. Kesilen bir eğitimi kaldığı yerden sürdürmek için: [§9, uzun eğitim](09_uzun_egitim.md).
 
 **Gizli değerler.** Erişim anahtarını ortam değişkeniyle verin: `değişken belirteç = ortam_değişkeni("HF_TOKEN")`. Adı `TOKEN`, `KEY`, `SECRET`, `PASSWORD`, `ŞİFRE`, `ANAHTAR` gibi bir sözcük içeren değişken ve seçeneklerin değeri ekranda, hata mesajlarında, günlükte ve hata ayıklayıcıda `***` olarak görünür (`TOKENIZER_PATH` ya da `max_tokens` gibi adlar etkilenmez).

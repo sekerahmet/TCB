@@ -15,7 +15,8 @@
 // çevrilmez (TRTENSOR imzası gibi); okuyan araçlar (İzleme Masası, tr izle) bunlara bakar.
 // Tanımsız (NaN) ve sonsuz değerler gizlenmez, "NaN", "+Sonsuz", "-Sonsuz" metni olarak
 // yazılır. Bir "devam" kaydı (kontrol noktasından sürdürme, bkz. Gunluk.DevamYaz) kendinden
-// önce gelen ve adımı ondan büyük ya da eşit olan kayıtları geçersiz kılar.
+// önce gelen ve adımı ondan büyük olan ölçü kayıtlarını geçersiz kılar (adımı eşit olan kayıt
+// kaydedilen noktaya dahildir).
 //
 // İlerleme çubuğu standart hataya (VM.Err) yazar: terminalde tek satırda en çok saniyede 10
 // kez yenilenir (yorumlayıcının canlı satır kancasıyla: yazdır ve hata çıktısı çubuğa

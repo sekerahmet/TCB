@@ -1866,7 +1866,7 @@ Kullananlar: T702 `kontrol_noktası` · İlişkili: T985 `tut`
 
 #### T985 `tut`
 
-kontrol_noktası'nın saklayacağı en yeni nokta sayısıdır (pozitif Tam, varsayılan 2); daha eskileri her başarılı kayıttan sonra silinir. Bozuk bir nokta silinmez.
+kontrol_noktası'nın saklayacağı en yeni nokta sayısıdır (pozitif Tam, varsayılan 2); daha eskileri her başarılı kayıttan sonra silinir.
 
 ```tr
 değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_t985", {w: w}, tut: 3); döngü i içinde 1..5 { kn.güncelle(i); kn.kaydet() }; yazdır(klasörü_listele("koşu_t985/kontrol_noktalari", "adim_*").uzunluk)

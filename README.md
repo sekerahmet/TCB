@@ -102,6 +102,7 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | [`07_karakter_modeli.tr`](ornekler/07_karakter_modeli.tr) | Projenin belgeleriyle eğitilen karakter düzeyi dil modeli ve metin üretimi |
 | [`08_veri_ile_egitim.tr`](ornekler/08_veri_ile_egitim.tr) | `tokenizer.json` parçalayıcısı ve `.npy` veri kümesiyle uçtan uca eğitim ve doğrulama |
 | [`09_hata_ayiklama_alistirmasi.tr`](ornekler/09_hata_ayiklama_alistirmasi.tr) | VS Code hata ayıklayıcısıyla adım adım ilerleme: kesme noktası, tablo görünümü, değeri çalışırken değiştirme (F5) |
+| [`10_kontrol_noktasi.tr`](ornekler/10_kontrol_noktasi.tr) | Uzun eğitim: koşu klasörü, `kontrol_noktası` ile düzenli kayıt, Ctrl+C ile durdurup aynı komutla kaldığı yerden (bit düzeyinde aynı) sürdürme |
 
 Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oraya kopyalayabilirsiniz (ör. `ornekler/01_merhaba.tr`); bu klasör depoya girmez.
 

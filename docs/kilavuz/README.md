@@ -12,3 +12,4 @@ Kılavuz dili kullanmayı anlatır; dilin kuralları [`docs/dil/`](../dil/README
 6. [VS Code eklentisi kısayolları](06_vscode_kisayollari.md)
 7. [Test yazma ve çalıştırma (`tr test`)](07_testler.md)
 8. [Kod biçimlendirme (`tr biçimle`)](08_bicimlendirme.md)
+9. [Uzun eğitim: kontrol noktası ve devam](09_uzun_egitim.md)

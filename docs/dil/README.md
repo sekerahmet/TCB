@@ -25,3 +25,4 @@ Bu belge TR dilinin **bugünkü uygulamaya** (`internal/dil/sozcuk`, `internal/d
 17. [Kodlar](17_kodlar.md)
 18. [Dosya ve yol](18_dosya_ve_yol.md)
 19. [Süreç ve kayıt: ortam değişkenleri, komut satırı, günlük, ilerleme çubuğu](19_surec_ve_kayit.md)
+20. [Kontrol noktası ve kaldığı yerden devam](20_kontrol_noktasi.md)
