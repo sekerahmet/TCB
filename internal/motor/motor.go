@@ -17,6 +17,7 @@ import (
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/motor/dosya"
 	"tr_dili/internal/motor/gunluk"
+	"tr_dili/internal/motor/kontrol"
 	"tr_dili/internal/motor/ogrenme"
 	"tr_dili/internal/motor/parcalayici"
 	"tr_dili/internal/motor/surec"
@@ -33,9 +34,13 @@ func init() {
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
 	yurut.MotorEkle(parcalayici.Kaydet)
 	yurut.MotorEkle(veri.Kaydet)
-	// Süreç (ortam, komut satırı) ve kayıt (günlük, ilerleme): günlüğün başlangıç kaydı
-	// programın komut satırı ayarlarını yazar.
-	yurut.MotorEkle(func(v *yurut.VM) { gunluk.Kaydet(v, surec.Kaydet(v)) })
+	// Süreç (ortam, komut satırı), kayıt (günlük, ilerleme) ve kontrol noktası: günlüğün
+	// başlangıç kaydı ve kontrol noktası programın komut satırı ayarlarını yazar.
+	yurut.MotorEkle(func(v *yurut.VM) {
+		s := surec.Kaydet(v)
+		gunluk.Kaydet(v, s)
+		kontrol.Kaydet(v, s)
+	})
 }
 
 // Kapat motorların program boyunca açık kalmış kaynaklarını (veri kümesi okuyucuları,

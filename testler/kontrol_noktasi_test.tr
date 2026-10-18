@@ -1,0 +1,338 @@
+// docs/dil/20_kontrol_noktasi.md §20 — Kontrol noktası ve kaldığı yerden devam
+// Koşu klasörleri bu dosyanın klasöründeki geçici bir klasörde (testler/gecici_kontrol_noktasi/,
+// .gitignore'da) kurulur ve her test bitince silinir; günlük dosyaları (program bitene kadar
+// açık kalır, Windows'ta açık dosya silinemez) sistemin geçici klasöründe tutulur. Ctrl+C ile
+// durdurma, süreç öldürülerek kesme, ayrı süreçlerle bit düzeyinde kabul testi, ağ sürücüsü
+// (yeniden adlandırma hatası) benzetimi ve GPU yolu Go testleriyle sınanır (internal/motor/kontrol,
+// cmd/tr, internal/motor/gpusinama).
+
+sabit TABAN = yol(yol("veri").mutlak.üst_klasör, "gecici_kontrol_noktasi")
+değişken GEÇİCİ = ortam_değişkeni("TEMP") ?? ortam_değişkeni("TMPDIR") ?? "/tmp"
+değişken GÜNLÜKLER = "{GEÇİCİ}/tr_kontrol_noktasi_{zaman_ms()}"
+
+// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+fonksiyon hata_metni(f) {
+    dene {
+        f()
+    } yakala h {
+        sonuç h
+    }
+    sonuç ""
+}
+
+// koşu: testin kendi boş koşu klasörünün yolu (önceki bir koşudan kalmışsa silinir).
+fonksiyon koşu(ad) {
+    değişken k = yol(TABAN, ad)
+    eğer k.var_mı {
+        sil(k, içindekilerle: doğru)
+    }
+    sonuç k
+}
+
+fonksiyon temizle() {
+    eğer TABAN.var_mı {
+        sil(TABAN, içindekilerle: doğru)
+    }
+}
+
+fonksiyon param(şekil, tohum) {
+    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: tohum) * 0.1), türev_izle: doğru)
+}
+
+test "20.1 kontrol_noktası yeni bir koşuda boş başlar; klasör ilk kayıtta oluşur" {
+    ertele { temizle() }
+    değişken k = koşu("kurulum")
+    değişken w = param([2], 1)
+    değişken kn = kontrol_noktası(k, {w: w})
+    eşit_mi(KontrolNoktası, tip(kn))
+    eşit_mi(0, kn.kaldığı_adım)
+    eşit_mi(yanlış, k.var_mı)
+    doğrula(metin(kn).içerir("kontrol_noktalari, adım 0, 1 nesne"), metin(kn))
+    değişken kn2 = kontrol_noktası(metin(k), {w: w}, her_dakika: 0.5, tut: 3)
+    eşit_mi(0, kn2.kaldığı_adım)
+}
+
+test "20.1 kurulum hataları" {
+    ertele { temizle() }
+    değişken w = param([2], 1)
+    doğrula(hata_metni(() => kontrol_noktası(koşu("h"))).içerir("2 argüman"))
+    doğrula(hata_metni(() => kontrol_noktası(5, {w: w})).içerir("Metin ya da Yol"))
+    doğrula(hata_metni(() => kontrol_noktası(koşu("h"), [w])).içerir("Sözlük"))
+    doğrula(hata_metni(() => kontrol_noktası(koşu("h"), {w: w}, her_dakka: 1)).içerir("Bunu mu demek istediniz: 'her_dakika'?"))
+    doğrula(hata_metni(() => kontrol_noktası(koşu("h"), {w: w}, her_dakika: -1)).içerir("0 ile"))
+    doğrula(hata_metni(() => kontrol_noktası(koşu("h"), {w: w}, tut: 0)).içerir("1 ile 1000 arasında"))
+    klasör_oluştur(TABAN)
+    dosya_yaz(yol(TABAN, "dosya"), "x")
+    doğrula(hata_metni(() => kontrol_noktası(yol(TABAN, "dosya"), {w: w})).içerir("bir dosya; koşu klasörü olmalı"))
+}
+
+test "20.2 kaydedilebilen nesneler ve hatalar" {
+    ertele { temizle() }
+    değişken w = param([2], 1)
+    değişken op = AdamW([w])
+    değişken ö = veri_kümesi("veri/metin").örnekleyici(toplu: 2, bağlam: 4, tohum: 1)
+    değişken g = günlük("{GÜNLÜKLER}/nesneler.jsonl")
+    değişken kn = kontrol_noktası(koşu("nesneler"), {model: {katman: [w]}, op: op, ö: ö, g: g, sayaçlar: {adım: 0}, liste: [1, 2.5, "a", yok]})
+    eşit_mi(0, kn.kaldığı_adım)
+    değişken k = koşu("nesneler_h")
+    doğrula(hata_metni(() => kontrol_noktası(k, {})).içerir("1 ile 1000 arası nesne"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {en_iyi: 99.0})).içerir("düz bir değer doğrudan verilemez"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {t: tensör([1.0])})).içerir("türev izlemeyen bir tensör"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {f: (x) => x})).içerir("kaydedilemez"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {izlenen: {t: tensör([1.0])}})).içerir("izlenen"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {"a/b": w})).içerir("'/' ya da denetim karakteri içeremez"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {1: w})).içerir("nesne adları (Metin)"))
+}
+
+test "20.3 güncelle tamamlanan adımı bildirir; her_dakika dolunca kaydeder" {
+    ertele { temizle() }
+    değişken w = param([2], 1)
+    değişken k = koşu("güncelle")
+    değişken kn = kontrol_noktası(k, {w: w}, her_dakika: 0)
+    eşit_mi(doğru, kn.güncelle(1))
+    eşit_mi(doğru, yol(k, "kontrol_noktalari", "adim_0000000001").klasör_mü)
+    değişken kn2 = kontrol_noktası(koşu("güncelle2"), {w: w})
+    eşit_mi(yanlış, kn2.güncelle(1))
+    doğrula(hata_metni(() => kn2.güncelle(-1)).içerir("0 ya da pozitif bir Tam"))
+    doğrula(hata_metni(() => kn2.güncelle(1.5)).içerir("0 ya da pozitif bir Tam"))
+    doğrula(hata_metni(() => kn2.güncelle()).içerir("1 argüman"))
+}
+
+test "20.4 kaydet hemen kaydeder ve noktanın klasörünü verir" {
+    ertele { temizle() }
+    değişken w = param([2], 1)
+    değişken k = koşu("kaydet")
+    değişken kn = kontrol_noktası(k, {w: w})
+    değişken y = kn.kaydet()
+    eşit_mi(Yol, tip(y))
+    eşit_mi("adim_0000000000", y.dosya_adı)
+    kn.güncelle(1500)
+    eşit_mi("adim_0000001500", kn.kaydet().dosya_adı)
+    // Aynı adımın noktası yeniden kaydedilince yenisi yerine konur.
+    eşit_mi("adim_0000001500", kn.kaydet().dosya_adı)
+    eşit_mi(["adim_0000000000", "adim_0000001500"], klasörü_listele(yol(k, "kontrol_noktalari"), "adim_*").haritala { o.dosya_adı })
+    doğrula(hata_metni(() => kn.kaydet(1)).içerir("0 argüman"))
+}
+
+test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; son.json en son noktayı gösterir" {
+    ertele { temizle() }
+    değişken w = param([2], 1)
+    değişken k = koşu("düzen")
+    değişken kn = kontrol_noktası(k, {w: w, op: SGD([w])})
+    kn.güncelle(7)
+    değişken n = kn.kaydet()
+    eşit_mi(["durum.json", "ozet.json", "tensorler.trt"], klasörü_listele(n).haritala { o.dosya_adı })
+    değişken son = json_çöz(dosya_oku(yol(k, "kontrol_noktalari", "son.json")))
+    eşit_mi(7, son["adım"])
+    eşit_mi("adim_0000000007", son["klasör"])
+    eşit_mi(1, son["sürüm"])
+    değişken durum = json_çöz(dosya_oku(yol(n, "durum.json")))
+    eşit_mi(7, durum["adım"])
+    eşit_mi(["w", "op"], durum["nesneler"].haritala { o["ad"] })
+    eşit_mi(["w/0"], tensör_yükle(yol(n, "tensorler.trt")).anahtarlar())
+}
+
+// eğit: aynı tohumlarla kurulan küçük bir modeli koşu klasöründe kontrol noktasıyla son adıma
+// kadar eğitir; kesilip yeniden çağrılınca kaldığı adımdan sürer.
+fonksiyon eğit(k, son, günlük_adı) {
+    değişken E = param([4096, 4], 1)
+    değişken w = param([4, 3], 2)
+    değişken model = {E: E, w: w}
+    değişken op = AdamW(parametreler(model), öğrenme_oranı: 0.05)
+    değişken ö = veri_kümesi("veri/metin").örnekleyici(toplu: 2, bağlam: 8, tohum: 4)
+    değişken g = günlük("{GÜNLÜKLER}/{günlük_adı}.jsonl")
+    değişken izlenen = {en_iyi: 99.0, adımlar: [], oranlar: {1: 0.5}}
+    değişken kn = kontrol_noktası(k, {model: model, op: op, ö: ö, g: g, izlenen: izlenen}, her_dakika: 0)
+    döngü adım içinde kn.kaldığı_adım..son {
+        değişken giriş, hedef = ö.sonraki()
+        op.sıfırla()
+        değişken kayıp = ortalama((gömme(E, giriş) @ w) * (gömme(E, hedef) @ w))
+        geri_yayılım(kayıp)
+        op.adım()
+        eğer kayıp.değer < izlenen.en_iyi { izlenen.en_iyi = kayıp.değer }
+        izlenen.adımlar.ekle(adım)
+        g.ekle({adım_no: adım + 1, kayıp: kayıp})
+        kn.güncelle(adım + 1)
+    }
+    sonuç {model: model, op: op, ö: ö, izlenen: izlenen, kn: kn, g: g}
+}
+
+test "20.6 yeniden kurulan kontrol noktası kaldığı yerden kesintisizle aynı sürer" {
+    ertele { temizle() }
+    değişken a = eğit(koşu("kesintisiz"), 6, "kesintisiz")
+    değişken kb = koşu("kesilen")
+    değişken ilk = eğit(kb, 3, "kesilen")
+    değişken takma = ilk.izlenen
+    değişken b = eğit(kb, 6, "kesilen")
+    eşit_mi(3, b.kn.kaldığı_adım)
+    eşit_mi(a.model.E.değer, b.model.E.değer)
+    eşit_mi(a.model.w.değer, b.model.w.değer)
+    eşit_mi(a.op.durum.anahtarlar(), b.op.durum.anahtarlar())
+    döngü ad içinde a.op.durum.anahtarlar() {
+        eşit_mi(a.op.durum[ad].değer, b.op.durum[ad].değer)
+    }
+    eşit_mi(a.ö.durum, b.ö.durum)
+    eşit_mi(a.ö.sonraki()[0].değer, b.ö.sonraki()[0].değer)
+    eşit_mi(a.izlenen, b.izlenen)
+    eşit_mi([0, 1, 2, 3, 4, 5], b.izlenen.adımlar)
+    eşit_mi(Ondalık, tip(b.izlenen.en_iyi))
+    eşit_mi(0.5, b.izlenen.oranlar[1])
+    // İlk koşunun düz değerleri yerinde yüklenmedi; yeni koşunun sözlüğü yerinde yenilendi.
+    eşit_mi([0, 1, 2], takma.adımlar)
+}
+
+test "20.6 sürdürülen eğitimin günlüğüne devam kaydı yazılır" {
+    ertele { temizle() }
+    değişken k = koşu("devam_günlük")
+    eğit(k, 2, "devam_günlük")
+    eğit(k, 4, "devam_günlük")
+    değişken kayıtlar = dosya_oku("{GÜNLÜKLER}/devam_günlük.jsonl").kırp().böl("\n").haritala { json_çöz(o) }
+    değişken devamlar = kayıtlar.filtrele { o["tür"] == "devam" }
+    eşit_mi(1, devamlar.uzunluk)
+    eşit_mi(2, devamlar[0]["adım"])
+}
+
+test "20.7 uyumsuz nesneler hata verir ve hiçbir şeyi değiştirmez" {
+    ertele { temizle() }
+    değişken k = koşu("uyum")
+    değişken w = param([2], 1)
+    değişken ö = veri_kümesi("veri/metin").örnekleyici(toplu: 2, bağlam: 4, tohum: 1)
+    değişken kn = kontrol_noktası(k, {w: w, op: AdamW([w]), ö: ö})
+    kn.güncelle(5)
+    kn.kaydet()
+    değişken yeni = param([2], 9)
+    değişken önce = yeni.değer
+    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: AdamW([yeni])})).içerir("kayıttaki \"ö\" (durumlu) verilmedi"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: AdamW([yeni]), ö: ö, x: {a: 1}})).içerir("\"x\" kayıtta yok"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {w: param([3], 1), op: AdamW([yeni]), ö: ö})).içerir("şekli modelde [3], kayıtta [2]"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: SGD([yeni]), ö: ö})).içerir("1 parametreli bir AdamW, şimdi 1 parametreli bir SGD"))
+    değişken ö2 = veri_kümesi("veri/metin").örnekleyici(toplu: 3, bağlam: 4, tohum: 1)
+    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: AdamW([yeni]), ö: ö2})).içerir("toplu değeri 2, bu okuyucununki 3"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {w: yeni, op: AdamW([yeni]), ö: {a: 1}})).içerir("kayıtta bir durumlu, şimdi bir değerler"))
+    eşit_mi(önce, yeni.değer)
+    değişken kn2 = kontrol_noktası(k, {w: yeni, op: AdamW([yeni]), ö: ö})
+    eşit_mi(5, kn2.kaldığı_adım)
+    eşit_mi(w.değer, yeni.değer)
+}
+
+test "20.8 tut en yeni noktaları bırakır" {
+    ertele { temizle() }
+    değişken k = koşu("tut")
+    değişken w = param([2], 1)
+    değişken kn = kontrol_noktası(k, {w: w}, tut: 2)
+    döngü i içinde 1..5 {
+        kn.güncelle(i * 10)
+        kn.kaydet()
+    }
+    eşit_mi(["adim_0000000030", "adim_0000000040"], klasörü_listele(yol(k, "kontrol_noktalari"), "adim_*").haritala { o.dosya_adı })
+}
+
+test "20.9 bozuk nokta açık hata verir ve bir önceki geçerli noktayı önerir" {
+    ertele { temizle() }
+    değişken k = koşu("bozuk")
+    değişken w = param([2], 1)
+    değişken kn = kontrol_noktası(k, {w: w}, tut: 3)
+    kn.güncelle(1)
+    kn.kaydet()
+    kn.güncelle(2)
+    değişken n = kn.kaydet()
+    değişken d = yol(n, "durum.json")
+    dosya_yaz(d, dosya_oku(d).değiştir("\"işçi\"", "\"işçi\" "))
+    değişken m = hata_metni(() => kontrol_noktası(k, {w: w}))
+    doğrula(m.içerir("adim_0000000002\" bozuk: durum.json özeti tutmuyor"), m)
+    doğrula(m.içerir("Bir önceki geçerli nokta: adim_0000000001 (adım 1)"), m)
+    sil(yol(k, "kontrol_noktalari", "adim_0000000001"), içindekilerle: doğru)
+    m = hata_metni(() => kontrol_noktası(k, {w: w}))
+    doğrula(m.içerir("Başka geçerli nokta yok"), m)
+    sil(n, içindekilerle: doğru)
+    eşit_mi(0, kontrol_noktası(k, {w: w}).kaldığı_adım)
+    // Yarıda kalmış bir kaydın geçici klasörü sessizce temizlenir.
+    klasör_oluştur(yol(k, "kontrol_noktalari", "adim_0000000009.tmp-1"))
+    eşit_mi(0, kontrol_noktası(k, {w: w}).kaldığı_adım)
+    eşit_mi(yanlış, yol(k, "kontrol_noktalari", "adim_0000000009.tmp-1").var_mı)
+}
+
+test "20.10 aralıklı kayıtta yazma hatası eğitimi durdurmaz; art arda üçüncüsü hatadır" {
+    ertele { temizle() }
+    değişken k = koşu("yazma_hatası")
+    değişken w = param([2], 1)
+    değişken kn = kontrol_noktası(k, {w: w}, her_dakika: 0)
+    // Noktaların klasörünün yerinde bir dosya: her kayıt yazma hatası verir.
+    klasör_oluştur(k)
+    dosya_yaz(yol(k, "kontrol_noktalari"), "engel")
+    eşit_mi(yanlış, kn.güncelle(1))
+    eşit_mi(yanlış, kn.güncelle(2))
+    değişken m = hata_metni(() => kn.güncelle(3))
+    doğrula(m.içerir("art arda 3 kez kaydedilemedi, eğitim durduruldu"), m)
+    doğrula(m.içerir("Henüz geçerli bir kontrol noktası yok"), m)
+    doğrula(hata_metni(() => kn.kaydet()).içerir("kaydedilemedi"))
+}
+
+test "20.11 parametreleri_yükle var olan parametrelere yerinde yazar" {
+    ertele { temizle() }
+    klasör_oluştur(TABAN)
+    değişken model = {katman: {w: param([2, 3], 1), b: param([3], 2)}}
+    değişken op = SGD(parametreler(model), öğrenme_oranı: 0.1)
+    değişken dosya = yol(TABAN, "agirlik.trt")
+    tensör_kaydet(dosya, {"katman.w": tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": tensör([0.5, 0.5, 0.5])})
+    değişken eski_w = model.katman.w
+    eşit_mi(2, parametreleri_yükle(model, tensör_yükle(dosya)))
+    doğrula(eski_w == model.katman.w)
+    eşit_mi([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], model.katman.w.değer)
+    geri_yayılım(toplam(model.katman.b))
+    op.adım()
+    eşit_mi([0.4, 0.4, 0.4], model.katman.b.değer.haritala { yuvarla(o, 4) })
+    doğrula(hata_metni(() => parametreleri_yükle(model, {"katman.w": tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])})).içerir("\"katman.b\" parametresi sözlükte yok"))
+    doğrula(hata_metni(() => parametreleri_yükle(model, {"katman.w": tensör([1.0]), "katman.b": tensör([1.0, 1.0, 1.0])})).içerir("şekli modelde [2, 3], sözlükte [1]"))
+    doğrula(hata_metni(() => parametreleri_yükle(model, {"katman.w": tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": tensör([1.0, 1.0, 1.0]), "katman.c": tensör([1.0])})).içerir("ilki \"katman.c\" modelde bir parametre değil"))
+    doğrula(hata_metni(() => parametreleri_yükle({a: 1}, {})).içerir("modelde türev izleyen parametre yok"))
+    doğrula(hata_metni(() => parametreleri_yükle(model, [1])).içerir("Sözlük"))
+}
+
+test "20.12 iyileştiricinin durumu alınıp aynı parametrelerle kurulmuş iyileştiriciye yüklenir" {
+    değişken w = param([3], 1)
+    değişken op = AdamW([w], öğrenme_oranı: 0.1)
+    geri_yayılım(toplam(w * w))
+    op.adım()
+    eşit_mi(["adim", "adim.0", "m.0", "v.0"], op.durum.anahtarlar())
+    // Aynı değerli ikinci bir parametrenin iyileştiricisine durum yüklenince ikisi aynı adımı
+    // atar (yüklenmeseydi ilk adımın sapma düzeltmesiyle başka bir sonuç verirdi).
+    değişken w2 = tensör(w, türev_izle: doğru)
+    değişken yeni = AdamW([w2], öğrenme_oranı: 0.1)
+    eşit_mi(doğru, yeni.durumu_yükle(op.durum))
+    op.sıfırla()
+    geri_yayılım(toplam(w * w))
+    op.adım()
+    geri_yayılım(toplam(w2 * w2))
+    yeni.adım()
+    eşit_mi(w.değer, w2.değer)
+    doğrula(hata_metni(() => yeni.durumu_yükle({"m.0": tensör([1.0])})).içerir("\"m.0\" girdisinin şekli [1], beklenen [3]"))
+    doğrula(hata_metni(() => SGD([w]).durumu_yükle(op.durum)).içerir("bu iyileştiricinin (SGD, 1 parametre) durum anahtarı değil"))
+    doğrula(hata_metni(() => yeni.durumu_yükle({"m.0": 1})).içerir("anahtarları Metin, değerleri Tensör"))
+    eşit_mi(Sözlük, tip(SGD([w]).durum))
+}
+
+test "20.13 okuyucunun durumu alınıp aynı ayarla kurulmuş okuyucuya yüklenir" {
+    değişken küme = veri_kümesi("veri/metin")
+    değişken ö = küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 7)
+    ö.sonraki()
+    ö.sonraki()
+    değişken d = ö.durum
+    eşit_mi(["tür", "toplu", "bağlam", "tohum", "küme", "dönem", "sıra", "pencere", "sayaç"], d.anahtarlar())
+    eşit_mi(2, d["sayaç"])
+    değişken beklenen = ö.sonraki()[0].değer
+    değişken yeni = küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 7)
+    eşit_mi(doğru, yeni.durumu_yükle(d))
+    eşit_mi(beklenen, yeni.sonraki()[0].değer)
+    doğrula(hata_metni(() => küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 8).durumu_yükle(d)).içerir("tohum değeri 7, bu okuyucununki 8"))
+    doğrula(hata_metni(() => küme.sıralı(toplu: 2, bağlam: 4).durumu_yükle(d)).içerir("kayıt bir örnekleyici okuyucusunun durumu, bu okuyucu sıralı"))
+    değişken s = küme.sıralı(toplu: 2, bağlam: 4)
+    s.sonraki()
+    değişken sd = s.durum
+    eşit_mi(yanlış, sd["bitti"])
+    değişken sb = s.sonraki()[0].değer
+    değişken s2 = küme.sıralı(toplu: 2, bağlam: 4)
+    s2.durumu_yükle(sd)
+    eşit_mi(sb, s2.sonraki()[0].değer)
+    doğrula(hata_metni(() => s2.durumu_yükle({tür: "sıralı"})).içerir("durumda \"toplu\" alanı yok"))
+}

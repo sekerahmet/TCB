@@ -137,12 +137,17 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		{`kayıp_mse([1], [1])`, "'kayıp_mse' TR'den kaldırıldı"},
 		{`yz_sor("a")`, "'yz_sor' TR'den kaldırıldı"},
 		{`nokta_çarpım([1], [1])`, "'nokta_çarpım' TR'den kaldırıldı"},
-		{"u_liste.kaydet", "'kaydet' TR'den kaldırıldı"},
+		{"u_liste.tahmin_et", "'tahmin_et' TR'den kaldırıldı"},
 		{"u_tensor.eğit", "'eğit' TR'den kaldırıldı"},
 	} {
 		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
 		}
+	}
+	// Ölü kodun adı yeni bir koda verilince eski ipucu kalkar (17, ölü kodlar): kaydet (Y005)
+	// artık KontrolNoktası'nın üyesidir (Y521); listede sıradan bir bulunamayan üyedir.
+	if _, err := calistirAyni(t, m, "u_liste.kaydet"); err == nil || strings.Contains(err.Error(), "kaldırıldı") {
+		t.Errorf("u_liste.kaydet kaldırıldı ipucu vermemeli: %v", err)
 	}
 	// Kaldırılan adlar sıradan adlardır.
 	if v, err := calistirAyni(t, m, "değişken web_sunucu = 3\nweb_sunucu + 1"); err != nil || v.Inspect() != "4" {

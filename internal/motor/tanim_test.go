@@ -262,6 +262,7 @@ func TestUyeTipleriTanimlaAyni(t *testing.T) {
 		{kod.A257, `dosya_satırları("testler/veri/parcalayici.json")`},
 		{kod.A255, `ilerleme(3)`},
 		{kod.A256, `günlük("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
+		{kod.A258, `kontrol_noktası("` + filepath.ToSlash(t.TempDir()) + `", {w: tensör([1.0], türev_izle: doğru)})`},
 	}
 	t.Cleanup(gunluk.TumunuKapat)
 	var kur []string
