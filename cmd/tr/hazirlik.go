@@ -133,7 +133,7 @@ func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
 			kesilmeyiBildir(machine, err, code)
 		}
 		motor.Kapat()
-		calismaHatasiYaz(err, code)
+		calismaHatasiYaz(machine, err, code)
 		cik(1)
 	}
 	machine.WaitAsync()
@@ -143,18 +143,21 @@ func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
 		kesilmeyiBildir(machine, nil, code)
 	}
 	if u := machine.KullanilmayanArgumanUyarisi(); u != "" {
-		fmt.Fprintln(os.Stderr, u)
+		machine.CiktiYaz(os.Stderr, u+"\n")
 	}
 }
 
 // calismaHatasiYaz bir çalışma zamanı hatasını başlığıyla standart hataya yazar. Bir modüle
 // ait hatanın (ya da modülün denetim hatalarının) çerçevesi o modülün kaynağından çizilir.
-func calismaHatasiYaz(err error, code string) {
-	fmt.Fprintln(os.Stderr, calismaBasligi)
+// Metin VM'nin çıktı noktasından geçer (canlı satır, gizli değerler).
+func calismaHatasiYaz(machine *yurut.VM, err error, code string) {
+	var sb strings.Builder
+	sb.WriteString(calismaBasligi + "\n")
 	for _, m := range yurut.HataMaddeleri(err, code) {
-		fmt.Fprintf(os.Stderr, "  • %s\n", m.Mesaj)
-		fmt.Fprint(os.Stderr, indentFrame(m.Cerceve))
+		fmt.Fprintf(&sb, "  • %s\n", m.Mesaj)
+		sb.WriteString(indentFrame(m.Cerceve))
 	}
+	machine.CiktiYaz(os.Stderr, sb.String())
 }
 
 // modulBasligi bir hata başlığına modülün yolunu ekler: "❌ X:" → "❌ X (yol modülünde):".

@@ -27,7 +27,7 @@ func kesmeyiYakala(machine *yurut.VM) {
 	go func() {
 		<-kanal
 		machine.Kes()
-		fmt.Fprintln(os.Stderr, "\n⏹️ Durduruluyor: ertelenen işler çalıştırılıp çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)")
+		machine.CiktiYaz(os.Stderr, "\n⏹️ Durduruluyor: ertelenen işler çalıştırılıp çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
 		<-kanal
 		fmt.Fprintln(os.Stderr, "⏹️ Hemen çıkıldı.")
 		os.Exit(hemenCikisKodu)
@@ -38,8 +38,8 @@ func kesmeyiYakala(machine *yurut.VM) {
 // err programın hatasıdır (kesilmeyse ertelenen işlerin hataları da içinde olabilir).
 func kesilmeyiBildir(machine *yurut.VM, err error, code string) {
 	if err != nil && err != yurut.ErrKesildi {
-		calismaHatasiYaz(err, code) // ertelenen işlerin hataları
+		calismaHatasiYaz(machine, err, code) // ertelenen işlerin hataları
 	}
-	fmt.Fprintln(os.Stderr, "⏹️ Program durduruldu (kesme isteği); ertelenen işler çalıştı. Çıkış kodu 3.")
+	machine.CiktiYaz(os.Stderr, "⏹️ Program durduruldu (kesme isteği); ertelenen işler çalıştı. Çıkış kodu 3.\n")
 	cik(kesilmeCikisKodu)
 }

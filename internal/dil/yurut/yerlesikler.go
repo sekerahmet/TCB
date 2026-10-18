@@ -54,7 +54,7 @@ func yazdirYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) 
 		parts = append(parts, a.Inspect())
 	}
 	out := strings.Join(parts, " ")
-	fmt.Fprintln(y.Out, out)
+	y.CiktiYaz(y.Out, out+"\n")
 	return &StringVal{Val: out}, nil
 }
 
@@ -65,7 +65,7 @@ func girdiYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
 		return nil, ArgumanSayisiHatasi("girdi", "0 ya da 1", len(args), "girdi() ya da girdi(istem)")
 	}
 	if len(args) > 0 {
-		fmt.Fprint(y.Out, args[0].Inspect())
+		y.CiktiYaz(y.Out, args[0].Inspect())
 	}
 	line, readErr := y.satirOku()
 	if readErr != nil && readErr != io.EOF && line == "" {

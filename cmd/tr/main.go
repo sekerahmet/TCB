@@ -254,7 +254,7 @@ func startREPL() {
 
 		val, err := machine.Run(prog)
 		if err != nil {
-			calismaHatasiYaz(err, line)
+			calismaHatasiYaz(machine, err, line)
 			continue
 		}
 		machine.WaitAsync()

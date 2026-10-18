@@ -104,6 +104,12 @@ type vmShared struct {
 	kesildi       atomic.Bool
 	kesilmeKanali chan struct{}
 
+	// ciktiMu çıktı noktalarını (CiktiYaz) etkin canlı satırla sıralar; canliVar canlı satır
+	// varken açıktır (yoksa kilit alınmaz). Bkz. cikti.go.
+	ciktiMu  sync.Mutex
+	canli    CanliSatir
+	canliVar atomic.Bool
+
 	// metinOnbellegi son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
 	metinOnbellegi struct {
 		metin *StringVal
@@ -352,5 +358,5 @@ func (v *VM) reportAsyncError(line int, err error) {
 	if w == nil {
 		w = os.Stderr
 	}
-	fmt.Fprintf(w, "⚠️  Eşzamanlı görev hatası (%s başlatılan): %v\n", "satır "+turkce.SayiEk(int64(line), turkce.Bulunma), err)
+	v.CiktiYaz(w, fmt.Sprintf("⚠️  Eşzamanlı görev hatası (%s başlatılan): %v\n", "satır "+turkce.SayiEk(int64(line), turkce.Bulunma), err))
 }
