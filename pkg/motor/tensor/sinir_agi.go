@@ -3,6 +3,7 @@ package tensor
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"os"
@@ -178,7 +179,9 @@ func (nn *SinirAgi) kaydet(m *vm.VM, yol string) error {
 	}
 	cozulen := baglama.YolCoz(m, yol)
 	var yazHata error
-	m.Blocking(func() { yazHata = os.WriteFile(cozulen, veri, 0644) })
+	m.Blocking(func() {
+		yazHata = atomikYaz(cozulen, func(w io.Writer) error { _, e := w.Write(veri); return e })
+	})
 	return turkce.DosyaHatasi("model.kaydet", yol, "kaydedilemedi", yazHata)
 }
 

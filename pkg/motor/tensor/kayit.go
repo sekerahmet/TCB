@@ -134,16 +134,13 @@ func tensorKaydet(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Valu
 	return vm.NULL, nil
 }
 
-func dosyayaYaz(yol string, girdiler []kayitGirdisi) (err error) {
-	f, err := os.OpenFile(yol, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if kapat := f.Close(); err == nil {
-			err = kapat
-		}
-	}()
+// dosyayaYaz girdileri yol'a atomik olarak yazar (bkz. atomikYaz): yazma yarıda kalırsa
+// önceki kontrol noktası bozulmaz.
+func dosyayaYaz(yol string, girdiler []kayitGirdisi) error {
+	return atomikYaz(yol, func(f io.Writer) error { return girdileriYaz(f, girdiler) })
+}
+
+func girdileriYaz(f io.Writer, girdiler []kayitGirdisi) (err error) {
 	bw := bufio.NewWriterSize(f, 1<<16)
 	crc := crc32.NewIEEE()
 	w := io.MultiWriter(bw, crc)
