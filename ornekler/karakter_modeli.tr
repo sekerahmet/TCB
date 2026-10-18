@@ -136,11 +136,7 @@ döngü t içinde 0..T { bağlam.ekle(veri[t]) }
 değişken üretilen = ""
 türevsiz {
     döngü n içinde 0..120 {
-        değişken son = ileri([bağlam], 1).değer[0][T - 1]
-        değişken en_iyi = 0
-        döngü j içinde 0..V {
-            eğer son[j] > son[en_iyi] { en_iyi = j }
-        }
+        değişken en_iyi = maks_indeks(ileri([bağlam], 1), eksen: -1).değer[0][T - 1]
         üretilen = üretilen + harfler[en_iyi]
         değişken yeni = []
         döngü t içinde 1..T { yeni.ekle(bağlam[t]) }
