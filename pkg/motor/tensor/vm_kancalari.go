@@ -8,8 +8,8 @@ import (
 )
 
 // Bu dosya tensör değerinin VM kancalarını (bkz. pkg/vm/kancalar.go) uygular: eşitlik,
-// işleçler (@ + - * / ** ve karşılaştırmalar), tekli eksi, indeksleme, indeksle atama ve
-// dış biçimlere (JSON) dönüşüm.
+// işleçler (@ + - * / ** ve karşılaştırmalar), tekli eksi, indeksleme, indeksle atama,
+// döngüyle gezinme ve dış biçimlere (JSON) dönüşüm.
 
 var (
 	_ vm.Esitlik          = (*Deger)(nil)
@@ -17,6 +17,7 @@ var (
 	_ vm.Olumsuzlanabilir = (*Deger)(nil)
 	_ vm.Indekslenebilir  = (*Deger)(nil)
 	_ vm.IndeksAtanabilir = (*Deger)(nil)
+	_ vm.Yinelenebilir    = (*Deger)(nil)
 	_ vm.DuzDegerli       = (*Deger)(nil)
 )
 
@@ -222,7 +223,7 @@ func (d *Deger) Indeks(idx vm.Value) (vm.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		return Yeni(r), nil
+		return d.gorunum(r), nil
 	}
 	i, ok := tamSayi(idx)
 	if !ok {
@@ -239,7 +240,43 @@ func (d *Deger) Indeks(idx vm.Value) (vm.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Yeni(r), nil
+	return d.gorunum(r), nil
+}
+
+// gorunum t'nin bir görünümünü (indeks, dilim, döngü öğesi) sarar. Görünüm aynı veriyi
+// taşıdığından tam sayılı tensörün görünümü de tam sayılıdır (ör. token kimliği
+// tensörünün satırları).
+func (d *Deger) gorunum(r *ct.Tensor) *Deger {
+	g := Yeni(r)
+	g.tamSayili = d.tamSayili
+	return g
+}
+
+// YinelemeUzunlugu 'döngü x içinde t' ve liste üretecinde gezilecek öğe sayısıdır (ilk
+// eksenin uzunluğu). 0 boyutlu tensör üzerinde döngü kurulamaz.
+func (d *Deger) YinelemeUzunlugu() (int, error) {
+	sh := d.t.Shape()
+	if len(sh) == 0 {
+		return 0, fmt.Errorf("skaler (0 boyutlu) tensör üzerinde döngü kurulamaz; değerini .değer ile okuyun")
+	}
+	return sh[0], nil
+}
+
+// YinelemeOgesi ilk eksen boyunca i. öğedir: 1 boyutlu tensörde sayı (.değer'deki gibi
+// Ondalık; tam sayılı tensörde Tam), N boyutluda t[i] ile aynı (N-1) boyutlu görünüm
+// (veriyi paylaşır, türev izlenir).
+func (d *Deger) YinelemeOgesi(i int) (vm.Value, error) {
+	if d.t.Dim() != 1 {
+		return d.Indeks(vm.NewInt(int64(i)))
+	}
+	x, err := guvenli(func() float32 { return d.t.At(i) })
+	if err != nil {
+		return nil, err
+	}
+	if d.tamSayili {
+		return vm.NewInt(int64(x)), nil
+	}
+	return &vm.FloatVal{Val: kisaFloat64(x)}, nil
 }
 
 // IndekseAta t[i] = değer ve t[baş..son] = değer atamasıdır (t[i][j] = değer, t[i]

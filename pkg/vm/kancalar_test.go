@@ -214,3 +214,60 @@ func TestIndeksAtamaVeDuzDegerKancalari(t *testing.T) {
 		t.Fatalf("atamalar ya da düz değer: %v", got)
 	}
 }
+
+// yinelenenDeger n öğeli (öğe i: i*10) bir dış değerdir; n < 0 ise döngü kurulamaz.
+type yinelenenDeger struct{ n int }
+
+func (y *yinelenenDeger) Type() ValueType { return "Yinelenen" }
+func (y *yinelenenDeger) Inspect() string { return "yinelenen" }
+func (y *yinelenenDeger) IsTruthy() bool  { return true }
+func (y *yinelenenDeger) YinelemeUzunlugu() (int, error) {
+	if y.n < 0 {
+		return 0, errors.New("üzerinde gezilemez")
+	}
+	return y.n, nil
+}
+func (y *yinelenenDeger) YinelemeOgesi(i int) (Value, error) { return NewInt(int64(i * 10)), nil }
+
+// Yinelenebilir kancası 'döngü x içinde', 'döngü i, x içinde' ve liste üretecinde
+// kullanılır; kanca hatası satır bilgisi taşır.
+func TestYinelenebilirKancasi(t *testing.T) {
+	calistirKod := func(kod string) (*VM, error) {
+		vmx := New()
+		vmx.GlobalEnv.Define("y", &yinelenenDeger{n: 4}, false)
+		vmx.GlobalEnv.Define("bozuk", &yinelenenDeger{n: -1}, false)
+		p := parser.New(lexer.New(kod))
+		prog := p.ParseProgram()
+		if len(p.Errors()) > 0 {
+			t.Fatal(p.Errors())
+		}
+		_, err := vmx.Run(prog)
+		return vmx, err
+	}
+	vmx, err := calistirKod(`
+değişken toplamı = 0
+döngü x içinde y { toplamı = toplamı + x }
+değişken çiftler = []
+döngü i, x içinde y {
+    eğer i == 3 { çık }
+    çiftler.ekle([i, x])
+}
+değişken üretilen = [x + 1 döngü x içinde y eğer x > 0]
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for ad, want := range map[string]string{
+		"toplamı": "60", "çiftler": "[[0, 0], [1, 10], [2, 20]]", "üretilen": "[11, 21, 31]",
+	} {
+		if got, _ := vmx.GlobalEnv.Get(ad); got == nil || got.Inspect() != want {
+			t.Errorf("%s: beklenen %s, alınan %v", ad, want, got)
+		}
+	}
+	if _, err := calistirKod("\ndöngü x içinde bozuk { }"); err == nil || err.Error() != "Satır 2: üzerinde gezilemez" {
+		t.Errorf("döngü kanca hatası satır önekli olmalı: %v", err)
+	}
+	if _, err := calistirKod("\n\nyazdır([x döngü x içinde bozuk])"); err == nil || err.Error() != "Satır 3: üzerinde gezilemez" {
+		t.Errorf("üreteç kanca hatası satır önekli olmalı: %v", err)
+	}
+}

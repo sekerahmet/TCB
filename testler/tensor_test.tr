@@ -169,6 +169,34 @@ test "15.10 tensör_kaydet ve tensör_yükle hataları" {
     doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("değeri bir tensör olmalıdır"))
 }
 
+test "15.11 tensör üzerinde döngü ve liste üreteci" {
+    değişken t = tensör([[1, 2], [3, 4], [5, 6]])
+    değişken satırlar = []
+    döngü s içinde t {
+        satırlar.ekle(s.değer)
+    }
+    eşit_mi([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], satırlar)
+    değişken indeksler = []
+    döngü i, s içinde t {
+        indeksler.ekle(i)
+        eşit_mi("Tensör", tip(s))
+        eşit_mi([2], s.şekil)
+    }
+    eşit_mi([0, 1, 2], indeksler)
+    // 1 boyutlu tensörün öğeleri sayıdır (tam sayılı tensörde Tam).
+    eşit_mi([3.0, 5.0], [x * 2 döngü x içinde tensör([1.5, 2.5])])
+    eşit_mi([3.0, 7.0, 11.0], [toplam(s).değer döngü s içinde t])
+    eşit_mi([2.5], [x döngü x içinde tensör([0.5, 2.5]) eğer x > 1])
+    eşit_mi(["Tam", "Tam"], [tip(x) döngü x içinde maks_indeks(tensör([[1, 5], [7, 0]]), eksen: -1)])
+    // Görünümler veriyi paylaşır: satıra atama tensörü değiştirir.
+    değişken z = sıfırlar([2, 2])
+    döngü satır içinde z {
+        satır[0] = 9
+    }
+    eşit_mi([[9.0, 0.0], [9.0, 0.0]], z.değer)
+    doğrula(hata_metni(() => [x döngü x içinde tensör(3.0)]).içerir("0 boyutlu) tensör üzerinde döngü kurulamaz"))
+}
+
 test "15.8 hatalar şekli gösterir ve yakalanabilir" {
     doğrula(hata_metni(() => sıfırlar([32, 1024]) @ sıfırlar([512, 10])).içerir("[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512"))
     doğrula(hata_metni(() => sıfırlar([2, 3]) + sıfırlar([4])).içerir("[2, 3] ile [4] şekilleri toplama için yayınlanamaz"))

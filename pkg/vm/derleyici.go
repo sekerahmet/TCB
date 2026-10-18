@@ -596,6 +596,38 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *ast.ForInStatement) deyim
 				lastVal = val
 			}
 
+		case Yinelenebilir:
+			// Dış değerler (ör. tensör: ilk eksen boyunca öğeler)
+			n, err := it.YinelemeUzunlugu()
+			if err != nil {
+				return nil, signalNone, satirEki(line, err)
+			}
+			for idx := 0; idx < n; idx++ {
+				if devir++; devir&255 == 0 {
+					v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
+				}
+				item, err := it.YinelemeOgesi(idx)
+				if err != nil {
+					return nil, signalNone, satirEki(line, err)
+				}
+				loopEnv := tur.yeni()
+				if anahtarYuva >= 0 {
+					loopEnv.vals[anahtarYuva] = NewInt(int64(idx))
+				}
+				loopEnv.vals[degerYuva] = item
+				val, sig, err := govde.calistir(v, loopEnv)
+				if err != nil {
+					return nil, signalNone, err
+				}
+				if sig == signalReturn {
+					return val, signalReturn, nil
+				}
+				if sig == signalBreak {
+					break
+				}
+				lastVal = val
+			}
+
 		default:
 			return nil, signalNone, fmt.Errorf("Satır %d: %s tipi üzerinde döngü kurulamaz", line, iterVal.Type())
 		}

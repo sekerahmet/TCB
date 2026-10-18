@@ -45,6 +45,16 @@ type IndeksAtanabilir interface {
 	IndekseAta(idx Value, deger Value) error
 }
 
+// Yinelenebilir 'döngü x içinde değer', 'döngü i, x içinde değer' ve liste üreteci
+// ('[ifade döngü x içinde değer]') için gezilecek öğeleri sağlar. YinelemeUzunlugu öğe
+// sayısını (değer üzerinde döngü kurulamıyorsa hata) verir; VM her tur için
+// YinelemeOgesi(i) ile 0 ≤ i < uzunluk olan i. öğeyi ister. Uzunluk döngü başında bir kez
+// okunur.
+type Yinelenebilir interface {
+	YinelemeUzunlugu() (int, error)
+	YinelemeOgesi(i int) (Value, error)
+}
+
 // DuzDegerli, değerin dış biçimlere (JSON, veritabanı, Go değerleri) yazılırken yerine
 // geçen düz TR değerini verir (ör. tensör → iç içe Ondalık listesi).
 type DuzDegerli interface {

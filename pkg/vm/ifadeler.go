@@ -39,6 +39,18 @@ func uretecOgeleri(iterVal Value, line int) ([]Value, error) {
 		for _, ch := range []rune(it.Val) {
 			items = append(items, &StringVal{Val: string(ch)})
 		}
+	case Yinelenebilir:
+		// Dış değerler (ör. tensör: ilk eksen boyunca öğeler)
+		n, err := it.YinelemeUzunlugu()
+		if err != nil {
+			return nil, satirEki(line, err)
+		}
+		items = make([]Value, n)
+		for i := range items {
+			if items[i], err = it.YinelemeOgesi(i); err != nil {
+				return nil, satirEki(line, err)
+			}
+		}
 	default:
 		return nil, fmt.Errorf("Satır %d: Liste üretecinde %s tipi üzerinde döngü kurulamaz", line, iterVal.Type())
 	}

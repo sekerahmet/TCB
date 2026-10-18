@@ -205,7 +205,7 @@ eşle puan {
 }
 ```
 
-**5.7** `döngü x içinde kaynak { ... }` listede, aralıkta, metinde (karakterler) ve sözlükte (anahtarlar) dolaşır. İki değişkenli biçim `döngü i, x içinde ...` liste/metinde indeks ile elemanı, sözlükte anahtar ile değeri verir.
+**5.7** `döngü x içinde kaynak { ... }` listede, aralıkta, metinde (karakterler), sözlükte (anahtarlar) ve tensörde (ilk eksen boyunca, bkz. 15.11) dolaşır. İki değişkenli biçim `döngü i, x içinde ...` liste/metin/tensörde indeks ile elemanı, sözlükte anahtar ile değeri verir.
 
 **5.8** `döngü koşul { ... }` ve `iken koşul { ... }` koşul doğru oldukça tekrarlar.
 
@@ -419,6 +419,16 @@ Tensör, n boyutlu bir `float32` sayı dizisidir (tip adı `Tensör`). İşlemle
 **15.9** `maks_indeks(x, eksen: -1)` verilen eksende en büyük elemanın indeksini verir (eşitlikte ilki); sonuç o eksen kaldırılmış, tam sayı değerli ve türev izlemeyen bir tensördür (1 boyutlu girdide 0 boyutlu). Sonuç tam sayılı işaretlidir: `.değer` `Tam` ya da `Tam` listesi verir ve ondalıksız yazdırılır; bu işaret işlem sonuçlarına geçmez. Eksen yalnızca adlı verilir. `gradyan_kırp(parametreler, en_fazla: 1.0)` parametre gradyanlarının toplam L2 normu `en_fazla`'yı aşıyorsa hepsini aynı oranda küçültür ve kırpma öncesi normu `Ondalık` olarak döndürür.
 
 **15.10** `tensör_kaydet(yol, sözlük)` adları metin, değerleri tensör olan bir sözlüğü yalnızca verilen yola yazar (dosya varsa üzerine yazılır); `tensör_yükle(yol, türev_izle: yanlış)` aynı sırayla bir sözlük döndürür. Biçim sürüm başlıklıdır (`TRTENSOR`, sürüm, her tensör için ad, veri türü kodu, şekil ve float32 veri, sonda CRC-32); bilinmeyen sürüm/tür, eksik, bozuk ya da başka türden dosya açık bir hatayla reddedilir.
+
+**15.11** Döngü: `döngü x içinde t`, `döngü i, x içinde t` ve liste üreteci (`[ifade döngü x içinde t]`) tensörü ilk ekseni boyunca gezer. 1 boyutlu tensörde öğeler sayıdır (`.değer`deki gibi `Ondalık`; tam sayılı tensörde `Tam`); N boyutluda öğeler `t[i]` ile aynı, (N-1) boyutlu görünümlerdir (veriyi paylaşır, türev izler; öğeye atama tensörü değiştirir). 0 boyutlu tensör üzerinde döngü hatadır. Tam sayılı tensörün görünümleri (`t[i]`, `t[baş..son]`, döngü öğeleri) de tam sayılıdır.
+
+```tr
+değişken t = tensör([[1, 2], [3, 4]])
+döngü i, satır içinde t {
+    yazdır(i, satır.değer)                     // 0 [1.0, 2.0] / 1 [3.0, 4.0]
+}
+[x * 2 döngü x içinde tensör([1.5, 2.5])]      // [3.0, 5.0]
+```
 
 ---
 
