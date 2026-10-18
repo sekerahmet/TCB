@@ -39,6 +39,14 @@ type Deger struct {
 // Yeni çekirdek tensörünü TR değeri olarak sarar.
 func Yeni(t *ct.Tensor) *Deger { return &Deger{t: t, ara: t.RequiresGrad() && !t.IsLeaf()} }
 
+// YeniTam değerleri tam sayı olan (ör. token kimlikleri) bir tensörü sarar: .değer Tam
+// verir ve tensör ondalıksız yazdırılır.
+func YeniTam(t *ct.Tensor) *Deger {
+	d := Yeni(t)
+	d.tamSayili = true
+	return d
+}
+
 // Tensor sarılı çekirdek tensörünü verir.
 func (d *Deger) Tensor() *ct.Tensor { return d.t }
 

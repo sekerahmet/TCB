@@ -148,7 +148,7 @@ değişken satır = 0
 değişken son = yok
 döngü {
     değişken x = s.sonraki()
-    eğer x == yok { kır }
+    eğer x == yok { çık }
     n += 1
     satır += x[0].şekil[0]
     son = x

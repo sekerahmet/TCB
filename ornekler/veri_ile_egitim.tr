@@ -75,7 +75,7 @@ değişken toplu_sayısı = 0
 türevsiz {
     döngü {
         değişken iş = doğrulama.sonraki()
-        eğer iş == yok { kır }
+        eğer iş == yok { çık }
         toplam_kayıp += çapraz_entropi(ileri(iş[0]), iş[1]).değer
         toplu_sayısı += 1
     }

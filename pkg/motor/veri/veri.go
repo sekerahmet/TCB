@@ -490,8 +490,8 @@ func (o *Okuyucu) sonraki(m *vm.VM, args []vm.Value, named map[string]vm.Value) 
 	if son {
 		return vm.NULL, nil
 	}
-	gt := tensor.Yeni(ct.New(girdi, b, t))
-	ht := tensor.Yeni(ct.New(hedef, b, t))
+	gt := tensor.YeniTam(ct.New(girdi, b, t))
+	ht := tensor.YeniTam(ct.New(hedef, b, t))
 	return &vm.ListVal{Elements: []vm.Value{gt, ht}}, nil
 }
 
