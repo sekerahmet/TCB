@@ -1,0 +1,45 @@
+Bugün hava çok güzel; İstanbul'da güneş açtı, Ankara'ya ise kar yağıyor.
+Toplantı saat 3'te başlayacak, lütfen 15 dakika önce gelin.
+Öğrenciler sınavdan önce kütüphanede çalıştılar ve çoğu başarılı oldu.
+Şirketin 2024 yılı geliri 1.250.000 TL'ye ulaştı; bu, geçen yıla göre %12,5 artış demek.
+Ayşe’nin kedisi bahçede kuş kovalıyor, köpeği ise gölgede uyuyor.
+İzmir’e giden otobüs 08:30’da kalkıyor, bileti 450₺.
+"Yapay zekâ" kavramı, makinelerin öğrenmesi ve düşünmesi üzerine kurulu bir alandır.
+Dil modelleri metni parçalara (token) böler, sonra her parçayı bir sayıya dönüştürür.
+Çiğdem, Gülşen ve Işıl yarın Eskişehir'e gidecekler mi?
+Ünlü şair şöyle demişti: "Yaşamak bir ağaç gibi tek ve hür ve bir orman gibi kardeşçesine."
+Ğ harfi kelime başında kullanılmaz; ama "dağ", "yağmur", "öğretmen" gibi sözcüklerde sık görülür.
+IŞIK, ışık, İNCİ, inci: Türkçede büyük-küçük harf dönüşümü dikkat ister.
+Sayılar: 0, 1, 2, 3, 42, 3.14159, -7, 1e9, 1/2, ½, ², ٣, ४.
+Noktalama!!! Gerçekten mi??? Evet... Hayır?! (Belki) [kesin değil] {şimdilik}.
+E-posta: ornek@alan.com.tr — web: https://ornek.org/yol?soru=1&yanit=2
+Emoji de olur 😀🎉👍🏽 ve bayraklar 🇹🇷, kalp ❤️ ile birlikte.
+	Sekmeyle başlayan satır ve    çoklu   boşluk   içeren    satır.
+Satır sonunda boşluk var
+Kodda değişken adları: toplam_tutar, sayaçDeğeri, KDV_ORANI = 0.20
+def kare(x): return x * x  # Python örneği
+fonksiyon topla(a, b) { döndür a + b }
+Hükümet'in açıkladığı yeni düzenlemeye göre vergi oranları değişti.
+Türkiye'nin başkenti Ankara'dır; en kalabalık şehri ise İstanbul'dur.
+Çocuklar parkta oynarken anneleri bankta oturup sohbet ediyorlardı.
+Güzel bir günün sonunda eve döndüğümüzde hepimiz çok yorgunduk.
+Kitapçıdan aldığım romanı iki günde bitirdim; sonu beklenmedikti.
+Öğretmenimiz derste Osmanlı İmparatorluğu'nun kuruluşunu anlattı.
+Bilgisayarımın işlemcisi 3,2 GHz hızında ve 16 GB belleği var.
+Mühendisler köprünün yapımını planlanandan iki ay önce tamamladı.
+Sabah kahvaltısında peynir, zeytin, domates, salatalık ve çay vardı.
+Ödevini bitirmeden dışarı çıkamazsın, dedi annesi sert bir sesle.
+Doktor, hastanın durumunun iyiye gittiğini söyledi ve taburcu etti.
+Kış aylarında Erzurum'da sıcaklık eksi otuz dereceye kadar düşebilir.
+Karadeniz'in yeşil yaylalarında çay toplayan kadınlar şarkı söylüyordu.
+Müzede sergilenen eserler binlerce yıllık bir geçmişe sahipti.
+Yarın sabah erkenden yola çıkacağız, o yüzden bu akşam erken yatmalıyız.
+Programcılar hataları ayıklamak için saatlerce ekran başında kaldılar.
+Gazeteler, ekonomideki son gelişmeleri manşetlerine taşıdı.
+Üniversite sınavına hazırlanan öğrenciler, deneme sınavlarına giriyor.
+Büyükannemin yaptığı mantının tadını hâlâ unutamıyorum.
+Bu cümlede şapkalı harfler var: kâğıt, rüzgâr, hâlâ, Kâzım, mahkûm.
+Bazen “tırnak” işaretleri ‘tek’ ya da «köşeli» olabilir.
+Çalışkanlık, sabır ve azim başarının anahtarıdır.
+Şehrin ışıkları geceleyin denizin yüzeyine yansıyordu.
+Görüşmek üzere, kendine iyi bak!
