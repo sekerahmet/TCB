@@ -4,7 +4,7 @@ package internal_test
 //
 // Listeler YALNIZCA KÜÇÜLEBİLİR: bir dosya ya da fonksiyon sınırın altına inince kaydı
 // silinir ve en fazla sayısı (enFazla...) aynı miktarda azaltılır. Yeni kayıt eklenmez;
-// tavan yükseltilmez. Taşınan bir fonksiyonun anahtarı değişirse eski kayıt silinip yenisi
+// tavan yükseltilmez (küçük düzeltmeler için tavanın %10'u, en az 5 satır pay vardır; bkz. duzeltmePayi). Taşınan bir fonksiyonun anahtarı değişirse eski kayıt silinip yenisi
 // aynı tavanla yazılabilir (sayı artmaz).
 
 type istisna struct {

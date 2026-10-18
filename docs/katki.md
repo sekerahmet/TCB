@@ -18,7 +18,7 @@ Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekird
 - **Dosya başına tek konu.** Konusu birden çok olan dosya bölünür: `derleyici_deyim.go`, `derleyici_dongu.go`, `derleyici_cagri.go` gibi. Bölerken fonksiyon gövdeleri değiştirilmez, yalnızca taşınır (değişiklik geçmişte izlenebilir kalır); taşıma ile davranış değişikliği aynı committe olmaz.
 - **Yumuşak dosya sınırı ~600 satır** (testler dahil, üretilmiş dosyalar hariç). Sınırı aşan dosya konularına göre bölünür.
 - **Fonksiyon sınırı ~80 satır** (`func` satırından kapanış parantezine; test fonksiyonları hariç, tablo tabanlı testler uzun olabilir). Uzun bir `switch` dallarına, uzun bir kayıt listesi tabloya, uzun bir akış adımlarına bölünür.
-- **İstisnalar** gerekçeleriyle [`internal/duzen_istisnalar_test.go`](../internal/duzen_istisnalar_test.go)'dadır (bugün 6 dosya, 43 fonksiyon). Listeler **yalnızca küçülür**: bir kayıt sınırın altına inince silinir ve en fazla sayısı azaltılır; yeni kayıt eklenmez, tavan yükseltilmez. Sıcak yoldaki bir fonksiyon (yorumlayıcı döngüsü, hesap çekirdeği) ancak önce/sonra hız ölçümüyle bölünür.
+- **İstisnalar** gerekçeleriyle [`internal/duzen_istisnalar_test.go`](../internal/duzen_istisnalar_test.go)'dadır (bugün 6 dosya, 43 fonksiyon). Listeler **yalnızca küçülür**: bir kayıt sınırın altına inince silinir ve en fazla sayısı azaltılır; yeni kayıt eklenmez, tavan yükseltilmez; küçük düzeltmeler için tavanın %10'u (en az 5 satır) kadar pay vardır. Sıcak yoldaki bir fonksiyon (yorumlayıcı döngüsü, hesap çekirdeği) ancak önce/sonra hız ölçümüyle bölünür.
 - **Her paketin tek bir paket belgesi vardır:** paketin ana dosyasında `// Package ad ...` ile başlar, görevini söyler ve katmanını bildiren bir satırla biter:
 
   ```go

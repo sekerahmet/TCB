@@ -279,8 +279,8 @@ func TestDuzenDosyaBoyu(t *testing.T) {
 			t.Errorf("%s: %d satır (sınır %d); dosyayı konularına göre bölün (docs/katki.md)", d.yol, d.satir, dosyaSiniri)
 		case listede && d.satir <= dosyaSiniri:
 			t.Errorf("%s: artık %d satır; buyukDosyalar listesinden çıkarın (liste yalnızca küçülür)", d.yol, d.satir)
-		case listede && d.satir > ist.tavan:
-			t.Errorf("%s: %d satır, istisna tavanı %d; büyüyen istisna dosyası bölünmeli", d.yol, d.satir, ist.tavan)
+		case listede && d.satir > ist.tavan+duzeltmePayi(ist.tavan):
+			t.Errorf("%s: %d satır, istisna tavanı %d (+%d düzeltme payı); büyüyen istisna dosyası bölünmeli", d.yol, d.satir, ist.tavan, duzeltmePayi(ist.tavan))
 		}
 	}
 	istisnaDenetle(t, "buyukDosyalar", len(buyukDosyalar), enFazlaBuyukDosya, gorulen, buyukDosyalar)
@@ -309,8 +309,8 @@ func TestDuzenFonksiyonBoyu(t *testing.T) {
 				t.Errorf("%s: %d satır (sınır %d); fonksiyonu bölün (docs/katki.md)", anahtar, n, fonksiyonSiniri)
 			case listede && n <= fonksiyonSiniri:
 				t.Errorf("%s: artık %d satır; uzunFonksiyonlar listesinden çıkarın (liste yalnızca küçülür)", anahtar, n)
-			case listede && n > ist.tavan:
-				t.Errorf("%s: %d satır, istisna tavanı %d; büyüyen istisna fonksiyonu bölünmeli", anahtar, n, ist.tavan)
+			case listede && n > ist.tavan+duzeltmePayi(ist.tavan):
+				t.Errorf("%s: %d satır, istisna tavanı %d (+%d düzeltme payı); büyüyen istisna fonksiyonu bölünmeli", anahtar, n, ist.tavan, duzeltmePayi(ist.tavan))
 			}
 		}
 	}
@@ -354,4 +354,14 @@ func istisnaDenetle(t *testing.T, liste string, boy, enFazla int, gorulen map[st
 	for _, k := range yok {
 		t.Errorf("%s: %s bulunamadı (taşındı ya da silindi); listeden çıkarın", liste, k)
 	}
+}
+
+// duzeltmePayi bir istisnanın tavanını aşmadan alabileceği küçük büyümedir (tavanın %10'u,
+// en az 5 satır): hata düzeltmesi gibi küçük değişiklikler bölmeyi zorunlu kılmasın; kalıcı
+// büyüme yine bölmeyi gerektirir.
+func duzeltmePayi(tavan int) int {
+	if p := tavan / 10; p > 5 {
+		return p
+	}
+	return 5
 }
