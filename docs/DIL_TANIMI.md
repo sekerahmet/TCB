@@ -271,7 +271,7 @@ yapı Nokta {
 }
 ```
 
-**7.2** Yapı adı çağrılarak nesne oluşturulur; argümanlar alan sırasıyla ya da adla verilir, verilmeyen alan varsayılanını (yoksa `yok`) alır: `Nokta(3, 4)`, `Nokta(y: 4)`.
+**7.2** Yapı adı çağrılarak nesne oluşturulur; argümanlar alan sırasıyla ya da adla verilir, verilmeyen alan varsayılanını (yoksa `yok`) alır: `Nokta(3, 4)`, `Nokta(y: 4)`. Varsayılanlar her nesne oluşturulurken, yapının tanımlandığı kapsamda hesaplanır (modüldeki bir yapı modülün adlarını, fonksiyon içindeki bir yapı o fonksiyonun yerel adlarını görür).
 
 **7.3** Metotlar `kendi` ile nesnenin alanlarına erişir ve onları değiştirebilir: `p.uzaklık_kare()`.
 

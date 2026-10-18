@@ -696,7 +696,9 @@ func (c *derleyici) yapiTanimi(k *derleyiciKapsam, s *ast.StructStatement) deyim
 	for name, fnLit := range s.Methods {
 		metotlar = append(metotlar, metotKodu{ad: name, lit: fnLit, kod: c.fonksiyon(k, fnLit.Parameters, fnLit.Body, true)})
 	}
-	alanKod := c.alanVarsayilanlari(s.Fields)
+	// Alan varsayılanları yapının tanımlandığı kapsamda derlenir ve o ortamda
+	// değerlendirilir (modüldeki bir yapı modülün adlarını görür).
+	alanKod := c.alanVarsayilanlari(k, s.Fields)
 	tanim := tanimlayici(k, s.Name)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		methods := make(map[string]*FuncVal, len(metotlar))
@@ -710,23 +712,24 @@ func (c *derleyici) yapiTanimi(k *derleyiciKapsam, s *ast.StructStatement) deyim
 			}
 		}
 		def := &StructDefVal{
-			Name:    s.Name,
-			Fields:  s.Fields,
-			Methods: methods,
-			alanKod: alanKod,
+			Name:      s.Name,
+			Fields:    s.Fields,
+			Methods:   methods,
+			alanKod:   alanKod,
+			alanOrtam: env,
 		}
 		tanim(env, def, true)
 		return def, signalNone, nil
 	}
 }
 
-// alanVarsayilanlari alan varsayılanlarını genel kapsamda derler (nesne oluşturulurken
-// genel ortamda değerlendirilirler).
-func (c *derleyici) alanVarsayilanlari(fields []ast.StructField) []ifadeKodu {
+// alanVarsayilanlari alan varsayılanlarını k kapsamında derler (nesne oluşturulurken
+// yapının tanımlandığı ortamda değerlendirilirler).
+func (c *derleyici) alanVarsayilanlari(k *derleyiciKapsam, fields []ast.StructField) []ifadeKodu {
 	kodlar := make([]ifadeKodu, len(fields))
 	for i, f := range fields {
 		if f.DefaultValue != nil {
-			kodlar[i] = c.ifade(c.kok, f.DefaultValue)
+			kodlar[i] = c.ifade(k, f.DefaultValue)
 		}
 	}
 	return kodlar

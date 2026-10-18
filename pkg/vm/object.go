@@ -264,6 +264,8 @@ type StructDefVal struct {
 	// alanKod alanların derlenmiş varsayılan değer ifadeleridir (Fields ile aynı sırada;
 	// varsayılanı olmayan alan için nil). nil dilimse varsayılanlar ilk kullanımda derlenir.
 	alanKod []ifadeKodu
+	// alanOrtam varsayılanların değerlendirildiği ortamdır (yapının tanımlandığı ortam).
+	alanOrtam *Environment
 }
 
 func (s *StructDefVal) Type() ValueType { return VAL_STRUCT }

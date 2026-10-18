@@ -90,7 +90,14 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 			Fields: make(map[string]Value),
 		}
 		if fn.alanKod == nil {
-			fn.alanKod = v.yeniDerleyici().alanVarsayilanlari(fn.Fields)
+			// Derleyici dışında kurulmuş tanım: varsayılanlar genel kapsamda değerlendirilir
+			c := v.yeniDerleyici()
+			fn.alanKod = c.alanVarsayilanlari(c.kok, fn.Fields)
+			fn.alanOrtam = v.GlobalEnv
+		}
+		alanOrtam := fn.alanOrtam
+		if alanOrtam == nil {
+			alanOrtam = v.GlobalEnv
 		}
 		for i, f := range fn.Fields {
 			if i < len(args) {
@@ -98,7 +105,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 			} else if named != nil && named[f.Name] != nil {
 				inst.Fields[f.Name] = named[f.Name]
 			} else if f.DefaultValue != nil && i < len(fn.alanKod) && fn.alanKod[i] != nil {
-				defVal, err := fn.alanKod[i](v, v.GlobalEnv)
+				defVal, err := fn.alanKod[i](v, alanOrtam)
 				if err != nil {
 					return nil, err
 				}

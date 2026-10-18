@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"tr_dili/pkg/ast"
@@ -176,6 +178,28 @@ func TestDogrudanMetotCagrilari(t *testing.T) {
 	_, _, err = runTROut(t, "değişken l = [1]\nl.haritala(1, 2)\n")
 	if err == nil || err.Error() != "Satır 2: liste.haritala(fonksiyon) 1 parametre bekler" {
 		t.Fatalf("metot hatası: %v", err)
+	}
+}
+
+// Yapı alanı varsayılanları yapının tanımlandığı kapsamda değerlendirilir (modül, fonksiyon).
+func TestYapiVarsayilaniTanimKapsaminda(t *testing.T) {
+	dir := t.TempDir()
+	modul := filepath.Join(dir, "modk.tr")
+	if err := os.WriteFile(modul, []byte("sabit VARS = 5\nyapı K { a: Tam = VARS }\nfonksiyon K_yap() { sonuç K() }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, val, err := runTROut(t, `
+		aktar "`+filepath.ToSlash(modul)+`" olarak m
+		fonksiyon yerel_yapi() {
+			değişken taban = 7
+			yapı Y { b: Tam = taban * 2 }
+			sonuç Y()
+		}
+		yapı G { c: Tam = 1 }
+		sonuç [m.K_yap().a, m.K().a, yerel_yapi().b, G().c]
+	`)
+	if err != nil || val.Inspect() != "[5, 5, 14, 1]" {
+		t.Fatalf("[5, 5, 14, 1] bekleniyordu: %v %v", val, err)
 	}
 }
 
