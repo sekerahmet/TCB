@@ -389,3 +389,27 @@ Bunlar bugünkü uygulamanın gerçek davranışlarıdır; ileride değişebilir
 - **Yapılarda kalıtım yok;** metotlar yapı tanımının içinde yazılmalıdır.
 - **Metin içi yerleştirme konumu yaklaşıktır:** `{ifade}` içindeki hataların sütunu, ifadeden önce kaçış dizisi varsa bir-iki karakter kayabilir.
 - **Tanımlar öne alınmaz:** fonksiyonlar ve yapılar, tanımlandıkları satır çalıştıktan sonra kullanılabilir.
+- **Tensör işleçleri eksik:** sağ işlenen tensör olduğunda yalnızca `+` ve `*` çalışır (`1 - t`, `1 / t` hatadır); tekli `-t`, `t ** 2` ve `t[i]` indeksleme yoktur (`t * -1`, `t * t`, `.dilim(...)` kullanılır). İşleç kaynaklı tensör hatalarında (`@`, `+`...) `Satır N:` öneki yoktur.
+- **Türevsiz kip süreç genelidir:** `türevsiz { ... }` içinde yorumlayıcı kilidini bırakan bir çağrı (10.3) varsa, o sırada çalışan diğer `eşzamanlı` görevler de türevsiz çalışır.
+
+---
+
+## 15. Tensörler ve otomatik türev
+
+Tensör, n boyutlu bir `float32` sayı dizisidir (tip adı `Tensör`). İşlemler hesap çizgesine kaydedilir; gradyanlar ters yönlü otomatik türevle hesaplanır. Ayrıntılı kullanım için `KULLANIM_KILAVUZU.md` §4.D'ye bakın.
+
+**15.1** Oluşturma: `tensör(veri, türev_izle: doğru)` veri olarak iç içe sayı listesi, matris ya da tensör alır (tensörden kendi verisine sahip yeni bir yaprak üretir); düzensiz liste hatadır. `türev_izle` varsayılanı `yanlış`tır. `sıfırlar(şekil)`, `birler(şekil)`, `rastgele_normal(şekil, tohum: n)` şekli liste olarak alır (`[2, 3]`). Geriye uyumluluk: `tensör(sayı)` eski tek sayılık türev değerini, `sıfırlar(2, 3)` / `birler(2, 3)` `Matris` döndürür.
+
+**15.2** Özellikler: `.şekil` (tam sayı listesi), `.değer` (iç içe Ondalık listesi; 0 boyutluda Ondalık), `.gradyan` (tensör ya da `yok`), `.cihaz` (`"cpu"`). Görünüm metotları veriyi kopyalamaz: `.şekillendir(liste)` (bir eksen `-1` olabilir), `.devrik()` (son iki eksen), `.eksenleri_sırala(liste)`, `.dilim(eksen, baş, son)` (`son` hariç; negatif indeks sondan sayar). `.cihaza(ad)` tensörü taşır; arka ucu olmayan cihaz (`"gpu"`) hatadır.
+
+**15.3** İşleçler: `@` matris çarpımıdır (`[..., M, K] @ [K, N]`, toplu çarpımda öndeki eksenler eşit olmalı; 1 boyutlu işlenen vektör sayılır). `+ - * /` eleman bazlıdır ve yayınlamalıdır: şekiller sağdan hizalanır, her eksen eşit ya da 1 olmalıdır. Diğer işlenen sayı, liste ya da matris olabilir.
+
+**15.4** Fonksiyonlar: `relu`, `sigmoid`, `tanh`, `gelu`, `karekök`, `üstel`, `log` eleman bazlıdır; `softmax(x, eksen: -1)` ve `log_softmax(x, eksen: -1)` verilen eksende çalışır. İndirgemeler `toplam`, `ortalama`, `maks`, `min` eksen verilmezse tüm elemanları 0 boyutlu tensöre indirger, `eksen: k` ile o ekseni kaldırır (boyut korunmaz). Negatif eksen sondan sayar. Argüman tensör değilse bu adların eski (liste/sayı) davranışı geçerlidir.
+
+**15.5** Sinir ağı: `gömme(tablo, indeksler)` `[V, D]` tablosundan satır seçer (sonuç şekli indeks şekli + `[D]`); `çapraz_entropi(çıktı, hedef)` son eksen sınıf olmak üzere ortalama kaybı skaler verir (satır başına bir hedef; negatif hedef yok sayılır); `katman_normu(x, ağırlık, sapma)` ve `rms_normu(x, ağırlık)` son eksende normalleştirir (`ağırlık`/`sapma` `[D]` şeklinde ya da `yok`; `epsilon:` varsayılanı `1e-5`).
+
+**15.6** Türev: `geri_yayılım(kayıp)` tek elemanlı bir kayıptan geri yayılım yapar; yaprak tensörlerin `.gradyan`ı birikir. `türevsiz { ... }` bloğu türev izlemeden çalıştırıp bloğun değerini döndürür; `türevsiz(x)` tensörü çizgeden ayırır. Türev izlemeyen bir kayıptan geri yayılım hatadır.
+
+**15.7** İyileştiriciler: `AdamW(parametreler, öğrenme_oranı:, ağırlık_çürümesi:, beta1:, beta2:, epsilon:)` ve `SGD(parametreler, öğrenme_oranı:, momentum:, ağırlık_çürümesi:)`. Parametreler türev izleyen yaprak tensörlerdir; `.adım()` günceller, `.sıfırla()` gradyanları sıfırlar.
+
+**15.8** Hatalar: şekil ve eksen hataları ilgili şekilleri gösteren Türkçe bir mesajla (`[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`) bildirilir ve `dene/yakala` ile yakalanabilir; program çökmez.

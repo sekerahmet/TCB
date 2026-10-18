@@ -819,6 +819,10 @@ func display(val vm.Value) string {
 	if val == nil {
 		return "yok"
 	}
+	if iz, ok := val.(IzlemeDegeri); ok {
+		// Çok satırlı yazdırma biçimi yerine kısa özet gösterilir.
+		return iz.IzlemeEtiketi()
+	}
 	var prefix string
 	switch v := val.(type) {
 	case *vm.ListVal:
@@ -1045,8 +1049,23 @@ func (s *dapServer) variablesTable(msg *dapMessage) {
 	})
 }
 
+// IzlemeDegeri, motor paketlerinin kendi değer türlerini (ör. tensör) İzleme Masası'nda
+// göstermek için uyguladığı arayüzdür. hataayiklama bu paketleri içe aktarmaz; değer
+// arayüzü uyguluyorsa tür, tip etiketi ve tablo verisi ondan alınır.
+type IzlemeDegeri interface {
+	// IzlemeTuru ikon seçimi için türdür (ör. "tensor").
+	IzlemeTuru() string
+	// IzlemeEtiketi tip sütununda gösterilir (ör. "Tensör [2×3]").
+	IzlemeEtiketi() string
+	// TabloVerisi değeri tabloya çevirir; tablo olarak açılamıyorsa hata döner.
+	TabloVerisi() ([]string, [][]string, error)
+}
+
 // valueKind panelde ikon seçmek için değerin türünü verir.
 func valueKind(val vm.Value) string {
+	if iz, ok := val.(IzlemeDegeri); ok {
+		return iz.IzlemeTuru()
+	}
 	switch v := val.(type) {
 	case *vm.ListVal:
 		if cols, _, err := TableData(v); err == nil && !(len(cols) == 1 && cols[0] == "Değer") {
@@ -1073,6 +1092,9 @@ func valueKind(val vm.Value) string {
 
 // typeLabel tip sütununda değerin yapısını özetler (ör. Tablo [3×3]).
 func typeLabel(val vm.Value) string {
+	if iz, ok := val.(IzlemeDegeri); ok {
+		return iz.IzlemeEtiketi()
+	}
 	switch v := val.(type) {
 	case *vm.ListVal:
 		if cols, rows, err := TableData(v); err == nil && !(len(cols) == 1 && cols[0] == "Değer") {
@@ -1115,6 +1137,9 @@ func (s *dapServer) table(msg *dapMessage) {
 // sözlük/yapı listeleri, düz listeler, sözlükler ve matrisler desteklenir.
 func TableData(val vm.Value) ([]string, [][]string, error) {
 	const limit = 10000
+	if iz, ok := val.(IzlemeDegeri); ok {
+		return iz.TabloVerisi()
+	}
 	switch v := val.(type) {
 	case *vm.ListVal:
 		records := true
@@ -1191,7 +1216,7 @@ func TableData(val vm.Value) ([]string, [][]string, error) {
 		}
 		return cols, rows, nil
 	}
-	return nil, nil, fmt.Errorf("tablo görünümü yalnızca liste, sözlük, yapı ve matrisler için kullanılabilir (bu değer: %s)", val.Type())
+	return nil, nil, fmt.Errorf("tablo görünümü yalnızca liste, sözlük, yapı, matris ve tensörler için kullanılabilir (bu değer: %s)", val.Type())
 }
 
 // plainText hücrede gösterilecek metindir: metinler tırnaksız yazılır.

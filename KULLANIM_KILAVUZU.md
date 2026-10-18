@@ -90,6 +90,42 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 - Vektör: `nokta_çarpım(v1, v2)`, `kosinüs_benzerliği(v1, v2)`, `öklid_uzaklığı(v1, v2)`
 - Veri, Web & Köprüler: `csv_oku(yol)`, `json_çöz(metin)`, `json_metin(değer)`, `web_al(url)`, `web_gönder(url, veri)`, `yz_sor(istem)`
 
+### D. Tensörler ve Otomatik Türev
+Tensör, n boyutlu (float32) bir sayı dizisidir; yapay zekâ modellerinin ağırlıkları, girdileri ve ara sonuçları tensördür. Her işlem hesap çizgesine kaydedilir; `geri_yayılım(kayıp)` tüm gradyanları hesaplar.
+
+- **Oluşturma:** `tensör(veri, türev_izle: doğru)` (veri: iç içe liste ya da matris), `sıfırlar([2, 3])`, `birler([2, 3])`, `rastgele_normal([2, 3], tohum: 42)`. Şekil **liste** olarak verilir; `sıfırlar(2, 3)` gibi iki tam sayı eskisi gibi `Matris` döndürür. `türev_izle` varsayılanı listede/matriste `yanlış`tır; `tensör(3.0)` gibi tek sayı eski tek sayılık otomatik türev değerini verir.
+- **Özellik ve metotlar:** `.şekil`, `.değer` (iç içe liste; skalerde Ondalık), `.gradyan`, `.cihaz`, `.şekillendir([4, 6])` (bir eksen `-1` olabilir), `.devrik()`, `.eksenleri_sırala([0, 2, 1])`, `.dilim(eksen, baş, son)` (son hariç, negatifler sondan sayar), `.cihaza("cpu")`. Bu derlemede GPU arka ucu yoktur; `.cihaza("gpu")` açık bir hata verir.
+- **İşleçler:** `@` (matris çarpımı; 1 boyutlu işlenen vektör sayılır, 3+ boyutlu toplu çarpım), `+ - * /` eleman bazlı ve **yayınlamalıdır** (eksenler sağdan hizalanır; eşit ya da 1 olan eksenler uyumludur). Sayıyla da çalışır: `2 * a`, `a - 1`, `a / 2`. Şimdilik `1 - a`, `1 / a`, `-a` ve `a ** 2` yoktur; `a * -1 + 1` ve `a * a` yazın.
+- **Matematik:** `relu`, `sigmoid`, `tanh`, `gelu`, `karekök`, `üstel`, `log`, `softmax(x, eksen: -1)`, `log_softmax(x, eksen: -1)`.
+- **İndirgemeler:** `toplam(x)`, `ortalama(x)`, `maks(x)`, `min(x)` tüm elemanları skaler (0 boyutlu) tensöre indirger; `eksen: 1` verilirse o eksen kaldırılır (boyut korunmaz; gerekirse `.şekillendir` kullanın).
+- **Sinir ağı:** `gömme(tablo, indeksler)` (tablo `[V, D]`; sonuç `indeks şekli + [D]`), `çapraz_entropi(çıktı, hedef)` (çıktı `[..., C]`, hedef sınıf indeksleri; negatif hedefler yok sayılır), `katman_normu(x, ağırlık, sapma, epsilon: 1e-5)`, `rms_normu(x, ağırlık, epsilon: 1e-5)` (ağırlık/sapma `yok` olabilir).
+- **Türev:** `geri_yayılım(kayıp)` (kayıp tek elemanlı olmalı), `x.gradyan` (gradyanlar birikir), `türevsiz { ... }` bloğu türev izlemeden çalışır ve bloğun değerini (son ifade ya da `sonuç`) döndürür, `türevsiz(x)` tensörü hesap çizgesinden ayırır.
+- **İyileştiriciler:** `AdamW(parametreler, öğrenme_oranı: 0.001, ağırlık_çürümesi: 0.01, beta1: 0.9, beta2: 0.999, epsilon: 1e-8)`, `SGD(parametreler, öğrenme_oranı: 0.01, momentum: 0, ağırlık_çürümesi: 0)`; `.adım()` parametreleri günceller, `.sıfırla()` gradyanları sıfırlar. Parametreler doğrudan `tensör(..., türev_izle: doğru)` ile oluşturulmuş tensörler olmalıdır.
+
+```tr
+// y = 2·x - 1 doğrusunu öğren
+değişken X = tensör([[0], [1], [2], [3]])
+değişken Y = tensör([[-1], [1], [3], [5]])
+değişken w = tensör([[0.0]], türev_izle: doğru)
+değişken b = tensör([0.0], türev_izle: doğru)
+değişken op = AdamW([w, b], öğrenme_oranı: 0.1, ağırlık_çürümesi: 0)
+
+döngü adım içinde 0..500 {
+    op.sıfırla()
+    değişken fark = X @ w + b - Y
+    geri_yayılım(ortalama(fark * fark))
+    op.adım()
+}
+yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)}")   // w = 2.0, b = -1.0
+yazdır(türevsiz { sonuç X @ w + b })                                       // Tensör[4×1] [...]
+```
+
+Şekil hataları şekli gösterir ve `dene/yakala` ile yakalanabilir: `[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`. Fonksiyon ve metot hatalarının başında `Satır N:` bulunur; işleç (`@`, `+`...) hatalarında şimdilik satır bilgisi yoktur, satırı programın durduğu yerdeki kod çerçevesinden okuyun.
+
+> **Not (türevsiz ve eşzamanlılık):** Türevsiz kip süreç geneli bir sayaçtır. `türevsiz { ... }` bloğunun içinde yorumlayıcı kilidini bırakan bir çağrı (`bekle(...)`, ağ isteği, `girdi()` gibi) varsa, o sırada çalışan başka bir `eşzamanlı` görev de türevsiz çalışır ve hesapladığı değerler türev izlemez. Eğitim ve türevsiz çıkarımı aynı anda farklı görevlerde yürütmeyin ya da `türevsiz` bloklarına engelleyici çağrı koymayın.
+
+VS Code İzleme Masası'nda tensörler tip sütununda `Tensör [2×3]` olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılabilir.
+
 ---
 
 ## 5. TR Hata Ayıklayıcı

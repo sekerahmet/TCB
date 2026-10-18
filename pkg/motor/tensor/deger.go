@@ -1,0 +1,714 @@
+// Package tensor, n-boyutlu tensör çekirdeğini (tr_dili/pkg/tensor) TR diline bağlar:
+// tensör değeri, işleçleri (@ + - * /), özellik ve metotları, matematik ve sinir ağı
+// fonksiyonları, türevsiz çalışma ve iyileştiriciler.
+//
+// Aynı adı taşıyan eski yerleşikler (toplam, min, maks, karekök, sıfırlar, birler, devrik,
+// softmax, relu, sigmoid, tanh, ortalama, tensör, geri_yayılım) silinmez; kayıt sırasında
+// sarılır: argüman tensörse yeni yol, değilse eski yerleşik çalışır. Bu yüzden bu motor
+// çekirdek yerleşiklerden ve yapay zekâ motorundan SONRA kaydedilmelidir (bkz. pkg/motor).
+package tensor
+
+import (
+	"fmt"
+	"math"
+	"strings"
+
+	"tr_dili/pkg/motor/yz"
+	ct "tr_dili/pkg/tensor"
+	"tr_dili/pkg/turkce"
+	"tr_dili/pkg/vm"
+)
+
+// Deger, TR'de bir tensörü taşıyan değerdir. Tip adı "Tensör"dür.
+type Deger struct {
+	t *ct.Tensor
+}
+
+// Yeni çekirdek tensörünü TR değeri olarak sarar.
+func Yeni(t *ct.Tensor) *Deger { return &Deger{t: t} }
+
+// Tensor sarılı çekirdek tensörünü verir.
+func (d *Deger) Tensor() *ct.Tensor { return d.t }
+
+func (d *Deger) Type() vm.ValueType { return vm.VAL_TENSOR }
+func (d *Deger) IsTruthy() bool     { return d.t.Numel() > 0 }
+
+// ----------------------------------------------------------------------------
+// Yazdırma
+// ----------------------------------------------------------------------------
+
+// yazdirmaSiniri bu sayıdan çok elemanı olan tensörlerde her eksenin yalnızca
+// başı ve sonu yazılır.
+const yazdirmaSiniri = 1000
+
+// kenarEleman kısaltılmış yazdırmada eksen başına baştan ve sondan gösterilen eleman sayısı.
+const kenarEleman = 3
+
+func (d *Deger) Inspect() string {
+	t := d.t
+	sh := t.Shape()
+	var ek []string
+	if t.Device() != ct.CPU {
+		ek = append(ek, t.Device().String())
+	}
+	if t.RequiresGrad() {
+		ek = append(ek, "türev izleniyor")
+	}
+	veri := t.Data()
+	if len(sh) == 0 {
+		s := sayiMetni(veri[0])
+		if len(ek) > 0 {
+			s += ", " + strings.Join(ek, ", ")
+		}
+		return "Tensör(" + s + ")"
+	}
+	baslik := "Tensör[" + sekilCarpimi(sh) + "]"
+	if len(ek) > 0 {
+		baslik += " (" + strings.Join(ek, ", ") + ")"
+	}
+	kisalt := len(veri) > yazdirmaSiniri
+	// Tüm hücreler aynı genişlikte yazılır.
+	genislik := 0
+	metinler := make([]string, len(veri))
+	for i, x := range veri {
+		metinler[i] = sayiMetni(x)
+		if n := len(metinler[i]); n > genislik {
+			genislik = n
+		}
+	}
+	adimlar := make([]int, len(sh))
+	s := 1
+	for i := len(sh) - 1; i >= 0; i-- {
+		adimlar[i] = s
+		s *= sh[i]
+	}
+	var sb strings.Builder
+	sb.WriteString(baslik + " ")
+	var yaz func(eksen, ofset int, girinti string)
+	yaz = func(eksen, ofset int, girinti string) {
+		n := sh[eksen]
+		indeksler := gosterilecek(n, kisalt)
+		if eksen == len(sh)-1 {
+			sb.WriteString("[")
+			for k, i := range indeksler {
+				if k > 0 {
+					sb.WriteString(", ")
+				}
+				if i < 0 {
+					sb.WriteString("…")
+					continue
+				}
+				m := metinler[ofset+i*adimlar[eksen]]
+				sb.WriteString(strings.Repeat(" ", genislik-len(m)) + m)
+			}
+			sb.WriteString("]")
+			return
+		}
+		ic := girinti + "  "
+		sb.WriteString("[\n")
+		for k, i := range indeksler {
+			if k > 0 {
+				sb.WriteString(",\n")
+			}
+			sb.WriteString(ic)
+			if i < 0 {
+				sb.WriteString("…")
+				continue
+			}
+			yaz(eksen+1, ofset+i*adimlar[eksen], ic)
+		}
+		sb.WriteString("\n" + girinti + "]")
+	}
+	yaz(0, 0, "")
+	return sb.String()
+}
+
+// gosterilecek bir eksende yazılacak indeksleri verir; -1 "…" yerini gösterir.
+func gosterilecek(n int, kisalt bool) []int {
+	if !kisalt || n <= 2*kenarEleman {
+		out := make([]int, n)
+		for i := range out {
+			out[i] = i
+		}
+		return out
+	}
+	out := make([]int, 0, 2*kenarEleman+1)
+	for i := 0; i < kenarEleman; i++ {
+		out = append(out, i)
+	}
+	out = append(out, -1)
+	for i := n - kenarEleman; i < n; i++ {
+		out = append(out, i)
+	}
+	return out
+}
+
+func sayiMetni(x float32) string {
+	f := float64(x)
+	switch {
+	case math.IsNaN(f):
+		return "NaN"
+	case math.IsInf(f, 1):
+		return "+Sonsuz"
+	case math.IsInf(f, -1):
+		return "-Sonsuz"
+	}
+	return fmt.Sprintf("%.4f", f)
+}
+
+// ----------------------------------------------------------------------------
+// TR değerinden tensöre dönüşüm
+// ----------------------------------------------------------------------------
+
+// tensoreCevir sayı, iç içe liste, matris ya da tensörü çekirdek tensörüne çevirir.
+// Tensör verilirse kendisi döner (kopyalanmaz, hesap çizgesi korunur).
+func tensoreCevir(fn string, v vm.Value) (*ct.Tensor, error) {
+	switch x := v.(type) {
+	case *Deger:
+		return x.t, nil
+	case *vm.IntVal:
+		return ct.Scalar(float32(x.Val)), nil
+	case *vm.FloatVal:
+		return ct.Scalar(float32(x.Val)), nil
+	case *yz.TensorVal:
+		return ct.Scalar(float32(x.Val)), nil
+	case *vm.MatrixVal:
+		veri := make([]float32, 0, x.Rows*x.Cols)
+		for _, satir := range x.Data {
+			for _, e := range satir {
+				veri = append(veri, float32(e))
+			}
+		}
+		return ct.New(veri, x.Rows, x.Cols), nil
+	case *vm.ListVal:
+		veri, sh, err := listeVerisi(fn, x)
+		if err != nil {
+			return nil, err
+		}
+		return ct.New(veri, sh...), nil
+	}
+	return nil, fmt.Errorf("%s: %s tipi tensöre dönüştürülemez (sayı, iç içe liste, matris ya da tensör bekleniyor)", fn, v.Type())
+}
+
+// listeVerisi iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
+func listeVerisi(fn string, l *vm.ListVal) ([]float32, []int, error) {
+	// Şekil ilk elemanlar boyunca inilerek bulunur.
+	var sh []int
+	var cur vm.Value = l
+	for {
+		ll, ok := cur.(*vm.ListVal)
+		if !ok {
+			break
+		}
+		sh = append(sh, len(ll.Elements))
+		if len(ll.Elements) == 0 {
+			break
+		}
+		cur = ll.Elements[0]
+	}
+	n := 1
+	for _, d := range sh {
+		n *= d
+		if n > vm.MaxCollectionSize {
+			return nil, nil, fmt.Errorf("%s: liste çok büyük (en fazla %d eleman)", fn, vm.MaxCollectionSize)
+		}
+	}
+	veri := make([]float32, 0, n)
+	var gez func(v vm.Value, eksen int) error
+	gez = func(v vm.Value, eksen int) error {
+		if eksen == len(sh) {
+			f, ok := vm.ToFloat(v)
+			if !ok {
+				if _, liste := v.(*vm.ListVal); liste {
+					return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte sayı yerine liste var", fn, eksen+1)
+				}
+				return fmt.Errorf("%s: tensör elemanları sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), v.Type())
+			}
+			veri = append(veri, float32(f))
+			return nil
+		}
+		ll, ok := v.(*vm.ListVal)
+		if !ok {
+			return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte liste yerine %s var (beklenen şekil %s)", fn, eksen+1, v.Inspect(), sekilMetni(sh))
+		}
+		if len(ll.Elements) != sh[eksen] {
+			return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte %d ve %d uzunlukta listeler var (tüm satırlar eşit uzunlukta olmalı)", fn, eksen+1, sh[eksen], len(ll.Elements))
+		}
+		for _, el := range ll.Elements {
+			if err := gez(el, eksen+1); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := gez(l, 0); err != nil {
+		return nil, nil, err
+	}
+	return veri, sh, nil
+}
+
+// skalerMi değerin tek bir sayı (ya da eski tek sayılık tensör) olup olmadığını söyler.
+func skalerMi(v vm.Value) (float64, bool) {
+	if t, ok := v.(*yz.TensorVal); ok {
+		return t.Val, true
+	}
+	return vm.ToFloat(v)
+}
+
+// ----------------------------------------------------------------------------
+// İşleçler (vm.MatrixOperator)
+// ----------------------------------------------------------------------------
+
+var islemAdi = map[string]string{"+": "toplama", "-": "çıkarma", "*": "çarpma", "/": "bölme"}
+
+// yayinDenetle iki şeklin yayınlanabilirliğini denetler (eksenler sağdan hizalanır;
+// eşit ya da biri 1 olan eksenler uyumludur).
+func yayinDenetle(op string, a, b []int) error {
+	nd := len(a)
+	if len(b) > nd {
+		nd = len(b)
+	}
+	for i := 1; i <= nd; i++ {
+		da, db := 1, 1
+		if j := len(a) - i; j >= 0 {
+			da = a[j]
+		}
+		if j := len(b) - i; j >= 0 {
+			db = b[j]
+		}
+		if da != db && da != 1 && db != 1 {
+			return fmt.Errorf("%s ile %s şekilleri %s için yayınlanamaz; sondan %d. eksende %d ≠ %d (eksenler sağdan hizalanır, eşit ya da 1 olmalı)",
+				sekilMetni(a), sekilMetni(b), islemAdi[op], i, da, db)
+		}
+	}
+	return nil
+}
+
+func cihazDenetle(islem string, a, b *ct.Tensor) error {
+	if a.Device() != b.Device() {
+		return fmt.Errorf("%s: tensörler farklı cihazlarda (%s ve %s); önce .cihaza(...) ile aynı cihaza taşıyın", islem, a.Device(), b.Device())
+	}
+	return nil
+}
+
+func (d *Deger) ikili(op string, other vm.Value) (vm.Value, error) {
+	if s, ok := skalerMi(other); ok {
+		f := float32(s)
+		r, err := guvenli(func() *ct.Tensor {
+			switch op {
+			case "+":
+				return d.t.AddScalar(f)
+			case "-":
+				return d.t.SubScalar(f)
+			case "*":
+				return d.t.MulScalar(f)
+			default:
+				// Bölme, 1/s ile çarpma yerine gerçek bölmeyle yapılır (yuvarlama farkı olmasın).
+				return ct.Div(d.t, ct.Scalar(f).To(d.t.Device()))
+			}
+		})
+		if err != nil {
+			return nil, err
+		}
+		return Yeni(r), nil
+	}
+	o, err := tensoreCevir("tensör "+islemAdi[op], other)
+	if err != nil {
+		return nil, err
+	}
+	if err := yayinDenetle(op, d.t.Shape(), o.Shape()); err != nil {
+		return nil, err
+	}
+	if err := cihazDenetle("tensör "+islemAdi[op], d.t, o); err != nil {
+		return nil, err
+	}
+	r, err := guvenli(func() *ct.Tensor {
+		switch op {
+		case "+":
+			return ct.Add(d.t, o)
+		case "-":
+			return ct.Sub(d.t, o)
+		case "*":
+			return ct.Mul(d.t, o)
+		default:
+			return ct.Div(d.t, o)
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+	return Yeni(r), nil
+}
+
+// Add tensör toplaması. VM, sol işlenen tensör değilse sağdaki tensörün Add'ini
+// çağırır; toplama değişmeli olduğu için sonuç aynıdır.
+func (d *Deger) Add(other vm.Value) (vm.Value, error) { return d.ikili("+", other) }
+
+// Sub tensör çıkarması (tensör sol işlenendir).
+func (d *Deger) Sub(other vm.Value) (vm.Value, error) { return d.ikili("-", other) }
+
+// Mul eleman bazlı çarpma (yayınlamalı).
+func (d *Deger) Mul(other vm.Value) (vm.Value, error) { return d.ikili("*", other) }
+
+// Div eleman bazlı bölme (tensör sol işlenendir).
+func (d *Deger) Div(other vm.Value) (vm.Value, error) { return d.ikili("/", other) }
+
+// MatMul '@' işleci: matris çarpımı. 1 boyutlu işlenenler vektör sayılır.
+func (d *Deger) MatMul(other vm.Value) (vm.Value, error) {
+	o, err := tensoreCevir("matris çarpımı (@)", other)
+	if err != nil {
+		return nil, err
+	}
+	r, err := matCarp(d.t, o)
+	if err != nil {
+		return nil, err
+	}
+	return Yeni(r), nil
+}
+
+func matCarp(a, b *ct.Tensor) (*ct.Tensor, error) {
+	as, bs := a.Shape(), b.Shape()
+	if len(as) == 0 || len(bs) == 0 {
+		return nil, fmt.Errorf("%s ile %s matris çarpımı yapılamaz; skaler için '*' kullanın", sekilMetni(as), sekilMetni(bs))
+	}
+	if err := cihazDenetle("matris çarpımı (@)", a, b); err != nil {
+		return nil, err
+	}
+	K := as[len(as)-1]
+	var bK int
+	if len(bs) == 1 {
+		bK = bs[0]
+	} else {
+		bK = bs[len(bs)-2]
+	}
+	if K != bK {
+		return nil, fmt.Errorf("%s ile %s matris çarpımı yapılamaz; %d ≠ %d (soldakinin son ekseni sağdakinin %s eksenine eşit olmalı)",
+			sekilMetni(as), sekilMetni(bs), K, bK, map[bool]string{true: "tek", false: "sondan ikinci"}[len(bs) == 1])
+	}
+	if len(as) >= 2 && len(bs) > 2 {
+		onA, onB := as[:len(as)-2], bs[:len(bs)-2]
+		if len(onA) != len(onB) || sekilMetni(onA) != sekilMetni(onB) {
+			return nil, fmt.Errorf("%s ile %s toplu matris çarpımı yapılamaz; öndeki eksenler eşit olmalı (%s ≠ %s)",
+				sekilMetni(as), sekilMetni(bs), sekilMetni(onA), sekilMetni(onB))
+		}
+	}
+	if len(as) == 1 && len(bs) > 2 {
+		return nil, fmt.Errorf("%s ile %s matris çarpımı yapılamaz; vektör toplu matrisle çarpılamaz", sekilMetni(as), sekilMetni(bs))
+	}
+	return guvenli(func() *ct.Tensor {
+		x, y := a, b
+		if len(as) == 1 {
+			x = x.Unsqueeze(0)
+		}
+		if len(bs) == 1 {
+			y = y.Unsqueeze(1)
+		}
+		r := ct.MatMul(x, y)
+		if len(bs) == 1 {
+			r = r.Squeeze(-1)
+		}
+		if len(as) == 1 {
+			r = r.Squeeze(0)
+		}
+		return r
+	})
+}
+
+// ----------------------------------------------------------------------------
+// Özellikler ve metotlar
+// ----------------------------------------------------------------------------
+
+var tensorUyeleri = []string{"şekil", "cihaz", "gradyan", "değer", "şekillendir", "devrik", "eksenleri_sırala", "dilim", "cihaza"}
+
+func (d *Deger) GetProperty(prop string) (vm.Value, error) {
+	t := d.t
+	switch prop {
+	case "şekil", "sekil":
+		return intListesi(t.Shape()), nil
+	case "cihaz":
+		return &vm.StringVal{Val: t.Device().String()}, nil
+	case "gradyan", "türev", "turev":
+		g := t.Grad()
+		if g == nil {
+			return vm.NULL, nil
+		}
+		return Yeni(g), nil
+	case "değer", "deger":
+		return d.degerListesi(), nil
+	case "şekillendir", "sekillendir":
+		return d.metot("şekillendir", d.sekillendir), nil
+	case "devrik":
+		return d.metot("devrik", func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+			if len(args) != 0 {
+				return nil, fmt.Errorf("devrik() argüman almaz")
+			}
+			return devrik(t)
+		}), nil
+	case "eksenleri_sırala", "eksenleri_sirala":
+		return d.metot("eksenleri_sırala", d.eksenleriSirala), nil
+	case "dilim":
+		return d.metot("dilim", d.dilim), nil
+	case "cihaza":
+		return d.metot("cihaza", d.cihaza), nil
+	}
+	oneri := ""
+	if o := turkce.EnYakin(prop, tensorUyeleri); o != "" {
+		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+	}
+	return nil, fmt.Errorf("Tensör üzerinde %q özelliği ya da metodu bulunamadı%s", prop, oneri)
+}
+
+func (d *Deger) metot(ad string, fn vm.BuiltinFunc) *vm.BuiltinVal {
+	return &vm.BuiltinVal{Name: ad, Fn: fn}
+}
+
+func intListesi(sh []int) *vm.ListVal {
+	el := make([]vm.Value, len(sh))
+	for i, x := range sh {
+		el[i] = vm.NewInt(int64(x))
+	}
+	return &vm.ListVal{Elements: el}
+}
+
+// degerListesi tensörün değerlerini Ondalık (0 boyutlu) ya da iç içe liste olarak verir.
+func (d *Deger) degerListesi() vm.Value {
+	veri := d.t.Data()
+	sh := d.t.Shape()
+	if len(sh) == 0 {
+		return &vm.FloatVal{Val: float64(veri[0])}
+	}
+	k := 0
+	var kur func(eksen int) vm.Value
+	kur = func(eksen int) vm.Value {
+		el := make([]vm.Value, sh[eksen])
+		for i := range el {
+			if eksen == len(sh)-1 {
+				el[i] = &vm.FloatVal{Val: float64(veri[k])}
+				k++
+			} else {
+				el[i] = kur(eksen + 1)
+			}
+		}
+		return &vm.ListVal{Elements: el}
+	}
+	return kur(0)
+}
+
+func (d *Deger) sekillendir(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	var hedef []vm.Value
+	if len(args) == 1 {
+		if l, ok := args[0].(*vm.ListVal); ok {
+			hedef = l.Elements
+		}
+	}
+	if hedef == nil {
+		hedef = args
+	}
+	if len(hedef) == 0 {
+		return nil, fmt.Errorf("şekillendir([4, 6]) yeni şekli liste olarak bekler")
+	}
+	sh := make([]int, len(hedef))
+	bilinmeyen := 0
+	for i, v := range hedef {
+		n, ok := tamSayi(v)
+		if !ok || n < -1 {
+			return nil, fmt.Errorf("şekillendir: şeklin %d. elemanı negatif olmayan bir tam sayı (ya da çıkarsanacak eksen için -1) olmalıdır, %s verildi", i+1, v.Inspect())
+		}
+		if n == -1 {
+			bilinmeyen++
+		}
+		sh[i] = n
+	}
+	if bilinmeyen > 1 {
+		return nil, fmt.Errorf("şekillendir: yalnızca bir eksen -1 olabilir, %s verildi", sekilMetni(sh))
+	}
+	n := d.t.Numel()
+	carpim := 1
+	for _, x := range sh {
+		if x != -1 {
+			carpim *= x
+		}
+	}
+	if (bilinmeyen == 0 && carpim != n) || (bilinmeyen == 1 && (carpim == 0 || n%carpim != 0)) {
+		return nil, fmt.Errorf("%s şeklindeki tensör (%d eleman) %s şekline sokulamaz", sekilMetni(d.t.Shape()), n, sekilMetni(sh))
+	}
+	r, err := guvenli(func() *ct.Tensor { return d.t.Reshape(sh...) })
+	if err != nil {
+		return nil, err
+	}
+	return Yeni(r), nil
+}
+
+func devrik(t *ct.Tensor) (vm.Value, error) {
+	sh := t.Shape()
+	if len(sh) < 2 {
+		return nil, fmt.Errorf("devrik() en az 2 boyutlu tensör ister, %s verildi", sekilMetni(sh))
+	}
+	r, err := guvenli(func() *ct.Tensor { return t.T() })
+	if err != nil {
+		return nil, err
+	}
+	return Yeni(r), nil
+}
+
+func (d *Deger) eksenleriSirala(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	var liste []vm.Value
+	if len(args) == 1 {
+		if l, ok := args[0].(*vm.ListVal); ok {
+			liste = l.Elements
+		}
+	}
+	if liste == nil {
+		liste = args
+	}
+	sh := d.t.Shape()
+	if len(liste) != len(sh) {
+		return nil, fmt.Errorf("eksenleri_sırala: %s şeklindeki %d boyutlu tensör için %d eksen verilmeli, %d verildi", sekilMetni(sh), len(sh), len(sh), len(liste))
+	}
+	dims := make([]int, len(liste))
+	gorulen := make([]bool, len(sh))
+	for i, v := range liste {
+		n, ok := tamSayi(v)
+		if !ok {
+			return nil, fmt.Errorf("eksenleri_sırala: eksenler tam sayı olmalıdır, %s verildi", v.Inspect())
+		}
+		e, err := eksenCoz("eksenleri_sırala", n, sh)
+		if err != nil {
+			return nil, err
+		}
+		if gorulen[e] {
+			return nil, fmt.Errorf("eksenleri_sırala: %d. eksen birden çok kez verildi; her eksen bir kez yer almalı", e)
+		}
+		gorulen[e] = true
+		dims[i] = e
+	}
+	r, err := guvenli(func() *ct.Tensor { return d.t.Permute(dims...) })
+	if err != nil {
+		return nil, err
+	}
+	return Yeni(r), nil
+}
+
+func (d *Deger) dilim(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	if len(args) != 3 {
+		return nil, fmt.Errorf("dilim(eksen, baş, son) 3 parametre bekler, %d verildi", len(args))
+	}
+	var n [3]int
+	for i, a := range args {
+		x, ok := tamSayi(a)
+		if !ok {
+			return nil, fmt.Errorf("dilim(eksen, baş, son) tam sayılar bekler, %s verildi", a.Inspect())
+		}
+		n[i] = x
+	}
+	sh := d.t.Shape()
+	e, err := eksenCoz("dilim", n[0], sh)
+	if err != nil {
+		return nil, err
+	}
+	bas, son := n[1], n[2]
+	uz := sh[e]
+	if bas < 0 {
+		bas += uz
+	}
+	if son < 0 {
+		son += uz
+	}
+	if bas < 0 || bas > uz || son < bas || son > uz {
+		return nil, fmt.Errorf("dilim: %d. eksenin uzunluğu %d (%s); [%d, %d) aralığı geçersiz (0 ≤ baş ≤ son ≤ %d olmalı)", e, uz, sekilMetni(sh), n[1], n[2], uz)
+	}
+	r, err := guvenli(func() *ct.Tensor { return d.t.Slice(e, bas, son) })
+	if err != nil {
+		return nil, err
+	}
+	return Yeni(r), nil
+}
+
+// cihazCoz "cpu", "gpu", "gpu:1" gibi bir adı cihaza çevirir.
+func cihazCoz(ad string) (ct.Device, error) {
+	a := strings.ToLower(strings.TrimSpace(ad))
+	switch {
+	case a == "cpu":
+		return ct.CPU, nil
+	case a == "gpu":
+		return ct.GPU(0), nil
+	case strings.HasPrefix(a, "gpu:"):
+		var i int
+		if _, err := fmt.Sscanf(a[4:], "%d", &i); err == nil && i >= 0 {
+			return ct.GPU(i), nil
+		}
+	}
+	return ct.Device{}, fmt.Errorf("bilinmeyen cihaz %q; \"cpu\", \"gpu\" ya da \"gpu:1\" gibi bir ad verin", ad)
+}
+
+func (d *Deger) cihaza(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("cihaza(\"cpu\") 1 parametre bekler")
+	}
+	s, ok := args[0].(*vm.StringVal)
+	if !ok {
+		return nil, fmt.Errorf("cihaza() cihaz adını metin olarak bekler (\"cpu\" ya da \"gpu\"), %s verildi", args[0].Type())
+	}
+	dev, err := cihazCoz(s.Val)
+	if err != nil {
+		return nil, err
+	}
+	if !ct.HasDevice(dev) {
+		return nil, fmt.Errorf("%s cihazı kullanılamıyor: bu TR derlemesinde GPU arka ucu yok; tensörler şimdilik yalnızca \"cpu\" üzerinde çalışır", dev)
+	}
+	r, err := guvenli(func() *ct.Tensor { return d.t.To(dev) })
+	if err != nil {
+		return nil, err
+	}
+	return Yeni(r), nil
+}
+
+// ----------------------------------------------------------------------------
+// Hata ayıklayıcı (İzleme Masası) desteği
+// ----------------------------------------------------------------------------
+
+// IzlemeTuru İzleme Masası'nda ikon seçimi için değerin türüdür.
+func (d *Deger) IzlemeTuru() string { return "tensor" }
+
+// IzlemeEtiketi tip sütununda gösterilen özettir (ör. "Tensör [2×3]").
+func (d *Deger) IzlemeEtiketi() string {
+	sh := d.t.Shape()
+	if len(sh) == 0 {
+		return "Tensör (skaler)"
+	}
+	return "Tensör [" + sekilCarpimi(sh) + "]"
+}
+
+// TabloVerisi 1-2 boyutlu tensörü tabloya (sütunlar + satırlar) çevirir.
+func (d *Deger) TabloVerisi() ([]string, [][]string, error) {
+	const sinir = 10000
+	sh := d.t.Shape()
+	veri := d.t.Data()
+	bicim := func(x float32) string { return fmt.Sprintf("%.6g", x) }
+	switch len(sh) {
+	case 1:
+		var rows [][]string
+		for i, x := range veri {
+			if i >= sinir {
+				break
+			}
+			rows = append(rows, []string{bicim(x)})
+		}
+		return []string{"Değer"}, rows, nil
+	case 2:
+		cols := make([]string, sh[1])
+		for j := range cols {
+			cols[j] = fmt.Sprintf("Sütun %d", j+1)
+		}
+		var rows [][]string
+		for i := 0; i < sh[0] && i < sinir; i++ {
+			row := make([]string, sh[1])
+			for j := range row {
+				row[j] = bicim(veri[i*sh[1]+j])
+			}
+			rows = append(rows, row)
+		}
+		return cols, rows, nil
+	}
+	return nil, nil, fmt.Errorf("tablo görünümü yalnızca 1 ve 2 boyutlu tensörler için kullanılabilir (bu tensör: %s)", sekilMetni(sh))
+}

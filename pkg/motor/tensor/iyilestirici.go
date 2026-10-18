@@ -1,0 +1,192 @@
+package tensor
+
+import (
+	"fmt"
+	"strconv"
+
+	ct "tr_dili/pkg/tensor"
+	"tr_dili/pkg/turkce"
+	"tr_dili/pkg/vm"
+)
+
+// Iyilestirici AdamW ve SGD iyileştiricilerinin TR değeridir. Metotları .adım()
+// (parametreleri günceller) ve .sıfırla() (gradyanları sıfırlar).
+type Iyilestirici struct {
+	ad     string
+	opt    ct.Optimizer
+	adamw  *ct.AdamW
+	sgd    *ct.SGD
+	params []*ct.Tensor
+}
+
+func (o *Iyilestirici) Type() vm.ValueType { return vm.ValueType(o.ad) }
+func (o *Iyilestirici) IsTruthy() bool     { return true }
+
+func (o *Iyilestirici) Inspect() string {
+	f := func(x float32) string { return strconv.FormatFloat(float64(x), 'g', -1, 32) }
+	if o.adamw != nil {
+		a := o.adamw
+		return fmt.Sprintf("AdamW(parametre: %d, öğrenme_oranı: %s, ağırlık_çürümesi: %s, beta1: %s, beta2: %s, epsilon: %s, adım: %d)",
+			len(o.params), f(a.LR), f(a.WeightDecay), f(a.Beta1), f(a.Beta2), f(a.Eps), a.StepCount())
+	}
+	s := o.sgd
+	return fmt.Sprintf("SGD(parametre: %d, öğrenme_oranı: %s, momentum: %s, ağırlık_çürümesi: %s)",
+		len(o.params), f(s.LR), f(s.Momentum), f(s.WeightDecay))
+}
+
+func (o *Iyilestirici) GetProperty(prop string) (vm.Value, error) {
+	switch prop {
+	case "adım", "adim":
+		return &vm.BuiltinVal{Name: "adım", Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+			if len(args) != 0 {
+				return nil, fmt.Errorf("adım() argüman almaz")
+			}
+			if _, err := guvenli(func() bool { o.opt.Step(); return true }); err != nil {
+				return nil, err
+			}
+			return vm.NULL, nil
+		}}, nil
+	case "sıfırla", "sifirla":
+		return &vm.BuiltinVal{Name: "sıfırla", Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+			if len(args) != 0 {
+				return nil, fmt.Errorf("sıfırla() argüman almaz")
+			}
+			o.opt.ZeroGrad()
+			return vm.NULL, nil
+		}}, nil
+	}
+	oneri := ""
+	if s := turkce.EnYakin(prop, []string{"adım", "sıfırla"}); s != "" {
+		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", s)
+	}
+	return nil, fmt.Errorf("%s üzerinde %q metodu bulunamadı%s", o.ad, prop, oneri)
+}
+
+// parametreler iyileştiriciye verilen tensör ya da tensör listesini denetler.
+func parametreler(fn string, v vm.Value) ([]*ct.Tensor, error) {
+	var liste []vm.Value
+	switch x := v.(type) {
+	case *Deger:
+		liste = []vm.Value{x}
+	case *vm.ListVal:
+		liste = x.Elements
+	default:
+		return nil, fmt.Errorf("%s: parametreler bir tensör listesi olmalıdır, %s verildi", fn, v.Type())
+	}
+	if len(liste) == 0 {
+		return nil, fmt.Errorf("%s: parametre listesi boş", fn)
+	}
+	out := make([]*ct.Tensor, 0, len(liste))
+	gorulen := map[*ct.Tensor]bool{}
+	for i, el := range liste {
+		d, ok := el.(*Deger)
+		if !ok {
+			return nil, fmt.Errorf("%s: %d. parametre bir tensör olmalıdır, %s verildi", fn, i+1, el.Type())
+		}
+		t := d.t
+		if !t.RequiresGrad() {
+			return nil, fmt.Errorf("%s: %d. parametre (%s) türev izlemiyor; tensör(..., türev_izle: doğru) ile oluşturun", fn, i+1, sekilMetni(t.Shape()))
+		}
+		if !t.IsLeaf() {
+			return nil, fmt.Errorf("%s: %d. parametre (%s) bir işlemin sonucu (yaprak değil); parametreleri doğrudan tensör(..., türev_izle: doğru) ile oluşturun", fn, i+1, sekilMetni(t.Shape()))
+		}
+		if gorulen[t] {
+			return nil, fmt.Errorf("%s: %d. parametre listede birden çok kez var", fn, i+1)
+		}
+		gorulen[t] = true
+		out = append(out, t)
+	}
+	return out, nil
+}
+
+// adliOran adlı sayısal bir argümanı okur.
+func adliOran(fn string, named map[string]vm.Value, varsayilan float64, enAz float64, adlar ...string) (float32, error) {
+	v, ok := adliAl(named, adlar...)
+	if !ok {
+		return float32(varsayilan), nil
+	}
+	f, ok := vm.ToFloat(v)
+	if !ok {
+		return 0, fmt.Errorf("%s: %s sayı olmalıdır, %s verildi", fn, adlar[0], v.Type())
+	}
+	if f < enAz {
+		return 0, fmt.Errorf("%s: %s en az %g olmalıdır, %g verildi", fn, adlar[0], enAz, f)
+	}
+	return float32(f), nil
+}
+
+func iyilestiriciParametreleri(fn string, args []vm.Value) ([]*ct.Tensor, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("%s(parametreler, öğrenme_oranı: ...) 1 konumlu parametre bekler, %d verildi", fn, len(args))
+	}
+	return parametreler(fn, args[0])
+}
+
+func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	const fn = "AdamW"
+	if err := adliDenetle(fn, named, "öğrenme_oranı", "ogrenme_orani", "ağırlık_çürümesi", "agirlik_curumesi", "beta1", "beta2", "epsilon"); err != nil {
+		return nil, err
+	}
+	params, err := iyilestiriciParametreleri(fn, args)
+	if err != nil {
+		return nil, err
+	}
+	lr, err := adliOran(fn, named, 0.001, 0, "öğrenme_oranı", "ogrenme_orani")
+	if err != nil {
+		return nil, err
+	}
+	wd, err := adliOran(fn, named, 0.01, 0, "ağırlık_çürümesi", "agirlik_curumesi")
+	if err != nil {
+		return nil, err
+	}
+	b1, err := adliOran(fn, named, 0.9, 0, "beta1")
+	if err != nil {
+		return nil, err
+	}
+	b2, err := adliOran(fn, named, 0.999, 0, "beta2")
+	if err != nil {
+		return nil, err
+	}
+	if b1 >= 1 || b2 >= 1 {
+		return nil, fmt.Errorf("%s: beta1 ve beta2 [0, 1) aralığında olmalıdır", fn)
+	}
+	eps, err := adliOran(fn, named, 1e-8, 0, "epsilon")
+	if err != nil {
+		return nil, err
+	}
+	a, err := guvenli(func() *ct.AdamW { return ct.NewAdamW(params, lr, wd) })
+	if err != nil {
+		return nil, err
+	}
+	a.Beta1, a.Beta2, a.Eps = b1, b2, eps
+	return &Iyilestirici{ad: fn, opt: a, adamw: a, params: params}, nil
+}
+
+func sgdKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	const fn = "SGD"
+	if err := adliDenetle(fn, named, "öğrenme_oranı", "ogrenme_orani", "momentum", "ağırlık_çürümesi", "agirlik_curumesi"); err != nil {
+		return nil, err
+	}
+	params, err := iyilestiriciParametreleri(fn, args)
+	if err != nil {
+		return nil, err
+	}
+	lr, err := adliOran(fn, named, 0.01, 0, "öğrenme_oranı", "ogrenme_orani")
+	if err != nil {
+		return nil, err
+	}
+	mom, err := adliOran(fn, named, 0, 0, "momentum")
+	if err != nil {
+		return nil, err
+	}
+	wd, err := adliOran(fn, named, 0, 0, "ağırlık_çürümesi", "agirlik_curumesi")
+	if err != nil {
+		return nil, err
+	}
+	s, err := guvenli(func() *ct.SGD { return ct.NewSGD(params, lr, mom) })
+	if err != nil {
+		return nil, err
+	}
+	s.WeightDecay = wd
+	return &Iyilestirici{ad: fn, opt: s, sgd: s, params: params}, nil
+}
