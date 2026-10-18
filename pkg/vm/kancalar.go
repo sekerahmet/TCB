@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -35,13 +36,31 @@ type Indekslenebilir interface {
 	Indeks(idx Value) (Value, error)
 }
 
-// satirEki VM dışından gelen bir hatanın başına (yoksa) "Satır N: " ekler; böylece hata
-// mesajı fonksiyon hatalarıyla tutarlı olur ve kod çerçevesiyle gösterilebilir.
+// SatirliHata satır bilgisi eklenmiş bir çalışma zamanı hatasıdır. Yerleşiklerin ve dış
+// değerlerin (tensör, matris) hataları bununla sarılır; zaten satır bilgisi taşıyan bir
+// hata (ör. yerleşiğin geri çağırdığı fonksiyonun hatası) ikinci kez sarılmaz, böylece
+// mesaj ve kod çerçevesi asıl hatanın satırını gösterir.
+type SatirliHata struct {
+	Satir int
+	Hata  error
+}
+
+func (h *SatirliHata) Error() string { return fmt.Sprintf("Satır %d: %v", h.Satir, h.Hata) }
+func (h *SatirliHata) Unwrap() error { return h.Hata }
+
+// satirliMi hata zaten satır bilgisi taşıyor mu? Tipli hata önceliklidir; VM'nin metinle
+// ürettiği "Satır N: ..." hataları için metin öneki yedek olarak denetlenir.
+func satirliMi(err error) bool {
+	var sh *SatirliHata
+	return errors.As(err, &sh) || strings.HasPrefix(err.Error(), "Satır ")
+}
+
+// satirEki hatayı (satır bilgisi yoksa) "Satır N: " önekli bir SatirliHata'ya çevirir.
 func satirEki(line int, err error) error {
-	if err == nil || line <= 0 || strings.HasPrefix(err.Error(), "Satır ") {
+	if err == nil || line <= 0 || satirliMi(err) {
 		return err
 	}
-	return fmt.Errorf("Satır %d: %w", line, err)
+	return &SatirliHata{Satir: line, Hata: err}
 }
 
 // kancaIslec ikili işlemi (varsa) değerlerin işleç kancalarıyla yapar.

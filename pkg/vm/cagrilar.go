@@ -80,7 +80,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 	case *BuiltinVal:
 		res, err := fn.Fn(v, args, named)
 		if err != nil {
-			return nil, fmt.Errorf("Satır %d: %v", line, err)
+			return nil, satirEki(line, err)
 		}
 		return res, nil
 

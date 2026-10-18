@@ -796,7 +796,7 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 					}
 					res, err := m.f(v, obj, args, uyeSatiri)
 					if err != nil {
-						return nil, fmt.Errorf("Satır %d: %v", line, err)
+						return nil, satirEki(line, err)
 					}
 					return res, nil
 				}
@@ -890,7 +890,7 @@ func (v *VM) konumluCagir(fnVal Value, argKod []ifadeKodu, env *Environment, lin
 			}
 			res, err := fn.Tek(v, av)
 			if err != nil {
-				return nil, fmt.Errorf("Satır %d: %v", line, err)
+				return nil, satirEki(line, err)
 			}
 			return res, nil
 		}
