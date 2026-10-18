@@ -28,11 +28,12 @@ func asciiBicim(s string) string {
 
 // hamGirdi dosyadaki bir satırın çözülmüş biçimidir.
 type hamGirdi struct {
-	anahtar string
-	ad      string
-	eski    []string
-	aile    string
-	ascii   *bool
+	anahtar         string
+	ad              string
+	eski            []string
+	aile            string
+	ascii           *bool
+	aciklama, ornek string
 }
 
 type cozumleyici struct {
@@ -155,7 +156,8 @@ func (c *cozumleyici) mantik() (bool, error) {
 	return false, c.hata("true ya da false bekleniyordu")
 }
 
-// girdi { "ad": ..., "eski": [...], "aile": ..., "ascii": ... } nesnesini okur.
+// girdi { "ad": ..., "eski": [...], "aile": ..., "ascii": ..., "açıklama": ..., "örnek": ... }
+// nesnesini okur.
 func (c *cozumleyici) girdi(g *hamGirdi) error {
 	if err := c.bekle('{'); err != nil {
 		return err
@@ -188,8 +190,12 @@ func (c *cozumleyici) girdi(g *hamGirdi) error {
 			var b bool
 			b, err = c.mantik()
 			g.ascii = &b
+		case "açıklama":
+			g.aciklama, err = c.metin()
+		case "örnek":
+			g.ornek, err = c.metin()
 		default:
-			return c.hata("%s girdisinde bilinmeyen alan %q (geçerli alanlar: ad, eski, ascii, aile)", g.anahtar, alan)
+			return c.hata("%s girdisinde bilinmeyen alan %q (geçerli alanlar: ad, eski, ascii, aile, açıklama, örnek)", g.anahtar, alan)
 		}
 		if err != nil {
 			return err

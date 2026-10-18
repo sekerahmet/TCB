@@ -17,7 +17,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - eğitim için günlük kaydı ve ilerleme çubuğu (adım, kayıp, kalan süre), profil çıkarma.
    Her ad önce tasarlanıp onaylanır; aynı işi yapan iki kod olmaz.
 3. **Kodlu saklama** — dosyalar diskte dilden bağımsız sabit kodlarla saklanır (`A001`, `G100`); kişi kodu VS Code'da ya da başka bir düzenleyicide kendi yazım dilinde (`eğer` / `if`) görür ve düzenler. Böylece her dilde yazılan kod diskte aynıdır; farklı dillerde çalışan kişiler aynı dosyalar üzerinde birlikte çalışabilir.
-   - Go kodunda kodlar adlı sabitler olarak (`sozluk.G100`), sözlükten üretilir.
+   - Go kodunda kodlar adlı sabitler olarak (`kod.G100`), kod listesinden üretilir.
    - Sözcük çözümleyici kodları her zaman kabul eder; `tr biçimle` ve VS Code kaydı kodlu biçimi yazar; otomatik sınama kodlu biçimi denetler.
    - Kullanıcının adları, metinler, yorumlar ve sayılar olduğu gibi kalır; metin içi `{ifade}` yerleştirmelerindeki dil kelimeleri de kodlanır.
    - `tr göster dosya.tr --dil tr` ve hata mesajları kodu okunur dilde gösterir.
@@ -64,6 +64,6 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 - Veri hattı: `.npy` parçaları, önden yükleme, önbellek; genel `tokenizer.json` parçalayıcısı.
 - bf16/fp16 veri türleri ve `karışık_hassasiyet` bloğu.
 - Örnekler 01–09 öğrenme sırasıyla.
-- Sözlük: dilin bütün adları `pkg/kod/tr.json`'da sabit kodlara bağlı.
+- Kodlar: dilin bütün adları `pkg/kod/tr.json`'da sabit kodlara bağlı; açıklamalı başvuru `docs/KODLAR.md`.
 - Tek yazım: Türkçe harfsiz biçimler, eş yazımlar, `matris`, `#` yorum ve İngilizce eşler kaldırıldı; komut satırı tek Türkçe ad; yerleşik ad gölgeleme uyarısı; eklenti listeleri sözlükten üretiliyor.
 - Model yapı taşları: `sinüs`/`kosinüs`, `birleştir`, `.böl`, `boyutu_koru`, birleşik `dikkat` (nedensel, pencereli, gruplu sorgu; T×T ara matrissiz, uzun bağlamda 2–10 kat hızlı), `örnekle`, `parametreler(model)`.

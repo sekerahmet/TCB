@@ -19,8 +19,9 @@ import (
 type metotGovdesi func(vm *VM, inst Value, args []Value, line int) (Value, error)
 
 type yerlesikMetot struct {
-	ad string // bağlı yerleşiğin adı (sözlükteki ad)
-	f  metotGovdesi
+	ad    string // bağlı yerleşiğin adı (kod listesindeki ad)
+	tamAd string // hata mesajlarındaki tipli adı (metin.içerir)
+	f     metotGovdesi
 }
 
 // cekirdekMetot bir üye kodunun Metin, Liste ve Sözlük üzerindeki gövdeleridir (tipte yoksa
@@ -93,7 +94,7 @@ func metotEkle(tip int, kd kod.Kod, im imza, f metotGovdesi) {
 		}
 		return govde(vm, inst, args, line)
 	}
-	m := &yerlesikMetot{ad: kod.Ad(kd), f: f}
+	m := &yerlesikMetot{ad: kod.Ad(kd), tamAd: tamAd, f: f}
 	switch tip {
 	case tipMetin:
 		cm.metin = m
@@ -362,6 +363,9 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u uyeBilgisi, safe bool, 
 	}
 	if m := metotBul(obj, u.cekirdek); m != nil {
 		return &BuiltinVal{Name: m.ad, Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+			if len(named) > 0 { // çekirdek metotlar adlı argüman almaz
+				return nil, AdliAlmazHatasi(m.tamAd, named)
+			}
 			return m.f(vm, obj, args, line)
 		}}, nil
 	}

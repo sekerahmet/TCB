@@ -335,6 +335,9 @@ func birli(v *vm.VM, kd kod.Kod, fn func(*ct.Tensor) *ct.Tensor, sayi64 func(flo
 	sar(v, kd, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
 		return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 1 || !tensorMu(args) {
+				if err := baglama.AdliDenetle(ad+"()", named); err != nil {
+					return nil, err
+				}
 				if eski != nil {
 					return eski(m, args, named)
 				}
@@ -501,6 +504,9 @@ func indirgeme(v *vm.VM, kd kod.Kod, fn func(t *ct.Tensor, eksen int, tum, koru 
 	sar(v, kd, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
 		return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 			if len(args) == 0 {
+				if err := baglama.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
+					return nil, err
+				}
 				return eskiCagir(ad, eski, m, args, named)
 			}
 			if _, ok := args[0].(*Deger); !ok {
@@ -637,6 +643,9 @@ func maksIndeks(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value,
 // koruyarak katlar, diğer durumlar açık hata verir.
 func tensorOlmayanIndirgeme(kd kod.Kod, eski vm.BuiltinFunc, m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	ad := kod.Ad(kd)
+	if err := baglama.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
+		return nil, err
+	}
 	if _, ok := baglama.AdliAl(named, adBoyutuKoru); ok {
 		return nil, fmt.Errorf("%s: boyutu_koru: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0, boyutu_koru: doğru)", ad, tipAdi(args[0]), ad)
 	}

@@ -215,7 +215,7 @@ func (nn *SinirAgi) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 		return &vm.BuiltinVal{Name: "model." + kod.Ad(uyeEgit), Fn: nn.egitYerlesik}, nil
 
 	case uyeTahminEt:
-		return &vm.BuiltinVal{Name: "model." + kod.Ad(uyeTahminEt), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+		return &vm.BuiltinVal{Name: "model." + kod.Ad(uyeTahminEt), AdliAlmaz: true, Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("model.tahmin_et(Girdi) 1 parametre bekler")
 			}
@@ -239,7 +239,7 @@ func (nn *SinirAgi) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 		return &vm.ListVal{Elements: elems}, nil
 
 	case uyeKaydet:
-		return &vm.BuiltinVal{Name: "model." + kod.Ad(uyeKaydet), Fn: func(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+		return &vm.BuiltinVal{Name: "model." + kod.Ad(uyeKaydet), AdliAlmaz: true, Fn: func(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("model.kaydet(dosya_yolu) 1 parametre bekler")
 			}
@@ -307,6 +307,9 @@ func (nn *SinirAgi) egitYerlesik(m *vm.VM, args []vm.Value, named map[string]vm.
 
 // sinirAgiKur sinir_ağı(katman_boyutları, [aktivasyon: "tanh"], [tohum: 42]) yerleşiğidir.
 func sinirAgiKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	if err := baglama.AdliDenetle("sinir_ağı()", named, adAktivasyon, adTohum); err != nil {
+		return nil, err
+	}
 	if len(args) < 1 {
 		return nil, fmt.Errorf("sinir_ağı(katman_boyutları, [aktivasyon: 'tanh'], [tohum: 42]) en az 1 parametre bekler")
 	}
@@ -365,8 +368,11 @@ func yuklenenMatris(veri [][]float64) (*ct.Tensor, error) {
 
 // modelYukle model_yükle(dosya_yolu) yerleşiğidir: model.kaydet ile yazılmış (ya da eski
 // matris tabanlı modelin kaydettiği) JSON dosyasını okur.
-func modelYukle(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+func modelYukle(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	const fn = "model_yükle"
+	if err := baglama.AdliDenetle(fn+"()", named); err != nil {
+		return nil, err
+	}
 	if len(args) != 1 {
 		return nil, fmt.Errorf("model_yükle(dosya_yolu) 1 parametre bekler")
 	}
@@ -417,7 +423,10 @@ func modelYukle(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, err
 
 // kayipMSE kayıp_mse(tahmin, gerçek) yerleşiğidir: iki matrisin (liste ya da tensör)
 // elemanları arasındaki kare farkların ortalamasını Ondalık olarak verir.
-func kayipMSE(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+func kayipMSE(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	if err := baglama.AdliDenetle("kayıp_mse()", named); err != nil {
+		return nil, err
+	}
 	if len(args) != 2 {
 		return nil, fmt.Errorf("kayıp_mse(tahmin, gerçek) 2 parametre bekler")
 	}

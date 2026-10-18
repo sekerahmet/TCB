@@ -122,7 +122,8 @@ func (w *WebServerVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeAl:
 		return &vm.BuiltinVal{
-			Name: "sunucu.al",
+			Name:      "sunucu.al",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("sunucu.al(yol, fonksiyon) 2 argüman bekler")
@@ -140,7 +141,8 @@ func (w *WebServerVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeGonder:
 		return &vm.BuiltinVal{
-			Name: "sunucu.gönder",
+			Name:      "sunucu.gönder",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("sunucu.gönder(yol, fonksiyon) 2 argüman bekler")
@@ -158,7 +160,8 @@ func (w *WebServerVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeRotaEkle:
 		return &vm.BuiltinVal{
-			Name: "sunucu.rota_ekle",
+			Name:      "sunucu.rota_ekle",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("sunucu.rota_ekle(yol, [metod], fonksiyon) en az 2 argüman bekler")
@@ -185,7 +188,8 @@ func (w *WebServerVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeStatikKlasor:
 		return &vm.BuiltinVal{
-			Name: "sunucu.statik_klasör",
+			Name:      "sunucu.statik_klasör",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("sunucu.statik_klasör(url_yolu, klasör_yolu) 2 argüman bekler")
@@ -203,7 +207,8 @@ func (w *WebServerVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeArkaPlandaBaslat:
 		return &vm.BuiltinVal{
-			Name: "sunucu.arka_planda_başlat",
+			Name:      "sunucu.arka_planda_başlat",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				w.vmRef = v
 				if err := w.startServer(true); err != nil {
@@ -217,6 +222,9 @@ func (w *WebServerVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 		return &vm.BuiltinVal{
 			Name: "sunucu.başlat",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+				if err := baglama.AdliDenetle("sunucu.başlat()", named, adArkaPlan); err != nil {
+					return nil, err
+				}
 				w.vmRef = v
 				bg := false
 				if b, ok := baglama.AdliAl(named, adArkaPlan); ok && b.IsTruthy() {
@@ -231,7 +239,8 @@ func (w *WebServerVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeDurdur:
 		return &vm.BuiltinVal{
-			Name: "sunucu.durdur",
+			Name:      "sunucu.durdur",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if w.server != nil {
 					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -454,6 +463,9 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 		return &vm.BuiltinVal{
 			Name: "arayüz.kart_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+				if err := baglama.AdliDenetle("arayüz.kart_ekle()", named, adAltBilgi, adRenk); err != nil {
+					return nil, err
+				}
 				if len(args) < 2 {
 					return nil, fmt.Errorf("kart_ekle(başlık, değer, [alt_bilgi], [renk]) en az 2 argüman bekler")
 				}
@@ -492,7 +504,8 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeBaslikEkle:
 		return &vm.BuiltinVal{
-			Name: "arayüz.başlık_ekle",
+			Name:      "arayüz.başlık_ekle",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("başlık_ekle(metin, [alt_metin]) argüman bekler")
@@ -512,7 +525,8 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeMetinEkle:
 		return &vm.BuiltinVal{
-			Name: "arayüz.metin_ekle",
+			Name:      "arayüz.metin_ekle",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("metin_ekle(metin) 1 argüman bekler")
@@ -527,7 +541,8 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeTabloEkle:
 		return &vm.BuiltinVal{
-			Name: "arayüz.tablo_ekle",
+			Name:      "arayüz.tablo_ekle",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("tablo_ekle(başlık, liste_veya_matris) 2 argüman bekler")
@@ -546,6 +561,9 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 		return &vm.BuiltinVal{
 			Name: "arayüz.grafik_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+				if err := baglama.AdliDenetle("arayüz.grafik_ekle()", named, adTip); err != nil {
+					return nil, err
+				}
 				if len(args) < 3 {
 					return nil, fmt.Errorf("grafik_ekle(başlık, etiketler_listesi, değerler_listesi) 3 argüman bekler")
 				}
@@ -584,7 +602,8 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeFormEkle:
 		return &vm.BuiltinVal{
-			Name: "arayüz.form_ekle",
+			Name:      "arayüz.form_ekle",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 3 {
 					return nil, fmt.Errorf("form_ekle(başlık, alanlar_listesi, gönder_fonksiyonu) 3 argüman bekler")
@@ -608,7 +627,8 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeButonEkle:
 		return &vm.BuiltinVal{
-			Name: "arayüz.buton_ekle",
+			Name:      "arayüz.buton_ekle",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 2 {
 					return nil, fmt.Errorf("buton_ekle(etiket, fonksiyon) 2 argüman bekler")
@@ -625,7 +645,8 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeHTMLKaydet, uyeKaydet:
 		return &vm.BuiltinVal{
-			Name: "arayüz.html_kaydet",
+			Name:      "arayüz.html_kaydet",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) != 1 {
 					return nil, vm.ArgumanSayisiHatasi("html_kaydet", "1", len(args), "arayüz.html_kaydet(dosya_yolu)")
@@ -646,7 +667,8 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeHTMLUret:
 		return &vm.BuiltinVal{
-			Name: "arayüz.html_üret",
+			Name:      "arayüz.html_üret",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				return &vm.StringVal{Val: g.renderHTML()}, nil
 			},
@@ -656,6 +678,9 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 		return &vm.BuiltinVal{
 			Name: "arayüz.arka_planda_başlat",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+				if err := baglama.AdliDenetle("arayüz.arka_planda_başlat()", named, adPort, adPencereAc); err != nil {
+					return nil, err
+				}
 				port, err := portAl("arayüz.arka_planda_başlat", args, named, 8095)
 				if err != nil {
 					return nil, err
@@ -676,6 +701,9 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 		return &vm.BuiltinVal{
 			Name: "arayüz.başlat",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+				if err := baglama.AdliDenetle("arayüz.başlat()", named, adPort, adPencereAc, adArkaPlan); err != nil {
+					return nil, err
+				}
 				port, err := portAl("arayüz.başlat", args, named, 8095)
 				if err != nil {
 					return nil, err
@@ -698,7 +726,8 @@ func (g *GUIAppVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeDurdur:
 		return &vm.BuiltinVal{
-			Name: "arayüz.durdur",
+			Name:      "arayüz.durdur",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if g.server != nil {
 					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -1097,6 +1126,9 @@ func Kaydet(v *vm.VM) {
 
 	// 1. web_sunucu(port: 8080)
 	v.RegisterBuiltinKod(kod.W110, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+		if err := baglama.AdliDenetle("web_sunucu()", named, adPort); err != nil {
+			return nil, err
+		}
 		port, err := portAl("web_sunucu", args, named, 8080)
 		if err != nil {
 			return nil, err
@@ -1109,8 +1141,11 @@ func Kaydet(v *vm.VM) {
 		}, nil
 	})
 
-	// 2. arayüz_oluştur(başlık, genişlik: 1050, yükseklik: 750)
+	// 2. arayüz_oluştur(başlık, genişlik: 1080, yükseklik: 760)
 	createGUI := func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+		if err := baglama.AdliDenetle("arayüz_oluştur()", named, adGenislik, adYukseklik); err != nil {
+			return nil, err
+		}
 		title := "TR Görsel Uygulaması"
 		if len(args) >= 1 {
 			title = args[0].Inspect()

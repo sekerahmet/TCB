@@ -266,7 +266,8 @@ func (db *DatabaseVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 	switch kd {
 	case uyeTablolar:
 		return &vm.BuiltinVal{
-			Name: "vt.tablolar",
+			Name:      "vt.tablolar",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				db.mu.RLock()
 				defer db.mu.RUnlock()
@@ -285,7 +286,8 @@ func (db *DatabaseVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeTabloOlustur:
 		return &vm.BuiltinVal{
-			Name: "vt.tablo_oluştur",
+			Name:      "vt.tablo_oluştur",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("tablo_oluştur(tablo_adı, [sütunlar]) en az 1 argüman bekler")
@@ -313,7 +315,8 @@ func (db *DatabaseVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeEkle:
 		return &vm.BuiltinVal{
-			Name: "vt.ekle",
+			Name:      "vt.ekle",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				const fn = "vt.ekle"
 				if len(args) < 2 {
@@ -465,7 +468,8 @@ func (db *DatabaseVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeHepsiniAl:
 		return &vm.BuiltinVal{
-			Name: "vt.hepsini_al",
+			Name:      "vt.hepsini_al",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				if len(args) < 1 {
 					return nil, fmt.Errorf("vt.hepsini_al(tablo_adı) 1 argüman bekler")
@@ -510,7 +514,8 @@ func (db *DatabaseVal) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 
 	case uyeKaydet:
 		return &vm.BuiltinVal{
-			Name: "vt.kaydet",
+			Name:      "vt.kaydet",
+			AdliAlmaz: true,
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				db.mu.Lock()
 				defer db.mu.Unlock()
@@ -851,7 +856,7 @@ func Kaydet(v *vm.VM) {
 		}
 		return db, nil
 	}
-	v.RegisterBuiltinKod(kod.W200, openDB)
+	v.AdlisizKaydet(kod.W200, openDB)
 
 	// 2. Bellekteki listeyi tablo gibi sorgulama:
 	// tablo_sorgula(siparisler, "tutar > 20000", sırala: "tutar:azalan", alanlar: ["musteri", "tutar"], limit: 5)

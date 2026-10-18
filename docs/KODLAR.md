@@ -1,0 +1,2959 @@
+# TR kod listesi
+
+<!-- Bu dosya pkg/kod/tanim.json ve pkg/kod/tr.json'dan üretilir; elle düzenlemeyin: go run ./araclar/kod_belgesi -->
+
+Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/DIL_TANIMI.md` §17). Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; "hangi kod ne işe yarar" sorusunun tek başvurusudur. Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.
+
+İmzalarda parametrelerin yalnızca tipleri yazılır: `[Tip]` isteğe bağlı, `[Tip...]` sıfır ya da çok, `Tip...` bir ya da çok argümandır; `ad: Tip = varsayılan` adlı argümandır, `→` dönüş tipidir. Metot ve özellikler `Tip.ad` biçiminde, geçerli oldukları her tip için ayrı satırda yazılır.
+
+**Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
+
+Toplam 257 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 22 tip, 83 fonksiyon, 59 metot, 12 özellik, 48 adlı argüman; 0 kaldırılmış (taşınmış) kod.
+
+## İçindekiler
+
+- A — Dilin çekirdeği: Anahtar kelimeler (A0xx) · Bağlamsal sözcükler (A1xx) · Tip adları (A2xx)
+- G — Genel yerleşikler: Giriş, çıkış ve dosya (G1xx) · Değer, tip ve dönüşüm (G2xx) · Liste (G3xx) · Matematik ve istatistik (G4xx) · Zaman ve eşzamanlılık (G5xx) · Veri biçimleri (G6xx) · Test (G7xx)
+- T — Tensör ve yapay zekâ: Tensör oluşturma ve görünüm (T1xx) · Etkinleştirme ve eleman bazlı matematik (T2xx) · Türev (T3xx) · İyileştiriciler (T4xx) · Katmanlar, kayıplar, hazır model (T5xx) · Vektör yardımcıları ve dil modeli (T6xx) · Kaydetme, yükleme, veri türleri (T7xx) · Adlı argümanlar (T9xx)
+- V — Veri ve parçalayıcı: Veri kümesi (V1xx) · Parçalayıcı (V2xx) · Adlı argümanlar (V9xx)
+- W — Web, veritabanı, arayüz: Web istemcisi ve sunucusu (W1xx) · Veritabanı (W2xx) · Görsel arayüz (W3xx) · Adlı argümanlar (W9xx)
+- Y — Metot ve özellikler (x.ad): Birden çok tipte ortak (Y0xx) · Metin (Y1xx) · Liste (Y2xx) · Sözlük (Y3xx) · Tensör (Y4xx) · İyileştirici ve SinirAğı (Y5xx) · Veri kümesi, okuyucu, parçalayıcı (Y6xx) · Veritabanı (Y7xx) · Web sunucusu (Y8xx) · Görsel arayüz (Y9xx)
+
+## A — Dilin çekirdeği
+
+### Anahtar kelimeler (A0xx)
+
+#### A001 `eğer`
+
+Koşul doğruysa bloğu çalıştırır; eğer bir ifadedir, değeri çalışan bloğun son deyimidir (hiçbir dal çalışmazsa yok).
+
+```tr
+değişken n = 7; eğer n % 2 == 0 { yazdır("çift") } değilse { yazdır("tek") }
+```
+
+İlişkili: A002 `değilse`
+
+#### A002 `değilse`
+
+eğer koşulu tutmadığında çalışacak dalı başlatır; değilse eğer ile yeni bir koşul zincirlenir.
+
+```tr
+değişken n = -3; değişken tür = eğer n < 0 { "negatif" } değilse eğer n == 0 { "sıfır" } değilse { "pozitif" }; yazdır(tür)
+```
+
+İlişkili: A001 `eğer`
+
+#### A003 `eşle`
+
+Konuyu kollarla sırayla karşılaştırır ve ilk eşleşen kolun sonucunu verir; Aralık deseni içerme sınar, eşleşme yoksa yok döner.
+
+```tr
+değişken puan = 95; yazdır(eşle puan { 100 => "tam puan"; 90..100 => "pekiyi"; varsayılan => "diğer" })
+```
+
+İlişkili: A004 `varsayılan`
+
+#### A004 `varsayılan`
+
+eşle içinde her değerle eşleşen koldur; hiçbir desen tutmadığında çalışır (_ ile aynı).
+
+```tr
+yazdır(eşle 7 { 1, 2 => "küçük"; varsayılan => "büyük" })
+```
+
+İlişkili: A003 `eşle`
+
+#### A010 `döngü`
+
+Bir kaynağı gezer (döngü x içinde ...), koşul doğru oldukça tekrarlar (döngü koşul { }) ya da sonsuz döner (döngü { }); her tur kendi kapsamında çalışır.
+
+```tr
+döngü i, x içinde ["a", "b"] { yazdır(i, x) }
+```
+
+İlişkili: A011 `içinde`, A012 `iken`
+
+#### A011 `içinde`
+
+döngüde ve liste üretecinde gezilecek kaynağı belirtir; iki değişkenli biçimde indeks ile eleman (sözlükte anahtar ile değer) verir.
+
+```tr
+yazdır([x * x döngü x içinde 1..=5 eğer x % 2 == 1])
+```
+
+İlişkili: A010 `döngü`
+
+#### A012 `iken`
+
+Koşul doğru oldukça bloğu tekrarlar; döngü koşul { ... } ile aynıdır.
+
+```tr
+değişken i = 0; iken i < 3 { i += 1 }; yazdır(i)
+```
+
+İlişkili: A010 `döngü`
+
+#### A013 `çık`
+
+En içteki döngüden çıkar; döngü dışında yazılması derleme hatasıdır (fonksiyondan çıkmak için sonuç yazılır).
+
+```tr
+döngü x içinde 1..10 { eğer x == 3 { çık }; yazdır(x) }
+```
+
+İlişkili: A014 `devam` · Eski adlar: `kır`
+
+#### A014 `devam`
+
+En içteki döngünün sonraki turuna geçer; yalnızca bir döngü gövdesinde geçerlidir.
+
+```tr
+döngü x içinde 1..=5 { eğer x % 2 == 0 { devam }; yazdır(x) }
+```
+
+İlişkili: A013 `çık`
+
+#### A020 `fonksiyon`
+
+Fonksiyon tanımlar; parametrelere varsayılan değer verilebilir, tanım öne alınmaz (tanımdan önce çağrılamaz).
+
+```tr
+fonksiyon topla(a, b = 1) { sonuç a + b }; yazdır(topla(2, 3), topla(5))
+```
+
+İlişkili: A021 `sonuç` · Eski adlar: `işlev`
+
+#### A021 `sonuç`
+
+Fonksiyondan değer döndürür; yalnız sonuç yok döndürür, üst düzeyde programı bitirir, modülün üst düzeyinde ve test gövdesinde derleme hatasıdır.
+
+```tr
+fonksiyon işaret(n) { eğer n < 0 { sonuç "negatif" }; sonuç "pozitif" }; yazdır(işaret(-2))
+```
+
+İlişkili: A020 `fonksiyon` · Eski adlar: `döndür`
+
+#### A030 `değişken`
+
+Bulunulan kapsamda yeni bir ad tanımlar; değer verilmezse yok olur, virgülle birden çok ad tanımlanabilir.
+
+```tr
+değişken a, b = 1, 2; a, b = b, a; yazdır(a, b)
+```
+
+İlişkili: A031 `sabit`
+
+#### A031 `sabit`
+
+Yeniden atanamayan bir ad tanımlar; ihlal çalıştırmadan önce yakalanır, ama değer bir listeyse içeriği değişebilir.
+
+```tr
+sabit PI = 3.14; yazdır(PI * 2)
+```
+
+İlişkili: A030 `değişken`
+
+#### A040 `doğru`
+
+Mantık tipinin doğru değeridir.
+
+```tr
+değişken hazır = doğru; eğer hazır { yazdır("hazır") }
+```
+
+İlişkili: A041 `yanlış`
+
+#### A041 `yanlış`
+
+Mantık tipinin yanlış değeridir; koşullarda yok, 0, boş metin, boş liste ve boş sözlük de yanlış sayılır.
+
+```tr
+yazdır(yanlış veya doğru, değil yanlış)
+```
+
+İlişkili: A040 `doğru`
+
+#### A042 `yok`
+
+Değerin yokluğudur; değer döndürmeyen fonksiyonlar ve sınır dışı indeksler yok verir.
+
+```tr
+değişken l = [1, 2]; yazdır(l[5] == yok, l[5] ?? "boş")
+```
+
+İlişkili: A204 `Yok`
+
+#### A043 `ve`
+
+Mantıksal ve (&& ile aynı); kısa devre yapar ve sonucu her zaman Mantık olarak verir.
+
+```tr
+yazdır(1 < 2 ve 2 < 3, 1 && "a")
+```
+
+İlişkili: A044 `veya`, A045 `değil`
+
+#### A044 `veya`
+
+Mantıksal veya (|| ile aynı); kısa devre yapar ve sonucu her zaman Mantık olarak verir.
+
+```tr
+yazdır(yanlış veya 0, 1 > 2 || 3 > 2)
+```
+
+İlişkili: A043 `ve`, A045 `değil`
+
+#### A045 `değil`
+
+Doğruluğun tersini verir; karşılaştırmadan gevşek bağlanır: değil 1 == 2, değil (1 == 2) demektir.
+
+```tr
+yazdır(değil 1 == 2)
+```
+
+İlişkili: A043 `ve`, A044 `veya`
+
+#### A050 `yapı`
+
+Alanları ve metotları olan bir yapı tanımlar; nesne yapının adıyla, alan sırasıyla ya da adlı argümanlarla oluşturulur. Kalıtım yoktur.
+
+```tr
+yapı Nokta { x = 0, y = 0 }; yazdır(Nokta(3, 4), Nokta(y: 1).x)
+```
+
+İlişkili: A051 `kendi`, A102 `kurucu` · Eski adlar: `sınıf`
+
+#### A051 `kendi`
+
+Yapı metodunun içinde metodun çağrıldığı nesneyi gösterir; alanlar kendi ile okunur ve değiştirilir.
+
+```tr
+yapı Sayaç { n = 0; fonksiyon artır() { kendi.n += 1 } }; değişken s = Sayaç(); s.artır(); s.artır(); yazdır(s.n)
+```
+
+İlişkili: A050 `yapı`
+
+#### A060 `dene`
+
+Bloktaki hatayı yakala bloğuna yönlendirir; çalışma zamanı hataları da yakalanır.
+
+```tr
+dene { fırlat "patladı" } yakala h { yazdır("yakalandı:", h) }
+```
+
+İlişkili: A061 `yakala`, A062 `fırlat`
+
+#### A061 `yakala`
+
+dene bloğunda hata olursa çalışır ve hata mesajını verilen ada (ad verilmezse hata adına) Metin olarak bağlar.
+
+```tr
+dene { değişken z = 1 / 0 } yakala h { yazdır(h) }
+```
+
+İlişkili: A060 `dene`, A103 `hata`
+
+#### A062 `fırlat`
+
+Bir hata başlatır; verilen değer metne çevrilir, yakalayan değişken her zaman Metin'dir.
+
+```tr
+dene { fırlat {"kod": 5} } yakala h { yazdır(tip(h), h) }
+```
+
+İlişkili: A060 `dene`
+
+#### A070 `aktar`
+
+Başka bir .tr dosyasını program boyunca bir kez çalıştırır ve üst düzey adlarını getirir; yol metin sabiti olmalıdır, .tr uzantısı isteğe bağlıdır.
+
+```tr
+aktar "testler/yardimci_modul"; yazdır(kare(PI))
+```
+
+İlişkili: A100 `olarak`
+
+#### A080 `eşzamanlı`
+
+Bloğu ya da çağrıyı ayrı bir görev olarak başlatıp hemen devam eder; aynı anda yalnızca bir görev TR kodu çalıştırır.
+
+```tr
+eşzamanlı { yazdır("görevde") }; bekle_hepsi(); yazdır("bitti")
+```
+
+İlişkili: G501 `bekle_hepsi`
+
+#### A081 `ertele`
+
+Çağrıyı ya da bloğu içinde bulunduğu fonksiyon bitince çalıştırır; birden çok ertele ters sırayla çalışır, erken sonuç ve hata durumunda da çalışır.
+
+```tr
+fonksiyon iş() { ertele yazdır("temizlik"); yazdır("iş") }; iş()
+```
+
+#### A090 `kesme_noktası`
+
+Programı bu satırda durdurup hata ayıklayıcıyı açar; kesme_noktası eğer koşul biçiminde yalnızca koşul doğruyken durur.
+
+```tr
+değişken x = 2; kesme_noktası eğer x > 5; yazdır(x)
+```
+
+Eski adlar: `dur_noktası`, `durdurma_noktası`
+
+### Bağlamsal sözcükler (A1xx)
+
+#### A100 `olarak`
+
+aktar ile alınan modülün adlarını tek bir Sözlük olarak verilen ada bağlar.
+
+```tr
+aktar "testler/yardimci_modul" olarak ym; yazdır(ym.kare(2), ym["PI"])
+```
+
+İlişkili: A070 `aktar` · Eski adlar: `as`
+
+#### A101 `test`
+
+test "ad" { ... } bir test tanımlar; testler yalnızca tr test ile çalışır, normal çalıştırmada atlanır. Deyim başı dışında sıradan bir addır.
+
+```tr
+test "toplama" { eşit_mi(4, 2 + 2) }
+```
+
+İlişkili: G700 `doğrula`, G701 `eşit_mi`
+
+#### A102 `kurucu`
+
+Bu adlı metot nesne oluşturulurken aynı argümanlarla çağrılır; argümanlar kurucunun imzasına göre denetlenir.
+
+```tr
+yapı Hesap { bakiye; fonksiyon kurucu(b) { kendi.bakiye = b * 2 } }; yazdır(Hesap(5).bakiye)
+```
+
+İlişkili: A050 `yapı`
+
+#### A103 `hata`
+
+yakala bloğunda ad verilmediğinde hata mesajının bağlandığı değişkendir.
+
+```tr
+dene { fırlat "patladı" } yakala { yazdır(hata) }
+```
+
+İlişkili: A061 `yakala`
+
+#### A104 `o`
+
+Sondaki blok { ... } tek parametreli bir fonksiyondur ve parametresinin adı o'dur; iç içe bloklarda en içteki elemanı gösterir.
+
+```tr
+yazdır([1, 2, 3, 4].filtrele { o > 2 }.haritala { o * 10 })
+```
+
+### Tip adları (A2xx)
+
+#### A200 `Tam`
+
+64 bit işaretli tam sayı tipidir; sınırı aşan işlem sessizce sarmak yerine taşma hatası verir.
+
+```tr
+değişken x: Tam = 5; yazdır(tip(x), x * 2)
+```
+
+İlişkili: A201 `Ondalık`, G210 `tam` · Eski adlar: `tamsayı`, `int`
+
+#### A201 `Ondalık`
+
+64 bit kayan noktalı sayı tipidir; Tam bir değer Ondalık açıklamalı bir ada da atanabilir.
+
+```tr
+değişken oran: Ondalık = 0.75; yazdır(tip(oran))
+```
+
+İlişkili: A200 `Tam`, G211 `ondalık` · Eski adlar: `sayı`, `float`
+
+#### A202 `Metin`
+
+Değiştirilemez Unicode metin tipidir; uzunluk ve indeks karakter bazındadır.
+
+```tr
+değişken ad: Metin = "şeker"; yazdır(tip(ad), ad[-1])
+```
+
+Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y100 `büyük_harf`, Y101 `küçük_harf`, Y102 `kırp`, Y103 `böl`, Y104 `değiştir`, Y105 `başlar`, Y106 `biter` · İlişkili: G212 `metin` · Eski adlar: `yazı`, `str`, `string`
+
+#### A203 `Mantık`
+
+doğru ve yanlış değerlerinin tipidir.
+
+```tr
+değişken hazır: Mantık = doğru; yazdır(tip(hazır))
+```
+
+İlişkili: A040 `doğru`, A041 `yanlış` · Eski adlar: `mantıksal`, `bool`
+
+#### A204 `Yok`
+
+yok değerinin tipidir; yok, her tip açıklamalı ada atanabilir.
+
+```tr
+değişken d: Yok = yok; yazdır(tip(d))
+```
+
+İlişkili: A042 `yok` · Eski adlar: `boş`, `null`
+
+#### A205 `Liste`
+
+Sıralı, karışık tipli, değiştirilebilir dizi tipidir; listeler başvuruyla paylaşılır.
+
+```tr
+değişken l: Liste = [1, "iki", 3.0]; yazdır(tip(l), l[-1])
+```
+
+Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y004 `ekle`, Y200 `filtrele`, Y201 `haritala`, Y202 `sırala`, Y203 `birleştir`, Y204 `benzersiz`, Y205 `toplam`, Y206 `ortalama`, Y210 `ilk`, Y211 `son` · Eski adlar: `dizi`, `list`
+
+#### A206 `Sözlük`
+
+Eklenme sırasını koruyan anahtar–değer tablosu tipidir; olmayan anahtar yok verir.
+
+```tr
+değişken s: Sözlük = {"ad": "Ali"}; yazdır(tip(s), s.ad)
+```
+
+Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y300 `anahtarlar`, Y301 `değerler` · Eski adlar: `harita`, `dict`, `map`
+
+#### A207 `Aralık`
+
+a..b (b hariç) ve a..=b (b dahil) aralıklarının tipidir; uçlar Tam olmalıdır. aralık(...) yerleşiği ise Liste döndürür.
+
+```tr
+değişken a: Aralık = 1..5; yazdır(tip(a), tip(aralık(5)))
+```
+
+İlişkili: G305 `aralık`
+
+#### A208 `Fonksiyon`
+
+Kullanıcı tanımlı fonksiyonların ve ok fonksiyonlarının tipidir; fonksiyonlar birinci sınıf değerdir.
+
+```tr
+değişken f: Fonksiyon = x => x * 2; yazdır(tip(f), f(3))
+```
+
+İlişkili: A020 `fonksiyon`, A209 `YerleşikFonksiyon`
+
+#### A209 `YerleşikFonksiyon`
+
+Dilin yerleşik fonksiyonlarının tipidir.
+
+```tr
+değişken f: YerleşikFonksiyon = yazdır; f(tip(f))
+```
+
+İlişkili: A208 `Fonksiyon`
+
+#### A210 `YapıTanımı`
+
+yapı ile tanımlanan yapının kendisinin tipidir; tip açıklamasında kullanılamaz.
+
+```tr
+yapı Nokta { x, y }; yazdır(tip(Nokta) == "YapıTanımı")
+```
+
+İlişkili: A050 `yapı`, A211 `Nesne`
+
+#### A211 `Nesne`
+
+Yapıdan oluşturulan nesnelerin genel adıdır; tip() bir nesne için Nesne değil yapının adını verir.
+
+```tr
+yapı Nokta { x, y }; değişken p = Nokta(1, 2); yazdır(tip(p), p)
+```
+
+İlişkili: A210 `YapıTanımı`
+
+#### A212 `Tensör`
+
+N boyutlu sayı dizisi tipidir (matris 2 boyutlu tensördür); elemanlar varsayılan olarak float32'dir.
+
+```tr
+değişken t: Tensör = tensör([[1, 2], [3, 4]]); yazdır(tip(t), t.şekil)
+```
+
+Üyeleri: Y103 `böl`, Y400 `şekil`, Y401 `cihaz`, Y402 `tür`, Y403 `gradyan`, Y404 `değer`, Y410 `şekillendir`, Y411 `devrik`, Y412 `eksenleri_sırala`, Y413 `dilim`, Y414 `cihaza`, Y415 `türe` · İlişkili: T100 `tensör` · Eski adlar: `matris`, `matrix`
+
+#### A213 `Herhangi`
+
+Tip denetleyicisinin tipi bilinmeyen değerler için kullandığı tiptir; Herhangi açıklamalı bir ada her değer verilebilir.
+
+```tr
+fonksiyon kimlik(x: Herhangi) { sonuç x }; yazdır(kimlik(5), kimlik("beş"))
+```
+
+#### A230 `SinirAğı`
+
+sinir_ağı(...) ile kurulan hazır modelin tipidir.
+
+```tr
+değişken ağ = sinir_ağı([2, 4, 1]); yazdır(tip(ağ) == "SinirAğı")
+```
+
+Üyeleri: Y005 `kaydet`, Y510 `eğit`, Y511 `tahmin_et`, Y512 `ağırlıklar` · İlişkili: T520 `sinir_ağı`
+
+#### A231 `VeriKümesi`
+
+veri_kümesi(...) ile açılan, .npy veri dosyalarından oluşan veri kümesinin tipidir.
+
+```tr
+değişken küme = veri_kümesi("testler/veri/sayilar"); yazdır(tip(küme) == "VeriKümesi")
+```
+
+Üyeleri: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V100 `veri_kümesi`
+
+#### A232 `Örnekleyici`
+
+Veri kümesinden tohuma göre rastgele [girdi, hedef] tensör çiftleri üreten okuyucunun tipidir; dönemler boyunca sonsuz üretir.
+
+```tr
+değişken ö = veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağlam: 4, tohum: 1); yazdır(tip(ö) == "Örnekleyici")
+```
+
+Üyeleri: Y602 `sonraki` · İlişkili: Y600 `örnekleyici`, A233 `SıralıOkuyucu`
+
+#### A233 `SıralıOkuyucu`
+
+Veri kümesini pencereler hâlinde sırayla okuyan okuyucunun tipidir; veri bitince .sonraki() yok verir.
+
+```tr
+değişken s = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4); yazdır(tip(s) == "SıralıOkuyucu")
+```
+
+Üyeleri: Y602 `sonraki` · İlişkili: Y601 `sıralı`, A232 `Örnekleyici`
+
+#### A234 `Parçalayıcı`
+
+parçalayıcı_yükle(...) ile yüklenen, metni parçalara ayırıp parça kimliklerine çeviren nesnenin tipidir.
+
+```tr
+değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(tip(p) == "Parçalayıcı")
+```
+
+Üyeleri: Y610 `kodla`, Y611 `çöz`, Y612 `dağarcık_boyutu`, Y613 `parça_kimliği` · İlişkili: V200 `parçalayıcı_yükle`
+
+#### A240 `Veritabanı`
+
+veritabanı_aç(...) ile açılan veritabanının tipidir; ":bellek:" yolu bellekte bir veritabanı açar.
+
+```tr
+değişken vt = veritabanı_aç(":bellek:"); yazdır(tip(vt) == "Veritabanı")
+```
+
+Üyeleri: Y004 `ekle`, Y005 `kaydet`, Y700 `tablolar`, Y701 `tablo_oluştur`, Y702 `sorgula`, Y703 `güncelle`, Y704 `sil`, Y705 `hepsini_al`, Y706 `say` · İlişkili: W200 `veritabanı_aç`
+
+#### A241 `WebSunucu`
+
+web_sunucu(...) ile oluşturulan web sunucusunun tipidir; oluşturmak sunucuyu başlatmaz.
+
+```tr
+değişken api = web_sunucu(port: 18080); yazdır(tip(api) == "WebSunucu")
+```
+
+Üyeleri: Y006 `başlat`, Y007 `arka_planda_başlat`, Y008 `durdur`, Y800 `adres`, Y801 `port`, Y802 `al`, Y803 `gönder`, Y804 `rota_ekle`, Y805 `statik_klasör` · İlişkili: W110 `web_sunucu`
+
+#### A242 `GörselArayüz`
+
+arayüz_oluştur(...) ile oluşturulan görsel arayüzün tipidir; oluşturmak pencere açmaz.
+
+```tr
+değişken ekran = arayüz_oluştur("Panel"); yazdır(tip(ekran) == "GörselArayüz")
+```
+
+Üyeleri: Y005 `kaydet`, Y006 `başlat`, Y007 `arka_planda_başlat`, Y008 `durdur`, Y900 `kart_ekle`, Y901 `başlık_ekle`, Y902 `metin_ekle`, Y903 `tablo_ekle`, Y904 `grafik_ekle`, Y905 `form_ekle`, Y906 `buton_ekle`, Y907 `html_kaydet`, Y908 `html_üret` · İlişkili: W300 `arayüz_oluştur`
+
+## G — Genel yerleşikler
+
+### Giriş, çıkış ve dosya (G1xx)
+
+#### G100 `yazdır`
+
+    yazdır([Herhangi...]) → Metin
+
+Değerleri aralarına boşluk koyarak tek satırda yazar ve yazdığı metni döndürür; argümansız çağrı boş satır yazar.
+
+```tr
+yazdır("Toplam:", 2 + 3)
+```
+
+İlişkili: G101 `girdi` · Eski adlar: `yaz`
+
+#### G101 `girdi`
+
+    girdi([Herhangi]) → Metin
+
+Standart girişten bir satır okur, varsa önce istemi yazar; satır sonu atılır, giriş bittiyse boş metin döner.
+
+```tr
+değişken ad = girdi("Adınız: "); yazdır("Merhaba " + ad)
+```
+
+İlişkili: G100 `yazdır` · Eski adlar: `oku`
+
+#### G110 `dosya_oku`
+
+    dosya_oku(Metin) → Metin
+
+Dosyanın tüm içeriğini Metin olarak okur; göreli yol önce çalışma klasörüne, sonra modülün ve programın klasörüne göre çözülür, dosya yoksa hata bakılan yerleri listeler.
+
+```tr
+dosya_yaz("notlar.txt", "merhaba"); yazdır(dosya_oku("notlar.txt"))
+```
+
+İlişkili: G111 `dosya_yaz`, G602 `csv_oku`
+
+#### G111 `dosya_yaz`
+
+    dosya_yaz(Metin, Herhangi) → Mantık
+
+Değeri metne çevirip dosyaya yazar ve doğru döndürür; var olan dosyanın üzerine yazılır.
+
+```tr
+dosya_yaz("not.txt", "merhaba"); yazdır(dosya_oku("not.txt"))
+```
+
+İlişkili: G110 `dosya_oku`
+
+### Değer, tip ve dönüşüm (G2xx)
+
+#### G200 `uzunluk`
+
+    uzunluk(Metin | Liste | Sözlük) → Tam
+
+Metnin, listenin ya da sözlüğün uzunluğunu verir.
+
+```tr
+yazdır(uzunluk([1, 2]))
+```
+
+Eski adlar: `boy`
+
+#### G201 `tip`
+
+    tip(Herhangi) → Metin
+
+Değerin tip adını Metin olarak verir; bir yapı nesnesi için yapının adını verir.
+
+```tr
+yazdır(tip(3.5), tip([1, 2]), tip(yok))
+```
+
+İlişkili: G210 `tam`, G211 `ondalık`, G212 `metin` · Eski adlar: `tur`
+
+#### G210 `tam`
+
+    tam(Tam | Ondalık | Metin | Mantık) → Tam
+
+Değeri Tam'a çevirir: Ondalık'ın kesirli kısmını atar, metni ayrıştırır, doğru 1 ve yanlış 0 olur; çevrilemeyen metin hatadır.
+
+```tr
+yazdır(tam("42") + 1, tam(3.9), tam(doğru))
+```
+
+İlişkili: G211 `ondalık`, G212 `metin`
+
+#### G211 `ondalık`
+
+    ondalık(Ondalık | Tam | Metin) → Ondalık
+
+Tam ya da Metin'i Ondalık'a çevirir; metinde ondalık ayırıcı nokta olmalıdır, Mantık kabul edilmez.
+
+```tr
+yazdır(ondalık("3.14"), ondalık(2))
+```
+
+İlişkili: G210 `tam`, G212 `metin`
+
+#### G212 `metin`
+
+    metin(Herhangi) → Metin
+
+Her değeri yazdırıldığı biçimiyle Metin'e çevirir; hiçbir değerde hata vermez.
+
+```tr
+yazdır(metin(12) + "a", metin([1, 2]))
+```
+
+İlişkili: G210 `tam`, G211 `ondalık`
+
+### Liste (G3xx)
+
+#### G300 `filtrele`
+
+    filtrele(Liste, Fonksiyon) → Liste
+
+Fonksiyonun doğru döndüğü elemanların yeni listesini verir.
+
+```tr
+yazdır(filtrele([1, 2, 3], (x) => x > 1))
+```
+
+#### G301 `haritala`
+
+    haritala(Liste, Fonksiyon) → Liste
+
+Her elemana fonksiyonu uygular, sonuçların yeni listesini verir.
+
+```tr
+yazdır(haritala([1, 2], (x) => x * 2))
+```
+
+Eski adlar: `donustur`
+
+#### G302 `indirge`
+
+    indirge(Liste, Fonksiyon, [Herhangi]) → Herhangi
+
+Listeyi iki parametreli bir fonksiyonla tek değere indirger.
+
+```tr
+yazdır(indirge([1, 2, 3], (a, b) => a + b, 0))
+```
+
+Eski adlar: `ozetle`
+
+#### G303 `sırala`
+
+    sırala(Liste) → Liste
+
+Listenin sıralanmış yeni bir kopyasını verir.
+
+```tr
+yazdır(sırala([3, 1, 2]))
+```
+
+#### G304 `ekle`
+
+    ekle(Liste, Herhangi...) → Liste
+
+Listeye elemanları ekler, listeyi yerinde değiştirir.
+
+```tr
+değişken l = [1]; ekle(l, 2); yazdır(l)
+```
+
+#### G305 `aralık`
+
+    aralık(Tam, [Tam]) → Liste
+
+aralık(bitiş) 0'dan, aralık(başlangıç, bitiş) başlangıçtan bitişe kadar (bitiş hariç) Tam listesi üretir; Aralık değil Liste döner ve en fazla 50 milyon eleman üretilir.
+
+```tr
+yazdır(aralık(5), aralık(2, 5))
+```
+
+İlişkili: A207 `Aralık`
+
+### Matematik ve istatistik (G4xx)
+
+#### G400 `toplam`
+
+    toplam(Liste | Tensör, [Tam], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
+
+Sayı listesini toplar (hepsi Tam ise Tam, bir Ondalık varsa Ondalık); sayı olmayan eleman ve iç içe liste hatadır. Tensörde bütün elemanları ya da eksen: ile verilen ekseni indirger.
+
+```tr
+yazdır(toplam([1, 2, 3]), toplam([1, 2.5]), toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
+```
+
+İlişkili: G410 `ortalama`
+
+#### G401 `min`
+
+    min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Yok | Tensör
+
+Tek bir listenin ya da birden çok sayının en küçüğünü tipini koruyarak verir; boş listede yok döner. Tensörde eksen yalnızca eksen: ile adlı verilir.
+
+```tr
+yazdır(min([3, 1, 2]), min(4, 2.5), min([]))
+```
+
+İlişkili: G402 `maks` · Eski adlar: `en_küçük`
+
+#### G402 `maks`
+
+    maks(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Yok | Tensör
+
+Tek bir listenin ya da birden çok sayının en büyüğünü tipini koruyarak verir; boş listede yok döner. Tensörde eksen yalnızca eksen: ile adlı verilir.
+
+```tr
+yazdır(maks([2.0, 1.5]), maks(3, 7, 5), maks(tensör([[1, 5], [3, 2]]), eksen: 0).değer)
+```
+
+İlişkili: G401 `min`, T230 `maks_indeks` · Eski adlar: `en_büyük`
+
+#### G403 `mutlak`
+
+    mutlak(Tam | Ondalık) → Tam | Ondalık
+
+Sayının mutlak değerini verir; Tam Tam, Ondalık Ondalık kalır, en küçük Tam değerde taşma hatası verir.
+
+```tr
+yazdır(mutlak(-5), mutlak(-2.5))
+```
+
+İlişkili: G405 `yuvarla`
+
+#### G404 `karekök`
+
+    karekök(Tam | Ondalık | Tensör) → Ondalık | Tensör
+
+Sayının karekökünü Ondalık olarak verir (negatif sayıda NaN); tensörde eleman bazlı ve türev izleyerek çalışır, liste kabul etmez.
+
+```tr
+yazdır(karekök(16), karekök(2.25))
+```
+
+İlişkili: G403 `mutlak`
+
+#### G405 `yuvarla`
+
+    yuvarla(Tam | Ondalık, [Tam]) → Tam | Ondalık
+
+Sayıyı en yakına yuvarlar (yarımlar sıfırdan uzağa); basamak pozitifse Ondalık, 0 ya da negatifse Tam verir.
+
+```tr
+yazdır(yuvarla(3.14159, 2), yuvarla(2.5), yuvarla(1234, -2))
+```
+
+İlişkili: G210 `tam`
+
+#### G410 `ortalama`
+
+    ortalama(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Ondalık | Tensör
+
+Sayıların aritmetik ortalamasını Ondalık olarak verir; liste yolunda sayı olmayanları atlar ve boş girdide 0.0 döner. Tensörde eksen: alır, boş tensörün ortalaması hatadır.
+
+```tr
+yazdır(ortalama([1, 2, 3, 4]), ortalama(tensör([[1, 2], [3, 4]]), eksen: 1).değer)
+```
+
+İlişkili: G400 `toplam`, G412 `ortanca`
+
+#### G411 `standart_sapma`
+
+    standart_sapma(Liste | Tam | Ondalık, [Tam | Ondalık...]) → Ondalık
+
+Sayıların popülasyon standart sapmasını (n'ye bölerek) Ondalık olarak verir; sayı olmayanlar atlanır, boş girdide 0.0 döner.
+
+```tr
+yazdır(standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
+```
+
+İlişkili: G410 `ortalama` · Eski adlar: `std_sapma`
+
+#### G412 `ortanca`
+
+    ortanca(Liste | Tam | Ondalık, [Tam | Ondalık...]) → Ondalık
+
+Sayıların ortancasını Ondalık olarak verir; eleman sayısı çiftse ortadaki ikisinin ortalamasıdır, boş girdide 0.0 döner.
+
+```tr
+yazdır(ortanca([3, 1, 4, 2]))
+```
+
+İlişkili: G410 `ortalama` · Eski adlar: `medyan`
+
+### Zaman ve eşzamanlılık (G5xx)
+
+#### G500 `bekle`
+
+    bekle(Tam | Ondalık) → Mantık
+
+Verilen saniye kadar bekler ve doğru döndürür; beklerken yorumlayıcı kilidini bırakır, öbür görevler ilerler.
+
+```tr
+bekle(0.1); yazdır("0.1 saniye geçti")
+```
+
+İlişkili: G501 `bekle_hepsi`, G502 `zaman_ms` · Eski adlar: `uyut`
+
+#### G501 `bekle_hepsi`
+
+    bekle_hepsi() → Mantık
+
+Başlatılmış bütün eşzamanlı görevlerin bitmesini bekler ve doğru döndürür; eşzamanlı bloğunun içinden çağrılması hatadır.
+
+```tr
+değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_hepsi(); yazdır(s)
+```
+
+İlişkili: A080 `eşzamanlı`, G500 `bekle`
+
+#### G502 `zaman_ms`
+
+    zaman_ms() → Tam
+
+Şimdiki zamanı 1970'ten bu yana geçen milisaniye olarak Tam verir; süre ölçmek için kullanılır.
+
+```tr
+değişken baş = zaman_ms(); bekle(0.05); yazdır(zaman_ms() - baş >= 50)
+```
+
+İlişkili: G500 `bekle`
+
+### Veri biçimleri (G6xx)
+
+#### G600 `json_çöz`
+
+    json_çöz(Metin) → Herhangi
+
+JSON metnini TR değerine çevirir (nesne Sözlük, dizi Liste olur); anahtar sırası korunur, tam sayı değerli ondalıklar Tam olur.
+
+```tr
+değişken v = json_çöz('{"ad": "Ali", "yaş": 30}'); yazdır(v["ad"], v["yaş"] + 1)
+```
+
+İlişkili: G601 `json_metin`
+
+#### G601 `json_metin`
+
+    json_metin(Herhangi) → Metin
+
+Değeri boşluksuz JSON metnine çevirir; anahtarlar sözlükteki sırayla yazılır, NaN, sonsuz ya da kendini içeren değer hatadır.
+
+```tr
+yazdır(json_metin({"ad": "Ali", "puan": [90, 85]}))
+```
+
+İlişkili: G600 `json_çöz` · Eski adlar: `json_yaz`
+
+#### G602 `csv_oku`
+
+    csv_oku(Metin) → Liste
+
+Bir dosya yolunu ya da CSV metninin kendisini satır listelerine çevirir; hücreler yalnızca katı sayı biçimindeyse sayı olur ("007" Metin kalır).
+
+```tr
+değişken tablo = csv_oku("ad,yaş\nAli,30"); yazdır(tablo[1][0], tablo[1][1] + 1)
+```
+
+İlişkili: G110 `dosya_oku` · Eski adlar: `tablo_oku`
+
+### Test (G7xx)
+
+#### G700 `doğrula`
+
+    doğrula(Herhangi, [Herhangi]) → Mantık
+
+Koşul yanlışsa "doğrulama başarısız" hatası fırlatır, doğruysa doğru döndürür; isteğe bağlı mesaj hataya eklenir. Test dışında da çalışır.
+
+```tr
+doğrula(2 > 1, "iki birden büyük olmalı"); yazdır("doğrulandı")
+```
+
+İlişkili: G701 `eşit_mi`, A101 `test`
+
+#### G701 `eşit_mi`
+
+    eşit_mi(Herhangi, Herhangi, [Herhangi]) → Mantık
+
+İki değer == anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır, eşitse doğru döndürür. Test dışında da çalışır.
+
+```tr
+eşit_mi(4, 2 + 2); yazdır("eşit")
+```
+
+İlişkili: G700 `doğrula`, A101 `test`
+
+## T — Tensör ve yapay zekâ
+
+### Tensör oluşturma ve görünüm (T1xx)
+
+#### T100 `tensör`
+
+    tensör(Tam | Ondalık | Liste | Tensör, [Mantık], türev_izle: Mantık = yanlış, tür: Metin) → Tensör
+
+İç içe sayı listesinden, tek sayıdan ya da başka bir tensörden yeni bir yaprak tensör oluşturur. türev_izle varsayılan olarak yanlıştır; tür verilmezse listeden float32, tensörden kaynağın türü kullanılır.
+
+```tr
+değişken t = tensör([[1, 2], [3, 4]], türev_izle: doğru); yazdır(t.şekil, t.tür)
+```
+
+İlişkili: T101 `sıfırlar`, T102 `birler`, T103 `rastgele_normal` · Eski adlar: `matris`
+
+#### T101 `sıfırlar`
+
+    sıfırlar(Liste | Tam, [Tam], türev_izle: Mantık = yanlış, tür: Metin = "float32") → Tensör
+
+Verilen şekilde, bütün elemanları 0 olan bir tensör oluşturur. Şekil liste olarak verilir; sıfırlar(2, 3) biçimi de kabul edilir ama adlı argüman almaz.
+
+```tr
+yazdır(sıfırlar([2, 3]).şekil)
+```
+
+İlişkili: T102 `birler`, T100 `tensör`
+
+#### T102 `birler`
+
+    birler(Liste | Tam, [Tam], türev_izle: Mantık = yanlış, tür: Metin = "float32") → Tensör
+
+Verilen şekilde, bütün elemanları 1 olan bir tensör oluşturur. Şekil liste olarak verilir; birler(2, 3) biçimi de kabul edilir ama adlı argüman almaz.
+
+```tr
+yazdır(birler([2, 2], tür: "bf16").değer)
+```
+
+İlişkili: T101 `sıfırlar`, T100 `tensör`
+
+#### T103 `rastgele_normal`
+
+    rastgele_normal(Liste | Tam, [Tam...], türev_izle: Mantık = yanlış, tür: Metin = "float32", tohum: Tam) → Tensör
+
+Ortalaması 0, standart sapması 1 olan normal dağılımdan rastgele sayılarla dolu bir tensör oluşturur. Aynı tam sayı tohum her çalıştırmada aynı değerleri verir; şekil liste ya da ayrı tam sayılar olarak verilebilir.
+
+```tr
+yazdır(rastgele_normal([2, 3], tohum: 42).şekil)
+```
+
+İlişkili: T101 `sıfırlar` · Eski adlar: `rastgele_matris`
+
+#### T111 `birim_matris`
+
+    birim_matris(Tam) → Tensör
+
+n×n birim matrisi (köşegeni 1, geri kalanı 0 olan 2 boyutlu tensör) oluşturur. n pozitif bir Tam olmalıdır.
+
+```tr
+yazdır(birim_matris(3).değer)
+```
+
+İlişkili: T100 `tensör`
+
+#### T120 `devrik`
+
+    devrik(Tensör) → Tensör
+
+Tensörün son iki eksenini yer değiştirir.
+
+```tr
+yazdır(devrik(tensör([[1, 2]])).şekil)
+```
+
+#### T121 `birleştir`
+
+    birleştir(Liste, [Tam], eksen: Tam = -1) → Tensör
+
+Bir tensör listesini verilen eksen boyunca (varsayılan son eksen) tek tensörde birleştirir. Birleşen eksen dışındaki eksenler eşit olmalıdır; sonuç türev izler.
+
+```tr
+yazdır(birleştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
+```
+
+İlişkili: Y103 `böl`
+
+### Etkinleştirme ve eleman bazlı matematik (T2xx)
+
+#### T200 `relu`
+
+    relu(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+
+Negatif elemanları 0 yapan, pozitifleri koruyan eleman bazlı etkinleştirme fonksiyonudur. Tensörde türev izleyen tensör, sayıda Ondalık, listede aynı yapıda liste döndürür; NaN değerini korur.
+
+```tr
+yazdır(relu(tensör([-1.0, 0.5, 2.0])).değer)
+```
+
+İlişkili: T203 `gelu`, T201 `sigmoid`
+
+#### T201 `sigmoid`
+
+    sigmoid(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+
+Her elemana 1 / (1 + e^(-x)) uygulayarak değerleri 0 ile 1 arasına sıkıştırır. Tensörde türev izleyen tensör, sayı ya da listede aynı biçimde sonuç döndürür.
+
+```tr
+yazdır(sigmoid(tensör([-2.0, 0.0, 2.0])).değer)
+```
+
+İlişkili: T202 `tanh`, T200 `relu`
+
+#### T202 `tanh`
+
+    tanh(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+
+Eleman bazlı hiperbolik tanjanttır; değerleri -1 ile 1 arasına sıkıştırır. Tensörde türev izleyen tensör, sayıda Ondalık, listede liste döndürür.
+
+```tr
+yazdır(tanh(0.5), tanh(tensör([-1.0, 1.0])).değer)
+```
+
+İlişkili: T201 `sigmoid`
+
+#### T203 `gelu`
+
+    gelu(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+
+Eleman bazlı GELU etkinleştirmesidir (tanh yaklaşımıyla hesaplanır). Tensörde türev izleyen tensör, sayıda Ondalık, listede aynı yapıda liste döndürür.
+
+```tr
+yazdır(gelu(tensör([-1.0, 0.0, 1.0])).değer)
+```
+
+İlişkili: T200 `relu`
+
+#### T210 `softmax`
+
+    softmax(Tensör | Liste, [Tam], eksen: Tam = -1) → Tensör | Liste
+
+Verilen eksende (varsayılan son eksen) değerleri toplamı 1 olan olasılıklara çevirir. Düz sayı listesinde liste döndürür, eksen yalnızca tensörde kullanılır; tamamen -sonsuz bir satırın sonucu 0'dır.
+
+```tr
+yazdır(softmax(tensör([[1.0, 2.0, 3.0]]), eksen: -1).değer)
+```
+
+İlişkili: T211 `log_softmax`, T611 `örnekle`
+
+#### T211 `log_softmax`
+
+    log_softmax(Tensör | Liste, [Tam], eksen: Tam = -1) → Tensör | Liste
+
+softmax'ın logaritmasını verilen eksende (varsayılan son eksen) sayısal olarak kararlı biçimde hesaplar. Düz sayı listesinde liste döndürür; tamamen -sonsuz bir satırın sonucu -sonsuz, gradyanı 0'dır.
+
+```tr
+yazdır(log_softmax(tensör([1.0, 2.0, 3.0])).değer)
+```
+
+İlişkili: T210 `softmax`, T510 `çapraz_entropi`
+
+#### T220 `üstel`
+
+    üstel(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+
+Her elemanın e tabanında üstelini (e^x) hesaplar. Tensörde türev izleyen tensör, sayıda Ondalık, listede aynı yapıda liste döndürür.
+
+```tr
+yazdır(üstel(tensör([0.0, 1.0])).değer)
+```
+
+İlişkili: T221 `log`
+
+#### T221 `log`
+
+    log(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+
+Her elemanın doğal logaritmasını hesaplar. Tensörde türev izleyen tensör, sayıda Ondalık, listede aynı yapıda liste döndürür.
+
+```tr
+yazdır(log(tensör([1.0, 10.0])).değer)
+```
+
+İlişkili: T220 `üstel`
+
+#### T222 `sinüs`
+
+    sinüs(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+
+Her elemanın sinüsünü (radyan) hesaplar; türevi kosinüs(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık, listede liste döndürür.
+
+```tr
+yazdır(sinüs(tensör([0.0, 1.0])).değer)
+```
+
+İlişkili: T223 `kosinüs`
+
+#### T223 `kosinüs`
+
+    kosinüs(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+
+Her elemanın kosinüsünü (radyan) hesaplar; türevi -sinüs(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık, listede liste döndürür.
+
+```tr
+yazdır(kosinüs(tensör([0.0, 1.0])).değer)
+```
+
+İlişkili: T222 `sinüs`
+
+#### T230 `maks_indeks`
+
+    maks_indeks(Tensör, eksen: Tam = -1) → Tensör
+
+Verilen eksende (varsayılan son eksen) en büyük elemanın indeksini verir; eşitlikte ilki seçilir. Sonuç tam sayılı ve türev izlemeyen bir tensördür; eksen yalnızca adlı verilir.
+
+```tr
+yazdır(maks_indeks(tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]]), eksen: -1).değer)
+```
+
+İlişkili: T611 `örnekle`
+
+### Türev (T3xx)
+
+#### T300 `geri_yayılım`
+
+    geri_yayılım(Tensör) → Mantık
+
+Tek elemanlı (skaler) bir kayıptan geri yayılım yaparak yaprak tensörlerin .gradyan değerlerini hesaplar. Gradyanlar birikir; adımlar arasında iyileştiricinin .sıfırla() metoduyla sıfırlanmalıdır.
+
+```tr
+değişken x = tensör(3.0, türev_izle: doğru); geri_yayılım(x * x); yazdır(x.gradyan.değer)
+```
+
+İlişkili: T301 `türevsiz`, Y403 `gradyan`
+
+#### T301 `türevsiz`
+
+    türevsiz(Tensör | Fonksiyon | YerleşikFonksiyon) → Herhangi
+
+türevsiz { ... } bloğu türev izlemeden çalışır ve bloğun değerini döndürür; türevsiz(x) ise tensörü hesap çizgesinden ayırır. Türevsiz kip görev başınadır, başka eşzamanlı görevlere sızmaz.
+
+```tr
+değişken x = tensör([1.0], türev_izle: doğru); değişken y = türevsiz { x * 2 }; yazdır(y.değer)
+```
+
+İlişkili: T300 `geri_yayılım`
+
+#### T310 `özel_türev`
+
+    özel_türev(ileri: Fonksiyon | YerleşikFonksiyon, geri: Fonksiyon | YerleşikFonksiyon) → YerleşikFonksiyon
+
+İleri ve geri hesabı kullanıcının yazdığı yeni bir türevlenebilir işlem kurar ve çağrılabilir bir fonksiyon döndürür. Yalnızca ileri: ve geri: adlı argümanlarını alır; ileri [çıktı, saklananlar], geri her konumlu girdi için bir gradyan (ya da yok) döndürür.
+
+```tr
+değişken kare = özel_türev(ileri: fonksiyon(x) { sonuç [x * x, [x]] }, geri: fonksiyon(s, g) { sonuç [g * 2 * s[0]] }); değişken x = tensör([3.0], türev_izle: doğru); geri_yayılım(toplam(kare(x))); yazdır(x.gradyan.değer)
+```
+
+İlişkili: T311 `türev_denetle`, T300 `geri_yayılım`
+
+#### T311 `türev_denetle`
+
+    türev_denetle(Fonksiyon | YerleşikFonksiyon, Liste, adım: Tam | Ondalık = 0.001, tolerans: Tam | Ondalık = 0.01) → Mantık
+
+Bir fonksiyonun geri yayılımla bulunan gradyanını merkezi farkla bulunan sayısal gradyanla karşılaştırır; uyuşursa doğru döndürür, uyuşmazsa en büyük farkı gösteren bir hata verir. Yalnızca türev izleyen tensör girdileri, kopyaları üzerinde denetlenir.
+
+```tr
+yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([0.5, -1.0], türev_izle: doğru)], adım: 0.001, tolerans: 0.01))
+```
+
+İlişkili: T310 `özel_türev`
+
+### İyileştiriciler (T4xx)
+
+#### T400 `AdamW`
+
+    AdamW(Liste | Tensör, öğrenme_oranı: Tam | Ondalık = 0.001, ağırlık_çürümesi: Tam | Ondalık = 0.01, beta1: Tam | Ondalık = 0.9, beta2: Tam | Ondalık = 0.999, epsilon: Tam | Ondalık = 1e-08, ana_kopya: Mantık = doğru) → AdamW
+
+Türev izleyen yaprak tensörler için ağırlık çürümesi ayrık uygulanan Adam iyileştiricisini kurar; .adım() parametreleri günceller, .sıfırla() gradyanları sıfırlar. Varsayılanlar: öğrenme_oranı 0.001, ağırlık_çürümesi 0.01, beta1 0.9, beta2 0.999, epsilon 1e-8.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken opt = AdamW([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
+```
+
+İlişkili: T401 `SGD`, T402 `gradyan_kırp`, Y500 `adım`, Y501 `sıfırla`
+
+#### T401 `SGD`
+
+    SGD(Liste | Tensör, öğrenme_oranı: Tam | Ondalık = 0.01, momentum: Tam | Ondalık = 0, ağırlık_çürümesi: Tam | Ondalık = 0, ana_kopya: Mantık = doğru) → SGD
+
+Türev izleyen yaprak tensörler için olasılıksal gradyan inişi iyileştiricisini kurar; .adım() ve .sıfırla() metotları vardır. Varsayılanlar: öğrenme_oranı 0.01, momentum 0, ağırlık_çürümesi 0.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.1, momentum: 0.9); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
+```
+
+İlişkili: T400 `AdamW`, Y500 `adım`, Y501 `sıfırla`
+
+#### T402 `gradyan_kırp`
+
+    gradyan_kırp(Liste | Tensör, en_fazla: Tam | Ondalık = 1) → Ondalık
+
+Parametre gradyanlarının toplam L2 normu en_fazla değerini (varsayılan 1.0) aşıyorsa hepsini aynı oranda küçültür. Kırpma öncesi normu Ondalık olarak döndürür.
+
+```tr
+değişken w = tensör([3.0, 4.0], türev_izle: doğru); geri_yayılım(toplam(w * w)); yazdır(gradyan_kırp([w], en_fazla: 1.0))
+```
+
+İlişkili: T400 `AdamW`, T401 `SGD`
+
+### Katmanlar, kayıplar, hazır model (T5xx)
+
+#### T500 `gömme`
+
+    gömme(Tensör, Tam | Liste | Tensör) → Tensör
+
+[V, D] şeklindeki tablodan verilen indekslerin satırlarını seçer; sonuç şekli indeks şekli + [D]'dir. Tek tam sayı indeks [D] şeklinde tek satır verir; gradyan tabloya akar.
+
+```tr
+değişken tablo = tensör([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]); yazdır(gömme(tablo, [2, 0]).değer)
+```
+
+İlişkili: T510 `çapraz_entropi`
+
+#### T501 `katman_normu`
+
+    katman_normu(Tensör | Liste, [Tensör | Liste | Yok], [Tensör | Liste | Yok], epsilon: Tam | Ondalık = 1e-05, ağırlık: Tensör | Liste | Yok = yok, sapma: Tensör | Liste | Yok = yok) → Tensör
+
+Girdiyi son eksende ortalaması 0, varyansı 1 olacak biçimde normalleştirir; isteğe bağlı ağırlık ve sapma [D] şeklinde olmalıdır. Konumlu ya da adlı verilebilirler; epsilon varsayılanı 0.00001'dir.
+
+```tr
+yazdır(katman_normu(tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sapma: sıfırlar([3])).değer)
+```
+
+İlişkili: T502 `rms_normu`
+
+#### T502 `rms_normu`
+
+    rms_normu(Tensör | Liste, [Tensör | Liste | Yok], epsilon: Tam | Ondalık = 1e-05, ağırlık: Tensör | Liste | Yok = yok) → Tensör
+
+Girdiyi son eksende karelerinin ortalamasının köküne bölerek normalleştirir (ortalama çıkarılmaz). İsteğe bağlı ağırlık [D] şeklinde olmalıdır; epsilon varsayılanı 0.00001'dir.
+
+```tr
+yazdır(rms_normu(tensör([[3.0, 4.0]]), ağırlık: birler([2])).değer)
+```
+
+İlişkili: T501 `katman_normu`
+
+#### T503 `dikkat`
+
+    dikkat(Tensör, Tensör, Tensör, nedensel: Mantık = doğru, pencere: Tam = 0, maske: Tensör | Liste | Yok = yok) → Tensör
+
+Birleşik ölçekli nokta çarpımı dikkatini (softmax(q @ kᵀ / √dh + maske) @ v) bellek dostu, tek türev düğümüyle hesaplar. Varsayılan olarak nedenseldir; k/v baş sayısı q'nunkinin böleni olabilir (gruplu sorgu dikkati).
+
+```tr
+değişken q = rastgele_normal([2, 4, 8], tohum: 1); yazdır(dikkat(q, q, q, nedensel: doğru).şekil)
+```
+
+İlişkili: T210 `softmax`
+
+#### T510 `çapraz_entropi`
+
+    çapraz_entropi(Tensör | Liste, Tam | Liste | Tensör) → Tensör
+
+Son ekseni sınıf olan çıktıyla satır başına bir sınıf indeksi arasındaki ortalama çapraz entropi kaybını skaler tensör olarak verir. Negatif hedefler yok sayılır; hepsi yok sayılırsa hata verir.
+
+```tr
+yazdır(çapraz_entropi(tensör([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), [0, 1]).değer)
+```
+
+İlişkili: T211 `log_softmax`, T511 `kayıp_mse`
+
+#### T511 `kayıp_mse`
+
+    kayıp_mse(Liste | Tensör, Liste | Tensör) → Ondalık
+
+Aynı şekildeki iki matrisin (liste ya da en fazla 2 boyutlu tensör) elemanları arasındaki kare farkların ortalamasını verir. Sonuç Ondalık'tır ve türev izlemez.
+
+```tr
+yazdır(kayıp_mse([[1.0, 2.0]], [[1.5, 2.5]]))
+```
+
+İlişkili: T510 `çapraz_entropi`
+
+#### T520 `sinir_ağı`
+
+    sinir_ağı(Liste, [Metin], aktivasyon: Metin = "tanh", tohum: Tam = 42) → SinirAğı
+
+Katman boyutları listesiyle (ör. [2, 8, 1]) tam bağlantılı hazır bir sinir ağı modeli kurar; .eğit, .tahmin_et, .ağırlıklar ve .kaydet üyeleri vardır. aktivasyon varsayılanı "tanh", tohum varsayılanı 42'dir; "relu" gizli katmanlarda sızıntılı ReLU'dur.
+
+```tr
+değişken model = sinir_ağı([2, 4, 1], aktivasyon: "tanh", tohum: 42); yazdır(model.eğit([[0, 0], [1, 1]], [[0], [1]], devir: 100, öğrenme_oranı: 0.1)["son_kayıp"])
+```
+
+İlişkili: T521 `model_yükle`, Y510 `eğit`, Y511 `tahmin_et`
+
+#### T521 `model_yükle`
+
+    model_yükle(Metin) → SinirAğı
+
+model.kaydet ile yazılmış JSON model dosyasını okuyup bir SinirAğı döndürür. Göreli yol dosya_oku ile aynı kuralla çözülür; bozuk dosya açık bir hatayla reddedilir.
+
+```tr
+sinir_ağı([2, 1]).kaydet("model.json"); yazdır(model_yükle("model.json").tahmin_et([[0, 1]]).şekil)
+```
+
+İlişkili: T520 `sinir_ağı`, Y005 `kaydet`
+
+#### T530 `parametreler`
+
+    parametreler(Nesne | Liste | Sözlük | Tensör, adlarıyla: Mantık = yanlış) → Liste | Sözlük
+
+Bir yapı nesnesini (iç içe yapılar, listeler ve sözlüklerle) gezip türev izleyen yaprak tensörleri sabit sırayla ve her birini bir kez toplar. adlarıyla: doğru ile yol adı → tensör sözlüğü döndürür; bu sözlük tensör_kaydet ile kaydedilebilir.
+
+```tr
+değişken model = {"w": tensör([1.0], türev_izle: doğru), "b": tensör([0.0], türev_izle: doğru)}; yazdır(parametreler(model, adlarıyla: doğru))
+```
+
+İlişkili: T400 `AdamW`, T700 `tensör_kaydet`
+
+### Vektör yardımcıları ve dil modeli (T6xx)
+
+#### T600 `normalize_et`
+
+    normalize_et([Liste | Tam | Ondalık], [Tam | Ondalık...]) → Liste
+
+Sayıları en küçüğü 0, en büyüğü 1 olacak biçimde ölçekler (en küçük-en büyük normalleştirmesi) ve Ondalık listesi döndürür. Bütün değerler eşitse hepsi 0 olur; sayı olmayan elemanlar atlanır.
+
+```tr
+yazdır(normalize_et([2, 4, 6]))
+```
+
+İlişkili: T601 `nokta_çarpım`, T602 `kosinüs_benzerliği`
+
+#### T601 `nokta_çarpım`
+
+    nokta_çarpım(Liste | Tam | Ondalık, Liste | Tam | Ondalık) → Ondalık
+
+Eşit uzunluktaki iki sayı listesinin nokta çarpımını (karşılıklı elemanların çarpımlarının toplamı) Ondalık olarak verir. Listeler boş ya da farklı uzunlukta olursa hata verir.
+
+```tr
+yazdır(nokta_çarpım([1, 2, 3], [4, 5, 6]))
+```
+
+İlişkili: T602 `kosinüs_benzerliği`, T603 `öklid_uzaklığı`
+
+#### T602 `kosinüs_benzerliği`
+
+    kosinüs_benzerliği(Liste | Tam | Ondalık, Liste | Tam | Ondalık) → Ondalık
+
+Eşit uzunluktaki iki vektör arasındaki açının kosinüsünü (-1 ile 1 arası) Ondalık olarak verir. Vektörlerden biri sıfır vektörüyse 0 döner.
+
+```tr
+yazdır(kosinüs_benzerliği([1, 0], [1, 1]))
+```
+
+İlişkili: T601 `nokta_çarpım`, T603 `öklid_uzaklığı`
+
+#### T603 `öklid_uzaklığı`
+
+    öklid_uzaklığı(Liste | Tam | Ondalık, Liste | Tam | Ondalık) → Ondalık
+
+Eşit uzunluktaki iki vektör arasındaki öklid uzaklığını (farkların karelerinin toplamının kökü) Ondalık olarak verir.
+
+```tr
+yazdır(öklid_uzaklığı([0, 0], [3, 4]))
+```
+
+İlişkili: T602 `kosinüs_benzerliği`
+
+#### T610 `yz_sor`
+
+    yz_sor(Metin, model: Metin, adres: Metin = "http://localhost:11434/api/generate") → Metin
+
+Bu bilgisayarda çalışan yerel bir dil modeli sunucusuna (varsayılan localhost:11434) istem gönderir ve üretilen metni döndürür. model: verilmezse sunucudaki ilk yüklü model kullanılır; sunucuya ulaşılamazsa hata verir.
+
+```tr
+yazdır(yz_sor("Türkiye'nin başkenti neresidir?"))
+```
+
+İlişkili: T611 `örnekle`
+
+#### T611 `örnekle`
+
+    örnekle(Tensör, sıcaklık: Tam | Ondalık = 1, en_iyi_k: Tam = 0, tohum: Tam | Yok = yok) → Tensör
+
+Son eksendeki softmax(logit / sıcaklık) dağılımından bir indeks örnekler; sonuç tam sayılı ve türev izlemeyen bir tensördür. sıcaklık 0 en olasıyı verir, en_iyi_k > 0 seçimi en olası k sınıfla sınırlar, aynı tohum aynı sonucu verir.
+
+```tr
+yazdır(örnekle(tensör([1.0, 3.0, 0.5]), sıcaklık: 0.8, en_iyi_k: 2, tohum: 7).değer)
+```
+
+İlişkili: T230 `maks_indeks`, T210 `softmax`
+
+### Kaydetme, yükleme, veri türleri (T7xx)
+
+#### T700 `tensör_kaydet`
+
+    tensör_kaydet(Metin, Sözlük) → Yok
+
+Anahtarları metin, değerleri tensör olan bir sözlüğü sürüm başlıklı ikili TR tensör dosyasına yazar. Yazma atomiktir; dosya varsa üzerine yazılır ve tensörler kendi türlerinde saklanır.
+
+```tr
+tensör_kaydet("agirliklar.trt", {"w": tensör([[1.0, 2.0]]), "b": tensör([0.5])}); yazdır(tensör_yükle("agirliklar.trt"))
+```
+
+İlişkili: T701 `tensör_yükle`, T530 `parametreler`
+
+#### T701 `tensör_yükle`
+
+    tensör_yükle(Metin, türev_izle: Mantık = yanlış) → Sözlük
+
+tensör_kaydet ile yazılmış dosyayı aynı sırayla ad → tensör sözlüğü olarak okur; tensörler kaydedildikleri türdedir. Bozuk, eksik ya da başka türden dosya açık bir hatayla reddedilir.
+
+```tr
+tensör_kaydet("a.trt", {"w": tensör([1.0])}); yazdır(tensör_yükle("a.trt", türev_izle: doğru)["w"].gradyan)
+```
+
+İlişkili: T700 `tensör_kaydet`
+
+#### T710 `karışık_hassasiyet`
+
+    karışık_hassasiyet(Metin, Fonksiyon | YerleşikFonksiyon) → Herhangi
+
+Bloğu verilen hesap türüyle ("bf16", "fp16" ya da kapatmak için "float32") çalıştırır ve bloğun son ifadesinin değerini döndürür. Blok içinde @ girdileri bu türe çevrilir ama sonuç float32'dir; ağırlıkların türü değişmez.
+
+```tr
+değişken y = karışık_hassasiyet("bf16") { tensör([[1.0, 2.0]]) @ tensör([[3.0], [4.0]]) }; yazdır(y.değer, y.tür)
+```
+
+İlişkili: T901 `tür`
+
+### Adlı argümanlar (T9xx)
+
+#### T900 `türev_izle`
+
+Oluşturulan tensörün türevinin izlenip izlenmeyeceğini belirler; varsayılan yanlıştır. Parametreler ve gradyanı istenen girdiler türev_izle: doğru ile oluşturulmalıdır.
+
+```tr
+değişken x = tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(x * x)); yazdır(x.gradyan.değer)
+```
+
+Kullananlar: T100 `tensör`, T101 `sıfırlar`, T102 `birler`, T103 `rastgele_normal`, T701 `tensör_yükle`
+
+#### T901 `tür`
+
+Oluşturulan tensörün veri türünü seçer: "float32" (varsayılan), "bf16" ya da "fp16". Başka bir ad en yakın geçerli adı öneren bir hatadır.
+
+```tr
+yazdır(sıfırlar([2, 2], tür: "fp16").tür)
+```
+
+Kullananlar: T100 `tensör`, T101 `sıfırlar`, T102 `birler`, T103 `rastgele_normal`
+
+#### T902 `eksen`
+
+İşlemin uygulanacağı ekseni seçer; negatif değer sondan sayar (-1 son eksen). İndirgemelerde verilmezse bütün elemanlar, softmax, birleştir ve maks_indeks'te son eksen kullanılır.
+
+```tr
+yazdır(toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
+```
+
+Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama`, T121 `birleştir`, T210 `softmax`, T211 `log_softmax`, T230 `maks_indeks`, Y103 `böl` · İlişkili: T906 `boyutu_koru`
+
+#### T903 `tohum`
+
+Rastgele sayı üretecinin başlangıç değeridir (tam sayı); aynı tohum her çalıştırmada aynı sonucu verir. Verilmezse paylaşılan bir üreteç kullanılır (sinir_ağı'nda varsayılan 42).
+
+```tr
+yazdır(rastgele_normal([3], tohum: 7).değer)
+```
+
+Kullananlar: T103 `rastgele_normal`, T520 `sinir_ağı`, T611 `örnekle`, Y600 `örnekleyici`
+
+#### T904 `en_fazla`
+
+gradyan_kırp için izin verilen en büyük toplam gradyan normudur; pozitif bir sayı olmalıdır, varsayılan 1.0'dır.
+
+```tr
+değişken w = tensör([3.0, 4.0], türev_izle: doğru); geri_yayılım(toplam(w * w)); yazdır(gradyan_kırp([w], en_fazla: 0.5))
+```
+
+Kullananlar: T402 `gradyan_kırp`
+
+#### T905 `epsilon`
+
+Sıfıra bölmeyi önlemek için paydaya eklenen küçük pozitif sayıdır. Normlarda varsayılan 0.00001, AdamW'de 1e-8'dir.
+
+```tr
+yazdır(katman_normu(tensör([[1.0, 2.0, 3.0]]), epsilon: 0.001).değer)
+```
+
+Kullananlar: T400 `AdamW`, T501 `katman_normu`, T502 `rms_normu`
+
+#### T906 `boyutu_koru`
+
+doğru verilince indirgenen eksen 1 uzunlukta korunur, böylece sonuç girdiye yayınlanabilir; eksen verilmezse bütün eksenler 1 olur. Mantık olmalıdır ve yalnızca tensörlerde geçerlidir.
+
+```tr
+yazdır(toplam(tensör([[1, 2], [3, 4]]), eksen: -1, boyutu_koru: doğru).şekil)
+```
+
+Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama` · İlişkili: T902 `eksen`
+
+#### T910 `öğrenme_oranı`
+
+İyileştiricinin her adımda parametreleri ne kadar değiştireceğini belirleyen orandır. Sonlu ve negatif olmayan bir sayı olmalıdır; varsayılan AdamW'de 0.001, SGD'de 0.01, model.eğit'te 0.1'dir.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.5); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
+```
+
+Kullananlar: T400 `AdamW`, T401 `SGD`, Y510 `eğit` · İlişkili: T911 `ağırlık_çürümesi` · Eski adlar: `öğrenme_hızı`
+
+#### T911 `ağırlık_çürümesi`
+
+Her adımda parametreleri sıfıra doğru küçülten düzenlileştirme katsayısıdır. Varsayılan AdamW'de 0.01, SGD'de 0'dır.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); yazdır(AdamW([w], ağırlık_çürümesi: 0.1))
+```
+
+Kullananlar: T400 `AdamW`, T401 `SGD` · İlişkili: T910 `öğrenme_oranı`
+
+#### T912 `beta1`
+
+AdamW'nin gradyan ortalaması için kullandığı üstel azalma katsayısıdır. [0, 1) aralığında olmalıdır; varsayılan 0.9'dur.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); yazdır(AdamW([w], beta1: 0.8))
+```
+
+Kullananlar: T400 `AdamW` · İlişkili: T913 `beta2`
+
+#### T913 `beta2`
+
+AdamW'nin gradyan karelerinin ortalaması için kullandığı üstel azalma katsayısıdır. [0, 1) aralığında olmalıdır; varsayılan 0.999'dur.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); yazdır(AdamW([w], beta2: 0.99))
+```
+
+Kullananlar: T400 `AdamW` · İlişkili: T912 `beta1`
+
+#### T914 `momentum`
+
+SGD'nin önceki adımların yönünü sürdürme katsayısıdır; varsayılan 0'dır (momentum yok).
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); yazdır(SGD([w], momentum: 0.9))
+```
+
+Kullananlar: T401 `SGD`
+
+#### T915 `ana_kopya`
+
+doğru iken (varsayılan) 16 bitlik parametrelerin float32 ana kopyası tutulur; güncelleme orada yapılıp parametreye yuvarlanır, böylece küçük adımlar kaybolmaz. float32 parametrelerde etkisizdir.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru, tür: "bf16"); değişken opt = AdamW([w], ana_kopya: doğru); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
+```
+
+Kullananlar: T400 `AdamW`, T401 `SGD`
+
+#### T920 `ağırlık`
+
+Normalleştirme sonucunu son eksende eleman bazlı ölçekleyen [D] şeklindeki tensördür; yok verilirse ölçekleme yapılmaz. Konumlu da verilebilir.
+
+```tr
+yazdır(rms_normu(tensör([[3.0, 4.0]]), ağırlık: tensör([2.0, 1.0])).değer)
+```
+
+Kullananlar: T501 `katman_normu`, T502 `rms_normu` · İlişkili: T921 `sapma`
+
+#### T921 `sapma`
+
+katman_normu sonucuna son eksende eklenen [D] şeklindeki kayma tensörüdür; yok verilirse eklenmez. Konumlu da verilebilir.
+
+```tr
+yazdır(katman_normu(tensör([[1.0, 3.0]]), sapma: tensör([0.5, 0.5])).değer)
+```
+
+Kullananlar: T501 `katman_normu` · İlişkili: T920 `ağırlık`
+
+#### T930 `devir`
+
+model.eğit'in eğitim verisi üzerinden kaç tur geçeceğidir; pozitif bir Tam olmalıdır, varsayılan 500'dür.
+
+```tr
+değişken model = sinir_ağı([2, 4, 1], tohum: 1); yazdır(model.eğit([[0, 1], [1, 0]], [[1], [1]], devir: 50)["devir"])
+```
+
+Kullananlar: Y510 `eğit`
+
+#### T932 `aktivasyon`
+
+sinir_ağı'nın gizli katman etkinleştirmesini seçer: "tanh" (varsayılan), "relu" (sızıntılı) ya da "sigmoid". Çıkış katmanı "sigmoid"de sigmoid, diğerlerinde doğrusaldır.
+
+```tr
+değişken model = sinir_ağı([2, 3, 1], aktivasyon: "relu"); yazdır(model)
+```
+
+Kullananlar: T520 `sinir_ağı`
+
+#### T940 `model`
+
+yz_sor'un kullanacağı yerel dil modelinin adıdır. Verilmezse sunucudaki ilk yüklü model seçilir.
+
+```tr
+yazdır(yz_sor("Merhaba de", model: "model_adı"))
+```
+
+Kullananlar: T610 `yz_sor` · İlişkili: T941 `adres`
+
+#### T941 `adres`
+
+yz_sor'un isteği gönderdiği metin üretme adresidir. Varsayılan http://localhost:11434/api/generate'tir.
+
+```tr
+yazdır(yz_sor("Merhaba de", adres: "http://localhost:11434/api/generate"))
+```
+
+Kullananlar: T610 `yz_sor` · İlişkili: T940 `model`
+
+#### T950 `nedensel`
+
+doğru iken (varsayılan) her sorgu yalnızca kendisine kadarki anahtarlara bakar; Tq < Tk iken hizalama sondandır. yanlış ile dikkat iki yönlüdür.
+
+```tr
+değişken q = rastgele_normal([4, 8], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış).şekil)
+```
+
+Kullananlar: T503 `dikkat` · İlişkili: T951 `pencere`, T952 `maske`
+
+#### T951 `pencere`
+
+Her sorguyu son w konuma (kendisi dahil) sınırlayan yerel dikkat penceresidir; 0 (varsayılan) pencere yok demektir. nedensel: yanlış ile pencere iki yönlüdür.
+
+```tr
+değişken q = rastgele_normal([6, 4], tohum: 2); yazdır(dikkat(q, q, q, pencere: 2).şekil)
+```
+
+Kullananlar: T503 `dikkat` · İlişkili: T950 `nedensel`
+
+#### T952 `maske`
+
+[..., H, Tq, Tk] şekline yayınlanabilen 0/1 tensörüdür; sıfırdan farklı yerlere bakılır. Türev izlemez; varsayılan yok'tur.
+
+```tr
+değişken q = rastgele_normal([3, 4], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış, maske: tensör([[1, 1, 0], [1, 1, 0], [1, 1, 1]])).şekil)
+```
+
+Kullananlar: T503 `dikkat` · İlişkili: T950 `nedensel`
+
+#### T960 `sıcaklık`
+
+örnekle'de logitlerin bölündüğü sıcaklıktır: küçük değer en olasıya yaklaştırır, 0 her zaman en olasıyı seçer. Negatif olmamalıdır; varsayılan 1.0'dır.
+
+```tr
+yazdır(örnekle(tensör([1.0, 3.0, 0.5]), sıcaklık: 0).değer)
+```
+
+Kullananlar: T611 `örnekle` · İlişkili: T961 `en_iyi_k`
+
+#### T961 `en_iyi_k`
+
+örnekle'de seçimi en olası k sınıfla sınırlar; 0 (varsayılan) bütün sınıflar demektir. Negatif olmayan bir tam sayı olmalıdır.
+
+```tr
+yazdır(örnekle(tensör([1.0, 3.0, 0.5]), en_iyi_k: 1).değer)
+```
+
+Kullananlar: T611 `örnekle` · İlişkili: T960 `sıcaklık`
+
+#### T970 `adlarıyla`
+
+doğru verilince parametreler liste yerine "bloklar.0.Wq" gibi yol adı → tensör sözlüğü döndürür. Mantık olmalıdır; varsayılan yanlış'tır.
+
+```tr
+yazdır(parametreler([tensör([1.0], türev_izle: doğru)], adlarıyla: doğru))
+```
+
+Kullananlar: T530 `parametreler`
+
+#### T980 `ileri`
+
+özel_türev'in ileri hesabıdır: türevsiz çalışır ve [çıktı, saklananlar] döndürmelidir. Çıktı bir tensör ya da tensör listesidir.
+
+```tr
+değişken f = özel_türev(ileri: fonksiyon(x) { sonuç [x * 3, []] }, geri: fonksiyon(s, g) { sonuç [g * 3] }); yazdır(f(tensör([2.0])).değer)
+```
+
+Kullananlar: T310 `özel_türev` · İlişkili: T981 `geri`
+
+#### T981 `geri`
+
+özel_türev'in geri hesabıdır: fonksiyon(saklananlar, g) biçiminde iki parametre alır ve her konumlu girdi için girdiyle aynı şekilde bir gradyan ya da yok döndürür.
+
+```tr
+değişken f = özel_türev(ileri: fonksiyon(x) { sonuç [x * 3, []] }, geri: fonksiyon(s, g) { sonuç [g * 3] }); değişken x = tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(f(x))); yazdır(x.gradyan.değer)
+```
+
+Kullananlar: T310 `özel_türev` · İlişkili: T980 `ileri`
+
+#### T982 `adım`
+
+türev_denetle'nin merkezi farkta kullandığı adım büyüklüğüdür; pozitif olmalıdır, varsayılan 0.001'dir.
+
+```tr
+yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([1.0, 2.0], türev_izle: doğru)], adım: 0.01))
+```
+
+Kullananlar: T311 `türev_denetle` · İlişkili: T983 `tolerans`
+
+#### T983 `tolerans`
+
+türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|). Pozitif olmalıdır; varsayılan 0.01'dir.
+
+```tr
+yazdır(türev_denetle(fonksiyon(x) { sonuç sigmoid(x) }, [tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
+```
+
+Kullananlar: T311 `türev_denetle` · İlişkili: T982 `adım`
+
+## V — Veri ve parçalayıcı
+
+### Veri kümesi (V1xx)
+
+#### V100 `veri_kümesi`
+
+    veri_kümesi(Metin, önbellek: Metin, kota_gb: Tam | Ondalık) → VeriKümesi
+
+Bir klasördeki .npy veri dosyalarını (ad sırasıyla) ya da tek bir .npy veri dosyasını VeriKümesi olarak açar; okuyucular .örnekleyici ve .sıralı ile alınır. önbellek: verilirse kota_gb: de verilmelidir.
+
+```tr
+değişken küme = veri_kümesi("testler/veri/sayilar"); yazdır(küme)
+```
+
+İlişkili: Y600 `örnekleyici`, Y601 `sıralı`
+
+### Parçalayıcı (V2xx)
+
+#### V200 `parçalayıcı_yükle`
+
+    parçalayıcı_yükle(Metin) → Parçalayıcı
+
+tokenizer.json biçimindeki bir parçalayıcı dosyasını yükler ve Parçalayıcı nesnesi döndürür. Adlı argüman almaz; klasör yolu verilirse hata verir.
+
+```tr
+değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(p)
+```
+
+İlişkili: Y610 `kodla`, Y611 `çöz`, Y612 `dağarcık_boyutu`, Y613 `parça_kimliği`
+
+### Adlı argümanlar (V9xx)
+
+#### V900 `önbellek`
+
+veri_kümesi'nin veri dosyalarını kullanmadan önce kopyalayacağı yerel önbellek klasörüdür; kota dolunca en uzun süredir kullanılmayan kopyalar silinir. Tek başına verilemez: kota_gb: zorunludur.
+
+```tr
+değişken küme = veri_kümesi("testler/veri/sayilar", önbellek: "onbellek/veri", kota_gb: 1)
+```
+
+Kullananlar: V100 `veri_kümesi` · İlişkili: V901 `kota_gb`
+
+#### V901 `kota_gb`
+
+Önbellek klasörünün kullanabileceği en çok disk alanıdır (GB). Pozitif bir sayı olmalıdır ve yalnızca önbellek: ile birlikte geçerlidir.
+
+```tr
+değişken küme = veri_kümesi("testler/veri/sayilar", önbellek: "onbellek/veri", kota_gb: 0.5)
+```
+
+Kullananlar: V100 `veri_kümesi` · İlişkili: V900 `önbellek`
+
+#### V902 `toplu`
+
+Okuyucunun her .sonraki() çağrısında verdiği satır (toplu iş) sayısıdır. Pozitif bir tam sayı olmalıdır ve verilmesi zorunludur.
+
+```tr
+değişken ö = veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 8, bağlam: 16)
+```
+
+Kullananlar: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V903 `bağlam`
+
+#### V903 `bağlam`
+
+Okuyucunun her satırdaki pencere uzunluğudur; girdi ve hedef [toplu, bağlam] şeklinde olur. Zorunludur ve en uzun veri dosyasından kısa olmalıdır.
+
+```tr
+değişken s = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 4, bağlam: 16)
+```
+
+Kullananlar: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V902 `toplu`
+
+#### V910 `özel_parçalar`
+
+Özel parçaların kodlamaya eklenip eklenmeyeceğini (kodla, varsayılan doğru) ya da çözülen metne yazılıp yazılmayacağını (çöz, varsayılan yanlış) belirler. Yalnızca doğru ya da yanlış olabilir.
+
+```tr
+yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").kodla("merhaba dünya", özel_parçalar: yanlış))
+```
+
+Kullananlar: Y610 `kodla`, Y611 `çöz` · Eski adlar: `özel_tokenlar`
+
+#### V911 `ikinci`
+
+kodla'ya ikinci bir metin vererek çift kodlama yapar. Liste kodlanırken aynı uzunlukta bir metin listesi olmalıdır.
+
+```tr
+yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").kodla("soru", ikinci: "cevap"))
+```
+
+Kullananlar: Y610 `kodla`
+
+## W — Web, veritabanı, arayüz
+
+### Web istemcisi ve sunucusu (W1xx)
+
+#### W100 `web_al`
+
+    web_al(Metin) → Sözlük | Liste | Metin
+
+Adrese GET isteği atar; JSON yanıtı sözlük ya da liste olarak, diğer yanıtları metin olarak döndürür. 2xx dışı durum kodu, 30 saniyelik zaman aşımı ve 50 MB'tan büyük gövde hata verir.
+
+```tr
+değişken yanıt = web_al("http://localhost:8080/api/urunler")
+```
+
+İlişkili: W101 `web_gönder` · Eski adlar: `http_al`
+
+#### W101 `web_gönder`
+
+    web_gönder(Metin, Herhangi) → Sözlük | Liste | Metin
+
+Veriyi JSON'a çevirip adrese POST isteğiyle gönderir ve yanıtı web_al gibi döndürür. JSON'a çevrilemeyen veri ya da 2xx dışı durum kodu hata verir.
+
+```tr
+değişken yanıt = web_gönder("http://localhost:8080/api/ekle", {"ad": "Laptop", "fiyat": 45000})
+```
+
+İlişkili: W100 `web_al`
+
+#### W110 `web_sunucu`
+
+    web_sunucu([Tam], port: Tam = 8080) → WebSunucu
+
+Rotaları al, gönder ve rota_ekle ile eklenen bir WebSunucu nesnesi oluşturur. başlat çağrılmadan dinlemez ve yalnızca bu bilgisayardan (127.0.0.1) erişilebilir.
+
+```tr
+değişken api = web_sunucu(port: 18080); yazdır(api.adres)
+```
+
+İlişkili: Y006 `başlat`, Y804 `rota_ekle` · Eski adlar: `web_sunucusu`
+
+### Veritabanı (W2xx)
+
+#### W200 `veritabanı_aç`
+
+    veritabanı_aç([Metin]) → Veritabanı
+
+Yerleşik Türkçe sorgulu veritabanını dosyadan açar (yoksa oluşturur) ya da ":bellek:" ile bellekte açar; argüman verilmezse bellekte açar. Aynı dosyayı aynı anda iki program açamaz.
+
+```tr
+değişken vt = veritabanı_aç(":bellek:"); yazdır(vt.tablolar())
+```
+
+İlişkili: Y702 `sorgula`, W210 `tablo_sorgula` · Eski adlar: `veritabanı`
+
+#### W210 `tablo_sorgula`
+
+    tablo_sorgula(Liste, [Metin], [Liste], parametreler: Liste | Yok, koşul: Metin, sırala: Metin, limit: Tam, alanlar: Liste) → Liste
+
+Sözlüklerden oluşan bir listeyi tablo gibi süzer, sıralar, sınırlar ve sütunlarını seçer; yeni bir liste döndürür. Koşul yalnızca Türkçe sorgu sözcükleri ve simgelerle yazılır.
+
+```tr
+yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}, {"ad": "Can", "maas": 70000}], "maas > 85000"))
+```
+
+İlişkili: Y702 `sorgula`
+
+### Görsel arayüz (W3xx)
+
+#### W300 `arayüz_oluştur`
+
+    arayüz_oluştur([Metin], genişlik: Tam = 1080, yükseklik: Tam = 760) → GörselArayüz
+
+Kart, tablo, grafik ve form eklenebilen bir GörselArayüz nesnesi oluşturur. Pencere başlat ile açılır ya da sayfa html_kaydet ile dosyaya yazılır.
+
+```tr
+değişken ekran = arayüz_oluştur("Kurumsal Panel"); yazdır(ekran)
+```
+
+İlişkili: Y900 `kart_ekle`, Y006 `başlat` · Eski adlar: `pencere_oluştur`
+
+### Adlı argümanlar (W9xx)
+
+#### W900 `port`
+
+Web sunucusunun ya da arayüzün dinleyeceği porttur (web_sunucu'da varsayılan 8080, arayüz başlatmada 8095). 1 ile 65535 arasında bir Tam olmalıdır.
+
+```tr
+yazdır(web_sunucu(port: 18088).port)
+```
+
+Kullananlar: W110 `web_sunucu`, Y006 `başlat`, Y007 `arka_planda_başlat`
+
+#### W901 `arka_plan`
+
+doğru verilirse başlat programı bekletmeden döner ve sunucu arka planda çalışır. Varsayılan yanlıştır: başlat sunucu durana kadar bekler.
+
+```tr
+değişken s = web_sunucu(port: 18088); yazdır(s.başlat(arka_plan: doğru)); s.durdur()
+```
+
+Kullananlar: Y006 `başlat`
+
+#### W910 `genişlik`
+
+Arayüzün masaüstü penceresinin piksel genişliğidir (varsayılan 1080).
+
+```tr
+değişken ekran = arayüz_oluştur("Panel", genişlik: 1100)
+```
+
+Kullananlar: W300 `arayüz_oluştur` · İlişkili: W911 `yükseklik`
+
+#### W911 `yükseklik`
+
+Arayüzün masaüstü penceresinin piksel yüksekliğidir (varsayılan 760).
+
+```tr
+değişken ekran = arayüz_oluştur("Panel", yükseklik: 780)
+```
+
+Kullananlar: W300 `arayüz_oluştur` · İlişkili: W910 `genişlik`
+
+#### W912 `pencere_aç`
+
+Arayüz başlatılırken masaüstü penceresinin açılıp açılmayacağını belirler. başlat'ta varsayılan doğru, arka_planda_başlat'ta yanlıştır.
+
+```tr
+değişken e = arayüz_oluştur("Panel"); yazdır(e.arka_planda_başlat(18095, pencere_aç: yanlış)); e.durdur()
+```
+
+Kullananlar: Y006 `başlat`, Y007 `arka_planda_başlat`
+
+#### W920 `alt_bilgi`
+
+kart_ekle ile eklenen kartın değerin altında gösterilen kısa açıklamasıdır. Konumlu üçüncü argümanın yerine geçer.
+
+```tr
+değişken ekran = arayüz_oluştur("Panel").kart_ekle("Toplam Ciro", "1.450.000 TL", alt_bilgi: "+%18 artış")
+```
+
+Kullananlar: Y900 `kart_ekle` · İlişkili: W921 `renk`
+
+#### W921 `renk`
+
+Kartın vurgu rengidir. Yalnızca Türkçe renk adları (yeşil, mavi, kırmızı, sarı, turuncu, mor) ya da renk kodu kabul edilir.
+
+```tr
+değişken ekran = arayüz_oluştur("Panel").kart_ekle("Ortalama Maaş", "85.000 TL", renk: "yeşil")
+```
+
+Kullananlar: Y900 `kart_ekle` · İlişkili: W920 `alt_bilgi`
+
+#### W922 `tip`
+
+grafik_ekle ile eklenen grafiğin türüdür (varsayılan "çubuk"). Bugün çizim her zaman çubuk grafiktir; değer yalnızca saklanır.
+
+```tr
+değişken ekran = arayüz_oluştur("Panel").grafik_ekle("Aylık Satışlar", ["Ocak", "Şubat"], [420, 510], tip: "çubuk")
+```
+
+Kullananlar: Y904 `grafik_ekle`
+
+#### W930 `koşul`
+
+tablo_sorgula'da satırları süzen koşuldur ve konumlu ikinci argümanın yerine geçer. Koşul TR kodu olarak çalıştırılmaz; bilinmeyen sütun hata verir.
+
+```tr
+yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}], koşul: "maas > 85000"))
+```
+
+Kullananlar: W210 `tablo_sorgula` · İlişkili: W934 `parametreler` · Eski adlar: `nerede`
+
+#### W931 `sırala`
+
+tablo_sorgula'da sıralanacak sütundur; "sütun:azalan" yazılırsa azalan sıralar. Yön yalnızca Türkçe yazılır.
+
+```tr
+yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}, {"ad": "Can", "maas": 70000}], sırala: "maas:azalan"))
+```
+
+Kullananlar: W210 `tablo_sorgula`
+
+#### W932 `limit`
+
+tablo_sorgula'nın döndüreceği en çok satır sayısıdır ve sıralamadan sonra uygulanır. Sıfır ya da pozitif bir Tam olmalıdır.
+
+```tr
+yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}, {"ad": "Can", "maas": 70000}], limit: 1))
+```
+
+Kullananlar: W210 `tablo_sorgula`
+
+#### W933 `alanlar`
+
+tablo_sorgula sonucunda yalnızca listedeki sütunların tutulmasını sağlar.
+
+```tr
+yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}], alanlar: ["ad"]))
+```
+
+Kullananlar: W210 `tablo_sorgula`
+
+#### W934 `parametreler`
+
+Koşuldaki '?' yer tutucularına sırayla bağlanan değerlerin listesidir; dışarıdan gelen değerleri sorguya gömmeden kullanmayı sağlar. '?' sayısı ile değer sayısı eşit olmalıdır.
+
+```tr
+yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}], "maas > ?", parametreler: [85000]))
+```
+
+Kullananlar: W210 `tablo_sorgula`, Y702 `sorgula`, Y703 `güncelle`, Y704 `sil`, Y706 `say` · İlişkili: W930 `koşul` · Eski adlar: `params`
+
+## Y — Metot ve özellikler (x.ad)
+
+### Birden çok tipte ortak (Y0xx)
+
+#### Y001 `uzunluk`
+
+    Metin.uzunluk → Tam
+    Liste.uzunluk → Tam
+    Sözlük.uzunluk → Tam
+
+Metnin karakter sayısını, listenin ya da sözlüğün eleman sayısını verir. Parantezsiz yazılan bir özelliktir.
+
+```tr
+yazdır("çay".uzunluk, [1, 2, 3].uzunluk, {"a": 1}.uzunluk)
+```
+
+Eski adlar: `boy`
+
+#### Y002 `içerir`
+
+    Metin.içerir(Metin) → Mantık
+    Liste.içerir(Herhangi) → Mantık
+    Sözlük.içerir(Herhangi) → Mantık
+
+Metinde alt metni, listede değeri (== ile), sözlükte anahtarı arar ve doğru ya da yanlış verir. Metinde argüman Metin olmalıdır.
+
+```tr
+yazdır("merhaba".içerir("er"), [1, 2].içerir(2), {"a": 1}.içerir("a"))
+```
+
+İlişkili: Y105 `başlar`, Y106 `biter`
+
+#### Y003 `ters_çevir`
+
+    Metin.ters_çevir() → Metin
+    Liste.ters_çevir() → Liste
+
+Metnin karakterlerini ya da listenin elemanlarını ters sırayla verir. Asıl değeri değiştirmez, yeni metin ya da liste döner.
+
+```tr
+yazdır("kitap".ters_çevir(), [1, 2, 3].ters_çevir())
+```
+
+İlişkili: Y202 `sırala`
+
+#### Y004 `ekle`
+
+    Liste.ekle(Herhangi...) → Liste
+    Veritabanı.ekle(Metin, Sözlük | Liste) → Tam
+
+Listede verilen elemanları sona ekler ve listeyi yerinde değiştirir. Veritabanında tabloya bir sözlük ya da sözlük listesi ekler (tablo yoksa oluşturur) ve tablonun satır sayısını verir.
+
+```tr
+değişken l = [1]; l.ekle(2, 3); yazdır(l, veritabanı_aç(":bellek:").ekle("personel", {"ad": "Ali"}))
+```
+
+İlişkili: Y701 `tablo_oluştur` · Eski adlar: `kayıt_ekle`
+
+#### Y005 `kaydet`
+
+    SinirAğı.kaydet(Metin) → Mantık
+    Veritabanı.kaydet() → Mantık
+    GörselArayüz.kaydet(Metin) → Mantık
+
+Modeli verilen dosyaya yazar, veritabanını diske kaydeder (bellekteki veritabanında bir şey yapmaz), arayüzü HTML dosyası olarak kaydeder. Başarılı olursa doğru verir.
+
+```tr
+yazdır(veritabanı_aç(":bellek:").kaydet())
+```
+
+İlişkili: T521 `model_yükle`, Y907 `html_kaydet`
+
+#### Y006 `başlat`
+
+    WebSunucu.başlat(arka_plan: Mantık = yanlış) → Metin
+    GörselArayüz.başlat([Tam], port: Tam = 8095, pencere_aç: Mantık = doğru, arka_plan: Mantık = yanlış) → Metin
+
+Web sunucusunu ya da arayüzü başlatır ve adresini verir. arka_plan: doğru verilmezse program sunucu durana kadar bekler; arayüz varsayılan olarak pencere de açar.
+
+```tr
+değişken s = web_sunucu(port: 18080); yazdır(s.başlat(arka_plan: doğru)); s.durdur()
+```
+
+İlişkili: Y007 `arka_planda_başlat`, Y008 `durdur` · Eski adlar: `göster`
+
+#### Y007 `arka_planda_başlat`
+
+    WebSunucu.arka_planda_başlat() → Metin
+    GörselArayüz.arka_planda_başlat([Tam], port: Tam = 8095, pencere_aç: Mantık = yanlış) → Metin
+
+Sunucuyu ya da arayüzü arka planda başlatır ve hemen adresini verir; program çalışmayı sürdürür. Arayüz bu yolla pencere açmaz (pencere_aç: doğru verilirse açar).
+
+```tr
+değişken s = web_sunucu(port: 18080); yazdır(s.arka_planda_başlat()); s.durdur()
+```
+
+İlişkili: Y006 `başlat`, Y008 `durdur`
+
+#### Y008 `durdur`
+
+    WebSunucu.durdur() → Mantık
+    GörselArayüz.durdur() → Mantık
+
+Çalışan web sunucusunu ya da arayüzü kapatır. Hiç başlatılmamış olsa da doğru verir.
+
+```tr
+değişken s = web_sunucu(port: 18080); s.arka_planda_başlat(); yazdır(s.durdur())
+```
+
+İlişkili: Y006 `başlat`, Y007 `arka_planda_başlat` · Eski adlar: `kapat`
+
+### Metin (Y1xx)
+
+#### Y100 `büyük_harf`
+
+    Metin.büyük_harf() → Metin
+
+Metni Türkçe kurallarla büyük harfe çevirir (i → İ, ı → I). Yeni bir metin verir.
+
+```tr
+yazdır("istanbul".büyük_harf())
+```
+
+İlişkili: Y101 `küçük_harf`
+
+#### Y101 `küçük_harf`
+
+    Metin.küçük_harf() → Metin
+
+Metni Türkçe kurallarla küçük harfe çevirir (İ → i, I → ı). Yeni bir metin verir.
+
+```tr
+yazdır("IŞIK".küçük_harf())
+```
+
+İlişkili: Y100 `büyük_harf`
+
+#### Y102 `kırp`
+
+    Metin.kırp() → Metin
+
+Metnin başındaki ve sonundaki boşlukları (satır sonları dahil) atar. Yeni bir metin verir.
+
+```tr
+yazdır("  merhaba  ".kırp())
+```
+
+#### Y103 `böl`
+
+    Metin.böl([Metin]) → Liste
+    Tensör.böl(Tam, [Tam], eksen: Tam = -1) → Liste
+
+Metni ayırıcıdan böler ve parçaların listesini verir (ayırıcı verilmezse tek boşluk). Tensörü bir eksende (varsayılan son eksen) eşit sayıda parçaya böler; eksen uzunluğu parça sayısına tam bölünmelidir.
+
+```tr
+yazdır("a,b,c".böl(","), tensör([1, 2, 3, 4]).böl(2)[0].değer)
+```
+
+İlişkili: Y203 `birleştir`, T121 `birleştir`
+
+#### Y104 `değiştir`
+
+    Metin.değiştir(Metin, Metin) → Metin
+
+Metindeki bütün eski alt metinleri yenisiyle değiştirir. İki argüman da Metin olmalıdır; yeni bir metin döner.
+
+```tr
+yazdır("elma armut elma".değiştir("elma", "erik"))
+```
+
+#### Y105 `başlar`
+
+    Metin.başlar(Metin) → Mantık
+
+Metin verilen önekle başlıyorsa doğru verir. Argüman Metin olmalıdır.
+
+```tr
+yazdır("merhaba".başlar("mer"))
+```
+
+İlişkili: Y106 `biter`, Y002 `içerir`
+
+#### Y106 `biter`
+
+    Metin.biter(Metin) → Mantık
+
+Metin verilen sonekle bitiyorsa doğru verir. Argüman Metin olmalıdır.
+
+```tr
+yazdır("rapor.tr".biter(".tr"))
+```
+
+İlişkili: Y105 `başlar`, Y002 `içerir`
+
+### Liste (Y2xx)
+
+#### Y200 `filtrele`
+
+    Liste.filtrele(Fonksiyon) → Liste
+
+Fonksiyonun doğru döndüğü elemanlardan oluşan yeni bir liste verir. Asıl liste değişmez; fonksiyon sondaki blokla da yazılır.
+
+```tr
+yazdır([1, 2, 3, 4].filtrele { o > 2 })
+```
+
+İlişkili: Y201 `haritala`
+
+#### Y201 `haritala`
+
+    Liste.haritala(Fonksiyon) → Liste
+
+Her elemana fonksiyonu uygular ve sonuçların yeni listesini verir. Asıl liste değişmez; fonksiyon sondaki blokla da yazılır.
+
+```tr
+yazdır([1, 2, 3].haritala { o * 10 })
+```
+
+İlişkili: Y200 `filtrele` · Eski adlar: `dönüştür`
+
+#### Y202 `sırala`
+
+    Liste.sırala() → Liste
+
+Listenin küçükten büyüğe sıralanmış yeni bir kopyasını verir. Liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır.
+
+```tr
+yazdır([3, 1, 2].sırala())
+```
+
+İlişkili: Y003 `ters_çevir`
+
+#### Y203 `birleştir`
+
+    Liste.birleştir([Metin]) → Metin
+
+Liste elemanlarını metne çevirip aralarına ayırıcıyı koyarak birleştirir (ayırıcı verilmezse boş metin). Sonuç bir metindir.
+
+```tr
+yazdır(["a", "b", "c"].birleştir(", "))
+```
+
+İlişkili: Y103 `böl`
+
+#### Y204 `benzersiz`
+
+    Liste.benzersiz() → Liste
+
+Tekrar eden elemanları atar, her değerin ilk geçtiği sırayı korur. Yeni bir liste verir.
+
+```tr
+yazdır([1, 2, 2, 3, 1].benzersiz())
+```
+
+#### Y205 `toplam`
+
+    Liste.toplam() → Tam | Ondalık
+
+Listedeki sayıların toplamını verir.
+
+```tr
+yazdır([1, 2].toplam())
+```
+
+#### Y206 `ortalama`
+
+    Liste.ortalama() → Ondalık
+
+Listedeki sayıların ortalamasını verir.
+
+```tr
+yazdır([1, 2].ortalama())
+```
+
+#### Y210 `ilk`
+
+    Liste.ilk → Herhangi
+
+Listenin ilk elemanını verir; liste boşsa yok verir. Parantezsiz yazılan bir özelliktir.
+
+```tr
+yazdır([5, 6, 7].ilk)
+```
+
+İlişkili: Y211 `son`
+
+#### Y211 `son`
+
+    Liste.son → Herhangi
+
+Listenin son elemanını verir; liste boşsa yok verir. Parantezsiz yazılan bir özelliktir.
+
+```tr
+yazdır([5, 6, 7].son)
+```
+
+İlişkili: Y210 `ilk`
+
+### Sözlük (Y3xx)
+
+#### Y300 `anahtarlar`
+
+    Sözlük.anahtarlar() → Liste
+
+Sözlüğün anahtarlarını ekleniş sırasıyla bir liste olarak verir.
+
+```tr
+yazdır({"ad": "Ali", "puan": 30}.anahtarlar())
+```
+
+İlişkili: Y301 `değerler`
+
+#### Y301 `değerler`
+
+    Sözlük.değerler() → Liste
+
+Sözlüğün değerlerini anahtarların ekleniş sırasıyla bir liste olarak verir.
+
+```tr
+yazdır({"ad": "Ali", "puan": 30}.değerler())
+```
+
+İlişkili: Y300 `anahtarlar`
+
+### Tensör (Y4xx)
+
+#### Y400 `şekil`
+
+    Tensör.şekil → Liste
+
+Tensörün her eksendeki uzunluğunu Tam listesi olarak verir; 0 boyutlu tensörde boş listedir.
+
+```tr
+yazdır(tensör([[1, 2], [3, 4]]).şekil)
+```
+
+İlişkili: Y410 `şekillendir` · Eski adlar: `boyut`, `satır`, `sütun`
+
+#### Y401 `cihaz`
+
+    Tensör.cihaz → Metin
+
+Tensörün bulunduğu cihazın adını verir (ör. "cpu").
+
+```tr
+yazdır(tensör([1, 2]).cihaz)
+```
+
+İlişkili: Y414 `cihaza`
+
+#### Y402 `tür`
+
+    Tensör.tür → Metin
+
+Tensörün sayı türünün adını verir: "float32", "bf16" ya da "fp16".
+
+```tr
+yazdır(tensör([1.0, 2.0]).tür)
+```
+
+İlişkili: Y415 `türe`, T901 `tür`
+
+#### Y403 `gradyan`
+
+    Tensör.gradyan → Tensör | Yok
+
+geri_yayılım sonrası biriken gradyanı tensör olarak verir; henüz yoksa yok döner. Yalnızca yaprak tensörlerde okunabilir, bir işlemin sonucunda hata verir.
+
+```tr
+değişken x = tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(toplam(x * 3)); yazdır(x.gradyan.değer)
+```
+
+İlişkili: T300 `geri_yayılım`, T900 `türev_izle` · Eski adlar: `türev`
+
+#### Y404 `değer`
+
+    Tensör.değer → Liste | Ondalık | Tam
+
+Tensörün değerlerini iç içe liste olarak verir; 0 boyutlu tensörde tek bir sayı döner. Sonuç kopyadır, değiştirilmesi tensörü etkilemez.
+
+```tr
+yazdır(tensör([[1, 2], [3, 4]]).değer)
+```
+
+Eski adlar: `liste`
+
+#### Y410 `şekillendir`
+
+    Tensör.şekillendir(Liste | Tam, [Tam...]) → Tensör
+
+Tensörü aynı eleman sayısıyla yeni bir şekle sokar; bir eksen -1 verilirse uzunluğu hesaplanır. Sonuç veriyi paylaşan bir görünümdür.
+
+```tr
+yazdır(tensör([1, 2, 3, 4, 5, 6]).şekillendir([2, 3]).şekil)
+```
+
+İlişkili: Y400 `şekil`
+
+#### Y411 `devrik`
+
+    Tensör.devrik() → Tensör
+
+Tensörün son iki eksenini yer değiştirir. Argüman almaz ve en az 2 boyutlu tensör ister.
+
+```tr
+yazdır(tensör([[1, 2], [3, 4]]).devrik().değer)
+```
+
+İlişkili: Y412 `eksenleri_sırala` · Eski adlar: `T`
+
+#### Y412 `eksenleri_sırala`
+
+    Tensör.eksenleri_sırala(Liste | Tam, [Tam...]) → Tensör
+
+Tensörün eksenlerini verilen sıraya dizer. Her eksen tam olarak bir kez yer almalıdır.
+
+```tr
+yazdır(sıfırlar([2, 3, 4]).eksenleri_sırala([2, 0, 1]).şekil)
+```
+
+İlişkili: Y411 `devrik`
+
+#### Y413 `dilim`
+
+    Tensör.dilim(Tam, Tam, Tam) → Tensör
+
+Verilen eksende [baş, son) aralığını keser; negatif konumlar sondan sayılır. Sonuç veriyi paylaşan bir görünümdür.
+
+```tr
+yazdır(tensör([[1, 2, 3], [4, 5, 6]]).dilim(1, 0, 2).değer)
+```
+
+#### Y414 `cihaza`
+
+    Tensör.cihaza(Metin) → Tensör
+
+Tensörü verilen cihaza ("cpu", "gpu", "gpu:1") taşınmış olarak verir. Bu derlemede yalnızca "cpu" kullanılabilir.
+
+```tr
+yazdır(tensör([1, 2]).cihaza("cpu").cihaz)
+```
+
+İlişkili: Y401 `cihaz`
+
+#### Y415 `türe`
+
+    Tensör.türe(Metin) → Tensör
+
+Tensörün "float32", "bf16" ya da "fp16" türüne çevrilmiş kopyasını verir; gradyan kaynak tensöre akar. Tür zaten aynıysa tensörün kendisi döner.
+
+```tr
+yazdır(tensör([1.0, 2.0]).türe("bf16").tür)
+```
+
+İlişkili: Y402 `tür`, T710 `karışık_hassasiyet`
+
+### İyileştirici ve SinirAğı (Y5xx)
+
+#### Y500 `adım`
+
+    AdamW.adım() → Yok
+    SGD.adım() → Yok
+
+İyileştiricinin (AdamW, SGD) bir güncelleme adımını yapar: parametreleri gradyanlarına göre yerinde günceller. Argüman almaz, yok döner.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(w.değer)
+```
+
+İlişkili: Y501 `sıfırla`, T300 `geri_yayılım`
+
+#### Y501 `sıfırla`
+
+    AdamW.sıfırla() → Yok
+    SGD.sıfırla() → Yok
+
+İyileştiricinin parametrelerindeki biriken gradyanları sıfırlar. Bir sonraki geri_yayılım'dan önce çağrılır; argüman almaz.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); geri_yayılım(toplam(w * 2)); AdamW([w]).sıfırla(); yazdır(w.gradyan.değer)
+```
+
+İlişkili: Y500 `adım`
+
+#### Y510 `eğit`
+
+    SinirAğı.eğit(Liste | Tensör, Liste | Tensör, [Tam], [Tam | Ondalık], devir: Tam = 500, öğrenme_oranı: Ondalık = 0.1) → Sözlük
+
+Hazır modeli girdi ve hedef matrisleriyle eğitir ve ilk_kayıp, son_kayıp, devir alanlı bir sözlük verir. Ağırlıkları yerinde değiştirir; varsayılanlar devir: 500, öğrenme_oranı: 0.1.
+
+```tr
+yazdır(sinir_ağı([2, 1]).eğit([[0, 1], [1, 0]], [[1], [0]], devir: 50))
+```
+
+İlişkili: Y511 `tahmin_et`
+
+#### Y511 `tahmin_et`
+
+    SinirAğı.tahmin_et(Liste | Tensör) → Tensör
+
+Modeli verilen girdi matrisi (liste ya da tensör) üzerinde çalıştırır ve çıktıyı tensör olarak verir. Tek boyutlu girdi tek satır sayılır.
+
+```tr
+yazdır(sinir_ağı([2, 1]).tahmin_et([[0, 1]]).şekil)
+```
+
+İlişkili: Y510 `eğit` · Eski adlar: `tahmin`
+
+#### Y512 `ağırlıklar`
+
+    SinirAğı.ağırlıklar → Liste
+
+Modelin katman ağırlıklarını tensör listesi olarak verir. Tensörler modelle veriyi paylaşır ama türev çizgesine bağlı değildir.
+
+```tr
+yazdır(sinir_ağı([2, 1]).ağırlıklar[0].şekil)
+```
+
+### Veri kümesi, okuyucu, parçalayıcı (Y6xx)
+
+#### Y600 `örnekleyici`
+
+    VeriKümesi.örnekleyici([Tam], [Tam], [Tam], toplu: Tam, bağlam: Tam, tohum: Tam = 0) → Örnekleyici
+
+Veri kümesinden rastgele pencereler alan bir örnekleyici kurar; toplu ve bağlam zorunludur, tohum isteğe bağlıdır. Örnekleyici sonsuzdur, dönemler bitince baştan sürer.
+
+```tr
+yazdır(veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağlam: 4, tohum: 1))
+```
+
+İlişkili: Y601 `sıralı`, Y602 `sonraki`
+
+#### Y601 `sıralı`
+
+    VeriKümesi.sıralı([Tam], [Tam], toplu: Tam, bağlam: Tam) → SıralıOkuyucu
+
+Veri kümesini baştan sona sırayla okuyan bir okuyucu kurar; toplu ve bağlam zorunludur. Veri bitince sonraki() yok verir.
+
+```tr
+yazdır(veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4).sonraki()[0].şekil)
+```
+
+İlişkili: Y600 `örnekleyici`, Y602 `sonraki`
+
+#### Y602 `sonraki`
+
+    Örnekleyici.sonraki() → Liste
+    SıralıOkuyucu.sonraki() → Liste | Yok
+
+Bir sonraki toplu işi [girdi, hedef] tensörleri olarak verir; ikisinin şekli [toplu, bağlam] olur ve hedef bir parça kaydırılmıştır. Sıralı okuyucu bitince yok verir.
+
+```tr
+değişken girdi, hedef = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4).sonraki(); yazdır(girdi.değer, hedef.değer)
+```
+
+İlişkili: Y600 `örnekleyici`, Y601 `sıralı`
+
+#### Y610 `kodla`
+
+    Parçalayıcı.kodla(Metin | Liste, özel_parçalar: Mantık = doğru, ikinci: Metin | Liste) → Liste
+
+Metni parça kimliklerinin listesine çevirir; metin listesi verilirse her metni ayrı kodlar. özel_parçalar: yanlış verilmezse parçalayıcının özel parçaları eklenir; ikinci: ile metin çifti kodlanır.
+
+```tr
+yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").kodla("Merhaba dünya!"))
+```
+
+İlişkili: Y611 `çöz`
+
+#### Y611 `çöz`
+
+    Parçalayıcı.çöz(Liste | Tensör, özel_parçalar: Mantık = yanlış) → Metin | Liste
+
+Parça kimliklerini (liste, listelerin listesi ya da tensör) metne geri çevirir. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar.
+
+```tr
+değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(p.çöz(p.kodla("Merhaba dünya!")))
+```
+
+İlişkili: Y610 `kodla`
+
+#### Y612 `dağarcık_boyutu`
+
+    Parçalayıcı.dağarcık_boyutu → Tam
+
+Parçalayıcının dağarcığındaki parça sayısını (eklenmiş özel parçalar dahil) Tam olarak verir. Parantezsiz yazılan bir özelliktir.
+
+```tr
+yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").dağarcık_boyutu)
+```
+
+İlişkili: Y613 `parça_kimliği` · Eski adlar: `sözlük_boyutu`
+
+#### Y613 `parça_kimliği`
+
+    Parçalayıcı.parça_kimliği(Metin) → Tam | Yok
+
+Verilen parçanın dağarcıktaki kimliğini verir; parça dağarcıkta yoksa yok döner. Argüman Metin olmalıdır.
+
+```tr
+yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").parça_kimliği("<|endoftext|>"))
+```
+
+İlişkili: Y612 `dağarcık_boyutu` · Eski adlar: `token_kimliği`
+
+### Veritabanı (Y7xx)
+
+#### Y700 `tablolar`
+
+    Veritabanı.tablolar() → Liste
+
+Veritabanındaki tabloların adlarını alfabe sırasıyla bir liste olarak verir.
+
+```tr
+değişken vt = veritabanı_aç(":bellek:"); vt.tablo_oluştur("personel"); yazdır(vt.tablolar())
+```
+
+İlişkili: Y701 `tablo_oluştur`
+
+#### Y701 `tablo_oluştur`
+
+    Veritabanı.tablo_oluştur(Metin, [Liste]) → Veritabanı
+
+Tablo yoksa oluşturur; sütun listesi verilirse sütunları ona göre ayarlar ("ad:tip" yazımında yalnızca ad kullanılır). Veritabanının kendisini verir.
+
+```tr
+yazdır(veritabanı_aç(":bellek:").tablo_oluştur("personel", ["ad", "puan"]).tablolar())
+```
+
+İlişkili: Y700 `tablolar`
+
+#### Y702 `sorgula`
+
+    Veritabanı.sorgula(Metin, [Liste], parametreler: Liste) → Liste | Tam
+
+Türkçe bir sorgu çalıştırır (SEÇ ... TABLO ... NEREDE ... SIRALA ... LİMİT, ya da SİL TABLO ...). SEÇ satır sözlüklerinin listesini, SİL silinen satır sayısını verir; ? yer tutucuları parametre listesinden bağlanır.
+
+```tr
+değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", {"ad": "Ali", "puan": 7}); yazdır(vt.sorgula("SEÇ ad TABLO personel NEREDE puan > ?", [5]))
+```
+
+İlişkili: Y705 `hepsini_al`, W210 `tablo_sorgula` · Eski adlar: `sorgu`, `seç`
+
+#### Y703 `güncelle`
+
+    Veritabanı.güncelle(Metin, Sözlük, [Metin], [Liste], parametreler: Liste) → Tam
+
+Koşula uyan satırlara sözlükteki alanları yazar ve güncellenen satır sayısını verir. Koşul verilmezse bütün satırlar güncellenir.
+
+```tr
+değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", {"ad": "Ali", "puan": 1}); yazdır(vt.güncelle("personel", {"puan": 9}, "ad == ?", ["Ali"]))
+```
+
+İlişkili: Y704 `sil`
+
+#### Y704 `sil`
+
+    Veritabanı.sil(Metin, [Metin], [Liste], parametreler: Liste) → Tam
+
+Koşula uyan satırları siler ve silinen satır sayısını verir. Koşul verilmezse tablonun bütün satırları silinir.
+
+```tr
+değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", [{"ad": "Ali", "puan": 3}, {"ad": "Can", "puan": 8}]); yazdır(vt.sil("personel", "puan < 5"))
+```
+
+İlişkili: Y703 `güncelle`
+
+#### Y705 `hepsini_al`
+
+    Veritabanı.hepsini_al(Metin) → Liste
+
+Tablonun bütün satırlarını sözlük listesi olarak verir; id alanı her sözlükte önce gelir. Olmayan tabloda hata verir.
+
+```tr
+değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", {"ad": "Ali"}); yazdır(vt.hepsini_al("personel"))
+```
+
+İlişkili: Y702 `sorgula` · Eski adlar: `tablo_al`
+
+#### Y706 `say`
+
+    Veritabanı.say(Metin, [Metin], [Liste], parametreler: Liste) → Tam
+
+Tablonun satır sayısını, koşul verilirse koşula uyan satırların sayısını verir.
+
+```tr
+değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", [{"puan": 3}, {"puan": 8}]); yazdır(vt.say("personel"), vt.say("personel", "puan > 5"))
+```
+
+### Web sunucusu (Y8xx)
+
+#### Y800 `adres`
+
+    WebSunucu.adres → Metin
+
+Sunucunun yerel adresini "http://localhost:port" biçiminde verir. Parantezsiz yazılan bir özelliktir.
+
+```tr
+yazdır(web_sunucu(port: 18080).adres)
+```
+
+İlişkili: Y801 `port` · Eski adlar: `url`
+
+#### Y801 `port`
+
+    WebSunucu.port → Tam
+
+Sunucunun dinlediği port numarasını Tam olarak verir. Parantezsiz yazılan bir özelliktir.
+
+```tr
+yazdır(web_sunucu(port: 18080).port)
+```
+
+İlişkili: Y800 `adres`
+
+#### Y802 `al`
+
+    WebSunucu.al(Metin, Fonksiyon) → WebSunucu
+
+Verilen yola GET isteği gelince çalışacak fonksiyonu kaydeder; fonksiyon istek sözlüğünü (yol, metod, parametreler, veri) alır. Sunucunun kendisini verir, zincirlenebilir.
+
+```tr
+değişken s = web_sunucu(port: 18080); s.al("/selam", (istek) => "merhaba"); s.arka_planda_başlat(); yazdır(web_al(s.adres + "/selam")); s.durdur()
+```
+
+İlişkili: Y803 `gönder`, Y804 `rota_ekle` · Eski adlar: `get`
+
+#### Y803 `gönder`
+
+    WebSunucu.gönder(Metin, Fonksiyon) → WebSunucu
+
+Verilen yola POST isteği gelince çalışacak fonksiyonu kaydeder; JSON gövde istek sözlüğünün veri alanına çözülür. Sunucunun kendisini verir.
+
+```tr
+değişken s = web_sunucu(port: 18080); s.gönder("/veri", (istek) => istek["veri"]); s.arka_planda_başlat(); yazdır(web_gönder(s.adres + "/veri", {"ad": "Ali"})); s.durdur()
+```
+
+İlişkili: Y802 `al`, Y804 `rota_ekle` · Eski adlar: `post`
+
+#### Y804 `rota_ekle`
+
+    WebSunucu.rota_ekle(Metin, Metin | Fonksiyon, [Fonksiyon]) → WebSunucu
+
+Bir yola işleyici kaydeder; metod ("GET", "POST" ...) verilmezse her metoda yanıt verir. Sunucunun kendisini verir.
+
+```tr
+değişken s = web_sunucu(port: 18080); s.rota_ekle("/durum", "GET", (istek) => "çalışıyor"); s.arka_planda_başlat(); yazdır(web_al(s.adres + "/durum")); s.durdur()
+```
+
+İlişkili: Y802 `al`, Y803 `gönder` · Eski adlar: `rota`
+
+#### Y805 `statik_klasör`
+
+    WebSunucu.statik_klasör(Metin, Metin) → WebSunucu
+
+Bir klasördeki dosyaları verilen adres önekinde sunar; adı nokta ile başlayan dosyalar sunulmaz. Klasör yoksa hata verir; rotalar her zaman önce gelir.
+
+```tr
+yazdır(web_sunucu(port: 18080).statik_klasör("/dosyalar/", "ornekler"))
+```
+
+### Görsel arayüz (Y9xx)
+
+#### Y900 `kart_ekle`
+
+    GörselArayüz.kart_ekle(Metin, Herhangi, [Metin], [Metin], alt_bilgi: Metin, renk: Metin) → GörselArayüz
+
+Arayüzün üst şeridine başlık ve değer gösteren bir kart ekler; alt_bilgi ve renk (Türkçe renk adı ya da renk kodu) isteğe bağlıdır. Arayüzün kendisini verir.
+
+```tr
+yazdır(arayüz_oluştur("Panel").kart_ekle("Ciro", "1.450 TL", alt_bilgi: "+%18", renk: "yeşil"))
+```
+
+Eski adlar: `metrik_ekle`
+
+#### Y901 `başlık_ekle`
+
+    GörselArayüz.başlık_ekle(Metin, [Metin]) → GörselArayüz
+
+Arayüze bir bölüm başlığı ve isteğe bağlı alt metin ekler. Arayüzün kendisini verir.
+
+```tr
+yazdır(arayüz_oluştur("Panel").başlık_ekle("Satışlar", "Bu ay"))
+```
+
+İlişkili: Y902 `metin_ekle`
+
+#### Y902 `metin_ekle`
+
+    GörselArayüz.metin_ekle(Metin) → GörselArayüz
+
+Arayüze düz bir metin paragrafı ekler. Arayüzün kendisini verir.
+
+```tr
+yazdır(arayüz_oluştur("Panel").metin_ekle("Rapor hazır."))
+```
+
+İlişkili: Y901 `başlık_ekle` · Eski adlar: `bilgi_ekle`
+
+#### Y903 `tablo_ekle`
+
+    GörselArayüz.tablo_ekle(Metin, Liste) → GörselArayüz
+
+Arayüze aranabilir bir tablo ekler; veri sözlüklerden oluşan bir liste olmalıdır (sütunlar ilk sözlüğün anahtarlarıdır). Arayüzün kendisini verir.
+
+```tr
+yazdır(arayüz_oluştur("Panel").tablo_ekle("Siparişler", [{"ürün": "kalem", "adet": 3}]))
+```
+
+#### Y904 `grafik_ekle`
+
+    GörselArayüz.grafik_ekle(Metin, Liste, Liste, [Metin], tip: Metin = "çubuk") → GörselArayüz
+
+Arayüze etiket ve değer listelerinden bir çubuk grafik ekler; sayı olmayan değerler atlanır. Arayüzün kendisini verir.
+
+```tr
+yazdır(arayüz_oluştur("Panel").grafik_ekle("Aylık", ["Ocak", "Şubat"], [420, 510]))
+```
+
+#### Y905 `form_ekle`
+
+    GörselArayüz.form_ekle(Metin, Liste, Fonksiyon) → GörselArayüz
+
+Arayüze alan adlarından oluşan bir form ekler; gönderilince fonksiyon alan değerleriyle çağrılır. Arayüzün kendisini verir.
+
+```tr
+yazdır(arayüz_oluştur("Panel").form_ekle("Giriş", ["Ad"], (form) => "Kaydedildi"))
+```
+
+İlişkili: Y906 `buton_ekle`
+
+#### Y906 `buton_ekle`
+
+    GörselArayüz.buton_ekle(Metin, Fonksiyon) → GörselArayüz
+
+Arayüze tıklanınca fonksiyonu çalıştıran bir buton ekler. Arayüzün kendisini verir.
+
+```tr
+yazdır(arayüz_oluştur("Panel").buton_ekle("Yenile", () => "tamam"))
+```
+
+İlişkili: Y905 `form_ekle`
+
+#### Y907 `html_kaydet`
+
+    GörselArayüz.html_kaydet(Metin) → Mantık
+
+Arayüzü tek başına açılabilen bir HTML dosyası olarak yazar ve doğru verir. Yol Metin olmalıdır.
+
+```tr
+yazdır(arayüz_oluştur("Panel").metin_ekle("Merhaba").html_kaydet("panel.html"))
+```
+
+İlişkili: Y908 `html_üret`
+
+#### Y908 `html_üret`
+
+    GörselArayüz.html_üret() → Metin
+
+Arayüzün HTML sayfasını dosyaya yazmadan metin olarak verir.
+
+```tr
+yazdır(arayüz_oluştur("Panel").metin_ekle("Merhaba").html_üret().uzunluk > 0)
+```
+
+İlişkili: Y907 `html_kaydet`

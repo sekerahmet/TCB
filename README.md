@@ -108,6 +108,7 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 
 - [`KULLANIM_KILAVUZU.md`](KULLANIM_KILAVUZU.md) — komutlar, yerleşikler, yapay zekâ, web, veritabanı, hata ayıklayıcı.
 - [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) — dilin kuralları; her kuralın `testler/` altında bir testi vardır (`tr test testler`).
+- [`docs/KODLAR.md`](docs/KODLAR.md) — her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği (kod listesinden üretilir).
 - [`docs/YOL_HARITASI.md`](docs/YOL_HARITASI.md) — yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar.
 - [`kiyas/`](kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
 
@@ -116,7 +117,7 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 | Klasör | İçerik |
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
-| `pkg/kod` | Dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) tek yerde: `tr.json` |
+| `pkg/kod` | Kodlar: dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) sabit kodlara bağlı; adlar ve açıklamalar `tr.json`, dilden bağımsız tanımlar `tanim.json` ([`docs/KODLAR.md`](docs/KODLAR.md)) |
 | `pkg/lexer` | Kaynak metni sözcüklere ayırır |
 | `pkg/parser` | Sözcüklerden sözdizimi ağacı kurar |
 | `pkg/ast` | Sözdizimi ağacı düğümleri |
@@ -131,7 +132,7 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 | `pkg/testkosucu` | `tr test` komutunun çekirdeği |
 | `pkg/bicim` | `tr biçimle` biçimlendiricisi |
 | `testler/` | Dil tanımının kural testleri |
-| `araclar/` | Geliştirme araçları (ör. eklentinin renklendirme listelerini sözlükten üreten `eklenti_listeleri`) |
+| `araclar/` | Geliştirme araçları: kod listesinden `docs/KODLAR.md`'yi üreten `kod_belgesi`, Go'daki adlı kod sabitlerini üreten `kod_sabitleri`, eklentinin renklendirme listelerini üreten `eklenti_listeleri` |
 | `vscode_eklentisi/` | VS Code eklentisi |
 
 ## Lisans

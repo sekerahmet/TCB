@@ -29,7 +29,7 @@ var yzSorZamanAsimi = 120 * time.Second
 // pkg/motor/veribicim, web_al/web_gönder ise pkg/motor/web paketindedir.
 func Kaydet(v *vm.VM) {
 	// --- Veri Bilimi, İstatistik ve Vektör Benzerlik ---
-	v.RegisterBuiltinKod(kod.G410, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.G410, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -41,7 +41,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: sum / float64(len(nums))}, nil
 	})
 
-	v.RegisterBuiltinKod(kod.G411, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.G411, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -60,7 +60,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: math.Sqrt(variance)}, nil
 	})
 
-	v.RegisterBuiltinKod(kod.G412, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.G412, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -75,7 +75,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: (sorted[mid-1] + sorted[mid]) / 2.0}, nil
 	})
 
-	v.RegisterBuiltinKod(kod.T600, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.T600, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.ListVal{Elements: []vm.Value{}}, nil
@@ -101,7 +101,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.ListVal{Elements: elems}, nil
 	})
 
-	v.RegisterBuiltinKod(kod.T601, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.T601, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("nokta_çarpım(v1, v2) 2 parametre bekler")
 		}
@@ -117,7 +117,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: dot}, nil
 	})
 
-	v.RegisterBuiltinKod(kod.T602, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.T602, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("kosinüs_benzerliği(v1, v2) 2 parametre bekler")
 		}
@@ -139,7 +139,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: dot / denom}, nil
 	})
 
-	v.RegisterBuiltinKod(kod.T603, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.T603, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("öklid_uzaklığı(v1, v2) 2 parametre bekler")
 		}

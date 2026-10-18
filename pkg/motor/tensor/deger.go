@@ -629,7 +629,7 @@ func (d *Deger) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 	case uyeTur:
 		return &vm.StringVal{Val: turAdi(t.DType())}, nil
 	case uyeTure:
-		return d.metot(uyeTure, d.ture), nil
+		return d.adliMetot(uyeTure, d.ture), nil
 	case uyeGradyan:
 		if d.ara {
 			return nil, fmt.Errorf("bu tensör (%s) bir işlemin sonucu; gradyan yalnızca türev_izle: doğru ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici (AdamW, SGD) kullanın ya da yeni değeri türevsiz { } içinde hesaplayıp tensör(..., türev_izle: doğru) ile yeniden oluşturun", sekilMetni(t.Shape()))
@@ -657,7 +657,7 @@ func (d *Deger) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 	case uyeCihaza:
 		return d.metot(uyeCihaza, d.cihaza), nil
 	case uyeBol:
-		return d.metot(uyeBol, d.bol), nil
+		return d.adliMetot(uyeBol, d.bol), nil
 	}
 	oneri := ""
 	if k, _, eski := kod.EskiBul(kod.AlanUye, prop, tensorUyesi); eski {
@@ -674,7 +674,13 @@ func (d *Deger) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 	return nil, fmt.Errorf("Tensör üzerinde %q özelliği ya da metodu bulunamadı%s", prop, oneri)
 }
 
+// metot adlı argüman almayan bir tensör metodunun bağlı değeridir; adliMetot adlı
+// argümanlarını kendisi denetleyen bir metodunkidir.
 func (d *Deger) metot(kd kod.Kod, fn vm.BuiltinFunc) *vm.BuiltinVal {
+	return &vm.BuiltinVal{Name: kod.Ad(kd), Fn: fn, AdliAlmaz: true}
+}
+
+func (d *Deger) adliMetot(kd kod.Kod, fn vm.BuiltinFunc) *vm.BuiltinVal {
 	return &vm.BuiltinVal{Name: kod.Ad(kd), Fn: fn}
 }
 

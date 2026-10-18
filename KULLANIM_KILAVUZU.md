@@ -68,7 +68,7 @@ Bir yerleşiğin adını (`uzunluk`, `toplam`, `girdi`, `metin`, `ekle` ...) de�
 
 Gölgelenmiş ad yine de yerleşik gibi çağrılırsa hata nedenini söyler: `Satır 2: 'uzunluk' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'uzunluk' bu kapsamda gölgelendi`. Yapı alanları ve metotları (`kendi.uzunluk`, `kutu.toplam()`) gölgeleme sayılmaz. Uyarıdan kurtulmak için başka bir ad seçin (`değişken uzunluk_cm = 3`).
 
-Dilin kuralları örnekleriyle birlikte [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) dosyasında tanımlanmıştır; her kuralın `testler/` klasöründe çalıştırılabilir bir testi vardır (`tr test testler`).
+Dilin kuralları örnekleriyle birlikte [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) dosyasında tanımlanmıştır; her kuralın `testler/` klasöründe çalıştırılabilir bir testi vardır (`tr test testler`). Her anahtar kelimenin, yerleşiğin, metodun ve adlı argümanın imzası, açıklaması ve örneği [`docs/KODLAR.md`](docs/KODLAR.md)'dedir.
 
 ---
 

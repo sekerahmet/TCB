@@ -270,14 +270,14 @@ func webIstegi(makine *vm.VM, fn, yontem, adres string, govde []byte) (vm.Value,
 
 // istemciKaydet web_al ve web_gönder yerleşiklerini kaydeder.
 func istemciKaydet(v *vm.VM) {
-	v.RegisterBuiltinKod(kod.W100, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.W100, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("web_al(url) 1 parametre bekler")
 		}
 		return webIstegi(makine, "web_al", http.MethodGet, args[0].Inspect(), nil)
 	})
 
-	v.RegisterBuiltinKod(kod.W101, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.W101, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("web_gönder(url, veri) 2 parametre bekler")
 		}

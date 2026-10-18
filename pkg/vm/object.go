@@ -289,6 +289,9 @@ type BuiltinVal struct {
 	// Tek (isteğe bağlı), yerleşik tek bir konumlu argümanla çağrıldığında Fn yerine
 	// çalışır ve argüman dilimi ayırmaz; sonucu Fn(vm, []Value{a}, nil) ile aynı olmalıdır.
 	Tek func(vm *VM, a Value) (Value, error)
+	// AdliAlmaz doğruysa yerleşik adlı argüman almaz: adlı argümanlı çağrı gövdeye
+	// girilmeden "adlı argüman almaz" hatasıyla reddedilir (sessizce yok sayılmaz).
+	AdliAlmaz bool
 }
 
 func (b *BuiltinVal) Type() ValueType { return VAL_BUILTIN }

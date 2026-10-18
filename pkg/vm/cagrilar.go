@@ -113,6 +113,9 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 		return v.cagirHazir(fn, fk, fk.ortamAl(fn.Env), fn.BoundSelf, args, len(args), named, line)
 
 	case *BuiltinVal:
+		if fn.AdliAlmaz && len(named) > 0 {
+			return nil, satirEki(line, AdliAlmazHatasi(fn.Name, named))
+		}
 		res, err := fn.Fn(v, args, named)
 		if err != nil {
 			return nil, satirEki(line, err)

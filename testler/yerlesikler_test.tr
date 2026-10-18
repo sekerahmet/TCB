@@ -127,6 +127,21 @@ test "13.3 boş ya da sayı olmayan listenin ortalaması hatadır" {
     doğrula(hatalar[1].içerir("listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[1])
 }
 
+test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {
+    değişken hatalar = []
+    dene { yazdır("a", ayraç: "-") } yakala h { hatalar.ekle(h) }
+    dene { "a b".böl(eksen: 1) } yakala h { hatalar.ekle(h) }
+    dene { toplam([1, 2], eksn: 0) } yakala h { hatalar.ekle(h) }
+    dene { sinir_ağı([2, 1], activation: "relu") } yakala h { hatalar.ekle(h) }
+    dene { web_sunucu(port: 18089, adres: "0.0.0.0") } yakala h { hatalar.ekle(h) }
+    eşit_mi(5, uzunluk(hatalar), metin(hatalar))
+    doğrula(hatalar[0].içerir("yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)"), hatalar[0])
+    doğrula(hatalar[1].içerir("metin.böl() 'eksen' adında bir parametre almaz (adlı argüman almaz)"), hatalar[1])
+    doğrula(hatalar[2].içerir("toplam() 'eksn' adında bir parametre almaz. Bunu mu demek istediniz: 'eksen'?"), hatalar[2])
+    doğrula(hatalar[3].içerir("sinir_ağı() 'activation' adında bir parametre almaz"), hatalar[3])
+    doğrula(hatalar[4].içerir("web_sunucu() 'adres' adında bir parametre almaz (geçerli adlar: port)"), hatalar[4])
+}
+
 test "13.4 sözlük metotları" {
     değişken d = {"a": 1, "b": 2}
     eşit_mi(["a", "b"], d.anahtarlar())

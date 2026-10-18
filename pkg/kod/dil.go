@@ -36,6 +36,12 @@ type Girdi struct {
 	// dosyasında "ascii": false ile kapatılır; bugün yalnızca ASCII biçimi hiç kabul
 	// edilmemiş birkaç adlı argüman için). ASCIIKabul kapalıysa etkisizdir.
 	ASCII bool
+	// Aciklama kodun ne yaptığını söyleyen bir-iki cümledir; Ornek tek satırlık bir TR
+	// kodudur (docs/KODLAR.md bunlardan üretilir).
+	Aciklama, Ornek string
+	// Tasindi, kod kaldırılıp işi başka bir koda (başka bir biçime) taşındıysa yeni
+	// koddur, değilse Yok (bkz. Tasindi).
+	Tasindi Kod
 }
 
 // eskiEslesme bir eski adın hangi koda ait olduğu ve adın, eski bir adın türetilmiş
@@ -59,6 +65,10 @@ type Dil struct {
 	adlar    [alanSayisi]map[string]Kod
 	eskiler  [alanSayisi]map[string][]eskiEslesme
 	asil     [alanSayisi]map[string]string // ad alanı başına ad ve ASCII biçimi → ad
+	// tasinan taşınmış kodlardır (artan sırada); tasinanAd ad alanı başına taşınmış bir
+	// kodun adı, eski adları ve bunların ASCII biçimleri → taşınmış kod.
+	tasinan   []Kod
+	tasinanAd [alanSayisi]map[string]Kod
 }
 
 // Yukle bir dil dosyasını okur ve doğrular. Biçim hatası, yinelenen kod ya da bir ad
@@ -94,7 +104,8 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			hata("%s: ad boş olamaz ve boşluk içeremez (%q)", k, g.ad)
 			continue
 		}
-		gr := &Girdi{Kod: k, Ad: g.ad, Eski: g.eski, Aile: g.aile, ASCII: g.ascii == nil || *g.ascii}
+		gr := &Girdi{Kod: k, Ad: g.ad, Eski: g.eski, Aile: g.aile, ASCII: g.ascii == nil || *g.ascii,
+			Aciklama: g.aciklama, Ornek: g.ornek, Tasindi: tasinanlar[k]}
 		for _, e := range g.eski {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
 				hata("%s: eski ad boş olamaz ve boşluk içeremez (%q)", k, e)
@@ -104,11 +115,16 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			}
 		}
 		d.girdiler[k] = gr
+		enBuyuk[int(k)/1000-1] = max(enBuyuk[int(k)/1000-1], k.Sayi())
+		if gr.Tasindi != Yok {
+			d.tasinan = append(d.tasinan, k)
+			continue
+		}
 		d.kodlar = append(d.kodlar, k)
 		alanBoyu[k.Alan()] += 2
-		enBuyuk[int(k)/1000-1] = max(enBuyuk[int(k)/1000-1], k.Sayi())
 	}
 	sort.Slice(d.kodlar, func(i, j int) bool { return d.kodlar[i] < d.kodlar[j] })
+	sort.Slice(d.tasinan, func(i, j int) bool { return d.tasinan[i] < d.tasinan[j] })
 	for i, n := range enBuyuk {
 		if n > 0 {
 			d.adDizi[i] = make([]string, n+1)
@@ -173,14 +189,65 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			}
 		}
 	}
+	// Taşınmış kodlar: adları (ve eski adları) artık kabul edilmez; yalnızca hata
+	// mesajında yeni biçimi önermek için tutulur. Canlı bir adla ya da eski bir adla
+	// çakışırlarsa ipucu belirsiz olurdu.
+	for i := range d.tasinanAd {
+		d.tasinanAd[i] = map[string]Kod{}
+	}
+	for _, k := range d.tasinan {
+		g := d.girdiler[k]
+		al := k.Alan()
+		d.adDizi[int(k)/1000-1][k.Sayi()] = g.Ad
+		if h, ok := d.girdiler[g.Tasindi]; !ok || h.Tasindi != Yok {
+			hata("%s %s'e taşındı, ama %s dil dosyasında canlı bir kod değil", k, g.Tasindi, g.Tasindi)
+		}
+		adlar := []string{}
+		for _, ad := range append([]string{g.Ad}, g.Eski...) {
+			adlar = append(adlar, ad)
+			if a := asciiBicim(ad); a != ad {
+				adlar = append(adlar, a)
+			}
+		}
+		for _, ad := range adlar {
+			if o, ok := sahibi[al][asciiBicim(ad)]; ok && (ad == o.ad || ad == asciiBicim(o.ad)) {
+				hata("taşınmış %s'in adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", k, ad, o.kod, o.ad)
+				continue
+			}
+			if e := d.eskiler[al][ad]; len(e) > 0 {
+				hata("taşınmış %s'in adı %q, %s'in eski adıyla çakışıyor; ipucu belirsiz olur", k, ad, e[0].kod)
+				continue
+			}
+			if o, ok := d.tasinanAd[al][ad]; ok && o != k {
+				hata("%q hem %s hem %s taşınmış kodlarının adı; ipucu belirsiz olur", ad, o, k)
+				continue
+			}
+			d.tasinanAd[al][ad] = k
+		}
+	}
 	if len(hatalar) > 0 {
 		return nil, errors.New("kod listesi " + kodu + ":\n  " + strings.Join(hatalar, "\n  "))
 	}
 	return d, nil
 }
 
-// Kodlar dildeki bütün kodları artan sırayla verir.
+// Kodlar dildeki bütün canlı kodları artan sırayla verir (taşınmış kodlar hariç; onlar
+// için bkz. Tasinanlar).
 func (d *Dil) Kodlar() []Kod { return append([]Kod(nil), d.kodlar...) }
+
+// Tasinanlar kaldırılıp işi başka bir koda taşınmış kodları artan sırayla verir. Adları
+// kabul edilmez; Ad ve Girdisi yine çalışır (hata mesajları için).
+func (d *Dil) Tasinanlar() []Kod { return append([]Kod(nil), d.tasinan...) }
+
+// TasinanBul ad, verilen ad alanında taşınmış bir kodun adı, eski adı ya da bunların
+// ASCII biçimiyse o kodu verir (yeni kod Girdisi(k).Tasindi'dir).
+func (d *Dil) TasinanBul(al Alan, ad string) (Kod, bool) {
+	if al >= alanSayisi {
+		return Yok, false
+	}
+	k, ok := d.tasinanAd[al][ad]
+	return k, ok
+}
 
 // Girdisi kodun dil dosyasındaki satırını verir.
 func (d *Dil) Girdisi(k Kod) (Girdi, bool) {
@@ -297,6 +364,18 @@ func Ad(k Kod) string                   { return etkin.Ad(k) }
 func Yazimlar(k Kod) []string           { return etkin.Yazimlar(k) }
 func Bul(al Alan, y string) (Kod, bool) { return etkin.Bul(al, y) }
 func Kodlar() []Kod                     { return etkin.Kodlar() }
+func Tasinanlar() []Kod                 { return etkin.Tasinanlar() }
+func TasinanBul(al Alan, ad string) (Kod, bool) {
+	return etkin.TasinanBul(al, ad)
+}
+
+// Tasindi k kaldırılıp işi başka bir koda (başka bir biçime: fonksiyondan metoda ya da
+// metottan fonksiyona) taşındıysa yeni kodu verir. Bilgi dilden bağımsızdır (tanim.json,
+// "taşındı"); üretilen tasinanlar tablosundan okunur.
+func Tasindi(k Kod) (Kod, bool) {
+	y, ok := tasinanlar[k]
+	return y, ok
+}
 func AsilAdAlanda(al Alan, ad string) (string, bool) {
 	return etkin.AsilAdAlanda(al, ad)
 }

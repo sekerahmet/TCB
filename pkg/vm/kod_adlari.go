@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"tr_dili/pkg/kod"
@@ -15,6 +16,25 @@ import (
 // sözlükte yoksa bu bir geliştirici hatasıdır ve kayıt sırasında panikler.
 func (v *VM) RegisterBuiltinKod(kd kod.Kod, fn BuiltinFunc) *BuiltinVal {
 	return v.YerlesikTanimla(kd, &BuiltinVal{Name: kod.Ad(kd), Fn: fn})
+}
+
+// AdlisizKaydet adlı argüman almayan bir yerleşiği kaydeder: adlı argümanla çağrı
+// gövdeye girilmeden reddedilir (bkz. BuiltinVal.AdliAlmaz).
+func (v *VM) AdlisizKaydet(kd kod.Kod, fn BuiltinFunc) *BuiltinVal {
+	b := v.RegisterBuiltinKod(kd, fn)
+	b.AdliAlmaz = true
+	return b
+}
+
+// AdliAlmazHatasi adlı argüman almayan bir yerleşiğe ya da metoda adlı argüman verildiğini
+// bildirir; biçim, adlı argüman alan yerleşiklerin bilinmeyen ad hatasıyla aynıdır.
+func AdliAlmazHatasi(ad string, named map[string]Value) error {
+	adlar := make([]string, 0, len(named))
+	for a := range named {
+		adlar = append(adlar, a)
+	}
+	slices.Sort(adlar)
+	return fmt.Errorf("%s() '%s' adında bir parametre almaz (adlı argüman almaz)", ad, adlar[0])
 }
 
 // YerlesikTanimla hazır bir yerleşik değerini (adı kodun adı olmalı) kodun kabul edilen

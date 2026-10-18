@@ -48,7 +48,7 @@ var iyilestiriciUyeleri = kod.Adlar(uyeAdim, uyeSifirla)
 func (o *Iyilestirici) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 	switch kd {
 	case uyeAdim:
-		return &vm.BuiltinVal{Name: kod.Ad(uyeAdim), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+		return &vm.BuiltinVal{Name: kod.Ad(uyeAdim), AdliAlmaz: true, Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 0 {
 				return nil, fmt.Errorf("adım() argüman almaz")
 			}
@@ -58,7 +58,7 @@ func (o *Iyilestirici) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 			return vm.NULL, nil
 		}}, nil
 	case uyeSifirla:
-		return &vm.BuiltinVal{Name: kod.Ad(uyeSifirla), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+		return &vm.BuiltinVal{Name: kod.Ad(uyeSifirla), AdliAlmaz: true, Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 0 {
 				return nil, fmt.Errorf("sıfırla() argüman almaz")
 			}
