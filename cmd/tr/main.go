@@ -16,7 +16,7 @@ import (
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
-	_ "tr_dili/internal/motor"
+	"tr_dili/internal/motor"
 )
 
 const VERSION = "1.0.0"
@@ -96,7 +96,10 @@ func main() {
 		gosterKomutu(args[1:])
 	case "dap":
 		// Düzenleyicinin hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
-		if err := ayikla.ServeDAP(os.Stdin, os.Stdout); err != nil {
+		// Oturum bitince motorların açık kaynakları kapanır, geçici klasörler silinir.
+		err := ayikla.ServeDAP(os.Stdin, os.Stdout)
+		motor.Kapat()
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "❌ Hata ayıklama sunucusu: %v\n", err)
 			os.Exit(1)
 		}
@@ -207,6 +210,7 @@ func checkFile(path string) {
 }
 
 func startREPL() {
+	defer motor.Kapat() // açık dosyalar kapanır, geçici klasörler silinir
 	fmt.Printf("🇹🇷 TR Programlama ve Yapay Zeka Dili (v%s) — Etkileşimli Kabuk\n", VERSION)
 	fmt.Println("Çıkmak için 'çıkış', hata ayıklayıcıyı açmak için '/h' yazın.")
 	machine := yurut.New()

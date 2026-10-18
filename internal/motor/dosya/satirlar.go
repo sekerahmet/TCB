@@ -28,16 +28,17 @@ var satirSiniri = 64 << 20
 // bırakılmadan alınır, kilit yalnızca diskten okunurken bırakılır.
 const okumaTamponu = 64 << 10
 
-// SatirOkuyucu dosyayı akışla satır satır okur (yurut.Akis). Dosya sonuna gelince ya da program
-// bitince (TumunuKapat) kapanır; erken bırakılan okuyucunun dosyası çöp toplayıcı onu
-// topladığında kapanır.
+// SatirOkuyucu dosyayı akışla satır satır okur (yurut.Akis). Dosya sonuna gelince, kapat()
+// çağrılınca ya da program bitince (TumunuKapat) kapanır; erken bırakılan okuyucunun dosyası
+// çöp toplayıcı onu topladığında kapanır.
 type SatirOkuyucu struct {
-	yol   string // kullanıcının yazdığı
-	mu    sync.Mutex
-	r     io.ReadCloser
-	br    *bufio.Reader
-	sayac int
-	bitti bool
+	yol       string // kullanıcının yazdığı
+	mu        sync.Mutex
+	r         io.ReadCloser
+	br        *bufio.Reader
+	sayac     int
+	bitti     bool // dosya kapandı (sonuna gelindi, okuma hatası ya da kapat())
+	kapatildi bool // kullanıcı kapat() ile kapattı: sonraki satır istemek hatadır
 }
 
 var (
@@ -93,11 +94,22 @@ func acikDosyaHatasi(fn, ham, gercek string) error {
 	if ayniYol(acik, gercek) {
 		ne = "dosya"
 	}
-	return fmt.Errorf("%s: %q: %s bu programda bir %s ile okunuyor; önce dosyayı sonuna kadar okuyun", fn, ham, ne, SatirOkuyucuTipi)
+	return fmt.Errorf("%s: %q: %s bu programda bir %s ile okunuyor; önce okuyucuyu kapatın (x.%s()) ya da dosyayı sonuna kadar okuyun",
+		fn, ham, ne, SatirOkuyucuTipi, kod.Ad(kod.Y012))
 }
 
-// TumunuKapat açık kalmış satır okuyucularının dosyalarını kapatır (program bitince).
+// TumunuKapat açık kalmış satır okuyucularının dosyalarını kapatır, ardından geçici_klasör()
+// ile oluşturulan klasörleri siler (program bitince); silinemeyen klasörler standart hataya
+// uyarı olarak yazılır.
 func TumunuKapat() {
+	okuyuculariKapat()
+	for _, err := range geciciKlasorleriSil() {
+		fmt.Fprintf(os.Stderr, "Uyarı: %v\n", err)
+	}
+}
+
+// okuyuculariKapat açık kalmış satır okuyucularının dosyalarını kapatır.
+func okuyuculariKapat() {
 	acikOkuyucular.Lock()
 	kapatilacak := make([]io.Closer, 0, len(acikOkuyucular.m))
 	for c := range acikOkuyucular.m {
@@ -142,13 +154,19 @@ func (o *SatirOkuyucu) Inspect() string {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	durum := fmt.Sprintf("%d satır okundu", o.sayac)
-	if o.bitti {
+	switch {
+	case o.kapatildi:
+		durum += ", kapatıldı"
+	case o.bitti:
 		durum += ", bitti"
 	}
 	return fmt.Sprintf("%s(%s, %s)", SatirOkuyucuTipi, o.yol, durum)
 }
 
 func (o *SatirOkuyucu) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
+	if kd == kod.Y012 {
+		return o.kapatMetodu(), nil
+	}
 	if kd == kod.Y602 {
 		b := &yurut.BuiltinVal{Name: kod.Ad(kod.Y602), Fn: func(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 			if len(args) != 0 {
@@ -163,7 +181,35 @@ func (o *SatirOkuyucu) GetProperty(kd kod.Kod, prop string) (yurut.Value, error)
 		b.AdliAlmaz = true
 		return b, nil
 	}
-	return nil, baglama.UyeHatasi(string(SatirOkuyucuTipi), prop, kod.Adlar(kod.Y602))
+	return nil, baglama.UyeHatasi(string(SatirOkuyucuTipi), prop, kod.Adlar(kod.Y602, kod.Y012))
+}
+
+// kapatMetodu x.kapat() metodudur: dosyayı bırakır; bu çağrı kapattıysa doğru, zaten kapalıysa
+// yanlış verir. Kapatma (dosya sistemi çağrısı) yorumlayıcı kilidi bırakılarak yapılır; başka
+// bir görev o sırada diskten okuyorsa okuması bitince kapanır.
+func (o *SatirOkuyucu) kapatMetodu() *yurut.BuiltinVal {
+	b := &yurut.BuiltinVal{Name: kod.Ad(kod.Y012), Fn: func(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
+		if len(args) != 0 {
+			return nil, fmt.Errorf("%s() parametre almaz, %d verildi", kod.Ad(kod.Y012), len(args))
+		}
+		var kapatti bool
+		m.Blocking(func() {
+			o.mu.Lock()
+			defer o.mu.Unlock()
+			kapatti = !o.bitti
+			o.kapatildi = true
+			o.kapat()
+		})
+		return yurut.BoolToVal(kapatti), nil
+	}}
+	b.AdliAlmaz = true
+	return b
+}
+
+// kapatildiHatasi kapatılmış okuyucudan satır istenince verilen hatadır.
+func (o *SatirOkuyucu) kapatildiHatasi() error {
+	return fmt.Errorf("%s: %q okuyucusu %s() ile kapatıldı; yeniden okumak için %s(...) ile yeni bir okuyucu açın",
+		SatirOkuyucuTipi, o.yol, kod.Ad(kod.Y012), kod.Ad(kod.G112))
 }
 
 // Sonraki sıradaki satırı verir; dosya bitince devam=false. Satır tamponda hazırsa yorumlayıcı
@@ -171,7 +217,11 @@ func (o *SatirOkuyucu) GetProperty(kd kod.Kod, prop string) (yurut.Value, error)
 func (o *SatirOkuyucu) Sonraki(m *yurut.VM) (yurut.Value, bool, error) {
 	if o.mu.TryLock() {
 		if o.bitti {
+			kapatildi := o.kapatildi
 			o.mu.Unlock()
+			if kapatildi {
+				return nil, false, o.kapatildiHatasi()
+			}
 			return nil, false, nil
 		}
 		satir, ok := o.tampondan()
@@ -181,13 +231,18 @@ func (o *SatirOkuyucu) Sonraki(m *yurut.VM) (yurut.Value, bool, error) {
 		}
 	}
 	var satir string
-	var son bool
+	var son, kapatildi bool
 	var err error
 	m.Blocking(func() {
 		o.mu.Lock()
 		defer o.mu.Unlock()
-		satir, son, err = o.oku()
+		if kapatildi = o.kapatildi; !kapatildi {
+			satir, son, err = o.oku()
+		}
 	})
+	if kapatildi {
+		return nil, false, o.kapatildiHatasi()
+	}
 	if err != nil {
 		return nil, false, turkce.DosyaHatasi(yurut.Cagri(kod.G112), o.yol, "okunamadı", err)
 	}

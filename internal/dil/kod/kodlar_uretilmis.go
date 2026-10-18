@@ -75,6 +75,7 @@ const (
 	G123 Kod = G + 123 // sil
 	G124 Kod = G + 124 // kopyala
 	G125 Kod = G + 125 // taşı
+	G126 Kod = G + 126 // geçici_klasör
 	G201 Kod = G + 201 // tip
 	G210 Kod = G + 210 // tam
 	G211 Kod = G + 211 // ondalık
@@ -181,6 +182,7 @@ const (
 	Y004 Kod = Y + 4   // ekle
 	Y010 Kod = Y + 10  // güncelle
 	Y011 Kod = Y + 11  // durdur
+	Y012 Kod = Y + 12  // kapat
 	Y100 Kod = Y + 100 // büyük_harf
 	Y101 Kod = Y + 101 // küçük_harf
 	Y102 Kod = Y + 102 // kırp

@@ -39,6 +39,3 @@ Desktop.ini
 
 # Claude oturum kopyaları (git worktree)
 .claude/
-
-# Dil tanımı testlerinin geçici klasörleri (testler kendileri siler; yarıda kalırsa)
-testler/gecici_*/

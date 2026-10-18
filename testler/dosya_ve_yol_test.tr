@@ -1,11 +1,8 @@
 // docs/dil/18_dosya_ve_yol.md §18 — Dosya ve yol
-// Dosya yazan testler bu dosyanın klasöründeki geçici bir klasörde çalışır
-// (testler/gecici_dosya_ve_yol/, .gitignore'da) ve bitince onu siler.
+// Dosya yazan her test kendi geçici klasöründe çalışır (geçici_klasör(), 18.14); klasörler
+// program bitince içindekilerle silinir, depoda ya da geçici klasörde bir şey kalmaz.
 // Bağlantılı (sembolik bağlantı, Windows dizin bağlantısı) durumlar TR'den kurulamadığı için
 // internal/motor/dosya Go testlerinde sınanır.
-
-// TABAN bu dosyanın klasöründeki geçici klasördür (veri/ klasörü programın yanındadır).
-sabit TABAN = yol(yol("veri").mutlak.üst_klasör, "gecici_dosya_ve_yol")
 
 // hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
 fonksiyon hata_metni(f) {
@@ -15,21 +12,6 @@ fonksiyon hata_metni(f) {
         sonuç h
     }
     sonuç ""
-}
-
-// geçici: testin kendi boş klasörünü kurar (önceki bir koşudan kalmışsa siler).
-fonksiyon geçici(ad) {
-    değişken k = yol(TABAN, ad)
-    eğer k.var_mı {
-        sil(k, içindekilerle: doğru)
-    }
-    sonuç klasör_oluştur(k)
-}
-
-fonksiyon temizle() {
-    eğer TABAN.var_mı {
-        sil(TABAN, içindekilerle: doğru)
-    }
 }
 
 test "18.1 yol parçaları birleştirip temizler; mutlak ikinci parça ve boş parça hatadır" {
@@ -65,8 +47,7 @@ test "18.2 dosya_adı, uzantı, uzantısız_ad ve üst_klasör yolun yazımına 
 }
 
 test "18.3 diske bakan özellikler yolu tek kuralla çözer" {
-    değişken k = geçici("ozellik")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     dosya_yaz(yol(k, "a.txt"), "merhaba")
     doğrula(yol(k, "a.txt").var_mı)
     doğrula(yol(k, "a.txt").dosya_mı)
@@ -84,8 +65,7 @@ test "18.3 diske bakan özellikler yolu tek kuralla çözer" {
 }
 
 test "18.4 yol alan yerleşikler Metin ya da Yol alır" {
-    değişken k = geçici("kabul")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     dosya_yaz(yol(k, "t.csv"), "a,b\n1,2")
     eşit_mi("a,b\n1,2", dosya_oku(yol(k, "t.csv")))
     eşit_mi([["a", "b"], [1, 2]], csv_oku(yol(k, "t.csv")))
@@ -96,8 +76,7 @@ test "18.4 yol alan yerleşikler Metin ya da Yol alır" {
 }
 
 test "18.5 klasörü_listele kalıba uyan dosya ve klasörleri sıralı verir" {
-    değişken k = geçici("liste")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     klasör_oluştur(yol(k, "alt/derin"))
     klasör_oluştur(yol(k, ".gizli"))
     dosya_yaz(yol(k, "b.npy"), "1")
@@ -123,8 +102,7 @@ test "18.5 klasörü_listele kalıba uyan dosya ve klasörleri sıralı verir" {
 }
 
 test "18.6 klasör_oluştur üst klasörleriyle oluşturur; varsa sorun değildir" {
-    değişken k = geçici("olustur")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     değişken d = klasör_oluştur(yol(k, "a/b/c"))
     doğrula(d.klasör_mü)
     eşit_mi(Yol, tip(d))
@@ -135,8 +113,7 @@ test "18.6 klasör_oluştur üst klasörleriyle oluşturur; varsa sorun değildi
 }
 
 test "18.7 sil dosyayı ya da boş klasörü siler; dolu klasör içindekilerle ister" {
-    değişken k = geçici("sil")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     dosya_yaz(yol(k, "a.txt"), "x")
     eşit_mi(1, sil(yol(k, "a.txt")))
     doğrula(değil yol(k, "a.txt").var_mı)
@@ -153,9 +130,9 @@ test "18.7 sil dosyayı ya da boş klasörü siler; dolu klasör içindekilerle 
     değişken o = dosya_satırları(yol(k, "s.txt"))
     o.sonraki()
     m = hata_metni(() => sil(k, içindekilerle: doğru))
-    doğrula(m.içerir("SatırOkuyucu ile okunuyor"), m)
-    o.sonraki()
-    o.sonraki()
+    doğrula(m.içerir("SatırOkuyucu ile okunuyor; önce okuyucuyu kapatın (x.kapat())"), m)
+    o.kapat()
+    eşit_mi(1, sil(yol(k, "s.txt")))
 }
 
 test "18.8 sil kökü, çalışma ve program klasörünü ve onların üstlerini silmez" {
@@ -171,8 +148,7 @@ test "18.8 sil kökü, çalışma ve program klasörünü ve onların üstlerini
 }
 
 test "18.9 kopyala hedef klasörün içine kopyalar; üzerine yazmak açık onay ister" {
-    değişken k = geçici("kopyala")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     dosya_yaz(yol(k, "model.txt"), "bir")
     klasör_oluştur(yol(k, "yedek"))
     eşit_mi(yol(k, "yedek/model.txt"), kopyala(yol(k, "model.txt"), yol(k, "yedek")))
@@ -198,8 +174,7 @@ test "18.9 kopyala hedef klasörün içine kopyalar; üzerine yazmak açık onay
 }
 
 test "18.10 taşı yeniden adlandırır; kurallar kopyala ile aynıdır" {
-    değişken k = geçici("tasi")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     dosya_yaz(yol(k, "a.txt"), "x")
     eşit_mi(yol(k, "b.txt"), taşı(yol(k, "a.txt"), yol(k, "b.txt")))
     doğrula(değil yol(k, "a.txt").var_mı)
@@ -217,8 +192,7 @@ test "18.10 taşı yeniden adlandırır; kurallar kopyala ile aynıdır" {
 }
 
 test "18.11 dosya_satırları dosyayı akışla satır satır okur" {
-    değişken k = geçici("satir")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     dosya_yaz(yol(k, "a.txt"), "bir\r\niki\n\nson")
     eşit_mi(["bir", "iki", "", "son"], [s döngü s içinde dosya_satırları(yol(k, "a.txt"))])
     // Baştaki BOM atılır (bom_ornegi.tr BOM ile başlar).
@@ -236,8 +210,7 @@ test "18.11 dosya_satırları dosyayı akışla satır satır okur" {
 }
 
 test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılır" {
-    değişken k = geçici("gz")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     dosya_yaz(yol(k, "t.csv.gz"), "a,b\n1,2")
     eşit_mi("a,b\n1,2", dosya_oku(yol(k, "t.csv.gz")))
     eşit_mi([["a", "b"], [1, 2]], csv_oku(yol(k, "t.csv.gz")))
@@ -251,12 +224,44 @@ test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılır" {
 }
 
 test "18.13 dosya_yaz atomik yazar; geride geçici dosya kalmaz" {
-    değişken k = geçici("atomik")
-    ertele { temizle() }
+    değişken k = geçici_klasör()
     dosya_yaz(yol(k, "a.txt"), "eski")
     dosya_yaz(yol(k, "a.txt"), "yeni")
     eşit_mi("yeni", dosya_oku(yol(k, "a.txt")))
     eşit_mi([], klasörü_listele(k, ".*"))
     değişken m = hata_metni(() => dosya_yaz(k, "x"))
     doğrula(m.içerir("bu bir klasör"), m)
+}
+
+test "18.14 geçici_klasör yeni, boş bir klasör verir; program bitince silinir" {
+    değişken k = geçici_klasör()
+    eşit_mi(Yol, tip(k))
+    doğrula(k.klasör_mü)
+    eşit_mi(k, k.mutlak)
+    eşit_mi([], klasörü_listele(k, "**"))
+    değişken başka = geçici_klasör()
+    doğrula(k != başka)
+    dosya_yaz(yol(k, "a.txt"), "x")
+    doğrula(değil yol(başka, "a.txt").var_mı)
+    doğrula(hata_metni(() => geçici_klasör(1)).içerir("geçici_klasör() 0 argüman bekler, 1 verildi"))
+}
+
+test "18.15 SatırOkuyucu.kapat dosyayı bırakır; kapatılmış okuyucu satır vermez" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "s.txt"), "1\n2\n3")
+    değişken o = dosya_satırları(yol(k, "s.txt"))
+    eşit_mi("1", o.sonraki())
+    eşit_mi(doğru, o.kapat())
+    eşit_mi(yanlış, o.kapat())
+    // Dosya artık bu programda açık değildir: Windows'ta da silinir.
+    eşit_mi(1, sil(yol(k, "s.txt")))
+    değişken m = hata_metni(() => o.sonraki())
+    doğrula(m.içerir("okuyucusu kapat() ile kapatıldı; yeniden okumak için dosya_satırları(...) ile yeni bir okuyucu açın"), m)
+    m = hata_metni(() => [s döngü s içinde o])
+    doğrula(m.içerir("kapat() ile kapatıldı"), m)
+    // Sonuna kadar okunan okuyucunun dosyası zaten kapalıdır.
+    dosya_yaz(yol(k, "t.txt"), "a")
+    değişken t = dosya_satırları(yol(k, "t.txt"))
+    eşit_mi(["a"], [s döngü s içinde t])
+    eşit_mi(yanlış, t.kapat())
 }

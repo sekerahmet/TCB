@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 221 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 24 tip, 75 fonksiyon, 34 metot, 18 özellik, 36 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 223 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 24 tip, 76 fonksiyon, 35 metot, 18 özellik, 36 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -612,13 +612,13 @@ değişken g = günlük("kayit/a.jsonl"); yazdır(tip(g) == Günlük)
 
 #### A257 `SatırOkuyucu`
 
-dosya_satırları(...) ile açılan, dosyayı akışla satır satır okuyan okuyucunun tipidir; döngü ile gezilir ya da .sonraki() ile sıradaki satır alınır, dosya bitince yok verir.
+dosya_satırları(...) ile açılan, dosyayı akışla satır satır okuyan okuyucunun tipidir; döngü ile gezilir ya da .sonraki() ile sıradaki satır alınır, dosya bitince yok verir; .kapat() dosyayı sonuna kadar okumadan bırakır.
 
 ```tr
 dosya_yaz("okuyucu.txt", "a\nb"); değişken o = dosya_satırları("okuyucu.txt"); yazdır(tip(o) == SatırOkuyucu, o.sonraki(), o.sonraki(), o.sonraki())
 ```
 
-Üyeleri: Y602 `sonraki` · İlişkili: G112 `dosya_satırları`, Y602 `sonraki`
+Üyeleri: Y012 `kapat`, Y602 `sonraki` · İlişkili: G112 `dosya_satırları`, Y602 `sonraki`, Y012 `kapat`
 
 ## G — Genel yerleşikler
 
@@ -755,6 +755,18 @@ dosya_yaz("taşınacak.txt", "x"); yazdır(taşı("taşınacak.txt", "taşındı
 ```
 
 İlişkili: G124 `kopyala`, G123 `sil`
+
+#### G126 `geçici_klasör`
+
+    geçici_klasör() → Yol
+
+İşletim sisteminin geçici klasörünün altında bu program için yeni, boş ve yalnızca kullanıcıya açık bir klasör oluşturur ve Yol olarak döndürür; her çağrı ayrı bir klasör verir. Program bitince klasör içindekilerle birlikte silinir (sil'in korumaları uygulanır, bağlantıların gösterdiği yere dokunulmaz).
+
+```tr
+değişken k = geçici_klasör(); dosya_yaz(yol(k, "not.txt"), "x"); yazdır(yol(k, "not.txt").var_mı, klasörü_listele(k).uzunluk)
+```
+
+İlişkili: G122 `klasör_oluştur`, G123 `sil`
 
 ### Değer, tip ve dönüşüm (G2xx)
 
@@ -2083,6 +2095,18 @@ değişken ç = ilerleme(); ç.güncelle(); yazdır(ç.durdur())
 ```
 
 İlişkili: Y010 `güncelle`
+
+#### Y012 `kapat`
+
+    SatırOkuyucu.kapat() → Mantık
+
+Okuyucunun dosyasını bırakır (sonuna kadar okunmamış dosya böylece silinebilir ve taşınabilir); kapatılmış okuyucudan satır istemek hatadır. Dosyayı bu çağrı kapattıysa doğru, zaten kapalıysa (sonuna kadar okunduysa ya da önceden kapatıldıysa) yanlış verir; iki kez kapatmak hata değildir.
+
+```tr
+dosya_yaz("kapat.txt", "a\nb"); değişken o = dosya_satırları("kapat.txt"); yazdır(o.sonraki(), o.kapat(), o.kapat(), sil("kapat.txt"))
+```
+
+İlişkili: Y602 `sonraki`, G112 `dosya_satırları`
 
 ### Metin (Y1xx)
 

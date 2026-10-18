@@ -1,7 +1,7 @@
 // Package dosya, standart kitaplığın dosya ve yol işlerini TR diline bağlar: Yol tipi ve
 // yol(...) kurucusu, yola soru soran özellikler (dosya_adı, uzantı, var_mı, bayt ...),
-// klasörü_listele, klasör_oluştur, sil, kopyala, taşı ve dosyayı akışla satır satır okuyan
-// dosya_satırları.
+// klasörü_listele, klasör_oluştur, sil, kopyala, taşı, program bitince silinen geçici_klasör ve
+// dosyayı akışla satır satır okuyan dosya_satırları.
 //
 // Güvenli varsayılanlar: var olan bir hedefin üzerine yazmak (üzerine_yaz:) ve dolu bir
 // klasörü silmek (içindekilerle:) açık onay ister; sil kökü, ev klasörünü, çalışma ve
@@ -41,6 +41,7 @@ func Kaydet(v *yurut.VM) {
 	v.RegisterBuiltinKod(kod.G123, guvenli(kod.G123, silYerlesik))
 	v.RegisterBuiltinKod(kod.G124, guvenli(kod.G124, kopyalaYerlesik))
 	v.RegisterBuiltinKod(kod.G125, guvenli(kod.G125, tasiYerlesik))
+	v.AdlisizKaydet(kod.G126, guvenli(kod.G126, geciciKlasorYerlesik))
 }
 
 // guvenli yerleşiği Go paniğine karşı korur (panik dene/yakala ile yakalanan bir hataya döner).

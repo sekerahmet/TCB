@@ -92,3 +92,33 @@ func TestDosyaSatirlariEszamanli(t *testing.T) {
 		t.Fatalf("eşzamanlı okuma: %s", got)
 	}
 }
+
+// x.kapat() dosyayı sonuna kadar okumadan bırakır: dosya silinebilir (Windows'ta açık dosya
+// silinemezdi), kapatılmış okuyucudan satır istemek açık bir hatadır, iki kez kapatmak değildir.
+func TestSatirOkuyucuKapat(t *testing.T) {
+	k := geciciCalisma(t)
+	yaz(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
+	got := tamam(t, `değişken o = dosya_satırları("s.txt")
+		değişken ilk = o.sonraki()
+		değişken birinci = o.kapat()
+		değişken ikinci = o.kapat()
+		[ilk, birinci, ikinci, metin(o), sil("s.txt"), yol("s.txt").var_mı]`)
+	if got != `["1", doğru, yanlış, "SatırOkuyucu(s.txt, 1 satır okundu, kapatıldı)", 1, yanlış]` {
+		t.Fatal(got)
+	}
+	yaz(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
+	hataIcerir(t, `değişken o = dosya_satırları("s.txt"); o.kapat(); o.sonraki()`,
+		`SatırOkuyucu: "s.txt" okuyucusu kapat() ile kapatıldı; yeniden okumak için dosya_satırları(...) ile yeni bir okuyucu açın`)
+	hataIcerir(t, `değişken o = dosya_satırları("s.txt"); o.kapat(); [s döngü s içinde o]`, "kapat() ile kapatıldı")
+	hataIcerir(t, `dosya_satırları("s.txt").kapat(1)`, "kapat() parametre almaz")
+	// Sonuna kadar okunan okuyucunun dosyası zaten kapalıdır: kapat() yanlış verir; kapat()
+	// çağrıldıktan sonra satır istemek yine hatadır.
+	if got := tamam(t, `değişken o = dosya_satırları("s.txt")
+		değişken l = [s döngü s içinde o]
+		[l, o.sonraki(), o.kapat()]`); got != `[["1", "2", "3"], yok, yanlış]` {
+		t.Fatal(got)
+	}
+	hataIcerir(t, `değişken o = dosya_satırları("s.txt"); [s döngü s içinde o]; o.kapat(); o.sonraki()`, "kapat() ile kapatıldı")
+	// Açık okuyucu varken sil yol gösterir: kapat() önerilir.
+	hataIcerir(t, `değişken o = dosya_satırları("s.txt"); o.sonraki(); sil("s.txt")`, "önce okuyucuyu kapatın (x.kapat())")
+}

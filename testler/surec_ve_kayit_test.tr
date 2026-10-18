@@ -13,9 +13,8 @@ fonksiyon hata_metni(f) {
     sonuç ""
 }
 
-// Günlük dosyaları depo dışında, geçici klasörde; her çalıştırmada yeni adla.
-değişken GEÇİCİ = ortam_değişkeni("TEMP") ?? ortam_değişkeni("TMPDIR") ?? "/tmp"
-değişken KOŞU = "{GEÇİCİ}/tr_surec_ve_kayit_{zaman_ms()}"
+// Günlük dosyaları depo dışında, bu koşunun geçici klasöründe (18.14); program bitince silinir.
+değişken KOŞU = geçici_klasör()
 
 // satırlar: günlük dosyasının JSON satırlarını sözlük listesi olarak verir.
 fonksiyon satırlar(dosya_yolu) {

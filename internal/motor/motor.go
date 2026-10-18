@@ -39,9 +39,10 @@ func init() {
 }
 
 // Kapat motorların program boyunca açık kalmış kaynaklarını (veri kümesi okuyucuları,
-// önden yükleme gorutinleri, önbellekler, satır okuyucularının ve günlüklerin dosyaları) kapatır
-// ve bitmemiş ilerleme çubuklarını bitirir. Program bitince çağrılır; takılan bir okumada en
-// çok birkaç saniye bekler. Birden çok kez çağrılabilir.
+// önden yükleme gorutinleri, önbellekler, satır okuyucularının ve günlüklerin dosyaları) kapatır,
+// bitmemiş ilerleme çubuklarını bitirir ve geçici_klasör() ile oluşturulan klasörleri siler
+// (dosyalar kapandıktan sonra). Program bitince çağrılır; takılan bir okumada en çok birkaç
+// saniye bekler. Birden çok kez çağrılabilir.
 func Kapat() {
 	gunluk.TumunuKapat()
 	veri.TumunuKapat(3 * time.Second)
