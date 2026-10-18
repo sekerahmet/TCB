@@ -68,7 +68,7 @@ func TestGercekVeriDuman(t *testing.T) {
 	t.Logf("%s ilk 16 token: %v (tür %s)", ps[0].Ad, ilk[:16], p.Tur())
 
 	// Rastgele örnekleyiciden tek küçük toplu iş (2 × 33 token).
-	o, err := egitim.Ornekleyici(OrnekleyiciSecenekleri{B: 2, T: 32, Tohum: 1})
+	o, err := egitim.Ornekleyici(OrnekleyiciSecenekleri{B: 2, T: 32, Tohum: 1, GrupBoyu: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

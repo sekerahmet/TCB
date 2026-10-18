@@ -191,14 +191,15 @@ func TestOnbellekliOrnekleyiciAyniVeri(t *testing.T) {
 	taban := runtime.NumGoroutine()
 	d := kodluKume(t, 3000, 2000, 2500, 1800, 2200)
 	k, _ := KumeAc(d, KumeSecenekleri{})
-	sec := OrnekleyiciSecenekleri{B: 8, T: 64, Tohum: 5}
+	sec := OrnekleyiciSecenekleri{B: 8, T: 64, Tohum: 5, GrupBoyu: 2, IleriBak: 1}
 	o, _ := k.Ornekleyici(sec)
 	beklenen := toplulariAl(t, o, 60)
 	_ = o.Kapat()
 
 	st, _ := os.Stat(k.Parcalar()[0].Yol)
-	// Varsayılan ileri bakışla (1 + IleriBak) × en büyük parça gerekli.
-	ob, err := OnbellekAc(OnbellekSecenekleri{Dizin: t.TempDir(), Kota: 4 * st.Size()})
+	// (GrupBoyu + IleriBak) × en büyük parça gerekli; 5 parça sığmaz,
+	// eski gruplar silinmeli.
+	ob, err := OnbellekAc(OnbellekSecenekleri{Dizin: t.TempDir(), Kota: 3 * st.Size()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +221,7 @@ func TestOnbellekliOrnekleyiciAyniVeri(t *testing.T) {
 		t.Fatal("önbellekli örnekleyici farklı veri verdi")
 	}
 	ist := ob.Istatistik()
-	if ist.Kullanim > 4*st.Size() || ist.KopyalananBayt == 0 || ist.Atlanan != 0 {
+	if ist.Kullanim > 3*st.Size() || ist.KopyalananBayt == 0 || ist.Atlanan != 0 || ist.Silinen == 0 {
 		t.Fatalf("önbellek kullanılmadı ya da kota aşıldı: %+v", ist)
 	}
 	gorutinBekle(t, taban)
@@ -236,12 +237,21 @@ func TestOnbellekKotaDenetimiVeSessizDonusYok(t *testing.T) {
 	}
 	defer ob.Kapat()
 	k, _ := KumeAc(d, KumeSecenekleri{Onbellek: ob})
-	// Varsayılan ileri bakış (3) için 4 × en büyük parça gerekir → kurulmaz.
-	if _, err := k.Ornekleyici(OrnekleyiciSecenekleri{B: 2, T: 8}); !errors.Is(err, ErrOnbellekYetersiz) {
-		t.Fatalf("yetersiz kota için hata bekleniyordu: %v", err)
+	// Varsayılanlarla (grup 4 → 3 parça, ileri bakış 3) tüm parçalar
+	// gerekir → kurulmaz; grup 2 + ileri bakış 0 da 2'yi aşmaz ama grup 2 +
+	// ileri bakış 1 aşar.
+	for _, s := range []OrnekleyiciSecenekleri{{B: 2, T: 8}, {B: 2, T: 8, GrupBoyu: 2, IleriBak: 1}} {
+		if _, err := k.Ornekleyici(s); !errors.Is(err, ErrOnbellekYetersiz) {
+			t.Fatalf("yetersiz kota için hata bekleniyordu: %+v %v", s, err)
+		}
 	}
-	// İleri bakış 1 ile 2 parça yeter.
-	o, err := k.Ornekleyici(OrnekleyiciSecenekleri{B: 2, T: 8, IleriBak: 1})
+	if o, err := k.Ornekleyici(OrnekleyiciSecenekleri{B: 2, T: 8, GrupBoyu: 2, IleriBak: -1}); err != nil {
+		t.Fatal(err)
+	} else {
+		_ = o.Kapat()
+	}
+	// Grup 1 + ileri bakış 1 ile 2 parça yeter.
+	o, err := k.Ornekleyici(OrnekleyiciSecenekleri{B: 2, T: 8, GrupBoyu: 1, IleriBak: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

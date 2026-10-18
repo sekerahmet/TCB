@@ -179,8 +179,29 @@ func TestOrnekleyiciPencereSinirVeKaydirma(t *testing.T) {
 	}
 	// Tek bir dönemi ayrıca denetle: tam bir dönemde her parçadaki
 	// pencereler üst üste binmemeli ve sayıları floor(n/(T+1)) olmalı.
-	o2, _ := k.Ornekleyici(OrnekleyiciSecenekleri{B: 1, T: T, Tohum: 9})
+	// Her grup boyu için (1 = parça parça, 10 = tüm parçalar tek grup).
+	for _, grup := range []int{1, 2, 4, 10} {
+		kapsamDenetle(t, k, uzunluklar, T, grup)
+	}
+	// Dönemler arasında parça sırası değişmeli (6 parçada aynı kalma
+	// olasılığı tohuma bağlı ama bu tohumda değişir).
+	var siralar [][]int
+	for donem := 0; donem < 3; donem++ {
+		siralar = append(siralar, o.donemSirasi(donem, nil))
+	}
+	if reflect.DeepEqual(siralar[0], siralar[1]) && reflect.DeepEqual(siralar[1], siralar[2]) {
+		t.Fatal("parça sırası dönemler arasında karışmıyor")
+	}
+}
+
+func kapsamDenetle(t *testing.T, k *Kume, uzunluklar []int, T, grup int) {
+	t.Helper()
+	o2, err := k.Ornekleyici(OrnekleyiciSecenekleri{B: 1, T: T, Tohum: 9, GrupBoyu: grup})
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer o2.Kapat()
+	beklenen := int(o2.DonemPencereSayisi())
 	sayi := map[int]int{}
 	kapsam := map[int]map[int]bool{}
 	var bir TopluIs
@@ -205,17 +226,71 @@ func TestOrnekleyiciPencereSinirVeKaydirma(t *testing.T) {
 	}
 	for p, n := range uzunluklar {
 		if sayi[p] != n/(T+1) {
-			t.Fatalf("parça %d: %d pencere, beklenen %d", p, sayi[p], n/(T+1))
+			t.Fatalf("grup %d, parça %d: %d pencere, beklenen %d", grup, p, sayi[p], n/(T+1))
 		}
 	}
-	// Dönemler arasında parça sırası değişmeli (6 parçada aynı kalma
-	// olasılığı tohuma bağlı ama bu tohumda değişir).
-	var siralar [][]int
-	for donem := 0; donem < 3; donem++ {
-		siralar = append(siralar, o2.donemSirasi(donem, nil))
+}
+
+func TestOrnekleyiciGrupKarisimi(t *testing.T) {
+	parcaSizintiDenetle(t)
+	d := kodluKume(t, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000)
+	k, _ := KumeAc(d, KumeSecenekleri{})
+	// Toplu iş başına farklı parça sayısının ortalaması.
+	ortalama := func(grup int) float64 {
+		o, err := k.Ornekleyici(OrnekleyiciSecenekleri{B: 8, T: 15, Tohum: 21, GrupBoyu: grup})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer o.Kapat()
+		if want := (8 + grup - 1) / grup; o.GrupSayisi() != want {
+			t.Fatalf("grup sayısı %d, beklenen %d", o.GrupSayisi(), want)
+		}
+		var ti TopluIs
+		toplam, adim := 0, int(o.DonemPencereSayisi())/8
+		for i := 0; i < adim; i++ {
+			if err := o.Sonraki(&ti); err != nil {
+				t.Fatal(err)
+			}
+			farkli := map[int32]bool{}
+			for r := 0; r < ti.B; r++ {
+				farkli[ti.Satir(r)[0]/1_000_000] = true
+			}
+			toplam += len(farkli)
+		}
+		return float64(toplam) / float64(adim)
 	}
-	if reflect.DeepEqual(siralar[0], siralar[1]) && reflect.DeepEqual(siralar[1], siralar[2]) {
-		t.Fatal("parça sırası dönemler arasında karışmıyor")
+	tek, dort := ortalama(1), ortalama(4)
+	if tek > 1.1 {
+		t.Fatalf("grup 1'de toplu işler çoğunlukla tek parçadan gelmeli: %.2f", tek)
+	}
+	if dort < 3 {
+		t.Fatalf("grup 4'te satırlar birden çok parçadan gelmeli: ortalama %.2f farklı parça", dort)
+	}
+	// Tekrar üretilebilirlik ve durumdan sürdürme gruplarla da korunur.
+	sec := OrnekleyiciSecenekleri{B: 8, T: 15, Tohum: 21, GrupBoyu: 3}
+	o1, _ := k.Ornekleyici(sec)
+	defer o1.Kapat()
+	ilk := toplulariAl(t, o1, 300)
+	o2, _ := k.Ornekleyici(sec)
+	defer o2.Kapat()
+	if !reflect.DeepEqual(ilk, toplulariAl(t, o2, 300)) {
+		t.Fatal("gruplu örnekleme tekrar üretilemiyor")
+	}
+	var ti TopluIs
+	_ = o1.Sonraki(&ti)
+	durum := ti.Durum
+	sonra := toplulariAl(t, o1, 100)
+	sec.Baslangic = &durum
+	o3, err := k.Ornekleyici(sec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer o3.Kapat()
+	if !reflect.DeepEqual(sonra, toplulariAl(t, o3, 100)) {
+		t.Fatal("gruplu örneklemede durumdan sürdürme bozuk")
+	}
+	if _, err := k.Ornekleyici(OrnekleyiciSecenekleri{B: 1, T: 5, GrupBoyu: -1}); err == nil {
+		t.Fatal("negatif grup boyu kabul edildi")
 	}
 }
 
