@@ -32,16 +32,16 @@ import (
 // görev, çekirdeğe BackwardCtx ile bağlam olarak verilir.
 
 var (
-	adIleri    = baglama.KodAd(sozluk.T + 980)
-	adGeri     = baglama.KodAd(sozluk.T + 981)
-	adAdim     = baglama.KodAd(sozluk.T + 982)
-	adTolerans = baglama.KodAd(sozluk.T + 983)
+	adIleri    = baglama.KodAd(sozluk.T980)
+	adGeri     = baglama.KodAd(sozluk.T981)
+	adAdim     = baglama.KodAd(sozluk.T982)
+	adTolerans = baglama.KodAd(sozluk.T983)
 )
 
 // ozelTurevKaydet özel_türev ve türev_denetle yerleşiklerini kaydeder (bkz. Kaydet).
 func ozelTurevKaydet(v *vm.VM) {
-	sar(v, sozluk.T+310, yeniYerlesik(ozelTurev))
-	sar(v, sozluk.T+311, yeniYerlesik(turevDenetle))
+	sar(v, sozluk.T310, yeniYerlesik(ozelTurev))
+	sar(v, sozluk.T311, yeniYerlesik(turevDenetle))
 }
 
 const ozelTurevOrnek = "özel_türev(ileri: fonksiyon(x) { sonuç [x * x, [x]] }, geri: fonksiyon(saklananlar, g) { sonuç [g * 2 * saklananlar[0]] })"

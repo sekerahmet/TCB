@@ -45,17 +45,17 @@ func (a Ad) Kabul(yazim string) bool { return slices.Contains(a.yazimlar, yazim)
 // yabanciAdlar başka dillerden alışılmış parametre adlarının TR karşılıklarıdır. Bu adlar
 // KABUL EDİLMEZ; yalnızca hata mesajında doğru TR adı önerilir.
 var yabanciAdlar = map[string]sozluk.Kod{
-	"lr":            sozluk.T + 910, // öğrenme_oranı
-	"learning_rate": sozluk.T + 910,
-	"axis":          sozluk.T + 902, // eksen
-	"dim":           sozluk.T + 902,
-	"requires_grad": sozluk.T + 900, // türev_izle
-	"weight_decay":  sozluk.T + 911, // ağırlık_çürümesi
-	"eps":           sozluk.T + 905, // epsilon
-	"seed":          sozluk.T + 903, // tohum
-	"weight":        sozluk.T + 920, // ağırlık
-	"bias":          sozluk.T + 921, // sapma
-	"betas":         sozluk.T + 912, // beta1
+	"lr":            sozluk.T910, // öğrenme_oranı
+	"learning_rate": sozluk.T910,
+	"axis":          sozluk.T902, // eksen
+	"dim":           sozluk.T902,
+	"requires_grad": sozluk.T900, // türev_izle
+	"weight_decay":  sozluk.T911, // ağırlık_çürümesi
+	"eps":           sozluk.T905, // epsilon
+	"seed":          sozluk.T903, // tohum
+	"weight":        sozluk.T920, // ağırlık
+	"bias":          sozluk.T921, // sapma
+	"betas":         sozluk.T912, // beta1
 }
 
 // AdliDenetle verilen adlı argümanların bilinen adlardan olduğunu denetler; yazım

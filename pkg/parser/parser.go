@@ -15,11 +15,11 @@ import (
 // parametresi) yazımları ve 'kendi'nin adı sözlükten gelir (pkg/sozluk: A101, A100, A103,
 // A104, A051).
 var (
-	testYazimlari   = sozluk.Yazimlar(sozluk.A + 101)
-	olarakYazimlari = sozluk.Yazimlar(sozluk.A + 100)
-	kendiAdi        = sozluk.Ad(sozluk.A + 51)
-	hataAdi         = sozluk.Ad(sozluk.A + 103)
-	oAdi            = sozluk.Ad(sozluk.A + 104)
+	testYazimlari   = sozluk.Yazimlar(sozluk.A101)
+	olarakYazimlari = sozluk.Yazimlar(sozluk.A100)
+	kendiAdi        = sozluk.Ad(sozluk.A051)
+	hataAdi         = sozluk.Ad(sozluk.A103)
+	oAdi            = sozluk.Ad(sozluk.A104)
 )
 
 const (

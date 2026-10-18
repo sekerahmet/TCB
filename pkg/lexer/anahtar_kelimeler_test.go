@@ -38,5 +38,5 @@ func TestAnahtarKelimeHaritasiCakismayiYakalar(t *testing.T) {
 			t.Fatal("çakışan tablo için panik bekleniyordu")
 		}
 	}()
-	anahtarKelimeHaritasi([]AnahtarKelime{{sozluk.A + 1, TOKEN_EGER}, {sozluk.A + 2, TOKEN_EGER}})
+	anahtarKelimeHaritasi([]AnahtarKelime{{sozluk.A001, TOKEN_EGER}, {sozluk.A002, TOKEN_EGER}})
 }

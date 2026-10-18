@@ -593,17 +593,17 @@ func matCarpTur(a, b *ct.Tensor, karisik ct.DType) (*ct.Tensor, error) {
 
 // Tensör üyeleri (adları sözlükte, pkg/sozluk Y4xx).
 const (
-	uyeSekil           = sozluk.Y + 400
-	uyeCihaz           = sozluk.Y + 401
-	uyeTur             = sozluk.Y + 402
-	uyeGradyan         = sozluk.Y + 403
-	uyeDeger           = sozluk.Y + 404
-	uyeSekillendir     = sozluk.Y + 410
-	uyeDevrik          = sozluk.Y + 411
-	uyeEksenleriSirala = sozluk.Y + 412
-	uyeDilim           = sozluk.Y + 413
-	uyeCihaza          = sozluk.Y + 414
-	uyeTure            = sozluk.Y + 415
+	uyeSekil           = sozluk.Y400
+	uyeCihaz           = sozluk.Y401
+	uyeTur             = sozluk.Y402
+	uyeGradyan         = sozluk.Y403
+	uyeDeger           = sozluk.Y404
+	uyeSekillendir     = sozluk.Y410
+	uyeDevrik          = sozluk.Y411
+	uyeEksenleriSirala = sozluk.Y412
+	uyeDilim           = sozluk.Y413
+	uyeCihaza          = sozluk.Y414
+	uyeTure            = sozluk.Y415
 )
 
 // tensorUyeKodlari öneri listesinin sırasıdır.
@@ -617,7 +617,7 @@ func tensorUyesi(k sozluk.Kod) bool { return slices.Contains(tensorUyeKodlari, k
 // karşılığı olan üyeleridir (m.toplam → toplam(m)); hata mesajında yerleşik önerilir.
 // Matrisin öbür eski üyeleri (boyut, satır, T, liste ...) sözlükte tensör üyelerinin
 // "eski" adlarıdır.
-var matristenKalanYerlesikler = []sozluk.Kod{sozluk.G + 400, sozluk.G + 410} // toplam, ortalama
+var matristenKalanYerlesikler = []sozluk.Kod{sozluk.G400, sozluk.G410} // toplam, ortalama
 
 func (d *Deger) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 	t := d.t

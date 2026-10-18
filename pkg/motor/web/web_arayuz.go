@@ -26,19 +26,19 @@ import (
 
 // Adlı argümanlar; adları sözlüktedir (pkg/sozluk, W9xx).
 var (
-	adPort      = baglama.KodAd(sozluk.W + 900)
-	adArkaPlan  = baglama.KodAd(sozluk.W + 901)
-	adGenislik  = baglama.KodAd(sozluk.W + 910)
-	adYukseklik = baglama.KodAd(sozluk.W + 911)
-	adPencereAc = baglama.KodAd(sozluk.W + 912)
-	adAltBilgi  = baglama.KodAd(sozluk.W + 920)
-	adRenk      = baglama.KodAd(sozluk.W + 921)
-	adTip       = baglama.KodAd(sozluk.W + 922)
+	adPort      = baglama.KodAd(sozluk.W900)
+	adArkaPlan  = baglama.KodAd(sozluk.W901)
+	adGenislik  = baglama.KodAd(sozluk.W910)
+	adYukseklik = baglama.KodAd(sozluk.W911)
+	adPencereAc = baglama.KodAd(sozluk.W912)
+	adAltBilgi  = baglama.KodAd(sozluk.W920)
+	adRenk      = baglama.KodAd(sozluk.W921)
+	adTip       = baglama.KodAd(sozluk.W922)
 )
 
 var (
-	VAL_WEB_SERVER = vm.TipAdi(sozluk.A + 241) // WebSunucu
-	VAL_GUI_APP    = vm.TipAdi(sozluk.A + 242) // GörselArayüz
+	VAL_WEB_SERVER = vm.TipAdi(sozluk.A241) // WebSunucu
+	VAL_GUI_APP    = vm.TipAdi(sozluk.A242) // GörselArayüz
 )
 
 // ============================================================================
@@ -90,27 +90,27 @@ func (w *WebServerVal) IsTruthy() bool { return true }
 
 // Web sunucusu ve görsel arayüz üyeleri (adları sözlükte, pkg/sozluk Y8xx, Y9xx, Y00x).
 const (
-	uyeBaslat           = sozluk.Y + 6
-	uyeArkaPlandaBaslat = sozluk.Y + 7
-	uyeDurdur           = sozluk.Y + 8
-	uyeKaydet           = sozluk.Y + 5
+	uyeBaslat           = sozluk.Y006
+	uyeArkaPlandaBaslat = sozluk.Y007
+	uyeDurdur           = sozluk.Y008
+	uyeKaydet           = sozluk.Y005
 
-	uyeAdres        = sozluk.Y + 800
-	uyePort         = sozluk.Y + 801
-	uyeAl           = sozluk.Y + 802
-	uyeGonder       = sozluk.Y + 803
-	uyeRotaEkle     = sozluk.Y + 804
-	uyeStatikKlasor = sozluk.Y + 805
+	uyeAdres        = sozluk.Y800
+	uyePort         = sozluk.Y801
+	uyeAl           = sozluk.Y802
+	uyeGonder       = sozluk.Y803
+	uyeRotaEkle     = sozluk.Y804
+	uyeStatikKlasor = sozluk.Y805
 
-	uyeKartEkle   = sozluk.Y + 900
-	uyeBaslikEkle = sozluk.Y + 901
-	uyeMetinEkle  = sozluk.Y + 902
-	uyeTabloEkle  = sozluk.Y + 903
-	uyeGrafikEkle = sozluk.Y + 904
-	uyeFormEkle   = sozluk.Y + 905
-	uyeButonEkle  = sozluk.Y + 906
-	uyeHTMLKaydet = sozluk.Y + 907
-	uyeHTMLUret   = sozluk.Y + 908
+	uyeKartEkle   = sozluk.Y900
+	uyeBaslikEkle = sozluk.Y901
+	uyeMetinEkle  = sozluk.Y902
+	uyeTabloEkle  = sozluk.Y903
+	uyeGrafikEkle = sozluk.Y904
+	uyeFormEkle   = sozluk.Y905
+	uyeButonEkle  = sozluk.Y906
+	uyeHTMLKaydet = sozluk.Y907
+	uyeHTMLUret   = sozluk.Y908
 )
 
 func (w *WebServerVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
@@ -1096,7 +1096,7 @@ func Kaydet(v *vm.VM) {
 	istemciKaydet(v)
 
 	// 1. web_sunucu(port: 8080)
-	v.RegisterBuiltinKod(sozluk.W+110, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.W110, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		port, err := portAl("web_sunucu", args, named, 8080)
 		if err != nil {
 			return nil, err
@@ -1137,5 +1137,5 @@ func Kaydet(v *vm.VM) {
 			vmRef:   v,
 		}, nil
 	}
-	v.RegisterBuiltinKod(sozluk.W+300, createGUI)
+	v.RegisterBuiltinKod(sozluk.W300, createGUI)
 }

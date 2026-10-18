@@ -32,9 +32,9 @@ import (
 
 // Tip adları.
 var (
-	KumeTipi        = string(vm.TipAdi(sozluk.A + 231)) // VeriKümesi
-	OrnekleyiciTipi = string(vm.TipAdi(sozluk.A + 232)) // Örnekleyici
-	SiraliTipi      = string(vm.TipAdi(sozluk.A + 233)) // SıralıOkuyucu
+	KumeTipi        = string(vm.TipAdi(sozluk.A231)) // VeriKümesi
+	OrnekleyiciTipi = string(vm.TipAdi(sozluk.A232)) // Örnekleyici
+	SiraliTipi      = string(vm.TipAdi(sozluk.A233)) // SıralıOkuyucu
 )
 
 // onYuklemeDerinligi arka planda hazır tutulan toplu iş sayısıdır.
@@ -45,16 +45,16 @@ const enBuyukTamFloat32 = 1 << 24
 
 // Adlı argümanlar; adları sözlüktedir (pkg/sozluk).
 var (
-	adOnbellek = baglama.KodAd(sozluk.V + 900)
-	adKota     = baglama.KodAd(sozluk.V + 901)
-	adToplu    = baglama.KodAd(sozluk.V + 902)
-	adBaglam   = baglama.KodAd(sozluk.V + 903)
-	adTohum    = baglama.KodAd(sozluk.T + 903)
+	adOnbellek = baglama.KodAd(sozluk.V900)
+	adKota     = baglama.KodAd(sozluk.V901)
+	adToplu    = baglama.KodAd(sozluk.V902)
+	adBaglam   = baglama.KodAd(sozluk.V903)
+	adTohum    = baglama.KodAd(sozluk.T903)
 )
 
 // Kaydet veri yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *vm.VM) {
-	v.RegisterBuiltinKod(sozluk.V+100, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.V100, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		return baglama.Guvenli("veri_kümesi", func() (vm.Value, error) { return kumeAc(m, args, named) })
 	})
 }
@@ -110,9 +110,9 @@ func (k *Kume) TabloVerisi() ([]string, [][]string, error) {
 
 // Veri kümesi ve okuyucu üyeleri (adları sözlükte, pkg/sozluk Y60x).
 const (
-	uyeOrnekleyici = sozluk.Y + 600
-	uyeSirali      = sozluk.Y + 601
-	uyeSonraki     = sozluk.Y + 602
+	uyeOrnekleyici = sozluk.Y600
+	uyeSirali      = sozluk.Y601
+	uyeSonraki     = sozluk.Y602
 )
 
 var kumeUyeleri = sozluk.Adlar(uyeOrnekleyici, uyeSirali)

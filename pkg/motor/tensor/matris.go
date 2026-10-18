@@ -82,7 +82,7 @@ func tamArg(args []vm.Value, i int, imza string) (int64, error) {
 func matrisSekli(kod sozluk.Kod, args []vm.Value) ([]int, error) {
 	ad := sozluk.Ad(kod)
 	enAz := 2
-	if kod == sozluk.T+101 { // sıfırlar
+	if kod == sozluk.T101 { // sıfırlar
 		enAz = 1
 	}
 	imza := ad + "(satır, sütun)"

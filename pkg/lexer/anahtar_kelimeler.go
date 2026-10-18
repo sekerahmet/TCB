@@ -20,46 +20,46 @@ type AnahtarKelime struct {
 // anahtarKelimeler sözcük çözümleyicide ayrılmış bütün anahtar kelimelerdir.
 var anahtarKelimeler = []AnahtarKelime{
 	// Koşul ve eşleştirme
-	{sozluk.A + 1, TOKEN_EGER},
-	{sozluk.A + 2, TOKEN_DEGILSE},
-	{sozluk.A + 3, TOKEN_ESLE},
-	{sozluk.A + 4, TOKEN_VARSAYILAN},
+	{sozluk.A001, TOKEN_EGER},
+	{sozluk.A002, TOKEN_DEGILSE},
+	{sozluk.A003, TOKEN_ESLE},
+	{sozluk.A004, TOKEN_VARSAYILAN},
 
 	// Döngüler ve akış kontrolü
-	{sozluk.A + 10, TOKEN_DONGU},
-	{sozluk.A + 11, TOKEN_ICINDE},
-	{sozluk.A + 12, TOKEN_IKEN},
-	{sozluk.A + 13, TOKEN_CIK},
-	{sozluk.A + 14, TOKEN_DEVAM},
+	{sozluk.A010, TOKEN_DONGU},
+	{sozluk.A011, TOKEN_ICINDE},
+	{sozluk.A012, TOKEN_IKEN},
+	{sozluk.A013, TOKEN_CIK},
+	{sozluk.A014, TOKEN_DEVAM},
 
 	// Fonksiyon ve dönüş
-	{sozluk.A + 20, TOKEN_FONKSIYON},
-	{sozluk.A + 21, TOKEN_SONUC},
+	{sozluk.A020, TOKEN_FONKSIYON},
+	{sozluk.A021, TOKEN_SONUC},
 
 	// Değişken ve sabit
-	{sozluk.A + 30, TOKEN_DEGISKEN},
-	{sozluk.A + 31, TOKEN_SABIT},
+	{sozluk.A030, TOKEN_DEGISKEN},
+	{sozluk.A031, TOKEN_SABIT},
 
 	// Mantıksal ve boş değerler
-	{sozluk.A + 40, TOKEN_DOGRU},
-	{sozluk.A + 41, TOKEN_YANLIS},
-	{sozluk.A + 42, TOKEN_YOK},
-	{sozluk.A + 43, TOKEN_VE},
-	{sozluk.A + 44, TOKEN_VEYA},
-	{sozluk.A + 45, TOKEN_DEGIL},
+	{sozluk.A040, TOKEN_DOGRU},
+	{sozluk.A041, TOKEN_YANLIS},
+	{sozluk.A042, TOKEN_YOK},
+	{sozluk.A043, TOKEN_VE},
+	{sozluk.A044, TOKEN_VEYA},
+	{sozluk.A045, TOKEN_DEGIL},
 
 	// Yapı ve kendi
-	{sozluk.A + 50, TOKEN_YAPI},
-	{sozluk.A + 51, TOKEN_KENDI},
+	{sozluk.A050, TOKEN_YAPI},
+	{sozluk.A051, TOKEN_KENDI},
 
 	// Hata yönetimi, modül, eşzamanlılık, ertele, kesme noktası
-	{sozluk.A + 60, TOKEN_DENE},
-	{sozluk.A + 61, TOKEN_YAKALA},
-	{sozluk.A + 62, TOKEN_FIRLAT},
-	{sozluk.A + 70, TOKEN_AKTAR},
-	{sozluk.A + 80, TOKEN_ESZAMANLI},
-	{sozluk.A + 81, TOKEN_ERTELE},
-	{sozluk.A + 90, TOKEN_KESME_NOKTASI},
+	{sozluk.A060, TOKEN_DENE},
+	{sozluk.A061, TOKEN_YAKALA},
+	{sozluk.A062, TOKEN_FIRLAT},
+	{sozluk.A070, TOKEN_AKTAR},
+	{sozluk.A080, TOKEN_ESZAMANLI},
+	{sozluk.A081, TOKEN_ERTELE},
+	{sozluk.A090, TOKEN_KESME_NOKTASI},
 }
 
 // keywords yazım → token türü, turKodlari token türü → sözlük kodu haritasıdır.

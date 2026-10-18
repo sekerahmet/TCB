@@ -19,20 +19,20 @@ import (
 // Adlı argümanlar. Adları sözlüktedir (pkg/sozluk, T9xx). Başka dillerden alışılmış
 // adlar (lr, axis...) kabul edilmez; baglama.AdliDenetle hata mesajında Türkçesini önerir.
 var (
-	adTurevIzle       = baglama.KodAd(sozluk.T + 900)
-	adEksen           = baglama.KodAd(sozluk.T + 902)
-	adTohum           = baglama.KodAd(sozluk.T + 903)
-	adEnFazla         = baglama.KodAd(sozluk.T + 904)
-	adEpsilon         = baglama.KodAd(sozluk.T + 905)
-	adOgrenmeOrani    = baglama.KodAd(sozluk.T + 910)
-	adAgirlikCurumesi = baglama.KodAd(sozluk.T + 911)
-	adBeta1           = baglama.KodAd(sozluk.T + 912)
-	adBeta2           = baglama.KodAd(sozluk.T + 913)
-	adMomentum        = baglama.KodAd(sozluk.T + 914)
-	adAgirlik         = baglama.KodAd(sozluk.T + 920)
-	adSapma           = baglama.KodAd(sozluk.T + 921)
-	adTur             = baglama.KodAd(sozluk.T + 901)
-	adAnaKopya        = baglama.KodAd(sozluk.T + 915)
+	adTurevIzle       = baglama.KodAd(sozluk.T900)
+	adEksen           = baglama.KodAd(sozluk.T902)
+	adTohum           = baglama.KodAd(sozluk.T903)
+	adEnFazla         = baglama.KodAd(sozluk.T904)
+	adEpsilon         = baglama.KodAd(sozluk.T905)
+	adOgrenmeOrani    = baglama.KodAd(sozluk.T910)
+	adAgirlikCurumesi = baglama.KodAd(sozluk.T911)
+	adBeta1           = baglama.KodAd(sozluk.T912)
+	adBeta2           = baglama.KodAd(sozluk.T913)
+	adMomentum        = baglama.KodAd(sozluk.T914)
+	adAgirlik         = baglama.KodAd(sozluk.T920)
+	adSapma           = baglama.KodAd(sozluk.T921)
+	adTur             = baglama.KodAd(sozluk.T901)
+	adAnaKopya        = baglama.KodAd(sozluk.T915)
 )
 
 // guvenli fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.
@@ -124,6 +124,6 @@ func sekilListesi(fn string, v vm.Value) ([]int, error) {
 
 // sinir_ağı ve yz_sor'un adlı argümanları.
 var (
-	adDevir      = baglama.KodAd(sozluk.T + 930)
-	adAktivasyon = baglama.KodAd(sozluk.T + 932)
+	adDevir      = baglama.KodAd(sozluk.T930)
+	adAktivasyon = baglama.KodAd(sozluk.T932)
 )

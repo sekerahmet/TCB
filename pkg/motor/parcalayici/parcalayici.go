@@ -27,7 +27,7 @@ import (
 )
 
 // TipAdi parçalayıcı nesnesinin TR'deki tip adıdır (sözlükte A234).
-var TipAdi = string(vm.TipAdi(sozluk.A + 234))
+var TipAdi = string(vm.TipAdi(sozluk.A234))
 
 // Nesne TR'de yüklenmiş bir parçalayıcıdır. Salt okunurdur; dosya tutamağı ya da
 // başka bir kaynak tutmaz (dosya yüklemede tümüyle okunup kapatılır).
@@ -73,10 +73,10 @@ func (n *Nesne) TabloVerisi() ([]string, [][]string, error) {
 
 // Parçalayıcı üyeleri (adları sözlükte, pkg/sozluk Y61x).
 const (
-	uyeKodla        = sozluk.Y + 610
-	uyeCoz          = sozluk.Y + 611
-	uyeSozlukBoyutu = sozluk.Y + 612
-	uyeTokenKimligi = sozluk.Y + 613
+	uyeKodla        = sozluk.Y610
+	uyeCoz          = sozluk.Y611
+	uyeSozlukBoyutu = sozluk.Y612
+	uyeTokenKimligi = sozluk.Y613
 )
 
 var uyeler = sozluk.Adlar(uyeKodla, uyeCoz, uyeSozlukBoyutu, uyeTokenKimligi)
@@ -113,7 +113,7 @@ func (n *Nesne) metot(ad string, fn vm.BuiltinFunc) *vm.BuiltinVal {
 
 // Kaydet parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *vm.VM) {
-	v.RegisterBuiltinKod(sozluk.V+200, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.V200, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		return baglama.Guvenli("parçalayıcı_yükle", func() (vm.Value, error) { return yukle(m, args, named) })
 	})
 }
@@ -214,8 +214,8 @@ func uyarilariYaz(yol string, p *pc.Parcalayici) {
 // ----------------------------------------------------------------------------
 
 var (
-	adOzel   = baglama.KodAd(sozluk.V + 910)
-	adIkinci = baglama.KodAd(sozluk.V + 911)
+	adOzel   = baglama.KodAd(sozluk.V910)
+	adIkinci = baglama.KodAd(sozluk.V911)
 )
 
 // uzunMetin bu bayttan uzun tek metinler yorumlayıcı kilidi bırakılarak kodlanır.

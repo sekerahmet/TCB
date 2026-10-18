@@ -18,18 +18,18 @@ import (
 
 // Adlı argümanlar (adları sözlükte, pkg/sozluk T9xx).
 var (
-	adBoyutuKoru = baglama.KodAd(sozluk.T + 906)
-	adNedensel   = baglama.KodAd(sozluk.T + 950)
-	adPencere    = baglama.KodAd(sozluk.T + 951)
-	adMaske      = baglama.KodAd(sozluk.T + 952)
-	adSicaklik   = baglama.KodAd(sozluk.T + 960)
-	adEnIyiK     = baglama.KodAd(sozluk.T + 961)
-	adAdlariyla  = baglama.KodAd(sozluk.T + 970)
+	adBoyutuKoru = baglama.KodAd(sozluk.T906)
+	adNedensel   = baglama.KodAd(sozluk.T950)
+	adPencere    = baglama.KodAd(sozluk.T951)
+	adMaske      = baglama.KodAd(sozluk.T952)
+	adSicaklik   = baglama.KodAd(sozluk.T960)
+	adEnIyiK     = baglama.KodAd(sozluk.T961)
+	adAdlariyla  = baglama.KodAd(sozluk.T970)
 )
 
 // uyeBol tensörün .böl(parça_sayısı, eksen: -1) metodudur. Üye adları tipten bağımsız
 // benzersiz olduğundan Metin'in .böl'üyle aynı koddur (Y103).
-const uyeBol = sozluk.Y + 103
+const uyeBol = sozluk.Y103
 
 // adliMantik adlı bir Mantık argümanını okur; verilmemişse varsayilan döner.
 func adliMantik(fn string, named map[string]vm.Value, a baglama.Ad, varsayilan bool) (bool, error) {

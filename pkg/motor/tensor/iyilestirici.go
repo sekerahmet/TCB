@@ -39,8 +39,8 @@ func (o *Iyilestirici) Inspect() string {
 
 // İyileştirici üyeleri (adları sözlükte, pkg/sozluk Y50x).
 const (
-	uyeAdim    = sozluk.Y + 500
-	uyeSifirla = sozluk.Y + 501
+	uyeAdim    = sozluk.Y500
+	uyeSifirla = sozluk.Y501
 )
 
 var iyilestiriciUyeleri = sozluk.Adlar(uyeAdim, uyeSifirla)
@@ -181,7 +181,7 @@ func iyilestiriciParametreleri(fn string, args []vm.Value) ([]*ct.Tensor, error)
 }
 
 func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	fn := sozluk.Ad(sozluk.T + 400) // AdamW (tip adı da budur)
+	fn := sozluk.Ad(sozluk.T400) // AdamW (tip adı da budur)
 	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon, adAnaKopya); err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 }
 
 func sgdKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	fn := sozluk.Ad(sozluk.T + 401) // SGD (tip adı da budur)
+	fn := sozluk.Ad(sozluk.T401) // SGD (tip adı da budur)
 	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi, adAnaKopya); err != nil {
 		return nil, err
 	}

@@ -14,19 +14,19 @@ import (
 type ValueType string
 
 var (
-	VAL_INT      = TipAdi(sozluk.A + 200) // Tam
-	VAL_FLOAT    = TipAdi(sozluk.A + 201) // Ondalık
-	VAL_STRING   = TipAdi(sozluk.A + 202) // Metin
-	VAL_BOOL     = TipAdi(sozluk.A + 203) // Mantık
-	VAL_NULL     = TipAdi(sozluk.A + 204) // Yok
-	VAL_LIST     = TipAdi(sozluk.A + 205) // Liste
-	VAL_DICT     = TipAdi(sozluk.A + 206) // Sözlük
-	VAL_RANGE    = TipAdi(sozluk.A + 207) // Aralık
-	VAL_FUNC     = TipAdi(sozluk.A + 208) // Fonksiyon
-	VAL_BUILTIN  = TipAdi(sozluk.A + 209) // YerleşikFonksiyon
-	VAL_STRUCT   = TipAdi(sozluk.A + 210) // YapıTanımı
-	VAL_INSTANCE = TipAdi(sozluk.A + 211) // Nesne
-	VAL_TENSOR   = TipAdi(sozluk.A + 212) // Tensör
+	VAL_INT      = TipAdi(sozluk.A200) // Tam
+	VAL_FLOAT    = TipAdi(sozluk.A201) // Ondalık
+	VAL_STRING   = TipAdi(sozluk.A202) // Metin
+	VAL_BOOL     = TipAdi(sozluk.A203) // Mantık
+	VAL_NULL     = TipAdi(sozluk.A204) // Yok
+	VAL_LIST     = TipAdi(sozluk.A205) // Liste
+	VAL_DICT     = TipAdi(sozluk.A206) // Sözlük
+	VAL_RANGE    = TipAdi(sozluk.A207) // Aralık
+	VAL_FUNC     = TipAdi(sozluk.A208) // Fonksiyon
+	VAL_BUILTIN  = TipAdi(sozluk.A209) // YerleşikFonksiyon
+	VAL_STRUCT   = TipAdi(sozluk.A210) // YapıTanımı
+	VAL_INSTANCE = TipAdi(sozluk.A211) // Nesne
+	VAL_TENSOR   = TipAdi(sozluk.A212) // Tensör
 )
 
 // TipAdi sözlükteki bir tip adı kodunun (A2xx) ValueType'ıdır; motorlar kendi tiplerinin

@@ -62,10 +62,23 @@
 // saklanmaz, addan türetilir ve KABUL EDİLMEZ: her işin tek yazımı vardır. Bu kural tek
 // bir yerden, ASCIIKabul sabitinden (kapalı) yönetilir; Yazimlar bir adın kabul edilen
 // yazımlarını verir. ASCII biçim yalnızca hata mesajı içindir: Oneri ve AsilAdAlanda, bir
-// ad alanında ASCII yazılmış bir adın (ya da eski bir adın) yerine Türkçe adı önerir. Kodlar
-// sayıdır: Go tarafında A+1 (A001), Y+400 (Y400) biçiminde yazılır ve switch deyimlerinde
-// sabit olarak kullanılabilir.
+// ad alanında ASCII yazılmış bir adın (ya da eski bir adın) yerine Türkçe adı önerir.
+//
+// # Go'da kodlar
+//
+// Go kodu kodları sözlükten üretilen adlı sabitlerle yazar (kodlar_uretilmis.go):
+// sozluk.G100, sozluk.A001, sozluk.Y400. Sabitin adı kodun kendisidir, kullanıcıya görünen
+// ad değildir; ad değişse de sabit değişmez. Sözlükte olmayan (ya da taşınmış) bir kod
+// yazılırsa derleme düşer. Sabitler switch deyimlerinde kullanılabilir. Dil dosyasına kod
+// eklendiğinde, kaldırıldığında ya da taşındığında sabitler yeniden üretilir:
+//
+//	go generate ./pkg/sozluk   (ya da: go run ./araclar/kod_sabitleri)
+//
+// Her kodun ne işe yaradığı, imzası ve örneği docs/SOZLUK.md'dedir (tanim.json ve tr.json'dan
+// üretilir).
 package sozluk
+
+//go:generate go run ../../araclar/kod_sabitleri
 
 import "fmt"
 
@@ -73,7 +86,8 @@ import "fmt"
 // A001 = A+1, Y400 = Y+400.
 type Kod uint16
 
-// Aile başlangıçları. Bir kod Go kodunda aile + sayı olarak yazılır (sozluk.G + 100).
+// Aile başlangıçları. Go kodu kodları bunlarla değil, üretilen adlı sabitlerle (G100, A001) yazar;
+// aile + sayı biçimi yalnızca bu paketin içinde, üretilen dosyada kullanılır.
 // Sayısal değerler yalnızca bu ikilinin içindedir; dil dosyası kodları metin olarak
 // (G100) tutar.
 const (

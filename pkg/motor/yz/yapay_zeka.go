@@ -17,8 +17,8 @@ import (
 
 // yz_sor'un adlı argümanları; adları sözlüktedir (pkg/sozluk, T94x).
 var (
-	adModel = baglama.KodAd(sozluk.T + 940)
-	adAdres = baglama.KodAd(sozluk.T + 941)
+	adModel = baglama.KodAd(sozluk.T940)
+	adAdres = baglama.KodAd(sozluk.T941)
 )
 
 // yzSorZamanAsimi yz_sor isteğinin toplam süre sınırıdır (modelin yanıt üretmesi dahil).
@@ -29,7 +29,7 @@ var yzSorZamanAsimi = 120 * time.Second
 // pkg/motor/veribicim, web_al/web_gönder ise pkg/motor/web paketindedir.
 func Kaydet(v *vm.VM) {
 	// --- Veri Bilimi, İstatistik ve Vektör Benzerlik ---
-	v.RegisterBuiltinKod(sozluk.G+410, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.G410, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -41,7 +41,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: sum / float64(len(nums))}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G+411, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.G411, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -60,7 +60,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: math.Sqrt(variance)}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.G+412, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.G412, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -75,7 +75,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: (sorted[mid-1] + sorted[mid]) / 2.0}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.T+600, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.T600, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.ListVal{Elements: []vm.Value{}}, nil
@@ -101,7 +101,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.ListVal{Elements: elems}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.T+601, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.T601, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("nokta_çarpım(v1, v2) 2 parametre bekler")
 		}
@@ -117,7 +117,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: dot}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.T+602, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.T602, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("kosinüs_benzerliği(v1, v2) 2 parametre bekler")
 		}
@@ -139,7 +139,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: dot / denom}, nil
 	})
 
-	v.RegisterBuiltinKod(sozluk.T+603, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.T603, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("öklid_uzaklığı(v1, v2) 2 parametre bekler")
 		}
@@ -157,7 +157,7 @@ func Kaydet(v *vm.VM) {
 	})
 
 	// --- Yerel dil modeline soru (yz_sor) ---
-	v.RegisterBuiltinKod(sozluk.T+610, yzSor)
+	v.RegisterBuiltinKod(sozluk.T610, yzSor)
 }
 
 // yzVarsayilanAdres yz_sor'un varsayılan adresidir: bu bilgisayarda 11434 portunda çalışan

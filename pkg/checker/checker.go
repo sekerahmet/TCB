@@ -79,17 +79,17 @@ func (c *Checker) golgeDenetle(ad string, satir int) {
 
 // Denetleyicinin kullandığı tip adları sözlüktedir (pkg/sozluk, A2xx).
 var (
-	tipTam       = sozluk.Ad(sozluk.A + 200)
-	tipOndalik   = sozluk.Ad(sozluk.A + 201)
-	tipMetin     = sozluk.Ad(sozluk.A + 202)
-	tipMantik    = sozluk.Ad(sozluk.A + 203)
-	tipYok       = sozluk.Ad(sozluk.A + 204)
-	tipListe     = sozluk.Ad(sozluk.A + 205)
-	tipSozluk    = sozluk.Ad(sozluk.A + 206)
-	tipAralik    = sozluk.Ad(sozluk.A + 207)
-	tipFonksiyon = sozluk.Ad(sozluk.A + 208)
-	tipTensor    = sozluk.Ad(sozluk.A + 212)
-	tipHerhangi  = sozluk.Ad(sozluk.A + 213)
+	tipTam       = sozluk.Ad(sozluk.A200)
+	tipOndalik   = sozluk.Ad(sozluk.A201)
+	tipMetin     = sozluk.Ad(sozluk.A202)
+	tipMantik    = sozluk.Ad(sozluk.A203)
+	tipYok       = sozluk.Ad(sozluk.A204)
+	tipListe     = sozluk.Ad(sozluk.A205)
+	tipSozluk    = sozluk.Ad(sozluk.A206)
+	tipAralik    = sozluk.Ad(sozluk.A207)
+	tipFonksiyon = sozluk.Ad(sozluk.A208)
+	tipTensor    = sozluk.Ad(sozluk.A212)
+	tipHerhangi  = sozluk.Ad(sozluk.A213)
 )
 
 // tipSayi denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
@@ -99,8 +99,8 @@ const tipSayi = "Tam ya da Ondalık"
 
 // aciklamaTipleri tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
-var aciklamaTipleri = []sozluk.Kod{sozluk.A + 200, sozluk.A + 201, sozluk.A + 202, sozluk.A + 203,
-	sozluk.A + 205, sozluk.A + 206, sozluk.A + 207, sozluk.A + 208, sozluk.A + 209, sozluk.A + 212, sozluk.A + 204}
+var aciklamaTipleri = []sozluk.Kod{sozluk.A200, sozluk.A201, sozluk.A202, sozluk.A203,
+	sozluk.A205, sozluk.A206, sozluk.A207, sozluk.A208, sozluk.A209, sozluk.A212, sozluk.A204}
 
 // tipYazimlari tip açıklamasında kabul edilen yazımların küçük harfli biçimi → tip adıdır.
 // Yazımlar sözlükten gelir (yalnızca Türkçe biçim; büyük/küçük harf fark etmez). Matris 2

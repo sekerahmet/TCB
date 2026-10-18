@@ -242,7 +242,7 @@ func startREPL() {
 
 // yazdirIleBaslar satır yazdır yerleşiğinin (G100) bir yazımıyla mı başlıyor?
 func yazdirIleBaslar(satir string) bool {
-	for _, y := range sozluk.Yazimlar(sozluk.G + 100) {
+	for _, y := range sozluk.Yazimlar(sozluk.G100) {
 		if strings.HasPrefix(satir, y) {
 			return true
 		}

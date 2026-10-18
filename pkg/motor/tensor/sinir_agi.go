@@ -32,7 +32,7 @@ type SinirAgi struct {
 }
 
 // sinirAgiTipi SinirAğı'nın tip adıdır (sözlükte A230).
-var sinirAgiTipi = vm.TipAdi(sozluk.A + 230)
+var sinirAgiTipi = vm.TipAdi(sozluk.A230)
 
 func (nn *SinirAgi) Type() vm.ValueType { return sinirAgiTipi }
 func (nn *SinirAgi) IsTruthy() bool     { return true }
@@ -203,10 +203,10 @@ func (nn *SinirAgi) kaydet(m *vm.VM, yol string) error {
 
 // SinirAğı üyeleri (adları sözlükte, pkg/sozluk Y51x, Y005).
 const (
-	uyeEgit       = sozluk.Y + 510
-	uyeTahminEt   = sozluk.Y + 511
-	uyeAgirliklar = sozluk.Y + 512
-	uyeKaydet     = sozluk.Y + 5
+	uyeEgit       = sozluk.Y510
+	uyeTahminEt   = sozluk.Y511
+	uyeAgirliklar = sozluk.Y512
+	uyeKaydet     = sozluk.Y005
 )
 
 func (nn *SinirAgi) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {

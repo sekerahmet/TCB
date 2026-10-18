@@ -65,11 +65,12 @@ func main() {
 // adlar kodların adlarıdır (sözlük sırasıyla).
 func adlar(kodlar ...sozluk.Kod) []string { return sozluk.Adlar(kodlar...) }
 
-// araliktakiler [ilk, son] aralığındaki ve uygun(kod) doğru olan sözlük kodlarının adlarıdır.
-func araliktakiler(ilk, son sozluk.Kod, uygun func(sozluk.Kod) bool) []string {
+// grubundakiler harf ailesinin grup numaralı grubundaki (grup < 0 ise bütün ailedeki) ve
+// uygun(kod) doğru olan sözlük kodlarının adlarıdır.
+func grubundakiler(harf byte, grup int, uygun func(sozluk.Kod) bool) []string {
 	var out []string
 	for _, k := range sozluk.Kodlar() {
-		if k >= ilk && k <= son && (uygun == nil || uygun(k)) {
+		if k.Harf() == harf && (grup < 0 || k.Grup() == grup) && (uygun == nil || uygun(k)) {
 			out = append(out, sozluk.Ad(k))
 		}
 	}
@@ -156,17 +157,16 @@ func ekle(desenler ...string) []nesne {
 
 // Uret dil bilgisi dosyasının içeriğini sözlükten üretir.
 func Uret() ([]byte, error) {
-	k := func(n int) sozluk.Kod { return sozluk.A + sozluk.Kod(n) }
-	ad := func(n int) string { return sozluk.Ad(k(n)) }
+	ad := sozluk.Ad
 
-	kontrol := adlar(k(1), k(2), k(3), k(4), k(10), k(11), k(12), k(13), k(14), k(21), k(60), k(61), k(62), k(80), k(81))
-	bildirim := adlar(k(30), k(31), k(20), k(50))
-	tipler := araliktakiler(sozluk.A+200, sozluk.A+299, nil)
-	genel := araliktakiler(sozluk.G, sozluk.G+999, yerlesik)
-	yz := append(araliktakiler(sozluk.T, sozluk.T+999, yerlesik), araliktakiler(sozluk.V, sozluk.V+999, yerlesik)...)
-	veriTabani := araliktakiler(sozluk.W+200, sozluk.W+299, yerlesik)
-	web := araliktakiler(sozluk.W+100, sozluk.W+199, yerlesik)
-	arayuz := araliktakiler(sozluk.W+300, sozluk.W+399, yerlesik)
+	kontrol := adlar(sozluk.A001, sozluk.A002, sozluk.A003, sozluk.A004, sozluk.A010, sozluk.A011, sozluk.A012, sozluk.A013, sozluk.A014, sozluk.A021, sozluk.A060, sozluk.A061, sozluk.A062, sozluk.A080, sozluk.A081)
+	bildirim := adlar(sozluk.A030, sozluk.A031, sozluk.A020, sozluk.A050)
+	tipler := grubundakiler('A', 2, nil)
+	genel := grubundakiler('G', -1, yerlesik)
+	yz := append(grubundakiler('T', -1, yerlesik), grubundakiler('V', -1, yerlesik)...)
+	veriTabani := grubundakiler('W', 2, yerlesik)
+	web := grubundakiler('W', 1, yerlesik)
+	arayuz := grubundakiler('W', 3, yerlesik)
 
 	ic := func(ad string) string { return regexp.QuoteMeta(ad) }
 
@@ -210,22 +210,22 @@ func Uret() ([]byte, error) {
 				{"patterns", ekle("#nested-braces", "$self")},
 			}},
 			{"import", nesne{{"patterns", []nesne{
-				{{"match", `\b(` + ic(ad(70)) + `)\b\s*("[^"]*"|'[^']*'|[^\W\d][\w.]*)\s+(` + ic(ad(100)) + `)\b\s*([^\W\d]\w*)?`},
+				{{"match", `\b(` + ic(ad(sozluk.A070)) + `)\b\s*("[^"]*"|'[^']*'|[^\W\d][\w.]*)\s+(` + ic(ad(sozluk.A100)) + `)\b\s*([^\W\d]\w*)?`},
 					{"captures", yakala("keyword.control.import.tr", "string.other.module.tr", "keyword.control.import.as.tr", "entity.name.namespace.tr")}},
-				kural("keyword.control.import.tr", kelimeler(adlar(k(70)))),
+				kural("keyword.control.import.tr", kelimeler(adlar(sozluk.A070))),
 			}}}},
 			{"declarations", nesne{{"patterns", []nesne{
-				{{"match", `\b(` + ic(ad(20)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.function.tr", "entity.name.function.tr")}},
-				{{"match", `\b(` + ic(ad(50)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.struct.tr", "entity.name.type.tr")}},
+				{{"match", `\b(` + ic(ad(sozluk.A020)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.function.tr", "entity.name.function.tr")}},
+				{{"match", `\b(` + ic(ad(sozluk.A050)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.struct.tr", "entity.name.type.tr")}},
 			}}}},
 			{"keywords", nesne{{"patterns", []nesne{
 				kural("keyword.control.tr", kelimeler(kontrol)),
-				kural("keyword.other.debugger.tr", kelimeler(adlar(k(90)))),
+				kural("keyword.other.debugger.tr", kelimeler(adlar(sozluk.A090))),
 				kural("storage.type.tr", kelimeler(bildirim)),
-				kural("variable.language.self.tr", kelimeler(adlar(k(51)))),
-				kural("constant.language.boolean.tr", kelimeler(adlar(k(40), k(41)))),
-				kural("constant.language.null.tr", kelimeler(adlar(k(42)))),
-				kural("keyword.operator.logical.tr", kelimeler(adlar(k(43), k(44), k(45)))),
+				kural("variable.language.self.tr", kelimeler(adlar(sozluk.A051))),
+				kural("constant.language.boolean.tr", kelimeler(adlar(sozluk.A040, sozluk.A041))),
+				kural("constant.language.null.tr", kelimeler(adlar(sozluk.A042))),
+				kural("keyword.operator.logical.tr", kelimeler(adlar(sozluk.A043, sozluk.A044, sozluk.A045))),
 			}}}},
 			{"pronoun", nesne{
 				{"comment", "Sondaki blok (o-lambda) parametresi: liste.filtrele { o > 2 }"},

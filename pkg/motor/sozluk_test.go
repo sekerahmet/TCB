@@ -82,7 +82,7 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 	}
 	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_model", "u_vt", "u_web", "u_arayuz", "u_parcalayici"}
 	for _, k := range sozluk.Kodlar() {
-		if k.Alan() != sozluk.AlanUye || (k >= sozluk.Y+600 && k <= sozluk.Y+602) {
+		if k.Alan() != sozluk.AlanUye || (k >= sozluk.Y600 && k <= sozluk.Y602) {
 			continue
 		}
 		for _, y := range sozluk.Yazimlar(k) {
