@@ -9,6 +9,17 @@ ikili/
 ornekler/agirliklar.trt
 ornekler/xor_agirliklari.trt
 
+# Kullanıcının verisi, ağırlıkları, parçalayıcısı ve gizli değerleri depoya girmez
+*.trt
+*.npy
+tokenizer*.json
+.env
+.env.*
+*.pem
+# ... bilerek depoda tutulan test fikstürleri dışında
+!testler/veri/**
+!**/testdata/**
+
 # Kişisel deneme klasörü (ornekler/01_merhaba.tr buraya kopyalanıp değiştirilir)
 calisma/
 
