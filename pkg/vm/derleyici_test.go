@@ -203,6 +203,38 @@ func TestYapiVarsayilaniTanimKapsaminda(t *testing.T) {
 	}
 }
 
+// Hızlı yollar (ASCII metin indeksi, Tam anahtarlı sözlük, doğrudan yapı metodu) eski
+// anlamı korumalı.
+func TestHizliYollarAnlami(t *testing.T) {
+	_, val, err := runTROut(t, `
+		değişken s = "abç"
+		değişken a = "xyz"
+		değişken d = {1: "bir", "1": "metin bir", 1.5: "ondalık"}
+		d[1] = "BİR"
+		d[2] = "iki"
+		yapı P {
+			x: Tam = 3
+			f
+			fonksiyon m(k = 1) { sonuç kendi.x * k }
+			fonksiyon f() { sonuç "metot" }
+		}
+		değişken p = P()
+		p.f = () => "alan"
+		değişken bagli = p.m
+		sonuç [s[2], s[-1], s[5], a[0], a[-1], a[3], a[0..2], s[1..3], a[-4],
+			d[1], d["1"], d[1.5], d[2], d.anahtarlar(), d.içerir(2), d.içerir(3),
+			p.m(), p.m(2), p.f(), bagli(10)]
+	`)
+	want := `["ç", "ç", yok, "x", "z", yok, "xy", "bç", yok, "BİR", "metin bir", "ondalık", "iki", [1, "1", 1.5, 2], doğru, yanlış, 3, 6, "alan", 30]`
+	if err != nil || val.Inspect() != want {
+		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
+	}
+	_, _, err = runTROut(t, "yapı Q { fonksiyon m(a) { sonuç a } }\ndeğişken q = Q()\nq.m()\n")
+	if err == nil || !strings.Contains(err.Error(), "'m' fonksiyonu 1 argüman bekler") {
+		t.Fatalf("metot argüman denetimi: %v", err)
+	}
+}
+
 // Yerleşik adı gölgeleyen genel değişken sabit sayılmamalı; kullanıcı sabiti korunmalı.
 func TestDerleyiciGolgelemeVeSabit(t *testing.T) {
 	_, val, err := runTROut(t, `

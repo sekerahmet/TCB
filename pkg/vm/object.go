@@ -146,8 +146,31 @@ func (d *DictVal) Set(key string, val Value) {
 	}
 }
 
+// tamAnahtar bir Tam anahtarın iç kodlamasını (DictKey ile aynı) buf'a yazar; böylece
+// aramada ara metin ayrılmaz.
+func tamAnahtar(buf []byte, n int64) []byte {
+	buf = append(buf, nonStringKeyPrefix+string(VAL_INT)+":"...)
+	return strconv.AppendInt(buf, n, 10)
+}
+
 // SetValue anahtarı bir TR değeri olarak alır (d[1] = ..., {1: ...}).
 func (d *DictVal) SetValue(key Value, val Value) {
+	if iv, ok := key.(*IntVal); ok {
+		// Tam anahtar: tek ayırma ve tek harita işlemi; özgün anahtar yalnızca yeni girdide
+		// saklanır (aynı sayının her Tam değeri eşdeğerdir)
+		var b [32]byte
+		k := string(tamAnahtar(b[:0], iv.Val))
+		n := len(d.Pairs)
+		d.Pairs[k] = val
+		if len(d.Pairs) != n {
+			d.Order = append(d.Order, k)
+			if d.KeyVals == nil {
+				d.KeyVals = make(map[string]Value)
+			}
+			d.KeyVals[k] = key
+		}
+		return
+	}
 	k := DictKey(key)
 	if _, isStr := key.(*StringVal); !isStr {
 		if d.KeyVals == nil {
@@ -160,6 +183,11 @@ func (d *DictVal) SetValue(key Value, val Value) {
 
 // GetValue anahtarı bir TR değeri olarak arar.
 func (d *DictVal) GetValue(key Value) (Value, bool) {
+	if iv, ok := key.(*IntVal); ok {
+		var b [32]byte
+		val, ok := d.Pairs[string(tamAnahtar(b[:0], iv.Val))] // dönüşüm ayırmaz
+		return val, ok
+	}
 	val, ok := d.Pairs[DictKey(key)]
 	return val, ok
 }

@@ -76,6 +76,13 @@ type vmShared struct {
 	// (bkz. devret). Böylece CPU-yoğun bir döngü eşzamanlı görevleri ve web isteklerini
 	// sonuna kadar bekletmez.
 	bekleyen atomic.Int32
+
+	// metinOnbellegi son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
+	metinOnbellegi struct {
+		metin *StringVal
+		ascii bool
+		runes []rune
+	}
 }
 
 type StackFrame struct {

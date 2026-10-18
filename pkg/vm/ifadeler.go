@@ -115,7 +115,22 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 		return val, nil
 
 	case *StringVal:
-		runes := []rune(container.Val)
+		ascii, runes := v.metinKarakterleri(container)
+		if iv, ok := idx.(*IntVal); ok && ascii {
+			// ASCII hızlı yolu: karakter = bayt, dönüşüm ve ayırma yok
+			n := len(container.Val)
+			pos := int(iv.Val)
+			if pos < 0 {
+				pos = n + pos
+			}
+			if pos < 0 || pos >= n {
+				return NULL, nil
+			}
+			return asciiKarakterler[container.Val[pos]], nil
+		}
+		if ascii {
+			runes = []rune(container.Val) // ASCII dilimleme: nadir yol
+		}
 		if rng, ok := idx.(*RangeVal); ok {
 			start := int(rng.Start)
 			end := int(rng.End)
@@ -156,6 +171,17 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 
 // uyeDegeri nesne.özellik (ya da nesne?.özellik) değerini döndürür.
 func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression) (Value, error) {
+	// Sık türler arayüz denetimlerinden önce denenir (bu türler 'yok' ya da PropertyGetter
+	// değildir; adı "Yok" olan bir yapı eski yoldan geçer).
+	switch inst := obj.(type) {
+	case *StructInstanceVal:
+		if ValueType(inst.Def.Name) != VAL_NULL {
+			return yapiUyesi(inst, e)
+		}
+	case *DictVal, *ListVal, *StringVal:
+		return v.evalBuiltinMember(obj, e.Property, e.Safe, e.Line())
+	}
+
 	if obj.Type() == VAL_NULL {
 		if e.Safe {
 			return NULL, nil
@@ -169,29 +195,59 @@ func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression) (Value, error) {
 		return val, satirEki(e.Line(), err)
 	}
 
-	switch inst := obj.(type) {
-	case *StructInstanceVal:
-		if val, ok := inst.Fields[e.Property]; ok {
-			return val, nil
-		}
-		if method, ok := inst.Def.Methods[e.Property]; ok {
-			return &FuncVal{
-				Name:       method.Name,
-				Parameters: method.Parameters,
-				Body:       method.Body,
-				Env:        method.Env,
-				BoundSelf:  inst,
-				kod:        method.kod,
-			}, nil
-		}
-		if e.Safe {
-			return NULL, nil
-		}
-		return nil, fmt.Errorf("Satır %d: %s yapısında %q alanı veya metodu bulunamadı", e.Line(), inst.Def.Name, e.Property)
-
-	case *DictVal, *ListVal, *StringVal:
-		return v.evalBuiltinMember(obj, e.Property, e.Safe, e.Line())
+	if inst, ok := obj.(*StructInstanceVal); ok {
+		return yapiUyesi(inst, e)
 	}
-
 	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği bulunamadı", e.Line(), obj.Type(), e.Property)
+}
+
+// yapiUyesi nesnenin alanını ya da (bağlı fonksiyon olarak) metodunu döndürür.
+func yapiUyesi(inst *StructInstanceVal, e *ast.MemberExpression) (Value, error) {
+	if val, ok := inst.Fields[e.Property]; ok {
+		return val, nil
+	}
+	if method, ok := inst.Def.Methods[e.Property]; ok {
+		return &FuncVal{
+			Name:       method.Name,
+			Parameters: method.Parameters,
+			Body:       method.Body,
+			Env:        method.Env,
+			BoundSelf:  inst,
+			kod:        method.kod,
+		}, nil
+	}
+	if e.Safe {
+		return NULL, nil
+	}
+	return nil, fmt.Errorf("Satır %d: %s yapısında %q alanı veya metodu bulunamadı", e.Line(), inst.Def.Name, e.Property)
+}
+
+// asciiKarakterler tek karakterlik ASCII metinlerdir (indekslemede yeniden kullanılır;
+// metin değerleri değişmezdir).
+var asciiKarakterler = func() (t [128]*StringVal) {
+	for i := range t {
+		t[i] = &StringVal{Val: string(rune(i))}
+	}
+	return t
+}()
+
+// metinKarakterleri metnin ASCII olup olmadığını ve (değilse) karakter dizisini verir. Son
+// indekslenen metnin sonucu saklanır: döngüde aynı metne art arda erişim her seferinde
+// []rune dönüşümü yapmaz. Yalnızca yorumlayıcı kilidi tutulurken çağrılır.
+func (v *VM) metinKarakterleri(s *StringVal) (bool, []rune) {
+	o := &v.metinOnbellegi
+	if o.metin != s {
+		ascii := true
+		for i := 0; i < len(s.Val); i++ {
+			if s.Val[i] >= 0x80 {
+				ascii = false
+				break
+			}
+		}
+		o.metin, o.ascii, o.runes = s, ascii, nil
+		if !ascii {
+			o.runes = []rune(s.Val)
+		}
+	}
+	return o.ascii, o.runes
 }

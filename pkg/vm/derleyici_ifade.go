@@ -769,18 +769,26 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 	line := e.Line()
 
 	if len(e.NamedArgs) == 0 {
-		// x.metot(...): Metin/Liste/Sözlük yerleşik metotları bağlı yerleşik nesnesi
-		// ayrılmadan doğrudan çağrılır (liste.ekle(x) argüman dilimi de ayırmaz).
-		if mem, ok := e.Function.(*ast.MemberExpression); ok && yerlesikMetotAdi(mem.Property) {
+		// x.metot(...): yapı metotları ile Metin/Liste/Sözlük yerleşik metotları, bağlı
+		// fonksiyon/yerleşik değeri ayrılmadan doğrudan çağrılır (liste.ekle(x) argüman
+		// dilimi de ayırmaz). Diğer durumlarda üye değeri okunup çağrılır.
+		if mem, ok := e.Function.(*ast.MemberExpression); ok {
 			nesne := c.ifade(k, mem.Object)
 			ekle := mem.Property == "ekle"
+			yerlesik := yerlesikMetotAdi(mem.Property)
 			uyeSatiri := mem.Line() // geri çağrıların hata satırı (bağlı yerleşikteki gibi)
 			return func(v *VM, env *Environment) (Value, error) {
 				obj, err := nesne(v, env)
 				if err != nil {
 					return nil, err
 				}
-				if m, ok := metotBul(obj, mem.Property); ok {
+				if inst, ok := obj.(*StructInstanceVal); ok {
+					if _, alan := inst.Fields[mem.Property]; !alan {
+						if metot, ok := inst.Def.Methods[mem.Property]; ok && metot.kod != nil {
+							return v.metotCagir(metot, inst, argKod, env, line)
+						}
+					}
+				} else if m, ok := metotBul(obj, mem.Property); yerlesik && ok {
 					if l, liste := obj.(*ListVal); liste && ekle && nargs == 1 {
 						av, err := argKod[0](v, env)
 						if err != nil {
@@ -863,6 +871,32 @@ func argumanlar(v *VM, env *Environment, argKod []ifadeKodu) ([]Value, error) {
 	return args, nil
 }
 
+// metotCagir bir yapı metodunu, bağlı fonksiyon değeri ayırmadan, kendi = inst ile çağırır
+// (bağlı değerle yapılan çağrıyla aynı denetim ve sırayla).
+func (v *VM) metotCagir(metot *FuncVal, inst Value, argKod []ifadeKodu, env *Environment, line int) (Value, error) {
+	nargs := len(argKod)
+	fk := metot.kod
+	if fk.basit && nargs <= len(metot.Parameters) && varsayilanlarYeter(metot, nargs) {
+		fnEnv := fk.ortamAl(metot.Env)
+		for i, a := range argKod {
+			av, err := a(v, env)
+			if err != nil {
+				return nil, err
+			}
+			fnEnv.vals[fk.param[i]] = av
+		}
+		return v.cagirHazir(metot, fk, fnEnv, inst, nil, nargs, nil, line)
+	}
+	args, err := argumanlar(v, env, argKod)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkArity(metot, len(args), nil, line); err != nil {
+		return nil, err
+	}
+	return v.cagirHazir(metot, fk, fk.ortamAl(metot.Env), inst, args, len(args), nil, line)
+}
+
 // konumluCagir fnVal'ı (adlı argümansız) konumlu argümanlarla çağırır.
 func (v *VM) konumluCagir(fnVal Value, argKod []ifadeKodu, env *Environment, line int) (Value, error) {
 	nargs := len(argKod)
@@ -879,7 +913,7 @@ func (v *VM) konumluCagir(fnVal Value, argKod []ifadeKodu, env *Environment, lin
 				}
 				fnEnv.vals[fk.param[i]] = av
 			}
-			return v.cagirHazir(fn, fk, fnEnv, nil, nargs, nil, line)
+			return v.cagirHazir(fn, fk, fnEnv, fn.BoundSelf, nil, nargs, nil, line)
 		}
 	case *BuiltinVal:
 		// Hızlı yol: tek argümanlı yerleşik (argüman dilimi ayrılmaz)

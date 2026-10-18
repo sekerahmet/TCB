@@ -75,7 +75,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 		if fk == nil {
 			fk = v.fonkKoduHazirla(fn)
 		}
-		return v.cagirHazir(fn, fk, fk.ortamAl(fn.Env), args, len(args), named, line)
+		return v.cagirHazir(fn, fk, fk.ortamAl(fn.Env), fn.BoundSelf, args, len(args), named, line)
 
 	case *BuiltinVal:
 		res, err := fn.Fn(v, args, named)
@@ -137,8 +137,9 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 // cagirHazir bir kullanıcı fonksiyonunu fnEnv ortamında çalıştırır. args nil değilse
 // argümanlar sırayla bağlanır; nil ise ilk nargs argüman zaten yuvalara yazılmıştır
 // (yalnızca fk.basit iken). Kalan parametreler adlı argümanlardan, varsayılanlardan ya da
-// 'yok' ile doldurulur.
-func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
+// 'yok' ile doldurulur. kendi, metot çağrılarında nesnedir (bağlı fonksiyon değerinin
+// BoundSelf'i ya da doğrudan derlenmiş 'nesne.metot(...)' çağrısının nesnesi).
+func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Value, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
 	fnEnv.IsFuncRoot = true
 	v.devret() // özyinelemeli (döngüsüz) hesaplarda da kilit devredilebilsin
 	if fk.erteleVar {
@@ -156,7 +157,7 @@ func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, args []Va
 		FuncName: fnName,
 		Line:     line,
 	})
-	val, err := v.fonksiyonGovdesi(fn, fk, fnEnv, args, nargs, named)
+	val, err := v.fonksiyonGovdesi(fn, fk, fnEnv, kendi, args, nargs, named)
 	if len(v.CallStack) > 0 {
 		v.CallStack = v.CallStack[:len(v.CallStack)-1]
 	}
@@ -170,12 +171,12 @@ func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, args []Va
 	return val, err
 }
 
-func (v *VM) fonksiyonGovdesi(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, args []Value, nargs int, named map[string]Value) (Value, error) {
-	if fn.BoundSelf != nil {
+func (v *VM) fonksiyonGovdesi(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Value, args []Value, nargs int, named map[string]Value) (Value, error) {
+	if kendi != nil {
 		if fk.kendi >= 0 {
-			fnEnv.vals[fk.kendi] = fn.BoundSelf
+			fnEnv.vals[fk.kendi] = kendi
 		} else {
-			fnEnv.Define("kendi", fn.BoundSelf, false)
+			fnEnv.Define("kendi", kendi, false)
 		}
 	}
 	for i, param := range fn.Parameters {
