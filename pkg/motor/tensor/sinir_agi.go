@@ -164,6 +164,22 @@ func matrisVerisi(t *ct.Tensor) [][]float64 {
 func (nn *SinirAgi) kaydet(m *vm.VM, yol string) error {
 	agirliklar := make([][][]float64, len(nn.agirliklar))
 	sapmalar := make([][][]float64, len(nn.sapmalar))
+	// Sonlu olmayan değer JSON'a yazılamaz; ham kitaplık hatası yerine yerini gösteren
+	// Türkçe bir hata verilir (genelde ıraksayan eğitimin işaretidir).
+	for i := range nn.agirliklar {
+		for _, p := range []struct {
+			ad string
+			t  *ct.Tensor
+		}{{"ağırlıklarında", nn.agirliklar[i]}, {"sapmalarında", nn.sapmalar[i]}} {
+			sh, veri := p.t.Shape(), p.t.Data()
+			for k, v := range veri {
+				if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+					return fmt.Errorf("model.kaydet: %d. katmanın %s sonlu olmayan değer var: [%d, %d] = %s; model kaydedilemedi (eğitim ıraksamış olabilir: öğrenme oranını düşürün)",
+						i+1, p.ad, k/sh[1], k%sh[1], sayiMetni(v, false))
+				}
+			}
+		}
+	}
 	for i := range nn.agirliklar {
 		agirliklar[i] = matrisVerisi(nn.agirliklar[i])
 		sapmalar[i] = matrisVerisi(nn.sapmalar[i])

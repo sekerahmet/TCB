@@ -321,6 +321,11 @@ test "15.10 tensör_kaydet ve tensör_yükle hataları" {
     doğrula(hata_metni(() => tensör_yükle(".")).içerir("bir klasör, tensör dosyası değil"))
     doğrula(hata_metni(() => tensör_kaydet("x.trt", [1])).içerir("adları tensör olan bir sözlük olmalıdır"))
     doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("değeri bir tensör olmalıdır"))
+    // Sonlu olmayan ağırlık Türkçe, yerini gösteren bir hatadır; dosya yazılmaz.
+    değişken m = sinir_ağı([2, 2, 1])
+    türevsiz { m.ağırlıklar[0][1] = log(-1.0) }
+    değişken h = hata_metni(() => m.kaydet("bu_model_yazilmamali.json"))
+    doğrula(h.içerir("1. katmanın ağırlıklarında sonlu olmayan değer") ve h.içerir("[1, 0]"))
 }
 
 test "15.10a tensör dosyası sürüm 2 türü korur; sürüm 1 dosyaları okunur" {
