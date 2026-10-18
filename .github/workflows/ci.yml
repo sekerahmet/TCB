@@ -32,8 +32,9 @@ jobs:
     env:
       GOAMD64: ${{ matrix.goamd64 }}
       # Örnek duman testinde atlanacak dosyalar (boşlukla ayrılmış adlar). Dış ağ
-      # gerektiren örnekler buraya eklenir. faz5_6 yalnızca yerel (localhost) sunucu
-      # açtığından koşar; faz4'ün kesme noktası boş standart girişte (EOF) devam eder.
+      # gerektiren örnekler buraya eklenir. 09_web_veritabani yalnızca yerel (localhost)
+      # sunucu açtığından koşar; 04_hata_ayiklama etkileşimlidir, kesme noktası boş
+      # standart girişte (EOF) devam eder. 03_testler_test ayrıca `tr test` ile koşar.
       ATLANACAK_ORNEKLER: ""
       # Tek bir örneğin en uzun süresi (saniye); aşılırsa örnek başarısız sayılır.
       ORNEK_ZAMAN_ASIMI: "300"
@@ -80,10 +81,11 @@ jobs:
           go build -o "$RUNNER_TEMP/tr$uzanti" ./cmd/tr
           echo "TR=$RUNNER_TEMP/tr$uzanti" >> "$GITHUB_ENV"
 
-      - name: Dil tanımı testleri (tr test)
+      - name: Dil tanımı ve örnek testleri (tr test)
         if: (success() || failure()) && steps.tr.outcome == 'success'
         run: |
           "$TR" test testler
+          "$TR" test ornekler
 
       - name: Örnekler (duman testi)
         if: (success() || failure()) && steps.tr.outcome == 'success'

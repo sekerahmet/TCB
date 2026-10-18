@@ -37,7 +37,7 @@
 
 ## Hata ayıklama
 
-**F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için).
+**F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için). Denemek için depodaki `calisma/hata_ayiklama.tr` (adım adım alıştırma) ya da `ornekler/04_hata_ayiklama.tr` (koddaki koşullu `kesme_noktası`) dosyasını açıp F5'e basın.
 
 **İzleme Masası:** Program her durduğunda editörün yanında açılır.
 

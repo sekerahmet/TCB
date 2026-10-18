@@ -1,16 +1,18 @@
-// Parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli eğitimi:
-// parçalayıcıyı yükle, metni kodla/çöz, .npy token parçalarından rastgele toplu işlerle
-// eğit, sıralı okuyucuyla doğrula ve modelin yazdığı metni çöz.
+// 08 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
+// Öğrettikleri: tokenizer.json yükleyip metni kodlamak/çözmek, .npy token parçalarından
+// örnekleyiciyle rastgele toplu işler almak, sıralı okuyucuyla doğrulamak, üretilen
+// tokenları metne çevirmek. Ayrıntılar: KULLANIM_KILAVUZU.md §4.E, docs/DIL_TANIMI.md §16.
 //
 // Varsayılan olarak depodaki sentetik test verisini (testler/veri) kullanır. Kendi
-// verinizle çalıştırmak için aşağıdaki yolları değiştirin, ör.:
+// verinizle çalıştırmak için aşağıdaki üç yolu kendi dosyalarınıza çevirin, ör.:
 //     değişken PARÇALAYICI_YOLU = "D:/veri/tokenizer.json"
-//     değişken VERİ_YOLU = "D:/veri/train"
+//     değişken VERİ_YOLU = "D:/veri/train"          // .npy parçalarının klasörü
 //     değişken DOĞRULAMA_YOLU = "D:/veri/valid"
 // Parçalar .npy token dosyalarıdır (numpy.save ile yazılmış uint16/int32 diziler); meta.json
 // varsa parça token sayıları oradan okunur. Veri yavaş bir sürücüdeyse (ağ ya da bulut)
 // yerel önbellek kullanın: veri_kümesi(VERİ_YOLU, önbellek: "onbellek/veri", kota_gb: 20)
-// Çalıştırma: tr ornekler/veri_ile_egitim.tr
+// Göreli yollar önce çalışma klasörüne, sonra bu dosyanın klasörüne göre çözülür.
+// Çalıştırma (proje kökünden): tr ornekler/08_veri_ile_egitim.tr
 
 değişken PARÇALAYICI_YOLU = "../testler/veri/parcalayici.json"
 değişken VERİ_YOLU = "../testler/veri/metin"
@@ -37,7 +39,7 @@ yazdır(küme)
 değişken ö = küme.örnekleyici(toplu: TOPLU, bağlam: BAĞLAM, tohum: 1)
 
 // --- Model: gömme → ara katman → sözlük üzerinde dağılım (bir sonraki token yalnızca
-// şimdiki tokena bakılarak tahmin edilir; dikkatli bir model için ornekler/transformer.tr) ---
+// şimdiki tokena bakılarak tahmin edilir; dikkatli bir model için ornekler/06_transformer.tr) ---
 değişken parametreler = []
 değişken parametre_tohumu = 0
 fonksiyon parametre(şekil, ölçek) {

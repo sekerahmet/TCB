@@ -1,22 +1,26 @@
-// Küçük bir transformer (çok başlı nedensel dikkat + ileri besleme + katman normu)
+// 06 — Transformer: 05'teki yapı taşlarıyla elle yazılmış küçük bir transformer.
+// Öğrettikleri: gömme ve konum gömmesi, çok başlı nedensel dikkat (şekillendir,
+// eksenleri_sırala, devrik, maske), katman normu, gelu ile ileri besleme, çapraz_entropi
+// kaybı ve AdamW ile eğitim döngüsü, türevsiz çıkarım.
 // Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki tokenı tahmin etmek.
+// Çalıştırma (proje kökünden): tr ornekler/06_transformer.tr
 
-değişken V = 8      // sözlük boyutu
-değişken T = 8      // bağlam uzunluğu
-değişken D = 16     // gizli boyut
-değişken H = 2      // dikkat başı
-değişken Dh = 8     // baş boyutu (D / H)
-değişken B = 4      // toplu iş boyutu
+değişken V = 8 // sözlük boyutu
+değişken T = 8 // bağlam uzunluğu
+değişken D = 16 // gizli boyut
+değişken H = 2 // dikkat başı
+değişken Dh = 8 // baş boyutu (D / H)
+değişken B = 4 // toplu iş boyutu
 
 // Öğrenilen parametre: küçük rastgele değerlerle başlar, gradyanı izlenir.
 değişken parametre_tohumu = 1
 fonksiyon parametre(şekil, ölçek) {
-    parametre_tohumu += 1   // her parametreye farklı ama sabit bir tohum: sonuç tekrar üretilebilir
+    parametre_tohumu += 1 // her parametreye farklı ama sabit bir tohum: sonuç tekrar üretilebilir
     sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
 }
 
-değişken E = parametre([V, D], 0.1)       // token gömme tablosu
-değişken P = parametre([T, D], 0.1)       // konum gömme tablosu
+değişken E = parametre([V, D], 0.1) // token gömme tablosu
+değişken P = parametre([T, D], 0.1) // konum gömme tablosu
 değişken Wq = parametre([D, D], 0.2)
 değişken Wk = parametre([D, D], 0.2)
 değişken Wv = parametre([D, D], 0.2)
@@ -47,7 +51,7 @@ fonksiyon başlara_ayır(x) {
 }
 
 fonksiyon ileri(girdiler) {
-    değişken x = gömme(E, girdiler) + gömme(P, konumlar)            // [B, T, D]
+    değişken x = gömme(E, girdiler) + gömme(P, konumlar) // [B, T, D]
     değişken q = başlara_ayır(x @ Wq)
     değişken k = başlara_ayır(x @ Wk)
     değişken v = başlara_ayır(x @ Wv)
@@ -56,7 +60,7 @@ fonksiyon ileri(girdiler) {
     değişken h = katman_normu(x + y @ Wo, g1, s1)
     değişken m = gelu(h @ W1) @ W2
     değişken çıkış = katman_normu(h + m, g2, s2)
-    sonuç çıkış @ Wu                                                  // [B, T, V]
+    sonuç çıkış @ Wu // [B, T, V]
 }
 
 // Basit, tekrar üretilebilir sözde rastgele sayılar
@@ -100,7 +104,7 @@ yazdır("süre: {zaman_ms() - başlangıç} ms")
 // Öğrendi mi? Bir diziyi verip tahminleri yazdır.
 değişken deneme = toplu_iş_üret()
 değişken tahmin = türevsiz { ileri(deneme[0]) }
-değişken olasılıklar = tahmin.değer[0]          // ilk dizinin [T, V] çıktısı
+değişken olasılıklar = tahmin.değer[0] // ilk dizinin [T, V] çıktısı
 değişken tahminler = []
 döngü satır içinde olasılıklar {
     değişken en_iyi = 0

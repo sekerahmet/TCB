@@ -14,7 +14,7 @@ import (
 	dv "tr_dili/pkg/veri"
 )
 
-// testler/veri altındaki sentetik test verisi (TR testleri ve ornekler/veri_ile_egitim.tr
+// testler/veri altındaki sentetik test verisi (TR testleri ve ornekler/08_veri_ile_egitim.tr
 // kullanır) bu dosyadaki üreteçle oluşturulur. Varsayılan olarak test, depodaki dosyaların
 // üreteçle birebir aynı olduğunu denetler; yeniden üretmek için:
 //

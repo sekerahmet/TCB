@@ -8,6 +8,7 @@
 ornekler/kurumsal_panel.html
 ornekler/sirket_erp.trdb
 ornekler/xor_modeli.json
+ornekler/agirliklar.trt
 *.trdb
 
 # Go araç çıktıları

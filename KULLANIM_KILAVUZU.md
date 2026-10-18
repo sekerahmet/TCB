@@ -22,6 +22,8 @@ $env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
 | `.\tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (`bicimle` da olur, bkz. §10) |
 | `.\tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
 
+Öğrenmeye `ornekler/` klasöründeki numaralı örneklerle başlayın (`01_merhaba.tr` … `09_web_veritabani.tr`; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
+
 ---
 
 ## 2. Anahtar Kelimeler (Çift Modlu: Türkçe & ASCII)
@@ -104,7 +106,7 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 - `web_al` / `web_gönder`: 2xx dışı bir yanıt, durum kodu ve gövdenin kısa bir özetiyle hata verir (`web_al: ... adresi 404 Not Found durum kodu döndürdü: ...`; `dene/yakala` ile yakalanır). Yanıt gövdesi en çok 50 MB olabilir, istek 30 saniyede zaman aşımına uğrar. JSON yanıt sözlük/liste olarak, diğerleri metin olarak döner.
 
 ### D. Tensörler ve Otomatik Türev
-Tensör, n boyutlu (float32) bir sayı dizisidir; yapay zekâ modellerinin ağırlıkları, girdileri ve ara sonuçları tensördür. Her işlem hesap çizgesine kaydedilir; `geri_yayılım(kayıp)` tüm gradyanları hesaplar.
+Tensör, n boyutlu (float32) bir sayı dizisidir; yapay zekâ modellerinin ağırlıkları, girdileri ve ara sonuçları tensördür. Her işlem hesap çizgesine kaydedilir; `geri_yayılım(kayıp)` tüm gradyanları hesaplar. Çalıştırılabilir örnekler: `ornekler/05_tensor_ve_turev.tr`, `ornekler/06_transformer.tr`, `ornekler/07_karakter_modeli.tr`.
 
 - **Oluşturma:** `tensör(veri, türev_izle: doğru)` (veri: iç içe liste, tek sayı ya da tensör), `sıfırlar([2, 3])`, `birler([2, 3])`, `rastgele_normal([2, 3], tohum: 42)`. Şekil **liste** olarak verilir; `sıfırlar(2, 3)` gibi iki tam sayı da aynı 2 boyutlu tensörü verir. `matris(...)`, `birim_matris(n)`, `rastgele_matris(...)` da 2 boyutlu tensör döndürür. `türev_izle` varsayılanı her zaman (tek sayıda da) `yanlış`tır: `tensör(3.0)` 0 boyutlu (skaler) bir tensördür (`.şekil` `[]`, `.değer` `3.0`, `.gradyan` `yok`); türevi izlenecekse `tensör(3.0, türev_izle: doğru)` yazın.
 - **Sayı hassasiyeti:** Tensör hesapları `float32` ile (yaklaşık 7 anlamlı basamak) yapılır; `Ondalık` ise 64 bitliktir. Bu yüzden `(tensör([1.0]) / 3).değer[0]` `0.33333334` verir ve `1 / 3`e eşit değildir; `tensör([16777217.0])` 16777216 olarak saklanır. Kesin karşılaştırma yerine `yuvarla(...)` ya da küçük bir tolerans kullanın.
@@ -151,7 +153,7 @@ yazdır(türevsiz { sonuç X @ w + b })                                       //
 VS Code İzleme Masası'nda tensörler tip sütununda `Tensör [2×3]` olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılabilir. Variables panelinde tensörler ilk ekseni boyunca açılır (satırlar, onların içinde sayılar; 1000'den çok satırda ilk 1000 satır ve bir `…` satırı gösterilir).
 
 ### E. Veri ve Parçalayıcı
-Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` token parçalarını okuyan **veri kümesi**. Uçtan uca örnek: `ornekler/veri_ile_egitim.tr`.
+Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` token parçalarını okuyan **veri kümesi**. Uçtan uca örnek: `ornekler/08_veri_ile_egitim.tr`.
 
 **Parçalayıcı**
 - `değişken p = parçalayıcı_yükle("tokenizer.json")` yaygın `tokenizer.json` biçimini okur (BPE, WordPiece, WordLevel, Unigram modelleri; bayt düzeyi, Metaspace, BERT tarzı bileşenler). Desteklenmeyen bir bileşen türü, hangi bileşenin hangi türü olduğunu söyleyen bir hatayla bildirilir. Tip adı `Parçalayıcı`.
@@ -198,7 +200,7 @@ VS Code İzleme Masası'nda bu nesneler tip sütununda `Parçalayıcı (40000 s�
 
 ## 5. TR Hata Ayıklayıcı
 
-TR'nin **terminalde** (`tr debug dosya.tr`, kabukta `/h`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`tr dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `vscode_eklentisi/README.md`).
+TR'nin **terminalde** (`tr debug dosya.tr`, kabukta `/h`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`tr dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `vscode_eklentisi/README.md`). Denemek için: `tr ornekler/04_hata_ayiklama.tr` (koşullu kesme noktasında durur; `değiştir vergi_orani = 0.20`, ardından `devam`).
 
 1. **Kod İçi Kesme Noktası (`kesme_noktası`):**
    - Koşulsuz: `kesme_noktası`
@@ -220,6 +222,8 @@ TR'nin **terminalde** (`tr debug dosya.tr`, kabukta `/h`) çalışan bir hata ay
 ---
 
 ## 6. Görsel Arayüz ve Web Sunucu Motoru
+
+Veritabanı, REST API ve arayüzü birlikte kullanan örnek: `ornekler/09_web_veritabani.tr`.
 
 ### A. Görsel Arayüz Motoru (`arayüz_oluştur` / `pencere_oluştur`)
 ```tr
@@ -300,7 +304,7 @@ değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", a
 
 ## 9. Test Yazma ve Çalıştırma (`tr test`)
 
-Testler kodun yanına `test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır.
+Testler kodun yanına `test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır. Örnek: `tr test ornekler/03_testler_test.tr`.
 
 ```tr
 // hesap_test.tr

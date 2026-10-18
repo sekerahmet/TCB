@@ -1,13 +1,15 @@
-// =========================================================================
-// 🇹🇷 TR (.tr) — Faz 5 & Faz 6:
-//   1. Yerleşik Türkçe SQL Veritabanı (.trdb) ve listeleri tablo gibi sorgulama
-//   2. Web Sunucu & REST API Motoru
-//   3. Görsel Arayüz Motoru (kart, tablo, grafik, form)
-// =========================================================================
+// 09 — Web ve veritabanı: bir modeli ya da veriyi uygulamaya dönüştürmek.
+// Öğrettikleri:
+//   1. Yerleşik Türkçe SQL veritabanı (.trdb) ve listeleri tablo gibi sorgulama
+//   2. Web sunucusu ve REST API (al/gönder işleyicileri, web_al/web_gönder ile deneme)
+//   3. Görsel arayüz (kart, tablo, grafik, form) ve HTML rapor
+// Sunucular yalnızca bu bilgisayardan (127.0.0.1) erişilebilir; örnek dış ağa çıkmaz,
+// sunucuları kendisi açıp kapatır. Ayrıntılar: KULLANIM_KILAVUZU.md §6.
+// Çalıştırma (proje kökünden): tr ornekler/09_web_veritabani.tr
+// Ürettiği dosyalar (her çalıştırmada yeniden yazılır, depoya girmez):
+//   ornekler/sirket_erp.trdb, ornekler/kurumsal_panel.html
 
-yazdır("==================================================================")
-yazdır(" 🇹🇷 TR FAZ 5 & 6 — VERİTABANI + WEB SUNUCU + GÖRSEL ARAYÜZ TESTİ")
-yazdır("==================================================================")
+yazdır("=== Veritabanı + web sunucusu + görsel arayüz ===")
 
 // -------------------------------------------------------------------------
 // BÖLÜM 1: YERLEŞİK KALICI TÜRKÇE SQL VERİTABANI VE LİSTE SORGULAMA
@@ -18,11 +20,11 @@ değişken vt = veritabanı_aç("ornekler/sirket_erp.trdb")
 vt.sil("personel") // Temiz başlangıç için önceki kayıtları temizle
 
 vt.ekle("personel", [
-    {"id": 101, "ad": "Ayşe Yılmaz",   "departman": "Yapay Zeka", "maas": 92000.0, "sehir": "İstanbul"},
-    {"id": 102, "ad": "Mehmet Demir",  "departman": "Yazılım",    "maas": 88000.0, "sehir": "Ankara"},
-    {"id": 103, "ad": "Zeynep Kaya",   "departman": "Veri Bilimi","maas": 76000.0, "sehir": "İzmir"},
-    {"id": 104, "ad": "Caner Öztürk",  "departman": "Bulut Sistem","maas": 54000.0, "sehir": "Bursa"},
-    {"id": 105, "ad": "Elif Çelik",    "departman": "Yapay Zeka", "maas": 98000.0, "sehir": "İstanbul"}
+    {"id": 101, "ad": "Ayşe Yılmaz", "departman": "Yapay Zeka", "maas": 92000.0, "sehir": "İstanbul"},
+    {"id": 102, "ad": "Mehmet Demir", "departman": "Yazılım", "maas": 88000.0, "sehir": "Ankara"},
+    {"id": 103, "ad": "Zeynep Kaya", "departman": "Veri Bilimi", "maas": 76000.0, "sehir": "İzmir"},
+    {"id": 104, "ad": "Caner Öztürk", "departman": "Bulut Sistem", "maas": 54000.0, "sehir": "Bursa"},
+    {"id": 105, "ad": "Elif Çelik", "departman": "Yapay Zeka", "maas": 98000.0, "sehir": "İstanbul"}
 ])
 
 yazdır("  • Toplam Kayıt Sayısı : {vt.say('personel')}")
@@ -127,4 +129,4 @@ ertele {
 }
 değişken gui_html = web_al(gui_adres)
 yazdır("  • Canlı GUI Sunucusu ({gui_adres}) Yanıt Boyutu: {gui_html.uzunluk} karakter")
-yazdır("\n✅ FAZ 5 & 6 TÜM TESTLER BAŞARIYLA TAMAMLANDI!")
+yazdır("\nTamamlandı: veritabanı, web API ve arayüz çalıştı.")

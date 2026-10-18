@@ -78,7 +78,7 @@ değişken ö = küme.örnekleyici(toplu: 8, bağlam: 256, tohum: 1)
 değişken girdi, hedef = ö.sonraki()                              // [8, 256] tensörler
 ```
 
-`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`ornekler/veri_ile_egitim.tr`](ornekler/veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.E](KULLANIM_KILAVUZU.md#e-veri-ve-parçalayıcı).
+`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`ornekler/08_veri_ile_egitim.tr`](ornekler/08_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.E](KULLANIM_KILAVUZU.md#e-veri-ve-parçalayıcı).
 
 ## VS Code eklentisi ve hata ayıklama
 
@@ -86,11 +86,28 @@ değişken girdi, hedef = ö.sonraki()                              // [8, 256] 
 
 Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosyayı çalıştırır; görev önce yorumlayıcıyı yeniden derler (`.vscode/tasks.json`).
 
-## Belgeler, örnekler, ölçümler
+## Örnekler
+
+[`ornekler/`](ornekler/) klasöründeki dosyalar sırayla okunacak şekilde numaralıdır; her biri kısa, kendi başına çalışır ve baştaki yorumda ne öğrettiğini anlatır. Proje kökünden çalıştırın: `./tr.exe ornekler/01_merhaba.tr`.
+
+| Dosya | Ne öğretir |
+| :-- | :-- |
+| [`01_merhaba.tr`](ornekler/01_merhaba.tr) | İlk program: değişken, `yazdır`, metne değer yerleştirme, liste, fonksiyon |
+| [`02_dil_turu.tr`](ornekler/02_dil_turu.tr) | Dilin turu: `eşle`, döngüler, liste üreteci, sondaki blok ve `o`, `\|>`, yapılar, `dene/yakala`, `ertele`, `eşzamanlı`, modüller |
+| [`03_testler_test.tr`](ornekler/03_testler_test.tr) | `test` blokları, `doğrula`, `eşit_mi`; `tr test ornekler/03_testler_test.tr` ile çalışır |
+| [`04_hata_ayiklama.tr`](ornekler/04_hata_ayiklama.tr) | `kesme_noktası` ile hata ayıklama, değeri çalışırken değiştirme (etkileşimli) |
+| [`05_tensor_ve_turev.tr`](ornekler/05_tensor_ve_turev.tr) | Tensörler, `@`, yayınlama, otomatik türev, AdamW ile doğrusal regresyon, `sinir_ağı`, kaydet/yükle |
+| [`06_transformer.tr`](ornekler/06_transformer.tr) | Elle yazılmış küçük transformer: çok başlı nedensel dikkat, katman normu |
+| [`07_karakter_modeli.tr`](ornekler/07_karakter_modeli.tr) | Projenin belgeleriyle eğitilen karakter düzeyi dil modeli ve metin üretimi |
+| [`08_veri_ile_egitim.tr`](ornekler/08_veri_ile_egitim.tr) | `tokenizer.json` parçalayıcısı ve `.npy` veri kümesiyle uçtan uca eğitim ve doğrulama |
+| [`09_web_veritabani.tr`](ornekler/09_web_veritabani.tr) | Türkçe SQL veritabanı, REST API sunucusu ve görsel arayüz |
+
+Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`, F5 ile denenecek `hata_ayiklama.tr`).
+
+## Belgeler ve ölçümler
 
 - [`KULLANIM_KILAVUZU.md`](KULLANIM_KILAVUZU.md) — komutlar, yerleşikler, yapay zekâ, web, veritabanı, hata ayıklayıcı.
 - [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) — dilin kuralları; her kuralın `testler/` altında bir testi vardır (`tr test testler`).
-- [`ornekler/`](ornekler/) — küçük karakter transformer'ı (`karakter_modeli.tr`), çok başlı dikkatli transformer (`transformer.tr`), veriyle eğitim, web arayüzü ve veritabanı örnekleri.
 - [`kiyas/`](kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
 
 ## Depo yapısı

@@ -1,4 +1,4 @@
-"""ornekler/karakter_modeli.tr ile aynı model ve eğitim (karşılaştırma için).
+"""ornekler/07_karakter_modeli.tr ile aynı model ve eğitim (karşılaştırma için).
 
 Aynı veri, aynı karakter sözlüğü sırası, aynı boyutlar (V, T=64, D=64, H=4, 2 katman),
 aynı toplu iş örnekleme (aynı sözde rastgele üreteç) ve aynı iyileştirici ayarları.

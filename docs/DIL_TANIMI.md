@@ -1,6 +1,6 @@
 # TR Dil Tanımı
 
-Bu belge TR dilinin **bugünkü uygulamaya** (`pkg/lexer`, `pkg/parser`, `pkg/checker`, `pkg/vm`) dayanan kısa tanımıdır. Dilek değil, davranış anlatır; bilinen eksikler §14'te açıkça listelenmiştir.
+Bu belge TR dilinin **bugünkü uygulamaya** (`pkg/lexer`, `pkg/parser`, `pkg/checker`, `pkg/vm`) dayanan kısa tanımıdır. Dilek değil, davranış anlatır; bilinen eksikler §14'te açıkça listelenmiştir. Dili örneklerle tanımak için önce `ornekler/02_dil_turu.tr`'yi çalıştırın (sıralı örnek listesi: `README.md`, "Örnekler").
 
 **Kural ve test eşlemesi.** Her kuralın bir numarası vardır (ör. **4.2**). `testler/` klasöründeki testlerin adı bu numarayla başlar (`test "4.2 aritmetik: ..."`). `tr test testler` komutu tanımdaki her kuralı çalıştırarak denetler; `go test ./pkg/testkosucu` de tanımda numarası geçip testi olmayan bir kural kalmadığını doğrular (Faz 3 kapısı: *her kural bir testte*).
 
@@ -361,7 +361,7 @@ test "toplama doğru" {
 
 **12.5** Önce dosyanın kendisi (testler hariç) çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde açılan **yeni bir kapsamda** çalışır. Bir testin yerel adları diğerine sızmaz; kalan ya da hata veren test diğerlerini durdurmaz. Testteki `ertele` test bitince çalışır, testin başlattığı görevler beklenir.
 
-`tr test` kullanımı ve çıktı biçimi için `KULLANIM_KILAVUZU.md`'ye bakın.
+`tr test` kullanımı ve çıktı biçimi için `KULLANIM_KILAVUZU.md`'ye bakın; kısa bir örnek: `ornekler/03_testler_test.tr`.
 
 ---
 
@@ -377,7 +377,7 @@ Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirde
 
 **13.4** Sözlük metotları: `.anahtarlar()`, `.değerler()`, `.içerir(anahtar)`.
 
-Hata ayıklayıcıya bağlı `kesme_noktası` deyimi (`kesme_noktası`, `kesme_noktası eğer koşul`) etkileşimli olduğu için bu tanımın testlerine girmez; davranışı `pkg/hataayiklama` birim testleri ve `KULLANIM_KILAVUZU.md` §5 ile belgelenir.
+Hata ayıklayıcıya bağlı `kesme_noktası` deyimi (`kesme_noktası`, `kesme_noktası eğer koşul`) etkileşimli olduğu için bu tanımın testlerine girmez; davranışı `pkg/hataayiklama` birim testleri ve `KULLANIM_KILAVUZU.md` §5 ile belgelenir (çalıştırılabilir örnek: `ornekler/04_hata_ayiklama.tr`).
 
 ---
 

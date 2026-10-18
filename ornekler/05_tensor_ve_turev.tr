@@ -1,48 +1,71 @@
-// =========================================================================
-// 🇹🇷 TR (.tr) Programlama ve Yapay Zeka Dili — Faz 2 Yapay Zeka Testi
-// ("İkisi Bir Arada": Hem Düşük Seviye Tensör/Autograd Hem Hazır Sinir Ağı)
-// =========================================================================
+// 05 — Tensörler ve otomatik türev: model eğitiminin yapı taşları.
+// Öğrettikleri: tensör oluşturma ve şekil, @ (matris çarpımı), yayınlama, relu/softmax,
+// otomatik türev (geri_yayılım, .gradyan), türevsiz, AdamW ile küçük bir doğrusal regresyon,
+// maks_indeks, tensör_kaydet/tensör_yükle ve hazır sinir_ağı (XOR) ile model kaydet/yükle.
+// Ayrıntılar: KULLANIM_KILAVUZU.md §4.D, docs/DIL_TANIMI.md §15.
+// Çalıştırma (proje kökünden): tr ornekler/05_tensor_ve_turev.tr
+// Ürettiği dosyalar (her çalıştırmada yeniden yazılır, depoya girmez):
+//   ornekler/agirliklar.trt, ornekler/xor_modeli.json
 
-yazdır("=== 1. DÜŞÜK SEVİYE: Çok Çekirdekli Matris (@) ve Aktivasyonlar ===")
-değişken Girdi = matris([[1.0, 2.0], [3.0, 4.0]])
-değişken Ağırlık = matris([[0.5, -0.5], [1.0, 2.0]])
-değişken KatmanÇıktısı = relu(Girdi @ Ağırlık)
-yazdır("ReLU(Girdi @ Ağırlık):\n{KatmanÇıktısı}")
-yazdır("Softmax([2.0, 1.0, 0.1]): {[yuvarla(p, 4) döngü p içinde softmax([2.0, 1.0, 0.1])]}")
+yazdır("=== 1. Tensör, @ ve yayınlama ===")
+değişken A = tensör([[1.0, 2.0], [3.0, 4.0]])
+değişken W = matris([[0.5, -0.5], [1.0, 2.0]]) // matris(...) 2 boyutlu tensördür
+yazdır("A.şekil = {A.şekil}")
+yazdır("A @ W =", A @ W)
+yazdır("A + [10, 20] (her satıra eklenir) =", A + tensör([10.0, 20.0]))
+yazdır("relu(A @ W - 4) =", relu(A @ W - 4))
+yazdır("softmax([2, 1, 0.1]) =", softmax(tensör([2.0, 1.0, 0.1])))
 
-yazdır("\n=== 2. DÜŞÜK SEVİYE: Otomatik Türev (Autograd / geri_yayılım) ===")
-// y = x^2 + 2x + 1 fonksiyonunun x = 3 noktasındaki türevi (dy/dx = 2x + 2 = 8)
+yazdır("\n=== 2. Otomatik türev ===")
+// y = x² + 2x + 1 → dy/dx = 2x + 2; x = 3 için 8
 değişken x = tensör(3.0, türev_izle: doğru)
 değişken y = x * x + 2 * x + 1
 geri_yayılım(y)
-yazdır("İfade: y = x*x + 2*x + 1  (x = {x.değer})")
-yazdır("Hesaplanan y değeri : {y.değer}")
-yazdır("Otomatik türev dy/dx: {x.gradyan.değer} (Beklenen: 8.0)")
+yazdır("y = {y.değer}, dy/dx = {x.gradyan.değer} (beklenen 8.0)")
 
-yazdır("\n=== 3. YÜKSEK SEVİYE: 3 Satırda Yapay Sinir Ağı Eğitimi (XOR Problemi) ===")
+// türevsiz { ... } hesap çizgesi kurmadan çalışır (çıkarım için)
+değişken z = türevsiz { x * 10 }
+yazdır("türevsiz sonuç: {z.değer}")
+
+yazdır("\n=== 3. AdamW ile doğrusal regresyon: y = 2x - 1 ===")
+değişken X = tensör([[0], [1], [2], [3]])
+değişken Y = tensör([[-1], [1], [3], [5]])
+değişken w = tensör([[0.0]], türev_izle: doğru)
+değişken b = tensör([0.0], türev_izle: doğru)
+değişken iyileştirici = AdamW([w, b], öğrenme_oranı: 0.1, ağırlık_çürümesi: 0)
+
+döngü adım içinde 0..300 {
+    iyileştirici.sıfırla() // gradyanlar birikir: her adımda sıfırla
+    değişken fark = X @ w + b - Y
+    değişken kayıp = ortalama(fark ** 2)
+    geri_yayılım(kayıp)
+    iyileştirici.adım()
+    eğer adım % 50 == 0 {
+        yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 5)}")
+    }
+}
+yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)} (beklenen 2, -1)")
+yazdır("x = 10 için tahmin: {yuvarla(türevsiz { tensör([[10]]) @ w + b }.değer[0][0], 2)}")
+
+yazdır("\n=== 4. maks_indeks: en olası sınıf ===")
+değişken çıktılar = tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]])
+değişken sınıflar = maks_indeks(çıktılar, eksen: -1)
+değişken adlar = ["kedi", "köpek", "kuş"]
+yazdır("sınıf indeksleri: {sınıflar.değer} → {[adlar[i] döngü i içinde sınıflar.değer]}")
+
+yazdır("\n=== 5. tensör_kaydet / tensör_yükle ===")
+tensör_kaydet("ornekler/agirliklar.trt", {"w": w, "b": b})
+değişken yüklenen = tensör_yükle("ornekler/agirliklar.trt")
+yazdır("yüklenen w = {yuvarla(yüklenen["w"].değer[0][0], 3)}, b = {yuvarla(yüklenen["b"].değer[0], 3)}")
+
+yazdır("\n=== 6. Hazır sinir ağı: XOR, kaydet ve yükle ===")
 değişken X_veri = [[0, 0], [0, 1], [1, 0], [1, 1]]
 değişken Y_hedef = [[0], [1], [1], [0]]
-
 değişken model = sinir_ağı([2, 8, 1], aktivasyon: "tanh", tohum: 42)
 değişken özet = model.eğit(X_veri, Y_hedef, devir: 800, öğrenme_hızı: 0.15)
-yazdır("Eğitim Özeti: {özet}")
+yazdır("ilk kayıp {yuvarla(özet["ilk_kayıp"], 4)} → son kayıp {yuvarla(özet["son_kayıp"], 6)}")
 
-değişken tahminler = model.tahmin_et(X_veri)
-yazdır("XOR Sinir Ağı Tahminleri (Beklenen: 0, 1, 1, 0):\n{tahminler}")
-
-yazdır("\n=== 4. VERİ BİLİMİ, İSTATİSTİK VE VEKTÖR BENZERLİĞİ ===")
-değişken veriler = [10, 20, 30, 40, 50]
-yazdır("Veriler        : {veriler}")
-yazdır("Ortalama       : {ortalama(veriler)}")
-yazdır("Standart Sapma : {yuvarla(standart_sapma(veriler), 4)}")
-yazdır("Normalize (0-1): {normalize_et(veriler)}")
-
-değişken vektör_a = [1.0, 2.0, 3.0]
-değişken vektör_b = [2.0, 4.0, 6.0]
-yazdır("Kosinüs Benzerliği (A, B): {yuvarla(kosinüs_benzerliği(vektör_a, vektör_b), 4)}")
-
-yazdır("\n=== 5. JSON İLE VERİ ALIŞVERİŞİ ===")
-değişken istatistik = {"ortalama": ortalama(veriler), "standart_sapma": yuvarla(standart_sapma(veriler), 4)}
-değişken json_metni = json_metin(istatistik)
-yazdır("JSON metni    : {json_metni}")
-yazdır("Geri çözülen  : {json_çöz(json_metni)}")
+model.kaydet("ornekler/xor_modeli.json")
+değişken hazır_model = model_yükle("ornekler/xor_modeli.json") // eğitimsiz, diskten
+değişken tahmin = hazır_model.tahmin_et(X_veri)
+yazdır("yüklenen modelin XOR tahminleri (beklenen 0, 1, 1, 0): {[yuvarla(t[0], 2) döngü t içinde tahmin.değer]}")

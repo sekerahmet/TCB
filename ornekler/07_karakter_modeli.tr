@@ -1,7 +1,10 @@
-// Karakter düzeyinde küçük bir dil modeli (~100 bin parametre, 2 katmanlı transformer).
+// 07 — Karakter modeli: gerçek metinle eğitilen küçük bir dil modeli (~100 bin parametre,
+// 2 katmanlı, ön normalizasyonlu transformer).
 // Veri: TR'nin kendi Türkçe belgeleri. Model bir sonraki karakteri tahmin etmeyi öğrenir,
-// sonunda kendi yazdığı bir metin örneği verir.
-// Proje kök klasöründen çalıştırın: tr ornekler/karakter_modeli.tr
+// sonunda kendi yazdığı bir metin örneği verir (maks_indeks ile açgözlü üretim).
+// Öğrettikleri: metinden karakter sözlüğü kurmak, katman listesiyle derin model, parametre
+// sayımı, metin üretimi. Aynı model PyTorch ile: kiyas/py/karakter_modeli.py (kiyas/README.md).
+// Proje kök klasöründen çalıştırın: tr ornekler/07_karakter_modeli.tr
 
 değişken ADIM = 300
 değişken metin_verisi = dosya_oku("KULLANIM_KILAVUZU.md") + dosya_oku("docs/DIL_TANIMI.md")
@@ -18,12 +21,12 @@ döngü h içinde metin_verisi {
     veri.ekle(harf_no[h])
 }
 
-değişken V = uzunluk(harfler)   // sözlük boyutu
-değişken T = 64                 // bağlam uzunluğu
-değişken D = 64                 // gizli boyut
-değişken H = 4                  // dikkat başı
-değişken Dh = 16                // baş boyutu
-değişken B = 16                 // toplu iş boyutu
+değişken V = uzunluk(harfler) // sözlük boyutu
+değişken T = 64 // bağlam uzunluğu
+değişken D = 64 // gizli boyut
+değişken H = 4 // dikkat başı
+değişken Dh = 16 // baş boyutu
+değişken B = 16 // toplu iş boyutu
 değişken KATMAN = 2
 
 // --- Parametreler ---
