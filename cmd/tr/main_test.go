@@ -6,6 +6,7 @@ import (
 	"debug/buildinfo"
 	"encoding/binary"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -22,6 +23,11 @@ import (
 var trIkilisi string
 
 func TestMain(m *testing.M) {
+	// Bulanıklaştırma işçileri ikiliyi kullanmaz; her işçide yeniden derlemek gereksizdir.
+	flag.Parse()
+	if f := flag.Lookup("test.fuzzworker"); f != nil && f.Value.String() == "true" {
+		os.Exit(m.Run())
+	}
 	klasor, err := os.MkdirTemp("", "tr-cmd-test-*")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "geçici klasör açılamadı:", err)
