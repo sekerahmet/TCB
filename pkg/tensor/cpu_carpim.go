@@ -199,6 +199,9 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 		kcMax = K
 	}
 
+	// A paneli çok sayıda B paneliyle kullanılacaksa (geniş N) paketlemek,
+	// adımlı okumadan biraz daha hızlıdır (ölçüm: N=256'da %10).
+	dogrudan := dogrudanA && np < 12
 	calis := func(t int, ap []float32) {
 		bi := t / (tpr * tpc)
 		r := t % (tpr * tpc)
@@ -220,7 +223,7 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 				kb = kcBlok
 			}
 			tam := 0 // doğrudan okunacak tam A paneli sayısı
-			if dogrudanA {
+			if dogrudan {
 				tam = m / mr
 				if m > tam*mr {
 					// Yalnızca kenar paneli (sıfır dolgulu) paketlenir.
@@ -245,7 +248,7 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 					switch {
 					case ip < tam:
 						mikroA(kb, aB[(i0+ip*mr)*ais+p0*aks:], ais, aks, bpan, cBlok, N, mm, nn)
-					case dogrudanA:
+					case dogrudan:
 						microKernel(kb, ap[:kb*mr], bpan, cBlok, N, mm, nn)
 					default:
 						microKernel(kb, ap[ip*kb*mr:(ip+1)*kb*mr], bpan, cBlok, N, mm, nn)
