@@ -186,6 +186,7 @@ func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
 		for _, p := range params {
 			if p.grad != nil {
 				p.be.Scale(p.grad, k)
+				p.grad.BumpVersion()
 			}
 		}
 	}

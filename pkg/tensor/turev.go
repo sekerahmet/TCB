@@ -109,7 +109,7 @@ func surumDenetle(order []*Tensor) {
 			if v := k.t.storage.Version(); v != k.v {
 				panic(fmt.Sprintf("tensor: %q işleminin ileri hesapta kaydettiği bir girdi (şekil %v) ileri hesaptan "+
 					"sonra yerinde değiştirildi; geri yayılım yanlış sonuç verirdi (sürüm %d → %d; ör. iyileştirici "+
-					"adımı ya da Set). Yerinde değişikliği geri yayılımdan sonraya alın ya da girdinin kopyasını "+
+					"adımı, Set ya da gradyanın değişmesi: yeni bir geri yayılımın birikimi, gradyanların sıfırlanması ya da kırpılması). Yerinde değişikliği geri yayılımdan sonraya alın ya da girdinin kopyasını "+
 					"(Clone) kullanın", n.op, k.t.shape, k.v, v))
 			}
 		}
@@ -152,6 +152,26 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 	// Önce çizgeyi kur: bırakılmış bir ara tensöre rastlanırsa gradyan
 	// biriktirmeden hata ver (aksi halde yaprakların gradyanı sessizce eksik kalırdı).
 	order := topoOrder(t)
+	// Yaprakların gradyan depoları bu geri yayılımda değişecek. Gradyan (.gradyan / Grad)
+	// deponun canlı takma adıdır; onu kaydetmiş bir çizge, gradyan değişince açık hata
+	// vermeli. Sürüm önce artırılır (bu çizgenin kendisi yaprak gradyanını kaydetmişse
+	// aşağıdaki denetim yakalar), birikimden sonra yeniden artırılır.
+	var yapraklar []*Tensor
+	for _, n := range order {
+		if n.backward == nil {
+			yapraklar = append(yapraklar, n)
+			if n.grad != nil {
+				n.grad.BumpVersion()
+			}
+		}
+	}
+	defer func() {
+		for _, n := range yapraklar {
+			if n.grad != nil {
+				n.grad.BumpVersion()
+			}
+		}
+	}()
 	surumDenetle(order)
 	// Çizgenin ara düğümlerini bu geri yayılıma ayır: başka bir geri yayılım (ör. dış
 	// düğümün geri hesabı sırasında başka görevin başlattığı) aynı düğümlere rastlarsa

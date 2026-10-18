@@ -365,7 +365,10 @@ func (t *Tensor) index(idx []int) int {
 }
 
 // Grad birikmiş gradyanı tensör olarak verir (yoksa nil). Dönen tensör
-// gradyan depolamasını paylaşır.
+// gradyan depolamasının canlı bir takma adıdır (kopya değildir): sonraki geri
+// yayılımlar, ZeroGrad ve ClipGradNorm onu da değiştirir. Bu işlemler deponun
+// sürümünü artırdığından, dönen tensörü kaydetmiş bir çizge gradyan değiştikten
+// sonra geri yayılırsa açık hata verir; saklamak için Clone kullanın.
 func (t *Tensor) Grad() *Tensor {
 	if t.grad == nil {
 		return nil
@@ -373,10 +376,12 @@ func (t *Tensor) Grad() *Tensor {
 	return fromStorage(t.be, t.grad, t.shape)
 }
 
-// ZeroGrad gradyanı sıfırlar.
+// ZeroGrad gradyanı sıfırlar. Gradyan deposunun sürümü artar: Grad ile alınmış (deponun
+// takma adı olan) bir gradyanı kaydetmiş çizgenin geri yayılımı hata verir.
 func (t *Tensor) ZeroGrad() {
 	if t.grad != nil {
 		t.be.Fill(t.grad, 0)
+		t.grad.BumpVersion()
 	}
 }
 

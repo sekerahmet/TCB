@@ -184,6 +184,31 @@ test "15.6a türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     eşit_mi([1.0, 2.0], w.değer)
 }
 
+test "15.6b .gradyan canlı takma addır; değişince onu kullanan hesap hata verir" {
+    değişken x = tensör([1.0, 2.0], türev_izle: doğru)
+    değişken w = tensör([1.0, 1.0], türev_izle: doğru)
+    geri_yayılım(toplam(x * 3))
+    değişken g = x.gradyan
+    değişken kopya = tensör(x.gradyan)
+    değişken k = toplam(g * w)
+    geri_yayılım(toplam(x * 5))      // x.gradyan (ve g) yerinde birikir
+    eşit_mi([8.0, 8.0], g.değer)
+    eşit_mi([3.0, 3.0], kopya.değer)
+    doğrula(hata_metni(() => geri_yayılım(k)).içerir("yerinde değiştirildi"))
+    // Sıfırlama ve kırpma da gradyanı yerinde değiştirir.
+    değişken k2 = toplam(x.gradyan * w)
+    SGD([x], öğrenme_oranı: 0.1).sıfırla()
+    eşit_mi([0.0, 0.0], g.değer)
+    doğrula(hata_metni(() => geri_yayılım(k2)).içerir("yerinde değiştirildi"))
+    geri_yayılım(toplam(x * 3))
+    değişken k3 = toplam(x.gradyan * w)
+    gradyan_kırp([x], en_fazla: 0.1)
+    doğrula(hata_metni(() => geri_yayılım(k3)).içerir("yerinde değiştirildi"))
+    // Kopyayla kurulan hesap etkilenmez.
+    geri_yayılım(toplam(kopya * w))
+    eşit_mi([3.0, 3.0], w.gradyan.değer)
+}
+
 test "15.7 iyileştiriciler: küçük doğrusal regresyon" {
     // y = 2·x1 - 3·x2 + 0.5
     değişken X = tensör([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])
