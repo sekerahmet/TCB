@@ -1,0 +1,351 @@
+package yurut
+
+import (
+	"fmt"
+	"tr_dili/internal/dil/agac"
+)
+
+// --- DEYİMLER ---
+
+func (c *derleyici) deyim(k *derleyiciKapsam, stmt agac.Statement) deyimKodu {
+	switch s := stmt.(type) {
+	case nil:
+		return bosDeyim
+	case *agac.VarStatement:
+		deger := c.ifade(k, s.Value)
+		tanim := tanimlayici(k, s.Name.Value)
+		sabit := s.IsConst
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			val, err := deger(v, env)
+			if err != nil {
+				return nil, signalNone, err
+			}
+			tanim(env, val, sabit)
+			return val, signalNone, nil
+		}
+
+	case *agac.MultiVarStatement:
+		degerler := c.ifadeler(k, s.Values)
+		tanimlar := make([]func(*Environment, Value, bool), len(s.Names))
+		for i, n := range s.Names {
+			tanimlar[i] = tanimlayici(k, n.Value)
+		}
+		sabit := s.IsConst
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			evalVals, err := cokluDegerler(v, env, degerler, len(tanimlar))
+			if err != nil {
+				return nil, signalNone, err
+			}
+			var lastVal Value = NULL
+			for i, tanim := range tanimlar {
+				var val Value = NULL
+				if i < len(evalVals) {
+					val = evalVals[i]
+				}
+				tanim(env, val, sabit)
+				lastVal = val
+			}
+			return lastVal, signalNone, nil
+		}
+
+	case *agac.AssignStatement:
+		deger := c.ifade(k, s.Value)
+		hedef := c.atamaHedefi(k, s.Target, islecKodu(s.Operator), s.Line())
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			val, err := deger(v, env)
+			if err != nil {
+				return nil, signalNone, err
+			}
+			if err := hedef(v, env, val); err != nil {
+				return nil, signalNone, err
+			}
+			return val, signalNone, nil
+		}
+
+	case *agac.MultiAssignStatement:
+		// Önce sağdaki tüm ifadeler hesaplanır (a, b = b, a takası için kritik!)
+		degerler := c.ifadeler(k, s.Values)
+		hedefler := make([]func(*VM, *Environment, Value) error, len(s.Targets))
+		for i, t := range s.Targets {
+			hedefler[i] = c.atamaHedefi(k, t, opAta, s.Line())
+		}
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			evalVals, err := cokluDegerler(v, env, degerler, len(hedefler))
+			if err != nil {
+				return nil, signalNone, err
+			}
+			var lastVal Value = NULL
+			for i, hedef := range hedefler {
+				var val Value = NULL
+				if i < len(evalVals) {
+					val = evalVals[i]
+				}
+				if err := hedef(v, env, val); err != nil {
+					return nil, signalNone, err
+				}
+				lastVal = val
+			}
+			return lastVal, signalNone, nil
+		}
+
+	case *agac.DeferStatement:
+		var govde *blokKodu
+		var govdeBilgi *kapsamBilgisi
+		var cagri ifadeKodu
+		if s.Body != nil {
+			alt := altKapsam(k)
+			alt.onTanimla(s.Body.Statements)
+			govde = c.deyimler(alt, s.Body.Statements)
+			govdeBilgi = alt.bilgi
+		} else if s.Call != nil {
+			cagri = c.ifade(k, s.Call)
+		}
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			capturedEnv := env
+			// Ertelenen işin hatası yutulmaz; fonksiyonun hatasına eklenir (9.4).
+			env.AddDefer(func() error {
+				if govde != nil {
+					_, _, err := govde.calistir(v, yeniOrtam(capturedEnv, govdeBilgi))
+					return err
+				} else if cagri != nil {
+					_, err := cagri(v, capturedEnv)
+					return err
+				}
+				return nil
+			})
+			return NULL, signalNone, nil
+		}
+
+	case *agac.ReturnStatement:
+		deger := c.ifade(k, s.ReturnValue)
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			val, err := deger(v, env)
+			if err != nil {
+				return nil, signalNone, err
+			}
+			return val, signalReturn, nil
+		}
+
+	case *agac.BreakStatement:
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			return NULL, signalBreak, nil
+		}
+
+	case *agac.ContinueStatement:
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			return NULL, signalContinue, nil
+		}
+
+	case *agac.BlockStatement:
+		return c.blokDeyimi(k, s)
+
+	case *agac.ForInStatement:
+		return c.donguIcinde(k, s)
+
+	case *agac.WhileStatement:
+		return c.iken(k, s)
+
+	case *agac.StructStatement:
+		return c.yapiTanimi(k, s)
+
+	case *agac.TryCatchStatement:
+		dene := c.blokDeyimi(k, s.TryBody)
+		alt := altKapsam(k)
+		hataYuva := alt.bilgi.yuva(s.ErrorVar)
+		if s.CatchBody != nil {
+			alt.golgeKaydet(s.ErrorVar, s.CatchBody.Line(), "yakalanan hataya")
+		}
+		var yakalaDeyimleri []agac.Statement
+		if s.CatchBody != nil {
+			yakalaDeyimleri = s.CatchBody.Statements
+		}
+		alt.onTanimla(yakalaDeyimleri)
+		yakala := c.deyimler(alt, yakalaDeyimleri)
+		bilgi := alt.bilgi
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			val, sig, err := dene(v, env)
+			if err != nil {
+				catchEnv := yeniOrtam(env, bilgi)
+				catchEnv.tanimla(hataYuva, &StringVal{Val: err.Error()}, false)
+				return yakala.calistir(v, catchEnv)
+			}
+			return val, sig, nil
+		}
+
+	case *agac.ThrowStatement:
+		deger := c.ifade(k, s.Value)
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			val, err := deger(v, env)
+			if err != nil {
+				return nil, signalNone, err
+			}
+			return nil, signalNone, fmt.Errorf("%s", val.Inspect())
+		}
+
+	case *agac.AsyncStatement:
+		return c.eszamanli(k, s)
+
+	case *agac.ImportStatement:
+		var takma func(*Environment, Value, bool)
+		if s.Alias != "" {
+			takma = tanimlayici(k, s.Alias)
+		}
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			return v.aktar(s, env, takma)
+		}
+
+	case *agac.TestStatement:
+		// Test blokları normal çalıştırmada atlanır; 'tr test' bunları RunTest ile çalıştırır.
+		return bosDeyim
+
+	case *agac.BreakpointStatement:
+		var kosul ifadeKodu
+		if s.Condition != nil {
+			kosul = c.ifade(k, s.Condition)
+		}
+		return func(v *VM, env *Environment) (Value, flowSignal, error) {
+			if kosul != nil {
+				condVal, err := kosul(v, env)
+				if err != nil {
+					return nil, signalNone, err
+				}
+				if !condVal.IsTruthy() {
+					return NULL, signalNone, nil
+				}
+			}
+			if v.Debugger == nil && YeniHataAyiklayici != nil {
+				k := v.kaynak
+				if k == nil {
+					k = &Kaynak{Yol: v.SourceFile, Kod: v.SourceCode}
+				}
+				v.Debugger = YeniHataAyiklayici(k.Yol, k.Kod)
+			}
+			if v.Debugger != nil {
+				if s.Condition != nil {
+					v.Debugger.KesmeNoktasi(fmt.Sprintf("Koşullu kesme noktası (Satır %d)", s.Line()))
+				} else {
+					v.Debugger.KesmeNoktasi("Koddaki kesme noktası (kesme_noktası)")
+				}
+			}
+			return NULL, signalNone, nil
+		}
+
+	case *agac.ExpressionStatement:
+		return c.ifadeSinyal(k, s.Expression)
+	}
+	return bosDeyim
+}
+
+// cokluDegerler çoklu tanım/atamanın sağ tarafını hesaplar; tek bir Liste birden çok ada
+// açılır.
+func cokluDegerler(v *VM, env *Environment, degerler []ifadeKodu, adSayisi int) ([]Value, error) {
+	evalVals := make([]Value, 0, len(degerler))
+	for _, d := range degerler {
+		val, err := d(v, env)
+		if err != nil {
+			return nil, err
+		}
+		evalVals = append(evalVals, val)
+	}
+	if len(evalVals) == 1 && adSayisi > 1 {
+		if lv, ok := evalVals[0].(*ListVal); ok {
+			evalVals = lv.Elements
+		}
+	}
+	return evalVals, nil
+}
+
+// yapiTanimi 'yapı' deyimini derler: metotlar ve alan varsayılanları bir kez derlenir.
+func (c *derleyici) yapiTanimi(k *derleyiciKapsam, s *agac.StructStatement) deyimKodu {
+	type metotKodu struct {
+		ad  string
+		lit *agac.FunctionLiteral
+		kod *fonkKodu
+	}
+	metotlar := make([]metotKodu, 0, len(s.Methods))
+	for name, fnLit := range s.Methods {
+		metotlar = append(metotlar, metotKodu{ad: name, lit: fnLit, kod: c.fonksiyon(k, fnLit.Parameters, fnLit.Body, true)})
+	}
+	// Alan varsayılanları yapının tanımlandığı kapsamda derlenir ve o ortamda
+	// değerlendirilir (modüldeki bir yapı modülün adlarını görür).
+	alanKod := c.alanVarsayilanlari(k, s.Fields)
+	tanim := tanimlayici(k, s.Name)
+	return func(v *VM, env *Environment) (Value, flowSignal, error) {
+		methods := make(map[string]*FuncVal, len(metotlar))
+		for _, m := range metotlar {
+			methods[m.ad] = &FuncVal{
+				Name:       m.ad,
+				Parameters: m.lit.Parameters,
+				Body:       m.lit.Body,
+				Env:        env,
+				kod:        m.kod,
+			}
+		}
+		def := &StructDefVal{
+			Name:      s.Name,
+			Fields:    s.Fields,
+			Methods:   methods,
+			alanKod:   alanKod,
+			alanOrtam: env,
+		}
+		tanim(env, def, true)
+		return def, signalNone, nil
+	}
+}
+
+// alanVarsayilanlari alan varsayılanlarını k kapsamında derler (nesne oluşturulurken
+// yapının tanımlandığı ortamda değerlendirilirler).
+func (c *derleyici) alanVarsayilanlari(k *derleyiciKapsam, fields []agac.StructField) []ifadeKodu {
+	kodlar := make([]ifadeKodu, len(fields))
+	for i, f := range fields {
+		if f.DefaultValue != nil {
+			kodlar[i] = c.ifade(k, f.DefaultValue)
+		}
+	}
+	return kodlar
+}
+
+// eszamanli 'eşzamanlı' bloğunu derler: gövde, kendi kök ortamında ayrı bir görevde çalışır.
+func (c *derleyici) eszamanli(k *derleyiciKapsam, s *agac.AsyncStatement) deyimKodu {
+	alt := altKapsam(k)
+	var govde *blokKodu
+	var cagri ifadeKodu
+	if s.Body != nil {
+		alt.onTanimla(s.Body.Statements)
+		govde = c.deyimler(alt, s.Body.Statements)
+	} else if s.Call != nil {
+		ifadeAdlari(s.Call, alt.tanimla)
+		cagri = c.ifade(alt, s.Call)
+	}
+	bilgi := alt.bilgi
+	line := s.Line()
+	return func(v *VM, env *Environment) (Value, flowSignal, error) {
+		v.wg.Add(1)
+		asyncEnv := yeniOrtam(env, bilgi)
+		asyncEnv.IsFuncRoot = true // görev içindeki 'ertele' blokları görev bitince çalışır
+		task := v.NewTaskVM(true)
+		go func(e *Environment) {
+			defer v.wg.Done()
+			task.acquireGIL()
+			defer task.releaseGIL()
+			defer func() {
+				if r := recover(); r != nil {
+					task.reportAsyncError(line, fmt.Errorf("İç hata (çökme önlendi): %v", r))
+				}
+			}()
+			var err error
+			defer func() {
+				// Görevin ertelenen işleri görev bitince çalışır; hataları görev hatasına eklenir.
+				if err = erteleHatasiEkle(err, e.RunDefers()); err != nil {
+					task.reportAsyncError(line, err)
+				}
+			}()
+			if govde != nil {
+				_, _, err = govde.calistir(task, e)
+			} else if cagri != nil {
+				_, err = cagri(task, e)
+			}
+		}(asyncEnv)
+		return TRUE, signalNone, nil
+	}
+}
