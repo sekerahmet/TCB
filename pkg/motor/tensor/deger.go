@@ -10,8 +10,11 @@ package tensor
 
 import (
 	"fmt"
+	"io"
 	"math"
+	"os"
 	"strings"
+	"sync"
 
 	"tr_dili/pkg/motor/yz"
 	ct "tr_dili/pkg/tensor"
@@ -292,6 +295,55 @@ func cihazDenetle(islem string, a, b *ct.Tensor) error {
 	return nil
 }
 
+// ikiTarafGenisler yayınlamada iki işlenenin de genişletilip genişletilmediğini söyler
+// (ör. [4, 1] ile [4] → [4, 4]). Bu çoğunlukla bir şekil hatasıdır. Ayırma yapmaz.
+func ikiTarafGenisler(a, b *ct.Tensor) bool {
+	nd := max(a.Dim(), b.Dim())
+	var aGenis, bGenis bool
+	for i := 1; i <= nd; i++ {
+		da, db := sondanEksen(a, i), sondanEksen(b, i)
+		boy := max(da, db)
+		if da == 0 || db == 0 {
+			boy = 0
+		}
+		// Eksik eksen de (ön tarafa eklenen) genişletme sayılır, ancak uzunluğu 1 ise
+		// veri çoğalmaz.
+		if da != boy || (i > a.Dim() && boy != 1) {
+			aGenis = true
+		}
+		if db != boy || (i > b.Dim() && boy != 1) {
+			bGenis = true
+		}
+	}
+	return aGenis && bGenis
+}
+
+var (
+	uyariMu      sync.Mutex
+	uyariCikisi  io.Writer = os.Stderr
+	verilenUyari           = map[string]bool{}
+)
+
+// yayinUyarisi iki tarafın da genişletildiği yayınlamayı standart hataya bir kez yazar.
+// İşleçler satır bilgisini almadığından (yorumlayıcı işleç çağrısına satır geçirmez)
+// tekrar, işlem ve şekil çiftine göre önlenir.
+func yayinUyarisi(op string, a, b *ct.Tensor) {
+	as, bs := sekilMetni(a.Shape()), sekilMetni(b.Shape())
+	anahtar := op + as + bs
+	uyariMu.Lock()
+	defer uyariMu.Unlock()
+	if verilenUyari[anahtar] {
+		return
+	}
+	verilenUyari[anahtar] = true
+	sonuc := make([]int, max(a.Dim(), b.Dim()))
+	for i := 1; i <= len(sonuc); i++ {
+		sonuc[len(sonuc)-i] = max(sondanEksen(a, i), sondanEksen(b, i))
+	}
+	fmt.Fprintf(uyariCikisi, "Uyarı: %s ile %s yayınlanarak %s üretildi (iki taraf da genişletildi); bilerek yapmadıysanız şekilleri kontrol edin.\n",
+		as, bs, sekilMetni(sonuc))
+}
+
 func (d *Deger) ikili(op string, other vm.Value) (vm.Value, error) {
 	if s, ok := skalerMi(other); ok {
 		f := float32(s)
@@ -313,15 +365,24 @@ func (d *Deger) ikili(op string, other vm.Value) (vm.Value, error) {
 		}
 		return Yeni(r), nil
 	}
-	o, err := tensoreCevir("tensör "+islemAdi[op], other)
-	if err != nil {
-		return nil, err
+	// Sık yol (iki tensör) metin üretmez; işlem adı yalnızca hata mesajında birleştirilir.
+	var o *ct.Tensor
+	if od, ok := other.(*Deger); ok {
+		o = od.t
+	} else {
+		var err error
+		if o, err = tensoreCevir("tensör "+islemAdi[op], other); err != nil {
+			return nil, err
+		}
 	}
 	if err := yayinDenetle(op, d.t, o); err != nil {
 		return nil, err
 	}
-	if err := cihazDenetle("tensör "+islemAdi[op], d.t, o); err != nil {
-		return nil, err
+	if d.t.Device() != o.Device() {
+		return nil, cihazDenetle("tensör "+islemAdi[op], d.t, o)
+	}
+	if ikiTarafGenisler(d.t, o) {
+		yayinUyarisi(op, d.t, o)
 	}
 	r, err := guvenli(func() *ct.Tensor {
 		switch op {
