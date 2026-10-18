@@ -16,7 +16,7 @@ import (
 
 // metotGovdesi bir yerleşik metodun gövdesidir; line, geri çağrılan fonksiyonların
 // hata satırıdır.
-type metotGovdesi func(vm *VM, inst Value, args []Value, line int) (Value, error)
+type metotGovdesi func(y *VM, inst Value, args []Value, line int) (Value, error)
 
 type yerlesikMetot struct {
 	ad    string // bağlı yerleşiğin adı (kod listesindeki ad)
@@ -76,7 +76,7 @@ func metotEkle(tip int, kd kod.Kod, im imza, f metotGovdesi) {
 	}
 	tamAd := tipOneki[tip] + "." + kod.Ad(kd)
 	govde := f
-	f = func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	f = func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		if len(args) < im.enAz || (im.enCok >= 0 && len(args) > im.enCok) {
 			beklenen := fmt.Sprint(im.enAz)
 			switch {
@@ -92,7 +92,7 @@ func metotEkle(tip int, kd kod.Kod, im imza, f metotGovdesi) {
 				return nil, ArgumanTipHatasi(tamAd, i+1, im.tipler[i].ad, a)
 			}
 		}
-		return govde(vm, inst, args, line)
+		return govde(y, inst, args, line)
 	}
 	m := &yerlesikMetot{ad: kod.Ad(kd), tamAd: tamAd, f: f}
 	switch tip {
@@ -166,16 +166,16 @@ func metotBul(obj Value, cm *cekirdekMetot) *yerlesikMetot {
 // başlatıcısında kurulsalardı başlatma döngüsü oluşurdu.
 func init() {
 	// --- Metin ---
-	metotEkle(tipMetin, kod.Y100, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y100, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.ToUpperSpecial(unicode.TurkishCase, inst.(*StringVal).Val)}, nil
 	})
-	metotEkle(tipMetin, kod.Y101, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y101, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.ToLowerSpecial(unicode.TurkishCase, inst.(*StringVal).Val)}, nil
 	})
-	metotEkle(tipMetin, kod.Y102, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y102, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil
 	})
-	metotEkle(tipMetin, kod.Y103, imza{0, 1, "[ayırıcı]", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y103, imza{0, 1, "[ayırıcı]", []*argTipi{metinArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := " "
 		if len(args) > 0 {
 			sep = args[0].Inspect()
@@ -187,19 +187,19 @@ func init() {
 		}
 		return &ListVal{Elements: elems}, nil
 	})
-	metotEkle(tipMetin, kod.Y104, imza{2, 2, "eski, yeni", []*argTipi{metinArg, metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y104, imza{2, 2, "eski, yeni", []*argTipi{metinArg, metinArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.ReplaceAll(inst.(*StringVal).Val, args[0].Inspect(), args[1].Inspect())}, nil
 	})
-	metotEkle(tipMetin, kod.Y002, imza{1, 1, "alt", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y002, imza{1, 1, "alt", []*argTipi{metinArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.Contains(inst.(*StringVal).Val, args[0].Inspect())), nil
 	})
-	metotEkle(tipMetin, kod.Y105, imza{1, 1, "önek", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y105, imza{1, 1, "önek", []*argTipi{metinArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.HasPrefix(inst.(*StringVal).Val, args[0].Inspect())), nil
 	})
-	metotEkle(tipMetin, kod.Y106, imza{1, 1, "sonek", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y106, imza{1, 1, "sonek", []*argTipi{metinArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.HasSuffix(inst.(*StringVal).Val, args[0].Inspect())), nil
 	})
-	metotEkle(tipMetin, kod.Y003, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipMetin, kod.Y003, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		runes := []rune(inst.(*StringVal).Val)
 		for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
 			runes[i], runes[j] = runes[j], runes[i]
@@ -208,10 +208,10 @@ func init() {
 	})
 
 	// --- Liste ---
-	metotEkle(tipListe, kod.Y200, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y200, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		var result []Value
 		for _, item := range inst.(*ListVal).Elements {
-			keep, err := vm.ApplyFunction(args[0], []Value{item}, nil, line)
+			keep, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
 			if err != nil {
 				return nil, err
 			}
@@ -221,11 +221,11 @@ func init() {
 		}
 		return &ListVal{Elements: result}, nil
 	})
-	metotEkle(tipListe, kod.Y201, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y201, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		result := make([]Value, 0, len(elems))
 		for _, item := range elems {
-			mapped, err := vm.ApplyFunction(args[0], []Value{item}, nil, line)
+			mapped, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
 			if err != nil {
 				return nil, err
 			}
@@ -233,7 +233,7 @@ func init() {
 		}
 		return &ListVal{Elements: result}, nil
 	})
-	metotEkle(tipListe, kod.Y202, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y202, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		copied := make([]Value, len(elems))
 		copy(copied, elems)
@@ -242,7 +242,7 @@ func init() {
 		}
 		return &ListVal{Elements: copied}, nil
 	})
-	metotEkle(tipListe, kod.Y003, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y003, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		copied := make([]Value, len(elems))
 		for i, el := range elems {
@@ -250,7 +250,7 @@ func init() {
 		}
 		return &ListVal{Elements: copied}, nil
 	})
-	metotEkle(tipListe, kod.Y203, imza{0, 1, "[ayırıcı]", []*argTipi{metinArg}}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y203, imza{0, 1, "[ayırıcı]", []*argTipi{metinArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := ""
 		if len(args) > 0 {
 			sep = args[0].Inspect()
@@ -262,7 +262,7 @@ func init() {
 		}
 		return &StringVal{Val: strings.Join(parts, sep)}, nil
 	})
-	metotEkle(tipListe, kod.Y002, imza{1, 1, "değer", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y002, imza{1, 1, "değer", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		for _, el := range inst.(*ListVal).Elements {
 			if ValuesEqual(el, args[0]) {
 				return TRUE, nil
@@ -270,7 +270,7 @@ func init() {
 		}
 		return FALSE, nil
 	})
-	metotEkle(tipListe, kod.Y204, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y204, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		var unique []Value
 		for _, el := range inst.(*ListVal).Elements {
 			exists := false
@@ -286,17 +286,17 @@ func init() {
 		}
 		return &ListVal{Elements: unique}, nil
 	})
-	metotEkle(tipListe, kod.Y004, imza{1, -1, "eleman, ...", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y004, imza{1, -1, "eleman, ...", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		l := inst.(*ListVal)
 		l.Elements = append(l.Elements, args...)
 		return l, nil
 	})
-	metotEkle(tipListe, kod.Y207, imza{1, 2, "[başlangıç], fonksiyon", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
-		return listeIndirge(vm, inst.(*ListVal).Elements, args, line)
+	metotEkle(tipListe, kod.Y207, imza{1, 2, "[başlangıç], fonksiyon", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+		return listeIndirge(y, inst.(*ListVal).Elements, args, line)
 	})
 
 	// --- Sözlük ---
-	metotEkle(tipSozluk, kod.Y300, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipSozluk, kod.Y300, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		d := inst.(*DictVal)
 		elems := make([]Value, len(d.Order))
 		for i, k := range d.Order {
@@ -304,7 +304,7 @@ func init() {
 		}
 		return &ListVal{Elements: elems}, nil
 	})
-	metotEkle(tipSozluk, kod.Y301, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipSozluk, kod.Y301, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		d := inst.(*DictVal)
 		elems := make([]Value, len(d.Order))
 		for i, k := range d.Order {
@@ -312,7 +312,7 @@ func init() {
 		}
 		return &ListVal{Elements: elems}, nil
 	})
-	metotEkle(tipSozluk, kod.Y002, imza{1, 1, "anahtar", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipSozluk, kod.Y002, imza{1, 1, "anahtar", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		_, ok := inst.(*DictVal).GetValue(args[0])
 		return BoolToVal(ok), nil
 	})
@@ -347,11 +347,11 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u uyeBilgisi, safe bool, 
 		}
 	}
 	if m := metotBul(obj, u.cekirdek); m != nil {
-		return &BuiltinVal{Name: m.ad, Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+		return &BuiltinVal{Name: m.ad, Fn: func(y *VM, args []Value, named map[string]Value) (Value, error) {
 			if len(named) > 0 { // çekirdek metotlar adlı argüman almaz
 				return nil, AdliAlmazHatasi(m.tamAd, named)
 			}
-			return m.f(vm, obj, args, line)
+			return m.f(y, obj, args, line)
 		}}, nil
 	}
 	if d, ok := obj.(*DictVal); ok {
@@ -375,7 +375,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u uyeBilgisi, safe bool, 
 // (birikim, eleman) ile çağrılır; tek parametreli bir fonksiyon (sondaki bloğun 'o'su)
 // ikisini [birikim, eleman] listesi olarak alır. Başlangıç verilmezse ilk eleman
 // başlangıçtır; boş listede başlangıç (verilmemişse yok) döner.
-func listeIndirge(vm *VM, elems []Value, args []Value, line int) (Value, error) {
+func listeIndirge(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	const ad = "liste.indirge"
 	f := args[len(args)-1]
 	if !cagrilabilir(f) {
@@ -401,9 +401,9 @@ func listeIndirge(vm *VM, elems []Value, args []Value, line int) (Value, error) 
 	for _, el := range elems[bas:] {
 		var err error
 		if tekParametre {
-			acc, err = vm.ApplyFunction(f, []Value{&ListVal{Elements: []Value{acc, el}}}, nil, line)
+			acc, err = y.ApplyFunction(f, []Value{&ListVal{Elements: []Value{acc, el}}}, nil, line)
 		} else {
-			acc, err = vm.ApplyFunction(f, []Value{acc, el}, nil, line)
+			acc, err = y.ApplyFunction(f, []Value{acc, el}, nil, line)
 		}
 		if err != nil {
 			return nil, err

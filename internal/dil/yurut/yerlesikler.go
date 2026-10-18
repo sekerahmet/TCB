@@ -15,25 +15,25 @@ import (
 
 func (v *VM) registerBuiltins() {
 	// 1. Ekrana Yazdırma: yazdır(...)
-	v.AdlisizKaydet(kod.G100, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G100, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		var parts []string
 		for _, a := range args {
 			parts = append(parts, a.Inspect())
 		}
 		out := strings.Join(parts, " ")
-		fmt.Fprintln(vm.Out, out)
+		fmt.Fprintln(y.Out, out)
 		return &StringVal{Val: out}, nil
 	})
 
 	// 2. Kullanıcıdan Girdi Alma: girdi("Adınız: ")
-	v.AdlisizKaydet(kod.G101, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G101, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) > 1 {
 			return nil, ArgumanSayisiHatasi("girdi", "0 ya da 1", len(args), "girdi() ya da girdi(istem)")
 		}
 		if len(args) > 0 {
-			fmt.Fprint(vm.Out, args[0].Inspect())
+			fmt.Fprint(y.Out, args[0].Inspect())
 		}
-		line, readErr := vm.satirOku()
+		line, readErr := y.satirOku()
 		if readErr != nil && readErr != io.EOF && line == "" {
 			return nil, fmt.Errorf("girdi(): standart girdi okunamadı: %s", turkce.DosyaHatasiNedeni("", readErr))
 		}
@@ -42,7 +42,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 4. Tip Sorgulama: tip(x)
-	v.AdlisizKaydet(kod.G201, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G201, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("tip", "1", len(args), "tip(değer)")
 		}
@@ -50,7 +50,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 5. Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
-	v.AdlisizKaydet(kod.G210, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G210, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("tam", "1", len(args), "tam(değer)")
 		}
@@ -79,7 +79,7 @@ func (v *VM) registerBuiltins() {
 		}
 	})
 
-	v.AdlisizKaydet(kod.G211, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G211, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("ondalık", "1", len(args), "ondalık(değer)")
 		}
@@ -99,16 +99,16 @@ func (v *VM) registerBuiltins() {
 		}
 	})
 
-	v.AdlisizKaydet(kod.G212, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G212, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("metin", "1", len(args), "metin(değer)")
 		}
-		return metinTek(vm, args[0])
+		return metinTek(y, args[0])
 	})
 	v.tekArgumanli(kod.G212, metinTek)
 
 	// 6. Liste: aralık(bitiş) ya da aralık(başlangıç, bitiş)
-	v.AdlisizKaydet(kod.G305, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G305, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) == 1 {
 			end, ok := args[0].(*IntVal)
 			if !ok {
@@ -145,7 +145,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 7. Temel Matematik Fonksiyonları
-	v.AdlisizKaydet(kod.G400, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G400, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("toplam", "1", len(args), "toplam(liste)")
 		}
@@ -157,15 +157,15 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// min/maks: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
-	v.AdlisizKaydet(kod.G401, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G401, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		return enUcArgumanlari("min", args, false)
 	})
 
-	v.AdlisizKaydet(kod.G402, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G402, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		return enUcArgumanlari("maks", args, true)
 	})
 
-	v.AdlisizKaydet(kod.G403, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G403, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("mutlak", "1", len(args), "mutlak(sayı)")
 		}
@@ -184,7 +184,7 @@ func (v *VM) registerBuiltins() {
 		return nil, ArgumanTipHatasi("mutlak", 1, sayiTipi, args[0])
 	})
 
-	v.AdlisizKaydet(kod.G404, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G404, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("karekök", "1", len(args), "karekök(sayı)")
 		}
@@ -194,7 +194,7 @@ func (v *VM) registerBuiltins() {
 		return nil, ArgumanTipHatasi("karekök", 1, sayiTipi, args[0])
 	})
 
-	v.AdlisizKaydet(kod.G405, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G405, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 || len(args) > 2 {
 			return nil, ArgumanSayisiHatasi("yuvarla", "1 ya da 2", len(args), "yuvarla(sayı) ya da yuvarla(sayı, basamak)")
 		}
@@ -231,20 +231,20 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 8. Eşzamanlılık, Zaman ve Dosya İşlemleri
-	v.AdlisizKaydet(kod.G501, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G501, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
-		if vm.asyncTask {
+		if y.asyncTask {
 			return nil, fmt.Errorf("bekle_hepsi() 'eşzamanlı' bloğu içinden çağrılamaz; ana programda kullanın")
 		}
-		vm.WaitAsync()
+		y.WaitAsync()
 		return TRUE, nil
 	})
 
-	v.AdlisizKaydet(kod.G502, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G502, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		return NewInt(time.Now().UnixMilli()), nil
 	})
 
-	v.AdlisizKaydet(kod.G110, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G110, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("dosya_oku", "1", len(args), "dosya_oku(yol)")
 		}
@@ -252,7 +252,7 @@ func (v *VM) registerBuiltins() {
 		if !ok {
 			return nil, ArgumanTipHatasi("dosya_oku", 1, "Metin (dosya yolu)", args[0])
 		}
-		cozulen, bakilanlar := vm.YolCoz(yol.Val)
+		cozulen, bakilanlar := y.YolCoz(yol.Val)
 		data, err := os.ReadFile(cozulen)
 		if err != nil {
 			return nil, OkumaHatasi("dosya_oku()", yol.Val, "okunamadı", err, bakilanlar)
@@ -260,7 +260,7 @@ func (v *VM) registerBuiltins() {
 		return &StringVal{Val: string(data)}, nil
 	})
 
-	v.AdlisizKaydet(kod.G111, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G111, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 2 {
 			return nil, ArgumanSayisiHatasi("dosya_yaz", "2", len(args), "dosya_yaz(yol, içerik)")
 		}
@@ -268,14 +268,14 @@ func (v *VM) registerBuiltins() {
 		if !ok {
 			return nil, ArgumanTipHatasi("dosya_yaz", 1, "Metin (dosya yolu)", args[0])
 		}
-		cozulen, _ := vm.YolCoz(yol.Val)
+		cozulen, _ := y.YolCoz(yol.Val)
 		if err := os.WriteFile(cozulen, []byte(args[1].Inspect()), 0644); err != nil {
 			return nil, turkce.DosyaHatasi("dosya_yaz()", yol.Val, "yazılamadı", err)
 		}
 		return TRUE, nil
 	})
 
-	v.AdlisizKaydet(kod.G500, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G500, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("bekle", "1", len(args), "bekle(saniye)")
 		}
@@ -283,7 +283,7 @@ func (v *VM) registerBuiltins() {
 		if !ok {
 			return nil, ArgumanTipHatasi("bekle", 1, sayiTipi+" (saniye)", args[0])
 		}
-		vm.Blocking(func() { time.Sleep(time.Duration(sec * float64(time.Second))) })
+		y.Blocking(func() { time.Sleep(time.Duration(sec * float64(time.Second))) })
 		return TRUE, nil
 	})
 }

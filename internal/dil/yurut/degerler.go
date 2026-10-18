@@ -281,14 +281,14 @@ func (f *FuncVal) Inspect() string {
 }
 func (f *FuncVal) IsTruthy() bool { return true }
 
-type BuiltinFunc func(vm *VM, args []Value, named map[string]Value) (Value, error)
+type BuiltinFunc func(y *VM, args []Value, named map[string]Value) (Value, error)
 
 type BuiltinVal struct {
 	Name string
 	Fn   BuiltinFunc
 	// Tek (isteğe bağlı), yerleşik tek bir konumlu argümanla çağrıldığında Fn yerine
-	// çalışır ve argüman dilimi ayırmaz; sonucu Fn(vm, []Value{a}, nil) ile aynı olmalıdır.
-	Tek func(vm *VM, a Value) (Value, error)
+	// çalışır ve argüman dilimi ayırmaz; sonucu Fn(y, []Value{a}, nil) ile aynı olmalıdır.
+	Tek func(y *VM, a Value) (Value, error)
 	// AdliAlmaz doğruysa yerleşik adlı argüman almaz: adlı argümanlı çağrı gövdeye
 	// girilmeden "adlı argüman almaz" hatasıyla reddedilir (sessizce yok sayılmaz).
 	AdliAlmaz bool

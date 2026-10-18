@@ -12,7 +12,7 @@ import (
 func (v *VM) registerIstatistik() {
 	// ortalama(liste) ya da ortalama(a, b, ...): boş girdi ve sayı olmayan eleman hatadır
 	// (toplam gibi).
-	v.AdlisizKaydet(kod.G410, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G410, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) == 0 {
 			return nil, ArgumanSayisiHatasi("ortalama", "en az 1", 0, "ortalama(liste) ya da ortalama(a, b, ...)")
 		}
@@ -23,7 +23,7 @@ func (v *VM) registerIstatistik() {
 	})
 
 	// standart_sapma: sayıların popülasyon standart sapması (n'ye bölerek).
-	v.AdlisizKaydet(kod.G411, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G411, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		nums := ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &FloatVal{Val: 0}, nil
@@ -43,7 +43,7 @@ func (v *VM) registerIstatistik() {
 	})
 
 	// ortanca: çift sayıda elemanda ortadaki ikisinin ortalaması.
-	v.AdlisizKaydet(kod.G412, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G412, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		nums := ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &FloatVal{Val: 0}, nil

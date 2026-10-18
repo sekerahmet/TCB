@@ -10,7 +10,7 @@ import (
 // İkisi de test blokları dışında da çalışır (bir tür "assert").
 func (v *VM) registerTestBuiltins() {
 	// doğrula(koşul, [mesaj]): koşul yanlışsa hata fırlatır.
-	v.AdlisizKaydet(kod.G700, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G700, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 || len(args) > 2 {
 			return nil, fmt.Errorf("doğrula() 1 ya da 2 parametre bekler (koşul, [mesaj]), %d verildi", len(args))
 		}
@@ -24,7 +24,7 @@ func (v *VM) registerTestBuiltins() {
 	})
 
 	// eşit_mi(beklenen, gerçek, [mesaj]): iki değer '==' ile eşit değilse ikisini de gösteren hata fırlatır.
-	v.AdlisizKaydet(kod.G701, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.AdlisizKaydet(kod.G701, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 || len(args) > 3 {
 			return nil, fmt.Errorf("eşit_mi() 2 ya da 3 parametre bekler (beklenen, gerçek, [mesaj]), %d verildi", len(args))
 		}
