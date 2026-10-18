@@ -175,6 +175,18 @@ test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {
     doğrula(hatalar[4].içerir("örnekle() 'tohm' adında bir parametre almaz. Bunu mu demek istediniz: 'tohum'?"), hatalar[4])
 }
 
+test "13.6 hedef tipin adını taşıyan dönüştürücüler kurucudur ve tip() genel sorudur: ikisi de fonksiyondur" {
+    eşit_mi(5, tam("5"))
+    eşit_mi(2.5, ondalık("2.5"))
+    eşit_mi("[1, 2]", metin([1, 2]))
+    eşit_mi("Liste", tip([1]))
+    // Yapının 'tip' alanı yerleşik tip() ile çakışmaz
+    yapı Ürün { ad, tip }
+    değişken ü = Ürün("kalem", "kırtasiye")
+    eşit_mi("kırtasiye", ü.tip)
+    eşit_mi("Ürün", tip(ü))
+}
+
 test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör işi fonksiyondur; kaldırılan biçimler yol gösterir" {
     değişken l = [3, 1, 2]
     eşit_mi(3, l.uzunluk)

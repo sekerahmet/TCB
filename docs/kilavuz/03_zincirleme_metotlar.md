@@ -6,7 +6,7 @@
 
 Her metodun ve yerleşiğin imzası ve örneği [`docs/kodlar.md`](../kodlar.md)'dedir. `.uzunluk`, `.ilk`, `.son` özelliktir, parantezsiz yazılır.
 
-**Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.uzunluk`, `l.filtrele {...}`, `l.sırala()`, `l.ekle(x)`, `t.devrik()`); matematik ve tensör işi fonksiyondur (`toplam(l)`, `ortalama(l)`, `min(l)`, `maks(l)`, `relu(t)`). Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
+**Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.uzunluk`, `l.filtrele {...}`, `l.sırala()`, `l.ekle(x)`, `t.devrik()`); matematik ve tensör işi fonksiyondur (`toplam(l)`, `ortalama(l)`, `min(l)`, `maks(l)`, `relu(t)`). Hedef tipin adını taşıyan dönüştürücüler (`tam(x)`, `ondalık(x)`, `metin(x)`) kurucudur, `tip(x)` de genel bir sorudur; ikisi de fonksiyondur. Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
 
 ```text
 'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın
