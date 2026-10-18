@@ -21,7 +21,9 @@ python kiyas/kos.py --json sonuc.json
 | `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/kiyas.py`) |
 
 Derlemeler `GOAMD64=v3` ile yapılır (ortamda `GOAMD64` verilmişse o kullanılır). 2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez.
-Matris çarpımı v3 ile yaklaşık iki kat hızlıdır (FMA/VEX komutları). Elle derlemek için:
+Matris çarpımı v3 ile (AVX2/FMA çekirdeği) v1'deki taşınabilir çekirdekten çok daha hızlıdır: 512×512
+iki çarpım 20 turun ortalamasında 1 çekirdekte 65 → 4,7 ms, 2 çekirdekte 31,5 → 2,4 ms, 20 çekirdekte
+12,4 → 1,6 ms (yaklaşık 8–14 kat; 18.10.2026, `GOMAXPROCS` ile sınırlanarak). Elle derlemek için:
 
 ```
 GOAMD64=v3 go build -o tr.exe ./cmd/tr
@@ -29,6 +31,16 @@ GOAMD64=v3 go build -o tr.exe ./cmd/tr
 
 Süreler makineye ve o anki yüke göre değişir; karşılaştırmaları aynı makinede, bilgisayar
 boştayken yapın.
+
+**Ölçüm çözünürlüğü:** TR programları süreyi `zaman_ms()` ile, Python sürümü tam sayıya kesilen
+milisaniyeyle ölçer; ikisi de 1 ms çözünürlüklüdür. Birkaç milisaniyelik testlerde (ör. `matris_yerlesik`)
+sonuç ±1 ms oynar ve `kos.py` en iyi süreyi aldığı için küçük değerler 1–2 ms'ye iner. Hassas karşılaştırma
+için işi bir döngüde 20 kez yapıp toplam süreyi tur sayısına bölün.
+
+**`matris_yerlesik` ölçümü (18.10.2026, 20 mantıksal çekirdekli dizüstü, `GOAMD64=v3`):** 512×512 iki
+çarpım, 15'er çalıştırma: TR 1–2 ms (20 turun ortalaması 1,3–1,6 ms), Python sürümü (hazır dizi
+kütüphanesiyle) 4–5 ms (20 turun ortalaması ~4,3 ms). TR tensörleri `float32` ile, Python sürümü
+`float64` ile hesaplar; aynı kütüphane `float32` ile ~3 ms sürer.
 
 ## Model eğitimi karşılaştırması
 

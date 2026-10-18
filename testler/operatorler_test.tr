@@ -49,6 +49,11 @@ test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
     doğrula({"a": 1} == {"a": 1})
     doğrula(yok == yok)
     doğrula(yok != yanlış)
+    // 0 boyutlu tensör değerine eşit sayıya eşittir; eksenli tensör sayıya eşit değildir.
+    doğrula(tensör(7.0) == 7 ve 7 == tensör(7.0))
+    doğrula(matris([[1, 2]])[0][1] == 2.0)
+    doğrula(toplam(tensör([1, 2, 3, 4])) == 10)
+    doğrula(tensör([7.0]) != 7)
 }
 
 test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
