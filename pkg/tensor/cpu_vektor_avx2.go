@@ -26,7 +26,10 @@ var expSabit = func() (t [13 * 8]float32) {
 //go:noescape
 func expVekCekirdek(dst, src *float32, n int, sabit *float32)
 
-// expVek dst[i] = e^src[i] (dst ve src aynı dilim olabilir).
+// expVek dst[i] = e^src[i] (dst ve src aynı dilim olabilir). 8'in katı olmayan kuyruk
+// da aynı çekirdekten (sıfır dolgulu 8'lik blokla) geçer: skaler expf32 FMA birleştirmesi
+// yüzünden çekirdekten 1 ulp farklı olabildiği için sonuç elemanın konumuna bağlı
+// olmasın.
 func expVek(dst, src []float32) {
 	n := len(src)
 	dst = dst[:n]
@@ -34,7 +37,10 @@ func expVek(dst, src []float32) {
 	if m > 0 {
 		expVekCekirdek(&dst[0], &src[0], m, &expSabit[0])
 	}
-	for i := m; i < n; i++ {
-		dst[i] = expf32(src[i])
+	if k := n - m; k > 0 {
+		var blok [8]float32
+		copy(blok[:], src[m:])
+		expVekCekirdek(&blok[0], &blok[0], 8, &expSabit[0])
+		copy(dst[m:], blok[:k])
 	}
 }

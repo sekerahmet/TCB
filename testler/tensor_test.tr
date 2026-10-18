@@ -135,6 +135,9 @@ test "15.4 matematik fonksiyonları ve indirgemeler" {
     doğrula(hata_metni(() => maks(a, 0)).içerir("maks(x, eksen: 0) yazın"))
     doğrula(hata_metni(() => sıfırlar(2, 3, türev_izle: doğru)).içerir("sıfırlar([2, 3], ...) yazın"))
     doğrula(hata_metni(() => AdamW([tensör([1.0], türev_izle: doğru)], lr: 0.1)).içerir("'öğrenme_oranı'"))
+    // Eleman bazlı sonuç elemanın konumuna bağlı değildir (aynı girdi, aynı çıktı).
+    değişken e = üstel(birler([9]) * -48.528).değer
+    eşit_mi(e[0], e[8])
 }
 
 test "15.4a sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {

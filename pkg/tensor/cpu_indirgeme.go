@@ -195,47 +195,21 @@ func (cpuBackend) f32Softmax(out Storage, x View, axis int, logKip bool) {
 		})
 		return
 	}
+	// Diğer eksenler: her satır geçici bitişik tampona toplanıp son eksenle aynı satır
+	// işleviyle hesaplanır; böylece sonuç eksenden bağımsızdır (aynı üstel çekirdeği ve
+	// aynı toplama sırası) ve üstel vektörel kalır.
 	parallelFor(rows, dim*8, func(lo, hi int) {
+		tmp := make([]float32, 2*dim)
+		xs, ys := tmp[:dim], tmp[dim:]
 		for r := lo; r < hi; r++ {
 			o, i := r/inner, r%inner
 			base := o*dim*inner + i
-			m := float32(math.Inf(-1))
-			for d := 0; d < dim; d++ {
-				if v := xd[base+d*inner]; v > m {
-					m = v
-				}
+			for d := range xs {
+				xs[d] = xd[base+d*inner]
 			}
-			if math.IsInf(float64(m), -1) {
-				// Tüm satır -sonsuz (tamamen maskeli): softmax 0, log_softmax -sonsuz
-				// (birleşik dikkatteki boş satırla tutarlı; gradyanı da 0'dır).
-				bos := float32(0)
-				if logKip {
-					bos = float32(math.Inf(-1))
-				}
-				for d := 0; d < dim; d++ {
-					y[base+d*inner] = bos
-				}
-				continue
-			}
-			var s float64
-			for d := 0; d < dim; d++ {
-				e := expf32(xd[base+d*inner] - m)
-				s += float64(e)
-				if !logKip {
-					y[base+d*inner] = e
-				}
-			}
-			if logKip {
-				// (x - m) - log Σ: büyük logitlerde hassasiyet kaybını önler.
-				ls := float32(math.Log(s))
-				for d := 0; d < dim; d++ {
-					y[base+d*inner] = (xd[base+d*inner] - m) - ls
-				}
-			} else {
-				inv := float32(1 / s)
-				for d := 0; d < dim; d++ {
-					y[base+d*inner] *= inv
-				}
+			softmaxSatir(ys, xs, logKip)
+			for d, v := range ys {
+				y[base+d*inner] = v
 			}
 		}
 	})
