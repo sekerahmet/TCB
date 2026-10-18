@@ -49,6 +49,7 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `internal/motor/parcalayici` | `parçalayıcı_yükle` ve parçalayıcı nesnesinin üyeleri |
 | `internal/motor/veri` | `veri_kümesi`, örnekleyici ve sıralı okuyucu yerleşikleri |
 | `internal/motor/veribicim` | JSON ve CSV yerleşikleri |
+| `internal/motor/dosya` | Standart kitaplık: `Yol` tipi, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `dosya_satırları` (silme korumaları, bağlantı izlememe, `os.Root`) |
 | `internal/motor/ortak/baglama` | Motorların ortak yardımcıları: adlı argüman denetimi, göreli yol, panikten hataya, Türkçe sayı yazımı |
 | `internal/motor/ortak/jsonyaz` | TR değerlerini JSON'a yazar |
 | `internal/hesap/tensor` | n boyutlu tensör, görünümler, otomatik türev, arka uç arayüzü ve CPU arka ucu (AVX2/FMA çekirdekleri) |
@@ -69,7 +70,9 @@ Motorlar ve standart kitaplık yorumlayıcıya (`internal/dil/yurut`) şu kancal
 | Kanca | Görevi |
 | :-- | :-- |
 | `Yinelenebilir`, `Akis` | `döngü x içinde ...` ve liste üreteci: uzunluğu bilinen kaynak (tensör) ya da tembel akış (sıralı okuyucu) |
-| `YolDegerli`, `YolArgumani` | Yol alan yerleşiklerin ortak okuyucusu (Metin ya da ileride `Yol`; sekme/satır sonu ipucu, 13.1a) |
+| `YolDegerli`, `YolArgumani` | Yol alan yerleşiklerin ortak okuyucusu (Metin ya da `Yol`; sekme/satır sonu ipucu, 13.1a) |
+| `GorevliUyeKancasi` | Göreve özel üye okuma: sonucu çalışan koda bağlı özellikler (`Yol`'un diske bakan özellikleri kodun klasörüne göre çözülür) |
+| `AtomikYaz`, `DosyaOkuyucuAc`, `DosyaIceriginiOku`, `DosyaIceriginiYaz` | Dosya okuyan ve yazan bütün yerleşiklerin ortak yardımcıları: atomik yazma, `.gz` saydamlığı (18.12, 18.13) |
 | `CiktiYaz`, `CanliSatir` | İnsanın göreceği çıktı noktaları: etkin canlı satır (ilerleme çubuğu) silinip yeniden çizilir |
 | `GizliDegerEkle`, `Maskele` | Gizli değer süzgeci: kayıtlı değerler çıktı noktalarında `***` olur (veri çıktılarında değil) |
 | `ArgumanlariAyarla`, `Argumanlar` | Betiğin komut satırı argümanları (okunmazsa çıkışta uyarı) |
@@ -94,7 +97,7 @@ Motorlar ve standart kitaplık yorumlayıcıya (`internal/dil/yurut`) şu kancal
 
 | Rol | Alan |
 | :-- | :-- |
-| Dil çekirdeği | `internal/dil/**`, `internal/arac/{bicim,testkosucu,ayikla}`, `internal/depo`, `cmd/tr`, `docs/dil/`, bu dosya |
+| Dil çekirdeği | `internal/dil/**`, `internal/motor/dosya`, `internal/arac/{bicim,testkosucu,ayikla}`, `internal/depo`, `cmd/tr`, `docs/dil/`, bu dosya |
 | Tensör ve GPU | `internal/hesap/tensor` (ileride `internal/hesap/gpu`), `internal/motor/ogrenme`, ileride `kitaplik/cekirdek` |
 | Veri ve parçalayıcı | `internal/hesap/{parca,veriyolu}`, `internal/motor/{parcalayici,veri,veribicim}` |
 | Araçlar | `duzenleyici/`, `.vscode/`, `docs/kilavuz/`, `README.md` |

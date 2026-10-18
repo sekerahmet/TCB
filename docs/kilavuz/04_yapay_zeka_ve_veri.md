@@ -132,3 +132,23 @@ döngü doğrulama.sonraki() != yok { }   // bitince yok döner
 ```
 
 VS Code İzleme Masası'nda bu nesneler tip sütununda `Parçalayıcı (dağarcık 40000)`, `Veri kümesi (246 veri dosyası, 56,9 milyar parça)`, `Örnekleyici (32×1024, dönem 0, 120 toplu iş)` gibi görünür; parçalayıcı (eklenmiş/özel parçalar) ve veri kümesi (veri dosyaları) tablo olarak açılabilir.
+
+## E. Dosya ve Yol
+
+Veri klasörünü gezmek, çıktı klasörü açmak, kontrol noktalarını yedeklemek ve büyük metin derlemlerini satır satır okumak için. Kurallar ve ayrıntılar: dil tanımı [§18](../dil/18_dosya_ve_yol.md).
+
+- **Yol:** `yol("çıktı", "model.trt")` parçaları `/` ile birleştirip temizler; `Yol` her platformda `/` ile yazılır. Yola sorulur: `.dosya_adı`, `.uzantı`, `.uzantısız_ad`, `.üst_klasör`, `.mutlak`, `.var_mı`, `.dosya_mı`, `.klasör_mü`, `.bayt`. İlk parçadan sonra mutlak bir parça hatadır (dışarıdan gelen bir ad taban klasörü değiştiremez). Yol alan her yerleşik (`dosya_oku`, `dosya_yaz`, `csv_oku`, `tensör_kaydet`, `veri_kümesi` ...) `Metin` yerine `Yol` da alır.
+- **Listeleme:** `klasörü_listele("veri", "**/*.npy")` kalıba uyan dosya ve klasörleri her çalıştırmada aynı sırayla verir; `*`, `?`, `[a-z]`, `**` (alt klasörler). Gizli adlar (`.git`) kalıp nokta ile başlamadıkça listelenmez.
+- **Klasör, silme, kopyalama, taşıma:** `klasör_oluştur("çıktı/kontrol_noktaları")` (varsa sorun değil), `kopyala("çıktı/model.trt", "yedek")` (→ `yedek/model.trt`), `taşı(a, b)`, `sil(yol)`. Güvenli varsayılanlar: var olan hedefin yerine koymak `üzerine_yaz: doğru`, dolu klasörü silmek `içindekilerle: doğru` ister; `sil` kökü, ev ve sistem klasörlerini, çalışma ve program klasörünü ve bunların üstlerini silmez, salt okunur dosyayı zorla silmez; bağlantılar (Windows dizin bağlantıları dahil) izlenmez. Kopya önce geçici bir ada yazılır, sonra yerine konur.
+- **Büyük dosyalar:** `döngü satır içinde dosya_satırları("derlem.jsonl.gz") { ... }` dosyayı akışla okur (bellek dosya boyutundan bağımsız; tek satır en çok 64 MB). `.gz` uzantılı dosyalar `dosya_oku`, `dosya_satırları` ve `csv_oku`'da açılarak okunur, `dosya_yaz`'da sıkıştırılarak yazılır.
+- **Atomik yazma:** `dosya_yaz` de `tensör_kaydet` gibi önce geçici dosyaya yazıp yerine koyar: yarıda kalan yazma eski dosyayı bozmaz. Bedeli: her yazma diske işlenir (çok sayıda küçük yazma eskisinden yavaştır) ve dosyanın sabit bağlantıları kopar.
+
+```tr
+değişken çıktı = klasör_oluştur(yol("çıktı", "deneme_1"))
+döngü p içinde klasörü_listele("veri", "**/*.npy") { yazdır(p.dosya_adı, p.bayt) }
+değişken model = yol(çıktı, "model.trt")
+eğer model.var_mı { kopyala(model, klasör_oluştur("yedek"), üzerine_yaz: doğru) }
+değişken n = 0
+döngü satır içinde dosya_satırları("veri/derlem.jsonl.gz") { n += 1 }
+yazdır("{n} satır")
+```

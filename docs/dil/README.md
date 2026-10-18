@@ -23,3 +23,4 @@ Bu belge TR dilinin **bugünkü uygulamaya** (`internal/dil/sozcuk`, `internal/d
 15. [Tensörler ve otomatik türev](15_tensorler.md)
 16. [Veri ve parçalayıcı](16_veri_parcalayici.md)
 17. [Kodlar](17_kodlar.md)
+18. [Dosya ve yol](18_dosya_ve_yol.md)

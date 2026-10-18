@@ -6,12 +6,12 @@ Kod bir harf ve üç basamaklı bir sayıdır; harf aileyi, yüzler basamağı a
 
 | Aile | Kapsam | Gruplar |
 | :-- | :-- | :-- |
-| `A` | Dilin çekirdeği | `A0xx` anahtar kelimeler (`A001` eğer, `A010` döngü, `A020` fonksiyon ...), `A1xx` bağlamsal sözcükler (`olarak`, `test`, `kurucu`, `hata`, `o`), `A2xx` tip adları (`A200` Tam ... `A23x` motor tipleri) |
-| `G` | Genel yerleşikler | `G1xx` giriş, çıkış, dosya (`G100` yazdır, `G101` girdi) · `G2xx` değer, tip, dönüşüm (`G201` tip) · `G3xx` liste · `G4xx` matematik ve istatistik · `G5xx` zaman ve eşzamanlılık · `G6xx` JSON/CSV · `G7xx` test |
+| `A` | Dilin çekirdeği | `A0xx` anahtar kelimeler (`A001` eğer, `A010` döngü, `A020` fonksiyon ...), `A1xx` bağlamsal sözcükler (`olarak`, `test`, `kurucu`, `hata`, `o`), `A2xx` tip adları (`A200` Tam ... `A23x` motor tipleri, `A25x` standart kitaplık tipleri: `A250` Yol) |
+| `G` | Genel yerleşikler | `G1xx` giriş, çıkış, dosya (`G100` yazdır, `G101` girdi) · `G2xx` değer, tip, dönüşüm (`G201` tip) · `G3xx` liste · `G4xx` matematik ve istatistik · `G5xx` zaman ve eşzamanlılık · `G6xx` JSON/CSV · `G7xx` test · `G9xx` adlı argümanlar (`G900` üzerine_yaz) |
 | `T` | Tensör ve yapay zekâ | `T1xx` oluşturma ve görünüm (`T100` tensör) · `T2xx` etkinleştirme ve eleman bazlı matematik · `T3xx` türev · `T4xx` iyileştiriciler · `T5xx` katmanlar, kayıplar, model parametreleri · `T6xx` dil modeli (örnekleme) · `T7xx` kaydetme, yükleme, veri türleri · `T9xx` adlı argümanlar |
 | `V` | Veri ve parçalayıcı | `V1xx` veri kümesi · `V2xx` parçalayıcı · `V9xx` adlı argümanlar |
 | `W` | Web, veritabanı, arayüz | kaldırıldı; kodları bir daha kullanılmaz |
-| `Y` | Yöntemler: metot ve özellikler (`x.ad`) | `Y0xx` birden çok tipte ortak (`uzunluk`, `içerir` ...) · `Y1xx` Metin · `Y2xx` Liste · `Y3xx` Sözlük · `Y4xx` Tensör · `Y5xx` iyileştirici · `Y6xx` veri kümesi, okuyucu, parçalayıcı · (`Y7xx`–`Y9xx` veritabanı, web, arayüz: kaldırıldı) |
+| `Y` | Yöntemler: metot ve özellikler (`x.ad`) | `Y0xx` birden çok tipte ortak (`uzunluk`, `içerir` ...) · `Y1xx` Metin · `Y2xx` Liste · `Y3xx` Sözlük ve standart kitaplık nesneleri (`Y300` Sözlük, `Y31x` Yol) · `Y4xx` Tensör · `Y5xx` iyileştirici · `Y6xx` veri kümesi, okuyucu, parçalayıcı · (`Y7xx`–`Y9xx` veritabanı, web, arayüz: kaldırıldı) |
 | `H` | Hata mesajları | ayrılmış; henüz kullanılmıyor |
 
 **Dil dosyası** (`tr.json`): her kod bir satırdır ve kodlar artan sıradadır:
