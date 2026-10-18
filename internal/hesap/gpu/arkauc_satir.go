@@ -162,10 +162,14 @@ func (g *arkaUc) Embedding(out tensor.Storage, w tensor.View, idx []int, D int) 
 		return
 	}
 	boyDenetle(len(idx) * D)
-	wv := gt.oku(w)
+	wv := w
+	if !w.IsContiguous() {
+		wv = gt.oku(w)
+	}
 	boyDenetle(wv.Numel())
 	idxD := gt.yukleTam(idx)
-	c := g.cekirdekAl("gomme", gommeCekirdegi)
+	dt := g.depoOf(wv.S).tur
+	c := g.cekirdekAl("gomme:"+dt.String(), gommeCekirdegi(dt))
 	g.baslat(c, [3]uint32{uint32(len(idx)), 1, 1}, [3]uint32{gommeBlok, 1, 1},
 		g.param().okuV(wv).oku(idxD, 0).yaz(o, 0).u32(D))
 	son()

@@ -67,6 +67,10 @@ func (g *arkaUc) indirge(is indirgeIs) {
 		ayar.blok = ikiKuvvet(R, 32, 256)
 	}
 	meta := append(append(append(append(append(append(append([]int{}, kSh...), ks[0]...), ks[1]...), ks[2]...), rSh...), rs[0]...), rs[1]...)
+	if S := indirgeParcaSayisi(K, R, ayar.blok); S > 1 {
+		g.indirgeIkiAsama(is, ayar, meta, kSh, ks[2], K, R, S)
+		return
+	}
 	c := g.cekirdekAl(ayar.anahtar(), indirgeCekirdegi(ayar))
 	p := g.param().oku(is.a, is.aOf)
 	if is.o != nil {
@@ -86,6 +90,47 @@ func (g *arkaUc) indirge(is indirgeIs) {
 	}
 	iz, bl := duz(K, esBlok)
 	g.baslat(c, iz, bl, p)
+}
+
+// indirgeParcaSayisi indirgenen aralığın kaç parçaya bölüneceği: çıktı az, indirgenen eksen
+// uzunken (ör. sapma gradyanı K = 512, R = 8192; hepsinin toplamı K = 1) tek aşamada çok az
+// iş parçacığı çalışırdı. Parça sayısı yalnızca K ve R'ye bağlıdır (belirlenimci).
+func indirgeParcaSayisi(K, R, blok int) int {
+	is := K // aynı anda çalışan iş parçacığı
+	if blok > 0 {
+		is = K * blok
+	}
+	const hedef = 1 << 17
+	if is >= hedef/2 || R < 2048 {
+		return 1
+	}
+	return min((hedef+is-1)/is, R/512, 512)
+}
+
+// indirgeIkiAsama belirlenimci iki aşamalı indirgeme: her parça kısmi toplamını yazar,
+// ikinci aşama kısmi toplamları parça sırasıyla toplayıp çıktıya (ölçek, ekleme ve çıktı
+// adımlarıyla) yazar.
+func (g *arkaUc) indirgeIkiAsama(is indirgeIs, ayar indirgeAyar, meta, kSh, kSt []int, K, R, S int) {
+	P := (R + S - 1) / S
+	kismi := g.ayir(S*K, tensor.Float32, false)
+	defer g.birak(kismi)
+	ayar.parcali, ayar.ekle = true, false
+	c := g.cekirdekAl(ayar.anahtar(), indirgeCekirdegi(ayar))
+	p := g.param().oku(is.a, is.aOf)
+	if is.o != nil {
+		p.oku(is.o, is.oOf)
+	} else {
+		p.bos()
+	}
+	p.okuYa(is.y).yaz(kismi, 0).u32(K).u32(R).f32(1).dizi(len(meta), meta...).u32(P)
+	if ayar.blok > 0 {
+		g.baslat(c, [3]uint32{uint32(K), uint32(S), 1}, [3]uint32{uint32(ayar.blok), 1, 1}, p)
+	} else {
+		g.baslat(c, [3]uint32{bloklar(K, esBlok), uint32(S), 1}, [3]uint32{esBlok, 1, 1}, p)
+	}
+	sekil := append([]int{S}, kSh...)
+	g.indirge(indirgeIs{a: kismi, cikti: is.cikti, ciktiOf: is.ciktiOf, sekil: sekil,
+		stA: append([]int{K}, bitisik(kSh)...), st: append([]int{0}, kSt...), terim: tA, ekle: is.ekle, olcek: is.olcek})
 }
 
 // duzV depolamanın tamamına bitişik görünüm.

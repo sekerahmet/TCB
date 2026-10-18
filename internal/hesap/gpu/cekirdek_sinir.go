@@ -17,9 +17,14 @@ import (
 
 const gommeBlok = 128
 
-// gommeCekirdegi out[r, :] = w[idx[r], :]; satır başına blok.
-func gommeCekirdegi() *yazici {
-	k := yeniYazici("gomme")
+// gommeCekirdegi out[r, :] = w[idx[r], :]; satır başına blok. Tablo kendi türünde (16 bitlik
+// tablo float32'ye açılmadan) okunur.
+func gommeCekirdegi(dt tensor.DType) func() *yazici {
+	return func() *yazici { return gommeUret(dt) }
+}
+
+func gommeUret(dt tensor.DType) *yazici {
+	k := yeniYazici("gomme_" + dt.String())
 	w := k.gosterici("w")
 	idx := k.gosterici("idx")
 	out := k.yazilan("cikti")
@@ -35,7 +40,7 @@ func gommeCekirdegi() *yazici {
 		ks, hs := k.r(), k.r()
 		k.e("add.s32", ks, kaynak, j)
 		k.e("add.s32", hs, hedef, j)
-		k.sakla(tensor.Float32, k.adres(out, hs, 4), k.yukle(tensor.Float32, k.adres(w, ks, 4)))
+		k.sakla(tensor.Float32, k.adres(out, hs, 4), k.yukle(dt, k.adres(w, ks, turBoyu(dt))))
 	})
 	return k
 }

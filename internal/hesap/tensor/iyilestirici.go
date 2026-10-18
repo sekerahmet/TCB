@@ -99,6 +99,7 @@ func (o *SGD) SetMasterWeights(on bool) { o.ana.ayarla(on) }
 // Step bir güncelleme adımı uygular. Gradyanı olmayan parametreler atlanır.
 // Parametreler yerinde değiştiği için sürümleri artar.
 func (o *SGD) Step() {
+	var adimlar []iyiAdim
 	for k, p := range o.Params {
 		if p.grad == nil {
 			continue
@@ -106,9 +107,52 @@ func (o *SGD) Step() {
 		if o.Momentum != 0 && o.hiz[k] == nil {
 			o.hiz[k] = p.be.Alloc(p.Numel(), Float32)
 		}
-		h := o.ana.hedef(k, p)
-		p.be.SGDStep(h, p.grad, o.hiz[k], o.LR, o.Momentum, o.WeightDecay)
-		o.ana.yaz(k, p, h)
+		adimlar = append(adimlar, iyiAdim{k: k, p: p, h: o.ana.hedef(k, p), m: o.hiz[k]})
+	}
+	cokluUygula(adimlar, func(be MultiTensorOps, a []iyiAdim) {
+		h, g, v := a[0].sutunlar(a)
+		be.SGDStepAll(h, g, v, o.LR, o.Momentum, o.WeightDecay)
+	}, func(a iyiAdim) {
+		a.p.be.SGDStep(a.h, a.p.grad, a.m, o.LR, o.Momentum, o.WeightDecay)
+	})
+	for _, a := range adimlar {
+		o.ana.yaz(a.k, a.p, a.h)
+	}
+}
+
+// iyiAdim bir parametrenin bu adımdaki güncellemesi: güncellenecek depolama (h; ana kopya
+// olabilir), durum depolamaları (m, v) ve sapma düzeltmeleri.
+type iyiAdim struct {
+	k        int
+	p        *Tensor
+	h, m, v  Storage
+	bc1, bc2 float32
+}
+
+// sutunlar adımların h, gradyan ve m depolamaları.
+func (iyiAdim) sutunlar(a []iyiAdim) (h, g, m []Storage) {
+	for _, x := range a {
+		h, g, m = append(h, x.h), append(g, x.p.grad), append(m, x.m)
+	}
+	return h, g, m
+}
+
+// cokluUygula ardışık, aynı arka uçtaki ve çok tensörlü işi destekleyen adımları tek çağrıda
+// (coklu), kalanları tek tek (tekli) uygular; sıra korunur.
+func cokluUygula(adimlar []iyiAdim, coklu func(MultiTensorOps, []iyiAdim), tekli func(iyiAdim)) {
+	for i := 0; i < len(adimlar); {
+		mt, ok := adimlar[i].p.be.(MultiTensorOps)
+		if !ok {
+			tekli(adimlar[i])
+			i++
+			continue
+		}
+		j := i + 1
+		for j < len(adimlar) && adimlar[j].p.be == adimlar[i].p.be {
+			j++
+		}
+		coklu(mt, adimlar[i:j])
+		i = j
 	}
 }
 
@@ -156,21 +200,32 @@ func (o *AdamW) StepCount() int { return o.adim }
 // akmayan bir parametre) ilk güncellemesinde yeni bir iyileştiricideki gibi davranır.
 func (o *AdamW) Step() {
 	o.adim++
+	var adimlar []iyiAdim
 	for k, p := range o.Params {
 		if p.grad == nil {
 			continue
 		}
 		o.adimlar[k]++
 		t := float64(o.adimlar[k])
-		bc1 := float32(1 - math.Pow(float64(o.Beta1), t))
-		bc2 := float32(1 - math.Pow(float64(o.Beta2), t))
 		if o.m[k] == nil {
 			o.m[k] = p.be.Alloc(p.Numel(), Float32)
 			o.v[k] = p.be.Alloc(p.Numel(), Float32)
 		}
-		h := o.ana.hedef(k, p)
-		p.be.AdamWStep(h, p.grad, o.m[k], o.v[k], o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, bc1, bc2)
-		o.ana.yaz(k, p, h)
+		adimlar = append(adimlar, iyiAdim{k: k, p: p, h: o.ana.hedef(k, p), m: o.m[k], v: o.v[k],
+			bc1: float32(1 - math.Pow(float64(o.Beta1), t)), bc2: float32(1 - math.Pow(float64(o.Beta2), t))})
+	}
+	cokluUygula(adimlar, func(be MultiTensorOps, a []iyiAdim) {
+		h, g, m := a[0].sutunlar(a)
+		v, bc1, bc2 := make([]Storage, len(a)), make([]float32, len(a)), make([]float32, len(a))
+		for i, x := range a {
+			v[i], bc1[i], bc2[i] = x.v, x.bc1, x.bc2
+		}
+		be.AdamWStepAll(h, g, m, v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, bc1, bc2)
+	}, func(a iyiAdim) {
+		a.p.be.AdamWStep(a.h, a.p.grad, a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
+	})
+	for _, a := range adimlar {
+		o.ana.yaz(a.k, a.p, a.h)
 	}
 }
 
@@ -183,11 +238,18 @@ func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
 	norm := math.Sqrt(gradKareToplami(params))
 	if norm > maxNorm && norm > 0 {
 		k := float32(maxNorm / norm)
+		var adimlar []iyiAdim
 		for _, p := range params {
 			if p.grad != nil {
-				p.be.Scale(p.grad, k)
-				p.grad.BumpVersion()
+				adimlar = append(adimlar, iyiAdim{p: p})
 			}
+		}
+		cokluUygula(adimlar, func(be MultiTensorOps, a []iyiAdim) {
+			_, g, _ := a[0].sutunlar(a)
+			be.ScaleAll(g, k)
+		}, func(a iyiAdim) { a.p.be.Scale(a.p.grad, k) })
+		for _, a := range adimlar {
+			a.p.grad.BumpVersion()
 		}
 	}
 	return norm

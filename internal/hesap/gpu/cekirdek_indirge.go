@@ -36,10 +36,14 @@ type indirgeAyar struct {
 	terim  terimTuru
 	ekle   bool // çıktı += ölçek·toplam (değilse çıktı = ölçek·toplam)
 	blok   int  // 0: çıktı başına iş parçacığı; > 0: çıktı başına bu boyda blok
+	// parcali: indirgenen doğrusal aralık ızgaranın y'sindeki parçalara bölünür; her parça
+	// kısmi toplamını (ölçeksiz) kismi[parça·K + j]'ye yazar (iki aşamalı indirgemenin
+	// ilk aşaması).
+	parcali bool
 }
 
 func (a indirgeAyar) anahtar() string {
-	return fmt.Sprintf("indirge:%d:%d:%d:%v:%d", a.nk, a.nr, a.terim, a.ekle, a.blok)
+	return fmt.Sprintf("indirge:%d:%d:%d:%v:%d:%v", a.nk, a.nr, a.terim, a.ekle, a.blok, a.parcali)
 }
 
 // terimHesapla A (ve gerekirse O, Y) ofsetlerinden terimi yükler.
@@ -131,7 +135,7 @@ func (k *yazici) topla(a, b yazmac) yazmac {
 
 func indirgeCekirdegi(a indirgeAyar) func() *yazici {
 	return func() *yazici {
-		k := yeniYazici(fmt.Sprintf("indirge_%d_%d_%d_%v_%d", a.nk, a.nr, a.terim, a.ekle, a.blok))
+		k := yeniYazici(fmt.Sprintf("indirge_%d_%d_%d_%v_%d_%v", a.nk, a.nr, a.terim, a.ekle, a.blok, a.parcali))
 		pa := k.gosterici("a")
 		po := k.gosterici("o")
 		py := k.gosterici("y")
@@ -140,6 +144,10 @@ func indirgeCekirdegi(a indirgeAyar) func() *yazici {
 		R := k.u32p("r")
 		olcek := k.f32p("olcek")
 		k.dizi("meta", 4*a.nk+3*a.nr)
+		var parca, rSon, s yazmac
+		if a.parcali {
+			parca = k.u32p("parca")
+		}
 		son := k.etiket()
 		var j, tid, adim, bas yazmac
 		var sm yazmac
@@ -159,10 +167,20 @@ func indirgeCekirdegi(a indirgeAyar) func() *yazici {
 		acc := k.sabit(0)
 		r := k.r()
 		k.e("mov.u32", r, bas)
+		rSon = R
+		if a.parcali {
+			s = k.ozel("%ctaid.y")
+			p0 := k.r()
+			k.e("mul.lo.s32", p0, s, parca)
+			k.e("add.s32", r, r, p0)
+			rSon = k.r()
+			k.e("add.s32", rSon, p0, parca)
+			k.e("min.u32", rSon, rSon, R)
+		}
 		dongu, bitti := k.etiket(), k.etiket()
 		k.koy(dongu)
 		p := k.p()
-		k.e("setp.ge.u32", p, r, R)
+		k.e("setp.ge.u32", p, r, rSon)
 		k.gitEger(p, bitti)
 		rofs := k.ayristirTaban(r, a.nr, 2, 4*a.nk, "meta")
 		oa, oo := k.r(), k.r()
@@ -178,6 +196,13 @@ func indirgeCekirdegi(a indirgeAyar) func() *yazici {
 			p0 := k.p()
 			k.e("setp.ne.u32", p0, tid, 0)
 			k.gitEger(p0, son)
+		}
+		if a.parcali {
+			o := k.r()
+			k.e("mad.lo.s32", o, s, K, j)
+			k.sakla(tensor.Float32, k.adres(out, o, 4), acc)
+			k.koy(son)
+			return k
 		}
 		ha := k.adresS(out, kofs[2], 4)
 		k.e("mul.rn.f32", acc, acc, olcek)

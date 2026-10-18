@@ -175,6 +175,16 @@ type BackwardFinisher interface {
 	BackwardDone()
 }
 
+// MultiTensorOps iyileştirici adımlarını ve ölçeklemeyi birden çok depolamaya tek seferde
+// (GPU'da tek başlatmada) uygulayan arka uçların isteğe bağlı arayüzüdür. Sonuç her depolama
+// için tekli yöntemlerle (AdamWStep, SGDStep, Scale) aynıdır; dilimler eşit uzunluktadır
+// (SGDStepAll'da vel nil ya da nil elemanlı olabilir: momentum yok).
+type MultiTensorOps interface {
+	AdamWStepAll(p, g, m, v []Storage, lr, b1, b2, eps, wd float32, bc1, bc2 []float32)
+	SGDStepAll(p, g, vel []Storage, lr, momentum, wd float32)
+	ScaleAll(s []Storage, k float32)
+}
+
 // GemmSetter Gemm'in C'nin üzerine yazan biçimini (C = op(A)·op(B); C'nin eski içeriği
 // okunmaz, K = 0 ise C sıfır olur) veren arka uçların isteğe bağlı arayüzüdür. Çıktı ve ilk
 // gradyan sıfırlanmadan ayrılır: sıfırlama ve eski içeriğin okunması (iki tam bellek geçişi)

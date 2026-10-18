@@ -14,15 +14,21 @@ import (
 
 func TestToplamlar(t *testing.T) {
 	rng := rand.New(rand.NewSource(5))
-	sekiller := [][]int{{1}, {7}, {3, 5}, {4, 300}, {300, 4}, {2, 3, 70}, {5, 0, 3}, {2, 1031}, {1031, 3}, {600, 260}}
+	// {3000, 5}, {9000}, {2100, 300}: uzun indirgenen eksen, az çıktı (iki aşamalı indirgeme).
+	sekiller := [][]int{{1}, {7}, {3, 5}, {4, 300}, {300, 4}, {2, 3, 70}, {5, 0, 3}, {2, 1031}, {1031, 3}, {600, 260},
+		{3000, 5}, {9000}, {2100, 300}}
 	for _, sh := range sekiller {
 		v := rastgele(rng, numel(sh), 1)
+		tol := 1e-5
+		if numel(sh) > 5000 {
+			tol = 1e-4 // binlerce float32 terimin toplamı (CPU float64 biriktirir)
+		}
 		for ax := range sh {
 			for _, ort := range []bool{false, true} {
 				if ort && sh[ax] == 0 {
 					continue // boş eksenin ortalaması tanımsız (açık hata)
 				}
-				karsilastir(t, fmt.Sprintf("%v eksen %d ortalama=%v", sh, ax, ort), 1e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+				karsilastir(t, fmt.Sprintf("%v eksen %d ortalama=%v", sh, ax, ort), tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 					x := ikiz(v, true, sh...)[c]
 					if ort {
 						return x.Mean(ax, true), []*tensor.Tensor{x}
@@ -31,11 +37,11 @@ func TestToplamlar(t *testing.T) {
 				})
 			}
 		}
-		karsilastir(t, fmt.Sprintf("%v hepsi", sh), 1e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+		karsilastir(t, fmt.Sprintf("%v hepsi", sh), tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			x := ikiz(v, true, sh...)[c]
 			return x.SumAll(), []*tensor.Tensor{x}
 		})
-		karsilastir(t, fmt.Sprintf("%v adımlı hepsi", sh), 1e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+		karsilastir(t, fmt.Sprintf("%v adımlı hepsi", sh), tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			x := ikiz(v, true, sh...)[c]
 			if len(sh) < 2 {
 				return x.MeanAll(), []*tensor.Tensor{x}
@@ -43,6 +49,17 @@ func TestToplamlar(t *testing.T) {
 			return x.Transpose(0, 1).SumAll(), []*tensor.Tensor{x}
 		})
 	}
+}
+
+// TestSapmaGradyani yayınlanan toplamanın (sapma) gradyanını uzun satır ekseninde denetler
+// (iki aşamalı sütun indirgemesi).
+func TestSapmaGradyani(t *testing.T) {
+	rng := rand.New(rand.NewSource(8))
+	xv, bv := rastgele(rng, 2500*40, 1), rastgele(rng, 40, 1)
+	karsilastir(t, "sapma gradyanı", 1e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+		x, b := ikiz(xv, true, 2500, 40)[c], ikiz(bv, true, 40)[c]
+		return tensor.Mul(tensor.Add(x, b), b), []*tensor.Tensor{x, b}
+	})
 }
 
 // TestBelirlenimci aynı girdinin her çalıştırmada bit düzeyinde aynı sonucu verdiğini
