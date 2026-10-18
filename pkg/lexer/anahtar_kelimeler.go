@@ -24,8 +24,8 @@ var turkceAnahtarKelimeler = []AnahtarKelime{
 	{TOKEN_SABIT, []string{"sabit"}},
 
 	// Fonksiyon ve dönüş
-	{TOKEN_FONKSIYON, []string{"fonksiyon", "işlev", "islev"}},
-	{TOKEN_SONUC, []string{"sonuç", "sonuc", "döndür", "dondur"}},
+	{TOKEN_FONKSIYON, []string{"fonksiyon"}},
+	{TOKEN_SONUC, []string{"sonuç", "sonuc"}},
 
 	// Koşul ve eşleştirme
 	{TOKEN_EGER, []string{"eğer", "eger"}},
@@ -37,7 +37,7 @@ var turkceAnahtarKelimeler = []AnahtarKelime{
 	{TOKEN_DONGU, []string{"döngü", "dongu"}},
 	{TOKEN_ICINDE, []string{"içinde", "icinde"}},
 	{TOKEN_IKEN, []string{"iken"}},
-	{TOKEN_CIK, []string{"çık", "cik", "kır", "kir"}},
+	{TOKEN_CIK, []string{"çık", "cik"}},
 	{TOKEN_DEVAM, []string{"devam"}},
 
 	// Mantıksal ve boş değerler
@@ -50,7 +50,6 @@ var turkceAnahtarKelimeler = []AnahtarKelime{
 
 	// Yapı, Sınıf, Kendi
 	{TOKEN_YAPI, []string{"yapı", "yapi"}},
-	{TOKEN_SINIF, []string{"sınıf", "sinif"}},
 	{TOKEN_KENDI, []string{"kendi"}},
 
 	// Hata yönetimi, Modül, Eşzamanlılık, Ertele, Kesme Noktası
@@ -86,6 +85,27 @@ func anahtarKelimeHaritasi(takimlar [][]AnahtarKelime) map[string]TokenType {
 		}
 	}
 	return harita
+}
+
+// kaldirilanYazimlar TR'den kaldırılmış eş anlamlı anahtar kelimelerdir: her işin tek
+// yazımı olsun diye asıl yazımlar fonksiyon, sonuç, çık, yapı ve olarak'tır. Kaldırılan
+// sözcükler artık sıradan adlardır (ör. değişken sınıf = "9-A"); yalnızca bir hata
+// oluştuğunda, eski alışkanlıkla yazılmış olabilecekleri için ipucu gösterilir.
+var kaldirilanYazimlar = map[string]string{
+	"işlev": "fonksiyon", "islev": "fonksiyon",
+	"döndür": "sonuç", "dondur": "sonuc",
+	"kır": "çık", "kir": "cik",
+	"sınıf": "yapı", "sinif": "yapi",
+	"as": "olarak",
+}
+
+// KaldirilanYazimIpucu ad kaldırılmış bir anahtar kelimeyse hata mesajına eklenecek
+// ipucunu, değilse boş metni döndürür.
+func KaldirilanYazimIpucu(ad string) string {
+	if yeni, ok := kaldirilanYazimlar[ad]; ok {
+		return fmt.Sprintf(" ('%s' TR'de anahtar kelime değil; '%s' yazmak mı istediniz?)", ad, yeni)
+	}
+	return ""
 }
 
 // LookupIdent verilen kelimenin anahtar kelime mi yoksa tanımlayıcı mı olduğunu bulur.

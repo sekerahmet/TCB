@@ -80,9 +80,7 @@ func TestAnahtarKelimeTurkceVeASCIIYazim(t *testing.T) {
 		tur           TokenType
 	}{
 		{"değişken", "degisken", TOKEN_DEGISKEN},
-		{"işlev", "islev", TOKEN_FONKSIYON},
 		{"sonuç", "sonuc", TOKEN_SONUC},
-		{"döndür", "dondur", TOKEN_SONUC},
 		{"eğer", "eger", TOKEN_EGER},
 		{"değilse", "degilse", TOKEN_DEGILSE},
 		{"eşle", "esle", TOKEN_ESLE},
@@ -90,12 +88,10 @@ func TestAnahtarKelimeTurkceVeASCIIYazim(t *testing.T) {
 		{"döngü", "dongu", TOKEN_DONGU},
 		{"içinde", "icinde", TOKEN_ICINDE},
 		{"çık", "cik", TOKEN_CIK},
-		{"kır", "kir", TOKEN_CIK},
 		{"doğru", "dogru", TOKEN_DOGRU},
 		{"yanlış", "yanlis", TOKEN_YANLIS},
 		{"değil", "degil", TOKEN_DEGIL},
 		{"yapı", "yapi", TOKEN_YAPI},
-		{"sınıf", "sinif", TOKEN_SINIF},
 		{"fırlat", "firlat", TOKEN_FIRLAT},
 		{"eşzamanlı", "eszamanli", TOKEN_ESZAMANLI},
 		{"kesme_noktası", "kesme_noktasi", TOKEN_KESME_NOKTASI},
@@ -625,7 +621,7 @@ func TestTamProgram(t *testing.T) {
 	sonuç a + b
 }
 sabit liste = [1, 2.5, "üç"]
-döngü i, x içinde liste { eğer x == yok ve değil doğru { kır } }
+döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 `
 	tokenlariDogrula(t, girdi, []beklenen{
 		{TOKEN_FONKSIYON, "fonksiyon"}, {TOKEN_IDENT, "topla"}, {TOKEN_LPAREN, "("},
@@ -641,7 +637,19 @@ döngü i, x içinde liste { eğer x == yok ve değil doğru { kır } }
 		{TOKEN_ICINDE, "içinde"}, {TOKEN_IDENT, "liste"}, {TOKEN_LBRACE, "{"},
 		{TOKEN_EGER, "eğer"}, {TOKEN_IDENT, "x"}, {TOKEN_EQ, "=="}, {TOKEN_YOK, "yok"},
 		{TOKEN_VE, "ve"}, {TOKEN_DEGIL, "değil"}, {TOKEN_DOGRU, "doğru"},
-		{TOKEN_LBRACE, "{"}, {TOKEN_CIK, "kır"}, {TOKEN_RBRACE, "}"}, {TOKEN_RBRACE, "}"},
+		{TOKEN_LBRACE, "{"}, {TOKEN_CIK, "çık"}, {TOKEN_RBRACE, "}"}, {TOKEN_RBRACE, "}"},
 		{TOKEN_EOF, ""},
 	})
+}
+
+// Kaldırılan eş anlamlılar artık sıradan adlardır.
+func TestKaldirilanEsAnlamlilarAddir(t *testing.T) {
+	for _, ad := range []string{"işlev", "islev", "döndür", "dondur", "kır", "kir", "sınıf", "sinif"} {
+		if tur := LookupIdent(ad); tur != TOKEN_IDENT {
+			t.Errorf("%q artık ad olmalı, %s", ad, tur)
+		}
+		if KaldirilanYazimIpucu(ad) == "" {
+			t.Errorf("%q için ipucu bekleniyordu", ad)
+		}
+	}
 }

@@ -92,14 +92,14 @@ test "5.8 koşullu döngü ve iken" {
     eşit_mi(5, i)
 }
 
-test "5.9 sonsuz döngü ve çık / kır" {
+test "5.9 sonsuz döngü ve çık" {
     değişken i = 0
     döngü {
         i += 1
         eğer i == 4 { çık }
     }
     eşit_mi(4, i)
-    döngü x içinde 1..100 { eğer x == 2 { kır } }
+    döngü x içinde 1..100 { eğer x == 2 { çık } }
 }
 
 test "5.10 devam sonraki turdan sürdürür" {

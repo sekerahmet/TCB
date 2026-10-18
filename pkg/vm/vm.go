@@ -8,6 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"tr_dili/pkg/ast"
+	"tr_dili/pkg/lexer"
 	"tr_dili/pkg/turkce"
 )
 
@@ -251,6 +252,9 @@ func (v *VM) WaitAsync() {
 // reportAsyncError eşzamanlı görevde oluşan hatayı sessizce yutmak yerine standart hataya yazar.
 // suggestName kapsamdaki adlar arasında yazıma en yakın olanı "Bunu mu demek istediniz?" olarak önerir.
 func suggestName(name string, env *Environment) string {
+	if ipucu := lexer.KaldirilanYazimIpucu(name); ipucu != "" {
+		return ipucu
+	}
 	if o := turkce.EnYakin(name, env.Names()); o != "" {
 		return fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 	}

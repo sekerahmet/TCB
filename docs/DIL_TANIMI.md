@@ -61,15 +61,17 @@ değişken t = 1 +
 | :-- | :-- | :-- | :-- | :-- |
 | `değişken` | `degisken` | | `doğru` / `yanlış` | `dogru` / `yanlis` |
 | `sabit` | | | `yok` | |
-| `fonksiyon` | `işlev`, `islev` | | `ve` / `veya` / `değil` | `degil` |
-| `sonuç` | `sonuc`, `döndür`, `dondur` | | `yapı` / `sınıf` | `yapi` / `sinif` |
+| `fonksiyon` | | | `ve` / `veya` / `değil` | `degil` |
+| `sonuç` | `sonuc` | | `yapı` | `yapi` |
 | `eğer` / `değilse` | `eger` / `degilse` | | `kendi` | |
 | `eşle` / `varsayılan` | `esle` / `varsayilan` | | `dene` / `yakala` | |
 | `döngü` / `içinde` | `dongu` / `icinde` | | `fırlat` | `firlat` |
 | `iken` | | | `aktar` | |
-| `çık` | `cik`, `kır`, `kir` | | `eşzamanlı` | `eszamanli` |
+| `çık` | `cik` | | `eşzamanlı` | `eszamanli` |
 | `devam` | | | `ertele` | |
 | `kesme_noktası` | `kesme_noktasi`, `dur_noktası`, `dur_noktasi`, `durdurma_noktası`, `durdurma_noktasi` | | | |
+
+**2.9a** Her işin tek yazımı vardır. Eskiden eş anlamlı olan `işlev`, `döndür`, `kır`, `sınıf` (ve ASCII biçimleri) ile `aktar ... as` kaldırılmıştır; bu sözcükler artık sıradan adlardır (`değişken sınıf = "9-A"`). Eski alışkanlıkla yazıldıklarında hata mesajı asıl yazımı önerir (`fonksiyon`, `sonuç`, `çık`, `yapı`, `olarak`).
 
 Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak`/`as` (yalnızca `aktar` içinde), `_` (yalnızca `eşle` kolunda varsayılan).
 
@@ -207,7 +209,7 @@ eşle puan {
 
 **5.8** `döngü koşul { ... }` ve `iken koşul { ... }` koşul doğru oldukça tekrarlar.
 
-**5.9** `döngü { ... }` sonsuz döngüdür; `çık` (ya da `kır`) en içteki döngüden çıkar.
+**5.9** `döngü { ... }` sonsuz döngüdür; `çık` en içteki döngüden çıkar.
 
 **5.10** `devam` en içteki döngünün sonraki turuna geçer.
 
@@ -223,9 +225,9 @@ eşle puan {
 
 ## 6. Fonksiyonlar
 
-**6.1** `fonksiyon ad(parametreler) { ... }` (ya da `işlev`) bir fonksiyon tanımlar ve adı bulunulan kapsama bağlar. Tanım çalıştırıldığı noktada gerçekleşir; öne alma (hoisting) yoktur, fonksiyon tanımından önce çağrılamaz.
+**6.1** `fonksiyon ad(parametreler) { ... }` bir fonksiyon tanımlar ve adı bulunulan kapsama bağlar. Tanım çalıştırıldığı noktada gerçekleşir; öne alma (hoisting) yoktur, fonksiyon tanımından önce çağrılamaz.
 
-**6.2** `sonuç ifade` (ya da `döndür`) fonksiyondan değer döndürür; yalnız `sonuç` `yok` döndürür. `sonuç` hiç çalışmazsa son deyimin değeri döner.
+**6.2** `sonuç ifade` fonksiyondan değer döndürür; yalnız `sonuç` `yok` döndürür. `sonuç` hiç çalışmazsa son deyimin değeri döner.
 
 **6.3** Parametrelere varsayılan değer verilebilir (`ek = "!"`). Varsayılanı olmayan bir parametre için argüman verilmezse, fazla argüman verilirse ya da bilinmeyen bir adla argüman verilirse çağrı satırında hata oluşur (`'topla' fonksiyonu 2 argüman bekler, 1 verildi (eksik: 'b')`). Yerleşik fonksiyonların geri çağırdığı fonksiyonlar (ör. `filtrele`, web işleyicileri) bu denetime girmez.
 
@@ -275,7 +277,7 @@ yapı Nokta {
 
 **7.3** Metotlar `kendi` ile nesnenin alanlarına erişir ve onları değiştirebilir: `p.uzaklık_kare()`.
 
-**7.4** `kurucu` adlı metot, nesne oluşturulurken aynı argümanlarla çağrılır. `sınıf`, `yapı` ile eş anlamlıdır.
+**7.4** `kurucu` adlı metot, nesne oluşturulurken aynı argümanlarla çağrılır.
 
 **7.5** Alanlar `p.x = 7` ile atanabilir; olmayan alana erişmek hatadır (`p?.z` ise `yok` verir).
 

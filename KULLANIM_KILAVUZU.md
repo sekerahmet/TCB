@@ -28,12 +28,12 @@ $env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
 
 - **Değişken & Sabit:** `değişken` (`degisken`), `:=`, `sabit`
 - **Çoklu Atama & Takas:** `değişken a, b = 10, 20`, `a, b = b, a`, `ad, soyad = ["Mustafa", "Kemal"]`
-- **Fonksiyon & Dönüş:** `fonksiyon` (`işlev`), `sonuç` (`sonuc`), `(x) => x * 2`
+- **Fonksiyon & Dönüş:** `fonksiyon`, `sonuç` (`sonuc`), `(x) => x * 2`
 - **Koşul & Eşleştirme:** `eğer` (`eger`), `değilse eğer`, `değilse` (`degilse`), `eşle` (`esle`), `varsayılan` (`varsayilan`)
 - **Döngüler & Liste Üreteci:** `döngü x içinde liste` (`dongu x icinde liste`), `1..10`, `1..=10`, `iken`, `çık` (`cik`), `devam`, `[x * x döngü x içinde 1..=10 eğer x % 2 == 0]`
 - **Mantıksal & Boş:** `doğru` (`dogru`), `yanlış` (`yanlis`), `yok`, `ve` (`&&`), `veya` (`||`), `değil` (`!`), `??`, `?.`
 - **Tipler:** `Tam`, `Ondalık`, `Metin`, `Mantık`, `Liste`, `Sözlük`, `Matris`, `Tensör`
-- **Yapı / Sınıf:** `yapı` (`yapi`), `sınıf` (`sinif`), `kendi`
+- **Yapı:** `yapı` (`yapi`), `kendi` (kalıtım yoktur)
 - **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat` (`firlat`), `ertele`, `kesme_noktası` (`dur_noktası`, `durdurma_noktası`; koşullu: `kesme_noktası eğer koşul`), `aktar`, `eşzamanlı` (`eszamanli`), `bekle(saniye)`, `bekle_hepsi()`
 - **Test:** `test "ad" { ... }`, `doğrula(koşul, [mesaj])` (`dogrula`), `eşit_mi(beklenen, gerçek, [mesaj])` (`esit_mi`)
 

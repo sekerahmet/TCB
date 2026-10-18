@@ -4,9 +4,9 @@ fonksiyon topla(a, b) {
     sonuç a + b
 }
 
-test "6.1 isimli fonksiyon tanımı (fonksiyon / işlev)" {
+test "6.1 isimli fonksiyon tanımı" {
     eşit_mi(4, topla(2, 2))
-    işlev çarp(a, b) { döndür a * b }
+    fonksiyon çarp(a, b) { sonuç a * b }
     eşit_mi(6, çarp(2, 3))
 }
 

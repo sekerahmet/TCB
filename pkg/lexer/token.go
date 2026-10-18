@@ -91,7 +91,6 @@ const (
 	TOKEN_VEYA          = "VEYA"          // veya
 	TOKEN_DEGIL         = "DEĞİL"         // değil / degil
 	TOKEN_YAPI          = "YAPI"          // yapı / yapi
-	TOKEN_SINIF         = "SINIF"         // sınıf / sinif
 	TOKEN_KENDI         = "KENDİ"         // kendi
 	TOKEN_DENE          = "DENE"          // dene
 	TOKEN_YAKALA        = "YAKALA"        // yakala

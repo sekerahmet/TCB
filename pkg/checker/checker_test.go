@@ -253,7 +253,7 @@ func TestFonksiyonParametreTipleri(t *testing.T) {
 	hataYok(t, tanim+"kare(bilinmeyen)")
 	hataYok(t, tanim+"kare(yok)")
 
-	iki := "işlev böl(a: Ondalık, b: Ondalık) -> Ondalık { sonuç a / b }\n"
+	iki := "fonksiyon böl(a: Ondalık, b: Ondalık) -> Ondalık { sonuç a / b }\n"
 	hataYok(t, iki+"böl(1, 2)")
 	tekHata(t, iki+`böl(1, "iki")`, "2. parametresi", `"Ondalık"`, `"Metin"`)
 

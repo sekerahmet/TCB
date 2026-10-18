@@ -70,8 +70,17 @@ test "2.9 anahtar kelimelerin ASCII biçimleri eşdeğerdir" {
     degisken x = 1
     eger x == 1 { x = 2 } degilse { x = 3 }
     eşit_mi(2, x)
-    islev f(a) { sonuc a * 2 }
+    fonksiyon f(a) { sonuc a * 2 }
     eşit_mi(4, f(x))
     eşit_mi(dogru, doğru)
     eşit_mi(yanlis, yanlış)
+}
+
+test "2.9a kaldırılan eş anlamlılar sıradan addır" {
+    değişken sınıf = "9-A"
+    değişken kır = "yeşil"
+    eşit_mi("9-A yeşil", "{sınıf} {kır}")
+    değişken mesaj = ""
+    dene { döndür } yakala h { mesaj = "{h}" }
+    doğrula(mesaj.içerir("'sonuç' yazmak mı istediniz"), mesaj)
 }

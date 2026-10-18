@@ -111,14 +111,14 @@
     "declarations": {
       "patterns": [
         {
-          "match": "\\b(fonksiyon|işlev|islev)\\s+([^\\W\\d]\\w*)",
+          "match": "\\b(fonksiyon)\\s+([^\\W\\d]\\w*)",
           "captures": {
             "1": { "name": "storage.type.function.tr" },
             "2": { "name": "entity.name.function.tr" }
           }
         },
         {
-          "match": "\\b(yapı|yapi|sınıf|sinif)\\s+([^\\W\\d]\\w*)",
+          "match": "\\b(yapı|yapi)\\s+([^\\W\\d]\\w*)",
           "captures": {
             "1": { "name": "storage.type.struct.tr" },
             "2": { "name": "entity.name.type.tr" }
@@ -130,7 +130,7 @@
       "patterns": [
         {
           "name": "keyword.control.tr",
-          "match": "\\b(eğer|eger|değilse|degilse|eşle|esle|varsayılan|varsayilan|döngü|dongu|içinde|icinde|iken|çık|cik|kır|kir|devam|sonuç|sonuc|döndür|dondur|dene|yakala|fırlat|firlat|eşzamanlı|eszamanli|ertele)\\b"
+          "match": "\\b(eğer|eger|değilse|degilse|eşle|esle|varsayılan|varsayilan|döngü|dongu|içinde|icinde|iken|çık|cik|devam|sonuç|sonuc|dene|yakala|fırlat|firlat|eşzamanlı|eszamanli|ertele)\\b"
         },
         {
           "name": "keyword.other.debugger.tr",
@@ -138,7 +138,7 @@
         },
         {
           "name": "storage.type.tr",
-          "match": "\\b(değişken|degisken|sabit|fonksiyon|işlev|islev|yapı|yapi|sınıf|sinif)\\b"
+          "match": "\\b(değişken|degisken|sabit|fonksiyon|yapı|yapi)\\b"
         },
         {
           "name": "variable.language.self.tr",

@@ -217,8 +217,31 @@ func (p *Parser) ParseProgram() *ast.Program {
 		}
 		p.nextToken()
 	}
-
+	p.kaldirilanYazimIpuclari()
 	return program
+}
+
+// kaldirilanYazimIpuclari sözdizimi hatası olan satırlarda kaldırılmış bir anahtar kelime
+// (ör. 'döndür', 'kır') ad olarak geçiyorsa, eski alışkanlığa yol gösteren bir ipucu ekler.
+func (p *Parser) kaldirilanYazimIpuclari() {
+	if len(p.errors) == 0 {
+		return
+	}
+	hataliSatir := map[int]bool{}
+	for _, e := range p.errors {
+		var satir int
+		if _, err := fmt.Sscanf(e, "Satır %d", &satir); err == nil {
+			hataliSatir[satir] = true
+		}
+	}
+	for _, t := range p.tokens {
+		if t.Type != lexer.TOKEN_IDENT || !hataliSatir[t.Line] {
+			continue
+		}
+		if ipucu := lexer.KaldirilanYazimIpucu(t.Literal); ipucu != "" {
+			p.errors = append(p.errors, fmt.Sprintf("Satır %d, Sütun %d: ipucu%s", t.Line, t.Column, ipucu))
+		}
+	}
 }
 
 func (p *Parser) parseStatement() ast.Statement {
@@ -245,7 +268,7 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseForStatement()
 	case lexer.TOKEN_IKEN:
 		return p.parseWhileStatement()
-	case lexer.TOKEN_YAPI, lexer.TOKEN_SINIF:
+	case lexer.TOKEN_YAPI:
 		return p.parseStructStatement()
 	case lexer.TOKEN_DENE:
 		return p.parseTryCatchStatement()
@@ -722,7 +745,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	p.nextToken()
 	path := p.curToken().Literal
 	stmt := &ast.ImportStatement{Token: tok, Path: path}
-	if p.peekTokenIs(lexer.TOKEN_IDENT) && (p.peekToken().Literal == "olarak" || p.peekToken().Literal == "as") {
+	if p.peekTokenIs(lexer.TOKEN_IDENT) && p.peekToken().Literal == "olarak" {
 		p.nextToken() // 'olarak'
 		if p.expectPeek(lexer.TOKEN_IDENT) {
 			stmt.Alias = p.curToken().Literal
