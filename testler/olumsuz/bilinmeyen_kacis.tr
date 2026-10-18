@@ -1,0 +1,4 @@
+// Bilerek hatalı modül (2.6): bilinmeyen kaçış dizisi sözdizimi hatasıdır; ters bölü
+// sessizce atılmaz. Düzenli ifade ve Windows yolu için ham metin (2.6a) yazılır.
+değişken yol = "C:\veri\yeni"
+değişken desen = "[0-9]\d+"

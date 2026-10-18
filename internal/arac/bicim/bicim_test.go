@@ -105,6 +105,8 @@ func TestMetinlerBaytBaytKorunur(t *testing.T) {
 	metinler := []string{
 		`"  iki  boşluk  "`, `'tek tırnak'`, `"kaçış \" \n \t \\ \{ \}"`, `"ara {x+1} değer"`,
 		`"{p['ad']}"`, "\"çok\nsatırlı   \n  metin\"",
+		// Ham metin (2.6a): ters bölü, süslü parantez ve boşluklar olduğu gibi
+		"`C:\\veri\\  {x+1}  \\d{3}`", "`çok\n    satırlı  \n`", "``",
 	}
 	for _, m := range metinler {
 		girdi := "değişken x = 1\ndeğişken p = {}\ndeğişken s = " + m + "\n"

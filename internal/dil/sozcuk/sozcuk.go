@@ -253,6 +253,8 @@ func (l *Lexer) NextToken() Token {
 		str := l.readString(quote, line, col)
 		tok = Token{Type: TOKEN_STRING, Literal: str, Line: line, Column: col}
 		return tok
+	case '`':
+		return Token{Type: TOKEN_STRING, Literal: l.readRawString(line, col), Line: line, Column: col}
 	case 0:
 		tok = Token{Type: TOKEN_EOF, Literal: "", Line: line, Column: col}
 		return tok
@@ -398,6 +400,7 @@ func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 		}
 
 		if l.ch == '\\' {
+			kacisSatir, kacisSutun := l.line, l.column
 			l.readChar()
 			switch l.ch {
 			case 'n':
@@ -420,6 +423,13 @@ func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 			case 0:
 				continue // dosya sonu: yukarıdaki kontrol hatayı bildirir
 			default:
+				// Bilinmeyen kaçış hatadır: ters bölüyü sessizce atmak düzenli ifadeleri
+				// ("\d") ve Windows yollarını ("C:\veri") fark edilmeden bozardı.
+				l.addError(kacisSatir, kacisSutun, "%s", bilinmeyenKacis(l.ch))
+				sb.WriteRune('\\')
+				if l.ch == '\r' && l.peekChar() == '\n' {
+					l.readChar()
+				}
 				sb.WriteRune(l.ch)
 			}
 			l.readChar()

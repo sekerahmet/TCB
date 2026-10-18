@@ -19,7 +19,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 3. **Kodlu saklama** — dosyalar diskte dilden bağımsız sabit kodlarla saklanır (`A001`, `G100`); kişi kodu VS Code'da ya da başka bir düzenleyicide kendi yazım dilinde (`eğer` / `if`) görür ve düzenler. Böylece her dilde yazılan kod diskte aynıdır; farklı dillerde çalışan kişiler aynı dosyalar üzerinde birlikte çalışabilir.
    - Go kodunda kodlar adlı sabitler olarak (`kod.G100`), kod listesinden üretilir.
    - Sözcük çözümleyici kodları her zaman kabul eder; `tr biçimle` ve VS Code kaydı kodlu biçimi yazar; otomatik sınama kodlu biçimi denetler.
-   - Kullanıcının adları, metinler, yorumlar ve sayılar olduğu gibi kalır; metin içi `{ifade}` yerleştirmelerindeki dil kelimeleri de kodlanır.
+   - Kullanıcının adları, metinler, yorumlar ve sayılar olduğu gibi kalır; metin içi `{ifade}` yerleştirmelerindeki dil kelimeleri de kodlanır; ham metnin (`` `...` ``) içi hiç çevrilmez.
    - `tr göster dosya.tr --dil tr` ve hata mesajları kodu okunur dilde gösterir.
    - Depodaki örnekler ve testler, VS Code izdüşümü hazır olunca kodlu biçime çevrilir.
 4. **Modern VS Code deneyimi** — dil sunucusu `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır; eklenti ince bir istemci olur):

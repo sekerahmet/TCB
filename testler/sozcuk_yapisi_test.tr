@@ -34,10 +34,31 @@ test "2.6 metinler çift ya da tek tırnakla, kaçış dizileriyle yazılır" {
     eşit_mi('tek', "tek")
     eşit_mi(3, "a\tb".uzunluk)
     eşit_mi("\"", '"')
-    eşit_mi("a\b", 'a\b')
+    eşit_mi(3, "a\\b".uzunluk)
     değişken iki_satir = "bir
 iki"
     eşit_mi(2, iki_satir.böl("\n").uzunluk)
+}
+
+test "2.6 bilinmeyen kaçış dizisi sözdizimi hatasıdır; ham metin önerilir" {
+    değişken mesaj = ""
+    dene { aktar "olumsuz/bilinmeyen_kacis" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir(`Satır 3, Sütun 19: bilinmeyen kaçış dizisi '\v'`), mesaj)
+    doğrula(mesaj.içerir(`Satır 4, Sütun 24: bilinmeyen kaçış dizisi '\d'`), mesaj)
+    doğrula(mesaj.içerir("ham metin"), mesaj)
+}
+
+test "2.6a ham metin: ters tırnak, kaçış ve yerleştirme yok, çok satırlı" {
+    değişken a = 5
+    eşit_mi("C:\\veri\\yeni", `C:\veri\yeni`)
+    eşit_mi("\\d\{3\}-\{a\}", `\d{3}-{a}`)
+    eşit_mi(4, `\n\t`.uzunluk)
+    değişken iki_satir = `bir
+iki`
+    eşit_mi("bir\niki", iki_satir)
+    eşit_mi("Metin", tip(`x`))
+    eşit_mi("", ``)
+    eşit_mi(`"tek" 'çift'`, "\"tek\" 'çift'")
 }
 
 test "2.7 metin içinde \{ifade\} yerleştirme, düz süslü parantez için kaçış" {

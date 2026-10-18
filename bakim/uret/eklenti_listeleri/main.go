@@ -189,10 +189,16 @@ func Uret() ([]byte, error) {
 					{"beginCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.begin.tr"}}}}},
 					{"endCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.end.tr"}}}}},
 					{"patterns", ekle("#string-content")}},
+				// Ham metin (2.6a): kaçış ve yerleştirme yok, çok satırlı olabilir.
+				{{"name", "string.quoted.other.raw.tr"}, {"begin", "`"}, {"end", "`"},
+					{"beginCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.begin.tr"}}}}},
+					{"endCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.end.tr"}}}}}},
 			}}}},
 			{"string-content", nesne{{"patterns", []nesne{
 				kural("constant.character.escape.brace.tr", `\\[{}]`),
-				kural("constant.character.escape.tr", `\\.`),
+				kural("constant.character.escape.tr", `\\[ntr"'\\]`),
+				// Bilinmeyen kaçış dizisi sözdizimi hatasıdır (2.6).
+				kural("invalid.illegal.escape.tr", `\\.`),
 				{{"include", "#interpolation"}},
 			}}}},
 			{"interpolation", nesne{

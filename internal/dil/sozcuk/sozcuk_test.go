@@ -303,7 +303,8 @@ func TestOperatorBirlesimleri(t *testing.T) {
 }
 
 func TestGecersizKarakterler(t *testing.T) {
-	for _, s := range []string{"&", "|", "$", "^", "~", "`", "\\", "😀"} {
+	// '`' ham metin başlatır (2.6a); geçersiz karakter değildir.
+	for _, s := range []string{"&", "|", "$", "^", "~", "\\", "😀"} {
 		toks := hatasizTokenlar(t, s)
 		if len(toks) != 2 || toks[0].Type != TOKEN_ILLEGAL || toks[0].Literal != s {
 			t.Errorf("%q: tek bir GEÇERSİZ token bekleniyordu, gelen: %v", s, toks)

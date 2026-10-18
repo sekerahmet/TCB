@@ -16,9 +16,16 @@ değişken x = 1  // satır sonuna kadar yorum
 
 **2.5** Ondalık sabitler nokta içerir ve noktadan sonra rakam gelmelidir: `3.14`. (`1..5` bir aralıktır, ondalık değil.) Bilimsel yazım da Ondalık verir: üs harfi `e`/`E`, isteğe bağlı `+`/`-` ve en az bir rakam (`1e-5`, `3.2E+4`, `2e10`); üsten sonra rakam yoksa `e` sayıya ait değildir (`2e` → `2` ve `e` adı).
 
-**2.6** Metinler çift (`"..."`) ya da tek (`'...'`) tırnakla yazılır; `\n \t \r \" \' \\` kaçış dizileri tanınır, bilinmeyen kaçışta ters bölü atılır. Metin birden çok satıra yayılabilir; metnin içindeki satır sonu kaynağın satır sonu biçiminden bağımsız olarak `\n`dir (CRLF'li bir dosyada metnin değerine `\r` girmez; `\r` yalnızca kaçışla yazılır). `tr biçimle` metinlerin içindekiler dahil bütün satır sonlarını LF yazar.
+**2.6** Metinler çift (`"..."`) ya da tek (`'...'`) tırnakla yazılır; `\n \t \r \" \' \\ \{ \}` kaçış dizileri tanınır. Bilinmeyen bir kaçış dizisi sözdizimi hatasıdır, ters bölü sessizce atılmaz (`"\d+"`, `"C:\veri"` → `bilinmeyen kaçış dizisi '\d' ...; ters bölüyü olduğu gibi yazmak için ham metin kullanın ya da ters bölüyü ikileyin`): düzenli ifadeler ve Windows yolları için ham metin (2.6a) ya da `\\` yazılır. Metin birden çok satıra yayılabilir; metnin içindeki satır sonu kaynağın satır sonu biçiminden bağımsız olarak `\n`dir (CRLF'li bir dosyada metnin değerine `\r` girmez; `\r` yalnızca kaçışla yazılır). `tr biçimle` metinlerin içindekiler dahil bütün satır sonlarını LF yazar.
 
-**2.7** Metin içindeki `{ifade}` yerleştirmedir: ifade hesaplanıp metne yazılır. Yerleştirme aynı satırda kapanmalıdır; düz süslü parantez için `\{` ve `\}` yazılır. Ayrıştırılamayan `{...}` olduğu gibi metinde kalır.
+**2.6a** Ham metin ters tırnakla (`` `...` ``) yazılır: içinde kaçış dizisi ve `{ifade}` yerleştirmesi (2.7) yoktur, ters bölü, tırnaklar ve süslü parantezler olduğu gibi kalır. Düzenli ifadeler, Windows yolları ve yerleştirme istenmeyen `{` içeren metinler için önerilen yazımdır. Ham metin de `Metin` değeridir ve birden çok satıra yayılabilir (satır sonu yine `\n`dir); içine ters tırnak yazılamaz (o zaman tırnaklı metin kullanılır). Kapanmayan ham metin sözdizimi hatasıdır. `tr biçimle` ham metni olduğu gibi korur.
+
+```tr
+değişken yol = `C:\veri\tokenizer.json`
+değişken tarih = `\d{4}-\d{2}-\d{2}`     // "\\d\{4\}-\\d\{2\}-\\d\{2\}" ile aynı
+```
+
+**2.7** Metin içindeki `{ifade}` yerleştirmedir: ifade hesaplanıp metne yazılır. Yerleştirme aynı satırda kapanmalıdır; düz süslü parantez için `\{` ve `\}` yazılır (ya da ham metin, 2.6a). Ayrıştırılamayan `{...}` olduğu gibi metinde kalır.
 
 ```tr
 değişken ad = "Ali"

@@ -90,6 +90,21 @@
               "include": "#string-content"
             }
           ]
+        },
+        {
+          "name": "string.quoted.other.raw.tr",
+          "begin": "`",
+          "end": "`",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.tr"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.tr"
+            }
+          }
         }
       ]
     },
@@ -101,6 +116,10 @@
         },
         {
           "name": "constant.character.escape.tr",
+          "match": "\\\\[ntr\"'\\\\]"
+        },
+        {
+          "name": "invalid.illegal.escape.tr",
           "match": "\\\\."
         },
         {

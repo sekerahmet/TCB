@@ -35,8 +35,6 @@ func TestMetinKacisDizileri(t *testing.T) {
 		{`"a\"b"`, `a"b`},
 		{`'a\'b'`, "a'b"},
 		{`"a\\b"`, `a\b`},
-		// Bilinmeyen kaçış: ters bölü atılır, karakter korunur (mevcut davranış)
-		{`"a\qb"`, "aqb"},
 		// Kaçışlı süslü parantezler özel kullanım alanı karakterleriyle taşınır
 		{`"\{düz\}"`, string(EscapedLBrace) + "düz" + string(EscapedRBrace)},
 		// '\\{' ise ters bölü + interpolasyon başlangıcıdır
