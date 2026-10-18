@@ -23,14 +23,21 @@ type hazirlik struct {
 	tipBasligi string
 }
 
+// Dosya çalıştırmada ve etkileşimli kabukta (REPL) ortak kullanılan hata başlıkları.
+const (
+	sozdizimiBasligi = "❌ Sözdizimi Hataları:"
+	tipBasligi       = "❌ Tip ve Güvenlik Denetimi Hataları:"
+	calismaBasligi   = "❌ Çalışma Zamanı Hatası:"
+)
+
 // Komutların kullandığı hazırlık biçimleri.
 var (
 	calistirmaHazirligi = hazirlik{
-		sozdizimiBasligi: "❌ Sözdizimi Hataları:",
-		tipBasligi:       "❌ Tip ve Güvenlik Denetimi Hataları:",
+		sozdizimiBasligi: sozdizimiBasligi,
+		tipBasligi:       tipBasligi,
 	}
 	hataAyiklamaHazirligi = hazirlik{
-		sozdizimiBasligi: "❌ Sözdizimi Hataları:",
+		sozdizimiBasligi: sozdizimiBasligi,
 	}
 	derlemeHazirligi = hazirlik{
 		sozdizimiBasligi: "❌ Derleme Öncesi Sözdizimi Hataları:",
@@ -81,13 +88,18 @@ func kaynakHazirla(code string, h hazirlik) *ast.Program {
 	return prog
 }
 
-// hatalarlaCik başlığı ve her hatayı kod çerçevesiyle yazıp 1 koduyla çıkar.
-func hatalarlaCik(baslik string, errs []string, code string) {
+// hatalariYaz başlığı ve her hatayı kod çerçevesiyle standart hataya yazar.
+func hatalariYaz(baslik string, errs []string, code string) {
 	fmt.Fprintln(os.Stderr, baslik)
 	for _, e := range errs {
 		printError(e, code)
 	}
-	os.Exit(1)
+}
+
+// hatalarlaCik hataları hatalariYaz ile yazıp (temizlik işlerinden sonra) 1 koduyla çıkar.
+func hatalarlaCik(baslik string, errs []string, code string) {
+	hatalariYaz(baslik, errs, code)
+	cik(1)
 }
 
 // programCalistir programı çalıştırır, çalışma zamanı hatasını yazıp çıkar; başarılıysa
@@ -96,7 +108,7 @@ func hatalarlaCik(baslik string, errs []string, code string) {
 func programCalistir(machine *vm.VM, prog *ast.Program, code string) {
 	if _, err := machine.Run(prog); err != nil {
 		motor.Kapat()
-		hatalarlaCik("❌ Çalışma Zamanı Hatası:", []string{err.Error()}, code)
+		hatalarlaCik(calismaBasligi, []string{err.Error()}, code)
 	}
 	machine.WaitAsync()
 	motor.Kapat()

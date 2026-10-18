@@ -1,0 +1,491 @@
+package main
+
+import (
+	"encoding/binary"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime/debug"
+	"strconv"
+	"strings"
+	"tr_dili/pkg/lexer"
+	"tr_dili/pkg/parser"
+	"tr_dili/pkg/vm"
+)
+
+// 'tr derle' ile üretilen uygulama, yorumlayıcı ikilisinin sonuna eklenmiş bir paketten
+// oluşur. İki biçim vardır:
+//
+//	Sürüm 1 (eski, yalnızca okunur): [kaynak kod][kod uzunluğu u64][eskiPaketImzasi]
+//	Sürüm 2 ve sonrası:            [JSON paket][paket uzunluğu u64][sürüm u32][paketImzasi]
+//
+// Tüm sayılar küçük uçludur (little endian). Sürüm 2 paketinde ana programın yanında
+// onun 'aktar' ile aldığı .tr modülleri de (özyinelemeli olarak) bulunur.
+const (
+	eskiPaketImzasi        = "TR_EXE_1"
+	paketImzasi            = "TR_PAKET"
+	paketSurumu     uint32 = 2
+
+	eskiAltbilgiBoyu = 16 // uzunluk + imza
+	altbilgiBoyu     = 20 // uzunluk + sürüm + imza
+)
+
+// gomuluKaynakAdi gömülü uygulamanın ana programına verilen addır. VM bu adı görünce
+// modülleri ana programın klasörüne göre aramaz; gömülü uygulamada her 'aktar' zaten
+// gömülü modülün mutlak yoluna yönlendirilir.
+const gomuluKaynakAdi = "<derlenmiş-uygulama>"
+
+// paketDosyasi pakete gömülü tek bir .tr kaynağıdır.
+type paketDosyasi struct {
+	// Ad derleme sırasında dosyanın çözüldüğü yoldur (yalnızca bilgi ve geçici dosya adı için).
+	Ad  string `json:"ad"`
+	Kod string `json:"kod"`
+	// Aktarimlar dosyadaki 'aktar' deyimlerinin, kaynaktaki sırayla, hangi gömülü modüle
+	// (Moduller dizisindeki sıra) gittiğini söyler.
+	Aktarimlar []int `json:"aktarimlar,omitempty"`
+}
+
+// paket gömülü uygulamanın tamamıdır.
+type paket struct {
+	Ana      paketDosyasi   `json:"ana"`
+	Moduller []paketDosyasi `json:"moduller,omitempty"`
+}
+
+// paketiKodla paketi altbilgisiyle birlikte ikilinin sonuna eklenecek baytlara çevirir.
+func paketiKodla(pk *paket) ([]byte, error) {
+	veri, err := json.Marshal(pk)
+	if err != nil {
+		return nil, err
+	}
+	altbilgi := make([]byte, altbilgiBoyu)
+	binary.LittleEndian.PutUint64(altbilgi[0:8], uint64(len(veri)))
+	binary.LittleEndian.PutUint32(altbilgi[8:12], paketSurumu)
+	copy(altbilgi[12:20], paketImzasi)
+	return append(veri, altbilgi...), nil
+}
+
+// paketiAyikla ikilinin sonundaki paketi çözer. bulundu, sonda bir paket imzası olup
+// olmadığını; sablonBoyu, paket atıldığında geriye kalan yorumlayıcının bayt sayısını
+// verir. İmza var ama paket bozuksa ya da desteklenmeyen bir sürümse hata döner.
+func paketiAyikla(ikili []byte) (pk *paket, sablonBoyu int, bulundu bool, err error) {
+	n := len(ikili)
+	switch {
+	case n >= altbilgiBoyu && string(ikili[n-8:]) == paketImzasi:
+		uzunluk := binary.LittleEndian.Uint64(ikili[n-20 : n-12])
+		surum := binary.LittleEndian.Uint32(ikili[n-12 : n-8])
+		if uzunluk > uint64(n-altbilgiBoyu) {
+			return nil, 0, true, errors.New("gömülü paketin uzunluk alanı bozuk")
+		}
+		bas := n - altbilgiBoyu - int(uzunluk)
+		if surum < 2 || surum > paketSurumu {
+			return nil, bas, true, fmt.Errorf("gömülü paket sürümü %d desteklenmiyor (bu yorumlayıcı en çok %d sürümünü okur; uygulamayı daha yeni bir 'tr' ile derlenmiş olabilir)", surum, paketSurumu)
+		}
+		pk = &paket{}
+		if err := json.Unmarshal(ikili[bas:n-altbilgiBoyu], pk); err != nil {
+			return nil, bas, true, fmt.Errorf("gömülü paket çözülemedi: %v", err)
+		}
+		return pk, bas, true, nil
+	case n >= eskiAltbilgiBoyu && string(ikili[n-8:]) == eskiPaketImzasi:
+		// Sürüm 1: modülsüz, yalnızca ana programın kaynağı.
+		uzunluk := binary.LittleEndian.Uint64(ikili[n-16 : n-8])
+		if uzunluk == 0 || uzunluk > uint64(n-eskiAltbilgiBoyu) {
+			return nil, 0, true, errors.New("gömülü kodun uzunluk alanı bozuk")
+		}
+		bas := n - eskiAltbilgiBoyu - int(uzunluk)
+		kod := string(ikili[bas : n-eskiAltbilgiBoyu])
+		return &paket{Ana: paketDosyasi{Kod: kod}}, bas, true, nil
+	}
+	return nil, n, false, nil
+}
+
+// gomuluPaketiBul çalışan ikilinin sonunda bir uygulama paketi arar.
+func gomuluPaketiBul() (*paket, bool, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return nil, false, nil
+	}
+	f, err := os.Open(exePath)
+	if err != nil {
+		return nil, false, nil
+	}
+	defer f.Close()
+	bilgi, err := f.Stat()
+	if err != nil {
+		return nil, false, nil
+	}
+	// Önce yalnızca son 8 bayta (imza) bakılır.
+	boy := bilgi.Size()
+	if boy < eskiAltbilgiBoyu {
+		return nil, false, nil
+	}
+	imza := make([]byte, 8)
+	if _, err := f.ReadAt(imza, boy-8); err != nil {
+		return nil, false, nil
+	}
+	// İmza varsa yalnızca altbilgi ve paket okunur (yorumlayıcının kendisi değil).
+	var altbilgi int64
+	switch string(imza) {
+	case paketImzasi:
+		altbilgi = altbilgiBoyu
+	case eskiPaketImzasi:
+		altbilgi = eskiAltbilgiBoyu
+	default:
+		return nil, false, nil
+	}
+	if boy < altbilgi {
+		return nil, true, errors.New("gömülü paketin altbilgisi eksik")
+	}
+	uzunlukBaytlari := make([]byte, 8)
+	if _, err := f.ReadAt(uzunlukBaytlari, boy-altbilgi); err != nil {
+		return nil, true, err
+	}
+	uzunluk := binary.LittleEndian.Uint64(uzunlukBaytlari)
+	if uzunluk > uint64(boy-altbilgi) {
+		return nil, true, errors.New("gömülü paketin uzunluk alanı bozuk")
+	}
+	kuyruk := make([]byte, int64(uzunluk)+altbilgi)
+	if _, err := f.ReadAt(kuyruk, boy-int64(len(kuyruk))); err != nil {
+		return nil, true, err
+	}
+	pk, _, bulundu, err := paketiAyikla(kuyruk)
+	return pk, bulundu, err
+}
+
+// aktarYeri bir 'aktar' deyiminin modül yolunu yazan sözcük biriminin kaynaktaki
+// karakter (rune) aralığıdır.
+type aktarYeri struct {
+	bas, son int
+	yol      string
+	satir    int
+}
+
+// aktarYerleri koddaki tüm 'aktar' deyimlerini kaynaktaki sırayla bulur. Ayrıştırıcı da
+// 'aktar' sözcüğünden sonraki ilk sözcük biriminin metnini modül yolu sayar; burada da
+// aynısı yapılır, böylece iç bloklardaki aktarımlar da kaçmaz.
+func aktarYerleri(kod string) []aktarYeri {
+	l := lexer.New(kod)
+	var yerler []aktarYeri
+	for {
+		tok := l.NextToken()
+		if tok.Type == lexer.TOKEN_EOF {
+			return yerler
+		}
+		if tok.Type != lexer.TOKEN_AKTAR {
+			continue
+		}
+		yolTok := l.NextToken()
+		if yolTok.Type == lexer.TOKEN_EOF {
+			return yerler
+		}
+		bas, son := l.SonAralik()
+		yerler = append(yerler, aktarYeri{bas: bas, son: son, yol: yolTok.Literal, satir: tok.Line})
+	}
+}
+
+// modulYolunuCoz bir 'aktar' yolunu yorumlayıcıyla (pkg/vm) aynı kuralla çözer: önce
+// bulunulan klasöre göre, bulunamazsa aktaran dosyanın klasörüne göre. aranan, hata
+// iletisinde gösterilecek denenmiş yollardır.
+func modulYolunuCoz(yol, aktaran string) (cozulen string, aranan []string, ok bool) {
+	if !strings.HasSuffix(yol, ".tr") {
+		yol += ".tr"
+	}
+	aranan = append(aranan, yol)
+	if _, err := os.Stat(yol); err == nil {
+		return yol, aranan, true
+	}
+	if !filepath.IsAbs(yol) && aktaran != "" && !strings.HasPrefix(aktaran, "<") {
+		aday := filepath.Join(filepath.Dir(aktaran), yol)
+		aranan = append(aranan, aday)
+		if _, err := os.Stat(aday); err == nil {
+			return aday, aranan, true
+		}
+	}
+	return yol, aranan, false
+}
+
+// modulToplayici derleme sırasında programın aktardığı modülleri özyinelemeli toplar.
+type modulToplayici struct {
+	sira     map[string]int // mutlak yol → Moduller içindeki sıra
+	moduller []paketDosyasi
+}
+
+// topla dosyanın 'aktar' deyimlerini çözer, henüz gömülmemiş modülleri okuyup pakete
+// ekler ve dosyanın Aktarimlar alanını doldurur. kaynakYolu, dosyanın yorumlayıcıda
+// alacağı SourceFile değeridir (modül yolları buna göre çözülür).
+func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
+	yerler := aktarYerleri(dosya.Kod)
+	dosya.Aktarimlar = make([]int, 0, len(yerler))
+	for _, y := range yerler {
+		cozulen, aranan, ok := modulYolunuCoz(y.yol, kaynakYolu)
+		if !ok {
+			return fmt.Errorf("%s, satır %d: %q modülü bulunamadı (aranan: %s)", kaynakYolu, y.satir, y.yol, strings.Join(aranan, ", "))
+		}
+		mutlak, err := filepath.Abs(cozulen)
+		if err != nil {
+			mutlak = cozulen
+		}
+		if i, varMi := t.sira[mutlak]; varMi {
+			dosya.Aktarimlar = append(dosya.Aktarimlar, i)
+			continue
+		}
+		veri, err := os.ReadFile(cozulen)
+		if err != nil {
+			return fmt.Errorf("%s, satır %d: %q modülü okunamadı: %v", kaynakYolu, y.satir, y.yol, err)
+		}
+		modul := paketDosyasi{
+			Ad:  filepath.ToSlash(cozulen),
+			Kod: strings.TrimPrefix(string(veri), "\xef\xbb\xbf"),
+		}
+		if hatalar := sozdizimiHatalari(modul.Kod); len(hatalar) > 0 {
+			return &modulSozdizimiHatasi{yol: cozulen, kod: modul.Kod, hatalar: hatalar}
+		}
+		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
+		// (döngünün kendisini yorumlayıcı çalışma anında bildirir).
+		i := len(t.moduller)
+		t.sira[mutlak] = i
+		t.moduller = append(t.moduller, paketDosyasi{})
+		if err := t.topla(&modul, cozulen); err != nil {
+			return err
+		}
+		t.moduller[i] = modul
+		dosya.Aktarimlar = append(dosya.Aktarimlar, i)
+	}
+	return nil
+}
+
+// modulSozdizimiHatasi gömülecek bir modülde sözdizimi hatası bulunduğunu bildirir.
+type modulSozdizimiHatasi struct {
+	yol     string
+	kod     string
+	hatalar []string
+}
+
+func (e *modulSozdizimiHatasi) Error() string {
+	return fmt.Sprintf("%s modülünde sözdizimi hatası: %s", e.yol, e.hatalar[0])
+}
+
+// sozdizimiHatalari kodu ayrıştırır ve sözdizimi hatalarını döndürür.
+func sozdizimiHatalari(kod string) []string {
+	p := parser.New(lexer.New(kod))
+	p.ParseProgram()
+	return p.Errors()
+}
+
+// paketHazirla ana programı ve aktardığı tüm modülleri içeren paketi kurar.
+func paketHazirla(srcPath, kod string) (*paket, error) {
+	t := &modulToplayici{sira: map[string]int{}}
+	pk := &paket{Ana: paketDosyasi{Ad: filepath.ToSlash(srcPath), Kod: kod}}
+	if err := t.topla(&pk.Ana, srcPath); err != nil {
+		return nil, err
+	}
+	pk.Moduller = t.moduller
+	return pk, nil
+}
+
+// islemciNotu, yorumlayıcı belirli bir x86-64 düzeyi için derlenmişse (GOAMD64=v3/v4)
+// üretilen uygulamanın da aynı işlemci özelliklerini isteyeceğini söyleyen satırı verir.
+func islemciNotu() string {
+	bilgi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	var mimari, duzey string
+	for _, s := range bilgi.Settings {
+		switch s.Key {
+		case "GOARCH":
+			mimari = s.Value
+		case "GOAMD64":
+			duzey = s.Value
+		}
+	}
+	return islemciNotuMetni(mimari, duzey)
+}
+
+// islemciNotuMetni islemciNotu'nun derleme ayarlarından bağımsız (sınanabilir) bölümüdür.
+func islemciNotuMetni(mimari, duzey string) string {
+	if mimari != "amd64" {
+		return ""
+	}
+	switch duzey {
+	case "v3":
+		return "⚠️  Not: Yorumlayıcı GOAMD64=v3 ile derlendiği için bu uygulama AVX2 destekli (x86-64-v3) bir işlemci ister."
+	case "v4":
+		return "⚠️  Not: Yorumlayıcı GOAMD64=v4 ile derlendiği için bu uygulama AVX-512 destekli (x86-64-v4) bir işlemci ister."
+	}
+	return ""
+}
+
+// compileToExe 'tr derle' komutudur: kaynağı ve aktardığı modülleri denetleyip çalışan
+// yorumlayıcının bir kopyasının sonuna paket olarak ekler.
+func compileToExe(srcPath string, outPath string) {
+	code, _ := dosyaHazirla(srcPath, derlemeHazirligi)
+
+	pk, err := paketHazirla(srcPath, code)
+	if err != nil {
+		var sh *modulSozdizimiHatasi
+		if errors.As(err, &sh) {
+			hatalarlaCik("❌ Derleme Öncesi Sözdizimi Hataları ("+sh.yol+" modülünde):", sh.hatalar, sh.kod)
+		}
+		fmt.Fprintf(os.Stderr, "❌ Derleme hatası: %v\n", err)
+		os.Exit(1)
+	}
+
+	if outPath == "" {
+		base := strings.TrimSuffix(srcPath, filepath.Ext(srcPath))
+		outPath = base + ".exe"
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Derleyici ikili dosyası okunamadı: %v\n", err)
+		os.Exit(1)
+	}
+	baseExeBytes, err := os.ReadFile(exePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Derleyici şablonu okunamadı: %v\n", err)
+		os.Exit(1)
+	}
+	// Şablonun sonunda zaten bir paket varsa (her iki biçim) atılır.
+	if _, sablonBoyu, bulundu, _ := paketiAyikla(baseExeBytes); bulundu && sablonBoyu > 0 {
+		baseExeBytes = baseExeBytes[:sablonBoyu]
+	}
+
+	paketBaytlari, err := paketiKodla(pk)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "❌ Paket oluşturma hatası: %v\n", err)
+		os.Exit(1)
+	}
+	outBuf := make([]byte, 0, len(baseExeBytes)+len(paketBaytlari))
+	outBuf = append(outBuf, baseExeBytes...)
+	outBuf = append(outBuf, paketBaytlari...)
+
+	if err := os.WriteFile(outPath, outBuf, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "❌ .exe oluşturma hatası: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("🚀 Başarıyla derlendi! Bağımsız ve taşınabilir .exe hazır: %s\n", outPath)
+	if len(pk.Moduller) > 0 {
+		adlar := make([]string, len(pk.Moduller))
+		for i, m := range pk.Moduller {
+			adlar[i] = m.Ad
+		}
+		fmt.Printf("📦 Gömülen modüller (%d): %s\n", len(adlar), strings.Join(adlar, ", "))
+	}
+	if not := islemciNotu(); not != "" {
+		fmt.Println(not)
+	}
+}
+
+// metinSabiti bir yolu TR metin sabiti olarak yazar.
+func metinSabiti(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `"`, `\"`)
+	return `"` + s + `"`
+}
+
+// aktarlariYonlendir dosyadaki her 'aktar' yolunu, gömülü modülün geçici klasöre yazılmış
+// kopyasının mutlak yoluyla değiştirir. Değişiklik satır içinde kaldığı için satır
+// numaraları (hata iletileri) aynı kalır. Mutlak yol, yorumlayıcının bulunulan klasördeki
+// aynı adlı bir dosyayı gömülü modülün önüne koymasını da engeller.
+func aktarlariYonlendir(d paketDosyasi, yollar []string) (string, error) {
+	yerler := aktarYerleri(d.Kod)
+	if len(yerler) != len(d.Aktarimlar) {
+		return "", fmt.Errorf("gömülü paket bozuk: %q dosyasında %d aktarım var, pakette %d kayıtlı", d.Ad, len(yerler), len(d.Aktarimlar))
+	}
+	if len(yerler) == 0 {
+		return d.Kod, nil
+	}
+	girdi := []rune(strings.TrimPrefix(d.Kod, "\xef\xbb\xbf"))
+	var sb strings.Builder
+	onceki := 0
+	for i, y := range yerler {
+		hedef := d.Aktarimlar[i]
+		if hedef < 0 || hedef >= len(yollar) {
+			return "", fmt.Errorf("gömülü paket bozuk: %q dosyasında geçersiz modül sırası %d", d.Ad, hedef)
+		}
+		sb.WriteString(string(girdi[onceki:y.bas]))
+		sb.WriteString(metinSabiti(filepath.ToSlash(yollar[hedef])))
+		onceki = y.son
+	}
+	sb.WriteString(string(girdi[onceki:]))
+	return sb.String(), nil
+}
+
+// gomuluModulleriYaz modülleri geçici klasöre (aktarımları yönlendirilmiş olarak) yazar
+// ve her modülün yolunu döndürür.
+func gomuluModulleriYaz(pk *paket, klasor string) ([]string, error) {
+	yollar := make([]string, len(pk.Moduller))
+	for i, m := range pk.Moduller {
+		ad := filepath.Base(filepath.FromSlash(m.Ad))
+		if ad == "." || ad == string(filepath.Separator) || ad == "" {
+			ad = "modul.tr"
+		}
+		yollar[i] = filepath.Join(klasor, strconv.Itoa(i), ad)
+	}
+	for i, m := range pk.Moduller {
+		kod, err := aktarlariYonlendir(m, yollar)
+		if err != nil {
+			return nil, err
+		}
+		if err := os.MkdirAll(filepath.Dir(yollar[i]), 0o700); err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(yollar[i], []byte(kod), 0o600); err != nil {
+			return nil, err
+		}
+	}
+	return yollar, nil
+}
+
+// gomuluUygulamayiCalistir 'tr derle' ile üretilmiş uygulamanın paketini çalıştırır.
+// Modüller özel bir geçici klasöre açılır ve program bitince (hata ile bitse de) silinir.
+func gomuluUygulamayiCalistir(pk *paket) {
+	kod := pk.Ana.Kod
+	if len(pk.Moduller) > 0 {
+		klasor, err := os.MkdirTemp("", "tr-uygulama-*")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "❌ Gömülü modüller açılamadı: %v\n", err)
+			os.Exit(1)
+		}
+		cikisTemizligi = append(cikisTemizligi, func() { os.RemoveAll(klasor) })
+		yollar, err := gomuluModulleriYaz(pk, klasor)
+		if err == nil {
+			kod, err = aktarlariYonlendir(pk.Ana, yollar)
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "❌ Gömülü modüller açılamadı: %v\n", err)
+			cik(1)
+		}
+	} else if len(pk.Ana.Aktarimlar) > 0 {
+		fmt.Fprintln(os.Stderr, "❌ Gömülü paket bozuk: aktarılan modüller pakette yok")
+		os.Exit(1)
+	}
+
+	prog := kaynakHazirla(kod, gomuluHazirlik)
+	machine := vm.New()
+	machine.SourceFile = gomuluKaynakAdi
+	// Hata çerçeveleri kullanıcının yazdığı (yönlendirilmemiş) kaynağı göstersin; satırlar aynıdır.
+	machine.SourceCode = pk.Ana.Kod
+	programCalistir(machine, prog, pk.Ana.Kod)
+	temizle()
+}
+
+// cikisTemizligi çıkmadan önce çalışacak işlerdir (ör. gömülü modüllerin geçici klasörü).
+var cikisTemizligi []func()
+
+// temizle bekleyen temizlik işlerini bir kez çalıştırır.
+func temizle() {
+	for i := len(cikisTemizligi) - 1; i >= 0; i-- {
+		cikisTemizligi[i]()
+	}
+	cikisTemizligi = nil
+}
+
+// cik temizlik işlerini yapıp verilen kodla çıkar.
+func cik(kod int) {
+	temizle()
+	os.Exit(kod)
+}

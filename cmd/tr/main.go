@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"tr_dili/pkg/checker"
 	"tr_dili/pkg/hataayiklama"
@@ -17,12 +15,15 @@ import (
 )
 
 const VERSION = "1.0.0"
-const BUNDLE_MAGIC = "TR_EXE_1"
 
 func main() {
-	// Eğer bu .exe dosyası 'tr derle' ile üretilmiş bağımsız bir uygulama ise gömülü kodu çalıştır:
-	if embeddedCode, ok := readEmbeddedBundle(); ok {
-		runEmbeddedCode(embeddedCode)
+	// Bu .exe 'tr derle' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
+	if pk, bulundu, err := gomuluPaketiBul(); bulundu {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "❌ Gömülü uygulama okunamadı: %v\n", err)
+			os.Exit(1)
+		}
+		gomuluUygulamayiCalistir(pk)
 		return
 	}
 
@@ -115,7 +116,7 @@ func printHelp() {
 	fmt.Println("  tr <dosya.tr>               .tr kaynak dosyasını derler ve çalıştırır")
 	fmt.Println("  tr debug <dosya.tr>         Etkileşimli TR Hata Ayıklayıcısını başlatır")
 	fmt.Println("  tr kontrol <dosya.tr>       Sözdizimi ve akıllı tip kontrolü yapar")
-	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını tek başına çalışan bağımsız .exe dosyasına dönüştürür")
+	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür")
 	fmt.Println("  tr test [dosya.tr|klasör]   Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)")
 	fmt.Println("  tr biçimle [--kontrol] <dosya.tr|klasör>  Kodu standart biçime getirir (--kontrol: yalnızca denetler)")
 }
@@ -144,101 +145,13 @@ func checkFile(path string) {
 	fmt.Printf("✅ %s başarıyla denetlendi: Sözdizimi ve tip güvenliği hatasız!\n", path)
 }
 
-func readEmbeddedBundle() (string, bool) {
-	exePath, err := os.Executable()
-	if err != nil {
-		return "", false
-	}
-	f, err := os.Open(exePath)
-	if err != nil {
-		return "", false
-	}
-	defer f.Close()
-
-	info, err := f.Stat()
-	if err != nil || info.Size() < 16 {
-		return "", false
-	}
-
-	footer := make([]byte, 16)
-	if _, err := f.ReadAt(footer, info.Size()-16); err != nil {
-		return "", false
-	}
-	if string(footer[8:16]) != BUNDLE_MAGIC {
-		return "", false
-	}
-
-	codeLen := int64(binary.LittleEndian.Uint64(footer[0:8]))
-	if codeLen <= 0 || codeLen > info.Size()-16 {
-		return "", false
-	}
-
-	codeBytes := make([]byte, codeLen)
-	if _, err := f.ReadAt(codeBytes, info.Size()-16-codeLen); err != nil {
-		return "", false
-	}
-	return string(codeBytes), true
-}
-
-func runEmbeddedCode(code string) {
-	prog := kaynakHazirla(code, gomuluHazirlik)
-	machine := vm.New()
-	machine.SourceFile = "<derlenmiş-uygulama>"
-	machine.SourceCode = code
-	programCalistir(machine, prog, code)
-}
-
-func compileToExe(srcPath string, outPath string) {
-	code, _ := dosyaHazirla(srcPath, derlemeHazirligi)
-
-	if outPath == "" {
-		base := strings.TrimSuffix(srcPath, filepath.Ext(srcPath))
-		outPath = base + ".exe"
-	}
-
-	exePath, err := os.Executable()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Derleyici ikili dosyası okunamadı: %v\n", err)
-		os.Exit(1)
-	}
-	baseExeBytes, err := os.ReadFile(exePath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Derleyici şablonu okunamadı: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Eğer şablon binary sonunda zaten gömülü bir paket varsa temizle
-	if len(baseExeBytes) >= 16 && string(baseExeBytes[len(baseExeBytes)-8:]) == BUNDLE_MAGIC {
-		prevLen := int(binary.LittleEndian.Uint64(baseExeBytes[len(baseExeBytes)-16 : len(baseExeBytes)-8]))
-		if prevLen > 0 && prevLen+16 < len(baseExeBytes) {
-			baseExeBytes = baseExeBytes[:len(baseExeBytes)-16-prevLen]
-		}
-	}
-
-	codeBytes := []byte(code)
-	footer := make([]byte, 16)
-	binary.LittleEndian.PutUint64(footer[0:8], uint64(len(codeBytes)))
-	copy(footer[8:16], []byte(BUNDLE_MAGIC))
-
-	outBuf := make([]byte, 0, len(baseExeBytes)+len(codeBytes)+16)
-	outBuf = append(outBuf, baseExeBytes...)
-	outBuf = append(outBuf, codeBytes...)
-	outBuf = append(outBuf, footer...)
-
-	if err := os.WriteFile(outPath, outBuf, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "❌ .exe oluşturma hatası: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("🚀 Başarıyla derlendi! Bağımsız ve taşınabilir .exe hazır: %s\n", outPath)
-}
-
 func startREPL() {
 	fmt.Printf("🇹🇷 TR Programlama ve Yapay Zeka Dili (v%s) — Etkileşimli Kabuk\n", VERSION)
 	fmt.Println("Çıkmak için 'çıkış', hata ayıklayıcıyı açmak için '/h' yazın.")
 	scanner := bufio.NewScanner(os.Stdin)
 	machine := vm.New()
 	chk := checker.New()
+	oncekiTipHatalari := 0
 
 	for {
 		fmt.Print("tr> ")
@@ -264,29 +177,28 @@ func startREPL() {
 			dbg.SourceLines = strings.Split(line, "\n")
 		}
 
+		// Hatalar dosya çalıştırmadakiyle aynı başlık ve biçimle standart hataya yazılır.
 		l := lexer.New(line)
 		p := parser.New(l)
 		prog := p.ParseProgram()
 		if len(p.Errors()) > 0 {
-			for _, e := range p.Errors() {
-				fmt.Println("  Hata:", e)
-				fmt.Print(indentFrame(turkce.KodCercevesi(line, e)))
-			}
+			hatalariYaz(sozdizimiBasligi, p.Errors(), line)
 			continue
 		}
 
+		// Denetleyici satırlar arasında durumunu (ve hata listesini) korur; yalnızca bu
+		// satırın getirdiği yeni hatalar gösterilir.
 		errs := chk.CheckProgram(prog)
-		if len(errs) > 0 {
-			for _, e := range errs {
-				fmt.Println("  Tip Hatası:", e)
-			}
+		if len(errs) > oncekiTipHatalari {
+			yeni := errs[oncekiTipHatalari:]
+			oncekiTipHatalari = len(errs)
+			hatalariYaz(tipBasligi, yeni, line)
 			continue
 		}
 
 		val, err := machine.Run(prog)
 		if err != nil {
-			fmt.Println("  Çalışma Hatası:", err)
-			fmt.Print(indentFrame(turkce.KodCercevesi(line, err.Error())))
+			hatalariYaz(calismaBasligi, []string{err.Error()}, line)
 			continue
 		}
 		machine.WaitAsync()
