@@ -30,12 +30,13 @@ func (o *Iyilestirici) Inspect() string {
 	f := func(x float32) string { return strconv.FormatFloat(float64(x), 'g', -1, 32) }
 	if o.adamw != nil {
 		a := o.adamw
-		return fmt.Sprintf("AdamW(parametre: %d, öğrenme_oranı: %s, ağırlık_çürümesi: %s, beta1: %s, beta2: %s, epsilon: %s, adım: %d)",
-			len(o.params), f(a.LR), f(a.WeightDecay), f(a.Beta1), f(a.Beta2), f(a.Eps), a.StepCount())
+		return fmt.Sprintf("%s(parametre: %d, %s: %s, %s: %s, %s: %s, %s: %s, %s: %s, %s: %d)",
+			kod.Ad(kod.T400), len(o.params), adOgrenmeOrani.TR, f(a.LR), adAgirlikCurumesi.TR, f(a.WeightDecay),
+			adBeta1.TR, f(a.Beta1), adBeta2.TR, f(a.Beta2), adEpsilon.TR, f(a.Eps), kod.Ad(uyeAdim), a.StepCount())
 	}
 	s := o.sgd
-	return fmt.Sprintf("SGD(parametre: %d, öğrenme_oranı: %s, momentum: %s, ağırlık_çürümesi: %s)",
-		len(o.params), f(s.LR), f(s.Momentum), f(s.WeightDecay))
+	return fmt.Sprintf("%s(parametre: %d, %s: %s, %s: %s, %s: %s)",
+		kod.Ad(kod.T401), len(o.params), adOgrenmeOrani.TR, f(s.LR), adMomentum.TR, f(s.Momentum), adAgirlikCurumesi.TR, f(s.WeightDecay))
 }
 
 // İyileştirici üyeleri (adları kod listesinde, internal/dil/kod Y50x).
@@ -54,7 +55,7 @@ func (o *Iyilestirici) GetProperty(kd kod.Kod, prop string) (yurut.Value, error)
 	case uyeAdim:
 		return &yurut.BuiltinVal{Name: kod.Ad(uyeAdim), AdliAlmaz: true, Fn: func(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("adım() argüman almaz")
+				return nil, fmt.Errorf("%s() argüman almaz", kod.Ad(uyeAdim))
 			}
 			if _, err := guvenli(func() bool { o.opt.Step(); return true }); err != nil {
 				return nil, err
@@ -64,7 +65,7 @@ func (o *Iyilestirici) GetProperty(kd kod.Kod, prop string) (yurut.Value, error)
 	case uyeSifirla:
 		return &yurut.BuiltinVal{Name: kod.Ad(uyeSifirla), AdliAlmaz: true, Fn: func(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("sıfırla() argüman almaz")
+				return nil, fmt.Errorf("%s() argüman almaz", kod.Ad(uyeSifirla))
 			}
 			o.opt.ZeroGrad()
 			return yurut.NULL, nil
@@ -100,10 +101,10 @@ func parametreler(fn string, v yurut.Value) ([]*tensor.Tensor, error) {
 		}
 		t := d.t
 		if !t.RequiresGrad() {
-			return nil, fmt.Errorf("%s: %d. parametre (%s) türev izlemiyor; tensör(..., türev_izle: doğru) ile oluşturun", fn, i+1, sekilMetni(t.Shape()))
+			return nil, fmt.Errorf("%s: %d. parametre (%s) türev izlemiyor; %s ile oluşturun", fn, i+1, sekilMetni(t.Shape()), turevIzleyenOrnek("..."))
 		}
 		if d.ara || !t.IsLeaf() {
-			return nil, fmt.Errorf("%s: %d. parametre (%s) bir işlemin sonucu (yaprak değil); parametreleri doğrudan tensör(..., türev_izle: doğru) ile oluşturun", fn, i+1, sekilMetni(t.Shape()))
+			return nil, fmt.Errorf("%s: %d. parametre (%s) bir işlemin sonucu (yaprak değil); parametreleri doğrudan %s ile oluşturun", fn, i+1, sekilMetni(t.Shape()), turevIzleyenOrnek("..."))
 		}
 		if gorulen[t] {
 			return nil, fmt.Errorf("%s: %d. parametre listede birden çok kez var", fn, i+1)
@@ -138,9 +139,9 @@ func adliOran(fn string, named map[string]yurut.Value, varsayilan float64, enAz 
 // gradyanKirp parametre gradyanlarının toplam L2 normunu en_fazla değerine indirir ve
 // kırpma öncesi normu Ondalık olarak döndürür: gradyan_kırp(parametreler, en_fazla: 1.0).
 func gradyanKirp(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "gradyan_kırp"
+	fn := kod.Ad(kod.T402)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(parametreler, en_fazla: 1.0) 1 konumlu parametre bekler, %d verildi", fn, len(args))
+		return nil, fmt.Errorf("%s(parametreler, %s: 1.0) 1 konumlu parametre bekler, %d verildi", fn, adEnFazla.TR, len(args))
 	}
 	if err := baglama.AdliDenetle(fn+"()", named, adEnFazla); err != nil {
 		return nil, err
@@ -153,7 +154,7 @@ func gradyanKirp(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) 
 	if v, ok := baglama.AdliAl(named, adEnFazla); ok {
 		f, ok := yurut.ToFloat(v)
 		if !ok || !(f > 0) || math.IsInf(f, 0) {
-			return nil, fmt.Errorf("%s: en_fazla pozitif bir sayı olmalıdır, %s verildi", fn, v.Inspect())
+			return nil, fmt.Errorf("%s: %s pozitif bir sayı olmalıdır, %s verildi", fn, adEnFazla.TR, v.Inspect())
 		}
 		enFazla = f
 	}
@@ -179,7 +180,7 @@ func anaKopyaArg(fn string, named map[string]yurut.Value) (bool, error) {
 
 func iyilestiriciParametreleri(fn string, args []yurut.Value) ([]*tensor.Tensor, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(parametreler, öğrenme_oranı: ...) 1 konumlu parametre bekler, %d verildi", fn, len(args))
+		return nil, fmt.Errorf("%s(parametreler, %s: ...) 1 konumlu parametre bekler, %d verildi", fn, adOgrenmeOrani.TR, len(args))
 	}
 	return parametreler(fn, args[0])
 }

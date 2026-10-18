@@ -3,14 +3,26 @@ package yurut
 import (
 	"strings"
 	"testing"
+
+	"tr_dili/internal/dil/kod"
 )
 
+// Hata yardımcıları dilin adlarını koddan alır: yerleşik ve tip adları Go metninde yazılmaz.
 func TestArgumanHatalariBicimi(t *testing.T) {
-	if got := ArgumanTipHatasi("sıfırlar", 1, "Tam", &StringVal{Val: "a"}).Error(); got != `sıfırlar() 1. argüman olarak Tam bekler, Metin ("a") verildi` {
+	if got := ArgumanTipHatasi(kod.T101, 1, &StringVal{Val: "a"}, kod.A200).Error(); got != `sıfırlar() 1. argüman olarak Tam bekler, Metin ("a") verildi` {
 		t.Errorf("tip hatası: %s", got)
 	}
-	if got := ArgumanSayisiHatasi("aralık", "1 ya da 2", 3, "aralık(bitiş)").Error(); got != "aralık() 1 ya da 2 argüman bekler, 3 verildi (kullanım: aralık(bitiş))" {
+	if got := ArgumanTipHatasi(kod.G210, 1, NULL, kod.A200, kod.A201, kod.A202).Error(); got != `tam() 1. argüman olarak Tam, Ondalık ya da Metin bekler, Yok (yok) verildi` {
+		t.Errorf("çok tipli tip hatası: %s", got)
+	}
+	if got := ArgumanSayisiHatasi(kod.G305, "1 ya da 2", 3, "bitiş", "başlangıç, bitiş").Error(); got != "aralık() 1 ya da 2 argüman bekler, 3 verildi (kullanım: aralık(bitiş) ya da aralık(başlangıç, bitiş))" {
 		t.Errorf("sayı hatası: %s", got)
+	}
+	if got := ArgumanSayisiHatasi(kod.Y200, "1", 0).Error(); got != "liste.filtrele() 1 argüman bekler, 0 verildi" {
+		t.Errorf("üye sayı hatası: %s", got)
+	}
+	if got := Kullanim(kod.G101, "", "istem"); got != "girdi() ya da girdi(istem)" {
+		t.Errorf("kullanım: %s", got)
 	}
 	// Büyük değerler özetlenir: hata mesajı binlerce elemanı yazdırmaz
 	buyuk := &ListVal{}

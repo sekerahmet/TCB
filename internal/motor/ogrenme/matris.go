@@ -3,6 +3,7 @@ package ogrenme
 import (
 	"fmt"
 
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 	"tr_dili/internal/motor/ortak/baglama"
@@ -52,7 +53,7 @@ func matrisCevir(v yurut.Value) (*tensor.Tensor, error) {
 		}
 		return tensor.New(veri, len(satirlar), sutun), nil
 	}
-	return nil, fmt.Errorf("Matris oluşturmak için boş olmayan bir Liste gereklidir")
+	return nil, fmt.Errorf("matris oluşturmak için boş olmayan bir %s gereklidir", yurut.VAL_LIST)
 }
 
 // matrisBoyutDenetle negatif / sıfır ya da aşırı büyük matris boyutlarını panik yerine
@@ -71,24 +72,25 @@ func matrisBoyutDenetle(fn string, satir, sutun int64) error {
 func tamArg(args []yurut.Value, i int, imza string) (int64, error) {
 	n, ok := args[i].(*yurut.IntVal)
 	if !ok {
-		return 0, fmt.Errorf("%s Tam sayı bekler, %s verildi", imza, tipAdi(args[i]))
+		return 0, fmt.Errorf("%s %s sayı bekler, %s verildi", imza, yurut.VAL_INT, tipAdi(args[i]))
 	}
 	return n.Val, nil
 }
 
 // birimMatris birim_matris(n) yerleşiğidir: n×n birim matris.
 func birimMatris(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
+	fn := kod.Ad(kod.T111)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("birim_matris(n) 1 parametre bekler")
+		return nil, fmt.Errorf("%s(n) 1 parametre bekler", fn)
 	}
-	if err := baglama.AdliDenetle("birim_matris()", named); err != nil {
+	if err := baglama.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
-	n, err := tamArg(args, 0, "birim_matris(n)")
+	n, err := tamArg(args, 0, fn+"(n)")
 	if err != nil {
 		return nil, err
 	}
-	if err := matrisBoyutDenetle("birim_matris", n, n); err != nil {
+	if err := matrisBoyutDenetle(fn, n, n); err != nil {
 		return nil, err
 	}
 	veri := make([]float32, n*n)

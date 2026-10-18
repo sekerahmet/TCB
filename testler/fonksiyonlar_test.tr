@@ -134,7 +134,7 @@ test "6.7 indirge'nin sondaki bloğunda birikim önceki sonuç, o elemandır" {
     dene { [1, 2].indirge(0, (x) => x) } yakala h { mesaj = h }
     doğrula(mesaj.içerir("liste.indirge(): fonksiyon iki parametre almalı (birikim, eleman), 1 parametreli verildi"), mesaj)
     dene { aktar "olumsuz/eski_indirge" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("indirge'nin sondaki bloğunda birikim önceki sonuç, o sıradaki elemandır; o[0] ve o[1] yerine birikim ve o yazın"), mesaj)
+    doğrula(mesaj.içerir("liste.indirge metodunun sondaki bloğunda birikim önceki sonuç, o sıradaki elemandır; o[0] ve o[1] yerine birikim ve o yazın"), mesaj)
 }
 
 test "6.7 kontrol yapısı başlığında \{ gövdeyi başlatır" {

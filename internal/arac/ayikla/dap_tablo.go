@@ -59,7 +59,7 @@ func valueKind(val yurut.Value) string {
 	}
 	switch v := val.(type) {
 	case *yurut.ListVal:
-		if cols, _, err := TableData(v); err == nil && !(len(cols) == 1 && cols[0] == "Değer") {
+		if kayitListesi(v) {
 			return "tablo"
 		}
 		return "liste"
@@ -86,12 +86,13 @@ func typeLabel(val yurut.Value) string {
 	}
 	switch v := val.(type) {
 	case *yurut.ListVal:
-		if cols, rows, err := TableData(v); err == nil && !(len(cols) == 1 && cols[0] == "Değer") {
+		if kayitListesi(v) {
+			cols, rows, _ := TableData(v)
 			return fmt.Sprintf("Tablo [%d×%d]", len(rows), len(cols))
 		}
-		return fmt.Sprintf("Liste [%d]", len(v.Elements))
+		return fmt.Sprintf("%s [%d]", yurut.VAL_LIST, len(v.Elements))
 	case *yurut.DictVal:
-		return fmt.Sprintf("Sözlük [%d]", len(v.Pairs))
+		return fmt.Sprintf("%s [%d]", yurut.VAL_DICT, len(v.Pairs))
 	case *yurut.StructInstanceVal:
 		return "Yapı " + v.Def.Name
 	}
@@ -130,15 +131,7 @@ func TableData(val yurut.Value) ([]string, [][]string, error) {
 	}
 	switch v := val.(type) {
 	case *yurut.ListVal:
-		records := true
-		for _, el := range v.Elements {
-			switch el.(type) {
-			case *yurut.DictVal, *yurut.StructInstanceVal:
-			default:
-				records = false
-			}
-		}
-		if records && len(v.Elements) > 0 {
+		if kayitListesi(v) {
 			var cols []string
 			seen := map[string]bool{}
 			for _, el := range v.Elements {
@@ -188,6 +181,19 @@ func TableData(val yurut.Value) ([]string, [][]string, error) {
 		return []string{"Alan", "Değer"}, rows, nil
 	}
 	return nil, nil, fmt.Errorf("tablo görünümü yalnızca liste, sözlük, yapı ve tensörler için kullanılabilir (bu değer: %s)", val.Type())
+}
+
+// kayitListesi liste, elemanlarının hepsi sözlük ya da yapı olan (her eleman bir satır, her
+// alan bir sütun olan) boş olmayan bir liste mi? Değilse tablo tek sütunlu düz listedir.
+func kayitListesi(v *yurut.ListVal) bool {
+	for _, el := range v.Elements {
+		switch el.(type) {
+		case *yurut.DictVal, *yurut.StructInstanceVal:
+		default:
+			return false
+		}
+	}
+	return len(v.Elements) > 0
 }
 
 // plainText hücrede gösterilecek metindir: metinler tırnaksız yazılır.

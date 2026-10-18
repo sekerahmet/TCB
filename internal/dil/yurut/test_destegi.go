@@ -12,7 +12,7 @@ func (v *VM) registerTestBuiltins() {
 	// doğrula(koşul, [mesaj]): koşul yanlışsa hata fırlatır.
 	v.AdlisizKaydet(kod.G700, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 || len(args) > 2 {
-			return nil, fmt.Errorf("doğrula() 1 ya da 2 parametre bekler (koşul, [mesaj]), %d verildi", len(args))
+			return nil, ArgumanSayisiHatasi(kod.G700, "1 ya da 2", len(args), "koşul, [mesaj]")
 		}
 		if args[0].IsTruthy() {
 			return TRUE, nil
@@ -26,7 +26,7 @@ func (v *VM) registerTestBuiltins() {
 	// eşit_mi(beklenen, gerçek, [mesaj]): iki değer '==' ile eşit değilse ikisini de gösteren hata fırlatır.
 	v.AdlisizKaydet(kod.G701, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 || len(args) > 3 {
-			return nil, fmt.Errorf("eşit_mi() 2 ya da 3 parametre bekler (beklenen, gerçek, [mesaj]), %d verildi", len(args))
+			return nil, ArgumanSayisiHatasi(kod.G701, "2 ya da 3", len(args), "beklenen, gerçek, [mesaj]")
 		}
 		if ValuesEqual(args[0], args[1]) {
 			return TRUE, nil
@@ -43,7 +43,7 @@ func (v *VM) registerTestBuiltins() {
 // "5" ile 5 ayırt edilebilsin.
 func testGoster(d Value) string {
 	if s, ok := d.(*StringVal); ok {
-		return fmt.Sprintf("%q (Metin)", s.Val)
+		return fmt.Sprintf("%q (%s)", s.Val, VAL_STRING)
 	}
 	return fmt.Sprintf("%s (%s)", d.Inspect(), d.Type())
 }

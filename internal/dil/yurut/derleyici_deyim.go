@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/kod"
 )
 
 // --- DEYİMLER ---
@@ -283,7 +284,7 @@ func (c *derleyici) kesmeNoktasiDeyimi(k *derleyiciKapsam, s *agac.BreakpointSta
 			if s.Condition != nil {
 				v.Debugger.KesmeNoktasi(fmt.Sprintf("Koşullu kesme noktası (Satır %d)", s.Line()))
 			} else {
-				v.Debugger.KesmeNoktasi("Koddaki kesme noktası (kesme_noktası)")
+				v.Debugger.KesmeNoktasi("Koddaki kesme noktası (" + kod.Ad(kod.A090) + ")")
 			}
 		}
 		return NULL, signalNone, nil

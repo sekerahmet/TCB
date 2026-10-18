@@ -60,7 +60,7 @@ func uretecOgeleri(v *VM, iterVal Value, line int) ([]Value, error) {
 			items = append(items, item)
 		}
 	default:
-		return nil, fmt.Errorf("Satır %d: Liste üretecinde %s tipi üzerinde döngü kurulamaz", line, iterVal.Type())
+		return nil, fmt.Errorf("Satır %d: %s üretecinde %s tipi üzerinde döngü kurulamaz", line, VAL_LIST, iterVal.Type())
 	}
 	return items, nil
 }
@@ -86,7 +86,7 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 			copy(sliced, container.Elements[start:end])
 			return &ListVal{Elements: sliced}, nil
 		}
-		return nil, fmt.Errorf("Satır %d: Liste indeksi Tam sayı olmalıdır", line)
+		return nil, fmt.Errorf("Satır %d: %s indeksi %s sayı olmalıdır", line, VAL_LIST, VAL_INT)
 
 	case *DictVal:
 		val, exists := container.GetValue(idx)
@@ -118,7 +118,7 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 		}
 		iv, ok := idx.(*IntVal)
 		if !ok {
-			return nil, fmt.Errorf("Satır %d: Metin indeksi Tam sayı olmalıdır", line)
+			return nil, fmt.Errorf("Satır %d: %s indeksi %s sayı olmalıdır", line, VAL_STRING, VAL_INT)
 		}
 		pos := int(iv.Val)
 		if pos < 0 {
@@ -155,7 +155,7 @@ func (v *VM) uyeDegeri(obj Value, e *agac.MemberExpression, u uyeBilgisi) (Value
 		if e.Safe {
 			return NULL, nil
 		}
-		return nil, fmt.Errorf("Satır %d: 'yok' (null) değerin %q özelliğine erişilemez ('?.' güvenli erişim kullanabilirsiniz)", e.Line(), e.Property)
+		return nil, fmt.Errorf("Satır %d: '%s' değerin %q özelliğine erişilemez ('?.' güvenli erişim kullanabilirsiniz)", e.Line(), kod.Ad(kod.A042), e.Property)
 	}
 
 	// Tensör, iyileştirici, veri kümesi ve parçalayıcı özellikleri

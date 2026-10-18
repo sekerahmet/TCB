@@ -68,7 +68,7 @@ func sayiyaUygula(ad string, v yurut.Value, f func(float64) float64) (yurut.Valu
 	if s, ok := yurut.ToFloat(v); ok {
 		return &yurut.FloatVal{Val: f(s)}, nil
 	}
-	if err := listeHatasi(ad, v, "tensörde ve sayıda", ad+"(tensör(...))"); err != nil {
+	if err := listeHatasi(ad, v, "tensörde ve sayıda", ad+"("+kod.Ad(kod.T100)+"(...))"); err != nil {
 		return nil, err
 	}
 	return nil, fmt.Errorf("%s: sayı ya da tensör bekleniyor, %s verildi", ad, tipAdi(v))
@@ -80,7 +80,7 @@ func listeHatasi(ad string, v yurut.Value, kabul, oneri string) error {
 	if _, ok := v.(*yurut.ListVal); !ok {
 		return nil
 	}
-	return fmt.Errorf("%s listede çalışmaz, yalnızca %s; listeyi tensör(...) ile çevirin: %s", ad, kabul, oneri)
+	return fmt.Errorf("%s listede çalışmaz, yalnızca %s; listeyi %s(...) ile çevirin: %s", ad, kabul, kod.Ad(kod.T100), oneri)
 }
 
 // eksenArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.
@@ -113,15 +113,15 @@ func softmaxKaydet(v *yurut.VM, kd kod.Kod, logKip bool) {
 		return func(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 			if len(args) == 0 || !tensorMu(args[:1]) {
 				if len(args) == 0 {
-					return nil, fmt.Errorf("%s(x, eksen: -1) en az 1 parametre bekler", ad)
+					return nil, fmt.Errorf("%s(x, %s: -1) en az 1 parametre bekler", ad, adEksen.TR)
 				}
-				if err := listeHatasi(ad, args[0], "tensörde", ad+"(tensör(...), eksen: -1)"); err != nil {
+				if err := listeHatasi(ad, args[0], "tensörde", ad+"("+kod.Ad(kod.T100)+"(...), "+adEksen.TR+": -1)"); err != nil {
 					return nil, err
 				}
 				return nil, fmt.Errorf("%s: tensör bekleniyor, %s verildi", ad, tipAdi(args[0]))
 			}
 			if len(args) > 2 {
-				return nil, fmt.Errorf("%s(x, eksen: -1) en fazla 2 parametre alır, %d verildi", ad, len(args))
+				return nil, fmt.Errorf("%s(x, %s: -1) en fazla 2 parametre alır, %d verildi", ad, adEksen.TR, len(args))
 			}
 			if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
 				return nil, err

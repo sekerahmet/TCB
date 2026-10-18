@@ -4,6 +4,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 )
 
@@ -42,9 +43,9 @@ func (d *Deger) Inspect() string {
 		if len(ek) > 0 {
 			s += ", " + strings.Join(ek, ", ")
 		}
-		return "Tensör(" + s + ")" + turEki
+		return string(yurut.VAL_TENSOR) + "(" + s + ")" + turEki
 	}
-	baslik := "Tensör[" + sekilCarpimi(sh) + "]" + turEki
+	baslik := string(yurut.VAL_TENSOR) + "[" + sekilCarpimi(sh) + "]" + turEki
 	if len(ek) > 0 {
 		baslik += " (" + strings.Join(ek, ", ") + ")"
 	}

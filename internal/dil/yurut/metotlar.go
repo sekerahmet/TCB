@@ -40,15 +40,15 @@ const (
 	tipSozluk
 )
 
-// argTipi bir metot argümanının beklenen tipidir (hata mesajındaki adı ve denetimi).
+// argTipi bir metot argümanının beklenen tipidir (hata mesajındaki tip kodu ve denetimi).
 type argTipi struct {
-	ad   string
+	tip  kod.Kod
 	uyar func(Value) bool
 }
 
 var (
-	metinArg = &argTipi{"Metin", func(v Value) bool { _, ok := v.(*StringVal); return ok }}
-	fonkArg  = &argTipi{"Fonksiyon", cagrilabilir}
+	metinArg = &argTipi{kod.A202, func(v Value) bool { _, ok := v.(*StringVal); return ok }}
+	fonkArg  = &argTipi{kod.A208, cagrilabilir}
 )
 
 // imza bir metodun argüman sayısı ve tipleridir: en az enAz, en çok enCok (< 0: sınırsız)
@@ -60,8 +60,9 @@ type imza struct {
 	tipler       []*argTipi
 }
 
-// tipOneki metodun hata mesajlarında tipiyle yazılan adının önekidir (metin.içerir()).
-var tipOneki = map[int]string{tipMetin: "metin", tipListe: "liste", tipSozluk: "sözlük"}
+// tipKodlari metodun alıcı tipinin kodudur; hata mesajlarında metot tipiyle yazılır
+// (metin.içerir(); bkz. kod.AliciAdi).
+var tipKodlari = [...]kod.Kod{tipMetin: kod.A202, tipListe: kod.A205, tipSozluk: kod.A206}
 
 // metotEkle metodu sözlük koduyla kaydeder; ad sözlükten gelir. Gövde çağrılmadan önce
 // argümanlar imzaya göre denetlenir (yerleşik fonksiyonlarla aynı hata biçimi).
@@ -74,7 +75,7 @@ func metotEkle(tip int, kd kod.Kod, im imza, f metotGovdesi) {
 		cm = &cekirdekMetot{}
 		cekirdekMetotlari[kd] = cm
 	}
-	tamAd := tipOneki[tip] + "." + kod.Ad(kd)
+	tamAd := kod.AliciAdi(tipKodlari[tip]) + "." + kod.Ad(kd)
 	govde := f
 	f = func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		if len(args) < im.enAz || (im.enCok >= 0 && len(args) > im.enCok) {
@@ -85,11 +86,11 @@ func metotEkle(tip int, kd kod.Kod, im imza, f metotGovdesi) {
 			case im.enCok != im.enAz:
 				beklenen = fmt.Sprintf("%d ya da %d", im.enAz, im.enCok)
 			}
-			return nil, ArgumanSayisiHatasi(tamAd, beklenen, len(args), tamAd+"("+im.parametreler+")")
+			return nil, argumanSayisiHatasiAdla(tamAd, beklenen, len(args), tamAd+"("+im.parametreler+")")
 		}
 		for i, a := range args {
 			if i < len(im.tipler) && im.tipler[i] != nil && !im.tipler[i].uyar(a) {
-				return nil, ArgumanTipHatasi(tamAd, i+1, im.tipler[i].ad, a)
+				return nil, argumanTipHatasiAdla(tamAd, i+1, kod.Ad(im.tipler[i].tip), a)
 			}
 		}
 		return govde(y, inst, args, line)
@@ -216,7 +217,7 @@ func metinMetotlariniKur() {
 
 // listeMetotlariniKur Liste tipinin metotlarını kaydeder.
 func listeMetotlariniKur() {
-	metotEkle(tipListe, kod.Y200, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y200, imza{1, 1, kod.AliciAdi(kod.A208), []*argTipi{fonkArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		var result []Value
 		for _, item := range inst.(*ListVal).Elements {
 			keep, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
@@ -229,7 +230,7 @@ func listeMetotlariniKur() {
 		}
 		return &ListVal{Elements: result}, nil
 	})
-	metotEkle(tipListe, kod.Y201, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y201, imza{1, 1, kod.AliciAdi(kod.A208), []*argTipi{fonkArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		result := make([]Value, 0, len(elems))
 		for _, item := range elems {
@@ -245,7 +246,7 @@ func listeMetotlariniKur() {
 		elems := inst.(*ListVal).Elements
 		copied := make([]Value, len(elems))
 		copy(copied, elems)
-		if err := siralaDegerler("liste.sırala()", copied); err != nil {
+		if err := siralaDegerler(Cagri(kod.Y202), copied); err != nil {
 			return nil, err
 		}
 		return &ListVal{Elements: copied}, nil
@@ -299,7 +300,7 @@ func listeMetotlariniKur() {
 		l.Elements = append(l.Elements, args...)
 		return l, nil
 	})
-	metotEkle(tipListe, kod.Y207, imza{1, 2, "[başlangıç], fonksiyon", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	metotEkle(tipListe, kod.Y207, imza{1, 2, "[başlangıç], " + kod.AliciAdi(kod.A208), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return listeIndirge(y, inst.(*ListVal).Elements, args, line)
 	})
 }
@@ -386,17 +387,18 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u uyeBilgisi, safe bool, 
 // Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (verilmemişse yok)
 // döner.
 func listeIndirge(y *VM, elems []Value, args []Value, line int) (Value, error) {
-	const ad = "liste.indirge"
+	ad, fonk := CagriAdi(kod.Y207), kod.AliciAdi(kod.A208)
 	f := args[len(args)-1]
 	if !cagrilabilir(f) {
 		if len(args) == 2 && cagrilabilir(args[0]) {
-			return nil, fmt.Errorf("%s(): fonksiyon son argüman olmalı; %s(başlangıç, fonksiyon) ya da %s(başlangıç) { ... } yazın", ad, ad, ad)
+			return nil, fmt.Errorf("%s(): %s son argüman olmalı; %s(başlangıç, %s) ya da %s(başlangıç) { ... } yazın", ad, fonk, ad, fonk, ad)
 		}
-		return nil, ArgumanTipHatasi(ad, len(args), "Fonksiyon", f)
+		return nil, ArgumanTipHatasi(kod.Y207, len(args), f, kod.A208)
 	}
 	if fn, ok := f.(*FuncVal); ok && len(fn.Parameters) != 2 {
-		return nil, fmt.Errorf("%s(): fonksiyon iki parametre almalı (birikim, eleman), %d parametreli verildi; ör. %s(0, (birikim, x) => birikim + x) ya da %s(0) { %s + %s }",
-			ad, len(fn.Parameters), ad, ad, kod.Ad(kod.A105), kod.Ad(kod.A104))
+		b := kod.Ad(kod.A105)
+		return nil, fmt.Errorf("%s(): %s iki parametre almalı (%s, eleman), %d parametreli verildi; ör. %s(0, (%s, x) => %s + x) ya da %s(0) { %s + %s }",
+			ad, fonk, b, len(fn.Parameters), ad, b, b, ad, b, kod.Ad(kod.A104))
 	}
 	var acc Value
 	bas := 0

@@ -57,7 +57,7 @@ var (
 // Kaydet veri yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *yurut.VM) {
 	v.RegisterBuiltinKod(kod.V100, func(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-		return baglama.Guvenli("veri_kümesi", func() (yurut.Value, error) { return kumeAc(m, args, named) })
+		return baglama.Guvenli(kod.Ad(kod.V100), func() (yurut.Value, error) { return kumeAc(m, args, named) })
 	})
 }
 
@@ -88,7 +88,7 @@ func (k *Kume) Inspect() string {
 	if k.ob != nil {
 		ek = fmt.Sprintf(", önbellek %s", baglama.BaytMetni(k.ob.Kota()))
 	}
-	return fmt.Sprintf("VeriKümesi(%s%s)", k.ozet(), ek)
+	return fmt.Sprintf("%s(%s%s)", KumeTipi, k.ozet(), ek)
 }
 
 // IzlemeTuru İzleme Masası'nda ikon seçimi için türdür.
@@ -153,7 +153,7 @@ func onbellekDizini(m *yurut.VM, fn string, named map[string]yurut.Value) (strin
 	}
 	d, ok, err := yurut.YolArgumani(fn, v)
 	if !ok || d == "" {
-		return "", fmt.Errorf("%s: önbellek yerel bir klasör yolu (metin) olmalıdır, ör. önbellek: \"onbellek/veri\"", fn)
+		return "", fmt.Errorf("%s: %s yerel bir klasör yolu (metin) olmalıdır, ör. %s: \"onbellek/veri\"", fn, adOnbellek.TR, adOnbellek.TR)
 	}
 	if err != nil {
 		return "", err
@@ -164,7 +164,7 @@ func onbellekDizini(m *yurut.VM, fn string, named map[string]yurut.Value) (strin
 }
 
 func kumeAc(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "veri_kümesi"
+	fn := kod.Ad(kod.V100)
 	if err := baglama.AdliDenetle(fn+"()", named, adOnbellek, adKota); err != nil {
 		return nil, err
 	}
@@ -188,15 +188,15 @@ func kumeAc(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yuru
 	kotaV, kotaVar := baglama.AdliAl(named, adKota)
 	if kotaVar {
 		if obDizin == "" {
-			return nil, fmt.Errorf("%s: kota_gb yalnızca önbellek: ile birlikte kullanılır (önbellek klasörünün en çok kaç GB kullanacağı)", fn)
+			return nil, fmt.Errorf("%s: %s yalnızca %s: ile birlikte kullanılır (önbellek klasörünün en çok kaç GB kullanacağı)", fn, adKota.TR, adOnbellek.TR)
 		}
 		gb, ok := sayi(kotaV)
 		if !ok || gb <= 0 || math.IsInf(gb, 0) || math.IsNaN(gb) {
-			return nil, fmt.Errorf("%s: kota_gb pozitif bir sayı olmalıdır (ör. kota_gb: 20), %s verildi", fn, kotaV.Inspect())
+			return nil, fmt.Errorf("%s: %s pozitif bir sayı olmalıdır (ör. %s: 20), %s verildi", fn, adKota.TR, adKota.TR, kotaV.Inspect())
 		}
 		// int64 bayt sayısına sığmayan kota (≈ 8,6 milyar GB) taşıp negatif olmasın.
 		if gb >= float64(math.MaxInt64)/(1<<30) {
-			return nil, fmt.Errorf("%s: kota_gb çok büyük (%s); en çok %d GB verilebilir", fn, kotaV.Inspect(), int64(math.MaxInt64>>30))
+			return nil, fmt.Errorf("%s: %s çok büyük (%s); en çok %d GB verilebilir", fn, adKota.TR, kotaV.Inspect(), int64(math.MaxInt64>>30))
 		}
 		kota = max(int64(gb*(1<<30)), 1)
 	}
@@ -228,9 +228,9 @@ func kumeAc(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yuru
 	}
 	if obDizin != "" && !kotaVar {
 		gereken := enBuyukParca(k) * int64(veriyolu.VarsayilanGrupBoyu+veriyolu.VarsayilanIleriBak)
-		return nil, fmt.Errorf("%s: önbellek: verildiğinde kota_gb: de verilmelidir (önbellek klasörünün kullanabileceği en çok disk alanı, GB). "+
-			"Bu kümenin örnekleyicisi aynı anda %d veri dosyasını yerelde tutar; en büyük veri dosyası %s olduğundan en az kota_gb: %d gerekir",
-			fn, veriyolu.VarsayilanGrupBoyu+veriyolu.VarsayilanIleriBak, baglama.BaytMetni(enBuyukParca(k)), int64(math.Ceil(float64(gereken)/(1<<30))))
+		return nil, fmt.Errorf("%s: %s: verildiğinde %s: de verilmelidir (önbellek klasörünün kullanabileceği en çok disk alanı, GB). "+
+			"Bu kümenin örnekleyicisi aynı anda %d veri dosyasını yerelde tutar; en büyük veri dosyası %s olduğundan en az %s: %d gerekir",
+			fn, adOnbellek.TR, adKota.TR, veriyolu.VarsayilanGrupBoyu+veriyolu.VarsayilanIleriBak, baglama.BaytMetni(enBuyukParca(k)), adKota.TR, int64(math.Ceil(float64(gereken)/(1<<30))))
 	}
 	tk := &Kume{k: k, yol: ham, ob: ob}
 	if ob != nil {
@@ -332,9 +332,9 @@ func (o *Okuyucu) Inspect() string {
 		if o.bitti {
 			durum += ", bitti"
 		}
-		return fmt.Sprintf("SıralıOkuyucu(toplu: %d, bağlam: %d, %s)", o.b, o.t, durum)
+		return fmt.Sprintf("%s(%s: %d, %s: %d, %s)", SiraliTipi, adToplu.TR, o.b, adBaglam.TR, o.t, durum)
 	}
-	return fmt.Sprintf("Örnekleyici(toplu: %d, bağlam: %d, tohum: %d, dönem: %d, %d toplu iş)", o.b, o.t, o.tohum, o.donem, o.sayac)
+	return fmt.Sprintf("%s(%s: %d, %s: %d, %s: %d, dönem: %d, %d toplu iş)", OrnekleyiciTipi, adToplu.TR, o.b, adBaglam.TR, o.t, adTohum.TR, o.tohum, o.donem, o.sayac)
 }
 
 // IzlemeTuru İzleme Masası'nda ikon seçimi için türdür.
@@ -350,19 +350,19 @@ func (o *Okuyucu) IzlemeEtiketi() string {
 		}
 		return fmt.Sprintf("Sıralı okuyucu (%d×%d, %d toplu iş okundu)", o.b, o.t, o.sayac)
 	}
-	return fmt.Sprintf("Örnekleyici (%d×%d, dönem %d, %d toplu iş)", o.b, o.t, o.donem, o.sayac)
+	return fmt.Sprintf("%s (%d×%d, dönem %d, %d toplu iş)", OrnekleyiciTipi, o.b, o.t, o.donem, o.sayac)
 }
 
 // TabloVerisi okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.
 func (o *Okuyucu) TabloVerisi() ([]string, [][]string, error) {
-	return nil, nil, fmt.Errorf("okuyucu tablo olarak açılamaz; .sonraki() ile alınan girdi ve hedef tensörlerini inceleyin")
+	return nil, nil, fmt.Errorf("okuyucu tablo olarak açılamaz; .%s() ile alınan girdi ve hedef tensörlerini inceleyin", kod.Ad(uyeSonraki))
 }
 
 func (o *Okuyucu) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 	if kd == uyeSonraki {
 		return metot(kod.Ad(uyeSonraki), o.sonraki), nil
 	}
-	ne := "Örnekleyici"
+	ne := OrnekleyiciTipi
 	if o.sirali {
 		ne = "Sıralı okuyucu"
 	}
@@ -395,9 +395,9 @@ func okuyucuArgumanlari(fn string, args []yurut.Value, named map[string]yurut.Va
 		}
 		degerler[i] = v
 	}
-	ornek := fmt.Sprintf("%s(toplu: 32, bağlam: 1024)", fn)
+	ornek := fmt.Sprintf("%s(%s: 32, %s: 1024)", fn, adToplu.TR, adBaglam.TR)
 	if tohumlu {
-		ornek = fmt.Sprintf("%s(toplu: 32, bağlam: 1024, tohum: 1)", fn)
+		ornek = fmt.Sprintf("%s(%s: 32, %s: 1024, %s: 1)", fn, adToplu.TR, adBaglam.TR, adTohum.TR)
 	}
 	pozitif := func(ad string, v yurut.Value) (int, error) {
 		if v == nil {
@@ -409,20 +409,20 @@ func okuyucuArgumanlari(fn string, args []yurut.Value, named map[string]yurut.Va
 		}
 		return int(n), nil
 	}
-	if b, err = pozitif("toplu", degerler[0]); err != nil {
+	if b, err = pozitif(adToplu.TR, degerler[0]); err != nil {
 		return
 	}
-	if t, err = pozitif("bağlam", degerler[1]); err != nil {
+	if t, err = pozitif(adBaglam.TR, degerler[1]); err != nil {
 		return
 	}
 	if int64(b)*int64(t+1) > int64(yurut.MaxCollectionSize) {
-		err = fmt.Errorf("%s: toplu × bağlam (%d × %d) çok büyük; en fazla %d parça", fn, b, t, yurut.MaxCollectionSize)
+		err = fmt.Errorf("%s: %s × %s (%d × %d) çok büyük; en fazla %d parça", fn, adToplu.TR, adBaglam.TR, b, t, yurut.MaxCollectionSize)
 		return
 	}
 	if tohumlu && degerler[2] != nil {
 		n, ok := baglama.TamSayi(degerler[2])
 		if !ok || n < 0 {
-			err = fmt.Errorf("%s: tohum negatif olmayan bir tam sayı olmalıdır, %s verildi", fn, degerler[2].Inspect())
+			err = fmt.Errorf("%s: %s negatif olmayan bir tam sayı olmalıdır, %s verildi", fn, adTohum.TR, degerler[2].Inspect())
 			return
 		}
 		tohum = uint64(n)
@@ -431,7 +431,7 @@ func okuyucuArgumanlari(fn string, args []yurut.Value, named map[string]yurut.Va
 }
 
 func (k *Kume) ornekleyici(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "örnekleyici"
+	fn := kod.Ad(uyeOrnekleyici)
 	b, t, tohum, err := okuyucuArgumanlari(fn, args, named, true)
 	if err != nil {
 		return nil, err
@@ -447,7 +447,7 @@ func (k *Kume) ornekleyici(m *yurut.VM, args []yurut.Value, named map[string]yur
 }
 
 func (k *Kume) sirali(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "sıralı"
+	fn := kod.Ad(uyeSirali)
 	b, t, _, err := okuyucuArgumanlari(fn, args, named, false)
 	if err != nil {
 		return nil, err
@@ -468,7 +468,7 @@ func okuyucuHatasi(fn string, k *Kume, t int, err error) error {
 		for _, p := range k.k.Parcalar() {
 			enUzun = max(enUzun, p.Token)
 		}
-		return fmt.Errorf("%s: bağlam: %d için her pencere %d parça ister, ama en uzun veri dosyası %d parça; bağlamı küçültün", fn, t, t+1, enUzun)
+		return fmt.Errorf("%s: %s: %d için her pencere %d parça ister, ama en uzun veri dosyası %d parça; %s değerini küçültün", fn, adBaglam.TR, t, t+1, enUzun, adBaglam.TR)
 	}
 	if errors.Is(err, veriyolu.ErrOnbellekYetersiz) {
 		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, temizle(strings.TrimPrefix(err.Error(), veriyolu.ErrOnbellekYetersiz.Error()+": ")))
@@ -492,11 +492,12 @@ func (k *Kume) okuyucuKur(sirali bool, b, t int, tohum uint64, kaynakGo veriyolu
 
 // sonraki bir sonraki toplu işi [girdi, hedef] olarak verir; sıralı okuyucu bitince yok.
 func (o *Okuyucu) sonraki(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	if err := baglama.AdliDenetle("sonraki()", named); err != nil {
+	fn := kod.Ad(uyeSonraki)
+	if err := baglama.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, fmt.Errorf("sonraki() parametre almaz, %d verildi", len(args))
+		return nil, fmt.Errorf("%s() parametre almaz, %d verildi", fn, len(args))
 	}
 	var girdi, hedef []float32
 	var b, t int
@@ -526,7 +527,6 @@ func (o *Okuyucu) sonraki(m *yurut.VM, args []yurut.Value, named map[string]yuru
 		girdi, hedef, err = ayir(&o.ti)
 	})
 	if err != nil {
-		fn := "sonraki"
 		return nil, veriHatasi(fn, o.kume.yol, err)
 	}
 	if son {
@@ -544,7 +544,7 @@ var _ yurut.Akis = (*Okuyucu)(nil)
 // Örnekleyici sonsuz ürettiği için döngüyle gezilmez.
 func (o *Okuyucu) Sonraki(m *yurut.VM) (yurut.Value, bool, error) {
 	if !o.sirali {
-		return nil, false, fmt.Errorf("örnekleyici sonsuz toplu iş üretir, döngüyle gezilemez; adım sayısıyla döngü kurup .sonraki() kullanın (ya da .sıralı(...) ile sonlu bir okuyucu açın)")
+		return nil, false, fmt.Errorf("örnekleyici sonsuz toplu iş üretir, döngüyle gezilemez; adım sayısıyla döngü kurup .%s() kullanın (ya da .%s(...) ile sonlu bir okuyucu açın)", kod.Ad(uyeSonraki), kod.Ad(uyeSirali))
 	}
 	d, err := o.sonraki(m, nil, nil)
 	if err != nil || d == yurut.NULL {

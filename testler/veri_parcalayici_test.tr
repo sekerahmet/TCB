@@ -165,7 +165,7 @@ test "16.7 hatalar Türkçe ve yakalanabilir" {
     doğrula(hata_metni(() => veri_kümesi("veri/sayilar", önbellek: "onb")).içerir("kota_gb: de verilmelidir"))
     değişken küme = veri_kümesi("veri/sayilar")
     doğrula(hata_metni(() => küme.örnekleyici(toplu: 2)).içerir("bağlam: verilmedi"))
-    doğrula(hata_metni(() => küme.örnekleyici(toplu: 2, bağlam: 500)).içerir("bağlamı küçültün"))
+    doğrula(hata_metni(() => küme.örnekleyici(toplu: 2, bağlam: 500)).içerir("bağlam değerini küçültün"))
     doğrula(hata_metni(() => küme.sıralı(toplu: 2, bağlm: 4)).içerir("Bunu mu demek istediniz: 'bağlam'"))
     değişken p = parçalayıcı_yükle("veri/parcalayici.json")
     doğrula(hata_metni(() => p.kodla(5)).içerir("metin ya da metin listesi"))

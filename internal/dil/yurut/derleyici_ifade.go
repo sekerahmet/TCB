@@ -141,7 +141,7 @@ func (c *derleyici) ifade(k *derleyiciKapsam, expr agac.Expression) ifadeKodu {
 			sInt, ok1 := startVal.(*IntVal)
 			eInt, ok2 := endVal.(*IntVal)
 			if !ok1 || !ok2 {
-				return nil, fmt.Errorf("Satır %d: Aralık ('..') uçları Tam sayı olmalıdır", line)
+				return nil, fmt.Errorf("Satır %d: %s ('..') uçları %s sayı olmalıdır", line, VAL_RANGE, VAL_INT)
 			}
 			return &RangeVal{Start: sInt.Val, End: eInt.Val, Inclusive: dahil}, nil
 		}

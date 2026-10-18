@@ -162,7 +162,7 @@ func (s *dapServer) refFor(val yurut.Value, expr string) int {
 // display değişkenin yanında gösterilecek kısa metindir.
 func display(val yurut.Value) string {
 	if val == nil {
-		return "yok"
+		return yurut.NULL.Inspect()
 	}
 	if iz, ok := val.(IzlemeDegeri); ok {
 		// Çok satırlı yazdırma biçimi yerine kısa özet gösterilir.

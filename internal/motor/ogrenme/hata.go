@@ -35,6 +35,12 @@ var (
 	adAnaKopya        = baglama.KodAd(kod.T915)
 )
 
+// turevIzleyenOrnek hata mesajlarındaki türev izleyen tensör örneğidir:
+// turevIzleyenOrnek("...") → "tensör(..., türev_izle: doğru)"; adlar koddan kurulur.
+func turevIzleyenOrnek(veri string) string {
+	return kod.Ad(kod.T100) + "(" + veri + ", " + adTurevIzle.TR + ": " + kod.Ad(kod.A040) + ")"
+}
+
 // guvenli fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.
 func guvenli[T any](fn func() T) (T, error) { return baglama.Kurtar(fn, panikHatasi) }
 

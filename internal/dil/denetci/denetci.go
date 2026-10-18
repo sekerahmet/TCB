@@ -105,7 +105,7 @@ var (
 // tipSayi denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
 // Tam / Tam: 6 / 3 = 2, 7 / 2 = 3.5). Kullanıcı açıklamasında yazılamaz; yalnızca Ondalık
 // (Tam da Ondalığa atanabildiği için) ve tipsiz yerlere atanabilir.
-const tipSayi = "Tam ya da Ondalık"
+var tipSayi = tipTam + " ya da " + tipOndalik
 
 // aciklamaTipleri tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
@@ -244,8 +244,8 @@ func (c *Checker) checkStatement(stmt agac.Statement) {
 				}
 				if info.IsConst {
 					c.errors = append(c.errors, fmt.Sprintf(
-						"Satır %d: Sabit hatası — %q bir sabittir ('sabit') ve değeri değiştirilemez",
-						s.Line(), ident.Value,
+						"Satır %d: Sabit hatası — %q bir sabittir ('%s') ve değeri değiştirilemez",
+						s.Line(), ident.Value, kod.Ad(kod.A031),
 					))
 				}
 				if info.TypeName != tipHerhangi && info.TypeName != tipYok && !typesCompatible(info.TypeName, valType) {
@@ -321,8 +321,8 @@ func (c *Checker) checkStatement(stmt agac.Statement) {
 			if ident, ok := t.(*agac.Identifier); ok {
 				if info, found := c.scope.Resolve(ident.Value); found && info.IsConst {
 					c.errors = append(c.errors, fmt.Sprintf(
-						"Satır %d: Sabit hatası — %q bir sabittir ('sabit') ve değeri değiştirilemez",
-						s.Line(), ident.Value,
+						"Satır %d: Sabit hatası — %q bir sabittir ('%s') ve değeri değiştirilemez",
+						s.Line(), ident.Value, kod.Ad(kod.A031),
 					))
 				}
 			}
@@ -370,7 +370,8 @@ func (c *Checker) checkStatement(stmt agac.Statement) {
 // sayiIpucu Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir.
 func sayiIpucu(beklenen, verilen string) string {
 	if normalizeTypeName(beklenen) == tipTam && verilen == tipSayi {
-		return "; '/' bölüm tam çıkmazsa, '**' üs negatifse Ondalık verir: Tam için tam(...) kullanın ya da tipi Ondalık yapın"
+		return fmt.Sprintf("; '/' bölüm tam çıkmazsa, '**' üs negatifse %s verir: %s için %s(...) kullanın ya da tipi %s yapın",
+			tipOndalik, tipTam, kod.Ad(kod.G210), tipOndalik)
 	}
 	return ""
 }

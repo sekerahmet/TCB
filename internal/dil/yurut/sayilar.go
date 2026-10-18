@@ -3,6 +3,8 @@ package yurut
 import (
 	"fmt"
 	"math"
+
+	"tr_dili/internal/dil/kod"
 )
 
 // Yerleşiklerin sayı kuralları işleçlerle aynıdır: Tam sayılar tam (int64) olarak
@@ -16,7 +18,8 @@ const tamSiniri = 9223372036854775808.0
 // da int64 aralığı dışındaki değerde hata verir.
 func ondaliktanTam(ad string, f float64) (int64, error) {
 	if math.IsNaN(f) || math.IsInf(f, 0) || f >= tamSiniri || f < -tamSiniri {
-		return 0, fmt.Errorf("%s: %s Tam sayıya çevrilemez (Tam sayı taşması; Tam en fazla 64 bitlik bir tam sayıdır)", ad, (&FloatVal{Val: f}).Inspect())
+		t := kod.Ad(kod.A200)
+		return 0, fmt.Errorf("%s: %s %s sayıya çevrilemez (%s sayı taşması; %s en fazla 64 bitlik bir tam sayıdır)", ad, (&FloatVal{Val: f}).Inspect(), t, t, t)
 	}
 	return int64(f), nil
 }
@@ -112,7 +115,7 @@ func sayiTopla(ad string, elems []Value) (Value, error) {
 			}
 			s := tam + x.Val
 			if (s > tam) != (x.Val > 0) {
-				return nil, fmt.Errorf("%s: Tam sayı taşması (%d + %d, listenin %d. elemanında); ondalık toplam için elemanları ondalık(...) ile çevirin", ad, tam, x.Val, i+1)
+				return nil, fmt.Errorf("%s: %s sayı taşması (%d + %d, listenin %d. elemanında); ondalık toplam için elemanları %s(...) ile çevirin", ad, kod.Ad(kod.A200), tam, x.Val, i+1, kod.Ad(kod.G211))
 			}
 			tam = s
 		case *FloatVal:
@@ -137,10 +140,11 @@ func ListeElemaniHatasi(ad string, i int, beklenen string, verilen Value) error 
 	return fmt.Errorf("%s: listenin %d. elemanı %s olmalıdır, %s verildi", ad, i+1, beklenen, TipVeOzet(verilen))
 }
 
-// enUc min/maks'ın ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en
+// enUc min/maks'ın (kd) ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en
 // büyüğünü, değerin kendisini (tipi korunarak) döndürür. Tam'lar tam karşılaştırılır; sayı
-// olmayan değer hatadır; NaN varsa sonuç NaN'dır. Boş girdide yok döner.
-func enUc(ad string, elems []Value, buyuk bool, liste bool) (Value, error) {
+// olmayan değer hatadır; NaN varsa sonuç NaN'dır. Boş girdide yok döner. liste, değerlerin
+// tek bir liste argümanının elemanları olduğunu söyler (hata mesajı için).
+func enUc(kd kod.Kod, elems []Value, buyuk bool, liste bool) (Value, error) {
 	if len(elems) == 0 {
 		return NULL, nil
 	}
@@ -148,9 +152,9 @@ func enUc(ad string, elems []Value, buyuk bool, liste bool) (Value, error) {
 	for i, el := range elems {
 		if !sayiMi(el) {
 			if liste {
-				return nil, ListeElemaniHatasi(ad, i, sayiTipi, el)
+				return nil, ListeElemaniHatasi(Cagri(kd), i, sayiTipi, el)
 			}
-			return nil, ArgumanTipHatasi(ad, i+1, sayiTipi, el)
+			return nil, ArgumanTipHatasi(kd, i+1, el, sayiTipleri...)
 		}
 		if f, ok := el.(*FloatVal); ok && math.IsNaN(f.Val) {
 			return f, nil

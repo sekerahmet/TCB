@@ -3,11 +3,11 @@ package ayikla
 // ============================================================================
 // VS CODE HATA AYIKLAMA SUNUCUSU (Debug Adapter Protocol) — tr dap
 //
-// VS Code, TR programlarında hata ayıklamak için `tr dap` sürecini başlatır ve
+// Düzenleyici, TR programlarında hata ayıklamak için `tr dap` sürecini başlatır ve
 // standart giriş/çıkış üzerinden DAP iletileri gönderir. Böylece TR hata ayıklayıcısının
-// yetenekleri VS Code'un kendi arayüzünde kullanılır: kesme noktaları (koşullu ve iz
+// yetenekleri düzenleyicinin kendi arayüzünde kullanılır: kesme noktaları (koşullu ve iz
 // noktası), F5/F10/F11 adımlama, değişken ağacı, değer değiştirme, izleme noktası
-// (değer değişince dur), satıra zıplama, çağrı yığını, Debug Console ve tablo görünümü.
+// (değer değişince dur), satıra zıplama, çağrı yığını, hata ayıklama konsolu ve tablo görünümü.
 //
 // Eşzamanlılık: program kendi goroutine'inde çalışır. Program duraklatılmışken,
 // durumu okuyan/değiştiren tüm istekler (değişkenler, değerlendirme, adımlar) VM
@@ -26,6 +26,7 @@ import (
 	"strings"
 	"sync"
 	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/yurut"
 )
 
@@ -47,7 +48,7 @@ type dapRequest struct {
 	done chan struct{}
 }
 
-// dapHandle, VS Code'un "variablesReference" ile açtığı bir kapsamı ya da değeri tanımlar.
+// dapHandle, düzenleyicinin "variablesReference" ile açtığı bir kapsamı ya da değeri tanımlar.
 type dapHandle struct {
 	scope    *yurut.Environment // Yerel / Genel kapsam (değer yoksa)
 	isGlobal bool
@@ -62,7 +63,7 @@ type dapServer struct {
 	seq   int
 
 	mu sync.Mutex
-	// kesmeNoktalari dosya başına (dosyaAnahtari) satır → kesme noktasıdır. VS Code
+	// kesmeNoktalari dosya başına (dosyaAnahtari) satır → kesme noktasıdır. Düzenleyici
 	// launch'tan önce birden çok dosya için istek gönderebilir; istekler birbirini silmez.
 	// Yalnızca hata ayıklanan dosyanınkiler uygulanır.
 	kesmeNoktalari map[string]map[int]dapBreakpoint
@@ -86,7 +87,7 @@ type dapServer struct {
 	exit        func(int)
 }
 
-// ServeDAP bir VS Code hata ayıklama oturumunu in/out üzerinden yürütür (tr dap).
+// ServeDAP düzenleyicinin bir hata ayıklama oturumunu in/out üzerinden yürütür (tr dap).
 func ServeDAP(in io.Reader, out io.Writer) error {
 	return newDAPServer(in, out).serve()
 }
@@ -187,7 +188,7 @@ func (s *dapServer) output(category, text string) {
 	s.event("output", map[string]interface{}{"category": category, "output": text})
 }
 
-// dapOutput programın yazdır() çıktısını ve görev hatalarını VS Code'un Debug Console'una
+// dapOutput programın yazdır() çıktısını ve görev hatalarını hata ayıklama konsoluna
 // verilen kategoriyle ("stdout", "stderr") yönlendirir.
 type dapOutput struct {
 	s        *dapServer
@@ -203,7 +204,7 @@ func (o dapOutput) Write(p []byte) (int, error) {
 type dapNoStdin struct{}
 
 func (dapNoStdin) Read([]byte) (int, error) {
-	return 0, errors.New("VS Code hata ayıklama oturumunda girdi() kullanılamaz; programı terminalde çalıştırın (▶ veya Ctrl+F5)")
+	return 0, errors.New("düzenleyicinin hata ayıklama oturumunda " + yurut.Cagri(kod.G101) + " kullanılamaz; programı terminalde çalıştırın (▶ veya Ctrl+F5)")
 }
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 )
 
@@ -24,9 +25,9 @@ func (d *Deger) IzlemeEtiketi() string {
 		turEki = " " + turAdi(dt)
 	}
 	if len(sh) == 0 {
-		return "Tensör (skaler)" + turEki
+		return string(yurut.VAL_TENSOR) + " (skaler)" + turEki
 	}
-	return "Tensör [" + sekilCarpimi(sh) + "]" + turEki
+	return string(yurut.VAL_TENSOR) + " [" + sekilCarpimi(sh) + "]" + turEki
 }
 
 // TabloVerisi 1-2 boyutlu tensörü tabloya (sütunlar + satırlar) çevirir.
@@ -89,7 +90,7 @@ func (d *Deger) IzlemeOzeti() string {
 		}
 		return sayiMetni(x, bilimsel)
 	}
-	ek := []string{"Tensör"}
+	ek := []string{string(yurut.VAL_TENSOR)}
 	var sb strings.Builder
 	if len(sh) == 0 {
 		sb.WriteString(sayi(veri[0]))

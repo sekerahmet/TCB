@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
@@ -91,7 +92,7 @@ func yolArg(fn string, v yurut.Value) (string, error) {
 
 // tensorKaydet adları tensör olan bir sözlüğü dosyaya yazar: tensör_kaydet(yol, sözlük).
 func tensorKaydet(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "tensör_kaydet"
+	fn := kod.Ad(kod.T700)
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%s(yol, sözlük) 2 parametre bekler, %d verildi", fn, len(args))
 	}
@@ -104,7 +105,7 @@ func tensorKaydet(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value)
 	}
 	sozluk, ok := args[1].(*yurut.DictVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: ikinci parametre adları tensör olan bir sözlük olmalıdır ({\"ağırlık\": w}), %s verildi", fn, tipAdi(args[1]))
+		return nil, fmt.Errorf("%s: ikinci parametre adları tensör olan bir sözlük olmalıdır ({\"w\": w}), %s verildi", fn, tipAdi(args[1]))
 	}
 	// Veri yorumlayıcı kilidi altında kopyalanır; yazma kilit bırakılarak yapılır.
 	girdiler := make([]kayitGirdisi, 0, len(sozluk.Order))
@@ -192,7 +193,7 @@ func girdileriYaz(f io.Writer, girdiler []kayitGirdisi) (err error) {
 
 // tensorYukle tensör_kaydet ile yazılmış dosyayı sözlük olarak okur.
 func tensorYukle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "tensör_yükle"
+	fn := kod.Ad(kod.T701)
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(yol) 1 parametre bekler, %d verildi", fn, len(args))
 	}

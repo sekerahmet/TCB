@@ -10,6 +10,7 @@ import (
 	"tr_dili/internal/dil/agac"
 	"tr_dili/internal/dil/ayristir"
 	"tr_dili/internal/dil/denetci"
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/turkce"
 )
@@ -205,7 +206,7 @@ func (v *VM) aktar(s *agac.ImportStatement, env *Environment, takma func(*Enviro
 // Başka bir görev aynı modülü yüklüyorsa bitmesi beklenir; yükleyen görevin kendi aktarım
 // zinciri modülü içeriyorsa bu döngüsel bir aktarımdır.
 func (v *VM) modulYukle(s *agac.ImportStatement, path string) (*DictVal, error) {
-	if err := YolDenetle("aktar", path); err != nil {
+	if err := YolDenetle(kod.Ad(kod.A070), path); err != nil {
 		return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
 	}
 	// Modüller de dosyalar gibi aranır: önce çalışma klasörü, sonra kodun (ve programın) klasörü.
@@ -252,7 +253,7 @@ func (v *VM) modulYukle(s *agac.ImportStatement, path string) (*DictVal, error) 
 func (v *VM) modulCalistir(s *agac.ImportStatement, path, resolvedPath, absPath string, bakilanlar []string) (*DictVal, error) {
 	data, err := os.ReadFile(resolvedPath)
 	if err != nil {
-		return nil, fmt.Errorf("Satır %d: %w", s.Line(), OkumaHatasi("aktar", path, "modülü okunamadı", err, bakilanlar))
+		return nil, fmt.Errorf("Satır %d: %w", s.Line(), OkumaHatasi(kod.Ad(kod.A070), path, "modülü okunamadı", err, bakilanlar))
 	}
 	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
 	modKaynak := &Kaynak{Yol: resolvedPath, Ad: gosterilenYol(resolvedPath), Kod: code}

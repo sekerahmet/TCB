@@ -25,7 +25,7 @@ func dok(sb *strings.Builder, v reflect.Value, girinti int) {
 	switch v.Kind() {
 	case reflect.Interface, reflect.Ptr:
 		if v.IsNil() {
-			sb.WriteString("yok")
+			sb.WriteString("∅") // dilden bağımsız boş değer imi (döküm yalnızca karşılaştırılır)
 			return
 		}
 		dok(sb, v.Elem(), girinti)

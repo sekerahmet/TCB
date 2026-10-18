@@ -23,14 +23,14 @@ func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line i
 	case *ListVal:
 		iv, ok := idx.(*IntVal)
 		if !ok {
-			return fmt.Errorf("Satır %d: Liste indeksi Tam sayı olmalıdır", line)
+			return fmt.Errorf("Satır %d: %s indeksi %s sayı olmalıdır", line, VAL_LIST, VAL_INT)
 		}
 		pos := int(iv.Val)
 		if pos < 0 {
 			pos = len(container.Elements) + pos
 		}
 		if pos < 0 || pos >= len(container.Elements) {
-			return fmt.Errorf("Satır %d: Liste indeksi sınır dışı (%d)", line, iv.Val)
+			return fmt.Errorf("Satır %d: %s indeksi sınır dışı (%d)", line, VAL_LIST, iv.Val)
 		}
 		finalVal, err := v.atamaIslemi(kod, container.Elements[pos], rightVal, line)
 		if err != nil {

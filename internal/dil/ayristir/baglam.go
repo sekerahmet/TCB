@@ -3,6 +3,7 @@ package ayristir
 import (
 	"fmt"
 	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/sozcuk"
 )
 
@@ -66,7 +67,7 @@ func (p *Parser) sinyalDenetle(tok sozcuk.Token) {
 	}
 	ek := ""
 	if p.baglam.fonk > 0 {
-		ek = "; fonksiyondan çıkmak için 'sonuç' yazın"
+		ek = "; fonksiyondan çıkmak için '" + kod.Ad(kod.A021) + "' yazın"
 	}
 	p.hataKaydet(tok, "Sözdizimi hatası — '"+tok.Literal+"' yalnızca bir döngünün içinde kullanılabilir"+ek)
 }
@@ -78,7 +79,7 @@ func (p *Parser) sonucDenetle(tok sozcuk.Token) {
 	}
 	switch {
 	case p.baglam.test:
-		p.hataKaydet(tok, "Sözdizimi hatası — '"+tok.Literal+"' test gövdesinde kullanılamaz; test kendi sonuna kadar çalışır (erken bitirmek istediğiniz kısmı bir 'eğer' bloğuna alın)")
+		p.hataKaydet(tok, "Sözdizimi hatası — '"+tok.Literal+"' test gövdesinde kullanılamaz; test kendi sonuna kadar çalışır (erken bitirmek istediğiniz kısmı bir '"+kod.Ad(kod.A001)+"' bloğuna alın)")
 	case p.modul:
 		p.hataKaydet(tok, "Sözdizimi hatası — '"+tok.Literal+"' modülün üst düzeyinde kullanılamaz; modül bir fonksiyon değildir, aktaran programı bitiremez")
 	}

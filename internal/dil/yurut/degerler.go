@@ -92,16 +92,16 @@ type BoolVal struct {
 func (b *BoolVal) Type() ValueType { return VAL_BOOL }
 func (b *BoolVal) Inspect() string {
 	if b.Val {
-		return "doğru"
+		return kod.Ad(kod.A040)
 	}
-	return "yanlış"
+	return kod.Ad(kod.A041)
 }
 func (b *BoolVal) IsTruthy() bool { return b.Val }
 
 type NullVal struct{}
 
 func (n *NullVal) Type() ValueType { return VAL_NULL }
-func (n *NullVal) Inspect() string { return "yok" }
+func (n *NullVal) Inspect() string { return kod.Ad(kod.A042) }
 func (n *NullVal) IsTruthy() bool  { return false }
 
 var (

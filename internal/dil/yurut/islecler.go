@@ -211,7 +211,7 @@ func tamIslem(kod uint8, op string, a, b int64, line int) (Value, bool, error) {
 		}
 		res, ok := intPow(a, b)
 		if !ok {
-			return nil, true, fmt.Errorf("Satır %d: Tam sayı taşması (%d ** %d); ondalık sonuç için örn. %d.0 ** %d yazın", line, a, b, a, b)
+			return nil, true, fmt.Errorf("Satır %d: %s sayı taşması (%d ** %d); ondalık sonuç için örn. %d.0 ** %d yazın", line, VAL_INT, a, b, a, b)
 		}
 		return NewInt(res), true, nil
 	case opKucuk:
@@ -271,7 +271,7 @@ func ondalikIslem(kod uint8, lf, rf float64, line int) (Value, bool, error) {
 
 // tasmaHatasi int64 sınırını aşan tam sayı işlemleri için hata üretir (sessizce sarmak yerine).
 func tasmaHatasi(line int, a int64, op string, b int64) error {
-	return fmt.Errorf("Satır %d: Tam sayı taşması (%d %s %d); ondalık sonuç için örn. %d.0 %s %d yazın", line, a, op, b, a, op, b)
+	return fmt.Errorf("Satır %d: %s sayı taşması (%d %s %d); ondalık sonuç için örn. %d.0 %s %d yazın", line, VAL_INT, a, op, b, a, op, b)
 }
 
 func ToFloat(v Value) (float64, bool) {

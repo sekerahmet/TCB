@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"tr_dili/internal/dil/agac"
 	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
@@ -24,7 +25,7 @@ func (s *dapServer) waitForCommand(v *yurut.VM, line int, env *yurut.Environment
 	if kind == "" {
 		kind = "step"
 	}
-	// Durum metinleri terminal ve VS Code'da aynıdır (tuşlar da aynı anlamdadır).
+	// Durum metinleri terminal ve düzenleyicide aynıdır (tuşlar da aynı anlamdadır).
 	if reason == "" && kind == "step" {
 		reason = durumAdim
 	}
@@ -93,7 +94,7 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 		}
 		hedef, ok := s.curVM.ZiplamaHedefi(a.TargetID)
 		if !ok {
-			s.respondErr(msg, "Satır %d şu an çalışan bloğun dışında; yalnızca bulunulan bloğun (fonksiyon, döngü ya da eğer gövdesinin) satırlarına zıplanabilir", a.TargetID)
+			s.respondErr(msg, "Satır %d şu an çalışan bloğun dışında; yalnızca bulunulan bloğun (%s, %s ya da %s gövdesinin) satırlarına zıplanabilir", a.TargetID, kod.Ad(kod.A020), kod.Ad(kod.A010), kod.Ad(kod.A001))
 			return 0, false
 		}
 		s.resume(StepInto, 0, "Satır "+turkce.SayiEk(int64(hedef), turkce.Yonelme)+" zıplandı", "goto")
@@ -158,7 +159,7 @@ func (s *dapServer) stackTrace(msg *dapMessage) {
 	s.respond(msg, map[string]interface{}{"stackFrames": frames, "totalFrames": len(frames)})
 }
 
-// evaluate: izleme (watch), üzerine gelme (hover) ve Debug Console. Konsolda deyimler
+// evaluate: izleme (watch), üzerine gelme (hover) ve hata ayıklama konsolu. Konsolda deyimler
 // de çalıştırılabilir (ör. 'bakiye = 0' ya da 'yazdır(liste)').
 func (s *dapServer) evaluate(msg *dapMessage) {
 	var a struct {

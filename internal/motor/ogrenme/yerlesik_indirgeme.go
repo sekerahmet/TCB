@@ -32,11 +32,12 @@ func indirgeme(v *yurut.VM, kd kod.Kod, fn func(t *tensor.Tensor, eksen int, tum
 			}
 			if maksMin && len(args) >= 2 {
 				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
-				return nil, fmt.Errorf("%s(x, %s): eksen için %s(x, eksen: %s) yazın; eleman bazlı sınır için %s kullanın",
-					ad, args[1].Inspect(), ad, args[1].Inspect(), map[bool]string{true: "relu(x - c) + c (en az c)", false: "relu(x * -1 + c) * -1 + c (en çok c)"}[kd == kod.G402])
+				relu := kod.Ad(kod.T200)
+				return nil, fmt.Errorf("%s(x, %s): eksen için %s(x, %s: %s) yazın; eleman bazlı sınır için %s kullanın",
+					ad, args[1].Inspect(), ad, adEksen.TR, args[1].Inspect(), map[bool]string{true: relu + "(x - c) + c (en az c)", false: relu + "(x * -1 + c) * -1 + c (en çok c)"}[kd == kod.G402])
 			}
 			if len(args) > 2 {
-				return nil, fmt.Errorf("%s(x, eksen: ...) en fazla 2 parametre alır, %d verildi", ad, len(args))
+				return nil, fmt.Errorf("%s(x, %s: ...) en fazla 2 parametre alır, %d verildi", ad, adEksen.TR, len(args))
 			}
 			if err := baglama.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
 				return nil, err
@@ -109,19 +110,19 @@ func indirgeme(v *yurut.VM, kd kod.Kod, fn func(t *tensor.Tensor, eksen int, tum
 // gömme(...) ve çapraz_entropi(...) indeksi olarak da verilebilir.
 // Eşitlikte ilk en büyük eleman seçilir.
 func maksIndeks(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const ad = "maks_indeks"
+	ad := kod.Ad(kod.T230)
 	if len(args) != 1 {
 		if len(args) == 2 {
-			return nil, fmt.Errorf("%s(x, eksen: %s): eksen adlı verilir", ad, args[1].Inspect())
+			return nil, fmt.Errorf("%s(x, %s: %s): eksen adlı verilir", ad, adEksen.TR, args[1].Inspect())
 		}
-		return nil, fmt.Errorf("%s(x, eksen: -1) 1 konumlu parametre bekler, %d verildi", ad, len(args))
+		return nil, fmt.Errorf("%s(x, %s: -1) 1 konumlu parametre bekler, %d verildi", ad, adEksen.TR, len(args))
 	}
 	if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*Deger)
 	if !ok {
-		return nil, fmt.Errorf("%s: bir tensör bekler, %s verildi; liste için %s(tensör(liste)) yazın", ad, tipAdi(args[0]), ad)
+		return nil, fmt.Errorf("%s: bir tensör bekler, %s verildi; liste için %s(%s(liste)) yazın", ad, tipAdi(args[0]), ad, kod.Ad(kod.T100))
 	}
 	t := d.t
 	e, verildi, err := eksenArg(ad, args, named)
@@ -165,31 +166,33 @@ func tensorOlmayanIndirgeme(kd kod.Kod, eski yurut.BuiltinFunc, m *yurut.VM, arg
 		return nil, err
 	}
 	if _, ok := baglama.AdliAl(named, adBoyutuKoru); ok {
-		return nil, fmt.Errorf("%s: boyutu_koru: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0, boyutu_koru: doğru)", ad, tipAdi(args[0]), ad)
+		return nil, fmt.Errorf("%s: %s: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(%s(...), %s: 0, %s: %s)",
+			ad, adBoyutuKoru.TR, tipAdi(args[0]), ad, kod.Ad(kod.T100), adEksen.TR, adBoyutuKoru.TR, kod.Ad(kod.A040))
 	}
 	if _, ok := baglama.AdliAl(named, adEksen); ok {
-		return nil, fmt.Errorf("%s: eksen: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0)", ad, tipAdi(args[0]), ad)
+		return nil, fmt.Errorf("%s: %s: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(%s(...), %s: 0)", ad, adEksen.TR, tipAdi(args[0]), ad, kod.Ad(kod.T100), adEksen.TR)
 	}
 	if l, ok := args[0].(*yurut.ListVal); ok && len(args) == 1 {
 		var tensorVar bool
 		for _, el := range l.Elements {
 			switch el.(type) {
 			case *yurut.ListVal:
-				return nil, fmt.Errorf("%s: iç içe liste indirgenemez (eski liste davranışı yalnızca düz sayı listesi alır); tensöre çevirin: %s(tensör(liste)) ya da eksen için %s(tensör(liste), eksen: 0)", ad, ad, ad)
+				t := kod.Ad(kod.T100)
+				return nil, fmt.Errorf("%s: iç içe liste indirgenemez (eski liste davranışı yalnızca düz sayı listesi alır); tensöre çevirin: %s(%s(liste)) ya da eksen için %s(%s(liste), %s: 0)", ad, ad, t, ad, t, adEksen.TR)
 			case *Deger:
 				tensorVar = true
 			}
 		}
 		if tensorVar {
 			if kd != kod.G400 && kd != kod.G410 { // toplam, ortalama
-				return nil, fmt.Errorf("%s: tensör listesinin en %s elemanı tanımsız; tek bir tensör verin: %s(x) ya da %s(x, eksen: 0)", ad, map[bool]string{true: "büyük", false: "küçük"}[kd == kod.G402], ad, ad)
+				return nil, fmt.Errorf("%s: tensör listesinin en %s elemanı tanımsız; tek bir tensör verin: %s(x) ya da %s(x, %s: 0)", ad, map[bool]string{true: "büyük", false: "küçük"}[kd == kod.G402], ad, ad, adEksen.TR)
 			}
 			return tensorListesiTopla(ad, kd == kod.G410, l.Elements)
 		}
 	}
 	for _, a := range args[1:] {
 		if _, ok := a.(*Deger); ok {
-			return nil, fmt.Errorf("%s(x, eksen: ...) ilk parametre olarak tensör bekler, %s verildi", ad, tipAdi(args[0]))
+			return nil, fmt.Errorf("%s(x, %s: ...) ilk parametre olarak tensör bekler, %s verildi", ad, adEksen.TR, tipAdi(args[0]))
 		}
 	}
 	return eskiCagir(ad, eski, m, args, named)

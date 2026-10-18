@@ -11,6 +11,7 @@ import (
 	"math"
 	"unicode/utf8"
 
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 )
@@ -88,14 +89,14 @@ func kayitCoz(f io.Reader, boyut int64) ([]kayitGirdisi, error) {
 // baslik sihirli baytları ve sürümü denetler, girdi sayısını verir.
 func (k *kayitOkuyucu) baslik() (uint32, error) {
 	if string(k.oku(8)) != dosyaSihirli || k.hata != nil {
-		return 0, fmt.Errorf("bir TR tensör dosyası değil (başlık %q bulunamadı; dosya tensör_kaydet ile yazılmalı)", dosyaSihirli)
+		return 0, fmt.Errorf("bir TR tensör dosyası değil (başlık %q bulunamadı; dosya %s ile yazılmalı)", dosyaSihirli, kod.Ad(kod.T700))
 	}
 	surum := binary.LittleEndian.Uint16(k.oku(2))
 	if k.hata != nil {
 		return 0, k.eksik("sürüm")
 	}
 	if surum != dosyaSurumu {
-		return 0, fmt.Errorf("dosya biçimi sürümü %d; bu TR sürümü yalnızca sürüm %d okur (dosyayı tensör_kaydet ile yeniden yazın)", surum, dosyaSurumu)
+		return 0, fmt.Errorf("dosya biçimi sürümü %d; bu TR sürümü yalnızca sürüm %d okur (dosyayı %s ile yeniden yazın)", surum, dosyaSurumu, kod.Ad(kod.T700))
 	}
 	sayi := binary.LittleEndian.Uint32(k.oku(4))
 	if k.hata != nil {

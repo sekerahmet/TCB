@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 )
@@ -41,7 +42,7 @@ func yayinDenetle(op string, a, b *tensor.Tensor) error {
 
 func cihazDenetle(islem string, a, b *tensor.Tensor) error {
 	if a.Device() != b.Device() {
-		return fmt.Errorf("%s: tensörler farklı cihazlarda (%s ve %s); önce .cihaza(...) ile aynı cihaza taşıyın", islem, a.Device(), b.Device())
+		return fmt.Errorf("%s: tensörler farklı cihazlarda (%s ve %s); önce .%s(...) ile aynı cihaza taşıyın", islem, a.Device(), b.Device(), kod.Ad(uyeCihaza))
 	}
 	return nil
 }

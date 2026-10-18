@@ -32,7 +32,7 @@ func (c *derleyici) onEk(k *derleyiciKapsam, e *agac.PrefixExpression) ifadeKodu
 			switch rv := right.(type) {
 			case *IntVal:
 				if rv.Val == math.MinInt64 {
-					return nil, fmt.Errorf("Satır %d: Tam sayı taşması (-(%d)); ondalık sonuç için örn. -(%d.0) yazın", line, rv.Val, rv.Val)
+					return nil, fmt.Errorf("Satır %d: %s sayı taşması (-(%d)); ondalık sonuç için örn. -(%d.0) yazın", line, VAL_INT, rv.Val, rv.Val)
 				}
 				return NewInt(-rv.Val), nil
 			case *FloatVal:

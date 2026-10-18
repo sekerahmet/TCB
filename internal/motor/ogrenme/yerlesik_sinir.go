@@ -2,6 +2,7 @@ package ogrenme
 
 import (
 	"fmt"
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 	"tr_dili/internal/motor/ortak/baglama"
@@ -39,27 +40,28 @@ func tamIndeksler(fn string, v yurut.Value) ([]int, []int, error) {
 }
 
 func gomme(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
+	fn := kod.Ad(kod.T500)
 	if len(args) != 2 {
-		return nil, fmt.Errorf("gömme(tablo, indeksler) 2 parametre bekler, %d verildi", len(args))
+		return nil, fmt.Errorf("%s(tablo, indeksler) 2 parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := baglama.AdliDenetle("gömme()", named); err != nil {
+	if err := baglama.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
 	tablo, ok := args[0].(*Deger)
 	if !ok {
-		return nil, fmt.Errorf("gömme: tablo bir tensör olmalıdır, %s verildi", tipAdi(args[0]))
+		return nil, fmt.Errorf("%s: tablo bir tensör olmalıdır, %s verildi", fn, tipAdi(args[0]))
 	}
 	tsh := tablo.t.Shape()
 	if len(tsh) != 2 {
-		return nil, fmt.Errorf("gömme: tablo 2 boyutlu (satır sayısı × boyut) olmalıdır, %s verildi", sekilMetni(tsh))
+		return nil, fmt.Errorf("%s: tablo 2 boyutlu (satır sayısı × boyut) olmalıdır, %s verildi", fn, sekilMetni(tsh))
 	}
-	idx, ish, err := tamIndeksler("gömme", args[1])
+	idx, ish, err := tamIndeksler(fn, args[1])
 	if err != nil {
 		return nil, err
 	}
 	for _, i := range idx {
 		if i < 0 || i >= tsh[0] {
-			return nil, fmt.Errorf("gömme: indeks %d, %s şeklindeki tablonun dışında; 0 ile %d arasında olmalı", i, sekilMetni(tsh), tsh[0]-1)
+			return nil, fmt.Errorf("%s: indeks %d, %s şeklindeki tablonun dışında; 0 ile %d arasında olmalı", fn, i, sekilMetni(tsh), tsh[0]-1)
 		}
 	}
 	r, err := guvenli(func() *tensor.Tensor {
@@ -76,13 +78,14 @@ func gomme(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut
 }
 
 func caprazEntropi(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
+	fn := kod.Ad(kod.T510)
 	if len(args) != 2 {
-		return nil, fmt.Errorf("çapraz_entropi(çıktı, hedef) 2 parametre bekler, %d verildi", len(args))
+		return nil, fmt.Errorf("%s(çıktı, hedef) 2 parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := baglama.AdliDenetle("çapraz_entropi()", named); err != nil {
+	if err := baglama.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
-	cikti, err := tensoreCevir("çapraz_entropi", args[0])
+	cikti, err := tensoreCevir(fn, args[0])
 	if err != nil {
 		return nil, err
 	}
@@ -91,9 +94,9 @@ func caprazEntropi(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value
 	}
 	sh := cikti.Shape()
 	if len(sh) == 0 {
-		return nil, fmt.Errorf("çapraz_entropi: çıktı en az 1 boyutlu olmalıdır (son eksen sınıflar)")
+		return nil, fmt.Errorf("%s: çıktı en az 1 boyutlu olmalıdır (son eksen sınıflar)", fn)
 	}
-	hedef, _, err := tamIndeksler("çapraz_entropi", args[1])
+	hedef, _, err := tamIndeksler(fn, args[1])
 	if err != nil {
 		return nil, err
 	}
@@ -103,22 +106,22 @@ func caprazEntropi(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value
 		satir = cikti.Numel() / C
 	}
 	if len(hedef) != satir && C > 1 && len(hedef) == cikti.Numel() && sifirBirMi(hedef) {
-		return nil, fmt.Errorf("çapraz_entropi: hedef sınıf indeksleri olmalı (ör. [2, 0, 1]); one-hot verdiniz gibi görünüyor (%s şeklindeki çıktıyla aynı sayıda 0/1); her satır için 1'in konumunu verin", sekilMetni(sh))
+		return nil, fmt.Errorf("%s: hedef sınıf indeksleri olmalı (ör. [2, 0, 1]); one-hot verdiniz gibi görünüyor (%s şeklindeki çıktıyla aynı sayıda 0/1); her satır için 1'in konumunu verin", fn, sekilMetni(sh))
 	}
 	if len(hedef) != satir {
-		return nil, fmt.Errorf("çapraz_entropi: %s şeklindeki çıktı için %d hedef bekleniyor, %d verildi", sekilMetni(sh), satir, len(hedef))
+		return nil, fmt.Errorf("%s: %s şeklindeki çıktı için %d hedef bekleniyor, %d verildi", fn, sekilMetni(sh), satir, len(hedef))
 	}
 	gecerli := 0
 	for _, h := range hedef {
 		if h >= C {
-			return nil, fmt.Errorf("çapraz_entropi: hedef sınıf %d, %d sınıflı çıktının dışında; 0 ile %d arasında olmalı (negatif hedefler yok sayılır)", h, C, C-1)
+			return nil, fmt.Errorf("%s: hedef sınıf %d, %d sınıflı çıktının dışında; 0 ile %d arasında olmalı (negatif hedefler yok sayılır)", fn, h, C, C-1)
 		}
 		if h >= 0 {
 			gecerli++
 		}
 	}
 	if gecerli == 0 {
-		return nil, fmt.Errorf("çapraz_entropi: bütün hedefler yok sayıldı (%d satırın hepsi negatif ya da hiç satır yok); ortalama kayıp tanımsız. Yalnızca dolgudan oluşan partiyi atlayın", len(hedef))
+		return nil, fmt.Errorf("%s: bütün hedefler yok sayıldı (%d satırın hepsi negatif ya da hiç satır yok); ortalama kayıp tanımsız. Yalnızca dolgudan oluşan partiyi atlayın", fn, len(hedef))
 	}
 	r, err := guvenli(func() *tensor.Tensor { return tensor.CrossEntropy(cikti, hedef) })
 	if err != nil {
@@ -182,7 +185,7 @@ func normArgs(fn string, args []yurut.Value, named map[string]yurut.Value, adlar
 	if v, ok := baglama.AdliAl(named, adEpsilon); ok {
 		f, ok := yurut.ToFloat(v)
 		if !ok || f <= 0 {
-			return nil, nil, 0, fmt.Errorf("%s: epsilon pozitif bir sayı olmalıdır, %s verildi", fn, v.Inspect())
+			return nil, nil, 0, fmt.Errorf("%s: %s pozitif bir sayı olmalıdır, %s verildi", fn, adEpsilon.TR, v.Inspect())
 		}
 		eps = float32(f)
 	}
@@ -190,7 +193,8 @@ func normArgs(fn string, args []yurut.Value, named map[string]yurut.Value, adlar
 }
 
 func katmanNormu(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	x, p, eps, err := normArgs("katman_normu", args, named, []baglama.Ad{adAgirlik, adSapma})
+	fn := kod.Ad(kod.T501)
+	x, p, eps, err := normArgs(fn, args, named, []baglama.Ad{adAgirlik, adSapma})
 	if err != nil {
 		return nil, err
 	}
@@ -199,11 +203,11 @@ func katmanNormu(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) 
 	}
 	sh := x.Shape()
 	D := sh[len(sh)-1]
-	w, err := normParam("katman_normu", "ağırlık", p[0], D)
+	w, err := normParam(fn, adAgirlik.TR, p[0], D)
 	if err != nil {
 		return nil, err
 	}
-	b, err := normParam("katman_normu", "sapma", p[1], D)
+	b, err := normParam(fn, adSapma.TR, p[1], D)
 	if err != nil {
 		return nil, err
 	}
@@ -221,12 +225,13 @@ func katmanNormu(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) 
 }
 
 func rmsNormu(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	x, p, eps, err := normArgs("rms_normu", args, named, []baglama.Ad{adAgirlik})
+	fn := kod.Ad(kod.T502)
+	x, p, eps, err := normArgs(fn, args, named, []baglama.Ad{adAgirlik})
 	if err != nil {
 		return nil, err
 	}
 	sh := x.Shape()
-	w, err := normParam("rms_normu", "ağırlık", p[0], sh[len(sh)-1])
+	w, err := normParam(fn, adAgirlik.TR, p[0], sh[len(sh)-1])
 	if err != nil {
 		return nil, err
 	}

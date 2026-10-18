@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
@@ -116,12 +117,12 @@ func tureCevir(t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 // gradyan kaynak tensöre (kendi türünde) geri akar. Tür zaten aynıysa tensörün kendisi döner.
 func (d *Deger) ture(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("türe(\"bf16\") 1 parametre (tür adı) bekler, %d verildi", len(args))
+		return nil, fmt.Errorf("%s(\"bf16\") 1 parametre (tür adı) bekler, %d verildi", kod.Ad(uyeTure), len(args))
 	}
-	if err := baglama.AdliDenetle("türe()", named); err != nil {
+	if err := baglama.AdliDenetle(kod.Ad(uyeTure)+"()", named); err != nil {
 		return nil, err
 	}
-	dt, err := turDegeriCoz("türe", args[0])
+	dt, err := turDegeriCoz(kod.Ad(uyeTure), args[0])
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +159,7 @@ func karisikTuru(m *yurut.VM) tensor.DType {
 // türüyle çalıştırır ve bloğun son ifadesinin değerini döndürür. "float32" iç içe bir blokta
 // karışık hassasiyeti kapatır. Blok bitince (hata ile bitse de) önceki tür geri gelir.
 func karisikHassasiyet(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "karışık_hassasiyet"
+	fn := kod.Ad(kod.T710)
 	if err := baglama.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}

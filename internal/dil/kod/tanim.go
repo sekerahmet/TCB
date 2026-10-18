@@ -345,16 +345,29 @@ func adliCoz(a []json.RawMessage) (Adli, error) {
 	return ad, nil
 }
 
-// UyeYazimi bir üyenin yazımını verir: x.uzunluk, liste.filtrele(...), liste.sırala().
-// Üye tek bir tipteyse alıcı o tipin küçük harfli adıdır (Liste → liste), değilse x.
-// Hata mesajları ve belgeler taşınan kodların yeni biçimini bununla gösterir.
-func UyeYazimi(y Kod) string {
+// AliciAdi bir tipin hata mesajlarında ve belgelerde alıcı olarak yazılan adıdır: tipin
+// küçük harfli adı (Liste → liste, Sözlük → sözlük).
+func AliciAdi(tip Kod) string {
+	return strings.ToLowerSpecial(unicode.TurkishCase, Ad(tip))
+}
+
+// UyeAdi bir üyenin alıcısıyla yazılan adıdır: liste.filtrele, x.uzunluk. Üye tek bir
+// tipteyse alıcı o tipin adıdır (AliciAdi), değilse x.
+func UyeAdi(y Kod) string {
 	t, _ := Tanimi(y)
 	a := "x"
 	if len(t.Uyeler) == 1 {
-		a = strings.ToLowerSpecial(unicode.TurkishCase, Ad(t.Uyeler[0].Tip))
+		a = AliciAdi(t.Uyeler[0].Tip)
 	}
-	s := a + "." + Ad(y)
+	return a + "." + Ad(y)
+}
+
+// UyeYazimi bir üyenin yazımını verir: x.uzunluk, liste.filtrele(...), liste.sırala().
+// Alıcı UyeAdi'ndaki gibidir. Hata mesajları ve belgeler taşınan kodların yeni biçimini
+// bununla gösterir.
+func UyeYazimi(y Kod) string {
+	t, _ := Tanimi(y)
+	s := UyeAdi(y)
 	if t.Tur != TurMetot {
 		return s
 	}

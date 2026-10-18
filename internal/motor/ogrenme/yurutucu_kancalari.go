@@ -3,6 +3,7 @@ package ogrenme
 import (
 	"fmt"
 
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 )
@@ -158,7 +159,7 @@ func (d *Deger) Islec(op string, diger yurut.Value, sagda bool) (yurut.Value, bo
 	case "**":
 		s, ok := yurut.ToFloat(diger)
 		if sagda || !ok {
-			return nil, true, fmt.Errorf("tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için üstel(log(t) * u) kullanın")
+			return nil, true, fmt.Errorf("tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için %s(%s(t) * u) kullanın", kod.Ad(kod.T220), kod.Ad(kod.T221))
 		}
 		f := float32(s)
 		r, err := guvenli(func() *tensor.Tensor { return d.t.Pow(f) })
@@ -171,7 +172,7 @@ func (d *Deger) Islec(op string, diger yurut.Value, sagda bool) (yurut.Value, bo
 		v, err := d.karsilastir(op, diger, sagda)
 		return v, true, err
 	}
-	return nil, true, fmt.Errorf("Tensör ile %q işlemi desteklenmiyor (desteklenen işleçler: %s)", op, desteklenenIslecler)
+	return nil, true, fmt.Errorf("%s ile %q işlemi desteklenmiyor (desteklenen işleçler: %s)", yurut.VAL_TENSOR, op, desteklenenIslecler)
 }
 
 // karsilastir eleman bazlı karşılaştırmanın 0/1 maskesini (türev izlemeyen, aynı şekilli
@@ -249,7 +250,7 @@ func (d *Deger) Indeks(idx yurut.Value) (yurut.Value, error) {
 	}
 	i, ok := tamSayi(idx)
 	if !ok {
-		return nil, fmt.Errorf("tensör indeksi Tam sayı ya da aralık olmalıdır, %s verildi", idx.Type())
+		return nil, fmt.Errorf("tensör indeksi %s sayı ya da aralık olmalıdır, %s verildi", yurut.VAL_INT, idx.Type())
 	}
 	j := i
 	if j < 0 {
@@ -279,7 +280,7 @@ func (d *Deger) gorunum(r *tensor.Tensor) *Deger {
 func (d *Deger) YinelemeUzunlugu() (int, error) {
 	sh := d.t.Shape()
 	if len(sh) == 0 {
-		return 0, fmt.Errorf("skaler (0 boyutlu) tensör üzerinde döngü kurulamaz; değerini .değer ile okuyun")
+		return 0, fmt.Errorf("skaler (0 boyutlu) tensör üzerinde döngü kurulamaz; değerini .%s ile okuyun", kod.Ad(uyeDeger))
 	}
 	return sh[0], nil
 }

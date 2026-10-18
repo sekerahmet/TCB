@@ -45,7 +45,7 @@ func (n *Nesne) Type() yurut.ValueType { return yurut.ValueType(TipAdi) }
 func (n *Nesne) IsTruthy() bool        { return true }
 
 func (n *Nesne) Inspect() string {
-	return fmt.Sprintf("Parçalayıcı(dağarcık %d, %s)", n.p.SozlukBoyutu(), filepath.Base(n.yol))
+	return fmt.Sprintf("%s(dağarcık %d, %s)", TipAdi, n.p.SozlukBoyutu(), filepath.Base(n.yol))
 }
 
 // IzlemeTuru İzleme Masası'nda ikon seçimi için türdür.
@@ -53,7 +53,7 @@ func (n *Nesne) IzlemeTuru() string { return "diger" }
 
 // IzlemeEtiketi tip sütununda gösterilen özettir.
 func (n *Nesne) IzlemeEtiketi() string {
-	return fmt.Sprintf("Parçalayıcı (dağarcık %d)", n.p.SozlukBoyutu())
+	return fmt.Sprintf("%s (dağarcık %d)", TipAdi, n.p.SozlukBoyutu())
 }
 
 // TabloVerisi dağarcığa eklenmiş parçaları (özel parçalar dahil) tablo olarak verir.
@@ -100,7 +100,7 @@ func (n *Nesne) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 	} else {
 		oneri = fmt.Sprintf(" (üyeler: %s)", strings.Join(uyeler, ", "))
 	}
-	return nil, fmt.Errorf("Parçalayıcı üzerinde %q özelliği ya da metodu bulunamadı%s", prop, oneri)
+	return nil, fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", TipAdi, prop, oneri)
 }
 
 func (n *Nesne) metot(ad string, fn yurut.BuiltinFunc) *yurut.BuiltinVal {
@@ -116,7 +116,7 @@ func (n *Nesne) metot(ad string, fn yurut.BuiltinFunc) *yurut.BuiltinVal {
 // Kaydet parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *yurut.VM) {
 	v.RegisterBuiltinKod(kod.V200, func(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-		return baglama.Guvenli("parçalayıcı_yükle", func() (yurut.Value, error) { return yukle(m, args, named) })
+		return baglama.Guvenli(kod.Ad(kod.V200), func() (yurut.Value, error) { return yukle(m, args, named) })
 	})
 }
 
@@ -124,7 +124,7 @@ func Kaydet(v *yurut.VM) {
 var uyarilanlar sync.Map
 
 func yukle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "parçalayıcı_yükle"
+	fn := kod.Ad(kod.V200)
 	if err := baglama.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func yukle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut
 		aday := filepath.Join(yol, "tokenizer.json")
 		ek := ""
 		if _, e := os.Stat(aday); e == nil {
-			ek = fmt.Sprintf("; bu klasörde tokenizer.json var: parçalayıcı_yükle(%q) deneyin", filepath.ToSlash(filepath.Join(ham, "tokenizer.json")))
+			ek = fmt.Sprintf("; bu klasörde tokenizer.json var: %s(%q) deneyin", fn, filepath.ToSlash(filepath.Join(ham, "tokenizer.json")))
 		}
 		return nil, fmt.Errorf("%s: %q bir klasör; tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin%s", fn, ham, ek)
 	}
@@ -164,7 +164,7 @@ func yukle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut
 }
 
 func yuklemeHatasi(yol string, err error, bakilanlar []string) error {
-	const fn = "parçalayıcı_yükle"
+	fn := kod.Ad(kod.V200)
 	if baglama.YokMu(err) {
 		return turkce.DosyaHatasi(fn, yol, "yüklenemedi", err,
 			"tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin", yurut.BakilanYerler(bakilanlar))
@@ -240,12 +240,12 @@ func adimHatasi(fn string, err error) error {
 }
 
 func (n *Nesne) kodla(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "kodla"
+	fn := kod.Ad(uyeKodla)
 	if err := baglama.AdliDenetle(fn+"()", named, adOzel, adIkinci); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("kodla(metin) 1 parametre bekler (metin ya da metin listesi), %d verildi", len(args))
+		return nil, fmt.Errorf("%s(metin) 1 parametre bekler (metin ya da metin listesi), %d verildi", fn, len(args))
 	}
 	var sec parca.Secenekler
 	if v, ok := baglama.AdliAl(named, adOzel); ok {
@@ -262,7 +262,7 @@ func (n *Nesne) kodla(m *yurut.VM, args []yurut.Value, named map[string]yurut.Va
 		if ikinciVar {
 			ik, ok := ikinciV.(*yurut.StringVal)
 			if !ok {
-				return nil, fmt.Errorf("kodla: tek metinle ikinci: de bir metin olmalıdır, %s verildi", ikinciV.Type())
+				return nil, fmt.Errorf("%s: tek metinle %s: de bir metin olmalıdır, %s verildi", fn, adIkinci.TR, ikinciV.Type())
 			}
 			var k *parca.Kodlama
 			var err error
@@ -288,13 +288,13 @@ func (n *Nesne) kodla(m *yurut.VM, args []yurut.Value, named map[string]yurut.Va
 		if ikinciVar {
 			il, ok := ikinciV.(*yurut.ListVal)
 			if !ok {
-				return nil, fmt.Errorf("kodla: metin listesiyle ikinci: de aynı uzunlukta bir metin listesi olmalıdır, %s verildi", ikinciV.Type())
+				return nil, fmt.Errorf("%s: metin listesiyle %s: de aynı uzunlukta bir metin listesi olmalıdır, %s verildi", fn, adIkinci.TR, ikinciV.Type())
 			}
-			if ikinciler, err = metinListesi(fn, "ikinci", il); err != nil {
+			if ikinciler, err = metinListesi(fn, adIkinci.TR, il); err != nil {
 				return nil, err
 			}
 			if len(ikinciler) != len(metinler) {
-				return nil, fmt.Errorf("kodla: ikinci: listesi %d metin içeriyor, birinci liste %d; çiftler eşit uzunlukta olmalı", len(ikinciler), len(metinler))
+				return nil, fmt.Errorf("%s: %s: listesi %d metin içeriyor, birinci liste %d; çiftler eşit uzunlukta olmalı", fn, adIkinci.TR, len(ikinciler), len(metinler))
 			}
 		}
 		var sonuc [][]int
@@ -421,12 +421,12 @@ func kimlikListesi32(ids []int32) *yurut.ListVal {
 // ----------------------------------------------------------------------------
 
 func (n *Nesne) coz(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "çöz"
+	fn := kod.Ad(uyeCoz)
 	if err := baglama.AdliDenetle(fn+"()", named, adOzel); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("çöz(kimlikler) 1 parametre bekler (kimlik listesi, listelerin listesi ya da tensör), %d verildi", len(args))
+		return nil, fmt.Errorf("%s(kimlikler) 1 parametre bekler (kimlik listesi, listelerin listesi ya da tensör), %d verildi", fn, len(args))
 	}
 	// Varsayılan, başvuru kütüphanesininki gibi özel parçaları ATLAMAKTIR;
 	// özel_parçalar: doğru onları da çıktıya yazar.
@@ -477,7 +477,7 @@ func (n *Nesne) coz(m *yurut.VM, args []yurut.Value, named map[string]yurut.Valu
 // kimlikDizileri çöz'ün argümanını kimlik dizilerine çevirir. tek doğruysa argüman tek
 // bir dizidir (sonuç metin), değilse dizilerin listesidir (sonuç metin listesi).
 func kimlikDizileri(v yurut.Value) (diziler [][]int, tek bool, err error) {
-	const fn = "çöz"
+	fn := kod.Ad(uyeCoz)
 	switch x := v.(type) {
 	case *yurut.ListVal:
 		if len(x.Elements) == 0 {
@@ -548,11 +548,11 @@ func (n *Nesne) tokenKimligi(_ *yurut.VM, args []yurut.Value, named map[string]y
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("parça_kimliği(parça) 1 parametre bekler, %d verildi", len(args))
+		return nil, fmt.Errorf("%s(parça) 1 parametre bekler, %d verildi", kod.Ad(kod.Y613), len(args))
 	}
 	s, ok := args[0].(*yurut.StringVal)
 	if !ok {
-		return nil, fmt.Errorf("parça_kimliği: parça bir metin olmalıdır (ör. \"<|endoftext|>\"), %s verildi", args[0].Type())
+		return nil, fmt.Errorf("%s: parça bir metin olmalıdır (ör. \"<|endoftext|>\"), %s verildi", kod.Ad(kod.Y613), args[0].Type())
 	}
 	id, ok := n.p.TokenKimligi(s.Val)
 	if !ok {

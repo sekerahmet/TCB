@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/sozcuk"
 )
 
@@ -36,7 +37,8 @@ func (p *Parser) eskiIndirgeBlogu(tok sozcuk.Token, bas int) {
 		}
 	}
 	if o0 && o1 {
-		p.hataKaydet(tok, "indirge'nin sondaki bloğunda "+birikimAdi+" önceki sonuç, "+oAdi+" sıradaki elemandır; "+
-			oAdi+"[0] ve "+oAdi+"[1] yerine "+birikimAdi+" ve "+oAdi+" yazın: liste.indirge(0) { "+birikimAdi+" + "+oAdi+" }")
+		indirge := kod.UyeAdi(kod.Y207)
+		p.hataKaydet(tok, indirge+" metodunun sondaki bloğunda "+birikimAdi+" önceki sonuç, "+oAdi+" sıradaki elemandır; "+
+			oAdi+"[0] ve "+oAdi+"[1] yerine "+birikimAdi+" ve "+oAdi+" yazın: "+indirge+"(0) { "+birikimAdi+" + "+oAdi+" }")
 	}
 }

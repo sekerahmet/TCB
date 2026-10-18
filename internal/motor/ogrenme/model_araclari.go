@@ -47,9 +47,9 @@ func adliMantik(fn string, named map[string]yurut.Value, a baglama.Ad, varsayila
 // birlestirYerlesik birleştir([a, b, ...], eksen: -1) yerleşiğidir: tensörleri bir eksen
 // boyunca birleştirir. Birleşen eksen dışındaki eksenler eşit olmalıdır. Türevlenebilir.
 func birlestirYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "birleştir"
+	fn := kod.Ad(kod.T121)
 	if len(args) < 1 || len(args) > 2 {
-		return nil, fmt.Errorf("%s([a, b, ...], eksen: -1) bir tensör listesi bekler, %d parametre verildi", fn, len(args))
+		return nil, fmt.Errorf("%s([a, b, ...], %s: -1) bir tensör listesi bekler, %d parametre verildi", fn, adEksen.TR, len(args))
 	}
 	if err := baglama.AdliDenetle(fn+"()", named, adEksen); err != nil {
 		return nil, err
@@ -104,9 +104,9 @@ func birlestirYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.V
 // bol .böl(parça_sayısı, eksen: -1) metodudur: tensörü verilen eksende eşit parçalara
 // böler; parçalar veriyi paylaşan, türev izleyen görünümlerdir.
 func (d *Deger) bol(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "böl"
+	fn := kod.Ad(kod.Y103)
 	if len(args) < 1 || len(args) > 2 {
-		return nil, fmt.Errorf("%s(parça_sayısı, eksen: -1) parça sayısını bekler, %d parametre verildi", fn, len(args))
+		return nil, fmt.Errorf("%s(parça_sayısı, %s: -1) parça sayısını bekler, %d parametre verildi", fn, adEksen.TR, len(args))
 	}
 	if err := baglama.AdliDenetle(fn+"()", named, adEksen); err != nil {
 		return nil, err
@@ -149,9 +149,10 @@ func (d *Deger) bol(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Valu
 // dikkatYerlesik dikkat(q, k, v, nedensel: doğru, pencere: 0, maske: yok) yerleşiğidir:
 // birleşik ölçekli nokta çarpımı dikkati (bkz. tensor.Attention). Ölçek 1/√dh'dir.
 func dikkatYerlesik(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "dikkat"
+	fn := kod.Ad(kod.T503)
 	if len(args) != 3 {
-		return nil, fmt.Errorf("%s(q, k, v, nedensel: doğru, pencere: 0, maske: yok) 3 konumlu parametre bekler, %d verildi", fn, len(args))
+		return nil, fmt.Errorf("%s(q, k, v, %s: %s, %s: 0, %s: %s) 3 konumlu parametre bekler, %d verildi",
+			fn, adNedensel.TR, kod.Ad(kod.A040), adPencere.TR, adMaske.TR, kod.Ad(kod.A042), len(args))
 	}
 	if err := baglama.AdliDenetle(fn+"()", named, adNedensel, adPencere, adMaske); err != nil {
 		return nil, err
@@ -267,16 +268,17 @@ func maskeDenetle(fn string, mt, q, k *tensor.Tensor) error {
 // (maks_indeks ile aynı). Sonuç son ekseni düşürülmüş, tam sayılı işaretli ve türev
 // izlemeyen bir tensördür.
 func orneklemeYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "örnekle"
+	fn := kod.Ad(kod.T611)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(logit, sıcaklık: 1.0, en_iyi_k: 0, tohum: yok) 1 konumlu parametre bekler, %d verildi", fn, len(args))
+		return nil, fmt.Errorf("%s(logit, %s: 1.0, %s: 0, %s: %s) 1 konumlu parametre bekler, %d verildi",
+			fn, adSicaklik.TR, adEnIyiK.TR, adTohum.TR, kod.Ad(kod.A042), len(args))
 	}
 	if err := baglama.AdliDenetle(fn+"()", named, adSicaklik, adEnIyiK, adTohum); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*Deger)
 	if !ok {
-		return nil, fmt.Errorf("%s: logit bir tensör olmalıdır, %s verildi; liste için %s(tensör(liste)) yazın", fn, tipAdi(args[0]), fn)
+		return nil, fmt.Errorf("%s: logit bir tensör olmalıdır, %s verildi; liste için %s(%s(liste)) yazın", fn, tipAdi(args[0]), fn, kod.Ad(kod.T100))
 	}
 	sh := d.t.Shape()
 	if len(sh) == 0 {
@@ -290,7 +292,7 @@ func orneklemeYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.V
 	if sv, ok := baglama.AdliAl(named, adSicaklik); ok {
 		f, sayi := yurut.ToFloat(sv)
 		if !sayi || f < 0 || math.IsNaN(f) {
-			return nil, fmt.Errorf("%s: sıcaklık negatif olmayan bir sayı olmalıdır (0: en olası), %s verildi", fn, sv.Inspect())
+			return nil, fmt.Errorf("%s: %s negatif olmayan bir sayı olmalıdır (0: en olası), %s verildi", fn, adSicaklik.TR, sv.Inspect())
 		}
 		sicaklik = f
 	}
@@ -298,7 +300,7 @@ func orneklemeYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.V
 	if kv, ok := baglama.AdliAl(named, adEnIyiK); ok {
 		n, tam := tamSayi(kv)
 		if !tam || n < 0 {
-			return nil, fmt.Errorf("%s: en_iyi_k negatif olmayan bir tam sayı olmalıdır (0: hepsi), %s verildi", fn, kv.Inspect())
+			return nil, fmt.Errorf("%s: %s negatif olmayan bir tam sayı olmalıdır (0: hepsi), %s verildi", fn, adEnIyiK.TR, kv.Inspect())
 		}
 		k = n
 	}
@@ -395,9 +397,9 @@ func orneklemeYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.V
 // sırası) toplar. Aynı tensör bir kez yer alır. adlarıyla: doğru yol adı → tensör sözlüğü
 // verir ("bloklar.0.dikkat.Wq"); bu sözlük tensör_kaydet ile kaydedilebilir.
 func parametrelerYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "parametreler"
+	fn := kod.Ad(kod.T530)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(model, adlarıyla: yanlış) 1 konumlu parametre bekler, %d verildi", fn, len(args))
+		return nil, fmt.Errorf("%s(model, %s: %s) 1 konumlu parametre bekler, %d verildi", fn, adAdlariyla.TR, kod.Ad(kod.A041), len(args))
 	}
 	if err := baglama.AdliDenetle(fn+"()", named, adAdlariyla); err != nil {
 		return nil, err

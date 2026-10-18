@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"tr_dili/internal/dil/kod"
 )
 
 // --- ÇALIŞMA ORTAMI (ENVIRONMENT) ---
@@ -202,7 +204,7 @@ func (e *Environment) Assign(name string, val Value) error {
 	for cur := e; cur != nil; cur = cur.outer {
 		if i, old := cur.yerel(name); old != nil {
 			if cur.sabitMi(i) {
-				return fmt.Errorf("%q bir sabittir ('sabit') ve değeri değiştirilemez", name)
+				return fmt.Errorf("%q bir sabittir ('%s') ve değeri değiştirilemez", name, kod.Ad(kod.A031))
 			}
 			cur.vals[i] = val
 			return nil
@@ -218,7 +220,7 @@ func (e *Environment) Assign(name string, val Value) error {
 type TanimsizDegiskenHatasi struct{ Ad string }
 
 func (e *TanimsizDegiskenHatasi) Error() string {
-	return fmt.Sprintf("tanımsız değişken: '%s' (önce 'değişken' ile tanımlayın)", e.Ad)
+	return fmt.Sprintf("tanımsız değişken: '%s' (önce '%s' ile tanımlayın)", e.Ad, kod.Ad(kod.A030))
 }
 
 // Names bu kapsamdan ve dış kapsamlardan görünen tüm adları döndürür (öneriler için).

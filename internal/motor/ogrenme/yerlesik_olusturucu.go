@@ -30,13 +30,14 @@ func turevIzle(named map[string]yurut.Value, konumlu yurut.Value, varsayilan boo
 // sayı (0 boyutlu tensör), iç içe sayı listesi ya da tensör olabilir. tür verilmezse
 // listeden float32, tensörden kaynağın türünde tensör oluşur.
 func tensorYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
+	fn := kod.Ad(kod.T100)
 	if len(args) < 1 {
-		return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en az 1 parametre bekler")
+		return nil, fmt.Errorf("%s en az 1 parametre bekler", turevIzleyenOrnek("veri"))
 	}
 	if len(args) > 2 {
-		return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en fazla 2 parametre alır, %d verildi", len(args))
+		return nil, fmt.Errorf("%s en fazla 2 parametre alır, %d verildi", turevIzleyenOrnek("veri"), len(args))
 	}
-	if err := baglama.AdliDenetle("tensör()", named, adTurevIzle, adTur); err != nil {
+	if err := baglama.AdliDenetle(fn+"()", named, adTurevIzle, adTur); err != nil {
 		return nil, err
 	}
 	var konumlu yurut.Value
@@ -49,7 +50,7 @@ func tensorYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Valu
 		// Türü değiştirmenin tek yazımı t.türe(...)'dir; tür: yalnızca listeden ya da
 		// sayıdan oluştururken verilir (karar 14).
 		if _, verildi := baglama.AdliAl(named, adTur); verildi {
-			return nil, fmt.Errorf("tensör: girdi zaten bir tensör; türünü değiştirmek için t.%s(...) yazın (%s: yalnızca listeden ya da sayıdan oluştururken verilir)", kod.Ad(kod.Y415), adTur.TR)
+			return nil, fmt.Errorf("%s: girdi zaten bir tensör; türünü değiştirmek için t.%s(...) yazın (%s: yalnızca listeden ya da sayıdan oluştururken verilir)", fn, kod.Ad(kod.Y415), adTur.TR)
 		}
 		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak (aynı tür).
 		dt := d.t.DType()
@@ -64,11 +65,11 @@ func tensorYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Valu
 			return nil, err
 		}
 	} else {
-		dt, err := adliTur("tensör", named, tensor.Float32)
+		dt, err := adliTur(fn, named, tensor.Float32)
 		if err != nil {
 			return nil, err
 		}
-		t, err = tensoreCevir("tensör", args[0])
+		t, err = tensoreCevir(fn, args[0])
 		if err != nil {
 			return nil, err
 		}
@@ -135,7 +136,7 @@ func rastgeleNormal(sh []int, named map[string]yurut.Value) (*tensor.Tensor, err
 	if s, ok := baglama.AdliAl(named, adTohum); ok {
 		tohum, ok := s.(*yurut.IntVal)
 		if !ok {
-			return nil, fmt.Errorf("rastgele_normal: tohum tam sayı olmalıdır, %s verildi", tipAdi(s))
+			return nil, fmt.Errorf("%s: %s tam sayı olmalıdır, %s verildi", kod.Ad(kod.T103), adTohum.TR, tipAdi(s))
 		}
 		return tensor.Randn(rand.New(rand.NewSource(tohum.Val)), sh...), nil
 	}

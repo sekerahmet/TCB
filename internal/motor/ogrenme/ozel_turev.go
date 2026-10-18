@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"tr_dili/internal/dil/kod"
+	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 	"tr_dili/internal/motor/ortak/baglama"
@@ -44,7 +45,9 @@ func ozelTurevKaydet(v *yurut.VM) {
 	sar(v, kod.T311, yeniYerlesik(turevDenetle))
 }
 
-const ozelTurevOrnek = "özel_türev(ileri: fonksiyon(x) { sonuç [x * x, [x]] }, geri: fonksiyon(saklananlar, g) { sonuç [g * 2 * saklananlar[0]] })"
+// ozelTurevOrnek hata mesajlarındaki kullanım örneğidir; adlar koddan kurulur.
+var ozelTurevOrnek = fmt.Sprintf("%s(%s: %s(x) { %s [x * x, [x]] }, %s: %s(saklananlar, g) { %s [g * 2 * saklananlar[0]] })",
+	kod.Ad(kod.T310), adIleri.TR, kod.Ad(kod.A020), kod.Ad(kod.A021), adGeri.TR, kod.Ad(kod.A020), kod.Ad(kod.A021))
 
 // geriHatasi, geri yayılım sırasında (çekirdeğin içinden) kullanıcının geri hesabında
 // oluşan hatayı taşır; geriYay paniği yakalayıp hatayı olduğu gibi döndürür.
@@ -86,29 +89,29 @@ type ozelIslem struct {
 
 // ozelTurev özel_türev(ileri:, geri:) yerleşiğidir.
 func ozelTurev(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "özel_türev"
+	fn := kod.Ad(kod.T310)
 	if err := baglama.AdliDenetle(fn+"()", named, adIleri, adGeri); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, fmt.Errorf("%s yalnızca adlı argüman alır (ileri: ve geri:), %d konumlu parametre verildi; örnek: %s", fn, len(args), ozelTurevOrnek)
+		return nil, fmt.Errorf("%s yalnızca adlı argüman alır (%s: ve %s:), %d konumlu parametre verildi; örnek: %s", fn, adIleri.TR, adGeri.TR, len(args), ozelTurevOrnek)
 	}
 	ileri, ok1 := baglama.AdliAl(named, adIleri)
 	geri, ok2 := baglama.AdliAl(named, adGeri)
 	if !ok1 || !ok2 {
-		eksik := "ileri:"
+		eksik := adIleri.TR + ":"
 		if ok1 {
-			eksik = "geri:"
+			eksik = adGeri.TR + ":"
 		} else if !ok2 {
-			eksik = "ileri: ve geri:"
+			eksik = adIleri.TR + ": ve " + adGeri.TR + ":"
 		}
 		return nil, fmt.Errorf("%s: %s eksik; örnek: %s", fn, eksik, ozelTurevOrnek)
 	}
 	if !cagrilabilirMi(ileri) {
-		return nil, fmt.Errorf("%s: ileri bir fonksiyon olmalıdır, %s verildi", fn, tipAdi(ileri))
+		return nil, fmt.Errorf("%s: %s bir fonksiyon olmalıdır, %s verildi", fn, adIleri.TR, tipAdi(ileri))
 	}
 	if !cagrilabilirMi(geri) {
-		return nil, fmt.Errorf("%s: geri bir fonksiyon olmalıdır, %s verildi", fn, tipAdi(geri))
+		return nil, fmt.Errorf("%s: %s bir fonksiyon olmalıdır, %s verildi", fn, adGeri.TR, tipAdi(geri))
 	}
 	if f, ok := geri.(*yurut.FuncVal); ok {
 		gerekli := 0
@@ -118,7 +121,7 @@ func ozelTurev(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (y
 			}
 		}
 		if len(f.Parameters) < 2 || gerekli > 2 {
-			return nil, fmt.Errorf("%s: geri iki parametre almalıdır: fonksiyon(saklananlar, g), %d parametreli fonksiyon verildi", fn, len(f.Parameters))
+			return nil, fmt.Errorf("%s: %s iki parametre almalıdır: %s(saklananlar, g), %d parametreli fonksiyon verildi", fn, adGeri.TR, kod.Ad(kod.A020), len(f.Parameters))
 		}
 	}
 	o := &ozelIslem{ileri: ileri, geri: geri}
@@ -148,7 +151,7 @@ func (o *ozelIslem) cagir(m *yurut.VM, args []yurut.Value, named map[string]yuru
 	var saklanan []*tensor.Tensor
 	tensorleriTopla(saklananlar, &saklanan, 0)
 	outs, err := guvenli(func() []*tensor.Tensor {
-		return tensor.CustomOp("özel_türev", girdiler, ciktilar, saklanan, o.geriHesabi(m, args, saklananlar, cok))
+		return tensor.CustomOp(kod.Ad(kod.T310), girdiler, ciktilar, saklanan, o.geriHesabi(m, args, saklananlar, cok))
 	})
 	if err != nil {
 		return nil, err
@@ -165,37 +168,39 @@ func (o *ozelIslem) cagir(m *yurut.VM, args []yurut.Value, named map[string]yuru
 
 // ileriSonucu ileri'nin [çıktı, saklananlar] dönüşünü çözer.
 func ileriSonucu(v yurut.Value) (ciktilar []*tensor.Tensor, cok bool, saklananlar *yurut.ListVal, err error) {
+	fn, sonuc := kod.Ad(kod.T310), kod.Ad(kod.A021)
+	ilerinin := turkce.Ek(adIleri.TR, turkce.Tamlayan)
 	l, ok := v.(*yurut.ListVal)
 	if !ok || len(l.Elements) != 2 {
-		return nil, false, nil, fmt.Errorf("özel_türev: ileri [çıktı, saklananlar] döndürmeli (ör. sonuç [x * x, [x]]; saklanacak bir şey yoksa sonuç [y, []]), %s verildi", kisaGoster(v))
+		return nil, false, nil, fmt.Errorf("%s: %s [çıktı, saklananlar] döndürmeli (ör. %s [x * x, [x]]; saklanacak bir şey yoksa %s [y, []]), %s verildi", fn, adIleri.TR, sonuc, sonuc, kisaGoster(v))
 	}
 	saklananlar, ok = l.Elements[1].(*yurut.ListVal)
 	if !ok {
-		return nil, false, nil, fmt.Errorf("özel_türev: ileri'nin döndürdüğü [çıktı, saklananlar] içinde saklananlar bir liste olmalıdır (ör. [x] ya da []), %s verildi", tipAdi(l.Elements[1]))
+		return nil, false, nil, fmt.Errorf("%s: %s döndürdüğü [çıktı, saklananlar] içinde saklananlar bir liste olmalıdır (ör. [x] ya da []), %s verildi", fn, ilerinin, tipAdi(l.Elements[1]))
 	}
 	switch c := l.Elements[0].(type) {
 	case *Deger:
 		return []*tensor.Tensor{c.t}, false, saklananlar, nil
 	case *yurut.ListVal:
 		if len(c.Elements) == 0 {
-			return nil, false, nil, fmt.Errorf("özel_türev: ileri'nin çıktı listesi boş; en az bir tensör döndürün")
+			return nil, false, nil, fmt.Errorf("%s: %s çıktı listesi boş; en az bir tensör döndürün", fn, ilerinin)
 		}
 		for i, e := range c.Elements {
 			d, ok := e.(*Deger)
 			if !ok {
-				return nil, false, nil, fmt.Errorf("özel_türev: ileri'nin çıktı listesinin %d. öğesi tensör olmalıdır, %s verildi", i+1, tipAdi(e))
+				return nil, false, nil, fmt.Errorf("%s: %s çıktı listesinin %d. öğesi tensör olmalıdır, %s verildi", fn, ilerinin, i+1, tipAdi(e))
 			}
 			ciktilar = append(ciktilar, d.t)
 		}
 		return ciktilar, true, saklananlar, nil
 	}
-	return nil, false, nil, fmt.Errorf("özel_türev: ileri'nin çıktısı bir tensör ya da tensör listesi olmalıdır, %s verildi", tipAdi(l.Elements[0]))
+	return nil, false, nil, fmt.Errorf("%s: %s çıktısı bir tensör ya da tensör listesi olmalıdır, %s verildi", fn, ilerinin, tipAdi(l.Elements[0]))
 }
 
 // kisaGoster hata mesajı için değerin tipini ve (kısaysa) kendisini yazar.
 func kisaGoster(v yurut.Value) string {
 	if v == nil {
-		return "yok"
+		return yurut.NULL.Inspect()
 	}
 	s := v.Inspect()
 	if len(s) > 60 || strings.Contains(s, "\n") {
@@ -255,12 +260,13 @@ func (o *ozelIslem) geriHesabi(ileriVM *yurut.VM, args []yurut.Value, saklananla
 // öğe; tensör girdilerde girdiyle aynı şekilde bir tensör ya da yok, tensör olmayan
 // girdilerde yok.
 func geriSonucu(v yurut.Value, args []yurut.Value) ([]*tensor.Tensor, error) {
+	fn, geri, yok := kod.Ad(kod.T310), adGeri.TR, kod.Ad(kod.A042)
 	l, ok := v.(*yurut.ListVal)
 	if !ok {
-		return nil, fmt.Errorf("özel_türev: geri her girdi için bir gradyan (ya da yok) içeren bir liste döndürmeli (ör. sonuç [g * 2 * x]), %s verildi", kisaGoster(v))
+		return nil, fmt.Errorf("%s: %s her girdi için bir gradyan (ya da %s) içeren bir liste döndürmeli (ör. %s [g * 2 * x]), %s verildi", fn, geri, yok, kod.Ad(kod.A021), kisaGoster(v))
 	}
 	if len(l.Elements) != len(args) {
-		return nil, fmt.Errorf("özel_türev: geri %d öğeli liste döndürdü ama işlemin %d konumlu girdisi var; her girdi için sırasıyla bir gradyan ya da yok verin", len(l.Elements), len(args))
+		return nil, fmt.Errorf("%s: %s %d öğeli liste döndürdü ama işlemin %d konumlu girdisi var; her girdi için sırasıyla bir gradyan ya da %s verin", fn, geri, len(l.Elements), len(args), yok)
 	}
 	out := make([]*tensor.Tensor, len(args))
 	for i, e := range l.Elements {
@@ -269,14 +275,14 @@ func geriSonucu(v yurut.Value, args []yurut.Value) ([]*tensor.Tensor, error) {
 		}
 		d, ok := e.(*Deger)
 		if !ok {
-			return nil, fmt.Errorf("özel_türev: geri'nin %d. öğesi (%d. girdinin gradyanı) tensör ya da yok olmalıdır, %s verildi", i+1, i+1, tipAdi(e))
+			return nil, fmt.Errorf("%s: %s %d. öğesi (%d. girdinin gradyanı) tensör ya da %s olmalıdır, %s verildi", fn, turkce.Ek(geri, turkce.Tamlayan), i+1, i+1, yok, tipAdi(e))
 		}
 		girdi, ok := args[i].(*Deger)
 		if !ok {
-			return nil, fmt.Errorf("özel_türev: %d. girdi tensör değil (%s); geri bu girdi için yok döndürmeli", i+1, tipAdi(args[i]))
+			return nil, fmt.Errorf("%s: %d. girdi tensör değil (%s); %s bu girdi için %s döndürmeli", fn, i+1, tipAdi(args[i]), geri, yok)
 		}
 		if gs, is := d.t.Shape(), girdi.t.Shape(); !sekilEsitMi(gs, is) {
-			return nil, fmt.Errorf("özel_türev: geri %d. girdi için %s şeklinde gradyan döndürdü, beklenen %s (girdinin şekli); gradyan girdiyle aynı şekilde olmalı, yayınlama yapılmaz", i+1, sekilMetni(gs), sekilMetni(is))
+			return nil, fmt.Errorf("%s: %s %d. girdi için %s şeklinde gradyan döndürdü, beklenen %s (girdinin şekli); gradyan girdiyle aynı şekilde olmalı, yayınlama yapılmaz", fn, geri, i+1, sekilMetni(gs), sekilMetni(is))
 		}
 		out[i] = d.t
 	}
@@ -306,12 +312,12 @@ func sekilEsitMi(a, b []int) bool {
 // yön vektörüyle iç çarpımla skalere indirgenir; kayıp ve farklar float64'te hesaplanır.
 // Eleman başına koşul |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|).
 func turevDenetle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	const fn = "türev_denetle"
+	fn := kod.Ad(kod.T311)
 	if err := baglama.AdliDenetle(fn+"()", named, adAdim, adTolerans); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, fmt.Errorf("%s(f, girdiler, adım: 0.001, tolerans: 0.01) 2 konumlu parametre bekler, %d verildi", fn, len(args))
+		return nil, fmt.Errorf("%s(f, girdiler, %s: 0.001, %s: 0.01) 2 konumlu parametre bekler, %d verildi", fn, adAdim.TR, adTolerans.TR, len(args))
 	}
 	f := args[0]
 	if !cagrilabilirMi(f) {
@@ -319,7 +325,7 @@ func turevDenetle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value)
 	}
 	liste, ok := args[1].(*yurut.ListVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: girdiler bir liste olmalıdır (ör. [tensör([[0.3, -1.2]], türev_izle: doğru)]), %s verildi", fn, tipAdi(args[1]))
+		return nil, fmt.Errorf("%s: girdiler bir liste olmalıdır (ör. [%s([[0.3, -1.2]], %s: %s)]), %s verildi", fn, kod.Ad(kod.T100), kod.Ad(kod.T900), kod.Ad(kod.A040), tipAdi(args[1]))
 	}
 	adim, err := pozitifSayi(fn, named, adAdim, 1e-3)
 	if err != nil {
@@ -330,7 +336,7 @@ func turevDenetle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value)
 		return nil, err
 	}
 	if !tensor.GradEnabled() {
-		return nil, fmt.Errorf("%s türevsiz { ... } bloğu içinde çalışamaz", fn)
+		return nil, fmt.Errorf("%s %s { ... } bloğu içinde çalışamaz", fn, kod.Ad(kod.T301))
 	}
 
 	// Türev izleyen girdilerin float32 yaprak kopyaları.
@@ -347,7 +353,7 @@ func turevDenetle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value)
 		}
 	}
 	if denetlenen == 0 {
-		return nil, fmt.Errorf("%s: girdilerden hiçbiri türev izlemiyor; denetlenecek tensörleri tensör(..., türev_izle: doğru) ile oluşturun", fn)
+		return nil, fmt.Errorf("%s: girdilerden hiçbiri türev izlemiyor; denetlenecek tensörleri %s(..., %s: %s) ile oluşturun", fn, kod.Ad(kod.T100), kod.Ad(kod.T900), kod.Ad(kod.A040))
 	}
 
 	// Analitik gradyan: L = Σ_k <v_k, y_k> üzerinden geri yayılım.

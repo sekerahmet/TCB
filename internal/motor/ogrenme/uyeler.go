@@ -51,7 +51,8 @@ func (d *Deger) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 		return d.adliMetot(uyeTure, d.ture), nil
 	case uyeGradyan:
 		if d.ara {
-			return nil, fmt.Errorf("bu tensör (%s) bir işlemin sonucu; gradyan yalnızca türev_izle: doğru ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici (AdamW, SGD) kullanın ya da yeni değeri türevsiz { } içinde hesaplayıp tensör(..., türev_izle: doğru) ile yeniden oluşturun", sekilMetni(t.Shape()))
+			return nil, fmt.Errorf("bu tensör (%s) bir işlemin sonucu; gradyan yalnızca %s: %s ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici (%s, %s) kullanın ya da yeni değeri %s { } içinde hesaplayıp %s ile yeniden oluşturun",
+				sekilMetni(t.Shape()), adTurevIzle.TR, kod.Ad(kod.A040), kod.Ad(kod.T400), kod.Ad(kod.T401), kod.Ad(kod.T301), turevIzleyenOrnek("..."))
 		}
 		g := t.Grad()
 		if g == nil {
@@ -65,7 +66,7 @@ func (d *Deger) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 	case uyeDevrik:
 		return d.metot(uyeDevrik, func(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("devrik() argüman almaz")
+				return nil, fmt.Errorf("%s() argüman almaz", kod.Ad(uyeDevrik))
 			}
 			return devrik(t)
 		}), nil
@@ -88,7 +89,7 @@ func (d *Deger) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 	} else if o := turkce.EnYakin(prop, tensorUyeleri); o != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 	}
-	return nil, fmt.Errorf("Tensör üzerinde %q özelliği ya da metodu bulunamadı%s", prop, oneri)
+	return nil, fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", yurut.VAL_TENSOR, prop, oneri)
 }
 
 // metot adlı argüman almayan bir tensör metodunun bağlı değeridir; adliMetot adlı
@@ -192,14 +193,14 @@ func (d *Deger) sekillendir(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.
 		hedef = args
 	}
 	if len(hedef) == 0 {
-		return nil, fmt.Errorf("şekillendir([4, 6]) yeni şekli liste olarak bekler")
+		return nil, fmt.Errorf("%s([4, 6]) yeni şekli liste olarak bekler", kod.Ad(uyeSekillendir))
 	}
 	sh := make([]int, len(hedef))
 	bilinmeyen := 0
 	for i, v := range hedef {
 		n, ok := tamSayi(v)
 		if !ok || n < -1 {
-			return nil, fmt.Errorf("şekillendir: şeklin %d. elemanı negatif olmayan bir tam sayı (ya da çıkarsanacak eksen için -1) olmalıdır, %s verildi", i+1, v.Inspect())
+			return nil, fmt.Errorf("%s: şeklin %d. elemanı negatif olmayan bir tam sayı (ya da çıkarsanacak eksen için -1) olmalıdır, %s verildi", kod.Ad(uyeSekillendir), i+1, v.Inspect())
 		}
 		if n == -1 {
 			bilinmeyen++
@@ -207,7 +208,7 @@ func (d *Deger) sekillendir(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.
 		sh[i] = n
 	}
 	if bilinmeyen > 1 {
-		return nil, fmt.Errorf("şekillendir: yalnızca bir eksen -1 olabilir, %s verildi", sekilMetni(sh))
+		return nil, fmt.Errorf("%s: yalnızca bir eksen -1 olabilir, %s verildi", kod.Ad(uyeSekillendir), sekilMetni(sh))
 	}
 	n := d.t.Numel()
 	carpim := 1
@@ -229,7 +230,7 @@ func (d *Deger) sekillendir(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.
 func devrik(t *tensor.Tensor) (yurut.Value, error) {
 	sh := t.Shape()
 	if len(sh) < 2 {
-		return nil, fmt.Errorf("devrik() en az 2 boyutlu tensör ister, %s verildi", sekilMetni(sh))
+		return nil, fmt.Errorf("%s() en az 2 boyutlu tensör ister, %s verildi", kod.Ad(uyeDevrik), sekilMetni(sh))
 	}
 	r, err := guvenli(func() *tensor.Tensor { return t.T() })
 	if err != nil {
@@ -248,23 +249,24 @@ func (d *Deger) eksenleriSirala(_ *yurut.VM, args []yurut.Value, _ map[string]yu
 	if liste == nil {
 		liste = args
 	}
+	fn := kod.Ad(uyeEksenleriSirala)
 	sh := d.t.Shape()
 	if len(liste) != len(sh) {
-		return nil, fmt.Errorf("eksenleri_sırala: %s şeklindeki %d boyutlu tensör için %d eksen verilmeli, %d verildi", sekilMetni(sh), len(sh), len(sh), len(liste))
+		return nil, fmt.Errorf("%s: %s şeklindeki %d boyutlu tensör için %d eksen verilmeli, %d verildi", fn, sekilMetni(sh), len(sh), len(sh), len(liste))
 	}
 	dims := make([]int, len(liste))
 	gorulen := make([]bool, len(sh))
 	for i, v := range liste {
 		n, ok := tamSayi(v)
 		if !ok {
-			return nil, fmt.Errorf("eksenleri_sırala: eksenler tam sayı olmalıdır, %s verildi", v.Inspect())
+			return nil, fmt.Errorf("%s: eksenler tam sayı olmalıdır, %s verildi", fn, v.Inspect())
 		}
-		e, err := eksenCoz("eksenleri_sırala", n, sh)
+		e, err := eksenCoz(fn, n, sh)
 		if err != nil {
 			return nil, err
 		}
 		if gorulen[e] {
-			return nil, fmt.Errorf("eksenleri_sırala: %d. eksen birden çok kez verildi; her eksen bir kez yer almalı", e)
+			return nil, fmt.Errorf("%s: %d. eksen birden çok kez verildi; her eksen bir kez yer almalı", fn, e)
 		}
 		gorulen[e] = true
 		dims[i] = e
@@ -277,19 +279,20 @@ func (d *Deger) eksenleriSirala(_ *yurut.VM, args []yurut.Value, _ map[string]yu
 }
 
 func (d *Deger) dilim(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
+	fn := kod.Ad(uyeDilim)
 	if len(args) != 3 {
-		return nil, fmt.Errorf("dilim(eksen, baş, son) 3 parametre bekler, %d verildi", len(args))
+		return nil, fmt.Errorf("%s(eksen, baş, son) 3 parametre bekler, %d verildi", fn, len(args))
 	}
 	var n [3]int
 	for i, a := range args {
 		x, ok := tamSayi(a)
 		if !ok {
-			return nil, fmt.Errorf("dilim(eksen, baş, son) tam sayılar bekler, %s verildi", a.Inspect())
+			return nil, fmt.Errorf("%s(eksen, baş, son) tam sayılar bekler, %s verildi", fn, a.Inspect())
 		}
 		n[i] = x
 	}
 	sh := d.t.Shape()
-	e, err := eksenCoz("dilim", n[0], sh)
+	e, err := eksenCoz(fn, n[0], sh)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +305,7 @@ func (d *Deger) dilim(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.Value)
 		son += uz
 	}
 	if bas < 0 || bas > uz || son < bas || son > uz {
-		return nil, fmt.Errorf("dilim: %d. eksenin uzunluğu %d (%s); [%d, %d) aralığı geçersiz (0 ≤ baş ≤ son ≤ %d olmalı)", e, uz, sekilMetni(sh), n[1], n[2], uz)
+		return nil, fmt.Errorf("%s: %d. eksenin uzunluğu %d (%s); [%d, %d) aralığı geçersiz (0 ≤ baş ≤ son ≤ %d olmalı)", fn, e, uz, sekilMetni(sh), n[1], n[2], uz)
 	}
 	r, err := guvenli(func() *tensor.Tensor { return d.t.Slice(e, bas, son) })
 	if err != nil {
@@ -330,11 +333,11 @@ func cihazCoz(ad string) (tensor.Device, error) {
 
 func (d *Deger) cihaza(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("cihaza(\"cpu\") 1 parametre bekler")
+		return nil, fmt.Errorf("%s(\"cpu\") 1 parametre bekler", kod.Ad(uyeCihaza))
 	}
 	s, ok := args[0].(*yurut.StringVal)
 	if !ok {
-		return nil, fmt.Errorf("cihaza() cihaz adını metin olarak bekler (\"cpu\" ya da \"gpu\"), %s verildi", tipAdi(args[0]))
+		return nil, fmt.Errorf("%s() cihaz adını metin olarak bekler (\"cpu\" ya da \"gpu\"), %s verildi", kod.Ad(uyeCihaza), tipAdi(args[0]))
 	}
 	dev, err := cihazCoz(s.Val)
 	if err != nil {

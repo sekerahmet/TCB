@@ -26,7 +26,7 @@ import (
 func Kaydet(v *yurut.VM) {
 	v.AdlisizKaydet(kod.G600, func(makine *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("json_çöz(metin) 1 parametre bekler")
+			return nil, yurut.ArgumanSayisiHatasi(kod.G600, "1", len(args), kod.AliciAdi(kod.A202))
 		}
 		val, err := yurut.JSONToTR([]byte(bomSoy(args[0].Inspect())))
 		if err != nil {
@@ -37,18 +37,18 @@ func Kaydet(v *yurut.VM) {
 
 	v.AdlisizKaydet(kod.G601, func(makine *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("json_metin(değer) 1 parametre bekler")
+			return nil, yurut.ArgumanSayisiHatasi(kod.G601, "1", len(args), "değer")
 		}
 		b, err := jsonyaz.Yaz(args[0])
 		if err != nil {
-			return nil, fmt.Errorf("json_metin: %v", err)
+			return nil, fmt.Errorf("%s: %v", kod.Ad(kod.G601), err)
 		}
 		return &yurut.StringVal{Val: string(b)}, nil
 	})
 
 	v.AdlisizKaydet(kod.G602, func(makine *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("csv_oku(dosya_veya_metin) 1 parametre bekler")
+			return nil, yurut.ArgumanSayisiHatasi(kod.G602, "1", len(args), "dosya ya da metin")
 		}
 		input, err := csvGirdisi(makine, args[0].Inspect())
 		if err != nil {
@@ -66,20 +66,21 @@ func Kaydet(v *yurut.VM) {
 //   - Aksi hâlde argüman CSV içeriğinin kendisi sayılır ve olduğu gibi ayrıştırılır
 //     (ör. csv_oku("ad,yaş\nAli,30")); bu eski davranış bilerek korunmuştur.
 func csvGirdisi(makine *yurut.VM, arg string) (string, error) {
+	fn := kod.Ad(kod.G602)
 	yol, bakilanlar := baglama.YolCozBakilan(makine, arg)
 	bilgi, statErr := os.Stat(yol)
 	if statErr == nil {
 		if bilgi.IsDir() {
-			return "", fmt.Errorf("csv_oku: %q bir klasör; CSV dosyasının yolunu verin", arg)
+			return "", fmt.Errorf("%s: %q bir klasör; CSV dosyasının yolunu verin", fn, arg)
 		}
 		data, err := os.ReadFile(yol)
 		if err != nil {
-			return "", turkce.DosyaHatasi("csv_oku", arg, "okunamadı", err)
+			return "", turkce.DosyaHatasi(fn, arg, "okunamadı", err)
 		}
 		return string(data), nil
 	}
 	if yolGibi(arg) {
-		return "", yurut.OkumaHatasi("csv_oku", arg, "okunamadı", statErr, bakilanlar)
+		return "", yurut.OkumaHatasi(fn, arg, "okunamadı", statErr, bakilanlar)
 	}
 	return arg, nil
 }

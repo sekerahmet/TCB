@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/sozcuk"
 )
 
@@ -316,7 +317,8 @@ func (p *Parser) parseImportStatement() *agac.ImportStatement {
 		if sonraki.Type == sozcuk.TOKEN_IDENT {
 			ornek = sonraki.Literal
 		}
-		p.hataKaydet(sonraki, fmt.Sprintf("Sözdizimi hatası — 'aktar' modül yolunu metin olarak bekler, ancak %s bulundu: aktar \"%s\" yazın", tokenAciklamasi(sonraki), ornek))
+		aktar := kod.Ad(kod.A070)
+		p.hataKaydet(sonraki, fmt.Sprintf("Sözdizimi hatası — '%s' modül yolunu metin olarak bekler, ancak %s bulundu: %s \"%s\" yazın", aktar, tokenAciklamasi(sonraki), aktar, ornek))
 		return nil
 	}
 	p.nextToken()
