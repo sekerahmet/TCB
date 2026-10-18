@@ -9,6 +9,8 @@
 #   gpu_sinama     GPU arka ucunun Go sınama ikilisi (go test -c ./internal/hesap/gpu)
 #   kiyas_gpu.tr   kıyas modeli (TR)
 #   kiyas_gpu.py   kıyas modeli (karşılaştırma tarafı)
+#   mikro_kiyas.py mikro kıyaslar (karşılaştırma tarafı; TR tarafı gpu_sinama'da TestMikroKiyas)
+#   mikro_tablo.py iki tarafın mikro kıyas çıktılarını tek tabloya çevirir
 #   COLAB.md       hücre hücre çalıştırma adımları
 #   testler/       dil tanımı testleri (depodaki testler/ klasörünün kopyası)
 #   SURUM.txt      derlenen commit ve tarih
@@ -31,7 +33,7 @@ echo "== GPU sınama ikilisi derleniyor"
 go test -c -trimpath -o "$hedef/gpu_sinama" ./internal/hesap/gpu
 unset GOOS GOARCH GOAMD64 CGO_ENABLED
 
-cp tools/gpu/kiyas_gpu.tr tools/gpu/kiyas_gpu.py tools/gpu/COLAB.md "$hedef/"
+cp tools/gpu/kiyas_gpu.tr tools/gpu/kiyas_gpu.py tools/gpu/mikro_kiyas.py tools/gpu/mikro_tablo.py tools/gpu/COLAB.md "$hedef/"
 # Dil tanımı testleri (15.26–15.30 GPU kuralları GPU'lu makinede koşar).
 mkdir -p "$hedef/testler"
 cp -r testler/. "$hedef/testler/"

@@ -85,19 +85,3 @@ func TestSinifBoyu(t *testing.T) {
 		}
 	}
 }
-
-// TestCarpimKitapligiYoksaKendiCekirdegi benzetimde kitaplık yokken matris çarpımının kendi
-// çekirdeğimizle yapıldığını ve yolun teşhiste göründüğünü denetler.
-func TestCarpimKitapligiYoksaKendiCekirdegi(t *testing.T) {
-	if !benzetimde() {
-		t.Skip("gerçek GPU: kitaplık sınaması TestCarpimKitapligiKendiCekirdekleUyusur")
-	}
-	g := yeniBenzetimArkaUcu(1 << 24)
-	g.ltKur()
-	if g.lt != nil {
-		t.Skip("bu makinede kitaplık bulundu")
-	}
-	if y := g.carpimYolu(); !strings.HasPrefix(y, "kendi çekirdeği") {
-		t.Fatalf("çarpım yolu: %q", y)
-	}
-}

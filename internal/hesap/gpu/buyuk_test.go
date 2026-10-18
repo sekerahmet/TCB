@@ -51,7 +51,7 @@ func TestCokTopluCarpim(t *testing.T) {
 
 func TestBuyukDosemeOtomatik(t *testing.T) {
 	g := gpuArkaUc()
-	if g.carpimSec(1024, 1024) != buyukCarpim || g.carpimSec(1023, 4096) != varsayilanCarpim {
+	if g.carpimSec(1, 1024, 1024) != buyukCarpim || g.carpimSec(1, 200, 4096) != varsayilanCarpim {
 		t.Fatal("döşeme seçimi beklenen değil")
 	}
 	rng := rand.New(rand.NewSource(21))

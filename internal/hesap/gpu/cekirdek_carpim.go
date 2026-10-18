@@ -13,10 +13,13 @@ import (
 // C[z] (+)= op(A[z])·op(B[z]); her blok C'nin BM×BN'lik bir döşemesini hesaplar. K
 // ekseni BK'lık dilimlerle gezilir: A ve B döşemeleri paylaşımlı belleğe yüklenir (sınır
 // dışı elemanlar 0), engelden sonra her iş parçacığı TM×TN'lik kayıt bloğunu fma ile
-// biriktirir. İş parçacığının satırları ty + i·(BM/TM), sütunları tx + j·(BN/TN)'dir
-// (paylaşımlı bellekten çakışmasız okuma, genel belleğe birleşik yazma). Paylaşımlı
-// dizilerin satırları 4 elemanla dolgulanır (yükleme sırasında bank çakışmalarını
-// azaltır). Döşeme boyları arka ucun ayarıdır (carpimAyari), kullanıcıya görünmez.
+// biriktirir. İş parçacığının satırları w = min(TM, 4)'lü bitişik gruplardır:
+// g·(BM·w/TM) + ty·w + i (g < TM/w, i < w), sütunları aynı biçimde tx'ten; böylece
+// paylaşımlı bellekten her grup tek okumayla (w = 4: ld.shared.v4) gelir (A satırları çeyrek warp'ta yayınla, B
+// sütunları çakışmasız). Paylaşımlı dizilerin satırları 4 elemanla dolgulanır (yükleme
+// sırasında bank çakışmalarını azaltır, 16 bayt hizayı korur). Döşeme boyları arka ucun
+// ayarıdır (carpimAyari), kullanıcıya görünmez. Makinede üreticinin kitaplığı varsa çarpım
+// onunla yapılır (carpim_kitaplik.go); bu çekirdek yedektir.
 
 // carpimAyari matris çarpımı döşeme boyları (hepsi ikinin kuvveti).
 type carpimAyari struct {
@@ -165,11 +168,31 @@ func (k *yazici) carpimYukle(paylar []carpimPayi, ptr, sm, d0, k0, Dboy, K yazma
 	}
 }
 
+// grupGenisligi iş parçacığının bitişik satır (sütun) grubunun boyu.
+func grupGenisligi(T int) int { return min(T, 4) }
+
+// grupOfseti iş parçacığının i. satırının (ya da sütununun) döşeme içindeki ofsetinin
+// iş parçacığından bağımsız kısmı: g·(D·w/T) + i%w (g = i/w).
+func grupOfseti(i, D, T int) int {
+	w := grupGenisligi(T)
+	return i/w*(D*w/T) + i%w
+}
+
+// grupYukle paylaşımlı bellekten bir grubu (w = 4, 2, 1 eleman) yükler.
+func (k *yazici) grupYukle(adr yazmac, ofset int, r []yazmac) {
+	if len(r) == 1 {
+		k.e("ld.shared.f32", r[0], bel(adr, ofset))
+		return
+	}
+	k.yukleVIcine("shared", "", adr, ofset, r)
+}
+
 // carpimHesapla döşemenin BK adımını açılmış olarak biriktirir.
 func (k *yazici) carpimHesapla(a carpimAyari, acc []yazmac, sa, sb, tx, ty yazmac) {
+	wm, wn := grupGenisligi(a.TM), grupGenisligi(a.TN)
 	at, bt := k.r(), k.r()
-	k.e("mad.lo.s32", at, ty, 4, sa)
-	k.e("mad.lo.s32", bt, tx, 4, sb)
+	k.e("mad.lo.s32", at, ty, 4*wm, sa)
+	k.e("mad.lo.s32", bt, tx, 4*wn, sb)
 	av, bv := make([]yazmac, a.TM), make([]yazmac, a.TN)
 	for i := range av {
 		av[i] = k.f()
@@ -178,11 +201,11 @@ func (k *yazici) carpimHesapla(a carpimAyari, acc []yazmac, sa, sb, tx, ty yazma
 		bv[j] = k.f()
 	}
 	for kk := 0; kk < a.BK; kk++ {
-		for i := range av {
-			k.e("ld.shared.f32", av[i], bel(at, 4*(kk*(a.BM+4)+i*(a.BM/a.TM))))
+		for i := 0; i < a.TM; i += wm {
+			k.grupYukle(at, 4*(kk*(a.BM+4)+grupOfseti(i, a.BM, a.TM)), av[i:i+wm])
 		}
-		for j := range bv {
-			k.e("ld.shared.f32", bv[j], bel(bt, 4*(kk*(a.BN+4)+j*(a.BN/a.TN))))
+		for j := 0; j < a.TN; j += wn {
+			k.grupYukle(bt, 4*(kk*(a.BN+4)+grupOfseti(j, a.BN, a.TN)), bv[j:j+wn])
 		}
 		for i := range av {
 			for j := range bv {
@@ -197,12 +220,12 @@ func (k *yazici) carpimHesapla(a carpimAyari, acc []yazmac, sa, sb, tx, ty yazma
 func (k *yazici) carpimYaz(a carpimAyari, acc []yazmac, pc, m0, n0, tx, ty, M, N yazmac, uzerine bool) {
 	for i := 0; i < a.TM; i++ {
 		row := k.r()
-		k.e("add.s32", row, m0, ty)
-		k.e("add.s32", row, row, i*(a.BM/a.TM))
+		k.e("mad.lo.s32", row, ty, grupGenisligi(a.TM), m0)
+		k.e("add.s32", row, row, grupOfseti(i, a.BM, a.TM))
 		for j := 0; j < a.TN; j++ {
 			col := k.r()
-			k.e("add.s32", col, n0, tx)
-			k.e("add.s32", col, col, j*(a.BN/a.TN))
+			k.e("mad.lo.s32", col, tx, grupGenisligi(a.TN), n0)
+			k.e("add.s32", col, col, grupOfseti(j, a.BN, a.TN))
 			atla := k.etiket()
 			p1, p2 := k.p(), k.p()
 			k.e("setp.ge.u32", p1, row, M)

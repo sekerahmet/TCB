@@ -142,7 +142,7 @@ func aramaYoluGuvenli(yol string) bool {
 		return true
 	}
 	for _, p := range strings.Split(yol, ":") {
-		if !filepath.IsAbs(p) {
+		if !strings.HasPrefix(p, "/") { // Linux yolu (ayraç ':')
 			return false
 		}
 	}

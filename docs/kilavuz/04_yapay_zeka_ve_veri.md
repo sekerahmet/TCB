@@ -123,6 +123,13 @@ cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/kiyas_gpu.tr
   GPU belleği yetmezse Türkçe ve `dene/yakala` ile yakalanabilir bir hata alınır.
 - Teşhis: bir GPU hatasının hangi işlemde olduğunu tam bulmak için program
   `TR_GPU_ESZAMANLI=1` ortam değişkeniyle çalıştırılır (her işlemden sonra bekler; yavaştır).
+- Hız dökümü: `TR_GPU_PROFIL=1` ile çalışan program sonunda standart hataya GPU profilini
+  yazar (adım başına süreler, hangi çekirdeğin GPU zamanının ne kadarını aldığı, bellek).
+- Matris çarpımı, makinede NVIDIA'nın cuBLASLt kitaplığı kuruluysa (CUDA araç takımı ya da
+  PyTorch ile gelir) onunla yapılır; yoksa TR'nin kendi çekirdeğiyle (sonuç aynı, hız farklı).
+  Kitaplık başka bir yerdeyse yolu `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12` ile verilir
+  (çalışma klasörü hiçbir zaman aranmaz); hangi yolun kullanıldığı profil özetinin ilk
+  satırında görünür.
 - Kurallar: `docs/dil/15_tensorler.md` **15.26–15.30**.
 
 ## D. Veri ve Parçalayıcı

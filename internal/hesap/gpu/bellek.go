@@ -15,8 +15,8 @@ import (
 // Cihaz belleği: depolama, boyut sınıflı havuz, konak hazırlık halkası
 // ============================================================================
 //
-// Havuz: ayırmalar boyut sınıflarına yuvarlanır (256 bayt .. 64 MB ikinin kuvvetleri,
-// üstü 2 MB'nin katları) ve serbest kalan bloklar sürücüye geri verilmeden sınıfın
+// Havuz: ayırmalar boyut sınıflarına yuvarlanır (bkz. sinifBoyu: 1 MB'ye kadar ikinin
+// kuvvetleri, 64 MB'ye kadar dörtte bir adımlar, üstü 2 MB'nin katları) ve serbest kalan bloklar sürücüye geri verilmeden sınıfın
 // listesinde bekler. Bir depolama iki yoldan havuza döner: otomatik türevin işi biten
 // ara gradyanları açıkça iade etmesi (Release) ya da Go çöp toplayıcısının ulaşılamaz
 // depolamayı temizlemesi (runtime.AddCleanup). Bütün işler tek akışta sırayla
@@ -24,8 +24,9 @@ import (
 // yeni işlerden önce biter; bu yüzden iadede eşzamanlama gerekmez.
 //
 // Go'nun çöp toplayıcısı cihaz belleğini görmez (küçük Go nesneleri büyük cihaz
-// bloklarını tutar). Bu yüzden son toplamadan bu yana ayrılan cihaz belleği eşiği
-// aşınca (toplam belleğin 1/8'i) toplama açıkça başlatılır; ayırma başarısız olursa
+// bloklarını tutar). Bu yüzden toplama açıkça başlatılır: her geri yayılımın sonunda
+// (BackwardDone; ileri yönün ara tensörleri o anda ulaşılamaz olur) ve son toplamadan bu
+// yana sürücüden ayrılan cihaz belleği eşiği (toplamın 1/32'si) aşınca; ayırma başarısız olursa
 // önce toplama ve havuzun sürücüye boşaltılması denenir, yine olmazsa Türkçe ve
 // yakalanabilir bir hata verilir.
 //

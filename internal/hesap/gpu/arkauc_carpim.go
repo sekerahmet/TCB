@@ -8,14 +8,16 @@ import (
 
 // Arka uç: toplu matris çarpımı.
 
-// carpimSec problem boyuna göre döşeme ayarını seçer: iki boyutu da büyük çarpımlar
-// büyük döşemeyle, diğerleri varsayılanla.
-func (g *arkaUc) carpimSec(M, N int) carpimAyari {
+// carpimSec problem boyuna göre döşeme ayarını seçer: büyük döşemeyle de bütün SM'lere
+// en az bir blok düşüyorsa büyük döşeme, değilse varsayılan.
+func (g *arkaUc) carpimSec(batch, M, N int) carpimAyari {
 	if g.carpimSabit != nil {
 		return *g.carpimSabit
 	}
-	if M >= 1024 && N >= 1024 {
-		return buyukCarpim
+	_, sm := g.sr.yetenek()
+	b := buyukCarpim
+	if int(bloklar(M, b.BM))*int(bloklar(N, b.BN))*batch >= max(sm, 1) && M >= 256 && N >= 256 {
+		return b
 	}
 	return g.carpim
 }
@@ -33,7 +35,7 @@ func (g *arkaUc) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.V
 		c.konak = nil
 		return
 	}
-	ay := g.carpimSec(M, N)
+	ay := g.carpimSec(batch, M, N)
 	if !ay.gecerli() {
 		panic(fmt.Sprintf("tensor: GPU: geçersiz matris çarpımı döşeme ayarı %+v (iç hata)", ay))
 	}

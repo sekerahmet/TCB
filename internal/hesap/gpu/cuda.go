@@ -194,6 +194,7 @@ type cudaSurucu struct {
 	bellek   uint64
 	yetenek_ [2]int32
 	smSayisi int32
+	saatKHz  int32 // SM saati (kHz; okunamazsa 0)
 	cikti    *cudaCikti
 	paramBuf []byte
 	paramPtr []uintptr
@@ -251,6 +252,9 @@ func cudaAc(sira int) (*cudaSurucu, error) {
 		} else {
 			s.smSayisi = o.i32
 		}
+	}
+	if c.cagir(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), 13, uintptr(s.aygit)) == basarili {
+		s.saatKHz = o.i32 // CU_DEVICE_ATTRIBUTE_CLOCK_RATE (yalnızca kıyas raporu için)
 	}
 	if r := c.cagir(fPrimaryCtxRetain, uintptr(unsafe.Pointer(&o.tutamac)), uintptr(s.aygit)); r != basarili {
 		return nil, fmt.Errorf("cuDevicePrimaryCtxRetain: %s", c.hataAdi(r))
@@ -384,6 +388,17 @@ func (s *cudaSurucu) esitle() sonuc { return s.cagir(fCtxSynchronize) }
 func (s *cudaSurucu) hataAdi(r sonuc) string { return s.c.hataAdi(r) }
 
 func (s *cudaSurucu) ayrinti() string { return s.sonDetay }
+
+// tepeGFLOPS kartın kuramsal float32 tepe hızı (GFLOPS; SM başına float32 birimi yetenek
+// düzeyinden tahmin edilir: 6.0, 7.x, 8.0 için 64, diğerleri 128). Yalnızca kıyas raporu.
+func (s *cudaSurucu) tepeGFLOPS() float64 {
+	cc, sm := s.yetenek()
+	birim := 128
+	if cc == 60 || (cc >= 70 && cc < 80) || cc == 80 {
+		birim = 64
+	}
+	return float64(sm) * float64(birim) * 2 * float64(s.saatKHz) / 1e6
+}
 
 func (s *cudaSurucu) yetenek() (int, int) {
 	return int(s.yetenek_[0]*10 + s.yetenek_[1]), int(s.smSayisi)

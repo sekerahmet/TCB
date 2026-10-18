@@ -115,19 +115,47 @@ Motorların kendi kancaları:
   Ayrı bir GPU gorutinine kanalla iş göndermek yerine bu yol seçildi: kanal gidiş-dönüşü ve
   gorutin geçişi yok, panikler (Türkçe hatalar) çağıranın gorutininde kalır (`dene/yakala`).
 - **Çekirdekler:** Go içinden PTX olarak üretilir (`ptx.go` yazıcı, `cekirdek_*.go` aileler;
-  hedef `sm_52`), sürücü ilk kullanımda karta derler, modüller süreç boyunca önbellekte.
-  Çekirdek imzası her gösterici parametresinin yazılıp yazılmadığını bilir; başlatma yeri
-  okuma/yazma bildirir ve uyuşmazlık iç hatadır. Döşeme boyları arka ucun ayarıdır.
-- **Bellek:** boyut sınıflı havuz; depolama otomatik türevin `Release`'iyle ya da çöp
-  toplayıcının temizliğiyle havuza döner (tek akış sayesinde eşzamanlama gerekmez). Çöp
-  toplayıcı cihaz belleğini görmediğinden, son toplamadan bu yana ayrılan cihaz belleği
-  toplam belleğin 1/8'ini aşınca toplama açıkça başlatılır. Konaktan yükleme sayfası kilitli
-  bir halka üzerinden eşzamansızdır; küçük konak verisinin (indeks toplu işleri) konak gölgesi
-  okumayı eşzamanlamasız yapar, başlatıcı yazılan depolamaların gölgesini siler.
+  hedef `sm_52`, cp.async kullananlar `sm_80`), sürücü ilk kullanımda karta derler, modüller
+  süreç boyunca önbellekte. Çekirdek imzası her gösterici parametresinin yazılıp yazılmadığını
+  bilir; başlatma yeri okuma/yazma bildirir ve uyuşmazlık iç hatadır. Döşeme boyları arka ucun
+  ayarıdır. Birleşik çekirdekler: çapraz entropi (tek geçişli logsumexp, gradyan doğrudan
+  yazılır), dikkat (puan matrisi belleğe yazılmaz; döşemeli çevrimiçi softmax, atomiksiz geri
+  yön; `cekirdek_flash*.go`), çok tensörlü iyileştirici/ölçekleme/kareler toplamı (bütün
+  parametreler tek başlatmada; `cekirdek_cok.go`). Az çıktılı uzun indirgemeler iki aşamalı
+  ve belirlenimcidir. Çıktısını tümüyle yazan işlemler (çarpım, çapraz entropi ve dikkat
+  gradyanı) taze gradyanı sıfırlamadan üzerine yazar (`tensor.GemmSetter` vb.).
+- **Matris çarpımı:** makinede NVIDIA cuBLASLt kuruluysa float32 çarpım onunla yapılır (TF32
+  kapalı; adımlı toplu; sürücü gibi çalışma anında yüklenir, TR dağıtmaz). Arama sırası
+  `carpim_kitaplik_yol.go`'da: `TR_GPU_CUBLASLT` (tam yol), Linux'ta standart arama yolu,
+  CUDA klasörleri, pip ile kurulmuş NVIDIA paketleri, TR'nin önbellek klasörü (ileride
+  kitaplığı NVIDIA'nın yeniden dağıtılabilir paketinden oraya indirecek bir komut için);
+  çalışma klasörü aranmaz. Bulunamazsa kendi çekirdeğimiz (`cekirdek_carpim.go`; döşemeli,
+  vektörel paylaşımlı bellek okumalı) kullanılır; `TR_GPU_KENDI_CARPIM=1` onu zorlar. Yol
+  `gpu.Durum()`'da ve profilde görünür. 2b'de bf16/TF32 tensör çekirdekleri de bu arayüzden
+  gelecek (veri türü parametresi hazır).
+- **Profil:** `TR_GPU_PROFIL=1` (ya da `gpu.ProfilAc`) her başlatmayı iki zamanlama olayıyla
+  ölçer: çekirdek/aile başına çağrı ve GPU süresi, adım başına duvar, GPU, boşluk, konak ve
+  eşzamanlama süreleri; program sonunda (`motor.Kapat` → `gpu.Kapat`) özet standart hataya
+  yazılır. Canlı izleme için Go arayüzü: `gpu.CekirdekOlcumleri`, `gpu.BellekOlcumleri`.
+  Dış profilleyici (nsys/ncu) bağlıysa program sonunda C çıkış işleyicileri çalıştırılır
+  (araçlar veriyi orada yazar; Go çıkışta bunları çalıştırmaz).
+- **Bellek:** boyut sınıflı havuz (1–64 MB arası her ikinin kuvveti aralığı dörde bölünür);
+  depolama otomatik türevin `Release`'iyle ya da çöp toplayıcının temizliğiyle havuza döner
+  (tek akış sayesinde eşzamanlama gerekmez). Çöp toplayıcı cihaz belleğini görmediğinden her
+  geri yayılımın sonunda (`tensor.BackwardFinisher`; son toplamadan bu yana verilen bellek
+  yeterince büyükse) ve son toplamadan bu yana sürücüden ayrılan bellek toplamın 1/32'sini
+  aşınca toplama açıkça başlatılır; böylece ileri yönün ara tensörleri bir sonraki adımdan
+  önce havuza döner. Havuz canlı/havuzda/ayrılmış/tepe sayaçlarını tutar. Konaktan yükleme
+  sayfası kilitli bir halka üzerinden eşzamansızdır; küçük konak verisinin (indeks toplu
+  işleri) konak gölgesi okumayı eşzamanlamasız yapar, başlatıcı yazılan depolamaların
+  gölgesini siler.
 - **Benzetim:** `benzetim*.go` PTX altkümesini yorumlayan bir sürücü benzetimidir; GPU
   sınamaları donanımsız makinede onda koşar (dağınık engel, sınır dışı ve hizasız erişim,
   paylaşımlı bellek yarışı yakalanır; eşzamansız işler gerçek sürücü gibi sıralanır).
   `TR_GPU_BENZETIM=1` ile `tr` de benzetimi `"gpu"` olarak kullanır (geliştirme aracı).
+  Vektörel erişimler (`.v2/.v4`) ve `cp.async` de yürütülür: eşzamansız kopya ancak iş
+  parçacığı beklediğinde yapılır ve yarış dedektörüne yazma olarak bildirilir (beklemeden
+  ya da engelsiz okuma yanlış sonuç ya da yarış hatası verir).
   **Bilinen sınırlar** (benzetimde geçip donanımda kalabilecekler): bölgeler havuzun boyut
   sınıfı kadar ayrılır, istenen boyun dışına taşan ama sınıf içinde kalan erişim
   yakalanmaz; ayrıştırıcı ptxas kadar katı değildir (yazmaç türü, yuvarlama kipi
@@ -135,7 +163,9 @@ Motorların kendi kancaları:
   görünmez (çıktı eşlemesi birebir olmalıdır; `ScatterAdd`/indirgeme hedefi örtüşen bir
   görünüm olamaz); yaklaşık komutlar (`ex2`, `lg2`, `sin`, `cos`) tam doğrulukla, `fma`
   float64 üzerinden hesaplanır (donanımla birkaç ulp fark; sınamalar toleranslıdır).
-- **Colab:** `tools/gpu/` (paket hazırlama, kıyas betikleri, `COLAB.md`).
+- **Colab:** `tools/gpu/` (paket hazırlama, model ve mikro kıyas betikleri, `COLAB.md`). Mikro
+  kıyaslar `gpu_sinama`'nın içindedir (`TR_GPU_MIKRO=1`, `TestMikroKiyas`); karşılaştırma
+  tarafı `mikro_kiyas.py`, tablo `mikro_tablo.py`.
 
 ## Klasörler
 
@@ -148,7 +178,7 @@ Motorların kendi kancaları:
 | `docs/` | Belgeler: [`kilavuz/`](kilavuz/README.md), [`dil/`](dil/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
 | `ornekler/` | Öğrenme sırasıyla örnek programlar |
 | `testler/` | Dil tanımının kural testleri (`tr test testler`); `olumsuz/`, `alt/`, `veri/` |
-| `tools/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas paketi: `colab_hazirla.sh`, `kiyas_gpu.tr`, `kiyas_gpu.py`, `COLAB.md`) |
+| `tools/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas paketi: `colab_hazirla.sh`, `kiyas_gpu.tr`, `kiyas_gpu.py`, `mikro_kiyas.py`, `mikro_tablo.py`, `COLAB.md`) |
 | `bin/` | Derleme çıktısı (`go build -o bin/tr.exe ./cmd/tr`); depoya girmez |
 | `calisma/` | Kişisel deneme klasörü; depoya girmez |
 
