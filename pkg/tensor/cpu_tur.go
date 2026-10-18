@@ -563,6 +563,23 @@ func (b cpuBackend) RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv
 	son2()
 }
 
+func (b cpuBackend) Attention(out Storage, q, k, v View, mask Storage, p AttentionParams) Storage {
+	o, son := yaz(out, false)
+	lse := b.f32Attention(o, oku(q), oku(k), oku(v), okuD(mask), p)
+	son()
+	return lse
+}
+
+func (b cpuBackend) AttentionGrad(gq, gk, gv, g Storage, q, k, v View, mask Storage, o, lse Storage, p AttentionParams) {
+	dq, son1 := yaz(gq, true)
+	dk, son2 := yaz(gk, true)
+	dv, son3 := yaz(gv, true)
+	b.f32AttentionGrad(dq, dk, dv, okuD(g), oku(q), oku(k), oku(v), okuD(mask), okuD(o), lse, p)
+	son1()
+	son2()
+	son3()
+}
+
 func (b cpuBackend) SGDStep(p, g, vel Storage, lr, momentum, wd float32) {
 	pd, son1 := yaz(p, true)
 	vd, son2 := yaz(vel, true)

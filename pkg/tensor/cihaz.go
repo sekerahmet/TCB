@@ -193,6 +193,8 @@ const (
 	OpMulScalar       // x·p
 	OpRSubScalar      // p-x
 	OpRDivScalar      // p/x
+	OpSin             // sinüs
+	OpCos             // kosinüs
 )
 
 // GradMode ikili işlemlerin geri yayılımında hedefe eklenecek terim:
@@ -288,6 +290,13 @@ type Backend interface {
 	// RMSNorm son eksen boyunca; satır başına 1/rms döndürür.
 	RMSNorm(out Storage, x View, gamma *View, D int, eps float32) (rinv Storage)
 	RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv Storage, D int)
+	// Attention döşemeli, çevrimiçi softmax'lı ölçekli nokta çarpımı dikkati
+	// (bkz. AttentionParams; q, k, v bitişik, mask nil olabilir). out bitişik
+	// [Batch, H, Tq, Dv]; satır başına logsumexp'i (float32, Batch·H·Tq) döndürür.
+	Attention(out Storage, q, k, v View, mask Storage, p AttentionParams) (lse Storage)
+	// AttentionGrad puanları yeniden hesaplayarak gq, gk, gv'ye (nil olanlar
+	// atlanır) gradyan ekler; o ileri çıktı, lse ileri geçişin logsumexp'idir.
+	AttentionGrad(gq, gk, gv, g Storage, q, k, v View, mask Storage, o, lse Storage, p AttentionParams)
 
 	// --- İyileştirici ---
 

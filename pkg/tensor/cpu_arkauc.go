@@ -594,6 +594,14 @@ func unaryDongu(op UnOp, p float32, y, x []float32) {
 		for i, v := range x {
 			y[i] = p / v
 		}
+	case OpSin:
+		for i, v := range x {
+			y[i] = sinf32(v)
+		}
+	case OpCos:
+		for i, v := range x {
+			y[i] = cosf32(v)
+		}
 	default:
 		panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))
 	}
@@ -681,6 +689,14 @@ func unaryGradDongu(op UnOp, p float32, gx, g, x, y []float32) {
 	case OpRDivScalar:
 		for i, v := range g {
 			gx[i] += v * (-y[i] / x[i])
+		}
+	case OpSin:
+		for i, v := range g {
+			gx[i] += v * cosf32(x[i])
+		}
+	case OpCos:
+		for i, v := range g {
+			gx[i] -= v * sinf32(x[i])
 		}
 	default:
 		panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))

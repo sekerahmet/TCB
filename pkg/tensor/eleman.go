@@ -152,7 +152,7 @@ func (t *Tensor) Div(o *Tensor) *Tensor { return Div(t, o) }
 var unopAd = map[UnOp]string{
 	OpExp: "exp", OpLog: "log", OpSqrt: "sqrt", OpPow: "pow", OpTanh: "tanh", OpRelu: "relu",
 	OpGelu: "gelu", OpSigmoid: "sigmoid", OpAddScalar: "add_scalar", OpMulScalar: "mul_scalar",
-	OpRSubScalar: "rsub_scalar", OpRDivScalar: "rdiv_scalar",
+	OpRSubScalar: "rsub_scalar", OpRDivScalar: "rdiv_scalar", OpSin: "sin", OpCos: "cos",
 }
 
 func unary(t *Tensor, op UnOp, p float32) *Tensor {
