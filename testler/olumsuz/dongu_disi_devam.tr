@@ -1,0 +1,2 @@
+// Bilerek hatalı: 5.13 — sondaki blok bir fonksiyondur, içinde döngü yok.
+değişken l = [1, 2].haritala { eğer o > 1 { devam }; o }

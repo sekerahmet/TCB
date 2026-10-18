@@ -85,6 +85,11 @@ type Parser struct {
 	// '=>' kolun okudur, ok fonksiyonu değildir (durum => ..., (a + 1) => ...). Yalnızca
 	// desenin en dıştaki ifadesini etkiler; parseExpression girişte kapatır.
 	desenKipi bool
+
+	// baglam 'çık'/'devam'/'sonuç' deyimlerinin geçerliliği için izlenen bağlamdır
+	// (baglam.go); modul, kodun bir modül olarak ayrıştırıldığını söyler (ParseModule).
+	baglam deyimBaglami
+	modul  bool
 }
 
 // parseMatchPattern bir eşle kolunun desenini okur.
@@ -124,7 +129,7 @@ func isTrailingBlockTarget(e ast.Expression) bool {
 // çağrının son argümanı yapar: sayılar.filtrele { o > 2 } == sayılar.filtrele((o) => o > 2)
 func (p *Parser) parseTrailingBlock(left ast.Expression) ast.Expression {
 	tok := p.curToken() // '{'
-	body := p.parseBlockStatement()
+	body := p.fonksiyonGovdesi()
 	fn := &ast.FunctionLiteral{
 		Token:      tok,
 		Parameters: []ast.Param{{Name: "o"}},
@@ -282,12 +287,14 @@ func (p *Parser) parseStatement() ast.Statement {
 	case lexer.TOKEN_SONUC:
 		return p.parseReturnStatement()
 	case lexer.TOKEN_CIK:
+		p.sinyalDenetle(p.curToken())
 		stmt := &ast.BreakStatement{Token: p.curToken()}
 		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
 			p.nextToken()
 		}
 		return stmt
 	case lexer.TOKEN_DEVAM:
+		p.sinyalDenetle(p.curToken())
 		stmt := &ast.ContinueStatement{Token: p.curToken()}
 		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
 			p.nextToken()
@@ -334,7 +341,8 @@ func (p *Parser) parseTestStatement() ast.Statement {
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
-	body := p.parseBlockStatement()
+	var body *ast.BlockStatement
+	p.sinirIcinde(false, true, func() { body = p.parseBlockStatement() })
 	return &ast.TestStatement{Token: tok, Name: name, Body: body}
 }
 
@@ -365,7 +373,8 @@ func (p *Parser) parseDeferStatement() *ast.DeferStatement {
 	tok := p.curToken()
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
-		body := p.parseBlockStatement()
+		var body *ast.BlockStatement
+		p.sinirIcinde(false, false, func() { body = p.parseBlockStatement() })
 		return &ast.DeferStatement{Token: tok, Body: body}
 	}
 	p.nextToken()
@@ -462,6 +471,7 @@ func (p *Parser) parseShortVarStatement() *ast.VarStatement {
 }
 
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	p.sonucDenetle(p.curToken())
 	stmt := &ast.ReturnStatement{Token: p.curToken()}
 
 	// Eğer hemen ardından '}' veya ';' veya EOF geliyorsa boş dönüş
@@ -578,7 +588,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 	// Sonsuz döngü: döngü { ... }
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
-		body := p.parseBlockStatement()
+		body := p.donguGovdesi()
 		return &ast.WhileStatement{
 			Token:     tok,
 			Condition: &ast.BooleanLiteral{Token: tok, Value: true},
@@ -611,7 +621,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 		if !p.expectPeek(lexer.TOKEN_LBRACE) {
 			return nil
 		}
-		body := p.parseBlockStatement()
+		body := p.donguGovdesi()
 
 		return &ast.ForInStatement{
 			Token:    tok,
@@ -628,7 +638,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
-	body := p.parseBlockStatement()
+	body := p.donguGovdesi()
 	return &ast.WhileStatement{
 		Token:     tok,
 		Condition: cond,
@@ -643,7 +653,7 @@ func (p *Parser) parseWhileStatement() *ast.WhileStatement {
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
-	body := p.parseBlockStatement()
+	body := p.donguGovdesi()
 	return &ast.WhileStatement{
 		Token:     tok,
 		Condition: cond,
@@ -780,7 +790,8 @@ func (p *Parser) parseAsyncStatement() *ast.AsyncStatement {
 	tok := p.curToken()
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
-		body := p.parseBlockStatement()
+		var body *ast.BlockStatement
+		p.sinirIcinde(false, false, func() { body = p.parseBlockStatement() })
 		return &ast.AsyncStatement{Token: tok, Body: body}
 	}
 	p.nextToken()
@@ -1095,10 +1106,10 @@ func (p *Parser) parseSingleParamLambda() ast.Expression {
 	var body *ast.BlockStatement
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
-		body = p.parseBlockStatement()
+		body = p.fonksiyonGovdesi()
 	} else {
 		p.nextToken()
-		expr := p.parseExpression(LOWEST)
+		expr := p.fonksiyonIfadesi()
 		body = &ast.BlockStatement{
 			Token: arrowTok,
 			Statements: []ast.Statement{
@@ -1125,10 +1136,10 @@ func (p *Parser) parseLambdaExpression() ast.Expression {
 	var body *ast.BlockStatement
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
-		body = p.parseBlockStatement()
+		body = p.fonksiyonGovdesi()
 	} else {
 		p.nextToken()
-		expr := p.parseExpression(LOWEST)
+		expr := p.fonksiyonIfadesi()
 		body = &ast.BlockStatement{
 			Token: arrowTok,
 			Statements: []ast.Statement{
@@ -1280,7 +1291,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 		return nil
 	}
 
-	lit.Body = p.parseBlockStatement()
+	lit.Body = p.fonksiyonGovdesi()
 	return lit
 }
 

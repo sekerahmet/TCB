@@ -41,3 +41,11 @@ test "12.5b önceki testin yerel adı görünmez, üst düzey tanımlar görün�
     doğrula(değil görünür)
     eşit_mi(1, genel_sayaç)
 }
+
+test "12.6 test gövdesinde sonuç derleme hatasıdır" {
+    fonksiyon iç() { sonuç 7 }
+    eşit_mi(7, iç())
+    değişken mesaj = ""
+    dene { aktar "olumsuz/test_govdesi_sonuc" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("'sonuç' test gövdesinde kullanılamaz"), mesaj)
+}

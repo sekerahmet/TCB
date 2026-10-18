@@ -1,0 +1,5 @@
+// Bilerek hatalı: 12.6 — test gövdesinde sonuç kullanılamaz.
+test "erken biten" {
+    eğer doğru { sonuç }
+    doğrula(yanlış)
+}

@@ -236,13 +236,15 @@ eşle puan {
 
 **5.12** Her `{ ... }` bloğu (eğer/döngü gövdesi dahil) yeni bir kapsam açar; içeride tanımlanan ad dışarıda görünmez, dıştaki adlar okunup atanabilir. Döngünün her turu kendi kapsamında çalışır.
 
+**5.13** `çık` ve `devam` yalnızca bir döngünün gövdesinde geçerlidir (araya `eğer`, `eşle`, `dene` gibi bloklar girebilir); döngü dışında yazılmaları derleme hatasıdır ve program hiç çalışmaz. Fonksiyon, ok fonksiyonu, sondaki blok, `test`, `ertele` ve `eşzamanlı` gövdeleri sınırdır: içlerinden dıştaki döngüye `çık`/`devam` uygulanamaz (`döngü { fonksiyon f() { çık } }` hatadır; fonksiyondan çıkmak için `sonuç` yazılır).
+
 ---
 
 ## 6. Fonksiyonlar
 
 **6.1** `fonksiyon ad(parametreler) { ... }` bir fonksiyon tanımlar ve adı bulunulan kapsama bağlar. Tanım çalıştırıldığı noktada gerçekleşir; öne alma (hoisting) yoktur, fonksiyon tanımından önce çağrılamaz.
 
-**6.2** `sonuç ifade` fonksiyondan değer döndürür; yalnız `sonuç` `yok` döndürür. `sonuç` hiç çalışmazsa son deyimin değeri döner.
+**6.2** `sonuç ifade` fonksiyondan değer döndürür; yalnız `sonuç` `yok` döndürür. `sonuç` hiç çalışmazsa son deyimin değeri döner. Programın üst düzeyindeki `sonuç` programı bitirir (sonraki satırlar çalışmaz, çıkış kodu 0'dır); bir modülün üst düzeyinde (11.4) ve test gövdesinde (12.6) ise derleme hatasıdır.
 
 **6.3** Parametrelere varsayılan değer verilebilir (`ek = "!"`). Varsayılanı olmayan bir parametre için argüman verilmezse, fazla argüman verilirse ya da bilinmeyen bir adla argüman verilirse çağrı satırında hata oluşur (`'topla' fonksiyonu 2 argüman bekler, 1 verildi (eksik: 'b')`). Yerleşik fonksiyonların geri çağırdığı fonksiyonlar (ör. `filtrele`, web işleyicileri) bu denetime girmez.
 
@@ -371,6 +373,8 @@ test "toplama doğru" {
 **12.4** `eşit_mi(beklenen, gerçek, [mesaj])` iki değer `==` anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır: `eşitlik başarısız: beklenen "5" (Metin), gerçek 5 (Tam)`. Her iki yerleşik test dışında da (ör. sözleşme denetimi için) kullanılabilir.
 
 **12.5** Önce dosyanın kendisi (testler hariç) çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde açılan **yeni bir kapsamda** çalışır. Bir testin yerel adları diğerine sızmaz; kalan ya da hata veren test diğerlerini durdurmaz. Testteki `ertele` test bitince çalışır, testin başlattığı görevler beklenir.
+
+**12.6** Test gövdesinde, gövdedeki bir fonksiyonun dışında yazılan `sonuç` derleme hatasıdır: test her zaman sonuna kadar çalışır, bir doğrulamayı atlayarak sessizce "geçmez". (Döngü dışındaki `çık`/`devam` da her yerde olduğu gibi hatadır, 5.13.)
 
 `tr test` kullanımı ve çıktı biçimi için `KULLANIM_KILAVUZU.md`'ye bakın; kısa bir örnek: `ornekler/03_testler_test.tr`.
 

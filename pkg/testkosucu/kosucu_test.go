@@ -41,8 +41,8 @@ test "yerel tanım sızmaz" {
 }
 
 test "önceki testin yereli görünmez" {
-    dene { yazdır(gizli) } yakala h { sonuç yok }
-    fırlat "gizli görünür olmamalıydı"
+    değişken görünür = doğru; dene { yazdır(gizli) } yakala h { görünür = yanlış }
+    eğer görünür { fırlat "gizli görünür olmamalıydı" }
 }
 
 test "mesajlı doğrulama" {

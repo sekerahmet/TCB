@@ -1,0 +1,7 @@
+// Bilerek hatalı: 5.13 — fonksiyon gövdesi döngünün içini kesmez.
+döngü {
+    fonksiyon f() {
+        çık
+    }
+    çık
+}
