@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 	"tr_dili/pkg/checker"
 	"tr_dili/pkg/hataayiklama"
@@ -16,7 +17,22 @@ import (
 
 const VERSION = "1.0.0"
 
+// gcHedefi çöp toplayıcının varsayılan hedefi (yığın, canlı belleğin bu yüzdesi kadar
+// büyüyünce toplama başlar; Go'nun varsayılanı 100). Eğitimde her adım çok sayıda
+// büyük ara tensör ayırır; 100'de karakter modeli adım başına ~0,8 toplama yapıyordu.
+// Ölçüm (ornekler/07, GOMAXPROCS=2, eşli dönüşümlü 26 tur): 200 ile 20/26 turda
+// hızlı, ortanca −0,9…−1,5 ms/adım (~%6); tepe bellek 71 → 105 MB. Kullanıcının GOGC
+// ortam değişkeni her zaman önceliklidir.
+const gcHedefi = 200
+
+func gcHedefiniAyarla() {
+	if _, verildi := os.LookupEnv("GOGC"); !verildi {
+		debug.SetGCPercent(gcHedefi)
+	}
+}
+
 func main() {
+	gcHedefiniAyarla()
 	// Bu .exe 'tr derle' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
 	if pk, bulundu, err := gomuluPaketiBul(); bulundu {
 		if err != nil {
