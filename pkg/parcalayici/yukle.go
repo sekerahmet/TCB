@@ -220,14 +220,33 @@ func Ayristir(veri []byte) (*Parcalayici, error) {
 			enBuyuk = int64(id)
 		}
 	}
+	// normalized=true ek tokenlar normalleştirilmiş metinde aranır; bu yüzden
+	// içerikleri de parçalayıcının normalleştiricisinden geçirilir (ör.
+	// küçük harfe çeviren bir normalleştiricide "ÇAY" -> "çay"). Kimliğin
+	// token metni de (çözmede kullanılan) bu normalleştirilmiş içeriktir;
+	// özel token kümesi ise özgün içeriklerdir (başvurudaki gibi: içeriği
+	// normalleştirmeyle değişen özel token çözmede atlanmaz). İki ek tokenın
+	// içeriği normalleştirmeden sonra aynıysa dosyadaki ilki kazanır (başvuru
+	// uygulamasında bu durumda sonuç çalıştırmadan çalıştırmaya değişiyor).
+	nrmIcerik := make(map[int]string)
 	for _, e := range p.ekler {
-		if e.Normalize {
-			nrm = append(nrm, e)
-		} else {
-			ham = append(ham, e)
-		}
 		if e.Ozel {
 			ozelIcerik[e.Icerik] = true
+		}
+		if e.Normalize {
+			if p.normallestirici != nil {
+				var icerik string
+				if err := adimHatasiniYakala(func() { icerik = p.normallestirici.Normallestir(e.Icerik) }); err != nil {
+					return nil, fmt.Errorf("ek token %q normalleştirilemedi: %w", e.Icerik, err)
+				}
+				nrmIcerik[e.ID] = icerik
+				e.Icerik = icerik
+			}
+			if e.Icerik != "" {
+				nrm = append(nrm, e)
+			}
+		} else {
+			ham = append(ham, e)
 		}
 		if int64(e.ID) > enBuyuk {
 			enBuyuk = int64(e.ID)
@@ -257,6 +276,9 @@ func Ayristir(veri []byte) (*Parcalayici, error) {
 	}
 	for _, e := range p.ekler {
 		p.idToken[e.ID] = e.Icerik
+		if s, ok := nrmIcerik[e.ID]; ok {
+			p.idToken[e.ID] = s
+		}
 		p.idVar[e.ID] = true
 	}
 	if p.baytCozucu {
