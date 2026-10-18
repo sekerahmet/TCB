@@ -15,7 +15,8 @@ import (
 type SiraliSecenekleri struct {
 	B, T int
 	// Adim, ardışık pencere başlangıçları arasındaki token sayısıdır.
-	// Varsayılan T: her token (ilk hariç) tam bir kez hedef olur.
+	// Varsayılan T: her token en çok bir kez hedef olur; parçanın ilk tokenı
+	// ve son pencereye sığmayan kuyruğu (en çok T-1 token) hedef olmaz.
 	Adim int
 }
 
