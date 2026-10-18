@@ -46,16 +46,24 @@ func calistir(t *testing.T, kod string) (string, error) {
 	m := yurut.New()
 	w := &esliYazici{}
 	m.Out, m.Err = w, w
+	_, err := calistirVM(t, m, kod)
+	return w.String(), err
+}
+
+// calistirVM kodu verilen VM'de bir program olarak çalıştırır (program dosyası depo
+// kökündedir) ve motorların kaynaklarını kapatır.
+func calistirVM(t *testing.T, m *yurut.VM, kod string) (yurut.Value, error) {
+	t.Helper()
 	m.SourceFile = filepath.Join(depo.Kok(), "egit.tr")
 	p := ayristir.New(sozcuk.New(kod))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), kod)
 	}
-	_, err := m.Run(prog)
+	v, err := m.Run(prog)
 	m.WaitAsync()
 	motor.Kapat()
-	return w.String(), err
+	return v, err
 }
 
 func trYol(s string) string { return filepath.ToSlash(s) }
@@ -292,18 +300,10 @@ func calistirKancali(t *testing.T, kod string, bozuk *atomicBool) (string, error
 	m := yurut.New()
 	w := &esliYazici{}
 	m.Out, m.Err = w, w
-	m.SourceFile = filepath.Join(depo.Kok(), "egit.tr")
 	m.GlobalEnv.Define("bozuk_yap", &yurut.BuiltinVal{Name: "bozuk_yap", Fn: func(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
 		bozuk.ver(args[0] == yurut.TRUE)
 		return yurut.NULL, nil
 	}}, true)
-	p := ayristir.New(sozcuk.New(kod))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), kod)
-	}
-	_, err := m.Run(prog)
-	m.WaitAsync()
-	motor.Kapat()
+	_, err := calistirVM(t, m, kod)
 	return w.String(), err
 }

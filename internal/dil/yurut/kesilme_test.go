@@ -76,3 +76,28 @@ izler.ekle("sürdü")
 		t.Error("Kes yalnızca ilk çağrıda doğru dönmeli")
 	}
 }
+
+// Kesmeyi erteleyen (kontrol noktası) yoksa KesmeIste programı Kes gibi durdurur; varsa
+// yalnızca bayrak koyar, program SimdiKes çağrılınca o noktada durur.
+func TestKesmeErtelenir(t *testing.T) {
+	v := New()
+	if v.KesmeIste() || !v.Kesildi() {
+		t.Fatal("erteleyen yokken kesme hemen olmalıydı")
+	}
+	v = New()
+	v.KesmeyiErtele()
+	if !v.KesmeIste() || v.Kesildi() || !v.DurdurmaIstendi() {
+		t.Fatalf("kesme ertelenmeliydi: kesildi=%v istendi=%v", v.Kesildi(), v.DurdurmaIstendi())
+	}
+	v.GlobalEnv.Define("dur", &BuiltinVal{Name: "dur", Fn: func(m *VM, _ []Value, _ map[string]Value) (Value, error) {
+		m.SimdiKes()
+		return NULL, nil
+	}}, true)
+	var out bytes.Buffer
+	v.Out = &out
+	p := ayristir.New(sozcuk.New("ertele { yazdır(\"ertelenen\") }\ndur()\nyazdır(\"sürdü\")\n"))
+	prog := p.ParseProgram()
+	if _, err := v.Run(prog); !errors.Is(err, ErrKesildi) || out.String() != "ertelenen\n" {
+		t.Fatalf("SimdiKes programı o noktada durdurmalıydı: %v %q", err, out.String())
+	}
+}
