@@ -43,3 +43,6 @@ python kiyas/py/karakter_modeli.py 300 2
 
 İlk ölçüm (18.10.2026, 2 çekirdek): TR 161 ms/adım, PyTorch 13 ms/adım. Sürenin %69'u CPU matris
 çarpımı çekirdeğinde; vektör komutlarıyla yazılmış bir çekirdek bu farkı kapatmak için planlandı.
+
+Vektör komutlu (AVX2/FMA) matris çarpımı ve float32 üstel/tanh sonrası (18.10.2026, 2 çekirdek, makine
+yüklüyken): TR 22–31 ms/adım, PyTorch 14 ms/adım (önceki TR ikilisi aynı koşulda 109 ms/adım).
