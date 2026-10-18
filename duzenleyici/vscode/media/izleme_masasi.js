@@ -9,13 +9,16 @@ const el = (tag, metin, sinif) => { const e = document.createElement(tag); if (m
 
 // Durum: değişkenler, açık sekmeler (her biri ayrı tablo), etkin sekme ve sekme başına arama/sıralama.
 let durum = null, oncekiDegerler = {}, oturumBitti = false, duraklatildi = false;
+// durusSayisi bu oturumdaki duruşları sayar: Devam aynı kesme noktasında yeniden durduğunda
+// (döngü) konum metni aynı kalır; sayaç ve kısa vurgu programın ilerlediğini gösterir.
+let durusSayisi = 0;
 function dugmeleriAyarla() {
   document.querySelectorAll('#yonlendirme button').forEach((b) => {
     // Durdur her zaman (oturum sürdükçe) kullanılabilir; adım düğmeleri yalnızca program duraklatılmışken.
     b.disabled = oturumBitti || (b.dataset.komut !== 'stop' && !duraklatildi);
   });
 }
-document.querySelectorAll('#yonlendirme button').forEach((b) => b.addEventListener('click', () => {
+function dugmeyeBasildi(b) {
   if (b.disabled) return;
   if (b.dataset.komut !== 'stop') {
     duraklatildi = false;
@@ -23,14 +26,25 @@ document.querySelectorAll('#yonlendirme button').forEach((b) => b.addEventListen
   }
   dugmeleriAyarla();
   vscode.postMessage({ tur: 'komut', komut: b.dataset.komut });
-}));
+}
+document.querySelectorAll('#yonlendirme button').forEach((b) => {
+  // Fare düğmesi basıldığı anda işlenir (click, basma ile bırakma aynı öğede olmazsa hiç
+  // gelmez: panel o anda odak alırken ya da düzen kayarken tıklama kaybolurdu). Klavyeyle
+  // (Enter/Boşluk) gelen click'in detail'i 0'dır; fareyle gelen click yok sayılır.
+  b.addEventListener('pointerdown', (e) => { if (e.button === 0) dugmeyeBasildi(b); });
+  b.addEventListener('click', (e) => { if (e.detail === 0) dugmeyeBasildi(b); });
+});
 const sekmeler = [];          // { ad, tur, veri, hata, arama, sirala }
 let etkin = null;
 
 window.addEventListener('message', (olay) => {
   const m = olay.data;
   if (m.tur === 'durum') {
+    if (oturumBitti) durusSayisi = 0;
+    durusSayisi++;
     durum = m.veri; oturumBitti = false; duraklatildi = true;
+    const baslik = document.querySelector('.baslik');
+    baslik.classList.remove('yeni'); void baslik.offsetWidth; baslik.classList.add('yeni');
     cizDegiskenler(); dugmeleriAyarla();
     // Açık sekmelerin içeriğini yeni adımın değerleriyle yenile
     sekmeler.forEach((s) => vscode.postMessage({ tur: 'tablo', ifade: s.ad }));
@@ -73,8 +87,12 @@ function sekmeKapat(ad) {
 function cizDegiskenler() {
   if (!durum) return;
   if (!oturumBitti) {
-    document.getElementById('konum').textContent = durum.dosya + ' · Satır ' + durum.satir + ' · ' + durum.cerceve;
-    document.getElementById('neden').textContent = durum.neden || '';
+    const konum = durum.dosya + ' · Satır ' + durum.satir + ' · ' + durum.cerceve;
+    const neden = durusSayisi + '. duruş' + (durum.neden ? ' · ' + durum.neden : '');
+    document.getElementById('konum').textContent = konum;
+    document.getElementById('konum').title = konum;
+    document.getElementById('neden').textContent = neden;
+    document.getElementById('neden').title = neden;
   }
   const q = document.getElementById('degiskenAra').value.toLocaleLowerCase('tr');
   const govde = document.getElementById('degiskenler');

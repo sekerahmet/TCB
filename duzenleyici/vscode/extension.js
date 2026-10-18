@@ -6,6 +6,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { izlemeKomutuCoz } = require('./izleme_komutlari');
 
 const GOREV_TURU = 'tr';
 const AYAR = 'yorumlayiciYolu';
@@ -452,24 +453,19 @@ async function izlemeMasasiMesaj(m) {
 
 // Yönlendirme düğmeleri: oturum etkin oturumsa VS Code'un kendi komutları kullanılır (araç
 // çubuğu ve editördeki sarı satır da güncellenir); değilse istek doğrudan oturuma gönderilir.
-const IZLEME_KOMUTLARI = {
-    next: 'workbench.action.debug.stepOver',
-    stepIn: 'workbench.action.debug.stepInto',
-    stepOut: 'workbench.action.debug.stepOut',
-    continue: 'workbench.action.debug.continue',
-    stop: 'workbench.action.debug.stop'
-};
-
+// Eşleme izleme_komutlari.js'tedir (Node ile ayrıca sınanır).
 async function izlemeMasasiKomut(oturum, komut) {
-    if (!IZLEME_KOMUTLARI[komut]) {
+    const etkin = !!vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.id === oturum.id;
+    const is = izlemeKomutuCoz(komut, etkin);
+    if (!is) {
         return;
     }
-    if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.id === oturum.id) {
-        await vscode.commands.executeCommand(IZLEME_KOMUTLARI[komut]);
-    } else if (komut === 'stop') {
+    if (is.tur === 'vscode') {
+        await vscode.commands.executeCommand(is.komut);
+    } else if (is.tur === 'durdur') {
         await vscode.debug.stopDebugging(oturum);
     } else {
-        await oturum.customRequest(komut, { threadId: 1 });
+        await oturum.customRequest(is.istek, is.argumanlar);
     }
 }
 

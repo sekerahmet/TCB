@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"slices"
 	"strings"
 	"testing"
@@ -97,5 +98,18 @@ func TestEklentiKisitliKip(t *testing.T) {
 	}
 	if n := strings.Count(string(js), "if (!vscode.workspace.isTrusted)"); n < 2 {
 		t.Errorf("extension.js çalıştırmadan ve hata ayıklamadan önce çalışma alanı güvenini denetlemeli (%d denetim bulundu)", n)
+	}
+}
+
+// İzleme Masası düğmelerinin web görünümü → eklenti → VS Code komutu eşlemesi JavaScript
+// testindedir (duzenleyici/vscode/test/izleme_komutlari_test.js). Node yoksa atlanır.
+func TestEklentiJSTestleri(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node bulunamadı; eklentinin JavaScript testleri atlandı")
+	}
+	cikti, err := exec.Command(node, depo.Yol("duzenleyici/vscode/test/izleme_komutlari_test.js")).CombinedOutput()
+	if err != nil {
+		t.Fatalf("eklenti JS testi kaldı: %v\n%s", err, cikti)
 	}
 }
