@@ -58,6 +58,16 @@ func KaldirilanYerlesikIpucu(ad string) string {
 	return yokIpucu(ad, asilYazim(k, ascii))
 }
 
+// kaldirilanUyeIpucu Metin ve Liste üzerinde kaldırılmış bir metot ya da özellik adı için
+// (sözlükte bu tiplerin üye kodlarından birinin "eski" adı) ipucunu döndürür.
+func kaldirilanUyeIpucu(ad string) string {
+	k, ascii, ok := sozluk.EskiBul(sozluk.AlanUye, ad, cekirdekUyesi)
+	if !ok {
+		return ""
+	}
+	return yokIpucu(ad, asilYazim(k, ascii))
+}
+
 // asilYazim eski adın yerine önerilecek yazımdır: eski ad Türkçe karaktersiz yazılmışsa
 // yeni adın Türkçe karaktersiz biçimi.
 func asilYazim(k sozluk.Kod, ascii bool) string {

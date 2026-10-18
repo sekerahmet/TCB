@@ -15,9 +15,11 @@ import (
 	"io"
 	"math"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	"tr_dili/pkg/sozluk"
 
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/turkce"
@@ -542,27 +544,46 @@ func matCarpTur(a, b *ct.Tensor, karisik ct.DType) (*ct.Tensor, error) {
 // Özellikler ve metotlar
 // ----------------------------------------------------------------------------
 
-var tensorUyeleri = []string{"şekil", "cihaz", "tür", "gradyan", "değer", "şekillendir", "devrik", "eksenleri_sırala", "dilim", "cihaza", "türe"}
+// Tensör üyeleri (adları sözlükte, pkg/sozluk Y4xx).
+const (
+	uyeSekil           = sozluk.Y + 400
+	uyeCihaz           = sozluk.Y + 401
+	uyeTur             = sozluk.Y + 402
+	uyeGradyan         = sozluk.Y + 403 // eş yazımı: türev
+	uyeDeger           = sozluk.Y + 404
+	uyeSekillendir     = sozluk.Y + 410
+	uyeDevrik          = sozluk.Y + 411
+	uyeEksenleriSirala = sozluk.Y + 412
+	uyeDilim           = sozluk.Y + 413
+	uyeCihaza          = sozluk.Y + 414
+	uyeTure            = sozluk.Y + 415
+)
 
-// eskiMatrisUyeleri kaldırılan matris türünün (matris artık 2 boyutlu tensördür) tensörde
-// karşılığı olan üyeleridir; hata mesajında karşılıkları önerilir.
-var eskiMatrisUyeleri = map[string]string{
-	"boyut": "şekil", "satır": "şekil", "satir": "şekil", "sütun": "şekil", "sutun": "şekil",
-	"T": "devrik()", "liste": "değer", "toplam": "toplam(x)", "ortalama": "ortalama(x)",
-}
+// tensorUyeKodlari öneri listesinin sırasıdır.
+var tensorUyeKodlari = []sozluk.Kod{uyeSekil, uyeCihaz, uyeTur, uyeGradyan, uyeDeger, uyeSekillendir, uyeDevrik, uyeEksenleriSirala, uyeDilim, uyeCihaza, uyeTure}
 
-func (d *Deger) GetProperty(prop string) (vm.Value, error) {
+var tensorUyeleri = sozluk.Adlar(tensorUyeKodlari...)
+
+func tensorUyesi(k sozluk.Kod) bool { return slices.Contains(tensorUyeKodlari, k) }
+
+// matristenKalanYerlesikler kaldırılan matris türünün tensörde üye değil yerleşik olarak
+// karşılığı olan üyeleridir (m.toplam → toplam(m)); hata mesajında yerleşik önerilir.
+// Matrisin öbür eski üyeleri (boyut, satır, T, liste ...) sözlükte tensör üyelerinin
+// "eski" adlarıdır.
+var matristenKalanYerlesikler = []sozluk.Kod{sozluk.G + 400, sozluk.G + 410} // toplam, ortalama
+
+func (d *Deger) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 	t := d.t
-	switch prop {
-	case "şekil", "sekil":
+	switch kod {
+	case uyeSekil:
 		return intListesi(t.Shape()), nil
-	case "cihaz":
+	case uyeCihaz:
 		return &vm.StringVal{Val: t.Device().String()}, nil
-	case "tür", "tur":
+	case uyeTur:
 		return &vm.StringVal{Val: turAdi(t.DType())}, nil
-	case "türe", "ture":
-		return d.metot("türe", d.ture), nil
-	case "gradyan", "türev", "turev":
+	case uyeTure:
+		return d.metot(uyeTure, d.ture), nil
+	case uyeGradyan:
 		if d.ara {
 			return nil, fmt.Errorf("bu tensör (%s) bir işlemin sonucu; gradyan yalnızca türev_izle: doğru ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici (AdamW, SGD) kullanın ya da yeni değeri türevsiz { } içinde hesaplayıp tensör(..., türev_izle: doğru) ile yeniden oluşturun", sekilMetni(t.Shape()))
 		}
@@ -571,35 +592,41 @@ func (d *Deger) GetProperty(prop string) (vm.Value, error) {
 			return vm.NULL, nil
 		}
 		return Yeni(g), nil
-	case "değer", "deger":
+	case uyeDeger:
 		return d.degerListesi(), nil
-	case "şekillendir", "sekillendir":
-		return d.metot("şekillendir", d.sekillendir), nil
-	case "devrik":
-		return d.metot("devrik", func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	case uyeSekillendir:
+		return d.metot(uyeSekillendir, d.sekillendir), nil
+	case uyeDevrik:
+		return d.metot(uyeDevrik, func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 0 {
 				return nil, fmt.Errorf("devrik() argüman almaz")
 			}
 			return devrik(t)
 		}), nil
-	case "eksenleri_sırala", "eksenleri_sirala":
-		return d.metot("eksenleri_sırala", d.eksenleriSirala), nil
-	case "dilim":
-		return d.metot("dilim", d.dilim), nil
-	case "cihaza":
-		return d.metot("cihaza", d.cihaza), nil
+	case uyeEksenleriSirala:
+		return d.metot(uyeEksenleriSirala, d.eksenleriSirala), nil
+	case uyeDilim:
+		return d.metot(uyeDilim, d.dilim), nil
+	case uyeCihaza:
+		return d.metot(uyeCihaza, d.cihaza), nil
 	}
 	oneri := ""
-	if o, eski := eskiMatrisUyeleri[prop]; eski {
+	if k, _, eski := sozluk.EskiBul(sozluk.AlanUye, prop, tensorUyesi); eski {
+		o := sozluk.Ad(k)
+		if k == uyeDevrik {
+			o += "()" // metot
+		}
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+	} else if i := slices.IndexFunc(matristenKalanYerlesikler, func(k sozluk.Kod) bool { return sozluk.Ad(k) == prop }); i >= 0 {
+		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s(x)'?", prop)
 	} else if o := turkce.EnYakin(prop, tensorUyeleri); o != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 	}
 	return nil, fmt.Errorf("Tensör üzerinde %q özelliği ya da metodu bulunamadı%s", prop, oneri)
 }
 
-func (d *Deger) metot(ad string, fn vm.BuiltinFunc) *vm.BuiltinVal {
-	return &vm.BuiltinVal{Name: ad, Fn: fn}
+func (d *Deger) metot(kod sozluk.Kod, fn vm.BuiltinFunc) *vm.BuiltinVal {
+	return &vm.BuiltinVal{Name: sozluk.Ad(kod), Fn: fn}
 }
 
 func intListesi(sh []int) *vm.ListVal {

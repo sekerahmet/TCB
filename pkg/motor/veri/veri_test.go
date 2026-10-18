@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"tr_dili/pkg/sozluk"
 
 	"tr_dili/pkg/hataayiklama"
 	"tr_dili/pkg/lexer"
@@ -211,7 +212,7 @@ func mustUye(t *testing.T, v vm.Value, ad string) vm.Value {
 	if !ok {
 		t.Fatalf("%T üyesi yok", v)
 	}
-	u, err := pg.GetProperty(ad)
+	u, err := pg.GetProperty(sozluk.UyeKodu(ad), ad)
 	if err != nil {
 		t.Fatal(err)
 	}

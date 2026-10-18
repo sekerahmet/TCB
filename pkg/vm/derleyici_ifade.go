@@ -200,12 +200,13 @@ func (c *derleyici) ifade(k *derleyiciKapsam, expr ast.Expression) ifadeKodu {
 
 	case *ast.MemberExpression:
 		nesne := c.ifade(k, e.Object)
+		u := uyeCoz(e.Property) // ad → kod derleme anında bir kez çözülür
 		return func(v *VM, env *Environment) (Value, error) {
 			obj, err := nesne(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return v.uyeDegeri(obj, e)
+			return v.uyeDegeri(obj, e, u)
 		}
 	}
 	return nullKod
@@ -774,8 +775,8 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 		// dilimi de ayırmaz). Diğer durumlarda üye değeri okunup çağrılır.
 		if mem, ok := e.Function.(*ast.MemberExpression); ok {
 			nesne := c.ifade(k, mem.Object)
-			ekle := mem.Property == "ekle"
-			yerlesik := yerlesikMetotAdi(mem.Property)
+			u := uyeCoz(mem.Property) // ad → kod ve Metin/Liste/Sözlük metotları derleme anında
+			ekle := u.cekirdek != nil && u.kod == uyeEkle
 			uyeSatiri := mem.Line() // geri çağrıların hata satırı (bağlı yerleşikteki gibi)
 			return func(v *VM, env *Environment) (Value, error) {
 				obj, err := nesne(v, env)
@@ -788,7 +789,7 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 							return v.metotCagir(metot, inst, argKod, env, line)
 						}
 					}
-				} else if m, ok := metotBul(obj, mem.Property); yerlesik && ok {
+				} else if m := metotBul(obj, u.cekirdek); m != nil {
 					if l, liste := obj.(*ListVal); liste && ekle && nargs == 1 {
 						av, err := argKod[0](v, env)
 						if err != nil {
@@ -808,7 +809,7 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 					}
 					return res, nil
 				}
-				fnVal, err := v.uyeDegeri(obj, mem)
+				fnVal, err := v.uyeDegeri(obj, mem, u)
 				if err != nil {
 					return nil, err
 				}

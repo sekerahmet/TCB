@@ -133,9 +133,22 @@ func (db *DatabaseVal) ensureTable(name string) *dbTable {
 	return t
 }
 
-func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
-	switch prop {
-	case "tablolar":
+// Veritabanı üyeleri (adları sözlükte, pkg/sozluk Y7xx, Y004, Y005).
+const (
+	uyeTablolar     = sozluk.Y + 700
+	uyeTabloOlustur = sozluk.Y + 701
+	uyeEkle         = sozluk.Y + 4   // eş yazımı: kayıt_ekle
+	uyeSorgula      = sozluk.Y + 702 // eş yazımları: sorgu, seç
+	uyeGuncelle     = sozluk.Y + 703
+	uyeSil          = sozluk.Y + 704
+	uyeHepsiniAl    = sozluk.Y + 705 // eş yazımı: tablo_al
+	uyeSay          = sozluk.Y + 706
+	uyeKaydet       = sozluk.Y + 5
+)
+
+func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
+	switch kod {
+	case uyeTablolar:
 		return &vm.BuiltinVal{
 			Name: "vt.tablolar",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -149,7 +162,7 @@ func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "tablo_oluştur", "tablo_olustur":
+	case uyeTabloOlustur:
 		return &vm.BuiltinVal{
 			Name: "vt.tablo_oluştur",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -173,7 +186,7 @@ func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "ekle", "kayıt_ekle", "kayit_ekle":
+	case uyeEkle:
 		return &vm.BuiltinVal{
 			Name: "vt.ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -224,7 +237,7 @@ func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "sorgula", "sorgu", "seç", "sec":
+	case uyeSorgula:
 		return &vm.BuiltinVal{
 			Name: "vt.sorgula",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -239,7 +252,7 @@ func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "güncelle", "guncelle":
+	case uyeGuncelle:
 		return &vm.BuiltinVal{
 			Name: "vt.güncelle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -279,7 +292,7 @@ func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "sil":
+	case uyeSil:
 		return &vm.BuiltinVal{
 			Name: "vt.sil",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -311,7 +324,7 @@ func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "hepsini_al", "tablo_al":
+	case uyeHepsiniAl:
 		return &vm.BuiltinVal{
 			Name: "vt.tablo_al",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -328,7 +341,7 @@ func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "say":
+	case uyeSay:
 		return &vm.BuiltinVal{
 			Name: "vt.say",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -356,7 +369,7 @@ func (db *DatabaseVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "kaydet":
+	case uyeKaydet:
 		return &vm.BuiltinVal{
 			Name: "vt.kaydet",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {

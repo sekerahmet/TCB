@@ -71,18 +71,26 @@ func (n *Nesne) TabloVerisi() ([]string, [][]string, error) {
 	return []string{"Kimlik", "Token", "Özel"}, satirlar, nil
 }
 
-var uyeler = []string{"kodla", "çöz", "sözlük_boyutu", "token_kimliği"}
+// Parçalayıcı üyeleri (adları sözlükte, pkg/sozluk Y61x).
+const (
+	uyeKodla        = sozluk.Y + 610
+	uyeCoz          = sozluk.Y + 611
+	uyeSozlukBoyutu = sozluk.Y + 612
+	uyeTokenKimligi = sozluk.Y + 613
+)
 
-func (n *Nesne) GetProperty(prop string) (vm.Value, error) {
-	switch prop {
-	case "kodla":
-		return n.metot("kodla", n.kodla), nil
-	case "çöz", "coz":
-		return n.metot("çöz", n.coz), nil
-	case "sözlük_boyutu", "sozluk_boyutu":
+var uyeler = sozluk.Adlar(uyeKodla, uyeCoz, uyeSozlukBoyutu, uyeTokenKimligi)
+
+func (n *Nesne) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
+	switch kod {
+	case uyeKodla:
+		return n.metot(sozluk.Ad(uyeKodla), n.kodla), nil
+	case uyeCoz:
+		return n.metot(sozluk.Ad(uyeCoz), n.coz), nil
+	case uyeSozlukBoyutu:
 		return vm.NewInt(int64(n.p.SozlukBoyutu())), nil
-	case "token_kimliği", "token_kimligi":
-		return n.metot("token_kimliği", n.tokenKimligi), nil
+	case uyeTokenKimligi:
+		return n.metot(sozluk.Ad(uyeTokenKimligi), n.tokenKimligi), nil
 	}
 	oneri := ""
 	if o := turkce.EnYakin(prop, uyeler); o != "" {

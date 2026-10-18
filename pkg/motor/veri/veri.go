@@ -108,14 +108,21 @@ func (k *Kume) TabloVerisi() ([]string, [][]string, error) {
 	return []string{"Parça", "Token", "Boyut"}, satirlar, nil
 }
 
-var kumeUyeleri = []string{"örnekleyici", "sıralı"}
+// Veri kümesi ve okuyucu üyeleri (adları sözlükte, pkg/sozluk Y60x).
+const (
+	uyeOrnekleyici = sozluk.Y + 600
+	uyeSirali      = sozluk.Y + 601
+	uyeSonraki     = sozluk.Y + 602
+)
 
-func (k *Kume) GetProperty(prop string) (vm.Value, error) {
-	switch prop {
-	case "örnekleyici", "ornekleyici":
-		return metot("örnekleyici", k.ornekleyici), nil
-	case "sıralı", "sirali":
-		return metot("sıralı", k.sirali), nil
+var kumeUyeleri = sozluk.Adlar(uyeOrnekleyici, uyeSirali)
+
+func (k *Kume) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
+	switch kod {
+	case uyeOrnekleyici:
+		return metot(sozluk.Ad(uyeOrnekleyici), k.ornekleyici), nil
+	case uyeSirali:
+		return metot(sozluk.Ad(uyeSirali), k.sirali), nil
 	}
 	return nil, uyeHatasi("Veri kümesi", prop, kumeUyeleri)
 }
@@ -326,15 +333,15 @@ func (o *Okuyucu) TabloVerisi() ([]string, [][]string, error) {
 	return nil, nil, fmt.Errorf("okuyucu tablo olarak açılamaz; .sonraki() ile alınan girdi ve hedef tensörlerini inceleyin")
 }
 
-func (o *Okuyucu) GetProperty(prop string) (vm.Value, error) {
-	if prop == "sonraki" {
-		return metot("sonraki", o.sonraki), nil
+func (o *Okuyucu) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
+	if kod == uyeSonraki {
+		return metot(sozluk.Ad(uyeSonraki), o.sonraki), nil
 	}
 	ne := "Örnekleyici"
 	if o.sirali {
 		ne = "Sıralı okuyucu"
 	}
-	return nil, uyeHatasi(ne, prop, []string{"sonraki"})
+	return nil, uyeHatasi(ne, prop, sozluk.Adlar(uyeSonraki))
 }
 
 // okuyucuArgumanlari toplu, bağlam ve (örnekleyicide) tohum argümanlarını okur. Konumlu

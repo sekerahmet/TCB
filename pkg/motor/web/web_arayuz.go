@@ -64,14 +64,42 @@ func (w *WebServerVal) Inspect() string {
 }
 func (w *WebServerVal) IsTruthy() bool { return true }
 
-func (w *WebServerVal) GetProperty(prop string) (vm.Value, error) {
-	switch prop {
-	case "adres", "url":
+// Web sunucusu ve görsel arayüz üyeleri (adları sözlükte, pkg/sozluk Y8xx, Y9xx, Y00x).
+const (
+	uyeBaslat           = sozluk.Y + 6 // eş yazımı (yalnızca arayüzde): göster
+	uyeArkaPlandaBaslat = sozluk.Y + 7
+	uyeDurdur           = sozluk.Y + 8 // eş yazımı: kapat
+	uyeKaydet           = sozluk.Y + 5
+
+	uyeAdres        = sozluk.Y + 800 // eş yazımı: url
+	uyePort         = sozluk.Y + 801
+	uyeAl           = sozluk.Y + 802 // eş yazımı: get
+	uyeGonder       = sozluk.Y + 803 // eş yazımı: post
+	uyeRotaEkle     = sozluk.Y + 804 // eş yazımı: rota
+	uyeStatikKlasor = sozluk.Y + 805
+
+	uyeKartEkle   = sozluk.Y + 900 // eş yazımı: metrik_ekle
+	uyeBaslikEkle = sozluk.Y + 901
+	uyeMetinEkle  = sozluk.Y + 902 // eş yazımı: bilgi_ekle
+	uyeTabloEkle  = sozluk.Y + 903
+	uyeGrafikEkle = sozluk.Y + 904
+	uyeFormEkle   = sozluk.Y + 905
+	uyeButonEkle  = sozluk.Y + 906
+	uyeHTMLKaydet = sozluk.Y + 907
+	uyeHTMLUret   = sozluk.Y + 908
+)
+
+func (w *WebServerVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
+	if kod == uyeBaslat && sozluk.EsYazimi(uyeBaslat, prop) {
+		kod = sozluk.Yok // 'göster' yalnızca görsel arayüzün eş yazımıdır
+	}
+	switch kod {
+	case uyeAdres:
 		return &vm.StringVal{Val: fmt.Sprintf("http://localhost:%d", w.Port)}, nil
-	case "port":
+	case uyePort:
 		return &vm.IntVal{Val: int64(w.Port)}, nil
 
-	case "al", "get":
+	case uyeAl:
 		return &vm.BuiltinVal{
 			Name: "sunucu.al",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -89,7 +117,7 @@ func (w *WebServerVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "gönder", "gonder", "post":
+	case uyeGonder:
 		return &vm.BuiltinVal{
 			Name: "sunucu.gönder",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -107,7 +135,7 @@ func (w *WebServerVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "rota_ekle", "rota":
+	case uyeRotaEkle:
 		return &vm.BuiltinVal{
 			Name: "sunucu.rota_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -134,7 +162,7 @@ func (w *WebServerVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "statik_klasör", "statik_klasor":
+	case uyeStatikKlasor:
 		return &vm.BuiltinVal{
 			Name: "sunucu.statik_klasör",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -148,7 +176,7 @@ func (w *WebServerVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "arka_planda_başlat", "arka_planda_baslat":
+	case uyeArkaPlandaBaslat:
 		return &vm.BuiltinVal{
 			Name: "sunucu.arka_planda_başlat",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -160,7 +188,7 @@ func (w *WebServerVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "başlat", "baslat":
+	case uyeBaslat:
 		return &vm.BuiltinVal{
 			Name: "sunucu.başlat",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -176,7 +204,7 @@ func (w *WebServerVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "durdur", "kapat":
+	case uyeDurdur:
 		return &vm.BuiltinVal{
 			Name: "sunucu.durdur",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -347,9 +375,9 @@ func (g *GUIAppVal) Inspect() string {
 }
 func (g *GUIAppVal) IsTruthy() bool { return true }
 
-func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
-	switch prop {
-	case "kart_ekle", "metrik_ekle":
+func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
+	switch kod {
+	case uyeKartEkle:
 		return &vm.BuiltinVal{
 			Name: "arayüz.kart_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -381,7 +409,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "başlık_ekle", "baslik_ekle":
+	case uyeBaslikEkle:
 		return &vm.BuiltinVal{
 			Name: "arayüz.başlık_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -401,7 +429,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "metin_ekle", "bilgi_ekle":
+	case uyeMetinEkle:
 		return &vm.BuiltinVal{
 			Name: "arayüz.metin_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -416,7 +444,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "tablo_ekle":
+	case uyeTabloEkle:
 		return &vm.BuiltinVal{
 			Name: "arayüz.tablo_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -433,7 +461,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "grafik_ekle":
+	case uyeGrafikEkle:
 		return &vm.BuiltinVal{
 			Name: "arayüz.grafik_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -473,7 +501,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "form_ekle":
+	case uyeFormEkle:
 		return &vm.BuiltinVal{
 			Name: "arayüz.form_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -497,7 +525,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "buton_ekle":
+	case uyeButonEkle:
 		return &vm.BuiltinVal{
 			Name: "arayüz.buton_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -514,7 +542,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "html_kaydet", "kaydet":
+	case uyeHTMLKaydet, uyeKaydet:
 		return &vm.BuiltinVal{
 			Name: "arayüz.html_kaydet",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -535,7 +563,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "html_üret", "html_uret":
+	case uyeHTMLUret:
 		return &vm.BuiltinVal{
 			Name: "arayüz.html_üret",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -543,7 +571,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "arka_planda_başlat", "arka_planda_baslat":
+	case uyeArkaPlandaBaslat:
 		return &vm.BuiltinVal{
 			Name: "arayüz.arka_planda_başlat",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -570,7 +598,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "başlat", "baslat", "göster", "goster":
+	case uyeBaslat:
 		return &vm.BuiltinVal{
 			Name: "arayüz.başlat",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -601,7 +629,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "durdur", "kapat":
+	case uyeDurdur:
 		return &vm.BuiltinVal{
 			Name: "arayüz.durdur",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {

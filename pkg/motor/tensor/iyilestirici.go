@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"tr_dili/pkg/sozluk"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
@@ -36,10 +37,18 @@ func (o *Iyilestirici) Inspect() string {
 		len(o.params), f(s.LR), f(s.Momentum), f(s.WeightDecay))
 }
 
-func (o *Iyilestirici) GetProperty(prop string) (vm.Value, error) {
-	switch prop {
-	case "adım", "adim":
-		return &vm.BuiltinVal{Name: "adım", Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+// İyileştirici üyeleri (adları sözlükte, pkg/sozluk Y50x).
+const (
+	uyeAdim    = sozluk.Y + 500
+	uyeSifirla = sozluk.Y + 501
+)
+
+var iyilestiriciUyeleri = sozluk.Adlar(uyeAdim, uyeSifirla)
+
+func (o *Iyilestirici) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
+	switch kod {
+	case uyeAdim:
+		return &vm.BuiltinVal{Name: sozluk.Ad(uyeAdim), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 0 {
 				return nil, fmt.Errorf("adım() argüman almaz")
 			}
@@ -48,8 +57,8 @@ func (o *Iyilestirici) GetProperty(prop string) (vm.Value, error) {
 			}
 			return vm.NULL, nil
 		}}, nil
-	case "sıfırla", "sifirla":
-		return &vm.BuiltinVal{Name: "sıfırla", Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	case uyeSifirla:
+		return &vm.BuiltinVal{Name: sozluk.Ad(uyeSifirla), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 0 {
 				return nil, fmt.Errorf("sıfırla() argüman almaz")
 			}
@@ -58,7 +67,7 @@ func (o *Iyilestirici) GetProperty(prop string) (vm.Value, error) {
 		}}, nil
 	}
 	oneri := ""
-	if s := turkce.EnYakin(prop, []string{"adım", "sıfırla"}); s != "" {
+	if s := turkce.EnYakin(prop, iyilestiriciUyeleri); s != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", s)
 	}
 	return nil, fmt.Errorf("%s üzerinde %q metodu bulunamadı%s", o.ad, prop, oneri)

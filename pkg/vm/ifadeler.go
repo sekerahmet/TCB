@@ -156,7 +156,8 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 }
 
 // uyeDegeri nesne.özellik (ya da nesne?.özellik) değerini döndürür.
-func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression) (Value, error) {
+// u, adın derleme anında çözülmüş kodudur (bkz. uyeCoz).
+func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression, u uyeBilgisi) (Value, error) {
 	// Sık türler arayüz denetimlerinden önce denenir (bu türler 'yok' ya da PropertyGetter
 	// değildir; adı "Yok" olan bir yapı eski yoldan geçer).
 	switch inst := obj.(type) {
@@ -165,7 +166,7 @@ func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression) (Value, error) {
 			return yapiUyesi(inst, e)
 		}
 	case *DictVal, *ListVal, *StringVal:
-		return v.evalBuiltinMember(obj, e.Property, e.Safe, e.Line())
+		return v.evalBuiltinMember(obj, e.Property, u, e.Safe, e.Line())
 	}
 
 	if obj.Type() == VAL_NULL {
@@ -177,7 +178,7 @@ func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression) (Value, error) {
 
 	// Tensör, SinirAğı, WebSunucu, GörselArayüz ve Veritabanı özellikleri
 	if pg, ok := obj.(PropertyGetter); ok {
-		val, err := pg.GetProperty(e.Property)
+		val, err := pg.GetProperty(u.kod, e.Property)
 		return val, satirEki(e.Line(), err)
 	}
 

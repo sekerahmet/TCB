@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"tr_dili/pkg/sozluk"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
@@ -178,13 +179,21 @@ func (nn *SinirAgi) kaydet(m *vm.VM, yol string) error {
 	return turkce.DosyaHatasi("model.kaydet", yol, "kaydedilemedi", yazHata)
 }
 
-func (nn *SinirAgi) GetProperty(prop string) (vm.Value, error) {
-	switch prop {
-	case "eğit", "egit":
-		return &vm.BuiltinVal{Name: "model.eğit", Fn: nn.egitYerlesik}, nil
+// SinirAğı üyeleri (adları sözlükte, pkg/sozluk Y51x, Y005).
+const (
+	uyeEgit       = sozluk.Y + 510
+	uyeTahminEt   = sozluk.Y + 511 // eş yazımı: tahmin
+	uyeAgirliklar = sozluk.Y + 512
+	uyeKaydet     = sozluk.Y + 5
+)
 
-	case "tahmin_et", "tahmin":
-		return &vm.BuiltinVal{Name: "model.tahmin_et", Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+func (nn *SinirAgi) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
+	switch kod {
+	case uyeEgit:
+		return &vm.BuiltinVal{Name: "model." + sozluk.Ad(uyeEgit), Fn: nn.egitYerlesik}, nil
+
+	case uyeTahminEt:
+		return &vm.BuiltinVal{Name: "model." + sozluk.Ad(uyeTahminEt), Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("model.tahmin_et(Girdi) 1 parametre bekler")
 			}
@@ -199,7 +208,7 @@ func (nn *SinirAgi) GetProperty(prop string) (vm.Value, error) {
 			return Yeni(r), nil
 		}}, nil
 
-	case "ağırlıklar", "agirliklar":
+	case uyeAgirliklar:
 		// Ağırlıklar canlı görünümlerdir (veriyi paylaşır) ama hesap çizgesine bağlanmaz.
 		elems := make([]vm.Value, len(nn.agirliklar))
 		for i, w := range nn.agirliklar {
@@ -207,8 +216,8 @@ func (nn *SinirAgi) GetProperty(prop string) (vm.Value, error) {
 		}
 		return &vm.ListVal{Elements: elems}, nil
 
-	case "kaydet":
-		return &vm.BuiltinVal{Name: "model.kaydet", Fn: func(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	case uyeKaydet:
+		return &vm.BuiltinVal{Name: "model." + sozluk.Ad(uyeKaydet), Fn: func(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("model.kaydet(dosya_yolu) 1 parametre bekler")
 			}

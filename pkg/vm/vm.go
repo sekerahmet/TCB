@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/lexer"
+	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 )
 
@@ -21,9 +22,12 @@ const (
 	signalContinue
 )
 
-// PropertyGetter nokta (.) operatörüyle özel nesne metodlarına erişim sağlar.
+// PropertyGetter nokta (.) operatörüyle özel nesne metodlarına erişim sağlar. kod, adın
+// sözlükteki üye kodudur (pkg/sozluk, Y; ad bir üye adı değilse sozluk.Yok); derleyici onu
+// derleme anında bir kez çözer, uygulamalar adlar yerine kodlara göre dallanır. ad
+// kullanıcının yazdığı biçimdir (hata mesajları ve öneriler için).
 type PropertyGetter interface {
-	GetProperty(prop string) (Value, error)
+	GetProperty(kod sozluk.Kod, ad string) (Value, error)
 }
 
 // HataAyiklayici, VM'nin her deyimden önce danıştığı hata ayıklayıcıdır. Uygulaması

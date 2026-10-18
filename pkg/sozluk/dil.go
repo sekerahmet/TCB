@@ -59,7 +59,8 @@ type Dil struct {
 	Kodu string
 
 	girdiler map[Kod]*Girdi
-	sira     []Kod // dosyadaki sıra
+	adDizi   []string // kod → ad; Ad çalışma anında da ucuz olsun diye dizi
+	sira     []Kod    // dosyadaki sıra
 	yazimlar map[Kod][]string
 	esler    map[Kod][]string // eş yazımlar ve kabul edilen ASCII biçimleri
 	adlar    [alanSayisi]map[string]Kod
@@ -183,6 +184,10 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			}
 		}
 		d.yazimlar[k] = yaz
+		for int(k) >= len(d.adDizi) {
+			d.adDizi = append(d.adDizi, "")
+		}
+		d.adDizi[k] = g.Ad
 		d.esler[k] = es
 		for _, y := range yaz {
 			d.adlar[al][y] = k
@@ -235,14 +240,15 @@ func (d *Dil) Girdisi(k Kod) (Girdi, bool) {
 	return *g, true
 }
 
-// Ad kodun bu dildeki adıdır. Kod dil dosyasında yoksa bu bir geliştirici hatasıdır ve
+// Ad kodun bu dildeki adıdır (dizi indekslemesi; harita araması yok). Kod dil dosyasında yoksa bu bir geliştirici hatasıdır ve
 // panikler (kodlar Go'da sabittir; dosyadan bir satır silinmişse program başlarken durur).
 func (d *Dil) Ad(k Kod) string {
-	g, ok := d.girdiler[k]
-	if !ok {
-		panic(fmt.Sprintf("sözlük %s: %s kodu dil dosyasında yok", d.Kodu, k))
+	if int(k) < len(d.adDizi) {
+		if a := d.adDizi[k]; a != "" {
+			return a
+		}
 	}
-	return g.Ad
+	panic(fmt.Sprintf("sözlük %s: %s kodu dil dosyasında yok", d.Kodu, k))
 }
 
 // Yazimlar kodun kabul edilen bütün yazımlarıdır: önce ad, ASCII biçimi kabul ediliyorsa
