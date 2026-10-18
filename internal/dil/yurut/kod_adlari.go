@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"tr_dili/internal/dil/denetci"
+	"tr_dili/internal/dil/ipucu"
 	"tr_dili/internal/dil/kod"
 )
 
@@ -57,11 +57,6 @@ func (v *VM) Yerlesik(kd kod.Kod) *BuiltinVal {
 	return b
 }
 
-// KaldirilanYerlesikIpucu ad bir yerleşiğin Türkçe karaktersiz (ASCII) biçimiyse (yazdir)
-// ya da kaldırılmış bir yerleşik adıysa tanımsız ad hatasına eklenecek ipucunu, değilse boş
-// metni döndürür. Metin denetleyiciyle ortaktır (denetci.KaldirilanYerlesikIpucu).
-func KaldirilanYerlesikIpucu(ad string) string { return denetci.KaldirilanYerlesikIpucu(ad) }
-
 // kaldirilanUyeIpucu Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
 // kaldırılmış adı için ipucunu döndürür.
 func kaldirilanUyeIpucu(ad string) string {
@@ -69,10 +64,8 @@ func kaldirilanUyeIpucu(ad string) string {
 	if !ok {
 		return ""
 	}
-	return yokIpucu(ad, kod.Ad(k))
+	return ipucu.YokIpucu(ad, kod.Ad(k))
 }
-
-func yokIpucu(ad, asil string) string { return denetci.YokIpucu(ad, asil) }
 
 // uyeOneriHatasi motor tiplerinde (Tensör, Parçalayıcı, VeriKümesi ...) bulunamayan bir üye
 // adı bu tipin bir üyesinin ASCII biçimi ya da kaldırılmış adıysa, hatayı asıl adı öneren
@@ -90,5 +83,5 @@ func uyeOneriHatasi(pg PropertyGetter, obj Value, prop string, err error) error 
 	if _, e := pg.GetProperty(k, kod.Ad(k)); e != nil {
 		return err
 	}
-	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", obj.Type(), prop, yokIpucu(prop, kod.Ad(k)))
+	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", obj.Type(), prop, ipucu.YokIpucu(prop, kod.Ad(k)))
 }

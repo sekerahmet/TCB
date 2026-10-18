@@ -19,7 +19,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"tr_dili/internal/dil/agac"
-	"tr_dili/internal/dil/denetci"
+	"tr_dili/internal/dil/ipucu"
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/turkce"
 )
@@ -354,10 +354,10 @@ func (v *VM) WaitAsync() {
 
 // reportAsyncError eşzamanlı görevde oluşan hatayı sessizce yutmak yerine standart hataya yazar.
 // suggestName kapsamdaki adlar arasında yazıma en yakın olanı "Bunu mu demek istediniz?" olarak önerir.
-// Öneri denetleyiciyle ortaktır (denetci.AdOnerisi): tanımsız ad çalışmadan önce de aynı
+// Öneri denetleyiciyle ortaktır (ipucu.AdOnerisi): tanımsız ad çalışmadan önce de aynı
 // mesajla bulunur.
 func suggestName(name string, env *Environment) string {
-	return denetci.AdOnerisi(name, env.Names())
+	return ipucu.AdOnerisi(name, env.Names())
 }
 
 func (v *VM) reportAsyncError(line int, err error) {

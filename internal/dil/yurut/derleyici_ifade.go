@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/ipucu"
 )
 
 // sabitKod her zaman aynı (değişmez) değeri veren kod üretir; sabitler bir kez kutulanır.
@@ -284,7 +285,7 @@ func (c *derleyici) adOku(k *derleyiciKapsam, e *agac.Identifier) ifadeKodu {
 func adlaOku(env *Environment, e *agac.Identifier) (Value, error) {
 	val, ok := env.Get(e.Value)
 	if !ok {
-		if h := tasinanGenelAdHatasi(e.Value); h != "" {
+		if h := ipucu.TasinanGenelAdHatasi(e.Value); h != "" {
 			return nil, fmt.Errorf("Satır %d, Sütun %d: %s", e.Line(), e.Token.Column, h)
 		}
 		return nil, fmt.Errorf("Satır %d, Sütun %d: '%s' adında bir değişken ya da fonksiyon yok%s",

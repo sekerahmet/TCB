@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/ipucu"
 	"tr_dili/internal/dil/kod"
 )
 
@@ -375,7 +376,7 @@ func (d *adDenetleyici) ad(id *agac.Identifier, k *adKapsami) {
 	}
 	d.bildirim[id.Value] = true
 	d.c.adHatalari = append(d.c.adHatalari, fmt.Sprintf("Satır %d, Sütun %d: Tanımsız ad — %s",
-		id.Line(), id.Token.Column, TanimsizAdMetni(id.Value, k.gorunenler())))
+		id.Line(), id.Token.Column, ipucu.TanimsizAdMetni(id.Value, k.gorunenler())))
 }
 
 // satiraGoreSirala hata metinlerini baştaki "Satır N" numarasına göre (eşitlikte ilk

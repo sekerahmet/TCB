@@ -16,12 +16,18 @@ Ok "içe aktarabilir" demektir. Kural `internal/katman_test.go` ile denetlenir (
 | Katman | İçe aktarabileceği iç paketler |
 | :-- | :-- |
 | `internal/hesap/**` | yalnızca `internal/hesap/**` (dili bilmez; tek başına sınanır ve ölçülür) |
-| `internal/dil/**` | yalnızca `internal/dil/**` |
+| `internal/dil/**` | yalnızca `internal/dil/**`, iç sırasına göre (aşağıda) |
 | `internal/motor/**` | `internal/dil`, `internal/hesap`, `internal/motor` |
 | `internal/arac/**` | `internal/dil`, `internal/hesap`, `internal/motor`, `internal/arac` |
 | `cmd/tr` | hepsi (`internal/depo` dışında) |
 | `internal/depo`, `kitaplik` | hiçbiri |
 | `bakim/**` | hepsi |
+
+Dil çekirdeğinin içinde de sıra vardır: bir dil paketi yalnızca kendisinden önce gelenleri içe aktarabilir (`internal/katman_test.go`, `dilSirasi`):
+
+```
+turkce < kod < ipucu < sozcuk < agac < ayristir < denetci < yurut
+```
 
 Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe aktarmaz; onlar yorumlayıcıya kendileri bağlanır: `internal/motor` paketi yüklenirken yerleşikleri `yurut.MotorEkle` ile, `internal/arac/ayikla` paketi yüklenirken koddaki `kesme_noktası` deyiminin açacağı hata ayıklayıcıyı `yurut.YeniHataAyiklayici` ile kaydeder. Tam dili çalıştıran program ikisini de içe aktarır (`cmd/tr`, `internal/arac/testkosucu`).
 
@@ -32,6 +38,7 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `dap`), işi `internal/`'a bırakır |
 | `internal/dil/kod` | Dilin bütün adlarını sabit kodlara bağlayan kod listesi (`tanim.json`, `tr.json`) ve ondan üretilen Go sabitleri |
 | `internal/dil/turkce` | Türkçe harf işlemleri, ekler, "bunu mu demek istediniz" önerileri ve hata çerçevesi |
+| `internal/dil/ipucu` | Dilin adlarıyla ilgili hata ipuçları: kaldırılan, taşınan ve Türkçe karaktersiz yazılan adlar, tanımsız ada en yakın ad (sözcük çözümleyici, ayrıştırıcı, denetleyici ve yorumlayıcı aynı metni kullanır) |
 | `internal/dil/sozcuk` | Sözcük çözümleyici: kaynak metni sözcük birimlerine ayırır |
 | `internal/dil/agac` | Sözdizimi ağacının düğümleri |
 | `internal/dil/ayristir` | Ayrıştırıcı: sözcük birimlerinden sözdizimi ağacını kurar |

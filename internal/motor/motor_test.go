@@ -3,6 +3,7 @@ package motor
 import (
 	"testing"
 
+	"tr_dili/internal/dil/ipucu"
 	"tr_dili/internal/dil/yurut"
 )
 
@@ -11,7 +12,7 @@ import (
 func TestKaldirilanYerlesiklerKayitliDegil(t *testing.T) {
 	m := yurut.New()
 	for _, ad := range m.GlobalEnv.Names() {
-		if ipucu := yurut.KaldirilanYerlesikIpucu(ad); ipucu != "" {
+		if ipucu := ipucu.KaldirilanYerlesikIpucu(ad); ipucu != "" {
 			t.Errorf("%q kayıtlı olmamalı:%s", ad, ipucu)
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"tr_dili/internal/dil/ipucu"
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/turkce"
 )
@@ -44,7 +45,7 @@ func TestKaldirilanYerlesikIpucu(t *testing.T) {
 				if _, ok := m.GlobalEnv.Get(y); ok {
 					t.Errorf("%q (%s'in eski adı) kaldırıldı, kayıtlı olmamalı", y, k)
 				}
-				if KaldirilanYerlesikIpucu(y) == "" {
+				if ipucu.KaldirilanYerlesikIpucu(y) == "" {
 					t.Errorf("%q için ipucu bekleniyordu", y)
 				}
 			}

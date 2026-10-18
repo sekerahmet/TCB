@@ -98,19 +98,6 @@ func AnahtarKelimeAdi(t TokenType) string {
 	return ""
 }
 
-// KaldirilanYazimIpucu ad bir anahtar kelimenin Türkçe karaktersiz (ASCII) biçimiyse
-// (degisken) ya da kaldırılmış bir anahtar kelimeyse (sözlükte bir A kodunun "eski" adı:
-// işlev, islev) hata mesajına eklenecek ipucunu, değilse boş metni döndürür. Bu yazımlar
-// sıradan adlardır (ör. değişken sınıf = "9-A"); yalnızca bir hata oluştuğunda, alışkanlıkla
-// yazılmış olabilecekleri için asıl ad önerilir. Öneri her zaman Türkçe biçimdir.
-func KaldirilanYazimIpucu(ad string) string {
-	k, ok := kod.Oneri(kod.AlanGenel, ad, func(k kod.Kod) bool { return k.Harf() == 'A' })
-	if !ok {
-		return ""
-	}
-	return fmt.Sprintf(" ('%s' TR'de anahtar kelime değil; '%s' yazmak mı istediniz?)", ad, kod.Ad(k))
-}
-
 // LookupIdent verilen kelimenin anahtar kelime mi yoksa tanımlayıcı mı olduğunu bulur.
 func LookupIdent(ident string) TokenType {
 	if tok, ok := keywords[ident]; ok {

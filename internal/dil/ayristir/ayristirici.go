@@ -9,6 +9,7 @@ package ayristir
 import (
 	"fmt"
 	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/ipucu"
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/sozcuk"
 )
@@ -292,8 +293,8 @@ func (p *Parser) kaldirilanYazimIpuclari() {
 		if t.Type != sozcuk.TOKEN_IDENT || !hataliSatir[t.Line] {
 			continue
 		}
-		if ipucu := sozcuk.KaldirilanYazimIpucu(t.Literal); ipucu != "" {
-			p.errors = append(p.errors, fmt.Sprintf("Satır %d, Sütun %d: ipucu%s", t.Line, t.Column, ipucu))
+		if i := ipucu.KaldirilanYazimIpucu(t.Literal); i != "" {
+			p.errors = append(p.errors, fmt.Sprintf("Satır %d, Sütun %d: ipucu%s", t.Line, t.Column, i))
 		}
 	}
 }

@@ -3,6 +3,8 @@ package sozcuk
 import (
 	"strings"
 	"testing"
+
+	"tr_dili/internal/dil/ipucu"
 )
 
 // tumTokenlar girdinin tüm sözcük birimlerini (DOSYA_SONU dahil) ve sözcük çözümleyici hatalarını döndürür.
@@ -105,8 +107,8 @@ func TestAnahtarKelimeYalnizcaTurkceYazim(t *testing.T) {
 			t.Errorf("LookupIdent(%q) = %s; ASCII yazım sıradan bir ad olmalı", c.ascii, got)
 		}
 		want := " ('" + c.ascii + "' TR'de anahtar kelime değil; '" + c.turkce + "' yazmak mı istediniz?)"
-		if got := KaldirilanYazimIpucu(c.ascii); got != want {
-			t.Errorf("KaldirilanYazimIpucu(%q) = %q, %q bekleniyordu", c.ascii, got, want)
+		if got := ipucu.KaldirilanYazimIpucu(c.ascii); got != want {
+			t.Errorf("ipucu.KaldirilanYazimIpucu(%q) = %q, %q bekleniyordu", c.ascii, got, want)
 		}
 	}
 
@@ -353,14 +355,14 @@ func TestKaldirilanEsAnlamlilarAddir(t *testing.T) {
 		if tur := LookupIdent(ad); tur != TOKEN_IDENT {
 			t.Errorf("%q artık ad olmalı, %s", ad, tur)
 		}
-		if KaldirilanYazimIpucu(ad) == "" {
+		if ipucu.KaldirilanYazimIpucu(ad) == "" {
 			t.Errorf("%q için ipucu bekleniyordu", ad)
 		}
 	}
 	// Eski adın ASCII biçimi de Türkçe adı önerir (ASCII biçim önerilmez).
 	for ad, want := range map[string]string{"islev": "'fonksiyon'", "dondur": "'sonuç'", "kir": "'çık'"} {
-		if got := KaldirilanYazimIpucu(ad); !strings.Contains(got, want) {
-			t.Errorf("KaldirilanYazimIpucu(%q) = %q, %s önermeli", ad, got, want)
+		if got := ipucu.KaldirilanYazimIpucu(ad); !strings.Contains(got, want) {
+			t.Errorf("ipucu.KaldirilanYazimIpucu(%q) = %q, %s önermeli", ad, got, want)
 		}
 	}
 }
