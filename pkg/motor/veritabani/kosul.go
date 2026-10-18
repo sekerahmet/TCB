@@ -168,11 +168,13 @@ type condColumn struct{ name string }
 type condUnary struct {
 	op string
 	x  condNode
+	d  int // ağaç derinliği
 }
 
 type condBinary struct {
 	op   string
 	l, r condNode
+	d    int // ağaç derinliği
 }
 
 type condParser struct {
@@ -181,6 +183,67 @@ type condParser struct {
 	params []vm.Value
 	pIdx   int
 	known  map[string]bool
+	// derinlik iç içe parantez ve önek işleç (değil, -) seviyesidir; ayrıştırıcının kendi
+	// özyinelemesini sınırlar.
+	derinlik int
+}
+
+// Koşul sınırları: dışarıdan gelen (ör. 10 MB'lık web gövdesindeki) bir koşul yığın
+// taşmasıyla süreci çökertemesin diye iç içe seviye ve ifade ağacının derinliği sınırlıdır;
+// aşılınca yakalanabilir bir hata verilir.
+const (
+	enFazlaKosulIcIce    = 200
+	enFazlaKosulDerinlik = 10000
+)
+
+func kosulDerinlikHatasi() error {
+	return fmt.Errorf("koşul çok derin iç içe (en fazla %d seviye parantez ya da önek işleç, %d terimlik zincir)", enFazlaKosulIcIce, enFazlaKosulDerinlik)
+}
+
+func (p *condParser) gir() error {
+	p.derinlik++
+	if p.derinlik > enFazlaKosulIcIce {
+		return kosulDerinlikHatasi()
+	}
+	return nil
+}
+
+func (p *condParser) cik() { p.derinlik-- }
+
+func dugumDerinligi(n condNode) int {
+	switch x := n.(type) {
+	case *condBinary:
+		return x.d
+	case *condUnary:
+		return x.d
+	}
+	return 1
+}
+
+// ikili iki terimli bir düğüm kurar; ağaç derinliği sınırı aşılırsa hata verir (değerlendirme
+// özyinelemesi de böylece sınırlı kalır).
+func ikili(op string, l, r condNode) (condNode, error) {
+	d := dugumDerinligi(l)
+	if dr := dugumDerinligi(r); dr > d {
+		d = dr
+	}
+	if d+1 > enFazlaKosulDerinlik {
+		return nil, kosulDerinlikHatasi()
+	}
+	return &condBinary{op: op, l: l, r: r, d: d + 1}, nil
+}
+
+func tekli(op string, x condNode) condNode {
+	return &condUnary{op: op, x: x, d: dugumDerinligi(x) + 1}
+}
+
+// kosulOzeti hata mesajlarında gösterilecek koşul metnidir; çok uzun koşullar kısaltılır.
+func kosulOzeti(s string) string {
+	r := []rune(s)
+	if len(r) <= 120 {
+		return s
+	}
+	return string(r[:120]) + "…"
 }
 
 // compileRowCondition koşul metnini güvenli ifade ağacına dönüştürür.
@@ -189,7 +252,7 @@ type condParser struct {
 func compileRowCondition(cond string, known map[string]bool, params []vm.Value) (*rowCondition, error) {
 	toks, err := tokenizeCondition(cond)
 	if err != nil {
-		return nil, fmt.Errorf("Koşul hatası (%s): %v", cond, err)
+		return nil, fmt.Errorf("Koşul hatası (%s): %v", kosulOzeti(cond), err)
 	}
 	p := &condParser{toks: toks, params: params, known: known}
 	root, err := p.parseOr()
@@ -204,7 +267,7 @@ func compileRowCondition(cond string, known map[string]bool, params []vm.Value) 
 		err = fmt.Errorf("%d parametre verildi ama koşulda %d adet '?' var", len(params), p.pIdx)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("Koşul hatası (%s): %v", cond, err)
+		return nil, fmt.Errorf("Koşul hatası (%s): %v", kosulOzeti(cond), err)
 	}
 	return &rowCondition{root: root}, nil
 }
@@ -245,6 +308,10 @@ func (p *condParser) isNot(t condTok) bool {
 }
 
 func (p *condParser) parseOr() (condNode, error) {
+	if err := p.gir(); err != nil {
+		return nil, err
+	}
+	defer p.cik()
 	left, err := p.parseAnd()
 	if err != nil {
 		return nil, err
@@ -255,7 +322,9 @@ func (p *condParser) parseOr() (condNode, error) {
 		if err != nil {
 			return nil, err
 		}
-		left = &condBinary{op: "veya", l: left, r: right}
+		if left, err = ikili("veya", left, right); err != nil {
+			return nil, err
+		}
 	}
 	return left, nil
 }
@@ -271,7 +340,9 @@ func (p *condParser) parseAnd() (condNode, error) {
 		if err != nil {
 			return nil, err
 		}
-		left = &condBinary{op: "ve", l: left, r: right}
+		if left, err = ikili("ve", left, right); err != nil {
+			return nil, err
+		}
 	}
 	return left, nil
 }
@@ -279,11 +350,15 @@ func (p *condParser) parseAnd() (condNode, error) {
 func (p *condParser) parseNot() (condNode, error) {
 	if p.isNot(p.peek()) {
 		p.next()
+		if err := p.gir(); err != nil {
+			return nil, err
+		}
+		defer p.cik()
 		x, err := p.parseNot()
 		if err != nil {
 			return nil, err
 		}
-		return &condUnary{op: "değil", x: x}, nil
+		return tekli("değil", x), nil
 	}
 	return p.parseCompare()
 }
@@ -309,7 +384,7 @@ func (p *condParser) parseCompare() (condNode, error) {
 			if err != nil {
 				return nil, err
 			}
-			return &condBinary{op: op, l: left, r: right}, nil
+			return ikili(op, left, right)
 		}
 	}
 	return left, nil
@@ -326,7 +401,9 @@ func (p *condParser) parseAdd() (condNode, error) {
 		if err != nil {
 			return nil, err
 		}
-		left = &condBinary{op: op, l: left, r: right}
+		if left, err = ikili(op, left, right); err != nil {
+			return nil, err
+		}
 	}
 	return left, nil
 }
@@ -342,7 +419,9 @@ func (p *condParser) parseMul() (condNode, error) {
 		if err != nil {
 			return nil, err
 		}
-		left = &condBinary{op: op, l: left, r: right}
+		if left, err = ikili(op, left, right); err != nil {
+			return nil, err
+		}
 	}
 	return left, nil
 }
@@ -350,11 +429,15 @@ func (p *condParser) parseMul() (condNode, error) {
 func (p *condParser) parseUnary() (condNode, error) {
 	if p.peek().kind == ctOp && p.peek().text == "-" {
 		p.next()
+		if err := p.gir(); err != nil {
+			return nil, err
+		}
+		defer p.cik()
 		x, err := p.parseUnary()
 		if err != nil {
 			return nil, err
 		}
-		return &condUnary{op: "-", x: x}, nil
+		return tekli("-", x), nil
 	}
 	return p.parsePrimary()
 }
@@ -372,7 +455,12 @@ func (p *condParser) parsePrimary() (condNode, error) {
 		}
 		v := p.params[p.pIdx]
 		p.pIdx++
-		return &condLiteral{val: vm.GoToTRValue(vm.TRToGoValue(v))}, nil
+		// Parametre satır değerleriyle aynı biçime getirilir (ör. tensör → liste); Tam/Ondalık korunur
+		g, err := bellekSatirDegeri("parametre", v)
+		if err != nil {
+			return nil, err
+		}
+		return &condLiteral{val: trDegeri(g)}, nil
 	case ctLParen:
 		x, err := p.parseOr()
 		if err != nil {
@@ -415,7 +503,7 @@ func (n *condLiteral) eval(row map[string]interface{}) (vm.Value, error) { retur
 
 func (n *condColumn) eval(row map[string]interface{}) (vm.Value, error) {
 	if raw, ok := row[n.name]; ok {
-		return vm.GoToTRValue(raw), nil
+		return trDegeri(raw), nil
 	}
 	return vm.NULL, nil
 }
@@ -596,7 +684,7 @@ func filterRows(rows []map[string]interface{}, cond string, known map[string]boo
 	for _, row := range rows {
 		ok, err := c.matches(row)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Koşul hatası (%s): %v", cond, err)
+			return nil, nil, fmt.Errorf("Koşul hatası (%s): %v", kosulOzeti(cond), err)
 		}
 		if ok {
 			matched = append(matched, row)
@@ -605,6 +693,32 @@ func filterRows(rows []map[string]interface{}, cond string, known map[string]boo
 		}
 	}
 	return matched, rest, nil
+}
+
+// eslesmeler her satırın koşula uyup uymadığını verir (koşul boşsa hepsi uyar).
+func eslesmeler(rows []map[string]interface{}, cond string, known map[string]bool, params []vm.Value) ([]bool, error) {
+	uyar := make([]bool, len(rows))
+	if strings.TrimSpace(cond) == "" {
+		if len(params) > 0 {
+			return nil, fmt.Errorf("Koşul hatası: parametre verildi ama koşul boş")
+		}
+		for i := range uyar {
+			uyar[i] = true
+		}
+		return uyar, nil
+	}
+	c, err := compileRowCondition(cond, known, params)
+	if err != nil {
+		return nil, err
+	}
+	for i, row := range rows {
+		ok, err := c.matches(row)
+		if err != nil {
+			return nil, fmt.Errorf("Koşul hatası (%s): %v", kosulOzeti(cond), err)
+		}
+		uyar[i] = ok
+	}
+	return uyar, nil
 }
 
 // paramsArg isteğe bağlı parametre listesini (Liste) []Value olarak döndürür. Önce adlı

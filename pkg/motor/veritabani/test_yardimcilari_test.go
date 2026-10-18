@@ -43,6 +43,20 @@ func runTRWithin(t *testing.T, limit time.Duration, code string) (*vm.VM, vm.Val
 	}
 }
 
+// unutVeritabani dosyanın bu süreçteki açık nesnesini ve kilidini bırakır; sonraki
+// veritabanı_aç dosyayı diskten yeniden okur (yeni bir program açmış gibi).
+func unutVeritabani(yol string) {
+	aciklarMu.Lock()
+	defer aciklarMu.Unlock()
+	anahtar := kayitAnahtari(yol)
+	if db, ok := aciklar[anahtar]; ok {
+		if db.kilit != nil {
+			db.kilit.Close()
+		}
+		delete(aciklar, anahtar)
+	}
+}
+
 func runTR(t *testing.T, code string) (vm.Value, error) {
 	t.Helper()
 	l := lexer.New(code)

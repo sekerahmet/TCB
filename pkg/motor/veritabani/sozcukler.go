@@ -3,7 +3,8 @@ package veritabani
 import (
 	"fmt"
 	"strings"
-	"unicode"
+
+	"tr_dili/pkg/turkce"
 )
 
 // Veritabanı sorgu dilinin (vt.sorgula("SEÇ * TABLO personel NEREDE maas > 5")) ve satır
@@ -44,7 +45,7 @@ var ingilizceSQL = map[string]string{
 }
 
 // sqlBuyuk sözcüğü Türkçe kurala göre büyük harfe çevirir (karşılaştırma biçimi).
-func sqlBuyuk(s string) string { return strings.ToUpperSpecial(unicode.TurkishCase, s) }
+func sqlBuyuk(s string) string { return turkce.BuyukHarf(s) }
 
 // sqlSozcuguMu w verilen Türkçe sözcük mü (büyük/küçük harf fark etmez)?
 func sqlSozcuguMu(w, sozcuk string) bool { return sqlBuyuk(w) == sozcuk }

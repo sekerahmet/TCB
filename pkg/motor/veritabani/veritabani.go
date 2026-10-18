@@ -1,7 +1,6 @@
 package veritabani
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -29,6 +28,8 @@ var parametreYazimlari = adParametreler.Yazimlar()
 
 var VAL_DATABASE = vm.TipAdi(sozluk.A + 240) // Veritabanı
 
+// dbTable bir tablodur. Satır değerleri: nil, bool, int64 (Tam), ondalik (Ondalık), string,
+// []interface{}, map[string]interface{} (bkz. depo.go).
 type dbTable struct {
 	Name    string                   `json:"name"`
 	Columns []string                 `json:"columns"`
@@ -41,9 +42,11 @@ type DatabaseVal struct {
 	// diskYolu FilePath'in TR'nin tek yol kuralıyla (vm.YolCoz) çözülmüş hâlidir;
 	// okuma ve yazma hep bu dosyaya yapılır, mesajlarda kullanıcının yazdığı FilePath görünür.
 	diskYolu string
-	Tables   map[string]*dbTable `json:"tables"`
-	mu       sync.RWMutex
-	vmRef    *vm.VM
+	// Tables tablolardır; anahtar tablo adının Türkçe kurala göre küçük harfli hâlidir.
+	Tables map[string]*dbTable `json:"tables"`
+	mu     sync.RWMutex
+	// kilit süreçler arası kilidi tutan "<dosya>.kilit" dosyasıdır (bkz. depo.go).
+	kilit *os.File
 }
 
 func (db *DatabaseVal) Type() vm.ValueType { return VAL_DATABASE }
@@ -56,20 +59,6 @@ func (db *DatabaseVal) Inspect() string {
 }
 func (db *DatabaseVal) IsTruthy() bool { return true }
 
-func (db *DatabaseVal) saveToDisk() error {
-	if db.FilePath == "" || db.FilePath == bellekYolu {
-		return nil
-	}
-	data, err := json.MarshalIndent(db.Tables, "", "  ")
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(db.yol(), data, 0644); err != nil {
-		return turkce.DosyaHatasi("veritabanı", db.FilePath, "kaydedilemedi", err)
-	}
-	return nil
-}
-
 // yol veritabanı dosyasının diskteki yoludur.
 func (db *DatabaseVal) yol() string {
 	if db.diskYolu != "" {
@@ -78,59 +67,186 @@ func (db *DatabaseVal) yol() string {
 	return db.FilePath
 }
 
-func (db *DatabaseVal) loadFromDisk() error {
-	if db.FilePath == "" || db.FilePath == bellekYolu {
-		return nil
+// tabloAnahtari tablo adının karşılaştırma biçimidir: Türkçe kurala göre küçük harf
+// (IŞIK ≡ ışık, İşler ≡ işler).
+func tabloAnahtari(ad string) string { return turkce.KucukHarf(ad) }
+
+// tabloBul var olan bir tabloyu verir; yoksa en yakın adı öneren bir hata döner (yanlış
+// yazılmış tablo adı sessizce boş sonuç vermez).
+func (db *DatabaseVal) tabloBul(fn, ad string) (*dbTable, error) {
+	if t, ok := db.Tables[tabloAnahtari(ad)]; ok {
+		return t, nil
 	}
-	data, err := os.ReadFile(db.yol())
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return turkce.DosyaHatasi("veritabanı_aç", db.FilePath, "yüklenemedi", err)
+	var adlar []string
+	for _, t := range db.Tables {
+		adlar = append(adlar, t.Name)
 	}
-	if err := json.Unmarshal(data, &db.Tables); err != nil {
-		return fmt.Errorf("veritabanı_aç: %q yüklenemedi: dosya geçerli bir TR veritabanı (JSON) değil", db.FilePath)
+	sort.Strings(adlar)
+	mesaj := fmt.Sprintf("%s: %q adında tablo yok", fn, ad)
+	if o := turkce.EnYakin(ad, adlar); o != "" {
+		mesaj += fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+	} else if len(adlar) > 0 {
+		mesaj += " (var olan tablolar: " + strings.Join(adlar, ", ") + ")"
+	} else {
+		mesaj += " (veritabanında henüz tablo yok)"
 	}
-	// Dosya "null" içeriyorsa veya tablolar eksik alanlarla geldiyse nil map/slice paniklerini önle
-	if db.Tables == nil {
-		db.Tables = make(map[string]*dbTable)
+	return nil, fmt.Errorf("%s; yeni tablo tablo_oluştur ya da ekle ile oluşturulur", mesaj)
+}
+
+func (t *dbTable) kopya() *dbTable {
+	return &dbTable{
+		Name:    t.Name,
+		Columns: append([]string{}, t.Columns...),
+		Rows:    append([]map[string]interface{}{}, t.Rows...),
+		NextID:  t.NextID,
 	}
-	for k, t := range db.Tables {
-		if t == nil {
-			delete(db.Tables, k)
-			continue
+}
+
+// degistir bir tabloyu kopyası üzerinde değiştirir ve diske yazar. islem ya da kayıt hata
+// verirse bellekteki tablo eski hâlinde kalır; böylece bellek ile disk hiç ayrışmaz ve her
+// yazma hatası kullanıcıya döner. olustur doğruysa olmayan tablo oluşturulur, değilse
+// tabloBul hatası verilir. Çağıran db.mu'yu yazma için tutar.
+func (db *DatabaseVal) degistir(fn, ad string, olustur bool, islem func(t *dbTable) error) error {
+	anahtar := tabloAnahtari(ad)
+	eski, vardi := db.Tables[anahtar]
+	var yeni *dbTable
+	switch {
+	case vardi:
+		yeni = eski.kopya()
+	case olustur:
+		yeni = &dbTable{Name: ad, Columns: []string{}, Rows: []map[string]interface{}{}, NextID: 1}
+	default:
+		_, err := db.tabloBul(fn, ad)
+		return err
+	}
+	if err := islem(yeni); err != nil {
+		return err
+	}
+	db.Tables[anahtar] = yeni
+	if err := db.saveToDisk(); err != nil {
+		if vardi {
+			db.Tables[anahtar] = eski
+		} else {
+			delete(db.Tables, anahtar)
 		}
-		if t.Name == "" {
-			t.Name = k
-		}
-		var rows []map[string]interface{}
-		for _, r := range t.Rows {
-			if r != nil {
-				rows = append(rows, r)
-			}
-		}
-		t.Rows = rows
-		if t.NextID < 1 {
-			t.NextID = 1
-		}
+		return err
 	}
 	return nil
 }
 
-func (db *DatabaseVal) ensureTable(name string) *dbTable {
-	key := strings.ToLower(name)
-	t, ok := db.Tables[key]
-	if !ok {
-		t = &dbTable{
-			Name:    name,
-			Columns: []string{},
-			Rows:    []map[string]interface{}{},
-			NextID:  1,
+// idAnahtari bir id değerinin teklik denetimindeki anahtarıdır; id Tam, Ondalık, Metin ya
+// da Mantık olabilir.
+func idAnahtari(id interface{}) (string, bool) {
+	switch x := id.(type) {
+	case int64:
+		return "s" + strconv.FormatInt(x, 10), true
+	case ondalik:
+		if float64(x) == float64(int64(x)) {
+			return "s" + strconv.FormatInt(int64(x), 10), true
 		}
-		db.Tables[key] = t
+		return "s" + strconv.FormatFloat(float64(x), 'g', -1, 64), true
+	case string:
+		return "m" + x, true
+	case bool:
+		return "b" + strconv.FormatBool(x), true
 	}
-	return t
+	return "", false
+}
+
+func idHatasi(fn string, t *dbTable, id interface{}) error {
+	return fmt.Errorf("%s: id %s %q tablosunda zaten var (her satırın id'si tektir; id verilmezse otomatik verilir)", fn, trDegeri(id).Inspect(), t.Name)
+}
+
+// idleriDenetle tablodaki id'lerin tek olduğunu denetler ve otomatik id sayacını en büyük
+// Tam id'nin ötesine taşır.
+func (t *dbTable) idleriDenetle(fn string) error {
+	gorulen := make(map[string]bool, len(t.Rows))
+	for _, r := range t.Rows {
+		id, var_ := r["id"]
+		if !var_ {
+			continue
+		}
+		a, ok := idAnahtari(id)
+		if !ok {
+			return fmt.Errorf("%s: id Tam, Ondalık, Metin ya da Mantık olmalı, %s verildi", fn, trDegeri(id).Type())
+		}
+		if gorulen[a] {
+			return idHatasi(fn, t, id)
+		}
+		gorulen[a] = true
+	}
+	t.idSayaciniDuzelt()
+	return nil
+}
+
+// idSayaciniDuzelt otomatik id sayacını en az 1 ve en büyük Tam id'den büyük yapar.
+func (t *dbTable) idSayaciniDuzelt() {
+	if t.NextID < 1 {
+		t.NextID = 1
+	}
+	for _, r := range t.Rows {
+		if n, ok := r["id"].(int64); ok && n >= t.NextID && n < 1<<62 {
+			t.NextID = n + 1
+		}
+	}
+}
+
+// satirEkle d sözlüğünü tabloya yeni satır olarak ekler; id verilmemişse otomatik id verir.
+func (t *dbTable) satirEkle(fn string, d *vm.DictVal, idler map[string]bool) error {
+	row := make(map[string]interface{}, len(d.Order)+1)
+	for _, k := range d.Order {
+		val, ok := d.Pairs[k]
+		if !ok {
+			continue
+		}
+		ad := d.DisplayKey(k)
+		g, err := satirDegeri(fn, val)
+		if err != nil {
+			return err
+		}
+		row[ad] = g
+		if !sutunVar(t, ad) {
+			t.Columns = append(t.Columns, ad)
+		}
+	}
+	if id, var_ := row["id"]; var_ {
+		a, ok := idAnahtari(id)
+		if !ok {
+			return fmt.Errorf("%s: id Tam, Ondalık, Metin ya da Mantık olmalı, %s verildi", fn, trDegeri(id).Type())
+		}
+		if idler[a] {
+			return idHatasi(fn, t, id)
+		}
+		idler[a] = true
+		if n, ok := id.(int64); ok && n >= t.NextID && n < 1<<62 {
+			t.NextID = n + 1
+		}
+	} else {
+		for {
+			a, _ := idAnahtari(t.NextID)
+			if !idler[a] {
+				idler[a] = true
+				break
+			}
+			t.NextID++
+		}
+		row["id"] = t.NextID
+		t.NextID++
+		if !sutunVar(t, "id") {
+			t.Columns = append([]string{"id"}, t.Columns...)
+		}
+	}
+	t.Rows = append(t.Rows, row)
+	return nil
+}
+
+func sutunVar(t *dbTable, ad string) bool {
+	for _, c := range t.Columns {
+		if c == ad {
+			return true
+		}
+	}
+	return false
 }
 
 // Veritabanı üyeleri (adları sözlükte, pkg/sozluk Y7xx, Y004, Y005).
@@ -154,9 +270,14 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				db.mu.RLock()
 				defer db.mu.RUnlock()
-				var names []vm.Value
+				var adlar []string
 				for _, t := range db.Tables {
-					names = append(names, &vm.StringVal{Val: t.Name})
+					adlar = append(adlar, t.Name)
+				}
+				sort.Strings(adlar)
+				names := []vm.Value{}
+				for _, a := range adlar {
+					names = append(names, &vm.StringVal{Val: a})
 				}
 				return &vm.ListVal{Elements: names}, nil
 			},
@@ -171,17 +292,21 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				}
 				db.mu.Lock()
 				defer db.mu.Unlock()
-				t := db.ensureTable(args[0].Inspect())
-				if len(args) >= 2 {
-					if lv, ok := args[1].(*vm.ListVal); ok {
-						t.Columns = nil
-						for _, col := range lv.Elements {
-							colName := strings.Split(col.Inspect(), ":")[0]
-							t.Columns = append(t.Columns, strings.TrimSpace(colName))
+				err := db.degistir("vt.tablo_oluştur", args[0].Inspect(), true, func(t *dbTable) error {
+					if len(args) >= 2 {
+						if lv, ok := args[1].(*vm.ListVal); ok {
+							t.Columns = nil
+							for _, col := range lv.Elements {
+								colName := strings.Split(col.Inspect(), ":")[0]
+								t.Columns = append(t.Columns, strings.TrimSpace(colName))
+							}
 						}
 					}
+					return nil
+				})
+				if err != nil {
+					return nil, err
 				}
-				_ = db.saveToDisk()
 				return db, nil
 			},
 		}, nil
@@ -190,50 +315,47 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 		return &vm.BuiltinVal{
 			Name: "vt.ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+				const fn = "vt.ekle"
 				if len(args) < 2 {
 					return nil, fmt.Errorf("vt.ekle(tablo_adı, sözlük_veya_liste) 2 argüman bekler")
 				}
-				db.mu.Lock()
-				defer db.mu.Unlock()
-				t := db.ensureTable(args[0].Inspect())
-
-				insertDict := func(d *vm.DictVal) {
-					row := make(map[string]interface{})
-					if _, hasID := d.Pairs["id"]; !hasID {
-						row["id"] = t.NextID
-					}
-					t.NextID++
-					for k, val := range d.Pairs {
-						row[k] = vm.TRToGoValue(val)
-						hasCol := false
-						for _, c := range t.Columns {
-							if c == k {
-								hasCol = true
-								break
-							}
-						}
-						if !hasCol {
-							t.Columns = append(t.Columns, k)
-						}
-					}
-					t.Rows = append(t.Rows, row)
-				}
-
+				var sozlukler []*vm.DictVal
 				switch data := args[1].(type) {
 				case *vm.DictVal:
-					insertDict(data)
+					sozlukler = append(sozlukler, data)
 				case *vm.ListVal:
-					for _, el := range data.Elements {
-						if d, ok := el.(*vm.DictVal); ok {
-							insertDict(d)
+					for i, el := range data.Elements {
+						d, ok := el.(*vm.DictVal)
+						if !ok {
+							return nil, fmt.Errorf("vt.ekle: listenin %d. elemanı Sözlük olmalı, %s verildi", i+1, vm.TipVeOzet(el))
 						}
+						sozlukler = append(sozlukler, d)
 					}
 				default:
 					return nil, fmt.Errorf("vt.ekle ikinci argüman olarak Sözlük veya Sözlük Listesi bekler")
 				}
-
-				_ = db.saveToDisk()
-				return &vm.IntVal{Val: int64(len(t.Rows))}, nil
+				db.mu.Lock()
+				defer db.mu.Unlock()
+				var satirSayisi int
+				err := db.degistir(fn, args[0].Inspect(), true, func(t *dbTable) error {
+					idler := make(map[string]bool, len(t.Rows))
+					for _, r := range t.Rows {
+						if a, ok := idAnahtari(r["id"]); ok {
+							idler[a] = true
+						}
+					}
+					for _, d := range sozlukler {
+						if err := t.satirEkle(fn, d, idler); err != nil {
+							return err
+						}
+					}
+					satirSayisi = len(t.Rows)
+					return nil
+				})
+				if err != nil {
+					return nil, err
+				}
+				return &vm.IntVal{Val: int64(satirSayisi)}, nil
 			},
 		}, nil
 
@@ -256,10 +378,10 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 		return &vm.BuiltinVal{
 			Name: "vt.güncelle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+				const fn = "vt.güncelle"
 				if len(args) < 2 {
 					return nil, fmt.Errorf("vt.güncelle(tablo_adı, yeni_değerler_sözlüğü, [koşul]) en az 2 argüman bekler")
 				}
-				tableName := strings.ToLower(args[0].Inspect())
 				updates, ok := args[1].(*vm.DictVal)
 				if !ok {
 					return nil, fmt.Errorf("vt.güncelle ikinci argüman olarak Sözlük bekler")
@@ -268,27 +390,55 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				if len(args) >= 3 {
 					cond = args[2].Inspect()
 				}
-				params, err := paramsArg("vt.güncelle", args, 3, named)
+				params, err := paramsArg(fn, args, 3, named)
 				if err != nil {
 					return nil, err
+				}
+				type alan struct {
+					ad    string
+					deger vm.Value
+				}
+				var alanlar []alan
+				for _, k := range updates.Order {
+					if val, ok := updates.Pairs[k]; ok {
+						alanlar = append(alanlar, alan{updates.DisplayKey(k), val})
+					}
 				}
 				db.mu.Lock()
 				defer db.mu.Unlock()
-				t, exists := db.Tables[tableName]
-				if !exists {
-					return &vm.IntVal{Val: 0}, nil
-				}
-				matched, _, err := filterRows(t.Rows, cond, tableColumnSet(t), params)
+				sayi := 0
+				err = db.degistir(fn, args[0].Inspect(), false, func(t *dbTable) error {
+					uyar, err := eslesmeler(t.Rows, cond, tableColumnSet(t), params)
+					if err != nil {
+						return err
+					}
+					for i, row := range t.Rows {
+						if !uyar[i] {
+							continue
+						}
+						yeni := make(map[string]interface{}, len(row)+len(alanlar))
+						for k, d := range row {
+							yeni[k] = d
+						}
+						for _, a := range alanlar {
+							g, err := satirDegeri(fn, a.deger)
+							if err != nil {
+								return err
+							}
+							yeni[a.ad] = g
+							if !sutunVar(t, a.ad) {
+								t.Columns = append(t.Columns, a.ad)
+							}
+						}
+						t.Rows[i] = yeni
+						sayi++
+					}
+					return t.idleriDenetle(fn)
+				})
 				if err != nil {
 					return nil, err
 				}
-				for _, row := range matched {
-					for k, val := range updates.Pairs {
-						row[k] = vm.TRToGoValue(val)
-					}
-				}
-				_ = db.saveToDisk()
-				return &vm.IntVal{Val: int64(len(matched))}, nil
+				return &vm.IntVal{Val: int64(sayi)}, nil
 			},
 		}, nil
 
@@ -299,7 +449,6 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				if len(args) < 1 {
 					return nil, fmt.Errorf("vt.sil(tablo_adı, [koşul]) en az 1 argüman bekler")
 				}
-				tableName := strings.ToLower(args[0].Inspect())
 				cond := ""
 				if len(args) >= 2 {
 					cond = args[1].Inspect()
@@ -310,17 +459,7 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				}
 				db.mu.Lock()
 				defer db.mu.Unlock()
-				t, exists := db.Tables[tableName]
-				if !exists {
-					return &vm.IntVal{Val: 0}, nil
-				}
-				deleted, kept, err := filterRows(t.Rows, cond, tableColumnSet(t), params)
-				if err != nil {
-					return nil, err
-				}
-				t.Rows = kept
-				_ = db.saveToDisk()
-				return &vm.IntVal{Val: int64(len(deleted))}, nil
+				return db.satirSil("vt.sil", args[0].Inspect(), cond, params)
 			},
 		}, nil
 
@@ -333,9 +472,9 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				}
 				db.mu.RLock()
 				defer db.mu.RUnlock()
-				t, exists := db.Tables[strings.ToLower(args[0].Inspect())]
-				if !exists {
-					return &vm.ListVal{Elements: []vm.Value{}}, nil
+				t, err := db.tabloBul("vt.hepsini_al", args[0].Inspect())
+				if err != nil {
+					return nil, err
 				}
 				return rowsToListVal(t.Rows, nil), nil
 			},
@@ -350,9 +489,9 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 				}
 				db.mu.RLock()
 				defer db.mu.RUnlock()
-				t, exists := db.Tables[strings.ToLower(args[0].Inspect())]
-				if !exists {
-					return &vm.IntVal{Val: 0}, nil
+				t, err := db.tabloBul("vt.say", args[0].Inspect())
+				if err != nil {
+					return nil, err
 				}
 				if len(args) < 2 {
 					return &vm.IntVal{Val: int64(len(t.Rows))}, nil
@@ -384,6 +523,25 @@ func (db *DatabaseVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error
 	}
 
 	return nil, fmt.Errorf("Veritabanı üzerinde %q özelliği veya metodu bulunamadı", prop)
+}
+
+// satirSil koşula uyan satırları siler (vt.sil ve SİL sorgusu). Çağıran db.mu'yu yazma
+// için tutar.
+func (db *DatabaseVal) satirSil(fn, tablo, cond string, params []vm.Value) (vm.Value, error) {
+	silinen := 0
+	err := db.degistir(fn, tablo, false, func(t *dbTable) error {
+		deleted, kept, err := filterRows(t.Rows, cond, tableColumnSet(t), params)
+		if err != nil {
+			return err
+		}
+		silinen = len(deleted)
+		t.Rows = append([]map[string]interface{}{}, kept...)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &vm.IntVal{Val: int64(silinen)}, nil
 }
 
 func foldUpperASCII(s string) string {
@@ -420,6 +578,11 @@ type sqlWordSpan struct {
 	end   int
 }
 
+// scanSQLWordsOutsideQuotes sorgu metnindeki tırnak dışı sözcükleri verir. Tırnaklar koşul
+// ayrıştırıcısıyla (tokenizeCondition) aynı kuralla okunur: tırnak içinde '\' sonraki
+// karakteri kaçırır ('a\\' tek ters bölüdür, 'a\” tırnaktır), aynı tırnağın ikilenmesi
+// ('O”Brien') tırnağın kendisidir. Böylece sözcük tarayıcı ile koşul ayrıştırıcı bir
+// tırnağın nerede bittiğinde hiç ayrışmaz.
 func scanSQLWordsOutsideQuotes(s string) []sqlWordSpan {
 	var spans []sqlWordSpan
 	inQuote := byte(0)
@@ -427,16 +590,22 @@ func scanSQLWordsOutsideQuotes(s string) []sqlWordSpan {
 	i := 0
 	for i < n {
 		ch := s[i]
-		if (ch == '\'' || ch == '"') && (i == 0 || s[i-1] != '\\') {
-			if inQuote == 0 {
-				inQuote = ch
-			} else if inQuote == ch {
+		if inQuote != 0 {
+			switch {
+			case ch == '\\' && i+1 < n:
+				i += 2
+			case ch == inQuote && i+1 < n && s[i+1] == inQuote:
+				i += 2
+			case ch == inQuote:
 				inQuote = 0
+				i++
+			default:
+				i++
 			}
-			i++
 			continue
 		}
-		if inQuote != 0 {
+		if ch == '\'' || ch == '"' {
+			inQuote = ch
 			i++
 			continue
 		}
@@ -503,7 +672,7 @@ func (db *DatabaseVal) executeSelectSQL(q string, params []vm.Value) (vm.Value, 
 		if err := sqlOneriHatasi("SQL hatası", q); err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("SQL hatası: 'TABLO' anahtar kelimesi bulunamadı (%s)", q)
+		return nil, fmt.Errorf("SQL hatası: 'TABLO' anahtar kelimesi bulunamadı (%s)", kosulOzeti(q))
 	}
 
 	firstSpace := strings.IndexAny(q, " \t\n\r")
@@ -524,9 +693,11 @@ func (db *DatabaseVal) executeSelectSQL(q string, params []vm.Value) (vm.Value, 
 	limit := -1
 	if limStart, limEnd := findSQLKeyword(afterFrom, sqlLimit); limStart != -1 {
 		limStr := strings.TrimSpace(afterFrom[limEnd:])
-		if n, err := strconv.Atoi(limStr); err == nil {
-			limit = n
+		n, err := strconv.Atoi(limStr)
+		if err != nil || n < 0 {
+			return nil, fmt.Errorf("SQL hatası: LİMİT'ten sonra sıfır ya da pozitif bir tam sayı gelmeli, %q yazılmış", kosulOzeti(limStr))
 		}
+		limit = n
 		afterFrom = strings.TrimSpace(afterFrom[:limStart])
 	}
 
@@ -564,9 +735,9 @@ func (db *DatabaseVal) executeSelectSQL(q string, params []vm.Value) (vm.Value, 
 
 	db.mu.RLock()
 	defer db.mu.RUnlock()
-	t, exists := db.Tables[strings.ToLower(tableName)]
-	if !exists {
-		return &vm.ListVal{Elements: []vm.Value{}}, nil
+	t, err := db.tabloBul("SQL hatası", tableName)
+	if err != nil {
+		return nil, err
 	}
 
 	found, _, err := filterRows(t.Rows, whereCond, tableColumnSet(t), params)
@@ -608,23 +779,13 @@ func (db *DatabaseVal) executeDeleteSQL(q string, params []vm.Value) (vm.Value, 
 
 	db.mu.Lock()
 	defer db.mu.Unlock()
-	t, exists := db.Tables[strings.ToLower(tableName)]
-	if !exists {
-		return &vm.IntVal{Val: 0}, nil
-	}
-	deleted, kept, err := filterRows(t.Rows, whereCond, tableColumnSet(t), params)
-	if err != nil {
-		return nil, err
-	}
-	t.Rows = kept
-	_ = db.saveToDisk()
-	return &vm.IntVal{Val: int64(len(deleted))}, nil
+	return db.satirSil("SQL SİL hatası", tableName, whereCond, params)
 }
 
 func sortRowsByColumn(rows []map[string]interface{}, col string, desc bool) {
 	sort.SliceStable(rows, func(i, j int) bool {
-		vi := vm.GoToTRValue(rows[i][col])
-		vj := vm.GoToTRValue(rows[j][col])
+		vi := trDegeri(rows[i][col])
+		vj := trDegeri(rows[j][col])
 		fi, ok1 := vm.ToFloat(vi)
 		fj, ok2 := vm.ToFloat(vj)
 		if ok1 && ok2 {
@@ -643,13 +804,13 @@ func sortRowsByColumn(rows []map[string]interface{}, col string, desc bool) {
 }
 
 func rowsToListVal(rows []map[string]interface{}, cols []string) *vm.ListVal {
-	var elements []vm.Value
+	elements := []vm.Value{}
 	for _, r := range rows {
 		d := vm.NewDictVal()
 		if len(cols) > 0 {
 			for _, c := range cols {
 				if val, exists := r[c]; exists {
-					d.Set(c, vm.GoToTRValue(val))
+					d.Set(c, trDegeri(val))
 				}
 			}
 		} else {
@@ -662,10 +823,10 @@ func rowsToListVal(rows []map[string]interface{}, cols []string) *vm.ListVal {
 			}
 			sort.Strings(keys)
 			if val, hasID := r["id"]; hasID {
-				d.Set("id", vm.GoToTRValue(val))
+				d.Set("id", trDegeri(val))
 			}
 			for _, k := range keys {
-				d.Set(k, vm.GoToTRValue(r[k]))
+				d.Set(k, trDegeri(r[k]))
 			}
 		}
 		elements = append(elements, d)
@@ -684,15 +845,8 @@ func Kaydet(v *vm.VM) {
 		if path == ":memory:" {
 			return nil, fmt.Errorf("veritabanı_aç: %s", sqlIpucu(path, bellekYolu))
 		}
-		db := &DatabaseVal{
-			FilePath: path,
-			Tables:   make(map[string]*dbTable),
-			vmRef:    v,
-		}
-		if path != bellekYolu {
-			db.diskYolu, _ = v.YolCoz(path)
-		}
-		if err := db.loadFromDisk(); err != nil {
+		db, err := veritabaniAc(v, path)
+		if err != nil {
 			return nil, err
 		}
 		return db, nil
@@ -702,6 +856,7 @@ func Kaydet(v *vm.VM) {
 	// 2. Bellekteki listeyi tablo gibi sorgulama:
 	// tablo_sorgula(siparisler, "tutar > 20000", sırala: "tutar:azalan", alanlar: ["musteri", "tutar"], limit: 5)
 	v.RegisterBuiltinKod(sozluk.W+210, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+		const fn = "tablo_sorgula"
 		if len(args) < 1 {
 			return nil, fmt.Errorf("tablo_sorgula(liste, [koşul], [sırala], [alanlar], [limit]) en az 1 argüman bekler")
 		}
@@ -717,9 +872,20 @@ func Kaydet(v *vm.VM) {
 			cond = c.Inspect()
 		}
 
-		params, err := paramsArg("tablo_sorgula", args, 2, named, adKosul, adSirala, adLimit, adAlanlar)
+		params, err := paramsArg(fn, args, 2, named, adKosul, adSirala, adLimit, adAlanlar)
 		if err != nil {
 			return nil, err
+		}
+
+		limit := -1
+		if limVal, ok := baglama.AdliAl(named, adLimit); ok {
+			iv, ok := limVal.(*vm.IntVal)
+			if !ok || iv.Val < 0 {
+				return nil, fmt.Errorf("tablo_sorgula: %s sıfır ya da pozitif bir Tam olmalı, %s verildi", adLimit.TR, vm.TipVeOzet(limVal))
+			}
+			if iv.Val < int64(len(lv.Elements)) {
+				limit = int(iv.Val)
+			}
 		}
 
 		var all []map[string]interface{}
@@ -727,9 +893,18 @@ func Kaydet(v *vm.VM) {
 		for _, el := range lv.Elements {
 			if d, ok := el.(*vm.DictVal); ok {
 				row := make(map[string]interface{})
-				for k, val := range d.Pairs {
-					row[k] = vm.TRToGoValue(val)
-					known[k] = true
+				for _, k := range d.Order {
+					val, ok := d.Pairs[k]
+					if !ok {
+						continue
+					}
+					ad := d.DisplayKey(k)
+					g, err := bellekSatirDegeri(fn, val)
+					if err != nil {
+						return nil, err
+					}
+					row[ad] = g
+					known[ad] = true
 				}
 				all = append(all, row)
 			}
@@ -749,7 +924,7 @@ func Kaydet(v *vm.VM) {
 					dir := strings.TrimSpace(parts[1])
 					if sqlSozcuguMu(dir, sqlAzalan) {
 						desc = true
-					} else if err := sqlOneriHatasi("tablo_sorgula", dir); err != nil {
+					} else if err := sqlOneriHatasi(fn, dir); err != nil {
 						return nil, err
 					}
 				}
@@ -757,11 +932,8 @@ func Kaydet(v *vm.VM) {
 			}
 		}
 
-		// Limit
-		if limVal, ok := baglama.AdliAl(named, adLimit); ok {
-			if iv, ok := limVal.(*vm.IntVal); ok && int(iv.Val) < len(rows) {
-				rows = rows[:int(iv.Val)]
-			}
+		if limit >= 0 && limit < len(rows) {
+			rows = rows[:limit]
 		}
 
 		// Alanlar (Projection)

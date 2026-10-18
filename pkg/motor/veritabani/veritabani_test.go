@@ -27,7 +27,7 @@ func TestVeritabaniYolKuraliVeTurkceHata(t *testing.T) {
 }
 
 func TestDatabaseFileContainingNullLoads(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "bos.trdb")
+	path := geciciVT(t, "bos.trdb")
 	if err := os.WriteFile(path, []byte("null"), 0644); err != nil {
 		t.Fatal(err)
 	}

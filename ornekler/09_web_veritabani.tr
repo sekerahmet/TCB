@@ -7,24 +7,25 @@
 // sunucuları kendisi açıp kapatır. Ayrıntılar: KULLANIM_KILAVUZU.md §6.
 // Çalıştırma (proje kökünden): tr ornekler/09_web_veritabani.tr
 // Ürettiği dosyalar (her çalıştırmada yeniden yazılır, depoya girmez):
-//   ornekler/sirket_erp.trdb, ornekler/kurumsal_panel.html
+//   ornekler/sirket_paneli.trdb, ornekler/kurumsal_panel.html
 
 yazdır("=== Veritabanı + web sunucusu + görsel arayüz ===")
 
 // -------------------------------------------------------------------------
 // BÖLÜM 1: YERLEŞİK KALICI TÜRKÇE SQL VERİTABANI VE LİSTE SORGULAMA
 // -------------------------------------------------------------------------
-yazdır("\n[1] Yerleşik Türkçe SQL Veritabanı ('sirket_erp.trdb') Başlatılıyor...")
+yazdır("\n[1] Yerleşik Türkçe SQL Veritabanı ('sirket_paneli.trdb') Başlatılıyor...")
 
-değişken vt = veritabanı_aç("ornekler/sirket_erp.trdb")
-vt.sil("personel") // Temiz başlangıç için önceki kayıtları temizle
+değişken vt = veritabanı_aç("ornekler/sirket_paneli.trdb")
+vt.tablo_oluştur("personel") // Tablo yoksa oluşturur (olmayan tabloyu okumak ya da silmek hatadır)
+vt.sil("personel")           // Temiz başlangıç için önceki kayıtları temizle
 
 vt.ekle("personel", [
-    {"id": 101, "ad": "Ayşe Yılmaz", "departman": "Yapay Zeka", "maas": 92000.0, "sehir": "İstanbul"},
-    {"id": 102, "ad": "Mehmet Demir", "departman": "Yazılım", "maas": 88000.0, "sehir": "Ankara"},
-    {"id": 103, "ad": "Zeynep Kaya", "departman": "Veri Bilimi", "maas": 76000.0, "sehir": "İzmir"},
-    {"id": 104, "ad": "Caner Öztürk", "departman": "Bulut Sistem", "maas": 54000.0, "sehir": "Bursa"},
-    {"id": 105, "ad": "Elif Çelik", "departman": "Yapay Zeka", "maas": 98000.0, "sehir": "İstanbul"}
+    {"id": 101, "ad": "Ayşe Yılmaz", "departman": "Yapay Zeka", "maas": 92000, "sehir": "İstanbul"},
+    {"id": 102, "ad": "Mehmet Demir", "departman": "Yazılım", "maas": 88000, "sehir": "Ankara"},
+    {"id": 103, "ad": "Zeynep Kaya", "departman": "Veri Bilimi", "maas": 76000, "sehir": "İzmir"},
+    {"id": 104, "ad": "Caner Öztürk", "departman": "Bulut Sistem", "maas": 54000, "sehir": "Bursa"},
+    {"id": 105, "ad": "Elif Çelik", "departman": "Yapay Zeka", "maas": 98000, "sehir": "İstanbul"}
 ])
 
 yazdır("  • Toplam Kayıt Sayısı : {vt.say('personel')}")
@@ -37,7 +38,7 @@ döngü p içinde yuksek_maaslilar {
 }
 
 // Canlı Güncelleme (UPDATE)
-vt.güncelle("personel", {"maas": 95000.0}, "id == 102")
+vt.güncelle("personel", {"maas": 95000}, "id == 102")
 değişken yazilim_uzmani = vt.sorgula("SEÇ ad, maas TABLO personel NEREDE id = 102")
 yazdır("  • Güncelleme Sonrası #102 Maaşı: {yazilim_uzmani[0]['ad']} -> {yazilim_uzmani[0]['maas']} TL")
 
@@ -85,7 +86,7 @@ değişken post_yanit = web_gönder("{sunucu_adresi}/api/ekle", {
     "id": 106,
     "ad": "Burak Aydın",
     "departman": "Siber Güvenlik",
-    "maas": 84000.0,
+    "maas": 84000,
     "sehir": "Ankara"
 })
 yazdır("  • POST /api/ekle Yanıtı: {post_yanit}")
@@ -99,13 +100,13 @@ değişken guncel_personel = vt.sorgula("SEÇ id, ad, departman, sehir, maas TAB
 değişken maas_listesi = [p["maas"] döngü p içinde guncel_personel]
 değişken isim_listesi = [p["ad"] döngü p içinde guncel_personel]
 
-değişken ekran = arayüz_oluştur("TR Kurumsal ERP & İnsan Kaynakları Kokpiti", genişlik: 1100, yükseklik: 780)
+değişken ekran = arayüz_oluştur("TR Kurumsal Panel & İnsan Kaynakları Kokpiti", genişlik: 1100, yükseklik: 780)
 
 // 1. KPI Metrik Kartları
 ekran.kart_ekle("Toplam Personel", "{guncel_personel.uzunluk} Kişi", "Aktif Çalışan", "mavi")
 ekran.kart_ekle("Ortalama Maaş", "{yuvarla(ortalama(maas_listesi), 0)} TL", "Aylık Net", "yeşil")
 ekran.kart_ekle("En Yüksek Maaş", "{maks(maas_listesi)} TL", "Kıdemli Uzman", "mor")
-ekran.kart_ekle("Veritabanı Durumu", "ÇEVRİMİÇİ", "sirket_erp.trdb", "sarı")
+ekran.kart_ekle("Veritabanı Durumu", "ÇEVRİMİÇİ", "sirket_paneli.trdb", "sarı")
 
 // 2. Etkileşimli Canlı Grafik
 ekran.grafik_ekle("Personel Maaş Dağılım Grafiği (TL)", isim_listesi, maas_listesi, "çubuk")
