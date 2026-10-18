@@ -1,10 +1,14 @@
 // DIL_TANIMI.md §12 — Testler
 
 değişken test = "test sıradan bir ad olarak da kullanılabilir"
-değişken genel_sayaç = 0
+değişken genel_değer = 42
 
-test "12.1 test bloğu adıyla birlikte tanımlanır ve ayrı çalışır" {
-    doğrula(doğru)
+test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada atlanır" {
+    // Modül normal biçimde çalıştırılır: içindeki test bloğu atlanır (çalışsaydı sayaç değişir
+    // ve hata fırlatırdı), sonraki satırlar çalışır.
+    aktar "yardimci_testli"
+    eşit_mi(0, testli_sayaç)
+    doğrula(testli_bitti)
 }
 
 test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar kelimedir" {
@@ -29,17 +33,18 @@ test "12.4 eşit_mi(beklenen, gerçek) iki değeri de gösterir" {
     doğrula(mesaj.içerir("beklenen \"5\" (Metin), gerçek 5 (Tam)"), mesaj)
 }
 
-test "12.5a her test yeni bir kapsamda çalışır" {
+test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar görünür" {
     değişken yerel = 1
-    genel_sayaç += 1
     eşit_mi(1, yerel)
+    eşit_mi(42, genel_değer)
 }
 
-test "12.5b önceki testin yerel adı görünmez, üst düzey tanımlar görünür" {
+test "12.5 bir testin yerel adı ötekine sızmaz" {
+    // Başka bir testin tanımladığı ad (yerel) bu testte tanımsızdır; testlerin sırasından
+    // bağımsız olarak doğrudur.
     değişken görünür = doğru
     dene { yerel } yakala { görünür = yanlış }
     doğrula(değil görünür)
-    eşit_mi(1, genel_sayaç)
 }
 
 test "12.6 test gövdesinde sonuç derleme hatasıdır" {

@@ -20,13 +20,32 @@ test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {
 }
 
 test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
-    değişken başla = zaman_ms()
-    döngü i içinde 1..=4 {
-        eşzamanlı { bekle(0.2) }
+    // Duvar saatine bakılmaz: ana görev bekle() ile kilidi bırakmazsa görev hiç çalışamaz.
+    // Tur sayısı 256'dan azdır, döngünün kilit devrine (10.2) güvenilmez; görevin bayrağı
+    // yalnızca bekle() kilidi bıraktığı için görülebilir.
+    değişken görev_çalıştı = yanlış
+    eşzamanlı { görev_çalıştı = doğru }
+    değişken tur = 0
+    döngü değil görev_çalıştı ve tur < 200 {
+        bekle(0.001)
+        tur += 1
+    }
+    doğrula(görev_çalıştı, "ana görev bekle() ile kilidi bıraktığı hâlde görev çalışamadı")
+    // Bekleyen görevler iç içe ilerler: her görev, öbürleri beklerken sırasını alır.
+    değişken iz = []
+    döngü i içinde 1..=3 {
+        eşzamanlı {
+            iz.ekle("başla {i}")
+            bekle(0.01)
+            iz.ekle("bitir {i}")
+        }
     }
     bekle_hepsi()
-    değişken süre = zaman_ms() - başla
-    doğrula(süre < 700, "4 × 0.2 sn bekleme sıralı çalıştı: {süre} ms")
+    eşit_mi(6, uzunluk(iz))
+    // Hiçbir görev, bütün görevler başlamadan bitmez
+    değişken ilk_bitiş = 0
+    döngü j, olay içinde iz { eğer olay.başlar("bitir") ve ilk_bitiş == 0 { ilk_bitiş = j } }
+    eşit_mi(3, ilk_bitiş, metin(iz))
 }
 
 test "10.4 görev değişkenleri döngü turuna aittir" {

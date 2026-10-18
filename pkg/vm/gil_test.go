@@ -33,6 +33,7 @@ func TestKilitDevriIstekGorevi(t *testing.T) {
 			sonuç dolas(n - 1)
 		}
 		değişken tur = 0
+		döngü_başladı()
 		iken !durdur && tur < 100000000 {
 			dolas(50)
 			tur += 1
@@ -41,12 +42,27 @@ func TestKilitDevriIstekGorevi(t *testing.T) {
 	`)).ParseProgram()
 	m := New()
 	m.Out = io.Discard
-	bitti := make(chan error, 1)
+	// Süreye değil olaya bakılır: istek, döngü gerçekten başladıktan sonra gönderilir (aksi
+	// hâlde döngü başlamadan çalışan istek hiçbir şeyi sınamadan geçerdi).
+	basladi := make(chan struct{})
+	m.RegisterBuiltin("döngü_başladı", func(*VM, []Value, map[string]Value) (Value, error) {
+		close(basladi)
+		return NULL, nil
+	})
+	type sonuc struct {
+		val Value
+		err error
+	}
+	bitti := make(chan sonuc, 1)
 	go func() {
-		_, err := m.Run(prog)
-		bitti <- err
+		val, err := m.Run(prog)
+		bitti <- sonuc{val, err}
 	}()
-	time.Sleep(50 * time.Millisecond) // döngü başlasın
+	select {
+	case <-basladi:
+	case s := <-bitti:
+		t.Fatalf("program döngüye girmeden bitti: %v", s.err)
+	}
 	yanit := make(chan time.Duration, 1)
 	go func() {
 		bas := time.Now()
@@ -55,15 +71,19 @@ func TestKilitDevriIstekGorevi(t *testing.T) {
 		})
 		yanit <- time.Since(bas)
 	}()
+	// İsteğin döngü sürerken çalıştığını döngünün kendisi gösterir: istek 'durdur'u
+	// ayarlamasaydı döngü sınırına (100000000 tur) kadar sürerdi. Süre sınırı yalnızca
+	// takılmaya karşıdır, zamanlama ölçmez.
 	select {
-	case d := <-yanit:
-		if d > 2*time.Second {
-			t.Fatalf("istek görevi çok geç çalıştı: %v", d)
-		}
-	case <-time.After(10 * time.Second):
+	case <-yanit:
+	case <-time.After(2 * time.Minute):
 		t.Fatal("istek görevi ana döngü sürerken hiç çalışamadı")
 	}
-	if err := <-bitti; err != nil {
-		t.Fatal(err)
+	s := <-bitti
+	if s.err != nil {
+		t.Fatal(s.err)
+	}
+	if tur, ok := s.val.(*IntVal); !ok || tur.Val >= 100000000 {
+		t.Fatalf("istek döngü bitmeden çalışmalıydı; döngü %v tur sürdü", s.val)
 	}
 }

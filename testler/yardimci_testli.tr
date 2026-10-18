@@ -1,0 +1,10 @@
+// testler_test.tr (12.1) tarafından aktarılan yardımcı modül: içindeki test bloğu normal
+// çalıştırmada atlanmalıdır.
+değişken testli_sayaç = 0
+
+test "çalıştırılmamalı" {
+    testli_sayaç = 99
+    fırlat "normal çalıştırmada test blokları atlanır"
+}
+
+değişken testli_bitti = doğru

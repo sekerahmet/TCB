@@ -328,7 +328,7 @@ test "15.10 tensör_kaydet ve tensör_yükle hataları" {
     doğrula(h.içerir("1. katmanın ağırlıklarında sonlu olmayan değer") ve h.içerir("[1, 0]"))
 }
 
-test "15.10a tensör dosyası sürüm 2 türü korur; sürüm 1 dosyaları okunur" {
+test "15.10 tensör dosyası sürüm 2 türü korur; sürüm 1 dosyaları okunur" {
     // Fikstürler testler/veri altındadır; yazma gidiş-dönüşü Go testlerinde denetlenir.
     // tensor_surum2.trt: bf16, fp16 ve float32 girdili sürüm 2 dosyası.
     değişken y = tensör_yükle("veri/tensor_surum2.trt")
@@ -414,7 +414,7 @@ test "15.12 veri türleri: tür seçimi, .tür ve .türe" {
     doğrula(!metin(tensör([1.0])).içerir("float32"))
 }
 
-test "15.12a bilinmeyen tür yol gösteren bir hata verir" {
+test "15.12 bilinmeyen tür yol gösteren bir hata verir" {
     doğrula(hata_metni(() => tensör([1], tür: "bfloat16")).içerir("bilinmeyen veri türü \"bfloat16\"; geçerli türler: \"float32\", \"bf16\", \"fp16\". Bunu mu demek istediniz: \"bf16\"?"))
     doğrula(hata_metni(() => sıfırlar([2], tür: "float16")).içerir("Bunu mu demek istediniz: \"fp16\"?"))
     doğrula(hata_metni(() => tensör([1.0]).türe("float64")).içerir("Bunu mu demek istediniz: \"float32\"?"))
@@ -497,33 +497,41 @@ test "15.13 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
     doğrula(mutlak(kbf - k32) <= 0.1 * k32 + 0.01, "float32 kaybı {k32}, bf16 kaybı {kbf}")
 }
 
-test "15.13a karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere sızmaz" {
+test "15.13 karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     değişken x = tensör([[1.001]])
     değişken y = tensör([[1.0]])
     değişken görev = []
+    değişken ana_hesapladı = yanlış
     eşzamanlı {
         karışık_hassasiyet("bf16") {
             görev.ekle((x @ y).değer[0][0])
-            bekle(0.3)   // kilit (GIL) bırakılır; ana görev bu sırada çalışır
+            // Ana görev hesabını bitirene kadar blokta kal (bekle kilidi bırakır). Süreye değil
+            // bayrağa bakılır: yüklü bir makinede de sıra aynıdır.
+            değişken t = 0
+            döngü değil ana_hesapladı ve t < 20000 {
+                bekle(0.001)
+                t += 1
+            }
             görev.ekle((x @ y).değer[0][0])
         }
     }
-    // Görev bloğa girip beklemeye başlayana kadar bekle.
+    // Görev bloğa girip ilk sonucu yazana kadar bekle.
     değişken tur = 0
-    döngü uzunluk(görev) == 0 ve tur < 500 {
-        bekle(0.01)
+    döngü uzunluk(görev) == 0 ve tur < 20000 {
+        bekle(0.001)
         tur += 1
     }
     eşit_mi(1, uzunluk(görev))
     // Görev bf16 bloğundayken ana görev float32 ile ve kendi fp16 bloğuyla hesaplar.
     eşit_mi(1.001, (x @ y).değer[0][0])
     eşit_mi(1.0009766, karışık_hassasiyet("fp16") { (x @ y).değer[0][0] })
+    ana_hesapladı = doğru
     bekle_hepsi()
     // Görev, beklemeden sonra da kendi (bf16) türünü görür.
     eşit_mi([1.0, 1.0], görev)
 }
 
-test "15.7a iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar kaybolmaz" {
+test "15.7 iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar kaybolmaz" {
     fonksiyon eğit(ana) {
         değişken p = tensör([1.0], tür: "bf16", türev_izle: doğru)
         değişken opt = SGD([p], öğrenme_oranı: 0.001, ana_kopya: ana)

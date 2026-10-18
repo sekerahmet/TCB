@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -13,9 +14,13 @@ import (
 // (**4.2** gibi) testler/ klasöründe adı o numarayla başlayan en az bir testi olmalı; tersine,
 // her test numarası tanımda bir kurala karşılık gelmeli. Ardından tüm testler geçmelidir.
 
+// Kural numaraları harfli olabilir (**2.9a**, **6.3a**); testin numarası da harfiyle
+// birlikte okunur ve tanımdaki bir kurala tam olarak karşılık gelmelidir (test "6.3a ...",
+// kural **6.3a**). Harf yalnızca harfli kurallar içindir; aynı kuralın birden çok testi aynı
+// numarayı taşır.
 var (
-	kuralRe = regexp.MustCompile(`\*\*(\d+\.\d+)\*\*`)
-	testRe  = regexp.MustCompile(`(?m)^test "(\d+\.\d+)[a-z]?\s`)
+	kuralRe = regexp.MustCompile(`\*\*(\d+\.\d+[a-z]?)\*\*`)
+	testRe  = regexp.MustCompile(`(?m)^test "(\d+\.\d+[a-z]?)\s`)
 )
 
 func TestHerKuralBirTestte(t *testing.T) {
@@ -55,6 +60,36 @@ func TestHerKuralBirTestte(t *testing.T) {
 	sort.Strings(eksik)
 	if len(eksik) > 0 {
 		t.Errorf("testi olmayan kurallar: %v", eksik)
+	}
+	// Harfli kurallar kapıdan kaçmamalı (eski düzenli ifade onları hiç saymıyordu).
+	for _, k := range []string{"2.9a", "6.3a"} {
+		if !kurallar[k] {
+			t.Errorf("harfli kural %s tanımda bulunamadı; kapının düzenli ifadesi harfli kuralları kapsamalı", k)
+		}
+	}
+}
+
+// testler/olumsuz/ altındaki bilerek hatalı modüller (yükleme hatası beklenen olumsuz
+// testler) bir teste bağlı olmalı: kullanılmayan bir fikstür hiçbir şeyi sınamaz.
+func TestOlumsuzFiksturlerKullanilir(t *testing.T) {
+	fiksturler, _ := filepath.Glob("../../testler/olumsuz/*.tr")
+	if len(fiksturler) == 0 {
+		t.Fatal("testler/olumsuz/ altında fikstür bulunamadı")
+	}
+	var tum []byte
+	dosyalar, _ := filepath.Glob("../../testler/*_test.tr")
+	for _, d := range dosyalar {
+		veri, err := os.ReadFile(d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tum = append(tum, veri...)
+	}
+	for _, f := range fiksturler {
+		ad := strings.TrimSuffix(filepath.Base(f), ".tr")
+		if !bytes.Contains(tum, []byte(`aktar "olumsuz/`+ad+`"`)) {
+			t.Errorf("%s hiçbir testte aktarılmıyor", filepath.Base(f))
+		}
 	}
 }
 
