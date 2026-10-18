@@ -6,7 +6,24 @@ package tensor
 const (
 	mr = 4 // mikro çekirdek satır sayısı
 	nr = 2 // mikro çekirdek sütun sayısı
+	// dogrudanA tam A panellerinin paketlenmeden okunması (bu çekirdekte hayır).
+	dogrudanA = false
 )
+
+// mikroA C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks]. Bu derlemede gemm
+// tarafından kullanılmaz (dogrudanA = false); arayüz eşliği ve testler için
+// basit döngülerle uygulanmıştır.
+func mikroA(kb int, a []float32, rs, ks int, bp []float32, c []float32, ldc, mm, nn int) {
+	for i := 0; i < mm; i++ {
+		for j := 0; j < nn; j++ {
+			var s float32
+			for k := 0; k < kb; k++ {
+				s += a[i*rs+k*ks] * bp[k*nr+j]
+			}
+			c[i*ldc+j] += s
+		}
+	}
+}
 
 // mikroCekirdekAdi hız raporları ve testler için çekirdeğin adı.
 const mikroCekirdekAdi = "go-4x2"

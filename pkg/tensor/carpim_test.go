@@ -122,3 +122,38 @@ func TestMikroCekirdekKenar(t *testing.T) {
 		}
 	}
 }
+
+// Adımlı A okuyan mikro çekirdek (satır öncelikli, devrik ve paketli düzenler).
+func TestMikroAAdimli(t *testing.T) {
+	rng := rand.New(rand.NewSource(34))
+	for _, kb := range []int{1, 5, 16, 64} {
+		for _, d := range [][2]int{{kb + 3, 1}, {1, mr + 2}, {1, mr}} { // (rs, ks)
+			rs, ks := d[0], d[1]
+			a := rastgeleDilim(rng, (mr-1)*rs+(kb-1)*ks+1)
+			bp := rastgeleDilim(rng, kb*nr)
+			for _, mn := range [][2]int{{mr, nr}, {mr - 1, nr}, {mr, min(3, nr)}, {1, 1}} {
+				mm, nn := mn[0], mn[1]
+				ldc := nr + 1
+				c := rastgeleDilim(rng, mr*ldc)
+				want := make([]float64, len(c))
+				for i := range c {
+					want[i] = float64(c[i])
+				}
+				for i := 0; i < mm; i++ {
+					for j := 0; j < nn; j++ {
+						for k := 0; k < kb; k++ {
+							want[i*ldc+j] += float64(a[i*rs+k*ks]) * float64(bp[k*nr+j])
+						}
+					}
+				}
+				mikroA(kb, a, rs, ks, bp, c, ldc, mm, nn)
+				for i := range c {
+					if math.Abs(float64(c[i])-want[i]) > 1e-4*(1+math.Abs(want[i])) {
+						t.Fatalf("%s mikroA kb=%d rs=%d ks=%d mm=%d nn=%d: [%d] = %v, beklenen %v",
+							mikroCekirdekAdi, kb, rs, ks, mm, nn, i, c[i], want[i])
+					}
+				}
+			}
+		}
+	}
+}

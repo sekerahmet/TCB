@@ -619,18 +619,20 @@ func sigmoid32(x float32) float32 {
 	return e / (1 + e)
 }
 
-// gelu32 tanh yaklaşımlı GELU.
+// gelu32 tanh yaklaşımlı GELU. 0.5·(1 + tanh(u)) = σ(2u) özdeşliğiyle tek bir
+// üstel ve bölmeyle hesaplanır: x / (1 + e^{-2u}) (uçlarda 0 ve x'e gider).
 func gelu32(x float32) float32 {
 	u := geluC * (x + geluA*x*x*x)
-	return 0.5 * x * (1 + tanhf32(u))
+	return x / (1 + expf32(-2*u))
 }
 
-// geluTurev32 GELU'nun x'e göre türevi.
+// geluTurev32 GELU'nun x'e göre türevi: s = σ(2u) ile
+// s + 2·x·s·(1-s)·u'  (0.5(1+tanh) = s, 0.5(1-tanh²) = 2s(1-s)).
 func geluTurev32(x float32) float32 {
 	u := geluC * (x + geluA*x*x*x)
-	th := tanhf32(u)
+	s := 1 / (1 + expf32(-2*u))
 	du := geluC * (1 + 3*geluA*x*x)
-	return 0.5*(1+th) + 0.5*x*(1-th*th)*du
+	return s + 2*x*s*(1-s)*du
 }
 
 // unaryMaliyet bir elemanın yaklaşık göreli maliyeti (işçi sayısı seçimi için).

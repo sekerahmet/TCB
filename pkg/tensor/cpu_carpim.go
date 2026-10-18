@@ -219,7 +219,16 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 			if kb > kcBlok {
 				kb = kcBlok
 			}
-			packA(aB, ais, aks, i0, m, p0, kb, ap)
+			tam := 0 // doğrudan okunacak tam A paneli sayısı
+			if dogrudanA {
+				tam = m / mr
+				if m > tam*mr {
+					// Yalnızca kenar paneli (sıfır dolgulu) paketlenir.
+					packA(aB, ais, aks, i0+tam*mr, m-tam*mr, p0, kb, ap)
+				}
+			} else {
+				packA(aB, ais, aks, i0, m, p0, kb, ap)
+			}
 			for jp := jp0; jp < jp1; jp++ {
 				j0 := jp * nr
 				nn := N - j0
@@ -232,7 +241,15 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 					if mm > mr {
 						mm = mr
 					}
-					microKernel(kb, ap[ip*kb*mr:(ip+1)*kb*mr], bpan, cB[(i0+ip*mr)*N+j0:], N, mm, nn)
+					cBlok := cB[(i0+ip*mr)*N+j0:]
+					switch {
+					case ip < tam:
+						mikroA(kb, aB[(i0+ip*mr)*ais+p0*aks:], ais, aks, bpan, cBlok, N, mm, nn)
+					case dogrudanA:
+						microKernel(kb, ap[:kb*mr], bpan, cBlok, N, mm, nn)
+					default:
+						microKernel(kb, ap[ip*kb*mr:(ip+1)*kb*mr], bpan, cBlok, N, mm, nn)
+					}
 				}
 			}
 		}

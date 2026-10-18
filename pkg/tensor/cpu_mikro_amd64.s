@@ -2,19 +2,29 @@
 
 #include "textflag.h"
 
-// func sgemm6x16(kb int, ap, bp, c *float32, ldc int)
+// func sgemm6x16(kb int, a *float32, rs, ks int, bp, c *float32, ldc int)
 //
-// C[0:6, 0:16] += Σ_k A[k, 0:6]ᵀ · B[k, 0:16]
+// C[0:6, 0:16] += Σ_k A(0:6, k) · B[k, 0:16]
+// A(r, k) = a[r*rs + k*ks] (paketli: rs=1, ks=6; satır öncelikli: rs=lda, ks=1;
+// devrik: rs=1, ks=M). B paketli (kb×16), C satır adımı ldc (hepsi eleman).
+//
 // Y4..Y15: biriktiriciler (satır r için Y(4+2r) sütun 0-7, Y(5+2r) sütun 8-15)
 // Y0, Y1: B satırı; Y2, Y3: yayınlanan A elemanları.
-// Döngü ikişer k adımı açılmıştır; tek kalan adım ayrıca işlenir.
-TEXT ·sgemm6x16(SB), NOSPLIT, $0-40
+// SI: A satır 0, R11: A satır 3 (= SI + 3·rs); satır 1, 2, 4, 5 R10 = rs ile
+// adreslenir. Her k adımında SI ve R11, R12 = ks bayt ilerler.
+TEXT ·sgemm6x16(SB), NOSPLIT, $0-56
 	MOVQ kb+0(FP), CX
-	MOVQ ap+8(FP), SI
-	MOVQ bp+16(FP), DI
-	MOVQ c+24(FP), DX
-	MOVQ ldc+32(FP), R8
+	MOVQ a+8(FP), SI
+	MOVQ rs+16(FP), R10
+	MOVQ ks+24(FP), R12
+	MOVQ bp+32(FP), DI
+	MOVQ c+40(FP), DX
+	MOVQ ldc+48(FP), R8
+	SHLQ $2, R10
+	SHLQ $2, R12
 	SHLQ $2, R8
+	LEAQ (R10)(R10*2), R11
+	ADDQ SI, R11
 
 	VXORPS Y4, Y4, Y4
 	VXORPS Y5, Y5, Y5
@@ -29,81 +39,35 @@ TEXT ·sgemm6x16(SB), NOSPLIT, $0-40
 	VXORPS Y14, Y14, Y14
 	VXORPS Y15, Y15, Y15
 
-	MOVQ CX, R9
-	SHRQ $1, R9
-	JZ   tek
+	TESTQ CX, CX
+	JZ    yaz
 
-ikili:
+dongu:
 	VMOVUPS      (DI), Y0
 	VMOVUPS      32(DI), Y1
 	VBROADCASTSS (SI), Y2
-	VBROADCASTSS 4(SI), Y3
+	VBROADCASTSS (SI)(R10*1), Y3
 	VFMADD231PS  Y0, Y2, Y4
 	VFMADD231PS  Y1, Y2, Y5
 	VFMADD231PS  Y0, Y3, Y6
 	VFMADD231PS  Y1, Y3, Y7
-	VBROADCASTSS 8(SI), Y2
-	VBROADCASTSS 12(SI), Y3
+	VBROADCASTSS (SI)(R10*2), Y2
+	VBROADCASTSS (R11), Y3
 	VFMADD231PS  Y0, Y2, Y8
 	VFMADD231PS  Y1, Y2, Y9
 	VFMADD231PS  Y0, Y3, Y10
 	VFMADD231PS  Y1, Y3, Y11
-	VBROADCASTSS 16(SI), Y2
-	VBROADCASTSS 20(SI), Y3
+	VBROADCASTSS (R11)(R10*1), Y2
+	VBROADCASTSS (R11)(R10*2), Y3
 	VFMADD231PS  Y0, Y2, Y12
 	VFMADD231PS  Y1, Y2, Y13
 	VFMADD231PS  Y0, Y3, Y14
 	VFMADD231PS  Y1, Y3, Y15
-
-	VMOVUPS      64(DI), Y0
-	VMOVUPS      96(DI), Y1
-	VBROADCASTSS 24(SI), Y2
-	VBROADCASTSS 28(SI), Y3
-	VFMADD231PS  Y0, Y2, Y4
-	VFMADD231PS  Y1, Y2, Y5
-	VFMADD231PS  Y0, Y3, Y6
-	VFMADD231PS  Y1, Y3, Y7
-	VBROADCASTSS 32(SI), Y2
-	VBROADCASTSS 36(SI), Y3
-	VFMADD231PS  Y0, Y2, Y8
-	VFMADD231PS  Y1, Y2, Y9
-	VFMADD231PS  Y0, Y3, Y10
-	VFMADD231PS  Y1, Y3, Y11
-	VBROADCASTSS 40(SI), Y2
-	VBROADCASTSS 44(SI), Y3
-	VFMADD231PS  Y0, Y2, Y12
-	VFMADD231PS  Y1, Y2, Y13
-	VFMADD231PS  Y0, Y3, Y14
-	VFMADD231PS  Y1, Y3, Y15
-
-	ADDQ $48, SI
-	ADDQ $128, DI
-	DECQ R9
-	JNZ  ikili
-
-tek:
-	ANDQ $1, CX
-	JZ   yaz
-	VMOVUPS      (DI), Y0
-	VMOVUPS      32(DI), Y1
-	VBROADCASTSS (SI), Y2
-	VBROADCASTSS 4(SI), Y3
-	VFMADD231PS  Y0, Y2, Y4
-	VFMADD231PS  Y1, Y2, Y5
-	VFMADD231PS  Y0, Y3, Y6
-	VFMADD231PS  Y1, Y3, Y7
-	VBROADCASTSS 8(SI), Y2
-	VBROADCASTSS 12(SI), Y3
-	VFMADD231PS  Y0, Y2, Y8
-	VFMADD231PS  Y1, Y2, Y9
-	VFMADD231PS  Y0, Y3, Y10
-	VFMADD231PS  Y1, Y3, Y11
-	VBROADCASTSS 16(SI), Y2
-	VBROADCASTSS 20(SI), Y3
-	VFMADD231PS  Y0, Y2, Y12
-	VFMADD231PS  Y1, Y2, Y13
-	VFMADD231PS  Y0, Y3, Y14
-	VFMADD231PS  Y1, Y3, Y15
+	ADDQ         R12, SI
+	ADDQ         R12, R11
+	ADDQ         $64, DI
+	DECQ         CX
+	JNZ          dongu
 
 yaz:
 	VADDPS  (DX), Y4, Y4

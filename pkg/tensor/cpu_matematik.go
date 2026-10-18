@@ -13,6 +13,7 @@ const (
 	log2e32      = 1.44269504088896341
 	ln2Yuksek    = 0.693359375    // ln2'nin üst kısmı (tam gösterilebilir)
 	ln2Dusuk     = -2.12194440e-4 // ln2 - ln2Yuksek
+	expSifir     = -104           // bunun altında e^x float32'de 0'dır
 	yuvarlaSihir = 12582912       // 1.5·2^23
 	tanhKucuk    = 0.625          // bunun altında tanh için polinom
 	tanhDoyum    = 9              // tanh bunun üstünde float32'de ±1'dir
@@ -23,7 +24,10 @@ const (
 // bölgeler (taşma, normal altı, NaN) float64 kütüphane işleviyle hesaplanır.
 func expf32(x float32) float32 {
 	if !(x > expAltSinir && x < expUstSinir) {
-		// NaN, ±sonsuz, taşma ve normal altı sonuçlar.
+		if x < expSifir {
+			return 0 // -sonsuz dahil (ör. maskelenmiş dikkat puanları)
+		}
+		// NaN, +sonsuz, taşma ve normal altı sonuçlar.
 		return float32(math.Exp(float64(x)))
 	}
 	return expAralikta(x)
