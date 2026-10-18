@@ -24,6 +24,8 @@ type Secenekler struct {
 }
 
 // Kodla metni token kimliklerine çevirir (varsayılan seçeneklerle).
+// Parçalayıcının bir düzenli ifadesi adım sınırını aşarsa *AdimSiniriHatasi
+// ile panikler; kullanıcı girdisi işleyen sunucular GuvenliKodla kullanmalıdır.
 func (p *Parcalayici) Kodla(metin string) []int {
 	return p.KodlaSecenekli(metin, Secenekler{})
 }
@@ -215,10 +217,20 @@ func paralel(is, isci int, f func(i int)) {
 	}
 	var sayac atomic.Int64
 	var wg sync.WaitGroup
+	// Bir işçideki panik (ör. adım sınırı) süreci çökertmesin; çağıran
+	// goroutine'de yeniden panik olarak yükseltilir.
+	var panikBir sync.Once
+	var panikDeger any
 	wg.Add(isci)
 	for w := 0; w < isci; w++ {
 		go func() {
 			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					panikBir.Do(func() { panikDeger = r })
+					sayac.Store(int64(is)) // kalan işleri bırak
+				}
+			}()
 			for {
 				i := int(sayac.Add(1)) - 1
 				if i >= is {
@@ -229,6 +241,9 @@ func paralel(is, isci int, f func(i int)) {
 		}()
 	}
 	wg.Wait()
+	if panikDeger != nil {
+		panic(panikDeger)
+	}
 }
 
 // TopluKodla metinleri paralel olarak kodlar; sonuç sırası girdi sırasıyla

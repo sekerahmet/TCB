@@ -59,8 +59,9 @@ type (
 
 // DuzIfade derlenmiş bir desendir.
 type DuzIfade struct {
-	kaynak string
-	kok    dfDugum
+	kaynak   string
+	kok      dfDugum
+	uyarilar []string
 }
 
 // DuzIfadeDerle deseni derler; desteklenmeyen bir yapı görülürse hata döner.
@@ -73,7 +74,14 @@ func DuzIfadeDerle(desen string) (*DuzIfade, error) {
 	if a.i < len(a.s) {
 		return nil, fmt.Errorf("düzenli ifade %q: %d. konumda beklenmeyen ')'", desen, a.i)
 	}
-	return &DuzIfade{kaynak: desen, kok: kok}, nil
+	hata, uyarilar := dfRiskCozumle(kok)
+	if hata != "" && !DuzIfadeAyarlariniAl().RiskliDesenIzni {
+		return nil, fmt.Errorf("düzenli ifade %q reddedildi: %s (izin için DuzIfadeAyarlari.RiskliDesenIzni)", desen, hata)
+	}
+	if hata != "" {
+		uyarilar = append([]string{hata}, uyarilar...)
+	}
+	return &DuzIfade{kaynak: desen, kok: kok, uyarilar: uyarilar}, nil
 }
 
 func (d *DuzIfade) String() string { return d.kaynak }
@@ -856,7 +864,21 @@ func dfOzellikKur() {
 // ---------------------------------------------------------------------------
 
 type dfEslestirici struct {
-	s string
+	s      string
+	desen  string
+	adim   int64 // geçerli aramada atılan adım
+	butce  int64 // geçerli aramanın adım bütçesi
+	bas    int   // geçerli aramanın başlangıcı (hata iletisi için)
+	toplam int64 // bütün aramalarda atılan adım (ölçüm için)
+}
+
+// say n adımı bütçeden düşer; bütçe aşılırsa AdimSiniriHatasi ile panikler
+// (dışa açık işlevlerde hataya çevrilir).
+func (m *dfEslestirici) say(n int64) {
+	m.adim += n
+	if m.adim > m.butce {
+		panic(&AdimSiniriHatasi{Desen: m.desen, Konum: m.bas, Butce: m.butce})
+	}
 }
 
 func (m *dfEslestirici) onceki(pos int) (rune, int) {
@@ -911,6 +933,7 @@ func (m *dfEslestirici) tekKarakter(d dfDugum, pos int) (int, bool, bool) {
 
 // esle d düğümünü pos'ta eşlemeye çalışır; her olası bitişte k çağrılır.
 func (m *dfEslestirici) esle(d dfDugum, pos int, k func(int) bool) bool {
+	m.say(1)
 	if p, ok, tek := m.tekKarakter(d, pos); tek {
 		return ok && k(p)
 	}
@@ -1005,6 +1028,7 @@ func (m *dfEslestirici) esleDizi(ogeler []dfDugum, pos int, k func(int) bool) bo
 		if !ok {
 			return false
 		}
+		m.say(1)
 		pos = p
 		ogeler = ogeler[1:]
 	}
@@ -1028,11 +1052,13 @@ func (m *dfEslestirici) tekrar(x *dfTekrar, sayi, pos int, k func(int) bool) boo
 			p = q
 			konumlar = append(konumlar, p)
 		}
+		m.say(int64(len(konumlar)))
 		if len(konumlar)-1 < x.en {
 			return false
 		}
 		if x.tembel {
 			for i := x.en; i < len(konumlar); i++ {
+				m.say(1)
 				if k(konumlar[i]) {
 					return true
 				}
@@ -1040,6 +1066,7 @@ func (m *dfEslestirici) tekrar(x *dfTekrar, sayi, pos int, k func(int) bool) boo
 			return false
 		}
 		for i := len(konumlar) - 1; i >= x.en; i-- {
+			m.say(1)
 			if k(konumlar[i]) {
 				return true
 			}
@@ -1074,37 +1101,43 @@ func (d *DuzIfade) esleKonumda(m *dfEslestirici, pos int) (int, bool) {
 	return son, son >= 0
 }
 
-// Bul s içinde bas konumundan itibaren en soldaki eşleşmeyi verir.
-func (d *DuzIfade) Bul(s string, bas int) (int, int, bool) {
-	m := &dfEslestirici{s: s}
-	for p := bas; p <= len(s); {
-		if e, ok := d.esleKonumda(m, p); ok {
-			return p, e, true
-		}
-		if p == len(s) {
-			break
-		}
-		_, w := m.sonraki(p)
-		p += w
-	}
-	return 0, 0, false
+// Bul s içinde bas konumundan itibaren en soldaki eşleşmeyi verir. Adım
+// bütçesi aşılırsa *AdimSiniriHatasi döner.
+func (d *DuzIfade) Bul(s string, bas int) (b, e int, ok bool, err error) {
+	err = adimHatasiniYakala(func() {
+		b, e, ok = d.bulM(&dfEslestirici{s: s, desen: d.kaynak}, bas)
+	})
+	return
+}
+
+// TumEslesmelerHata, TumEslesmeler'in hata döndüren biçimidir: adım bütçesi
+// aşılırsa arama durur ve *AdimSiniriHatasi döner.
+func (d *DuzIfade) TumEslesmelerHata(s string, f func(bas, son int)) error {
+	return adimHatasiniYakala(func() { d.tumEslesmeler(s, f) })
 }
 
 // TumEslesmeler çakışmayan bütün eşleşmeleri sırayla verir. Bir önceki
 // eşleşmenin hemen ardından gelen boş eşleşme kabul edilmez (sonsuz
-// döngüyü önler); bu durumda arama bir karakter ileriden sürer.
+// döngüyü önler); bu durumda arama bir karakter ileriden sürer. Adım bütçesi
+// aşılırsa *AdimSiniriHatasi ile panikler; hata isteyen çağıranlar
+// TumEslesmelerHata'yı (parçalayıcıda Guvenli... işlevlerini) kullanmalıdır.
 func (d *DuzIfade) TumEslesmeler(s string, f func(bas, son int)) {
-	m := &dfEslestirici{s: s}
+	d.tumEslesmeler(s, f)
+}
+
+// tumEslesmeler eşleşmeleri verir ve bütün aramalarda atılan adım sayısını döndürür.
+func (d *DuzIfade) tumEslesmeler(s string, f func(bas, son int)) int64 {
+	m := &dfEslestirici{s: s, desen: d.kaynak}
 	konum := 0
 	sonEslesme := -1
 	for konum <= len(s) {
 		b, e, ok := d.bulM(m, konum)
 		if !ok {
-			return
+			break
 		}
 		if b == e && sonEslesme == e {
 			if konum >= len(s) {
-				return
+				break
 			}
 			_, w := m.sonraki(konum)
 			konum += w
@@ -1114,9 +1147,16 @@ func (d *DuzIfade) TumEslesmeler(s string, f func(bas, son int)) {
 		konum = e
 		sonEslesme = e
 	}
+	return m.toplam
 }
 
+// bulM bas'tan itibaren ilk eşleşmeyi arar. Arama (bütün başlangıç konumları
+// dahil) tek bir adım bütçesi kullanır: AdimTabani + AdimCarpani * kalan bayt.
 func (d *DuzIfade) bulM(m *dfEslestirici, bas int) (int, int, bool) {
+	ayar := duzIfadeAyar.Load()
+	m.adim, m.bas = 0, bas
+	m.butce = ayar.AdimTabani + ayar.AdimCarpani*int64(len(m.s)-bas)
+	defer func() { m.toplam += m.adim }()
 	for p := bas; p <= len(m.s); {
 		if e, ok := d.esleKonumda(m, p); ok {
 			return p, e, true
