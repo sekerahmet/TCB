@@ -209,6 +209,130 @@ gg_s:
 	VZEROUPPER
 	RET
 
+// func ceSatirCekirdek(satir *float32, n int) (m float32, s float64)
+//
+// Çapraz entropinin satır işi: m = satırın en büyüğü (NaN'lar yok sayılır),
+// s = Σ e^{x−m} (float64, 8 kulvar; Go eşi ceSatirGo). n > 0.
+TEXT ·ceSatirCekirdek(SB), NOSPLIT, $0-32
+	MOVQ satir+0(FP), SI
+	MOVQ n+8(FP), BX
+	LEAQ ·expSabit(SB), R9
+	MOVQ BX, DX
+	SHRQ $3, BX
+	ANDQ $7, DX
+	MASKE
+	MOVL         $0xFF800000, CX
+	VMOVD        CX, X13
+	VBROADCASTSS X13, Y13
+	VMOVAPS      Y13, Y11
+	XORQ         AX, AX
+	MOVQ         BX, CX
+	TESTQ        CX, CX
+	JZ           ce_mk
+
+ce_m:
+	VMOVUPS (SI)(AX*1), Y0
+	VMAXPS  Y11, Y0, Y11
+	ADDQ    $32, AX
+	DECQ    CX
+	JNZ     ce_m
+
+ce_mk:
+	TESTQ      DX, DX
+	JZ         ce_ms
+	VMASKMOVPS (SI)(AX*1), Y14, Y0
+	VBLENDVPS  Y14, Y0, Y13, Y0
+	VMAXPS     Y11, Y0, Y11
+
+ce_ms:
+	VEXTRACTF128 $1, Y11, X0
+	VMAXPS       X11, X0, X11
+	VPERMILPS    $0x4E, X11, X0
+	VMAXPS       X11, X0, X11
+	VPERMILPS    $0xB1, X11, X0
+	VMAXPS       X11, X0, X11
+	VMOVSS       X11, m+16(FP)
+	VBROADCASTSS X11, Y11
+
+	VXORPD Y9, Y9, Y9
+	VXORPD Y10, Y10, Y10
+	XORQ   AX, AX
+	MOVQ   BX, CX
+	TESTQ  CX, CX
+	JZ     ce_tk
+
+ce_t:
+	VMOVUPS (SI)(AX*1), Y0
+	VSUBPS  Y11, Y0, Y0
+	UST
+	IKIYE64(Y3, X3, Y1, Y2, X2)
+	VADDPD  Y1, Y9, Y9
+	VADDPD  Y2, Y10, Y10
+	ADDQ    $32, AX
+	DECQ    CX
+	JNZ     ce_t
+
+ce_tk:
+	TESTQ      DX, DX
+	JZ         ce_ts
+	VMASKMOVPS (SI)(AX*1), Y14, Y0
+	VSUBPS     Y11, Y0, Y0
+	UST
+	VANDPS     Y14, Y3, Y3
+	IKIYE64(Y3, X3, Y1, Y2, X2)
+	VADDPD     Y1, Y9, Y9
+	VADDPD     Y2, Y10, Y10
+
+ce_ts:
+	TOPLA8(Y9, Y10, X9, X1)
+	VMOVSD X9, s+24(FP)
+	VZEROUPPER
+	RET
+
+// func ceGeriCekirdek(hedef, satir *float32, n int, l, k float32)
+//
+// Çapraz entropinin satır gradyanı: hedef += k·e^{x−l} (Go eşi ceGeriGo).
+TEXT ·ceGeriCekirdek(SB), NOSPLIT, $0-32
+	MOVQ         hedef+0(FP), DI
+	MOVQ         satir+8(FP), SI
+	MOVQ         n+16(FP), BX
+	VBROADCASTSS l+24(FP), Y11
+	VBROADCASTSS k+28(FP), Y10
+	LEAQ         ·expSabit(SB), R9
+	MOVQ         BX, DX
+	SHRQ         $3, BX
+	ANDQ         $7, DX
+	MASKE
+	XORQ         AX, AX
+	TESTQ        BX, BX
+	JZ           ceg_k
+
+ceg_d:
+	VMOVUPS (SI)(AX*1), Y0
+	VSUBPS  Y11, Y0, Y0
+	UST
+	VMULPS  Y10, Y3, Y3
+	VADDPS  (DI)(AX*1), Y3, Y3
+	VMOVUPS Y3, (DI)(AX*1)
+	ADDQ    $32, AX
+	DECQ    BX
+	JNZ     ceg_d
+
+ceg_k:
+	TESTQ      DX, DX
+	JZ         ceg_s
+	VMASKMOVPS (SI)(AX*1), Y14, Y0
+	VSUBPS     Y11, Y0, Y0
+	UST
+	VMULPS     Y10, Y3, Y3
+	VMASKMOVPS (DI)(AX*1), Y14, Y9
+	VADDPS     Y9, Y3, Y3
+	VMASKMOVPS Y3, Y14, (DI)(AX*1)
+
+ceg_s:
+	VZEROUPPER
+	RET
+
 // func lnIleriCekirdek(y, x, gam, bet, mean, rstd *float32, satir, boy int, dD, eps float64)
 //
 // R satırlık (satır uzunluğu D) katman ya da RMS normu. Satır başına:

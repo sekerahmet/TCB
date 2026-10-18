@@ -239,6 +239,63 @@ func TestGeluVektorGoEsi(t *testing.T) {
 	}
 }
 
+// Çapraz entropinin satır çekirdekleri Go eşleriyle aynı işlem sırasını izler:
+// en büyük tam olarak aynı, toplam ve gradyan birkaç ulp içinde olmalı; NaN
+// girdiler en büyükte yok sayılır, kuyruk dışına yazılmaz.
+func TestCaprazEntropiVektorGoEsi(t *testing.T) {
+	rng := rand.New(rand.NewSource(17))
+	for _, n := range []int{1, 3, 8, 9, 16, 131, 1000} {
+		x := make([]float32, n)
+		for i := range x {
+			x[i] = float32(rng.NormFloat64() * 4)
+		}
+		if n >= 9 {
+			x[n-1] = float32(math.NaN())
+		}
+		m1, s1 := ceSatir(x)
+		m2, s2 := ceSatirGo(x)
+		if math.Float32bits(m1) != math.Float32bits(m2) {
+			t.Fatalf("n=%d: en büyük %v, Go eşi %v", n, m1, m2)
+		}
+		if n >= 9 {
+			if s1 == s1 || s2 == s2 {
+				t.Fatalf("n=%d: NaN girdili toplam NaN olmalı: %v, %v", n, s1, s2)
+			}
+			x[n-1] = 0
+			m1, s1 = ceSatir(x)
+			m2, s2 = ceSatirGo(x)
+		}
+		var ref float64
+		for _, v := range x {
+			ref += math.Exp(float64(v) - float64(m2))
+		}
+		if math.Abs(s1-s2) > 4e-7*s2 || math.Abs(s1-ref) > 4e-7*ref {
+			t.Fatalf("n=%d: toplam %v, Go eşi %v, başvuru %v", n, s1, s2, ref)
+		}
+		l := float32(float64(m1) + math.Log(s1))
+		h1, h2 := make([]float32, n+8), make([]float32, n)
+		for i := range h1 {
+			h1[i] = 42
+			if i < n {
+				h2[i] = 42
+			}
+		}
+		ceGeri(h1[:n], x, l, 0.375)
+		ceGeriGo(h2, x, l, 0.375)
+		for i := range h1 {
+			if i >= n {
+				if h1[i] != 42 {
+					t.Fatalf("n=%d: geri yön dizinin dışına yazdı", n)
+				}
+				continue
+			}
+			if ulpFark(h1[i], h2[i]) > 2 {
+				t.Fatalf("n=%d [%d]: gradyan %v, Go eşi %v", n, i, h1[i], h2[i])
+			}
+		}
+	}
+}
+
 func geluRef(x float64) float64 {
 	return 0.5 * x * (1 + math.Tanh(geluC*(x+geluA*x*x*x)))
 }

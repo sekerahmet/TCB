@@ -85,6 +85,30 @@ func geluGeriVek(gx, g, x []float32) {
 }
 
 //go:noescape
+func ceSatirCekirdek(satir *float32, n int) (m float32, s float64)
+
+//go:noescape
+func ceGeriCekirdek(hedef, satir *float32, n int, l, k float32)
+
+// ceSatir çapraz entropinin satır işi: en büyük m ve Σ e^{x−m}; tanım ve
+// taşınabilir eşi ceSatirGo'dadır (üstel 1-2 ulp farklı olabilir).
+func ceSatir(satir []float32) (float32, float64) {
+	if len(satir) == 0 {
+		return float32(math.Inf(-1)), 0
+	}
+	return ceSatirCekirdek(&satir[0], len(satir))
+}
+
+// ceGeri hedef += k·e^{x−l}; tanım ve taşınabilir eşi ceGeriGo'dadır.
+func ceGeri(hedef, satir []float32, l, k float32) {
+	if len(satir) == 0 {
+		return
+	}
+	_ = hedef[len(satir)-1]
+	ceGeriCekirdek(&hedef[0], &satir[0], len(satir), l, k)
+}
+
+//go:noescape
 func lnIleriCekirdek(y, x, gam, bet, mean, rstd *float32, satir, boy int, dD, eps float64)
 
 //go:noescape

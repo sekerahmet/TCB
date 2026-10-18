@@ -11,6 +11,12 @@ func expVek(dst, src []float32) {
 	}
 }
 
+// ceSatir çapraz entropinin satır işi (bkz. ceSatirGo).
+func ceSatir(satir []float32) (float32, float64) { return ceSatirGo(satir) }
+
+// ceGeri hedef += k·e^{x−l} (bkz. ceGeriGo).
+func ceGeri(hedef, satir []float32, l, k float32) { ceGeriGo(hedef, satir, l, k) }
+
 // geluIleriVek y = GELU(x) (bkz. geluIleriGo).
 func geluIleriVek(y, x []float32) { geluIleriGo(y, x) }
 

@@ -34,33 +34,48 @@ func (cpuBackend) f32EmbeddingGrad(gw, g Storage, idx []int, D int) {
 	})
 }
 
+// Çapraz entropinin satır işleri ceSatir / ceGeri'dedir (GOAMD64=v3'te AVX2
+// çekirdekleri, aksi halde aşağıdaki Go eşleri; işlem sırası aynıdır, yalnızca
+// üstel 1-2 ulp farklı olabilir).
+
+// ceSatirGo satırın en büyüğü m (NaN'lar yok sayılır) ve Σ e^{x−m} (float64,
+// eleman konumuna göre 8 kulvarda; bkz. topla8).
+func ceSatirGo(satir []float32) (float32, float64) {
+	m := float32(math.Inf(-1))
+	for _, v := range satir {
+		if v > m {
+			m = v
+		}
+	}
+	var acc [8]float64
+	for j, v := range satir {
+		acc[j&7] += float64(expf32(v - m))
+	}
+	return m, topla8(&acc)
+}
+
+// ceGeriGo hedef += k·e^{x−l} (l = log Σ e^x: softmax'ın k katı).
+func ceGeriGo(hedef, satir []float32, l, k float32) {
+	hedef = hedef[:len(satir)]
+	for c, v := range satir {
+		hedef[c] += float32(k * expf32(v-l))
+	}
+}
+
 func (cpuBackend) f32CrossEntropy(x View, targets []int, C int) (Storage, Storage) {
 	xd := gatherCPU(x)
 	R := len(targets)
 	lse := make([]float32, R)
 	kayip := make([]float64, R)
 	parallelFor(R, C*8, func(lo, hi int) {
-		tmp := make([]float32, C)
 		for r := lo; r < hi; r++ {
 			t := targets[r]
 			if t < 0 {
 				continue
 			}
 			row := xd[r*C : (r+1)*C]
-			m := math.Inf(-1)
-			for _, v := range row {
-				if float64(v) > m {
-					m = float64(v)
-				}
-			}
-			var s float64
-			m32 := float32(m)
-			for c, v := range row {
-				tmp[c] = v - m32
-			}
-			expVek(tmp, tmp)
-			s = toplam64(tmp)
-			l := m + math.Log(s)
+			m, s := ceSatir(row)
+			l := float64(m) + math.Log(s)
 			lse[r] = float32(l)
 			kayip[r] = l - float64(row[t])
 		}
@@ -94,23 +109,13 @@ func (cpuBackend) f32CrossEntropyGrad(gx, g Storage, x View, lse Storage, target
 	pg, ld := cd(gx), cd(lse)
 	k := float64(cd(g)[0]) / float64(gecerli)
 	parallelFor(len(targets), C*4, func(lo, hi int) {
-		tmp := make([]float32, C)
 		for r := lo; r < hi; r++ {
 			t := targets[r]
 			if t < 0 {
 				continue
 			}
-			row := xd[r*C : (r+1)*C]
 			dst := pg[r*C : (r+1)*C]
-			l := ld[r]
-			k32 := float32(k)
-			for c, v := range row {
-				tmp[c] = v - l
-			}
-			expVek(tmp, tmp)
-			for c, e := range tmp {
-				dst[c] += k32 * e
-			}
+			ceGeri(dst, xd[r*C:(r+1)*C], ld[r], float32(k))
 			dst[t] -= float32(k)
 		}
 	})
