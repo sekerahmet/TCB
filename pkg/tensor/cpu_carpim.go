@@ -34,6 +34,28 @@ const (
 	isciBasinaEnAz = 1 << 17
 )
 
+// Paketleme tamponları çağrılar arasında yeniden kullanılır (eğitimde aynı
+// boyutlar her adımda yinelenir). Paketleme tamponun gereken her elemanını
+// yazdığından sıfırlama gerekmez. A ve B tamponları boyutları çok farklı
+// olduğu için ayrı havuzlardadır.
+var (
+	paketHavuzA sync.Pool // *[]float32
+	paketHavuzB sync.Pool // *[]float32
+)
+
+// paketAl havuzdan en az n elemanlı bir tampon alır (yetmezse yenisini ayırır).
+func paketAl(h *sync.Pool, n int) *[]float32 {
+	if p, ok := h.Get().(*[]float32); ok {
+		if cap(*p) >= n {
+			*p = (*p)[:n]
+			return p
+		}
+		h.Put(p)
+	}
+	s := make([]float32, n)
+	return &s
+}
+
 // packBPanel op(B)'nin jp. nr genişlikli panelini dst'ye (K×nr) yazar.
 // op(B)(k, j) = b[k*bks + j*bjs]. N'yi aşan sütunlar sıfırla doldurulur.
 func packBPanel(b []float32, bks, bjs, K, N, jp int, dst []float32) {
@@ -164,7 +186,9 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 	}
 	np := (N + nr - 1) / nr
 	bpLen := np * K * nr
-	bp := make([]float32, batch*bpLen)
+	bpTampon := paketAl(&paketHavuzB, batch*bpLen)
+	defer paketHavuzB.Put(bpTampon)
+	bp := *bpTampon
 	parallelFor(batch*np, K*nr, func(lo, hi int) {
 		for t := lo; t < hi; t++ {
 			bi, jp := t/np, t%np
@@ -259,10 +283,11 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 
 	apBoy := rb * kcMax
 	if W == 1 {
-		ap := make([]float32, apBoy)
+		apTampon := paketAl(&paketHavuzA, apBoy)
 		for t := 0; t < nt; t++ {
-			calis(t, ap)
+			calis(t, *apTampon)
 		}
+		paketHavuzA.Put(apTampon)
 		return
 	}
 	var next atomic.Int64
@@ -271,7 +296,9 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 	for w := 0; w < W; w++ {
 		go func() {
 			defer wg.Done()
-			ap := make([]float32, apBoy)
+			apTampon := paketAl(&paketHavuzA, apBoy)
+			defer paketHavuzA.Put(apTampon)
+			ap := *apTampon
 			for {
 				t := int(next.Add(1) - 1)
 				if t >= nt {

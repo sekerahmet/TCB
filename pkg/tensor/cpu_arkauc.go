@@ -301,6 +301,18 @@ func (cpuBackend) ScatterAdd(dst Storage, dstOff int, dstStrides []int, src Stor
 
 func (cpuBackend) ExpandAdd(dst Storage, dstShape []int, src Storage, srcShape []int, scale float32) {
 	d, s := cd(dst), cd(src)
+	if numelOf(srcShape) == 1 {
+		// Skaler yayın (SumAll/MeanAll geri yayılımı).
+		v := scale * s[0]
+		d = d[:numelOf(dstShape)]
+		parallelFor(len(d), 1, func(lo, hi int) {
+			p := d[lo:hi]
+			for i := range p {
+				p[i] += v
+			}
+		})
+		return
+	}
 	sst := broadcastStrides(contiguousStrides(srcShape), srcShape, dstShape)
 	iterRowsPar(dstShape, []int{0, 0}, [][]int{contiguousStrides(dstShape), sst}, 0, func(off []int, n int, in []int) {
 		di, si, ds, ss := off[0], off[1], in[0], in[1]
