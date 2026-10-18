@@ -25,7 +25,25 @@ func Yaz(val yurut.Value) ([]byte, error) { return YazGirintili(val, "") }
 // YazGirintili değeri her seviyede girinti kadar içeri alarak yazar; girinti boşsa
 // boşluksuz yazar.
 func YazGirintili(val yurut.Value, girinti string) ([]byte, error) {
-	y := yazici{girinti: girinti}
+	return YazSecenekli(val, Secenekler{Girinti: girinti})
+}
+
+// Secenekler yazımı ayarlar; sıfır değeri Yaz ile aynıdır.
+type Secenekler struct {
+	// Girinti her seviyede eklenen girintidir; boşsa boşluksuz yazılır.
+	Girinti string
+	// SayiDisiMetin Tanımsız (NaN) ve sonsuz sayıları hata yerine TR'deki yazımlarıyla metin
+	// olarak yazar ("NaN", "+Sonsuz", "-Sonsuz"); eğitim günlüğünde kayıpta beliren NaN
+	// gizlenmesin diye.
+	SayiDisiMetin bool
+	// Metin yazılan her metne (sözlük anahtarları dahil) uygulanır, ör. gizli değer süzgeci;
+	// nil ise metinler olduğu gibi yazılır.
+	Metin func(string) string
+}
+
+// YazSecenekli değeri verilen seçeneklerle yazar.
+func YazSecenekli(val yurut.Value, s Secenekler) ([]byte, error) {
+	y := yazici{girinti: s.Girinti, sayiDisiMetin: s.SayiDisiMetin, metinSuzgeci: s.Metin}
 	if err := y.deger(val, 0); err != nil {
 		return nil, err
 	}
@@ -33,9 +51,11 @@ func YazGirintili(val yurut.Value, girinti string) ([]byte, error) {
 }
 
 type yazici struct {
-	b       []byte
-	girinti string
-	gezgin  yurut.DisGezgin
+	b             []byte
+	girinti       string
+	sayiDisiMetin bool
+	metinSuzgeci  func(string) string
+	gezgin        yurut.DisGezgin
 }
 
 func (y *yazici) satir(derinlik int) {
@@ -49,12 +69,19 @@ func (y *yazici) satir(derinlik int) {
 }
 
 func (y *yazici) metin(s string) {
+	if y.metinSuzgeci != nil {
+		s = y.metinSuzgeci(s)
+	}
 	b, _ := json.Marshal(s) // metin her zaman yazılabilir
 	y.b = append(y.b, b...)
 }
 
 func (y *yazici) sayi(f float64) error {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
+		if y.sayiDisiMetin {
+			y.metin((&yurut.FloatVal{Val: f}).Inspect())
+			return nil
+		}
 		return fmt.Errorf("%s sayısı JSON'a yazılamaz (JSON'da Tanımsız ya da sonsuz sayı yoktur)", (&yurut.FloatVal{Val: f}).Inspect())
 	}
 	// encoding/json ile aynı biçim: küçük ve çok büyük sayılarda bilimsel yazım

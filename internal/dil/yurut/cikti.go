@@ -58,6 +58,10 @@ func (v *VM) GizliDegerEkle(deger string) bool {
 	return true
 }
 
+// GizliDegerVar süzgece kayıtlı bir gizli değer var mı? Çıktının tamamını gezmenin pahalı
+// olduğu yerler (ör. hata ayıklama iletileri) önce buna bakar.
+func (v *VM) GizliDegerVar() bool { return v.maske.Load() != nil }
+
 // Maskele metindeki kayıtlı gizli değerleri GizliMaske ile değiştirir.
 func (v *VM) Maskele(metin string) string {
 	if r := v.maske.Load(); r != nil {

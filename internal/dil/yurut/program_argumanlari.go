@@ -23,6 +23,17 @@ func (v *VM) Argumanlar() []string {
 	return append([]string(nil), v.argumanlar...)
 }
 
+// ProgramKomutu programı başlatan komutun yazımıdır (KomutAdi; boşsa "tr <SourceFile>").
+func (v *VM) ProgramKomutu() string {
+	if v.KomutAdi != "" {
+		return v.KomutAdi
+	}
+	if v.SourceFile == "" {
+		return "tr"
+	}
+	return "tr " + v.SourceFile
+}
+
 // KullanilmayanArgumanUyarisi program argümanları okumadan bittiyse standart hataya
 // yazılacak uyarıdır; argüman verilmediyse ya da okunduysa boştur.
 func (v *VM) KullanilmayanArgumanUyarisi() string {

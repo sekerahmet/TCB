@@ -79,6 +79,10 @@ type vmShared struct {
 	wg         sync.WaitGroup
 	SourceFile string
 	SourceCode string
+	// KomutAdi programı başlatan komuttur (ör. "tr egit.tr", derlenmiş uygulamada
+	// "uygulama.exe"); komut satırı seçeneklerinin yardımında ve hatalarında gösterilir.
+	// Boşsa "tr <SourceFile>" kullanılır.
+	KomutAdi   string
 	importedMu sync.Mutex
 	Imported   map[string]*DictVal
 	// yuklenen yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı

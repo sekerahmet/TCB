@@ -1,7 +1,6 @@
 package yurut
 
 import (
-	"errors"
 	"fmt"
 	"tr_dili/internal/dil/agac"
 	"tr_dili/internal/dil/kod"
@@ -223,8 +222,8 @@ func (c *derleyici) deneYakalaDeyimi(k *derleyiciKapsam, s *agac.TryCatchStateme
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, sig, err := dene(v, env)
 		if err != nil {
-			if errors.Is(err, ErrKesildi) {
-				return nil, signalNone, err // kesilme (Ctrl+C) yakalanmaz
+			if yakalanamaz(err) {
+				return nil, signalNone, err // kesilme (Ctrl+C) ve program çıkışı isteği yakalanmaz
 			}
 			catchEnv := yeniOrtam(env, bilgi)
 			catchEnv.tanimla(hataYuva, &StringVal{Val: err.Error()}, false)
