@@ -55,6 +55,10 @@ type Checker struct {
 	uyarilar []string
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
 	returnType string
+	// genelAdlar tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
+	// adHatalari son CheckProgram çağrısının tanımsız ad hatalarıdır (tanimsiz_adlar.go).
+	genelAdlar *adKapsami
+	adHatalari []string
 }
 
 func New() *Checker {
@@ -187,9 +191,15 @@ func typesCompatible(expected, actual string) bool {
 }
 
 func (c *Checker) CheckProgram(prog *agac.Program) []string {
+	bas := len(c.errors)
 	for _, stmt := range prog.Statements {
 		c.checkStatement(stmt)
 	}
+	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir.
+	c.adHatalari = c.adHatalari[:0]
+	c.adlariDenetle(prog)
+	c.errors = append(c.errors, c.adHatalari...)
+	satiraGoreSirala(c.errors[bas:])
 	return c.errors
 }
 

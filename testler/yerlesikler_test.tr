@@ -155,27 +155,26 @@ test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör i�
     değişken hatalar = []
     dene { uzunluk(l) } yakala h { hatalar.ekle(h) }
     dene { sırala(l) } yakala h { hatalar.ekle(h) }
-    dene { filtrele(l, (x) => x > 1) } yakala h { hatalar.ekle(h) }
-    dene { indirge(l, (a, x) => a + x) } yakala h { hatalar.ekle(h) }
-    dene { ekle(l, 4) } yakala h { hatalar.ekle(h) }
-    dene { devrik(tensör([[1, 2]])) } yakala h { hatalar.ekle(h) }
     dene { l.toplam() } yakala h { hatalar.ekle(h) }
     dene { l.ortalama() } yakala h { hatalar.ekle(h) }
     dene { tensör([1.0]).toplam } yakala h { hatalar.ekle(h) }
-    dene { boy(l) } yakala h { hatalar.ekle(h) }
     dene { l.indirge((a, x) => a + x, 0) } yakala h { hatalar.ekle(h) }
-    eşit_mi(11, hatalar.uzunluk, metin(hatalar))
+    eşit_mi(6, hatalar.uzunluk, metin(hatalar))
+    // uzunluk ve sırala bu kapsamda aşağıda tanımlandığı için (kullanımdan önce) çalışma
+    // anında bulunur; tanımsız adlar ise çalışmadan önce (5.14, olumsuz/tasinan_adlar.tr).
     doğrula(hatalar[0].içerir("'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın"), hatalar[0])
     doğrula(hatalar[1].içerir("'sırala(...)' TR'de bir fonksiyon değil; 'liste.sırala()' yazın"), hatalar[1])
-    doğrula(hatalar[2].içerir("'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın"), hatalar[2])
-    doğrula(hatalar[3].içerir("'indirge(...)' TR'de bir fonksiyon değil; 'liste.indirge(...)' yazın"), hatalar[3])
-    doğrula(hatalar[4].içerir("'ekle(...)' TR'de bir fonksiyon değil; 'liste.ekle(...)' yazın"), hatalar[4])
-    doğrula(hatalar[5].içerir("'devrik(...)' TR'de bir fonksiyon değil; 'tensör.devrik()' yazın"), hatalar[5])
-    doğrula(hatalar[6].içerir("'liste.toplam()' TR'de yok; 'toplam(liste)' yazın"), hatalar[6])
-    doğrula(hatalar[7].içerir("'liste.ortalama()' TR'de yok; 'ortalama(liste)' yazın"), hatalar[7])
-    doğrula(hatalar[8].içerir("'tensör.toplam()' TR'de yok; 'toplam(tensör)' yazın"), hatalar[8])
-    doğrula(hatalar[9].içerir("'boy(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın"), hatalar[9])
-    doğrula(hatalar[10].içerir("liste.indirge(): fonksiyon son argüman olmalı"), hatalar[10])
+    doğrula(hatalar[2].içerir("'liste.toplam()' TR'de yok; 'toplam(liste)' yazın"), hatalar[2])
+    doğrula(hatalar[3].içerir("'liste.ortalama()' TR'de yok; 'ortalama(liste)' yazın"), hatalar[3])
+    doğrula(hatalar[4].içerir("'tensör.toplam()' TR'de yok; 'toplam(tensör)' yazın"), hatalar[4])
+    doğrula(hatalar[5].içerir("liste.indirge(): fonksiyon son argüman olmalı"), hatalar[5])
+    değişken denetim = ""
+    dene { aktar "olumsuz/tasinan_adlar" } yakala h { denetim = h }
+    doğrula(denetim.içerir("'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın"), denetim)
+    doğrula(denetim.içerir("'indirge(...)' TR'de bir fonksiyon değil; 'liste.indirge(...)' yazın"), denetim)
+    doğrula(denetim.içerir("'ekle(...)' TR'de bir fonksiyon değil; 'liste.ekle(...)' yazın"), denetim)
+    doğrula(denetim.içerir("'devrik(...)' TR'de bir fonksiyon değil; 'tensör.devrik()' yazın"), denetim)
+    doğrula(denetim.içerir("'boy(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın"), denetim)
     // Kaldırılan adlar artık sıradan adlardır
     değişken uzunluk = 5
     fonksiyon sırala(x) { sonuç x }

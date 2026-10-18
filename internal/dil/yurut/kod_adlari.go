@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"tr_dili/internal/dil/denetci"
 	"tr_dili/internal/dil/kod"
 )
 
@@ -57,17 +58,9 @@ func (v *VM) Yerlesik(kd kod.Kod) *BuiltinVal {
 }
 
 // KaldirilanYerlesikIpucu ad bir yerleşiğin Türkçe karaktersiz (ASCII) biçimiyse (yazdir)
-// ya da kaldırılmış bir yerleşik adıysa (sözlükte bir G/T/V/W kodunun "eski" adı) hata
-// mesajına eklenecek ipucunu, değilse boş metni döndürür. Bu yazımlar sıradan adlardır
-// (ör. değişken boy = 180); yalnızca tanımsız ad hatasında, alışkanlıkla yazılmış
-// olabilecekleri için asıl (Türkçe) ad önerilir.
-func KaldirilanYerlesikIpucu(ad string) string {
-	k, ok := kod.Oneri(kod.AlanGenel, ad, kod.Kod.Yerlesik)
-	if !ok {
-		return ""
-	}
-	return yokIpucu(ad, kod.Ad(k))
-}
+// ya da kaldırılmış bir yerleşik adıysa tanımsız ad hatasına eklenecek ipucunu, değilse boş
+// metni döndürür. Metin denetleyiciyle ortaktır (denetci.KaldirilanYerlesikIpucu).
+func KaldirilanYerlesikIpucu(ad string) string { return denetci.KaldirilanYerlesikIpucu(ad) }
 
 // kaldirilanUyeIpucu Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
 // kaldırılmış adı için ipucunu döndürür.
@@ -79,9 +72,7 @@ func kaldirilanUyeIpucu(ad string) string {
 	return yokIpucu(ad, kod.Ad(k))
 }
 
-func yokIpucu(ad, asil string) string {
-	return fmt.Sprintf(" ('%s' TR'de yok; '%s' yazmak mı istediniz?)", ad, asil)
-}
+func yokIpucu(ad, asil string) string { return denetci.YokIpucu(ad, asil) }
 
 // uyeOneriHatasi motor tiplerinde (Tensör, Parçalayıcı, VeriKümesi ...) bulunamayan bir üye
 // adı bu tipin bir üyesinin ASCII biçimi ya da kaldırılmış adıysa, hatayı asıl adı öneren

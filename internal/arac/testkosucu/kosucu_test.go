@@ -42,7 +42,7 @@ test "yerel tanım sızmaz" {
 
 test "önceki testin yereli görünmez" {
     değişken görünür = doğru; dene { yazdır(gizli) } yakala h { görünür = yanlış }
-    eğer görünür { fırlat "gizli görünür olmamalıydı" }
+    eğer görünür { fırlat "gizli görünür olmamalıydı" }; değişken gizli = 2 // sonra tanımlı: sızma çalışma anında sınanır (5.14)
 }
 
 test "mesajlı doğrulama" {

@@ -147,14 +147,24 @@ func (v *VM) kaynaktaCagir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi 
 // ModulDenetle bir modülün kaynağını çalıştırmadan önce denetler: modül olarak ayrıştırır
 // (üst düzeyde 'sonuç' hatadır) ve tip denetiminden geçirir. Hata varsa tur
 // ("sözdizimi" ya da "tip denetimi") ve hatalar döner; 'aktar', 'tr kontrol' ve
-// 'tr derle' aynı denetimi kullanır.
+// 'tr derle' aynı denetimi kullanır. Aktaranın genel adları bilinmediğinden modülde
+// tanımsız ad aranmaz; bilindiğinde ModulDenetleKapsamda kullanılır.
 func ModulDenetle(kod string) (prog *agac.Program, tur string, hatalar []string) {
+	return ModulDenetleKapsamda(kod, nil, true)
+}
+
+// ModulDenetleKapsamda ModulDenetle gibidir; modül, aktaranın genel kapsamının altında
+// çalıştığı için (11.1) genelAdlar modülde tanımlı sayılır, başka bir yerde tanımlanmayan ad
+// tanımsız ad hatasıdır (5.14). dinamik, genel adların tam bilinmediğini söyler.
+func ModulDenetleKapsamda(kod string, genelAdlar []string, dinamik bool) (prog *agac.Program, tur string, hatalar []string) {
 	p := ayristir.New(sozcuk.New(kod))
 	prog = p.ParseModule()
 	if errs := p.Errors(); len(errs) > 0 {
 		return prog, "sözdizimi", errs
 	}
-	if errs := denetci.New().CheckProgram(prog); len(errs) > 0 {
+	chk := denetci.New()
+	chk.GenelKapsam(genelAdlar, dinamik)
+	if errs := chk.CheckProgram(prog); len(errs) > 0 {
 		return prog, "tip denetimi", errs
 	}
 	return prog, "", nil
@@ -243,7 +253,9 @@ func (v *VM) modulCalistir(s *agac.ImportStatement, path, resolvedPath, absPath 
 	}
 	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
 	modKaynak := &Kaynak{Yol: resolvedPath, Ad: gosterilenYol(resolvedPath), Kod: code}
-	prog, tur, hatalar := ModulDenetle(code)
+	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
+	// adları görür; yerleşikler de oradadır.
+	prog, tur, hatalar := ModulDenetleKapsamda(code, v.GlobalEnv.kapsam.adlar, false)
 	if len(hatalar) > 0 {
 		return nil, &ModulHatasi{Kaynak: modKaynak, Tur: tur, Hatalar: hatalar, ModulYolu: s.Path, AktarSatiri: s.Line(), Aktaran: v.kaynak}
 	}

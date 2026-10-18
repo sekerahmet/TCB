@@ -1,0 +1,10 @@
+// Bilerek hatalı modül (13.6, 2.9a): taşınan ve kaldırılan yerleşik adları tanımsız addır;
+// denetim çalışmadan önce yeni biçimi ya da karşılığı önerir.
+değişken l = [1, 2, 3]
+filtrele(l, (x) => x > 1)
+indirge(l, (a, x) => a + x)
+ekle(l, 4)
+devrik(tensör([[1, 2]]))
+boy(l)
+matris([[1]])
+rastgele_matris(2, 2)

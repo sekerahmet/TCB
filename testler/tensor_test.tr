@@ -30,8 +30,11 @@ test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     eşit_mi(yok, s.gradyan)
     eşit_mi(["Tensör", "Tensör"], [tip(tensör([[1]])), tip(birim_matris(2))])
     // matris ve rastgele_matris kaldırıldı: matris 2 boyutlu tensördür.
-    doğrula(hata_metni(() => matris([[1]])).içerir("'matris' TR'de yok; 'tensör' yazmak mı istediniz?"))
-    doğrula(hata_metni(() => rastgele_matris(2, 2)).içerir("'rastgele_normal'"))
+    // Tanımsız ad olarak çalışmadan önce bulunur (5.14).
+    değişken mm = ""
+    dene { aktar "olumsuz/tasinan_adlar" } yakala h { mm = h }
+    doğrula(mm.içerir("'matris' TR'de yok; 'tensör' yazmak mı istediniz?"), mm)
+    doğrula(mm.içerir("'rastgele_matris' TR'de yok; 'rastgele_normal' yazmak mı istediniz?"), mm)
     // Kaldırılan matris özellikleri karşılığı öneren bir hata verir.
     değişken m = tensör([[1, 2], [3, 4]])
     doğrula(hata_metni(() => m.satır).içerir("'şekil'"))

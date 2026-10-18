@@ -142,12 +142,12 @@ func TestTipBelirtimliDegiskenUyumlu(t *testing.T) {
 		`değişken a = 7 / 2`,
 		`değişken a: Liste = [x * 2 döngü x içinde 1..3]`,
 		`değişken a: Sözlük = {"a": 1}`,
-		`değişken a: Tensör = m1 @ m2`,
+		"değişken m1 = birim_matris(2)\ndeğişken m2 = m1\ndeğişken a: Tensör = m1 @ m2",
 		`değişken a: Tam = yok`,
 		`değişken a: Tam`, // değer verilmezse 'yok' atanır
-		`değişken a: Tam = tanımsız_bir_şey`,
+		"değişken bilinmeyen_tip = girdi()\ndeğişken a: Tam = bilinmeyen_tip",
 		`değişken a: Tam = yazdır("x")`,
-		`değişken a: Tam = 5 |> kare`,
+		`değişken a: Tam = 5 |> tam`,
 		`değişken a: Tam = (5 ?? 6)`,
 		`değişken a: Metin = yok ?? "varsayılan"`,
 		`değişken a: Tam = -5`,
@@ -212,11 +212,11 @@ func TestAtamaTipDenetimi(t *testing.T) {
 
 	// 'yok' veya bilinmeyen tipte başlayan değişkenler serbestçe atanabilir
 	hataYok(t, "değişken a = yok\na = 5\na = \"x\"")
-	hataYok(t, "değişken a = bilinmeyen()\na = 5\na = \"x\"")
+	hataYok(t, "değişken a = girdi()\na = 5\na = \"x\"")
 	hataYok(t, "değişken a\na = [1]")
 
-	// Tanımlanmamış bir hedefe atama denetlenmez
-	hataYok(t, "tanımsız = 5")
+	// Tanımlanmamış bir hedefe atama tanımsız ad hatasıdır (5.4, 5.14)
+	tekHata(t, "tanımsız = 5", "Tanımsız ad — 'tanımsız'")
 }
 
 func TestBilesikAtama(t *testing.T) {
@@ -279,7 +279,7 @@ func TestFonksiyonParametreTipleri(t *testing.T) {
 	tanim := "fonksiyon kare(x: Tam) { sonuç x * x }\n"
 	tekHata(t, tanim+`kare("üç")`, "Satır 2:", "Fonksiyon çağrısı tip hatası", `"kare"`, "1. parametresi", `"Tam"`, `"Metin"`)
 	hataYok(t, tanim+"kare(3)")
-	hataYok(t, tanim+"kare(bilinmeyen)")
+	hataYok(t, tanim+"kare(girdi())")
 	hataYok(t, tanim+"kare(yok)")
 
 	iki := "fonksiyon böl(a: Ondalık, b: Ondalık) -> Ondalık { sonuç a / b }\n"
@@ -468,7 +468,6 @@ func TestBilinenSinirlamalar(t *testing.T) {
 	testler := []struct {
 		ad, kaynak string
 	}{
-		{"tanımsız tanımlayıcı", "yazdır(tanımsız_değişken)"},
 		{"tanımdan önce çağrı (öne alma yok)", "kare(\"a\")\nfonksiyon kare(x: Tam) { }"},
 		{"değişkene atanan fonksiyonun parametre tipleri unutulur", "değişken kare = fonksiyon(x: Tam) { sonuç x }\nkare(\"a\")"},
 		{"lambda parametre tipleri", "değişken f = (x: Tam) => x\nf(\"a\")"},

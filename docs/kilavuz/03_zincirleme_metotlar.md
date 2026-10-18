@@ -25,6 +25,8 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/kodlar.md`](../kodlar.md)
 Bir çağrının sonuna aynı satırda yazılan `{ ... }` bloğu, tek parametresi `o` olan bir fonksiyondur. `o` o anki elemanı gösterir:
 
 ```tr
+değişken sayılar = [1, 2, 3, 4]
+değişken personel = [{"ad": "Ali"}, {"ad": "Ayşe"}]
 sayılar.filtrele { o > 2 }.haritala { o * o }   // sayılar.filtrele((x) => x > 2)... ile aynı
 personel.haritala { o["ad"] }
 sayılar.filtrele { o % 2 == 0 } |> toplam      // boru yalnızca fonksiyonlarla: toplam(sayılar.filtrele {...})
@@ -40,11 +42,13 @@ sayılar.filtrele { o % 2 == 0 } |> toplam      // boru yalnızca fonksiyonlarla
 Hatalar konumuyla, kaynak satırıyla ve mümkünse bir öneriyle gösterilir:
 
 ```text
-❌ Çalışma Zamanı Hatası:
-  • Satır 3, Sütun 9: 'toplm' adında bir değişken ya da fonksiyon yok. Bunu mu demek istediniz: 'toplam'?
+❌ Tip ve Güvenlik Denetimi Hataları:
+  • Satır 3, Sütun 12: Tanımsız ad — 'toplm' adında bir değişken ya da fonksiyon yok. Bunu mu demek istediniz: 'toplam'?
      3 |     yazdır(toplm + 1)
        |            ^^^^^
 ```
+
+Tanımsız adlar (yazım hatası, eski ya da Türkçe harfsiz yazılmış yerleşik: `'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?`) program çalışmadan önce, tip hatalarıyla ve yerleşik ad gölgeleme uyarılarıyla birlikte bildirilir; `tr kontrol` aynı denetimi yapar (dil tanımı 5.14).
 
 Bir modülde (`aktar`) oluşan hata, modülün adı ve satırıyla, modülün kendi kod çerçevesiyle yazılır (`• m2.tr, Satır 3: Sıfıra bölme hatası`); bulunamayan modül `❌ Modül hatası:` başlığıyla bildirilir (`"olmayan" modülü bulunamadı`). `aktar` yolu yalnızca metin olarak alır; tırnaksız yazım sözdizimi hatasıdır ve doğrusunu söyler (`'aktar' modül yolunu metin olarak bekler, ancak 'yardımcı' adı bulundu: aktar "yardımcı" yazın`). `tr kontrol` programın aktardığı modülleri de (çalıştırmadan) aynı denetimden geçirir; modüldeki hata `❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):` gibi modülün adıyla yazılır.
 

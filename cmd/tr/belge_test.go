@@ -7,10 +7,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
 	"tr_dili/internal/depo"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/denetci"
+	"tr_dili/internal/dil/sozcuk"
 )
 
 // Belgelerdeki ve eklenti şablonlarındaki TR kodu bozulmasın: her ```tr kod bloğu
@@ -108,6 +112,28 @@ func sablonAc(govde string) string {
 	return sablonBosRe.ReplaceAllString(govde, "")
 }
 
+// adYerTutucuRe yer tutucunun varsayılanı tek bir ad mı (eğer ${1:koşul})?
+var adYerTutucuRe = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
+
+// yerTutuculariTanimla şablonun kullanıcının dolduracağı ad yer tutucularını (eğer
+// ${1:koşul}, eşle ${1:değer}) şablon kendisi tanımlamıyorsa kodun başında tanımlar:
+// tanımsız ad çalışmadan önce hatadır (5.14), şablon ise bu adların kullanıcıda var
+// olduğunu varsayar.
+func yerTutuculariTanimla(govde, kod string) string {
+	tanimli, _ := denetci.UstDuzeyAdlari(ayristir.New(sozcuk.New(kod)).ParseProgram())
+	var on strings.Builder
+	goruldu := map[string]bool{}
+	for _, m := range sablonVarsayilanRe.FindAllStringSubmatch(govde, -1) {
+		ad := m[1]
+		if !adYerTutucuRe.MatchString(ad) || goruldu[ad] || slices.Contains(tanimli, ad) || sozcuk.LookupIdent(ad) != sozcuk.TOKEN_IDENT {
+			continue
+		}
+		goruldu[ad] = true
+		fmt.Fprintf(&on, "değişken %s = 1\n", ad)
+	}
+	return on.String() + kod
+}
+
 // Eklentinin kod şablonları varsayılan değerleriyle açıldığında derlenebilir kod üretmelidir
 // (hakem mimari 3: eşle şablonu derlenmeyen kod üretiyordu).
 func TestEklentiSablonlariDerlenir(t *testing.T) {
@@ -126,11 +152,13 @@ func TestEklentiSablonlariDerlenir(t *testing.T) {
 		t.Fatalf("yalnızca %d şablon bulundu", len(sablonlar))
 	}
 	for ad, s := range sablonlar {
-		kod := sablonAc(strings.Join(s.Body, "\n"))
+		govde := strings.Join(s.Body, "\n")
+		kod := sablonAc(govde)
 		if strings.HasPrefix(kod, ".") {
 			// Metot şablonları (.filtrele { o }) bir listenin ardına yazılır
 			kod = "değişken liste = [1, 2, 3]\nliste" + kod
 		}
+		kod = yerTutuculariTanimla(govde, kod)
 		if gecti, cikti := trKontrol(t, "sablon", kod); !gecti {
 			t.Errorf("%q şablonu derlenmiyor:\n%s\n---\n%s", ad, kod, cikti)
 		}

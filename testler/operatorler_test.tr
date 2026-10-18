@@ -109,8 +109,9 @@ test "4.9 |> soldaki değeri sağdaki çağrının ilk argümanı yapar; metotla
     fonksiyon katları(l, k) { sonuç l.filtrele { o % k == 0 } }
     eşit_mi([2, 4], [1, 2, 3, 4] |> katları(2))
     eşit_mi(12, [1, 2, 3].haritala { o * 2 } |> toplam)
+    // Taşınan ad (filtrele) |> ile de fonksiyon olarak yazılamaz; denetim çalışmadan önce bulur.
     değişken m = ""
-    dene { [1, 2, 3] |> filtrele { o > 1 } } yakala h { m = h }
+    dene { aktar "olumsuz/tasinan_adlar" } yakala h { m = h }
     doğrula(m.içerir("'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın"), m)
 }
 

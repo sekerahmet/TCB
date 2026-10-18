@@ -18,8 +18,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/denetci"
 	"tr_dili/internal/dil/kod"
-	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/turkce"
 )
 
@@ -315,17 +315,10 @@ func (v *VM) WaitAsync() {
 
 // reportAsyncError eşzamanlı görevde oluşan hatayı sessizce yutmak yerine standart hataya yazar.
 // suggestName kapsamdaki adlar arasında yazıma en yakın olanı "Bunu mu demek istediniz?" olarak önerir.
+// Öneri denetleyiciyle ortaktır (denetci.AdOnerisi): tanımsız ad çalışmadan önce de aynı
+// mesajla bulunur.
 func suggestName(name string, env *Environment) string {
-	if ipucu := sozcuk.KaldirilanYazimIpucu(name); ipucu != "" {
-		return ipucu
-	}
-	if ipucu := KaldirilanYerlesikIpucu(name); ipucu != "" {
-		return ipucu
-	}
-	if o := turkce.EnYakin(name, env.Names()); o != "" {
-		return fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
-	}
-	return ""
+	return denetci.AdOnerisi(name, env.Names())
 }
 
 func (v *VM) reportAsyncError(line int, err error) {

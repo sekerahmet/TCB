@@ -1,0 +1,12 @@
+// Bilerek hatalı modül (5.4, 5.12, 5.14): tanımsız adlar çalışmadan önce bulunur; modülün
+// hiçbir satırı çalışmaz. Satır numaraları testlerde geçer: satır eklerken testleri güncelleyin.
+değişken çalıştı = doğru
+yazdir("merhaba")
+tanımsız_değişken = 3
+eğer doğru {
+    değişken iç = 1
+}
+yazdır(iç)
+fonksiyon f() {
+    sonuç bilinmeyen_ad + 1
+}

@@ -1,0 +1,9 @@
+// Bilerek hatalı modül (12.5): bir testin yerel adı ötekine sızmaz; başka bir testin
+// tanımladığı ad bu testte tanımsızdır ve çalışmadan önce hata verir.
+test "birinci" {
+    değişken yerel = 1
+}
+
+test "ikinci" {
+    yazdır(yerel)
+}

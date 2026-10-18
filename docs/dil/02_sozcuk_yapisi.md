@@ -22,6 +22,7 @@ değişken x = 1  // satır sonuna kadar yorum
 
 ```tr
 değişken ad = "Ali"
+değişken p = {"ad": "Ayşe"}
 yazdır("Merhaba {ad}, 1 + 2 = {1 + 2}, kişi: {p['ad']}, düz: \{x\}")
 ```
 

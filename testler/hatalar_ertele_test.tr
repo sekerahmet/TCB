@@ -87,12 +87,12 @@ test "9.4 ertele içindeki hata yutulmaz" {
     // Fonksiyon zaten hata verdiyse ilk hata korunur, ertelenen işin hatası ona eklenir
     fonksiyon iki_hata() {
         ertele { fırlat "ilk ertele" }
-        ertele yazdır(tanımsız_ad)
+        ertele yazdır(1 / 0)
         fırlat "gövde hatası"
     }
     dene { iki_hata() } yakala h { m = h }
     doğrula(m.başlar("gövde hatası; ertele içinde de hata: "), m)
-    doğrula(m.içerir("'tanımsız_ad' adında bir değişken ya da fonksiyon yok"), m)
+    doğrula(m.içerir("Sıfıra bölme hatası"), m)
     doğrula(m.içerir("ilk ertele"), m)
     // Ertelenen işler hata verse de hepsi çalışır
     fonksiyon temizlik() {

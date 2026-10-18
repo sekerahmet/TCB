@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"tr_dili/internal/dil/denetci"
 	"tr_dili/internal/dil/kod"
 )
 
@@ -21,22 +22,9 @@ func alici(tip kod.Kod) string {
 }
 
 // tasinanGenelAdHatasi ad (genel adlarda) taşınmış bir kodun adı, eski adı ya da bunların
-// ASCII biçimiyse yeni biçimi gösteren hata metnini verir; değilse boş metin.
-// ör. "'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın".
-func tasinanGenelAdHatasi(ad string) string {
-	eski, ok := kod.OluBul(kod.AlanGenel, ad)
-	if !ok {
-		return ""
-	}
-	if kod.Kaldirildi(eski) {
-		return kaldirildiHatasi(ad)
-	}
-	yeni, _ := kod.Tasindi(eski)
-	if yeni.Alan() != kod.AlanUye {
-		return ""
-	}
-	return fmt.Sprintf("'%s(...)' TR'de bir fonksiyon değil; '%s' yazın", ad, kod.UyeYazimi(yeni))
-}
+// ASCII biçimiyse yeni biçimi gösteren hata metnini verir; değilse boş metin. Metin
+// denetleyiciyle ortaktır (denetci.TasinanGenelAdHatasi).
+func tasinanGenelAdHatasi(ad string) string { return denetci.TasinanGenelAdHatasi(ad) }
 
 // tasinanUyeHatasi prop, obj'nin tipinde taşınmış bir üyenin adıysa (ve yeni fonksiyon bu
 // tipi alıyorsa) yeni biçimi gösteren hata metnini verir; değilse boş metin.
@@ -63,6 +51,4 @@ func tasinanUyeHatasi(obj Value, prop string) string {
 }
 
 // kaldirildiHatasi yerine geçen olmadan kaldırılmış bir adın hata metnidir.
-func kaldirildiHatasi(ad string) string {
-	return fmt.Sprintf("'%s' TR'den kaldırıldı", ad)
-}
+func kaldirildiHatasi(ad string) string { return denetci.KaldirildiHatasi(ad) }

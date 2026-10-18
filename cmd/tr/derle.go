@@ -11,6 +11,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/denetci"
 	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/yurut"
 )
@@ -219,6 +221,11 @@ type modulToplayici struct {
 	sira     map[string]int // mutlak yol → Moduller içindeki sıra
 	moduller []paketDosyasi
 	ana      string // ana programın yolu
+	// genelAdlar ana programın genel kapsama tanımladığı adlardır: modüller genel kapsamın
+	// altında çalışır ve bu adları görür (11.1). genelDinamik, ana programda takma adsız
+	// 'aktar' olduğu için adların tam bilinmediğini söyler.
+	genelAdlar   []string
+	genelDinamik bool
 }
 
 // topla dosyanın 'aktar' deyimlerini çözer, henüz gömülmemiş modülleri okuyup pakete
@@ -250,7 +257,7 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 		}
 		// Modül yorumlayıcıdaki 'aktar' ile aynı denetimden geçer (sözdizimi, üst düzey
 		// 'sonuç', tip denetimi).
-		if _, tur, hatalar := yurut.ModulDenetle(modul.Kod); len(hatalar) > 0 {
+		if _, tur, hatalar := yurut.ModulDenetleKapsamda(modul.Kod, t.genelAdlar, t.genelDinamik); len(hatalar) > 0 {
 			return &modulDenetimHatasi{yol: filepath.ToSlash(cozulen), kod: modul.Kod, tur: tur, hatalar: hatalar}
 		}
 		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
@@ -282,6 +289,7 @@ func (e *modulDenetimHatasi) Error() string {
 // paketHazirla ana programı ve aktardığı tüm modülleri içeren paketi kurar.
 func paketHazirla(srcPath, kod string) (*paket, error) {
 	t := &modulToplayici{sira: map[string]int{}, ana: srcPath}
+	t.genelAdlar, t.genelDinamik = denetci.UstDuzeyAdlari(ayristir.New(sozcuk.New(kod)).ParseProgram())
 	pk := &paket{Ana: paketDosyasi{Ad: filepath.ToSlash(srcPath), Kod: kod}}
 	if err := t.topla(&pk.Ana, srcPath); err != nil {
 		return nil, err

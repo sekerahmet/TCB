@@ -42,9 +42,9 @@ test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar görün
 test "12.5 bir testin yerel adı ötekine sızmaz" {
     // Başka bir testin tanımladığı ad (yerel) bu testte tanımsızdır; testlerin sırasından
     // bağımsız olarak doğrudur.
-    değişken görünür = doğru
-    dene { yerel } yakala { görünür = yanlış }
-    doğrula(değil görünür)
+    değişken mesaj = ""
+    dene { aktar "olumsuz/test_yerel_adi" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 8, Sütun 12: Tanımsız ad — 'yerel' adında bir değişken ya da fonksiyon yok"), mesaj)
 }
 
 test "12.6 test gövdesinde sonuç derleme hatasıdır" {
