@@ -1,5 +1,6 @@
 // tr, TR dilinin tek ikilisidir: alt komutları (çalıştır, kabuk, kontrol, derle, test,
-// biçimle, hata_ayıkla, dap) ayrıştırır ve işi internal/ altındaki paketlere bırakır.
+// biçimle, kodla, çöz, göster, hata_ayıkla, dap) ayrıştırır ve işi internal/ altındaki
+// paketlere bırakır.
 //
 // Katman: araç (cmd); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
 package main
@@ -10,10 +11,9 @@ import (
 	"runtime/debug"
 	"strings"
 	"tr_dili/internal/arac/ayikla"
-	"tr_dili/internal/dil/ayristir"
 	"tr_dili/internal/dil/denetci"
+	"tr_dili/internal/dil/kaynak"
 	"tr_dili/internal/dil/kod"
-	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
 	_ "tr_dili/internal/motor"
@@ -88,6 +88,12 @@ func main() {
 		testKomutu(args[1:])
 	case "biçimle":
 		bicimleKomutu(args[1:])
+	case "kodla":
+		kodlaKomutu(args[1:])
+	case "çöz":
+		cozKomutu(args[1:])
+	case "göster":
+		gosterKomutu(args[1:])
 	case "dap":
 		// Düzenleyicinin hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
 		if err := ayikla.ServeDAP(os.Stdin, os.Stdout); err != nil {
@@ -111,7 +117,7 @@ func main() {
 var kaldirilanKomutlar = map[string]string{
 	"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla", "debug": "hata_ayıkla",
 	"yardim": "yardım", "--help": "yardım", "help": "yardım", "surum": "sürüm", "--version": "sürüm",
-	"version": "sürüm",
+	"version": "sürüm", "coz": "çöz", "goster": "göster",
 }
 
 // printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
@@ -143,6 +149,9 @@ func printHelp() {
 	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür")
 	fmt.Println("  tr test [dosya.tr|klasör]   Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)")
 	fmt.Println("  tr biçimle [--kontrol] <dosya.tr|klasör>  Kodu standart biçime getirir (--kontrol: yalnızca denetler)")
+	fmt.Println("  tr kodla <dosya.tr|klasör>  Dosyaları yerinde kodlu biçime çevirir (dilin sözcükleri kodlarla saklanır)")
+	fmt.Println("  tr çöz <dosya.tr|klasör>    Kodlu dosyaları yerinde Türkçe yazıma geri çevirir")
+	fmt.Println("  tr göster <dosya.tr> [--dil tr]  Dosyayı bir yazım dilinde gösterir (kodlu dosya da)")
 	fmt.Println("  tr dap                      düzenleyicinin hata ayıklama sunucusu (eklenti kendisi başlatır)")
 	fmt.Println("  tr yardım | -h              Bu yardımı gösterir")
 	fmt.Println("  tr sürüm | -v               Sürümü gösterir")
@@ -151,12 +160,12 @@ func printHelp() {
 // runFile programı çalıştırır; argumanlar dosya adından sonra yazılanlardır ve programa
 // iletilir (tr betik.tr --adım 5).
 func runFile(path string, argumanlar []string) {
-	code, prog := dosyaHazirla(path, calistirmaHazirligi)
+	_, s := dosyaHazirla(path, calistirmaHazirligi)
 	machine := yurut.New()
 	machine.SourceFile = path
-	machine.SourceCode = code
+	machine.SourceCode = s.Metin
 	machine.ArgumanlariAyarla(argumanlar)
-	programCalistir(machine, prog, code)
+	programCalistir(machine, s.Program, s.Metin)
 }
 
 // hataAyiklaKomutu 'tr hata_ayıkla dosya.tr [argümanlar]' komutudur. Kaldırılan tarayıcı
@@ -177,21 +186,21 @@ func hataAyiklaKomutu(args []string) {
 }
 
 func debugFile(path string, argumanlar []string) {
-	code, prog := dosyaHazirla(path, hataAyiklamaHazirligi)
+	_, s := dosyaHazirla(path, hataAyiklamaHazirligi)
 	machine := yurut.New()
 	machine.SourceFile = path
-	machine.SourceCode = code
+	machine.SourceCode = s.Metin
 	machine.ArgumanlariAyarla(argumanlar)
-	dbg := ayikla.NewDebugger(path, code, true)
+	dbg := ayikla.NewDebugger(path, s.Metin, true)
 	machine.Debugger = dbg
 
-	programCalistir(machine, prog, code)
+	programCalistir(machine, s.Program, s.Metin)
 }
 
 func checkFile(path string) {
-	code, _ := dosyaHazirla(path, calistirmaHazirligi)
+	metin, _ := dosyaHazirla(path, calistirmaHazirligi)
 	// Programın aktardığı modüller de (çalıştırılmadan) aynı denetimden geçer.
-	modulleriDenetle(path, code, calistirmaHazirligi, "❌ Modül hatası:")
+	modulleriDenetle(path, metin, calistirmaHazirligi, "❌ Modül hatası:")
 	fmt.Printf("✅ %s başarıyla denetlendi: Sözdizimi ve tip güvenliği hatasız!\n", path)
 }
 
@@ -235,29 +244,25 @@ func startREPL() {
 		}
 
 		// Hatalar dosya çalıştırmadakiyle aynı başlık ve biçimle standart hataya yazılır.
-		l := sozcuk.New(line)
-		p := ayristir.New(l)
-		prog := p.ParseProgram()
-		if len(p.Errors()) > 0 {
-			hatalariYaz(sozdizimiBasligi, p.Errors(), line)
-			continue
-		}
-
 		// Denetleyici satırlar arasında durumunu (ve hata listesini) korur; yalnızca bu
 		// satırın getirdiği yeni hatalar gösterilir.
-		errs := chk.CheckProgram(prog)
-		if u := chk.Warnings(); len(u) > oncekiUyarilar {
-			uyarilariYaz(u[oncekiUyarilar:], line)
+		s := kaynak.Hazirla(line, kaynak.Secenekler{TipDenetimi: true, Denetleyici: chk})
+		if s.Asama == kaynak.AsamaSozdizimi {
+			hatalariYaz(sozdizimiBasligi, s.Hatalar, s.Metin)
+			continue
+		}
+		if u := s.Uyarilar; len(u) > oncekiUyarilar {
+			uyarilariYaz(u[oncekiUyarilar:], s.Metin)
 			oncekiUyarilar = len(u)
 		}
-		if len(errs) > oncekiTipHatalari {
+		if errs := s.Hatalar; len(errs) > oncekiTipHatalari {
 			yeni := errs[oncekiTipHatalari:]
 			oncekiTipHatalari = len(errs)
-			hatalariYaz(tipBasligi, yeni, line)
+			hatalariYaz(tipBasligi, yeni, s.Metin)
 			continue
 		}
 
-		val, err := machine.Run(prog)
+		val, err := machine.Run(s.Program)
 		if err != nil {
 			calismaHatasiYaz(machine, err, line)
 			continue

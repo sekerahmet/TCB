@@ -40,7 +40,7 @@ var buyukDosyalar = map[string]istisna{
 	"internal/hesap/veriyolu/onbellek.go":      {795, "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir"},
 }
 
-const enFazlaUzunFonksiyon = 42
+const enFazlaUzunFonksiyon = 41
 
 // uzunFonksiyonlar fonksiyonSiniri'ni aşan test dışı fonksiyonlardır ("dosya:Alici.Ad").
 var uzunFonksiyonlar = map[string]istisna{
@@ -63,7 +63,6 @@ var uzunFonksiyonlar = map[string]istisna{
 	// Araçlar
 	"internal/arac/ayikla/ayiklayici.go:Debugger.promptCLI": {187, nDagitim + " (terminal hata ayıklayıcısının komutları)"},
 	"internal/arac/bicim/bicim.go:bicimle":                  {119, "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde"},
-	"internal/arac/testkosucu/kosucu.go:DosyaCalistir":      {91, "test dosyasını ayrıştır, denetle, her testi yalıtılmış çalıştır ve raporla: sıralı tek akış"},
 	"cmd/tr/bicimle.go:bicimleKomutu":                       {83, "komut satırı bayrakları ve dosya/klasör dolaşımı tek akışta"},
 	"tools/uret/kod_belgesi/main.go:Uret":                   {151, nUretec},
 	"tools/uret/eklenti_listeleri/main.go:Uret":             {107, nUretec},

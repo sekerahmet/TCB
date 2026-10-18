@@ -23,6 +23,7 @@ import (
 	"strings"
 	"tr_dili/internal/dil/agac"
 	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/kaynak"
 	"tr_dili/internal/dil/sozcuk"
 )
 
@@ -64,44 +65,54 @@ func (e *SozdizimiHatasi) Error() string {
 
 // Bicimle kaynağı standart biçime getirir. Kaynak ayrıştırılamıyorsa *SozdizimiHatasi,
 // sonuç özgün kodla aynı anlama gelmiyorsa *AnlamDegistiHatasi döner.
-func Bicimle(kaynak string) (string, error) {
-	// Dosya başındaki UTF-8 BOM korunur (kodlama biçimlendiricinin işi değildir)
-	bom := ""
-	if strings.HasPrefix(kaynak, "\xef\xbb\xbf") {
-		bom = "\xef\xbb\xbf"
-		kaynak = kaynak[len(bom):]
+func Bicimle(metin string) (string, error) {
+	// Dosya başındaki UTF-8 BOM ve kodlu biçim başlığı korunur (kaynak.Bolumler); kodlu
+	// dosyanın gövdesi kodlu biçimde biçimlenir (kodlar olduğu gibi kalır).
+	b, err := kaynak.Ayir(metin)
+	if err != nil {
+		return "", &SozdizimiHatasi{Hatalar: []string{err.Error()}}
 	}
 	// Satır sonları LF yazılır; metinlerin içindekiler de (sözcük çözümleyici çok satırlı
 	// metindeki CRLF'yi zaten '\n' okur, anlam değişmez): karışık satır sonu kalmaz.
-	kaynak = strings.ReplaceAll(kaynak, "\r\n", "\n")
-	p := ayristir.New(sozcuk.New(kaynak))
+	b.Govde = strings.ReplaceAll(b.Govde, "\r\n", "\n")
+	if b.Kodlu {
+		b.SatirSonu = "\n"
+	}
+	p := ayristir.New(b.Sozcukler())
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		return "", &SozdizimiHatasi{Hatalar: p.Errors()}
 	}
-	cikti := donustur(kaynak, suslular(prog))
-	if err := AnlamAyniMi(kaynak, cikti); err != nil {
+	yeni := b
+	yeni.Govde = donustur(b.Govde, b.Kodlu, suslular(prog))
+	if err := AnlamAyniMi(b.Birlestir(), yeni.Birlestir()); err != nil {
 		return "", err
 	}
-	return bom + cikti, nil
+	return yeni.Birlestir(), nil
 }
 
-// AnlamAyniMi iki kaynağın aynı sözcük birimi dizisine ve aynı AST'ye sahip olduğunu
-// denetler; farklıysa *AnlamDegistiHatasi döner.
+// AnlamAyniMi iki kaynağın (dosyanın tamamı) aynı sözcük birimi dizisine ve aynı AST'ye sahip
+// olduğunu denetler; farklıysa *AnlamDegistiHatasi döner. Sözcükler türleriyle, kodla
+// yazılmış adlar kodlarıyla (kodlu dosyada), kullanıcının adları metinleriyle karşılaştırılır.
 func AnlamAyniMi(once, sonra string) error {
-	p1 := ayristir.New(sozcuk.New(once))
+	b1, err1 := kaynak.Ayir(once)
+	b2, err2 := kaynak.Ayir(sonra)
+	if err1 != nil || err2 != nil || b1.Kodlu != b2.Kodlu {
+		return &AnlamDegistiHatasi{Ayrinti: "dosyanın biçimi (kodlu ya da Türkçe yazım) değişti"}
+	}
+	p1 := ayristir.New(b1.Sozcukler())
 	prog1 := p1.ParseProgram()
-	p2 := ayristir.New(sozcuk.New(sonra))
+	p2 := ayristir.New(b2.Sozcukler())
 	prog2 := p2.ParseProgram()
 	if len(p2.Errors()) > 0 {
 		return &AnlamDegistiHatasi{Ayrinti: "biçimlenmiş kod ayrıştırılamadı: " + p2.Errors()[0]}
 	}
-	t1, t2 := sozcukler(once), sozcukler(sonra)
+	t1, t2 := sozcukler(b1.Govde, b1.Kodlu), sozcukler(b2.Govde, b2.Kodlu)
 	if len(t1) != len(t2) {
 		return &AnlamDegistiHatasi{Ayrinti: "sözcük birimi sayısı değişti"}
 	}
 	for i := range t1 {
-		if t1[i].Type != t2[i].Type || t1[i].Literal != t2[i].Literal {
+		if t1[i].Type != t2[i].Type || t1[i].Kod != t2[i].Kod || t1[i].Literal != t2[i].Literal {
 			return &AnlamDegistiHatasi{Ayrinti: fmt.Sprintf("satır %d: %q sözcüğü değişti", t2[i].Line, t1[i].Literal)}
 		}
 	}
@@ -111,8 +122,13 @@ func AnlamAyniMi(once, sonra string) error {
 	return nil
 }
 
-func sozcukler(kaynak string) []sozcuk.Token {
-	l := sozcuk.New(kaynak)
+// cozumleyici bir gövdenin sözcük çözümleyicisidir (kodlu gövdede kodları tanır).
+func cozumleyici(govde string, kodlu bool) *sozcuk.Lexer {
+	return kaynak.Bolumler{Kodlu: kodlu, Govde: govde}.Sozcukler()
+}
+
+func sozcukler(govde string, kodlu bool) []sozcuk.Token {
+	l := cozumleyici(govde, kodlu)
 	var t []sozcuk.Token
 	for {
 		tok := l.NextToken()
@@ -176,8 +192,8 @@ func suslular(prog *agac.Program) map[konum]int {
 }
 
 // ogeler kaynağı sözcük birimleri ve yorumlardan oluşan bir akışa çevirir.
-func ogeler(kaynak string) []oge {
-	l := sozcuk.New(kaynak)
+func ogeler(kaynak string, kodlu bool) []oge {
+	l := cozumleyici(kaynak, kodlu)
 	girdi := l.Girdi()
 	var sonuc []oge
 	onceki := 0 // önceki öğenin bittiği indeks
@@ -373,8 +389,8 @@ func aradaBosluk(p, c *oge) bool {
 var donustur = bicimle
 
 // bicimle asıl biçimlendirme işini yapar (anlam denetimi Bicimle'dedir).
-func bicimle(kaynak string, sus map[konum]int) string {
-	og := ogeler(kaynak)
+func bicimle(kaynak string, kodlu bool, sus map[konum]int) string {
+	og := ogeler(kaynak, kodlu)
 
 	// 1. Tekli operatörleri işaretle; gövde '{' ve 'değilse'/'yakala' sözcüklerini önceki satıra al.
 	var oncekiTok *oge

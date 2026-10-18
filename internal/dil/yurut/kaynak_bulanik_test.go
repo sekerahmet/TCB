@@ -37,7 +37,7 @@ func FuzzKaynakDerle(f *testing.F) {
 		if len(kod) > 64<<10 {
 			return
 		}
-		_, _, _ = ModulDenetle(kod)
+		_ = ModulDenetle(kod, nil, true)
 		p := ayristir.New(sozcuk.New(kod))
 		prog := p.ParseProgram()
 		if len(p.Errors()) > 0 {

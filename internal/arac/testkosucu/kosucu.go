@@ -16,9 +16,7 @@ import (
 
 	_ "tr_dili/internal/arac/ayikla" // koddaki kesme_noktası hata ayıklayıcıyı açar
 	"tr_dili/internal/dil/agac"
-	"tr_dili/internal/dil/ayristir"
-	"tr_dili/internal/dil/denetci"
-	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/kaynak"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
 	_ "tr_dili/internal/motor" // testler dilin tamamıyla (motor yerleşikleri dahil) çalışır
@@ -121,31 +119,19 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 		ozet.Yuklenemez++
 		return ozet
 	}
-	kaynak := strings.TrimPrefix(string(veri), "\xef\xbb\xbf")
-
-	p := ayristir.New(sozcuk.New(kaynak))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		fmt.Fprintln(cikti, "  ✗ sözdizimi hataları nedeniyle testler çalıştırılamadı:")
-		for _, e := range p.Errors() {
-			hataYaz(cikti, e, kaynak)
-		}
-		ozet.Yuklenemez++
-		return ozet
-	}
-	denetleyici := denetci.New()
-	hatalar := denetleyici.CheckProgram(prog)
-	if uyarilar := denetleyici.Warnings(); len(uyarilar) > 0 {
+	hazir := kaynak.Hazirla(string(veri), kaynak.Secenekler{TipDenetimi: true})
+	metin, prog := hazir.Metin, hazir.Program
+	if len(hazir.Uyarilar) > 0 {
 		// Uyarılar testleri durdurmaz ve sonucu etkilemez.
 		fmt.Fprintln(cikti, "  ⚠️ uyarılar:")
-		for _, u := range uyarilar {
-			hataYaz(cikti, u, kaynak)
+		for _, u := range hazir.Uyarilar {
+			hataYaz(cikti, u, metin)
 		}
 	}
-	if len(hatalar) > 0 {
-		fmt.Fprintln(cikti, "  ✗ tip denetimi hataları nedeniyle testler çalıştırılamadı:")
-		for _, e := range hatalar {
-			hataYaz(cikti, e, kaynak)
+	if hazir.Asama != "" {
+		fmt.Fprintf(cikti, "  ✗ %s hataları nedeniyle testler çalıştırılamadı:\n", hazir.Asama)
+		for _, e := range hazir.Hatalar {
+			hataYaz(cikti, e, metin)
 		}
 		ozet.Yuklenemez++
 		return ozet
@@ -166,10 +152,10 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 	makine.Out = cikti
 	makine.Err = cikti // eşzamanlı görev hataları da raporda görünür
 	makine.SourceFile = yol
-	makine.SourceCode = kaynak
+	makine.SourceCode = metin
 	if _, err := makine.Run(prog); err != nil {
 		fmt.Fprintln(cikti, "  ✗ dosyanın üst düzey kodu hata verdi, testler çalıştırılamadı:")
-		for _, m := range yurut.HataMaddeleri(err, kaynak) {
+		for _, m := range yurut.HataMaddeleri(err, metin) {
 			fmt.Fprintf(cikti, "    • %s\n", m.Mesaj)
 			fmt.Fprint(cikti, girintile(m.Cerceve, "      "))
 		}
@@ -187,7 +173,7 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 				err = fmt.Errorf("Satır %d: %s", t.Line(), mesaj)
 			}
 			// Modüle ait hatanın çerçevesi modülün kaynağından çizilir.
-			for i, m := range yurut.HataMaddeleri(err, kaynak) {
+			for i, m := range yurut.HataMaddeleri(err, metin) {
 				if i == 0 {
 					fmt.Fprintf(cikti, "  ✗ %s — %s\n", t.Name, m.Mesaj)
 				} else {

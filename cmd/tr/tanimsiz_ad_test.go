@@ -8,9 +8,8 @@ import (
 	"testing"
 
 	"tr_dili/internal/depo"
-	"tr_dili/internal/dil/ayristir"
 	"tr_dili/internal/dil/denetci"
-	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/kaynak"
 	"tr_dili/internal/dil/yurut"
 )
 
@@ -37,7 +36,7 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			kodlar[yol] = strings.TrimPrefix(string(veri), "\xef\xbb\xbf")
+			kodlar[yol] = string(veri)
 		}
 		return nil
 	})
@@ -55,8 +54,7 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 	}
 	moduller := map[string]*genel{}
 	for yol, kod := range kodlar {
-		prog := ayristir.New(sozcuk.New(kod)).ParseProgram()
-		adlar, dinamik := denetci.UstDuzeyAdlari(prog)
+		adlar, dinamik := denetci.UstDuzeyAdlari(kaynak.Hazirla(kod, kaynak.Secenekler{}).Program)
 		for _, y := range aktarYerleri(kod) {
 			cozulen, _, ok := modulYolunuCoz(y.yol, yol, yol)
 			if !ok {
@@ -84,13 +82,9 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 			for a := range g.adlar {
 				adlar = append(adlar, a)
 			}
-			_, _, hatalar = yurut.ModulDenetleKapsamda(kod, adlar, g.dinamik)
+			hatalar = yurut.ModulDenetle(kod, adlar, g.dinamik).Hatalar
 		} else {
-			p := ayristir.New(sozcuk.New(kod))
-			prog := p.ParseProgram()
-			if hatalar = p.Errors(); len(hatalar) == 0 {
-				hatalar = denetci.New().CheckProgram(prog)
-			}
+			hatalar = kaynak.Hazirla(kod, kaynak.Secenekler{TipDenetimi: true}).Hatalar
 		}
 		for _, h := range hatalar {
 			t.Errorf("%s: %s", filepath.ToSlash(goreli), h)

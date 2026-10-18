@@ -6,9 +6,7 @@ import (
 	"os"
 	"strings"
 	"tr_dili/internal/dil/agac"
-	"tr_dili/internal/dil/ayristir"
-	"tr_dili/internal/dil/denetci"
-	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/kaynak"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/motor"
@@ -53,47 +51,43 @@ var (
 	}
 )
 
-// kaynakOku dosyayı okur ve baştaki UTF-8 BOM'u atar; okunamazsa hatayı yazıp çıkar.
+// kaynakOku dosyanın metnini okur; okunamazsa hatayı yazıp çıkar. BOM ve kodlu biçim
+// başlığı internal/dil/kaynak'ta çözülür.
 func kaynakOku(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkce.DosyaHatasi("", path, "okunamadı", err))
 		os.Exit(1)
 	}
-	return strings.TrimPrefix(string(data), "\xef\xbb\xbf")
+	return string(data)
 }
 
-// dosyaHazirla dosyayı okuyup kaynakHazirla'dan geçirir.
-func dosyaHazirla(path string, h hazirlik) (string, *agac.Program) {
-	code := kaynakOku(path)
-	return code, kaynakHazirla(code, h)
+// dosyaHazirla dosyayı okuyup kaynakHazirla'dan geçirir; dosyanın metnini (paket ve modül
+// denetimi için) ve hazırlığın sonucunu verir.
+func dosyaHazirla(path string, h hazirlik) (string, *kaynak.Sonuc) {
+	metin := kaynakOku(path)
+	return metin, kaynakHazirla(metin, h)
 }
 
-// kaynakHazirla kodu ayrıştırır ve istenmişse tip denetiminden geçirir. Hata varsa
-// hepsini yazıp 1 koduyla çıkar.
-func kaynakHazirla(code string, h hazirlik) *agac.Program {
-	p := ayristir.New(sozcuk.New(code))
-	prog := p.ParseProgram()
-
-	if errs := p.Errors(); len(errs) > 0 {
+// kaynakHazirla kodu ayrıştırır ve istenmişse tip denetiminden geçirir (kaynak.Hazirla). Hata
+// varsa hepsini yazıp 1 koduyla çıkar. Hata çerçeveleri ve yorumlayıcının kaynak metni
+// sonucun gövdesidir (kodlu dosyada başlıktan sonrası).
+func kaynakHazirla(metin string, h hazirlik) *kaynak.Sonuc {
+	s := kaynak.Hazirla(metin, kaynak.Secenekler{TipDenetimi: h.tipBasligi != ""})
+	uyarilariYaz(s.Uyarilar, s.Metin)
+	switch s.Asama {
+	case kaynak.AsamaSozdizimi:
 		if h.sozdizimiBasligi == "" {
-			for _, e := range errs {
+			for _, e := range s.Hatalar {
 				fmt.Fprintln(os.Stderr, e)
 			}
 			os.Exit(1)
 		}
-		hatalarlaCik(h.sozdizimiBasligi, errs, code)
+		hatalarlaCik(h.sozdizimiBasligi, s.Hatalar, s.Metin)
+	case kaynak.AsamaTip:
+		hatalarlaCik(h.tipBasligi, s.Hatalar, s.Metin)
 	}
-
-	if h.tipBasligi != "" {
-		chk := denetci.New()
-		errs := chk.CheckProgram(prog)
-		uyarilariYaz(chk.Warnings(), code)
-		if len(errs) > 0 {
-			hatalarlaCik(h.tipBasligi, errs, code)
-		}
-	}
-	return prog
+	return s
 }
 
 // uyarilariYaz denetleyicinin uyarılarını (varsa) hatalardan ayrı bir başlıkla standart

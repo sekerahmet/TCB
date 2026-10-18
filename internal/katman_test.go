@@ -48,6 +48,7 @@ var dilSirasi = []string{
 	"internal/dil/agac",   // sözdizimi ağacı
 	"internal/dil/ayristir",
 	"internal/dil/denetci",
+	"internal/dil/kaynak", // kaynaktan programa giriş noktası, kodlu biçim ve çevirici
 	"internal/dil/yurut",
 }
 

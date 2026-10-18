@@ -5,9 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"tr_dili/internal/dil/ayristir"
-	"tr_dili/internal/dil/denetci"
-	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/kaynak"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/motor/gunluk"
@@ -36,20 +34,13 @@ func (s *dapServer) launch(msg *dapMessage) {
 		s.respondErr(msg, "Hata ayıklanacak program okunamadı (%s): %s", path, turkce.DosyaHatasiNedeni(path, err))
 		return
 	}
-	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
-
-	p := ayristir.New(sozcuk.New(code))
-	prog := p.ParseProgram()
-	errs := p.Errors()
-	if len(errs) == 0 {
-		chk := denetci.New()
-		errs = chk.CheckProgram(prog)
-		// Uyarılar (ör. yerleşik ad gölgeleme) programı durdurmaz; hata ayıklama konsoluna yazılır.
-		if u := chk.Warnings(); len(u) > 0 {
-			s.output("stderr", "⚠️ Uyarılar:\n")
-			for _, e := range u {
-				s.output("stderr", "  • "+e+"\n"+indentLines(turkce.KodCercevesi(code, e), "    "))
-			}
+	hazir := kaynak.Hazirla(string(data), kaynak.Secenekler{TipDenetimi: true})
+	code, prog, errs := hazir.Metin, hazir.Program, hazir.Hatalar
+	// Uyarılar (ör. yerleşik ad gölgeleme) programı durdurmaz; hata ayıklama konsoluna yazılır.
+	if u := hazir.Uyarilar; len(u) > 0 {
+		s.output("stderr", "⚠️ Uyarılar:\n")
+		for _, e := range u {
+			s.output("stderr", "  • "+e+"\n"+indentLines(turkce.KodCercevesi(code, e), "    "))
 		}
 	}
 	if len(errs) > 0 {

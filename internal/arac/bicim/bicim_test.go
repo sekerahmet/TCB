@@ -138,7 +138,7 @@ func TestAnlamDegisirseReddedilir(t *testing.T) {
 	var anlam *AnlamDegistiHatasi
 
 	// Bozuk dönüşüm: satırları birleştirir; yeni satırdaki '(' önceki ifadeye bağlanır (5(1 + 2)).
-	donustur = func(kaynak string, sus map[konum]int) string {
+	donustur = func(kaynak string, _ bool, sus map[konum]int) string {
 		return strings.ReplaceAll(kaynak, "\n", " ") + "\n"
 	}
 	if _, err := Bicimle("değişken f = 5\n(1 + 2) |> yazdır\n"); !errors.As(err, &anlam) {
@@ -146,7 +146,7 @@ func TestAnlamDegisirseReddedilir(t *testing.T) {
 	}
 
 	// Sözcük değiştiren dönüşüm de reddedilmeli
-	donustur = func(kaynak string, sus map[konum]int) string {
+	donustur = func(kaynak string, _ bool, sus map[konum]int) string {
 		return strings.ReplaceAll(kaynak, "1", "2")
 	}
 	if _, err := Bicimle("a = 1\n"); !errors.As(err, &anlam) {

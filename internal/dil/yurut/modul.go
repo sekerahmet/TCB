@@ -8,10 +8,8 @@ import (
 	"slices"
 	"strings"
 	"tr_dili/internal/dil/agac"
-	"tr_dili/internal/dil/ayristir"
-	"tr_dili/internal/dil/denetci"
+	"tr_dili/internal/dil/kaynak"
 	"tr_dili/internal/dil/kod"
-	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/turkce"
 )
 
@@ -145,30 +143,16 @@ func (v *VM) kaynaktaCagir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi 
 	return val, nil
 }
 
-// ModulDenetle bir modülün kaynağını çalıştırmadan önce denetler: modül olarak ayrıştırır
-// (üst düzeyde 'sonuç' hatadır) ve tip denetiminden geçirir. Hata varsa tur
-// ("sözdizimi" ya da "tip denetimi") ve hatalar döner; 'aktar', 'tr kontrol' ve
-// 'tr derle' aynı denetimi kullanır. Aktaranın genel adları bilinmediğinden modülde
-// tanımsız ad aranmaz; bilindiğinde ModulDenetleKapsamda kullanılır.
-func ModulDenetle(kod string) (prog *agac.Program, tur string, hatalar []string) {
-	return ModulDenetleKapsamda(kod, nil, true)
-}
-
-// ModulDenetleKapsamda ModulDenetle gibidir; modül, aktaranın genel kapsamının altında
+// ModulDenetle bir modülün kaynağını (dosyanın tamamı) çalıştırmadan önce denetler: modül
+// olarak ayrıştırır (üst düzeyde 'sonuç' hatadır) ve tip denetiminden geçirir; hata varsa
+// sonucun Asama'sı ("sözdizimi" ya da "tip denetimi") ve Hatalar'ı doludur. 'aktar', 'tr
+// kontrol' ve 'tr derle' aynı denetimi kullanır. Modül aktaranın genel kapsamının altında
 // çalıştığı için (11.1) genelAdlar modülde tanımlı sayılır, başka bir yerde tanımlanmayan ad
-// tanımsız ad hatasıdır (5.14). dinamik, genel adların tam bilinmediğini söyler.
-func ModulDenetleKapsamda(kod string, genelAdlar []string, dinamik bool) (prog *agac.Program, tur string, hatalar []string) {
-	p := ayristir.New(sozcuk.New(kod))
-	prog = p.ParseModule()
-	if errs := p.Errors(); len(errs) > 0 {
-		return prog, "sözdizimi", errs
-	}
-	chk := denetci.New()
-	chk.GenelKapsam(genelAdlar, dinamik)
-	if errs := chk.CheckProgram(prog); len(errs) > 0 {
-		return prog, "tip denetimi", errs
-	}
-	return prog, "", nil
+// tanımsız ad hatasıdır (5.14); dinamik, genel adların tam bilinmediğini söyler (o zaman
+// tanımsız ad aranmaz).
+func ModulDenetle(metin string, genelAdlar []string, dinamik bool) *kaynak.Sonuc {
+	return kaynak.Hazirla(metin, kaynak.Secenekler{Modul: true, TipDenetimi: true,
+		GenelKapsam: true, GenelAdlar: genelAdlar, GenelDinamik: dinamik})
 }
 
 // modulYukleme yüklenmekte olan bir modüldür; aynı modülü isteyen başka görevler yüklemenin
@@ -255,14 +239,14 @@ func (v *VM) modulCalistir(s *agac.ImportStatement, path, resolvedPath, absPath 
 	if err != nil {
 		return nil, fmt.Errorf("Satır %d: %w", s.Line(), OkumaHatasi(kod.Ad(kod.A070), path, "modülü okunamadı", err, bakilanlar))
 	}
-	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
-	modKaynak := &Kaynak{Yol: resolvedPath, Ad: gosterilenYol(resolvedPath), Kod: code}
 	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
 	// adları görür; yerleşikler de oradadır.
-	prog, tur, hatalar := ModulDenetleKapsamda(code, v.GlobalEnv.kapsam.adlar, false)
-	if len(hatalar) > 0 {
-		return nil, &ModulHatasi{Kaynak: modKaynak, Tur: tur, Hatalar: hatalar, ModulYolu: s.Path, AktarSatiri: s.Line(), Aktaran: v.kaynak}
+	ms := ModulDenetle(string(data), v.GlobalEnv.kapsam.adlar, false)
+	modKaynak := &Kaynak{Yol: resolvedPath, Ad: gosterilenYol(resolvedPath), Kod: ms.Metin}
+	if ms.Asama != "" {
+		return nil, &ModulHatasi{Kaynak: modKaynak, Tur: ms.Asama, Hatalar: ms.Hatalar, ModulYolu: s.Path, AktarSatiri: s.Line(), Aktaran: v.kaynak}
 	}
+	prog := ms.Program
 
 	onceki, oncekiZincir := v.kaynak, v.yukleme
 	v.kaynak = modKaynak

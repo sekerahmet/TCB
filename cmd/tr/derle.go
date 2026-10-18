@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"tr_dili/internal/dil/ayristir"
 	"tr_dili/internal/dil/denetci"
+	"tr_dili/internal/dil/kaynak"
 	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/yurut"
 )
@@ -165,9 +165,11 @@ type aktarYeri struct {
 
 // aktarYerleri koddaki tüm 'aktar' deyimlerini kaynaktaki sırayla bulur. Ayrıştırıcı da
 // 'aktar' sözcüğünden sonraki ilk sözcük biriminin metnini modül yolu sayar; burada da
-// aynısı yapılır, böylece iç bloklardaki aktarımlar da kaçmaz.
+// aynısı yapılır, böylece iç bloklardaki aktarımlar da kaçmaz. Aralıklar kaynağın gövdesine
+// göredir (kaynak.Bolumler; kodlu dosyada başlıktan sonrası).
 func aktarYerleri(kod string) []aktarYeri {
-	l := sozcuk.New(kod)
+	b, _ := kaynak.Ayir(kod)
+	l := b.Sozcukler()
 	var yerler []aktarYeri
 	for {
 		tok := l.NextToken()
@@ -251,14 +253,11 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 		if err != nil {
 			return fmt.Errorf("%s, satır %d: %q modülü okunamadı: %v", kaynakYolu, y.satir, y.yol, err)
 		}
-		modul := paketDosyasi{
-			Ad:  filepath.ToSlash(cozulen),
-			Kod: strings.TrimPrefix(string(veri), "\xef\xbb\xbf"),
-		}
+		modul := paketDosyasi{Ad: filepath.ToSlash(cozulen), Kod: string(veri)}
 		// Modül yorumlayıcıdaki 'aktar' ile aynı denetimden geçer (sözdizimi, üst düzey
 		// 'sonuç', tip denetimi).
-		if _, tur, hatalar := yurut.ModulDenetleKapsamda(modul.Kod, t.genelAdlar, t.genelDinamik); len(hatalar) > 0 {
-			return &modulDenetimHatasi{yol: filepath.ToSlash(cozulen), kod: modul.Kod, tur: tur, hatalar: hatalar}
+		if s := yurut.ModulDenetle(modul.Kod, t.genelAdlar, t.genelDinamik); s.Asama != "" {
+			return &modulDenetimHatasi{yol: filepath.ToSlash(cozulen), kod: s.Metin, tur: s.Asama, hatalar: s.Hatalar}
 		}
 		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
 		// (döngünün kendisini yorumlayıcı çalışma anında bildirir).
@@ -289,7 +288,7 @@ func (e *modulDenetimHatasi) Error() string {
 // paketHazirla ana programı ve aktardığı tüm modülleri içeren paketi kurar.
 func paketHazirla(srcPath, kod string) (*paket, error) {
 	t := &modulToplayici{sira: map[string]int{}, ana: srcPath}
-	t.genelAdlar, t.genelDinamik = denetci.UstDuzeyAdlari(ayristir.New(sozcuk.New(kod)).ParseProgram())
+	t.genelAdlar, t.genelDinamik = denetci.UstDuzeyAdlari(kaynak.Hazirla(kod, kaynak.Secenekler{}).Program)
 	pk := &paket{Ana: paketDosyasi{Ad: filepath.ToSlash(srcPath), Kod: kod}}
 	if err := t.topla(&pk.Ana, srcPath); err != nil {
 		return nil, err
@@ -439,7 +438,8 @@ func aktarlariYonlendir(d paketDosyasi, yollar []string) (string, error) {
 	if len(yerler) == 0 {
 		return d.Kod, nil
 	}
-	girdi := []rune(strings.TrimPrefix(d.Kod, "\xef\xbb\xbf"))
+	b, _ := kaynak.Ayir(d.Kod)
+	girdi := []rune(b.Govde)
 	var sb strings.Builder
 	onceki := 0
 	for i, y := range yerler {
@@ -452,7 +452,8 @@ func aktarlariYonlendir(d paketDosyasi, yollar []string) (string, error) {
 		onceki = y.son
 	}
 	sb.WriteString(string(girdi[onceki:]))
-	return sb.String(), nil
+	b.Govde = sb.String()
+	return b.Birlestir(), nil
 }
 
 // gomuluModulleriYaz modülleri geçici klasöre (aktarımları yönlendirilmiş olarak) yazar
@@ -505,15 +506,16 @@ func gomuluUygulamayiCalistir(pk *paket) {
 		os.Exit(1)
 	}
 
-	prog := kaynakHazirla(kod, gomuluHazirlik)
+	s := kaynakHazirla(kod, gomuluHazirlik)
 	machine := yurut.New()
 	machine.SourceFile = gomuluKaynakAdi
 	machine.KomutAdi = filepath.Base(os.Args[0])
 	// Hata çerçeveleri kullanıcının yazdığı (yönlendirilmemiş) kaynağı göstersin; satırlar aynıdır.
-	machine.SourceCode = pk.Ana.Kod
+	ozgun := kaynak.Hazirla(pk.Ana.Kod, kaynak.Secenekler{}).Metin
+	machine.SourceCode = ozgun
 	// Üretilen uygulamanın bütün argümanları programındır (uygulama.exe --adım 5).
 	machine.ArgumanlariAyarla(os.Args[1:])
-	programCalistir(machine, prog, pk.Ana.Kod)
+	programCalistir(machine, s.Program, ozgun)
 	temizle()
 }
 
