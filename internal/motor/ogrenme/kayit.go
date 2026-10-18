@@ -136,10 +136,10 @@ func tensorKaydet(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value)
 	return yurut.NULL, nil
 }
 
-// dosyayaYaz girdileri yol'a atomik olarak yazar (bkz. atomikYaz): yazma yarıda kalırsa
+// dosyayaYaz girdileri yol'a atomik olarak yazar (bkz. yurut.AtomikYaz): yazma yarıda kalırsa
 // önceki kontrol noktası bozulmaz.
 func dosyayaYaz(yol string, girdiler []kayitGirdisi) error {
-	return atomikYaz(yol, func(f io.Writer) error { return girdileriYaz(f, girdiler) })
+	return yurut.AtomikYaz(yol, func(f io.Writer) error { return girdileriYaz(f, girdiler) })
 }
 
 func girdileriYaz(f io.Writer, girdiler []kayitGirdisi) (err error) {

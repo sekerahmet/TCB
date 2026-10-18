@@ -1,4 +1,4 @@
-package ogrenme
+package yurut
 
 import (
 	"errors"
@@ -17,7 +17,7 @@ func TestAtomikYaz(t *testing.T) {
 		t.Fatal(err)
 	}
 	hata := errors.New("disk doldu")
-	err := atomikYaz(yol, func(w io.Writer) error {
+	err := AtomikYaz(yol, func(w io.Writer) error {
 		w.Write([]byte("yarım"))
 		return hata
 	})
@@ -30,7 +30,7 @@ func TestAtomikYaz(t *testing.T) {
 	if g, _ := os.ReadDir(klasor); len(g) != 1 {
 		t.Fatalf("geçici dosya kaldı: %v", g)
 	}
-	if err := atomikYaz(yol, func(w io.Writer) error { _, e := w.Write([]byte("yeni")); return e }); err != nil {
+	if err := AtomikYaz(yol, func(w io.Writer) error { _, e := w.Write([]byte("yeni")); return e }); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(yol); string(b) != "yeni" {

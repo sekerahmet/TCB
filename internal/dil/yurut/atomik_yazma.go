@@ -1,4 +1,4 @@
-package ogrenme
+package yurut
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-// atomikYaz, yaz'ın ürettiği içeriği yol'a atomik olarak yazar: içerik önce aynı klasörde
+// AtomikYaz, yaz'ın ürettiği içeriği yol'a atomik olarak yazar: içerik önce aynı klasörde
 // geçici bir dosyaya yazılır, diske işlenir (Sync) ve dosya yeniden adlandırılarak eski
 // dosyanın yerine konur. Yazma yarıda kalırsa (hata, disk dolması, çökme) var olan dosya
 // bozulmadan kalır; hata durumunda geçici dosya silinir. Uzun eğitimlerin kontrol
@@ -16,7 +16,7 @@ import (
 //
 // Hatalar hedef yolu taşır (Türkçe dosya hatası iletisi geçici dosyanın değil kullanıcının
 // verdiği yolun nedenini anlatsın).
-func atomikYaz(yol string, yaz func(w io.Writer) error) (err error) {
+func AtomikYaz(yol string, yaz func(w io.Writer) error) (err error) {
 	if b, e := os.Stat(yol); e == nil && b.IsDir() {
 		return &fs.PathError{Op: "open", Path: yol, Err: errors.New("bir klasör")}
 	}
