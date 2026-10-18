@@ -217,6 +217,8 @@ type FuncVal struct {
 	Body       *ast.BlockStatement
 	Env        *Environment
 	BoundSelf  Value
+	// kod fonksiyonun derlenmiş hâlidir (nil ise ilk çağrıda derlenir).
+	kod *fonkKodu
 }
 
 func (f *FuncVal) Type() ValueType { return VAL_FUNC }
@@ -243,6 +245,9 @@ type StructDefVal struct {
 	Name    string
 	Fields  []ast.StructField
 	Methods map[string]*FuncVal
+	// alanKod alanların derlenmiş varsayılan değer ifadeleridir (Fields ile aynı sırada;
+	// varsayılanı olmayan alan için nil). nil dilimse varsayılanlar ilk kullanımda derlenir.
+	alanKod []ifadeKodu
 }
 
 func (s *StructDefVal) Type() ValueType { return VAL_STRUCT }
@@ -290,119 +295,4 @@ func NewInt(n int64) *IntVal {
 		return kucukIntler[n-kucukIntEnAz]
 	}
 	return &IntVal{Val: n}
-}
-
-// --- ÇALIŞMA ORTAMI (ENVIRONMENT) ---
-
-// Environment bir kapsamdaki değişkenleri tutar. Kilidi yoktur: TR kodu yalnızca yorumlayıcı
-// kilidini (GIL, bkz. vmShared.gil) tutan görev tarafından çalıştırılır ve hata ayıklayıcının
-// istekleri de duraklatılmış görevin kendi goroutine'inde işlenir. Bu yüzden bir ortama aynı
-// anda iki goroutine erişmez. GIL'i tutmayan kod (Blocking içindeki işlemler, sunucu
-// goroutine'leri) ortamlara dokunmamalıdır; dokunması gerekiyorsa RunTask kullanılır.
-//
-// Haritalar ilk tanımda oluşturulur: değişken tanımlamayan bloklar ve döngü turları için
-// boş harita ayırmaya gerek kalmaz (nil haritadan okuma Go'da güvenlidir).
-type Environment struct {
-	store      map[string]Value
-	consts     map[string]bool
-	outer      *Environment
-	IsFuncRoot bool
-	defers     []func()
-}
-
-func NewEnvironment(outer *Environment) *Environment {
-	return &Environment{
-		outer:      outer,
-		IsFuncRoot: outer == nil,
-	}
-}
-
-// temizle, turlar arasında yeniden kullanılan bir döngü ortamını yeni açılmış gibi boşaltır.
-func (e *Environment) temizle() {
-	clear(e.store)
-	clear(e.consts)
-}
-
-func (e *Environment) AddDefer(fn func()) {
-	target := e
-	for target.outer != nil && !target.IsFuncRoot {
-		target = target.outer
-	}
-	target.defers = append(target.defers, fn)
-}
-
-func (e *Environment) RunDefers() {
-	if len(e.defers) == 0 {
-		return
-	}
-	list := e.defers
-	e.defers = nil
-	for i := len(list) - 1; i >= 0; i-- {
-		list[i]()
-	}
-}
-
-func (e *Environment) Get(name string) (Value, bool) {
-	for cur := e; cur != nil; cur = cur.outer {
-		if val, ok := cur.store[name]; ok {
-			return val, true
-		}
-	}
-	return nil, false
-}
-
-func (e *Environment) Define(name string, val Value, isConst bool) {
-	if e.store == nil {
-		e.store = make(map[string]Value)
-	}
-	// Yerleşik bir fonksiyonun adıyla (ör. 'toplam', 'uzunluk') değişken tanımlamak onu
-	// gölgeler; yeni değişken sabit değildir. Kullanıcının 'sabit' tanımları korunur.
-	if _, wasBuiltin := e.store[name].(*BuiltinVal); wasBuiltin && !isConst {
-		delete(e.consts, name)
-	}
-	e.store[name] = val
-	if isConst {
-		if e.consts == nil {
-			e.consts = make(map[string]bool)
-		}
-		e.consts[name] = true
-	}
-}
-
-func (e *Environment) Assign(name string, val Value) error {
-	for cur := e; cur != nil; cur = cur.outer {
-		if _, exists := cur.store[name]; exists {
-			if cur.consts[name] {
-				return fmt.Errorf("%q bir sabittir ('sabit') ve değeri değiştirilemez", name)
-			}
-			cur.store[name] = val
-			return nil
-		}
-	}
-	// Hiçbir kapsamda yoksa sessizce genel değişken oluşturmak yazım hatalarını
-	// gizler (ör. fonksiyon içinde 'toplm = 1'); bu yüzden açık tanım istenir.
-	return &TanimsizDegiskenHatasi{Ad: name}
-}
-
-// TanimsizDegiskenHatasi tanımlanmamış bir değişkene atama yapıldığında döner; VM bu
-// türü tanıyarak mesaja "Bunu mu demek istediniz?" önerisi ekler.
-type TanimsizDegiskenHatasi struct{ Ad string }
-
-func (e *TanimsizDegiskenHatasi) Error() string {
-	return fmt.Sprintf("tanımsız değişken: '%s' (önce 'değişken' ile tanımlayın)", e.Ad)
-}
-
-// Names bu kapsamdan ve dış kapsamlardan görünen tüm adları döndürür (öneriler için).
-func (e *Environment) Names() []string {
-	seen := map[string]bool{}
-	var names []string
-	for cur := e; cur != nil; cur = cur.outer {
-		for k := range cur.store {
-			if !seen[k] {
-				seen[k] = true
-				names = append(names, k)
-			}
-		}
-	}
-	return names
 }

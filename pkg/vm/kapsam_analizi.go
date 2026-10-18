@@ -20,11 +20,8 @@ func blokBayraklari(b *ast.BlockStatement) uint8 {
 		return b.Bayraklar
 	}
 	f := blokHesaplandi
-	for _, st := range b.Statements {
-		if deyimTanimlar(st) {
-			f |= blokTanimlar
-			break
-		}
+	if deyimlerTanimlar(b.Statements) {
+		f |= blokTanimlar
 	}
 	for _, st := range b.Statements {
 		if deyimYakalar(st) {
@@ -36,121 +33,121 @@ func blokBayraklari(b *ast.BlockStatement) uint8 {
 	return f
 }
 
-// deyimTanimlar deyimin, çalıştığı ortama doğrudan ad tanımlayıp tanımlamadığını söyler.
-// İç bloklar (kendi kararlarını verdikleri için) ve fonksiyon gövdeleri incelenmez.
-func deyimTanimlar(st ast.Statement) bool {
-	switch s := st.(type) {
-	case *ast.VarStatement, *ast.MultiVarStatement, *ast.StructStatement, *ast.ImportStatement:
-		return true
-	case *ast.ExpressionStatement:
-		return ifadeTanimlar(s.Expression)
-	case *ast.AssignStatement:
-		return ifadeTanimlar(s.Target) || ifadeTanimlar(s.Value)
-	case *ast.MultiAssignStatement:
-		for _, e := range s.Targets {
-			if ifadeTanimlar(e) {
-				return true
-			}
+// deyimlerTanimlar deyimlerden biri çalıştığı ortama doğrudan bir ad tanımlıyor mu?
+func deyimlerTanimlar(stmts []ast.Statement) bool {
+	var var_ bool
+	for _, st := range stmts {
+		deyimAdlari(st, func(string) { var_ = true })
+		if var_ {
+			return true
 		}
-		for _, e := range s.Values {
-			if ifadeTanimlar(e) {
-				return true
-			}
-		}
-	case *ast.ReturnStatement:
-		return ifadeTanimlar(s.ReturnValue)
-	case *ast.ThrowStatement:
-		return ifadeTanimlar(s.Value)
-	case *ast.ForInStatement:
-		return ifadeTanimlar(s.Iterable)
-	case *ast.WhileStatement:
-		return ifadeTanimlar(s.Condition)
-	case *ast.DeferStatement:
-		return ifadeTanimlar(s.Call)
-	case *ast.BreakpointStatement:
-		return ifadeTanimlar(s.Condition)
 	}
 	return false
 }
 
-// ifadeTanimlar ifadenin, değerlendirildiği ortama ad tanımlayan bir adlı fonksiyon
-// içerip içermediğini söyler (fonksiyon f() { ... } ifadesi adı tanımlar).
-func ifadeTanimlar(e ast.Expression) bool {
+// deyimAdlari deyimin, çalıştığı ortama doğrudan tanımladığı adları ad'a verir. Takma adsız
+// 'aktar' (adları çalışma anında belli olur) için ad("") çağrılır. İç bloklar (kendi
+// kararlarını verdikleri için) ve fonksiyon gövdeleri incelenmez.
+func deyimAdlari(st ast.Statement, ad func(string)) {
+	switch s := st.(type) {
+	case *ast.VarStatement:
+		ad(s.Name.Value)
+	case *ast.MultiVarStatement:
+		for _, n := range s.Names {
+			ad(n.Value)
+		}
+	case *ast.StructStatement:
+		ad(s.Name)
+	case *ast.ImportStatement:
+		ad(s.Alias)
+	case *ast.ExpressionStatement:
+		ifadeAdlari(s.Expression, ad)
+	case *ast.AssignStatement:
+		ifadeAdlari(s.Target, ad)
+		ifadeAdlari(s.Value, ad)
+	case *ast.MultiAssignStatement:
+		for _, e := range s.Targets {
+			ifadeAdlari(e, ad)
+		}
+		for _, e := range s.Values {
+			ifadeAdlari(e, ad)
+		}
+	case *ast.ReturnStatement:
+		ifadeAdlari(s.ReturnValue, ad)
+	case *ast.ThrowStatement:
+		ifadeAdlari(s.Value, ad)
+	case *ast.ForInStatement:
+		ifadeAdlari(s.Iterable, ad)
+	case *ast.WhileStatement:
+		ifadeAdlari(s.Condition, ad)
+	case *ast.DeferStatement:
+		// 'ertele f()' çağrısı sonradan aynı ortamda değerlendirilir
+		ifadeAdlari(s.Call, ad)
+	case *ast.BreakpointStatement:
+		ifadeAdlari(s.Condition, ad)
+	}
+}
+
+// ifadeAdlari ifadenin, değerlendirildiği ortama tanımladığı adları (fonksiyon f() { ... }
+// biçimindeki adlı fonksiyonlar) ad'a verir.
+func ifadeAdlari(e ast.Expression, ad func(string)) {
 	switch x := e.(type) {
 	case nil:
-		return false
 	case *ast.FunctionLiteral:
-		return x.Name != ""
+		if x.Name != "" {
+			ad(x.Name)
+		}
 	case *ast.InterpolatedString:
 		for _, p := range x.Parts {
-			if ifadeTanimlar(p) {
-				return true
-			}
+			ifadeAdlari(p, ad)
 		}
 	case *ast.ListLiteral:
 		for _, el := range x.Elements {
-			if ifadeTanimlar(el) {
-				return true
-			}
+			ifadeAdlari(el, ad)
 		}
 	case *ast.DictLiteral:
 		for _, p := range x.Pairs {
-			if ifadeTanimlar(p.Key) || ifadeTanimlar(p.Value) {
-				return true
-			}
+			ifadeAdlari(p.Key, ad)
+			ifadeAdlari(p.Value, ad)
 		}
 	case *ast.RangeExpression:
-		return ifadeTanimlar(x.Start) || ifadeTanimlar(x.End)
+		ifadeAdlari(x.Start, ad)
+		ifadeAdlari(x.End, ad)
 	case *ast.PrefixExpression:
-		return ifadeTanimlar(x.Right)
+		ifadeAdlari(x.Right, ad)
 	case *ast.InfixExpression:
-		return ifadeTanimlar(x.Left) || ifadeTanimlar(x.Right)
+		ifadeAdlari(x.Left, ad)
+		ifadeAdlari(x.Right, ad)
 	case *ast.IfExpression:
-		if ifadeTanimlar(x.Condition) {
-			return true
-		}
+		ifadeAdlari(x.Condition, ad)
 		for _, ei := range x.ElseIfs {
-			if ifadeTanimlar(ei.Condition) {
-				return true
-			}
+			ifadeAdlari(ei.Condition, ad)
 		}
 	case *ast.MatchExpression:
-		if ifadeTanimlar(x.Subject) {
-			return true
-		}
+		ifadeAdlari(x.Subject, ad)
 		for _, mc := range x.Cases {
 			for _, p := range mc.Patterns {
-				if ifadeTanimlar(p) {
-					return true
-				}
+				ifadeAdlari(p, ad)
 			}
-			if ifadeTanimlar(mc.ValueExpr) {
-				return true
-			}
+			ifadeAdlari(mc.ValueExpr, ad)
 		}
 	case *ast.CallExpression:
-		if ifadeTanimlar(x.Function) {
-			return true
-		}
+		ifadeAdlari(x.Function, ad)
 		for _, a := range x.Arguments {
-			if ifadeTanimlar(a) {
-				return true
-			}
+			ifadeAdlari(a, ad)
 		}
 		for _, na := range x.NamedArgs {
-			if ifadeTanimlar(na.Value) {
-				return true
-			}
+			ifadeAdlari(na.Value, ad)
 		}
 	case *ast.IndexExpression:
-		return ifadeTanimlar(x.Left) || ifadeTanimlar(x.Index)
+		ifadeAdlari(x.Left, ad)
+		ifadeAdlari(x.Index, ad)
 	case *ast.MemberExpression:
-		return ifadeTanimlar(x.Object)
+		ifadeAdlari(x.Object, ad)
 	case *ast.ListComprehension:
 		// Çıktı ve koşul kendi ortamında değerlendirilir; yalnızca kaynak bu ortamdadır
-		return ifadeTanimlar(x.Iterable)
+		ifadeAdlari(x.Iterable, ad)
 	}
-	return false
 }
 
 // deyimYakalar deyimin (iç içe her yerinde) ortamı yakalayabilecek bir yapı içerip
@@ -284,6 +281,57 @@ func ifadeYakalar(e ast.Expression) bool {
 		return ifadeYakalar(x.Object)
 	case *ast.ListComprehension:
 		return ifadeYakalar(x.Iterable) || ifadeYakalar(x.Output) || ifadeYakalar(x.Condition)
+	}
+	return false
+}
+
+// govdedeErteleVar fonksiyon gövdesinde (iç fonksiyonlar ve eşzamanlı bloklar hariç; onların
+// kendi kökleri vardır) bir 'ertele' deyimi olup olmadığını söyler.
+func govdedeErteleVar(stmts []ast.Statement) bool {
+	for _, st := range stmts {
+		if deyimErteleVar(st) {
+			return true
+		}
+	}
+	return false
+}
+
+func deyimErteleVar(st ast.Statement) bool {
+	switch s := st.(type) {
+	case *ast.DeferStatement:
+		return true
+	case *ast.BlockStatement:
+		return s != nil && govdedeErteleVar(s.Statements)
+	case *ast.ForInStatement:
+		return s.Body != nil && govdedeErteleVar(s.Body.Statements)
+	case *ast.WhileStatement:
+		return s.Body != nil && govdedeErteleVar(s.Body.Statements)
+	case *ast.TryCatchStatement:
+		return deyimErteleVar(s.TryBody) || deyimErteleVar(s.CatchBody)
+	case *ast.ExpressionStatement:
+		return ifadeErteleVar(s.Expression)
+	}
+	return false
+}
+
+// ifadeErteleVar 'eğer' ve 'eşle' dallarındaki blokları inceler (dallar deyim olarak çalışır).
+func ifadeErteleVar(e ast.Expression) bool {
+	switch x := e.(type) {
+	case *ast.IfExpression:
+		if deyimErteleVar(x.Consequence) || deyimErteleVar(x.Alternative) {
+			return true
+		}
+		for _, ei := range x.ElseIfs {
+			if deyimErteleVar(ei.Consequence) {
+				return true
+			}
+		}
+	case *ast.MatchExpression:
+		for _, mc := range x.Cases {
+			if deyimErteleVar(mc.Body) {
+				return true
+			}
+		}
 	}
 	return false
 }

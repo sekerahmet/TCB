@@ -7,39 +7,6 @@ import (
 	"tr_dili/pkg/turkce"
 )
 
-func (v *VM) evalCall(e *ast.CallExpression, env *Environment) (Value, error) {
-	fnVal, err := v.evalExpression(e.Function, env)
-	if err != nil {
-		return nil, err
-	}
-
-	args := make([]Value, 0, len(e.Arguments))
-	for _, arg := range e.Arguments {
-		av, err := v.evalExpression(arg, env)
-		if err != nil {
-			return nil, err
-		}
-		args = append(args, av)
-	}
-
-	var named map[string]Value
-	if len(e.NamedArgs) > 0 {
-		named = make(map[string]Value)
-		for _, na := range e.NamedArgs {
-			nv, err := v.evalExpression(na.Value, env)
-			if err != nil {
-				return nil, err
-			}
-			named[na.Name] = nv
-		}
-	}
-
-	if err := checkArity(fnVal, len(args), named, e.Line()); err != nil {
-		return nil, err
-	}
-	return v.ApplyFunction(fnVal, args, named, e.Line())
-}
-
 // maxCallDepth iç içe kullanıcı fonksiyonu çağrılarının üst sınırıdır. Sınırsız özyineleme
 // Go yığınını taşırıp süreci yakalanamaz biçimde çökertirdi; sınırda 'dene/yakala' ile
 // yakalanabilen bir hata döner.
@@ -55,17 +22,8 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	}
 	// Hızlı yol: adlı argüman yoksa ve verilmeyen her parametrenin varsayılanı varsa sorun
 	// yoktur. Hata mesajı için gereken metin ve haritalar yalnızca hata yolunda kurulur.
-	if len(named) == 0 && nargs <= len(fn.Parameters) {
-		tamam := true
-		for _, p := range fn.Parameters[nargs:] {
-			if p.DefaultValue == nil {
-				tamam = false
-				break
-			}
-		}
-		if tamam {
-			return nil
-		}
+	if len(named) == 0 && nargs <= len(fn.Parameters) && varsayilanlarYeter(fn, nargs) {
+		return nil
 	}
 	ad := "'" + fn.Name + "' fonksiyonu"
 	if fn.Name == "" {
@@ -113,48 +71,11 @@ func suggestParam(name string, params []ast.Param) string {
 func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, line int) (Value, error) {
 	switch fn := fnVal.(type) {
 	case *FuncVal:
-		fnEnv := NewEnvironment(fn.Env)
-		fnEnv.IsFuncRoot = true
-		defer fnEnv.RunDefers()
-		fnName := fn.Name
-		if fnName == "" {
-			fnName = "<anonim>"
+		fk := fn.kod
+		if fk == nil {
+			fk = v.fonkKoduHazirla(fn)
 		}
-		if len(v.CallStack) >= maxCallDepth {
-			return nil, fmt.Errorf("Satır %d: Özyineleme derinliği sınırı aşıldı (en fazla %d iç içe çağrı); fonksiyon kendini durmadan çağırıyor olabilir", line, maxCallDepth)
-		}
-		v.CallStack = append(v.CallStack, StackFrame{
-			FuncName: fnName,
-			Line:     line,
-		})
-		defer func() {
-			if len(v.CallStack) > 0 {
-				v.CallStack = v.CallStack[:len(v.CallStack)-1]
-			}
-		}()
-		if fn.BoundSelf != nil {
-			fnEnv.Define("kendi", fn.BoundSelf, false)
-		}
-		for i, param := range fn.Parameters {
-			if i < len(args) {
-				fnEnv.Define(param.Name, args[i], false)
-			} else if named != nil && named[param.Name] != nil {
-				fnEnv.Define(param.Name, named[param.Name], false)
-			} else if param.DefaultValue != nil {
-				defVal, err := v.evalExpression(param.DefaultValue, fn.Env)
-				if err != nil {
-					return nil, err
-				}
-				fnEnv.Define(param.Name, defVal, false)
-			} else {
-				fnEnv.Define(param.Name, NULL, false)
-			}
-		}
-		val, _, err := v.execStatements(fn.Body.Statements, fnEnv)
-		if err != nil {
-			return nil, err
-		}
-		return val, nil
+		return v.cagirHazir(fn, fk, yeniOrtam(fn.Env, fk.bilgi), args, len(args), named, line)
 
 	case *BuiltinVal:
 		res, err := fn.Fn(v, args, named)
@@ -168,13 +89,16 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 			Def:    fn,
 			Fields: make(map[string]Value),
 		}
+		if fn.alanKod == nil {
+			fn.alanKod = v.yeniDerleyici().alanVarsayilanlari(fn.Fields)
+		}
 		for i, f := range fn.Fields {
 			if i < len(args) {
 				inst.Fields[f.Name] = args[i]
 			} else if named != nil && named[f.Name] != nil {
 				inst.Fields[f.Name] = named[f.Name]
-			} else if f.DefaultValue != nil {
-				defVal, err := v.evalExpression(f.DefaultValue, v.GlobalEnv)
+			} else if f.DefaultValue != nil && i < len(fn.alanKod) && fn.alanKod[i] != nil {
+				defVal, err := fn.alanKod[i](v, v.GlobalEnv)
 				if err != nil {
 					return nil, err
 				}
@@ -190,6 +114,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 				Body:       initMethod.Body,
 				Env:        initMethod.Env,
 				BoundSelf:  inst,
+				kod:        initMethod.kod,
 			}
 			_, err := v.ApplyFunction(boundInit, args, named, line)
 			if err != nil {
@@ -200,4 +125,71 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 	}
 
 	return nil, fmt.Errorf("Satır %d: %s tipi bir fonksiyon olarak çağrılamaz", line, fnVal.Type())
+}
+
+// cagirHazir bir kullanıcı fonksiyonunu fnEnv ortamında çalıştırır. args nil değilse
+// argümanlar sırayla bağlanır; nil ise ilk nargs argüman zaten yuvalara yazılmıştır
+// (yalnızca fk.basit iken). Kalan parametreler adlı argümanlardan, varsayılanlardan ya da
+// 'yok' ile doldurulur.
+func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
+	fnEnv.IsFuncRoot = true
+	if fk.erteleVar {
+		// 'ertele' blokları bir çöküşte de (Go panic) çalışmalıdır
+		defer fnEnv.RunDefers()
+	}
+	if len(v.CallStack) >= maxCallDepth {
+		return nil, fmt.Errorf("Satır %d: Özyineleme derinliği sınırı aşıldı (en fazla %d iç içe çağrı); fonksiyon kendini durmadan çağırıyor olabilir", line, maxCallDepth)
+	}
+	fnName := fn.Name
+	if fnName == "" {
+		fnName = "<anonim>"
+	}
+	v.CallStack = append(v.CallStack, StackFrame{
+		FuncName: fnName,
+		Line:     line,
+	})
+	val, err := v.fonksiyonGovdesi(fn, fk, fnEnv, args, nargs, named)
+	if len(v.CallStack) > 0 {
+		v.CallStack = v.CallStack[:len(v.CallStack)-1]
+	}
+	if !fk.erteleVar {
+		fnEnv.RunDefers()
+	}
+	return val, err
+}
+
+func (v *VM) fonksiyonGovdesi(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, args []Value, nargs int, named map[string]Value) (Value, error) {
+	if fn.BoundSelf != nil {
+		if fk.kendi >= 0 {
+			fnEnv.vals[fk.kendi] = fn.BoundSelf
+		} else {
+			fnEnv.Define("kendi", fn.BoundSelf, false)
+		}
+	}
+	for i, param := range fn.Parameters {
+		if i >= len(fk.param) {
+			break
+		}
+		yuva := fk.param[i]
+		if i < nargs {
+			if args != nil {
+				fnEnv.vals[yuva] = args[i]
+			}
+		} else if named != nil && named[param.Name] != nil {
+			fnEnv.vals[yuva] = named[param.Name]
+		} else if param.DefaultValue != nil && fk.varsayilan[i] != nil {
+			defVal, err := fk.varsayilan[i](v, fn.Env)
+			if err != nil {
+				return nil, err
+			}
+			fnEnv.vals[yuva] = defVal
+		} else {
+			fnEnv.vals[yuva] = NULL
+		}
+	}
+	val, _, err := fk.govde.calistir(v, fnEnv)
+	if err != nil {
+		return nil, err
+	}
+	return val, nil
 }

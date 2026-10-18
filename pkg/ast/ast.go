@@ -56,8 +56,6 @@ type AssignStatement struct {
 	Target   Expression  // Identifier, IndexExpression veya MemberExpression
 	Operator string      // "=", "+=", "-=", "*=", "/="
 	Value    Expression
-	// Kod, bileşik atamadaki işlecin yorumlayıcıdaki tamsayı karşılığıdır (0: henüz hesaplanmadı).
-	Kod uint8
 }
 
 func (as *AssignStatement) statementNode()       {}
@@ -203,8 +201,6 @@ func (i *Identifier) Line() int            { return i.Token.Line }
 type IntegerLiteral struct {
 	Token lexer.Token
 	Value int64
-	// Onbellek yorumlayıcının bu sabit için bir kez kutuladığı değeri tutar.
-	Onbellek any
 }
 
 func (il *IntegerLiteral) expressionNode()      {}
@@ -214,8 +210,6 @@ func (il *IntegerLiteral) Line() int            { return il.Token.Line }
 type FloatLiteral struct {
 	Token lexer.Token
 	Value float64
-	// Onbellek yorumlayıcının bu sabit için bir kez kutuladığı değeri tutar.
-	Onbellek any
 }
 
 func (fl *FloatLiteral) expressionNode()      {}
@@ -225,8 +219,6 @@ func (fl *FloatLiteral) Line() int            { return fl.Token.Line }
 type StringLiteral struct {
 	Token lexer.Token
 	Value string
-	// Onbellek yorumlayıcının bu sabit için bir kez kutuladığı değeri tutar.
-	Onbellek any
 }
 
 func (sl *StringLiteral) expressionNode()      {}
@@ -308,8 +300,6 @@ type InfixExpression struct {
 	Left     Expression
 	Operator string
 	Right    Expression
-	// Kod, işlecin yorumlayıcıdaki tamsayı karşılığıdır (0: henüz hesaplanmadı).
-	Kod uint8
 }
 
 func (ie *InfixExpression) expressionNode()      {}

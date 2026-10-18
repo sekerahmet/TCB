@@ -149,12 +149,23 @@ func (v *VM) Blocking(fn func()) {
 func (v *VM) RunTask(fn func() (Value, error)) (res Value, err error) {
 	v.acquireGIL()
 	defer v.releaseGIL()
+	yiginBoyu := len(v.CallStack)
 	defer func() {
 		if r := recover(); r != nil {
+			v.yiginiKirp(yiginBoyu)
 			res, err = nil, fmt.Errorf("İç hata (çökme önlendi): %v", r)
 		}
 	}()
 	return fn()
+}
+
+// yiginiKirp çağrı yığınını n çerçeveye indirir. Derlenmiş çağrılar çerçevelerini Go
+// 'defer' olmadan kaldırır; bir çöküş (panic) yakalandığında yarıda kalan çerçeveler
+// burada atılır.
+func (v *VM) yiginiKirp(n int) {
+	if len(v.CallStack) > n {
+		v.CallStack = v.CallStack[:n]
+	}
 }
 
 func (v *VM) StackDepth() int {
@@ -181,13 +192,15 @@ func (v *VM) Run(prog *ast.Program) (result Value, err error) {
 		defer v.releaseGIL()
 	}
 	// Yerleşik fonksiyonlardaki beklenmedik paniklerin tüm süreci çökertmesini engelle
+	yiginBoyu := len(v.CallStack)
 	defer func() {
 		if r := recover(); r != nil {
+			v.yiginiKirp(yiginBoyu)
 			result, err = nil, fmt.Errorf("İç hata (çökme önlendi): %v", r)
 		}
 	}()
 	defer v.GlobalEnv.RunDefers()
-	val, _, err := v.execStatements(prog.Statements, v.GlobalEnv)
+	val, _, err := v.programCalistir(prog.Statements)
 	if err != nil {
 		return nil, err
 	}

@@ -5,10 +5,10 @@ import (
 	"math"
 )
 
-// İşleç kodları: ayrıştırılmış işleç metinleri bir kez bu tamsayılara çevrilir; böylece
+// İşleç kodları: ayrıştırılmış işleç metinleri derleme anında bu tamsayılara çevrilir; böylece
 // her işlemde metin karşılaştırması yapılmaz.
 const (
-	opYok uint8 = iota // henüz hesaplanmadı
+	_ uint8 = iota // 0 kullanılmaz
 	opBilinmeyen
 	opTopla
 	opCikar
@@ -87,10 +87,6 @@ func atamaIslecMetni(kod uint8) string {
 		return "/"
 	}
 	return ""
-}
-
-func (v *VM) evalInfix(op string, left Value, right Value, line int) (Value, error) {
-	return v.evalInfixKod(islecKodu(op), op, left, right, line)
 }
 
 // evalInfixKod ikili işlemi işleç koduyla yapar; op yalnızca hata mesajları içindir.

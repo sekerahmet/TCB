@@ -56,17 +56,25 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 		v.acquireGIL()
 		defer v.releaseGIL()
 	}
+	yiginBoyu := len(v.CallStack)
 	defer func() {
 		if r := recover(); r != nil {
+			// Çöküşte yarıda kalan çağrıların çerçevelerini at (sonraki testler için)
+			v.yiginiKirp(yiginBoyu)
 			err = fmt.Errorf("Satır %d: İç hata (çökme önlendi): %v", t.Line(), r)
 		}
 	}()
-	env := NewEnvironment(v.GlobalEnv)
+	var stmts []ast.Statement
+	if t.Body != nil {
+		stmts = t.Body.Statements
+	}
+	kod, bilgi := v.genelAltindaDerle(stmts)
+	env := yeniOrtam(v.GlobalEnv, bilgi)
 	env.IsFuncRoot = true
 	func() {
 		defer env.RunDefers()
 		if t.Body != nil {
-			_, _, err = v.execStatements(t.Body.Statements, env)
+			_, _, err = kod.calistir(v, env)
 		}
 	}()
 	v.Blocking(v.wg.Wait)

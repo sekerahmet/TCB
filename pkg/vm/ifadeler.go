@@ -2,358 +2,14 @@ package vm
 
 import (
 	"fmt"
-	"strings"
 	"tr_dili/pkg/ast"
 )
 
-func (v *VM) evalExpression(expr ast.Expression, env *Environment) (Value, error) {
-	val, _, err := v.evalExpressionWithSignal(expr, env)
-	return val, err
-}
+// Bu dosyada derlenmiş kodun değer düzeyinde kullandığı yardımcılar vardır (indeksleme,
+// üye erişimi, liste üreteci kaynakları).
 
-func (v *VM) evalExpressionWithSignal(expr ast.Expression, env *Environment) (Value, flowSignal, error) {
-	if expr == nil {
-		return NULL, signalNone, nil
-	}
-	switch e := expr.(type) {
-	// Sabitler bir kez kutulanıp düğümde saklanır; değerler değişmez olduğundan paylaşılabilir.
-	case *ast.IntegerLiteral:
-		if d, ok := e.Onbellek.(*IntVal); ok {
-			return d, signalNone, nil
-		}
-		d := NewInt(e.Value)
-		e.Onbellek = d
-		return d, signalNone, nil
-	case *ast.FloatLiteral:
-		if d, ok := e.Onbellek.(*FloatVal); ok {
-			return d, signalNone, nil
-		}
-		d := &FloatVal{Val: e.Value}
-		e.Onbellek = d
-		return d, signalNone, nil
-	case *ast.StringLiteral:
-		if d, ok := e.Onbellek.(*StringVal); ok {
-			return d, signalNone, nil
-		}
-		d := &StringVal{Val: e.Value}
-		e.Onbellek = d
-		return d, signalNone, nil
-	case *ast.InterpolatedString:
-		var sb strings.Builder
-		for _, part := range e.Parts {
-			val, err := v.evalExpression(part, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			sb.WriteString(val.Inspect())
-		}
-		return &StringVal{Val: sb.String()}, signalNone, nil
-	case *ast.BooleanLiteral:
-		if e.Value {
-			return TRUE, signalNone, nil
-		}
-		return FALSE, signalNone, nil
-	case *ast.NullLiteral:
-		return NULL, signalNone, nil
-	case *ast.Identifier:
-		val, ok := env.Get(e.Value)
-		if !ok {
-			return nil, signalNone, fmt.Errorf("Satır %d, Sütun %d: '%s' adında bir değişken ya da fonksiyon yok%s",
-				e.Line(), e.Token.Column, e.Value, suggestName(e.Value, env))
-		}
-		return val, signalNone, nil
-
-	case *ast.ListLiteral:
-		elems := make([]Value, 0, len(e.Elements))
-		for _, el := range e.Elements {
-			val, err := v.evalExpression(el, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			elems = append(elems, val)
-		}
-		return &ListVal{Elements: elems}, signalNone, nil
-
-	case *ast.ListComprehension:
-		val, err := v.evalListComprehension(e, env)
-		return val, signalNone, err
-
-	case *ast.DictLiteral:
-		dict := NewDictVal()
-		for _, pair := range e.Pairs {
-			kVal, err := v.evalExpression(pair.Key, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			vVal, err := v.evalExpression(pair.Value, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			dict.SetValue(kVal, vVal)
-		}
-		return dict, signalNone, nil
-
-	case *ast.RangeExpression:
-		startVal, err := v.evalExpression(e.Start, env)
-		if err != nil {
-			return nil, signalNone, err
-		}
-		endVal, err := v.evalExpression(e.End, env)
-		if err != nil {
-			return nil, signalNone, err
-		}
-		sInt, ok1 := startVal.(*IntVal)
-		eInt, ok2 := endVal.(*IntVal)
-		if !ok1 || !ok2 {
-			return nil, signalNone, fmt.Errorf("Satır %d: Aralık ('..') uçları Tam sayı olmalıdır", e.Line())
-		}
-		return &RangeVal{
-			Start:     sInt.Val,
-			End:       eInt.Val,
-			Inclusive: e.Inclusive,
-		}, signalNone, nil
-
-	case *ast.PrefixExpression:
-		right, err := v.evalExpression(e.Right, env)
-		if err != nil {
-			return nil, signalNone, err
-		}
-		if e.Operator == "!" {
-			if right.IsTruthy() {
-				return FALSE, signalNone, nil
-			}
-			return TRUE, signalNone, nil
-		}
-		if e.Operator == "-" {
-			switch rv := right.(type) {
-			case *IntVal:
-				return NewInt(-rv.Val), signalNone, nil
-			case *FloatVal:
-				return &FloatVal{Val: -rv.Val}, signalNone, nil
-			}
-			return nil, signalNone, fmt.Errorf("Satır %d: '-' operatörü %s tipine uygulanamaz", e.Line(), right.Type())
-		}
-
-	case *ast.InfixExpression:
-		kod := e.Kod
-		if kod == opYok {
-			kod = islecKodu(e.Operator)
-			e.Kod = kod
-		}
-		switch kod {
-		case opVe, opVeya, opYoksa, opBoru:
-		default:
-			left, err := v.evalExpression(e.Left, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			right, err := v.evalExpression(e.Right, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			val, err := v.evalInfixKod(kod, e.Operator, left, right, e.Line())
-			return val, signalNone, err
-		}
-		// Kısa devre ve özel operatörler (&&, ||, ??, |>)
-		if kod == opVe {
-			left, err := v.evalExpression(e.Left, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			if !left.IsTruthy() {
-				return FALSE, signalNone, nil
-			}
-			right, err := v.evalExpression(e.Right, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			if right.IsTruthy() {
-				return TRUE, signalNone, nil
-			}
-			return FALSE, signalNone, nil
-		}
-		if kod == opVeya {
-			left, err := v.evalExpression(e.Left, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			if left.IsTruthy() {
-				return TRUE, signalNone, nil
-			}
-			right, err := v.evalExpression(e.Right, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			if right.IsTruthy() {
-				return TRUE, signalNone, nil
-			}
-			return FALSE, signalNone, nil
-		}
-		if kod == opYoksa {
-			left, err := v.evalExpression(e.Left, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			if left.Type() != VAL_NULL {
-				return left, signalNone, nil
-			}
-			val, err := v.evalExpression(e.Right, env)
-			return val, signalNone, err
-		}
-		// opBoru
-		val, err := v.evalPipe(e.Left, e.Right, env)
-		return val, signalNone, err
-
-	case *ast.IfExpression:
-		cond, err := v.evalExpression(e.Condition, env)
-		if err != nil {
-			return nil, signalNone, err
-		}
-		if cond.IsTruthy() {
-			return v.execStatement(e.Consequence, env)
-		}
-		for _, elif := range e.ElseIfs {
-			elifCond, err := v.evalExpression(elif.Condition, env)
-			if err != nil {
-				return nil, signalNone, err
-			}
-			if elifCond.IsTruthy() {
-				return v.execStatement(elif.Consequence, env)
-			}
-		}
-		if e.Alternative != nil {
-			return v.execStatement(e.Alternative, env)
-		}
-		return NULL, signalNone, nil
-
-	case *ast.MatchExpression:
-		return v.evalMatch(e, env)
-
-	case *ast.FunctionLiteral:
-		fn := &FuncVal{
-			Name:       e.Name,
-			Parameters: e.Parameters,
-			Body:       e.Body,
-			Env:        env,
-		}
-		if e.Name != "" {
-			env.Define(e.Name, fn, false)
-		}
-		return fn, signalNone, nil
-
-	case *ast.CallExpression:
-		val, err := v.evalCall(e, env)
-		return val, signalNone, err
-
-	case *ast.IndexExpression:
-		val, err := v.evalIndex(e, env)
-		return val, signalNone, err
-
-	case *ast.MemberExpression:
-		val, err := v.evalMember(e, env)
-		return val, signalNone, err
-	}
-
-	return NULL, signalNone, nil
-}
-
-func (v *VM) evalPipe(left ast.Expression, right ast.Expression, env *Environment) (Value, error) {
-	leftVal, err := v.evalExpression(left, env)
-	if err != nil {
-		return nil, err
-	}
-
-	// Sağ taraf bir fonksiyon çağrısı ise (örn: veri |> filtrele((x) => x > 2))
-	if callExpr, ok := right.(*ast.CallExpression); ok {
-		fnVal, err := v.evalExpression(callExpr.Function, env)
-		if err != nil {
-			return nil, err
-		}
-		args := []Value{leftVal}
-		for _, a := range callExpr.Arguments {
-			av, err := v.evalExpression(a, env)
-			if err != nil {
-				return nil, err
-			}
-			args = append(args, av)
-		}
-		named := make(map[string]Value)
-		for _, na := range callExpr.NamedArgs {
-			nv, err := v.evalExpression(na.Value, env)
-			if err != nil {
-				return nil, err
-			}
-			named[na.Name] = nv
-		}
-		if err := checkArity(fnVal, len(args), named, callExpr.Line()); err != nil {
-			return nil, err
-		}
-		return v.ApplyFunction(fnVal, args, named, callExpr.Line())
-	}
-
-	// Sağ taraf doğrudan bir fonksiyon ise (örn: veri |> sırala)
-	fnVal, err := v.evalExpression(right, env)
-	if err != nil {
-		return nil, err
-	}
-	if err := checkArity(fnVal, 1, nil, right.Line()); err != nil {
-		return nil, err
-	}
-	return v.ApplyFunction(fnVal, []Value{leftVal}, nil, right.Line())
-}
-
-func (v *VM) evalMatch(e *ast.MatchExpression, env *Environment) (Value, flowSignal, error) {
-	subj, err := v.evalExpression(e.Subject, env)
-	if err != nil {
-		return nil, signalNone, err
-	}
-
-	for _, mc := range e.Cases {
-		matched := mc.IsDefault
-		if !matched {
-			for _, pat := range mc.Patterns {
-				patVal, err := v.evalExpression(pat, env)
-				if err != nil {
-					return nil, signalNone, err
-				}
-				if rng, ok := patVal.(*RangeVal); ok {
-					if iv, ok := subj.(*IntVal); ok {
-						if rng.Inclusive && iv.Val >= rng.Start && iv.Val <= rng.End {
-							matched = true
-							break
-						} else if !rng.Inclusive && iv.Val >= rng.Start && iv.Val < rng.End {
-							matched = true
-							break
-						}
-					}
-				} else if ValuesEqual(subj, patVal) {
-					matched = true
-					break
-				}
-			}
-		}
-
-		if matched {
-			if mc.Body != nil {
-				return v.execStatement(mc.Body, env)
-			}
-			if mc.ValueExpr != nil {
-				val, err := v.evalExpression(mc.ValueExpr, env)
-				return val, signalNone, err
-			}
-			return NULL, signalNone, nil
-		}
-	}
-
-	return NULL, signalNone, nil
-}
-
-func (v *VM) evalListComprehension(lc *ast.ListComprehension, env *Environment) (Value, error) {
-	iterVal, err := v.evalExpression(lc.Iterable, env)
-	if err != nil {
-		return nil, err
-	}
-
+// uretecOgeleri bir liste üretecinin dolaşacağı öğeleri döndürür.
+func uretecOgeleri(iterVal Value, line int) ([]Value, error) {
 	var items []Value
 	switch it := iterVal.(type) {
 	case *RangeVal:
@@ -392,51 +48,25 @@ func (v *VM) evalListComprehension(lc *ast.ListComprehension, env *Environment) 
 			items = append(items, &StringVal{Val: string(ch)})
 		}
 	default:
-		return nil, fmt.Errorf("Satır %d: Liste üretecinde %s tipi üzerinde döngü kurulamaz", lc.Line(), iterVal.Type())
+		return nil, fmt.Errorf("Satır %d: Liste üretecinde %s tipi üzerinde döngü kurulamaz", line, iterVal.Type())
 	}
-
-	var results []Value
-	// Çıktı ya da koşul fonksiyon oluşturmuyorsa ortam yakalanamaz; tek ortam yeterlidir.
-	yeniden := !ifadeYakalar(lc.Output) && !ifadeYakalar(lc.Condition)
-	var compEnv *Environment
-	for _, item := range items {
-		if compEnv != nil && yeniden {
-			compEnv.temizle()
-		} else {
-			compEnv = NewEnvironment(env)
-		}
-		compEnv.Define(lc.VarName, item, false)
-		if lc.Condition != nil {
-			condVal, err := v.evalExpression(lc.Condition, compEnv)
-			if err != nil {
-				return nil, err
-			}
-			if !condVal.IsTruthy() {
-				continue
-			}
-		}
-		outVal, err := v.evalExpression(lc.Output, compEnv)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, outVal)
-	}
-
-	return &ListVal{Elements: results}, nil
+	return items, nil
 }
 
-func (v *VM) evalIndex(e *ast.IndexExpression, env *Environment) (Value, error) {
-	left, err := v.evalExpression(e.Left, env)
-	if err != nil {
-		return nil, err
-	}
-	idx, err := v.evalExpression(e.Index, env)
-	if err != nil {
-		return nil, err
-	}
-
+// indeksDegeri kap[idx] değerini döndürür.
+func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 	switch container := left.(type) {
 	case *ListVal:
+		if iv, ok := idx.(*IntVal); ok {
+			pos := int(iv.Val)
+			if pos < 0 {
+				pos = len(container.Elements) + pos
+			}
+			if pos < 0 || pos >= len(container.Elements) {
+				return NULL, nil
+			}
+			return container.Elements[pos], nil
+		}
 		// Dilimleme (Slicing): liste[1..4]
 		if rng, ok := idx.(*RangeVal); ok {
 			start := int(rng.Start)
@@ -457,23 +87,12 @@ func (v *VM) evalIndex(e *ast.IndexExpression, env *Environment) (Value, error) 
 			copy(sliced, container.Elements[start:end])
 			return &ListVal{Elements: sliced}, nil
 		}
-		iv, ok := idx.(*IntVal)
-		if !ok {
-			return nil, fmt.Errorf("Satır %d: Liste indeksi Tam sayı olmalıdır", e.Line())
-		}
-		pos := int(iv.Val)
-		if pos < 0 {
-			pos = len(container.Elements) + pos
-		}
-		if pos < 0 || pos >= len(container.Elements) {
-			return NULL, nil
-		}
-		return container.Elements[pos], nil
+		return nil, fmt.Errorf("Satır %d: Liste indeksi Tam sayı olmalıdır", line)
 
 	case *MatrixVal:
 		iv, ok := idx.(*IntVal)
 		if !ok {
-			return nil, fmt.Errorf("Satır %d: Matris indeksi Tam sayı olmalıdır", e.Line())
+			return nil, fmt.Errorf("Satır %d: Matris indeksi Tam sayı olmalıdır", line)
 		}
 		pos := int(iv.Val)
 		if pos < 0 {
@@ -516,7 +135,7 @@ func (v *VM) evalIndex(e *ast.IndexExpression, env *Environment) (Value, error) 
 		}
 		iv, ok := idx.(*IntVal)
 		if !ok {
-			return nil, fmt.Errorf("Satır %d: Metin indeksi Tam sayı olmalıdır", e.Line())
+			return nil, fmt.Errorf("Satır %d: Metin indeksi Tam sayı olmalıdır", line)
 		}
 		pos := int(iv.Val)
 		if pos < 0 {
@@ -528,14 +147,11 @@ func (v *VM) evalIndex(e *ast.IndexExpression, env *Environment) (Value, error) 
 		return &StringVal{Val: string(runes[pos])}, nil
 	}
 
-	return nil, fmt.Errorf("Satır %d: %s tipi indekslenemez", e.Line(), left.Type())
+	return nil, fmt.Errorf("Satır %d: %s tipi indekslenemez", line, left.Type())
 }
 
-func (v *VM) evalMember(e *ast.MemberExpression, env *Environment) (Value, error) {
-	obj, err := v.evalExpression(e.Object, env)
-	if err != nil {
-		return nil, err
-	}
+// uyeDegeri nesne.özellik (ya da nesne?.özellik) değerini döndürür.
+func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression) (Value, error) {
 	if obj.Type() == VAL_NULL {
 		if e.Safe {
 			return NULL, nil
@@ -560,6 +176,7 @@ func (v *VM) evalMember(e *ast.MemberExpression, env *Environment) (Value, error
 				Body:       method.Body,
 				Env:        method.Env,
 				BoundSelf:  inst,
+				kod:        method.kod,
 			}, nil
 		}
 		if e.Safe {
