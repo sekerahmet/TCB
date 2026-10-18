@@ -481,11 +481,10 @@ func TestYorumlar(t *testing.T) {
 		ad, girdi string
 		want      []beklenen
 	}{
-		{"diyez", "a # yorum ** \"\n b", []beklenen{{TOKEN_IDENT, "a"}, {TOKEN_IDENT, "b"}}},
 		{"çift bölü", "a // yorum {\nb", []beklenen{{TOKEN_IDENT, "a"}, {TOKEN_IDENT, "b"}}},
 		{"blok", "a /* çok\nsatırlı ' yorum */ b", []beklenen{{TOKEN_IDENT, "a"}, {TOKEN_IDENT, "b"}}},
-		{"dosya sonunda", "a # son", []beklenen{{TOKEN_IDENT, "a"}}},
-		{"art arda", "# bir\n// iki\n/* üç */\nx", []beklenen{{TOKEN_IDENT, "x"}}},
+		{"dosya sonunda", "a // son", []beklenen{{TOKEN_IDENT, "a"}}},
+		{"art arda", "// bir\n// iki\n/* üç */\nx", []beklenen{{TOKEN_IDENT, "x"}}},
 		{"blok içinde yıldız", "/* a * b ** c */x", []beklenen{{TOKEN_IDENT, "x"}}},
 		{"bölme yorum değildir", "a / b", []beklenen{{TOKEN_IDENT, "a"}, {TOKEN_SLASH, "/"}, {TOKEN_IDENT, "b"}}},
 		{"metin içindeki # yorum değildir", `"# değil" x`, []beklenen{{TOKEN_STRING, "# değil"}, {TOKEN_IDENT, "x"}}},
@@ -502,8 +501,33 @@ func TestYorumlar(t *testing.T) {
 	}
 }
 
+// '#' yorum değildir: açık bir hata verir, satırın geri kalanı atlanır (tek hata).
+func TestDiyezYorumDegil(t *testing.T) {
+	for _, c := range []struct {
+		girdi, hata string
+		ad          []string
+	}{
+		{"a # yorum ** \"\n b", "Satır 1, Sütun 3: '#' TR'de yorum değil; yorum için '//' yazın", []string{"a", "b"}},
+		{"# bir\nx", "Satır 1, Sütun 1: '#' TR'de yorum değil; yorum için '//' yazın", []string{"x"}},
+	} {
+		toks, hatalar := tumTokenlar(t, c.girdi)
+		if len(hatalar) != 1 || hatalar[0] != c.hata {
+			t.Errorf("%q: tek hata %q bekleniyordu, gelen: %v", c.girdi, c.hata, hatalar)
+		}
+		var adlar []string
+		for _, tk := range toks {
+			if tk.Type == TOKEN_IDENT {
+				adlar = append(adlar, tk.Literal)
+			}
+		}
+		if strings.Join(adlar, " ") != strings.Join(c.ad, " ") {
+			t.Errorf("%q: adlar %v, %v bekleniyordu", c.girdi, adlar, c.ad)
+		}
+	}
+}
+
 func TestYorumSonrasiSatirNumarasi(t *testing.T) {
-	toks := hatasizTokenlar(t, "/* bir\niki\nüç */ x # yorum\n  y")
+	toks := hatasizTokenlar(t, "/* bir\niki\nüç */ x // yorum\n  y")
 	if toks[0].Line != 3 || toks[0].Column != 7 {
 		t.Errorf("'x' konumu 3:7 bekleniyordu, %d:%d geldi", toks[0].Line, toks[0].Column)
 	}
@@ -577,7 +601,7 @@ func TestBosSatirlarVeEOFKonumu(t *testing.T) {
 
 func TestCRLFSatirSonlari(t *testing.T) {
 	girdi := "değişken a = 1\r\n" +
-		"a += 2 # yorum\r\n" +
+		"a += 2 // yorum\r\n" +
 		"\r\n" +
 		"yazdır(\"x\")\r\n"
 	konumlariDogrula(t, girdi, []konum{

@@ -60,7 +60,27 @@ func TestGUIRenderEscapesColorAndFieldNames(t *testing.T) {
 	if !strings.Contains(out, "border-left-color: #38bdf8") {
 		t.Error("güvenli olmayan renk varsayılan renkle değiştirilmeliydi")
 	}
-	if resolveColor("yeşil") != "#22c55e" || resolveColor("#abc") != "#abc" || resolveColor("rgb(1, 2, 3)") != "rgb(1, 2, 3)" {
+	if resolveColor("yeşil") != "#22c55e" || resolveColor("YEŞİL") != "#22c55e" || resolveColor("#abc") != "#abc" || resolveColor("rgb(1, 2, 3)") != "rgb(1, 2, 3)" {
 		t.Error("geçerli renkler korunmalı")
+	}
+}
+
+// Renk adları yalnızca Türkçedir: İngilizce ve ASCII yazımlar Türkçe adı önerir.
+func TestRenkAdlariTurkce(t *testing.T) {
+	for renk, want := range map[string]string{
+		"green":   "'green' TR'de yok; 'yeşil' yazmak mı istediniz?",
+		"Red":     "'Red' TR'de yok; 'kırmızı' yazmak mı istediniz?",
+		"yesil":   "'yesil' TR'de yok; 'yeşil' yazmak mı istediniz?",
+		"kirmizi": "'kirmizi' TR'de yok; 'kırmızı' yazmak mı istediniz?",
+		"teal":    "bilinmeyen renk \"teal\"",
+	} {
+		if _, err := renkCoz(renk); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: %q içeren hata bekleniyordu: %v", renk, want, err)
+		}
+	}
+	_, _, err := runTRWithin(t, 5*time.Second, `değişken a = arayüz_oluştur("x")
+a.kart_ekle("b", "1", "c", "green")`)
+	if err == nil || !strings.Contains(err.Error(), "kart_ekle: 'green' TR'de yok; 'yeşil' yazmak mı istediniz?") {
+		t.Errorf("kart_ekle İngilizce rengi reddetmeli: %v", err)
 	}
 }

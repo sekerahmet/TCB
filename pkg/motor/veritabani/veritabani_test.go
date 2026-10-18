@@ -44,7 +44,7 @@ func TestDatabaseFileContainingNullLoads(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// NEREDE / WHERE koşulları artık TR kodu olarak çalıştırılmamalı
+// NEREDE koşulları artık TR kodu olarak çalıştırılmamalı
 // ---------------------------------------------------------------------------
 
 func testRows() []map[string]interface{} {
@@ -65,13 +65,14 @@ func TestRowConditionBasics(t *testing.T) {
 		want int
 	}{
 		{"maas >= 80000", 1},
-		{"departman = 'Yapay Zeka' AND maas > 70000", 2},
+		{"departman = 'Yapay Zeka' VE maas > 70000", 2},
 		{"departman == \"Satış\" veya id == 1", 2},
 		{"değil (id <> 2)", 1},
-		{"NOT id = 2 && maas < 100000", 2},
+		{"DEĞİL id = 2 && maas < 100000", 2},
+		{"(id > 1) == DOĞRU veya ad == yok", 2},
 		{"maas * 2 > 150000", 2},
 		{"ad == 'O''Brien'", 0},
-		{"(id == 1 || id == 3) and maas >= 75000.5", 2},
+		{"(id == 1 || id == 3) ve maas >= 75000.5", 2},
 	}
 	for _, c := range cases {
 		matched, _, err := filterRows(testRows(), c.cond, knownCols(), nil)
@@ -81,6 +82,31 @@ func TestRowConditionBasics(t *testing.T) {
 		if len(matched) != c.want {
 			t.Errorf("%q: %d satır bekleniyordu, %d alındı", c.cond, c.want, len(matched))
 		}
+	}
+}
+
+// Koşul sözcükleri yalnızca Türkçedir: İngilizce ve ASCII yazımlar hata verir, Türkçe
+// karşılığı önerilir; o adda bir sütun varsa sütundur.
+func TestRowConditionYalnizcaTurkce(t *testing.T) {
+	for cond, want := range map[string]string{
+		"maas > 1 AND id = 2":    "'AND' TR'de yok; 'VE' yazmak mı istediniz?",
+		"maas > 1 or id = 2":     "'or' TR'de yok; 'VEYA' yazmak mı istediniz?",
+		"NOT id = 2":             "'NOT' TR'de yok; 'DEĞİL' yazmak mı istediniz?",
+		"degil id = 2":           "'degil' TR'de yok; 'DEĞİL' yazmak mı istediniz?",
+		"ad = TRUE":              "'TRUE' TR'de yok; 'DOĞRU' yazmak mı istediniz?",
+		"ad = dogru":             "'dogru' TR'de yok; 'DOĞRU' yazmak mı istediniz?",
+		"ad = YANLIS":            "'YANLIS' TR'de yok; 'YANLIŞ' yazmak mı istediniz?",
+		"ad = null":              "'null' TR'de yok; 'YOK' yazmak mı istediniz?",
+		"maas > 1 ORDER BY maas": "'ORDER' TR'de yok; 'SIRALA' yazmak mı istediniz?",
+	} {
+		if _, _, err := filterRows(testRows(), cond, knownCols(), nil); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: %q içeren hata bekleniyordu: %v", cond, want, err)
+		}
+	}
+	bilinen := map[string]bool{"not": true, "id": true}
+	satirlar := []map[string]interface{}{{"id": int64(1), "not": int64(90)}, {"id": int64(2), "not": int64(40)}}
+	if m, _, err := filterRows(satirlar, "not > 50", bilinen, nil); err != nil || len(m) != 1 {
+		t.Errorf("'not' adlı sütun kullanılabilmeli: %v %d", err, len(m))
 	}
 }
 
@@ -158,6 +184,40 @@ func TestSQLParamsFromTR(t *testing.T) {
 	}
 }
 
+// Sorgu sözcükleri yalnızca Türkçedir: İngilizce ve ASCII yazımlar Türkçe karşılığı öneren
+// bir hata verir (sessizce tablo adının ya da koşulun parçası sayılmaz).
+func TestSQLYalnizcaTurkce(t *testing.T) {
+	kur := `değişken vt = veritabanı_aç(":bellek:")
+vt.ekle("p", [{"ad": "a", "maas": 1}])
+`
+	for sorgu, want := range map[string]string{
+		"SELECT * FROM p":                "'SELECT' TR'de yok; 'SEÇ' yazmak mı istediniz?",
+		"SEC * TABLO p":                  "'SEC' TR'de yok; 'SEÇ' yazmak mı istediniz?",
+		"DELETE TABLO p":                 "'DELETE' TR'de yok; 'SİL' yazmak mı istediniz?",
+		"SIL TABLO p":                    "'SIL' TR'de yok; 'SİL' yazmak mı istediniz?",
+		"SEÇ * FROM p":                   "'FROM' TR'de yok; 'TABLO' yazmak mı istediniz?",
+		"SEÇ * DAN p":                    "'DAN' TR'de yok; 'TABLO' yazmak mı istediniz?",
+		"SEÇ * TABLO p WHERE maas > 0":   "'WHERE' TR'de yok; 'NEREDE' yazmak mı istediniz?",
+		"SEÇ * TABLO p SIRALA maas DESC": "'DESC' TR'de yok; 'AZALAN' yazmak mı istediniz?",
+		"SEÇ * TABLO p LIMIT 1":          "'LIMIT' TR'de yok; 'LİMİT' yazmak mı istediniz?",
+		"SEÇ * TABLO p ORDER BY maas":    "'ORDER' TR'de yok; 'SIRALA' yazmak mı istediniz?",
+		"SİL TABLO p WHERE maas > 0":     "'WHERE' TR'de yok; 'NEREDE' yazmak mı istediniz?",
+	} {
+		_, err := runTR(t, kur+"vt.sorgula(\""+sorgu+"\")")
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: %q içeren hata bekleniyordu: %v", sorgu, want, err)
+		}
+	}
+	for kod, want := range map[string]string{
+		`veritabanı_aç(":memory:")`:                   "':memory:' TR'de yok; ':bellek:' yazmak mı istediniz?",
+		`tablo_sorgula([{"a": 1}], sırala: "a:desc")`: "'desc' TR'de yok; 'AZALAN' yazmak mı istediniz?",
+	} {
+		if _, err := runTR(t, kod); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu: %v", kod, want, err)
+		}
+	}
+}
+
 func TestSQLTurkishCaseAndUTF8Safety(t *testing.T) {
 	code := `
 		değişken vt = veritabanı_aç(":bellek:")
@@ -166,8 +226,8 @@ func TestSQLTurkishCaseAndUTF8Safety(t *testing.T) {
 			{"id": 2, "ad": "Ali",  "şehir": "Ankara",   "maaş": 60000},
 			{"id": 3, "ad": "İrem", "şehir": "İstanbul", "maaş": 95000}
 		])
-		// Küçük harfli Türkçe SQL ('ı', 'İ', 'ş') ve standart SQL AND/OR testi
-		değişken s1 = vt.sorgula("seç ad, maaş tablo çalışanlar nerede şehir = 'İstanbul' AND maaş >= 90000 sırala maaş azalan limit 2")
+		// Küçük harfli Türkçe SQL ('ı', 'İ', 'ş')
+		değişken s1 = vt.sorgula("seç ad, maaş tablo çalışanlar nerede şehir = 'İstanbul' ve maaş >= 90000 sırala maaş azalan limit 2")
 		değişken silinen = vt.sorgula("sil tablo çalışanlar nerede id <> 1 ve id <> 3")
 		sonuç [s1.uzunluk, s1[0]["ad"], silinen, vt.say("çalışanlar")]
 	`

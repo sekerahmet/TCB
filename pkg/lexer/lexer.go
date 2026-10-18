@@ -276,8 +276,11 @@ func (l *Lexer) skipWhitespaceAndComments() {
 		for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
 			l.readChar()
 		}
-		// '#' ile başlayan Python tarzı yorum satırı
+		// '#' yorum değildir (her işin tek yazımı: satır yorumu yalnızca '//'). Başka
+		// dillerden alışkanlıkla yazılmış olabileceği için açık bir hata verilir; satırın
+		// geri kalanı atlanır ki ardından gelen sözcükler ikinci bir hata üretmesin.
 		if l.ch == '#' {
+			l.addError(l.line, l.column, "'#' TR'de yorum değil; yorum için '//' yazın")
 			for l.ch != '\n' && l.ch != 0 {
 				l.readChar()
 			}

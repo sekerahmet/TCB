@@ -85,8 +85,8 @@ test "3.10 doğruluk: yanlış, yok, 0, 0.0, boş metin/liste/sözlük yanlış 
 test "3.11 tip(x) değerin tip adını verir" {
     eşit_mi(["Tam", "Ondalık", "Metin", "Mantık", "Yok", "Liste", "Sözlük"],
         [tip(1), tip(1.5), tip("a"), tip(doğru), tip(yok), tip([]), tip({})])
-    // Ayrı bir matris tipi yoktur: matris oluşturucuları Tensör verir.
-    eşit_mi(["Tensör", "Tensör"], [tip(tensör([1])), tip(matris([[1, 2]]))])
+    // Ayrı bir matris tipi yoktur: matris 2 boyutlu tensördür.
+    eşit_mi(["Tensör", "Tensör"], [tip(tensör([1])), tip(tensör([[1, 2]]))])
 }
 
 test "3.12 dönüşümler: tam, ondalık, metin" {

@@ -8,7 +8,7 @@ import (
 func TestDonusTipiKurali(t *testing.T) {
 	// Tensör olmayan girdide sonuç girdinin biçimindedir; tensör yalnızca tensörden çıkar.
 	out := mustCalistir(t, `yazdır(tip(relu([1, -2])), tip(üstel([0, 1])), tip(log([[1]])), tip(gelu(0.5)), tip(log_softmax([1, 2])))
-yazdır(üstel([0, [0]]), log(1), tip(üstel(matris([[0, 1]]))), tip(log_softmax(matris([[1, 2]]))))
+yazdır(üstel([0, [0]]), log(1), tip(üstel(tensör([[0, 1]]))), tip(log_softmax(tensör([[1, 2]]))))
 yazdır(tip(üstel(tensör([0]))), tip(log_softmax(tensör([1.0, 2.0]))))
 değişken l = log_softmax([1, 2, 3])
 yazdır(yuvarla(üstel(l[0]) + üstel(l[1]) + üstel(l[2]), 6))`)

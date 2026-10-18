@@ -2,7 +2,6 @@ package tensor
 
 import (
 	"fmt"
-	"math/rand"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/sozluk"
@@ -10,11 +9,12 @@ import (
 	"tr_dili/pkg/vm"
 )
 
-// Bu dosya matris adlı yerleşikleri (matris, birim_matris, rastgele_matris, sıfırlar(satır,
-// sütun), birler(satır, sütun), devrik) uygular. Dilde ayrı bir matris türü yoktur: matris
-// 2 boyutlu bir tensördür; @, + - * /, relu, softmax ... tensör yolundan geçer.
+// Bu dosya matris biçimli yerleşikleri (birim_matris, sıfırlar(satır, sütun), birler(satır,
+// sütun), devrik) uygular. Dilde ayrı bir matris türü yoktur: matris 2 boyutlu bir
+// tensördür ve tensör([[1, 2], [3, 4]]) ile oluşturulur (rastgele olanı rastgele_normal([2,
+// 3]) ile); @, + - * /, relu, softmax ... tensör yolundan geçer.
 
-// matrisCevir matris alan işlevlerin (matris, devrik, sinir_ağı, kayıp_mse ...) girdisini 2
+// matrisCevir matris alan işlevlerin (devrik, sinir_ağı, kayıp_mse ...) girdisini 2
 // boyutlu tensöre çevirir: iç içe sayı listesi [satır, sütun], düz sayı listesi [1, n]
 // (satır vektörü) olur. 2 boyutlu tensör olduğu gibi, 1 boyutlu tensör [1, n] görünümüyle
 // kullanılır.
@@ -103,22 +103,6 @@ func matrisSekli(kod sozluk.Kod, args []vm.Value) ([]int, error) {
 	return []int{int(boy[0]), int(boy[1])}, nil
 }
 
-// matrisYerlesik matris(liste) yerleşiğidir: iç içe listeden 2 boyutlu tensör (düz
-// listeden tek satırlı matris) oluşturur.
-func matrisYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("matris(liste) 1 parametre bekler")
-	}
-	if err := baglama.AdliDenetle("matris()", named); err != nil {
-		return nil, err
-	}
-	t, err := matrisCevir(args[0])
-	if err != nil {
-		return nil, err
-	}
-	return Yeni(t), nil
-}
-
 // birimMatris birim_matris(n) yerleşiğidir: n×n birim matris.
 func birimMatris(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	if len(args) != 1 {
@@ -139,49 +123,6 @@ func birimMatris(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 		veri[i*n+i] = 1
 	}
 	return Yeni(ct.New(veri, int(n), int(n))), nil
-}
-
-// rastgeleMatris rastgele_matris(satır, sütun, [tohum], tohum: 42) yerleşiğidir: elemanları
-// ortalaması 0, standart sapması 0.5 olan normal dağılımdan, tohumdan satır öncelikli
-// sırayla üretilir (aynı tohum aynı matrisi verir).
-func rastgeleMatris(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	const imza = "rastgele_matris(satır, sütun)"
-	if len(args) < 2 || len(args) > 3 {
-		return nil, fmt.Errorf("rastgele_matris(satır, sütun, [tohum]) 2 ya da 3 parametre bekler, %d verildi", len(args))
-	}
-	if err := baglama.AdliDenetle("rastgele_matris()", named, adTohum); err != nil {
-		return nil, err
-	}
-	r, err := tamArg(args, 0, imza)
-	if err != nil {
-		return nil, err
-	}
-	c, err := tamArg(args, 1, imza)
-	if err != nil {
-		return nil, err
-	}
-	if err := matrisBoyutDenetle("rastgele_matris", r, c); err != nil {
-		return nil, err
-	}
-	tohum := int64(42)
-	if len(args) == 3 {
-		if tohum, err = tamArg(args, 2, "rastgele_matris(satır, sütun, tohum)"); err != nil {
-			return nil, err
-		}
-	}
-	if v, ok := baglama.AdliAl(named, adTohum); ok {
-		n, ok := v.(*vm.IntVal)
-		if !ok {
-			return nil, fmt.Errorf("rastgele_matris: tohum tam sayı olmalıdır, %s verildi", tipAdi(v))
-		}
-		tohum = n.Val
-	}
-	rng := rand.New(rand.NewSource(tohum))
-	veri := make([]float32, r*c)
-	for i := range veri {
-		veri[i] = float32(rng.NormFloat64() * 0.5)
-	}
-	return Yeni(ct.New(veri, int(r), int(c))), nil
 }
 
 // devrikYerlesik devrik(x) yerleşiğidir: tensörün son iki eksenini değiştirir (veriyi

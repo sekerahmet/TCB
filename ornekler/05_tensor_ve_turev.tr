@@ -9,7 +9,7 @@
 
 yazdır("=== 1. Tensör, @ ve yayınlama ===")
 değişken A = tensör([[1.0, 2.0], [3.0, 4.0]])
-değişken W = matris([[0.5, -0.5], [1.0, 2.0]]) // matris(...) 2 boyutlu tensördür
+değişken W = tensör([[0.5, -0.5], [1.0, 2.0]]) // matris: 2 boyutlu tensör
 yazdır("A.şekil = {A.şekil}")
 yazdır("A @ W =", A @ W)
 yazdır("A + [10, 20] (her satıra eklenir) =", A + tensör([10.0, 20.0]))
@@ -62,7 +62,7 @@ yazdır("\n=== 6. Hazır sinir ağı: XOR, kaydet ve yükle ===")
 değişken X_veri = [[0, 0], [0, 1], [1, 0], [1, 1]]
 değişken Y_hedef = [[0], [1], [1], [0]]
 değişken model = sinir_ağı([2, 8, 1], aktivasyon: "tanh", tohum: 42)
-değişken özet = model.eğit(X_veri, Y_hedef, devir: 800, öğrenme_hızı: 0.15)
+değişken özet = model.eğit(X_veri, Y_hedef, devir: 800, öğrenme_oranı: 0.15)
 yazdır("ilk kayıp {yuvarla(özet["ilk_kayıp"], 4)} → son kayıp {yuvarla(özet["son_kayıp"], 6)}")
 
 model.kaydet("ornekler/xor_modeli.json")

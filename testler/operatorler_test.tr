@@ -51,7 +51,7 @@ test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
     doğrula(yok != yanlış)
     // 0 boyutlu tensör değerine eşit sayıya eşittir; eksenli tensör sayıya eşit değildir.
     doğrula(tensör(7.0) == 7 ve 7 == tensör(7.0))
-    doğrula(matris([[1, 2]])[0][1] == 2.0)
+    doğrula(tensör([[1, 2]])[0][1] == 2.0)
     doğrula(toplam(tensör([1, 2, 3, 4])) == 10)
     doğrula(tensör([7.0]) != 7)
 }
@@ -96,7 +96,7 @@ test "4.10 metin + herhangi bir değer metin birleştirir; liste + liste birleş
 }
 
 test "4.11 @ matris çarpımıdır" {
-    değişken m = matris([[1, 2], [3, 4]]) @ matris([[1], [1]])
+    değişken m = tensör([[1, 2], [3, 4]]) @ tensör([[1], [1]])
     eşit_mi([2, 1], m.şekil)
     eşit_mi(7.0, m[1][0])
 }

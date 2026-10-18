@@ -59,26 +59,26 @@ func TestStandartBicim(t *testing.T) {
 }
 
 func TestYorumlarKorunur(t *testing.T) {
-	girdi := `# dosya başı yorumu
+	girdi := `// dosya başı yorumu
 // ikinci yorum
 değişken x = 1   // sondaki yorum
 /* çok
    satırlı yorum */
 eğer x {
-        # blok içi yorum
+        // blok içi yorum
     yazdır(x) /* satır içi */ ; yazdır(2)
     // kapanıştan önce
 }
 // dosya sonu
 `
 	cikti := bicimleT(t, girdi)
-	for _, y := range []string{"# dosya başı yorumu", "// ikinci yorum", "// sondaki yorum",
-		"/* çok\n   satırlı yorum */", "# blok içi yorum", "/* satır içi */", "// kapanıştan önce", "// dosya sonu"} {
+	for _, y := range []string{"// dosya başı yorumu", "// ikinci yorum", "// sondaki yorum",
+		"/* çok\n   satırlı yorum */", "// blok içi yorum", "/* satır içi */", "// kapanıştan önce", "// dosya sonu"} {
 		if !strings.Contains(cikti, y) {
 			t.Errorf("yorum kayboldu: %q\nçıktı:\n%s", y, cikti)
 		}
 	}
-	if !strings.Contains(cikti, "\n    # blok içi yorum\n") || !strings.Contains(cikti, "\n    // kapanıştan önce\n}") {
+	if !strings.Contains(cikti, "\n    // blok içi yorum\n") || !strings.Contains(cikti, "\n    // kapanıştan önce\n}") {
 		t.Errorf("blok içi yorumlar girintilenmedi:\n%s", cikti)
 	}
 	if !strings.Contains(cikti, "değişken x = 1 // sondaki yorum\n") {

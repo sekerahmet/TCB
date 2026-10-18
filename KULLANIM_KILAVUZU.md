@@ -91,7 +91,7 @@ Hatalar konumuyla, kaynak satırıyla ve mümkünse bir öneriyle gösterilir:
 ### B. Yüksek Seviye Hazır Yapay Sinir Ağı + Kaydet/Yükle
 ```tr
 değişken model = sinir_ağı([2, 8, 1], aktivasyon: "tanh", tohum: 42)
-model.eğit(X_veri, Y_hedef, devir: 800, öğrenme_hızı: 0.15)
+model.eğit(X_veri, Y_hedef, devir: 800, öğrenme_oranı: 0.15)
 model.kaydet("modelim.json")
 
 değişken hazır_model = model_yükle("modelim.json")

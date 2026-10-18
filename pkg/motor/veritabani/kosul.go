@@ -10,11 +10,12 @@ import (
 )
 
 // ============================================================================
-// GÜVENLİ SATIR KOŞULU DEĞERLENDİRİCİSİ (NEREDE / WHERE)
+// GÜVENLİ SATIR KOŞULU DEĞERLENDİRİCİSİ (NEREDE)
 //
 // Koşullar artık TR kodu olarak ÇALIŞTIRILMAZ. Yalnızca şu küçük dil desteklenir:
 //   sütun adları, sayılar, 'metin' / "metin" (enterpolasyon YOK), doğru/yanlış/yok,
-//   ? (parametre), + - * / %, == = != <> < <= > >=, ve/AND/&&, veya/OR/||, değil/NOT/!, ( )
+//   ? (parametre), + - * / %, == = != <> < <= > >=, ve/&&, veya/||, değil/!, ( )
+// Sözcükler yalnızca Türkçedir (bkz. sozcukler.go); AND, TRUE, DOGRU ... hata verir.
 // Böylece koşul içinden fonksiyon çağrısı (dosya_yaz, web_gönder ...) yapılamaz.
 // ============================================================================
 
@@ -193,7 +194,11 @@ func compileRowCondition(cond string, known map[string]bool, params []vm.Value) 
 	p := &condParser{toks: toks, params: params, known: known}
 	root, err := p.parseOr()
 	if err == nil && p.peek().kind != ctEOF {
-		err = fmt.Errorf("beklenmeyen %q", p.peek().text)
+		if t, ok := sqlOneri(p.peek().text); ok && p.peek().kind == ctIdent {
+			err = fmt.Errorf("%s", sqlIpucu(p.peek().text, t))
+		} else {
+			err = fmt.Errorf("beklenmeyen %q", p.peek().text)
+		}
 	}
 	if err == nil && p.pIdx != len(params) {
 		err = fmt.Errorf("%d parametre verildi ama koşulda %d adet '?' var", len(params), p.pIdx)
@@ -221,21 +226,22 @@ func (p *condParser) next() condTok {
 	return t
 }
 
+// condWord ad sözcüğünün karşılaştırma biçimidir (Türkçe büyük harf; bkz. sozcukler.go).
 func condWord(t condTok) string {
 	if t.kind != ctIdent {
 		return ""
 	}
-	return foldUpperASCII(t.text)
+	return sqlBuyuk(t.text)
 }
 
 func (p *condParser) isOr(t condTok) bool {
-	return (t.kind == ctOp && t.text == "||") || condWord(t) == "VEYA" || condWord(t) == "OR"
+	return (t.kind == ctOp && t.text == "||") || condWord(t) == kosulVeya
 }
 func (p *condParser) isAnd(t condTok) bool {
-	return (t.kind == ctOp && t.text == "&&") || condWord(t) == "VE" || condWord(t) == "AND"
+	return (t.kind == ctOp && t.text == "&&") || condWord(t) == kosulVe
 }
 func (p *condParser) isNot(t condTok) bool {
-	return (t.kind == ctOp && t.text == "!") || condWord(t) == "DEGIL" || condWord(t) == "NOT"
+	return (t.kind == ctOp && t.text == "!") || condWord(t) == kosulDegil
 }
 
 func (p *condParser) parseOr() (condNode, error) {
@@ -379,15 +385,20 @@ func (p *condParser) parsePrimary() (condNode, error) {
 		return x, nil
 	case ctIdent:
 		switch condWord(t) {
-		case "DOGRU", "TRUE":
+		case kosulDogru:
 			return &condLiteral{val: vm.TRUE}, nil
-		case "YANLIS", "FALSE":
+		case kosulYanlis:
 			return &condLiteral{val: vm.FALSE}, nil
-		case "YOK", "NULL":
+		case kosulYok:
 			return &condLiteral{val: vm.NULL}, nil
 		}
 		if p.peek().kind == ctLParen {
 			return nil, fmt.Errorf("koşul içinde fonksiyon çağrısı yapılamaz (%s)", t.text)
+		}
+		// İngilizce ya da ASCII yazılmış bir koşul sözcüğü (TRUE, NOT, DOGRU) sessizce sütun
+		// adı sayılmaz; o adda bir sütun varsa sütundur.
+		if k, ok := sqlOneri(t.text); ok && !p.known[t.text] {
+			return nil, fmt.Errorf("%s", sqlIpucu(t.text, k))
 		}
 		if len(p.known) > 0 && !p.known[t.text] {
 			return nil, fmt.Errorf("bilinmeyen sütun %q", t.text)

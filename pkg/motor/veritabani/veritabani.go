@@ -57,7 +57,7 @@ func (db *DatabaseVal) Inspect() string {
 func (db *DatabaseVal) IsTruthy() bool { return true }
 
 func (db *DatabaseVal) saveToDisk() error {
-	if db.FilePath == "" || db.FilePath == ":bellek:" || db.FilePath == ":memory:" {
+	if db.FilePath == "" || db.FilePath == bellekYolu {
 		return nil
 	}
 	data, err := json.MarshalIndent(db.Tables, "", "  ")
@@ -79,7 +79,7 @@ func (db *DatabaseVal) yol() string {
 }
 
 func (db *DatabaseVal) loadFromDisk() error {
-	if db.FilePath == "" || db.FilePath == ":bellek:" || db.FilePath == ":memory:" {
+	if db.FilePath == "" || db.FilePath == bellekYolu {
 		return nil
 	}
 	data, err := os.ReadFile(db.yol())
@@ -463,24 +463,19 @@ func scanSQLWordsOutsideQuotes(s string) []sqlWordSpan {
 	return spans
 }
 
-func findSQLKeyword(s string, keywords ...string) (int, int) {
-	spans := scanSQLWordsOutsideQuotes(s)
-	for idx := 0; idx < len(spans); idx++ {
-		for _, kw := range keywords {
-			kwParts := strings.Fields(foldUpperASCII(kw))
-			if len(kwParts) == 1 && spans[idx].fold == kwParts[0] {
-				return spans[idx].start, spans[idx].end
-			}
-			if len(kwParts) == 2 && idx+1 < len(spans) && spans[idx].fold == kwParts[0] && spans[idx+1].fold == kwParts[1] {
-				return spans[idx].start, spans[idx+1].end
-			}
+// findSQLKeyword tırnak dışındaki ilk Türkçe sorgu sözcüğünün (sozcukler.go) yerini verir.
+func findSQLKeyword(s string, keyword string) (int, int) {
+	for _, sp := range scanSQLWordsOutsideQuotes(s) {
+		if sqlSozcuguMu(sp.word, keyword) {
+			return sp.start, sp.end
 		}
 	}
 	return -1, -1
 }
 
-// executeSQL Türkçe SQL ("SEÇ * TABLO personel NEREDE maas > 50000 SIRALA maas AZALAN LİMİT 5")
-// ve standart SQL ("SELECT * FROM personel WHERE maas > 50000 ORDER BY maas DESC LIMIT 5") sorgularını çalıştırır.
+// executeSQL Türkçe sorguları ("SEÇ * TABLO personel NEREDE maas > 50000 SIRALA maas AZALAN
+// LİMİT 5", "SİL TABLO personel NEREDE id = 3") çalıştırır. Sözcükler yalnızca Türkçedir;
+// İngilizce ya da ASCII yazım (SELECT, FROM, SEC ...) Türkçe karşılığı öneren bir hata verir.
 // Koşuldaki '?' yer tutucuları params listesindeki değerlere güvenli şekilde bağlanır.
 func (db *DatabaseVal) executeSQL(rawQuery string, params []vm.Value) (vm.Value, error) {
 	q := strings.TrimSpace(rawQuery)
@@ -489,22 +484,26 @@ func (db *DatabaseVal) executeSQL(rawQuery string, params []vm.Value) (vm.Value,
 		return &vm.ListVal{Elements: []vm.Value{}}, nil
 	}
 
-	firstFold := foldUpperASCII(tokens[0])
-	switch firstFold {
-	case "SEC", "SELECT":
+	switch sqlBuyuk(tokens[0]) {
+	case sqlSec:
 		return db.executeSelectSQL(q, params)
-	case "SIL", "DELETE":
+	case sqlSil:
 		return db.executeDeleteSQL(q, params)
-	default:
-		return nil, fmt.Errorf("Desteklenmeyen SQL komutu: %q (SEÇ / SELECT veya SİL / DELETE kullanın)", tokens[0])
 	}
+	if t, ok := sqlOneri(tokens[0]); ok {
+		return nil, fmt.Errorf("Desteklenmeyen SQL komutu: %s", sqlIpucu(tokens[0], t))
+	}
+	return nil, fmt.Errorf("Desteklenmeyen SQL komutu: %q (SEÇ ya da SİL kullanın)", tokens[0])
 }
 
 func (db *DatabaseVal) executeSelectSQL(q string, params []vm.Value) (vm.Value, error) {
-	// 1. FROM / TABLO / DAN bul
-	fromStart, fromEnd := findSQLKeyword(q, "TABLO", "DAN", "FROM")
+	// 1. TABLO bul
+	fromStart, fromEnd := findSQLKeyword(q, sqlTablo)
 	if fromStart == -1 {
-		return nil, fmt.Errorf("SQL hatası: 'TABLO' veya 'FROM' anahtar kelimesi bulunamadı (%s)", q)
+		if err := sqlOneriHatasi("SQL hatası", q); err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("SQL hatası: 'TABLO' anahtar kelimesi bulunamadı (%s)", q)
 	}
 
 	firstSpace := strings.IndexAny(q, " \t\n\r")
@@ -521,9 +520,9 @@ func (db *DatabaseVal) executeSelectSQL(q string, params []vm.Value) (vm.Value, 
 
 	afterFrom := strings.TrimSpace(q[fromEnd:])
 
-	// LİMİT / LIMIT
+	// LİMİT
 	limit := -1
-	if limStart, limEnd := findSQLKeyword(afterFrom, "LIMIT"); limStart != -1 {
+	if limStart, limEnd := findSQLKeyword(afterFrom, sqlLimit); limStart != -1 {
 		limStr := strings.TrimSpace(afterFrom[limEnd:])
 		if n, err := strconv.Atoi(limStr); err == nil {
 			limit = n
@@ -531,30 +530,36 @@ func (db *DatabaseVal) executeSelectSQL(q string, params []vm.Value) (vm.Value, 
 		afterFrom = strings.TrimSpace(afterFrom[:limStart])
 	}
 
-	// SIRALA / ORDER BY
+	// SIRALA
 	orderByCol := ""
 	orderDesc := false
-	if ordStart, ordEnd := findSQLKeyword(afterFrom, "SIRALA", "ORDER BY"); ordStart != -1 {
+	if ordStart, ordEnd := findSQLKeyword(afterFrom, sqlSirala); ordStart != -1 {
 		ordPart := strings.TrimSpace(afterFrom[ordEnd:])
 		ordFields := strings.Fields(ordPart)
 		if len(ordFields) >= 1 {
 			orderByCol = ordFields[0]
 		}
 		if len(ordFields) >= 2 {
-			dir := foldUpperASCII(ordFields[1])
-			if dir == "AZALAN" || dir == "DESC" {
+			if sqlSozcuguMu(ordFields[1], sqlAzalan) {
 				orderDesc = true
+			} else if err := sqlOneriHatasi("SQL hatası", ordFields[1]); err != nil {
+				return nil, err
 			}
 		}
 		afterFrom = strings.TrimSpace(afterFrom[:ordStart])
 	}
 
-	// NEREDE / WHERE
+	// NEREDE
 	whereCond := ""
 	tableName := afterFrom
-	if whereStart, whereEnd := findSQLKeyword(afterFrom, "NEREDE", "WHERE"); whereStart != -1 {
+	if whereStart, whereEnd := findSQLKeyword(afterFrom, sqlNerede); whereStart != -1 {
 		tableName = strings.TrimSpace(afterFrom[:whereStart])
 		whereCond = strings.TrimSpace(afterFrom[whereEnd:])
+	}
+	// Tablo adının yanında kalan İngilizce ya da ASCII sözcük (WHERE, ORDER, LIMIT ...)
+	// sessizce tablo adının parçası sayılmaz.
+	if err := sqlOneriHatasi("SQL hatası", tableName); err != nil {
+		return nil, err
 	}
 
 	db.mu.RLock()
@@ -583,16 +588,22 @@ func (db *DatabaseVal) executeSelectSQL(q string, params []vm.Value) (vm.Value, 
 }
 
 func (db *DatabaseVal) executeDeleteSQL(q string, params []vm.Value) (vm.Value, error) {
-	fromStart, fromEnd := findSQLKeyword(q, "TABLO", "DAN", "FROM")
+	fromStart, fromEnd := findSQLKeyword(q, sqlTablo)
 	if fromStart == -1 {
-		return nil, fmt.Errorf("SQL SİL hatası: 'TABLO' veya 'FROM' belirtilmeli")
+		if err := sqlOneriHatasi("SQL SİL hatası", q); err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("SQL SİL hatası: 'TABLO' belirtilmeli")
 	}
 	afterFrom := strings.TrimSpace(q[fromEnd:])
 	tableName := afterFrom
 	whereCond := ""
-	if whereStart, whereEnd := findSQLKeyword(afterFrom, "NEREDE", "WHERE"); whereStart != -1 {
+	if whereStart, whereEnd := findSQLKeyword(afterFrom, sqlNerede); whereStart != -1 {
 		tableName = strings.TrimSpace(afterFrom[:whereStart])
 		whereCond = strings.TrimSpace(afterFrom[whereEnd:])
+	}
+	if err := sqlOneriHatasi("SQL SİL hatası", tableName); err != nil {
+		return nil, err
 	}
 
 	db.mu.Lock()
@@ -666,16 +677,19 @@ func rowsToListVal(rows []map[string]interface{}, cols []string) *vm.ListVal {
 func Kaydet(v *vm.VM) {
 	// 1. veritabanı_aç("dosya.trdb" veya ":bellek:")
 	openDB := func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		path := ":bellek:"
+		path := bellekYolu
 		if len(args) >= 1 {
 			path = args[0].Inspect()
+		}
+		if path == ":memory:" {
+			return nil, fmt.Errorf("veritabanı_aç: %s", sqlIpucu(path, bellekYolu))
 		}
 		db := &DatabaseVal{
 			FilePath: path,
 			Tables:   make(map[string]*dbTable),
 			vmRef:    v,
 		}
-		if path != ":bellek:" && path != ":memory:" {
+		if path != bellekYolu {
 			db.diskYolu, _ = v.YolCoz(path)
 		}
 		if err := db.loadFromDisk(); err != nil {
@@ -732,9 +746,11 @@ func Kaydet(v *vm.VM) {
 				col := strings.TrimSpace(parts[0])
 				desc := false
 				if len(parts) > 1 {
-					dir := strings.ToUpper(strings.TrimSpace(parts[1]))
-					if dir == "AZALAN" || dir == "DESC" {
+					dir := strings.TrimSpace(parts[1])
+					if sqlSozcuguMu(dir, sqlAzalan) {
 						desc = true
+					} else if err := sqlOneriHatasi("tablo_sorgula", dir); err != nil {
+						return nil, err
 					}
 				}
 				sortRowsByColumn(rows, col, desc)

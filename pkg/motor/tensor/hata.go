@@ -124,7 +124,6 @@ func sekilListesi(fn string, v vm.Value) ([]int, error) {
 
 // sinir_ağı ve yz_sor'un adlı argümanları.
 var (
-	adDevir       = baglama.KodAd(sozluk.T + 930)
-	adOgrenmeHizi = baglama.KodAd(sozluk.T + 931)
-	adAktivasyon  = baglama.KodAd(sozluk.T + 932)
+	adDevir      = baglama.KodAd(sozluk.T + 930)
+	adAktivasyon = baglama.KodAd(sozluk.T + 932)
 )

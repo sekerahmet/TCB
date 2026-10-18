@@ -27,10 +27,8 @@ func Kaydet(v *vm.VM) {
 	})))
 	sar(v, sozluk.T+103, yeniYerlesik(sekilliOlusturucu(sozluk.T+103, false, rastgeleNormal)))
 
-	// --- Matris (2 boyutlu tensör) oluşturucuları (matris.go) ---
-	sar(v, sozluk.T+110, yeniYerlesik(matrisYerlesik))
+	// --- Matris (2 boyutlu tensör) oluşturucusu (matris.go) ---
 	sar(v, sozluk.T+111, yeniYerlesik(birimMatris))
-	sar(v, sozluk.T+112, yeniYerlesik(rastgeleMatris))
 
 	// --- Görünüm ---
 	sar(v, sozluk.T+120, yeniYerlesik(devrikYerlesik))

@@ -1,6 +1,6 @@
 değişken n = 512
-değişken a = rastgele_matris(n, n)
-değişken b = rastgele_matris(n, n)
+değişken a = rastgele_normal([n, n])
+değişken b = rastgele_normal([n, n])
 değişken bas = zaman_ms()
 değişken c = a @ b
 değişken c2 = c @ b

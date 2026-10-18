@@ -1,2 +1,2 @@
-﻿# BOM ile başlayan dosya da okunur (2.1)
+﻿// BOM ile başlayan dosya da okunur (2.1)
 değişken bom_okundu = doğru

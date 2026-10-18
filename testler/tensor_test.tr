@@ -15,7 +15,7 @@ test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     eşit_mi("Tensör", tip(a))
     eşit_mi([2, 3], a.şekil)
     eşit_mi([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], a.değer)
-    eşit_mi([2, 3], tensör(matris([[1, 2, 3], [4, 5, 6]])).şekil)
+    eşit_mi([2, 3], tensör(tensör([[1, 2, 3], [4, 5, 6]])).şekil)
     eşit_mi([[0.0, 0.0]], sıfırlar([1, 2]).değer)
     eşit_mi([1.0, 1.0, 1.0], birler([3]).değer)
     eşit_mi([4, 5], rastgele_normal([4, 5]).şekil)
@@ -30,9 +30,12 @@ test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     eşit_mi([], s.şekil)
     eşit_mi(yok, s.gradyan)
     doğrula(sıfırlar(2, 3) == sıfırlar([2, 3]))
-    eşit_mi(["Tensör", "Tensör", "Tensör"], [tip(matris([[1]])), tip(birim_matris(2)), tip(rastgele_matris(2, 2, tohum: 1))])
+    eşit_mi(["Tensör", "Tensör"], [tip(tensör([[1]])), tip(birim_matris(2))])
+    // matris ve rastgele_matris kaldırıldı: matris 2 boyutlu tensördür.
+    doğrula(hata_metni(() => matris([[1]])).içerir("'matris' TR'de yok; 'tensör' yazmak mı istediniz?"))
+    doğrula(hata_metni(() => rastgele_matris(2, 2)).içerir("'rastgele_normal'"))
     // Kaldırılan matris özellikleri karşılığı öneren bir hata verir.
-    değişken m = matris([[1, 2], [3, 4]])
+    değişken m = tensör([[1, 2], [3, 4]])
     doğrula(hata_metni(() => m.satır).içerir("'şekil'"))
     doğrula(hata_metni(() => m.T).içerir("'devrik()'"))
     doğrula(hata_metni(() => m.liste).içerir("'değer'"))

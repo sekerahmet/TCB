@@ -45,7 +45,7 @@ func TestSinirAgiXOR(t *testing.T) {
 	out := mustCalistir(t, `değişken X = [[0, 0], [0, 1], [1, 0], [1, 1]]
 değişken Y = [[0], [1], [1], [0]]
 değişken model = sinir_ağı([2, 8, 1], aktivasyon: "tanh", tohum: 42)
-değişken özet = model.eğit(X, Y, devir: 800, öğrenme_hızı: 0.15)
+değişken özet = model.eğit(X, Y, devir: 800, öğrenme_oranı: 0.15)
 yazdır(özet["ilk_kayıp"] > 0.1, özet["son_kayıp"] < 0.001, özet["devir"])
 değişken t = model.tahmin_et(X)
 yazdır(tip(t), t.şekil, tip(model.ağırlıklar[0]), model.ağırlıklar[0].şekil)
@@ -69,7 +69,7 @@ func TestSinirAgiAktivasyonlar(t *testing.T) {
 	for _, akt := range []string{"relu", "sigmoid"} {
 		out := mustCalistir(t, `değişken X = [[0, 0], [0, 1], [1, 0], [1, 1]]
 değişken model = sinir_ağı([2, 8, 2], aktivasyon: "`+akt+`", tohum: 3)
-değişken özet = model.eğit(X, [[0, 1], [1, 0], [1, 0], [0, 1]], devir: 8000, öğrenme_hızı: 0.5)
+değişken özet = model.eğit(X, [[0, 1], [1, 0], [1, 0], [0, 1]], devir: 8000, öğrenme_oranı: 0.5)
 yazdır(özet["son_kayıp"] < özet["ilk_kayıp"])
 değişken t = model.tahmin_et(X)
 yazdır(t.dilim(1, 0, 1).şekillendir([-1]).değer)`)
@@ -103,6 +103,8 @@ func TestSinirAgiGirdiDenetimi(t *testing.T) {
 		  m.eğit([[0, 1, 1], [1, 0, 1]], [[1], [1]], devir: 5)`, "giriş katmanı"},
 		{`değişken m = sinir_ağı([2, 3, 1])
 		  m.eğit([[0, 1], [1, 0]], [[1]], devir: 5)`, "satır sayısı"},
+		{`değişken m = sinir_ağı([2, 3, 1])
+		  m.eğit([[0, 1]], [[1]], öğrenme_hızı: 0.1)`, "model.eğit 'öğrenme_hızı' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?"},
 		{`sinir_ağı([2, 3, 1]).tahmin_et([[1, 2, 3]])`, "giriş katmanı"},
 		{`sinir_ağı([2])`, "en az 2 katman"},
 		{`sinir_ağı([2, 0])`, "pozitif Tam sayı"},

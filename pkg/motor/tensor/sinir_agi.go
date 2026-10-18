@@ -237,10 +237,14 @@ func (nn *SinirAgi) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 	return nil, fmt.Errorf("SinirAğı üzerinde %q özelliği veya metodu bulunamadı", prop)
 }
 
-// egitYerlesik model.eğit(Girdi, Hedef, [devir: 500], [öğrenme_hızı: 0.1]) çağrısıdır.
+// egitYerlesik model.eğit(Girdi, Hedef, [devir: 500], [öğrenme_oranı: 0.1]) çağrısıdır.
+// Öğrenme oranının adı iyileştiricilerdekiyle (AdamW, SGD) aynıdır.
 func (nn *SinirAgi) egitYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	if len(args) < 2 {
-		return nil, fmt.Errorf("model.eğit(Girdi, Hedef, [devir: 500], [öğrenme_hızı: 0.1]) en az 2 parametre bekler")
+		return nil, fmt.Errorf("model.eğit(Girdi, Hedef, [devir: 500], [öğrenme_oranı: 0.1]) en az 2 parametre bekler")
+	}
+	if err := baglama.AdliDenetle("model.eğit", named, adDevir, adOgrenmeOrani); err != nil {
+		return nil, err
 	}
 	x, err := matrisCevir(args[0])
 	if err != nil {
@@ -256,7 +260,7 @@ func (nn *SinirAgi) egitYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.
 			devir = int(iv.Val)
 		}
 	}
-	if v, ok := baglama.AdliAl(named, adOgrenmeHizi); ok {
+	if v, ok := baglama.AdliAl(named, adOgrenmeOrani); ok {
 		if f, ok := vm.ToFloat(v); ok {
 			oran = f
 		}

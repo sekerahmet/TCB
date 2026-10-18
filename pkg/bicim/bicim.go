@@ -215,7 +215,7 @@ func araliktakiYorumlar(r []rune) []oge {
 			i++
 		case c == ' ' || c == '\t' || c == '\r':
 			i++
-		case c == '#' || (c == '/' && i+1 < len(r) && r[i+1] == '/'):
+		case c == '/' && i+1 < len(r) && r[i+1] == '/':
 			j := i
 			for j < len(r) && r[j] != '\n' {
 				j++
@@ -255,7 +255,7 @@ func satirSayisi(r []rune) int {
 		case c == '\n':
 			n++
 			i++
-		case c == '#' || (c == '/' && i+1 < len(r) && r[i+1] == '/'):
+		case c == '/' && i+1 < len(r) && r[i+1] == '/':
 			for i < len(r) && r[i] != '\n' {
 				i++
 			}

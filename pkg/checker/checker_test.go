@@ -392,7 +392,7 @@ f(5)`)
 
 func TestBosProgram(t *testing.T) {
 	hataYok(t, "")
-	hataYok(t, "# yalnızca yorum")
+	hataYok(t, "// yalnızca yorum")
 	if errs := New().Errors(); errs == nil || len(errs) != 0 {
 		t.Errorf("yeni denetleyicinin hata listesi boş (nil olmayan) olmalı, gelen: %#v", errs)
 	}

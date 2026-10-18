@@ -3,7 +3,6 @@ package tensor
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"strings"
 	"testing"
 
@@ -11,35 +10,35 @@ import (
 	"tr_dili/pkg/vm"
 )
 
-// Matris ayrı bir tür değildir: matris adlı oluşturucular 2 boyutlu tensör verir, işleçler ve
-// eleman bazlı fonksiyonlar tensör yolundan geçer, sonuçlar eski float64 matrisle (float32
-// duyarlığında) aynıdır.
+// Matris ayrı bir tür değildir: matris 2 boyutlu tensördür (tensör([[...]]), birim_matris,
+// sıfırlar(2, 3)), işleçler ve eleman bazlı fonksiyonlar tensör yolundan geçer, sonuçlar eski
+// float64 matrisle (float32 duyarlığında) aynıdır.
 func TestMatrisTensordur(t *testing.T) {
-	out := mustCalistir(t, `değişken G = matris([[1.0, 2.0], [3.0, 4.0]])
-değişken A = matris([[0.5, -0.5], [1.0, 2.0]])
-yazdır(tip(G), G.şekil, tip(G @ A), tip(sıfırlar(2, 3)), tip(birim_matris(2)), tip(rastgele_matris(2, 2)))
+	out := mustCalistir(t, `değişken G = tensör([[1.0, 2.0], [3.0, 4.0]])
+değişken A = tensör([[0.5, -0.5], [1.0, 2.0]])
+yazdır(tip(G), G.şekil, tip(G @ A), tip(sıfırlar(2, 3)), tip(birim_matris(2)), tip(rastgele_normal([2, 2])))
 yazdır(relu(G @ A))
 yazdır((G @ A).değer, (G + A).değer, (G - 1).değer, (2 * G).değer, (G / 2).değer, (G * A).değer)
-yazdır((G + matris([10, 20])).değer, devrik(G).değer, G.devrik().değer, devrik([1, 2]).şekil)
+yazdır((G + tensör([10, 20])).değer, devrik(G).değer, G.devrik().değer, devrik([1, 2]).şekil)
 yazdır(sıfırlar(2, 3).şekil, sıfırlar(4).şekil, birler(2, 2).değer, birim_matris(3).değer)
-yazdır(softmax(matris([[1, 2], [3, 3]])).değer, sigmoid(sıfırlar(1, 2)).değer, tanh(sıfırlar(1, 1)).değer)
-yazdır(matris(G) == G, matris(tensör([1, 2])).şekil, kayıp_mse(G, [[1, 2], [3, 6]]))`)
+yazdır(softmax(tensör([[1, 2], [3, 3]])).değer, sigmoid(sıfırlar(1, 2)).değer, tanh(sıfırlar(1, 1)).değer)
+yazdır(tensör(G) == G, kayıp_mse(G, [[1, 2], [3, 6]]))`)
 	want := "Tensör [2, 2] Tensör Tensör Tensör Tensör\n" +
 		"Tensör[2×2] [\n  [2.5000, 3.5000],\n  [5.5000, 6.5000]\n]\n" +
 		"[[2.5, 3.5], [5.5, 6.5]] [[1.5, 1.5], [4.0, 6.0]] [[0.0, 1.0], [2.0, 3.0]] [[2.0, 4.0], [6.0, 8.0]] [[0.5, 1.0], [1.5, 2.0]] [[0.5, -1.0], [3.0, 8.0]]\n" +
 		"[[11.0, 22.0], [13.0, 24.0]] [[1.0, 3.0], [2.0, 4.0]] [[1.0, 3.0], [2.0, 4.0]] [2, 1]\n" +
 		"[2, 3] [1, 4] [[1.0, 1.0], [1.0, 1.0]] [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]\n" +
 		"[[0.26894143, 0.7310586], [0.5, 0.5]] [[0.5, 0.5]] [[0.0]]\n" +
-		"doğru [1, 2] 1.0\n"
+		"doğru 1.0\n"
 	if out != want {
 		t.Fatalf("matris:\n%q\nbeklenen:\n%q", out, want)
 	}
 	// Kaldırılan matris üyeleri tensördeki karşılıklarını önerir.
 	for _, d := range []struct{ kod, beklenen string }{
-		{"matris([[1]]).boyut", "\"boyut\" özelliği ya da metodu bulunamadı. Bunu mu demek istediniz: 'şekil'?"},
-		{"matris([[1]]).T", "Bunu mu demek istediniz: 'devrik()'?"},
-		{"matris([[1]]).toplam", "Bunu mu demek istediniz: 'toplam(x)'?"},
-		{"değişken A = matris([[1]])\nA.devrik @ A", "metodu çağırmak için parantez ekleyin: devrik()"},
+		{"tensör([[1]]).boyut", "\"boyut\" özelliği ya da metodu bulunamadı. Bunu mu demek istediniz: 'şekil'?"},
+		{"tensör([[1]]).T", "Bunu mu demek istediniz: 'devrik()'?"},
+		{"tensör([[1]]).toplam", "Bunu mu demek istediniz: 'toplam(x)'?"},
+		{"değişken A = tensör([[1]])\nA.devrik @ A", "metodu çağırmak için parantez ekleyin: devrik()"},
 	} {
 		if _, err := calistir(t, d.kod); err == nil || !strings.Contains(err.Error(), d.beklenen) {
 			t.Errorf("%q: %v (içermeli: %s)", d.kod, err, d.beklenen)
@@ -47,25 +46,22 @@ yazdır(matris(G) == G, matris(tensör([1, 2])).şekil, kayıp_mse(G, [[1, 2], [
 	}
 }
 
-// rastgele_matris aynı tohumla eski matrisle aynı sayıları (0.5 · standart normal, satır
-// öncelikli) üretir.
-func TestRastgeleMatrisTohumu(t *testing.T) {
-	v := deger(t, `değişken cikti = rastgele_matris(3, 4, tohum: 7)`)
-	got := v.(*Deger).t.Data()
-	rng := rand.New(rand.NewSource(7))
-	for i, x := range got {
-		if want := float32(rng.NormFloat64() * 0.5); x != want {
-			t.Fatalf("%d. eleman %v, %v bekleniyordu", i, x, want)
+// matris ve rastgele_matris kaldırıldı (2 boyutlu tensörün ikinci adlarıydı): kullanılırsa
+// hata tensör ve rastgele_normal'i önerir.
+func TestMatrisAdlariKaldirildi(t *testing.T) {
+	for _, d := range []struct{ kod, beklenen string }{
+		{"matris([[1, 2]])", "'matris' TR'de yok; 'tensör' yazmak mı istediniz?"},
+		{"rastgele_matris(2, 2)", "'rastgele_matris' TR'de yok; 'rastgele_normal' yazmak mı istediniz?"},
+	} {
+		if _, err := calistir(t, d.kod); err == nil || !strings.Contains(err.Error(), d.beklenen) {
+			t.Errorf("%q: %v (içermeli: %s)", d.kod, err, d.beklenen)
 		}
-	}
-	if a, b := deger(t, `değişken cikti = rastgele_matris(2, 2)`), deger(t, `değişken cikti = rastgele_matris(2, 2, 42)`); !a.(*Deger).Esit(b) {
-		t.Fatal("varsayılan tohum 42 olmalı")
 	}
 }
 
 // Matris hücresine ve satırına indeksle atama, eski matris gibi çalışır.
 func TestMatrisIndeksVeAtama(t *testing.T) {
-	out := mustCalistir(t, `değişken M = matris([[1, 2], [3, 4]])
+	out := mustCalistir(t, `değişken M = tensör([[1, 2], [3, 4]])
 M[0][1] = 10
 M[1][0] += 5
 M[-1] = [8, 9]
@@ -85,9 +81,9 @@ yazdır(w.değer)`)
 		t.Fatalf("indeks ve atama:\n%q\nbeklenen:\n%q", out, want)
 	}
 	for _, d := range []struct{ kod, beklenen string }{
-		{"değişken M = matris([[1, 2], [3, 4]])\nM[2][0] = 1", "Satır 2: tensör indeksi sınır dışı: 2"},
-		{"değişken M = matris([[1, 2], [3, 4]])\nM[0] = [1, 2, 3]", "Satır 2: tensör ataması: [2] şeklindeki yere [3] şeklinde veri atanamaz"},
-		{"değişken M = matris([[1, 2], [3, 4]])\nM[0][0] = \"a\"", "tensör ataması: Metin tipi tensöre dönüştürülemez"},
+		{"değişken M = tensör([[1, 2], [3, 4]])\nM[2][0] = 1", "Satır 2: tensör indeksi sınır dışı: 2"},
+		{"değişken M = tensör([[1, 2], [3, 4]])\nM[0] = [1, 2, 3]", "Satır 2: tensör ataması: [2] şeklindeki yere [3] şeklinde veri atanamaz"},
+		{"değişken M = tensör([[1, 2], [3, 4]])\nM[0][0] = \"a\"", "tensör ataması: Metin tipi tensöre dönüştürülemez"},
 		{"değişken w = tensör([1.0], türev_izle: doğru)\nw[0] = 2", "Satır 2: türev izlenen tensöre indeksle atama yapılamaz"},
 		{"değişken t = tensör(1.0)\nt[0] = 2", "skaler (0 boyutlu) tensör indekslenemez"},
 	} {
@@ -115,13 +111,11 @@ func TestMatrisBoyutDenetimi(t *testing.T) {
 		`sıfırlar(2, 3, 4)`,
 		`birim_matris(-1)`,
 		`birim_matris(2.5)`,
-		`rastgele_matris(2, -7)`,
-		`rastgele_matris(2, 2, tohum: "a")`,
+		`rastgele_normal([2, -7])`,
+		`rastgele_normal([2, 2], tohum: "a")`,
 		`sıfırlar(100000, 100000)`,
-		`matris([])`,
-		`matris([[1, 2], [3]])`,
-		`matris([["a"]])`,
-		`matris(sıfırlar([2, 2, 2]))`,
+		`tensör([[1, 2], [3]])`,
+		`tensör([["a"]])`,
 		`devrik(tensör([1, 2]))`,
 	} {
 		_, err := calistir(t, kod)
@@ -148,7 +142,7 @@ func TestTensorDuzDeger(t *testing.T) {
 		}
 	}
 	// Eski float64 matris aritmetiğiyle aynı sonuç (float32 duyarlığında).
-	got := deger(t, `değişken cikti = sigmoid(matris([[0.3, -1.2]]) @ matris([[2.0], [0.7]]))`).(*Deger).t.Item()
+	got := deger(t, `değişken cikti = sigmoid(tensör([[0.3, -1.2]]) @ tensör([[2.0], [0.7]]))`).(*Deger).t.Item()
 	if want := 1 / (1 + math.Exp(-(0.3*2.0 + -1.2*0.7))); math.Abs(float64(got)-want) > 1e-6 {
 		t.Fatalf("sigmoid(@): %v, %v bekleniyordu", got, want)
 	}

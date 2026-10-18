@@ -20,6 +20,7 @@ import (
 	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
+	"unicode"
 )
 
 // Adlı argümanlar; adları sözlüktedir (pkg/sozluk, W9xx).
@@ -389,11 +390,19 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 					sub = s.Inspect()
 				}
 				color := "#38bdf8"
+				var renkDegeri vm.Value
 				if len(args) >= 4 {
-					color = resolveColor(args[3].Inspect())
+					renkDegeri = args[3]
 				}
 				if c, ok := baglama.AdliAl(named, adRenk); ok {
-					color = resolveColor(c.Inspect())
+					renkDegeri = c
+				}
+				if renkDegeri != nil {
+					c, err := renkCoz(renkDegeri.Inspect())
+					if err != nil {
+						return nil, fmt.Errorf("kart_ekle: %v", err)
+					}
+					color = c
 				}
 				g.KPIs = append(g.KPIs, guiWidget{
 					Kind:     "kpi",
@@ -642,30 +651,55 @@ func (g *GUIAppVal) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 	return nil, fmt.Errorf("GörselArayüz üzerinde %q özelliği veya metodu bulunamadı", prop)
 }
 
-func resolveColor(c string) string {
-	switch strings.ToLower(c) {
-	case "yeşil", "yesil", "green":
-		return "#22c55e"
-	case "mavi", "blue":
-		return "#38bdf8"
-	case "kırmızı", "kirmizi", "red":
-		return "#ef4444"
-	case "sarı", "sari", "turuncu", "yellow", "orange":
-		return "#f59e0b"
-	case "mor", "purple":
-		return "#a855f7"
-	default:
-		if safeCSSColor.MatchString(strings.TrimSpace(c)) {
-			return strings.TrimSpace(c)
-		}
-		// Güvenli olmayan / tanınmayan renk değeri style özniteliğine yazılmaz
-		return "#38bdf8"
-	}
+// Görsel arayüzün renk adları yalnızca Türkçedir (her işin tek yazımı); bunların dışında
+// yalnızca renk kodları (#22c55e, rgb(...), hsl(...)) kabul edilir. İngilizce renk adları
+// (green, red ...) ve Türkçe adların ASCII yazımları (yesil, kirmizi ...) hata verir ve
+// Türkçe adı önerir.
+var renkler = map[string]string{
+	"yeşil": "#22c55e", "mavi": "#38bdf8", "kırmızı": "#ef4444", "sarı": "#f59e0b", "turuncu": "#f59e0b", "mor": "#a855f7",
 }
 
-// safeCSSColor yalnızca #hex, renk adı (red) veya rgb()/rgba()/hsl()/hsla() biçimine izin verir.
-// Böylece renk değeri üzerinden style özniteliğinden çıkıp HTML/JS enjekte edilemez.
-var safeCSSColor = regexp.MustCompile(`^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{1,30}|(rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s]{1,60}\))$`)
+// renkAdlari hata mesajlarında gösterilen sıradır.
+var renkAdlari = []string{"yeşil", "mavi", "kırmızı", "sarı", "turuncu", "mor"}
+
+// ingilizceRenkler kaldırılan İngilizce renk adlarının Türkçe karşılıklarıdır (yalnızca ipucu).
+var ingilizceRenkler = map[string]string{
+	"green": "yeşil", "blue": "mavi", "red": "kırmızı", "yellow": "sarı", "orange": "turuncu", "purple": "mor",
+}
+
+// renkCoz bir renk adını ya da renk kodunu CSS rengine çevirir.
+func renkCoz(c string) (string, error) {
+	c = strings.TrimSpace(c)
+	kucuk := strings.ToLowerSpecial(unicode.TurkishCase, c)
+	if hex, ok := renkler[kucuk]; ok {
+		return hex, nil
+	}
+	if safeCSSColor.MatchString(c) {
+		return c, nil
+	}
+	if t, ok := ingilizceRenkler[strings.ToLower(c)]; ok {
+		return "", fmt.Errorf("'%s' TR'de yok; '%s' yazmak mı istediniz?", c, t)
+	}
+	for _, ad := range renkAdlari {
+		if turkce.ASCII(ad) == kucuk {
+			return "", fmt.Errorf("'%s' TR'de yok; '%s' yazmak mı istediniz?", c, ad)
+		}
+	}
+	return "", fmt.Errorf("bilinmeyen renk %q; bir renk adı (%s) ya da #22c55e, rgb(34, 197, 94) gibi bir renk kodu yazın", c, strings.Join(renkAdlari, ", "))
+}
+
+// resolveColor sayfaya yazılacak rengi verir; geçersiz ya da güvenli olmayan değer
+// style özniteliğine yazılmaz, varsayılan renk kullanılır.
+func resolveColor(c string) string {
+	if r, err := renkCoz(c); err == nil {
+		return r
+	}
+	return "#38bdf8"
+}
+
+// safeCSSColor yalnızca #hex veya rgb()/rgba()/hsl()/hsla() biçimine izin verir. Böylece
+// renk değeri üzerinden style özniteliğinden çıkıp HTML/JS enjekte edilemez.
+var safeCSSColor = regexp.MustCompile(`^(#[0-9a-fA-F]{3,8}|(rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s]{1,60}\))$`)
 
 // jsStringAttr bir metni, HTML özniteliği içindeki JavaScript metin değişmezi olarak güvenle kodlar.
 func jsStringAttr(s string) string {
