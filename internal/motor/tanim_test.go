@@ -30,6 +30,9 @@ import (
 // yazdığı dosyalar orada kalır). Bu paketin testleri paralel çalışmaz.
 func geciciKlasoreGec(t *testing.T) {
 	t.Helper()
+	// Depo kökü çalışma klasöründen yukarı aranarak bulunur: klasör değişmeden önce bulunmalı
+	// (test tek başına koşunca kökü ilk kez bu test arar).
+	depo.Kok()
 	eski, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -38,8 +41,9 @@ func geciciKlasoreGec(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chdir(eski) })
-	// Örneklerin açtığı günlük dosyaları kapansın (Windows'ta açık dosya silinemez).
-	t.Cleanup(gunluk.TumunuKapat)
+	// Örneklerin açtığı günlük ve satır okuyucusu dosyaları kapansın (Windows'ta açık dosya
+	// silinemez), geçici_klasör()'ün klasörleri silinsin.
+	t.Cleanup(Kapat)
 }
 
 func depoKoku(*testing.T) string { return depo.Kok() }
