@@ -1,6 +1,6 @@
 # TR Yol Haritası
 
-TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici için en iyi programlama dili. Model eğitimi dilin sınavıdır; ürün dilin kendisidir. Bu belge yapılacak işlerin sırasını tutar; tamamlanan işler kısa bir satırla en altta kalır.
+TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici için en iyi programlama dili. Model eğitimi dilin sınavıdır; ürün dilin kendisidir. Dilin en önemli yan faydası: biraz teknik bilgisi olan herkesin kendi yapay zekâ modelini eğitebilmesi. Bu belge yapılacak işlerin sırasını tutar; tamamlanan işler kısa bir satırla en altta kalır.
 
 ## Şu an yapılıyor
 
@@ -21,8 +21,15 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 5. **Yazım dilleri** — EN ilk ikinci dil; dosyanın başında yazım dili; TR ⇄ EN kayıpsız çeviri aracı (çakışan kullanıcı adları `$ad` ile); bütün testlerin ve örneklerin iki dilde de koşması. Sonra hata mesajları (H kodları) ve PT gibi başka diller; yalnızca resmî, programa gömülü diller.
 6. **Üretim (modeli kullanan geliştirici için)** — KV önbellekli hızlı üretim, toplu istek işleme, nicemleme (int8/int4), model dosyaları, ağır hesapta yorumlayıcı kilidinin bırakılması.
 7. **Model Sihirbazı** — VS Code eklentisinde, kod bilmeyenin bile model kurmasını sağlayan sihirbaz; okunur TR kodu üretir; hazır eğitim döngüsü bununla gelir.
-8. **Statik şekil denetimi** — tensör şekil hatalarının çalıştırmadan önce yakalanması.
-9. **Eklenti ve araçlar sözlükten** — VS Code renklendirme, tamamlama ve belge listelerinin `pkg/sozluk`'tan üretilmesi.
+8. **Az teknik kullanıcı yolu** — ham metinden modele kadar her adım TR içinde:
+   - ham metin klasöründen veri kümesi hazırlama;
+   - kendi parçalayıcısını eğitme (bugün yalnızca hazır `tokenizer.json` okunuyor);
+   - eğitim sağlığı uyarıları: kayıp patlıyor ya da düşmüyor, öğrenme oranı yüksek görünüyor, bellek yetmeyecek;
+   - çalıştırmadan önce süre, bellek ve maliyet tahmini;
+   - dizüstü bilgisayarda ya da tek bir Colab GPU'sunda çalışan küçük model tarifleri;
+   - eğitilen modeli tek dosya uygulama ya da web hizmeti olarak paylaşma.
+9. **Statik şekil denetimi** — tensör şekil hatalarının çalıştırmadan önce yakalanması.
+10. **Eklenti ve araçlar sözlükten** — VS Code renklendirme, tamamlama ve belge listelerinin `pkg/sozluk`'tan üretilmesi.
 
 ## Platformlar
 
