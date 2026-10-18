@@ -2,8 +2,8 @@ package tensor
 
 import (
 	"fmt"
+	"math/bits"
 	"sync"
-	"sync/atomic"
 )
 
 // CPU arka ucu: bloklu, paketlemeli ve çok çekirdekli matris çarpımı.
@@ -22,7 +22,8 @@ import (
 //     ve boyutu derlemeye göre seçilir: GOAMD64=v3'te AVX2/FMA ile 6×16
 //     (cpu_mikro_avx2.go), diğer derlemelerde taşınabilir Go ile 4×2
 //     (cpu_mikro_genel.go).
-//   - İş parçaları GOMAXPROCS kadar işçiye atomik bir sayaçla dağıtılır.
+//   - İş parçaları işçi havuzuna (paralel.go) atomik bir sayaçla dağıtılır;
+//     katılımcı sayısı çarpımın büyüklüğüne göre seçilir (gemmBuyukIs).
 const (
 	kcBlok = 256     // K ekseni blok derinliği
 	satirB = 16 * mr // bir iş parçasındaki en fazla satır sayısı (mr katı)
@@ -32,8 +33,17 @@ const (
 	// tekCekirdekEsik bu kadar çarpma-toplamadan küçük işler tek çekirdekte yapılır.
 	tekCekirdekEsik = 1 << 18
 	// isciBasinaEnAz bir işçiye düşen en az çarpma-toplama; işçi sayısı buna
-	// göre sınırlanır (eşiğin hemen üstündeki işlerde gereksiz goroutine olmasın).
+	// göre sınırlanır (eşiğin hemen üstündeki işlerde gereksiz işçi olmasın).
 	isciBasinaEnAz = 1 << 17
+	// gemmBuyukIs bu kadar çarpma-toplamadan büyük çarpımlar bütün işçileri
+	// kullanabilir; daha küçükleri en çok donenIsci+1 katılımcıyla yürütülür
+	// (bkz. paralel.go). 2^25 çarpma-toplama tek çekirdekte ~0,5 ms sürer.
+	// Ölçüm (i7-13700H, 20 iş parçacığı): modeldeki 1024×64×64 ve 1024×64×256
+	// çarpımlarında 4-6 katılımcıdan sonrası kazandırmıyor, uyuyan işçileri
+	// uyandırma ve GC duraklamaları yüzünden kaybettiriyordu; 512³'ten
+	// büyüklerde ise bütün çekirdekler kazandırıyor (1024³: 8 işçi 390, 20 işçi
+	// 470 GFLOPS; 2048³: 420 ve 500 GFLOPS).
+	gemmBuyukIs = 1 << 25
 )
 
 // Paketleme tamponları çağrılar arasında yeniden kullanılır (eğitimde aynı
@@ -52,9 +62,14 @@ func paketAl(h *sync.Pool, n int) *[]float32 {
 			*p = (*p)[:n]
 			return p
 		}
-		h.Put(p)
+		// Küçük tampon havuza geri konmaz: boyutlar karışık geldiğinde
+		// (modelde çarpım başına 4 bin ile 260 bin eleman arası) havuz büyük
+		// tamponlarda toplanır. Eskiden küçük tampon geri konup her
+		// uyuşmazlıkta yenisi ayrıldığından 100 adımda ~390 MB ayrılıyordu.
 	}
-	s := make([]float32, n)
+	// Kapasite ikinin kuvvetine yuvarlanır: yakın boyutlar aynı tamponu
+	// paylaşır.
+	s := make([]float32, n, 1<<bits.Len(uint(n-1)))
 	return &s
 }
 
@@ -153,11 +168,8 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 		}
 	})
 
-	W := workers()
 	is := batch * M * N * K
-	if lim := is / isciBasinaEnAz; W > lim {
-		W = max(lim, 1)
-	}
+	W := isciSayisi(is, isciBasinaEnAz, gemmBuyukIs)
 	mPad := (M + mr - 1) / mr * mr
 	rb := mPad // iş parçası başına satır
 	npb := np  // iş parçası başına B paneli (sütun bloğu)
@@ -267,25 +279,19 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 		paketHavuzA.Put(apTampon)
 		return
 	}
-	var next atomic.Int64
-	var wg sync.WaitGroup
-	wg.Add(W)
-	for w := 0; w < W; w++ {
-		go func() {
-			defer wg.Done()
-			apTampon := paketAl(&paketHavuzA, apBoy)
-			defer paketHavuzA.Put(apTampon)
-			ap := *apTampon
-			for {
-				t := int(next.Add(1) - 1)
-				if t >= nt {
-					return
-				}
-				calis(t, ap)
-			}
-		}()
+	// Her katılımcının kendi A paketleme tamponu (ilk parçasında alınır).
+	tamponlar := make([]*[]float32, W)
+	dagit(W, nt, func(k, t int) {
+		if tamponlar[k] == nil {
+			tamponlar[k] = paketAl(&paketHavuzA, apBoy)
+		}
+		calis(t, *tamponlar[k])
+	})
+	for _, p := range tamponlar {
+		if p != nil {
+			paketHavuzA.Put(p)
+		}
 	}
-	wg.Wait()
 }
 
 func (cpuBackend) f32Gemm(batch, M, N, K int, a View, transA bool, b View, transB bool, c Storage) {
