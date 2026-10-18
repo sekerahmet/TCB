@@ -19,7 +19,7 @@ Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`
 - **Veri türleri:** Her tensörün bir türü vardır: `"float32"` (varsayılan), `"bf16"` (bfloat16: float32 ile aynı aralık, ~3 anlamlı basamak) ya da `"fp16"` (IEEE yarım hassasiyet: en büyük değer 65504, ~3 anlamlı basamak). 16 bitlik türler belleği yarıya indirir. Tür, oluşturmada `tür:` ile seçilir: `tensör(veri, tür: "bf16")`, `sıfırlar([2, 3], tür: "fp16")`, `birler([4], tür: "bf16")`, `rastgele_normal([2, 3], tohum: 1, tür: "bf16")`; değerler en yakın gösterilebilir değere yuvarlanır (`tensör([1.001], tür: "bf16").değer` `[1.0]`). Tensörden oluşturmada (`tensör(t)`) kaynağın türü korunur; türünü değiştirmek için `t.türe("bf16")` yazılır (`tensör(t, tür: ...)` hata verir). `.tür` türü metin olarak verir (`"bf16"`); `.türe("fp16")` dönüştürülmüş bir kopya verir ve **türevlenebilir**dir (gradyan kaynak tensöre kendi türünde akar; tür aynıysa tensörün kendisi döner). İşlemler içte en az float32 ile biriktirir ve sonucu bir kez yuvarlar; işlenenler aynı türdeyse sonuç o türde, farklıysa `float32`'dir; sayıyla işlemler (`b * 2`, `b / 2`, `2 / b`...) tensörün türünü korur. 16 bitlik tensörlerin gradyanları `float32` tutulur. Bilinmeyen tür adı yol gösteren bir hatadır: `tensör: bilinmeyen veri türü "bfloat16"; geçerli türler: "float32", "bf16", "fp16". Bunu mu demek istediniz: "bf16"?`
 - **Karışık hassasiyet:** `karışık_hassasiyet("bf16") { ... }` bloğu (sondaki blok yazımıyla; yeni anahtar kelime değildir) içinde `@` matris çarpımları girdilerini `bf16`'ya çevirir ve float32 biriktirmeyle **float32** sonuç verir; normalizasyon (`katman_normu`, `rms_normu`), `softmax`/`log_softmax`, `çapraz_entropi` ve `toplam`/`ortalama` 16 bitlik girdiyi float32'ye açarak hesaplar. Ağırlıkların kendisi değişmez (dönüşüm türevlenebilir bir kopyadır), bu yüzden `geri_yayılım` ve iyileştirici float32 ağırlıklarla çalışır. Blok son ifadesinin değerini döndürür: `değişken kayıp = karışık_hassasiyet("bf16") { çapraz_entropi(ileri(x), y) }`. `"fp16"` de verilebilir (65504'ü aşan değerler sonsuza taşar; kayıp ölçekleme yoktur); `"float32"` iç içe bir blokta karışık hassasiyeti kapatır. Bloklar iç içe kurulabilir; blok bitince (hata ile bitse de) önceki tür geri gelir. Durum **göreve bağlıdır**: bloğun içinde kilidi bırakan bir çağrı (`bekle(...)`, ağ, dosya) sırasında çalışan başka bir `eşzamanlı` görev bloktan etkilenmez; blok içinde başlatılan bir `eşzamanlı` görev de float32 ile başlar (gerekirse kendi bloğunu kurar). CPU'da bf16 hız kazandırmaz (dönüşüm maliyeti nedeniyle biraz yavaştır); amacı bellek/bant genişliği tasarrufu ve 16 bitlik donanıma hazırlıktır.
 - **Eski matris özellikleri:** `.boyut` → `.şekil`, `.satır` / `.sütun` → `.şekil[0]` / `.şekil[1]`, `.T` → `.devrik()`, `.toplam` / `.ortalama` → `toplam(A)` / `ortalama(A)` (0 boyutlu tensör; sayısı `.değer`), `.liste` → `.değer`. Eski adlar kaldırıldı; kullanılırsa hata mesajı karşılığını önerir (`Bunu mu demek istediniz: 'şekil'?`).
-- **Özellik ve metotlar:** `.şekil`, `.değer` (iç içe liste; skalerde tek sayı; elemanlar Ondalık, tam sayılı tensörlerde — `maks_indeks` sonucu, veri kümesinden gelen `girdi`/`hedef` — `Tam`; float32 değerler en kısa gösterimleriyle verilir, `tensör([0.1]).değer[0] == 0.1` doğrudur), `.gradyan` (yalnızca `türev_izle: doğru` ile oluşturulan yaprak tensörlerde; bir işlemin sonucu olan tensörde açıklayıcı hata verir), `.cihaz`, `.şekillendir([4, 6])` (bir eksen `-1` olabilir), `.devrik()`, `.eksenleri_sırala([0, 2, 1])`, `.dilim(eksen, baş, son)` (son hariç, negatifler sondan sayar), `.cihaza("cpu")`. Bu derlemede GPU arka ucu yoktur; `.cihaza("gpu")` açık bir hata verir.
+- **Özellik ve metotlar:** `.şekil`, `.değer` (iç içe liste; skalerde tek sayı; elemanlar Ondalık, tam sayılı tensörlerde — `maks_indeks` sonucu, veri kümesinden gelen `girdi`/`hedef` — `Tam`; float32 değerler en kısa gösterimleriyle verilir, `tensör([0.1]).değer[0] == 0.1` doğrudur), `.gradyan` (yalnızca `türev_izle: doğru` ile oluşturulan yaprak tensörlerde; bir işlemin sonucu olan tensörde açıklayıcı hata verir), `.cihaz`, `.şekillendir([4, 6])` (bir eksen `-1` olabilir), `.devrik()`, `.eksenleri_sırala([0, 2, 1])`, `.dilim(eksen, baş, son)` (son hariç, negatifler sondan sayar), `.cihaza("cpu")` (GPU için bkz. aşağıda "GPU'da eğitim").
 - **İşleçler:** `@` (matris çarpımı; 1 boyutlu işlenen vektör sayılır, 3+ boyutlu toplu çarpım), `+ - * /` eleman bazlı ve **yayınlamalıdır** (eksenler sağdan hizalanır; eşit ya da 1 olan eksenler uyumludur). Sayı iki yanda da durabilir: `2 * a`, `a - 1`, `1 - a`, `a / 2`, `1 / a`. Tekli eksi (`-a`) ve sayı üssü (`a ** 2`) de vardır; hepsi türev izler. İki işlenen de genişletilirse (ör. `[4, 1]` ile `[4]` → `[4, 4]`; çoğunlukla bir şekil hatası) standart hataya her işlem ve şekil çifti için bir kez (en çok 100 farklı uyarı; sonrası tek bir bildirimle susturulur) `Uyarı: [4, 1] ile [4] yayınlanarak [4, 4] üretildi (iki taraf da genişletildi); ...` yazılır; program durmaz. `%` tensörlerde tanımlı değildir.
 - **Karşılaştırma ve maske:** `< > <= >=` bir sayıyla ya da **aynı şekilli** tensörle eleman bazlı karşılaştırır ve türev izlemeyen 0/1 maskesi verir: `a > 0`, `a < b`. `==` ve `!=` ise tensörleri bütün olarak karşılaştırıp tek bir `Mantık` verir: şekilleri ve tüm elemanları aynıysa eşittir (`tensör([1.0, 2.0]) == tensör([1.0, 2.0])` doğru, `[2]` ile `[1, 2]` şekilli tensörler eşit değildir). 0 boyutlu tensör bir sayıyla da karşılaştırılabilir: `tensör(7.0) == 7`, `A[1][0] == 3.0` ve `toplam(t) == 10` doğrudur; en az bir ekseni olan tensör (`tensör([7.0])`) sayıya eşit değildir.
 - **İndeksleme:** `t[i]` ilk eksenin i. elemanını verir (bir eksen eksilir; negatif indeks sondan sayar), `t[baş..son]` ilk eksende dilim verir (`son` hariç); ikisi de veriyi kopyalamayan, türev izleyen görünümlerdir ve zincirlenebilir (`t[0][1]`); bu, `.devrik()` gibi bitişik olmayan görünümlerde de geçerlidir (`t.devrik()[0] = 9` `t`'nin ilk sütununu yazar). `.şekillendir` yalnızca bitişik olmayan bir tensörün eksenlerini depoda düzenli adımla ifade edilemeyecek biçimde birleştirirken (ör. `t.devrik().şekillendir([-1])`) kopya üretir. Sınır dışı indeks hatadır.
@@ -87,6 +87,43 @@ Bellek sınırı: bir işlemin sonucu tek başına makinenin fiziksel belleğind
 > **Not (türevsiz ve eşzamanlılık):** Türevsiz kip her görevin kendi durumudur. `türevsiz { ... }` bloğu fonksiyon çağırsa, döngü kursa ya da `bekle(...)` gibi yorumlayıcı kilidini bırakan bir çağrı yapsa da, aynı anda çalışan başka bir `eşzamanlı` görev (ör. eğitim döngüsü) türev izlemeye devam eder; yani bir görevde türevsiz çıkarım (ör. örnek metin üretme) yaparken arka planda eğitim sürdürebilirsiniz. Yeni bir `eşzamanlı` görev her zaman türevli kipte başlar. Bir geri yayılım sürerken başka bir görev aynı çizgeden geri yayılım başlatırsa açık hata alır.
 
 VS Code İzleme Masası'nda tensörler tip sütununda `Tensör [2×3]` (float32 dışındaki türlerde `Tensör [2×3] bf16`) olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılabilir. Skaler tensörün (ör. kayıp) değeri değer sütununda görünür (`0.6074 (Tensör, skaler)`, bf16'da `2.5000 (Tensör, skaler, bf16)`); 1-8 elemanlı tensörler satır içinde kısaltılmış yazılır (`[[1.4298]] (Tensör, 1×1)`), daha büyükleri tablo olarak açılır. Variables panelinde tensörler ilk ekseni boyunca açılır (satırlar, onların içinde sayılar; 1000'den çok satırda ilk 1000 satır ve bir `…` satırı gösterilir).
+
+### GPU'da eğitim
+
+NVIDIA GPU'su ve sürücüsü olan bir makinede (ör. bulut GPU makinesi) aynı TR programı GPU'da
+çalışır; ek kurulum, derleyici ya da kitaplık gerekmez. En sade yol, modeli kurmadan önce
+varsayılan cihazı seçmektir: ağırlıklar, iyileştiricinin durumları ve veri kümesinden gelen
+toplu işler GPU'da oluşur.
+
+```tr
+eğer cihazlar().içerir("gpu") { varsayılan_cihaz("gpu") }   // GPU yoksa CPU'da kalır
+değişken W = tensör(türevsiz(rastgele_normal([16, 4], tohum: 1) * 0.1), türev_izle: doğru)
+değişken x = rastgele_normal([8, 16], tohum: 2)              // varsayılan cihazda
+değişken iyileştirici = AdamW([W], öğrenme_oranı: 0.01)
+döngü adım içinde 0..10 {                                    // döngü CPU'dakiyle aynı
+    iyileştirici.sıfırla()
+    değişken kayıp = çapraz_entropi(x @ W, [0, 1, 2, 3, 0, 1, 2, 3])
+    geri_yayılım(kayıp)
+    iyileştirici.adım()
+}
+yazdır(W.cihaz, varsayılan_cihaz())
+```
+
+Veri kümesinin örnekleyicisi (`veri_kümesi(...).örnekleyici(...)`) de toplu işleri varsayılan
+cihazda verir; büyük bir modelin tamamı için örnek: `bakim/gpu/kiyas_gpu.tr`.
+
+- `cihazlar()` kullanılabilir cihazları verir (`["cpu", "gpu"]`); `varsayılan_cihaz()` geçerli
+  cihazın adını. `t.cihaz` bir tensörün cihazını, `t.cihaza("cpu")` taşınmış kopyasını verir.
+- Türev izleyen bir ağırlığı tek tek taşımak da olur: `kendi.W = ağırlık(...).cihaza("gpu")`
+  GPU'da **yeni bir yaprak** verir; iyileştiriciye bu verilir (gradyanı onun `.gradyan`ında).
+- Farklı cihazlardaki iki tensörle işlem açık bir hatadır; sessizce kopyalanmaz.
+- GPU'daki işlemler sıraya eklenip hemen döner; `.değer`, yazdırma ve `gradyan_kırp` hesabın
+  bitmesini bekler. Süre ölçerken ölçümden önce bir `.değer` okuyun.
+- Sonuçlar CPU'dakiyle float32 yuvarlama farkı içinde aynıdır; indirgemeler belirlenimcidir.
+  GPU belleği yetmezse Türkçe ve `dene/yakala` ile yakalanabilir bir hata alınır.
+- Teşhis: bir GPU hatasının hangi işlemde olduğunu tam bulmak için program
+  `TR_GPU_ESZAMANLI=1` ortam değişkeniyle çalıştırılır (her işlemden sonra bekler; yavaştır).
+- Kurallar: `docs/dil/15_tensorler.md` **15.26–15.30**.
 
 ## D. Veri ve Parçalayıcı
 Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` veri dosyalarını okuyan **veri kümesi**. Uçtan uca örnek: `ornekler/08_veri_ile_egitim.tr`.

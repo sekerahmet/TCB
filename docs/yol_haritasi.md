@@ -35,6 +35,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - Programa gömülü birleşik çekirdekler: dikkat, doğrusal katman + çapraz entropi, RMSNorm/RoPE/SwiGLU, AdamW.
    - Blok boyutları arka ucun ayarı; ilk çalıştırmada ölçülerek seçilir ve saklanır.
    - Sınama bulut GPU makinelerinde.
+   - **1. aşama (G1) yapıldı:** sürücü bağlama, PTX üreteci ve benzetim, bütün tensör işlemleri ve gradyanları (float32; bf16/fp16 depolama dönüşümle), döşemeli float32 matris çarpımı, dikkat (çarpım + maske + softmax), `varsayılan_cihaz` ve `cihazlar`. Sırada (2. aşama): tensör çekirdekli bf16 matris çarpımı, birleşik dikkat, gradyan kırpmanın cihazda kalması (adım başına eşzamanlama yok), birleşik çekirdekler.
 7. **TR ile çekirdek yazma** — eleman bazlı ve satır işlemleri için küçük, blok düzeyinde bir yazım; aynı kod CPU'da vektör komutlarına, GPU'da GPU koduna derlenir. Ardından tensör çekirdekli matris çarpımı ve dikkat.
 8. **Yazım dilleri** — EN ilk ikinci dil; dosyanın başında yazım dili; TR ⇄ EN kayıpsız çeviri aracı (çakışan kullanıcı adları `$ad` ile); bütün testlerin ve örneklerin iki dilde de koşması. Sonra hata mesajları (H kodları) ve PT gibi başka diller; yalnızca resmî, programa gömülü diller.
 9. **Üretim (modeli kullanan geliştirici için)** — KV önbellekli hızlı üretim, toplu istek işleme, nicemleme (int8/int4), model dosyaları, ağır hesapta yorumlayıcı kilidinin bırakılması.

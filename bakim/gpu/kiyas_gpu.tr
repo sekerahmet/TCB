@@ -1,0 +1,123 @@
+// GPU kıyası: CPU kıyasının (bakim/kiyas) modeli GPU'da. Aynı model ve ayarlar
+// kiyas_gpu.py'de. Ayarlar aynı klasördeki kiyas_ayar.json'dan okunur:
+//   {"boyut": "kucuk" | "buyuk" | "deneme", "veri": "/content/veri" ya da "", "cihaz": "gpu"}
+// "veri" boşsa sabit sentetik toplu işler kullanılır (kayıp anlamsız, süre geçerli).
+// Çıktı: ısınma hariç ms/adım ve son kayıp.
+
+değişken ayar = json_çöz(dosya_oku("kiyas_ayar.json"))
+değişken boyutlar = {
+    "kucuk": {"B": 8, "T": 64, "D": 128, "H": 4, "FF": 256, "KATMAN": 2, "ADIM": 220, "ISINMA": 20},
+    "buyuk": {"B": 32, "T": 256, "D": 512, "H": 8, "FF": 2048, "KATMAN": 6, "ADIM": 220, "ISINMA": 20},
+    "deneme": {"B": 2, "T": 8, "D": 16, "H": 2, "FF": 32, "KATMAN": 1, "ADIM": 4, "ISINMA": 1}
+}
+değişken b = boyutlar[ayar["boyut"]]
+değişken B = b["B"]
+değişken T = b["T"]
+değişken D = b["D"]
+değişken H = b["H"]
+değişken Dh = D / H
+değişken FF = b["FF"]
+değişken KATMAN = b["KATMAN"]
+değişken ADIM = b["ADIM"]
+değişken ISINMA = b["ISINMA"]
+değişken V = 40000
+eğer ayar["boyut"] == "deneme" { V = 200 }
+
+yazdır("cihaz: {varsayılan_cihaz(ayar["cihaz"])} · cihazlar: {cihazlar()}")
+yazdır("ayar: {ayar["boyut"]} B={B} T={T} D={D} H={H} FF={FF} katman={KATMAN} V={V}")
+
+// Toplu işler: veri kümesinden (varsayılan cihazda) ya da sabit sentetik.
+değişken ö = yok
+değişken sentetik = []
+eğer ayar["veri"] != "" {
+    ö = veri_kümesi(ayar["veri"]).örnekleyici(toplu: B, bağlam: T, tohum: 1)
+} değilse {
+    döngü s içinde aralık(8) {
+        değişken satırlar = [[(s * 7919 + i * 104729 + t * 31) % V döngü t içinde aralık(T + 1)] döngü i içinde aralık(B)]
+        değişken tümü = tensör(satırlar)
+        sentetik.ekle([tümü.dilim(1, 0, T), tümü.dilim(1, 1, T + 1)])
+    }
+}
+fonksiyon toplu_iş(adım) {
+    eğer ö != yok { sonuç ö.sonraki() }
+    sonuç sentetik[adım % 8]
+}
+
+değişken tohum_sayacı = 0
+fonksiyon ağırlık(şekil, ölçek) {
+    tohum_sayacı += 1
+    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: tohum_sayacı) * ölçek), türev_izle: doğru)
+}
+fonksiyon silu(x) { sonuç x * sigmoid(x) }
+
+yapı Blok {
+    g1
+    g2
+    Wq
+    Wk
+    Wv
+    Wo
+    Wg
+    Wu
+    W2
+    fonksiyon kurucu() {
+        kendi.g1 = tensör(birler([D]), türev_izle: doğru)
+        kendi.g2 = tensör(birler([D]), türev_izle: doğru)
+        kendi.Wq = ağırlık([D, D], 0.02)
+        kendi.Wk = ağırlık([D, D], 0.02)
+        kendi.Wv = ağırlık([D, D], 0.02)
+        kendi.Wo = ağırlık([D, D], 0.01)
+        kendi.Wg = ağırlık([D, FF], 0.02)
+        kendi.Wu = ağırlık([D, FF], 0.02)
+        kendi.W2 = ağırlık([FF, D], 0.01)
+    }
+    fonksiyon başlar(x) { sonuç x.şekillendir([B, T, H, Dh]).eksenleri_sırala([0, 2, 1, 3]) }
+    fonksiyon ileri(x) {
+        değişken h = rms_normu(x, kendi.g1)
+        değişken y = dikkat(kendi.başlar(h @ kendi.Wq), kendi.başlar(h @ kendi.Wk), kendi.başlar(h @ kendi.Wv), nedensel: doğru)
+        değişken s = x + y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, D]) @ kendi.Wo
+        değişken m = rms_normu(s, kendi.g2)
+        sonuç s + (silu(m @ kendi.Wg) * (m @ kendi.Wu)) @ kendi.W2
+    }
+}
+
+yapı Model {
+    E
+    bloklar
+    gs
+    fonksiyon kurucu() {
+        kendi.E = ağırlık([V, D], 0.02)
+        kendi.bloklar = aralık(KATMAN).haritala { Blok() }
+        kendi.gs = tensör(birler([D]), türev_izle: doğru)
+    }
+    fonksiyon ileri(girdi) {
+        değişken x = gömme(kendi.E, girdi)
+        döngü bl içinde kendi.bloklar { x = bl.ileri(x) }
+        sonuç rms_normu(x, kendi.gs) @ kendi.E.devrik() // paylaşımlı çıkış
+    }
+}
+
+değişken model = Model()
+değişken ağırlıklar = parametreler(model)
+değişken sayı = 0
+döngü w içinde ağırlıklar { sayı += toplam(birler(w.şekil)).değer }
+yazdır("parametre: {yuvarla(sayı / 1000000, 2)} M · ağırlıkların cihazı: {model.E.cihaz}")
+değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: 0.003, ağırlık_çürümesi: 0.0)
+
+değişken başlangıç = 0
+değişken kayıp = yok
+döngü adım içinde 0..ADIM {
+    eğer adım == ISINMA {
+        eğer kayıp != yok { değişken bekle_ = kayıp.değer } // ısınmanın bitmesini bekle
+        başlangıç = zaman_ms()
+    }
+    değişken xy = toplu_iş(adım)
+    iyileştirici.sıfırla()
+    kayıp = çapraz_entropi(model.ileri(xy[0]), xy[1])
+    geri_yayılım(kayıp)
+    gradyan_kırp(ağırlıklar, en_fazla: 1.0)
+    iyileştirici.adım()
+}
+değişken son = kayıp.değer // GPU'daki son adımın bitmesini bekler
+değişken süre = zaman_ms() - başlangıç
+yazdır("TR ({varsayılan_cihaz()}): {yuvarla(süre / (ADIM - ISINMA), 2)} ms/adım · son kayıp {yuvarla(son, 4)}")

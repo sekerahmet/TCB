@@ -8,7 +8,7 @@ import (
 	"github.com/ebitengine/purego"
 )
 
-// Linux: libcuda.so.1 cgo'suz (purego ile) yüklenir. Kitaplık yoksa (NVIDIA sürücüsü
+// Linux: libcuda.so.1 cgo'suz dinamik yükleyiciyle (go.mod'daki tek dış bağımlılık) yüklenir. Kitaplık yoksa (NVIDIA sürücüsü
 // kurulu değil) GPU arka ucu kaydolmaz ve her şey CPU'da çalışır.
 
 type linuxKutuphane struct{ tutamac uintptr }

@@ -55,6 +55,7 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `internal/motor/ortak/baglama` | Motorların ortak yardımcıları: adlı argüman denetimi, göreli yol, panikten hataya, Türkçe sayı yazımı |
 | `internal/motor/ortak/jsonyaz` | TR değerlerini JSON'a yazar |
 | `internal/hesap/tensor` | n boyutlu tensör, görünümler, otomatik türev, arka uç arayüzü ve CPU arka ucu (AVX2/FMA çekirdekleri) |
+| `internal/hesap/gpu` | GPU arka ucu: sürücü bağlama (cgo'suz), Go içinden üretilen PTX çekirdekleri, cihaz belleği havuzu, PTX benzetimi (donanımsız sınama) |
 | `internal/hesap/parca` | `tokenizer.json` parçalayıcıları: BPE, WordPiece, Unigram, normalleştirme, ön bölme |
 | `internal/hesap/veriyolu` | `.npy` veri dosyaları, veri kümesi, örnekleyici, önbellek ve önden yükleme |
 | `internal/arac/ayikla` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`tr dap`) |
@@ -91,6 +92,41 @@ Motorların kendi kancaları:
 | `surec.Durum.Ayarlar` | Programın `komut_satırı` sonucu (günlüğün başlangıç kaydı yazar; kontrol noktası da saklayabilir) |
 | `gunluk.TumunuKapat` | Program bitince bitmemiş çubukları bitirir, günlükleri kapatır (`motor.Kapat`, `tr dap`) |
 
+### GPU arka ucu (`internal/hesap/gpu`)
+
+`tensor.Backend`'in NVIDIA uygulamasıdır; otomatik türev ve üst katmanlar cihazdan bağımsızdır.
+
+- **Kayıt:** paket init'te tembel bir arka uç kaydeder (`tensor.RegisterLazyBackend`); sürücü
+  ancak bir cihaz sorulunca (`cihazlar()`, `.cihaza`, `varsayılan_cihaz`) yüklenir. Sürücü
+  yoksa hiçbir şey kaydolmaz, her şey CPU'da çalışır.
+- **Sürücü:** cgo ve CUDA araç takımı gerekmez. Linux'ta `libcuda.so.1` dış bağımlılık olan
+  dinamik yükleyiciyle (`go.mod`; yalnızca `cuda_linux.go` içe aktarır, `internal/katman_test.go`
+  denetler), Windows'ta `nvcuda.dll` yalnızca sistem klasöründen (LoadLibraryExW) yüklenir.
+  **Bedel:** bu yükleyici Linux ikilisini glibc'ye dinamik bağlar (`/lib64/ld-linux-x86-64.so.2`;
+  `libc.so.6`, `libdl.so.2`, `libpthread.so.0`), GPU kullanmayan Linux kullanıcıları için de;
+  musl tabanlı dağıtımlarda (Alpine) ikili açılmaz. `-tags gpusuz` ile derlenen ikili statik
+  kalır ve GPU desteği içermez. (Karar baş geliştiricide; bkz. G1 raporu.)
+- **Bağlam ve iş parçacığı:** CUDA bağlamı işletim sistemi iş parçacığına bağlıdır. Her dışa
+  açık yöntem girişte arka ucun kilidini alır, gorutini iş parçacığına kilitler ve cihazın
+  birincil bağlamını bağlar (`cuCtxSetCurrent`); bütün işler tek akışta sırayla yürür.
+  Ayrı bir GPU gorutinine kanalla iş göndermek yerine bu yol seçildi: kanal gidiş-dönüşü ve
+  gorutin geçişi yok, panikler (Türkçe hatalar) çağıranın gorutininde kalır (`dene/yakala`).
+- **Çekirdekler:** Go içinden PTX olarak üretilir (`ptx.go` yazıcı, `cekirdek_*.go` aileler;
+  hedef `sm_52`), sürücü ilk kullanımda karta derler, modüller süreç boyunca önbellekte.
+  Çekirdek imzası her gösterici parametresinin yazılıp yazılmadığını bilir; başlatma yeri
+  okuma/yazma bildirir ve uyuşmazlık iç hatadır. Döşeme boyları arka ucun ayarıdır.
+- **Bellek:** boyut sınıflı havuz; depolama otomatik türevin `Release`'iyle ya da çöp
+  toplayıcının temizliğiyle havuza döner (tek akış sayesinde eşzamanlama gerekmez). Çöp
+  toplayıcı cihaz belleğini görmediğinden, son toplamadan bu yana ayrılan cihaz belleği
+  toplam belleğin 1/8'ini aşınca toplama açıkça başlatılır. Konaktan yükleme sayfası kilitli
+  bir halka üzerinden eşzamansızdır; küçük konak verisinin (indeks toplu işleri) konak gölgesi
+  okumayı eşzamanlamasız yapar, başlatıcı yazılan depolamaların gölgesini siler.
+- **Benzetim:** `benzetim*.go` PTX altkümesini yorumlayan bir sürücü benzetimidir; GPU
+  sınamaları donanımsız makinede onda koşar (dağınık engel, sınır dışı ve hizasız erişim,
+  paylaşımlı bellek yarışı yakalanır; eşzamansız işler gerçek sürücü gibi sıralanır).
+  `TR_GPU_BENZETIM=1` ile `tr` de benzetimi `"gpu"` olarak kullanır (geliştirme aracı).
+- **Colab:** `bakim/gpu/` (paket hazırlama, kıyas betikleri, `COLAB.md`).
+
 ## Klasörler
 
 | Klasör | İçerik |
@@ -102,7 +138,7 @@ Motorların kendi kancaları:
 | `docs/` | Belgeler: [`kilavuz/`](kilavuz/README.md), [`dil/`](dil/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
 | `ornekler/` | Öğrenme sırasıyla örnek programlar |
 | `testler/` | Dil tanımının kural testleri (`tr test testler`); `olumsuz/`, `alt/`, `veri/` |
-| `bakim/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti) |
+| `bakim/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas paketi: `colab_hazirla.sh`, `kiyas_gpu.tr`, `kiyas_gpu.py`, `COLAB.md`) |
 | `ikili/` | Derleme çıktısı (`go build -o ikili/tr.exe ./cmd/tr`); depoya girmez |
 | `calisma/` | Kişisel deneme klasörü; depoya girmez |
 
@@ -111,7 +147,7 @@ Motorların kendi kancaları:
 | Rol | Alan |
 | :-- | :-- |
 | Dil çekirdeği | `internal/dil/**`, `internal/motor/dosya`, `internal/arac/{bicim,testkosucu,ayikla}`, `internal/depo`, `cmd/tr`, `docs/dil/`, bu dosya |
-| Tensör ve GPU | `internal/hesap/tensor` (ileride `internal/hesap/gpu`), `internal/motor/ogrenme`, ileride `kitaplik/cekirdek` |
+| Tensör ve GPU | `internal/hesap/tensor`, `internal/hesap/gpu`, `internal/motor/ogrenme`, ileride `kitaplik/cekirdek` |
 | Veri ve parçalayıcı | `internal/hesap/{parca,veriyolu}`, `internal/motor/{parcalayici,veri,veribicim}` |
 | Araçlar | `duzenleyici/`, `.vscode/`, `docs/kilavuz/`, `README.md` |
 | Hız | `bakim/kiyas/` |

@@ -12,7 +12,7 @@ import (
 // Gerçek NVIDIA sürücüsü (cgo'suz)
 // ============================================================================
 //
-// Sürücü kitaplığı çalışma anında yüklenir (Linux: libcuda.so.1, purego ile; Windows:
+// Sürücü kitaplığı çalışma anında yüklenir (Linux: libcuda.so.1, cgo'suz dinamik yükleyiciyle; Windows:
 // nvcuda.dll, syscall ile) ve sürücü API'si doğrudan çağrılır; CUDA araç takımı ya da
 // derleyici gerekmez. PTX'i sürücünün içindeki derleyici ilk yüklemede karta derler.
 //

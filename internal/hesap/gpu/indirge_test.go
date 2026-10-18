@@ -45,6 +45,32 @@ func TestToplamlar(t *testing.T) {
 	}
 }
 
+// TestBelirlenimci aynı girdinin her çalıştırmada bit düzeyinde aynı sonucu verdiğini
+// denetler (indirgemeler, matris çarpımı, gradyanlar; atomik toplama yok).
+func TestBelirlenimci(t *testing.T) {
+	rng := rand.New(rand.NewSource(17))
+	xv, wv := rastgele(rng, 300*70, 1), rastgele(rng, 70*90, 1)
+	idx := make([]int, 300)
+	for i := range idx {
+		idx[i] = rng.Intn(5)
+	}
+	var onceki [][]float32
+	for tekrar := 0; tekrar < 3; tekrar++ {
+		x := tensor.NewOn(gpuCihaz, xv, 300, 70).SetRequiresGrad(true)
+		w := tensor.NewOn(gpuCihaz, wv, 70, 90).SetRequiresGrad(true)
+		y := tensor.MatMul(x, w)
+		k := tensor.Add(y.Softmax(1).Sum(0, false).SumAll(), tensor.Embedding(w, idx).SumAll())
+		k.Backward()
+		simdi := [][]float32{k.Data(), x.Grad().Data(), w.Grad().Data()}
+		if onceki != nil {
+			for i := range simdi {
+				farkDenetle(t, fmt.Sprintf("tekrar %d, çıktı %d", tekrar, i), simdi[i], onceki[i], 0)
+			}
+		}
+		onceki = simdi
+	}
+}
+
 func TestEnBuyuk(t *testing.T) {
 	rng := rand.New(rand.NewSource(6))
 	nan := float32(math.NaN())

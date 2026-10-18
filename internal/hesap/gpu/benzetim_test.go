@@ -1,6 +1,7 @@
 package gpu
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"unsafe"
@@ -138,10 +139,16 @@ func TestBellekYetmezse(t *testing.T) {
 	if !strings.Contains(m, "bu GPU'da") {
 		t.Fatalf("cihaz sınırı mesajı: %q", m)
 	}
-	// Cihazdan bağımsız katman şekli GPU belleğiyle denetler (ayırmadan önce).
-	m = panikMetni(func() { tensor.ZerosOn(gpuCihaz, 1<<29, 4) })
-	if !strings.Contains(m, "bu GPU'da") || !strings.Contains(m, "[536870912, 4]") {
+	// Cihazdan bağımsız katman şekli GPU belleğiyle denetler (ayırmadan önce). Satır sayısı
+	// GPU belleğini az farkla aşar; konağın belleği GPU'nunkinden küçükse önce konak sınırı
+	// devreye girer (gerçek GPU'da), o da aynı biçimde Türkçe ve yakalanabilirdir.
+	satir := int(gpuArkaUc().MemoryLimit()/16) + 1
+	m = panikMetni(func() { tensor.ZerosOn(gpuCihaz, satir, 4) })
+	if !strings.Contains(m, fmt.Sprintf("[%d, 4]", satir)) || !(strings.Contains(m, "bu GPU'da") || strings.Contains(m, "bu makinede")) {
 		t.Fatalf("tensör katmanının GPU sınırı mesajı: %q", m)
+	}
+	if benzetimde() && !strings.Contains(m, "bu GPU'da") {
+		t.Fatalf("benzetimde GPU sınırı devreye girmeliydi: %q", m)
 	}
 }
 

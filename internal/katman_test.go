@@ -159,7 +159,7 @@ func TestKatmanKurali(t *testing.T) {
 
 // disBagimliliklar modül dışı (standart kitaplık olmayan) içe aktarmalar ve onları içe
 // aktarabilen tek paket. Yeni bir dış bağımlılık baş geliştiricinin kararıdır; tek dosya
-// dağıtım ve cgo'suz derleme korunur. purego: GPU arka ucunun Linux'ta NVIDIA sürücü
+// dağıtım ve cgo'suz derleme korunur. Dinamik yükleyici: GPU arka ucunun Linux'ta NVIDIA sürücü
 // kitaplığını cgo'suz yüklemesi (internal/hesap/gpu/cuda_linux.go).
 var disBagimliliklar = map[string]string{
 	"github.com/ebitengine/purego": "internal/hesap/gpu",
