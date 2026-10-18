@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"tr_dili/internal/depo"
 )
 
 // Belgelerdeki ve eklenti şablonlarındaki TR kodu bozulmasın: her ```tr kod bloğu
@@ -22,8 +24,8 @@ var belgeler = []string{
 	"KULLANIM_KILAVUZU.md",
 	"docs/DIL_TANIMI.md",
 	"docs/YOL_HARITASI.md",
-	"vscode_eklentisi/README.md",
-	"kiyas/README.md",
+	"duzenleyici/vscode/README.md",
+	"bakim/kiyas/README.md",
 }
 
 var trBlokRe = regexp.MustCompile("(?ms)^```tr( hata)?[ \t]*\r?\n(.*?)^```")
@@ -42,12 +44,9 @@ func trKontrol(t *testing.T, ad, kod string) (bool, string) {
 func TestBelgelerdekiTRKodBloklari(t *testing.T) {
 	toplam := 0
 	for _, b := range belgeler {
-		veri, err := os.ReadFile(filepath.Join("..", "..", filepath.FromSlash(b)))
+		veri, err := os.ReadFile(depo.Yol(b))
 		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			t.Fatal(err)
+			t.Fatal(err) // belge taşındıysa listeyi güncelleyin
 		}
 		metin := string(veri)
 		for _, m := range trBlokRe.FindAllStringSubmatchIndex(metin, -1) {
@@ -90,7 +89,7 @@ func sablonAc(govde string) string {
 // Eklentinin kod şablonları varsayılan değerleriyle açıldığında derlenebilir kod üretmelidir
 // (hakem mimari 3: eşle şablonu derlenmeyen kod üretiyordu).
 func TestEklentiSablonlariDerlenir(t *testing.T) {
-	veri, err := os.ReadFile(filepath.Join("..", "..", "vscode_eklentisi", "snippets", "tr.code-snippets"))
+	veri, err := os.ReadFile(depo.Yol("duzenleyici/vscode/snippets/tr.code-snippets"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"tr_dili/pkg/lexer"
-	"tr_dili/pkg/vm"
+	"tr_dili/internal/dil/lexer"
+	"tr_dili/internal/dil/vm"
 )
 
 // 'tr derle' ile üretilen uygulama, yorumlayıcı ikilisinin sonuna eklenmiş bir paketten
@@ -184,7 +184,7 @@ func aktarYerleri(kod string) []aktarYeri {
 	}
 }
 
-// modulYolunuCoz bir 'aktar' yolunu yorumlayıcıyla (pkg/vm) aynı kuralla çözer: önce
+// modulYolunuCoz bir 'aktar' yolunu yorumlayıcıyla (internal/dil/vm) aynı kuralla çözer: önce
 // bulunulan klasöre göre, bulunamazsa aktaran dosyanın klasörüne, o da olmazsa ana
 // programın klasörüne göre. aranan, hata iletisinde gösterilecek denenmiş yollardır.
 func modulYolunuCoz(yol, aktaran, ana string) (cozulen string, aranan []string, ok bool) {

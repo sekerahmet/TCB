@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"tr_dili/pkg/bicim"
-	"tr_dili/pkg/turkce"
+	"tr_dili/internal/arac/bicim"
+	"tr_dili/internal/dil/turkce"
 )
 
 // bicimleKomutu 'tr biçimle [--kontrol] <dosya.tr | klasör>...' komutudur. Dosyaları standart

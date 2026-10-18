@@ -6,14 +6,14 @@ Her işin tek yazımı vardır: anahtar kelimeler, yerleşikler ve komutlar yaln
 
 ## Kurulum
 
-Yorumlayıcıyı proje kökünde derleyin (`go` derleyicisi kurulu olmalıdır):
+Yorumlayıcıyı proje kökünde derleyin (`go` derleyicisi kurulu olmalıdır); çıktı `ikili/` klasörüne yazılır ve bu klasör depoya girmez:
 
 ```bash
-GOAMD64=v3 go build -o tr.exe ./cmd/tr          # bash
-$env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
+GOAMD64=v3 go build -o ikili/tr.exe ./cmd/tr          # bash
+$env:GOAMD64="v3"; go build -o ikili/tr.exe ./cmd/tr   # PowerShell
 ```
 
-`GOAMD64=v3` 2020 sonrası x86-64 işlemcileri (AVX2/FMA) hedefler ve matris çarpımını çok hızlandırır (512×512 çarpımda v1 derlemeye göre yaklaşık 8–14 kat; ölçüm: [`kiyas/`](kiyas/README.md)). Daha eski ya da bazı düşük güçlü işlemcilerde program açılmıyorsa `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez.
+`GOAMD64=v3` 2020 sonrası x86-64 işlemcileri (AVX2/FMA) hedefler ve matris çarpımını çok hızlandırır (512×512 çarpımda v1 derlemeye göre yaklaşık 8–14 kat; ölçüm: [`bakim/kiyas/`](bakim/kiyas/README.md)). Daha eski ya da bazı düşük güçlü işlemcilerde program açılmıyorsa `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez.
 
 ## İlk program
 
@@ -27,9 +27,9 @@ yazdır([1, 2, 3, 4].haritala { kare(o) })   // [1, 4, 9, 16]
 ```
 
 ```bash
-./tr.exe merhaba.tr          # çalıştırır
-./tr.exe kontrol merhaba.tr  # çalıştırmadan sözdizimi ve tip denetimi
-./tr.exe                     # etkileşimli kabuk
+./ikili/tr.exe merhaba.tr          # çalıştırır
+./ikili/tr.exe kontrol merhaba.tr  # çalıştırmadan sözdizimi ve tip denetimi
+./ikili/tr.exe                     # etkileşimli kabuk
 ```
 
 ## Testler ve biçimlendirme
@@ -82,13 +82,13 @@ değişken girdi, hedef = ö.sonraki()                              // [8, 256] 
 
 ## VS Code eklentisi ve hata ayıklama
 
-[`vscode_eklentisi/`](vscode_eklentisi/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`tensör` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr hata_ayıkla dosya.tr`.
+[`duzenleyici/vscode/`](duzenleyici/vscode/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`tensör` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr hata_ayıkla dosya.tr`.
 
-Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosyayı kökteki `tr.exe` ile çalıştırır (`.vscode/tasks.json`). Çalıştırma görevleri yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce `Ctrl+Shift+P` → "Tasks: Run Task" → **TR: yorumlayıcıyı derle** görevini çalıştırın.
+Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosyayı `ikili/tr.exe` ile çalıştırır (`.vscode/tasks.json`). Çalıştırma görevleri yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce `Ctrl+Shift+P` → "Tasks: Run Task" → **TR: yorumlayıcıyı derle** görevini çalıştırın.
 
 ## Örnekler
 
-[`ornekler/`](ornekler/) klasöründeki dosyalar sırayla okunacak şekilde numaralıdır; her biri kısa, kendi başına çalışır ve baştaki yorumda ne öğrettiğini anlatır. Proje kökünden çalıştırın: `./tr.exe ornekler/01_merhaba.tr`.
+[`ornekler/`](ornekler/) klasöründeki dosyalar sırayla okunacak şekilde numaralıdır; her biri kısa, kendi başına çalışır ve baştaki yorumda ne öğrettiğini anlatır. Proje kökünden çalıştırın: `./ikili/tr.exe ornekler/01_merhaba.tr`.
 
 | Dosya | Ne öğretir |
 | :-- | :-- |
@@ -100,8 +100,9 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | [`06_transformer.tr`](ornekler/06_transformer.tr) | Elle yazılmış küçük transformer: çok başlı nedensel dikkat, katman normu |
 | [`07_karakter_modeli.tr`](ornekler/07_karakter_modeli.tr) | Projenin belgeleriyle eğitilen karakter düzeyi dil modeli ve metin üretimi |
 | [`08_veri_ile_egitim.tr`](ornekler/08_veri_ile_egitim.tr) | `tokenizer.json` parçalayıcısı ve `.npy` veri kümesiyle uçtan uca eğitim ve doğrulama |
+| [`09_hata_ayiklama_alistirmasi.tr`](ornekler/09_hata_ayiklama_alistirmasi.tr) | VS Code hata ayıklayıcısıyla adım adım ilerleme: kesme noktası, tablo görünümü, değeri çalışırken değiştirme (F5) |
 
-Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`, F5 ile denenecek `hata_ayiklama.tr`).
+Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oraya kopyalayabilirsiniz (ör. `ornekler/01_merhaba.tr`); bu klasör depoya girmez.
 
 ## Belgeler ve ölçümler
 
@@ -109,30 +110,30 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 - [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) — dilin kuralları; her kuralın `testler/` altında bir testi vardır (`tr test testler`).
 - [`docs/KODLAR.md`](docs/KODLAR.md) — her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği (kod listesinden üretilir).
 - [`docs/YOL_HARITASI.md`](docs/YOL_HARITASI.md) — yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar.
-- [`kiyas/`](kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
+- [`bakim/kiyas/`](bakim/kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
 
 ## Depo yapısı
 
 | Klasör | İçerik |
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
-| `pkg/kod` | Kodlar: dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) sabit kodlara bağlı; adlar ve açıklamalar `tr.json`, dilden bağımsız tanımlar `tanim.json` ([`docs/KODLAR.md`](docs/KODLAR.md)) |
-| `pkg/lexer` | Kaynak metni sözcüklere ayırır |
-| `pkg/parser` | Sözcüklerden sözdizimi ağacı kurar |
-| `pkg/ast` | Sözdizimi ağacı düğümleri |
-| `pkg/checker` | Çalıştırmadan önceki tip denetimi |
-| `pkg/vm` | Yorumlayıcı: derleyici, değerler, yorumlayıcı kilidi, eşzamanlı görevler |
-| `pkg/turkce` | Mesajlarda doğru Türkçe ekler ve kod çerçevesi |
-| `pkg/tensor` | n boyutlu tensörler, otomatik türev ve CPU çekirdekleri |
-| `pkg/parcalayici` | `tokenizer.json` parçalayıcısı (metin ↔ token kimliği) |
-| `pkg/veri` | `.npy` token veri kümesi, örnekleyici, önbellek |
-| `pkg/motor` | Tensör, parçalayıcı, veri ve JSON/CSV yerleşiklerini dile bağlar |
-| `pkg/hataayiklama` | Terminal hata ayıklayıcısı ve VS Code hata ayıklama sunucusu |
-| `pkg/testkosucu` | `tr test` komutunun çekirdeği |
-| `pkg/bicim` | `tr biçimle` biçimlendiricisi |
+| `internal/dil/kod` | Kodlar: dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) sabit kodlara bağlı; adlar ve açıklamalar `tr.json`, dilden bağımsız tanımlar `tanim.json` ([`docs/KODLAR.md`](docs/KODLAR.md)) |
+| `internal/dil/lexer` | Kaynak metni sözcüklere ayırır |
+| `internal/dil/parser` | Sözcüklerden sözdizimi ağacı kurar |
+| `internal/dil/ast` | Sözdizimi ağacı düğümleri |
+| `internal/dil/checker` | Çalıştırmadan önceki tip denetimi |
+| `internal/dil/vm` | Yorumlayıcı: derleyici, değerler, yorumlayıcı kilidi, eşzamanlı görevler |
+| `internal/dil/turkce` | Mesajlarda doğru Türkçe ekler ve kod çerçevesi |
+| `internal/hesap/tensor` | n boyutlu tensörler, otomatik türev ve CPU çekirdekleri |
+| `internal/hesap/parcalayici` | `tokenizer.json` parçalayıcısı (metin ↔ token kimliği) |
+| `internal/hesap/veri` | `.npy` token veri kümesi, örnekleyici, önbellek |
+| `internal/motor` | Tensör, parçalayıcı, veri ve JSON/CSV yerleşiklerini dile bağlar |
+| `internal/arac/hataayiklama` | Terminal hata ayıklayıcısı ve VS Code hata ayıklama sunucusu |
+| `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
+| `internal/arac/bicim` | `tr biçimle` biçimlendiricisi |
 | `testler/` | Dil tanımının kural testleri |
-| `araclar/` | Geliştirme araçları: kod listesinden `docs/KODLAR.md`'yi üreten `kod_belgesi`, Go'daki adlı kod sabitlerini üreten `kod_sabitleri`, eklentinin renklendirme listelerini üreten `eklenti_listeleri` |
-| `vscode_eklentisi/` | VS Code eklentisi |
+| `bakim/uret/` | Geliştirme araçları: kod listesinden `docs/KODLAR.md`'yi üreten `kod_belgesi`, Go'daki adlı kod sabitlerini üreten `kod_sabitleri`, eklentinin renklendirme listelerini üreten `eklenti_listeleri` |
+| `duzenleyici/vscode/` | VS Code eklentisi |
 
 ## Lisans
 

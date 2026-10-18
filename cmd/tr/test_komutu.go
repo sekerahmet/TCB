@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"tr_dili/pkg/testkosucu"
+	"tr_dili/internal/arac/testkosucu"
 )
 
 // testKomutu 'tr test [dosya.tr | klasör]' komutudur. Hedef verilmezse bulunulan klasördeki

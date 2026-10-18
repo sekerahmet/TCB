@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"tr_dili/pkg/ast"
-	"tr_dili/pkg/checker"
-	"tr_dili/pkg/lexer"
-	"tr_dili/pkg/motor"
-	"tr_dili/pkg/parser"
-	"tr_dili/pkg/turkce"
-	"tr_dili/pkg/vm"
+	"tr_dili/internal/dil/ast"
+	"tr_dili/internal/dil/checker"
+	"tr_dili/internal/dil/lexer"
+	"tr_dili/internal/dil/parser"
+	"tr_dili/internal/dil/turkce"
+	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/motor"
 )
 
 // hazirlik bir kaynağın çalıştırılmadan önce hangi aşamalardan geçeceğini ve hata

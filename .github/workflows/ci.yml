@@ -118,6 +118,6 @@ jobs:
       - name: VS Code eklentisi
         if: (success() || failure()) && steps.kaynak.outcome == 'success' && matrix.goamd64 == 'v3'
         run: |
-          node --check vscode_eklentisi/extension.js
-          for f in vscode_eklentisi/media/*.js; do node --check "$f"; done
-          node -e "JSON.parse(require('fs').readFileSync('vscode_eklentisi/package.json', 'utf8')); console.log('package.json geçerli')"
+          node --check duzenleyici/vscode/extension.js
+          for f in duzenleyici/vscode/media/*.js; do node --check "$f"; done
+          node -e "JSON.parse(require('fs').readFileSync('duzenleyici/vscode/package.json', 'utf8')); console.log('package.json geçerli')"

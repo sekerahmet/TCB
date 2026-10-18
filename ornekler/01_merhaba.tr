@@ -2,7 +2,8 @@
 // Öğrettikleri: değişken tanımlamak, yazdır ile metne değer yerleştirmek ({ad}),
 // listeler, sondaki blok ile filtreleme/dönüştürme (o = sıradaki eleman) ve fonksiyon.
 // Çalıştırma (proje kökünden): tr ornekler/01_merhaba.tr
-// Kendi denemeleriniz için calisma/merhaba.tr dosyasını değiştirebilirsiniz.
+// Kendi denemeleriniz için bu dosyayı calisma/ klasörüne kopyalayıp değiştirebilirsiniz
+// (calisma/ depoya girmez).
 
 değişken ad = "dünya"
 yazdır("Merhaba, {ad}!")

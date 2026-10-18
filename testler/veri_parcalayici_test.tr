@@ -1,5 +1,5 @@
 // DIL_TANIMI.md §16 — Veri ve parçalayıcı
-// Sentetik test verisi testler/veri altındadır (üreteci: pkg/motor/veri/ornek_veri_test.go).
+// Sentetik test verisi testler/veri altındadır (üreteci: internal/motor/veri/ornek_veri_test.go).
 // Göreli yollar çalışma klasöründe yoksa bu dosyanın klasörüne göre çözülür (16.8).
 
 // hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
