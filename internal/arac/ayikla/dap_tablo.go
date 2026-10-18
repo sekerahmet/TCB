@@ -82,7 +82,7 @@ func valueKind(val yurut.Value) string {
 // typeLabel tip sütununda değerin yapısını özetler (ör. Tablo [3×3]).
 func typeLabel(val yurut.Value) string {
 	if iz, ok := val.(IzlemeDegeri); ok {
-		return izlemeGosterimi(val, iz)
+		return iz.IzlemeEtiketi()
 	}
 	switch v := val.(type) {
 	case *yurut.ListVal:
