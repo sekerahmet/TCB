@@ -243,6 +243,28 @@ func TestCakismalarYakalanir(t *testing.T) {
 	}
 }
 
+// 'kapat' ölü Y008'in eski adıydı; Y008'in adı kodun kendisi yapıldığından (17, ölü kodlar)
+// ad serbesttir ve Y012'ye verildi. Ad üyelerde yalnızca Y012'dir, hiçbir ölü kodun adı ya da
+// eski adı değildir; eski ad kalsaydı yükleme çakışmayı reddederdi.
+func TestKapatY012ileCakismaz(t *testing.T) {
+	if k, ok := Bul(AlanUye, "kapat"); !ok || k != Y+12 {
+		t.Fatalf("üyelerde 'kapat' Y012 olmalı: %s %v", k, ok)
+	}
+	if k, ok := OluBul(AlanUye, "kapat"); ok {
+		t.Errorf("'kapat' ölü bir kodun adı olmamalı: %s", k)
+	}
+	if k, _, ok := EskiBul(AlanUye, "kapat", nil); ok {
+		t.Errorf("'kapat' bir kodun eski adı olmamalı: %s", k)
+	}
+	if Ad(Y+8) != "Y008" {
+		t.Errorf("Y008'in adı kodun kendisi olmalı: %q", Ad(Y+8))
+	}
+	_, err := Yukle("deneme", []byte(`{"Y008": {"ad": "Y008", "eski": ["kapat"]}, "Y012": {"ad": "kapat"}}`))
+	if err == nil || !strings.Contains(err.Error(), "Y008'in adı \"kapat\", Y012") {
+		t.Errorf("ölü kodun eski adı canlı adla çakışınca reddedilmeli: %v", err)
+	}
+}
+
 // Her adın tek yazımı vardır: yalnızca Türkçe biçimi kabul edilir.
 func TestTekYazim(t *testing.T) {
 	for _, k := range Kodlar() {
