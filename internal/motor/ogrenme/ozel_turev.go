@@ -56,6 +56,9 @@ type geriHatasi struct{ err error }
 func geriYay(m *yurut.VM, t, tohum *tensor.Tensor) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			if yurut.KesilmeMi(r) {
+				panic(r) // kesilme (Ctrl+C) hata değildir; yığın çözülmeye devam eder
+			}
 			if g, ok := r.(geriHatasi); ok {
 				err = g.err
 				return

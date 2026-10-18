@@ -62,6 +62,10 @@ func (v *VM) RunTest(t *agac.TestStatement) (err error) {
 		if r := recover(); r != nil {
 			// Çöküşte yarıda kalan çağrıların çerçevelerini at (sonraki testler için)
 			v.yiginiKirp(yiginBoyu)
+			if KesilmeMi(r) {
+				err = ErrKesildi
+				return
+			}
 			err = fmt.Errorf("Satır %d: İç hata (çökme önlendi): %v", t.Line(), r)
 		}
 	}()

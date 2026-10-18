@@ -139,6 +139,9 @@ func Mantik(fn, ad string, v yurut.Value) (bool, error) {
 func Kurtar[T any](fn func() T, cevir func(r any) error) (sonuc T, err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			if yurut.KesilmeMi(r) {
+				panic(r) // kesilme (Ctrl+C) hata değildir; yığın çözülmeye devam eder
+			}
 			var sifir T
 			sonuc, err = sifir, cevir(r)
 		}

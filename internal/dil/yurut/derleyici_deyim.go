@@ -1,6 +1,7 @@
 package yurut
 
 import (
+	"errors"
 	"fmt"
 	"tr_dili/internal/dil/agac"
 )
@@ -221,6 +222,9 @@ func (c *derleyici) deneYakalaDeyimi(k *derleyiciKapsam, s *agac.TryCatchStateme
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, sig, err := dene(v, env)
 		if err != nil {
+			if errors.Is(err, ErrKesildi) {
+				return nil, signalNone, err // kesilme (Ctrl+C) yakalanmaz
+			}
 			catchEnv := yeniOrtam(env, bilgi)
 			catchEnv.tanimla(hataYuva, &StringVal{Val: err.Error()}, false)
 			return yakala.calistir(v, catchEnv)
@@ -379,7 +383,7 @@ func (c *derleyici) eszamanli(k *derleyiciKapsam, s *agac.AsyncStatement) deyimK
 			task.acquireGIL()
 			defer task.releaseGIL()
 			defer func() {
-				if r := recover(); r != nil {
+				if r := recover(); r != nil && !KesilmeMi(r) {
 					task.reportAsyncError(line, fmt.Errorf("İç hata (çökme önlendi): %v", r))
 				}
 			}()

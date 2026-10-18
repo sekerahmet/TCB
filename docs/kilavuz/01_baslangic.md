@@ -22,6 +22,8 @@ $env:GOAMD64="v3"; go build -o ikili/tr.exe ./cmd/tr   # PowerShell
 | `./ikili/tr.exe dap` | VS Code hata ayıklama sunucusu; eklenti kendisi başlatır, elle çalıştırılmaz |
 | `./ikili/tr.exe yardım` / `-h`, `./ikili/tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
 
+Çalışan bir programı **Ctrl+C** nazikçe durdurur: program sıradaki döngü turunda ya da çağrıda durur, `ertele` blokları çalışır (dosyalar kapanır, kayıtlar yazılır), çıkış kodu 3'tür; ikinci Ctrl+C hemen çıkar (130). Ayrıntılar: `docs/dil/01_program.md`.
+
 Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr hata_ayıkla' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `çıkış` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `çıkış` yazmanızı söyler.
 
 Öğrenmeye `ornekler/` klasöründeki numaralı örneklerle başlayın (`01_merhaba.tr` … `09_hata_ayiklama_alistirmasi.tr`; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).

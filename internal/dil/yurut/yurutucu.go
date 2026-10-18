@@ -99,6 +99,11 @@ type vmShared struct {
 	argumanlar       []string
 	argumanlarOkundu atomic.Bool
 
+	// kesildi programın nazikçe durdurulması istendiyse açıktır; kesilmeKanali o anda
+	// kapanır (bkz. kesilme.go).
+	kesildi       atomic.Bool
+	kesilmeKanali chan struct{}
+
 	// metinOnbellegi son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
 	metinOnbellegi struct {
 		metin *StringVal
@@ -139,6 +144,10 @@ type VM struct {
 	// karışık_hassasiyet bloğu); bkz. GorevDegeri. Çağrı yığını gibi yalnızca görevin
 	// kendi goroutine'i okur ve yazar; yeni görevler (NewTaskVM) boş başlar.
 	gorevDegerleri map[any]any
+
+	// kesmeAtildi bu görevin kesilme paniğini attığını söyler: yığın çözülürken çalışan
+	// 'ertele' blokları yeniden kesilmez (bkz. kesilmeyiDenetle).
+	kesmeAtildi bool
 }
 
 // GorevDegeri bu göreve (VM görünümüne) anahtarla bağlanmış motor durumunu verir; yoksa
@@ -168,6 +177,8 @@ func New() *VM {
 			Err:       os.Stderr,
 			Imported:  make(map[string]*DictVal),
 			yuklenen:  make(map[string]*modulYukleme),
+
+			kesilmeKanali: make(chan struct{}),
 		},
 		CallStack: []StackFrame{},
 	}
@@ -223,6 +234,7 @@ func (v *VM) kilidiDevret() {
 	// doğrudan devreder (açlık kipi), Gosched ise uyanan göreve hemen sıra verir.
 	runtime.Gosched()
 	v.acquireGIL()
+	v.kesilmeyiDenetle()
 }
 
 func (v *VM) releaseGIL() {
@@ -238,7 +250,11 @@ func (v *VM) Blocking(fn func()) {
 		return
 	}
 	v.releaseGIL()
-	defer v.acquireGIL()
+	defer func() {
+		v.acquireGIL()
+		// Bekleme sırasında kesme istendiyse (bekle, veri okuma ...) program burada durur.
+		v.kesilmeyiDenetle()
+	}()
 	fn()
 }
 
@@ -251,7 +267,7 @@ func (v *VM) RunTask(fn func() (Value, error)) (res Value, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			v.yiginiKirp(yiginBoyu)
-			res, err = nil, fmt.Errorf("İç hata (çökme önlendi): %v", r)
+			res, err = nil, panikHatasi(r)
 		}
 	}()
 	return fn()
@@ -295,7 +311,12 @@ func (v *VM) Run(prog *agac.Program) (result Value, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			v.yiginiKirp(yiginBoyu)
-			result, err = nil, fmt.Errorf("İç hata (çökme önlendi): %v", r)
+			if KesilmeMi(r) {
+				// Kesilme: ertelenen işler çalıştı; onların hatası varsa kesilmeye eklenir.
+				result, err = nil, erteleHatasiEkle(ErrKesildi, err)
+				return
+			}
+			result, err = nil, panikHatasi(r)
 		}
 	}()
 	defer func() {

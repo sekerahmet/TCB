@@ -338,7 +338,8 @@ func bekleYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if !ok {
 		return nil, ArgumanTipHatasi("bekle", 1, sayiTipi+" (saniye)", args[0])
 	}
-	y.Blocking(func() { time.Sleep(time.Duration(sec * float64(time.Second))) })
+	// Kesme istenirse (Ctrl+C) bekleme hemen biter; program sonraki güvenli noktada durur.
+	y.Blocking(func() { y.kesilebilirUyu(time.Duration(sec * float64(time.Second))) })
 	return TRUE, nil
 }
 

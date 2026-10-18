@@ -2,7 +2,7 @@
 
 **9.1** `ertele çağrı` ya da `ertele { blok }`, içinde bulunduğu fonksiyon bittiğinde çalışacak işi kaydeder; birden çok ertele ters sırayla (son kaydedilen ilk) çalışır.
 
-**9.2** Ertelenen iş fonksiyon `sonuç` ile erken bittiğinde ve hata ile çıkıldığında da çalışır.
+**9.2** Ertelenen iş fonksiyon `sonuç` ile erken bittiğinde ve hata ile çıkıldığında da çalışır; program Ctrl+C ile nazikçe durdurulduğunda da (bkz. 1).
 
 **9.3** Bir blok (ör. `eğer` gövdesi) içindeki `ertele` bloğun değil, onu içeren fonksiyonun (en üst düzeyde programın, `eşzamanlı` içinde görevin, testte testin) sonunu bekler.
 

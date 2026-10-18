@@ -121,14 +121,27 @@ func hatalarlaCik(baslik string, errs []string, code string) {
 // programCalistir programı çalıştırır, çalışma zamanı hatasını yazıp çıkar; başarılıysa
 // eşzamansız işlerin bitmesini bekler. Her iki durumda da motorların açık kaynakları
 // (veri okuyucuları, önbellekler) çıkmadan önce kapatılır.
+//
+// Ctrl+C ve sonlandırma istekleri yakalanır (kesme.go): program nazikçe durur, ertelenen
+// işler çalışır ve 3 koduyla çıkılır.
 func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
+	kesmeyiYakala(machine)
 	if _, err := machine.Run(prog); err != nil {
+		if errors.Is(err, yurut.ErrKesildi) {
+			machine.WaitAsync() // eşzamanlı görevler de kesildi; ertelenen işleri bitsin
+			motor.Kapat()
+			kesilmeyiBildir(machine, err, code)
+		}
 		motor.Kapat()
 		calismaHatasiYaz(err, code)
 		cik(1)
 	}
 	machine.WaitAsync()
 	motor.Kapat()
+	if machine.Kesildi() {
+		// Kesme isteği programın son beklemesinde (ör. bekle) geldi; program yine de durduruldu.
+		kesilmeyiBildir(machine, nil, code)
+	}
 	if u := machine.KullanilmayanArgumanUyarisi(); u != "" {
 		fmt.Fprintln(os.Stderr, u)
 	}
