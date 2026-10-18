@@ -322,7 +322,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	path, _ := filepath.Abs(a.Program)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		s.respondErr(msg, "Dosya okunamadı (%s): %v", path, err)
+		s.respondErr(msg, "Hata ayıklanacak program okunamadı (%s): %s", path, turkce.DosyaHatasiNedeni(path, err))
 		return
 	}
 	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
@@ -727,16 +727,40 @@ func (s *dapServer) scopeVariables(h *dapHandle) []varEntry {
 	return list
 }
 
+// dapChild açılmış bir değerin alt öğesidir. val nil ise öğe yalnızca bilgi satırıdır
+// (ör. kısaltılmış tensörün sonundaki "…"); değeri not'tur ve açılamaz.
 type dapChild struct {
 	name, expr string
 	val        vm.Value
+	not        string
 }
+
+// yinelemeSiniri, gezilebilir dış değerlerde (ör. tensör) panelde gösterilen en fazla öğe
+// sayısıdır; fazlası tek bir "…" satırıyla özetlenir.
+const yinelemeSiniri = 1000
 
 // children açılabilir bir değerin alt elemanlarını döndürür.
 func children(val vm.Value, expr string) []dapChild {
 	const limit = 5000
 	var out []dapChild
 	switch v := val.(type) {
+	case vm.Yinelenebilir:
+		// Dış değerler (ör. tensör): ilk eksen boyunca öğeler (tensörde 1 boyutluda sayılar,
+		// N boyutluda (N-1) boyutlu görünümler); çok büyük değerlerde ilk öğeler ve "…".
+		n, err := v.YinelemeUzunlugu()
+		if err != nil {
+			break
+		}
+		for i := 0; i < n && i < yinelemeSiniri; i++ {
+			el, err := v.YinelemeOgesi(i)
+			if err != nil {
+				break
+			}
+			out = append(out, dapChild{name: fmt.Sprintf("[%d]", i), expr: fmt.Sprintf("%s[%d]", expr, i), val: el})
+		}
+		if n > yinelemeSiniri {
+			out = append(out, dapChild{name: "…", not: fmt.Sprintf("ilk %d öğe gösteriliyor (toplam %d)", yinelemeSiniri, n)})
+		}
 	case *vm.ListVal:
 		for i, el := range v.Elements {
 			if i >= limit {
@@ -790,6 +814,9 @@ func expandable(val vm.Value) bool {
 		return len(v.Pairs) > 0
 	case *vm.StructInstanceVal:
 		return len(v.Fields) > 0
+	case vm.Yinelenebilir:
+		n, err := v.YinelemeUzunlugu()
+		return err == nil && n > 0
 	}
 	return false
 }
@@ -845,6 +872,10 @@ func (s *dapServer) variables(msg *dapMessage) {
 			}
 		} else {
 			for _, c := range children(h.value, h.expr) {
+				if c.val == nil {
+					vars = append(vars, map[string]interface{}{"name": c.name, "value": c.not, "variablesReference": 0})
+					continue
+				}
 				vars = append(vars, s.variableEntry(c.name, c.expr, c.val))
 			}
 		}
@@ -880,7 +911,7 @@ func (s *dapServer) setVariable(msg *dapMessage) {
 	default:
 		found := false
 		for _, c := range children(h.value, h.expr) {
-			if c.name != a.Name {
+			if c.name != a.Name || c.val == nil {
 				continue
 			}
 			found, expr = true, c.expr
@@ -896,6 +927,13 @@ func (s *dapServer) setVariable(msg *dapMessage) {
 				}
 			case *vm.StructInstanceVal:
 				container.Fields[a.Name] = val
+			case vm.IndeksAtanabilir:
+				// Dış değerler (ör. tensör satırı ya da elemanı): değer[i] = yeni değer
+				idx, _ := strconv.Atoi(strings.Trim(a.Name, "[]"))
+				if err := container.IndekseAta(vm.NewInt(int64(idx)), val); err != nil {
+					s.respondErr(msg, "%v", err)
+					return
+				}
 			default:
 				s.respondErr(msg, "Bu değerin elemanları değiştirilemez")
 				return

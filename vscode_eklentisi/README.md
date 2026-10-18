@@ -42,7 +42,7 @@
 **İzleme Masası:** Program her durduğunda editörün yanında açılır.
 
 - **Yönlendirme düğmeleri:** ⤼ Sonraki satır (F10), ↓ İçine gir (F11), ↑ Dışarı çık (Shift+F11), ▶ Devam (F5), ■ Durdur. Program çalışırken adım düğmeleri pasif görünür.
-- **Değişkenler:** Tüm değişkenler tek tabloda görünür (Kapsam, Değişken, Tip, Değer). Her değişkenin yanında türünü gösteren bir ikon vardır: ▦ tablo, ☰ liste, { } sözlük, ◆ yapı, ⊞ matris, ▣ tensör, # sayı, Aa metin, ◐ mantık, ∅ yok. Son adımda değişen değerler vurgulanır; ✏️ ile değer doğrudan değiştirilir. Üstteki kutuyla değişkenler aranır.
+- **Değişkenler:** Tüm değişkenler tek tabloda görünür (Kapsam, Değişken, Tip, Değer). Her değişkenin yanında türünü gösteren bir ikon vardır: ▦ tablo, ☰ liste, { } sözlük, ◆ yapı, ▣ tensör, # sayı, Aa metin, ◐ mantık, ∅ yok. Son adımda değişen değerler vurgulanır; ✏️ ile değer doğrudan değiştirilir. Üstteki kutuyla değişkenler aranır.
 - **Tablolar:** Tablo değerlerinin içeriği satıra dökülmez. Değişkenin adına ya da **▸ Tabloyu aç** linkine tıklayınca (veya satıra çift tıklayınca) tablo alttaki pencerede bir **sekme** olarak açılır. Birden çok tablo sekmeler hâlinde açık kalabilir; her sekme kendi **✕** düğmesiyle, hepsi **Tümünü kapat** ile kapanır. Pencere, üstündeki çubuk sürüklenerek büyütülüp küçültülür. Sütun başlığına tıklayınca sıralanır, arama kutusuyla süzülür, hücreler arasında ok tuşlarıyla gezilir. Adım atıldıkça açık tablolar güncellenir.
 - **Yapay zekâ nesneleri:** Tensörler tip sütununda `Tensör [2×3]` olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılır. Parçalayıcı, veri kümesi ve örnekleyici özetleriyle görünür (`Parçalayıcı (40000 sözcük)`, `Veri kümesi (246 parça, 56,9 milyar token)`, `Örnekleyici (32×1024, dönem 0, 120 toplu iş)`); parçalayıcının eklenmiş/özel tokenları ve veri kümesinin parçaları tablo olarak açılır.
 - İstemiyorsanız `tr.izlemeMasasi` ayarını kapatın.
@@ -55,7 +55,7 @@
 | --- | --- |
 | Kesme noktası koymak | Satır numarasının soluna tıklayın. Sağ tık → koşullu kesme noktası (`bakiye < 0`) veya iz noktası (`bakiye = {bakiye}` — durmadan Debug Console'a yazar). Koddaki `kesme_noktası` da durdurur. |
 | Adım adım ilerlemek | F11 adım içine, F10 üstten geç, Shift+F11 fonksiyondan çık, F5 devam |
-| Değişkenleri görmek | İzleme Masası ya da Variables paneli (Yerel ve Genel kapsamlar; listeler, sözlükler, yapılar ve matrisler açılır) |
+| Değişkenleri görmek | İzleme Masası ya da Variables paneli (Yerel ve Genel kapsamlar; listeler, sözlükler, yapılar ve tensörler açılır) |
 | Değeri değiştirmek | İzleme Masası'nda ✏️ ya da Variables panelinde çift tıklama; TR ifadesi yazın (`0.20`, `[1, 2]`, `fiyat * 2`) |
 | Değer değişince durmak (izleme noktası) | Variables panelinde sağ tık → **Break on Value Change** |
 | Bir satıra zıplamak | Satırda sağ tık → **Jump to Cursor** |

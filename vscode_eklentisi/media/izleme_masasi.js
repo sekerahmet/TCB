@@ -2,8 +2,8 @@
 const vscode = acquireVsCodeApi();
 // Paneldeki beklenmeyen hatalar sessizce kaybolmasın: eklentiye bildirilir.
 window.addEventListener('error', (e) => vscode.postMessage({ tur: 'panelHatasi', mesaj: String(e.message) + ' (' + e.lineno + ':' + e.colno + ')' }));
-const IKONLAR = { tablo: '▦', liste: '☰', sozluk: '{}', yapi: '◆', matris: '⊞', tensor: '▣', sayi: '#', metin: 'Aa', mantik: '◐', yok: '∅', diger: '•' };
-const TUR_ADI = { tablo: 'Tablo', liste: 'Liste', sozluk: 'Sözlük', yapi: 'Yapı', matris: 'Matris', tensor: 'Tensör', sayi: 'Sayı', metin: 'Metin', mantik: 'Mantık', yok: 'Yok', diger: 'Değer' };
+const IKONLAR = { tablo: '▦', liste: '☰', sozluk: '{}', yapi: '◆', tensor: '▣', sayi: '#', metin: 'Aa', mantik: '◐', yok: '∅', diger: '•' };
+const TUR_ADI = { tablo: 'Tablo', liste: 'Liste', sozluk: 'Sözlük', yapi: 'Yapı', tensor: 'Tensör', sayi: 'Sayı', metin: 'Metin', mantik: 'Mantık', yok: 'Yok', diger: 'Değer' };
 const sayiMi = (x) => x !== '' && x !== null && !isNaN(Number(x));
 const el = (tag, metin, sinif) => { const e = document.createElement(tag); if (metin !== undefined) e.textContent = metin; if (sinif) e.className = sinif; return e; };
 
