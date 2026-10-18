@@ -48,13 +48,15 @@
 // # Dil dosyasının alanları
 //
 //	"G100": { "ad": "yazdır", "eski": ["yaz"], "aile": "giriş ve çıkış" }
+//	"T903": { "ad": "tohum", "yabancı": ["seed"], "aile": "adlı argüman: rastgelelik" }
 //
 // ad kodun bu dildeki adıdır. eski kaldırılmış adlardır: kabul edilmez, yalnızca hata
 // mesajında ad önerilir; bir ad değiştirildiğinde ya da kaldırıldığında eski ad buraya
-// eklenir. Her işin tek adı vardır: eş anlamlı ya da eş yazımlı ikinci bir ad kabul
-// edilmez. "ascii": false, ASCIIKabul açılsa bile adın ASCII biçimini kapalı tutar (bugün
-// yalnızca birkaç adlı argüman). aile insanlar için kısa bir açıklamadır. Girdiler koda
-// göre sıralı ve her biri tek satırdır.
+// eklenir. yabancı başka dillerden ya da kitaplıklardan alışılmış adlardır (lr, seed,
+// axis): dilde hiç olmamışlardır, eski gibi yalnızca ipucu verirler ve dile özgüdürler (her
+// dil dosyası kendi okurunun alışkanlıklarını yazar). Her işin tek adı vardır: eş anlamlı ya
+// da eş yazımlı ikinci bir ad kabul edilmez. aile insanlar için kısa bir açıklamadır.
+// Girdiler koda göre sıralı ve her biri tek satırdır.
 //
 // # ASCII biçim
 //

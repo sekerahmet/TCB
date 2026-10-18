@@ -30,12 +30,12 @@ type Girdi struct {
 	// işin tek adı vardır; eş anlamlı ya da eş yazımlı ikinci bir ad kabul edilmez.
 	// Türkçe karakterli eski adların ASCII biçimleri de (işlev → islev) eski sayılır.
 	Eski []string
+	// Yabanci başka dillerden (ya da kitaplıklardan) alışılmış adlardır (lr, seed, axis):
+	// dilde hiç olmamışlardır, kabul edilmezler; Eski gibi yalnızca hata mesajında Ad
+	// önerilir. Dile özgüdür: her dil dosyası kendi okurunun alışkanlıklarını yazar.
+	Yabanci []string
 	// Aile insanlar için kısa bir açıklamadır (grup, üyeler için tipler).
 	Aile string
-	// ASCII, türetilen ASCII biçimin bu ad için kabul edilip edilmediğidir (dil
-	// dosyasında "ascii": false ile kapatılır; bugün yalnızca ASCII biçimi hiç kabul
-	// edilmemiş birkaç adlı argüman için). ASCIIKabul kapalıysa etkisizdir.
-	ASCII bool
 	// Aciklama kodun ne yaptığını söyleyen bir-iki cümledir; Ornek tek satırlık bir TR
 	// kodudur (docs/kodlar.md bunlardan üretilir).
 	Aciklama, Ornek string
@@ -110,14 +110,14 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			hata("%s: ad boş olamaz ve boşluk içeremez (%q)", k, g.ad)
 			continue
 		}
-		gr := &Girdi{Kod: k, Ad: g.ad, Eski: g.eski, Aile: g.aile, ASCII: g.ascii == nil || *g.ascii,
+		gr := &Girdi{Kod: k, Ad: g.ad, Eski: g.eski, Yabanci: g.yabanci, Aile: g.aile,
 			Aciklama: g.aciklama, Ornek: g.ornek, Tasindi: tasinanlar[k], Kaldirildi: kaldirilanlar[k]}
-		for _, e := range g.eski {
+		for _, e := range append(append([]string(nil), g.eski...), g.yabanci...) {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
-				hata("%s: eski ad boş olamaz ve boşluk içeremez (%q)", k, e)
+				hata("%s: eski ya da yabancı ad boş olamaz ve boşluk içeremez (%q)", k, e)
 			}
 			if e == g.ad || asciiBicim(e) == asciiBicim(g.ad) {
-				hata("%s: eski ad %q adın kendisi (ya da ASCII biçimi) olamaz", k, e)
+				hata("%s: eski ya da yabancı ad %q adın kendisi (ya da ASCII biçimi) olamaz", k, e)
 			}
 		}
 		d.girdiler[k] = gr
@@ -163,7 +163,7 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 		}
 		sahibi[al][ascii] = sahip{k, ad}
 		yaz := []string{ad}
-		if ASCIIKabul && g.ASCII && ascii != ad {
+		if ASCIIKabul && ascii != ad {
 			yaz = append(yaz, ascii)
 		}
 		d.asil[al][ad], d.asil[al][ascii] = ad, ad
@@ -173,10 +173,11 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			d.adlar[al][y] = k
 		}
 	}
+	// Eski ve yabancı adlar: kabul edilmez, hata mesajında asıl adı önerir (EskiBul, Oneri).
 	for _, k := range d.kodlar {
 		g := d.girdiler[k]
 		al := k.Alan()
-		for _, e := range g.Eski {
+		for _, e := range append(append([]string(nil), g.Eski...), g.Yabanci...) {
 			yazimlar := []string{e}
 			if a := asciiBicim(e); a != e {
 				yazimlar = append(yazimlar, a)

@@ -30,9 +30,8 @@ func asciiBicim(s string) string {
 type hamGirdi struct {
 	anahtar         string
 	ad              string
-	eski            []string
+	eski, yabanci   []string
 	aile            string
-	ascii           *bool
 	aciklama, ornek string
 }
 
@@ -145,18 +144,7 @@ func (c *cozumleyici) metinListesi() ([]string, error) {
 	}
 }
 
-func (c *cozumleyici) mantik() (bool, error) {
-	c.bosluk()
-	for _, s := range []string{"true", "false"} {
-		if c.i+len(s) <= len(c.veri) && string(c.veri[c.i:c.i+len(s)]) == s {
-			c.i += len(s)
-			return s == "true", nil
-		}
-	}
-	return false, c.hata("true ya da false bekleniyordu")
-}
-
-// girdi { "ad": ..., "eski": [...], "aile": ..., "ascii": ..., "açıklama": ..., "örnek": ... }
+// girdi { "ad": ..., "eski": [...], "yabancı": [...], "aile": ..., "açıklama": ..., "örnek": ... }
 // nesnesini okur.
 func (c *cozumleyici) girdi(g *hamGirdi) error {
 	if err := c.bekle('{'); err != nil {
@@ -186,16 +174,14 @@ func (c *cozumleyici) girdi(g *hamGirdi) error {
 			g.aile, err = c.metin()
 		case "eski":
 			g.eski, err = c.metinListesi()
-		case "ascii":
-			var b bool
-			b, err = c.mantik()
-			g.ascii = &b
+		case "yabancı":
+			g.yabanci, err = c.metinListesi()
 		case "açıklama":
 			g.aciklama, err = c.metin()
 		case "örnek":
 			g.ornek, err = c.metin()
 		default:
-			return c.hata("%s girdisinde bilinmeyen alan %q (geçerli alanlar: ad, eski, ascii, aile, açıklama, örnek)", g.anahtar, alan)
+			return c.hata("%s girdisinde bilinmeyen alan %q (geçerli alanlar: ad, eski, yabancı, aile, açıklama, örnek)", g.anahtar, alan)
 		}
 		if err != nil {
 			return err

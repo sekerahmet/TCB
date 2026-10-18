@@ -44,25 +44,10 @@ func (a Ad) Yazimlar() []string { return a.yazimlar }
 // Kabul verilen yazım bu adlı argümanın kabul edilen bir yazımı mı?
 func (a Ad) Kabul(yazim string) bool { return slices.Contains(a.yazimlar, yazim) }
 
-// yabanciAdlar başka dillerden alışılmış parametre adlarının TR karşılıklarıdır. Bu adlar
-// KABUL EDİLMEZ; yalnızca hata mesajında doğru TR adı önerilir.
-var yabanciAdlar = map[string]kod.Kod{
-	"lr":            kod.T910, // öğrenme_oranı
-	"learning_rate": kod.T910,
-	"axis":          kod.T902, // eksen
-	"dim":           kod.T902,
-	"requires_grad": kod.T900, // türev_izle
-	"weight_decay":  kod.T911, // ağırlık_çürümesi
-	"eps":           kod.T905, // epsilon
-	"seed":          kod.T903, // tohum
-	"weight":        kod.T920, // ağırlık
-	"bias":          kod.T921, // sapma
-	"betas":         kod.T912, // beta1
-}
-
 // AdliDenetle verilen adlı argümanların bilinen adlardan olduğunu denetler; yazım
-// hatasında (ya da Türkçe karaktersiz yazılmış, kaldırılmış ya da İngilizce alışılmış bir
-// adda: ogrenme_orani, nerede, lr, axis...) en yakın TR adını önerir.
+// hatasında (ya da Türkçe karaktersiz yazılmış, kaldırılmış ya da başka dillerden alışılmış
+// bir adda: ogrenme_orani, nerede, lr, axis...) en yakın TR adını önerir. Kaldırılmış ve
+// alışılmış adlar kod listesindedir (tr.json'da "eski" ve "yabancı").
 func AdliDenetle(fn string, named map[string]yurut.Value, adlar ...Ad) error {
 	for verilen := range named {
 		bilinen := false
@@ -83,8 +68,8 @@ func AdliDenetle(fn string, named map[string]yurut.Value, adlar ...Ad) error {
 		if k, ok := kod.Oneri(kod.AlanParametre, verilen, nil); ok && slices.Contains(adaylar, kod.Ad(k)) {
 			o = kod.Ad(k)
 		}
-		if k, ok := yabanciAdlar[strings.ToLower(verilen)]; o == "" && ok && slices.Contains(adaylar, kod.Ad(k)) {
-			o = kod.Ad(k)
+		if k, ok := kod.Oneri(kod.AlanParametre, strings.ToLower(verilen), nil); o == "" && ok && slices.Contains(adaylar, kod.Ad(k)) {
+			o = kod.Ad(k) // LR, Seed: alışılmış adlar büyük harfle de tanınır
 		}
 		if o == "" {
 			o = turkce.EnYakin(verilen, adaylar)
