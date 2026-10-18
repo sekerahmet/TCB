@@ -71,12 +71,7 @@ func (d *Durum) komutSatiri(m *yurut.VM, args []yurut.Value, named map[string]yu
 	if !ok {
 		return nil, yurut.ArgumanTipHatasi(kod.G801, 1, args[0], kod.A206)
 	}
-	d.mu.Lock()
-	cagrildi := d.cagrildi
-	d.mu.Unlock()
-	if cagrildi {
-		return nil, fmt.Errorf("%s programda bir kez çağrılır; ilk çağrının döndürdüğü sözlüğü bir değişkende tutup kullanın", fn)
-	}
+	// Kurulum önce denetlenir: tanımdaki hata, ikinci çağrıda da adıyla bildirilir.
 	secenekler, err := secenekleriKur(m, fn, sozluk)
 	if err != nil {
 		return nil, err
@@ -84,6 +79,12 @@ func (d *Durum) komutSatiri(m *yurut.VM, args []yurut.Value, named map[string]yu
 	aciklama, err := aciklamalariOku(fn, named, secenekler)
 	if err != nil {
 		return nil, err
+	}
+	d.mu.Lock()
+	cagrildi := d.cagrildi
+	d.mu.Unlock()
+	if cagrildi {
+		return nil, fmt.Errorf("%s programda bir kez çağrılır; ilk çağrının döndürdüğü sözlüğü bir değişkende tutup kullanın", fn)
 	}
 	sonuc, err := argumanlariUygula(m, secenekler, aciklama)
 	if err != nil {

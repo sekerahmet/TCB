@@ -7,7 +7,7 @@ import (
 )
 
 // Çıktı noktaları: insanın göreceği her çıktı (yazdır, girdi istemi, hata mesajları,
-// uyarılar; ileride günlük ve ilerleme satırı) CiktiYaz'dan geçer. Burada iki kanca vardır:
+// uyarılar, ilerleme çubuğunun düz satırları) CiktiYaz'dan geçer. Burada iki kanca vardır:
 //
 //   - Gizli değer süzgeci: kayıtlı gizli değerler (ortam değişkeninden ya da komut satırından
 //     gelen anahtar, parola ...) çıktıda *** ile maskelenir. Bu bir sızıntı azaltma önlemidir,

@@ -7,7 +7,7 @@ import (
 )
 
 // Betiğe dosya adından sonra verilen argümanlar programa iletilir (sessizce yok sayılmaz).
-// Program onları okumazsa (bugün okuyan yerleşik yok) çıkışta standart hataya uyarı
+// Program onları okumazsa (argümanları komut_satırı okur) çıkışta standart hataya uyarı
 // yazılır; çıkış kodu değişmez, standart çıktıya karışmaz.
 func TestBetikArgumanlariIletilir(t *testing.T) {
 	klasor := t.TempDir()

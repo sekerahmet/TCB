@@ -152,3 +152,31 @@ değişken n = 0
 döngü satır içinde dosya_satırları("veri/derlem.jsonl.gz") { n += 1 }
 yazdır("{n} satır")
 ```
+
+## F. Eğitimde ayarlar, günlük ve ilerleme
+Uzun bir eğitimi izlemek için üç yerleşik yeter: betiğin ayarlarını komut satırından alan `komut_satırı`, her adımı gösteren `ilerleme` çubuğu ve sonradan bakılacak `günlük` dosyası. Kurallar: [`docs/dil/19_surec_ve_kayit.md`](../dil/19_surec_ve_kayit.md). Uçtan uca örnek: `ornekler/08_veri_ile_egitim.tr`.
+
+```tr
+değişken ayar = komut_satırı({adım: 2000, öğrenme_oranı: 0.001, günlük_dosyası: yok},
+    açıklama: "Küçük dil modelini eğitir",
+    açıklamalar: {adım: "eğitim adımı sayısı", günlük_dosyası: "ölçülerin yazılacağı .jsonl dosyası"})
+değişken g = eğer ayar.günlük_dosyası != yok { günlük(ayar.günlük_dosyası) } değilse { yok }
+değişken ç = ilerleme(ayar.adım, günlük: g)
+döngü adım içinde 0..ayar.adım {
+    değişken kayıp = 1.0 / (adım + 1)   // burada modelin bir eğitim adımı çalışır
+    ç.güncelle({kayıp: kayıp, öğrenme_oranı: ayar.öğrenme_oranı})
+}
+```
+
+**Ayarlar (`komut_satırı`).** Sözlüğün anahtarları seçenek adları, değerleri varsayılanlardır; tip varsayılandan çıkar. `tr egit.tr --adım 5000 --öğrenme_oranı=3e-4` seçenekleri değiştirir, `tr egit.tr --yardım` hepsini açıklamalarıyla listeler. Yanlış yazılan seçenek (`--ogrenme_orani`, `--adim`) ya da tipine uymayan değer (`--öğrenme_oranı 0,001`) eğitim başlamadan, doğru adı öneren bir mesajla durdurur. Argüman vermeden çalıştırınca varsayılanlar kullanılır.
+
+**İlerleme çubuğu.** Her `ç.güncelle(...)` bir adım ilerletir; çubuk terminalde tek satırda yenilenir, geçen adım sayısını, ölçüleri, adım hızını ve kalan süreyi gösterir. Çıktı bir dosyaya ya da not defteri hücresine gidiyorsa 10 saniyede bir düz satır yazılır. `yazdır` çubuğu bozmaz. Kaldığı yerden sürdürülen bir eğitimde `ç.güncelle(..., adım: n)` sayacı n'ye getirir.
+
+```text
+adım 1200/2000 ▕█████████▌░░░░░░▏ %60 · kayıp 2,31 · öğrenme_oranı 0,001 · 85,2 adım/sn · kalan 9 sn
+adım 2000/2000 · kayıp 1,84 · 24 sn sürdü
+```
+
+**Günlük.** `günlük("kayit/egitim.jsonl")` her satırı bir JSON kaydı olan bir dosya açar; `ilerleme(..., günlük: g)` her adımın ölçülerini oraya da yazar, `g.ekle({doğrulama_kaybı: d})` ayrı kayıt ekler. Dosyanın başında programın adı ve komut satırı ayarları durur: hangi ayarla hangi kaybın alındığı sonradan da okunur. Dosya varsa sonuna eklenir; kayıpta NaN belirirse gizlenmez, `"NaN"` olarak yazılır.
+
+**Gizli değerler.** Erişim anahtarını ortam değişkeniyle verin: `değişken belirteç = ortam_değişkeni("HF_TOKEN")`. Adı `TOKEN`, `KEY`, `SECRET`, `PASSWORD`, `ŞİFRE`, `ANAHTAR` gibi bir sözcük içeren değişken ve seçeneklerin değeri ekranda, hata mesajlarında, günlükte ve hata ayıklayıcıda `***` olarak görünür (`TOKENIZER_PATH` ya da `max_tokens` gibi adlar etkilenmez).

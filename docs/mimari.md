@@ -50,6 +50,8 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `internal/motor/veri` | `veri_kümesi`, örnekleyici ve sıralı okuyucu yerleşikleri |
 | `internal/motor/veribicim` | JSON ve CSV yerleşikleri |
 | `internal/motor/dosya` | Standart kitaplık: `Yol` tipi, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `dosya_satırları` (silme korumaları, bağlantı izlememe, `os.Root`) |
+| `internal/motor/surec` | Süreç yerleşikleri: `ortam_değişkeni`, `komut_satırı` (seçenekler, `--yardım`, kullanım hatası 2), gizli adların süzgece kaydı |
+| `internal/motor/gunluk` | Eğitim günlüğü (`günlük`, JSON satırları) ve ilerleme çubuğu (`ilerleme`; canlı satır, `ilerleme.json`), adım sınırı kancası |
 | `internal/motor/ortak/baglama` | Motorların ortak yardımcıları: adlı argüman denetimi, göreli yol, panikten hataya, Türkçe sayı yazımı |
 | `internal/motor/ortak/jsonyaz` | TR değerlerini JSON'a yazar |
 | `internal/hesap/tensor` | n boyutlu tensör, görünümler, otomatik türev, arka uç arayüzü ve CPU arka ucu (AVX2/FMA çekirdekleri) |
@@ -77,6 +79,17 @@ Motorlar ve standart kitaplık yorumlayıcıya (`internal/dil/yurut`) şu kancal
 | `GizliDegerEkle`, `Maskele` | Gizli değer süzgeci: kayıtlı değerler çıktı noktalarında `***` olur (veri çıktılarında değil) |
 | `ArgumanlariAyarla`, `Argumanlar` | Betiğin komut satırı argümanları (okunmazsa çıkışta uyarı) |
 | `Kes`, `ErrKesildi`, `KesilmeMi` | Nazik çıkış: Ctrl+C sonrası yığın çözülür, `ertele`ler çalışır; motorların panik kurtarıcıları `KesilmeMi` ile kesilmeyi yeniden atar |
+| `CikisIstegi`, `CikisIstegiMi` | Bir yerleşiğin istediği program çıkışı (`komut_satırı`: `--yardım` 0, kullanım hatası 2): `ertele`ler çalışır, `dene/yakala` yakalamaz; komut satırı ve `tr dap` mesajı yazıp kodu bildirir |
+| `KomutAdi`, `ProgramKomutu` | Programı başlatan komut (`tr egit.tr`, derlenmiş uygulamada `uyg.exe`): yardım ve kullanım hatalarında gösterilir |
+
+Motorların kendi kancaları:
+
+| Kanca | Görevi |
+| :-- | :-- |
+| `gunluk.AdimKancasiAyarla` | Eğitimin adım sınırı: `İlerleme.güncelle`'nin her çağrısında (yorumlayıcı kilidi altında) adım ve zamanla çağrılır; canlı profil ms/adım'ı ve adım başına işlem dağılımını buradan ölçer |
+| `gunluk.GunlukMu`, `Gunluk.Uzunluk`, `Gunluk.DevamYaz` | Kontrol noktası için: günlüğün o anki bayt uzunluğu (her zaman satır sınırı) ve sürdürmede `{"tür":"devam","adım":N}` kaydı |
+| `surec.Durum.Ayarlar` | Programın `komut_satırı` sonucu (günlüğün başlangıç kaydı yazar; kontrol noktası da saklayabilir) |
+| `gunluk.TumunuKapat` | Program bitince bitmemiş çubukları bitirir, günlükleri kapatır (`motor.Kapat`, `tr dap`) |
 
 ## Klasörler
 

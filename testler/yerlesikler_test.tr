@@ -219,7 +219,7 @@ test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör i�
     dene { aktar "olumsuz/tasinan_adlar" } yakala h { denetim = h }
     doğrula(denetim.içerir("'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın"), denetim)
     doğrula(denetim.içerir("'indirge(...)' TR'de bir fonksiyon değil; 'liste.indirge(...)' yazın"), denetim)
-    doğrula(denetim.içerir("'ekle(...)' TR'de bir fonksiyon değil; 'liste.ekle(...)' yazın"), denetim)
+    doğrula(denetim.içerir("'ekle(...)' TR'de bir fonksiyon değil; 'x.ekle(...)' yazın"), denetim)
     doğrula(denetim.içerir("'devrik(...)' TR'de bir fonksiyon değil; 'tensör.devrik()' yazın"), denetim)
     doğrula(denetim.içerir("'boy(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın"), denetim)
     // Kaldırılan adlar artık sıradan adlardır
