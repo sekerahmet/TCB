@@ -731,7 +731,11 @@ func (c *derleyici) listeUreteci(k *derleyiciKapsam, lc *ast.ListComprehension) 
 		}
 		var results []Value
 		tur := donguOrtami{dis: env, bilgi: bilgi, yeniden: yeniden}
+		var devir uint32
 		for _, item := range items {
+			if devir++; devir&255 == 0 {
+				v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
+			}
 			compEnv := tur.yeni()
 			compEnv.vals[degiskenYuva] = item
 			if kosul != nil {

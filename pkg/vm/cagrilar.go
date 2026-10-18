@@ -133,6 +133,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 // 'yok' ile doldurulur.
 func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
 	fnEnv.IsFuncRoot = true
+	v.devret() // özyinelemeli (döngüsüz) hesaplarda da kilit devredilebilsin
 	if fk.erteleVar {
 		// 'ertele' blokları bir çöküşte de (Go panic) çalışmalıdır
 		defer fnEnv.RunDefers()

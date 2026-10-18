@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"sync"
+	"sync/atomic"
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/turkce"
 )
@@ -69,6 +71,11 @@ type vmShared struct {
 	// işlemler bölünmez. Kilit; bekle(), bekle_hepsi(), ağ/disk/süreç beklemeleri gibi
 	// engelleyici işlemlerde bırakılır (bkz. Blocking), böylece görevler yine iç içe ilerler.
 	gil sync.Mutex
+	// bekleyen, kilidi almak için bekleyen görev sayısıdır. Kilidi tutan görev döngü
+	// turlarında ve fonksiyon çağrılarında bu sayaca bakar; bekleyen varsa kilidi devreder
+	// (bkz. devret). Böylece CPU-yoğun bir döngü eşzamanlı görevleri ve web isteklerini
+	// sonuna kadar bekletmez.
+	bekleyen atomic.Int32
 }
 
 type StackFrame struct {
@@ -123,8 +130,28 @@ func (v *VM) NewTaskVM(async bool) *VM {
 }
 
 func (v *VM) acquireGIL() {
+	v.bekleyen.Add(1)
 	v.gil.Lock()
+	v.bekleyen.Add(-1)
 	v.holdsGIL = true
+}
+
+// devret, kilidi bekleyen bir görev varsa kilidi bırakıp yeniden alır. Yalnızca deyimler
+// arasında (döngü turu başında, fonksiyon çağrısı girişinde) çağrılır; bir deyimin
+// okuma-yazma adımları ('s += 1') bu yüzden bölünmez. Sayaç denetimi tek görevli
+// programlarda yalnızca bir bellek okumasıdır.
+func (v *VM) devret() {
+	if v.bekleyen.Load() != 0 && v.holdsGIL {
+		v.kilidiDevret()
+	}
+}
+
+func (v *VM) kilidiDevret() {
+	v.releaseGIL()
+	// Bekleyen görev kilidi alabilsin; sync.Mutex 1 ms'den uzun bekleyen göreve kilidi
+	// doğrudan devreder (açlık kipi), Gosched ise uyanan göreve hemen sıra verir.
+	runtime.Gosched()
+	v.acquireGIL()
 }
 
 func (v *VM) releaseGIL() {

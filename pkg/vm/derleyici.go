@@ -485,6 +485,7 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *ast.ForInStatement) deyim
 		}
 		tur := donguOrtami{dis: env, bilgi: bilgi, yeniden: yeniden}
 		var lastVal Value = NULL
+		var devir uint32
 		switch it := iterVal.(type) {
 		case *RangeVal:
 			end := it.End
@@ -502,6 +503,9 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *ast.ForInStatement) deyim
 				}
 			}
 			for i := it.Start; (step > 0 && i < end) || (step < 0 && i > end); i += step {
+				if devir++; devir&255 == 0 {
+					v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
+				}
 				loopEnv := tur.yeni()
 				if anahtarYuva >= 0 {
 					loopEnv.vals[anahtarYuva] = NewInt(idx)
@@ -523,6 +527,9 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *ast.ForInStatement) deyim
 
 		case *ListVal:
 			for idx, item := range it.Elements {
+				if devir++; devir&255 == 0 {
+					v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
+				}
 				loopEnv := tur.yeni()
 				if anahtarYuva >= 0 {
 					loopEnv.vals[anahtarYuva] = NewInt(int64(idx))
@@ -543,6 +550,9 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *ast.ForInStatement) deyim
 
 		case *DictVal:
 			for _, key := range it.Order {
+				if devir++; devir&255 == 0 {
+					v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
+				}
 				loopEnv := tur.yeni()
 				if anahtarYuva >= 0 {
 					loopEnv.vals[anahtarYuva] = it.KeyValue(key)
@@ -565,6 +575,9 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *ast.ForInStatement) deyim
 
 		case *StringVal:
 			for idx, ch := range []rune(it.Val) {
+				if devir++; devir&255 == 0 {
+					v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
+				}
 				loopEnv := tur.yeni()
 				if anahtarYuva >= 0 {
 					loopEnv.vals[anahtarYuva] = NewInt(int64(idx))
@@ -601,7 +614,11 @@ func (c *derleyici) iken(k *derleyiciKapsam, s *ast.WhileStatement) deyimKodu {
 		govde := c.deyimler(k, govdeDeyimleri)
 		return func(v *VM, env *Environment) (Value, flowSignal, error) {
 			var lastVal Value = NULL
+			var devir uint32
 			for {
+				if devir++; devir&255 == 0 {
+					v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
+				}
 				cond, err := kosul(v, env)
 				if err != nil {
 					return nil, signalNone, err
@@ -632,7 +649,11 @@ func (c *derleyici) iken(k *derleyiciKapsam, s *ast.WhileStatement) deyimKodu {
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		var lastVal Value = NULL
 		tur := donguOrtami{dis: env, bilgi: bilgi, yeniden: yeniden}
+		var devir uint32
 		for {
+			if devir++; devir&255 == 0 {
+				v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
+			}
 			cond, err := kosul(v, env)
 			if err != nil {
 				return nil, signalNone, err
