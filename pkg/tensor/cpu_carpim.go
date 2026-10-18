@@ -56,14 +56,18 @@ const (
 // her uyuşmazlıkta yeni tampon ayrılıyordu; 100 adımda ~390 MB gereksiz
 // ayırma (GC sıklığını artırır) ölçüldü.
 var (
-	paketHavuzA tamponYigini
-	paketHavuzB tamponYigini
+	paketHavuzA = tamponYigini{enBuyuk: tamponEnBuyuk}
+	paketHavuzB = tamponYigini{enBuyuk: tamponEnBuyukB}
 )
 
 const (
 	// tamponEnBuyuk bundan büyük tamponlar saklanmaz (büyük çarpımlarda
 	// ayırma maliyeti önemsizdir): 1M eleman, 4 MB.
 	tamponEnBuyuk = 1 << 20
+	// tamponEnBuyukB paketlenmiş B tamponunun en büyük boyu (4M eleman, 16 MB): toplu
+	// çarpımda B bütün toplu için birlikte paketlenir (ör. 64×(1024×64)·(64×1024) ileri
+	// yönde tam 4M eleman); daha büyüğü gerektiğinde toplu parçalara bölünür.
+	tamponEnBuyukB = 1 << 22
 	// tamponToplamEnCok bir yığında tutulan tamponların toplam kapasitesi
 	// (eleman): 8M eleman, 32 MB. Karakter modelinde gereken toplam ~2 MB'tır.
 	tamponToplamEnCok = 1 << 23
@@ -71,9 +75,10 @@ const (
 
 // tamponYigini paketleme tamponlarının kilitli, sınırlı bir yığını.
 type tamponYigini struct {
-	mu     sync.Mutex
-	t      []*[]float32
-	toplam int // t'deki tamponların toplam kapasitesi
+	enBuyuk int // bundan büyük tamponlar saklanmaz
+	mu      sync.Mutex
+	t       []*[]float32
+	toplam  int // t'deki tamponların toplam kapasitesi
 }
 
 // paketAl yığından en az n elemanlı en küçük tamponu alır (yoksa yenisini
@@ -106,7 +111,7 @@ func paketAl(y *tamponYigini, n int) *[]float32 {
 // aşılacaksa bırakır (çöp toplayıcıya kalır).
 func (y *tamponYigini) Put(p *[]float32) {
 	c := cap(*p)
-	if c > tamponEnBuyuk {
+	if c > y.enBuyuk {
 		return
 	}
 	y.mu.Lock()
@@ -189,18 +194,19 @@ func packA(a []float32, ais, aks, i0, m, p0, kb int, ap []float32) {
 // gemm toplu çarpım: her b için C_b += op(A_b)·op(B_b). a, b, c ilgili toplu
 // elemanın başından başlayan dilimlerdir; toplu adımları M*K, K*N, M*N'dir.
 //
-// B bütün toplu için birlikte paketlenir; paket tamponEnBuyuk elemanı aşacaksa toplu
+// B bütün toplu için birlikte paketlenir; paket tamponEnBuyukB elemanı aşacaksa toplu
 // parçalara bölünür. Böylece paketleme tamponu sınırlı kalır ve havuzdan gelir (önce
-// 64×(1024×64) gibi toplu çarpımlarda her çağrıda ~16 MB yeni ayırma oluyordu). Her toplu
-// elemanın hesabı parçalamadan bağımsızdır (sonuç bit düzeyinde aynı).
+// 64×(1024×64) gibi toplu çarpımlarda her çağrıda ~16 MB yeni ayırma oluyordu; havuz
+// yalnızca 4 MB'a kadar tutuyordu). Parçalar paralelliği korumak için olabildiğince büyük
+// seçilir. Her toplu elemanın hesabı parçalamadan bağımsızdır (sonuç bit düzeyinde aynı).
 func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool, c []float32) {
 	if batch == 0 || M == 0 || N == 0 || K == 0 {
 		return
 	}
 	bpLen := (N + nr - 1) / nr * K * nr
 	parca := batch
-	if batch*bpLen > tamponEnBuyuk {
-		parca = max(1, tamponEnBuyuk/bpLen)
+	if batch*bpLen > tamponEnBuyukB {
+		parca = max(1, tamponEnBuyukB/bpLen)
 	}
 	for b0 := 0; b0 < batch; b0 += parca {
 		n := min(parca, batch-b0)

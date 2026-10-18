@@ -307,9 +307,9 @@ func BenchmarkCopyFromGorunum(b *testing.B) {
 // havuzdan); sonuç her toplu elemanın tek başına çarpımıyla bit düzeyinde aynıdır.
 func TestGemmTopluParca(t *testing.T) {
 	rng := rand.New(rand.NewSource(9))
-	durumlar := []struct{ batch, M, N, K int }{{3, 13, 17, 300}, {20, 64, 1100, 64}, {70, 9, 300, 64}}
+	durumlar := []struct{ batch, M, N, K int }{{3, 13, 17, 300}, {70, 64, 1100, 64}, {300, 9, 300, 64}}
 	for _, d := range durumlar {
-		if d.batch*((d.N+nr-1)/nr*d.K*nr) <= tamponEnBuyuk && d.batch > 3 {
+		if d.batch*((d.N+nr-1)/nr*d.K*nr) <= tamponEnBuyukB && d.batch > 3 {
 			t.Fatalf("%v parçalanmıyor; durum yanlış seçilmiş", d)
 		}
 		for _, tr := range [][2]bool{{false, false}, {true, false}, {false, true}, {true, true}} {
