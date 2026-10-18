@@ -209,6 +209,15 @@ type Backend interface {
 	Scale(s Storage, k float32)
 }
 
+// Releaser arka ucun isteğe bağlı olarak uyguladığı arayüzdür: artık hiçbir
+// görünümün bakmadığı bir depolamayı geri alır ve sonraki Alloc çağrılarında
+// yeniden kullanabilir. Otomatik türev yalnızca geri yayılımda işi biten ARA
+// gradyan depolamalarını iade eder; ileri yön tamponları (kullanıcının elinde
+// görünümleri olabilir) iade edilmez.
+type Releaser interface {
+	Release(s Storage)
+}
+
 var (
 	backendMu sync.RWMutex
 	backends  = map[Device]Backend{}

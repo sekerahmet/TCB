@@ -3,6 +3,7 @@ package tensor
 import (
 	"fmt"
 	"math"
+	"sync"
 )
 
 // ============================================================================
@@ -13,7 +14,10 @@ import (
 // önbellek dostu olacak şekilde yazılmıştır.
 
 // cpuStorage ana bellekte düz float32 dilimi.
-type cpuStorage struct{ d []float32 }
+type cpuStorage struct {
+	d    []float32
+	iade bool // havuza iade edildi (yeniden ayrılana kadar kullanılmamalı)
+}
 
 func (s *cpuStorage) Device() Device { return CPU }
 func (s *cpuStorage) Len() int       { return len(s.d) }
@@ -228,7 +232,65 @@ func copyPar(dst, src []float32) {
 // Bellek
 // ----------------------------------------------------------------------------
 
-func (cpuBackend) Alloc(n int) Storage { return &cpuStorage{d: make([]float32, n)} }
+// havuzEnAz bundan küçük depolamalar havuza alınmaz (küçük ayırmalar ucuzdur).
+const havuzEnAz = 1 << 12
+
+// cpuHavuz iade edilen depolamaları eleman sayısına göre tutar. Eğitimde aynı
+// boyutlar her adımda yinelendiğinden tam boyut eşlemesi yeterlidir; sync.Pool
+// kullanılmayan tamponları çöp toplayıcıya bırakır.
+var cpuHavuz struct {
+	mu sync.RWMutex
+	m  map[int]*sync.Pool
+}
+
+func havuzFor(n int, olustur bool) *sync.Pool {
+	cpuHavuz.mu.RLock()
+	h := cpuHavuz.m[n]
+	cpuHavuz.mu.RUnlock()
+	if h != nil || !olustur {
+		return h
+	}
+	cpuHavuz.mu.Lock()
+	defer cpuHavuz.mu.Unlock()
+	if cpuHavuz.m == nil {
+		cpuHavuz.m = map[int]*sync.Pool{}
+	}
+	if h = cpuHavuz.m[n]; h == nil {
+		h = &sync.Pool{}
+		cpuHavuz.m[n] = h
+	}
+	return h
+}
+
+// Alloc sıfırlanmış depolama verir; uygun boyutta iade edilmiş bir depolama
+// varsa onu (paralel olarak sıfırlayıp) yeniden kullanır.
+func (cpuBackend) Alloc(n int) Storage {
+	if n >= havuzEnAz {
+		if h := havuzFor(n, false); h != nil {
+			if s, ok := h.Get().(*cpuStorage); ok {
+				s.iade = false
+				d := s.d
+				parallelFor(len(d), 1, func(lo, hi int) { clear(d[lo:hi]) })
+				return s
+			}
+		}
+	}
+	return &cpuStorage{d: make([]float32, n)}
+}
+
+// Release depolamayı havuza iade eder (Releaser). Çağıran, depolamaya başka
+// hiçbir görünümün bakmadığını güvence eder.
+func (cpuBackend) Release(s Storage) {
+	c, ok := s.(*cpuStorage)
+	if !ok || len(c.d) < havuzEnAz {
+		return
+	}
+	if c.iade {
+		panic("tensor: depolama havuza iki kez iade edildi")
+	}
+	c.iade = true
+	havuzFor(len(c.d), true).Put(c)
+}
 
 func (cpuBackend) FromHost(data []float32) Storage {
 	d := make([]float32, len(data))

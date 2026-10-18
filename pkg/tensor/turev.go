@@ -83,6 +83,7 @@ func (t *Tensor) BackwardWith(seed *Tensor) {
 		bir := t.be.Alloc(t.Numel())
 		t.be.Fill(bir, 1)
 		t.be.AddTo(g, bir, 1)
+		iadeEt(t.be, bir)
 	} else {
 		if !sameShape(seed.shape, t.shape) {
 			panic(fmt.Sprintf("tensor: tohum gradyan şekli %v, sonuç şekli %v", seed.shape, t.shape))
@@ -101,10 +102,22 @@ func (t *Tensor) BackwardWith(seed *Tensor) {
 		if n.grad != nil {
 			n.backward()
 		}
+		// Hâlâ bu düğümde duran gradyanın tek sahibi düğümdür (görünüm
+		// işlemleri devrettikleri gradyanı düğümden alır); arka uca iade edilir.
+		if n.grad != nil {
+			iadeEt(n.be, n.grad)
+		}
 		n.grad = nil
 		n.backward = nil
 		n.parents = nil
 		n.serbest = true
+	}
+}
+
+// iadeEt arka uç destekliyorsa depolamayı iade eder.
+func iadeEt(be Backend, s Storage) {
+	if r, ok := be.(Releaser); ok {
+		r.Release(s)
 	}
 }
 
