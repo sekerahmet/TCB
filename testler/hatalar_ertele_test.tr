@@ -72,3 +72,45 @@ test "9.3 blok içindeki ertele, bloğu değil fonksiyonu bekler" {
     f()
     eşit_mi(["blok sonrası", "ertele"], iz)
 }
+
+test "9.4 ertele içindeki hata yutulmaz" {
+    değişken iz = []
+    fonksiyon başarılı() {
+        ertele { fırlat "ertele içinde hata" }
+        iz.ekle("gövde")
+        sonuç 1
+    }
+    değişken m = ""
+    dene { başarılı() } yakala h { m = h }
+    eşit_mi("ertele içinde hata", m)
+    eşit_mi(["gövde"], iz)
+    // Fonksiyon zaten hata verdiyse ilk hata korunur, ertelenen işin hatası ona eklenir
+    fonksiyon iki_hata() {
+        ertele { fırlat "ilk ertele" }
+        ertele yazdır(tanımsız_ad)
+        fırlat "gövde hatası"
+    }
+    dene { iki_hata() } yakala h { m = h }
+    doğrula(m.başlar("gövde hatası; ertele içinde de hata: "), m)
+    doğrula(m.içerir("'tanımsız_ad' adında bir değişken ya da fonksiyon yok"), m)
+    doğrula(m.içerir("ilk ertele"), m)
+    // Ertelenen işler hata verse de hepsi çalışır
+    fonksiyon temizlik() {
+        ertele iz.ekle("ikinci temizlik")
+        ertele { fırlat "bozuk" }
+    }
+    dene { temizlik() } yakala h { m = h }
+    eşit_mi(["gövde", "ikinci temizlik"], iz)
+}
+
+test "9.5 ertele çağrısının argümanları fonksiyon biterken hesaplanır" {
+    değişken görülen = []
+    fonksiyon kaydet(x) { görülen.ekle(x) }
+    fonksiyon f() {
+        değişken x = 1
+        ertele kaydet(x)
+        x = 2
+    }
+    f()
+    eşit_mi([2], görülen)
+}

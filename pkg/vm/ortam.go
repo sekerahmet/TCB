@@ -1,6 +1,10 @@
 package vm
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+	"strings"
+)
 
 // --- ÇALIŞMA ORTAMI (ENVIRONMENT) ---
 
@@ -31,7 +35,7 @@ func (k *kapsamBilgisi) yuva(ad string) int {
 
 // ortamEk ortamların nadiren gereken alanlarıdır (yer kazanmak için ayrı tutulur).
 type ortamEk struct {
-	defers []func()
+	defers []func() error
 	consts []bool // yuva başına 'sabit' bayrağı
 }
 
@@ -109,7 +113,7 @@ func (e *Environment) tanimla(i int, val Value, isConst bool) {
 	}
 }
 
-func (e *Environment) AddDefer(fn func()) {
+func (e *Environment) AddDefer(fn func() error) {
 	target := e
 	for target.outer != nil && !target.IsFuncRoot {
 		target = target.outer
@@ -120,15 +124,51 @@ func (e *Environment) AddDefer(fn func()) {
 	target.ek.defers = append(target.ek.defers, fn)
 }
 
-func (e *Environment) RunDefers() {
+// RunDefers kaydedilmiş ertelenen işleri ters sırayla çalıştırır. Bir işin hatası
+// sonrakileri durdurmaz; hatalar çalışma sırasıyla birleştirilip döner (bkz. erteleHatasiEkle).
+func (e *Environment) RunDefers() error {
 	if e.ek == nil || len(e.ek.defers) == 0 {
-		return
+		return nil
 	}
 	list := e.ek.defers
 	e.ek.defers = nil
+	var err error
 	for i := len(list) - 1; i >= 0; i-- {
-		list[i]()
+		err = erteleHatasiEkle(err, list[i]())
 	}
+	return err
+}
+
+// erteleHatasi, bir hataya (fonksiyonun ya da önceki ertelenen işin hatası) sonradan çalışan
+// ertelenen işlerin hatalarının eklenmiş hâlidir. İlk hata korunur (Unwrap onu verir).
+type erteleHatasi struct {
+	ana   error
+	ekler []error
+}
+
+func (h *erteleHatasi) Error() string {
+	parcalar := make([]string, len(h.ekler))
+	for i, e := range h.ekler {
+		parcalar[i] = e.Error()
+	}
+	return h.ana.Error() + "; ertele içinde de hata: " + strings.Join(parcalar, "; ")
+}
+
+func (h *erteleHatasi) Unwrap() error { return h.ana }
+
+// erteleHatasiEkle ertelenen işin hatasını (ek) mevcut hataya ekler: mevcut hata yoksa ek
+// hatanın kendisi olur, varsa ilk hata korunur ve ek ona eklenir.
+func erteleHatasiEkle(mevcut, ek error) error {
+	switch {
+	case ek == nil:
+		return mevcut
+	case mevcut == nil:
+		return ek
+	}
+	if h, ok := mevcut.(*erteleHatasi); ok {
+		return &erteleHatasi{ana: h.ana, ekler: append(slices.Clip(h.ekler), ek)}
+	}
+	return &erteleHatasi{ana: mevcut, ekler: []error{ek}}
 }
 
 // yerel adın bu ortamdaki değerini döndürür (tanımlı değilse nil).

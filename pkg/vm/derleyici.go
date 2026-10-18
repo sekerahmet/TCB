@@ -330,12 +330,16 @@ func (c *derleyici) deyim(k *derleyiciKapsam, stmt ast.Statement) deyimKodu {
 		}
 		return func(v *VM, env *Environment) (Value, flowSignal, error) {
 			capturedEnv := env
-			env.AddDefer(func() {
+			// Ertelenen işin hatası yutulmaz; fonksiyonun hatasına eklenir (9.4).
+			env.AddDefer(func() error {
 				if govde != nil {
-					_, _, _ = govde.calistir(v, yeniOrtam(capturedEnv, govdeBilgi))
+					_, _, err := govde.calistir(v, yeniOrtam(capturedEnv, govdeBilgi))
+					return err
 				} else if cagri != nil {
-					_, _ = cagri(v, capturedEnv)
+					_, err := cagri(v, capturedEnv)
+					return err
 				}
+				return nil
 			})
 			return NULL, signalNone, nil
 		}
@@ -814,15 +818,17 @@ func (c *derleyici) eszamanli(k *derleyiciKapsam, s *ast.AsyncStatement) deyimKo
 					task.reportAsyncError(line, fmt.Errorf("İç hata (çökme önlendi): %v", r))
 				}
 			}()
-			defer e.RunDefers()
 			var err error
+			defer func() {
+				// Görevin ertelenen işleri görev bitince çalışır; hataları görev hatasına eklenir.
+				if err = erteleHatasiEkle(err, e.RunDefers()); err != nil {
+					task.reportAsyncError(line, err)
+				}
+			}()
 			if govde != nil {
 				_, _, err = govde.calistir(task, e)
 			} else if cagri != nil {
 				_, err = cagri(task, e)
-			}
-			if err != nil {
-				task.reportAsyncError(line, err)
 			}
 		}(asyncEnv)
 		return TRUE, signalNone, nil

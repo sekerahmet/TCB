@@ -144,7 +144,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 // (yalnızca fk.basit iken). Kalan parametreler adlı argümanlardan, varsayılanlardan ya da
 // 'yok' ile doldurulur. kendi, metot çağrılarında nesnedir (bağlı fonksiyon değerinin
 // BoundSelf'i ya da doğrudan derlenmiş 'nesne.metot(...)' çağrısının nesnesi).
-func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Value, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
+func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Value, args []Value, nargs int, named map[string]Value, line int) (val Value, err error) {
 	if fk.kaynak != v.kaynak {
 		// Başka bir dosyada (modülde) tanımlı fonksiyon: o dosyanın bağlamında çalışır.
 		return v.kaynaktaCagir(fn, fk, fnEnv, kendi, args, nargs, named, line)
@@ -152,8 +152,12 @@ func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Val
 	fnEnv.IsFuncRoot = true
 	v.devret() // özyinelemeli (döngüsüz) hesaplarda da kilit devredilebilsin
 	if fk.erteleVar {
-		// 'ertele' blokları bir çöküşte de (Go panic) çalışmalıdır
-		defer fnEnv.RunDefers()
+		// 'ertele' blokları bir çöküşte de (Go panic) çalışmalıdır; hataları yutulmaz (9.4)
+		defer func() {
+			if derr := fnEnv.RunDefers(); derr != nil {
+				val, err = nil, erteleHatasiEkle(err, derr)
+			}
+		}()
 	}
 	if len(v.CallStack) >= maxCallDepth {
 		return nil, fmt.Errorf("Satır %d: Özyineleme derinliği sınırı aşıldı (en fazla %d iç içe çağrı); fonksiyon kendini durmadan çağırıyor olabilir", line, maxCallDepth)
@@ -166,12 +170,14 @@ func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Val
 		FuncName: fnName,
 		Line:     line,
 	})
-	val, err := v.fonksiyonGovdesi(fn, fk, fnEnv, kendi, args, nargs, named)
+	val, err = v.fonksiyonGovdesi(fn, fk, fnEnv, kendi, args, nargs, named)
 	if len(v.CallStack) > 0 {
 		v.CallStack = v.CallStack[:len(v.CallStack)-1]
 	}
 	if !fk.erteleVar {
-		fnEnv.RunDefers()
+		if derr := fnEnv.RunDefers(); derr != nil {
+			val, err = nil, erteleHatasiEkle(err, derr)
+		}
 		// Hata ayıklayıcı bağlıyken ortam onun elinde kalabilir; havuza konmaz.
 		if fk.havuzlu && v.Debugger == nil {
 			fk.birak(fnEnv)

@@ -73,7 +73,8 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 	env := yeniOrtam(v.GlobalEnv, bilgi)
 	env.IsFuncRoot = true
 	func() {
-		defer env.RunDefers()
+		// Testin ertelenen işleri test bitince çalışır; hataları testin hatasına eklenir (9.4)
+		defer func() { err = erteleHatasiEkle(err, env.RunDefers()) }()
 		if t.Body != nil {
 			_, _, err = kod.calistir(v, env)
 		}

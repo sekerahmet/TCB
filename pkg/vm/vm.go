@@ -281,7 +281,12 @@ func (v *VM) Run(prog *ast.Program) (result Value, err error) {
 			result, err = nil, fmt.Errorf("İç hata (çökme önlendi): %v", r)
 		}
 	}()
-	defer v.GlobalEnv.RunDefers()
+	defer func() {
+		// Programın üst düzey ertelenen işleri; hataları programın hatası olur (9.4)
+		if derr := v.GlobalEnv.RunDefers(); derr != nil {
+			result, err = nil, erteleHatasiEkle(err, derr)
+		}
+	}()
 	val, _, err := v.programCalistir(prog.Statements)
 	if err != nil {
 		return nil, err
