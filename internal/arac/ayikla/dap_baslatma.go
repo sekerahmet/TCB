@@ -10,6 +10,7 @@ import (
 	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/motor/gunluk"
 )
 
 // ---------------------------------------------------------------------------
@@ -102,8 +103,20 @@ func (s *dapServer) start() {
 		defer close(s.finished)
 		_, err := s.machine.Run(s.prog)
 		s.machine.WaitAsync()
+		gunluk.TumunuKapat() // bitmemiş ilerleme çubuklarının son satırı konsola
 		exitCode := 0
-		if err != nil {
+		if c, ok := yurut.CikisIstegiMi(err); ok {
+			// Programın istediği çıkış (ör. komut satırı seçeneklerinde --yardım ya da hatalı
+			// argüman): mesaj konsola, kod düzenleyiciye.
+			exitCode = c.Kod
+			kategori := "stderr"
+			if c.Kod == 0 {
+				kategori = "stdout"
+			}
+			if c.Mesaj != "" {
+				s.output(kategori, s.machine.Maskele(c.Mesaj)+"\n")
+			}
+		} else if err != nil {
 			exitCode = 1
 			metin := "❌ Çalışma Zamanı Hatası:\n"
 			for _, m := range yurut.HataMaddeleri(err, s.machine.SourceCode) {

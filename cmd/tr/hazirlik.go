@@ -127,6 +127,11 @@ func hatalarlaCik(baslik string, errs []string, code string) {
 func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
 	kesmeyiYakala(machine)
 	if _, err := machine.Run(prog); err != nil {
+		if c, ok := yurut.CikisIstegiMi(err); ok {
+			machine.WaitAsync()
+			motor.Kapat()
+			programCikisi(machine, c)
+		}
 		if errors.Is(err, yurut.ErrKesildi) {
 			machine.WaitAsync() // eşzamanlı görevler de kesildi; ertelenen işleri bitsin
 			motor.Kapat()
@@ -145,6 +150,20 @@ func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
 	if u := machine.KullanilmayanArgumanUyarisi(); u != "" {
 		machine.CiktiYaz(os.Stderr, u+"\n")
 	}
+}
+
+// programCikisi bir yerleşiğin istediği program çıkışını yapar (ör. komut satırı
+// seçeneklerinde --yardım: 0, hatalı argüman: 2): mesaj 0 kodunda standart çıktıya, öbür
+// kodlarda standart hataya yazılır.
+func programCikisi(machine *yurut.VM, c *yurut.CikisIstegi) {
+	if c.Mesaj != "" {
+		w := os.Stderr
+		if c.Kod == 0 {
+			w = os.Stdout
+		}
+		machine.CiktiYaz(w, c.Mesaj+"\n")
+	}
+	cik(c.Kod)
 }
 
 // calismaHatasiYaz bir çalışma zamanı hatasını başlığıyla standart hataya yazar. Bir modüle

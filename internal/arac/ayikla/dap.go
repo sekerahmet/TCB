@@ -17,6 +17,7 @@ package ayikla
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -156,7 +157,48 @@ func (s *dapServer) send(m map[string]interface{}) {
 	if err != nil {
 		return
 	}
+	data = s.gizlileriMaskele(data)
 	fmt.Fprintf(s.out, "Content-Length: %d\r\n\r\n%s", len(data), data)
+}
+
+// gizlileriMaskele iletideki bütün metinlerde (değişken değerleri, izleme ifadeleri, İzleme
+// Masası tablosu, konsol çıktısı) programın gizli değerlerini *** yapar: düzenleyicide
+// görünen her şey insanın göreceği çıktıdır. Gizli değer yoksa ileti olduğu gibi kalır.
+func (s *dapServer) gizlileriMaskele(data []byte) []byte {
+	m := s.machine
+	if m == nil || !m.GizliDegerVar() {
+		return data
+	}
+	d := json.NewDecoder(bytes.NewReader(data))
+	d.UseNumber()
+	var v any
+	if d.Decode(&v) != nil {
+		return data
+	}
+	yeni, err := json.Marshal(metinleriMaskele(v, m.Maskele))
+	if err != nil {
+		return data
+	}
+	return yeni
+}
+
+// metinleriMaskele çözülmüş bir JSON değerindeki metinlere (anahtarlar dahil) f'yi uygular.
+func metinleriMaskele(v any, f func(string) string) any {
+	switch x := v.(type) {
+	case string:
+		return f(x)
+	case []any:
+		for i, e := range x {
+			x[i] = metinleriMaskele(e, f)
+		}
+	case map[string]any:
+		y := make(map[string]any, len(x))
+		for k, e := range x {
+			y[f(k)] = metinleriMaskele(e, f)
+		}
+		return y
+	}
+	return v
 }
 
 func (s *dapServer) respond(req *dapMessage, body interface{}) {

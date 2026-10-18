@@ -212,7 +212,7 @@ func (d *Debugger) checkWatchpoints(v *yurut.VM, env *yurut.Environment) string 
 				if wp.LastVal != "" && wp.LastVal != curStr {
 					old := wp.LastVal
 					wp.LastVal = curStr
-					return fmt.Sprintf("⚡ İZLEME NOKTASI (Watchpoint #%d): %q değişti (%s -> %s)", wp.ID, wp.Expression, old, curStr)
+					return fmt.Sprintf("⚡ İZLEME NOKTASI (Watchpoint #%d): %q değişti (%s -> %s)", wp.ID, wp.Expression, v.Maskele(old), v.Maskele(curStr))
 				}
 				wp.LastVal = curStr
 			}
@@ -307,7 +307,7 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 				} else {
 					env.Define(varName, newVal, false)
 				}
-				fmt.Printf("  ✏️ [CANLI DEĞİŞTİRİLDİ] %s = %s (%s)\n", varName, newVal.Inspect(), newVal.Type())
+				fmt.Printf("  ✏️ [CANLI DEĞİŞTİRİLDİ] %s = %s (%s)\n", varName, v.Maskele(newVal.Inspect()), newVal.Type())
 			}
 
 		case "zıpla":
@@ -368,7 +368,7 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 				fmt.Println("  ⚠️ Kullanım: tablo <değişken_adı>")
 				continue
 			}
-			d.inspectTable(parts[1], env)
+			d.inspectTable(v, parts[1], env)
 
 		case "yığın":
 			fmt.Println("  📚 ÇAĞRI YIĞINI:")
@@ -394,7 +394,7 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 					if err != nil {
 						fmt.Printf("  ❌ Hata: %v\n", err)
 					} else {
-						fmt.Printf("  💡 Sonuç (%s): %s\n", val.Type(), val.Inspect())
+						fmt.Printf("  💡 Sonuç (%s): %s\n", val.Type(), v.Maskele(val.Inspect()))
 					}
 				}
 			}
@@ -412,7 +412,7 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 		default:
 			// Eğer doğrudan bir değişken adı yazıldıysa değerini göster
 			if val, ok := env.Get(cmdLine); ok {
-				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, val.Type(), val.Inspect())
+				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, val.Type(), v.Maskele(val.Inspect()))
 			} else {
 				fmt.Println("  ❓ Bilinmeyen komut. Yardım için 'yardım' yazın.")
 			}
@@ -460,7 +460,7 @@ func (d *Debugger) renderDebugScreen(v *yurut.VM, currentLine int, env *yurut.En
 	} else {
 		fmt.Println("  📦 DEĞİŞKENLER (Canlı değiştirmek için: 'değiştir ad = değer'):")
 		for _, kv := range vars {
-			valPreview := kv.Val.Inspect()
+			valPreview := v.Maskele(kv.Val.Inspect())
 			if _, motor := kv.Val.(IzlemeDegeri); motor && strings.Contains(valPreview, "\n") {
 				valPreview = tekSatir(valPreview)
 			}
@@ -484,7 +484,8 @@ func tekSatir(metin string) string {
 	return strings.NewReplacer("[ ", "[", " ]", "]").Replace(tek)
 }
 
-func (d *Debugger) inspectTable(name string, env *yurut.Environment) {
+// inspectTable bir değişkeni tablo olarak yazar; değerlerdeki gizli değerler maskelenir.
+func (d *Debugger) inspectTable(v *yurut.VM, name string, env *yurut.Environment) {
 	val, ok := env.Get(name)
 	if !ok {
 		fmt.Printf("  ❌ %q adında bir değişken bulunamadı.\n", name)
@@ -498,35 +499,35 @@ func (d *Debugger) inspectTable(name string, env *yurut.Environment) {
 		fmt.Printf("  %-8s | %-12s | %s\n", "İNDEKS", "TİP", "DEĞER")
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for i, el := range t.Elements {
-			fmt.Printf("  [%-6d] | %-12s | %s\n", i, el.Type(), el.Inspect())
+			fmt.Printf("  [%-6d] | %-12s | %s\n", i, el.Type(), v.Maskele(el.Inspect()))
 		}
 	case IzlemeDegeri:
 		// Motor değerleri (ör. tensör): tablo verisi satır satır yazılır.
 		cols, rows, err := t.TabloVerisi()
 		if err != nil {
-			fmt.Printf("  %s\n  Değer: %s\n", t.IzlemeEtiketi(), val.Inspect())
+			fmt.Printf("  %s\n  Değer: %s\n", t.IzlemeEtiketi(), v.Maskele(val.Inspect()))
 			break
 		}
 		fmt.Printf("  %s\n", t.IzlemeEtiketi())
 		fmt.Printf("  %-9s | %s\n", "SATIR", strings.Join(cols, " | "))
 		for i, r := range rows {
-			fmt.Printf("  %-9d | %s\n", i, strings.Join(r, " | "))
+			fmt.Printf("  %-9d | %s\n", i, v.Maskele(strings.Join(r, " | ")))
 		}
 	case *yurut.DictVal:
 		fmt.Printf("  Toplam Alan Sayısı: %d\n", len(t.Order))
 		fmt.Printf("  %-18s | %-12s | %s\n", "ANAHTAR", "TİP", "DEĞER")
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for _, k := range t.Order {
-			v := t.Pairs[k]
-			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), v.Type(), v.Inspect())
+			e := t.Pairs[k]
+			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), e.Type(), v.Maskele(e.Inspect()))
 		}
 	case *yurut.StructInstanceVal:
 		fmt.Printf("  Yapı Türü: %s\n", t.Def.Name)
-		for k, v := range t.Fields {
-			fmt.Printf("  • %-16s (%s) = %s\n", k, v.Type(), v.Inspect())
+		for k, e := range t.Fields {
+			fmt.Printf("  • %-16s (%s) = %s\n", k, e.Type(), v.Maskele(e.Inspect()))
 		}
 	default:
-		fmt.Printf("  Değer: %s\n", val.Inspect())
+		fmt.Printf("  Değer: %s\n", v.Maskele(val.Inspect()))
 	}
 }
 
