@@ -7,7 +7,7 @@ GOAMD64=v3 go build -o bin/tr.exe ./cmd/tr          # bash
 $env:GOAMD64="v3"; go build -o bin/tr.exe ./cmd/tr   # PowerShell
 ```
 
-2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez. Eğitim derlemelerinde v3, matris çarpımını v1 derlemeye göre çok hızlandırır (512×512 çarpımda yaklaşık 8–14 kat; bkz. `tools/kiyas/README.md`).
+2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez. Eğitim derlemelerinde v3, matris çarpımını v1 derlemeye göre çok hızlandırır (512×512 çarpımda yaklaşık 8–14 kat; bkz. `tools/kiyas/README.md`). İki derleme aynı tohumla son basamaklarda farklı sonuç verebilir (v3 kaynaştırılmış çarpma-toplama kullanır): aynı tohum aynı sonuç sözü aynı program dosyası için geçerlidir.
 
 | Komut | Açıklama |
 | :--- | :--- |
