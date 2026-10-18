@@ -261,24 +261,25 @@ func skalerMi(v vm.Value) (float64, bool) {
 
 var islemAdi = map[string]string{"+": "toplama", "-": "çıkarma", "*": "çarpma", "/": "bölme"}
 
-// yayinDenetle iki şeklin yayınlanabilirliğini denetler (eksenler sağdan hizalanır;
-// eşit ya da biri 1 olan eksenler uyumludur).
-func yayinDenetle(op string, a, b []int) error {
-	nd := len(a)
-	if len(b) > nd {
-		nd = len(b)
+// sondanEksen tensörün sondan i. (1'den başlayarak) ekseninin uzunluğunu verir; o eksen
+// yoksa yayınlama kuralı gereği 1 sayılır. Şekil kopyalanmaz.
+func sondanEksen(t *ct.Tensor, i int) int {
+	if j := t.Dim() - i; j >= 0 {
+		return t.Size(j)
 	}
+	return 1
+}
+
+// yayinDenetle iki tensörün şekillerinin yayınlanabilirliğini denetler (eksenler sağdan
+// hizalanır; eşit ya da biri 1 olan eksenler uyumludur). Sık çağrıldığı için ayırma
+// yapmaz; şekil metni yalnızca hata durumunda üretilir.
+func yayinDenetle(op string, a, b *ct.Tensor) error {
+	nd := max(a.Dim(), b.Dim())
 	for i := 1; i <= nd; i++ {
-		da, db := 1, 1
-		if j := len(a) - i; j >= 0 {
-			da = a[j]
-		}
-		if j := len(b) - i; j >= 0 {
-			db = b[j]
-		}
+		da, db := sondanEksen(a, i), sondanEksen(b, i)
 		if da != db && da != 1 && db != 1 {
 			return fmt.Errorf("%s ile %s şekilleri %s için yayınlanamaz; sondan %d. eksende %d ≠ %d (eksenler sağdan hizalanır, eşit ya da 1 olmalı)",
-				sekilMetni(a), sekilMetni(b), islemAdi[op], i, da, db)
+				sekilMetni(a.Shape()), sekilMetni(b.Shape()), islemAdi[op], i, da, db)
 		}
 	}
 	return nil
@@ -316,7 +317,7 @@ func (d *Deger) ikili(op string, other vm.Value) (vm.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := yayinDenetle(op, d.t.Shape(), o.Shape()); err != nil {
+	if err := yayinDenetle(op, d.t, o); err != nil {
 		return nil, err
 	}
 	if err := cihazDenetle("tensör "+islemAdi[op], d.t, o); err != nil {

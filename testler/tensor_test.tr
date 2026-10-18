@@ -69,9 +69,15 @@ test "15.4 matematik fonksiyonları ve indirgemeler" {
     eşit_mi([2.5, 3.5, 4.5], ortalama(a, eksen: 0).değer)
     eşit_mi(6.0, maks(a).değer)
     eşit_mi([1.0, 4.0], min(a, eksen: -1).değer)
-    // Eski liste davranışı korunur.
+    eşit_mi([5.0, 7.0, 9.0], toplam(a, 0).değer)
+    // Eski liste davranışı korunur; listedeki tensörler katlanır, iç içe liste hatadır.
     eşit_mi(6, toplam([1, 2, 3]))
     eşit_mi(2.0, ortalama([1, 2, 3]))
+    eşit_mi([4.0, 6.0], toplam([tensör([1, 2]), tensör([3, 4])]).değer)
+    doğrula(hata_metni(() => toplam([[1, 2], [3, 4]])).içerir("iç içe liste indirgenemez"))
+    doğrula(hata_metni(() => maks(a, 0)).içerir("maks(x, eksen: 0) yazın"))
+    doğrula(hata_metni(() => sıfırlar(2, 3, türev_izle: doğru)).içerir("sıfırlar([2, 3], ...) yazın"))
+    doğrula(hata_metni(() => AdamW([tensör([1.0], türev_izle: doğru)], lr: 0.1)).içerir("'öğrenme_oranı'"))
 }
 
 test "15.5 sinir ağı fonksiyonları" {

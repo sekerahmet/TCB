@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tr_dili/pkg/motor/yz"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
@@ -68,8 +69,24 @@ func eksenCoz(fn string, eksen int, sh []int) (int, error) {
 	return e, nil
 }
 
+// ingilizceAdlar başka dillerden alışılmış parametre adlarının Türkçe karşılıklarıdır.
+// Bu adlar KABUL EDİLMEZ; yalnızca hata mesajında doğru Türkçe ad önerilir.
+var ingilizceAdlar = map[string]string{
+	"lr":            "öğrenme_oranı",
+	"learning_rate": "öğrenme_oranı",
+	"axis":          "eksen",
+	"dim":           "eksen",
+	"requires_grad": "türev_izle",
+	"weight_decay":  "ağırlık_çürümesi",
+	"eps":           "epsilon",
+	"seed":          "tohum",
+	"weight":        "ağırlık",
+	"bias":          "sapma",
+	"betas":         "beta1",
+}
+
 // adliDenetle verilmiş adlı argümanların bilinen adlardan olduğunu denetler; yazım
-// hatasında en yakın adı önerir.
+// hatasında (ya da İngilizce bir adda) en yakın Türkçe adı önerir.
 func adliDenetle(fn string, named map[string]vm.Value, izinli ...string) error {
 	for ad := range named {
 		bilinen := false
@@ -81,13 +98,47 @@ func adliDenetle(fn string, named map[string]vm.Value, izinli ...string) error {
 		}
 		if !bilinen {
 			oneri := ""
-			if o := turkce.EnYakin(ad, izinli); o != "" {
+			o := ""
+			if tr, ok := ingilizceAdlar[strings.ToLower(ad)]; ok {
+				for _, i := range izinli {
+					if i == tr {
+						o = tr
+						break
+					}
+				}
+			}
+			if o == "" {
+				o = turkce.EnYakin(ad, izinli)
+			}
+			if o != "" {
 				oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 			}
 			return fmt.Errorf("%s '%s' adında bir parametre almaz%s", fn, ad, oneri)
 		}
 	}
 	return nil
+}
+
+// tipAdi hata mesajlarında değerin tipini adlandırır. Eski tek sayılık türev değeri de
+// "Tensör" tipini taşıdığı için çelişkili mesaj ("tensör olmalıdır, Tensör verildi")
+// çıkmasın diye açıklayıcı biçimde yazılır.
+func tipAdi(v vm.Value) string {
+	switch v.(type) {
+	case *yz.TensorVal:
+		return "tek sayılık türev değeri (tensör(3.0))"
+	case *Deger:
+		return "çok boyutlu tensör"
+	}
+	return string(v.Type())
+}
+
+// argMetni argümanları virgülle ayrılmış biçimde yazar.
+func argMetni(args []vm.Value) string {
+	p := make([]string, len(args))
+	for i, a := range args {
+		p[i] = a.Inspect()
+	}
+	return strings.Join(p, ", ")
 }
 
 // adliAl adlardan ilk verileni döndürür (Türkçe ad ve ASCII karşılığı gibi).
