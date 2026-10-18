@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,8 +55,10 @@ func TestSonrakiBeklerkenKilitBirakilir(t *testing.T) {
 	m.RegisterBuiltin("görevi_bekle", func(m *yurut.VM, _ []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
 		m.Blocking(func() {
 			<-basladi
-			// Görevin sonraki()'ye girmesine zaman tanı.
-			time.Sleep(50 * time.Millisecond)
+			// Görev sonraki()'nin içinde önden yükleyiciyi beklemeye girene kadar beklenir
+			// (uyku değil): görev oraya varmadan kapı açılsaydı test, sınadığını sınamadan
+			// geçerdi.
+			sonrakiBeklemede(t)
 		})
 		return yurut.NULL, nil
 	})
@@ -93,5 +97,28 @@ bekle_hepsi()
 	l, ok := v.(*yurut.ListVal)
 	if !ok || len(l.Elements) != 2 {
 		t.Fatalf("[girdi, hedef] bekleniyordu: %v", v)
+	}
+}
+
+// sonrakiBeklemede bir görevin .sonraki() içinde önden yükleyiciden toplu iş beklediğini
+// (gorutinin kanal beklemesinde durduğunu) yığın dökümünden görene kadar bekler. Program
+// ayrı bir gorutinde koştuğu için t.Fatal değil t.Error kullanılır. Süre sınırı yalnızca
+// takılmaya karşıdır.
+func sonrakiBeklemede(t *testing.T) {
+	son := time.Now().Add(5 * time.Second)
+	buf := make([]byte, 1<<20)
+	for {
+		yigin := string(buf[:runtime.Stack(buf, true)])
+		for _, g := range strings.Split(yigin, "\n\n") {
+			baslik, _, _ := strings.Cut(g, "\n")
+			if strings.Contains(baslik, "[select") && strings.Contains(g, "(*Okuyucu).sonraki") && strings.Contains(g, "(*OnYukleyici).Al") {
+				return
+			}
+		}
+		if time.Now().After(son) {
+			t.Errorf("görev sonraki() içinde beklemeye girmedi:\n%s", yigin)
+			return
+		}
+		time.Sleep(time.Millisecond)
 	}
 }

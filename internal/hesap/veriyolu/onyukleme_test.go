@@ -16,16 +16,24 @@ import (
 // sayacKaynak, sırayla 0,1,2,... değerli toplu işler üretir; sinir'e
 // ulaşınca io.EOF döner. gecikme verilirse her Doldur o kadar bekler;
 // durSonra verilirse o kadar çağrıdan sonraki Doldur'lar bağlam iptal
-// edilene kadar takılır.
+// edilene kadar takılır. basladi verilirse her Doldur başlarken ona (doluysa
+// atlayarak) bir sinyal gönderir.
 type sayacKaynak struct {
 	sinir    int
 	i        int
 	gecikme  time.Duration
 	durSonra int
 	cagri    atomic.Int64
+	basladi  chan struct{}
 }
 
 func (s *sayacKaynak) Doldur(ctx context.Context, ti *TopluIs) error {
+	if s.basladi != nil {
+		select {
+		case s.basladi <- struct{}{}:
+		default:
+		}
+	}
 	if n := s.cagri.Add(1); s.durSonra > 0 && n > int64(s.durSonra) {
 		<-ctx.Done()
 		return ctx.Err()
@@ -92,8 +100,9 @@ func TestOnYukleyiciKapatmaSizintisiz(t *testing.T) {
 	gorutinBekle(t, taban)
 
 	// Yavaş kaynak sürerken kapatma: Doldur bağlamla kesilmeli.
-	o = OnYukle(context.Background(), &sayacKaynak{gecikme: time.Hour}, 2)
-	time.Sleep(10 * time.Millisecond)
+	yavas := &sayacKaynak{gecikme: time.Hour, basladi: make(chan struct{}, 1)}
+	o = OnYukle(context.Background(), yavas, 2)
+	sinyalBekle(t, yavas.basladi, "Doldur başlaması")
 	bitti := make(chan struct{})
 	go func() { _ = o.Kapat(); close(bitti) }()
 	select {
@@ -110,7 +119,7 @@ func TestOnYukleyiciKapatmaSizintisiz(t *testing.T) {
 		var ti TopluIs
 		hata <- o.Al(&ti)
 	}()
-	time.Sleep(10 * time.Millisecond)
+	gorutinBeklemede(t, "(*OnYukleyici).Al")
 	_ = o.Kapat()
 	if err := <-hata; !errors.Is(err, ErrKapali) {
 		t.Fatalf("ErrKapali bekleniyordu: %v", err)
@@ -241,13 +250,15 @@ func TestOnYukleyiciKaynagiUreticidenSonraKapatir(t *testing.T) {
 }
 
 // takilanKaynak, bağlamı dinlemeyen ve birak kapanana kadar takılan bir
-// okumayı taklit eder.
+// okumayı taklit eder; okumaya girince basladi kapanır.
 type takilanKaynak struct {
 	birak     chan struct{}
+	basladi   chan struct{}
 	kapatildi atomic.Bool
 }
 
 func (k *takilanKaynak) Doldur(ctx context.Context, ti *TopluIs) error {
+	close(k.basladi)
 	<-k.birak
 	return io.EOF
 }
@@ -256,9 +267,11 @@ func (k *takilanKaynak) Kapat() error { k.kapatildi.Store(true); return nil }
 
 func TestOnYukleyiciZamanliKapatma(t *testing.T) {
 	taban := runtime.NumGoroutine()
-	k := &takilanKaynak{birak: make(chan struct{})}
+	k := &takilanKaynak{birak: make(chan struct{}), basladi: make(chan struct{})}
 	o := OnYukle(context.Background(), k, 2)
-	time.Sleep(5 * time.Millisecond)
+	// Üretici takılan okumaya girmeden kapatılsaydı bağlamı görüp hemen durur, zaman aşımı
+	// sınanmamış olurdu.
+	sinyalBekle(t, k.basladi, "takılan okumanın başlaması")
 	bas := time.Now()
 	err := o.KapatZamanli(30 * time.Millisecond)
 	if err == nil || !strings.Contains(err.Error(), "durmadı") {

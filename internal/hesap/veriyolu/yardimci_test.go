@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -85,6 +86,39 @@ func gorutinBekle(t *testing.T, taban int) {
 			t.Fatalf("gorutin sızıntısı: %d > %d\n%s", n, taban, buf)
 		}
 		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// gorutinBeklemede, yığınında islev geçen bir gorutin kanal beklemesinde (select ya da
+// kanaldan alma) durana kadar bekler. Uyku yerine kullanılır: "Al beklerken Kapat" gibi
+// sınamalar beklemenin gerçekten başladığından emin olur, yoksa sınadığını sınamadan da
+// geçebilirdi. Süre sınırı yalnızca takılmaya karşıdır.
+func gorutinBeklemede(t *testing.T, islev string) {
+	t.Helper()
+	son := time.Now().Add(5 * time.Second)
+	buf := make([]byte, 1<<20)
+	for {
+		yigin := string(buf[:runtime.Stack(buf, true)])
+		for _, g := range strings.Split(yigin, "\n\n") {
+			baslik, _, _ := strings.Cut(g, "\n")
+			if (strings.Contains(baslik, "[select") || strings.Contains(baslik, "[chan receive")) && strings.Contains(g, islev) {
+				return
+			}
+		}
+		if time.Now().After(son) {
+			t.Fatalf("%s beklemeye girmedi:\n%s", islev, yigin)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// sinyalBekle kanaldan bir sinyal gelene kadar bekler; süre sınırı yalnızca takılmaya karşıdır.
+func sinyalBekle(t *testing.T, c <-chan struct{}, ne string) {
+	t.Helper()
+	select {
+	case <-c:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("%s olmadı", ne)
 	}
 }
 
