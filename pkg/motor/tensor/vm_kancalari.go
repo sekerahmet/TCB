@@ -82,7 +82,7 @@ func (d *Deger) Islec(op string, diger vm.Value, sagda bool) (vm.Value, bool, er
 		if err != nil {
 			return nil, true, err
 		}
-		if err := yayinDenetle(op, o.Shape(), d.t.Shape()); err != nil {
+		if err := yayinDenetle(op, o, d.t); err != nil {
 			return nil, true, err
 		}
 		if err := cihazDenetle("tensör "+islemAdi[op], o, d.t); err != nil {
