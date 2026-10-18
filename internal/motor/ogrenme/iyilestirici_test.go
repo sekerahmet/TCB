@@ -1,0 +1,28 @@
+package ogrenme
+
+import (
+	"strings"
+	"testing"
+)
+
+func TestGradyanKirp(t *testing.T) {
+	out := mustCalistir(t, `değişken w = tensör([1.0, 1.0], türev_izle: doğru)
+değişken b = tensör([1.0], türev_izle: doğru)
+geri_yayılım(toplam(w * tensör([3.0, 0.0])) + toplam(b * 4))
+yazdır(gradyan_kırp([w, b], en_fazla: 1.0))
+yazdır(w.gradyan.değer, b.gradyan.değer)
+yazdır(gradyan_kırp([w, b]))`)
+	want := "5.0\n[0.6, 0.0] [0.8]\n1.0\n"
+	if out != want {
+		t.Fatalf("gradyan_kırp:\n%q\nbeklenen:\n%q", out, want)
+	}
+	for _, d := range []struct{ kod, beklenen string }{
+		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], en_fazla: 0)", "en_fazla pozitif bir sayı olmalıdır"},
+		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], max_norm: 1)", "'max_norm' adında bir parametre almaz"},
+		{"gradyan_kırp([sıfırlar([1])])", "türev izlemiyor"},
+	} {
+		if _, err := calistir(t, d.kod); err == nil || !strings.Contains(err.Error(), d.beklenen) {
+			t.Errorf("%s: %v (içermeli: %s)", d.kod, err, d.beklenen)
+		}
+	}
+}

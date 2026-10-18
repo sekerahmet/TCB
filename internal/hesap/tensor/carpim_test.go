@@ -157,3 +157,30 @@ func TestMikroAAdimli(t *testing.T) {
 		}
 	}
 }
+
+// Bulgu 18: büyük toplu çarpımda B paketlemesi toplu parçalara bölünür (tampon sınırlı ve
+// havuzdan); sonuç her toplu elemanın tek başına çarpımıyla bit düzeyinde aynıdır.
+func TestGemmTopluParca(t *testing.T) {
+	rng := rand.New(rand.NewSource(9))
+	durumlar := []struct{ batch, M, N, K int }{{3, 13, 17, 300}, {70, 64, 1100, 64}, {300, 9, 300, 64}}
+	for _, d := range durumlar {
+		if d.batch*((d.N+nr-1)/nr*d.K*nr) <= tamponEnBuyukB && d.batch > 3 {
+			t.Fatalf("%v parçalanmıyor; durum yanlış seçilmiş", d)
+		}
+		for _, tr := range [][2]bool{{false, false}, {true, false}, {false, true}, {true, true}} {
+			a := Randn(rng, d.batch*d.M*d.K).Data()
+			b := Randn(rng, d.batch*d.K*d.N).Data()
+			c1 := make([]float32, d.batch*d.M*d.N)
+			c2 := make([]float32, d.batch*d.M*d.N)
+			gemm(d.batch, d.M, d.N, d.K, a, tr[0], b, tr[1], c1)
+			for bi := 0; bi < d.batch; bi++ {
+				gemm(1, d.M, d.N, d.K, a[bi*d.M*d.K:(bi+1)*d.M*d.K], tr[0], b[bi*d.K*d.N:(bi+1)*d.K*d.N], tr[1], c2[bi*d.M*d.N:(bi+1)*d.M*d.N])
+			}
+			for i := range c1 {
+				if c1[i] != c2[i] {
+					t.Fatalf("%v devrik=%v: [%d] %v != %v", d, tr, i, c1[i], c2[i])
+				}
+			}
+		}
+	}
+}

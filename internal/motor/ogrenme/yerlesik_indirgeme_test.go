@@ -5,7 +5,34 @@ import (
 	"testing"
 )
 
-// Bağımsız denetimde bulunan sessiz yanlışların ve belirsiz çağrıların testleri.
+func TestMaksIndeks(t *testing.T) {
+	out := mustCalistir(t, `değişken x = tensör([[1, 9, 3], [7, 2, 7]])
+yazdır(maks_indeks(x).değer, maks_indeks(x, eksen: 0).değer, maks_indeks(tensör([4, 8, 1])).değer)
+yazdır(tam(maks_indeks(tensör([4, 8, 1])).değer), maks_indeks(x).şekil)
+yazdır(gömme(tensör([[0, 0], [1, 1], [2, 2]]), maks_indeks(tensör([[0, 0, 5]]))).değer)
+değişken harfler = ["a", "b", "c"]
+değişken i = maks_indeks(tensör([[[0, 9, 1], [5, 0, 0]]]), eksen: -1)
+yazdır(harfler[i.değer[0][0]] + harfler[i.değer[0][1]], tip(i.değer[0][1]), tip(maks_indeks(tensör([1, 3])).değer))
+yazdır(i, maks_indeks(tensör([2, 1])))
+yazdır(tip((i * 2).değer[0][0]), tip(tensör(i).değer[0][0]))`)
+	want := "[1, 0] [1, 0, 1] 1\n1 [2]\n[[2.0, 2.0]]\n" +
+		"ba Tam Tam\n" +
+		"Tensör[1×2] [\n  [1, 0]\n] Tensör(0)\n" +
+		"Ondalık Ondalık\n"
+	if out != want {
+		t.Fatalf("maks_indeks:\n%q\nbeklenen:\n%q", out, want)
+	}
+	for _, d := range []struct{ kod, beklenen string }{
+		{"maks_indeks([1, 2])", "maks_indeks: bir tensör bekler, Liste verildi"},
+		{"maks_indeks(tensör([1, 2]), 0)", "maks_indeks(x, eksen: 0): eksen adlı verilir"},
+		{"maks_indeks(tensör([1, 2]), eksen: 1)", "eksen 1, [2] şeklindeki 1 boyutlu tensör için geçersiz"},
+		{"maks_indeks(sıfırlar([0]))", "boş"},
+	} {
+		if _, err := calistir(t, d.kod); err == nil || !strings.Contains(err.Error(), d.beklenen) {
+			t.Errorf("%s: %v (içermeli: %s)", d.kod, err, d.beklenen)
+		}
+	}
+}
 
 func TestListeIndirgemeleri(t *testing.T) {
 	// Listedeki tensörler çizgeyi koruyarak katlanır.

@@ -3,6 +3,7 @@ package tensor
 import (
 	"math"
 	"math/rand"
+	"strings"
 	"testing"
 )
 
@@ -138,6 +139,29 @@ func gradDenetle(t *testing.T, ad string, f func(xs []*Tensor) *Tensor, xs ...*T
 			if math.IsNaN(an) || math.Abs(num-an) > gcAtol+gcRtol*math.Max(math.Abs(num), math.Abs(an)) {
 				t.Fatalf("%s: girdi %d eleman %d: analitik %.6g, sayısal %.6g", ad, k, j, an, num)
 			}
+		}
+	}
+}
+
+// panikIcerir fn'in, mesajında parca geçen bir panik verdiğini doğrular.
+func panikIcerir(t *testing.T, ad, parca string, fn func()) {
+	t.Helper()
+	if m := panikMesaji(fn); !strings.Contains(m, parca) {
+		t.Fatalf("%s: %q içeren panik bekleniyordu, alınan: %q", ad, parca, m)
+	}
+}
+
+// nanAyni iki dilimin NaN'lar dahil bit düzeyinde değil değer düzeyinde aynı olduğunu
+// (NaN yerinde NaN) doğrular.
+func nanAyni(t *testing.T, ad string, got, want []float32) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("%s: uzunluk %d, beklenen %d", ad, len(got), len(want))
+	}
+	for i := range got {
+		gn, wn := got[i] != got[i], want[i] != want[i]
+		if gn != wn || (!gn && got[i] != want[i]) {
+			t.Fatalf("%s: %v, beklenen %v", ad, got, want)
 		}
 	}
 }

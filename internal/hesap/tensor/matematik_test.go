@@ -174,3 +174,47 @@ func BenchmarkUstel(b *testing.B) {
 		}
 	})
 }
+
+// Bulgu 11: üstelin sonucu elemanın konumuna (8'li gövde ya da kuyruk, blok sınırı) ve
+// softmax'ın eksenine bağlı değildir.
+func TestUstelKonumdanBagimsiz(t *testing.T) {
+	rng := rand.New(rand.NewSource(13))
+	for _, n := range []int{1, 7, 9, 15, 17, 255, 257, 300, 1000} {
+		x := make([]float32, n)
+		for i := range x {
+			x[i] = float32(rng.NormFloat64() * 30)
+		}
+		y := make([]float32, n)
+		expVek(y, x)
+		for i := range x {
+			var tek [1]float32
+			expVek(tek[:], x[i:i+1])
+			if y[i] != tek[0] && !(y[i] != y[i] && tek[0] != tek[0]) {
+				t.Fatalf("n=%d: e^x[%d] gövdede %v, tek başına %v", n, i, y[i], tek[0])
+			}
+		}
+	}
+	// Eşit elemanlı tensörde (hakem kanıtı: 9 eleman, e[0] != e[8]) hepsi aynı.
+	e := Full(-48.528, 9).Exp().Data()
+	for i := range e {
+		if e[i] != e[0] {
+			t.Fatalf("üstel(t)[%d] = %v, [0] = %v", i, e[i], e[0])
+		}
+	}
+	// Softmax son eksende ve diğer eksende aynı değerleri verir.
+	x := Randn(rng, 37, 11).MulScalar(5)
+	for _, logKip := range []bool{false, true} {
+		var a, b *Tensor
+		if logKip {
+			a, b = x.LogSoftmax(1), x.T().Contiguous().LogSoftmax(0).T()
+		} else {
+			a, b = x.Softmax(1), x.T().Contiguous().Softmax(0).T()
+		}
+		ad, bd := a.Data(), b.Data()
+		for i := range ad {
+			if ad[i] != bd[i] {
+				t.Fatalf("log=%v: softmax son eksen %v, eksen 0 %v ([%d])", logKip, ad[i], bd[i], i)
+			}
+		}
+	}
+}

@@ -109,3 +109,45 @@ func TestIsciSayisi(t *testing.T) {
 		t.Errorf("GOMAXPROCS=2'de %d işçi seçildi", got)
 	}
 }
+
+// Bulgu 10: işçi goroutine'inde (ya da çağıranın parçasında) oluşan panik kurtarılıp
+// çağırana taşınır; işçiler yarım işi sonraki çağrılarla eşzamanlı yürütmeye devam etmez ve
+// havuz kullanılabilir kalır. İç içe (geçici goroutine'li) yolda da aynı.
+func TestIsciPanigiCagiranaTasinir(t *testing.T) {
+	if workers() < 2 {
+		t.Skip("tek işlemci")
+	}
+	for _, icIce := range []bool{false, true} {
+		calistir := func(fn func()) {
+			if icIce {
+				dagit(2, 2, func(k, c int) {
+					if c == 0 {
+						fn()
+					}
+				})
+				return
+			}
+			fn()
+		}
+		var yurutulen atomic.Int64
+		m := panikMesaji(func() {
+			calistir(func() {
+				dagit(4, 64, func(_, c int) {
+					yurutulen.Add(1)
+					if c == 5 {
+						panic("tensor: işçide hata")
+					}
+				})
+			})
+		})
+		if m != "tensor: işçide hata" {
+			t.Fatalf("iç içe=%v: panik çağırana taşınmadı: %q", icIce, m)
+		}
+		// Havuz hâlâ çalışır ve bütün parçaları yürütür.
+		var n atomic.Int64
+		dagit(4, 100, func(_, c int) { n.Add(1) })
+		if n.Load() != 100 {
+			t.Fatalf("panik sonrası havuz %d/100 parça yürüttü", n.Load())
+		}
+	}
+}
