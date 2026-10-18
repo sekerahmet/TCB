@@ -299,6 +299,7 @@ type Okuyucu struct {
 	mu     sync.Mutex
 	oy     *veriyolu.OnYukleyici
 	ti     veriyolu.TopluIs
+	konum  veriyolu.Durum // tüketilen son toplu işten sonraki konum (durum, durum.go)
 	sayac  int
 	donem  int
 	bitti  bool
@@ -349,14 +350,19 @@ func (o *Okuyucu) TabloVerisi() ([]string, [][]string, error) {
 }
 
 func (o *Okuyucu) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
-	if kd == uyeSonraki {
+	switch kd {
+	case uyeSonraki:
 		return metot(kod.Ad(uyeSonraki), o.sonraki), nil
+	case uyeDurum:
+		return o.DurumSozlugu(nil)
+	case uyeDurumuYukle:
+		return metot(kod.Ad(uyeDurumuYukle), o.durumuYukleTR), nil
 	}
 	ne := OrnekleyiciTipi
 	if o.sirali {
 		ne = "Sıralı okuyucu"
 	}
-	return nil, baglama.UyeHatasi(ne, prop, kod.Adlar(uyeSonraki))
+	return nil, baglama.UyeHatasi(ne, prop, kod.Adlar(uyeSonraki, uyeDurum, uyeDurumuYukle))
 }
 
 // okuyucuArgumanlari toplu, bağlam ve (örnekleyicide) tohum argümanlarını okur. Konumlu
@@ -469,15 +475,19 @@ func okuyucuHatasi(fn string, k *Kume, t int, err error) error {
 func (k *Kume) okuyucuKur(sirali bool, b, t int, tohum uint64, kaynakGo veriyolu.Kaynak) *Okuyucu {
 	oy := veriyolu.OnYukle(context.Background(), kaynakGo, onYuklemeDerinligi)
 	o := &Okuyucu{sirali: sirali, kume: k, b: b, t: t, tohum: tohum, oy: oy}
-	o.kaynak = kaynakEkle(o, seviyeOkuyucu, func(sure time.Duration) error {
-		// Önden yükleyici, gorutini durduktan sonra örnekleyiciyi/okuyucuyu (ve açık
-		// parçaları) kapatır.
+	o.kaynak = kaynakEkle(o, seviyeOkuyucu, onYukleyiciKapatici(oy))
+	return o
+}
+
+// onYukleyiciKapatici önden yükleyicinin kaynak kaydındaki kapatıcısıdır: önden yükleyici,
+// gorutini durduktan sonra örnekleyiciyi/okuyucuyu (ve açık parçaları) kapatır.
+func onYukleyiciKapatici(oy *veriyolu.OnYukleyici) func(time.Duration) error {
+	return func(sure time.Duration) error {
 		if sure > 0 {
 			return oy.KapatZamanli(sure)
 		}
 		return oy.Kapat()
-	})
-	return o
+	}
 }
 
 // sonraki bir sonraki toplu işi [girdi, hedef] olarak verir; sıralı okuyucu bitince yok.
@@ -513,6 +523,7 @@ func (o *Okuyucu) sonraki(m *yurut.VM, args []yurut.Value, named map[string]yuru
 		}
 		o.sayac++
 		o.donem = o.ti.Durum.Donem
+		o.konum = o.ti.Durum
 		b, t = o.ti.B, o.ti.T
 		girdi, hedef, err = ayir(&o.ti)
 	})

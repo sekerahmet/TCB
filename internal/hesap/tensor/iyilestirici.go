@@ -343,6 +343,15 @@ func sayacOku(ad string, t *Tensor) int {
 	return int(d[0])<<24 | int(d[1])
 }
 
+// durumTensoru s'yi p'nin şeklinde tensör olarak verir: kopya ise bitişik bir kopyası
+// (State), değilse depolamanın kendisinin görünümü (DurumGorunumu).
+func durumTensoru(p *Tensor, s Storage, kopya bool) *Tensor {
+	if !kopya {
+		return fromStorage(p.be, s, p.shape)
+	}
+	return durumKopya(p, s)
+}
+
 // durumKopya depolamanın bitişik float32 kopyasını tensör olarak verir.
 func durumKopya(p *Tensor, s Storage) *Tensor {
 	c := p.be.Alloc(s.Len(), s.DType())
@@ -390,10 +399,10 @@ func durumAnahtarDenetle(st map[string]*Tensor, n int, onekler ...string) {
 }
 
 // anaDurum ana kopyaları duruma ekler.
-func (a *anaAgirliklar) durum(st map[string]*Tensor, params []*Tensor) {
+func (a *anaAgirliklar) durum(st map[string]*Tensor, params []*Tensor, kopya bool) {
 	for k, p := range params {
 		if a.ana[k] != nil && !a.kapali {
-			st[fmt.Sprintf("ana.%d", k)] = durumKopya(p, a.ana[k])
+			st[fmt.Sprintf("ana.%d", k)] = durumTensoru(p, a.ana[k], kopya)
 		}
 	}
 }
@@ -411,18 +420,26 @@ func (a *anaAgirliklar) yukle(st map[string]*Tensor, params []*Tensor) {
 }
 
 // State AdamW'nin durumunu verir (bkz. yukarıdaki açıklama).
-func (o *AdamW) State() map[string]*Tensor {
+func (o *AdamW) State() map[string]*Tensor { return o.durum(true) }
+
+// DurumGorunumu State gibidir ama kopya almaz: moment ve ana kopya tensörleri
+// iyileştiricinin kendi depolarının görünümleridir (adım sayaçları yeni tensördür). Yalnızca
+// okunmalı ve bir sonraki Step'ten önce kullanılmalıdır. Kontrol noktası durumu cihazda
+// ikinci bir kopya ayırmadan konağa indirmek için kullanır (büyük modelde GPU belleği).
+func (o *AdamW) DurumGorunumu() map[string]*Tensor { return o.durum(false) }
+
+func (o *AdamW) durum(kopya bool) map[string]*Tensor {
 	st := map[string]*Tensor{"adim": sayacTensoru(o.adim)}
 	for k, p := range o.Params {
 		if o.m[k] != nil {
-			st[fmt.Sprintf("m.%d", k)] = durumKopya(p, o.m[k])
-			st[fmt.Sprintf("v.%d", k)] = durumKopya(p, o.v[k])
+			st[fmt.Sprintf("m.%d", k)] = durumTensoru(p, o.m[k], kopya)
+			st[fmt.Sprintf("v.%d", k)] = durumTensoru(p, o.v[k], kopya)
 		}
 		if o.adimlar[k] != 0 {
 			st[fmt.Sprintf("adim.%d", k)] = sayacTensoru(o.adimlar[k])
 		}
 	}
-	o.ana.durum(st, o.Params)
+	o.ana.durum(st, o.Params, kopya)
 	return st
 }
 
@@ -448,14 +465,19 @@ func (o *AdamW) LoadState(st map[string]*Tensor) {
 }
 
 // State SGD'nin durumunu (momentum hızları ve ana kopyalar) verir.
-func (o *SGD) State() map[string]*Tensor {
+func (o *SGD) State() map[string]*Tensor { return o.durum(true) }
+
+// DurumGorunumu State gibidir ama kopya almaz (bkz. AdamW.DurumGorunumu).
+func (o *SGD) DurumGorunumu() map[string]*Tensor { return o.durum(false) }
+
+func (o *SGD) durum(kopya bool) map[string]*Tensor {
 	st := map[string]*Tensor{}
 	for k, p := range o.Params {
 		if o.hiz[k] != nil {
-			st[fmt.Sprintf("hiz.%d", k)] = durumKopya(p, o.hiz[k])
+			st[fmt.Sprintf("hiz.%d", k)] = durumTensoru(p, o.hiz[k], kopya)
 		}
 	}
-	o.ana.durum(st, o.Params)
+	o.ana.durum(st, o.Params, kopya)
 	return st
 }
 

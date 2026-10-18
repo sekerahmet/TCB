@@ -65,25 +65,58 @@ func (k *kayitOkuyucu) eksik(ne string) error {
 
 // kayitCoz boyut bayt uzunluğundaki bir tensör dosyasının içeriğini f'den çözer.
 func kayitCoz(f io.Reader, boyut int64) ([]kayitGirdisi, error) {
+	var girdiler []kayitGirdisi
+	err := kayitGez(f, boyut, func(g kayitGirdisi) error {
+		girdiler = append(girdiler, g)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return girdiler, nil
+}
+
+// kayitGez boyut bayt uzunluğundaki bir tensör dosyasını f'den sırayla çözer ve her girdiyi
+// her'e verir; her hata dönerse durur. Sağlama toplamı en sonda denetlenir: her'in gördüğü
+// veriler kayitGez hatasız dönene kadar güvenilir sayılmamalıdır.
+func kayitGez(f io.Reader, boyut int64, her func(kayitGirdisi) error) error {
 	k := &kayitOkuyucu{br: bufio.NewReaderSize(f, 1<<16), crc: crc32.NewIEEE(), kalan: boyut}
 	k.r = io.TeeReader(k.br, k.crc)
 	sayi, err := k.baslik()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	girdiler := make([]kayitGirdisi, 0, sayi)
 	adlar := map[string]bool{}
 	for gi := 0; gi < int(sayi); gi++ {
 		g, err := k.girdi(gi, adlar)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		girdiler = append(girdiler, g)
+		if err := her(g); err != nil {
+			return err
+		}
 	}
-	if err := k.saglama(); err != nil {
-		return nil, err
-	}
-	return girdiler, nil
+	return k.saglama()
+}
+
+// TensorGirdisi tensör dosyasındaki bir girdidir: ad, şekil, veri türü ve (16 bitlik
+// türlerde kayıpsız açılmış) değerler.
+type TensorGirdisi struct {
+	Ad    string
+	Sekil []int
+	Tur   tensor.DType
+	Veri  []float32
+}
+
+// TensorDosyasiGez tensör_kaydet biçimindeki bir dosyayı (boyut bayt) r'den sırayla çözer
+// ve her girdiyi her'e verir; büyük dosyalar bütün veri bellekte toplanmadan okunur. Bütün
+// sınırlar ve denetimler tensör_yükle'ninkilerdir; sağlama toplamı en sonda denetlenir, bu
+// yüzden her'in gördüğü veriler dönüş hatasız olana kadar güvenilir sayılmamalıdır (kontrol
+// noktası dosyayı önce yalnızca denetler, sonra yükler). Hata dosya biçimi hatasıdır.
+func TensorDosyasiGez(r io.Reader, boyut int64, her func(TensorGirdisi) error) error {
+	return kayitGez(r, boyut, func(g kayitGirdisi) error {
+		return her(TensorGirdisi{Ad: g.ad, Sekil: g.sekil, Tur: g.tur, Veri: g.veri})
+	})
 }
 
 // baslik sihirli baytları ve sürümü denetler, girdi sayısını verir.

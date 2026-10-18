@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"hash"
 	"hash/crc32"
 	"io"
 	"math"
@@ -142,53 +143,96 @@ func dosyayaYaz(yol string, girdiler []kayitGirdisi) error {
 	return yurut.AtomikYaz(yol, func(f io.Writer) error { return girdileriYaz(f, girdiler) })
 }
 
-func girdileriYaz(f io.Writer, girdiler []kayitGirdisi) (err error) {
-	bw := bufio.NewWriterSize(f, 1<<16)
-	crc := crc32.NewIEEE()
-	w := io.MultiWriter(bw, crc)
-	var b [8]byte
-	yaz := func(p []byte) {
-		if err == nil {
-			_, err = w.Write(p)
-		}
-	}
-	u16 := func(x uint16) { binary.LittleEndian.PutUint16(b[:2], x); yaz(b[:2]) }
-	u32 := func(x uint32) { binary.LittleEndian.PutUint32(b[:4], x); yaz(b[:4]) }
-	u64 := func(x uint64) { binary.LittleEndian.PutUint64(b[:8], x); yaz(b[:8]) }
-
-	yaz([]byte(dosyaSihirli))
-	u16(dosyaSurumu)
-	u32(uint32(len(girdiler)))
-	tampon := make([]byte, 0, 1<<16)
+func girdileriYaz(f io.Writer, girdiler []kayitGirdisi) error {
+	y := YeniTensorYazici(f, len(girdiler))
 	for _, g := range girdiler {
-		u32(uint32(len(g.ad)))
-		yaz([]byte(g.ad))
-		yaz([]byte{turKodu(g.tur), byte(len(g.sekil))})
-		for _, d := range g.sekil {
-			u64(uint64(d))
+		if err := y.Yaz(g.ad, g.sekil, g.tur, g.veri); err != nil {
+			return err
 		}
-		on6 := g.tur == tensor.BFloat16 || g.tur == tensor.Float16
-		for i := 0; i < len(g.veri); {
-			tampon = tampon[:0]
-			for ; i < len(g.veri) && len(tampon) < cap(tampon); i++ {
-				if on6 {
-					// Değer 16 bitlik türden açıldığı için geri çevirme kayıpsızdır.
-					tampon = binary.LittleEndian.AppendUint16(tampon, tensor.Bits16(g.tur, g.veri[i]))
-				} else {
-					tampon = binary.LittleEndian.AppendUint32(tampon, math.Float32bits(g.veri[i]))
-				}
+	}
+	return y.Bitir()
+}
+
+// TensorYazici tensör dosyasını (biçim yukarıda) girdi girdi yazar: kontrol noktası büyük
+// modelleri bütün veriyi bellekte toplamadan, tensör tensör konağa indirip bununla yazar.
+// Girdi sayısı baştan bilinir; Bitir sağlama toplamını yazar.
+type TensorYazici struct {
+	bw     *bufio.Writer
+	crc    hash.Hash32
+	w      io.Writer
+	kalan  int
+	b      [8]byte
+	tampon []byte
+	hata   error
+}
+
+// YeniTensorYazici f'ye girdiSayisi girdilik bir tensör dosyası yazmaya başlar (başlık).
+func YeniTensorYazici(f io.Writer, girdiSayisi int) *TensorYazici {
+	y := &TensorYazici{bw: bufio.NewWriterSize(f, 1<<16), crc: crc32.NewIEEE(), kalan: girdiSayisi, tampon: make([]byte, 0, 1<<16)}
+	y.w = io.MultiWriter(y.bw, y.crc)
+	y.yaz([]byte(dosyaSihirli))
+	y.u16(dosyaSurumu)
+	y.u32(uint32(girdiSayisi))
+	return y
+}
+
+func (y *TensorYazici) yaz(p []byte) {
+	if y.hata == nil {
+		_, y.hata = y.w.Write(p)
+	}
+}
+func (y *TensorYazici) u16(x uint16) { binary.LittleEndian.PutUint16(y.b[:2], x); y.yaz(y.b[:2]) }
+func (y *TensorYazici) u32(x uint32) { binary.LittleEndian.PutUint32(y.b[:4], x); y.yaz(y.b[:4]) }
+func (y *TensorYazici) u64(x uint64) { binary.LittleEndian.PutUint64(y.b[:8], x); y.yaz(y.b[:8]) }
+
+// Yaz bir girdiyi yazar: veri satır öncelikli değerlerdir (16 bitlik türlerde o türden
+// açılmış değerler; geri çevirme kayıpsızdır).
+func (y *TensorYazici) Yaz(ad string, sekil []int, tur tensor.DType, veri []float32) error {
+	switch {
+	case y.hata != nil:
+		return y.hata
+	case y.kalan <= 0:
+		return fmt.Errorf("tensör dosyasına bildirilenden fazla girdi yazılıyor (%q)", ad)
+	case len(ad) > enFazlaAdUz:
+		return fmt.Errorf("%q adı çok uzun (%d bayt; en fazla %d)", ad[:64], len(ad), enFazlaAdUz)
+	case len(sekil) > enFazlaBoyut:
+		return fmt.Errorf("%q en fazla %d eksenli olabilir, %s verildi", ad, enFazlaBoyut, sekilMetni(sekil))
+	}
+	y.kalan--
+	y.u32(uint32(len(ad)))
+	y.yaz([]byte(ad))
+	y.yaz([]byte{turKodu(tur), byte(len(sekil))})
+	for _, d := range sekil {
+		y.u64(uint64(d))
+	}
+	on6 := tur == tensor.BFloat16 || tur == tensor.Float16
+	for i := 0; i < len(veri); {
+		t := y.tampon[:0]
+		for ; i < len(veri) && len(t) < cap(t); i++ {
+			if on6 {
+				t = binary.LittleEndian.AppendUint16(t, tensor.Bits16(tur, veri[i]))
+			} else {
+				t = binary.LittleEndian.AppendUint32(t, math.Float32bits(veri[i]))
 			}
-			yaz(tampon)
 		}
+		y.yaz(t)
 	}
-	if err != nil {
+	return y.hata
+}
+
+// Bitir sağlama toplamını yazar ve tamponu boşaltır; bütün girdiler yazılmış olmalıdır.
+func (y *TensorYazici) Bitir() error {
+	if y.hata != nil {
+		return y.hata
+	}
+	if y.kalan != 0 {
+		return fmt.Errorf("tensör dosyasına %d girdi eksik yazıldı", y.kalan)
+	}
+	binary.LittleEndian.PutUint32(y.b[:4], y.crc.Sum32())
+	if _, err := y.bw.Write(y.b[:4]); err != nil {
 		return err
 	}
-	binary.LittleEndian.PutUint32(b[:4], crc.Sum32())
-	if _, err = bw.Write(b[:4]); err != nil {
-		return err
-	}
-	return bw.Flush()
+	return y.bw.Flush()
 }
 
 // tensorYukle tensör_kaydet ile yazılmış dosyayı sözlük olarak okur.

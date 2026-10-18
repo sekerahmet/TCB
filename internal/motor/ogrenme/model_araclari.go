@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/rand"
 	"sort"
-	"strconv"
 
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/yurut"
@@ -14,7 +13,8 @@ import (
 )
 
 // Bu dosya model yazmak için gereken yapı taşlarını TR'ye bağlar: tensör birleştirme ve
-// bölme, birleşik dikkat, token örnekleme ve bir modelin parametrelerini toplama.
+// bölme, birleşik dikkat ve token örnekleme. Bir modelin parametrelerini toplama ve yükleme:
+// parametreler.go.
 
 // Adlı argümanlar (adları kod listesinde, internal/dil/kod T9xx).
 var (
@@ -326,6 +326,7 @@ func orneklemeYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.V
 				u[i] = rng.Float64()
 			}
 		} else {
+			tohumsuzBildir()
 			rastgeleMu.Lock()
 			for i := range u {
 				u[i] = rastgeleKay.Float64()
@@ -387,94 +388,3 @@ func orneklemeYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.V
 	return YeniTam(r), nil
 }
 
-// ----------------------------------------------------------------------------
-// parametreler
-// ----------------------------------------------------------------------------
-
-// parametrelerYerlesik parametreler(model, adlarıyla: yanlış) yerleşiğidir: bir yapı
-// nesnesini (iç içe yapılar, listeler ve sözlüklerle birlikte) gezip türev izleyen yaprak
-// tensörleri sabit sırayla (yapı alanlarının tanım sırası, liste sırası, sözlük ekleme
-// sırası) toplar. Aynı tensör bir kez yer alır. adlarıyla: doğru yol adı → tensör sözlüğü
-// verir ("bloklar.0.dikkat.Wq"); bu sözlük tensör_kaydet ile kaydedilebilir.
-func parametrelerYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	fn := kod.Ad(kod.T530)
-	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(model, %s: %s) 1 konumlu parametre bekler, %d verildi", fn, adAdlariyla.TR, kod.Ad(kod.A041), len(args))
-	}
-	if err := baglama.AdliDenetle(fn+"()", named, adAdlariyla); err != nil {
-		return nil, err
-	}
-	adlariyla, err := adliMantik(fn, named, adAdlariyla, false)
-	if err != nil {
-		return nil, err
-	}
-	var bulunan []yurut.Value
-	var adlar []string
-	gorulen := map[*tensor.Tensor]bool{}
-	gezilen := map[any]bool{}
-	adSahibi := map[string]*tensor.Tensor{}
-	var hata error
-	var gez func(v yurut.Value, yol string)
-	gez = func(v yurut.Value, yol string) {
-		if hata != nil {
-			return
-		}
-		altYol := func(ad string) string {
-			if yol == "" {
-				return ad
-			}
-			return yol + "." + ad
-		}
-		switch x := v.(type) {
-		case *Deger:
-			if x.ara || !x.t.RequiresGrad() || gorulen[x.t] {
-				return
-			}
-			if o, ok := adSahibi[yol]; ok && o != x.t {
-				hata = fmt.Errorf("%s: iki farklı tensör aynı yol adına düşüyor (%q); sözlük anahtarlarında '.' kullanmayın", fn, yol)
-				return
-			}
-			gorulen[x.t] = true
-			adSahibi[yol] = x.t
-			bulunan = append(bulunan, x)
-			adlar = append(adlar, yol)
-		case *yurut.StructInstanceVal:
-			if gezilen[x] {
-				return
-			}
-			gezilen[x] = true
-			x.AlanlariGez(func(ad string, d yurut.Value) { gez(d, altYol(ad)) })
-		case *yurut.ListVal:
-			if gezilen[x] {
-				return
-			}
-			gezilen[x] = true
-			for i, el := range x.Elements {
-				gez(el, altYol(strconv.Itoa(i)))
-			}
-		case *yurut.DictVal:
-			if gezilen[x] {
-				return
-			}
-			gezilen[x] = true
-			for _, k := range x.Order {
-				gez(x.Pairs[k], altYol(x.DisplayKey(k)))
-			}
-		}
-	}
-	gez(args[0], "")
-	if hata != nil {
-		return nil, hata
-	}
-	if !adlariyla {
-		return &yurut.ListVal{Elements: bulunan}, nil
-	}
-	s := yurut.NewDictVal()
-	for i, ad := range adlar {
-		if ad == "" {
-			ad = "0" // model tek bir tensörse
-		}
-		s.Set(ad, bulunan[i])
-	}
-	return s, nil
-}

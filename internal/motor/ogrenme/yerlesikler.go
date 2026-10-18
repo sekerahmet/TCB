@@ -50,6 +50,7 @@ func Kaydet(v *yurut.VM) {
 	sar(v, kod.T230, yeniYerlesik(maksIndeks))
 	sar(v, kod.T700, yeniYerlesik(tensorKaydet))
 	sar(v, kod.T701, yeniYerlesik(tensorYukle))
+	sar(v, kod.T703, yeniYerlesik(parametreleriYukleYerlesik)) // parametreler.go
 }
 
 // olusturuculariKaydet tensör oluşturucularını (matris ve görünüm dahil) kaydeder.

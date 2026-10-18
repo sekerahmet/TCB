@@ -3,6 +3,7 @@ package veri
 import (
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -34,6 +35,9 @@ type kaynak struct {
 	kapat  func(sure time.Duration) error
 	once   sync.Once
 	err    error
+	// sonraki, sahibin kaynağı değişince (okuyucunun durumu_yükle'si) yerine geçen kaynaktır:
+	// sahibin sonlandırıcısı zinciri izleyip o anki kaynağı da kapatır.
+	sonraki atomic.Pointer[kaynak]
 }
 
 var (
@@ -44,12 +48,34 @@ var (
 // kaynakEkle bir kaynağı kayıt defterine ekler; sahip erişilemez olunca kapatılır.
 // Sonlandırıcı yalnızca k'yi yakalar, sahibi yakalamaz (aksi hâlde sahip hiç toplanmazdı).
 func kaynakEkle[T any](sahip *T, s seviye, kapat func(sure time.Duration) error) *kaynak {
+	k := kaynakKaydet(s, kapat)
+	runtime.SetFinalizer(sahip, func(*T) { go k.zincirKapat() })
+	return k
+}
+
+// kaynakKaydet bir kaynağı sonlandırıcı kurmadan kayıt defterine ekler.
+func kaynakKaydet(s seviye, kapat func(sure time.Duration) error) *kaynak {
 	k := &kaynak{seviye: s, kapat: kapat}
 	kayitMu.Lock()
 	kayit[k] = struct{}{}
 	kayitMu.Unlock()
-	runtime.SetFinalizer(sahip, func(*T) { go k.Kapat(0) })
 	return k
+}
+
+// degistir k'nin yerine yeni bir kaynak kaydeder ve k'yi kapatır; sahibin sonlandırıcısı
+// (k'den başlayan zincir) yenisini de kapatır. Yeni kaynağı döndürür.
+func (k *kaynak) degistir(kapat func(sure time.Duration) error) *kaynak {
+	yeni := kaynakKaydet(k.seviye, kapat)
+	k.sonraki.Store(yeni)
+	_ = k.Kapat(0)
+	return yeni
+}
+
+// zincirKapat kaynağı ve yerine geçen bütün kaynakları kapatır.
+func (k *kaynak) zincirKapat() {
+	for c := k; c != nil; c = c.sonraki.Load() {
+		_ = c.Kapat(0)
+	}
 }
 
 // Kapat kaynağı bir kez kapatır. sure > 0 ise takılan bir okumada en çok o kadar bekler.

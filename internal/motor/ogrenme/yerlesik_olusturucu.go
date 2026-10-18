@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/yurut"
@@ -132,6 +133,28 @@ var (
 	rastgeleKay = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
+// tohumsuzKanca tohumsuz rastgelelik (paylaşılan, saate göre tohumlanmış üreteç) her
+// kullanıldığında çağrılır. Kontrol noktası, sürdürülen eğitimin kesintisizle aynı
+// olmayacağını bir kez bildirmek için kurar; kanca yoksa maliyet tek bir atomik okumadır.
+var tohumsuzKanca atomic.Pointer[func()]
+
+// TohumsuzKancasiAyarla tohumsuz rastgelelik kancasını kurar (nil: kaldırır). Kanca
+// yorumlayıcı kilidi altında çağrılır; kısa olmalı ve TR kodu çalıştırmamalıdır.
+func TohumsuzKancasiAyarla(f func()) {
+	if f == nil {
+		tohumsuzKanca.Store(nil)
+		return
+	}
+	tohumsuzKanca.Store(&f)
+}
+
+// tohumsuzBildir paylaşılan üreteç kullanılmadan önce çağrılır.
+func tohumsuzBildir() {
+	if f := tohumsuzKanca.Load(); f != nil {
+		(*f)()
+	}
+}
+
 func rastgeleNormal(sh []int, named map[string]yurut.Value) (*tensor.Tensor, error) {
 	if s, ok := baglama.AdliAl(named, adTohum); ok {
 		tohum, ok := s.(*yurut.IntVal)
@@ -140,6 +163,7 @@ func rastgeleNormal(sh []int, named map[string]yurut.Value) (*tensor.Tensor, err
 		}
 		return tensor.Randn(rand.New(rand.NewSource(tohum.Val)), sh...), nil
 	}
+	tohumsuzBildir()
 	rastgeleMu.Lock()
 	defer rastgeleMu.Unlock()
 	return tensor.Randn(rastgeleKay, sh...), nil

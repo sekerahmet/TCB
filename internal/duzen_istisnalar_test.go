@@ -73,7 +73,6 @@ var uzunFonksiyonlar = map[string]istisna{
 	"internal/motor/ogrenme/yazdirma.go:Deger.Inspect":              {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
 	"internal/motor/ogrenme/model_araclari.go:orneklemeYerlesik":    {118, nYerlesik},
 	"internal/motor/ogrenme/yerlesik_indirgeme.go:indirgeme":        {85, nYerlesik},
-	"internal/motor/ogrenme/model_araclari.go:parametrelerYerlesik": {82, nYerlesik},
 	"internal/motor/parcalayici/parcalayici.go:Nesne.kodla":         {88, nYerlesik},
 
 	// Hesap çekirdekleri

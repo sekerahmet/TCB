@@ -45,7 +45,7 @@ const (
 	uyeSifirla = kod.Y501
 )
 
-var iyilestiriciUyeleri = kod.Adlar(uyeAdim, uyeSifirla)
+var iyilestiriciUyeleri = kod.Adlar(uyeAdim, uyeSifirla, uyeDurum, uyeDurumuYukle)
 
 // iyilestiriciTipi AdamW ve SGD değerlerinin tip adıdır (tip(op) → "İyileştirici").
 var iyilestiriciTipi = yurut.ValueType(yurut.TipAdi(kod.A214))
@@ -70,6 +70,9 @@ func (o *Iyilestirici) GetProperty(kd kod.Kod, prop string) (yurut.Value, error)
 			o.opt.ZeroGrad()
 			return yurut.NULL, nil
 		}}, nil
+	}
+	if v, ok, err := o.durumUyesi(kd); ok {
+		return v, err // durum, durumu_yükle (iyilestirici_durum.go)
 	}
 	oneri := ""
 	if s := turkce.EnYakin(prop, iyilestiriciUyeleri); s != "" {

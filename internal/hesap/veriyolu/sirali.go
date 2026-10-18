@@ -18,6 +18,10 @@ type SiraliSecenekleri struct {
 	// Varsayılan T: her token en çok bir kez hedef olur; parçanın ilk tokenı
 	// ve son pencereye sığmayan kuyruğu (en çok T-1 token) hedef olmaz.
 	Adim int
+	// Baslangic verilirse okuma bu konumdan sürer (bir toplu işin Durum'u: Sira parça
+	// sırası, Pencere o parçadaki sonraki pencerenin token konumu). Sira parça sayısına
+	// eşitse okuyucu baştan bitmiştir.
+	Baslangic *Durum
 }
 
 // SiraliOkuyucu, parçaları ad sırasıyla, karıştırmadan ve pencereleri
@@ -32,6 +36,7 @@ type SiraliOkuyucu struct {
 	sira   int
 	bas    int64
 	parca  *Parca
+	ilkBas int64 // Baslangic'ın pencere konumu: ilk açılan parçada bas bununla başlar
 	kapali bool
 }
 
@@ -49,7 +54,14 @@ func (k *Kume) Sirali(s SiraliSecenekleri) (*SiraliOkuyucu, error) {
 	if err := k.onbellekKotaDenetle(1, int64(s.T)+1); err != nil {
 		return nil, err
 	}
-	return &SiraliOkuyucu{k: k, s: s, satir: int64(s.T) + 1}, nil
+	so := &SiraliOkuyucu{k: k, s: s, satir: int64(s.T) + 1}
+	if b := s.Baslangic; b != nil {
+		if b.Sira < 0 || b.Sira > len(k.parcalar) || b.Pencere < 0 || (b.Sira == len(k.parcalar) && b.Pencere != 0) {
+			return nil, fmt.Errorf("veri: geçersiz başlangıç durumu %+v (parça sayısı %d)", *b, len(k.parcalar))
+		}
+		so.sira, so.ilkBas = b.Sira, b.Pencere
+	}
+	return so, nil
 }
 
 // PencereSayisi, okuyucunun baştan sona üreteceği pencere sayısıdır.
@@ -79,6 +91,7 @@ func (so *SiraliOkuyucu) Doldur(ctx context.Context, ti *TopluIs) error {
 			}
 			if so.k.parcalar[so.sira].Token < so.satir {
 				so.sira++
+				so.ilkBas = 0
 				continue
 			}
 			if err := ctx.Err(); err != nil {
@@ -88,7 +101,8 @@ func (so *SiraliOkuyucu) Doldur(ctx context.Context, ti *TopluIs) error {
 			if err != nil {
 				return err
 			}
-			so.parca, so.bas = p, 0
+			so.parca, so.bas = p, so.ilkBas
+			so.ilkBas = 0
 		}
 		if so.bas+so.satir > so.parca.Uzunluk() {
 			err := so.parca.Kapat()
@@ -128,7 +142,7 @@ func (so *SiraliOkuyucu) basa() error {
 		err = so.parca.Kapat()
 		so.parca = nil
 	}
-	so.sira, so.bas = 0, 0
+	so.sira, so.bas, so.ilkBas = 0, 0, 0
 	return err
 }
 
