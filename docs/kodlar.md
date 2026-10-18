@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 188 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 20 tip, 62 fonksiyon, 32 metot, 9 özellik, 31 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 208 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 22 tip, 69 fonksiyon, 32 metot, 18 özellik, 33 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -580,6 +580,26 @@ Kaldırıldı: 'WebSunucu' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 Kaldırıldı: 'GörselArayüz' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
+#### A250 `Yol`
+
+yol(...) ile kurulan dosya ya da klasör yolunun tipidir; değiştirilemez, ayırıcıyı / ile saklar ve gösterir. Özellikleri yola soru sorar (dosya_adı, uzantı, var_mı, bayt ...); yol alan her yerleşik Metin yerine Yol da kabul eder.
+
+```tr
+değişken y = yol("veri", "eğitim.txt"); yazdır(tip(y) == Yol, y)
+```
+
+Üyeleri: Y310 `dosya_adı`, Y311 `uzantı`, Y312 `uzantısız_ad`, Y313 `üst_klasör`, Y314 `mutlak`, Y315 `var_mı`, Y316 `dosya_mı`, Y317 `klasör_mü`, Y318 `bayt` · İlişkili: G120 `yol`
+
+#### A257 `SatırOkuyucu`
+
+dosya_satırları(...) ile açılan, dosyayı akışla satır satır okuyan okuyucunun tipidir; döngü ile gezilir ya da .sonraki() ile sıradaki satır alınır, dosya bitince yok verir.
+
+```tr
+dosya_yaz("okuyucu.txt", "a\nb"); değişken o = dosya_satırları("okuyucu.txt"); yazdır(tip(o) == SatırOkuyucu, o.sonraki(), o.sonraki(), o.sonraki())
+```
+
+Üyeleri: Y602 `sonraki` · İlişkili: G112 `dosya_satırları`, Y602 `sonraki`
+
 ## G — Genel yerleşikler
 
 ### Giriş, çıkış ve dosya (G1xx)
@@ -610,27 +630,111 @@ değişken ad = girdi("Adınız: "); yazdır("Merhaba " + ad)
 
 #### G110 `dosya_oku`
 
-    dosya_oku(Metin) → Metin
+    dosya_oku(Metin | Yol) → Metin
 
-Dosyanın tüm içeriğini Metin olarak okur; göreli yol önce çalışma klasörüne, sonra modülün ve programın klasörüne göre çözülür, dosya yoksa hata bakılan yerleri listeler.
+Dosyanın tüm içeriğini Metin olarak okur; yol Metin ya da Yol olabilir. Göreli yol önce çalışma klasörüne, sonra modülün ve programın klasörüne göre çözülür, dosya yoksa hata bakılan yerleri listeler. .gz uzantılı dosya açılarak okunur (açılmış içerik en çok 1 GB; daha büyüğü için dosya_satırları).
 
 ```tr
 dosya_yaz("notlar.txt", "merhaba"); yazdır(dosya_oku("notlar.txt"))
 ```
 
-İlişkili: G111 `dosya_yaz`, G602 `csv_oku`
+İlişkili: G111 `dosya_yaz`, G112 `dosya_satırları`, G602 `csv_oku`
 
 #### G111 `dosya_yaz`
 
-    dosya_yaz(Metin, Herhangi) → Mantık
+    dosya_yaz(Metin | Yol, Herhangi) → Mantık
 
-Değeri metne çevirip dosyaya yazar ve doğru döndürür; var olan dosyanın üzerine yazılır.
+Değeri metne çevirip dosyaya yazar ve doğru döndürür; var olan dosyanın yerine konur. Yazma atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılıp diske işlenir, sonra eski dosyanın yerine konur (yarıda kalan yazma eski dosyayı bozmaz). .gz uzantılı yola sıkıştırarak yazar.
 
 ```tr
 dosya_yaz("not.txt", "merhaba"); yazdır(dosya_oku("not.txt"))
 ```
 
 İlişkili: G110 `dosya_oku`
+
+#### G112 `dosya_satırları`
+
+    dosya_satırları(Metin | Yol) → SatırOkuyucu
+
+Dosyayı akışla satır satır okuyan bir SatırOkuyucu açar; bellek dosyanın boyutundan bağımsızdır. Satır sonu (\n, \r\n) ve baştaki BOM atılır, .gz uzantılı dosya açılarak okunur; tek satır en çok 64 MB olabilir.
+
+```tr
+dosya_yaz("satırlar.txt", "bir\niki\n"); döngü satır içinde dosya_satırları("satırlar.txt") { yazdır(satır) }
+```
+
+İlişkili: G110 `dosya_oku`, Y602 `sonraki`
+
+#### G120 `yol`
+
+    yol(Metin | Yol, [Metin | Yol...]) → Yol
+
+Parçaları / ile birleştirip temizlenmiş bir Yol kurar (a/./b/../c → a/c). İlk parçadan sonra mutlak bir parça, boş parça ya da sekme/satır sonu içeren parça hatadır; göreli yol, kullanıldığı anda dosya_oku ile aynı kuralla çözülür.
+
+```tr
+yazdır(yol("veri", "./eğitim/../derlem.txt"))
+```
+
+İlişkili: A250 `Yol`, G121 `klasörü_listele`
+
+#### G121 `klasörü_listele`
+
+    klasörü_listele([Metin | Yol], [Metin]) → Liste
+
+Klasörde kalıba uyan dosya ve klasörleri sıralı bir Yol listesi olarak verir (varsayılan: "." ve "*"). Kalıpta * ve ? bir bileşenin içinde, [a-z] bir karakter kümesi, ** tam bileşen olarak sıfır ya da çok klasör eşler; nokta ile başlayan adlar, kalıp da nokta ile başlamadıkça listelenmez, klasör bağlantılarının içine girilmez.
+
+```tr
+klasör_oluştur("liste/alt"); dosya_yaz("liste/a.npy", "1"); dosya_yaz("liste/alt/b.npy", "2"); yazdır(klasörü_listele("liste", "**/*.npy"))
+```
+
+İlişkili: G120 `yol`, G122 `klasör_oluştur`
+
+#### G122 `klasör_oluştur`
+
+    klasör_oluştur(Metin | Yol) → Yol
+
+Klasörü üst klasörleriyle birlikte oluşturur ve Yol olarak döndürür; klasör zaten varsa sorun değildir, aynı adda bir dosya varsa hatadır.
+
+```tr
+değişken k = klasör_oluştur("çıktı/kontrol_noktaları"); yazdır(k, k.klasör_mü)
+```
+
+İlişkili: G121 `klasörü_listele`, G123 `sil`
+
+#### G123 `sil`
+
+    sil(Metin | Yol, içindekilerle: Mantık = yanlış) → Tam
+
+Dosyayı, bağlantıyı ya da boş klasörü siler ve silinen dosya sayısını verir; dolu klasör için içindekilerle: doğru gerekir. Olmayan yol, salt okunur dosya, kök, ev ve sistem klasörleri, çalışma ve program klasörü ile onların üstleri hatadır; bağlantıların gösterdiği yere dokunulmaz, joker karakter genişletilmez.
+
+```tr
+dosya_yaz("silinecek.txt", "x"); yazdır(sil("silinecek.txt"))
+```
+
+İlişkili: G122 `klasör_oluştur`, G125 `taşı`
+
+#### G124 `kopyala`
+
+    kopyala(Metin | Yol, Metin | Yol, üzerine_yaz: Mantık = yanlış) → Yol
+
+Dosyayı ya da klasörü (içindekilerle) kopyalar ve hedefin yolunu döndürür. Hedef var olan bir klasörse kaynak onun içine aynı adla gider; hedef zaten varsa üzerine_yaz: doğru gerekir. Değiştirilme zamanı korunur, bağlantılar kopyalanmaz (atlanır, uyarı yazılır); kopya önce geçici bir ada yazılıp yerine konur.
+
+```tr
+dosya_yaz("ağırlık.txt", "w"); klasör_oluştur("yedek"); yazdır(kopyala("ağırlık.txt", "yedek"))
+```
+
+İlişkili: G125 `taşı`
+
+#### G125 `taşı`
+
+    taşı(Metin | Yol, Metin | Yol, üzerine_yaz: Mantık = yanlış) → Yol
+
+Dosyayı ya da klasörü taşır ve hedefin yolunu döndürür; hedef kuralları kopyala ile aynıdır. Aynı diskte yeniden adlandırır; başka bir diske kopyalar, boyutu doğrular, sonra kaynağı siler (kaynağa sil'in korumaları uygulanır).
+
+```tr
+dosya_yaz("taşınacak.txt", "x"); yazdır(taşı("taşınacak.txt", "taşındı.txt"))
+```
+
+İlişkili: G124 `kopyala`, G123 `sil`
 
 ### Değer, tip ve dönüşüm (G2xx)
 
@@ -896,9 +1000,9 @@ yazdır(json_metin({"ad": "Ali", "puan": [90, 85]}))
 
 #### G602 `csv_oku`
 
-    csv_oku(Metin) → Liste
+    csv_oku(Metin | Yol) → Liste
 
-Bir dosya yolunu ya da CSV metninin kendisini satır listelerine çevirir; hücreler yalnızca katı sayı biçimindeyse sayı olur ("007" Metin kalır).
+Bir dosya yolunu ya da CSV metninin kendisini satır listelerine çevirir; Yol verilirse her zaman dosya okunur, .gz uzantılı dosya açılarak okunur. Hücreler yalnızca katı sayı biçimindeyse sayı olur ("007" Metin kalır).
 
 ```tr
 değişken tablo = csv_oku("ad,yaş\nAli,30"); yazdır(tablo[1][0], tablo[1][1] + 1)
@@ -2124,6 +2228,110 @@ yazdır({"ad": "Ali", "puan": 30}.değerler())
 
 İlişkili: Y300 `anahtarlar`
 
+#### Y310 `dosya_adı`
+
+    Yol.dosya_adı → Metin
+
+Yolun son bileşenini verir ("veri/derlem.tar.gz" → "derlem.tar.gz"); . ve kök için boş metindir.
+
+```tr
+yazdır(yol("veri/derlem.tar.gz").dosya_adı)
+```
+
+İlişkili: Y311 `uzantı`, Y312 `uzantısız_ad`
+
+#### Y311 `uzantı`
+
+    Yol.uzantı → Metin
+
+Dosya adının noktasıyla birlikte son uzantısını verir ("derlem.tar.gz" → ".gz"); uzantı yoksa ya da ad nokta ile başlıyorsa (".gitignore") boş metindir.
+
+```tr
+yazdır(yol("veri/derlem.tar.gz").uzantı)
+```
+
+İlişkili: Y312 `uzantısız_ad`
+
+#### Y312 `uzantısız_ad`
+
+    Yol.uzantısız_ad → Metin
+
+Dosya adının son uzantısı atılmış hâlini verir ("derlem.tar.gz" → "derlem.tar"); uzantısız_ad + uzantı her zaman dosya_adı'dır.
+
+```tr
+yazdır(yol("veri/derlem.tar.gz").uzantısız_ad)
+```
+
+İlişkili: Y311 `uzantı`
+
+#### Y313 `üst_klasör`
+
+    Yol.üst_klasör → Yol
+
+Yolun bulunduğu klasörü Yol olarak verir; tek bileşenli göreli yolda . olur.
+
+```tr
+yazdır(yol("veri/eğitim/a.npy").üst_klasör)
+```
+
+İlişkili: Y310 `dosya_adı`
+
+#### Y314 `mutlak`
+
+    Yol.mutlak → Yol
+
+Yolu dosya_oku ile aynı kuralla (önce çalışma klasörü, sonra modülün ve programın klasörü) çözüp mutlak bir Yol olarak verir; günlük ve hata ayıklama için.
+
+```tr
+yazdır(yol("a.txt").mutlak.dosya_adı)
+```
+
+#### Y315 `var_mı`
+
+    Yol.var_mı → Mantık
+
+Yolda bir dosya ya da klasör var mı söyler; bağlantıyı izler, kırık bağlantıda yanlış verir.
+
+```tr
+dosya_yaz("var.txt", "x"); yazdır(yol("var.txt").var_mı, yol("olmayan.txt").var_mı)
+```
+
+İlişkili: Y316 `dosya_mı`, Y317 `klasör_mü`
+
+#### Y316 `dosya_mı`
+
+    Yol.dosya_mı → Mantık
+
+Yol sıradan bir dosya mı söyler (bağlantıyı izler); yol yoksa yanlış verir.
+
+```tr
+klasör_oluştur("bir_klasör"); yazdır(yol("bir_klasör").dosya_mı)
+```
+
+İlişkili: Y315 `var_mı`, Y317 `klasör_mü`
+
+#### Y317 `klasör_mü`
+
+    Yol.klasör_mü → Mantık
+
+Yol bir klasör mü söyler (bağlantıyı izler); yol yoksa yanlış verir.
+
+```tr
+klasör_oluştur("bir_klasör"); yazdır(yol("bir_klasör").klasör_mü)
+```
+
+İlişkili: Y315 `var_mı`, Y316 `dosya_mı`
+
+#### Y318 `bayt`
+
+    Yol.bayt → Tam
+
+Dosyanın boyutunu bayt olarak Tam verir (.gz dosyada sıkıştırılmış boyut); klasörde ve olmayan dosyada hata verir.
+
+```tr
+dosya_yaz("boyut.txt", "merhaba"); yazdır(yol("boyut.txt").bayt)
+```
+
 ### Tensör (Y4xx)
 
 #### Y400 `şekil`
@@ -2324,14 +2532,15 @@ yazdır(veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4).sonr
 
     Örnekleyici.sonraki() → Liste
     SıralıOkuyucu.sonraki() → Liste | Yok
+    SatırOkuyucu.sonraki() → Metin | Yok
 
-Bir sonraki toplu işi [girdi, hedef] tensörleri olarak verir; ikisinin şekli [toplu, bağlam] olur ve hedef bir parça kaydırılmıştır. Sıralı okuyucu bitince yok verir.
+Örnekleyici ve sıralı okuyucuda bir sonraki toplu işi [girdi, hedef] tensörleri olarak (ikisi de [toplu, bağlam] şeklinde, hedef bir parça kaydırılmış), SatırOkuyucu'da sıradaki satırı Metin olarak verir. Sıralı okuyucu veri, SatırOkuyucu dosya bitince yok verir.
 
 ```tr
 değişken girdi, hedef = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4).sonraki(); yazdır(girdi.değer, hedef.değer)
 ```
 
-İlişkili: Y600 `örnekleyici`, Y601 `sıralı`
+İlişkili: Y600 `örnekleyici`, Y601 `sıralı`, G112 `dosya_satırları`
 
 #### Y610 `kodla`
 
@@ -2479,4 +2688,4 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/dil/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `veri_kümesi`, `parçalayıcı_yükle`

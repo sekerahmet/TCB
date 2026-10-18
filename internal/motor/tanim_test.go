@@ -251,6 +251,8 @@ func TestUyeTipleriTanimlaAyni(t *testing.T) {
 		{kod.A232, `veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 1, bağlam: 2)`},
 		{kod.A233, `veri_kümesi("testler/veri/sayilar").sıralı(toplu: 1, bağlam: 2)`},
 		{kod.A234, `parçalayıcı_yükle("testler/veri/parcalayici.json")`},
+		{kod.A250, `yol("testler/yerlesikler_test.tr")`},
+		{kod.A257, `dosya_satırları("testler/veri/parcalayici.json")`},
 	}
 	var kur []string
 	for i, o := range ornekler {

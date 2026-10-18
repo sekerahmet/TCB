@@ -160,7 +160,13 @@ func (v *VM) uyeDegeri(obj Value, e *agac.MemberExpression, u uyeBilgisi) (Value
 
 	// Tensör, iyileştirici, veri kümesi ve parçalayıcı özellikleri
 	if pg, ok := obj.(PropertyGetter); ok {
-		val, err := pg.GetProperty(u.kod, e.Property)
+		var val Value
+		var err error
+		if g, ok := pg.(GorevliUyeKancasi); ok {
+			val, err = g.GorevliUye(v, u.kod, e.Property)
+		} else {
+			val, err = pg.GetProperty(u.kod, e.Property)
+		}
 		if err != nil && u.kod == kod.Yok {
 			if h := tasinanUyeHatasi(obj, e.Property); h != "" {
 				err = fmt.Errorf("%s", h)

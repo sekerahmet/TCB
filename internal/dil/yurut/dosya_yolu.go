@@ -82,6 +82,11 @@ func OkumaHatasi(fn, yol, islem string, err error, bakilanlar []string) error {
 	return turkce.DosyaHatasi(fn, yol, islem, err, ek)
 }
 
+// KodKlasorleri çalışan kodun klasörleridir: kod bir modülde çalışıyorsa önce o modülün
+// klasörü, sonra programın klasörü (göreli yolların çalışma klasöründen sonra arandığı
+// yerler; sil bunları ve üstlerini silmez). Program bir dosyadan çalışmıyorsa boştur.
+func (v *VM) KodKlasorleri() []string { return v.aramaKlasorleri() }
+
 // aramaKlasorleri göreli yolların çalışma klasöründen sonra arandığı klasörlerdir: kod bir
 // modülde çalışıyorsa önce o modülün klasörü, sonra programın klasörü. Program bir
 // dosyadan çalışmıyorsa (etkileşimli kabuk, derlenmiş uygulama: "<...>") onun klasörü yoktur.

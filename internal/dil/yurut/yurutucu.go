@@ -41,6 +41,15 @@ type PropertyGetter interface {
 	GetProperty(kd kod.Kod, ad string) (Value, error)
 }
 
+// GorevliUyeKancasi, PropertyGetter'ın üyeyi okuyan görevi (VM görünümünü) de alan
+// biçimidir. Sonucu göreve özel duruma bağlı olan özellikler (ör. Yol'un var_mı'sı: göreli
+// yol, kodun çalıştığı modülün ve programın klasörüne göre çözülür) bunu uygular; uygulayan
+// değerde nokta erişimi GetProperty yerine bunu çağırır (GetProperty öneri ve hata yolunda
+// görevsiz okumalar için kalır).
+type GorevliUyeKancasi interface {
+	GorevliUye(v *VM, kd kod.Kod, ad string) (Value, error)
+}
+
 // HataAyiklayici, VM'nin her deyimden önce danıştığı hata ayıklayıcıdır. Uygulaması
 // tr_dili/internal/arac/ayikla paketindedir; internal/dil/yurut onu içe aktarmaz.
 type HataAyiklayici interface {

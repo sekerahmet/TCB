@@ -59,7 +59,7 @@ test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çal�
     dene { dosya_yaz("olmayan_klasör_tr/a.txt", "x") } yakala h { m = h }
     doğrula(m.biter("dosya_yaz(): \"olmayan_klasör_tr/a.txt\" yazılamadı: \"olmayan_klasör_tr\" klasörü yok"), m)
     dene { dosya_oku(5) } yakala h { m = h }
-    doğrula(m.biter("dosya_oku() 1. argüman olarak Metin bekler, Tam (5) verildi"), m)
+    doğrula(m.biter("dosya_oku() 1. argüman olarak Metin ya da Yol bekler, Tam (5) verildi"), m)
 }
 
 test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham metni önerir" {

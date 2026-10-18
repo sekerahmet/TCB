@@ -74,11 +74,12 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		`değişken u_tensor = tensör([[1.0, 2.0]], türev_izle: doğru)`,
 		`değişken u_iyilestirici = SGD([u_tensor])`,
 		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(depo.Yol("internal/hesap/parca/testdata/p_bayt_bpe.json")) + `")`,
+		`değişken u_yol = yol("` + filepath.ToSlash(depo.Yol("go.mod")) + `")`,
 	}, "\n")
 	if _, err := calistirAyni(t, m, kur); err != nil {
 		t.Fatal(err)
 	}
-	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici"}
+	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol"}
 	for _, k := range kod.Kodlar() {
 		if k.Alan() != kod.AlanUye || (k >= kod.Y600 && k <= kod.Y602) {
 			continue

@@ -50,7 +50,7 @@ func Kaydet(v *yurut.VM) {
 		if len(args) != 1 {
 			return nil, yurut.ArgumanSayisiHatasi(kod.G602, "1", len(args), "dosya ya da metin")
 		}
-		input, err := csvGirdisi(makine, args[0].Inspect())
+		input, err := csvGirdisi(makine, args[0])
 		if err != nil {
 			return nil, err
 		}
@@ -59,34 +59,41 @@ func Kaydet(v *yurut.VM) {
 }
 
 // csvGirdisi csv_oku argümanını ayrıştırılacak CSV metnine çevirir:
+//   - Argüman bir Yol (yurut.YolDegerli) ise her zaman dosya okunur.
 //   - Argüman var olan bir dosyanın yoluysa dosya okunur. Göreli yollar önce çalışma
-//     klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür.
+//     klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür. .gz uzantılı dosya
+//     açılarak okunur (bkz. yurut.DosyaIceriginiOku).
 //   - Argüman yol gibi görünüyor ama öyle bir dosya yoksa "dosya yok" hatası
 //     verilir (eskiden "yok.csv" metni tek hücreli bir tablo olarak sessizce dönüyordu).
 //   - Aksi hâlde argüman CSV içeriğinin kendisi sayılır ve olduğu gibi ayrıştırılır
 //     (ör. csv_oku("ad,yaş\nAli,30")); bu eski davranış bilerek korunmuştur.
-func csvGirdisi(makine *yurut.VM, arg string) (string, error) {
+func csvGirdisi(makine *yurut.VM, d yurut.Value) (string, error) {
 	fn := kod.Ad(kod.G602)
+	yolDegeri, kesinYol := d.(yurut.YolDegerli)
+	arg := d.Inspect()
+	if kesinYol {
+		arg = yolDegeri.DosyaYolu()
+	}
 	yol, bakilanlar := baglama.YolCozBakilan(makine, arg)
 	bilgi, statErr := os.Stat(yol)
 	if statErr == nil {
 		if bilgi.IsDir() {
 			return "", fmt.Errorf("%s: %q bir klasör; CSV dosyasının yolunu verin", fn, arg)
 		}
-		data, err := os.ReadFile(yol)
+		data, err := yurut.DosyaIceriginiOku(yol)
 		if err != nil {
 			return "", turkce.DosyaHatasi(fn, arg, "okunamadı", err)
 		}
 		return string(data), nil
 	}
-	if yolGibi(arg) {
+	if kesinYol || yolGibi(arg) {
 		return "", yurut.OkumaHatasi(fn, arg, "okunamadı", statErr, bakilanlar)
 	}
 	return arg, nil
 }
 
 // yolGibi argümanın CSV içeriği değil bir dosya yolu olarak yazıldığını tahmin eder.
-// Tek satırlık olmalı ve ya .csv uzantısıyla bitmeli ya da yol ayırıcı (/ veya \)
+// Tek satırlık olmalı ve ya .csv (ya da .csv.gz) uzantısıyla bitmeli ya da yol ayırıcı (/ veya \)
 // içerip virgül içermemelidir. Virgül şartı "tarih,1/2/2024" gibi tek satırlık CSV
 // içeriklerinin yol sanılmasını önler.
 func yolGibi(s string) bool {
@@ -94,7 +101,7 @@ func yolGibi(s string) bool {
 	if s == "" || strings.ContainsAny(s, "\r\n") {
 		return false
 	}
-	if strings.HasSuffix(strings.ToLower(s), ".csv") {
+	if k := strings.ToLower(s); strings.HasSuffix(k, ".csv") || strings.HasSuffix(k, ".csv.gz") {
 		return true
 	}
 	return strings.ContainsAny(s, `/\`) && !strings.Contains(s, ",")

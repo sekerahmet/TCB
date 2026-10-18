@@ -1,5 +1,5 @@
 // Package motor, çekirdek yorumlayıcının (internal/dil/yurut) içe aktarmadığı parçaları ona bağlar:
-// tensör ve yapay zekâ, veri ve parçalayıcı, JSON/CSV motorlarının yerleşikleri. Tam dili
+// tensör ve yapay zekâ, veri ve parçalayıcı, JSON/CSV, dosya ve yol motorlarının yerleşikleri. Tam dili
 // çalıştıran her program bu paketi içe aktarmalıdır:
 //
 //	import _ "tr_dili/internal/motor"
@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/motor/dosya"
 	"tr_dili/internal/motor/ogrenme"
 	"tr_dili/internal/motor/parcalayici"
 	"tr_dili/internal/motor/veri"
@@ -23,6 +24,7 @@ import (
 
 func init() {
 	yurut.MotorEkle(veribicim.Kaydet)
+	yurut.MotorEkle(dosya.Kaydet)
 	// Tensör motoru (tensör, otomatik türev, katmanlar) çekirdek yerleşiklerini (toplam,
 	// ortalama, min, maks, karekök) sarar; bu yüzden onlardan SONRA kaydedilmelidir.
 	yurut.MotorEkle(ogrenme.Kaydet)
@@ -32,8 +34,9 @@ func init() {
 }
 
 // Kapat motorların program boyunca açık kalmış kaynaklarını (veri kümesi okuyucuları,
-// önden yükleme gorutinleri, önbellekler) kapatır. Program bitince çağrılır; takılan bir
+// önden yükleme gorutinleri, önbellekler, satır okuyucularının dosyaları) kapatır. Program bitince çağrılır; takılan bir
 // okumada en çok birkaç saniye bekler. Birden çok kez çağrılabilir.
 func Kapat() {
 	veri.TumunuKapat(3 * time.Second)
+	dosya.TumunuKapat()
 }

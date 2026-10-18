@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -294,37 +293,40 @@ func zamanMsYerlesik(y *VM, args []Value, named map[string]Value) (Value, error)
 // dosyaOkuYerlesik dosya_oku() yerleşiğidir.
 func dosyaOkuYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgumanSayisiHatasi(kod.G110, "1", len(args), "yol")
+		return nil, ArgumanSayisiHatasi(kod.G110, "1", len(args), "dosya")
 	}
 	yol, ok, err := YolArgumani(Cagri(kod.G110), args[0])
 	if !ok {
-		return nil, ArgumanTipHatasi(kod.G110, 1, args[0], kod.A202)
+		return nil, ArgumanTipHatasi(kod.G110, 1, args[0], kod.A202, kod.A250)
 	}
 	if err != nil {
 		return nil, err
 	}
 	cozulen, bakilanlar := y.YolCoz(yol)
-	data, err := os.ReadFile(cozulen)
+	var data []byte
+	y.Blocking(func() { data, err = DosyaIceriginiOku(cozulen) })
 	if err != nil {
 		return nil, OkumaHatasi(Cagri(kod.G110), yol, "okunamadı", err, bakilanlar)
 	}
 	return &StringVal{Val: string(data)}, nil
 }
 
-// dosyaYazYerlesik dosya_yaz() yerleşiğidir.
+// dosyaYazYerlesik dosya_yaz() yerleşiğidir. Yazma atomiktir (bkz. AtomikYaz).
 func dosyaYazYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 2 {
 		return nil, ArgumanSayisiHatasi(kod.G111, "2", len(args), "yol, içerik")
 	}
 	yol, ok, err := YolArgumani(Cagri(kod.G111), args[0])
 	if !ok {
-		return nil, ArgumanTipHatasi(kod.G111, 1, args[0], kod.A202)
+		return nil, ArgumanTipHatasi(kod.G111, 1, args[0], kod.A202, kod.A250)
 	}
 	if err != nil {
 		return nil, err
 	}
 	cozulen, _ := y.YolCoz(yol)
-	if err := os.WriteFile(cozulen, []byte(args[1].Inspect()), 0644); err != nil {
+	icerik := []byte(args[1].Inspect())
+	y.Blocking(func() { err = DosyaIceriginiYaz(cozulen, icerik) })
+	if err != nil {
 		return nil, turkce.DosyaHatasi(Cagri(kod.G111), yol, "yazılamadı", err)
 	}
 	return TRUE, nil

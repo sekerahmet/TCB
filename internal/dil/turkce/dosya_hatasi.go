@@ -20,6 +20,13 @@ type dosyaHatasi struct {
 func (h *dosyaHatasi) Error() string { return h.mesaj }
 func (h *dosyaHatasi) Unwrap() error { return h.ozgun }
 
+// Neden kendi Türkçe neden cümlesini taşıyan bir dosya hatasıdır (işletim sisteminden
+// gelmeyen durumlar: "uzantısı .gz ama içerik gzip değil", "salt okunur dosya" ...).
+// DosyaHatasi onu olduğu gibi yazar.
+type Neden string
+
+func (n Neden) Error() string { return string(n) }
+
 // DosyaHatasi bir dosya işleminin hatasını kullanıcıya gösterilecek Türkçe mesaja çevirir;
 // işletim sisteminin İngilizce metni ("The system cannot find the file specified")
 // kullanıcıya sızmaz. Mesaj tek satırdır:
@@ -59,6 +66,10 @@ func DosyaHatasi(fn, yol, islem string, err error, ekler ...string) error {
 func DosyaHatasiNedeni(yol string, err error) string {
 	if err == nil {
 		return ""
+	}
+	var n Neden
+	if errors.As(err, &n) {
+		return string(n)
 	}
 	// Denetimler işletim sisteminin gerçekten denediği yolla yapılır (göreli yol programın
 	// klasörüne göre çözülmüş olabilir).
