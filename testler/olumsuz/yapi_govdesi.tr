@@ -1,0 +1,5 @@
+// Bilerek hatalı: 7.1 — yapı gövdesinde yalnızca alanlar ve fonksiyon tanımları bulunur.
+yapı A {
+    x = 1
+    yazdır("...")
+}

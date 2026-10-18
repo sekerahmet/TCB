@@ -16,12 +16,43 @@ test "7.1 yapı alanları ve varsayılan değerleri" {
     değişken p = Nokta()
     eşit_mi(0, p.x)
     eşit_mi(0, p.y)
+    yapı Satır { a, b: Tam = 2; c }
+    eşit_mi("Satır{a: yok, b: 2, c: yok}", metin(Satır()))
+}
+
+test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatasıdır" {
+    değişken hatalar = []
+    dene { aktar "olumsuz/yapi_govdesi" } yakala h { hatalar.ekle(h) }
+    dene { aktar "olumsuz/yapi_yinelenen_alan" } yakala h { hatalar.ekle(h) }
+    dene { aktar "olumsuz/yapi_yinelenen_metot" } yakala h { hatalar.ekle(h) }
+    eşit_mi(3, uzunluk(hatalar), metin(hatalar))
+    doğrula(hatalar[0].içerir("Satır 4, Sütun 5: Sözdizimi hatası — yapı gövdesinde yalnızca alanlar"), hatalar[0])
+    doğrula(hatalar[1].içerir("Satır 4, Sütun 5: Sözdizimi hatası — 'x' alanı 'A' yapısında iki kez tanımlandı"), hatalar[1])
+    doğrula(hatalar[2].içerir("'f' metodu 'A' yapısında iki kez tanımlandı"), hatalar[2])
 }
 
 test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
     eşit_mi(3, Nokta(3, 4).x)
     eşit_mi(4, Nokta(y: 4).y)
     eşit_mi(0, Nokta(y: 4).x)
+}
+
+test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
+    değişken hatalar = []
+    dene { Nokta(1, 2, 3) } yakala h { hatalar.ekle(h) }
+    dene { Nokta(yy: 9) } yakala h { hatalar.ekle(h) }
+    eşit_mi(2, uzunluk(hatalar), metin(hatalar))
+    doğrula(hatalar[0].içerir("'Nokta' yapısı en fazla 2 argüman alır (alanlar: x, y), 3 verildi"), hatalar[0])
+    doğrula(hatalar[1].içerir("'Nokta' yapısının 'yy' adında bir alanı yok. Bunu mu demek istediniz: 'y'?"), hatalar[1])
+    // kurucu varsa argümanlar kurucunun imzasına göre denetlenir
+    yapı Hesap {
+        bakiye
+        fonksiyon kurucu(b, kat = 2) { kendi.bakiye = b * kat }
+    }
+    eşit_mi(15, Hesap(5, 3).bakiye)
+    değişken m = ""
+    dene { Hesap(1, 2, 3) } yakala h { m = h }
+    doğrula(m.içerir("'kurucu' fonksiyonu en fazla 2 argüman alır, 3 verildi"), m)
 }
 
 test "7.3 metotlar kendi ile nesneye erişir" {
@@ -46,6 +77,19 @@ test "7.5 alanlar atanabilir; olmayan alan hata verir" {
     değişken mesaj = ""
     dene { p.z } yakala h { mesaj = h }
     doğrula(mesaj.içerir("bulunamadı"), mesaj)
+    eşit_mi(yok, p?.z)
+}
+
+test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman tanımdakilerdir" {
+    değişken p = Nokta(1, 2)
+    değişken hatalar = []
+    dene { p.z = 5 } yakala h { hatalar.ekle(h) }
+    dene { p.taşı = 5 } yakala h { hatalar.ekle(h) }
+    eşit_mi(2, uzunluk(hatalar), metin(hatalar))
+    doğrula(hatalar[0].içerir("Nokta yapısında 'z' alanı yok; yapı tanımına 'z' alanını ekleyin"), hatalar[0])
+    doğrula(hatalar[1].içerir("'taşı' Nokta yapısının bir metodu; metoda değer atanamaz"), hatalar[1])
+    eşit_mi("Nokta{x: 1, y: 2}", metin(p))
+    doğrula(p == Nokta(1, 2))
 }
 
 test "7.6 nesneler içerikle karşılaştırılır; tip() yapı adını verir" {

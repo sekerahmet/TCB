@@ -1,0 +1,5 @@
+// Bilerek hatalı: 7.1 — aynı metot iki kez tanımlanamaz.
+yapı A {
+    fonksiyon f() { sonuç 1 }
+    fonksiyon f() { sonuç 2 }
+}

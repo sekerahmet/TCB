@@ -91,6 +91,16 @@ func cekirdekUyesi(k sozluk.Kod) bool {
 	return metot || k == uyeUzunluk || k == uyeIlk || k == uyeSon
 }
 
+// sozlukUyesiMi ad bir sözlük üyesinin (metot ya da .uzunluk) adı mı?
+func sozlukUyesiMi(ad string) bool {
+	k := sozluk.UyeKodu(ad)
+	if k == uyeUzunluk {
+		return true
+	}
+	cm := cekirdekMetotlari[k]
+	return cm != nil && cm.sozluk != nil
+}
+
 // metotBul nesnenin tipine göre derleme anında çözülmüş metodu döndürür.
 func metotBul(obj Value, cm *cekirdekMetot) *yerlesikMetot {
 	if cm == nil {
@@ -305,6 +315,10 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u uyeBilgisi, safe bool, 
 	case *StringVal:
 		if u.kod == uyeUzunluk {
 			return NewInt(int64(utf8.RuneCountInString(inst.Val))), nil
+		}
+	case *DictVal:
+		if u.kod == uyeUzunluk {
+			return NewInt(int64(len(inst.Pairs))), nil
 		}
 	case *ListVal:
 		switch u.kod {

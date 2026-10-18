@@ -91,6 +91,20 @@ test "3.7 Sözlük: eklenme sırasını korur, çıplak ad anahtarı metindir" {
     eşit_mi(4, uzunluk(d))
 }
 
+test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk eleman sayısıdır" {
+    değişken d = {"anahtarlar": 5, "a": 1}
+    eşit_mi(5, d["anahtarlar"])
+    eşit_mi(["anahtarlar", "a"], d.anahtarlar())
+    eşit_mi(2, d.uzunluk)
+    eşit_mi(2, {"x": 1, "y": 2}.uzunluk)
+    eşit_mi(1, d.a)
+    d.b = 3
+    eşit_mi(3, d["b"])
+    değişken m = ""
+    dene { d.anahtarlar = 7 } yakala h { m = h }
+    doğrula(m.içerir("'anahtarlar' sözlüğün bir üyesi; anahtar için d[\"anahtarlar\"] yazın"), m)
+}
+
 test "3.8 Aralık: a..b (b hariç), a..=b (b dahil)" {
     eşit_mi("Aralık", tip(1..3))
     değişken t = 0

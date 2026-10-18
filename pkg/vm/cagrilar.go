@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/sozluk"
@@ -16,6 +17,9 @@ const maxCallDepth = 10000
 // kendiAdi yapı metotlarında nesneyi gösteren 'kendi' anahtar kelimesinin sözlükteki
 // adıdır (A051).
 var kendiAdi = sozluk.Ad(sozluk.A + 51)
+
+// kurucuAdi nesne oluşturulurken çağrılan metodun adıdır (7.4).
+var kurucuAdi = "kurucu"
 
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
 // sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar
@@ -62,6 +66,32 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	return nil
 }
 
+// yapiArgumanDenetle kurucusu olmayan bir yapının oluşturulmasındaki argümanları alanlara
+// göre denetler: alan sayısından fazla konumlu argüman ya da alan olmayan bir adla verilen
+// argüman hatadır.
+func yapiArgumanDenetle(def *StructDefVal, nargs int, named map[string]Value, line int) error {
+	if nargs <= len(def.Fields) && len(named) == 0 {
+		return nil
+	}
+	adlar := make([]string, len(def.Fields))
+	for i, f := range def.Fields {
+		adlar[i] = f.Name
+	}
+	for k := range named {
+		if !slices.Contains(adlar, k) {
+			oneri := ""
+			if o := turkce.EnYakin(k, adlar); o != "" {
+				oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+			}
+			return fmt.Errorf("Satır %d: '%s' yapısının '%s' adında bir alanı yok%s", line, def.Name, k, oneri)
+		}
+	}
+	if nargs > len(def.Fields) {
+		return fmt.Errorf("Satır %d: '%s' yapısı en fazla %d argüman alır (alanlar: %s), %d verildi", line, def.Name, len(def.Fields), strings.Join(adlar, ", "), nargs)
+	}
+	return nil
+}
+
 func suggestParam(name string, params []ast.Param) string {
 	var names []string
 	for _, p := range params {
@@ -104,6 +134,13 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 		if alanOrtam == nil {
 			alanOrtam = v.GlobalEnv
 		}
+		initMethod, kuruculu := fn.Methods[kurucuAdi]
+		if !kuruculu {
+			// kurucu yoksa argümanlar alanlara gider: fazlası ya da bilinmeyen adlısı hatadır
+			if err := yapiArgumanDenetle(fn, len(args), named, line); err != nil {
+				return nil, err
+			}
+		}
 		for i, f := range fn.Fields {
 			if i < len(args) {
 				inst.Fields[f.Name] = args[i]
@@ -119,7 +156,11 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 				inst.Fields[f.Name] = NULL
 			}
 		}
-		if initMethod, ok := fn.Methods["kurucu"]; ok {
+		if kuruculu {
+			// kurucu varsa argümanlar onun imzasına göre denetlenir
+			if err := checkArity(initMethod, len(args), named, line); err != nil {
+				return nil, err
+			}
 			boundInit := &FuncVal{
 				Name:       initMethod.Name,
 				Parameters: initMethod.Parameters,

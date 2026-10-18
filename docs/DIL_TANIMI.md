@@ -114,7 +114,7 @@ uzunluk("şeker")   // 5
 
 **3.6** `Liste`: sıralı, karışık tipli, değiştirilebilir dizi: `[1, "iki", 3.0]`. Negatif indeks sondan sayar, okuma sırasında sınır dışı indeks `yok` verir (yazmada hatadır), `l[a..b]` dilim verir (dilim uçları Metin'deki gibidir, 3.3: `[1, 2, 3, 4][-2..4]` → `[3, 4]`). Listeler, sözlükler ve nesneler **başvuruyla** paylaşılır: `b = a` aynı listeyi gösterir.
 
-**3.7** `Sözlük`: eklenme sırasını koruyan anahtar–değer tablosu. Çıplak ad anahtarı metindir (`{ad: "Ali"}` ≡ `{"ad": "Ali"}`); metin olmayan anahtarlar da geçerlidir (`{1: "bir"}`). Olmayan anahtar `yok` verir; `d.ad` biçimi `d["ad"]` ile aynıdır.
+**3.7** `Sözlük`: eklenme sırasını koruyan anahtar–değer tablosu. Çıplak ad anahtarı metindir (`{ad: "Ali"}` ≡ `{"ad": "Ali"}`); metin olmayan anahtarlar da geçerlidir (`{1: "bir"}`). Olmayan anahtar `yok` verir; `d.ad` biçimi `d["ad"]` ile aynıdır (okuma ve atama). Tek istisna sözlüğün kendi üyeleridir (`.uzunluk`, `.anahtarlar()`, `.değerler()`, `.içerir()`): ad bir üye adıysa üye önceliklidir; `d.anahtarlar` aynı adlı anahtarı değil metodu verir, `d.uzunluk` eleman sayısıdır. Böyle bir anahtar `d["anahtarlar"]` ile okunur ve yazılır; `d.anahtarlar = 5` ataması hatadır.
 
 **3.8** `Aralık`: `a..b` (b hariç) ve `a..=b` (b dahil); uçlar `Tam` olmalıdır. `a > b` ise geriye doğru sayar (`3..0` → 3, 2, 1); `a..a` boş, `a..=a` tek elemanlıdır. Tam sınırındaki uçlar da taşmadan gezilir (`(üst - 1)..=üst`, üst = 9223372036854775807).
 
@@ -280,7 +280,7 @@ fonksiyon topla(a: Tam, b: Tam): Tam { sonuç a + b }
 
 ## 7. Yapılar
 
-**7.1** `yapı Ad { alanlar ve metotlar }` bir yapı tanımlar; alanlar `ad`, `ad: Tip` ya da `ad = varsayılan` biçimindedir ve virgül/satır sonuyla ayrılır.
+**7.1** `yapı Ad { alanlar ve metotlar }` bir yapı tanımlar; alanlar `ad`, `ad: Tip` ya da `ad = varsayılan` biçimindedir ve virgül/satır sonuyla ayrılır. Gövdede yalnızca alanlar ve `fonksiyon` tanımları bulunabilir; başka bir deyim ya da ifade (`yazdır(...)`, `5 + 3`) ve aynı adın iki kez tanımlanması (iki alan, iki metot ya da aynı adlı alan ve metot) sözdizimi hatasıdır.
 
 ```tr
 yapı Nokta {
@@ -290,13 +290,13 @@ yapı Nokta {
 }
 ```
 
-**7.2** Yapı adı çağrılarak nesne oluşturulur; argümanlar alan sırasıyla ya da adla verilir, verilmeyen alan varsayılanını (yoksa `yok`) alır: `Nokta(3, 4)`, `Nokta(y: 4)`. Varsayılanlar her nesne oluşturulurken, yapının tanımlandığı kapsamda hesaplanır (modüldeki bir yapı modülün adlarını, fonksiyon içindeki bir yapı o fonksiyonun yerel adlarını görür).
+**7.2** Yapı adı çağrılarak nesne oluşturulur; argümanlar alan sırasıyla ya da adla verilir, verilmeyen alan varsayılanını (yoksa `yok`) alır: `Nokta(3, 4)`, `Nokta(y: 4)`. Alan sayısından fazla konumlu argüman ya da alan olmayan bir adla verilen argüman hatadır (`'Nokta' yapısının 'yy' adında bir alanı yok. Bunu mu demek istediniz: 'y'?`); yapının `kurucu`su varsa argümanlar kurucunun imzasına göre denetlenir (6.3). Varsayılanlar her nesne oluşturulurken, yapının tanımlandığı kapsamda hesaplanır (modüldeki bir yapı modülün adlarını, fonksiyon içindeki bir yapı o fonksiyonun yerel adlarını görür).
 
 **7.3** Metotlar `kendi` ile nesnenin alanlarına erişir ve onları değiştirebilir: `p.uzaklık_kare()`.
 
 **7.4** `kurucu` adlı metot, nesne oluşturulurken aynı argümanlarla çağrılır.
 
-**7.5** Alanlar `p.x = 7` ile atanabilir; olmayan alana erişmek hatadır (`p?.z` ise `yok` verir).
+**7.5** Alanlar `p.x = 7` ile atanabilir; olmayan alana erişmek hatadır (`p?.z` ise `yok` verir). Tanımda olmayan bir alana atama da hatadır (`Nokta yapısında 'z' alanı yok; yapı tanımına 'z' alanını ekleyin`), bir metoda değer atanamaz; böylece bir nesnenin alanları her zaman yapı tanımındakilerdir ve yazdırma, eşitlik ve gezinme (15.19) aynı alanları görür.
 
 **7.6** Nesneler içerikleriyle karşılaştırılır (`Nokta(1, 2) == Nokta(1, 2)`) ve `Nokta{x: 1, y: 2}` biçiminde yazdırılır; `tip()` yapı adını verir.
 
@@ -470,7 +470,7 @@ döngü i, satır içinde t {
 
 **15.18** `örnekle(logit, sıcaklık: 1.0, en_iyi_k: 0, tohum: yok)` son eksen üzerindeki `softmax(logit / sıcaklık)` dağılımından bir indeks örnekler; sonuç son ekseni düşürülmüş (1 boyutlu girdide 0 boyutlu), tam sayılı işaretli (`.değer` `Tam`) ve türev izlemeyen bir tensördür. `en_iyi_k > 0` yalnızca en olası `k` sınıf arasından seçer (eşitlikte küçük indeks önce); `0` hepsi demektir. `sıcaklık: 0` en olasıyı verir (`maks_indeks` ile aynı); negatif sıcaklık ve negatif `en_iyi_k` hatadır. Aynı `tohum` (tam sayı) aynı sonucu verir; tohumsuz çağrılar paylaşılan bir üreteçten çeker ve her çağrıda farklı sonuç verir.
 
-**15.19** `parametreler(model, adlarıyla: yanlış)` bir yapı nesnesini — iç içe yapılar, listeler ve sözlüklerle birlikte — gezip türev izleyen yaprak tensörleri (`tensör(..., türev_izle: doğru)`) bir liste olarak verir. Sıra sabittir: yapı alanları tanım sırasıyla (sonradan atanan alanlar ad sırasıyla en sonda), listeler sırayla, sözlükler ekleme sırasıyla gezilir. Aynı tensör birden çok yerde geçerse ilk yerinde bir kez yer alır; ara sonuçlar, türev izlemeyen tensörler ve tensör olmayan değerler atlanır; döngülü yapılar bir kez gezilir. `adlarıyla: doğru` yol adı → tensör sözlüğü verir: adlar `.` ile birleştirilir, liste indeksleri sayı, sözlük anahtarları anahtarın kendisidir (`bloklar.0.dikkat.Wq`); bu sözlük doğrudan `tensör_kaydet` ile kaydedilip `tensör_yükle` ile okunabilir (**15.10**). İki farklı tensör aynı yol adına düşerse hatadır.
+**15.19** `parametreler(model, adlarıyla: yanlış)` bir yapı nesnesini — iç içe yapılar, listeler ve sözlüklerle birlikte — gezip türev izleyen yaprak tensörleri (`tensör(..., türev_izle: doğru)`) bir liste olarak verir. Sıra sabittir: yapı alanları tanım sırasıyla, listeler sırayla, sözlükler ekleme sırasıyla gezilir. Aynı tensör birden çok yerde geçerse ilk yerinde bir kez yer alır; ara sonuçlar, türev izlemeyen tensörler ve tensör olmayan değerler atlanır; döngülü yapılar bir kez gezilir. `adlarıyla: doğru` yol adı → tensör sözlüğü verir: adlar `.` ile birleştirilir, liste indeksleri sayı, sözlük anahtarları anahtarın kendisidir (`bloklar.0.dikkat.Wq`); bu sözlük doğrudan `tensör_kaydet` ile kaydedilip `tensör_yükle` ile okunabilir (**15.10**). İki farklı tensör aynı yol adına düşerse hatadır.
 
 **15.20** Kullanıcı tanımlı türev: `özel_türev(ileri: f, geri: g)` yeni bir işlemin ileri ve geri hesabını kullanıcının yazmasını sağlar ve sıradan bir fonksiyon gibi çağrılan bir değer (`YerleşikFonksiyon`) döndürür; yalnızca bu iki adlı argümanı alır. Çağrıldığında `ileri` verilen konumlu ve adlı argümanlarla **türevsiz** çalışır ve `[çıktı, saklananlar]` döndürmelidir: `çıktı` bir tensör ya da tensör listesi (15.22), `saklananlar` geri hesabın ihtiyaç duyacağı değerlerin (tensör ya da sıradan değer) listesidir. Konumlu tensör girdilerinden en az biri türev izliyorsa ve türevsiz kipte değilsek çıktı hesap çizgesine **tek bir düğüm** olarak kaydedilir: `ileri`nin içindeki ara sonuçlar çizgede tutulmaz, geri yayılıma kadar yalnızca `saklananlar` yaşar. Hiçbir girdi türev izlemiyorsa çıktı olduğu gibi döner. Türev yalnızca konumlu tensör girdileri için hesaplanır; `ileri`nin dışarıdan yakaladığı tensörlere gradyan akmaz.
 

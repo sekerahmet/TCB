@@ -249,7 +249,7 @@ func TestParametreler(t *testing.T) {
 fonksiyon p(x) { sonuç tensör([x], türev_izle: doğru) }
 yapı Dikkat { Wq, Wk, ölçek }
 yapı Blok { dikkat, mlp }
-yapı Model { gömme, bloklar, son, ad }
+yapı Model { gömme, bloklar, son, ad, ek }
 değişken ortak = p(9)
 değişken m = Model(p(1), [Blok(Dikkat(p(2), p(3), 0.5), [p(4), ortak]), Blok(Dikkat(p(5), ortak, 1), {"W1": p(6), "sabit": tensör([0.0])})], ortak, "küçük")
 m.ek = p(7)
@@ -293,7 +293,7 @@ yazdır(uzunluk(parametreler(l)))
 // AlanlariGez tanım sırasını, ardından sonradan eklenen alanları ad sırasıyla verir.
 func TestAlanlariGezSirasi(t *testing.T) {
 	v := deger(t, `
-yapı A { z, a }
+yapı A { z, a, b, y }
 değişken x = A(1, 2)
 x.y = 3
 x.b = 4

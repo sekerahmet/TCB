@@ -230,7 +230,6 @@ func TestHizliYollarAnlami(t *testing.T) {
 			x: Tam = 3
 			f
 			fonksiyon m(k = 1) { sonuç kendi.x * k }
-			fonksiyon f() { sonuç "metot" }
 		}
 		değişken p = P()
 		p.f = () => "alan"

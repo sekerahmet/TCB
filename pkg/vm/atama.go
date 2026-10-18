@@ -79,7 +79,15 @@ func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line i
 func (v *VM) uyeyeAta(obj Value, prop string, kod uint8, rightVal Value, line int) error {
 	switch inst := obj.(type) {
 	case *StructInstanceVal:
-		cur := inst.Fields[prop]
+		// Nesnenin alanları her zaman yapı tanımındakilerdir (7.5): tanımda olmayan alana ve
+		// metoda atama yapılamaz.
+		cur, alan := inst.Fields[prop]
+		if !alan {
+			if _, metot := inst.Def.Methods[prop]; metot {
+				return fmt.Errorf("Satır %d: '%s' %s yapısının bir metodu; metoda değer atanamaz", line, prop, inst.Def.Name)
+			}
+			return fmt.Errorf("Satır %d: %s yapısında '%s' alanı yok; yapı tanımına '%s' alanını ekleyin", line, inst.Def.Name, prop, prop)
+		}
 		if cur == nil {
 			cur = NULL
 		}
@@ -90,6 +98,11 @@ func (v *VM) uyeyeAta(obj Value, prop string, kod uint8, rightVal Value, line in
 		inst.Fields[prop] = finalVal
 		return nil
 	case *DictVal:
+		// d.ad = ..., d["ad"] = ... ile aynıdır; ancak sözlük üyelerinin adları (d.anahtarlar,
+		// d.uzunluk) okumada üyeyi verdiği için atamada da anahtar sayılmaz (3.7).
+		if sozlukUyesiMi(prop) {
+			return fmt.Errorf("Satır %d: '%s' sözlüğün bir üyesi; anahtar için d[%q] yazın", line, prop, prop)
+		}
 		cur := inst.Pairs[prop]
 		if cur == nil {
 			cur = NULL

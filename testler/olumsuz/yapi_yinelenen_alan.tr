@@ -1,0 +1,5 @@
+// Bilerek hatalı: 7.1 — aynı alan iki kez tanımlanamaz.
+yapı A {
+    x = 1
+    x = 2
+}
