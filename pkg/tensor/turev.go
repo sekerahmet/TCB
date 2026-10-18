@@ -100,7 +100,11 @@ func (t *Tensor) Backward() {
 // Yapraklarda gradyanlar birikir (ZeroGrad ile sıfırlanır). Ara tensörlerin
 // gradyanları ve çizge bağları kullanıldıktan sonra bellek için bırakılır;
 // bu nedenle aynı çizge üzerinden ikinci kez geri yayılım yapılamaz.
-func (t *Tensor) BackwardWith(seed *Tensor) {
+func (t *Tensor) BackwardWith(seed *Tensor) { t.BackwardCtx(seed, nil) }
+
+// BackwardCtx BackwardWith gibidir; ctx çizgedeki dış düğümlerin geri çağrılarına
+// (CustomOp) iletilir.
+func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 	if !t.requiresGrad {
 		panic("tensor: gradyan istemeyen bir tensörden geri yayılım yapılamaz")
 	}
@@ -130,7 +134,7 @@ func (t *Tensor) BackwardWith(seed *Tensor) {
 			continue // yaprak
 		}
 		if n.grad != nil {
-			n.backward()
+			n.geriCalistir(ctx)
 		}
 		// Hâlâ bu düğümde duran gradyanın tek sahibi düğümdür (görünüm
 		// işlemleri devrettikleri gradyanı düğümden alır); arka uca iade edilir.
@@ -141,6 +145,7 @@ func (t *Tensor) BackwardWith(seed *Tensor) {
 		n.backward = nil
 		n.parents = nil
 		n.kayitli = nil
+		n.dis = nil
 		n.serbest = true
 	}
 }

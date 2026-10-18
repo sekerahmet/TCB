@@ -48,6 +48,9 @@ type Tensor struct {
 	// serbest, geri yayılımdan sonra çizge bağları bırakılmış bir ara tensörü
 	// işaretler; böyle bir tensör üzerinden ikinci kez geri yayılım yapılamaz.
 	serbest bool
+	// dis, dış (çekirdek dışında yazılmış) bir işlemin düğümünde geri hesabı taşır
+	// (bkz. ozel_turev.go).
+	dis *disDugum
 }
 
 // ----------------------------------------------------------------------------
