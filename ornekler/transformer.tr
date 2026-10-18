@@ -1,0 +1,113 @@
+// Küçük bir transformer (çok başlı nedensel dikkat + ileri besleme + katman normu)
+// Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki tokenı tahmin etmek.
+
+değişken V = 8      // sözlük boyutu
+değişken T = 8      // bağlam uzunluğu
+değişken D = 16     // gizli boyut
+değişken H = 2      // dikkat başı
+değişken Dh = 8     // baş boyutu (D / H)
+değişken B = 4      // toplu iş boyutu
+
+// Öğrenilen parametre: küçük rastgele değerlerle başlar, gradyanı izlenir.
+değişken parametre_tohumu = 1
+fonksiyon parametre(şekil, ölçek) {
+    parametre_tohumu += 1   // her parametreye farklı ama sabit bir tohum: sonuç tekrar üretilebilir
+    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
+}
+
+değişken E = parametre([V, D], 0.1)       // token gömme tablosu
+değişken P = parametre([T, D], 0.1)       // konum gömme tablosu
+değişken Wq = parametre([D, D], 0.2)
+değişken Wk = parametre([D, D], 0.2)
+değişken Wv = parametre([D, D], 0.2)
+değişken Wo = parametre([D, D], 0.2)
+değişken W1 = parametre([D, 4 * D], 0.2)
+değişken W2 = parametre([4 * D, D], 0.1)
+değişken g1 = tensör(birler([D]), türev_izle: doğru)
+değişken s1 = tensör(sıfırlar([D]), türev_izle: doğru)
+değişken g2 = tensör(birler([D]), türev_izle: doğru)
+değişken s2 = tensör(sıfırlar([D]), türev_izle: doğru)
+değişken Wu = parametre([D, V], 0.2)
+
+// Nedensel maske: her konum yalnızca kendisine ve öncekilere bakabilir.
+değişken maske_satırları = []
+döngü i içinde 0..T {
+    değişken satır = []
+    döngü j içinde 0..T {
+        eğer j <= i { satır.ekle(0.0) } değilse { satır.ekle(-1000000000.0) }
+    }
+    maske_satırları.ekle(satır)
+}
+değişken maske = tensör(maske_satırları)
+değişken konumlar = aralık(T)
+
+fonksiyon başlara_ayır(x) {
+    // [B, T, D] -> [B, H, T, Dh]
+    sonuç x.şekillendir([B, T, H, Dh]).eksenleri_sırala([0, 2, 1, 3])
+}
+
+fonksiyon ileri(girdiler) {
+    değişken x = gömme(E, girdiler) + gömme(P, konumlar)            // [B, T, D]
+    değişken q = başlara_ayır(x @ Wq)
+    değişken k = başlara_ayır(x @ Wk)
+    değişken v = başlara_ayır(x @ Wv)
+    değişken dikkat = softmax((q @ k.devrik()) * (1.0 / karekök(Dh)) + maske, eksen: -1)
+    değişken y = (dikkat @ v).eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, D])
+    değişken h = katman_normu(x + y @ Wo, g1, s1)
+    değişken m = gelu(h @ W1) @ W2
+    değişken çıkış = katman_normu(h + m, g2, s2)
+    sonuç çıkış @ Wu                                                  // [B, T, V]
+}
+
+// Basit, tekrar üretilebilir sözde rastgele sayılar
+değişken tohum = 12345
+fonksiyon rastgele_tam(n) {
+    tohum = (tohum * 1103515245 + 12345) % 2147483648
+    sonuç tohum % n
+}
+
+fonksiyon toplu_iş_üret() {
+    değişken girdiler = []
+    değişken hedefler = []
+    döngü b içinde 0..B {
+        değişken baş = rastgele_tam(V)
+        değişken g = []
+        döngü t içinde 0..T {
+            g.ekle((baş + t) % V)
+            hedefler.ekle((baş + t + 1) % V)
+        }
+        girdiler.ekle(g)
+    }
+    sonuç [girdiler, hedefler]
+}
+
+değişken parametreler = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
+değişken iyileştirici = AdamW(parametreler, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
+
+değişken başlangıç = zaman_ms()
+döngü adım içinde 0..300 {
+    değişken veri = toplu_iş_üret()
+    iyileştirici.sıfırla()
+    değişken kayıp = çapraz_entropi(ileri(veri[0]), veri[1])
+    geri_yayılım(kayıp)
+    iyileştirici.adım()
+    eğer adım % 50 == 0 {
+        yazdır("adım {adım}: kayıp = {kayıp}")
+    }
+}
+yazdır("süre: {zaman_ms() - başlangıç} ms")
+
+// Öğrendi mi? Bir diziyi verip tahminleri yazdır.
+değişken deneme = toplu_iş_üret()
+değişken tahmin = türevsiz { ileri(deneme[0]) }
+değişken olasılıklar = tahmin.değer[0]          // ilk dizinin [T, V] çıktısı
+değişken tahminler = []
+döngü satır içinde olasılıklar {
+    değişken en_iyi = 0
+    döngü j içinde 0..V {
+        eğer satır[j] > satır[en_iyi] { en_iyi = j }
+    }
+    tahminler.ekle(en_iyi)
+}
+yazdır("girdi  : {deneme[0][0]}")
+yazdır("tahmin : {tahminler}")
