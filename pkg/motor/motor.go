@@ -7,8 +7,12 @@
 package motor
 
 import (
+	"time"
+
 	"tr_dili/pkg/hataayiklama"
+	"tr_dili/pkg/motor/parcalayici"
 	"tr_dili/pkg/motor/tensor"
+	"tr_dili/pkg/motor/veri"
 	"tr_dili/pkg/motor/veritabani"
 	"tr_dili/pkg/motor/web"
 	"tr_dili/pkg/motor/yz"
@@ -23,8 +27,18 @@ func init() {
 	// Tensör motoru eski yerleşikleri (toplam, relu, sıfırlar, tensör...) sarar; bu yüzden
 	// çekirdek yerleşiklerden ve yapay zekâ motorundan SONRA kaydedilmelidir.
 	vm.MotorEkle(tensor.Kaydet)
+	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
+	vm.MotorEkle(parcalayici.Kaydet)
+	vm.MotorEkle(veri.Kaydet)
 
 	vm.YeniHataAyiklayici = func(sourceFile, sourceCode string) vm.HataAyiklayici {
 		return hataayiklama.NewDebugger(sourceFile, sourceCode, true)
 	}
+}
+
+// Kapat motorların program boyunca açık kalmış kaynaklarını (veri kümesi okuyucuları,
+// önden yükleme gorutinleri, önbellekler) kapatır. Program bitince çağrılır; takılan bir
+// okumada en çok birkaç saniye bekler. Birden çok kez çağrılabilir.
+func Kapat() {
+	veri.TumunuKapat(3 * time.Second)
 }

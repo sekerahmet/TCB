@@ -7,6 +7,7 @@ import (
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/checker"
 	"tr_dili/pkg/lexer"
+	"tr_dili/pkg/motor"
 	"tr_dili/pkg/parser"
 	"tr_dili/pkg/vm"
 )
@@ -90,10 +91,13 @@ func hatalarlaCik(baslik string, errs []string, code string) {
 }
 
 // programCalistir programı çalıştırır, çalışma zamanı hatasını yazıp çıkar; başarılıysa
-// eşzamansız işlerin bitmesini bekler.
+// eşzamansız işlerin bitmesini bekler. Her iki durumda da motorların açık kaynakları
+// (veri okuyucuları, önbellekler) çıkmadan önce kapatılır.
 func programCalistir(machine *vm.VM, prog *ast.Program, code string) {
 	if _, err := machine.Run(prog); err != nil {
+		motor.Kapat()
 		hatalarlaCik("❌ Çalışma Zamanı Hatası:", []string{err.Error()}, code)
 	}
 	machine.WaitAsync()
+	motor.Kapat()
 }
