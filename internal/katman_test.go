@@ -41,9 +41,40 @@ const modul = "tr_dili"
 // atlanan klasörler: Go paketi olmayan ya da depoya ait olmayan yerler.
 var atlanan = map[string]bool{".git": true, ".claude": true, "ikili": true, "calisma": true, "testdata": true, "node_modules": true}
 
+// onekEslesir paket yolu önekin kendisi ya da onun altındaki bir paket mi? Önek sonunda "/"
+// olsa da olmasa da klasör sınırında eşlenir: "internal/depo" ve "kitaplik" önekleri
+// "internal/depolama" ya da "kitaplikx" paketini kapsamaz.
+func onekEslesir(yol, onek string) bool {
+	o := strings.TrimSuffix(onek, "/")
+	return yol == o || strings.HasPrefix(yol, o+"/")
+}
+
+func TestOnekEslesmesi(t *testing.T) {
+	for _, d := range []struct {
+		yol, onek string
+		esler     bool
+	}{
+		{"internal/depo", "internal/depo", true},
+		{"internal/depo/alt", "internal/depo", true},
+		{"internal/depolama", "internal/depo", false},
+		{"kitaplik", "kitaplik", true},
+		{"kitaplikx", "kitaplik", false},
+		{"internal/motor", "internal/motor", true},
+		{"internal/motorlar", "internal/motor", false},
+		{"internal/hesap", "internal/hesap/", true},
+		{"internal/hesap/tensor", "internal/hesap/", true},
+		{"internal/hesaplama", "internal/hesap/", false},
+		{"cmd/tr", "cmd/", true},
+	} {
+		if g := onekEslesir(d.yol, d.onek); g != d.esler {
+			t.Errorf("onekEslesir(%q, %q) = %v; %v olmalı", d.yol, d.onek, g, d.esler)
+		}
+	}
+}
+
 func katmanBul(yol string) (izinli []string, ok bool) {
 	for _, k := range katmanlar {
-		if yol == strings.TrimSuffix(k.onek, "/") || strings.HasPrefix(yol, k.onek) {
+		if onekEslesir(yol, k.onek) {
 			return k.izinli, true
 		}
 	}
@@ -92,7 +123,7 @@ func TestKatmanKurali(t *testing.T) {
 			hedef := strings.TrimPrefix(imp, modul+"/")
 			izin := false
 			for _, o := range izinli {
-				if hedef == strings.TrimSuffix(o, "/") || strings.HasPrefix(hedef, o) {
+				if onekEslesir(hedef, o) {
 					izin = true
 					break
 				}

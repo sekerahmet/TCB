@@ -230,7 +230,7 @@ func TestDuzenPaketBelgesi(t *testing.T) {
 		}
 		beklenen := ""
 		for _, kb := range katmanBelgesi {
-			if k == strings.TrimSuffix(kb.onek, "/") || strings.HasPrefix(k, kb.onek) {
+			if onekEslesir(k, kb.onek) {
 				beklenen = kb.satir
 				break
 			}
