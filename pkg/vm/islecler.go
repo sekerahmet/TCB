@@ -118,27 +118,41 @@ func (v *VM) evalInfixKod(kod uint8, op string, left Value, right Value, line in
 		}
 	}
 
-	// Matris / Tensör operatörleri
-	if mop, ok := left.(MatrixOperator); ok {
+	// Matris / Tensör operatörleri (hatalarına satır bilgisi eklenir)
+	if mop, ok := left.(MatrixOperator); ok && (kod == opTopla || kod == opCikar || kod == opCarp || kod == opBol || kod == opMatCarp) {
+		var val Value
+		var err error
 		switch kod {
 		case opTopla:
-			return mop.Add(right)
+			val, err = mop.Add(right)
 		case opCikar:
-			return mop.Sub(right)
+			val, err = mop.Sub(right)
 		case opCarp:
-			return mop.Mul(right)
+			val, err = mop.Mul(right)
 		case opBol:
-			return mop.Div(right)
-		case opMatCarp:
-			return mop.MatMul(right)
+			val, err = mop.Div(right)
+		default:
+			val, err = mop.MatMul(right)
 		}
+		return val, satirEki(line, err)
 	}
 	if mop, ok := right.(MatrixOperator); ok {
 		switch kod {
 		case opTopla:
-			return mop.Add(left)
+			val, err := mop.Add(left)
+			return val, satirEki(line, err)
 		case opCarp:
-			return mop.Mul(left)
+			val, err := mop.Mul(left)
+			return val, satirEki(line, err)
+		}
+	}
+
+	// Diğer işleçler için değerlerin kendi kancaları (ör. 2 - tensör, tensör < 0)
+	switch kod {
+	case opEsit, opEsitDegil:
+	default:
+		if val, ok, err := kancaIslec(op, left, right, line); ok {
+			return val, err
 		}
 	}
 
@@ -307,8 +321,59 @@ func ValuesEqual(a, b Value) bool {
 			return af == bf
 		}
 	}
+	// Değerin kendi eşitlik kuralı (ör. tensör: şekil ve tüm elemanlar)
+	if e, ok := a.(Esitlik); ok {
+		return e.Esit(b)
+	}
+	if e, ok := b.(Esitlik); ok {
+		return e.Esit(a)
+	}
 	if a.Type() != b.Type() {
 		return false
+	}
+	// Kaplar eleman eleman karşılaştırılır: görünen metinleri aynı olan farklı değerler
+	// (ör. yazdırırken yuvarlanan elemanlar) eşit sayılmaz.
+	switch x := a.(type) {
+	case *StringVal:
+		if y, ok := b.(*StringVal); ok {
+			return x.Val == y.Val
+		}
+	case *ListVal:
+		if y, ok := b.(*ListVal); ok {
+			if len(x.Elements) != len(y.Elements) {
+				return false
+			}
+			for i := range x.Elements {
+				if !ValuesEqual(x.Elements[i], y.Elements[i]) {
+					return false
+				}
+			}
+			return true
+		}
+	case *DictVal:
+		if y, ok := b.(*DictVal); ok {
+			if len(x.Pairs) != len(y.Pairs) {
+				return false
+			}
+			for k, va := range x.Pairs {
+				vb, ok := y.Pairs[k]
+				if !ok || !ValuesEqual(va, vb) {
+					return false
+				}
+			}
+			return true
+		}
+	case *StructInstanceVal:
+		if y, ok := b.(*StructInstanceVal); ok && x.Def == y.Def {
+			for _, f := range x.Def.Fields {
+				va, oka := x.Fields[f.Name]
+				vb, okb := y.Fields[f.Name]
+				if oka != okb || (oka && !ValuesEqual(va, vb)) {
+					return false
+				}
+			}
+			return true
+		}
 	}
 	return a.Inspect() == b.Inspect()
 }

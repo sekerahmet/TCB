@@ -319,6 +319,9 @@ func (c *derleyici) onEk(k *derleyiciKapsam, e *ast.PrefixExpression) ifadeKodu 
 				return NewInt(-rv.Val), nil
 			case *FloatVal:
 				return &FloatVal{Val: -rv.Val}, nil
+			case Olumsuzlanabilir:
+				val, err := rv.Olumsuz()
+				return val, satirEki(line, err)
 			}
 			return nil, fmt.Errorf("Satır %d: '-' operatörü %s tipine uygulanamaz", line, right.Type())
 		}

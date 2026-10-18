@@ -342,6 +342,27 @@ func (l *Lexer) readNumber() (string, bool) {
 		}
 	}
 
+	// Bilimsel yazım: 1e-5, 3.2E+4, 2e10 (üsten sonra en az bir rakam gelmelidir)
+	if l.ch == 'e' || l.ch == 'E' {
+		sonraki := l.peekChar()
+		isaretli := (sonraki == '+' || sonraki == '-') && isDigit(l.peekCharN(2))
+		if isDigit(sonraki) || isaretli {
+			isFloat = true
+			sb.WriteRune(l.ch)
+			l.readChar()
+			if isaretli {
+				sb.WriteRune(l.ch)
+				l.readChar()
+			}
+			for isDigit(l.ch) || l.ch == '_' {
+				if l.ch != '_' {
+					sb.WriteRune(l.ch)
+				}
+				l.readChar()
+			}
+		}
+	}
+
 	return sb.String(), isFloat
 }
 

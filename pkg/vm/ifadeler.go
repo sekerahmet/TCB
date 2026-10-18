@@ -145,6 +145,10 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 			return NULL, nil
 		}
 		return &StringVal{Val: string(runes[pos])}, nil
+
+	case Indekslenebilir:
+		val, err := container.Indeks(idx)
+		return val, satirEki(line, err)
 	}
 
 	return nil, fmt.Errorf("Satır %d: %s tipi indekslenemez", line, left.Type())
@@ -161,7 +165,8 @@ func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression) (Value, error) {
 
 	// Matris, Tensör, SinirAğı, WebSunucu, GörselArayüz ve Veritabanı özellikleri
 	if pg, ok := obj.(PropertyGetter); ok {
-		return pg.GetProperty(e.Property)
+		val, err := pg.GetProperty(e.Property)
+		return val, satirEki(e.Line(), err)
 	}
 
 	switch inst := obj.(type) {

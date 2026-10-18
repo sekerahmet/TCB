@@ -210,6 +210,27 @@ func TestSayiVeAralikAyrimi(t *testing.T) {
 	})
 }
 
+// Bilimsel yazım: üs harfi (e/E), isteğe bağlı işaret ve en az bir rakam; sonuç Ondalık'tır.
+func TestBilimselSayilar(t *testing.T) {
+	testler := []struct{ girdi, lit string }{
+		{"1e-5", "1e-5"},
+		{"3.2E+4", "3.2E+4"},
+		{"2e10", "2e10"},
+		{"6.02e2_3", "6.02e23"},
+	}
+	for _, tt := range testler {
+		tokenlariDogrula(t, tt.girdi, []beklenen{{TOKEN_FLOAT, tt.lit}, {TOKEN_EOF, ""}})
+	}
+	// Üsten sonra rakam yoksa 'e' sayıya ait değildir
+	tokenlariDogrula(t, "2e", []beklenen{{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_EOF, ""}})
+	tokenlariDogrula(t, "2e+x", []beklenen{
+		{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_PLUS, "+"}, {TOKEN_IDENT, "x"}, {TOKEN_EOF, ""},
+	})
+	tokenlariDogrula(t, "1e3..5", []beklenen{
+		{TOKEN_FLOAT, "1e3"}, {TOKEN_RANGE, ".."}, {TOKEN_INT, "5"}, {TOKEN_EOF, ""},
+	})
+}
+
 // Mevcut davranış: sayıya bitişik harfler ayrı bir tanimlayıcı olur; lexer hata vermez
 // (ayrıştırıcı ardışık ifadeyi ayrıca değerlendirir).
 func TestSayiyaBitisikHarf(t *testing.T) {

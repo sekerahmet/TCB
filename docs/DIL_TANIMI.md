@@ -35,7 +35,7 @@ değişken x = 1  # satır sonuna kadar yorum
 
 **2.4** Tam sayı sabitleri ondalık rakamlardan oluşur; okunabilirlik için `_` kullanılabilir: `1_000_000`.
 
-**2.5** Ondalık sabitler nokta içerir ve noktadan sonra rakam gelmelidir: `3.14`. (`1..5` bir aralıktır, ondalık değil.)
+**2.5** Ondalık sabitler nokta içerir ve noktadan sonra rakam gelmelidir: `3.14`. (`1..5` bir aralıktır, ondalık değil.) Bilimsel yazım da Ondalık verir: üs harfi `e`/`E`, isteğe bağlı `+`/`-` ve en az bir rakam (`1e-5`, `3.2E+4`, `2e10`); üsten sonra rakam yoksa `e` sayıya ait değildir (`2e` → `2` ve `e` adı).
 
 **2.6** Metinler çift (`"..."`) ya da tek (`'...'`) tırnakla yazılır; `\n \t \r \" \' \\` kaçış dizileri tanınır, bilinmeyen kaçışta ters bölü atılır. Metin birden çok satıra yayılabilir.
 
@@ -81,7 +81,7 @@ TR dinamik tiplidir; değerler tiplerini taşır. İsteğe bağlı tip açıklam
 
 **3.1** `Tam`: 64 bit işaretli tam sayı. `+ - * **` işlemleri sınırı aşarsa sessizce sarmak yerine "Tam sayı taşması" hatası verir.
 
-**3.2** `Ondalık`: 64 bit kayan noktalı sayı; tam sayılı ondalıklar `1.0` biçiminde yazdırılır.
+**3.2** `Ondalık`: 64 bit kayan noktalı sayı; tam sayılı ondalıklar `1.0` biçiminde yazdırılır. Sonsuz ve tanımsız değerler tensör yazdırmasıyla aynı biçimde `+Sonsuz`, `-Sonsuz`, `NaN` yazılır.
 
 **3.3** `Metin`: değiştirilemez Unicode metni; uzunluk ve indeks karakter (rune) bazındadır, negatif indeks sondan sayar, sınır dışı indeks `yok` verir, `m[a..b]` alt metin verir.
 
@@ -148,9 +148,9 @@ değişken ad: Tam = "Ali"   // denetim hatası: Tip uyuşmazlığı
 
 **4.3** `**` üs alır; negatif üs `Ondalık` verir (`2 ** -1` = `0.5`).
 
-**4.4** `< > <= >=` yalnızca sayılar arasında tanımlıdır; karşılaştırmalar zincirlenmez (`1 < 2 < 3` hatadır).
+**4.4** `< > <= >=` yalnızca sayılar arasında tanımlıdır (tensörlerde eleman bazlı 0/1 maskesi verir, bkz. 15.3); karşılaştırmalar zincirlenmez (`1 < 2 < 3` hatadır).
 
-**4.5** Eşitlik: iki sayı tipten bağımsız değerle karşılaştırılır (`1 == 1.0`); diğer değerler aynı tipte ve aynı içerikteyse eşittir (`[1, "a"] == [1, "a"]`, `"1" != 1`, `yok != yanlış`).
+**4.5** Eşitlik: iki sayı tipten bağımsız değerle karşılaştırılır (`1 == 1.0`); diğer değerler aynı tipte ve aynı içerikteyse eşittir (`[1, "a"] == [1, "a"]`, `"1" != 1`, `yok != yanlış`). Listeler, sözlükler ve yapı nesneleri eleman eleman bu kuralla karşılaştırılır (`[1, 2] == [1.0, 2]`); sözlüklerde anahtar sırası önemsizdir. Tensörler şekilleri ve tüm elemanları aynıysa eşittir.
 
 **4.6** `ve`/`&&` ile `veya`/`||` kısa devre yapar ve sonucu her zaman `Mantık` olarak verir (`1 && "a"` → `doğru`). `!x` ve `değil x` doğruluğun tersidir.
 
@@ -389,7 +389,7 @@ Bunlar bugünkü uygulamanın gerçek davranışlarıdır; ileride değişebilir
 - **Yapılarda kalıtım yok;** metotlar yapı tanımının içinde yazılmalıdır.
 - **Metin içi yerleştirme konumu yaklaşıktır:** `{ifade}` içindeki hataların sütunu, ifadeden önce kaçış dizisi varsa bir-iki karakter kayabilir.
 - **Tanımlar öne alınmaz:** fonksiyonlar ve yapılar, tanımlandıkları satır çalıştıktan sonra kullanılabilir.
-- **Tensör işleçleri eksik:** sağ işlenen tensör olduğunda yalnızca `+` ve `*` çalışır (`1 - t`, `1 / t` hatadır); tekli `-t`, `t ** 2` ve `t[i]` indeksleme yoktur (`t * -1`, `t * t`, `.dilim(...)` kullanılır). İşleç kaynaklı tensör hatalarında (`@`, `+`...) `Satır N:` öneki yoktur.
+- **Tensöre indeksle atama yoktur:** `t[i]` okunabilir, `t[i] = ...` yazılamaz; `%` tensörlerde tanımlı değildir.
 - **Türevsiz kip süreç genelidir:** `türevsiz { ... }` içinde yorumlayıcı kilidini bırakan bir çağrı (10.3) varsa, o sırada çalışan diğer `eşzamanlı` görevler de türevsiz çalışır.
 
 ---
@@ -402,7 +402,7 @@ Tensör, n boyutlu bir `float32` sayı dizisidir (tip adı `Tensör`). İşlemle
 
 **15.2** Özellikler: `.şekil` (tam sayı listesi), `.değer` (iç içe Ondalık listesi; 0 boyutluda Ondalık; her float32 değer en kısa ondalık gösterimine karşılık gelen sayıdır), `.gradyan` (yaprak tensörde tensör ya da `yok`; bir işlemin sonucu olan tensörde hata), `.cihaz` (`"cpu"`). Doğruluk değeri: tek elemanlı tensör eleman 0'dan farklıysa doğru, boş tensör yanlıştır. Görünüm metotları veriyi kopyalamaz: `.şekillendir(liste)` (bir eksen `-1` olabilir), `.devrik()` (son iki eksen), `.eksenleri_sırala(liste)`, `.dilim(eksen, baş, son)` (`son` hariç; negatif indeks sondan sayar). `.cihaza(ad)` tensörü taşır; arka ucu olmayan cihaz (`"gpu"`) hatadır.
 
-**15.3** İşleçler: `@` matris çarpımıdır (`[..., M, K] @ [K, N]`, toplu çarpımda öndeki eksenler eşit olmalı; 1 boyutlu işlenen vektör sayılır). `+ - * /` eleman bazlıdır ve yayınlamalıdır: şekiller sağdan hizalanır, her eksen eşit ya da 1 olmalıdır. Diğer işlenen sayı, liste ya da matris olabilir.
+**15.3** İşleçler: `@` matris çarpımıdır (`[..., M, K] @ [K, N]`, toplu çarpımda öndeki eksenler eşit olmalı; 1 boyutlu işlenen vektör sayılır). `+ - * /` eleman bazlıdır ve yayınlamalıdır: şekiller sağdan hizalanır, her eksen eşit ya da 1 olmalıdır. Diğer işlenen sayı, liste ya da matris olabilir ve iki yanda da durabilir (`1 - t`, `2 / t`). Tekli `-t` ve `t ** sayı` türev izler. `< > <= >=` sayıyla ya da aynı şekilli tensörle eleman bazlı karşılaştırıp türev izlemeyen 0/1 maskesi verir. `t[i]` ilk eksenin i. elemanını (bir eksen eksilir; negatif indeks sondan sayar), `t[baş..son]` ilk eksende dilimi verir; ikisi de veriyi kopyalamayan, türev izleyen görünümlerdir (`t[i][j]`). İşleç ve özellik hataları `Satır N:` önekiyle bildirilir.
 
 **15.4** Fonksiyonlar: `relu`, `sigmoid`, `tanh`, `gelu`, `karekök`, `üstel`, `log` eleman bazlıdır; `softmax(x, eksen: -1)` ve `log_softmax(x, eksen: -1)` verilen eksende çalışır. Tensör yalnızca tensör girdisinden çıkar: sayı/liste/matris girdisinde sonuç girdinin biçimindedir (eski karşılığı olan adlarda eski davranış; `gelu`, `üstel`, `log` sayıda Ondalık, listede aynı yapıda liste, matriste Matris; `log_softmax` düz listede liste, matriste satır bazlı Matris). İndirgemeler `toplam`, `ortalama`, `maks`, `min` eksen verilmezse tüm elemanları 0 boyutlu tensöre indirger, `eksen: k` ile o ekseni kaldırır (boyut korunmaz). Negatif eksen sondan sayar. `toplam` ve `ortalama` ekseni konumlu da alır (`toplam(x, 1)`); `maks` ve `min` yalnızca adlı `eksen:` kabul eder, ikinci konumlu argüman hatadır. Argüman tensör değilse bu adların eski (düz sayı listesi) davranışı geçerlidir; ancak listede tensör varsa `toplam`/`ortalama` onları katlar, iç içe liste ya da tensör olmayan argümanla `eksen:` hatadır. `sıfırlar(2, 3)` biçimi adlı argüman almaz. Adlı argümanlar yalnızca Türkçe adlarıyla kabul edilir; başka dildeki alışılmış adlar (`lr`, `axis`...) için hata mesajı Türkçe karşılığı önerir.
 

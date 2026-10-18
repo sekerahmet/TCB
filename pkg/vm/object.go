@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"tr_dili/pkg/ast"
@@ -48,7 +49,16 @@ type FloatVal struct {
 
 func (f *FloatVal) Type() ValueType { return VAL_FLOAT }
 func (f *FloatVal) Inspect() string {
-	s := fmt.Sprintf("%g", f.Val)
+	// Sonsuz ve tanımsız değerler tensör yazdırmasıyla aynı biçimde yazılır
+	switch {
+	case math.IsNaN(f.Val):
+		return "NaN"
+	case math.IsInf(f.Val, 1):
+		return "+Sonsuz"
+	case math.IsInf(f.Val, -1):
+		return "-Sonsuz"
+	}
+	s := strconv.FormatFloat(f.Val, 'g', -1, 64)
 	if !strings.Contains(s, ".") && !strings.Contains(s, "e") {
 		s += ".0"
 	}
