@@ -1012,7 +1012,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	p.nextToken()
 	prec := PREFIX_PREC
 	if tok.Type == lexer.TOKEN_DEGIL {
-		// Python'daki 'not' gibi: 'değil 1 == 2' -> değil (1 == 2), ancak
+		// 'değil' karşılaştırmadan zayıf bağlar: 'değil 1 == 2' -> değil (1 == 2), ancak
 		// 'değil a ve b' -> (değil a) ve b
 		prec = AND_PREC
 	}

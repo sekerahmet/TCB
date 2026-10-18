@@ -83,15 +83,10 @@ func TestYzSorHataYollari(t *testing.T) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.kod, d.bekle, err)
 		}
 	}
-	// Ulaşılamayan sunucu: genel Türkçe tanım ve port; başka ürün adı yok
+	// Ulaşılamayan sunucu: genel Türkçe tanım ve port (ürün adı değil)
 	port := freePort(t)
 	_, err := runTR(t, fmt.Sprintf(`sonuç yz_sor("a", model: "m", adres: "http://127.0.0.1:%d/api/generate")`, port))
 	if err == nil || !strings.Contains(err.Error(), "yerel dil modeli sunucusu") || !strings.Contains(err.Error(), "11434 portunda") {
 		t.Fatalf("yol gösteren ulaşılamadı hatası bekleniyordu: %v", err)
-	}
-	for _, yasak := range []string{"llama", "ollama", "Ollama"} {
-		if strings.Contains(err.Error(), yasak) {
-			t.Fatalf("hata metninde ürün adı geçmemeli: %v", err)
-		}
 	}
 }

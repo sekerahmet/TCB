@@ -115,7 +115,9 @@ func bekle(t *testing.T, s sonuc, kod int, ciktida, hatada []string) {
 func TestYardimVeSurum(t *testing.T) {
 	for _, a := range []string{"yardım", "-h"} {
 		s := tr(t, "", a)
-		bekle(t, s, 0, []string{"Kullanım:", "tr derle <dosya.tr>", "tr test"}, nil)
+		// Yardım her komutu listeler (hakem mimari 22: dap eksikti)
+		bekle(t, s, 0, []string{"Kullanım:", "tr derle <dosya.tr>", "tr test", "tr çalıştır", "tr hata_ayıkla",
+			"tr kontrol", "tr biçimle", "tr dap", "tr yardım", "tr sürüm"}, nil)
 	}
 	for _, a := range []string{"sürüm", "-v"} {
 		s := tr(t, "", a)

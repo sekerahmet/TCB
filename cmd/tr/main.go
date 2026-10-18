@@ -134,6 +134,7 @@ func printHelp() {
 	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür")
 	fmt.Println("  tr test [dosya.tr|klasör]   Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)")
 	fmt.Println("  tr biçimle [--kontrol] <dosya.tr|klasör>  Kodu standart biçime getirir (--kontrol: yalnızca denetler)")
+	fmt.Println("  tr dap                      VS Code hata ayıklama sunucusu (eklenti kendisi başlatır)")
 	fmt.Println("  tr yardım | -h              Bu yardımı gösterir")
 	fmt.Println("  tr sürüm | -v               Sürümü gösterir")
 }
@@ -189,7 +190,7 @@ func startREPL() {
 		}
 		if line == "/h" || line == "/H" {
 			machine.Debugger = hataayiklama.NewDebugger("<etkileşimli-kabuk>", "", true)
-			fmt.Println("🐞 [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım (F5/F6/F7/F8) çalışacak.")
+			fmt.Println("🐞 [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım çalışacak (F11 adım, F10 üstten geç, Shift+F11 dön, F5 devam).")
 			continue
 		}
 

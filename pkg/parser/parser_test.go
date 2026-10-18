@@ -193,7 +193,7 @@ func TestUnclosedBlockBraceIsReported(t *testing.T) {
 	}
 }
 
-// Metin içinde ifade olarak çözümlenemeyen süslü parantezler (JSON, Python kodu gibi)
+// Metin içinde ifade olarak çözümlenemeyen süslü parantezler (JSON, başka dillerde kod gibi)
 // bilinçli olarak düz metin kalır; bu meşru kullanımlar hata vermemeli.
 func TestNonExpressionBracesStayLiteral(t *testing.T) {
 	for _, code := range []string{

@@ -8,7 +8,7 @@
 //     değişken PARÇALAYICI_YOLU = "D:/veri/tokenizer.json"
 //     değişken VERİ_YOLU = "D:/veri/train"          // .npy parçalarının klasörü
 //     değişken DOĞRULAMA_YOLU = "D:/veri/valid"
-// Parçalar .npy token dosyalarıdır (numpy.save ile yazılmış uint16/int32 diziler); meta.json
+// Parçalar standart .npy biçiminde token dosyalarıdır (tek boyutlu uint16/uint32/int32 diziler); meta.json
 // varsa parça token sayıları oradan okunur. Veri yavaş bir sürücüdeyse (ağ ya da bulut)
 // yerel önbellek kullanın: veri_kümesi(VERİ_YOLU, önbellek: "onbellek/veri", kota_gb: 20)
 // Göreli yollar önce çalışma klasörüne, sonra bu dosyanın klasörüne göre çözülür.

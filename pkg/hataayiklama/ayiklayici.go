@@ -18,10 +18,11 @@ import (
 type StepMode int
 
 const (
-	StepInto     StepMode = iota // F5: Tek Adım (Fonksiyon içine girer)
-	StepOver                     // F6: Üstten Geç (Fonksiyonu tek adımda geçer)
-	StepOut                      // F7: Fonksiyondan Çık
-	StepContinue                 // F8: Kesme noktasına / Watchpoint'e kadar devam et
+	// Tuş adları VS Code'dakiyle aynı anlamdadır (terminal ve VS Code hata ayıklayıcısı).
+	StepInto     StepMode = iota // F11: Tek Adım (Fonksiyon içine girer)
+	StepOver                     // F10: Üstten Geç (Fonksiyonu tek adımda geçer)
+	StepOut                      // Shift+F11: Fonksiyondan Çık
+	StepContinue                 // F5: Kesme noktasına / Watchpoint'e kadar devam et
 )
 
 type Watchpoint struct {
@@ -123,13 +124,13 @@ func (d *Debugger) BeforeStatement(v *vm.VM, stmt ast.Statement, env *vm.Environ
 		d.pauseKind = "breakpoint"
 	}
 
-	// 3. Adım modu (F5 / F6 / F7) kontrolü
+	// 3. Adım modu (F11 / F10 / Shift+F11) kontrolü
 	if !shouldPause {
 		switch d.Mode {
 		case StepInto:
 			shouldPause = true
 			if d.PauseReason == "" {
-				d.PauseReason = "F5 Tek Adım"
+				d.PauseReason = durumAdim
 			}
 			if d.pauseKind == "" {
 				d.pauseKind = "step"
@@ -137,13 +138,13 @@ func (d *Debugger) BeforeStatement(v *vm.VM, stmt ast.Statement, env *vm.Environ
 		case StepOver:
 			if depth <= d.TargetDepth {
 				shouldPause = true
-				d.PauseReason = "F6 Üstten Adım"
+				d.PauseReason = durumUsttenGec
 				d.pauseKind = "step"
 			}
 		case StepOut:
 			if depth < d.TargetDepth {
 				shouldPause = true
-				d.PauseReason = "F7 Fonksiyondan Çıkış"
+				d.PauseReason = durumFonksiyondanCik
 				d.pauseKind = "step"
 			}
 		}
@@ -214,12 +215,27 @@ func (d *Debugger) checkWatchpoints(v *vm.VM, env *vm.Environment) string {
 	return ""
 }
 
+// Adımlama sonrası durum metinleri; terminalde ve VS Code'da aynıdır.
+const (
+	durumAdim            = "Adım (F11)"
+	durumUsttenGec       = "Üstten geçildi (F10)"
+	durumFonksiyondanCik = "Fonksiyondan çıkıldı (Shift+F11)"
+)
+
+// tusRehberi komut isteminde gösterilen kısa tuş listesidir.
+const tusRehberi = "F5:devam | F10:geç | F11:adım | Shift+F11:dön | değiştir | zıpla | tablo | izle"
+
+// eskiTuslar önceki sürümün terminal tuşlarıdır (f5 adım, f6 geç, f7 dön, f8 devam). Bu
+// tuşlar artık VS Code'daki anlamlarıyla kullanılır; eski anlamla yazılanlar başka bir iş
+// yapmaz, yeni tuşu söyler.
+var eskiTuslar = map[string]string{"f6": "f10 (geç)", "f7": "shift+f11 (dön)", "f8": "f5 (devam)"}
+
 func (d *Debugger) promptCLI(v *vm.VM, line int, env *vm.Environment) int {
 	d.renderDebugScreen(v, line, env)
 	d.PauseReason = ""
 
 	for {
-		fmt.Print("\n[TR Hata Ayıklayıcı] (F5:adım | F6:geç | F7:dön | F8:devam | değiştir | zıpla | tablo | izle) > ")
+		fmt.Print("\n[TR Hata Ayıklayıcı] (" + tusRehberi + ") > ")
 		input, err := d.Reader.ReadString('\n')
 		if err != nil {
 			d.Mode = StepContinue
@@ -228,7 +244,7 @@ func (d *Debugger) promptCLI(v *vm.VM, line int, env *vm.Environment) int {
 		}
 		cmdLine := strings.TrimSpace(strings.TrimPrefix(input, "\xef\xbb\xbf"))
 
-		// Boş Enter -> F5 (Tek Adım)
+		// Boş Enter -> F11 (Tek Adım)
 		if cmdLine == "" {
 			d.Mode = StepInto
 			return 0
@@ -237,22 +253,27 @@ func (d *Debugger) promptCLI(v *vm.VM, line int, env *vm.Environment) int {
 		parts := strings.Fields(cmdLine)
 		cmd := strings.ToLower(parts[0])
 
+		if yeni, ok := eskiTuslar[cmd]; ok {
+			fmt.Printf("  ⚠️ Tuşlar VS Code'daki gibidir: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '%s' yerine %s yazın.\n", cmd, yeni)
+			continue
+		}
+
 		switch cmd {
-		case "f5", "adım", "adim", "a", "s", "step":
+		case "f11", "adım", "adim", "a", "s", "step":
 			d.Mode = StepInto
 			return 0
 
-		case "f6", "geç", "gec", "g", "n", "next":
+		case "f10", "geç", "gec", "g", "n", "next":
 			d.Mode = StepOver
 			d.TargetDepth = v.StackDepth()
 			return 0
 
-		case "f7", "dön", "don", "o", "out":
+		case "shift+f11", "dön", "don", "o", "out":
 			d.Mode = StepOut
 			d.TargetDepth = v.StackDepth()
 			return 0
 
-		case "f8", "devam", "d", "c", "continue":
+		case "f5", "devam", "d", "c", "continue":
 			d.Mode = StepContinue
 			return 0
 
@@ -509,10 +530,11 @@ func (d *Debugger) inspectTable(name string, env *vm.Environment) {
 
 func (d *Debugger) printDebugHelp() {
 	fmt.Println("\n  🛠️  TR HATA AYIKLAYICI KOMUT REHBERİ:")
-	fmt.Println("  • f5 / adım / Enter       : Tek adım ilerle (Fonksiyonların içine girer)")
-	fmt.Println("  • f6 / geç                : Üstten geç (Fonksiyonu tek adımda çalıştırır)")
-	fmt.Println("  • f7 / dön                : Mevcut fonksiyondan çıkana kadar çalıştır")
-	fmt.Println("  • f8 / devam              : Sonraki kesme veya izleme noktasına kadar devam et")
+	fmt.Println("  (Tuşlar VS Code'daki gibidir; tuş adını yazıp Enter'a basın.)")
+	fmt.Println("  • f11 / adım / Enter      : Tek adım ilerle (Fonksiyonların içine girer)")
+	fmt.Println("  • f10 / geç               : Üstten geç (Fonksiyonu tek adımda çalıştırır)")
+	fmt.Println("  • shift+f11 / dön         : Mevcut fonksiyondan çıkana kadar çalıştır")
+	fmt.Println("  • f5 / devam              : Sonraki kesme veya izleme noktasına kadar devam et")
 	fmt.Println("  • değiştir x = 100        : ✏️ Çalışma anında 'x' değişkeninin değerini canlı değiştir!")
 	fmt.Println("  • zıpla 15                : ⏭️ Çalışma sırasını 15. satıra geri/ileri taşı!")
 	fmt.Println("  • izle bakiye < 0         : 👁️ (Watchpoint) Koşul sağlandığında veya değişken değiştiğinde dur!")

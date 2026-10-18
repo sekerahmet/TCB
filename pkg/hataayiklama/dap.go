@@ -554,16 +554,9 @@ func (s *dapServer) waitForCommand(v *vm.VM, line int, env *vm.Environment) int 
 	if kind == "" {
 		kind = "step"
 	}
-	// Terminal hata ayıklayıcısının tuş adları (F5/F6/F7) VS Code'da farklıdır.
-	switch reason {
-	case "F5 Tek Adım", "":
-		if kind == "step" {
-			reason = "Adım (F11)"
-		}
-	case "F6 Üstten Adım":
-		reason = "Üstten geçildi (F10)"
-	case "F7 Fonksiyondan Çıkış":
-		reason = "Fonksiyondan çıkıldı (Shift+F11)"
+	// Durum metinleri terminal ve VS Code'da aynıdır (tuşlar da aynı anlamdadır).
+	if reason == "" && kind == "step" {
+		reason = durumAdim
 	}
 
 	s.mu.Lock()

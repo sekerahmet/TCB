@@ -37,7 +37,7 @@
 
 ## Hata ayıklama
 
-**F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için). Denemek için depodaki `calisma/hata_ayiklama.tr` (adım adım alıştırma) ya da `ornekler/04_hata_ayiklama.tr` (koddaki koşullu `kesme_noktası`) dosyasını açıp F5'e basın.
+Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdadır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık (terminalde tuş adı yazılıp Enter'a basılır). **F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için). Denemek için depodaki `calisma/hata_ayiklama.tr` (adım adım alıştırma) ya da `ornekler/04_hata_ayiklama.tr` (koddaki koşullu `kesme_noktası`) dosyasını açıp F5'e basın.
 
 **İzleme Masası:** Program her durduğunda editörün yanında açılır.
 
@@ -80,5 +80,5 @@ Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen
 
 - En iyi deneyim için tek dosya yerine proje **klasörünü** açın (Dosya → Klasör Aç). Klasör açılmadan da çalıştırma çalışır: program bu durumda dosyanın bulunduğu klasörde, ayrı bir terminalde başlatılır.
 - `.tr` dosyalarında VS Code'un "belirsiz karakter" uyarısı kapalıdır; Türkçe `ı` harfi artık Latin `i` ile karıştırılabilir diye sarı kutuyla işaretlenmez.
-- Bu depoyu klasör olarak açtığınızda `.vscode/tasks.json` görevleri de kullanılabilir: `Ctrl+Shift+B` açık dosyayı çalıştırır; çalıştırma, denetleme ve terminal hata ayıklama görevleri önce **TR: yorumlayıcıyı derle** görevini (`GOAMD64=v3 go build -o tr.exe ./cmd/tr`) çalıştırır, böylece kökteki `tr.exe` güncel kalır. Eklenti komutları (▶, F5) bu derlemeyi yapmaz; kodu değiştirdiyseniz önce bu görevi çalıştırın.
+- Bu depoyu klasör olarak açtığınızda `.vscode/tasks.json` görevleri de kullanılabilir: `Ctrl+Shift+B` açık dosyayı kökteki `tr.exe` ile çalıştırır; denetleme ve terminal hata ayıklama görevleri de aynı `tr.exe`'yi kullanır. Bu görevler ve eklenti komutları (▶, F5) yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce "Tasks: Run Task" → **TR: yorumlayıcıyı derle** (`GOAMD64=v3 go build -o tr.exe ./cmd/tr`) görevini çalıştırın.
 - `launch.json` ile özelleştirme: `"program"`, `"cwd"` ve `"stopOnEntry": true` (ilk satırda dur) desteklenir.

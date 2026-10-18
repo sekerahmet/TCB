@@ -2,10 +2,10 @@
   // TR dosyalarını VS Code içinden çalıştırmak için görevler.
   // Ctrl+Shift+B  → açık .tr dosyasını çalıştırır (varsayılan görev)
   // Ctrl+Shift+P → "Tasks: Run Task" → diğer görevler (derle, denetle, hata ayıkla)
-  // Çalıştırma görevleri önce "TR: yorumlayıcıyı derle" görevini çalıştırır; böylece kökteki
-  // tr.exe her zaman bugünkü koddan derlenmiş olur (kod değişmediyse derleme bir iki saniye sürer).
-  // tr.exe başka bir yerde açıkken (ör. süren bir hata ayıklama oturumu) Windows dosyayı kilitler
-  // ve derleme başarısız olur; önce o programı kapatın.
+  // Çalıştırma görevleri yorumlayıcıyı DERLEMEZ, kökteki tr.exe'yi olduğu gibi kullanır. Go
+  // kodunu değiştirdiyseniz önce "TR: yorumlayıcıyı derle" görevini elle çalıştırın. Otomatik
+  // derleme bilerek yoktur: tr.exe başka bir yerde açıkken (ör. süren bir hata ayıklama
+  // oturumu) Windows dosyayı kilitler ve derleme her çalıştırmada başarısız olurdu.
   "version": "2.0.0",
   "tasks": [
     {
@@ -24,7 +24,7 @@
     {
       "label": "TR: Bu dosyayı çalıştır",
       "type": "process",
-      "command": "${workspaceFolder}\\tr.exe",
+      "command": "${workspaceFolder}/tr.exe",
       "args": ["${file}"],
       "options": { "cwd": "${workspaceFolder}" },
       "group": { "kind": "build", "isDefault": true },
@@ -34,7 +34,7 @@
     {
       "label": "TR: Bu dosyayı denetle (çalıştırmadan)",
       "type": "process",
-      "command": "${workspaceFolder}\\tr.exe",
+      "command": "${workspaceFolder}/tr.exe",
       "args": ["kontrol", "${file}"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": { "reveal": "always", "panel": "shared", "clear": true },
@@ -43,7 +43,7 @@
     {
       "label": "TR: Hata ayıklayıcıda aç (terminal)",
       "type": "process",
-      "command": "${workspaceFolder}\\tr.exe",
+      "command": "${workspaceFolder}/tr.exe",
       "args": ["hata_ayıkla", "${file}"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },

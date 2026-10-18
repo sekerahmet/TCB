@@ -244,7 +244,7 @@ func veriHatasi(fn, yol string, err error, ekler ...string) error {
 		if dosya == "" {
 			dosya = yol
 		}
-		return fmt.Errorf("%s: %q geçerli bir .npy token dosyası değil: %s. Parçalar tek boyutlu, küçük uçlu uint16, uint32 ya da int32 dizileri olmalıdır (numpy.save ile yazılmış .npy)",
+		return fmt.Errorf("%s: %q geçerli bir .npy token dosyası değil: %s. Parçalar standart .npy biçiminde tek boyutlu, küçük uçlu uint16, uint32 ya da int32 dizileri olmalıdır",
 			fn, filepath.ToSlash(dosya), bh.Neden)
 	case errors.Is(err, dv.ErrOnbellekYetersiz):
 		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, temizle(strings.TrimPrefix(err.Error(), dv.ErrOnbellekYetersiz.Error()+": ")))

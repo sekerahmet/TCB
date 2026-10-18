@@ -84,7 +84,7 @@ değişken girdi, hedef = ö.sonraki()                              // [8, 256] 
 
 [`vscode_eklentisi/`](vscode_eklentisi/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`tensör` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr hata_ayıkla dosya.tr`.
 
-Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosyayı çalıştırır; görev önce yorumlayıcıyı yeniden derler (`.vscode/tasks.json`).
+Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosyayı kökteki `tr.exe` ile çalıştırır (`.vscode/tasks.json`). Çalıştırma görevleri yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce `Ctrl+Shift+P` → "Tasks: Run Task" → **TR: yorumlayıcıyı derle** görevini çalıştırın.
 
 ## Örnekler
 
@@ -116,6 +116,7 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 | Klasör | İçerik |
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
+| `pkg/sozluk` | Dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) tek yerde: `tr.json` |
 | `pkg/lexer` | Kaynak metni sözcüklere ayırır |
 | `pkg/parser` | Sözcüklerden sözdizimi ağacı kurar |
 | `pkg/ast` | Sözdizimi ağacı düğümleri |
@@ -130,6 +131,7 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 | `pkg/testkosucu` | `tr test` komutunun çekirdeği |
 | `pkg/bicim` | `tr biçimle` biçimlendiricisi |
 | `testler/` | Dil tanımının kural testleri |
+| `araclar/` | Geliştirme araçları (ör. eklentinin renklendirme listelerini sözlükten üreten `eklenti_listeleri`) |
 | `vscode_eklentisi/` | VS Code eklentisi |
 
 ## Lisans
