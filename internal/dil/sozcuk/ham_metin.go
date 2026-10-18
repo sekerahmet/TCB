@@ -38,6 +38,44 @@ func (l *Lexer) readRawString(startLine, startCol int) string {
 	return sb.String()
 }
 
+// kacisOku tırnaklı metindeki bir kaçış dizisini (ters bölü ve ardındaki karakter) okur ve
+// karşılığını yazar. Dosya sonunda ters bölüden sonra durur; readString hatayı bildirir.
+func (l *Lexer) kacisOku(sb *strings.Builder) {
+	kacisSatir, kacisSutun := l.line, l.column
+	l.readChar()
+	switch l.ch {
+	case 'n':
+		sb.WriteRune('\n')
+	case 't':
+		sb.WriteRune('\t')
+	case 'r':
+		sb.WriteRune('\r')
+	case '"':
+		sb.WriteRune('"')
+	case '\'':
+		sb.WriteRune('\'')
+	case '\\':
+		sb.WriteRune('\\')
+	case '{':
+		// Kaçışlı süslü parantez (interpolasyon değil)
+		sb.WriteRune(EscapedLBrace)
+	case '}':
+		sb.WriteRune(EscapedRBrace)
+	case 0:
+		return // dosya sonu: readString hatayı bildirir
+	default:
+		// Bilinmeyen kaçış hatadır: ters bölüyü sessizce atmak düzenli ifadeleri
+		// ("\d") ve Windows yollarını ("C:\veri") fark edilmeden bozardı.
+		l.addError(kacisSatir, kacisSutun, "%s", bilinmeyenKacis(l.ch))
+		sb.WriteRune('\\')
+		if l.ch == '\r' && l.peekChar() == '\n' {
+			l.readChar()
+		}
+		sb.WriteRune(l.ch)
+	}
+	l.readChar()
+}
+
 // bilinmeyenKacis tırnaklı metindeki tanınmayan '\c' kaçış dizisinin hata mesajıdır.
 func bilinmeyenKacis(c rune) string {
 	dizi := "'\\" + string(c) + "'"

@@ -192,10 +192,48 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *agac.ForInStatement) deyi
 				lastVal = val
 			}
 
+		case Akis:
+			return akisDongusu(v, it, &tur, anahtarYuva, degerYuva, govde, line)
+
 		default:
 			return nil, signalNone, fmt.Errorf("Satır %d: %s tipi üzerinde döngü kurulamaz", line, iterVal.Type())
 		}
 		return lastVal, signalNone, nil
+	}
+}
+
+// akisDongusu tembel bir kaynağı (Akis) biter, 'çık' ya da 'sonuç' gelene kadar gezer.
+// Öğe sayısı önceden bilinmediğinden her tur Sonraki ile istenir.
+func akisDongusu(v *VM, it Akis, tur *donguOrtami, anahtarYuva, degerYuva int, govde *blokKodu, line int) (Value, flowSignal, error) {
+	var lastVal Value = NULL
+	var devir uint32
+	for idx := int64(0); ; idx++ {
+		if devir++; devir&255 == 0 {
+			v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
+		}
+		item, devam, err := it.Sonraki(v)
+		if err != nil {
+			return nil, signalNone, satirEki(line, err)
+		}
+		if !devam {
+			return lastVal, signalNone, nil
+		}
+		loopEnv := tur.yeni()
+		if anahtarYuva >= 0 {
+			loopEnv.vals[anahtarYuva] = NewInt(idx)
+		}
+		loopEnv.vals[degerYuva] = item
+		val, sig, err := govde.calistir(v, loopEnv)
+		if err != nil {
+			return nil, signalNone, err
+		}
+		if sig == signalReturn {
+			return val, signalReturn, nil
+		}
+		if sig == signalBreak {
+			return lastVal, signalNone, nil
+		}
+		lastVal = val
 	}
 }
 
@@ -303,7 +341,7 @@ func (c *derleyici) listeUreteci(k *derleyiciKapsam, lc *agac.ListComprehension)
 		if err != nil {
 			return nil, err
 		}
-		items, err := uretecOgeleri(iterVal, line)
+		items, err := uretecOgeleri(v, iterVal, line)
 		if err != nil {
 			return nil, err
 		}

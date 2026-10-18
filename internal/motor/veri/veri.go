@@ -145,6 +145,24 @@ func metot(ad string, fn yurut.BuiltinFunc) *yurut.BuiltinVal {
 	}}
 }
 
+// onbellekDizini önbellek: adlı argümanının (verildiyse) çözülmüş klasör yoludur.
+func onbellekDizini(m *yurut.VM, fn string, named map[string]yurut.Value) (string, error) {
+	v, ok := baglama.AdliAl(named, adOnbellek)
+	if !ok {
+		return "", nil
+	}
+	d, ok, err := yurut.YolArgumani(fn, v)
+	if !ok || d == "" {
+		return "", fmt.Errorf("%s: önbellek yerel bir klasör yolu (metin) olmalıdır, ör. önbellek: \"onbellek/veri\"", fn)
+	}
+	if err != nil {
+		return "", err
+	}
+	// Göreli yol, diğer yollar gibi tek kuralla çözülür (16.8): önce çalışma
+	// klasörü, orada yoksa programın klasörü.
+	return baglama.YolCoz(m, d), nil
+}
+
 func kumeAc(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 	const fn = "veri_kümesi"
 	if err := baglama.AdliDenetle(fn+"()", named, adOnbellek, adKota); err != nil {
@@ -162,18 +180,9 @@ func kumeAc(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yuru
 	}
 	yol, bakilanlar := baglama.YolCozBakilan(m, ham)
 
-	obDizin := ""
-	if v, ok := baglama.AdliAl(named, adOnbellek); ok {
-		d, ok, obHata := yurut.YolArgumani(fn, v)
-		if !ok || d == "" {
-			return nil, fmt.Errorf("%s: önbellek yerel bir klasör yolu (metin) olmalıdır, ör. önbellek: \"onbellek/veri\"", fn)
-		}
-		if obHata != nil {
-			return nil, obHata
-		}
-		// Göreli yol, diğer yollar gibi tek kuralla çözülür (16.8): önce çalışma
-		// klasörü, orada yoksa programın klasörü.
-		obDizin = baglama.YolCoz(m, d)
+	obDizin, obHata := onbellekDizini(m, fn, named)
+	if obHata != nil {
+		return nil, obHata
 	}
 	var kota int64
 	kotaV, kotaVar := baglama.AdliAl(named, adKota)
@@ -526,6 +535,22 @@ func (o *Okuyucu) sonraki(m *yurut.VM, args []yurut.Value, named map[string]yuru
 	gt := ogrenme.YeniTam(tensor.New(girdi, b, t))
 	ht := ogrenme.YeniTam(tensor.New(hedef, b, t))
 	return &yurut.ListVal{Elements: []yurut.Value{gt, ht}}, nil
+}
+
+var _ yurut.Akis = (*Okuyucu)(nil)
+
+// Sonraki sıralı okuyucuyu 'döngü iş içinde okuyucu { ... }' ile gezdirir (yurut.Akis):
+// her tur .sonraki()'nin verdiği [girdi, hedef] listesidir, veri bitince döngü biter.
+// Örnekleyici sonsuz ürettiği için döngüyle gezilmez.
+func (o *Okuyucu) Sonraki(m *yurut.VM) (yurut.Value, bool, error) {
+	if !o.sirali {
+		return nil, false, fmt.Errorf("örnekleyici sonsuz toplu iş üretir, döngüyle gezilemez; adım sayısıyla döngü kurup .sonraki() kullanın (ya da .sıralı(...) ile sonlu bir okuyucu açın)")
+	}
+	d, err := o.sonraki(m, nil, nil)
+	if err != nil || d == yurut.NULL {
+		return nil, false, err
+	}
+	return d, true, nil
 }
 
 // ayir [B, T+1] toplu işini [B, T] girdi ve bir kaydırılmış [B, T] hedef dizilerine

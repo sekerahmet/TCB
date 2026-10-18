@@ -62,6 +62,17 @@ type Yinelenebilir interface {
 	YinelemeOgesi(i int) (Value, error)
 }
 
+// Akis 'döngü x içinde değer', 'döngü i, x içinde değer' ve liste üreteci için tembel
+// (akışlı) bir kaynaktır: öğe sayısı önceden bilinmez, öğeler istendikçe üretilir (ör.
+// veri kümesinin sıralı okuyucusu, ileride dosya satırları). VM her tur için Sonraki'yi
+// çağırır; devam=false kaynağın bittiğini söyler. Döngü kaynağı baştan almaz: kaldığı
+// yerden tüketir (aynı akış üzerinde ikinci bir döngü kalan öğeleri gezer). Sonraki
+// uzun bir bekleme yapacaksa (disk, ağ) yorumlayıcı kilidini v.Blocking ile bırakır.
+// Bir değer hem Yinelenebilir hem Akis ise Yinelenebilir kullanılır.
+type Akis interface {
+	Sonraki(v *VM) (deger Value, devam bool, err error)
+}
+
 // DuzDegerli, değerin dış biçimlere (JSON, Go değerleri) yazılırken yerine
 // geçen düz TR değerini verir (ör. tensör → iç içe Ondalık listesi).
 type DuzDegerli interface {

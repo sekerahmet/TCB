@@ -10,7 +10,7 @@ import (
 // üye erişimi, liste üreteci kaynakları).
 
 // uretecOgeleri bir liste üretecinin dolaşacağı öğeleri döndürür.
-func uretecOgeleri(iterVal Value, line int) ([]Value, error) {
+func uretecOgeleri(v *VM, iterVal Value, line int) ([]Value, error) {
 	var items []Value
 	switch it := iterVal.(type) {
 	case *RangeVal:
@@ -43,6 +43,21 @@ func uretecOgeleri(iterVal Value, line int) ([]Value, error) {
 			if items[i], err = it.YinelemeOgesi(i); err != nil {
 				return nil, satirEki(line, err)
 			}
+		}
+	case Akis:
+		// Tembel kaynak (ör. sıralı okuyucu): biter ya da liste sınırına ulaşana kadar
+		for {
+			item, devam, err := it.Sonraki(v)
+			if err != nil {
+				return nil, satirEki(line, err)
+			}
+			if !devam {
+				break
+			}
+			if len(items) >= MaxCollectionSize {
+				return nil, fmt.Errorf("Satır %d: liste üreteci en fazla %d öğe toplayabilir; akışı döngüyle gezin", line, MaxCollectionSize)
+			}
+			items = append(items, item)
 		}
 	default:
 		return nil, fmt.Errorf("Satır %d: Liste üretecinde %s tipi üzerinde döngü kurulamaz", line, iterVal.Type())

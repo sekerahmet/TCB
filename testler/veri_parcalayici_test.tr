@@ -137,6 +137,26 @@ test "16.6 sıralı: pencereler sırayla, bitince yok" {
     doğrula(p.çöz(mg)[0].başlar("Bugün hava"))
 }
 
+test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
+    değişken küme = veri_kümesi("veri/sayilar")
+    değişken s = küme.sıralı(toplu: 2, bağlam: 4)
+    değişken sayı = 0
+    değişken ilk = yok
+    döngü i, iş içinde s {
+        değişken giriş, hedef = iş
+        eğer i == 0 { ilk = giriş.değer }
+        sayı += 1
+    }
+    eşit_mi(31, sayı)
+    eşit_mi([[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0]], ilk)
+    eşit_mi(yok, s.sonraki())
+    // Döngü kaldığı yerden tüketir; çık ile bırakılan okuyucu sonraki döngüde sürer
+    değişken s2 = küme.sıralı(toplu: 2, bağlam: 4)
+    döngü iş içinde s2 { çık }
+    eşit_mi(30, [1 döngü iş içinde s2].uzunluk)
+    doğrula(hata_metni(() => { döngü iş içinde küme.örnekleyici(toplu: 2, bağlam: 4) { } }).içerir("örnekleyici sonsuz toplu iş üretir"))
+}
+
 test "16.7 hatalar Türkçe ve yakalanabilir" {
     doğrula(hata_metni(() => parçalayıcı_yükle("veri/yok.json")).içerir("yüklenemedi: böyle bir dosya ya da klasör yok"))
     doğrula(hata_metni(() => parçalayıcı_yükle("veri/bozuk.npy")).içerir("geçerli bir tokenizer.json dosyası değil"))

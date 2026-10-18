@@ -400,39 +400,7 @@ func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 		}
 
 		if l.ch == '\\' {
-			kacisSatir, kacisSutun := l.line, l.column
-			l.readChar()
-			switch l.ch {
-			case 'n':
-				sb.WriteRune('\n')
-			case 't':
-				sb.WriteRune('\t')
-			case 'r':
-				sb.WriteRune('\r')
-			case '"':
-				sb.WriteRune('"')
-			case '\'':
-				sb.WriteRune('\'')
-			case '\\':
-				sb.WriteRune('\\')
-			case '{':
-				// Kaçışlı süslü parantez (interpolasyon değil)
-				sb.WriteRune(EscapedLBrace)
-			case '}':
-				sb.WriteRune(EscapedRBrace)
-			case 0:
-				continue // dosya sonu: yukarıdaki kontrol hatayı bildirir
-			default:
-				// Bilinmeyen kaçış hatadır: ters bölüyü sessizce atmak düzenli ifadeleri
-				// ("\d") ve Windows yollarını ("C:\veri") fark edilmeden bozardı.
-				l.addError(kacisSatir, kacisSutun, "%s", bilinmeyenKacis(l.ch))
-				sb.WriteRune('\\')
-				if l.ch == '\r' && l.peekChar() == '\n' {
-					l.readChar()
-				}
-				sb.WriteRune(l.ch)
-			}
-			l.readChar()
+			l.kacisOku(&sb)
 			continue
 		}
 
