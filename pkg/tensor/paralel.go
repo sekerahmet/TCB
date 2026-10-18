@@ -19,15 +19,24 @@ func workers() int {
 	return w
 }
 
-// parallelFor [0, n) aralığını en az minChunk uzunluklu parçalara bölüp
-// fn(lo, hi) çağrılarını işçilere dağıtır. cost, bir birimin yaklaşık eleman
-// maliyetidir; toplam iş paralelEsik altındaysa doğrudan çalıştırılır.
+// parallelFor [0, n) aralığını parçalara bölüp fn(lo, hi) çağrılarını işçilere
+// dağıtır. cost, bir birimin yaklaşık eleman maliyetidir; toplam iş paralelEsik
+// altındaysa doğrudan çalıştırılır. İşçi sayısı işe göre sınırlanır: her işçiye
+// en az paralelEsik kadar iş düşer (küçük işlerde gereksiz goroutine kurulmaz).
 func parallelFor(n, cost int, fn func(lo, hi int)) {
 	if n <= 0 {
 		return
 	}
 	w := workers()
-	if w == 1 || n == 1 || n*cost < paralelEsik {
+	is := n * cost
+	if w == 1 || n == 1 || is < paralelEsik {
+		fn(0, n)
+		return
+	}
+	if lim := is / paralelEsik; w > lim {
+		w = max(lim, 1)
+	}
+	if w == 1 {
 		fn(0, n)
 		return
 	}

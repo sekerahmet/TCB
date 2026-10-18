@@ -29,6 +29,9 @@ const (
 	enAzPanel = 16
 	// tekCekirdekEsik bu kadar çarpma-toplamadan küçük işler tek çekirdekte yapılır.
 	tekCekirdekEsik = 1 << 18
+	// isciBasinaEnAz bir işçiye düşen en az çarpma-toplama; işçi sayısı buna
+	// göre sınırlanır (eşiğin hemen üstündeki işlerde gereksiz goroutine olmasın).
+	isciBasinaEnAz = 1 << 17
 )
 
 // packBPanel op(B)'nin jp. nr genişlikli panelini dst'ye (K×nr) yazar.
@@ -170,10 +173,14 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 	})
 
 	W := workers()
+	is := batch * M * N * K
+	if lim := is / isciBasinaEnAz; W > lim {
+		W = max(lim, 1)
+	}
 	mPad := (M + mr - 1) / mr * mr
 	rb := mPad // iş parçası başına satır
 	npb := np  // iş parçası başına B paneli (sütun bloğu)
-	if batch*M*N*K < tekCekirdekEsik {
+	if is < tekCekirdekEsik || W == 1 {
 		W = 1
 	} else {
 		// Başarım ve verimlilik çekirdekleri karışık işlemcilerde yük dengesi
