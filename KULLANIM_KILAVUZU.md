@@ -23,26 +23,49 @@ $env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
 | `.\tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
 | `.\tr.exe yardım` / `-h`, `.\tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
 
-Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir. Kısa bayraklar `-h`, `-v`, `-k` simgedir.
+Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr hata_ayıkla' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `çıkış` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `çıkış` yazmanızı söyler.
 
 Öğrenmeye `ornekler/` klasöründeki numaralı örneklerle başlayın (`01_merhaba.tr` … `09_web_veritabani.tr`; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
 
 ---
 
-## 2. Anahtar Kelimeler (Çift Modlu: Türkçe & ASCII)
+## 2. Anahtar Kelimeler (Tek Yazım: Yalnızca Türkçe)
 
-- **Değişken & Sabit:** `değişken` (`degisken`), `:=`, `sabit`
+- **Değişken & Sabit:** `değişken`, `:=`, `sabit`
 - **Çoklu Atama & Takas:** `değişken a, b = 10, 20`, `a, b = b, a`, `ad, soyad = ["Mustafa", "Kemal"]`
-- **Fonksiyon & Dönüş:** `fonksiyon`, `sonuç` (`sonuc`), `(x) => x * 2`
-- **Koşul & Eşleştirme:** `eğer` (`eger`), `değilse eğer`, `değilse` (`degilse`), `eşle` (`esle`), `varsayılan` (`varsayilan`)
-- **Döngüler & Liste Üreteci:** `döngü x içinde liste` (`dongu x icinde liste`), `1..10`, `1..=10`, `iken`, `çık` (`cik`), `devam`, `[x * x döngü x içinde 1..=10 eğer x % 2 == 0]`
-- **Mantıksal & Boş:** `doğru` (`dogru`), `yanlış` (`yanlis`), `yok`, `ve` (`&&`), `veya` (`||`), `değil` (`!`), `??`, `?.`
-- **Tipler:** `Tam`, `Ondalık`, `Metin`, `Mantık`, `Liste`, `Sözlük`, `Tensör` (matrisler 2 boyutlu tensördür)
-- **Yapı:** `yapı` (`yapi`), `kendi` (kalıtım yoktur)
-- **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat` (`firlat`), `ertele`, `kesme_noktası` (koşullu: `kesme_noktası eğer koşul`), `aktar "yol"`, `aktar "yol" olarak ad`, `eşzamanlı` (`eszamanli`), `bekle(saniye)`, `bekle_hepsi()`
-- **Test:** `test "ad" { ... }`, `doğrula(koşul, [mesaj])` (`dogrula`), `eşit_mi(beklenen, gerçek, [mesaj])` (`esit_mi`)
+- **Fonksiyon & Dönüş:** `fonksiyon`, `sonuç`, `(x) => x * 2`
+- **Koşul & Eşleştirme:** `eğer`, `değilse eğer`, `değilse`, `eşle`, `varsayılan`
+- **Döngüler & Liste Üreteci:** `döngü x içinde liste`, `1..10`, `1..=10`, `iken`, `çık`, `devam`, `[x * x döngü x içinde 1..=10 eğer x % 2 == 0]`
+- **Mantıksal & Boş:** `doğru`, `yanlış`, `yok`, `ve` (`&&`), `veya` (`||`), `değil` (`!`), `??`, `?.`
+- **Tipler:** `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Tensör` (matrisler 2 boyutlu tensördür). Tip açıklamasında büyük/küçük harf fark etmez (`MANTIK` ≡ `Mantık`), ama eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) kabul edilmez: `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`
+- **Yapı:** `yapı`, `kendi` (kalıtım yoktur)
+- **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat`, `ertele`, `kesme_noktası` (koşullu: `kesme_noktası eğer koşul`), `aktar "yol"`, `aktar "yol" olarak ad`, `eşzamanlı`, `bekle(saniye)`, `bekle_hepsi()`
+- **Test:** `test "ad" { ... }`, `doğrula(koşul, [mesaj])`, `eşit_mi(beklenen, gerçek, [mesaj])`
+- **Yorumlar:** `// satır sonuna kadar` ve `/* çok satırlı */`. `#` yorum değildir; sözdizimi hatası verir: `'#' TR'de yorum değil; yorum için '//' yazın`.
 - **Sayılar:** `42`, `1_000_000`, `3.14` ve bilimsel yazım `1e-5`, `3.2E+4`, `2e10` (bilimsel yazım her zaman `Ondalık` verir; `epsilon: 1e-5` gibi küçük değerler için kullanışlıdır).
-- **Kaldırılan eş anlamlılar:** Her işin tek yazımı vardır. `işlev`, `döndür`, `kır`, `sınıf` ve `aktar ... as` kaldırıldı; bu sözcükler artık sıradan adlardır. Yerlerine `fonksiyon`, `sonuç`, `çık`, `yapı` ve `olarak` yazın; eski yazımla yazılan kodda hata mesajı doğrusunu önerir (`'işlev' TR'de anahtar kelime değil; 'fonksiyon' yazmak mı istediniz?`). Aynı kural yerleşik fonksiyonlar için de geçerlidir: her yerleşiğin tek adı (ve varsa Türkçe karaktersiz karşılığı, ör. `sırala` / `sirala`) vardır; eski eş adlarla yazılan kodda hata mesajı asıl adı önerir. Kaldırılanların tam listesi `docs/DIL_TANIMI.md` 2.9a'dadır.
+
+**Her işin tek yazımı vardır.** Dilin kelimeleri (anahtar kelimeler, yerleşik fonksiyonlar, metot ve özellikler, adlı argümanlar, tip adları) yalnızca Türkçe harfleriyle yazıldıkları biçimde geçerlidir. `degisken`, `sonuc`, `dogru`, `yazdir`, `dogrula`, `esit_mi` gibi Türkçe harfsiz yazımlar dilin kelimesi değil, sıradan adlardır; tanımsızken kullanıldıklarında hata mesajı asıl adı önerir:
+
+```text
+'degisken' TR'de anahtar kelime değil; 'değişken' yazmak mı istediniz?
+'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?
+'ondalik' TR'de bir tip adı değil; 'Ondalık' yazmak mı istediniz?
+AdamW 'ogrenme_orani' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?
+```
+
+Eş anlamlı ikinci adlar da kaldırıldı ve artık sıradan adlardır: `işlev`, `döndür`, `kır`, `sınıf`, `aktar ... as` yerine `fonksiyon`, `sonuç`, `çık`, `yapı`, `olarak`; `veritabanı(...)` yerine `veritabanı_aç(...)`, `pencere_oluştur(...)` yerine `arayüz_oluştur(...)`, `matris(...)` yerine `tensör([[...]])`, `.eğit(..., öğrenme_hızı: ...)` yerine `öğrenme_oranı:` yazın. Eski adla yazılan kodda hata mesajı doğrusunu önerir (`'işlev' TR'de anahtar kelime değil; 'fonksiyon' yazmak mı istediniz?`); ipucu hiçbir zaman Türkçe harfsiz bir biçim önermez (`islev` → `fonksiyon`). Kaldırılanların tam listesi `docs/DIL_TANIMI.md` 2.9a'dadır.
+
+### Yerleşik ad gölgeleme uyarısı
+
+Bir yerleşiğin adını (`uzunluk`, `toplam`, `girdi`, `metin`, `ekle` ...) değişken, fonksiyon, parametre, döngü değişkeni, `yakala` değişkeni ya da yapı adı olarak kullanmak serbesttir, ama o kapsamda yerleşik artık kullanılamaz. Denetleyici bunu bir **uyarı** olarak bildirir: program yine çalışır, çıkış kodu değişmez. Uyarılar standart hataya, tip hatalarından ayrı bir başlıkla yazılır:
+
+```text
+⚠️ Uyarılar:
+  • Satır 1: 'uzunluk' yerleşik bir ad; bu kapsamda yerleşik 'uzunluk' artık kullanılamaz
+     1 | değişken uzunluk = 3
+```
+
+Gölgelenmiş ad yine de yerleşik gibi çağrılırsa hata nedenini söyler: `Satır 2: 'uzunluk' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'uzunluk' bu kapsamda gölgelendi`. Yapı alanları ve metotları (`kendi.uzunluk`, `kutu.toplam()`) gölgeleme sayılmaz. Uyarıdan kurtulmak için başka bir ad seçin (`değişken uzunluk_cm = 3`).
 
 Dilin kuralları örnekleriyle birlikte [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) dosyasında tanımlanmıştır; her kuralın `testler/` klasöründe çalıştırılabilir bir testi vardır (`tr test testler`).
 
@@ -79,14 +102,14 @@ Hatalar konumuyla, kaynak satırıyla ve mümkünse bir öneriyle gösterilir:
        |            ^^^^^
 ```
 
-Öneriler Türkçe/ASCII yazım farkını hata saymaz (`degisken_adi` → `değişken_adı`) ve yazdığınız biçime uyar. Mesajlardaki ekler sayının okunuşuna göre seçilir (`Satır 6'ya`, `Satır 9'a`, `Satır 3'te`).
+Kendi tanımladığınız adlarda öneriler Türkçe harf farkını hata saymaz (`degisken_adi` yazılınca `değişken_adı` önerilir). Dilin kelimelerinde öneri her zaman asıl Türkçe adı gösterir (bkz. §2). Mesajlardaki ekler sayının okunuşuna göre seçilir (`Satır 6'ya`, `Satır 9'a`, `Satır 3'te`).
 
 ---
 
 ## 4. Yerleşik Yapay Zeka ("İkisi Bir Arada") ve Veri Bilimi Komutları
 
 ### A. Düşük Seviye Matris ve Otomatik Türev
-- `matris([[1, 2], [3, 4]])`, `sıfırlar(satır, sütun)`, `birler(satır, sütun)`, `birim_matris(n)`, `rastgele_matris(satır, sütun, tohum: 42)`: hepsi 2 boyutlu bir **tensör** döndürür (ayrı bir matris tipi yoktur; ayrıntılar §4.D)
+- `tensör([[1, 2], [3, 4]])`, `sıfırlar([satır, sütun])`, `birler([satır, sütun])`, `birim_matris(n)`, `rastgele_normal([satır, sütun], tohum: 42)`: matris 2 boyutlu bir **tensördür** (ayrı bir matris tipi ya da `matris(...)` / `rastgele_matris(...)` oluşturucusu yoktur; ayrıntılar §4.D)
 - `A @ B` (Çok çekirdekli matris çarpımı), `devrik(A)` (veya `A.devrik()`), `A.şekil` (`[satır, sütun]`)
 - `tensör(3.0, türev_izle: doğru)` (tek sayı 0 boyutlu tensör verir), `geri_yayılım(y)`, `x.gradyan`, `x.değer` (`x.gradyan` da bir tensördür; sayısını `x.gradyan.değer` verir)
 - Aktivasyonlar ve Kayıp: `relu(x)`, `sigmoid(x)`, `tanh(x)`, `softmax(x)`, `kayıp_mse(tahmin, gerçek)`
@@ -111,7 +134,7 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 ### D. Tensörler ve Otomatik Türev
 Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`; `bf16` ve `fp16` de seçilebilir, bkz. **Veri türleri**); yapay zekâ modellerinin ağırlıkları, girdileri ve ara sonuçları tensördür. Her işlem hesap çizgesine kaydedilir; `geri_yayılım(kayıp)` tüm gradyanları hesaplar. Çalıştırılabilir örnekler: `ornekler/05_tensor_ve_turev.tr`, `ornekler/06_transformer.tr`, `ornekler/07_karakter_modeli.tr`.
 
-- **Oluşturma:** `tensör(veri, türev_izle: doğru)` (veri: iç içe liste, tek sayı ya da tensör), `sıfırlar([2, 3])`, `birler([2, 3])`, `rastgele_normal([2, 3], tohum: 42)`. Şekil **liste** olarak verilir; `sıfırlar(2, 3)` gibi iki tam sayı da aynı 2 boyutlu tensörü verir. `matris(...)`, `birim_matris(n)`, `rastgele_matris(...)` da 2 boyutlu tensör döndürür. `türev_izle` varsayılanı her zaman (tek sayıda da) `yanlış`tır: `tensör(3.0)` 0 boyutlu (skaler) bir tensördür (`.şekil` `[]`, `.değer` `3.0`, `.gradyan` `yok`); türevi izlenecekse `tensör(3.0, türev_izle: doğru)` yazın.
+- **Oluşturma:** `tensör(veri, türev_izle: doğru)` (veri: iç içe liste, tek sayı ya da tensör), `sıfırlar([2, 3])`, `birler([2, 3])`, `rastgele_normal([2, 3], tohum: 42)`. Şekil **liste** olarak verilir; `sıfırlar(2, 3)` gibi iki tam sayı da aynı 2 boyutlu tensörü verir. Matris 2 boyutlu tensördür: `tensör([[1, 2], [3, 4]])`, `birim_matris(n)` ve `rastgele_normal([satır, sütun], tohum: 7)` ile oluşturulur. Kaldırılan `matris(...)` ve `rastgele_matris(...)` yazılırsa hata karşılığı önerir (`'matris' TR'de yok; 'tensör' yazmak mı istediniz?`). `türev_izle` varsayılanı her zaman (tek sayıda da) `yanlış`tır: `tensör(3.0)` 0 boyutlu (skaler) bir tensördür (`.şekil` `[]`, `.değer` `3.0`, `.gradyan` `yok`); türevi izlenecekse `tensör(3.0, türev_izle: doğru)` yazın.
 - **Sayı hassasiyeti:** Tensör hesapları `float32` ile (yaklaşık 7 anlamlı basamak) yapılır; `Ondalık` ise 64 bitliktir. Bu yüzden `(tensör([1.0]) / 3).değer[0]` `0.33333334` verir ve `1 / 3`e eşit değildir; `tensör([16777217.0])` 16777216 olarak saklanır. Kesin karşılaştırma yerine `yuvarla(...)` ya da küçük bir tolerans kullanın.
 - **Veri türleri:** Her tensörün bir türü vardır: `"float32"` (varsayılan), `"bf16"` (bfloat16: float32 ile aynı aralık, ~3 anlamlı basamak) ya da `"fp16"` (IEEE yarım hassasiyet: en büyük değer 65504, ~3 anlamlı basamak). 16 bitlik türler belleği yarıya indirir. Tür, oluşturmada `tür:` ile seçilir: `tensör(veri, tür: "bf16")`, `sıfırlar([2, 3], tür: "fp16")`, `birler([4], tür: "bf16")`, `rastgele_normal([2, 3], tohum: 1, tür: "bf16")`; değerler en yakın gösterilebilir değere yuvarlanır (`tensör([1.001], tür: "bf16").değer` `[1.0]`). Tensörden oluştururken `tür:` verilmezse kaynağın türü korunur. `.tür` türü metin olarak verir (`"bf16"`); `.türe("fp16")` dönüştürülmüş bir kopya verir ve **türevlenebilir**dir (gradyan kaynak tensöre kendi türünde akar; tür aynıysa tensörün kendisi döner). İşlemler içte en az float32 ile biriktirir ve sonucu bir kez yuvarlar; işlenenler aynı türdeyse sonuç o türde, farklıysa `float32`'dir. 16 bitlik tensörlerin gradyanları `float32` tutulur. Bilinmeyen tür adı yol gösteren bir hatadır: `tensör: bilinmeyen veri türü "bfloat16"; geçerli türler: "float32", "bf16", "fp16". Bunu mu demek istediniz: "bf16"?`
 - **Karışık hassasiyet:** `karışık_hassasiyet("bf16") { ... }` bloğu (sondaki blok yazımıyla; yeni anahtar kelime değildir) içinde `@` matris çarpımları girdilerini `bf16`'ya çevirir ve float32 biriktirmeyle **float32** sonuç verir; normalizasyon (`katman_normu`, `rms_normu`), `softmax`/`log_softmax`, `çapraz_entropi` ve `toplam`/`ortalama` 16 bitlik girdiyi float32'ye açarak hesaplar. Ağırlıkların kendisi değişmez (dönüşüm türevlenebilir bir kopyadır), bu yüzden `geri_yayılım` ve iyileştirici float32 ağırlıklarla çalışır. Blok son ifadesinin değerini döndürür: `değişken kayıp = karışık_hassasiyet("bf16") { çapraz_entropi(ileri(x), y) }`. `"fp16"` de verilebilir (65504'ü aşan değerler sonsuza taşar; kayıp ölçekleme yoktur); `"float32"` iç içe bir blokta karışık hassasiyeti kapatır. Bloklar iç içe kurulabilir; blok bitince (hata ile bitse de) önceki tür geri gelir. Durum **göreve bağlıdır**: bloğun içinde kilidi bırakan bir çağrı (`bekle(...)`, ağ, dosya) sırasında çalışan başka bir `eşzamanlı` görev ya da web isteği bloktan etkilenmez; blok içinde başlatılan bir `eşzamanlı` görev de float32 ile başlar (gerekirse kendi bloğunu kurar). Hazır `sinir_ağı(...)` modeli bu bloktan etkilenmez. CPU'da bf16 hız kazandırmaz (dönüşüm maliyeti nedeniyle biraz yavaştır); amacı bellek/bant genişliği tasarrufu ve 16 bitlik donanıma hazırlıktır.
@@ -124,7 +147,7 @@ Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`
 - **Döngü:** `döngü x içinde t`, `döngü i, x içinde t` ve `[ifade döngü x içinde t]` tensörü ilk ekseni boyunca gezer: 2 boyutlu tensörde `x` sıradaki satırdır (veriyi paylaşan 1 boyutlu tensör; `x[0] = 9` tensörü değiştirir), 1 boyutlu tensörde sıradaki sayıdır (`Ondalık`; tam sayılı tensörde `Tam`). Örnek: `[toplam(satır).değer döngü satır içinde A]` satır toplamlarını liste olarak verir. 0 boyutlu tensör üzerinde döngü kurulamaz.
 - **Yazdırma:** `yazdır(t)` şekli başlıkta gösterir (`Tensör[2×3]`; float32 dışındaki türlerde tür de: `Tensör[2×3] bf16`, skalerde `Tensör(2.5000) fp16`), değerleri 4 basamakla yazar; 1000'den çok elemanda her eksenin yalnızca ilk ve son 3 elemanı gösterilir (`…`). Sıfır olmayan bir değer 0.0001'den küçükse ya da bir değer 1e8 ve üzerindeyse tüm hücreler bilimsel gösterimle (`1.0000e-05`) yazılır. Sayı olmayan değerler `Tanımsız`, `Sonsuz`, `-Sonsuz` olarak görünür.
 - **Doğruluk değeri:** `eğer t { ... }` tek elemanlı tensörde eleman 0'dan farklıysa doğrudur, boş tensör yanlıştır. Çok elemanlı tensörün doğruluk değeri belirsizdir; `eğer maks(t) > 0` gibi bir indirgeme kullanın (şimdilik hata vermez, doğru sayılır).
-- **Matematik:** `relu`, `sigmoid`, `tanh`, `gelu`, `karekök`, `üstel`, `log`, `sinüs`, `kosinüs` (radyan; dönel konum gömmesi gibi açılı hesaplar için, türevli), `softmax(x, eksen: -1)`, `log_softmax(x, eksen: -1)`. **Dönüş tipi kuralı:** tensör yalnızca tensör girdisinden çıkar (`matris(...)` de bir tensör olduğundan `relu(matris(...))` tensör verir). Sayı ya da liste verilirse sonuç girdinin biçimindedir: eski karşılığı olan adlarda (`relu`, `softmax`...) eski davranış geçerlidir; yeni adlar `gelu`, `üstel`, `log` sayıda Ondalık, listede aynı yapıda liste döndürür. `softmax` ve `log_softmax` listede yalnızca düz sayı listesi kabul eder; iç içe veri için `softmax(tensör(...), eksen: -1)` yazın.
+- **Matematik:** `relu`, `sigmoid`, `tanh`, `gelu`, `karekök`, `üstel`, `log`, `sinüs`, `kosinüs` (radyan; dönel konum gömmesi gibi açılı hesaplar için, türevli), `softmax(x, eksen: -1)`, `log_softmax(x, eksen: -1)`. **Dönüş tipi kuralı:** tensör yalnızca tensör girdisinden çıkar (`relu(tensör([[1, -2]]))` ve `relu(birim_matris(2))` tensör verir). Sayı ya da liste verilirse sonuç girdinin biçimindedir: eski karşılığı olan adlarda (`relu`, `softmax`...) eski davranış geçerlidir; yeni adlar `gelu`, `üstel`, `log` sayıda Ondalık, listede aynı yapıda liste döndürür. `softmax` ve `log_softmax` listede yalnızca düz sayı listesi kabul eder; iç içe veri için `softmax(tensör(...), eksen: -1)` yazın.
 - **İndirgemeler:** `toplam(x)`, `ortalama(x)`, `maks(x)`, `min(x)` tüm elemanları skaler (0 boyutlu) tensöre indirger; `eksen: 1` verilirse o eksen kaldırılır; `boyutu_koru: doğru` ile 1 uzunlukta korunur (`[B, T, D]` → `toplam(x, eksen: -1, boyutu_koru: doğru)` → `[B, T, 1]`, böylece `x / toplam(x, eksen: -1, boyutu_koru: doğru)` yayınlanır; eksen verilmezse bütün eksenler 1 olur). `toplam(x, 1)` / `ortalama(x, 1)` konumlu ekseni de kabul eder; `maks`/`min` için eksen **yalnızca adlı** verilir (`maks(x, 0)` eleman bazlı sınırla karışmasın diye hatadır). `toplam([a, b])` / `ortalama([a, 1, b])` listedeki tensörleri yayınlamalı toplamla katlar (türev korunur); iç içe sayı listesi indirgenemez, önce `tensör(...)` ile çevirin. `eksen:` yalnızca tensörlerde geçerlidir.
 - **Sinir ağı:** `gömme(tablo, indeksler)` (tablo `[V, D]`; sonuç `indeks şekli + [D]`), `çapraz_entropi(çıktı, hedef)` (çıktı `[..., C]`, hedef sınıf indeksleri; negatif hedefler yok sayılır), `katman_normu(x, ağırlık, sapma, epsilon: 0.00001)`, `rms_normu(x, ağırlık, epsilon: 0.00001)` (ağırlık/sapma `yok` olabilir).
 - **Birleştirme ve bölme:** `birleştir([a, b, c], eksen: -1)` tensörleri bir eksen boyunca birleştirir (diğer eksenler eşit olmalı; türevli). `x.böl(3, eksen: -1)` tensörü o eksende 3 eşit parçaya böler ve parçaların listesini verir (görünümler, türevli): `değişken q, k, v = (x @ Wqkv).böl(3)`.
@@ -234,7 +257,7 @@ TR'nin **terminalde** (`tr hata_ayıkla dosya.tr`, kabukta `/h`) çalışan bir 
 
 Veritabanı, REST API ve arayüzü birlikte kullanan örnek: `ornekler/09_web_veritabani.tr`.
 
-### A. Görsel Arayüz Motoru (`arayüz_oluştur` / `pencere_oluştur`)
+### A. Görsel Arayüz Motoru (`arayüz_oluştur`)
 ```tr
 değişken ekran = arayüz_oluştur("Kurumsal ERP Kokpiti", genişlik: 1100, yükseklik: 780)
 ekran.kart_ekle("Toplam Ciro", "1.450.000 TL", "+%18 Artış", "yeşil")
@@ -245,6 +268,9 @@ ekran.form_ekle("Hızlı Sipariş Girişi", ["Müşteri", "Tutar"], fonksiyon(fo
 })
 ekran.html_kaydet("rapor.html") // veya ekran.başlat() ile canlı masaüstü penceresi açar
 ```
+
+- Bileşenler: `kart_ekle(başlık, değer, [alt_bilgi], [renk])`, `başlık_ekle`, `metin_ekle`, `tablo_ekle`, `grafik_ekle`, `form_ekle`, `buton_ekle`; çıktı: `html_kaydet(yol)`, `html_üret()`, `başlat()`, `durdur()`.
+- **Renkler yalnızca Türkçe adlarla ya da renk koduyla verilir:** `yeşil`, `mavi`, `kırmızı`, `sarı`, `turuncu`, `mor` (büyük/küçük harf fark etmez) ya da `#22c55e`, `rgb(34, 197, 94)`, `hsl(...)`. İngilizce adlar ve Türkçe harfsiz yazımlar Türkçe adı öneren bir hata verir (`kart_ekle: 'green' TR'de yok; 'yeşil' yazmak mı istediniz?`, `'yesil'` için de aynı); bilinmeyen bir renk adı da hatadır (`kart_ekle: bilinmeyen renk "mavimsi"; bir renk adı (yeşil, mavi, kırmızı, sarı, turuncu, mor) ya da #22c55e, rgb(34, 197, 94) gibi bir renk kodu yazın`).
 
 ### B. Web Sunucu & REST API Motoru (`web_sunucu`)
 ```tr
@@ -274,38 +300,47 @@ api.başlat() // veya api.arka_planda_başlat()
 ## 7. Yerleşik Türkçe SQL Veritabanı ve Listeyi Tablo Gibi Sorgulama
 
 ```tr
-// 1. Kalıcı Disk Veritabanı (.trdb) veya Bellek Veritabanı (":bellek:")
+// 1. Kalıcı disk veritabanı (.trdb) ya da bellek veritabanı (":bellek:")
 değişken vt = veritabanı_aç("sirket.trdb")
 vt.ekle("personel", {"id": 101, "ad": "Ayşe Yılmaz", "departman": "Yapay Zeka", "maas": 92000})
 
-// Türkçe SQL veya Standart SQL ile Sorgulama
-değişken sonuc = vt.sorgula("SEÇ ad, maas TABLO personel NEREDE maas >= 80000 SIRALA maas AZALAN")
+// Türkçe sorgu diliyle sorgulama
+değişken sonuç_listesi = vt.sorgula("SEÇ ad, maas TABLO personel NEREDE maas >= 80000 SIRALA maas AZALAN LİMİT 10")
 vt.güncelle("personel", {"maas": 98000}, "id == 101")
 
-// Dışarıdan gelen değerleri (form, URL parametresi) sorguya gömmeyin; '?' ile bağlayın:
+// Dışarıdan gelen değerleri (form, adres parametresi) sorguya gömmeyin; '?' ile bağlayın:
+değişken departman = "Yapay Zeka"
 değişken ekip = vt.sorgula("SEÇ ad TABLO personel NEREDE departman == ? VE maas > ?", [departman, 50000])
+değişken silinecek_id = 101
 vt.sil("personel", "id == ?", [silinecek_id])   // güncelle(..., koşul, [parametreler]), say(tablo, koşul, [parametreler]) de aynı
 
-// Not: NEREDE koşulları TR kodu olarak çalıştırılmaz. Yalnızca sütun adları, sayılar, 'metin',
-// doğru/yanlış/yok, + - * / %, karşılaştırmalar, ve/veya/değil (AND/OR/NOT) ve parantez desteklenir.
-// Bilinmeyen sütun veya hatalı koşul artık sessizce boş liste döndürmez, hata verir.
-
 // 2. Bellekteki bir listeyi tablo gibi sorgulama
+değişken liste = [{"ad": "Ali", "maas": 90000}, {"ad": "Can", "maas": 70000}]
 değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", alanlar: ["ad", "maas"])
 ```
+
+**Sorgu ve koşul dili yalnızca Türkçedir.** Sözcükler: `SEÇ`, `SİL`, `TABLO`, `NEREDE`, `SIRALA`, `AZALAN`, `LİMİT`; koşullarda `VE`, `VEYA`, `DEĞİL`, `DOĞRU`, `YANLIŞ`, `YOK`. Büyük/küçük harf fark etmez; harfler Türkçe kuralla eşlenir (`seç` ≡ `SEÇ`, `limit` ≡ `LİMİT`). Simgeler de kullanılabilir: `&&`, `||`, `!`, `=`, `==`, `!=`, `<>`, `<`, `>`, `<=`, `>=`, `+ - * / %` ve parantez.
+
+- İngilizce sözcükler (`SELECT`, `FROM`, `WHERE`, `ORDER BY`, `DESC`, `LIMIT`, `DELETE`, `AND`, `OR`, `NOT`, `TRUE`, `FALSE`, `NULL`), eş anlamlı `DAN` ve Türkçe harfsiz yazımlar (`SEC`, `SIL`, `DOGRU`, `YANLIS`, `DEGIL`) kabul edilmez; hata Türkçe karşılığı önerir: `Desteklenmeyen SQL komutu: 'SELECT' TR'de yok; 'SEÇ' yazmak mı istediniz?`, `Koşul hatası (maas > 1 AND maas < 9): 'AND' TR'de yok; 'VE' yazmak mı istediniz?`
+- `tablo_sorgula(..., sırala: "maas:azalan")` sıralama yönünü de yalnızca Türkçe alır (`"maas:desc"` hata verir). Bellekte veritabanı yalnızca `veritabanı_aç(":bellek:")` ile açılır (`":memory:"` hata verir).
+- Koşullar TR kodu olarak çalıştırılmaz; yalnızca sütun adları, sayılar, `'metin'`, yukarıdaki sözcük ve simgeler desteklenir. Bilinmeyen sütun ya da hatalı koşul sessizce boş liste döndürmez, hata verir.
+- Veritabanı yöntemleri (`sorgula`, `güncelle`, `sil`, `say`) ve `tablo_sorgula` bilinmeyen adlı argümanı yok saymaz, hata verir; kaldırılan adlar asıl adı önerir (`params:` → `parametreler:`, `nerede:` → `koşul:`).
+- Yöntem adları da tektir: `ekle`, `sorgula`, `hepsini_al`, `güncelle`, `sil`, `say`, `tablolar`, `tablo_oluştur`, `kaydet` (kaldırılanlar: `kayıt_ekle`, `sorgu`, `seç`, `tablo_al`).
 
 ---
 
 ## 8. VS Code Editör Eklentisi Kısayolları (Snippets)
 `.tr` uzantılı bir dosya açtığınızda aşağıdaki kısayolları yazıp `Tab` tuşuna basabilirsiniz:
-- `fonk` $\rightarrow$ Fonksiyon bloğu oluşturur
-- `eger` $\rightarrow$ `eğer ... değilse` bloğu oluşturur
-- `esle` $\rightarrow$ `eşle` durum eşleştirme bloğu oluşturur
-- `dongu` $\rightarrow$ `döngü i içinde 1..=10` bloğu oluşturur
-- `liste_uret` $\rightarrow$ Tek satırda liste üreteci oluşturur
-- `yapi` $\rightarrow$ `yapı` ve metot şablonu oluşturur
-- `sinir` $\rightarrow$ 3 satırlık yapay sinir ağı eğitim şablonu oluşturur
-- `tensor` $\rightarrow$ Tensörlerle küçük bir eğitim döngüsü oluşturur (`tensör(..., türev_izle: doğru)`, `AdamW`, `iyileştirici.sıfırla()`, `geri_yayılım`, `iyileştirici.adım()`)
+- `fonk` / `fonksiyon` $\rightarrow$ Fonksiyon bloğu oluşturur
+- `eğer` $\rightarrow$ `eğer ... değilse` bloğu oluşturur
+- `eşle` $\rightarrow$ `eşle` durum eşleştirme bloğu oluşturur
+- `filtrele` / `haritala` $\rightarrow$ Sondaki blokla `.filtrele { o ... }` / `.haritala { o ... }` yazar
+- `döngü` $\rightarrow$ `döngü i içinde 1..=10` bloğu oluşturur
+- `liste_üret` $\rightarrow$ Tek satırda liste üreteci oluşturur
+- `yapı` $\rightarrow$ `yapı` ve metot şablonu oluşturur
+- `dene` $\rightarrow$ `dene ... yakala` hata yakalama bloğu oluşturur
+- `sinir` / `sinir_ağı` $\rightarrow$ 3 satırlık yapay sinir ağı eğitim şablonu oluşturur
+- `tensör` / `türev` $\rightarrow$ Tensörlerle küçük bir eğitim döngüsü oluşturur (`tensör(..., türev_izle: doğru)`, `AdamW`, `iyileştirici.sıfırla()`, `geri_yayılım`, `iyileştirici.adım()`)
 
 
 
@@ -328,8 +363,8 @@ test "eşitlik" {
 }
 ```
 
-- `doğrula(koşul, [mesaj])` (ASCII: `dogrula`): koşul yanlışsa test kalır.
-- `eşit_mi(beklenen, gerçek, [mesaj])` (ASCII: `esit_mi`): değerler `==` anlamında eşit değilse ikisini de tipiyle gösterir.
+- `doğrula(koşul, [mesaj])`: koşul yanlışsa test kalır.
+- `eşit_mi(beklenen, gerçek, [mesaj])`: değerler `==` anlamında eşit değilse ikisini de tipiyle gösterir.
 - `test` yalnızca deyim başında ve ardından bir metin gelince test başlatır; `değişken test = 5` gibi kullanımlar çalışmaya devam eder.
 - Önce dosyanın kendisi çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde **yeni bir kapsamda** çalışır. Kalan ya da hata veren test diğerlerini durdurmaz. (Üst düzey bir değişkene atama yapan test, sonrakilerin gördüğü değeri değiştirir.)
 

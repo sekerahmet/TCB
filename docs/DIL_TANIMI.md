@@ -22,11 +22,10 @@ yazdır("Merhaba, dünya!")
 
 **2.1** Kaynak UTF-8 metindir; bazı Windows editörlerinin eklediği baştaki BOM (U+FEFF) yok sayılır. Konumlar 1'den başlayan satır ve karakter (bayt değil) sütunlarıyla bildirilir.
 
-**2.2** Yorumlar üç biçimdedir: satır sonuna kadar `#` ve `//`, çok satırlı `/* ... */`. Kapanmayan `/*` bir hatadır.
+**2.2** Yorumlar iki biçimdedir: satır sonuna kadar `//` ve çok satırlı `/* ... */`. Kapanmayan `/*` bir hatadır. `#` yorum değildir: metin dışında yazılan `#` bir sözdizimi hatasıdır (`'#' TR'de yorum değil; yorum için '//' yazın`); metin içinde (`"#22c55e"`) sıradan bir karakterdir.
 
 ```tr
-değişken x = 1  # satır sonuna kadar yorum
-// bu da satır yorumu
+değişken x = 1  // satır sonuna kadar yorum
 /* çok
    satırlı */
 ```
@@ -55,29 +54,39 @@ değişken t = 1 +
     2                    // t = 3
 ```
 
-**2.9** Anahtar kelimeler çift biçimlidir: Türkçe karakterli ve ASCII yazımlar eşdeğerdir.
+**2.9** Dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir. Anahtar kelimeler şunlardır:
 
-| Anahtar kelime | Diğer yazımlar | | Anahtar kelime | Diğer yazımlar |
-| :-- | :-- | :-- | :-- | :-- |
-| `değişken` | `degisken` | | `doğru` / `yanlış` | `dogru` / `yanlis` |
-| `sabit` | | | `yok` | |
-| `fonksiyon` | | | `ve` / `veya` / `değil` | `degil` |
-| `sonuç` | `sonuc` | | `yapı` | `yapi` |
-| `eğer` / `değilse` | `eger` / `degilse` | | `kendi` | |
-| `eşle` / `varsayılan` | `esle` / `varsayilan` | | `dene` / `yakala` | |
-| `döngü` / `içinde` | `dongu` / `icinde` | | `fırlat` | `firlat` |
-| `iken` | | | `aktar` | |
-| `çık` | `cik` | | `eşzamanlı` | `eszamanli` |
-| `devam` | | | `ertele` | |
-| `kesme_noktası` | `kesme_noktasi` | | | |
+| Görev | Anahtar kelimeler |
+| :-- | :-- |
+| Bildirim | `değişken`, `sabit` |
+| Fonksiyon | `fonksiyon`, `sonuç` |
+| Koşul | `eğer`, `değilse`, `eşle`, `varsayılan` |
+| Döngü | `döngü`, `içinde`, `iken`, `çık`, `devam` |
+| Değer ve mantık | `doğru`, `yanlış`, `yok`, `ve`, `veya`, `değil` |
+| Yapı | `yapı`, `kendi` |
+| Hata yönetimi | `dene`, `yakala`, `fırlat` |
+| Modül ve eşzamanlılık | `aktar`, `eşzamanlı`, `ertele` |
+| Hata ayıklama | `kesme_noktası` |
 
-**2.9a** Her işin tek yazımı vardır: her anahtar kelimenin ve her yerleşik fonksiyonun (bkz. 13) yalnızca bir asıl adı ve varsa Türkçe karaktersiz karşılığı (`sırala` / `sirala`, `karekök` / `karekok`) bulunur; eş anlamlı ikinci bir ad yoktur. Kaldırılan eş anlamlılar artık sıradan adlardır (`değişken sınıf = "9-A"`, `değişken boy = 180`); eski alışkanlıkla yazıldıklarında (tanımsız ad hatasında) hata mesajı asıl yazımı önerir (`'uyut' TR'de yok; 'bekle' yazmak mı istediniz?`). Kaldırılanlar (kaldırılan → asıl):
+Bu kural anahtar kelimelerle sınırlı değildir: yerleşik fonksiyonlar, metot ve özellikler, adlı argümanlar ve tip adları da (bkz. 3.13) yalnızca Türkçe harfleriyle yazıldıkları biçimde geçerlidir. Türkçe harfleri `c g i o s u` ile yazılmış bir biçim (`degisken`, `sonuc`, `dogru`, `yazdir`, `buyuk_harf`) dilin kelimesi değil, sıradan bir addır: `değişken degisken = 1` geçerlidir. Böyle bir ad tanımsızken kullanılırsa hata mesajı asıl Türkçe adı önerir:
 
-- Anahtar kelimeler: `işlev` → `fonksiyon`, `döndür` → `sonuç`, `kır` → `çık`, `sınıf` → `yapı` (ve ASCII biçimleri), `aktar ... as` → `aktar ... olarak`, `dur_noktası` / `durdurma_noktası` (ve ASCII biçimleri) → `kesme_noktası`.
-- Yerleşik fonksiyonlar: `yaz` → `yazdır`, `oku` → `girdi`, `boy` → `uzunluk`, `tur` → `tip`, `donustur` → `haritala`, `ozetle` → `indirge`, `en_büyük` → `maks`, `en_küçük` → `min`, `uyut` → `bekle`, `std_sapma` → `standart_sapma`, `medyan` → `ortanca`, `json_yaz` → `json_metin`, `tablo_oku` → `csv_oku`, `http_al` → `web_al`, `web_sunucusu` → `web_sunucu`.
-- Metot ve özellikler: `.boy` → `.uzunluk`, `.dönüştür` / `.donustur` → `.haritala`.
+- anahtar kelime: `'degisken' TR'de anahtar kelime değil; 'değişken' yazmak mı istediniz?`
+- yerleşik fonksiyon ya da metot: `'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?`, `'buyuk_harf' TR'de yok; 'büyük_harf' yazmak mı istediniz?`
+- adlı argüman: `AdamW 'ogrenme_orani' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?`
 
-Veritabanı, web ve arayüz motorlarında ve tip açıklamalarında bugün hâlâ kabul edilen birkaç eş yazım vardır (`veritabanı` / `veritabanı_aç`, `sorgu` / `sorgula`, `tamsayı` / `Tam` ...); bunlar sözlükte asıl adın `es` alanındadır ve sonraki bir temizlikte kaldırılacaktır (bkz. 17).
+**2.9a** Her işin tek yazımı vardır: her anahtar kelimenin, yerleşik fonksiyonun (bkz. 13), metodun, özelliğin, adlı argümanın ve tip adının yalnızca bir adı vardır; eş anlamlı ya da başka yazımlı ikinci bir ad kabul edilmez. Kaldırılan adlar artık sıradan adlardır (`değişken sınıf = "9-A"`, `değişken boy = 180`); eski alışkanlıkla yazıldıklarında (tanımsız ad, bilinmeyen metot ya da bilinmeyen adlı argüman hatasında) hata mesajı asıl adı önerir (`'uyut' TR'de yok; 'bekle' yazmak mı istediniz?`). İpuçları her zaman asıl Türkçe adı önerir, kaldırılan bir adın Türkçe harfsiz yazımı için de (`islev` → `fonksiyon`, `dondur` → `sonuç`). Kaldırılanlar (kaldırılan → asıl):
+
+- Anahtar kelimeler: `işlev` → `fonksiyon`, `döndür` → `sonuç`, `kır` → `çık`, `sınıf` → `yapı`, `aktar ... as` → `aktar ... olarak`, `dur_noktası` / `durdurma_noktası` → `kesme_noktası`.
+- Yerleşik fonksiyonlar: `yaz` → `yazdır`, `oku` → `girdi`, `boy` → `uzunluk`, `tur` → `tip`, `donustur` → `haritala`, `ozetle` → `indirge`, `en_büyük` → `maks`, `en_küçük` → `min`, `uyut` → `bekle`, `std_sapma` → `standart_sapma`, `medyan` → `ortanca`, `json_yaz` → `json_metin`, `tablo_oku` → `csv_oku`, `http_al` → `web_al`, `web_sunucusu` → `web_sunucu`, `veritabanı` → `veritabanı_aç`, `pencere_oluştur` → `arayüz_oluştur`, `matris` → `tensör` (matris 2 boyutlu tensördür: `tensör([[1, 2], [3, 4]])`), `rastgele_matris` → `rastgele_normal` (`rastgele_normal([satır, sütun], tohum: 7)`).
+- Metot ve özellikler: `.boy` → `.uzunluk`, `.dönüştür` / `.donustur` → `.haritala`, `.türev` → `.gradyan`, `.tahmin` → `.tahmin_et`; veritabanında `.kayıt_ekle` → `.ekle`, `.sorgu` / `.seç` → `.sorgula`, `.tablo_al` → `.hepsini_al`; web sunucusu ve arayüzde `.göster` → `.başlat`, `.kapat` → `.durdur`, `.url` → `.adres`, `.get` → `.al`, `.post` → `.gönder`, `.rota` → `.rota_ekle`, `.metrik_ekle` → `.kart_ekle`, `.bilgi_ekle` → `.metin_ekle`.
+- Adlı argümanlar: `nerede:` → `koşul:`, `params:` → `parametreler:`, `sinir_ağı(...)` modelinin `.eğit(...)` metodunda `öğrenme_hızı:` → `öğrenme_oranı:` (`AdamW` ve `SGD` ile aynı ad).
+- Tip adları (bkz. 3.13): `tamsayı` / `int` → `Tam`, `sayı` / `float` → `Ondalık`, `yazı` / `str` / `string` → `Metin`, `mantıksal` / `bool` → `Mantık`, `boş` / `null` → `Yok`, `dizi` / `list` → `Liste`, `harita` / `dict` / `map` → `Sözlük`, `matris` / `matrix` → `Tensör`.
+- Yorum: `#` → `//` (bkz. 2.2).
+- Motorların metin içindeki sözcükleri de yalnızca Türkçedir: veritabanı sorgu ve koşul dili (`SELECT` → `SEÇ`, `WHERE` → `NEREDE`, `AND` → `VE` ..., bkz. `KULLANIM_KILAVUZU.md` §7), bellekte veritabanı yolu (`":memory:"` → `":bellek:"`), sıralama yönü (`"maas:desc"` → `"maas:azalan"`) ve arayüz renk adları (`green` → `yeşil`, `yesil` → `yeşil`; bilinmeyen renk adı da hatadır). Komut satırı komutlarının da tek Türkçe adı vardır (`tr debug` → `tr hata_ayıkla`, bkz. `KULLANIM_KILAVUZU.md` §1).
+
+Kaldırılan dil adları (anahtar kelimeler, yerleşikler, üyeler, adlı argümanlar, tip adları) sözlükte asıl adın `eski` listesinde durur (bkz. 17); ipucu oradan kendiliğinden çalışır.
+
+**Yerleşik ad gölgeleme uyarısı.** Bir yerleşiğin adı (`uzunluk`, `toplam`, `girdi`, `metin`, `ekle` ...) değişken, fonksiyon, parametre, döngü değişkeni, `yakala` değişkeni ya da yapı adı olarak tanımlanabilir; o kapsamda ad kullanıcının tanımını gösterir ve yerleşik kullanılamaz. Tip denetleyicisi bunun için bir **uyarı** verir; uyarı hata değildir, program çalışır ve çıkış kodu değişmez. Uyarılar standart hataya, tip hatalarından ayrı, `⚠️ Uyarılar:` başlığıyla yazılır: `Satır 1: 'uzunluk' yerleşik bir ad; bu kapsamda yerleşik 'uzunluk' artık kullanılamaz`. Gölgelenmiş ad yerleşik gibi çağrılırsa çalışma zamanı hatası nedenini söyler: `Satır 2: 'uzunluk' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'uzunluk' bu kapsamda gölgelendi`. Yapı alanları ve metotları (`kendi.uzunluk`, `p.toplam()`) gölgeleme sayılmaz.
 
 Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `_` (yalnızca `eşle` kolunda varsayılan).
 
@@ -113,7 +122,7 @@ uzunluk("şeker")   // 5
 
 **3.10** Doğruluk: `yanlış`, `yok`, `0`, `0.0`, boş metin, boş liste ve boş sözlük yanlış; diğer her değer doğru sayılır.
 
-**3.11** `tip(x)` değerin tip adını metin olarak verir: `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Aralık`, `Fonksiyon`, `YerleşikFonksiyon`, `Tensör`; bir yapı nesnesi için yapının adı (`Nokta`). Ayrı bir matris tipi yoktur: `matris(...)` gibi matris oluşturucuları 2 boyutlu `Tensör` verir (15.1).
+**3.11** `tip(x)` değerin tip adını metin olarak verir: `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Aralık`, `Fonksiyon`, `YerleşikFonksiyon`, `Tensör`; bir yapı nesnesi için yapının adı (`Nokta`). Ayrı bir matris tipi yoktur: matris 2 boyutlu bir `Tensör`dür (`tensör([[1, 2], [3, 4]])`, `birim_matris(n)`; 15.1).
 
 **3.12** Dönüşümler: `tam(x)` (ondalığı keser, metni ayrıştırır), `ondalık(x)`, `metin(x)`; çevrilemeyen değer hata verir.
 
@@ -123,7 +132,7 @@ tam(3.9)        // 3
 metin(12) + "a" // "12a"
 ```
 
-**3.13** Tip açıklamaları `ad: Tip` biçimindedir (değişken, parametre, yapı alanı; dönüş tipi için 6.8). Tip denetleyicisi bildirilen tiple çıkarılan tip uyuşmazsa ve `sabit` yeniden atanırsa programı **çalıştırmadan** reddeder. Tip adlarının Türkçe/İngilizce eş adları vardır: `Tam`/`tamsayı`/`int`, `Ondalık`/`sayı`/`float`, `Metin`/`yazı`/`str`, `Mantık`/`bool`, `Liste`/`dizi`, `Sözlük`/`harita`/`dict`.
+**3.13** Tip açıklamaları `ad: Tip` biçimindedir (değişken, parametre, yapı alanı; dönüş tipi için 6.8). Tip denetleyicisi bildirilen tiple çıkarılan tip uyuşmazsa ve `sabit` yeniden atanırsa programı **çalıştırmadan** reddeder. Tip açıklamasında yalnızca dilin tip adları geçerlidir: `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Tensör` (ve 3.11'deki diğer adlar, yapı adları). Tip adları büyük/küçük harfe duyarsızdır; harfler Türkçe kuralla eşlenir (`MANTIK` ≡ `Mantık`, `ondalık` ≡ `Ondalık`). Eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) ve Türkçe harfsiz yazımlar kabul edilmez; denetleyici asıl adı önerir (`'ondalik' TR'de bir tip adı değil; 'Ondalık' yazmak mı istediniz?`, `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`; kaldırılanların listesi 2.9a'dadır).
 
 ```tr
 değişken yaş: Tam = 25
@@ -158,7 +167,7 @@ değişken ad: Tam = "Ali"   // denetim hatası: Tip uyuşmazlığı
 
 **4.4** `< > <= >=` yalnızca sayılar arasında tanımlıdır (tensörlerde eleman bazlı 0/1 maskesi verir, bkz. 15.3); karşılaştırmalar zincirlenmez (`1 < 2 < 3` hatadır).
 
-**4.5** Eşitlik: iki sayı tipten bağımsız değerle karşılaştırılır (`1 == 1.0`); iki `Tam` tam olarak karşılaştırılır (`9007199254740993 != 9007199254740992`); diğer değerler aynı tipte ve aynı içerikteyse eşittir (`[1, "a"] == [1, "a"]`, `"1" != 1`, `yok != yanlış`). Listeler, sözlükler ve yapı nesneleri eleman eleman bu kuralla karşılaştırılır (`[1, 2] == [1.0, 2]`); sözlüklerde anahtar sırası önemsizdir. Tensörler şekilleri ve tüm elemanları aynıysa eşittir. 0 boyutlu tensör, değeri (`.değer`) bir sayıya eşitse o sayıya eşittir (`tensör(7.0) == 7`, `matris([[1, 2]])[0][1] == 2.0`, `toplam(t) == 10`); en az bir ekseni olan tensör sayıya eşit değildir (`tensör([7.0]) != 7`).
+**4.5** Eşitlik: iki sayı tipten bağımsız değerle karşılaştırılır (`1 == 1.0`); iki `Tam` tam olarak karşılaştırılır (`9007199254740993 != 9007199254740992`); diğer değerler aynı tipte ve aynı içerikteyse eşittir (`[1, "a"] == [1, "a"]`, `"1" != 1`, `yok != yanlış`). Listeler, sözlükler ve yapı nesneleri eleman eleman bu kuralla karşılaştırılır (`[1, 2] == [1.0, 2]`); sözlüklerde anahtar sırası önemsizdir. Tensörler şekilleri ve tüm elemanları aynıysa eşittir. 0 boyutlu tensör, değeri (`.değer`) bir sayıya eşitse o sayıya eşittir (`tensör(7.0) == 7`, `tensör([[1, 2]])[0][1] == 2.0`, `toplam(t) == 10`); en az bir ekseni olan tensör sayıya eşit değildir (`tensör([7.0]) != 7`).
 
 **4.6** `ve`/`&&` ile `veya`/`||` kısa devre yapar ve sonucu her zaman `Mantık` olarak verir (`1 && "a"` → `doğru`). `!x` ve `değil x` doğruluğun tersidir.
 
@@ -174,7 +183,7 @@ değişken ad: Tam = "Ali"   // denetim hatası: Tip uyuşmazlığı
 
 **4.10** `+` en az bir tarafı metinse öbürünü metne çevirip birleştirir (`"a" + 1` → `"a1"`); iki listeyi uç uca ekler.
 
-**4.11** `@` matris çarpımıdır (`matris(...) @ matris(...)`; `matris(...)` 2 boyutlu tensör verir); `+ - * /` tensörlerde eleman bazlıdır (bkz. 15.3).
+**4.11** `@` matris çarpımıdır (`tensör([[1, 2], [3, 4]]) @ tensör([[1], [1]])`; matris 2 boyutlu tensördür); `+ - * /` tensörlerde eleman bazlıdır (bkz. 15.3).
 
 ---
 
@@ -357,9 +366,9 @@ test "toplama doğru" {
 
 **12.2** `test` bağlamsal bir anahtar kelimedir: yalnızca bir deyimin başında ve ardından bir metin geldiğinde test başlatır; başka her yerde sıradan bir addır (`değişken test = 5`).
 
-**12.3** `doğrula(koşul, [mesaj])` (ASCII: `dogrula`) koşul yanlışsa hata fırlatır: `doğrulama başarısız: mesaj`.
+**12.3** `doğrula(koşul, [mesaj])` koşul yanlışsa hata fırlatır: `doğrulama başarısız: mesaj`.
 
-**12.4** `eşit_mi(beklenen, gerçek, [mesaj])` (ASCII: `esit_mi`) iki değer `==` anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır: `eşitlik başarısız: beklenen "5" (Metin), gerçek 5 (Tam)`. Her iki yerleşik test dışında da (ör. sözleşme denetimi için) kullanılabilir.
+**12.4** `eşit_mi(beklenen, gerçek, [mesaj])` iki değer `==` anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır: `eşitlik başarısız: beklenen "5" (Metin), gerçek 5 (Tam)`. Her iki yerleşik test dışında da (ör. sözleşme denetimi için) kullanılabilir.
 
 **12.5** Önce dosyanın kendisi (testler hariç) çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde açılan **yeni bir kapsamda** çalışır. Bir testin yerel adları diğerine sızmaz; kalan ya da hata veren test diğerlerini durdurmaz. Testteki `ertele` test bitince çalışır, testin başlattığı görevler beklenir.
 
@@ -369,7 +378,7 @@ test "toplama doğru" {
 
 ## 13. Yerleşik fonksiyonlar ve metotlar
 
-Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirdek seçki tanımlanır. Metotlar `değer.metot(...)` ile çağrılır; argümansız olanlar (`.uzunluk`, `.ilk`, `.son`) parantezsiz de yazılır. Her yerleşiğin ve metodun tek adı vardır; Türkçe karakterli adların Türkçe karaktersiz karşılığı da kabul edilir (`sırala` / `sirala`), eş anlamlı ad yoktur (bkz. 2.9a).
+Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirdek seçki tanımlanır. Metotlar `değer.metot(...)` ile çağrılır; argümansız olanlar (`.uzunluk`, `.ilk`, `.son`) parantezsiz de yazılır. Her yerleşiğin ve metodun tek adı vardır ve yalnızca Türkçe yazımıyla geçerlidir (`sırala`; `sirala` sıradan bir addır); eş anlamlı ad yoktur (bkz. 2.9, 2.9a). Bir yerleşiğin adını kendi tanımınıza vermek uyarı verir (2.9a, "Yerleşik ad gölgeleme uyarısı").
 
 **13.1** Genel: `yazdır(...)` (değerleri boşlukla birleştirip yazar), `uzunluk`, `tip`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `aralık(a, b)`, `filtrele`, `haritala`, `indirge`, `sırala`, `ekle`, `bekle`, `bekle_hepsi`, `zaman_ms`, `dosya_oku`, `dosya_yaz`, `girdi`. Yerleşikler eksik ya da fazla argümanı ve yanlış tipi reddeder; hata `aralık() 1. argüman olarak Tam bekler, Metin ("a") verildi` biçimindedir. `dosya_oku(yol)` ve `dosya_yaz(yol, içerik)` yolu `Metin` olarak ister; göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler. Dosya hataları Türkçedir (dosya ya da klasör yok, izin yok, bir klasör, disk dolu, dosya kullanımda...).
 
@@ -406,13 +415,13 @@ Bunlar bugünkü uygulamanın gerçek davranışlarıdır; ileride değişebilir
 
 Tensör, n boyutlu bir sayı dizisidir (tip adı `Tensör`); dilin tek sayısal dizi türüdür. Elemanların türü varsayılan olarak `float32`'dir; `bf16` ve `fp16` de seçilebilir (**15.12**). Hesaplar en az `float32` ile (yaklaşık 7 anlamlı basamak) yapılır: `(tensör([1.0]) / 3).değer[0]` `0.33333334`tür ve `1 / 3`e eşit değildir; `tensör([16777217.0])` 16777216 olarak saklanır. İşlemler hesap çizgesine kaydedilir; gradyanlar ters yönlü otomatik türevle hesaplanır. Ayrıntılı kullanım için `KULLANIM_KILAVUZU.md` §4.D'ye bakın.
 
-**15.1** Oluşturma: `tensör(veri, türev_izle: doğru)` veri olarak iç içe sayı listesi, tek sayı ya da tensör (matris dahil) alır (tensörden kendi verisine sahip yeni bir yaprak üretir); düzensiz liste hatadır. `türev_izle` varsayılanı her girdide (tek sayı dahil) `yanlış`tır. Tek sayı 0 boyutlu tensör verir: `tensör(3.0)`'ün şekli `[]`, `.değer`i `3.0`, `.gradyan`ı `yok`tur; türev için `tensör(3.0, türev_izle: doğru)` yazılır. `sıfırlar(şekil)`, `birler(şekil)`, `rastgele_normal(şekil, tohum: n)` şekli liste olarak alır (`[2, 3]`); iki tam sayı da kabul edilir (`sıfırlar(2, 3)` ≡ `sıfırlar([2, 3])`). Matris oluşturucuları `matris(liste)`, `birim_matris(n)` ve `rastgele_matris(satır, sütun, tohum: n)` 2 boyutlu tensör döndürür. Eski matris özellikleri kaldırılmıştır; karşılıkları: `.boyut` → `.şekil`, `.satır` / `.sütun` → `.şekil[0]` / `.şekil[1]`, `.T` → `.devrik()`, `.toplam` / `.ortalama` → `toplam(t)` / `ortalama(t)` (0 boyutlu tensör), `.liste` → `.değer`. Eski adla erişim karşılığı öneren bir hata verir.
+**15.1** Oluşturma: `tensör(veri, türev_izle: doğru)` veri olarak iç içe sayı listesi, tek sayı ya da tensör alır (tensörden kendi verisine sahip yeni bir yaprak üretir); düzensiz liste hatadır. `türev_izle` varsayılanı her girdide (tek sayı dahil) `yanlış`tır. Tek sayı 0 boyutlu tensör verir: `tensör(3.0)`'ün şekli `[]`, `.değer`i `3.0`, `.gradyan`ı `yok`tur; türev için `tensör(3.0, türev_izle: doğru)` yazılır. `sıfırlar(şekil)`, `birler(şekil)`, `rastgele_normal(şekil, tohum: n)` şekli liste olarak alır (`[2, 3]`); iki tam sayı da kabul edilir (`sıfırlar(2, 3)` ≡ `sıfırlar([2, 3])`). Matris 2 boyutlu tensördür: `tensör([[1, 2], [3, 4]])` ile oluşturulur; rastgele bir matris `rastgele_normal([satır, sütun], tohum: n)`, birim matris `birim_matris(n)` ile elde edilir. Ayrı matris oluşturucuları `matris(...)` ve `rastgele_matris(...)` kaldırılmıştır; yazıldıklarında hata karşılığı önerir (`'matris' TR'de yok; 'tensör' yazmak mı istediniz?`, `'rastgele_matris' TR'de yok; 'rastgele_normal' yazmak mı istediniz?`). Eski matris özellikleri kaldırılmıştır; karşılıkları: `.boyut` → `.şekil`, `.satır` / `.sütun` → `.şekil[0]` / `.şekil[1]`, `.T` → `.devrik()`, `.toplam` / `.ortalama` → `toplam(t)` / `ortalama(t)` (0 boyutlu tensör), `.liste` → `.değer`. Eski adla erişim karşılığı öneren bir hata verir.
 
 **15.2** Özellikler: `.şekil` (tam sayı listesi), `.değer` (iç içe Ondalık listesi; 0 boyutluda tek sayı; her float32 değer en kısa ondalık gösterimine karşılık gelen sayıdır; tam sayılı işaretli tensörlerde — 15.9, 16.5 — elemanlar `Tam`dır), `.gradyan` (yaprak tensörde tensör ya da `yok`; bir işlemin sonucu olan tensörde hata), `.cihaz` (`"cpu"`). Doğruluk değeri: tek elemanlı tensör eleman 0'dan farklıysa doğru, boş tensör yanlıştır. Görünüm metotları veriyi kopyalamaz: `.şekillendir(liste)` (bir eksen `-1` olabilir), `.devrik()` (son iki eksen), `.eksenleri_sırala(liste)`, `.dilim(eksen, baş, son)` (`son` hariç; negatif indeks sondan sayar). `.cihaza(ad)` tensörü taşır; arka ucu olmayan cihaz (`"gpu"`) hatadır.
 
 **15.3** İşleçler: `@` matris çarpımıdır (`[..., M, K] @ [K, N]`, toplu çarpımda öndeki eksenler eşit olmalı; 1 boyutlu işlenen vektör sayılır). `+ - * /` eleman bazlıdır ve yayınlamalıdır: şekiller sağdan hizalanır, her eksen eşit ya da 1 olmalıdır. Diğer işlenen sayı, liste ya da tensör olabilir ve iki yanda da durabilir (`1 - t`, `2 / t`). Tekli `-t` ve `t ** sayı` türev izler. `< > <= >=` sayıyla ya da aynı şekilli tensörle eleman bazlı karşılaştırıp türev izlemeyen 0/1 maskesi verir. `t[i]` ilk eksenin i. elemanını (bir eksen eksilir; negatif indeks sondan sayar), `t[baş..son]` ilk eksende dilimi verir; ikisi de veriyi kopyalamayan, türev izleyen görünümlerdir (`t[i][j]`). İndeksle atama (`t[i] = d`, `t[i][j] = d`, `t[baş..son] = d`, bileşik `t[i] += d`) veriyi yerinde değiştirir: `d` sayıysa hedefin tüm elemanlarına yazılır, liste ya da tensörse şekli hedefin şekliyle aynı olmalıdır; türev izlenen tensöre yalnızca `türevsiz { ... }` içinde atanabilir. İşleç ve özellik hataları `Satır N:` önekiyle bildirilir.
 
-**15.4** Fonksiyonlar: `relu`, `sigmoid`, `tanh`, `gelu`, `karekök`, `üstel`, `log` (ve **15.14** `sinüs`, `kosinüs`) eleman bazlıdır; `softmax(x, eksen: -1)` ve `log_softmax(x, eksen: -1)` verilen eksende çalışır. Tensör yalnızca tensör girdisinden (matris oluşturucularının sonucu dahil) çıkar: sayı ya da liste girdisinde sonuç girdinin biçimindedir (eski karşılığı olan adlarda eski davranış; `gelu`, `üstel`, `log` sayıda Ondalık, listede aynı yapıda liste; `softmax` ve `log_softmax` yalnızca düz sayı listesinde liste verir, iç içe liste için `tensör(...)` ile çevrilmelidir). İndirgemeler `toplam`, `ortalama`, `maks`, `min` eksen verilmezse tüm elemanları 0 boyutlu tensöre indirger, `eksen: k` ile o ekseni kaldırır (`boyutu_koru: doğru` ile korur, bkz. **15.16**). Negatif eksen sondan sayar. `toplam` ve `ortalama` ekseni konumlu da alır (`toplam(x, 1)`); `maks` ve `min` yalnızca adlı `eksen:` kabul eder, ikinci konumlu argüman hatadır. Argüman tensör değilse bu adların eski (düz sayı listesi) davranışı geçerlidir; ancak listede tensör varsa `toplam`/`ortalama` onları katlar, iç içe liste ya da tensör olmayan argümanla `eksen:` hatadır. `sıfırlar(2, 3)` biçimi adlı argüman almaz. Adlı argümanlar yalnızca Türkçe adlarıyla kabul edilir; başka dildeki alışılmış adlar (`lr`, `axis`...) için hata mesajı Türkçe karşılığı önerir.
+**15.4** Fonksiyonlar: `relu`, `sigmoid`, `tanh`, `gelu`, `karekök`, `üstel`, `log` (ve **15.14** `sinüs`, `kosinüs`) eleman bazlıdır; `softmax(x, eksen: -1)` ve `log_softmax(x, eksen: -1)` verilen eksende çalışır. Tensör yalnızca tensör girdisinden (`birim_matris(n)` sonucu dahil) çıkar: sayı ya da liste girdisinde sonuç girdinin biçimindedir (eski karşılığı olan adlarda eski davranış; `gelu`, `üstel`, `log` sayıda Ondalık, listede aynı yapıda liste; `softmax` ve `log_softmax` yalnızca düz sayı listesinde liste verir, iç içe liste için `tensör(...)` ile çevrilmelidir). İndirgemeler `toplam`, `ortalama`, `maks`, `min` eksen verilmezse tüm elemanları 0 boyutlu tensöre indirger, `eksen: k` ile o ekseni kaldırır (`boyutu_koru: doğru` ile korur, bkz. **15.16**). Negatif eksen sondan sayar. `toplam` ve `ortalama` ekseni konumlu da alır (`toplam(x, 1)`); `maks` ve `min` yalnızca adlı `eksen:` kabul eder, ikinci konumlu argüman hatadır. Argüman tensör değilse bu adların eski (düz sayı listesi) davranışı geçerlidir; ancak listede tensör varsa `toplam`/`ortalama` onları katlar, iç içe liste ya da tensör olmayan argümanla `eksen:` hatadır. `sıfırlar(2, 3)` biçimi adlı argüman almaz. Adlı argümanlar yalnızca Türkçe adlarıyla ve Türkçe yazımlarıyla kabul edilir; başka dildeki alışılmış adlar (`lr`, `axis`...), Türkçe harfsiz yazımlar (`ogrenme_orani`) ve kaldırılan adlar (`öğrenme_hızı`) için hata mesajı Türkçe karşılığı önerir.
 
 **15.5** Sinir ağı: `gömme(tablo, indeksler)` `[V, D]` tablosundan satır seçer (sonuç şekli indeks şekli + `[D]`); `çapraz_entropi(çıktı, hedef)` son eksen sınıf olmak üzere ortalama kaybı skaler verir (satır başına bir hedef; negatif hedef yok sayılır); `katman_normu(x, ağırlık, sapma)` ve `rms_normu(x, ağırlık)` son eksende normalleştirir (`ağırlık`/`sapma` `[D]` şeklinde ya da `yok`; `epsilon:` varsayılanı `0.00001`).
 
@@ -500,9 +509,10 @@ Dosyada her kod bir satırdır ve kodlar artan sıradadır:
 "G100": { "ad": "yazdır", "eski": ["yaz"], "aile": "giriş ve çıkış" },
 ```
 
-- `ad` kodun bu dildeki adıdır. Türkçe karakterleri ASCII'ye çevrilmiş biçimi (`yazdir`) dosyada saklanmaz, addan türetilir ve bugün adla eşdeğer kabul edilir (bkz. 2.9; bu kabul `pkg/sozluk`'ta tek bir açma-kapama noktasından yönetilir).
-- `eski` kaldırılmış adlardır (bkz. 2.9a): kabul edilmezler, yalnızca hata mesajında `ad` önerilir. Bir ad değiştirildiğinde eski ad bu listeye eklenir ve aynı ipucu kendiliğinden çalışır.
-- `es` bugün adla aynı işi yapan eş yazımlardır (ör. veritabanı nesnesinde `sorgula` için `sorgu`, `seç`; tip açıklamalarında `Tam` için `tamsayı`). Kabul edilirler; her işin tek adı olması için sonraki bir temizlikte kaldırılacaklardır.
-- `ascii: false` o adın ASCII biçiminin kabul edilmediğini söyler (bugün yalnızca birkaç adlı argüman); `aile` insanlar için kısa bir açıklamadır.
+Dosyadaki alanlar yalnızca `ad`, `eski`, `ascii` ve `aile`dir:
 
-Bir ad yalnızca kendi ad alanında benzersiz olmalıdır: genel adlar (anahtar kelimeler, bağlamsal sözcükler ve yerleşikler), tip adları, üyeler ve adlı argümanlar ayrı ad alanlarıdır; bu yüzden `sırala` hem bir yerleşik (`G303`), hem bir liste metodu (`Y202`), hem de bir adlı argümandır (`W931`). Üye adları tipten bağımsız benzersizdir. Sözlük yüklenirken yinelenen kod, aynı ad alanında (Türkçe ya da ASCII biçimiyle) çakışan ad ve geçerli bir adla çakışan eski ad reddedilir; `go test ./pkg/sozluk ./pkg/motor` kayıtlı her yerleşiğin ve üyenin sözlükte kodu olduğunu, sözlükteki her kodun da karşılandığını denetler. Adlar başlangıçta ve derleme anında koda çözülür; çalışma anında ad → kod araması yapılmaz.
+- `ad` kodun bu dildeki tek adıdır; kabul edilen tek yazım budur (bkz. 2.9). Türkçe karakterleri ASCII'ye çevrilmiş biçimi (`yazdir`) dosyada saklanmaz ve **kabul edilmez**; yalnızca hata mesajı için addan türetilir. Bu kural `pkg/sozluk`'ta tek bir açma-kapama noktasından, `sozluk.ASCIIKabul` sabitinden yönetilir (kapalı). İpucunu `sozluk.Oneri` ve `AsilAdAlanda` verir; ikisi de yazılan adın ad alanına bakar (aynı ASCII yazım genel adlarda bir eski ada, üyelerde başka bir adın ASCII biçimine karşılık gelebilir) ve her zaman Türkçe adı önerir.
+- `eski` kaldırılmış adlardır (bkz. 2.9a): kabul edilmezler, yalnızca hata mesajında `ad` önerilir; eski bir adın ASCII biçimi de (`islev`) aynı ipucunu verir. Bir ad değiştirildiğinde ya da kaldırıldığında eski ad bu listeye eklenir ve aynı ipucu kendiliğinden çalışır. Eş yazımlar için ayrı bir alan yoktur: her işin tek adı vardır.
+- `ascii: false`, `ASCIIKabul` açılsa bile o adın ASCII biçimini kapalı tutar (bugün yalnızca birkaç adlı argüman); `ASCIIKabul` kapalıyken etkisizdir. `aile` insanlar için kısa bir açıklamadır.
+
+Bir ad yalnızca kendi ad alanında benzersiz olmalıdır: genel adlar (anahtar kelimeler, bağlamsal sözcükler ve yerleşikler), tip adları, üyeler ve adlı argümanlar ayrı ad alanlarıdır; bu yüzden `sırala` hem bir yerleşik (`G303`), hem bir liste metodu (`Y202`), hem de bir adlı argümandır (`W931`). Üye adları tipten bağımsız benzersizdir. Sözlük yüklenirken yinelenen kod, aynı ad alanında çakışan ad (ipucu belirsiz kalmasın diye ASCII biçimleri aynı olan iki ad da çakışır) ve geçerli bir adla çakışan eski ad reddedilir; `go test ./pkg/sozluk ./pkg/motor` kayıtlı her yerleşiğin ve üyenin sözlükte kodu olduğunu, sözlükteki her kodun da karşılandığını denetler. Adlar başlangıçta ve derleme anında koda çözülür; çalışma anında ad → kod araması yapılmaz.

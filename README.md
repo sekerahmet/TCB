@@ -2,7 +2,7 @@
 
 TR, yapay zekâ modellerini **eğiten** ve **kullanan** geliştiriciler için tasarlanmış, anahtar kelimeleri Türkçe bir programlama dilidir. Tensörler, otomatik türev, iyileştiriciler, `tokenizer.json` parçalayıcıları ve büyük token veri kümeleri dilin içinde yerleşik olarak gelir; aynı dosyada web sunucusu, veritabanı ve testler de yazılır. Hata mesajları Türkçedir ve sorunu satırıyla gösterir.
 
-Her anahtar kelimenin ASCII yazımı da vardır (`değişken` / `degisken`), böylece Türkçe klavyesi olmayan da yazabilir.
+Her işin tek yazımı vardır: anahtar kelimeler, yerleşikler ve komutlar yalnızca Türkçe adlarıyla yazılır (`değişken`, `yazdır`, `tr hata_ayıkla`). Türkçe harfsiz ya da eski bir ad yazılırsa (`degisken`, `yazdir`, `matris`) hata mesajı doğru adı önerir: `'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?`
 
 ## Kurulum
 
@@ -65,7 +65,7 @@ döngü adım içinde 0..500 {
 yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)}")   // w = 2.0, b = -1.0
 ```
 
-Dilin tek sayısal dizi türü tensördür: matrisler 2 boyutlu tensördür (`matris([[1, 2], [3, 4]])`), hesaplar `float32` ile yapılır. Tensörler `döngü satır içinde t` ile ilk ekseni boyunca gezilir ve `t[i] = d` ile yerinde değiştirilir. `@` matris çarpımıdır; `+ - * /` eleman bazlı ve yayınlamalıdır. `relu`, `gelu`, `softmax`, `katman_normu`, `gömme`, `çapraz_entropi`, `SGD`, `gradyan_kırp`, `tensör_kaydet` / `tensör_yükle` ve fazlası için: [Kullanım Kılavuzu §4.D](KULLANIM_KILAVUZU.md#d-tensörler-ve-otomatik-türev).
+Dilin tek sayısal dizi türü tensördür: matrisler 2 boyutlu tensördür (`tensör([[1, 2], [3, 4]])`), hesaplar `float32` ile yapılır. Tensörler `döngü satır içinde t` ile ilk ekseni boyunca gezilir ve `t[i] = d` ile yerinde değiştirilir. `@` matris çarpımıdır; `+ - * /` eleman bazlı ve yayınlamalıdır. `relu`, `gelu`, `softmax`, `katman_normu`, `gömme`, `çapraz_entropi`, `SGD`, `gradyan_kırp`, `tensör_kaydet` / `tensör_yükle` ve fazlası için: [Kullanım Kılavuzu §4.D](KULLANIM_KILAVUZU.md#d-tensörler-ve-otomatik-türev).
 
 ## Veri ve parçalayıcı
 
@@ -82,7 +82,7 @@ değişken girdi, hedef = ö.sonraki()                              // [8, 256] 
 
 ## VS Code eklentisi ve hata ayıklama
 
-[`vscode_eklentisi/`](vscode_eklentisi/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`tensor` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr debug dosya.tr`.
+[`vscode_eklentisi/`](vscode_eklentisi/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`tensör` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr hata_ayıkla dosya.tr`.
 
 Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosyayı çalıştırır; görev önce yorumlayıcıyı yeniden derler (`.vscode/tasks.json`).
 
