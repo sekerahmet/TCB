@@ -79,7 +79,7 @@ Motorlar ve standart kitaplık yorumlayıcıya (`internal/dil/yurut`) şu kancal
 | `docs/` | Belgeler: [`kilavuz/`](kilavuz/README.md), [`dil/`](dil/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
 | `ornekler/` | Öğrenme sırasıyla örnek programlar |
 | `testler/` | Dil tanımının kural testleri (`tr test testler`); `olumsuz/`, `alt/`, `veri/` |
-| `bakim/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı), `uret/` (üreteçler), `kiyas/` (hız kıyas seti) |
+| `bakim/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti) |
 | `ikili/` | Derleme çıktısı (`go build -o ikili/tr.exe ./cmd/tr`); depoya girmez |
 | `calisma/` | Kişisel deneme klasörü; depoya girmez |
 

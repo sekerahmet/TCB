@@ -128,7 +128,7 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 | `duzenleyici/vscode/` | VS Code eklentisi |
 | `docs/` | Belgeler ([dizin](docs/README.md)) |
 | `ornekler/`, `testler/` | Örnek programlar ve dil tanımının kural testleri |
-| `bakim/` | Depo bakımı: `tam_denetim.sh`, üreteçler (`uret/`), hız kıyas seti (`kiyas/`) |
+| `bakim/` | Depo bakımı: `tam_denetim.sh`, `bulaniklastir.sh`, üreteçler (`uret/`), hız kıyas seti (`kiyas/`) |
 
 Katmanlar, aralarındaki bağımlılık kuralı ve her paketin görevi: [`docs/mimari.md`](docs/mimari.md).
 
