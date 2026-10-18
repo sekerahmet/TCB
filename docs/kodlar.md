@@ -984,9 +984,9 @@ yazdır(birleştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
 
 #### T200 `relu`
 
-    relu(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+    relu(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Negatif elemanları 0 yapan, pozitifleri koruyan eleman bazlı etkinleştirme fonksiyonudur. Tensörde türev izleyen tensör, sayıda Ondalık, listede aynı yapıda liste döndürür; NaN değerini korur.
+Negatif elemanları 0 yapan, pozitifleri koruyan eleman bazlı etkinleştirme fonksiyonudur. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir); NaN değerini korur.
 
 ```tr
 yazdır(relu(tensör([-1.0, 0.5, 2.0])).değer)
@@ -996,9 +996,9 @@ yazdır(relu(tensör([-1.0, 0.5, 2.0])).değer)
 
 #### T201 `sigmoid`
 
-    sigmoid(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+    sigmoid(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Her elemana 1 / (1 + e^(-x)) uygulayarak değerleri 0 ile 1 arasına sıkıştırır. Tensörde türev izleyen tensör, sayı ya da listede aynı biçimde sonuç döndürür.
+Her elemana 1 / (1 + e^(-x)) uygulayarak değerleri 0 ile 1 arasına sıkıştırır. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
 yazdır(sigmoid(tensör([-2.0, 0.0, 2.0])).değer)
@@ -1008,9 +1008,9 @@ yazdır(sigmoid(tensör([-2.0, 0.0, 2.0])).değer)
 
 #### T202 `tanh`
 
-    tanh(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+    tanh(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Eleman bazlı hiperbolik tanjanttır; değerleri -1 ile 1 arasına sıkıştırır. Tensörde türev izleyen tensör, sayıda Ondalık, listede liste döndürür.
+Eleman bazlı hiperbolik tanjanttır; değerleri -1 ile 1 arasına sıkıştırır. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
 yazdır(tanh(0.5), tanh(tensör([-1.0, 1.0])).değer)
@@ -1020,9 +1020,9 @@ yazdır(tanh(0.5), tanh(tensör([-1.0, 1.0])).değer)
 
 #### T203 `gelu`
 
-    gelu(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+    gelu(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Eleman bazlı GELU etkinleştirmesidir (tanh yaklaşımıyla hesaplanır). Tensörde türev izleyen tensör, sayıda Ondalık, listede aynı yapıda liste döndürür.
+Eleman bazlı GELU etkinleştirmesidir (tanh yaklaşımıyla hesaplanır). Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
 yazdır(gelu(tensör([-1.0, 0.0, 1.0])).değer)
@@ -1032,9 +1032,9 @@ yazdır(gelu(tensör([-1.0, 0.0, 1.0])).değer)
 
 #### T210 `softmax`
 
-    softmax(Tensör | Liste, [Tam], eksen: Tam = -1) → Tensör | Liste
+    softmax(Tensör, [Tam], eksen: Tam = -1) → Tensör
 
-Verilen eksende (varsayılan son eksen) değerleri toplamı 1 olan olasılıklara çevirir. Düz sayı listesinde liste döndürür, eksen yalnızca tensörde kullanılır; tamamen -sonsuz bir satırın sonucu 0'dır.
+Verilen eksende (varsayılan son eksen) değerleri toplamı 1 olan olasılıklara çevirir. Yalnızca tensörde çalışır, listede çalışmaz (tensör(...) ile çevrilir); tamamen -sonsuz bir satırın sonucu 0'dır.
 
 ```tr
 yazdır(softmax(tensör([[1.0, 2.0, 3.0]]), eksen: -1).değer)
@@ -1044,9 +1044,9 @@ yazdır(softmax(tensör([[1.0, 2.0, 3.0]]), eksen: -1).değer)
 
 #### T211 `log_softmax`
 
-    log_softmax(Tensör | Liste, [Tam], eksen: Tam = -1) → Tensör | Liste
+    log_softmax(Tensör, [Tam], eksen: Tam = -1) → Tensör
 
-softmax'ın logaritmasını verilen eksende (varsayılan son eksen) sayısal olarak kararlı biçimde hesaplar. Düz sayı listesinde liste döndürür; tamamen -sonsuz bir satırın sonucu -sonsuz, gradyanı 0'dır.
+softmax'ın logaritmasını verilen eksende (varsayılan son eksen) sayısal olarak kararlı biçimde hesaplar. Yalnızca tensörde çalışır, listede çalışmaz (tensör(...) ile çevrilir); tamamen -sonsuz bir satırın sonucu -sonsuz, gradyanı 0'dır.
 
 ```tr
 yazdır(log_softmax(tensör([1.0, 2.0, 3.0])).değer)
@@ -1056,9 +1056,9 @@ yazdır(log_softmax(tensör([1.0, 2.0, 3.0])).değer)
 
 #### T220 `üstel`
 
-    üstel(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+    üstel(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Her elemanın e tabanında üstelini (e^x) hesaplar. Tensörde türev izleyen tensör, sayıda Ondalık, listede aynı yapıda liste döndürür.
+Her elemanın e tabanında üstelini (e^x) hesaplar. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
 yazdır(üstel(tensör([0.0, 1.0])).değer)
@@ -1068,9 +1068,9 @@ yazdır(üstel(tensör([0.0, 1.0])).değer)
 
 #### T221 `log`
 
-    log(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+    log(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Her elemanın doğal logaritmasını hesaplar. Tensörde türev izleyen tensör, sayıda Ondalık, listede aynı yapıda liste döndürür.
+Her elemanın doğal logaritmasını hesaplar. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
 yazdır(log(tensör([1.0, 10.0])).değer)
@@ -1080,9 +1080,9 @@ yazdır(log(tensör([1.0, 10.0])).değer)
 
 #### T222 `sinüs`
 
-    sinüs(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+    sinüs(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Her elemanın sinüsünü (radyan) hesaplar; türevi kosinüs(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık, listede liste döndürür.
+Her elemanın sinüsünü (radyan) hesaplar; türevi kosinüs(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
 yazdır(sinüs(tensör([0.0, 1.0])).değer)
@@ -1092,9 +1092,9 @@ yazdır(sinüs(tensör([0.0, 1.0])).değer)
 
 #### T223 `kosinüs`
 
-    kosinüs(Tensör | Liste | Tam | Ondalık) → Tensör | Liste | Ondalık
+    kosinüs(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
-Her elemanın kosinüsünü (radyan) hesaplar; türevi -sinüs(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık, listede liste döndürür.
+Her elemanın kosinüsünü (radyan) hesaplar; türevi -sinüs(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
 yazdır(kosinüs(tensör([0.0, 1.0])).değer)

@@ -115,10 +115,12 @@ test "15.4 matematik fonksiyonları ve indirgemeler" {
     eşit_mi(0.5, sigmoid(sıfırlar([1])).değer[0])
     eşit_mi(0.0, tanh(sıfırlar([1])).değer[0])
     eşit_mi(0.0, gelu(sıfırlar([1])).değer[0])
-    // Tensör olmayan girdide sonuç girdinin biçimindedir.
-    eşit_mi([1.0, 1.0], üstel([0, 0]))
-    eşit_mi("Liste", tip(relu([1, -2])))
-    eşit_mi("Liste", tip(log_softmax([1, 2])))
+    // Eleman bazlı fonksiyonlar sayıda Ondalık verir, listede çalışmaz (tensör(...) ile çevrilir).
+    eşit_mi(1.0, üstel(0))
+    eşit_mi(0.0, relu(-2))
+    doğrula(hata_metni(() => relu([1, -2])).içerir("relu listede çalışmaz, yalnızca tensörde ve sayıda; listeyi tensör(...) ile çevirin: relu(tensör(...))"))
+    doğrula(hata_metni(() => log_softmax([1, 2])).içerir("log_softmax listede çalışmaz, yalnızca tensörde; listeyi tensör(...) ile çevirin: log_softmax(tensör(...), eksen: -1)"))
+    doğrula(hata_metni(() => softmax(2.0)).içerir("softmax: tensör bekleniyor, Ondalık verildi"))
     değişken s = softmax(a, eksen: -1)
     eşit_mi(1.0, yuvarla(toplam(s, eksen: 1).değer[0], 5))
     eşit_mi(1.0, yuvarla(toplam(üstel(log_softmax(a))).değer / 2, 5))
@@ -579,10 +581,10 @@ fonksiyon en_büyük_fark(a, b) {
     sonuç maks(d * d).değer
 }
 
-test "15.14 sinüs ve kosinüs: sayıda, listede ve tensörde; türevli" {
+test "15.14 sinüs ve kosinüs: sayıda ve tensörde, listede değil; türevli" {
     eşit_mi(0.0, sinüs(0))
     eşit_mi(1.0, kosinüs(0.0))
-    eşit_mi("Liste", tip(kosinüs([0, 1])))
+    doğrula(hata_metni(() => kosinüs([0, 1])).içerir("kosinüs listede çalışmaz"))
     değişken x = tensör([0.0, 1.0, 3.0], türev_izle: doğru)
     değişken y = sinüs(x)
     eşit_mi("Tensör", tip(y))

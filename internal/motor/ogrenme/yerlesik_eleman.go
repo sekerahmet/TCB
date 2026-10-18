@@ -28,8 +28,8 @@ func sigmoid64(x float64) float64 { return 1.0 / (1.0 + math.Exp(-x)) }
 
 // birli tek argümanlı eleman bazlı bir fonksiyonu kaydeder. Tensör (matris dahil)
 // girdisinde tensör yolu çalışır. Tensör olmayan girdide eski yerleşiği varsa (karekök)
-// o çağrılır; yoksa sonuç girdinin biçimindedir: sayı → Ondalık (sayi64 ile), liste → aynı
-// yapıda liste.
+// o çağrılır; yoksa sayı Ondalık verir (sayi64 ile). Liste kabul edilmez (karar 15): yol
+// gösteren hata tensör(...) ile çevirmeyi önerir.
 func birli(v *yurut.VM, kd kod.Kod, fn func(*tensor.Tensor) *tensor.Tensor, sayi64 func(float64) float64) {
 	ad := kod.Ad(kd)
 	sar(v, kd, func(eski yurut.BuiltinFunc) yurut.BuiltinFunc {
@@ -44,7 +44,7 @@ func birli(v *yurut.VM, kd kod.Kod, fn func(*tensor.Tensor) *tensor.Tensor, sayi
 				if len(args) != 1 {
 					return nil, fmt.Errorf("%s(x) 1 parametre bekler, %d verildi", ad, len(args))
 				}
-				return eskiBicimdeUygula(ad, args[0], sayi64)
+				return sayiyaUygula(ad, args[0], sayi64)
 			}
 			if err := baglama.AdliDenetle(ad+"()", named); err != nil {
 				return nil, err
@@ -62,61 +62,25 @@ func birli(v *yurut.VM, kd kod.Kod, fn func(*tensor.Tensor) *tensor.Tensor, sayi
 	})
 }
 
-// eskiBicimdeUygula eleman bazlı fonksiyonu tensör olmayan bir değere, değerin kendi
-// biçimini koruyarak (float64 ile) uygular.
-func eskiBicimdeUygula(ad string, v yurut.Value, f func(float64) float64) (yurut.Value, error) {
-	if x, ok := v.(*yurut.ListVal); ok {
-		el := make([]yurut.Value, len(x.Elements))
-		for i, e := range x.Elements {
-			r, err := eskiBicimdeUygula(ad, e, f)
-			if err != nil {
-				return nil, err
-			}
-			el[i] = r
-		}
-		return &yurut.ListVal{Elements: el}, nil
-	}
+// sayiyaUygula eleman bazlı fonksiyonu tensör olmayan bir değere uygular: sayı Ondalık
+// verir (float64 ile); liste ve başka değerler yol gösteren hatadır.
+func sayiyaUygula(ad string, v yurut.Value, f func(float64) float64) (yurut.Value, error) {
 	if s, ok := yurut.ToFloat(v); ok {
 		return &yurut.FloatVal{Val: f(s)}, nil
 	}
-	return nil, fmt.Errorf("%s: sayı, liste ya da tensör bekleniyor, %s verildi", ad, tipAdi(v))
+	if err := listeHatasi(ad, v, "tensörde ve sayıda", ad+"(tensör(...))"); err != nil {
+		return nil, err
+	}
+	return nil, fmt.Errorf("%s: sayı ya da tensör bekleniyor, %s verildi", ad, tipAdi(v))
 }
 
-// softmaxListe softmax'ı (logKip ise log_softmax'ı) düz sayı listesine float64 ile uygular
-// ve liste döndürür.
-func softmaxListe(ad string, v yurut.Value, logKip bool) (yurut.Value, error) {
-	x, ok := v.(*yurut.ListVal)
-	if !ok {
-		return nil, fmt.Errorf("%s: liste ya da tensör bekleniyor, %s verildi", ad, tipAdi(v))
+// listeHatasi değer bir liste ise eleman bazlı fonksiyonların listede çalışmadığını söyleyen,
+// tensöre çevirmeyi öneren hatayı verir (karar 15); liste değilse nil.
+func listeHatasi(ad string, v yurut.Value, kabul, oneri string) error {
+	if _, ok := v.(*yurut.ListVal); !ok {
+		return nil
 	}
-	if len(x.Elements) == 0 {
-		return nil, fmt.Errorf("%s: boş liste", ad)
-	}
-	sayilar := make([]float64, len(x.Elements))
-	enb := math.Inf(-1)
-	for i, e := range x.Elements {
-		f, ok := yurut.ToFloat(e)
-		if !ok {
-			return nil, fmt.Errorf("%s: liste düz sayı listesi olmalıdır (%d. eleman %s); iç içe veri için %s(tensör(...), eksen: -1) yazın", ad, i+1, tipAdi(e), ad)
-		}
-		sayilar[i] = f
-		enb = math.Max(enb, f)
-	}
-	ustel := make([]float64, len(sayilar))
-	toplam := 0.0
-	for i, f := range sayilar {
-		ustel[i] = math.Exp(f - enb)
-		toplam += ustel[i]
-	}
-	el := make([]yurut.Value, len(sayilar))
-	for i := range sayilar {
-		if logKip {
-			el[i] = &yurut.FloatVal{Val: sayilar[i] - (enb + math.Log(toplam))}
-		} else {
-			el[i] = &yurut.FloatVal{Val: ustel[i] / toplam}
-		}
-	}
-	return &yurut.ListVal{Elements: el}, nil
+	return fmt.Errorf("%s listede çalışmaz, yalnızca %s; listeyi tensör(...) ile çevirin: %s", ad, kabul, oneri)
 }
 
 // eksenArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.
@@ -142,7 +106,7 @@ func eksenArg(fn string, args []yurut.Value, named map[string]yurut.Value) (int,
 }
 
 // softmaxKaydet softmax/log_softmax'ı kaydeder: tensörde (matris dahil) verilen eksende
-// (varsayılan son eksen) çalışır; düz sayı listesinde liste döndürür.
+// (varsayılan son eksen) çalışır; liste ve başka değerler yol gösteren hatadır.
 func softmaxKaydet(v *yurut.VM, kd kod.Kod, logKip bool) {
 	ad := kod.Ad(kd)
 	sar(v, kd, func(yurut.BuiltinFunc) yurut.BuiltinFunc {
@@ -151,10 +115,10 @@ func softmaxKaydet(v *yurut.VM, kd kod.Kod, logKip bool) {
 				if len(args) == 0 {
 					return nil, fmt.Errorf("%s(x, eksen: -1) en az 1 parametre bekler", ad)
 				}
-				if len(args) > 1 || len(named) > 0 {
-					return nil, fmt.Errorf("%s: eksen yalnızca tensörlerde kullanılır; %s(tensör(...), eksen: -1) yazın", ad, ad)
+				if err := listeHatasi(ad, args[0], "tensörde", ad+"(tensör(...), eksen: -1)"); err != nil {
+					return nil, err
 				}
-				return softmaxListe(ad, args[0], logKip)
+				return nil, fmt.Errorf("%s: tensör bekleniyor, %s verildi", ad, tipAdi(args[0]))
 			}
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, eksen: -1) en fazla 2 parametre alır, %d verildi", ad, len(args))

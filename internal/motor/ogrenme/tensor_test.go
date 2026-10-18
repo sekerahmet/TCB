@@ -183,14 +183,14 @@ yazdır(toplam(tensör([1, 2], türev_izle: doğru)))`)
 func TestEskiDavranisKorunur(t *testing.T) {
 	// Tek sayıdan tensör 0 boyutludur; eski tek sayılık otomatik türev kullanımı aynı
 	// sonuçları verir (gradyan da 0 boyutlu tensördür). Matris adlı oluşturucular 2 boyutlu
-	// tensör, liste girdili fonksiyonlar liste verir.
+	// tensör verir; eleman bazlı fonksiyonlar sayıda Ondalık verir.
 	out := mustCalistir(t, `değişken x = tensör(3.0, türev_izle: doğru)
 değişken y = x * x + 2 * x + 1
 geri_yayılım(y)
 yazdır(x.değer, y.değer, x.gradyan, tip(x))
 yazdır(sıfırlar([2, 3]).şekil, tip(birler([2, 2])), tip(sıfırlar([3])))
 yazdır(toplam([1, 2, 3]), min([3, 1, 2]), maks(4, 9), karekök(9), ortalama([1, 2, 3]))
-yazdır(softmax([1.0, 1.0]), relu(-2), tip(tensör([[1, 2]]).devrik()))`)
+yazdır(softmax(tensör([1.0, 1.0])).değer, relu(-2), tip(tensör([[1, 2]]).devrik()))`)
 	want := "3.0 16.0 Tensör(8.0000) Tensör\n[2, 3] Tensör Tensör\n6 1 9 3.0 2.0\n[0.5, 0.5] 0.0 Tensör\n"
 	if out != want {
 		t.Fatalf("eski davranış:\n%q\nbeklenen:\n%q", out, want)
