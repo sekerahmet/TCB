@@ -347,6 +347,36 @@ func (t *Tensor) Set(v float32, idx ...int) {
 	t.storage.BumpVersion()
 }
 
+// CopyFrom src'nin elemanlarını t'nin elemanlarına yerinde yazar; t bitişik olmayan bir
+// görünüm olabilir (yazma kaynak tensöre yansır). src t'nin şekline yayınlanabilmelidir
+// (ör. 0 boyutlu tensör tüm elemanlara yazılır); türler farklıysa dönüştürülür. Tek bir
+// arka uç kopyasıdır, çizgeye kaydedilmez ve depolamanın sürümü bir kez artar (Set gibi).
+// src t ile aynı depolamayı paylaşıyorsa (örtüşebilir) önce kopyalanır.
+func (t *Tensor) CopyFrom(src *Tensor) {
+	sameDevice("CopyFrom", t, src)
+	nd := len(t.shape)
+	uygun := len(src.shape) <= nd
+	for i := 1; uygun && i <= len(src.shape); i++ {
+		if d := src.shape[len(src.shape)-i]; d != 1 && d != t.shape[nd-i] {
+			uygun = false
+		}
+	}
+	if !uygun {
+		panic(fmt.Sprintf("tensor: CopyFrom: %v şeklindeki kaynak %v şeklindeki hedefe yazılamaz (şekiller aynı ya da "+
+			"kaynak hedefe yayınlanabilir olmalı)", src.shape, t.shape))
+	}
+	sv := src.view()
+	if src.storage == t.storage {
+		s := allocBos(src.be, src.Numel(), src.tur)
+		src.be.Copy(s, 0, sv)
+		sv = View{S: s, Shape: src.shape, Strides: contiguousStrides(src.shape)}
+	}
+	sv.Strides = broadcastStrides(sv.Strides, sv.Shape, t.shape)
+	sv.Shape = t.shape
+	t.be.CopyStrided(t.view(), sv)
+	t.storage.BumpVersion()
+}
+
 func (t *Tensor) index(idx []int) int {
 	if len(idx) != len(t.shape) {
 		panic(fmt.Sprintf("tensor: %d indeks verildi, tensör %d boyutlu", len(idx), len(t.shape)))

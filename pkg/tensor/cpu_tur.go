@@ -336,6 +336,33 @@ func (b cpuBackend) Copy(dst Storage, dstOff int, src View) {
 	daralt(hedef, b.ToHost(src), c.tur)
 }
 
+func (cpuBackend) CopyStrided(dst, src View) {
+	c := cpuDepo(dst.S)
+	k := oku(src)
+	kd := cd(k.S)
+	if c.tur == Float32 {
+		d := c.d
+		iterRowsPar(dst.Shape, []int{dst.Offset, k.Offset}, [][]int{dst.Strides, k.Strides}, 0, func(off []int, m int, in []int) {
+			h, q, hs, qs := off[0], off[1], in[0], in[1]
+			if hs == 1 && qs == 1 {
+				copy(d[h:h+m], kd[q:q+m])
+				return
+			}
+			for i := 0; i < m; i++ {
+				d[h+i*hs] = kd[q+i*qs]
+			}
+		})
+		return
+	}
+	d, tur := c.h, c.tur
+	iterRowsPar(dst.Shape, []int{dst.Offset, k.Offset}, [][]int{dst.Strides, k.Strides}, 0, func(off []int, m int, in []int) {
+		h, q, hs, qs := off[0], off[1], in[0], in[1]
+		for i := 0; i < m; i++ {
+			d[h+i*hs] = daraltBir(kd[q+i*qs], tur)
+		}
+	})
+}
+
 // copyTo float32 görünümü geçici dizi kullanmadan doğrudan hedefe yazar.
 func copyTo(out []float32, src View) {
 	if src.IsContiguous() {

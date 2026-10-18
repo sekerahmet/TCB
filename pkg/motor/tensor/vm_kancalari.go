@@ -322,31 +322,23 @@ func (d *Deger) IndekseAta(idx, deger vm.Value) error {
 		return err
 	}
 	sh := hedef.Shape()
-	var veri []float32
+	var kaynak *ct.Tensor
 	if f, ok := vm.ToFloat(deger); ok {
-		veri = []float32{float32(f)}
+		kaynak = ct.Scalar(float32(f)) // hedefin tüm elemanlarına yayınlanır
 	} else {
-		kaynak, err := tensoreCevir("tensör ataması", deger)
-		if err != nil {
+		if kaynak, err = tensoreCevir("tensör ataması", deger); err != nil {
 			return err
 		}
 		if ks := kaynak.Shape(); sekilMetni(ks) != sekilMetni(sh) {
 			return fmt.Errorf("tensör ataması: %s şeklindeki yere %s şeklinde veri atanamaz (şekiller aynı olmalı)", sekilMetni(sh), sekilMetni(ks))
 		}
-		veri = kaynak.Data()
 	}
+	// Tek arka uç kopyası, tek sürüm artışı; hedef bitişik olmayan bir görünüm olabilir.
 	_, err = guvenli(func() bool {
-		konum := make([]int, len(sh))
-		for k := 0; k < hedef.Numel(); k++ {
-			hedef.Set(veri[min(k, len(veri)-1)], konum...)
-			// Satır öncelikli sıradaki bir sonraki konum.
-			for e := len(sh) - 1; e >= 0; e-- {
-				if konum[e]++; konum[e] < sh[e] {
-					break
-				}
-				konum[e] = 0
-			}
+		if kaynak.Device() != hedef.Device() {
+			ct.NoGrad(func() { kaynak = kaynak.To(hedef.Device()) })
 		}
+		hedef.CopyFrom(kaynak)
 		return true
 	})
 	return err

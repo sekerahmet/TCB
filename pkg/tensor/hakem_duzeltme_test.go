@@ -268,3 +268,36 @@ func TestTamamenMaskeliSoftmax(t *testing.T) {
 		}
 	}
 }
+
+// Bulgu 7: CopyFrom bir görünüme (bitişik olmayan dahil) tek kopyayla yazar ve sürümü bir
+// kez artırır; kaynak yayınlanabilir (sayı ataması), türler dönüştürülür, örtüşen kaynak
+// önce kopyalanmış gibi davranır.
+func TestCopyFromGorunume(t *testing.T) {
+	for _, dt := range []DType{Float32, BFloat16} {
+		x := Zeros(3, 4).Cast(dt)
+		hedef := x.T().Slice(0, 1, 3) // [2, 3]: x'in 1. ve 2. sütunları, bitişik değil
+		v0 := x.Version()
+		hedef.CopyFrom(New([]float32{1, 2, 3, 4, 5, 6}, 2, 3))
+		if x.Version() != v0+1 {
+			t.Fatalf("%s: sürüm %d → %d, tek artış bekleniyordu", dt, v0, x.Version())
+		}
+		yakin(t, dt.String()+" atama", x.Data(), []float32{0, 1, 4, 0, 0, 2, 5, 0, 0, 3, 6, 0}, 0)
+		x.Slice(0, 2, 3).CopyFrom(Scalar(7)) // sayı ataması: yayın
+		yakin(t, dt.String()+" sayı", x.Data()[8:], []float32{7, 7, 7, 7}, 0)
+		panikIcerir(t, "şekil", "şekl", func() { hedef.CopyFrom(Zeros(3, 2)) })
+	}
+	// Örtüşme: y[0..2] = y[1..3] kopyalanmış kaynakla aynı sonucu verir.
+	y := New([]float32{1, 2, 3, 4}, 4)
+	y.Slice(0, 1, 4).CopyFrom(y.Slice(0, 0, 3))
+	yakin(t, "örtüşen kopya", y.Data(), []float32{1, 1, 2, 3}, 0)
+}
+
+func BenchmarkCopyFromGorunum(b *testing.B) {
+	x := Zeros(1000, 1000)
+	k := Ones(1000, 1000)
+	d := x.T()
+	b.SetBytes(4 * 1000 * 1000)
+	for i := 0; i < b.N; i++ {
+		d.CopyFrom(k)
+	}
+}

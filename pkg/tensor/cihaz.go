@@ -228,6 +228,10 @@ type Backend interface {
 	Copy(dst Storage, dstOff int, src View)
 	// Fill tüm elemanları v yapar.
 	Fill(dst Storage, v float32)
+	// CopyStrided src'nin elemanlarını dst görünümüne (herhangi ofset ve adımla)
+	// mantıksal sırayla yazar; şekiller aynıdır (src yayınlanmış olabilir: adım 0).
+	// Türler farklıysa dönüştürür (en yakına-çifte). dst ile src örtüşmemelidir.
+	CopyStrided(dst, src View)
 
 	// --- Gradyan biriktirme ---
 
