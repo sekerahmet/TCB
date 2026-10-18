@@ -47,7 +47,7 @@ func (s *dapServer) scopeVariables(h *dapHandle) []varEntry {
 				return
 			}
 			seen[k] = true
-			if v.Type() == yurut.VAL_BUILTIN || v.Type() == yurut.VAL_STRUCT || v.Type() == yurut.VAL_FUNC {
+			if v.Type() == yurut.VAL_BUILTIN || v.Type() == yurut.VAL_STRUCT || v.Type() == yurut.VAL_FUNC || v.Type() == yurut.VAL_TYPE {
 				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})

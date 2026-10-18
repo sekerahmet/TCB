@@ -84,6 +84,21 @@ func AdOnerisi(ad string, gorunenler []string) string {
 	return ""
 }
 
+// TipMetinKarsilastirmasi tip değerinin (tip(x)) bir metinle karşılaştırıldığını bildiren
+// metindir (3.11): tip adları tırnaksız yazılır. Metin bir tip adıysa (ya da eski veya Türkçe
+// karaktersiz yazımıysa) o tipin adı, değilse ornek (değerin kendi tipinin adı) gösterilir.
+// Denetleyici ve yorumlayıcı aynı metni kullanır.
+func TipMetinKarsilastirmasi(op, metin, ornek string) string {
+	if k, ok := kod.Bul(kod.AlanTip, metin); ok {
+		ornek = kod.Ad(k)
+	} else if k, ok := kod.Oneri(kod.AlanTip, metin, nil); ok {
+		ornek = kod.Ad(k)
+	}
+	g := kod.Ad(kod.G201)
+	return fmt.Sprintf("tip değeri metinle karşılaştırılamaz: %s(x) %s %q yerine %s(x) %s %s yazın (tip adları tırnaksız yazılır)",
+		g, op, metin, g, op, ornek)
+}
+
 // TanimsizAdMetni çalışma anında ve denetimde tanımsız bir ad için aynı mesajı verir
 // (konum öneki olmadan).
 func TanimsizAdMetni(ad string, gorunenler []string) string {

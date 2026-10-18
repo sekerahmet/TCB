@@ -92,8 +92,11 @@ test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman ta
     doğrula(p == Nokta(1, 2))
 }
 
-test "7.6 nesneler içerikle karşılaştırılır; tip() yapı adını verir" {
+test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini verir" {
     doğrula(Nokta(1, 2) == Nokta(1, 2))
     eşit_mi("Nokta{x: 1, y: 2}", metin(Nokta(1, 2)))
-    eşit_mi("Nokta", tip(Nokta()))
+    eşit_mi(Nokta, tip(Nokta()))
+    doğrula(tip(Nokta()) == Nokta)
+    eşit_mi("Nokta", metin(tip(Nokta())))
+    eşit_mi(YapıTanımı, tip(Nokta))
 }

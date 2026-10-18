@@ -195,6 +195,7 @@ func New() *VM {
 		},
 		CallStack: []StackFrame{},
 	}
+	v.tipleriKaydet()
 	v.registerBuiltins()
 	v.registerIstatistik()
 	v.registerMotors()

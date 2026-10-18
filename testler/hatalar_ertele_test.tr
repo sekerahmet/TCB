@@ -19,7 +19,7 @@ test "8.1 hata yoksa yakala bloğu çalışmaz" {
 test "8.2 fırlat her değeri hata metnine çevirir" {
     değişken yakalanan = yok
     dene { fırlat {"kod": 5} } yakala h { yakalanan = h }
-    eşit_mi("Metin", tip(yakalanan))
+    eşit_mi(Metin, tip(yakalanan))
     eşit_mi("{\"kod\": 5}", yakalanan)
 }
 

@@ -22,11 +22,11 @@ test "2.3 tanımlayıcılar Türkçe harf, rakam ve _ içerebilir" {
 
 test "2.4 tam sayılar _ ile gruplanabilir" {
     eşit_mi(1000000, 1_000_000)
-    eşit_mi("Tam", tip(42))
+    eşit_mi(Tam, tip(42))
 }
 
 test "2.5 ondalık sayılar noktayla yazılır" {
-    eşit_mi("Ondalık", tip(3.14))
+    eşit_mi(Ondalık, tip(3.14))
     eşit_mi(0.5, 1_0.5 - 10)
 }
 
@@ -56,7 +56,7 @@ test "2.6a ham metin: ters tırnak, kaçış ve yerleştirme yok, çok satırlı
     değişken iki_satir = `bir
 iki`
     eşit_mi("bir\niki", iki_satir)
-    eşit_mi("Metin", tip(`x`))
+    eşit_mi(Metin, tip(`x`))
     eşit_mi("", ``)
     eşit_mi(`"tek" 'çift'`, "\"tek\" 'çift'")
 }

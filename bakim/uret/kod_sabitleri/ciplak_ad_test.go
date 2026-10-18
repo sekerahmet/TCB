@@ -55,8 +55,15 @@ var ciplakAdIzinleri = map[string]map[string]string{
 		"tip":       "tanim.json tür değeri (TurTip)",
 		"fonksiyon": "tanim.json tür değeri (TurFonksiyon)",
 	},
-	// Hata türü başlığındaki düz yazı ("Fonksiyon çağrısı tip hatası"); tip adı olarak değil.
-	"internal/dil/denetci/denetci.go": {"Fonksiyon": "hata türü başlığı: Fonksiyon çağrısı tip hatası"},
+	// Hata türü başlıklarındaki düz yazı ("Fonksiyon çağrısı tip hatası", "Tip uyuşmazlığı",
+	// "Tip ve Güvenlik Denetimi"): sıradan sözcük, A208 Fonksiyon ya da A215 Tip adı değil.
+	"internal/dil/denetci/denetci.go": {
+		"Fonksiyon": "hata türü başlığı: Fonksiyon çağrısı tip hatası",
+		"Tip":       "hata türü başlığı: Tip uyuşmazlığı",
+	},
+	"cmd/tr/hazirlik.go": {"Tip": "başlık: Tip ve Güvenlik Denetimi Hataları"},
+	// Sözdizimi yardımındaki yer tutucu: "ad: Tip" herhangi bir tip adı demektir.
+	"internal/dil/ayristir/yapi.go": {"Tip": "yer tutucu: ad: Tip (herhangi bir tip adı)"},
 }
 
 // taranacakKokler adları koddan üretmesi gereken katmanlardır.

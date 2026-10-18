@@ -12,7 +12,7 @@ test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada at
 }
 
 test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar kelimedir" {
-    eşit_mi("Metin", tip(test))
+    eşit_mi(Metin, tip(test))
     fonksiyon test_et(test) { sonuç test + 1 }
     eşit_mi(2, test_et(1))
 }

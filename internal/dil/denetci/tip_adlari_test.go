@@ -9,6 +9,7 @@ func TestTipYazimlariAyni(t *testing.T) {
 		"tam": "Tam", "ondalık": "Ondalık", "metin": "Metin", "mantık": "Mantık",
 		"liste": "Liste", "sözlük": "Sözlük", "tensör": "Tensör", "yok": "Yok", "aralık": "Aralık",
 		"fonksiyon": "Fonksiyon", "yerleşikfonksiyon": "YerleşikFonksiyon",
+		"tip": "Tip",
 	}
 	if len(tipYazimlari) != len(beklenen) {
 		t.Errorf("%d yazım bekleniyordu, %d var: %v", len(beklenen), len(tipYazimlari), tipYazimlari)

@@ -2,6 +2,8 @@
 
 TR dinamik tiplidir; değerler tiplerini taşır. İsteğe bağlı tip açıklamalarını yalnızca çalıştırma öncesi tip denetleyicisi kullanır (3.13).
 
+İlke: **Değerlerin metne çevrilmesi çalıştırma dilini izler; karşılaştırma değerle yapılır.** Bir program kodlu saklanıp başka bir yazım dilinde gösterildiğinde de aynı sonucu verir: `doğru`, `yok` ve tip değerleri yazdırılınca adları çalıştırma dilinde görünür, ama programın anlamı bu metne bağlı değildir.
+
 **3.1** `Tam`: 64 bit işaretli tam sayı. `+ - * / **` işlemleri ve tekli `-` sınırı aşarsa (ör. en küçük değerin `/ -1`'i ya da eksisi) sessizce sarmak yerine "Tam sayı taşması" hatası verir. Yerleşikler de aynı kurala uyar: `toplam`, `mutlak` (en küçük değerde), `tam` ve `yuvarla` (Ondalık'tan çevirirken `NaN`, sonsuz ya da Tam aralığı dışındaki değerde) taşma hatası verir.
 
 **3.2** `Ondalık`: 64 bit kayan noktalı sayı; en kısa gösterimiyle yazdırılır, tam sayılı ondalıklar `1.0` biçimindedir (`123456.0`). Büyüklüğü 1e6 ve üstü ya da 1e-4'ten küçük olanlar bilimsel gösterimle yazdırılır (`1e+06`, `1.6777216e+07`, `1e-05`; `0.0001` ise olduğu gibi). Sonsuz ve tanımsız değerler `+Sonsuz`, `-Sonsuz`, `NaN` olarak yazdırılır (tensör yazdırması bunları `Sonsuz`, `-Sonsuz`, `Tanımsız` olarak gösterir).
@@ -28,7 +30,17 @@ TR dinamik tiplidir; değerler tiplerini taşır. İsteğe bağlı tip açıklam
 
 **3.10** Doğruluk: `yanlış`, `yok`, `0`, `0.0`, boş metin, boş liste ve boş sözlük yanlış; diğer her değer doğru sayılır.
 
-**3.11** `tip(x)` değerin tip adını metin olarak verir: `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Aralık`, `Fonksiyon`, `YerleşikFonksiyon`, `Tensör`; bir yapı nesnesi için yapının adı (`Nokta`). Ayrı bir matris tipi yoktur: matris 2 boyutlu bir `Tensör`dür (`tensör([[1, 2], [3, 4]])`, `birim_matris(n)`; 15.1).
+**3.11** `tip(x)` değerin tipini bir **tip değeri** olarak verir; tip değerinin kendi tipi `Tip`'tir. Tip adları (`Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Aralık`, `Fonksiyon`, `YerleşikFonksiyon`, `Tensör`, `Tip` ve motor tipleri: `İyileştirici`, `VeriKümesi`, `Örnekleyici`, `SıralıOkuyucu`, `Parçalayıcı`) ifadede tip değeridir; karşılaştırma bunlarla yapılır: `tip(x) == Tam`. Bir yapı nesnesinin tipi yapının kendisidir: `tip(p) == Nokta` (`tip(Nokta)` ise `YapıTanımı`dır). Tip değeri yazdırılınca ve metne çevrilince adı görünür (`yazdır(tip(42))` → `Tam`, `metin(tip(p))` → `"Nokta"`). Tip değeri metinle karşılaştırılamaz: `tip(x) == "Tam"` sessizce `yanlış` vermez, hatadır; denetleyici yerleşik `tip(...)` ile bir metin sabitinin karşılaştırılmasını çalıştırmadan önce bulur, çalışma anında da aynı hata verilir (ipucu: `tip(x) == Tam yazın`). Ayrı bir matris tipi yoktur: matris 2 boyutlu bir `Tensör`dür (`tensör([[1, 2], [3, 4]])`, `birim_matris(n)`; 15.1).
+
+```tr
+yazdır(tip(42), tip(42) == Tam, tip([1]) != Metin)   // Tam doğru doğru
+yapı Nokta { x = 0 }
+yazdır(tip(Nokta()) == Nokta, tip(tip(1)))         // doğru Tip
+```
+
+```tr hata
+yazdır(tip(42) == "Tam")   // denetim hatası: tip değeri metinle karşılaştırılamaz
+```
 
 **3.12** Dönüşümler: `tam(x)` (ondalığı keser, metni ayrıştırır), `ondalık(x)`, `metin(x)`; çevrilemeyen değer hata verir.
 
@@ -38,7 +50,7 @@ tam(3.9)        // 3
 metin(12) + "a" // "12a"
 ```
 
-**3.13** Tip açıklamaları isteğe bağlıdır ve `ad: Tip` biçimindedir (değişken, parametre, yapı alanı; dönüş tipi için 6.8). Tip denetleyicisi bildirilen tiple çıkarılan tip uyuşmazsa ve `sabit` yeniden atanırsa programı **çalıştırmadan** reddeder. Yalnızca açıklamalı adlar denetlenir: açıklamasız bir değişkenin ilk değerinden çıkarılan tip kalıcı bir bildirim sayılmaz, değişken sonra başka tipte değer alabilir (`değişken kayıp = 0` ardından `kayıp += 0.5` geçerlidir); `sabit`in tipi ise değerinin tipidir. Denetleyicinin çıkardığı tip çalışma zamanının sonucuyla aynıdır, ondan farklı bir tip iddia etmez: `Tam / Tam` ve negatif üslü `Tam ** Tam` "Tam ya da Ondalık" sayılır (4.2, 4.3), bu yüzden `Tam` açıklamalı bir ada atanamaz (`tam(a / b)` ya da `Ondalık` açıklaması kullanılır); aralık ifadesinin tipi `Aralık`tır, `Liste` değil. Tip açıklamasında yalnızca dilin tip adları geçerlidir: `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Aralık`, `Fonksiyon`, `YerleşikFonksiyon`, `Tensör` ve yapı adları. Tip adları büyük/küçük harfe duyarsızdır; harfler Türkçe kuralla eşlenir (`MANTIK` ≡ `Mantık`, `ondalık` ≡ `Ondalık`). Eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) ve Türkçe harfsiz yazımlar kabul edilmez; denetleyici asıl adı önerir (`'ondalik' TR'de bir tip adı değil; 'Ondalık' yazmak mı istediniz?`, `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`; kaldırılanların listesi 2.9a'dadır).
+**3.13** Tip açıklamaları isteğe bağlıdır ve `ad: Tip` biçimindedir (değişken, parametre, yapı alanı; dönüş tipi için 6.8). Tip denetleyicisi bildirilen tiple çıkarılan tip uyuşmazsa ve `sabit` yeniden atanırsa programı **çalıştırmadan** reddeder. Yalnızca açıklamalı adlar denetlenir: açıklamasız bir değişkenin ilk değerinden çıkarılan tip kalıcı bir bildirim sayılmaz, değişken sonra başka tipte değer alabilir (`değişken kayıp = 0` ardından `kayıp += 0.5` geçerlidir); `sabit`in tipi ise değerinin tipidir. Denetleyicinin çıkardığı tip çalışma zamanının sonucuyla aynıdır, ondan farklı bir tip iddia etmez: `Tam / Tam` ve negatif üslü `Tam ** Tam` "Tam ya da Ondalık" sayılır (4.2, 4.3), bu yüzden `Tam` açıklamalı bir ada atanamaz (`tam(a / b)` ya da `Ondalık` açıklaması kullanılır); aralık ifadesinin tipi `Aralık`tır, `Liste` değil. Tip açıklamasında yalnızca dilin tip adları geçerlidir: `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Aralık`, `Fonksiyon`, `YerleşikFonksiyon`, `Tensör`, `Tip` ve yapı adları. Tip adları büyük/küçük harfe duyarsızdır; harfler Türkçe kuralla eşlenir (`MANTIK` ≡ `Mantık`, `ondalık` ≡ `Ondalık`). Eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) ve Türkçe harfsiz yazımlar kabul edilmez; denetleyici asıl adı önerir (`'ondalik' TR'de bir tip adı değil; 'Ondalık' yazmak mı istediniz?`, `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`; kaldırılanların listesi 2.9a'dadır).
 
 ```tr hata
 değişken yaş: Tam = 25

@@ -81,7 +81,7 @@ func tipYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgumanSayisiHatasi(kod.G201, "1", len(args), "değer")
 	}
-	return &StringVal{Val: string(args[0].Type())}, nil
+	return DegerinTipi(args[0]), nil
 }
 
 // tamYerlesik tam() yerleşiğidir.

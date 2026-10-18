@@ -95,7 +95,7 @@ func TestTensorUzerindeDongu(t *testing.T) {
 		"2 [2] [5.0, 6.0]",
 		"[3.0, 5.0]",
 		"doğru",
-		`["Tam", "Tam"]`,
+		`[Tam, Tam]`,
 		"Tam 1",
 		"Tam 0",
 		"[[9.0, 0.0], [9.0, 0.0]]",

@@ -307,6 +307,8 @@ type StructDefVal struct {
 	alanKod []ifadeKodu
 	// alanOrtam varsayılanların değerlendirildiği ortamdır (yapının tanımlandığı ortam).
 	alanOrtam *Environment
+	// tip nesnelerinin tip değeridir (tip(p) → Nokta; bkz. tipDegeri).
+	tip *TipVal
 }
 
 func (s *StructDefVal) Type() ValueType { return VAL_STRUCT }

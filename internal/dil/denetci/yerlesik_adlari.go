@@ -13,8 +13,9 @@ var yerlesikOnbellegi struct {
 	adlar map[string]bool
 }
 
-// yerlesikAdlari sözlükteki yerleşiklerin (G/T/V/W) kabul edilen adlarıdır; denetimde bu
-// adlar her kapsamda tanımlıdır (çalışma anında genel kapsama kaydedilirler).
+// yerlesikAdlari sözlükteki yerleşiklerin (G/T/V/W) ve tip adlarının (A2xx; ifadede tip
+// değeridir: tip(x) == Tam) kabul edilen adlarıdır; denetimde bu adlar her kapsamda
+// tanımlıdır (çalışma anında genel kapsama kaydedilirler).
 func yerlesikAdlari() map[string]bool {
 	o := &yerlesikOnbellegi
 	o.Lock()
@@ -22,7 +23,7 @@ func yerlesikAdlari() map[string]bool {
 	if o.dil != kod.Etkin() {
 		m := map[string]bool{}
 		for _, k := range kod.Kodlar() {
-			if k.Yerlesik() && !kod.Kaldirildi(k) {
+			if (k.Yerlesik() || k.Alan() == kod.AlanTip) && !kod.Kaldirildi(k) {
 				for _, y := range kod.Yazimlar(k) {
 					m[y] = true
 				}

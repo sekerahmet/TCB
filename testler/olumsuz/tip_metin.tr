@@ -1,0 +1,3 @@
+// Bilerek hatalı: 3.11 — tip değeri metinle karşılaştırılmaz; tip adları tırnaksız yazılır.
+yazdır(tip(5) == "Tam")
+yazdır("Liste" != tip([1]))

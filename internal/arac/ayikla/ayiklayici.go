@@ -546,7 +546,7 @@ func collectVisibleVariables(env *yurut.Environment) []varEntry {
 			}
 			seen[k] = true
 			// Yerleşik fonksiyonları ve yapı tanımlarını kalabalık yapmaması için gizle
-			if v.Type() == yurut.VAL_BUILTIN || v.Type() == yurut.VAL_STRUCT || v.Type() == yurut.VAL_FUNC {
+			if v.Type() == yurut.VAL_BUILTIN || v.Type() == yurut.VAL_STRUCT || v.Type() == yurut.VAL_FUNC || v.Type() == yurut.VAL_TYPE {
 				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})

@@ -133,17 +133,8 @@ func (v *VM) evalInfixKod(kod uint8, op string, left Value, right Value, line in
 		}
 	}
 
-	switch kod {
-	case opEsit:
-		if ValuesEqual(left, right) {
-			return TRUE, nil
-		}
-		return FALSE, nil
-	case opEsitDegil:
-		if !ValuesEqual(left, right) {
-			return TRUE, nil
-		}
-		return FALSE, nil
+	if kod == opEsit || kod == opEsitDegil {
+		return esitlikSonucu(kod == opEsit, op, left, right, line)
 	}
 
 	if kod == opTopla {
@@ -290,6 +281,15 @@ func BoolToVal(b bool) Value {
 		return TRUE
 	}
 	return FALSE
+}
+
+// esitlikSonucu == (esit) ya da != işleminin sonucudur. Tip değeri metinle
+// karşılaştırılamaz (3.11): sessizce yanlış dönmek yerine hata verir.
+func esitlikSonucu(esit bool, op string, left, right Value, line int) (Value, error) {
+	if err := tipMetinHatasi(op, left, right); err != nil {
+		return nil, fmt.Errorf("Satır %d: %w", line, err)
+	}
+	return BoolToVal(ValuesEqual(left, right) == esit), nil
 }
 
 func ValuesEqual(a, b Value) bool {

@@ -14,7 +14,7 @@ fonksiyon hata_metni(f) {
 
 test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
     değişken p = parçalayıcı_yükle("veri/parcalayici.json")
-    eşit_mi("Parçalayıcı", tip(p))
+    eşit_mi(Parçalayıcı, tip(p))
     eşit_mi(1005, p.dağarcık_boyutu)
     eşit_mi(0, p.parça_kimliği("<|endoftext|>"))
     eşit_mi(yok, p.parça_kimliği("böyle-bir-parça-yok"))
@@ -23,8 +23,8 @@ test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
 test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
     değişken p = parçalayıcı_yükle("veri/parcalayici.json")
     değişken k = p.kodla("Merhaba dünya!")
-    eşit_mi("Liste", tip(k))
-    eşit_mi("Tam", tip(k[0]))
+    eşit_mi(Liste, tip(k))
+    eşit_mi(Tam, tip(k[0]))
     // Metindeki özel parça tek bir kimlik olarak tanınır.
     eşit_mi(0, p.kodla("<|endoftext|>")[0])
     eşit_mi(1, p.kodla("<|endoftext|>").uzunluk)
@@ -70,7 +70,7 @@ test "16.3 çöz: varsayılan özel parçaları atlar; listeler ve tensörler" {
 
 test "16.4 veri_kümesi: klasör ya da tek .npy dosyası" {
     değişken küme = veri_kümesi("veri/sayilar")
-    eşit_mi("VeriKümesi", tip(küme))
+    eşit_mi(VeriKümesi, tip(küme))
     eşit_mi("VeriKümesi(2 veri dosyası, 250 parça)", metin(küme))
     eşit_mi("VeriKümesi(1 veri dosyası, 100 parça)", metin(veri_kümesi("veri/sayilar/a.npy")))
     // meta.json varsa veri dosyalarının parça sayıları oradan okunur.
@@ -80,9 +80,9 @@ test "16.4 veri_kümesi: klasör ya da tek .npy dosyası" {
 test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebilir" {
     değişken küme = veri_kümesi("veri/sayilar")
     değişken ö = küme.örnekleyici(toplu: 3, bağlam: 5, tohum: 1)
-    eşit_mi("Örnekleyici", tip(ö))
+    eşit_mi(Örnekleyici, tip(ö))
     değişken giriş, hedef = ö.sonraki()
-    eşit_mi("Tensör", tip(giriş))
+    eşit_mi(Tensör, tip(giriş))
     eşit_mi([3, 5], giriş.şekil)
     eşit_mi([3, 5], hedef.şekil)
     // Hedef, girdinin bir kaydırılmışıdır; pencereler parça sınırını aşmaz (değerler ardışık).
@@ -113,7 +113,7 @@ test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebili
 test "16.6 sıralı: pencereler sırayla, bitince yok" {
     değişken küme = veri_kümesi("veri/sayilar")
     değişken s = küme.sıralı(toplu: 2, bağlam: 4)
-    eşit_mi("SıralıOkuyucu", tip(s))
+    eşit_mi(SıralıOkuyucu, tip(s))
     değişken giriş, hedef = s.sonraki()
     eşit_mi([[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0]], giriş.değer)
     eşit_mi([[1, 2, 3, 4], [5, 6, 7, 8]], hedef.değer)

@@ -12,11 +12,11 @@ test "13.1 genel yerleşikler" {
 
 test "13.1 min ve maks türü korur, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
     eşit_mi(2.0, maks([2.0, 1.5]))
-    eşit_mi("Ondalık", tip(maks([2.0, 1.5])))
-    eşit_mi("Tam", tip(min([1, 2.5])))
+    eşit_mi(Ondalık, tip(maks([2.0, 1.5])))
+    eşit_mi(Tam, tip(min([1, 2.5])))
     eşit_mi(9007199254740993, maks([9007199254740993, 1]))
     doğrula(maks([9007199254740993, 9007199254740992]) != 9007199254740992)
-    eşit_mi("Tam", tip(maks(9223372036854775807, 1)))
+    eşit_mi(Tam, tip(maks(9223372036854775807, 1)))
     eşit_mi(-7, min(3, -7, 0.5))
     eşit_mi(yok, maks([]))
     değişken hatalar = []
@@ -179,12 +179,12 @@ test "13.6 hedef tipin adını taşıyan dönüştürücüler kurucudur ve tip()
     eşit_mi(5, tam("5"))
     eşit_mi(2.5, ondalık("2.5"))
     eşit_mi("[1, 2]", metin([1, 2]))
-    eşit_mi("Liste", tip([1]))
+    eşit_mi(Liste, tip([1]))
     // Yapının 'tip' alanı yerleşik tip() ile çakışmaz
     yapı Ürün { ad, tip }
     değişken ü = Ürün("kalem", "kırtasiye")
     eşit_mi("kırtasiye", ü.tip)
-    eşit_mi("Ürün", tip(ü))
+    eşit_mi(Ürün, tip(ü))
 }
 
 test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör işi fonksiyondur; kaldırılan biçimler yol gösterir" {

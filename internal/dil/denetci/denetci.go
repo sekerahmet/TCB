@@ -110,7 +110,7 @@ var tipSayi = tipTam + " ya da " + tipOndalik
 // aciklamaTipleri tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
 var aciklamaTipleri = []kod.Kod{kod.A200, kod.A201, kod.A202, kod.A203,
-	kod.A205, kod.A206, kod.A207, kod.A208, kod.A209, kod.A212, kod.A204}
+	kod.A205, kod.A206, kod.A207, kod.A208, kod.A209, kod.A212, kod.A204, kod.A215}
 
 // tipYazimlari tip açıklamasında kabul edilen yazımların küçük harfli biçimi → tip adıdır.
 // Yazımlar sözlükten gelir (yalnızca Türkçe biçim; büyük/küçük harf fark etmez). Matris 2
@@ -440,6 +440,7 @@ func (c *Checker) inferExpression(expr agac.Expression) string {
 	case *agac.InfixExpression:
 		left := c.inferExpression(e.Left)
 		right := c.inferExpression(e.Right)
+		c.tipMetinDenetle(e)
 		switch e.Operator {
 		case "==", "!=", "<", ">", "<=", ">=", "&&", "||":
 			return tipMantik

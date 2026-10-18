@@ -20,7 +20,7 @@ test "4.1 öncelik: aralık toplamadan gevşek, ?? veya'dan gevşek bağlanır" 
 
 test "4.2 aritmetik: tam bölme tam çıkarsa Tam, değilse Ondalık" {
     eşit_mi(2, 6 / 3)
-    eşit_mi("Tam", tip(6 / 3))
+    eşit_mi(Tam, tip(6 / 3))
     eşit_mi(3.5, 7 / 2)
     eşit_mi(1, 7 % 3)
     eşit_mi(1.5, 5.5 % 2)

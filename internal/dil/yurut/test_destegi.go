@@ -28,6 +28,9 @@ func (v *VM) registerTestBuiltins() {
 		if len(args) < 2 || len(args) > 3 {
 			return nil, ArgumanSayisiHatasi(kod.G701, "2 ya da 3", len(args), "beklenen, gerçek, [mesaj]")
 		}
+		if err := tipMetinHatasi("==", args[0], args[1]); err != nil {
+			return nil, err
+		}
 		if ValuesEqual(args[0], args[1]) {
 			return TRUE, nil
 		}

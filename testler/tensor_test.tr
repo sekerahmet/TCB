@@ -12,7 +12,7 @@ fonksiyon hata_metni(f) {
 
 test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     değişken a = tensör([[1, 2, 3], [4, 5, 6]])
-    eşit_mi("Tensör", tip(a))
+    eşit_mi(Tensör, tip(a))
     eşit_mi([2, 3], a.şekil)
     eşit_mi([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], a.değer)
     eşit_mi([2, 3], tensör(tensör([[1, 2, 3], [4, 5, 6]])).şekil)
@@ -28,7 +28,7 @@ test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     değişken s = tensör(3.0)
     eşit_mi([], s.şekil)
     eşit_mi(yok, s.gradyan)
-    eşit_mi(["Tensör", "Tensör"], [tip(tensör([[1]])), tip(birim_matris(2))])
+    eşit_mi([Tensör, Tensör], [tip(tensör([[1]])), tip(birim_matris(2))])
     // matris ve rastgele_matris kaldırıldı: matris 2 boyutlu tensördür.
     // Tanımsız ad olarak çalışmadan önce bulunur (5.14).
     değişken mm = ""
@@ -283,8 +283,8 @@ test "15.6 .gradyan canlı takma addır; değişince onu kullanan hesap hata ver
 
 test "15.7 AdamW ve SGD'nin tipi İyileştirici'dir" {
     değişken w = tensör([1.0], türev_izle: doğru)
-    eşit_mi("İyileştirici", tip(AdamW([w])))
-    eşit_mi("İyileştirici", tip(SGD([w], öğrenme_oranı: 0.1)))
+    eşit_mi(İyileştirici, tip(AdamW([w])))
+    eşit_mi(İyileştirici, tip(SGD([w], öğrenme_oranı: 0.1)))
     // Yazdırma hangi iyileştirici olduğunu gösterir
     doğrula(metin(SGD([w])).başlar("SGD("))
 }
@@ -377,7 +377,7 @@ test "15.11 tensör üzerinde döngü ve liste üreteci" {
     değişken indeksler = []
     döngü i, s içinde t {
         indeksler.ekle(i)
-        eşit_mi("Tensör", tip(s))
+        eşit_mi(Tensör, tip(s))
         eşit_mi([2], s.şekil)
     }
     eşit_mi([0, 1, 2], indeksler)
@@ -385,7 +385,7 @@ test "15.11 tensör üzerinde döngü ve liste üreteci" {
     eşit_mi([3.0, 5.0], [x * 2 döngü x içinde tensör([1.5, 2.5])])
     eşit_mi([3.0, 7.0, 11.0], [toplam(s).değer döngü s içinde t])
     eşit_mi([2.5], [x döngü x içinde tensör([0.5, 2.5]) eğer x > 1])
-    eşit_mi(["Tam", "Tam"], [tip(x) döngü x içinde maks_indeks(tensör([[1, 5], [7, 0]]), eksen: -1)])
+    eşit_mi([Tam, Tam], [tip(x) döngü x içinde maks_indeks(tensör([[1, 5], [7, 0]]), eksen: -1)])
     // Görünümler veriyi paylaşır: satıra atama tensörü değiştirir.
     değişken z = sıfırlar([2, 2])
     döngü satır içinde z {
@@ -595,7 +595,7 @@ test "15.14 sinüs ve kosinüs: sayıda ve tensörde, listede değil; türevli" 
     doğrula(hata_metni(() => kosinüs([0, 1])).içerir("kosinüs listede çalışmaz"))
     değişken x = tensör([0.0, 1.0, 3.0], türev_izle: doğru)
     değişken y = sinüs(x)
-    eşit_mi("Tensör", tip(y))
+    eşit_mi(Tensör, tip(y))
     doğrula(mutlak(y.değer[2] - sinüs(3.0)) < 0.0000001)
     geri_yayılım(toplam(y) + toplam(kosinüs(x)))
     // d/dx (sin x + cos x) = cos x - sin x
@@ -689,7 +689,7 @@ test "15.18 örnekle: sıcaklık, en_iyi_k, tohum" {
     değişken e = örnekle(l, sıcaklık: 0)
     eşit_mi([1, 0], e.değer)
     eşit_mi(maks_indeks(l).değer, e.değer)
-    eşit_mi("Tam", tip(örnekle(tensör([1.0, 2.0])).değer))
+    eşit_mi(Tam, tip(örnekle(tensör([1.0, 2.0])).değer))
     eşit_mi([], örnekle(tensör([1.0, 2.0])).şekil)
     eşit_mi(örnekle(l, tohum: 4).değer, örnekle(l, tohum: 4).değer)
     eşit_mi([1, 0], örnekle(l, en_iyi_k: 1).değer)

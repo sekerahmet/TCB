@@ -73,7 +73,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	if val.Inspect() != `[["Tam", "Metin"], [1, "b"], ["Tam", "Metin"]]` {
+	if val.Inspect() != `[[Tam, Metin], [1, "b"], [Tam, Metin]]` {
 		t.Fatalf("beklenmeyen sonuç: %s", val.Inspect())
 	}
 
@@ -195,9 +195,9 @@ func TestCSVKatiSayiVeBOM(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := `[["NaN", "Inf", "-Inf", "infinity", "007", "12345678901234567890", "0x10", "1_000", "1e400", "+5", "00.5", ".5"], ` +
-		`["Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin"], ` +
+		`[Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin], ` +
 		`[0, 0, 1.0, 2500.0, -7, 9223372036854775807, 0.001, 0.0, "", 42, "1.", "1e"], ` +
-		`["Tam", "Tam", "Ondalık", "Ondalık", "Tam", "Tam", "Ondalık", "Ondalık", "Metin", "Tam", "Metin", "Metin"]]`
+		`[Tam, Tam, Ondalık, Ondalık, Tam, Tam, Ondalık, Ondalık, Metin, Tam, Metin, Metin]]`
 	if val.Inspect() != want {
 		t.Fatalf("\n%s\nbeklenen\n%s", val.Inspect(), want)
 	}

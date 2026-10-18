@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 187 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 19 tip, 62 fonksiyon, 32 metot, 9 özellik, 31 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 188 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 20 tip, 62 fonksiyon, 32 metot, 9 özellik, 31 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -471,17 +471,17 @@ değişken f: YerleşikFonksiyon = yazdır; f(tip(f))
 yapı ile tanımlanan yapının kendisinin tipidir; tip açıklamasında kullanılamaz.
 
 ```tr
-yapı Nokta { x, y }; yazdır(tip(Nokta) == "YapıTanımı")
+yapı Nokta { x, y }; yazdır(tip(Nokta) == YapıTanımı)
 ```
 
 İlişkili: A050 `yapı`, A211 `Nesne`
 
 #### A211 `Nesne`
 
-Yapıdan oluşturulan nesnelerin genel adıdır; tip() bir nesne için Nesne değil yapının adını verir.
+Yapıdan oluşturulan nesnelerin genel adıdır; tip() bir nesne için Nesne değil yapının kendisini verir (tip(p) == Nokta).
 
 ```tr
-yapı Nokta { x, y }; değişken p = Nokta(1, 2); yazdır(tip(p), p)
+yapı Nokta { x, y }; değişken p = Nokta(1, 2); yazdır(tip(p) == Nokta, p)
 ```
 
 İlişkili: A210 `YapıTanımı`
@@ -514,6 +514,16 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken op = AdamW([w], �
 
 Üyeleri: Y500 `adım`, Y501 `sıfırla` · İlişkili: T400 `AdamW`, T401 `SGD`
 
+#### A215 `Tip`
+
+tip() sonucu olan tip değerlerinin tipidir; tip adları (Tam, Liste, Tensör ...) ifadede tip değeridir. Karşılaştırma değerle yapılır: tip(x) == Tam; tip değeri metinle karşılaştırılamaz.
+
+```tr
+değişken t: Tip = tip(42); yazdır(t == Tam, t, tip(t))
+```
+
+İlişkili: G201 `tip`
+
 #### A230 `SinirAğı` — kaldırıldı
 
 Kaldırıldı: 'SinirAğı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
@@ -523,7 +533,7 @@ Kaldırıldı: 'SinirAğı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 veri_kümesi(...) ile açılan, .npy veri dosyalarından oluşan veri kümesinin tipidir.
 
 ```tr
-değişken küme = veri_kümesi("testler/veri/sayilar"); yazdır(tip(küme) == "VeriKümesi")
+değişken küme = veri_kümesi("testler/veri/sayilar"); yazdır(tip(küme) == VeriKümesi)
 ```
 
 Üyeleri: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V100 `veri_kümesi`
@@ -533,7 +543,7 @@ değişken küme = veri_kümesi("testler/veri/sayilar"); yazdır(tip(küme) == "
 Veri kümesinden tohuma göre rastgele [girdi, hedef] tensör çiftleri üreten okuyucunun tipidir; dönemler boyunca sonsuz üretir.
 
 ```tr
-değişken ö = veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağlam: 4, tohum: 1); yazdır(tip(ö) == "Örnekleyici")
+değişken ö = veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağlam: 4, tohum: 1); yazdır(tip(ö) == Örnekleyici)
 ```
 
 Üyeleri: Y602 `sonraki` · İlişkili: Y600 `örnekleyici`, A233 `SıralıOkuyucu`
@@ -543,7 +553,7 @@ değişken ö = veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağ
 Veri kümesini pencereler hâlinde sırayla okuyan okuyucunun tipidir; veri bitince .sonraki() yok verir.
 
 ```tr
-değişken s = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4); yazdır(tip(s) == "SıralıOkuyucu")
+değişken s = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4); yazdır(tip(s) == SıralıOkuyucu)
 ```
 
 Üyeleri: Y602 `sonraki` · İlişkili: Y601 `sıralı`, A232 `Örnekleyici`
@@ -553,7 +563,7 @@ değişken s = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 
 parçalayıcı_yükle(...) ile yüklenen, metni parçalara ayırıp parça kimliklerine çeviren nesnenin tipidir.
 
 ```tr
-değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(tip(p) == "Parçalayıcı")
+değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(tip(p) == Parçalayıcı)
 ```
 
 Üyeleri: Y610 `kodla`, Y611 `çöz`, Y612 `dağarcık_boyutu`, Y613 `parça_kimliği` · İlişkili: V200 `parçalayıcı_yükle`
@@ -630,12 +640,12 @@ Taşındı: Y001 `uzunluk` → `x.uzunluk`. Kaldırıldı: uzunluk bir değere s
 
 #### G201 `tip`
 
-    tip(Herhangi) → Metin
+    tip(Herhangi) → Tip
 
-Değerin tip adını Metin olarak verir; bir yapı nesnesi için yapının adını verir.
+Değerin tipini bir tip değeri (Tip) olarak verir; tip adlarıyla karşılaştırılır (tip(x) == Tam), yazdırılınca adı görünür. Bir yapı nesnesi için yapının kendisini verir (tip(p) == Nokta).
 
 ```tr
-yazdır(tip(3.5), tip([1, 2]), tip(yok))
+yazdır(tip(3.5), tip([1, 2]) == Liste, tip(yok))
 ```
 
 İlişkili: G210 `tam`, G211 `ondalık`, G212 `metin` · Eski adlar: `tur`

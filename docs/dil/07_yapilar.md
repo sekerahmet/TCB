@@ -18,4 +18,4 @@ yapı Nokta {
 
 **7.5** Alanlar `p.x = 7` ile atanabilir; olmayan alana erişmek hatadır (`p?.z` ise `yok` verir). Tanımda olmayan bir alana atama da hatadır (`Nokta yapısında 'z' alanı yok; yapı tanımına 'z' alanını ekleyin`), bir metoda değer atanamaz; böylece bir nesnenin alanları her zaman yapı tanımındakilerdir ve yazdırma, eşitlik ve gezinme (15.19) aynı alanları görür.
 
-**7.6** Nesneler içerikleriyle karşılaştırılır (`Nokta(1, 2) == Nokta(1, 2)`) ve `Nokta{x: 1, y: 2}` biçiminde yazdırılır; `tip()` yapı adını verir.
+**7.6** Nesneler içerikleriyle karşılaştırılır (`Nokta(1, 2) == Nokta(1, 2)`) ve `Nokta{x: 1, y: 2}` biçiminde yazdırılır; `tip()` yapının kendisini verir (`tip(p) == Nokta`, 3.11).

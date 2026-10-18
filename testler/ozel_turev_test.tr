@@ -25,7 +25,7 @@ değişken kare = özel_türev(
 )
 
 test "15.20 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
-    eşit_mi("YerleşikFonksiyon", tip(kare))
+    eşit_mi(YerleşikFonksiyon, tip(kare))
     değişken x = tensör([3.0], türev_izle: doğru)
     değişken y = kare(x)
     eşit_mi([9.0], y.değer)
@@ -111,7 +111,7 @@ test "15.22 özel_türev: çok çıktı" {
     değişken a = tensör([1.0, 2.0], türev_izle: doğru)
     değişken b = tensör([3.0, 5.0], türev_izle: doğru)
     değişken sonuçlar = topla_fark(a, b)
-    eşit_mi("Liste", tip(sonuçlar))
+    eşit_mi(Liste, tip(sonuçlar))
     eşit_mi([[4.0, 7.0], [-2.0, -3.0]], [sonuçlar[0].değer, sonuçlar[1].değer])
     geri_yayılım(toplam(sonuçlar[0] * 2) + toplam(sonuçlar[1] * 3))
     eşit_mi([5.0, 5.0], a.gradyan.değer)

@@ -13,7 +13,7 @@ func TestSinusKosinus(t *testing.T) {
 	mustCalistir(t, `
 eşit_mi(0.0, sinüs(0))
 eşit_mi(1.0, kosinüs(0))
-eşit_mi("Ondalık", tip(sinüs(1)))
+eşit_mi(Ondalık, tip(sinüs(1)))
 değişken x = tensör([0.0, 1.0, -2.0], türev_izle: doğru)
 değişken y = sinüs(x)
 doğrula(mutlak(y.değer[1] - 0.84147096) < 0.0000001)
