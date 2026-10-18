@@ -4,19 +4,18 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 
 ## Şu an yapılıyor
 
-- **Tek yazım temizliği** — Türkçe harfsiz biçimler, eş yazımlar, `matris`, `#` yorum ve İngilizce eşler kaldırılıyor; komut satırı tek Türkçe ada iniyor; yerleşik ad gölgelenince uyarı.
-- **Tensör eksikleri** — `sinüs`/`kosinüs`, `birleştir`, `.böl`, `boyutu_koru`, birleşik `dikkat` (nedensel, pencereli, gruplu sorgu; döşemeli, T×T ara matrissiz), `örnekle`, `parametreler(model)`.
 - **Kullanıcı tanımlı türev** — `özel_türev(ileri:, geri:)` ve `türev_denetle`.
+- **Sert hakem denetiminin düzeltmeleri** — veri hattı ve parçalayıcı (düzenli ifade motorunun çökmemesi, bellek sınırları, ek token normalleştirmesi, Unicode tabloları, önbellek kotası); web ve veritabanı (yutulan yazma hataları, atomik kayıt, statik klasör, döngüsel değerler, belge örnekleri); tensör ve yorumlayıcı düzeltmeleri sırada.
 
 ## Sırada
 
-1. **CPU hızı: profil ve iyileştirme** — küçük modellerde işlem başına sabit maliyet (yorumlayıcı, çizge düğümü, bellek ayırma); hedef PyTorch'u CPU'da da geçmek.
+1. **CPU hızı: profil ve iyileştirme** — küçük modellerde işlem başına sabit maliyet (yorumlayıcı, çizge düğümü, bellek ayırma); hedef bugünkü yaygın Python kitaplıklarını CPU'da da geçmek.
 2. **Transformer kitaplığı (TR ile yazılı)** — katmanlar (Doğrusal, Gömme, RMSNormu, Dikkat, SwiGLU, Blok) ve yalnızca kod çözücülü `GPT`; model sıradan bir `yapı`, her model tek dosyada okunur.
 3. **GPU arka ucu** — Go'nun ürettiği GPU kodu (PTX) sürücüye verilir; tek dosya dağıtım korunur, ek derleyici gerekmez.
    - Önce **G4** ve **L4** (bf16, fp8); **T4** sonra (fp16 yolu).
    - Programa gömülü birleşik çekirdekler: dikkat, doğrusal katman + çapraz entropi, RMSNorm/RoPE/SwiGLU, AdamW.
    - Blok boyutları arka ucun ayarı; ilk çalıştırmada ölçülerek seçilir ve saklanır.
-   - Sınama Colab'da.
+   - Sınama bulut GPU makinelerinde.
 4. **TR ile çekirdek yazma** — eleman bazlı ve satır işlemleri için küçük, blok düzeyinde bir yazım; aynı kod CPU'da vektör komutlarına, GPU'da GPU koduna derlenir. Ardından tensör çekirdekli matris çarpımı ve dikkat.
 5. **Yazım dilleri** — EN ilk ikinci dil; dosyanın başında yazım dili; TR ⇄ EN kayıpsız çeviri aracı (çakışan kullanıcı adları `$ad` ile); bütün testlerin ve örneklerin iki dilde de koşması. Sonra hata mesajları (H kodları) ve PT gibi başka diller; yalnızca resmî, programa gömülü diller.
 6. **Üretim (modeli kullanan geliştirici için)** — KV önbellekli hızlı üretim, toplu istek işleme, nicemleme (int8/int4), model dosyaları, ağır hesapta yorumlayıcı kilidinin bırakılması.
@@ -26,7 +25,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - kendi parçalayıcısını eğitme (bugün yalnızca hazır `tokenizer.json` okunuyor);
    - eğitim sağlığı uyarıları: kayıp patlıyor ya da düşmüyor, öğrenme oranı yüksek görünüyor, bellek yetmeyecek;
    - çalıştırmadan önce süre, bellek ve maliyet tahmini;
-   - dizüstü bilgisayarda ya da tek bir Colab GPU'sunda çalışan küçük model tarifleri;
+   - dizüstü bilgisayarda ya da tek bir bulut GPU'sunda çalışan küçük model tarifleri;
    - eğitilen modeli tek dosya uygulama ya da web hizmeti olarak paylaşma.
 9. **Statik şekil denetimi** — tensör şekil hatalarının çalıştırmadan önce yakalanması.
 10. **Eklenti ve araçlar sözlükten** — VS Code renklendirme, tamamlama ve belge listelerinin `pkg/sozluk`'tan üretilmesi.
@@ -48,3 +47,5 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 - bf16/fp16 veri türleri ve `karışık_hassasiyet` bloğu.
 - Örnekler 01–09 öğrenme sırasıyla.
 - Sözlük: dilin bütün adları `pkg/sozluk/tr.json`'da sabit kodlara bağlı.
+- Tek yazım: Türkçe harfsiz biçimler, eş yazımlar, `matris`, `#` yorum ve İngilizce eşler kaldırıldı; komut satırı tek Türkçe ad; yerleşik ad gölgeleme uyarısı; eklenti listeleri sözlükten üretiliyor.
+- Model yapı taşları: `sinüs`/`kosinüs`, `birleştir`, `.böl`, `boyutu_koru`, birleşik `dikkat` (nedensel, pencereli, gruplu sorgu; T×T ara matrissiz, uzun bağlamda 2–10 kat hızlı), `örnekle`, `parametreler(model)`.
