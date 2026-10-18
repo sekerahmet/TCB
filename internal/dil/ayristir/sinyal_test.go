@@ -3,6 +3,7 @@ package ayristir
 import (
 	"strings"
 	"testing"
+	"time"
 	"tr_dili/internal/dil/sozcuk"
 )
 
@@ -106,6 +107,35 @@ func TestIcIceDerinlikSiniri(t *testing.T) {
 	// Sınırın altındaki iç içelik geçerlidir
 	if h := parseErrors("değişken x = " + strings.Repeat("[", 500) + strings.Repeat("]", 500)); len(h) > 0 {
 		t.Errorf("500 düzey geçerli olmalı: %.200v", h)
+	}
+}
+
+// Metin içindeki yerleştirmenin ifadesi de dosyanın iç içelik sınırına sayılır: alt
+// ayrıştırıcı sıfırdan başlasaydı iç içe metinlerle sınırın katları kadar derine inilirdi.
+func TestYerlestirmeDerinligiSinira(t *testing.T) {
+	kod := strings.Repeat("eğer doğru {\n", 480) +
+		`değişken s = "{` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + "}\"\n" +
+		strings.Repeat("}\n", 480)
+	h := parseErrors(kod)
+	if len(h) != 1 || !strings.Contains(h[0], "çok derin iç içe") || !strings.HasPrefix(h[0], "Satır 481,") {
+		t.Errorf("yerleştirmede derinlik hatası (satır 481) bekleniyordu: %.300v", h)
+	}
+	// Aynı ifade üst düzeyde sınırın altındadır
+	if h := parseErrors(`değişken s = "{` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + `}"`); len(h) > 0 {
+		t.Errorf("900 düzey yerleştirme geçerli olmalı: %.200v", h)
+	}
+}
+
+// Çok yerleştirmeli bir metin doğrusal sürede ayrıştırılır (her yerleştirmenin konumu
+// metnin başından yeniden sayılmaz; 200 000 yerleştirme önceden ~40 sn sürüyordu).
+func TestCokYerlestirmeDogrusal(t *testing.T) {
+	bas := time.Now()
+	h := parseErrors(`değişken s = "` + strings.Repeat("{a}", 200000) + `"`)
+	if len(h) > 0 {
+		t.Fatalf("beklenmeyen hata: %.200v", h)
+	}
+	if sure := time.Since(bas); sure > 10*time.Second {
+		t.Errorf("200 000 yerleştirmeli metin %v sürdü; ayrıştırma karesel olabilir", sure)
 	}
 }
 

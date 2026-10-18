@@ -132,58 +132,45 @@ func (p *Parser) parseStringOrInterpolation() agac.Expression {
 	runes := []rune(raw)
 	var parts []agac.Expression
 	var textBuf strings.Builder
+	konum := metinKonumu{satir: tok.Line, sutun: tok.Column + 1} // açılış tırnağından sonraki ilk karakter
 	i := 0
 
 	for i < len(runes) {
-		if runes[i] == '{' {
-			i++ // '{' geç
-			exprStart := i
-			depth := 1
-			var exprBuf strings.Builder
-			for i < len(runes) && depth > 0 {
-				if runes[i] == '{' {
-					depth++
-				} else if runes[i] == '}' {
-					depth--
-					if depth == 0 {
-						break
-					}
-				}
-				exprBuf.WriteRune(runes[i])
-				i++
-			}
-			if i < len(runes) && runes[i] == '}' {
-				i++ // '}' geç
-			}
-			rawExpr := exprBuf.String()
-			exprCode := strings.TrimSpace(rawExpr)
-			interpolated := false
-			if exprCode != "" {
-				// İfadenin dosyadaki konumu: metnin açılış tırnağından sonraki karakter
-				// sayısı kadar ilerisi (önündeki kaçış dizileri konumu bir-iki sütun kaydırabilir)
-				line, col := interpolationPos(tok, runes[:exprStart])
-				col += len([]rune(rawExpr)) - len([]rune(strings.TrimLeft(rawExpr, " \t")))
-				subLex := sozcuk.NewAt(exprCode, line, col)
-				subParser := New(subLex)
-				subProg := subParser.ParseProgram()
-				if len(subParser.Errors()) == 0 && len(subProg.Statements) == 1 {
-					if es, ok := subProg.Statements[0].(*agac.ExpressionStatement); ok && es.Expression != nil {
-						if textBuf.Len() > 0 {
-							parts = append(parts, &agac.StringLiteral{Token: tok, Value: textBuf.String()})
-							textBuf.Reset()
-						}
-						parts = append(parts, es.Expression)
-						interpolated = true
-					}
-				}
-			}
-			if !interpolated {
-				textBuf.WriteString("{" + unescapeBraces(exprBuf.String()) + "}")
-			}
+		if runes[i] != '{' {
+			kacissizYaz(&textBuf, runes[i])
+			i++
 			continue
 		}
-		textBuf.WriteString(unescapeBraces(string(runes[i])))
-		i++
+		i++ // '{' geç
+		exprStart := i
+		depth := 1
+		for i < len(runes) {
+			if runes[i] == '{' {
+				depth++
+			} else if runes[i] == '}' {
+				if depth--; depth == 0 {
+					break
+				}
+			}
+			i++
+		}
+		rawExpr := string(runes[exprStart:i])
+		if i < len(runes) {
+			i++ // '}' geç
+		}
+		ifade, tamam := p.yerlestirme(rawExpr, &konum, runes, exprStart)
+		if p.derinlikAsildi {
+			return &agac.StringLiteral{Token: tok, Value: ""}
+		}
+		if !tamam {
+			textBuf.WriteString("{" + unescapeBraces(rawExpr) + "}")
+			continue
+		}
+		if textBuf.Len() > 0 {
+			parts = append(parts, &agac.StringLiteral{Token: tok, Value: textBuf.String()})
+			textBuf.Reset()
+		}
+		parts = append(parts, ifade)
 	}
 
 	if textBuf.Len() > 0 {
@@ -199,19 +186,71 @@ func (p *Parser) parseStringOrInterpolation() agac.Expression {
 	return &agac.InterpolatedString{Token: tok, Parts: parts}
 }
 
-// interpolationPos metin sabitinde, 'onceki' karakterlerinden sonra başlayan yerleştirme
-// ifadesinin dosyadaki satır ve sütununu hesaplar.
-func interpolationPos(tok sozcuk.Token, onceki []rune) (int, int) {
-	line, col := tok.Line, tok.Column+1 // açılış tırnağından sonraki ilk karakter
-	for _, r := range onceki {
-		if r == '\n' {
-			line++
-			col = 1
+// yerlestirme metin içindeki bir '{ifade}' bölümünün ifadesini ayrıştırır; ayrıştırılamazsa
+// (ya da boşsa) yanlış döner ve bölüm metinde olduğu gibi kalır. Alt ayrıştırıcı üst
+// ayrıştırıcının iç içelik düzeyinden başlar: metin içindeki ifade de dosyanın iç içelik
+// sınırına (2.10) sayılır; sınır alt ayrıştırıcıda aşılırsa hata üst ayrıştırıcıya taşınır.
+func (p *Parser) yerlestirme(rawExpr string, konum *metinKonumu, runes []rune, exprStart int) (agac.Expression, bool) {
+	exprCode := strings.TrimSpace(rawExpr)
+	if exprCode == "" {
+		return nil, false
+	}
+	// İfadenin dosyadaki konumu: metnin açılış tırnağından sonraki karakter sayısı kadar
+	// ilerisi (önündeki kaçış dizileri konumu bir-iki sütun kaydırabilir)
+	line, col := konum.ilerle(runes, exprStart)
+	col += len([]rune(rawExpr)) - len([]rune(strings.TrimLeft(rawExpr, " \t")))
+	subParser := New(sozcuk.NewAt(exprCode, line, col))
+	subParser.derinlik = p.derinlik
+	subProg := subParser.ParseProgram()
+	if subParser.derinlikAsildi {
+		if !p.derinlikAsildi {
+			p.errors = append(p.errors, subParser.errors[len(subParser.errors)-1])
+			p.derinlikAsildi = true
+		}
+		return nil, false
+	}
+	if len(subParser.Errors()) != 0 || len(subProg.Statements) != 1 {
+		return nil, false
+	}
+	es, ok := subProg.Statements[0].(*agac.ExpressionStatement)
+	if !ok || es.Expression == nil {
+		return nil, false
+	}
+	return es.Expression, true
+}
+
+// metinKonumu metin sabitinin içinde ileriye doğru sayılan satır ve sütundur. Her
+// yerleştirmenin konumu bir öncekinden sürdürülür; metnin başından yeniden sayılsaydı çok
+// yerleştirmeli bir metin karesel sürede ayrıştırılırdı.
+type metinKonumu struct {
+	satir, sutun int
+	i            int // sayılmış karakter sayısı
+}
+
+// ilerle konumu metnin hedef. karakterine kadar ilerletir ve o karakterin satır ve
+// sütununu verir.
+func (k *metinKonumu) ilerle(runes []rune, hedef int) (int, int) {
+	for ; k.i < hedef; k.i++ {
+		if runes[k.i] == '\n' {
+			k.satir++
+			k.sutun = 1
 		} else {
-			col++
+			k.sutun++
 		}
 	}
-	return line, col
+	return k.satir, k.sutun
+}
+
+// kacissizYaz bir karakteri, sözcük çözümleyicinin '\{' ve '\}' işaretçilerini düz süslü
+// parantezlere çevirerek yazar.
+func kacissizYaz(sb *strings.Builder, r rune) {
+	switch r {
+	case sozcuk.EscapedLBrace:
+		r = '{'
+	case sozcuk.EscapedRBrace:
+		r = '}'
+	}
+	sb.WriteRune(r)
 }
 
 // unescapeBraces sözcük çözümleyicinin '\{' ve '\}' için ürettiği işaretçi
