@@ -9,7 +9,7 @@ import (
 // Anahtar kelimelerin adları sözlüktedir (pkg/sozluk, tr.json'daki A0xx kodları). Bu
 // dosya yalnızca hangi kodun hangi token türünü ürettiğini söyler; adı değiştirmek için
 // sözlükteki satır değişir, lexer, ayrıştırıcı ve yorumlayıcı kodu değişmez. Kabul edilen
-// yazımlar (ad ve varsa Türkçe karaktersiz biçimi) sozluk.Yazimlar'dan gelir.
+// yazımlar sozluk.Yazimlar'dan gelir (yalnızca Türkçe biçim; bkz. sozluk.ASCIIKabul).
 
 // AnahtarKelime bir sözlük kodunu ürettiği token türüne bağlar.
 type AnahtarKelime struct {
@@ -98,21 +98,17 @@ func AnahtarKelimeAdi(t TokenType) string {
 	return ""
 }
 
-// KaldirilanYazimIpucu ad kaldırılmış bir anahtar kelimeyse (sözlükte bir A kodunun
-// "eski" adı) hata mesajına eklenecek ipucunu, değilse boş metni döndürür. Kaldırılan
-// sözcükler artık sıradan adlardır (ör. değişken sınıf = "9-A"); yalnızca bir hata
-// oluştuğunda, eski alışkanlıkla yazılmış olabilecekleri için ipucu gösterilir. Eski ad
-// Türkçe karaktersiz yazılmışsa (islev) yeni adın da Türkçe karaktersiz biçimi önerilir.
+// KaldirilanYazimIpucu ad bir anahtar kelimenin Türkçe karaktersiz (ASCII) biçimiyse
+// (degisken) ya da kaldırılmış bir anahtar kelimeyse (sözlükte bir A kodunun "eski" adı:
+// işlev, islev) hata mesajına eklenecek ipucunu, değilse boş metni döndürür. Bu yazımlar
+// sıradan adlardır (ör. değişken sınıf = "9-A"); yalnızca bir hata oluştuğunda, alışkanlıkla
+// yazılmış olabilecekleri için asıl ad önerilir. Öneri her zaman Türkçe biçimdir.
 func KaldirilanYazimIpucu(ad string) string {
-	k, ascii, ok := sozluk.EskiBul(sozluk.AlanGenel, ad, func(k sozluk.Kod) bool { return k.Harf() == 'A' })
+	k, ok := sozluk.Oneri(sozluk.AlanGenel, ad, func(k sozluk.Kod) bool { return k.Harf() == 'A' })
 	if !ok {
 		return ""
 	}
-	yeni := sozluk.Ad(k)
-	if ascii {
-		yeni = sozluk.ASCIIBicim(k)
-	}
-	return fmt.Sprintf(" ('%s' TR'de anahtar kelime değil; '%s' yazmak mı istediniz?)", ad, yeni)
+	return fmt.Sprintf(" ('%s' TR'de anahtar kelime değil; '%s' yazmak mı istediniz?)", ad, sozluk.Ad(k))
 }
 
 // LookupIdent verilen kelimenin anahtar kelime mi yoksa tanımlayıcı mı olduğunu bulur.

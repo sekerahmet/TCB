@@ -1,8 +1,8 @@
 // 02 — Dil turu: TR'nin temel özellikleri tek dosyada, kısa örneklerle.
 // Sırasıyla: değişkenler ve sabitler, yok güvenliği (??), fonksiyonlar (tip, varsayılan ve
 // adlı argüman), eşle, döngüler, liste üreteci ve çoklu atama, zincirleme metotlar, sondaki
-// blok ve `o`, boru hattı (|>), yapılar, dene/yakala, ertele, eşzamanlı görevler, modüller
-// ve anahtar kelimelerin ASCII yazımı. Kuralların tamamı: docs/DIL_TANIMI.md
+// blok ve `o`, boru hattı (|>), yapılar, dene/yakala, ertele, eşzamanlı görevler ve modüller.
+// Kuralların tamamı: docs/DIL_TANIMI.md
 // Çalıştırma (proje kökünden): tr ornekler/02_dil_turu.tr
 
 yazdır("=== 1. Değişkenler, sabitler, yok güvenliği ===")
@@ -115,10 +115,3 @@ aktar "yardimci/geometri" // .tr uzantısı isteğe bağlı
 yazdır("r = 2 dairenin alanı: {daire_alanı(2)}")
 aktar "yardimci/geometri" olarak geo
 yazdır("geo.PI = {geo.PI}")
-
-yazdır("\n=== 11. ASCII yazım (Türkçe klavyesiz) ===")
-degisken sayac = 0
-dongu i icinde 1..=3 {
-    eger i != 2 { sayac += i }
-}
-yazdir("1 + 3 = {sayac}")

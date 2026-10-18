@@ -46,7 +46,7 @@ test "önceki testin yereli görünmez" {
 }
 
 test "mesajlı doğrulama" {
-    dogrula(yanlış, "özel mesaj")
+    doğrula(yanlış, "özel mesaj")
 }
 `
 

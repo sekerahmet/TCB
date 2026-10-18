@@ -43,7 +43,7 @@ değişken b = tensör([1.0], türev_izle: doğru)
 geri_yayılım(toplam(w * tensör([3.0, 0.0])) + toplam(b * 4))
 yazdır(gradyan_kırp([w, b], en_fazla: 1.0))
 yazdır(w.gradyan.değer, b.gradyan.değer)
-yazdır(gradyan_kirp([w, b]))`)
+yazdır(gradyan_kırp([w, b]))`)
 	want := "5.0\n[0.6, 0.0] [0.8]\n1.0\n"
 	if out != want {
 		t.Fatalf("gradyan_kırp:\n%q\nbeklenen:\n%q", out, want)
@@ -68,7 +68,7 @@ değişken y = tensör_yükle("`+yol+`")
 yazdır(y.anahtarlar())
 yazdır(y["gömme"].değer, y["sapma"].değer, y["ölçek"].değer, y["boş"].şekil)
 yazdır(y["gömme"].değer[0][0] == 0.1, y["sapma"].gradyan)
-değişken z = tensor_yukle("`+yol+`", türev_izle: doğru)
+değişken z = tensör_yükle("`+yol+`", türev_izle: doğru)
 geri_yayılım(toplam(z["sapma"] * 2))
 yazdır(z["sapma"].gradyan.değer)`)
 	want := "[\"gömme\", \"sapma\", \"ölçek\", \"boş\"]\n" +

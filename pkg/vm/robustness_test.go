@@ -45,7 +45,7 @@ func runTRWithin(t *testing.T, limit time.Duration, code string) (*VM, Value, er
 func TestRunRecoversFromBuiltinPanic(t *testing.T) {
 	machine := New()
 	machine.Out = io.Discard
-	machine.RegisterBuiltin("patla", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	machine.RegisterBuiltin("patla", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		var m map[string]int
 		m["x"] = 1 // nil map paniği
 		return NULL, nil
@@ -184,7 +184,7 @@ func TestDeferInsideAsyncRunsWhenTaskEnds(t *testing.T) {
 func TestPanicInsideAsyncDoesNotCrashProcess(t *testing.T) {
 	machine := New()
 	machine.Out = io.Discard
-	machine.RegisterBuiltin("patla", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	machine.RegisterBuiltin("patla", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		panic("görev içinde beklenmedik hata")
 	})
 	prog := parser.New(lexer.New(`

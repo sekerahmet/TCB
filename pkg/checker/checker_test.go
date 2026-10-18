@@ -54,15 +54,15 @@ func tekHata(t *testing.T, kaynak string, parcalar ...string) {
 
 func TestTipAdiNormallestirme(t *testing.T) {
 	testler := map[string]string{
-		"Tam": "Tam", "tam": "Tam", "tamsayı": "Tam", "tamsayi": "Tam", "int": "Tam", "TAMSAYI": "Tam",
-		"Ondalık": "Ondalık", "ondalik": "Ondalık", "sayı": "Ondalık", "sayi": "Ondalık", "float": "Ondalık", "ONDALIK": "Ondalık",
-		"Metin": "Metin", "yazı": "Metin", "yazi": "Metin", "str": "Metin", "string": "Metin", "METİN": "Metin",
-		"Mantık": "Mantık", "mantik": "Mantık", "mantıksal": "Mantık", "mantiksal": "Mantık", "bool": "Mantık", "MANTIK": "Mantık",
+		"Tam": "Tam", "tam": "Tam", "tamsayı": "Tam", "int": "Tam", "TAMSAYI": "Tam",
+		"Ondalık": "Ondalık", "sayı": "Ondalık", "float": "Ondalık", "ONDALIK": "Ondalık",
+		"Metin": "Metin", "yazı": "Metin", "str": "Metin", "string": "Metin", "METİN": "Metin",
+		"Mantık": "Mantık", "mantıksal": "Mantık", "bool": "Mantık", "MANTIK": "Mantık",
 		"Liste": "Liste", "dizi": "Liste", "list": "Liste",
-		"Sözlük": "Sözlük", "sozluk": "Sözlük", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
+		"Sözlük": "Sözlük", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
 		"Matris": "Tensör", "matrix": "Tensör", "matris": "Tensör",
-		"Tensör": "Tensör", "tensor": "Tensör",
-		"Yok": "Yok", "boş": "Yok", "bos": "Yok", "null": "Yok",
+		"Tensör": "Tensör",
+		"Yok":    "Yok", "boş": "Yok", "null": "Yok",
 		"": "Herhangi",
 		// Bilinmeyen adlar (kullanıcı yapıları) olduğu gibi kalır
 		"Nokta": "Nokta", "Fonksiyon": "Fonksiyon",
@@ -72,6 +72,16 @@ func TestTipAdiNormallestirme(t *testing.T) {
 			t.Errorf("normalizeTypeName(%q) = %q, beklenen %q", girdi, got, want)
 		}
 	}
+}
+
+// Tip adlarının yalnızca Türkçe yazımı geçerlidir; ASCII yazım hata verir ve asıl adı
+// önerir (tek hata: aynı satırda ayrıca tip uyuşmazlığı bildirilmez).
+func TestTipAdiASCIIOneri(t *testing.T) {
+	tekHata(t, `değişken a: ondalik = 1.5`, "Satır 1: 'ondalik' TR'de bir tip adı değil; 'Ondalık' yazmak mı istediniz?")
+	tekHata(t, `değişken a: MANTIK = doğru
+değişken b: tensor = yok`, "Satır 2: 'tensor' TR'de bir tip adı değil; 'Tensör' yazmak mı istediniz?")
+	tekHata(t, `fonksiyon f(x: sozluk) { sonuç x }`, "'sozluk' TR'de bir tip adı değil; 'Sözlük'")
+	tekHata(t, `fonksiyon f(x) -> mantik { sonuç doğru }`, "'mantik' TR'de bir tip adı değil; 'Mantık'")
 }
 
 func TestTipUyumlulugu(t *testing.T) {
@@ -124,7 +134,7 @@ func TestTipBelirtimliDegiskenUyumlu(t *testing.T) {
 		`değişken a: Sözlük = {"a": 1}`,
 		`değişken a: Matris = m1 @ m2`,
 		`değişken a: Tam = yok`,
-		`degisken a: Tam`, // değer verilmezse 'yok' atanır
+		`değişken a: Tam`, // değer verilmezse 'yok' atanır
 		`değişken a: Tam = tanımsız_bir_şey`,
 		`değişken a: Tam = yazdır("x")`,
 		`değişken a: Tam = 5 |> kare`,

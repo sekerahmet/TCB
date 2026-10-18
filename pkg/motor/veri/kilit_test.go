@@ -46,11 +46,11 @@ func TestSonrakiBeklerkenKilitBirakilir(t *testing.T) {
 	m := vm.New()
 	m.Out = &bytes.Buffer{}
 	m.GlobalEnv.Define("s", o, false)
-	m.RegisterBuiltin("başladı", "", func(*vm.VM, []vm.Value, map[string]vm.Value) (vm.Value, error) {
+	m.RegisterBuiltin("başladı", func(*vm.VM, []vm.Value, map[string]vm.Value) (vm.Value, error) {
 		basladi <- struct{}{}
 		return vm.NULL, nil
 	})
-	m.RegisterBuiltin("görevi_bekle", "", func(m *vm.VM, _ []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	m.RegisterBuiltin("görevi_bekle", func(m *vm.VM, _ []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 		m.Blocking(func() {
 			<-basladi
 			// Görevin sonraki()'ye girmesine zaman tanı.
@@ -58,7 +58,7 @@ func TestSonrakiBeklerkenKilitBirakilir(t *testing.T) {
 		})
 		return vm.NULL, nil
 	})
-	m.RegisterBuiltin("kapıyı_aç", "", func(*vm.VM, []vm.Value, map[string]vm.Value) (vm.Value, error) {
+	m.RegisterBuiltin("kapıyı_aç", func(*vm.VM, []vm.Value, map[string]vm.Value) (vm.Value, error) {
 		close(kaynak.kapi)
 		return vm.NULL, nil
 	})

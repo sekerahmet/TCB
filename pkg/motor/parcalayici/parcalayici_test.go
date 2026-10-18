@@ -132,7 +132,7 @@ değişken p = parçalayıcı_yükle("`+bertYolu+`")
 değişken a = p.kodla("merhaba dünya")
 değişken b = p.kodla("merhaba dünya", özel_tokenlar: yanlış)
 değişken c = p.kodla("soru", ikinci: "bağlam")
-değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], ozel_tokenlar: yanlış)
+değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_tokenlar: yanlış)
 `)
 	if got := tamlar(t, al(t, m, "a")); !reflect.DeepEqual(got, g.Kodla("merhaba dünya")) {
 		t.Fatalf("a: %v", got)

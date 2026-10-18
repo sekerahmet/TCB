@@ -14,11 +14,12 @@ var trJSON []byte
 
 // ASCIIKabul, adların Türkçe karakterleri ASCII'ye çevrilmiş biçimlerinin (yazdir,
 // sonuc, degisken) adın kendisi gibi kabul edilip edilmediğini belirleyen TEK açma-kapama
-// noktasıdır. Sözcük çözümleyici, yerleşik kaydı, üye çözümü, adlı argümanlar ve tip
-// açıklamaları kabul edilen yazımları yalnızca Yazimlar/Bul üzerinden alır; ASCII
-// biçimi başka hiçbir yerde türetilmez. Kapatıldığında ASCII biçimler sıradan (tanımsız)
-// adlar olur; AsilAd ise ipucu için ASCII biçimden Türkçe biçimi bulmaya devam eder.
-const ASCIIKabul = true
+// noktasıdır ve KAPALIDIR: her işin tek yazımı vardır, dilin kelimeleri yalnızca Türkçe
+// biçimleriyle geçerlidir. Sözcük çözümleyici, yerleşik kaydı, üye çözümü, adlı argümanlar
+// ve tip açıklamaları kabul edilen yazımları yalnızca Yazimlar/Bul üzerinden alır; ASCII
+// biçim başka hiçbir yerde kabul edilmez. ASCII biçimler sıradan (tanımsız) adlardır;
+// Oneri, bir hata oluştuğunda ASCII biçimden asıl Türkçe adı önermek için onları tanır.
+const ASCIIKabul = false
 
 // Girdi dil dosyasındaki bir satırdır.
 type Girdi struct {
@@ -61,8 +62,7 @@ type Dil struct {
 	esler    map[Kod][]string // eş yazımlar ve kabul edilen ASCII biçimleri
 	adlar    [alanSayisi]map[string]Kod
 	eskiler  [alanSayisi]map[string][]eskiEslesme
-	asil     [alanSayisi]map[string]string
-	asilTum  map[string]string
+	asil     [alanSayisi]map[string]string // ad alanı başına ad ve ASCII biçimi → ad
 }
 
 // Yukle bir dil dosyasını okur ve doğrular. Biçim hatası, yinelenen kod ya da bir ad
@@ -78,7 +78,7 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 	}
 
 	d := &Dil{Kodu: kodu, girdiler: make(map[Kod]*Girdi, len(ham)), yazimlar: make(map[Kod][]string, len(ham)),
-		esler: map[Kod][]string{}, asilTum: make(map[string]string, 2*len(ham))}
+		esler: map[Kod][]string{}}
 	var alanBoyu [alanSayisi]int // ad alanı başına yazım sayısı (haritaların boyu için)
 	var enBuyuk [len(aileHarfleri)]int
 	for _, g := range ham {
@@ -160,12 +160,6 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 				es = append(es, biri...)
 			}
 			d.asil[al][ad], d.asil[al][ascii] = ad, ad
-			if _, ok := d.asilTum[ascii]; !ok {
-				d.asilTum[ascii] = ad
-			}
-			if _, ok := d.asilTum[ad]; !ok {
-				d.asilTum[ad] = ad
-			}
 		}
 		d.yazimlar[k] = yaz
 		d.adDizi[int(k)/1000-1][k.Sayi()] = g.Ad
@@ -249,9 +243,6 @@ func (d *Dil) EsYazimi(k Kod, yazim string) bool {
 	return false
 }
 
-// ASCIIBicim adın türetilmiş ASCII biçimidir (kabul edilip edilmediğinden bağımsız).
-func (d *Dil) ASCIIBicim(k Kod) string { return asciiBicim(d.Ad(k)) }
-
 // Bul bir yazımın (ad ya da kabul edilen ASCII biçimi) verilen ad alanındaki kodunu verir.
 func (d *Dil) Bul(al Alan, yazim string) (Kod, bool) {
 	if al >= alanSayisi {
@@ -277,24 +268,41 @@ func (d *Dil) EskiBul(al Alan, ad string, uygun func(Kod) bool) (kod Kod, ascii 
 	return Yok, false, false
 }
 
-// AsilAd bir adın (Türkçe ya da ASCII biçimiyle yazılmış) asıl Türkçe biçimini verir:
-// AsilAd("yazdir") → "yazdır". Ad dilde yoksa olduğu gibi döner. Ad alanlarına bakmaz;
-// bir ad alanına özgü sonuç için AsilAdAlanda kullanılır.
-func (d *Dil) AsilAd(ad string) string {
-	if a, ok := d.asilTum[ad]; ok {
-		return a
-	}
-	return ad
-}
-
-// AsilAdAlanda AsilAd'ın yalnızca verilen ad alanına bakan biçimidir; ad o alanda yoksa
-// ok yanlıştır.
+// AsilAdAlanda bir adın (Türkçe ya da ASCII biçimiyle yazılmış) verilen ad alanındaki
+// asıl Türkçe biçimini verir: AsilAdAlanda(AlanGenel, "yazdir") → "yazdır". Ad o alanda
+// yoksa ok yanlıştır. Aynı ASCII yazım farklı ad alanlarında farklı adlara ait olabilir
+// (genel adlarda "tur" G201 tip'in eski adıdır, üyelerde Y402 tür'ün ASCII biçimidir);
+// bu yüzden her zaman ad alanıyla sorulur.
 func (d *Dil) AsilAdAlanda(al Alan, ad string) (string, bool) {
 	if al >= alanSayisi {
 		return "", false
 	}
 	a, ok := d.asil[al][ad]
 	return a, ok
+}
+
+// Oneri, verilen ad alanında geçerli olmayan bir yazım için önerilecek kodu verir: yazım
+// orada bir adın Türkçe karakterleri ASCII'ye çevrilmiş biçimiyse (yazdir → yazdır) ya da
+// kaldırılmış (eski) bir adsa ya da onun ASCII biçimiyse (işlev, islev → fonksiyon).
+// uygun nil değilse yalnızca uygun(kod) doğru olan kodlar önerilir. Önerilen her zaman
+// kodun adıdır (Türkçe biçimi); ASCII biçim hiçbir zaman önerilmez. Yazım ad alanında
+// geçerli bir adsa öneri yoktur.
+func (d *Dil) Oneri(al Alan, yazim string, uygun func(Kod) bool) (Kod, bool) {
+	if al >= alanSayisi {
+		return Yok, false
+	}
+	if _, gecerli := d.adlar[al][yazim]; gecerli {
+		return Yok, false
+	}
+	if ad, ok := d.asil[al][yazim]; ok && ad != yazim {
+		if k, ok := d.adlar[al][ad]; ok && (uygun == nil || uygun(k)) {
+			return k, true
+		}
+	}
+	if k, _, ok := d.EskiBul(al, yazim, uygun); ok {
+		return k, true
+	}
+	return Yok, false
 }
 
 // etkin programın kullandığı dildir. Şimdilik yalnızca Türkçe vardır.
@@ -312,20 +320,22 @@ func Etkin() *Dil { return etkin }
 // TRVerisi gömülü Türkçe dil dosyasının içeriğidir (testler ve araçlar için).
 func TRVerisi() []byte { return trJSON }
 
-// Ad, Yazimlar, Bul, EskiBul, AsilAd ve Kodlar etkin dilin aynı adlı yöntemleridir.
+// Ad, Yazimlar, Bul, EskiBul, Oneri, AsilAdAlanda ve Kodlar etkin dilin aynı adlı
+// yöntemleridir.
 
 func Ad(k Kod) string                   { return etkin.Ad(k) }
 func Yazimlar(k Kod) []string           { return etkin.Yazimlar(k) }
 func EsYazimi(k Kod, y string) bool     { return etkin.EsYazimi(k, y) }
-func ASCIIBicim(k Kod) string           { return etkin.ASCIIBicim(k) }
 func Bul(al Alan, y string) (Kod, bool) { return etkin.Bul(al, y) }
 func Kodlar() []Kod                     { return etkin.Kodlar() }
-func AsilAd(ad string) string           { return etkin.AsilAd(ad) }
 func AsilAdAlanda(al Alan, ad string) (string, bool) {
 	return etkin.AsilAdAlanda(al, ad)
 }
 func EskiBul(al Alan, ad string, uygun func(Kod) bool) (Kod, bool, bool) {
 	return etkin.EskiBul(al, ad, uygun)
+}
+func Oneri(al Alan, yazim string, uygun func(Kod) bool) (Kod, bool) {
+	return etkin.Oneri(al, yazim, uygun)
 }
 
 // UyeKodu bir metot ya da özellik adının (x.ad) kodudur; üye değilse Yok. Derleyici bunu

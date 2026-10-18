@@ -106,6 +106,21 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 			}
 		}
 	}
+	// Motor tiplerinde ASCII yazılmış üye adı hata verir ve Türkçe adı önerir; öneri
+	// yalnızca o tipte geçerli bir üye için yapılır.
+	for _, c := range []struct{ kod, want string }{
+		{"u_vt.tablo_olustur", "'tablo_olustur' TR'de yok; 'tablo_oluştur' yazmak mı istediniz?"},
+		{"u_web.baslat", "'baslat' TR'de yok; 'başlat' yazmak mı istediniz?"},
+		{"u_arayuz.baslik_ekle", "'baslik_ekle' TR'de yok; 'başlık_ekle' yazmak mı istediniz?"},
+		{"u_model.egit", "'egit' TR'de yok; 'eğit' yazmak mı istediniz?"},
+	} {
+		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
+		}
+	}
+	if _, err := calistirAyni(t, m, "u_vt.baslik_ekle"); err == nil || strings.Contains(err.Error(), "başlık_ekle") {
+		t.Errorf("veritabanında başlık_ekle önerilmemeli: %v", err)
+	}
 	// Eş yazımlar yalnızca bugün kabul edildikleri tiplerde çalışır.
 	for _, kod := range []string{"u_liste.kayıt_ekle", "u_web.göster", "u_web.goster", "u_metin.kayit_ekle"} {
 		if _, err := calistirAyni(t, m, kod); err == nil || !strings.Contains(err.Error(), "bulunamadı") {

@@ -58,12 +58,13 @@
 //
 // # ASCII biçim
 //
-// Her adın Türkçe karakterleri ASCII'ye çevrilmiş biçimi (yazdır → yazdir) dil
-// dosyasında saklanmaz, addan türetilir. Türetilen biçimin kabul edilip edilmediği tek
-// bir yerden, ASCIIKabul sabitinden yönetilir; Yazimlar bu sabite göre bir adın kabul
-// edilen bütün yazımlarını verir; AsilAd bir ASCII yazımın Türkçe biçimini verir (ipucu ve
-// biçimlendirici için). Kodlar sayıdır: Go tarafında A+1 (A001), Y+400 (Y400)
-// biçiminde yazılır ve switch deyimlerinde sabit olarak kullanılabilir.
+// Her adın Türkçe karakterleri ASCII'ye çevrilmiş biçimi (yazdır → yazdir) dil dosyasında
+// saklanmaz, addan türetilir ve KABUL EDİLMEZ: her işin tek yazımı vardır. Bu kural tek
+// bir yerden, ASCIIKabul sabitinden (kapalı) yönetilir; Yazimlar bir adın kabul edilen
+// yazımlarını verir. ASCII biçim yalnızca hata mesajı içindir: Oneri ve AsilAdAlanda, bir
+// ad alanında ASCII yazılmış bir adın (ya da eski bir adın) yerine Türkçe adı önerir. Kodlar
+// sayıdır: Go tarafında A+1 (A001), Y+400 (Y400) biçiminde yazılır ve switch deyimlerinde
+// sabit olarak kullanılabilir.
 package sozluk
 
 import "fmt"

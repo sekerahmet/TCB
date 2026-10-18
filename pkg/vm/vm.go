@@ -233,28 +233,10 @@ func (v *VM) StackSnapshot() []StackFrame {
 // RegisterBuiltin sözlükte olmayan bir yerleşiği (testlerin ve TR'yi gömen Go
 // programlarının kendi yardımcıları) verilen adla genel kapsama kaydeder. Dilin kendi
 // yerleşikleri RegisterBuiltinKod ile sözlük koduyla kaydedilir; adları pkg/sozluk'tadır.
-// asciiKarsilik, adın Türkçe karakterleri ASCII'ye çevrilmiş biçimidir (sırala → sirala);
-// ad zaten ASCII ise boş verilir. Her işin tek yazımı vardır: ikinci ad eş anlamlı bir ad
-// olamaz (bkz. AsciiKarsilikDenetle).
-func (v *VM) RegisterBuiltin(name string, asciiKarsilik string, fn BuiltinFunc) {
-	AsciiKarsilikDenetle(name, asciiKarsilik)
-	b := &BuiltinVal{Name: name, Fn: fn}
-	v.GlobalEnv.Define(name, b, true)
-	if asciiKarsilik != "" {
-		v.GlobalEnv.Define(asciiKarsilik, b, true)
-	}
-}
-
-// AsciiKarsilikDenetle karsilik boş değilse adın Türkçe karakterleri ASCII'ye çevrilmiş
-// biçimi olduğunu doğrular; değilse (eş anlamlı ad ya da ad zaten ASCII iken gereksiz
-// karşılık) bu bir geliştirici hatasıdır ve kayıt sırasında panikler.
-func AsciiKarsilikDenetle(ad, karsilik string) {
-	if karsilik == "" {
-		return
-	}
-	if beklenen := turkce.ASCII(ad); karsilik != beklenen || karsilik == ad {
-		panic(fmt.Sprintf("yerleşik %q: ikinci ad yalnızca Türkçe karaktersiz karşılık olabilir (beklenen %q, verilen %q); eş anlamlı ad kaydedilemez", ad, beklenen, karsilik))
-	}
+// Her işin tek yazımı vardır: ikinci bir ad (eş anlamlı ya da Türkçe karaktersiz biçim)
+// kaydedilmez.
+func (v *VM) RegisterBuiltin(name string, fn BuiltinFunc) {
+	v.GlobalEnv.Define(name, &BuiltinVal{Name: name, Fn: fn}, true)
 }
 
 func (v *VM) Run(prog *ast.Program) (result Value, err error) {

@@ -64,7 +64,7 @@ func tumAdlar(k Kod) []string {
 }
 
 // Farklı iki ad (eş yazımlar dahil), ad alanları farklı olsa bile aynı ASCII biçime
-// düşmemeli: AsilAd ve ASCII yazımdan Türkçe yazıma ipucu belirsiz olurdu.
+// düşmemeli: ASCII yazımdan Türkçe yazıma ipucu (Oneri) belirsiz olurdu.
 func TestASCIIBicimlerCakismaz(t *testing.T) {
 	type sahibi struct {
 		kod Kod
@@ -122,20 +122,54 @@ func TestAdAlanlariBenzersiz(t *testing.T) {
 	}
 }
 
-func TestAsilAd(t *testing.T) {
-	for _, c := range []struct{ ad, want string }{
-		{"yazdir", "yazdır"}, {"yazdır", "yazdır"}, {"sonuc", "sonuç"}, {"degisken", "değişken"},
-		{"sekil", "şekil"}, {"ogrenme_orani", "öğrenme_oranı"}, {"tanimsiz_ad", "tanimsiz_ad"},
+func TestAsilAdAlanda(t *testing.T) {
+	for _, c := range []struct {
+		al        Alan
+		ad, want  string
+		bulunmali bool
+	}{
+		{AlanGenel, "yazdir", "yazdır", true}, {AlanGenel, "yazdır", "yazdır", true},
+		{AlanGenel, "sonuc", "sonuç", true}, {AlanGenel, "degisken", "değişken", true},
+		{AlanUye, "sekil", "şekil", true}, {AlanParametre, "ogrenme_orani", "öğrenme_oranı", true},
+		{AlanUye, "tur", "tür", true}, {AlanGenel, "tur", "", false}, {AlanGenel, "tanimsiz_ad", "", false},
 	} {
-		if got := AsilAd(c.ad); got != c.want {
-			t.Errorf("AsilAd(%q) = %q, %q bekleniyordu", c.ad, got, c.want)
+		if got, ok := AsilAdAlanda(c.al, c.ad); ok != c.bulunmali || got != c.want {
+			t.Errorf("AsilAdAlanda(%s, %q) = %q %v; %q %v bekleniyordu", c.al, c.ad, got, ok, c.want, c.bulunmali)
 		}
 	}
-	if a, ok := Etkin().AsilAdAlanda(AlanUye, "tur"); !ok || a != "tür" {
-		t.Errorf("üyelerde tur → tür bekleniyordu, %q %v", a, ok)
+}
+
+// ASCII biçimler kabul edilmez (her işin tek yazımı); Oneri onlar için ve eski adlar için
+// her zaman Türkçe adı önerir, ASCII biçimi asla önermez.
+func TestASCIIKabulEdilmezOneriTurkce(t *testing.T) {
+	if ASCIIKabul {
+		t.Fatal("ASCII biçimler kapalı olmalı")
 	}
-	if _, ok := Etkin().AsilAdAlanda(AlanGenel, "tur"); ok {
-		t.Error("genel adlarda 'tur' bir ad değil (G201'in eski adı)")
+	for _, y := range []string{"yazdir", "degisken", "sonuc", "dogru"} {
+		if k, ok := Bul(AlanGenel, y); ok {
+			t.Errorf("%q kabul edilmemeli (%s)", y, k)
+		}
+	}
+	for _, c := range []struct {
+		al   Alan
+		ad   string
+		want string
+	}{
+		{AlanGenel, "yazdir", "yazdır"}, {AlanGenel, "degisken", "değişken"},
+		{AlanGenel, "islev", "fonksiyon"}, {AlanGenel, "dondur", "sonuç"}, {AlanGenel, "işlev", "fonksiyon"},
+		{AlanGenel, "tur", "tip"}, {AlanUye, "tur", "tür"}, {AlanUye, "sekil", "şekil"},
+		{AlanGenel, "en_buyuk", "maks"}, {AlanParametre, "genislik", "genişlik"},
+	} {
+		k, ok := Oneri(c.al, c.ad, nil)
+		if !ok || Ad(k) != c.want {
+			t.Errorf("Oneri(%s, %q) = %s %v; %q bekleniyordu", c.al, c.ad, k, ok, c.want)
+		}
+	}
+	if _, ok := Oneri(AlanGenel, "yazdır", nil); ok {
+		t.Error("geçerli ad için öneri olmamalı")
+	}
+	if _, ok := Oneri(AlanGenel, "yazdir", func(k Kod) bool { return k.Harf() == 'A' }); ok {
+		t.Error("süzgeç yerleşik kodu dışlamalıydı")
 	}
 }
 
@@ -215,8 +249,8 @@ func TestASCIIKapali(t *testing.T) {
 	if y := Yazimlar(W + 930); len(y) != 2 || y[0] != "koşul" || y[1] != "nerede" {
 		t.Errorf("W930 yalnızca 'koşul' ve eş yazımı 'nerede' olarak kabul edilmeli: %v", y)
 	}
-	if y := Yazimlar(G + 100); ASCIIKabul && (len(y) != 2 || y[1] != "yazdir") {
-		t.Errorf("G100 yazımları: %v", y)
+	if y := Yazimlar(G + 100); len(y) != 1 || y[0] != "yazdır" {
+		t.Errorf("G100 yalnızca Türkçe biçimiyle kabul edilmeli: %v", y)
 	}
 	if y := Yazimlar(G + 400); len(y) != 1 {
 		t.Errorf("ASCII ad tek yazımlı olmalı: %v", y)
@@ -228,7 +262,7 @@ func TestEsYazimlar(t *testing.T) {
 	for _, c := range []struct {
 		kod   Kod
 		yazim string
-	}{{Y + 702, "sorgu"}, {Y + 702, "seç"}, {Y + 702, "sec"}, {Y + 403, "türev"}, {Y + 403, "turev"},
+	}{{Y + 702, "sorgu"}, {Y + 702, "seç"}, {Y + 403, "türev"},
 		{W + 200, "veritabanı"}, {A + 200, "tamsayı"}, {A + 212, "matris"}} {
 		if k, ok := Bul(c.kod.Alan(), c.yazim); !ok || k != c.kod {
 			t.Errorf("Bul(%q) = %s, %s bekleniyordu", c.yazim, k, c.kod)
@@ -239,8 +273,5 @@ func TestEsYazimlar(t *testing.T) {
 	}
 	if EsYazimi(Y+702, "sorgula") || EsYazimi(Y+403, "gradyan") {
 		t.Error("asıl ad eş yazım sayılmamalı")
-	}
-	if AsilAd("sec") != "seç" {
-		t.Errorf("AsilAd(sec) = %q", AsilAd("sec"))
 	}
 }

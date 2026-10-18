@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"strings"
 
 	"tr_dili/pkg/sozluk"
 )
@@ -10,9 +11,8 @@ import (
 // (VM kurulurken) bir kez okunur; çalışma anında sözlüğe bakılmaz.
 
 // RegisterBuiltinKod sözlükteki bir yerleşik kodunu (G/T/V/W) genel kapsama kaydeder.
-// Ad ve kabul edilen öbür yazımlar (Türkçe karaktersiz biçim) sözlükten gelir; her işin
-// tek adı vardır. Kod bir yerleşik kodu değilse ya da sözlükte yoksa bu bir geliştirici
-// hatasıdır ve kayıt sırasında panikler.
+// Ad sözlükten gelir; her işin tek adı vardır. Kod bir yerleşik kodu değilse ya da
+// sözlükte yoksa bu bir geliştirici hatasıdır ve kayıt sırasında panikler.
 func (v *VM) RegisterBuiltinKod(kod sozluk.Kod, fn BuiltinFunc) *BuiltinVal {
 	return v.YerlesikTanimla(kod, &BuiltinVal{Name: sozluk.Ad(kod), Fn: fn})
 }
@@ -54,37 +54,48 @@ func (v *VM) Yerlesik(kod sozluk.Kod) *BuiltinVal {
 	return b
 }
 
-// KaldirilanYerlesikIpucu ad kaldırılmış bir yerleşik adıysa (sözlükte bir G/T/V/W
-// kodunun "eski" adı) hata mesajına eklenecek ipucunu, değilse boş metni döndürür.
-// Kaldırılan adlar artık sıradan adlardır (ör. değişken boy = 180); yalnızca tanımsız ad
-// hatasında, eski alışkanlıkla yazılmış olabilecekleri için asıl ad önerilir.
+// KaldirilanYerlesikIpucu ad bir yerleşiğin Türkçe karaktersiz (ASCII) biçimiyse (yazdir)
+// ya da kaldırılmış bir yerleşik adıysa (sözlükte bir G/T/V/W kodunun "eski" adı) hata
+// mesajına eklenecek ipucunu, değilse boş metni döndürür. Bu yazımlar sıradan adlardır
+// (ör. değişken boy = 180); yalnızca tanımsız ad hatasında, alışkanlıkla yazılmış
+// olabilecekleri için asıl (Türkçe) ad önerilir.
 func KaldirilanYerlesikIpucu(ad string) string {
-	k, ascii, ok := sozluk.EskiBul(sozluk.AlanGenel, ad, sozluk.Kod.Yerlesik)
+	k, ok := sozluk.Oneri(sozluk.AlanGenel, ad, sozluk.Kod.Yerlesik)
 	if !ok {
 		return ""
 	}
-	return yokIpucu(ad, asilYazim(k, ascii))
+	return yokIpucu(ad, sozluk.Ad(k))
 }
 
-// kaldirilanUyeIpucu Metin ve Liste üzerinde kaldırılmış bir metot ya da özellik adı için
-// (sözlükte bu tiplerin üye kodlarından birinin "eski" adı) ipucunu döndürür.
+// kaldirilanUyeIpucu Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
+// kaldırılmış adı için ipucunu döndürür.
 func kaldirilanUyeIpucu(ad string) string {
-	k, ascii, ok := sozluk.EskiBul(sozluk.AlanUye, ad, cekirdekUyesi)
+	k, ok := sozluk.Oneri(sozluk.AlanUye, ad, cekirdekUyesi)
 	if !ok {
 		return ""
 	}
-	return yokIpucu(ad, asilYazim(k, ascii))
-}
-
-// asilYazim eski adın yerine önerilecek yazımdır: eski ad Türkçe karaktersiz yazılmışsa
-// yeni adın Türkçe karaktersiz biçimi.
-func asilYazim(k sozluk.Kod, ascii bool) string {
-	if ascii {
-		return sozluk.ASCIIBicim(k)
-	}
-	return sozluk.Ad(k)
+	return yokIpucu(ad, sozluk.Ad(k))
 }
 
 func yokIpucu(ad, asil string) string {
 	return fmt.Sprintf(" ('%s' TR'de yok; '%s' yazmak mı istediniz?)", ad, asil)
+}
+
+// uyeOneriHatasi motor tiplerinde (Tensör, Veritabanı, WebSunucu ...) bulunamayan bir üye
+// adı bu tipin bir üyesinin ASCII biçimi ya da kaldırılmış adıysa, hatayı asıl adı öneren
+// bir hatayla değiştirir; değilse hatayı olduğu gibi döndürür. Önerinin bu tipte gerçekten
+// geçerli olduğu asıl adla yeniden okunarak doğrulanır (üye okumak yan etkisizdir:
+// metotlar bağlı değer olarak döner, çağrılmaz). Yalnızca hata yolunda çalışır.
+func uyeOneriHatasi(pg PropertyGetter, obj Value, prop string, err error) error {
+	k, ok := sozluk.Oneri(sozluk.AlanUye, prop, nil)
+	if !ok {
+		return err
+	}
+	if strings.Contains(err.Error(), "'"+sozluk.Ad(k)) {
+		return err // tipin kendi hata mesajı asıl adı zaten öneriyor (ör. 'devrik()')
+	}
+	if _, e := pg.GetProperty(k, sozluk.Ad(k)); e != nil {
+		return err
+	}
+	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", obj.Type(), prop, yokIpucu(prop, sozluk.Ad(k)))
 }

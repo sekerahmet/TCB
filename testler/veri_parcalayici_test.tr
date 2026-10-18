@@ -18,10 +18,6 @@ test "16.1 parçalayıcı_yükle, sözlük_boyutu, token_kimliği" {
     eşit_mi(1005, p.sözlük_boyutu)
     eşit_mi(0, p.token_kimliği("<|endoftext|>"))
     eşit_mi(yok, p.token_kimliği("böyle-bir-token-yok"))
-    // ASCII karşılıklar
-    değişken q = parcalayici_yukle("veri/parcalayici.json")
-    eşit_mi(1005, q.sozluk_boyutu)
-    eşit_mi(0, q.token_kimligi("<|endoftext|>"))
 }
 
 test "16.2 kodla: metin, metin listesi, özel_tokenlar ve ikinci" {
@@ -54,7 +50,7 @@ test "16.2 kodla: metin, metin listesi, özel_tokenlar ve ikinci" {
     eşit_mi(uzunluk(b.kodla("merhaba")) + uzunluk(b.kodla("dünya")) - 1, uzunluk(cift))
     değişken ciftler = b.kodla(["merhaba", "bir"], ikinci: ["dünya", "iki"])
     eşit_mi(cift, ciftler[0])
-    eşit_mi(b.kodla("merhaba", ikinci: "dünya", ozel_tokenlar: yanlış), b.kodla("merhaba dünya", özel_tokenlar: yanlış))
+    eşit_mi(b.kodla("merhaba", ikinci: "dünya", özel_tokenlar: yanlış), b.kodla("merhaba dünya", özel_tokenlar: yanlış))
 }
 
 test "16.3 çöz: varsayılan özel tokenları atlar; listeler ve tensörler" {
@@ -69,14 +65,14 @@ test "16.3 çöz: varsayılan özel tokenları atlar; listeler ve tensörler" {
     // Tensör: 1 boyutlu → metin, 2 boyutlu → metin listesi.
     değişken k = p.kodla("bir iki")
     eşit_mi("bir iki", p.çöz(tensör(k)))
-    eşit_mi(["bir iki", "bir iki"], p.coz(tensör([k, k])))
+    eşit_mi(["bir iki", "bir iki"], p.çöz(tensör([k, k])))
 }
 
 test "16.4 veri_kümesi: klasör ya da tek .npy dosyası" {
     değişken küme = veri_kümesi("veri/sayilar")
     eşit_mi("VeriKümesi", tip(küme))
     eşit_mi("VeriKümesi(2 parça, 250 token)", metin(küme))
-    eşit_mi("VeriKümesi(1 parça, 100 token)", metin(veri_kumesi("veri/sayilar/a.npy")))
+    eşit_mi("VeriKümesi(1 parça, 100 token)", metin(veri_kümesi("veri/sayilar/a.npy")))
     // meta.json varsa parça token sayıları oradan okunur.
     eşit_mi("VeriKümesi(2 parça, 1,1 bin token)", metin(veri_kümesi("veri/metin")))
 }
@@ -101,7 +97,7 @@ test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebili
     // Aynı tohum aynı toplu işleri, farklı tohum farklı sırayı verir.
     değişken aynı = küme.örnekleyici(toplu: 3, bağlam: 5, tohum: 1).sonraki()
     eşit_mi(girdi.değer, aynı[0].değer)
-    değişken başka = küme.ornekleyici(toplu: 3, baglam: 5, tohum: 2).sonraki()
+    değişken başka = küme.örnekleyici(toplu: 3, bağlam: 5, tohum: 2).sonraki()
     doğrula(girdi.değer != başka[0].değer)
     // Örnekleyici dönemler boyunca sonsuz üretir.
     döngü i içinde 0..40 { ö.sonraki() }
@@ -136,7 +132,7 @@ test "16.6 sıralı: pencereler sırayla, bitince yok" {
     eşit_mi(yok, s.sonraki())
     // Metin kümesi: ilk pencere metnin başıdır.
     değişken p = parçalayıcı_yükle("veri/parcalayici.json")
-    değişken m = veri_kümesi("veri/metin").sirali(toplu: 1, bağlam: 16)
+    değişken m = veri_kümesi("veri/metin").sıralı(toplu: 1, bağlam: 16)
     değişken mg, mh = m.sonraki()
     doğrula(p.çöz(mg)[0].başlar("Bugün hava"))
 }

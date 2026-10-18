@@ -66,14 +66,16 @@ test "2.8 satır sonundaki operatörden sonra ifade sürer" {
     eşit_mi(3, t)
 }
 
-test "2.9 anahtar kelimelerin ASCII biçimleri eşdeğerdir" {
-    degisken x = 1
-    eger x == 1 { x = 2 } degilse { x = 3 }
-    eşit_mi(2, x)
-    fonksiyon f(a) { sonuc a * 2 }
-    eşit_mi(4, f(x))
-    eşit_mi(dogru, doğru)
-    eşit_mi(yanlis, yanlış)
+test "2.9 dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir" {
+    değişken degisken = 1 // ASCII biçim sıradan bir addır
+    eşit_mi(1, degisken)
+    değişken mesaj = ""
+    dene { dogru } yakala h { mesaj = "{h}" }
+    doğrula(mesaj.içerir("'dogru' TR'de anahtar kelime değil; 'doğru' yazmak mı istediniz?"), mesaj)
+    dene { yazdir("x") } yakala h { mesaj = "{h}" }
+    doğrula(mesaj.içerir("'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?"), mesaj)
+    dene { "abc".buyuk_harf() } yakala h { mesaj = "{h}" }
+    doğrula(mesaj.içerir("'buyuk_harf' TR'de yok; 'büyük_harf' yazmak mı istediniz?"), mesaj)
 }
 
 test "2.9a kaldırılan eş anlamlılar sıradan addır" {

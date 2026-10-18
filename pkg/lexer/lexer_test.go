@@ -72,9 +72,10 @@ func TestAnahtarKelimeTablosununTamami(t *testing.T) {
 	}
 }
 
-// Türkçe karakterli ve ASCII yazımların ikisi de aynı token türünü vermeli.
-// Bu liste, tablodan bir yazımın yanlışlıkla silinmesini yakalar.
-func TestAnahtarKelimeTurkceVeASCIIYazim(t *testing.T) {
+// Anahtar kelimelerin yalnızca Türkçe yazımı geçerlidir (her işin tek yazımı); ASCII
+// yazım sıradan bir addır ve hata mesajında Türkçe biçim önerilir. Bu liste, tablodan
+// bir yazımın yanlışlıkla silinmesini de yakalar.
+func TestAnahtarKelimeYalnizcaTurkceYazim(t *testing.T) {
 	ciftler := []struct {
 		turkce, ascii string
 		tur           TokenType
@@ -97,10 +98,15 @@ func TestAnahtarKelimeTurkceVeASCIIYazim(t *testing.T) {
 		{"kesme_noktası", "kesme_noktasi", TOKEN_KESME_NOKTASI},
 	}
 	for _, c := range ciftler {
-		for _, yazim := range []string{c.turkce, c.ascii} {
-			if got := LookupIdent(yazim); got != c.tur {
-				t.Errorf("LookupIdent(%q) = %s, beklenen %s", yazim, got, c.tur)
-			}
+		if got := LookupIdent(c.turkce); got != c.tur {
+			t.Errorf("LookupIdent(%q) = %s, beklenen %s", c.turkce, got, c.tur)
+		}
+		if got := LookupIdent(c.ascii); got != TOKEN_IDENT {
+			t.Errorf("LookupIdent(%q) = %s; ASCII yazım sıradan bir ad olmalı", c.ascii, got)
+		}
+		want := " ('" + c.ascii + "' TR'de anahtar kelime değil; '" + c.turkce + "' yazmak mı istediniz?)"
+		if got := KaldirilanYazimIpucu(c.ascii); got != want {
+			t.Errorf("KaldirilanYazimIpucu(%q) = %q, %q bekleniyordu", c.ascii, got, want)
 		}
 	}
 
@@ -649,6 +655,12 @@ func TestKaldirilanEsAnlamlilarAddir(t *testing.T) {
 		}
 		if KaldirilanYazimIpucu(ad) == "" {
 			t.Errorf("%q için ipucu bekleniyordu", ad)
+		}
+	}
+	// Eski adın ASCII biçimi de Türkçe adı önerir (ASCII biçim önerilmez).
+	for ad, want := range map[string]string{"islev": "'fonksiyon'", "dondur": "'sonuç'", "kir": "'çık'"} {
+		if got := KaldirilanYazimIpucu(ad); !strings.Contains(got, want) {
+			t.Errorf("KaldirilanYazimIpucu(%q) = %q, %s önermeli", ad, got, want)
 		}
 	}
 }

@@ -84,7 +84,7 @@ yazdır(karışık_hassasiyet("bf16") { 5 }, karışık_hassasiyet("bf16") {})`)
 		{`karışık_hassasiyet("bf16")`, `karışık_hassasiyet("bf16") bir blok bekler: karışık_hassasiyet("bf16") { ... }`},
 		{`karışık_hassasiyet("bf17") { 1 }`, `bilinmeyen veri türü "bf17"`},
 		{`karışık_hassasiyet("bf16", 3)`, `ikinci parametre bir blok olmalıdır, Tam verildi`},
-		{`karisik_hassasiyet() { 1 }`, `bir tür adı ve bir blok bekler`},
+		{`karışık_hassasiyet() { 1 }`, `bir tür adı ve bir blok bekler`},
 	} {
 		if _, err := calistir(t, d.kod); err == nil || !strings.Contains(err.Error(), d.beklenen) {
 			t.Errorf("%s: %v (içermeli: %s)", d.kod, err, d.beklenen)

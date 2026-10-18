@@ -5,6 +5,8 @@ import (
 	"strings"
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/turkce"
+	"unicode"
 )
 
 type TypeInfo struct {
@@ -72,25 +74,70 @@ var (
 	tipHerhangi  = sozluk.Ad(sozluk.A + 213)
 )
 
-// tipYazimlari tip açıklamasında (değişken x: tam) kabul edilen yazımların küçük harfli
-// biçimi → tip adıdır. Yazımlar sözlükten gelir: tip adı, Türkçe karaktersiz biçimi ve
-// eş yazımları (tamsayı, int ...). Matris 2 boyutlu tensördür; ayrı bir tip değildir.
+// aciklamaTipleri tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır.
+var aciklamaTipleri = []sozluk.Kod{sozluk.A + 200, sozluk.A + 201, sozluk.A + 202, sozluk.A + 203,
+	sozluk.A + 205, sozluk.A + 206, sozluk.A + 212, sozluk.A + 204}
+
+// tipYazimlari tip açıklamasında kabul edilen yazımların küçük harfli biçimi → tip adıdır.
+// Yazımlar sözlükten gelir (yalnızca Türkçe biçim; büyük/küçük harf fark etmez). Matris 2
+// boyutlu tensördür; ayrı bir tip değildir.
 var tipYazimlari = func() map[string]string {
 	m := map[string]string{}
-	for _, k := range []sozluk.Kod{sozluk.A + 200, sozluk.A + 201, sozluk.A + 202, sozluk.A + 203,
-		sozluk.A + 205, sozluk.A + 206, sozluk.A + 212, sozluk.A + 204} {
+	for _, k := range aciklamaTipleri {
 		for _, y := range sozluk.Yazimlar(k) {
-			m[strings.ToLower(y)] = sozluk.Ad(k)
+			m[kucukHarf(y)] = sozluk.Ad(k)
 		}
 	}
 	return m
 }()
 
+// tipOnerileri kabul edilmeyen ama bir tip adına işaret eden yazımların (Türkçe
+// karaktersiz biçim: ondalik; kaldırılmış adlar) küçük harfli biçimi → önerilecek tip
+// adıdır. Bu yazımlar tip açıklamasında hata verir ve asıl adı önerir.
+var tipOnerileri = func() map[string]string {
+	m := map[string]string{}
+	ekle := func(y, ad string) {
+		if _, gecerli := tipYazimlari[kucukHarf(y)]; !gecerli {
+			m[kucukHarf(y)] = ad
+		}
+	}
+	for _, k := range aciklamaTipleri {
+		g, _ := sozluk.Etkin().Girdisi(k)
+		ekle(turkce.ASCII(g.Ad), g.Ad)
+		for _, e := range g.Eski {
+			ekle(e, g.Ad)
+			ekle(turkce.ASCII(e), g.Ad)
+		}
+	}
+	return m
+}()
+
+// kucukHarf tip adlarını Türkçe kurala göre küçültür (MANTIK → mantık, METİN → metin);
+// tip adları büyük/küçük harfe duyarsızdır.
+func kucukHarf(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
+
+// tipAdiDenetle tip açıklamasındaki ad bir tip adının kabul edilmeyen bir yazımıysa
+// (ondalik, int) asıl adı öneren bir hata ekler.
+func (c *Checker) tipAdiDenetle(ad string, satir int) {
+	if ad == "" {
+		return
+	}
+	if oneri, ok := tipOnerileri[kucukHarf(ad)]; ok {
+		c.errors = append(c.errors, fmt.Sprintf(
+			"Satır %d: '%s' TR'de bir tip adı değil; '%s' yazmak mı istediniz?", satir, ad, oneri))
+	}
+}
+
 func normalizeTypeName(t string) string {
 	if t == "" {
 		return tipHerhangi
 	}
-	if ad, ok := tipYazimlari[strings.ToLower(t)]; ok {
+	if ad, ok := tipYazimlari[kucukHarf(t)]; ok {
+		return ad
+	}
+	// Kabul edilmeyen yazım (ondalik) tipAdiDenetle'de hata verir; aynı satırda bir de tip
+	// uyuşmazlığı çıkmasın diye önerilen tip varsayılır.
+	if ad, ok := tipOnerileri[kucukHarf(t)]; ok {
 		return ad
 	}
 	return t
@@ -122,6 +169,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	}
 	switch s := stmt.(type) {
 	case *ast.VarStatement:
+		c.tipAdiDenetle(s.TypeName, s.Line())
 		inferred := c.inferExpression(s.Value)
 		declared := normalizeTypeName(s.TypeName)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
@@ -330,8 +378,10 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 	case *ast.FunctionLiteral:
 		var paramTypes []string
 		for _, p := range e.Parameters {
+			c.tipAdiDenetle(p.TypeName, e.Line())
 			paramTypes = append(paramTypes, normalizeTypeName(p.TypeName))
 		}
+		c.tipAdiDenetle(e.ReturnType, e.Line())
 		retType := normalizeTypeName(e.ReturnType)
 		if e.Name != "" {
 			c.scope.Define(e.Name, TypeInfo{

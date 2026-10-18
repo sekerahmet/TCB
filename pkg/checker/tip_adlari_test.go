@@ -6,14 +6,14 @@ import "testing"
 // edilen küme sözlüğe taşınmadan önceki kümeyle aynı olmalı.
 func TestTipYazimlariAyni(t *testing.T) {
 	beklenen := map[string]string{
-		"tam": "Tam", "tamsayı": "Tam", "tamsayi": "Tam", "int": "Tam",
-		"ondalık": "Ondalık", "ondalik": "Ondalık", "sayı": "Ondalık", "sayi": "Ondalık", "float": "Ondalık",
-		"metin": "Metin", "yazı": "Metin", "yazi": "Metin", "str": "Metin", "string": "Metin",
-		"mantık": "Mantık", "mantik": "Mantık", "mantıksal": "Mantık", "mantiksal": "Mantık", "bool": "Mantık",
+		"tam": "Tam", "tamsayı": "Tam", "int": "Tam",
+		"ondalık": "Ondalık", "sayı": "Ondalık", "float": "Ondalık",
+		"metin": "Metin", "yazı": "Metin", "str": "Metin", "string": "Metin",
+		"mantık": "Mantık", "mantıksal": "Mantık", "bool": "Mantık",
 		"liste": "Liste", "dizi": "Liste", "list": "Liste",
-		"sözlük": "Sözlük", "sozluk": "Sözlük", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
-		"tensör": "Tensör", "tensor": "Tensör", "matris": "Tensör", "matrix": "Tensör",
-		"yok": "Yok", "boş": "Yok", "bos": "Yok", "null": "Yok",
+		"sözlük": "Sözlük", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
+		"tensör": "Tensör", "matris": "Tensör", "matrix": "Tensör",
+		"yok": "Yok", "boş": "Yok", "null": "Yok",
 	}
 	if len(tipYazimlari) != len(beklenen) {
 		t.Errorf("%d yazım bekleniyordu, %d var: %v", len(beklenen), len(tipYazimlari), tipYazimlari)

@@ -126,7 +126,7 @@ func TestStringBracesAndEscapes(t *testing.T) {
 func TestTestBlocksSkippedAndAssertions(t *testing.T) {
 	out, _, err := runTROut(t, `test "atlanmalı" { yazdır("TEST ÇALIŞTI") }
 doğrula(1 + 1 == 2)
-esit_mi([1, 2], [1, 2])
+eşit_mi([1, 2], [1, 2])
 yazdır("tamam")`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
