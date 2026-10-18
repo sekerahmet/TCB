@@ -246,7 +246,7 @@ eşle puan {
 
 **6.2** `sonuç ifade` fonksiyondan değer döndürür; yalnız `sonuç` `yok` döndürür. `sonuç` hiç çalışmazsa son deyimin değeri döner. Programın üst düzeyindeki `sonuç` programı bitirir (sonraki satırlar çalışmaz, çıkış kodu 0'dır); bir modülün üst düzeyinde (11.4) ve test gövdesinde (12.6) ise derleme hatasıdır.
 
-**6.3** Parametrelere varsayılan değer verilebilir (`ek = "!"`). Varsayılanı olmayan bir parametre için argüman verilmezse, fazla argüman verilirse ya da bilinmeyen bir adla argüman verilirse çağrı satırında hata oluşur (`'topla' fonksiyonu 2 argüman bekler, 1 verildi (eksik: 'b')`). Yerleşik fonksiyonların geri çağırdığı fonksiyonlar (ör. `filtrele`, web işleyicileri) bu denetime girmez.
+**6.3** Parametrelere varsayılan değer verilebilir (`ek = "!"`). Varsayılan, argümanı verilmediğinde her çağrıda yeniden, soldan sağa hesaplanır; kendisinden önceki parametreleri ve fonksiyonun tanımlandığı kapsamı görür (`fonksiyon f(a, b = a * 2)` ile `f(1)` → `b = 2`). Parametrenin kendisi ve sonraki parametreler henüz tanımlı değildir; varsayılanda adları geçerse dıştaki aynı adlı değişken kullanılmaz, çağrı `'b' parametresi henüz tanımlanmadı` hatası verir. Varsayılanı olmayan bir parametre için argüman verilmezse, fazla argüman verilirse ya da bilinmeyen bir adla argüman verilirse çağrı satırında hata oluşur (`'topla' fonksiyonu 2 argüman bekler, 1 verildi (eksik: 'b')`). Yerleşik fonksiyonların geri çağırdığı fonksiyonlar (ör. `filtrele`, web işleyicileri) bu denetime girmez.
 
 **6.3a** İç içe fonksiyon çağrısı derinliği 10000 ile sınırlıdır; aşılırsa `dene/yakala` ile yakalanabilen "Özyineleme derinliği sınırı aşıldı" hatası oluşur.
 

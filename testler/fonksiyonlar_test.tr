@@ -44,6 +44,26 @@ test "6.3 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
     doğrula(fazla.içerir("en fazla 2 argüman alır, 3 verildi"), fazla)
 }
 
+test "6.3 varsayılan değer önceki parametreleri görür" {
+    değişken a = 100
+    fonksiyon f(a, b = a * 2) { sonuç b }
+    eşit_mi(2, f(1))
+    fonksiyon g(x, y = x + 1, z = x + y) { sonuç [x, y, z] }
+    eşit_mi([1, 2, 3], g(1))
+    eşit_mi([1, 5, 6], g(1, 5))
+    eşit_mi([1, 2, 9], g(1, z: 9))
+    // Sonraki parametre (ve parametrenin kendisi) henüz tanımlı değildir; dıştaki aynı adlı değişken kullanılmaz
+    değişken b = 7
+    fonksiyon h(a = b, b = 1) { sonuç a }
+    değişken mesaj = ""
+    dene { h() } yakala hata { mesaj = hata }
+    doğrula(mesaj.içerir("'b' parametresi henüz tanımlanmadı"), mesaj)
+    // Varsayılan her çağrıda yeniden hesaplanır
+    fonksiyon liste_al(l = []) { l.ekle(1); sonuç l }
+    eşit_mi([1], liste_al())
+    eşit_mi([1], liste_al())
+}
+
 test "6.3a özyineleme derinliği sınırı yakalanabilir hata verir" {
     fonksiyon sonsuz(n) { sonuç sonsuz(n + 1) }
     değişken mesaj = ""

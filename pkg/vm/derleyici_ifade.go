@@ -227,6 +227,10 @@ func (c *derleyici) adOku(k *derleyiciKapsam, e *ast.Identifier) ifadeKodu {
 	r := k.coz(e.Value)
 	i := r.yuva
 	switch r.tur {
+	case cozHenuzYok:
+		return func(v *VM, env *Environment) (Value, error) {
+			return nil, fmt.Errorf("Satır %d, Sütun %d: '%s' parametresi henüz tanımlanmadı; varsayılan değer yalnızca kendisinden önceki parametreleri görür", e.Line(), e.Token.Column, e.Value)
+		}
 	case cozGenel:
 		g := r.genel
 		return func(v *VM, env *Environment) (Value, error) {
@@ -966,7 +970,7 @@ func (c *derleyici) atamaHedefi(k *derleyiciKapsam, target ast.Expression, kod u
 	switch t := target.(type) {
 	case *ast.Identifier:
 		r := k.coz(t.Value)
-		if r.tur == cozDinamik {
+		if r.tur == cozDinamik || r.tur == cozHenuzYok {
 			return func(v *VM, env *Environment, rhs Value) error {
 				return v.adlaAta(env, t, kod, rhs, line)
 			}

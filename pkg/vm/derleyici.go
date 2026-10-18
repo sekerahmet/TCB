@@ -41,6 +41,10 @@ type derleyiciKapsam struct {
 	// golge bu kapsamda yerleşik adlarını gölgeleyen kullanıcı tanımlarıdır (golge.go);
 	// yalnızca hata mesajı için tutulur, çoğu kapsamda nil'dir.
 	golge map[string]golgeTanimi
+	// henuzYok bir parametrenin varsayılan değeri derlenirken o parametre ve sonrakilerin
+	// adlarıdır: varsayılan yalnızca önceki parametreleri görür; bu adlar dış kapsamdaki
+	// aynı adlı değişkene çözülmez, okunursa hata verir.
+	henuzYok map[string]bool
 }
 
 // tanimla bir adı kapsamın tablosuna ekler (derleme anı).
@@ -68,6 +72,7 @@ const (
 	cozDinamik = iota
 	cozYerel
 	cozGenel
+	cozHenuzYok // varsayılan değerde henüz bağlanmamış bir parametre (bkz. henuzYok)
 )
 
 type cozum struct {
@@ -81,6 +86,9 @@ type cozum struct {
 func (k *derleyiciKapsam) coz(ad string) cozum {
 	d := 0
 	for c := k; c != nil; c = c.ust {
+		if c.henuzYok[ad] {
+			return cozum{tur: cozHenuzYok}
+		}
 		if c.bilgi == nil {
 			return cozum{}
 		}
@@ -834,7 +842,8 @@ type fonkKodu struct {
 	bilgi *kapsamBilgisi
 	govde *blokKodu
 	// param[i] i. parametrenin yuvası; varsayilan[i] varsayılan değer kodu (yoksa nil).
-	// Varsayılanlar fonksiyonun tanımlandığı ortamda değerlendirilir.
+	// Varsayılanlar çağrının kendi ortamında, önceki parametreler bağlandıktan sonra
+	// değerlendirilir.
 	param      []int
 	varsayilan []ifadeKodu
 	kendi      int // metotlarda 'kendi'nin yuvası, değilse -1
@@ -907,9 +916,20 @@ func (c *derleyici) fonksiyon(k *derleyiciKapsam, params []ast.Param, body *ast.
 			fk.basit = false
 		}
 		gorulen[fk.param[i]] = true
-		if p.DefaultValue != nil {
-			fk.varsayilan[i] = c.ifade(k, p.DefaultValue)
+	}
+	// Varsayılanlar fonksiyonun kendi kapsamında derlenir ve çağrının ortamında, soldan
+	// sağa hesaplanır: önceki parametreleri görür; parametrenin kendisi ve sonrakiler henüz
+	// yoktur (dıştaki aynı adlı değişkene çözülmez).
+	for i, p := range params {
+		if p.DefaultValue == nil {
+			continue
 		}
+		henuzYok := make(map[string]bool, len(params)-i)
+		for _, s := range params[i:] {
+			henuzYok[s.Name] = true
+		}
+		vk := &derleyiciKapsam{bilgi: alt.bilgi, ust: alt.ust, henuzYok: henuzYok}
+		fk.varsayilan[i] = c.ifade(vk, p.DefaultValue)
 	}
 	var stmts []ast.Statement
 	if body != nil {

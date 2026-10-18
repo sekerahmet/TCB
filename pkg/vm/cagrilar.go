@@ -200,7 +200,7 @@ func (v *VM) fonksiyonGovdesi(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, ken
 		} else if named != nil && named[param.Name] != nil {
 			fnEnv.vals[yuva] = named[param.Name]
 		} else if param.DefaultValue != nil && fk.varsayilan[i] != nil {
-			defVal, err := fk.varsayilan[i](v, fn.Env)
+			defVal, err := fk.varsayilan[i](v, fnEnv)
 			if err != nil {
 				return nil, err
 			}
