@@ -49,28 +49,72 @@ const (
 // Paketleme tamponları çağrılar arasında yeniden kullanılır (eğitimde aynı
 // boyutlar her adımda yinelenir). Paketleme tamponun gereken her elemanını
 // yazdığından sıfırlama gerekmez. A ve B tamponları boyutları çok farklı
-// olduğu için ayrı havuzlardadır.
+// olduğu için ayrı yığınlardadır.
+//
+// sync.Pool yerine sınırlı bir yığın kullanılır: sync.Pool her GC'de
+// boşalıyordu (modelde adım başına ~1,4 GC) ve boyutlar karışık geldiğinde
+// her uyuşmazlıkta yeni tampon ayrılıyordu; 100 adımda ~390 MB gereksiz
+// ayırma (GC sıklığını artırır) ölçüldü.
 var (
-	paketHavuzA sync.Pool // *[]float32
-	paketHavuzB sync.Pool // *[]float32
+	paketHavuzA tamponYigini
+	paketHavuzB tamponYigini
 )
 
-// paketAl havuzdan en az n elemanlı bir tampon alır (yetmezse yenisini ayırır).
-func paketAl(h *sync.Pool, n int) *[]float32 {
-	if p, ok := h.Get().(*[]float32); ok {
-		if cap(*p) >= n {
-			*p = (*p)[:n]
-			return p
+const (
+	// tamponEnBuyuk bundan büyük tamponlar saklanmaz (büyük çarpımlarda
+	// ayırma maliyeti önemsizdir): 1M eleman, 4 MB.
+	tamponEnBuyuk = 1 << 20
+	// tamponToplamEnCok bir yığında tutulan tamponların toplam kapasitesi
+	// (eleman): 8M eleman, 32 MB. Karakter modelinde gereken toplam ~2 MB'tır.
+	tamponToplamEnCok = 1 << 23
+)
+
+// tamponYigini paketleme tamponlarının kilitli, sınırlı bir yığını.
+type tamponYigini struct {
+	mu     sync.Mutex
+	t      []*[]float32
+	toplam int // t'deki tamponların toplam kapasitesi
+}
+
+// paketAl yığından en az n elemanlı en küçük tamponu alır (yoksa yenisini
+// ayırır). Yeni tamponun kapasitesi ikinin kuvvetine yuvarlanır: yakın
+// boyutlar aynı tamponu paylaşır.
+func paketAl(y *tamponYigini, n int) *[]float32 {
+	y.mu.Lock()
+	k := -1
+	for i, p := range y.t {
+		if c := cap(*p); c >= n && (k < 0 || c < cap(*y.t[k])) {
+			k = i
 		}
-		// Küçük tampon havuza geri konmaz: boyutlar karışık geldiğinde
-		// (modelde çarpım başına 4 bin ile 260 bin eleman arası) havuz büyük
-		// tamponlarda toplanır. Eskiden küçük tampon geri konup her
-		// uyuşmazlıkta yenisi ayrıldığından 100 adımda ~390 MB ayrılıyordu.
 	}
-	// Kapasite ikinin kuvvetine yuvarlanır: yakın boyutlar aynı tamponu
-	// paylaşır.
+	if k >= 0 {
+		p := y.t[k]
+		son := len(y.t) - 1
+		y.t[k], y.t[son] = y.t[son], nil
+		y.t = y.t[:son]
+		y.toplam -= cap(*p)
+		y.mu.Unlock()
+		*p = (*p)[:n]
+		return p
+	}
+	y.mu.Unlock()
 	s := make([]float32, n, 1<<bits.Len(uint(n-1)))
 	return &s
+}
+
+// Put tamponu yığına geri koyar; çok büyükse ya da yığının toplam sınırı
+// aşılacaksa bırakır (çöp toplayıcıya kalır).
+func (y *tamponYigini) Put(p *[]float32) {
+	c := cap(*p)
+	if c > tamponEnBuyuk {
+		return
+	}
+	y.mu.Lock()
+	if y.toplam+c <= tamponToplamEnCok {
+		y.t = append(y.t, p)
+		y.toplam += c
+	}
+	y.mu.Unlock()
 }
 
 // packBPanel op(B)'nin jp. nr genişlikli panelini dst'ye (K×nr) yazar.
