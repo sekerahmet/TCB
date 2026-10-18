@@ -44,6 +44,13 @@
     ],
     "description": "Sondaki blokla dönüştürme; o, o anki elemandır: liste.haritala { o * o }"
   },
+  "İndirge": {
+    "prefix": ["indirge", ".indirge"],
+    "body": [
+      ".indirge(${1:0}, (birikim, x) => ${2:birikim + x})"
+    ],
+    "description": "Listeyi soldan sağa tek değere indirger: liste.indirge(0, (birikim, x) => birikim + x)"
+  },
   "Döngü (İçinde)": {
     "prefix": ["döngü"],
     "body": [

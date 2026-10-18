@@ -265,7 +265,7 @@ func TestIstemciJSONDonusumSinirli(t *testing.T) {
 		fmt.Fprint(w, "["+strings.TrimSuffix(strings.Repeat("0,", n), ",")+"]")
 	}))
 	defer srv.Close()
-	_, val, err := runTRWithin(t, 10*time.Second, fmt.Sprintf(`sonuç uzunluk(web_al("%s/kucuk"))`, srv.URL))
+	_, val, err := runTRWithin(t, 10*time.Second, fmt.Sprintf(`sonuç web_al("%s/kucuk").uzunluk`, srv.URL))
 	if err != nil || val.Inspect() != "999" {
 		t.Fatalf("sınırın altındaki JSON çözülmeli: %v %v", val, err)
 	}

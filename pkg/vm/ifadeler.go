@@ -147,7 +147,11 @@ func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression, u uyeBilgisi) (Value,
 	if pg, ok := obj.(PropertyGetter); ok {
 		val, err := pg.GetProperty(u.kod, e.Property)
 		if err != nil && u.kod == kod.Yok {
-			err = uyeOneriHatasi(pg, obj, e.Property, err)
+			if h := tasinanUyeHatasi(obj, e.Property); h != "" {
+				err = fmt.Errorf("%s", h)
+			} else {
+				err = uyeOneriHatasi(pg, obj, e.Property, err)
+			}
 		}
 		return val, satirEki(e.Line(), err)
 	}

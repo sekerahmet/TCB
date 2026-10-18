@@ -32,7 +32,7 @@ test "2.5 ondalık sayılar noktayla yazılır" {
 
 test "2.6 metinler çift ya da tek tırnakla, kaçış dizileriyle yazılır" {
     eşit_mi('tek', "tek")
-    eşit_mi(3, uzunluk("a\tb"))
+    eşit_mi(3, "a\tb".uzunluk)
     eşit_mi("\"", '"')
     eşit_mi("a\b", 'a\b')
     değişken iki_satir = "bir
@@ -43,7 +43,7 @@ iki"
 test "2.7 metin içinde \{ifade\} yerleştirme, düz süslü parantez için kaçış" {
     değişken ad = "Ali"
     eşit_mi("Merhaba Ali, 1 + 2 = 3", "Merhaba {ad}, 1 + 2 = {1 + 2}")
-    eşit_mi(5, uzunluk("\{düz\}"))
+    eşit_mi(5, "\{düz\}".uzunluk)
     eşit_mi("\{", "\{düz\}"[0])
     değişken p = {"ad": "Ayşe"}
     eşit_mi("Ayşe", "{p['ad']}")

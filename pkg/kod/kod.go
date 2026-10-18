@@ -18,7 +18,7 @@
 //	   A1xx bağlamsal sözcükler (yalnızca belli bir yerde anlamlı: olarak, test)
 //	   A2xx tip adları (tip() sonucu, tip açıklamaları); A23x-A24x motor tipleri
 //	G  genel yerleşikler
-//	   G1xx giriş, çıkış ve dosya; G2xx değer, tip ve dönüşüm; G3xx liste ve boru hattı;
+//	   G1xx giriş, çıkış ve dosya; G2xx değer, tip ve dönüşüm; G3xx liste;
 //	   G4xx matematik ve istatistik; G5xx zaman ve eşzamanlılık; G6xx veri biçimleri
 //	   (JSON, CSV); G7xx test
 //	T  tensör ve yapay zekâ
@@ -41,7 +41,7 @@
 //
 // Bir dil içinde ad yalnızca kendi ad alanında benzersiz olmalıdır (bkz. Alan): genel
 // adlar (anahtar kelimeler, bağlamsal sözcükler ve G/T/V/W yerleşikleri), tip adları,
-// üyeler (Y) ve adlı argümanlar (x9xx). Böylece ör. G303 sırala (fonksiyon), Y202 sırala
+// üyeler (Y) ve adlı argümanlar (x9xx). Böylece ör. Y202 sırala
 // (liste metodu) ve W931 sırala (adlı argüman) ayrı kodlardır. Üye adları tipten
 // bağımsız olarak benzersizdir: derleyici x.ad'ı tipe bakmadan derleme anında koda çevirir.
 //

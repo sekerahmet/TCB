@@ -124,22 +124,3 @@ func birimMatris(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 	}
 	return Yeni(ct.New(veri, int(n), int(n))), nil
 }
-
-// devrikYerlesik devrik(x) yerleşiğidir: tensörün son iki eksenini değiştirir (veriyi
-// paylaşan görünüm); liste matrise çevrilip devrilir.
-func devrikYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("devrik(matris) 1 parametre bekler")
-	}
-	if err := baglama.AdliDenetle("devrik()", named); err != nil {
-		return nil, err
-	}
-	if d, ok := args[0].(*Deger); ok {
-		return devrik(d.t)
-	}
-	t, err := matrisCevir(args[0])
-	if err != nil {
-		return nil, err
-	}
-	return devrik(t)
-}

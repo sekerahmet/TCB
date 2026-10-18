@@ -291,23 +291,8 @@ func init() {
 		l.Elements = append(l.Elements, args...)
 		return l, nil
 	})
-	metotEkle(tipListe, kod.Y205, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
-		return sayiTopla("liste.toplam()", inst.(*ListVal).Elements)
-	})
-	metotEkle(tipListe, kod.Y206, imza{}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
-		elems := inst.(*ListVal).Elements
-		if len(elems) == 0 {
-			return nil, fmt.Errorf("liste.ortalama(): boş listenin ortalaması yoktur")
-		}
-		s := 0.0
-		for i, el := range elems {
-			f, ok := ToFloat(el)
-			if !ok {
-				return nil, ListeElemaniHatasi("liste.ortalama()", i, sayiTipi, el)
-			}
-			s += f
-		}
-		return &FloatVal{Val: s / float64(len(elems))}, nil
+	metotEkle(tipListe, kod.Y207, imza{1, 2, "[başlangıç], fonksiyon", nil}, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
+		return listeIndirge(vm, inst.(*ListVal).Elements, args, line)
 	})
 
 	// --- Sözlük ---
@@ -379,5 +364,67 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u uyeBilgisi, safe bool, 
 	if safe {
 		return NULL, nil
 	}
+	if h := tasinanUyeHatasi(obj, prop); h != "" {
+		return nil, fmt.Errorf("Satır %d: %s", line, h)
+	}
 	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği veya metodu bulunamadı%s", line, obj.Type(), prop, kaldirilanUyeIpucu(prop))
+}
+
+// listeIndirge liste.indirge([başlangıç], fonksiyon) metodunun gövdesidir. Fonksiyon son
+// argümandır (sondaki blokla da yazılabilsin diye): liste.indirge(0) { ... }. Fonksiyon
+// (birikim, eleman) ile çağrılır; tek parametreli bir fonksiyon (sondaki bloğun 'o'su)
+// ikisini [birikim, eleman] listesi olarak alır. Başlangıç verilmezse ilk eleman
+// başlangıçtır; boş listede başlangıç (verilmemişse yok) döner.
+func listeIndirge(vm *VM, elems []Value, args []Value, line int) (Value, error) {
+	const ad = "liste.indirge"
+	f := args[len(args)-1]
+	if !cagrilabilir(f) {
+		if len(args) == 2 && cagrilabilir(args[0]) {
+			return nil, fmt.Errorf("%s(): fonksiyon son argüman olmalı; %s(başlangıç, fonksiyon) ya da %s(başlangıç) { ... } yazın", ad, ad, ad)
+		}
+		return nil, ArgumanTipHatasi(ad, len(args), "Fonksiyon", f)
+	}
+	tekParametre := false
+	if fn, ok := f.(*FuncVal); ok && len(fn.Parameters) == 1 {
+		tekParametre = true
+	}
+	var acc Value
+	bas := 0
+	switch {
+	case len(args) == 2:
+		acc = args[0]
+	case len(elems) == 0:
+		return NULL, nil
+	default:
+		acc, bas = elems[0], 1
+	}
+	for _, el := range elems[bas:] {
+		var err error
+		if tekParametre {
+			acc, err = vm.ApplyFunction(f, []Value{&ListVal{Elements: []Value{acc, el}}}, nil, line)
+		} else {
+			acc, err = vm.ApplyFunction(f, []Value{acc, el}, nil, line)
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return acc, nil
+}
+
+// SayiOrtalamasi sayıların aritmetik ortalamasını Ondalık olarak verir; boş girdi ve
+// sayı olmayan eleman hatadır (ortalama(liste) yerleşiği kullanır).
+func SayiOrtalamasi(ad string, elems []Value) (Value, error) {
+	if len(elems) == 0 {
+		return nil, fmt.Errorf("%s: boş listenin ortalaması yoktur", ad)
+	}
+	s := 0.0
+	for i, el := range elems {
+		f, ok := ToFloat(el)
+		if !ok {
+			return nil, ListeElemaniHatasi(ad, i, sayiTipi, el)
+		}
+		s += f
+	}
+	return &FloatVal{Val: s / float64(len(elems))}, nil
 }

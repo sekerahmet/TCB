@@ -7,5 +7,5 @@ iken i < 300000 {
     l.ekle(x)
     i += 1
 }
-değişken s = sırala(l)
+değişken s = l.sırala()
 yazdır("sirala {s[0] + s[150000] + s[299999]} {zaman_ms() - bas}")

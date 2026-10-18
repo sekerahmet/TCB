@@ -58,15 +58,15 @@ Eş anlamlı ikinci adlar da kaldırıldı ve artık sıradan adlardır: `işlev
 
 ### Yerleşik ad gölgeleme uyarısı
 
-Bir yerleşiğin adını (`uzunluk`, `toplam`, `girdi`, `metin`, `ekle` ...) değişken, fonksiyon, parametre, döngü değişkeni, `yakala` değişkeni ya da yapı adı olarak kullanmak serbesttir, ama o kapsamda yerleşik artık kullanılamaz. Denetleyici bunu bir **uyarı** olarak bildirir: program yine çalışır, çıkış kodu değişmez. Uyarılar standart hataya, tip hatalarından ayrı bir başlıkla yazılır:
+Bir yerleşik fonksiyonun adını (`toplam`, `girdi`, `metin`, `tip` ...) değişken, fonksiyon, parametre, döngü değişkeni, `yakala` değişkeni ya da yapı adı olarak kullanmak serbesttir, ama o kapsamda yerleşik artık kullanılamaz. Denetleyici bunu bir **uyarı** olarak bildirir: program yine çalışır, çıkış kodu değişmez. Uyarılar standart hataya, tip hatalarından ayrı bir başlıkla yazılır:
 
 ```text
 ⚠️ Uyarılar:
-  • Satır 1: 'uzunluk' yerleşik bir ad; bu kapsamda yerleşik 'uzunluk' artık kullanılamaz
-     1 | değişken uzunluk = 3
+  • Satır 1: 'toplam' yerleşik bir ad; bu kapsamda yerleşik 'toplam' artık kullanılamaz
+     1 | değişken toplam = 3
 ```
 
-Gölgelenmiş ad yine de yerleşik gibi çağrılırsa hata nedenini söyler: `Satır 2: 'uzunluk' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'uzunluk' bu kapsamda gölgelendi`. Yapı alanları ve metotları (`kendi.uzunluk`, `kutu.toplam()`) gölgeleme sayılmaz. Uyarıdan kurtulmak için başka bir ad seçin (`değişken uzunluk_cm = 3`).
+Gölgelenmiş ad yine de yerleşik gibi çağrılırsa hata nedenini söyler: `Satır 2: 'toplam' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'toplam' bu kapsamda gölgelendi`. Yapı alanları ve metotları (`kendi.toplam`, `kutu.toplam()`) gölgeleme sayılmaz; metot adları (`uzunluk`, `sırala`, `ekle` ...) yerleşik fonksiyon olmadığından değişken adı olarak serbestçe kullanılır. Uyarıdan kurtulmak için başka bir ad seçin (`değişken toplam_tutar = 3`).
 
 Dilin kuralları örnekleriyle birlikte [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) dosyasında tanımlanmıştır; her kuralın `testler/` klasöründe çalıştırılabilir bir testi vardır (`tr test testler`). Her anahtar kelimenin, yerleşiğin, metodun ve adlı argümanın imzası, açıklaması ve örneği [`docs/KODLAR.md`](docs/KODLAR.md)'dedir.
 
@@ -75,8 +75,24 @@ Dilin kuralları örnekleriyle birlikte [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.m
 ## 3. Nokta (`.`) ile Zincirleme Metodlar
 
 - **Metin (`Metin`):** `.uzunluk`, `.büyük_harf()` (tam Türkçe `i -> İ` uyumlu), `.küçük_harf()`, `.kırp()`, `.böl(ayırıcı)`, `.değiştir(eski, yeni)`, `.içerir(alt)`, `.başlar(önek)`, `.biter(sonek)`, `.ters_çevir()`
-- **Liste (`Liste`):** `.uzunluk`, `.ilk`, `.son`, `.filtrele(fn)`, `.haritala(fn)`, `.sırala()`, `.ters_çevir()`, `.birleştir(ayırıcı)`, `.benzersiz()`, `.içerir(el)`, `.ekle(el)`, `.toplam()`, `.ortalama()`
-- **Sözlük (`Sözlük`):** `.anahtarlar()`, `.değerler()`, `.içerir(anahtar)`
+- **Liste (`Liste`):** `.uzunluk`, `.ilk`, `.son`, `.filtrele(fn)`, `.haritala(fn)`, `.indirge([başlangıç], fn)`, `.sırala()`, `.ters_çevir()`, `.birleştir([ayırıcı])`, `.benzersiz()`, `.içerir(el)`, `.ekle(el, ...)` (listeyi yerinde değiştirir)
+- **Sözlük (`Sözlük`):** `.uzunluk`, `.anahtarlar()`, `.değerler()`, `.içerir(anahtar)`
+
+Her metodun ve yerleşiğin imzası ve örneği [`docs/KODLAR.md`](docs/KODLAR.md)'dedir. `.uzunluk`, `.ilk`, `.son` özelliktir, parantezsiz yazılır.
+
+**Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.uzunluk`, `l.filtrele {...}`, `l.sırala()`, `l.ekle(x)`, `t.devrik()`); matematik ve tensör işi fonksiyondur (`toplam(l)`, `ortalama(l)`, `min(l)`, `maks(l)`, `relu(t)`). Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
+
+```text
+'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın
+'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın
+'liste.toplam()' TR'de yok; 'toplam(liste)' yazın
+```
+
+- `l.indirge([başlangıç], fn)` listeyi soldan sağa `fn(birikim, eleman)` ile tek değere indirger: `[1, 2, 3].indirge(0, (a, x) => a + x)` → `6`. Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (yoksa `yok`) döner. Fonksiyon son argümandır, böylece sondaki blokla da yazılır; tek parametreli blokta `o`, `[birikim, eleman]` listesidir: `[1, 2, 3].indirge(1) { o[0] * o[1] }` → `6`.
+- `ortalama(l)` boş listede ve sayı olmayan elemanda hata verir (`ortalama(): boş listenin ortalaması yoktur`), `toplam(l)` sayı olmayan elemanda hata verir.
+- `l.sırala()` yalnızca sayılardan ya da yalnızca metinlerden oluşan listeyi sıralar; karışık liste hatadır (`liste.sırala(): Tam (2) ile Metin ("a") karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır`). `min` ve `maks` sayı olmayan değerde (metin dahil) hata, boş listede `yok` verir.
+- Metotlar da yerleşikler gibi argüman sayısını ve tipini denetler: `metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))`, `liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi`.
+- Yerleşikler ve metotlar yalnızca imzalarındaki adlı argümanları kabul eder; bilinmeyen bir adlı argüman sessizce yok sayılmaz: `yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)`, `web_sunucu() 'adres' adında bir parametre almaz (geçerli adlar: port)`.
 
 ### `o` zamiri ve sondaki blok
 
@@ -85,12 +101,13 @@ Bir çağrının sonuna aynı satırda yazılan `{ ... }` bloğu, tek parametres
 ```tr
 sayılar.filtrele { o > 2 }.haritala { o * o }   // sayılar.filtrele((x) => x > 2)... ile aynı
 personel.haritala { o["ad"] }
-sayılar |> filtrele { o % 2 == 0 }
+sayılar.filtrele { o % 2 == 0 } |> toplam      // boru yalnızca fonksiyonlarla: toplam(sayılar.filtrele {...})
 ```
 
 - İç içe bloklarda `o` en içteki elemanı gösterir: `[[1, 2]].haritala { o.haritala { o * 10 } }`.
 - `eğer`, `iken`, `döngü` ve `eşle` başlıklarında `{` her zaman gövdeyi başlatır. Başlıkta sondaki blok kullanmak için ifadeyi paranteze alın: `eğer (liste.filtrele { o > 2 }).uzunluk > 0 { ... }`.
 - Uzun yazım (`(x) => x > 2`) aynen çalışmaya devam eder.
+- Boru hattı `x |> f(a)` ≡ `f(x, a)` yalnızca fonksiyonlarla çalışır (kullanıcı fonksiyonları ve `toplam`, `ortalama`, `relu`, `metin` gibi yerleşikler; tam liste `docs/KODLAR.md` sonunda). Metotlar `.` ile zincirlenir; `l |> filtrele { ... }` yazılırsa hata `l.filtrele { ... }` yazmanızı söyler.
 
 ### Hata mesajları
 
@@ -103,6 +120,8 @@ Hatalar konumuyla, kaynak satırıyla ve mümkünse bir öneriyle gösterilir:
        |            ^^^^^
 ```
 
+Bir modülde (`aktar`) oluşan hata, modülün adı ve satırıyla, modülün kendi kod çerçevesiyle yazılır (`• m2.tr, Satır 3: Sıfıra bölme hatası`); bulunamayan modül `❌ Modül hatası:` başlığıyla bildirilir (`"olmayan" modülü bulunamadı`). `aktar` yolu yalnızca metin olarak alır; tırnaksız yazım sözdizimi hatasıdır ve doğrusunu söyler (`'aktar' modül yolunu metin olarak bekler, ancak 'yardımcı' adı bulundu: aktar "yardımcı" yazın`). `tr kontrol` programın aktardığı modülleri de (çalıştırmadan) aynı denetimden geçirir; modüldeki hata `❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):` gibi modülün adıyla yazılır.
+
 Kendi tanımladığınız adlarda öneriler Türkçe harf farkını hata saymaz (`degisken_adi` yazılınca `değişken_adı` önerilir). Dilin kelimelerinde öneri her zaman asıl Türkçe adı gösterir (bkz. §2). Mesajlardaki ekler sayının okunuşuna göre seçilir (`Satır 6'ya`, `Satır 9'a`, `Satır 3'te`).
 
 ---
@@ -111,7 +130,7 @@ Kendi tanımladığınız adlarda öneriler Türkçe harf farkını hata saymaz 
 
 ### A. Düşük Seviye Matris ve Otomatik Türev
 - `tensör([[1, 2], [3, 4]])`, `sıfırlar([satır, sütun])`, `birler([satır, sütun])`, `birim_matris(n)`, `rastgele_normal([satır, sütun], tohum: 42)`: matris 2 boyutlu bir **tensördür** (ayrı bir matris tipi ya da `matris(...)` / `rastgele_matris(...)` oluşturucusu yoktur; ayrıntılar §4.D)
-- `A @ B` (Çok çekirdekli matris çarpımı), `devrik(A)` (veya `A.devrik()`), `A.şekil` (`[satır, sütun]`)
+- `A @ B` (Çok çekirdekli matris çarpımı), `A.devrik()`, `A.şekil` (`[satır, sütun]`)
 - `tensör(3.0, türev_izle: doğru)` (tek sayı 0 boyutlu tensör verir), `geri_yayılım(y)`, `x.gradyan`, `x.değer` (`x.gradyan` da bir tensördür; sayısını `x.gradyan.değer` verir)
 - Aktivasyonlar ve Kayıp: `relu(x)`, `sigmoid(x)`, `tanh(x)`, `softmax(x)`, `kayıp_mse(tahmin, gerçek)`
 
@@ -376,6 +395,7 @@ değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", a
 - `eğer` $\rightarrow$ `eğer ... değilse` bloğu oluşturur
 - `eşle` $\rightarrow$ `eşle` durum eşleştirme bloğu oluşturur
 - `filtrele` / `haritala` $\rightarrow$ Sondaki blokla `.filtrele { o ... }` / `.haritala { o ... }` yazar
+- `indirge` $\rightarrow$ `.indirge(başlangıç, (birikim, x) => ...)` yazar
 - `döngü` $\rightarrow$ `döngü i içinde 1..=10` bloğu oluşturur
 - `liste_üret` $\rightarrow$ Tek satırda liste üreteci oluşturur
 - `yapı` $\rightarrow$ `yapı` ve metot şablonu oluşturur

@@ -86,7 +86,7 @@ func TestWebRequestBodyLimit(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, val, err := runTRWithin(t, 10*time.Second, fmt.Sprintf(`sonuç uzunluk(web_al("%s/tam"))`, srv.URL))
+	_, val, err := runTRWithin(t, 10*time.Second, fmt.Sprintf(`sonuç web_al("%s/tam").uzunluk`, srv.URL))
 	if err != nil || val.Inspect() != "1024" {
 		t.Fatalf("sınırda yanıt okunmalıydı: %v, %v", val, err)
 	}

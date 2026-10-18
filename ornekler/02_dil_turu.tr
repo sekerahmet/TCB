@@ -54,12 +54,10 @@ yazdır("  merhaba yeni nesil tr dili  ".kırp().büyük_harf().böl(" ").birle�
 
 değişken ham = [5, 2, 8, 2, 1, 9, 5, 4]
 yazdır(ham.benzersiz().filtrele { o > 2 }.sırala().ters_çevir()) // o: sıradaki eleman
-yazdır("ilk: {ham.ilk}, son: {ham.son}, ortalama: {ham.ortalama()}")
+yazdır("ilk: {ham.ilk}, son: {ham.son}, ortalama: {ortalama(ham)}")
 
-değişken çift_kareler = ham
-    |> filtrele((x) => x % 2 == 0) // ok fonksiyonu
-    |> haritala { o * o } // sondaki blok
-yazdır("boru hattı: {çift_kareler}, toplamı {çift_kareler |> toplam}")
+değişken çift_kareler = ham.filtrele((x) => x % 2 == 0).haritala { o * o } // ok fonksiyonu ve sondaki blok
+yazdır("çift kareler: {çift_kareler}, boru hattıyla toplamı {çift_kareler |> toplam}")
 
 yazdır("\n=== 6. Yapılar ===")
 yapı Geliştirici {

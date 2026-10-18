@@ -39,7 +39,7 @@ test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     doğrula(hata_metni(() => m.satır).içerir("'şekil'"))
     doğrula(hata_metni(() => m.T).içerir("'devrik()'"))
     doğrula(hata_metni(() => m.liste).içerir("'değer'"))
-    eşit_mi([2, 2, 2], [m.şekil[0], m.şekil[1], uzunluk(m.şekil)])
+    eşit_mi([2, 2, 2], [m.şekil[0], m.şekil[1], m.şekil.uzunluk])
     eşit_mi([10.0, 2.5], [toplam(m).değer, ortalama(m).değer])
     // Hesaplar float32 ile yapılır.
     eşit_mi(0.33333334, (tensör([1.0]) / 3).değer[0])
@@ -517,11 +517,11 @@ test "15.13 karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere s�
     }
     // Görev bloğa girip ilk sonucu yazana kadar bekle.
     değişken tur = 0
-    döngü uzunluk(görev) == 0 ve tur < 20000 {
+    döngü görev.uzunluk == 0 ve tur < 20000 {
         bekle(0.001)
         tur += 1
     }
-    eşit_mi(1, uzunluk(görev))
+    eşit_mi(1, görev.uzunluk)
     // Görev bf16 bloğundayken ana görev float32 ile ve kendi fp16 bloğuyla hesaplar.
     eşit_mi(1.001, (x @ y).değer[0][0])
     eşit_mi(1.0009766, karışık_hassasiyet("fp16") { (x @ y).değer[0][0] })
@@ -591,7 +591,7 @@ test "15.15 birleştir ve .böl" {
     // .böl eşit parçalar verir; parçalar türev izleyen görünümlerdir.
     değişken t = tensör([[1, 2, 3, 4, 5, 6]], türev_izle: doğru)
     değişken parçalar = t.böl(3)
-    eşit_mi(3, uzunluk(parçalar))
+    eşit_mi(3, parçalar.uzunluk)
     eşit_mi([[5.0, 6.0]], parçalar[2].değer)
     eşit_mi([[3.0, 4.0]], tensör([[1, 2], [3, 4]]).böl(2, eksen: 0)[1].değer)
     geri_yayılım(toplam(parçalar[1]))
@@ -692,7 +692,7 @@ test "15.19 parametreler: sabit sıra, tekillik, yol adları" {
     eşit_mi(["gömme", "bloklar.0.dikkat.Wq", "bloklar.0.dikkat.Wk", "bloklar.0.mlp.0", "bloklar.1.dikkat.Wq", "bloklar.1.dikkat.Wk", "bloklar.1.mlp.W1"], adlar.anahtarlar())
     eşit_mi([4.0], adlar["bloklar.1.dikkat.Wq"].değer)
     // Ara sonuçlar ve türev izlemeyen tensörler parametre değildir.
-    eşit_mi(0, uzunluk(parametreler([p(1) * 2, tensör([1.0])])))
+    eşit_mi(0, parametreler([p(1) * 2, tensör([1.0])]).uzunluk)
     // Sonuç doğrudan iyileştiriciye verilebilir.
     değişken op = SGD(parametreler(m), öğrenme_oranı: 1.0)
     geri_yayılım(toplam(m.gömme * 2))

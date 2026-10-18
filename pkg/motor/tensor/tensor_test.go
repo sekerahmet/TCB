@@ -118,7 +118,7 @@ değişken b = tensör([[1, 0], [0, 1], [1, 1]])
 		{"log(tensör([1]))", []float32{0}, []int{1}},
 		{"a.şekillendir([3, 2]).şekil.uzunluk", nil, nil},
 		{"a.devrik()", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
-		{"devrik(a)", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
+		{"a.devrik()", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
 		{"a.şekillendir([-1])", []float32{1, 2, 3, 4, 5, 6}, []int{6}},
 		{"a.dilim(1, 1, 3)", []float32{2, 3, 5, 6}, []int{2, 2}},
 		{"a.dilim(0, -1, 2)", []float32{4, 5, 6}, []int{1, 3}},
@@ -192,7 +192,7 @@ geri_yayılım(y)
 yazdır(x.değer, y.değer, x.gradyan, tip(x))
 yazdır(sıfırlar(2, 3).şekil, tip(birler(2, 2)), tip(sıfırlar(3)))
 yazdır(toplam([1, 2, 3]), min([3, 1, 2]), maks(4, 9), karekök(9), ortalama([1, 2, 3]))
-yazdır(softmax([1.0, 1.0]), relu(-2), tip(devrik([[1, 2]])))`)
+yazdır(softmax([1.0, 1.0]), relu(-2), tip(tensör([[1, 2]]).devrik()))`)
 	want := "3.0 16.0 Tensör(8.0000) Tensör\n[2, 3] Tensör Tensör\n6 1 9 3.0 2.0\n[0.5, 0.5] 0.0 Tensör\n"
 	if out != want {
 		t.Fatalf("eski davranış:\n%q\nbeklenen:\n%q", out, want)

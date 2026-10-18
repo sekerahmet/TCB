@@ -79,7 +79,7 @@ func TestAsyncConcurrentDictAndListWrites(t *testing.T) {
 		döngü i içinde 0..3000 {
 			eşzamanlı {
 				d[metin(i)] = i
-				ekle(l, i)
+				l.ekle(i)
 			}
 		}
 		bekle_hepsi()
@@ -155,19 +155,19 @@ func TestWaitAllInsideAsyncDoesNotDeadlock(t *testing.T) {
 func TestDeferInsideAsyncRunsWhenTaskEnds(t *testing.T) {
 	machine, val, err := runTRWithin(t, 5*time.Second, `
 		değişken sira = []
-		ertele { ekle(sira, "program-ertele") }
+		ertele { sira.ekle("program-ertele") }
 		fonksiyon f() {
 			eşzamanlı {
-				ertele { ekle(sira, "görev-ertele") }
-				ekle(sira, "görev")
+				ertele { sira.ekle("görev-ertele") }
+				sira.ekle("görev")
 			}
 			bekle_hepsi()
-			ekle(sira, "f-son")
+			sira.ekle("f-son")
 		}
 		f()
 		eşzamanlı {
 			bekle(0.05)
-			ekle(sira, "geç-görev")
+			sira.ekle("geç-görev")
 		}
 		sonuç sira`)
 	if err != nil {

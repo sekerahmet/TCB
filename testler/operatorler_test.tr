@@ -14,7 +14,7 @@ test "4.1 öncelik: değil karşılaştırmadan gevşek, ve'den sıkı bağlanı
 }
 
 test "4.1 öncelik: aralık toplamadan gevşek, ?? veya'dan gevşek bağlanır" {
-    eşit_mi(4, uzunluk([x döngü x içinde 1..2 + 3]))
+    eşit_mi(4, [x döngü x içinde 1..2 + 3].uzunluk)
     eşit_mi(yanlış, yanlış veya yok ?? 5)
 }
 
@@ -64,7 +64,7 @@ test "4.5 fonksiyonlar kimlikle karşılaştırılır" {
     fonksiyon yap(n) { sonuç fonksiyon() { sonuç n } }
     doğrula(yap(1) != yap(2))
     doğrula(yazdır == yazdır)
-    doğrula(yazdır != uzunluk)
+    doğrula(yazdır != tip)
     yapı Kutu {
         d = 0
         fonksiyon al() { sonuç kendi.d }
@@ -103,10 +103,15 @@ test "4.8 ?. yok üzerinde hata yerine yok verir" {
     doğrula(mesaj.içerir("?."), mesaj)
 }
 
-test "4.9 |> soldaki değeri sağdaki çağrının ilk argümanı yapar" {
+test "4.9 |> soldaki değeri sağdaki çağrının ilk argümanı yapar; metotlar '.' ile zincirlenir" {
     eşit_mi(6, [1, 2, 3] |> toplam)
-    eşit_mi([1, 3], [1, 2, 3] |> filtrele((x) => x != 2))
-    eşit_mi(12, [1, 2, 3] |> haritala { o * 2 } |> toplam)
+    eşit_mi(2.0, [1, 2, 3] |> ortalama)
+    fonksiyon katları(l, k) { sonuç l.filtrele { o % k == 0 } }
+    eşit_mi([2, 4], [1, 2, 3, 4] |> katları(2))
+    eşit_mi(12, [1, 2, 3].haritala { o * 2 } |> toplam)
+    değişken m = ""
+    dene { [1, 2, 3] |> filtrele { o > 1 } } yakala h { m = h }
+    doğrula(m.içerir("'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın"), m)
 }
 
 test "4.10 metin + herhangi bir değer metin birleştirir; liste + liste birleştirir" {

@@ -286,6 +286,9 @@ func (c *derleyici) adOku(k *derleyiciKapsam, e *ast.Identifier) ifadeKodu {
 func adlaOku(env *Environment, e *ast.Identifier) (Value, error) {
 	val, ok := env.Get(e.Value)
 	if !ok {
+		if h := tasinanGenelAdHatasi(e.Value); h != "" {
+			return nil, fmt.Errorf("Satır %d, Sütun %d: %s", e.Line(), e.Token.Column, h)
+		}
 		return nil, fmt.Errorf("Satır %d, Sütun %d: '%s' adında bir değişken ya da fonksiyon yok%s",
 			e.Line(), e.Token.Column, e.Value, suggestName(e.Value, env))
 	}

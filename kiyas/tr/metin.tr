@@ -3,7 +3,7 @@ değişken birikim = 0
 değişken i = 0
 iken i < 200000 {
     değişken s = "kelime" + metin(i)
-    birikim += uzunluk(s)
+    birikim += s.uzunluk
     i += 1
 }
 yazdır("metin {birikim} {zaman_ms() - bas}")

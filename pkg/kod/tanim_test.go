@@ -3,9 +3,48 @@ package kod
 import (
 	"bytes"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 )
+
+// Taşınan kodlar canlı kodlardan ayrıdır: adları kabul edilmez, yeni koda yol gösterir;
+// Go'da sabitleri yoktur, numaraları bir daha kullanılmaz.
+func TestTasinanKodlar(t *testing.T) {
+	beklenen := map[string]string{"G200": "Y001", "G300": "Y200", "G301": "Y201", "G302": "Y207", "G303": "Y202",
+		"G304": "Y004", "T120": "Y411", "Y205": "G400", "Y206": "G410"}
+	if len(Tasinanlar()) != len(beklenen) {
+		t.Errorf("taşınan kodlar %v, %d bekleniyordu", Tasinanlar(), len(beklenen))
+	}
+	for e, y := range beklenen {
+		ek, _ := Coz(e)
+		yk, _ := Coz(y)
+		if got, ok := Tasindi(ek); !ok || got != yk {
+			t.Errorf("Tasindi(%s) = %s %v; %s bekleniyordu", e, got, ok, y)
+		}
+		if slices.Contains(Kodlar(), ek) {
+			t.Errorf("%s taşındı; canlı kodlar arasında olmamalı", e)
+		}
+		ad := Ad(ek)
+		if k, ok := Bul(ek.Alan(), ad); ok {
+			t.Errorf("taşınan %s'in adı %q kabul edilmemeli (%s)", e, ad, k)
+		}
+		if k, ok := TasinanBul(ek.Alan(), ad); !ok || k != ek {
+			t.Errorf("TasinanBul(%s, %q) = %s %v", ek.Alan(), ad, k, ok)
+		}
+	}
+	if k, ok := TasinanBul(AlanGenel, "sirala"); !ok || k.String() != "G303" {
+		t.Errorf("ASCII biçim de taşınan koda gitmeli: %s %v", k, ok)
+	}
+	if k, ok := TasinanBul(AlanGenel, "boy"); !ok || k.String() != "G200" {
+		t.Errorf("taşınan kodun eski adı da taşınan koda gitmeli: %s %v", k, ok)
+	}
+	// Taşınan bir ad aynı ad alanında canlı bir adla çakışırsa dil dosyası reddedilir.
+	_, err := Yukle("dene", []byte(`{"G100": {"ad": "yazdır"}, "G200": {"ad": "yazdır"}, "Y001": {"ad": "uzunluk"}}`))
+	if err == nil || !strings.Contains(err.Error(), "taşınmış G200'in adı \"yazdır\"") {
+		t.Errorf("çakışma yakalanmalı: %v", err)
+	}
+}
 
 // tanim.json dil dosyasıyla tutarlıdır: her kodun tanımı var, türler ailelere uygun,
 // imzalardaki tip ve adlı argüman kodları geçerli, taşınan kodlar canlı bir koda gider.

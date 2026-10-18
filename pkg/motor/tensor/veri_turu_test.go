@@ -140,10 +140,10 @@ eşzamanlı {
 }
 eşzamanlı {
     // Bu görev bloğun dışında: float32.
-    döngü uzunluk(görev) == 0 { bekle(0.01) }
+    döngü görev.uzunluk == 0 { bekle(0.01) }
     başla.ekle((x @ y).değer[0][0])
 }
-döngü uzunluk(görev) == 0 { bekle(0.01) }
+döngü görev.uzunluk == 0 { bekle(0.01) }
 değişken ana = [(x @ y).değer[0][0], karışık_hassasiyet("fp16") { bekle(0.05); (x @ y).değer[0][0] }]
 bekle_hepsi()
 yazdır(görev, başla, ana, (x @ y).değer[0][0])`)

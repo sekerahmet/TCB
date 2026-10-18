@@ -1,7 +1,7 @@
 // DIL_TANIMI.md §13 — Yerleşik fonksiyonlar ve metotlar (seçki)
 
 test "13.1 genel yerleşikler" {
-    eşit_mi(3, uzunluk([1, 2, 3]))
+    eşit_mi(3, [1, 2, 3].uzunluk)
     eşit_mi(6, toplam([1, 2, 3]))
     eşit_mi(1, min([3, 1, 2]))
     eşit_mi(3, maks([3, 1, 2]))
@@ -23,7 +23,7 @@ test "13.1 min ve maks türü korur, Tam'ları tam karşılaştırır, sayı olm
     dene { maks([1, "a", 5]) } yakala h { hatalar.ekle(h) }
     dene { min("abc") } yakala h { hatalar.ekle(h) }
     dene { toplam([1, "a", 2]) } yakala h { hatalar.ekle(h) }
-    eşit_mi(3, uzunluk(hatalar), metin(hatalar))
+    eşit_mi(3, hatalar.uzunluk, metin(hatalar))
     doğrula(hatalar[0].içerir("maks(): listenin 2. elemanı Tam ya da Ondalık olmalıdır, Metin (\"a\") verildi"), hatalar[0])
     doğrula(hatalar[1].içerir("min() 1. argüman olarak Tam ya da Ondalık bekler"), hatalar[1])
     // Negatif basamak onlar, yüzler basamağına yuvarlar
@@ -38,10 +38,8 @@ test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
     doğrula(m.biter("aralık() 1. argüman olarak Tam bekler, Metin (\"a\") verildi"), m)
     dene { aralık(1, 2.5) } yakala h { m = h }
     doğrula(m.biter("aralık() 2. argüman olarak Tam bekler, Ondalık (2.5) verildi"), m)
-    dene { uzunluk(5) } yakala h { m = h }
-    doğrula(m.biter("uzunluk() 1. argüman olarak Metin, Liste ya da Sözlük bekler, Tam (5) verildi"), m)
-    dene { filtrele([1], 3) } yakala h { m = h }
-    doğrula(m.biter("filtrele() 2. argüman olarak Fonksiyon bekler, Tam (3) verildi"), m)
+    dene { [1].filtrele(3) } yakala h { m = h }
+    doğrula(m.biter("liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi"), m)
     dene { toplam() } yakala h { m = h }
     doğrula(m.biter("toplam() 1 argüman bekler, 0 verildi (kullanım: toplam(liste))"), m)
     dene { yuvarla(1.25, "x") } yakala h { m = h }
@@ -81,19 +79,19 @@ test "13.3 liste metotları" {
     eşit_mi("3-1-2-2", l.birleştir("-"))
     eşit_mi(3, l.ilk)
     eşit_mi(2, l.son)
-    eşit_mi(2.0, l.ortalama())
+    eşit_mi(2.0, ortalama(l))
     doğrula(l.içerir(1))
 }
 
 test "13.3 sırala sayıları tam, metinleri karakter sırasıyla dizer; karışık tip hatadır" {
     eşit_mi([9007199254740992, 9007199254740993], [9007199254740993, 9007199254740992].sırala())
-    eşit_mi([-1, 0.5, 2, 2.5], sırala([2.5, 2, -1, 0.5]))
+    eşit_mi([-1, 0.5, 2, 2.5], [2.5, 2, -1, 0.5].sırala())
     eşit_mi(["a", "b", "ç"], ["ç", "b", "a"].sırala())
     değişken hatalar = []
-    dene { sırala([2, "10", 10]) } yakala h { hatalar.ekle(h) }
+    dene { [2, "10", 10].sırala() } yakala h { hatalar.ekle(h) }
     dene { [10, 2, "10"].sırala() } yakala h { hatalar.ekle(h) }
     dene { [doğru, yanlış].sırala() } yakala h { hatalar.ekle(h) }
-    eşit_mi(3, uzunluk(hatalar), metin(hatalar))
+    eşit_mi(3, hatalar.uzunluk, metin(hatalar))
     döngü h içinde hatalar { doğrula(h.içerir("yalnızca sayılardan ya da yalnızca metinlerden"), h) }
 }
 
@@ -107,7 +105,7 @@ test "13.2 metotlar argüman sayısını ve tipini denetler" {
     dene { [1, 2].filtrele(3) } yakala h { hatalar.ekle(h) }
     dene { [1].ekle() } yakala h { hatalar.ekle(h) }
     dene { {"a": 1}.anahtarlar(1) } yakala h { hatalar.ekle(h) }
-    eşit_mi(8, uzunluk(hatalar), metin(hatalar))
+    eşit_mi(8, hatalar.uzunluk, metin(hatalar))
     doğrula(hatalar[0].içerir("metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))"), hatalar[0])
     doğrula(hatalar[1].içerir("metin.içerir() 1. argüman olarak Metin bekler, Tam (1) verildi"), hatalar[1])
     doğrula(hatalar[2].içerir("metin.büyük_harf() 0 argüman bekler, 1 verildi"), hatalar[2])
@@ -118,11 +116,11 @@ test "13.2 metotlar argüman sayısını ve tipini denetler" {
 }
 
 test "13.3 boş ya da sayı olmayan listenin ortalaması hatadır" {
-    eşit_mi(2.0, [1, 2, 3].ortalama())
+    eşit_mi(2.0, ortalama([1, 2, 3]))
     değişken hatalar = []
-    dene { [].ortalama() } yakala h { hatalar.ekle(h) }
-    dene { [1, "x", 3].ortalama() } yakala h { hatalar.ekle(h) }
-    eşit_mi(2, uzunluk(hatalar), metin(hatalar))
+    dene { ortalama([]) } yakala h { hatalar.ekle(h) }
+    dene { ortalama([1, "x", 3]) } yakala h { hatalar.ekle(h) }
+    eşit_mi(2, hatalar.uzunluk, metin(hatalar))
     doğrula(hatalar[0].içerir("boş listenin ortalaması yoktur"), hatalar[0])
     doğrula(hatalar[1].içerir("listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[1])
 }
@@ -134,12 +132,54 @@ test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {
     dene { toplam([1, 2], eksn: 0) } yakala h { hatalar.ekle(h) }
     dene { sinir_ağı([2, 1], activation: "relu") } yakala h { hatalar.ekle(h) }
     dene { web_sunucu(port: 18089, adres: "0.0.0.0") } yakala h { hatalar.ekle(h) }
-    eşit_mi(5, uzunluk(hatalar), metin(hatalar))
+    eşit_mi(5, hatalar.uzunluk, metin(hatalar))
     doğrula(hatalar[0].içerir("yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)"), hatalar[0])
     doğrula(hatalar[1].içerir("metin.böl() 'eksen' adında bir parametre almaz (adlı argüman almaz)"), hatalar[1])
     doğrula(hatalar[2].içerir("toplam() 'eksn' adında bir parametre almaz. Bunu mu demek istediniz: 'eksen'?"), hatalar[2])
     doğrula(hatalar[3].içerir("sinir_ağı() 'activation' adında bir parametre almaz"), hatalar[3])
     doğrula(hatalar[4].içerir("web_sunucu() 'adres' adında bir parametre almaz (geçerli adlar: port)"), hatalar[4])
+}
+
+test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör işi fonksiyondur; kaldırılan biçimler yol gösterir" {
+    değişken l = [3, 1, 2]
+    eşit_mi(3, l.uzunluk)
+    eşit_mi([1, 2, 3], l.sırala())
+    eşit_mi(6, toplam(l))
+    eşit_mi(2.0, ortalama(l))
+    eşit_mi(6, l.indirge(0, (a, x) => a + x))
+    eşit_mi(6, l.indirge((a, x) => a * x))
+    eşit_mi(4, l.indirge(10) { o[0] - o[1] })
+    eşit_mi(yok, [].indirge((a, x) => a + x))
+    eşit_mi(7, [].indirge(7, (a, x) => a + x))
+    eşit_mi([[1, 2]], tensör([[1], [2]]).devrik().değer)
+    değişken hatalar = []
+    dene { uzunluk(l) } yakala h { hatalar.ekle(h) }
+    dene { sırala(l) } yakala h { hatalar.ekle(h) }
+    dene { filtrele(l, (x) => x > 1) } yakala h { hatalar.ekle(h) }
+    dene { indirge(l, (a, x) => a + x) } yakala h { hatalar.ekle(h) }
+    dene { ekle(l, 4) } yakala h { hatalar.ekle(h) }
+    dene { devrik(tensör([[1, 2]])) } yakala h { hatalar.ekle(h) }
+    dene { l.toplam() } yakala h { hatalar.ekle(h) }
+    dene { l.ortalama() } yakala h { hatalar.ekle(h) }
+    dene { tensör([1.0]).toplam } yakala h { hatalar.ekle(h) }
+    dene { boy(l) } yakala h { hatalar.ekle(h) }
+    dene { l.indirge((a, x) => a + x, 0) } yakala h { hatalar.ekle(h) }
+    eşit_mi(11, hatalar.uzunluk, metin(hatalar))
+    doğrula(hatalar[0].içerir("'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın"), hatalar[0])
+    doğrula(hatalar[1].içerir("'sırala(...)' TR'de bir fonksiyon değil; 'liste.sırala()' yazın"), hatalar[1])
+    doğrula(hatalar[2].içerir("'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın"), hatalar[2])
+    doğrula(hatalar[3].içerir("'indirge(...)' TR'de bir fonksiyon değil; 'liste.indirge(...)' yazın"), hatalar[3])
+    doğrula(hatalar[4].içerir("'ekle(...)' TR'de bir fonksiyon değil; 'x.ekle(...)' yazın"), hatalar[4])
+    doğrula(hatalar[5].içerir("'devrik(...)' TR'de bir fonksiyon değil; 'tensör.devrik()' yazın"), hatalar[5])
+    doğrula(hatalar[6].içerir("'liste.toplam()' TR'de yok; 'toplam(liste)' yazın"), hatalar[6])
+    doğrula(hatalar[7].içerir("'liste.ortalama()' TR'de yok; 'ortalama(liste)' yazın"), hatalar[7])
+    doğrula(hatalar[8].içerir("'tensör.toplam()' TR'de yok; 'toplam(tensör)' yazın"), hatalar[8])
+    doğrula(hatalar[9].içerir("'boy(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın"), hatalar[9])
+    doğrula(hatalar[10].içerir("liste.indirge(): fonksiyon son argüman olmalı"), hatalar[10])
+    // Kaldırılan adlar artık sıradan adlardır
+    değişken uzunluk = 5
+    fonksiyon sırala(x) { sonuç x }
+    eşit_mi([5, 3], [uzunluk, sırala(3)])
 }
 
 test "13.4 sözlük metotları" {

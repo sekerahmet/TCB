@@ -28,7 +28,7 @@ func TestCoreLanguageAndMultiAssign(t *testing.T) {
 		değişken a, b = 10, 20
 		a, b = b, a
 		değişken kareler = [x * x döngü x içinde 1..=5 eğer x % 2 == 1]
-		sonuç [a, b, kareler.toplam()]
+		sonuç [a, b, toplam(kareler)]
 	`
 	val, err := runTR(t, code)
 	if err != nil {

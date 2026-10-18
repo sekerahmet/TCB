@@ -613,12 +613,6 @@ var tensorUyeleri = kod.Adlar(tensorUyeKodlari...)
 
 func tensorUyesi(k kod.Kod) bool { return slices.Contains(tensorUyeKodlari, k) }
 
-// matristenKalanYerlesikler kaldırılan matris türünün tensörde üye değil yerleşik olarak
-// karşılığı olan üyeleridir (m.toplam → toplam(m)); hata mesajında yerleşik önerilir.
-// Matrisin öbür eski üyeleri (boyut, satır, T, liste ...) sözlükte tensör üyelerinin
-// "eski" adlarıdır.
-var matristenKalanYerlesikler = []kod.Kod{kod.G400, kod.G410} // toplam, ortalama
-
 func (d *Deger) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 	t := d.t
 	switch kd {
@@ -666,8 +660,6 @@ func (d *Deger) GetProperty(kd kod.Kod, prop string) (vm.Value, error) {
 			o += "()" // metot
 		}
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
-	} else if i := slices.IndexFunc(matristenKalanYerlesikler, func(k kod.Kod) bool { return kod.Ad(k) == prop }); i >= 0 {
-		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s(x)'?", prop)
 	} else if o := turkce.EnYakin(prop, tensorUyeleri); o != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 	}

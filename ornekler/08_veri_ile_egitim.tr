@@ -29,7 +29,7 @@ değişken p = parçalayıcı_yükle(PARÇALAYICI_YOLU)
 yazdır(p)
 değişken cümle = "Bugün hava çok güzel."
 değişken kimlikler = p.kodla(cümle)
-yazdır("\"{cümle}\" → {uzunluk(kimlikler)} parça: {kimlikler}")
+yazdır("\"{cümle}\" → {kimlikler.uzunluk} parça: {kimlikler}")
 yazdır("geri çözülen: {p.çöz(kimlikler)}")
 değişken V = p.dağarcık_boyutu
 

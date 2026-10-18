@@ -19,7 +19,7 @@ değişken A = tensör([[0.5, -0.5], [1.0, 2.0]])
 yazdır(tip(G), G.şekil, tip(G @ A), tip(sıfırlar(2, 3)), tip(birim_matris(2)), tip(rastgele_normal([2, 2])))
 yazdır(relu(G @ A))
 yazdır((G @ A).değer, (G + A).değer, (G - 1).değer, (2 * G).değer, (G / 2).değer, (G * A).değer)
-yazdır((G + tensör([10, 20])).değer, devrik(G).değer, G.devrik().değer, devrik([1, 2]).şekil)
+yazdır((G + tensör([10, 20])).değer, G.devrik().değer, G.devrik().değer, tensör([[1, 2]]).devrik().şekil)
 yazdır(sıfırlar(2, 3).şekil, sıfırlar(4).şekil, birler(2, 2).değer, birim_matris(3).değer)
 yazdır(softmax(tensör([[1, 2], [3, 3]])).değer, sigmoid(sıfırlar(1, 2)).değer, tanh(sıfırlar(1, 1)).değer)
 yazdır(tensör(G) == G, kayıp_mse(G, [[1, 2], [3, 6]]))`)
@@ -37,7 +37,7 @@ yazdır(tensör(G) == G, kayıp_mse(G, [[1, 2], [3, 6]]))`)
 	for _, d := range []struct{ kod, beklenen string }{
 		{"tensör([[1]]).boyut", "\"boyut\" özelliği ya da metodu bulunamadı. Bunu mu demek istediniz: 'şekil'?"},
 		{"tensör([[1]]).T", "Bunu mu demek istediniz: 'devrik()'?"},
-		{"tensör([[1]]).toplam", "Bunu mu demek istediniz: 'toplam(x)'?"},
+		{"tensör([[1]]).toplam", "'tensör.toplam()' TR'de yok; 'toplam(tensör)' yazın"},
 		{"değişken A = tensör([[1]])\nA.devrik @ A", "metodu çağırmak için parantez ekleyin: devrik()"},
 	} {
 		if _, err := calistir(t, d.kod); err == nil || !strings.Contains(err.Error(), d.beklenen) {
@@ -116,7 +116,7 @@ func TestMatrisBoyutDenetimi(t *testing.T) {
 		`sıfırlar(100000, 100000)`,
 		`tensör([[1, 2], [3]])`,
 		`tensör([["a"]])`,
-		`devrik(tensör([1, 2]))`,
+		`tensör([1, 2]).devrik()`,
 	} {
 		_, err := calistir(t, kod)
 		if err == nil {

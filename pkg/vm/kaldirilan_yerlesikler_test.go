@@ -14,7 +14,7 @@ func TestKaldirilanYerlesikIpucu(t *testing.T) {
 	for _, c := range []struct{ kod, want string }{
 		{"uyut(1)", "'uyut' TR'de yok; 'bekle' yazmak mı istediniz?"},
 		{"yaz(1)", "'yaz' TR'de yok; 'yazdır' yazmak mı istediniz?"},
-		{"değişken x = boy([1])", "'boy' TR'de yok; 'uzunluk' yazmak mı istediniz?"},
+		{"değişken x = boy([1])", "'boy(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın"},
 		{"tur(1)", "'tur' TR'de yok; 'tip' yazmak mı istediniz?"},
 		{"en_büyük(1, 2)", "'en_büyük' TR'de yok; 'maks' yazmak mı istediniz?"},
 		{"medyan([1, 2])", "'medyan' TR'de yok; 'ortanca' yazmak mı istediniz?"},
@@ -22,8 +22,8 @@ func TestKaldirilanYerlesikIpucu(t *testing.T) {
 		{"\"abc\".boy", "'boy' TR'de yok; 'uzunluk' yazmak mı istediniz?"},
 		// ASCII biçimler kabul edilmez; Türkçe ad önerilir (ASCII biçim asla önerilmez).
 		{"yazdir(1)", "'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?"},
-		{"sirala([2, 1])", "'sirala' TR'de yok; 'sırala' yazmak mı istediniz?"},
-		{"donustur([1], 1)", "'donustur' TR'de yok; 'haritala' yazmak mı istediniz?"},
+		{"sirala([2, 1])", "'sirala(...)' TR'de bir fonksiyon değil; 'liste.sırala()' yazın"},
+		{"donustur([1], 1)", "'donustur(...)' TR'de bir fonksiyon değil; 'liste.haritala(...)' yazın"},
 		{"\"abc\".buyuk_harf()", "'buyuk_harf' TR'de yok; 'büyük_harf' yazmak mı istediniz?"},
 		{"[1, 2].ters_cevir()", "'ters_cevir' TR'de yok; 'ters_çevir' yazmak mı istediniz?"},
 		{"değişken x = dogru", "'dogru' TR'de anahtar kelime değil; 'doğru' yazmak mı istediniz?"},
@@ -56,7 +56,7 @@ func TestKaldirilanYerlesikIpucu(t *testing.T) {
 // hangi satırdaki tanımla gölgelendiğini söyler.
 func TestGolgelenmisYerlesikCagrisi(t *testing.T) {
 	for _, c := range []struct{ kod, want string }{
-		{"değişken uzunluk = 5\nuzunluk([1, 2])", "Satır 2: 'uzunluk' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'uzunluk' bu kapsamda gölgelendi"},
+		{"değişken tip = 5\ntip([1, 2])", "Satır 2: 'tip' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'tip' bu kapsamda gölgelendi"},
 		{"fonksiyon f(toplam) {\n    sonuç toplam([1])\n}\nf(\"a\")", "Satır 2: 'toplam' bir fonksiyon değil (Metin); 1. satırda bir parametreye verildi, yerleşik 'toplam' bu kapsamda gölgelendi"},
 		{"döngü metin içinde [1] {\n    metin(1)\n}", "'metin' bir fonksiyon değil (Tam); 1. satırda bir döngü değişkenine verildi"},
 	} {
@@ -66,7 +66,7 @@ func TestGolgelenmisYerlesikCagrisi(t *testing.T) {
 		}
 	}
 	// Gölgelemeyen kapsamda yerleşik çalışır; fonksiyonla gölgelemek de çalışır.
-	val, err := runTR(t, "fonksiyon f() { değişken uzunluk = 1\n sonuç uzunluk }\nfonksiyon toplam(x) { sonuç 7 }\nsonuç [f(), uzunluk([1, 2]), toplam([1])]")
+	val, err := runTR(t, "fonksiyon f() { değişken uzunluk = 1\n sonuç uzunluk }\nfonksiyon toplam(x) { sonuç 7 }\nsonuç [f(), [1, 2].uzunluk, toplam([1])]")
 	if err != nil || val.Inspect() != "[1, 2, 7]" {
 		t.Errorf("[1, 2, 7] bekleniyordu: %v %v", val, err)
 	}

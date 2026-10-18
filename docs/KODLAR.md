@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 257 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 22 tip, 83 fonksiyon, 59 metot, 12 özellik, 48 adlı argüman; 0 kaldırılmış (taşınmış) kod.
+Toplam 249 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 22 tip, 76 fonksiyon, 58 metot, 12 özellik, 48 adlı argüman; 9 kaldırılmış (taşınmış) kod.
 
 ## İçindekiler
 
@@ -18,6 +18,7 @@ Toplam 257 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 22 tip, 83 fonksiyon, 
 - V — Veri ve parçalayıcı: Veri kümesi (V1xx) · Parçalayıcı (V2xx) · Adlı argümanlar (V9xx)
 - W — Web, veritabanı, arayüz: Web istemcisi ve sunucusu (W1xx) · Veritabanı (W2xx) · Görsel arayüz (W3xx) · Adlı argümanlar (W9xx)
 - Y — Metot ve özellikler (x.ad): Birden çok tipte ortak (Y0xx) · Metin (Y1xx) · Liste (Y2xx) · Sözlük (Y3xx) · Tensör (Y4xx) · İyileştirici ve SinirAğı (Y5xx) · Veri kümesi, okuyucu, parçalayıcı (Y6xx) · Veritabanı (Y7xx) · Web sunucusu (Y8xx) · Görsel arayüz (Y9xx)
+- Boru hattıyla kullanılabilen fonksiyonlar
 
 ## A — Dilin çekirdeği
 
@@ -411,7 +412,7 @@ Sıralı, karışık tipli, değiştirilebilir dizi tipidir; listeler başvuruyl
 değişken l: Liste = [1, "iki", 3.0]; yazdır(tip(l), l[-1])
 ```
 
-Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y004 `ekle`, Y200 `filtrele`, Y201 `haritala`, Y202 `sırala`, Y203 `birleştir`, Y204 `benzersiz`, Y205 `toplam`, Y206 `ortalama`, Y210 `ilk`, Y211 `son` · Eski adlar: `dizi`, `list`
+Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y004 `ekle`, Y200 `filtrele`, Y201 `haritala`, Y202 `sırala`, Y203 `birleştir`, Y204 `benzersiz`, Y207 `indirge`, Y210 `ilk`, Y211 `son` · Eski adlar: `dizi`, `list`
 
 #### A206 `Sözlük`
 
@@ -625,17 +626,9 @@ dosya_yaz("not.txt", "merhaba"); yazdır(dosya_oku("not.txt"))
 
 ### Değer, tip ve dönüşüm (G2xx)
 
-#### G200 `uzunluk`
+#### G200 `uzunluk` — kaldırıldı
 
-    uzunluk(Metin | Liste | Sözlük) → Tam
-
-Metnin, listenin ya da sözlüğün uzunluğunu verir.
-
-```tr
-yazdır(uzunluk([1, 2]))
-```
-
-Eski adlar: `boy`
+Taşındı: Y001 `uzunluk` → `x.uzunluk`. Kaldırıldı: uzunluk bir değere sorulan soru olduğundan yalnızca özellik biçimiyle yazılır (x.uzunluk); uzunluk(x) yazılınca hata yeni biçimi önerir.
 
 #### G201 `tip`
 
@@ -687,59 +680,25 @@ yazdır(metin(12) + "a", metin([1, 2]))
 
 ### Liste (G3xx)
 
-#### G300 `filtrele`
+#### G300 `filtrele` — kaldırıldı
 
-    filtrele(Liste, Fonksiyon) → Liste
+Taşındı: Y200 `filtrele` → `liste.filtrele(...)`. Kaldırıldı: listeyi dönüştüren iş metottur; liste.filtrele { ... } yazılır. filtrele(liste, f) ve liste |> filtrele(f) hata verip yeni biçimi önerir.
 
-Fonksiyonun doğru döndüğü elemanların yeni listesini verir.
+#### G301 `haritala` — kaldırıldı
 
-```tr
-yazdır(filtrele([1, 2, 3], (x) => x > 1))
-```
+Taşındı: Y201 `haritala` → `liste.haritala(...)`. Kaldırıldı: listeyi dönüştüren iş metottur; liste.haritala { ... } yazılır. haritala(liste, f) hata verip yeni biçimi önerir.
 
-#### G301 `haritala`
+#### G302 `indirge` — kaldırıldı
 
-    haritala(Liste, Fonksiyon) → Liste
+Taşındı: Y207 `indirge` → `liste.indirge(...)`. Kaldırıldı: listeyi indirgeyen iş metottur; liste.indirge(başlangıç, f) yazılır. indirge(liste, f) hata verip yeni biçimi önerir.
 
-Her elemana fonksiyonu uygular, sonuçların yeni listesini verir.
+#### G303 `sırala` — kaldırıldı
 
-```tr
-yazdır(haritala([1, 2], (x) => x * 2))
-```
+Taşındı: Y202 `sırala` → `liste.sırala()`. Kaldırıldı: listeyi sıralamak metottur; liste.sırala() yazılır. sırala(liste) hata verip yeni biçimi önerir.
 
-Eski adlar: `donustur`
+#### G304 `ekle` — kaldırıldı
 
-#### G302 `indirge`
-
-    indirge(Liste, Fonksiyon, [Herhangi]) → Herhangi
-
-Listeyi iki parametreli bir fonksiyonla tek değere indirger.
-
-```tr
-yazdır(indirge([1, 2, 3], (a, b) => a + b, 0))
-```
-
-Eski adlar: `ozetle`
-
-#### G303 `sırala`
-
-    sırala(Liste) → Liste
-
-Listenin sıralanmış yeni bir kopyasını verir.
-
-```tr
-yazdır(sırala([3, 1, 2]))
-```
-
-#### G304 `ekle`
-
-    ekle(Liste, Herhangi...) → Liste
-
-Listeye elemanları ekler, listeyi yerinde değiştirir.
-
-```tr
-değişken l = [1]; ekle(l, 2); yazdır(l)
-```
+Taşındı: Y004 `ekle` → `x.ekle(...)`. Kaldırıldı: listeye eleman eklemek metottur; liste.ekle(x) yazılır. ekle(liste, x) hata verip yeni biçimi önerir.
 
 #### G305 `aralık`
 
@@ -765,7 +724,7 @@ Sayı listesini toplar (hepsi Tam ise Tam, bir Ondalık varsa Ondalık); sayı o
 yazdır(toplam([1, 2, 3]), toplam([1, 2.5]), toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-İlişkili: G410 `ortalama`
+İlişkili: G410 `ortalama` · Önceki biçim: `x.toplam()` (Y205, kaldırıldı)
 
 #### G401 `min`
 
@@ -837,7 +796,7 @@ Sayıların aritmetik ortalamasını Ondalık olarak verir; liste yolunda sayı 
 yazdır(ortalama([1, 2, 3, 4]), ortalama(tensör([[1, 2], [3, 4]]), eksen: 1).değer)
 ```
 
-İlişkili: G400 `toplam`, G412 `ortanca`
+İlişkili: G400 `toplam`, G412 `ortanca` · Önceki biçim: `x.ortalama()` (Y206, kaldırıldı)
 
 #### G411 `standart_sapma`
 
@@ -1029,15 +988,9 @@ yazdır(birim_matris(3).değer)
 
 İlişkili: T100 `tensör`
 
-#### T120 `devrik`
+#### T120 `devrik` — kaldırıldı
 
-    devrik(Tensör) → Tensör
-
-Tensörün son iki eksenini yer değiştirir.
-
-```tr
-yazdır(devrik(tensör([[1, 2]])).şekil)
-```
+Taşındı: Y411 `devrik` → `tensör.devrik()`. Kaldırıldı: tensörün görünümünü değiştiren iş metottur; t.devrik() yazılır. devrik(t) hata verip yeni biçimi önerir.
 
 #### T121 `birleştir`
 
@@ -2107,7 +2060,7 @@ Metnin karakter sayısını, listenin ya da sözlüğün eleman sayısını veri
 yazdır("çay".uzunluk, [1, 2, 3].uzunluk, {"a": 1}.uzunluk)
 ```
 
-Eski adlar: `boy`
+Eski adlar: `boy` · Önceki biçim: `uzunluk(...)` (G200, kaldırıldı)
 
 #### Y002 `içerir`
 
@@ -2147,7 +2100,7 @@ Listede verilen elemanları sona ekler ve listeyi yerinde değiştirir. Veritaba
 değişken l = [1]; l.ekle(2, 3); yazdır(l, veritabanı_aç(":bellek:").ekle("personel", {"ad": "Ali"}))
 ```
 
-İlişkili: Y701 `tablo_oluştur` · Eski adlar: `kayıt_ekle`
+İlişkili: Y701 `tablo_oluştur` · Eski adlar: `kayıt_ekle` · Önceki biçim: `ekle(...)` (G304, kaldırıldı)
 
 #### Y005 `kaydet`
 
@@ -2297,7 +2250,7 @@ Fonksiyonun doğru döndüğü elemanlardan oluşan yeni bir liste verir. Asıl 
 yazdır([1, 2, 3, 4].filtrele { o > 2 })
 ```
 
-İlişkili: Y201 `haritala`
+İlişkili: Y201 `haritala`, Y207 `indirge` · Önceki biçim: `filtrele(...)` (G300, kaldırıldı)
 
 #### Y201 `haritala`
 
@@ -2309,7 +2262,7 @@ Her elemana fonksiyonu uygular ve sonuçların yeni listesini verir. Asıl liste
 yazdır([1, 2, 3].haritala { o * 10 })
 ```
 
-İlişkili: Y200 `filtrele` · Eski adlar: `dönüştür`
+İlişkili: Y200 `filtrele`, Y207 `indirge` · Eski adlar: `dönüştür` · Önceki biçim: `haritala(...)` (G301, kaldırıldı)
 
 #### Y202 `sırala`
 
@@ -2321,7 +2274,7 @@ Listenin küçükten büyüğe sıralanmış yeni bir kopyasını verir. Liste y
 yazdır([3, 1, 2].sırala())
 ```
 
-İlişkili: Y003 `ters_çevir`
+İlişkili: Y003 `ters_çevir` · Önceki biçim: `sırala(...)` (G303, kaldırıldı)
 
 #### Y203 `birleştir`
 
@@ -2345,25 +2298,25 @@ Tekrar eden elemanları atar, her değerin ilk geçtiği sırayı korur. Yeni bi
 yazdır([1, 2, 2, 3, 1].benzersiz())
 ```
 
-#### Y205 `toplam`
+#### Y205 `toplam` — kaldırıldı
 
-    Liste.toplam() → Tam | Ondalık
+Taşındı: G400 `toplam` → `toplam(...)`. Kaldırıldı: toplam matematik işi olduğundan fonksiyon biçimiyle yazılır: toplam(liste). liste.toplam() hata verip yeni biçimi önerir.
 
-Listedeki sayıların toplamını verir.
+#### Y206 `ortalama` — kaldırıldı
 
-```tr
-yazdır([1, 2].toplam())
-```
+Taşındı: G410 `ortalama` → `ortalama(...)`. Kaldırıldı: ortalama matematik işi olduğundan fonksiyon biçimiyle yazılır: ortalama(liste). liste.ortalama() hata verip yeni biçimi önerir.
 
-#### Y206 `ortalama`
+#### Y207 `indirge`
 
-    Liste.ortalama() → Ondalık
+    Liste.indirge([Herhangi], Fonksiyon) → Herhangi
 
-Listedeki sayıların ortalamasını verir.
+Listeyi soldan sağa (birikim, eleman) alan bir fonksiyonla tek değere indirger; başlangıç verilmezse ilk eleman başlangıçtır, boş listede başlangıç (yoksa yok) döner. Fonksiyon son argümandır; sondaki blokla yazılınca o, [birikim, eleman] listesidir.
 
 ```tr
-yazdır([1, 2].ortalama())
+yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1) { o[0] * o[1] })
 ```
+
+İlişkili: Y200 `filtrele`, Y201 `haritala` · Önceki biçim: `indirge(...)` (G302, kaldırıldı)
 
 #### Y210 `ilk`
 
@@ -2499,7 +2452,7 @@ Tensörün son iki eksenini yer değiştirir. Argüman almaz ve en az 2 boyutlu 
 yazdır(tensör([[1, 2], [3, 4]]).devrik().değer)
 ```
 
-İlişkili: Y412 `eksenleri_sırala` · Eski adlar: `T`
+İlişkili: Y412 `eksenleri_sırala` · Eski adlar: `T` · Önceki biçim: `devrik(...)` (T120, kaldırıldı)
 
 #### Y412 `eksenleri_sırala`
 
@@ -2957,3 +2910,9 @@ yazdır(arayüz_oluştur("Panel").metin_ekle("Merhaba").html_üret().uzunluk > 0
 ```
 
 İlişkili: Y907 `html_kaydet`
+
+## Boru hattıyla kullanılabilen fonksiyonlar
+
+`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/DIL_TANIMI.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
+
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `kayıp_mse`, `sinir_ağı`, `model_yükle`, `parametreler`, `normalize_et`, `nokta_çarpım`, `kosinüs_benzerliği`, `öklid_uzaklığı`, `yz_sor`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `veri_kümesi`, `parçalayıcı_yükle`, `web_al`, `web_gönder`, `web_sunucu`, `veritabanı_aç`, `tablo_sorgula`, `arayüz_oluştur`

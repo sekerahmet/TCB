@@ -178,12 +178,12 @@ func TestCagriOrtamHavuzu(t *testing.T) {
 func TestDogrudanMetotCagrilari(t *testing.T) {
 	_, val, err := runTROut(t, `
 		değişken l = [1]
-		l.ekle(uzunluk(l), uzunluk(l))
+		l.ekle(l.uzunluk, l.uzunluk)
 		l.ekle(9)
 		değişken e = l.ekle
 		e(7)
 		değişken d = {"içerir": 5, "a": 1}
-		sonuç [l, d.içerir("a"), d.a, "Kar".büyük_harf(), [3, 1, 2].sırala(), metin(12), uzunluk("çağ"),
+		sonuç [l, d.içerir("a"), d.a, "Kar".büyük_harf(), [3, 1, 2].sırala(), metin(12), "çağ".uzunluk,
 			[1, 2, 3].filtrele { o > 1 }.haritala { o * 10 }]
 	`)
 	if err != nil || val.Inspect() != `[[1, 1, 1, 9, 7], doğru, 1, "KAR", [1, 2, 3], "12", 3, [20, 30]]` {

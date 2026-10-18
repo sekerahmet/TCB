@@ -34,7 +34,6 @@ func Kaydet(v *vm.VM) {
 	sar(v, kod.T111, yeniYerlesik(birimMatris))
 
 	// --- Görünüm ---
-	sar(v, kod.T120, yeniYerlesik(devrikYerlesik))
 	sar(v, kod.T121, yeniYerlesik(birlestirYerlesik)) // model_araclari.go
 
 	// --- Eleman bazlı matematik ---

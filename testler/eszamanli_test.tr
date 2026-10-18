@@ -6,7 +6,7 @@ test "10.1 eşzamanlı blok ve çağrı biçimi; bekle_hepsi hepsini bekler" {
     fonksiyon iş(x) { sonuçlar.ekle(x) }
     eşzamanlı iş("çağrı")
     bekle_hepsi()
-    eşit_mi(2, uzunluk(sonuçlar))
+    eşit_mi(2, sonuçlar.uzunluk)
     doğrula(sonuçlar.içerir("blok") ve sonuçlar.içerir("çağrı"))
 }
 
@@ -41,7 +41,7 @@ test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
         }
     }
     bekle_hepsi()
-    eşit_mi(6, uzunluk(iz))
+    eşit_mi(6, iz.uzunluk)
     // Hiçbir görev, bütün görevler başlamadan bitmez
     değişken ilk_bitiş = 0
     döngü j, olay içinde iz { eğer olay.başlar("bitir") ve ilk_bitiş == 0 { ilk_bitiş = j } }

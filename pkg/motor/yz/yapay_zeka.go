@@ -29,16 +29,16 @@ var yzSorZamanAsimi = 120 * time.Second
 // pkg/motor/veribicim, web_al/web_gönder ise pkg/motor/web paketindedir.
 func Kaydet(v *vm.VM) {
 	// --- Veri Bilimi, İstatistik ve Vektör Benzerlik ---
+	// ortalama(liste) ya da ortalama(a, b, ...): boş girdi ve sayı olmayan eleman hatadır
+	// (toplam gibi; tensör yolu pkg/motor/tensor'dadır).
 	v.AdlisizKaydet(kod.G410, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		nums := vm.ExtractNumericSlice(args)
-		if len(nums) == 0 {
-			return &vm.FloatVal{Val: 0}, nil
+		if len(args) == 0 {
+			return nil, vm.ArgumanSayisiHatasi("ortalama", "en az 1", 0, "ortalama(liste) ya da ortalama(a, b, ...)")
 		}
-		sum := 0.0
-		for _, x := range nums {
-			sum += x
+		if l, ok := args[0].(*vm.ListVal); ok && len(args) == 1 {
+			return vm.SayiOrtalamasi("ortalama()", l.Elements)
 		}
-		return &vm.FloatVal{Val: sum / float64(len(nums))}, nil
+		return vm.SayiOrtalamasi("ortalama()", args)
 	})
 
 	v.AdlisizKaydet(kod.G411, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {

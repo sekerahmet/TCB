@@ -11,12 +11,12 @@ test "3.1 yerleşikler de taşmada sarmak yerine hata verir" {
     değişken büyük = 9223372036854775807
     değişken hatalar = []
     dene { toplam([büyük, 1]) } yakala h { hatalar.ekle(h) }
-    dene { [büyük, 1].toplam() } yakala h { hatalar.ekle(h) }
+    dene { toplam([büyük, 1]) } yakala h { hatalar.ekle(h) }
     dene { mutlak(-büyük - 1) } yakala h { hatalar.ekle(h) }
     dene { tam(1e30) } yakala h { hatalar.ekle(h) }
     dene { tam(-1e30) } yakala h { hatalar.ekle(h) }
     dene { yuvarla(1e30) } yakala h { hatalar.ekle(h) }
-    eşit_mi(6, uzunluk(hatalar), metin(hatalar))
+    eşit_mi(6, hatalar.uzunluk, metin(hatalar))
     döngü h içinde hatalar { doğrula(h.içerir("Tam sayı taşması"), h) }
     eşit_mi(büyük, toplam([büyük - 1, 1]))
     eşit_mi(-büyük - 1, tam(ondalık(-büyük - 1)))
@@ -34,7 +34,7 @@ test "3.2 Ondalık: 64 bit kayan noktalı" {
 }
 
 test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {
-    eşit_mi(5, uzunluk("şeker"))
+    eşit_mi(5, "şeker".uzunluk)
     eşit_mi("ş", "şeker"[0])
     eşit_mi("r", "şeker"[-1])
     eşit_mi("ek", "şeker"[1..3])
@@ -62,7 +62,7 @@ test "3.5 yok: boş değer" {
 
 test "3.6 Liste: sıralı, karışık tipli, sınır dışı indeks yok döner" {
     değişken l = [1, "iki", 3.0]
-    eşit_mi(3, uzunluk(l))
+    eşit_mi(3, l.uzunluk)
     eşit_mi(1, l[0])
     eşit_mi(3.0, l[-1])
     eşit_mi(yok, l[5])
@@ -88,7 +88,7 @@ test "3.7 Sözlük: eklenme sırasını korur, çıplak ad anahtarı metindir" {
     eşit_mi("bir", d[1])
     eşit_mi(yok, d["yok_olan"])
     d["yeni"] = doğru
-    eşit_mi(4, uzunluk(d))
+    eşit_mi(4, d.uzunluk)
 }
 
 test "3.7 sayı anahtarları sayı eşitliğiyle bulunur: d[1] ile d[1.0] aynı anahtardır" {
@@ -98,7 +98,7 @@ test "3.7 sayı anahtarları sayı eşitliğiyle bulunur: d[1] ile d[1.0] aynı 
     eşit_mi("iki", d[2])
     eşit_mi([1, 2.0], d.anahtarlar())
     d[1.0] = "BİR"
-    eşit_mi(2, uzunluk(d))
+    eşit_mi(2, d.uzunluk)
     eşit_mi("BİR", d[1])
     doğrula(d.içerir(1.0))
     eşit_mi("yarım", {0.5: "yarım"}[0.5])

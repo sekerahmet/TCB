@@ -27,10 +27,10 @@ test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
     eşit_mi("Tam", tip(k[0]))
     // Metindeki özel parça tek bir kimlik olarak tanınır.
     eşit_mi(0, p.kodla("<|endoftext|>")[0])
-    eşit_mi(1, uzunluk(p.kodla("<|endoftext|>")))
+    eşit_mi(1, p.kodla("<|endoftext|>").uzunluk)
     // Liste verilirse her metin ayrı kodlanır (paralel), sıra korunur.
     değişken toplu = p.kodla(["Merhaba dünya!", "", "bir"])
-    eşit_mi(3, uzunluk(toplu))
+    eşit_mi(3, toplu.uzunluk)
     eşit_mi(k, toplu[0])
     eşit_mi([], toplu[1])
     // Son işleyici özel parça ekleyen bir parçalayıcı ([CLS] ... [SEP]).
@@ -41,13 +41,13 @@ test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
     değişken ozelsiz = b.kodla("merhaba dünya", özel_parçalar: yanlış)
     eşit_mi(cls, ozelli[0])
     eşit_mi(sep, ozelli.son)
-    eşit_mi(uzunluk(ozelli) - 2, uzunluk(ozelsiz))
+    eşit_mi(ozelli.uzunluk - 2, ozelsiz.uzunluk)
     doğrula(ozelsiz[0] != cls)
     // ikinci: çift kodlar: [CLS] A [SEP] B [SEP]
     değişken cift = b.kodla("merhaba", ikinci: "dünya")
     eşit_mi(cls, cift[0])
     eşit_mi(sep, cift.son)
-    eşit_mi(uzunluk(b.kodla("merhaba")) + uzunluk(b.kodla("dünya")) - 1, uzunluk(cift))
+    eşit_mi(b.kodla("merhaba").uzunluk + b.kodla("dünya").uzunluk - 1, cift.uzunluk)
     değişken ciftler = b.kodla(["merhaba", "bir"], ikinci: ["dünya", "iki"])
     eşit_mi(cift, ciftler[0])
     eşit_mi(b.kodla("merhaba", ikinci: "dünya", özel_parçalar: yanlış), b.kodla("merhaba dünya", özel_parçalar: yanlış))

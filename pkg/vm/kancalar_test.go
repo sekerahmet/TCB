@@ -101,7 +101,7 @@ func TestKendiniIcerenKaplar(t *testing.T) {
 		yazdır(m)
 		değişken l2 = [1, "a"]
 		l2.ekle(l2)
-		sonuç [l == l, d == d, l == l2, uzunluk(metin(l))]
+		sonuç [l == l, d == d, l == l2, metin(l).uzunluk]
 	`)
 	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD{sonraki: D{...}}\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
 	if err != nil || out != want || val.Inspect() != "[doğru, doğru, yanlış, 15]" {
@@ -140,14 +140,14 @@ func TestIcHataSatiriTekKez(t *testing.T) {
 	_, val, err := runTROut(t, `
 		değişken h = []
 		dene { [1].filtrele((x) => x / 0) } yakala e { h.ekle(e) }
-		dene { filtrele([1],
+		dene { [1].filtrele(
 			(x) => x / 0) } yakala e { h.ekle(e) }
 		dene { [1].haritala(1, 2) } yakala e { h.ekle(e) }
-		dene { uzunluk(5) } yakala e { h.ekle(e) }
+		dene { aralık("a") } yakala e { h.ekle(e) }
 		sonuç h
 	`)
 	want := `["Satır 3: Sıfıra bölme hatası", "Satır 5: Sıfıra bölme hatası", ` +
-		`"Satır 6: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))", "Satır 7: uzunluk() 1. argüman olarak Metin, Liste ya da Sözlük bekler, Tam (5) verildi"]`
+		`"Satır 6: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))", "Satır 7: aralık() 1. argüman olarak Tam bekler, Metin (\"a\") verildi"]`
 	if err != nil || val.Inspect() != want {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
 	}

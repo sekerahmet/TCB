@@ -12,7 +12,7 @@ func TestTrailingBlockWithOPronoun(t *testing.T) {
 	_, val, err := runTRWithin(t, 5*time.Second, `
 		değişken sayılar = [1, 2, 3, 4, 5, 6]
 		değişken a = sayılar.filtrele { o > 2 }.haritala { o * o }
-		değişken b = sayılar |> filtrele { o % 2 == 0 }
+		değişken b = sayılar.filtrele { o % 2 == 0 }
 		değişken c = [{"ad": "Ali"}, {"ad": "Ayşe"}].haritala { o["ad"] }
 		değişken d = [[1, 2], [3, 4]].haritala { o.haritala { o * 10 } }
 		fonksiyon uygula(f) { sonuç f(21) }
@@ -45,24 +45,24 @@ func TestControlHeadersDoNotTakeTrailingBlocks(t *testing.T) {
 		değişken sayılar = [1, 2, 3, 4, 5, 6]
 		değişken izler = []
 		eğer sayılar.uzunluk > 3 {
-			ekle(izler, "eğer")
+			izler.ekle("eğer")
 		}
 		döngü s içinde sayılar.filtrele((x) => x < 3) {
-			ekle(izler, "döngü-{s}")
+			izler.ekle("döngü-{s}")
 		}
 		değişken i = 0
 		iken i < sayılar.uzunluk {
 			i += 3
 		}
-		ekle(izler, "iken-{i}")
+		izler.ekle("iken-{i}")
 		değişken sonuç_eşle = eşle sayılar.uzunluk {
 			6 => "altı"
 			varsayılan => "başka"
 		}
-		ekle(izler, sonuç_eşle)
+		izler.ekle(sonuç_eşle)
 		// Parantez içinde sondaki blok başlıkta da kullanılabilir
 		eğer (sayılar.filtrele { o > 5 }).uzunluk == 1 {
-			ekle(izler, "parantez")
+			izler.ekle("parantez")
 		}
 		sonuç izler`)
 	if err != nil {

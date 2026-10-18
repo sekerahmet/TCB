@@ -208,12 +208,8 @@ func kodAdi(k kod.Kod) string { return fmt.Sprintf("%s `%s`", k, kod.Ad(k)) }
 
 // tasinmisBicim taşınan bir kodun yeni yazımını verir: x.uzunluk, liste.filtrele(...), toplam(...).
 func tasinmisBicim(y kod.Kod) string {
-	t, _ := kod.Tanimi(y)
-	switch t.Tur {
-	case kod.TurOzellik:
-		return "x." + kod.Ad(y)
-	case kod.TurMetot:
-		return "x." + kod.Ad(y) + "(...)"
+	if y.Alan() == kod.AlanUye {
+		return kod.UyeYazimi(y)
 	}
 	return kod.Ad(y) + "(...)"
 }
@@ -282,7 +278,7 @@ func Uret() ([]byte, error) {
 		}
 		b.WriteString(strings.Join(parca, " · ") + "\n")
 	}
-	b.WriteString("\n")
+	b.WriteString("- Boru hattıyla kullanılabilen fonksiyonlar\n\n")
 
 	for _, a := range aileler {
 		fmt.Fprintf(&b, "## %s\n\n", a.baslik)
@@ -326,17 +322,24 @@ func Uret() ([]byte, error) {
 				if len(t.Iliskili) > 0 {
 					ek = append(ek, "İlişkili: "+listele(t.Iliskili))
 				}
-				var eskiler []string
+				var eskiler, onceki []string
 				for _, e := range g.Eski {
 					eskiler = append(eskiler, "`"+e+"`")
 				}
 				for _, tk := range d.Tasinanlar() {
 					if tg, _ := d.Girdisi(tk); tg.Tasindi == k {
-						eskiler = append(eskiler, fmt.Sprintf("`%s` (%s, kaldırıldı)", tg.Ad, tk))
+						bicim := tg.Ad + "(...)"
+						if tk.Alan() == kod.AlanUye {
+							bicim = "x." + tg.Ad + "()"
+						}
+						onceki = append(onceki, fmt.Sprintf("`%s` (%s, kaldırıldı)", bicim, tk))
 					}
 				}
 				if len(eskiler) > 0 {
 					ek = append(ek, "Eski adlar: "+strings.Join(eskiler, ", "))
+				}
+				if len(onceki) > 0 {
+					ek = append(ek, "Önceki biçim: "+strings.Join(onceki, ", "))
 				}
 				if len(ek) > 0 {
 					b.WriteString(strings.Join(ek, " · ") + "\n\n")
@@ -344,5 +347,18 @@ func Uret() ([]byte, error) {
 			}
 		}
 	}
+	// Boru hattı (x |> f, DIL_TANIMI 4.9): ilk konumlu parametresi borudaki değeri alan
+	// fonksiyonlar. Metotlar boruyla değil '.' ile zincirlenir.
+	b.WriteString("## Boru hattıyla kullanılabilen fonksiyonlar\n\n")
+	b.WriteString("`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/DIL_TANIMI.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). ")
+	b.WriteString("Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):\n\n")
+	var boru []string
+	for _, k := range d.Kodlar() {
+		t, _ := kod.Tanimi(k)
+		if t.Tur == kod.TurFonksiyon && len(t.Imza.Param) > 0 {
+			boru = append(boru, "`"+kod.Ad(k)+"`")
+		}
+	}
+	b.WriteString(strings.Join(boru, ", ") + "\n")
 	return append(bytes.TrimRight(b.Bytes(), "\n"), '\n'), nil
 }

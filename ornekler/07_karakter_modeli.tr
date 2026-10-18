@@ -15,13 +15,13 @@ değişken harf_no = {}
 değişken veri = []
 döngü h içinde metin_verisi {
     eğer harf_no[h] == yok {
-        harf_no[h] = uzunluk(harfler)
+        harf_no[h] = harfler.uzunluk
         harfler.ekle(h)
     }
     veri.ekle(harf_no[h])
 }
 
-değişken V = uzunluk(harfler) // sözlük boyutu
+değişken V = harfler.uzunluk // sözlük boyutu
 değişken T = 64 // bağlam uzunluğu
 değişken D = 64 // gizli boyut
 değişken H = 4 // dikkat başı
@@ -65,7 +65,7 @@ döngü p içinde ağırlıklar {
     döngü boyut içinde p.şekil { n = n * boyut }
     toplam_parametre += n
 }
-yazdır("veri: {uzunluk(veri)} karakter, sözlük: {V} karakter, parametre: {toplam_parametre}")
+yazdır("veri: {veri.uzunluk} karakter, sözlük: {V} karakter, parametre: {toplam_parametre}")
 
 // --- Model ---
 değişken konumlar = aralık(T)
@@ -97,7 +97,7 @@ fonksiyon toplu_iş() {
     değişken girdiler = []
     değişken hedefler = []
     döngü b içinde 0..B {
-        değişken baş = rastgele_tam(uzunluk(veri) - T - 1)
+        değişken baş = rastgele_tam(veri.uzunluk - T - 1)
         değişken satır = []
         döngü t içinde 0..T {
             satır.ekle(veri[baş + t])

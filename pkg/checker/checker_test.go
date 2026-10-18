@@ -438,7 +438,8 @@ değişken sayaç = uzunluk + sırala`
 	if errs := c.CheckProgram(prog); len(errs) > 0 {
 		t.Fatalf("gölgeleme hata değildir: %v", errs)
 	}
-	beklenen := []string{uyari(1, "uzunluk"), uyari(2, "toplam"), uyari(5, "girdi"), uyari(6, "metin"), uyari(7, "ekle"), uyari(8, "sırala")}
+	// uzunluk, ekle ve sırala artık yerleşik değil (metotlar): gölgeleme sayılmaz.
+	beklenen := []string{uyari(2, "toplam"), uyari(5, "girdi"), uyari(6, "metin")}
 	if got := c.Warnings(); strings.Join(got, "\n") != strings.Join(beklenen, "\n") {
 		t.Errorf("uyarılar:\n%s\nbeklenen:\n%s", strings.Join(got, "\n"), strings.Join(beklenen, "\n"))
 	}

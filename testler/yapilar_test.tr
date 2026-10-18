@@ -25,7 +25,7 @@ test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatası
     dene { aktar "olumsuz/yapi_govdesi" } yakala h { hatalar.ekle(h) }
     dene { aktar "olumsuz/yapi_yinelenen_alan" } yakala h { hatalar.ekle(h) }
     dene { aktar "olumsuz/yapi_yinelenen_metot" } yakala h { hatalar.ekle(h) }
-    eşit_mi(3, uzunluk(hatalar), metin(hatalar))
+    eşit_mi(3, hatalar.uzunluk, metin(hatalar))
     doğrula(hatalar[0].içerir("Satır 4, Sütun 5: Sözdizimi hatası — yapı gövdesinde yalnızca alanlar"), hatalar[0])
     doğrula(hatalar[1].içerir("Satır 4, Sütun 5: Sözdizimi hatası — 'x' alanı 'A' yapısında iki kez tanımlandı"), hatalar[1])
     doğrula(hatalar[2].içerir("'f' metodu 'A' yapısında iki kez tanımlandı"), hatalar[2])
@@ -41,7 +41,7 @@ test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
     değişken hatalar = []
     dene { Nokta(1, 2, 3) } yakala h { hatalar.ekle(h) }
     dene { Nokta(yy: 9) } yakala h { hatalar.ekle(h) }
-    eşit_mi(2, uzunluk(hatalar), metin(hatalar))
+    eşit_mi(2, hatalar.uzunluk, metin(hatalar))
     doğrula(hatalar[0].içerir("'Nokta' yapısı en fazla 2 argüman alır (alanlar: x, y), 3 verildi"), hatalar[0])
     doğrula(hatalar[1].içerir("'Nokta' yapısının 'yy' adında bir alanı yok. Bunu mu demek istediniz: 'y'?"), hatalar[1])
     // kurucu varsa argümanlar kurucunun imzasına göre denetlenir
@@ -85,7 +85,7 @@ test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman ta
     değişken hatalar = []
     dene { p.z = 5 } yakala h { hatalar.ekle(h) }
     dene { p.taşı = 5 } yakala h { hatalar.ekle(h) }
-    eşit_mi(2, uzunluk(hatalar), metin(hatalar))
+    eşit_mi(2, hatalar.uzunluk, metin(hatalar))
     doğrula(hatalar[0].içerir("Nokta yapısında 'z' alanı yok; yapı tanımına 'z' alanını ekleyin"), hatalar[0])
     doğrula(hatalar[1].içerir("'taşı' Nokta yapısının bir metodu; metoda değer atanamaz"), hatalar[1])
     eşit_mi("Nokta{x: 1, y: 2}", metin(p))

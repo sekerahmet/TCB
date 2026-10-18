@@ -54,7 +54,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 		değişken d = {1: "tam", "1": "metin"}
 		d[doğru] = "mantık"
 		d["doğru"] = "metin2"
-		sonuç [d[1], d["1"], d[doğru], d["doğru"], uzunluk(d), d.içerir(1), d.içerir("2")]
+		sonuç [d[1], d["1"], d[doğru], d["doğru"], d.uzunluk, d.içerir(1), d.içerir("2")]
 	`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)

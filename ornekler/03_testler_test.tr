@@ -14,7 +14,7 @@ fonksiyon topla(a, b) {
 
 fonksiyon ortalama_al(liste) {
     eğer liste.uzunluk == 0 { fırlat "boş listenin ortalaması alınamaz" }
-    sonuç liste.toplam() / liste.uzunluk
+    sonuç toplam(liste) / liste.uzunluk
 }
 
 yapı Sepet {
@@ -25,7 +25,7 @@ yapı Sepet {
     }
 
     fonksiyon tutar() {
-        sonuç kendi.ürünler.haritala { o["fiyat"] }.toplam()
+        sonuç toplam(kendi.ürünler.haritala { o["fiyat"] })
     }
 }
 

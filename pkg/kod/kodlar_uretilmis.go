@@ -65,16 +65,10 @@ const (
 	G101 Kod = G + 101 // girdi
 	G110 Kod = G + 110 // dosya_oku
 	G111 Kod = G + 111 // dosya_yaz
-	G200 Kod = G + 200 // uzunluk
 	G201 Kod = G + 201 // tip
 	G210 Kod = G + 210 // tam
 	G211 Kod = G + 211 // ondalık
 	G212 Kod = G + 212 // metin
-	G300 Kod = G + 300 // filtrele
-	G301 Kod = G + 301 // haritala
-	G302 Kod = G + 302 // indirge
-	G303 Kod = G + 303 // sırala
-	G304 Kod = G + 304 // ekle
 	G305 Kod = G + 305 // aralık
 	G400 Kod = G + 400 // toplam
 	G401 Kod = G + 401 // min
@@ -98,7 +92,6 @@ const (
 	T102 Kod = T + 102 // birler
 	T103 Kod = T + 103 // rastgele_normal
 	T111 Kod = T + 111 // birim_matris
-	T120 Kod = T + 120 // devrik
 	T121 Kod = T + 121 // birleştir
 	T200 Kod = T + 200 // relu
 	T201 Kod = T + 201 // sigmoid
@@ -212,8 +205,7 @@ const (
 	Y202 Kod = Y + 202 // sırala
 	Y203 Kod = Y + 203 // birleştir
 	Y204 Kod = Y + 204 // benzersiz
-	Y205 Kod = Y + 205 // toplam
-	Y206 Kod = Y + 206 // ortalama
+	Y207 Kod = Y + 207 // indirge
 	Y210 Kod = Y + 210 // ilk
 	Y211 Kod = Y + 211 // son
 	Y300 Kod = Y + 300 // anahtarlar
@@ -269,4 +261,14 @@ const (
 // metottan fonksiyona) taşınan kodlardır: eski kod → yeni kod (tanim.json'daki
 // "taşındı" alanı). Eski kodun numarası bir daha kullanılmaz; adı yalnızca hata
 // mesajında yeni biçimi önermek için dil dosyasında kalır.
-var tasinanlar = map[Kod]Kod{}
+var tasinanlar = map[Kod]Kod{
+	G + 200: Y + 1,   // G200 → Y001
+	G + 300: Y + 200, // G300 → Y200
+	G + 301: Y + 201, // G301 → Y201
+	G + 302: Y + 207, // G302 → Y207
+	G + 303: Y + 202, // G303 → Y202
+	G + 304: Y + 4,   // G304 → Y004
+	T + 120: Y + 411, // T120 → Y411
+	Y + 205: G + 400, // Y205 → G400
+	Y + 206: G + 410, // Y206 → G410
+}

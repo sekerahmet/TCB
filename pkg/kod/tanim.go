@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode"
 )
 
 // Dilden bağımsız tanımlar (tanim.json): her kodun türü (anahtar kelime, tip, fonksiyon,
@@ -338,6 +339,27 @@ func adliCoz(a []json.RawMessage) (Adli, error) {
 		ad.VarsayilanVar = true
 	}
 	return ad, nil
+}
+
+// UyeYazimi bir üyenin yazımını verir: x.uzunluk, liste.filtrele(...), liste.sırala().
+// Üye tek bir tipteyse alıcı o tipin küçük harfli adıdır (Liste → liste), değilse x.
+// Hata mesajları ve belgeler taşınan kodların yeni biçimini bununla gösterir.
+func UyeYazimi(y Kod) string {
+	t, _ := Tanimi(y)
+	a := "x"
+	if len(t.Uyeler) == 1 {
+		a = strings.ToLowerSpecial(unicode.TurkishCase, Ad(t.Uyeler[0].Tip))
+	}
+	s := a + "." + Ad(y)
+	if t.Tur != TurMetot {
+		return s
+	}
+	for _, u := range t.Uyeler {
+		if len(u.Imza.Param) > 0 {
+			return s + "(...)"
+		}
+	}
+	return s + "()"
 }
 
 // TanimDenetle tanımların dil dosyasıyla tutarlılığını denetler: her kodun (taşınmışlar

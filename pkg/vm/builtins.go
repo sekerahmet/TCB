@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 	"tr_dili/pkg/kod"
-	"unicode/utf8"
 
 	"tr_dili/pkg/turkce"
 )
@@ -41,15 +40,6 @@ func (v *VM) registerBuiltins() {
 		line = strings.TrimRight(line, "\r\n")
 		return &StringVal{Val: line}, nil
 	})
-
-	// 3. Uzunluk / Boyut: uzunluk(x)
-	v.AdlisizKaydet(kod.G200, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("uzunluk", "1", len(args), "uzunluk(değer)")
-		}
-		return uzunlukTek(vm, args[0])
-	})
-	v.tekArgumanli(kod.G200, uzunlukTek)
 
 	// 4. Tip Sorgulama: tip(x)
 	v.AdlisizKaydet(kod.G201, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -117,116 +107,7 @@ func (v *VM) registerBuiltins() {
 	})
 	v.tekArgumanli(kod.G212, metinTek)
 
-	// 6. Liste ve Fonksiyonel Boru Hattı (|>) İşlemleri: filtrele, haritala, indirge, sırala, ekle, sil
-	v.AdlisizKaydet(kod.G300, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 2 {
-			return nil, ArgumanSayisiHatasi("filtrele", "2", len(args), "filtrele(liste, fonksiyon)")
-		}
-		list, ok := args[0].(*ListVal)
-		if !ok {
-			return nil, ArgumanTipHatasi("filtrele", 1, "Liste", args[0])
-		}
-		if !cagrilabilir(args[1]) {
-			return nil, ArgumanTipHatasi("filtrele", 2, "Fonksiyon", args[1])
-		}
-		var result []Value
-		for _, item := range list.Elements {
-			keep, err := vm.ApplyFunction(args[1], []Value{item}, nil, 0)
-			if err != nil {
-				return nil, err
-			}
-			if keep.IsTruthy() {
-				result = append(result, item)
-			}
-		}
-		return &ListVal{Elements: result}, nil
-	})
-
-	v.AdlisizKaydet(kod.G301, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 2 {
-			return nil, ArgumanSayisiHatasi("haritala", "2", len(args), "haritala(liste, fonksiyon)")
-		}
-		list, ok := args[0].(*ListVal)
-		if !ok {
-			return nil, ArgumanTipHatasi("haritala", 1, "Liste", args[0])
-		}
-		if !cagrilabilir(args[1]) {
-			return nil, ArgumanTipHatasi("haritala", 2, "Fonksiyon", args[1])
-		}
-		result := make([]Value, 0, len(list.Elements))
-		for _, item := range list.Elements {
-			mapped, err := vm.ApplyFunction(args[1], []Value{item}, nil, 0)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, mapped)
-		}
-		return &ListVal{Elements: result}, nil
-	})
-
-	v.AdlisizKaydet(kod.G302, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) < 2 || len(args) > 3 {
-			return nil, ArgumanSayisiHatasi("indirge", "2 ya da 3", len(args), "indirge(liste, fonksiyon) ya da indirge(liste, fonksiyon, başlangıç)")
-		}
-		list, ok := args[0].(*ListVal)
-		if !ok {
-			return nil, ArgumanTipHatasi("indirge", 1, "Liste", args[0])
-		}
-		if !cagrilabilir(args[1]) {
-			return nil, ArgumanTipHatasi("indirge", 2, "Fonksiyon", args[1])
-		}
-		if len(list.Elements) == 0 {
-			if len(args) == 3 {
-				return args[2], nil
-			}
-			return NULL, nil
-		}
-		var acc Value
-		startIdx := 0
-		if len(args) == 3 {
-			acc = args[2]
-		} else {
-			acc = list.Elements[0]
-			startIdx = 1
-		}
-		for i := startIdx; i < len(list.Elements); i++ {
-			var err error
-			acc, err = vm.ApplyFunction(args[1], []Value{acc, list.Elements[i]}, nil, 0)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return acc, nil
-	})
-
-	v.AdlisizKaydet(kod.G303, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("sırala", "1", len(args), "sırala(liste)")
-		}
-		list, ok := args[0].(*ListVal)
-		if !ok {
-			return nil, ArgumanTipHatasi("sırala", 1, "Liste", args[0])
-		}
-		copied := make([]Value, len(list.Elements))
-		copy(copied, list.Elements)
-		if err := siralaDegerler("sırala()", copied); err != nil {
-			return nil, err
-		}
-		return &ListVal{Elements: copied}, nil
-	})
-
-	v.AdlisizKaydet(kod.G304, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) < 2 {
-			return nil, ArgumanSayisiHatasi("ekle", "en az 2", len(args), "ekle(liste, eleman, ...)")
-		}
-		list, ok := args[0].(*ListVal)
-		if !ok {
-			return nil, ArgumanTipHatasi("ekle", 1, "Liste", args[0])
-		}
-		list.Elements = append(list.Elements, args[1:]...)
-		return list, nil
-	})
-
+	// 6. Liste: aralık(bitiş) ya da aralık(başlangıç, bitiş)
 	v.AdlisizKaydet(kod.G305, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) == 1 {
 			end, ok := args[0].(*IntVal)
@@ -410,7 +291,7 @@ func (v *VM) registerBuiltins() {
 // sayiTipi sayı bekleyen yerleşiklerin hata mesajlarındaki tip adıdır.
 const sayiTipi = "Tam ya da Ondalık"
 
-// cagrilabilir değerin filtrele/haritala/indirge gibi yerleşiklere fonksiyon olarak
+// cagrilabilir değerin filtrele/haritala/indirge gibi metotlara fonksiyon olarak
 // verilebilir olup olmadığını söyler.
 func cagrilabilir(v Value) bool {
 	switch v.(type) {
@@ -422,21 +303,6 @@ func cagrilabilir(v Value) bool {
 
 // MaxCollectionSize tek bir yerleşik çağrının üretebileceği en fazla eleman sayısıdır (bellek taşmasını önler).
 const MaxCollectionSize = 50_000_000
-
-// checkRangeSize aralık(başlangıç, bitiş) için boyut denetimi yapar; boş aralık (bitiş <= başlangıç) geçerlidir.
-// uzunlukTek uzunluk(x) yerleşiğinin tek argümanlı gövdesidir.
-func uzunlukTek(_ *VM, a Value) (Value, error) {
-	switch val := a.(type) {
-	case *StringVal:
-		return NewInt(int64(utf8.RuneCountInString(val.Val))), nil
-	case *ListVal:
-		return NewInt(int64(len(val.Elements))), nil
-	case *DictVal:
-		return NewInt(int64(len(val.Pairs))), nil
-	default:
-		return nil, ArgumanTipHatasi("uzunluk", 1, "Metin, Liste ya da Sözlük", a)
-	}
-}
 
 // metinTek metin(x) yerleşiğinin tek argümanlı gövdesidir.
 func metinTek(_ *VM, a Value) (Value, error) {
@@ -452,6 +318,7 @@ func (v *VM) tekArgumanli(kd kod.Kod, tek func(*VM, Value) (Value, error)) {
 	}
 }
 
+// checkRangeSize aralık(başlangıç, bitiş) için boyut denetimi yapar; boş aralık (bitiş <= başlangıç) geçerlidir.
 func checkRangeSize(start, end int64) error {
 	if end > start && (end-start > MaxCollectionSize || end-start < 0) {
 		return fmt.Errorf("aralık() çok büyük: en fazla %d eleman üretilebilir", MaxCollectionSize)
