@@ -1,3 +1,4 @@
 # Kaynak dosyalar her platformda LF satır sonuyla tutulur (gofmt ile uyumlu)
 * text=auto eol=lf
 *.exe binary
+*.npy binary
