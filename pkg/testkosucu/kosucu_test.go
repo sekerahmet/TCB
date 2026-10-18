@@ -146,3 +146,16 @@ func TestErteleVeCikti(t *testing.T) {
 		t.Fatalf("ertele sırası yanlış:\n%s", m)
 	}
 }
+
+// Testin başlattığı eşzamanlı görevin hatası raporda görünür (standart hataya kaçmaz).
+func TestGorevHatasiRapordaGorunur(t *testing.T) {
+	yol := dosyaYaz(t, t.TempDir(), "g_test.tr", `test "görev" {
+    eşzamanlı { değişken x = 1 / 0 }
+}
+`)
+	var cikti bytes.Buffer
+	DosyaCalistir(yol, &cikti)
+	if !strings.Contains(cikti.String(), "Eşzamanlı görev hatası") || !strings.Contains(cikti.String(), "Sıfıra bölme") {
+		t.Fatalf("görev hatası raporda yok:\n%s", cikti.String())
+	}
+}

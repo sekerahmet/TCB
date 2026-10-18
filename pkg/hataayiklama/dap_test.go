@@ -345,6 +345,24 @@ func TestDAPGotoAndLaunchErrors(t *testing.T) {
 	}
 }
 
+// Eşzamanlı görev hataları Debug Console'a "stderr" kategorisiyle gelir.
+func TestDAPGorevHatasi(t *testing.T) {
+	c := startDAP(t)
+	path := writeProgram(t, "eşzamanlı {\n    değişken x = 1 / 0\n}\nbekle_hepsi()\nyazdır(\"bitti\")\n")
+	c.launch(path, false)
+	stderr := c.next(func(m map[string]interface{}) bool {
+		if m["type"] != "event" || m["event"] != "output" {
+			return false
+		}
+		b := m["body"].(map[string]interface{})
+		return b["category"] == "stderr" && strings.Contains(b["output"].(string), "Eşzamanlı görev hatası")
+	}, "görev hatası çıktısı")
+	if stderr == nil {
+		t.Fatal("görev hatası gelmedi")
+	}
+	c.event("terminated")
+}
+
 func TestTableData(t *testing.T) {
 	_, val, err := runTRWithin(t, 5*time.Second, `sonuç [{"ad": "Ali", "yaş": 30}, {"ad": "Ayşe", "şehir": "İzmir"}]`)
 	if err != nil {

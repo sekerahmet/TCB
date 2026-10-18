@@ -160,6 +160,7 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 
 	makine := vm.New()
 	makine.Out = cikti
+	makine.Err = cikti // eşzamanlı görev hataları da raporda görünür
 	makine.SourceFile = yol
 	makine.SourceCode = kaynak
 	if _, err := makine.Run(prog); err != nil {

@@ -51,6 +51,9 @@ var YeniHataAyiklayici func(sourceFile, sourceCode string) HataAyiklayici
 type vmShared struct {
 	GlobalEnv *Environment
 	Out       io.Writer
+	// Err programı durdurmayan hataların (eşzamanlı görev hataları) yazıldığı yerdir;
+	// varsayılanı standart hatadır. VS Code oturumu ve tr test kendi çıktılarına bağlar.
+	Err io.Writer
 	// Stdin girdi() için okunacak kaynaktır (nil ise os.Stdin). VS Code hata ayıklama
 	// modunda standart giriş protokole ayrıldığı için burası değiştirilir. Okuma VM'in tek
 	// tamponlu okuyucusuyla yapılır (bkz. GirdiOkuyucu).
@@ -134,6 +137,7 @@ func New() *VM {
 		vmShared: &vmShared{
 			GlobalEnv: env,
 			Out:       os.Stdout,
+			Err:       os.Stderr,
 			Imported:  make(map[string]*DictVal),
 			importing: make(map[string]bool),
 		},
@@ -293,5 +297,9 @@ func suggestName(name string, env *Environment) string {
 }
 
 func (v *VM) reportAsyncError(line int, err error) {
-	fmt.Fprintf(os.Stderr, "⚠️  Eşzamanlı görev hatası (%s başlatılan): %v\n", "satır "+turkce.SayiEk(int64(line), turkce.Bulunma), err)
+	w := v.Err
+	if w == nil {
+		w = os.Stderr
+	}
+	fmt.Fprintf(w, "⚠️  Eşzamanlı görev hatası (%s başlatılan): %v\n", "satır "+turkce.SayiEk(int64(line), turkce.Bulunma), err)
 }

@@ -183,11 +183,15 @@ func (s *dapServer) output(category, text string) {
 	s.event("output", map[string]interface{}{"category": category, "output": text})
 }
 
-// dapOutput programın yazdır() çıktısını VS Code'un Debug Console'una yönlendirir.
-type dapOutput struct{ s *dapServer }
+// dapOutput programın yazdır() çıktısını ve görev hatalarını VS Code'un Debug Console'una
+// verilen kategoriyle ("stdout", "stderr") yönlendirir.
+type dapOutput struct {
+	s        *dapServer
+	kategori string
+}
 
 func (o dapOutput) Write(p []byte) (int, error) {
-	o.s.output("stdout", string(p))
+	o.s.output(o.kategori, string(p))
 	return len(p), nil
 }
 
@@ -357,7 +361,8 @@ func (s *dapServer) launch(msg *dapMessage) {
 	machine := vm.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
-	machine.Out = dapOutput{s}
+	machine.Out = dapOutput{s, "stdout"}
+	machine.Err = dapOutput{s, "stderr"} // eşzamanlı görev hataları da Debug Console'a
 	machine.Stdin = dapNoStdin{}
 
 	if !a.NoDebug {
