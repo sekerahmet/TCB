@@ -12,7 +12,7 @@ import (
 	"tr_dili/internal/dil/turkce"
 )
 
-// Kodlu saklama komutları (docs/dil/17_kodlar.md, 17.1-17.7):
+// Kodlu saklama komutları (docs/dil/17_kodlar.md, 17.1-17.6 ve "Düzenleyicide"):
 //
 //	tr kodla <dosya.tr | klasör>...       Türkçe yazılmış dosyaları yerinde kodlu biçime çevirir
 //	tr çöz <dosya.tr | klasör>...         kodlu dosyaları yerinde Türkçe yazıma geri çevirir

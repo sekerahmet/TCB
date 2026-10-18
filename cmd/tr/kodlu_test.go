@@ -158,7 +158,7 @@ func TestKodlaCozGosterKomutlari(t *testing.T) {
 	bekle(t, tr(t, k, "yardım"), 0, []string{"tr kodla <dosya.tr|klasör>", "tr çöz <dosya.tr|klasör>", "tr göster <dosya.tr> [--dil tr]"}, nil)
 }
 
-// Standart giriş kipi (düzenleyiciler için, 17.7): 'tr kodla -' ve 'tr göster -' metni
+// Standart giriş kipi (düzenleyiciler için; 17_kodlar.md, "Düzenleyicide"): 'tr kodla -' ve 'tr göster -' metni
 // girişten okur, çıkışa yalnızca çevrilmiş metni yazar; BOM ve CRLF korunur, iki yön birbirinin
 // tersidir. Ayrıştırılamayan metin çevrilmez ve 2 koduyla (sözdizimi hatası) çıkar; başka
 // hatalar 1 koduyla.

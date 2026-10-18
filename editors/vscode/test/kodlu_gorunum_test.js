@@ -1,4 +1,4 @@
-// Kodlu dosyaların Türkçe görünümü (kodlu_gorunum.js, docs/dil/17_kodlar.md 17.7), sahte vscode
+// Kodlu dosyaların Türkçe görünümü (kodlu_gorunum.js, docs/dil/17_kodlar.md "Düzenleyicide"), sahte vscode
 // modülüyle ve GERÇEK 'tr' yorumlayıcısıyla: kodlu dosyayı aç → Türkçe görünüm (başlık gizli),
 // düzenle → kaydet → diskte kodlu ve 'tr göster' ile aynı; geri al; bozuk dosyanın kayıpsız
 // kaydı; satır eşlemesi (hata mesajı ve hata ayıklayıcı); kısıtlı kip. Depo kökünden:

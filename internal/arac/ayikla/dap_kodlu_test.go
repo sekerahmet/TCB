@@ -28,7 +28,7 @@ func gorunumAdresiYap(yol string) string {
 
 // Kodlu dosya düzenleyicide Türkçe görünümüyle (başlık gizli) açılır: kesme noktaları
 // görünümün adresiyle ve görünümün satırlarıyla gelir (launch'tan önce de), çağrı yığını
-// kaynağı görünümün adresiyle ve aynı satırla bildirir (17.5, 17.7).
+// kaynağı görünümün adresiyle ve aynı satırla bildirir (17.5; 17_kodlar.md, "Düzenleyicide").
 func TestDAPKodluDosyaGorunumu(t *testing.T) {
 	turkce := "değişken a = 1\na = 2\neğer a > 1 {\n    yazdır(\"büyük\")\n}\n"
 	kodlu, err := kaynak.Kodla(turkce)

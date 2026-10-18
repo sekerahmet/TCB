@@ -34,7 +34,7 @@ Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizc
 
 ## Kodlu dosyalar: düzenleyici ve git farkları
 
-Kodlu bir dosyayı (ilk satırı `//! tr kodlu 1`) VS Code'da açtığınızda Türkçe yazımıyla görürsünüz; kaydedince diske yine kodlu yazılır, satır numaraları hata mesajlarıyla ve hata ayıklayıcıyla aynıdır (ayrıntılar: [eklenti belgesi](../../editors/vscode/README.md#kodlu-dosyalar), kural 17.7).
+Kodlu bir dosyayı (ilk satırı `//! tr kodlu 1`) VS Code'da açtığınızda Türkçe yazımıyla görürsünüz; kaydedince diske yine kodlu yazılır, satır numaraları hata mesajlarıyla ve hata ayıklayıcıyla aynıdır (ayrıntılar: [eklenti belgesi](../../editors/vscode/README.md#kodlu-dosyalar); kurallar: [17_kodlar.md, Düzenleyicide](../dil/17_kodlar.md#düzenleyicide)).
 
 `git diff` kodlu dosyada kodları gösterir (`A030 x = 1`). Farkı Türkçe görmek için git'e `tr göster`'i bir "textconv" (farktan önce metni çeviren komut) olarak tanıtın. Depodaki `.gitattributes` `.tr` dosyalarını `tr` adlı fark sürücüsüne bağlar (`*.tr diff=tr`); sürücüyü siz, kendi git ayarınızda bir kez tanımlarsınız:
 

@@ -2,7 +2,7 @@
 // bölümlerine ayırır (BOM, kodlu biçim başlığı, gövde), doğru sözcük çözümleyiciyi seçer,
 // ayrıştırır, isteğe göre tip denetiminden geçirir ve hataları ile uyarıları tek biçimde
 // döndürür. Komut satırı, etkileşimli kabuk, test koşucusu, hata ayıklama sunucusu ve modül
-// yükleyici dosyaları yalnızca buradan okur. Kodlu biçim (docs/dil/17_kodlar.md, 17.1-17.7)
+// yükleyici dosyaları yalnızca buradan okur. Kodlu biçim (docs/dil/17_kodlar.md, 17.1-17.6)
 // ve onun çeviricisi (Kodla, Coz) da yalnızca bu pakettedir.
 //
 // Katman: dil çekirdeği (internal/dil); yalnızca internal/dil paketlerini içe aktarır.

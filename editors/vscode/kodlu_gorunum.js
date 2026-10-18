@@ -1,4 +1,4 @@
-// Kodlu dosyaların Türkçe görünümü (docs/dil/17_kodlar.md, 17.7): diskte kodlu saklanan bir
+// Kodlu dosyaların Türkçe görünümü (docs/dil/17_kodlar.md, "Düzenleyicide"): diskte kodlu saklanan bir
 // .tr dosyası düzenleyicide kişinin yazım dilinde açılır, düzenlenir ve kaydedilince diske yine
 // kodlu yazılır.
 //
@@ -153,7 +153,7 @@ function olustur(vscode, g) {
         return veri;
     }
 
-    // kayitMetni görünümdeki metnin diske yazılacak biçimidir (17.7): kodlanabiliyorsa kodlu,
+    // kayitMetni görünümdeki metnin diske yazılacak biçimidir: kodlanabiliyorsa kodlu,
     // değilse metnin kendisi (kayıpsız) ve dosya kodlanmayı bekler.
     async function kayitMetni(yol, icerik, disk) {
         if (kodluBicim.kodluMu(icerik)) {

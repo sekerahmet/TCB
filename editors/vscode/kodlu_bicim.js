@@ -1,4 +1,4 @@
-// Kodlu saklamanın (docs/dil/17_kodlar.md, 17.1-17.7) eklentideki vscode'a bağlı olmayan
+// Kodlu saklamanın (docs/dil/17_kodlar.md, 17.1-17.6 ve "Düzenleyicide") eklentideki vscode'a bağlı olmayan
 // parçaları: kodlu biçim başlığını tanıma ve 'tr' ile çeviri. Eklentide ikinci bir çevirici
 // yoktur: Türkçe görünüm 'tr göster -', kodlu kayıt 'tr kodla -' ile üretilir (metin standart
 // girişten okunur, sonuç standart çıktıya yazılır). Node ile ayrıca sınanır
