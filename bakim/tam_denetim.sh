@@ -78,9 +78,10 @@ if [ "$kip" != v1 ]; then
 
 	adim "Biçim (gofmt) ve go vet"
 	# Depodaki (izlenen ve henüz eklenmemiş) bütün Go dosyaları; .claude/ altındaki çalışma
-	# ağaçları başka depolardır.
+	# ağaçları başka depolardır. Silinmiş ama henüz commitlenmemiş dosyalar atlanır.
 	if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-		bicimsiz=$(git ls-files -co --exclude-standard -- '*.go' ':!:.claude/**' | xargs gofmt -l)
+		bicimsiz=$(git ls-files -co --exclude-standard -- '*.go' ':!:.claude/**' |
+			while IFS= read -r f; do if [ -f "$f" ]; then printf '%s\n' "$f"; fi; done | xargs gofmt -l)
 	else
 		bicimsiz=$(gofmt -l ./cmd ./internal ./kitaplik ./bakim)
 	fi
