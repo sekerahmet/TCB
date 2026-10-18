@@ -130,8 +130,14 @@ type parcaliToplam struct {
 	g, b          []float64
 }
 
+// normParca norm gradyanlarında bir parçanın eleman sayısı (satır sayısı
+// normParca/D). Model boylarında (1024×64) 16 parça verir: 2-4 katılımcıda geç
+// başlayan ya da yavaş bir katılımcının son parçası kısa kalır (4 parçada
+// çağıran ~30 µs'lik bir parçayı bekliyordu).
+const normParca = 1 << 12
+
 func yeniParcaliToplam(R, D int, gVar, bVar bool) *parcaliToplam {
-	rpc := max(1, indirgemeParca/max(D, 1))
+	rpc := max(1, normParca/max(D, 1))
 	p := &parcaliToplam{R: R, D: D, rpc: rpc, nc: (R + rpc - 1) / rpc}
 	if gVar {
 		p.g = make([]float64, p.nc*D)

@@ -301,19 +301,35 @@ func parallelFor(n, cost int, fn func(lo, hi int)) {
 		fn(0, n)
 		return
 	}
-	// Yük dengesi için işçi başına birkaç parça (yavaş çekirdekler daha az
-	// parça alır).
-	chunks := w * 4
-	if chunks > n {
-		chunks = n
-	}
-	size := (n + chunks - 1) / chunks
-	chunks = (n + size - 1) / size
-	dagit(w, chunks, func(_, c int) {
-		lo := c * size
-		fn(lo, min(lo+size, n))
+	// Yönlendirmeli parçalama: her katılımcı kalan işin 1/(2w)'sini alır, parçalar
+	// sona doğru küçülür (en az yonluEnAz birimlik iş). Geç başlayan (uyandırılan)
+	// ya da yavaş çekirdekteki bir katılımcının son parçası böylece kısa kalır ve
+	// çağıran, kendi işi bitince onu daha az bekler. Parça sınırları zamanlamaya
+	// bağlıdır: parallelFor çağıranları sınırlardan bağımsız sonuç üretir (eleman
+	// ya da satır bazlı işler; toplamlar sabit parçalı parallelSum ile).
+	enAz := int64(max(1, yonluEnAz/max(cost, 1)))
+	pay := int64(2 * w)
+	var sonraki atomic.Int64
+	dagit(w, w, func(_, _ int) {
+		for {
+			bas := sonraki.Load()
+			kalan := int64(n) - bas
+			if kalan <= 0 {
+				return
+			}
+			al := max(kalan/pay, enAz)
+			if !sonraki.CompareAndSwap(bas, bas+al) {
+				continue
+			}
+			fn(int(bas), int(min(bas+al, int64(n))))
+		}
 	})
 }
+
+// yonluEnAz parallelFor'un yönlendirmeli parçalarında bir parçanın en az işi
+// (eleman × göreli maliyet; ~2-3 µs). Daha küçük parçalarda sayaç erişimi ve
+// çağrı maliyeti öne çıkar.
+const yonluEnAz = paralelEsik / 4
 
 // indirgemeParca belirlenimci paralel toplamlarda sabit parça uzunluğu. Parça
 // sınırları yalnızca eleman sayısına bağlıdır (işçi sayısına değil); kısmi
