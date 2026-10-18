@@ -75,10 +75,14 @@ func isSuffixShape(b, out []int) bool {
 
 var binopAd = [...]string{"add", "sub", "mul", "div"}
 
-func binary(a, b *Tensor, op BinOp) *Tensor {
+func binary(a, b *Tensor, op BinOp) *Tensor { return binaryTur(a, b, op, sonucTuru(a.tur, b.tur)) }
+
+// binaryTur binary gibidir; sonucun türü dt'dir (hesap en az float32'de yapılıp dt'ye
+// bir kez yuvarlanır).
+func binaryTur(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	be := sameDevice(binopAd[op], a, b)
 	outShape := broadcastShapes(a.shape, b.shape)
-	out := emptyOf(be, outShape, sonucTuru(a.tur, b.tur))
+	out := emptyOf(be, outShape, dt)
 	be.Binary(op, out.storage, outShape, a.view(), b.view())
 	var kaydet []*Tensor // geri yayılımın okuduğu girdiler
 	switch op {
@@ -179,8 +183,12 @@ func (t *Tensor) SubScalar(s float32) *Tensor { return unary(t, OpAddScalar, -s)
 // MulScalar her elemanı s ile çarpar.
 func (t *Tensor) MulScalar(s float32) *Tensor { return unary(t, OpMulScalar, s) }
 
-// DivScalar her elemanı s'ye böler.
-func (t *Tensor) DivScalar(s float32) *Tensor { return unary(t, OpMulScalar, 1/s) }
+// DivScalar her elemanı s'ye böler. 1/s ile çarpma değil gerçek bölmedir (yuvarlama
+// farkı olmaz) ve sonuç t'nin türündedir (16 bitlik tensör 16 bitlik kalır; diğer
+// skaler işlemlerle tutarlı).
+func (t *Tensor) DivScalar(s float32) *Tensor {
+	return binaryTur(t, fromStorage(t.be, t.be.FromHost([]float32{s}, Float32), nil), OpDiv, t.tur)
+}
 
 // RSubScalar s - x hesaplar.
 func (t *Tensor) RSubScalar(s float32) *Tensor { return unary(t, OpRSubScalar, s) }

@@ -204,3 +204,19 @@ func TestGeluVeSifirinciKuvvetGradyani(t *testing.T) {
 	yakin(t, "d/dx x^0", z.Grad().Data(), []float32{0, 0, 0}, 0)
 	yakin(t, "x^0", z.Detach().Pow(0).Data(), []float32{1, 1, 1}, 0)
 }
+
+// Bulgu 5: skalere bölme tensörün türünü korur ve gerçek bölmedir (float32'de bölünüp bir
+// kez yuvarlanır).
+func TestDivScalarTuruKorur(t *testing.T) {
+	x := New([]float32{1, 2, 3}, 3)
+	for _, dt := range []DType{Float32, BFloat16, Float16} {
+		y := x.Cast(dt).DivScalar(3)
+		if y.DType() != dt {
+			t.Fatalf("%s / 3 türü %s", dt, y.DType())
+		}
+		yakin(t, dt.String()+" / 3", y.Data(), Div(x, Scalar(3)).Cast(dt).Data(), 0)
+	}
+	// 1/s ile çarpmadan farklı olarak tam bölme: 3/3 = 1.
+	yakin(t, "3/3", New([]float32{3}, 1).DivScalar(3).Data(), []float32{1}, 0)
+	gradDenetle(t, "DivScalar gradyanı", func(xs []*Tensor) *Tensor { return xs[0].DivScalar(4) }, New([]float32{1, -2, 3}, 3))
+}

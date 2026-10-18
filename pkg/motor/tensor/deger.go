@@ -437,8 +437,9 @@ func (d *Deger) ikili(op string, other vm.Value) (vm.Value, error) {
 			case "*":
 				return d.t.MulScalar(f)
 			default:
-				// Bölme, 1/s ile çarpma yerine gerçek bölmeyle yapılır (yuvarlama farkı olmasın).
-				return ct.Div(d.t, ct.Scalar(f).To(d.t.Device()))
+				// Bölme, 1/s ile çarpma yerine gerçek bölmeyle yapılır (yuvarlama farkı olmasın);
+				// sonuç tensörün türündedir (* + - gibi).
+				return d.t.DivScalar(f)
 			}
 		})
 		if err != nil {

@@ -359,6 +359,9 @@ test "15.12 veri türleri: tür seçimi, .tür ve .türe" {
     // Aynı türlü işlenenlerin sonucu o türde, farklı türlerinki float32'dir.
     eşit_mi("bf16", (a @ a).tür)
     eşit_mi("float32", (a + tensör([1.0, 1.0])).tür)
+    // Sayıyla işlemler tensörün türünü korur (bölme dahil); bölme gerçek bölmedir.
+    eşit_mi(["bf16", "bf16", "bf16", "bf16", "bf16"], [(a * 2).tür, (a + 2).tür, (a - 2).tür, (a / 2).tür, (2 / a).tür])
+    eşit_mi([1.5, 0.5], (tensör([3.0, 1.0], tür: "fp16") / 2).değer)
     // .türe türevlenebilir: gradyan kaynak tensöre (kendi türünde) akar.
     değişken w = tensör([[1.0, 2.0]], türev_izle: doğru)
     değişken y = w.türe("fp16")
