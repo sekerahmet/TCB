@@ -252,6 +252,13 @@ func TestBicimle(t *testing.T) {
 	bekle(t, tr(t, klasor, "biçimle", "a.tr"), 0, []string{"biçimlendi: a.tr"}, nil)
 	bekle(t, tr(t, klasor, "biçimle", "--kontrol", "."), 0, []string{"hepsi standart biçimde"}, nil)
 	bekle(t, tr(t, klasor, "biçimle", "olmayan.tr"), 1, nil, []string{`"olmayan.tr" biçimlenemedi: böyle bir dosya ya da klasör yok`})
+	// Sözdizimi hatalı dosya varken "hepsi standart biçimde" denmez
+	dosyaYaz(t, klasor, "bozuk.tr", "yazdır(\n")
+	s = tr(t, klasor, "biçimle", "--kontrol", ".")
+	bekle(t, s, 1, []string{"1 tanesi biçimlenemedi"}, []string{"bozuk.tr"})
+	if strings.Contains(s.cikti, "standart biçimde") {
+		t.Errorf("hatalı dosya varken başarı yazılmamalı: %q", s.cikti)
+	}
 }
 
 func TestDAPBaslangici(t *testing.T) {

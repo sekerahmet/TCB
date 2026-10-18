@@ -97,6 +97,36 @@ test "13.3 sırala sayıları tam, metinleri karakter sırasıyla dizer; karış
     döngü h içinde hatalar { doğrula(h.içerir("yalnızca sayılardan ya da yalnızca metinlerden"), h) }
 }
 
+test "13.2 metotlar argüman sayısını ve tipini denetler" {
+    değişken hatalar = []
+    dene { "abc".içerir() } yakala h { hatalar.ekle(h) }
+    dene { "a1".içerir(1) } yakala h { hatalar.ekle(h) }
+    dene { "abc".büyük_harf(1) } yakala h { hatalar.ekle(h) }
+    dene { "a,b".böl(1) } yakala h { hatalar.ekle(h) }
+    dene { "abc".değiştir("a") } yakala h { hatalar.ekle(h) }
+    dene { [1, 2].filtrele(3) } yakala h { hatalar.ekle(h) }
+    dene { [1].ekle() } yakala h { hatalar.ekle(h) }
+    dene { {"a": 1}.anahtarlar(1) } yakala h { hatalar.ekle(h) }
+    eşit_mi(8, uzunluk(hatalar), metin(hatalar))
+    doğrula(hatalar[0].içerir("metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))"), hatalar[0])
+    doğrula(hatalar[1].içerir("metin.içerir() 1. argüman olarak Metin bekler, Tam (1) verildi"), hatalar[1])
+    doğrula(hatalar[2].içerir("metin.büyük_harf() 0 argüman bekler, 1 verildi"), hatalar[2])
+    doğrula(hatalar[5].içerir("liste.filtrele() 1. argüman olarak Fonksiyon bekler"), hatalar[5])
+    // Liste ve sözlük içerir her tipte değer arar
+    doğrula(değil [1, 2].içerir("1"))
+    doğrula([1, 2].içerir(1.0))
+}
+
+test "13.3 boş ya da sayı olmayan listenin ortalaması hatadır" {
+    eşit_mi(2.0, [1, 2, 3].ortalama())
+    değişken hatalar = []
+    dene { [].ortalama() } yakala h { hatalar.ekle(h) }
+    dene { [1, "x", 3].ortalama() } yakala h { hatalar.ekle(h) }
+    eşit_mi(2, uzunluk(hatalar), metin(hatalar))
+    doğrula(hatalar[0].içerir("boş listenin ortalaması yoktur"), hatalar[0])
+    doğrula(hatalar[1].içerir("listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[1])
+}
+
 test "13.4 sözlük metotları" {
     değişken d = {"a": 1, "b": 2}
     eşit_mi(["a", "b"], d.anahtarlar())

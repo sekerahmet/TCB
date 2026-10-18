@@ -88,6 +88,8 @@ func bicimleKomutu(args []string) {
 	switch {
 	case kontrol && degisen > 0:
 		fmt.Printf("%d dosyadan %d tanesi biçimlenmeli. Düzeltmek için: tr biçimle <dosya|klasör>\n", len(dosyalar), degisen)
+	case hatali > 0:
+		fmt.Printf("%d dosyadan %d tanesi biçimlenemedi (yukarıdaki hatalara bakın).\n", len(dosyalar), hatali)
 	case kontrol:
 		fmt.Printf("✅ %d dosyanın hepsi standart biçimde.\n", len(dosyalar))
 	default:

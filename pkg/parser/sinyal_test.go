@@ -88,3 +88,36 @@ func TestModulUstDuzeySonucHatadir(t *testing.T) {
 		t.Errorf("fonksiyon içindeki sonuç geçerli olmalıydı: %v", h)
 	}
 }
+
+// Çok derin iç içe girdi Go yığınını taşırıp süreci yakalanamaz biçimde çökertiyordu;
+// iç içelik sınırı Türkçe bir sözdizimi hatası verir.
+func TestIcIceDerinlikSiniri(t *testing.T) {
+	for _, kod := range []string{
+		strings.Repeat("[", 200000),
+		"değişken x = " + strings.Repeat("(", 5000) + "1" + strings.Repeat(")", 5000),
+		strings.Repeat("eğer doğru { ", 3000) + strings.Repeat("}", 3000),
+		strings.Repeat("-", 100000) + "1",
+	} {
+		h := parseErrors(kod)
+		if len(h) == 0 || !strings.Contains(h[0], "çok derin iç içe") {
+			t.Errorf("derinlik hatası bekleniyordu (%d karakter): %.200v", len(kod), h)
+		}
+	}
+	// Sınırın altındaki iç içelik geçerlidir
+	if h := parseErrors("değişken x = " + strings.Repeat("[", 500) + strings.Repeat("]", 500)); len(h) > 0 {
+		t.Errorf("500 düzey geçerli olmalı: %.200v", h)
+	}
+}
+
+// aktar yalnızca metin olarak yazılmış bir yol alır (§11): tırnaksız yazım sözdizimi hatasıdır.
+func TestAktarTirnaksizYolHatadir(t *testing.T) {
+	for _, kod := range []string{"aktar yardımcı", "aktar 5", "aktar"} {
+		h := parseErrors(kod)
+		if len(h) == 0 || !strings.Contains(h[0], "modül yolunu metin olarak bekler") {
+			t.Errorf("%q: tırnaksız aktar hatası bekleniyordu: %v", kod, h)
+		}
+	}
+	if h := parseErrors("aktar \"yardımcı\" olarak y"); len(h) > 0 {
+		t.Errorf("tırnaklı aktar geçerli olmalı: %v", h)
+	}
+}

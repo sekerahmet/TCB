@@ -190,7 +190,7 @@ func TestDogrudanMetotCagrilari(t *testing.T) {
 		t.Fatalf("beklenmeyen: %v %v", val, err)
 	}
 	_, _, err = runTROut(t, "değişken l = [1]\nl.haritala(1, 2)\n")
-	if err == nil || err.Error() != "Satır 2: liste.haritala(fonksiyon) 1 parametre bekler" {
+	if err == nil || err.Error() != "Satır 2: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))" {
 		t.Fatalf("metot hatası: %v", err)
 	}
 }

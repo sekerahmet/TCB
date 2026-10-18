@@ -42,6 +42,8 @@ func TestStandartBicim(t *testing.T) {
 		{"çok satırlı liste", "l = [\n1,\n  2\n    ]\n", "l = [\n    1,\n    2\n]\n"},
 		{"kapanışla başlayan satır", "f(fonksiyon() {\nyazdır(1)\n}, 2)\n", "f(fonksiyon() {\n    yazdır(1)\n}, 2)\n"},
 		{"CRLF", "a = 1\r\neğer a {\r\n  b()\r\n}\r\n", "a = 1\neğer a {\n    b()\n}\n"},
+		// Çok satırlı metnin içindeki satır sonları da LF yazılır (karışık satır sonu kalmaz)
+		{"CRLF çok satırlı metin", "m = \"a\r\nb\"\r\n", "m = \"a\nb\"\n"},
 		{"test bloğu", "test \"ad\"{doğrula(1==1)}\n", "test \"ad\" { doğrula(1 == 1) }\n"},
 		{"boş kaynak", "", ""},
 	}

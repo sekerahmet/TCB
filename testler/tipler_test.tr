@@ -91,6 +91,20 @@ test "3.7 Sözlük: eklenme sırasını korur, çıplak ad anahtarı metindir" {
     eşit_mi(4, uzunluk(d))
 }
 
+test "3.7 sayı anahtarları sayı eşitliğiyle bulunur: d[1] ile d[1.0] aynı anahtardır" {
+    değişken d = {1: "bir"}
+    eşit_mi("bir", d[1.0])
+    d[2.0] = "iki"
+    eşit_mi("iki", d[2])
+    eşit_mi([1, 2.0], d.anahtarlar())
+    d[1.0] = "BİR"
+    eşit_mi(2, uzunluk(d))
+    eşit_mi("BİR", d[1])
+    doğrula(d.içerir(1.0))
+    eşit_mi("yarım", {0.5: "yarım"}[0.5])
+    eşit_mi(yok, {1: "bir"}["1"])
+}
+
 test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk eleman sayısıdır" {
     değişken d = {"anahtarlar": 5, "a": 1}
     eşit_mi(5, d["anahtarlar"])

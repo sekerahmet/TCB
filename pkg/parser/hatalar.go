@@ -88,7 +88,7 @@ func beklenmeyenIpucu(beklenen lexer.TokenType, bulunan lexer.Token) string {
 // ardından gelenler çoğunlukla ilkinin sonucudur ve kullanıcıyı yanıltır. Deyim
 // döngüleri senkronizeOl ile hatalı deyimin geri kalanını atlayıp kaydı yeniden açar.
 func (p *Parser) hataKaydet(tok lexer.Token, mesaj string) {
-	if p.hataModu {
+	if p.hataModu || p.derinlikAsildi {
 		return
 	}
 	p.hataModu = true

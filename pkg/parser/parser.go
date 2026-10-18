@@ -90,6 +90,11 @@ type Parser struct {
 	// (baglam.go); modul, kodun bir modül olarak ayrıştırıldığını söyler (ParseModule).
 	baglam deyimBaglami
 	modul  bool
+
+	// derinlik içinde bulunulan ifade/blok iç içelik düzeyidir; derinlikAsildi sınır
+	// aşıldıktan sonra açıktır (bkz. derinlikGir).
+	derinlik       int
+	derinlikAsildi bool
 }
 
 // parseMatchPattern bir eşle kolunun desenini okur.
@@ -553,6 +558,11 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	defer p.allowBlocks()()
 	block := &ast.BlockStatement{Token: p.curToken()}
 	block.Statements = []ast.Statement{}
+	if !p.derinlikGir() {
+		p.blokSonunaAtla()
+		return block
+	}
+	defer p.derinlikCik()
 
 	p.nextToken()
 
@@ -807,6 +817,16 @@ func (p *Parser) parseThrowStatement() *ast.ThrowStatement {
 
 func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	tok := p.curToken()
+	// Modül yolu bir metin olarak yazılır: aktar "yol" (§11). Tırnaksız ad yol sayılmaz.
+	if !p.peekTokenIs(lexer.TOKEN_STRING) {
+		sonraki := p.peekToken()
+		ornek := "yardımcı"
+		if sonraki.Type == lexer.TOKEN_IDENT {
+			ornek = sonraki.Literal
+		}
+		p.hataKaydet(sonraki, fmt.Sprintf("Sözdizimi hatası — 'aktar' modül yolunu metin olarak bekler, ancak %s bulundu: aktar \"%s\" yazın", tokenAciklamasi(sonraki), ornek))
+		return nil
+	}
 	p.nextToken()
 	path := p.curToken().Literal
 	stmt := &ast.ImportStatement{Token: tok, Path: path}
@@ -841,6 +861,10 @@ func (p *Parser) parseAsyncStatement() *ast.AsyncStatement {
 // --- İFADE ÇÖZÜMLEME (PRATT PARSER) ---
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
+	if !p.derinlikGir() {
+		return nil
+	}
+	defer p.derinlikCik()
 	var leftExp ast.Expression
 	desen := p.desenKipi
 	p.desenKipi = false

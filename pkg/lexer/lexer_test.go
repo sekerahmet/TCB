@@ -688,3 +688,12 @@ func TestKaldirilanEsAnlamlilarAddir(t *testing.T) {
 		}
 	}
 }
+
+// CRLF satır sonlu dosyada çok satırlı metnin değeri '\r' içermez: satır sonu kaynağın
+// biçiminden bağımsız olarak '\n'dir ('\r' yalnızca kaçışla, \r, yazılır).
+func TestCRLFMetinSatirSonu(t *testing.T) {
+	toks := hatasizTokenlar(t, "\"a\r\nb\" + 'c\r\nd' + \"e\\rf\"")
+	if toks[0].Literal != "a\nb" || toks[2].Literal != "c\nd" || toks[4].Literal != "e\rf" {
+		t.Fatalf("metin değerleri: %q %q %q", toks[0].Literal, toks[2].Literal, toks[4].Literal)
+	}
+}

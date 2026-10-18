@@ -86,3 +86,11 @@ test "2.9a kaldırılan eş anlamlılar sıradan addır" {
     dene { döndür } yakala h { mesaj = "{h}" }
     doğrula(mesaj.içerir("'sonuç' yazmak mı istediniz"), mesaj)
 }
+
+test "2.10 iç içelik sınırı aşılınca sözdizimi hatası verilir" {
+    değişken derin = ((((((((((1))))))))))
+    eşit_mi(1, derin)
+    değişken mesaj = ""
+    dene { aktar "olumsuz/cok_derin" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("çok derin iç içe (en fazla 1000 düzey)"), mesaj)
+}

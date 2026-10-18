@@ -147,7 +147,7 @@ func TestIcHataSatiriTekKez(t *testing.T) {
 		sonuç h
 	`)
 	want := `["Satır 3: Sıfıra bölme hatası", "Satır 5: Sıfıra bölme hatası", ` +
-		`"Satır 6: liste.haritala(fonksiyon) 1 parametre bekler", "Satır 7: uzunluk() 1. argüman olarak Metin, Liste ya da Sözlük bekler, Tam (5) verildi"]`
+		`"Satır 6: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))", "Satır 7: uzunluk() 1. argüman olarak Metin, Liste ya da Sözlük bekler, Tam (5) verildi"]`
 	if err != nil || val.Inspect() != want {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
 	}

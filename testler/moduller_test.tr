@@ -7,6 +7,12 @@ test "11.1 aktar modülün üst düzey adlarını getirir; .tr uzantısı isteğ
     eşit_mi(9, kare(PI))
 }
 
+test "11.1 modül yolu metin olarak yazılır; tırnaksız yazım hatadır" {
+    değişken mesaj = ""
+    dene { aktar "olumsuz/tirnaksiz_aktar" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("'aktar' modül yolunu metin olarak bekler, ancak 'yardimci_modul' adı bulundu: aktar \"yardimci_modul\" yazın"), mesaj)
+}
+
 test "11.2 olarak ile modül tek bir Sözlük olarak bağlanır" {
     eşit_mi("Sözlük", tip(ym))
     eşit_mi(4, ym.kare(2))

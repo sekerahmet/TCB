@@ -140,12 +140,32 @@ func NewDictVal() *DictVal {
 // karakteri normal metinlerde bulunmadığından metin anahtarlarla çakışmaz.
 const nonStringKeyPrefix = "\x00"
 
-// DictKey bir değeri sözlük içindeki türe duyarlı anahtarına dönüştürür.
+// DictKey bir değeri sözlük içindeki türe duyarlı anahtarına dönüştürür. Sayı anahtarları
+// sayı eşitliğine uyar (4.5: 1 == 1.0): tam değerli bir Ondalık, aynı değerli Tam ile aynı
+// anahtardır.
 func DictKey(v Value) string {
 	if s, ok := v.(*StringVal); ok {
 		return s.Val
 	}
+	if n, ok := tamAnahtarDegeri(v); ok {
+		var b [32]byte
+		return string(tamAnahtar(b[:0], n))
+	}
 	return nonStringKeyPrefix + string(v.Type()) + ":" + v.Inspect()
+}
+
+// tamAnahtarDegeri bir sayının Tam anahtar olarak değerini verir: Tam'ın kendisi ya da tam
+// değerli (kesirsiz, Tam aralığında) bir Ondalık.
+func tamAnahtarDegeri(v Value) (int64, bool) {
+	switch x := v.(type) {
+	case *IntVal:
+		return x.Val, true
+	case *FloatVal:
+		if x.Val == math.Trunc(x.Val) && x.Val >= -tamSiniri && x.Val < tamSiniri {
+			return int64(x.Val), true
+		}
+	}
+	return 0, false
 }
 
 func (d *DictVal) Set(key string, val Value) {
@@ -184,10 +204,14 @@ func (d *DictVal) SetValue(key Value, val Value) {
 	}
 	k := DictKey(key)
 	if _, isStr := key.(*StringVal); !isStr {
-		if d.KeyVals == nil {
-			d.KeyVals = make(map[string]Value)
+		// Özgün anahtar yalnızca yeni girdide saklanır (d[1] varken d[1.0] = ... aynı girdiyi
+		// günceller, anahtar 1 olarak kalır)
+		if _, var_ := d.Pairs[k]; !var_ {
+			if d.KeyVals == nil {
+				d.KeyVals = make(map[string]Value)
+			}
+			d.KeyVals[k] = key
 		}
-		d.KeyVals[k] = key
 	}
 	d.Set(k, val)
 }

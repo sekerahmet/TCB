@@ -36,7 +36,7 @@ değişken x = 1  // satır sonuna kadar yorum
 
 **2.5** Ondalık sabitler nokta içerir ve noktadan sonra rakam gelmelidir: `3.14`. (`1..5` bir aralıktır, ondalık değil.) Bilimsel yazım da Ondalık verir: üs harfi `e`/`E`, isteğe bağlı `+`/`-` ve en az bir rakam (`1e-5`, `3.2E+4`, `2e10`); üsten sonra rakam yoksa `e` sayıya ait değildir (`2e` → `2` ve `e` adı).
 
-**2.6** Metinler çift (`"..."`) ya da tek (`'...'`) tırnakla yazılır; `\n \t \r \" \' \\` kaçış dizileri tanınır, bilinmeyen kaçışta ters bölü atılır. Metin birden çok satıra yayılabilir.
+**2.6** Metinler çift (`"..."`) ya da tek (`'...'`) tırnakla yazılır; `\n \t \r \" \' \\` kaçış dizileri tanınır, bilinmeyen kaçışta ters bölü atılır. Metin birden çok satıra yayılabilir; metnin içindeki satır sonu kaynağın satır sonu biçiminden bağımsız olarak `\n`dir (CRLF'li bir dosyada metnin değerine `\r` girmez; `\r` yalnızca kaçışla yazılır). `tr biçimle` metinlerin içindekiler dahil bütün satır sonlarını LF yazar.
 
 **2.7** Metin içindeki `{ifade}` yerleştirmedir: ifade hesaplanıp metne yazılır. Yerleştirme aynı satırda kapanmalıdır; düz süslü parantez için `\{` ve `\}` yazılır. Ayrıştırılamayan `{...}` olduğu gibi metinde kalır.
 
@@ -88,6 +88,8 @@ Kaldırılan dil adları (anahtar kelimeler, yerleşikler, üyeler, adlı argüm
 
 **Yerleşik ad gölgeleme uyarısı.** Bir yerleşiğin adı (`uzunluk`, `toplam`, `girdi`, `metin`, `ekle` ...) değişken, fonksiyon, parametre, döngü değişkeni, `yakala` değişkeni ya da yapı adı olarak tanımlanabilir; o kapsamda ad kullanıcının tanımını gösterir ve yerleşik kullanılamaz. Tip denetleyicisi bunun için bir **uyarı** verir; uyarı hata değildir, program çalışır ve çıkış kodu değişmez. Uyarılar standart hataya, tip hatalarından ayrı, `⚠️ Uyarılar:` başlığıyla yazılır: `Satır 1: 'uzunluk' yerleşik bir ad; bu kapsamda yerleşik 'uzunluk' artık kullanılamaz`. Gölgelenmiş ad yerleşik gibi çağrılırsa çalışma zamanı hatası nedenini söyler: `Satır 2: 'uzunluk' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'uzunluk' bu kapsamda gölgelendi`. Yapı alanları ve metotları (`kendi.uzunluk`, `p.toplam()`) gölgeleme sayılmaz.
 
+**2.10** İfadeler ve bloklar en fazla 1000 düzey iç içe yazılabilir (`((((1))))` dört düzeydir); sınır aşılırsa program çalışmaz, `ifade ya da blok çok derin iç içe (en fazla 1000 düzey)` sözdizimi hatası verilir. (Sınırsız iç içelik yorumlayıcıyı yakalanamaz biçimde çökertirdi.)
+
 Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `_` (yalnızca `eşle` kolunda varsayılan).
 
 ---
@@ -114,7 +116,7 @@ uzunluk("şeker")   // 5
 
 **3.6** `Liste`: sıralı, karışık tipli, değiştirilebilir dizi: `[1, "iki", 3.0]`. Negatif indeks sondan sayar, okuma sırasında sınır dışı indeks `yok` verir (yazmada hatadır), `l[a..b]` dilim verir (dilim uçları Metin'deki gibidir, 3.3: `[1, 2, 3, 4][-2..4]` → `[3, 4]`). Listeler, sözlükler ve nesneler **başvuruyla** paylaşılır: `b = a` aynı listeyi gösterir.
 
-**3.7** `Sözlük`: eklenme sırasını koruyan anahtar–değer tablosu. Çıplak ad anahtarı metindir (`{ad: "Ali"}` ≡ `{"ad": "Ali"}`); metin olmayan anahtarlar da geçerlidir (`{1: "bir"}`). Olmayan anahtar `yok` verir; `d.ad` biçimi `d["ad"]` ile aynıdır (okuma ve atama). Tek istisna sözlüğün kendi üyeleridir (`.uzunluk`, `.anahtarlar()`, `.değerler()`, `.içerir()`): ad bir üye adıysa üye önceliklidir; `d.anahtarlar` aynı adlı anahtarı değil metodu verir, `d.uzunluk` eleman sayısıdır. Böyle bir anahtar `d["anahtarlar"]` ile okunur ve yazılır; `d.anahtarlar = 5` ataması hatadır.
+**3.7** `Sözlük`: eklenme sırasını koruyan anahtar–değer tablosu. Çıplak ad anahtarı metindir (`{ad: "Ali"}` ≡ `{"ad": "Ali"}`); metin olmayan anahtarlar da geçerlidir (`{1: "bir"}`). Sayı anahtarları sayı eşitliğine uyar (4.5): `d[1]` ile `d[1.0]` aynı girdidir, anahtar ilk eklendiği biçimiyle saklanır; `d["1"]` ise ayrı bir anahtardır. Olmayan anahtar `yok` verir; `d.ad` biçimi `d["ad"]` ile aynıdır (okuma ve atama). Tek istisna sözlüğün kendi üyeleridir (`.uzunluk`, `.anahtarlar()`, `.değerler()`, `.içerir()`): ad bir üye adıysa üye önceliklidir; `d.anahtarlar` aynı adlı anahtarı değil metodu verir, `d.uzunluk` eleman sayısıdır. Böyle bir anahtar `d["anahtarlar"]` ile okunur ve yazılır; `d.anahtarlar = 5` ataması hatadır.
 
 **3.8** `Aralık`: `a..b` (b hariç) ve `a..=b` (b dahil); uçlar `Tam` olmalıdır. `a > b` ise geriye doğru sayar (`3..0` → 3, 2, 1); `a..a` boş, `a..=a` tek elemanlıdır. Tam sınırındaki uçlar da taşmadan gezilir (`(üst - 1)..=üst`, üst = 9223372036854775807).
 
@@ -350,7 +352,7 @@ bekle_hepsi()      // toplam == 20100
 
 ## 11. Modüller
 
-**11.1** `aktar "yol"` başka bir `.tr` dosyasını çalıştırır ve üst düzey adlarını bulunulan kapsama getirir. `.tr` uzantısı isteğe bağlıdır; yol dosya yerleşiklerindeki tek kuralla (bkz. **13.1**) önce çalışma klasörüne, bulunamazsa aktaran dosyanın klasörüne, o da olmazsa programın klasörüne göre çözülür.
+**11.1** `aktar "yol"` başka bir `.tr` dosyasını çalıştırır ve üst düzey adlarını bulunulan kapsama getirir. Yol bir metin sabitidir (tırnaksız `aktar yardımcı` sözdizimi hatasıdır); `.tr` uzantısı isteğe bağlıdır; yol dosya yerleşiklerindeki tek kuralla (bkz. **13.1**) önce çalışma klasörüne, bulunamazsa aktaran dosyanın klasörüne, o da olmazsa programın klasörüne göre çözülür.
 
 **11.2** `aktar "yol" olarak ad` modülün adlarını tek bir `Sözlük` olarak `ad`a bağlar: `ym.kare(2)`, `ym["PI"]`.
 
@@ -390,13 +392,13 @@ test "toplama doğru" {
 
 ## 13. Yerleşik fonksiyonlar ve metotlar
 
-Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirdek seçki tanımlanır. Metotlar `değer.metot(...)` ile çağrılır; argümansız olanlar (`.uzunluk`, `.ilk`, `.son`) parantezsiz de yazılır. Her yerleşiğin ve metodun tek adı vardır ve yalnızca Türkçe yazımıyla geçerlidir (`sırala`; `sirala` sıradan bir addır); eş anlamlı ad yoktur (bkz. 2.9, 2.9a). Bir yerleşiğin adını kendi tanımınıza vermek uyarı verir (2.9a, "Yerleşik ad gölgeleme uyarısı").
+Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirdek seçki tanımlanır. Metotlar `değer.metot(...)` ile çağrılır; argümansız olanlar (`.uzunluk`, `.ilk`, `.son`) parantezsiz de yazılır. Metotlar da yerleşikler gibi argüman sayısını ve tipini denetler: `metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))`, `metin.içerir() 1. argüman olarak Metin bekler, Tam (1) verildi`. Her yerleşiğin ve metodun tek adı vardır ve yalnızca Türkçe yazımıyla geçerlidir (`sırala`; `sirala` sıradan bir addır); eş anlamlı ad yoktur (bkz. 2.9, 2.9a). Bir yerleşiğin adını kendi tanımınıza vermek uyarı verir (2.9a, "Yerleşik ad gölgeleme uyarısı").
 
 **13.1** Genel: `yazdır(...)` (değerleri boşlukla birleştirip yazar), `uzunluk`, `tip`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `aralık(a, b)`, `filtrele`, `haritala`, `indirge`, `sırala`, `ekle`, `bekle`, `bekle_hepsi`, `zaman_ms`, `dosya_oku`, `dosya_yaz`, `girdi`. Sayı yerleşikleri işleçlerin kurallarına uyar (3.1, 4.2): `toplam(liste)` elemanlar Tam ise Tam, bir Ondalık varsa Ondalık verir, sayı olmayan eleman hatadır; `min` ve `maks` tek bir liste ya da birden çok sayı alır ve kazanan değerin kendisini tipiyle verir (`maks([2.0, 1.5])` → `2.0`), Tam'ları tam karşılaştırır (`maks([9007199254740993, 1])` → `9007199254740993`), sayı olmayan değerde (metin dahil) hata, boş listede `yok` verir; `yuvarla(x, basamak)` basamak pozitifse Ondalık, 0 ya da negatifse Tam verir (`yuvarla(1234, -2)` → `1200`). `girdi([istem])` standart girişten bir satır okur (satır sonu atılır; giriş bittiyse boş metin verir); süreçteki bütün okumalar (art arda `girdi()` çağrıları, etkileşimli kabuk, terminal hata ayıklayıcısı) tek bir tamponlu okuyucudan yapılır, bu yüzden boruyla verilen satırlar sırayla gelir ve hiçbiri kaybolmaz. Yerleşikler eksik ya da fazla argümanı ve yanlış tipi reddeder; hata `aralık() 1. argüman olarak Tam bekler, Metin ("a") verildi` biçimindedir. `dosya_oku(yol)` ve `dosya_yaz(yol, içerik)` yolu `Metin` olarak ister; göreli bir yol önce çalışma klasörüne, orada yoksa kodun bulunduğu modülün klasörüne (11.5), sonra programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler. Dosya hataları Türkçedir (dosya ya da klasör yok, izin yok, bir klasör, disk dolu, dosya kullanımda...).
 
-**13.2** Metin metotları: `.uzunluk`, `.büyük_harf()` / `.küçük_harf()` (Türkçe `i/İ`, `ı/I` kurallarıyla), `.kırp()`, `.böl(ayırıcı)`, `.değiştir(eski, yeni)`, `.içerir(alt)`, `.başlar(önek)`, `.biter(sonek)`, `.ters_çevir()`.
+**13.2** Metin metotları: `.uzunluk`, `.büyük_harf()` / `.küçük_harf()` (Türkçe `i/İ`, `ı/I` kurallarıyla), `.kırp()`, `.böl([ayırıcı])` (varsayılan boşluk), `.değiştir(eski, yeni)`, `.içerir(alt)`, `.başlar(önek)`, `.biter(sonek)`, `.ters_çevir()`; argümanları `Metin` olmalıdır.
 
-**13.3** Liste metotları: `.uzunluk`, `.ilk`, `.son`, `.filtrele(f)`, `.haritala(f)`, `.sırala()` (yerleşik `sırala(l)` ile aynı: yeni bir liste verir; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır, başka bir karışım karşılaştırılamaz ve hatadır; sayılar tam karşılaştırılır, eşitlerin sırası korunur, `NaN` sona gelir; metinler karakter kodu sırasıyladır), `.ters_çevir()`, `.birleştir(ayırıcı)`, `.benzersiz()`, `.içerir(x)`, `.ekle(x)` (listeyi yerinde değiştirir), `.toplam()`, `.ortalama()`.
+**13.3** Liste metotları: `.uzunluk`, `.ilk`, `.son`, `.filtrele(f)`, `.haritala(f)`, `.sırala()` (yerleşik `sırala(l)` ile aynı: yeni bir liste verir; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır, başka bir karışım karşılaştırılamaz ve hatadır; sayılar tam karşılaştırılır, eşitlerin sırası korunur, `NaN` sona gelir; metinler karakter kodu sırasıyladır), `.ters_çevir()`, `.birleştir(ayırıcı)`, `.benzersiz()`, `.içerir(x)` (her tipte değeri `==` ile arar), `.ekle(x, ...)` (listeyi yerinde değiştirir), `.toplam()`, `.ortalama()` (boş listede ve sayı olmayan elemanda hata verir).
 
 **13.4** Sözlük metotları: `.anahtarlar()`, `.değerler()`, `.içerir(anahtar)`.
 

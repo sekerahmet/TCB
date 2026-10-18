@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/lexer"
 )
@@ -82,3 +83,26 @@ func (p *Parser) sonucDenetle(tok lexer.Token) {
 		p.hataKaydet(tok, "Sözdizimi hatası — '"+tok.Literal+"' modülün üst düzeyinde kullanılamaz; modül bir fonksiyon değildir, aktaran programı bitiremez")
 	}
 }
+
+// enFazlaDerinlik ifade ve blokların en fazla iç içelik düzeyidir. Sınırsız iç içelik Go
+// yığınını taşırıp süreci yakalanamaz biçimde çökertirdi; sınırda Türkçe bir sözdizimi
+// hatası verilir ve dosyanın geri kalanı hata üretmeden geçilir.
+const enFazlaDerinlik = 1000
+
+// derinlikGir bir iç içelik düzeyine girer; sınır aşıldıysa hatayı kaydeder ve yanlış döner
+// (çağıran hiçbir şey okumadan döner). Her doğru dönüşün ardından derinlikCik çağrılmalıdır.
+func (p *Parser) derinlikGir() bool {
+	if p.derinlikAsildi {
+		return false
+	}
+	if p.derinlik >= enFazlaDerinlik {
+		p.hataModu = false
+		p.hataKaydet(p.curToken(), fmt.Sprintf("Sözdizimi hatası — ifade ya da blok çok derin iç içe (en fazla %d düzey); kodu ara değişkenlere ya da fonksiyonlara bölün", enFazlaDerinlik))
+		p.derinlikAsildi = true
+		return false
+	}
+	p.derinlik++
+	return true
+}
+
+func (p *Parser) derinlikCik() { p.derinlik-- }

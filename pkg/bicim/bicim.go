@@ -69,6 +69,9 @@ func Bicimle(kaynak string) (string, error) {
 		bom = "\xef\xbb\xbf"
 		kaynak = kaynak[len(bom):]
 	}
+	// Satır sonları LF yazılır; metinlerin içindekiler de (sözcük çözümleyici çok satırlı
+	// metindeki CRLF'yi zaten '\n' okur, anlam değişmez): karışık satır sonu kalmaz.
+	kaynak = strings.ReplaceAll(kaynak, "\r\n", "\n")
 	p := parser.New(lexer.New(kaynak))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {

@@ -438,6 +438,12 @@ func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 			return sb.String()
 		}
 
+		// Çok satırlı metinde satır sonu kaynağın biçiminden bağımsız olarak '\n'dir:
+		// CRLF'li dosyada metnin değerine '\r' girmez (yalnızca \r kaçışıyla yazılır).
+		if l.ch == '\r' && l.peekChar() == '\n' {
+			l.readChar()
+			continue
+		}
 		sb.WriteRune(l.ch)
 		l.readChar()
 	}
