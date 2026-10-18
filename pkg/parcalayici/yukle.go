@@ -55,16 +55,98 @@ type Parcalayici struct {
 	hamEslesme *ekEslestirici // normalized=false ek tokenlar
 	nrmEslesme *ekEslestirici // normalized=true ek tokenlar
 
-	idToken      []string // kimlik -> token metni
-	idVar        []bool
-	idOzel       []bool   // kimlik -> özel token mı (çözmede atlanabilir)
-	idBayt       [][]byte // yalnızca bayt düzeyi çözücüde: kimlik -> baytlar
+	// Kimlik -> token bilgisi. Kimlikler sıkıysa (en büyük kimlik, girdi
+	// sayısının küçük bir katından küçükse) doğrudan dizi, değilse seyrek
+	// haritayla dizideki sıraya bakılır: bellek, dosyadaki kimliklerin
+	// büyüklüğüyle değil gerçek girdi sayısıyla orantılıdır.
+	kimlikler    []kimlikBilgisi
+	seyrek       map[int32]int32 // nil değilse kimlik -> kimlikler'deki sıra
 	baytCozucu   bool
 	sozlukBoyutu int
 
 	// Düzenli ifade kullanan adım sayısı: kodlamada (normalleştirici ve ön
 	// bölücü) ve çözmede. Bir çağrının adım bütçesi bununla ölçeklenir.
 	kodlaIfade, cozIfade int
+}
+
+// kimlikBilgisi bir kimliğin token metni ve çözme bilgileridir.
+type kimlikBilgisi struct {
+	token string
+	bayt  []byte // yalnızca bayt düzeyi çözücüde: tokenın baytları
+	var_  bool   // kimlik sözlükte ya da ek tokenlarda var
+	ozel  bool   // özel token (çözmede atlanabilir)
+}
+
+// seyreklikSiniri: en büyük kimlik bundan ve girdi sayısının 4 katından
+// büyükse kimlik tablosu seyrek haritayla tutulur.
+const seyreklikSiniri = 1 << 16
+
+// kimlik id'nin bilgisini verir (yoksa nil).
+func (p *Parcalayici) kimlik(id int) *kimlikBilgisi {
+	if p.seyrek != nil {
+		if id < 0 || id > 1<<31-1 {
+			return nil
+		}
+		i, ok := p.seyrek[int32(id)]
+		if !ok {
+			return nil
+		}
+		return &p.kimlikler[i]
+	}
+	if id < 0 || id >= len(p.kimlikler) || !p.kimlikler[id].var_ {
+		return nil
+	}
+	return &p.kimlikler[id]
+}
+
+// kimlikTablosuKur kimlik -> token tablosunu kurar.
+func (p *Parcalayici) kimlikTablosuKur(sozluk map[string]int32, nrmIcerik map[int]string, ozelIcerik map[string]bool) {
+	enBuyuk := -1
+	for _, id := range sozluk {
+		enBuyuk = max(enBuyuk, int(id))
+	}
+	for _, e := range p.ekler {
+		enBuyuk = max(enBuyuk, e.ID)
+	}
+	girdi := len(sozluk) + len(p.ekler)
+	koy := func(id int) *kimlikBilgisi {
+		if p.seyrek == nil {
+			return &p.kimlikler[id]
+		}
+		if i, ok := p.seyrek[int32(id)]; ok {
+			return &p.kimlikler[i]
+		}
+		p.seyrek[int32(id)] = int32(len(p.kimlikler))
+		p.kimlikler = append(p.kimlikler, kimlikBilgisi{})
+		return &p.kimlikler[len(p.kimlikler)-1]
+	}
+	if enBuyuk+1 > seyreklikSiniri && enBuyuk+1 > 4*girdi {
+		p.seyrek = make(map[int32]int32, girdi)
+		p.kimlikler = make([]kimlikBilgisi, 0, girdi)
+	} else {
+		p.kimlikler = make([]kimlikBilgisi, enBuyuk+1)
+	}
+	for tok, id := range sozluk {
+		k := koy(int(id))
+		k.token, k.var_ = tok, true
+	}
+	for _, e := range p.ekler {
+		k := koy(e.ID)
+		k.token, k.var_ = e.Icerik, true
+		if s, ok := nrmIcerik[e.ID]; ok {
+			k.token = s
+		}
+	}
+	for i := range p.kimlikler {
+		k := &p.kimlikler[i]
+		if !k.var_ {
+			continue
+		}
+		k.ozel = ozelIcerik[k.token]
+		if p.baytCozucu {
+			k.bayt = tokenBaytlari(k.token)
+		}
+	}
 }
 
 // ifadeSay bir bileşen (zinciri) içindeki düzenli ifadeleri sayar.
@@ -213,13 +295,6 @@ func Ayristir(veri []byte) (*Parcalayici, error) {
 	}
 	var ham, nrm []EkToken
 	ozelIcerik := make(map[string]bool)
-	enBuyuk := int64(-1)
-	for tok, id := range sozluk {
-		_ = tok
-		if int64(id) > enBuyuk {
-			enBuyuk = int64(id)
-		}
-	}
 	// normalized=true ek tokenlar normalleştirilmiş metinde aranır; bu yüzden
 	// içerikleri de parçalayıcının normalleştiricisinden geçirilir (ör.
 	// küçük harfe çeviren bir normalleştiricide "ÇAY" -> "çay"). Kimliğin
@@ -248,9 +323,6 @@ func Ayristir(veri []byte) (*Parcalayici, error) {
 		} else {
 			ham = append(ham, e)
 		}
-		if int64(e.ID) > enBuyuk {
-			enBuyuk = int64(e.ID)
-		}
 	}
 	p.hamEslesme = yeniEkEslestirici(ham)
 	p.nrmEslesme = yeniEkEslestirici(nrm)
@@ -266,32 +338,7 @@ func Ayristir(veri []byte) (*Parcalayici, error) {
 		p.sonIsleyici = nil
 	}
 
-	n := int(enBuyuk) + 1
-	p.idToken = make([]string, n)
-	p.idVar = make([]bool, n)
-	p.idOzel = make([]bool, n)
-	for tok, id := range sozluk {
-		p.idToken[id] = tok
-		p.idVar[id] = true
-	}
-	for _, e := range p.ekler {
-		p.idToken[e.ID] = e.Icerik
-		if s, ok := nrmIcerik[e.ID]; ok {
-			p.idToken[e.ID] = s
-		}
-		p.idVar[e.ID] = true
-	}
-	if p.baytCozucu {
-		p.idBayt = make([][]byte, n)
-	}
-	for id := 0; id < n; id++ {
-		if p.idVar[id] {
-			p.idOzel[id] = ozelIcerik[p.idToken[id]]
-			if p.baytCozucu {
-				p.idBayt[id] = tokenBaytlari(p.idToken[id])
-			}
-		}
-	}
+	p.kimlikTablosuKur(sozluk, nrmIcerik, ozelIcerik)
 	p.sozlukBoyutu = len(sozluk)
 	for _, e := range p.ekler {
 		if _, ok := sozluk[e.Icerik]; !ok {
@@ -328,15 +375,17 @@ func (p *Parcalayici) TokenKimligi(token string) (int, bool) {
 
 // KimlikToken bir kimliğin token metnini (modelin gösterimiyle) verir.
 func (p *Parcalayici) KimlikToken(id int) (string, bool) {
-	if id < 0 || id >= len(p.idVar) || !p.idVar[id] {
+	k := p.kimlik(id)
+	if k == nil {
 		return "", false
 	}
-	return p.idToken[id], true
+	return k.token, true
 }
 
 // OzelMi kimliğin özel bir token olup olmadığını söyler.
 func (p *Parcalayici) OzelMi(id int) bool {
-	return id >= 0 && id < len(p.idOzel) && p.idOzel[id]
+	k := p.kimlik(id)
+	return k != nil && k.ozel
 }
 
 // EkTokenlar ek tokenların bir kopyasını kimlik sırasıyla verir.

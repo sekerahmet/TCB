@@ -155,10 +155,11 @@ func (p *Parcalayici) Coz(idler []int, ozelleriAtla bool) string {
 	}
 	tokenlar := make([]string, 0, len(idler))
 	for _, id := range idler {
-		if id < 0 || id >= len(p.idVar) || !p.idVar[id] || (ozelleriAtla && p.idOzel[id]) {
+		k := p.kimlik(id)
+		if k == nil || (ozelleriAtla && k.ozel) {
 			continue
 		}
-		tokenlar = append(tokenlar, p.idToken[id])
+		tokenlar = append(tokenlar, k.token)
 	}
 	if p.cozucu == nil {
 		return strings.Join(tokenlar, " ")
@@ -194,13 +195,11 @@ func (p *Parcalayici) CozBayt(idler []int, ozelleriAtla bool) []byte {
 }
 
 func (p *Parcalayici) baytEkle(buf []byte, id int, ozelleriAtla bool) []byte {
-	if id < 0 || id >= len(p.idVar) || !p.idVar[id] {
+	k := p.kimlik(id)
+	if k == nil || (ozelleriAtla && k.ozel) {
 		return buf
 	}
-	if ozelleriAtla && p.idOzel[id] {
-		return buf
-	}
-	return append(buf, p.idBayt[id]...)
+	return append(buf, k.bayt...)
 }
 
 // ============================================================================

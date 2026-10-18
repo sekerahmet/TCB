@@ -23,7 +23,7 @@ func ekliParcalayici(t *testing.T, dosya string, icerikler ...string) *Parcalayi
 	if err != nil {
 		t.Fatal(err)
 	}
-	id := len(p.idVar)
+	id := len(p.kimlikler)
 	ekler, _ := ham["added_tokens"].([]any)
 	for i, c := range icerikler {
 		ekler = append(ekler, map[string]any{"id": id + i, "content": c, "single_word": false, "lstrip": false,
