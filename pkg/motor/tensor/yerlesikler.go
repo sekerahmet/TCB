@@ -92,6 +92,7 @@ func Kaydet(v *vm.VM) {
 	// --- Türev ---
 	sar(v, sozluk.T+300, yeniYerlesik(geriYayilim))
 	sar(v, sozluk.T+301, yeniYerlesik(turevsiz))
+	ozelTurevKaydet(v) // özel_türev, türev_denetle (ozel_turev.go)
 
 	// --- Veri türleri (veri_turu.go) ---
 	sar(v, sozluk.T+710, yeniYerlesik(karisikHassasiyet))
@@ -931,7 +932,7 @@ func rmsNormu(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 
 // geriYayilim geri_yayılım(kayıp) yerleşiğidir: tek elemanlı kayıptan geri yayılım yapar;
 // yaprak tensörlerin gradyanları birikir.
-func geriYayilim(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+func geriYayilim(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("geri_yayılım(kayıp) 1 parametre bekler, %d verildi", len(args))
 	}
@@ -949,7 +950,8 @@ func geriYayilim(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 	if !t.RequiresGrad() {
 		return nil, fmt.Errorf("geri_yayılım: kayıp türev izlenen hiçbir tensöre bağlı değil; parametreleri tensör(..., türev_izle: doğru) ile oluşturun (türevsiz bloğu içinde hesaplanan değerler izlenmez)")
 	}
-	if _, err := guvenli(func() bool { t.Backward(); return true }); err != nil {
+	// Dış düğümlerin (özel_türev) geri hesapları bu görevle çalışır.
+	if err := geriYay(m, t, nil); err != nil {
 		return nil, err
 	}
 	return vm.TRUE, nil
