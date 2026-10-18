@@ -22,7 +22,12 @@ type eklentiPaketi struct {
 	} `json:"capabilities"`
 	Contributes struct {
 		ConfigurationDefaults map[string]map[string]any `json:"configurationDefaults"`
-		Menus                 map[string][]struct {
+		Configuration         struct {
+			Properties map[string]struct {
+				Scope string `json:"scope"`
+			} `json:"properties"`
+		} `json:"configuration"`
+		Menus map[string][]struct {
 			Command string `json:"command"`
 			When    string `json:"when"`
 		} `json:"menus"`
@@ -42,22 +47,65 @@ func eklentiPaketiOku(t *testing.T) eklentiPaketi {
 	return p
 }
 
-// Güvenilmeyen (kısıtlı kipteki) klasörde VS Code, Türkçe harfleri (ş, ğ, ı, ü, ö, ç) ASCII
-// dışı oldukları için sarı kutuyla işaretliyordu (editor.unicodeHighlight.nonBasicASCII
-// varsayılanı "inUntrustedWorkspace"). .tr dosyalarında bu işaretleme kapalı olmalı;
-// görünmez karakterler ise işaretlenmeye devam etmeli (kodda gizli karakter fark edilsin).
+// Güvenilmeyen (kısıtlı kipteki) klasörde VS Code, Türkçe harfleri ASCII dışı oldukları için
+// sarı kutuyla işaretler (editor.unicodeHighlight.nonBasicASCII varsayılanı
+// "inUntrustedWorkspace"); "ı" ise ayrıca "i" ile karıştırılabilir sayılır (ambiguousCharacters).
+// .tr dosyalarında yalnızca Türk alfabesinin harfleri serbest olmalı: nonBasicASCII kapalı,
+// Türkçe harfler allowedCharacters'ta; Latin harfine benzeyen yabancı harfler (Kiril а, Yunan ο)
+// ve görünmez karakterler işaretlenmeye devam etmeli (ambiguousCharacters ve
+// invisibleCharacters açık). Gerçek VS Code'da (kısıtlı kip) doğrulandı: yalnızca Kiril/Yunan
+// harfleri ve sıfır genişlikli boşluk kutulu.
 func TestEklentiTurkceHarfleriIsaretlemez(t *testing.T) {
 	tr := eklentiPaketiOku(t).Contributes.ConfigurationDefaults["[tr]"]
 	if tr == nil {
 		t.Fatal(`package.json: configurationDefaults içinde "[tr]" yok`)
 	}
-	for _, ayar := range []string{"editor.unicodeHighlight.nonBasicASCII", "editor.unicodeHighlight.ambiguousCharacters"} {
-		if v, ok := tr[ayar]; !ok || v != false {
-			t.Errorf("[tr] %s = %v; false olmalı (Türkçe harfler kutulanmasın)", ayar, v)
+	beklenen := map[string]bool{
+		"editor.unicodeHighlight.nonBasicASCII":       false,
+		"editor.unicodeHighlight.ambiguousCharacters": true,
+		"editor.unicodeHighlight.invisibleCharacters": true,
+	}
+	for ayar, b := range beklenen {
+		if v, ok := tr[ayar]; !ok || v != b {
+			t.Errorf("[tr] %s = %v; %v olmalı", ayar, v, b)
 		}
 	}
-	if v, ok := tr["editor.unicodeHighlight.invisibleCharacters"]; ok && v != true {
-		t.Errorf("[tr] editor.unicodeHighlight.invisibleCharacters = %v; görünmez karakterler işaretlenmeye devam etmeli", v)
+	izinli, _ := tr["editor.unicodeHighlight.allowedCharacters"].(map[string]any)
+	turkce := []rune("çÇğĞıIİiöÖşŞüÜ")
+	var harfler []string
+	for _, h := range turkce {
+		if h < 0x80 { // I ve i ASCII: zaten işaretlenmez, listede olmamalı
+			continue
+		}
+		harfler = append(harfler, string(h))
+		if izinli[string(h)] != true {
+			t.Errorf("[tr] allowedCharacters %q harfini serbest bırakmalı", h)
+		}
+	}
+	for h := range izinli {
+		if !slices.Contains(harfler, h) {
+			t.Errorf("[tr] allowedCharacters yalnızca Türk alfabesinin harflerini içermeli; fazla: %q", h)
+		}
+	}
+}
+
+// tr.yorumlayiciYolu yalnızca kullanıcı ayarından okunmalı (kapsam "machine"): güvenilen bir
+// klasörün .vscode/settings.json dosyası yorumlayıcıyı keyfi bir programa çeviremesin.
+func TestEklentiYorumlayiciAyariMakineKapsamli(t *testing.T) {
+	ozellik, ok := eklentiPaketiOku(t).Contributes.Configuration.Properties["tr.yorumlayiciYolu"]
+	if !ok {
+		t.Fatal("package.json: tr.yorumlayiciYolu ayarı yok")
+	}
+	if ozellik.Scope != "machine" {
+		t.Errorf("tr.yorumlayiciYolu kapsamı %q; \"machine\" olmalı", ozellik.Scope)
+	}
+	js, err := os.ReadFile(depo.Yol("duzenleyici/vscode/extension.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Yorumlayıcı arama kuralı tek yerde: yorumlayici_bul.js (üst klasör taraması yok).
+	if !strings.Contains(string(js), "require('./yorumlayici_bul')") || strings.Contains(string(js), "path.dirname(dizin)") {
+		t.Error("extension.js yorumlayıcıyı yorumlayici_bul.js ile bulmalı ve üst klasörleri taramamalı")
 	}
 }
 
@@ -101,15 +149,18 @@ func TestEklentiKisitliKip(t *testing.T) {
 	}
 }
 
-// İzleme Masası düğmelerinin web görünümü → eklenti → VS Code komutu eşlemesi JavaScript
-// testindedir (duzenleyici/vscode/test/izleme_komutlari_test.js). Node yoksa atlanır.
+// Eklentinin vscode modülüne bağlı olmayan kuralları JavaScript testlerindedir
+// (duzenleyici/vscode/test/*_test.js): İzleme Masası düğme → VS Code komutu eşlemesi ve
+// yorumlayıcıyı bulma kuralı. Node yoksa atlanır.
 func TestEklentiJSTestleri(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
 		t.Skip("node bulunamadı; eklentinin JavaScript testleri atlandı")
 	}
-	cikti, err := exec.Command(node, depo.Yol("duzenleyici/vscode/test/izleme_komutlari_test.js")).CombinedOutput()
-	if err != nil {
-		t.Fatalf("eklenti JS testi kaldı: %v\n%s", err, cikti)
+	for _, ad := range []string{"izleme_komutlari_test.js", "yorumlayici_bul_test.js"} {
+		cikti, err := exec.Command(node, depo.Yol("duzenleyici/vscode/test/"+ad)).CombinedOutput()
+		if err != nil {
+			t.Errorf("eklenti JS testi kaldı (%s): %v\n%s", ad, err, cikti)
+		}
 	}
 }

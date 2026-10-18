@@ -2,7 +2,7 @@
   "name": "tr-dili-vscode",
   "displayName": "TR (.tr) Programlama ve Yapay Zeka Dili",
   "description": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets), çalıştırma ve hata ayıklama komutları.",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.70.0"
@@ -189,8 +189,8 @@
         "tr.yorumlayiciYolu": {
           "type": "string",
           "default": "",
-          "scope": "resource",
-          "markdownDescription": "TR yorumlayıcısının (`tr.exe`) yolu. Göreli yollar çalışma alanı klasörüne göre çözülür. Boş bırakılırsa sırasıyla çalışma alanı klasöründeki `ikili/tr.exe` ya da `tr.exe`, dosyanın dizininden yukarı doğru bulunan ilk `ikili/tr.exe` ya da `tr.exe` ve PATH üzerindeki `tr` kullanılır."
+          "scope": "machine",
+          "markdownDescription": "TR yorumlayıcısının (`tr.exe`) tam yolu. Yalnızca kullanıcı ayarlarından okunur; bir çalışma alanının kendi ayar dosyası bu yolu değiştiremez. Göreli yol yalnızca güvenilen bir çalışma alanı klasörüne göre çözülür. Boş bırakılırsa: güvenilen çalışma alanında klasörün kökündeki `ikili/tr.exe` ya da `tr.exe`, sonra PATH üzerindeki `tr`. Üst klasörlere bakılmaz; klasörsüz pencerede yalnızca bu ayar ve PATH kullanılır."
         },
         "tr.izlemeMasasi": {
           "type": "boolean",
@@ -226,8 +226,22 @@
     "configurationDefaults": {
       "[tr]": {
         "editor.unicodeHighlight.nonBasicASCII": false,
-        "editor.unicodeHighlight.ambiguousCharacters": false,
-        "editor.unicodeHighlight.invisibleCharacters": true
+        "editor.unicodeHighlight.ambiguousCharacters": true,
+        "editor.unicodeHighlight.invisibleCharacters": true,
+        "editor.unicodeHighlight.allowedCharacters": {
+          "ç": true,
+          "Ç": true,
+          "ğ": true,
+          "Ğ": true,
+          "ı": true,
+          "İ": true,
+          "ö": true,
+          "Ö": true,
+          "ş": true,
+          "Ş": true,
+          "ü": true,
+          "Ü": true
+        }
       }
     },
     "debuggers": [

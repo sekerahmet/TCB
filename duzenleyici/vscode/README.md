@@ -68,13 +68,16 @@ Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (
 
 ## Ayar
 
-`tr.yorumlayiciYolu`: TR yorumlayıcısının yolu (varsayılan: boş). Göreli yollar çalışma alanı klasörüne göre çözülür. Boş bırakılırsa sırasıyla şunlar denenir:
+`tr.yorumlayiciYolu`: TR yorumlayıcısının tam yolu (varsayılan: boş). Bu ayar **yalnızca kullanıcı ayarlarından** okunur (kapsamı `machine`): bir klasörün kendi `.vscode/settings.json` dosyası yorumlayıcıyı başka bir programa çeviremez. Göreli bir yol yalnızca güvenilen bir çalışma alanı klasörüne göre çözülür. Ayar boşsa sırasıyla şunlar denenir:
 
-1. Çalışma alanı klasöründeki `ikili/tr.exe`, yoksa `tr.exe`
-2. Dosyanın dizininden yukarı doğru bulunan ilk `ikili/tr.exe` ya da `tr.exe`
-3. PATH üzerindeki `tr`
+1. Yalnızca **güvenilen** çalışma alanında, dosyanın çalışma alanı klasörünün kökündeki `ikili/tr.exe`, yoksa `tr.exe`
+2. PATH üzerindeki `tr`
 
-Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen (kısıtlı kipteki) klasörlerde renklendirme, şablonlar ve dosya okuma yine kullanılabilir; çalıştırma, denetleme ve hata ayıklama kapalıdır ve bu düğmeler görünmez. Eklenti `.tr` dosyalarında Türkçe harflerin (ş, ğ, ı, ü, ö, ç) Unicode uyarı kutusuyla işaretlenmesini kapatır (`editor.unicodeHighlight.nonBasicASCII` ve `ambiguousCharacters`); görünmez karakterler yine işaretlenir.
+Üst klasörlere bakılmaz: indirdiğiniz bir klasörün içinde ya da üstünde duran yabancı bir `tr.exe` kendiliğinden çalıştırılmaz. Klasör açmadan tek bir `.tr` dosyası açtığınızda yalnızca bu ayar ve PATH kullanılır. Depoyu değil de bir alt klasörünü (örneğin `ornekler/`) açıyorsanız yorumlayıcının tam yolunu bu ayara yazın.
+
+Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen (kısıtlı kipteki) klasörlerde renklendirme, şablonlar ve dosya okuma yine kullanılabilir; çalıştırma, denetleme ve hata ayıklama kapalıdır ve bu düğmeler görünmez.
+
+Unicode işaretleme: VS Code kısıtlı kipte ASCII dışındaki her harfi sarı kutuyla işaretler. Eklenti `.tr` dosyalarında yalnızca Türk alfabesinin harflerini (ç, ğ, ı, İ, ö, ş, ü ve büyükleri) serbest bırakır (`editor.unicodeHighlight.nonBasicASCII: false` ve `allowedCharacters`); Latin harflerine benzeyen yabancı harfler (ör. Kiril `а`, `е`, Yunan `ο`) ve görünmez karakterler (ör. sıfır genişlikli boşluk) güvenilen ve güvenilmeyen klasörde yine kutuyla işaretlenir (`ambiguousCharacters` ve `invisibleCharacters` açık). Türkçe harfler hâlâ kutulu görünüyorsa eklentinin eski bir kopyası (1.7.0'dan önceki) çalışıyordur: Uzantılar görünümünden eski kopyayı kaldırıp güncelini kurun.
 
 ## Notlar
 

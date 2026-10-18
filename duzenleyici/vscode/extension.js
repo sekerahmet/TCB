@@ -7,13 +7,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { izlemeKomutuCoz } = require('./izleme_komutlari');
+const { yorumlayiciyiBul: yorumlayiciyiBulKurali, yorumlayiciAdi, IKILI_KLASORU } = require('./yorumlayici_bul');
 
 const GOREV_TURU = 'tr';
 const AYAR = 'yorumlayiciYolu';
-const YORUMLAYICI_ADI = process.platform === 'win32' ? 'tr.exe' : 'tr';
-// Depoda yorumlayıcı ikili/ klasörüne derlenir; bir klasörde önce ikili/ altına, sonra klasörün
-// kendisine bakılır (kökteki eski derlemeler de bulunsun diye).
-const IKILI_KLASORU = 'ikili';
+const YORUMLAYICI_ADI = yorumlayiciAdi(process.platform);
 
 // komut kimliği -> yorumlayıcıya verilecek argümanlar ve görev adı
 const KOMUTLAR = {
@@ -30,72 +28,19 @@ function dosyaVarMi(yol) {
     }
 }
 
-// PATH üzerinde yorumlayıcıyı arar. Unix'te /bin ve /usr/bin atlanır: oradaki 'tr'
-// coreutils'in karakter çevirme aracıdır, TR yorumlayıcısı değil.
-function pathUzerindeAra() {
-    const dizinler = (process.env.PATH || '').split(path.delimiter).filter(Boolean);
-    for (const dizin of dizinler) {
-        if (process.platform !== 'win32' && (dizin === '/bin' || dizin === '/usr/bin')) {
-            continue;
-        }
-        const aday = path.join(dizin, YORUMLAYICI_ADI);
-        if (dosyaVarMi(aday)) {
-            return aday;
-        }
-    }
-    return undefined;
-}
-
-// klasordeAra yorumlayıcıyı klasörün ikili/ alt klasöründe, sonra klasörün kendisinde arar.
-function klasordeAra(klasor) {
-    for (const aday of [path.join(klasor, IKILI_KLASORU, YORUMLAYICI_ADI), path.join(klasor, YORUMLAYICI_ADI)]) {
-        if (dosyaVarMi(aday)) {
-            return aday;
-        }
-    }
-    return undefined;
-}
-
-// Yorumlayıcıyı bulur: ayar -> çalışma alanı klasörü -> dosyanın dizininden yukarı -> PATH
-// (her klasörde önce ikili/ alt klasörüne bakılır).
+// Yorumlayıcıyı bulur: ayar -> (yalnızca güvenilen çalışma alanında) çalışma alanı kökü -> PATH.
+// Üst klasörler taranmaz. Kural ve gerekçesi yorumlayici_bul.js'tedir.
 // Bulunamazsa undefined döner; ayar geçersizse { hata } döner.
 function yorumlayiciyiBul(dosyaUri) {
     const klasor = vscode.workspace.getWorkspaceFolder(dosyaUri);
-    const ayar = (vscode.workspace.getConfiguration('tr', dosyaUri).get(AYAR) || '').trim();
-
-    if (ayar) {
-        let yol = ayar;
-        if (!path.isAbsolute(yol)) {
-            yol = path.resolve(klasor ? klasor.uri.fsPath : path.dirname(dosyaUri.fsPath), yol);
-        }
-        if (dosyaVarMi(yol)) {
-            return { yol };
-        }
-        return { hata: `'tr.${AYAR}' ayarında belirtilen yorumlayıcı bulunamadı: ${yol}` };
-    }
-
-    if (klasor) {
-        const aday = klasordeAra(klasor.uri.fsPath);
-        if (aday) {
-            return { yol: aday };
-        }
-    }
-
-    let dizin = path.dirname(dosyaUri.fsPath);
-    for (;;) {
-        const aday = klasordeAra(dizin);
-        if (aday) {
-            return { yol: aday };
-        }
-        const ust = path.dirname(dizin);
-        if (ust === dizin) {
-            break;
-        }
-        dizin = ust;
-    }
-
-    const pathYolu = pathUzerindeAra();
-    return pathYolu ? { yol: pathYolu } : undefined;
+    return yorumlayiciyiBulKurali({
+        ayar: vscode.workspace.getConfiguration('tr').get(AYAR),
+        klasor: klasor ? klasor.uri.fsPath : undefined,
+        guvenilir: vscode.workspace.isTrusted,
+        dosyaVarMi,
+        pathDegeri: process.env.PATH,
+        platform: process.platform
+    });
 }
 
 async function yorumlayiciBulunamadi(mesaj) {
