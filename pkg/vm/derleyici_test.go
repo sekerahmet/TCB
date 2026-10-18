@@ -123,6 +123,41 @@ func TestDerleyiciZipla(t *testing.T) {
 	}
 }
 
+// Hızlı sıralama yolu, kararlı genel sıralamayla aynı sonucu vermeli (eşitlerde özgün sıra).
+func TestSiralaDegerlerKararli(t *testing.T) {
+	a, b := &FloatVal{Val: 2}, NewInt(2)
+	d := []Value{NewInt(3), a, NewInt(-1), b, &FloatVal{Val: 0.5}}
+	siralaDegerler(d)
+	if d[0].Inspect() != "-1" || d[1].Inspect() != "0.5" || d[2] != a || d[3] != b || d[4].Inspect() != "3" {
+		t.Fatalf("beklenmeyen sıra: %v", d)
+	}
+	karisik := []Value{&StringVal{Val: "b"}, NewInt(1), &StringVal{Val: "a"}}
+	siralaDegerler(karisik)
+	if (&ListVal{Elements: karisik}).Inspect() != `[1, "a", "b"]` {
+		t.Fatalf("karışık sıralama: %v", (&ListVal{Elements: karisik}).Inspect())
+	}
+}
+
+// Havuzdan alınan çağrı ortamları özyinelemede ve hata sonrasında karışmamalı.
+func TestCagriOrtamHavuzu(t *testing.T) {
+	_, val, err := runTROut(t, `
+		fonksiyon fib(n) {
+			eğer n < 2 { sonuç n }
+			sonuç fib(n - 1) + fib(n - 2)
+		}
+		fonksiyon bol(a, b) { sonuç a / b }
+		dene { bol(1, 0) } yakala h { }
+		fonksiyon iki(x, y = 10) {
+			değişken z = x * y
+			sonuç z
+		}
+		sonuç [fib(15), iki(fib(5)), iki(2, 3), bol(9, 3)]
+	`)
+	if err != nil || val.Inspect() != "[610, 50, 6, 3]" {
+		t.Fatalf("[610, 50, 6, 3] bekleniyordu: %v %v", val, err)
+	}
+}
+
 // Yerleşik adı gölgeleyen genel değişken sabit sayılmamalı; kullanıcı sabiti korunmalı.
 func TestDerleyiciGolgelemeVeSabit(t *testing.T) {
 	_, val, err := runTROut(t, `

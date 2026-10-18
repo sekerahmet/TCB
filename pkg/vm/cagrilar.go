@@ -75,7 +75,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 		if fk == nil {
 			fk = v.fonkKoduHazirla(fn)
 		}
-		return v.cagirHazir(fn, fk, yeniOrtam(fn.Env, fk.bilgi), args, len(args), named, line)
+		return v.cagirHazir(fn, fk, fk.ortamAl(fn.Env), args, len(args), named, line)
 
 	case *BuiltinVal:
 		res, err := fn.Fn(v, args, named)
@@ -154,6 +154,10 @@ func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, args []Va
 	}
 	if !fk.erteleVar {
 		fnEnv.RunDefers()
+		// Hata ayıklayıcı bağlıyken ortam onun elinde kalabilir; havuza konmaz.
+		if fk.havuzlu && v.Debugger == nil {
+			fk.birak(fnEnv)
+		}
 	}
 	return val, err
 }

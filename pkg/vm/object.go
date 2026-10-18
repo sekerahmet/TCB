@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"tr_dili/pkg/ast"
 )
@@ -38,7 +39,7 @@ type IntVal struct {
 }
 
 func (i *IntVal) Type() ValueType { return VAL_INT }
-func (i *IntVal) Inspect() string { return fmt.Sprintf("%d", i.Val) }
+func (i *IntVal) Inspect() string { return strconv.FormatInt(i.Val, 10) }
 func (i *IntVal) IsTruthy() bool  { return i.Val != 0 }
 
 type FloatVal struct {

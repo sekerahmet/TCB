@@ -6,11 +6,11 @@ import (
 	"io"
 	"math"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 func (v *VM) registerBuiltins() {
@@ -62,7 +62,7 @@ func (v *VM) registerBuiltins() {
 		}
 		switch val := args[0].(type) {
 		case *StringVal:
-			return NewInt(int64(len([]rune(val.Val)))), nil
+			return NewInt(int64(utf8.RuneCountInString(val.Val))), nil
 		case *ListVal:
 			return NewInt(int64(len(val.Elements))), nil
 		case *DictVal:
@@ -216,14 +216,7 @@ func (v *VM) registerBuiltins() {
 		}
 		copied := make([]Value, len(list.Elements))
 		copy(copied, list.Elements)
-		sort.SliceStable(copied, func(i, j int) bool {
-			fi, ok1 := ToFloat(copied[i])
-			fj, ok2 := ToFloat(copied[j])
-			if ok1 && ok2 {
-				return fi < fj
-			}
-			return copied[i].Inspect() < copied[j].Inspect()
-		})
+		siralaDegerler(copied)
 		return &ListVal{Elements: copied}, nil
 	})
 
@@ -440,7 +433,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 	case *StringVal:
 		switch prop {
 		case "uzunluk", "boy":
-			return NewInt(int64(len([]rune(inst.Val)))), nil
+			return NewInt(int64(utf8.RuneCountInString(inst.Val))), nil
 		case "büyük_harf", "buyuk_harf":
 			return &BuiltinVal{Name: "büyük_harf", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 				return &StringVal{Val: strings.ToUpperSpecial(unicode.TurkishCase, inst.Val)}, nil
@@ -554,14 +547,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 			return &BuiltinVal{Name: "sırala", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 				copied := make([]Value, len(inst.Elements))
 				copy(copied, inst.Elements)
-				sort.SliceStable(copied, func(i, j int) bool {
-					fi, ok1 := ToFloat(copied[i])
-					fj, ok2 := ToFloat(copied[j])
-					if ok1 && ok2 {
-						return fi < fj
-					}
-					return copied[i].Inspect() < copied[j].Inspect()
-				})
+				siralaDegerler(copied)
 				return &ListVal{Elements: copied}, nil
 			}}, nil
 		case "ters_çevir", "ters_cevir":

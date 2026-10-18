@@ -770,6 +770,38 @@ type fonkKodu struct {
 	// yuvalara yazılabilir (bağlama sırası sonucu değiştirmez).
 	basit     bool
 	erteleVar bool
+	// havuzlu: gövde ortamı yakalayamaz (iç fonksiyon, ertele, eşzamanlı, yapı yok); çağrı
+	// bitince ortam temizlenip sonraki çağrılarda yeniden kullanılabilir. serbest bu
+	// ortamların yığınıdır (yalnızca yorumlayıcı kilidi tutulurken erişilir).
+	havuzlu bool
+	serbest []*Environment
+}
+
+// havuzSiniri bir fonksiyon için saklanan boş ortam sayısının üst sınırıdır.
+const havuzSiniri = 64
+
+// ortamAl fonksiyonun bir çağrısı için ortam verir (varsa havuzdan).
+func (fk *fonkKodu) ortamAl(outer *Environment) *Environment {
+	if n := len(fk.serbest); n > 0 {
+		e := fk.serbest[n-1]
+		fk.serbest = fk.serbest[:n-1]
+		if len(e.vals) == len(fk.bilgi.adlar) {
+			e.outer = outer
+			return e
+		}
+	}
+	return yeniOrtam(outer, fk.bilgi)
+}
+
+// birak biten bir çağrının ortamını havuza geri koyar.
+func (fk *fonkKodu) birak(e *Environment) {
+	if len(fk.serbest) >= havuzSiniri {
+		return
+	}
+	clear(e.vals)
+	e.outer = nil
+	e.ek = nil
+	fk.serbest = append(fk.serbest, e)
 }
 
 // fonksiyon bir fonksiyon gövdesini, tanımlandığı k kapsamının içinde derler.
@@ -806,6 +838,13 @@ func (c *derleyici) fonksiyon(k *derleyiciKapsam, params []ast.Param, body *ast.
 	fk.govde = c.deyimler(alt, stmts)
 	fk.bilgi = alt.bilgi
 	fk.erteleVar = govdedeErteleVar(stmts)
+	fk.havuzlu = true
+	for _, st := range stmts {
+		if deyimYakalar(st) {
+			fk.havuzlu = false
+			break
+		}
+	}
 	return fk
 }
 

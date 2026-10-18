@@ -454,6 +454,34 @@ func (c *derleyici) ikili(k *derleyiciKapsam, e *ast.InfixExpression) ifadeKodu 
 		if lit, ok := e.Right.(*ast.IntegerLiteral); ok {
 			b := lit.Value
 			sagDeger := NewInt(b)
+			// Sol taraf yerel (derinlik 0) ya da genel bir değişkense yuvası doğrudan okunur
+			if id, ok := e.Left.(*ast.Identifier); ok {
+				if r := k.coz(id.Value); r.tur == cozGenel || (r.tur == cozYerel && r.derinlik == 0) {
+					i, g := r.yuva, r.genel
+					return func(v *VM, env *Environment) (Value, error) {
+						o := g
+						if o == nil {
+							o = env
+						}
+						var left Value
+						if i < len(o.vals) {
+							left = o.vals[i]
+						}
+						if li, ok := left.(*IntVal); ok {
+							if x, ok := hizli(li.Val, b); ok {
+								return x, nil
+							}
+						}
+						if left == nil {
+							var err error
+							if left, err = sol(v, env); err != nil {
+								return nil, err
+							}
+						}
+						return v.evalInfixKod(kod, op, left, sagDeger, line)
+					}
+				}
+			}
 			return func(v *VM, env *Environment) (Value, error) {
 				left, err := sol(v, env)
 				if err != nil {
@@ -740,7 +768,7 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 			// doğrudan yeni ortamın yuvalarına hesaplanır.
 			if fn, ok := fnVal.(*FuncVal); ok && fn.kod != nil && fn.kod.basit && nargs <= len(fn.Parameters) && varsayilanlarYeter(fn, nargs) {
 				fk := fn.kod
-				fnEnv := yeniOrtam(fn.Env, fk.bilgi)
+				fnEnv := fk.ortamAl(fn.Env)
 				for i, a := range argKod {
 					av, err := a(v, env)
 					if err != nil {
