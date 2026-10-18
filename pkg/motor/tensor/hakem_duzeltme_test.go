@@ -1,10 +1,13 @@
 package tensor
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -57,5 +60,36 @@ func TestAtomikYaz(t *testing.T) {
 	}
 	if g, _ := os.ReadDir(klasor); len(g) != 1 {
 		t.Fatalf("geçici dosya kaldı: %v", g)
+	}
+}
+
+// Bulgu 20: yayın uyarısı haritası sınırlıdır: değişken uzunluklu şekillerle sınırsız
+// büyümez; sınıra varılınca bir kez bildirilir ve sonraki yeni uyarılar susturulur.
+func TestYayinUyarisiSinirli(t *testing.T) {
+	var buf bytes.Buffer
+	uyariMu.Lock()
+	eski := uyariCikisi
+	uyariCikisi = &buf
+	verilenUyari = map[string]bool{}
+	uyariMu.Unlock()
+	defer func() {
+		uyariMu.Lock()
+		uyariCikisi = eski
+		uyariMu.Unlock()
+	}()
+	mustCalistir(t, fmt.Sprintf(`döngü n içinde 1..%d {
+    değişken c = sıfırlar([n, 1]) + sıfırlar([n + 1])
+}`, enFazlaYayinUyarisi+50))
+	uyariMu.Lock()
+	boy := len(verilenUyari)
+	uyariMu.Unlock()
+	if boy > enFazlaYayinUyarisi {
+		t.Fatalf("uyarı haritası %d anahtar (sınır %d)", boy, enFazlaYayinUyarisi)
+	}
+	if n := strings.Count(buf.String(), "\n"); n != enFazlaYayinUyarisi+1 {
+		t.Fatalf("%d satır uyarı; %d uyarı ve bir susturma bildirimi bekleniyordu", n, enFazlaYayinUyarisi)
+	}
+	if !strings.Contains(buf.String(), "sonraki yayın uyarıları gösterilmeyecek") {
+		t.Fatalf("susturma bildirimi yok:\n%s", buf.String()[len(buf.String())-300:])
 	}
 }

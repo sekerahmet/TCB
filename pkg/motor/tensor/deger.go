@@ -433,10 +433,14 @@ func ikiTarafGenisler(a, b *ct.Tensor) bool {
 }
 
 var (
-	uyariMu      sync.Mutex
-	uyariCikisi  io.Writer = os.Stderr
-	verilenUyari           = map[string]bool{}
+	uyariMu         sync.Mutex
+	uyariCikisi     io.Writer = os.Stderr
+	verilenUyari              = map[string]bool{}
+	uyariSusturuldu bool      // sınır bildirimi yapıldı mı
 )
+
+// enFazlaYayinUyarisi gösterilecek en çok farklı yayın uyarısı (işlem ve şekil çifti).
+const enFazlaYayinUyarisi = 100
 
 // yayinUyarisi iki tarafın da genişletildiği yayınlamayı standart hataya bir kez yazar.
 // İşleçler satır bilgisini almadığından (yorumlayıcı işleç çağrısına satır geçirmez)
@@ -447,6 +451,15 @@ func yayinUyarisi(op string, a, b *ct.Tensor) {
 	uyariMu.Lock()
 	defer uyariMu.Unlock()
 	if verilenUyari[anahtar] {
+		return
+	}
+	// Harita sınırlıdır: değişken uzunluklu dizilerde her şekil çifti yeni bir anahtar
+	// olurdu. Sınıra varılınca bir kez bildirilir, sonraki yeni uyarılar gösterilmez.
+	if len(verilenUyari) >= enFazlaYayinUyarisi {
+		if !uyariSusturuldu {
+			uyariSusturuldu = true
+			fmt.Fprintf(uyariCikisi, "Uyarı: %d farklı yayın uyarısı gösterildi; sonraki yayın uyarıları gösterilmeyecek.\n", enFazlaYayinUyarisi)
+		}
 		return
 	}
 	verilenUyari[anahtar] = true
