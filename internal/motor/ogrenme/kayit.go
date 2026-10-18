@@ -3,13 +3,11 @@ package ogrenme
 import (
 	"bufio"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
 	"math"
 	"os"
-	"unicode/utf8"
 
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
@@ -32,9 +30,9 @@ import (
 //	           bf16/fp16 2 baytlık bit deseni)
 //	sağlama    uint32   önceki tüm baytların CRC-32 (IEEE) değeri
 //
-// Sürüm 1 aynı düzendedir ama yalnızca tür kodu 1'i (float32) içerir; okunmaya devam
-// eder. Yüklemede başlık, sürüm, tür, boyutlar, dosya uzunluğu ve sağlama toplamı
-// denetlenir; bozuk ya da eksik dosya açık bir hatayla reddedilir.
+// Sürüm 1 aynı düzendedir ama yalnızca tür kodu 1'i (float32) içerir; artık okunmaz.
+// Yüklemede (kayit_oku.go) başlık, sürüm, tür, boyutlar, eleman sınırı, dosya uzunluğu ve
+// sağlama toplamı denetlenir; bozuk ya da eksik dosya açık bir hatayla reddedilir.
 
 const (
 	dosyaSihirli = "TRTENSOR"
@@ -242,132 +240,6 @@ func dosyadanOku(yol string) ([]kayitGirdisi, error, error) {
 	if bilgi.IsDir() {
 		return nil, fmt.Errorf("bir klasör, tensör dosyası değil"), nil
 	}
-	kalan := bilgi.Size()
-	crc := crc32.NewIEEE()
-	br := bufio.NewReaderSize(f, 1<<16)
-	r := io.TeeReader(br, crc)
-	var b [8]byte
-	var okumaHatasi error
-	oku := func(n int) []byte {
-		if okumaHatasi != nil {
-			return b[:n]
-		}
-		if _, err := io.ReadFull(r, b[:n]); err != nil {
-			okumaHatasi = err
-		}
-		kalan -= int64(n)
-		return b[:n]
-	}
-	eksik := func(ne string) error {
-		if okumaHatasi != nil && !errors.Is(okumaHatasi, io.EOF) && !errors.Is(okumaHatasi, io.ErrUnexpectedEOF) {
-			return fmt.Errorf("%s okunamadı: %v", ne, okumaHatasi)
-		}
-		return fmt.Errorf("dosya bozuk ya da eksik: %s okunurken dosya bitti", ne)
-	}
-
-	if string(oku(8)) != dosyaSihirli || okumaHatasi != nil {
-		return nil, fmt.Errorf("bir TR tensör dosyası değil (başlık %q bulunamadı; dosya tensör_kaydet ile yazılmalı)", dosyaSihirli), nil
-	}
-	surum := binary.LittleEndian.Uint16(oku(2))
-	if okumaHatasi != nil {
-		return nil, eksik("sürüm"), nil
-	}
-	if surum != dosyaSurumu {
-		return nil, fmt.Errorf("dosya biçimi sürümü %d; bu TR sürümü yalnızca sürüm %d okur (dosyayı tensör_kaydet ile yeniden yazın)", surum, dosyaSurumu), nil
-	}
-	sayi := binary.LittleEndian.Uint32(oku(4))
-	if okumaHatasi != nil {
-		return nil, eksik("girdi sayısı"), nil
-	}
-	// Her girdi en az 4+1+1 bayt tutar; bozuk sayının dev ayırmaya yol açmasını önler.
-	if int64(sayi)*6 > kalan {
-		return nil, fmt.Errorf("dosya bozuk: %d girdi bildiriliyor ama dosyada yalnızca %d bayt kaldı", sayi, kalan), nil
-	}
-	girdiler := make([]kayitGirdisi, 0, sayi)
-	adlar := map[string]bool{}
-	for gi := 0; gi < int(sayi); gi++ {
-		sira := fmt.Sprintf("%d. girdi", gi+1)
-		adUz := binary.LittleEndian.Uint32(oku(4))
-		if okumaHatasi != nil {
-			return nil, eksik(sira + " adı"), nil
-		}
-		if adUz > enFazlaAdUz || int64(adUz) > kalan {
-			return nil, fmt.Errorf("dosya bozuk: %s adının uzunluğu %d geçersiz", sira, adUz), nil
-		}
-		adB := make([]byte, adUz)
-		if _, err := io.ReadFull(r, adB); err != nil {
-			okumaHatasi = err
-			return nil, eksik(sira + " adı"), nil
-		}
-		kalan -= int64(adUz)
-		ad := string(adB)
-		if !utf8.ValidString(ad) {
-			return nil, fmt.Errorf("dosya bozuk: %s adı geçerli UTF-8 değil", sira), nil
-		}
-		if adlar[ad] {
-			return nil, fmt.Errorf("dosya bozuk: %q adı iki kez geçiyor", ad), nil
-		}
-		adlar[ad] = true
-		sira = fmt.Sprintf("%d. girdi (%q)", gi+1, ad)
-		tb := oku(2)
-		if okumaHatasi != nil {
-			return nil, eksik(sira + " türü"), nil
-		}
-		kod, boyut := tb[0], int(tb[1])
-		tur, bilinen := koddanTur(kod)
-		if !bilinen {
-			return nil, fmt.Errorf("%s: desteklenmeyen veri türü kodu %d (bu TR sürümü float32 = %d, bf16 = %d, fp16 = %d okuyabilir)", sira, kod, turFloat32, turBF16, turFP16), nil
-		}
-		boy := int64(tur.Bits() / 8) // eleman başına bayt
-		if boyut > enFazlaBoyut {
-			return nil, fmt.Errorf("dosya bozuk: %s %d eksenli bildiriliyor (en fazla %d)", sira, boyut, enFazlaBoyut), nil
-		}
-		sekil := make([]int, boyut)
-		n := int64(1)
-		for i := range sekil {
-			d := binary.LittleEndian.Uint64(oku(8))
-			if okumaHatasi != nil {
-				return nil, eksik(sira + " şekli"), nil
-			}
-			if d > uint64(yurut.MaxCollectionSize) || (d > 0 && n > int64(yurut.MaxCollectionSize)/int64(d)) {
-				return nil, fmt.Errorf("dosya bozuk ya da tensör çok büyük: %s ekseni %d (en fazla %d eleman)", sira, d, yurut.MaxCollectionSize), nil
-			}
-			sekil[i] = int(d)
-			n *= int64(d)
-		}
-		if n*boy > kalan-4 {
-			return nil, fmt.Errorf("dosya bozuk ya da eksik: %s %s şeklinde %d bayt veri bekliyor, dosyada %d bayt kaldı", sira, sekilMetni(sekil), n*boy, max(kalan-4, 0)), nil
-		}
-		veri := make([]float32, n)
-		tampon := make([]byte, 1<<16)
-		eb := int(boy)
-		for i := 0; i < len(veri); {
-			parca := min(len(tampon)/eb, len(veri)-i)
-			if _, err := io.ReadFull(r, tampon[:parca*eb]); err != nil {
-				okumaHatasi = err
-				return nil, eksik(sira + " verisi"), nil
-			}
-			for k := 0; k < parca; k++ {
-				if eb == 2 {
-					veri[i+k] = tensor.FromBits16(tur, binary.LittleEndian.Uint16(tampon[k*2:]))
-				} else {
-					veri[i+k] = math.Float32frombits(binary.LittleEndian.Uint32(tampon[k*4:]))
-				}
-			}
-			i += parca
-			kalan -= int64(parca * eb)
-		}
-		girdiler = append(girdiler, kayitGirdisi{ad: ad, sekil: sekil, tur: tur, veri: veri})
-	}
-	beklenen := crc.Sum32()
-	if _, err := io.ReadFull(br, b[:4]); err != nil {
-		return nil, fmt.Errorf("dosya bozuk ya da eksik: sağlama toplamı okunurken dosya bitti"), nil
-	}
-	if binary.LittleEndian.Uint32(b[:4]) != beklenen {
-		return nil, fmt.Errorf("dosya bozuk: sağlama toplamı tutmuyor (dosya değiştirilmiş ya da yarım yazılmış olabilir)"), nil
-	}
-	if _, err := br.ReadByte(); err != io.EOF {
-		return nil, fmt.Errorf("dosya bozuk: sağlama toplamından sonra fazladan veri var"), nil
-	}
-	return girdiler, nil, nil
+	girdiler, err := kayitCoz(f, bilgi.Size())
+	return girdiler, err, nil
 }

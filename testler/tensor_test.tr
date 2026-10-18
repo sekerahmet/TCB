@@ -338,6 +338,16 @@ test "15.10 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosyaları r
     doğrula(h.içerir("dosya biçimi sürümü 1; bu TR sürümü yalnızca sürüm 2 okur"), h)
 }
 
+test "15.10 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {
+    // tensor_sifir_eksen.trt (74 bayt): [2, 0] ve [1048576, 0, 8192] şekilli, verisiz iki
+    // tensör. Sıfır eksen 1 sayılınca ikincisi 8,6 milyar eleman eder; kabul edilseydi
+    // [4, 2] @ W1 @ W2 gibi bir ileri geçiş belleği tüketip süreci çökertirdi.
+    değişken h = hata_metni(() => tensör_yükle("veri/tensor_sifir_eksen.trt"))
+    doğrula(h.içerir("tensör çok büyük") && h.içerir("sıfır uzunluklu eksenler 1 sayılır"), h)
+    // Sınır içindeki boş tensörler kaydedilip yüklenebilir (Go testlerinde gidiş-dönüş).
+    eşit_mi([0, 3], sıfırlar([0, 3]).şekil)
+}
+
 test "15.11 tensör üzerinde döngü ve liste üreteci" {
     değişken t = tensör([[1, 2], [3, 4], [5, 6]])
     değişken satırlar = []

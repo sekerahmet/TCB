@@ -40,7 +40,7 @@ var buyukDosyalar = map[string]istisna{
 	"internal/hesap/veriyolu/onbellek.go":      {795, "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir"},
 }
 
-const enFazlaUzunFonksiyon = 43
+const enFazlaUzunFonksiyon = 42
 
 // uzunFonksiyonlar fonksiyonSiniri'ni aşan test dışı fonksiyonlardır ("dosya:Alici.Ad").
 var uzunFonksiyonlar = map[string]istisna{
@@ -71,7 +71,6 @@ var uzunFonksiyonlar = map[string]istisna{
 
 	// Motorlar
 	"internal/motor/ogrenme/ozel_turev.go:turevDenetle":             {181, nYerlesik + " (sayısal türev denetimi)"},
-	"internal/motor/ogrenme/kayit.go:dosyadanOku":                   {142, nOkuma + " (tensör kayıt dosyası)"},
 	"internal/motor/ogrenme/yazdirma.go:Deger.Inspect":              {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
 	"internal/motor/ogrenme/model_araclari.go:orneklemeYerlesik":    {118, nYerlesik},
 	"internal/motor/ogrenme/yerlesik_indirgeme.go:indirgeme":        {85, nYerlesik},
