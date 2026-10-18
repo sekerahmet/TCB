@@ -50,26 +50,27 @@ var YeniHataAyiklayici func(sourceFile, sourceCode string) HataAyiklayici
 
 // vmShared tüm görevlerin (ana program, eşzamanlı bloklar, web/GUI istekleri) paylaştığı yorumlayıcı durumudur.
 type vmShared struct {
+	// Debugger her deyimde okunur; sık okunan alanlar başta tutulur.
+	Debugger  HataAyiklayici
 	GlobalEnv *Environment
 	Out       io.Writer
-	// Err programı durdurmayan hataların (eşzamanlı görev hataları) yazıldığı yerdir;
-	// varsayılanı standart hatadır. VS Code oturumu ve tr test kendi çıktılarına bağlar.
-	Err io.Writer
 	// Stdin girdi() için okunacak kaynaktır (nil ise os.Stdin). VS Code hata ayıklama
 	// modunda standart giriş protokole ayrıldığı için burası değiştirilir. Okuma VM'in tek
 	// tamponlu okuyucusuyla yapılır (bkz. GirdiOkuyucu).
-	Stdin        io.Reader
-	girdiMu      sync.Mutex
-	girdiOkuyucu *bufio.Reader
-	wg           sync.WaitGroup
-	Debugger     HataAyiklayici
-	SourceFile   string
-	SourceCode   string
-	importedMu   sync.Mutex
-	Imported     map[string]*DictVal
+	Stdin      io.Reader
+	wg         sync.WaitGroup
+	SourceFile string
+	SourceCode string
+	importedMu sync.Mutex
+	Imported   map[string]*DictVal
 	// yuklenen yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
 	// modülü isterse yüklemenin bitmesini bekler.
 	yuklenen map[string]*modulYukleme
+	// Err programı durdurmayan hataların (eşzamanlı görev hataları) yazıldığı yerdir;
+	// varsayılanı standart hatadır. VS Code oturumu ve tr test kendi çıktılarına bağlar.
+	Err          io.Writer
+	girdiMu      sync.Mutex
+	girdiOkuyucu *bufio.Reader
 
 	// gil (Yorumlayıcı Kilidi): Aynı anda yalnızca bir görev TR kodu çalıştırır. Böylece
 	// paylaşılan Liste/Sözlük/Yapı değerleri eşzamanlı yazımda bozulmaz ve 's += 1' gibi

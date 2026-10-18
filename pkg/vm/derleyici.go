@@ -160,21 +160,9 @@ func (b *blokKodu) calistir(v *VM, env *Environment) (Value, flowSignal, error) 
 	kodlar := b.kodlar
 	for i := 0; i < len(kodlar); i++ {
 		if v.Debugger != nil {
-			if stmt := b.deyimler[i]; stmt != nil {
-				// kesme_noktası satırının kendisinde değil, ya da kesme_noktası tetiklendikten sonra dur
-				if _, isBp := stmt.(*ast.BreakpointStatement); !isBp {
-					v.etkinBlok = b // hata ayıklayıcı zıplama hedeflerini bu bloğa göre sorar
-					jumpLine := v.Debugger.BeforeStatement(v, stmt, env)
-					if hedef, ok := b.ziplamaHedefi(jumpLine); jumpLine > 0 && ok {
-						for j, targetStmt := range b.deyimler {
-							if targetStmt != nil && targetStmt.Line() == hedef {
-								i = j - 1 // döngü sonunda i++ olacağı için j-1
-								break
-							}
-						}
-						continue
-					}
-				}
+			if j, zipla := b.ayiklayiciyaDanis(v, i, env); zipla {
+				i = j - 1 // döngü sonunda i++ olacağı için j-1
+				continue
 			}
 		}
 		val, sig, err := kodlar[i](v, env)
@@ -187,6 +175,37 @@ func (b *blokKodu) calistir(v *VM, env *Environment) (Value, flowSignal, error) 
 		lastVal = val
 	}
 	return lastVal, signalNone, nil
+}
+
+// ayiklayiciyaDanis i. deyimden önce hata ayıklayıcıya danışır; ayıklayıcı bloğun içinde
+// bir satıra zıplamak isterse o deyimin indeksini ve doğru döner. Sıcak döngünün dışında
+// tutulur (calistir'ın gövdesi küçük kalsın).
+//
+//go:noinline
+func (b *blokKodu) ayiklayiciyaDanis(v *VM, i int, env *Environment) (int, bool) {
+	stmt := b.deyimler[i]
+	if stmt == nil {
+		return 0, false
+	}
+	// kesme_noktası satırının kendisinde değil, ya da kesme_noktası tetiklendikten sonra dur
+	if _, isBp := stmt.(*ast.BreakpointStatement); isBp {
+		return 0, false
+	}
+	v.etkinBlok = b // hata ayıklayıcı zıplama hedeflerini bu bloğa göre sorar
+	jumpLine := v.Debugger.BeforeStatement(v, stmt, env)
+	if jumpLine <= 0 {
+		return 0, false
+	}
+	hedef, ok := b.ziplamaHedefi(jumpLine)
+	if !ok {
+		return 0, false
+	}
+	for j, targetStmt := range b.deyimler {
+		if targetStmt != nil && targetStmt.Line() == hedef {
+			return j, true
+		}
+	}
+	return 0, false
 }
 
 // zıplamaHedefi blokta satir'a zıplanabiliyorsa zıplanacak deyimin satırını verir: satırdaki
