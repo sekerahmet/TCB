@@ -110,26 +110,34 @@ func TestAsyncCounterIncrementIsAtomic(t *testing.T) {
 }
 
 // Kilit bekle() sırasında bırakıldığı için görevler hâlâ iç içe (eşzamanlı) ilerlemeli.
+// bekle(sn) kilidi bıraktığı için görevler aynı anda bekler. Süre ölçülmez (yüklü makinede
+// ya da yarış dedektörü altında kararsız olurdu): aynı anda bekleyen görev sayısı sayılır;
+// görevler sıraya girseydi en çok 1 olurdu. Süre sınırı yalnızca takılmaya karşıdır.
 func TestAsyncTasksStillOverlapDuringSleep(t *testing.T) {
-	start := time.Now()
-	_, val, err := runTRWithin(t, 10*time.Second, `
+	_, val, err := runTRWithin(t, 30*time.Second, `
 		değişken biten = 0
+		değişken bekleyen = 0
+		değişken en_cok = 0
 		döngü i içinde 0..20 {
 			eşzamanlı {
-				bekle(0.1)
+				bekleyen += 1
+				en_cok = maks(en_cok, bekleyen)
+				bekle(0.2)
+				bekleyen -= 1
 				biten += 1
 			}
 		}
 		bekle_hepsi()
-		sonuç biten`)
+		sonuç [biten, en_cok]`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if val.Inspect() != "20" {
-		t.Fatalf("20 bekleniyordu, %s alındı", val.Inspect())
+	l, ok := val.(*ListVal)
+	if !ok || l.Elements[0].Inspect() != "20" {
+		t.Fatalf("20 görev bitmeliydi: %s", val.Inspect())
 	}
-	if el := time.Since(start); el > 1500*time.Millisecond {
-		t.Fatalf("20 x bekle(0.1) paralel ~0.1 sn sürmeliydi, %v sürdü (görevler sıraya girmiş)", el)
+	if n, _ := l.Elements[1].(*IntVal); n == nil || n.Val < 2 {
+		t.Fatalf("görevler aynı anda beklemeliydi; aynı anda bekleyen en çok %s görev (sıraya girmişler)", l.Elements[1].Inspect())
 	}
 }
 
