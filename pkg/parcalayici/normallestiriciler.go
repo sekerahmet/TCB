@@ -33,11 +33,27 @@ func init() {
 // NormallestiriciSirasi normalleştiricileri sırayla uygular.
 type NormallestiriciSirasi []Normallestirici
 
-func (s NormallestiriciSirasi) Normallestir(m string) string {
+func (s NormallestiriciSirasi) Normallestir(m string) string { return s.normallestirB(m, nil) }
+
+func (s NormallestiriciSirasi) normallestirB(m string, b *dfButce) string {
 	for _, n := range s {
-		m = n.Normallestir(m)
+		m = normallestirButceli(n, m, b)
 	}
 	return m
+}
+
+// butceliNormallestirici düzenli ifade kullanan normalleştiricilerdir: bir
+// kodlama çağrısının paylaşılan adım bütçesiyle çalışabilirler.
+type butceliNormallestirici interface {
+	normallestirB(m string, b *dfButce) string
+}
+
+// normallestirButceli n'yi, destekliyorsa b bütçesiyle uygular.
+func normallestirButceli(n Normallestirici, m string, b *dfButce) string {
+	if bn, ok := n.(butceliNormallestirici); ok && b != nil {
+		return bn.normallestirB(m, b)
+	}
+	return n.Normallestir(m)
 }
 
 func sirNormKur(ham json.RawMessage) (Normallestirici, error) {
@@ -172,7 +188,9 @@ func degistiriciKur(ham json.RawMessage) (*degistirici, error) {
 	return d, nil
 }
 
-func (d *degistirici) uygula(m string) string {
+// uygula değiştirmeyi yapar; b nil değilse düzenli ifade adımları o
+// bütçeden düşülür.
+func (d *degistirici) uygula(m string, b *dfButce) string {
 	if d.ifade == nil {
 		if d.duz == "" {
 			return m
@@ -181,18 +199,20 @@ func (d *degistirici) uygula(m string) string {
 	}
 	var sb strings.Builder
 	onceki := 0
-	d.ifade.TumEslesmeler(m, func(b, e int) {
-		sb.WriteString(m[onceki:b])
+	d.ifade.tumEslesmeler(m, func(bas, son int) {
+		sb.WriteString(m[onceki:bas])
 		sb.WriteString(d.icerik)
-		onceki = e
-	})
+		onceki = son
+	}, b)
 	sb.WriteString(m[onceki:])
 	return sb.String()
 }
 
 type degistirNorm struct{ d *degistirici }
 
-func (n degistirNorm) Normallestir(m string) string { return n.d.uygula(m) }
+func (n degistirNorm) Normallestir(m string) string { return n.d.uygula(m, nil) }
+
+func (n degistirNorm) normallestirB(m string, b *dfButce) string { return n.d.uygula(m, b) }
 
 func degistirNormKur(ham json.RawMessage) (Normallestirici, error) {
 	d, err := degistiriciKur(ham)

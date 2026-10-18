@@ -95,6 +95,10 @@ func (p *Parcalayici) KodlaCift(birinci string, ikinci *string, s Secenekler) *K
 func (p *Parcalayici) dizi(dst []int32, metin string, ozelleriAtla bool) []int32 {
 	metin = gecerliMetin(metin)
 	modelKodla := func(x Parca) { dst = p.model.Kodla(dst, x) }
+	// Bütün düzenli ifade aramaları tek bir bütçeyi paylaşır: her biri kendi
+	// sınırında kalan çok sayıda arama da toplamda metin uzunluğuyla orantılı
+	// işte durdurulur.
+	butce := p.kodlaButcesi(len(metin))
 	p.hamEslesme.bol(metin, ozelleriAtla, func(a ekParca) {
 		if a.id >= 0 {
 			dst = append(dst, a.id)
@@ -103,7 +107,10 @@ func (p *Parcalayici) dizi(dst []int32, metin string, ozelleriAtla bool) []int32
 		bolum := metin[a.bas:a.son]
 		ilk := a.bas == 0
 		if p.normallestirici != nil {
-			bolum = p.normallestirici.Normallestir(bolum)
+			bolum = normallestirButceli(p.normallestirici, bolum, butce)
+			if butce != nil {
+				butce.ekle(p.kodlaIfade * len(bolum))
+			}
 		}
 		p.nrmEslesme.bol(bolum, ozelleriAtla, func(b ekParca) {
 			if b.id >= 0 {
@@ -113,7 +120,7 @@ func (p *Parcalayici) dizi(dst []int32, metin string, ozelleriAtla bool) []int32
 			if b.son <= b.bas {
 				return
 			}
-			parca := Parca{Metin: bolum[b.bas:b.son], Ilk: ilk && b.bas == 0}
+			parca := Parca{Metin: bolum[b.bas:b.son], Ilk: ilk && b.bas == 0, butce: butce}
 			if p.onBolucu == nil {
 				dst = p.model.Kodla(dst, parca)
 				return
@@ -156,7 +163,15 @@ func (p *Parcalayici) Coz(idler []int, ozelleriAtla bool) string {
 	if p.cozucu == nil {
 		return strings.Join(tokenlar, " ")
 	}
-	return strings.Join(p.cozucu.CozZincir(tokenlar), "")
+	var butce *dfButce
+	if p.cozIfade > 0 {
+		n := 0
+		for _, t := range tokenlar {
+			n += len(t)
+		}
+		butce = yeniButce(p.cozIfade * n)
+	}
+	return strings.Join(cozButceli(p.cozucu, tokenlar, butce), "")
 }
 
 // Coz32 32 bitlik kimlik dizisini metne çevirir (bkz. Coz).

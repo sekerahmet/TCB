@@ -229,7 +229,7 @@ func davranisUygula(dst []Parca, p Parca, metin string, a []aralik, d bolmeDavra
 		if x.sil || x.son <= x.bas {
 			continue
 		}
-		dst = append(dst, Parca{Metin: metin[x.bas:x.son], Ilk: p.Ilk && x.bas == 0})
+		dst = append(dst, Parca{Metin: metin[x.bas:x.son], Ilk: p.Ilk && x.bas == 0, butce: p.butce})
 	}
 	return dst
 }
@@ -302,7 +302,7 @@ func bolKur(ham json.RawMessage) (OnBolucu, error) {
 	return b, nil
 }
 
-func (b *desenleBol) bul(metin string, f func(bas, son int)) {
+func (b *desenleBol) bul(metin string, f func(bas, son int), butce *dfButce) {
 	switch {
 	case b.hizli:
 		for i := 0; i < len(metin); {
@@ -324,7 +324,7 @@ func (b *desenleBol) bul(metin string, f func(bas, son int)) {
 			i += k + len(d)
 		}
 	default:
-		b.ifade.TumEslesmeler(metin, f)
+		b.ifade.tumEslesmeler(metin, f, butce)
 	}
 }
 
@@ -342,12 +342,12 @@ func (b *desenleBol) akis(p Parca, f func(Parca)) {
 	if b.hizli && b.davranis == davranisAyri {
 		for i := 0; i < len(metin); {
 			j := eslesmeSonu(metin, i)
-			f(Parca{Metin: metin[i:j], Ilk: p.Ilk && i == 0})
+			f(Parca{Metin: metin[i:j], Ilk: p.Ilk && i == 0, butce: p.butce})
 			i = j
 		}
 		return
 	}
-	a := eslesmeAraliklari(len(metin), func(f func(b, e int)) { b.bul(metin, f) })
+	a := eslesmeAraliklari(len(metin), func(f func(b, e int)) { b.bul(metin, f, p.butce) })
 	if b.ters {
 		tersCevir(a)
 	}
@@ -409,7 +409,7 @@ func (bosluklaBol) OnBol(dst, parcalar []Parca) []Parca {
 					j += w2
 				}
 			}
-			dst = append(dst, Parca{Metin: m[i:j], Ilk: p.Ilk && i == 0})
+			dst = append(dst, Parca{Metin: m[i:j], Ilk: p.Ilk && i == 0, butce: p.butce})
 			i = j
 		}
 	}
@@ -465,11 +465,11 @@ func (b *baytOnBol) OnBol(dst, parcalar []Parca) []Parca {
 	return dst
 }
 
-func (b *baytOnBol) cevir(s string, ilk bool) Parca {
+func (b *baytOnBol) cevir(s string, ilk bool, butce *dfButce) Parca {
 	if b.tembel {
-		return Parca{Metin: s, Ilk: ilk, baytDuzeyi: true}
+		return Parca{Metin: s, Ilk: ilk, baytDuzeyi: true, butce: butce}
 	}
-	return Parca{Metin: baytlariKarakterle([]byte(s)), Ilk: ilk}
+	return Parca{Metin: baytlariKarakterle([]byte(s)), Ilk: ilk, butce: butce}
 }
 
 func (b *baytOnBol) akis(p Parca, f func(Parca)) {
@@ -481,21 +481,21 @@ func (b *baytOnBol) akis(p Parca, f func(Parca)) {
 		m = " " + m
 	}
 	if !b.desenle {
-		f(b.cevir(m, p.Ilk))
+		f(b.cevir(m, p.Ilk, p.butce))
 		return
 	}
 	onceki := 0
-	baytDuzeyiIfade.TumEslesmeler(m, func(bas, son int) {
+	baytDuzeyiIfade.tumEslesmeler(m, func(bas, son int) {
 		if onceki < bas {
-			f(b.cevir(m[onceki:bas], p.Ilk && onceki == 0))
+			f(b.cevir(m[onceki:bas], p.Ilk && onceki == 0, p.butce))
 		}
 		if son > bas {
-			f(b.cevir(m[bas:son], p.Ilk && bas == 0))
+			f(b.cevir(m[bas:son], p.Ilk && bas == 0, p.butce))
 		}
 		onceki = son
-	})
+	}, p.butce)
 	if onceki < len(m) {
-		f(b.cevir(m[onceki:], p.Ilk && onceki == 0))
+		f(b.cevir(m[onceki:], p.Ilk && onceki == 0, p.butce))
 	}
 }
 
@@ -574,7 +574,7 @@ func (m *metaspace) OnBol(dst, parcalar []Parca) []Parca {
 		}
 		if !m.bol {
 			if s != "" {
-				dst = append(dst, Parca{Metin: s, Ilk: p.Ilk})
+				dst = append(dst, Parca{Metin: s, Ilk: p.Ilk, butce: p.butce})
 			}
 			continue
 		}
@@ -588,7 +588,7 @@ func (m *metaspace) OnBol(dst, parcalar []Parca) []Parca {
 				i += k + len(m.yerine)
 			}
 		})
-		dst = davranisUygula(dst, Parca{Ilk: p.Ilk}, s, a, davranisSonrakiyle)
+		dst = davranisUygula(dst, Parca{Ilk: p.Ilk, butce: p.butce}, s, a, davranisSonrakiyle)
 	}
 	return dst
 }

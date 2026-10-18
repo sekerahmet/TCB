@@ -13,10 +13,13 @@ import (
 // desende kötü niyetli bir girdiyle üstel zamana düşebilir (ReDoS). Desenler
 // parçalayıcı dosyasından geldiği için (yarı güvenilir) iki önlem alınır:
 //
-//  1. Adım bütçesi: her eşleşme araması (bir eşleşme bulunana ya da metin
-//     bitene kadar) en çok AdimTabani + AdimCarpani·(kalan bayt) adım atabilir.
-//     Aşılırsa arama durdurulur ve AdimSiniriHatasi oluşur; sessizce yanlış
-//     bölme yapılmaz.
+//  1. Adım bütçesi: bir çağrının bütün aramaları (bir metnin kodlanmasında
+//     normalleştirici ve ön bölücülerdeki bütün desenler) toplam
+//     AdimTabani + AdimCarpani·(işlenen bayt) adımı paylaşır. Böylece her
+//     araması kendi bütçesinde kalan ama toplamda karesel büyüyen desenler
+//     de durdurulur. Aşılırsa AdimSiniriHatasi oluşur; sessizce yanlış bölme
+//     yapılmaz. Geri izleme noktalarının belleği de GeriIzlemeSiniri ile
+//     sınırlıdır.
 //  2. Derleme anında risk çözümlemesi: iç içe sınırsız niceleyiciler (ör.
 //     "(a+)+", "(\w+\s*)*") varsayılan olarak reddedilir; sınırsız bir
 //     yinelemenin içinde aynı karakterle başlayan seçenekler (ör. "(a|ab)*")
@@ -24,17 +27,21 @@ import (
 
 // DuzIfadeAyarlari motorun güvenlik ayarlarıdır.
 type DuzIfadeAyarlari struct {
-	// AdimTabani ve AdimCarpani bir eşleşme aramasının adım bütçesini belirler:
-	// AdimTabani + AdimCarpani * (aramanın başladığı konumdan sonraki bayt sayısı).
+	// AdimTabani ve AdimCarpani bir çağrının (ör. bir metnin kodlanması)
+	// bütün aramalarının paylaştığı adım bütçesini belirler:
+	// AdimTabani + AdimCarpani * (işlenen bayt sayısı).
 	AdimTabani  int64
 	AdimCarpani int64
 	// RiskliDesenIzni doğruysa iç içe sınırsız niceleyicili desenler
 	// reddedilmez (adım bütçesi yine geçerlidir).
 	RiskliDesenIzni bool
+	// GeriIzlemeSiniri bir aramanın aynı anda tutabileceği en çok geri
+	// izleme noktası sayısıdır (bellek sınırı; kayıt başına ~24 bayt).
+	GeriIzlemeSiniri int
 }
 
 // VarsayilanDuzIfadeAyarlari varsayılan güvenlik ayarlarıdır.
-var VarsayilanDuzIfadeAyarlari = DuzIfadeAyarlari{AdimTabani: 1_000_000, AdimCarpani: 100}
+var VarsayilanDuzIfadeAyarlari = DuzIfadeAyarlari{AdimTabani: 1_000_000, AdimCarpani: 100, GeriIzlemeSiniri: 1 << 22}
 
 var duzIfadeAyar atomic.Pointer[DuzIfadeAyarlari]
 
@@ -53,22 +60,32 @@ func DuzIfadeAyarla(a DuzIfadeAyarlari) {
 	if a.AdimCarpani <= 0 {
 		a.AdimCarpani = VarsayilanDuzIfadeAyarlari.AdimCarpani
 	}
+	if a.GeriIzlemeSiniri <= 0 {
+		a.GeriIzlemeSiniri = VarsayilanDuzIfadeAyarlari.GeriIzlemeSiniri
+	}
 	duzIfadeAyar.Store(&a)
 }
 
 // DuzIfadeAyarlariniAl geçerli güvenlik ayarlarını verir.
 func DuzIfadeAyarlariniAl() DuzIfadeAyarlari { return *duzIfadeAyar.Load() }
 
-// AdimSiniriHatasi bir eşleşme aramasının adım bütçesini aştığını bildirir.
+// AdimSiniriHatasi bir çağrının düzenli ifade adım bütçesini ya da geri
+// izleme belleği sınırını aştığını bildirir.
 type AdimSiniriHatasi struct {
-	Desen string // desenin kaynağı
-	Konum int    // aramanın başladığı bayt konumu
-	Butce int64  // aşılan adım bütçesi
+	Desen  string // desenin kaynağı
+	Konum  int    // sınırın aşıldığı aramanın başladığı bayt konumu
+	Butce  int64  // aşılan adım bütçesi
+	Bellek bool   // aşılan, geri izleme belleği sınırıysa (GeriIzlemeSiniri) doğru
 }
 
 func (e *AdimSiniriHatasi) Error() string {
+	if e.Bellek {
+		return fmt.Sprintf("düzenli ifade %q, girdinin %d. bayt konumundan başlayan aramada geri izleme belleği sınırını (%d kayıt) aştı: "+
+			"desen bu girdide çok uzun bir yinelemeyi geri izlenebilir tutuyor; parçalama durduruldu",
+			dfKisalt(e.Desen), e.Konum, DuzIfadeAyarlariniAl().GeriIzlemeSiniri)
+	}
 	return fmt.Sprintf("düzenli ifade %q, girdinin %d. bayt konumundan başlayan aramada adım sınırını (%d) aştı: "+
-		"desen bu girdide üstel ya da aşırı geri izleme yapıyor; parçalama durduruldu", e.Desen, e.Konum, e.Butce)
+		"desen bu girdide üstel ya da aşırı geri izleme yapıyor; parçalama durduruldu", dfKisalt(e.Desen), e.Konum, e.Butce)
 }
 
 // adimHatasiniYakala f'yi çalıştırır; adım sınırı aşılırsa hatayı döndürür
@@ -91,6 +108,26 @@ func adimHatasiniYakala(f func()) (err error) {
 // Derleme anında risk çözümlemesi
 // ---------------------------------------------------------------------------
 
+// dfDoyma uzunluk hesaplarının doyduğu (taşmadığı) üst sınırdır.
+const dfDoyma = 1 << 40
+
+func dfDoymaliCarp(a, b int) int {
+	if a <= 0 || b <= 0 {
+		return 0
+	}
+	if a > dfDoyma/b {
+		return dfDoyma
+	}
+	return a * b
+}
+
+func dfDoymaliTop(a, b int) int {
+	if a+b > dfDoyma {
+		return dfDoyma
+	}
+	return a + b
+}
+
 // sinirsiz niceleyicinin "sınırsıza yakın" sayıldığı üst sınır.
 const riskliUstSinir = 100
 
@@ -104,7 +141,7 @@ func dfEnKisa(d dfDugum) int {
 	case *dfBirlesim:
 		t := 0
 		for _, o := range x.ogeler {
-			t += dfEnKisa(o)
+			t = dfDoymaliTop(t, dfEnKisa(o))
 		}
 		return t
 	case *dfSecenek:
@@ -119,7 +156,7 @@ func dfEnKisa(d dfDugum) int {
 		}
 		return m
 	case *dfTekrar:
-		return x.en * dfEnKisa(x.alt)
+		return dfDoymaliCarp(x.en, dfEnKisa(x.alt))
 	case *dfAtomik:
 		return dfEnKisa(x.alt)
 	}

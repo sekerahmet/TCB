@@ -98,11 +98,27 @@ func init() {
 // CozucuSirasi çözücüleri sırayla uygular.
 type CozucuSirasi []Cozucu
 
-func (s CozucuSirasi) CozZincir(t []string) []string {
+func (s CozucuSirasi) CozZincir(t []string) []string { return s.cozZincirB(t, nil) }
+
+func (s CozucuSirasi) cozZincirB(t []string, b *dfButce) []string {
 	for _, c := range s {
-		t = c.CozZincir(t)
+		t = cozButceli(c, t, b)
 	}
 	return t
+}
+
+// butceliCozucu düzenli ifade kullanan çözücülerdir: bir çözme çağrısının
+// paylaşılan adım bütçesiyle çalışabilirler.
+type butceliCozucu interface {
+	cozZincirB(t []string, b *dfButce) []string
+}
+
+// cozButceli c'yi, destekliyorsa b bütçesiyle uygular.
+func cozButceli(c Cozucu, t []string, b *dfButce) []string {
+	if bc, ok := c.(butceliCozucu); ok && b != nil {
+		return bc.cozZincirB(t, b)
+	}
+	return c.CozZincir(t)
 }
 
 // baytCozucu tokenları bayt düzeyi karakterlerden baytlara çevirir ve tümünü
@@ -267,10 +283,12 @@ func (k kirpCozucu) CozZincir(t []string) []string {
 
 type degistirCozucu struct{ d *degistirici }
 
-func (c degistirCozucu) CozZincir(t []string) []string {
+func (c degistirCozucu) CozZincir(t []string) []string { return c.cozZincirB(t, nil) }
+
+func (c degistirCozucu) cozZincirB(t []string, b *dfButce) []string {
 	out := make([]string, len(t))
 	for i, s := range t {
-		out[i] = c.d.uygula(s)
+		out[i] = c.d.uygula(s, b)
 	}
 	return out
 }

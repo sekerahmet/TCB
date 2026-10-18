@@ -61,6 +61,26 @@ type Parcalayici struct {
 	idBayt       [][]byte // yalnızca bayt düzeyi çözücüde: kimlik -> baytlar
 	baytCozucu   bool
 	sozlukBoyutu int
+
+	// Düzenli ifade kullanan adım sayısı: kodlamada (normalleştirici ve ön
+	// bölücü) ve çözmede. Bir çağrının adım bütçesi bununla ölçeklenir.
+	kodlaIfade, cozIfade int
+}
+
+// ifadeSay bir bileşen (zinciri) içindeki düzenli ifadeleri sayar.
+func ifadeSay(b any) int {
+	n := 0
+	ifadeleriGez(b, func(*DuzIfade) { n++ })
+	return n
+}
+
+// kodlaButcesi bayt uzunluğundaki bir metnin kodlanması için paylaşılan adım
+// bütçesini açar (düzenli ifade yoksa nil).
+func (p *Parcalayici) kodlaButcesi(bayt int) *dfButce {
+	if p.kodlaIfade == 0 {
+		return nil
+	}
+	return yeniButce(p.kodlaIfade * bayt)
 }
 
 // VarsayilanOnbellekKapasitesi sözcük önbelleğinin varsayılan girdi sayısıdır.
@@ -143,6 +163,8 @@ func Ayristir(veri []byte) (*Parcalayici, error) {
 		return nil, err
 	}
 	_, p.baytCozucu = p.cozucu.(baytCozucu)
+	p.kodlaIfade = ifadeSay(p.normallestirici) + ifadeSay(p.onBolucu)
+	p.cozIfade = ifadeSay(p.cozucu)
 	sozluk := p.model.Sozluk()
 
 	// Ek tokenlar: kimlik, içerik sözlükteyse sözlükteki kimlik; değilse

@@ -172,8 +172,8 @@ func TestBilinenDesenlerDogrusal(t *testing.T) {
 		for gad := range kucuk {
 			var a1, a2 int64
 			if err := adimHatasiniYakala(func() {
-				a1 = ifade.tumEslesmeler(kucuk[gad], func(int, int) {})
-				a2 = ifade.tumEslesmeler(buyuk[gad], func(int, int) {})
+				a1 = ifade.tumEslesmeler(kucuk[gad], func(int, int) {}, nil)
+				a2 = ifade.tumEslesmeler(buyuk[gad], func(int, int) {}, nil)
 			}); err != nil {
 				t.Errorf("%s/%s: bütçeye takıldı: %v", dad, gad, err)
 				continue

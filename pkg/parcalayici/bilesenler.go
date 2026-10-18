@@ -36,6 +36,9 @@ type Parca struct {
 	Ilk bool
 
 	baytDuzeyi bool
+	// butce, parçanın ait olduğu kodlama çağrısının düzenli ifade adım
+	// bütçesidir (nil: her arama kendi bütçesini açar).
+	butce *dfButce
 }
 
 // Icerik parçanın asıl metnini verir (gerekirse bayt düzeyi gösterime çevirir).
