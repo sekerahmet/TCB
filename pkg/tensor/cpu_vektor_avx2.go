@@ -44,3 +44,48 @@ func expVek(dst, src []float32) {
 		copy(dst[m:], blok[:k])
 	}
 }
+
+// vekMaske kuyruk maskeleri: &vekMaske[8-k]'dan okunan 8 değerin ilk k'sı -1'dir
+// (k < 8 elemanlık kuyruk, maskeli yükleme ve saklamayla işlenir).
+var vekMaske = [16]int32{-1, -1, -1, -1, -1, -1, -1, -1}
+
+//go:noescape
+func lnIleriCekirdek(y, x, gam, bet, mean, rstd *float32, satir, boy int, dD, eps float64)
+
+//go:noescape
+func lnGeriCekirdek(xg *float32, pg, pb *float64, x, gr, gam, mean, rstd *float32, satir, boy int, dD float64)
+
+// ilk32 dilimin ilk elemanının adresi; boş dilim için nil (çekirdeklerde "yok").
+func ilk32(s []float32) *float32 {
+	if len(s) == 0 {
+		return nil
+	}
+	return &s[0]
+}
+
+func ilk64(s []float64) *float64 {
+	if len(s) == 0 {
+		return nil
+	}
+	return &s[0]
+}
+
+// lnIleriBlok katman normunun (mean nil ise RMS normunun) ileri yönü; tanım ve
+// taşınabilir eşi lnIleriBlokGo'dadır, sonuç onunla bit düzeyinde aynıdır.
+func lnIleriBlok(y, x, g, b, mean, rstd []float32, D int, eps float32) {
+	R := lnDenetle(D, x, y, g, b, mean, rstd, nil, nil, nil)
+	if R == 0 {
+		return
+	}
+	lnIleriCekirdek(&y[0], &x[0], ilk32(g), ilk32(b), ilk32(mean), &rstd[0], R, D, float64(D), float64(eps))
+}
+
+// lnGeriBlok katman normunun (mean nil ise RMS normunun) geri yönü; tanım ve
+// taşınabilir eşi lnGeriBlokGo'dadır, sonuç onunla bit düzeyinde aynıdır.
+func lnGeriBlok(xg []float32, pg, pb []float64, x, gr, gam, mean, rstd []float32, D int) {
+	R := lnDenetle(D, x, gr, gam, nil, mean, rstd, xg, pg, pb)
+	if R == 0 {
+		return
+	}
+	lnGeriCekirdek(ilk32(xg), ilk64(pg), ilk64(pb), &x[0], &gr[0], ilk32(gam), ilk32(mean), &rstd[0], R, D, float64(D))
+}

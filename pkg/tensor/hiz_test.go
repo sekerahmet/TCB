@@ -252,3 +252,38 @@ func BenchmarkHizModelMatMul(b *testing.B) {
 		})
 	}
 }
+
+// Karakter modelindeki çarpım dışı çekirdekler (B·T = 1024 satır, D = 64, 4D = 256,
+// V = 131), ayırma ve türev çizgesi dahil:
+//
+//	GOMAXPROCS=2 go test ./pkg/tensor/ -run '^$' -bench 'HizModelCekirdek' -count 5
+func BenchmarkHizModelCekirdek(b *testing.B) {
+	rng := rand.New(rand.NewSource(35))
+	x := Randn(rng, 1024, 64).SetRequiresGrad(true)
+	g := Ones(64).SetRequiresGrad(true)
+	s := Zeros(64).SetRequiresGrad(true)
+	h := Randn(rng, 1024, 256).SetRequiresGrad(true)
+	l := Randn(rng, 1024, 131).SetRequiresGrad(true)
+	hedef := make([]int, 1024)
+	for i := range hedef {
+		hedef[i] = i * 7 % 131
+	}
+	for _, d := range []struct {
+		ad string
+		f  func()
+	}{
+		{"katman_normu_ileri", func() { LayerNorm(x, g, s, 1e-5) }},
+		{"katman_normu_ileri_geri", func() { LayerNorm(x, g, s, 1e-5).SumAll().Backward() }},
+		{"rms_normu_ileri_geri", func() { RMSNorm(x, g, 1e-5).SumAll().Backward() }},
+		{"gelu_ileri", func() { h.Gelu() }},
+		{"gelu_ileri_geri", func() { h.Gelu().SumAll().Backward() }},
+		{"capraz_entropi_ileri", func() { CrossEntropy(l, hedef) }},
+		{"capraz_entropi_ileri_geri", func() { CrossEntropy(l, hedef).Backward() }},
+	} {
+		b.Run(d.ad, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				d.f()
+			}
+		})
+	}
+}

@@ -178,6 +178,137 @@ func optGather(v *View) []float32 {
 	return gatherCPU(*v)
 }
 
+// Katman ve RMS normu çekirdekleri. Satır işleri lnIleriBlok / lnGeriBlok'tadır
+// (GOAMD64=v3'te AVX2 çekirdekleri, aksi halde aşağıdaki Go eşleri). Toplamlar
+// float64'te, eleman konumuna göre 8 kulvarda (j mod 8) biriktirilir ve sabit
+// sırayla birleştirilir; kaynaştırılmış çarpma-toplama kullanılmaz. Böylece
+// vektör ve Go yolları bit düzeyinde aynı sonucu verir (testler: norm_test.go).
+
+// topla8 8 kulvarlık float64 kısmi toplamları sabit sırayla birleştirir
+// (AVX2 çekirdeklerindeki TOPLA8 ile aynı sıra).
+func topla8(a *[8]float64) float64 {
+	return ((a[0] + a[4]) + (a[2] + a[6])) + ((a[1] + a[5]) + (a[3] + a[7]))
+}
+
+// lnDenetle norm çekirdeklerinin dilim uzunluklarını denetler ve satır sayısını
+// döner (D <= 0 ya da boş girdide 0). a, x ile aynı uzunlukta olmalıdır (ileri
+// yönde çıktı, geri yönde gelen gradyan); g, b, pg, pb nil ya da en az D,
+// mean nil ya da en az R, rstd en az R, xg nil ya da x uzunluğunda olmalıdır.
+func lnDenetle(D int, x, a, g, b, mean, rstd, xg []float32, pg, pb []float64) int {
+	if D <= 0 || len(x) == 0 {
+		return 0
+	}
+	R := len(x) / D
+	kisa := func(s int, n int) bool { return s != 0 && s < n }
+	if R*D != len(x) || len(a) < R*D || kisa(len(g), D) || kisa(len(b), D) || kisa(len(pg), D) ||
+		kisa(len(pb), D) || kisa(len(mean), R) || len(rstd) < R || kisa(len(xg), R*D) {
+		panic("tensor: norm çekirdeğine uyumsuz dilim uzunlukları (iç hata)")
+	}
+	return R
+}
+
+// lnIleriBlokGo katman normunun (mean nil ise RMS normunun) taşınabilir ileri
+// yönü; x'in her D'lik satırı için:
+//
+//	mu = Σx / D (RMS: 0),  v = Σ(x − mu)² / D,  rs = 1 / √(v + eps),
+//	y  = ((x − mu)·rs)·g + b   (float32; g ve b nil olabilir).
+//
+// mean (varsa) ve rstd satır başına yazılır.
+func lnIleriBlokGo(y, x, g, b, mean, rstd []float32, D int, eps float32) {
+	R := len(x) / D
+	dD := float64(D)
+	for r := 0; r < R; r++ {
+		row := x[r*D : (r+1)*D]
+		var mu float64
+		if mean != nil {
+			var acc [8]float64
+			for j, v := range row {
+				acc[j&7] += float64(v)
+			}
+			mu = topla8(&acc) / dD
+		}
+		var acc [8]float64
+		for j, v := range row {
+			d := float64(v) - mu
+			acc[j&7] += float64(d * d)
+		}
+		rs := 1 / math.Sqrt(topla8(&acc)/dD+float64(eps))
+		m32, r32 := float32(mu), float32(rs)
+		if mean != nil {
+			mean[r] = m32
+		}
+		rstd[r] = r32
+		yr := y[r*D : (r+1)*D]
+		for j, v := range row {
+			h := float32((v - m32) * r32)
+			if g != nil {
+				h = float32(h * g[j])
+			}
+			if b != nil {
+				h += b[j]
+			}
+			yr[j] = h
+		}
+	}
+}
+
+// lnGeriBlokGo katman normunun (mean nil ise RMS normunun) taşınabilir geri
+// yönü; h = (x − m)·rs, dh = gr·gam (gam nil ise gr) ile her satır için:
+//
+//	pg[j] += gr·h,  pb[j] += gr                     (float64; nil olabilir),
+//	xg    += rs·((dh − m1) − h·m2),  m1 = Σdh / D (RMS: 0),  m2 = Σdh·h / D.
+//
+// xg nil ise yalnızca pg ve pb biriktirilir.
+func lnGeriBlokGo(xg []float32, pg, pb []float64, x, gr, gam, mean, rstd []float32, D int) {
+	R := len(x) / D
+	dD := float64(D)
+	for r := 0; r < R; r++ {
+		row := x[r*D : (r+1)*D]
+		g := gr[r*D : (r+1)*D]
+		var m float32
+		if mean != nil {
+			m = mean[r]
+		}
+		rs := rstd[r]
+		var a1, a2 [8]float64
+		for j, v := range row {
+			h := (v - m) * rs
+			if pg != nil {
+				pg[j] += float64(float64(g[j]) * float64(h))
+			}
+			if pb != nil {
+				pb[j] += float64(g[j])
+			}
+			if xg != nil {
+				dh := g[j]
+				if gam != nil {
+					dh *= gam[j]
+				}
+				a1[j&7] += float64(dh)
+				a2[j&7] += float64(float64(dh) * float64(h))
+			}
+		}
+		if xg == nil {
+			continue
+		}
+		var m1 float32
+		if mean != nil {
+			m1 = float32(topla8(&a1) / dD)
+		}
+		m2 := float32(topla8(&a2) / dD)
+		xr := xg[r*D : (r+1)*D]
+		for j, v := range row {
+			h := (v - m) * rs
+			dh := g[j]
+			if gam != nil {
+				dh *= gam[j]
+			}
+			t := (dh - m1) - float32(h*m2)
+			xr[j] += float32(t * rs)
+		}
+	}
+}
+
 func (cpuBackend) f32LayerNorm(out Storage, x View, gamma, beta *View, D int, eps float32) (Storage, Storage) {
 	xd := gatherCPU(x)
 	gd, bd := optGather(gamma), optGather(beta)
@@ -186,33 +317,7 @@ func (cpuBackend) f32LayerNorm(out Storage, x View, gamma, beta *View, D int, ep
 	rstd := make([]float32, R)
 	y := cd(out)
 	parallelFor(R, D*2, func(lo, hi int) {
-		for r := lo; r < hi; r++ {
-			row := xd[r*D : (r+1)*D]
-			var s float64
-			for _, v := range row {
-				s += float64(v)
-			}
-			mu := s / float64(D)
-			var v2 float64
-			for _, v := range row {
-				d := float64(v) - mu
-				v2 += d * d
-			}
-			rs := 1 / math.Sqrt(v2/float64(D)+float64(eps))
-			m32, r32 := float32(mu), float32(rs)
-			mean[r], rstd[r] = m32, r32
-			yr := y[r*D : (r+1)*D]
-			for j, v := range row {
-				h := (v - m32) * r32
-				if gd != nil {
-					h *= gd[j]
-				}
-				if bd != nil {
-					h += bd[j]
-				}
-				yr[j] = h
-			}
-		}
+		lnIleriBlok(y[lo*D:hi*D], xd[lo*D:hi*D], gd, bd, mean[lo:hi], rstd[lo:hi], D, eps)
 	})
 	return &cpuStorage{d: mean}, &cpuStorage{d: rstd}
 }
@@ -228,44 +333,11 @@ func (cpuBackend) f32LayerNormGrad(gx, ggamma, gbeta, g Storage, x View, gamma *
 		for c := clo; c < chi; c++ {
 			lo, hi := pc.aralik(c)
 			pg, pb := pc.kismi(c)
-			for r := lo; r < hi; r++ {
-				row := xd[r*D : (r+1)*D]
-				gr := gr0[r*D : (r+1)*D]
-				m, rs := md[r], rd[r]
-				for j, v := range gr {
-					if pg != nil {
-						pg[j] += float64(v) * float64((row[j]-m)*rs)
-					}
-					if pb != nil {
-						pb[j] += float64(v)
-					}
-				}
-				if xg == nil {
-					continue
-				}
-				// dx = rstd·(dx̂ - ort(dx̂) - x̂·ort(dx̂·x̂))
-				var s1, s2 float64
-				for j, v := range gr {
-					dh := v
-					if gd != nil {
-						dh *= gd[j]
-					}
-					h := (row[j] - m) * rs
-					s1 += float64(dh)
-					s2 += float64(dh) * float64(h)
-				}
-				m1 := float32(s1 / float64(D))
-				m2 := float32(s2 / float64(D))
-				xr := xg[r*D : (r+1)*D]
-				for j, v := range gr {
-					dh := v
-					if gd != nil {
-						dh *= gd[j]
-					}
-					h := (row[j] - m) * rs
-					xr[j] += rs * (dh - m1 - h*m2)
-				}
+			var xr []float32
+			if xg != nil {
+				xr = xg[lo*D : hi*D]
 			}
+			lnGeriBlok(xr, pg, pb, xd[lo*D:hi*D], gr0[lo*D:hi*D], gd, md[lo:hi], rd[lo:hi], D)
 		}
 	})
 	pc.birlestir(gg, bg)
@@ -278,23 +350,7 @@ func (cpuBackend) f32RMSNorm(out Storage, x View, gamma *View, D int, eps float3
 	rinv := make([]float32, R)
 	y := cd(out)
 	parallelFor(R, D*2, func(lo, hi int) {
-		for r := lo; r < hi; r++ {
-			row := xd[r*D : (r+1)*D]
-			var s float64
-			for _, v := range row {
-				s += float64(v) * float64(v)
-			}
-			ri := float32(1 / math.Sqrt(s/float64(D)+float64(eps)))
-			rinv[r] = ri
-			yr := y[r*D : (r+1)*D]
-			for j, v := range row {
-				h := v * ri
-				if gd != nil {
-					h *= gd[j]
-				}
-				yr[j] = h
-			}
-		}
+		lnIleriBlok(y[lo*D:hi*D], xd[lo*D:hi*D], gd, nil, nil, rinv[lo:hi], D, eps)
 	})
 	return &cpuStorage{d: rinv}
 }
@@ -310,37 +366,11 @@ func (cpuBackend) f32RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rin
 		for c := clo; c < chi; c++ {
 			lo, hi := pc.aralik(c)
 			pg, _ := pc.kismi(c)
-			for r := lo; r < hi; r++ {
-				row := xd[r*D : (r+1)*D]
-				gr := gr0[r*D : (r+1)*D]
-				ri := rd[r]
-				if pg != nil {
-					for j, v := range gr {
-						pg[j] += float64(v) * float64(row[j]*ri)
-					}
-				}
-				if xg == nil {
-					continue
-				}
-				// dx = r·dn - x·r³·ort(dn·x),  dn = g·γ
-				var s float64
-				for j, v := range gr {
-					dn := v
-					if gd != nil {
-						dn *= gd[j]
-					}
-					s += float64(dn) * float64(row[j])
-				}
-				k := float32(s/float64(D)) * ri * ri * ri
-				xr := xg[r*D : (r+1)*D]
-				for j, v := range gr {
-					dn := v
-					if gd != nil {
-						dn *= gd[j]
-					}
-					xr[j] += ri*dn - row[j]*k
-				}
+			var xr []float32
+			if xg != nil {
+				xr = xg[lo*D : hi*D]
 			}
+			lnGeriBlok(xr, pg, nil, xd[lo*D:hi*D], gr0[lo*D:hi*D], gd, nil, rd[lo:hi], D)
 		}
 	})
 	pc.birlestir(gg, nil)
