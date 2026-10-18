@@ -216,6 +216,15 @@ test "15.6 geri yayılım, gradyan ve türevsiz" {
     doğrula(hata_metni(() => ara.gradyan).içerir("bir işlemin sonucu"))
 }
 
+test "15.6 türevsiz(x) veriyi paylaşan görünümdür, tensör(x) bağımsız kopyadır" {
+    değişken x = tensör([1.0, 2.0])
+    değişken g = türevsiz(x)
+    değişken k = tensör(x)
+    x[0] = 9.0
+    eşit_mi([9.0, 2.0], g.değer)
+    eşit_mi([1.0, 2.0], k.değer)
+}
+
 test "15.6 türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     değişken w = tensör([1.0, 2.0], türev_izle: doğru)
     değişken izli = (t) => hata_metni(() => geri_yayılım(toplam(t))) == ""
@@ -395,9 +404,10 @@ test "15.12 veri türleri: tür seçimi, .tür ve .türe" {
     eşit_mi([[1.0, 2.0], [3.0, 4.0]], a.değer)
     eşit_mi(["bf16", "fp16", "bf16"], [sıfırlar([2], tür: "bf16").tür, birler([2], tür: "fp16").tür, rastgele_normal([2], tür: "bf16", tohum: 1).tür])
     eşit_mi([1.0, 1.0], birler([2], tür: "fp16").değer)
-    // Tensörden oluşturmada tür verilmezse kaynağın türü korunur.
+    // Tensörden oluşturmada kaynağın türü korunur; türü değiştirmenin tek yazımı .türe'dir.
     eşit_mi("bf16", tensör(a).tür)
-    eşit_mi("float32", tensör(a, tür: "float32").tür)
+    eşit_mi("float32", a.türe("float32").tür)
+    doğrula(hata_metni(() => tensör(a, tür: "float32")).içerir("tensör: girdi zaten bir tensör; türünü değiştirmek için t.türe(...) yazın"))
     eşit_mi("fp16", tensör(2.5, tür: "fp16").tür)
     // Aynı türlü işlenenlerin sonucu o türde, farklı türlerinki float32'dir.
     eşit_mi("bf16", (a @ a).tür)

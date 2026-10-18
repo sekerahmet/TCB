@@ -46,11 +46,14 @@ func tensorYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Valu
 	izle := turevIzle(named, konumlu, false)
 	var t *tensor.Tensor
 	if d, ok := args[0].(*Deger); ok {
-		dt, err := adliTur("tensör", named, d.t.DType())
-		if err != nil {
-			return nil, err
+		// Türü değiştirmenin tek yazımı t.türe(...)'dir; tür: yalnızca listeden ya da
+		// sayıdan oluştururken verilir (karar 14).
+		if _, verildi := baglama.AdliAl(named, adTur); verildi {
+			return nil, fmt.Errorf("tensör: girdi zaten bir tensör; türünü değiştirmek için t.%s(...) yazın (%s: yalnızca listeden ya da sayıdan oluştururken verilir)", kod.Ad(kod.Y415), adTur.TR)
 		}
-		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak.
+		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak (aynı tür).
+		dt := d.t.DType()
+		var err error
 		t, err = guvenli(func() *tensor.Tensor {
 			if dt == tensor.Float32 {
 				return tensor.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...)

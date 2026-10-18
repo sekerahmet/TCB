@@ -908,7 +908,7 @@ eşit_mi(4, 2 + 2); yazdır("eşit")
 
     tensör(Tam | Ondalık | Liste | Tensör, [Mantık], türev_izle: Mantık = yanlış, tür: Metin) → Tensör
 
-İç içe sayı listesinden, tek sayıdan ya da başka bir tensörden yeni bir yaprak tensör oluşturur. türev_izle varsayılan olarak yanlıştır; tür verilmezse listeden float32, tensörden kaynağın türü kullanılır.
+İç içe sayı listesinden, tek sayıdan ya da başka bir tensörden yeni bir yaprak tensör oluşturur. türev_izle varsayılan olarak yanlıştır; tür verilmezse listeden float32 olur, tensörden kaynağın türü korunur (tensörün türünü değiştirmek için tür: değil .türe kullanılır).
 
 ```tr
 değişken t = tensör([[1, 2], [3, 4]], türev_izle: doğru); yazdır(t.şekil, t.tür)
