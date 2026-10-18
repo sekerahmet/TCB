@@ -134,7 +134,11 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 	return 0, false
 }
 func (s *dapServer) source() map[string]interface{} {
-	return map[string]interface{}{"name": filepath.Base(s.programPath), "path": s.programPath}
+	yol := s.programPath
+	if s.gorunumAdresi != "" {
+		yol = s.gorunumAdresi
+	}
+	return map[string]interface{}{"name": filepath.Base(s.programPath), "path": yol}
 }
 func (s *dapServer) stackTrace(msg *dapMessage) {
 	stack := s.curVM.StackSnapshot()

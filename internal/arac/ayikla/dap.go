@@ -84,8 +84,13 @@ type dapServer struct {
 	dbg         *Debugger
 	prog        *agac.Program
 	programPath string
-	finished    chan struct{}
-	exit        func(int)
+	// gorunumAdresi düzenleyicinin programı gösterdiği adrestir (başlatma ayarı
+	// "gorunumAdresi"): kodlu dosya Türkçe görünümüyle açıldığında dosya yolu değil görünümün
+	// adresidir. Çağrı yığınındaki kaynak bu adresle bildirilir ki düzenleyici satırı
+	// görünümde işaretlesin; boşsa dosya yolu bildirilir.
+	gorunumAdresi string
+	finished      chan struct{}
+	exit          func(int)
 }
 
 // ServeDAP düzenleyicinin bir hata ayıklama oturumunu in/out üzerinden yürütür (tr dap).

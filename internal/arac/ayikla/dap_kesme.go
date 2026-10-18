@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"tr_dili/internal/dil/agac"
 	"tr_dili/internal/dil/ayristir"
@@ -57,6 +59,7 @@ func dosyaAnahtari(yol string) string {
 	if yol == "" {
 		return ""
 	}
+	yol = kaynakYolu(yol)
 	m, err := filepath.Abs(yol)
 	if err != nil {
 		m = yol
@@ -67,9 +70,34 @@ func samePath(a, b string) bool {
 	if a == "" || b == "" {
 		return false
 	}
-	pa, _ := filepath.Abs(a)
-	pb, _ := filepath.Abs(b)
+	pa, _ := filepath.Abs(kaynakYolu(a))
+	pb, _ := filepath.Abs(kaynakYolu(b))
 	return strings.EqualFold(filepath.Clean(pa), filepath.Clean(pb))
+}
+
+// adresOnekiRe bir adresin şema önekidir ("tr-kodlu:"). Şema en az iki karakterdir; böylece
+// Windows sürücü harfi ("C:") şema sanılmaz (düzenleyicinin kendi ayrımıyla aynı).
+var adresOnekiRe = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+\-.]+:`)
+
+// kaynakYolu düzenleyicinin bildirdiği kaynak yolunu dosya yoluna çevirir. Düzenleyici kodlu
+// bir dosyayı Türkçe görünümüyle açtığında kesme noktaları dosya yolundan türetilmiş bir
+// adresle gelir ("tr-kodlu:/c%3A/proje/a.tr", ağ paylaşımında "tr-kodlu://sunucu/pay/a.tr");
+// adresin yolu dosyanın yoludur. Adres olmayan yol olduğu gibi döner.
+func kaynakYolu(yol string) string {
+	if !adresOnekiRe.MatchString(yol) {
+		return yol
+	}
+	u, err := url.Parse(yol)
+	if err != nil || u.Path == "" {
+		return yol
+	}
+	p := u.Path
+	if u.Host != "" {
+		p = "//" + u.Host + p
+	} else if filepath.Separator == '\\' && len(p) >= 3 && p[0] == '/' && p[2] == ':' {
+		p = p[1:] // "/c:/proje/a.tr" → "c:/proje/a.tr"
+	}
+	return filepath.FromSlash(p)
 }
 
 // breakpointHit satırda durulup durulmayacağına karar verir: koşul sağlanmazsa

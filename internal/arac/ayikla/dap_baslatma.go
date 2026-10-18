@@ -23,6 +23,9 @@ func (s *dapServer) launch(msg *dapMessage) {
 		Cwd         string `json:"cwd"`
 		// Args programa iletilen komut satırı argümanlarıdır (düzenleyicinin başlatma ayarı).
 		Args []string `json:"args"`
+		// GorunumAdresi programın düzenleyicideki görünümünün adresidir (kodlu dosyanın
+		// Türkçe görünümü; bkz. dapServer.gorunumAdresi). Satırlar görünümün satırlarıdır.
+		GorunumAdresi string `json:"gorunumAdresi"`
 	}
 	if err := json.Unmarshal(msg.Arguments, &a); err != nil || a.Program == "" {
 		s.respondErr(msg, "Hata ayıklanacak .tr dosyası belirtilmedi ('program')")
@@ -79,6 +82,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	s.machine = machine
 	s.prog = prog
 	s.programPath = path
+	s.gorunumAdresi = a.GorunumAdresi
 	s.respond(msg, nil)
 }
 func (s *dapServer) start() {
