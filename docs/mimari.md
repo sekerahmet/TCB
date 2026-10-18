@@ -26,7 +26,7 @@ Ok "içe aktarabilir" demektir. Kural `internal/katman_test.go` ile denetlenir (
 Dil çekirdeğinin içinde de sıra vardır: bir dil paketi yalnızca kendisinden önce gelenleri içe aktarabilir (`internal/katman_test.go`, `dilSirasi`):
 
 ```
-turkce < kod < ipucu < sozcuk < agac < ayristir < denetci < yurut
+turkce < kod < ipucu < sozcuk < agac < ayristir < denetci < kaynak < yurut
 ```
 
 Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe aktarmaz; onlar yorumlayıcıya kendileri bağlanır: `internal/motor` paketi yüklenirken yerleşikleri `yurut.MotorEkle` ile, `internal/arac/ayikla` paketi yüklenirken koddaki `kesme_noktası` deyiminin açacağı hata ayıklayıcıyı `yurut.YeniHataAyiklayici` ile kaydeder. Tam dili çalıştıran program ikisini de içe aktarır (`cmd/tr`, `internal/arac/testkosucu`).
@@ -35,14 +35,15 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 
 | Paket | Görevi |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `dap`), işi `internal/`'a bırakır |
+| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `hata_ayıkla`, `dap`), işi `internal/`'a bırakır |
 | `internal/dil/kod` | Dilin bütün adlarını sabit kodlara bağlayan kod listesi (`tanim.json`, `tr.json`) ve ondan üretilen Go sabitleri |
 | `internal/dil/turkce` | Türkçe harf işlemleri, ekler, "bunu mu demek istediniz" önerileri ve hata çerçevesi |
 | `internal/dil/ipucu` | Dilin adlarıyla ilgili hata ipuçları: kaldırılan, taşınan ve Türkçe karaktersiz yazılan adlar, tanımsız ada en yakın ad (sözcük çözümleyici, ayrıştırıcı, denetleyici ve yorumlayıcı aynı metni kullanır) |
-| `internal/dil/sozcuk` | Sözcük çözümleyici: kaynak metni sözcük birimlerine ayırır |
+| `internal/dil/sozcuk` | Sözcük çözümleyici: kaynak metni sözcük birimlerine ayırır; kodlu gövdede kodları etkin dilin adlarına çevirir, konumları Türkçe gösterime göre verir |
 | `internal/dil/agac` | Sözdizimi ağacının düğümleri |
 | `internal/dil/ayristir` | Ayrıştırıcı: sözcük birimlerinden sözdizimi ağacını kurar |
-| `internal/dil/denetci` | Çalıştırmadan önceki tip denetimi ve uyarılar |
+| `internal/dil/denetci` | Çalıştırmadan önceki tip denetimi ve uyarılar; adların kapsam bilgisi (tanımsız ad denetimi ve kodlu saklamanın ad bağları) |
+| `internal/dil/kaynak` | Kaynaktan programa tek giriş noktası: dosya metnini bölümlerine ayırır (BOM, kodlu biçim başlığı), doğru sözcük çözümleyiciyi seçer, ayrıştırır, isteğe göre denetler (`Hazirla`); komut satırı, kabuk, test koşucusu, hata ayıklama sunucusu, modül yükleyici ve `tr derle` dosyaları yalnızca buradan okur. Kodlu saklamanın çeviricisi (`Kodla`, `Coz`) de buradadır |
 | `internal/dil/yurut` | Derleyici ve yorumlayıcı: değerler, çekirdek yerleşikler ve metotlar, modüller, eşzamanlı görevler, motor ve hata ayıklayıcı kancaları |
 | `internal/motor` | Bütün motorları doğru sırayla yorumlayıcıya kaydeder (`import _ "tr_dili/internal/motor"`) |
 | `internal/motor/ogrenme` | Tensör, matris, otomatik türev, sinir ağı katmanları, iyileştiriciler ve tensör kaydını TR yerleşikleri olarak dile bağlar |

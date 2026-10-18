@@ -17,10 +17,8 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - eğitim için günlük kaydı ve ilerleme çubuğu (adım, kayıp, kalan süre), profil çıkarma.
    Her ad önce tasarlanıp onaylanır; aynı işi yapan iki kod olmaz.
 3. **Kodlu saklama** — dosyalar diskte dilden bağımsız sabit kodlarla saklanır (`A001`, `G100`); kişi kodu VS Code'da ya da başka bir düzenleyicide kendi yazım dilinde (`eğer` / `if`) görür ve düzenler. Böylece her dilde yazılan kod diskte aynıdır; farklı dillerde çalışan kişiler aynı dosyalar üzerinde birlikte çalışabilir.
-   - Go kodunda kodlar adlı sabitler olarak (`kod.G100`), kod listesinden üretilir.
-   - Sözcük çözümleyici kodları her zaman kabul eder; `tr biçimle` ve VS Code kaydı kodlu biçimi yazar; otomatik sınama kodlu biçimi denetler.
-   - Kullanıcının adları, metinler, yorumlar ve sayılar olduğu gibi kalır; metin içi `{ifade}` yerleştirmelerindeki dil kelimeleri de kodlanır; ham metnin (`` `...` ``) içi hiç çevrilmez.
-   - `tr göster dosya.tr --dil tr` ve hata mesajları kodu okunur dilde gösterir.
+   - Tamamlandı (Ç1): kodlu biçim (`//! tr kodlu 1`, 17.1-17.6), kodlu dosya çevrilmeden çalışır; kapsamla kodlayan kayıpsız çevirici, `tr kodla`, `tr çöz`, `tr göster`; `tr biçimle` kodlu biçimi korur; `$ad` kaçışı (2.11); tek kaynak giriş noktası (`internal/dil/kaynak`).
+   - Ç2: VS Code izdüşümü (kişi Türkçe görür, kayıt kodlu yazar; bozuk dosyanın kaydı için yaklaşık kodlama, kesme noktası satırları); otomatik sınama kodlu biçimi denetler.
    - Depodaki örnekler ve testler, VS Code izdüşümü hazır olunca kodlu biçime çevrilir.
 4. **Modern VS Code deneyimi** — dil sunucusu `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır; eklenti ince bir istemci olur):
    - yazarken hata gösterimi ve hızlı düzeltmeler (`yazdir` → `yazdır` gibi ipuçları tek tıkla);
@@ -37,7 +35,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - Sınama bulut GPU makinelerinde.
    - **1. aşama (G1) yapıldı:** sürücü bağlama, PTX üreteci ve benzetim, bütün tensör işlemleri ve gradyanları (float32; bf16/fp16 depolama dönüşümle), döşemeli float32 matris çarpımı, dikkat (çarpım + maske + softmax), `varsayılan_cihaz` ve `cihazlar`. Sırada (2. aşama): tensör çekirdekli bf16 matris çarpımı, birleşik dikkat, gradyan kırpmanın cihazda kalması (adım başına eşzamanlama yok), birleşik çekirdekler.
 7. **TR ile çekirdek yazma** — eleman bazlı ve satır işlemleri için küçük, blok düzeyinde bir yazım; aynı kod CPU'da vektör komutlarına, GPU'da GPU koduna derlenir. Ardından tensör çekirdekli matris çarpımı ve dikkat.
-8. **Yazım dilleri** — EN ilk ikinci dil; dosyanın başında yazım dili; TR ⇄ EN kayıpsız çeviri aracı (çakışan kullanıcı adları `$ad` ile); bütün testlerin ve örneklerin iki dilde de koşması. Sonra hata mesajları (H kodları) ve PT gibi başka diller; yalnızca resmî, programa gömülü diller.
+8. **Yazım dilleri** — EN ilk ikinci dil; yazım dili kişinin seçimidir, dosyada saklanmaz; kodlu biçimden EN gösterim ve EN yazımdan kodlama (çakışan kullanıcı adları `$ad` ile, 2.11); bütün testlerin ve örneklerin iki dilde de koşması. Sonra hata mesajları (H kodları) ve PT gibi başka diller; yalnızca resmî, programa gömülü diller.
 9. **Üretim (modeli kullanan geliştirici için)** — KV önbellekli hızlı üretim, toplu istek işleme, nicemleme (int8/int4), model dosyaları, ağır hesapta yorumlayıcı kilidinin bırakılması.
 10. **Model Sihirbazı** — VS Code eklentisinde, kod bilmeyenin bile model kurmasını sağlayan sihirbaz; okunur TR kodu üretir; hazır eğitim döngüsü bununla gelir.
 11. **Az teknik kullanıcı yolu** — ham metinden modele kadar her adım TR içinde:

@@ -19,6 +19,9 @@ $env:GOAMD64="v3"; go build -o bin/tr.exe ./cmd/tr   # PowerShell
 | `./bin/tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §7) |
 | `./bin/tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (bkz. §8) |
 | `./bin/tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
+| `./bin/tr.exe kodla dosya.tr` | Dosyayı yerinde **kodlu biçime** çevirir: dilin sözcükleri dilden bağımsız kodlarla (`A001`, `G100`) saklanır, gerisi bayt bayt aynı kalır; klasör verilirse içindeki tüm `.tr` dosyalarını çevirir, zaten kodlu dosyaya dokunmaz. Kodlu dosya çevrilmeden çalışır, test edilir ve aktarılır (bkz. `docs/dil/17_kodlar.md`, Kodlu saklama) |
+| `./bin/tr.exe çöz dosya.tr` | Kodlu dosyayı yerinde Türkçe yazıma geri çevirir (klasör de verilebilir) |
+| `./bin/tr.exe göster dosya.tr [--dil tr]` | Dosyayı bir yazım dilinde (bugün yalnızca `tr`) standart çıktıya basar; kodlu dosyanın hata mesajlarındaki satır ve sütunlar bu gösterime göredir |
 | `./bin/tr.exe dap` | VS Code hata ayıklama sunucusu; eklenti kendisi başlatır, elle çalıştırılmaz |
 | `./bin/tr.exe yardım` / `-h`, `./bin/tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
 

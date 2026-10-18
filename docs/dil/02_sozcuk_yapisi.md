@@ -1,6 +1,6 @@
 # 2. Sözcük yapısı
 
-**2.1** Kaynak UTF-8 metindir; bazı Windows editörlerinin eklediği baştaki BOM (U+FEFF) yok sayılır. Konumlar 1'den başlayan satır ve karakter (bayt değil) sütunlarıyla bildirilir.
+**2.1** Kaynak UTF-8 metindir; bazı Windows editörlerinin eklediği baştaki BOM (U+FEFF) yok sayılır. Konumlar 1'den başlayan satır ve karakter (bayt değil) sütunlarıyla bildirilir. Kaynağın ortasındaki NUL karakteri (U+0000) sözdizimi hatasıdır (metin dosyasında bulunmaz; ardından gelen kod sessizce yok sayılmaz). Dosya kodlu biçimde de saklanabilir (17.1).
 
 **2.2** Yorumlar iki biçimdedir: satır sonuna kadar `//` ve çok satırlı `/* ... */`. Kapanmayan `/*` bir hatadır. `#` yorum değildir: metin dışında yazılan `#` bir sözdizimi hatasıdır (`'#' TR'de yorum değil; yorum için '//' yazın`); metin içinde (`"#22c55e"`) sıradan bir karakterdir.
 
@@ -12,7 +12,7 @@ değişken x = 1  // satır sonuna kadar yorum
 
 **2.3** Tanımlayıcılar bir harf ya da `_` ile başlar, harf, rakam ve `_` ile sürer; Türkçe harfler (ç ğ ı İ ö ş ü) dahil tüm Unicode harfleri geçerlidir: `öğrenci_sayısı2`.
 
-**2.3a** Kod biçimindeki adlar ayrılmıştır: bir büyük harf ve üç rakamdan oluşan ad (`G100`, `A001`, `K001`) dilin kodlarının yazımıdır (17) ve kullanıcı adı olarak kullanılamaz; sözdizimi hatası verir: `'G100' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır, başka bir ad seçin (ör. G100_ ya da g100)`. Dosyalar ileride kodlarla saklanacağı için bu adlar bugünden ayrılır; `g100`, `G1000`, `G100_` sıradan adlardır.
+**2.3a** Kod biçimindeki adlar ayrılmıştır: bir büyük harf ve üç rakamdan oluşan ad (`G100`, `A001`, `K001`) dilin kodlarının yazımıdır (17) ve kullanıcı adı olarak kullanılamaz; Türkçe yazılmış dosyada sözdizimi hatası verir: `'G100' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır, başka bir ad seçin (ör. G100_ ya da g100). Kodlu dosyalar ilk satırdaki '//! tr kodlu 1' başlığıyla başlar`. Kodlu dosyada (17.1) bu adlar dilin sözcükleridir; `g100`, `G1000`, `G100_` sıradan adlardır.
 
 **2.4** Tam sayı sabitleri ondalık rakamlardan oluşur; okunabilirlik için `_` kullanılabilir: `1_000_000`.
 
@@ -27,7 +27,7 @@ değişken yol = `C:\veri\tokenizer.json`
 değişken tarih = `\d{4}-\d{2}-\d{2}`     // "\\d\{4\}-\\d\{2\}-\\d\{2\}" ile aynı
 ```
 
-**2.7** Metin içindeki `{ifade}` yerleştirmedir: ifade hesaplanıp metne yazılır. Yerleştirme aynı satırda kapanmalıdır; düz süslü parantez için `\{` ve `\}` yazılır (ya da ham metin, 2.6a). Tırnaklı metinde kaçışsız her `{` bir yerleştirme başlatır: içi tek bir ifade olarak ayrıştırılamazsa (ya da boşsa) sözdizimi hatasıdır, düz metne dönülmez (`"{değil}"` → `metindeki her '{' bir yerleştirme başlatır, ama '{değil}' bir ifade değil ... Düz süslü parantez için '\{' yazın ya da ham metin kullanın`). Böylece bir parçanın kod mu metin mi olduğu dilin anahtar kelimelerine bağlı değildir; JSON gibi süslü parantezli metinler ham metinle yazılır: `` `{"ad": "Ali"}` ``.
+**2.7** Metin içindeki `{ifade}` yerleştirmedir: ifade hesaplanıp metne yazılır. Yerleştirme aynı satırda kapanmalıdır; düz süslü parantez için `\{` ve `\}` yazılır (ya da ham metin, 2.6a). Tırnaklı metinde kaçışsız her `{` bir yerleştirme başlatır: içi tek bir ifade olarak ayrıştırılamazsa (ya da boşsa) sözdizimi hatasıdır, düz metne dönülmez (`"{değil}"` → `metindeki her '{' bir yerleştirme başlatır, ama '{değil}' bir ifade değil ... Düz süslü parantez için '\{' yazın ya da ham metin kullanın`). Böylece bir parçanın kod mu metin mi olduğu dilin anahtar kelimelerine bağlı değildir; JSON gibi süslü parantezli metinler ham metinle yazılır: `` `{"ad": "Ali"}` ``. Yerleştirmenin içindeki tırnaklı bir metinde süslü parantez yerleştirmeyi açıp kapatmaz (`"x {"a}b"} y"` → `x a}b y`). Yerleştirmedeki ifadenin sözcükleri dosyadaki gerçek satır ve sütunlarıyla bildirilir (önündeki kaçış dizileri konumu kaydırmaz).
 
 ```tr
 değişken ad = "Ali"
@@ -81,5 +81,7 @@ Kaldırılan dil adları (anahtar kelimeler, yerleşikler, üyeler, adlı argüm
 **Yerleşik ad gölgeleme uyarısı.** Bir yerleşiğin adı (`toplam`, `girdi`, `metin`, `tip` ...) değişken, fonksiyon, parametre, döngü değişkeni, `yakala` değişkeni ya da yapı adı olarak tanımlanabilir; o kapsamda ad kullanıcının tanımını gösterir ve yerleşik kullanılamaz. Tip denetleyicisi bunun için bir **uyarı** verir; uyarı hata değildir, program çalışır ve çıkış kodu değişmez. Uyarılar standart hataya, tip hatalarından ayrı, `⚠️ Uyarılar:` başlığıyla yazılır: `Satır 1: 'toplam' yerleşik bir ad; bu kapsamda yerleşik 'toplam' artık kullanılamaz`. Gölgelenmiş ad yerleşik gibi çağrılırsa çalışma zamanı hatası nedenini söyler: `Satır 2: 'tip' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'tip' bu kapsamda gölgelendi`. Yapı alanları ve metotları (`kendi.toplam`, `p.toplam()`) gölgeleme sayılmaz; metot adları (`uzunluk`, `sırala`, `ekle` ...) yerleşik değildir, değişken adı olarak serbestçe kullanılır.
 
 **2.10** İfadeler ve bloklar en fazla 1000 düzey iç içe yazılabilir (`((((1))))` dört düzeydir); sınır aşılırsa program çalışmaz, `ifade ya da blok çok derin iç içe (en fazla 1000 düzey)` sözdizimi hatası verilir. Metin içindeki yerleştirmenin ifadesi (2.7) de bulunduğu yerin düzeyinden sayılır. (Sınırsız iç içelik yorumlayıcıyı yakalanamaz biçimde çökertirdi.)
+
+**2.11** `$ad` kaçışı: `$` ve ardından gelen ad her zaman kullanıcının adıdır, dilin bir sözcüğüyle aynı olsa bile (`değişken $eğer = 3`, `yazdır($eğer)`; ad `eğer`'dir). Kaçış, kodlu bir dosya (17) bir yazım dilinde gösterilirken o dilin sözcükleriyle çakışan kullanıcı adları içindir: gösterimde yalnızca gerektiği yerde yazılır (bir anahtar kelimeyle aynı ad, yazılsaydı dilin bir öğesine bağlanacak ad ya da kodla yazılmış bir sözcüğü kendi kapsamında yakalayacak ad), kodlama `$`'ı atar. Türkçe yazımda kullanıcı adları dilin sözcükleriyle çakışamadığı için kaçış Türkçe gösterimde ancak başka bir dilde yazılmış kodda görünür. `$` yalnızca bu kaçış içindir; bir adın ya da sayının hemen ardından yazılamaz (`a$b`, `1$x` sözdizimi hatasıdır: `$` atılınca iki sözcük birleşirdi). Kod biçimli adlar kaçışla da ayrılmıştır (2.3a).
 
 Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `kurucu` (yapının oluşturulurken çağrılan metodunun adı, 7.4), `hata` (`yakala`da ad verilmeyince hata değişkeninin adı, 8.1), `o` (sondaki bloğun parametresi, 6.7), `birikim` (yalnızca `indirge`'nin sondaki bloğunda önceki sonuç, 6.7), `_` (yalnızca `eşle` kolunda varsayılan). Bunların adları da kod listesindedir (`A1xx`, bkz. 17).

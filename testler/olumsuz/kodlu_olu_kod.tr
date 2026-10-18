@@ -1,0 +1,5 @@
+//! tr kodlu 1
+// Bilerek hatalı kodlu modül (17.6): taşınmış bir kod (G200) eski adıyla okunur ve yeni
+// biçimi önerir.
+A030 l = [1, 2]
+A030 n = G200(l)
