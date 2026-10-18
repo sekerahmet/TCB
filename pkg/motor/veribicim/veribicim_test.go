@@ -174,3 +174,63 @@ func TestYolGibi(t *testing.T) {
 		}
 	}
 }
+
+// Hakem bulgusu 15: CSV'de BOM soyulmuyor, "NaN"/"Inf" sayıya çevriliyor, baştaki sıfırlar
+// ve Tam aralığını aşan sayılar sessizce bozuluyordu. Artık yalnızca katı sayı biçimi sayıdır;
+// öteki hücreler olduğu gibi metin kalır.
+func TestCSVKatiSayiVeBOM(t *testing.T) {
+	dir := t.TempDir()
+	dosya := filepath.ToSlash(filepath.Join(dir, "bom.csv"))
+	if err := os.WriteFile(dosya, []byte("\ufeffad,deger\nx,1\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, val, err := calistir(t, fmt.Sprintf(`sonuç [csv_oku(%q)[0][0] == "ad", csv_oku("%sa,b")[0][0]]`, dosya, "\ufeff"))
+	if err != nil || val.Inspect() != `[doğru, "a"]` {
+		t.Fatalf("BOM soyulmalı: %v %v", val, err)
+	}
+	_, val, err = calistir(t, `
+		değişken s = csv_oku("a,b,c,d,e,f,g,h,i,j,k,l\nNaN,Inf,-Inf,infinity,007,12345678901234567890,0x10,1_000,1e400,+5,00.5,.5\n-0,0,1.0,2.5e3,-7,9223372036854775807,1E-3,0.0,,  42 ,1.,1e")
+		sonuç [s[1], [tip(h) döngü h içinde s[1]], s[2], [tip(h) döngü h içinde s[2]]]`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `[["NaN", "Inf", "-Inf", "infinity", "007", "12345678901234567890", "0x10", "1_000", "1e400", "+5", "00.5", ".5"], ` +
+		`["Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin", "Metin"], ` +
+		`[0, 0, 1.0, 2500.0, -7, 9223372036854775807, 0.001, 0.0, "", 42, "1.", "1e"], ` +
+		`["Tam", "Tam", "Ondalık", "Ondalık", "Tam", "Tam", "Ondalık", "Ondalık", "Metin", "Tam", "Metin", "Metin"]]`
+	if val.Inspect() != want {
+		t.Fatalf("\n%s\nbeklenen\n%s", val.Inspect(), want)
+	}
+}
+
+// Hakem bulgusu 15 ve 5: json_metin anahtar sırasını kaybediyordu, NaN'da İngilizce hata
+// veriyordu, döngüsel listede süreç yığın taşmasıyla çöküyordu (dene yakalayamıyordu).
+func TestJSONMetinSiraNaNVeDongu(t *testing.T) {
+	_, val, err := calistir(t, `sonuç json_metin(json_çöz("{\"b\": 1, \"a\": {\"z\": 2, \"y\": [3]}}"))`)
+	if err != nil || val.Inspect() != `{"b":1,"a":{"z":2,"y":[3]}}` {
+		t.Fatalf("sıra korunmalı: %v %v", val, err)
+	}
+	_, val, err = calistir(t, `
+		değişken l = [1]
+		l.ekle(l)
+		değişken d = {"a": 1}
+		d["ben"] = [d]
+		değişken mesajlar = []
+		dene { json_metin(l) } yakala h { mesajlar.ekle("{h}") }
+		dene { json_metin(d) } yakala h { mesajlar.ekle("{h}") }
+		dene { json_metin({"x": karekök(-1.0)}) } yakala h { mesajlar.ekle("{h}") }
+		dene { json_metin([1e308 * 10.0]) } yakala h { mesajlar.ekle("{h}") }
+		sonuç mesajlar`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := val.Inspect()
+	if strings.Count(m, "kendini içeriyor") != 2 || strings.Count(m, "JSON'a yazılamaz") != 2 || strings.Contains(m, "unsupported") {
+		t.Fatalf("Türkçe döngü ve NaN hataları bekleniyordu: %s", m)
+	}
+	// BOM'lu JSON metni de çözülür
+	_, val, err = calistir(t, fmt.Sprintf(`sonuç json_çöz("%s{\"a\": 1}")["a"]`, "\ufeff"))
+	if err != nil || val.Inspect() != "1" {
+		t.Fatalf("BOM'lu JSON: %v %v", val, err)
+	}
+}

@@ -1,13 +1,13 @@
 // Package veribicim, metin veri biçimlerinin (JSON ve CSV) TR yerleşiklerini içerir:
 // json_çöz, json_metin ve csv_oku. Bu yerleşikler ne matematik/yapay
 // zekâ ne de ağ işidir; ayrı bir paket olmaları yz ve web paketlerini kendi işlerine
-// odaklı tutar. Sıralı JSON çözme ve TR→Go dönüşümü çekirdekte (vm.JSONToTR,
-// vm.TRToGoValue) kalır, çünkü web sunucusu ve veritabanı da onları kullanır.
+// odaklı tutar. Sıralı JSON çözme çekirdekte (vm.JSONToTR), sıralı JSON yazma
+// motorların ortak paketinde (internal/jsonyaz) kalır, çünkü web sunucusu ve istemcisi de
+// onları kullanır.
 package veribicim
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -15,6 +15,7 @@ import (
 	"tr_dili/pkg/sozluk"
 
 	"tr_dili/pkg/motor/internal/baglama"
+	"tr_dili/pkg/motor/internal/jsonyaz"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
@@ -25,7 +26,7 @@ func Kaydet(v *vm.VM) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_çöz(metin) 1 parametre bekler")
 		}
-		val, err := vm.JSONToTR([]byte(args[0].Inspect()))
+		val, err := vm.JSONToTR([]byte(bomSoy(args[0].Inspect())))
 		if err != nil {
 			return nil, fmt.Errorf("JSON çözümleme hatası: %v", err)
 		}
@@ -36,9 +37,9 @@ func Kaydet(v *vm.VM) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_metin(değer) 1 parametre bekler")
 		}
-		b, err := json.Marshal(vm.TRToGoValue(args[0]))
+		b, err := jsonyaz.Yaz(args[0])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("json_metin: %v", err)
 		}
 		return &vm.StringVal{Val: string(b)}, nil
 	})
@@ -96,10 +97,14 @@ func yolGibi(s string) bool {
 	return strings.ContainsAny(s, `/\`) && !strings.Contains(s, ",")
 }
 
-// csvCoz CSV metnini satır listelerine çevirir; tam sayı ve ondalık görünen hücreler
-// sayıya, diğerleri (boşlukları kırpılmış) metne dönüşür.
+// bomSoy metnin başındaki UTF-8 bayt sırası işaretini (BOM) atar; bazı programlar CSV ve
+// JSON dosyalarının başına bunu yazar ve yoksa ilk başlık görünmez bir karakter taşırdı.
+func bomSoy(s string) string { return strings.TrimPrefix(s, "\ufeff") }
+
+// csvCoz CSV metnini satır listelerine çevirir; hücreler boşlukları kırpılarak hücreDegeri
+// kuralıyla sayıya ya da metne dönüşür.
 func csvCoz(input string) (vm.Value, error) {
-	r := csv.NewReader(strings.NewReader(strings.TrimSpace(input)))
+	r := csv.NewReader(strings.NewReader(strings.TrimSpace(bomSoy(input))))
 	records, err := r.ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("CSV okuma hatası: %v", err)
@@ -108,16 +113,81 @@ func csvCoz(input string) (vm.Value, error) {
 	for _, rec := range records {
 		var cols []vm.Value
 		for _, cell := range rec {
-			cell = strings.TrimSpace(cell)
-			if iv, err := strconv.ParseInt(cell, 10, 64); err == nil {
-				cols = append(cols, &vm.IntVal{Val: iv})
-			} else if fv, err := strconv.ParseFloat(cell, 64); err == nil {
-				cols = append(cols, &vm.FloatVal{Val: fv})
-			} else {
-				cols = append(cols, &vm.StringVal{Val: cell})
-			}
+			cols = append(cols, hucreDegeri(strings.TrimSpace(cell)))
 		}
 		rows = append(rows, &vm.ListVal{Elements: cols})
 	}
 	return &vm.ListVal{Elements: rows}, nil
+}
+
+// hucreDegeri bir CSV hücresini yalnızca katı ondalık sayı biçimindeyse sayıya çevirir, yoksa
+// metni olduğu gibi bırakır; böylece hiçbir hücre sessizce bozulmaz:
+//   - Tam: isteğe bağlı '-' ve rakamlar, baştaki sıfır yok ("0", "42", "-7"), Tam aralığında.
+//   - Ondalık: Tam biçimine '.rakamlar' ve/veya 'e±rakamlar' eki ("1.0", "2.5e3", "1E-3"),
+//     sonlu sonuç.
+//   - Geri kalan her şey Metin kalır: "007" ve "00.5" (posta kodu, kimlik), Tam aralığını
+//     aşan "12345678901234567890", "NaN", "Inf", "infinity", "0x10", "1_000", "+5", ".5",
+//     "1.", "1e400".
+func hucreDegeri(h string) vm.Value {
+	tamSon, ondalik := sayiBicimi(h)
+	if tamSon < 0 {
+		return &vm.StringVal{Val: h}
+	}
+	if !ondalik {
+		if iv, err := strconv.ParseInt(h, 10, 64); err == nil {
+			return &vm.IntVal{Val: iv}
+		}
+		return &vm.StringVal{Val: h}
+	}
+	if fv, err := strconv.ParseFloat(h, 64); err == nil {
+		return &vm.FloatVal{Val: fv}
+	}
+	return &vm.StringVal{Val: h}
+}
+
+// sayiBicimi h'nin katı sayı biçiminde olup olmadığını söyler: biçim dışıysa -1, değilse
+// tam kısmın bittiği konum ve sayının ondalık (nokta ya da üs içeren) olup olmadığı.
+func sayiBicimi(h string) (int, bool) {
+	i := 0
+	if i < len(h) && h[i] == '-' {
+		i++
+	}
+	bas := i
+	for i < len(h) && h[i] >= '0' && h[i] <= '9' {
+		i++
+	}
+	if i == bas || (h[bas] == '0' && i-bas > 1) {
+		return -1, false
+	}
+	tamSon := i
+	ondalik := false
+	if i < len(h) && h[i] == '.' {
+		i++
+		k := i
+		for i < len(h) && h[i] >= '0' && h[i] <= '9' {
+			i++
+		}
+		if i == k {
+			return -1, false
+		}
+		ondalik = true
+	}
+	if i < len(h) && (h[i] == 'e' || h[i] == 'E') {
+		i++
+		if i < len(h) && (h[i] == '+' || h[i] == '-') {
+			i++
+		}
+		k := i
+		for i < len(h) && h[i] >= '0' && h[i] <= '9' {
+			i++
+		}
+		if i == k {
+			return -1, false
+		}
+		ondalik = true
+	}
+	if i != len(h) {
+		return -1, false
+	}
+	return tamSon, ondalik
 }
