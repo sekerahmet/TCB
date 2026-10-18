@@ -127,13 +127,14 @@ func (g *arkaUc) CrossEntropyGrad(gx, gs tensor.Storage, x tensor.View, lse tens
 	gd := gt.okuD(gs)
 	xv := gt.oku(x)
 	hedef := gt.yukleTam(targets)
+	ld := gt.okuD(lse)
 	c := g.cekirdekAl("ce_geri", ceGeriCekirdegi)
 	sutun := bloklar(C, esBlok)
 	if sutun > 65535 {
 		yok(fmt.Sprintf("%d sınıflı çapraz entropi (en çok %d)", C, 65535*esBlok))
 	}
 	g.baslat(c, [3]uint32{uint32(R), sutun, 1}, [3]uint32{esBlok, 1, 1},
-		g.param().yaz(d, 0).oku(gd, 0).okuV(xv).oku(gt.okuD(lse), 0).oku(hedef, 0).u32(C).f32(float32(1/float64(n))))
+		g.param().yaz(d, 0).oku(gd, 0).okuV(xv).oku(ld, 0).oku(hedef, 0).u32(C).f32(float32(1/float64(n))))
 	son()
 }
 
@@ -149,9 +150,10 @@ func (g *arkaUc) Embedding(out tensor.Storage, w tensor.View, idx []int, D int) 
 	boyDenetle(len(idx) * D)
 	wv := gt.oku(w)
 	boyDenetle(wv.Numel())
+	idxD := gt.yukleTam(idx)
 	c := g.cekirdekAl("gomme", gommeCekirdegi)
 	g.baslat(c, [3]uint32{uint32(len(idx)), 1, 1}, [3]uint32{gommeBlok, 1, 1},
-		g.param().okuV(wv).oku(gt.yukleTam(idx), 0).yaz(o, 0).u32(D))
+		g.param().okuV(wv).oku(idxD, 0).yaz(o, 0).u32(D))
 	son()
 }
 

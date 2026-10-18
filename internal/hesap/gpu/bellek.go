@@ -277,7 +277,9 @@ func (g *arkaUc) yukleKonak(d *depo, veri unsafe.Pointer, bayt int) {
 		}
 	}
 	if h.taban == nil || bayt > hazirlikEnCok {
+		// Eşzamanlı kopya: kaynak Go belleği olabilir, çağrı dönene kadar canlı tutulur.
 		g.dene("cuMemcpyHtoD", g.sr.yukle(hedef, veri, uint64(bayt), false))
+		runtime.KeepAlive(veri)
 		h.ofset = 0 // eşzamanlı kopya önceki işleri bekler
 		return
 	}
@@ -285,7 +287,10 @@ func (g *arkaUc) yukleKonak(d *depo, veri unsafe.Pointer, bayt int) {
 		g.esitle()
 	}
 	p := unsafe.Add(h.taban, h.ofset)
+	// Eşzamansız kopyanın kaynağı her zaman halkadır (sayfası kilitli, Go dışı bellek):
+	// veri halkaya kopyalandıktan sonra çağıranın dilimi serbesttir.
 	copy(unsafe.Slice((*byte)(p), bayt), unsafe.Slice((*byte)(veri), bayt))
+	runtime.KeepAlive(veri)
 	h.ofset = (h.ofset + bayt + 255) &^ 255
 	g.dene("cuMemcpyHtoDAsync", g.sr.yukle(hedef, p, uint64(bayt), true))
 }

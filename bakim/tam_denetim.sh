@@ -12,7 +12,8 @@
 #                düzeyinden bağımsız durağan denetimler (üretilmiş dosyalar, gofmt, vet,
 #                eklenti) atlanır. Otomatik sınamanın her işi bir kip koşar.
 #
-# Durağan denetimler: üretilmiş dosyalar güncel mi, gofmt, go vet, VS Code eklentisinin
+# Durağan denetimler: üretilmiş dosyalar güncel mi, gofmt, go vet, GPU'suz (-tags gpusuz) Linux
+# ikilisinin statik olması, VS Code eklentisinin
 # JavaScript dosyaları ve package.json. Go testleri -short ile koşar: dil tanımı testleri
 # (testler/) Go testinin içinde yinelenmez, burada bir kez `tr test testler` ile koşar.
 # Ortam değişkenleri: ATLANACAK_ORNEKLER (boşlukla ayrılmış örnek dosya adları; dış ağ
@@ -88,6 +89,17 @@ if [ "$kip" != v1 ]; then
 	[ $? -eq 0 ] || kalir "gofmt çalışmadı"
 	[ -z "$bicimsiz" ] || kalir "gofmt ile biçimlenmesi gereken dosyalar: $bicimsiz"
 	go vet ./... || kalir "go vet"
+
+	# Varsayılan Linux ikilisi GPU sürücüsünü yükleyebilmek için glibc'ye dinamik bağlıdır;
+	# "gpusuz" etiketli derleme statik kalmalıdır (bkz. docs/mimari.md, GPU arka ucu).
+	adim "GPU'suz Linux ikilisi statik mi (-tags gpusuz)"
+	statik_klasor=$(mktemp -d)
+	if GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags gpusuz -o "$statik_klasor/tr" ./cmd/tr; then
+		go run ./bakim/statik_denetim "$statik_klasor/tr" || kalir "gpusuz Linux ikilisi statik değil"
+	else
+		kalir "gpusuz Linux derlemesi"
+	fi
+	rm -rf "$statik_klasor"
 
 	adim "VS Code eklentisi (JavaScript ve package.json)"
 	if command -v node >/dev/null 2>&1; then

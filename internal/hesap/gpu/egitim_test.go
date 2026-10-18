@@ -110,17 +110,17 @@ const (
 	kmB, kmT, kmD, kmH, kmFF, kmV = 2, 6, 8, 2, 12, 20
 )
 
-func yeniKucukModel(dev tensor.Device, seed int64) *kucukModel {
+func yeniKucukModel(dev tensor.Device, seed int64, dt tensor.DType) *kucukModel {
 	rng := rand.New(rand.NewSource(seed))
 	w := func(olcek float64, sh ...int) *tensor.Tensor {
-		return tensor.NewOn(dev, rastgele(rng, numel(sh), olcek), sh...).SetRequiresGrad(true)
+		return yaprakTurde(tensor.NewOn(dev, rastgele(rng, numel(sh), olcek), sh...), dt)
 	}
 	bir := func(n int) *tensor.Tensor {
 		v := make([]float32, n)
 		for i := range v {
 			v[i] = 1
 		}
-		return tensor.NewOn(dev, v, n).SetRequiresGrad(true)
+		return yaprakTurde(tensor.NewOn(dev, v, n), dt)
 	}
 	return &kucukModel{E: w(0.5, kmV, kmD), g1: bir(kmD), wq: w(0.3, kmD, kmD), wk: w(0.3, kmD, kmD), wv: w(0.3, kmD, kmD),
 		wo: w(0.3, kmD, kmD), wg: w(0.3, kmD, kmFF), wu: w(0.3, kmD, kmFF), w2: w(0.3, kmFF, kmD), gs: bir(kmD)}
@@ -145,7 +145,27 @@ func (m *kucukModel) kayip(girdi, hedef []int) *tensor.Tensor {
 	return tensor.CrossEntropy(cikti.Reshape(kmB*kmT, kmV), hedef)
 }
 
+// yaprakTurde tensörü dt türünde türev izleyen bir yaprağa çevirir.
+func yaprakTurde(t *tensor.Tensor, dt tensor.DType) *tensor.Tensor {
+	if dt != tensor.Float32 {
+		t = t.Cast(dt).Detach()
+	}
+	return t.SetRequiresGrad(true)
+}
+
+// TestKucukModelEgitimi küçük dönüştürücüyü float32 ve bfloat16 ağırlıklarla (ana kopyalı
+// AdamW) CPU ve GPU'da aynı veriyle eğitir ve kayıpları karşılaştırır. bf16 yolunda dikkatin
+// geri yayılımı 16 bitlik çıktıyı açar (iç içe başlatma hatasının sınaması).
 func TestKucukModelEgitimi(t *testing.T) {
+	for _, d := range []struct {
+		dt  tensor.DType
+		tol float64
+	}{{tensor.Float32, 1e-4}, {tensor.BFloat16, 3e-2}} {
+		kucukModelEgit(t, d.dt, d.tol)
+	}
+}
+
+func kucukModelEgit(t *testing.T, dt tensor.DType, tol float64) {
 	rng := rand.New(rand.NewSource(15))
 	adimlar := 4
 	girdiler := make([][2][]int, adimlar)
@@ -160,7 +180,7 @@ func TestKucukModelEgitimi(t *testing.T) {
 	var kayiplar [2][]float32
 	var son [2][]float32
 	for c, dev := range []tensor.Device{tensor.CPU, gpuCihaz} {
-		m := yeniKucukModel(dev, 16)
+		m := yeniKucukModel(dev, 16, dt)
 		o := tensor.NewAdamW(m.parametreler(), 0.01, 0.0)
 		for i := 0; i < adimlar; i++ {
 			o.ZeroGrad()
@@ -172,10 +192,10 @@ func TestKucukModelEgitimi(t *testing.T) {
 		}
 		son[c] = m.wq.Data()
 	}
-	farkDenetle(t, "kayıplar", kayiplar[1], kayiplar[0], 1e-4)
-	farkDenetle(t, "son ağırlıklar", son[1], son[0], 1e-4)
+	farkDenetle(t, dt.String()+" kayıplar", kayiplar[1], kayiplar[0], tol)
+	farkDenetle(t, dt.String()+" son ağırlıklar", son[1], son[0], tol)
 	if kayiplar[1][adimlar-1] >= kayiplar[1][0] {
-		t.Fatalf("kayıp düşmedi: %v", kayiplar[1])
+		t.Fatalf("%s: kayıp düşmedi: %v", dt, kayiplar[1])
 	}
-	t.Log(fmt.Sprintf("kayıplar GPU %v, CPU %v", kayiplar[1], kayiplar[0]))
+	t.Log(fmt.Sprintf("%s kayıplar GPU %v, CPU %v", dt, kayiplar[1], kayiplar[0]))
 }

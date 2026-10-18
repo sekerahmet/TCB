@@ -105,7 +105,9 @@ Motorların kendi kancaları:
   **Bedel:** bu yükleyici Linux ikilisini glibc'ye dinamik bağlar (`/lib64/ld-linux-x86-64.so.2`;
   `libc.so.6`, `libdl.so.2`, `libpthread.so.0`), GPU kullanmayan Linux kullanıcıları için de;
   musl tabanlı dağıtımlarda (Alpine) ikili açılmaz. `-tags gpusuz` ile derlenen ikili statik
-  kalır ve GPU desteği içermez. (Karar baş geliştiricide; bkz. G1 raporu.)
+  kalır ve GPU desteği içermez. **Karar:** varsayılan ikili GPU desteklidir (glibc'ye bağlı);
+  statik ikili isteyen `GOOS=linux CGO_ENABLED=0 go build -tags gpusuz ./cmd/tr` ile derler.
+  Tam denetim `gpusuz` derlemenin statik kaldığını `bakim/statik_denetim` ile doğrular.
 - **Bağlam ve iş parçacığı:** CUDA bağlamı işletim sistemi iş parçacığına bağlıdır. Her dışa
   açık yöntem girişte arka ucun kilidini alır, gorutini iş parçacığına kilitler ve cihazın
   birincil bağlamını bağlar (`cuCtxSetCurrent`); bütün işler tek akışta sırayla yürür.
@@ -125,6 +127,13 @@ Motorların kendi kancaları:
   sınamaları donanımsız makinede onda koşar (dağınık engel, sınır dışı ve hizasız erişim,
   paylaşımlı bellek yarışı yakalanır; eşzamansız işler gerçek sürücü gibi sıralanır).
   `TR_GPU_BENZETIM=1` ile `tr` de benzetimi `"gpu"` olarak kullanır (geliştirme aracı).
+  **Bilinen sınırlar** (benzetimde geçip donanımda kalabilecekler): bölgeler havuzun boyut
+  sınıfı kadar ayrılır, istenen boyun dışına taşan ama sınıf içinde kalan erişim
+  yakalanmaz; ayrıştırıcı ptxas kadar katı değildir (yazmaç türü, yuvarlama kipi
+  yasallığı); bloklar sırayla yürüdüğünden genel bellekte iş parçacıkları arası yarış
+  görünmez (çıktı eşlemesi birebir olmalıdır; `ScatterAdd`/indirgeme hedefi örtüşen bir
+  görünüm olamaz); yaklaşık komutlar (`ex2`, `lg2`, `sin`, `cos`) tam doğrulukla, `fma`
+  float64 üzerinden hesaplanır (donanımla birkaç ulp fark; sınamalar toleranslıdır).
 - **Colab:** `bakim/gpu/` (paket hazırlama, kıyas betikleri, `COLAB.md`).
 
 ## Klasörler

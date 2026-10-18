@@ -109,6 +109,23 @@ func TestGomme(t *testing.T) {
 	})
 }
 
+// TestDikkat16Bit bfloat16 ve float16 q, k, v ile dikkatin ileri ve geri yönünü denetler
+// (geri yön 16 bitlik çıktıyı float32'ye açarken bir kopya çekirdeği başlatır).
+func TestDikkat16Bit(t *testing.T) {
+	rng := rand.New(rand.NewSource(18))
+	qv, kv, vv := rastgele(rng, 2*2*5*4, 1), rastgele(rng, 2*2*5*4, 1), rastgele(rng, 2*2*5*4, 1)
+	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+		karsilastir(t, "dikkat "+dt.String(), 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			q, k, v := ikiz(qv, true, 2, 2, 5, 4)[c], ikiz(kv, true, 2, 2, 5, 4)[c], ikiz(vv, true, 2, 2, 5, 4)[c]
+			y := tensor.Attention(q.Cast(dt), k.Cast(dt), v.Cast(dt), tensor.AttentionOptions{Causal: true})
+			if y.DType() != dt {
+				t.Fatalf("dikkat çıktısı %s olmalıydı, %s", dt, y.DType())
+			}
+			return y.Cast(tensor.Float32), []*tensor.Tensor{q, k, v}
+		})
+	}
+}
+
 func TestDikkat(t *testing.T) {
 	rng := rand.New(rand.NewSource(12))
 	durumlar := []struct {

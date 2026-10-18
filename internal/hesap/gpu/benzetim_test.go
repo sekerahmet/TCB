@@ -122,6 +122,24 @@ func TestParametreBildirimiDenetlenir(t *testing.T) {
 	}
 }
 
+// TestIcIceParametreZinciri, bir başlatmanın parametreleri yazılırken ikinci bir başlatma
+// hazırlanmasının (dış zinciri silerdi) iç hata verdiğini ve sonraki girişin temiz
+// başladığını denetler.
+func TestIcIceParametreZinciri(t *testing.T) {
+	g := yeniBenzetimArkaUcu(1 << 20)
+	g.gir()
+	m := panikMetni(func() { g.param().u32(1); g.param() })
+	g.cik()
+	if !strings.Contains(m, "iç içe param()") {
+		t.Fatalf("iç içe zincir yakalanmadı: %q", m)
+	}
+	g.gir()
+	defer g.cik()
+	if m := panikMetni(func() { g.param() }); m != "" {
+		t.Fatalf("yeni girişte zincir kapalı olmalıydı: %q", m)
+	}
+}
+
 func TestBellekYetmezse(t *testing.T) {
 	g := yeniBenzetimArkaUcu(1 << 20)
 	m := panikMetni(func() {

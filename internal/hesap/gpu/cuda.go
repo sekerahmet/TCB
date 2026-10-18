@@ -40,7 +40,7 @@ var cudaIslevAdlari = [...]string{
 	"cuMemAlloc_v2", "cuMemFree_v2", "cuMemAllocHost_v2", "cuMemcpyHtoD_v2", "cuMemcpyHtoDAsync_v2",
 	"cuMemcpyDtoH_v2", "cuMemcpyDtoDAsync_v2", "cuMemsetD32Async", "cuMemsetD16Async",
 	"cuMemGetInfo_v2", "cuModuleLoadDataEx", "cuModuleGetFunction", "cuLaunchKernel",
-	"cuGetErrorName", "cuDriverGetVersion",
+	"cuGetErrorName", "cuDriverGetVersion", "cuDevicePrimaryCtxRelease_v2",
 }
 
 const (
@@ -68,6 +68,7 @@ const (
 	fLaunchKernel
 	fGetErrorName
 	fDriverGetVersion
+	fPrimaryCtxRelease
 	fSayisi
 )
 
@@ -176,7 +177,17 @@ type cudaSurucu struct {
 	paramBuf []byte
 	paramPtr []uintptr
 	jit      *jitAlani
+	// metin sürücüye verilen C metinlerinin (PTX, çekirdek adı) kalıcı tamponu: nesnenin
+	// yığın (heap) alanıdır, gorutin yığıtında değildir (yığıt büyürken taşınabilirdi).
+	metin    []byte
 	sonDetay string
+}
+
+// cMetni s'yi sıfırla biten C metni olarak kalıcı tampona yazar ve adresini verir; adres
+// bir sonraki cMetni çağrısına kadar geçerlidir.
+func (s *cudaSurucu) cMetni(m string) unsafe.Pointer {
+	s.metin = append(append(s.metin[:0], m...), 0)
+	return unsafe.Pointer(&s.metin[0])
 }
 
 type jitAlani struct {
@@ -202,14 +213,18 @@ func cudaAc(sira int) (*cudaSurucu, error) {
 		return nil, fmt.Errorf("cuDeviceGet(%d): %s", sira, c.hataAdi(r))
 	}
 	s.aygit = o.i32
-	c.cagir(fDeviceGetName, uintptr(unsafe.Pointer(&o.ad[0])), uintptr(len(o.ad)), uintptr(s.aygit))
+	if r := c.cagir(fDeviceGetName, uintptr(unsafe.Pointer(&o.ad[0])), uintptr(len(o.ad)), uintptr(s.aygit)); r != basarili {
+		return nil, fmt.Errorf("cuDeviceGetName: %s", c.hataAdi(r))
+	}
 	s.ad = cMetin(unsafe.Pointer(&o.ad[0]), len(o.ad))
 	if r := c.cagir(fDeviceTotalMem, uintptr(unsafe.Pointer(&o.u64)), uintptr(s.aygit)); r != basarili {
 		return nil, fmt.Errorf("cuDeviceTotalMem: %s", c.hataAdi(r))
 	}
 	s.bellek = o.u64
 	for i, oz := range []int{75, 76, 16} { // yetenek büyük/küçük, SM sayısı
-		c.cagir(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), uintptr(oz), uintptr(s.aygit))
+		if r := c.cagir(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), uintptr(oz), uintptr(s.aygit)); r != basarili {
+			return nil, fmt.Errorf("cuDeviceGetAttribute(%d): %s", oz, c.hataAdi(r))
+		}
 		if i < 2 {
 			s.yetenek[i] = o.i32
 		} else {
@@ -221,6 +236,7 @@ func cudaAc(sira int) (*cudaSurucu, error) {
 	}
 	s.baglam = o.tutamac
 	if r := s.bagla(); r != basarili {
+		c.cagir(fPrimaryCtxRelease, uintptr(s.aygit)) // tutulan bağlam bırakılır
 		return nil, fmt.Errorf("cuCtxSetCurrent: %s", c.hataAdi(r))
 	}
 	return s, nil
@@ -258,15 +274,25 @@ func (s *cudaSurucu) konakAyir(bayt int) (unsafe.Pointer, sonuc) {
 	return s.cikti.gosterge, r
 }
 
+// yukle konaktan cihaza kopyalar. Eşzamansız kopyanın kaynağı sayfası kilitli (Go dışı)
+// bellek olmalıdır (hazırlık halkası); eşzamanlı kopyanın kaynağı Go belleği olabilir ve
+// kopya bitene kadar (çağrı dönene kadar) canlı tutulur.
 func (s *cudaSurucu) yukle(hedef uint64, kaynak unsafe.Pointer, bayt uint64, esz bool) sonuc {
+	var r sonuc
 	if esz {
-		return s.cagir(fMemcpyHtoDAsync, uintptr(hedef), uintptr(kaynak), uintptr(bayt), 0)
+		r = s.cagir(fMemcpyHtoDAsync, uintptr(hedef), uintptr(kaynak), uintptr(bayt), 0)
+	} else {
+		r = s.cagir(fMemcpyHtoD, uintptr(hedef), uintptr(kaynak), uintptr(bayt))
 	}
-	return s.cagir(fMemcpyHtoD, uintptr(hedef), uintptr(kaynak), uintptr(bayt))
+	runtime.KeepAlive(kaynak)
+	return r
 }
 
+// indir cihazdan konağa eşzamanlı kopyalar; hedef çağrı süresince canlı tutulur.
 func (s *cudaSurucu) indir(hedef unsafe.Pointer, kaynak uint64, bayt uint64) sonuc {
-	return s.cagir(fMemcpyDtoH, uintptr(hedef), uintptr(kaynak), uintptr(bayt))
+	r := s.cagir(fMemcpyDtoH, uintptr(hedef), uintptr(kaynak), uintptr(bayt))
+	runtime.KeepAlive(hedef)
+	return r
 }
 
 func (s *cudaSurucu) kopyala(hedef, kaynak, bayt uint64) sonuc {
@@ -288,10 +314,11 @@ func (s *cudaSurucu) modul(ptx string) (uintptr, string, sonuc) {
 	j.secenek = [4]int32{3, 4, 5, 6} // bilgi günlüğü, boyu, hata günlüğü, boyu
 	j.deger = [4]uintptr{uintptr(unsafe.Pointer(&j.bilgi[0])), uintptr(len(j.bilgi)),
 		uintptr(unsafe.Pointer(&j.hata[0])), uintptr(len(j.hata))}
-	metin := append([]byte(ptx), 0)
-	r := s.cagir(fModuleLoadDataEx, uintptr(unsafe.Pointer(&s.cikti.tutamac)), uintptr(unsafe.Pointer(&metin[0])),
+	// Önceki derlemenin günlüğü görünmesin (sürücü boş günlükte tampona yazmayabilir).
+	j.bilgi[0], j.hata[0] = 0, 0
+	metin := s.cMetni(ptx)
+	r := s.cagir(fModuleLoadDataEx, uintptr(unsafe.Pointer(&s.cikti.tutamac)), uintptr(metin),
 		4, uintptr(unsafe.Pointer(&j.secenek[0])), uintptr(unsafe.Pointer(&j.deger[0])))
-	runtime.KeepAlive(metin)
 	gunluk := strings.TrimSpace(cMetin(unsafe.Pointer(&j.hata[0]), len(j.hata)))
 	if b := strings.TrimSpace(cMetin(unsafe.Pointer(&j.bilgi[0]), len(j.bilgi))); b != "" {
 		gunluk = strings.TrimSpace(gunluk + "\n" + b)
@@ -300,9 +327,7 @@ func (s *cudaSurucu) modul(ptx string) (uintptr, string, sonuc) {
 }
 
 func (s *cudaSurucu) islev(modul uintptr, ad string) (uintptr, sonuc) {
-	b := append([]byte(ad), 0)
-	r := s.cagir(fModuleGetFunction, uintptr(unsafe.Pointer(&s.cikti.tutamac)), modul, uintptr(unsafe.Pointer(&b[0])))
-	runtime.KeepAlive(b)
+	r := s.cagir(fModuleGetFunction, uintptr(unsafe.Pointer(&s.cikti.tutamac)), modul, uintptr(s.cMetni(ad)))
 	return s.cikti.tutamac, r
 }
 

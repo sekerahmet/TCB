@@ -321,9 +321,10 @@ func (g *arkaUc) AttentionGrad(gq, gk, gv, gs tensor.Storage, q, k, v tensor.Vie
 	dp := gt.tampon(R*p.Tk, false)
 	g.gemm(Z, Mq, p.Tk, p.Dv, dO, false, vv, true, dp, 0, true)
 	B := ikiKuvvet(max(p.Tk, p.Dv), 32, 256)
+	od := gt.okuD(o) // zincirden önce: 16 bitlik o açılırken kopya çekirdeği başlatılır
 	c := g.cekirdekAl(fmt.Sprintf("dikkat_geri:%d", B), dikkatGeriCekirdegi(B))
 	g.baslat(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(B), 1, 1},
-		g.param().yaz(dp, 0).oku(s, 0).okuV(dO).oku(gt.okuD(o), 0).u32(p.Tk).u32(p.Dv).f32(p.Scale))
+		g.param().yaz(dp, 0).oku(s, 0).okuV(dO).oku(od, 0).u32(p.Tk).u32(p.Dv).f32(p.Scale))
 	dsv := tensor.View{S: dp}
 	if gq != nil {
 		dq, son := gt.yaz(gq, true)

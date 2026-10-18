@@ -28,7 +28,6 @@ const (
 	tAO                     // a·o
 	tAbolO                  // a/o
 	tAYbO                   // a·y/o
-	tKare                   // a²
 )
 
 // indirgeAyar indirgeme çekirdeğinin üretim ayarları.
@@ -50,8 +49,6 @@ func (k *yazici) terimHesapla(t terimTuru, a, o, y yazmac, oa, oo yazmac) yazmac
 	switch t {
 	case tA:
 		return av
-	case tKare:
-		k.e("mul.rn.f32", r, av, av)
 	case tAO:
 		ov := k.yukle(tensor.Float32, k.adresS(o, oo, 4))
 		k.e("mul.rn.f32", r, av, ov)

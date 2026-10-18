@@ -44,15 +44,31 @@ func init() {
 	tensor.RegisterLazyBackend(tensor.KindGPU, tensor.LazyBackend{Count: cihazSayisi, New: kur})
 }
 
-// kurulumHatasi son başarısız kurulumun nedeni (teşhis için).
-var kurulumHatasi error
+// kurulumHatasi son başarısız kurulumun nedeni (teşhis için; farklı gorutinlerden
+// yazılıp okunabildiği için kilitli).
+var kurulumHatasi struct {
+	mu  sync.Mutex
+	err error
+}
+
+func kurulumHatasiYaz(err error) {
+	kurulumHatasi.mu.Lock()
+	kurulumHatasi.err = err
+	kurulumHatasi.mu.Unlock()
+}
+
+func kurulumHatasiOku() error {
+	kurulumHatasi.mu.Lock()
+	defer kurulumHatasi.mu.Unlock()
+	return kurulumHatasi.err
+}
 
 // cihazSayisi sürücünün gördüğü GPU sayısı (sürücü yoksa 0; geliştirme için
 // TR_GPU_BENZETIM=1 ile benzetim tek GPU sayılır).
 func cihazSayisi() int {
 	c := cudaYukle()
 	if c.hata != nil {
-		kurulumHatasi = c.hata
+		kurulumHatasiYaz(c.hata)
 		if benzetimIstendi() {
 			return 1
 		}
@@ -72,7 +88,7 @@ func kur(sira int) tensor.Backend {
 	}
 	s, err := cudaAc(sira)
 	if err != nil {
-		kurulumHatasi = err
+		kurulumHatasiYaz(err)
 		return nil
 	}
 	return yeniArkaUc(tensor.GPU(sira), s)
@@ -82,13 +98,13 @@ func kur(sira int) tensor.Backend {
 func Durum() string {
 	n := cihazSayisi()
 	if n == 0 {
-		if kurulumHatasi != nil {
-			return "GPU yok: " + kurulumHatasi.Error()
+		if err := kurulumHatasiOku(); err != nil {
+			return "GPU yok: " + err.Error()
 		}
 		return "GPU yok: sürücü cihaz bulamadı"
 	}
 	if !tensor.HasDevice(tensor.GPU(0)) {
-		return fmt.Sprintf("%d GPU görünüyor ama arka uç kurulamadı: %v", n, kurulumHatasi)
+		return fmt.Sprintf("%d GPU görünüyor ama arka uç kurulamadı: %v", n, kurulumHatasiOku())
 	}
 	be := tensor.BackendFor(tensor.GPU(0)).(*arkaUc)
 	return fmt.Sprintf("%d GPU; gpu: %s, %s bellek", n, be.sr.kartAdi(), baytYazi(be.sr.toplamBellek()))
@@ -124,6 +140,7 @@ func (g *arkaUc) MemoryPlace() string { return "bu GPU'da" }
 // gir kilidi alır, gorutini iş parçacığına kilitler ve bağlamı bağlar.
 func (g *arkaUc) gir() {
 	g.mu.Lock()
+	g.prm.acik = false // panikle yarıda kalmış bir önceki zincir
 	runtime.LockOSThread()
 	if s := g.sr.bagla(); s != basarili {
 		m := g.hataMetni("cuCtxSetCurrent", s)

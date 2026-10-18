@@ -29,21 +29,25 @@ nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv
 
 ## 3. GPU arka ucunun sınamaları (her çekirdek CPU ile karşılaştırılır)
 
+İlk koşu her çekirdekten sonra eşzamanlar (`TR_GPU_ESZAMANLI=1`): bir çekirdek hata
+verirse hata tam olarak o çekirdekte bildirilir. İlk satır sınamaların gerçek GPU'da
+koştuğunu yazmalıdır (`GPU sınamaları gerçek GPU'da koşuyor: 1 GPU; gpu: ...`).
+
+```bash
+%%bash
+cd /content/tr
+TR_GPU_ESZAMANLI=1 ./gpu_sinama -test.v -test.count=1 2>&1 | tail -80
+```
+
+Ardından normal (eşzamansız) koşu:
+
 ```bash
 %%bash
 cd /content/tr
 ./gpu_sinama -test.v -test.count=1 2>&1 | tail -80
 ```
 
-İlk satır sınamaların gerçek GPU'da koştuğunu yazmalıdır (`GPU sınamaları gerçek GPU'da
-koşuyor: 1 GPU; gpu: ...`). Bir sınama kalırsa, hatanın hangi çekirdekte olduğunu tam
-yerinde bulmak için her çekirdekten sonra eşzamanlayarak yeniden koşturun (yavaştır):
-
-```bash
-%%bash
-cd /content/tr
-TR_GPU_ESZAMANLI=1 ./gpu_sinama -test.v -test.count=1 -test.run 'KALAN_SINAMANIN_ADI' 2>&1 | tail -80
-```
+Yalnızca bir sınamayı yeniden koşturmak için `-test.run 'SINAMANIN_ADI'` ekleyin.
 
 PTX derleme hatasında mesaj sürücünün derleyici günlüğünü ve PTX metninin yazıldığı
 geçici dosyanın yolunu verir; o dosyayı da gönderin:
@@ -113,7 +117,7 @@ Veri yoksa `--veri` argümanını çıkarın.
 ## Geri bildirilecekler
 
 1. 2. hücrenin çıktısı (kart, sürücü).
-2. 3. hücrenin son 80 satırı (kalan varsa `TR_GPU_ESZAMANLI=1` ile yeniden koşunun çıktısı).
+2. 3. hücredeki iki koşunun son 80 satırı.
 3. 4. hücrenin özetleri.
 4. 6. ve 7. hücrelerin bütün çıktıları (ms/adım, son kayıp, GPU kullanımı, bellek).
 

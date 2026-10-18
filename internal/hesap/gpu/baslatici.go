@@ -74,6 +74,10 @@ type paramYazici struct {
 	cesit  []int
 	yazan  []*depo
 	parcal [][]byte
+	// acik, param() ile başlayıp baslat ile biten bir zincirin sürdüğünü gösterir; zincir
+	// açıkken yeni bir param() (ör. zincirin ortasında kopya çekirdeği başlatan bir
+	// gecici.oku) dış zincirin parametrelerini silerdi: iç hata.
+	acik bool
 }
 
 func (p *paramYazici) sifirla() *paramYazici {
@@ -173,11 +177,18 @@ func (p *paramYazici) parcalar() [][]byte {
 }
 
 // param yeni bir başlatmanın parametre yazıcısını verir.
-func (g *arkaUc) param() *paramYazici { return g.prm.sifirla() }
+func (g *arkaUc) param() *paramYazici {
+	if g.prm.acik {
+		panic("tensor: GPU: parametre zinciri açıkken yeni başlatma hazırlandı (iç içe param(); iç hata)")
+	}
+	g.prm.acik = true
+	return g.prm.sifirla()
+}
 
 // baslat çekirdeği verilen ızgara ve blokla sıraya ekler. Parametreler imzayla
 // denetlenir (sayı ve bayt boyu).
 func (g *arkaUc) baslat(c *cekirdek, izgara, blok [3]uint32, p *paramYazici) {
+	p.acik = false
 	parca := p.parcalar()
 	if len(parca) != len(c.imza) {
 		panic(fmt.Sprintf("tensor: GPU: %s çekirdeğine %d parametre verildi, %d bekleniyordu (iç hata)", c.ad, len(parca), len(c.imza)))

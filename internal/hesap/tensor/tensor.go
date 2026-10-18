@@ -410,7 +410,7 @@ func (t *Tensor) ZeroGrad() {
 
 // To tensörü verilen cihaza taşır. Aynı cihazdaysa kendisini döndürür; aksi
 // halde veriyi kopyalar (türevlenebilir: gradyan kaynak cihaza geri taşınır).
-// Şimdilik aktarım konak üzerinden yapılır; yalnızca CPU arka ucu vardır.
+// Aktarım konak üzerinden yapılır (cihazlar arası doğrudan kopya yoktur).
 func (t *Tensor) To(dev Device) *Tensor {
 	if t.Device() == dev {
 		return t
