@@ -484,7 +484,44 @@ func satirIndirge(mode GradMode, dg, gd, od []float32, R, m int) {
 const (
 	geluC = 0.7978845608028654 // sqrt(2/pi)
 	geluA = 0.044715
+
+	geluM2C float32 = -2 * geluC // e^{-2u} üssünün katsayısı
+	gelu3A  float32 = 3 * geluA  // u'/c = 1 + 3a·x²
 )
+
+// GELU'nun vektör çekirdekleri (geluIleriVek, geluGeriVek) GOAMD64=v3'te AVX2,
+// aksi halde aşağıdaki Go eşleridir; işlem sırası aynıdır, yalnızca üstel
+// (expVek ile expf32 gibi) 1-2 ulp farklı olabilir.
+
+// geluIleriGo y = x / (1 + e^{-2u}), u = c·(x + a·x³).
+func geluIleriGo(y, x []float32) {
+	y = y[:len(x)]
+	for i, v := range x {
+		x3 := v * v * v
+		u := float32(x3*geluA) + v
+		y[i] = v / (1 + expf32(u*geluM2C))
+	}
+}
+
+// geluGeriGo gx += g·d; s = σ(2u) = 1/(1+e^{-2u}), q = s(1-s) ile
+// d = s + 2x·q·u' (u' = c·(1 + 3a·x²)). q = 0 iken (|x| büyük) ikinci terim
+// sıfırdır; |x| ≳ 1.8e19'da x² taşar ve 0·sonsuz NaN üretirdi, bu yüzden d = s.
+func geluGeriGo(gx, g, x []float32) {
+	g = g[:len(gx)]
+	x = x[:len(gx)]
+	for i, v := range x {
+		x2 := v * v
+		u := float32(x2*v*geluA) + v
+		s := 1 / (1 + expf32(u*geluM2C))
+		q := s * (1 - s)
+		d := s
+		if q != 0 {
+			du := float32(float32(x2*gelu3A)+1) * geluC
+			d = float32(float32((v+v)*q)*du) + s
+		}
+		gx[i] += float32(g[i] * d)
+	}
+}
 
 // vekBlok vektörel üstel için blok uzunluğu (yığında, L1'de kalır).
 const vekBlok = 256
@@ -544,20 +581,7 @@ func unaryDongu(op UnOp, p float32, y, x []float32) {
 			}
 		}
 	case OpGelu:
-		// x / (1 + e^{-2u}); üsteller bloklar halinde vektörel.
-		var t [vekBlok]float32
-		for i0 := 0; i0 < len(x); i0 += vekBlok {
-			xs := x[i0:min(i0+vekBlok, len(x))]
-			tb := t[:len(xs)]
-			for i, v := range xs {
-				tb[i] = -2 * geluC * (v + geluA*v*v*v)
-			}
-			expVek(tb, tb)
-			ys := y[i0 : i0+len(xs)]
-			for i, v := range xs {
-				ys[i] = v / (1 + tb[i])
-			}
-		}
+		geluIleriVek(y, x)
 	case OpSigmoid:
 		// e = e^{-|x|}; x ≥ 0 için 1/(1+e), aksi halde e/(1+e) (sayısal kararlı).
 		var t [vekBlok]float32
@@ -656,28 +680,7 @@ func unaryGradDongu(op UnOp, p float32, gx, g, x, y []float32) {
 			}
 		}
 	case OpGelu:
-		// s = σ(2u): s + 2·x·s·(1-s)·u'; üsteller bloklar halinde vektörel.
-		var t [vekBlok]float32
-		for i0 := 0; i0 < len(g); i0 += vekBlok {
-			xs := x[i0:min(i0+vekBlok, len(g))]
-			tb := t[:len(xs)]
-			for i, v := range xs {
-				tb[i] = -2 * geluC * (v + geluA*v*v*v)
-			}
-			expVek(tb, tb)
-			gs, gxs := g[i0:i0+len(xs)], gx[i0:i0+len(xs)]
-			for i, v := range xs {
-				s := 1 / (1 + tb[i])
-				d := s
-				// s(1-s) = 0 iken (|x| büyük) ikinci terim sıfırdır; |x| ≳ 1.8e19'da
-				// v·v taşar ve 0·sonsuz NaN üretirdi.
-				if s*(1-s) != 0 {
-					du := geluC * (1 + 3*geluA*v*v)
-					d = s + 2*v*s*(1-s)*du
-				}
-				gxs[i] += gs[i] * d
-			}
-		}
+		geluGeriVek(gx, g, x)
 	case OpSigmoid:
 		for i, v := range g {
 			gx[i] += v * (y[i] * (1 - y[i]))

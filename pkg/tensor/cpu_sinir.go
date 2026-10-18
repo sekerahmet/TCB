@@ -182,7 +182,7 @@ func optGather(v *View) []float32 {
 // (GOAMD64=v3'te AVX2 çekirdekleri, aksi halde aşağıdaki Go eşleri). Toplamlar
 // float64'te, eleman konumuna göre 8 kulvarda (j mod 8) biriktirilir ve sabit
 // sırayla birleştirilir; kaynaştırılmış çarpma-toplama kullanılmaz. Böylece
-// vektör ve Go yolları bit düzeyinde aynı sonucu verir (testler: norm_test.go).
+// vektör ve Go yolları bit düzeyinde aynı sonucu verir (testler: vektor_test.go).
 
 // topla8 8 kulvarlık float64 kısmi toplamları sabit sırayla birleştirir
 // (AVX2 çekirdeklerindeki TOPLA8 ile aynı sıra).

@@ -49,6 +49,41 @@ func expVek(dst, src []float32) {
 // (k < 8 elemanlık kuyruk, maskeli yükleme ve saklamayla işlenir).
 var vekMaske = [16]int32{-1, -1, -1, -1, -1, -1, -1, -1}
 
+// geluSabit GELU çekirdeklerinin sabitleri (her biri 8 kez): a, −2c, 1, c, 3a.
+var geluSabit = func() (t [5 * 8]float32) {
+	for i, v := range [...]float32{geluA, geluM2C, 1, geluC, gelu3A} {
+		for j := 0; j < 8; j++ {
+			t[i*8+j] = v
+		}
+	}
+	return
+}()
+
+//go:noescape
+func geluIleriCekirdek(y, x *float32, n int)
+
+//go:noescape
+func geluGeriCekirdek(gx, gr, x *float32, n int)
+
+// geluIleriVek y = GELU(x); tanım ve taşınabilir eşi geluIleriGo'dadır. Üstel
+// vektörel olduğundan sonuç Go eşinden en çok birkaç ulp farklı olabilir.
+func geluIleriVek(y, x []float32) {
+	if len(x) == 0 {
+		return
+	}
+	_ = y[len(x)-1]
+	geluIleriCekirdek(&y[0], &x[0], len(x))
+}
+
+// geluGeriVek gx += g·GELU'(x); tanım ve taşınabilir eşi geluGeriGo'dadır.
+func geluGeriVek(gx, g, x []float32) {
+	if len(gx) == 0 {
+		return
+	}
+	_, _ = g[len(gx)-1], x[len(gx)-1]
+	geluGeriCekirdek(&gx[0], &g[0], &x[0], len(gx))
+}
+
 //go:noescape
 func lnIleriCekirdek(y, x, gam, bet, mean, rstd *float32, satir, boy int, dD, eps float64)
 

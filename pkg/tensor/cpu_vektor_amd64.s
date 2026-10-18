@@ -90,6 +90,125 @@ bitti:
 	VZEROUPPER
 	RET
 
+// GELUARG: Y10 = x için Y11 = x², Y0 = −2c·(x + a·x³) (R10 = geluSabit: 0 a,
+// 1 −2c, 2 bir, 3 c, 4 3a). Y12 bozulur.
+#define GELUARG \
+	VMULPS Y10, Y10, Y11;      \
+	VMULPS Y10, Y11, Y12;      \
+	VMULPS 0(R10), Y12, Y12;   \
+	VADDPS Y10, Y12, Y12;      \
+	VMULPS 32(R10), Y12, Y0
+
+// GELUTUREV: Y10 = x, Y11 = x², Y3 = e^{−2u} için Y7 = GELU'nun türevi:
+// s = 1/(1+e), q = s(1−s), d = s + ((2x·q)·du), du = c·(1 + 3a·x²); q = 0 iken
+// (|x| büyük) d = s (ikinci terim 0·sonsuz NaN üretmesin). Y4-Y6, Y8, Y9 bozulur.
+#define GELUTUREV \
+	VADDPS    64(R10), Y3, Y3;   \
+	VMOVUPS   64(R10), Y4;       \
+	VDIVPS    Y3, Y4, Y4;        \
+	VMOVUPS   64(R10), Y5;       \
+	VSUBPS    Y4, Y5, Y5;        \
+	VMULPS    Y5, Y4, Y5;        \
+	VMULPS    128(R10), Y11, Y6; \
+	VADDPS    64(R10), Y6, Y6;   \
+	VMULPS    96(R10), Y6, Y6;   \
+	VADDPS    Y10, Y10, Y7;      \
+	VMULPS    Y5, Y7, Y7;        \
+	VMULPS    Y6, Y7, Y7;        \
+	VADDPS    Y4, Y7, Y7;        \
+	VXORPS    Y8, Y8, Y8;        \
+	VCMPPS    $0, Y8, Y5, Y9;    \
+	VBLENDVPS Y9, Y4, Y7, Y7
+
+// func geluIleriCekirdek(y, x *float32, n int)
+//
+// y = x / (1 + e^{−2u}), u = c·(x + a·x³) (tanh yaklaşımlı GELU; Go eşi geluIleriGo).
+TEXT ·geluIleriCekirdek(SB), NOSPLIT, $0-24
+	MOVQ y+0(FP), DI
+	MOVQ x+8(FP), SI
+	MOVQ n+16(FP), BX
+	LEAQ ·expSabit(SB), R9
+	LEAQ ·geluSabit(SB), R10
+	MOVQ BX, DX
+	SHRQ $3, BX
+	ANDQ $7, DX
+	MASKE
+	XORQ  AX, AX
+	TESTQ BX, BX
+	JZ    gi_k
+
+gi_d:
+	VMOVUPS (SI)(AX*1), Y10
+	GELUARG
+	UST
+	VADDPS  64(R10), Y3, Y3
+	VDIVPS  Y3, Y10, Y3
+	VMOVUPS Y3, (DI)(AX*1)
+	ADDQ    $32, AX
+	DECQ    BX
+	JNZ     gi_d
+
+gi_k:
+	TESTQ      DX, DX
+	JZ         gi_s
+	VMASKMOVPS (SI)(AX*1), Y14, Y10
+	GELUARG
+	UST
+	VADDPS     64(R10), Y3, Y3
+	VDIVPS     Y3, Y10, Y3
+	VMASKMOVPS Y3, Y14, (DI)(AX*1)
+
+gi_s:
+	VZEROUPPER
+	RET
+
+// func geluGeriCekirdek(gx, gr, x *float32, n int)
+//
+// gx += gr·GELU'(x) (Go eşi geluGeriGo).
+TEXT ·geluGeriCekirdek(SB), NOSPLIT, $0-32
+	MOVQ gx+0(FP), DI
+	MOVQ gr+8(FP), R8
+	MOVQ x+16(FP), SI
+	MOVQ n+24(FP), BX
+	LEAQ ·expSabit(SB), R9
+	LEAQ ·geluSabit(SB), R10
+	MOVQ BX, DX
+	SHRQ $3, BX
+	ANDQ $7, DX
+	MASKE
+	XORQ  AX, AX
+	TESTQ BX, BX
+	JZ    gg_k
+
+gg_d:
+	VMOVUPS (SI)(AX*1), Y10
+	GELUARG
+	UST
+	GELUTUREV
+	VMULPS  (R8)(AX*1), Y7, Y7
+	VADDPS  (DI)(AX*1), Y7, Y7
+	VMOVUPS Y7, (DI)(AX*1)
+	ADDQ    $32, AX
+	DECQ    BX
+	JNZ     gg_d
+
+gg_k:
+	TESTQ      DX, DX
+	JZ         gg_s
+	VMASKMOVPS (SI)(AX*1), Y14, Y10
+	GELUARG
+	UST
+	GELUTUREV
+	VMASKMOVPS (R8)(AX*1), Y14, Y8
+	VMULPS     Y8, Y7, Y7
+	VMASKMOVPS (DI)(AX*1), Y14, Y8
+	VADDPS     Y8, Y7, Y7
+	VMASKMOVPS Y7, Y14, (DI)(AX*1)
+
+gg_s:
+	VZEROUPPER
+	RET
+
 // func lnIleriCekirdek(y, x, gam, bet, mean, rstd *float32, satir, boy int, dD, eps float64)
 //
 // R satırlık (satır uzunluğu D) katman ya da RMS normu. Satır başına:

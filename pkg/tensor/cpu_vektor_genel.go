@@ -11,6 +11,12 @@ func expVek(dst, src []float32) {
 	}
 }
 
+// geluIleriVek y = GELU(x) (bkz. geluIleriGo).
+func geluIleriVek(y, x []float32) { geluIleriGo(y, x) }
+
+// geluGeriVek gx += g·GELU'(x) (bkz. geluGeriGo).
+func geluGeriVek(gx, g, x []float32) { geluGeriGo(gx, g, x) }
+
 // lnIleriBlok katman normunun (mean nil ise RMS normunun) ileri yönü (bkz.
 // lnIleriBlokGo; GOAMD64=v3'te aynı sonucu veren AVX2 çekirdeği kullanılır).
 func lnIleriBlok(y, x, g, b, mean, rstd []float32, D int, eps float32) {

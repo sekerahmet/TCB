@@ -176,3 +176,80 @@ func TestNormVektorTasmaYok(t *testing.T) {
 		}
 	}
 }
+
+// GELU vektör çekirdekleri Go eşiyle aynı işlem sırasını izler; yalnızca üstel
+// 1-2 ulp farklı olabildiğinden sonuçlar birkaç ulp içinde olmalı. Ayrıca float64
+// başvurusuna yakın olmalı ve özel değerler (NaN, ±sonsuz, çok büyük |x|) ile
+// kuyruk uzunlukları doğru işlenmeli; kuyruk dışına yazılmamalı.
+func TestGeluVektorGoEsi(t *testing.T) {
+	rng := rand.New(rand.NewSource(13))
+	for _, n := range []int{1, 7, 8, 9, 31, 256, 1000} {
+		x := make([]float32, n)
+		for i := range x {
+			x[i] = float32(rng.NormFloat64() * 3)
+		}
+		if n >= 9 {
+			x[0], x[1], x[2], x[3] = float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1)), 0
+			x[4], x[5], x[6], x[7] = 2e19, -2e19, 12, -12
+		}
+		y1, y2 := make([]float32, n+8), make([]float32, n)
+		for i := range y1 {
+			y1[i] = 42
+		}
+		geluIleriVek(y1[:n], x)
+		geluIleriGo(y2, x)
+		for i := n; i < len(y1); i++ {
+			if y1[i] != 42 {
+				t.Fatalf("n=%d: ileri yön dizinin dışına yazdı", n)
+			}
+		}
+		g := make([]float32, n)
+		for i := range g {
+			g[i] = float32(rng.NormFloat64())
+		}
+		gx1, gx2 := make([]float32, n), make([]float32, n)
+		for i := range gx1 {
+			gx1[i], gx2[i] = 0.25, 0.25
+		}
+		geluGeriVek(gx1, g, x)
+		geluGeriGo(gx2, g, x)
+		for i, v := range x {
+			for _, c := range []struct {
+				ad   string
+				a, b float32
+				ref  float64
+			}{
+				{"ileri", y1[i], y2[i], geluRef(float64(v))},
+				{"geri", gx1[i], gx2[i], 0.25 + float64(g[i])*geluTurevRef(float64(v))},
+			} {
+				if c.a != c.a || c.b != c.b {
+					if (c.a != c.a) != (c.b != c.b) {
+						t.Fatalf("%s n=%d x=%v: vektör %v, Go eşi %v", c.ad, n, v, c.a, c.b)
+					}
+					continue
+				}
+				if c.a != c.b && (math.IsInf(float64(c.a), 0) || math.IsInf(float64(c.b), 0) || ulpFark(c.a, c.b) > 4) {
+					t.Fatalf("%s n=%d x=%v: vektör %v, Go eşi %v", c.ad, n, v, c.a, c.b)
+				}
+				if !math.IsNaN(c.ref) && !math.IsInf(c.ref, 0) && math.Abs(float64(c.a)-c.ref) > 1e-6+3e-6*math.Abs(c.ref) {
+					t.Fatalf("%s n=%d x=%v: %v, başvuru %v", c.ad, n, v, c.a, c.ref)
+				}
+			}
+		}
+	}
+}
+
+func geluRef(x float64) float64 {
+	return 0.5 * x * (1 + math.Tanh(geluC*(x+geluA*x*x*x)))
+}
+
+func geluTurevRef(x float64) float64 {
+	if math.Abs(x) > 20 {
+		if x > 0 {
+			return 1
+		}
+		return 0
+	}
+	th := math.Tanh(geluC * (x + geluA*x*x*x))
+	return 0.5*(1+th) + 0.5*x*(1-th*th)*geluC*(1+3*geluA*x*x)
+}
