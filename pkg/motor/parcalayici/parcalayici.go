@@ -26,8 +26,8 @@ import (
 	"tr_dili/pkg/vm"
 )
 
-// TipAdi parçalayıcı nesnesinin TR'deki tip adıdır.
-const TipAdi = "Parçalayıcı"
+// TipAdi parçalayıcı nesnesinin TR'deki tip adıdır (sözlükte A234).
+var TipAdi = string(vm.TipAdi(sozluk.A + 234))
 
 // Nesne TR'de yüklenmiş bir parçalayıcıdır. Salt okunurdur; dosya tutamağı ya da
 // başka bir kaynak tutmaz (dosya yüklemede tümüyle okunup kapatılır).

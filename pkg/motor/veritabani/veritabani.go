@@ -27,7 +27,7 @@ var (
 // geçersiz kılar.
 var parametreYazimlari = adParametreler.Yazimlar()
 
-const VAL_DATABASE vm.ValueType = "Veritabanı"
+var VAL_DATABASE = vm.TipAdi(sozluk.A + 240) // Veritabanı
 
 type dbTable struct {
 	Name    string                   `json:"name"`

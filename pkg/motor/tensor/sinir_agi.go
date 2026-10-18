@@ -30,7 +30,10 @@ type SinirAgi struct {
 	sapmalar   []*ct.Tensor // l. katman: [1, çıkış], türev izler
 }
 
-func (nn *SinirAgi) Type() vm.ValueType { return vm.ValueType("SinirAğı") }
+// sinirAgiTipi SinirAğı'nın tip adıdır (sözlükte A230).
+var sinirAgiTipi = vm.TipAdi(sozluk.A + 230)
+
+func (nn *SinirAgi) Type() vm.ValueType { return sinirAgiTipi }
 func (nn *SinirAgi) IsTruthy() bool     { return true }
 func (nn *SinirAgi) Inspect() string {
 	var dims []string

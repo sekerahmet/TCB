@@ -31,10 +31,10 @@ import (
 )
 
 // Tip adları.
-const (
-	KumeTipi        = "VeriKümesi"
-	OrnekleyiciTipi = "Örnekleyici"
-	SiraliTipi      = "SıralıOkuyucu"
+var (
+	KumeTipi        = string(vm.TipAdi(sozluk.A + 231)) // VeriKümesi
+	OrnekleyiciTipi = string(vm.TipAdi(sozluk.A + 232)) // Örnekleyici
+	SiraliTipi      = string(vm.TipAdi(sozluk.A + 233)) // SıralıOkuyucu
 )
 
 // onYuklemeDerinligi arka planda hazır tutulan toplu iş sayısıdır.

@@ -34,9 +34,9 @@ var (
 	adTip       = baglama.KodAd(sozluk.W + 922)
 )
 
-const (
-	VAL_WEB_SERVER vm.ValueType = "WebSunucu"
-	VAL_GUI_APP    vm.ValueType = "GörselArayüz"
+var (
+	VAL_WEB_SERVER = vm.TipAdi(sozluk.A + 241) // WebSunucu
+	VAL_GUI_APP    = vm.TipAdi(sozluk.A + 242) // GörselArayüz
 )
 
 // ============================================================================

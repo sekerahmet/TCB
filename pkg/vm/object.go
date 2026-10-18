@@ -6,25 +6,37 @@ import (
 	"strconv"
 	"strings"
 	"tr_dili/pkg/ast"
+	"tr_dili/pkg/sozluk"
 )
 
+// ValueType bir değerin tip adıdır (tip() sonucu, hata mesajları). Adlar sözlüktedir
+// (pkg/sozluk, A2xx); başlangıçta bir kez okunur.
 type ValueType string
 
-const (
-	VAL_INT      ValueType = "Tam"
-	VAL_FLOAT    ValueType = "Ondalık"
-	VAL_STRING   ValueType = "Metin"
-	VAL_BOOL     ValueType = "Mantık"
-	VAL_NULL     ValueType = "Yok"
-	VAL_LIST     ValueType = "Liste"
-	VAL_DICT     ValueType = "Sözlük"
-	VAL_RANGE    ValueType = "Aralık"
-	VAL_FUNC     ValueType = "Fonksiyon"
-	VAL_BUILTIN  ValueType = "YerleşikFonksiyon"
-	VAL_STRUCT   ValueType = "YapıTanımı"
-	VAL_INSTANCE ValueType = "Nesne"
-	VAL_TENSOR   ValueType = "Tensör"
+var (
+	VAL_INT      = TipAdi(sozluk.A + 200) // Tam
+	VAL_FLOAT    = TipAdi(sozluk.A + 201) // Ondalık
+	VAL_STRING   = TipAdi(sozluk.A + 202) // Metin
+	VAL_BOOL     = TipAdi(sozluk.A + 203) // Mantık
+	VAL_NULL     = TipAdi(sozluk.A + 204) // Yok
+	VAL_LIST     = TipAdi(sozluk.A + 205) // Liste
+	VAL_DICT     = TipAdi(sozluk.A + 206) // Sözlük
+	VAL_RANGE    = TipAdi(sozluk.A + 207) // Aralık
+	VAL_FUNC     = TipAdi(sozluk.A + 208) // Fonksiyon
+	VAL_BUILTIN  = TipAdi(sozluk.A + 209) // YerleşikFonksiyon
+	VAL_STRUCT   = TipAdi(sozluk.A + 210) // YapıTanımı
+	VAL_INSTANCE = TipAdi(sozluk.A + 211) // Nesne
+	VAL_TENSOR   = TipAdi(sozluk.A + 212) // Tensör
 )
+
+// TipAdi sözlükteki bir tip adı kodunun (A2xx) ValueType'ıdır; motorlar kendi tiplerinin
+// adlarını bununla alır.
+func TipAdi(k sozluk.Kod) ValueType {
+	if k.Alan() != sozluk.AlanTip {
+		panic(fmt.Sprintf("TipAdi: %s bir tip adı kodu (A2xx) değil", k))
+	}
+	return ValueType(sozluk.Ad(k))
+}
 
 type Value interface {
 	Type() ValueType

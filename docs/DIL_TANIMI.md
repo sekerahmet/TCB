@@ -4,7 +4,7 @@ Bu belge TR dilinin **bugünkü uygulamaya** (`pkg/lexer`, `pkg/parser`, `pkg/ch
 
 **Kural ve test eşlemesi.** Her kuralın bir numarası vardır (ör. **4.2**). `testler/` klasöründeki testlerin adı bu numarayla başlar (`test "4.2 aritmetik: ..."`). `tr test testler` komutu tanımdaki her kuralı çalıştırarak denetler; `go test ./pkg/testkosucu` de tanımda numarası geçip testi olmayan bir kural kalmadığını doğrular (Faz 3 kapısı: *her kural bir testte*).
 
-İçindekiler: [2. Sözcük yapısı](#2-sözcük-yapısı) · [3. Tipler](#3-tipler-ve-değerler) · [4. Operatörler](#4-operatörler) · [5. Deyimler](#5-deyimler-ve-kontrol-yapıları) · [6. Fonksiyonlar](#6-fonksiyonlar) · [7. Yapılar](#7-yapılar) · [8. Hatalar](#8-hata-yönetimi) · [9. ertele](#9-ertele) · [10. Eşzamanlılık](#10-eşzamanlılık-ve-yorumlayıcı-kilidi) · [11. Modüller](#11-modüller) · [12. Testler](#12-testler) · [13. Yerleşikler](#13-yerleşik-fonksiyonlar-ve-metotlar) · [14. Sınırlamalar](#14-bilinen-sınırlamalar) · [15. Tensörler](#15-tensörler-ve-otomatik-türev) · [16. Veri ve parçalayıcı](#16-veri-ve-parçalayıcı)
+İçindekiler: [2. Sözcük yapısı](#2-sözcük-yapısı) · [3. Tipler](#3-tipler-ve-değerler) · [4. Operatörler](#4-operatörler) · [5. Deyimler](#5-deyimler-ve-kontrol-yapıları) · [6. Fonksiyonlar](#6-fonksiyonlar) · [7. Yapılar](#7-yapılar) · [8. Hatalar](#8-hata-yönetimi) · [9. ertele](#9-ertele) · [10. Eşzamanlılık](#10-eşzamanlılık-ve-yorumlayıcı-kilidi) · [11. Modüller](#11-modüller) · [12. Testler](#12-testler) · [13. Yerleşikler](#13-yerleşik-fonksiyonlar-ve-metotlar) · [14. Sınırlamalar](#14-bilinen-sınırlamalar) · [15. Tensörler](#15-tensörler-ve-otomatik-türev) · [16. Veri ve parçalayıcı](#16-veri-ve-parçalayıcı) · [17. Sözlük ve ad kodları](#17-sözlük-ve-ad-kodları)
 
 ---
 
@@ -76,6 +76,8 @@ değişken t = 1 +
 - Anahtar kelimeler: `işlev` → `fonksiyon`, `döndür` → `sonuç`, `kır` → `çık`, `sınıf` → `yapı` (ve ASCII biçimleri), `aktar ... as` → `aktar ... olarak`, `dur_noktası` / `durdurma_noktası` (ve ASCII biçimleri) → `kesme_noktası`.
 - Yerleşik fonksiyonlar: `yaz` → `yazdır`, `oku` → `girdi`, `boy` → `uzunluk`, `tur` → `tip`, `donustur` → `haritala`, `ozetle` → `indirge`, `en_büyük` → `maks`, `en_küçük` → `min`, `uyut` → `bekle`, `std_sapma` → `standart_sapma`, `medyan` → `ortanca`, `json_yaz` → `json_metin`, `tablo_oku` → `csv_oku`, `http_al` → `web_al`, `web_sunucusu` → `web_sunucu`.
 - Metot ve özellikler: `.boy` → `.uzunluk`, `.dönüştür` / `.donustur` → `.haritala`.
+
+Veritabanı, web ve arayüz motorlarında ve tip açıklamalarında bugün hâlâ kabul edilen birkaç eş yazım vardır (`veritabanı` / `veritabanı_aç`, `sorgu` / `sorgula`, `tamsayı` / `Tam` ...); bunlar sözlükte asıl adın `es` alanındadır ve sonraki bir temizlikte kaldırılacaktır (bkz. 17).
 
 Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `_` (yalnızca `eşle` kolunda varsayılan).
 
@@ -461,3 +463,34 @@ Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` token parça
 **16.8** Bu yerleşiklerde göreli yollar `dosya_oku`/`dosya_yaz` ile aynı tek kuralla (bkz. **13.1**) çözülür: önce çalışma klasörü, orada yoksa programın bulunduğu klasör.
 
 Önden yükleme her zaman açıktır ve yorumlayıcı kilidini tutmaz; `.sonraki()` beklerken kilit bırakılır (10.3). Açık bir kapatma adı yoktur: sıralı okuyucu bitince, kullanılmayan nesneler çöp toplanınca ve program bitince dosyalar kapatılır.
+
+---
+
+## 17. Sözlük ve ad kodları
+
+Dilin kullanıcıya görünen her adı (anahtar kelimeler, bağlamsal sözcükler, tip adları, yerleşik fonksiyonlar, metot ve özellikler, adlı argümanlar) sabit bir **koda** bağlıdır; adların kendisi tek bir dil dosyasında durur: Türkçe için `pkg/sozluk/tr.json` (ikiliye gömülüdür, `tr` tek dosya olarak dağıtılır). Yorumlayıcının Go kodu adları değil kodları kullanır. Bir adı değiştirmek için yalnızca o dosyadaki satır değişir; kodlar hiç değişmez. Başka diller aynı kodlara kendi adlarını verecektir (`en.json`, `pt.json`; dil kodları ISO 639-1, gerekirse bölgeli: `pt-BR`).
+
+Kod bir harf ve üç basamaklı bir sayıdır; harf aileyi, yüzler basamağı aile içindeki grubu gösterir. Gruplar arasında sonradan ekleme için boşluk bırakılmıştır.
+
+| Aile | Kapsam | Gruplar |
+| :-- | :-- | :-- |
+| `A` | Dilin çekirdeği | `A0xx` anahtar kelimeler (`A001` eğer, `A010` döngü, `A020` fonksiyon ...), `A1xx` bağlamsal sözcükler (`olarak`, `test`), `A2xx` tip adları (`A200` Tam ... `A23x`-`A24x` motor tipleri) |
+| `G` | Genel yerleşikler | `G1xx` giriş, çıkış, dosya (`G100` yazdır, `G101` girdi) · `G2xx` değer, tip, dönüşüm (`G200` uzunluk) · `G3xx` liste ve boru hattı · `G4xx` matematik ve istatistik · `G5xx` zaman ve eşzamanlılık · `G6xx` JSON/CSV · `G7xx` test |
+| `T` | Tensör ve yapay zekâ | `T1xx` oluşturma ve görünüm (`T100` tensör) · `T2xx` etkinleştirme ve eleman bazlı matematik · `T3xx` türev · `T4xx` iyileştiriciler · `T5xx` katmanlar, kayıplar, hazır model · `T6xx` vektör yardımcıları ve dil modeli · `T7xx` kaydetme, yükleme, veri türleri · `T9xx` adlı argümanlar |
+| `V` | Veri ve parçalayıcı | `V1xx` veri kümesi · `V2xx` parçalayıcı · `V9xx` adlı argümanlar |
+| `W` | Web, veritabanı, arayüz | `W1xx` web istemcisi ve sunucusu · `W2xx` veritabanı · `W3xx` görsel arayüz · `W9xx` adlı argümanlar |
+| `Y` | Yöntemler: metot ve özellikler (`x.ad`) | `Y0xx` birden çok tipte ortak (`uzunluk`, `içerir` ...) · `Y1xx` Metin · `Y2xx` Liste · `Y3xx` Sözlük · `Y4xx` Tensör · `Y5xx` iyileştirici ve SinirAğı · `Y6xx` veri kümesi, okuyucu, parçalayıcı · `Y7xx` veritabanı · `Y8xx` web sunucusu · `Y9xx` görsel arayüz |
+| `H` | Hata mesajları | ayrılmış; henüz kullanılmıyor |
+
+Dosyada her kod bir satırdır ve kodlar artan sıradadır:
+
+```json
+"G100": { "ad": "yazdır", "eski": ["yaz"], "aile": "giriş ve çıkış" },
+```
+
+- `ad` kodun bu dildeki adıdır. Türkçe karakterleri ASCII'ye çevrilmiş biçimi (`yazdir`) dosyada saklanmaz, addan türetilir ve bugün adla eşdeğer kabul edilir (bkz. 2.9; bu kabul `pkg/sozluk`'ta tek bir açma-kapama noktasından yönetilir).
+- `eski` kaldırılmış adlardır (bkz. 2.9a): kabul edilmezler, yalnızca hata mesajında `ad` önerilir. Bir ad değiştirildiğinde eski ad bu listeye eklenir ve aynı ipucu kendiliğinden çalışır.
+- `es` bugün adla aynı işi yapan eş yazımlardır (ör. veritabanı nesnesinde `sorgula` için `sorgu`, `seç`; tip açıklamalarında `Tam` için `tamsayı`). Kabul edilirler; her işin tek adı olması için sonraki bir temizlikte kaldırılacaklardır.
+- `ascii: false` o adın ASCII biçiminin kabul edilmediğini söyler (bugün yalnızca birkaç adlı argüman); `aile` insanlar için kısa bir açıklamadır.
+
+Bir ad yalnızca kendi ad alanında benzersiz olmalıdır: genel adlar (anahtar kelimeler, bağlamsal sözcükler ve yerleşikler), tip adları, üyeler ve adlı argümanlar ayrı ad alanlarıdır; bu yüzden `sırala` hem bir yerleşik (`G303`), hem bir liste metodu (`Y202`), hem de bir adlı argümandır (`W931`). Üye adları tipten bağımsız benzersizdir. Sözlük yüklenirken yinelenen kod, aynı ad alanında (Türkçe ya da ASCII biçimiyle) çakışan ad ve geçerli bir adla çakışan eski ad reddedilir; `go test ./pkg/sozluk ./pkg/motor` kayıtlı her yerleşiğin ve üyenin sözlükte kodu olduğunu, sözlükteki her kodun da karşılandığını denetler. Adlar başlangıçta ve derleme anında koda çözülür; çalışma anında ad → kod araması yapılmaz.

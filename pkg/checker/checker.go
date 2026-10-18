@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"tr_dili/pkg/ast"
+	"tr_dili/pkg/sozluk"
 )
 
 type TypeInfo struct {
@@ -57,40 +58,52 @@ func (c *Checker) Errors() []string {
 	return c.errors
 }
 
-func normalizeTypeName(t string) string {
-	switch strings.ToLower(t) {
-	case "tam", "tamsayı", "tamsayi", "int":
-		return "Tam"
-	case "ondalık", "ondalik", "sayı", "sayi", "float":
-		return "Ondalık"
-	case "metin", "yazı", "yazi", "str", "string":
-		return "Metin"
-	case "mantık", "mantik", "mantıksal", "mantiksal", "bool":
-		return "Mantık"
-	case "liste", "dizi", "list":
-		return "Liste"
-	case "sözlük", "sozluk", "harita", "dict", "map":
-		return "Sözlük"
-	case "tensör", "tensor", "matris", "matrix":
-		// Matris 2 boyutlu tensördür; ayrı bir tip değildir.
-		return "Tensör"
-	case "yok", "boş", "bos", "null":
-		return "Yok"
-	case "":
-		return "Herhangi"
-	default:
-		return t
+// Denetleyicinin kullandığı tip adları sözlüktedir (pkg/sozluk, A2xx).
+var (
+	tipTam       = sozluk.Ad(sozluk.A + 200)
+	tipOndalik   = sozluk.Ad(sozluk.A + 201)
+	tipMetin     = sozluk.Ad(sozluk.A + 202)
+	tipMantik    = sozluk.Ad(sozluk.A + 203)
+	tipYok       = sozluk.Ad(sozluk.A + 204)
+	tipListe     = sozluk.Ad(sozluk.A + 205)
+	tipSozluk    = sozluk.Ad(sozluk.A + 206)
+	tipFonksiyon = sozluk.Ad(sozluk.A + 208)
+	tipTensor    = sozluk.Ad(sozluk.A + 212)
+	tipHerhangi  = sozluk.Ad(sozluk.A + 213)
+)
+
+// tipYazimlari tip açıklamasında (değişken x: tam) kabul edilen yazımların küçük harfli
+// biçimi → tip adıdır. Yazımlar sözlükten gelir: tip adı, Türkçe karaktersiz biçimi ve
+// eş yazımları (tamsayı, int ...). Matris 2 boyutlu tensördür; ayrı bir tip değildir.
+var tipYazimlari = func() map[string]string {
+	m := map[string]string{}
+	for _, k := range []sozluk.Kod{sozluk.A + 200, sozluk.A + 201, sozluk.A + 202, sozluk.A + 203,
+		sozluk.A + 205, sozluk.A + 206, sozluk.A + 212, sozluk.A + 204} {
+		for _, y := range sozluk.Yazimlar(k) {
+			m[strings.ToLower(y)] = sozluk.Ad(k)
+		}
 	}
+	return m
+}()
+
+func normalizeTypeName(t string) string {
+	if t == "" {
+		return tipHerhangi
+	}
+	if ad, ok := tipYazimlari[strings.ToLower(t)]; ok {
+		return ad
+	}
+	return t
 }
 
 func typesCompatible(expected, actual string) bool {
 	exp := normalizeTypeName(expected)
 	act := normalizeTypeName(actual)
-	if exp == "Herhangi" || act == "Herhangi" || act == "Yok" {
+	if exp == tipHerhangi || act == tipHerhangi || act == tipYok {
 		return true
 	}
 	// Tam sayı, Ondalık beklenen yere atanabilir
-	if exp == "Ondalık" && act == "Tam" {
+	if exp == tipOndalik && act == tipTam {
 		return true
 	}
 	return exp == act
@@ -140,7 +153,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 						s.Line(), ident.Value,
 					))
 				}
-				if info.TypeName != "Herhangi" && info.TypeName != "Yok" && !typesCompatible(info.TypeName, valType) {
+				if info.TypeName != tipHerhangi && info.TypeName != tipYok && !typesCompatible(info.TypeName, valType) {
 					c.errors = append(c.errors, fmt.Sprintf(
 						"Satır %d: Tip uyuşmazlığı — %q değişkeni (%s) içine %q tipinde değer atanamaz",
 						s.Line(), ident.Value, info.TypeName, valType,
@@ -162,9 +175,9 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		prev := c.scope
 		c.scope = NewScope(prev)
 		if s.KeyVar != "" {
-			c.scope.Define(s.KeyVar, TypeInfo{TypeName: "Herhangi"})
+			c.scope.Define(s.KeyVar, TypeInfo{TypeName: tipHerhangi})
 		}
-		c.scope.Define(s.ValueVar, TypeInfo{TypeName: "Herhangi"})
+		c.scope.Define(s.ValueVar, TypeInfo{TypeName: tipHerhangi})
 		for _, bs := range s.Body.Statements {
 			c.checkStatement(bs)
 		}
@@ -178,7 +191,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.checkStatement(s.TryBody)
 		prev := c.scope
 		c.scope = NewScope(prev)
-		c.scope.Define(s.ErrorVar, TypeInfo{TypeName: "Metin"})
+		c.scope.Define(s.ErrorVar, TypeInfo{TypeName: tipMetin})
 		for _, bs := range s.CatchBody.Statements {
 			c.checkStatement(bs)
 		}
@@ -192,7 +205,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.inferExpression(v)
 		}
 		for _, name := range s.Names {
-			c.scope.Define(name.Value, TypeInfo{TypeName: "Herhangi", IsConst: s.IsConst})
+			c.scope.Define(name.Value, TypeInfo{TypeName: tipHerhangi, IsConst: s.IsConst})
 		}
 
 	case *ast.MultiAssignStatement:
@@ -251,48 +264,48 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 // arithmeticType bir aritmetik işlemin sonuç tipini çıkarır.
 func arithmeticType(op, left, right string) string {
-	if left == "Metin" && op == "+" {
-		return "Metin"
+	if left == tipMetin && op == "+" {
+		return tipMetin
 	}
-	if left == "Ondalık" || right == "Ondalık" {
-		return "Ondalık"
+	if left == tipOndalik || right == tipOndalik {
+		return tipOndalik
 	}
-	if left == "Tam" && right == "Tam" {
-		return "Tam"
+	if left == tipTam && right == tipTam {
+		return tipTam
 	}
-	return "Herhangi"
+	return tipHerhangi
 }
 
 func (c *Checker) inferExpression(expr ast.Expression) string {
 	if expr == nil {
-		return "Yok"
+		return tipYok
 	}
 	switch e := expr.(type) {
 	case *ast.IntegerLiteral:
-		return "Tam"
+		return tipTam
 	case *ast.FloatLiteral:
-		return "Ondalık"
+		return tipOndalik
 	case *ast.StringLiteral, *ast.InterpolatedString:
-		return "Metin"
+		return tipMetin
 	case *ast.BooleanLiteral:
-		return "Mantık"
+		return tipMantik
 	case *ast.NullLiteral:
-		return "Yok"
+		return tipYok
 	case *ast.ListLiteral, *ast.ListComprehension:
-		return "Liste"
+		return tipListe
 	case *ast.DictLiteral:
-		return "Sözlük"
+		return tipSozluk
 	case *ast.RangeExpression:
-		return "Liste"
+		return tipListe
 	case *ast.Identifier:
 		if info, ok := c.scope.Resolve(e.Value); ok {
 			return info.TypeName
 		}
-		return "Herhangi"
+		return tipHerhangi
 	case *ast.PrefixExpression:
 		right := c.inferExpression(e.Right)
 		if e.Operator == "!" {
-			return "Mantık"
+			return tipMantik
 		}
 		return right
 	case *ast.InfixExpression:
@@ -300,20 +313,20 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		right := c.inferExpression(e.Right)
 		switch e.Operator {
 		case "==", "!=", "<", ">", "<=", ">=", "&&", "||":
-			return "Mantık"
+			return tipMantik
 		case "??":
-			if left != "Yok" && left != "Herhangi" {
+			if left != tipYok && left != tipHerhangi {
 				return left
 			}
 			return right
 		case "|>":
-			return "Herhangi"
+			return tipHerhangi
 		case "@":
-			return "Tensör"
+			return tipTensor
 		case "+", "-", "*", "/", "%", "**":
 			return arithmeticType(e.Operator, left, right)
 		}
-		return "Herhangi"
+		return tipHerhangi
 	case *ast.FunctionLiteral:
 		var paramTypes []string
 		for _, p := range e.Parameters {
@@ -322,7 +335,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		retType := normalizeTypeName(e.ReturnType)
 		if e.Name != "" {
 			c.scope.Define(e.Name, TypeInfo{
-				TypeName:   "Fonksiyon",
+				TypeName:   tipFonksiyon,
 				ParamTypes: paramTypes,
 				ReturnType: retType,
 			})
@@ -340,7 +353,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			c.checkStatement(stmt)
 		}
 		c.scope, c.returnType = prev, prevRet
-		return "Fonksiyon"
+		return tipFonksiyon
 	case *ast.CallExpression:
 		var info TypeInfo
 		var found bool
@@ -362,10 +375,10 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		for _, na := range e.NamedArgs {
 			c.inferExpression(na.Value)
 		}
-		if found && info.TypeName == "Fonksiyon" && info.ReturnType != "" {
+		if found && info.TypeName == tipFonksiyon && info.ReturnType != "" {
 			return info.ReturnType
 		}
-		return "Herhangi"
+		return tipHerhangi
 	case *ast.IfExpression:
 		c.inferExpression(e.Condition)
 		c.checkStatement(e.Consequence)
@@ -376,7 +389,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		if e.Alternative != nil {
 			c.checkStatement(e.Alternative)
 		}
-		return "Herhangi"
+		return tipHerhangi
 	case *ast.MatchExpression:
 		c.inferExpression(e.Subject)
 		for _, mc := range e.Cases {
@@ -387,7 +400,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 				c.inferExpression(mc.ValueExpr)
 			}
 		}
-		return "Herhangi"
+		return tipHerhangi
 	}
-	return "Herhangi"
+	return tipHerhangi
 }

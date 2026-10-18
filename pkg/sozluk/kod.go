@@ -17,7 +17,6 @@
 //	        A05x yapı, A06x hata yönetimi, A07x modül, A08x eşzamanlılık, A09x hata ayıklama
 //	   A1xx bağlamsal sözcükler (yalnızca belli bir yerde anlamlı: olarak, test)
 //	   A2xx tip adları (tip() sonucu, tip açıklamaları); A23x-A24x motor tipleri
-//	   A3xx tip eş yazımları (yalnızca tip açıklamasında kabul edilir; denetleyici)
 //	G  genel yerleşikler
 //	   G1xx giriş, çıkış ve dosya; G2xx değer, tip ve dönüşüm; G3xx liste ve boru hattı;
 //	   G4xx matematik ve istatistik; G5xx zaman ve eşzamanlılık; G6xx veri biçimleri
@@ -43,15 +42,27 @@
 // Bir dil içinde ad yalnızca kendi ad alanında benzersiz olmalıdır (bkz. Alan): genel
 // adlar (anahtar kelimeler, bağlamsal sözcükler ve G/T/V/W yerleşikleri), tip adları,
 // üyeler (Y) ve adlı argümanlar (x9xx). Böylece ör. G303 sırala (fonksiyon), Y202 sırala
-// (liste metodu) ve W932 sırala (adlı argüman) ayrı kodlardır. Üye adları tipten
+// (liste metodu) ve W931 sırala (adlı argüman) ayrı kodlardır. Üye adları tipten
 // bağımsız olarak benzersizdir: derleyici x.ad'ı tipe bakmadan derleme anında koda çevirir.
+//
+// # Dil dosyasının alanları
+//
+//	"G100": { "ad": "yazdır", "eski": ["yaz"], "aile": "giriş ve çıkış" }
+//
+// ad kodun bu dildeki adıdır. eski kaldırılmış adlardır: kabul edilmez, yalnızca hata
+// mesajında ad önerilir; bir ad değiştirildiğinde eski ad buraya eklenir. es bugün adla
+// aynı işi yapan eş yazımlardır (sorgula için sorgu, seç; Tam için tamsayı, int); kabul
+// edilirler ama sonraki bir temizlikte kaldırılacaklardır. "ascii": false adın ASCII
+// biçimini kapatır (bugün yalnızca birkaç adlı argüman). aile insanlar için kısa bir
+// açıklamadır. Girdiler koda göre sıralı ve her biri tek satırdır.
 //
 // # ASCII biçim
 //
 // Her adın Türkçe karakterleri ASCII'ye çevrilmiş biçimi (yazdır → yazdir) dil
 // dosyasında saklanmaz, addan türetilir. Türetilen biçimin kabul edilip edilmediği tek
 // bir yerden, ASCIIKabul sabitinden yönetilir; Yazimlar bu sabite göre bir adın kabul
-// edilen bütün yazımlarını verir. Kodlar sayıdır: Go tarafında A+1 (A001), Y+400 (Y400)
+// edilen bütün yazımlarını verir; AsilAd bir ASCII yazımın Türkçe biçimini verir (ipucu ve
+// biçimlendirici için). Kodlar sayıdır: Go tarafında A+1 (A001), Y+400 (Y400)
 // biçiminde yazılır ve switch deyimlerinde sabit olarak kullanılabilir.
 package sozluk
 

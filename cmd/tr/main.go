@@ -10,6 +10,7 @@ import (
 	"tr_dili/pkg/lexer"
 	_ "tr_dili/pkg/motor"
 	"tr_dili/pkg/parser"
+	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
@@ -203,9 +204,19 @@ func startREPL() {
 		}
 		machine.WaitAsync()
 		if val != nil && val.Type() != vm.VAL_NULL {
-			if !strings.HasPrefix(line, "yazdır") && !strings.HasPrefix(line, "yazdir") {
+			if !yazdirIleBaslar(line) {
 				fmt.Println("=>", val.Inspect())
 			}
 		}
 	}
+}
+
+// yazdirIleBaslar satır yazdır yerleşiğinin (G100) bir yazımıyla mı başlıyor?
+func yazdirIleBaslar(satir string) bool {
+	for _, y := range sozluk.Yazimlar(sozluk.G + 100) {
+		if strings.HasPrefix(satir, y) {
+			return true
+		}
+	}
+	return false
 }

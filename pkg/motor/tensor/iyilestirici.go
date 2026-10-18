@@ -176,7 +176,7 @@ func iyilestiriciParametreleri(fn string, args []vm.Value) ([]*ct.Tensor, error)
 }
 
 func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	const fn = "AdamW"
+	fn := sozluk.Ad(sozluk.T + 400) // AdamW (tip adı da budur)
 	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon, adAnaKopya); err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 }
 
 func sgdKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	const fn = "SGD"
+	fn := sozluk.Ad(sozluk.T + 401) // SGD (tip adı da budur)
 	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi, adAnaKopya); err != nil {
 		return nil, err
 	}
