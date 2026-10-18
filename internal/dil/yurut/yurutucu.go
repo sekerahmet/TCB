@@ -94,6 +94,11 @@ type vmShared struct {
 	// GorevKancasiEkle). Yalnızca kayıt sırasında (program başlamadan) yazılır.
 	gorevKancalari []func(*VM)
 
+	// argumanlar betiğe komut satırında verilen argümanlardır; argumanlarOkundu program
+	// onları okuduysa açıktır (bkz. program_argumanlari.go).
+	argumanlar       []string
+	argumanlarOkundu atomic.Bool
+
 	// metinOnbellegi son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
 	metinOnbellegi struct {
 		metin *StringVal

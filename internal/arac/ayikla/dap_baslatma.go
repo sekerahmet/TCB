@@ -22,6 +22,8 @@ func (s *dapServer) launch(msg *dapMessage) {
 		StopOnEntry bool   `json:"stopOnEntry"`
 		NoDebug     bool   `json:"noDebug"`
 		Cwd         string `json:"cwd"`
+		// Args programa iletilen komut satırı argümanlarıdır (VS Code başlatma ayarı).
+		Args []string `json:"args"`
 	}
 	if err := json.Unmarshal(msg.Arguments, &a); err != nil || a.Program == "" {
 		s.respondErr(msg, "Hata ayıklanacak .tr dosyası belirtilmedi ('program')")
@@ -68,6 +70,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	machine.Out = dapOutput{s, "stdout"}
 	machine.Err = dapOutput{s, "stderr"} // eşzamanlı görev hataları da Debug Console'a
 	machine.Stdin = dapNoStdin{}
+	machine.ArgumanlariAyarla(a.Args)
 
 	if !a.NoDebug {
 		dbg := NewDebugger(path, code, a.StopOnEntry)
@@ -107,6 +110,8 @@ func (s *dapServer) start() {
 				metin += "  • " + m.Mesaj + "\n" + indentLines(m.Cerceve, "    ")
 			}
 			s.output("stderr", metin)
+		} else if u := s.machine.KullanilmayanArgumanUyarisi(); u != "" {
+			s.output("stderr", u+"\n")
 		}
 		s.event("exited", map[string]interface{}{"exitCode": exitCode})
 		s.event("terminated", nil)

@@ -87,13 +87,15 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Hata: Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr hata_ayıkla ornek.tr")
 			os.Exit(1)
 		}
-		for _, a := range args[1:] {
+		// Kaldırılan tarayıcı hata ayıklayıcısının bayrağı dosyadan önce ya da hemen sonra
+		// yazılırsa ipucu verilir; sonraki argümanlar programındır.
+		for _, a := range args[1:min(3, len(args))] {
 			if a == "--web" || a == "-w" {
 				fmt.Fprintln(os.Stderr, "Hata: Tarayıcıdaki hata ayıklayıcı kaldırıldı. VS Code'da F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr hata_ayıkla ornek.tr")
 				os.Exit(1)
 			}
 		}
-		debugFile(args[1])
+		debugFile(args[1], args[2:])
 	case "test":
 		testKomutu(args[1:])
 	case "biçimle":
@@ -109,9 +111,9 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr çalıştır ornek.tr")
 			os.Exit(1)
 		}
-		runFile(args[1])
+		runFile(args[1], args[2:])
 	default:
-		runFile(args[0])
+		runFile(args[0], args[1:])
 	}
 }
 
@@ -146,7 +148,7 @@ func printHelp() {
 	fmt.Println("🇹🇷 TR (.tr) Programlama ve Yapay Zeka Dili v" + VERSION)
 	fmt.Println("Kullanım:")
 	fmt.Println("  tr                          Etkileşimli TR kabuğunu (REPL) başlatır")
-	fmt.Println("  tr <dosya.tr>               .tr kaynak dosyasını derler ve çalıştırır")
+	fmt.Println("  tr <dosya.tr> [argümanlar]  .tr kaynak dosyasını derler ve çalıştırır (argümanlar programa iletilir)")
 	fmt.Println("  tr çalıştır <dosya.tr>      Aynısı (komut adıyla)")
 	fmt.Println("  tr hata_ayıkla <dosya.tr>   Etkileşimli TR Hata Ayıklayıcısını başlatır")
 	fmt.Println("  tr kontrol <dosya.tr>       Sözdizimi ve akıllı tip kontrolü yapar")
@@ -158,19 +160,23 @@ func printHelp() {
 	fmt.Println("  tr sürüm | -v               Sürümü gösterir")
 }
 
-func runFile(path string) {
+// runFile programı çalıştırır; argumanlar dosya adından sonra yazılanlardır ve programa
+// iletilir (tr betik.tr --adım 5).
+func runFile(path string, argumanlar []string) {
 	code, prog := dosyaHazirla(path, calistirmaHazirligi)
 	machine := yurut.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
+	machine.ArgumanlariAyarla(argumanlar)
 	programCalistir(machine, prog, code)
 }
 
-func debugFile(path string) {
+func debugFile(path string, argumanlar []string) {
 	code, prog := dosyaHazirla(path, hataAyiklamaHazirligi)
 	machine := yurut.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
+	machine.ArgumanlariAyarla(argumanlar)
 	dbg := ayikla.NewDebugger(path, code, true)
 	machine.Debugger = dbg
 

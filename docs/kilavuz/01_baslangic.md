@@ -12,7 +12,7 @@ $env:GOAMD64="v3"; go build -o ikili/tr.exe ./cmd/tr   # PowerShell
 | Komut | Açıklama |
 | :--- | :--- |
 | `./ikili/tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile hata ayıklayıcı açılır) |
-| `./ikili/tr.exe dosya.tr` | `.tr` kaynak dosyasını derler ve anında çalıştırır (`./ikili/tr.exe çalıştır dosya.tr` ile aynı) |
+| `./ikili/tr.exe dosya.tr [argümanlar]` | `.tr` kaynak dosyasını derler ve anında çalıştırır (`./ikili/tr.exe çalıştır dosya.tr` ile aynı). Dosya adından sonrakiler programa iletilir; program okumazsa çıkışta uyarı yazılır |
 | `./ikili/tr.exe hata_ayıkla dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
 | `./ikili/tr.exe kontrol dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar |
 | `./ikili/tr.exe derle dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |

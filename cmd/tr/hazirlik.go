@@ -129,6 +129,9 @@ func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
 	}
 	machine.WaitAsync()
 	motor.Kapat()
+	if u := machine.KullanilmayanArgumanUyarisi(); u != "" {
+		fmt.Fprintln(os.Stderr, u)
+	}
 }
 
 // calismaHatasiYaz bir çalışma zamanı hatasını başlığıyla standart hataya yazar. Bir modüle

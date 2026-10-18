@@ -510,6 +510,8 @@ func gomuluUygulamayiCalistir(pk *paket) {
 	machine.SourceFile = gomuluKaynakAdi
 	// Hata çerçeveleri kullanıcının yazdığı (yönlendirilmemiş) kaynağı göstersin; satırlar aynıdır.
 	machine.SourceCode = pk.Ana.Kod
+	// Üretilen uygulamanın bütün argümanları programındır (uygulama.exe --adım 5).
+	machine.ArgumanlariAyarla(os.Args[1:])
 	programCalistir(machine, prog, pk.Ana.Kod)
 	temizle()
 }
