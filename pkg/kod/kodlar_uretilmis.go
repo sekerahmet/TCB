@@ -171,7 +171,7 @@ const (
 	V901 Kod = V + 901 // kota_gb
 	V902 Kod = V + 902 // toplu
 	V903 Kod = V + 903 // bağlam
-	V910 Kod = V + 910 // özel_tokenlar
+	V910 Kod = V + 910 // özel_parçalar
 	V911 Kod = V + 911 // ikinci
 	W100 Kod = W + 100 // web_al
 	W101 Kod = W + 101 // web_gönder
@@ -239,8 +239,8 @@ const (
 	Y602 Kod = Y + 602 // sonraki
 	Y610 Kod = Y + 610 // kodla
 	Y611 Kod = Y + 611 // çöz
-	Y612 Kod = Y + 612 // sözlük_boyutu
-	Y613 Kod = Y + 613 // token_kimliği
+	Y612 Kod = Y + 612 // dağarcık_boyutu
+	Y613 Kod = Y + 613 // parça_kimliği
 	Y700 Kod = Y + 700 // tablolar
 	Y701 Kod = Y + 701 // tablo_oluştur
 	Y702 Kod = Y + 702 // sorgula

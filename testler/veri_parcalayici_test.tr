@@ -12,20 +12,20 @@ fonksiyon hata_metni(f) {
     sonuç ""
 }
 
-test "16.1 parçalayıcı_yükle, sözlük_boyutu, token_kimliği" {
+test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
     değişken p = parçalayıcı_yükle("veri/parcalayici.json")
     eşit_mi("Parçalayıcı", tip(p))
-    eşit_mi(1005, p.sözlük_boyutu)
-    eşit_mi(0, p.token_kimliği("<|endoftext|>"))
-    eşit_mi(yok, p.token_kimliği("böyle-bir-token-yok"))
+    eşit_mi(1005, p.dağarcık_boyutu)
+    eşit_mi(0, p.parça_kimliği("<|endoftext|>"))
+    eşit_mi(yok, p.parça_kimliği("böyle-bir-parça-yok"))
 }
 
-test "16.2 kodla: metin, metin listesi, özel_tokenlar ve ikinci" {
+test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
     değişken p = parçalayıcı_yükle("veri/parcalayici.json")
     değişken k = p.kodla("Merhaba dünya!")
     eşit_mi("Liste", tip(k))
     eşit_mi("Tam", tip(k[0]))
-    // Metindeki özel token tek bir kimlik olarak tanınır.
+    // Metindeki özel parça tek bir kimlik olarak tanınır.
     eşit_mi(0, p.kodla("<|endoftext|>")[0])
     eşit_mi(1, uzunluk(p.kodla("<|endoftext|>")))
     // Liste verilirse her metin ayrı kodlanır (paralel), sıra korunur.
@@ -33,12 +33,12 @@ test "16.2 kodla: metin, metin listesi, özel_tokenlar ve ikinci" {
     eşit_mi(3, uzunluk(toplu))
     eşit_mi(k, toplu[0])
     eşit_mi([], toplu[1])
-    // Son işleyici özel token ekleyen bir parçalayıcı ([CLS] ... [SEP]).
+    // Son işleyici özel parça ekleyen bir parçalayıcı ([CLS] ... [SEP]).
     değişken b = parçalayıcı_yükle("veri/parcalayici_bert.json")
-    değişken cls = b.token_kimliği("[CLS]")
-    değişken sep = b.token_kimliği("[SEP]")
+    değişken cls = b.parça_kimliği("[CLS]")
+    değişken sep = b.parça_kimliği("[SEP]")
     değişken ozelli = b.kodla("merhaba dünya")
-    değişken ozelsiz = b.kodla("merhaba dünya", özel_tokenlar: yanlış)
+    değişken ozelsiz = b.kodla("merhaba dünya", özel_parçalar: yanlış)
     eşit_mi(cls, ozelli[0])
     eşit_mi(sep, ozelli.son)
     eşit_mi(uzunluk(ozelli) - 2, uzunluk(ozelsiz))
@@ -50,16 +50,16 @@ test "16.2 kodla: metin, metin listesi, özel_tokenlar ve ikinci" {
     eşit_mi(uzunluk(b.kodla("merhaba")) + uzunluk(b.kodla("dünya")) - 1, uzunluk(cift))
     değişken ciftler = b.kodla(["merhaba", "bir"], ikinci: ["dünya", "iki"])
     eşit_mi(cift, ciftler[0])
-    eşit_mi(b.kodla("merhaba", ikinci: "dünya", özel_tokenlar: yanlış), b.kodla("merhaba dünya", özel_tokenlar: yanlış))
+    eşit_mi(b.kodla("merhaba", ikinci: "dünya", özel_parçalar: yanlış), b.kodla("merhaba dünya", özel_parçalar: yanlış))
 }
 
-test "16.3 çöz: varsayılan özel tokenları atlar; listeler ve tensörler" {
+test "16.3 çöz: varsayılan özel parçaları atlar; listeler ve tensörler" {
     değişken p = parçalayıcı_yükle("veri/parcalayici.json")
     değişken cümle = "İstanbul'da hava güzel."
     eşit_mi(cümle, p.çöz(p.kodla(cümle)))
     değişken eot = p.kodla(cümle + "<|endoftext|>")
     eşit_mi(cümle, p.çöz(eot))
-    eşit_mi(cümle + "<|endoftext|>", p.çöz(eot, özel_tokenlar: doğru))
+    eşit_mi(cümle + "<|endoftext|>", p.çöz(eot, özel_parçalar: doğru))
     eşit_mi(["bir", "iki üç"], p.çöz(p.kodla(["bir", "iki üç"])))
     eşit_mi("", p.çöz([]))
     // Tensör: 1 boyutlu → metin, 2 boyutlu → metin listesi.
@@ -71,10 +71,10 @@ test "16.3 çöz: varsayılan özel tokenları atlar; listeler ve tensörler" {
 test "16.4 veri_kümesi: klasör ya da tek .npy dosyası" {
     değişken küme = veri_kümesi("veri/sayilar")
     eşit_mi("VeriKümesi", tip(küme))
-    eşit_mi("VeriKümesi(2 parça, 250 token)", metin(küme))
-    eşit_mi("VeriKümesi(1 parça, 100 token)", metin(veri_kümesi("veri/sayilar/a.npy")))
-    // meta.json varsa parça token sayıları oradan okunur.
-    eşit_mi("VeriKümesi(2 parça, 1,1 bin token)", metin(veri_kümesi("veri/metin")))
+    eşit_mi("VeriKümesi(2 veri dosyası, 250 parça)", metin(küme))
+    eşit_mi("VeriKümesi(1 veri dosyası, 100 parça)", metin(veri_kümesi("veri/sayilar/a.npy")))
+    // meta.json varsa veri dosyalarının parça sayıları oradan okunur.
+    eşit_mi("VeriKümesi(2 veri dosyası, 1,1 bin parça)", metin(veri_kümesi("veri/metin")))
 }
 
 test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebilir" {
@@ -141,7 +141,7 @@ test "16.7 hatalar Türkçe ve yakalanabilir" {
     doğrula(hata_metni(() => parçalayıcı_yükle("veri/yok.json")).içerir("yüklenemedi: böyle bir dosya ya da klasör yok"))
     doğrula(hata_metni(() => parçalayıcı_yükle("veri/bozuk.npy")).içerir("geçerli bir tokenizer.json dosyası değil"))
     doğrula(hata_metni(() => veri_kümesi("veri/yok_klasor")).içerir("açılamadı: böyle bir dosya ya da klasör yok"))
-    doğrula(hata_metni(() => veri_kümesi("veri/bozuk.npy")).içerir("geçerli bir .npy token dosyası değil"))
+    doğrula(hata_metni(() => veri_kümesi("veri/bozuk.npy")).içerir("geçerli bir .npy veri dosyası değil"))
     doğrula(hata_metni(() => veri_kümesi("veri/sayilar", önbellek: "onb")).içerir("kota_gb: de verilmelidir"))
     değişken küme = veri_kümesi("veri/sayilar")
     doğrula(hata_metni(() => küme.örnekleyici(toplu: 2)).içerir("bağlam: verilmedi"))
@@ -150,11 +150,11 @@ test "16.7 hatalar Türkçe ve yakalanabilir" {
     değişken p = parçalayıcı_yükle("veri/parcalayici.json")
     doğrula(hata_metni(() => p.kodla(5)).içerir("metin ya da metin listesi"))
     doğrula(hata_metni(() => p.çöz(["a"])).içerir("tam sayı olmalıdır"))
-    doğrula(hata_metni(() => p.kodla("a", özel_tokenlar: 1)).içerir("doğru ya da yanlış"))
+    doğrula(hata_metni(() => p.kodla("a", özel_parçalar: 1)).içerir("doğru ya da yanlış"))
 }
 
 test "16.8 göreli yollar programın klasörüne göre de çözülür" {
     // Bu dosya proje kökünden (tr test testler) ya da başka bir klasörden çalıştırılsa da
     // "veri/..." yolları testler/veri'yi bulur.
-    eşit_mi(1005, parçalayıcı_yükle("veri/parcalayici.json").sözlük_boyutu)
+    eşit_mi(1005, parçalayıcı_yükle("veri/parcalayici.json").dağarcık_boyutu)
 }

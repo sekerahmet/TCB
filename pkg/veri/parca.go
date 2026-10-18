@@ -54,7 +54,7 @@ type Parca struct {
 func ParcaAc(yol string, s ParcaSecenekleri) (*Parca, error) {
 	f, err := os.Open(yol)
 	if err != nil {
-		return nil, fmt.Errorf("veri: parça açılamadı: %w", err)
+		return nil, fmt.Errorf("veri: veri dosyası açılamadı: %w", err)
 	}
 	p, err := parcaKur(yol, f, s)
 	if err != nil {
@@ -81,7 +81,7 @@ func parcaKur(yol string, f *os.File, s ParcaSecenekleri) (*Parca, error) {
 	gereken := bs.VeriOfseti + bs.VeriBoyutu()
 	if st.Size() < gereken {
 		return nil, &BicimHatasi{Yol: yol, Neden: fmt.Sprintf(
-			"dosya kesik: başlık %d token (%d bayt) bildiriyor, dosya %d bayt", bs.Uzunluk, gereken, st.Size())}
+			"dosya kesik: başlık %d parça (%d bayt) bildiriyor, dosya %d bayt", bs.Uzunluk, gereken, st.Size())}
 	}
 	p := &Parca{yol: yol, baslik: bs, f: f}
 	if !s.EslemeKapali && eslemeDestekli && bs.Uzunluk > 0 {
@@ -122,7 +122,7 @@ func (p *Parca) EslemeHatasi() error { return p.eslHat }
 
 func (p *Parca) aralikDenetle(n int, bas int64) error {
 	if bas < 0 || int64(n) > p.baslik.Uzunluk-bas {
-		return fmt.Errorf("veri: %s: [%d, %d) aralığı parça sınırını (%d) aşıyor",
+		return fmt.Errorf("veri: %s: [%d, %d) aralığı veri dosyası sınırını (%d) aşıyor",
 			p.yol, bas, bas+int64(n), p.baslik.Uzunluk)
 	}
 	return nil
@@ -155,7 +155,7 @@ func (p *Parca) Oku(dst []int32, bas int64) error {
 // 16 bite kırpılmaz, hata döner.
 func (p *Parca) OkuU16(dst []uint16, bas int64) error {
 	if p.baslik.Tur != TurU16 {
-		return fmt.Errorf("veri: %s: OkuU16 yalnızca '<u2' parçalarda kullanılabilir (tür %s)", p.yol, p.baslik.Tur)
+		return fmt.Errorf("veri: %s: OkuU16 yalnızca '<u2' veri dosyalarında kullanılabilir (tür %s)", p.yol, p.baslik.Tur)
 	}
 	if err := p.aralikDenetle(len(dst), bas); err != nil {
 		return err

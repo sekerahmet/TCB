@@ -2,7 +2,7 @@
 // Öğrettikleri: gömme ve konum gömmesi, çok başlı nedensel dikkat (şekillendir,
 // eksenleri_sırala ve birleşik dikkat(...)), katman normu, gelu ile ileri besleme,
 // çapraz_entropi kaybı ve AdamW ile eğitim döngüsü, türevsiz çıkarım.
-// Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki tokenı tahmin etmek.
+// Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki parçayı tahmin etmek.
 // Çalıştırma (proje kökünden): tr ornekler/06_transformer.tr
 
 değişken V = 8 // sözlük boyutu
@@ -19,7 +19,7 @@ fonksiyon parametre(şekil, ölçek) {
     sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
 }
 
-değişken E = parametre([V, D], 0.1) // token gömme tablosu
+değişken E = parametre([V, D], 0.1) // parça gömme tablosu
 değişken P = parametre([T, D], 0.1) // konum gömme tablosu
 değişken Wq = parametre([D, D], 0.2)
 değişken Wk = parametre([D, D], 0.2)

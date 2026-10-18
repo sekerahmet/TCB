@@ -78,7 +78,7 @@ func (k *Kume) Type() vm.ValueType { return vm.ValueType(KumeTipi) }
 func (k *Kume) IsTruthy() bool     { return true }
 
 func (k *Kume) ozet() string {
-	return fmt.Sprintf("%d parça, %s token", k.k.ParcaSayisi(), baglama.KisaSayi(k.k.ToplamToken()))
+	return fmt.Sprintf("%d veri dosyası, %s parça", k.k.ParcaSayisi(), baglama.KisaSayi(k.k.ToplamToken()))
 }
 
 func (k *Kume) Inspect() string {
@@ -105,7 +105,7 @@ func (k *Kume) TabloVerisi() ([]string, [][]string, error) {
 		}
 		satirlar = append(satirlar, []string{p.Ad, fmt.Sprint(p.Token), baglama.BaytMetni(p.Bayt)})
 	}
-	return []string{"Parça", "Token", "Boyut"}, satirlar, nil
+	return []string{"Veri dosyası", "Parça", "Boyut"}, satirlar, nil
 }
 
 // Veri kümesi ve okuyucu üyeleri (adları kod listesinde, pkg/kod Y60x).
@@ -149,7 +149,7 @@ func kumeAc(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, err
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(dizin) 1 parametre bekler (.npy parçalarının klasörü ya da tek bir .npy dosyası), %d verildi", fn, len(args))
+		return nil, fmt.Errorf("%s(dizin) 1 parametre bekler (.npy veri dosyalarının klasörü ya da tek bir .npy dosyası), %d verildi", fn, len(args))
 	}
 	s, ok := args[0].(*vm.StringVal)
 	if !ok {
@@ -212,7 +212,7 @@ func kumeAc(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, err
 	if obDizin != "" && !kotaVar {
 		gereken := enBuyukParca(k) * int64(dv.VarsayilanGrupBoyu+dv.VarsayilanIleriBak)
 		return nil, fmt.Errorf("%s: önbellek: verildiğinde kota_gb: de verilmelidir (önbellek klasörünün kullanabileceği en çok disk alanı, GB). "+
-			"Bu kümenin örnekleyicisi aynı anda %d parçayı yerelde tutar; en büyük parça %s olduğundan en az kota_gb: %d gerekir",
+			"Bu kümenin örnekleyicisi aynı anda %d veri dosyasını yerelde tutar; en büyük veri dosyası %s olduğundan en az kota_gb: %d gerekir",
 			fn, dv.VarsayilanGrupBoyu+dv.VarsayilanIleriBak, baglama.BaytMetni(enBuyukParca(k)), int64(math.Ceil(float64(gereken)/(1<<30))))
 	}
 	tk := &Kume{k: k, yol: s.Val, ob: ob}
@@ -250,7 +250,7 @@ func veriHatasi(fn, yol string, err error, ekler ...string) error {
 		if dosya == "" {
 			dosya = yol
 		}
-		return fmt.Errorf("%s: %q geçerli bir .npy token dosyası değil: %s. Parçalar standart .npy biçiminde tek boyutlu, küçük uçlu uint16, uint32 ya da int32 dizileri olmalıdır",
+		return fmt.Errorf("%s: %q geçerli bir .npy veri dosyası değil: %s. Veri dosyaları standart .npy biçiminde tek boyutlu, küçük uçlu uint16, uint32 ya da int32 dizileri olmalıdır",
 			fn, filepath.ToSlash(dosya), bh.Neden)
 	case errors.Is(err, dv.ErrOnbellekYetersiz):
 		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, temizle(strings.TrimPrefix(err.Error(), dv.ErrOnbellekYetersiz.Error()+": ")))
@@ -260,7 +260,7 @@ func veriHatasi(fn, yol string, err error, ekler ...string) error {
 		return fmt.Errorf("%s: %s", fn, temizle(strings.TrimPrefix(err.Error(), dv.ErrOnbellekKilitli.Error()+": ")))
 	case baglama.YokMu(err) && strings.Contains(err.Error(), "küme açılamadı"):
 		return turkce.DosyaHatasi(fn, yol, "açılamadı", err,
-			append([]string{".npy token parçalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin"}, ekler...)...)
+			append([]string{".npy veri dosyalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin"}, ekler...)...)
 	}
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
@@ -268,8 +268,8 @@ func veriHatasi(fn, yol string, err error, ekler ...string) error {
 		return turkce.DosyaHatasi(fn, filepath.ToSlash(pe.Path), "okunamadı", err)
 	}
 	msg := temizle(err.Error())
-	if strings.Contains(msg, "desenine uyan parça yok") {
-		return fmt.Errorf("%s: %q klasöründe .npy parçası yok; klasör .npy uzantılı token dosyaları içermelidir", fn, yol)
+	if strings.Contains(msg, "desenine uyan veri dosyası yok") {
+		return fmt.Errorf("%s: %q klasöründe .npy veri dosyası yok; klasör .npy uzantılı veri dosyaları içermelidir", fn, yol)
 	}
 	return fmt.Errorf("%s: %s", fn, msg)
 }
@@ -399,7 +399,7 @@ func okuyucuArgumanlari(fn string, args []vm.Value, named map[string]vm.Value, t
 		return
 	}
 	if int64(b)*int64(t+1) > int64(vm.MaxCollectionSize) {
-		err = fmt.Errorf("%s: toplu × bağlam (%d × %d) çok büyük; en fazla %d token", fn, b, t, vm.MaxCollectionSize)
+		err = fmt.Errorf("%s: toplu × bağlam (%d × %d) çok büyük; en fazla %d parça", fn, b, t, vm.MaxCollectionSize)
 		return
 	}
 	if tohumlu && degerler[2] != nil {
@@ -446,12 +446,12 @@ func (k *Kume) sirali(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.
 }
 
 func okuyucuHatasi(fn string, k *Kume, t int, err error) error {
-	if strings.Contains(err.Error(), "tokendan uzun değil") {
+	if strings.Contains(err.Error(), "parçadan uzun değil") {
 		var enUzun int64
 		for _, p := range k.k.Parcalar() {
 			enUzun = max(enUzun, p.Token)
 		}
-		return fmt.Errorf("%s: bağlam: %d için her pencere %d token ister, ama en uzun parça %d token; bağlamı küçültün", fn, t, t+1, enUzun)
+		return fmt.Errorf("%s: bağlam: %d için her pencere %d parça ister, ama en uzun veri dosyası %d parça; bağlamı küçültün", fn, t, t+1, enUzun)
 	}
 	if errors.Is(err, dv.ErrOnbellekYetersiz) {
 		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, temizle(strings.TrimPrefix(err.Error(), dv.ErrOnbellekYetersiz.Error()+": ")))
@@ -535,7 +535,7 @@ func ayir(ti *dv.TopluIs) ([]float32, []float32, error) {
 				if a >= 0 && a < enBuyukTamFloat32 {
 					x = h
 				}
-				return nil, nil, fmt.Errorf("token %d tensörde tam olarak gösterilemez (kimlikler 0 ile %d arasında olmalı)", x, enBuyukTamFloat32-1)
+				return nil, nil, fmt.Errorf("parça kimliği %d tensörde tam olarak gösterilemez (kimlikler 0 ile %d arasında olmalı)", x, enBuyukTamFloat32-1)
 			}
 			girdi[i*ti.T+j] = float32(a)
 			hedef[i*ti.T+j] = float32(h)

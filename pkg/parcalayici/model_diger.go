@@ -55,7 +55,7 @@ func wordPieceKur(ham json.RawMessage) (Model, error) {
 	}
 	id, ok := s[unk]
 	if !ok {
-		return nil, fmt.Errorf("bilinmeyen token %q sözlükte yok", unk)
+		return nil, fmt.Errorf("bilinmeyen parça %q dağarcıkta yok", unk)
 	}
 	w.bilinmeyen = id
 	return w, nil
@@ -183,15 +183,15 @@ func unigramKur(ham json.RawMessage) (Model, error) {
 	for i, h := range m.Vocab {
 		var cift []json.RawMessage
 		if err := json.Unmarshal(h, &cift); err != nil || len(cift) != 2 {
-			return nil, fmt.Errorf("%d. sözlük girdisi [token, puan] biçiminde değil", i)
+			return nil, fmt.Errorf("%d. dağarcık girdisi [parça, puan] biçiminde değil", i)
 		}
 		var tok string
 		var puan float64
 		if err := json.Unmarshal(cift[0], &tok); err != nil {
-			return nil, fmt.Errorf("%d. sözlük girdisi: %w", i, err)
+			return nil, fmt.Errorf("%d. dağarcık girdisi: %w", i, err)
 		}
 		if err := json.Unmarshal(cift[1], &puan); err != nil {
-			return nil, fmt.Errorf("%d. sözlük girdisi: %w", i, err)
+			return nil, fmt.Errorf("%d. dağarcık girdisi: %w", i, err)
 		}
 		u.tokenlar = append(u.tokenlar, tok)
 		u.puan = append(u.puan, puan)
@@ -215,7 +215,7 @@ func unigramKur(ham json.RawMessage) (Model, error) {
 	}
 	if m.UnkID != nil {
 		if *m.UnkID < 0 || *m.UnkID >= len(u.tokenlar) {
-			return nil, fmt.Errorf("unk_id %d sözlük dışında", *m.UnkID)
+			return nil, fmt.Errorf("unk_id %d dağarcık dışında", *m.UnkID)
 		}
 		u.bilinmeyen = int32(*m.UnkID)
 	}

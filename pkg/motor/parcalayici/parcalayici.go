@@ -1,6 +1,6 @@
 // Package parcalayici, genel tokenizer.json parçalayıcısını (tr_dili/pkg/parcalayici)
 // TR diline bağlar: parçalayıcı_yükle(yol) ve parçalayıcı nesnesinin .kodla, .çöz,
-// .sözlük_boyutu ve .token_kimliği üyeleri.
+// .dağarcık_boyutu ve .parça_kimliği üyeleri.
 //
 // Kodlama/çözme hata döndüren Guvenli... işlevleriyle yapılır: düzenli ifade adım
 // sınırı aşılırsa yarım sonuç yerine yol gösterici bir TR hatası oluşur. Uzun işler
@@ -26,7 +26,7 @@ import (
 	"tr_dili/pkg/vm"
 )
 
-// TipAdi parçalayıcı nesnesinin TR'deki tip adıdır (sözlükte A234).
+// TipAdi parçalayıcı nesnesinin TR'deki tip adıdır (kod listesinde A234).
 var TipAdi = string(vm.TipAdi(kod.A234))
 
 // Nesne TR'de yüklenmiş bir parçalayıcıdır. Salt okunurdur; dosya tutamağı ya da
@@ -43,7 +43,7 @@ func (n *Nesne) Type() vm.ValueType { return vm.ValueType(TipAdi) }
 func (n *Nesne) IsTruthy() bool     { return true }
 
 func (n *Nesne) Inspect() string {
-	return fmt.Sprintf("Parçalayıcı(%d sözcük, %s)", n.p.SozlukBoyutu(), filepath.Base(n.yol))
+	return fmt.Sprintf("Parçalayıcı(dağarcık %d, %s)", n.p.SozlukBoyutu(), filepath.Base(n.yol))
 }
 
 // IzlemeTuru İzleme Masası'nda ikon seçimi için türdür.
@@ -51,14 +51,14 @@ func (n *Nesne) IzlemeTuru() string { return "diger" }
 
 // IzlemeEtiketi tip sütununda gösterilen özettir.
 func (n *Nesne) IzlemeEtiketi() string {
-	return fmt.Sprintf("Parçalayıcı (%d sözcük)", n.p.SozlukBoyutu())
+	return fmt.Sprintf("Parçalayıcı (dağarcık %d)", n.p.SozlukBoyutu())
 }
 
-// TabloVerisi sözlüğe eklenmiş tokenları (özel tokenlar dahil) tablo olarak verir.
+// TabloVerisi dağarcığa eklenmiş parçaları (özel parçalar dahil) tablo olarak verir.
 func (n *Nesne) TabloVerisi() ([]string, [][]string, error) {
 	ekler := n.p.EkTokenlar()
 	if len(ekler) == 0 {
-		return nil, nil, fmt.Errorf("bu parçalayıcıda eklenmiş (özel) token yok; sözlük boyutu %d", n.p.SozlukBoyutu())
+		return nil, nil, fmt.Errorf("bu parçalayıcıda eklenmiş (özel) parça yok; dağarcık boyutu %d", n.p.SozlukBoyutu())
 	}
 	var satirlar [][]string
 	for _, e := range ekler {
@@ -68,7 +68,7 @@ func (n *Nesne) TabloVerisi() ([]string, [][]string, error) {
 		}
 		satirlar = append(satirlar, []string{fmt.Sprint(e.ID), e.Icerik, ozel})
 	}
-	return []string{"Kimlik", "Token", "Özel"}, satirlar, nil
+	return []string{"Kimlik", "Parça", "Özel"}, satirlar, nil
 }
 
 // Parçalayıcı üyeleri (adları kod listesinde, pkg/kod Y61x).
@@ -244,7 +244,7 @@ func (n *Nesne) kodla(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.
 	}
 	var sec pc.Secenekler
 	if v, ok := baglama.AdliAl(named, adOzel); ok {
-		b, err := baglama.Mantik(fn, "özel_tokenlar", v)
+		b, err := baglama.Mantik(fn, kod.Ad(kod.V910), v)
 		if err != nil {
 			return nil, err
 		}
@@ -423,11 +423,11 @@ func (n *Nesne) coz(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Va
 	if len(args) != 1 {
 		return nil, fmt.Errorf("çöz(kimlikler) 1 parametre bekler (kimlik listesi, listelerin listesi ya da tensör), %d verildi", len(args))
 	}
-	// Varsayılan, başvuru kütüphanesininki gibi özel tokenları ATLAMAKTIR;
-	// özel_tokenlar: doğru onları da çıktıya yazar.
+	// Varsayılan, başvuru kütüphanesininki gibi özel parçaları ATLAMAKTIR;
+	// özel_parçalar: doğru onları da çıktıya yazar.
 	atla := true
 	if v, ok := baglama.AdliAl(named, adOzel); ok {
-		b, err := baglama.Mantik(fn, "özel_tokenlar", v)
+		b, err := baglama.Mantik(fn, kod.Ad(kod.V910), v)
 		if err != nil {
 			return nil, err
 		}
@@ -539,15 +539,15 @@ func tamListe(ne string, el []vm.Value) ([]int, error) {
 // ----------------------------------------------------------------------------
 
 func (n *Nesne) tokenKimligi(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	if err := baglama.AdliDenetle("token_kimliği()", named); err != nil {
+	if err := baglama.AdliDenetle(kod.Ad(kod.Y613)+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("token_kimliği(token) 1 parametre bekler, %d verildi", len(args))
+		return nil, fmt.Errorf("parça_kimliği(parça) 1 parametre bekler, %d verildi", len(args))
 	}
 	s, ok := args[0].(*vm.StringVal)
 	if !ok {
-		return nil, fmt.Errorf("token_kimliği: token bir metin olmalıdır (ör. \"<|endoftext|>\"), %s verildi", args[0].Type())
+		return nil, fmt.Errorf("parça_kimliği: parça bir metin olmalıdır (ör. \"<|endoftext|>\"), %s verildi", args[0].Type())
 	}
 	id, ok := n.p.TokenKimligi(s.Val)
 	if !ok {

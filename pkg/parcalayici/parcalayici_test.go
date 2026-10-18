@@ -438,7 +438,7 @@ func TestDesteklenmeyenYapilandirma(t *testing.T) {
 		"birleştirme": {func(m map[string]any) {
 			mm := m["model"].(map[string]any)
 			mm["merges"] = append(mm["merges"].([]any), []any{"yokyok", "zzz"})
-		}, "sözlükte olmayan"},
+		}, "dağarcıkta olmayan"},
 	}
 	for ad, d := range durumlar {
 		_, err := Ayristir(degistir(d.f))

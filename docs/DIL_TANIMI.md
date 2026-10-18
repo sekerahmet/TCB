@@ -499,21 +499,21 @@ değişken y = kare(tensör([3.0], türev_izle: doğru))      // geri_yayılım(
 
 ## 16. Veri ve parçalayıcı
 
-Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` token parçaları yerleşik nesnelerle okunur. Ayrıntılı kullanım için `KULLANIM_KILAVUZU.md` §4.E'ye bakın.
+Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` veri dosyaları yerleşik nesnelerle okunur. Ayrıntılı kullanım için `KULLANIM_KILAVUZU.md` §4.E'ye bakın.
 
-**16.1** `parçalayıcı_yükle(yol)` bir `Parçalayıcı` nesnesi döndürür. `.sözlük_boyutu` sözlükteki token sayısıdır (`Tam`); `.token_kimliği(token)` tokenın kimliğini, sözlükte yoksa `yok` verir.
+**16.1** `parçalayıcı_yükle(yol)` bir `Parçalayıcı` nesnesi döndürür. `.dağarcık_boyutu` dağarcıktaki parça sayısıdır (`Tam`); `.parça_kimliği(parça)` parçanın kimliğini, dağarcıkta yoksa `yok` verir. Eski adlar (`sözlük_boyutu`, `token_kimliği`, `özel_tokenlar:`) kabul edilmez; hata yeni adı önerir.
 
-**16.2** `.kodla(metin)` bir `Tam` listesi, `.kodla(metin_listesi)` her metin için bir liste (sıra korunur) döndürür. Metindeki özel token yazımları tek kimlik olarak tanınır. Adlı seçenekler: `özel_tokenlar:` (varsayılan `doğru`; `yanlış` son işleyicinin eklediği özel tokenları kapatır) ve `ikinci:` (çift kodlama; listeyle eşit uzunlukta liste).
+**16.2** `.kodla(metin)` bir `Tam` listesi, `.kodla(metin_listesi)` her metin için bir liste (sıra korunur) döndürür. Metindeki özel parça yazımları tek kimlik olarak tanınır. Adlı seçenekler: `özel_parçalar:` (varsayılan `doğru`; `yanlış` son işleyicinin eklediği özel parçaları kapatır) ve `ikinci:` (çift kodlama; listeyle eşit uzunlukta liste).
 
-**16.3** `.çöz(kimlikler)` kimlik listesinden ya da 1 boyutlu tensörden metin, listelerin listesinden ya da 2 boyutlu tensörden metin listesi üretir. Varsayılan olarak özel tokenlar çıktıya yazılmaz; `özel_tokenlar: doğru` onları da yazar. Sözlükte olmayan kimlikler atlanır.
+**16.3** `.çöz(kimlikler)` kimlik listesinden ya da 1 boyutlu tensörden metin, listelerin listesinden ya da 2 boyutlu tensörden metin listesi üretir. Varsayılan olarak özel parçalar çıktıya yazılmaz; `özel_parçalar: doğru` onları da yazar. Dağarcıkta olmayan kimlikler atlanır.
 
-**16.4** `veri_kümesi(dizin)` bir klasördeki `.npy` parçalarını (ad sırasıyla) ya da tek bir `.npy` dosyasını `VeriKümesi` olarak açar; `meta.json` varsa token sayıları ondan okunur. `önbellek: klasör` parçaları yerel bir önbelleğe kopyalar; bu durumda `kota_gb:` zorunludur. Aynı önbellek klasörünü kullanan kümeler tek kotayı paylaşır (en son verilen geçerlidir); klasörü aynı anda başka bir program kullanıyorsa hata verilir.
+**16.4** `veri_kümesi(dizin)` bir klasördeki `.npy` veri dosyalarını (ad sırasıyla) ya da tek bir `.npy` dosyasını `VeriKümesi` olarak açar; `meta.json` varsa parça sayıları ondan okunur. `önbellek: klasör` veri dosyalarını yerel bir önbelleğe kopyalar; bu durumda `kota_gb:` zorunludur. Aynı önbellek klasörünü kullanan kümeler tek kotayı paylaşır (en son verilen geçerlidir); klasörü aynı anda başka bir program kullanıyorsa hata verilir.
 
-**16.5** `.örnekleyici(toplu:, bağlam:, tohum: 0)` bir `Örnekleyici` döndürür. `.sonraki()` `[girdi, hedef]` listesidir: ikisi de `[toplu, bağlam]` şeklinde tam sayılı işaretli tensördür (`.değer` `Tam` listesi verir; işlem sonuçlarına bu işaret geçmez), `hedef` girdinin bir kaydırılmışıdır ve pencereler parça sınırını aşmaz. Aynı küme ve tohum aynı toplu işleri verir; örnekleyici sonsuz üretir.
+**16.5** `.örnekleyici(toplu:, bağlam:, tohum: 0)` bir `Örnekleyici` döndürür. `.sonraki()` `[girdi, hedef]` listesidir: ikisi de `[toplu, bağlam]` şeklinde tam sayılı işaretli tensördür (`.değer` `Tam` listesi verir; işlem sonuçlarına bu işaret geçmez), `hedef` girdinin bir kaydırılmışıdır ve pencereler veri dosyası sınırını aşmaz. Aynı küme ve tohum aynı toplu işleri verir; örnekleyici sonsuz üretir.
 
-**16.6** `.sıralı(toplu:, bağlam:)` bir `SıralıOkuyucu` döndürür: pencereler parça sırasıyla ve `bağlam` adımla ardışıktır; son toplu iş daha az satırlı olabilir; veri bitince `.sonraki()` `yok` döner.
+**16.6** `.sıralı(toplu:, bağlam:)` bir `SıralıOkuyucu` döndürür: pencereler veri dosyası sırasıyla ve `bağlam` adımla ardışıktır; son toplu iş daha az satırlı olabilir; veri bitince `.sonraki()` `yok` döner.
 
-**16.7** Hatalar (dosya yok, `.npy` değil, eksik ya da hatalı adlı argüman, bağlam parçalardan uzun, düzenli ifade adım sınırı...) Türkçe bir mesajla bildirilir ve `dene/yakala` ile yakalanabilir.
+**16.7** Hatalar (dosya yok, `.npy` değil, eksik ya da hatalı adlı argüman, bağlam veri dosyalarından uzun, düzenli ifade adım sınırı...) Türkçe bir mesajla bildirilir ve `dene/yakala` ile yakalanabilir.
 
 **16.8** Bu yerleşiklerde göreli yollar `dosya_oku`/`dosya_yaz` ile aynı tek kuralla (bkz. **13.1**) çözülür: önce çalışma klasörü, orada yoksa programın bulunduğu klasör.
 

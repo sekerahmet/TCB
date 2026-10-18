@@ -133,7 +133,7 @@ func KumeAc(dizin string, s KumeSecenekleri) (*Kume, error) {
 	}
 	sort.Strings(yollar)
 	if len(yollar) == 0 {
-		return nil, fmt.Errorf("veri: %s içinde %q desenine uyan parça yok", dizin, s.Desen)
+		return nil, fmt.Errorf("veri: %s içinde %q desenine uyan veri dosyası yok", dizin, s.Desen)
 	}
 
 	k := &Kume{dizin: dizin, sec: s}
@@ -174,7 +174,7 @@ func KumeAc(dizin string, s KumeSecenekleri) (*Kume, error) {
 func baslikUzunlugu(yol string) (int64, error) {
 	f, err := os.Open(yol)
 	if err != nil {
-		return 0, fmt.Errorf("veri: parça açılamadı: %w", err)
+		return 0, fmt.Errorf("veri: veri dosyası açılamadı: %w", err)
 	}
 	defer f.Close()
 	bs, err := BaslikOku(f)
@@ -208,7 +208,7 @@ func (k *Kume) ToplamToken() int64 { return k.toplam }
 // önbellekten silinmez.
 func (k *Kume) ParcaAc(ctx context.Context, i int) (*Parca, error) {
 	if i < 0 || i >= len(k.parcalar) {
-		return nil, fmt.Errorf("veri: parça sırası %d geçersiz (0..%d)", i, len(k.parcalar)-1)
+		return nil, fmt.Errorf("veri: veri dosyası sırası %d geçersiz (0..%d)", i, len(k.parcalar)-1)
 	}
 	pb := k.parcalar[i]
 	yol, birak := pb.Yol, func() {}
@@ -251,7 +251,7 @@ func (k *Kume) onbellekKotaDenetle(adet int, enKisa int64) error {
 	adet = min(adet, uygun)
 	gereken := int64(adet) * enBuyuk
 	if ob.Kota() < gereken {
-		return fmt.Errorf("%w: kota %d bayt, en az %d parça × en büyük parça %d bayt = %d bayt gerekli "+
+		return fmt.Errorf("%w: kota %d bayt, en az %d veri dosyası × en büyük veri dosyası %d bayt = %d bayt gerekli "+
 			"(kotayı büyütün ya da ileri bakışı/grup boyunu küçültün)",
 			ErrOnbellekYetersiz, ob.Kota(), adet, enBuyuk, gereken)
 	}

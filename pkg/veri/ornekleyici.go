@@ -115,7 +115,7 @@ func (k *Kume) Ornekleyici(s OrnekleyiciSecenekleri) (*Ornekleyici, error) {
 		}
 	}
 	if !uygun {
-		return nil, fmt.Errorf("veri: hiçbir parça T+1=%d tokendan uzun değil", satir)
+		return nil, fmt.Errorf("veri: hiçbir veri dosyası T+1=%d parçadan uzun değil", satir)
 	}
 	if err := k.onbellekKotaDenetle(s.GrupBoyu+max(s.IleriBak, 0), satir); err != nil {
 		return nil, err

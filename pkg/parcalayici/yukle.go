@@ -276,7 +276,7 @@ func Ayristir(veri []byte) (*Parcalayici, error) {
 			id = enBuyukEk + 1
 		}
 		if id != int64(e.ID) {
-			return nil, fmt.Errorf("ek token %q dosyada %d kimliğiyle tanımlı, ancak hesaplanan kimlik %d; tutarsız dosya", e.Icerik, e.ID, id)
+			return nil, fmt.Errorf("ek parça %q dosyada %d kimliğiyle tanımlı, ancak hesaplanan kimlik %d; tutarsız dosya", e.Icerik, e.ID, id)
 		}
 		if id > enBuyukEk {
 			enBuyukEk = id
@@ -312,7 +312,7 @@ func Ayristir(veri []byte) (*Parcalayici, error) {
 			if p.normallestirici != nil {
 				var icerik string
 				if err := adimHatasiniYakala(func() { icerik = p.normallestirici.Normallestir(e.Icerik) }); err != nil {
-					return nil, fmt.Errorf("ek token %q normalleştirilemedi: %w", e.Icerik, err)
+					return nil, fmt.Errorf("ek parça %q normalleştirilemedi: %w", e.Icerik, err)
 				}
 				nrmIcerik[e.ID] = icerik
 				e.Icerik = icerik

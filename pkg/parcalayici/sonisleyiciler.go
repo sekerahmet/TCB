@@ -94,7 +94,7 @@ func sablonKur(ham json.RawMessage, _ func(string) (int32, bool)) (SonIsleyici, 
 				} `json:"SpecialToken"`
 			}
 			if err := json.Unmarshal(h, &p); err != nil {
-				return nil, fmt.Errorf("şablon parçası çözümlenemedi: %w", err)
+				return nil, fmt.Errorf("şablon öğesi çözümlenemedi: %w", err)
 			}
 			switch {
 			case p.Sequence != nil:
@@ -118,7 +118,7 @@ func sablonKur(ham json.RawMessage, _ func(string) (int32, bool)) (SonIsleyici, 
 				}
 				out = append(out, sablonParcasi{dizi: -1, ozel: ids, turKimi: p.SpecialToken.TypeID})
 			default:
-				return nil, fmt.Errorf("şablon parçası Sequence ya da SpecialToken olmalı")
+				return nil, fmt.Errorf("şablon öğesi Sequence ya da SpecialToken olmalı")
 			}
 		}
 		return out, nil
@@ -172,7 +172,7 @@ func clsSepKur(ham json.RawMessage, roberta bool) (SonIsleyici, error) {
 	}
 	oku := func(c []json.RawMessage, ad string) (int32, error) {
 		if len(c) != 2 {
-			return 0, fmt.Errorf("%s [token, kimlik] biçiminde olmalı", ad)
+			return 0, fmt.Errorf("%s [parça, kimlik] biçiminde olmalı", ad)
 		}
 		var id int32
 		if err := json.Unmarshal(c[1], &id); err != nil {
@@ -243,7 +243,7 @@ func sirIsleyiciKur(ham json.RawMessage, sozluk func(string) (int32, bool)) (Son
 		sayi++
 	}
 	if sayi > 1 {
-		return nil, fmt.Errorf("birden çok özel token ekleyen son işleyici içeren dizi desteklenmiyor")
+		return nil, fmt.Errorf("birden çok özel parça ekleyen son işleyici içeren dizi desteklenmiyor")
 	}
 	return gercek, nil
 }

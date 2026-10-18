@@ -304,8 +304,8 @@ func TestHataMesajlari(t *testing.T) {
 	}
 	durumlar := []struct{ kod, beklenen string }{
 		{`veri_kümesi("bu_klasor_yok_123")`, "açılamadı: böyle bir dosya ya da klasör yok"},
-		{`veri_kümesi("` + tr(t.TempDir()) + `")`, ".npy parçası yok"},
-		{`veri_kümesi("` + tr(bozuk) + `")`, "geçerli bir .npy token dosyası değil"},
+		{`veri_kümesi("` + tr(t.TempDir()) + `")`, ".npy veri dosyası yok"},
+		{`veri_kümesi("` + tr(bozuk) + `")`, "geçerli bir .npy veri dosyası değil"},
 		{`veri_kümesi("` + tr(d) + `", kota_gb: 1)`, "yalnızca önbellek: ile birlikte"},
 		{`veri_kümesi("` + tr(d) + `", önbellek: "x")`, "kota_gb: de verilmelidir"},
 		{`veri_kümesi("` + tr(d) + `", onbelek: "x")`, "Bunu mu demek istediniz: 'önbellek'"},
@@ -313,7 +313,7 @@ func TestHataMesajlari(t *testing.T) {
 		{`veri_kümesi("` + tr(d) + `").örnekleyici(toplu: 0, bağlam: 4)`, "toplu pozitif bir tam sayı"},
 		{`veri_kümesi("` + tr(d) + `").örnekleyici(toplu: 2, bağlam: 4, tohum: -1)`, "tohum negatif olmayan"},
 		{`veri_kümesi("` + tr(d) + `").sıralı(toplu: 2, bağlam: 4, tohum: 1)`, "'tohum' adında bir parametre almaz"},
-		{`veri_kümesi("` + tr(d) + `").örnekleyici(toplu: 2, bağlam: 600)`, "en uzun parça 500 token"},
+		{`veri_kümesi("` + tr(d) + `").örnekleyici(toplu: 2, bağlam: 600)`, "en uzun veri dosyası 500 parça"},
 		{`veri_kümesi("` + tr(d) + `").karıştır()`, "üyeler: örnekleyici, sıralı"},
 	}
 	for _, dd := range durumlar {
@@ -350,7 +350,7 @@ değişken ö = k.örnekleyici(toplu: 2, bağlam: 8)
 değişken s = k.sıralı(toplu: 2, bağlam: 8)
 `)
 	beklenen := map[string]string{
-		"k": "Veri kümesi (2 parça, 800 token)",
+		"k": "Veri kümesi (2 veri dosyası, 800 parça)",
 		"ö": "Örnekleyici (2×8, dönem 0, 0 toplu iş)",
 		"s": "Sıralı okuyucu (2×8, 0 toplu iş okundu)",
 	}

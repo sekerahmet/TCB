@@ -71,9 +71,9 @@ Dilin tek sayısal dizi türü tensördür: matrisler 2 boyutlu tensördür (`te
 
 ```tr
 değişken p = parçalayıcı_yükle("tokenizer.json")
-yazdır(p.kodla("Merhaba dünya"), p.sözlük_boyutu)
+yazdır(p.kodla("Merhaba dünya"), p.dağarcık_boyutu)
 
-değişken küme = veri_kümesi("veri/train")                       // .npy token parçaları
+değişken küme = veri_kümesi("veri/train")                       // .npy veri dosyaları
 değişken ö = küme.örnekleyici(toplu: 8, bağlam: 256, tohum: 1)
 değişken girdi, hedef = ö.sonraki()                              // [8, 256] tensörler
 ```

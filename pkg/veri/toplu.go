@@ -71,7 +71,7 @@ func (t *TopluIs) U16(dst []uint16) ([]uint16, error) {
 	dst = dst[:len(t.Veri)]
 	for i, v := range t.Veri {
 		if uint32(v) > 0xFFFF {
-			return nil, fmt.Errorf("veri: %d konumundaki token %d, 16 bite sığmıyor", i, v)
+			return nil, fmt.Errorf("veri: %d konumundaki parça kimliği %d, 16 bite sığmıyor", i, v)
 		}
 		dst[i] = uint16(v)
 	}

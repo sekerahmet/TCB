@@ -85,11 +85,11 @@ değişken p = parçalayıcı_yükle("`+bpeYolu+`")
 değişken tek = p.kodla("Merhaba dünya!")
 değişken toplu = p.kodla(["Merhaba dünya!", "İstanbul'da hava güzel <|endoftext|>", ""])
 değişken çözülen = p.çöz(toplu)
-değişken özelli = p.çöz(toplu[1], özel_tokenlar: doğru)
+değişken özelli = p.çöz(toplu[1], özel_parçalar: doğru)
 değişken özelsiz = p.çöz(toplu[1])
-değişken boyut = p.sözlük_boyutu
-değişken eot = p.token_kimliği("<|endoftext|>")
-değişken yok_token = p.token_kimliği("böyle-bir-token-yok")
+değişken boyut = p.dağarcık_boyutu
+değişken eot = p.parça_kimliği("<|endoftext|>")
+değişken yok_token = p.parça_kimliği("böyle-bir-token-yok")
 `)
 	if got := tamlar(t, al(t, m, "tek")); !reflect.DeepEqual(got, g.Kodla(metinler[0])) {
 		t.Fatalf("kodla: %v, Go: %v", got, g.Kodla(metinler[0]))
@@ -107,7 +107,7 @@ değişken yok_token = p.token_kimliği("böyle-bir-token-yok")
 		}
 	}
 	if got := al(t, m, "özelli").Inspect(); got != metinler[1] {
-		t.Fatalf("özel_tokenlar: doğru ile çöz: %q", got)
+		t.Fatalf("özel_parçalar: doğru ile çöz: %q", got)
 	}
 	if got := al(t, m, "özelsiz").Inspect(); strings.Contains(got, "<|endoftext|>") {
 		t.Fatalf("varsayılan çöz özel tokenları atlamalı: %q", got)
@@ -124,15 +124,15 @@ değişken yok_token = p.token_kimliği("böyle-bir-token-yok")
 	}
 }
 
-// özel_tokenlar: yanlış son işleyicinin eklemelerini kapatır; ikinci: çift kodlar.
+// özel_parçalar: yanlış son işleyicinin eklemelerini kapatır; ikinci: çift kodlar.
 func TestOzelTokenlarVeIkinci(t *testing.T) {
 	g := goParcalayici(t, bertYolu)
 	m := mustCalistir(t, `
 değişken p = parçalayıcı_yükle("`+bertYolu+`")
 değişken a = p.kodla("merhaba dünya")
-değişken b = p.kodla("merhaba dünya", özel_tokenlar: yanlış)
+değişken b = p.kodla("merhaba dünya", özel_parçalar: yanlış)
 değişken c = p.kodla("soru", ikinci: "bağlam")
-değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_tokenlar: yanlış)
+değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_parçalar: yanlış)
 `)
 	if got := tamlar(t, al(t, m, "a")); !reflect.DeepEqual(got, g.Kodla("merhaba dünya")) {
 		t.Fatalf("a: %v", got)
@@ -272,8 +272,8 @@ func TestYuklemeHatalari(t *testing.T) {
 		{`parçalayıcı_yükle(5)`, "yol bir metin olmalıdır"},
 		{`parçalayıcı_yükle("` + bpeYolu + `").kodla(5)`, "metin ya da metin listesi"},
 		{`parçalayıcı_yükle("` + bpeYolu + `").kodla(["a", 1])`, "2. eleman Tam"},
-		{`parçalayıcı_yükle("` + bpeYolu + `").kodla("a", özel_token: doğru)`, "Bunu mu demek istediniz: 'özel_tokenlar'"},
-		{`parçalayıcı_yükle("` + bpeYolu + `").kodla("a", özel_tokenlar: 1)`, "doğru ya da yanlış"},
+		{`parçalayıcı_yükle("` + bpeYolu + `").kodla("a", özel_parçlar: doğru)`, "Bunu mu demek istediniz: 'özel_parçalar'"},
+		{`parçalayıcı_yükle("` + bpeYolu + `").kodla("a", özel_parçalar: 1)`, "doğru ya da yanlış"},
 		{`parçalayıcı_yükle("` + bpeYolu + `").kodla(["a"], ikinci: ["b", "c"])`, "eşit uzunlukta"},
 		{`parçalayıcı_yükle("` + bpeYolu + `").çöz([1, "a"])`, "tam sayı olmalıdır"},
 		{`parçalayıcı_yükle("` + bpeYolu + `").çöz(tensör([[[1]]]))`, "1 boyutlu"},
@@ -293,7 +293,7 @@ func TestIzlemeMasasi(t *testing.T) {
 	if !ok {
 		t.Fatal("IzlemeDegeri değil")
 	}
-	if iz.IzlemeEtiketi() != "Parçalayıcı (1005 sözcük)" {
+	if iz.IzlemeEtiketi() != "Parçalayıcı (dağarcık 1005)" {
 		t.Fatalf("etiket %q", iz.IzlemeEtiketi())
 	}
 	cols, rows, err := iz.TabloVerisi()

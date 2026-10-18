@@ -130,6 +130,9 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		{"u_arayuz.bilgi_ekle", "'bilgi_ekle' TR'de yok; 'metin_ekle' yazmak mı istediniz?"},
 		{"u_model.tahmin", "'tahmin' TR'de yok; 'tahmin_et' yazmak mı istediniz?"},
 		{"u_tensor.türev", "'gradyan'"},
+		{"u_parcalayici.sözlük_boyutu", "'sözlük_boyutu' TR'de yok; 'dağarcık_boyutu' yazmak mı istediniz?"},
+		{"u_parcalayici.token_kimliği", "'token_kimliği' TR'de yok; 'parça_kimliği' yazmak mı istediniz?"},
+		{`u_parcalayici.kodla("a", özel_tokenlar: yanlış)`, "Bunu mu demek istediniz: 'özel_parçalar'?"},
 	} {
 		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)

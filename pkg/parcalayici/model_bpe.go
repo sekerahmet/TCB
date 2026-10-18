@@ -82,7 +82,7 @@ func bpeKur(ham json.RawMessage) (Model, error) {
 	if m.UnkToken != nil {
 		id, ok := sozluk[*m.UnkToken]
 		if !ok {
-			return nil, fmt.Errorf("bilinmeyen token %q sözlükte yok", *m.UnkToken)
+			return nil, fmt.Errorf("bilinmeyen parça %q dağarcıkta yok", *m.UnkToken)
 		}
 		b.bilinmeyen = id
 	}
@@ -127,11 +127,11 @@ func bpeKur(ham json.RawMessage) (Model, error) {
 		ia, ok1 := sozluk[x]
 		ib, ok2 := sozluk[y]
 		if !ok1 || !ok2 || len(y) < len(b.onek) {
-			return nil, fmt.Errorf("%d. birleştirme (%q, %q) sözlükte olmayan bir token içeriyor", i, x, y)
+			return nil, fmt.Errorf("%d. birleştirme (%q, %q) dağarcıkta olmayan bir parça içeriyor", i, x, y)
 		}
 		yeni, ok3 := sozluk[x+y[len(b.onek):]]
 		if !ok3 {
-			return nil, fmt.Errorf("%d. birleştirmenin sonucu %q sözlükte yok", i, x+y[len(b.onek):])
+			return nil, fmt.Errorf("%d. birleştirmenin sonucu %q dağarcıkta yok", i, x+y[len(b.onek):])
 		}
 		// Aynı çift birden çok kez geçerse sonuncusu geçerlidir.
 		birlesmeler[ciftAnahtar(ia, ib)] = birlesme{sira: int32(i), yeni: yeni}
@@ -145,7 +145,7 @@ func sozlukDonustur(v map[string]int64) (map[string]int32, error) {
 	s := make(map[string]int32, len(v))
 	for tok, id := range v {
 		if id < 0 || id > 1<<30 {
-			return nil, fmt.Errorf("sözlükte geçersiz kimlik: %q -> %d", tok, id)
+			return nil, fmt.Errorf("dağarcıkta geçersiz kimlik: %q -> %d", tok, id)
 		}
 		s[tok] = int32(id)
 	}
