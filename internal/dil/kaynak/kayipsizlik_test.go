@@ -20,7 +20,7 @@ import (
 // sınanır.
 
 // atlananKlasorler depoya ait olmayan ya da üretilmiş klasörlerdir.
-var atlananKlasorler = map[string]bool{".git": true, ".claude": true, "ikili": true, "calisma": true, "node_modules": true}
+var atlananKlasorler = map[string]bool{".git": true, ".claude": true, "bin": true, "calisma": true, "node_modules": true}
 
 // depoDosyalari depodaki uzantısı verilen bütün dosyalardır (göreli yollarıyla).
 func depoDosyalari(t *testing.T, uzanti string) []string {
