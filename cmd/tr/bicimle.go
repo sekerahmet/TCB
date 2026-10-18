@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"tr_dili/pkg/bicim"
+	"tr_dili/pkg/turkce"
 )
 
 // bicimleKomutu 'tr biçimle [--kontrol] <dosya.tr | klasör>...' komutudur. Dosyaları standart
@@ -45,7 +46,7 @@ func bicimleKomutu(args []string) {
 	for _, yol := range dosyalar {
 		veri, err := os.ReadFile(yol)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %s: okunamadı: %v\n", yol, err)
+			fmt.Fprintf(os.Stderr, "✗ %v\n", turkce.DosyaHatasi("", yol, "okunamadı", err))
 			hatali++
 			continue
 		}
@@ -74,7 +75,7 @@ func bicimleKomutu(args []string) {
 			izin = bilgi.Mode().Perm()
 		}
 		if err := os.WriteFile(yol, []byte(yeni), izin); err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %s: yazılamadı: %v\n", yol, err)
+			fmt.Fprintf(os.Stderr, "✗ %v\n", turkce.DosyaHatasi("", yol, "yazılamadı", err))
 			hatali++
 			continue
 		}
@@ -99,7 +100,7 @@ func bicimleKomutu(args []string) {
 func trDosyalari(hedef string) ([]string, error) {
 	bilgi, err := os.Stat(hedef)
 	if err != nil {
-		return nil, fmt.Errorf("%s bulunamadı", hedef)
+		return nil, turkce.DosyaHatasi("", hedef, "biçimlenemedi", err)
 	}
 	if !bilgi.IsDir() {
 		return []string{hedef}, nil
@@ -107,7 +108,7 @@ func trDosyalari(hedef string) ([]string, error) {
 	var dosyalar []string
 	err = filepath.WalkDir(hedef, func(yol string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return turkce.DosyaHatasi("", yol, "taranamadı", err)
 		}
 		if d.IsDir() {
 			if yol != hedef && (strings.HasPrefix(d.Name(), ".") || d.Name() == "node_modules") {

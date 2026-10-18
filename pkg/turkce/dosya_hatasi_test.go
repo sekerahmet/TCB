@@ -24,7 +24,7 @@ func TestDosyaHatasiTurkceVeYolGosterici(t *testing.T) {
 		err       error
 		ister     string
 	}{
-		{"yok", "okunamadı", errYok, "böyle bir dosya yok"},
+		{"yok", "okunamadı", errYok, "böyle bir dosya ya da klasör yok"},
 		{"klasör yok", "okunamadı", errKlasorYok, filepath.ToSlash(filepath.Join(d, "a")) + `" klasörü yok`},
 		{"yazmada klasör yok", "yazılamadı", errYazKlasorYok, `klasörü yok`},
 		{"klasörü okuma", "okunamadı", errKlasor, "bu bir klasör, dosya değil"},

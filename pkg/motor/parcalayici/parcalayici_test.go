@@ -264,7 +264,7 @@ func TestYuklemeHatalari(t *testing.T) {
 		"model": {"type": "WordLevel", "vocab": {"a": 0, "[UNK]": 1}, "unk_token": "[UNK]"}}`)
 	bozuk := yaz("bozuk.json", `{"model": `)
 	durumlar := []struct{ kod, beklenen string }{
-		{`parçalayıcı_yükle("yok_boyle_bir_dosya.json")`, "dosyası bulunamadı"},
+		{`parçalayıcı_yükle("yok_boyle_bir_dosya.json")`, "yüklenemedi: böyle bir dosya ya da klasör yok"},
 		{`parçalayıcı_yükle("` + filepath.ToSlash(d) + `")`, "bir klasör"},
 		{`parçalayıcı_yükle("` + desteksiz + `")`, "parçalayıcı türü desteklenmiyor"},
 		{`parçalayıcı_yükle("` + riskli + `")`, "güvenlik gereği kabul edilmiyor"},

@@ -107,7 +107,7 @@ func TestDosyaYerlesikleriTekKuraliKullanir(t *testing.T) {
 		t.Errorf("yeni dosya çalışma klasöründe oluşmalıydı: %v", err)
 	}
 	_, err := calistir(`dosya_oku("yok.txt")`)
-	if err == nil || !strings.Contains(err.Error(), `dosya_oku(): "yok.txt" okunamadı: böyle bir dosya yok`) ||
+	if err == nil || !strings.Contains(err.Error(), `dosya_oku(): "yok.txt" okunamadı: böyle bir dosya ya da klasör yok`) ||
 		!strings.Contains(err.Error(), "bakılan yerler: ") || strings.Count(err.Error(), "yok.txt") != 3 {
 		t.Errorf("beklenmeyen hata: %v", err)
 	}

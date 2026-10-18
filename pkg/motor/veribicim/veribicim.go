@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"tr_dili/pkg/motor/internal/baglama"
+	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
@@ -56,12 +57,12 @@ func Kaydet(v *vm.VM) {
 // csvGirdisi csv_oku argümanını ayrıştırılacak CSV metnine çevirir:
 //   - Argüman var olan bir dosyanın yoluysa dosya okunur. Göreli yollar önce çalışma
 //     klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür.
-//   - Argüman yol gibi görünüyor ama öyle bir dosya yoksa "dosya bulunamadı" hatası
+//   - Argüman yol gibi görünüyor ama öyle bir dosya yoksa "dosya yok" hatası
 //     verilir (eskiden "yok.csv" metni tek hücreli bir tablo olarak sessizce dönüyordu).
 //   - Aksi hâlde argüman CSV içeriğinin kendisi sayılır ve olduğu gibi ayrıştırılır
 //     (ör. csv_oku("ad,yaş\nAli,30")); bu eski davranış bilerek korunmuştur.
 func csvGirdisi(makine *vm.VM, arg string) (string, error) {
-	yol := baglama.YolCoz(makine, arg)
+	yol, bakilanlar := baglama.YolCozBakilan(makine, arg)
 	bilgi, statErr := os.Stat(yol)
 	if statErr == nil {
 		if bilgi.IsDir() {
@@ -69,12 +70,12 @@ func csvGirdisi(makine *vm.VM, arg string) (string, error) {
 		}
 		data, err := os.ReadFile(yol)
 		if err != nil {
-			return "", fmt.Errorf("csv_oku: %q dosyası okunamadı: %v", arg, err)
+			return "", turkce.DosyaHatasi("csv_oku", arg, "okunamadı", err)
 		}
 		return string(data), nil
 	}
 	if yolGibi(arg) {
-		return "", fmt.Errorf("csv_oku: %q dosyası bulunamadı (göreli yollar çalışma klasörüne, orada yoksa programın klasörüne göre çözülür)", arg)
+		return "", vm.OkumaHatasi("csv_oku", arg, "okunamadı", statErr, bakilanlar)
 	}
 	return arg, nil
 }

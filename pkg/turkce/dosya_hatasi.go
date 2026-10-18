@@ -55,7 +55,7 @@ func DosyaHatasi(fn, yol, islem string, err error, ekler ...string) error {
 }
 
 // DosyaHatasiNedeni hatanın nedenini yalnızca Türkçe neden cümlesi olarak döndürür
-// (ör. "böyle bir dosya yok"). Kendi mesajını kuran çağıranlar içindir.
+// (ör. "böyle bir dosya ya da klasör yok"). Kendi mesajını kuran çağıranlar içindir.
 func DosyaHatasiNedeni(yol string, err error) string {
 	if err == nil {
 		return ""
@@ -78,7 +78,7 @@ func DosyaHatasiNedeni(yol string, err error) string {
 		if klasor := eksikKlasor(yol); klasor != "" {
 			return fmt.Sprintf("%q klasörü yok", klasor)
 		}
-		return "böyle bir dosya yok (adını ve klasörünü denetleyin)"
+		return "böyle bir dosya ya da klasör yok (yolun yazımını denetleyin)"
 	case errors.Is(err, fs.ErrPermission):
 		return "erişim izni yok (dosya salt okunur, korumalı bir klasörde ya da başka bir kullanıcıya ait olabilir)"
 	case errors.Is(err, fs.ErrExist):

@@ -216,7 +216,7 @@ func TestBicimle(t *testing.T) {
 
 	bekle(t, tr(t, klasor, "bicimle", "a.tr"), 0, []string{"biçimlendi: a.tr"}, nil)
 	bekle(t, tr(t, klasor, "biçimle", "--kontrol", "."), 0, []string{"hepsi standart biçimde"}, nil)
-	bekle(t, tr(t, klasor, "biçimle", "olmayan.tr"), 1, nil, []string{"olmayan.tr bulunamadı"})
+	bekle(t, tr(t, klasor, "biçimle", "olmayan.tr"), 1, nil, []string{`"olmayan.tr" biçimlenemedi: böyle bir dosya ya da klasör yok`})
 }
 
 func TestDAPBaslangici(t *testing.T) {

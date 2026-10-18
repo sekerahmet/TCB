@@ -31,7 +31,7 @@ test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çal�
     doğrula(dosya_oku("veri/parcalayici.json").içerir("model"))
     değişken m = ""
     dene { dosya_oku("veri/olmayan_dosya.txt") } yakala h { m = h }
-    doğrula(m.içerir("dosya_oku(): \"veri/olmayan_dosya.txt\" okunamadı: böyle bir dosya yok"), m)
+    doğrula(m.içerir("dosya_oku(): \"veri/olmayan_dosya.txt\" okunamadı: böyle bir dosya ya da klasör yok"), m)
     doğrula(m.içerir("bakılan yerler: "), m)
     doğrula(değil m.içerir("system cannot"), m)
     dene { dosya_oku("veri") } yakala h { m = h }

@@ -127,8 +127,8 @@ func TestCSVReadFileTextAndMissingPath(t *testing.T) {
 		`klasor\yok`,
 	} {
 		_, val, err := calistir(t, fmt.Sprintf(`sonuç csv_oku(%q)`, arg))
-		if err == nil || !strings.Contains(err.Error(), "dosyası bulunamadı") {
-			t.Errorf("csv_oku(%q): 'dosyası bulunamadı' hatası bekleniyordu, alınan: %v, %v", arg, val, err)
+		if err == nil || !strings.Contains(err.Error(), "okunamadı: ") || !strings.Contains(err.Error(), " yok") {
+			t.Errorf("csv_oku(%q): 'dosya yok' hatası bekleniyordu, alınan: %v, %v", arg, val, err)
 		}
 	}
 
