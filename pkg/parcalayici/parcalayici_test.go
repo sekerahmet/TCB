@@ -12,51 +12,112 @@ import (
 	"unicode/utf8"
 )
 
-const kucukYol = "testdata/kucuk_parcalayici.json"
+// ============================================================================
+// Altın veriler (testdata/uret.py ile üretilmiş)
+// ============================================================================
 
-type altinKodlama struct {
-	Metin    string `json:"metin"`
-	Idler    []int  `json:"idler"`
-	IdlerDuz []int  `json:"idler_duz"`
+const kucukYol = "testdata/p_bayt_bpe.json"
+
+// sentetikParcalayicilar testdata'daki parçalayıcıların adlarıdır.
+var sentetikParcalayicilar = []string{
+	"bayt_bpe", "metaspace_bpe", "llama_tarzi", "kelime_bpe", "onekli_bpe",
+	"wordpiece", "unigram", "gpt2_tarzi", "llama3_tarzi",
 }
 
-type altinCozme struct {
-	Idler    []int  `json:"idler"`
-	OzelAtla bool   `json:"ozel_atla"`
-	Metin    string `json:"metin"`
+// altinDosya altin_<ad>.json biçimidir. Kodlama: [girdi sırası, kimlikler,
+// özel tanımadan kimlikler, özel eklemeden kimlikler]. Çift: [a, b, kimlikler,
+// tür kimlikleri, özel maske, özelsiz kimlikler, özelsiz tür kimlikleri].
+// Çözme: [kimlikler, metin, özel atlanmış metin].
+type altinDosya struct {
+	SozlukBoyutu int                 `json:"sozluk_boyutu"`
+	Kodlama      [][]json.RawMessage `json:"kodlama"`
+	Cift         [][]json.RawMessage `json:"cift"`
+	Cozme        [][]json.RawMessage `json:"cozme"`
+}
+
+type altinKodlama struct {
+	Metin    string
+	Idler    []int
+	IdlerDuz []int
 }
 
 type altinVeri struct {
-	SozlukBoyutu int            `json:"sozluk_boyutu"`
-	Kodlama      []altinKodlama `json:"kodlama"`
-	Cozme        []altinCozme   `json:"cozme"`
+	SozlukBoyutu int
+	Kodlama      []altinKodlama
 }
 
 var (
-	kucukBir  sync.Once
-	kucukP    *Parcalayici
-	kucukHata error
-	altin     altinVeri
-	altinHata error
+	girdiBir   sync.Once
+	girdiler   []string
+	girdiHata  error
+	kucukBir   sync.Once
+	kucukP     *Parcalayici
+	kucukHata  error
+	kucukAltin altinVeri
 )
 
+func girdileriYukle(t testing.TB) []string {
+	t.Helper()
+	girdiBir.Do(func() {
+		var d struct {
+			Girdiler []string `json:"girdiler"`
+		}
+		veri, err := os.ReadFile("testdata/girdiler.json")
+		if err == nil {
+			err = json.Unmarshal(veri, &d)
+		}
+		girdiler, girdiHata = d.Girdiler, err
+	})
+	if girdiHata != nil {
+		t.Fatalf("girdiler okunamadı: %v", girdiHata)
+	}
+	return girdiler
+}
+
+func altinYukle(t testing.TB, ad string) (*Parcalayici, *altinDosya) {
+	t.Helper()
+	p, err := Yukle("testdata/p_" + ad + ".json")
+	if err != nil {
+		t.Fatalf("%s yüklenemedi: %v", ad, err)
+	}
+	veri, err := os.ReadFile("testdata/altin_" + ad + ".json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var a altinDosya
+	if err := json.Unmarshal(veri, &a); err != nil {
+		t.Fatalf("altin_%s.json çözümlenemedi: %v", ad, err)
+	}
+	return p, &a
+}
+
+func coz[T any](t testing.TB, r json.RawMessage) T {
+	t.Helper()
+	var v T
+	if err := json.Unmarshal(r, &v); err != nil {
+		t.Fatalf("altın veri çözümlenemedi: %v", err)
+	}
+	return v
+}
+
+// kucukYukle bayt düzeyi BPE parçalayıcısını ve altın kodlamalarını verir.
 func kucukYukle(t testing.TB) (*Parcalayici, *altinVeri) {
 	t.Helper()
+	g := girdileriYukle(t)
 	kucukBir.Do(func() {
-		kucukP, kucukHata = Yukle(kucukYol)
-		var veri []byte
-		veri, altinHata = os.ReadFile("testdata/altin.json")
-		if altinHata == nil {
-			altinHata = json.Unmarshal(veri, &altin)
+		var a *altinDosya
+		kucukP, a = altinYukle(t, "bayt_bpe")
+		kucukAltin.SozlukBoyutu = a.SozlukBoyutu
+		for _, k := range a.Kodlama {
+			kucukAltin.Kodlama = append(kucukAltin.Kodlama, altinKodlama{
+				Metin: g[coz[int](t, k[0])], Idler: coz[[]int](t, k[1]), IdlerDuz: coz[[]int](t, k[2]),
+			})
 		}
 	})
 	if kucukHata != nil {
-		t.Fatalf("küçük parçalayıcı yüklenemedi: %v", kucukHata)
+		t.Fatal(kucukHata)
 	}
-	if altinHata != nil {
-		t.Fatalf("altın veri okunamadı: %v", altinHata)
-	}
-	return kucukP, &altin
+	return kucukP, &kucukAltin
 }
 
 func esitInt(a, b []int) bool {
@@ -71,52 +132,176 @@ func esitInt(a, b []int) bool {
 	return true
 }
 
-func TestAltinKodlama(t *testing.T) {
-	p, a := kucukYukle(t)
-	if len(a.Kodlama) < 100 {
-		t.Fatalf("altın veride çok az örnek: %d", len(a.Kodlama))
+func esit32(a []int32, b []int) bool { return esitInt(intCevir(nil, a), b) }
+
+func esitBool(a []bool, b []int) bool {
+	if len(a) != len(b) {
+		return false
 	}
-	hata := 0
-	for _, k := range a.Kodlama {
-		if got := p.Kodla(k.Metin); !esitInt(got, k.Idler) {
-			hata++
-			if hata <= 10 {
-				t.Errorf("Kodla(%q)\n alınan: %v\nbeklenen: %v", k.Metin, got, k.Idler)
-			}
+	for i := range a {
+		if a[i] != (b[i] != 0) {
+			return false
 		}
-		if got := p.KodlaDuz(k.Metin); !esitInt(got, k.IdlerDuz) {
-			hata++
-			if hata <= 10 {
-				t.Errorf("KodlaDuz(%q)\n alınan: %v\nbeklenen: %v", k.Metin, got, k.IdlerDuz)
+	}
+	return true
+}
+
+// TestSentetikParcalayicilar her sentetik parçalayıcıyı altın çıktılarla
+// karşılaştırır: tek metin kodlama (üç seçenekle), çift kodlama (tür
+// kimlikleri ve özel maske dahil) ve çözme (özel atlamalı ve atlamasız).
+func TestSentetikParcalayicilar(t *testing.T) {
+	g := girdileriYukle(t)
+	for _, ad := range sentetikParcalayicilar {
+		t.Run(ad, func(t *testing.T) {
+			p, a := altinYukle(t, ad)
+			if p.SozlukBoyutu() != a.SozlukBoyutu {
+				t.Errorf("sözlük boyutu %d, beklenen %d", p.SozlukBoyutu(), a.SozlukBoyutu)
+			}
+			hata, toplam := 0, 0
+			rapor := func(f string, x ...any) {
+				hata++
+				if hata <= 8 {
+					t.Errorf(f, x...)
+				}
+			}
+			for _, k := range a.Kodlama {
+				m := g[coz[int](t, k[0])]
+				secenekler := []Secenekler{{}, {OzelTaninmasin: true}, {OzelEklenmesin: true}}
+				for i, s := range secenekler {
+					toplam++
+					beklenen := coz[[]int](t, k[1+i])
+					if got := p.KodlaSecenekli(m, s); !esitInt(got, beklenen) {
+						rapor("Kodla(%q, %+v)\n alınan: %v\nbeklenen: %v", m, s, got, beklenen)
+					}
+				}
+			}
+			for _, c := range a.Cift {
+				toplam += 2
+				x, y := g[coz[int](t, c[0])], g[coz[int](t, c[1])]
+				k := p.KodlaCift(x, &y, Secenekler{})
+				if !esit32(k.Idler, coz[[]int](t, c[2])) || !esit32(k.TurIdleri, coz[[]int](t, c[3])) || !esitBool(k.OzelMaske, coz[[]int](t, c[4])) {
+					rapor("KodlaCift(%q, %q)\n alınan: %v %v %v\nbeklenen: %s %s %s", x, y, k.Idler, k.TurIdleri, k.OzelMaske, c[2], c[3], c[4])
+				}
+				k2 := p.KodlaCift(x, &y, Secenekler{OzelEklenmesin: true})
+				if !esit32(k2.Idler, coz[[]int](t, c[5])) || !esit32(k2.TurIdleri, coz[[]int](t, c[6])) {
+					rapor("KodlaCift özelsiz(%q, %q)\n alınan: %v %v\nbeklenen: %s %s", x, y, k2.Idler, k2.TurIdleri, c[5], c[6])
+				}
+			}
+			for _, c := range a.Cozme {
+				toplam += 2
+				ids := coz[[]int](t, c[0])
+				if got, b := p.Coz(ids, false), coz[string](t, c[1]); got != b {
+					rapor("Coz(%v, false)\n alınan: %q\nbeklenen: %q", ids, got, b)
+				}
+				if got, b := p.Coz(ids, true), coz[string](t, c[2]); got != b {
+					rapor("Coz(%v, true)\n alınan: %q\nbeklenen: %q", ids, got, b)
+				}
+			}
+			if hata > 0 {
+				t.Fatalf("%d / %d karşılaştırma uyuşmadı", hata, toplam)
+			}
+			t.Logf("%d karşılaştırma eşleşti", toplam)
+		})
+	}
+}
+
+// TestBilesenler tek tek bileşenleri (normalleştirici, ön bölücü, çözücü)
+// altın çıktılarla karşılaştırır.
+func TestBilesenler(t *testing.T) {
+	g := girdileriYukle(t)[1:140]
+	veri, err := os.ReadFile("testdata/bilesenler.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kayitlar [][]json.RawMessage
+	if err := json.Unmarshal(veri, &kayitlar); err != nil {
+		t.Fatal(err)
+	}
+	bilesenKarsilastir(t, g, kayitlar)
+}
+
+// TestBilesenlerGenis, TR_PARCALAYICI_BILESEN_ALTIN ile verilen geniş altın
+// veriyle (ör. bütün Unicode kod noktaları) bileşenleri karşılaştırır.
+// Biçim: {"girdiler": [...], "kayitlar": [bilesenler.json kayıtları]}.
+func TestBilesenlerGenis(t *testing.T) {
+	yol := os.Getenv("TR_PARCALAYICI_BILESEN_ALTIN")
+	if yol == "" {
+		t.Skip("TR_PARCALAYICI_BILESEN_ALTIN ayarlı değil")
+	}
+	veri, err := os.ReadFile(yol)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var d struct {
+		Girdiler []string            `json:"girdiler"`
+		Kayitlar [][]json.RawMessage `json:"kayitlar"`
+	}
+	if err := json.Unmarshal(veri, &d); err != nil {
+		t.Fatal(err)
+	}
+	bilesenKarsilastir(t, d.Girdiler, d.Kayitlar)
+}
+
+func bilesenKarsilastir(t *testing.T, g []string, kayitlar [][]json.RawMessage) {
+	sayac := map[string]int{}
+	hata := 0
+	rapor := func(f string, x ...any) {
+		hata++
+		if hata <= 15 {
+			t.Errorf(f, x...)
+		}
+	}
+	for _, k := range kayitlar {
+		tur := coz[string](t, k[0])
+		tanim := k[1]
+		switch tur {
+		case "normalizer":
+			n, err := NormallestiriciKur(tanim)
+			if err != nil {
+				rapor("%s: %v", tanim, err)
+				continue
+			}
+			for i, b := range coz[[]string](t, k[2]) {
+				sayac[tur]++
+				if got := n.Normallestir(g[i]); got != b {
+					rapor("%s\n girdi: %q\n alınan: %q\nbeklenen: %q", tanim, g[i], got, b)
+				}
+			}
+		case "pre_tokenizer":
+			o, err := OnBolucuKur(tanim)
+			if err != nil {
+				rapor("%s: %v", tanim, err)
+				continue
+			}
+			for i, b := range coz[[][]string](t, k[2]) {
+				sayac[tur]++
+				var got []string
+				for _, x := range o.OnBol(nil, []Parca{{Metin: g[i], Ilk: true}}) {
+					got = append(got, x.Icerik())
+				}
+				if len(got) != len(b) || (len(got) > 0 && !reflect.DeepEqual(got, b)) {
+					rapor("%s\n girdi: %q\n alınan: %q\nbeklenen: %q", tanim, g[i], got, b)
+				}
+			}
+		case "decoder":
+			c, err := CozucuKur(tanim)
+			if err != nil {
+				rapor("%s: %v", tanim, err)
+				continue
+			}
+			listeler := coz[[][]string](t, k[2])
+			for i, b := range coz[[]string](t, k[3]) {
+				sayac[tur]++
+				if got := strings.Join(c.CozZincir(append([]string(nil), listeler[i]...)), ""); got != b {
+					rapor("%s\n girdi: %q\n alınan: %q\nbeklenen: %q", tanim, listeler[i], got, b)
+				}
 			}
 		}
 	}
 	if hata > 0 {
-		t.Fatalf("%d / %d kodlama uyuşmadı", hata, 2*len(a.Kodlama))
+		t.Fatalf("%d karşılaştırma uyuşmadı (%v)", hata, sayac)
 	}
-}
-
-func TestAltinCozme(t *testing.T) {
-	p, a := kucukYukle(t)
-	hata := 0
-	for _, c := range a.Cozme {
-		if got := p.Coz(c.Idler, c.OzelAtla); got != c.Metin {
-			hata++
-			if hata <= 10 {
-				t.Errorf("Coz(%v, %v)\n alınan: %q\nbeklenen: %q", c.Idler, c.OzelAtla, got, c.Metin)
-			}
-		}
-	}
-	if hata > 0 {
-		t.Fatalf("%d / %d çözme uyuşmadı", hata, len(a.Cozme))
-	}
-}
-
-func TestSozlukBoyutu(t *testing.T) {
-	p, a := kucukYukle(t)
-	if p.SozlukBoyutu() != a.SozlukBoyutu {
-		t.Fatalf("sözlük boyutu %d, beklenen %d", p.SozlukBoyutu(), a.SozlukBoyutu)
-	}
+	t.Logf("eşleşen karşılaştırmalar: %v", sayac)
 }
 
 // Kodlama sonra çözme, bayt düzeyi parçalayıcıda metnin kendisini vermeli.
@@ -141,10 +326,9 @@ func TestGidisDonus(t *testing.T) {
 
 // Ön bölme parçalarının birleşimi girdinin kendisi olmalı.
 func TestOnBolmeKapsar(t *testing.T) {
-	_, a := kucukYukle(t)
-	for _, k := range a.Kodlama {
-		if got := strings.Join(OnBol(k.Metin), ""); got != k.Metin {
-			t.Errorf("ön bölme metni kapsamıyor: %q -> %q", k.Metin, got)
+	for _, m := range girdileriYukle(t) {
+		if got := strings.Join(OnBol(m), ""); got != m {
+			t.Errorf("ön bölme metni kapsamıyor: %q -> %q", m, got)
 		}
 	}
 }
@@ -168,6 +352,22 @@ func TestOnBolmeOrnekleri(t *testing.T) {
 	for _, d := range durumlar {
 		if got := OnBol(d.metin); !reflect.DeepEqual(got, d.parca) {
 			t.Errorf("OnBol(%q) = %q, beklenen %q", d.metin, got, d.parca)
+		}
+	}
+}
+
+// Elle yazılmış hızlı eşleştirici ile genel düzenli ifade motoru aynı
+// parçaları vermeli.
+func TestHizliDesenMotorlaAyni(t *testing.T) {
+	ifade, err := DuzIfadeDerle(BolmeDeseni)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range girdileriYukle(t) {
+		var got []string
+		ifade.TumEslesmeler(m, func(b, e int) { got = append(got, m[b:e]) })
+		if want := OnBol(m); !reflect.DeepEqual(got, want) {
+			t.Errorf("%q: motor %q, hızlı yol %q", m, got, want)
 		}
 	}
 }
@@ -216,32 +416,36 @@ func TestDesteklenmeyenYapilandirma(t *testing.T) {
 		b, _ := json.Marshal(ham)
 		return b
 	}
-	durumlar := map[string]func(m map[string]any){
-		"normalizer": func(m map[string]any) { m["normalizer"] = map[string]any{"type": "NFC"} },
-		"desen": func(m map[string]any) {
+	// Her durum: değişiklik ve hata iletisinde geçmesi gereken bileşen/tür adı.
+	durumlar := map[string]struct {
+		f      func(m map[string]any)
+		iceren string
+	}{
+		"normalizer": {func(m map[string]any) { m["normalizer"] = map[string]any{"type": "Precompiled"} }, "normalleştirici (normalizer) türü \"Precompiled\""},
+		"ön bölücü": {func(m map[string]any) {
 			pt := m["pre_tokenizer"].(map[string]any)["pretokenizers"].([]any)
-			pt[0].(map[string]any)["pattern"] = map[string]any{"Regex": `\w+`}
-		},
-		"önek boşluğu": func(m map[string]any) {
+			pt[0] = map[string]any{"type": "UnicodeScripts"}
+		}, "ön bölücü (pre_tokenizer) türü \"UnicodeScripts\""},
+		"desen": {func(m map[string]any) {
 			pt := m["pre_tokenizer"].(map[string]any)["pretokenizers"].([]any)
-			pt[1].(map[string]any)["add_prefix_space"] = true
-		},
-		"model türü":  func(m map[string]any) { m["model"].(map[string]any)["type"] = "WordPiece" },
-		"bayt yedeği": func(m map[string]any) { m["model"].(map[string]any)["byte_fallback"] = true },
-		"dropout":     func(m map[string]any) { m["model"].(map[string]any)["dropout"] = 0.1 },
-		"çözücü":      func(m map[string]any) { m["decoder"] = map[string]any{"type": "WordPiece"} },
-		"son işlem":   func(m map[string]any) { m["post_processor"] = map[string]any{"type": "TemplateProcessing"} },
-		"dolgu":       func(m map[string]any) { m["padding"] = map[string]any{"length": 8} },
-		"birleştirme": func(m map[string]any) {
+			pt[0].(map[string]any)["pattern"] = map[string]any{"Regex": `(a)\1`}
+		}, "geri başvuru"},
+		"model türü": {func(m map[string]any) { m["model"].(map[string]any)["type"] = "Benzersiz" }, "model türü \"Benzersiz\""},
+		"dropout":    {func(m map[string]any) { m["model"].(map[string]any)["dropout"] = 0.1 }, "dropout"},
+		"çözücü":     {func(m map[string]any) { m["decoder"] = map[string]any{"type": "CTC"} }, "çözücü (decoder) türü \"CTC\""},
+		"son işlem":  {func(m map[string]any) { m["post_processor"] = map[string]any{"type": "Yok"} }, "son işleyici (post_processor) türü \"Yok\""},
+		"dolgu":      {func(m map[string]any) { m["padding"] = map[string]any{"length": 8} }, "padding"},
+		"birleştirme": {func(m map[string]any) {
 			mm := m["model"].(map[string]any)
 			mm["merges"] = append(mm["merges"].([]any), []any{"yokyok", "zzz"})
-		},
+		}, "sözlükte olmayan"},
 	}
-	for ad, f := range durumlar {
-		if _, err := Ayristir(degistir(f)); err == nil {
+	for ad, d := range durumlar {
+		_, err := Ayristir(degistir(d.f))
+		if err == nil {
 			t.Errorf("%s: hata bekleniyordu", ad)
-		} else if !utf8.ValidString(err.Error()) || err.Error() == "" {
-			t.Errorf("%s: geçersiz hata iletisi", ad)
+		} else if !strings.Contains(err.Error(), d.iceren) || !utf8.ValidString(err.Error()) {
+			t.Errorf("%s: hata iletisi %q, %q içermeli", ad, err.Error(), d.iceren)
 		}
 	}
 	if _, err := Ayristir(degistir(func(map[string]any) {})); err != nil {
@@ -291,7 +495,7 @@ func TestTopluVeParalel(t *testing.T) {
 		}
 	}
 	for _, isci := range []int{1, 3, 0} {
-		got := p.TopluKodla(metinler, true, isci)
+		got := p.TopluKodla(metinler, Secenekler{}, isci)
 		for i := range got {
 			if !esitInt(got[i], beklenen[i]) {
 				t.Fatalf("isci=%d: TopluKodla[%d] uyuşmadı", isci, i)
@@ -303,7 +507,7 @@ func TestTopluVeParalel(t *testing.T) {
 				t.Fatalf("isci=%d: TopluCoz[%d] uyuşmadı", isci, i)
 			}
 		}
-		g32 := p.TopluKodla32(metinler[:50], true, isci)
+		g32 := p.TopluKodla32(metinler[:50], Secenekler{}, isci)
 		for i := range g32 {
 			if !esitInt(p.KodlaEkle(nil, metinler[i], true), beklenen[i]) || p.Coz32(g32[i], false) != cozulen[i] {
 				t.Fatalf("isci=%d: TopluKodla32[%d] uyuşmadı", isci, i)
@@ -339,19 +543,20 @@ func TestOnbelleksizVeUzun(t *testing.T) {
 		}
 	}
 	// Kısa ve uzun birleştirme yolları aynı sonucu vermeli.
+	bm := p.model.(*bpeModel)
 	for _, k := range a.Kodlama {
 		for _, s := range OnBol(k.Metin) {
 			var sem []int32
 			for i := 0; i < len(s); i++ {
-				if id := p.baytID[s[i]]; id >= 0 {
+				if id := bm.baytKarID[s[i]]; id >= 0 {
 					sem = append(sem, id)
 				}
 			}
-			k1 := p.birlestirKisa(append([]int32(nil), sem...))
+			k1 := bm.birlestirKisa(append([]int32(nil), sem...))
 			if len(sem) == 0 {
 				continue
 			}
-			k2 := p.birlestirUzun(append([]int32(nil), sem...))
+			k2 := bm.birlestirUzun(append([]int32(nil), sem...))
 			if !reflect.DeepEqual(k1, k2) {
 				t.Fatalf("kısa/uzun birleştirme farklı: %q: %v / %v", s, k1, k2)
 			}
@@ -377,10 +582,12 @@ func TestGercekParcalayici(t *testing.T) {
 		t.Fatalf("gerçek parçalayıcı yüklenemedi: %v", err)
 	}
 	t.Logf("sözlük: %d, birleştirme: %d", p.SozlukBoyutu(), p.BirlesmeSayisi())
-	_, a := kucukYukle(t)
-	for _, k := range a.Kodlama {
-		if got := p.Coz(p.Kodla(k.Metin), false); got != k.Metin {
-			t.Errorf("gidiş-dönüş bozuk: %q -> %q", k.Metin, got)
+	// Kayıpsız (normalleştiricisiz, bayt düzeyi) parçalayıcıda gidiş-dönüş.
+	if p.baytCozucu && p.normallestirici == nil && p.sonIsleyici == nil {
+		for _, m := range girdileriYukle(t) {
+			if got := p.Coz(p.Kodla(m), false); got != m {
+				t.Errorf("gidiş-dönüş bozuk: %q -> %q", m, got)
+			}
 		}
 	}
 	altinYol := os.Getenv("TR_PARCALAYICI_ALTIN")
@@ -416,7 +623,7 @@ func TestGercekParcalayici(t *testing.T) {
 		}
 		kayitlar = append(kayitlar, k)
 	}
-	got := p.TopluKodla(metinler, true, 0)
+	got := p.TopluKodla(metinler, Secenekler{}, 0)
 	eslesen, hatali := 0, 0
 	toplamBayt := 0
 	for i := range metinler {
@@ -492,7 +699,7 @@ func BenchmarkKodla(b *testing.B) {
 	b.SetBytes(int64(len(metin)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p.Kodla32(nil, metin, true)
+		p.Kodla32(nil, metin, Secenekler{})
 	}
 }
 
@@ -503,7 +710,7 @@ func BenchmarkKodlaOnbelleksiz(b *testing.B) {
 	b.SetBytes(int64(len(metin)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p.Kodla32(nil, metin, true)
+		p.Kodla32(nil, metin, Secenekler{})
 	}
 }
 
@@ -514,7 +721,7 @@ func BenchmarkTopluKodlaParalel(b *testing.B) {
 	b.SetBytes(int64(len(metin)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p.TopluKodla32(satirlar, true, 0)
+		p.TopluKodla32(satirlar, Secenekler{}, 0)
 	}
 }
 

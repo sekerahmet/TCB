@@ -2,6 +2,7 @@ package parcalayici
 
 import (
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -10,24 +11,43 @@ import (
 // Kodlama (metin -> kimlik) ve çözme (kimlik -> metin)
 // ============================================================================
 
-// Kodla metni token kimliklerine çevirir. Metindeki ek/özel tokenlar
-// (ör. "<|endoftext|>") tek bir kimlik olarak tanınır.
-func (p *Parcalayici) Kodla(metin string) []int {
-	return p.KodlaEkle(nil, metin, true)
+// Secenekler kodlama seçenekleridir. Sıfır değer, başvuru uygulamasının
+// varsayılan davranışıdır: metindeki özel tokenlar tanınır ve son işleyici
+// (varsa) özel tokenları (ör. BOS/EOS) ekler.
+type Secenekler struct {
+	// OzelTaninmasin doğruysa metindeki "<|end|>" gibi özel tokenlar
+	// tanınmaz, sıradan metin gibi parçalanır (özel olmayan ek tokenlar yine
+	// tanınır). Kullanıcıdan gelen metni güvenle kodlamak için uygundur.
+	OzelTaninmasin bool
+	// OzelEklenmesin doğruysa son işleyici özel token eklemez.
+	OzelEklenmesin bool
 }
 
-// KodlaDuz metni, içindeki özel tokenları TANIMADAN kodlar: "<|end|>" gibi
-// bir dizgi sıradan metin gibi parçalanır. Özel olmayan ek tokenlar yine
-// tanınır. Kullanıcıdan gelen metni güvenle kodlamak için uygundur.
+// Kodla metni token kimliklerine çevirir (varsayılan seçeneklerle).
+func (p *Parcalayici) Kodla(metin string) []int {
+	return p.KodlaSecenekli(metin, Secenekler{})
+}
+
+// KodlaDuz metni, içindeki özel tokenları TANIMADAN kodlar.
 func (p *Parcalayici) KodlaDuz(metin string) []int {
-	return p.KodlaEkle(nil, metin, false)
+	return p.KodlaSecenekli(metin, Secenekler{OzelTaninmasin: true})
+}
+
+// KodlaSecenekli metni verilen seçeneklerle kodlar.
+func (p *Parcalayici) KodlaSecenekli(metin string, s Secenekler) []int {
+	return intCevir(nil, p.Kodla32(nil, metin, s))
 }
 
 // KodlaEkle metnin kimliklerini dst'nin sonuna ekler ve dst'yi döndürür.
 // ozelleriTani yanlışsa özel tokenlar metin içinde tanınmaz.
 func (p *Parcalayici) KodlaEkle(dst []int, metin string, ozelleriTani bool) []int {
-	var tampon [64]int32
-	ids := p.kodla32(tampon[:0], metin, ozelleriTani)
+	return intCevir(dst, p.Kodla32(nil, metin, Secenekler{OzelTaninmasin: !ozelleriTani}))
+}
+
+func intCevir(dst []int, ids []int32) []int {
+	if dst == nil {
+		dst = make([]int, 0, len(ids))
+	}
 	for _, id := range ids {
 		dst = append(dst, int(id))
 	}
@@ -36,49 +56,76 @@ func (p *Parcalayici) KodlaEkle(dst []int, metin string, ozelleriTani bool) []in
 
 // Kodla32 metni 32 bitlik kimliklere çevirip dst'ye ekler (büyük derlemler
 // için bellek dostu biçim).
-func (p *Parcalayici) Kodla32(dst []int32, metin string, ozelleriTani bool) []int32 {
-	return p.kodla32(dst, metin, ozelleriTani)
+func (p *Parcalayici) Kodla32(dst []int32, metin string, s Secenekler) []int32 {
+	if p.sonIsleyici == nil {
+		return p.dizi(dst, metin, s.OzelTaninmasin)
+	}
+	k := p.sonIsleyici.Isle(&Kodlama{Idler: p.dizi(nil, metin, s.OzelTaninmasin)}, nil, !s.OzelEklenmesin)
+	return append(dst, k.Idler...)
 }
 
-func (p *Parcalayici) kodla32(dst []int32, metin string, ozelleriTani bool) []int32 {
+// KodlaAyrintili tek bir metni kodlar; tür kimliklerini ve özel token
+// maskesini de verir.
+func (p *Parcalayici) KodlaAyrintili(metin string, s Secenekler) *Kodlama {
+	return p.KodlaCift(metin, nil, s)
+}
+
+// KodlaCift bir metin çiftini (ör. soru ve bağlam) kodlar; ikinci nil ise
+// tek metin kodlanır.
+func (p *Parcalayici) KodlaCift(birinci string, ikinci *string, s Secenekler) *Kodlama {
+	a := &Kodlama{Idler: p.dizi(nil, birinci, s.OzelTaninmasin)}
+	var b *Kodlama
+	if ikinci != nil {
+		b = &Kodlama{Idler: p.dizi(nil, *ikinci, s.OzelTaninmasin)}
+	}
+	if p.sonIsleyici == nil {
+		k := varsayilanIsle(a, b)
+		if b == nil {
+			k = &Kodlama{}
+			k.ekle(a, 0, false)
+		}
+		return k
+	}
+	return p.sonIsleyici.Isle(a, b, !s.OzelEklenmesin)
+}
+
+// dizi tek bir metnin (son işleme öncesi) kimliklerini dst'ye ekler.
+func (p *Parcalayici) dizi(dst []int32, metin string, ozelleriAtla bool) []int32 {
 	metin = gecerliMetin(metin)
-	ozelleriAtla := !ozelleriTani
+	var tampon []Parca
 	p.hamEslesme.bol(metin, ozelleriAtla, func(a ekParca) {
 		if a.id >= 0 {
 			dst = append(dst, a.id)
 			return
 		}
-		parca := metin[a.bas:a.son]
-		// Normalleştirici olmadığından normalleştirilmiş metin aynıdır.
-		p.nrmEslesme.bol(parca, ozelleriAtla, func(b ekParca) {
+		bolum := metin[a.bas:a.son]
+		ilk := a.bas == 0
+		if p.normallestirici != nil {
+			bolum = p.normallestirici.Normallestir(bolum)
+		}
+		p.nrmEslesme.bol(bolum, ozelleriAtla, func(b ekParca) {
 			if b.id >= 0 {
 				dst = append(dst, b.id)
 				return
 			}
-			onBol(parca[b.bas:b.son], func(sozcuk string) {
-				dst = p.sozcukKodla(dst, sozcuk)
-			})
+			if b.son <= b.bas {
+				return
+			}
+			parca := Parca{Metin: bolum[b.bas:b.son], Ilk: ilk && b.bas == 0}
+			if p.onBolucu == nil {
+				dst = p.model.Kodla(dst, parca)
+				return
+			}
+			tampon = p.onBolucu.OnBol(tampon[:0], []Parca{parca})
+			for _, x := range tampon {
+				dst = p.model.Kodla(dst, x)
+			}
 		})
 	})
 	return dst
 }
 
-// sozcukKodla bir ön bölme parçasını (önbellek yardımıyla) kodlar.
-func (p *Parcalayici) sozcukKodla(dst []int32, sozcuk string) []int32 {
-	o := p.onbellek
-	if o == nil || len(sozcuk) > onbellekAzamiUzunluk {
-		return p.bpeKodla(dst, sozcuk)
-	}
-	if v, ok := o.al(sozcuk); ok {
-		return append(dst, v...)
-	}
-	n := len(dst)
-	dst = p.bpeKodla(dst, sozcuk)
-	o.koy(sozcuk, dst[n:])
-	return dst
-}
-
-// Tokenlar metnin token metinlerini (bayt düzeyi gösterimiyle) verir.
+// Tokenlar metnin token metinlerini (modelin gösterimiyle) verir.
 func (p *Parcalayici) Tokenlar(metin string) []string {
 	ids := p.Kodla(metin)
 	out := make([]string, len(ids))
@@ -89,37 +136,50 @@ func (p *Parcalayici) Tokenlar(metin string) []string {
 }
 
 // Coz kimlik dizisini metne çevirir. ozelleriAtla doğruysa özel tokenlar
-// çıktıya yazılmaz. Sözlükte olmayan kimlikler sessizce atlanır. Tokenların
-// birleşimi geçerli UTF-8 değilse (ör. çok baytlı bir karakterin yarısı)
-// bozuk diziler U+FFFD ile değiştirilir.
+// çıktıya yazılmaz. Sözlükte olmayan kimlikler sessizce atlanır. Bayt düzeyi
+// çözücüde tokenların birleşimi geçerli UTF-8 değilse (ör. çok baytlı bir
+// karakterin yarısı) bozuk diziler U+FFFD ile değiştirilir.
 func (p *Parcalayici) Coz(idler []int, ozelleriAtla bool) string {
-	buf := make([]byte, 0, len(idler)*4)
-	for _, id := range idler {
-		buf = p.cozEkle(buf, id, ozelleriAtla)
+	if p.baytCozucu {
+		buf := make([]byte, 0, len(idler)*4)
+		for _, id := range idler {
+			buf = p.baytEkle(buf, id, ozelleriAtla)
+		}
+		return kayipliUTF8(buf)
 	}
-	return kayipliUTF8(buf)
+	tokenlar := make([]string, 0, len(idler))
+	for _, id := range idler {
+		if id < 0 || id >= len(p.idVar) || !p.idVar[id] || (ozelleriAtla && p.idOzel[id]) {
+			continue
+		}
+		tokenlar = append(tokenlar, p.idToken[id])
+	}
+	if p.cozucu == nil {
+		return strings.Join(tokenlar, " ")
+	}
+	return strings.Join(p.cozucu.CozZincir(tokenlar), "")
 }
 
 // Coz32 32 bitlik kimlik dizisini metne çevirir (bkz. Coz).
 func (p *Parcalayici) Coz32(idler []int32, ozelleriAtla bool) string {
-	buf := make([]byte, 0, len(idler)*4)
-	for _, id := range idler {
-		buf = p.cozEkle(buf, int(id), ozelleriAtla)
-	}
-	return kayipliUTF8(buf)
+	return p.Coz(intCevir(nil, idler), ozelleriAtla)
 }
 
-// CozBayt kimlik dizisinin ham baytlarını verir (UTF-8 onarımı yapılmaz);
-// akış hâlinde üretimde yarım karakterleri biriktirmek için kullanışlıdır.
+// CozBayt kimlik dizisinin ham baytlarını verir. Bayt düzeyi çözücüde UTF-8
+// onarımı yapılmaz; akış hâlinde üretimde yarım karakterleri biriktirmek
+// için kullanışlıdır. Diğer çözücülerde Coz'un sonucunun baytlarıdır.
 func (p *Parcalayici) CozBayt(idler []int, ozelleriAtla bool) []byte {
+	if !p.baytCozucu {
+		return []byte(p.Coz(idler, ozelleriAtla))
+	}
 	buf := make([]byte, 0, len(idler)*4)
 	for _, id := range idler {
-		buf = p.cozEkle(buf, id, ozelleriAtla)
+		buf = p.baytEkle(buf, id, ozelleriAtla)
 	}
 	return buf
 }
 
-func (p *Parcalayici) cozEkle(buf []byte, id int, ozelleriAtla bool) []byte {
+func (p *Parcalayici) baytEkle(buf []byte, id int, ozelleriAtla bool) []byte {
 	if id < 0 || id >= len(p.idVar) || !p.idVar[id] {
 		return buf
 	}
@@ -176,19 +236,19 @@ func paralel(is, isci int, f func(i int)) {
 
 // TopluKodla metinleri paralel olarak kodlar; sonuç sırası girdi sırasıyla
 // aynıdır. isci <= 0 ise tüm işlemciler kullanılır.
-func (p *Parcalayici) TopluKodla(metinler []string, ozelleriTani bool, isci int) [][]int {
+func (p *Parcalayici) TopluKodla(metinler []string, s Secenekler, isci int) [][]int {
 	out := make([][]int, len(metinler))
 	paralel(len(metinler), isci, func(i int) {
-		out[i] = p.KodlaEkle(nil, metinler[i], ozelleriTani)
+		out[i] = p.KodlaSecenekli(metinler[i], s)
 	})
 	return out
 }
 
 // TopluKodla32 TopluKodla'nın 32 bitlik kimlik üreten biçimidir.
-func (p *Parcalayici) TopluKodla32(metinler []string, ozelleriTani bool, isci int) [][]int32 {
+func (p *Parcalayici) TopluKodla32(metinler []string, s Secenekler, isci int) [][]int32 {
 	out := make([][]int32, len(metinler))
 	paralel(len(metinler), isci, func(i int) {
-		out[i] = p.kodla32(nil, metinler[i], ozelleriTani)
+		out[i] = p.Kodla32(nil, metinler[i], s)
 	})
 	return out
 }
@@ -202,11 +262,11 @@ func (p *Parcalayici) TopluCoz(diziler [][]int, ozelleriAtla bool, isci int) []s
 	return out
 }
 
-// BelgeleriBirlestir belgeleri paralel kodlar ve aralarına ayirici kimliğini
-// (ör. <|endoftext|>) koyarak tek bir eğitim dizisi hâlinde birleştirir.
-// ayirici < 0 ise ayırıcı eklenmez. Her belgenin sonuna ayırıcı konur.
+// BelgeleriBirlestir belgeleri paralel kodlar ve her belgenin sonuna ayirici
+// kimliğini (ör. <|endoftext|>) koyarak tek bir eğitim dizisi hâlinde
+// birleştirir. ayirici < 0 ise ayırıcı eklenmez.
 func (p *Parcalayici) BelgeleriBirlestir(belgeler []string, ayirici int, isci int) []int32 {
-	parcalar := p.TopluKodla32(belgeler, true, isci)
+	parcalar := p.TopluKodla32(belgeler, Secenekler{}, isci)
 	toplam := 0
 	for _, d := range parcalar {
 		toplam += len(d) + 1

@@ -46,17 +46,6 @@ type ekParca struct {
 	id       int32
 }
 
-// sozcukKarakteri Unicode'un "sözcük karakteri" tanımıdır (UTS #18 \w):
-// Alphabetic (harfler, Nl ve Other_Alphabetic), işaretler (M), ondalık
-// rakamlar (Nd), bağlayıcı noktalama (Pc, ör. "_") ve Join_Control.
-func sozcukKarakteri(r rune) bool {
-	if r < utf8.RuneSelf {
-		return r == '_' || (r >= '0' && r <= '9') || (r|0x20 >= 'a' && r|0x20 <= 'z')
-	}
-	return unicode.IsLetter(r) || unicode.In(r, unicode.Nl, unicode.Other_Alphabetic, unicode.M,
-		unicode.Nd, unicode.Pc, unicode.Join_Control)
-}
-
 // bol metni ek tokenlara göre böler. ozelleriAtla doğruysa özel tokenlar
 // tanınmaz (düz metin sayılır); sıradan ek tokenlar yine tanınır.
 func (e *ekEslestirici) bol(s string, ozelleriAtla bool, f func(ekParca)) {

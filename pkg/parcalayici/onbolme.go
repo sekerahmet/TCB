@@ -1,9 +1,6 @@
 package parcalayici
 
-import (
-	"unicode"
-	"unicode/utf8"
-)
+import "unicode/utf8"
 
 // ============================================================================
 // Ön bölme (pre-tokenization)
@@ -35,36 +32,35 @@ const (
 	sinifBosluk = 4
 )
 
-var asciiSinif [128]uint8
+// Sınıflar başvuru uygulamasının düzenli ifade motorundan çıkarılmış
+// tablolardan gelir (karaktertablo.go); sık kullanılan ilk 0x800 kod noktası
+// için önceden hesaplanmış bir dizi kullanılır.
+var dusukSinif [0x800]uint8
 
 func init() {
-	for c := 0; c < 128; c++ {
-		r := rune(c)
-		switch {
-		case unicode.IsLetter(r):
-			asciiSinif[c] = sinifHarf
-		case unicode.IsNumber(r):
-			asciiSinif[c] = sinifSayi
-		case unicode.IsSpace(r):
-			asciiSinif[c] = sinifBosluk
-		}
+	for c := 0; c < len(dusukSinif); c++ {
+		dusukSinif[c] = sinifHesapla(rune(c))
 	}
+}
+
+func sinifHesapla(r rune) uint8 {
+	switch {
+	case onigHarfTablo.icinde(r):
+		return sinifHarf
+	case onigSayiTablo.icinde(r):
+		return sinifSayi
+	case onigBoslukTablo.icinde(r):
+		return sinifBosluk
+	}
+	return 0
 }
 
 // sinif bir karakterin sınıf bitini verir (0: "diğer").
 func sinif(r rune) uint8 {
-	if r < 128 {
-		return asciiSinif[r]
+	if r >= 0 && r < rune(len(dusukSinif)) {
+		return dusukSinif[r]
 	}
-	switch {
-	case unicode.IsLetter(r):
-		return sinifHarf
-	case unicode.IsNumber(r):
-		return sinifSayi
-	case unicode.IsSpace(r):
-		return sinifBosluk
-	}
-	return 0
+	return sinifHesapla(r)
 }
 
 // karakter s[i] konumundaki karakteri ve bayt genişliğini verir.

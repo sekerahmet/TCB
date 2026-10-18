@@ -89,54 +89,10 @@ func (t *birlesmeTablosu) bul(a, b int32) birlesme {
 	}
 }
 
-// kisaEsik bu uzunluğa kadar (sembol sayısı) doğrudan tarama kullanılır.
-const kisaEsik = 48
-
-// bpeKodla parçanın baytlarını kodlar ve kimlikleri dst'ye ekler.
-func (p *Parcalayici) bpeKodla(dst []int32, parca string) []int32 {
-	// İlk semboller: her bayt bir token. Sözlükte karşılığı olmayan bayt,
-	// bilinmeyen token tanımlıysa ona dönüşür, değilse atlanır.
-	var yerel [kisaEsik]int32
-	var sem []int32
-	if len(parca) <= kisaEsik {
-		sem = yerel[:0]
-	} else {
-		sem = make([]int32, 0, len(parca))
-	}
-	oncekiBilinmeyen := false
-	for i := 0; i < len(parca); i++ {
-		id := p.baytID[parca[i]]
-		if id < 0 {
-			if p.bilinmeyen < 0 {
-				continue
-			}
-			if p.bilinmeyenBirlestir && oncekiBilinmeyen {
-				continue
-			}
-			oncekiBilinmeyen = true
-			sem = append(sem, p.bilinmeyen)
-			continue
-		}
-		oncekiBilinmeyen = false
-		sem = append(sem, id)
-	}
-	if p.birlesmeYoksay && len(sem) > 1 {
-		if id, ok := p.baytSozluk[parca]; ok {
-			return append(dst, id)
-		}
-	}
-	if len(sem) <= kisaEsik {
-		sem = p.birlestirKisa(sem)
-	} else {
-		sem = p.birlestirUzun(sem)
-	}
-	return append(dst, sem...)
-}
-
 // birlestirKisa doğrudan tarama ile birleştirir.
 // Her komşu çiftin birleştirmesi bir kez aranıp dizide tutulur; bir
 // birleştirmeden sonra yalnızca değişen iki komşu çift yeniden aranır.
-func (p *Parcalayici) birlestirKisa(sem []int32) []int32 {
+func (p *bpeModel) birlestirKisa(sem []int32) []int32 {
 	if len(sem) < 2 {
 		return sem
 	}
@@ -203,7 +159,7 @@ func (h *adayYigini) Pop() any {
 }
 
 // birlestirUzun bağlı liste ve öncelik kuyruğu ile birleştirir (O(n log n)).
-func (p *Parcalayici) birlestirUzun(sem []int32) []int32 {
+func (p *bpeModel) birlestirUzun(sem []int32) []int32 {
 	n := len(sem)
 	onceki := make([]int32, n)
 	sonraki := make([]int32, n)
