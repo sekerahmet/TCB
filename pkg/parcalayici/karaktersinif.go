@@ -22,24 +22,24 @@ func sozcukKarakteri(r rune) bool {
 	return tabloSozcuk.icinde(r)
 }
 
-// onigSozcuk düzenli ifadelerdeki \w sınıfıdır (L, M, N, Pc).
-func onigSozcuk(r rune) bool {
+// ifadeSozcuk düzenli ifadelerdeki \w sınıfıdır (L, M, N, Pc).
+func ifadeSozcuk(r rune) bool {
 	if r < 0x80 {
 		return r == '_' || (r >= '0' && r <= '9') || (r|0x20 >= 'a' && r|0x20 <= 'z')
 	}
-	return tabloOnigSozcuk.icinde(r)
+	return tabloIfadeSozcuk.icinde(r)
 }
 
-// onigBosluk düzenli ifadelerdeki \s sınıfıdır.
-func onigBosluk(r rune) bool {
+// ifadeBosluk düzenli ifadelerdeki \s sınıfıdır.
+func ifadeBosluk(r rune) bool {
 	if r < 0x80 {
 		return r == ' ' || (r >= '\t' && r <= '\r')
 	}
-	return onigBoslukTablo.icinde(r)
+	return ifadeBoslukTablo.icinde(r)
 }
 
 var (
-	onigHarfTablo   = onigKategori["l"]
-	onigSayiTablo   = onigKategori["n"]
-	onigBoslukTablo = onigKategori["bosluk"]
+	ifadeHarfTablo   = ifadeKategori["l"]
+	ifadeSayiTablo   = ifadeKategori["n"]
+	ifadeBoslukTablo = ifadeKategori["bosluk"]
 )

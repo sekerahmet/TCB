@@ -92,7 +92,7 @@ func (p *Parcalayici) KodlaCift(birinci string, ikinci *string, s Secenekler) *K
 // dizi tek bir metnin (son işleme öncesi) kimliklerini dst'ye ekler.
 func (p *Parcalayici) dizi(dst []int32, metin string, ozelleriAtla bool) []int32 {
 	metin = gecerliMetin(metin)
-	var tampon []Parca
+	modelKodla := func(x Parca) { dst = p.model.Kodla(dst, x) }
 	p.hamEslesme.bol(metin, ozelleriAtla, func(a ekParca) {
 		if a.id >= 0 {
 			dst = append(dst, a.id)
@@ -116,10 +116,7 @@ func (p *Parcalayici) dizi(dst []int32, metin string, ozelleriAtla bool) []int32
 				dst = p.model.Kodla(dst, parca)
 				return
 			}
-			tampon = p.onBolucu.OnBol(tampon[:0], []Parca{parca})
-			for _, x := range tampon {
-				dst = p.model.Kodla(dst, x)
-			}
+			onBolAkis(p.onBolucu, parca, modelKodla)
 		})
 	})
 	return dst

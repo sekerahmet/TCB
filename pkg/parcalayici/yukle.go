@@ -10,7 +10,7 @@
 //
 // Desteklenen türler:
 //   - normalleştirici: NFC, NFD, NFKC, NFKD, Lowercase, Strip, StripAccents,
-//     Replace, Prepend, Nmt, ByteLevel, BertNormalizer, Sequence
+//     Replace, Prepend, Nmt, ByteLevel, BertNormalizer, Precompiled, Sequence
 //   - ön bölücü: ByteLevel, Split, Whitespace, WhitespaceSplit, Metaspace,
 //     BertPreTokenizer, Punctuation, Digits, CharDelimiterSplit, Sequence
 //   - model: BPE (byte_fallback, unk_token, fuse_unk, önek/sonek, ignore_merges),

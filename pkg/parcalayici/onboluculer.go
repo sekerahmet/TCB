@@ -83,17 +83,38 @@ func noktalamaMi(r rune) bool {
 type OnBolucuSirasi []OnBolucu
 
 func (s OnBolucuSirasi) OnBol(dst, parcalar []Parca) []Parca {
-	if len(s) == 0 {
-		return append(dst, parcalar...)
-	}
-	cur := parcalar
-	for i, o := range s {
-		if i == len(s)-1 {
-			return o.OnBol(dst, cur)
-		}
-		cur = o.OnBol(nil, cur)
+	for _, p := range parcalar {
+		s.akis(p, func(x Parca) { dst = append(dst, x) })
 	}
 	return dst
+}
+
+// akis zinciri derinlik öncelikli uygular: her parça, bir sonraki adıma
+// hemen aktarılır; ara dilimler kurulmaz (büyük belgelerde bellek dostu).
+func (s OnBolucuSirasi) akis(p Parca, f func(Parca)) {
+	adim := make([]func(Parca), len(s)+1)
+	adim[len(s)] = f
+	for k := len(s) - 1; k >= 0; k-- {
+		o, sonraki := s[k], adim[k+1]
+		adim[k] = func(x Parca) { onBolAkis(o, x, sonraki) }
+	}
+	adim[0](p)
+}
+
+// akisOnBolucu parçaları dilim kurmadan tek tek üretebilen ön bölücüdür.
+type akisOnBolucu interface {
+	akis(p Parca, f func(Parca))
+}
+
+// onBolAkis o'yu p'ye uygular ve her sonuç parçası için f'yi çağırır.
+func onBolAkis(o OnBolucu, p Parca, f func(Parca)) {
+	if a, ok := o.(akisOnBolucu); ok {
+		a.akis(p, f)
+		return
+	}
+	for _, x := range o.OnBol(nil, []Parca{p}) {
+		f(x)
+	}
 }
 
 func sirOnBolKur(ham json.RawMessage) (OnBolucu, error) {
@@ -309,24 +330,30 @@ func (b *desenleBol) bul(metin string, f func(bas, son int)) {
 
 func (b *desenleBol) OnBol(dst, parcalar []Parca) []Parca {
 	for _, p := range parcalar {
-		metin := p.Icerik()
-		// Hızlı yol: elle yazılmış desen her karakteri kapsar, "Isolated"
-		// davranışında her eşleşme doğrudan bir parçadır.
-		if b.hizli && b.davranis == davranisAyri {
-			for i := 0; i < len(metin); {
-				j := eslesmeSonu(metin, i)
-				dst = append(dst, Parca{Metin: metin[i:j], Ilk: p.Ilk && i == 0})
-				i = j
-			}
-			continue
-		}
-		a := eslesmeAraliklari(len(metin), func(f func(b, e int)) { b.bul(metin, f) })
-		if b.ters {
-			tersCevir(a)
-		}
-		dst = davranisUygula(dst, p, metin, a, b.davranis)
+		b.akis(p, func(x Parca) { dst = append(dst, x) })
 	}
 	return dst
+}
+
+func (b *desenleBol) akis(p Parca, f func(Parca)) {
+	metin := p.Icerik()
+	// Hızlı yol: elle yazılmış desen her karakteri kapsar, "Isolated"
+	// davranışında her eşleşme doğrudan bir parçadır.
+	if b.hizli && b.davranis == davranisAyri {
+		for i := 0; i < len(metin); {
+			j := eslesmeSonu(metin, i)
+			f(Parca{Metin: metin[i:j], Ilk: p.Ilk && i == 0})
+			i = j
+		}
+		return
+	}
+	a := eslesmeAraliklari(len(metin), func(f func(b, e int)) { b.bul(metin, f) })
+	if b.ters {
+		tersCevir(a)
+	}
+	for _, x := range davranisUygula(nil, p, metin, a, b.davranis) {
+		f(x)
+	}
 }
 
 // karakterleBol her uyan karakteri ayrı bir eşleşme sayarak böler.
@@ -393,10 +420,10 @@ func (bosluklaBol) OnBol(dst, parcalar []Parca) []Parca {
 // ByteLevel
 // ---------------------------------------------------------------------------
 
-// GPT2Deseni bayt düzeyi ön bölücünün use_regex=true iken kullandığı desendir.
-const GPT2Deseni = `'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+`
+// BaytDuzeyiDeseni bayt düzeyi ön bölücünün use_regex=true iken kullandığı desendir.
+const BaytDuzeyiDeseni = `'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+`
 
-var gpt2Ifade *DuzIfade
+var baytDuzeyiIfade *DuzIfade
 
 type baytOnBol struct {
 	onekBosluk bool
@@ -421,52 +448,55 @@ func baytOnBolKur(ham json.RawMessage) (OnBolucu, error) {
 	if t.UseRegex != nil {
 		b.desenle = *t.UseRegex
 	}
-	if b.desenle && gpt2Ifade == nil {
-		ifade, err := DuzIfadeDerle(GPT2Deseni)
+	if b.desenle && baytDuzeyiIfade == nil {
+		ifade, err := DuzIfadeDerle(BaytDuzeyiDeseni)
 		if err != nil {
 			return nil, err
 		}
-		gpt2Ifade = ifade
+		baytDuzeyiIfade = ifade
 	}
 	return b, nil
 }
 
 func (b *baytOnBol) OnBol(dst, parcalar []Parca) []Parca {
 	for _, p := range parcalar {
-		if p.Metin == "" {
-			continue
-		}
-		m := p.Icerik()
-		if b.onekBosluk && !strings.HasPrefix(m, " ") {
-			m = " " + m
-		}
-		ekle := func(s string, ilk bool) {
-			if s == "" {
-				return
-			}
-			if b.tembel {
-				dst = append(dst, Parca{Metin: s, Ilk: ilk, baytDuzeyi: true})
-			} else {
-				dst = append(dst, Parca{Metin: baytlariKarakterle([]byte(s)), Ilk: ilk})
-			}
-		}
-		if !b.desenle {
-			ekle(m, p.Ilk)
-			continue
-		}
-		onceki := 0
-		gpt2Ifade.TumEslesmeler(m, func(bas, son int) {
-			if onceki < bas {
-				ekle(m[onceki:bas], p.Ilk && onceki == 0)
-			}
-			ekle(m[bas:son], p.Ilk && bas == 0)
-			onceki = son
-		})
-		if onceki < len(m) {
-			ekle(m[onceki:], p.Ilk && onceki == 0)
-		}
+		b.akis(p, func(x Parca) { dst = append(dst, x) })
 	}
 	return dst
+}
+
+func (b *baytOnBol) cevir(s string, ilk bool) Parca {
+	if b.tembel {
+		return Parca{Metin: s, Ilk: ilk, baytDuzeyi: true}
+	}
+	return Parca{Metin: baytlariKarakterle([]byte(s)), Ilk: ilk}
+}
+
+func (b *baytOnBol) akis(p Parca, f func(Parca)) {
+	if p.Metin == "" {
+		return
+	}
+	m := p.Icerik()
+	if b.onekBosluk && !strings.HasPrefix(m, " ") {
+		m = " " + m
+	}
+	if !b.desenle {
+		f(b.cevir(m, p.Ilk))
+		return
+	}
+	onceki := 0
+	baytDuzeyiIfade.TumEslesmeler(m, func(bas, son int) {
+		if onceki < bas {
+			f(b.cevir(m[onceki:bas], p.Ilk && onceki == 0))
+		}
+		if son > bas {
+			f(b.cevir(m[bas:son], p.Ilk && bas == 0))
+		}
+		onceki = son
+	})
+	if onceki < len(m) {
+		f(b.cevir(m[onceki:], p.Ilk && onceki == 0))
+	}
 }
 
 // ---------------------------------------------------------------------------

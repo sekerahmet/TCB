@@ -507,13 +507,13 @@ func (a *dfAyristirici) kacisSinifi(c rune) (func(rune) bool, bool, error) {
 	case 'D':
 		return dfDegil(dfRakam), true, nil
 	case 's':
-		return onigBosluk, true, nil
+		return ifadeBosluk, true, nil
 	case 'S':
-		return dfDegil(onigBosluk), true, nil
+		return dfDegil(ifadeBosluk), true, nil
 	case 'w':
-		return onigSozcuk, true, nil
+		return ifadeSozcuk, true, nil
 	case 'W':
-		return dfDegil(onigSozcuk), true, nil
+		return dfDegil(ifadeSozcuk), true, nil
 	case 'h':
 		return dfOnaltilik, true, nil
 	case 'H':
@@ -552,7 +552,7 @@ func dfRakam(r rune) bool {
 	if r < utf8.RuneSelf {
 		return r >= '0' && r <= '9'
 	}
-	return tabloOnigRakam.icinde(r)
+	return tabloIfadeRakam.icinde(r)
 }
 
 func dfOnaltilik(r rune) bool {
@@ -806,7 +806,7 @@ func dfOzellikKur() {
 	m["c"] = func(r rune) bool { return unicode.Is(unicode.C, r) || !atanmis(r) }
 	// Genel kategoriler için başvuru uygulamasından çıkarılmış tablolar
 	// (Go'nun tablolarından daha yeni Unicode sürümünü yansıtabilir).
-	for ad, t := range onigKategori {
+	for ad, t := range ifadeKategori {
 		m[ad] = t.icinde
 	}
 	m["unassigned"] = m["cn"]
@@ -837,7 +837,7 @@ func dfOzellikKur() {
 	m["alnum"] = func(r rune) bool { return m["alphabetic"](r) || dfRakam(r) }
 	m["space"] = unicode.IsSpace
 	m["whitespace"] = unicode.IsSpace
-	m["word"] = onigSozcuk
+	m["word"] = ifadeSozcuk
 	m["upper"] = func(r rune) bool { return unicode.In(r, unicode.Lu, unicode.Other_Uppercase) }
 	m["uppercase"] = m["upper"]
 	m["lower"] = func(r rune) bool { return unicode.In(r, unicode.Ll, unicode.Other_Lowercase) }
@@ -983,7 +983,7 @@ func (m *dfEslestirici) capa(tur byte, pos int) bool {
 	case 'b', 'B':
 		r1, _ := m.onceki(pos)
 		r2, _ := m.sonraki(pos)
-		sinir := (r1 >= 0 && onigSozcuk(r1)) != (r2 >= 0 && onigSozcuk(r2))
+		sinir := (r1 >= 0 && ifadeSozcuk(r1)) != (r2 >= 0 && ifadeSozcuk(r2))
 		return sinir == (tur == 'b')
 	}
 	return false

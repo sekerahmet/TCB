@@ -51,7 +51,7 @@ def main():
     kucuk = nz.Lowercase()
 
     kumeler = {k: set() for k in ["aksan", "bertKontrol", "bertAksan", "bertNoktalama", "rakam",
-                                  "sozcuk", "bosluk", "onigSozcuk", "onigRakam"]}
+                                  "sozcuk", "bosluk", "ifadeSozcuk", "ifadeRakam"]}
     kucuk_istisna = {}
     for c in kod_noktalari():
         ch = chr(c)
@@ -73,19 +73,19 @@ def main():
         if len(bosluk_pt.pre_tokenize_str(s)) == 1:
             kumeler["sozcuk"].add(c)
         if len(onig_w.pre_tokenize_str(s)) != 2:
-            kumeler["onigSozcuk"].add(c)
+            kumeler["ifadeSozcuk"].add(c)
         if len(onig_d.pre_tokenize_str(s)) == 2:
-            kumeler["onigRakam"].add(c)
+            kumeler["ifadeRakam"].add(c)
         k = kucuk.normalize_str(ch)
         if k != ch.lower():
             kucuk_istisna[c] = k
     # Harfler ve rakamlar her zaman sözcük karakteridir ('a', 'b' sınamasında görünmez).
     for c in range(ord("0"), ord("9") + 1):
         kumeler["sozcuk"].add(c)
-        kumeler["onigSozcuk"].add(c)
+        kumeler["ifadeSozcuk"].add(c)
     for c in list(range(ord("a"), ord("z") + 1)) + list(range(ord("A"), ord("Z") + 1)) + [ord("_")]:
         kumeler["sozcuk"].add(c)
-        kumeler["onigSozcuk"].add(c)
+        kumeler["ifadeSozcuk"].add(c)
 
     # Düzenli ifade motorunun genel kategori sınıfları (\p{L} vb.): desen
     # "removed" davranışıyla uygulanır; kalan parçaların dışında kalan
@@ -129,8 +129,8 @@ def main():
             f.write("var tablo%s%s = karakterTablosu{" % (ad[0].upper(), ad[1:]))
             f.write(", ".join("{0x%X, 0x%X}" % (a, b) for a, b in araliklar(kume)))
             f.write("}\n\n")
-        f.write("// onigKategori düzenli ifade motorunun \\p{..} genel kategori tablolarıdır.\n")
-        f.write("var onigKategori = map[string]karakterTablosu{\n")
+        f.write("// ifadeKategori düzenli ifade motorunun \\p{..} genel kategori tablolarıdır.\n")
+        f.write("var ifadeKategori = map[string]karakterTablosu{\n")
         for kat, kume in onig_kat.items():
             f.write('\t"%s": {%s},\n' % (kat.lower(), ", ".join("{0x%X, 0x%X}" % (a, b) for a, b in araliklar(kume))))
         f.write("}\n\n")

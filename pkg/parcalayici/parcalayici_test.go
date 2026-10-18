@@ -327,7 +327,7 @@ func TestGidisDonus(t *testing.T) {
 // Ön bölme parçalarının birleşimi girdinin kendisi olmalı.
 func TestOnBolmeKapsar(t *testing.T) {
 	for _, m := range girdileriYukle(t) {
-		if got := strings.Join(OnBol(m), ""); got != m {
+		if got := strings.Join(DesenleBol(m), ""); got != m {
 			t.Errorf("ön bölme metni kapsamıyor: %q -> %q", m, got)
 		}
 	}
@@ -350,8 +350,8 @@ func TestOnBolmeOrnekleri(t *testing.T) {
 		{"", nil},
 	}
 	for _, d := range durumlar {
-		if got := OnBol(d.metin); !reflect.DeepEqual(got, d.parca) {
-			t.Errorf("OnBol(%q) = %q, beklenen %q", d.metin, got, d.parca)
+		if got := DesenleBol(d.metin); !reflect.DeepEqual(got, d.parca) {
+			t.Errorf("DesenleBol(%q) = %q, beklenen %q", d.metin, got, d.parca)
 		}
 	}
 }
@@ -366,7 +366,7 @@ func TestHizliDesenMotorlaAyni(t *testing.T) {
 	for _, m := range girdileriYukle(t) {
 		var got []string
 		ifade.TumEslesmeler(m, func(b, e int) { got = append(got, m[b:e]) })
-		if want := OnBol(m); !reflect.DeepEqual(got, want) {
+		if want := DesenleBol(m); !reflect.DeepEqual(got, want) {
 			t.Errorf("%q: motor %q, hızlı yol %q", m, got, want)
 		}
 	}
@@ -545,7 +545,7 @@ func TestOnbelleksizVeUzun(t *testing.T) {
 	// Kısa ve uzun birleştirme yolları aynı sonucu vermeli.
 	bm := p.model.(*bpeModel)
 	for _, k := range a.Kodlama {
-		for _, s := range OnBol(k.Metin) {
+		for _, s := range DesenleBol(k.Metin) {
 			var sem []int32
 			for i := 0; i < len(s); i++ {
 				if id := bm.baytKarID[s[i]]; id >= 0 {

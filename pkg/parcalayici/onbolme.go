@@ -45,11 +45,11 @@ func init() {
 
 func sinifHesapla(r rune) uint8 {
 	switch {
-	case onigHarfTablo.icinde(r):
+	case ifadeHarfTablo.icinde(r):
 		return sinifHarf
-	case onigSayiTablo.icinde(r):
+	case ifadeSayiTablo.icinde(r):
 		return sinifSayi
-	case onigBoslukTablo.icinde(r):
+	case ifadeBoslukTablo.icinde(r):
 		return sinifBosluk
 	}
 	return 0
@@ -158,8 +158,8 @@ func onBol(s string, f func(parca string)) {
 	}
 }
 
-// OnBol metni ön bölme desenine göre parçalara ayırır (sınama ve inceleme için).
-func OnBol(metin string) []string {
+// DesenleBol metni BolmeDeseni'ne göre parçalara ayırır (sınama ve inceleme için).
+func DesenleBol(metin string) []string {
 	metin = gecerliMetin(metin)
 	var out []string
 	onBol(metin, func(p string) { out = append(out, p) })

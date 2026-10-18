@@ -13,7 +13,7 @@ import (
 // Precompiled normalleştirici (önceden derlenmiş karakter eşlemesi)
 // ============================================================================
 //
-// Cümle parçası (sentencepiece) tabanlı modellerden dönüştürülen
+// Cümle parçası tabanlı modellerden dönüştürülen
 // parçalayıcılarda normalleştirme kuralları ikili bir "charsmap" olarak
 // saklanır: bir çift dizili (double-array) önek ağacı ve sıfırla ayrılmış
 // normalleştirilmiş metinler. Metin grafem kümelerine ayrılır; 6 bayttan kısa
