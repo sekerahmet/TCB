@@ -56,6 +56,26 @@ test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
     doğrula(tensör([7.0]) != 7)
 }
 
+test "4.5 fonksiyonlar kimlikle karşılaştırılır" {
+    değişken f = x => x
+    değişken g = f
+    doğrula(f == g)
+    doğrula((x => x) != (x => x * 2))
+    fonksiyon yap(n) { sonuç fonksiyon() { sonuç n } }
+    doğrula(yap(1) != yap(2))
+    doğrula(yazdır == yazdır)
+    doğrula(yazdır != uzunluk)
+    yapı Kutu {
+        d = 0
+        fonksiyon al() { sonuç kendi.d }
+    }
+    değişken k = Kutu(1)
+    doğrula(k.al == k.al)
+    doğrula(k.al != Kutu(1).al)
+    doğrula(Kutu == Kutu)
+    doğrula(1..3 == 1..3 ve 1..3 != 1..=3)
+}
+
 test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
     değişken cagrildi = yanlış
     fonksiyon yan_etki() {

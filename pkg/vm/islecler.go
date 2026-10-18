@@ -376,8 +376,32 @@ func degerlerEsit(a, b Value, derinlik int) bool {
 			}
 			return true
 		}
+	case *BoolVal:
+		return x.Val == b.(*BoolVal).Val
+	case *RangeVal:
+		y := b.(*RangeVal)
+		return x.Start == y.Start && x.End == y.End && x.Inclusive == y.Inclusive
+	case *FuncVal:
+		// Kimlik: aynı değer ya da aynı tanımın aynı ortamdaki (ve metotlarda aynı nesneye
+		// bağlı) kopyası. Görünüşü (Inspect) aynı olan farklı fonksiyonlar eşit değildir.
+		y := b.(*FuncVal)
+		return x == y || (x.kod != nil && x.kod == y.kod && x.Env == y.Env && x.Body == y.Body && ayniDeger(x.BoundSelf, y.BoundSelf))
 	}
-	return a.Inspect() == b.Inspect()
+	// Diğer değerler (yerleşikler, yapı tanımları, motor nesneleri) kimlikle karşılaştırılır.
+	return a == b
+}
+
+// ayniDeger iki değerin (nil olabilir) aynı nesne olup olmadığını söyler.
+func ayniDeger(a, b Value) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	ap, aok := a.(*StructInstanceVal)
+	bp, bok := b.(*StructInstanceVal)
+	if aok && bok {
+		return ap == bp
+	}
+	return aok == bok && a == b
 }
 
 // intPow tam sayı üssünü kare-çarp yöntemiyle hesaplar; int64 taşmasında ok=false döner.
