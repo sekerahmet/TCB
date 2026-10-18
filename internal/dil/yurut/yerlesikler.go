@@ -13,279 +13,327 @@ import (
 	"tr_dili/internal/dil/turkce"
 )
 
+// cekirdekYerlesikleri çekirdeğin adlı argüman almayan yerleşikleridir; kayıt sırası
+// tablodaki sıradır. Adlar kod listesindedir (internal/dil/kod).
+var cekirdekYerlesikleri = [...]struct {
+	kd kod.Kod
+	fn BuiltinFunc
+}{
+	{kod.G100, yazdirYerlesik},
+	{kod.G101, girdiYerlesik},
+	{kod.G201, tipYerlesik},
+	{kod.G210, tamYerlesik},
+	{kod.G211, ondalikYerlesik},
+	{kod.G212, metinYerlesik},
+	{kod.G305, aralikYerlesik},
+	{kod.G400, toplamYerlesik},
+	{kod.G401, minYerlesik},
+	{kod.G402, maksYerlesik},
+	{kod.G403, mutlakYerlesik},
+	{kod.G404, karekokYerlesik},
+	{kod.G405, yuvarlaYerlesik},
+	{kod.G501, bekleHepsiYerlesik},
+	{kod.G502, zamanMsYerlesik},
+	{kod.G110, dosyaOkuYerlesik},
+	{kod.G111, dosyaYazYerlesik},
+	{kod.G500, bekleYerlesik},
+}
+
 func (v *VM) registerBuiltins() {
-	// 1. Ekrana Yazdırma: yazdır(...)
-	v.AdlisizKaydet(kod.G100, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		var parts []string
-		for _, a := range args {
-			parts = append(parts, a.Inspect())
-		}
-		out := strings.Join(parts, " ")
-		fmt.Fprintln(y.Out, out)
-		return &StringVal{Val: out}, nil
-	})
-
-	// 2. Kullanıcıdan Girdi Alma: girdi("Adınız: ")
-	v.AdlisizKaydet(kod.G101, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) > 1 {
-			return nil, ArgumanSayisiHatasi("girdi", "0 ya da 1", len(args), "girdi() ya da girdi(istem)")
-		}
-		if len(args) > 0 {
-			fmt.Fprint(y.Out, args[0].Inspect())
-		}
-		line, readErr := y.satirOku()
-		if readErr != nil && readErr != io.EOF && line == "" {
-			return nil, fmt.Errorf("girdi(): standart girdi okunamadı: %s", turkce.DosyaHatasiNedeni("", readErr))
-		}
-		line = strings.TrimRight(line, "\r\n")
-		return &StringVal{Val: line}, nil
-	})
-
-	// 4. Tip Sorgulama: tip(x)
-	v.AdlisizKaydet(kod.G201, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("tip", "1", len(args), "tip(değer)")
-		}
-		return &StringVal{Val: string(args[0].Type())}, nil
-	})
-
-	// 5. Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
-	v.AdlisizKaydet(kod.G210, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("tam", "1", len(args), "tam(değer)")
-		}
-		switch val := args[0].(type) {
-		case *IntVal:
-			return val, nil
-		case *FloatVal:
-			n, err := ondaliktanTam("tam()", val.Val)
-			if err != nil {
-				return nil, err
-			}
-			return NewInt(n), nil
-		case *StringVal:
-			n, err := strconv.ParseInt(strings.TrimSpace(val.Val), 10, 64)
-			if err != nil {
-				return nil, fmt.Errorf("tam(): %q tam sayıya çevrilemedi (yalnızca rakamlardan oluşan bir metin verin, ör. \"42\")", val.Val)
-			}
-			return NewInt(n), nil
-		case *BoolVal:
-			if val.Val {
-				return NewInt(1), nil
-			}
-			return NewInt(0), nil
-		default:
-			return nil, ArgumanTipHatasi("tam", 1, "Tam, Ondalık, Metin ya da Mantık", args[0])
-		}
-	})
-
-	v.AdlisizKaydet(kod.G211, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("ondalık", "1", len(args), "ondalık(değer)")
-		}
-		switch val := args[0].(type) {
-		case *FloatVal:
-			return val, nil
-		case *IntVal:
-			return &FloatVal{Val: float64(val.Val)}, nil
-		case *StringVal:
-			n, err := strconv.ParseFloat(strings.TrimSpace(val.Val), 64)
-			if err != nil {
-				return nil, fmt.Errorf("ondalık(): %q ondalık sayıya çevrilemedi (ondalık ayırıcı nokta olmalı, ör. \"3.14\")", val.Val)
-			}
-			return &FloatVal{Val: n}, nil
-		default:
-			return nil, ArgumanTipHatasi("ondalık", 1, "Ondalık, Tam ya da Metin", args[0])
-		}
-	})
-
-	v.AdlisizKaydet(kod.G212, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("metin", "1", len(args), "metin(değer)")
-		}
-		return metinTek(y, args[0])
-	})
+	for _, k := range cekirdekYerlesikleri {
+		v.AdlisizKaydet(k.kd, k.fn)
+	}
 	v.tekArgumanli(kod.G212, metinTek)
+}
 
-	// 6. Liste: aralık(bitiş) ya da aralık(başlangıç, bitiş)
-	v.AdlisizKaydet(kod.G305, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) == 1 {
-			end, ok := args[0].(*IntVal)
-			if !ok {
-				return nil, ArgumanTipHatasi("aralık", 1, "Tam", args[0])
-			}
-			if err := checkRangeSize(0, end.Val); err != nil {
-				return nil, err
-			}
-			elems := []Value{}
-			for i := int64(0); i < end.Val; i++ {
-				elems = append(elems, NewInt(i))
-			}
-			return &ListVal{Elements: elems}, nil
-		}
-		if len(args) == 2 {
-			start, ok := args[0].(*IntVal)
-			if !ok {
-				return nil, ArgumanTipHatasi("aralık", 1, "Tam", args[0])
-			}
-			end, ok := args[1].(*IntVal)
-			if !ok {
-				return nil, ArgumanTipHatasi("aralık", 2, "Tam", args[1])
-			}
-			if err := checkRangeSize(start.Val, end.Val); err != nil {
-				return nil, err
-			}
-			elems := []Value{}
-			for i := start.Val; i < end.Val; i++ {
-				elems = append(elems, NewInt(i))
-			}
-			return &ListVal{Elements: elems}, nil
-		}
-		return nil, ArgumanSayisiHatasi("aralık", "1 ya da 2", len(args), "aralık(bitiş) ya da aralık(başlangıç, bitiş)")
-	})
+// yazdirYerlesik yazdır() yerleşiğidir.
+// Ekrana Yazdırma: yazdır(...)
+func yazdirYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	var parts []string
+	for _, a := range args {
+		parts = append(parts, a.Inspect())
+	}
+	out := strings.Join(parts, " ")
+	fmt.Fprintln(y.Out, out)
+	return &StringVal{Val: out}, nil
+}
 
-	// 7. Temel Matematik Fonksiyonları
-	v.AdlisizKaydet(kod.G400, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("toplam", "1", len(args), "toplam(liste)")
-		}
-		list, ok := args[0].(*ListVal)
-		if !ok {
-			return nil, ArgumanTipHatasi("toplam", 1, "Liste", args[0])
-		}
-		return sayiTopla("toplam()", list.Elements)
-	})
+// girdiYerlesik girdi() yerleşiğidir.
+// Kullanıcıdan Girdi Alma: girdi("Adınız: ")
+func girdiYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) > 1 {
+		return nil, ArgumanSayisiHatasi("girdi", "0 ya da 1", len(args), "girdi() ya da girdi(istem)")
+	}
+	if len(args) > 0 {
+		fmt.Fprint(y.Out, args[0].Inspect())
+	}
+	line, readErr := y.satirOku()
+	if readErr != nil && readErr != io.EOF && line == "" {
+		return nil, fmt.Errorf("girdi(): standart girdi okunamadı: %s", turkce.DosyaHatasiNedeni("", readErr))
+	}
+	line = strings.TrimRight(line, "\r\n")
+	return &StringVal{Val: line}, nil
+}
 
-	// min/maks: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
-	v.AdlisizKaydet(kod.G401, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		return enUcArgumanlari("min", args, false)
-	})
+// tipYerlesik tip() yerleşiğidir.
+// Tip Sorgulama: tip(x)
+func tipYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, ArgumanSayisiHatasi("tip", "1", len(args), "tip(değer)")
+	}
+	return &StringVal{Val: string(args[0].Type())}, nil
+}
 
-	v.AdlisizKaydet(kod.G402, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		return enUcArgumanlari("maks", args, true)
-	})
-
-	v.AdlisizKaydet(kod.G403, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("mutlak", "1", len(args), "mutlak(sayı)")
-		}
-		if iv, ok := args[0].(*IntVal); ok {
-			if iv.Val == math.MinInt64 {
-				return nil, fmt.Errorf("mutlak(): Tam sayı taşması (mutlak(%d)); ondalık sonuç için mutlak(ondalık(x)) yazın", iv.Val)
-			}
-			if iv.Val < 0 {
-				return NewInt(-iv.Val), nil
-			}
-			return iv, nil
-		}
-		if fv, ok := ToFloat(args[0]); ok {
-			return &FloatVal{Val: math.Abs(fv)}, nil
-		}
-		return nil, ArgumanTipHatasi("mutlak", 1, sayiTipi, args[0])
-	})
-
-	v.AdlisizKaydet(kod.G404, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("karekök", "1", len(args), "karekök(sayı)")
-		}
-		if fv, ok := ToFloat(args[0]); ok {
-			return &FloatVal{Val: math.Sqrt(fv)}, nil
-		}
-		return nil, ArgumanTipHatasi("karekök", 1, sayiTipi, args[0])
-	})
-
-	v.AdlisizKaydet(kod.G405, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) < 1 || len(args) > 2 {
-			return nil, ArgumanSayisiHatasi("yuvarla", "1 ya da 2", len(args), "yuvarla(sayı) ya da yuvarla(sayı, basamak)")
-		}
-		fv, ok := ToFloat(args[0])
-		if !ok {
-			return nil, ArgumanTipHatasi("yuvarla", 1, sayiTipi, args[0])
-		}
-		digits := 0
-		if len(args) == 2 {
-			iv, ok := args[1].(*IntVal)
-			if !ok {
-				return nil, ArgumanTipHatasi("yuvarla", 2, "Tam", args[1])
-			}
-			digits = int(iv.Val)
-		}
-		if digits > 0 {
-			pow := math.Pow(10, float64(digits))
-			return &FloatVal{Val: math.Round(fv*pow) / pow}, nil
-		}
-		// Basamak 0 ya da negatifse sonuç Tam'dır: yuvarla(1234, -2) → 1200
-		if iv, ok := args[0].(*IntVal); ok && digits == 0 {
-			return iv, nil
-		}
-		yuvarlanan := math.Round(fv)
-		if digits < 0 {
-			pow := math.Pow(10, float64(-digits))
-			yuvarlanan = math.Round(fv/pow) * pow
-		}
-		n, err := ondaliktanTam("yuvarla()", yuvarlanan)
+// tamYerlesik tam() yerleşiğidir.
+// Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
+func tamYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, ArgumanSayisiHatasi("tam", "1", len(args), "tam(değer)")
+	}
+	switch val := args[0].(type) {
+	case *IntVal:
+		return val, nil
+	case *FloatVal:
+		n, err := ondaliktanTam("tam()", val.Val)
 		if err != nil {
 			return nil, err
 		}
 		return NewInt(n), nil
-	})
-
-	// 8. Eşzamanlılık, Zaman ve Dosya İşlemleri
-	v.AdlisizKaydet(kod.G501, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
-		if y.asyncTask {
-			return nil, fmt.Errorf("bekle_hepsi() 'eşzamanlı' bloğu içinden çağrılamaz; ana programda kullanın")
-		}
-		y.WaitAsync()
-		return TRUE, nil
-	})
-
-	v.AdlisizKaydet(kod.G502, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		return NewInt(time.Now().UnixMilli()), nil
-	})
-
-	v.AdlisizKaydet(kod.G110, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("dosya_oku", "1", len(args), "dosya_oku(yol)")
-		}
-		yol, ok := args[0].(*StringVal)
-		if !ok {
-			return nil, ArgumanTipHatasi("dosya_oku", 1, "Metin (dosya yolu)", args[0])
-		}
-		cozulen, bakilanlar := y.YolCoz(yol.Val)
-		data, err := os.ReadFile(cozulen)
+	case *StringVal:
+		n, err := strconv.ParseInt(strings.TrimSpace(val.Val), 10, 64)
 		if err != nil {
-			return nil, OkumaHatasi("dosya_oku()", yol.Val, "okunamadı", err, bakilanlar)
+			return nil, fmt.Errorf("tam(): %q tam sayıya çevrilemedi (yalnızca rakamlardan oluşan bir metin verin, ör. \"42\")", val.Val)
 		}
-		return &StringVal{Val: string(data)}, nil
-	})
+		return NewInt(n), nil
+	case *BoolVal:
+		if val.Val {
+			return NewInt(1), nil
+		}
+		return NewInt(0), nil
+	default:
+		return nil, ArgumanTipHatasi("tam", 1, "Tam, Ondalık, Metin ya da Mantık", args[0])
+	}
+}
 
-	v.AdlisizKaydet(kod.G111, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 2 {
-			return nil, ArgumanSayisiHatasi("dosya_yaz", "2", len(args), "dosya_yaz(yol, içerik)")
+// ondalikYerlesik ondalık() yerleşiğidir.
+func ondalikYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, ArgumanSayisiHatasi("ondalık", "1", len(args), "ondalık(değer)")
+	}
+	switch val := args[0].(type) {
+	case *FloatVal:
+		return val, nil
+	case *IntVal:
+		return &FloatVal{Val: float64(val.Val)}, nil
+	case *StringVal:
+		n, err := strconv.ParseFloat(strings.TrimSpace(val.Val), 64)
+		if err != nil {
+			return nil, fmt.Errorf("ondalık(): %q ondalık sayıya çevrilemedi (ondalık ayırıcı nokta olmalı, ör. \"3.14\")", val.Val)
 		}
-		yol, ok := args[0].(*StringVal)
-		if !ok {
-			return nil, ArgumanTipHatasi("dosya_yaz", 1, "Metin (dosya yolu)", args[0])
-		}
-		cozulen, _ := y.YolCoz(yol.Val)
-		if err := os.WriteFile(cozulen, []byte(args[1].Inspect()), 0644); err != nil {
-			return nil, turkce.DosyaHatasi("dosya_yaz()", yol.Val, "yazılamadı", err)
-		}
-		return TRUE, nil
-	})
+		return &FloatVal{Val: n}, nil
+	default:
+		return nil, ArgumanTipHatasi("ondalık", 1, "Ondalık, Tam ya da Metin", args[0])
+	}
+}
 
-	v.AdlisizKaydet(kod.G500, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) != 1 {
-			return nil, ArgumanSayisiHatasi("bekle", "1", len(args), "bekle(saniye)")
-		}
-		sec, ok := ToFloat(args[0])
+// metinYerlesik metin() yerleşiğidir.
+func metinYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, ArgumanSayisiHatasi("metin", "1", len(args), "metin(değer)")
+	}
+	return metinTek(y, args[0])
+}
+
+// aralikYerlesik aralık() yerleşiğidir.
+// Liste: aralık(bitiş) ya da aralık(başlangıç, bitiş)
+func aralikYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) == 1 {
+		end, ok := args[0].(*IntVal)
 		if !ok {
-			return nil, ArgumanTipHatasi("bekle", 1, sayiTipi+" (saniye)", args[0])
+			return nil, ArgumanTipHatasi("aralık", 1, "Tam", args[0])
 		}
-		y.Blocking(func() { time.Sleep(time.Duration(sec * float64(time.Second))) })
-		return TRUE, nil
-	})
+		if err := checkRangeSize(0, end.Val); err != nil {
+			return nil, err
+		}
+		elems := []Value{}
+		for i := int64(0); i < end.Val; i++ {
+			elems = append(elems, NewInt(i))
+		}
+		return &ListVal{Elements: elems}, nil
+	}
+	if len(args) == 2 {
+		start, ok := args[0].(*IntVal)
+		if !ok {
+			return nil, ArgumanTipHatasi("aralık", 1, "Tam", args[0])
+		}
+		end, ok := args[1].(*IntVal)
+		if !ok {
+			return nil, ArgumanTipHatasi("aralık", 2, "Tam", args[1])
+		}
+		if err := checkRangeSize(start.Val, end.Val); err != nil {
+			return nil, err
+		}
+		elems := []Value{}
+		for i := start.Val; i < end.Val; i++ {
+			elems = append(elems, NewInt(i))
+		}
+		return &ListVal{Elements: elems}, nil
+	}
+	return nil, ArgumanSayisiHatasi("aralık", "1 ya da 2", len(args), "aralık(bitiş) ya da aralık(başlangıç, bitiş)")
+}
+
+// toplamYerlesik toplam() yerleşiğidir.
+// Temel Matematik Fonksiyonları
+func toplamYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, ArgumanSayisiHatasi("toplam", "1", len(args), "toplam(liste)")
+	}
+	list, ok := args[0].(*ListVal)
+	if !ok {
+		return nil, ArgumanTipHatasi("toplam", 1, "Liste", args[0])
+	}
+	return sayiTopla("toplam()", list.Elements)
+}
+
+// minYerlesik min() yerleşiğidir.
+// min/maks: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
+func minYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	return enUcArgumanlari("min", args, false)
+}
+
+// maksYerlesik maks() yerleşiğidir.
+func maksYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	return enUcArgumanlari("maks", args, true)
+}
+
+// mutlakYerlesik mutlak() yerleşiğidir.
+func mutlakYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, ArgumanSayisiHatasi("mutlak", "1", len(args), "mutlak(sayı)")
+	}
+	if iv, ok := args[0].(*IntVal); ok {
+		if iv.Val == math.MinInt64 {
+			return nil, fmt.Errorf("mutlak(): Tam sayı taşması (mutlak(%d)); ondalık sonuç için mutlak(ondalık(x)) yazın", iv.Val)
+		}
+		if iv.Val < 0 {
+			return NewInt(-iv.Val), nil
+		}
+		return iv, nil
+	}
+	if fv, ok := ToFloat(args[0]); ok {
+		return &FloatVal{Val: math.Abs(fv)}, nil
+	}
+	return nil, ArgumanTipHatasi("mutlak", 1, sayiTipi, args[0])
+}
+
+// karekokYerlesik karekök() yerleşiğidir.
+func karekokYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, ArgumanSayisiHatasi("karekök", "1", len(args), "karekök(sayı)")
+	}
+	if fv, ok := ToFloat(args[0]); ok {
+		return &FloatVal{Val: math.Sqrt(fv)}, nil
+	}
+	return nil, ArgumanTipHatasi("karekök", 1, sayiTipi, args[0])
+}
+
+// yuvarlaYerlesik yuvarla() yerleşiğidir.
+func yuvarlaYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) < 1 || len(args) > 2 {
+		return nil, ArgumanSayisiHatasi("yuvarla", "1 ya da 2", len(args), "yuvarla(sayı) ya da yuvarla(sayı, basamak)")
+	}
+	fv, ok := ToFloat(args[0])
+	if !ok {
+		return nil, ArgumanTipHatasi("yuvarla", 1, sayiTipi, args[0])
+	}
+	digits := 0
+	if len(args) == 2 {
+		iv, ok := args[1].(*IntVal)
+		if !ok {
+			return nil, ArgumanTipHatasi("yuvarla", 2, "Tam", args[1])
+		}
+		digits = int(iv.Val)
+	}
+	if digits > 0 {
+		pow := math.Pow(10, float64(digits))
+		return &FloatVal{Val: math.Round(fv*pow) / pow}, nil
+	}
+	// Basamak 0 ya da negatifse sonuç Tam'dır: yuvarla(1234, -2) → 1200
+	if iv, ok := args[0].(*IntVal); ok && digits == 0 {
+		return iv, nil
+	}
+	yuvarlanan := math.Round(fv)
+	if digits < 0 {
+		pow := math.Pow(10, float64(-digits))
+		yuvarlanan = math.Round(fv/pow) * pow
+	}
+	n, err := ondaliktanTam("yuvarla()", yuvarlanan)
+	if err != nil {
+		return nil, err
+	}
+	return NewInt(n), nil
+}
+
+// bekleHepsiYerlesik bekle_hepsi() yerleşiğidir.
+// Eşzamanlılık, Zaman ve Dosya İşlemleri
+func bekleHepsiYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
+	if y.asyncTask {
+		return nil, fmt.Errorf("bekle_hepsi() 'eşzamanlı' bloğu içinden çağrılamaz; ana programda kullanın")
+	}
+	y.WaitAsync()
+	return TRUE, nil
+}
+
+// zamanMsYerlesik zaman_ms() yerleşiğidir.
+func zamanMsYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	return NewInt(time.Now().UnixMilli()), nil
+}
+
+// dosyaOkuYerlesik dosya_oku() yerleşiğidir.
+func dosyaOkuYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, ArgumanSayisiHatasi("dosya_oku", "1", len(args), "dosya_oku(yol)")
+	}
+	yol, ok := args[0].(*StringVal)
+	if !ok {
+		return nil, ArgumanTipHatasi("dosya_oku", 1, "Metin (dosya yolu)", args[0])
+	}
+	cozulen, bakilanlar := y.YolCoz(yol.Val)
+	data, err := os.ReadFile(cozulen)
+	if err != nil {
+		return nil, OkumaHatasi("dosya_oku()", yol.Val, "okunamadı", err, bakilanlar)
+	}
+	return &StringVal{Val: string(data)}, nil
+}
+
+// dosyaYazYerlesik dosya_yaz() yerleşiğidir.
+func dosyaYazYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 2 {
+		return nil, ArgumanSayisiHatasi("dosya_yaz", "2", len(args), "dosya_yaz(yol, içerik)")
+	}
+	yol, ok := args[0].(*StringVal)
+	if !ok {
+		return nil, ArgumanTipHatasi("dosya_yaz", 1, "Metin (dosya yolu)", args[0])
+	}
+	cozulen, _ := y.YolCoz(yol.Val)
+	if err := os.WriteFile(cozulen, []byte(args[1].Inspect()), 0644); err != nil {
+		return nil, turkce.DosyaHatasi("dosya_yaz()", yol.Val, "yazılamadı", err)
+	}
+	return TRUE, nil
+}
+
+// bekleYerlesik bekle() yerleşiğidir.
+func bekleYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, ArgumanSayisiHatasi("bekle", "1", len(args), "bekle(saniye)")
+	}
+	sec, ok := ToFloat(args[0])
+	if !ok {
+		return nil, ArgumanTipHatasi("bekle", 1, sayiTipi+" (saniye)", args[0])
+	}
+	y.Blocking(func() { time.Sleep(time.Duration(sec * float64(time.Second))) })
+	return TRUE, nil
 }
 
 // sayiTipi sayı bekleyen yerleşiklerin hata mesajlarındaki tip adıdır.

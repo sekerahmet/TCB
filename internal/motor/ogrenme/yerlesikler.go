@@ -16,6 +16,39 @@ func Kaydet(v *yurut.VM) {
 	// Türevsiz kip görev başınadır (gorev.go).
 	v.GorevKancasiEkle(gorevKancasi)
 
+	olusturuculariKaydet(v)
+	matematigiKaydet(v)
+
+	// --- Sinir ağı ---
+	sar(v, kod.T500, yeniYerlesik(gomme))
+	sar(v, kod.T510, yeniYerlesik(caprazEntropi))
+	sar(v, kod.T501, yeniYerlesik(katmanNormu))
+	sar(v, kod.T502, yeniYerlesik(rmsNormu))
+	sar(v, kod.T503, yeniYerlesik(dikkatYerlesik)) // model_araclari.go
+	sar(v, kod.T530, yeniYerlesik(parametrelerYerlesik))
+	sar(v, kod.T611, yeniYerlesik(orneklemeYerlesik))
+
+	// --- Türev ---
+	sar(v, kod.T300, yeniYerlesik(geriYayilim))
+	sar(v, kod.T301, yeniYerlesik(turevsiz))
+	ozelTurevKaydet(v) // özel_türev, türev_denetle (ozel_turev.go)
+
+	// --- Veri türleri (veri_turu.go) ---
+	sar(v, kod.T710, yeniYerlesik(karisikHassasiyet))
+
+	// --- İyileştiriciler ---
+	sar(v, kod.T400, yeniYerlesik(adamWKur))
+	sar(v, kod.T401, yeniYerlesik(sgdKur))
+	sar(v, kod.T402, yeniYerlesik(gradyanKirp))
+
+	// --- İndeks, kaydetme ve yükleme ---
+	sar(v, kod.T230, yeniYerlesik(maksIndeks))
+	sar(v, kod.T700, yeniYerlesik(tensorKaydet))
+	sar(v, kod.T701, yeniYerlesik(tensorYukle))
+}
+
+// olusturuculariKaydet tensör oluşturucularını (matris ve görünüm dahil) kaydeder.
+func olusturuculariKaydet(v *yurut.VM) {
 	// --- Oluşturucular ---
 	sar(v, kod.T100, yeniYerlesik(tensorYerlesik))
 	sar(v, kod.T101, yeniYerlesik(sekilliOlusturucu(kod.T101, func(sh []int, _ map[string]yurut.Value) (*tensor.Tensor, error) {
@@ -31,7 +64,10 @@ func Kaydet(v *yurut.VM) {
 
 	// --- Görünüm ---
 	sar(v, kod.T121, yeniYerlesik(birlestirYerlesik)) // model_araclari.go
+}
 
+// matematigiKaydet eleman bazlı fonksiyonları, softmax'ı ve indirgemeleri kaydeder.
+func matematigiKaydet(v *yurut.VM) {
 	// --- Eleman bazlı matematik ---
 	birli(v, kod.T200, (*tensor.Tensor).Relu, relu64)
 	birli(v, kod.T201, (*tensor.Tensor).Sigmoid, sigmoid64)
@@ -72,33 +108,6 @@ func Kaydet(v *yurut.VM) {
 		}
 		return t.Neg().Max(e, koru).Neg()
 	})
-
-	// --- Sinir ağı ---
-	sar(v, kod.T500, yeniYerlesik(gomme))
-	sar(v, kod.T510, yeniYerlesik(caprazEntropi))
-	sar(v, kod.T501, yeniYerlesik(katmanNormu))
-	sar(v, kod.T502, yeniYerlesik(rmsNormu))
-	sar(v, kod.T503, yeniYerlesik(dikkatYerlesik)) // model_araclari.go
-	sar(v, kod.T530, yeniYerlesik(parametrelerYerlesik))
-	sar(v, kod.T611, yeniYerlesik(orneklemeYerlesik))
-
-	// --- Türev ---
-	sar(v, kod.T300, yeniYerlesik(geriYayilim))
-	sar(v, kod.T301, yeniYerlesik(turevsiz))
-	ozelTurevKaydet(v) // özel_türev, türev_denetle (ozel_turev.go)
-
-	// --- Veri türleri (veri_turu.go) ---
-	sar(v, kod.T710, yeniYerlesik(karisikHassasiyet))
-
-	// --- İyileştiriciler ---
-	sar(v, kod.T400, yeniYerlesik(adamWKur))
-	sar(v, kod.T401, yeniYerlesik(sgdKur))
-	sar(v, kod.T402, yeniYerlesik(gradyanKirp))
-
-	// --- İndeks, kaydetme ve yükleme ---
-	sar(v, kod.T230, yeniYerlesik(maksIndeks))
-	sar(v, kod.T700, yeniYerlesik(tensorKaydet))
-	sar(v, kod.T701, yeniYerlesik(tensorYukle))
 }
 
 // enKucukTum tüm elemanların en küçüğünü 0 boyutlu tensör olarak verir. Çekirdekte Min
