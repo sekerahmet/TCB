@@ -421,7 +421,7 @@ func TestDesteklenmeyenYapilandirma(t *testing.T) {
 		f      func(m map[string]any)
 		iceren string
 	}{
-		"normalizer": {func(m map[string]any) { m["normalizer"] = map[string]any{"type": "Precompiled"} }, "normalleştirici (normalizer) türü \"Precompiled\""},
+		"normalizer": {func(m map[string]any) { m["normalizer"] = map[string]any{"type": "Benzersiz"} }, "normalleştirici (normalizer) türü \"Benzersiz\""},
 		"ön bölücü": {func(m map[string]any) {
 			pt := m["pre_tokenizer"].(map[string]any)["pretokenizers"].([]any)
 			pt[0] = map[string]any{"type": "UnicodeScripts"}
