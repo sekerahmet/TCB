@@ -13,7 +13,7 @@ import (
 	"tr_dili/internal/dil/sozcuk"
 )
 
-// FuzzKaynakDerle: kaynak kod güvenilmeyen girdidir ('tr kontrol' ve VS Code bir dosyayı
+// FuzzKaynakDerle: kaynak kod güvenilmeyen girdidir ('tr kontrol' ve düzenleyici bir dosyayı
 // çalıştırmadan denetler; 'aktar' başka dosyaları okur). Ayrıştırıcı (program ve modül
 // biçimi), tip denetleyicisi ve derleyici hiçbir girdide çökmemelidir. Program
 // ÇALIŞTIRILMAZ: yalnızca derlenir (hata ayıklama kipi tip denetimini atladığı için

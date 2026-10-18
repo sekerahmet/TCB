@@ -28,7 +28,7 @@ func TestDAPSkalerVeKucukTensorDegeri(t *testing.T) {
 		}
 	}
 	if got := c.evaluate("kayıp"); got != bekle["kayıp"] {
-		t.Errorf("Debug Console / üzerine gelme kayıp = %q", got)
+		t.Errorf("hata ayıklama konsolu / üzerine gelme kayıp = %q", got)
 	}
 
 	panel := c.request("trDegiskenler", nil)

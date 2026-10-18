@@ -11,7 +11,7 @@ import (
 // İzleme Masası düğmelerinin (media/izleme_masasi.html, data-komut) gönderdiği DAP istekleri:
 // her biri program duraklatılmışken sunucuda işlenmeli. Devam (continue) döngüdeki kesme
 // noktasında yeniden durmalı ve değerler ilerlemeli; son turdan sonra program bitmeli.
-// Durdur, VS Code'da terminate isteğine dönüşür.
+// Durdur, düzenleyicide terminate isteğine dönüşür.
 func TestDAPIzlemeMasasiDugmeleri(t *testing.T) {
 	html, err := os.ReadFile(depo.Yol("duzenleyici/vscode/media/izleme_masasi.html"))
 	if err != nil {
@@ -92,7 +92,7 @@ yazdır("toplam: {toplam}")
 	}
 }
 
-// Durdur düğmesi (VS Code'da terminate) duraklatılmış programı sonlandırır.
+// Durdur düğmesi (düzenleyicide terminate) duraklatılmış programı sonlandırır.
 func TestDAPIzlemeMasasiDurdur(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "değişken a = 1\nyazdır(a)\n")

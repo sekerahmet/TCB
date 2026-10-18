@@ -103,7 +103,7 @@ var (
 	sablonBosRe        = regexp.MustCompile(`\$\{\d+\}|\$\d+`)
 )
 
-// sablonAc bir VS Code şablonunu varsayılan değerleriyle açar (Tab'a hiç basılmamış gibi).
+// sablonAc bir düzenleyici şablonunu varsayılan değerleriyle açar (Tab'a hiç basılmamış gibi).
 func sablonAc(govde string) string {
 	for {
 		yeni := sablonVarsayilanRe.ReplaceAllString(govde, "$1")

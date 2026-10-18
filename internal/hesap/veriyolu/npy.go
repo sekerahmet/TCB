@@ -239,7 +239,7 @@ func baslikDoldur(bs *Baslik, s map[string]any) error {
 		return bicimHatasi("'fortran_order' True/False değil")
 	}
 	if fb {
-		return bicimHatasi("Fortran sıralı diziler desteklenmiyor (yalnızca C sıralı)")
+		return bicimHatasi("sütun öncelikli diziler desteklenmiyor (yalnızca satır öncelikli)")
 	}
 
 	sh, ok := s["shape"]

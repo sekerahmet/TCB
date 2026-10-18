@@ -128,7 +128,7 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 		}
 		if KodBicimi(g.ad) {
 			// Kod biçimli adlar ayrılmıştır (2.3a); yalnızca adı yeniden kullanılmış ölü bir kodun
-			// ipucusuz adı olabilir (bkz. docs/dil/17_kodlar.md 17.6).
+			// ipucusuz adı olabilir (bkz. docs/dil/17_kodlar.md, Ölü kodlar).
 			hata("%s: ad %q kod biçiminde (büyük harf ve üç rakam); bu biçim ayrılmıştır", k, g.ad)
 			continue
 		}

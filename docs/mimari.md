@@ -54,7 +54,7 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `internal/hesap/tensor` | n boyutlu tensör, görünümler, otomatik türev, arka uç arayüzü ve CPU arka ucu (AVX2/FMA çekirdekleri) |
 | `internal/hesap/parca` | `tokenizer.json` parçalayıcıları: BPE, WordPiece, Unigram, normalleştirme, ön bölme |
 | `internal/hesap/veriyolu` | `.npy` veri dosyaları, veri kümesi, örnekleyici, önbellek ve önden yükleme |
-| `internal/arac/ayikla` | Terminal hata ayıklayıcısı ve VS Code hata ayıklama sunucusu (`tr dap`) |
+| `internal/arac/ayikla` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`tr dap`) |
 | `internal/arac/bicim` | `tr biçimle` biçimlendiricisi |
 | `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
 | `internal/depo` | Testlerin depo kökünü bulan yardımcı (testler `../../` yazmaz) |
@@ -82,7 +82,7 @@ Motorlar ve standart kitaplık yorumlayıcıya (`internal/dil/yurut`) şu kancal
 | `cmd/tr/` | Tek ikili |
 | `internal/` | Bütün Go kodu (yukarıdaki katmanlar) |
 | `kitaplik/` | TR ile yazılı standart kitaplık (ikiliye gömülecek; bugün boş ve bağlı değil) |
-| `duzenleyici/vscode/` | VS Code eklentisi (kullanıcıya gider) |
+| `duzenleyici/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
 | `docs/` | Belgeler: [`kilavuz/`](kilavuz/README.md), [`dil/`](dil/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
 | `ornekler/` | Öğrenme sırasıyla örnek programlar |
 | `testler/` | Dil tanımının kural testleri (`tr test testler`); `olumsuz/`, `alt/`, `veri/` |

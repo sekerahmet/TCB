@@ -10,8 +10,8 @@ import (
 var konumRe = regexp.MustCompile(`Satır (\d+)(?:, Sütun (\d+))?`)
 var tirnakliAdRe = regexp.MustCompile(`'([^'\s]+)'`)
 
-// KodCercevesi hata mesajındaki "Satır N, Sütun M" konumunu kaynak kodda gösterir
-// (Rust/Elm tarzı). Sütun biliniyorsa hatalı kısmın altını ^^^ ile çizer; mesajda
+// KodCercevesi hata mesajındaki "Satır N, Sütun M" konumunu kaynak kodda gösterir.
+// Sütun biliniyorsa hatalı kısmın altını ^^^ ile çizer; mesajda
 // tırnak içinde geçen ad o konumdaysa onun uzunluğu kadar. Konum bulunamazsa "" döner.
 //
 //	12 | yazdır(toplm + 1)

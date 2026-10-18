@@ -23,8 +23,8 @@
 //	   (JSON, CSV); G7xx test
 //	T  tensör ve yapay zekâ
 //	   T1xx tensör oluşturma ve görünüm; T2xx etkinleştirme ve eleman bazlı matematik;
-//	   T3xx türev; T4xx iyileştiriciler; T5xx sinir ağı katmanları, kayıplar, hazır
-//	   model; T6xx vektör yardımcıları ve dil modeli; T7xx kaydetme, yükleme, veri türleri;
+//	   T3xx türev; T4xx iyileştiriciler; T5xx sinir ağı katmanları, kayıplar, model
+//	   parametreleri; T6xx dil modeli (örnekleme); T7xx kaydetme, yükleme, veri türleri;
 //	   T9xx adlı argümanlar
 //	Y  yöntemler: metot ve özellikler (x.ad)
 //	   Y0xx birden çok tipte ortak; Y1xx Metin; Y2xx Liste; Y3xx Sözlük; Y4xx Tensör;
@@ -41,9 +41,10 @@
 //
 // Bir dil içinde ad yalnızca kendi ad alanında benzersiz olmalıdır (bkz. Alan): genel
 // adlar (anahtar kelimeler, bağlamsal sözcükler ve G/T/V/W yerleşikleri), tip adları,
-// üyeler (Y) ve adlı argümanlar (x9xx). Böylece ör. Y202 sırala
-// (liste metodu) ve W931 sırala (adlı argüman) ayrı kodlardır. Üye adları tipten
-// bağımsız olarak benzersizdir: derleyici x.ad'ı tipe bakmadan derleme anında koda çevirir.
+// üyeler (Y) ve adlı argümanlar (x9xx). Böylece ör. T121 birleştir (tensör fonksiyonu) ve
+// Y203 birleştir (liste metodu) ayrı kodlardır. Üye adları tipten bağımsız olarak
+// benzersizdir: derleyici x.ad'ı tipe bakmadan derleme anında koda çevirir (tanım yerindeki
+// eşleme kuralı için bkz. docs/dil/17_kodlar.md, Üye adları).
 //
 // # Dil dosyasının alanları
 //
@@ -165,8 +166,8 @@ func Coz(s string) (Kod, error) {
 }
 
 // KodBicimi s bir kodun biçiminde mi: büyük harf ve üç rakam (G100, A001, K001)? Bu
-// biçimdeki adlar ayrılmıştır (dosyalar ileride kodlarla saklanır; bkz. docs/dil/17_kodlar.md
-// 17.7): kullanıcı adı olarak kullanılamaz. Aile harfi henüz kullanılmayan bir harf de
+// biçimdeki adlar ayrılmıştır (dosyalar ileride kodlarla saklanır; bkz. docs/dil/02_sozcuk_yapisi.md
+// 2.3a): kullanıcı adı olarak kullanılamaz. Aile harfi henüz kullanılmayan bir harf de
 // olabilir (gelecekteki aileler için).
 func KodBicimi(s string) bool {
 	if len(s) != 4 || s[0] < 'A' || s[0] > 'Z' {

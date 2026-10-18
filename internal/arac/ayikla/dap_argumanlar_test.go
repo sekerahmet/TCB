@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// VS Code başlatma ayarındaki "args" programa iletilir; program okumazsa bitişte Debug
-// Console'a (stderr) uyarı yazılır.
+// Düzenleyicinin başlatma ayarındaki "args" programa iletilir; program okumazsa bitişte hata ayıklama
+// konsoluna (stderr) uyarı yazılır.
 func TestDAPArgumanlariIletilir(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "yazdır(\"bitti\")\n")

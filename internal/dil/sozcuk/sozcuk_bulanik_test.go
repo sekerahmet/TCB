@@ -25,7 +25,7 @@ func trTohumlari(f *testing.F) {
 }
 
 // FuzzSozcukCozumleyici: kaynak kod güvenilmeyen girdidir ('tr kontrol', biçimlendirici ve
-// VS Code bir dosyayı çalıştırmadan okur). Sözcük çözümleyici hiçbir girdide çökmemeli,
+// düzenleyici bir dosyayı çalıştırmadan okur). Sözcük çözümleyici hiçbir girdide çökmemeli,
 // sonsuz döngüye girmemeli (girdi uzunluğundan fazla sözcük birimi üretmemeli) ve her
 // sözcük biriminin aralığı girdinin içinde kalmalıdır. Derin arama:
 //

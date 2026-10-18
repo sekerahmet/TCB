@@ -96,7 +96,7 @@ func TestBaslikHatalari(t *testing.T) {
 		{"tür", elleBaslik(1, "{'descr': '<f4', 'fortran_order': False, 'shape': (5,), }"), "desteklenmeyen eleman türü"},
 		{"iki boyut", elleBaslik(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (5, 3), }"), "tek boyutlu"},
 		{"skaler", elleBaslik(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (), }"), "tek boyutlu"},
-		{"fortran", elleBaslik(1, "{'descr': '<u2', 'fortran_order': True, 'shape': (5,), }"), "Fortran"},
+		{"fortran", elleBaslik(1, "{'descr': '<u2', 'fortran_order': True, 'shape': (5,), }"), "sütun öncelikli"},
 		{"eksik anahtar", elleBaslik(1, "{'descr': '<u2', 'shape': (5,), }"), "fortran_order"},
 		{"fazla anahtar", elleBaslik(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (5,), 'x': 1}"), "beklenmeyen anahtar"},
 		{"yapılı tür", elleBaslik(1, "{'descr': [('a', '<u2')], 'fortran_order': False, 'shape': (5,), }"), "iç içe"},

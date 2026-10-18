@@ -14,7 +14,7 @@ import (
 	"tr_dili/internal/dil/yurut"
 )
 
-// dapClient, testlerde VS Code'un yerine geçen küçük bir DAP istemcisidir.
+// dapClient, testlerde düzenleyicinin yerine geçen küçük bir DAP istemcisidir.
 type dapClient struct {
 	t       *testing.T
 	w       io.Writer
@@ -184,7 +184,7 @@ döngü i içinde 0..2 {
 yazdır("toplam: {toplam}")
 `
 
-// VS Code'un tipik bir hata ayıklama oturumu: koşullu kesme noktası, çağrı yığını,
+// Düzenleyicinin tipik bir hata ayıklama oturumu: koşullu kesme noktası, çağrı yığını,
 // değişkenler, değer değiştirme, adımlama, tablo görünümü ve programın bitişi.
 func TestDAPDebugSession(t *testing.T) {
 	c := startDAP(t)
@@ -265,7 +265,7 @@ func TestDAPDebugSession(t *testing.T) {
 		t.Fatal("yerleşik fonksiyonlar panelde listelenmemeli")
 	}
 
-	// Debug Console'da deyim çalıştırma
+	// Hata ayıklama konsolunda deyim çalıştırma
 	c.request("evaluate", map[string]interface{}{"expression": "toplam = 5", "context": "repl"})
 
 	c.request("continue", map[string]interface{}{"threadId": 1})
@@ -275,7 +275,7 @@ func TestDAPDebugSession(t *testing.T) {
 		t.Fatalf("çıkış kodu 0 olmalı: %v", exited)
 	}
 	if !strings.Contains(c.output.String(), "toplam: 5") {
-		t.Fatalf("program çıktısı Debug Console'a gelmeli: %q", c.output.String())
+		t.Fatalf("program çıktısı hata ayıklama konsoluna gelmeli: %q", c.output.String())
 	}
 }
 
@@ -311,7 +311,7 @@ func TestDAPWatchpointAndLogpoint(t *testing.T) {
 	}
 }
 
-// Satıra zıpla (VS Code "Jump to Cursor") ve hatalı programın bildirilmesi.
+// Satıra zıpla (düzenleyicinin "imlece zıpla" komutu) ve hatalı programın bildirilmesi.
 func TestDAPGotoAndLaunchErrors(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "değişken x = 1\nx = 2\nx = 3\nyazdır(x)\n")
@@ -332,7 +332,7 @@ func TestDAPGotoAndLaunchErrors(t *testing.T) {
 	}
 	c.request("disconnect", nil)
 
-	// Sözdizimi hatalı program: launch başarısız olur, hata Debug Console'a yazılır
+	// Sözdizimi hatalı program: launch başarısız olur, hata ayıklama konsoluna yazılır
 	c2 := startDAP(t)
 	bad := writeProgram(t, "değişken a = \nyazdır(a\n")
 	c2.request("initialize", map[string]interface{}{"adapterID": "tr"})
@@ -417,7 +417,7 @@ func TestDAPContentLengthSiniri(t *testing.T) {
 	}
 }
 
-// Eşzamanlı görev hataları Debug Console'a "stderr" kategorisiyle gelir.
+// Eşzamanlı görev hataları hata ayıklama konsoluna "stderr" kategorisiyle gelir.
 func TestDAPGorevHatasi(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "eşzamanlı {\n    değişken x = 1 / 0\n}\nbekle_hepsi()\nyazdır(\"bitti\")\n")

@@ -10,7 +10,7 @@ import (
 	"tr_dili/internal/dil/yurut"
 )
 
-// Hakem mimari 25: terminal hata ayıklayıcısında f5 adım, f8 devam idi; VS Code'da F5
+// Hakem mimari 25: terminal hata ayıklayıcısında f5 adım, f8 devam idi; düzenleyicide F5
 // devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. Artık tuş adları iki yerde de
 // aynı anlamdadır.
 func TestTerminalTuslariVSCodeIleAyni(t *testing.T) {

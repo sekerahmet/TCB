@@ -8,7 +8,7 @@ import (
 	"tr_dili/internal/dil/sozcuk"
 )
 
-// Eşzamanlı görev hataları sabit os.Stderr'e yazılıyor, VS Code oturumunda ve tr test
+// Eşzamanlı görev hataları sabit os.Stderr'e yazılıyor, düzenleyici oturumunda ve tr test
 // çıktısında görünmüyordu. VM'in hata yazıcısına (Err) gider.
 func TestGorevHatasiErrYazicisinaGider(t *testing.T) {
 	var out, hata bytes.Buffer

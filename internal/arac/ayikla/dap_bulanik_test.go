@@ -46,7 +46,7 @@ var dapDuraklamaKomutlari = []string{"stackTrace", "scopes", "variables", "setVa
 	"gotoTargets", "goto", "dataBreakpointInfo", "setDataBreakpoints", "trTablo", "trDegiskenler",
 	"next", "stepIn", "stepOut", "pause", "threads", "setBreakpoints"}
 
-// FuzzDAPDuraklamaIstegi: VS Code'un program duraklatılmışken gönderdiği istekler
+// FuzzDAPDuraklamaIstegi: düzenleyicinin program duraklatılmışken gönderdiği istekler
 // (değişken tutamakları, çerçeve kimlikleri, satır hedefleri) bozuk ya da kötü niyetli
 // argümanlarla hata ayıklayıcıyı çökertmemeli ve asmamalıdır: her isteğe bir yanıt gelmeli,
 // program sonra sonuna kadar çalışabilmelidir. Yan etkisiz kalsın diye fonksiyon çağrısı
