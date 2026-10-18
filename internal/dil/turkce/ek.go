@@ -1,5 +1,7 @@
 // Package turkce, TR dilinin mesajlarında doğru Türkçe üretmek için dilbilgisi yardımcıları sağlar:
 // ünlü uyumuna göre hâl ekleri, sayıların okunuşuna göre ek seçimi ve yazım önerileri.
+//
+// Katman: dil çekirdeği (internal/dil); yalnızca internal/dil paketlerini içe aktarır.
 package turkce
 
 import (

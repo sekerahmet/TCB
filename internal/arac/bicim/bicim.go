@@ -13,6 +13,8 @@
 // Güvenlik: Biçimlenmiş kod yeniden ayrıştırılır; sözcük birimi dizisi ya da AST dökümü
 // (agac.Dokum) değişmişse sonuç reddedilir. Böylece biçimlendirici programın anlamını asla
 // değiştirmez.
+//
+// Katman: araç (internal/arac); dil, motor ve hesap katmanlarını içe aktarabilir.
 package bicim
 
 import (

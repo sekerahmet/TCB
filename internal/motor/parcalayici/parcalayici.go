@@ -5,6 +5,8 @@
 // Kodlama/çözme hata döndüren Guvenli... işlevleriyle yapılır: düzenli ifade adım
 // sınırı aşılırsa yarım sonuç yerine yol gösterici bir TR hatası oluşur. Uzun işler
 // (dosya yükleme, liste kodlama/çözme) yorumlayıcı kilidi bırakılarak yapılır.
+//
+// Katman: motor (internal/motor); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package parcalayici
 
 import (

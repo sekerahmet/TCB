@@ -2,6 +2,8 @@
 // parçalayıcı, veri) ortak yardımcılarıdır: adlı argüman denetimi, göreli yol çözme,
 // paniği hataya çevirme ve sayıların Türkçe kısa yazımı. Kullanıcıya görünen hiçbir ad
 // tanımlamaz: adlı argümanların adları kod listesindedir (internal/dil/kod, x9xx kodları).
+//
+// Katman: motor (internal/motor); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package baglama
 
 import (

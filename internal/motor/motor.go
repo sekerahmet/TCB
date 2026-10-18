@@ -7,6 +7,8 @@
 // Koddaki kesme_noktası deyiminin açtığı hata ayıklayıcı araç katmanındadır; onu isteyen
 // program ayrıca internal/arac/ayikla paketini içe aktarır (motor katmanı araç katmanına
 // bağlı değildir; bkz. internal/katman_test.go).
+//
+// Katman: motor (internal/motor); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package motor
 
 import (

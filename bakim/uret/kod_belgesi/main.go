@@ -10,6 +10,8 @@
 //	go run ./bakim/uret/kod_belgesi -denetle  // güncel değilse 1 koduyla çıkar
 //
 // Aynı denetim `go test ./bakim/uret/...` ile de yapılır.
+//
+// Katman: bakım (bakim); kullanıcıya gitmez.
 package main
 
 import (

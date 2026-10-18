@@ -1,3 +1,7 @@
+// tr, TR dilinin tek ikilisidir: alt komutları (çalıştır, kabuk, kontrol, derle, test,
+// biçimle, hata_ayıkla, dap) ayrıştırır ve işi internal/ altındaki paketlere bırakır.
+//
+// Katman: araç (cmd); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
 package main
 
 import (

@@ -11,6 +11,8 @@
 //   - Onbellek: yavaş kaynaktaki parçaları yerel diske kopyalayan kotalı katman
 //
 // Paket yalnızca standart kütüphaneyi kullanır.
+//
+// Katman: hesap çekirdeği (internal/hesap); yalnızca internal/hesap paketlerini içe aktarır.
 package veriyolu
 
 import (

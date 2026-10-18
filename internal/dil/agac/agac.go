@@ -1,3 +1,8 @@
+// Package agac TR'nin sözdizimi ağacıdır: ayrıştırıcının kurduğu, denetçinin ve
+// derleyicinin okuduğu deyim ve ifade düğümleri. Düğümler yalnızca veri taşır;
+// çözümleme, denetim ve çalıştırma başka paketlerdedir.
+//
+// Katman: dil çekirdeği (internal/dil); yalnızca internal/dil paketlerini içe aktarır.
 package agac
 
 import (

@@ -4,6 +4,8 @@
 // odaklı tutar. Sıralı JSON çözme çekirdekte (yurut.JSONToTR), sıralı JSON yazma
 // motorların ortak paketinde (internal/jsonyaz) kalır, çünkü web sunucusu ve istemcisi de
 // onları kullanır.
+//
+// Katman: motor (internal/motor); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package veribicim
 
 import (

@@ -17,6 +17,8 @@
 // (strides) ile bakar. Görünüm işlemleri (Reshape, Transpose, Permute, Slice)
 // veriyi kopyalamaz; yalnızca yeni ofset/adım üretir. Gradyanlar her zaman
 // tensörün kendi şekline göre bitişik ayrı bir depolamada tutulur.
+//
+// Katman: hesap çekirdeği (internal/hesap); yalnızca internal/hesap paketlerini içe aktarır.
 package tensor
 
 import (

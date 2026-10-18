@@ -77,6 +77,8 @@
 // Aynı komut kod listesinden üretilen öbür dosyaları da yeniler: docs/kodlar.md (her kodun ne
 // işe yaradığı, imzası ve örneği) ve eklentinin renklendirme listeleri
 // (duzenleyici/vscode/syntaxes/tr.tmLanguage.json).
+//
+// Katman: dil çekirdeği (internal/dil); yalnızca internal/dil paketlerini içe aktarır.
 package kod
 
 //go:generate go run ../../../bakim/uret/kod_sabitleri

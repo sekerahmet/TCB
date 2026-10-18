@@ -1,3 +1,9 @@
+// Package sozcuk TR'nin sözcük çözümleyicisidir: kaynak metni satır ve sütun bilgisiyle
+// sözcük birimlerine (anahtar kelime, ad, sayı, metin, işleç, yorum) ayırır. Anahtar
+// kelimelerin yazımları kod listesinden (internal/dil/kod) gelir; ayrıştırıcı ve
+// biçimlendirici bu paketin ürettiği sözcük birimleriyle çalışır.
+//
+// Katman: dil çekirdeği (internal/dil); yalnızca internal/dil paketlerini içe aktarır.
 package sozcuk
 
 import (

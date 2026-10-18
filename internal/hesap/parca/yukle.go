@@ -19,6 +19,8 @@
 //     ByteLevel, Sequence
 //   - çözücü: ByteLevel, Metaspace, WordPiece, BPEDecoder, ByteFallback, Fuse,
 //     Strip, Replace, Sequence
+//
+// Katman: hesap çekirdeği (internal/hesap); yalnızca internal/hesap paketlerini içe aktarır.
 package parca
 
 import (

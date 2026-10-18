@@ -1,3 +1,11 @@
+// Package yurut TR'nin derleyicisi ve yorumlayıcısıdır. Sözdizimi ağacı çalıştırılmadan
+// önce bir kez Go kapanışlarına derlenir (derleyici*.go); değişkenler derleme anında
+// yuvalara çözülür. Paket ayrıca değerleri, çekirdek yerleşikleri ve metotları,
+// modülleri, eşzamanlı görevleri ve yorumlayıcı kilidini içerir. Motorlar (tensör,
+// veri, parçalayıcı) ve hata ayıklayıcı bu paketi içe aktarıp kendilerini kancalarla
+// bağlar (MotorEkle, YeniHataAyiklayici); yorumlayıcı onları bilmez.
+//
+// Katman: dil çekirdeği (internal/dil); yalnızca internal/dil paketlerini içe aktarır.
 package yurut
 
 import (

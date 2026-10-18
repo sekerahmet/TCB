@@ -1,3 +1,9 @@
+// Package ayristir TR'nin ayrıştırıcısıdır: sözcük birimlerinden (internal/dil/sozcuk)
+// sözdizimi ağacını (internal/dil/agac) kurar. Deyimler özyinelemeli inişle, ifadeler
+// öncelik tabanlı (Pratt) yöntemle çözümlenir. Hatalar Türkçe, satırlı ve yol
+// göstericidir; kaldırılmış yazımlar için ipucu verilir.
+//
+// Katman: dil çekirdeği (internal/dil); yalnızca internal/dil paketlerini içe aktarır.
 package ayristir
 
 import (

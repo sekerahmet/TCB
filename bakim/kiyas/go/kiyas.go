@@ -1,3 +1,8 @@
+// kiyas, hız kıyas setinin (bakim/kiyas) derlenmiş başvuru sürümüdür: TR ve Python
+// programlarının yaptığı işleri aynı sonuç değerleriyle yapar ve sürelerini yazar.
+// bakim/kiyas/kos.py derleyip çalıştırır.
+//
+// Katman: bakım (bakim); kullanıcıya gitmez.
 package main
 
 import (

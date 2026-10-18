@@ -8,6 +8,8 @@
 // Aynı adı taşıyan çekirdek ve yapay zekâ yerleşikleri (toplam, ortalama, min, maks,
 // karekök) silinmez; kayıt sırasında sarılır: argüman tensörse yeni yol, değilse eski
 // yerleşik çalışır. Bu yüzden bu motor onlardan SONRA kaydedilmelidir (bkz. internal/motor).
+//
+// Katman: motor (internal/motor); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package ogrenme
 
 import (

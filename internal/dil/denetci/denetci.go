@@ -1,3 +1,9 @@
+// Package denetci TR'nin çalıştırmadan önceki tip denetleyicisidir: sözdizimi ağacını
+// dolaşıp tip uyuşmazlıklarını (tanım, atama, dönüş değeri, çağrı argümanı), sabite
+// atamayı ve yerleşik adların gölgelenmesini bulur; hataları ve uyarıları Türkçe ve
+// satırlı olarak bildirir ('tr kontrol', çalıştırma ve modül yükleme öncesi).
+//
+// Katman: dil çekirdeği (internal/dil); yalnızca internal/dil paketlerini içe aktarır.
 package denetci
 
 import (

@@ -9,7 +9,7 @@
 // testleri `tr test kitaplik` ile koşar. Kullanıcı kodunda hangi adla içe aktarılacağı
 // (dil tanımı §11, modüller) kitaplık işi başlamadan kararlaştırılır.
 //
-// Katman kuralı (internal/katman_test.go): bu paket hiçbir iç paketi içe aktarmaz.
+// Katman: TR kitaplığı (kitaplik); hiçbir iç paketi içe aktarmaz (internal/katman_test.go).
 package kitaplik
 
 import "embed"

@@ -1,6 +1,8 @@
 // Package testkosucu 'tr test' komutunun çekirdeğidir: .tr dosyalarındaki
 // test "ad" { ... } bloklarını bulur, her birini yalıtılmış bir kapsamda çalıştırır
 // ve sonuçları Türkçe olarak raporlar.
+//
+// Katman: araç (internal/arac); dil, motor ve hesap katmanlarını içe aktarabilir.
 package testkosucu
 
 import (

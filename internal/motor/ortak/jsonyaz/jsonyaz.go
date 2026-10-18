@@ -6,6 +6,8 @@
 //   - JSON'da karşılığı olmayan Tanımsız (NaN) ve sonsuz sayılar Türkçe hata verir.
 //   - Metin olmayan anahtar görünen hâliyle yazılır (1 → "1"); bu, aynı sözlükteki "1"
 //     metin anahtarıyla çakışırsa sessizce biri atılmaz, hata verilir.
+//
+// Katman: motor (internal/motor); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package jsonyaz
 
 import (

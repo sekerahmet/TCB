@@ -3,7 +3,8 @@
 // dosyalara (belgeler, testler/, ornekler/, test verileri) "../../" gibi göreli yollarla değil
 // bu yardımcıyla ulaşır; böylece bir paket başka bir klasöre taşındığında testler kırılmaz.
 //
-// Paket dili bilmez ve hiçbir iç pakete bağlı değildir; her katmanın testi kullanabilir.
+// Katman: test yardımcısı (internal/depo); hiçbir iç paketi içe aktarmaz, her katmanın testi
+// kullanabilir.
 package depo
 
 import (

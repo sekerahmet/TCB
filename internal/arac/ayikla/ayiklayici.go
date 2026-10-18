@@ -1,3 +1,9 @@
+// Package ayikla TR'nin hata ayıklayıcısıdır: terminalde çalışan etkileşimli hata
+// ayıklayıcı ('tr hata_ayıkla', koddaki kesme_noktası) ve düzenleyicilerin bağlandığı
+// hata ayıklama sunucusu ('tr dap', dap*.go). Yükleme anında kendini yorumlayıcıya
+// yurut.YeniHataAyiklayici ile kaydeder.
+//
+// Katman: araç (internal/arac); dil, motor ve hesap katmanlarını içe aktarabilir.
 package ayikla
 
 import (

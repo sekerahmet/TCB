@@ -7,6 +7,8 @@
 // zaman açıktır: sonraki toplu işler arka plandaki bir Go gorutininde hazırlanır. Bu
 // gorutin TR kodu çalıştırmaz, yorumlayıcı kilidini hiç tutmaz; .sonraki() beklerken
 // kilit bırakılır.
+//
+// Katman: motor (internal/motor); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package veri
 
 import (
