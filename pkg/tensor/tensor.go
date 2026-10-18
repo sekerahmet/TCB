@@ -146,7 +146,9 @@ func zerosOf(be Backend, shape []int, dt DType) *Tensor {
 // uçların iç arayüzüdür. Backend.Alloc sözleşmesi (sıfırlanmış depolama)
 // değişmez; bu yol yalnızca çekirdeğin çıktının her elemanını yazdığı
 // işlemlerde (emptyOf) kullanılır ve havuzdan gelen depolamayı yeniden
-// sıfırlama maliyetini (eğitimde bellek bant genişliğinin ~%5-8'i) önler.
+// sıfırlama maliyetini önler (karakter modelinde havuz sıfırlaması CPU
+// zamanının ~%4'üydü; Go'nun yeni ayırmalarda yaptığı sıfırlama ayrıdır ve
+// bu yolla önlenemez).
 type bosAyirici interface {
 	allocBos(n int, dt DType) Storage
 }
