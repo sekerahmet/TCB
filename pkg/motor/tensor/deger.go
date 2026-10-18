@@ -280,6 +280,50 @@ func tensoreCevir(fn string, v vm.Value) (*ct.Tensor, error) {
 	return nil, fmt.Errorf("%s: %s tipi tensöre dönüştürülemez (sayı, iç içe liste, matris ya da tensör bekleniyor)", fn, tipAdi(v))
 }
 
+// matrisCevir matris alan işlevlerin (sinir_ağı, kayıp_mse ...) girdisini 2 boyutlu
+// tensöre çevirir: iç içe sayı listesi [satır, sütun], düz sayı listesi [1, n] (satır
+// vektörü) olur. 2 boyutlu tensör olduğu gibi, 1 boyutlu tensör [1, n] görünümüyle
+// kullanılır.
+func matrisCevir(v vm.Value) (*ct.Tensor, error) {
+	switch x := v.(type) {
+	case *Deger:
+		switch x.t.Dim() {
+		case 2:
+			return x.t, nil
+		case 1:
+			return guvenli(func() *ct.Tensor { return x.t.Unsqueeze(0) })
+		}
+		return nil, fmt.Errorf("matris 2 boyutlu olmalıdır, %s şeklinde tensör verildi", sekilMetni(x.t.Shape()))
+	case *vm.MatrixVal:
+		return tensoreCevir("matris", x)
+	case *vm.ListVal:
+		if len(x.Elements) == 0 {
+			break
+		}
+		satirlar := x.Elements
+		if _, ok := x.Elements[0].(*vm.ListVal); !ok {
+			satirlar = []vm.Value{x} // düz liste: tek satır
+		}
+		sutun := len(satirlar[0].(*vm.ListVal).Elements)
+		veri := make([]float32, 0, len(satirlar)*sutun)
+		for _, s := range satirlar {
+			satir, ok := s.(*vm.ListVal)
+			if !ok || len(satir.Elements) != sutun {
+				return nil, fmt.Errorf("Matrisin tüm satırları eşit uzunlukta olmalıdır")
+			}
+			for _, e := range satir.Elements {
+				f, ok := vm.ToFloat(e)
+				if !ok {
+					return nil, fmt.Errorf("Matris elemanları sayısal olmalıdır")
+				}
+				veri = append(veri, float32(f))
+			}
+		}
+		return ct.New(veri, len(satirlar), sutun), nil
+	}
+	return nil, fmt.Errorf("Matris oluşturmak için boş olmayan bir Liste gereklidir")
+}
+
 // listeVerisi iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
 func listeVerisi(fn string, l *vm.ListVal) ([]float32, []int, error) {
 	// Şekil ilk elemanlar boyunca inilerek bulunur.

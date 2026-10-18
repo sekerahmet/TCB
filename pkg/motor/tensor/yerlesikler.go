@@ -82,6 +82,11 @@ func Kaydet(v *vm.VM) {
 	sar(v, []string{"çapraz_entropi", "capraz_entropi"}, yeniYerlesik("çapraz_entropi", caprazEntropi))
 	sar(v, []string{"katman_normu"}, yeniYerlesik("katman_normu", katmanNormu))
 	sar(v, []string{"rms_normu"}, yeniYerlesik("rms_normu", rmsNormu))
+	sar(v, []string{"kayıp_mse", "kayip_mse"}, yeniYerlesik("kayıp_mse", kayipMSE))
+
+	// --- Hazır sinir ağı modeli (sinir_agi.go) ---
+	sar(v, []string{"sinir_ağı", "sinir_agi"}, yeniYerlesik("sinir_ağı", sinirAgiKur))
+	sar(v, []string{"model_yükle", "model_yukle"}, yeniYerlesik("model_yükle", modelYukle))
 
 	// --- Türev ---
 	sar(v, []string{"geri_yayılım", "geri_yayilim"}, geriYayilim)
