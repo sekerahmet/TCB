@@ -12,8 +12,9 @@ import (
 	"tr_dili/internal/motor/ortak/baglama"
 )
 
-// Iyilestirici AdamW ve SGD iyileştiricilerinin TR değeridir. Metotları .adım()
-// (parametreleri günceller) ve .sıfırla() (gradyanları sıfırlar).
+// Iyilestirici AdamW ve SGD iyileştiricilerinin TR değeridir; ikisinin de tipi
+// İyileştirici'dir (A214). Metotları .adım() (parametreleri günceller) ve .sıfırla()
+// (gradyanları sıfırlar). ad oluşturucunun adıdır (AdamW, SGD; yazdırmada görünür).
 type Iyilestirici struct {
 	ad     string
 	opt    tensor.Optimizer
@@ -22,7 +23,7 @@ type Iyilestirici struct {
 	params []*tensor.Tensor
 }
 
-func (o *Iyilestirici) Type() yurut.ValueType { return yurut.ValueType(o.ad) }
+func (o *Iyilestirici) Type() yurut.ValueType { return iyilestiriciTipi }
 func (o *Iyilestirici) IsTruthy() bool        { return true }
 
 func (o *Iyilestirici) Inspect() string {
@@ -44,6 +45,9 @@ const (
 )
 
 var iyilestiriciUyeleri = kod.Adlar(uyeAdim, uyeSifirla)
+
+// iyilestiriciTipi AdamW ve SGD değerlerinin tip adıdır (tip(op) → "İyileştirici").
+var iyilestiriciTipi = yurut.ValueType(yurut.TipAdi(kod.A214))
 
 func (o *Iyilestirici) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 	switch kd {
@@ -181,7 +185,7 @@ func iyilestiriciParametreleri(fn string, args []yurut.Value) ([]*tensor.Tensor,
 }
 
 func adamWKur(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	fn := kod.Ad(kod.T400) // AdamW (tip adı da budur)
+	fn := kod.Ad(kod.T400) // AdamW
 	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon, adAnaKopya); err != nil {
 		return nil, err
 	}
@@ -226,7 +230,7 @@ func adamWKur(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yu
 }
 
 func sgdKur(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
-	fn := kod.Ad(kod.T401) // SGD (tip adı da budur)
+	fn := kod.Ad(kod.T401) // SGD
 	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi, adAnaKopya); err != nil {
 		return nil, err
 	}

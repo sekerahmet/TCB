@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 185 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 18 tip, 62 fonksiyon, 32 metot, 9 özellik, 31 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 186 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 19 tip, 62 fonksiyon, 32 metot, 9 özellik, 31 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -491,6 +491,16 @@ Tip denetleyicisinin tipi bilinmeyen değerler için kullandığı tiptir; Herha
 ```tr
 fonksiyon kimlik(x: Herhangi) { sonuç x }; yazdır(kimlik(5), kimlik("beş"))
 ```
+
+#### A214 `İyileştirici`
+
+AdamW(...) ve SGD(...) ile oluşturulan iyileştiricilerin tipidir; .adım() parametreleri günceller, .sıfırla() gradyanları sıfırlar.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken op = AdamW([w], öğrenme_oranı: 0.1); yazdır(tip(op), tip(SGD([w])))
+```
+
+Üyeleri: Y500 `adım`, Y501 `sıfırla` · İlişkili: T400 `AdamW`, T401 `SGD`
 
 #### A230 `SinirAğı` — kaldırıldı
 
@@ -1168,7 +1178,7 @@ yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([0.5, -1.0], tür
 
 #### T400 `AdamW`
 
-    AdamW(Liste | Tensör, öğrenme_oranı: Tam | Ondalık = 0.001, ağırlık_çürümesi: Tam | Ondalık = 0.01, beta1: Tam | Ondalık = 0.9, beta2: Tam | Ondalık = 0.999, epsilon: Tam | Ondalık = 1e-08, ana_kopya: Mantık = doğru) → AdamW
+    AdamW(Liste | Tensör, öğrenme_oranı: Tam | Ondalık = 0.001, ağırlık_çürümesi: Tam | Ondalık = 0.01, beta1: Tam | Ondalık = 0.9, beta2: Tam | Ondalık = 0.999, epsilon: Tam | Ondalık = 1e-08, ana_kopya: Mantık = doğru) → İyileştirici
 
 Türev izleyen yaprak tensörler için ağırlık çürümesi ayrık uygulanan Adam iyileştiricisini kurar; .adım() parametreleri günceller, .sıfırla() gradyanları sıfırlar. Varsayılanlar: öğrenme_oranı 0.001, ağırlık_çürümesi 0.01, beta1 0.9, beta2 0.999, epsilon 1e-8.
 
@@ -1176,11 +1186,11 @@ Türev izleyen yaprak tensörler için ağırlık çürümesi ayrık uygulanan A
 değişken w = tensör([1.0], türev_izle: doğru); değişken opt = AdamW([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
 ```
 
-İlişkili: T401 `SGD`, T402 `gradyan_kırp`, Y500 `adım`, Y501 `sıfırla`
+İlişkili: T401 `SGD`, T402 `gradyan_kırp`, Y500 `adım`, Y501 `sıfırla`, A214 `İyileştirici`
 
 #### T401 `SGD`
 
-    SGD(Liste | Tensör, öğrenme_oranı: Tam | Ondalık = 0.01, momentum: Tam | Ondalık = 0, ağırlık_çürümesi: Tam | Ondalık = 0, ana_kopya: Mantık = doğru) → SGD
+    SGD(Liste | Tensör, öğrenme_oranı: Tam | Ondalık = 0.01, momentum: Tam | Ondalık = 0, ağırlık_çürümesi: Tam | Ondalık = 0, ana_kopya: Mantık = doğru) → İyileştirici
 
 Türev izleyen yaprak tensörler için olasılıksal gradyan inişi iyileştiricisini kurar; .adım() ve .sıfırla() metotları vardır. Varsayılanlar: öğrenme_oranı 0.01, momentum 0, ağırlık_çürümesi 0.
 
@@ -1188,7 +1198,7 @@ Türev izleyen yaprak tensörler için olasılıksal gradyan inişi iyileştiric
 değişken w = tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.1, momentum: 0.9); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
 ```
 
-İlişkili: T400 `AdamW`, Y500 `adım`, Y501 `sıfırla`
+İlişkili: T400 `AdamW`, Y500 `adım`, Y501 `sıfırla`, A214 `İyileştirici`
 
 #### T402 `gradyan_kırp`
 
@@ -2228,8 +2238,7 @@ yazdır(tensör([1.0, 2.0]).türe("bf16").tür)
 
 #### Y500 `adım`
 
-    AdamW.adım() → Yok
-    SGD.adım() → Yok
+    İyileştirici.adım() → Yok
 
 İyileştiricinin (AdamW, SGD) bir güncelleme adımını yapar: parametreleri gradyanlarına göre yerinde günceller. Argüman almaz, yok döner.
 
@@ -2241,8 +2250,7 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken op = SGD([w], ö�
 
 #### Y501 `sıfırla`
 
-    AdamW.sıfırla() → Yok
-    SGD.sıfırla() → Yok
+    İyileştirici.sıfırla() → Yok
 
 İyileştiricinin parametrelerindeki biriken gradyanları sıfırlar. Bir sonraki geri_yayılım'dan önce çağrılır; argüman almaz.
 

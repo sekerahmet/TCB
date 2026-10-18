@@ -281,6 +281,14 @@ test "15.6 .gradyan canlı takma addır; değişince onu kullanan hesap hata ver
     eşit_mi([3.0, 3.0], w.gradyan.değer)
 }
 
+test "15.7 AdamW ve SGD'nin tipi İyileştirici'dir" {
+    değişken w = tensör([1.0], türev_izle: doğru)
+    eşit_mi("İyileştirici", tip(AdamW([w])))
+    eşit_mi("İyileştirici", tip(SGD([w], öğrenme_oranı: 0.1)))
+    // Yazdırma hangi iyileştirici olduğunu gösterir
+    doğrula(metin(SGD([w])).başlar("SGD("))
+}
+
 test "15.7 iyileştiriciler: küçük doğrusal regresyon" {
     // y = 2·x1 - 3·x2 + 0.5
     değişken X = tensör([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])

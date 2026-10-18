@@ -253,7 +253,7 @@ func TestUyeTipleriTanimlaAyni(t *testing.T) {
 		{kod.A200, `5`}, {kod.A201, `2.5`}, {kod.A202, `"abc"`}, {kod.A203, `doğru`},
 		{kod.A205, `[1, 2]`}, {kod.A206, `{}`}, {kod.A207, `1..3`}, {kod.A208, `(x) => x`},
 		{kod.A209, `yazdır`}, {kod.A212, `tensör([[1.0, 2.0]], türev_izle: doğru)`},
-		{kod.T400, `AdamW([tensör([1.0], türev_izle: doğru)])`}, {kod.T401, `SGD([tensör([1.0], türev_izle: doğru)])`},
+		{kod.A214, `AdamW([tensör([1.0], türev_izle: doğru)])`}, {kod.A214, `SGD([tensör([1.0], türev_izle: doğru)])`},
 		{kod.A231, `veri_kümesi("testler/veri/sayilar")`},
 		{kod.A232, `veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 1, bağlam: 2)`},
 		{kod.A233, `veri_kümesi("testler/veri/sayilar").sıralı(toplu: 1, bağlam: 2)`},
@@ -279,6 +279,7 @@ func TestUyeTipleriTanimlaAyni(t *testing.T) {
 			}
 		}
 		slices.Sort(gercek)
+		gercek = slices.Compact(gercek) // aynı tipten birden çok örnek (AdamW, SGD: İyileştirici)
 		tanim := tn.Tipler()
 		slices.Sort(tanim)
 		if !slices.Equal(gercek, tanim) {

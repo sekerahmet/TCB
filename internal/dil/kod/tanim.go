@@ -27,8 +27,8 @@ import (
 //
 // Tip ifadesi tip kodlarının "|" ile birleşimidir (A200|A201: Tam ya da Ondalık); konumlu
 // parametrede sonek "?" isteğe bağlı, "*" sıfır ya da çok, "+" bir ya da çok demektir. Tip
-// kodları A2xx'tir; tip adı bir oluşturucunun adı olan nesneler (AdamW, SGD) için
-// oluşturucunun kodu (T400, T401) kullanılır. Adlı argüman [kod, tip, varsayılan]
+// kodları A2xx'tir (AdamW ve SGD'nin tipi de bir tip kodudur: İyileştirici, A214). Adlı
+// argüman [kod, tip, varsayılan]
 // üçlüsüdür; varsayılan bir JSON değeridir (null: yok) ve tek bir varsayılan yoksa
 // yazılmaz. "taşındı", kod kaldırılıp işi başka bir biçime taşındığında yeni kodu verir;
 // eski kodun numarası bir daha kullanılmaz ve adı yalnızca ipucu için dil dosyasında kalır.
@@ -368,8 +368,7 @@ func UyeYazimi(y Kod) string {
 
 // TanimDenetle tanımların dil dosyasıyla tutarlılığını denetler: her kodun (taşınmışlar
 // dahil) tanımı var, tanımdaki her kod dil dosyasında var, tür kodun ailesine uygun, tip
-// ifadeleri tip kodlarından (A2xx ya da tip adı bir oluşturucunun adı olan T400/T401)
-// oluşur, adlı argüman kodları x9xx'tir, ilişkili ve taşındı kodları vardır, taşınan kod
+// ifadeleri tip kodlarından (A2xx) oluşur, adlı argüman kodları x9xx'tir, ilişkili ve taşındı kodları vardır, taşınan kod
 // canlı ve başka bir ad alanındadır, dil dosyasındaki taşınma bilgisi tanımla aynıdır.
 func TanimDenetle(d *Dil) []error {
 	var hatalar []error
@@ -385,9 +384,6 @@ func TanimDenetle(d *Dil) []error {
 		}
 	}
 	tipKodu := func(k Kod) bool {
-		if k == T400 || k == T401 {
-			return true
-		}
 		g, ok := d.girdiler[k]
 		return ok && k.Harf() == 'A' && k.Grup() >= 2 && !g.Olu()
 	}

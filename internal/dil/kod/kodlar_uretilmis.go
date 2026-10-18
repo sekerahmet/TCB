@@ -53,6 +53,7 @@ const (
 	A211 Kod = A + 211 // Nesne
 	A212 Kod = A + 212 // Tensör
 	A213 Kod = A + 213 // Herhangi
+	A214 Kod = A + 214 // İyileştirici
 	A231 Kod = A + 231 // VeriKümesi
 	A232 Kod = A + 232 // Örnekleyici
 	A233 Kod = A + 233 // SıralıOkuyucu

@@ -269,7 +269,7 @@
       "patterns": [
         {
           "name": "entity.name.type.tr",
-          "match": "\\b(Tam|Ondalık|Metin|Mantık|Yok|Liste|Sözlük|Aralık|Fonksiyon|YerleşikFonksiyon|YapıTanımı|Nesne|Tensör|Herhangi|VeriKümesi|Örnekleyici|SıralıOkuyucu|Parçalayıcı)\\b"
+          "match": "\\b(Tam|Ondalık|Metin|Mantık|Yok|Liste|Sözlük|Aralık|Fonksiyon|YerleşikFonksiyon|YapıTanımı|Nesne|Tensör|Herhangi|İyileştirici|VeriKümesi|Örnekleyici|SıralıOkuyucu|Parçalayıcı)\\b"
         }
       ]
     },
