@@ -18,7 +18,8 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    Her ad önce tasarlanıp onaylanır; aynı işi yapan iki kod olmaz.
 3. **Kodlu saklama** — dosyalar diskte dilden bağımsız sabit kodlarla saklanır (`A001`, `G100`); kişi kodu VS Code'da ya da başka bir düzenleyicide kendi yazım dilinde (`eğer` / `if`) görür ve düzenler. Böylece her dilde yazılan kod diskte aynıdır; farklı dillerde çalışan kişiler aynı dosyalar üzerinde birlikte çalışabilir.
    - Tamamlandı (Ç1): kodlu biçim (`//! tr kodlu 1`, 17.1-17.6), kodlu dosya çevrilmeden çalışır; kapsamla kodlayan kayıpsız çevirici, `tr kodla`, `tr çöz`, `tr göster`; `tr biçimle` kodlu biçimi korur; `$ad` kaçışı (2.11); tek kaynak giriş noktası (`internal/dil/kaynak`).
-   - Ç2: VS Code izdüşümü (kişi Türkçe görür, kayıt kodlu yazar; bozuk dosyanın kaydı için yaklaşık kodlama, kesme noktası satırları); otomatik sınama kodlu biçimi denetler.
+   - Tamamlandı (Ç2): VS Code izdüşümü (17.7): kişi Türkçe görür, kayıt kodlu yazar, başlık gizli ve satırlar hata mesajları ve hata ayıklayıcıyla aynı; bozuk dosya kayıpsız, başlıksız Türkçe kaydedilir ve ilk geçerli kayıtta yeniden kodlanır; kısıtlı kipte salt okunur ham gösterim; `tr göster -` ve `tr kodla -` (standart giriş kipi); git farkları için `tr göster` ile "textconv" tarifi.
+   - Kalan: otomatik sınama kodlu biçimi denetler.
    - Depodaki örnekler ve testler, VS Code izdüşümü hazır olunca kodlu biçime çevrilir.
 4. **Modern VS Code deneyimi** — dil sunucusu `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır; eklenti ince bir istemci olur):
    - yazarken hata gösterimi ve hızlı düzeltmeler (`yazdir` → `yazdır` gibi ipuçları tek tıkla);

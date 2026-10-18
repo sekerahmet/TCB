@@ -45,7 +45,7 @@ test "toplama" {
 
 - `tr test` bulunulan klasördeki (alt klasörler dahil) tüm `*_test.tr` dosyalarını, `tr test dosya.tr` yalnızca o dosyayı çalıştırır. Bir test kalırsa çıkış kodu 1'dir.
 - `tr biçimle dosya.tr` (ya da klasör) kodu standart biçime getirir; `tr biçimle --kontrol .` yalnızca denetler ve biçimlenmesi gereken dosya varsa 1 ile çıkar.
-- `tr kodla dosya.tr` (ya da klasör) dosyayı dilden bağımsız kodlu biçime çevirir (`yazdır` → `G100`); `tr çöz` Türkçe yazıma geri çevirir, `tr göster dosya.tr` kodlu dosyayı değiştirmeden Türkçe basar. Kodlu dosya çevrilmeden de çalışır; adlarınız, metinler ve yorumlar değişmez. Kurallar: [`docs/dil/17_kodlar.md`](docs/dil/17_kodlar.md).
+- `tr kodla dosya.tr` (ya da klasör) dosyayı dilden bağımsız kodlu biçime çevirir (`yazdır` → `G100`); `tr çöz` Türkçe yazıma geri çevirir, `tr göster dosya.tr` kodlu dosyayı değiştirmeden Türkçe basar. Kodlu dosya çevrilmeden de çalışır; adlarınız, metinler ve yorumlar değişmez. VS Code'da kodlu dosya Türkçe görünür ve düzenlenir, kaydedince yine kodlu yazılır; satırlar hata mesajları ve hata ayıklayıcıyla aynıdır ([eklenti belgesi](editors/vscode/README.md#kodlu-dosyalar)). Kurallar: [`docs/dil/17_kodlar.md`](docs/dil/17_kodlar.md).
 
 ## Tensörler ve otomatik türev
 

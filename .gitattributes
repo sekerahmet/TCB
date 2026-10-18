@@ -4,6 +4,11 @@
 *.npy binary
 *.trt binary
 
+# Kodlu .tr dosyalarında farkı Türkçe göstermek için "tr" fark sürücüsü. Sürücüyü her kişi kendi
+# git ayarında tanımlar: git config --global diff.tr.textconv "tr göster" (docs/kilavuz/01_baslangic.md,
+# "Kodlu dosyalar"). Tanımlanmamışsa git olağan farkı gösterir.
+*.tr diff=tr
+
 # Üretilmiş dosyalar: elle düzenlenmez, çakışmada yeniden üretilir (go generate ./internal/dil/kod)
 docs/kodlar.md linguist-generated=true
 internal/dil/kod/kodlar_uretilmis.go linguist-generated=true
