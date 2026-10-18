@@ -19,13 +19,8 @@ func (v *VM) aktar(s *ast.ImportStatement, env *Environment, takma func(*Environ
 	if !strings.HasSuffix(path, ".tr") {
 		path += ".tr"
 	}
-	resolvedPath := path
-	if _, err := os.Stat(resolvedPath); err != nil && !filepath.IsAbs(path) && v.SourceFile != "" && v.SourceFile != "<derlenmiş-uygulama>" {
-		candidate := filepath.Join(filepath.Dir(v.SourceFile), path)
-		if _, err2 := os.Stat(candidate); err2 == nil {
-			resolvedPath = candidate
-		}
-	}
+	// Modüller de dosyalar gibi aranır: önce çalışma klasörü, sonra programın klasörü.
+	resolvedPath, bakilanlar := v.YolCoz(path)
 	absPath, err := filepath.Abs(resolvedPath)
 	if err != nil {
 		absPath = resolvedPath
@@ -61,7 +56,7 @@ func (v *VM) aktar(s *ast.ImportStatement, env *Environment, takma func(*Environ
 
 	data, err := os.ReadFile(resolvedPath)
 	if err != nil {
-		return nil, signalNone, fmt.Errorf("Satır %d: %q modülü okunamadı: %v", s.Line(), path, err)
+		return nil, signalNone, fmt.Errorf("Satır %d: %w", s.Line(), OkumaHatasi("aktar", path, "modülü okunamadı", err, bakilanlar))
 	}
 	code := strings.TrimPrefix(string(data), "\xef\xbb\xbf")
 	l := lexer.New(code)

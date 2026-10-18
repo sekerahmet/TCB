@@ -10,6 +10,38 @@ test "13.1 genel yerleşikler" {
     eşit_mi([0, 1, 2], aralık(0, 3))
 }
 
+test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
+    değişken m = ""
+    dene { aralık("a") } yakala h { m = h }
+    doğrula(m.biter("aralık() 1. argüman olarak Tam bekler, Metin (\"a\") verildi"), m)
+    dene { aralık(1, 2.5) } yakala h { m = h }
+    doğrula(m.biter("aralık() 2. argüman olarak Tam bekler, Ondalık (2.5) verildi"), m)
+    dene { uzunluk(5) } yakala h { m = h }
+    doğrula(m.biter("uzunluk() 1. argüman olarak Metin, Liste ya da Sözlük bekler, Tam (5) verildi"), m)
+    dene { filtrele([1], 3) } yakala h { m = h }
+    doğrula(m.biter("filtrele() 2. argüman olarak Fonksiyon bekler, Tam (3) verildi"), m)
+    dene { toplam() } yakala h { m = h }
+    doğrula(m.biter("toplam() 1 argüman bekler, 0 verildi (kullanım: toplam(liste))"), m)
+    dene { yuvarla(1.25, "x") } yakala h { m = h }
+    doğrula(m.biter("yuvarla() 2. argüman olarak Tam bekler, Metin (\"x\") verildi"), m)
+}
+
+test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çalışma klasöründe, sonra programın klasöründe aranır" {
+    // Programın klasöründeki dosya, program başka bir klasörden çalıştırılsa da bulunur
+    doğrula(dosya_oku("veri/parcalayici.json").içerir("model"))
+    değişken m = ""
+    dene { dosya_oku("veri/olmayan_dosya.txt") } yakala h { m = h }
+    doğrula(m.içerir("dosya_oku(): \"veri/olmayan_dosya.txt\" okunamadı: böyle bir dosya yok"), m)
+    doğrula(m.içerir("bakılan yerler: "), m)
+    doğrula(değil m.içerir("system cannot"), m)
+    dene { dosya_oku("veri") } yakala h { m = h }
+    doğrula(m.içerir("bu bir klasör, dosya değil"), m)
+    dene { dosya_yaz("olmayan_klasör_tr/a.txt", "x") } yakala h { m = h }
+    doğrula(m.biter("dosya_yaz(): \"olmayan_klasör_tr/a.txt\" yazılamadı: \"olmayan_klasör_tr\" klasörü yok"), m)
+    dene { dosya_oku(5) } yakala h { m = h }
+    doğrula(m.biter("dosya_oku() 1. argüman olarak Metin (dosya yolu) bekler, Tam (5) verildi"), m)
+}
+
 test "13.2 metin metotları" {
     eşit_mi("İSTANBUL", "istanbul".büyük_harf())
     eşit_mi("ılık", "ILIK".küçük_harf())
