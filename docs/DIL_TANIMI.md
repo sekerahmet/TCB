@@ -91,7 +91,7 @@ Kaldırılan dil adları (anahtar kelimeler, yerleşikler, üyeler, adlı argüm
 
 **2.10** İfadeler ve bloklar en fazla 1000 düzey iç içe yazılabilir (`((((1))))` dört düzeydir); sınır aşılırsa program çalışmaz, `ifade ya da blok çok derin iç içe (en fazla 1000 düzey)` sözdizimi hatası verilir. (Sınırsız iç içelik yorumlayıcıyı yakalanamaz biçimde çökertirdi.)
 
-Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `kurucu` (yapının oluşturulurken çağrılan metodunun adı, 7.4), `hata` (`yakala`da ad verilmeyince hata değişkeninin adı, 8.1), `o` (sondaki bloğun parametresi, 6.7), `_` (yalnızca `eşle` kolunda varsayılan). Bunların adları da sözlüktedir (`A1xx`, bkz. 17).
+Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `kurucu` (yapının oluşturulurken çağrılan metodunun adı, 7.4), `hata` (`yakala`da ad verilmeyince hata değişkeninin adı, 8.1), `o` (sondaki bloğun parametresi, 6.7), `_` (yalnızca `eşle` kolunda varsayılan). Bunların adları da kod listesindedir (`A1xx`, bkz. 17).
 
 ---
 

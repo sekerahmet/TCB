@@ -22,9 +22,9 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - Kullanıcının adları, metinler, yorumlar ve sayılar olduğu gibi kalır; metin içi `{ifade}` yerleştirmelerindeki dil kelimeleri de kodlanır.
    - `tr göster dosya.tr --dil tr` ve hata mesajları kodu okunur dilde gösterir.
    - Depodaki örnekler ve testler, VS Code izdüşümü hazır olunca kodlu biçime çevrilir.
-4. **Modern VS Code deneyimi** — dil sunucusu `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve sözlük yeniden kullanılır; eklenti ince bir istemci olur):
+4. **Modern VS Code deneyimi** — dil sunucusu `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır; eklenti ince bir istemci olur):
    - yazarken hata gösterimi ve hızlı düzeltmeler (`yazdir` → `yazdır` gibi ipuçları tek tıkla);
-   - üzerine gelince belge (sözlükten ve dil tanımından), adlı argüman ipuçları, bağlama göre tamamlama;
+   - üzerine gelince belge (kod listesinden ve dil tanımından), adlı argüman ipuçları, bağlama göre tamamlama;
    - tanıma git, bütün kullanımları bul, yeniden adlandır, kaydederken biçimlendirme;
    - anlamsal renklendirme: dilin kelimeleri ile kullanıcının adları ayrı renkte;
    - testlerin VS Code test gezgininde koşması, satır üstünde "çalıştır" ve "hata ayıkla" düğmeleri;
