@@ -155,6 +155,7 @@ Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`
 - **Örnekleme:** `örnekle(logit, sıcaklık: 1.0, en_iyi_k: 0, tohum: yok)` son eksendeki `softmax(logit / sıcaklık)` dağılımından bir token kimliği örnekler; sonuç son ekseni düşürülmüş, tam sayılı bir tensördür (`.değer` `Tam`): `[B, V]` logitten `[B]` kimlik. `en_iyi_k: 40` yalnızca en olası 40 token arasından seçer; `sıcaklık: 0` en olasıyı verir (`maks_indeks` ile aynı). Aynı `tohum` aynı sonucu verir; tohumsuz çağrılar her seferinde farklıdır. Türev izlemez.
 - **Model parametreleri:** `parametreler(model)` bir yapı nesnesini (iç içe yapılar, listeler ve sözlükler dahil) gezip türev izleyen yaprak tensörleri sabit sırayla (alan tanım sırası) bir liste olarak verir; aynı tensör bir kez yer alır: `AdamW(parametreler(model), öğrenme_oranı: 0.001)`. `parametreler(model, adlarıyla: doğru)` yol adı → tensör sözlüğü verir (`"bloklar.0.dikkat.Wq"`; liste indeksleri sayı, sözlük anahtarları anahtarın kendisi); bu sözlük doğrudan kaydedilir: `tensör_kaydet("model.trt", parametreler(model, adlarıyla: doğru))`.
 - **Türev:** `geri_yayılım(kayıp)` (kayıp tek elemanlı olmalı), `x.gradyan` (gradyanlar **birikir**: her `geri_yayılım` yeni gradyanı öncekine ekler, bu yüzden eğitim döngüsünde her adımda önce `op.sıfırla()` çağrılır), `türevsiz { ... }` bloğu türev izlemeden çalışır ve bloğun değerini (son ifade ya da `sonuç`) döndürür, `türevsiz(x)` tensörü hesap çizgesinden ayırır.
+- **Kullanıcı tanımlı türev:** `özel_türev(ileri: ..., geri: ...)` yeni bir işlemin ileri ve geri hesabını kendiniz yazmanızı sağlar (yeni bir katman fikrini çizgeyi şişirmeden denemek için). `ileri` türevsiz çalışır ve `[çıktı, saklananlar]` döndürür; geri hesabın ihtiyaç duyacağı her şeyi `saklananlar` listesine **açıkça** koyarsınız. Sonuç çizgeye tek düğüm olarak kaydedilir; geri yayılımda `geri(saklananlar, g)` çağrılır ve her konumlu girdi için girdiyle aynı şekilde bir gradyan ya da `yok` döndürür (tensör olmayan girdiler için `yok`; yayınlama yapılmaz, yanlış şekil açık hatadır). Adlı argümanlar (`ölçek: 0.5` gibi) `ileri`ye geçer, gradyan almaz. Çıktı bir tensör listesiyse çağrı liste döndürür ve `g` her çıktının gradyanını içeren listedir (kayba bağlı olmayan çıktı için sıfır tensör). Saklanan bir tensör geri yayılımdan önce yerinde değiştirilirse hata alırsınız. `türev_denetle(f, [girdiler...], adım: 0.001, tolerans: 0.01)` geri hesabınızı merkezi farkla bulunan sayısal gradyanla karşılaştırır: doğruysa `doğru` döner, yanlışsa en büyük farkın yerini ve değerlerini yazan bir hata verir; sıradan TR fonksiyonlarında da çalışır. Ayrıntılı örnek (satıra özel kapılı nöron): `testler/ozel_turev_test.tr`.
 - **İndeks:** `maks_indeks(x, eksen: -1)` en büyük elemanın indeksini verir (eşitlikte ilki). Sonuç her zaman tam sayı değerli, türev izlemeyen bir tensördür (o eksen kaldırılır; 1 boyutlu girdide skaler); doğrudan `gömme`/`çapraz_entropi` indeksi olarak kullanılabilir. Tensör tam sayılı işaretlidir: ondalıksız yazdırılır ve `.değer` `Tam` (ya da `Tam` listesi) verir, böylece `harfler[maks_indeks(x).değer[0]]` gibi liste indekslemede doğrudan kullanılır. Bu tensörle yapılan işlemlerin sonucu (ör. `i * 2`) yine Ondalık değerlidir.
 - **Gradyan kırpma:** `gradyan_kırp(parametreler, en_fazla: 1.0)` gradyanların toplam L2 normunu `en_fazla` ile sınırlar ve kırpma öncesi normu döndürür; `geri_yayılım` ile `op.adım()` arasında çağrılır.
 - **Kaydetme/yükleme:** `tensör_kaydet("model.trt", {"w": w, "b": b})` ve `değişken p = tensör_yükle("model.trt")` (isteğe bağlı `türev_izle: doğru`). Göreli yollar `dosya_oku`/`dosya_yaz` ile aynı kuralla çözülür (önce çalışma klasörü, orada yoksa programın klasörü; `model.kaydet`/`model_yükle` için de aynı); dosya varsa üzerine yazılır. Dosya hataları Türkçedir (`tensör_yükle: "model.trt" yüklenemedi: böyle bir dosya ya da klasör yok (yolun yazımını denetleyin); bakılan yer: ...`). Biçim (sürüm 2, küçük sonlu): `TRTENSOR` (8 bayt), sürüm `uint16`, girdi sayısı `uint32`; her girdi için ad uzunluğu `uint32` + UTF-8 ad, veri türü kodu `uint8` (1 = float32, 2 = bf16, 3 = fp16), eksen sayısı `uint8`, her eksen `uint64`, satır öncelikli veri (float32 4 bayt, bf16/fp16 2 baytlık bit deseni; 16 bitlik tensörler 16 bit olarak yazılır ve aynı türde yüklenir); sonda tüm baytların CRC-32 değeri `uint32`. Sürüm 1 dosyaları (yalnızca float32) okunmaya devam eder. Bozuk, eksik, bilinmeyen sürümlü ya da başka türden dosya açık bir Türkçe hatayla reddedilir.
@@ -176,6 +177,27 @@ döngü adım içinde 0..500 {
 }
 yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)}")   // w = 2.0, b = -1.0
 yazdır(türevsiz { sonuç X @ w + b })                                       // Tensör[4×1] [...]
+```
+
+Kullanıcı tanımlı türev: kapılı çarpım `a * sigmoid(b)` için elle yazılmış geri hesap ve denetimi.
+
+```tr
+değişken kapılı = özel_türev(
+    ileri: fonksiyon(a, b) {
+        değişken s = sigmoid(b)
+        sonuç [a * s, [a, s]]                       // [çıktı, saklananlar]
+    },
+    geri: fonksiyon(k, g) {                          // k: saklananlar, g: çıktının gradyanı
+        değişken a = k[0]
+        değişken s = k[1]
+        sonuç [g * s, g * a * s * (1 - s)]           // a ve b için birer gradyan
+    }
+)
+değişken a = tensör([[1.0, -2.0]], türev_izle: doğru)
+değişken b = tensör([[0.5, 0.0]], türev_izle: doğru)
+geri_yayılım(toplam(kapılı(a, b)))
+yazdır(a.gradyan, b.gradyan)
+yazdır(türev_denetle(kapılı, [a, b]))               // doğru (yanlış bir geri hesabında açık hata)
 ```
 
 Şekil hataları şekli gösterir ve `dene/yakala` ile yakalanabilir: `[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`. Fonksiyon, metot, işleç (`@`, `+`, `<`...) ve özellik hatalarının başında `Satır N:` bulunur: `Satır 3: [2, 2] ile [1, 3] matris çarpımı yapılamaz; 2 ≠ 1 (...)`.
