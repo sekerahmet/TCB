@@ -8,8 +8,8 @@ import (
 	"io"
 )
 
-// maxJSONDepth iç içe JSON nesne/dizi derinliğinin üst sınırıdır. Web sunucusu dışarıdan
-// JSON aldığı için sınırsız derinlik yığın taşmasına yol açabilirdi.
+// maxJSONDepth iç içe JSON nesne/dizi derinliğinin üst sınırıdır. JSON dışarıdan (dosyadan,
+// kullanıcıdan) gelebildiği için sınırsız derinlik yığın taşmasına yol açabilirdi.
 const maxJSONDepth = 1000
 
 // JSONToTR JSON metnini TR değerine çevirir. Go'nun map tabanlı çözümlemesinden farklı olarak

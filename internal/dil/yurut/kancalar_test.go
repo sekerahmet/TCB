@@ -2,7 +2,6 @@ package yurut
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -210,7 +209,7 @@ func TestIndeksAtamaVeDuzDegerKancalari(t *testing.T) {
 	if err == nil || err.Error() != "Satır 5: negatif indeks" {
 		t.Fatalf("kanca hatası satır önekli olmalı: %v", err)
 	}
-	if got := TRToGoValue(a); fmt.Sprint(got) != "[4 8]" {
+	if got := a.DuzDeger().Inspect(); got != "[4, 8]" {
 		t.Fatalf("atamalar ya da düz değer: %v", got)
 	}
 }

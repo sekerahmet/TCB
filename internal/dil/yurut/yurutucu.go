@@ -57,7 +57,7 @@ type HataAyiklayici interface {
 // kesme_noktası yok sayılır.
 var YeniHataAyiklayici func(sourceFile, sourceCode string) HataAyiklayici
 
-// vmShared tüm görevlerin (ana program, eşzamanlı bloklar, web/GUI istekleri) paylaştığı yorumlayıcı durumudur.
+// vmShared tüm görevlerin (ana program ve eşzamanlı bloklar) paylaştığı yorumlayıcı durumudur.
 type vmShared struct {
 	// Debugger her deyimde okunur; sık okunan alanlar başta tutulur.
 	Debugger  HataAyiklayici
@@ -88,8 +88,8 @@ type vmShared struct {
 	gil sync.Mutex
 	// bekleyen, kilidi almak için bekleyen görev sayısıdır. Kilidi tutan görev döngü
 	// turlarında ve fonksiyon çağrılarında bu sayaca bakar; bekleyen varsa kilidi devreder
-	// (bkz. devret). Böylece CPU-yoğun bir döngü eşzamanlı görevleri ve web isteklerini
-	// sonuna kadar bekletmez.
+	// (bkz. devret). Böylece CPU-yoğun bir döngü eşzamanlı görevleri sonuna kadar
+	// bekletmez.
 	bekleyen atomic.Int32
 	// gorevKancalari, bir görev kilidi her aldığında çağrılan motor kancalarıdır (bkz.
 	// GorevKancasiEkle). Yalnızca kayıt sırasında (program başlamadan) yazılır.
@@ -131,7 +131,7 @@ type StackFrame struct {
 }
 
 // VM, bir yürütme görevinin görünümüdür: paylaşılan durum + göreve özel çağrı yığını.
-// Her 'eşzamanlı' blok ve her web/GUI isteği kendi VM görünümüyle çalışır (bkz. NewTaskVM).
+// Her 'eşzamanlı' blok kendi VM görünümüyle çalışır (bkz. NewTaskVM).
 //
 // Çağrı yığını kilitsizdir: yalnızca görevin kendi goroutine'i okur ve yazar (hata
 // ayıklayıcının istekleri de duraklatılmış görevin goroutine'inde işlenir).
@@ -164,7 +164,7 @@ type VM struct {
 }
 
 // GorevDegeri bu göreve (VM görünümüne) anahtarla bağlanmış motor durumunu verir; yoksa
-// nil. Değer başka görevlere (eşzamanlı bloklar, web/GUI istekleri) görünmez; görev GIL'i
+// nil. Değer başka görevlere (eşzamanlı bloklar) görünmez; görev GIL'i
 // bıraktığında (Blocking) başka bir görev kendi değerini okur. Anahtar, motorun dışa
 // açılmamış bir tipinden olmalıdır (çakışma olmasın).
 func (v *VM) GorevDegeri(anahtar any) any { return v.gorevDegerleri[anahtar] }
@@ -203,19 +203,11 @@ func New() *VM {
 	return v
 }
 
-// NewTaskVM aynı paylaşılan durum üzerinde, kendi çağrı yığınına sahip yeni bir görev görünümü üretir.
-//
-// async=true ('eşzamanlı' blok): çağıran, yorumlayıcı kilidini tutan VM goroutine'idir; görev
-// başlatıldığı yerin çağrı yığınını devralır (hata ayıklayıcı yığını bu sayede anlamlıdır).
-//
-// async=false (web/arayüz isteği): çağrı sunucu goroutine'inden, kilit ALINMADAN yapılır. Bu
-// sırada ana program kendi CallStack'ine ekleme yapıyor olabilir; dilimi okumak veri yarışı
-// olurdu. Yeni bir istek ana programın yığınının çocuğu da değildir; bu yüzden boş yığınla başlar
-// ve v'nin hiçbir göreve özel alanına dokunulmaz.
-func (v *VM) NewTaskVM(async bool) *VM {
-	if !async {
-		return &VM{vmShared: v.vmShared, CallStack: []StackFrame{}}
-	}
+// NewTaskVM bir 'eşzamanlı' görev için aynı paylaşılan durum üzerinde, kendi çağrı
+// yığınına sahip yeni bir görev görünümü üretir. Çağıran, yorumlayıcı kilidini tutan VM
+// goroutine'idir; görev başlatıldığı yerin çağrı yığınını devralır (hata ayıklayıcı yığını bu
+// sayede anlamlıdır).
+func (v *VM) NewTaskVM() *VM {
 	// Görev başlatıldığı yerin dosyasında ve aktarım zincirinde başlar (modül yüklenirken
 	// başlatılan görev o modülü aktarırsa bu döngüdür, beklemek kilitlenirdi).
 	return &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: true,
@@ -257,7 +249,7 @@ func (v *VM) releaseGIL() {
 }
 
 // Blocking fn'i yorumlayıcı kilidini bırakarak çalıştırır; uyku, ağ isteği, dış süreç gibi
-// uzun süren işlemler sırasında diğer görevlerin (ve web isteklerinin) ilerlemesini sağlar.
+// uzun süren işlemler sırasında diğer görevlerin ilerlemesini sağlar.
 func (v *VM) Blocking(fn func()) {
 	if !v.holdsGIL {
 		fn()
@@ -270,21 +262,6 @@ func (v *VM) Blocking(fn func()) {
 		v.kesilmeyiDenetle()
 	}()
 	fn()
-}
-
-// RunTask fn'i bu görünüm üzerinde yorumlayıcı kilidini alarak çalıştırır ve olası bir
-// paniği (programı çökertmek yerine) hataya dönüştürür. Web/GUI istek işleyicileri kullanır.
-func (v *VM) RunTask(fn func() (Value, error)) (res Value, err error) {
-	v.acquireGIL()
-	defer v.releaseGIL()
-	yiginBoyu := len(v.CallStack)
-	defer func() {
-		if r := recover(); r != nil {
-			v.yiginiKirp(yiginBoyu)
-			res, err = nil, panikHatasi(r)
-		}
-	}()
-	return fn()
 }
 
 // yiginiKirp çağrı yığınını n çerçeveye indirir. Derlenmiş çağrılar çerçevelerini Go
@@ -304,15 +281,6 @@ func (v *VM) StackSnapshot() []StackFrame {
 	snap := make([]StackFrame, len(v.CallStack))
 	copy(snap, v.CallStack)
 	return snap
-}
-
-// RegisterBuiltin sözlükte olmayan bir yerleşiği (testlerin ve TR'yi gömen Go
-// programlarının kendi yardımcıları) verilen adla genel kapsama kaydeder. Dilin kendi
-// yerleşikleri RegisterBuiltinKod ile sözlük koduyla kaydedilir; adları internal/dil/kod'tadır.
-// Her işin tek yazımı vardır: ikinci bir ad (eş anlamlı ya da Türkçe karaktersiz biçim)
-// kaydedilmez.
-func (v *VM) RegisterBuiltin(name string, fn BuiltinFunc) {
-	v.GlobalEnv.Define(name, &BuiltinVal{Name: name, Fn: fn}, true)
 }
 
 func (v *VM) Run(prog *agac.Program) (result Value, err error) {

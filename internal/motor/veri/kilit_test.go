@@ -48,11 +48,11 @@ func TestSonrakiBeklerkenKilitBirakilir(t *testing.T) {
 	m := yurut.New()
 	m.Out = &bytes.Buffer{}
 	m.GlobalEnv.Define("s", o, false)
-	m.RegisterBuiltin("başladı", func(*yurut.VM, []yurut.Value, map[string]yurut.Value) (yurut.Value, error) {
+	testYerlesigi(m, "başladı", func(*yurut.VM, []yurut.Value, map[string]yurut.Value) (yurut.Value, error) {
 		basladi <- struct{}{}
 		return yurut.NULL, nil
 	})
-	m.RegisterBuiltin("görevi_bekle", func(m *yurut.VM, _ []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
+	testYerlesigi(m, "görevi_bekle", func(m *yurut.VM, _ []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
 		m.Blocking(func() {
 			<-basladi
 			// Görev sonraki()'nin içinde önden yükleyiciyi beklemeye girene kadar beklenir
@@ -62,7 +62,7 @@ func TestSonrakiBeklerkenKilitBirakilir(t *testing.T) {
 		})
 		return yurut.NULL, nil
 	})
-	m.RegisterBuiltin("kapıyı_aç", func(*yurut.VM, []yurut.Value, map[string]yurut.Value) (yurut.Value, error) {
+	testYerlesigi(m, "kapıyı_aç", func(*yurut.VM, []yurut.Value, map[string]yurut.Value) (yurut.Value, error) {
 		close(kaynak.kapi)
 		return yurut.NULL, nil
 	})
@@ -121,4 +121,10 @@ func sonrakiBeklemede(t *testing.T) {
 		}
 		time.Sleep(time.Millisecond)
 	}
+}
+
+// testYerlesigi testin yardımcı yerleşiğini genel kapsama bağlar (kod listesinde olmayan,
+// yalnızca bu testte geçen bir ad).
+func testYerlesigi(m *yurut.VM, ad string, fn yurut.BuiltinFunc) {
+	m.GlobalEnv.Define(ad, &yurut.BuiltinVal{Name: ad, Fn: fn}, true)
 }

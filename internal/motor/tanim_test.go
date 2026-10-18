@@ -25,10 +25,6 @@ import (
 // metotların gerçekten kabul ettikleridir, üye tanımlarındaki tip listeleri üyeyi gerçekten
 // destekleyen tiplerdir.
 
-// agGerekenler ağ ya da yerel dil modeli sunucusu gerektiren örneklerdir; yalnızca
-// denetlenir, çalıştırılmaz.
-var agGerekenler = map[kod.Kod]bool{}
-
 // geciciKlasoreGec çalışma klasörünü test bitene kadar geçici bir klasör yapar (örneklerin
 // yazdığı dosyalar orada kalır). Bu paketin testleri paralel çalışmaz.
 func geciciKlasoreGec(t *testing.T) {
@@ -97,9 +93,6 @@ func TestOrneklerCalisir(t *testing.T) {
 		}
 		if hatalar := denetci.New().CheckProgram(prog); len(hatalar) > 0 {
 			t.Errorf("%s (%s) örneği tip denetiminden geçmedi: %v\n  %s", k, g.Ad, hatalar, ornek)
-			continue
-		}
-		if agGerekenler[k] {
 			continue
 		}
 		if err := ornekCalistir(t, prog); err != nil {
@@ -192,7 +185,7 @@ func TestAdliArgumanlarTanimlaAyni(t *testing.T) {
 	denenen := 0
 	for _, k := range kod.Kodlar() {
 		tn, _ := kod.Tanimi(k)
-		if (tn.Tur != kod.TurFonksiyon && tn.Tur != kod.TurMetot) || agGerekenler[k] {
+		if tn.Tur != kod.TurFonksiyon && tn.Tur != kod.TurMetot {
 			continue
 		}
 		prog, ornek := ornekProgrami(t, k)

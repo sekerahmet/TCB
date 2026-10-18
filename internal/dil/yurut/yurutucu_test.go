@@ -85,18 +85,12 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	}
 }
 
-// TestNewTaskVMYigini: istek görevleri (async=false) ana programın çağrı yığınını kopyalamaz
-// (kilitsiz okunması veri yarışı olurdu), eşzamanlı görevler (async=true) devralır.
+// TestNewTaskVMYigini: eşzamanlı görevler başlatıldıkları yerin çağrı yığınını devralır;
+// kopya bağımsızdır.
 func TestNewTaskVMYigini(t *testing.T) {
 	ana := New()
 	ana.CallStack = append(ana.CallStack, StackFrame{FuncName: "dış", Line: 3}, StackFrame{FuncName: "iç", Line: 7})
-
-	istek := ana.NewTaskVM(false)
-	if istek.StackDepth() != 0 || istek.asyncTask {
-		t.Fatalf("istek görevi boş yığınla ve eşzamanlı olmadan başlamalı: derinlik=%d async=%v", istek.StackDepth(), istek.asyncTask)
-	}
-
-	gorev := ana.NewTaskVM(true)
+	gorev := ana.NewTaskVM()
 	if gorev.StackDepth() != 2 || !gorev.asyncTask || gorev.CallStack[1].FuncName != "iç" {
 		t.Fatalf("eşzamanlı görev üst yığını devralmalı: %+v", gorev.CallStack)
 	}
@@ -105,29 +99,6 @@ func TestNewTaskVMYigini(t *testing.T) {
 	if ana.StackDepth() != 2 {
 		t.Fatalf("ana yığın değişmemeli, derinlik=%d", ana.StackDepth())
 	}
-
-	// Ana program yığına yazarken istek görevi oluşturmak yarış üretmemeli (go test -race ile anlamlı)
-	dur := make(chan struct{})
-	bitti := make(chan struct{})
-	go func() {
-		defer close(bitti)
-		for {
-			select {
-			case <-dur:
-				return
-			default:
-				ana.CallStack = append(ana.CallStack, StackFrame{FuncName: "f"})
-				ana.CallStack = ana.CallStack[:len(ana.CallStack)-1]
-			}
-		}
-	}()
-	for i := 0; i < 1000; i++ {
-		if ana.NewTaskVM(false).StackDepth() != 0 {
-			t.Fatal("istek görevi boş yığınla başlamalı")
-		}
-	}
-	close(dur)
-	<-bitti
 }
 
 func TestConcurrentCallStackSafety(t *testing.T) {

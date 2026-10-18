@@ -1,12 +1,10 @@
 package ogrenme
 
 import (
-	"fmt"
 	"math"
 	"strings"
 	"testing"
 
-	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 )
 
@@ -132,11 +130,11 @@ func TestTensorDuzDeger(t *testing.T) {
 		t    *tensor.Tensor
 		want string
 	}{
-		{tensor.New([]float32{1, 0.5, -2, 3}, 2, 2), "[[1 0.5] [-2 3]]"},
+		{tensor.New([]float32{1, 0.5, -2, 3}, 2, 2), "[[1.0, 0.5], [-2.0, 3.0]]"},
 		{tensor.Scalar(0.1), "0.1"},
-		{tensor.New([]float32{1, 2, 3}, 3), "[1 2 3]"},
+		{tensor.New([]float32{1, 2, 3}, 3), "[1.0, 2.0, 3.0]"},
 	} {
-		if got := fmt.Sprint(yurut.TRToGoValue(Yeni(d.t))); got != d.want {
+		if got := Yeni(d.t).DuzDeger().Inspect(); got != d.want {
 			t.Errorf("%v: %s, %s bekleniyordu", d.t.Shape(), got, d.want)
 		}
 	}

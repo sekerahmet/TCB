@@ -11,6 +11,7 @@ import (
 	"tr_dili/internal/dil/ayristir"
 	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/motor/ortak/jsonyaz"
 )
 
 // Testlerdeki VM'ler bu paketin yerleşiklerini de içersin (tr_dili/internal/motor gibi).
@@ -96,9 +97,8 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	// Metin olmayan anahtarlar Go/JSON tarafına görünen hâlleriyle aktarılır.
 	d := yurut.NewDictVal()
 	d.SetValue(&yurut.IntVal{Val: 7}, &yurut.StringVal{Val: "yedi"})
-	m := yurut.TRToGoValue(d).(map[string]interface{})
-	if m["7"] != "yedi" {
-		t.Fatalf("TRToGoValue anahtarı \"7\" olmalı, alınan: %v", m)
+	if b, err := jsonyaz.Yaz(d); err != nil || string(b) != `{"7":"yedi"}` {
+		t.Fatalf("JSON anahtarı \"7\" olmalı, alınan: %s %v", b, err)
 	}
 }
 

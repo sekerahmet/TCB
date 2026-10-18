@@ -378,7 +378,7 @@ func (c *derleyici) eszamanli(k *derleyiciKapsam, s *agac.AsyncStatement) deyimK
 		v.wg.Add(1)
 		asyncEnv := yeniOrtam(env, bilgi)
 		asyncEnv.IsFuncRoot = true // görev içindeki 'ertele' blokları görev bitince çalışır
-		task := v.NewTaskVM(true)
+		task := v.NewTaskVM()
 		go func(e *Environment) {
 			defer v.wg.Done()
 			task.acquireGIL()

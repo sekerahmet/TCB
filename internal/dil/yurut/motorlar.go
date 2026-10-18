@@ -28,8 +28,8 @@ func (v *VM) registerMotors() {
 	}
 }
 
-// GorevKancasiEkle, bu VM'nin görevlerinden biri (ana program, eşzamanlı blok, web/GUI
-// isteği) yorumlayıcı kilidini her aldığında, kilidi alan görevin goroutine'inde ve
+// GorevKancasiEkle, bu VM'nin görevlerinden biri (ana program ya da eşzamanlı blok)
+// yorumlayıcı kilidini her aldığında, kilidi alan görevin goroutine'inde ve
 // görünümüyle çağrılacak bir kanca ekler. Motorlar süreç geneli durumlarını (ör. tensör
 // çekirdeğinin türevsiz kipi) kilidi tutan göreve göre ayarlamak için kullanır; kanca
 // görev durumunu GorevDegeri ile okur. Yalnızca motor kaydı sırasında (program

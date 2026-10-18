@@ -9,7 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"tr_dili/internal/dil/ayristir"
 	"tr_dili/internal/dil/kod"
+	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/yurut"
 )
 
@@ -168,15 +170,16 @@ func TestPanikHatayaCevrilir(t *testing.T) {
 // görev kesilmiş olarak biter.
 func TestKurtarKesilmeyiYutmaz(t *testing.T) {
 	m := yurut.New()
-	m.Kes()
 	cevrildi := false
-	_, err := m.RunTask(func() (yurut.Value, error) {
+	m.GlobalEnv.Define("dene_kurtar", &yurut.BuiltinVal{Name: "dene_kurtar", Fn: func(y *yurut.VM, _ []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
+		y.Kes()
 		_, _ = Kurtar(func() int {
-			m.Blocking(func() {}) // kilit geri alınınca kesilme paniği atılır
+			y.Blocking(func() {}) // kilit geri alınınca kesilme paniği atılır
 			return 1
 		}, func(any) error { cevrildi = true; return errors.New("yutuldu") })
-		return nil, nil
-	})
+		return yurut.NULL, nil
+	}}, true)
+	_, err := m.Run(ayristir.New(sozcuk.New("dene_kurtar()")).ParseProgram())
 	if cevrildi {
 		t.Fatal("Kurtar kesilmeyi hataya çevirdi")
 	}

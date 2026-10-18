@@ -23,7 +23,7 @@ var kurucuAdi = kod.Ad(kod.A102)
 
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
 // sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar
-// (filtrele, web işleyicileri...) bu denetime girmez; onlar fazladan argüman gönderebilir.
+// (filtrele, haritala, indirge ...) bu denetime girmez; onlar fazladan argüman gönderebilir.
 func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error {
 	fn, ok := fnVal.(*FuncVal)
 	if !ok {

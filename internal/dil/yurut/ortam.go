@@ -49,8 +49,8 @@ type ortamEk struct {
 // Kilidi yoktur: TR kodu yalnızca yorumlayıcı kilidini (GIL, bkz. vmShared.gil) tutan görev
 // tarafından çalıştırılır ve hata ayıklayıcının istekleri de duraklatılmış görevin kendi
 // goroutine'inde işlenir. Bu yüzden bir ortama (ve ad tablosuna) aynı anda iki goroutine
-// erişmez. GIL'i tutmayan kod (Blocking içindeki işlemler, sunucu goroutine'leri) ortamlara
-// dokunmamalıdır; dokunması gerekiyorsa RunTask kullanılır.
+// erişmez. GIL'i tutmayan kod (Blocking içindeki işlemler, motorların arka plan goroutine'leri)
+// ortamlara dokunmamalıdır.
 type Environment struct {
 	vals       []Value
 	kapsam     *kapsamBilgisi

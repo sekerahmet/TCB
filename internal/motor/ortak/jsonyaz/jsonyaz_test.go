@@ -34,7 +34,7 @@ func TestEncodingJSONIleAyniBicim(t *testing.T) {
 	d := sozluk("a", liste(yurut.NewInt(1), &yurut.FloatVal{Val: 0.5}, &yurut.FloatVal{Val: 1e-7}, &yurut.FloatVal{Val: 1e21}, &yurut.FloatVal{Val: 2}),
 		"b", sozluk(), "c", liste(), "d", yurut.NULL, "e", yurut.TRUE, "f", &yurut.StringVal{Val: "<ş\"\n>"},
 		"g", sozluk("x", liste(sozluk("y", yurut.NewInt(-3)))))
-	goDeger := yurut.TRToGoValue(d)
+	goDeger := goDegeri(d)
 	for _, girinti := range []string{"", "  "} {
 		var bekle []byte
 		if girinti == "" {
@@ -96,4 +96,34 @@ func TestGorunusuAyniAnahtarHata(t *testing.T) {
 	if b, err := Yaz(tek); err != nil || string(b) != `{"1":10}` {
 		t.Fatalf("%s %v", b, err)
 	}
+}
+
+// goDegeri bir TR değerini encoding/json'un yazabileceği Go değerine çevirir (yalnızca bu
+// testin karşılaştırması için; döngü denetimi yapmaz).
+func goDegeri(v yurut.Value) any {
+	switch x := v.(type) {
+	case *yurut.NullVal:
+		return nil
+	case *yurut.BoolVal:
+		return x.Val
+	case *yurut.IntVal:
+		return x.Val
+	case *yurut.FloatVal:
+		return x.Val
+	case *yurut.StringVal:
+		return x.Val
+	case *yurut.ListVal:
+		out := make([]any, len(x.Elements))
+		for i, e := range x.Elements {
+			out[i] = goDegeri(e)
+		}
+		return out
+	case *yurut.DictVal:
+		out := make(map[string]any, len(x.Pairs))
+		for k, e := range x.Pairs {
+			out[x.DisplayKey(k)] = goDegeri(e)
+		}
+		return out
+	}
+	return v.Inspect()
 }
