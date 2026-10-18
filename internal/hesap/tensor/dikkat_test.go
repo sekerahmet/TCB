@@ -290,21 +290,24 @@ func TestDikkatBF16(t *testing.T) {
 	}
 }
 
-// Tq×Tk puan matrisi tutulmaz: büyük T'de ayrılan bellek T ile doğrusal kalır.
+// Tq×Tk puan matrisi tutulmaz: büyük T'de ileri ve geri yayılımın ayırdığı bellek, tek bir
+// T×T puan matrisinin küçük bir kesridir (doğrusal yol ~10 MB, puan matrisi 128 MB).
+// Sınır üstten konur, çünkü tampon havuzu önceki testlerden dolu olabilir ve ayrılan
+// belleği yalnızca azaltır. İki uzunluğun ayırdığı belleğin oranı havuzun durumuna
+// bağlıydı: küçük T'nin tamponları havuzdan gelince oran 6'yı aşıyor, test paketin
+// tamamında kalıp tek başına geçiyordu.
 func TestDikkatBellegiDogrusal(t *testing.T) {
+	const T, basSayisi = 4096, 2
 	rng := rand.New(rand.NewSource(1))
-	olc := func(T int) float64 {
-		q := Randn(rng, 1, 2, T, 32).SetRequiresGrad(true)
-		k := Randn(rng, 1, 2, T, 32).SetRequiresGrad(true)
-		v := Randn(rng, 1, 2, T, 32).SetRequiresGrad(true)
-		return float64(ayrilanBayt(func() {
-			Attention(q, k, v, AttentionOptions{Causal: true}).SumAll().Backward()
-		}))
-	}
-	a, b := olc(512), olc(2048)
-	// Dört kat uzunlukta bellek dört kat civarı olmalı (T×T olsaydı 16 kat).
-	if b > 6*a {
-		t.Fatalf("bellek doğrusal değil: T=512 %.0f bayt, T=2048 %.0f bayt", a, b)
+	q := Randn(rng, 1, basSayisi, T, 32).SetRequiresGrad(true)
+	k := Randn(rng, 1, basSayisi, T, 32).SetRequiresGrad(true)
+	v := Randn(rng, 1, basSayisi, T, 32).SetRequiresGrad(true)
+	ayrilan := float64(ayrilanBayt(func() {
+		Attention(q, k, v, AttentionOptions{Causal: true}).SumAll().Backward()
+	}))
+	puanMatrisi := float64(basSayisi * T * T * 4) // float32 puanlar
+	if ayrilan > puanMatrisi/4 {
+		t.Fatalf("bellek doğrusal değil: T=%d'de %.0f bayt ayrıldı; tek bir T×T puan matrisi %.0f bayt", T, ayrilan, puanMatrisi)
 	}
 }
 
