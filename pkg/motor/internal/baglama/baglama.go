@@ -1,6 +1,7 @@
-// Package baglama, Go paketlerini TR diline bağlayan motor paketlerinin (parçalayıcı,
-// veri) ortak yardımcılarıdır: adlı argüman denetimi, göreli yol çözme, paniği hataya
-// çevirme ve sayıların Türkçe kısa yazımı. Kullanıcıya görünen hiçbir ad tanımlamaz.
+// Package baglama, Go paketlerini TR diline bağlayan motor paketlerinin (tensör,
+// parçalayıcı, veri) ortak yardımcılarıdır: adlı argüman denetimi, göreli yol çözme,
+// paniği hataya çevirme ve sayıların Türkçe kısa yazımı. Kullanıcıya görünen hiçbir ad
+// tanımlamaz.
 package baglama
 
 import (
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -20,8 +22,37 @@ type Ad struct {
 	TR, ASCII string
 }
 
+// TRAd Türkçe adı ve Türkçe harfleri ASCII karşılıklarına çevrilmiş biçimini (öğrenme_oranı
+// → ogrenme_orani) taşıyan Ad'dır; ad zaten ASCII ise karşılık boştur.
+func TRAd(tr string) Ad {
+	if a := asciiKarsilik(tr); a != tr {
+		return Ad{TR: tr, ASCII: a}
+	}
+	return Ad{TR: tr}
+}
+
+func asciiKarsilik(s string) string {
+	return strings.NewReplacer("ı", "i", "ğ", "g", "ü", "u", "ş", "s", "ö", "o", "ç", "c").Replace(s)
+}
+
+// ingilizceAdlar başka dillerden alışılmış parametre adlarının Türkçe karşılıklarıdır.
+// Bu adlar KABUL EDİLMEZ; yalnızca hata mesajında doğru Türkçe ad önerilir.
+var ingilizceAdlar = map[string]string{
+	"lr":            "öğrenme_oranı",
+	"learning_rate": "öğrenme_oranı",
+	"axis":          "eksen",
+	"dim":           "eksen",
+	"requires_grad": "türev_izle",
+	"weight_decay":  "ağırlık_çürümesi",
+	"eps":           "epsilon",
+	"seed":          "tohum",
+	"weight":        "ağırlık",
+	"bias":          "sapma",
+	"betas":         "beta1",
+}
+
 // AdliDenetle verilen adlı argümanların bilinen adlardan olduğunu denetler; yazım
-// hatasında en yakın Türkçe adı önerir.
+// hatasında (ya da İngilizce alışılmış bir adda: lr, axis...) en yakın Türkçe adı önerir.
 func AdliDenetle(fn string, named map[string]vm.Value, adlar ...Ad) error {
 	for verilen := range named {
 		bilinen := false
@@ -38,8 +69,15 @@ func AdliDenetle(fn string, named map[string]vm.Value, adlar ...Ad) error {
 		for _, a := range adlar {
 			adaylar = append(adaylar, a.TR)
 		}
+		o := ""
+		if tr, ok := ingilizceAdlar[strings.ToLower(verilen)]; ok && slices.Contains(adaylar, tr) {
+			o = tr
+		}
+		if o == "" {
+			o = turkce.EnYakin(verilen, adaylar)
+		}
 		oneri := ""
-		if o := turkce.EnYakin(verilen, adaylar); o != "" {
+		if o != "" {
 			oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 		} else if len(adaylar) > 0 {
 			oneri = fmt.Sprintf(" (geçerli adlar: %s)", strings.Join(adaylar, ", "))
@@ -86,20 +124,30 @@ func Mantik(fn, ad string, v vm.Value) (bool, error) {
 	return b.Val, nil
 }
 
-// Guvenli f'yi çalıştırır; Go paniğini programı çökertmek yerine TR'nin dene/yakala
-// ile yakalanabilen bir hataya çevirir.
-func Guvenli(fn string, f func() (vm.Value, error)) (sonuc vm.Value, err error) {
+// Kurtar fn'i çalıştırır; fn panik yaparsa programı çökertmek yerine paniği cevir ile
+// TR'nin dene/yakala ile yakalanabilen bir hataya çevirir.
+func Kurtar[T any](fn func() T, cevir func(r any) error) (sonuc T, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			sonuc = nil
-			if e, ok := r.(error); ok {
-				err = fmt.Errorf("%s: beklenmeyen iç hata: %v", fn, e)
-			} else {
-				err = fmt.Errorf("%s: beklenmeyen iç hata: %v", fn, r)
-			}
+			var sifir T
+			sonuc, err = sifir, cevir(r)
 		}
 	}()
-	return f()
+	return fn(), nil
+}
+
+// Guvenli f'yi çalıştırır; Go paniğini "beklenmeyen iç hata" olarak bildirir.
+func Guvenli(fn string, f func() (vm.Value, error)) (vm.Value, error) {
+	var ferr error
+	sonuc, err := Kurtar(func() vm.Value {
+		v, e := f()
+		ferr = e
+		return v
+	}, func(r any) error { return fmt.Errorf("%s: beklenmeyen iç hata: %v", fn, r) })
+	if err != nil {
+		return nil, err
+	}
+	return sonuc, ferr
 }
 
 // YolCoz göreli bir yolu önce çalışma klasörüne göre dener; orada yoksa ve program bir

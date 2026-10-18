@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/motor/yz"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/vm"
@@ -166,7 +167,7 @@ func turevIzle(named map[string]vm.Value, konumlu vm.Value, varsayilan bool) boo
 	if konumlu != nil {
 		varsayilan = konumlu.IsTruthy()
 	}
-	if v, ok := adliAl(named, "türev_izle", "turev_izle"); ok {
+	if v, ok := baglama.AdliAl(named, adTurevIzle); ok {
 		return v.IsTruthy()
 	}
 	return varsayilan
@@ -186,7 +187,7 @@ func tensorYerlesik(eski vm.BuiltinFunc) vm.BuiltinFunc {
 		if len(args) > 2 {
 			return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en fazla 2 parametre alır, %d verildi", len(args))
 		}
-		if err := adliDenetle("tensör()", named, "türev_izle", "turev_izle"); err != nil {
+		if err := baglama.AdliDenetle("tensör()", named, adTurevIzle); err != nil {
 			return nil, err
 		}
 		var konumlu vm.Value
@@ -237,11 +238,11 @@ func sekilliOlusturucu(ad string, olustur func(sh []int, named map[string]vm.Val
 			if len(args) != 1 {
 				return nil, fmt.Errorf("%s([2, 3]) tek parametre (şekil listesi) bekler, %d verildi", ad, len(args))
 			}
-			izinli := []string{"türev_izle", "turev_izle"}
+			izinli := []baglama.Ad{adTurevIzle}
 			if ad == "rastgele_normal" {
-				izinli = append(izinli, "tohum")
+				izinli = append(izinli, adTohum)
 			}
-			if err := adliDenetle(ad+"()", named, izinli...); err != nil {
+			if err := baglama.AdliDenetle(ad+"()", named, izinli...); err != nil {
 				return nil, err
 			}
 			sh, err := sekilListesi(ad, args[0])
@@ -302,7 +303,7 @@ func birli(v *vm.VM, adlar []string, fn func(*ct.Tensor) *ct.Tensor, sayi64 func
 				// izler: sayı → Ondalık, liste → aynı yapıda liste, matris → Matris.
 				return eskiBicimdeUygula(ad, args[0], sayi64)
 			}
-			if err := adliDenetle(ad+"()", named); err != nil {
+			if err := baglama.AdliDenetle(ad+"()", named); err != nil {
 				return nil, err
 			}
 			t, err := tensoreCevir(ad, args[0])
@@ -435,7 +436,7 @@ func softmaxKaydet(v *vm.VM, adlar []string, logKip bool) {
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, eksen: -1) en fazla 2 parametre alır, %d verildi", ad, len(args))
 			}
-			if err := adliDenetle(ad+"()", named, "eksen"); err != nil {
+			if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
 				return nil, err
 			}
 			t, err := tensoreCevir(ad, args[0])
@@ -487,7 +488,7 @@ func indirgeme(v *vm.VM, adlar []string, ad string, fn func(t *ct.Tensor, eksen 
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, eksen: ...) en fazla 2 parametre alır, %d verildi", ad, len(args))
 			}
-			if err := adliDenetle(ad+"()", named, "eksen"); err != nil {
+			if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
 				return nil, err
 			}
 			t := args[0].(*Deger).t
@@ -529,7 +530,7 @@ func maksIndeks(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value,
 		}
 		return nil, fmt.Errorf("%s(x, eksen: -1) 1 konumlu parametre bekler, %d verildi", ad, len(args))
 	}
-	if err := adliDenetle(ad+"()", named, "eksen"); err != nil {
+	if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*Deger)
@@ -689,7 +690,7 @@ func gomme(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, erro
 	if len(args) != 2 {
 		return nil, fmt.Errorf("gömme(tablo, indeksler) 2 parametre bekler, %d verildi", len(args))
 	}
-	if err := adliDenetle("gömme()", named); err != nil {
+	if err := baglama.AdliDenetle("gömme()", named); err != nil {
 		return nil, err
 	}
 	tablo, ok := args[0].(*Deger)
@@ -726,7 +727,7 @@ func caprazEntropi(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Val
 	if len(args) != 2 {
 		return nil, fmt.Errorf("çapraz_entropi(çıktı, hedef) 2 parametre bekler, %d verildi", len(args))
 	}
-	if err := adliDenetle("çapraz_entropi()", named); err != nil {
+	if err := baglama.AdliDenetle("çapraz_entropi()", named); err != nil {
 		return nil, err
 	}
 	cikti, err := tensoreCevir("çapraz_entropi", args[0])
@@ -789,12 +790,8 @@ func normParam(fn, ad string, v vm.Value, D int) (*ct.Tensor, error) {
 }
 
 // normArgs x, ağırlık, sapma ve epsilon argümanlarını konumlu ya da adlı olarak okur.
-func normArgs(fn string, args []vm.Value, named map[string]vm.Value, adlar []string) (*ct.Tensor, []vm.Value, float32, error) {
-	izinli := []string{"epsilon"}
-	for _, a := range adlar {
-		izinli = append(izinli, a, asciiAd(a))
-	}
-	if err := adliDenetle(fn+"()", named, izinli...); err != nil {
+func normArgs(fn string, args []vm.Value, named map[string]vm.Value, adlar []baglama.Ad) (*ct.Tensor, []vm.Value, float32, error) {
+	if err := baglama.AdliDenetle(fn+"()", named, append([]baglama.Ad{adEpsilon}, adlar...)...); err != nil {
 		return nil, nil, 0, err
 	}
 	if len(args) < 1 || len(args) > 1+len(adlar) {
@@ -812,15 +809,15 @@ func normArgs(fn string, args []vm.Value, named map[string]vm.Value, adlar []str
 		if 1+i < len(args) {
 			degerler[i] = args[1+i]
 		}
-		if v, ok := adliAl(named, a, asciiAd(a)); ok {
+		if v, ok := baglama.AdliAl(named, a); ok {
 			if degerler[i] != nil {
-				return nil, nil, 0, fmt.Errorf("%s: %s hem konumlu hem adlı verildi", fn, a)
+				return nil, nil, 0, fmt.Errorf("%s: %s hem konumlu hem adlı verildi", fn, a.TR)
 			}
 			degerler[i] = v
 		}
 	}
 	eps := float32(1e-5)
-	if v, ok := named["epsilon"]; ok {
+	if v, ok := baglama.AdliAl(named, adEpsilon); ok {
 		f, ok := vm.ToFloat(v)
 		if !ok || f <= 0 {
 			return nil, nil, 0, fmt.Errorf("%s: epsilon pozitif bir sayı olmalıdır, %s verildi", fn, v.Inspect())
@@ -830,29 +827,8 @@ func normArgs(fn string, args []vm.Value, named map[string]vm.Value, adlar []str
 	return x, degerler, eps, nil
 }
 
-func asciiAd(s string) string {
-	r := []rune(s)
-	for i, c := range r {
-		switch c {
-		case 'ı':
-			r[i] = 'i'
-		case 'ğ':
-			r[i] = 'g'
-		case 'ü':
-			r[i] = 'u'
-		case 'ş':
-			r[i] = 's'
-		case 'ö':
-			r[i] = 'o'
-		case 'ç':
-			r[i] = 'c'
-		}
-	}
-	return string(r)
-}
-
 func katmanNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	x, p, eps, err := normArgs("katman_normu", args, named, []string{"ağırlık", "sapma"})
+	x, p, eps, err := normArgs("katman_normu", args, named, []baglama.Ad{adAgirlik, adSapma})
 	if err != nil {
 		return nil, err
 	}
@@ -874,7 +850,7 @@ func katmanNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 }
 
 func rmsNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	x, p, eps, err := normArgs("rms_normu", args, named, []string{"ağırlık"})
+	x, p, eps, err := normArgs("rms_normu", args, named, []baglama.Ad{adAgirlik})
 	if err != nil {
 		return nil, err
 	}
@@ -919,7 +895,7 @@ func turevsiz(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 	if len(args) != 1 {
 		return nil, fmt.Errorf("türevsiz { ... } bir blok ya da türevsiz(x) bir tensör bekler, %d parametre verildi", len(args))
 	}
-	if err := adliDenetle("türevsiz()", named); err != nil {
+	if err := baglama.AdliDenetle("türevsiz()", named); err != nil {
 		return nil, err
 	}
 	switch x := args[0].(type) {

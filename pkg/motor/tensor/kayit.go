@@ -11,6 +11,7 @@ import (
 	"os"
 	"unicode/utf8"
 
+	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/vm"
 )
@@ -74,7 +75,7 @@ func tensorKaydet(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Valu
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%s(yol, sözlük) 2 parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := adliDenetle(fn+"()", named); err != nil {
+	if err := baglama.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
 	yol, err := yolArg(fn, args[0])
@@ -170,7 +171,7 @@ func tensorYukle(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(yol) 1 parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := adliDenetle(fn+"()", named, "türev_izle", "turev_izle"); err != nil {
+	if err := baglama.AdliDenetle(fn+"()", named, adTurevIzle); err != nil {
 		return nil, err
 	}
 	yol, err := yolArg(fn, args[0])
