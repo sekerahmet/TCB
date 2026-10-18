@@ -18,8 +18,8 @@ const maxCallDepth = 10000
 // adıdır (A051).
 var kendiAdi = sozluk.Ad(sozluk.A + 51)
 
-// kurucuAdi nesne oluşturulurken çağrılan metodun adıdır (7.4).
-var kurucuAdi = "kurucu"
+// kurucuAdi nesne oluşturulurken çağrılan metodun adıdır (7.4; sözlükte A102).
+var kurucuAdi = sozluk.Ad(sozluk.A + 102)
 
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
 // sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar

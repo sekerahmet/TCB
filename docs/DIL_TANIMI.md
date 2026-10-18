@@ -90,7 +90,7 @@ Kaldırılan dil adları (anahtar kelimeler, yerleşikler, üyeler, adlı argüm
 
 **2.10** İfadeler ve bloklar en fazla 1000 düzey iç içe yazılabilir (`((((1))))` dört düzeydir); sınır aşılırsa program çalışmaz, `ifade ya da blok çok derin iç içe (en fazla 1000 düzey)` sözdizimi hatası verilir. (Sınırsız iç içelik yorumlayıcıyı yakalanamaz biçimde çökertirdi.)
 
-Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `_` (yalnızca `eşle` kolunda varsayılan).
+Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `kurucu` (yapının oluşturulurken çağrılan metodunun adı, 7.4), `hata` (`yakala`da ad verilmeyince hata değişkeninin adı, 8.1), `o` (sondaki bloğun parametresi, 6.7), `_` (yalnızca `eşle` kolunda varsayılan). Bunların adları da sözlüktedir (`A1xx`, bkz. 17).
 
 ---
 
@@ -529,7 +529,7 @@ Kod bir harf ve üç basamaklı bir sayıdır; harf aileyi, yüzler basamağı a
 
 | Aile | Kapsam | Gruplar |
 | :-- | :-- | :-- |
-| `A` | Dilin çekirdeği | `A0xx` anahtar kelimeler (`A001` eğer, `A010` döngü, `A020` fonksiyon ...), `A1xx` bağlamsal sözcükler (`olarak`, `test`), `A2xx` tip adları (`A200` Tam ... `A23x`-`A24x` motor tipleri) |
+| `A` | Dilin çekirdeği | `A0xx` anahtar kelimeler (`A001` eğer, `A010` döngü, `A020` fonksiyon ...), `A1xx` bağlamsal sözcükler (`olarak`, `test`, `kurucu`, `hata`, `o`), `A2xx` tip adları (`A200` Tam ... `A23x`-`A24x` motor tipleri) |
 | `G` | Genel yerleşikler | `G1xx` giriş, çıkış, dosya (`G100` yazdır, `G101` girdi) · `G2xx` değer, tip, dönüşüm (`G200` uzunluk) · `G3xx` liste ve boru hattı · `G4xx` matematik ve istatistik · `G5xx` zaman ve eşzamanlılık · `G6xx` JSON/CSV · `G7xx` test |
 | `T` | Tensör ve yapay zekâ | `T1xx` oluşturma ve görünüm (`T100` tensör) · `T2xx` etkinleştirme ve eleman bazlı matematik · `T3xx` türev · `T4xx` iyileştiriciler · `T5xx` katmanlar, kayıplar, hazır model · `T6xx` vektör yardımcıları ve dil modeli · `T7xx` kaydetme, yükleme, veri türleri · `T9xx` adlı argümanlar |
 | `V` | Veri ve parçalayıcı | `V1xx` veri kümesi · `V2xx` parçalayıcı · `V9xx` adlı argümanlar |

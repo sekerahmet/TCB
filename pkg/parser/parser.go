@@ -11,12 +11,15 @@ import (
 	"tr_dili/pkg/sozluk"
 )
 
-// Bağlamsal sözcüklerin (test, olarak) yazımları ve 'kendi'nin adı sözlükten gelir
-// (pkg/sozluk: A101, A100, A051).
+// Bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki bloğun
+// parametresi) yazımları ve 'kendi'nin adı sözlükten gelir (pkg/sozluk: A101, A100, A103,
+// A104, A051).
 var (
 	testYazimlari   = sozluk.Yazimlar(sozluk.A + 101)
 	olarakYazimlari = sozluk.Yazimlar(sozluk.A + 100)
 	kendiAdi        = sozluk.Ad(sozluk.A + 51)
+	hataAdi         = sozluk.Ad(sozluk.A + 103)
+	oAdi            = sozluk.Ad(sozluk.A + 104)
 )
 
 const (
@@ -137,7 +140,7 @@ func (p *Parser) parseTrailingBlock(left ast.Expression) ast.Expression {
 	body := p.fonksiyonGovdesi()
 	fn := &ast.FunctionLiteral{
 		Token:      tok,
-		Parameters: []ast.Param{{Name: "o"}},
+		Parameters: []ast.Param{{Name: oAdi}},
 		Body:       body,
 	}
 	if call, ok := left.(*ast.CallExpression); ok {
@@ -780,7 +783,7 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 		return nil
 	}
 
-	errVar := "hata"
+	errVar := hataAdi
 	if p.peekTokenIs(lexer.TOKEN_IDENT) {
 		p.nextToken()
 		errVar = p.curToken().Literal
