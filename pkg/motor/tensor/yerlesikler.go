@@ -89,6 +89,12 @@ func Kaydet(v *vm.VM) {
 	// --- İyileştiriciler ---
 	sar(v, []string{"AdamW"}, yeniYerlesik("AdamW", adamWKur))
 	sar(v, []string{"SGD"}, yeniYerlesik("SGD", sgdKur))
+	sar(v, []string{"gradyan_kırp", "gradyan_kirp"}, yeniYerlesik("gradyan_kırp", gradyanKirp))
+
+	// --- İndeks, kaydetme ve yükleme ---
+	sar(v, []string{"maks_indeks"}, yeniYerlesik("maks_indeks", maksIndeks))
+	sar(v, []string{"tensör_kaydet", "tensor_kaydet"}, yeniYerlesik("tensör_kaydet", tensorKaydet))
+	sar(v, []string{"tensör_yükle", "tensor_yukle"}, yeniYerlesik("tensör_yükle", tensorYukle))
 }
 
 // enKucukTum tüm elemanların en küçüğünü 0 boyutlu tensör olarak verir. Çekirdekte Min
@@ -507,6 +513,56 @@ func indirgeme(v *vm.VM, adlar []string, ad string, fn func(t *ct.Tensor, eksen 
 			return Yeni(r), nil
 		}
 	})
+}
+
+// maksIndeks verilen eksende en büyük elemanın indeksini verir: maks_indeks(x, eksen: -1).
+// Sonuç her zaman tam sayı değerli bir tensördür (o eksen kaldırılmış şekilde; 1 boyutlu
+// girdide 0 boyutlu) ve türev izlemez. Tam sayı için tam(maks_indeks(x).değer) yazılır;
+// sonuç doğrudan gömme(...) ve çapraz_entropi(...) indeksi olarak kullanılabilir.
+// Eşitlikte ilk en büyük eleman seçilir.
+func maksIndeks(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	const ad = "maks_indeks"
+	if len(args) != 1 {
+		if len(args) == 2 {
+			return nil, fmt.Errorf("%s(x, eksen: %s): eksen adlı verilir", ad, args[1].Inspect())
+		}
+		return nil, fmt.Errorf("%s(x, eksen: -1) 1 konumlu parametre bekler, %d verildi", ad, len(args))
+	}
+	if err := adliDenetle(ad+"()", named, "eksen"); err != nil {
+		return nil, err
+	}
+	d, ok := args[0].(*Deger)
+	if !ok {
+		return nil, fmt.Errorf("%s: çok boyutlu bir tensör bekler, %s verildi; liste için %s(tensör(liste)) yazın", ad, tipAdi(args[0]), ad)
+	}
+	t := d.t
+	e, verildi, err := eksenArg(ad, args, named)
+	if err != nil {
+		return nil, err
+	}
+	if !verildi {
+		e = -1
+	}
+	sh := t.Shape()
+	if e, err = eksenCoz(ad, e, sh); err != nil {
+		return nil, err
+	}
+	if sh[e] == 0 {
+		return nil, fmt.Errorf("%s: %s şeklinde %d. eksen boş", ad, sekilMetni(sh), e)
+	}
+	r, err := guvenli(func() *ct.Tensor {
+		idx := t.ArgMax(e)
+		veri := make([]float32, len(idx))
+		for i, x := range idx {
+			veri[i] = float32(x)
+		}
+		cikti := append(append([]int{}, sh[:e]...), sh[e+1:]...)
+		return ct.NewOn(t.Device(), veri, cikti...)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return Yeni(r), nil
 }
 
 // tensorOlmayanIndirgeme ilk argümanı tensör olmayan indirgeme çağrılarını işler. Eski

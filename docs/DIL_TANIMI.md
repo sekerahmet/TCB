@@ -412,4 +412,8 @@ Tensör, n boyutlu bir `float32` sayı dizisidir (tip adı `Tensör`). İşlemle
 
 **15.7** İyileştiriciler: `AdamW(parametreler, öğrenme_oranı:, ağırlık_çürümesi:, beta1:, beta2:, epsilon:)` ve `SGD(parametreler, öğrenme_oranı:, momentum:, ağırlık_çürümesi:)`. Parametreler türev izleyen yaprak tensörlerdir; `.adım()` günceller, `.sıfırla()` gradyanları sıfırlar.
 
+**15.9** `maks_indeks(x, eksen: -1)` verilen eksende en büyük elemanın indeksini verir (eşitlikte ilki); sonuç o eksen kaldırılmış, tam sayı değerli ve türev izlemeyen bir tensördür (1 boyutlu girdide 0 boyutlu; tam sayı için `tam(maks_indeks(x).değer)`). Eksen yalnızca adlı verilir. `gradyan_kırp(parametreler, en_fazla: 1.0)` parametre gradyanlarının toplam L2 normu `en_fazla`'yı aşıyorsa hepsini aynı oranda küçültür ve kırpma öncesi normu `Ondalık` olarak döndürür.
+
+**15.10** `tensör_kaydet(yol, sözlük)` adları metin, değerleri tensör olan bir sözlüğü yalnızca verilen yola yazar (dosya varsa üzerine yazılır); `tensör_yükle(yol, türev_izle: yanlış)` aynı sırayla bir sözlük döndürür. Biçim sürüm başlıklıdır (`TRTENSOR`, sürüm, her tensör için ad, veri türü kodu, şekil ve float32 veri, sonda CRC-32); bilinmeyen sürüm/tür, eksik, bozuk ya da başka türden dosya açık bir hatayla reddedilir.
+
 **15.8** Hatalar: şekil ve eksen hataları ilgili şekilleri gösteren Türkçe bir mesajla (`[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`) bildirilir ve `dene/yakala` ile yakalanabilir; program çökmez.

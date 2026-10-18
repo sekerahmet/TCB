@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 
 	"tr_dili/pkg/motor/yz"
@@ -118,6 +119,36 @@ func adliOran(fn string, named map[string]vm.Value, varsayilan float64, enAz flo
 		return 0, fmt.Errorf("%s: %s en az %g olmalıdır, %g verildi", fn, adlar[0], enAz, f)
 	}
 	return float32(f), nil
+}
+
+// gradyanKirp parametre gradyanlarının toplam L2 normunu en_fazla değerine indirir ve
+// kırpma öncesi normu Ondalık olarak döndürür: gradyan_kırp(parametreler, en_fazla: 1.0).
+func gradyanKirp(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	const fn = "gradyan_kırp"
+	if len(args) != 1 {
+		return nil, fmt.Errorf("%s(parametreler, en_fazla: 1.0) 1 konumlu parametre bekler, %d verildi", fn, len(args))
+	}
+	if err := adliDenetle(fn+"()", named, "en_fazla"); err != nil {
+		return nil, err
+	}
+	params, err := parametreler(fn, args[0])
+	if err != nil {
+		return nil, err
+	}
+	enFazla := 1.0
+	if v, ok := named["en_fazla"]; ok {
+		f, ok := vm.ToFloat(v)
+		if !ok || !(f > 0) || math.IsInf(f, 0) {
+			return nil, fmt.Errorf("%s: en_fazla pozitif bir sayı olmalıdır, %s verildi", fn, v.Inspect())
+		}
+		enFazla = f
+	}
+	norm, err := guvenli(func() float64 { return ct.ClipGradNorm(params, enFazla) })
+	if err != nil {
+		return nil, err
+	}
+	// Gradyanlar float32 olduğundan norm da float32 duyarlığında, en kısa gösterimle verilir.
+	return &vm.FloatVal{Val: kisaFloat64(float32(norm))}, nil
 }
 
 func iyilestiriciParametreleri(fn string, args []vm.Value) ([]*ct.Tensor, error) {

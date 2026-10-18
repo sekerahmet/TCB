@@ -183,7 +183,7 @@
         },
         {
           "name": "support.function.ai.tr",
-          "match": "\\b(matris|sıfırlar|sifirlar|birler|birim_matris|rastgele_matris|devrik|tensör|tensor|geri_yayılım|geri_yayilim|relu|sigmoid|tanh|softmax|kayıp_mse|kayip_mse|sinir_ağı|sinir_agi|model_yükle|model_yukle|ortalama|standart_sapma|std_sapma|medyan|ortanca|normalize_et|nokta_çarpım|nokta_carpim|kosinüs_benzerliği|kosinus_benzerligi|öklid_uzaklığı|oklid_uzakligi|yz_sor|rastgele_normal|gelu|log_softmax|üstel|ustel|log|gömme|gomme|çapraz_entropi|capraz_entropi|katman_normu|rms_normu|türevsiz|turevsiz|AdamW|SGD)\\b"
+          "match": "\\b(matris|sıfırlar|sifirlar|birler|birim_matris|rastgele_matris|devrik|tensör|tensor|geri_yayılım|geri_yayilim|relu|sigmoid|tanh|softmax|kayıp_mse|kayip_mse|sinir_ağı|sinir_agi|model_yükle|model_yukle|ortalama|standart_sapma|std_sapma|medyan|ortanca|normalize_et|nokta_çarpım|nokta_carpim|kosinüs_benzerliği|kosinus_benzerligi|öklid_uzaklığı|oklid_uzakligi|yz_sor|rastgele_normal|gelu|log_softmax|üstel|ustel|log|gömme|gomme|çapraz_entropi|capraz_entropi|katman_normu|rms_normu|türevsiz|turevsiz|AdamW|SGD|maks_indeks|gradyan_kırp|gradyan_kirp|tensör_kaydet|tensor_kaydet|tensör_yükle|tensor_yukle)\\b"
         },
         {
           "name": "support.function.data.tr",

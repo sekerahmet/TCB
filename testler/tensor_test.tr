@@ -147,6 +147,25 @@ test "15.7 iyileştiriciler: küçük doğrusal regresyon" {
     doğrula(hata_metni(() => AdamW([sıfırlar([2])])).içerir("türev izlemiyor"))
 }
 
+test "15.9 maks_indeks ve gradyan_kırp" {
+    değişken x = tensör([[1, 9, 3], [7, 2, 7]])
+    eşit_mi([1.0, 0.0], maks_indeks(x).değer)
+    eşit_mi([1.0, 0.0, 1.0], maks_indeks(x, eksen: 0).değer)
+    eşit_mi(1, tam(maks_indeks(tensör([4, 8, 1])).değer))
+    değişken w = tensör([1.0, 1.0], türev_izle: doğru)
+    geri_yayılım(toplam(w * tensör([3.0, 4.0])))
+    eşit_mi(5.0, gradyan_kırp([w], en_fazla: 1.0))
+    eşit_mi([0.6, 0.8], w.gradyan.değer)
+}
+
+test "15.10 tensör_kaydet ve tensör_yükle hataları" {
+    // Gidiş-dönüş Go testlerinde (geçici klasörde) denetlenir; burada dosya oluşturmayan hatalar.
+    doğrula(hata_metni(() => tensör_yükle("bu_dosya_yok_12345.trt")).içerir("dosya bulunamadı"))
+    doğrula(hata_metni(() => tensör_yükle(".")).içerir("bir klasör, tensör dosyası değil"))
+    doğrula(hata_metni(() => tensör_kaydet("x.trt", [1])).içerir("adları tensör olan bir sözlük olmalıdır"))
+    doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("çok boyutlu bir tensör olmalıdır"))
+}
+
 test "15.8 hatalar şekli gösterir ve yakalanabilir" {
     doğrula(hata_metni(() => sıfırlar([32, 1024]) @ sıfırlar([512, 10])).içerir("[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512"))
     doğrula(hata_metni(() => sıfırlar([2, 3]) + sıfırlar([4])).içerir("[2, 3] ile [4] şekilleri toplama için yayınlanamaz"))
