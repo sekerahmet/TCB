@@ -165,7 +165,13 @@ func metotBul(obj Value, cm *cekirdekMetot) *yerlesikMetot {
 // Tablolar init içinde kurulur: gövdeler ApplyFunction'ı çağırdığı için değişken
 // başlatıcısında kurulsalardı başlatma döngüsü oluşurdu.
 func init() {
-	// --- Metin ---
+	metinMetotlariniKur()
+	listeMetotlariniKur()
+	sozlukMetotlariniKur()
+}
+
+// metinMetotlariniKur Metin tipinin metotlarını kaydeder.
+func metinMetotlariniKur() {
 	metotEkle(tipMetin, kod.Y100, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.ToUpperSpecial(unicode.TurkishCase, inst.(*StringVal).Val)}, nil
 	})
@@ -206,8 +212,10 @@ func init() {
 		}
 		return &StringVal{Val: string(runes)}, nil
 	})
+}
 
-	// --- Liste ---
+// listeMetotlariniKur Liste tipinin metotlarını kaydeder.
+func listeMetotlariniKur() {
 	metotEkle(tipListe, kod.Y200, imza{1, 1, "fonksiyon", []*argTipi{fonkArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		var result []Value
 		for _, item := range inst.(*ListVal).Elements {
@@ -294,8 +302,10 @@ func init() {
 	metotEkle(tipListe, kod.Y207, imza{1, 2, "[başlangıç], fonksiyon", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return listeIndirge(y, inst.(*ListVal).Elements, args, line)
 	})
+}
 
-	// --- Sözlük ---
+// sozlukMetotlariniKur Sözlük tipinin metotlarını kaydeder.
+func sozlukMetotlariniKur() {
 	metotEkle(tipSozluk, kod.Y300, imza{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		d := inst.(*DictVal)
 		elems := make([]Value, len(d.Order))
