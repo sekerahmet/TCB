@@ -302,7 +302,7 @@ func TestHataMesajlari(t *testing.T) {
 		t.Fatal(err)
 	}
 	durumlar := []struct{ kod, beklenen string }{
-		{`veri_kümesi("bu_klasor_yok_123")`, "bulunamadı"},
+		{`veri_kümesi("bu_klasor_yok_123")`, "açılamadı: böyle bir dosya ya da klasör yok"},
 		{`veri_kümesi("` + tr(t.TempDir()) + `")`, ".npy parçası yok"},
 		{`veri_kümesi("` + tr(bozuk) + `")`, "geçerli bir .npy token dosyası değil"},
 		{`veri_kümesi("` + tr(d) + `", kota_gb: 1)`, "yalnızca önbellek: ile birlikte"},

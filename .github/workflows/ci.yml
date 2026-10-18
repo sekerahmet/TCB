@@ -1,7 +1,15 @@
 # Sürekli tümleştirme: her gönderimde ve çekme isteğinde Windows ve Linux üzerinde
-# biçim denetimi, go vet, Go testleri, dil tanımı testleri (tr test) ve VS Code eklentisi
-# denetimleri çalışır. Derlemeler ve testler GOAMD64=v3 ile yapılır (2020 sonrası x86-64
-# işlemciler, AVX2/FMA); eski işlemciler için GOAMD64=v1 derlemesinin bozulmadığı ayrıca denetlenir.
+# biçim denetimi, go vet, derleme, Go testleri, dil tanımı testleri (tr test), örnek
+# programların duman testi ve VS Code eklentisi denetimleri çalışır.
+#
+# Matris iki işlemci düzeyini kapsar: GOAMD64=v3 (2020 sonrası x86-64 işlemciler,
+# AVX2/FMA) ve GOAMD64=v1 (eski işlemciler). v1 işlerinde yalnızca derleme değil Go
+# testleri, tr test ve örnekler de koşar; biçim, vet ve eklenti denetimleri işlemci
+# düzeyinden bağımsız olduğundan yalnızca v3 işlerinde yapılır.
+#
+# Adımlar birbirinden bağımsızdır: biri düşse de sonrakiler çalışır (`success() ||
+# failure()`), böylece tek koşuda tüm hatalar görülür; düşen adım yine de işi başarısız
+# sayar. Kurulum (checkout, setup-go) ya da tr derlemesi düşerse ona bağlı adımlar atlanır.
 name: CI
 
 on:
@@ -13,25 +21,36 @@ permissions:
 
 jobs:
   denetim:
-    name: Denetim (${{ matrix.os }})
+    name: Denetim (${{ matrix.os }}, GOAMD64=${{ matrix.goamd64 }})
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
+        goamd64: [v3, v1]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     env:
-      GOAMD64: v3
+      GOAMD64: ${{ matrix.goamd64 }}
+      # Örnek duman testinde atlanacak dosyalar (boşlukla ayrılmış adlar). Dış ağ
+      # gerektiren örnekler buraya eklenir. faz5_6 yalnızca yerel (localhost) sunucu
+      # açtığından koşar; faz4'ün kesme noktası boş standart girişte (EOF) devam eder.
+      ATLANACAK_ORNEKLER: ""
+      # Tek bir örneğin en uzun süresi (saniye); aşılırsa örnek başarısız sayılır.
+      ORNEK_ZAMAN_ASIMI: "300"
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - id: kaynak
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
+      - id: go
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
       - name: Biçim (gofmt)
+        if: (success() || failure()) && steps.go.outcome == 'success' && matrix.goamd64 == 'v3'
         run: |
           degisecek="$(gofmt -l .)"
           if [ -n "$degisecek" ]; then
@@ -41,22 +60,62 @@ jobs:
           fi
 
       - name: go vet
+        if: (success() || failure()) && steps.go.outcome == 'success' && matrix.goamd64 == 'v3'
         run: go vet ./...
 
+      - name: Derleme (go build)
+        if: (success() || failure()) && steps.go.outcome == 'success'
+        run: go build ./...
+
       - name: Go testleri
+        if: (success() || failure()) && steps.go.outcome == 'success'
         run: go test ./...
 
-      - name: Eski işlemci derlemesi (GOAMD64=v1)
-        run: GOAMD64=v1 go build ./...
-
-      - name: Dil tanımı testleri (tr test)
+      - name: tr derlemesi
+        id: tr
+        if: (success() || failure()) && steps.go.outcome == 'success'
         run: |
           uzanti=""
           if [ "$RUNNER_OS" = "Windows" ]; then uzanti=".exe"; fi
           go build -o "$RUNNER_TEMP/tr$uzanti" ./cmd/tr
-          "$RUNNER_TEMP/tr$uzanti" test testler
+          echo "TR=$RUNNER_TEMP/tr$uzanti" >> "$GITHUB_ENV"
+
+      - name: Dil tanımı testleri (tr test)
+        if: (success() || failure()) && steps.tr.outcome == 'success'
+        run: |
+          "$TR" test testler
+
+      - name: Örnekler (duman testi)
+        if: (success() || failure()) && steps.tr.outcome == 'success'
+        timeout-minutes: 15
+        run: |
+          # Her örnek derlenen tr ile, boş standart girişle ve zaman aşımıyla çalışır;
+          # çıkış kodu 0 beklenir. Bir örnek düşse de diğerleri denenir.
+          hata=0
+          for f in ornekler/*.tr; do
+            ad="$(basename "$f")"
+            case " $ATLANACAK_ORNEKLER " in
+              *" $ad "*) echo "↷ $ad atlandı"; continue ;;
+            esac
+            echo "::group::$ad"
+            bas=$SECONDS
+            kod=0
+            timeout "$ORNEK_ZAMAN_ASIMI" "$TR" "$f" < /dev/null || kod=$?
+            echo "::endgroup::"
+            if [ "$kod" -eq 124 ]; then
+              echo "::error title=Örnek zaman aşımı::$ad ${ORNEK_ZAMAN_ASIMI} saniyede bitmedi"
+              hata=1
+            elif [ "$kod" -ne 0 ]; then
+              echo "::error title=Örnek başarısız::$ad çıkış kodu $kod"
+              hata=1
+            else
+              echo "✓ $ad ($((SECONDS - bas)) sn)"
+            fi
+          done
+          exit "$hata"
 
       - name: VS Code eklentisi
+        if: (success() || failure()) && steps.kaynak.outcome == 'success' && matrix.goamd64 == 'v3'
         run: |
           node --check vscode_eklentisi/extension.js
           for f in vscode_eklentisi/media/*.js; do node --check "$f"; done

@@ -113,7 +113,7 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 
 	veri, err := os.ReadFile(yol)
 	if err != nil {
-		fmt.Fprintf(cikti, "  ✗ dosya okunamadı: %v\n", err)
+		fmt.Fprintf(cikti, "  ✗ %v\n", turkce.DosyaHatasi("", yol, "okunamadı", err))
 		ozet.Yuklenemez++
 		return ozet
 	}

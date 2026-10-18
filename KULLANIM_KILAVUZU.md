@@ -34,8 +34,10 @@ $env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
 - **Mantıksal & Boş:** `doğru` (`dogru`), `yanlış` (`yanlis`), `yok`, `ve` (`&&`), `veya` (`||`), `değil` (`!`), `??`, `?.`
 - **Tipler:** `Tam`, `Ondalık`, `Metin`, `Mantık`, `Liste`, `Sözlük`, `Matris`, `Tensör`
 - **Yapı:** `yapı` (`yapi`), `kendi` (kalıtım yoktur)
-- **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat` (`firlat`), `ertele`, `kesme_noktası` (`dur_noktası`, `durdurma_noktası`; koşullu: `kesme_noktası eğer koşul`), `aktar`, `eşzamanlı` (`eszamanli`), `bekle(saniye)`, `bekle_hepsi()`
+- **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat` (`firlat`), `ertele`, `kesme_noktası` (`dur_noktası`, `durdurma_noktası`; koşullu: `kesme_noktası eğer koşul`), `aktar "yol"`, `aktar "yol" olarak ad`, `eşzamanlı` (`eszamanli`), `bekle(saniye)`, `bekle_hepsi()`
 - **Test:** `test "ad" { ... }`, `doğrula(koşul, [mesaj])` (`dogrula`), `eşit_mi(beklenen, gerçek, [mesaj])` (`esit_mi`)
+- **Sayılar:** `42`, `1_000_000`, `3.14` ve bilimsel yazım `1e-5`, `3.2E+4`, `2e10` (bilimsel yazım her zaman `Ondalık` verir; `epsilon: 1e-5` gibi küçük değerler için kullanışlıdır).
+- **Kaldırılan eş anlamlılar:** Her işin tek yazımı vardır. `işlev`, `döndür`, `kır`, `sınıf` ve `aktar ... as` kaldırıldı; bu sözcükler artık sıradan adlardır. Yerlerine `fonksiyon`, `sonuç`, `çık`, `yapı` ve `olarak` yazın; eski yazımla yazılan kodda hata mesajı doğrusunu önerir (`'işlev' TR'de anahtar kelime değil; 'fonksiyon' yazmak mı istediniz?`).
 
 Dilin kuralları örnekleriyle birlikte [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) dosyasında tanımlanmıştır; her kuralın `testler/` klasöründe çalıştırılabilir bir testi vardır (`tr test testler`).
 
@@ -97,14 +99,18 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 ### C. Veri Bilimi, Vektör Benzerlik, Web ve Dış Köprüler
 - İstatistik: `ortalama(liste)`, `standart_sapma(liste)`, `medyan(liste)`, `normalize_et(liste)`
 - Vektör: `nokta_çarpım(v1, v2)`, `kosinüs_benzerliği(v1, v2)`, `öklid_uzaklığı(v1, v2)`
-- Veri, Web & Köprüler: `csv_oku(yol)`, `json_çöz(metin)`, `json_metin(değer)`, `web_al(url)`, `web_gönder(url, veri)`, `yz_sor(istem)`
+- Veri, Web & Köprüler: `csv_oku(yol_veya_metin)`, `json_çöz(metin)`, `json_metin(değer)`, `web_al(url)`, `web_gönder(url, veri)`, `yz_sor(istem)`
+- `csv_oku`: argüman var olan bir dosyanın yoluysa dosya okunur. `.csv` ile biten ya da virgül içermeyip `/` veya `\` içeren tek satırlık bir argüman yol sayılır; öyle bir dosya yoksa "dosya bulunamadı" hatası verilir. Bunların dışındaki argüman CSV metninin kendisi olarak ayrıştırılır (`csv_oku("ad,yaş\nAli,30")`). Göreli yollar önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür. Sayı görünen hücreler sayıya çevrilir.
+- `web_al` / `web_gönder`: 2xx dışı bir yanıt, durum kodu ve gövdenin kısa bir özetiyle hata verir (`web_al: ... adresi 404 Not Found durum kodu döndürdü: ...`; `dene/yakala` ile yakalanır). Yanıt gövdesi en çok 50 MB olabilir, istek 30 saniyede zaman aşımına uğrar. JSON yanıt sözlük/liste olarak, diğerleri metin olarak döner.
 
 ### D. Tensörler ve Otomatik Türev
 Tensör, n boyutlu (float32) bir sayı dizisidir; yapay zekâ modellerinin ağırlıkları, girdileri ve ara sonuçları tensördür. Her işlem hesap çizgesine kaydedilir; `geri_yayılım(kayıp)` tüm gradyanları hesaplar.
 
 - **Oluşturma:** `tensör(veri, türev_izle: doğru)` (veri: iç içe liste ya da matris), `sıfırlar([2, 3])`, `birler([2, 3])`, `rastgele_normal([2, 3], tohum: 42)`. Şekil **liste** olarak verilir; `sıfırlar(2, 3)` gibi iki tam sayı eskisi gibi `Matris` döndürür. `türev_izle` varsayılanı listede/matriste `yanlış`tır; `tensör(3.0)` gibi tek sayı eski tek sayılık otomatik türev değerini verir.
-- **Özellik ve metotlar:** `.şekil`, `.değer` (iç içe liste; skalerde Ondalık; float32 değerler en kısa gösterimleriyle verilir, `tensör([0.1]).değer[0] == 0.1` doğrudur), `.gradyan` (yalnızca `türev_izle: doğru` ile oluşturulan yaprak tensörlerde; bir işlemin sonucu olan tensörde açıklayıcı hata verir), `.cihaz`, `.şekillendir([4, 6])` (bir eksen `-1` olabilir), `.devrik()`, `.eksenleri_sırala([0, 2, 1])`, `.dilim(eksen, baş, son)` (son hariç, negatifler sondan sayar), `.cihaza("cpu")`. Bu derlemede GPU arka ucu yoktur; `.cihaza("gpu")` açık bir hata verir.
-- **İşleçler:** `@` (matris çarpımı; 1 boyutlu işlenen vektör sayılır, 3+ boyutlu toplu çarpım), `+ - * /` eleman bazlı ve **yayınlamalıdır** (eksenler sağdan hizalanır; eşit ya da 1 olan eksenler uyumludur). Sayıyla da çalışır: `2 * a`, `a - 1`, `a / 2`. İki işlenen de genişletilirse (ör. `[4, 1]` ile `[4]` → `[4, 4]`; çoğunlukla bir şekil hatası) standart hataya her işlem ve şekil çifti için bir kez `Uyarı: [4, 1] ile [4] yayınlanarak [4, 4] üretildi (iki taraf da genişletildi); ...` yazılır; program durmaz. Şimdilik `1 - a`, `1 / a`, `-a` ve `a ** 2` yoktur; `a * -1 + 1` ve `a * a` yazın.
+- **Özellik ve metotlar:** `.şekil`, `.değer` (iç içe liste; skalerde tek sayı; elemanlar Ondalık, tam sayılı tensörlerde — `maks_indeks` sonucu, veri kümesinden gelen `girdi`/`hedef` — `Tam`; float32 değerler en kısa gösterimleriyle verilir, `tensör([0.1]).değer[0] == 0.1` doğrudur), `.gradyan` (yalnızca `türev_izle: doğru` ile oluşturulan yaprak tensörlerde; bir işlemin sonucu olan tensörde açıklayıcı hata verir), `.cihaz`, `.şekillendir([4, 6])` (bir eksen `-1` olabilir), `.devrik()`, `.eksenleri_sırala([0, 2, 1])`, `.dilim(eksen, baş, son)` (son hariç, negatifler sondan sayar), `.cihaza("cpu")`. Bu derlemede GPU arka ucu yoktur; `.cihaza("gpu")` açık bir hata verir.
+- **İşleçler:** `@` (matris çarpımı; 1 boyutlu işlenen vektör sayılır, 3+ boyutlu toplu çarpım), `+ - * /` eleman bazlı ve **yayınlamalıdır** (eksenler sağdan hizalanır; eşit ya da 1 olan eksenler uyumludur). Sayı iki yanda da durabilir: `2 * a`, `a - 1`, `1 - a`, `a / 2`, `1 / a`. Tekli eksi (`-a`) ve sayı üssü (`a ** 2`) de vardır; hepsi türev izler. İki işlenen de genişletilirse (ör. `[4, 1]` ile `[4]` → `[4, 4]`; çoğunlukla bir şekil hatası) standart hataya her işlem ve şekil çifti için bir kez `Uyarı: [4, 1] ile [4] yayınlanarak [4, 4] üretildi (iki taraf da genişletildi); ...` yazılır; program durmaz. `%` tensörlerde tanımlı değildir.
+- **Karşılaştırma ve maske:** `< > <= >=` bir sayıyla ya da **aynı şekilli** tensörle eleman bazlı karşılaştırır ve türev izlemeyen 0/1 maskesi verir: `a > 0`, `a < b`. `==` ve `!=` ise tensörleri bütün olarak karşılaştırıp tek bir `Mantık` verir: şekilleri ve tüm elemanları aynıysa eşittir (`tensör([1.0, 2.0]) == tensör([1.0, 2.0])` doğru, `[2]` ile `[1, 2]` şekilli tensörler eşit değildir).
+- **İndeksleme:** `t[i]` ilk eksenin i. elemanını verir (bir eksen eksilir; negatif indeks sondan sayar), `t[baş..son]` ilk eksende dilim verir (`son` hariç); ikisi de veriyi kopyalamayan, türev izleyen görünümlerdir ve zincirlenebilir (`t[0][1]`). Sınır dışı indeks hatadır; `t[i] = ...` ile atama yapılamaz.
 - **Yazdırma:** `yazdır(t)` şekli başlıkta gösterir (`Tensör[2×3]`), değerleri 4 basamakla yazar; 1000'den çok elemanda her eksenin yalnızca ilk ve son 3 elemanı gösterilir (`…`). Sıfır olmayan bir değer 0.0001'den küçükse ya da bir değer 1e8 ve üzerindeyse tüm hücreler bilimsel gösterimle (`1.0000e-05`) yazılır. Sayı olmayan değerler `Tanımsız`, `Sonsuz`, `-Sonsuz` olarak görünür.
 - **Doğruluk değeri:** `eğer t { ... }` tek elemanlı tensörde eleman 0'dan farklıysa doğrudur, boş tensör yanlıştır. Çok elemanlı tensörün doğruluk değeri belirsizdir; `eğer maks(t) > 0` gibi bir indirgeme kullanın (şimdilik hata vermez, doğru sayılır).
 - **Matematik:** `relu`, `sigmoid`, `tanh`, `gelu`, `karekök`, `üstel`, `log`, `softmax(x, eksen: -1)`, `log_softmax(x, eksen: -1)`. **Dönüş tipi kuralı:** tensör yalnızca tensör girdisinden çıkar. Sayı, liste ya da matris verilirse sonuç girdinin biçimindedir: eski karşılığı olan adlarda (`relu`, `softmax`...) eski davranış geçerlidir; yeni adlar `gelu`, `üstel`, `log` sayıda Ondalık, listede aynı yapıda liste, matriste Matris; `log_softmax` düz listede liste, matriste satır bazlı Matris döndürür.
@@ -134,7 +140,7 @@ yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)}")   // 
 yazdır(türevsiz { sonuç X @ w + b })                                       // Tensör[4×1] [...]
 ```
 
-Şekil hataları şekli gösterir ve `dene/yakala` ile yakalanabilir: `[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`. Fonksiyon ve metot hatalarının başında `Satır N:` bulunur; işleç (`@`, `+`...) hatalarında şimdilik satır bilgisi yoktur, satırı programın durduğu yerdeki kod çerçevesinden okuyun.
+Şekil hataları şekli gösterir ve `dene/yakala` ile yakalanabilir: `[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`. Fonksiyon, metot, işleç (`@`, `+`, `<`...) ve özellik hatalarının başında `Satır N:` bulunur: `Satır 3: [2, 2] ile [1, 3] matris çarpımı yapılamaz; 2 ≠ 1 (...)`.
 
 > **Not (türevsiz ve eşzamanlılık):** Türevsiz kip süreç geneli bir sayaçtır. `türevsiz { ... }` bloğunun içinde yorumlayıcı kilidini bırakan bir çağrı (`bekle(...)`, ağ isteği, `girdi()` gibi) varsa, o sırada çalışan başka bir `eşzamanlı` görev de türevsiz çalışır ve hesapladığı değerler türev izlemez. Eğitim ve türevsiz çıkarımı aynı anda farklı görevlerde yürütmeyin ya da `türevsiz` bloklarına engelleyici çağrı koymayın.
 
@@ -153,14 +159,14 @@ Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `t
 - Güvenlik: parçalayıcı dosyasındaki düzenli ifadeler adım bütçesiyle çalışır. Kötü niyetli bir metin aşırı geri izlemeye yol açarsa yarım sonuç yerine `dene/yakala` ile yakalanabilen bir "adım sınırını aştı" hatası oluşur. Üstel geri izlemeye açık (iç içe sınırsız niceleyicili) desenli dosyalar yüklenmez; daha hafif riskler yüklemede standart hataya dosya başına bir kez `Uyarı:` olarak yazılır.
 
 **Veri kümesi**
-- `değişken küme = veri_kümesi("veri/train")` klasördeki `.npy` parçalarını ad sırasıyla tanır (tek bir `.npy` dosyası da verilebilir). Parçalar tek boyutlu, küçük uçlu `uint16`, `uint32` ya da `int32` token dizileridir (`numpy.save` ile yazılmış). Klasörde ya da üst klasörde `meta.json` varsa parça token sayıları oradan okunur; dosya başlıkları açılışta okunmaz. Tip adı `VeriKümesi`.
+- `değişken küme = veri_kümesi("veri/train")` klasördeki `.npy` parçalarını ad sırasıyla tanır (tek bir `.npy` dosyası da verilebilir). Parçalar tek boyutlu, küçük uçlu `uint16`, `uint32` ya da `int32` token dizileridir (standart `.npy` dosya biçimi). Klasörde ya da üst klasörde `meta.json` varsa parça token sayıları oradan okunur; dosya başlıkları açılışta okunmaz. Tip adı `VeriKümesi`.
 - **Önbellek:** veri yavaş bir sürücüdeyse (ağ, akışlı bulut sürücüsü) `veri_kümesi(dizin, önbellek: "onbellek/veri", kota_gb: 20)` parçaları kullanılmadan önce yerel klasöre kopyalar; kota dolunca en uzun süredir kullanılmayan kopyalar silinir. `önbellek:` verilince `kota_gb:` **zorunludur** (disk alanını sessizce doldurmamak için); verilmezse hata, bu küme için gereken en küçük kotayı (aynı anda yerelde tutulan 8 parça × en büyük parça) söyler. Önbelleksiz okumada parçalar belleğe eşlenmez, her pencere ayrı okunur: yalnızca istenen baytlar sürücüden çekilir.
 - `küme.örnekleyici(toplu: 32, bağlam: 1024, tohum: 1)` eğitim için rastgele pencereler üretir (tip `Örnekleyici`; `tohum` varsayılanı 0). Aynı tohum ve küme hep aynı toplu işleri verir. Her dönemde parça sırası karışır, her token bir kez görülür, hiçbir pencere parça sınırını aşmaz; örnekleyici dönemden döneme sonsuz üretir.
 - `küme.sıralı(toplu: 32, bağlam: 1024)` doğrulama için parçaları sırayla okur (tip `SıralıOkuyucu`): ardışık pencereler `bağlam` kadar kayar, böylece her token bir kez hedef olur. Son toplu iş daha az satırlı olabilir; veri bitince `.sonraki()` `yok` döner.
-- `.sonraki()` `[girdi, hedef]` listesi verir: ikisi de `[toplu, bağlam]` şeklinde, tam sayı değerli tensördür ve `hedef` girdinin bir kaydırılmışıdır. Doğrudan `gömme(E, girdi)` ve `çapraz_entropi(çıktı, hedef)`'e verilir: `değişken girdi, hedef = ö.sonraki()`. `.değer` `Ondalık` listesi verir (liste indekslemede `tam(...)` ile çevirin).
+- `.sonraki()` `[girdi, hedef]` listesi verir: ikisi de `[toplu, bağlam]` şeklinde, tam sayı değerli tensördür ve `hedef` girdinin bir kaydırılmışıdır. Doğrudan `gömme(E, girdi)` ve `çapraz_entropi(çıktı, hedef)`'e verilir: `değişken girdi, hedef = ö.sonraki()`. İkisi de tam sayılı işaretlidir: ondalıksız yazdırılır ve `.değer` `Tam` listesi verir, böylece liste indekslemede doğrudan kullanılır. Bu tensörlerle yapılan işlemlerin sonucu (ör. `girdi + 1`) Ondalık değerlidir.
 - **Önden yükleme her zaman açıktır:** sonraki 4 toplu iş arka planda hazırlanır. Bu iş TR kodu çalıştırmaz, yorumlayıcı kilidini tutmaz; `.sonraki()` beklerken kilit bırakılır, böylece `eşzamanlı` görevler ilerler. Aynı okuyucuyu birden çok görev paylaşabilir (her toplu iş bir göreve gider).
 - **Kaynaklar:** açık bir kapatma adı yoktur. Sıralı okuyucu bitince dosyalarını hemen kapatır; artık kullanılmayan (hiçbir değişkenin göstermediği) okuyucu ve kümeler çöp toplayıcı tarafından kapatılır; program bitince açık kalanların hepsi kapatılır (takılan bir ağ okumasında en çok birkaç saniye beklenir).
-- Göreli yollar (`parçalayıcı_yükle` ve `veri_kümesi`) önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür.
+- Göreli yollar, dosya okuyan ve yazan bütün yerleşiklerde (`dosya_oku`, `dosya_yaz`, `aktar`, `parçalayıcı_yükle`, `veri_kümesi`, `csv_oku`, `veritabanı_aç`, `html_kaydet`) aynı kuralla çözülür: göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler.
 - Hatalar Türkçe ve yol göstericidir (dosya yok, `.npy` değil, kota yetersiz, bağlam parçalardan uzun, adlı argüman yazım hatası...) ve `dene/yakala` ile yakalanır.
 
 ```tr
@@ -236,6 +242,8 @@ api.gönder("/api/ekle", fonksiyon(istek) {
 api.başlat() // veya api.arka_planda_başlat()
 ```
 
+**Ağır işler sürerken istekler ve görevler:** Yorumlayıcı kilidi aynı anda yalnızca bir görevin TR kodu çalıştırmasına izin verir. Kilidi tutan görev, kilidi bekleyen başka bir görev varsa onu döngülerde düzenli aralıklarla ve her fonksiyon çağrısında devreder (bir deyim hiçbir zaman ortasından bölünmez). Böylece `api.arka_planda_başlat()` ile açılan sunucu, uzun bir eğitim ya da hesap döngüsü sürerken de isteklere yanıt verir; `eşzamanlı` görevler de döngünün bitmesini beklemeden ilerler.
+
 **Güvenlik:** Web sunucusu ve görsel arayüz yalnızca bu bilgisayardan (127.0.0.1) erişilebilir ve tarayıcıda açık başka web sitelerine karşı korunur:
 - Başka sitelere okuma izni (CORS) verilmez.
 - Başka bir siteden gelen veri değiştiren istekler (POST, PUT, DELETE) reddedilir.
@@ -280,7 +288,7 @@ değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", a
 - `liste_uret` $\rightarrow$ Tek satırda liste üreteci oluşturur
 - `yapi` $\rightarrow$ `yapı` ve metot şablonu oluşturur
 - `sinir` $\rightarrow$ 3 satırlık yapay sinir ağı eğitim şablonu oluşturur
-- `tensor` $\rightarrow$ Otomatik türev (`tensör` + `geri_yayılım`) şablonu oluşturur
+- `tensor` $\rightarrow$ Tensörlerle küçük bir eğitim döngüsü oluşturur (`tensör(..., türev_izle: doğru)`, `AdamW`, `iyileştirici.sıfırla()`, `geri_yayılım`, `iyileştirici.adım()`)
 
 
 

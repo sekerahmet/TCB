@@ -142,9 +142,9 @@ test "16.6 sıralı: pencereler sırayla, bitince yok" {
 }
 
 test "16.7 hatalar Türkçe ve yakalanabilir" {
-    doğrula(hata_metni(() => parçalayıcı_yükle("veri/yok.json")).içerir("dosyası bulunamadı"))
+    doğrula(hata_metni(() => parçalayıcı_yükle("veri/yok.json")).içerir("yüklenemedi: böyle bir dosya ya da klasör yok"))
     doğrula(hata_metni(() => parçalayıcı_yükle("veri/bozuk.npy")).içerir("geçerli bir tokenizer.json dosyası değil"))
-    doğrula(hata_metni(() => veri_kümesi("veri/yok_klasor")).içerir("bulunamadı"))
+    doğrula(hata_metni(() => veri_kümesi("veri/yok_klasor")).içerir("açılamadı: böyle bir dosya ya da klasör yok"))
     doğrula(hata_metni(() => veri_kümesi("veri/bozuk.npy")).içerir("geçerli bir .npy token dosyası değil"))
     doğrula(hata_metni(() => veri_kümesi("veri/sayilar", önbellek: "onb")).içerir("kota_gb: de verilmelidir"))
     değişken küme = veri_kümesi("veri/sayilar")

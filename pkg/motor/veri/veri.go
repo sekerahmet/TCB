@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math"
 	"path/filepath"
 	"strings"
@@ -145,7 +146,7 @@ func kumeAc(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, err
 	if !ok {
 		return nil, fmt.Errorf("%s: dizin bir metin olmalıdır, %s verildi", fn, args[0].Type())
 	}
-	yol := baglama.YolCoz(m, s.Val)
+	yol, bakilanlar := baglama.YolCozBakilan(m, s.Val)
 
 	obDizin := ""
 	if v, ok := baglama.AdliAl(named, adOnbellek); ok {
@@ -191,7 +192,7 @@ func kumeAc(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, err
 		}
 	})
 	if err != nil {
-		return nil, veriHatasi(fn, s.Val, err)
+		return nil, veriHatasi(fn, s.Val, err, vm.BakilanYerler(bakilanlar))
 	}
 	if obDizin != "" && !kotaVar {
 		gereken := enBuyukParca(k) * int64(dv.VarsayilanGrupBoyu+dv.VarsayilanIleriBak)
@@ -224,8 +225,9 @@ func sayi(v vm.Value) (float64, bool) {
 	return 0, false
 }
 
-// veriHatasi Go veri paketinin hatasını yol gösterici bir TR hatasına çevirir.
-func veriHatasi(fn, yol string, err error) error {
+// veriHatasi Go veri paketinin hatasını yol gösterici bir TR hatasına çevirir; ekler
+// küme bulunamadığında mesaja eklenir (ör. bakılan yerler).
+func veriHatasi(fn, yol string, err error, ekler ...string) error {
 	var bh *dv.BicimHatasi
 	switch {
 	case errors.As(err, &bh):
@@ -240,7 +242,13 @@ func veriHatasi(fn, yol string, err error) error {
 	case errors.Is(err, dv.ErrKapali):
 		return fmt.Errorf("%s: okuyucu kapatılmış (program sonlanıyor); yeni bir okuyucu oluşturun", fn)
 	case baglama.YokMu(err) && strings.Contains(err.Error(), "küme açılamadı"):
-		return fmt.Errorf("%s: %q bulunamadı; .npy token parçalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin (göreli yollar çalışma klasörüne, orada yoksa programın klasörüne göre çözülür)", fn, yol)
+		return turkce.DosyaHatasi(fn, yol, "açılamadı", err,
+			append([]string{".npy token parçalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin"}, ekler...)...)
+	}
+	var pe *fs.PathError
+	if errors.As(err, &pe) {
+		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
+		return turkce.DosyaHatasi(fn, filepath.ToSlash(pe.Path), "okunamadı", err)
 	}
 	msg := temizle(err.Error())
 	if strings.Contains(msg, "desenine uyan parça yok") {

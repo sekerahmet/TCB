@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -123,7 +124,7 @@ func yukle(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, erro
 	if !ok {
 		return nil, fmt.Errorf("%s: yol bir metin olmalıdır (ör. \"tokenizer.json\"), %s verildi", fn, args[0].Type())
 	}
-	yol := baglama.YolCoz(m, s.Val)
+	yol, bakilanlar := baglama.YolCozBakilan(m, s.Val)
 	var p *pc.Parcalayici
 	var err error
 	var bilgi os.FileInfo
@@ -134,7 +135,7 @@ func yukle(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, erro
 		}
 	})
 	if err != nil {
-		return nil, yuklemeHatasi(s.Val, err)
+		return nil, yuklemeHatasi(s.Val, err, bakilanlar)
 	}
 	if bilgi.IsDir() {
 		aday := filepath.Join(yol, "tokenizer.json")
@@ -148,10 +149,11 @@ func yukle(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, erro
 	return &Nesne{p: p, yol: yol}, nil
 }
 
-func yuklemeHatasi(yol string, err error) error {
+func yuklemeHatasi(yol string, err error, bakilanlar []string) error {
 	const fn = "parçalayıcı_yükle"
 	if baglama.YokMu(err) {
-		return fmt.Errorf("%s: %q dosyası bulunamadı; tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin (göreli yollar çalışma klasörüne, orada yoksa programın klasörüne göre çözülür)", fn, yol)
+		return turkce.DosyaHatasi(fn, yol, "yüklenemedi", err,
+			"tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin", vm.BakilanYerler(bakilanlar))
 	}
 	msg := err.Error()
 	switch {
@@ -171,6 +173,11 @@ func yuklemeHatasi(yol string, err error) error {
 			ayrinti = fmt.Sprintf("JSON yapısı beklenen biçimde değil (%q alanı)", te.Field)
 		}
 		return fmt.Errorf("%s: %q geçerli bir tokenizer.json dosyası değil: %s", fn, yol, ayrinti)
+	}
+	var pe *fs.PathError
+	if errors.As(err, &pe) {
+		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
+		return turkce.DosyaHatasi(fn, yol, "yüklenemedi", err)
 	}
 	return fmt.Errorf("%s: %q yüklenemedi: %s", fn, yol, msg)
 }

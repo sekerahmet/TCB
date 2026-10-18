@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"tr_dili/pkg/ast"
@@ -63,6 +64,12 @@ type Parser struct {
 	// noBlock: 'eğer', 'iken', 'döngü' ve 'eşle' başlıklarında '{' gövdenin başlangıcıdır,
 	// sondaki blok (o-lambda) olarak okunmamalıdır. Parantez/köşeli parantez içinde yeniden açılır.
 	noBlock bool
+
+	// hataModu bir deyimde sözdizimi hatası kaydedildikten sonra açıktır: deyim
+	// senkronizeOl ile atlanana dek yeni hata kaydedilmez (art arda gelen hatalar
+	// çoğunlukla ilkinin sonucudur). hataSatiri ilk hatanın satırıdır.
+	hataModu   bool
+	hataSatiri int
 }
 
 // parseHeaderExpression bir kontrol yapısının başlık ifadesini (koşul, döngü kaynağı,
@@ -177,15 +184,13 @@ func (p *Parser) expectPeek(t lexer.TokenType) bool {
 
 func (p *Parser) peekError(t lexer.TokenType) {
 	tok := p.peekToken()
-	msg := fmt.Sprintf("Satır %d, Sütun %d: Sözdizimi hatası — %s bekleniyordu, ancak %s (%q) bulundu",
-		tok.Line, tok.Column, t, tok.Type, tok.Literal)
-	p.errors = append(p.errors, msg)
+	p.hataKaydet(tok, fmt.Sprintf("Sözdizimi hatası — %s bekleniyordu, ancak %s bulundu%s",
+		turAciklamasi(t), tokenAciklamasi(tok), beklenmeyenIpucu(t, tok)))
 }
 
+// addError geçerli token'ın konumunda bir sözdizimi hatası kaydeder.
 func (p *Parser) addError(format string, args ...interface{}) {
-	tok := p.curToken()
-	prefix := fmt.Sprintf("Satır %d, Sütun %d: ", tok.Line, tok.Column)
-	p.errors = append(p.errors, prefix+fmt.Sprintf(format, args...))
+	p.hataKaydet(p.curToken(), fmt.Sprintf(format, args...))
 }
 
 func (p *Parser) curPrecedence() int {
@@ -211,10 +216,12 @@ func (p *Parser) ParseProgram() *ast.Program {
 			p.nextToken()
 			continue
 		}
+		deyimBas := p.pos
 		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
+		p.senkronizeOl(deyimBas, true)
 		p.nextToken()
 	}
 	p.kaldirilanYazimIpuclari()
@@ -366,7 +373,8 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 			names = append(names, &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal})
 		}
 		if !p.peekTokenIs(lexer.TOKEN_ASSIGN) && !p.peekTokenIs(lexer.TOKEN_WALRUS) {
-			p.addError("Çoklu değişken tanımında '=' bekleniyordu")
+			tok := p.peekToken()
+			p.hataKaydet(tok, fmt.Sprintf("Sözdizimi hatası — çoklu değişken tanımında '=' bekleniyordu, ancak %s bulundu", tokenAciklamasi(tok)))
 			return nil
 		}
 		p.nextToken() // '='
@@ -521,10 +529,12 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 			p.nextToken()
 			continue
 		}
+		deyimBas := p.pos
 		stmt := p.parseStatement()
 		if stmt != nil {
 			block.Statements = append(block.Statements, stmt)
 		}
+		p.senkronizeOl(deyimBas, false)
 		p.nextToken()
 	}
 	p.requireClosingBrace(block.Token)
@@ -536,9 +546,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 // Aksi hâlde sonraki tüm kod sessizce bloğun içine girerdi (test raporu Y1).
 func (p *Parser) requireClosingBrace(open lexer.Token) {
 	if p.curTokenIs(lexer.TOKEN_EOF) {
-		p.errors = append(p.errors, fmt.Sprintf(
-			"Satır %d, Sütun %d: '{' kapatılmadı; dosya bitti ama bu bloğu kapatan '}' bulunamadı",
-			open.Line, open.Column))
+		p.hataKaydet(open, "'{' kapatılmadı; dosya bitti ama bu bloğu kapatan '}' bulunamadı")
 	}
 }
 
@@ -649,19 +657,8 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 			// Hatalı metod tanımında parseFunctionLiteral nil döner; tip dönüşümü panik yapmamalı
 			fn, _ := p.parseFunctionLiteral().(*ast.FunctionLiteral)
 			if fn == nil {
-				// Hata zaten kaydedildi; iç içe süslü parantezleri sayarak yapının kapanışına kadar atla
-				depth := 0
-				for !p.curTokenIs(lexer.TOKEN_EOF) {
-					if p.curTokenIs(lexer.TOKEN_LBRACE) {
-						depth++
-					} else if p.curTokenIs(lexer.TOKEN_RBRACE) {
-						if depth == 0 {
-							break
-						}
-						depth--
-					}
-					p.nextToken()
-				}
+				// Hata zaten kaydedildi; yapının kapanışına kadar atla
+				p.blokSonunaAtla()
 				break
 			}
 			if fn.Name != "" {
@@ -814,7 +811,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	case lexer.TOKEN_LBRACE:
 		leftExp = p.parseDictLiteral()
 	default:
-		p.addError("beklenmeyen sözcük: %s (%q)", p.curToken().Type, p.curToken().Literal)
+		p.addError("Sözdizimi hatası — burada bir değer ya da ifade bekleniyordu, ancak %s bulundu", tokenAciklamasi(p.curToken()))
 		return nil
 	}
 
@@ -865,7 +862,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	tok := p.curToken()
 	val, err := strconv.ParseInt(tok.Literal, 10, 64)
 	if err != nil {
-		p.addError("%q tam sayıya dönüştürülemedi", tok.Literal)
+		p.addError("%s tam sayı olarak çok büyük (en fazla %d olabilir; ondalık sayı için sonuna .0 ekleyin)", tok.Literal, int64(math.MaxInt64))
 		return nil
 	}
 	return &ast.IntegerLiteral{Token: tok, Value: val}
@@ -875,7 +872,7 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 	tok := p.curToken()
 	val, err := strconv.ParseFloat(tok.Literal, 64)
 	if err != nil {
-		p.addError("%q ondalık sayıya dönüştürülemedi", tok.Literal)
+		p.addError("%s ondalık sayı olarak çok büyük ya da geçersiz", tok.Literal)
 		return nil
 	}
 	return &ast.FloatLiteral{Token: tok, Value: val}
@@ -1192,6 +1189,8 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 		}
 
 		if !p.expectPeek(lexer.TOKEN_ARROW) {
+			// Kalan durumlar da hatalı okunup art arda hata vermesin diye eşle bloğu atlanır
+			p.blokSonunaAtla()
 			return nil
 		}
 

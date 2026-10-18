@@ -4,7 +4,7 @@ Bu belge TR dilinin **bugünkü uygulamaya** (`pkg/lexer`, `pkg/parser`, `pkg/ch
 
 **Kural ve test eşlemesi.** Her kuralın bir numarası vardır (ör. **4.2**). `testler/` klasöründeki testlerin adı bu numarayla başlar (`test "4.2 aritmetik: ..."`). `tr test testler` komutu tanımdaki her kuralı çalıştırarak denetler; `go test ./pkg/testkosucu` de tanımda numarası geçip testi olmayan bir kural kalmadığını doğrular (Faz 3 kapısı: *her kural bir testte*).
 
-İçindekiler: [2. Sözcük yapısı](#2-sözcük-yapısı) · [3. Tipler](#3-tipler-ve-değerler) · [4. Operatörler](#4-operatörler) · [5. Deyimler](#5-deyimler-ve-kontrol-yapıları) · [6. Fonksiyonlar](#6-fonksiyonlar) · [7. Yapılar](#7-yapılar) · [8. Hatalar](#8-hata-yönetimi) · [9. ertele](#9-ertele) · [10. Eşzamanlılık](#10-eşzamanlılık-ve-yorumlayıcı-kilidi) · [11. Modüller](#11-modüller) · [12. Testler](#12-testler) · [13. Yerleşikler](#13-yerleşik-fonksiyonlar-ve-metotlar) · [14. Sınırlamalar](#14-bilinen-sınırlamalar)
+İçindekiler: [2. Sözcük yapısı](#2-sözcük-yapısı) · [3. Tipler](#3-tipler-ve-değerler) · [4. Operatörler](#4-operatörler) · [5. Deyimler](#5-deyimler-ve-kontrol-yapıları) · [6. Fonksiyonlar](#6-fonksiyonlar) · [7. Yapılar](#7-yapılar) · [8. Hatalar](#8-hata-yönetimi) · [9. ertele](#9-ertele) · [10. Eşzamanlılık](#10-eşzamanlılık-ve-yorumlayıcı-kilidi) · [11. Modüller](#11-modüller) · [12. Testler](#12-testler) · [13. Yerleşikler](#13-yerleşik-fonksiyonlar-ve-metotlar) · [14. Sınırlamalar](#14-bilinen-sınırlamalar) · [15. Tensörler](#15-tensörler-ve-otomatik-türev) · [16. Veri ve parçalayıcı](#16-veri-ve-parçalayıcı)
 
 ---
 
@@ -73,7 +73,7 @@ değişken t = 1 +
 
 **2.9a** Her işin tek yazımı vardır. Eskiden eş anlamlı olan `işlev`, `döndür`, `kır`, `sınıf` (ve ASCII biçimleri) ile `aktar ... as` kaldırılmıştır; bu sözcükler artık sıradan adlardır (`değişken sınıf = "9-A"`). Eski alışkanlıkla yazıldıklarında hata mesajı asıl yazımı önerir (`fonksiyon`, `sonuç`, `çık`, `yapı`, `olarak`).
 
-Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak`/`as` (yalnızca `aktar` içinde), `_` (yalnızca `eşle` kolunda varsayılan).
+Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `_` (yalnızca `eşle` kolunda varsayılan).
 
 ---
 
@@ -83,7 +83,7 @@ TR dinamik tiplidir; değerler tiplerini taşır. İsteğe bağlı tip açıklam
 
 **3.1** `Tam`: 64 bit işaretli tam sayı. `+ - * / **` işlemleri ve tekli `-` sınırı aşarsa (ör. en küçük değerin `/ -1`'i ya da eksisi) sessizce sarmak yerine "Tam sayı taşması" hatası verir.
 
-**3.2** `Ondalık`: 64 bit kayan noktalı sayı; tam sayılı ondalıklar `1.0` biçiminde yazdırılır. Sonsuz ve tanımsız değerler tensör yazdırmasıyla aynı biçimde `+Sonsuz`, `-Sonsuz`, `NaN` yazılır.
+**3.2** `Ondalık`: 64 bit kayan noktalı sayı; tam sayılı ondalıklar `1.0` biçiminde yazdırılır. Sonsuz ve tanımsız değerler `+Sonsuz`, `-Sonsuz`, `NaN` olarak yazdırılır (tensör yazdırması bunları `Sonsuz`, `-Sonsuz`, `Tanımsız` olarak gösterir).
 
 **3.3** `Metin`: değiştirilemez Unicode metni; uzunluk ve indeks karakter (rune) bazındadır, negatif indeks sondan sayar, sınır dışı indeks `yok` verir, `m[a..b]` alt metin verir.
 
@@ -313,7 +313,7 @@ dene { fırlat "patladı" } yakala { yazdır(hata) }
 
 **10.1** `eşzamanlı { blok }` ya da `eşzamanlı çağrı(...)` işi ayrı bir görev olarak başlatır ve hemen devam eder; `bekle_hepsi()` başlatılmış tüm görevlerin bitmesini bekler. Program da bitmeden önce görevleri bekler. Görevdeki yakalanmamış hata programı durdurmaz, standart hataya yazılır.
 
-**10.2** Yorumlayıcı kilidi: aynı anda yalnızca bir görev TR kodu çalıştırır; bu yüzden paylaşılan listeler/sözlükler bozulmaz ve `s += 1` gibi tek bir deyim bölünmez.
+**10.2** Yorumlayıcı kilidi: aynı anda yalnızca bir görev TR kodu çalıştırır; bu yüzden paylaşılan listeler/sözlükler bozulmaz ve `s += 1` gibi tek bir deyim bölünmez. Kilidi bekleyen bir görev varsa kilidi tutan görev onu deyimler arasında devreder: döngülerde düzenli aralıklarla (her 256 turda bir) ve her kullanıcı fonksiyonu çağrısında. Böylece CPU-yoğun bir döngü sürerken de `eşzamanlı` görevler ve web/arayüz istekleri ilerler.
 
 ```tr
 değişken toplam = 0
@@ -329,9 +329,9 @@ bekle_hepsi()      // toplam == 20100
 
 ## 11. Modüller
 
-**11.1** `aktar "yol"` başka bir `.tr` dosyasını çalıştırır ve üst düzey adlarını bulunulan kapsama getirir. `.tr` uzantısı isteğe bağlıdır; yol önce çalışma klasörüne, bulunamazsa aktaran dosyanın klasörüne göre çözülür.
+**11.1** `aktar "yol"` başka bir `.tr` dosyasını çalıştırır ve üst düzey adlarını bulunulan kapsama getirir. `.tr` uzantısı isteğe bağlıdır; yol dosya yerleşiklerindeki tek kuralla (bkz. **13.1**) önce çalışma klasörüne, bulunamazsa aktaran dosyanın klasörüne göre çözülür.
 
-**11.2** `aktar "yol" olarak ad` (ya da `as`) modülün adlarını tek bir `Sözlük` olarak `ad`a bağlar: `ym.kare(2)`, `ym["PI"]`.
+**11.2** `aktar "yol" olarak ad` modülün adlarını tek bir `Sözlük` olarak `ad`a bağlar: `ym.kare(2)`, `ym["PI"]`.
 
 **11.3** Bir modül program boyunca bir kez çalıştırılır; sonraki aktarımlar aynı değerleri paylaşır. Döngüsel aktarım hatadır.
 
@@ -365,7 +365,7 @@ test "toplama doğru" {
 
 Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirdek seçki tanımlanır. Metotlar `değer.metot(...)` ile çağrılır; argümansız olanlar (`.uzunluk`, `.ilk`, `.son`) parantezsiz de yazılır.
 
-**13.1** Genel: `yazdır(...)` (değerleri boşlukla birleştirip yazar), `uzunluk`, `tip`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `aralık(a, b)`, `filtrele`, `haritala`, `indirge`, `sırala`, `ekle`, `bekle`, `bekle_hepsi`, `zaman_ms`, `dosya_oku`, `dosya_yaz`, `girdi`.
+**13.1** Genel: `yazdır(...)` (değerleri boşlukla birleştirip yazar), `uzunluk`, `tip`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `aralık(a, b)`, `filtrele`, `haritala`, `indirge`, `sırala`, `ekle`, `bekle`, `bekle_hepsi`, `zaman_ms`, `dosya_oku`, `dosya_yaz`, `girdi`. Yerleşikler eksik ya da fazla argümanı ve yanlış tipi reddeder; hata `aralık() 1. argüman olarak Tam bekler, Metin ("a") verildi` biçimindedir. `dosya_oku(yol)` ve `dosya_yaz(yol, içerik)` yolu `Metin` olarak ister; göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler. Dosya hataları Türkçedir (dosya ya da klasör yok, izin yok, bir klasör, disk dolu, dosya kullanımda...).
 
 **13.2** Metin metotları: `.uzunluk`, `.büyük_harf()` / `.küçük_harf()` (Türkçe `i/İ`, `ı/I` kurallarıyla), `.kırp()`, `.böl(ayırıcı)`, `.değiştir(eski, yeni)`, `.içerir(alt)`, `.başlar(önek)`, `.biter(sonek)`, `.ters_çevir()`.
 
@@ -373,7 +373,7 @@ Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirde
 
 **13.4** Sözlük metotları: `.anahtarlar()`, `.değerler()`, `.içerir(anahtar)`.
 
-Hata ayıklayıcıya bağlı `kesme_noktası` deyimi (`kesme_noktası`, `kesme_noktası eğer koşul`) etkileşimli olduğu için bu tanımın testlerine girmez; davranışı Go testleri ve `KULLANIM_KILAVUZU.md` §5 ile belgelenir.
+Hata ayıklayıcıya bağlı `kesme_noktası` deyimi (`kesme_noktası`, `kesme_noktası eğer koşul`) etkileşimli olduğu için bu tanımın testlerine girmez; davranışı `pkg/hataayiklama` birim testleri ve `KULLANIM_KILAVUZU.md` §5 ile belgelenir.
 
 ---
 
@@ -402,7 +402,7 @@ Tensör, n boyutlu bir `float32` sayı dizisidir (tip adı `Tensör`). İşlemle
 
 **15.1** Oluşturma: `tensör(veri, türev_izle: doğru)` veri olarak iç içe sayı listesi, matris ya da tensör alır (tensörden kendi verisine sahip yeni bir yaprak üretir); düzensiz liste hatadır. `türev_izle` varsayılanı `yanlış`tır. `sıfırlar(şekil)`, `birler(şekil)`, `rastgele_normal(şekil, tohum: n)` şekli liste olarak alır (`[2, 3]`). Geriye uyumluluk: `tensör(sayı)` eski tek sayılık türev değerini, `sıfırlar(2, 3)` / `birler(2, 3)` `Matris` döndürür.
 
-**15.2** Özellikler: `.şekil` (tam sayı listesi), `.değer` (iç içe Ondalık listesi; 0 boyutluda Ondalık; her float32 değer en kısa ondalık gösterimine karşılık gelen sayıdır), `.gradyan` (yaprak tensörde tensör ya da `yok`; bir işlemin sonucu olan tensörde hata), `.cihaz` (`"cpu"`). Doğruluk değeri: tek elemanlı tensör eleman 0'dan farklıysa doğru, boş tensör yanlıştır. Görünüm metotları veriyi kopyalamaz: `.şekillendir(liste)` (bir eksen `-1` olabilir), `.devrik()` (son iki eksen), `.eksenleri_sırala(liste)`, `.dilim(eksen, baş, son)` (`son` hariç; negatif indeks sondan sayar). `.cihaza(ad)` tensörü taşır; arka ucu olmayan cihaz (`"gpu"`) hatadır.
+**15.2** Özellikler: `.şekil` (tam sayı listesi), `.değer` (iç içe Ondalık listesi; 0 boyutluda tek sayı; her float32 değer en kısa ondalık gösterimine karşılık gelen sayıdır; tam sayılı işaretli tensörlerde — 15.9, 16.5 — elemanlar `Tam`dır), `.gradyan` (yaprak tensörde tensör ya da `yok`; bir işlemin sonucu olan tensörde hata), `.cihaz` (`"cpu"`). Doğruluk değeri: tek elemanlı tensör eleman 0'dan farklıysa doğru, boş tensör yanlıştır. Görünüm metotları veriyi kopyalamaz: `.şekillendir(liste)` (bir eksen `-1` olabilir), `.devrik()` (son iki eksen), `.eksenleri_sırala(liste)`, `.dilim(eksen, baş, son)` (`son` hariç; negatif indeks sondan sayar). `.cihaza(ad)` tensörü taşır; arka ucu olmayan cihaz (`"gpu"`) hatadır.
 
 **15.3** İşleçler: `@` matris çarpımıdır (`[..., M, K] @ [K, N]`, toplu çarpımda öndeki eksenler eşit olmalı; 1 boyutlu işlenen vektör sayılır). `+ - * /` eleman bazlıdır ve yayınlamalıdır: şekiller sağdan hizalanır, her eksen eşit ya da 1 olmalıdır. Diğer işlenen sayı, liste ya da matris olabilir ve iki yanda da durabilir (`1 - t`, `2 / t`). Tekli `-t` ve `t ** sayı` türev izler. `< > <= >=` sayıyla ya da aynı şekilli tensörle eleman bazlı karşılaştırıp türev izlemeyen 0/1 maskesi verir. `t[i]` ilk eksenin i. elemanını (bir eksen eksilir; negatif indeks sondan sayar), `t[baş..son]` ilk eksende dilimi verir; ikisi de veriyi kopyalamayan, türev izleyen görünümlerdir (`t[i][j]`). İşleç ve özellik hataları `Satır N:` önekiyle bildirilir.
 
@@ -414,11 +414,11 @@ Tensör, n boyutlu bir `float32` sayı dizisidir (tip adı `Tensör`). İşlemle
 
 **15.7** İyileştiriciler: `AdamW(parametreler, öğrenme_oranı:, ağırlık_çürümesi:, beta1:, beta2:, epsilon:)` ve `SGD(parametreler, öğrenme_oranı:, momentum:, ağırlık_çürümesi:)`. Parametreler türev izleyen yaprak tensörlerdir; `.adım()` günceller, `.sıfırla()` gradyanları sıfırlar.
 
+**15.8** Hatalar: şekil ve eksen hataları ilgili şekilleri gösteren Türkçe bir mesajla (`[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`) bildirilir ve `dene/yakala` ile yakalanabilir; program çökmez.
+
 **15.9** `maks_indeks(x, eksen: -1)` verilen eksende en büyük elemanın indeksini verir (eşitlikte ilki); sonuç o eksen kaldırılmış, tam sayı değerli ve türev izlemeyen bir tensördür (1 boyutlu girdide 0 boyutlu). Sonuç tam sayılı işaretlidir: `.değer` `Tam` ya da `Tam` listesi verir ve ondalıksız yazdırılır; bu işaret işlem sonuçlarına geçmez. Eksen yalnızca adlı verilir. `gradyan_kırp(parametreler, en_fazla: 1.0)` parametre gradyanlarının toplam L2 normu `en_fazla`'yı aşıyorsa hepsini aynı oranda küçültür ve kırpma öncesi normu `Ondalık` olarak döndürür.
 
 **15.10** `tensör_kaydet(yol, sözlük)` adları metin, değerleri tensör olan bir sözlüğü yalnızca verilen yola yazar (dosya varsa üzerine yazılır); `tensör_yükle(yol, türev_izle: yanlış)` aynı sırayla bir sözlük döndürür. Biçim sürüm başlıklıdır (`TRTENSOR`, sürüm, her tensör için ad, veri türü kodu, şekil ve float32 veri, sonda CRC-32); bilinmeyen sürüm/tür, eksik, bozuk ya da başka türden dosya açık bir hatayla reddedilir.
-
-**15.8** Hatalar: şekil ve eksen hataları ilgili şekilleri gösteren Türkçe bir mesajla (`[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`) bildirilir ve `dene/yakala` ile yakalanabilir; program çökmez.
 
 ---
 
@@ -434,12 +434,12 @@ Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` token parça
 
 **16.4** `veri_kümesi(dizin)` bir klasördeki `.npy` parçalarını (ad sırasıyla) ya da tek bir `.npy` dosyasını `VeriKümesi` olarak açar; `meta.json` varsa token sayıları ondan okunur. `önbellek: klasör` parçaları yerel bir önbelleğe kopyalar; bu durumda `kota_gb:` zorunludur.
 
-**16.5** `.örnekleyici(toplu:, bağlam:, tohum: 0)` bir `Örnekleyici` döndürür. `.sonraki()` `[girdi, hedef]` listesidir: ikisi de `[toplu, bağlam]` şeklinde tam sayı değerli tensördür, `hedef` girdinin bir kaydırılmışıdır ve pencereler parça sınırını aşmaz. Aynı küme ve tohum aynı toplu işleri verir; örnekleyici sonsuz üretir.
+**16.5** `.örnekleyici(toplu:, bağlam:, tohum: 0)` bir `Örnekleyici` döndürür. `.sonraki()` `[girdi, hedef]` listesidir: ikisi de `[toplu, bağlam]` şeklinde tam sayılı işaretli tensördür (`.değer` `Tam` listesi verir; işlem sonuçlarına bu işaret geçmez), `hedef` girdinin bir kaydırılmışıdır ve pencereler parça sınırını aşmaz. Aynı küme ve tohum aynı toplu işleri verir; örnekleyici sonsuz üretir.
 
 **16.6** `.sıralı(toplu:, bağlam:)` bir `SıralıOkuyucu` döndürür: pencereler parça sırasıyla ve `bağlam` adımla ardışıktır; son toplu iş daha az satırlı olabilir; veri bitince `.sonraki()` `yok` döner.
 
 **16.7** Hatalar (dosya yok, `.npy` değil, eksik ya da hatalı adlı argüman, bağlam parçalardan uzun, düzenli ifade adım sınırı...) Türkçe bir mesajla bildirilir ve `dene/yakala` ile yakalanabilir.
 
-**16.8** Bu yerleşiklerde göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür.
+**16.8** Bu yerleşiklerde göreli yollar `dosya_oku`/`dosya_yaz` ile aynı tek kuralla (bkz. **13.1**) çözülür: önce çalışma klasörü, orada yoksa programın bulunduğu klasör.
 
 Önden yükleme her zaman açıktır ve yorumlayıcı kilidini tutmaz; `.sonraki()` beklerken kilit bırakılır (10.3). Açık bir kapatma adı yoktur: sıralı okuyucu bitince, kullanılmayan nesneler çöp toplanınca ve program bitince dosyalar kapatılır.

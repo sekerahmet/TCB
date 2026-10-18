@@ -1,9 +1,26 @@
 {
   // TR dosyalarını VS Code içinden çalıştırmak için görevler.
   // Ctrl+Shift+B  → açık .tr dosyasını çalıştırır (varsayılan görev)
-  // Ctrl+Shift+P → "Tasks: Run Task" → diğer görevler (denetle, hata ayıkla)
+  // Ctrl+Shift+P → "Tasks: Run Task" → diğer görevler (derle, denetle, hata ayıkla)
+  // Çalıştırma görevleri önce "TR: yorumlayıcıyı derle" görevini çalıştırır; böylece kökteki
+  // tr.exe her zaman bugünkü koddan derlenmiş olur (kod değişmediyse derleme bir iki saniye sürer).
+  // tr.exe başka bir yerde açıkken (ör. süren bir hata ayıklama oturumu) Windows dosyayı kilitler
+  // ve derleme başarısız olur; önce o programı kapatın.
   "version": "2.0.0",
   "tasks": [
+    {
+      "label": "TR: yorumlayıcıyı derle",
+      "type": "process",
+      "command": "go",
+      "args": ["build", "-o", "tr.exe", "./cmd/tr"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        // 2020 sonrası x86-64 işlemciler (AVX2/FMA); eski işlemcilerde "v1" yazın.
+        "env": { "GOAMD64": "v3" }
+      },
+      "presentation": { "reveal": "silent", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
     {
       "label": "TR: Bu dosyayı çalıştır",
       "type": "process",

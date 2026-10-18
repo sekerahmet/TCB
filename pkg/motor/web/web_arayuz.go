@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
@@ -503,12 +504,18 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 		return &vm.BuiltinVal{
 			Name: "arayüz.html_kaydet",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-				if len(args) < 1 {
-					return nil, fmt.Errorf("html_kaydet(dosya_yolu) 1 argüman bekler")
+				if len(args) != 1 {
+					return nil, vm.ArgumanSayisiHatasi("html_kaydet", "1", len(args), "arayüz.html_kaydet(dosya_yolu)")
+				}
+				yol, ok := args[0].(*vm.StringVal)
+				if !ok {
+					return nil, vm.ArgumanTipHatasi("html_kaydet", 1, "Metin (dosya yolu)", args[0])
 				}
 				htmlStr := g.renderHTML()
-				if err := os.WriteFile(args[0].Inspect(), []byte(htmlStr), 0644); err != nil {
-					return nil, err
+				// Yazma da okuma gibi TR'nin tek yol kuralını izler (vm.YolCoz)
+				cozulen, _ := v.YolCoz(yol.Val)
+				if err := os.WriteFile(cozulen, []byte(htmlStr), 0644); err != nil {
+					return nil, turkce.DosyaHatasi("html_kaydet", yol.Val, "yazılamadı", err)
 				}
 				return vm.TRUE, nil
 			},

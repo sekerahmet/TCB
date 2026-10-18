@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
@@ -21,7 +22,10 @@ type dbTable struct {
 }
 
 type DatabaseVal struct {
-	FilePath string              `json:"file_path"`
+	FilePath string `json:"file_path"`
+	// diskYolu FilePath'in TR'nin tek yol kuralıyla (vm.YolCoz) çözülmüş hâlidir;
+	// okuma ve yazma hep bu dosyaya yapılır, mesajlarda kullanıcının yazdığı FilePath görünür.
+	diskYolu string
 	Tables   map[string]*dbTable `json:"tables"`
 	mu       sync.RWMutex
 	vmRef    *vm.VM
@@ -45,22 +49,33 @@ func (db *DatabaseVal) saveToDisk() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(db.FilePath, data, 0644)
+	if err := os.WriteFile(db.yol(), data, 0644); err != nil {
+		return turkce.DosyaHatasi("veritabanı", db.FilePath, "kaydedilemedi", err)
+	}
+	return nil
+}
+
+// yol veritabanı dosyasının diskteki yoludur.
+func (db *DatabaseVal) yol() string {
+	if db.diskYolu != "" {
+		return db.diskYolu
+	}
+	return db.FilePath
 }
 
 func (db *DatabaseVal) loadFromDisk() error {
 	if db.FilePath == "" || db.FilePath == ":bellek:" || db.FilePath == ":memory:" {
 		return nil
 	}
-	data, err := os.ReadFile(db.FilePath)
+	data, err := os.ReadFile(db.yol())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return err
+		return turkce.DosyaHatasi("veritabanı_aç", db.FilePath, "yüklenemedi", err)
 	}
 	if err := json.Unmarshal(data, &db.Tables); err != nil {
-		return err
+		return fmt.Errorf("veritabanı_aç: %q yüklenemedi: dosya geçerli bir TR veritabanı (JSON) değil", db.FilePath)
 	}
 	// Dosya "null" içeriyorsa veya tablolar eksik alanlarla geldiyse nil map/slice paniklerini önle
 	if db.Tables == nil {
@@ -632,8 +647,11 @@ func Kaydet(v *vm.VM) {
 			Tables:   make(map[string]*dbTable),
 			vmRef:    v,
 		}
+		if path != ":bellek:" && path != ":memory:" {
+			db.diskYolu, _ = v.YolCoz(path)
+		}
 		if err := db.loadFromDisk(); err != nil {
-			return nil, fmt.Errorf("Veritabanı yüklenemedi (%s): %v", path, err)
+			return nil, err
 		}
 		return db, nil
 	}

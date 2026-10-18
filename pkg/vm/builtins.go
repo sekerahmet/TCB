@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"tr_dili/pkg/turkce"
 )
 
 func (v *VM) registerBuiltins() {
@@ -36,6 +38,9 @@ func (v *VM) registerBuiltins() {
 
 	// 2. Kullanıcıdan Girdi Alma: girdi("Adınız: ")
 	v.RegisterBuiltin("girdi", "oku", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+		if len(args) > 1 {
+			return nil, ArgumanSayisiHatasi("girdi", "0 ya da 1", len(args), "girdi() ya da girdi(istem)")
+		}
 		if len(args) > 0 {
 			fmt.Fprint(vm.Out, args[0].Inspect())
 		}
@@ -48,7 +53,7 @@ func (v *VM) registerBuiltins() {
 		var readErr error
 		vm.Blocking(func() { line, readErr = reader.ReadString('\n') })
 		if readErr != nil && readErr != io.EOF && line == "" {
-			return nil, fmt.Errorf("girdi okunamadı: %v", readErr)
+			return nil, fmt.Errorf("girdi(): standart girdi okunamadı: %s", turkce.DosyaHatasiNedeni("", readErr))
 		}
 		line = strings.TrimRight(line, "\r\n")
 		return &StringVal{Val: line}, nil
@@ -57,7 +62,7 @@ func (v *VM) registerBuiltins() {
 	// 3. Uzunluk / Boyut: uzunluk(x)
 	v.RegisterBuiltin("uzunluk", "boy", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("uzunluk() 1 parametre bekler, %d verildi", len(args))
+			return nil, ArgumanSayisiHatasi("uzunluk", "1", len(args), "uzunluk(değer)")
 		}
 		return uzunlukTek(vm, args[0])
 	})
@@ -66,7 +71,7 @@ func (v *VM) registerBuiltins() {
 	// 4. Tip Sorgulama: tip(x)
 	v.RegisterBuiltin("tip", "tur", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("tip() 1 parametre bekler")
+			return nil, ArgumanSayisiHatasi("tip", "1", len(args), "tip(değer)")
 		}
 		return &StringVal{Val: string(args[0].Type())}, nil
 	})
@@ -74,7 +79,7 @@ func (v *VM) registerBuiltins() {
 	// 5. Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
 	v.RegisterBuiltin("tam", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("tam() 1 parametre bekler")
+			return nil, ArgumanSayisiHatasi("tam", "1", len(args), "tam(değer)")
 		}
 		switch val := args[0].(type) {
 		case *IntVal:
@@ -84,7 +89,7 @@ func (v *VM) registerBuiltins() {
 		case *StringVal:
 			n, err := strconv.ParseInt(strings.TrimSpace(val.Val), 10, 64)
 			if err != nil {
-				return nil, fmt.Errorf("%q tam sayıya çevrilemedi", val.Val)
+				return nil, fmt.Errorf("tam(): %q tam sayıya çevrilemedi (yalnızca rakamlardan oluşan bir metin verin, ör. \"42\")", val.Val)
 			}
 			return NewInt(n), nil
 		case *BoolVal:
@@ -93,13 +98,13 @@ func (v *VM) registerBuiltins() {
 			}
 			return NewInt(0), nil
 		default:
-			return nil, fmt.Errorf("%s tipi Tam sayıya çevrilemez", args[0].Type())
+			return nil, ArgumanTipHatasi("tam", 1, "Tam, Ondalık, Metin ya da Mantık", args[0])
 		}
 	})
 
 	v.RegisterBuiltin("ondalık", "ondalik", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("ondalık() 1 parametre bekler")
+			return nil, ArgumanSayisiHatasi("ondalık", "1", len(args), "ondalık(değer)")
 		}
 		switch val := args[0].(type) {
 		case *FloatVal:
@@ -109,17 +114,17 @@ func (v *VM) registerBuiltins() {
 		case *StringVal:
 			n, err := strconv.ParseFloat(strings.TrimSpace(val.Val), 64)
 			if err != nil {
-				return nil, fmt.Errorf("%q ondalık sayıya çevrilemedi", val.Val)
+				return nil, fmt.Errorf("ondalık(): %q ondalık sayıya çevrilemedi (ondalık ayırıcı nokta olmalı, ör. \"3.14\")", val.Val)
 			}
 			return &FloatVal{Val: n}, nil
 		default:
-			return nil, fmt.Errorf("%s tipi Ondalık sayıya çevrilemez", args[0].Type())
+			return nil, ArgumanTipHatasi("ondalık", 1, "Ondalık, Tam ya da Metin", args[0])
 		}
 	})
 
 	v.RegisterBuiltin("metin", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("metin() 1 parametre bekler")
+			return nil, ArgumanSayisiHatasi("metin", "1", len(args), "metin(değer)")
 		}
 		return metinTek(vm, args[0])
 	})
@@ -128,11 +133,14 @@ func (v *VM) registerBuiltins() {
 	// 6. Liste ve Fonksiyonel Boru Hattı (|>) İşlemleri: filtrele, haritala, indirge, sırala, ekle, sil
 	v.RegisterBuiltin("filtrele", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 2 {
-			return nil, fmt.Errorf("filtrele(liste, fonksiyon) 2 parametre bekler")
+			return nil, ArgumanSayisiHatasi("filtrele", "2", len(args), "filtrele(liste, fonksiyon)")
 		}
 		list, ok := args[0].(*ListVal)
 		if !ok {
-			return nil, fmt.Errorf("filtrele() ilk parametre olarak Liste bekler, %s verildi", args[0].Type())
+			return nil, ArgumanTipHatasi("filtrele", 1, "Liste", args[0])
+		}
+		if !cagrilabilir(args[1]) {
+			return nil, ArgumanTipHatasi("filtrele", 2, "Fonksiyon", args[1])
 		}
 		var result []Value
 		for _, item := range list.Elements {
@@ -149,11 +157,14 @@ func (v *VM) registerBuiltins() {
 
 	v.RegisterBuiltin("haritala", "donustur", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 2 {
-			return nil, fmt.Errorf("haritala(liste, fonksiyon) 2 parametre bekler")
+			return nil, ArgumanSayisiHatasi("haritala", "2", len(args), "haritala(liste, fonksiyon)")
 		}
 		list, ok := args[0].(*ListVal)
 		if !ok {
-			return nil, fmt.Errorf("haritala() ilk parametre olarak Liste bekler, %s verildi", args[0].Type())
+			return nil, ArgumanTipHatasi("haritala", 1, "Liste", args[0])
+		}
+		if !cagrilabilir(args[1]) {
+			return nil, ArgumanTipHatasi("haritala", 2, "Fonksiyon", args[1])
 		}
 		result := make([]Value, 0, len(list.Elements))
 		for _, item := range list.Elements {
@@ -168,11 +179,14 @@ func (v *VM) registerBuiltins() {
 
 	v.RegisterBuiltin("indirge", "ozetle", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 || len(args) > 3 {
-			return nil, fmt.Errorf("indirge(liste, fonksiyon, [başlangıç]) 2 veya 3 parametre bekler")
+			return nil, ArgumanSayisiHatasi("indirge", "2 ya da 3", len(args), "indirge(liste, fonksiyon) ya da indirge(liste, fonksiyon, başlangıç)")
 		}
 		list, ok := args[0].(*ListVal)
 		if !ok {
-			return nil, fmt.Errorf("indirge() ilk parametre olarak Liste bekler")
+			return nil, ArgumanTipHatasi("indirge", 1, "Liste", args[0])
+		}
+		if !cagrilabilir(args[1]) {
+			return nil, ArgumanTipHatasi("indirge", 2, "Fonksiyon", args[1])
 		}
 		if len(list.Elements) == 0 {
 			if len(args) == 3 {
@@ -199,12 +213,12 @@ func (v *VM) registerBuiltins() {
 	})
 
 	v.RegisterBuiltin("sırala", "sirala", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) < 1 {
-			return nil, fmt.Errorf("sırala(liste) en az 1 parametre bekler")
+		if len(args) != 1 {
+			return nil, ArgumanSayisiHatasi("sırala", "1", len(args), "sırala(liste)")
 		}
 		list, ok := args[0].(*ListVal)
 		if !ok {
-			return nil, fmt.Errorf("sırala() Liste bekler")
+			return nil, ArgumanTipHatasi("sırala", 1, "Liste", args[0])
 		}
 		copied := make([]Value, len(list.Elements))
 		copy(copied, list.Elements)
@@ -214,11 +228,11 @@ func (v *VM) registerBuiltins() {
 
 	v.RegisterBuiltin("ekle", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 {
-			return nil, fmt.Errorf("ekle(liste, eleman...) en az 2 parametre bekler")
+			return nil, ArgumanSayisiHatasi("ekle", "en az 2", len(args), "ekle(liste, eleman, ...)")
 		}
 		list, ok := args[0].(*ListVal)
 		if !ok {
-			return nil, fmt.Errorf("ekle() ilk parametre olarak Liste bekler")
+			return nil, ArgumanTipHatasi("ekle", 1, "Liste", args[0])
 		}
 		list.Elements = append(list.Elements, args[1:]...)
 		return list, nil
@@ -228,7 +242,7 @@ func (v *VM) registerBuiltins() {
 		if len(args) == 1 {
 			end, ok := args[0].(*IntVal)
 			if !ok {
-				return nil, fmt.Errorf("aralık() Tam sayı bekler")
+				return nil, ArgumanTipHatasi("aralık", 1, "Tam", args[0])
 			}
 			if err := checkRangeSize(0, end.Val); err != nil {
 				return nil, err
@@ -239,11 +253,14 @@ func (v *VM) registerBuiltins() {
 			}
 			return &ListVal{Elements: elems}, nil
 		}
-		if len(args) >= 2 {
-			start, ok1 := args[0].(*IntVal)
-			end, ok2 := args[1].(*IntVal)
-			if !ok1 || !ok2 {
-				return nil, fmt.Errorf("aralık() Tam sayı bekler")
+		if len(args) == 2 {
+			start, ok := args[0].(*IntVal)
+			if !ok {
+				return nil, ArgumanTipHatasi("aralık", 1, "Tam", args[0])
+			}
+			end, ok := args[1].(*IntVal)
+			if !ok {
+				return nil, ArgumanTipHatasi("aralık", 2, "Tam", args[1])
 			}
 			if err := checkRangeSize(start.Val, end.Val); err != nil {
 				return nil, err
@@ -254,17 +271,17 @@ func (v *VM) registerBuiltins() {
 			}
 			return &ListVal{Elements: elems}, nil
 		}
-		return nil, fmt.Errorf("aralık() 1 veya 2 parametre bekler")
+		return nil, ArgumanSayisiHatasi("aralık", "1 ya da 2", len(args), "aralık(bitiş) ya da aralık(başlangıç, bitiş)")
 	})
 
 	// 7. Temel Matematik Fonksiyonları
 	v.RegisterBuiltin("toplam", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("toplam(liste) 1 parametre bekler")
+			return nil, ArgumanSayisiHatasi("toplam", "1", len(args), "toplam(liste)")
 		}
 		list, ok := args[0].(*ListVal)
 		if !ok {
-			return nil, fmt.Errorf("toplam() Liste bekler")
+			return nil, ArgumanTipHatasi("toplam", 1, "Liste", args[0])
 		}
 		sumFloat := 0.0
 		hasFloat := false
@@ -314,7 +331,7 @@ func (v *VM) registerBuiltins() {
 
 	v.RegisterBuiltin("mutlak", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("mutlak(x) 1 parametre bekler")
+			return nil, ArgumanSayisiHatasi("mutlak", "1", len(args), "mutlak(sayı)")
 		}
 		if iv, ok := args[0].(*IntVal); ok {
 			if iv.Val < 0 {
@@ -325,32 +342,34 @@ func (v *VM) registerBuiltins() {
 		if fv, ok := ToFloat(args[0]); ok {
 			return &FloatVal{Val: math.Abs(fv)}, nil
 		}
-		return nil, fmt.Errorf("mutlak() sayısal değer bekler")
+		return nil, ArgumanTipHatasi("mutlak", 1, sayiTipi, args[0])
 	})
 
 	v.RegisterBuiltin("karekök", "karekok", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("karekök(x) 1 parametre bekler")
+			return nil, ArgumanSayisiHatasi("karekök", "1", len(args), "karekök(sayı)")
 		}
 		if fv, ok := ToFloat(args[0]); ok {
 			return &FloatVal{Val: math.Sqrt(fv)}, nil
 		}
-		return nil, fmt.Errorf("karekök() sayısal değer bekler")
+		return nil, ArgumanTipHatasi("karekök", 1, sayiTipi, args[0])
 	})
 
 	v.RegisterBuiltin("yuvarla", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) < 1 {
-			return nil, fmt.Errorf("yuvarla(sayı, [basamak]) en az 1 parametre bekler")
+		if len(args) < 1 || len(args) > 2 {
+			return nil, ArgumanSayisiHatasi("yuvarla", "1 ya da 2", len(args), "yuvarla(sayı) ya da yuvarla(sayı, basamak)")
 		}
 		fv, ok := ToFloat(args[0])
 		if !ok {
-			return nil, fmt.Errorf("yuvarla() sayısal değer bekler")
+			return nil, ArgumanTipHatasi("yuvarla", 1, sayiTipi, args[0])
 		}
 		digits := 0
-		if len(args) >= 2 {
-			if iv, ok := args[1].(*IntVal); ok {
-				digits = int(iv.Val)
+		if len(args) == 2 {
+			iv, ok := args[1].(*IntVal)
+			if !ok {
+				return nil, ArgumanTipHatasi("yuvarla", 2, "Tam", args[1])
 			}
+			digits = int(iv.Val)
 		}
 		if digits <= 0 {
 			return NewInt(int64(math.Round(fv))), nil
@@ -375,37 +394,59 @@ func (v *VM) registerBuiltins() {
 
 	v.RegisterBuiltin("dosya_oku", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("dosya_oku(yol) 1 parametre bekler")
+			return nil, ArgumanSayisiHatasi("dosya_oku", "1", len(args), "dosya_oku(yol)")
 		}
-		data, err := os.ReadFile(args[0].Inspect())
+		yol, ok := args[0].(*StringVal)
+		if !ok {
+			return nil, ArgumanTipHatasi("dosya_oku", 1, "Metin (dosya yolu)", args[0])
+		}
+		cozulen, bakilanlar := vm.YolCoz(yol.Val)
+		data, err := os.ReadFile(cozulen)
 		if err != nil {
-			return nil, fmt.Errorf("dosya okunamadı: %v", err)
+			return nil, OkumaHatasi("dosya_oku()", yol.Val, "okunamadı", err, bakilanlar)
 		}
 		return &StringVal{Val: string(data)}, nil
 	})
 
 	v.RegisterBuiltin("dosya_yaz", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 2 {
-			return nil, fmt.Errorf("dosya_yaz(yol, içerik) 2 parametre bekler")
+			return nil, ArgumanSayisiHatasi("dosya_yaz", "2", len(args), "dosya_yaz(yol, içerik)")
 		}
-		err := os.WriteFile(args[0].Inspect(), []byte(args[1].Inspect()), 0644)
-		if err != nil {
-			return nil, fmt.Errorf("dosya yazılamadı: %v", err)
+		yol, ok := args[0].(*StringVal)
+		if !ok {
+			return nil, ArgumanTipHatasi("dosya_yaz", 1, "Metin (dosya yolu)", args[0])
+		}
+		cozulen, _ := vm.YolCoz(yol.Val)
+		if err := os.WriteFile(cozulen, []byte(args[1].Inspect()), 0644); err != nil {
+			return nil, turkce.DosyaHatasi("dosya_yaz()", yol.Val, "yazılamadı", err)
 		}
 		return TRUE, nil
 	})
 
 	v.RegisterBuiltin("bekle", "uyut", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("bekle(saniye) 1 parametre bekler")
+			return nil, ArgumanSayisiHatasi("bekle", "1", len(args), "bekle(saniye)")
 		}
 		sec, ok := ToFloat(args[0])
 		if !ok {
-			return nil, fmt.Errorf("bekle() sayısal saniye değeri bekler")
+			return nil, ArgumanTipHatasi("bekle", 1, sayiTipi+" (saniye)", args[0])
 		}
 		vm.Blocking(func() { time.Sleep(time.Duration(sec * float64(time.Second))) })
 		return TRUE, nil
 	})
+}
+
+// sayiTipi sayı bekleyen yerleşiklerin hata mesajlarındaki tip adıdır.
+const sayiTipi = "Tam ya da Ondalık"
+
+// cagrilabilir değerin filtrele/haritala/indirge gibi yerleşiklere fonksiyon olarak
+// verilebilir olup olmadığını söyler.
+func cagrilabilir(v Value) bool {
+	switch v.(type) {
+	case *FuncVal, *BuiltinVal, *StructDefVal:
+		return true
+	}
+	return false
 }
 
 // MaxCollectionSize tek bir yerleşik çağrının üretebileceği en fazla eleman sayısıdır (bellek taşmasını önler).
@@ -422,7 +463,7 @@ func uzunlukTek(_ *VM, a Value) (Value, error) {
 	case *DictVal:
 		return NewInt(int64(len(val.Pairs))), nil
 	default:
-		return nil, fmt.Errorf("uzunluk() %s tipi için desteklenmiyor", a.Type())
+		return nil, ArgumanTipHatasi("uzunluk", 1, "Metin, Liste ya da Sözlük", a)
 	}
 }
 

@@ -82,12 +82,19 @@ type obGirdi struct {
 	pin   int           // açık kullanıcı sayısı; > 0 iken silinmez
 	hazir bool          // dosya tamamen kopyalandı
 	kopya chan struct{} // nil değilse kopyalanıyor; bitince kapanır
+	// onYukleme, süren kopyayı arka plan işçisinin (Hazirla) başlattığını
+	// bildirir. Böyle bir kopya bitince iğnelenmez, silinebilir hale gelir.
+	onYukleme bool
 }
 
 var (
 	// ErrOnbellekYetersiz, önbellek kotasında dosya için yer açılamadığını
 	// bildirir (kota küçük ya da açık dosyalar yer kaplıyor).
 	ErrOnbellekYetersiz = errors.New("veri: önbellek kotası yetersiz")
+
+	// kopyaKancasi, testlerde kopyalamayı yavaşlatmak için kopyadan hemen
+	// önce (kilit tutulmadan) çağrılır; üretimde nil'dir.
+	kopyaKancasi func(kaynak string, onYukleme bool)
 
 	yonetilenAd  = regexp.MustCompile(`\.[0-9a-f]{16}\.onb(\.[^.]*)?$`)
 	geciciSoneki = ".gecici"
@@ -208,8 +215,10 @@ func ayniZaman(a, b time.Time) bool {
 
 // Getir, kaynağın yerel kopyasının yolunu döner; kopya yoksa kopyalar (ya
 // da arka planda süren kopyayı bekler). Dönen birak işlevi çağrılana kadar
-// dosya silinmez. Kotada yer açılamıyorsa ErrOnbellekYetersiz'i saran
-// açıklayıcı bir hata döner (kaynaktan doğrudan okumaya geri dönülmez).
+// dosya silinmez. Yer yalnızca arka planda süren önden yükleme kopyaları
+// yüzünden geçici olarak doluysa onların bitmesi beklenir. Kotada yer
+// açılamıyorsa ErrOnbellekYetersiz'i saran açıklayıcı bir hata döner
+// (kaynaktan doğrudan okumaya geri dönülmez).
 func (o *Onbellek) Getir(ctx context.Context, kaynak string) (string, func(), error) {
 	return o.getir(ctx, kaynak, false)
 }
@@ -276,6 +285,22 @@ func (o *Onbellek) getir(ctx context.Context, kaynak string, onYukleme bool) (st
 				o.mu.Unlock()
 				return "", nil, ErrOnbellekYetersiz
 			}
+			// Yeri geçici olarak arka planda süren önden yükleme kopyaları
+			// tutuyorsa (ör. kapanmış bir örnekleyicinin istediği sıradaki
+			// parça) onlar bitince silinebilir; hata vermeden önce birini
+			// bekleyip yeniden dene.
+			if st.Size() <= o.kota {
+				if c := o.surenOnYukleme(st.Size()); c != nil {
+					o.mu.Unlock()
+					select {
+					case <-c:
+					case <-ctx.Done():
+						return "", nil, ctx.Err()
+					}
+					o.mu.Lock()
+					continue
+				}
+			}
 			o.ist.Atlanan++
 			hata := fmt.Errorf("%w: %s için %d bayt gerekli; kota %d bayt, kullanımda %d bayt (açık dosyalar %d bayt). "+
 				"Yavaş kaynaktan doğrudan okumamak için kopya alınmadı; kotayı büyütün",
@@ -283,7 +308,7 @@ func (o *Onbellek) getir(ctx context.Context, kaynak string, onYukleme bool) (st
 			o.mu.Unlock()
 			return "", nil, hata
 		}
-		g = &obGirdi{ad: ad, boyut: st.Size(), zaman: st.ModTime(), kopya: make(chan struct{})}
+		g = &obGirdi{ad: ad, boyut: st.Size(), zaman: st.ModTime(), kopya: make(chan struct{}), onYukleme: onYukleme}
 		o.kayit[ad] = g
 		o.kullanim += g.boyut
 		if !onYukleme {
@@ -291,6 +316,9 @@ func (o *Onbellek) getir(ctx context.Context, kaynak string, onYukleme bool) (st
 		}
 		o.mu.Unlock()
 
+		if kopyaKancasi != nil {
+			kopyaKancasi(kaynak, onYukleme)
+		}
 		err := kopyala(ctx, kaynak, yerel, st.Size(), st.ModTime())
 
 		o.mu.Lock()
@@ -374,6 +402,32 @@ func (o *Onbellek) yerAc(gerekli int64, onYukleme bool) bool {
 		o.sil(g)
 	}
 	return o.kullanim+gerekli <= o.kota
+}
+
+// surenOnYukleme, gerekli bayt için şu an yer açılamıyor ama süren önden
+// yükleme kopyaları bitip silinebilir hale gelince açılabilecekse bu
+// kopyalardan birinin bitiş kanalını döner; yoksa nil. Kilit tutulur.
+// Önden yükleme kopyası bitince iğnelenmez, bu yüzden bekleyen eşzamanlı
+// Getir onu silerek yer açabilir; aksi halde Getir, kota yalnızca geçici
+// olarak doluyken yanlışlıkla ErrOnbellekYetersiz dönerdi.
+func (o *Onbellek) surenOnYukleme(gerekli int64) chan struct{} {
+	var serbest int64
+	var bekle chan struct{}
+	for _, g := range o.kayit {
+		switch {
+		case g.kopya != nil && g.onYukleme:
+			serbest += g.boyut
+			if bekle == nil {
+				bekle = g.kopya
+			}
+		case g.hazir && g.pin == 0 && g.kopya == nil:
+			serbest += g.boyut
+		}
+	}
+	if bekle == nil || o.kullanim-serbest+gerekli > o.kota {
+		return nil
+	}
+	return bekle
 }
 
 // kopyala, kaynağı geçici bir dosyaya kopyalar, yazılan bayt sayısını

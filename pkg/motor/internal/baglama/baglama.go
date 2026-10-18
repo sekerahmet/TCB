@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -150,23 +149,17 @@ func Guvenli(fn string, f func() (vm.Value, error)) (vm.Value, error) {
 	return sonuc, ferr
 }
 
-// YolCoz göreli bir yolu önce çalışma klasörüne göre dener; orada yoksa ve program bir
-// dosyadan çalışıyorsa o dosyanın klasörüne göre çözer. Hiçbiri yoksa yolu olduğu gibi
-// döndürür (hata mesajı kullanıcının yazdığı yolu gösterir).
+// YolCoz göreli bir yolu TR'nin tek yol kuralıyla çözer (bkz. vm.(*VM).YolCoz: önce
+// çalışma klasörü, sonra programın klasörü). Hiçbir yerde yoksa hata mesajı kullanıcının
+// yazdığı yolu gösterebilsin diye çalışma klasörüne göre yol döner.
 func YolCoz(m *vm.VM, yol string) string {
-	if yol == "" || filepath.IsAbs(yol) {
-		return yol
-	}
-	if _, err := os.Stat(yol); err == nil {
-		return yol
-	}
-	if m != nil && m.SourceFile != "" && !strings.HasPrefix(m.SourceFile, "<") {
-		aday := filepath.Join(filepath.Dir(m.SourceFile), yol)
-		if _, err := os.Stat(aday); err == nil {
-			return aday
-		}
-	}
-	return yol
+	cozulen, _ := YolCozBakilan(m, yol)
+	return cozulen
+}
+
+// YolCozBakilan YolCoz gibidir; ayrıca hata mesajları için bakılan yerleri döndürür.
+func YolCozBakilan(m *vm.VM, yol string) (string, []string) {
+	return m.YolCoz(yol) // m nil olabilir: o zaman yalnızca çalışma klasörüne bakılır
 }
 
 // YokMu hatanın "dosya ya da klasör yok" anlamına gelip gelmediğini söyler.

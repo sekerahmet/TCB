@@ -4,10 +4,27 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 	"tr_dili/pkg/vm"
 )
+
+// Veritabanı dosyası da TR'nin tek yol kuralını izler; dosya hataları Türkçedir.
+func TestVeritabaniYolKuraliVeTurkceHata(t *testing.T) {
+	_, err := runTR(t, "değişken vt = veritabanı_aç(\"olmayan_klasor_vt/a.trdb\")\nvt.kaydet()")
+	if err == nil || !strings.HasSuffix(err.Error(), `veritabanı: "olmayan_klasor_vt/a.trdb" kaydedilemedi: "olmayan_klasor_vt" klasörü yok`) {
+		t.Fatalf("beklenmeyen hata: %v", err)
+	}
+	bozuk := filepath.Join(t.TempDir(), "bozuk.trdb")
+	if err := os.WriteFile(bozuk, []byte("{bozuk"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err = runTR(t, fmt.Sprintf("veritabanı_aç(%q)", filepath.ToSlash(bozuk)))
+	if err == nil || !strings.Contains(err.Error(), "geçerli bir TR veritabanı (JSON) değil") {
+		t.Fatalf("beklenmeyen hata: %v", err)
+	}
+}
 
 func TestDatabaseFileContainingNullLoads(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "bos.trdb")

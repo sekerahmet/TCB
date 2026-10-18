@@ -3,6 +3,7 @@ package veri
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"runtime"
@@ -13,16 +14,22 @@ import (
 )
 
 // sayacKaynak, sırayla 0,1,2,... değerli toplu işler üretir; sinir'e
-// ulaşınca io.EOF döner. gecikme verilirse her Doldur o kadar bekler.
+// ulaşınca io.EOF döner. gecikme verilirse her Doldur o kadar bekler;
+// durSonra verilirse o kadar çağrıdan sonraki Doldur'lar bağlam iptal
+// edilene kadar takılır.
 type sayacKaynak struct {
-	sinir   int
-	i       int
-	gecikme time.Duration
-	cagri   atomic.Int64
+	sinir    int
+	i        int
+	gecikme  time.Duration
+	durSonra int
+	cagri    atomic.Int64
 }
 
 func (s *sayacKaynak) Doldur(ctx context.Context, ti *TopluIs) error {
-	s.cagri.Add(1)
+	if n := s.cagri.Add(1); s.durSonra > 0 && n > int64(s.durSonra) {
+		<-ctx.Done()
+		return ctx.Err()
+	}
 	if s.gecikme > 0 {
 		select {
 		case <-time.After(s.gecikme):
@@ -152,20 +159,43 @@ func TestOnYukleyiciOrnekleyiciIleAyniSira(t *testing.T) {
 }
 
 func TestOnYukleyiciBeklemez(t *testing.T) {
-	// Üretici tüketiciden hızlıysa, tüketici hazır kuyruktan anında almalı.
-	k := &sayacKaynak{gecikme: 2 * time.Millisecond}
+	// Üretici tüketiciden hızlıysa, tüketici hazır kuyruktan beklemeden
+	// almalı. Duvar saatiyle ölçmek yavaş CI makinelerinde ve Windows'un
+	// kaba zamanlayıcısında kararsızdı; bunun yerine kaynak 4 toplu işten
+	// sonra takılır. Kuyruk doluyken 4 Al ancak kuyruktan alınırsa döner
+	// (kaynağı bekleseydi takılırdı).
+	k := &sayacKaynak{durSonra: 4}
 	o := OnYukle(context.Background(), k, 4)
 	defer o.Kapat()
-	time.Sleep(50 * time.Millisecond) // kuyruk dolsun
-	var ti TopluIs
-	bas := time.Now()
-	for i := 0; i < 4; i++ {
-		if err := o.Al(&ti); err != nil {
+	son := time.Now().Add(5 * time.Second)
+	for len(o.dolu) < 4 {
+		if time.Now().After(son) {
+			t.Fatalf("kuyruk dolmadı: %d/4", len(o.dolu))
+		}
+		time.Sleep(time.Millisecond)
+	}
+	bitti := make(chan error, 1)
+	go func() {
+		var ti TopluIs
+		for i := 0; i < 4; i++ {
+			if err := o.Al(&ti); err != nil {
+				bitti <- err
+				return
+			}
+			if ti.Veri[0] != int32(i) {
+				bitti <- fmt.Errorf("sıra bozuk: %d, %v", i, ti.Veri)
+				return
+			}
+		}
+		bitti <- nil
+	}()
+	select {
+	case err := <-bitti:
+		if err != nil {
 			t.Fatal(err)
 		}
-	}
-	if gecen := time.Since(bas); gecen > 20*time.Millisecond {
-		t.Fatalf("hazır toplu işler için bekleme oldu: %v", gecen)
+	case <-time.After(5 * time.Second):
+		t.Fatal("hazır toplu işler için kaynak beklendi")
 	}
 }
 
