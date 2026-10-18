@@ -41,4 +41,6 @@ jobs:
         env:
           # Girdi betiğe ortam değişkeniyle geçer (komut satırına doğrudan yazılmaz).
           SURE: ${{ inputs.sure || '30s' }}
+          # v3: AVX2/FMA assembly çekirdekleri de bulanıklaştırılsın (v1'de saf Go yolu derlenir).
+          GOAMD64: v3
         run: bash tools/bulaniklastir.sh "$SURE"

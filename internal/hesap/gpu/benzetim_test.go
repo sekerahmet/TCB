@@ -97,6 +97,9 @@ func TestBenzetimSinirDisi(t *testing.T) {
 }
 
 func TestPTXDerlemeHatasiGunluk(t *testing.T) {
+	eski := ptxDokumKlasoru
+	ptxDokumKlasoru = t.TempDir()
+	t.Cleanup(func() { ptxDokumKlasoru = eski })
 	g := yeniBenzetimArkaUcu(1 << 20)
 	g.gir()
 	defer g.cik()

@@ -40,6 +40,11 @@ func (g *arkaUc) cekirdekAl(anahtar string, uret func() *yazici) *cekirdek {
 	return c
 }
 
+// ptxDokumKlasoru derlenemeyen PTX metninin teşhis için yazıldığı klasördür ("": işletim
+// sisteminin geçici klasörü). Sınamalar kendi geçici klasörlerine yönlendirir; yoksa her koşu
+// geçici klasörde bir dosya bırakırdı.
+var ptxDokumKlasoru = ""
+
 // derlemeHatasi PTX derleme hatasını, derleyici günlüğünü ve PTX'in yazıldığı geçici
 // dosyanın yolunu içeren bir mesaja çevirir.
 func (g *arkaUc) derlemeHatasi(ad, metin, gunluk string, s sonuc) string {
@@ -49,7 +54,7 @@ func (g *arkaUc) derlemeHatasi(ad, metin, gunluk string, s sonuc) string {
 		sb.WriteString("\nPTX derleyici günlüğü:\n")
 		sb.WriteString(gunluk)
 	}
-	if f, err := os.CreateTemp("", "tr_gpu_"+ad+"_*.ptx"); err == nil {
+	if f, err := os.CreateTemp(ptxDokumKlasoru, "tr_gpu_"+ad+"_*.ptx"); err == nil {
 		_, _ = f.WriteString(metin)
 		_ = f.Close()
 		sb.WriteString("\nPTX metni: " + f.Name())
