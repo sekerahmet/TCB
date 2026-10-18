@@ -4,8 +4,8 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 
 ## Şu an yapılıyor
 
-- **Kullanıcı tanımlı türev** — `özel_türev(ileri:, geri:)` ve `türev_denetle`.
-- **Sert hakem denetiminin düzeltmeleri** — veri hattı ve parçalayıcı (düzenli ifade motorunun çökmemesi, bellek sınırları, ek token normalleştirmesi, Unicode tabloları, önbellek kotası); web ve veritabanı (yutulan yazma hataları, atomik kayıt, statik klasör, döngüsel değerler, belge örnekleri); tensör ve yorumlayıcı düzeltmeleri sırada.
+- **İkinci tur hakem denetimi** — yeni klasör ve kod düzeninin, sabit kodların ve çeviriye hazırlığın denetimi.
+- **Güvenlik denetiminin kalanları** — modül çözümleme sırası (önce içe aktaran dosyanın klasörü), düşük önemli bulgular.
 
 ## Sırada
 
@@ -67,3 +67,5 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 - Kodlar: dilin bütün adları `internal/dil/kod/tr.json`'da sabit kodlara bağlı; açıklamalı başvuru `docs/kodlar.md`.
 - Tek yazım: Türkçe harfsiz biçimler, eş yazımlar, `matris`, `#` yorum ve İngilizce eşler kaldırıldı; komut satırı tek Türkçe ad; yerleşik ad gölgeleme uyarısı; eklenti listeleri kod listesinden üretiliyor.
 - Model yapı taşları: `sinüs`/`kosinüs`, `birleştir`, `.böl`, `boyutu_koru`, birleşik `dikkat` (nedensel, pencereli, gruplu sorgu; T×T ara matrissiz, uzun bağlamda 2–10 kat hızlı), `örnekle`, `parametreler(model)`.
+- Standart kitaplığın temeli (Aşama 0): ham metin `` `...` `` ve bilinmeyen kaçış hatası, yol ve tembel yineleme kancaları, betik argümanları, Ctrl+C ile nazik çıkış (ertelenen işler çalışır, çıkış kodu 3), canlı satır ve gizli değer süzgeci; `İyileştirici` tipi, `indirge` bloğunda `birikim`.
+- Güvenlik denetimi: tensör dosyası ve tensör ayırmaları bellek sınırıyla denetlenir, metin içi yerleştirmeye derinlik sınırı, güvenilmeyen girdiler için bulanıklaştırma testleri, VS Code eklentisi yalnızca güvenilen yorumlayıcıyı çalıştırır, otomatik sınamada sabitlenmiş eylemler, Go 1.25.
