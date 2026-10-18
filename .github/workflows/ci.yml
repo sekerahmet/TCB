@@ -1,15 +1,17 @@
-# Sürekli tümleştirme: her gönderimde ve çekme isteğinde Windows ve Linux üzerinde
-# biçim denetimi, go vet, derleme, Go testleri, dil tanımı testleri (tr test), örnek
-# programların duman testi ve VS Code eklentisi denetimleri çalışır.
+# Sürekli tümleştirme: her gönderimde ve çekme isteğinde Windows ve Linux üzerinde tam denetim
+# (bakim/tam_denetim.sh) çalışır. "Bitti"nin tek tanımı o betiktir; burada yalnızca kurulum ve
+# kip seçimi vardır. Betiğin yaptıkları: üretilmiş dosyaların güncelliği, gofmt, go vet, VS
+# Code eklentisinin JavaScript dosyaları ve package.json, derleme, Go testleri (-short), dil
+# tanımı testleri ve örnek testleri (tr test), örneklerin hepsinin duman testi (çıkış kodu 0,
+# zaman aşımı, uyarısız).
 #
-# Matris iki işlemci düzeyini kapsar: GOAMD64=v3 (2020 sonrası x86-64 işlemciler,
-# AVX2/FMA) ve GOAMD64=v1 (eski işlemciler). v1 işlerinde yalnızca derleme değil Go
-# testleri, tr test ve örnekler de koşar; biçim, vet ve eklenti denetimleri işlemci
-# düzeyinden bağımsız olduğundan yalnızca v3 işlerinde yapılır.
+# Matris iki işlemci düzeyini kapsar: GOAMD64=v3 (2020 sonrası x86-64 işlemciler, AVX2/FMA)
+# ve GOAMD64=v1 (eski işlemciler). v1 işlerinde derleme, Go testleri, tr test ve örnekler de
+# v1 ile koşar; işlemci düzeyinden bağımsız durağan denetimler (biçim, vet, üretilmiş
+# dosyalar, eklenti) yalnızca v3 işlerinde yapılır (betiğin --kip argümanı).
 #
-# Adımlar birbirinden bağımsızdır: biri düşse de sonrakiler çalışır (`success() ||
-# failure()`), böylece tek koşuda tüm hatalar görülür; düşen adım yine de işi başarısız
-# sayar. Kurulum (checkout, setup-go) ya da tr derlemesi düşerse ona bağlı adımlar atlanır.
+# Ayrıca Linux'ta yarış dedektörüyle (go test -race) yorumlayıcı, motorlar ve veri hattı
+# sınanır. Bulanıklaştırma testleri haftalık ayrı bir işte uzun koşar (bulaniklastirma.yml).
 name: CI
 
 on:
@@ -21,6 +23,7 @@ permissions:
 
 jobs:
   denetim:
+    # İş adı değişmez: dal korumasının zorunlu denetimleri bu adlara bağlı olabilir.
     name: Denetim (${{ matrix.os }}, GOAMD64=${{ matrix.goamd64 }})
     strategy:
       fail-fast: false
@@ -28,9 +31,8 @@ jobs:
         os: [windows-latest, ubuntu-latest]
         goamd64: [v3, v1]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
-      GOAMD64: ${{ matrix.goamd64 }}
       # Örnek duman testinde atlanacak dosyalar (boşlukla ayrılmış adlar). Dış ağ
       # gerektiren örnekler buraya eklenir. 04_hata_ayiklama etkileşimlidir, kesme noktası boş
       # standart girişte (EOF) devam eder. 03_testler_test ayrıca `tr test` ile koşar.
@@ -43,87 +45,37 @@ jobs:
     steps:
       # Eylemler tam commit özetiyle sabitlenir (etiket sonradan başka bir commit'e
       # taşınabilir); yorumdaki sürüm adı yalnızca okuyan içindir.
-      - id: kaynak
+      - name: Kaynağı al
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Depo kimlik bilgisi sonraki adımlara (ve onların çalıştırdığı koda) bırakılmaz.
           persist-credentials: false
 
-      - id: go
+      - name: Go kurulumu
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           # go.mod'daki 'go' ve 'toolchain' satırları yerelde ve burada aynı sürümü seçer.
           go-version-file: go.mod
 
-      - name: Biçim (gofmt)
-        if: (success() || failure()) && steps.go.outcome == 'success' && matrix.goamd64 == 'v3'
-        run: |
-          degisecek="$(gofmt -l .)"
-          if [ -n "$degisecek" ]; then
-            echo "gofmt ile biçimlenmesi gereken dosyalar:"
-            echo "$degisecek"
-            exit 1
-          fi
+      - name: Tam denetim
+        run: bash bakim/tam_denetim.sh --kip=${{ matrix.goamd64 }}
 
-      - name: go vet
-        if: (success() || failure()) && steps.go.outcome == 'success' && matrix.goamd64 == 'v3'
-        run: go vet ./...
+  yaris:
+    name: Yarış dedektörü (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Kaynağı al
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - name: Derleme (go build)
-        if: (success() || failure()) && steps.go.outcome == 'success'
-        run: go build ./...
+      - name: Go kurulumu
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
 
-      - name: Go testleri
-        if: (success() || failure()) && steps.go.outcome == 'success'
-        run: go test ./...
-
-      - name: tr derlemesi
-        id: tr
-        if: (success() || failure()) && steps.go.outcome == 'success'
-        run: |
-          uzanti=""
-          if [ "$RUNNER_OS" = "Windows" ]; then uzanti=".exe"; fi
-          go build -o "$RUNNER_TEMP/tr$uzanti" ./cmd/tr
-          echo "TR=$RUNNER_TEMP/tr$uzanti" >> "$GITHUB_ENV"
-
-      - name: Dil tanımı ve örnek testleri (tr test)
-        if: (success() || failure()) && steps.tr.outcome == 'success'
-        run: |
-          "$TR" test testler
-          "$TR" test ornekler
-
-      - name: Örnekler (duman testi)
-        if: (success() || failure()) && steps.tr.outcome == 'success'
-        timeout-minutes: 15
-        run: |
-          # Her örnek derlenen tr ile, boş standart girişle ve zaman aşımıyla çalışır;
-          # çıkış kodu 0 beklenir. Bir örnek düşse de diğerleri denenir.
-          hata=0
-          for f in ornekler/*.tr; do
-            ad="$(basename "$f")"
-            case " $ATLANACAK_ORNEKLER " in
-              *" $ad "*) echo "↷ $ad atlandı"; continue ;;
-            esac
-            echo "::group::$ad"
-            bas=$SECONDS
-            kod=0
-            timeout "$ORNEK_ZAMAN_ASIMI" "$TR" "$f" < /dev/null || kod=$?
-            echo "::endgroup::"
-            if [ "$kod" -eq 124 ]; then
-              echo "::error title=Örnek zaman aşımı::$ad ${ORNEK_ZAMAN_ASIMI} saniyede bitmedi"
-              hata=1
-            elif [ "$kod" -ne 0 ]; then
-              echo "::error title=Örnek başarısız::$ad çıkış kodu $kod"
-              hata=1
-            else
-              echo "✓ $ad ($((SECONDS - bas)) sn)"
-            fi
-          done
-          exit "$hata"
-
-      - name: VS Code eklentisi
-        if: (success() || failure()) && steps.kaynak.outcome == 'success' && matrix.goamd64 == 'v3'
-        run: |
-          node --check duzenleyici/vscode/extension.js
-          for f in duzenleyici/vscode/media/*.js; do node --check "$f"; done
-          node -e "JSON.parse(require('fs').readFileSync('duzenleyici/vscode/package.json', 'utf8')); console.log('package.json geçerli')"
+      # Eşzamanlı kod: yorumlayıcı kilidi ve eşzamanlı görevler, motorların kilitleri,
+      # önden yükleme ve önbellek. Yarış dedektörü cgo ister (Linux koşucusunda hazır).
+      - name: Yarış dedektörüyle Go testleri
+        run: go test -race -short ./internal/dil/yurut ./internal/motor/... ./internal/hesap/veriyolu

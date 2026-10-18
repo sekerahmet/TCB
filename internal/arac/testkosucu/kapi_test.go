@@ -141,7 +141,13 @@ func TestOlumsuzFiksturlerKullanilir(t *testing.T) {
 	}
 }
 
+// Dil tanımının bütün testleri (testler/) yorumlayıcının içinden koşar. Tam denetim
+// (bakim/tam_denetim.sh) Go testlerini -short ile koşar ve aynı takımı bir kez
+// `tr test testler` ile koşar; takım iki derleme ayarında üç kez koşmasın diye burada atlanır.
 func TestDilTanimiTestleriGecer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("-short: dil tanımı testleri tam denetimde `tr test testler` ile koşar")
+	}
 	var cikti bytes.Buffer
 	ozet, err := Calistir(depo.Yol("testler"), &cikti)
 	if err != nil {

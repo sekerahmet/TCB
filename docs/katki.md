@@ -50,11 +50,11 @@ Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** 
 İş sırasında yalnızca değiştirdiğiniz paketlerin testlerini çalıştırın. İşin sonunda bir kez tam denetim:
 
 ```sh
-bash bakim/tam_denetim.sh          # üretilmiş dosyalar, gofmt, go vet, iki derleme ayarıyla go test, tr test, örnekler
+bash bakim/tam_denetim.sh          # üretilmiş dosyalar, gofmt, go vet, eklenti, derleme, iki derleme ayarıyla go test, tr test, örnekler
 bash bakim/tam_denetim.sh --hizli  # yalnızca iş sırasında: GOAMD64=v1 testlerini atlar
 ```
 
-Kod düzeni testi (`go test ./internal`) tam denetimin içindedir. Belgeler (`docs/dil/`, `docs/kilavuz/`) işle birlikte güncellenir; her dil kuralının bir testi olur.
+"Bitti"nin tek tanımı bu betiktir: otomatik sınama (`.github/workflows/ci.yml`) da onu çağırır, her işte bir derleme ayarıyla (`--kip=v3`, `--kip=v1`; Windows ve Linux). Go testleri `-short` ile koşar; dil tanımı testleri (`testler/`) Go testinde yinelenmez, betikte bir kez `tr test testler` ile koşar. Kod düzeni testi (`go test ./internal`) tam denetimin içindedir. Otomatik sınama ayrıca Linux'ta yarış dedektörüyle (`go test -race`) yorumlayıcıyı, motorları ve veri hattını sınar; bulanıklaştırma testleri haftada bir uzun koşar (`bakim/bulaniklastir.sh`; yerelde tek hedef: `bash bakim/bulaniklastir.sh 2s '^FuzzNpyBaslik$'`). Belgeler (`docs/dil/`, `docs/kilavuz/`) işle birlikte güncellenir; her dil kuralının bir testi olur.
 
 ## Ölçüm disiplini
 

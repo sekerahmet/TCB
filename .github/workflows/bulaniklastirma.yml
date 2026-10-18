@@ -1,0 +1,44 @@
+# Bulanıklaştırma: güvenilmeyen girdi okuyan her yerin bulanıklaştırma testi (Go'nun Fuzz*
+# hedefleri) haftada bir, her hedef kısa bir süre (varsayılan 30 sn) rastgele girdiyle koşar.
+# Sıradan go test yalnızca tohum derlemini koşar; bu iş yeni girdi üretir. Elle de
+# tetiklenebilir (Actions → Bulanıklaştırma → Run workflow), süre seçilerek. Bir hedef düşerse
+# düşüren girdi günlükte yazılır; yerelde `go test -run=<Hedef>/<dosya>` ile yeniden üretmek
+# için dosya testdata/fuzz/<Hedef>/ altına konur. Koşum bakim/bulaniklastir.sh'tadır.
+name: Bulanıklaştırma
+
+on:
+  schedule:
+    # Her pazartesi 03:17 (UTC).
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      sure:
+        description: "Her hedefin süresi (Go süre biçimi: 30s, 2m)"
+        required: false
+        default: "30s"
+
+permissions:
+  contents: read
+
+jobs:
+  bulanik:
+    name: Bulanıklaştırma (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # Eylemler tam commit özetiyle sabitlenir (ci.yml ile aynı sürümler).
+      - name: Kaynağı al
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Go kurulumu
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+
+      - name: Her bulanıklaştırma hedefi
+        env:
+          # Girdi betiğe ortam değişkeniyle geçer (komut satırına doğrudan yazılmaz).
+          SURE: ${{ inputs.sure || '30s' }}
+        run: bash bakim/bulaniklastir.sh "$SURE"
