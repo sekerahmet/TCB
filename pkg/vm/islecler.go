@@ -318,6 +318,14 @@ func BoolToVal(b bool) Value {
 }
 
 func ValuesEqual(a, b Value) bool {
+	return degerlerEsit(a, b, 0)
+}
+
+// esitlikDerinligi iç içe kap karşılaştırmasının en fazla derinliğidir; kendini içeren
+// kaplarda (l == l dışında) sonsuz özyinelemeyi önler, aşılırsa eşit sayılmaz.
+const esitlikDerinligi = 10000
+
+func degerlerEsit(a, b Value, derinlik int) bool {
 	if a.Type() == VAL_NULL && b.Type() == VAL_NULL {
 		return true
 	}
@@ -337,7 +345,16 @@ func ValuesEqual(a, b Value) bool {
 		return false
 	}
 	// Kaplar eleman eleman karşılaştırılır: görünen metinleri aynı olan farklı değerler
-	// (ör. yazdırırken yuvarlanan elemanlar) eşit sayılmaz.
+	// (ör. yazdırırken yuvarlanan elemanlar) eşit sayılmaz. Aynı kap kendisine eşittir.
+	switch a.(type) {
+	case *ListVal, *DictVal, *StructInstanceVal:
+		if a == b {
+			return true
+		}
+		if derinlik >= esitlikDerinligi {
+			return false
+		}
+	}
 	switch x := a.(type) {
 	case *StringVal:
 		if y, ok := b.(*StringVal); ok {
@@ -349,7 +366,7 @@ func ValuesEqual(a, b Value) bool {
 				return false
 			}
 			for i := range x.Elements {
-				if !ValuesEqual(x.Elements[i], y.Elements[i]) {
+				if !degerlerEsit(x.Elements[i], y.Elements[i], derinlik+1) {
 					return false
 				}
 			}
@@ -362,7 +379,7 @@ func ValuesEqual(a, b Value) bool {
 			}
 			for k, va := range x.Pairs {
 				vb, ok := y.Pairs[k]
-				if !ok || !ValuesEqual(va, vb) {
+				if !ok || !degerlerEsit(va, vb, derinlik+1) {
 					return false
 				}
 			}
@@ -373,7 +390,7 @@ func ValuesEqual(a, b Value) bool {
 			for _, f := range x.Def.Fields {
 				va, oka := x.Fields[f.Name]
 				vb, okb := y.Fields[f.Name]
-				if oka != okb || (oka && !ValuesEqual(va, vb)) {
+				if oka != okb || (oka && !degerlerEsit(va, vb, derinlik+1)) {
 					return false
 				}
 			}

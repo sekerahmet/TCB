@@ -104,18 +104,8 @@ type ListVal struct {
 }
 
 func (l *ListVal) Type() ValueType { return VAL_LIST }
-func (l *ListVal) Inspect() string {
-	var parts []string
-	for _, el := range l.Elements {
-		if el.Type() == VAL_STRING {
-			parts = append(parts, fmt.Sprintf("%q", el.Inspect()))
-		} else {
-			parts = append(parts, el.Inspect())
-		}
-	}
-	return "[" + strings.Join(parts, ", ") + "]"
-}
-func (l *ListVal) IsTruthy() bool { return len(l.Elements) > 0 }
+func (l *ListVal) Inspect() string { return kapYaz(l, nil) }
+func (l *ListVal) IsTruthy() bool  { return len(l.Elements) > 0 }
 
 // DictVal sıralı bir sözlüktür. Metin anahtarlar Pairs/Order içinde olduğu gibi
 // saklanır (Go tarafındaki d.Pairs["ad"] erişimleri bu sayede çalışmaya devam eder).
@@ -191,23 +181,8 @@ func (d *DictVal) DisplayKey(k string) string {
 }
 
 func (d *DictVal) Type() ValueType { return VAL_DICT }
-func (d *DictVal) Inspect() string {
-	var parts []string
-	for _, k := range d.Order {
-		v := d.Pairs[k]
-		valStr := v.Inspect()
-		if v.Type() == VAL_STRING {
-			valStr = fmt.Sprintf("%q", valStr)
-		}
-		keyStr := fmt.Sprintf("%q", k)
-		if kv, ok := d.KeyVals[k]; ok {
-			keyStr = kv.Inspect()
-		}
-		parts = append(parts, fmt.Sprintf("%s: %s", keyStr, valStr))
-	}
-	return "{" + strings.Join(parts, ", ") + "}"
-}
-func (d *DictVal) IsTruthy() bool { return len(d.Pairs) > 0 }
+func (d *DictVal) Inspect() string { return kapYaz(d, nil) }
+func (d *DictVal) IsTruthy() bool  { return len(d.Pairs) > 0 }
 
 type RangeVal struct {
 	Start     int64
@@ -278,16 +253,8 @@ type StructInstanceVal struct {
 }
 
 func (si *StructInstanceVal) Type() ValueType { return ValueType(si.Def.Name) }
-func (si *StructInstanceVal) Inspect() string {
-	var parts []string
-	for _, f := range si.Def.Fields {
-		if v, ok := si.Fields[f.Name]; ok {
-			parts = append(parts, fmt.Sprintf("%s: %s", f.Name, v.Inspect()))
-		}
-	}
-	return fmt.Sprintf("%s{%s}", si.Def.Name, strings.Join(parts, ", "))
-}
-func (si *StructInstanceVal) IsTruthy() bool { return true }
+func (si *StructInstanceVal) Inspect() string { return kapYaz(si, nil) }
+func (si *StructInstanceVal) IsTruthy() bool  { return true }
 
 // --- KÜÇÜK TAMSAYI ÖNBELLEĞİ ---
 

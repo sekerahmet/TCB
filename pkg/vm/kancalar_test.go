@@ -82,6 +82,32 @@ func TestKapEsitligi(t *testing.T) {
 	}
 }
 
+// Kendini içeren kaplar yazdırılırken ve karşılaştırılırken süreç çökmemeli.
+func TestKendiniIcerenKaplar(t *testing.T) {
+	out, val, err := runTROut(t, `
+		değişken l = [1, "a"]
+		l.ekle(l)
+		yazdır(l)
+		değişken d = {"x": 1}
+		d["ben"] = d
+		d["l"] = [d]
+		yazdır(d)
+		yapı D { sonraki }
+		değişken n = D()
+		n.sonraki = n
+		yazdır(n)
+		değişken m = [l, l]
+		yazdır(m)
+		değişken l2 = [1, "a"]
+		l2.ekle(l2)
+		sonuç [l == l, d == d, l == l2, uzunluk(metin(l))]
+	`)
+	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD{sonraki: D{...}}\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
+	if err != nil || out != want || val.Inspect() != "[doğru, doğru, yanlış, 15]" {
+		t.Fatalf("beklenmeyen:\n%s\n%v %v", out, val, err)
+	}
+}
+
 // Sonsuz ve tanımsız Ondalık değerler tensör biçimiyle yazılır; bilimsel yazım ayrıştırılır.
 func TestOndalikYazdirmaVeBilimselYazim(t *testing.T) {
 	for f, want := range map[float64]string{math.Inf(1): "+Sonsuz", math.Inf(-1): "-Sonsuz", math.NaN(): "NaN", 1e21: "1e+21", 2: "2.0", 0.5: "0.5"} {
