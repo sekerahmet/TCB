@@ -16,8 +16,10 @@ import (
 
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/motor/dosya"
+	"tr_dili/internal/motor/gunluk"
 	"tr_dili/internal/motor/ogrenme"
 	"tr_dili/internal/motor/parcalayici"
+	"tr_dili/internal/motor/surec"
 	"tr_dili/internal/motor/veri"
 	"tr_dili/internal/motor/veribicim"
 )
@@ -31,12 +33,17 @@ func init() {
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
 	yurut.MotorEkle(parcalayici.Kaydet)
 	yurut.MotorEkle(veri.Kaydet)
+	// Süreç (ortam, komut satırı) ve kayıt (günlük, ilerleme): günlüğün başlangıç kaydı
+	// programın komut satırı ayarlarını yazar.
+	yurut.MotorEkle(func(v *yurut.VM) { gunluk.Kaydet(v, surec.Kaydet(v)) })
 }
 
 // Kapat motorların program boyunca açık kalmış kaynaklarını (veri kümesi okuyucuları,
-// önden yükleme gorutinleri, önbellekler, satır okuyucularının dosyaları) kapatır. Program bitince çağrılır; takılan bir
-// okumada en çok birkaç saniye bekler. Birden çok kez çağrılabilir.
+// önden yükleme gorutinleri, önbellekler, satır okuyucularının ve günlüklerin dosyaları) kapatır
+// ve bitmemiş ilerleme çubuklarını bitirir. Program bitince çağrılır; takılan bir okumada en
+// çok birkaç saniye bekler. Birden çok kez çağrılabilir.
 func Kapat() {
+	gunluk.TumunuKapat()
 	veri.TumunuKapat(3 * time.Second)
 	dosya.TumunuKapat()
 }

@@ -269,7 +269,7 @@
       "patterns": [
         {
           "name": "entity.name.type.tr",
-          "match": "\\b(Tam|Ondalık|Metin|Mantık|Yok|Liste|Sözlük|Aralık|Fonksiyon|YerleşikFonksiyon|YapıTanımı|Nesne|Tensör|Herhangi|İyileştirici|Tip|VeriKümesi|Örnekleyici|SıralıOkuyucu|Parçalayıcı|Yol|SatırOkuyucu)\\b"
+          "match": "\\b(Tam|Ondalık|Metin|Mantık|Yok|Liste|Sözlük|Aralık|Fonksiyon|YerleşikFonksiyon|YapıTanımı|Nesne|Tensör|Herhangi|İyileştirici|Tip|VeriKümesi|Örnekleyici|SıralıOkuyucu|Parçalayıcı|Yol|İlerleme|Günlük|SatırOkuyucu)\\b"
         }
       ]
     },
@@ -277,7 +277,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.tr",
-          "match": "\\b(yazdır|girdi|dosya_oku|dosya_yaz|dosya_satırları|yol|klasörü_listele|klasör_oluştur|sil|kopyala|taşı|tip|tam|ondalık|metin|aralık|toplam|min|maks|mutlak|karekök|yuvarla|ortalama|standart_sapma|ortanca|bekle|bekle_hepsi|zaman_ms|json_çöz|json_metin|csv_oku|doğrula|eşit_mi)\\b"
+          "match": "\\b(yazdır|girdi|dosya_oku|dosya_yaz|dosya_satırları|yol|klasörü_listele|klasör_oluştur|sil|kopyala|taşı|tip|tam|ondalık|metin|aralık|toplam|min|maks|mutlak|karekök|yuvarla|ortalama|standart_sapma|ortanca|bekle|bekle_hepsi|zaman_ms|json_çöz|json_metin|csv_oku|doğrula|eşit_mi|ortam_değişkeni|komut_satırı|günlük|ilerleme)\\b"
         },
         {
           "name": "support.function.ai.tr",

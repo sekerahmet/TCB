@@ -61,6 +61,8 @@ const (
 	A233 Kod = A + 233 // SıralıOkuyucu
 	A234 Kod = A + 234 // Parçalayıcı
 	A250 Kod = A + 250 // Yol
+	A255 Kod = A + 255 // İlerleme
+	A256 Kod = A + 256 // Günlük
 	A257 Kod = A + 257 // SatırOkuyucu
 	G100 Kod = G + 100 // yazdır
 	G101 Kod = G + 101 // girdi
@@ -95,8 +97,15 @@ const (
 	G602 Kod = G + 602 // csv_oku
 	G700 Kod = G + 700 // doğrula
 	G701 Kod = G + 701 // eşit_mi
+	G800 Kod = G + 800 // ortam_değişkeni
+	G801 Kod = G + 801 // komut_satırı
+	G810 Kod = G + 810 // günlük
+	G811 Kod = G + 811 // ilerleme
 	G900 Kod = G + 900 // üzerine_yaz
 	G901 Kod = G + 901 // içindekilerle
+	G910 Kod = G + 910 // açıklama
+	G911 Kod = G + 911 // açıklamalar
+	G912 Kod = G + 912 // günlük
 	T100 Kod = T + 100 // tensör
 	T101 Kod = T + 101 // sıfırlar
 	T102 Kod = T + 102 // birler
@@ -168,6 +177,8 @@ const (
 	Y002 Kod = Y + 2   // içerir
 	Y003 Kod = Y + 3   // ters_çevir
 	Y004 Kod = Y + 4   // ekle
+	Y010 Kod = Y + 10  // güncelle
+	Y011 Kod = Y + 11  // durdur
 	Y100 Kod = Y + 100 // büyük_harf
 	Y101 Kod = Y + 101 // küçük_harf
 	Y102 Kod = Y + 102 // kırp
@@ -274,14 +285,14 @@ var kaldirilanlar = map[Kod]bool{
 	Y + 5:   true, // Y005 kaydet
 	Y + 6:   true, // Y006 başlat
 	Y + 7:   true, // Y007 arka_planda_başlat
-	Y + 8:   true, // Y008 durdur
+	Y + 8:   true, // Y008 Y008
 	Y + 510: true, // Y510 eğit
 	Y + 511: true, // Y511 tahmin_et
 	Y + 512: true, // Y512 ağırlıklar
 	Y + 700: true, // Y700 tablolar
 	Y + 701: true, // Y701 tablo_oluştur
 	Y + 702: true, // Y702 sorgula
-	Y + 703: true, // Y703 güncelle
+	Y + 703: true, // Y703 Y703
 	Y + 704: true, // Y704 Y704
 	Y + 705: true, // Y705 hepsini_al
 	Y + 706: true, // Y706 say

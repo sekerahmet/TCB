@@ -1,6 +1,7 @@
 package motor
 
 import (
+	"io"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -67,6 +68,7 @@ func calistirAyni(t *testing.T, m *yurut.VM, kd string) (yurut.Value, error) {
 // internal/motor/veri testlerinde denenir.
 func TestUyelerSozlukleTutarli(t *testing.T) {
 	m := yurut.New()
+	m.Err = io.Discard // açılan ilerleme çubuğu test çıktısına yazmasın
 	kur := strings.Join([]string{
 		`değişken u_metin = "abc"`,
 		`değişken u_liste = [1, 2]`,
@@ -75,11 +77,12 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		`değişken u_iyilestirici = SGD([u_tensor])`,
 		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(depo.Yol("internal/hesap/parca/testdata/p_bayt_bpe.json")) + `")`,
 		`değişken u_yol = yol("` + filepath.ToSlash(depo.Yol("go.mod")) + `")`,
+		`değişken u_ilerleme = ilerleme(3)`,
 	}, "\n")
 	if _, err := calistirAyni(t, m, kur); err != nil {
 		t.Fatal(err)
 	}
-	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol"}
+	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme"}
 	for _, k := range kod.Kodlar() {
 		if k.Alan() != kod.AlanUye || (k >= kod.Y600 && k <= kod.Y602) {
 			continue

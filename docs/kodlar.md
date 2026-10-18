@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 208 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 22 tip, 69 fonksiyon, 32 metot, 18 özellik, 33 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 219 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 24 tip, 73 fonksiyon, 34 metot, 18 özellik, 36 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -590,6 +590,26 @@ değişken y = yol("veri", "eğitim.txt"); yazdır(tip(y) == Yol, y)
 
 Üyeleri: Y310 `dosya_adı`, Y311 `uzantı`, Y312 `uzantısız_ad`, Y313 `üst_klasör`, Y314 `mutlak`, Y315 `var_mı`, Y316 `dosya_mı`, Y317 `klasör_mü`, Y318 `bayt` · İlişkili: G120 `yol`
 
+#### A255 `İlerleme`
+
+ilerleme(...) ile açılan ilerleme çubuğunun tipidir; .güncelle(...) bir adım ilerletir, .durdur() çubuğu bitirir.
+
+```tr
+değişken ç = ilerleme(2); yazdır(tip(ç) == İlerleme)
+```
+
+Üyeleri: Y010 `güncelle`, Y011 `durdur` · İlişkili: G811 `ilerleme`, Y010 `güncelle`, Y011 `durdur`
+
+#### A256 `Günlük`
+
+günlük(...) ile açılan, her satırı bir JSON kaydı olan eğitim günlüğü dosyasının tipidir; .ekle(...) bir kayıt yazar.
+
+```tr
+değişken g = günlük("kayit/a.jsonl"); yazdır(tip(g) == Günlük)
+```
+
+Üyeleri: Y004 `ekle` · İlişkili: G810 `günlük`, Y004 `ekle`
+
 #### A257 `SatırOkuyucu`
 
 dosya_satırları(...) ile açılan, dosyayı akışla satır satır okuyan okuyucunun tipidir; döngü ile gezilir ya da .sonraki() ile sıradaki satır alınır, dosya bitince yok verir.
@@ -810,7 +830,7 @@ Taşındı: Y202 `sırala` → `liste.sırala()`. Kaldırıldı: listeyi sırala
 
 #### G304 `ekle` — kaldırıldı
 
-Taşındı: Y004 `ekle` → `liste.ekle(...)`. Kaldırıldı: listeye eleman eklemek metottur; liste.ekle(x) yazılır. ekle(liste, x) hata verip yeni biçimi önerir.
+Taşındı: Y004 `ekle` → `x.ekle(...)`. Kaldırıldı: listeye eleman eklemek metottur; liste.ekle(x) yazılır. ekle(liste, x) hata verip yeni biçimi önerir.
 
 #### G305 `aralık`
 
@@ -1746,13 +1766,13 @@ Kullananlar: T310 `özel_türev` · İlişkili: T980 `ileri`
 
 #### T982 `adım`
 
-türev_denetle'nin merkezi farkta kullandığı adım büyüklüğüdür; pozitif olmalıdır, varsayılan 0.001'dir.
+türev_denetle'de merkezi farkın adım büyüklüğüdür (pozitif, varsayılan 0.001); İlerleme.güncelle'de tamamlanan adım sayısıdır (kaldığı yerden sürdürmek için; 0 ya da pozitif Tam).
 
 ```tr
 yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [tensör([1.0, 2.0], türev_izle: doğru)], adım: 0.01))
 ```
 
-Kullananlar: T311 `türev_denetle` · İlişkili: T983 `tolerans`
+Kullananlar: T311 `türev_denetle`, Y010 `güncelle` · İlişkili: T983 `tolerans`
 
 #### T983 `tolerans`
 
@@ -1990,8 +2010,9 @@ yazdır("kitap".ters_çevir(), [1, 2, 3].ters_çevir())
 #### Y004 `ekle`
 
     Liste.ekle(Herhangi...) → Liste
+    Günlük.ekle(Sözlük | Metin) → Mantık
 
-Listenin sonuna verilen elemanları ekler; listeyi yerinde değiştirir ve listenin kendisini verir.
+Listenin sonuna verilen elemanları ekler; listeyi yerinde değiştirir ve listenin kendisini verir. Günlük'te bir kayıt (Sözlük ya da Metin) yazar ve doğru verir.
 
 ```tr
 değişken l = [1]; l.ekle(2, 3); yazdır(l)
@@ -2011,9 +2032,33 @@ Kaldırıldı: 'başlat' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 Kaldırıldı: 'arka_planda_başlat' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### Y008 `durdur` — kaldırıldı
+#### Y008 `Y008` — kaldırıldı
 
-Kaldırıldı: 'durdur' TR'den kaldırıldı; yerine geçen bir kod yoktur.
+Kaldırıldı: web sunucusunu ve arayüzü durduran metot TR'den kaldırıldı; yerine geçen bir kod yoktur. Eski adı (durdur) Y011'e verildi.
+
+#### Y010 `güncelle`
+
+    İlerleme.güncelle([Sözlük], adım: Tam = yok) → Mantık
+
+Çubuğu bir adım ilerletir ve verilen ölçüleri (kayıp, öğrenme oranı ...) gösterir; adım: verilirse tamamlanan adım sayısını o değere getirir (kaldığı yerden sürdürme). Toplama ulaşınca çubuk kendiliğinden biter. Her çağrı eğitimin bir adım sınırıdır.
+
+```tr
+değişken ç = ilerleme(10); ç.güncelle({kayıp: 0.5}, adım: 5); yazdır(ç)
+```
+
+İlişkili: Y011 `durdur`
+
+#### Y011 `durdur`
+
+    İlerleme.durdur() → Mantık
+
+Çubuğu bitirir ve geçen süreyle son satırı yazar; ilk çağrıda doğru, sonrakilerde yanlış verir. Toplama ulaşınca ve program bitince kendiliğinden çağrılır.
+
+```tr
+değişken ç = ilerleme(); ç.güncelle(); yazdır(ç.durdur())
+```
+
+İlişkili: Y010 `güncelle`
 
 ### Metin (Y1xx)
 
@@ -2604,9 +2649,9 @@ Kaldırıldı: 'tablo_oluştur' TR'den kaldırıldı; yerine geçen bir kod yokt
 
 Kaldırıldı: 'sorgula' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### Y703 `güncelle` — kaldırıldı
+#### Y703 `Y703` — kaldırıldı
 
-Kaldırıldı: 'güncelle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
+Kaldırıldı: veritabanı satırlarını güncelleyen metot TR'den kaldırıldı; yerine geçen bir kod yoktur. Eski adı (güncelle) Y010'a verildi.
 
 #### Y704 `Y704` — kaldırıldı
 
@@ -2688,4 +2733,4 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/dil/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `veri_kümesi`, `parçalayıcı_yükle`

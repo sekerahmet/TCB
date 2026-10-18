@@ -18,6 +18,7 @@ import (
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/motor/gunluk"
 )
 
 // Kod listesinin (internal/dil/kod/tanim.json, tr.json) gerçek davranışla aynı olduğunu sınayan
@@ -37,6 +38,8 @@ func geciciKlasoreGec(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chdir(eski) })
+	// Örneklerin açtığı günlük dosyaları kapansın (Windows'ta açık dosya silinemez).
+	t.Cleanup(gunluk.TumunuKapat)
 }
 
 func depoKoku(*testing.T) string { return depo.Kok() }
@@ -237,7 +240,7 @@ func TestAdliArgumanlarTanimlaAyni(t *testing.T) {
 // döner); okuma hatasızsa (sözlükte: yok dönmezse) tip üyeyi destekler.
 func TestUyeTipleriTanimlaAyni(t *testing.T) {
 	m := yurut.New()
-	m.Out = io.Discard
+	m.Out, m.Err = io.Discard, io.Discard
 	m.SourceFile = filepath.Join(depoKoku(t), "ornek.tr")
 	ornekler := []struct {
 		tip kod.Kod
@@ -253,7 +256,10 @@ func TestUyeTipleriTanimlaAyni(t *testing.T) {
 		{kod.A234, `parçalayıcı_yükle("testler/veri/parcalayici.json")`},
 		{kod.A250, `yol("testler/yerlesikler_test.tr")`},
 		{kod.A257, `dosya_satırları("testler/veri/parcalayici.json")`},
+		{kod.A255, `ilerleme(3)`},
+		{kod.A256, `günlük("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
 	}
+	t.Cleanup(gunluk.TumunuKapat)
 	var kur []string
 	for i, o := range ornekler {
 		kur = append(kur, "değişken u_"+string(rune('a'+i))+" = "+o.kur)
