@@ -416,6 +416,26 @@ func TestDerleModulHatalari(t *testing.T) {
 	bekle(t, tr(t, klasor, "derle", "sonuclu.tr", cikis), 1, nil, []string{"(sonuc_modul.tr modülünde)", "'sonuç' modülün üst düzeyinde kullanılamaz"})
 }
 
+// tr derle kaynağın ya da başka bir .tr dosyasının üzerine yazmaz (veri kaybı).
+func TestDerleKaynagiEzmez(t *testing.T) {
+	klasor := t.TempDir()
+	kaynak := "yazdır(\"uygulama\")\n"
+	dosyaYaz(t, klasor, "uyg.tr", kaynak)
+	dosyaYaz(t, klasor, "baska.tr", "yazdır(2)\n")
+	for _, cikis := range []string{"uyg.tr", "./uyg.tr", filepath.Join(klasor, "uyg.tr"), "baska.tr", "yeni.TR"} {
+		s := tr(t, klasor, "derle", "uyg.tr", cikis)
+		bekle(t, s, 1, nil, []string{"❌ Derleme hatası:"})
+	}
+	for ad, icerik := range map[string]string{"uyg.tr": kaynak, "baska.tr": "yazdır(2)\n"} {
+		if veri, _ := os.ReadFile(filepath.Join(klasor, ad)); string(veri) != icerik {
+			t.Errorf("%s değişti: %q", ad, veri)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(klasor, "yeni.TR")); err == nil {
+		t.Error(".tr uzantılı çıktı oluşmamalı")
+	}
+}
+
 // tr kontrol aktarılan modülleri de denetler; modül hatası modülün adı ve satırıyla yazılır.
 func TestKontrolModulleri(t *testing.T) {
 	klasor := t.TempDir()

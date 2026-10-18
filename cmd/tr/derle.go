@@ -333,6 +333,10 @@ func compileToExe(srcPath string, outPath string) {
 		base := strings.TrimSuffix(srcPath, filepath.Ext(srcPath))
 		outPath = base + ".exe"
 	}
+	if err := ciktiYoluDenetle(srcPath, outPath); err != nil {
+		fmt.Fprintf(os.Stderr, "❌ Derleme hatası: %v\n", err)
+		os.Exit(1)
+	}
 
 	exePath, err := os.Executable()
 	if err != nil {
@@ -358,7 +362,16 @@ func compileToExe(srcPath string, outPath string) {
 	outBuf = append(outBuf, baseExeBytes...)
 	outBuf = append(outBuf, paketBaytlari...)
 
-	if err := os.WriteFile(outPath, outBuf, 0755); err != nil {
+	// Önce geçici dosyaya yazılır, sonra yeniden adlandırılır: yazma yarıda kalırsa var
+	// olan bir dosya bozulmaz.
+	gecici := outPath + ".yaziliyor"
+	if err := os.WriteFile(gecici, outBuf, 0755); err != nil {
+		os.Remove(gecici)
+		fmt.Fprintf(os.Stderr, "❌ .exe oluşturma hatası: %v\n", err)
+		os.Exit(1)
+	}
+	if err := os.Rename(gecici, outPath); err != nil {
+		os.Remove(gecici)
 		fmt.Fprintf(os.Stderr, "❌ .exe oluşturma hatası: %v\n", err)
 		os.Exit(1)
 	}
@@ -374,6 +387,29 @@ func compileToExe(srcPath string, outPath string) {
 	if not := islemciNotu(); not != "" {
 		fmt.Println(not)
 	}
+}
+
+// ciktiYoluDenetle 'tr derle'nin çıktı yolunun bir kaynak dosyayı ezmeyeceğini denetler:
+// çıktı kaynağın kendisi (aynı dosya) ya da .tr uzantılı bir dosya olamaz.
+func ciktiYoluDenetle(srcPath, outPath string) error {
+	if strings.EqualFold(filepath.Ext(outPath), ".tr") {
+		return fmt.Errorf("çıktı yolu %q bir .tr kaynak dosyası; uygulama .tr dosyasının üzerine yazılmaz (ör. %s yazın)", outPath, strings.TrimSuffix(outPath, filepath.Ext(outPath))+".exe")
+	}
+	ayni := false
+	if a, err := filepath.Abs(srcPath); err == nil {
+		if b, err := filepath.Abs(outPath); err == nil && strings.EqualFold(filepath.Clean(a), filepath.Clean(b)) {
+			ayni = true
+		}
+	}
+	if si, err := os.Stat(srcPath); err == nil {
+		if oi, err := os.Stat(outPath); err == nil && os.SameFile(si, oi) {
+			ayni = true
+		}
+	}
+	if ayni {
+		return fmt.Errorf("çıktı yolu %q kaynak dosyanın kendisi; uygulama kaynağın üzerine yazılmaz", outPath)
+	}
+	return nil
 }
 
 // metinSabiti bir yolu TR metin sabiti olarak yazar.
