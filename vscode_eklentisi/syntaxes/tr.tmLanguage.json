@@ -94,7 +94,7 @@
     "import": {
       "patterns": [
         {
-          "match": "\\b(aktar)\\b\\s*(\"[^\"]*\"|'[^']*'|[^\\W\\d][\\w.]*)\\s+(olarak|as)\\b\\s*([^\\W\\d]\\w*)?",
+          "match": "\\b(aktar)\\b\\s*(\"[^\"]*\"|'[^']*'|[^\\W\\d][\\w.]*)\\s+(olarak)\\b\\s*([^\\W\\d]\\w*)?",
           "captures": {
             "1": { "name": "keyword.control.import.tr" },
             "2": { "name": "string.other.module.tr" },
@@ -201,6 +201,10 @@
     },
     "numbers": {
       "patterns": [
+        {
+          "name": "constant.numeric.float.tr",
+          "match": "\\b\\d[\\d_]*(?:\\.\\d[\\d_]*)?[eE][+-]?\\d+\\b"
+        },
         {
           "name": "constant.numeric.float.tr",
           "match": "\\b\\d[\\d_]*\\.\\d[\\d_]*\\b"

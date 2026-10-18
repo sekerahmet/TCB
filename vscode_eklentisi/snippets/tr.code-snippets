@@ -93,14 +93,23 @@
     ],
     "description": "3 satırda yapay sinir ağı oluşturur, eğitir ve tahmin alır"
   },
-  "Otomatik Türev (Tensör & Geri Yayılım)": {
+  "Tensör ve Eğitim Döngüsü (Otomatik Türev)": {
     "prefix": ["tensor", "tensör", "turev"],
     "body": [
-      "değişken ${1:x} = tensör(${2:3.0}, türev_izle: doğru)",
-      "değişken ${3:y} = ${4:x * x + 2 * x + 1}",
-      "geri_yayılım(${3:y})",
-      "yazdır(\"Türev: {${1:x}.gradyan}\")"
+      "değişken X = tensör(${1:[[0.0], [1.0], [2.0], [3.0]]})",
+      "değişken Y = tensör(${2:[[-1.0], [1.0], [3.0], [5.0]]})",
+      "değişken w = tensör(türevsiz(rastgele_normal([${3:1, 1}], tohum: 1) * 0.1), türev_izle: doğru)",
+      "değişken b = tensör([0.0], türev_izle: doğru)",
+      "değişken iyileştirici = AdamW([w, b], öğrenme_oranı: ${4:0.1}, ağırlık_çürümesi: 0)",
+      "döngü adım içinde 0..${5:300} {",
+      "\tiyileştirici.sıfırla()",
+      "\tdeğişken kayıp = ortalama((X @ w + b - Y) ** 2)",
+      "\tgeri_yayılım(kayıp)",
+      "\tiyileştirici.adım()",
+      "\teğer adım % 100 == 0 { yazdır(\"adım {adım}: kayıp = {kayıp.değer}\") }",
+      "}",
+      "yazdır(türevsiz { sonuç X @ w + b })$0"
     ],
-    "description": "Tensör oluşturur ve otomatik türev (geri yayılım) hesaplar"
+    "description": "Tensörler, AdamW iyileştiricisi ve geri_yayılım ile küçük bir eğitim döngüsü (doğrusal model)"
   }
 }
