@@ -142,6 +142,33 @@ func zerosOf(be Backend, shape []int, dt DType) *Tensor {
 	return fromStorage(be, be.Alloc(numelOf(shape), dt), shape)
 }
 
+// bosAyirici, içeriği belirsiz (sıfırlanmamış) depolama verebilen arka
+// uçların iç arayüzüdür. Backend.Alloc sözleşmesi (sıfırlanmış depolama)
+// değişmez; bu yol yalnızca çekirdeğin çıktının her elemanını yazdığı
+// işlemlerde (emptyOf) kullanılır ve havuzdan gelen depolamayı yeniden
+// sıfırlama maliyetini (eğitimde bellek bant genişliğinin ~%5-8'i) önler.
+type bosAyirici interface {
+	allocBos(n int, dt DType) Storage
+}
+
+// emptyOf, her elemanı çağıranca yazılacak bitişik bir tensör ayırır; içerik
+// belirsizdir (arka uç bosAyirici değilse sıfırdır). Yalnızca çekirdek tüm
+// çıktıyı yazıyorsa kullanılmalıdır (ör. eleman bazlı işlemler, kopyalar,
+// softmax, normalleştirmeler); biriktiren çekirdekler (çarpım, gradyanlar)
+// zerosOf kullanır.
+func emptyOf(be Backend, shape []int, dt DType) *Tensor {
+	checkShape(shape)
+	return fromStorage(be, allocBos(be, numelOf(shape), dt), shape)
+}
+
+// allocBos be destekliyorsa sıfırlanmamış, değilse sıfırlanmış depolama verir.
+func allocBos(be Backend, n int, dt DType) Storage {
+	if b, ok := be.(bosAyirici); ok {
+		return b.allocBos(n, dt)
+	}
+	return be.Alloc(n, dt)
+}
+
 func defaultBackend() Backend { return BackendFor(DefaultDevice()) }
 
 // NewOn veriyi kopyalayarak verilen cihazda tensör oluşturur.
@@ -403,7 +430,7 @@ func (t *Tensor) contigView() View {
 	if t.IsContiguous() {
 		return t.view()
 	}
-	s := t.be.Alloc(t.Numel(), t.tur)
+	s := allocBos(t.be, t.Numel(), t.tur)
 	t.be.Copy(s, 0, t.view())
 	return View{S: s, Shape: t.shape, Strides: contiguousStrides(t.shape)}
 }
@@ -413,7 +440,7 @@ func (t *Tensor) denseStorage() Storage {
 	if t.IsContiguous() && t.offset == 0 {
 		return t.storage
 	}
-	s := t.be.Alloc(t.Numel(), t.tur)
+	s := allocBos(t.be, t.Numel(), t.tur)
 	t.be.Copy(s, 0, t.view())
 	return s
 }

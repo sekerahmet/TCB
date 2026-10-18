@@ -93,7 +93,7 @@ func (t *Tensor) LogSoftmax(axis int) *Tensor { return t.softmaxImpl(axis, true)
 
 func (t *Tensor) softmaxImpl(axis int, logKip bool) *Tensor {
 	axis = normAxis(axis, len(t.shape))
-	out := zerosOf(t.be, t.shape, t.tur)
+	out := emptyOf(t.be, t.shape, t.tur)
 	t.be.Softmax(out.storage, t.view(), axis, logKip)
 	op := "softmax"
 	if logKip {

@@ -1,6 +1,7 @@
 package tensor
 
 import (
+	"math"
 	"math/rand"
 	"testing"
 )
@@ -38,5 +39,56 @@ func TestHavuzYenidenKullanim(t *testing.T) {
 			}
 		}
 		be.Release(y)
+	}
+}
+
+// Sıfırlanmadan ayrılan (emptyOf) çıktılar: havuzda NaN dolu depolamalar
+// bekliyorken işlemler tüm çıktıyı yazmalı; sonuç taze ayırmayla aynı olmalı.
+func TestBosAyirmaHavuzCopu(t *testing.T) {
+	rng := rand.New(rand.NewSource(22))
+	const R, D = 64, 128 // R*D = 8192 >= havuzEnAz
+	x := Randn(rng, R, D)
+	y := Randn(rng, R, D)
+	g := Randn(rng, D)
+	bt := Randn(rng, D)
+	idx := make([]int, R)
+	for i := range idx {
+		idx[i] = (i * 7) % D
+	}
+	w := Randn(rng, D, D)
+	islemler := []struct {
+		ad string
+		f  func() *Tensor
+	}{
+		{"add", func() *Tensor { return Add(x, y) }},
+		{"mul_yayin", func() *Tensor { return Mul(x, g) }},
+		{"gelu", func() *Tensor { return x.Gelu() }},
+		{"softmax", func() *Tensor { return x.Softmax(-1) }},
+		{"softmax_eksen0", func() *Tensor { return x.Softmax(0) }},
+		{"layer_norm", func() *Tensor { return LayerNorm(x, g, bt, 1e-5) }},
+		{"rms_norm", func() *Tensor { return RMSNorm(x, g, 1e-5) }},
+		{"embedding", func() *Tensor { return Embedding(w, idx, R) }},
+		{"contiguous", func() *Tensor { return x.Reshape(D, R).T().Contiguous() }},
+		{"clone", func() *Tensor { return x.Clone() }},
+		{"matmul_devrik", func() *Tensor { return MatMul(x.Reshape(D, R).T(), w) }},
+		{"bf16", func() *Tensor { return x.Cast(BFloat16).Cast(Float32) }},
+	}
+	be := cpuBackend{}
+	nan := float32(math.NaN())
+	for _, is := range islemler {
+		want := is.f().Data()
+		for _, dt := range []DType{Float32, BFloat16} {
+			var depolar []Storage
+			for k := 0; k < 4; k++ {
+				s := be.Alloc(R*D, dt)
+				be.Fill(s, nan)
+				depolar = append(depolar, s)
+			}
+			for _, s := range depolar {
+				be.Release(s)
+			}
+		}
+		got := is.f().Data()
+		yakin(t, is.ad, got, want, 0)
 	}
 }

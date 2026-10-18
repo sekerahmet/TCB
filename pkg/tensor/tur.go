@@ -78,7 +78,7 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	if !dt.IsFloat() {
 		panic(fmt.Sprintf("tensor: Cast yalnızca kayan noktalı türlere yapılabilir, %s verildi", dt))
 	}
-	out := zerosOf(t.be, t.shape, dt)
+	out := emptyOf(t.be, t.shape, dt)
 	t.be.Copy(out.storage, 0, t.view())
 	return track(out, "cast", []*Tensor{t}, func() { gradDevret(t, out) })
 }

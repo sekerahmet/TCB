@@ -78,7 +78,7 @@ var binopAd = [...]string{"add", "sub", "mul", "div"}
 func binary(a, b *Tensor, op BinOp) *Tensor {
 	be := sameDevice(binopAd[op], a, b)
 	outShape := broadcastShapes(a.shape, b.shape)
-	out := zerosOf(be, outShape, sonucTuru(a.tur, b.tur))
+	out := emptyOf(be, outShape, sonucTuru(a.tur, b.tur))
 	be.Binary(op, out.storage, outShape, a.view(), b.view())
 	var kaydet []*Tensor // geri yayılımın okuduğu girdiler
 	switch op {
@@ -156,7 +156,7 @@ var unopAd = map[UnOp]string{
 }
 
 func unary(t *Tensor, op UnOp, p float32) *Tensor {
-	out := zerosOf(t.be, t.shape, t.tur)
+	out := emptyOf(t.be, t.shape, t.tur)
 	t.be.Unary(op, p, out.storage, t.view())
 	var kaydet []*Tensor
 	switch op {

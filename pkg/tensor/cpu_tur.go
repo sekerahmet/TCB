@@ -245,12 +245,21 @@ func cpuTurDenetle(dt DType) {
 
 // Alloc sıfırlanmış depolama verir; uygun tür ve boyutta iade edilmiş bir
 // depolama varsa onu (paralel olarak sıfırlayıp) yeniden kullanır.
-func (cpuBackend) Alloc(n int, dt DType) Storage {
+func (b cpuBackend) Alloc(n int, dt DType) Storage { return b.ayir(n, dt, true) }
+
+// allocBos (bosAyirici) içeriği belirsiz depolama verir: havuzdan gelen
+// depolama sıfırlanmaz. Yalnızca her elemanı yazılacak çıktılar için.
+func (b cpuBackend) allocBos(n int, dt DType) Storage { return b.ayir(n, dt, false) }
+
+func (cpuBackend) ayir(n int, dt DType, sifirla bool) Storage {
 	cpuTurDenetle(dt)
 	if n >= havuzEnAz {
 		if h := havuzFor(havuzAnahtar{dt, n}, false); h != nil {
 			if s, ok := h.Get().(*cpuStorage); ok {
 				s.iade = false
+				if !sifirla {
+					return s
+				}
 				if dt == Float32 {
 					d := s.d
 					parallelFor(len(d), 1, func(lo, hi int) { clear(d[lo:hi]) })
@@ -262,6 +271,7 @@ func (cpuBackend) Alloc(n int, dt DType) Storage {
 			}
 		}
 	}
+	// Yeni ayırmayı Go çalışma zamanı zaten sıfırlar.
 	if dt == Float32 {
 		return &cpuStorage{d: make([]float32, n)}
 	}

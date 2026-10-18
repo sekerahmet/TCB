@@ -193,14 +193,14 @@ func (t *Tensor) Contiguous() *Tensor {
 	if t.IsContiguous() {
 		return t
 	}
-	out := zerosOf(t.be, t.shape, t.tur)
+	out := emptyOf(t.be, t.shape, t.tur)
 	t.be.Copy(out.storage, 0, t.view())
 	return track(out, "contiguous", []*Tensor{t}, func() { gradDevret(t, out) })
 }
 
 // Clone verinin bitişik bir kopyasını üretir (türevlenebilir).
 func (t *Tensor) Clone() *Tensor {
-	out := zerosOf(t.be, t.shape, t.tur)
+	out := emptyOf(t.be, t.shape, t.tur)
 	t.be.Copy(out.storage, 0, t.view())
 	return track(out, "clone", []*Tensor{t}, func() { gradDevret(t, out) })
 }
