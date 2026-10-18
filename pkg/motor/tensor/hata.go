@@ -168,7 +168,7 @@ func tamSayi(v vm.Value) (int, bool) {
 func sekilListesi(fn string, v vm.Value) ([]int, error) {
 	l, ok := v.(*vm.ListVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", fn, v.Type())
+		return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", fn, tipAdi(v))
 	}
 	sh := make([]int, len(l.Elements))
 	toplamEleman := 1

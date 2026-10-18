@@ -208,7 +208,7 @@ func tensoreCevir(fn string, v vm.Value) (*ct.Tensor, error) {
 		}
 		return ct.New(veri, sh...), nil
 	}
-	return nil, fmt.Errorf("%s: %s tipi tensöre dönüştürülemez (sayı, iç içe liste, matris ya da tensör bekleniyor)", fn, v.Type())
+	return nil, fmt.Errorf("%s: %s tipi tensöre dönüştürülemez (sayı, iç içe liste, matris ya da tensör bekleniyor)", fn, tipAdi(v))
 }
 
 // listeVerisi iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
@@ -243,7 +243,7 @@ func listeVerisi(fn string, l *vm.ListVal) ([]float32, []int, error) {
 				if _, liste := v.(*vm.ListVal); liste {
 					return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte sayı yerine liste var", fn, eksen+1)
 				}
-				return fmt.Errorf("%s: tensör elemanları sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), v.Type())
+				return fmt.Errorf("%s: tensör elemanları sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), tipAdi(v))
 			}
 			veri = append(veri, float32(f))
 			return nil
@@ -770,7 +770,7 @@ func (d *Deger) cihaza(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Val
 	}
 	s, ok := args[0].(*vm.StringVal)
 	if !ok {
-		return nil, fmt.Errorf("cihaza() cihaz adını metin olarak bekler (\"cpu\" ya da \"gpu\"), %s verildi", args[0].Type())
+		return nil, fmt.Errorf("cihaza() cihaz adını metin olarak bekler (\"cpu\" ya da \"gpu\"), %s verildi", tipAdi(args[0]))
 	}
 	dev, err := cihazCoz(s.Val)
 	if err != nil {

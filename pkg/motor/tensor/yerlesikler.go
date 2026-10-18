@@ -114,7 +114,7 @@ func eskiCagir(ad string, eski vm.BuiltinFunc, m *vm.VM, args []vm.Value, named 
 	if len(args) == 0 {
 		return nil, fmt.Errorf("%s() en az 1 parametre bekler", ad)
 	}
-	return nil, fmt.Errorf("%s() bir tensör bekler, %s verildi", ad, args[0].Type())
+	return nil, fmt.Errorf("%s() bir tensör bekler, %s verildi", ad, tipAdi(args[0]))
 }
 
 // yeniYerlesik eski karşılığı olmayan bir yerleşik kurar.
@@ -203,7 +203,7 @@ func sekilliOlusturucu(ad string, olustur func(sh []int, named map[string]vm.Val
 					return eski(m, args, named)
 				}
 				if _, tam := args[0].(*vm.IntVal); !tam {
-					return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", ad, args[0].Type())
+					return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", ad, tipAdi(args[0]))
 				}
 				// Eski karşılığı olmayanlarda tam sayılar da şekil sayılır: rastgele_normal(2, 3).
 				args = []vm.Value{&vm.ListVal{Elements: args}}
@@ -241,7 +241,7 @@ func rastgeleNormal(sh []int, named map[string]vm.Value) (*ct.Tensor, error) {
 	if s, ok := named["tohum"]; ok {
 		tohum, ok := s.(*vm.IntVal)
 		if !ok {
-			return nil, fmt.Errorf("rastgele_normal: tohum tam sayı olmalıdır, %s verildi", s.Type())
+			return nil, fmt.Errorf("rastgele_normal: tohum tam sayı olmalıdır, %s verildi", tipAdi(s))
 		}
 		return ct.Randn(rand.New(rand.NewSource(tohum.Val)), sh...), nil
 	}
@@ -272,9 +272,9 @@ func birli(v *vm.VM, adlar []string, fn func(*ct.Tensor) *ct.Tensor, sayi64 func
 				if len(args) != 1 {
 					return nil, fmt.Errorf("%s(x) 1 parametre bekler, %d verildi", ad, len(args))
 				}
-				if f, ok := skalerMi(args[0]); ok && sayi64 != nil {
-					return &vm.FloatVal{Val: sayi64(f)}, nil
-				}
+				// Eski karşılığı olmayan yeni adlar da tensör olmayan girdide eski biçimi
+				// izler: sayı → Ondalık, liste → aynı yapıda liste, matris → Matris.
+				return eskiBicimdeUygula(ad, args[0], sayi64)
 			}
 			if err := adliDenetle(ad+"()", named); err != nil {
 				return nil, err
@@ -290,6 +290,81 @@ func birli(v *vm.VM, adlar []string, fn func(*ct.Tensor) *ct.Tensor, sayi64 func
 			return Yeni(r), nil
 		}
 	})
+}
+
+// eskiBicimdeUygula eleman bazlı fonksiyonu tensör olmayan bir değere, değerin kendi
+// biçimini koruyarak (float64 ile) uygular.
+func eskiBicimdeUygula(ad string, v vm.Value, f func(float64) float64) (vm.Value, error) {
+	switch x := v.(type) {
+	case *vm.ListVal:
+		el := make([]vm.Value, len(x.Elements))
+		for i, e := range x.Elements {
+			r, err := eskiBicimdeUygula(ad, e, f)
+			if err != nil {
+				return nil, err
+			}
+			el[i] = r
+		}
+		return &vm.ListVal{Elements: el}, nil
+	case *vm.MatrixVal:
+		m := vm.NewMatrix(x.Rows, x.Cols)
+		for i := range x.Data {
+			for j, e := range x.Data[i] {
+				m.Data[i][j] = f(e)
+			}
+		}
+		return m, nil
+	case *yz.TensorVal:
+		return nil, fmt.Errorf("%s: tek sayılık türev değeri (tensör(3.0)) desteklenmez; tensör([...]) ile çok boyutlu tensör kullanın", ad)
+	}
+	if s, ok := vm.ToFloat(v); ok {
+		return &vm.FloatVal{Val: f(s)}, nil
+	}
+	return nil, fmt.Errorf("%s: sayı, liste, matris ya da tensör bekleniyor, %s verildi", ad, tipAdi(v))
+}
+
+// logSoftmaxListe log_softmax'ı düz sayı listesine (liste döner) ya da matrisin
+// satırlarına (Matris döner) eski softmax'ın biçimiyle uygular.
+func logSoftmaxListe(v vm.Value) (vm.Value, error) {
+	satir := func(x []float64) []float64 {
+		enb := math.Inf(-1)
+		for _, e := range x {
+			enb = math.Max(enb, e)
+		}
+		s := 0.0
+		for _, e := range x {
+			s += math.Exp(e - enb)
+		}
+		lse := enb + math.Log(s)
+		out := make([]float64, len(x))
+		for i, e := range x {
+			out[i] = e - lse
+		}
+		return out
+	}
+	switch x := v.(type) {
+	case *vm.MatrixVal:
+		m := vm.NewMatrix(x.Rows, x.Cols)
+		for i := range x.Data {
+			copy(m.Data[i], satir(x.Data[i]))
+		}
+		return m, nil
+	case *vm.ListVal:
+		sayilar := make([]float64, len(x.Elements))
+		for i, e := range x.Elements {
+			f, ok := vm.ToFloat(e)
+			if !ok {
+				return nil, fmt.Errorf("log_softmax: liste düz sayı listesi olmalıdır (%d. eleman %s); iç içe veri için log_softmax(tensör(...), eksen: -1) yazın", i+1, tipAdi(e))
+			}
+			sayilar[i] = f
+		}
+		el := make([]vm.Value, len(sayilar))
+		for i, f := range satir(sayilar) {
+			el[i] = &vm.FloatVal{Val: f}
+		}
+		return &vm.ListVal{Elements: el}, nil
+	}
+	return nil, fmt.Errorf("log_softmax: liste, matris ya da tensör bekleniyor, %s verildi", tipAdi(v))
 }
 
 // eksenArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.
@@ -325,6 +400,11 @@ func softmaxKaydet(v *vm.VM, adlar []string, logKip bool) {
 				if len(args) == 0 {
 					return nil, fmt.Errorf("%s(x, eksen: -1) en az 1 parametre bekler", ad)
 				}
+				// log_softmax'ın eski karşılığı yok; softmax'ın liste/matris biçimini izler.
+				if len(args) > 1 || len(named) > 0 {
+					return nil, fmt.Errorf("%s: eksen yalnızca tensörlerde kullanılır; %s(tensör(...), eksen: -1) yazın", ad, ad)
+				}
+				return logSoftmaxListe(args[0])
 			}
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, eksen: -1) en fazla 2 parametre alır, %d verildi", ad, len(args))
@@ -514,7 +594,7 @@ func tamIndeksler(fn string, v vm.Value) ([]int, []int, error) {
 			return nil, nil, err
 		}
 	default:
-		return nil, nil, fmt.Errorf("%s: indeksler tam sayı, tam sayı listesi ya da tensör olmalıdır, %s verildi", fn, v.Type())
+		return nil, nil, fmt.Errorf("%s: indeksler tam sayı, tam sayı listesi ya da tensör olmalıdır, %s verildi", fn, tipAdi(v))
 	}
 	out := make([]int, len(veri))
 	for i, f := range veri {
@@ -535,7 +615,7 @@ func gomme(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, erro
 	}
 	tablo, ok := args[0].(*Deger)
 	if !ok {
-		return nil, fmt.Errorf("gömme: tablo bir tensör olmalıdır, %s verildi", args[0].Type())
+		return nil, fmt.Errorf("gömme: tablo bir tensör olmalıdır, %s verildi", tipAdi(args[0]))
 	}
 	tsh := tablo.t.Shape()
 	if len(tsh) != 2 {
@@ -587,6 +667,9 @@ func caprazEntropi(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Val
 	if C > 0 {
 		satir = cikti.Numel() / C
 	}
+	if len(hedef) != satir && C > 1 && len(hedef) == cikti.Numel() && sifirBirMi(hedef) {
+		return nil, fmt.Errorf("çapraz_entropi: hedef sınıf indeksleri olmalı (ör. [2, 0, 1]); one-hot verdiniz gibi görünüyor (%s şeklindeki çıktıyla aynı sayıda 0/1); her satır için 1'in konumunu verin", sekilMetni(sh))
+	}
 	if len(hedef) != satir {
 		return nil, fmt.Errorf("çapraz_entropi: %s şeklindeki çıktı için %d hedef bekleniyor, %d verildi", sekilMetni(sh), satir, len(hedef))
 	}
@@ -600,6 +683,15 @@ func caprazEntropi(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Val
 		return nil, err
 	}
 	return Yeni(r), nil
+}
+
+func sifirBirMi(x []int) bool {
+	for _, v := range x {
+		if v != 0 && v != 1 {
+			return false
+		}
+	}
+	return true
 }
 
 // normParam ağırlık/sapma argümanını okur (yok verilebilir) ve şeklini denetler.
@@ -770,5 +862,5 @@ func turevsiz(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 		}
 		return sonuc, nil
 	}
-	return nil, fmt.Errorf("türevsiz { ... } bir blok ya da türevsiz(x) bir tensör bekler, %s verildi", args[0].Type())
+	return nil, fmt.Errorf("türevsiz { ... } bir blok ya da türevsiz(x) bir tensör bekler, %s verildi", tipAdi(args[0]))
 }

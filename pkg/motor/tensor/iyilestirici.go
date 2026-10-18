@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"tr_dili/pkg/motor/yz"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
@@ -71,7 +72,7 @@ func parametreler(fn string, v vm.Value) ([]*ct.Tensor, error) {
 	case *vm.ListVal:
 		liste = x.Elements
 	default:
-		return nil, fmt.Errorf("%s: parametreler bir tensör listesi olmalıdır, %s verildi", fn, v.Type())
+		return nil, fmt.Errorf("%s: parametreler bir tensör listesi olmalıdır, %s verildi", fn, tipAdi(v))
 	}
 	if len(liste) == 0 {
 		return nil, fmt.Errorf("%s: parametre listesi boş", fn)
@@ -81,7 +82,11 @@ func parametreler(fn string, v vm.Value) ([]*ct.Tensor, error) {
 	for i, el := range liste {
 		d, ok := el.(*Deger)
 		if !ok {
-			return nil, fmt.Errorf("%s: %d. parametre bir tensör olmalıdır, %s verildi", fn, i+1, el.Type())
+			ipucu := ""
+			if _, eski := el.(*yz.TensorVal); eski {
+				ipucu = "; iyileştirici parametresi için tensör([3.0], türev_izle: doğru) gibi çok boyutlu tensör kullanın"
+			}
+			return nil, fmt.Errorf("%s: %d. parametre çok boyutlu bir tensör olmalıdır, %s verildi%s", fn, i+1, tipAdi(el), ipucu)
 		}
 		t := d.t
 		if !t.RequiresGrad() {
@@ -107,7 +112,7 @@ func adliOran(fn string, named map[string]vm.Value, varsayilan float64, enAz flo
 	}
 	f, ok := vm.ToFloat(v)
 	if !ok {
-		return 0, fmt.Errorf("%s: %s sayı olmalıdır, %s verildi", fn, adlar[0], v.Type())
+		return 0, fmt.Errorf("%s: %s sayı olmalıdır, %s verildi", fn, adlar[0], tipAdi(v))
 	}
 	if f < enAz {
 		return 0, fmt.Errorf("%s: %s en az %g olmalıdır, %g verildi", fn, adlar[0], enAz, f)

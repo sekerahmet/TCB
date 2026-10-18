@@ -86,6 +86,11 @@ func asTensor(v vm.Value) (*TensorVal, error) {
 	if fv, ok := vm.ToFloat(v); ok {
 		return NewTensor(fv, false), nil
 	}
+	if v.Type() == vm.VAL_TENSOR {
+		// Çok boyutlu tensör (pkg/motor/tensor) de "Tensör" tipini taşır; çelişkili
+		// "Tensör tipi Tensör işlemine dönüştürülemez" mesajı yerine ayrımı açıkla.
+		return nil, fmt.Errorf("tek sayılık türev değeri (tensör(3.0)) çok boyutlu tensörle işleme giremez; ikisini de tensör([...]) ile oluşturun")
+	}
 	return nil, fmt.Errorf("%s tipi Tensör işlemine dönüştürülemez", v.Type())
 }
 

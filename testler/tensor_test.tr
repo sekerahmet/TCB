@@ -63,6 +63,10 @@ test "15.4 matematik fonksiyonları ve indirgemeler" {
     eşit_mi(0.5, sigmoid(sıfırlar([1])).değer[0])
     eşit_mi(0.0, tanh(sıfırlar([1])).değer[0])
     eşit_mi(0.0, gelu(sıfırlar([1])).değer[0])
+    // Tensör olmayan girdide sonuç girdinin biçimindedir.
+    eşit_mi([1.0, 1.0], üstel([0, 0]))
+    eşit_mi("Liste", tip(relu([1, -2])))
+    eşit_mi("Liste", tip(log_softmax([1, 2])))
     değişken s = softmax(a, eksen: -1)
     eşit_mi(1.0, yuvarla(toplam(s, eksen: 1).değer[0], 5))
     eşit_mi(1.0, yuvarla(toplam(üstel(log_softmax(a))).değer / 2, 5))
@@ -150,4 +154,6 @@ test "15.8 hatalar şekli gösterir ve yakalanabilir" {
     doğrula(hata_metni(() => sıfırlar([2, 3]).şekillendir([4, 2])).içerir("[2, 3] şeklindeki tensör (6 eleman) [4, 2] şekline sokulamaz"))
     doğrula(hata_metni(() => tensör([[1, 2], [3]])).içerir("iç içe liste düzensiz"))
     doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [5])).içerir("tablonun dışında"))
+    doğrula(hata_metni(() => çapraz_entropi(sıfırlar([2, 3]), [[0, 1, 0], [1, 0, 0]])).içerir("one-hot verdiniz gibi görünüyor"))
+    doğrula(hata_metni(() => AdamW([tensör(3.0)])).içerir("tek sayılık türev değeri (tensör(3.0)) verildi"))
 }
