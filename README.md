@@ -131,3 +131,7 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 | `pkg/bicim` | `tr biçimle` biçimlendiricisi |
 | `testler/` | Dil tanımının kural testleri |
 | `vscode_eklentisi/` | VS Code eklentisi |
+
+## Lisans
+
+TR, [Apache Lisansı 2.0](LICENSE) ile dağıtılır: kodu kullanabilir, değiştirebilir ve dağıtabilirsiniz; lisans metni ve değişiklik bildirimleri korunmalıdır.
