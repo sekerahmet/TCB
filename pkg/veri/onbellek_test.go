@@ -343,3 +343,41 @@ func TestOnbellekKopyaDogrulama(t *testing.T) {
 		t.Fatalf("isabet/ıska yanlış: %+v", ist)
 	}
 }
+
+func TestOnbellekIsciSayilari(t *testing.T) {
+	taban := runtime.NumGoroutine()
+	kaynak := t.TempDir()
+	var yollar []string
+	var boy int64
+	for i := 0; i < 6; i++ {
+		y, b := dosyaBoyutlu(t, kaynak, parcaAdi(i), 3000, uint64(i))
+		yollar, boy = append(yollar, y), b
+	}
+	for _, isci := range []int{1, 2, 4} {
+		o, err := OnbellekAc(OnbellekSecenekleri{Dizin: t.TempDir(), Kota: 6 * boy, Isci: isci})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if runtime.NumGoroutine() < taban+isci {
+			t.Fatalf("%d işçi gorutini başlamadı", isci)
+		}
+		o.Hazirla(yollar)
+		if err := o.Bekle(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		// Bekle dönmeden önce son işçi bitmiş olabilir; tüm dosyalar yerelde olmalı.
+		for _, y := range yollar {
+			yl, birak, err := o.Getir(context.Background(), y)
+			if err != nil || !yereldeMi(o, yl) {
+				t.Fatal(err)
+			}
+			birak()
+		}
+		ist := o.Istatistik()
+		if ist.KopyalananBayt != 6*boy || ist.Isabet != 6 {
+			t.Fatalf("işçi %d: önden kopya eksik ya da tekrarlı: %+v", isci, ist)
+		}
+		_ = o.Kapat()
+		gorutinBekle(t, taban)
+	}
+}

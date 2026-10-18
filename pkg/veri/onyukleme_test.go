@@ -6,6 +6,7 @@ import (
 	"io"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -165,5 +166,127 @@ func TestOnYukleyiciBeklemez(t *testing.T) {
 	}
 	if gecen := time.Since(bas); gecen > 20*time.Millisecond {
 		t.Fatalf("hazır toplu işler için bekleme oldu: %v", gecen)
+	}
+}
+
+// izliKaynak, Doldur sürerken Kapat çağrılırsa bunu kaydeder.
+type izliKaynak struct {
+	sayacKaynak
+	calisiyor atomic.Bool
+	kapatma   atomic.Int64
+	yaris     atomic.Bool
+}
+
+func (k *izliKaynak) Doldur(ctx context.Context, ti *TopluIs) error {
+	k.calisiyor.Store(true)
+	defer k.calisiyor.Store(false)
+	return k.sayacKaynak.Doldur(ctx, ti)
+}
+
+func (k *izliKaynak) Kapat() error {
+	if k.calisiyor.Load() {
+		k.yaris.Store(true)
+	}
+	k.kapatma.Add(1)
+	return nil
+}
+
+func TestOnYukleyiciKaynagiUreticidenSonraKapatir(t *testing.T) {
+	taban := runtime.NumGoroutine()
+	for i := 0; i < 20; i++ {
+		k := &izliKaynak{sayacKaynak: sayacKaynak{gecikme: time.Millisecond}}
+		o := OnYukle(context.Background(), k, 2)
+		var ti TopluIs
+		_ = o.Al(&ti)
+		_ = o.Kapat()
+		_ = o.Kapat()
+		if k.yaris.Load() {
+			t.Fatal("kaynak, üretici Doldur içindeyken kapatıldı")
+		}
+		if k.kapatma.Load() != 1 {
+			t.Fatalf("kaynak %d kez kapatıldı, 1 bekleniyordu", k.kapatma.Load())
+		}
+	}
+	gorutinBekle(t, taban)
+}
+
+// takilanKaynak, bağlamı dinlemeyen ve birak kapanana kadar takılan bir
+// okumayı taklit eder.
+type takilanKaynak struct {
+	birak     chan struct{}
+	kapatildi atomic.Bool
+}
+
+func (k *takilanKaynak) Doldur(ctx context.Context, ti *TopluIs) error {
+	<-k.birak
+	return io.EOF
+}
+
+func (k *takilanKaynak) Kapat() error { k.kapatildi.Store(true); return nil }
+
+func TestOnYukleyiciZamanliKapatma(t *testing.T) {
+	taban := runtime.NumGoroutine()
+	k := &takilanKaynak{birak: make(chan struct{})}
+	o := OnYukle(context.Background(), k, 2)
+	time.Sleep(5 * time.Millisecond)
+	bas := time.Now()
+	err := o.KapatZamanli(30 * time.Millisecond)
+	if err == nil || !strings.Contains(err.Error(), "durmadı") {
+		t.Fatalf("zaman aşımı hatası bekleniyordu: %v", err)
+	}
+	if gecen := time.Since(bas); gecen > time.Second {
+		t.Fatalf("zamanlı kapatma çok uzun sürdü: %v", gecen)
+	}
+	if k.kapatildi.Load() {
+		t.Fatal("üretici çalışırken kaynak kapatıldı")
+	}
+	var ti TopluIs
+	if err := o.Al(&ti); !errors.Is(err, ErrKapali) {
+		t.Fatalf("ErrKapali bekleniyordu: %v", err)
+	}
+	close(k.birak) // takılan okuma döner
+	if err := o.Kapat(); err != nil {
+		t.Fatal(err)
+	}
+	if !k.kapatildi.Load() {
+		t.Fatal("kaynak sonunda kapatılmadı")
+	}
+	gorutinBekle(t, taban)
+}
+
+func TestOrnekleyiciEszamanliKapatma(t *testing.T) {
+	parcaSizintiDenetle(t)
+	d := kodluKume(t, 5000, 5000, 5000)
+	k, _ := KumeAc(d, KumeSecenekleri{})
+	for i := 0; i < 20; i++ {
+		o, _ := k.Ornekleyici(OrnekleyiciSecenekleri{B: 16, T: 31, Tohum: uint64(i)})
+		bitti := make(chan error, 1)
+		go func() {
+			var ti TopluIs
+			for {
+				if err := o.Sonraki(&ti); err != nil {
+					bitti <- err
+					return
+				}
+			}
+		}()
+		time.Sleep(time.Duration(i%3) * time.Millisecond)
+		if err := o.Kapat(); err != nil {
+			t.Fatal(err)
+		}
+		if err := <-bitti; !errors.Is(err, ErrKapali) {
+			t.Fatalf("ErrKapali bekleniyordu: %v", err)
+		}
+	}
+	// Önden yükleyici örnekleyiciyi kendisi kapatır.
+	o, _ := k.Ornekleyici(OrnekleyiciSecenekleri{B: 4, T: 31})
+	y := OnYukle(context.Background(), o, 3)
+	var ti TopluIs
+	if err := y.Al(&ti); err != nil {
+		t.Fatal(err)
+	}
+	_ = y.Kapat()
+	if err := o.Sonraki(&ti); !errors.Is(err, ErrKapali) {
+		t.Fatalf("önden yükleyici örnekleyiciyi kapatmadı: %v", err)
 	}
 }

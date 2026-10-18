@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 )
 
 // ---------------------------------------------------------------------------
@@ -21,7 +22,9 @@ type SiraliSecenekleri struct {
 // SiraliOkuyucu, parçaları ad sırasıyla, karıştırmadan ve pencereleri
 // sırayla okur. Pencereler parça sınırını aşmaz. Son toplu iş B'den az
 // satırlı olabilir (ti.B buna göre ayarlanır); ardından io.EOF döner.
+// Yöntemler kilitle korunur; Kapat süren bir Doldur'un bitmesini bekler.
 type SiraliOkuyucu struct {
+	mu     sync.Mutex
 	k      *Kume
 	s      SiraliSecenekleri
 	satir  int64
@@ -61,6 +64,8 @@ func (so *SiraliOkuyucu) PencereSayisi() int64 {
 
 // Doldur, ti'yi sonraki en çok B pencereyle doldurur; bitince io.EOF döner.
 func (so *SiraliOkuyucu) Doldur(ctx context.Context, ti *TopluIs) error {
+	so.mu.Lock()
+	defer so.mu.Unlock()
 	if so.kapali {
 		return ErrKapali
 	}
@@ -111,6 +116,12 @@ func (so *SiraliOkuyucu) Doldur(ctx context.Context, ti *TopluIs) error {
 
 // Basa, okuyucuyu başa sarar.
 func (so *SiraliOkuyucu) Basa() error {
+	so.mu.Lock()
+	defer so.mu.Unlock()
+	return so.basa()
+}
+
+func (so *SiraliOkuyucu) basa() error {
 	var err error
 	if so.parca != nil {
 		err = so.parca.Kapat()
@@ -122,6 +133,8 @@ func (so *SiraliOkuyucu) Basa() error {
 
 // Kapat, açık parçayı kapatır.
 func (so *SiraliOkuyucu) Kapat() error {
+	so.mu.Lock()
+	defer so.mu.Unlock()
 	so.kapali = true
-	return so.Basa()
+	return so.basa()
 }

@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"sort"
+	"sync"
 )
 
 // Durum, bir örnekleyicinin konumudur; eğitimi kaldığı yerden sürdürmek
@@ -21,6 +22,10 @@ type Durum struct {
 // VarsayilanGrupBoyu, bir grupta birlikte karıştırılan parça sayısıdır.
 const VarsayilanGrupBoyu = 4
 
+// VarsayilanIleriBak, önbellekte şimdiki grubun ötesinde hazırlanan parça
+// sayısıdır.
+const VarsayilanIleriBak = 4
+
 // OrnekleyiciSecenekleri, rastgele pencere örneklemenin ayarlarıdır.
 type OrnekleyiciSecenekleri struct {
 	B, T  int    // toplu iş boyutu ve bağlam uzunluğu; satırlar T+1 tokendır
@@ -33,7 +38,7 @@ type OrnekleyiciSecenekleri struct {
 	// Baslangic verilirse örnekleme bu konumdan sürer.
 	Baslangic *Durum
 	// IleriBak, önbellek etkinse şimdiki grubun parçalarından sonra kaç
-	// parçanın arka planda hazırlanacağıdır. 0 → varsayılan 3, negatif →
+	// parçanın arka planda hazırlanacağıdır. 0 → VarsayilanIleriBak, negatif →
 	// hiç. Önbellek kotası en az (GrupBoyu + IleriBak) × en büyük parça
 	// boyutu olmalıdır; değilse örnekleyici kurulmaz.
 	IleriBak int
@@ -55,9 +60,11 @@ type OrnekleyiciSecenekleri struct {
 // (pencere sayısı 2^32'yi aşarsa 8 bayt); ör. 4 parça × 250M token, T=1024
 // için yaklaşık 4 MB.
 //
-// Ornekleyici tek bir üretici (ör. OnYukleyici) tarafından sürülmelidir;
-// Doldur ve Kapat yine de kilitle korunur.
+// Ornekleyici tek bir üretici (ör. OnYukleyici) tarafından sürülmelidir.
+// Tüm yöntemler kilitle korunur: Kapat, süren bir Doldur'un bitmesini
+// bekler ve ardından parçaları kapatır; sonraki Doldur ErrKapali döner.
 type Ornekleyici struct {
+	mu    sync.Mutex
 	k     *Kume
 	s     OrnekleyiciSecenekleri
 	satir int64
@@ -98,7 +105,7 @@ func (k *Kume) Ornekleyici(s OrnekleyiciSecenekleri) (*Ornekleyici, error) {
 	}
 	s.GrupBoyu = min(s.GrupBoyu, len(k.parcalar))
 	if s.IleriBak == 0 {
-		s.IleriBak = 3
+		s.IleriBak = VarsayilanIleriBak
 	}
 	satir := int64(s.T) + 1
 	uygun := false
@@ -285,6 +292,8 @@ func (o *Ornekleyici) ilerle() error {
 // Doldur, ti'yi B adet rastgele pencereyle doldurur. Bir hata olursa
 // örnekleyicinin konumu toplu işin ortasında kalabilir.
 func (o *Ornekleyici) Doldur(ctx context.Context, ti *TopluIs) error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
 	if o.kapali {
 		return ErrKapali
 	}
@@ -312,7 +321,7 @@ func (o *Ornekleyici) Doldur(ctx context.Context, ti *TopluIs) error {
 		}
 		o.pencere++
 	}
-	ti.Durum = o.Durum()
+	ti.Durum = o.durum()
 	return nil
 }
 
@@ -320,10 +329,20 @@ func (o *Ornekleyici) Doldur(ctx context.Context, ti *TopluIs) error {
 func (o *Ornekleyici) Sonraki(ti *TopluIs) error { return o.Doldur(context.Background(), ti) }
 
 // Durum, sonraki pencerenin konumudur.
-func (o *Ornekleyici) Durum() Durum { return Durum{Donem: o.donem, Sira: o.sira, Pencere: o.pencere} }
+func (o *Ornekleyici) Durum() Durum {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return o.durum()
+}
+
+func (o *Ornekleyici) durum() Durum { return Durum{Donem: o.donem, Sira: o.sira, Pencere: o.pencere} }
 
 // Donem, şimdiki dönem numarasıdır.
-func (o *Ornekleyici) Donem() int { return o.donem }
+func (o *Ornekleyici) Donem() int {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return o.donem
+}
 
 // GrupSayisi, bir dönemdeki grup sayısıdır.
 func (o *Ornekleyici) GrupSayisi() int { return o.grupS }
@@ -339,6 +358,8 @@ func (o *Ornekleyici) DonemPencereSayisi() int64 {
 
 // Kapat, açık parçaları kapatır. Birden çok kez çağrılabilir.
 func (o *Ornekleyici) Kapat() error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
 	o.kapali = true
 	o.yuklu = false
 	return o.grubuKapat()

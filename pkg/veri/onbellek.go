@@ -25,6 +25,8 @@ type OnbellekSecenekleri struct {
 	// ileri bakış) × en büyük parça boyutu olmalıdır; örnekleyici kurulurken
 	// denetlenir.
 	Kota int64
+	// Isci, arka planda aynı anda kopyalayan gorutin sayısıdır (varsayılan 2).
+	Isci int
 }
 
 // OnbellekIstatistik, önbelleğin sayaçlarıdır.
@@ -60,6 +62,8 @@ type Onbellek struct {
 	istenenAd map[string]bool
 	nesil     uint64
 	bekleyen  bool // Hazirla listesi henüz işlenip bitmedi
+	aktif     int  // listeyi işlemekte olan işçi sayısı
+	isci      int
 	kapali    bool
 	ist       OnbellekIstatistik
 	sonHata   error
@@ -98,6 +102,9 @@ func OnbellekAc(s OnbellekSecenekleri) (*Onbellek, error) {
 	if s.Kota <= 0 {
 		return nil, fmt.Errorf("veri: önbellek kotası pozitif olmalı")
 	}
+	if s.Isci <= 0 {
+		s.Isci = 2
+	}
 	if err := os.MkdirAll(s.Dizin, 0o755); err != nil {
 		return nil, fmt.Errorf("veri: önbellek dizini oluşturulamadı: %w", err)
 	}
@@ -109,7 +116,7 @@ func OnbellekAc(s OnbellekSecenekleri) (*Onbellek, error) {
 	o := &Onbellek{
 		dizin: s.Dizin, kota: s.Kota,
 		kayit: map[string]*obGirdi{}, istenenAd: map[string]bool{},
-		uyari: make(chan struct{}, 1), ctx: ctx, iptal: iptal,
+		uyari: make(chan struct{}, s.Isci), ctx: ctx, iptal: iptal, isci: s.Isci,
 	}
 	for _, g := range girdiler {
 		ad := g.Name()
@@ -139,8 +146,10 @@ func OnbellekAc(s OnbellekSecenekleri) (*Onbellek, error) {
 		o.yerAc(0, false)
 		o.mu.Unlock()
 	}
-	o.wg.Add(1)
-	go o.calis()
+	o.wg.Add(o.isci)
+	for i := 0; i < o.isci; i++ {
+		go o.calis()
+	}
 	return o, nil
 }
 
@@ -428,7 +437,8 @@ func kopyala(ctx context.Context, kaynak, hedef string, beklenen int64, zaman ti
 }
 
 // Hazirla, sıradaki kaynak dosyaları (öncelik sırasıyla) bildirir; arka
-// plandaki gorutin bunları kotanın izin verdiği kadar kopyalar. Her çağrı
+// plandaki işçiler bunları sırayla ve aynı anda en çok Isci dosya olmak
+// üzere, kotanın izin verdiği kadar kopyalar. Her çağrı
 // önceki listenin yerini alır.
 func (o *Onbellek) Hazirla(kaynaklar []string) {
 	o.mu.Lock()
@@ -440,9 +450,12 @@ func (o *Onbellek) Hazirla(kaynaklar []string) {
 	o.nesil++
 	o.bekleyen = true
 	o.mu.Unlock()
-	select {
-	case o.uyari <- struct{}{}:
-	default:
+	// Tüm işçileri uyandır; meşgul olanlar listeyi bitirince yeniden bakar.
+	for i := 0; i < o.isci; i++ {
+		select {
+		case o.uyari <- struct{}{}:
+		default:
+		}
 	}
 }
 
@@ -456,6 +469,7 @@ func (o *Onbellek) calis() {
 		}
 		o.mu.Lock()
 		liste, nesil := o.istenen, o.nesil
+		o.aktif++
 		o.mu.Unlock()
 		for _, k := range liste {
 			if o.ctx.Err() != nil {
@@ -478,7 +492,8 @@ func (o *Onbellek) calis() {
 			}
 		}
 		o.mu.Lock()
-		if o.nesil == nesil {
+		o.aktif--
+		if o.nesil == nesil && o.aktif == 0 {
 			o.bekleyen = false
 		}
 		o.mu.Unlock()

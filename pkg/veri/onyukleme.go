@@ -2,7 +2,10 @@ package veri
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"sync"
+	"time"
 )
 
 // OnYukleyici, bir Kaynak'tan sonraki toplu işleri arka plandaki tek bir
@@ -11,8 +14,11 @@ import (
 // TopluIs'i ile takas eder (kopyalama yok) ve eskisini üreticiye geri verir.
 // Toplu işlerin sırası kaynağın üretim sırasıyla aynıdır.
 //
-// Kapat (ya da verilen bağlamın iptali) üreticiyi durdurur ve gorutinin
-// bitmesini bekler. Kaynağın kendisini kapatmak çağıranın işidir.
+// Kapat üreticiyi durdurur, gorutinin bitmesini bekler ve ANCAK bundan
+// sonra, kaynak bir Kapat() error ya da Close() error yöntemine sahipse
+// kaynağı kapatır; böylece kaynak, üretici onu kullanırken kapatılmaz.
+// Verilen bağlamın iptali de üreticiyi durdurur (kaynağı kapatmaz).
+// Takılan okumalara karşı KapatZamanli kullanılabilir.
 type OnYukleyici struct {
 	kaynak Kaynak
 	bos    chan *TopluIs
@@ -24,7 +30,13 @@ type OnYukleyici struct {
 	mu       sync.Mutex
 	kaliciHt error // kaynak hatası ya da kapatma; sonraki Al'lar bunu döner
 	kapandi  bool
+
+	kaynakBir sync.Once
+	kaynakHt  error
 }
+
+// kapatici, kendi Kapat yöntemi olan kaynaklardır (Ornekleyici, SiraliOkuyucu).
+type kapatici interface{ Kapat() error }
 
 type sonucTopluIs struct {
 	ti  *TopluIs
@@ -135,15 +147,48 @@ func (o *OnYukleyici) sonHata(err error) error {
 	return o.kaliciHt
 }
 
-// Kapat, üreticiyi durdurur ve bitmesini bekler. Birden çok kez çağrılabilir.
-func (o *OnYukleyici) Kapat() error {
+// Kapat, üreticiyi durdurur, bitmesini bekler ve ardından kaynağı (kapatılabilir
+// ise) kapatır. Birden çok kez çağrılabilir; kaynak yalnızca bir kez kapatılır.
+func (o *OnYukleyici) Kapat() error { return o.kapat(0) }
+
+// KapatZamanli, Kapat gibidir ama üretici sure içinde durmazsa (ör. ağ
+// okuması takıldıysa) beklemeyi bırakıp hata döner. Bu durumda kaynak
+// KAPATILMAZ (üretici hâlâ onu kullanıyor olabilir); üretici gorutini,
+// takılan okuma dönünce kendiliğinden biter. Sonraki bir Kapat çağrısı
+// üreticiyi yeniden bekler ve kaynağı kapatır.
+func (o *OnYukleyici) KapatZamanli(sure time.Duration) error {
+	if sure <= 0 {
+		return o.kapat(0)
+	}
+	return o.kapat(sure)
+}
+
+func (o *OnYukleyici) kapat(sure time.Duration) error {
 	o.mu.Lock()
 	o.kapandi = true
-	o.mu.Unlock()
-	o.iptal()
-	o.wg.Wait()
-	o.mu.Lock()
 	o.kaliciHt = ErrKapali
 	o.mu.Unlock()
-	return nil
+	o.iptal()
+	if sure > 0 {
+		bitti := make(chan struct{})
+		go func() { o.wg.Wait(); close(bitti) }()
+		zaman := time.NewTimer(sure)
+		defer zaman.Stop()
+		select {
+		case <-bitti:
+		case <-zaman.C:
+			return fmt.Errorf("veri: önden yükleyici %v içinde durmadı (takılan okuma?); kaynak kapatılmadı", sure)
+		}
+	} else {
+		o.wg.Wait()
+	}
+	o.kaynakBir.Do(func() {
+		switch k := o.kaynak.(type) {
+		case kapatici:
+			o.kaynakHt = k.Kapat()
+		case io.Closer:
+			o.kaynakHt = k.Close()
+		}
+	})
+	return o.kaynakHt
 }
