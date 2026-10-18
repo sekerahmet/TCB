@@ -262,7 +262,7 @@
         },
         {
           "name": "support.function.ai.tr",
-          "match": "\\b(tensör|sıfırlar|birler|rastgele_normal|birim_matris|devrik|birleştir|relu|sigmoid|tanh|gelu|softmax|log_softmax|üstel|log|sinüs|kosinüs|maks_indeks|geri_yayılım|türevsiz|AdamW|SGD|gradyan_kırp|gömme|katman_normu|rms_normu|dikkat|çapraz_entropi|kayıp_mse|sinir_ağı|model_yükle|parametreler|normalize_et|nokta_çarpım|kosinüs_benzerliği|öklid_uzaklığı|yz_sor|örnekle|tensör_kaydet|tensör_yükle|karışık_hassasiyet|veri_kümesi|parçalayıcı_yükle)\\b"
+          "match": "\\b(tensör|sıfırlar|birler|rastgele_normal|birim_matris|devrik|birleştir|relu|sigmoid|tanh|gelu|softmax|log_softmax|üstel|log|sinüs|kosinüs|maks_indeks|geri_yayılım|türevsiz|özel_türev|türev_denetle|AdamW|SGD|gradyan_kırp|gömme|katman_normu|rms_normu|dikkat|çapraz_entropi|kayıp_mse|sinir_ağı|model_yükle|parametreler|normalize_et|nokta_çarpım|kosinüs_benzerliği|öklid_uzaklığı|yz_sor|örnekle|tensör_kaydet|tensör_yükle|karışık_hassasiyet|veri_kümesi|parçalayıcı_yükle)\\b"
         },
         {
           "name": "support.function.data.tr",
