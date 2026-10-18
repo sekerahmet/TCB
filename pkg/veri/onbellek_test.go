@@ -278,3 +278,58 @@ func TestOnbellekKotaDenetimiVeSessizDonusYok(t *testing.T) {
 		t.Fatalf("sıralı okuyucu yetersiz kotayı kabul etti: %v", err)
 	}
 }
+
+func TestOnbellekKopyaDogrulama(t *testing.T) {
+	kaynak, yerel := t.TempDir(), t.TempDir()
+	a, boy := dosyaBoyutlu(t, kaynak, "a.npy", 1000, 1)
+	st, _ := os.Stat(a)
+	hedef := filepath.Join(yerel, yerelAd(a))
+	// Beklenenden kısa kopya (kaynak kopya sırasında kısalmış gibi) reddedilir
+	// ve geride ne hedef ne geçici dosya kalır.
+	err := kopyala(context.Background(), a, hedef, boy+10, st.ModTime())
+	if err == nil || !strings.Contains(err.Error(), "eksik") {
+		t.Fatalf("kısa kopya hatası bekleniyordu: %v", err)
+	}
+	if _, err := os.Stat(hedef); !os.IsNotExist(err) {
+		t.Fatal("kısa kopya hedef adına taşındı")
+	}
+	if _, err := os.Stat(hedef + geciciSoneki); !os.IsNotExist(err) {
+		t.Fatal("geçici dosya kaldı")
+	}
+	if err := kopyala(context.Background(), a, hedef, boy, st.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+
+	// Açılışta bozuk başlıklı ya da kesik kopyalar benimsenmez ve silinir.
+	b, _ := dosyaBoyutlu(t, kaynak, "b.npy", 1000, 2)
+	c, _ := dosyaBoyutlu(t, kaynak, "c.npy", 1000, 3)
+	bozuk := filepath.Join(yerel, yerelAd(b))
+	_ = os.WriteFile(bozuk, []byte("bu bir npy değil, bozuk kopya"), 0o644)
+	kesik := filepath.Join(yerel, yerelAd(c))
+	ham, _ := os.ReadFile(c)
+	_ = os.WriteFile(kesik, ham[:len(ham)/2], 0o644)
+	o, err := OnbellekAc(OnbellekSecenekleri{Dizin: yerel, Kota: 10 * boy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer o.Kapat()
+	if ist := o.Istatistik(); ist.DosyaSayisi != 1 {
+		t.Fatalf("yalnızca geçerli kopya benimsenmeli: %+v", ist)
+	}
+	for _, y := range []string{bozuk, kesik} {
+		if _, err := os.Stat(y); !os.IsNotExist(err) {
+			t.Fatalf("bozuk kopya silinmedi: %s", y)
+		}
+	}
+	// Geçerli kopya isabet verir; bozuklar yeniden kopyalanır.
+	for _, k := range []string{a, b, c} {
+		y, birak, err := o.Getir(context.Background(), k)
+		if err != nil || !yereldeMi(o, y) {
+			t.Fatal(err)
+		}
+		birak()
+	}
+	if ist := o.Istatistik(); ist.Isabet != 1 || ist.Iska != 2 {
+		t.Fatalf("isabet/ıska yanlış: %+v", ist)
+	}
+}

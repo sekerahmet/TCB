@@ -127,6 +127,10 @@ func OnbellekAc(s OnbellekSecenekleri) (*Onbellek, error) {
 		if err != nil {
 			continue
 		}
+		if !kopyaGecerli(filepath.Join(s.Dizin, ad), bilgi.Size()) {
+			_ = os.Remove(filepath.Join(s.Dizin, ad)) // bozuk ya da kesik kopya
+			continue
+		}
 		o.kayit[ad] = &obGirdi{ad: ad, boyut: bilgi.Size(), zaman: bilgi.ModTime(), hazir: true}
 		o.kullanim += bilgi.Size()
 	}
@@ -138,6 +142,25 @@ func OnbellekAc(s OnbellekSecenekleri) (*Onbellek, error) {
 	o.wg.Add(1)
 	go o.calis()
 	return o, nil
+}
+
+// kopyaGecerli, benimsenecek kopya .npy ise başlığının geçerli ve verinin
+// tam olduğunu denetler. Diğer dosyalarda yalnızca boyut (Getir sırasında
+// kaynakla) karşılaştırılır.
+func kopyaGecerli(yol string, boyut int64) bool {
+	if !strings.EqualFold(filepath.Ext(yol), ".npy") {
+		return true
+	}
+	f, err := os.Open(yol)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	bs, err := BaslikOku(f)
+	if err != nil {
+		return false
+	}
+	return bs.VeriOfseti+bs.VeriBoyutu() <= boyut
 }
 
 // Kota, önbelleğin bayt kotasıdır.
@@ -259,7 +282,7 @@ func (o *Onbellek) getir(ctx context.Context, kaynak string, onYukleme bool) (st
 		}
 		o.mu.Unlock()
 
-		err := kopyala(ctx, kaynak, yerel, st.ModTime())
+		err := kopyala(ctx, kaynak, yerel, st.Size(), st.ModTime())
 
 		o.mu.Lock()
 		close(g.kopya)
@@ -344,9 +367,11 @@ func (o *Onbellek) yerAc(gerekli int64, onYukleme bool) bool {
 	return o.kullanim+gerekli <= o.kota
 }
 
-// kopyala, kaynağı geçici bir dosyaya kopyalar, değişiklik zamanını
-// kaynakla eşitler ve hedef adına taşır.
-func kopyala(ctx context.Context, kaynak, hedef string, zaman time.Time) (err error) {
+// kopyala, kaynağı geçici bir dosyaya kopyalar, yazılan bayt sayısını
+// beklenenle karşılaştırır, diske yazılmasını (Sync) sağlar, değişiklik
+// zamanını kaynakla eşitler ve ancak bundan sonra hedef adına taşır. Böylece
+// hedef adında yalnızca tam ve kalıcı kopyalar bulunur.
+func kopyala(ctx context.Context, kaynak, hedef string, beklenen int64, zaman time.Time) (err error) {
 	k, err := os.Open(kaynak)
 	if err != nil {
 		return fmt.Errorf("veri: önbellek kopyası: %w", err)
@@ -364,6 +389,7 @@ func kopyala(ctx context.Context, kaynak, hedef string, zaman time.Time) (err er
 		}
 	}()
 	buf := make([]byte, 4<<20)
+	var yazilan int64
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -373,6 +399,7 @@ func kopyala(ctx context.Context, kaynak, hedef string, zaman time.Time) (err er
 			if _, werr := h.Write(buf[:n]); werr != nil {
 				return fmt.Errorf("veri: önbellek kopyası: %w", werr)
 			}
+			yazilan += int64(n)
 		}
 		if rerr == io.EOF {
 			break
@@ -380,6 +407,13 @@ func kopyala(ctx context.Context, kaynak, hedef string, zaman time.Time) (err er
 		if rerr != nil {
 			return fmt.Errorf("veri: önbellek kopyası: %w", rerr)
 		}
+	}
+	if yazilan != beklenen {
+		return fmt.Errorf("veri: %s: önbellek kopyası eksik ya da fazla: %d bayt yazıldı, %d bekleniyordu",
+			filepath.Base(kaynak), yazilan, beklenen)
+	}
+	if err := h.Sync(); err != nil {
+		return fmt.Errorf("veri: önbellek kopyası diske yazılamadı: %w", err)
 	}
 	if err := h.Close(); err != nil {
 		return fmt.Errorf("veri: önbellek kopyası: %w", err)
