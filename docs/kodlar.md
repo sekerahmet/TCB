@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 223 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 24 tip, 76 fonksiyon, 35 metot, 18 özellik, 36 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 232 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 78 fonksiyon, 37 metot, 20 özellik, 38 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -512,7 +512,7 @@ AdamW(...) ve SGD(...) ile oluşturulan iyileştiricilerin tipidir; .adım() par
 değişken w = tensör([1.0], türev_izle: doğru); değişken op = AdamW([w], öğrenme_oranı: 0.1); yazdır(tip(op), tip(SGD([w])))
 ```
 
-Üyeleri: Y500 `adım`, Y501 `sıfırla` · İlişkili: T400 `AdamW`, T401 `SGD`
+Üyeleri: Y500 `adım`, Y501 `sıfırla`, Y502 `durum`, Y503 `durumu_yükle` · İlişkili: T400 `AdamW`, T401 `SGD`
 
 #### A215 `Tip`
 
@@ -546,7 +546,7 @@ Veri kümesinden tohuma göre rastgele [girdi, hedef] tensör çiftleri üreten 
 değişken ö = veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağlam: 4, tohum: 1); yazdır(tip(ö) == Örnekleyici)
 ```
 
-Üyeleri: Y602 `sonraki` · İlişkili: Y600 `örnekleyici`, A233 `SıralıOkuyucu`
+Üyeleri: Y502 `durum`, Y503 `durumu_yükle`, Y602 `sonraki` · İlişkili: Y600 `örnekleyici`, A233 `SıralıOkuyucu`
 
 #### A233 `SıralıOkuyucu`
 
@@ -556,7 +556,7 @@ Veri kümesini pencereler hâlinde sırayla okuyan okuyucunun tipidir; veri biti
 değişken s = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4); yazdır(tip(s) == SıralıOkuyucu)
 ```
 
-Üyeleri: Y602 `sonraki` · İlişkili: Y601 `sıralı`, A232 `Örnekleyici`
+Üyeleri: Y502 `durum`, Y503 `durumu_yükle`, Y602 `sonraki` · İlişkili: Y601 `sıralı`, A232 `Örnekleyici`
 
 #### A234 `Parçalayıcı`
 
@@ -619,6 +619,16 @@ dosya_yaz("okuyucu.txt", "a\nb"); değişken o = dosya_satırları("okuyucu.txt"
 ```
 
 Üyeleri: Y012 `kapat`, Y602 `sonraki` · İlişkili: G112 `dosya_satırları`, Y602 `sonraki`, Y012 `kapat`
+
+#### A258 `KontrolNoktası`
+
+kontrol_noktası(...) ile kurulan, eğitimin bütün durumunu (parametreler, iyileştirici, okuyucular, günlük, düz değerler) atomik kaydeden ve yeniden başlatılan programı kaldığı adımdan sürdüren nesnenin tipidir; .güncelle(adım) adım sınırında aralıkla kaydeder, .kaydet() hemen kaydeder.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_a258", {w: w}); yazdır(tip(kn) == KontrolNoktası)
+```
+
+Üyeleri: Y010 `güncelle`, Y520 `kaldığı_adım`, Y521 `kaydet` · İlişkili: T702 `kontrol_noktası`, Y010 `güncelle`, Y520 `kaldığı_adım`, Y521 `kaydet`
 
 ## G — Genel yerleşikler
 
@@ -1516,6 +1526,30 @@ tensör_kaydet("a.trt", {"w": tensör([1.0])}); yazdır(tensör_yükle("a.trt", 
 
 İlişkili: T700 `tensör_kaydet`
 
+#### T702 `kontrol_noktası`
+
+    kontrol_noktası(Metin | Yol, Sözlük, her_dakika: Tam | Ondalık = 15, tut: Tam = 2) → KontrolNoktası
+
+Koşu klasöründe (noktalar <koşu>/kontrol_noktalari/ altına) eğitimin kontrol noktasını kurar; geçerli bir nokta varsa kurulurken yükler ve kaldığı adımı yazar, yoksa boş başlar. Sözlüğün değerleri modeller (türev izleyen tensörler), iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listelerdir; anahtarlar veridir.
+
+```tr
+değişken w = tensör([1.0, 2.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); değişken kn = kontrol_noktası("koşu_t702", {model: [w], op: op}, her_dakika: 15, tut: 2); yazdır(kn.kaldığı_adım)
+```
+
+İlişkili: Y520 `kaldığı_adım`, Y521 `kaydet`, Y010 `güncelle`, T703 `parametreleri_yükle`, Y502 `durum`
+
+#### T703 `parametreleri_yükle`
+
+    parametreleri_yükle(Nesne | Liste | Sözlük | Tensör, Sözlük) → Tam
+
+Ad → tensör sözlüğünü (tensör_yükle sonucu) modelin var olan parametrelerine, parametreler(model, adlarıyla: doğru) ile aynı adlarla yerinde yazar ve yazılan parametre sayısını verir; tensörler parametrenin cihazına taşınır, türü farklıysa dönüştürülür. Eksik, fazla ya da şekli farklı ad hatadır; iyileştiricinin tuttuğu tensörler aynı kalır.
+
+```tr
+değişken m = {w: tensör([1.0, 2.0], türev_izle: doğru)}; tensör_kaydet("m.trt", {w: tensör([5.0, 6.0])}); yazdır(parametreleri_yükle(m, tensör_yükle("m.trt")), m.w.değer)
+```
+
+İlişkili: T530 `parametreler`, T701 `tensör_yükle`, T702 `kontrol_noktası`
+
 #### T710 `karışık_hassasiyet`
 
     karışık_hassasiyet(Metin, Fonksiyon | YerleşikFonksiyon) → Herhangi
@@ -1820,6 +1854,26 @@ yazdır(türev_denetle(fonksiyon(x) { sonuç sigmoid(x) }, [tensör([0.3], türe
 
 Kullananlar: T311 `türev_denetle` · İlişkili: T982 `adım`
 
+#### T984 `her_dakika`
+
+kontrol_noktası'nın kayıt aralığıdır (dakika, varsayılan 15; 0: her güncelle'de). Süre dolunca sıradaki .güncelle(adım) çağrısı adım sınırında kaydeder; durdurma isteğinde (Ctrl+C) aralık beklenmez.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_t984", {w: w}, her_dakika: 0.5); yazdır(kn)
+```
+
+Kullananlar: T702 `kontrol_noktası` · İlişkili: T985 `tut`
+
+#### T985 `tut`
+
+kontrol_noktası'nın saklayacağı en yeni nokta sayısıdır (pozitif Tam, varsayılan 2); daha eskileri her başarılı kayıttan sonra silinir. Bozuk bir nokta silinmez.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_t985", {w: w}, tut: 3); döngü i içinde 1..5 { kn.güncelle(i); kn.kaydet() }; yazdır(klasörü_listele("koşu_t985/kontrol_noktalari", "adim_*").uzunluk)
+```
+
+Kullananlar: T702 `kontrol_noktası` · İlişkili: T984 `her_dakika`
+
 ## V — Veri ve parçalayıcı
 
 ### Veri kümesi (V1xx)
@@ -2056,9 +2110,9 @@ değişken l = [1]; l.ekle(2, 3); yazdır(l)
 
 İlişkili: Y210 `ilk`, Y211 `son` · Eski adlar: `kayıt_ekle` · Önceki biçim: `ekle(...)` (G304, kaldırıldı)
 
-#### Y005 `kaydet` — kaldırıldı
+#### Y005 `Y005` — kaldırıldı
 
-Kaldırıldı: 'kaydet' TR'den kaldırıldı; yerine geçen bir kod yoktur.
+Kaldırıldı: model, veritabanı ve arayüz nesnelerini kaydeden metot TR'den kaldırıldı; yerine geçen bir kod yoktur. Eski adı (kaydet) Y521'e verildi.
 
 #### Y006 `başlat` — kaldırıldı
 
@@ -2075,14 +2129,15 @@ Kaldırıldı: web sunucusunu ve arayüzü durduran metot TR'den kaldırıldı; 
 #### Y010 `güncelle`
 
     İlerleme.güncelle([Sözlük], adım: Tam = yok) → Mantık
+    KontrolNoktası.güncelle(Tam) → Mantık
 
-Çubuğu bir adım ilerletir ve verilen ölçüleri (kayıp, öğrenme oranı ...) gösterir; adım: verilirse tamamlanan adım sayısını o değere getirir (kaldığı yerden sürdürme). Toplama ulaşınca çubuk kendiliğinden biter. Her çağrı eğitimin bir adım sınırıdır.
+Her çağrı eğitimin bir adım sınırıdır. İlerleme'de çubuğu bir adım ilerletir, verilen ölçüleri (kayıp, öğrenme oranı ...) gösterir, adım: ile tamamlanan adım sayısını o değere getirir ve toplama ulaşınca çubuğu bitirir. KontrolNoktası'nda güncelle(adım) tamamlanan adım sayısını bildirir; her_dakika süresi dolduysa ya da durdurma istendiyse (Ctrl+C) burada kaydeder, kaydettiyse doğru verir.
 
 ```tr
 değişken ç = ilerleme(10); ç.güncelle({kayıp: 0.5}, adım: 5); yazdır(ç)
 ```
 
-İlişkili: Y011 `durdur`
+İlişkili: Y011 `durdur`, Y521 `kaydet`
 
 #### Y011 `durdur`
 
@@ -2583,6 +2638,34 @@ değişken w = tensör([1.0], türev_izle: doğru); geri_yayılım(toplam(w * 2)
 
 İlişkili: Y500 `adım`
 
+#### Y502 `durum`
+
+    İyileştirici.durum → Sözlük
+    Örnekleyici.durum → Sözlük
+    SıralıOkuyucu.durum → Sözlük
+
+Kaldığı yerden sürdürmek için gereken durumdur: iyileştiricide ad → tensör sözlüğü (momentler, adım sayaçları, ana kopyalar; kopyadır, tensör_kaydet ile yazılabilir), okuyucularda düz değerli bir sözlük (tür, toplu, bağlam, tohum, küme, dönem, sıra, pencere, sayaç). Öğrenme oranı gibi ayarlar duruma girmez.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken op = AdamW([w]); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(op.durum.anahtarlar())
+```
+
+İlişkili: Y503 `durumu_yükle`, T702 `kontrol_noktası`
+
+#### Y503 `durumu_yükle`
+
+    İyileştirici.durumu_yükle(Sözlük) → Mantık
+    Örnekleyici.durumu_yükle(Sözlük) → Mantık
+    SıralıOkuyucu.durumu_yükle(Sözlük) → Mantık
+
+durum ile alınmış sözlüğü aynı ayarla kurulmuş bir iyileştiriciye ya da okuyucuya yükler ve doğru verir; tensörler parametrenin cihazına taşınır. Parametre sayısı ve şekiller, okuyucunun türü, toplu, bağlam, tohum ve veri kümesi aynı olmalıdır, değilse hata verir.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken op = AdamW([w]); geri_yayılım(toplam(w * 2)); op.adım(); değişken yeni = AdamW([w]); yazdır(yeni.durumu_yükle(op.durum))
+```
+
+İlişkili: Y502 `durum`
+
 #### Y510 `eğit` — kaldırıldı
 
 Kaldırıldı: 'eğit' TR'den kaldırıldı; yerine geçen bir kod yoktur.
@@ -2594,6 +2677,30 @@ Kaldırıldı: 'tahmin_et' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 #### Y512 `ağırlıklar` — kaldırıldı
 
 Kaldırıldı: 'ağırlıklar' TR'den kaldırıldı; yerine geçen bir kod yoktur.
+
+#### Y520 `kaldığı_adım`
+
+    KontrolNoktası.kaldığı_adım → Tam
+
+Kurulurken yüklenen kontrol noktasının adımıdır (tamamlanan adım sayısı); yeni bir koşuda 0. Eğitim döngüsü buradan başlar: döngü adım içinde kn.kaldığı_adım..toplam.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_y520", {w: w}); yazdır(kn.kaldığı_adım)
+```
+
+İlişkili: Y521 `kaydet`, Y010 `güncelle`
+
+#### Y521 `kaydet`
+
+    KontrolNoktası.kaydet() → Yol
+
+Kontrol noktasını hemen, son güncelle(adım) adımıyla kaydeder ve noktanın klasörünü Yol olarak verir (ör. eğitim sonunda). Yazma hatası açık hatadır; aralıkla kayıttaki gibi eğitim sürmez.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_y521", {w: w}); kn.güncelle(1); yazdır(kn.kaydet())
+```
+
+İlişkili: Y520 `kaldığı_adım`, Y010 `güncelle`
 
 ### Veri kümesi, okuyucu, parçalayıcı (Y6xx)
 
@@ -2781,4 +2888,4 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/dil/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`

@@ -18,16 +18,21 @@ const (
 
 // kesmeyiYakala Ctrl+C'yi ve sonlandırma isteklerini (Unix'te SIGTERM ve SIGHUP; Windows'ta
 // Ctrl+Break ile konsol kapatma, oturum kapatma ve bilgisayarı kapatma olayları) yakalar.
-// İlk istek programın nazikçe durmasını ister (VM.Kes); ikinci istek süreci hemen bitirir.
-// Sınır: Windows konsol penceresi kapatılınca işletim sistemi süreci birkaç saniye içinde
-// öldürür; ertelenen işler bu sürede bitmeyebilir.
+// İlk istek programın nazikçe durmasını ister (VM.KesmeIste): program bir kontrol noktası
+// kurduysa istek adım sınırına ertelenir (nokta kaydedilip öyle durulur), kurmadıysa program
+// hemen durur. İkinci istek süreci hemen bitirir. Sınır: Windows konsol penceresi kapatılınca
+// işletim sistemi süreci birkaç saniye içinde öldürür; ertelenen işler ve uzun bir adım bu
+// sürede bitmeyebilir (gerçek güvence kontrol noktasının düzenli kaydıdır).
 func kesmeyiYakala(machine *yurut.VM) {
 	kanal := make(chan os.Signal, 2)
 	signal.Notify(kanal, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
 		<-kanal
-		machine.Kes()
-		machine.CiktiYaz(os.Stderr, "\n⏹️ Durduruluyor: ertelenen işler çalıştırılıp çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
+		if machine.KesmeIste() {
+			machine.CiktiYaz(os.Stderr, "\n⏹️ Durduruluyor: adım bitince kontrol noktası kaydedilip çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
+		} else {
+			machine.CiktiYaz(os.Stderr, "\n⏹️ Durduruluyor: ertelenen işler çalıştırılıp çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
+		}
 		<-kanal
 		fmt.Fprintln(os.Stderr, "⏹️ Hemen çıkıldı.")
 		os.Exit(hemenCikisKodu)

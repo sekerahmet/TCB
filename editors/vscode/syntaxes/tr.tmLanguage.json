@@ -269,7 +269,7 @@
       "patterns": [
         {
           "name": "entity.name.type.tr",
-          "match": "\\b(Tam|Ondalık|Metin|Mantık|Yok|Liste|Sözlük|Aralık|Fonksiyon|YerleşikFonksiyon|YapıTanımı|Nesne|Tensör|Herhangi|İyileştirici|Tip|VeriKümesi|Örnekleyici|SıralıOkuyucu|Parçalayıcı|Yol|İlerleme|Günlük|SatırOkuyucu)\\b"
+          "match": "\\b(Tam|Ondalık|Metin|Mantık|Yok|Liste|Sözlük|Aralık|Fonksiyon|YerleşikFonksiyon|YapıTanımı|Nesne|Tensör|Herhangi|İyileştirici|Tip|VeriKümesi|Örnekleyici|SıralıOkuyucu|Parçalayıcı|Yol|İlerleme|Günlük|SatırOkuyucu|KontrolNoktası)\\b"
         }
       ]
     },
@@ -281,7 +281,7 @@
         },
         {
           "name": "support.function.ai.tr",
-          "match": "\\b(tensör|sıfırlar|birler|rastgele_normal|birim_matris|birleştir|relu|sigmoid|tanh|gelu|softmax|log_softmax|üstel|log|sinüs|kosinüs|maks_indeks|geri_yayılım|türevsiz|özel_türev|türev_denetle|AdamW|SGD|gradyan_kırp|gömme|katman_normu|rms_normu|dikkat|çapraz_entropi|parametreler|örnekle|tensör_kaydet|tensör_yükle|karışık_hassasiyet|varsayılan_cihaz|cihazlar|veri_kümesi|parçalayıcı_yükle)\\b"
+          "match": "\\b(tensör|sıfırlar|birler|rastgele_normal|birim_matris|birleştir|relu|sigmoid|tanh|gelu|softmax|log_softmax|üstel|log|sinüs|kosinüs|maks_indeks|geri_yayılım|türevsiz|özel_türev|türev_denetle|AdamW|SGD|gradyan_kırp|gömme|katman_normu|rms_normu|dikkat|çapraz_entropi|parametreler|örnekle|tensör_kaydet|tensör_yükle|kontrol_noktası|parametreleri_yükle|karışık_hassasiyet|varsayılan_cihaz|cihazlar|veri_kümesi|parçalayıcı_yükle)\\b"
         }
       ]
     },

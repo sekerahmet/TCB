@@ -64,6 +64,7 @@ const (
 	A255 Kod = A + 255 // İlerleme
 	A256 Kod = A + 256 // Günlük
 	A257 Kod = A + 257 // SatırOkuyucu
+	A258 Kod = A + 258 // KontrolNoktası
 	G100 Kod = G + 100 // yazdır
 	G101 Kod = G + 101 // girdi
 	G110 Kod = G + 110 // dosya_oku
@@ -140,6 +141,8 @@ const (
 	T611 Kod = T + 611 // örnekle
 	T700 Kod = T + 700 // tensör_kaydet
 	T701 Kod = T + 701 // tensör_yükle
+	T702 Kod = T + 702 // kontrol_noktası
+	T703 Kod = T + 703 // parametreleri_yükle
 	T710 Kod = T + 710 // karışık_hassasiyet
 	T720 Kod = T + 720 // varsayılan_cihaz
 	T721 Kod = T + 721 // cihazlar
@@ -168,6 +171,8 @@ const (
 	T981 Kod = T + 981 // geri
 	T982 Kod = T + 982 // adım
 	T983 Kod = T + 983 // tolerans
+	T984 Kod = T + 984 // her_dakika
+	T985 Kod = T + 985 // tut
 	V100 Kod = V + 100 // veri_kümesi
 	V200 Kod = V + 200 // parçalayıcı_yükle
 	V900 Kod = V + 900 // önbellek
@@ -222,6 +227,10 @@ const (
 	Y415 Kod = Y + 415 // türe
 	Y500 Kod = Y + 500 // adım
 	Y501 Kod = Y + 501 // sıfırla
+	Y502 Kod = Y + 502 // durum
+	Y503 Kod = Y + 503 // durumu_yükle
+	Y520 Kod = Y + 520 // kaldığı_adım
+	Y521 Kod = Y + 521 // kaydet
 	Y600 Kod = Y + 600 // örnekleyici
 	Y601 Kod = Y + 601 // sıralı
 	Y602 Kod = Y + 602 // sonraki
@@ -286,7 +295,7 @@ var kaldirilanlar = map[Kod]bool{
 	W + 932: true, // W932 limit
 	W + 933: true, // W933 alanlar
 	W + 934: true, // W934 parametreler
-	Y + 5:   true, // Y005 kaydet
+	Y + 5:   true, // Y005 Y005
 	Y + 6:   true, // Y006 başlat
 	Y + 7:   true, // Y007 arka_planda_başlat
 	Y + 8:   true, // Y008 Y008

@@ -117,6 +117,10 @@ type vmShared struct {
 	// kapanır (bkz. kesilme.go).
 	kesildi       atomic.Bool
 	kesilmeKanali chan struct{}
+	// kesmeErteleyen kesme isteğini adım sınırına erteleyen kontrol noktası sayısıdır;
+	// durdurmaIstendi ertelenen bir istek geldiyse açıktır (bkz. KesmeIste).
+	kesmeErteleyen  atomic.Int32
+	durdurmaIstendi atomic.Bool
 
 	// ciktiMu çıktı noktalarını (CiktiYaz) etkin canlı satırla sıralar; canliVar canlı satır
 	// varken açıktır (yoksa kilit alınmaz). Bkz. cikti.go.
