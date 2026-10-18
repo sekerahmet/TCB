@@ -158,6 +158,27 @@ func TestCagriOrtamHavuzu(t *testing.T) {
 	}
 }
 
+// Doğrudan metot çağrıları bağlı yerleşik yoluyla aynı sonucu vermeli.
+func TestDogrudanMetotCagrilari(t *testing.T) {
+	_, val, err := runTROut(t, `
+		değişken l = [1]
+		l.ekle(uzunluk(l), uzunluk(l))
+		l.ekle(9)
+		değişken e = l.ekle
+		e(7)
+		değişken d = {"içerir": 5, "a": 1}
+		sonuç [l, d.içerir("a"), d.a, "Kar".büyük_harf(), [3, 1, 2].sırala(), metin(12), uzunluk("çağ"),
+			[1, 2, 3].filtrele { o > 1 }.haritala { o * 10 }]
+	`)
+	if err != nil || val.Inspect() != `[[1, 1, 1, 9, 7], doğru, 1, "KAR", [1, 2, 3], "12", 3, [20, 30]]` {
+		t.Fatalf("beklenmeyen: %v %v", val, err)
+	}
+	_, _, err = runTROut(t, "değişken l = [1]\nl.haritala(1, 2)\n")
+	if err == nil || err.Error() != "Satır 2: liste.haritala(fonksiyon) 1 parametre bekler" {
+		t.Fatalf("metot hatası: %v", err)
+	}
+}
+
 // Yerleşik adı gölgeleyen genel değişken sabit sayılmamalı; kullanıcı sabiti korunmalı.
 func TestDerleyiciGolgelemeVeSabit(t *testing.T) {
 	_, val, err := runTROut(t, `

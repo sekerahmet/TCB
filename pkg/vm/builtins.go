@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 )
 
@@ -60,17 +59,9 @@ func (v *VM) registerBuiltins() {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("uzunluk() 1 parametre bekler, %d verildi", len(args))
 		}
-		switch val := args[0].(type) {
-		case *StringVal:
-			return NewInt(int64(utf8.RuneCountInString(val.Val))), nil
-		case *ListVal:
-			return NewInt(int64(len(val.Elements))), nil
-		case *DictVal:
-			return NewInt(int64(len(val.Pairs))), nil
-		default:
-			return nil, fmt.Errorf("uzunluk() %s tipi için desteklenmiyor", args[0].Type())
-		}
+		return uzunlukTek(vm, args[0])
 	})
+	v.tekArgumanli("uzunluk", uzunlukTek)
 
 	// 4. Tip Sorgulama: tip(x)
 	v.RegisterBuiltin("tip", "tur", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -130,8 +121,9 @@ func (v *VM) registerBuiltins() {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("metin() 1 parametre bekler")
 		}
-		return &StringVal{Val: args[0].Inspect()}, nil
+		return metinTek(vm, args[0])
 	})
+	v.tekArgumanli("metin", metinTek)
 
 	// 6. Liste ve Fonksiyonel Boru Hattı (|>) İşlemleri: filtrele, haritala, indirge, sırala, ekle, sil
 	v.RegisterBuiltin("filtrele", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -420,260 +412,39 @@ func (v *VM) registerBuiltins() {
 const MaxCollectionSize = 50_000_000
 
 // checkRangeSize aralık(başlangıç, bitiş) için boyut denetimi yapar; boş aralık (bitiş <= başlangıç) geçerlidir.
+// uzunlukTek uzunluk(x) yerleşiğinin tek argümanlı gövdesidir.
+func uzunlukTek(_ *VM, a Value) (Value, error) {
+	switch val := a.(type) {
+	case *StringVal:
+		return NewInt(int64(utf8.RuneCountInString(val.Val))), nil
+	case *ListVal:
+		return NewInt(int64(len(val.Elements))), nil
+	case *DictVal:
+		return NewInt(int64(len(val.Pairs))), nil
+	default:
+		return nil, fmt.Errorf("uzunluk() %s tipi için desteklenmiyor", a.Type())
+	}
+}
+
+// metinTek metin(x) yerleşiğinin tek argümanlı gövdesidir.
+func metinTek(_ *VM, a Value) (Value, error) {
+	return &StringVal{Val: a.Inspect()}, nil
+}
+
+// tekArgumanli kayıtlı bir yerleşiğe, tek argümanla (adlı argümansız) çağrıldığında
+// argüman dilimi ayırmadan çalışan gövdesini bağlar. Gövde, Fn'in tek argümanlı
+// durumuyla birebir aynı olmalıdır.
+func (v *VM) tekArgumanli(ad string, tek func(*VM, Value) (Value, error)) {
+	if b, ok := v.GlobalEnv.yerelDeger(ad).(*BuiltinVal); ok {
+		b.Tek = tek
+	}
+}
+
 func checkRangeSize(start, end int64) error {
 	if end > start && (end-start > MaxCollectionSize || end-start < 0) {
 		return fmt.Errorf("aralık() çok büyük: en fazla %d eleman üretilebilir", MaxCollectionSize)
 	}
 	return nil
-}
-
-// evalBuiltinMember: Metin, Liste ve Sözlük üzerinde nokta (.) ile zincirleme metodları çalıştırır.
-func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Value, error) {
-	switch inst := obj.(type) {
-	case *StringVal:
-		switch prop {
-		case "uzunluk", "boy":
-			return NewInt(int64(utf8.RuneCountInString(inst.Val))), nil
-		case "büyük_harf", "buyuk_harf":
-			return &BuiltinVal{Name: "büyük_harf", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				return &StringVal{Val: strings.ToUpperSpecial(unicode.TurkishCase, inst.Val)}, nil
-			}}, nil
-		case "küçük_harf", "kucuk_harf":
-			return &BuiltinVal{Name: "küçük_harf", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				return &StringVal{Val: strings.ToLowerSpecial(unicode.TurkishCase, inst.Val)}, nil
-			}}, nil
-		case "kırp", "kirp":
-			return &BuiltinVal{Name: "kırp", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				return &StringVal{Val: strings.TrimSpace(inst.Val)}, nil
-			}}, nil
-		case "böl", "bol":
-			return &BuiltinVal{Name: "böl", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				sep := " "
-				if len(args) > 0 {
-					sep = args[0].Inspect()
-				}
-				parts := strings.Split(inst.Val, sep)
-				elems := make([]Value, len(parts))
-				for i, p := range parts {
-					elems[i] = &StringVal{Val: p}
-				}
-				return &ListVal{Elements: elems}, nil
-			}}, nil
-		case "değiştir", "degistir":
-			return &BuiltinVal{Name: "değiştir", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				if len(args) < 2 {
-					return nil, fmt.Errorf("metin.değiştir(eski, yeni) 2 parametre bekler")
-				}
-				return &StringVal{Val: strings.ReplaceAll(inst.Val, args[0].Inspect(), args[1].Inspect())}, nil
-			}}, nil
-		case "içerir", "icerir":
-			return &BuiltinVal{Name: "içerir", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				if len(args) < 1 {
-					return FALSE, nil
-				}
-				return BoolToVal(strings.Contains(inst.Val, args[0].Inspect())), nil
-			}}, nil
-		case "başlar", "baslar":
-			return &BuiltinVal{Name: "başlar", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				if len(args) < 1 {
-					return FALSE, nil
-				}
-				return BoolToVal(strings.HasPrefix(inst.Val, args[0].Inspect())), nil
-			}}, nil
-		case "biter":
-			return &BuiltinVal{Name: "biter", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				if len(args) < 1 {
-					return FALSE, nil
-				}
-				return BoolToVal(strings.HasSuffix(inst.Val, args[0].Inspect())), nil
-			}}, nil
-		case "ters_çevir", "ters_cevir":
-			return &BuiltinVal{Name: "ters_çevir", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				runes := []rune(inst.Val)
-				for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-					runes[i], runes[j] = runes[j], runes[i]
-				}
-				return &StringVal{Val: string(runes)}, nil
-			}}, nil
-		}
-
-	case *ListVal:
-		switch prop {
-		case "uzunluk", "boy":
-			return NewInt(int64(len(inst.Elements))), nil
-		case "ilk":
-			if len(inst.Elements) == 0 {
-				return NULL, nil
-			}
-			return inst.Elements[0], nil
-		case "son":
-			if len(inst.Elements) == 0 {
-				return NULL, nil
-			}
-			return inst.Elements[len(inst.Elements)-1], nil
-		case "filtrele":
-			return &BuiltinVal{Name: "filtrele", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				if len(args) != 1 {
-					return nil, fmt.Errorf("liste.filtrele(fonksiyon) 1 parametre bekler")
-				}
-				var result []Value
-				for _, item := range inst.Elements {
-					keep, err := vm.ApplyFunction(args[0], []Value{item}, nil, line)
-					if err != nil {
-						return nil, err
-					}
-					if keep.IsTruthy() {
-						result = append(result, item)
-					}
-				}
-				return &ListVal{Elements: result}, nil
-			}}, nil
-		case "haritala", "dönüştür", "donustur":
-			return &BuiltinVal{Name: "haritala", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				if len(args) != 1 {
-					return nil, fmt.Errorf("liste.haritala(fonksiyon) 1 parametre bekler")
-				}
-				result := make([]Value, 0, len(inst.Elements))
-				for _, item := range inst.Elements {
-					mapped, err := vm.ApplyFunction(args[0], []Value{item}, nil, line)
-					if err != nil {
-						return nil, err
-					}
-					result = append(result, mapped)
-				}
-				return &ListVal{Elements: result}, nil
-			}}, nil
-		case "sırala", "sirala":
-			return &BuiltinVal{Name: "sırala", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				copied := make([]Value, len(inst.Elements))
-				copy(copied, inst.Elements)
-				siralaDegerler(copied)
-				return &ListVal{Elements: copied}, nil
-			}}, nil
-		case "ters_çevir", "ters_cevir":
-			return &BuiltinVal{Name: "ters_çevir", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				copied := make([]Value, len(inst.Elements))
-				for i, el := range inst.Elements {
-					copied[len(inst.Elements)-1-i] = el
-				}
-				return &ListVal{Elements: copied}, nil
-			}}, nil
-		case "birleştir", "birlestir":
-			return &BuiltinVal{Name: "birleştir", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				sep := ""
-				if len(args) > 0 {
-					sep = args[0].Inspect()
-				}
-				parts := make([]string, len(inst.Elements))
-				for i, el := range inst.Elements {
-					parts[i] = el.Inspect()
-				}
-				return &StringVal{Val: strings.Join(parts, sep)}, nil
-			}}, nil
-		case "içerir", "icerir":
-			return &BuiltinVal{Name: "içerir", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				if len(args) < 1 {
-					return FALSE, nil
-				}
-				for _, el := range inst.Elements {
-					if ValuesEqual(el, args[0]) {
-						return TRUE, nil
-					}
-				}
-				return FALSE, nil
-			}}, nil
-		case "benzersiz":
-			return &BuiltinVal{Name: "benzersiz", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				var unique []Value
-				for _, el := range inst.Elements {
-					exists := false
-					for _, u := range unique {
-						if ValuesEqual(el, u) {
-							exists = true
-							break
-						}
-					}
-					if !exists {
-						unique = append(unique, el)
-					}
-				}
-				return &ListVal{Elements: unique}, nil
-			}}, nil
-		case "ekle":
-			return &BuiltinVal{Name: "ekle", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				inst.Elements = append(inst.Elements, args...)
-				return inst, nil
-			}}, nil
-		case "toplam":
-			return &BuiltinVal{Name: "toplam", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				sumFloat := 0.0
-				hasFloat := false
-				var sumInt int64 = 0
-				for _, el := range inst.Elements {
-					if iv, ok := el.(*IntVal); ok {
-						sumInt += iv.Val
-						sumFloat += float64(iv.Val)
-					} else if fv, ok := el.(*FloatVal); ok {
-						hasFloat = true
-						sumFloat += fv.Val
-					}
-				}
-				if hasFloat {
-					return &FloatVal{Val: sumFloat}, nil
-				}
-				return NewInt(sumInt), nil
-			}}, nil
-		case "ortalama":
-			return &BuiltinVal{Name: "ortalama", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				nums := ExtractNumericSlice([]Value{inst})
-				if len(nums) == 0 {
-					return &FloatVal{Val: 0}, nil
-				}
-				s := 0.0
-				for _, x := range nums {
-					s += x
-				}
-				return &FloatVal{Val: s / float64(len(nums))}, nil
-			}}, nil
-		}
-
-	case *DictVal:
-		switch prop {
-		case "anahtarlar":
-			return &BuiltinVal{Name: "anahtarlar", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				elems := make([]Value, len(inst.Order))
-				for i, k := range inst.Order {
-					elems[i] = inst.KeyValue(k)
-				}
-				return &ListVal{Elements: elems}, nil
-			}}, nil
-		case "değerler", "degerler":
-			return &BuiltinVal{Name: "değerler", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				elems := make([]Value, len(inst.Order))
-				for i, k := range inst.Order {
-					elems[i] = inst.Pairs[k]
-				}
-				return &ListVal{Elements: elems}, nil
-			}}, nil
-		case "içerir", "icerir":
-			return &BuiltinVal{Name: "içerir", Fn: func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-				if len(args) < 1 {
-					return FALSE, nil
-				}
-				_, ok := inst.GetValue(args[0])
-				return BoolToVal(ok), nil
-			}}, nil
-		}
-		if val, ok := inst.Pairs[prop]; ok {
-			return val, nil
-		}
-		return NULL, nil
-	}
-
-	if safe {
-		return NULL, nil
-	}
-	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği veya metodu bulunamadı", line, obj.Type(), prop)
 }
 
 func ExtractNumericSlice(args []Value) []float64 {

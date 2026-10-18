@@ -116,6 +116,11 @@ func (v *VM) evalInfixKod(kod uint8, op string, left Value, right Value, line in
 				return val, err
 			}
 		}
+	case *StringVal:
+		// Metin + Metin (aşağıdaki genel metin birleştirmeyle aynı sonuç; arayüz denetimleri atlanır)
+		if r, ok := right.(*StringVal); ok && kod == opTopla {
+			return &StringVal{Val: l.Val + r.Val}, nil
+		}
 	}
 
 	// Matris / Tensör operatörleri (hatalarına satır bilgisi eklenir)

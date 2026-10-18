@@ -148,10 +148,12 @@ func DictKey(v Value) string {
 }
 
 func (d *DictVal) Set(key string, val Value) {
-	if _, exists := d.Pairs[key]; !exists {
+	// Tek harita işlemi: anahtar yeniyse harita büyür ve sıraya eklenir
+	n := len(d.Pairs)
+	d.Pairs[key] = val
+	if len(d.Pairs) != n {
 		d.Order = append(d.Order, key)
 	}
-	d.Pairs[key] = val
 }
 
 // SetValue anahtarı bir TR değeri olarak alır (d[1] = ..., {1: ...}).
@@ -246,6 +248,9 @@ type BuiltinFunc func(vm *VM, args []Value, named map[string]Value) (Value, erro
 type BuiltinVal struct {
 	Name string
 	Fn   BuiltinFunc
+	// Tek (isteğe bağlı), yerleşik tek bir konumlu argümanla çağrıldığında Fn yerine
+	// çalışır ve argüman dilimi ayırmaz; sonucu Fn(vm, []Value{a}, nil) ile aynı olmalıdır.
+	Tek func(vm *VM, a Value) (Value, error)
 }
 
 func (b *BuiltinVal) Type() ValueType { return VAL_BUILTIN }

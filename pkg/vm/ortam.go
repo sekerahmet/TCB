@@ -139,6 +139,12 @@ func (e *Environment) yerel(name string) (int, Value) {
 	return -1, nil
 }
 
+// yerelDeger adın yalnızca bu ortamdaki değerini döndürür (yoksa nil).
+func (e *Environment) yerelDeger(name string) Value {
+	_, val := e.yerel(name)
+	return val
+}
+
 func (e *Environment) Get(name string) (Value, bool) {
 	for cur := e; cur != nil; cur = cur.outer {
 		if _, val := cur.yerel(name); val != nil {

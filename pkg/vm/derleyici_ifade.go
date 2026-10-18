@@ -762,37 +762,50 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 	line := e.Line()
 
 	if len(e.NamedArgs) == 0 {
+		// x.metot(...): Metin/Liste/Sözlük yerleşik metotları bağlı yerleşik nesnesi
+		// ayrılmadan doğrudan çağrılır (liste.ekle(x) argüman dilimi de ayırmaz).
+		if mem, ok := e.Function.(*ast.MemberExpression); ok && yerlesikMetotAdi(mem.Property) {
+			nesne := c.ifade(k, mem.Object)
+			ekle := mem.Property == "ekle"
+			uyeSatiri := mem.Line() // geri çağrıların hata satırı (bağlı yerleşikteki gibi)
+			return func(v *VM, env *Environment) (Value, error) {
+				obj, err := nesne(v, env)
+				if err != nil {
+					return nil, err
+				}
+				if m, ok := metotBul(obj, mem.Property); ok {
+					if l, liste := obj.(*ListVal); liste && ekle && nargs == 1 {
+						av, err := argKod[0](v, env)
+						if err != nil {
+							return nil, err
+						}
+						l.Elements = append(l.Elements, av)
+						return l, nil
+					}
+					// Yerleşik çağrısıyla aynı sıra: önce tüm argümanlar, sonra gövde
+					args, err := argumanlar(v, env, argKod)
+					if err != nil {
+						return nil, err
+					}
+					res, err := m.f(v, obj, args, uyeSatiri)
+					if err != nil {
+						return nil, fmt.Errorf("Satır %d: %v", line, err)
+					}
+					return res, nil
+				}
+				fnVal, err := v.uyeDegeri(obj, mem)
+				if err != nil {
+					return nil, err
+				}
+				return v.konumluCagir(fnVal, argKod, env, line)
+			}
+		}
 		return func(v *VM, env *Environment) (Value, error) {
 			fnVal, err := fonk(v, env)
 			if err != nil {
 				return nil, err
 			}
-			// Hızlı yol: derlenmiş kullanıcı fonksiyonu. Argümanlar ara dilim kurulmadan
-			// doğrudan yeni ortamın yuvalarına hesaplanır.
-			if fn, ok := fnVal.(*FuncVal); ok && fn.kod != nil && fn.kod.basit && nargs <= len(fn.Parameters) && varsayilanlarYeter(fn, nargs) {
-				fk := fn.kod
-				fnEnv := fk.ortamAl(fn.Env)
-				for i, a := range argKod {
-					av, err := a(v, env)
-					if err != nil {
-						return nil, err
-					}
-					fnEnv.vals[fk.param[i]] = av
-				}
-				return v.cagirHazir(fn, fk, fnEnv, nil, nargs, nil, line)
-			}
-			args := make([]Value, 0, nargs)
-			for _, a := range argKod {
-				av, err := a(v, env)
-				if err != nil {
-					return nil, err
-				}
-				args = append(args, av)
-			}
-			if err := checkArity(fnVal, len(args), nil, line); err != nil {
-				return nil, err
-			}
-			return v.ApplyFunction(fnVal, args, nil, line)
+			return v.konumluCagir(fnVal, argKod, env, line)
 		}
 	}
 
@@ -828,6 +841,61 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 		}
 		return v.ApplyFunction(fnVal, args, named, line)
 	}
+}
+
+// argumanlar argüman kodlarını sırayla hesaplar.
+func argumanlar(v *VM, env *Environment, argKod []ifadeKodu) ([]Value, error) {
+	args := make([]Value, 0, len(argKod))
+	for _, a := range argKod {
+		av, err := a(v, env)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, av)
+	}
+	return args, nil
+}
+
+// konumluCagir fnVal'ı (adlı argümansız) konumlu argümanlarla çağırır.
+func (v *VM) konumluCagir(fnVal Value, argKod []ifadeKodu, env *Environment, line int) (Value, error) {
+	nargs := len(argKod)
+	switch fn := fnVal.(type) {
+	case *FuncVal:
+		// Hızlı yol: derlenmiş kullanıcı fonksiyonu. Argümanlar ara dilim kurulmadan
+		// doğrudan yeni ortamın yuvalarına hesaplanır.
+		if fk := fn.kod; fk != nil && fk.basit && nargs <= len(fn.Parameters) && varsayilanlarYeter(fn, nargs) {
+			fnEnv := fk.ortamAl(fn.Env)
+			for i, a := range argKod {
+				av, err := a(v, env)
+				if err != nil {
+					return nil, err
+				}
+				fnEnv.vals[fk.param[i]] = av
+			}
+			return v.cagirHazir(fn, fk, fnEnv, nil, nargs, nil, line)
+		}
+	case *BuiltinVal:
+		// Hızlı yol: tek argümanlı yerleşik (argüman dilimi ayrılmaz)
+		if fn.Tek != nil && nargs == 1 {
+			av, err := argKod[0](v, env)
+			if err != nil {
+				return nil, err
+			}
+			res, err := fn.Tek(v, av)
+			if err != nil {
+				return nil, fmt.Errorf("Satır %d: %v", line, err)
+			}
+			return res, nil
+		}
+	}
+	args, err := argumanlar(v, env, argKod)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkArity(fnVal, len(args), nil, line); err != nil {
+		return nil, err
+	}
+	return v.ApplyFunction(fnVal, args, nil, line)
 }
 
 // varsayilanlarYeter verilmeyen her parametrenin varsayılanı var mı (checkArity'nin hızlı yolu)?

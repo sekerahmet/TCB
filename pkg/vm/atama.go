@@ -93,6 +93,11 @@ func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line i
 		}
 		return nil
 	case *DictVal:
+		if kod == opAta {
+			// Düz atamada mevcut değer gerekmez (atamaIslemi sağ tarafı olduğu gibi verir)
+			container.SetValue(idx, rightVal)
+			return nil
+		}
 		cur, _ := container.GetValue(idx)
 		if cur == nil {
 			cur = NULL
