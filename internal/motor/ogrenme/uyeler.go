@@ -5,7 +5,6 @@ import (
 	"math"
 	"slices"
 	"strconv"
-	"strings"
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
@@ -308,45 +307,6 @@ func (d *Deger) dilim(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.Value)
 		return nil, fmt.Errorf("%s: %d. eksenin uzunluğu %d (%s); [%d, %d) aralığı geçersiz (0 ≤ baş ≤ son ≤ %d olmalı)", fn, e, uz, sekilMetni(sh), n[1], n[2], uz)
 	}
 	r, err := guvenli(func() *tensor.Tensor { return d.t.Slice(e, bas, son) })
-	if err != nil {
-		return nil, err
-	}
-	return Yeni(r), nil
-}
-
-// cihazCoz "cpu", "gpu", "gpu:1" gibi bir adı cihaza çevirir.
-func cihazCoz(ad string) (tensor.Device, error) {
-	a := strings.ToLower(strings.TrimSpace(ad))
-	switch {
-	case a == "cpu":
-		return tensor.CPU, nil
-	case a == "gpu":
-		return tensor.GPU(0), nil
-	case strings.HasPrefix(a, "gpu:"):
-		var i int
-		if _, err := fmt.Sscanf(a[4:], "%d", &i); err == nil && i >= 0 {
-			return tensor.GPU(i), nil
-		}
-	}
-	return tensor.Device{}, fmt.Errorf("bilinmeyen cihaz %q; \"cpu\", \"gpu\" ya da \"gpu:1\" gibi bir ad verin", ad)
-}
-
-func (d *Deger) cihaza(_ *yurut.VM, args []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(\"cpu\") 1 parametre bekler", kod.Ad(uyeCihaza))
-	}
-	s, ok := args[0].(*yurut.StringVal)
-	if !ok {
-		return nil, fmt.Errorf("%s() cihaz adını metin olarak bekler (\"cpu\" ya da \"gpu\"), %s verildi", kod.Ad(uyeCihaza), tipAdi(args[0]))
-	}
-	dev, err := cihazCoz(s.Val)
-	if err != nil {
-		return nil, err
-	}
-	if !tensor.HasDevice(dev) {
-		return nil, fmt.Errorf("%s cihazı kullanılamıyor: bu TR derlemesinde GPU arka ucu yok; tensörler şimdilik yalnızca \"cpu\" üzerinde çalışır", dev)
-	}
-	r, err := guvenli(func() *tensor.Tensor { return d.t.To(dev) })
 	if err != nil {
 		return nil, err
 	}

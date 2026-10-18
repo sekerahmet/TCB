@@ -47,17 +47,29 @@ func init() {
 // kurulumHatasi son başarısız kurulumun nedeni (teşhis için).
 var kurulumHatasi error
 
-// cihazSayisi sürücünün gördüğü GPU sayısı (sürücü yoksa 0).
+// cihazSayisi sürücünün gördüğü GPU sayısı (sürücü yoksa 0; geliştirme için
+// TR_GPU_BENZETIM=1 ile benzetim tek GPU sayılır).
 func cihazSayisi() int {
 	c := cudaYukle()
 	if c.hata != nil {
 		kurulumHatasi = c.hata
+		if benzetimIstendi() {
+			return 1
+		}
 		return 0
 	}
 	return c.sayi
 }
 
+// benzetimIstendi gerçek GPU yokken PTX benzetiminin "gpu" cihazı olarak kurulmasının
+// istenip istenmediği (geliştirme ve sınama aracı: GPU kodunu donanımsız, dil düzeyinde
+// uçtan uca çalıştırır; çok yavaştır).
+func benzetimIstendi() bool { return os.Getenv("TR_GPU_BENZETIM") == "1" }
+
 func kur(sira int) tensor.Backend {
+	if cudaYukle().hata != nil && benzetimIstendi() && sira == 0 {
+		return yeniArkaUc(tensor.GPU(0), yeniBenzetim(1<<30))
+	}
 	s, err := cudaAc(sira)
 	if err != nil {
 		kurulumHatasi = err

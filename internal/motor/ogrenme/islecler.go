@@ -137,7 +137,7 @@ func (d *Deger) ikili(op string, other yurut.Value) (yurut.Value, error) {
 		o = od.t
 	} else {
 		var err error
-		if o, err = tensoreCevir("tensör "+islemAdi[op], other); err != nil {
+		if o, err = tensoreCevirCihaz("tensör "+islemAdi[op], other, d.t); err != nil {
 			return nil, err
 		}
 	}

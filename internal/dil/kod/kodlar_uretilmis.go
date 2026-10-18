@@ -140,6 +140,8 @@ const (
 	T700 Kod = T + 700 // tensör_kaydet
 	T701 Kod = T + 701 // tensör_yükle
 	T710 Kod = T + 710 // karışık_hassasiyet
+	T720 Kod = T + 720 // varsayılan_cihaz
+	T721 Kod = T + 721 // cihazlar
 	T900 Kod = T + 900 // türev_izle
 	T901 Kod = T + 901 // tür
 	T902 Kod = T + 902 // eksen

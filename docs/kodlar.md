@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 219 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 24 tip, 73 fonksiyon, 34 metot, 18 özellik, 36 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 221 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 24 tip, 75 fonksiyon, 34 metot, 18 özellik, 36 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -1516,6 +1516,30 @@ değişken y = karışık_hassasiyet("bf16") { tensör([[1.0, 2.0]]) @ tensör([
 
 İlişkili: T901 `tür`
 
+#### T720 `varsayılan_cihaz`
+
+    varsayılan_cihaz([Metin]) → Metin
+
+Argümanla çağrılınca ("cpu", "gpu", "gpu:1") bundan sonra oluşturulan bütün tensörlerin cihazını seçer: tensör(...), sıfırlar, birler, rastgele_normal ve veri kümesi örnekleyicisinin toplu işleri o cihazda kurulur. Argümansız çağrı geçerli cihazın adını verir. Model GPU'da eğitilecekse bu çağrı model kurulmadan önce yapılır; olmayan cihaz hatadır.
+
+```tr
+yazdır(varsayılan_cihaz()); varsayılan_cihaz("cpu"); yazdır(tensör([1.0]).cihaz)
+```
+
+İlişkili: T721 `cihazlar`, Y414 `cihaza`, Y401 `cihaz`
+
+#### T721 `cihazlar`
+
+    cihazlar() → Liste
+
+Bu makinede kullanılabilir cihazların adlarını liste olarak verir; ilk eleman her zaman "cpu"dur, NVIDIA GPU'su ve sürücüsü varsa "gpu" (birden çoksa "gpu:1", ...) gelir.
+
+```tr
+yazdır(cihazlar()[0], cihazlar().içerir("gpu"))
+```
+
+İlişkili: T720 `varsayılan_cihaz`, Y414 `cihaza`
+
 ### Adlı argümanlar (T9xx)
 
 #### T900 `türev_izle`
@@ -2395,13 +2419,13 @@ yazdır(tensör([[1, 2], [3, 4]]).şekil)
 
     Tensör.cihaz → Metin
 
-Tensörün bulunduğu cihazın adını verir (ör. "cpu").
+Tensörün bulunduğu cihazın adını verir: "cpu", "gpu" (ilk GPU) ya da "gpu:1" gibi.
 
 ```tr
 yazdır(tensör([1, 2]).cihaz)
 ```
 
-İlişkili: Y414 `cihaza`
+İlişkili: Y414 `cihaza`, T720 `varsayılan_cihaz`
 
 #### Y402 `tür`
 
@@ -2489,13 +2513,13 @@ yazdır(tensör([[1, 2, 3], [4, 5, 6]]).dilim(1, 0, 2).değer)
 
     Tensör.cihaza(Metin) → Tensör
 
-Tensörü verilen cihaza ("cpu", "gpu", "gpu:1") taşınmış olarak verir. Bu derlemede yalnızca "cpu" kullanılabilir.
+Tensörü verilen cihaza ("cpu", "gpu", "gpu:1") taşınmış olarak verir; kullanılabilir cihazlar cihazlar() ile görülür, olmayan cihaz hatadır. Türev izleyen bir yaprak taşınınca sonuç, hedef cihazda türev izleyen yeni bir yapraktır (gradyanı kendi .gradyan'ında birikir); bir işlemin sonucu taşınınca türev kaynağa geri akar.
 
 ```tr
 yazdır(tensör([1, 2]).cihaza("cpu").cihaz)
 ```
 
-İlişkili: Y401 `cihaz`
+İlişkili: Y401 `cihaz`, T720 `varsayılan_cihaz`, T721 `cihazlar`
 
 #### Y415 `türe`
 
@@ -2733,4 +2757,4 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/dil/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`

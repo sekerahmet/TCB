@@ -37,6 +37,10 @@ func Kaydet(v *yurut.VM) {
 	// --- Veri türleri (veri_turu.go) ---
 	sar(v, kod.T710, yeniYerlesik(karisikHassasiyet))
 
+	// --- Cihazlar (cihaz.go) ---
+	sar(v, kod.T720, yeniYerlesik(varsayilanCihazYerlesik))
+	sar(v, kod.T721, yeniYerlesik(cihazlarYerlesik))
+
 	// --- İyileştiriciler ---
 	sar(v, kod.T400, yeniYerlesik(adamWKur))
 	sar(v, kod.T401, yeniYerlesik(sgdKur))

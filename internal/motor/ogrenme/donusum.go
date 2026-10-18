@@ -34,6 +34,24 @@ func tensoreCevir(fn string, v yurut.Value) (*tensor.Tensor, error) {
 	return nil, fmt.Errorf("%s: %s tipi tensöre dönüştürülemez (sayı, iç içe liste ya da tensör bekleniyor)%s", fn, tipAdi(v), ipucu)
 }
 
+// tensoreCevirCihaz tensoreCevir gibidir; ancak sayı ve listeden oluşan tensör, işlemin
+// diğer tarafı olan tensörün cihazında kurulur (ör. GPU'daki t için t + [1, 2]). Tensör
+// verilirse kendisi döner; cihazı farklıysa işlem açık hata verir (15.29).
+func tensoreCevirCihaz(fn string, v yurut.Value, diger *tensor.Tensor) (*tensor.Tensor, error) {
+	t, err := tensoreCevir(fn, v)
+	if err != nil {
+		return nil, err
+	}
+	if _, tensorMu := v.(*Deger); tensorMu || t.Device() == diger.Device() {
+		return t, nil
+	}
+	return guvenli(func() *tensor.Tensor {
+		var r *tensor.Tensor
+		tensor.NoGrad(func() { r = t.To(diger.Device()) })
+		return r
+	})
+}
+
 // listeVerisi iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
 func listeVerisi(fn string, l *yurut.ListVal) ([]float32, []int, error) {
 	var veri []float32

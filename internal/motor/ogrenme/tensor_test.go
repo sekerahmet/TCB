@@ -275,7 +275,7 @@ func TestHatalar(t *testing.T) {
 		{"sıfırlar([2, 3]) * sıfırlar([3, 2])", "[2, 3] ile [3, 2] şekilleri çarpma için yayınlanamaz"},
 		{"yazdır(toplam(sıfırlar([2, 3]), eksen: 2))", "Satır 1: toplam: eksen 2, [2, 3] şeklindeki 2 boyutlu tensör için geçersiz"},
 		{"yazdır(softmax(sıfırlar([2]), eksen: -3))", "Satır 1: softmax: eksen -3"},
-		{"yazdır(sıfırlar([2, 3]).cihaza(\"gpu\"))", "Satır 1: gpu:0 cihazı kullanılamıyor"},
+		{"yazdır(sıfırlar([2, 3]).cihaza(\"gpu:9\"))", "Satır 1: gpu:9 cihazı kullanılamıyor"},
 		{"yazdır(sıfırlar([2, 3]).cihaza(\"tpu\"))", "bilinmeyen cihaz \"tpu\""},
 		{"yazdır(sıfırlar([2, 3]).şekillendir([4, 2]))", "Satır 1: [2, 3] şeklindeki tensör (6 eleman) [4, 2] şekline sokulamaz"},
 		{"yazdır(sıfırlar([2, 3]).dilim(1, 2, 5))", "dilim: 1. eksenin uzunluğu 3"},
@@ -309,7 +309,7 @@ func TestHatalar(t *testing.T) {
 	}
 	// Hatalar dene/yakala ile yakalanabilir.
 	out := mustCalistir(t, `dene { değişken k = sıfırlar([2, 3]) @ sıfırlar([2, 3]) } yakala h { yazdır("yakalandı") }
-dene { yazdır(sıfırlar([1]).cihaza("gpu")) } yakala h { yazdır("yakalandı") }`)
+dene { yazdır(sıfırlar([1]).cihaza("gpu:9")) } yakala h { yazdır("yakalandı") }`)
 	if out != "yakalandı\nyakalandı\n" {
 		t.Fatalf("dene/yakala: %q", out)
 	}

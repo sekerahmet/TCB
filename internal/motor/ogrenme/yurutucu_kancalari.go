@@ -77,7 +77,7 @@ func (d *Deger) GorevliIslec(m *yurut.VM, op string, diger yurut.Value, sagda bo
 	if op != "@" {
 		return d.Islec(op, diger, sagda)
 	}
-	o, err := tensoreCevir("matris çarpımı (@)", diger)
+	o, err := tensoreCevirCihaz("matris çarpımı (@)", diger, d.t)
 	if err != nil {
 		return nil, true, err
 	}
@@ -120,7 +120,7 @@ func (d *Deger) Islec(op string, diger yurut.Value, sagda bool) (yurut.Value, bo
 			}
 			return Yeni(r), true, nil
 		}
-		o, err := tensoreCevir("tensör "+islemAdi[op], diger)
+		o, err := tensoreCevirCihaz("tensör "+islemAdi[op], diger, d.t)
 		if err != nil {
 			return nil, true, err
 		}
@@ -142,7 +142,7 @@ func (d *Deger) Islec(op string, diger yurut.Value, sagda bool) (yurut.Value, bo
 		return Yeni(r), true, nil
 
 	case "@":
-		o, err := tensoreCevir("matris çarpımı (@)", diger)
+		o, err := tensoreCevirCihaz("matris çarpımı (@)", diger, d.t)
 		if err != nil {
 			return nil, true, err
 		}
