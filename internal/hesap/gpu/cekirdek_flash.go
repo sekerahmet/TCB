@@ -334,38 +334,7 @@ func flashIleriCekirdegi(a flashAyar) func() *yazici {
 		// V, K'nin yerine (K'yi okuyan bütün iş parçacıkları engeli geçti).
 		vs := smDoseme{kvs, a.Bc, dvp + 1}
 		k.dosemeYukle(vs, a.Dv, dvp, vb, j0, f.Tk, f.tid)
-		alfa := make([]yazmac, rpt)
-		for i := range S {
-			mn := k.f()
-			k.e("max.f32", mn, m[i], yeniM[i])
-			bos := k.p()
-			k.e("setp.eq.f32", bos, mn, float32(math.Inf(-1)))
-			d := k.f()
-			k.e("sub.rn.f32", d, m[i], mn)
-			alfa[i] = k.ustel(d)
-			k.e("selp.f32", alfa[i], float32(1), alfa[i], bos)
-			for j := range S[i] {
-				x := k.f()
-				k.e("sub.rn.f32", x, S[i][j], mn)
-				e := k.ustel(x)
-				k.e("selp.f32", S[i][j], float32(0), e, bos)
-			}
-			k.e("mov.f32", m[i], mn)
-		}
-		top := k.satirIndirge(S, red2, satir0, f.tx, k.topla)
-		for i := range S {
-			k.e("fma.rn.f32", l[i], l[i], alfa[i], top[i])
-			for j, v := range S[i] {
-				ad := k.r()
-				k.e("add.s32", ad, satir0, i)
-				k.e("mad.lo.s32", ad, ad, ps.adim, k.carp(f.tx, cpt))
-				k.e("mad.lo.s32", ad, ad, 4, ps.taban)
-				k.e("st.shared.f32", bel(ad, 4*j), v)
-			}
-			for j := range O[i] {
-				k.e("mul.rn.f32", O[i][j], O[i][j], alfa[i])
-			}
-		}
+		f.cevrimiciSoftmax(S, yeniM, m, l, O, red2, satir0, ps)
 		k.engel()
 		k.mikroCarp(O, k.thAdres(ps.taban, satir0, ps.adim), ps.adim, 1, k.thAdres(vs.taban, k.carp(f.tx, ocpt), 1), 1, vs.adim, a.Bc)
 		k.engel()
@@ -379,6 +348,55 @@ func flashIleriCekirdegi(a flashAyar) func() *yazici {
 			f.ileriYaz(O[i], m[i], l[i], satirlar[i], ob, plse, lb)
 		}
 		return k
+	}
+}
+
+// cevrimiciSoftmax çevrimiçi softmax adımı: yeni en büyükle (m) ölçek α = e^{m_eski−m},
+// P = e^{S−m} (S yerinde P olur), l = l·α + Σ P, O = O·α; P paylaşımlı belleğe ([sorgu]
+// [anahtar]) yazılır. İçinde satır indirgemesinin engeli vardır.
+func (f *flashOrtak) cevrimiciSoftmax(S [][]yazmac, yeniM, m, l []yazmac, O [][]yazmac, red, satir0 yazmac, ps smDoseme) {
+	k := f.k
+	alfa := make([]yazmac, len(S))
+	for i := range S {
+		mn := k.f()
+		k.e("max.f32", mn, m[i], yeniM[i])
+		bos := k.p()
+		k.e("setp.eq.f32", bos, mn, float32(math.Inf(-1)))
+		d := k.f()
+		k.e("sub.rn.f32", d, m[i], mn)
+		alfa[i] = k.ustel(d)
+		k.e("selp.f32", alfa[i], float32(1), alfa[i], bos)
+		for j := range S[i] {
+			x := k.f()
+			k.e("sub.rn.f32", x, S[i][j], mn)
+			e := k.ustel(x)
+			k.e("selp.f32", S[i][j], float32(0), e, bos)
+		}
+		k.e("mov.f32", m[i], mn)
+	}
+	top := k.satirIndirge(S, red, satir0, f.tx, k.topla)
+	for i := range S {
+		k.e("fma.rn.f32", l[i], l[i], alfa[i], top[i])
+		for j := range O[i] {
+			k.e("mul.rn.f32", O[i][j], O[i][j], alfa[i])
+		}
+	}
+	f.dosemeyeYaz(S, satir0, ps)
+}
+
+// dosemeyeYaz iş parçacığının kayıt döşemesini (satırlar satir0+i, sütunlar tx·cpt+j)
+// paylaşımlı bellek döşemesine yazar.
+func (f *flashOrtak) dosemeyeYaz(M [][]yazmac, satir0 yazmac, d smDoseme) {
+	k := f.k
+	cpt := len(M[0])
+	for i := range M {
+		ad := k.r()
+		k.e("add.s32", ad, satir0, i)
+		k.e("mad.lo.s32", ad, ad, d.adim, k.carp(f.tx, cpt))
+		k.e("mad.lo.s32", ad, ad, 4, d.taban)
+		for j, v := range M[i] {
+			k.e("st.shared.f32", bel(ad, 4*j), v)
+		}
 	}
 }
 

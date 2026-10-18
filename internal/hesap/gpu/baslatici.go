@@ -99,7 +99,9 @@ func (p *paramYazici) gosterge(d *depo, ofset int, c int) *paramYazici {
 	if c == pYaz {
 		p.yazan = append(p.yazan, d)
 	}
-	return p.ekleCesit(binary.LittleEndian.AppendUint64(nil, adr), c)
+	var b [8]byte // yığıtta: ekleCesit kopyalar (başlatma başına ayırma olmasın)
+	binary.LittleEndian.PutUint64(b[:], adr)
+	return p.ekleCesit(b[:], c)
 }
 
 // oku çekirdeğin yalnızca okuduğu depolama (ofset eleman cinsinden).
@@ -120,11 +122,13 @@ func (p *paramYazici) yazV(v tensor.View) *paramYazici {
 // bos, çekirdeğin bu başlatmada kullanmadığı bir okuma göstericisi (0 adres); bosYaz
 // aynısının yazılan parametreler için olanı (çekirdek o yola hiç girmez).
 func (p *paramYazici) bos() *paramYazici {
-	return p.ekleCesit(make([]byte, 8), pOku)
+	var b [8]byte
+	return p.ekleCesit(b[:], pOku)
 }
 
 func (p *paramYazici) bosYaz() *paramYazici {
-	return p.ekleCesit(make([]byte, 8), pYaz)
+	var b [8]byte
+	return p.ekleCesit(b[:], pYaz)
 }
 
 // okuYa d nil değilse okuma göstericisi, nil ise boş gösterici ekler; yazYa aynısının
@@ -147,23 +151,32 @@ func (p *paramYazici) u32(v int) *paramYazici {
 	if v < 0 || v > math.MaxUint32 {
 		panic(fmt.Sprintf("tensor: GPU: parametre %d 32 bite sığmıyor (iç hata)", v))
 	}
-	return p.ekle(binary.LittleEndian.AppendUint32(nil, uint32(v)))
+	var b [4]byte
+	binary.LittleEndian.PutUint32(b[:], uint32(v))
+	return p.ekle(b[:])
 }
 
 func (p *paramYazici) f32(v float32) *paramYazici {
-	return p.ekle(binary.LittleEndian.AppendUint32(nil, math.Float32bits(v)))
+	var b [4]byte
+	binary.LittleEndian.PutUint32(b[:], math.Float32bits(v))
+	return p.ekle(b[:])
 }
 
 // dizi n elemanlık 32 bitlik tam sayı dizisi (eksik elemanlar 0).
 func (p *paramYazici) dizi(n int, v ...int) *paramYazici {
-	b := make([]byte, 4*max(n, 1))
+	bas := len(p.buf)
+	for i := 0; i < 4*max(n, 1); i++ {
+		p.buf = append(p.buf, 0)
+	}
 	for i, x := range v {
 		if x < math.MinInt32 || x > math.MaxUint32 {
 			panic(fmt.Sprintf("tensor: GPU: dizi parametresi %d 32 bite sığmıyor (iç hata)", x))
 		}
-		binary.LittleEndian.PutUint32(b[4*i:], uint32(x))
+		binary.LittleEndian.PutUint32(p.buf[bas+4*i:], uint32(x))
 	}
-	return p.ekle(b)
+	p.sinir = append(p.sinir, len(p.buf))
+	p.cesit = append(p.cesit, pDeger)
+	return p
 }
 
 func (p *paramYazici) parcalar() [][]byte {
@@ -212,7 +225,9 @@ func (g *arkaUc) baslat(c *cekirdek, izgara, blok [3]uint32, p *paramYazici) {
 	}
 	g.sonCekirdek = c.ad
 	ev := g.olcBasla()
-	g.dene("cuLaunchKernel("+c.ad+")", g.sr.baslat(c.fn, izgara, blok, parca))
+	if s := g.sr.baslat(c.fn, izgara, blok, parca); s != basarili {
+		g.dene("cuLaunchKernel("+c.ad+")", s) // metin yalnızca hatada kurulur
+	}
 	g.olcBitir(c.ad, ev)
 	if g.eszamanli {
 		g.esitle()

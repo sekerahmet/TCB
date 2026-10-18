@@ -124,19 +124,7 @@ func (f *flashGeriDurum) olasiliklar(satir0 yazmac, satirlar []yazmac, j0 yazmac
 }
 
 // psYaz P ya da dS'yi ps döşemesine yazar ([sorgu][anahtar]).
-func (f *flashGeriDurum) psYaz(M [][]yazmac, satir0 yazmac) {
-	k := f.k
-	cpt := len(M[0])
-	for i := range M {
-		ad := k.r()
-		k.e("add.s32", ad, satir0, i)
-		k.e("mad.lo.s32", ad, ad, f.ps.adim, k.carp(f.tx, cpt))
-		k.e("mad.lo.s32", ad, ad, 4, f.ps.taban)
-		for j, v := range M[i] {
-			k.e("st.shared.f32", bel(ad, 4*j), v)
-		}
-	}
-}
+func (f *flashGeriDurum) psYaz(M [][]yazmac, satir0 yazmac) { f.dosemeyeYaz(M, satir0, f.ps) }
 
 // gradYazKip biriktirilen döşemeyi (satırlar r0 + ty·rpt + i < lim, sütunlar < D) yazar.
 func (f *flashGeriDurum) gradYazKip(M [][]yazmac, kip int, ptr, r0, lim yazmac, D int) {

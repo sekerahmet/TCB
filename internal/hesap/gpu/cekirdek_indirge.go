@@ -126,6 +126,19 @@ func (k *yazici) blokIndirge(v, sm, tid yazmac, B int, birlestir func(a, b yazma
 	return r
 }
 
+// parcaAraligi parçalı indirgemede ızgaranın y'sindeki parça s'nin aralığı: r'ye başını
+// ekler, sonunu (min(R, (s+1)·parça)) verir.
+func (k *yazici) parcaAraligi(r, parca, R yazmac) (s, son yazmac) {
+	s = k.ozel("%ctaid.y")
+	p0 := k.r()
+	k.e("mul.lo.s32", p0, s, parca)
+	k.e("add.s32", r, r, p0)
+	son = k.r()
+	k.e("add.s32", son, p0, parca)
+	k.e("min.u32", son, son, R)
+	return s, son
+}
+
 // topla birlestir işlevi: a + b.
 func (k *yazici) topla(a, b yazmac) yazmac {
 	r := k.f()
@@ -169,13 +182,7 @@ func indirgeCekirdegi(a indirgeAyar) func() *yazici {
 		k.e("mov.u32", r, bas)
 		rSon = R
 		if a.parcali {
-			s = k.ozel("%ctaid.y")
-			p0 := k.r()
-			k.e("mul.lo.s32", p0, s, parca)
-			k.e("add.s32", r, r, p0)
-			rSon = k.r()
-			k.e("add.s32", rSon, p0, parca)
-			k.e("min.u32", rSon, rSon, R)
+			s, rSon = k.parcaAraligi(r, parca, R)
 		}
 		dongu, bitti := k.etiket(), k.etiket()
 		k.koy(dongu)
