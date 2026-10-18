@@ -12,6 +12,8 @@ değişken x = 1  // satır sonuna kadar yorum
 
 **2.3** Tanımlayıcılar bir harf ya da `_` ile başlar, harf, rakam ve `_` ile sürer; Türkçe harfler (ç ğ ı İ ö ş ü) dahil tüm Unicode harfleri geçerlidir: `öğrenci_sayısı2`.
 
+**2.3a** Kod biçimindeki adlar ayrılmıştır: bir büyük harf ve üç rakamdan oluşan ad (`G100`, `A001`, `K001`) dilin kodlarının yazımıdır (17) ve kullanıcı adı olarak kullanılamaz; sözdizimi hatası verir: `'G100' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır, başka bir ad seçin (ör. G100_ ya da g100)`. Dosyalar ileride kodlarla saklanacağı için bu adlar bugünden ayrılır; `g100`, `G1000`, `G100_` sıradan adlardır.
+
 **2.4** Tam sayı sabitleri ondalık rakamlardan oluşur; okunabilirlik için `_` kullanılabilir: `1_000_000`.
 
 **2.5** Ondalık sabitler nokta içerir ve noktadan sonra rakam gelmelidir: `3.14`. (`1..5` bir aralıktır, ondalık değil.) Bilimsel yazım da Ondalık verir: üs harfi `e`/`E`, isteğe bağlı `+`/`-` ve en az bir rakam (`1e-5`, `3.2E+4`, `2e10`); üsten sonra rakam yoksa `e` sayıya ait değildir (`2e` → `2` ve `e` adı).

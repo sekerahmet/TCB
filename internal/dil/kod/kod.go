@@ -162,6 +162,22 @@ func Coz(s string) (Kod, error) {
 	return Kod(1000*(aile+1) + n), nil
 }
 
+// KodBicimi s bir kodun biçiminde mi: büyük harf ve üç rakam (G100, A001, K001)? Bu
+// biçimdeki adlar ayrılmıştır (dosyalar ileride kodlarla saklanır; bkz. docs/dil/17_kodlar.md
+// 17.7): kullanıcı adı olarak kullanılamaz. Aile harfi henüz kullanılmayan bir harf de
+// olabilir (gelecekteki aileler için).
+func KodBicimi(s string) bool {
+	if len(s) != 4 || s[0] < 'A' || s[0] > 'Z' {
+		return false
+	}
+	for i := 1; i < 4; i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 // Alan bir adın benzersiz olması gereken ad alanıdır.
 type Alan uint8
 

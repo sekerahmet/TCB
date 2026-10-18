@@ -48,6 +48,15 @@ test "2.6 bilinmeyen kaçış dizisi sözdizimi hatasıdır; ham metin önerilir
     doğrula(mesaj.içerir("ham metin"), mesaj)
 }
 
+test "2.3a kod biçimindeki adlar (büyük harf ve üç rakam) ayrılmıştır" {
+    değişken mesaj = ""
+    dene { aktar "olumsuz/kod_bicimli_ad" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 2, Sütun 10: 'G100' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır"), mesaj)
+    // Benzer ama ayrılmamış adlar sıradandır
+    değişken g100, G1000, G100_ = 1, 2, 3
+    eşit_mi(6, g100 + G1000 + G100_)
+}
+
 test "2.6a ham metin: ters tırnak, kaçış ve yerleştirme yok, çok satırlı" {
     değişken a = 5
     eşit_mi("C:\\veri\\yeni", `C:\veri\yeni`)

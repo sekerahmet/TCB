@@ -187,6 +187,13 @@ func TestKodBicimi(t *testing.T) {
 		(T+900).Alan() != AlanParametre || (G+100).Alan() != AlanGenel || (H+1).Alan() != AlanYok {
 		t.Error("ad alanları yanlış")
 	}
+	// Ayrılmış ad biçimi (2.3a): bütün büyük harfler, aile harfi olmasa da
+	for s, want := range map[string]bool{"G100": true, "K001": true, "Z999": true, "A000": true,
+		"g100": false, "G10": false, "G1000": false, "G10x": false, "Ç100": false, "": false} {
+		if KodBicimi(s) != want {
+			t.Errorf("KodBicimi(%q) = %v, %v bekleniyordu", s, !want, want)
+		}
+	}
 }
 
 // Eski adlar ve ASCII biçimleri: işlev → islev de eski sayılır ve ascii olarak işaretlenir.

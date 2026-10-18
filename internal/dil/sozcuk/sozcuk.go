@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	"tr_dili/internal/dil/kod"
 )
 
 // Metin içinde '\{' ve '\}' ile kaçışlanmış süslü parantezler, sözcük biriminde
@@ -262,6 +264,10 @@ func (l *Lexer) NextToken() Token {
 		if isLetter(l.ch) {
 			lit := l.readIdentifier()
 			tokType := LookupIdent(lit)
+			if tokType == TOKEN_IDENT && kod.KodBicimi(lit) {
+				l.addError(line, col, "'%s' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır, başka bir ad seçin (ör. %s_ ya da %s)",
+					lit, lit, strings.ToLower(lit))
+			}
 			return Token{Type: tokType, Literal: lit, Line: line, Column: col}
 		} else if isDigit(l.ch) {
 			lit, isFloat := l.readNumber()
