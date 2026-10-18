@@ -613,26 +613,24 @@ const (
 // sigmoid32 sayısal kararlı lojistik işlev.
 func sigmoid32(x float32) float32 {
 	if x >= 0 {
-		return float32(1 / (1 + math.Exp(-float64(x))))
+		return 1 / (1 + expf32(-x))
 	}
-	e := math.Exp(float64(x))
-	return float32(e / (1 + e))
+	e := expf32(x)
+	return e / (1 + e)
 }
 
 // gelu32 tanh yaklaşımlı GELU.
 func gelu32(x float32) float32 {
-	xd := float64(x)
-	u := geluC * (xd + geluA*xd*xd*xd)
-	return float32(0.5 * xd * (1 + math.Tanh(u)))
+	u := geluC * (x + geluA*x*x*x)
+	return 0.5 * x * (1 + tanhf32(u))
 }
 
 // geluTurev32 GELU'nun x'e göre türevi.
 func geluTurev32(x float32) float32 {
-	xd := float64(x)
-	u := geluC * (xd + geluA*xd*xd*xd)
-	th := math.Tanh(u)
-	du := geluC * (1 + 3*geluA*xd*xd)
-	return float32(0.5*(1+th) + 0.5*xd*(1-th*th)*du)
+	u := geluC * (x + geluA*x*x*x)
+	th := tanhf32(u)
+	du := geluC * (1 + 3*geluA*x*x)
+	return 0.5*(1+th) + 0.5*x*(1-th*th)*du
 }
 
 // unaryMaliyet bir elemanın yaklaşık göreli maliyeti (işçi sayısı seçimi için).
@@ -810,7 +808,7 @@ func (cpuBackend) UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Storage
 }
 
 // float32 yardımcıları
-func exp32(x float32) float32  { return float32(math.Exp(float64(x))) }
+func exp32(x float32) float32  { return expf32(x) }
 func log32(x float32) float32  { return float32(math.Log(float64(x))) }
 func sqrt32(x float32) float32 { return float32(math.Sqrt(float64(x))) }
-func tanh32(x float32) float32 { return float32(math.Tanh(float64(x))) }
+func tanh32(x float32) float32 { return tanhf32(x) }

@@ -56,8 +56,9 @@ func (cpuBackend) CrossEntropy(x View, targets []int, C int) (Storage, Storage) 
 				}
 			}
 			var s float64
+			m32 := float32(m)
 			for _, v := range row {
-				s += math.Exp(float64(v) - m)
+				s += float64(expf32(v - m32))
 			}
 			l := m + math.Log(s)
 			lse[r] = float32(l)
@@ -100,9 +101,10 @@ func (cpuBackend) CrossEntropyGrad(gx, g Storage, x View, lse Storage, targets [
 			}
 			row := xd[r*C : (r+1)*C]
 			dst := pg[r*C : (r+1)*C]
-			l := float64(ld[r])
+			l := ld[r]
+			k32 := float32(k)
 			for c, v := range row {
-				dst[c] += float32(k * math.Exp(float64(v)-l))
+				dst[c] += k32 * expf32(v-l)
 			}
 			dst[t] -= float32(k)
 		}

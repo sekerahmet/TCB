@@ -199,10 +199,10 @@ func (cpuBackend) Softmax(out Storage, x View, axis int, logKip bool) {
 			}
 			var s float64
 			for d := 0; d < dim; d++ {
-				e := math.Exp(float64(xd[base+d*inner] - m))
-				s += e
+				e := expf32(xd[base+d*inner] - m)
+				s += float64(e)
 				if !logKip {
-					y[base+d*inner] = float32(e)
+					y[base+d*inner] = e
 				}
 			}
 			if logKip {
