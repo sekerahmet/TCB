@@ -150,7 +150,7 @@ func TestSinirAgiEskiGeriYayilimlaEsdeger(t *testing.T) {
 		}
 		x := ct.New([]float32{0, 0, 0, 1, 1, 0, 1, 1}, 4, 2)
 		y := ct.New([]float32{0, 1, 1, 0, 1, 0, 0, 1}, 4, 2)
-		if _, err := yeni.egit(x, y, devirSayisi, lr); err != nil {
+		if _, err := yeni.egit(nil, x, y, devirSayisi, lr); err != nil {
 			t.Fatal(err)
 		}
 		for l := range yeni.agirliklar {

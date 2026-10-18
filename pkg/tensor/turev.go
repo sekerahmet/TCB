@@ -5,22 +5,63 @@ import (
 	"sync/atomic"
 )
 
-// gradKapali sıfırdan büyükse işlemler hesap çizgesine kaydedilmez
-// (türevsiz çalışma). Sayaç olduğu için iç içe NoGrad çağrıları güvenlidir.
-// Durum süreç genelidir; eşzamanlı eğitim ve çıkarım aynı süreçte karışık
-// yürütülecekse bu göz önünde tutulmalıdır.
-var gradKapali atomic.Int32
+// GradContext bir yürütme bağlamının (ör. bir yorumlayıcı görevinin) türevsiz kip
+// durumudur. Her an tek bir bağlam etkindir (SetGradContext); NoGrad ve GradEnabled etkin
+// bağlamı kullanır. Bağlam verilmemişse süreç geneli varsayılan bağlam etkindir; tek
+// goroutine'li ya da bağlam değiştirmeyen Go programları için davranış süreç genelidir.
+//
+// Bir yorumlayıcı, görevler arasında yürütmeyi devrederken (ör. yorumlayıcı kilidi el
+// değiştirdiğinde) kilidi alan görevin bağlamını etkin yapar; böylece bir görevin türevsiz
+// bloğu, o blok sürerken çalışan başka görevin işlemlerini çizge dışında bırakmaz. NoGrad
+// girişte etkin olan bağlamı yakalar ve çıkışta aynı bağlamı geri sayar; arada etkin
+// bağlam değişip geri gelse de sayaç tutarlı kalır.
+type GradContext struct {
+	// kapali sıfırdan büyükse işlemler hesap çizgesine kaydedilmez. Sayaç olduğu için
+	// iç içe NoGrad çağrıları güvenlidir.
+	kapali atomic.Int32
+}
 
-// NoGrad fn'i türevsiz kipte çalıştırır: içinde üretilen tensörler çizgeye
-// bağlanmaz ve gradyan istemez. Çıkarım ve iyileştirici adımları için.
+// NewGradContext türevli kipte yeni bir bağlam üretir.
+func NewGradContext() *GradContext { return &GradContext{} }
+
+// Enabled bağlamın türevli kipte olup olmadığı.
+func (c *GradContext) Enabled() bool { return c.kapali.Load() == 0 }
+
+var (
+	varsayilanGrad GradContext
+	etkinGrad      atomic.Pointer[GradContext]
+)
+
+// etkinBaglam etkin türev bağlamını verir.
+func etkinBaglam() *GradContext {
+	if c := etkinGrad.Load(); c != nil {
+		return c
+	}
+	return &varsayilanGrad
+}
+
+// SetGradContext c'yi etkin türev bağlamı yapar (nil: süreç geneli varsayılan) ve önceki
+// etkin bağlamı verir.
+func SetGradContext(c *GradContext) *GradContext {
+	onceki := etkinBaglam()
+	if c == &varsayilanGrad {
+		c = nil
+	}
+	etkinGrad.Store(c)
+	return onceki
+}
+
+// NoGrad fn'i etkin bağlamda türevsiz kipte çalıştırır: içinde üretilen tensörler
+// çizgeye bağlanmaz ve gradyan istemez. Çıkarım ve iyileştirici adımları için.
 func NoGrad(fn func()) {
-	gradKapali.Add(1)
-	defer gradKapali.Add(-1)
+	c := etkinBaglam()
+	c.kapali.Add(1)
+	defer c.kapali.Add(-1)
 	fn()
 }
 
-// GradEnabled türevli kipte olup olmadığımızı bildirir.
-func GradEnabled() bool { return gradKapali.Load() == 0 }
+// GradEnabled etkin bağlamın türevli kipte olup olmadığını bildirir.
+func GradEnabled() bool { return etkinBaglam().kapali.Load() == 0 }
 
 // kayitliSurum ileri hesapta kaydedilmiş (geri yayılımın okuyacağı) bir
 // tensörün o andaki depolama sürümü.
@@ -112,6 +153,29 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 	// biriktirmeden hata ver (aksi halde yaprakların gradyanı sessizce eksik kalırdı).
 	order := topoOrder(t)
 	surumDenetle(order)
+	// Çizgenin ara düğümlerini bu geri yayılıma ayır: başka bir geri yayılım (ör. dış
+	// düğümün geri hesabı sırasında başka görevin başlattığı) aynı düğümlere rastlarsa
+	// gradyanlar iki kez ya da eksik birikeceği için açık hata verir.
+	ayrilan := 0
+	defer func() {
+		// Hata (panik) durumunda henüz bırakılmamış düğümlerin işaretini kaldır.
+		for _, n := range order[:ayrilan] {
+			if !n.serbest {
+				n.geride.Store(false)
+			}
+		}
+	}()
+	for _, n := range order {
+		if n.backward == nil {
+			ayrilan++
+			continue
+		}
+		if !n.geride.CompareAndSwap(false, true) {
+			panic(fmt.Sprintf("tensor: %q işleminin sonucu başka bir geri yayılımın çizgesinde ve o geri yayılım "+
+				"sürüyor (ör. başka bir görevden); aynı çizgeden aynı anda iki geri yayılım yapılamaz", n.op))
+		}
+		ayrilan++
+	}
 	g := t.accGrad()
 	if seed == nil {
 		bir := t.be.Alloc(t.Numel(), g.DType())
@@ -147,6 +211,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 		n.kayitli = nil
 		n.dis = nil
 		n.serbest = true
+		n.geride.Store(false)
 	}
 }
 

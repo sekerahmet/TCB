@@ -93,7 +93,7 @@ func (nn *SinirAgi) ileri(x *ct.Tensor) *ct.Tensor {
 // egit modeli ortalama kare hata kaybıyla devir kez eğitir ve her devirdeki kaybı verir.
 // Gradyan, toplam kare hatanın örnek sayısına bölümünden alınır (çok çıkışlı ağlarda
 // çıkışlar toplanır); bildirilen kayıp ise tüm elemanların ortalamasıdır.
-func (nn *SinirAgi) egit(x, y *ct.Tensor, devir int, oran float64) ([]float64, error) {
+func (nn *SinirAgi) egit(m *vm.VM, x, y *ct.Tensor, devir int, oran float64) ([]float64, error) {
 	xs, ys := x.Shape(), y.Shape()
 	if xs[0] != ys[0] {
 		return nil, fmt.Errorf("Eğitim girdi satır sayısı (%d) ile hedef satır sayısı (%d) eşit olmalıdır", xs[0], ys[0])
@@ -121,7 +121,7 @@ func (nn *SinirAgi) egit(x, y *ct.Tensor, devir int, oran float64) ([]float64, e
 			fark := ct.Sub(nn.ileri(x), y)
 			kayip := fark.Square().SumAll().MulScalar(olcek)
 			kayiplar = append(kayiplar, kisaFloat64(float32(float64(kayip.Item())/ortalama)))
-			kayip.Backward()
+			kayip.BackwardCtx(nil, m) // dış düğümler (ileride) bu görevle çalışır
 			opt.Step()
 		}
 		return true
@@ -239,7 +239,7 @@ func (nn *SinirAgi) GetProperty(kod sozluk.Kod, prop string) (vm.Value, error) {
 
 // egitYerlesik model.eğit(Girdi, Hedef, [devir: 500], [öğrenme_oranı: 0.1]) çağrısıdır.
 // Öğrenme oranının adı iyileştiricilerdekiyle (AdamW, SGD) aynıdır.
-func (nn *SinirAgi) egitYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+func (nn *SinirAgi) egitYerlesik(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf("model.eğit(Girdi, Hedef, [devir: 500], [öğrenme_oranı: 0.1]) en az 2 parametre bekler")
 	}
@@ -275,7 +275,7 @@ func (nn *SinirAgi) egitYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.
 			oran = f
 		}
 	}
-	gecmis, err := nn.egit(x, y, devir, oran)
+	gecmis, err := nn.egit(m, x, y, devir, oran)
 	if err != nil {
 		return nil, err
 	}

@@ -17,6 +17,9 @@ import (
 // yalnızca kodlar geçer. Aynı adlı çekirdek ve yapay zekâ yerleşikleri (toplam, ortalama,
 // min, maks, karekök) sarılır: argüman tensörse tensör yolu, değilse eski yerleşik çalışır.
 func Kaydet(v *vm.VM) {
+	// Türevsiz kip görev başınadır (gorev.go).
+	v.GorevKancasiEkle(gorevKancasi)
+
 	// --- Oluşturucular ---
 	sar(v, sozluk.T+100, yeniYerlesik(tensorYerlesik))
 	sar(v, sozluk.T+101, yeniYerlesik(sekilliOlusturucu(sozluk.T+101, true, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {

@@ -71,6 +71,9 @@ type vmShared struct {
 	// (bkz. devret). Böylece CPU-yoğun bir döngü eşzamanlı görevleri ve web isteklerini
 	// sonuna kadar bekletmez.
 	bekleyen atomic.Int32
+	// gorevKancalari, bir görev kilidi her aldığında çağrılan motor kancalarıdır (bkz.
+	// GorevKancasiEkle). Yalnızca kayıt sırasında (program başlamadan) yazılır.
+	gorevKancalari []func(*VM)
 
 	// metinOnbellegi son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
 	metinOnbellegi struct {
@@ -159,6 +162,9 @@ func (v *VM) acquireGIL() {
 	v.gil.Lock()
 	v.bekleyen.Add(-1)
 	v.holdsGIL = true
+	for _, f := range v.gorevKancalari {
+		f(v)
+	}
 }
 
 // devret, kilidi bekleyen bir görev varsa kilidi bırakıp yeniden alır. Yalnızca deyimler

@@ -188,3 +188,27 @@ func panikMesaji(fn func()) (mesaj string) {
 	fn()
 	return ""
 }
+
+// Bir dış düğümün geri hesabı sürerken aynı çizgenin düğümlerinden ikinci bir geri yayılım
+// açık hata verir; ilk geri yayılım bozulmadan biter.
+func TestCustomOpGeriSirasindaIkinciGeriYayilim(t *testing.T) {
+	x := New([]float32{1, 2}, 2).SetRequiresGrad(true)
+	var k2 *Tensor
+	var ikinciHata string
+	o := CustomOp("özdeş", []*Tensor{x}, []*Tensor{x.Detach()}, nil, func(_ any, g []*Tensor) []*Tensor {
+		ikinciHata = panikMesaji(func() { k2.Backward() })
+		return g
+	})[0]
+	k1 := o.MulScalar(3).SumAll()
+	k2 = o.MulScalar(2).SumAll()
+	k1.Backward()
+	if !strings.Contains(ikinciHata, "başka bir geri yayılım") {
+		t.Fatalf("ikinci geri yayılım hata vermedi: %q", ikinciHata)
+	}
+	yakin(t, "ilk geri yayılım", x.Grad().Data(), []float32{3, 3}, 0)
+	// Hata veren geri yayılımın ayırdığı düğümlerin işareti kaldırıldı; o artık serbest
+	// olduğu için k2 açıkça "zaten yapıldı" hatası verir.
+	if h := panikMesaji(func() { k2.Backward() }); !strings.Contains(h, "zaten yapıldı") {
+		t.Fatalf("beklenen hata: %q", h)
+	}
+}

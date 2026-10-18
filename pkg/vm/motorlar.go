@@ -27,3 +27,13 @@ func (v *VM) registerMotors() {
 		kaydet(v)
 	}
 }
+
+// GorevKancasiEkle, bu VM'nin görevlerinden biri (ana program, eşzamanlı blok, web/GUI
+// isteği) yorumlayıcı kilidini her aldığında, kilidi alan görevin goroutine'inde ve
+// görünümüyle çağrılacak bir kanca ekler. Motorlar süreç geneli durumlarını (ör. tensör
+// çekirdeğinin türevsiz kipi) kilidi tutan göreve göre ayarlamak için kullanır; kanca
+// görev durumunu GorevDegeri ile okur. Yalnızca motor kaydı sırasında (program
+// başlamadan) çağrılmalıdır. Kanca kısa olmalıdır: kilidin her el değiştirişinde çalışır.
+func (v *VM) GorevKancasiEkle(f func(*VM)) {
+	v.gorevKancalari = append(v.gorevKancalari, f)
+}

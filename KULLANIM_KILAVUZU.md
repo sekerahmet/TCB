@@ -206,7 +206,7 @@ yazdır(türev_denetle(kapılı, [a, b]))               // doğru (yanlış bir 
 
 Şekil hataları şekli gösterir ve `dene/yakala` ile yakalanabilir: `[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`. Fonksiyon, metot, işleç (`@`, `+`, `<`...) ve özellik hatalarının başında `Satır N:` bulunur: `Satır 3: [2, 2] ile [1, 3] matris çarpımı yapılamaz; 2 ≠ 1 (...)`.
 
-> **Not (türevsiz ve eşzamanlılık):** Türevsiz kip süreç geneli bir sayaçtır. `türevsiz { ... }` bloğunun içinde yorumlayıcı kilidini bırakan bir çağrı (`bekle(...)`, ağ isteği, `girdi()` gibi) varsa, o sırada çalışan başka bir `eşzamanlı` görev de türevsiz çalışır ve hesapladığı değerler türev izlemez. Eğitim ve türevsiz çıkarımı aynı anda farklı görevlerde yürütmeyin ya da `türevsiz` bloklarına engelleyici çağrı koymayın.
+> **Not (türevsiz ve eşzamanlılık):** Türevsiz kip her görevin kendi durumudur. `türevsiz { ... }` bloğu fonksiyon çağırsa, döngü kursa ya da `bekle(...)` gibi yorumlayıcı kilidini bırakan bir çağrı yapsa da, aynı anda çalışan başka bir `eşzamanlı` görev (ör. eğitim döngüsü) türev izlemeye devam eder; yani bir web isteğinde türevsiz çıkarım yaparken arka planda eğitim sürdürebilirsiniz. Yeni bir `eşzamanlı` görev her zaman türevli kipte başlar. Bir geri yayılım sürerken başka bir görev aynı çizgeden geri yayılım başlatırsa açık hata alır.
 
 VS Code İzleme Masası'nda tensörler tip sütununda `Tensör [2×3]` (float32 dışındaki türlerde `Tensör [2×3] bf16`) olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılabilir. Variables panelinde tensörler ilk ekseni boyunca açılır (satırlar, onların içinde sayılar; 1000'den çok satırda ilk 1000 satır ve bir `…` satırı gösterilir).
 

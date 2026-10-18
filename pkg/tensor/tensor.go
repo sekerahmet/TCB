@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync/atomic"
 )
 
 // Tensor n-boyutlu float32 dizisi ve otomatik türev düğümüdür.
@@ -51,6 +52,10 @@ type Tensor struct {
 	// dis, dış (çekirdek dışında yazılmış) bir işlemin düğümünde geri hesabı taşır
 	// (bkz. ozel_turev.go).
 	dis *disDugum
+	// geride, düğümün şu an süren bir geri yayılımın çizgesinde olduğunu işaretler; aynı
+	// düğümden ikinci bir geri yayılım (ör. dış düğümün geri hesabı kilidi bıraktığında
+	// başka görevin başlattığı) açık hata verir.
+	geride atomic.Bool
 }
 
 // ----------------------------------------------------------------------------
