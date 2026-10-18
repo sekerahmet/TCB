@@ -187,6 +187,37 @@ func maskeli(md []float32, taban, i, jg int, p *AttentionParams) bool {
 	return md[taban+i*p.MaskStrideQ+jg*p.MaskStrideK] == 0
 }
 
+// blokAraligi sorgu satırı i'nin [j0, j0+n) anahtar bloğunda nedensellik ve
+// pencereye göre bakabildiği sütunları [a, c) olarak verir (blok içi indeks).
+func (p *AttentionParams) blokAraligi(i, j0, n int) (a, c int) {
+	lo, hi := p.Limits(i)
+	a = min(max(lo-j0, 0), n)
+	c = min(max(hi-j0, 0), n)
+	return a, max(a, c)
+}
+
+// ustelMaskeli seg = e^seg; ek maskenin kapattığı yerler (seg'de -sonsuz) 0
+// olur. Kapalı yerler üstele -sonsuz olarak verilmez: AVX2 çekirdeğinde normal
+// altı ara sonuçlar mikro kod yardımıyla çok yavaştır (karakter modelinde
+// üstel, adımın en pahalı işiydi).
+func (p *AttentionParams) ustelMaskeli(seg, md []float32, taban, i, jBas int) {
+	if md == nil {
+		expVek(seg, seg)
+		return
+	}
+	for jj, x := range seg {
+		if x == eksiSonsuz {
+			seg[jj] = 0
+		}
+	}
+	expVek(seg, seg)
+	for jj := range seg {
+		if maskeli(md, taban, i, jBas+jj, p) {
+			seg[jj] = 0
+		}
+	}
+}
+
 func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p AttentionParams) Storage {
 	qd, kd, vd := cd(q.S)[q.Offset:], cd(k.S)[k.Offset:], cd(v.S)[v.Offset:]
 	od := cd(out)
@@ -249,24 +280,32 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 			bos := true
 			for r := 0; r < m; r++ {
 				row := S[r*n : (r+1)*n]
-				en := eksiSonsuz
+				// Üstel yalnızca bakılabilen [a, c) sütunlarında hesaplanır; dışı 0.
+				a, c := 0, n
 				if kismi {
-					lo, hi := p.Limits(i0 + r)
-					for jj := range row {
-						jg := j0 + jj
-						if jg < lo || jg >= hi || (md != nil && maskeli(md, taban, i0+r, jg, &p)) {
-							row[jj] = eksiSonsuz
+					a, c = p.blokAraligi(i0+r, j0, n)
+				}
+				seg := row[a:c]
+				en := eksiSonsuz
+				if md != nil {
+					for jj, x := range seg {
+						if maskeli(md, taban, i0+r, j0+a+jj, &p) {
+							seg[jj] = eksiSonsuz
 							continue
 						}
-						x := row[jj] * scale
-						row[jj] = x
-						en = max(en, x)
+						x *= scale
+						seg[jj] = x
+						if x > en {
+							en = x
+						}
 					}
 				} else {
-					for jj, x := range row {
+					for jj, x := range seg {
 						x *= scale
-						row[jj] = x
-						en = max(en, x)
+						seg[jj] = x
+						if x > en {
+							en = x
+						}
 					}
 				}
 				if en == eksiSonsuz {
@@ -276,20 +315,25 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 				bos = false
 				eski := enb[r]
 				yeni := max(eski, en)
-				for jj := range row {
-					row[jj] -= yeni
+				for jj, x := range seg {
+					seg[jj] = x - yeni
 				}
-				expVek(row, row)
+				p.ustelMaskeli(seg, md, taban, i0+r, j0+a)
+				clear(row[:a])
+				clear(row[c:])
 				var top float32
-				for _, x := range row {
+				for _, x := range seg {
 					top += x
 				}
 				if eski != yeni {
-					alfa := expf32(eski - yeni) // eski -sonsuzsa 0
-					payda[r] *= alfa
-					or := O[r*p.Dv : (r+1)*p.Dv]
-					for d := range or {
-						or[d] *= alfa
+					// İlk katkıda (eski -sonsuz) O satırı ve payda zaten 0'dır.
+					if eski != eksiSonsuz {
+						alfa := expf32(eski - yeni)
+						payda[r] *= alfa
+						or := O[r*p.Dv : (r+1)*p.Dv]
+						for d := range or {
+							or[d] *= alfa
+						}
 					}
 					enb[r] = yeni
 				}
@@ -369,22 +413,24 @@ func (s *dikkatGeri) ikili(tb *dikkatTampon, bh, kvh, i0, m, j0, n int, dVa []fl
 			clear(row)
 			continue
 		}
+		a, c := 0, n
 		if kismi {
-			lo, hi := p.Limits(i0 + r)
-			for jj := range row {
-				jg := j0 + jj
-				if jg < lo || jg >= hi || (s.md != nil && maskeli(s.md, mtaban, i0+r, jg, p)) {
-					row[jj] = eksiSonsuz
-				} else {
-					row[jj] = row[jj]*s.scale - L
+			a, c = p.blokAraligi(i0+r, j0, n)
+		}
+		seg := row[a:c]
+		for jj, x := range seg {
+			seg[jj] = x*s.scale - L
+		}
+		if s.md != nil {
+			for jj := range seg {
+				if maskeli(s.md, mtaban, i0+r, j0+a+jj, p) {
+					seg[jj] = eksiSonsuz
 				}
 			}
-		} else {
-			for jj, x := range row {
-				row[jj] = x*s.scale - L
-			}
 		}
-		expVek(row, row)
+		p.ustelMaskeli(seg, s.md, mtaban, i0+r, j0+a)
+		clear(row[:a])
+		clear(row[c:])
 	}
 	if dVa != nil {
 		gemmTek(n, p.Dv, m, S, 1, n, doi, p.Dv, 1, dVa, p.Dv, tb)
