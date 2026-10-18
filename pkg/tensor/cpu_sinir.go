@@ -1,9 +1,6 @@
 package tensor
 
-import (
-	"math"
-	"sync"
-)
+import "math"
 
 // CPU arka ucu: sinir ağı işlemleri ve iyileştirici adımları.
 
@@ -119,16 +116,59 @@ func (cpuBackend) CrossEntropyGrad(gx, g Storage, x View, lse Storage, targets [
 	})
 }
 
-// parcaToplayici, satır parçalarında ayrı ayrı biriktirilen ölçek/sapma
-// gradyanlarını tek tampona güvenle ekler.
-type parcaToplayici struct{ mu sync.Mutex }
+// parcaliToplam norm katmanlarının ölçek/sapma gradyanlarını belirlenimci
+// biriktirir: satırlar uzunluğu yalnızca D'ye bağlı parçalara bölünür, her
+// parçanın kısmi toplamı ayrı tutulur ve sonunda parça sırasıyla birleştirilir.
+// Sonuç işçi sayısından ve zamanlamadan bağımsızdır (bit düzeyinde aynı).
+type parcaliToplam struct {
+	R, D, rpc, nc int
+	g, b          []float64
+}
 
-func (s *parcaToplayici) ekle(dst []float32, src []float64) {
-	s.mu.Lock()
-	for i, v := range src {
-		dst[i] += float32(v)
+func yeniParcaliToplam(R, D int, gVar, bVar bool) *parcaliToplam {
+	rpc := max(1, indirgemeParca/max(D, 1))
+	p := &parcaliToplam{R: R, D: D, rpc: rpc, nc: (R + rpc - 1) / rpc}
+	if gVar {
+		p.g = make([]float64, p.nc*D)
 	}
-	s.mu.Unlock()
+	if bVar {
+		p.b = make([]float64, p.nc*D)
+	}
+	return p
+}
+
+// aralik c. parçanın satır aralığı.
+func (p *parcaliToplam) aralik(c int) (int, int) { return c * p.rpc, min((c+1)*p.rpc, p.R) }
+
+// kismi c. parçanın kısmi toplam dilimleri (gerekmeyenler nil).
+func (p *parcaliToplam) kismi(c int) (g, b []float64) {
+	if p.g != nil {
+		g = p.g[c*p.D : (c+1)*p.D]
+	}
+	if p.b != nil {
+		b = p.b[c*p.D : (c+1)*p.D]
+	}
+	return
+}
+
+// birlestir kısmi toplamları parça sırasıyla toplayıp hedeflere ekler.
+func (p *parcaliToplam) birlestir(gg, bg []float32) {
+	topla := func(dst []float32, k []float64) {
+		if dst == nil || k == nil {
+			return
+		}
+		acc := make([]float64, p.D)
+		for c := 0; c < p.nc; c++ {
+			for j, v := range k[c*p.D : (c+1)*p.D] {
+				acc[j] += v
+			}
+		}
+		for j, v := range acc {
+			dst[j] += float32(v)
+		}
+	}
+	topla(gg, p.g)
+	topla(bg, p.b)
 }
 
 func optGather(v *View) []float32 {
@@ -183,60 +223,52 @@ func (cpuBackend) LayerNormGrad(gx, ggamma, gbeta, g Storage, x View, gamma *Vie
 	gr0, md, rd := cd(g), cd(mean), cd(rstd)
 	xg, gg, bg := cd(gx), cd(ggamma), cd(gbeta)
 	R := len(xd) / max(D, 1)
-	var top parcaToplayici
-	parallelFor(R, D*4, func(lo, hi int) {
-		var pg, pb []float64
-		if gg != nil {
-			pg = make([]float64, D)
-		}
-		if bg != nil {
-			pb = make([]float64, D)
-		}
-		for r := lo; r < hi; r++ {
-			row := xd[r*D : (r+1)*D]
-			gr := gr0[r*D : (r+1)*D]
-			m, rs := md[r], rd[r]
-			for j, v := range gr {
-				if pg != nil {
-					pg[j] += float64(v) * float64((row[j]-m)*rs)
+	pc := yeniParcaliToplam(R, D, gg != nil, bg != nil)
+	parallelFor(pc.nc, pc.rpc*D*4, func(clo, chi int) {
+		for c := clo; c < chi; c++ {
+			lo, hi := pc.aralik(c)
+			pg, pb := pc.kismi(c)
+			for r := lo; r < hi; r++ {
+				row := xd[r*D : (r+1)*D]
+				gr := gr0[r*D : (r+1)*D]
+				m, rs := md[r], rd[r]
+				for j, v := range gr {
+					if pg != nil {
+						pg[j] += float64(v) * float64((row[j]-m)*rs)
+					}
+					if pb != nil {
+						pb[j] += float64(v)
+					}
 				}
-				if pb != nil {
-					pb[j] += float64(v)
+				if xg == nil {
+					continue
+				}
+				// dx = rstd·(dx̂ - ort(dx̂) - x̂·ort(dx̂·x̂))
+				var s1, s2 float64
+				for j, v := range gr {
+					dh := v
+					if gd != nil {
+						dh *= gd[j]
+					}
+					h := (row[j] - m) * rs
+					s1 += float64(dh)
+					s2 += float64(dh) * float64(h)
+				}
+				m1 := float32(s1 / float64(D))
+				m2 := float32(s2 / float64(D))
+				xr := xg[r*D : (r+1)*D]
+				for j, v := range gr {
+					dh := v
+					if gd != nil {
+						dh *= gd[j]
+					}
+					h := (row[j] - m) * rs
+					xr[j] += rs * (dh - m1 - h*m2)
 				}
 			}
-			if xg == nil {
-				continue
-			}
-			// dx = rstd·(dx̂ - ort(dx̂) - x̂·ort(dx̂·x̂))
-			var s1, s2 float64
-			for j, v := range gr {
-				dh := v
-				if gd != nil {
-					dh *= gd[j]
-				}
-				h := (row[j] - m) * rs
-				s1 += float64(dh)
-				s2 += float64(dh) * float64(h)
-			}
-			m1 := float32(s1 / float64(D))
-			m2 := float32(s2 / float64(D))
-			xr := xg[r*D : (r+1)*D]
-			for j, v := range gr {
-				dh := v
-				if gd != nil {
-					dh *= gd[j]
-				}
-				h := (row[j] - m) * rs
-				xr[j] += rs * (dh - m1 - h*m2)
-			}
-		}
-		if pg != nil {
-			top.ekle(gg, pg)
-		}
-		if pb != nil {
-			top.ekle(bg, pb)
 		}
 	})
+	pc.birlestir(gg, bg)
 }
 
 func (cpuBackend) RMSNorm(out Storage, x View, gamma *View, D int, eps float32) Storage {
@@ -273,47 +305,45 @@ func (cpuBackend) RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv S
 	gr0, rd := cd(g), cd(rinv)
 	xg, gg := cd(gx), cd(ggamma)
 	R := len(xd) / max(D, 1)
-	var top parcaToplayici
-	parallelFor(R, D*4, func(lo, hi int) {
-		var pg []float64
-		if gg != nil {
-			pg = make([]float64, D)
-		}
-		for r := lo; r < hi; r++ {
-			row := xd[r*D : (r+1)*D]
-			gr := gr0[r*D : (r+1)*D]
-			ri := rd[r]
-			if pg != nil {
+	pc := yeniParcaliToplam(R, D, gg != nil, false)
+	parallelFor(pc.nc, pc.rpc*D*4, func(clo, chi int) {
+		for c := clo; c < chi; c++ {
+			lo, hi := pc.aralik(c)
+			pg, _ := pc.kismi(c)
+			for r := lo; r < hi; r++ {
+				row := xd[r*D : (r+1)*D]
+				gr := gr0[r*D : (r+1)*D]
+				ri := rd[r]
+				if pg != nil {
+					for j, v := range gr {
+						pg[j] += float64(v) * float64(row[j]*ri)
+					}
+				}
+				if xg == nil {
+					continue
+				}
+				// dx = r·dn - x·r³·ort(dn·x),  dn = g·γ
+				var s float64
 				for j, v := range gr {
-					pg[j] += float64(v) * float64(row[j]*ri)
+					dn := v
+					if gd != nil {
+						dn *= gd[j]
+					}
+					s += float64(dn) * float64(row[j])
+				}
+				k := float32(s/float64(D)) * ri * ri * ri
+				xr := xg[r*D : (r+1)*D]
+				for j, v := range gr {
+					dn := v
+					if gd != nil {
+						dn *= gd[j]
+					}
+					xr[j] += ri*dn - row[j]*k
 				}
 			}
-			if xg == nil {
-				continue
-			}
-			// dx = r·dn - x·r³·ort(dn·x),  dn = g·γ
-			var s float64
-			for j, v := range gr {
-				dn := v
-				if gd != nil {
-					dn *= gd[j]
-				}
-				s += float64(dn) * float64(row[j])
-			}
-			k := float32(s/float64(D)) * ri * ri * ri
-			xr := xg[r*D : (r+1)*D]
-			for j, v := range gr {
-				dn := v
-				if gd != nil {
-					dn *= gd[j]
-				}
-				xr[j] += ri*dn - row[j]*k
-			}
-		}
-		if pg != nil {
-			top.ekle(gg, pg)
 		}
 	})
+	pc.birlestir(gg, nil)
 }
 
 // ----------------------------------------------------------------------------

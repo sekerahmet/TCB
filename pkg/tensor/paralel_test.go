@@ -175,3 +175,43 @@ func TestParalelCekirdeklerSiraliylaAyni(t *testing.T) {
 		}
 	}
 }
+
+// LayerNorm/RMSNorm ölçek ve sapma gradyanları belirlenimci olmalı: tekrar eden
+// çalıştırmalarda ve farklı işçi sayılarında bit düzeyinde aynı.
+func TestNormGradyanBelirlenimci(t *testing.T) {
+	rng := rand.New(rand.NewSource(14))
+	x := Randn(rng, 3000, 48)
+	gamma := Randn(rng, 48)
+	beta := Randn(rng, 48)
+	w := Randn(rng, 3000, 48)
+	for _, ad := range []string{"layer_norm", "rms_norm"} {
+		fn := func() []float32 {
+			x.SetRequiresGrad(true)
+			gamma.SetRequiresGrad(true)
+			beta.SetRequiresGrad(true)
+			x.grad, gamma.grad, beta.grad = nil, nil, nil
+			var y *Tensor
+			if ad == "layer_norm" {
+				y = LayerNorm(x, gamma, beta, 1e-5)
+			} else {
+				y = RMSNorm(x, gamma, 1e-5)
+			}
+			Mul(y, w).SumAll().Backward()
+			r := append(gamma.Grad().Data(), x.Grad().Data()...)
+			if beta.grad != nil {
+				r = append(r, beta.Grad().Data()...)
+			}
+			return r
+		}
+		ilk := fn()
+		for k := 0; k < 3; k++ {
+			tekVeCok(t, ad, fn)
+			tekrar := fn()
+			for i := range ilk {
+				if math.Float32bits(ilk[i]) != math.Float32bits(tekrar[i]) {
+					t.Fatalf("%s gradyanı çalıştırmadan çalıştırmaya değişti: [%d] %v != %v", ad, i, ilk[i], tekrar[i])
+				}
+			}
+		}
+	}
+}
