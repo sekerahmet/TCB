@@ -33,7 +33,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: sum / float64(len(nums))}, nil
 	})
 
-	v.RegisterBuiltin("standart_sapma", "std_sapma", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltin("standart_sapma", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -52,7 +52,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: math.Sqrt(variance)}, nil
 	})
 
-	v.RegisterBuiltin("medyan", "ortanca", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltin("ortanca", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil

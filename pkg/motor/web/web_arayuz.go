@@ -956,7 +956,7 @@ func Kaydet(v *vm.VM) {
 	istemciKaydet(v)
 
 	// 1. web_sunucu(port: 8080)
-	v.RegisterBuiltin("web_sunucu", "web_sunucusu", func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltin("web_sunucu", "", func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		port := 8080
 		if len(args) >= 1 {
 			if iv, ok := args[0].(*vm.IntVal); ok {

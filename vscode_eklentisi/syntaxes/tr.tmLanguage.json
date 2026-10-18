@@ -134,7 +134,7 @@
         },
         {
           "name": "keyword.other.debugger.tr",
-          "match": "\\b(kesme_noktası|kesme_noktasi|dur_noktası|dur_noktasi|durdurma_noktası|durdurma_noktasi)\\b"
+          "match": "\\b(kesme_noktası|kesme_noktasi)\\b"
         },
         {
           "name": "storage.type.tr",
@@ -179,19 +179,19 @@
       "patterns": [
         {
           "name": "support.function.builtin.tr",
-          "match": "\\b(yazdır|yazdir|yaz|girdi|oku|uzunluk|boy|tip|tur|tam|ondalık|ondalik|metin|filtrele|haritala|donustur|indirge|ozetle|sırala|sirala|ekle|aralık|aralik|toplam|min|en_küçük|maks|en_büyük|mutlak|karekök|karekok|yuvarla|bekle_hepsi|bekle|uyut|zaman_ms|dosya_oku|dosya_yaz|json_çöz|json_coz|json_metin|json_yaz)\\b"
+          "match": "\\b(yazdır|yazdir|girdi|uzunluk|tip|tam|ondalık|ondalik|metin|filtrele|haritala|indirge|sırala|sirala|ekle|aralık|aralik|toplam|min|maks|mutlak|karekök|karekok|yuvarla|bekle_hepsi|bekle|zaman_ms|dosya_oku|dosya_yaz|json_çöz|json_coz|json_metin)\\b"
         },
         {
           "name": "support.function.ai.tr",
-          "match": "\\b(matris|sıfırlar|sifirlar|birler|birim_matris|rastgele_matris|devrik|tensör|tensor|geri_yayılım|geri_yayilim|relu|sigmoid|tanh|softmax|kayıp_mse|kayip_mse|sinir_ağı|sinir_agi|model_yükle|model_yukle|ortalama|standart_sapma|std_sapma|medyan|ortanca|normalize_et|nokta_çarpım|nokta_carpim|kosinüs_benzerliği|kosinus_benzerligi|öklid_uzaklığı|oklid_uzakligi|yz_sor|rastgele_normal|gelu|log_softmax|üstel|ustel|log|gömme|gomme|çapraz_entropi|capraz_entropi|katman_normu|rms_normu|türevsiz|turevsiz|AdamW|SGD|maks_indeks|gradyan_kırp|gradyan_kirp|tensör_kaydet|tensor_kaydet|tensör_yükle|tensor_yukle|parçalayıcı_yükle|parcalayici_yukle|veri_kümesi|veri_kumesi)\\b"
+          "match": "\\b(matris|sıfırlar|sifirlar|birler|birim_matris|rastgele_matris|devrik|tensör|tensor|geri_yayılım|geri_yayilim|relu|sigmoid|tanh|softmax|kayıp_mse|kayip_mse|sinir_ağı|sinir_agi|model_yükle|model_yukle|ortalama|standart_sapma|ortanca|normalize_et|nokta_çarpım|nokta_carpim|kosinüs_benzerliği|kosinus_benzerligi|öklid_uzaklığı|oklid_uzakligi|yz_sor|rastgele_normal|gelu|log_softmax|üstel|ustel|log|gömme|gomme|çapraz_entropi|capraz_entropi|katman_normu|rms_normu|türevsiz|turevsiz|AdamW|SGD|maks_indeks|gradyan_kırp|gradyan_kirp|tensör_kaydet|tensor_kaydet|tensör_yükle|tensor_yukle|parçalayıcı_yükle|parcalayici_yukle|veri_kümesi|veri_kumesi)\\b"
         },
         {
           "name": "support.function.data.tr",
-          "match": "\\b(csv_oku|tablo_oku|tablo_sorgula|veritabanı_aç|veritabani_ac|veritabanı|veritabani)\\b"
+          "match": "\\b(csv_oku|tablo_sorgula|veritabanı_aç|veritabani_ac|veritabanı|veritabani)\\b"
         },
         {
           "name": "support.function.web.tr",
-          "match": "\\b(web_al|http_al|web_gönder|web_gonder|web_sunucusu|web_sunucu)\\b"
+          "match": "\\b(web_al|web_gönder|web_gonder|web_sunucu)\\b"
         },
         {
           "name": "support.function.gui.tr",

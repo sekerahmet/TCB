@@ -31,7 +31,7 @@ func TestWebAlParsesJSONAndText(t *testing.T) {
 	defer srv.Close()
 
 	_, val, err := runTRWithin(t, 10*time.Second, fmt.Sprintf(`
-		sonuç [web_al("%[1]s/json"), http_al("%[1]s/metin"), web_gönder("%[1]s/gonder", {"ad": "Ali"}), web_gonder("%[1]s/gonder", [1, 2])]`, srv.URL))
+		sonuç [web_al("%[1]s/json"), web_al("%[1]s/metin"), web_gönder("%[1]s/gonder", {"ad": "Ali"}), web_gonder("%[1]s/gonder", [1, 2])]`, srv.URL))
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}

@@ -15,7 +15,7 @@ import (
 )
 
 func (v *VM) registerBuiltins() {
-	// 1. Ekrana Yazdırma: yazdır(...) ve yaz(...)
+	// 1. Ekrana Yazdırma: yazdır(...)
 	v.RegisterBuiltin("yazdır", "yazdir", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		var parts []string
 		for _, a := range args {
@@ -26,18 +26,8 @@ func (v *VM) registerBuiltins() {
 		return &StringVal{Val: out}, nil
 	})
 
-	v.RegisterBuiltin("yaz", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		var parts []string
-		for _, a := range args {
-			parts = append(parts, a.Inspect())
-		}
-		out := strings.Join(parts, " ")
-		fmt.Fprintln(vm.Out, out)
-		return &StringVal{Val: out}, nil
-	})
-
 	// 2. Kullanıcıdan Girdi Alma: girdi("Adınız: ")
-	v.RegisterBuiltin("girdi", "oku", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("girdi", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) > 1 {
 			return nil, ArgumanSayisiHatasi("girdi", "0 ya da 1", len(args), "girdi() ya da girdi(istem)")
 		}
@@ -60,7 +50,7 @@ func (v *VM) registerBuiltins() {
 	})
 
 	// 3. Uzunluk / Boyut: uzunluk(x)
-	v.RegisterBuiltin("uzunluk", "boy", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("uzunluk", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("uzunluk", "1", len(args), "uzunluk(değer)")
 		}
@@ -69,7 +59,7 @@ func (v *VM) registerBuiltins() {
 	v.tekArgumanli("uzunluk", uzunlukTek)
 
 	// 4. Tip Sorgulama: tip(x)
-	v.RegisterBuiltin("tip", "tur", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("tip", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("tip", "1", len(args), "tip(değer)")
 		}
@@ -155,7 +145,7 @@ func (v *VM) registerBuiltins() {
 		return &ListVal{Elements: result}, nil
 	})
 
-	v.RegisterBuiltin("haritala", "donustur", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("haritala", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 2 {
 			return nil, ArgumanSayisiHatasi("haritala", "2", len(args), "haritala(liste, fonksiyon)")
 		}
@@ -177,7 +167,7 @@ func (v *VM) registerBuiltins() {
 		return &ListVal{Elements: result}, nil
 	})
 
-	v.RegisterBuiltin("indirge", "ozetle", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("indirge", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 || len(args) > 3 {
 			return nil, ArgumanSayisiHatasi("indirge", "2 ya da 3", len(args), "indirge(liste, fonksiyon) ya da indirge(liste, fonksiyon, başlangıç)")
 		}
@@ -301,7 +291,7 @@ func (v *VM) registerBuiltins() {
 		return NewInt(sumInt), nil
 	})
 
-	v.RegisterBuiltin("min", "en_küçük", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("min", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		elems := ExtractNumericSlice(args)
 		if len(elems) == 0 {
 			return NULL, nil
@@ -315,7 +305,7 @@ func (v *VM) registerBuiltins() {
 		return formatNumberVal(m), nil
 	})
 
-	v.RegisterBuiltin("maks", "en_büyük", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("maks", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		elems := ExtractNumericSlice(args)
 		if len(elems) == 0 {
 			return NULL, nil
@@ -423,7 +413,7 @@ func (v *VM) registerBuiltins() {
 		return TRUE, nil
 	})
 
-	v.RegisterBuiltin("bekle", "uyut", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltin("bekle", "", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgumanSayisiHatasi("bekle", "1", len(args), "bekle(saniye)")
 		}

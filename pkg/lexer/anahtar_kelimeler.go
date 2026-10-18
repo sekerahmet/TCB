@@ -11,7 +11,8 @@ import "fmt"
 // anahtarKelimeHaritasi).
 
 // AnahtarKelime bir token türünü onu üreten tüm yazımlarla eşler. İlk yazım asıl
-// (Türkçe karakterli) yazımdır; diğerleri ASCII ve eş anlamlı yazımlardır.
+// (Türkçe karakterli) yazımdır; varsa ikincisi Türkçe karaktersiz (ASCII) yazımıdır.
+// Eş anlamlı yazım yoktur (bkz. kaldirilanYazimlar).
 type AnahtarKelime struct {
 	Tur      TokenType
 	Yazimlar []string
@@ -59,7 +60,7 @@ var turkceAnahtarKelimeler = []AnahtarKelime{
 	{TOKEN_AKTAR, []string{"aktar"}},
 	{TOKEN_ESZAMANLI, []string{"eşzamanlı", "eszamanli"}},
 	{TOKEN_ERTELE, []string{"ertele"}},
-	{TOKEN_KESME_NOKTASI, []string{"kesme_noktası", "kesme_noktasi", "dur_noktası", "dur_noktasi", "durdurma_noktası", "durdurma_noktasi"}},
+	{TOKEN_KESME_NOKTASI, []string{"kesme_noktası", "kesme_noktasi"}},
 }
 
 // yazimTakimlari lexer'ın tanıdığı tüm yazım takımlarıdır.
@@ -88,14 +89,16 @@ func anahtarKelimeHaritasi(takimlar [][]AnahtarKelime) map[string]TokenType {
 }
 
 // kaldirilanYazimlar TR'den kaldırılmış eş anlamlı anahtar kelimelerdir: her işin tek
-// yazımı olsun diye asıl yazımlar fonksiyon, sonuç, çık, yapı ve olarak'tır. Kaldırılan
-// sözcükler artık sıradan adlardır (ör. değişken sınıf = "9-A"); yalnızca bir hata
-// oluştuğunda, eski alışkanlıkla yazılmış olabilecekleri için ipucu gösterilir.
+// yazımı olsun diye asıl yazımlar fonksiyon, sonuç, çık, yapı, olarak ve kesme_noktası'dır.
+// Kaldırılan sözcükler artık sıradan adlardır (ör. değişken sınıf = "9-A"); yalnızca bir
+// hata oluştuğunda, eski alışkanlıkla yazılmış olabilecekleri için ipucu gösterilir.
 var kaldirilanYazimlar = map[string]string{
 	"işlev": "fonksiyon", "islev": "fonksiyon",
 	"döndür": "sonuç", "dondur": "sonuc",
 	"kır": "çık", "kir": "cik",
 	"sınıf": "yapı", "sinif": "yapi",
+	"dur_noktası": "kesme_noktası", "dur_noktasi": "kesme_noktasi",
+	"durdurma_noktası": "kesme_noktası", "durdurma_noktasi": "kesme_noktasi",
 	"as": "olarak",
 }
 

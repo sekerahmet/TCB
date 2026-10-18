@@ -34,10 +34,10 @@ $env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
 - **Mantıksal & Boş:** `doğru` (`dogru`), `yanlış` (`yanlis`), `yok`, `ve` (`&&`), `veya` (`||`), `değil` (`!`), `??`, `?.`
 - **Tipler:** `Tam`, `Ondalık`, `Metin`, `Mantık`, `Liste`, `Sözlük`, `Tensör` (matrisler 2 boyutlu tensördür)
 - **Yapı:** `yapı` (`yapi`), `kendi` (kalıtım yoktur)
-- **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat` (`firlat`), `ertele`, `kesme_noktası` (`dur_noktası`, `durdurma_noktası`; koşullu: `kesme_noktası eğer koşul`), `aktar "yol"`, `aktar "yol" olarak ad`, `eşzamanlı` (`eszamanli`), `bekle(saniye)`, `bekle_hepsi()`
+- **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat` (`firlat`), `ertele`, `kesme_noktası` (koşullu: `kesme_noktası eğer koşul`), `aktar "yol"`, `aktar "yol" olarak ad`, `eşzamanlı` (`eszamanli`), `bekle(saniye)`, `bekle_hepsi()`
 - **Test:** `test "ad" { ... }`, `doğrula(koşul, [mesaj])` (`dogrula`), `eşit_mi(beklenen, gerçek, [mesaj])` (`esit_mi`)
 - **Sayılar:** `42`, `1_000_000`, `3.14` ve bilimsel yazım `1e-5`, `3.2E+4`, `2e10` (bilimsel yazım her zaman `Ondalık` verir; `epsilon: 1e-5` gibi küçük değerler için kullanışlıdır).
-- **Kaldırılan eş anlamlılar:** Her işin tek yazımı vardır. `işlev`, `döndür`, `kır`, `sınıf` ve `aktar ... as` kaldırıldı; bu sözcükler artık sıradan adlardır. Yerlerine `fonksiyon`, `sonuç`, `çık`, `yapı` ve `olarak` yazın; eski yazımla yazılan kodda hata mesajı doğrusunu önerir (`'işlev' TR'de anahtar kelime değil; 'fonksiyon' yazmak mı istediniz?`).
+- **Kaldırılan eş anlamlılar:** Her işin tek yazımı vardır. `işlev`, `döndür`, `kır`, `sınıf` ve `aktar ... as` kaldırıldı; bu sözcükler artık sıradan adlardır. Yerlerine `fonksiyon`, `sonuç`, `çık`, `yapı` ve `olarak` yazın; eski yazımla yazılan kodda hata mesajı doğrusunu önerir (`'işlev' TR'de anahtar kelime değil; 'fonksiyon' yazmak mı istediniz?`). Aynı kural yerleşik fonksiyonlar için de geçerlidir: her yerleşiğin tek adı (ve varsa Türkçe karaktersiz karşılığı, ör. `sırala` / `sirala`) vardır; eski eş adlarla yazılan kodda hata mesajı asıl adı önerir. Kaldırılanların tam listesi `docs/DIL_TANIMI.md` 2.9a'dadır.
 
 Dilin kuralları örnekleriyle birlikte [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) dosyasında tanımlanmıştır; her kuralın `testler/` klasöründe çalıştırılabilir bir testi vardır (`tr test testler`).
 
@@ -97,7 +97,7 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 ```
 
 ### C. Veri Bilimi, Vektör Benzerlik, Web ve Dış Köprüler
-- İstatistik: `ortalama(liste)`, `standart_sapma(liste)`, `medyan(liste)`, `normalize_et(liste)`
+- İstatistik: `ortalama(liste)`, `standart_sapma(liste)`, `ortanca(liste)`, `normalize_et(liste)`
 - Vektör: `nokta_çarpım(v1, v2)`, `kosinüs_benzerliği(v1, v2)`, `öklid_uzaklığı(v1, v2)`
 - Veri, Web & Köprüler: `csv_oku(yol_veya_metin)`, `json_çöz(metin)`, `json_metin(değer)`, `web_al(url)`, `web_gönder(url, veri)`, `yz_sor(istem)`
 - `csv_oku`: argüman var olan bir dosyanın yoluysa dosya okunur. `.csv` ile biten ya da virgül içermeyip `/` veya `\` içeren tek satırlık bir argüman yol sayılır; öyle bir dosya yoksa "dosya bulunamadı" hatası verilir. Bunların dışındaki argüman CSV metninin kendisi olarak ayrıştırılır (`csv_oku("ad,yaş\nAli,30")`). Göreli yollar önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür. Sayı görünen hücreler sayıya çevrilir.

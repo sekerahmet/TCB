@@ -95,7 +95,6 @@ func TestAnahtarKelimeTurkceVeASCIIYazim(t *testing.T) {
 		{"fırlat", "firlat", TOKEN_FIRLAT},
 		{"eşzamanlı", "eszamanli", TOKEN_ESZAMANLI},
 		{"kesme_noktası", "kesme_noktasi", TOKEN_KESME_NOKTASI},
-		{"dur_noktası", "dur_noktasi", TOKEN_KESME_NOKTASI},
 	}
 	for _, c := range ciftler {
 		for _, yazim := range []string{c.turkce, c.ascii} {
@@ -110,8 +109,7 @@ func TestAnahtarKelimeTurkceVeASCIIYazim(t *testing.T) {
 		"sabit": TOKEN_SABIT, "fonksiyon": TOKEN_FONKSIYON, "iken": TOKEN_IKEN,
 		"devam": TOKEN_DEVAM, "yok": TOKEN_YOK, "ve": TOKEN_VE, "veya": TOKEN_VEYA,
 		"kendi": TOKEN_KENDI, "dene": TOKEN_DENE, "yakala": TOKEN_YAKALA,
-		"aktar": TOKEN_AKTAR, "ertele": TOKEN_ERTELE, "durdurma_noktası": TOKEN_KESME_NOKTASI,
-		"durdurma_noktasi": TOKEN_KESME_NOKTASI,
+		"aktar": TOKEN_AKTAR, "ertele": TOKEN_ERTELE,
 	}
 	for kelime, tur := range tekler {
 		if got := LookupIdent(kelime); got != tur {
@@ -644,7 +642,8 @@ döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 
 // Kaldırılan eş anlamlılar artık sıradan adlardır.
 func TestKaldirilanEsAnlamlilarAddir(t *testing.T) {
-	for _, ad := range []string{"işlev", "islev", "döndür", "dondur", "kır", "kir", "sınıf", "sinif"} {
+	for _, ad := range []string{"işlev", "islev", "döndür", "dondur", "kır", "kir", "sınıf", "sinif",
+		"dur_noktası", "dur_noktasi", "durdurma_noktası", "durdurma_noktasi"} {
 		if tur := LookupIdent(ad); tur != TOKEN_IDENT {
 			t.Errorf("%q artık ad olmalı, %s", ad, tur)
 		}

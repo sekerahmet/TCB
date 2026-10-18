@@ -17,7 +17,7 @@ import (
 type metotGovdesi func(vm *VM, inst Value, args []Value, line int) (Value, error)
 
 type yerlesikMetot struct {
-	ad string // bağlı yerleşiğin adı (eş adlar için asıl ad)
+	ad string // bağlı yerleşiğin adı (ASCII karşılık için de Türkçe karakterli ad)
 	f  metotGovdesi
 }
 
@@ -27,7 +27,15 @@ var (
 	sozlukMetotlari = map[string]yerlesikMetot{}
 )
 
+// metotEkle metodu adıyla ve varsa Türkçe karaktersiz karşılığıyla kaydeder; eş anlamlı
+// ikinci bir ad kaydedilemez (bkz. AsciiKarsilikDenetle).
 func metotEkle(tablo map[string]yerlesikMetot, f metotGovdesi, adlar ...string) {
+	if len(adlar) == 0 || len(adlar) > 2 {
+		panic(fmt.Sprintf("metot %v: bir ad ve en çok bir ASCII karşılık verilir", adlar))
+	}
+	if len(adlar) == 2 {
+		AsciiKarsilikDenetle(adlar[0], adlar[1])
+	}
 	for _, ad := range adlar {
 		tablo[ad] = yerlesikMetot{ad: adlar[0], f: f}
 	}
@@ -144,7 +152,7 @@ func init() {
 			result = append(result, mapped)
 		}
 		return &ListVal{Elements: result}, nil
-	}, "haritala", "dönüştür", "donustur")
+	}, "haritala")
 	metotEkle(listeMetotlari, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		copied := make([]Value, len(elems))
@@ -265,12 +273,12 @@ func init() {
 func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Value, error) {
 	switch inst := obj.(type) {
 	case *StringVal:
-		if prop == "uzunluk" || prop == "boy" {
+		if prop == "uzunluk" {
 			return NewInt(int64(utf8.RuneCountInString(inst.Val))), nil
 		}
 	case *ListVal:
 		switch prop {
-		case "uzunluk", "boy":
+		case "uzunluk":
 			return NewInt(int64(len(inst.Elements))), nil
 		case "ilk":
 			if len(inst.Elements) == 0 {
@@ -299,5 +307,5 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, safe bool, line int) (Val
 	if safe {
 		return NULL, nil
 	}
-	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği veya metodu bulunamadı", line, obj.Type(), prop)
+	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği veya metodu bulunamadı%s", line, obj.Type(), prop, kaldirilanUyeIpucu(prop))
 }

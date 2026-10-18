@@ -60,13 +60,13 @@ func Kaydet(v *vm.VM) {
 		}
 		return t.Mean(e, false)
 	})
-	indirgeme(v, []string{"maks", "en_büyük"}, "maks", func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	indirgeme(v, []string{"maks"}, "maks", func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
 		if tum {
 			return t.Reshape(-1).Max(0, false)
 		}
 		return t.Max(e, false)
 	})
-	indirgeme(v, []string{"min", "en_küçük"}, "min", func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	indirgeme(v, []string{"min"}, "min", func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
 		if tum {
 			return enKucukTum(t)
 		}
@@ -119,9 +119,16 @@ func enKucukTum(t *ct.Tensor) *ct.Tensor {
 	return ct.Scalar(m).To(t.Device())
 }
 
-// sar adların hepsine aynı yeni yerleşiği bağlar. Eski yerleşik ilk addan okunur
-// (yoksa nil'dir) ve yeni fonksiyona verilir.
+// sar adların hepsine aynı yeni yerleşiği bağlar. adlar asıl ad ve varsa Türkçe
+// karaktersiz karşılığıdır; eş anlamlı ad kaydedilemez (bkz. vm.AsciiKarsilikDenetle).
+// Eski yerleşik ilk addan okunur (yoksa nil'dir) ve yeni fonksiyona verilir.
 func sar(v *vm.VM, adlar []string, kur func(eski vm.BuiltinFunc) vm.BuiltinFunc) {
+	if len(adlar) == 0 || len(adlar) > 2 {
+		panic(fmt.Sprintf("tensör yerleşiği %v: bir ad ve en çok bir ASCII karşılık verilir", adlar))
+	}
+	if len(adlar) == 2 {
+		vm.AsciiKarsilikDenetle(adlar[0], adlar[1])
+	}
 	var eski vm.BuiltinFunc
 	if onceki, ok := v.GlobalEnv.Get(adlar[0]); ok {
 		if b, ok := onceki.(*vm.BuiltinVal); ok {

@@ -203,11 +203,28 @@ func (v *VM) StackSnapshot() []StackFrame {
 	return snap
 }
 
-func (v *VM) RegisterBuiltin(name string, asciiAlias string, fn BuiltinFunc) {
+// RegisterBuiltin bir yerleşik fonksiyonu genel kapsama kaydeder. asciiKarsilik, adın
+// Türkçe karakterleri ASCII'ye çevrilmiş biçimidir (sırala → sirala); ad zaten ASCII ise
+// boş verilir. Her işin tek yazımı vardır: ikinci ad eş anlamlı bir ad olamaz (bkz.
+// AsciiKarsilikDenetle).
+func (v *VM) RegisterBuiltin(name string, asciiKarsilik string, fn BuiltinFunc) {
+	AsciiKarsilikDenetle(name, asciiKarsilik)
 	b := &BuiltinVal{Name: name, Fn: fn}
 	v.GlobalEnv.Define(name, b, true)
-	if asciiAlias != "" && asciiAlias != name {
-		v.GlobalEnv.Define(asciiAlias, b, true)
+	if asciiKarsilik != "" {
+		v.GlobalEnv.Define(asciiKarsilik, b, true)
+	}
+}
+
+// AsciiKarsilikDenetle karsilik boş değilse adın Türkçe karakterleri ASCII'ye çevrilmiş
+// biçimi olduğunu doğrular; değilse (eş anlamlı ad ya da ad zaten ASCII iken gereksiz
+// karşılık) bu bir geliştirici hatasıdır ve kayıt sırasında panikler.
+func AsciiKarsilikDenetle(ad, karsilik string) {
+	if karsilik == "" {
+		return
+	}
+	if beklenen := turkce.ASCII(ad); karsilik != beklenen || karsilik == ad {
+		panic(fmt.Sprintf("yerleşik %q: ikinci ad yalnızca Türkçe karaktersiz karşılık olabilir (beklenen %q, verilen %q); eş anlamlı ad kaydedilemez", ad, beklenen, karsilik))
 	}
 }
 
@@ -243,6 +260,9 @@ func (v *VM) WaitAsync() {
 // suggestName kapsamdaki adlar arasında yazıma en yakın olanı "Bunu mu demek istediniz?" olarak önerir.
 func suggestName(name string, env *Environment) string {
 	if ipucu := lexer.KaldirilanYazimIpucu(name); ipucu != "" {
+		return ipucu
+	}
+	if ipucu := KaldirilanYerlesikIpucu(name); ipucu != "" {
 		return ipucu
 	}
 	if o := turkce.EnYakin(name, env.Names()); o != "" {

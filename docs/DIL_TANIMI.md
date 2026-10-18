@@ -69,9 +69,13 @@ değişken t = 1 +
 | `iken` | | | `aktar` | |
 | `çık` | `cik` | | `eşzamanlı` | `eszamanli` |
 | `devam` | | | `ertele` | |
-| `kesme_noktası` | `kesme_noktasi`, `dur_noktası`, `dur_noktasi`, `durdurma_noktası`, `durdurma_noktasi` | | | |
+| `kesme_noktası` | `kesme_noktasi` | | | |
 
-**2.9a** Her işin tek yazımı vardır. Eskiden eş anlamlı olan `işlev`, `döndür`, `kır`, `sınıf` (ve ASCII biçimleri) ile `aktar ... as` kaldırılmıştır; bu sözcükler artık sıradan adlardır (`değişken sınıf = "9-A"`). Eski alışkanlıkla yazıldıklarında hata mesajı asıl yazımı önerir (`fonksiyon`, `sonuç`, `çık`, `yapı`, `olarak`).
+**2.9a** Her işin tek yazımı vardır: her anahtar kelimenin ve her yerleşik fonksiyonun (bkz. 13) yalnızca bir asıl adı ve varsa Türkçe karaktersiz karşılığı (`sırala` / `sirala`, `karekök` / `karekok`) bulunur; eş anlamlı ikinci bir ad yoktur. Kaldırılan eş anlamlılar artık sıradan adlardır (`değişken sınıf = "9-A"`, `değişken boy = 180`); eski alışkanlıkla yazıldıklarında (tanımsız ad hatasında) hata mesajı asıl yazımı önerir (`'uyut' TR'de yok; 'bekle' yazmak mı istediniz?`). Kaldırılanlar (kaldırılan → asıl):
+
+- Anahtar kelimeler: `işlev` → `fonksiyon`, `döndür` → `sonuç`, `kır` → `çık`, `sınıf` → `yapı` (ve ASCII biçimleri), `aktar ... as` → `aktar ... olarak`, `dur_noktası` / `durdurma_noktası` (ve ASCII biçimleri) → `kesme_noktası`.
+- Yerleşik fonksiyonlar: `yaz` → `yazdır`, `oku` → `girdi`, `boy` → `uzunluk`, `tur` → `tip`, `donustur` → `haritala`, `ozetle` → `indirge`, `en_büyük` → `maks`, `en_küçük` → `min`, `uyut` → `bekle`, `std_sapma` → `standart_sapma`, `medyan` → `ortanca`, `json_yaz` → `json_metin`, `tablo_oku` → `csv_oku`, `http_al` → `web_al`, `web_sunucusu` → `web_sunucu`.
+- Metot ve özellikler: `.boy` → `.uzunluk`, `.dönüştür` / `.donustur` → `.haritala`.
 
 Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `test` (yalnızca deyim başında ardından metin gelince, bkz. 12.2), `olarak` (yalnızca `aktar` içinde), `_` (yalnızca `eşle` kolunda varsayılan).
 
@@ -363,7 +367,7 @@ test "toplama doğru" {
 
 ## 13. Yerleşik fonksiyonlar ve metotlar
 
-Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirdek seçki tanımlanır. Metotlar `değer.metot(...)` ile çağrılır; argümansız olanlar (`.uzunluk`, `.ilk`, `.son`) parantezsiz de yazılır.
+Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirdek seçki tanımlanır. Metotlar `değer.metot(...)` ile çağrılır; argümansız olanlar (`.uzunluk`, `.ilk`, `.son`) parantezsiz de yazılır. Her yerleşiğin ve metodun tek adı vardır; Türkçe karakterli adların Türkçe karaktersiz karşılığı da kabul edilir (`sırala` / `sirala`), eş anlamlı ad yoktur (bkz. 2.9a).
 
 **13.1** Genel: `yazdır(...)` (değerleri boşlukla birleştirip yazar), `uzunluk`, `tip`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `aralık(a, b)`, `filtrele`, `haritala`, `indirge`, `sırala`, `ekle`, `bekle`, `bekle_hepsi`, `zaman_ms`, `dosya_oku`, `dosya_yaz`, `girdi`. Yerleşikler eksik ya da fazla argümanı ve yanlış tipi reddeder; hata `aralık() 1. argüman olarak Tam bekler, Metin ("a") verildi` biçimindedir. `dosya_oku(yol)` ve `dosya_yaz(yol, içerik)` yolu `Metin` olarak ister; göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler. Dosya hataları Türkçedir (dosya ya da klasör yok, izin yok, bir klasör, disk dolu, dosya kullanımda...).
 

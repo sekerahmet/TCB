@@ -98,5 +98,5 @@ const (
 	TOKEN_AKTAR         = "AKTAR"         // aktar
 	TOKEN_ESZAMANLI     = "EŞZAMANLI"     // eşzamanlı / eszamanli
 	TOKEN_ERTELE        = "ERTELE"        // ertele (defer)
-	TOKEN_KESME_NOKTASI = "KESME_NOKTASI" // kesme_noktası / dur_noktası / durdurma_noktası
+	TOKEN_KESME_NOKTASI = "KESME_NOKTASI" // kesme_noktası
 )

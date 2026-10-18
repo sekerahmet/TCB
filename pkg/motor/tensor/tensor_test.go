@@ -111,7 +111,7 @@ değişken b = tensör([[1, 0], [0, 1], [1, 1]])
 		{"ortalama(a, eksen: 0)", []float32{2.5, 3.5, 4.5}, []int{3}},
 		{"maks(a)", []float32{6}, []int{}},
 		{"min(a, eksen: -1)", []float32{1, 4}, []int{2}},
-		{"en_büyük(a, eksen: 0)", []float32{4, 5, 6}, []int{3}},
+		{"maks(a, eksen: 0)", []float32{4, 5, 6}, []int{3}},
 		{"relu(a - 3)", []float32{0, 0, 0, 1, 2, 3}, []int{2, 3}},
 		{"karekök(tensör([4, 9]))", []float32{2, 3}, []int{2}},
 		{"üstel(tensör([0]))", []float32{1}, []int{1}},

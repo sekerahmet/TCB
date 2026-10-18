@@ -27,6 +27,18 @@ func asciiKatla(s string) string {
 	return sb.String()
 }
 
+// asciiCevirici Türkçe harfleri ASCII karşılıklarına çevirir; büyük/küçük harf korunur.
+var asciiCevirici = strings.NewReplacer(
+	"ı", "i", "İ", "I", "ş", "s", "Ş", "S", "ğ", "g", "Ğ", "G",
+	"ü", "u", "Ü", "U", "ö", "o", "Ö", "O", "ç", "c", "Ç", "C",
+)
+
+// ASCII adın Türkçe harflerini ASCII karşılıklarına çevrilmiş biçimini verir
+// (öğrenme_oranı → ogrenme_orani); diğer karakterler ve harf büyüklüğü değişmez.
+func ASCII(s string) string {
+	return asciiCevirici.Replace(s)
+}
+
 func turkceHarfVar(s string) bool {
 	return strings.ContainsAny(s, "ıİşŞğĞüÜöÖçÇ")
 }

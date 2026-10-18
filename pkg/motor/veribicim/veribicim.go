@@ -31,7 +31,7 @@ func Kaydet(v *vm.VM) {
 		return val, nil
 	})
 
-	v.RegisterBuiltin("json_metin", "json_yaz", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltin("json_metin", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_metin(değer) 1 parametre bekler")
 		}
@@ -42,7 +42,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.StringVal{Val: string(b)}, nil
 	})
 
-	v.RegisterBuiltin("csv_oku", "tablo_oku", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltin("csv_oku", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("csv_oku(dosya_veya_metin) 1 parametre bekler")
 		}

@@ -111,7 +111,7 @@ func TestCSVReadFileTextAndMissingPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, val, err := calistir(t, fmt.Sprintf(`sonuç [csv_oku(%q), tablo_oku("x,1\ny,2"), csv_oku("tek"), csv_oku("tarih,1/2/2024")]`, dosya))
+	_, val, err := calistir(t, fmt.Sprintf(`sonuç [csv_oku(%q), csv_oku("x,1\ny,2"), csv_oku("tek"), csv_oku("tarih,1/2/2024")]`, dosya))
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}

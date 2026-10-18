@@ -203,7 +203,7 @@ func startREPL() {
 		}
 		machine.WaitAsync()
 		if val != nil && val.Type() != vm.VAL_NULL {
-			if !strings.HasPrefix(line, "yazdır") && !strings.HasPrefix(line, "yazdir") && !strings.HasPrefix(line, "yaz(") {
+			if !strings.HasPrefix(line, "yazdır") && !strings.HasPrefix(line, "yazdir") {
 				fmt.Println("=>", val.Inspect())
 			}
 		}

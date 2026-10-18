@@ -24,14 +24,10 @@ type Ad struct {
 // TRAd Türkçe adı ve Türkçe harfleri ASCII karşılıklarına çevrilmiş biçimini (öğrenme_oranı
 // → ogrenme_orani) taşıyan Ad'dır; ad zaten ASCII ise karşılık boştur.
 func TRAd(tr string) Ad {
-	if a := asciiKarsilik(tr); a != tr {
+	if a := turkce.ASCII(tr); a != tr {
 		return Ad{TR: tr, ASCII: a}
 	}
 	return Ad{TR: tr}
-}
-
-func asciiKarsilik(s string) string {
-	return strings.NewReplacer("ı", "i", "ğ", "g", "ü", "u", "ş", "s", "ö", "o", "ç", "c").Replace(s)
 }
 
 // ingilizceAdlar başka dillerden alışılmış parametre adlarının Türkçe karşılıklarıdır.
