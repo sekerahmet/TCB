@@ -1,0 +1,38 @@
+# Güvenlik
+
+## Açık nasıl bildirilir
+
+Güvenlik açıklarını herkese açık bir konu (issue) olarak **açmayın**. Deponun **Security** sekmesindeki **Report a vulnerability** düğmesiyle (GitHub'ın özel güvenlik açığı bildirme özelliği) bildirin; bildirim yalnızca proje sahibine görünür.
+
+Bildirimde şunlar olsun: etkilenen girdi ya da komut, açığı gösteren en küçük dosya veya program, beklenen ve gerçekleşen davranış, kullandığınız işletim sistemi ve `tr sürüm` çıktısı. Bildirim doğrulanır; düzeltme ana dala alındıktan sonra açık, bildirenle birlikte açıklanır.
+
+## Desteklenen sürüm
+
+Yalnızca ana dal (`main`) desteklenir. Ayrı sürüm dalı ya da eski sürümlere düzeltme yoktur; düzeltmeler ana dala girer.
+
+## Güvenilmeyen girdiler
+
+TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları okur. Aşağıdaki girdiler **güvenilmeyen** sayılır: bozuk ya da kötü niyetli bir dosya programı çökertmemeli, sonsuz döngüye sokmamalı, sınırsız bellek ayırmamalı, okunması istenen yerin dışına yazmamalı; açık bir Türkçe hata vermeli (`dene/yakala` ile yakalanabilir). Bunlardan biri olmuyorsa bu bir güvenlik hatasıdır.
+
+| Girdi | Okuyan | Korumalar |
+| :-- | :-- | :-- |
+| `.trt` tensör dosyaları | `tensör_yükle` | biçim ve sürüm denetimi, sağlama toplamı, tensör başına eleman sınırı, fiziksel bellek sınırı ([kılavuz §4.C](docs/kilavuz/04_yapay_zeka_ve_veri.md#c-tensörler-ve-otomatik-türev), [dil tanımı 15.10 ve 15.25](docs/dil/15_tensorler.md)) |
+| `.npy` veri dosyaları | `veri_kümesi` | başlık boyu sınırı, tür ve şekil denetimi |
+| `tokenizer.json` parçalayıcı dosyaları | `parçalayıcı_yükle` | düzenli ifadeler adım bütçesiyle çalışır, üstel geri izlemeye açık ve çok derin iç içe desenler yüklenmez ([kılavuz §4.D](docs/kilavuz/04_yapay_zeka_ve_veri.md)) |
+| CSV ve JSON metinleri | `csv_oku`, `json_çöz` | biçim hataları açık hata verir |
+| `tr derle` ile üretilmiş uygulamanın gömülü paketi | uygulamanın kendisi | bozuk (yarım indirilmiş, kırpılmış) paket açık hata verir, modüller geçici klasörün dışına yazılmaz |
+| Hata ayıklama iletileri | `tr dap` | iletiler standart giriş/çıkıştan gelir; ağ portu açılmaz |
+
+**TR programları güvenilmeyen girdi değildir.** Bir `.tr` programı ya da `tr derle` ile üretilmiş bir uygulama, her program gibi, onu çalıştıran kişinin yetkileriyle dosya okur ve yazar. Yorumlayıcı bir kum havuzu (sandbox) değildir; tanımadığınız bir programı çalıştırmayın.
+
+**Ağ.** Yorumlayıcı bugün hiçbir ağ bağlantısı açmaz. İleride bir sunucu eklenirse yalnızca `127.0.0.1`'e bağlanır.
+
+**VS Code eklentisi.** Eklenti yalnızca güvenilen yorumlayıcıyı çalıştırır: yorumlayıcının yolu (`tr.yorumlayiciYolu`) yalnızca kullanıcı ayarından okunur, çalışma alanının kendi ayar dosyası onu değiştiremez; güvenilmeyen (kısıtlı kipteki) çalışma alanında hiçbir şey çalıştırılmaz; yorumlayıcı üst klasörlerde aranmaz ([eklenti belgesi](duzenleyici/vscode/README.md)).
+
+## Bulanıklaştırma testleri
+
+Yukarıdaki her girdinin bir bulanıklaştırma testi vardır (`go test` içinde `Fuzz` ile başlayan testler: tensör dosyası, `.npy` başlığı, parçalayıcı ve düzenli ifadeler, CSV, JSON, gömülü paket, hata ayıklama iletileri, sözcük çözümleyici, derleyici, biçimlendirici). Sıradan `go test` yalnızca kayıtlı girdileri koşar; otomatik sınama her hafta her hedefi rastgele girdiyle ayrıca koşar (`.github/workflows/bulaniklastirma.yml`). Yerelde tek bir hedef:
+
+```sh
+bash bakim/bulaniklastir.sh 30s '^FuzzTensorKaydiCoz$'
+```

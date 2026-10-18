@@ -1,6 +1,6 @@
 # TR standart kitaplığı
 
-TR ile yazılan kitaplığın yeri. Dosyalar `tr` ikilisine gömülür (`gomulu.go`); bugün kitaplık boştur.
+TR ile yazılan kitaplığın yeri. Dosyalar `tr` ikilisine gömülecek (`gomulu.go`); bugün kitaplık boştur ve `tr` ikilisine bağlı değildir (hiçbir program `kitaplik` paketini içe aktarmaz).
 
 Planlanan düzen (her öge tek dosya, testi yanında: `katman/dikkat.tr` ve `katman/dikkat_test.tr`):
 

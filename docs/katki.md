@@ -18,7 +18,7 @@ Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekird
 - **Dosya başına tek konu.** Konusu birden çok olan dosya bölünür: `derleyici_deyim.go`, `derleyici_dongu.go`, `derleyici_cagri.go` gibi. Bölerken fonksiyon gövdeleri değiştirilmez, yalnızca taşınır (değişiklik geçmişte izlenebilir kalır); taşıma ile davranış değişikliği aynı committe olmaz.
 - **Yumuşak dosya sınırı ~600 satır** (testler dahil, üretilmiş dosyalar hariç). Sınırı aşan dosya konularına göre bölünür.
 - **Fonksiyon sınırı ~80 satır** (`func` satırından kapanış parantezine; test fonksiyonları hariç, tablo tabanlı testler uzun olabilir). Uzun bir `switch` dallarına, uzun bir kayıt listesi tabloya, uzun bir akış adımlarına bölünür.
-- **İstisnalar** gerekçeleriyle [`internal/duzen_istisnalar_test.go`](../internal/duzen_istisnalar_test.go)'dadır (bugün 6 dosya, 43 fonksiyon). Listeler **yalnızca küçülür**: bir kayıt sınırın altına inince silinir ve en fazla sayısı azaltılır; yeni kayıt eklenmez, tavan yükseltilmez; küçük düzeltmeler için tavanın %10'u (en az 5 satır) kadar pay vardır. Sıcak yoldaki bir fonksiyon (yorumlayıcı döngüsü, hesap çekirdeği) ancak önce/sonra hız ölçümüyle bölünür.
+- **İstisnalar** gerekçeleriyle [`internal/duzen_istisnalar_test.go`](../internal/duzen_istisnalar_test.go)'dadır. Liste **küçülmelidir**, büyümez: bir kayıt sınırın altına inince silinir ve en fazla sayısı azaltılır; yeni kayıt eklenmez, tavan yükseltilmez; küçük düzeltmeler için tavanın %10'u (en az 5 satır) kadar pay vardır. Sıcak yoldaki bir fonksiyon (yorumlayıcı döngüsü, hesap çekirdeği) ancak önce/sonra hız ölçümüyle bölünür.
 - **Her paketin tek bir paket belgesi vardır:** paketin ana dosyasında `// Package ad ...` ile başlar, görevini söyler ve katmanını bildiren bir satırla biter:
 
   ```go
@@ -33,7 +33,7 @@ Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekird
 
 ## Testler
 
-- **Testler kodun yanındadır:** `derleyici.go`'nun testi aynı klasördeki `derleyici_test.go`'dur. Dilin kural testleri `.tr` dosyaları olarak `testler/` altındadır (her kuralın [`dil/`](dil/README.md) tanımında bir numarası vardır).
+- **Testler kodun yanındadır:** `derleyici.go`'nun testi aynı klasördeki `derleyici_test.go`'dur. Bir test dosyası konusuyla adlandırılır, onu doğuran işle değil: denetim turunun ya da işin adı (`hakem_duzeltme_test.go`, `yeni_adlar_test.go`) kalıcı bir konu değildir; böyle bir testin yeri sınadığı kodun test dosyasıdır (`atomik.go` → `atomik_test.go`). Dilin kural testleri `.tr` dosyaları olarak `testler/` altındadır (her kuralın [`dil/`](dil/README.md) tanımında bir numarası vardır).
 - **Ortak test yardımcıları yardımcı paketlerdedir:** depo kökü `internal/depo` ile bulunur (`depo.Kok()`); testler `../../` gibi göreli yol yazmaz. Bir paketin kendi test yardımcıları `test_yardimcilari_test.go` gibi bir `_test.go` dosyasında durur.
 - Testlerde dış ağ yoktur; sunucular yalnızca `127.0.0.1`'e bağlanır; açılan her süreç kapatılır.
 
@@ -42,7 +42,7 @@ Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekird
 Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** ister. Kodu yalnızca baş geliştirici verir:
 
 1. Önce [`kodlar.md`](kodlar.md)'ye bakın: aynı işi yapan bir kod (fonksiyon ya da metot biçiminde) varsa onu kullanın. Aynı işi yapan iki kod olamaz.
-2. Yoksa kodu kendiniz eklemeyin. O parçayı bırakın, işin geri kalanına devam edin ve raporunuza **sözlük isteği** başlığıyla yazın: ne işe yarayacak, imzası, neden var olan kodlar yetmiyor, baktığınız yakın kodlar.
+2. Yoksa kodu kendiniz eklemeyin. O parçayı bırakın, işin geri kalanına devam edin ve raporunuza **sözlük isteği** başlığıyla yazın: ne işe yarayacak, imzası, neden var olan kodlar yetmiyor, baktığınız yakın kodlar. Depoya dışarıdan katkıda bulunuyorsanız aynı bilgilerle **Sözlük isteği** konu şablonunu açın ([`.github/ISSUE_TEMPLATE/sozluk_istegi.md`](../.github/ISSUE_TEMPLATE/sozluk_istegi.md)).
 3. Baş geliştirici ya var olan bir kodu gösterir ya da kodu ve adı verir. `tr.json`'a yalnızca size verilen kodlar girer; Go sabitleri `go generate ./internal/dil/kod` ile üretilir.
 
 ## Bitti tanımı ve tam denetim

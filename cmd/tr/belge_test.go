@@ -14,6 +14,7 @@ import (
 	"tr_dili/internal/depo"
 	"tr_dili/internal/dil/ayristir"
 	"tr_dili/internal/dil/denetci"
+	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/sozcuk"
 )
 
@@ -27,11 +28,13 @@ import (
 const uretilmisBelge = "docs/kodlar.md"
 
 // belgeListesi depodaki belgelerdir (depo köküne göre, bölü çizgisiyle): kökteki README,
-// docs/ altındaki bütün .md dosyaları, eklentinin ve kıyas setinin README'leri. Yeni bir
+// SECURITY ve CONTRIBUTING, docs/ altındaki bütün .md dosyaları, kitaplığın, eklentinin ve
+// kıyas setinin README'leri, sözlük isteği konu şablonu. Yeni bir
 // belge docs/ altına eklendiğinde kendiliğinden denetime girer.
 func belgeListesi(t *testing.T) []string {
 	t.Helper()
-	liste := []string{"README.md", "duzenleyici/vscode/README.md", "bakim/kiyas/README.md"}
+	liste := []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "kitaplik/README.md",
+		"duzenleyici/vscode/README.md", "bakim/kiyas/README.md", ".github/ISSUE_TEMPLATE/sozluk_istegi.md"}
 	for _, desen := range []string{"docs/*.md", "docs/*/*.md"} {
 		d, err := filepath.Glob(depo.Yol(desen))
 		if err != nil {
@@ -161,6 +164,116 @@ func TestEklentiSablonlariDerlenir(t *testing.T) {
 		kod = yerTutuculariTanimla(govde, kod)
 		if gecti, cikti := trKontrol(t, "sablon", kod); !gecti {
 			t.Errorf("%q şablonu derlenmiyor:\n%s\n---\n%s", ad, kod, cikti)
+		}
+	}
+}
+
+// Kaldırılan kodların adları (ve eski adları) belgelerde kod bloğu dışında da geçmemeli: ```tr
+// blokları zaten `tr kontrol`dan geçer (kaldırılan ad orada hata verir), ama düzyazıdaki
+// satır içi kod (`model_yükle`, `x.kaydet()`) ve çağrı biçimi (ad(...)) denetlenmiyordu (hakem
+// O14: kılavuz kaldırılmış sinir_ağı'nı ve model.kaydet'i anlatıyordu). Ad listesi kod
+// paketinden gelir (kod.OluBul ve kod.Kaldirildi). Adın hangi ad alanında arandığı
+// yazımından anlaşılır: '.ad' üye, 'ad:' adlı argüman, 'ad(' genel; satır içi kodda tek başına
+// yazılmış `ad` genel ya da tip. Canlı bir kodla aynı yazılan ad (ör. 'tip') denetlenmez.
+
+// kaldirilanAdIzinleri meşru tarihçe cümleleridir: belge → izin verilen ad → gerekçe.
+var kaldirilanAdIzinleri = map[string]map[string]string{
+	"docs/dil/02_sozcuk_yapisi.md": adIzni("kaldırılan özelliklerin listesi: bu adlar yazılınca 'kaldırıldı' hatası verilir (kural 2.9a)",
+		"veritabanı_aç", "tablo_sorgula", "web_al", "web_gönder", "web_sunucu", "arayüz_oluştur",
+		"sinir_ağı", "model_yükle", "eğit", "tahmin_et", "ağırlıklar", "kayıp_mse", "yz_sor",
+		"normalize_et", "nokta_çarpım", "kosinüs_benzerliği", "öklid_uzaklığı"),
+}
+
+func adIzni(gerekce string, adlar ...string) map[string]string {
+	m := map[string]string{}
+	for _, a := range adlar {
+		m[a] = gerekce
+	}
+	return m
+}
+
+var (
+	satirIciKodRe = regexp.MustCompile("`([^`\n]+)`")
+	tanimlayiciRe = regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)
+	cagriRe       = regexp.MustCompile(`([\p{L}_][\p{L}\p{N}_]*)\(`)
+)
+
+// kaldirilanAd ad, verilen ad alanında (AlanYok: genel ya da tip) yerine geçen olmadan
+// kaldırılmış bir kodun adı ya da eski adıysa o kodu verir.
+func kaldirilanAd(al kod.Alan, ad string) (kod.Kod, bool) {
+	alanlar := []kod.Alan{al}
+	if al == kod.AlanYok {
+		alanlar = []kod.Alan{kod.AlanGenel, kod.AlanTip}
+	}
+	for _, a := range []kod.Alan{kod.AlanGenel, kod.AlanTip, kod.AlanUye, kod.AlanParametre} {
+		if _, canli := kod.Bul(a, ad); canli && (a == al || al == kod.AlanYok) {
+			return kod.Yok, false
+		}
+	}
+	for _, a := range alanlar {
+		if k, ok := kod.OluBul(a, ad); ok && kod.Kaldirildi(k) {
+			return k, true
+		}
+	}
+	return kod.Yok, false
+}
+
+// satirIciAdlar satır içi kod parçasındaki adları ad alanlarıyla verir.
+func satirIciAdlar(parca string) map[string]kod.Alan {
+	adlar := map[string]kod.Alan{}
+	if p := strings.TrimSpace(parca); tanimlayiciRe.FindString(p) == p {
+		adlar[p] = kod.AlanYok
+		return adlar
+	}
+	for _, m := range tanimlayiciRe.FindAllStringIndex(parca, -1) {
+		ad, once, sonra := parca[m[0]:m[1]], parca[:m[0]], parca[m[1]:]
+		switch {
+		case strings.HasSuffix(once, "."):
+			adlar[ad] = kod.AlanUye
+		case strings.HasPrefix(sonra, ":"):
+			adlar[ad] = kod.AlanParametre
+		case strings.HasPrefix(sonra, "("):
+			adlar[ad] = kod.AlanGenel
+		}
+	}
+	return adlar
+}
+
+func TestBelgelerdeKaldirilanAdYok(t *testing.T) {
+	if len(kod.Kaldirilanlar()) == 0 {
+		t.Skip("kaldırılmış kod yok")
+	}
+	for _, b := range belgeListesi(t) {
+		if b == uretilmisBelge { // kodlar.md kaldırılan kodları bilerek listeler
+			continue
+		}
+		veri, err := os.ReadFile(depo.Yol(b))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, satir := range kodsuzSatirlar(string(veri)) {
+			bulunan := map[string]kod.Alan{}
+			for _, m := range satirIciKodRe.FindAllStringSubmatch(satir, -1) {
+				for ad, al := range satirIciAdlar(m[1]) {
+					bulunan[ad] = al
+				}
+			}
+			duz := satirIciKodRe.ReplaceAllString(satir, "")
+			for _, m := range cagriRe.FindAllStringSubmatchIndex(duz, -1) {
+				if m[0] == 0 || duz[m[0]-1] != '.' {
+					bulunan[duz[m[2]:m[3]]] = kod.AlanGenel
+				}
+			}
+			for ad, al := range bulunan {
+				k, ok := kaldirilanAd(al, ad)
+				if !ok {
+					continue
+				}
+				if _, izinli := kaldirilanAdIzinleri[b][ad]; izinli {
+					continue
+				}
+				t.Errorf("%s:%d: %q kaldırılmış bir kodun adı (%s); belgeyi bugünkü dile göre düzeltin ya da meşru bir tarihçe cümlesiyse gerekçesiyle kaldirilanAdIzinleri'ne ekleyin", b, i+1, ad, k)
+			}
 		}
 	}
 }

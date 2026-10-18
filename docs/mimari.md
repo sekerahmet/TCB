@@ -8,7 +8,7 @@ TR tek bir ikilidir (`tr`). Bütün Go kodu `internal/` altındadır; başka bir
 araçlar (internal/arac, cmd/tr) ─▶ motorlar (internal/motor) ─▶ dil çekirdeği (internal/dil)
                                         │
                                         └──────▶ hesap çekirdekleri (internal/hesap)
-TR ile yazılı kitaplık (kitaplik/) ── ikiliye gömülür; Go tarafında yalnızca gömme dosyası var
+TR ile yazılı kitaplık (kitaplik/) ── ikiliye gömülecek; bugün boş ve tr ikilisine bağlı değil
 ```
 
 Ok "içe aktarabilir" demektir. Kural `internal/katman_test.go` ile denetlenir (`go test ./internal`); yalnızca paketlerin kendi (test dışı) içe aktarmalarına uygulanır.
@@ -51,7 +51,7 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `internal/arac/bicim` | `tr biçimle` biçimlendiricisi |
 | `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
 | `internal/depo` | Testlerin depo kökünü bulan yardımcı (testler `../../` yazmaz) |
-| `kitaplik` | TR ile yazılan standart kitaplığı ikiliye gömer (bugün boş) |
+| `kitaplik` | TR ile yazılan standart kitaplığı ikiliye gömecek; bugün boş ve hiçbir program içe aktarmıyor |
 | `bakim/uret/*` | Üreteçler: Go kod sabitleri, `docs/kodlar.md`, eklentinin renklendirme listeleri (`go generate ./internal/dil/kod`) |
 | `bakim/kiyas/go` | Hız kıyas setinin derlenmiş başvuru sürümü |
 
@@ -74,7 +74,7 @@ Motorlar ve standart kitaplık yorumlayıcıya (`internal/dil/yurut`) şu kancal
 | :-- | :-- |
 | `cmd/tr/` | Tek ikili |
 | `internal/` | Bütün Go kodu (yukarıdaki katmanlar) |
-| `kitaplik/` | TR ile yazılı standart kitaplık (ikiliye gömülür) |
+| `kitaplik/` | TR ile yazılı standart kitaplık (ikiliye gömülecek; bugün boş ve bağlı değil) |
 | `duzenleyici/vscode/` | VS Code eklentisi (kullanıcıya gider) |
 | `docs/` | Belgeler: [`kilavuz/`](kilavuz/README.md), [`dil/`](dil/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
 | `ornekler/` | Öğrenme sırasıyla örnek programlar |

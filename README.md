@@ -113,6 +113,7 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 - [`docs/mimari.md`](docs/mimari.md) — katmanlar, bağımlılık kuralı ve paketlerin görevleri.
 - [`docs/katki.md`](docs/katki.md) — katkı rehberi: dosya ve fonksiyon boyu, adlar, paket belgesi, testler, yeni kod isteği, tam denetim, ölçüm.
 - [`bakim/kiyas/`](bakim/kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
+- [`SECURITY.md`](SECURITY.md) — güvenlik açığı bildirme, güvenilmeyen sayılan girdiler (`.trt`, `.npy`, `tokenizer.json` ...) ve bulanıklaştırma testleri.
 
 ## Depo yapısı
 
@@ -123,7 +124,7 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 | `internal/motor` | Tensör ve öğrenme, parçalayıcı, veri, JSON/CSV yerleşiklerini dile bağlayan motorlar |
 | `internal/hesap` | Dili bilmeyen hesap çekirdekleri: tensör ve CPU çekirdekleri (`tensor`), parçalayıcı (`parca`), veri yükleyici (`veriyolu`) |
 | `internal/arac` | Hata ayıklayıcı (`ayikla`), biçimlendirici (`bicim`), `tr test` çekirdeği (`testkosucu`) |
-| `kitaplik/` | TR ile yazılan standart kitaplığın yeri (ikiliye gömülür) |
+| `kitaplik/` | TR ile yazılan standart kitaplığın yeri (ikiliye gömülecek; bugün boş ve bağlı değil) |
 | `duzenleyici/vscode/` | VS Code eklentisi |
 | `docs/` | Belgeler ([dizin](docs/README.md)) |
 | `ornekler/`, `testler/` | Örnek programlar ve dil tanımının kural testleri |
