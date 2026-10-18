@@ -42,37 +42,40 @@ func (l *Lexer) readRawString(startLine, startCol int) string {
 // karşılığını yazar. Dosya sonunda ters bölüden sonra durur; readString hatayı bildirir.
 func (l *Lexer) kacisOku(sb *strings.Builder) {
 	kacisSatir, kacisSutun := l.line, l.column
+	bas := l.position // karşılığın kaynaktaki konumu: ters bölü
 	l.readChar()
+	var r rune
 	switch l.ch {
 	case 'n':
-		sb.WriteRune('\n')
+		r = '\n'
 	case 't':
-		sb.WriteRune('\t')
+		r = '\t'
 	case 'r':
-		sb.WriteRune('\r')
+		r = '\r'
 	case '"':
-		sb.WriteRune('"')
+		r = '"'
 	case '\'':
-		sb.WriteRune('\'')
+		r = '\''
 	case '\\':
-		sb.WriteRune('\\')
+		r = '\\'
 	case '{':
 		// Kaçışlı süslü parantez (interpolasyon değil)
-		sb.WriteRune(EscapedLBrace)
+		r = EscapedLBrace
 	case '}':
-		sb.WriteRune(EscapedRBrace)
+		r = EscapedRBrace
 	case 0:
 		return // dosya sonu: readString hatayı bildirir
 	default:
 		// Bilinmeyen kaçış hatadır: ters bölüyü sessizce atmak düzenli ifadeleri
 		// ("\d") ve Windows yollarını ("C:\veri") fark edilmeden bozardı.
 		l.addError(kacisSatir, kacisSutun, "%s", bilinmeyenKacis(l.ch))
-		sb.WriteRune('\\')
+		l.metinYaz(sb, '\\', bas)
 		if l.ch == '\r' && l.peekChar() == '\n' {
 			l.readChar()
 		}
-		sb.WriteRune(l.ch)
+		r, bas = l.ch, l.position
 	}
+	l.metinYaz(sb, r, bas)
 	l.readChar()
 }
 

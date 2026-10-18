@@ -129,39 +129,23 @@ func (p *Parser) parseStringOrInterpolation() agac.Expression {
 		return &agac.StringLiteral{Token: tok, Value: unescapeBraces(raw)}
 	}
 
-	// Metin içi {ifade} ayrıştırması
+	// Metin içi {ifade} ayrıştırması. Yerleştirmelerin aralıklarını sözcük çözümleyici metni
+	// okurken bulur (iç içe tırnaklı metinlerdeki süslü parantezler sayılmaz).
 	runes := []rune(raw)
 	var parts []agac.Expression
 	var textBuf strings.Builder
-	konum := metinKonumu{satir: tok.Line, sutun: tok.Column + 1} // açılış tırnağından sonraki ilk karakter
-	i := 0
+	onceki := 0
 
-	for i < len(runes) {
-		if runes[i] != '{' {
-			kacissizYaz(&textBuf, runes[i])
-			i++
-			continue
+	for _, y := range p.l.Yerlestirmeler(tok) {
+		ac, son := y[0], y[1]
+		for _, r := range runes[onceki:ac] {
+			kacissizYaz(&textBuf, r)
 		}
-		acSatir, acSutun := konum.ilerle(runes, i) // hata konumu: '{'
-		i++                                        // '{' geç
-		exprStart := i
-		depth := 1
-		for i < len(runes) {
-			if runes[i] == '{' {
-				depth++
-			} else if runes[i] == '}' {
-				if depth--; depth == 0 {
-					break
-				}
-			}
-			i++
-		}
-		rawExpr := string(runes[exprStart:i])
-		kapali := i < len(runes)
-		if kapali {
-			i++ // '}' geç
-		}
-		ifade, sorun := p.yerlestirme(rawExpr, &konum, runes, exprStart)
+		acSatir, acSutun := p.l.MetinKonumu(tok, ac) // hata konumu: '{'
+		rawExpr := string(runes[ac+1 : son])
+		ifade, sorun := p.yerlestirme(tok, runes, ac+1, son)
+		kapali := son < len(runes)
+		onceki = min(son+1, len(runes)) // '}' geç
 		if p.derinlikAsildi {
 			return &agac.StringLiteral{Token: tok, Value: ""}
 		}
@@ -178,6 +162,9 @@ func (p *Parser) parseStringOrInterpolation() agac.Expression {
 			textBuf.Reset()
 		}
 		parts = append(parts, ifade)
+	}
+	for _, r := range runes[onceki:] {
+		kacissizYaz(&textBuf, r)
 	}
 
 	if textBuf.Len() > 0 {
@@ -198,17 +185,16 @@ func (p *Parser) parseStringOrInterpolation() agac.Expression {
 // boşsa) sorun bunu anlatan kısa metindir; düz metne dönülmez. Alt ayrıştırıcı üst
 // ayrıştırıcının iç içelik düzeyinden başlar: metin içindeki ifade de dosyanın iç içelik
 // sınırına (2.10) sayılır; sınır alt ayrıştırıcıda aşılırsa hata üst ayrıştırıcıya taşınır.
-func (p *Parser) yerlestirme(rawExpr string, konum *metinKonumu, runes []rune, exprStart int) (agac.Expression, string) {
-	exprCode := strings.TrimSpace(rawExpr)
+func (p *Parser) yerlestirme(metin sozcuk.Token, deger []rune, bas, son int) (agac.Expression, string) {
+	exprCode, ifadeBas := sozcuk.YerlestirmeIfadesi(deger, bas, son)
 	if exprCode == "" {
 		return nil, "boş"
 	}
-	// İfadenin dosyadaki konumu: metnin açılış tırnağından sonraki karakter sayısı kadar
-	// ilerisi (önündeki kaçış dizileri konumu bir-iki sütun kaydırabilir)
-	line, col := konum.ilerle(runes, exprStart)
-	col += len([]rune(rawExpr)) - len([]rune(strings.TrimLeft(rawExpr, " \t")))
-	subParser := New(sozcuk.NewAt(exprCode, line, col))
+	// İfadenin sözcükleri dosyadaki gerçek konumlarını taşır (sozcuk.Lexer.Yerlestirme):
+	// önündeki kaçış dizileri ve boşluklar konumu kaydırmaz.
+	subParser := New(p.l.Yerlestirme(metin, exprCode, ifadeBas))
 	subParser.derinlik = p.derinlik
+	subParser.roller = p.roller
 	subProg := subParser.ParseProgram()
 	if subParser.derinlikAsildi {
 		if !p.derinlikAsildi {
@@ -248,28 +234,6 @@ func konumOnekiniAt(m string) string {
 		}
 	}
 	return strings.TrimPrefix(m, "Sözdizimi hatası — ")
-}
-
-// metinKonumu metin sabitinin içinde ileriye doğru sayılan satır ve sütundur. Her
-// yerleştirmenin konumu bir öncekinden sürdürülür; metnin başından yeniden sayılsaydı çok
-// yerleştirmeli bir metin karesel sürede ayrıştırılırdı.
-type metinKonumu struct {
-	satir, sutun int
-	i            int // sayılmış karakter sayısı
-}
-
-// ilerle konumu metnin hedef. karakterine kadar ilerletir ve o karakterin satır ve
-// sütununu verir.
-func (k *metinKonumu) ilerle(runes []rune, hedef int) (int, int) {
-	for ; k.i < hedef; k.i++ {
-		if runes[k.i] == '\n' {
-			k.satir++
-			k.sutun = 1
-		} else {
-			k.sutun++
-		}
-	}
-	return k.satir, k.sutun
 }
 
 // kacissizYaz bir karakteri, sözcük çözümleyicinin '\{' ve '\}' işaretçilerini düz süslü

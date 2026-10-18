@@ -113,6 +113,7 @@ func (p *Parser) parseFunctionLiteral() agac.Expression {
 		p.nextToken()
 		if p.expectPeek(sozcuk.TOKEN_IDENT) {
 			lit.ReturnType = p.curToken().Literal
+			p.rol(p.curToken(), RolTip)
 		}
 	} else if p.peekTokenIs(sozcuk.TOKEN_MINUS) {
 		p.nextToken() // '-'
@@ -120,6 +121,7 @@ func (p *Parser) parseFunctionLiteral() agac.Expression {
 			p.nextToken() // '>'
 			if p.expectPeek(sozcuk.TOKEN_IDENT) {
 				lit.ReturnType = p.curToken().Literal
+				p.rol(p.curToken(), RolTip)
 			}
 		}
 	}
@@ -147,6 +149,7 @@ func (p *Parser) parseFunctionParameters() []agac.Param {
 			p.nextToken() // ':'
 			if p.expectPeek(sozcuk.TOKEN_IDENT) {
 				param.TypeName = p.curToken().Literal
+				p.rol(p.curToken(), RolTip)
 			}
 		}
 		if p.peekTokenIs(sozcuk.TOKEN_ASSIGN) {
@@ -187,11 +190,11 @@ func (p *Parser) parseCallArguments() ([]agac.Expression, []agac.NamedArg) {
 	p.nextToken()
 	for {
 		if p.curTokenIs(sozcuk.TOKEN_IDENT) && p.peekTokenIs(sozcuk.TOKEN_COLON) {
-			name := p.curToken().Literal
+			adTok := p.curToken()
 			p.nextToken() // ':'
 			p.nextToken()
 			val := p.parseExpression(LOWEST)
-			named = append(named, agac.NamedArg{Name: name, Value: val})
+			named = append(named, agac.NamedArg{Token: adTok, Name: adTok.Literal, Value: val})
 		} else {
 			args = append(args, p.parseExpression(LOWEST))
 		}

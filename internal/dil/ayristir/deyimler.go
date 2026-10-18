@@ -65,7 +65,8 @@ func (p *Parser) parseStatement() agac.Statement {
 }
 func (p *Parser) parseTestStatement() agac.Statement {
 	tok := p.curToken() // test
-	p.nextToken()       // test adı (metin)
+	p.rol(tok, RolTest)
+	p.nextToken() // test adı (metin)
 	name := unescapeBraces(p.curToken().Literal)
 	if !p.expectPeek(sozcuk.TOKEN_LBRACE) {
 		return nil
@@ -162,6 +163,7 @@ func (p *Parser) parseVarStatement(isConst bool) agac.Statement {
 			return nil
 		}
 		stmt.TypeName = p.curToken().Literal
+		p.rol(p.curToken(), RolTip)
 	}
 
 	if p.peekTokenIs(sozcuk.TOKEN_ASSIGN) || p.peekTokenIs(sozcuk.TOKEN_WALRUS) {
@@ -326,6 +328,7 @@ func (p *Parser) parseImportStatement() *agac.ImportStatement {
 	stmt := &agac.ImportStatement{Token: tok, Path: path}
 	if p.peekTokenIs(sozcuk.TOKEN_IDENT) && slices.Contains(olarakYazimlari, p.peekToken().Literal) {
 		p.nextToken() // 'olarak'
+		p.rol(p.curToken(), RolOlarak)
 		if p.expectPeek(sozcuk.TOKEN_IDENT) {
 			stmt.Alias = p.curToken().Literal
 		}

@@ -7,6 +7,7 @@ import (
 	"tr_dili/internal/dil/agac"
 	"tr_dili/internal/dil/ipucu"
 	"tr_dili/internal/dil/kod"
+	"tr_dili/internal/dil/sozcuk"
 )
 
 // Tanımsız ad denetimi (docs/dil/05_deyimler.md §5.14): bir ad, okunduğu ya da atandığı yerde
@@ -29,6 +30,12 @@ type adKapsami struct {
 	ust     *adKapsami
 	adlar   map[string]bool
 	dinamik bool // takma adsız 'aktar': adlar çalışma anında belli olur
+	// yapilar kapsamda tanımlanan yapılardır (kurucuya verilen adlı argümanlar alan adıdır);
+	// ortuk, kapsamın örtük adlarının bağlamsal kodlarıdır (sondaki bloğun 'o'su ve
+	// 'birikim'i, adı yazılmamış yakala'nın 'hata'sı). İkisi de ad bağlarında kullanılır
+	// (ad_baglari.go).
+	yapilar map[string]*agac.StructStatement
+	ortuk   [2]kod.Kod
 }
 
 func yeniAdKapsami(ust *adKapsami) *adKapsami {
@@ -72,6 +79,13 @@ func (k *adKapsami) gorunenler() []string {
 type adDenetleyici struct {
 	c        *Checker
 	bildirim map[string]bool // aynı ad için tek hata (ilk geçtiği yer)
+	// baglar nil değilse gezinti hata aramaz, her adın neye bağlandığını dil'in adlarıyla
+	// kaydeder (AdBaglari, ad_baglari.go).
+	baglar *[]AdBagi
+	dil    *kod.Dil
+	// cakisanlar kodla yazılmış bir sözcüğün dil'deki adını kendi yerinde yakalayan kullanıcı
+	// adlarıdır (AdBaglari).
+	cakisanlar map[string]bool
 }
 
 // GenelKapsam modül denetimi içindir: modül, aktaran programın genel kapsamının altında
@@ -131,6 +145,10 @@ func (d *adDenetleyici) tanimlar(stmts []agac.Statement, k *adKapsami) {
 			}
 		case *agac.StructStatement:
 			k.tanimla(s.Name)
+			if k.yapilar == nil {
+				k.yapilar = map[string]*agac.StructStatement{}
+			}
+			k.yapilar[s.Name] = s
 		case *agac.ImportStatement:
 			k.tanimla(s.Alias)
 		case *agac.ExpressionStatement:
@@ -235,6 +253,14 @@ func (d *adDenetleyici) blok(b *agac.BlockStatement, ust *adKapsami, once ...str
 	for _, a := range once {
 		k.tanimla(a)
 	}
+	d.blokKapsamda(b, k)
+}
+
+// blokKapsamda bloğun deyimlerini hazırlanmış k kapsamında denetler.
+func (d *adDenetleyici) blokKapsamda(b *agac.BlockStatement, k *adKapsami) {
+	if b == nil {
+		return
+	}
 	d.tanimlar(b.Statements, k)
 	for _, st := range b.Statements {
 		d.deyim(st, k)
@@ -279,7 +305,12 @@ func (d *adDenetleyici) deyim(st agac.Statement, k *adKapsami) {
 		d.blok(s.Body, k)
 	case *agac.TryCatchStatement:
 		d.blok(s.TryBody, k)
-		d.blok(s.CatchBody, k, s.ErrorVar)
+		yk := yeniAdKapsami(k)
+		yk.tanimla(s.ErrorVar)
+		if s.OrtukHata {
+			yk.ortuk[0] = kod.A103
+		}
+		d.blokKapsamda(s.CatchBody, yk)
 	case *agac.StructStatement:
 		for _, f := range s.Fields {
 			d.ifade(f.DefaultValue, k)
@@ -318,6 +349,9 @@ func (d *adDenetleyici) fonksiyon(f *agac.FunctionLiteral, k *adKapsami, ek ...s
 	for _, a := range adlar {
 		pk.tanimla(a)
 	}
+	if f.Token.Type == sozcuk.TOKEN_LBRACE {
+		pk.ortuk = sondakiBlokOrtukleri(f)
+	}
 	for _, p := range f.Parameters {
 		d.ifade(p.DefaultValue, pk)
 	}
@@ -334,7 +368,15 @@ func (d *adDenetleyici) ifade(e agac.Expression, k *adKapsami) {
 	agacGez(e, func(x agac.Expression) bool {
 		switch y := x.(type) {
 		case *agac.Identifier:
-			d.ad(y, k)
+			if d.baglar != nil {
+				d.bagla(y, k)
+			} else {
+				d.ad(y, k)
+			}
+		case *agac.CallExpression:
+			if d.baglar != nil {
+				d.adliBaglar(y, k)
+			}
 		case *agac.FunctionLiteral:
 			d.fonksiyon(y, k)
 			return false

@@ -110,12 +110,17 @@ func (p *Parser) parseIndexExpression(left agac.Expression) agac.Expression {
 func (p *Parser) parseMemberExpression(left agac.Expression) agac.Expression {
 	tok := p.curToken()
 	safe := tok.Type == sozcuk.TOKEN_SAFE_DOT
-	p.nextToken()
-	prop := p.curToken().Literal
+	// Üye adı bir ad olmalıdır: başka bir sözcük (x.1, x.$, x.eğer) sessizce üye adı sayılmaz.
+	if !p.expectPeek(sozcuk.TOKEN_IDENT) {
+		return nil
+	}
+	ad := p.curToken()
+	p.rol(ad, RolUye)
 	return &agac.MemberExpression{
-		Token:    tok,
-		Object:   left,
-		Property: prop,
-		Safe:     safe,
+		Token:     tok,
+		Object:    left,
+		Property:  ad.Literal,
+		AdSozcugu: ad,
+		Safe:      safe,
 	}
 }

@@ -78,6 +78,11 @@ type Parser struct {
 	tokens []sozcuk.Token
 	pos    int
 	errors []string
+	// l sözcük birimlerini üreten çözümleyicidir; metin içi yerleştirmeler onun alt
+	// çözümleyicisiyle okunur (konumlar, kodlu kip ve kayıt paylaşılır).
+	l *sozcuk.Lexer
+	// roller açıksa (RolleriKaydet) ad sözcüklerinin görevleri kaydedilir (roller.go).
+	roller map[[2]int]AdRolu
 
 	// noBlock: 'eğer', 'iken', 'döngü' ve 'eşle' başlıklarında '{' gövdenin başlangıcıdır,
 	// sondaki blok (o-lambda) olarak okunmamalıdır. Parantez/köşeli parantez içinde yeniden açılır.
@@ -179,6 +184,7 @@ func New(l *sozcuk.Lexer) *Parser {
 		tokens: tokens,
 		pos:    0,
 		errors: errs,
+		l:      l,
 	}
 }
 

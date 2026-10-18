@@ -94,6 +94,7 @@ func (p *Parser) parseTryCatchStatement() *agac.TryCatchStatement {
 	}
 
 	errVar := hataAdi
+	ortuk := !p.peekTokenIs(sozcuk.TOKEN_IDENT) && !p.peekTokenIs(sozcuk.TOKEN_LPAREN)
 	if p.peekTokenIs(sozcuk.TOKEN_IDENT) {
 		p.nextToken()
 		errVar = p.curToken().Literal
@@ -114,6 +115,7 @@ func (p *Parser) parseTryCatchStatement() *agac.TryCatchStatement {
 		Token:     tok,
 		TryBody:   tryBody,
 		ErrorVar:  errVar,
+		OrtukHata: ortuk,
 		CatchBody: catchBody,
 	}
 }

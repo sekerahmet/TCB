@@ -1,6 +1,10 @@
 package sozcuk
 
-import "fmt"
+import (
+	"fmt"
+
+	"tr_dili/internal/dil/kod"
+)
 
 // TokenType dildeki her bir sözcük biriminin (token) türünü temsil eder.
 type TokenType string
@@ -10,6 +14,9 @@ type Token struct {
 	Literal string
 	Line    int
 	Column  int
+	// Kod, sözcük kodlu bir dosyada kodla yazıldıysa (A001, G100) o koddur, değilse kod.Yok.
+	// Literal o zaman kodun etkin dildeki adıdır (bkz. kodlu.go).
+	Kod kod.Kod
 }
 
 func (t Token) String() string {

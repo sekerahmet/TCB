@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
-
-	"tr_dili/internal/dil/kod"
 )
 
 // Metin içinde '\{' ve '\}' ile kaçışlanmış süslü parantezler, sözcük biriminde
@@ -32,6 +30,30 @@ type Lexer struct {
 	column       int
 	errors       []string
 	tokenStart   int // son okunan sözcük biriminin başladığı karakter (rune) indeksi
+
+	// kodlu, kaynağın kodlu biçimde (17.10) yazıldığını söyler: kodlar (A001, G100) dilin
+	// sözcükleri, kod olmayan her ad kullanıcının adıdır (kodlu.go).
+	kodlu bool
+	// kok dosyanın çözümleyicisidir (kökte kendisi). Metin içi yerleştirmelerin alt
+	// çözümleyicileri konumlarını, metin haritalarını ve kayıtlarını kökle paylaşır.
+	kok *Lexer
+	// harita alt çözümleyicide girdinin her karakterinin kökteki konumudur (yerlestirme.go).
+	harita []int32
+	// metinler kökte, yerleştirme içeren metin sabitlerinin bilgisidir (sözcük biriminin satır
+	// ve sütunuyla anahtarlı; yerlestirme.go); metinTampon ve yerTampon okunmakta olan metnin
+	// konumlarını ve yerleştirme aralıklarını biriktirir.
+	metinler    map[[2]int]*metinBilgisi
+	metinTampon []int32
+	yerTampon   [][2]int
+	// satirBaslari kökte satırların başladığı karakter indeksleridir (gerektiğinde kurulur).
+	satirBaslari []int
+	// kayit açıksa (Kaydet) kökte üretilen bütün sözcük birimleri kaynak aralıklarıyla tutulur.
+	kayit *[]Kayit
+	// kaymalar kodlu kökte gösterimdeki sütun kaymalarıdır (kodlu.go); kaymaToplam birikimli
+	// toplamları, kaymaSira kök çözümleyicinin sıradaki kayma noktasıdır.
+	kaymalar    []kayma
+	kaymaToplam []int32
+	kaymaSira   int
 }
 
 // SonAralik son NextToken çağrısının döndürdüğü sözcük biriminin kaynaktaki karakter
@@ -60,24 +82,21 @@ func (l *Lexer) addError(line, col int, format string, args ...interface{}) {
 	l.errors = append(l.errors, prefix+fmt.Sprintf(format, args...))
 }
 
+// New Türkçe yazılmış bir kaynak metnin (kabuk satırı, hata ayıklayıcıda yazılan ifade)
+// sözcük çözümleyicisidir. Dosyalar internal/dil/kaynak'tan okunur (NewGovde).
 func New(input string) *Lexer {
 	// Bazı Windows editörlerinin dosya başına eklediği UTF-8 BOM'u (U+FEFF) atla;
 	// aksi halde ilk satırda GEÇERSİZ bir sözcük birimi oluşur.
-	input = strings.TrimPrefix(input, string(rune(0xFEFF)))
+	return yeniCozumleyici(strings.TrimPrefix(input, string(rune(0xFEFF))))
+}
+
+func yeniCozumleyici(input string) *Lexer {
 	l := &Lexer{
 		input:  []rune(input),
 		line:   1,
 		column: 0,
 	}
-	l.readChar()
-	return l
-}
-
-// NewAt, kaynağı verilen satır ve sütundan başlıyormuş gibi okuyan bir sözcük çözümleyici
-// döndürür. Metin içi yerleştirmelerdeki ("{ifade}") ifadeler böylece hata mesajlarında
-// dosyadaki gerçek konumlarıyla görünür.
-func NewAt(input string, line, column int) *Lexer {
-	l := &Lexer{input: []rune(input), line: line, column: column - 1}
+	l.kok = l
 	l.readChar()
 	return l
 }
@@ -90,11 +109,20 @@ func (l *Lexer) readChar() {
 	}
 	l.position = l.readPosition
 	l.readPosition++
+	if l.harita != nil {
+		// Alt çözümleyicinin konumu kökteki karşılığından okunur: kaçış dizileri metnin
+		// değerinde kaynaktakinden kısadır.
+		l.line, l.column = l.kok.satirSutun(int(l.kaynakKonumu(l.position)))
+		return
+	}
 	if l.ch == '\n' {
 		l.line++
 		l.column = 0
 	} else {
 		l.column++
+	}
+	if l.kaymalar != nil {
+		l.kaymaUygula()
 	}
 }
 
@@ -113,7 +141,12 @@ func (l *Lexer) peekCharN(n int) rune {
 	return l.input[idx]
 }
 
-func (l *Lexer) NextToken() Token {
+// NextToken sıradaki sözcük birimini okur; kayıt açıksa (Kaydet) onu kaynak aralığıyla
+// kökün kaydına ekler.
+func (l *Lexer) NextToken() (sonuc Token) {
+	if l.kok.kayit != nil {
+		defer func() { l.kaydet(sonuc) }()
+	}
 	l.skipWhitespaceAndComments()
 	l.tokenStart = l.position
 
@@ -258,17 +291,18 @@ func (l *Lexer) NextToken() Token {
 	case '`':
 		return Token{Type: TOKEN_STRING, Literal: l.readRawString(line, col), Line: line, Column: col}
 	case 0:
-		tok = Token{Type: TOKEN_EOF, Literal: "", Line: line, Column: col}
-		return tok
+		if l.position < len(l.input) {
+			return l.nulKarakteri(line, col)
+		}
+		return Token{Type: TOKEN_EOF, Literal: "", Line: line, Column: col}
+	case '$':
+		if isLetter(l.peekChar()) {
+			return l.kacisliAd(line, col)
+		}
+		tok = Token{Type: TOKEN_ILLEGAL, Literal: string(l.ch), Line: line, Column: col}
 	default:
 		if isLetter(l.ch) {
-			lit := l.readIdentifier()
-			tokType := LookupIdent(lit)
-			if tokType == TOKEN_IDENT && kod.KodBicimi(lit) {
-				l.addError(line, col, "'%s' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır, başka bir ad seçin (ör. %s_ ya da %s)",
-					lit, lit, strings.ToLower(lit))
-			}
-			return Token{Type: tokType, Literal: lit, Line: line, Column: col}
+			return l.adSozcugu(l.readIdentifier(), line, col)
 		} else if isDigit(l.ch) {
 			lit, isFloat := l.readNumber()
 			if isFloat {
@@ -391,6 +425,15 @@ func (l *Lexer) readNumber() (string, bool) {
 func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 	var sb strings.Builder
 	l.readChar() // açılış tırnağını geç
+	// Değerdeki her karakterin kaynaktaki konumu biriktirilir; metin bir yerleştirme
+	// içeriyorsa ayrıştırıcı ifadenin konumunu buradan okur (yerlestirme.go).
+	l.metinTampon, l.yerTampon = l.metinTampon[:0], l.yerTampon[:0]
+	yerlestirmeli := false
+	defer func() {
+		if yerlestirmeli {
+			l.metinKonumlariniSakla(startLine, startCol)
+		}
+	}()
 	braceDepth := 0
 	braceLine, braceCol := 0, 0
 	var inner rune // interpolasyon içindeki alt metnin tırnağı (0 = alt metin yok)
@@ -419,10 +462,14 @@ func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 		} else if l.ch == '{' {
 			if braceDepth == 0 {
 				braceLine, braceCol = l.line, l.column
+				l.yerTampon = append(l.yerTampon, [2]int{len(l.metinTampon), -1})
 			}
 			braceDepth++
+			yerlestirmeli = true
 		} else if l.ch == '}' && braceDepth > 0 {
-			braceDepth--
+			if braceDepth--; braceDepth == 0 {
+				l.yerTampon[len(l.yerTampon)-1][1] = len(l.metinTampon)
+			}
 		} else if l.ch == quote && braceDepth == 0 {
 			l.readChar() // kapanış tırnağını geç
 			return sb.String()
@@ -434,7 +481,7 @@ func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 			l.readChar()
 			continue
 		}
-		sb.WriteRune(l.ch)
+		l.metinYaz(&sb, l.ch, l.position)
 		l.readChar()
 	}
 }

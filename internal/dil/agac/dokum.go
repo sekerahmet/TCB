@@ -5,10 +5,15 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+
+	"tr_dili/internal/dil/sozcuk"
 )
 
+// sozcukTipi sözcük birimi alanlarının tipidir (Dokum onları atlar).
+var sozcukTipi = reflect.TypeOf(sozcuk.Token{})
+
 // Dokum bir düğümün anlamını (konum bilgisi olmadan) metin olarak döker. Sözcük birimleri
-// (Token alanları) satır/sütun taşıdığı için atlanır; geri kalan her alan yazılır. İki
+// (sozcuk.Token alanları) satır/sütun taşıdığı için atlanır; geri kalan her alan yazılır. İki
 // kaynağın Dokum çıktısı aynıysa programlar aynı anlama gelir — biçimlendirici bunu
 // "anlam değişmedi" denetimi için kullanır.
 func Dokum(n Node) string {
@@ -33,7 +38,7 @@ func dok(sb *strings.Builder, v reflect.Value, girinti int) {
 		sb.WriteString(v.Type().Name() + " {\n")
 		for i := 0; i < v.NumField(); i++ {
 			alan := v.Type().Field(i)
-			if alan.Name == "Token" || !alan.IsExported() {
+			if alan.Type == sozcukTipi || !alan.IsExported() {
 				continue
 			}
 			sb.WriteString(bosluk + "  " + alan.Name + ": ")

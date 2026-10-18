@@ -153,9 +153,12 @@ func (ss *StructStatement) TokenLiteral() string { return ss.Token.Literal }
 func (ss *StructStatement) Line() int            { return ss.Token.Line }
 
 type TryCatchStatement struct {
-	Token     sozcuk.Token // dene
-	TryBody   *BlockStatement
-	ErrorVar  string
+	Token    sozcuk.Token // dene
+	TryBody  *BlockStatement
+	ErrorVar string
+	// OrtukHata, hata değişkeninin adı yazılmadığı için bağlamsal 'hata' sözcüğü (A103)
+	// olduğunu söyler; kodlu biçimde gövdedeki kullanımları kodlanır (17.3).
+	OrtukHata bool
 	CatchBody *BlockStatement
 }
 
@@ -364,6 +367,7 @@ func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
 func (fl *FunctionLiteral) Line() int            { return fl.Token.Line }
 
 type NamedArg struct {
+	Token sozcuk.Token // adın sözcüğü
 	Name  string
 	Value Expression
 }
@@ -390,10 +394,11 @@ func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *IndexExpression) Line() int            { return ie.Token.Line }
 
 type MemberExpression struct {
-	Token    sozcuk.Token // . veya ?.
-	Object   Expression
-	Property string
-	Safe     bool // ?. ise true
+	Token     sozcuk.Token // . veya ?.
+	Object    Expression
+	Property  string
+	AdSozcugu sozcuk.Token // üye adının sözcüğü
+	Safe      bool         // ?. ise true
 }
 
 func (me *MemberExpression) expressionNode()      {}

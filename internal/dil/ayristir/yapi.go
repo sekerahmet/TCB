@@ -48,6 +48,7 @@ func (p *Parser) parseStructStatement() *agac.StructStatement {
 		}
 		if p.curTokenIs(sozcuk.TOKEN_FONKSIYON) {
 			fnTok := p.curToken()
+			p.rol(p.peekToken(), RolYapiMetodu)
 			// Hatalı metod tanımında parseFunctionLiteral nil döner; tip dönüşümü panik yapmamalı
 			fn, _ := p.parseFunctionLiteral().(*agac.FunctionLiteral)
 			if fn == nil {
@@ -75,11 +76,13 @@ func (p *Parser) parseStructStatement() *agac.StructStatement {
 			return gecersiz(p.curToken(), tokenAciklamasi(p.curToken())+" bir alan tanımı değil")
 		}
 		alanTok := p.curToken()
+		p.rol(alanTok, RolYapiAlani)
 		field := agac.StructField{Name: alanTok.Literal}
 		if p.peekTokenIs(sozcuk.TOKEN_COLON) {
 			p.nextToken() // ':'
 			if p.expectPeek(sozcuk.TOKEN_IDENT) {
 				field.TypeName = p.curToken().Literal
+				p.rol(p.curToken(), RolTip)
 			}
 		}
 		if p.peekTokenIs(sozcuk.TOKEN_ASSIGN) {
