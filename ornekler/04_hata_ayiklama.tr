@@ -2,7 +2,7 @@
 // ETKİLEŞİMLİDİR: `kesme_noktası eğer ...` satırında program durur ve hata ayıklayıcı
 // komut bekler (değişkenleri gösterir; standart giriş boşsa ya da kapalıysa devam eder).
 // Öğrettikleri: koşullu kesme noktası, değişkenleri ve tensörleri incelemek, değeri
-// çalışırken değiştirmek. Hata ayıklayıcı komutları: KULLANIM_KILAVUZU.md §5.
+// çalışırken değiştirmek. Hata ayıklayıcı komutları: docs/kilavuz/05_hata_ayiklayici.md §5.
 // Çalıştırma (proje kökünden): tr ornekler/04_hata_ayiklama.tr   (VS Code'da F5)
 // Program durduğunda deneyin:
 //   tablo siparisler            → sipariş listesini tablo olarak gösterir

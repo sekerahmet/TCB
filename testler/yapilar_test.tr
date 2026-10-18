@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §7 — Yapılar
+// docs/dil/07_yapilar.md §7 — Yapılar
 
 yapı Nokta {
     x: Tam = 0

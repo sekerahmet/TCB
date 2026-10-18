@@ -13,7 +13,16 @@ if len(sys.argv) > 2:
     torch.set_num_threads(int(sys.argv[2]))
 torch.manual_seed(1)
 
-metin = open("KULLANIM_KILAVUZU.md", encoding="utf-8").read() + open("docs/DIL_TANIMI.md", encoding="utf-8").read()
+# ornekler/07_karakter_modeli.tr'deki BELGELER listesiyle aynı dosyalar, aynı sırayla.
+BELGELER = [f"docs/kilavuz/{a}.md" for a in (
+    "01_baslangic", "02_anahtar_kelimeler", "03_zincirleme_metotlar", "04_yapay_zeka_ve_veri",
+    "05_hata_ayiklayici", "06_vscode_kisayollari", "07_testler", "08_bicimlendirme")] + [
+    f"docs/dil/{a}.md" for a in (
+    "01_program", "02_sozcuk_yapisi", "03_tipler", "04_operatorler", "05_deyimler",
+    "06_fonksiyonlar", "07_yapilar", "08_hata_yonetimi", "09_ertele", "10_eszamanlilik",
+    "11_moduller", "12_testler", "13_yerlesikler", "14_sinirlamalar", "15_tensorler",
+    "16_veri_parcalayici", "17_kodlar")]
+metin = "".join(open(b, encoding="utf-8").read() for b in BELGELER)
 harfler, harf_no, veri = [], {}, []
 for h in metin:
     if h not in harf_no:

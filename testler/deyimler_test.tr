@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §5 — Deyimler ve kontrol yapıları
+// docs/dil/05_deyimler.md §5 — Deyimler ve kontrol yapıları
 
 test "5.1 değişken ve := tanımı" {
     değişken a = 1

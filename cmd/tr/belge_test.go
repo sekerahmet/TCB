@@ -18,14 +18,33 @@ import (
 // Bilerek hatalı yazılmış örnekler ```tr hata ile işaretlenir; onların kontrolden
 // GEÇMEMESİ beklenir (belge hatayı gösteriyorsa hata gerçekten oluşmalı).
 
-// belgeler denetlenen belgelerdir (depo köküne göre).
-var belgeler = []string{
-	"README.md",
-	"KULLANIM_KILAVUZU.md",
-	"docs/DIL_TANIMI.md",
-	"docs/YOL_HARITASI.md",
-	"duzenleyici/vscode/README.md",
-	"bakim/kiyas/README.md",
+// uretilmisBelge kod listesinden üretilen başvuru belgesidir; içindeki örnekler kod
+// listesinin testlerinde (internal/motor) çalıştırılır, burada yalnızca bağlantıları denetlenir.
+const uretilmisBelge = "docs/kodlar.md"
+
+// belgeListesi depodaki belgelerdir (depo köküne göre, bölü çizgisiyle): kökteki README,
+// docs/ altındaki bütün .md dosyaları, eklentinin ve kıyas setinin README'leri. Yeni bir
+// belge docs/ altına eklendiğinde kendiliğinden denetime girer.
+func belgeListesi(t *testing.T) []string {
+	t.Helper()
+	liste := []string{"README.md", "duzenleyici/vscode/README.md", "bakim/kiyas/README.md"}
+	for _, desen := range []string{"docs/*.md", "docs/*/*.md"} {
+		d, err := filepath.Glob(depo.Yol(desen))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, yol := range d {
+			goreli, err := filepath.Rel(depo.Kok(), yol)
+			if err != nil {
+				t.Fatal(err)
+			}
+			liste = append(liste, filepath.ToSlash(goreli))
+		}
+	}
+	if len(liste) < 20 {
+		t.Fatalf("yalnızca %d belge bulundu; docs/ yapısı değişmiş olabilir", len(liste))
+	}
+	return liste
 }
 
 var trBlokRe = regexp.MustCompile("(?ms)^```tr( hata)?[ \t]*\r?\n(.*?)^```")
@@ -43,10 +62,13 @@ func trKontrol(t *testing.T, ad, kod string) (bool, string) {
 
 func TestBelgelerdekiTRKodBloklari(t *testing.T) {
 	toplam := 0
-	for _, b := range belgeler {
+	for _, b := range belgeListesi(t) {
+		if b == uretilmisBelge {
+			continue
+		}
 		veri, err := os.ReadFile(depo.Yol(b))
 		if err != nil {
-			t.Fatal(err) // belge taşındıysa listeyi güncelleyin
+			t.Fatal(err)
 		}
 		metin := string(veri)
 		for _, m := range trBlokRe.FindAllStringSubmatchIndex(metin, -1) {

@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §12 — Testler
+// docs/dil/12_testler.md §12 — Testler
 
 değişken test = "test sıradan bir ad olarak da kullanılabilir"
 değişken genel_değer = 42

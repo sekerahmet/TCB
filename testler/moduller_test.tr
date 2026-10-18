@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §11 — Modüller
+// docs/dil/11_moduller.md §11 — Modüller
 değişken yükleme_kaydı = []
 aktar "yardimci_modul"
 aktar "yardimci_modul.tr" olarak ym

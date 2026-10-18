@@ -51,7 +51,7 @@ func TestModulUstDuzeySonucHata(t *testing.T) {
 	}
 }
 
-// Modüller tip denetiminden geçmeden çalışıyordu (DIL_TANIMI §1 ile çelişki).
+// Modüller tip denetiminden geçmeden çalışıyordu (docs/dil/01_program.md §1 ile çelişki).
 func TestModulTipDenetimindenGecer(t *testing.T) {
 	kok := t.TempDir()
 	klasordeCalis(t, kok)

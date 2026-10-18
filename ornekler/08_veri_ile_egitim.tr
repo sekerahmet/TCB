@@ -1,7 +1,7 @@
 // 08 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
 // Öğrettikleri: tokenizer.json yükleyip metni kodlamak/çözmek, .npy veri dosyalarından
 // örnekleyiciyle rastgele toplu işler almak, sıralı okuyucuyla doğrulamak, üretilen
-// parçaları metne çevirmek. Ayrıntılar: KULLANIM_KILAVUZU.md §4.D, docs/DIL_TANIMI.md §16.
+// parçaları metne çevirmek. Ayrıntılar: docs/kilavuz/04_yapay_zeka_ve_veri.md §4.D, docs/dil/16_veri_parcalayici.md §16.
 //
 // Varsayılan olarak depodaki sentetik test verisini (testler/veri) kullanır. Kendi
 // verinizle çalıştırmak için aşağıdaki üç yolu kendi dosyalarınıza çevirin, ör.:

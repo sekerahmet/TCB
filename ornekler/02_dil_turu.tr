@@ -2,7 +2,7 @@
 // Sırasıyla: değişkenler ve sabitler, yok güvenliği (??), fonksiyonlar (tip, varsayılan ve
 // adlı argüman), eşle, döngüler, liste üreteci ve çoklu atama, zincirleme metotlar, sondaki
 // blok ve `o`, boru hattı (|>), yapılar, dene/yakala, ertele, eşzamanlı görevler ve modüller.
-// Kuralların tamamı: docs/DIL_TANIMI.md
+// Kuralların tamamı: docs/dil/
 // Çalıştırma (proje kökünden): tr ornekler/02_dil_turu.tr
 
 yazdır("=== 1. Değişkenler, sabitler, yok güvenliği ===")

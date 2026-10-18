@@ -2,7 +2,7 @@
 
 <!-- Bu dosya internal/dil/kod/tanim.json ve internal/dil/kod/tr.json'dan üretilir; elle düzenlemeyin: go run ./bakim/uret/kod_belgesi -->
 
-Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/DIL_TANIMI.md` §17). Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; "hangi kod ne işe yarar" sorusunun tek başvurusudur. Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.
+Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/dil/17_kodlar.md` §17). Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; "hangi kod ne işe yarar" sorusunun tek başvurusudur. Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.
 
 İmzalarda parametrelerin yalnızca tipleri yazılır: `[Tip]` isteğe bağlı, `[Tip...]` sıfır ya da çok, `Tip...` bir ya da çok argümandır; `ad: Tip = varsayılan` adlı argümandır, `→` dönüş tipidir. Metot ve özellikler `Tip.ad` biçiminde, geçerli oldukları her tip için ayrı satırda yazılır.
 
@@ -2447,6 +2447,6 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ## Boru hattıyla kullanılabilen fonksiyonlar
 
-`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/DIL_TANIMI.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
+`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/dil/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
 `yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `veri_kümesi`, `parçalayıcı_yükle`

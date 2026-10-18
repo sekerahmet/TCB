@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §2 — Sözcük yapısı
+// docs/dil/02_sozcuk_yapisi.md §2 — Sözcük yapısı
 aktar "bom_ornegi"
 
 test "2.1 kaynak UTF-8, baştaki BOM yok sayılır" {

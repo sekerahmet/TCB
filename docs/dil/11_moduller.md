@@ -1,0 +1,11 @@
+# 11. Modüller
+
+**11.1** `aktar "yol"` başka bir `.tr` dosyasını çalıştırır ve üst düzey adlarını bulunulan kapsama getirir. Yol bir metin sabitidir (tırnaksız `aktar yardımcı` sözdizimi hatasıdır); `.tr` uzantısı isteğe bağlıdır; yol dosya yerleşiklerindeki tek kuralla (bkz. **13.1**) önce çalışma klasörüne, bulunamazsa aktaran dosyanın klasörüne, o da olmazsa programın klasörüne göre çözülür.
+
+**11.2** `aktar "yol" olarak ad` modülün adlarını tek bir `Sözlük` olarak `ad`a bağlar: `ym.kare(2)`, `ym["PI"]`.
+
+**11.3** Bir modül program boyunca bir kez çalıştırılır; sonraki aktarımlar aynı değerleri paylaşır. Başka bir görev (`eşzamanlı`) aynı modülü o sırada yüklüyorsa aktarım yüklemenin bitmesini bekler ve aynı değerleri alır (yükleme hata verdiyse aynı hatayı). Döngüsel aktarım — yüklenmekte olan bir modülün kendi yükleme zincirinden (ya da o yükleme sırasında başlatılan bir görevden) yeniden aktarılması — hatadır.
+
+**11.4** Modül çalışmadan önce ayrıştırılır ve tip denetiminden geçer; hata varsa modülün hiçbir satırı çalışmaz, hiçbir adı gelmez ve `aktar` deyimi (dene/yakala ile yakalanabilen) bir hata verir: `Satır 2: "m5" modülü tip denetimi hataları nedeniyle yüklenemedi: m5.tr, Satır 1: Tip uyuşmazlığı — ...`. Modülün üst düzeyinde `sonuç` derleme hatasıdır: modül bir fonksiyon değildir, aktaran programı bitiremez (fonksiyonlarının içinde geçerlidir). `tr kontrol` ve `tr derle` kaynakta yazılı bütün `aktar` deyimlerini (iç bloklardakiler ve modüllerin aktardıkları dahil) izleyip modülleri çalıştırmadan aynı denetimden geçirir; hata başlığı modülü söyler (`❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):`).
+
+**11.5** Kod tanımlandığı dosyanın bağlamında çalışır: modülün üst düzeyi ve modülde tanımlanan fonksiyonlar, nereden çağrılırsa çağrılsın, o modülün dosyasındadır. Bu yüzden göreli yollar önce çalışma klasörüne, sonra o modülün klasörüne, sonra programın klasörüne göre aranır (13.1) ve başka bir dosyadan gelen çalışma hataları o dosyanın adı ve kendi satırıyla yazılır (`m2.tr, Satır 3: Sıfıra bölme hatası`; kod çerçevesi modülün kaynağından çizilir). `fırlat` ile atılan değerler ise değişmeden yakalanır. Dosya bilgisi görevindir, paylaşılmaz: bir modül yüklenirken kilidi bırakırsa (ör. `bekle`) öbür görevlerin göreli yolları kendi dosyalarına göre çözülmeye devam eder.

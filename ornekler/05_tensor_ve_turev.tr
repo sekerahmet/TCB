@@ -2,7 +2,7 @@
 // Öğrettikleri: tensör oluşturma ve şekil, @ (matris çarpımı), yayınlama, relu/softmax,
 // otomatik türev (geri_yayılım, .gradyan), türevsiz, AdamW ile küçük bir doğrusal regresyon,
 // maks_indeks, tensör_kaydet/tensör_yükle ve tensörlerle iki katmanlı küçük bir XOR ağı.
-// Ayrıntılar: KULLANIM_KILAVUZU.md §4.C, docs/DIL_TANIMI.md §15.
+// Ayrıntılar: docs/kilavuz/04_yapay_zeka_ve_veri.md §4.C, docs/dil/15_tensorler.md §15.
 // Çalıştırma (proje kökünden): tr ornekler/05_tensor_ve_turev.tr
 // Ürettiği dosyalar (her çalıştırmada yeniden yazılır, depoya girmez):
 //   ornekler/agirliklar.trt, ornekler/xor_agirliklari.trt

@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §3 — Tipler ve değerler
+// docs/dil/03_tipler.md §3 — Tipler ve değerler
 
 test "3.1 Tam: 64 bit, taşma hata verir" {
     eşit_mi(9223372036854775807, 9223372036854775806 + 1)

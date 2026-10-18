@@ -15,7 +15,7 @@ import (
 // metot ...), metot ve özelliklerde geçerli olduğu tipler, imzası (konumlu parametrelerin
 // sırası ve tipi, adlı argümanların kodu, tipi ve varsayılanı), dönüş tipi, ilişkili kodlar
 // ve kaldırılan kodlarda işin taşındığı yeni kod. Adlar burada geçmez: imzalar tip ve kod
-// listesidir, adları dil dosyası (tr.json) verir. docs/KODLAR.md bu iki dosyadan üretilir.
+// listesidir, adları dil dosyası (tr.json) verir. docs/kodlar.md bu iki dosyadan üretilir.
 //
 // Dosyanın biçimi (her girdi tek satır ya da kısa bir blok, kodlar artan sırada):
 //

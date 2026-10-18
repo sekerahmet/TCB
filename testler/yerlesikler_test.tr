@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §13 — Yerleşik fonksiyonlar ve metotlar (seçki)
+// docs/dil/13_yerlesikler.md §13 — Yerleşik fonksiyonlar ve metotlar (seçki)
 
 test "13.1 genel yerleşikler" {
     eşit_mi(3, [1, 2, 3].uzunluk)

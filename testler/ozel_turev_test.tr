@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §15.20–15.24 — Kullanıcı tanımlı türev (özel_türev) ve türev_denetle
+// docs/dil/15_tensorler.md §15.20–15.24 — Kullanıcı tanımlı türev (özel_türev) ve türev_denetle
 
 // ot_hata: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
 fonksiyon ot_hata(f) {

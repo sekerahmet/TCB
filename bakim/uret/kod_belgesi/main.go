@@ -1,4 +1,4 @@
-// kod_belgesi, dilin bütün kodlarının açıklamalı başvuru belgesini (docs/KODLAR.md) kod
+// kod_belgesi, dilin bütün kodlarının açıklamalı başvuru belgesini (docs/kodlar.md) kod
 // listesinden üretir: dilden bağımsız tanımlar (internal/dil/kod/tanim.json: tür, tipler, imza,
 // ilişkili kodlar, taşınma) ve Türkçe dil dosyası (internal/dil/kod/tr.json: ad, eski adlar,
 // açıklama, örnek). Belge elle düzenlenmez; bir kod eklendiğinde ya da değiştiğinde
@@ -26,7 +26,7 @@ import (
 )
 
 // belgeYolu depo köküne göre üretilen dosyadır.
-var belgeYolu = filepath.Join("docs", "KODLAR.md")
+var belgeYolu = filepath.Join("docs", "kodlar.md")
 
 func main() {
 	denetle := flag.Bool("denetle", false, "dosyayı yazma; güncel değilse 1 koduyla çık")
@@ -254,7 +254,7 @@ func Uret() ([]byte, error) {
 	var b bytes.Buffer
 	b.WriteString("# TR kod listesi\n\n")
 	b.WriteString("<!-- Bu dosya internal/dil/kod/tanim.json ve internal/dil/kod/tr.json'dan üretilir; elle düzenlemeyin: go run ./bakim/uret/kod_belgesi -->\n\n")
-	b.WriteString("Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/DIL_TANIMI.md` §17). ")
+	b.WriteString("Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/dil/17_kodlar.md` §17). ")
 	b.WriteString("Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; \"hangi kod ne işe yarar\" sorusunun tek başvurusudur. ")
 	b.WriteString("Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.\n\n")
 	b.WriteString("İmzalarda parametrelerin yalnızca tipleri yazılır: `[Tip]` isteğe bağlı, `[Tip...]` sıfır ya da çok, `Tip...` bir ya da çok argümandır; ")
@@ -351,10 +351,10 @@ func Uret() ([]byte, error) {
 			}
 		}
 	}
-	// Boru hattı (x |> f, DIL_TANIMI 4.9): ilk konumlu parametresi borudaki değeri alan
+	// Boru hattı (x |> f, docs/dil/04_operatorler.md 4.9): ilk konumlu parametresi borudaki değeri alan
 	// fonksiyonlar. Metotlar boruyla değil '.' ile zincirlenir.
 	b.WriteString("## Boru hattıyla kullanılabilen fonksiyonlar\n\n")
-	b.WriteString("`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/DIL_TANIMI.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). ")
+	b.WriteString("`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/dil/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). ")
 	b.WriteString("Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):\n\n")
 	var boru []string
 	for _, k := range d.Kodlar() {

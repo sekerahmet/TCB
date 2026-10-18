@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §4 — Operatörler
+// docs/dil/04_operatorler.md §4 — Operatörler
 
 test "4.1 öncelik: çarpma toplamadan, ** tekli eksiden sıkı bağlanır" {
     eşit_mi(7, 1 + 2 * 3)

@@ -7,7 +7,23 @@
 // Proje kök klasöründen çalıştırın: tr ornekler/07_karakter_modeli.tr
 
 değişken ADIM = 300
-değişken metin_verisi = dosya_oku("KULLANIM_KILAVUZU.md") + dosya_oku("docs/DIL_TANIMI.md")
+// Eğitim metni: kullanım kılavuzunun ve dil tanımının bölümleri, sırasıyla.
+değişken BELGELER = [
+    "docs/kilavuz/01_baslangic.md", "docs/kilavuz/02_anahtar_kelimeler.md",
+    "docs/kilavuz/03_zincirleme_metotlar.md", "docs/kilavuz/04_yapay_zeka_ve_veri.md",
+    "docs/kilavuz/05_hata_ayiklayici.md", "docs/kilavuz/06_vscode_kisayollari.md",
+    "docs/kilavuz/07_testler.md", "docs/kilavuz/08_bicimlendirme.md",
+    "docs/dil/01_program.md", "docs/dil/02_sozcuk_yapisi.md", "docs/dil/03_tipler.md",
+    "docs/dil/04_operatorler.md", "docs/dil/05_deyimler.md", "docs/dil/06_fonksiyonlar.md",
+    "docs/dil/07_yapilar.md", "docs/dil/08_hata_yonetimi.md", "docs/dil/09_ertele.md",
+    "docs/dil/10_eszamanlilik.md", "docs/dil/11_moduller.md", "docs/dil/12_testler.md",
+    "docs/dil/13_yerlesikler.md", "docs/dil/14_sinirlamalar.md", "docs/dil/15_tensorler.md",
+    "docs/dil/16_veri_parcalayici.md", "docs/dil/17_kodlar.md"
+]
+değişken metin_verisi = ""
+döngü yol içinde BELGELER {
+    metin_verisi += dosya_oku(yol)
+}
 
 // --- Karakter sözlüğü ---
 değişken harfler = []

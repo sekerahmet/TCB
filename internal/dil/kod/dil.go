@@ -37,7 +37,7 @@ type Girdi struct {
 	// edilmemiş birkaç adlı argüman için). ASCIIKabul kapalıysa etkisizdir.
 	ASCII bool
 	// Aciklama kodun ne yaptığını söyleyen bir-iki cümledir; Ornek tek satırlık bir TR
-	// kodudur (docs/KODLAR.md bunlardan üretilir).
+	// kodudur (docs/kodlar.md bunlardan üretilir).
 	Aciklama, Ornek string
 	// Tasindi, kod kaldırılıp işi başka bir koda (başka bir biçime) taşındıysa yeni
 	// koddur, değilse Yok (bkz. Tasindi).

@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §10 — Eşzamanlılık ve yorumlayıcı kilidi
+// docs/dil/10_eszamanlilik.md §10 — Eşzamanlılık ve yorumlayıcı kilidi
 
 test "10.1 eşzamanlı blok ve çağrı biçimi; bekle_hepsi hepsini bekler" {
     değişken sonuçlar = []

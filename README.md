@@ -65,7 +65,7 @@ döngü adım içinde 0..500 {
 yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)}")   // w = 2.0, b = -1.0
 ```
 
-Dilin tek sayısal dizi türü tensördür: matrisler 2 boyutlu tensördür (`tensör([[1, 2], [3, 4]])`), hesaplar `float32` ile yapılır. Tensörler `döngü satır içinde t` ile ilk ekseni boyunca gezilir ve `t[i] = d` ile yerinde değiştirilir. `@` matris çarpımıdır; `+ - * /` eleman bazlı ve yayınlamalıdır. `relu`, `gelu`, `softmax`, `katman_normu`, `gömme`, `çapraz_entropi`, `SGD`, `gradyan_kırp`, `tensör_kaydet` / `tensör_yükle` ve fazlası için: [Kullanım Kılavuzu §4.D](KULLANIM_KILAVUZU.md#c-tensörler-ve-otomatik-türev).
+Dilin tek sayısal dizi türü tensördür: matrisler 2 boyutlu tensördür (`tensör([[1, 2], [3, 4]])`), hesaplar `float32` ile yapılır. Tensörler `döngü satır içinde t` ile ilk ekseni boyunca gezilir ve `t[i] = d` ile yerinde değiştirilir. `@` matris çarpımıdır; `+ - * /` eleman bazlı ve yayınlamalıdır. `relu`, `gelu`, `softmax`, `katman_normu`, `gömme`, `çapraz_entropi`, `SGD`, `gradyan_kırp`, `tensör_kaydet` / `tensör_yükle` ve fazlası için: [Kullanım Kılavuzu §4.C](docs/kilavuz/04_yapay_zeka_ve_veri.md#c-tensörler-ve-otomatik-türev).
 
 ## Veri ve parçalayıcı
 
@@ -78,7 +78,7 @@ değişken ö = küme.örnekleyici(toplu: 8, bağlam: 256, tohum: 1)
 değişken girdi, hedef = ö.sonraki()                              // [8, 256] tensörler
 ```
 
-`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`ornekler/08_veri_ile_egitim.tr`](ornekler/08_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.E](KULLANIM_KILAVUZU.md#d-veri-ve-parçalayıcı).
+`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`ornekler/08_veri_ile_egitim.tr`](ornekler/08_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.D](docs/kilavuz/04_yapay_zeka_ve_veri.md#d-veri-ve-parçalayıcı).
 
 ## VS Code eklentisi ve hata ayıklama
 
@@ -106,10 +106,10 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 
 ## Belgeler ve ölçümler
 
-- [`KULLANIM_KILAVUZU.md`](KULLANIM_KILAVUZU.md) — komutlar, yerleşikler, tensörler ve yapay zekâ, veri ve parçalayıcı, hata ayıklayıcı.
-- [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) — dilin kuralları; her kuralın `testler/` altında bir testi vardır (`tr test testler`).
-- [`docs/KODLAR.md`](docs/KODLAR.md) — her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği (kod listesinden üretilir).
-- [`docs/YOL_HARITASI.md`](docs/YOL_HARITASI.md) — yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar.
+- [`docs/kilavuz/`](docs/kilavuz/README.md) — komutlar, yerleşikler, tensörler ve yapay zekâ, veri ve parçalayıcı, hata ayıklayıcı.
+- [`docs/dil/`](docs/dil/README.md) — dilin kuralları; her kuralın `testler/` altında bir testi vardır (`tr test testler`).
+- [`docs/kodlar.md`](docs/kodlar.md) — her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği (kod listesinden üretilir).
+- [`docs/yol_haritasi.md`](docs/yol_haritasi.md) — yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar.
 - [`bakim/kiyas/`](bakim/kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
 
 ## Depo yapısı
@@ -117,7 +117,7 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 | Klasör | İçerik |
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
-| `internal/dil/kod` | Kodlar: dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) sabit kodlara bağlı; adlar ve açıklamalar `tr.json`, dilden bağımsız tanımlar `tanim.json` ([`docs/KODLAR.md`](docs/KODLAR.md)) |
+| `internal/dil/kod` | Kodlar: dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) sabit kodlara bağlı; adlar ve açıklamalar `tr.json`, dilden bağımsız tanımlar `tanim.json` ([`docs/kodlar.md`](docs/kodlar.md)) |
 | `internal/dil/sozcuk` | Kaynak metni sözcüklere ayırır |
 | `internal/dil/ayristir` | Sözcüklerden sözdizimi ağacı kurar |
 | `internal/dil/agac` | Sözdizimi ağacı düğümleri |
@@ -132,7 +132,7 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 | `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
 | `internal/arac/bicim` | `tr biçimle` biçimlendiricisi |
 | `testler/` | Dil tanımının kural testleri |
-| `bakim/uret/` | Geliştirme araçları: kod listesinden `docs/KODLAR.md`'yi üreten `kod_belgesi`, Go'daki adlı kod sabitlerini üreten `kod_sabitleri`, eklentinin renklendirme listelerini üreten `eklenti_listeleri` |
+| `bakim/uret/` | Geliştirme araçları: kod listesinden `docs/kodlar.md`'yi üreten `kod_belgesi`, Go'daki adlı kod sabitlerini üreten `kod_sabitleri`, eklentinin renklendirme listelerini üreten `eklenti_listeleri` |
 | `duzenleyici/vscode/` | VS Code eklentisi |
 
 ## Lisans

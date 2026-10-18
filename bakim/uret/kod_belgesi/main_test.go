@@ -9,7 +9,7 @@ import (
 	"tr_dili/internal/depo"
 )
 
-// docs/KODLAR.md kod listesinden üretilenle aynı olmalı: bir kod, açıklama ya da tanım
+// docs/kodlar.md kod listesinden üretilenle aynı olmalı: bir kod, açıklama ya da tanım
 // değiştiğinde `go run ./bakim/uret/kod_belgesi` çalıştırılmadıysa bu test düşer.
 func TestBelgeGuncel(t *testing.T) {
 	yeni, err := Uret()

@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §8 — Hata yönetimi, §9 — ertele
+// docs/dil/08_hata_yonetimi.md §8 — Hata yönetimi, §9 — ertele
 
 test "8.1 dene / yakala; hata değişkeninin varsayılan adı hata" {
     değişken yakalanan = ""

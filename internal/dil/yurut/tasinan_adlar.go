@@ -13,7 +13,7 @@ import (
 // metottan fonksiyona; tanim.json'da "taşındı") eski adları kabul edilmez; yazılınca hata
 // yeni biçimi gösterir: uzunluk(x) → x.uzunluk, liste.toplam() → toplam(liste). Kural:
 // bir değeri dönüştüren ya da ona soru soran iş metottur, matematik ve tensör işi
-// fonksiyondur (bkz. docs/DIL_TANIMI.md 13.6). Bu işlevler yalnızca hata yolunda çalışır.
+// fonksiyondur (bkz. docs/dil/13_yerlesikler.md 13.6). Bu işlevler yalnızca hata yolunda çalışır.
 
 // alici bir tipin hata mesajında alıcı olarak yazılan adıdır: Liste → liste.
 func alici(tip kod.Kod) string {

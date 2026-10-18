@@ -2,19 +2,21 @@ package testkosucu
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
 	"tr_dili/internal/depo"
 )
 
-// Faz 3 kapısı: "her kural bir testte". docs/DIL_TANIMI.md'de numarası geçen her kuralın
-// (**4.2** gibi) testler/ klasöründe adı o numarayla başlayan en az bir testi olmalı; tersine,
-// her test numarası tanımda bir kurala karşılık gelmeli. Ardından tüm testler geçmelidir.
+// Faz 3 kapısı: "her kural bir testte". Dil tanımında (docs/dil/NN_*.md) numarası geçen her
+// kuralın (**4.2** gibi) testler/ klasöründe adı o numarayla başlayan en az bir testi olmalı;
+// tersine, her test numarası tanımda bir kurala karşılık gelmeli. Ardından tüm testler geçmelidir.
 
 // Kural numaraları harfli olabilir (**2.9a**, **6.3a**); testin numarası da harfiyle
 // birlikte okunur ve tanımdaki bir kurala tam olarak karşılık gelmelidir (test "6.3a ...",
@@ -23,16 +25,60 @@ import (
 var (
 	kuralRe = regexp.MustCompile(`\*\*(\d+\.\d+[a-z]?)\*\*`)
 	testRe  = regexp.MustCompile(`(?m)^test "(\d+\.\d+[a-z]?)\s`)
+	// Kuralın tanımı satır başında yazılır (**4.2** ...); metnin içindeki **13.1** gibi
+	// geçişler başka bir bölümdeki kurala başvurudur.
+	kuralTanimiRe = regexp.MustCompile(`(?m)^\*\*(\d+)\.\d+[a-z]?\*\*`)
+	bolumDosyaRe  = regexp.MustCompile(`^(\d\d)_[a-z0-9_]+\.md$`)
 )
 
-func TestHerKuralBirTestte(t *testing.T) {
-	tanim, err := os.ReadFile(depo.Yol("docs/DIL_TANIMI.md"))
+// dilTanimi docs/dil/ altındaki bölüm dosyalarını (NN_ad.md) sırayla okur.
+func dilTanimi(t *testing.T) map[string]string {
+	t.Helper()
+	dosyalar, err := filepath.Glob(depo.Yol("docs/dil/*.md"))
 	if err != nil {
-		t.Fatalf("dil tanımı okunamadı: %v", err)
+		t.Fatal(err)
 	}
+	bolumler := map[string]string{}
+	for _, d := range dosyalar {
+		if filepath.Base(d) == "README.md" {
+			continue
+		}
+		if !bolumDosyaRe.MatchString(filepath.Base(d)) {
+			t.Errorf("docs/dil/%s: bölüm dosyalarının adı NN_ad.md biçiminde olmalı", filepath.Base(d))
+			continue
+		}
+		veri, err := os.ReadFile(d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		bolumler[filepath.Base(d)] = string(veri)
+	}
+	if len(bolumler) == 0 {
+		t.Fatal("docs/dil/ altında bölüm dosyası bulunamadı")
+	}
+	return bolumler
+}
+
+// Her kural kendi bölümünün dosyasında tanımlanır: **4.2**, docs/dil/04_*.md'dedir. Böylece
+// kural numarası dosyayı da söyler.
+func TestKuralKendiBolumunde(t *testing.T) {
+	for ad, metin := range dilTanimi(t) {
+		no := bolumDosyaRe.FindStringSubmatch(ad)[1]
+		for _, m := range kuralTanimiRe.FindAllStringSubmatch(metin, -1) {
+			n, _ := strconv.Atoi(m[1])
+			if fmt.Sprintf("%02d", n) != no {
+				t.Errorf("docs/dil/%s: §%d kuralı tanımlanıyor; kural docs/dil/%02d_*.md dosyasına taşınmalı", ad, n, n)
+			}
+		}
+	}
+}
+
+func TestHerKuralBirTestte(t *testing.T) {
 	kurallar := map[string]bool{}
-	for _, m := range kuralRe.FindAllStringSubmatch(string(tanim), -1) {
-		kurallar[m[1]] = true
+	for _, metin := range dilTanimi(t) {
+		for _, m := range kuralRe.FindAllStringSubmatch(metin, -1) {
+			kurallar[m[1]] = true
+		}
 	}
 	if len(kurallar) < 50 {
 		t.Fatalf("tanımda yalnızca %d kural bulundu; biçim değişmiş olabilir", len(kurallar))

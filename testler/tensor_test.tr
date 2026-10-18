@@ -1,4 +1,4 @@
-// DIL_TANIMI.md §15 — Tensörler ve otomatik türev
+// docs/dil/15_tensorler.md §15 — Tensörler ve otomatik türev
 
 // hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
 fonksiyon hata_metni(f) {
