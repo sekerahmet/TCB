@@ -3,6 +3,7 @@ package kod
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -43,6 +44,47 @@ func TestTasinanKodlar(t *testing.T) {
 	_, err := Yukle("dene", []byte(`{"G100": {"ad": "yazdır"}, "G200": {"ad": "yazdır"}, "Y001": {"ad": "uzunluk"}}`))
 	if err == nil || !strings.Contains(err.Error(), "taşınmış G200'in adı \"yazdır\"") {
 		t.Errorf("çakışma yakalanmalı: %v", err)
+	}
+}
+
+// Ölü (kaldırılmış ya da taşınmış) kodlar yalnızca kaynak dil dosyasında (TR) zorunludur;
+// başka bir dil dosyası onları yazmayabilir. Canlı bir kodun eksikliği her dilde hatadır.
+func TestOluKodlarTRDisindaIstegeBagli(t *testing.T) {
+	var ham map[string]json.RawMessage
+	if err := json.Unmarshal(TRVerisi(), &ham); err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range Olular() {
+		delete(ham, k.String())
+	}
+	kur := func(kodu string, m map[string]json.RawMessage) []error {
+		veri, err := json.Marshal(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d, err := Yukle(kodu, veri)
+		if err != nil {
+			t.Fatalf("%s yüklenmedi: %v", kodu, err)
+		}
+		return TanimDenetle(d)
+	}
+	if hatalar := kur("en", ham); len(hatalar) != 0 {
+		t.Errorf("ölü kodları olmayan başka bir dil dosyası geçmeli: %v", hatalar)
+	}
+	if hatalar := kur(KaynakDil, ham); len(hatalar) == 0 {
+		t.Error("kaynak dil dosyasında ölü kodlar zorunlu olmalı")
+	}
+	// Ölü bir kodun adı yeniden kullanılırsa ölü kodun adı kodun kendisi yazılır: kod biçimli
+	// adlar ayrılmış olduğundan çakışmaz, ipucu düşer.
+	if _, err := Yukle("dene", []byte(`{"G100": {"ad": "boy"}, "G200": {"ad": "G200"}, "Y001": {"ad": "uzunluk"}}`)); err != nil {
+		t.Errorf("adı yeniden kullanılan ölü kod yüklenmeli: %v", err)
+	}
+	if _, err := Yukle("dene", []byte(`{"G100": {"ad": "G100"}}`)); err == nil || !strings.Contains(err.Error(), "kod biçiminde") {
+		t.Errorf("canlı bir kodun adı kod biçiminde olamaz: %v", err)
+	}
+	delete(ham, "G100")
+	if hatalar := kur("en", ham); len(hatalar) == 0 || !strings.Contains(fmt.Sprint(hatalar), "G100 tanim.json'da var, dil dosyasında yok") {
+		t.Errorf("canlı kodun eksikliği her dilde hata olmalı: %v", hatalar)
 	}
 }
 

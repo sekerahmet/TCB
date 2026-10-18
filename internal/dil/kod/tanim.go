@@ -379,8 +379,12 @@ func UyeYazimi(y Kod) string {
 	return s + "()"
 }
 
+// KaynakDil dilin kaynak dil dosyasının kodudur: kaldırılmış ve taşınmış (ölü) kodların
+// adlarını ipucu için o tutar; başka dil dosyalarında ölü kodlar isteğe bağlıdır.
+const KaynakDil = "tr"
+
 // TanimDenetle tanımların dil dosyasıyla tutarlılığını denetler: her kodun (taşınmışlar
-// dahil) tanımı var, tanımdaki her kod dil dosyasında var, tür kodun ailesine uygun, tip
+// dahil; TR dışındaki dillerde ölü kodlar isteğe bağlıdır) tanımı var, tanımdaki her kod dil dosyasında var, tür kodun ailesine uygun, tip
 // ifadeleri tip kodlarından (A2xx) oluşur, adlı argüman kodları x9xx'tir, ilişkili ve taşındı kodları vardır, taşınan kod
 // canlı ve başka bir ad alanındadır, dil dosyasındaki taşınma bilgisi tanımla aynıdır.
 func TanimDenetle(d *Dil) []error {
@@ -428,6 +432,11 @@ func TanimDenetle(d *Dil) []error {
 		t, _ := Tanimi(k)
 		g, ok := d.girdiler[k]
 		if !ok {
+			// Ölü kodların adları yalnızca ipucu içindir: kaynak dil (TR) onları tutar, öbür dil
+			// dosyalarında isteğe bağlıdırlar (o dilde hiç var olmamış adların karşılığı gerekmez).
+			if d.Kodu != KaynakDil && (t.Kaldirildi || t.Tasindi != Yok) {
+				continue
+			}
 			hata("%s tanim.json'da var, dil dosyasında yok", k)
 			continue
 		}
