@@ -41,12 +41,18 @@ jobs:
       run:
         shell: bash
     steps:
+      # Eylemler tam commit özetiyle sabitlenir (etiket sonradan başka bir commit'e
+      # taşınabilir); yorumdaki sürüm adı yalnızca okuyan içindir.
       - id: kaynak
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # Depo kimlik bilgisi sonraki adımlara (ve onların çalıştırdığı koda) bırakılmaz.
+          persist-credentials: false
 
       - id: go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
+          # go.mod'daki 'go' ve 'toolchain' satırları yerelde ve burada aynı sürümü seçer.
           go-version-file: go.mod
 
       - name: Biçim (gofmt)
