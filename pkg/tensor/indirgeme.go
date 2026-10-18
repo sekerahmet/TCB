@@ -1,5 +1,7 @@
 package tensor
 
+import "fmt"
+
 // İndirgemeler ve softmax (cihazdan bağımsız katman).
 
 // reducedShape indirgenmiş çıktı şeklini verir.
@@ -30,7 +32,14 @@ func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
 	op := "sum"
 	if mean {
 		op = "mean"
-		if n := t.shape[axis]; n > 0 {
+		n := t.shape[axis]
+		if n == 0 {
+			// Boş kümenin ortalaması tanımsızdır; sessizce 0 dönmesin (çıktı da boşsa
+			// hesaplanacak eleman yoktur).
+			if numelOf(reducedShape(t.shape, axis, false)) > 0 {
+				panic(fmt.Sprintf("tensor: %v şeklinde %d. eksen boş; boş kümenin ortalaması tanımsız", t.shape, axis))
+			}
+		} else {
 			scale = 1 / float32(n)
 		}
 	}
@@ -53,9 +62,11 @@ func (t *Tensor) allScaled(mean bool) *Tensor {
 	op := "sum_all"
 	if mean {
 		op = "mean_all"
-		if n := t.Numel(); n > 0 {
-			scale = 1 / float32(n)
+		n := t.Numel()
+		if n == 0 {
+			panic(fmt.Sprintf("tensor: boş tensörün ortalaması tanımsız (şekil %v)", t.shape))
 		}
+		scale = 1 / float32(n)
 	}
 	out := zerosOf(t.be, nil, t.tur)
 	t.be.SumAll(out.storage, t.view(), scale)

@@ -168,6 +168,15 @@ test "15.4b tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı 0
     eşit_mi([0.0, 0.0, 0.0], x.gradyan.değer[0])
 }
 
+test "15.5a tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entropi" {
+    doğrula(hata_metni(() => ortalama(tensör([]))).içerir("boş tensörün ortalaması tanımsız"))
+    doğrula(hata_metni(() => ortalama(sıfırlar([2, 0]), eksen: 1)).içerir("ortalaması tanımsız"))
+    eşit_mi(0.0, toplam(tensör([])).değer)
+    değişken z = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    doğrula(hata_metni(() => çapraz_entropi(z, [-1, -1])).içerir("bütün hedefler yok sayıldı"))
+    eşit_mi(0.3133, yuvarla(çapraz_entropi(z, [-1, 1]).değer, 4))
+}
+
 test "15.5 sinir ağı fonksiyonları" {
     değişken tablo = tensör([[1, 1], [2, 2], [3, 3]])
     eşit_mi([[3.0, 3.0], [1.0, 1.0]], gömme(tablo, [2, 0]).değer)

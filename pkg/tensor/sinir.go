@@ -45,10 +45,18 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	if len(targets) != R {
 		panic(fmt.Sprintf("tensor: CrossEntropy: %d satır için %d hedef verildi", R, len(targets)))
 	}
+	gecerli := 0
 	for _, t := range targets {
 		if t >= C {
 			panic(fmt.Sprintf("tensor: CrossEntropy hedefi %d, [0, %d) dışında", t, C))
 		}
+		if t >= 0 {
+			gecerli++
+		}
+	}
+	if gecerli == 0 {
+		// Ortalama boş küme üzerinden alınırdı: tanımsız; sessizce 0 dönmesin.
+		panic(fmt.Sprintf("tensor: CrossEntropy: geçerli hedef yok (%d satırın hepsi yok sayıldı); ortalama kayıp tanımsız", R))
 	}
 	tg := append([]int(nil), targets...)
 	be := logits.be
@@ -78,6 +86,7 @@ func optGrad(t *Tensor) Storage {
 // LayerNorm son eksen boyunca katman normalleştirmesi: (x-μ)/√(σ²+eps)·γ + β.
 // gamma ve beta (D) şeklinde olmalı; nil verilebilirler.
 func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
+	normBoyutDenetle("LayerNorm", x)
 	D := x.shape[len(x.shape)-1]
 	checkNormParam("LayerNorm", gamma, D)
 	checkNormParam("LayerNorm", beta, D)
@@ -100,6 +109,7 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 // RMSNorm son eksen boyunca karekök-ortalama-kare normalleştirmesi:
 // x / √(ort(x²)+eps) · γ. gamma (D) şeklinde olmalı; nil verilebilir.
 func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
+	normBoyutDenetle("RMSNorm", x)
 	D := x.shape[len(x.shape)-1]
 	checkNormParam("RMSNorm", gamma, D)
 	be := sameDevice("RMSNorm", x, gamma)
@@ -113,6 +123,13 @@ func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
 	return track(out, "rms_norm", parents, func() {
 		be.RMSNormGrad(optGrad(x), optGrad(gamma), out.grad, x.view(), gv, rinv, D)
 	}, x, gamma)
+}
+
+// normBoyutDenetle normalleştirilecek girdinin en az 1 boyutlu olduğunu denetler.
+func normBoyutDenetle(op string, x *Tensor) {
+	if len(x.shape) == 0 {
+		panic(fmt.Sprintf("tensor: %s en az 1 boyutlu girdi ister (son eksen normalleştirilir), 0 boyutlu tensör verildi", op))
+	}
 }
 
 func checkNormParam(op string, p *Tensor, D int) {

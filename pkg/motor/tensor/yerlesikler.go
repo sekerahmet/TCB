@@ -543,6 +543,22 @@ func indirgeme(v *vm.VM, kod sozluk.Kod, fn func(t *ct.Tensor, eksen int, tum, k
 			} else if maksMin && t.Numel() == 0 {
 				return nil, fmt.Errorf("%s: boş tensörün (%s) en büyük/küçük elemanı yoktur", ad, sekilMetni(sh))
 			}
+			if kod == sozluk.G+410 { // ortalama: boş kümenin ortalaması tanımsızdır
+				if !verildi && t.Numel() == 0 {
+					return nil, fmt.Errorf("%s: boş tensörün ortalaması tanımsız (şekil %s)", ad, sekilMetni(sh))
+				}
+				if verildi && sh[e] == 0 {
+					cikis := 1
+					for i, d := range sh {
+						if i != e {
+							cikis *= d
+						}
+					}
+					if cikis > 0 {
+						return nil, fmt.Errorf("%s: %s şeklinde %d. eksen boş; boş kümenin ortalaması tanımsız", ad, sekilMetni(sh), e)
+					}
+				}
+			}
 			r, err := guvenli(func() *ct.Tensor {
 				r := fn(t, e, !verildi, koru)
 				if koru && !verildi {
@@ -801,10 +817,17 @@ func caprazEntropi(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Val
 	if len(hedef) != satir {
 		return nil, fmt.Errorf("çapraz_entropi: %s şeklindeki çıktı için %d hedef bekleniyor, %d verildi", sekilMetni(sh), satir, len(hedef))
 	}
+	gecerli := 0
 	for _, h := range hedef {
 		if h >= C {
 			return nil, fmt.Errorf("çapraz_entropi: hedef sınıf %d, %d sınıflı çıktının dışında; 0 ile %d arasında olmalı (negatif hedefler yok sayılır)", h, C, C-1)
 		}
+		if h >= 0 {
+			gecerli++
+		}
+	}
+	if gecerli == 0 {
+		return nil, fmt.Errorf("çapraz_entropi: bütün hedefler yok sayıldı (%d satırın hepsi negatif ya da hiç satır yok); ortalama kayıp tanımsız. Yalnızca dolgudan oluşan partiyi atlayın", len(hedef))
 	}
 	r, err := guvenli(func() *ct.Tensor { return ct.CrossEntropy(cikti, hedef) })
 	if err != nil {
