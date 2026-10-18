@@ -84,6 +84,41 @@ func TestTanhf32(t *testing.T) {
 	}
 }
 
+// expVek (GOAMD64=v3'te AVX2 çekirdeği) skalerle aynı doğrulukta olmalı; normal
+// altı sonuçlar, taşma, -sonsuz ve NaN dahil.
+func TestExpVek(t *testing.T) {
+	rng := rand.New(rand.NewSource(43))
+	var xs []float32
+	for i := 0; i < 1<<20; i++ {
+		xs = append(xs, float32(rng.Float64()*220-115))
+	}
+	xs = append(xs, 0, -0.0, 88.7, 88.72283, 88.7229, 89, 1000, -87.33654, -87.34, -95, -100, -103.9, -103.97,
+		-104, -150, float32(math.Inf(1)), float32(math.Inf(-1)), float32(math.NaN()), 1e-8, -1e-8)
+	for k := 0; k < 9; k++ { // farklı kuyruk uzunlukları
+		xs = append(xs, float32(k)-4)
+		ys := make([]float32, len(xs))
+		expVek(ys, xs)
+		for i, x := range xs {
+			want := float32(math.Exp(float64(x)))
+			if math.IsNaN(float64(want)) {
+				if !math.IsNaN(float64(ys[i])) {
+					t.Fatalf("expVek(%v) = %v, NaN beklenen", x, ys[i])
+				}
+				continue
+			}
+			if d := ulpFark(ys[i], want); d > 2 {
+				t.Fatalf("%s expVek(%v) = %v, beklenen %v (%d ulp)", mikroCekirdekAdi, x, ys[i], want, d)
+			}
+		}
+	}
+	// Yerinde kullanım.
+	z := []float32{0, 1, 2, 3, 4, 5, 6, 7, 8}
+	expVek(z, z)
+	if ulpFark(z[8], float32(math.Exp(8))) > 2 || z[0] != 1 {
+		t.Fatalf("yerinde expVek %v", z)
+	}
+}
+
 // Softmax ve çapraz entropi uç girdilerle sonlu ve doğru kalmalı.
 func TestSoftmaxUcDegerler(t *testing.T) {
 	x := New([]float32{1000, 0, -1000, float32(math.Inf(-1)), 88, 89}, 1, 6)

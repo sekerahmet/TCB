@@ -603,37 +603,18 @@ func satirIndirge(mode GradMode, dg, gd, od []float32, R, m int) {
 // ----------------------------------------------------------------------------
 // Tekli işlemler
 // ----------------------------------------------------------------------------
-
-// GELU sabitleri (tanh yaklaşımı).
+// GELU sabitleri (tanh yaklaşımı). GELU, 0.5·(1 + tanh(u)) = σ(2u) özdeşliğiyle
+// tek bir üstelle hesaplanır: ileri x / (1 + e^{-2u}), geri s = σ(2u) ile
+// s + 2·x·s·(1-s)·u' (0.5(1+tanh) = s, 0.5(1-tanh²) = 2s(1-s)).
 const (
 	geluC = 0.7978845608028654 // sqrt(2/pi)
 	geluA = 0.044715
 )
 
-// sigmoid32 sayısal kararlı lojistik işlev.
-func sigmoid32(x float32) float32 {
-	if x >= 0 {
-		return 1 / (1 + expf32(-x))
-	}
-	e := expf32(x)
-	return e / (1 + e)
-}
+// vekBlok vektörel üstel için blok uzunluğu (yığında, L1'de kalır).
+const vekBlok = 256
 
-// gelu32 tanh yaklaşımlı GELU. 0.5·(1 + tanh(u)) = σ(2u) özdeşliğiyle tek bir
-// üstel ve bölmeyle hesaplanır: x / (1 + e^{-2u}) (uçlarda 0 ve x'e gider).
-func gelu32(x float32) float32 {
-	u := geluC * (x + geluA*x*x*x)
-	return x / (1 + expf32(-2*u))
-}
-
-// geluTurev32 GELU'nun x'e göre türevi: s = σ(2u) ile
-// s + 2·x·s·(1-s)·u'  (0.5(1+tanh) = s, 0.5(1-tanh²) = 2s(1-s)).
-func geluTurev32(x float32) float32 {
-	u := geluC * (x + geluA*x*x*x)
-	s := 1 / (1 + expf32(-2*u))
-	du := geluC * (1 + 3*geluA*x*x)
-	return s + 2*x*s*(1-s)*du
-}
+func abs32(x float32) float32 { return math.Float32frombits(math.Float32bits(x) &^ (1 << 31)) }
 
 // unaryMaliyet bir elemanın yaklaşık göreli maliyeti (işçi sayısı seçimi için).
 func unaryMaliyet(op UnOp) int {
@@ -652,9 +633,7 @@ func unaryDongu(op UnOp, p float32, y, x []float32) {
 	y = y[:len(x)]
 	switch op {
 	case OpExp:
-		for i, v := range x {
-			y[i] = exp32(v)
-		}
+		expVek(y, x)
 	case OpLog:
 		for i, v := range x {
 			y[i] = log32(v)
@@ -690,12 +669,39 @@ func unaryDongu(op UnOp, p float32, y, x []float32) {
 			}
 		}
 	case OpGelu:
-		for i, v := range x {
-			y[i] = gelu32(v)
+		// x / (1 + e^{-2u}); üsteller bloklar halinde vektörel.
+		var t [vekBlok]float32
+		for i0 := 0; i0 < len(x); i0 += vekBlok {
+			xs := x[i0:min(i0+vekBlok, len(x))]
+			tb := t[:len(xs)]
+			for i, v := range xs {
+				tb[i] = -2 * geluC * (v + geluA*v*v*v)
+			}
+			expVek(tb, tb)
+			ys := y[i0 : i0+len(xs)]
+			for i, v := range xs {
+				ys[i] = v / (1 + tb[i])
+			}
 		}
 	case OpSigmoid:
-		for i, v := range x {
-			y[i] = sigmoid32(v)
+		// e = e^{-|x|}; x ≥ 0 için 1/(1+e), aksi halde e/(1+e) (sayısal kararlı).
+		var t [vekBlok]float32
+		for i0 := 0; i0 < len(x); i0 += vekBlok {
+			xs := x[i0:min(i0+vekBlok, len(x))]
+			tb := t[:len(xs)]
+			for i, v := range xs {
+				tb[i] = -abs32(v)
+			}
+			expVek(tb, tb)
+			ys := y[i0 : i0+len(xs)]
+			for i, v := range xs {
+				e := tb[i]
+				if v >= 0 {
+					ys[i] = 1 / (1 + e)
+				} else {
+					ys[i] = e / (1 + e)
+				}
+			}
 		}
 	case OpAddScalar:
 		for i, v := range x {
@@ -765,8 +771,21 @@ func unaryGradDongu(op UnOp, p float32, gx, g, x, y []float32) {
 			}
 		}
 	case OpGelu:
-		for i, v := range g {
-			gx[i] += v * geluTurev32(x[i])
+		// s = σ(2u): s + 2·x·s·(1-s)·u'; üsteller bloklar halinde vektörel.
+		var t [vekBlok]float32
+		for i0 := 0; i0 < len(g); i0 += vekBlok {
+			xs := x[i0:min(i0+vekBlok, len(g))]
+			tb := t[:len(xs)]
+			for i, v := range xs {
+				tb[i] = -2 * geluC * (v + geluA*v*v*v)
+			}
+			expVek(tb, tb)
+			gs, gxs := g[i0:i0+len(xs)], gx[i0:i0+len(xs)]
+			for i, v := range xs {
+				s := 1 / (1 + tb[i])
+				du := geluC * (1 + 3*geluA*v*v)
+				gxs[i] += gs[i] * (s + 2*v*s*(1-s)*du)
+			}
 		}
 	case OpSigmoid:
 		for i, v := range g {

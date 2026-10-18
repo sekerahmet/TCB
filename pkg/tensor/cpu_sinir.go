@@ -43,6 +43,7 @@ func (cpuBackend) CrossEntropy(x View, targets []int, C int) (Storage, Storage) 
 	lse := make([]float32, R)
 	kayip := make([]float64, R)
 	parallelFor(R, C*8, func(lo, hi int) {
+		tmp := make([]float32, C)
 		for r := lo; r < hi; r++ {
 			t := targets[r]
 			if t < 0 {
@@ -57,9 +58,11 @@ func (cpuBackend) CrossEntropy(x View, targets []int, C int) (Storage, Storage) 
 			}
 			var s float64
 			m32 := float32(m)
-			for _, v := range row {
-				s += float64(expf32(v - m32))
+			for c, v := range row {
+				tmp[c] = v - m32
 			}
+			expVek(tmp, tmp)
+			s = toplam64(tmp)
 			l := m + math.Log(s)
 			lse[r] = float32(l)
 			kayip[r] = l - float64(row[t])
@@ -94,6 +97,7 @@ func (cpuBackend) CrossEntropyGrad(gx, g Storage, x View, lse Storage, targets [
 	pg, ld := cd(gx), cd(lse)
 	k := float64(cd(g)[0]) / float64(gecerli)
 	parallelFor(len(targets), C*4, func(lo, hi int) {
+		tmp := make([]float32, C)
 		for r := lo; r < hi; r++ {
 			t := targets[r]
 			if t < 0 {
@@ -104,7 +108,11 @@ func (cpuBackend) CrossEntropyGrad(gx, g Storage, x View, lse Storage, targets [
 			l := ld[r]
 			k32 := float32(k)
 			for c, v := range row {
-				dst[c] += k32 * expf32(v-l)
+				tmp[c] = v - l
+			}
+			expVek(tmp, tmp)
+			for c, e := range tmp {
+				dst[c] += k32 * e
 			}
 			dst[t] -= float32(k)
 		}

@@ -184,6 +184,15 @@ func (cpuBackend) Softmax(out Storage, x View, axis int, logKip bool) {
 	y := cd(out)
 	outer, dim, inner := eksenDuzeni(x.Shape, axis)
 	rows := outer * inner
+	if inner == 1 {
+		// Son eksen: satırlar bitişik; üstel vektörel hesaplanır.
+		parallelFor(rows, dim*4, func(lo, hi int) {
+			for r := lo; r < hi; r++ {
+				softmaxSatir(y[r*dim:(r+1)*dim], xd[r*dim:(r+1)*dim], logKip)
+			}
+		})
+		return
+	}
 	parallelFor(rows, dim*8, func(lo, hi int) {
 		for r := lo; r < hi; r++ {
 			o, i := r/inner, r%inner
@@ -219,6 +228,37 @@ func (cpuBackend) Softmax(out Storage, x View, axis int, logKip bool) {
 			}
 		}
 	})
+}
+
+// softmaxSatir bitişik bir satırın (log) softmax'ı; toplam float64'tedir.
+func softmaxSatir(y, x []float32, logKip bool) {
+	y = y[:len(x)]
+	m := float32(math.Inf(-1))
+	for _, v := range x {
+		if v > m {
+			m = v
+		}
+	}
+	if math.IsInf(float64(m), -1) {
+		m = 0 // tüm satır -sonsuz: NaN üretmemek için kaydırma yok
+	}
+	for i, v := range x {
+		y[i] = v - m
+	}
+	expVek(y, y)
+	s := toplam64(y)
+	if logKip {
+		// (x - m) - log Σ: büyük logitlerde hassasiyet kaybını önler.
+		ls := float32(math.Log(s))
+		for i, v := range x {
+			y[i] = (v - m) - ls
+		}
+		return
+	}
+	inv := float32(1 / s)
+	for i := range y {
+		y[i] *= inv
+	}
 }
 
 func (cpuBackend) SoftmaxGrad(gx, g, y Storage, shape []int, axis int, logKip bool) {
