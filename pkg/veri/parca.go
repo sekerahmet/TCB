@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 )
@@ -144,8 +145,7 @@ func (p *Parca) Oku(dst []int32, bas int64) error {
 	}
 	es := p.baslik.Tur.Boyut()
 	if p.veri != nil {
-		cozI32(dst, p.veri[bas*int64(es):(bas+int64(len(dst)))*int64(es)], p.baslik.Tur)
-		return nil
+		return p.esleOku(func() { cozI32(dst, p.veri[bas*int64(es):(bas+int64(len(dst)))*int64(es)], p.baslik.Tur) })
 	}
 	return p.readAtOku(len(dst), bas, func(i int, b []byte, k int) { cozI32(dst[i:i+k], b, p.baslik.Tur) })
 }
@@ -169,10 +169,33 @@ func (p *Parca) OkuU16(dst []uint16, bas int64) error {
 		return nil
 	}
 	if p.veri != nil {
-		cozU16(dst, p.veri[bas*2:(bas+int64(len(dst)))*2])
-		return nil
+		return p.esleOku(func() { cozU16(dst, p.veri[bas*2:(bas+int64(len(dst)))*2]) })
 	}
 	return p.readAtOku(len(dst), bas, func(i int, b []byte, k int) { cozU16(dst[i:i+k], b) })
+}
+
+// esleOku, eşlenmiş bellekten okuyan f'yi korumalı çalıştırır. Eşlenmiş
+// dosya dışarıdan kısaltılırsa okunan sayfa artık dosyada yoktur ve Unix'te
+// erişim SIGBUS ile sonuçlanır; normalde bu süreci kurtarılamaz biçimde
+// çökertir (okuma çoğunlukla önden yükleme gorutininde yapıldığından daha
+// da). debug.SetPanicOnFault ile bu hata bu gorutinde yakalanabilir bir
+// paniğe çevrilir ve açık bir hata olarak döner. Önbellek klasörü
+// süreçler arası kilitli olduğundan (bkz. Onbellek) bu yalnızca dışarıdan
+// (TR dışı bir programla) dosyaya dokunulursa olur.
+func (p *Parca) esleOku(f func()) (err error) {
+	eski := debug.SetPanicOnFault(true)
+	defer func() {
+		debug.SetPanicOnFault(eski)
+		if r := recover(); r != nil {
+			if _, ok := r.(interface{ Addr() uintptr }); ok {
+				err = fmt.Errorf("veri: %s: eşlenmiş dosya okunurken bellek hatası (dosya okunurken dışarıdan kısaltılmış ya da değiştirilmiş olabilir): %v", p.yol, r)
+				return
+			}
+			panic(r)
+		}
+	}()
+	f()
+	return nil
 }
 
 // readAtOku, n elemanı parçalar hâlinde ReadAt ile okur ve her parçayı cevir'e
