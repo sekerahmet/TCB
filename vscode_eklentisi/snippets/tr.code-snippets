@@ -1,6 +1,6 @@
 {
   "Fonksiyon Tanımla": {
-    "prefix": ["fonk", "fonksiyon", "işlev"],
+    "prefix": ["fonk", "fonksiyon"],
     "body": [
       "fonksiyon ${1:isim}(${2:parametre}) {",
       "\tsonuç ${3:${2:parametre}}",
@@ -60,7 +60,7 @@
     "description": "Tek satırda koşullu liste üreteci"
   },
   "Yapı / Sınıf Tanımla": {
-    "prefix": ["yapi", "yapı", "sinif", "sınıf"],
+    "prefix": ["yapi", "yapı"],
     "body": [
       "yapı ${1:İsim} {",
       "\t${2:alan}: ${3:Metin}",
@@ -70,7 +70,7 @@
       "\t}",
       "}"
     ],
-    "description": "Yeni bir yapı/sınıf ve metod tanımlar"
+    "description": "Yeni bir yapı ve metot tanımlar"
   },
   "Dene - Yakala (Hata Yönetimi)": {
     "prefix": ["dene"],

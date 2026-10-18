@@ -278,7 +278,7 @@ değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", a
 - `esle` $\rightarrow$ `eşle` durum eşleştirme bloğu oluşturur
 - `dongu` $\rightarrow$ `döngü i içinde 1..=10` bloğu oluşturur
 - `liste_uret` $\rightarrow$ Tek satırda liste üreteci oluşturur
-- `yapi` $\rightarrow$ `yapı` (sınıf) ve metod şablonu oluşturur
+- `yapi` $\rightarrow$ `yapı` ve metot şablonu oluşturur
 - `sinir` $\rightarrow$ 3 satırlık yapay sinir ağı eğitim şablonu oluşturur
 - `tensor` $\rightarrow$ Otomatik türev (`tensör` + `geri_yayılım`) şablonu oluşturur
 
