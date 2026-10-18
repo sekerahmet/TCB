@@ -21,6 +21,9 @@ type OnbellekSecenekleri struct {
 	// dizinde yalnızca kendi adlandırdığı dosyalara dokunur.
 	Dizin string
 	// Kota, önbelleğin kullanabileceği en çok bayt sayısıdır (zorunlu, > 0).
+	// Örnekleyiciyle kullanıldığında en az (aynı anda açık parça sayısı +
+	// ileri bakış) × en büyük parça boyutu olmalıdır; örnekleyici kurulurken
+	// denetlenir.
 	Kota int64
 }
 
@@ -28,7 +31,7 @@ type OnbellekSecenekleri struct {
 type OnbellekIstatistik struct {
 	Isabet         int64 // yerel kopyadan karşılanan Getir çağrıları
 	Iska           int64 // Getir sırasında eşzamanlı kopyalanan dosyalar
-	Atlanan        int64 // yer olmadığından kaynaktan okunan dosyalar
+	Atlanan        int64 // yer olmadığından reddedilen Getir çağrıları
 	Silinen        int64 // kota için silinen dosyalar
 	KopyalananBayt int64
 	Kullanim       int64 // şu anki toplam bayt (süren kopyalar dahil)
@@ -38,7 +41,9 @@ type OnbellekIstatistik struct {
 // Onbellek, yavaş bir kaynak dizindeki (ör. ağ sürücüsü) dosyaları yerel
 // bir dizine kopyalayan, disk kotası olan bir katmandır. Kota dolduğunda en
 // uzun süredir kullanılmayan ve o an açık olmayan dosyalar silinir. Hazirla
-// ile bildirilen sıradaki dosyalar arka plandaki bir gorutinde kopyalanır.
+// ile bildirilen sıradaki dosyalar arka planda kopyalanır. Yer açılamazsa
+// Getir açıklayıcı bir hata döner; yavaş kaynaktan sessizce doğrudan
+// okumaya geri dönülmez.
 //
 // Önbellek tek bir sıralı okuyucuya (eğitim örnekleyicisi) göre
 // tasarlanmıştır: Hazirla her çağrıda bekleyen listeyi değiştirir. Aynı
@@ -76,7 +81,10 @@ type obGirdi struct {
 }
 
 var (
-	errYerYok    = errors.New("veri: önbellekte yer yok")
+	// ErrOnbellekYetersiz, önbellek kotasında dosya için yer açılamadığını
+	// bildirir (kota küçük ya da açık dosyalar yer kaplıyor).
+	ErrOnbellekYetersiz = errors.New("veri: önbellek kotası yetersiz")
+
 	yonetilenAd  = regexp.MustCompile(`\.[0-9a-f]{16}\.onb(\.[^.]*)?$`)
 	geciciSoneki = ".gecici"
 )
@@ -132,6 +140,20 @@ func OnbellekAc(s OnbellekSecenekleri) (*Onbellek, error) {
 	return o, nil
 }
 
+// Kota, önbelleğin bayt kotasıdır.
+func (o *Onbellek) Kota() int64 { return o.kota }
+
+// pinliBayt, açık (iğneli) dosyaların toplam boyutudur; kilit tutulur.
+func (o *Onbellek) pinliBayt() int64 {
+	var t int64
+	for _, g := range o.kayit {
+		if g.pin > 0 {
+			t += g.boyut
+		}
+	}
+	return t
+}
+
 // yerelAd, kaynak yolu için önbellekteki dosya adını üretir. Ad, kaynağın
 // tam yolunun özetini içerir; farklı dizinlerdeki aynı adlı dosyalar
 // çakışmaz.
@@ -154,7 +176,8 @@ func ayniZaman(a, b time.Time) bool {
 
 // Getir, kaynağın yerel kopyasının yolunu döner; kopya yoksa kopyalar (ya
 // da arka planda süren kopyayı bekler). Dönen birak işlevi çağrılana kadar
-// dosya silinmez. Kota yetmiyorsa kopyalanmaz, kaynak yolu döner.
+// dosya silinmez. Kotada yer açılamıyorsa ErrOnbellekYetersiz'i saran
+// açıklayıcı bir hata döner (kaynaktan doğrudan okumaya geri dönülmez).
 func (o *Onbellek) Getir(ctx context.Context, kaynak string) (string, func(), error) {
 	return o.getir(ctx, kaynak, false)
 }
@@ -166,7 +189,6 @@ func (o *Onbellek) getir(ctx context.Context, kaynak string, onYukleme bool) (st
 	}
 	ad := yerelAd(kaynak)
 	yerel := filepath.Join(o.dizin, ad)
-	bos := func() {}
 	kopyaladik := false
 
 	o.mu.Lock()
@@ -214,17 +236,20 @@ func (o *Onbellek) getir(ctx context.Context, kaynak string, onYukleme bool) (st
 				}
 				o.ist.Atlanan++
 				o.mu.Unlock()
-				return kaynak, bos, nil
+				return "", nil, fmt.Errorf("veri: %s: kaynak değişmiş ama eski yerel kopya hâlâ kullanımda; yenilenemiyor", kaynak)
 			}
 		}
 		if st.Size() > o.kota || !o.yerAc(st.Size(), onYukleme) {
 			if onYukleme {
 				o.mu.Unlock()
-				return "", nil, errYerYok
+				return "", nil, ErrOnbellekYetersiz
 			}
 			o.ist.Atlanan++
+			hata := fmt.Errorf("%w: %s için %d bayt gerekli; kota %d bayt, kullanımda %d bayt (açık dosyalar %d bayt). "+
+				"Yavaş kaynaktan doğrudan okumamak için kopya alınmadı; kotayı büyütün",
+				ErrOnbellekYetersiz, filepath.Base(kaynak), st.Size(), o.kota, o.kullanim, o.pinliBayt())
 			o.mu.Unlock()
-			return kaynak, bos, nil
+			return "", nil, hata
 		}
 		g = &obGirdi{ad: ad, boyut: st.Size(), zaman: st.ModTime(), kopya: make(chan struct{})}
 		o.kayit[ad] = g
@@ -409,7 +434,7 @@ func (o *Onbellek) calis() {
 				break // uyarı kanalında yeni liste bekliyor
 			}
 			_, _, err := o.getir(o.ctx, k, true)
-			if errors.Is(err, errYerYok) {
+			if errors.Is(err, ErrOnbellekYetersiz) {
 				break
 			}
 			if err != nil && o.ctx.Err() == nil {

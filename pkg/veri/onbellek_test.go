@@ -2,6 +2,7 @@ package veri
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -72,25 +73,25 @@ func TestOnbellekKotaVeLRU(t *testing.T) {
 	}
 
 	// Açık (iğneli) dosyalar silinmez: a ve c açıkken b için yer yok →
-	// kaynaktan okunur.
+	// açık hata (kaynağa sessizce geri dönülmez).
 	_, ba = al(a)
 	_, bc = al(c)
-	yb, bb := al(b)
-	if yb != b {
-		t.Fatalf("yer yokken kaynak yolu bekleniyordu: %s", yb)
+	if y, _, err := o.Getir(ctx, b); !errors.Is(err, ErrOnbellekYetersiz) || y != "" ||
+		!strings.Contains(err.Error(), "kota") {
+		t.Fatalf("yer yokken ErrOnbellekYetersiz bekleniyordu: %q %v", y, err)
 	}
-	bb()
 	ba()
 	bc()
 	if o.Istatistik().Atlanan != 1 {
 		t.Fatal("atlanan sayılmadı")
 	}
-	// Kotadan büyük dosya hiç kopyalanmaz.
+	// Artık yer var: b alınabilmeli.
+	_, bb = al(b)
+	bb()
+	// Kotadan büyük dosya hiç kopyalanmaz ve hata verir.
 	buyuk, _ := dosyaBoyutlu(t, kaynak, "buyuk.npy", 4000, 4)
-	if y, birak := al(buyuk); y != buyuk {
-		t.Fatal("kotadan büyük dosya kopyalandı")
-	} else {
-		birak()
+	if _, _, err := o.Getir(ctx, buyuk); !errors.Is(err, ErrOnbellekYetersiz) {
+		t.Fatalf("kotadan büyük dosyada hata bekleniyordu: %v", err)
 	}
 	_ = o.Kapat()
 	if _, _, err := o.Getir(ctx, a); err != ErrKapali {
@@ -196,7 +197,8 @@ func TestOnbellekliOrnekleyiciAyniVeri(t *testing.T) {
 	_ = o.Kapat()
 
 	st, _ := os.Stat(k.Parcalar()[0].Yol)
-	ob, err := OnbellekAc(OnbellekSecenekleri{Dizin: t.TempDir(), Kota: 3 * st.Size()})
+	// Varsayılan ileri bakışla (1 + IleriBak) × en büyük parça gerekli.
+	ob, err := OnbellekAc(OnbellekSecenekleri{Dizin: t.TempDir(), Kota: 4 * st.Size()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,8 +220,61 @@ func TestOnbellekliOrnekleyiciAyniVeri(t *testing.T) {
 		t.Fatal("önbellekli örnekleyici farklı veri verdi")
 	}
 	ist := ob.Istatistik()
-	if ist.Kullanim > 3*st.Size() || ist.KopyalananBayt == 0 {
+	if ist.Kullanim > 4*st.Size() || ist.KopyalananBayt == 0 || ist.Atlanan != 0 {
 		t.Fatalf("önbellek kullanılmadı ya da kota aşıldı: %+v", ist)
 	}
 	gorutinBekle(t, taban)
+}
+
+func TestOnbellekKotaDenetimiVeSessizDonusYok(t *testing.T) {
+	parcaSizintiDenetle(t)
+	d := kodluKume(t, 3000, 2000, 2500)
+	st, _ := os.Stat(filepath.Join(d, parcaAdi(0))) // en büyük parça
+	ob, err := OnbellekAc(OnbellekSecenekleri{Dizin: t.TempDir(), Kota: 2 * st.Size()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ob.Kapat()
+	k, _ := KumeAc(d, KumeSecenekleri{Onbellek: ob})
+	// Varsayılan ileri bakış (3) için 4 × en büyük parça gerekir → kurulmaz.
+	if _, err := k.Ornekleyici(OrnekleyiciSecenekleri{B: 2, T: 8}); !errors.Is(err, ErrOnbellekYetersiz) {
+		t.Fatalf("yetersiz kota için hata bekleniyordu: %v", err)
+	}
+	// İleri bakış 1 ile 2 parça yeter.
+	o, err := k.Ornekleyici(OrnekleyiciSecenekleri{B: 2, T: 8, IleriBak: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ti TopluIs
+	if err := o.Sonraki(&ti); err != nil {
+		t.Fatal(err)
+	}
+	_ = o.Kapat()
+	// Kotayı iğneli dosyalarla doldurunca parça açma kaynağa dönmez, hata verir.
+	p0, err := k.ParcaAc(context.Background(), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1, err := k.ParcaAc(context.Background(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !yereldeMi(ob, p0.Yol()) || !yereldeMi(ob, p1.Yol()) {
+		t.Fatal("parçalar yerel kopyadan açılmadı")
+	}
+	if p, err := k.ParcaAc(context.Background(), 2); !errors.Is(err, ErrOnbellekYetersiz) {
+		if p != nil {
+			_ = p.Kapat()
+		}
+		t.Fatalf("yer yokken parça açma hata vermeli: %v", err)
+	}
+	_ = p0.Kapat()
+	_ = p1.Kapat()
+	// Sıralı okuyucu için tek parça yeter; daha küçük kota reddedilir.
+	ob2, _ := OnbellekAc(OnbellekSecenekleri{Dizin: t.TempDir(), Kota: st.Size() - 1})
+	defer ob2.Kapat()
+	k2, _ := KumeAc(d, KumeSecenekleri{Onbellek: ob2})
+	if _, err := k2.Sirali(SiraliSecenekleri{B: 1, T: 8}); !errors.Is(err, ErrOnbellekYetersiz) {
+		t.Fatalf("sıralı okuyucu yetersiz kotayı kabul etti: %v", err)
+	}
 }

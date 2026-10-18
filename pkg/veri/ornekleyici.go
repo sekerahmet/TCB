@@ -22,8 +22,10 @@ type OrnekleyiciSecenekleri struct {
 	Tohum uint64 // aynı tohum ve aynı küme → aynı toplu işler
 	// Baslangic verilirse örnekleme bu konumdan sürer.
 	Baslangic *Durum
-	// IleriBak, önbellek etkinse kaç parçanın (şimdiki dahil) arka planda
-	// hazırlanacağıdır. 0 → varsayılan 3, negatif → ipucu verilmez.
+	// IleriBak, önbellek etkinse şimdikilerden sonra kaç parçanın arka
+	// planda hazırlanacağıdır. 0 → varsayılan 3, negatif → hiç (yalnızca
+	// şimdiki parça). Önbellek kotası en az (1 + IleriBak) × en büyük
+	// parça boyutu olmalıdır; değilse örnekleyici kurulmaz.
 	IleriBak int
 }
 
@@ -76,6 +78,9 @@ func (k *Kume) Ornekleyici(s OrnekleyiciSecenekleri) (*Ornekleyici, error) {
 	}
 	if !uygun {
 		return nil, fmt.Errorf("veri: hiçbir parça T+1=%d tokendan uzun değil", satir)
+	}
+	if err := k.onbellekKotaDenetle(1+max(s.IleriBak, 0), satir); err != nil {
+		return nil, err
 	}
 	o := &Ornekleyici{k: k, s: s, satir: satir, sonDonem: -1}
 	if b := s.Baslangic; b != nil {
@@ -159,13 +164,13 @@ func (o *Ornekleyici) yukle(ctx context.Context) error {
 
 // ipucuVer, önbelleğe şimdiki ve sonraki parçaları bildirir.
 func (o *Ornekleyici) ipucuVer() {
-	if o.k.sec.Onbellek == nil || o.s.IleriBak < 0 {
+	if o.k.sec.Onbellek == nil {
 		return
 	}
 	var siralar []int
 	donem, sira := o.donem, o.sira
 	sirala := o.sirala
-	for adim := 0; len(siralar) < o.s.IleriBak && adim < 2*len(o.k.parcalar); adim++ {
+	for adim := 0; len(siralar) < 1+max(o.s.IleriBak, 0) && adim < 2*len(o.k.parcalar); adim++ {
 		if sira >= len(sirala) {
 			donem++
 			sira = 0
@@ -295,6 +300,9 @@ func (k *Kume) Sirali(s SiraliSecenekleri) (*SiraliOkuyucu, error) {
 	}
 	if s.Adim < 0 {
 		return nil, fmt.Errorf("veri: adım negatif olamaz")
+	}
+	if err := k.onbellekKotaDenetle(1, int64(s.T)+1); err != nil {
+		return nil, err
 	}
 	return &SiraliOkuyucu{k: k, s: s, satir: int64(s.T) + 1}, nil
 }

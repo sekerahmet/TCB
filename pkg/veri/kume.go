@@ -57,6 +57,7 @@ type ParcaBilgisi struct {
 	Ad    string
 	Yol   string
 	Token int64
+	Bayt  int64 // dosya boyutu (dizin listesinden)
 }
 
 // KumeSecenekleri, KumeAc'ın davranışını belirler.
@@ -67,8 +68,12 @@ type KumeSecenekleri struct {
 	MetaYok bool
 	// Parca, parçaların açılış seçenekleridir.
 	Parca ParcaSecenekleri
-	// Onbellek verilirse parçalar açılmadan önce yerel önbelleğe alınır.
-	// Varsayılan (nil): önbellek kapalı, parçalar kaynaktan okunur.
+	// Onbellek verilirse parçalar açılmadan önce yerel önbelleğe alınır;
+	// yerel kopya alınamazsa parça açma hata verir (kaynağa geri dönülmez).
+	// Varsayılan (nil): önbellek kapalı, parçalar doğrudan kaynaktan
+	// okunur. UYARI: kaynak yavaşsa (ağ ya da akışlı bulut sürücüsü)
+	// rastgele pencere okuması eğitimi kat kat yavaşlatır; böyle
+	// kaynaklarda önbellek kullanın.
 	Onbellek *Onbellek
 }
 
@@ -95,14 +100,35 @@ func KumeAc(dizin string, s KumeSecenekleri) (*Kume, error) {
 		return nil, fmt.Errorf("veri: küme açılamadı: %w", err)
 	}
 	var yollar []string
+	baytlar := map[string]int64{}
 	metaDizinleri := []string{dizin, filepath.Dir(dizin)}
 	if st.IsDir() {
-		yollar, err = filepath.Glob(filepath.Join(dizin, s.Desen))
-		if err != nil {
+		if _, err := filepath.Match(s.Desen, ""); err != nil {
 			return nil, fmt.Errorf("veri: geçersiz desen %q: %w", s.Desen, err)
+		}
+		// Dizin listesi boyutları da verir; parça başına ayrı sorgu gerekmez.
+		girdiler, err := os.ReadDir(dizin)
+		if err != nil {
+			return nil, fmt.Errorf("veri: küme dizini okunamadı: %w", err)
+		}
+		for _, g := range girdiler {
+			if g.IsDir() {
+				continue
+			}
+			if ok, _ := filepath.Match(s.Desen, g.Name()); !ok {
+				continue
+			}
+			bilgi, err := g.Info()
+			if err != nil {
+				return nil, fmt.Errorf("veri: %s: %w", g.Name(), err)
+			}
+			y := filepath.Join(dizin, g.Name())
+			yollar = append(yollar, y)
+			baytlar[y] = bilgi.Size()
 		}
 	} else {
 		yollar = []string{dizin}
+		baytlar[dizin] = st.Size()
 		metaDizinleri = []string{filepath.Dir(dizin), filepath.Dir(filepath.Dir(dizin))}
 	}
 	sort.Strings(yollar)
@@ -126,7 +152,7 @@ func KumeAc(dizin string, s KumeSecenekleri) (*Kume, error) {
 	}
 	for _, y := range yollar {
 		ad := filepath.Base(y)
-		pb := ParcaBilgisi{Ad: ad, Yol: y, Token: -1}
+		pb := ParcaBilgisi{Ad: ad, Yol: y, Token: -1, Bayt: baytlar[y]}
 		if k.meta != nil {
 			if mp, ok := k.meta.Parts[ad]; ok {
 				pb.Token = mp.Tokens
@@ -204,6 +230,32 @@ func (k *Kume) ParcaAc(ctx context.Context, i int) (*Parca, error) {
 		return nil, fmt.Errorf("veri: %s: başlık %d token bildiriyor, meta.json %d diyor", pb.Yol, p.Uzunluk(), pb.Token)
 	}
 	return p, nil
+}
+
+// onbellekKotaDenetle, önbellek etkinse kotanın aynı anda gereken parça
+// sayısına (açık parçalar + ileri bakış) en büyük parça boyutuyla yettiğini
+// denetler. enKisa tokendan kısa parçalar hiç açılmadığı için sayılmaz.
+func (k *Kume) onbellekKotaDenetle(adet int, enKisa int64) error {
+	ob := k.sec.Onbellek
+	if ob == nil {
+		return nil
+	}
+	var enBuyuk int64
+	uygun := 0
+	for _, p := range k.parcalar {
+		if p.Token >= enKisa {
+			uygun++
+			enBuyuk = max(enBuyuk, p.Bayt)
+		}
+	}
+	adet = min(adet, uygun)
+	gereken := int64(adet) * enBuyuk
+	if ob.Kota() < gereken {
+		return fmt.Errorf("%w: kota %d bayt, en az %d parça × en büyük parça %d bayt = %d bayt gerekli "+
+			"(kotayı büyütün ya da ileri bakışı/grup boyunu küçültün)",
+			ErrOnbellekYetersiz, ob.Kota(), adet, enBuyuk, gereken)
+	}
+	return nil
 }
 
 // onbellekHazirla, önbellek etkinse verilen parçaların arka planda
