@@ -1,7 +1,7 @@
 {
   "eklenti.ad": "TR (.tr) Programlama ve Yapay Zeka Dili",
   "eklenti.aciklama": "TR (.tr) dili için sözdizimi renklendirme (Syntax Highlighting), kod şablonları (Snippets), çalıştırma ve hata ayıklama komutları.",
-  "guven.kisitliKip": "Güvenilmeyen (kısıtlı kipteki) çalışma alanlarında renklendirme, şablonlar ve dosya okuma çalışır; .tr dosyalarını çalıştırma, denetleme ve hata ayıklama kapalıdır (yorumlayıcı çalıştırılmaz).",
+  "guven.kisitliKip": "Güvenilmeyen (kısıtlı kipteki) çalışma alanlarında renklendirme, şablonlar ve dosya okuma çalışır; .tr dosyalarını çalıştırma, denetleme ve hata ayıklama kapalıdır (yorumlayıcı çalıştırılmaz). Kodlu saklanan dosyalar Türkçeye çevrilemediği için salt okunur, ham (kodlu) hâliyle gösterilir.",
   "komut.calistir": "Dosyayı Çalıştır",
   "komut.hataAyiklaBaslat": "Hata Ayıkla (VS Code)",
   "komut.denetle": "Dosyayı Denetle",
@@ -19,5 +19,8 @@
   "ayiklayici.stopOnEntry": "true ise program ilk satırda durur",
   "ayiklayici.cwd": "Programın çalışma klasörü (göreli dosya yolları buna göre çözülür)",
   "ayiklayici.parcacik.etiket": "TR: Hata Ayıkla",
-  "ayiklayici.parcacik.aciklama": "Açık .tr dosyasında VS Code hata ayıklayıcısını başlatır"
+  "ayiklayici.parcacik.aciklama": "Açık .tr dosyasında VS Code hata ayıklayıcısını başlatır",
+  "komut.kodluHaliniGoster": "Kodlu Hâlini Göster (salt okunur)",
+  "ayar.yazimDili": "Kodlu saklanan .tr dosyalarının (ilk satırı `//! tr kodlu 1`) düzenleyicide gösterildiği yazım dili. Dosya bu dilde açılır, düzenlenir ve kaydedilince diske yine kodlu yazılır; kodlu olmayan dosyalar olduğu gibi açılır. Bugün yalnızca Türkçe (`tr`) vardır. Değişiklik, açık dosyalar yeniden açılınca geçerli olur.",
+  "ayar.yazimDili.tr": "Türkçe"
 }

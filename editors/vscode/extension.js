@@ -9,6 +9,8 @@ const crypto = require('crypto');
 const { izlemeKomutuCoz } = require('./izleme_komutlari');
 const { yorumlayiciyiBul: yorumlayiciyiBulKurali, yorumlayiciAdi, BIN_KLASORU } = require('./yorumlayici_bul');
 const { programArgumanlari } = require('./program_argumanlari');
+const kodluBicim = require('./kodlu_bicim');
+const kodluGorunum = require('./kodlu_gorunum');
 
 const GOREV_TURU = 'tr';
 const AYAR = 'yorumlayiciYolu';
@@ -57,11 +59,21 @@ async function yorumlayiciBulunamadi(mesaj) {
     }
 }
 
+// kodlu, kodlu dosyaların Türkçe görünümüdür (kodlu_gorunum.js); activate kurar.
+let kodlu;
+
+// yerelUri bir belgenin diskteki dosyasıdır (kodlu dosyanın Türkçe görünümünde de dosyanın
+// kendisi); yerel olmayan belgede undefined.
+function yerelUri(uri) {
+    return kodlu ? kodlu.yerelUri(uri) : (uri && uri.scheme === 'file' ? uri : undefined);
+}
+
 // Komutun hedef belgesini bulur: başlık çubuğu/bağlam menüsünden gelen URI veya etkin düzenleyici.
+// Dosyanın Türkçe görünümü açıksa o seçilir (kaydedilmemiş değişiklikler oradadır).
 async function hedefBelge(uri) {
     if (uri instanceof vscode.Uri) {
         const acik = vscode.workspace.textDocuments.find((b) => b.uri.toString() === uri.toString());
-        return acik || vscode.workspace.openTextDocument(uri);
+        return (kodlu && kodlu.acikGorunum(uri)) || acik || vscode.workspace.openTextDocument(uri);
     }
     const editor = vscode.window.activeTextEditor;
     return editor ? editor.document : undefined;
@@ -113,7 +125,8 @@ async function calistir(tanim, uri, ek) {
         vscode.window.showErrorMessage('Dosyayı çalıştırmadan önce .tr uzantısıyla kaydedin.');
         return;
     }
-    if (belge.uri.scheme !== 'file') {
+    const yerel = yerelUri(belge.uri);
+    if (!yerel) {
         vscode.window.showErrorMessage('Yalnızca yerel diskteki .tr dosyaları çalıştırılabilir.');
         return;
     }
@@ -122,7 +135,7 @@ async function calistir(tanim, uri, ek) {
         return;
     }
 
-    const bulunan = yorumlayiciyiBul(belge.uri);
+    const bulunan = yorumlayiciyiBul(yerel);
     if (!bulunan || bulunan.hata) {
         await yorumlayiciBulunamadi(bulunan ? bulunan.hata : 'TR yorumlayıcısı (' + YORUMLAYICI_ADI + ') bulunamadı.');
         return;
@@ -131,12 +144,12 @@ async function calistir(tanim, uri, ek) {
     // Klasör açılmadan tek dosya açıldığında VS Code, görevlerin kullanıcı klasörü dışında
     // çalışmasına izin vermez ("Cannot launch a terminal process in an empty workspace").
     // Bu durumda yorumlayıcı doğrudan bir terminalde, dosyanın klasöründe başlatılır.
-    if (!vscode.workspace.getWorkspaceFolder(belge.uri)) {
-        terminaldeCalistir(tanim, belge.uri, bulunan.yol, ek);
+    if (!vscode.workspace.getWorkspaceFolder(yerel)) {
+        terminaldeCalistir(tanim, yerel, bulunan.yol, ek);
         return;
     }
 
-    await vscode.tasks.executeTask(gorevOlustur(tanim, belge.uri, bulunan.yol, ek));
+    await vscode.tasks.executeTask(gorevOlustur(tanim, yerel, bulunan.yol, ek));
 }
 
 // terminaldeCalistir yorumlayıcıyı kabuk kullanmadan doğrudan bir terminal sürecinde başlatır
@@ -168,8 +181,8 @@ const gorevSaglayici = {
         let uri;
         if (d.dosya && !String(d.dosya).includes('${')) {
             uri = vscode.Uri.file(d.dosya);
-        } else if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.uri.scheme === 'file') {
-            uri = vscode.window.activeTextEditor.document.uri;
+        } else if (vscode.window.activeTextEditor && yerelUri(vscode.window.activeTextEditor.document.uri)) {
+            uri = yerelUri(vscode.window.activeTextEditor.document.uri);
         } else {
             return undefined;
         }
@@ -188,16 +201,19 @@ const gorevSaglayici = {
 // Ctrl+F5 ("Run Without Debugging") dosyayı terminalde çalıştırır (girdi() kullanılabilir).
 // ---------------------------------------------------------------------------
 
+// hataAyiklamaYapilandirmasi açık belgenin hata ayıklama ayarıdır. Kodlu dosyanın Türkçe
+// görünümünde program diskteki dosyadır, "gorunumAdresi" görünümün adresidir (kodlu_gorunum.js).
 function hataAyiklamaYapilandirmasi(belge) {
-    const klasor = vscode.workspace.getWorkspaceFolder(belge.uri);
-    return {
+    const yerel = yerelUri(belge.uri) || belge.uri;
+    const klasor = vscode.workspace.getWorkspaceFolder(yerel);
+    return kodlu.gorunumAdresiyle({
         type: GOREV_TURU,
         request: 'launch',
         name: 'TR: Hata Ayıkla',
-        program: belge.uri.fsPath,
-        cwd: klasor ? klasor.uri.fsPath : path.dirname(belge.uri.fsPath),
+        program: yerel.fsPath,
+        cwd: klasor ? klasor.uri.fsPath : path.dirname(yerel.fsPath),
         stopOnEntry: false
-    };
+    }, belge);
 }
 
 const hataAyiklamaSaglayici = {
@@ -215,6 +231,8 @@ const hataAyiklamaSaglayici = {
                 return undefined;
             }
             y = Object.assign(hataAyiklamaYapilandirmasi(editor.document), y.noDebug ? { noDebug: true } : {});
+        } else if (editor) {
+            y = kodlu.dosyaDegiskenleriniCoz(y, editor.document);
         }
         if (!vscode.workspace.isTrusted) {
             vscode.window.showWarningMessage('TR dosyalarında hata ayıklamak için bu çalışma alanına güvenmeniz gerekir (Çalışma Alanı Güveni).');
@@ -231,7 +249,7 @@ const hataAyiklamaSaglayici = {
     // Burada ${file}, ${workspaceFolder} gibi değişkenler çözülmüştür; "args" programa iletilir.
     resolveDebugConfigurationWithSubstitutedVariables(klasor, y) {
         if (!y || !y.noDebug) {
-            return y;
+            return kodlu.programinGorunumu(y);
         }
         const uri = y.program ? vscode.Uri.file(String(y.program)) : undefined;
         calistir(KOMUTLAR.calistir, uri, programArgumanlari(y).argumanlar || []);
@@ -265,7 +283,7 @@ async function hataAyiklamayiBaslat(uri) {
     if (belge.isDirty) {
         await belge.save();
     }
-    await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(belge.uri), hataAyiklamaYapilandirmasi(belge));
+    await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(yerelUri(belge.uri) || belge.uri), hataAyiklamaYapilandirmasi(belge));
 }
 
 // ---------------------------------------------------------------------------
@@ -460,6 +478,14 @@ function izlemeMasasiHtml(webview) {
 
 function activate(context) {
     eklentiUri = context.extensionUri;
+    kodlu = kodluGorunum.olustur(vscode, {
+        yorumlayiciyiBul,
+        cevir: (...a) => kodluBicim.cevir(...a),
+        durum: context.globalState,
+        yazimDili: () => vscode.workspace.getConfiguration('tr').get('yazimDili', 'tr'),
+        yorumlayiciBulunamadi
+    });
+    kodlu.kur(context);
     context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory(GOREV_TURU, izlemeMasasiIzleyici));
     context.subscriptions.push(vscode.commands.registerCommand('tr.izlemeMasasi', () => {
         const oturum = vscode.debug.activeDebugSession;

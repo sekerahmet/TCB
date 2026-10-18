@@ -30,6 +30,7 @@
 | TR: Terminal Hata Ayıklayıcısında Aç | `tr.hataAyikla` | `tr.exe hata_ayıkla <dosya>` |
 | TR: Tablo Görünümü | `tr.tabloGoster` | Hata ayıklarken değişkeni tablo olarak gösterir |
 | TR: İzleme Masası | `tr.izlemeMasasi` | Hata ayıklarken tüm değişkenleri tablo hâlinde gösteren paneli açar |
+| TR: Kodlu Hâlini Göster (salt okunur) | `tr.kodluHaliniGoster` | Açık dosyanın diskteki (kodlu) hâlini yanda salt okunur açar |
 
 - Komutlar dosyayı önce kaydeder, sonra terminal panelinde çalıştırır. Hata ayıklayıcı komutlarını bu terminale yazabilirsiniz.
 - Çalışma dizini, dosyanın bulunduğu çalışma alanı klasörüdür; klasör açık değilse dosyanın dizinidir.
@@ -46,6 +47,23 @@ Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdad�
 - **Tablolar:** Tablo değerlerinin içeriği satıra dökülmez. Değişkenin adına ya da **▸ Tabloyu aç** linkine tıklayınca (veya satıra çift tıklayınca) tablo alttaki pencerede bir **sekme** olarak açılır. Birden çok tablo sekmeler hâlinde açık kalabilir; her sekme kendi **✕** düğmesiyle, hepsi **Tümünü kapat** ile kapanır. Pencere, üstündeki çubuk sürüklenerek büyütülüp küçültülür. Sütun başlığına tıklayınca sıralanır, arama kutusuyla süzülür, hücreler arasında ok tuşlarıyla gezilir. Adım atıldıkça açık tablolar güncellenir.
 - **Yapay zekâ nesneleri:** Tensörler tip sütununda `Tensör [2×3]` olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılır. Skaler tensörün (ör. kayıp) değeri doğrudan görünür: `0.6074 (Tensör, skaler)`; 1-8 elemanlı küçük tensörler satır içinde kısaltılmış yazılır (`[[1.4298]] (Tensör, 1×1)`), daha büyükleri **▸ Tabloyu aç** ile açılır. float32 dışındaki türlerde tür de yazılır (`2.5000 (Tensör, skaler, bf16)`). Variables panelinde ve Debug Console'da da aynı değer görünür. Parçalayıcı, veri kümesi ve örnekleyici özetleriyle görünür (`Parçalayıcı (dağarcık 40000)`, `Veri kümesi (246 veri dosyası, 56,9 milyar parça)`, `Örnekleyici (32×1024, dönem 0, 120 toplu iş)`); parçalayıcının eklenmiş/özel parçaları ve veri kümesinin veri dosyaları tablo olarak açılır.
 - İstemiyorsanız `tr.izlemeMasasi` ayarını kapatın.
+
+## Kodlu dosyalar
+
+TR dosyaları diskte dilden bağımsız kodlarla saklanabilir (`tr kodla`; ilk satır `//! tr kodlu 1`, dilin sözcükleri `A001`, `G100` gibi kodlar). Böyle bir dosyayı açtığınızda (dosya gezgininden, bir hata bağlantısından, hata ayıklayıcıdan) eklenti onu **Türkçe yazımıyla** gösterir:
+
+- **Açma:** Sekme Türkçe görünümle değişir. Başlık satırı görünmez; görünümün satır numaraları hata mesajlarındaki ve hata ayıklayıcıdaki satırlarla birebir aynıdır (bir hata bağlantısı `dosya.tr:12:5` aynı yeri açar). Görünümün adresi dosyanın kendi yoludur (şeması `tr-kodlu:`); sekmenin üzerine gelince görülür.
+- **Düzenleme ve kayıt:** Her zamanki gibi yazın; geri al/yinele, kaydedilmemiş değişiklik işareti, hepsini kaydet, otomatik kaydetme ve "dosya diskte değişti" uyarısı VS Code'un kendisindedir. Kaydedince dosya diske yine **kodlu** yazılır (`tr kodla -`); görünüm `tr göster -` ile üretilir. Eklentide ikinci bir çevirici yoktur, çeviriyi `tr` yapar.
+- **Yarım kod (sözdizimi hatası) varken kaydetme:** Hiçbir şey kaybolmaz. Metin ayrıştırılamıyorsa dosya **başlıksız Türkçe yazımıyla**, yazdığınız gibi kaydedilir ve bir kez "sözdizimi hatası düzelince yeniden kodlanacak" bilgisi gösterilir. Hata düzelince ilk kayıtta dosya yeniden kodlu yazılır (VS Code kapanıp açılsa da: dosya "kodlanmayı bekliyor" diye hatırlanır). Çeviri başka bir nedenle yapılamazsa da aynısı olur ve neden Türkçe söylenir.
+- **Kodlu ama ayrıştırılamayan dosya** (ör. bir birleştirme çakışmasının `<<<<<<<` işaretleri): ham, kodlu hâliyle gösterilir ve nedeni söylenir; kaydedince olduğu gibi yazılır. Düzeltip kaydettikten sonra dosyayı kapatıp açın, Türkçe görünür.
+- **Hata ayıklama:** Kesme noktaları, adım adım ilerleme, çağrı yığını ve değişkenler görünümün satırlarıyla çalışır; program durunca satır görünümde işaretlenir. `launch.json`'daki `"program": "${file}"` görünümde de çalışır (eklenti dosyanın kendisinden çözer). Eklenti başlatma ayarına görünümün adresini (`"gorunumAdresi"`) kendisi ekler; elle yazmanız gerekmez.
+- **Kodlu olmayan dosyalar** (Türkçe yazılmış) eskisi gibi açılır ve kaydedilir; eklenti dosyaları kendiliğinden kodlamaz. Bir dosyayı kodlamak ya da geri çevirmek için `tr kodla dosya.tr`, `tr çöz dosya.tr`.
+- **Diskteki hâli görmek:** Komut Paleti → "TR: Kodlu Hâlini Göster" dosyanın kodlu hâlini yanda salt okunur açar.
+- **Kısıtlı kip:** Güvenilmeyen çalışma alanında yorumlayıcı çalıştırılmadığından çeviri yapılamaz; kodlu dosya **salt okunur, ham hâliyle** açılır ve nedeni söylenir. Çalışma alanına güvendiğinizde açık sekmeler Türkçe görünüme geçer.
+- **Yorumlayıcı bulunamazsa** kodlu dosya ham hâliyle açık kalır ve yorumlayıcının nasıl kurulacağı söylenir.
+- **Git farkları:** `git diff`'in Türkçe fark göstermesi için `tr göster`'i textconv olarak tanıtın ([kılavuz](../../docs/kilavuz/01_baslangic.md#kodlu-dosyalar-düzenleyici-ve-git-farkları)). VS Code'un kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.
+
+Sınırlar: "Farklı Kaydet" ile kaydedilen yeni dosya Türkçe yazılır (kodlamak için `tr kodla`). Çalışma alanında arama (Ctrl+Shift+F) diskteki kodlu metinde arar; sonuçtan açılan satır başlık yüzünden bir satır kayabilir.
 
 ## Kod şablonları
 
@@ -75,7 +93,9 @@ Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (
 
 Üst klasörlere bakılmaz: indirdiğiniz bir klasörün içinde ya da üstünde duran yabancı bir `tr.exe` kendiliğinden çalıştırılmaz. Klasör açmadan tek bir `.tr` dosyası açtığınızda yalnızca bu ayar ve PATH kullanılır. Depoyu değil de bir alt klasörünü (örneğin `ornekler/`) açıyorsanız yorumlayıcının tam yolunu bu ayara yazın.
 
-Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen (kısıtlı kipteki) klasörlerde renklendirme, şablonlar ve dosya okuma yine kullanılabilir; çalıştırma, denetleme ve hata ayıklama kapalıdır ve bu düğmeler görünmez.
+Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen (kısıtlı kipteki) klasörlerde renklendirme, şablonlar ve dosya okuma yine kullanılabilir; çalıştırma, denetleme ve hata ayıklama kapalıdır ve bu düğmeler görünmez. Kodlu dosyalar bu kipte Türkçeye çevrilmez, salt okunur ham hâliyle açılır.
+
+`tr.yazimDili`: kodlu dosyaların gösterildiği yazım dili (varsayılan ve bugün tek seçenek: `tr`, Türkçe). Yalnızca kullanıcı ayarlarından okunur; her kişi kendisi seçer, dosyada saklanmaz. Değişiklik, açık kodlu dosyalar yeniden açılınca geçerli olur.
 
 Unicode işaretleme: VS Code kısıtlı kipte ASCII dışındaki her harfi sarı kutuyla işaretler. Eklenti `.tr` dosyalarında yalnızca Türk alfabesinin harflerini (ç, ğ, ı, İ, ö, ş, ü ve büyükleri) serbest bırakır (`editor.unicodeHighlight.nonBasicASCII: false` ve `allowedCharacters`); Latin harflerine benzeyen yabancı harfler (ör. Kiril `а`, `е`, Yunan `ο`) ve görünmez karakterler (ör. sıfır genişlikli boşluk) güvenilen ve güvenilmeyen klasörde yine kutuyla işaretlenir (`ambiguousCharacters` ve `invisibleCharacters` açık). Türkçe harfler hâlâ kutulu görünüyorsa eklentinin eski bir kopyası (1.7.0'dan önceki) çalışıyordur: Uzantılar görünümünden eski kopyayı kaldırıp güncelini kurun.
 

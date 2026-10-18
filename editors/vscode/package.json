@@ -2,7 +2,7 @@
   "name": "tr-dili-vscode",
   "displayName": "%eklenti.ad%",
   "description": "%eklenti.aciklama%",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.70.0"
@@ -24,7 +24,10 @@
     "onCommand:tr.hataAyiklaBaslat",
     "onCommand:tr.tabloGoster",
     "onCommand:tr.izlemeMasasi",
-    "onDebug"
+    "onDebug",
+    "onFileSystem:tr-kodlu",
+    "onFileSystem:tr-ham",
+    "onCommand:tr.kodluHaliniGoster"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -99,6 +102,12 @@
         "title": "%komut.izlemeMasasi%",
         "category": "TR",
         "icon": "$(table)"
+      },
+      {
+        "command": "tr.kodluHaliniGoster",
+        "title": "%komut.kodluHaliniGoster%",
+        "category": "TR",
+        "icon": "$(file-code)"
       }
     ],
     "menus": {
@@ -160,6 +169,10 @@
         {
           "command": "tr.izlemeMasasi",
           "when": "debugType == 'tr'"
+        },
+        {
+          "command": "tr.kodluHaliniGoster",
+          "when": "editorLangId == tr"
         }
       ],
       "debug/variables/context": [
@@ -197,6 +210,18 @@
           "default": true,
           "scope": "window",
           "markdownDescription": "%ayar.izlemeMasasi%"
+        },
+        "tr.yazimDili": {
+          "type": "string",
+          "enum": [
+            "tr"
+          ],
+          "enumDescriptions": [
+            "%ayar.yazimDili.tr%"
+          ],
+          "default": "tr",
+          "scope": "application",
+          "markdownDescription": "%ayar.yazimDili%"
         }
       }
     },
@@ -225,6 +250,7 @@
     ],
     "configurationDefaults": {
       "[tr]": {
+        "files.encoding": "utf8",
         "editor.unicodeHighlight.nonBasicASCII": false,
         "editor.unicodeHighlight.ambiguousCharacters": true,
         "editor.unicodeHighlight.invisibleCharacters": true,

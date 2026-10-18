@@ -70,7 +70,9 @@ test('F5: yapılandırma olduğu gibi kalır, yorumlayıcı "dap" ile başlar', 
     const { kayit, saglayici, surec } = kur({ ayar: YORUMLAYICI, klasor: KLASOR });
     const y = { type: 'tr', request: 'launch', name: 'TR', program: DOSYA, args: ['--adım', '5'], cwd: KLASOR };
     const cozulen = await saglayici.resolveDebugConfiguration(undefined, y);
-    assert.strictEqual(saglayici.resolveDebugConfigurationWithSubstitutedVariables(undefined, cozulen), y);
+    // Kodlu olmayan dosyada görünüm adresi eklenmez (kodlu dosyada: kodlu_gorunum_test.js).
+    assert.strictEqual(await saglayici.resolveDebugConfigurationWithSubstitutedVariables(undefined, cozulen), y);
+    assert.strictEqual(y.gorunumAdresi, undefined);
     // "args" başlatma isteğiyle (launch) 'tr dap'a gider; süreç argümanı yalnızca 'dap'.
     const d = surec.createDebugAdapterDescriptor({ configuration: cozulen });
     assert.strictEqual(d.komut, YORUMLAYICI);
