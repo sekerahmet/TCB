@@ -1,0 +1,11 @@
+{
+  "parts": {
+    "metin_000.npy": {
+      "tokens": 528
+    },
+    "metin_001.npy": {
+      "tokens": 528
+    }
+  },
+  "tokenizer": "../parcalayici.json"
+}

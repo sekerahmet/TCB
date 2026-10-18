@@ -1,0 +1,92 @@
+// Parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli eğitimi:
+// parçalayıcıyı yükle, metni kodla/çöz, .npy token parçalarından rastgele toplu işlerle
+// eğit, sıralı okuyucuyla doğrula ve modelin yazdığı metni çöz.
+//
+// Varsayılan olarak depodaki sentetik test verisini (testler/veri) kullanır. Kendi
+// verinizle çalıştırmak için aşağıdaki yolları değiştirin, ör.:
+//     değişken PARÇALAYICI_YOLU = "D:/veri/tokenizer.json"
+//     değişken VERİ_YOLU = "D:/veri/train"
+//     değişken DOĞRULAMA_YOLU = "D:/veri/valid"
+// Parçalar .npy token dosyalarıdır (numpy.save ile yazılmış uint16/int32 diziler); meta.json
+// varsa parça token sayıları oradan okunur. Veri yavaş bir sürücüdeyse (ağ ya da bulut)
+// yerel önbellek kullanın: veri_kümesi(VERİ_YOLU, önbellek: "onbellek/veri", kota_gb: 20)
+// Çalıştırma: tr ornekler/veri_ile_egitim.tr
+
+değişken PARÇALAYICI_YOLU = "../testler/veri/parcalayici.json"
+değişken VERİ_YOLU = "../testler/veri/metin"
+değişken DOĞRULAMA_YOLU = "../testler/veri/metin"
+
+değişken ADIM = 150
+değişken TOPLU = 8
+değişken BAĞLAM = 32
+değişken D = 32 // gömme boyutu
+değişken GİZLİ = 64 // ara katman boyutu
+
+// --- Parçalayıcı ---
+değişken p = parçalayıcı_yükle(PARÇALAYICI_YOLU)
+yazdır(p)
+değişken cümle = "Bugün hava çok güzel."
+değişken kimlikler = p.kodla(cümle)
+yazdır("\"{cümle}\" → {uzunluk(kimlikler)} token: {kimlikler}")
+yazdır("geri çözülen: {p.çöz(kimlikler)}")
+değişken V = p.sözlük_boyutu
+
+// --- Veri ---
+değişken küme = veri_kümesi(VERİ_YOLU)
+yazdır(küme)
+değişken ö = küme.örnekleyici(toplu: TOPLU, bağlam: BAĞLAM, tohum: 1)
+
+// --- Model: gömme → ara katman → sözlük üzerinde dağılım (bir sonraki token yalnızca
+// şimdiki tokena bakılarak tahmin edilir; dikkatli bir model için ornekler/transformer.tr) ---
+değişken parametreler = []
+değişken parametre_tohumu = 0
+fonksiyon parametre(şekil, ölçek) {
+    parametre_tohumu += 1
+    değişken w = tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
+    parametreler.ekle(w)
+    sonuç w
+}
+değişken E = parametre([V, D], 0.1)
+değişken W1 = parametre([D, GİZLİ], 0.1)
+değişken W2 = parametre([GİZLİ, V], 0.1)
+
+fonksiyon ileri(girdi) {
+    sonuç gelu(gömme(E, girdi) @ W1) @ W2
+}
+
+// --- Eğitim ---
+değişken iyileştirici = AdamW(parametreler, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
+döngü adım içinde 0..ADIM {
+    değişken girdi, hedef = ö.sonraki()
+    iyileştirici.sıfırla()
+    değişken kayıp = çapraz_entropi(ileri(girdi), hedef)
+    geri_yayılım(kayıp)
+    iyileştirici.adım()
+    eğer adım % 50 == 0 veya adım == ADIM - 1 {
+        yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 3)}")
+    }
+}
+yazdır(ö)
+
+// --- Doğrulama: tüm doğrulama verisi sırayla, bir kez ---
+değişken doğrulama = veri_kümesi(DOĞRULAMA_YOLU).sıralı(toplu: TOPLU, bağlam: BAĞLAM)
+değişken toplam_kayıp = 0.0
+değişken toplu_sayısı = 0
+türevsiz {
+    döngü {
+        değişken iş = doğrulama.sonraki()
+        eğer iş == yok { kır }
+        toplam_kayıp += çapraz_entropi(ileri(iş[0]), iş[1]).değer
+        toplu_sayısı += 1
+    }
+}
+yazdır("doğrulama: {toplu_sayısı} toplu iş, ortalama kayıp = {yuvarla(toplam_kayıp / toplu_sayısı, 3)}")
+
+// --- Metin üretimi: her adımda en olası token ---
+değişken üretilen = p.kodla("Bugün")
+türevsiz {
+    döngü n içinde 0..12 {
+        üretilen.ekle(maks_indeks(ileri([üretilen]), eksen: -1).değer[0].son)
+    }
+}
+yazdır("model şunu yazdı: {p.çöz(üretilen)}")

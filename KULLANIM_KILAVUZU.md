@@ -140,6 +140,50 @@ yazdır(türevsiz { sonuç X @ w + b })                                       //
 
 VS Code İzleme Masası'nda tensörler tip sütununda `Tensör [2×3]` olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılabilir.
 
+### E. Veri ve Parçalayıcı
+Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` token parçalarını okuyan **veri kümesi**. Uçtan uca örnek: `ornekler/veri_ile_egitim.tr`.
+
+**Parçalayıcı**
+- `değişken p = parçalayıcı_yükle("tokenizer.json")` yaygın `tokenizer.json` biçimini okur (BPE, WordPiece, WordLevel, Unigram modelleri; bayt düzeyi, Metaspace, BERT tarzı bileşenler). Desteklenmeyen bir bileşen türü, hangi bileşenin hangi türü olduğunu söyleyen bir hatayla bildirilir. Tip adı `Parçalayıcı`.
+- `p.sözlük_boyutu` sözlükteki token sayısıdır; `p.token_kimliği("<|endoftext|>")` tokenın kimliğini verir, yoksa `yok`.
+- `p.kodla(metin)` bir `Tam` listesi, `p.kodla([metin1, metin2])` listelerin listesini verir (liste tüm işlemci çekirdeklerinde paralel kodlanır, sıra korunur). Metnin içinde yazılı özel tokenlar (`"<|endoftext|>"`) tek bir kimlik olarak tanınır.
+  - `özel_tokenlar: yanlış` son işleyicinin eklediği özel tokenları (`[CLS] … [SEP]`, `<s>` gibi) kapatır; varsayılan `doğru`dur.
+  - `ikinci: metin` metin çiftini (soru + bağlam gibi) tek dizi olarak kodlar; liste verilirse `ikinci:` de aynı uzunlukta bir liste olmalıdır.
+- `p.çöz(kimlikler)` metin verir; listelerin listesi ya da 2 boyutlu tensör verilirse metin listesi, 1 boyutlu tensör verilirse metin döner (ör. `.sonraki()` ile alınan `girdi` doğrudan çözülebilir). Varsayılan, başvuru kütüphanesindeki gibi **özel tokenları atlamaktır**; `özel_tokenlar: doğru` onları da yazar. Sözlükte olmayan kimlikler sessizce atlanır.
+- Güvenlik: parçalayıcı dosyasındaki düzenli ifadeler adım bütçesiyle çalışır. Kötü niyetli bir metin aşırı geri izlemeye yol açarsa yarım sonuç yerine `dene/yakala` ile yakalanabilen bir "adım sınırını aştı" hatası oluşur. Üstel geri izlemeye açık (iç içe sınırsız niceleyicili) desenli dosyalar yüklenmez; daha hafif riskler yüklemede standart hataya dosya başına bir kez `Uyarı:` olarak yazılır.
+
+**Veri kümesi**
+- `değişken küme = veri_kümesi("veri/train")` klasördeki `.npy` parçalarını ad sırasıyla tanır (tek bir `.npy` dosyası da verilebilir). Parçalar tek boyutlu, küçük uçlu `uint16`, `uint32` ya da `int32` token dizileridir (`numpy.save` ile yazılmış). Klasörde ya da üst klasörde `meta.json` varsa parça token sayıları oradan okunur; dosya başlıkları açılışta okunmaz. Tip adı `VeriKümesi`.
+- **Önbellek:** veri yavaş bir sürücüdeyse (ağ, akışlı bulut sürücüsü) `veri_kümesi(dizin, önbellek: "onbellek/veri", kota_gb: 20)` parçaları kullanılmadan önce yerel klasöre kopyalar; kota dolunca en uzun süredir kullanılmayan kopyalar silinir. `önbellek:` verilince `kota_gb:` **zorunludur** (disk alanını sessizce doldurmamak için); verilmezse hata, bu küme için gereken en küçük kotayı (aynı anda yerelde tutulan 8 parça × en büyük parça) söyler. Önbelleksiz okumada parçalar belleğe eşlenmez, her pencere ayrı okunur: yalnızca istenen baytlar sürücüden çekilir.
+- `küme.örnekleyici(toplu: 32, bağlam: 1024, tohum: 1)` eğitim için rastgele pencereler üretir (tip `Örnekleyici`; `tohum` varsayılanı 0). Aynı tohum ve küme hep aynı toplu işleri verir. Her dönemde parça sırası karışır, her token bir kez görülür, hiçbir pencere parça sınırını aşmaz; örnekleyici dönemden döneme sonsuz üretir.
+- `küme.sıralı(toplu: 32, bağlam: 1024)` doğrulama için parçaları sırayla okur (tip `SıralıOkuyucu`): ardışık pencereler `bağlam` kadar kayar, böylece her token bir kez hedef olur. Son toplu iş daha az satırlı olabilir; veri bitince `.sonraki()` `yok` döner.
+- `.sonraki()` `[girdi, hedef]` listesi verir: ikisi de `[toplu, bağlam]` şeklinde, tam sayı değerli tensördür ve `hedef` girdinin bir kaydırılmışıdır. Doğrudan `gömme(E, girdi)` ve `çapraz_entropi(çıktı, hedef)`'e verilir: `değişken girdi, hedef = ö.sonraki()`. `.değer` `Ondalık` listesi verir (liste indekslemede `tam(...)` ile çevirin).
+- **Önden yükleme her zaman açıktır:** sonraki 4 toplu iş arka planda hazırlanır. Bu iş TR kodu çalıştırmaz, yorumlayıcı kilidini tutmaz; `.sonraki()` beklerken kilit bırakılır, böylece `eşzamanlı` görevler ilerler. Aynı okuyucuyu birden çok görev paylaşabilir (her toplu iş bir göreve gider).
+- **Kaynaklar:** açık bir kapatma adı yoktur. Sıralı okuyucu bitince dosyalarını hemen kapatır; artık kullanılmayan (hiçbir değişkenin göstermediği) okuyucu ve kümeler çöp toplayıcı tarafından kapatılır; program bitince açık kalanların hepsi kapatılır (takılan bir ağ okumasında en çok birkaç saniye beklenir).
+- Göreli yollar (`parçalayıcı_yükle` ve `veri_kümesi`) önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür.
+- Hatalar Türkçe ve yol göstericidir (dosya yok, `.npy` değil, kota yetersiz, bağlam parçalardan uzun, adlı argüman yazım hatası...) ve `dene/yakala` ile yakalanır.
+
+```tr
+değişken p = parçalayıcı_yükle("tokenizer.json")
+yazdır(p.kodla("Merhaba dünya"), p.sözlük_boyutu)
+değişken küme = veri_kümesi("veri/train")
+değişken ö = küme.örnekleyici(toplu: 8, bağlam: 256, tohum: 1)
+değişken E = tensör(türevsiz(rastgele_normal([p.sözlük_boyutu, 64], tohum: 1) * 0.1), türev_izle: doğru)
+değişken W = tensör(türevsiz(rastgele_normal([64, p.sözlük_boyutu], tohum: 2) * 0.1), türev_izle: doğru)
+değişken op = AdamW([E, W], öğrenme_oranı: 0.01)
+döngü adım içinde 0..100 {
+    değişken girdi, hedef = ö.sonraki()
+    op.sıfırla()
+    değişken kayıp = çapraz_entropi(gömme(E, girdi) @ W, hedef)
+    geri_yayılım(kayıp)
+    op.adım()
+}
+değişken doğrulama = veri_kümesi("veri/_valid").sıralı(toplu: 8, bağlam: 256)
+döngü doğrulama.sonraki() != yok { }   // bitince yok döner
+```
+
+VS Code İzleme Masası'nda bu nesneler tip sütununda `Parçalayıcı (40000 sözcük)`, `Veri kümesi (246 parça, 56,9 milyar token)`, `Örnekleyici (32×1024, dönem 0, 120 toplu iş)` gibi görünür; parçalayıcı (eklenmiş/özel tokenlar) ve veri kümesi (parçalar) tablo olarak açılabilir.
+
 ---
 
 ## 5. TR Hata Ayıklayıcı

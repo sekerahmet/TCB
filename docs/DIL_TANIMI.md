@@ -419,3 +419,27 @@ Tensör, n boyutlu bir `float32` sayı dizisidir (tip adı `Tensör`). İşlemle
 **15.10** `tensör_kaydet(yol, sözlük)` adları metin, değerleri tensör olan bir sözlüğü yalnızca verilen yola yazar (dosya varsa üzerine yazılır); `tensör_yükle(yol, türev_izle: yanlış)` aynı sırayla bir sözlük döndürür. Biçim sürüm başlıklıdır (`TRTENSOR`, sürüm, her tensör için ad, veri türü kodu, şekil ve float32 veri, sonda CRC-32); bilinmeyen sürüm/tür, eksik, bozuk ya da başka türden dosya açık bir hatayla reddedilir.
 
 **15.8** Hatalar: şekil ve eksen hataları ilgili şekilleri gösteren Türkçe bir mesajla (`[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`) bildirilir ve `dene/yakala` ile yakalanabilir; program çökmez.
+
+---
+
+## 16. Veri ve parçalayıcı
+
+Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` token parçaları yerleşik nesnelerle okunur. Ayrıntılı kullanım için `KULLANIM_KILAVUZU.md` §4.E'ye bakın.
+
+**16.1** `parçalayıcı_yükle(yol)` bir `Parçalayıcı` nesnesi döndürür. `.sözlük_boyutu` sözlükteki token sayısıdır (`Tam`); `.token_kimliği(token)` tokenın kimliğini, sözlükte yoksa `yok` verir.
+
+**16.2** `.kodla(metin)` bir `Tam` listesi, `.kodla(metin_listesi)` her metin için bir liste (sıra korunur) döndürür. Metindeki özel token yazımları tek kimlik olarak tanınır. Adlı seçenekler: `özel_tokenlar:` (varsayılan `doğru`; `yanlış` son işleyicinin eklediği özel tokenları kapatır) ve `ikinci:` (çift kodlama; listeyle eşit uzunlukta liste).
+
+**16.3** `.çöz(kimlikler)` kimlik listesinden ya da 1 boyutlu tensörden metin, listelerin listesinden ya da 2 boyutlu tensörden metin listesi üretir. Varsayılan olarak özel tokenlar çıktıya yazılmaz; `özel_tokenlar: doğru` onları da yazar. Sözlükte olmayan kimlikler atlanır.
+
+**16.4** `veri_kümesi(dizin)` bir klasördeki `.npy` parçalarını (ad sırasıyla) ya da tek bir `.npy` dosyasını `VeriKümesi` olarak açar; `meta.json` varsa token sayıları ondan okunur. `önbellek: klasör` parçaları yerel bir önbelleğe kopyalar; bu durumda `kota_gb:` zorunludur.
+
+**16.5** `.örnekleyici(toplu:, bağlam:, tohum: 0)` bir `Örnekleyici` döndürür. `.sonraki()` `[girdi, hedef]` listesidir: ikisi de `[toplu, bağlam]` şeklinde tam sayı değerli tensördür, `hedef` girdinin bir kaydırılmışıdır ve pencereler parça sınırını aşmaz. Aynı küme ve tohum aynı toplu işleri verir; örnekleyici sonsuz üretir.
+
+**16.6** `.sıralı(toplu:, bağlam:)` bir `SıralıOkuyucu` döndürür: pencereler parça sırasıyla ve `bağlam` adımla ardışıktır; son toplu iş daha az satırlı olabilir; veri bitince `.sonraki()` `yok` döner.
+
+**16.7** Hatalar (dosya yok, `.npy` değil, eksik ya da hatalı adlı argüman, bağlam parçalardan uzun, düzenli ifade adım sınırı...) Türkçe bir mesajla bildirilir ve `dene/yakala` ile yakalanabilir.
+
+**16.8** Bu yerleşiklerde göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür.
+
+Önden yükleme her zaman açıktır ve yorumlayıcı kilidini tutmaz; `.sonraki()` beklerken kilit bırakılır (10.3). Açık bir kapatma adı yoktur: sıralı okuyucu bitince, kullanılmayan nesneler çöp toplanınca ve program bitince dosyalar kapatılır.
