@@ -138,5 +138,9 @@ func cihazlarYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Va
 }
 
 // Kapat program sonunda çağrılır (motor.Kapat): GPU ölçümü açıksa (TR_GPU_PROFIL=1) özeti
-// standart hataya yazar ve bağlı dış profilleyicilere topladıkları veriyi yazdırır.
-func Kapat() { gpu.Kapat() }
+// standart hataya yazar ve bağlı dış profilleyicilere topladıkları veriyi yazdırır; programın
+// kurduğu tohumsuz rastgelelik kancasını kaldırır (aynı süreçte sonraki programa geçmesin).
+func Kapat() {
+	TohumsuzKancasiAyarla(nil)
+	gpu.Kapat()
+}
