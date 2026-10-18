@@ -1,17 +1,12 @@
 package sozluk
 
 import (
-	"bytes"
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 	"unicode"
-
-	"tr_dili/pkg/turkce"
 )
 
 //go:embed tr.json
@@ -59,8 +54,9 @@ type Dil struct {
 	Kodu string
 
 	girdiler map[Kod]*Girdi
-	adDizi   []string // kod → ad; Ad çalışma anında da ucuz olsun diye dizi
-	sira     []Kod    // dosyadaki sıra
+	// adDizi aile başına sayı → addır; Ad çalışma anında da harita araması yapmasın diye dizi.
+	adDizi   [len(aileHarfleri)][]string
+	kodlar   []Kod // artan sırada
 	yazimlar map[Kod][]string
 	esler    map[Kod][]string // eş yazımlar ve kabul edilen ASCII biçimleri
 	adlar    [alanSayisi]map[string]Kod
@@ -69,38 +65,24 @@ type Dil struct {
 	asilTum  map[string]string
 }
 
-type girdiJSON struct {
-	Ad    string   `json:"ad"`
-	Es    []string `json:"es"`
-	Eski  []string `json:"eski"`
-	Aile  string   `json:"aile"`
-	ASCII *bool    `json:"ascii"`
-}
-
 // Yukle bir dil dosyasını okur ve doğrular. Biçim hatası, yinelenen kod ya da bir ad
 // alanında çakışan ad (Türkçe ya da ASCII biçimiyle, eski adlar dahil) varsa hepsini
 // sayan bir hata döndürür.
 func Yukle(kodu string, veri []byte) (*Dil, error) {
-	d := &Dil{Kodu: kodu, girdiler: map[Kod]*Girdi{}, yazimlar: map[Kod][]string{}, esler: map[Kod][]string{}, asilTum: map[string]string{}}
 	var hatalar []string
 	hata := func(bicim string, a ...any) { hatalar = append(hatalar, fmt.Sprintf(bicim, a...)) }
 
-	dec := json.NewDecoder(bytes.NewReader(veri))
-	dec.DisallowUnknownFields()
-	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
-		return nil, fmt.Errorf("sözlük %s: dosya bir JSON nesnesi ({ ... }) olmalı", kodu)
+	ham, err := dosyaCoz(veri)
+	if err != nil {
+		return nil, fmt.Errorf("sözlük %s: dosya okunamadı (bir JSON nesnesi { \"G100\": { \"ad\": ... }, ... } olmalı): %v", kodu, err)
 	}
-	for dec.More() {
-		t, err := dec.Token()
-		if err != nil {
-			return nil, fmt.Errorf("sözlük %s: %v", kodu, err)
-		}
-		anahtar, _ := t.(string)
-		var g girdiJSON
-		if err := dec.Decode(&g); err != nil {
-			return nil, fmt.Errorf("sözlük %s: %s girdisi okunamadı: %v", kodu, anahtar, err)
-		}
-		k, err := KodCoz(anahtar)
+
+	d := &Dil{Kodu: kodu, girdiler: make(map[Kod]*Girdi, len(ham)), yazimlar: make(map[Kod][]string, len(ham)),
+		esler: map[Kod][]string{}, asilTum: make(map[string]string, 2*len(ham))}
+	var alanBoyu [alanSayisi]int // ad alanı başına yazım sayısı (haritaların boyu için)
+	var enBuyuk [len(aileHarfleri)]int
+	for _, g := range ham {
+		k, err := KodCoz(g.anahtar)
 		if err != nil {
 			hata("%v", err)
 			continue
@@ -113,39 +95,41 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			hata("%s: %c ailesi henüz kullanılmıyor", k, k.Harf())
 			continue
 		}
-		if g.Ad == "" || strings.IndexFunc(g.Ad, unicode.IsSpace) >= 0 {
-			hata("%s: ad boş olamaz ve boşluk içeremez (%q)", k, g.Ad)
+		if g.ad == "" || strings.IndexFunc(g.ad, unicode.IsSpace) >= 0 {
+			hata("%s: ad boş olamaz ve boşluk içeremez (%q)", k, g.ad)
 			continue
 		}
-		gr := &Girdi{Kod: k, Ad: g.Ad, Es: g.Es, Eski: g.Eski, Aile: g.Aile, ASCII: g.ASCII == nil || *g.ASCII}
-		for _, e := range g.Es {
+		gr := &Girdi{Kod: k, Ad: g.ad, Es: g.es, Eski: g.eski, Aile: g.aile, ASCII: g.ascii == nil || *g.ascii}
+		for _, e := range g.es {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
 				hata("%s: eş yazım boş olamaz ve boşluk içeremez (%q)", k, e)
 			}
 		}
-		for _, e := range g.Eski {
+		for _, e := range g.eski {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
 				hata("%s: eski ad boş olamaz ve boşluk içeremez (%q)", k, e)
 			}
-			if e == g.Ad || turkce.ASCII(e) == turkce.ASCII(g.Ad) {
+			if e == g.ad || asciiBicim(e) == asciiBicim(g.ad) {
 				hata("%s: eski ad %q adın kendisi (ya da ASCII biçimi) olamaz", k, e)
 			}
 		}
 		d.girdiler[k] = gr
-		d.sira = append(d.sira, k)
+		d.kodlar = append(d.kodlar, k)
+		alanBoyu[k.Alan()] += 2 * (1 + len(g.es))
+		enBuyuk[int(k)/1000-1] = max(enBuyuk[int(k)/1000-1], k.Sayi())
 	}
-	if _, err := dec.Token(); err != nil {
-		return nil, fmt.Errorf("sözlük %s: %v", kodu, err)
-	}
-	if _, err := dec.Token(); err != io.EOF {
-		return nil, fmt.Errorf("sözlük %s: kapanan '}' sonrasında fazladan içerik var", kodu)
+	sort.Slice(d.kodlar, func(i, j int) bool { return d.kodlar[i] < d.kodlar[j] })
+	for i, n := range enBuyuk {
+		if n > 0 {
+			d.adDizi[i] = make([]string, n+1)
+		}
 	}
 
 	// Ad alanı tabloları. Kod sırasıyla kurulur ki hata mesajları kararlı olsun.
 	for i := range d.adlar {
-		d.adlar[i] = map[string]Kod{}
+		d.adlar[i] = make(map[string]Kod, alanBoyu[i])
 		d.eskiler[i] = map[string][]eskiEslesme{}
-		d.asil[i] = map[string]string{}
+		d.asil[i] = make(map[string]string, alanBoyu[i])
 	}
 	// sahibi: ad alanında ASCII biçime göre adın (ya da eş yazımın) sahibi kod ve Türkçe biçimi.
 	type sahip struct {
@@ -154,14 +138,14 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 	}
 	sahibi := [alanSayisi]map[string]sahip{}
 	for i := range sahibi {
-		sahibi[i] = map[string]sahip{}
+		sahibi[i] = make(map[string]sahip, alanBoyu[i]/2)
 	}
-	for _, k := range d.Kodlar() {
+	for _, k := range d.kodlar {
 		g := d.girdiler[k]
 		al := k.Alan()
 		var yaz, es []string
 		for i, ad := range append([]string{g.Ad}, g.Es...) {
-			ascii := turkce.ASCII(ad)
+			ascii := asciiBicim(ad)
 			if o, ok := sahibi[al][ascii]; ok {
 				hata("%s %q ile %s %q aynı ad alanında (%s) çakışıyor (ASCII biçimleri: %q)", o.kod, o.ad, k, ad, al, ascii)
 				continue
@@ -184,25 +168,24 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			}
 		}
 		d.yazimlar[k] = yaz
-		for int(k) >= len(d.adDizi) {
-			d.adDizi = append(d.adDizi, "")
+		d.adDizi[int(k)/1000-1][k.Sayi()] = g.Ad
+		if len(es) > 0 {
+			d.esler[k] = es
 		}
-		d.adDizi[k] = g.Ad
-		d.esler[k] = es
 		for _, y := range yaz {
 			d.adlar[al][y] = k
 		}
 	}
-	for _, k := range d.Kodlar() {
+	for _, k := range d.kodlar {
 		g := d.girdiler[k]
 		al := k.Alan()
 		for _, e := range g.Eski {
 			yazimlar := []string{e}
-			if a := turkce.ASCII(e); a != e {
+			if a := asciiBicim(e); a != e {
 				yazimlar = append(yazimlar, a)
 			}
 			for i, ad := range yazimlar {
-				if o, ok := sahibi[al][turkce.ASCII(ad)]; ok && (ad == o.ad || ad == turkce.ASCII(o.ad)) {
+				if o, ok := sahibi[al][asciiBicim(ad)]; ok && (ad == o.ad || ad == asciiBicim(o.ad)) {
 					hata("%s'in eski adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", k, ad, o.kod, o.ad)
 					continue
 				}
@@ -222,14 +205,7 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 }
 
 // Kodlar dildeki bütün kodları artan sırayla verir.
-func (d *Dil) Kodlar() []Kod {
-	out := make([]Kod, 0, len(d.girdiler))
-	for k := range d.girdiler {
-		out = append(out, k)
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
-	return out
-}
+func (d *Dil) Kodlar() []Kod { return append([]Kod(nil), d.kodlar...) }
 
 // Girdisi kodun dil dosyasındaki satırını verir.
 func (d *Dil) Girdisi(k Kod) (Girdi, bool) {
@@ -243,8 +219,8 @@ func (d *Dil) Girdisi(k Kod) (Girdi, bool) {
 // Ad kodun bu dildeki adıdır (dizi indekslemesi; harita araması yok). Kod dil dosyasında yoksa bu bir geliştirici hatasıdır ve
 // panikler (kodlar Go'da sabittir; dosyadan bir satır silinmişse program başlarken durur).
 func (d *Dil) Ad(k Kod) string {
-	if int(k) < len(d.adDizi) {
-		if a := d.adDizi[k]; a != "" {
+	if f, n := int(k)/1000-1, k.Sayi(); f >= 0 && f < len(d.adDizi) && n < len(d.adDizi[f]) {
+		if a := d.adDizi[f][n]; a != "" {
 			return a
 		}
 	}
@@ -274,7 +250,7 @@ func (d *Dil) EsYazimi(k Kod, yazim string) bool {
 }
 
 // ASCIIBicim adın türetilmiş ASCII biçimidir (kabul edilip edilmediğinden bağımsız).
-func (d *Dil) ASCIIBicim(k Kod) string { return turkce.ASCII(d.Ad(k)) }
+func (d *Dil) ASCIIBicim(k Kod) string { return asciiBicim(d.Ad(k)) }
 
 // Bul bir yazımın (ad ya da kabul edilen ASCII biçimi) verilen ad alanındaki kodunu verir.
 func (d *Dil) Bul(al Alan, yazim string) (Kod, bool) {

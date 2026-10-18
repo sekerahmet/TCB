@@ -25,15 +25,23 @@ func (v *VM) YerlesikTanimla(kod sozluk.Kod, b *BuiltinVal) *BuiltinVal {
 	if !kod.Yerlesik() {
 		panic(fmt.Sprintf("yerleşik kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kod))
 	}
-	degerler := map[string]*BuiltinVal{b.Name: b}
+	var esler []*BuiltinVal // eş yazımların kendi adlı kopyaları (çoğu kodda yok)
 	for _, yazim := range sozluk.Yazimlar(kod) {
-		ad, _ := sozluk.AsilAdAlanda(sozluk.AlanGenel, yazim)
-		d, ok := degerler[ad]
-		if !ok {
-			kopya := *b
-			kopya.Name = ad
-			d = &kopya
-			degerler[ad] = d
+		d := b
+		if sozluk.EsYazimi(kod, yazim) {
+			ad, _ := sozluk.AsilAdAlanda(sozluk.AlanGenel, yazim)
+			d = nil
+			for _, e := range esler {
+				if e.Name == ad {
+					d = e
+				}
+			}
+			if d == nil {
+				kopya := *b
+				kopya.Name = ad
+				d = &kopya
+				esler = append(esler, d)
+			}
 		}
 		v.GlobalEnv.Define(yazim, d, true)
 	}
