@@ -297,7 +297,7 @@ değişken kapılı_nöron_tam = özel_türev(
 )
 // --- kapılı nöron tanımları sonu ---
 
-test "15.20a örnek: satıra özel kapılı nöron (özel türevli sürümler bileşik sürümle aynı gradyanı verir)" {
+test "15.20 örnek: satıra özel kapılı nöron (özel türevli sürümler bileşik sürümle aynı gradyanı verir)" {
     değişken x0 = rastgele_normal([6, 4], tohum: 11)
     değişken W0 = rastgele_normal([5, 12], tohum: 12) * 0.5
     değişken indeks = tensör([0, 3, 3, 1, 4, 0])

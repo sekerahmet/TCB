@@ -89,7 +89,7 @@ test "15.3 işleçler ve yayınlama" {
     eşit_mi([5.0, 2.0], w.değer)
 }
 
-test "15.3a bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir görünümdür" {
+test "15.3 bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir görünümdür" {
     değişken t = tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     değişken d = t.devrik()
     d[0] = 9                                  // d'nin 0. satırı t'nin 0. sütunudur
@@ -140,7 +140,7 @@ test "15.4 matematik fonksiyonları ve indirgemeler" {
     eşit_mi(e[0], e[8])
 }
 
-test "15.4a sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {
+test "15.4 sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {
     değişken nan_mı = (x) => x != x
     değişken y = tensör([1.0, 0.0, 3.0]) / tensör([1.0, 0.0, 1.0])     // [1, NaN, 3]
     değişken yg = tensör(y, türev_izle: doğru)
@@ -155,7 +155,7 @@ test "15.4a sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol ayn�
     doğrula(r[0] == 1.0 ve nan_mı(r[1]) ve r[2] == 3.0)
 }
 
-test "15.4b tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı 0" {
+test "15.4 tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı 0" {
     değişken m = log(tensör([[0.0, 0.0, 0.0], [1.0, 0.0, 1.0]]))        // satır 0: hepsi -sonsuz
     eşit_mi([[0.0, 0.0, 0.0], [0.5, 0.0, 0.5]], softmax(m).değer)
     eşit_mi([0.0, 0.0, 0.0], softmax(m.devrik(), eksen: 0).devrik().değer[0])
@@ -168,7 +168,7 @@ test "15.4b tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı 0
     eşit_mi([0.0, 0.0, 0.0], x.gradyan.değer[0])
 }
 
-test "15.5a tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entropi" {
+test "15.5 tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entropi" {
     doğrula(hata_metni(() => ortalama(tensör([]))).içerir("boş tensörün ortalaması tanımsız"))
     doğrula(hata_metni(() => ortalama(sıfırlar([2, 0]), eksen: 1)).içerir("ortalaması tanımsız"))
     eşit_mi(0.0, toplam(tensör([])).değer)
@@ -215,7 +215,7 @@ test "15.6 geri yayılım, gradyan ve türevsiz" {
     doğrula(hata_metni(() => ara.gradyan).içerir("bir işlemin sonucu"))
 }
 
-test "15.6a türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
+test "15.6 türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     değişken w = tensör([1.0, 2.0], türev_izle: doğru)
     değişken izli = (t) => hata_metni(() => geri_yayılım(toplam(t))) == ""
     değişken d = {"başladı": yanlış, "devam": yanlış}
@@ -244,7 +244,7 @@ test "15.6a türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     eşit_mi([1.0, 2.0], w.değer)
 }
 
-test "15.6b .gradyan canlı takma addır; değişince onu kullanan hesap hata verir" {
+test "15.6 .gradyan canlı takma addır; değişince onu kullanan hesap hata verir" {
     değişken x = tensör([1.0, 2.0], türev_izle: doğru)
     değişken w = tensör([1.0, 1.0], türev_izle: doğru)
     geri_yayılım(toplam(x * 3))
