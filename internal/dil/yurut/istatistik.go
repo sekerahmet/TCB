@@ -1,6 +1,7 @@
 package yurut
 
 import (
+	"fmt"
 	"math"
 	"sort"
 
@@ -8,25 +9,23 @@ import (
 )
 
 // registerIstatistik ortalama, standart_sapma ve ortanca yerleşiklerini kaydeder. Tensör
-// yolu (ortalama(t, eksen: ...)) internal/motor/ogrenme'dadır; o, bu yerleşiği sarar.
+// yolu (ortalama(t, eksen: ...)) internal/motor/ogrenme'dadır; o, bu yerleşiği sarar. Üçü
+// de aynı kuralla girdi alır (13.1): tek bir liste ya da birden çok sayı; boş girdi ve sayı
+// olmayan eleman hatadır (toplam gibi).
 func (v *VM) registerIstatistik() {
-	// ortalama(liste) ya da ortalama(a, b, ...): boş girdi ve sayı olmayan eleman hatadır
-	// (toplam gibi).
 	v.AdlisizKaydet(kod.G410, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		if len(args) == 0 {
-			return nil, ArgumanSayisiHatasi("ortalama", "en az 1", 0, "ortalama(liste) ya da ortalama(a, b, ...)")
+		elems, err := istatistikGirdisi("ortalama", args)
+		if err != nil {
+			return nil, err
 		}
-		if l, ok := args[0].(*ListVal); ok && len(args) == 1 {
-			return SayiOrtalamasi("ortalama()", l.Elements)
-		}
-		return SayiOrtalamasi("ortalama()", args)
+		return SayiOrtalamasi("ortalama()", elems)
 	})
 
 	// standart_sapma: sayıların popülasyon standart sapması (n'ye bölerek).
 	v.AdlisizKaydet(kod.G411, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		nums := ExtractNumericSlice(args)
-		if len(nums) == 0 {
-			return &FloatVal{Val: 0}, nil
+		nums, err := istatistikSayilari("standart_sapma", "standart sapması", args)
+		if err != nil {
+			return nil, err
 		}
 		mean := 0.0
 		for _, x := range nums {
@@ -44,12 +43,10 @@ func (v *VM) registerIstatistik() {
 
 	// ortanca: çift sayıda elemanda ortadaki ikisinin ortalaması.
 	v.AdlisizKaydet(kod.G412, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		nums := ExtractNumericSlice(args)
-		if len(nums) == 0 {
-			return &FloatVal{Val: 0}, nil
+		sorted, err := istatistikSayilari("ortanca", "ortancası", args)
+		if err != nil {
+			return nil, err
 		}
-		sorted := make([]float64, len(nums))
-		copy(sorted, nums)
 		sort.Float64s(sorted)
 		mid := len(sorted) / 2
 		if len(sorted)%2 == 1 {
@@ -57,4 +54,37 @@ func (v *VM) registerIstatistik() {
 		}
 		return &FloatVal{Val: (sorted[mid-1] + sorted[mid]) / 2.0}, nil
 	})
+}
+
+// istatistikGirdisi istatistik yerleşiğinin elemanlarını verir: tek bir liste argümanının
+// elemanları ya da argümanların kendileri. Argümansız çağrı hatadır.
+func istatistikGirdisi(ad string, args []Value) ([]Value, error) {
+	if len(args) == 0 {
+		return nil, ArgumanSayisiHatasi(ad, "en az 1", 0, ad+"(liste) ya da "+ad+"(a, b, ...)")
+	}
+	if l, ok := args[0].(*ListVal); ok && len(args) == 1 {
+		return l.Elements, nil
+	}
+	return args, nil
+}
+
+// istatistikSayilari elemanları sayıya çevirir (yeni bir dilime): boş girdi ve sayı olmayan
+// eleman ortalama() ile aynı biçimde hatadır. ne hata mesajındaki sonucun adıdır.
+func istatistikSayilari(ad, ne string, args []Value) ([]float64, error) {
+	elems, err := istatistikGirdisi(ad, args)
+	if err != nil {
+		return nil, err
+	}
+	if len(elems) == 0 {
+		return nil, fmt.Errorf("%s(): boş listenin %s yoktur", ad, ne)
+	}
+	nums := make([]float64, len(elems))
+	for i, el := range elems {
+		f, ok := ToFloat(el)
+		if !ok {
+			return nil, ListeElemaniHatasi(ad+"()", i, sayiTipi, el)
+		}
+		nums[i] = f
+	}
+	return nums, nil
 }

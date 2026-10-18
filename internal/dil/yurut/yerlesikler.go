@@ -394,25 +394,3 @@ func enUcArgumanlari(ad string, args []Value, buyuk bool) (Value, error) {
 	}
 	return enUc(ad, args, buyuk, false)
 }
-
-// ExtractNumericSlice argümanlardaki (ya da tek liste argümanının elemanlarındaki) sayıları
-// Ondalık olarak toplar; sayı olmayanları atlar. Motorların istatistik yerleşikleri kullanır.
-func ExtractNumericSlice(args []Value) []float64 {
-	var res []float64
-	if len(args) == 1 {
-		if list, ok := args[0].(*ListVal); ok {
-			for _, el := range list.Elements {
-				if f, ok := ToFloat(el); ok {
-					res = append(res, f)
-				}
-			}
-			return res
-		}
-	}
-	for _, a := range args {
-		if f, ok := ToFloat(a); ok {
-			res = append(res, f)
-		}
-	}
-	return res
-}

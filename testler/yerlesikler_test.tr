@@ -141,6 +141,25 @@ test "13.3 boş ya da sayı olmayan listenin ortalaması hatadır" {
     doğrula(hatalar[1].içerir("listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[1])
 }
 
+test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı olmayanda hata" {
+    eşit_mi(2.0, standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
+    eşit_mi(0.5, standart_sapma(1, 2))
+    eşit_mi(2.5, ortanca([3, 1, 2, 4]))
+    eşit_mi(2.0, ortanca(3, 1, 2))
+    değişken hatalar = []
+    dene { standart_sapma([]) } yakala h { hatalar.ekle(h) }
+    dene { ortanca([]) } yakala h { hatalar.ekle(h) }
+    dene { standart_sapma([1, "x"]) } yakala h { hatalar.ekle(h) }
+    dene { ortanca([1, yok, 3]) } yakala h { hatalar.ekle(h) }
+    dene { ortanca() } yakala h { hatalar.ekle(h) }
+    eşit_mi(5, hatalar.uzunluk, metin(hatalar))
+    doğrula(hatalar[0].içerir("standart_sapma(): boş listenin standart sapması yoktur"), hatalar[0])
+    doğrula(hatalar[1].içerir("ortanca(): boş listenin ortancası yoktur"), hatalar[1])
+    doğrula(hatalar[2].içerir("standart_sapma(): listenin 2. elemanı Tam ya da Ondalık olmalıdır, Metin (\"x\") verildi"), hatalar[2])
+    doğrula(hatalar[3].içerir("ortanca(): listenin 2. elemanı Tam ya da Ondalık olmalıdır"), hatalar[3])
+    doğrula(hatalar[4].içerir("ortanca() en az 1 argüman bekler"), hatalar[4])
+}
+
 test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {
     değişken hatalar = []
     dene { yazdır("a", ayraç: "-") } yakala h { hatalar.ekle(h) }

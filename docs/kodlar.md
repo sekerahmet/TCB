@@ -766,7 +766,7 @@ yazdır(yuvarla(3.14159, 2), yuvarla(2.5), yuvarla(1234, -2))
 
     ortalama(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Ondalık | Tensör
 
-Sayıların aritmetik ortalamasını Ondalık olarak verir; liste yolunda sayı olmayanları atlar ve boş girdide 0.0 döner. Tensörde eksen: alır, boş tensörün ortalaması hatadır.
+Sayıların aritmetik ortalamasını Ondalık olarak verir; tek bir liste ya da birden çok sayı alır, boş girdi ve sayı olmayan eleman hatadır. Tensörde eksen: alır, boş tensörün ortalaması hatadır.
 
 ```tr
 yazdır(ortalama([1, 2, 3, 4]), ortalama(tensör([[1, 2], [3, 4]]), eksen: 1).değer)
@@ -778,7 +778,7 @@ yazdır(ortalama([1, 2, 3, 4]), ortalama(tensör([[1, 2], [3, 4]]), eksen: 1).de
 
     standart_sapma(Liste | Tam | Ondalık, [Tam | Ondalık...]) → Ondalık
 
-Sayıların popülasyon standart sapmasını (n'ye bölerek) Ondalık olarak verir; sayı olmayanlar atlanır, boş girdide 0.0 döner.
+Sayıların popülasyon standart sapmasını (n'ye bölerek) Ondalık olarak verir; ortalama gibi tek bir liste ya da birden çok sayı alır, boş girdi ve sayı olmayan eleman hatadır.
 
 ```tr
 yazdır(standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
@@ -790,7 +790,7 @@ yazdır(standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
 
     ortanca(Liste | Tam | Ondalık, [Tam | Ondalık...]) → Ondalık
 
-Sayıların ortancasını Ondalık olarak verir; eleman sayısı çiftse ortadaki ikisinin ortalamasıdır, boş girdide 0.0 döner.
+Sayıların ortancasını Ondalık olarak verir; eleman sayısı çiftse ortadaki ikisinin ortalamasıdır; ortalama gibi boş girdi ve sayı olmayan eleman hatadır.
 
 ```tr
 yazdır(ortanca([3, 1, 4, 2]))
