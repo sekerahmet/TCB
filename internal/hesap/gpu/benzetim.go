@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"time"
 	"unsafe"
 )
 
@@ -24,12 +25,44 @@ type benzetimSurucu struct {
 	bellek   uint64 // bildirilen toplam bellek
 	ayrilan  uint64
 	boyut    map[uint64]uint64
+	// olaylar profil olaylarının geçildiği an (sıfır: henüz geçilmedi).
+	olaylar []time.Time
+	// cc ve smSayisi bildirilen yetenek (döşeme seçimi sınamaları değiştirebilir).
+	cc, smSayisi int
 }
 
 // yeniBenzetim toplam belleği verilen bir benzetim sürücüsü kurar.
 func yeniBenzetim(bellek uint64) *benzetimSurucu {
-	return &benzetimSurucu{bellek: bellek, boyut: map[uint64]uint64{}}
+	return &benzetimSurucu{bellek: bellek, boyut: map[uint64]uint64{}, cc: 52, smSayisi: 4}
 }
+
+func (b *benzetimSurucu) yetenek() (int, int) { return b.cc, b.smSayisi }
+
+func (b *benzetimSurucu) olayOlustur() (uintptr, sonuc) {
+	b.olaylar = append(b.olaylar, time.Time{})
+	return uintptr(len(b.olaylar)), basarili
+}
+
+func (b *benzetimSurucu) olayKaydet(ev uintptr) sonuc {
+	if ev == 0 || int(ev) > len(b.olaylar) {
+		return 400
+	}
+	b.olaylar[ev-1] = time.Time{}
+	return b.ekle(func() error { b.olaylar[ev-1] = time.Now(); return nil })
+}
+
+func (b *benzetimSurucu) olayHazir(ev uintptr) bool {
+	return ev != 0 && int(ev) <= len(b.olaylar) && !b.olaylar[ev-1].IsZero()
+}
+
+func (b *benzetimSurucu) olaySure(bas, son uintptr) (float32, sonuc) {
+	if !b.olayHazir(bas) || !b.olayHazir(son) {
+		return 0, 600
+	}
+	return float32(b.olaylar[son-1].Sub(b.olaylar[bas-1]).Seconds() * 1e3), basarili
+}
+
+func (b *benzetimSurucu) araclariBosalt() {}
 
 func (b *benzetimSurucu) bagla() sonuc         { return b.hata }
 func (b *benzetimSurucu) kartAdi() string      { return "benzetim (PTX yorumlayıcısı)" }

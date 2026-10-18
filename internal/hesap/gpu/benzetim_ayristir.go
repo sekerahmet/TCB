@@ -56,6 +56,9 @@ const (
 	bzBra
 	bzBar
 	bzRet
+	bzCp      // cp.async (genelden paylaşımlıya eşzamansız kopya)
+	bzCpGrup  // cp.async.commit_group
+	bzCpBekle // cp.async.wait_group
 )
 
 var bzIslemAdlari = map[string]bzIslem{
@@ -64,7 +67,7 @@ var bzIslemAdlari = map[string]bzIslem{
 	"sqrt": bzSqrt, "rcp": bzRcp, "ex2": bzEx2, "lg2": bzLg2, "sin": bzSin, "cos": bzCos,
 	"shl": bzShl, "shr": bzShr, "and": bzAnd, "or": bzOr, "xor": bzXor, "not": bzNot,
 	"setp": bzSetp, "selp": bzSelp, "cvt": bzCvt, "cvta": bzCvta, "ld": bzLd, "st": bzSt,
-	"bra": bzBra, "bar": bzBar, "ret": bzRet,
+	"bra": bzBra, "bar": bzBar, "ret": bzRet, "cp": bzCp,
 }
 
 // bzTur işlenen türü.
@@ -153,6 +156,13 @@ type bzKomut struct {
 	param    int32 // ld.param: parametre sırası
 	hedef    int32 // bra hedefi
 	satir    string
+	// Vektörel erişim (.v2/.v4): vek eleman sayısı; ld hedefleri vy, st kaynakları vo.
+	vek uint8
+	vy  [4]int32
+	vo  [4]bzTerim
+	// cp.async: kaynak (genel bellek) adresi, kopya boyu (o[0]) ve kaynak boyu (o[1]).
+	taban2 bzTerim
+	ofset2 int64
 }
 
 type bzIslev struct {
@@ -314,6 +324,18 @@ func (a *bzAyristirici) komutCoz(s string) error {
 	if sp := strings.IndexByte(s, ' '); sp >= 0 {
 		op, args = s[:sp], strings.TrimSpace(s[sp+1:])
 	}
+	// Vektör işleneni ({a, b, c, d}) tek terim olarak yer tutucuyla değiştirilir.
+	var vekListe []string
+	if i := strings.IndexByte(args, '{'); i >= 0 {
+		j := strings.IndexByte(args, '}')
+		if j < i {
+			return fmt.Errorf("kapanmamış vektör işleneni")
+		}
+		for _, v := range strings.Split(args[i+1:j], ",") {
+			vekListe = append(vekListe, strings.TrimSpace(v))
+		}
+		args = args[:i] + "@V" + args[j+1:]
+	}
 	parca := strings.Split(op, ".")
 	isl, ok := bzIslemAdlari[parca[0]]
 	if !ok {
@@ -329,6 +351,9 @@ func (a *bzAyristirici) komutCoz(s string) error {
 		for i := range terimler {
 			terimler[i] = strings.TrimSpace(terimler[i])
 		}
+	}
+	if err := a.vektor(&k, terimler, vekListe); err != nil {
+		return err
 	}
 	if err := a.terimler(&k, terimler); err != nil {
 		return err
@@ -354,7 +379,15 @@ func (a *bzAyristirici) ekler(k *bzKomut, ek []string) error {
 			} else {
 				k.islem = bzMadWide
 			}
-		case "rn", "approx", "uni", "sync", "to":
+		case "rn", "approx", "uni", "sync", "to", "async", "ca", "cg":
+		case "v2":
+			k.vek = 2
+		case "v4":
+			k.vek = 4
+		case "commit_group":
+			k.islem = bzCpGrup
+		case "wait_group":
+			k.islem = bzCpBekle
 		case "rni":
 			k.kip = 1
 		case "rzi":
@@ -398,14 +431,26 @@ func (a *bzAyristirici) terimler(k *bzKomut, t []string) error {
 			ad    string
 		}{len(a.is.komutlar), t[0]})
 		return nil
-	case bzBar, bzRet:
+	case bzBar, bzRet, bzCpGrup:
 		return nil
+	case bzCpBekle:
+		if len(t) != 1 {
+			return fmt.Errorf("cp.async.wait_group tek sayı ister")
+		}
+		v, err := a.terim(t[0], bzU32)
+		k.o[0] = v
+		return err
+	case bzCp:
+		return a.cpTerimleri(k, t)
 	case bzSt:
 		if len(t) != 2 {
 			return fmt.Errorf("st iki işlenen ister")
 		}
 		if err := a.bellek(k, t[0]); err != nil {
 			return err
+		}
+		if k.vek > 0 {
+			return nil // kaynaklar vektörde (vo)
 		}
 		v, err := a.terim(t[1], k.tur)
 		k.o[0] = v
@@ -414,8 +459,10 @@ func (a *bzAyristirici) terimler(k *bzKomut, t []string) error {
 		if len(t) != 2 {
 			return fmt.Errorf("ld iki işlenen ister")
 		}
-		if err := a.hedefYazmac(k, t[0]); err != nil {
-			return err
+		if k.vek == 0 {
+			if err := a.hedefYazmac(k, t[0]); err != nil {
+				return err
+			}
 		}
 		return a.bellek(k, t[1])
 	}

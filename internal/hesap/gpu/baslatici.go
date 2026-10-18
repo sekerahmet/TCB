@@ -211,7 +211,9 @@ func (g *arkaUc) baslat(c *cekirdek, izgara, blok [3]uint32, p *paramYazici) {
 		d.konak = nil
 	}
 	g.sonCekirdek = c.ad
+	ev := g.olcBasla()
 	g.dene("cuLaunchKernel("+c.ad+")", g.sr.baslat(c.fn, izgara, blok, parca))
+	g.olcBitir(c.ad, ev)
 	if g.eszamanli {
 		g.esitle()
 	}

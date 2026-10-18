@@ -46,4 +46,5 @@ func Kapat() {
 	gunluk.TumunuKapat()
 	veri.TumunuKapat(3 * time.Second)
 	dosya.TumunuKapat()
+	ogrenme.Kapat()
 }

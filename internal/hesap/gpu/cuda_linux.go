@@ -31,3 +31,25 @@ func (l *linuxKutuphane) cagir(fn uintptr, args ...uintptr) uintptr {
 	r, _, _ := purego.SyscallN(fn, args...)
 	return r
 }
+
+// cikisIsleyicileriniCalistir C kitaplığının çıkış işleyicilerini (atexit ile kaydedilenler)
+// çalıştırır: __cxa_finalize(NULL). Yalnızca program sonunda, dış bir profilleyici bağlıyken
+// çağrılır (bkz. araclariBosalt).
+func cikisIsleyicileriniCalistir() {
+	h, err := purego.Dlopen("libc.so.6", purego.RTLD_NOW|purego.RTLD_GLOBAL)
+	if err != nil {
+		return
+	}
+	if fn, err := purego.Dlsym(h, "__cxa_finalize"); err == nil {
+		purego.SyscallN(fn, 0)
+	}
+}
+
+// kitaplikAc bir kitaplığı (tam yol ya da standart arama yolundaki dosya adı) yükler.
+func kitaplikAc(yol string) (kutuphane, error) {
+	h, err := purego.Dlopen(yol, purego.RTLD_NOW|purego.RTLD_LOCAL)
+	if err != nil {
+		return nil, err
+	}
+	return &linuxKutuphane{tutamac: h}, nil
+}

@@ -38,6 +38,13 @@ type arkaUc struct {
 	carpim    carpimAyari
 	// carpimSabit doluysa matris çarpımı döşemesi otomatik seçilmez (sınama).
 	carpimSabit *carpimAyari
+	// prof çekirdek ölçümleri (bkz. profil.go).
+	prof profil
+	// hacim son çöp toplamadan bu yana verilen depolama baytı (havuzdan gelenler dahil).
+	hacim uint64
+	// lt matris çarpımı kitaplığı (yüklenemediyse nil: kendi çekirdeğimiz).
+	lt      *ltCarpim
+	ltNeden string // lt nil ise nedeni (teşhis)
 }
 
 func init() {
@@ -84,14 +91,16 @@ func benzetimIstendi() bool { return os.Getenv("TR_GPU_BENZETIM") == "1" }
 
 func kur(sira int) tensor.Backend {
 	if cudaYukle().hata != nil && benzetimIstendi() && sira == 0 {
-		return yeniArkaUc(tensor.GPU(0), yeniBenzetim(1<<30))
+		return kaydet(yeniArkaUc(tensor.GPU(0), yeniBenzetim(1<<30)))
 	}
 	s, err := cudaAc(sira)
 	if err != nil {
 		kurulumHatasiYaz(err)
 		return nil
 	}
-	return yeniArkaUc(tensor.GPU(sira), s)
+	g := kaydet(yeniArkaUc(tensor.GPU(sira), s))
+	g.ltKur()
+	return g
 }
 
 // Durum sürücünün yüklenme durumunu açıklar (teşhis: GPU neden görünmüyor).
@@ -107,7 +116,7 @@ func Durum() string {
 		return fmt.Sprintf("%d GPU görünüyor ama arka uç kurulamadı: %v", n, kurulumHatasiOku())
 	}
 	be := tensor.BackendFor(tensor.GPU(0)).(*arkaUc)
-	return fmt.Sprintf("%d GPU; gpu: %s, %s bellek", n, be.sr.kartAdi(), baytYazi(be.sr.toplamBellek()))
+	return fmt.Sprintf("%d GPU; gpu: %s, %s bellek; matris çarpımı: %s", n, be.sr.kartAdi(), baytYazi(be.sr.toplamBellek()), be.carpimYolu())
 }
 
 func yeniArkaUc(dev tensor.Device, sr surucu) *arkaUc {
@@ -125,7 +134,7 @@ func BenzetimiKaydet() bool {
 	if tensor.HasDevice(tensor.GPU(0)) {
 		return false
 	}
-	tensor.RegisterBackend(yeniArkaUc(tensor.GPU(0), yeniBenzetim(1<<30)))
+	tensor.RegisterBackend(kaydet(yeniArkaUc(tensor.GPU(0), yeniBenzetim(1<<30))))
 	return true
 }
 
@@ -147,9 +156,11 @@ func (g *arkaUc) gir() {
 		g.cik()
 		panic(m)
 	}
+	g.konakBasla()
 }
 
 func (g *arkaUc) cik() {
+	g.konakBitir()
 	runtime.UnlockOSThread()
 	g.mu.Unlock()
 }
@@ -179,8 +190,10 @@ func (g *arkaUc) dene(islem string, s sonuc) {
 
 // esitle sıradaki bütün işlerin bitmesini bekler.
 func (g *arkaUc) esitle() {
+	g.esitBasla()
 	g.dene("cuCtxSynchronize", g.sr.esitle())
 	g.hazirlik.ofset = 0
+	g.esitBitir()
 }
 
 // enCok tek bir çekirdeğin eleman sayısı sınırı (32 bitlik indeksler).

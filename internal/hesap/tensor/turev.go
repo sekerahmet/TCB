@@ -233,6 +233,9 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 		n.serbest = true
 		n.geride.Store(false)
 	}
+	if f, ok := t.be.(BackwardFinisher); ok {
+		f.BackwardDone()
+	}
 }
 
 // iadeEt arka uç destekliyorsa depolamayı iade eder.

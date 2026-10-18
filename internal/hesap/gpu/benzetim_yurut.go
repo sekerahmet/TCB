@@ -73,6 +73,9 @@ type bzIs struct {
 	durum uint8
 	no    int32 // bloktaki doğrusal sıra
 	tid   [3]uint32
+	// cp.async: bekleyen kopyalar ve açık grubun numarası.
+	cp     []bzCpIs
+	cpGrup int32
 }
 
 type bzBlok struct {
@@ -169,6 +172,7 @@ func bzBaslat(is *bzIslev, bel *bzBellek, izgara, blok [3]uint32, param [][]byte
 func (b *bzBlok) yurut(isler []bzIs) error {
 	for i := range isler {
 		isler[i].pc, isler[i].durum = 0, dCalisiyor
+		isler[i].cp, isler[i].cpGrup = isler[i].cp[:0], 0
 	}
 	b.donem++
 	for {
@@ -220,8 +224,7 @@ func (b *bzBlok) calistir(t *bzIs) error {
 	kom := b.is.komutlar
 	for {
 		if int(t.pc) >= len(kom) {
-			t.durum = dBitti
-			return nil
+			return b.bitir(t)
 		}
 		*b.butce--
 		if *b.butce < 0 {
@@ -241,8 +244,11 @@ func (b *bzBlok) calistir(t *bzIs) error {
 			t.durum = dEngelde
 			return nil
 		case bzRet:
-			t.durum = dBitti
-			return nil
+			return b.bitir(t)
+		case bzCp, bzCpGrup, bzCpBekle:
+			if err := b.cpYurut(t, k); err != nil {
+				return err
+			}
 		case bzLd:
 			if err := b.yukle(t, k); err != nil {
 				return err
@@ -299,7 +305,19 @@ func (b *bzBlok) adresDilim(t *bzIs, k *bzKomut, n int, yazma bool) ([]byte, err
 	return b.bel.dilim(adr, n)
 }
 
+// bitir iş parçacığını bitirir; bekleyen eşzamansız kopyası kalmışsa hatadır.
+func (b *bzBlok) bitir(t *bzIs) error {
+	if len(t.cp) > 0 {
+		return fmt.Errorf("iş parçacığı %d cp.async kopyası beklenmeden bitti", len(t.cp))
+	}
+	t.durum = dBitti
+	return nil
+}
+
 func (b *bzBlok) yukle(t *bzIs, k *bzKomut) error {
+	if k.vek > 0 {
+		return b.vekYukle(t, k)
+	}
 	n := turBayt(k.tur)
 	d, err := b.adresDilim(t, k, n, false)
 	if err != nil {
@@ -322,6 +340,9 @@ func (b *bzBlok) yukle(t *bzIs, k *bzKomut) error {
 }
 
 func (b *bzBlok) sakla(t *bzIs, k *bzKomut) error {
+	if k.vek > 0 {
+		return b.vekSakla(t, k)
+	}
 	if k.alan == alanParam {
 		return fmt.Errorf("parametre alanına yazılamaz")
 	}

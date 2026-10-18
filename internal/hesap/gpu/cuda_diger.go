@@ -10,3 +10,9 @@ import "errors"
 func kutuphaneAc() (kutuphane, error) {
 	return nil, errors.New("bu TR derlemesinde GPU desteği yok (işletim sistemi desteklenmiyor ya da ikili GPU'suz derlendi)")
 }
+
+func cikisIsleyicileriniCalistir() {}
+
+func kitaplikAc(string) (kutuphane, error) {
+	return nil, errors.New("bu derlemede dış kitaplık yüklenmez")
+}

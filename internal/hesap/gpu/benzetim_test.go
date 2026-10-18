@@ -12,8 +12,12 @@ import (
 // Benzetimin hata yakalama yetenekleri ve arka ucun hata mesajları. Her sınama kendi
 // benzetim arka ucunu kurar (yapışkan hata diğerlerini etkilemesin).
 
+// Eşzamanlı kip (TR_GPU_ESZAMANLI=1) bu arka uçlarda kapalıdır: hatayı başlatmada değil
+// eşzamanlamada beklerler; ortam değişkeninden bağımsız olmalıdırlar.
 func yeniBenzetimArkaUcu(bellek uint64) *arkaUc {
-	return yeniArkaUc(tensor.GPU(7), yeniBenzetim(bellek))
+	g := yeniArkaUc(tensor.GPU(7), yeniBenzetim(bellek))
+	g.eszamanli = false
+	return g
 }
 
 // calistirHata, govde'nin yazdığı tek bloklu (4 iş parçacığı) çekirdeği 16 baytlık bir

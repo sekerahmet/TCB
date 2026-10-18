@@ -167,3 +167,10 @@ type UninitAllocator interface {
 type SquareSummer interface {
 	SumSquaresAll(s []Storage) float64
 }
+
+// BackwardFinisher bir geri yayılım bittiğinde haber almak isteyen arka uçların isteğe bağlı
+// arayüzüdür: ileri yönün ara tensörleri o anda ulaşılamaz olur (GPU arka ucu çöp
+// toplamayı başlatıp cihaz belleğini bir sonraki ileri yönden önce havuza döndürür).
+type BackwardFinisher interface {
+	BackwardDone()
+}

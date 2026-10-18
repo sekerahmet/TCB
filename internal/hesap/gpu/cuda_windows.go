@@ -38,3 +38,26 @@ func (w *windowsKutuphane) cagir(fn uintptr, args ...uintptr) uintptr {
 	r, _, _ := syscall.SyscallN(fn, args...)
 	return r
 }
+
+// cikisIsleyicileriniCalistir Windows'ta gerekmez: araçlar süreç sonunu kendileri yakalar.
+func cikisIsleyicileriniCalistir() {}
+
+// Bağımlılıklar yalnızca DLL'in kendi klasöründen ve sistem klasöründen yüklenir.
+const dllKlasorundenVeSistemden = 0x00000100 | sistemKlasorunden
+
+// kitaplikAc bir DLL'i tam yolundan yükler (arama yolu kullanılmaz).
+func kitaplikAc(yol string) (kutuphane, error) {
+	yukleyici := syscall.NewLazyDLL("kernel32.dll").NewProc("LoadLibraryExW")
+	if err := yukleyici.Find(); err != nil {
+		return nil, err
+	}
+	ad, err := syscall.UTF16PtrFromString(yol)
+	if err != nil {
+		return nil, err
+	}
+	h, _, e := yukleyici.Call(uintptr(unsafe.Pointer(ad)), 0, dllKlasorundenVeSistemden)
+	if h == 0 {
+		return nil, e
+	}
+	return &windowsKutuphane{h: syscall.Handle(h)}, nil
+}

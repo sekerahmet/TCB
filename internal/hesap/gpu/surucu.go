@@ -48,6 +48,18 @@ type surucu interface {
 	hataAdi(s sonuc) string
 	// ayrinti son hatanın sürücüye özgü açıklaması (benzetimde çekirdek ve komut).
 	ayrinti() string
+	// yetenek hesaplama yeteneği (ör. 120 = sm_120) ve SM sayısı.
+	yetenek() (cc, sm int)
+	// Olaylar (profil): olayOlustur zamanlamalı bir olay verir; olayKaydet olayı sıraya
+	// koyar; olayHazir olay geçildiyse doğru döner (beklemez); olaySure iki geçilmiş
+	// olay arasındaki süre (ms).
+	olayOlustur() (uintptr, sonuc)
+	olayKaydet(ev uintptr) sonuc
+	olayHazir(ev uintptr) bool
+	olaySure(bas, son uintptr) (float32, sonuc)
+	// araclariBosalt bağlı profil araçlarına (dış profilleyiciler) toplanan veriyi
+	// yazdırır (program sonunda; araç yoksa etkisiz).
+	araclariBosalt()
 }
 
 // hataAdlari sürücü dönüş kodlarının adlarıdır (sürücü adı veremezse ve benzetimde).

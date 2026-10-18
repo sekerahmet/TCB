@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -72,10 +73,26 @@ const (
 	fSayisi
 )
 
+// cudaIstegeBagliAdlar bulunamazsa yalnızca ilgili özelliği (profil, araç boşaltma)
+// kapatan sürücü işlevleri.
+var cudaIstegeBagliAdlar = [...]string{
+	"cuEventCreate", "cuEventRecord", "cuEventQuery", "cuEventElapsedTime", "cuProfilerStop",
+}
+
+const (
+	iEventCreate = iota
+	iEventRecord
+	iEventQuery
+	iEventElapsed
+	iProfilerStop
+	iSayisi
+)
+
 // cudaKitaplik süreç genelinde bir kez yüklenen sürücü kitaplığı.
 type cudaKitaplik struct {
 	k      kutuphane
 	fn     [fSayisi]uintptr
+	ifn    [iSayisi]uintptr
 	sayi   int
 	surum  int32
 	hata   error
@@ -89,6 +106,7 @@ type cudaKitaplik struct {
 type cudaCikti struct {
 	u64, u64b uint64
 	i32       int32
+	f32       float32
 	tutamac   uintptr
 	gosterge  unsafe.Pointer
 	ad        [256]byte
@@ -115,6 +133,9 @@ func cudaYukle() *cudaKitaplik {
 				c.hata = fmt.Errorf("sürücüde %s işlevi yok (sürücü çok eski olabilir): %v", ad, err)
 				return
 			}
+		}
+		for i, ad := range cudaIstegeBagliAdlar {
+			c.ifn[i], _ = k.bul(ad) // yoksa 0: özellik kapalı
 		}
 		if s := c.cagir(fInit, 0); s != basarili {
 			c.hata = fmt.Errorf("cuInit başarısız: %s", c.hataAdi(s))
@@ -171,7 +192,7 @@ type cudaSurucu struct {
 	baglam   uintptr
 	ad       string
 	bellek   uint64
-	yetenek  [2]int32
+	yetenek_ [2]int32
 	smSayisi int32
 	cikti    *cudaCikti
 	paramBuf []byte
@@ -226,7 +247,7 @@ func cudaAc(sira int) (*cudaSurucu, error) {
 			return nil, fmt.Errorf("cuDeviceGetAttribute(%d): %s", oz, c.hataAdi(r))
 		}
 		if i < 2 {
-			s.yetenek[i] = o.i32
+			s.yetenek_[i] = o.i32
 		} else {
 			s.smSayisi = o.i32
 		}
@@ -251,7 +272,7 @@ func (s *cudaSurucu) cagir(f int, args ...uintptr) sonuc {
 func (s *cudaSurucu) bagla() sonuc { return s.cagir(fCtxSetCurrent, s.baglam) }
 
 func (s *cudaSurucu) kartAdi() string {
-	return fmt.Sprintf("%s (sm_%d%d, %d SM, sürücü CUDA %d.%d)", s.ad, s.yetenek[0], s.yetenek[1], s.smSayisi,
+	return fmt.Sprintf("%s (sm_%d%d, %d SM, sürücü CUDA %d.%d)", s.ad, s.yetenek_[0], s.yetenek_[1], s.smSayisi,
 		s.c.surum/1000, s.c.surum%1000/10)
 }
 
@@ -363,3 +384,45 @@ func (s *cudaSurucu) esitle() sonuc { return s.cagir(fCtxSynchronize) }
 func (s *cudaSurucu) hataAdi(r sonuc) string { return s.c.hataAdi(r) }
 
 func (s *cudaSurucu) ayrinti() string { return s.sonDetay }
+
+func (s *cudaSurucu) yetenek() (int, int) {
+	return int(s.yetenek_[0]*10 + s.yetenek_[1]), int(s.smSayisi)
+}
+
+// icagir isteğe bağlı bir sürücü işlevini çağırır (yoksa CUDA_ERROR_NOT_SUPPORTED).
+func (s *cudaSurucu) icagir(f int, args ...uintptr) sonuc {
+	if s.c.ifn[f] == 0 {
+		return 801
+	}
+	r := s.c.k.cagir(s.c.ifn[f], args...)
+	runtime.KeepAlive(s)
+	runtime.KeepAlive(s.cikti)
+	return sonuc(int32(uint32(r)))
+}
+
+func (s *cudaSurucu) olayOlustur() (uintptr, sonuc) {
+	r := s.icagir(iEventCreate, uintptr(unsafe.Pointer(&s.cikti.tutamac)), 0)
+	return s.cikti.tutamac, r
+}
+
+func (s *cudaSurucu) olayKaydet(ev uintptr) sonuc { return s.icagir(iEventRecord, ev, 0) }
+
+func (s *cudaSurucu) olayHazir(ev uintptr) bool { return s.icagir(iEventQuery, ev) == basarili }
+
+func (s *cudaSurucu) olaySure(bas, son uintptr) (float32, sonuc) {
+	r := s.icagir(iEventElapsed, uintptr(unsafe.Pointer(&s.cikti.f32)), bas, son)
+	return s.cikti.f32, r
+}
+
+// araclariBosalt dış bir profilleyici bağlıysa (sürücü onu CUDA_INJECTION64_PATH ile
+// yükler) sıradaki işleri bitirir, profil toplamayı durdurur ve aracın çıkış
+// işleyicilerini çalıştırır. Go programları C çıkış işleyicilerini (atexit) çalıştırmadan
+// biter; araçlar topladıklarını orada yazdığından, bu olmadan rapor boş kalır.
+func (s *cudaSurucu) araclariBosalt() {
+	if os.Getenv("CUDA_INJECTION64_PATH") == "" {
+		return
+	}
+	s.esitle()
+	s.icagir(iProfilerStop)
+	cikisIsleyicileriniCalistir()
+}

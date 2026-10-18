@@ -55,9 +55,11 @@ type yazici struct {
 	satir    []string
 	sayac    [yzSayisi]int
 	etiketNo int
+	// hedef PTX hedef mimarisi (52: taban sm_52; 80: cp.async kullanan çekirdekler).
+	hedef int
 }
 
-func yeniYazici(ad string) *yazici { return &yazici{ad: ad} }
+func yeniYazici(ad string) *yazici { return &yazici{ad: ad, hedef: 52} }
 
 func (k *yazici) yeni(t int) yazmac {
 	k.sayac[t]++
@@ -269,7 +271,7 @@ func (k *yazici) tam(v int) yazmac {
 // metin modülün PTX metnini verir.
 func (k *yazici) metin() string {
 	var sb strings.Builder
-	sb.WriteString(".version 7.0\n.target sm_52\n.address_size 64\n\n")
+	fmt.Fprintf(&sb, ".version 7.0\n.target sm_%d\n.address_size 64\n\n", k.hedef)
 	fmt.Fprintf(&sb, ".visible .entry %s(\n", k.ad)
 	sb.WriteString(strings.Join(k.param, ",\n"))
 	sb.WriteString("\n)\n{\n")

@@ -29,6 +29,10 @@ func (g *arkaUc) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.V
 	for _, n := range []int{M * K, K * N, M * N} {
 		boyDenetle(n)
 	}
+	if g.ltCarp(batch, M, N, K, g.adresi(a), transA, g.adresi(b), transB, c.adr+uint64(4*cOf), uzerine) {
+		c.konak = nil
+		return
+	}
 	ay := g.carpimSec(M, N)
 	if !ay.gecerli() {
 		panic(fmt.Sprintf("tensor: GPU: geçersiz matris çarpımı döşeme ayarı %+v (iç hata)", ay))

@@ -136,3 +136,7 @@ func cihazlarYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Va
 	}
 	return &yurut.ListVal{Elements: el}, nil
 }
+
+// Kapat program sonunda çağrılır (motor.Kapat): GPU ölçümü açıksa (TR_GPU_PROFIL=1) özeti
+// standart hataya yazar ve bağlı dış profilleyicilere topladıkları veriyi yazdırır.
+func Kapat() { gpu.Kapat() }
