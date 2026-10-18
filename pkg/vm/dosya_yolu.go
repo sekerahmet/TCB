@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"tr_dili/pkg/turkce"
@@ -35,9 +36,9 @@ func (v *VM) YolCoz(yol string) (cozulen string, bakilanlar []string) {
 	}
 	adaylar := []string{yol}
 	bakilanlar = []string{mutlakYol(yol)}
-	if klasor := v.programKlasoru(); klasor != "" {
+	for _, klasor := range v.aramaKlasorleri() {
 		aday := filepath.Join(klasor, yol)
-		if mutlak := mutlakYol(aday); mutlak != bakilanlar[0] {
+		if mutlak := mutlakYol(aday); !slices.Contains(bakilanlar, mutlak) {
 			adaylar = append(adaylar, aday)
 			bakilanlar = append(bakilanlar, mutlak)
 		}
@@ -81,13 +82,21 @@ func OkumaHatasi(fn, yol, islem string, err error, bakilanlar []string) error {
 	return turkce.DosyaHatasi(fn, yol, islem, err, ek)
 }
 
-// programKlasoru çalışan programın klasörüdür; program bir dosyadan çalışmıyorsa
-// (etkileşimli kabuk, derlenmiş uygulama: "<...>") boş döner.
-func (v *VM) programKlasoru() string {
-	if v == nil || v.SourceFile == "" || strings.HasPrefix(v.SourceFile, "<") {
-		return ""
+// aramaKlasorleri göreli yolların çalışma klasöründen sonra arandığı klasörlerdir: kod bir
+// modülde çalışıyorsa önce o modülün klasörü, sonra programın klasörü. Program bir
+// dosyadan çalışmıyorsa (etkileşimli kabuk, derlenmiş uygulama: "<...>") onun klasörü yoktur.
+func (v *VM) aramaKlasorleri() []string {
+	if v == nil {
+		return nil
 	}
-	return filepath.Dir(v.SourceFile)
+	var klasorler []string
+	if v.kaynak != nil && v.kaynak.Yol != "" && !strings.HasPrefix(v.kaynak.Yol, "<") {
+		klasorler = append(klasorler, filepath.Dir(v.kaynak.Yol))
+	}
+	if v.SourceFile != "" && !strings.HasPrefix(v.SourceFile, "<") {
+		klasorler = append(klasorler, filepath.Dir(v.SourceFile))
+	}
+	return klasorler
 }
 
 func mutlakYol(yol string) string {

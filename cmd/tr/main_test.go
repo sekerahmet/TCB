@@ -406,6 +406,43 @@ func TestDerleModulHatalari(t *testing.T) {
 
 	dosyaYaz(t, klasor, "tip.tr", "değişken x: Tam = \"a\"\n")
 	bekle(t, tr(t, klasor, "derle", "tip.tr", cikis), 1, nil, []string{"❌ Derleme Öncesi Tip Güvenliği Hataları:"})
+
+	// Modüller de tip denetiminden geçer; modülde üst düzey 'sonuç' hatadır.
+	dosyaYaz(t, klasor, "tipli.tr", "aktar \"tip_modul\"\n")
+	dosyaYaz(t, klasor, "tip_modul.tr", "yazdır(1)\ndeğişken y: Tam = \"b\"\n")
+	bekle(t, tr(t, klasor, "derle", "tipli.tr", cikis), 1, nil, []string{"❌ Derleme Öncesi Tip Güvenliği Hataları (tip_modul.tr modülünde):", "Satır 2: Tip uyuşmazlığı", "2 | değişken y: Tam"})
+	dosyaYaz(t, klasor, "sonuclu.tr", "aktar \"sonuc_modul\"\n")
+	dosyaYaz(t, klasor, "sonuc_modul.tr", "sonuç 1\n")
+	bekle(t, tr(t, klasor, "derle", "sonuclu.tr", cikis), 1, nil, []string{"(sonuc_modul.tr modülünde)", "'sonuç' modülün üst düzeyinde kullanılamaz"})
+}
+
+// tr kontrol aktarılan modülleri de denetler; modül hatası modülün adı ve satırıyla yazılır.
+func TestKontrolModulleri(t *testing.T) {
+	klasor := t.TempDir()
+	dosyaYaz(t, klasor, "ana.tr", "yazdır(\"ana\")\naktar \"lib/m\"\n")
+	dosyaYaz(t, klasor, "lib/m.tr", "aktar \"ic\"\n")
+	dosyaYaz(t, klasor, "lib/ic.tr", "değişken a = 1\nsabit S = 1\nS = 2\n")
+	s := tr(t, klasor, "kontrol", "ana.tr")
+	bekle(t, s, 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):", "Satır 3: Sabit hatası", "3 | S = 2"})
+	if strings.Contains(s.cikti, "ana") {
+		t.Errorf("kontrol programı çalıştırmamalı: %q", s.cikti)
+	}
+	dosyaYaz(t, klasor, "eksik.tr", "aktar \"olmayan\"\n")
+	bekle(t, tr(t, klasor, "kontrol", "eksik.tr"), 1, nil, []string{"❌ Modül hatası:", `"olmayan" modülü bulunamadı`})
+	dosyaYaz(t, klasor, "lib/ic.tr", "değişken a = 1\n")
+	bekle(t, tr(t, klasor, "kontrol", "ana.tr"), 0, []string{"başarıyla denetlendi"}, nil)
+}
+
+// Modüldeki çalışma hatası modülün adı, satırı ve kod çerçevesiyle yazılır.
+func TestModulCalismaHatasiCercevesi(t *testing.T) {
+	klasor := t.TempDir()
+	dosyaYaz(t, klasor, "ana.tr", "yazdır(1)\n\naktar \"m2\"\n")
+	dosyaYaz(t, klasor, "m2.tr", "değişken x = 1\n\ndeğişken z = x / 0\n")
+	s := tr(t, klasor, "ana.tr")
+	bekle(t, s, 1, nil, []string{"• m2.tr, Satır 3: Sıfıra bölme hatası", "3 | değişken z = x / 0"})
+	if strings.Contains(s.hata, "aktar \"m2\"") {
+		t.Errorf("çerçeve ana programın satırını göstermemeli:\n%s", s.hata)
+	}
 }
 
 // sablon gömülü paketi olmayan yorumlayıcı ikilisinin baytlarıdır.

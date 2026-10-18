@@ -145,6 +145,10 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 // 'yok' ile doldurulur. kendi, metot çağrılarında nesnedir (bağlı fonksiyon değerinin
 // BoundSelf'i ya da doğrudan derlenmiş 'nesne.metot(...)' çağrısının nesnesi).
 func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Value, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
+	if fk.kaynak != v.kaynak {
+		// Başka bir dosyada (modülde) tanımlı fonksiyon: o dosyanın bağlamında çalışır.
+		return v.kaynaktaCagir(fn, fk, fnEnv, kendi, args, nargs, named, line)
+	}
 	fnEnv.IsFuncRoot = true
 	v.devret() // özyinelemeli (döngüsüz) hesaplarda da kilit devredilebilsin
 	if fk.erteleVar {

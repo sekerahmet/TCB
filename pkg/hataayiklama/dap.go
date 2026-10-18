@@ -399,8 +399,11 @@ func (s *dapServer) start() {
 		exitCode := 0
 		if err != nil {
 			exitCode = 1
-			s.output("stderr", "❌ Çalışma Zamanı Hatası:\n  • "+err.Error()+"\n"+
-				indentLines(turkce.KodCercevesi(s.machine.SourceCode, err.Error()), "    "))
+			metin := "❌ Çalışma Zamanı Hatası:\n"
+			for _, m := range vm.HataMaddeleri(err, s.machine.SourceCode) {
+				metin += "  • " + m.Mesaj + "\n" + indentLines(m.Cerceve, "    ")
+			}
+			s.output("stderr", metin)
 		}
 		s.event("exited", map[string]interface{}{"exitCode": exitCode})
 		s.event("terminated", nil)

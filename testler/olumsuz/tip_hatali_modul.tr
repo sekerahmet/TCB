@@ -1,0 +1,3 @@
+// Bilerek hatalı: 11.4 — modül çalışmadan önce tip denetiminden geçer.
+değişken yarım_kalan = 1
+değişken x: Tam = "metin"

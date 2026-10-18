@@ -84,7 +84,8 @@ func (h *SatirliHata) Unwrap() error { return h.Hata }
 // ürettiği "Satır N: ..." hataları için metin öneki yedek olarak denetlenir.
 func satirliMi(err error) bool {
 	var sh *SatirliHata
-	return errors.As(err, &sh) || strings.HasPrefix(err.Error(), "Satır ")
+	var mh *ModulHatasi
+	return errors.As(err, &sh) || errors.As(err, &mh) || strings.HasPrefix(err.Error(), "Satır ")
 }
 
 // satirEki hatayı (satır bilgisi yoksa) "Satır N: " önekli bir SatirliHata'ya çevirir.

@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"tr_dili/pkg/lexer"
-	"tr_dili/pkg/parser"
 	"tr_dili/pkg/vm"
 )
 
@@ -185,9 +185,9 @@ func aktarYerleri(kod string) []aktarYeri {
 }
 
 // modulYolunuCoz bir 'aktar' yolunu yorumlayıcıyla (pkg/vm) aynı kuralla çözer: önce
-// bulunulan klasöre göre, bulunamazsa aktaran dosyanın klasörüne göre. aranan, hata
-// iletisinde gösterilecek denenmiş yollardır.
-func modulYolunuCoz(yol, aktaran string) (cozulen string, aranan []string, ok bool) {
+// bulunulan klasöre göre, bulunamazsa aktaran dosyanın klasörüne, o da olmazsa ana
+// programın klasörüne göre. aranan, hata iletisinde gösterilecek denenmiş yollardır.
+func modulYolunuCoz(yol, aktaran, ana string) (cozulen string, aranan []string, ok bool) {
 	if !strings.HasSuffix(yol, ".tr") {
 		yol += ".tr"
 	}
@@ -195,8 +195,17 @@ func modulYolunuCoz(yol, aktaran string) (cozulen string, aranan []string, ok bo
 	if _, err := os.Stat(yol); err == nil {
 		return yol, aranan, true
 	}
-	if !filepath.IsAbs(yol) && aktaran != "" && !strings.HasPrefix(aktaran, "<") {
-		aday := filepath.Join(filepath.Dir(aktaran), yol)
+	if filepath.IsAbs(yol) {
+		return yol, aranan, false
+	}
+	for _, dosya := range []string{aktaran, ana} {
+		if dosya == "" || strings.HasPrefix(dosya, "<") {
+			continue
+		}
+		aday := filepath.Join(filepath.Dir(dosya), yol)
+		if slices.Contains(aranan, aday) {
+			continue
+		}
 		aranan = append(aranan, aday)
 		if _, err := os.Stat(aday); err == nil {
 			return aday, aranan, true
@@ -209,6 +218,7 @@ func modulYolunuCoz(yol, aktaran string) (cozulen string, aranan []string, ok bo
 type modulToplayici struct {
 	sira     map[string]int // mutlak yol → Moduller içindeki sıra
 	moduller []paketDosyasi
+	ana      string // ana programın yolu
 }
 
 // topla dosyanın 'aktar' deyimlerini çözer, henüz gömülmemiş modülleri okuyup pakete
@@ -218,7 +228,7 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 	yerler := aktarYerleri(dosya.Kod)
 	dosya.Aktarimlar = make([]int, 0, len(yerler))
 	for _, y := range yerler {
-		cozulen, aranan, ok := modulYolunuCoz(y.yol, kaynakYolu)
+		cozulen, aranan, ok := modulYolunuCoz(y.yol, kaynakYolu, t.ana)
 		if !ok {
 			return fmt.Errorf("%s, satır %d: %q modülü bulunamadı (aranan: %s)", kaynakYolu, y.satir, y.yol, strings.Join(aranan, ", "))
 		}
@@ -238,8 +248,10 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 			Ad:  filepath.ToSlash(cozulen),
 			Kod: strings.TrimPrefix(string(veri), "\xef\xbb\xbf"),
 		}
-		if hatalar := sozdizimiHatalari(modul.Kod); len(hatalar) > 0 {
-			return &modulSozdizimiHatasi{yol: cozulen, kod: modul.Kod, hatalar: hatalar}
+		// Modül yorumlayıcıdaki 'aktar' ile aynı denetimden geçer (sözdizimi, üst düzey
+		// 'sonuç', tip denetimi).
+		if _, tur, hatalar := vm.ModulDenetle(modul.Kod); len(hatalar) > 0 {
+			return &modulDenetimHatasi{yol: filepath.ToSlash(cozulen), kod: modul.Kod, tur: tur, hatalar: hatalar}
 		}
 		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
 		// (döngünün kendisini yorumlayıcı çalışma anında bildirir).
@@ -255,27 +267,21 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 	return nil
 }
 
-// modulSozdizimiHatasi gömülecek bir modülde sözdizimi hatası bulunduğunu bildirir.
-type modulSozdizimiHatasi struct {
+// modulDenetimHatasi bir modülde sözdizimi ya da tip denetimi hatası bulunduğunu bildirir.
+type modulDenetimHatasi struct {
 	yol     string
 	kod     string
+	tur     string // "sözdizimi" ya da "tip denetimi"
 	hatalar []string
 }
 
-func (e *modulSozdizimiHatasi) Error() string {
-	return fmt.Sprintf("%s modülünde sözdizimi hatası: %s", e.yol, e.hatalar[0])
-}
-
-// sozdizimiHatalari kodu ayrıştırır ve sözdizimi hatalarını döndürür.
-func sozdizimiHatalari(kod string) []string {
-	p := parser.New(lexer.New(kod))
-	p.ParseProgram()
-	return p.Errors()
+func (e *modulDenetimHatasi) Error() string {
+	return fmt.Sprintf("%s modülünde %s hatası: %s", e.yol, e.tur, e.hatalar[0])
 }
 
 // paketHazirla ana programı ve aktardığı tüm modülleri içeren paketi kurar.
 func paketHazirla(srcPath, kod string) (*paket, error) {
-	t := &modulToplayici{sira: map[string]int{}}
+	t := &modulToplayici{sira: map[string]int{}, ana: srcPath}
 	pk := &paket{Ana: paketDosyasi{Ad: filepath.ToSlash(srcPath), Kod: kod}}
 	if err := t.topla(&pk.Ana, srcPath); err != nil {
 		return nil, err
@@ -321,16 +327,7 @@ func islemciNotuMetni(mimari, duzey string) string {
 // yorumlayıcının bir kopyasının sonuna paket olarak ekler.
 func compileToExe(srcPath string, outPath string) {
 	code, _ := dosyaHazirla(srcPath, derlemeHazirligi)
-
-	pk, err := paketHazirla(srcPath, code)
-	if err != nil {
-		var sh *modulSozdizimiHatasi
-		if errors.As(err, &sh) {
-			hatalarlaCik("❌ Derleme Öncesi Sözdizimi Hataları ("+sh.yol+" modülünde):", sh.hatalar, sh.kod)
-		}
-		fmt.Fprintf(os.Stderr, "❌ Derleme hatası: %v\n", err)
-		os.Exit(1)
-	}
+	pk := modulleriDenetle(srcPath, code, derlemeHazirligi, "❌ Derleme hatası:")
 
 	if outPath == "" {
 		base := strings.TrimSuffix(srcPath, filepath.Ext(srcPath))

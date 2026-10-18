@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"tr_dili/pkg/ast"
@@ -66,7 +67,9 @@ type vmShared struct {
 	SourceCode   string
 	importedMu   sync.Mutex
 	Imported     map[string]*DictVal
-	importing    map[string]bool
+	// yuklenen yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
+	// modülü isterse yüklemenin bitmesini bekler.
+	yuklenen map[string]*modulYukleme
 
 	// gil (Yorumlayıcı Kilidi): Aynı anda yalnızca bir görev TR kodu çalıştırır. Böylece
 	// paylaşılan Liste/Sözlük/Yapı değerleri eşzamanlı yazımda bozulmaz ve 's += 1' gibi
@@ -107,6 +110,15 @@ type VM struct {
 	holdsGIL  bool // bu görünüm şu an yorumlayıcı kilidini tutuyor mu (yalnızca kendi goroutine'i okur/yazar)
 	asyncTask bool // 'eşzamanlı' bloğu içinde mi çalışıyor
 
+	// kaynak şu an çalışan kodun dosyasıdır (nil: ana program; bkz. Kaynak). Paylaşılan
+	// durumda değil görevde tutulur: bir modül yüklenirken kilidi bırakınca başka bir görev
+	// kendi dosyasının bağlamında kalır. Başka dosyada tanımlı bir fonksiyon çağrılınca o
+	// fonksiyonun dosyasına geçilir (kaynaktaCagir).
+	kaynak *Kaynak
+	// yukleme bu görevin yüklemekte olduğu modüllerin (mutlak yol) zinciridir; döngüsel
+	// aktarımı, başka bir görevin yüklemesini beklemekten ayırır.
+	yukleme []string
+
 	// gorevDegerleri motorların göreve özel durumudur (ör. tensör motorunun
 	// karışık_hassasiyet bloğu); bkz. GorevDegeri. Çağrı yığını gibi yalnızca görevin
 	// kendi goroutine'i okur ve yazar; yeni görevler (NewTaskVM) boş başlar.
@@ -139,7 +151,7 @@ func New() *VM {
 			Out:       os.Stdout,
 			Err:       os.Stderr,
 			Imported:  make(map[string]*DictVal),
-			importing: make(map[string]bool),
+			yuklenen:  make(map[string]*modulYukleme),
 		},
 		CallStack: []StackFrame{},
 	}
@@ -162,7 +174,10 @@ func (v *VM) NewTaskVM(async bool) *VM {
 	if !async {
 		return &VM{vmShared: v.vmShared, CallStack: []StackFrame{}}
 	}
-	return &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: true}
+	// Görev başlatıldığı yerin dosyasında ve aktarım zincirinde başlar (modül yüklenirken
+	// başlatılan görev o modülü aktarırsa bu döngüdür, beklemek kilitlenirdi).
+	return &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: true,
+		kaynak: v.kaynak, yukleme: slices.Clip(v.yukleme)}
 }
 
 func (v *VM) acquireGIL() {

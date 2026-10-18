@@ -1,0 +1,3 @@
+// Bilerek hatalı: 11.4 — modülün üst düzeyinde sonuç kullanılamaz.
+değişken önce = 1
+sonuç önce

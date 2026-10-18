@@ -1,4 +1,5 @@
 // DIL_TANIMI.md §11 — Modüller
+değişken yükleme_kaydı = []
 aktar "yardimci_modul"
 aktar "yardimci_modul.tr" olarak ym
 
@@ -15,4 +16,47 @@ test "11.2 olarak ile modül tek bir Sözlük olarak bağlanır" {
 test "11.3 modül bir kez çalıştırılır; sonraki aktarımlar aynı değerleri paylaşır" {
     ym.kayıt.ekle("x")
     eşit_mi(["x"], kayıt)
+}
+
+test "11.3 eşzamanlı görevler aynı modülü aktarınca biri ötekinin yüklemesini bekler" {
+    değişken sonuçlar = []
+    döngü i içinde 0..2 {
+        eşzamanlı {
+            dene {
+                aktar "yardimci_yavas"
+                sonuçlar.ekle(yavaş_hazır)
+            } yakala h {
+                sonuçlar.ekle(h)
+            }
+        }
+    }
+    bekle_hepsi()
+    eşit_mi([doğru, doğru], sonuçlar)
+    eşit_mi(["yüklendi"], yükleme_kaydı)
+}
+
+test "11.4 modül çalışmadan önce denetlenir; hatalıysa hiçbir satırı çalışmaz" {
+    değişken mesaj = ""
+    dene { aktar "olumsuz/tip_hatali_modul" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("\"olumsuz/tip_hatali_modul\" modülü tip denetimi hataları nedeniyle yüklenemedi"), mesaj)
+    doğrula(mesaj.içerir("tip_hatali_modul.tr, Satır 3: Tip uyuşmazlığı"), mesaj)
+    değişken tanımlı = doğru
+    dene { yarım_kalan } yakala { tanımlı = yanlış }
+    doğrula(değil tanımlı, "hatalı modülün hiçbir adı gelmemeli")
+    mesaj = ""
+    dene { aktar "olumsuz/ust_duzey_sonuc" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("ust_duzey_sonuc.tr, Satır 3, Sütun 1: Sözdizimi hatası — 'sonuç' modülün üst düzeyinde kullanılamaz"), mesaj)
+}
+
+test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {
+    aktar "alt/yardimci_alt"
+    // Göreli yol modülün klasörüne göre de aranır
+    eşit_mi("alt klasörün verisi", alt_veri())
+    // Hata modülün adı ve kendi satırıyla bildirilir
+    değişken mesaj = ""
+    dene { sıfıra_böl(1) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("yardimci_alt.tr, Satır 4: Sıfıra bölme hatası"), mesaj)
+    // fırlat ile atılan değer olduğu gibi yakalanır
+    dene { özel_fırlat() } yakala h { mesaj = h }
+    eşit_mi("özel hata", mesaj)
 }

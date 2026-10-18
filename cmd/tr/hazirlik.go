@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -123,8 +124,45 @@ func hatalarlaCik(baslik string, errs []string, code string) {
 func programCalistir(machine *vm.VM, prog *ast.Program, code string) {
 	if _, err := machine.Run(prog); err != nil {
 		motor.Kapat()
-		hatalarlaCik(calismaBasligi, []string{err.Error()}, code)
+		calismaHatasiYaz(err, code)
+		cik(1)
 	}
 	machine.WaitAsync()
 	motor.Kapat()
+}
+
+// calismaHatasiYaz bir çalışma zamanı hatasını başlığıyla standart hataya yazar. Bir modüle
+// ait hatanın (ya da modülün denetim hatalarının) çerçevesi o modülün kaynağından çizilir.
+func calismaHatasiYaz(err error, code string) {
+	fmt.Fprintln(os.Stderr, calismaBasligi)
+	for _, m := range vm.HataMaddeleri(err, code) {
+		fmt.Fprintf(os.Stderr, "  • %s\n", m.Mesaj)
+		fmt.Fprint(os.Stderr, indentFrame(m.Cerceve))
+	}
+}
+
+// modulBasligi bir hata başlığına modülün yolunu ekler: "❌ X:" → "❌ X (yol modülünde):".
+func modulBasligi(baslik, yol string) string {
+	return strings.TrimSuffix(baslik, ":") + " (" + yol + " modülünde):"
+}
+
+// modulleriDenetle programın 'aktar' ile aldığı bütün modülleri (özyinelemeli) bulur ve
+// çalıştırmadan denetler; 'tr kontrol' ve 'tr derle' kullanır. Hata varsa yazıp 1 koduyla
+// çıkar. genelBaslik bulunamayan/okunamayan modül hatalarının başlığıdır.
+func modulleriDenetle(path, code string, h hazirlik, genelBaslik string) *paket {
+	pk, err := paketHazirla(path, code)
+	if err == nil {
+		return pk
+	}
+	var mh *modulDenetimHatasi
+	if errors.As(err, &mh) {
+		baslik := h.tipBasligi
+		if mh.tur == "sözdizimi" {
+			baslik = h.sozdizimiBasligi
+		}
+		hatalarlaCik(modulBasligi(baslik, mh.yol), mh.hatalar, mh.kod)
+	}
+	fmt.Fprintf(os.Stderr, "%s %v\n", genelBaslik, err)
+	cik(1)
+	return nil
 }

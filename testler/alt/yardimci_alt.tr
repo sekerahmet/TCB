@@ -1,0 +1,6 @@
+// moduller_test.tr (11.5): alt klasördeki modül; kodu kendi dosyasının bağlamında çalışır.
+fonksiyon alt_veri() { sonuç dosya_oku("alt_veri.txt").kırp() }
+fonksiyon sıfıra_böl(x) {
+    sonuç x / 0
+}
+fonksiyon özel_fırlat() { fırlat "özel hata" }

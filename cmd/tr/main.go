@@ -158,7 +158,9 @@ func debugFile(path string) {
 }
 
 func checkFile(path string) {
-	dosyaHazirla(path, calistirmaHazirligi)
+	code, _ := dosyaHazirla(path, calistirmaHazirligi)
+	// Programın aktardığı modüller de (çalıştırılmadan) aynı denetimden geçer.
+	modulleriDenetle(path, code, calistirmaHazirligi, "❌ Modül hatası:")
 	fmt.Printf("✅ %s başarıyla denetlendi: Sözdizimi ve tip güvenliği hatasız!\n", path)
 }
 
@@ -226,7 +228,7 @@ func startREPL() {
 
 		val, err := machine.Run(prog)
 		if err != nil {
-			hatalariYaz(calismaBasligi, []string{err.Error()}, line)
+			calismaHatasiYaz(err, line)
 			continue
 		}
 		machine.WaitAsync()

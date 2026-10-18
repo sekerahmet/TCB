@@ -165,7 +165,10 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 	makine.SourceCode = kaynak
 	if _, err := makine.Run(prog); err != nil {
 		fmt.Fprintln(cikti, "  ✗ dosyanın üst düzey kodu hata verdi, testler çalıştırılamadı:")
-		hataYaz(cikti, err.Error(), kaynak)
+		for _, m := range vm.HataMaddeleri(err, kaynak) {
+			fmt.Fprintf(cikti, "    • %s\n", m.Mesaj)
+			fmt.Fprint(cikti, girintile(m.Cerceve, "      "))
+		}
 		ozet.Yuklenemez++
 		return ozet
 	}
@@ -177,10 +180,17 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 			mesaj := err.Error()
 			if !strings.Contains(mesaj, "Satır ") {
 				// Konumsuz hatalarda (ör. fırlat) testin satırını göster
-				mesaj = fmt.Sprintf("Satır %d: %s", t.Line(), mesaj)
+				err = fmt.Errorf("Satır %d: %s", t.Line(), mesaj)
 			}
-			fmt.Fprintf(cikti, "  ✗ %s — %s\n", t.Name, mesaj)
-			fmt.Fprint(cikti, girintile(turkce.KodCercevesi(kaynak, mesaj), "      "))
+			// Modüle ait hatanın çerçevesi modülün kaynağından çizilir.
+			for i, m := range vm.HataMaddeleri(err, kaynak) {
+				if i == 0 {
+					fmt.Fprintf(cikti, "  ✗ %s — %s\n", t.Name, m.Mesaj)
+				} else {
+					fmt.Fprintf(cikti, "      • %s\n", m.Mesaj)
+				}
+				fmt.Fprint(cikti, girintile(m.Cerceve, "      "))
+			}
 			continue
 		}
 		ozet.Gecen++

@@ -102,10 +102,13 @@ func (k *derleyiciKapsam) coz(ad string) cozum {
 type derleyici struct {
 	// kok genel kapsamdır (yapı alanlarının varsayılanları burada değerlendirilir).
 	kok *derleyiciKapsam
+	// kaynak derlenen kodun dosyasıdır (nil: ana program); fonksiyonlar onu taşır.
+	kaynak *Kaynak
 }
 
+// yeniDerleyici görevin o an çalıştığı dosya için bir derleyici açar.
 func (v *VM) yeniDerleyici() *derleyici {
-	return &derleyici{kok: &derleyiciKapsam{bilgi: v.GlobalEnv.kapsam, genel: v.GlobalEnv}}
+	return &derleyici{kok: &derleyiciKapsam{bilgi: v.GlobalEnv.kapsam, genel: v.GlobalEnv}, kaynak: v.kaynak}
 }
 
 // altKapsam ust içinde yeni bir ortama karşılık gelen kapsam açar.
@@ -427,7 +430,11 @@ func (c *derleyici) deyim(k *derleyiciKapsam, stmt ast.Statement) deyimKodu {
 				}
 			}
 			if v.Debugger == nil && YeniHataAyiklayici != nil {
-				v.Debugger = YeniHataAyiklayici(v.SourceFile, v.SourceCode)
+				k := v.kaynak
+				if k == nil {
+					k = &Kaynak{Yol: v.SourceFile, Kod: v.SourceCode}
+				}
+				v.Debugger = YeniHataAyiklayici(k.Yol, k.Kod)
 			}
 			if v.Debugger != nil {
 				if s.Condition != nil {
@@ -840,6 +847,9 @@ type fonkKodu struct {
 	// ortamların yığınıdır (yalnızca yorumlayıcı kilidi tutulurken erişilir).
 	havuzlu bool
 	serbest []*Environment
+	// kaynak fonksiyonun tanımlandığı dosyadır (nil: ana program); çağıranınkinden farklıysa
+	// çağrı o dosyanın bağlamında yapılır (kaynaktaCagir).
+	kaynak *Kaynak
 }
 
 // havuzSiniri bir fonksiyon için saklanan boş ortam sayısının üst sınırıdır.
@@ -877,6 +887,7 @@ func (c *derleyici) fonksiyon(k *derleyiciKapsam, params []ast.Param, body *ast.
 		varsayilan: make([]ifadeKodu, len(params)),
 		kendi:      -1,
 		basit:      true,
+		kaynak:     c.kaynak,
 	}
 	if metot {
 		fk.kendi = alt.bilgi.yuva(kendiAdi)
