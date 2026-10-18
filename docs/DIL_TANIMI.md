@@ -329,7 +329,7 @@ bekle_hepsi()      // toplam == 20100
 
 ## 11. Modüller
 
-**11.1** `aktar "yol"` başka bir `.tr` dosyasını çalıştırır ve üst düzey adlarını bulunulan kapsama getirir. `.tr` uzantısı isteğe bağlıdır; yol önce çalışma klasörüne, bulunamazsa aktaran dosyanın klasörüne göre çözülür.
+**11.1** `aktar "yol"` başka bir `.tr` dosyasını çalıştırır ve üst düzey adlarını bulunulan kapsama getirir. `.tr` uzantısı isteğe bağlıdır; yol dosya yerleşiklerindeki tek kuralla (bkz. **13.1**) önce çalışma klasörüne, bulunamazsa aktaran dosyanın klasörüne göre çözülür.
 
 **11.2** `aktar "yol" olarak ad` modülün adlarını tek bir `Sözlük` olarak `ad`a bağlar: `ym.kare(2)`, `ym["PI"]`.
 
@@ -365,7 +365,7 @@ test "toplama doğru" {
 
 Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirdek seçki tanımlanır. Metotlar `değer.metot(...)` ile çağrılır; argümansız olanlar (`.uzunluk`, `.ilk`, `.son`) parantezsiz de yazılır.
 
-**13.1** Genel: `yazdır(...)` (değerleri boşlukla birleştirip yazar), `uzunluk`, `tip`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `aralık(a, b)`, `filtrele`, `haritala`, `indirge`, `sırala`, `ekle`, `bekle`, `bekle_hepsi`, `zaman_ms`, `dosya_oku`, `dosya_yaz`, `girdi`.
+**13.1** Genel: `yazdır(...)` (değerleri boşlukla birleştirip yazar), `uzunluk`, `tip`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `aralık(a, b)`, `filtrele`, `haritala`, `indirge`, `sırala`, `ekle`, `bekle`, `bekle_hepsi`, `zaman_ms`, `dosya_oku`, `dosya_yaz`, `girdi`. Yerleşikler eksik ya da fazla argümanı ve yanlış tipi reddeder; hata `aralık() 1. argüman olarak Tam bekler, Metin ("a") verildi` biçimindedir. `dosya_oku(yol)` ve `dosya_yaz(yol, içerik)` yolu `Metin` olarak ister; göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler. Dosya hataları Türkçedir (dosya ya da klasör yok, izin yok, bir klasör, disk dolu, dosya kullanımda...).
 
 **13.2** Metin metotları: `.uzunluk`, `.büyük_harf()` / `.küçük_harf()` (Türkçe `i/İ`, `ı/I` kurallarıyla), `.kırp()`, `.böl(ayırıcı)`, `.değiştir(eski, yeni)`, `.içerir(alt)`, `.başlar(önek)`, `.biter(sonek)`, `.ters_çevir()`.
 
@@ -440,6 +440,6 @@ Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` token parça
 
 **16.7** Hatalar (dosya yok, `.npy` değil, eksik ya da hatalı adlı argüman, bağlam parçalardan uzun, düzenli ifade adım sınırı...) Türkçe bir mesajla bildirilir ve `dene/yakala` ile yakalanabilir.
 
-**16.8** Bu yerleşiklerde göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür.
+**16.8** Bu yerleşiklerde göreli yollar `dosya_oku`/`dosya_yaz` ile aynı tek kuralla (bkz. **13.1**) çözülür: önce çalışma klasörü, orada yoksa programın bulunduğu klasör.
 
 Önden yükleme her zaman açıktır ve yorumlayıcı kilidini tutmaz; `.sonraki()` beklerken kilit bırakılır (10.3). Açık bir kapatma adı yoktur: sıralı okuyucu bitince, kullanılmayan nesneler çöp toplanınca ve program bitince dosyalar kapatılır.
