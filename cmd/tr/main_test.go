@@ -113,14 +113,32 @@ func bekle(t *testing.T, s sonuc, kod int, ciktida, hatada []string) {
 }
 
 func TestYardimVeSurum(t *testing.T) {
-	for _, a := range []string{"yardım", "yardim", "--help", "-h"} {
+	for _, a := range []string{"yardım", "-h"} {
 		s := tr(t, "", a)
 		bekle(t, s, 0, []string{"Kullanım:", "tr derle <dosya.tr>", "tr test"}, nil)
 	}
-	for _, a := range []string{"sürüm", "surum", "--version", "-v"} {
+	for _, a := range []string{"sürüm", "-v"} {
 		s := tr(t, "", a)
 		bekle(t, s, 0, []string{"v" + VERSION}, nil)
 	}
+}
+
+// Her komutun tek Türkçe adı vardır: Türkçe karaktersiz ve İngilizce yazımlar dosya adı
+// sanılmaz, asıl komutu öneren bir hatayla 1 koduyla çıkar.
+func TestKomutlarTekAdli(t *testing.T) {
+	klasor := t.TempDir()
+	dosyaYaz(t, klasor, "a.tr", "yazdır(\"çalıştı\")\n")
+	for ad, asil := range map[string]string{
+		"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla", "debug": "hata_ayıkla",
+		"yardim": "yardım", "--help": "yardım", "surum": "sürüm", "--version": "sürüm",
+	} {
+		s := tr(t, klasor, ad, "a.tr")
+		bekle(t, s, 1, nil, []string{"'" + ad + "' TR'de bir komut değil; 'tr " + asil + "' yazmak mı istediniz?"})
+		if strings.Contains(s.cikti, "çalıştı") {
+			t.Errorf("%s: program çalışmamalıydı", ad)
+		}
+	}
+	bekle(t, tr(t, klasor, "biçimle", "--check", "a.tr"), 1, nil, []string{"'--check' TR'de bir bayrak değil; '--kontrol'"})
 }
 
 func TestKaldirilmisKomutlar(t *testing.T) {
@@ -131,7 +149,7 @@ func TestKaldirilmisKomutlar(t *testing.T) {
 	klasor := t.TempDir()
 	dosyaYaz(t, klasor, "a.tr", "yazdır(1)\n")
 	for _, a := range []string{"--web", "-w"} {
-		s := tr(t, klasor, "debug", "a.tr", a)
+		s := tr(t, klasor, "hata_ayıkla", "a.tr", a)
 		bekle(t, s, 1, nil, []string{"Tarayıcıdaki hata ayıklayıcı kaldırıldı"})
 		if strings.Contains(s.cikti, "1") {
 			t.Errorf("program çalışmamalıydı: %q", s.cikti)
@@ -140,7 +158,7 @@ func TestKaldirilmisKomutlar(t *testing.T) {
 }
 
 func TestEksikArguman(t *testing.T) {
-	for _, k := range []string{"kontrol", "derle", "debug", "hata_ayıkla", "çalıştır", "biçimle"} {
+	for _, k := range []string{"kontrol", "derle", "hata_ayıkla", "çalıştır", "biçimle"} {
 		s := tr(t, "", k)
 		bekle(t, s, 1, nil, []string{"Hata: Lütfen"})
 	}
@@ -159,7 +177,7 @@ func TestDosyaCalistirma(t *testing.T) {
 	dosyaYaz(t, klasor, "tip.tr", "değişken x: Tam = \"metin\"\nyazdır(\"çalışmamalı\")\n")
 	dosyaYaz(t, klasor, "calisma.tr", "yazdır(\"önce\")\ndeğişken y = 1 / 0\nyazdır(\"sonra\")\n")
 
-	for _, args := range [][]string{{"iyi.tr"}, {"çalıştır", "iyi.tr"}, {"calistir", "iyi.tr"}} {
+	for _, args := range [][]string{{"iyi.tr"}, {"çalıştır", "iyi.tr"}} {
 		bekle(t, tr(t, klasor, args...), 0, []string{"merhaba dünya"}, nil)
 	}
 
@@ -214,7 +232,7 @@ func TestBicimle(t *testing.T) {
 	s := tr(t, klasor, "biçimle", "--kontrol", "a.tr")
 	bekle(t, s, 1, []string{"biçimlenmeli: a.tr"}, nil)
 
-	bekle(t, tr(t, klasor, "bicimle", "a.tr"), 0, []string{"biçimlendi: a.tr"}, nil)
+	bekle(t, tr(t, klasor, "biçimle", "a.tr"), 0, []string{"biçimlendi: a.tr"}, nil)
 	bekle(t, tr(t, klasor, "biçimle", "--kontrol", "."), 0, []string{"hepsi standart biçimde"}, nil)
 	bekle(t, tr(t, klasor, "biçimle", "olmayan.tr"), 1, nil, []string{`"olmayan.tr" biçimlenemedi: böyle bir dosya ya da klasör yok`})
 }
@@ -237,10 +255,12 @@ func TestREPL(t *testing.T) {
 		`değişken x: Tam = "a"`,
 		`1 / 0`,
 		`2 + 3`,
+		`exit`,
 		`çıkış`,
 	}, "\n") + "\n"
 	s := calistir(t, trIkilisi, "", girdi, nil)
 	bekle(t, s, 0, []string{"merhaba", "=> 5", "Görüşmek üzere!"}, []string{
+		"'exit' TR'de bir komut değil; çıkmak için 'çıkış' yazın.",
 		"❌ Sözdizimi Hataları:\n  • Satır 1, Sütun 4",
 		"❌ Tip ve Güvenlik Denetimi Hataları:\n  • Satır 1: Tip uyuşmazlığı",
 		"❌ Çalışma Zamanı Hatası:\n  • Satır 1: Sıfıra bölme hatası",

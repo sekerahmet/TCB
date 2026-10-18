@@ -27,7 +27,7 @@
 | TR: Dosyayı Çalıştır | `tr.calistir` | `tr.exe <dosya>` |
 | TR: Hata Ayıkla (VS Code) | `tr.hataAyiklaBaslat` | VS Code hata ayıklayıcısı (`tr.exe dap`) |
 | TR: Dosyayı Denetle | `tr.denetle` | `tr.exe kontrol <dosya>` |
-| TR: Terminal Hata Ayıklayıcısında Aç | `tr.hataAyikla` | `tr.exe debug <dosya>` |
+| TR: Terminal Hata Ayıklayıcısında Aç | `tr.hataAyikla` | `tr.exe hata_ayıkla <dosya>` |
 | TR: Tablo Görünümü | `tr.tabloGoster` | Hata ayıklarken değişkeni tablo olarak gösterir |
 | TR: İzleme Masası | `tr.izlemeMasasi` | Hata ayıklarken tüm değişkenleri tablo hâlinde gösteren paneli açar |
 

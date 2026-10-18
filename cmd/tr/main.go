@@ -34,11 +34,15 @@ func main() {
 		startREPL()
 		return
 	}
+	if asil, ok := kaldirilanKomutlar[args[0]]; ok {
+		fmt.Fprintf(os.Stderr, "Hata: '%s' TR'de bir komut değil; 'tr %s' yazmak mı istediniz?\n", args[0], asil)
+		os.Exit(1)
+	}
 
 	switch args[0] {
-	case "yardım", "yardim", "--help", "-h":
+	case "yardım", "-h":
 		printHelp()
-	case "sürüm", "surum", "--version", "-v":
+	case "sürüm", "-v":
 		fmt.Printf("TR Programlama ve Yapay Zeka Dili v%s\n", VERSION)
 	case "bytecode", "baytkod":
 		fmt.Fprintln(os.Stderr, "Hata: 'tr bytecode' komutu kaldırıldı.")
@@ -59,21 +63,21 @@ func main() {
 			outPath = args[2]
 		}
 		compileToExe(args[1], outPath)
-	case "debug", "hata_ayıkla", "hata_ayikla":
+	case "hata_ayıkla":
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Hata: Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr debug ornek.tr")
+			fmt.Fprintln(os.Stderr, "Hata: Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr hata_ayıkla ornek.tr")
 			os.Exit(1)
 		}
 		for _, a := range args[1:] {
 			if a == "--web" || a == "-w" {
-				fmt.Fprintln(os.Stderr, "Hata: Tarayıcıdaki hata ayıklayıcı kaldırıldı. VS Code'da F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr debug ornek.tr")
+				fmt.Fprintln(os.Stderr, "Hata: Tarayıcıdaki hata ayıklayıcı kaldırıldı. VS Code'da F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr hata_ayıkla ornek.tr")
 				os.Exit(1)
 			}
 		}
 		debugFile(args[1])
 	case "test":
 		testKomutu(args[1:])
-	case "biçimle", "bicimle":
+	case "biçimle":
 		bicimleKomutu(args[1:])
 	case "dap":
 		// VS Code hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
@@ -81,7 +85,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "❌ Hata ayıklama sunucusu: %v\n", err)
 			os.Exit(1)
 		}
-	case "çalıştır", "calistir":
+	case "çalıştır":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr çalıştır ornek.tr")
 			os.Exit(1)
@@ -90,6 +94,15 @@ func main() {
 	default:
 		runFile(args[0])
 	}
+}
+
+// kaldirilanKomutlar kaldırılan komut adlarının (Türkçe karaktersiz ve İngilizce yazımlar)
+// asıl adlarıdır. Her komutun tek Türkçe adı vardır; kısa bayraklar -h ve -v simgedir, kalır.
+// Bu adlar KABUL EDİLMEZ: dosya adı sanılıp çalıştırılmaya çalışılmaz, asıl komut önerilir.
+var kaldirilanKomutlar = map[string]string{
+	"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla", "debug": "hata_ayıkla",
+	"yardim": "yardım", "--help": "yardım", "help": "yardım", "surum": "sürüm", "--version": "sürüm",
+	"version": "sürüm",
 }
 
 // printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
@@ -115,11 +128,14 @@ func printHelp() {
 	fmt.Println("Kullanım:")
 	fmt.Println("  tr                          Etkileşimli TR kabuğunu (REPL) başlatır")
 	fmt.Println("  tr <dosya.tr>               .tr kaynak dosyasını derler ve çalıştırır")
-	fmt.Println("  tr debug <dosya.tr>         Etkileşimli TR Hata Ayıklayıcısını başlatır")
+	fmt.Println("  tr çalıştır <dosya.tr>      Aynısı (komut adıyla)")
+	fmt.Println("  tr hata_ayıkla <dosya.tr>   Etkileşimli TR Hata Ayıklayıcısını başlatır")
 	fmt.Println("  tr kontrol <dosya.tr>       Sözdizimi ve akıllı tip kontrolü yapar")
 	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür")
 	fmt.Println("  tr test [dosya.tr|klasör]   Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)")
 	fmt.Println("  tr biçimle [--kontrol] <dosya.tr|klasör>  Kodu standart biçime getirir (--kontrol: yalnızca denetler)")
+	fmt.Println("  tr yardım | -h              Bu yardımı gösterir")
+	fmt.Println("  tr sürüm | -v               Sürümü gösterir")
 }
 
 func runFile(path string) {
@@ -163,9 +179,13 @@ func startREPL() {
 		if line == "" {
 			continue
 		}
-		if line == "çıkış" || line == "cikis" || line == "exit" {
+		if line == "çıkış" {
 			fmt.Println("Görüşmek üzere!")
 			break
+		}
+		if line == "cikis" || line == "exit" || line == "quit" {
+			fmt.Fprintf(os.Stderr, "'%s' TR'de bir komut değil; çıkmak için 'çıkış' yazın.\n", line)
+			continue
 		}
 		if line == "/h" || line == "/H" {
 			machine.Debugger = hataayiklama.NewDebugger("<etkileşimli-kabuk>", "", true)

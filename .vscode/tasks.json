@@ -44,7 +44,7 @@
       "label": "TR: Hata ayıklayıcıda aç (terminal)",
       "type": "process",
       "command": "${workspaceFolder}\\tr.exe",
-      "args": ["debug", "${file}"],
+      "args": ["hata_ayıkla", "${file}"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
       "problemMatcher": []

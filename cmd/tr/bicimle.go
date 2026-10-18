@@ -21,8 +21,11 @@ func bicimleKomutu(args []string) {
 	var hedefler []string
 	for _, a := range args {
 		switch a {
-		case "--kontrol", "-k", "--check":
+		case "--kontrol", "-k":
 			kontrol = true
+		case "--check":
+			fmt.Fprintln(os.Stderr, "Hata: '--check' TR'de bir bayrak değil; '--kontrol' yazmak mı istediniz?")
+			os.Exit(1)
 		default:
 			hedefler = append(hedefler, a)
 		}

@@ -14,13 +14,16 @@ $env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
 | Komut | Açıklama |
 | :--- | :--- |
 | `.\tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile hata ayıklayıcı açılır) |
-| `.\tr.exe dosya.tr` | `.tr` kaynak dosyasını derler ve anında çalıştırır |
-| `.\tr.exe debug dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
+| `.\tr.exe dosya.tr` | `.tr` kaynak dosyasını derler ve anında çalıştırır (`.\tr.exe çalıştır dosya.tr` ile aynı) |
+| `.\tr.exe hata_ayıkla dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
 | `.\tr.exe kontrol dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar |
 | `.\tr.exe derle dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |
 | `.\tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §9) |
-| `.\tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (`bicimle` da olur, bkz. §10) |
+| `.\tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (bkz. §10) |
 | `.\tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
+| `.\tr.exe yardım` / `-h`, `.\tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
+
+Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir. Kısa bayraklar `-h`, `-v`, `-k` simgedir.
 
 Öğrenmeye `ornekler/` klasöründeki numaralı örneklerle başlayın (`01_merhaba.tr` … `09_web_veritabani.tr`; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
 
@@ -206,7 +209,7 @@ VS Code İzleme Masası'nda bu nesneler tip sütununda `Parçalayıcı (40000 s�
 
 ## 5. TR Hata Ayıklayıcı
 
-TR'nin **terminalde** (`tr debug dosya.tr`, kabukta `/h`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`tr dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `vscode_eklentisi/README.md`). Denemek için: `tr ornekler/04_hata_ayiklama.tr` (koşullu kesme noktasında durur; `değiştir vergi_orani = 0.20`, ardından `devam`).
+TR'nin **terminalde** (`tr hata_ayıkla dosya.tr`, kabukta `/h`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`tr dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `vscode_eklentisi/README.md`). Denemek için: `tr ornekler/04_hata_ayiklama.tr` (koşullu kesme noktasında durur; `değiştir vergi_orani = 0.20`, ardından `devam`).
 
 1. **Kod İçi Kesme Noktası (`kesme_noktası`):**
    - Koşulsuz: `kesme_noktası`
@@ -346,7 +349,7 @@ test "eşitlik" {
 
 ## 10. Kod Biçimlendirme (`tr biçimle`)
 
-`tr biçimle` (ASCII: `tr bicimle`) kodu tek bir standart biçime getirir:
+`tr biçimle` kodu tek bir standart biçime getirir:
 
 - 4 boşluk girinti; `{` her zaman aynı satırda, `değilse` / `yakala` kapanan `}` ile aynı satırda,
 - ikili operatörlerin iki yanında ve virgülden sonra birer boşluk (aralıklar bitişik: `1..=10`; sözlükler `{"a": 1}`, sondaki bloklar `{ o > 2 }`),
