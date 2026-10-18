@@ -60,8 +60,8 @@ type Ilerleme struct {
 	sonCizim time.Time
 	sonDuz   time.Time
 	sonIs    time.Time
-	satir    string // terminalde çizilen satır (çıktı kilidi altında okunur)
-	kirli    bool   // satır son güncellemeden eski
+	satir    string      // terminalde çizilen satır (çıktı kilidi altında okunur)
+	kirli    atomic.Bool // satır son güncellemeden eski (çıktı kilidi dışından da okunur)
 	onceki   *Ilerleme
 }
 

@@ -99,10 +99,11 @@ func (c *Ilerleme) goster(simdi time.Time) {
 	c.isDurumunuYaz(simdi, false)
 	if c.terminal {
 		if c.d.etkin != c || (!c.sonCizim.IsZero() && simdi.Sub(c.sonCizim) < terminalAraligi) {
-			c.kirli = true // ekrandaki satır eski: bir çıktıdan sonra yeniden çizilirken tazelenir
+			c.kirli.Store(true) // ekrandaki satır eski: bir çıktıdan sonra yeniden çizilirken tazelenir
 			return
 		}
-		c.sonCizim, c.kirli = simdi, false
+		c.sonCizim = simdi
+		c.kirli.Store(false)
 		c.mu.Lock()
 		s := c.cubukSatiri(simdi)
 		c.mu.Unlock()
@@ -166,11 +167,11 @@ func (c *Ilerleme) Sil() {
 // çağırır (ör. yazdır'dan sonra). Son güncelleme sıklık sınırı yüzünden çizilmediyse satır
 // önce tazelenir.
 func (c *Ilerleme) Ciz() {
-	if c.kirli {
+	if c.kirli.Load() {
 		c.mu.Lock()
 		c.satir = c.cubukSatiri(saat())
 		c.mu.Unlock()
-		c.kirli = false
+		c.kirli.Store(false)
 	}
 	c.ciz()
 }
