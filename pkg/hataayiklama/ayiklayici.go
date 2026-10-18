@@ -68,7 +68,7 @@ func NewDebugger(sourceFile string, sourceCode string, startPaused bool) *Debugg
 		Mode:        mode,
 		Breakpoints: make(map[int]bool),
 		Watchpoints: []*Watchpoint{},
-		Reader:      bufio.NewReader(os.Stdin),
+		Reader:      vm.StdinOkuyucu(), // girdi() ve kabukla aynı okuyucu: satır kaybolmaz
 		Active:      true,
 		PauseReason: "Başlangıç (/h Hata Ayıklama Modu)",
 	}

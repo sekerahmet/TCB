@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -166,17 +165,20 @@ func checkFile(path string) {
 func startREPL() {
 	fmt.Printf("🇹🇷 TR Programlama ve Yapay Zeka Dili (v%s) — Etkileşimli Kabuk\n", VERSION)
 	fmt.Println("Çıkmak için 'çıkış', hata ayıklayıcıyı açmak için '/h' yazın.")
-	scanner := bufio.NewScanner(os.Stdin)
 	machine := vm.New()
+	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
+	// okuyacağı satırları kendi tamponuna çekip yutardı.
+	okuyucu := machine.GirdiOkuyucu()
 	chk := checker.New()
 	oncekiTipHatalari, oncekiUyarilar := 0, 0
 
 	for {
 		fmt.Print("tr> ")
-		if !scanner.Scan() {
+		satir, okumaHatasi := okuyucu.ReadString('\n')
+		if satir == "" && okumaHatasi != nil {
 			break
 		}
-		line := strings.TrimSpace(scanner.Text())
+		line := strings.TrimSpace(satir)
 		if line == "" {
 			continue
 		}

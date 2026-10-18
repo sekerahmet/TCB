@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -51,15 +52,18 @@ type vmShared struct {
 	GlobalEnv *Environment
 	Out       io.Writer
 	// Stdin girdi() için okunacak kaynaktır (nil ise os.Stdin). VS Code hata ayıklama
-	// modunda standart giriş protokole ayrıldığı için burası değiştirilir.
-	Stdin      io.Reader
-	wg         sync.WaitGroup
-	Debugger   HataAyiklayici
-	SourceFile string
-	SourceCode string
-	importedMu sync.Mutex
-	Imported   map[string]*DictVal
-	importing  map[string]bool
+	// modunda standart giriş protokole ayrıldığı için burası değiştirilir. Okuma VM'in tek
+	// tamponlu okuyucusuyla yapılır (bkz. GirdiOkuyucu).
+	Stdin        io.Reader
+	girdiMu      sync.Mutex
+	girdiOkuyucu *bufio.Reader
+	wg           sync.WaitGroup
+	Debugger     HataAyiklayici
+	SourceFile   string
+	SourceCode   string
+	importedMu   sync.Mutex
+	Imported     map[string]*DictVal
+	importing    map[string]bool
 
 	// gil (Yorumlayıcı Kilidi): Aynı anda yalnızca bir görev TR kodu çalıştırır. Böylece
 	// paylaşılan Liste/Sözlük/Yapı değerleri eşzamanlı yazımda bozulmaz ve 's += 1' gibi

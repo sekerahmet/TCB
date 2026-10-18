@@ -294,6 +294,19 @@ func TestREPL(t *testing.T) {
 	}
 }
 
+// girdi() boru ile gelen satırları sırayla okur; kabuk da aynı okuyucuyu kullandığı için
+// kabukta girdi() bir sonraki satırı alır, kabuk satırları yutulmaz.
+func TestGirdiBoruVeKabuk(t *testing.T) {
+	klasor := t.TempDir()
+	dosyaYaz(t, klasor, "g.tr", "değişken a = girdi()\ndeğişken b = girdi()\nyazdır(\"a=[{a}] b=[{b}]\")\n")
+	s := calistir(t, trIkilisi, klasor, "bir\niki\n", nil, "g.tr")
+	bekle(t, s, 0, []string{"a=[bir] b=[iki]"}, nil)
+
+	girdi := "değişken x = girdi()\nveri\nyazdır(\"x=\" + x)\nçıkış\n"
+	s = calistir(t, trIkilisi, "", girdi, nil)
+	bekle(t, s, 0, []string{"x=veri", "Görüşmek üzere!"}, nil)
+}
+
 // avxBekleniyor derlenmiş yorumlayıcının GOAMD64=v3 ile derlenip derlenmediğini okur.
 func avxBekleniyor(t *testing.T) bool {
 	t.Helper()

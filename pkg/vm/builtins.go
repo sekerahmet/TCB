@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"math"
@@ -35,14 +34,7 @@ func (v *VM) registerBuiltins() {
 		if len(args) > 0 {
 			fmt.Fprint(vm.Out, args[0].Inspect())
 		}
-		var src io.Reader = os.Stdin
-		if vm.Stdin != nil {
-			src = vm.Stdin
-		}
-		reader := bufio.NewReader(src)
-		var line string
-		var readErr error
-		vm.Blocking(func() { line, readErr = reader.ReadString('\n') })
+		line, readErr := vm.satirOku()
 		if readErr != nil && readErr != io.EOF && line == "" {
 			return nil, fmt.Errorf("girdi(): standart girdi okunamadı: %s", turkce.DosyaHatasiNedeni("", readErr))
 		}
