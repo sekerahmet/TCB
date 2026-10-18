@@ -98,7 +98,7 @@ TR dinamik tiplidir; değerler tiplerini taşır. İsteğe bağlı tip açıklam
 
 **3.1** `Tam`: 64 bit işaretli tam sayı. `+ - * / **` işlemleri ve tekli `-` sınırı aşarsa (ör. en küçük değerin `/ -1`'i ya da eksisi) sessizce sarmak yerine "Tam sayı taşması" hatası verir.
 
-**3.2** `Ondalık`: 64 bit kayan noktalı sayı; tam sayılı ondalıklar `1.0` biçiminde yazdırılır. Sonsuz ve tanımsız değerler `+Sonsuz`, `-Sonsuz`, `NaN` olarak yazdırılır (tensör yazdırması bunları `Sonsuz`, `-Sonsuz`, `Tanımsız` olarak gösterir).
+**3.2** `Ondalık`: 64 bit kayan noktalı sayı; en kısa gösterimiyle yazdırılır, tam sayılı ondalıklar `1.0` biçimindedir (`123456.0`). Büyüklüğü 1e6 ve üstü ya da 1e-4'ten küçük olanlar bilimsel gösterimle yazdırılır (`1e+06`, `1.6777216e+07`, `1e-05`; `0.0001` ise olduğu gibi). Sonsuz ve tanımsız değerler `+Sonsuz`, `-Sonsuz`, `NaN` olarak yazdırılır (tensör yazdırması bunları `Sonsuz`, `-Sonsuz`, `Tanımsız` olarak gösterir).
 
 **3.3** `Metin`: değiştirilemez Unicode metni; uzunluk ve indeks karakter (rune) bazındadır, negatif indeks sondan sayar, sınır dışı indeks `yok` verir, `m[a..b]` alt metin verir.
 
@@ -134,7 +134,7 @@ metin(12) + "a" // "12a"
 
 **3.13** Tip açıklamaları `ad: Tip` biçimindedir (değişken, parametre, yapı alanı; dönüş tipi için 6.8). Tip denetleyicisi bildirilen tiple çıkarılan tip uyuşmazsa ve `sabit` yeniden atanırsa programı **çalıştırmadan** reddeder. Tip açıklamasında yalnızca dilin tip adları geçerlidir: `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Tensör` (ve 3.11'deki diğer adlar, yapı adları). Tip adları büyük/küçük harfe duyarsızdır; harfler Türkçe kuralla eşlenir (`MANTIK` ≡ `Mantık`, `ondalık` ≡ `Ondalık`). Eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) ve Türkçe harfsiz yazımlar kabul edilmez; denetleyici asıl adı önerir (`'ondalik' TR'de bir tip adı değil; 'Ondalık' yazmak mı istediniz?`, `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`; kaldırılanların listesi 2.9a'dadır).
 
-```tr
+```tr hata
 değişken yaş: Tam = 25
 değişken ad: Tam = "Ali"   // denetim hatası: Tip uyuşmazlığı
 ```
@@ -209,7 +209,7 @@ değişken ad, soyad = ["Mustafa", "Kemal"]
 değişken tür = eğer n < 0 { "negatif" } değilse { "pozitif" }
 ```
 
-**5.6** `eşle konu { desen => sonuç ... }` konuyu kollarla sırayla karşılaştırır ve ilk eşleşen kolu çalıştırır. Bir kolda virgülle birden çok desen olabilir; `Aralık` deseni içerme sınar; `varsayılan` ya da `_` her şeyle eşleşir. Kol gövdesi bir ifade, `{ blok }` ya da `sonuç ifade` olabilir; eşleşme yoksa `yok`.
+**5.6** `eşle konu { desen => sonuç ... }` konuyu kollarla sırayla karşılaştırır ve ilk eşleşen kolu çalıştırır. Desen bir ifadedir ve değeri konuyla karşılaştırılır: ad (`sınır => ...`) ve parantezli ifade (`(sınır * 2) => ...`) de desendir, ok fonksiyonu sayılmaz (kolun sonucu ise bir ok fonksiyonu olabilir: `1 => (y) => y + 1`). Bir kolda virgülle birden çok desen olabilir; `Aralık` deseni içerme sınar; `varsayılan` ya da `_` her şeyle eşleşir. Kol gövdesi bir ifade, `{ blok }` ya da `sonuç ifade` olabilir; eşleşme yoksa `yok`.
 
 ```tr
 eşle puan {
@@ -265,7 +265,7 @@ fonksiyon sayaç_yap() {
 
 ```tr
 sayılar.filtrele { o > 2 }.haritala { o * o }
-eğer (sayılar.filtrele { o > 2 }).uzunluk > 0 { ... }
+eğer (sayılar.filtrele { o > 2 }).uzunluk > 0 { yazdır("2'den büyük var") }
 ```
 
 **6.8** Dönüş tipi `: Tip` ya da `-> Tip` ile bildirilir; tip denetleyicisi `sonuç` değerlerini buna göre denetler.

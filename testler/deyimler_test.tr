@@ -66,6 +66,27 @@ test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
     eşit_mi(yok, eşle 9 { 1 => "bir" })
 }
 
+test "5.6 eşle: ad ve parantezli desen değeriyle karşılaştırılır (ok fonksiyonu değildir)" {
+    değişken sınır = 10
+    değişken kırmızı = "#f00"
+    fonksiyon tür(x) {
+        sonuç eşle x {
+            sınır => "sınırda"
+            (sınır * 2) => "iki katı"
+            kırmızı, "#ff0000" => "kırmızı"
+            varsayılan => "başka"
+        }
+    }
+    eşit_mi("sınırda", tür(10))
+    eşit_mi("iki katı", tür(20))
+    eşit_mi("kırmızı", tür("#f00"))
+    eşit_mi("kırmızı", tür("#ff0000"))
+    eşit_mi("başka", tür(3))
+    // Kolun sonucu bir ok fonksiyonu olabilir
+    değişken f = eşle 1 { 1 => (y) => y + 1 }
+    eşit_mi(5, f(4))
+}
+
 test "5.7 döngü ... içinde: liste, aralık, sözlük, metin" {
     değişken birikim = 0
     döngü x içinde [1, 2, 3] { birikim += x }

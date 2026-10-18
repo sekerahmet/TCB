@@ -10,6 +10,12 @@ test "3.1 Tam: 64 bit, taşma hata verir" {
 test "3.2 Ondalık: 64 bit kayan noktalı" {
     eşit_mi(0.75, 3 / 4)
     eşit_mi("1.0", metin(1.0))
+    eşit_mi("123456.0", metin(123456.0))
+    // Büyüklüğü 1e6 ve üstü ya da 1e-4'ten küçük olanlar bilimsel gösterimle yazılır
+    eşit_mi("1e+06", metin(1e6))
+    eşit_mi("1.6777216e+07", metin(16777216.0))
+    eşit_mi("0.0001", metin(0.0001))
+    eşit_mi("1e-05", metin(0.00001))
 }
 
 test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {

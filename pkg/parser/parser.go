@@ -80,6 +80,18 @@ type Parser struct {
 	// çoğunlukla ilkinin sonucudur). hataSatiri ilk hatanın satırıdır.
 	hataModu   bool
 	hataSatiri int
+
+	// desenKipi bir eşle kolunun deseni okunurken açıktır: desenin hemen ardından gelen
+	// '=>' kolun okudur, ok fonksiyonu değildir (durum => ..., (a + 1) => ...). Yalnızca
+	// desenin en dıştaki ifadesini etkiler; parseExpression girişte kapatır.
+	desenKipi bool
+}
+
+// parseMatchPattern bir eşle kolunun desenini okur.
+func (p *Parser) parseMatchPattern() ast.Expression {
+	p.desenKipi = true
+	defer func() { p.desenKipi = false }()
+	return p.parseExpression(LOWEST)
 }
 
 // parseHeaderExpression bir kontrol yapısının başlık ifadesini (koşul, döngü kaynağı,
@@ -783,11 +795,13 @@ func (p *Parser) parseAsyncStatement() *ast.AsyncStatement {
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	var leftExp ast.Expression
+	desen := p.desenKipi
+	p.desenKipi = false
 
 	switch p.curToken().Type {
 	case lexer.TOKEN_IDENT:
-		// Tek parametreli ok fonksiyonu: x => x * 2
-		if p.peekTokenIs(lexer.TOKEN_ARROW) {
+		// Tek parametreli ok fonksiyonu: x => x * 2 (eşle deseninde ad, değeriyle karşılaştırılır)
+		if !desen && p.peekTokenIs(lexer.TOKEN_ARROW) {
 			leftExp = p.parseSingleParamLambda()
 		} else {
 			leftExp = &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal}
@@ -809,7 +823,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	case lexer.TOKEN_BANG, lexer.TOKEN_MINUS, lexer.TOKEN_DEGIL:
 		leftExp = p.parsePrefixExpression()
 	case lexer.TOKEN_LPAREN:
-		leftExp = p.parseGroupedOrLambdaExpression()
+		leftExp = p.parseGroupedOrLambdaExpression(desen)
 	case lexer.TOKEN_EGER:
 		leftExp = p.parseIfExpression()
 	case lexer.TOKEN_ESLE:
@@ -1038,10 +1052,11 @@ func (p *Parser) parseRangeExpression(left ast.Expression) ast.Expression {
 	}
 }
 
-func (p *Parser) parseGroupedOrLambdaExpression() ast.Expression {
+func (p *Parser) parseGroupedOrLambdaExpression(desen bool) ast.Expression {
 	defer p.allowBlocks()()
-	// Önce bunun '(a, b) => ...' bir ok fonksiyonu (lambda) olup olmadığını kontrol et
-	if p.isLambdaAhead() {
+	// Önce bunun '(a, b) => ...' bir ok fonksiyonu (lambda) olup olmadığını kontrol et; eşle
+	// deseninde '(a + 1) => ...' parantezli bir desendir.
+	if !desen && p.isLambdaAhead() {
 		return p.parseLambdaExpression()
 	}
 
@@ -1189,12 +1204,12 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 		if p.curTokenIs(lexer.TOKEN_VARSAYILAN) || (p.curTokenIs(lexer.TOKEN_IDENT) && p.curToken().Literal == "_") {
 			mc.IsDefault = true
 		} else {
-			pat := p.parseExpression(LOWEST)
+			pat := p.parseMatchPattern()
 			mc.Patterns = append(mc.Patterns, pat)
 			for p.peekTokenIs(lexer.TOKEN_COMMA) {
 				p.nextToken() // ','
 				p.nextToken()
-				mc.Patterns = append(mc.Patterns, p.parseExpression(LOWEST))
+				mc.Patterns = append(mc.Patterns, p.parseMatchPattern())
 			}
 		}
 

@@ -23,8 +23,9 @@
     "prefix": ["eşle"],
     "body": [
       "eşle ${1:değer} {",
-      "\t${2:durum1} => ${3:sonuç1}",
-      "\tvarsayılan => ${4:varsayılan_sonuç}",
+      "\t${2:1} => ${3:\"bir\"}",
+      "\t${4:2..10} => ${5:\"birkaç\"}",
+      "\tvarsayılan => ${6:\"diğer\"}",
       "}"
     ],
     "description": "Durum ve aralık eşleştirme bloğu"
