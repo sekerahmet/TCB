@@ -158,6 +158,38 @@ func TestKodlaCozGosterKomutlari(t *testing.T) {
 	bekle(t, tr(t, k, "yardım"), 0, []string{"tr kodla <dosya.tr|klasör>", "tr çöz <dosya.tr|klasör>", "tr göster <dosya.tr> [--dil tr]"}, nil)
 }
 
+// Standart giriş kipi (düzenleyiciler için, 17.7): 'tr kodla -' ve 'tr göster -' metni
+// girişten okur, çıkışa yalnızca çevrilmiş metni yazar; BOM ve CRLF korunur, iki yön birbirinin
+// tersidir. Ayrıştırılamayan metin çevrilmez ve 2 koduyla (sözdizimi hatası) çıkar; başka
+// hatalar 1 koduyla.
+func TestKodlaGosterStandartGiris(t *testing.T) {
+	turkce := "\xef\xbb\xbfdeğişken eğer_değil = 1\r\nyazdır(eğer_değil) // yorum\r\n"
+	kodla := calistir(t, trIkilisi, "", turkce, nil, "kodla", "-", "--dil", "tr")
+	if want := "\xef\xbb\xbf" + kaynak.Baslik + "\r\nA030 eğer_değil = 1\r\nG100(eğer_değil) // yorum\r\n"; kodla.kod != 0 || kodla.cikti != want || kodla.hata != "" {
+		t.Fatalf("tr kodla -: %q (çıkış %d, hata %q), beklenen %q", kodla.cikti, kodla.kod, kodla.hata, want)
+	}
+	if s := calistir(t, trIkilisi, "", kodla.cikti, nil, "göster", "-"); s.kod != 0 || s.cikti != turkce {
+		t.Errorf("tr göster -: %q (çıkış %d, hata %q)", s.cikti, s.kod, s.hata)
+	}
+	// Zaten kodlu metin kodlanınca, Türkçe metin gösterilince değişmez.
+	if s := calistir(t, trIkilisi, "", kodla.cikti, nil, "kodla", "-"); s.kod != 0 || s.cikti != kodla.cikti {
+		t.Errorf("kodlu metin yeniden kodlandı: %q (çıkış %d)", s.cikti, s.kod)
+	}
+	if s := calistir(t, trIkilisi, "", turkce, nil, "göster", "-"); s.kod != 0 || s.cikti != turkce {
+		t.Errorf("Türkçe metnin gösterimi değişti: %q (çıkış %d)", s.cikti, s.kod)
+	}
+	bozuk := calistir(t, trIkilisi, "", "eğer {\n", nil, "kodla", "-")
+	bekle(t, bozuk, 2, nil, []string{"Sözdizimi Hataları", "Satır 2, Sütun 1"})
+	if bozuk.cikti != "" {
+		t.Errorf("ayrıştırılamayan metinde çıktı boş olmalı: %q", bozuk.cikti)
+	}
+	bekle(t, calistir(t, trIkilisi, "", kaynak.Baslik+"\nA001 {\n", nil, "göster", "-"), 2, nil, []string{"Sözdizimi Hataları"})
+	bekle(t, calistir(t, trIkilisi, "", "//! tr kodlu 2\n", nil, "kodla", "-"), 1, nil, []string{"tanımadığı bir kodlu biçim başlığı"})
+	bekle(t, calistir(t, trIkilisi, "", "x\n", nil, "göster", "-", "--dil", "en"), 1, nil, []string{"'en' yazım dili yok"})
+	bekle(t, calistir(t, trIkilisi, "", "x\n", nil, "kodla", "-", "a.tr"), 1, nil, []string{"fazladan argüman: a.tr"})
+	bekle(t, tr(t, "", "yardım"), 0, []string{"tr göster - [--dil tr]", "tr kodla - [--dil tr]"}, nil)
+}
+
 // satirFarki iki çıktının ayrıldığı ilk satırları gösterir.
 func satirFarki(a, b string) string {
 	as, bs := strings.Split(a, "\n"), strings.Split(b, "\n")

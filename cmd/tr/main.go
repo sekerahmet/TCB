@@ -152,6 +152,8 @@ func printHelp() {
 	fmt.Println("  tr kodla <dosya.tr|klasör>  Dosyaları yerinde kodlu biçime çevirir (dilin sözcükleri kodlarla saklanır)")
 	fmt.Println("  tr çöz <dosya.tr|klasör>    Kodlu dosyaları yerinde Türkçe yazıma geri çevirir")
 	fmt.Println("  tr göster <dosya.tr> [--dil tr]  Dosyayı bir yazım dilinde gösterir (kodlu dosya da)")
+	fmt.Println("  tr göster - [--dil tr]      Metni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)")
+	fmt.Println("  tr kodla - [--dil tr]       Metni standart girişten okur, kodlu biçimini çıkışa yazar (düzenleyiciler için)")
 	fmt.Println("  tr dap                      düzenleyicinin hata ayıklama sunucusu (eklenti kendisi başlatır)")
 	fmt.Println("  tr yardım | -h              Bu yardımı gösterir")
 	fmt.Println("  tr sürüm | -v               Sürümü gösterir")

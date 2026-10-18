@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 
@@ -11,18 +12,82 @@ import (
 	"tr_dili/internal/dil/turkce"
 )
 
-// Kodlu saklama komutları (docs/dil/17_kodlar.md, 17.1-17.6):
+// Kodlu saklama komutları (docs/dil/17_kodlar.md, 17.1-17.7):
 //
 //	tr kodla <dosya.tr | klasör>...       Türkçe yazılmış dosyaları yerinde kodlu biçime çevirir
 //	tr çöz <dosya.tr | klasör>...         kodlu dosyaları yerinde Türkçe yazıma geri çevirir
 //	tr göster <dosya.tr> [--dil tr]       dosyayı bir yazım dilinde standart çıktıya basar
+//	tr göster - [--dil tr]                metni standart girişten okur, gösterimini çıkışa yazar
+//	tr kodla - [--dil tr]                 metni standart girişten okur, kodlu biçimini çıkışa yazar
 //
 // Çeviri yalnızca dilin sözcüklerinin yerini değiştirir; çevirici kendi sonucunu denetler ve
 // kayıp görürse dosyaya dokunmaz (kaynak.ErrKayip).
+//
+// Standart giriş kipi ('-') düzenleyiciler içindir (VS Code eklentisi kodlu dosyayı bununla
+// gösterir ve kaydeder): standart çıktıya yalnızca çevrilmiş metin yazılır, hatalar standart
+// hataya. Çıkış kodları: 0 çevrildi; cikisSozdizimi metin ayrıştırılamadı (çevrilmedi,
+// düzenleyici metni olduğu gibi saklar); 1 başka bir hata.
+
+// cikisSozdizimi standart giriş kipinde metnin ayrıştırılamadığını (sözdizimi hatası; çeviri
+// yapılmadı) bildiren çıkış kodudur.
+const cikisSozdizimi = 2
 
 // kodlaKomutu 'tr kodla' komutudur; zaten kodlu dosyalara dokunulmaz.
 func kodlaKomutu(args []string) {
+	if len(args) > 0 && args[0] == "-" {
+		// Kodlanacak metin yazım dilinde yazılmıştır; bugün yalnızca Türkçe vardır (etkin dil).
+		dilArgumani(args[1:], "kodla")
+		girdidenCevir(kaynak.Kodla)
+		return
+	}
 	cevirKomutu(args, "kodla", "kodlandı", kaynak.Kodla)
+}
+
+// dilArgumani standart giriş kipinin '--dil <kod>' argümanını okur (yoksa etkin dil) ve yazım
+// dilini doğrular; başka bir argüman ya da bilinmeyen dil hatadır.
+func dilArgumani(args []string, komut string) *kod.Dil {
+	dilKodu := kod.Etkin().Kodu
+	for i := 0; i < len(args); i++ {
+		switch {
+		case args[i] == "--dil" && i+1 < len(args):
+			dilKodu = args[i+1]
+			i++
+		case args[i] == "--dil":
+			fmt.Fprintf(os.Stderr, "Hata: '--dil' bir yazım dili bekler. Örn: tr %s - --dil tr\n", komut)
+			os.Exit(1)
+		default:
+			fmt.Fprintf(os.Stderr, "Hata: 'tr %s -' metni standart girişten okur; fazladan argüman: %s\n", komut, args[i])
+			os.Exit(1)
+		}
+	}
+	dil, err := yazimDili(dilKodu)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+		os.Exit(1)
+	}
+	return dil
+}
+
+// girdidenCevir standart girişin tamamını cevir ile çevirip standart çıktıya yazar. Metin
+// ayrıştırılamıyorsa hataları kod çerçeveleriyle standart hataya yazıp cikisSozdizimi ile çıkar.
+func girdidenCevir(cevir func(string) (string, error)) {
+	veri, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Hata: standart giriş okunamadı: %v\n", err)
+		os.Exit(1)
+	}
+	metin, err := cevir(string(veri))
+	if err != nil {
+		var sh *kaynak.SozdizimiHatasi
+		if errors.As(err, &sh) {
+			b, _ := kaynak.Ayir(string(veri))
+			hatalariYaz(sozdizimiBasligi, sh.Hatalar, b.Govde)
+			os.Exit(cikisSozdizimi)
+		}
+		fmt.Fprintf(os.Stderr, "✗ %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Print(metin)
 }
 
 // cozKomutu 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz.
@@ -93,8 +158,14 @@ func yerineYaz(yol, metin string) error {
 }
 
 // gosterKomutu 'tr göster <dosya.tr> [--dil tr]' komutudur: dosya kodluysa verilen yazım
-// dilinde (varsayılan tr), değilse olduğu gibi standart çıktıya yazılır.
+// dilinde (varsayılan tr), değilse olduğu gibi standart çıktıya yazılır. Dosya yerine '-'
+// verilirse metin standart girişten okunur (düzenleyiciler için; çıkış kodları yukarıda).
 func gosterKomutu(args []string) {
+	if len(args) > 0 && args[0] == "-" {
+		dil := dilArgumani(args[1:], "göster")
+		girdidenCevir(func(metin string) (string, error) { return kaynak.Coz(metin, dil) })
+		return
+	}
 	var dosya, dilKodu string
 	dilKodu = kod.Etkin().Kodu
 	for i := 0; i < len(args); i++ {
