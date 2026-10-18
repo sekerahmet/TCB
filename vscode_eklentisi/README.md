@@ -42,9 +42,14 @@
 **İzleme Masası:** Program her durduğunda editörün yanında açılır.
 
 - **Yönlendirme düğmeleri:** ⤼ Sonraki satır (F10), ↓ İçine gir (F11), ↑ Dışarı çık (Shift+F11), ▶ Devam (F5), ■ Durdur. Program çalışırken adım düğmeleri pasif görünür.
-- **Değişkenler:** Tüm değişkenler tek tabloda görünür (Kapsam, Değişken, Tip, Değer). Her değişkenin yanında türünü gösteren bir ikon vardır: ▦ tablo, ☰ liste, { } sözlük, ◆ yapı, ⊞ matris, # sayı, Aa metin, ◐ mantık, ∅ yok. Son adımda değişen değerler vurgulanır; ✏️ ile değer doğrudan değiştirilir. Üstteki kutuyla değişkenler aranır.
+- **Değişkenler:** Tüm değişkenler tek tabloda görünür (Kapsam, Değişken, Tip, Değer). Her değişkenin yanında türünü gösteren bir ikon vardır: ▦ tablo, ☰ liste, { } sözlük, ◆ yapı, ⊞ matris, ▣ tensör, # sayı, Aa metin, ◐ mantık, ∅ yok. Son adımda değişen değerler vurgulanır; ✏️ ile değer doğrudan değiştirilir. Üstteki kutuyla değişkenler aranır.
 - **Tablolar:** Tablo değerlerinin içeriği satıra dökülmez. Değişkenin adına ya da **▸ Tabloyu aç** linkine tıklayınca (veya satıra çift tıklayınca) tablo alttaki pencerede bir **sekme** olarak açılır. Birden çok tablo sekmeler hâlinde açık kalabilir; her sekme kendi **✕** düğmesiyle, hepsi **Tümünü kapat** ile kapanır. Pencere, üstündeki çubuk sürüklenerek büyütülüp küçültülür. Sütun başlığına tıklayınca sıralanır, arama kutusuyla süzülür, hücreler arasında ok tuşlarıyla gezilir. Adım atıldıkça açık tablolar güncellenir.
+- **Yapay zekâ nesneleri:** Tensörler tip sütununda `Tensör [2×3]` olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılır. Parçalayıcı, veri kümesi ve örnekleyici özetleriyle görünür (`Parçalayıcı (40000 sözcük)`, `Veri kümesi (246 parça, 56,9 milyar token)`, `Örnekleyici (32×1024, dönem 0, 120 toplu iş)`); parçalayıcının eklenmiş/özel tokenları ve veri kümesinin parçaları tablo olarak açılır.
 - İstemiyorsanız `tr.izlemeMasasi` ayarını kapatın.
+
+## Kod şablonları
+
+`.tr` dosyasında kısayolu yazıp `Tab`a basın: `fonk`, `eger`, `esle`, `dongu`, `liste_uret`, `yapi`, `dene`, `filtrele`, `haritala`, `sinir` ve `tensor` (tensörler, `AdamW`, `geri_yayılım`, `iyileştirici.adım()` ve `iyileştirici.sıfırla()` ile küçük bir eğitim döngüsü).
 
 | Ne yapmak istiyorsunuz? | Nasıl |
 | --- | --- |
@@ -73,4 +78,5 @@ Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen
 
 - En iyi deneyim için tek dosya yerine proje **klasörünü** açın (Dosya → Klasör Aç). Klasör açılmadan da çalıştırma çalışır: program bu durumda dosyanın bulunduğu klasörde, ayrı bir terminalde başlatılır.
 - `.tr` dosyalarında VS Code'un "belirsiz karakter" uyarısı kapalıdır; Türkçe `ı` harfi artık Latin `i` ile karıştırılabilir diye sarı kutuyla işaretlenmez.
+- Bu depoyu klasör olarak açtığınızda `.vscode/tasks.json` görevleri de kullanılabilir: `Ctrl+Shift+B` açık dosyayı çalıştırır; çalıştırma, denetleme ve terminal hata ayıklama görevleri önce **TR: yorumlayıcıyı derle** görevini (`GOAMD64=v3 go build -o tr.exe ./cmd/tr`) çalıştırır, böylece kökteki `tr.exe` güncel kalır. Eklenti komutları (▶, F5) bu derlemeyi yapmaz; kodu değiştirdiyseniz önce bu görevi çalıştırın.
 - `launch.json` ile özelleştirme: `"program"`, `"cwd"` ve `"stopOnEntry": true` (ilk satırda dur) desteklenir.

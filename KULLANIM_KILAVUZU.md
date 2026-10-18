@@ -99,7 +99,9 @@ değişken tahmin = hazır_model.tahmin_et(X_veri)
 ### C. Veri Bilimi, Vektör Benzerlik, Web ve Dış Köprüler
 - İstatistik: `ortalama(liste)`, `standart_sapma(liste)`, `medyan(liste)`, `normalize_et(liste)`
 - Vektör: `nokta_çarpım(v1, v2)`, `kosinüs_benzerliği(v1, v2)`, `öklid_uzaklığı(v1, v2)`
-- Veri, Web & Köprüler: `csv_oku(yol)`, `json_çöz(metin)`, `json_metin(değer)`, `web_al(url)`, `web_gönder(url, veri)`, `yz_sor(istem)`
+- Veri, Web & Köprüler: `csv_oku(yol_veya_metin)`, `json_çöz(metin)`, `json_metin(değer)`, `web_al(url)`, `web_gönder(url, veri)`, `yz_sor(istem)`
+- `csv_oku`: argüman var olan bir dosyanın yoluysa dosya okunur. `.csv` ile biten ya da virgül içermeyip `/` veya `\` içeren tek satırlık bir argüman yol sayılır; öyle bir dosya yoksa "dosya bulunamadı" hatası verilir. Bunların dışındaki argüman CSV metninin kendisi olarak ayrıştırılır (`csv_oku("ad,yaş\nAli,30")`). Göreli yollar önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür. Sayı görünen hücreler sayıya çevrilir.
+- `web_al` / `web_gönder`: 2xx dışı bir yanıt, durum kodu ve gövdenin kısa bir özetiyle hata verir (`web_al: ... adresi 404 Not Found durum kodu döndürdü: ...`; `dene/yakala` ile yakalanır). Yanıt gövdesi en çok 50 MB olabilir, istek 30 saniyede zaman aşımına uğrar. JSON yanıt sözlük/liste olarak, diğerleri metin olarak döner.
 
 ### D. Tensörler ve Otomatik Türev
 Tensör, n boyutlu (float32) bir sayı dizisidir; yapay zekâ modellerinin ağırlıkları, girdileri ve ara sonuçları tensördür. Her işlem hesap çizgesine kaydedilir; `geri_yayılım(kayıp)` tüm gradyanları hesaplar.
