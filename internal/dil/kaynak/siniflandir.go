@@ -18,8 +18,8 @@ import (
 //     kendi bloğunda örtük ad (o, birikim, hata);
 //   - adlı argüman: çağrılan dilin öğesiyse parametre kodu (denetci.AdBaglari).
 //
-// Tip açıklamasında yalnızca adın kendi yazımı kodlanır: büyük/küçük harf farklı bir yazım
-// (tam) kullanıcının yazdığı biçimiyle kalır.
+// Tip adının tek yazımı vardır (3.14): kabul edilmeyen bir yazım (tam) tip adı değildir,
+// yazıldığı gibi kalır; denetleyici onu hata olarak bildirir.
 func (c *cozumleme) dilOgesi(r sozcuk.Kayit) kod.Kod {
 	konum := [2]int{r.Line, r.Column}
 	ad := r.Literal

@@ -51,7 +51,7 @@ func TestKodlamaKenarDurumlari(t *testing.T) {
 		{"test ve olarak",
 			"aktar \"m\" olarak m\ntest \"t\" { doğrula(doğru) }\ndeğişken test = 1\n",
 			"A070 \"m\" A100 m\nA101 \"t\" { G700(A040) }\nA030 test = 1\n"},
-		{"tip açıklaması yalnızca kendi yazımıyla",
+		{"tip açıklaması; kabul edilmeyen harf yazımı (3.14) olduğu gibi kalır",
 			"değişken a: Tam = 1\ndeğişken b: tam = 2\nyazdır(tip(a) == Tam)\n",
 			"A030 a: A200 = 1\nA030 b: tam = 2\nG100(G201(a) == A200)\n"},
 		{"Türkçe harfler ve kod biçimine benzeyen adlar",

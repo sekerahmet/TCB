@@ -54,6 +54,8 @@ func tekHata(t *testing.T, kaynak string, parcalar ...string) {
 // Tip adları ve uyumluluk kuralları
 // ---------------------------------------------------------------------------
 
+// normalizeTypeName kabul edilmeyen harf yazımını (tam) da asıl tipe çevirir: hatayı
+// tipAdiDenetle verir, aynı satırda ayrıca tip uyuşmazlığı çıkmaz.
 func TestTipAdiNormallestirme(t *testing.T) {
 	testler := map[string]string{
 		"Tam": "Tam", "tam": "Tam", "TAM": "Tam",
@@ -76,7 +78,7 @@ func TestTipAdiNormallestirme(t *testing.T) {
 // önerir (tek hata: aynı satırda ayrıca tip uyuşmazlığı bildirilmez).
 func TestTipAdiASCIIOneri(t *testing.T) {
 	tekHata(t, `değişken a: ondalik = 1.5`, "Satır 1: 'ondalik' TR'de bir tip adı değil; 'Ondalık' yazmak mı istediniz?")
-	tekHata(t, `değişken a: MANTIK = doğru
+	tekHata(t, `değişken a: Mantık = doğru
 değişken b: tensor = yok`, "Satır 2: 'tensor' TR'de bir tip adı değil; 'Tensör' yazmak mı istediniz?")
 	tekHata(t, `fonksiyon f(x: sozluk) { sonuç x }`, "'sozluk' TR'de bir tip adı değil; 'Sözlük'")
 	tekHata(t, `fonksiyon f(x) -> mantik { sonuç doğru }`, "'mantik' TR'de bir tip adı değil; 'Mantık'")
@@ -87,6 +89,19 @@ değişken b: tensor = yok`, "Satır 2: 'tensor' TR'de bir tip adı değil; 'Ten
 		"Matris": "Tensör", "matrix": "Tensör", "TAMSAYI": "Tam"} {
 		tekHata(t, "değişken a: "+ad, "'"+ad+"' TR'de bir tip adı değil; '"+asil+"' yazmak mı istediniz?")
 	}
+}
+
+// Tip adının tek yazımı vardır (3.14): yalnızca büyük/küçük harfi farklı bir yazım da hata
+// verir ve asıl yazımı söyler (tek hata: aynı satırda tip uyuşmazlığı bildirilmez).
+func TestTipAdiHarfYazimi(t *testing.T) {
+	for ad, asil := range map[string]string{"tam": "Tam", "TAM": "Tam", "ondalık": "Ondalık", "ONDALIK": "Ondalık",
+		"METİN": "Metin", "mantık": "Mantık", "aralık": "Aralık", "tensör": "Tensör", "YOK": "Yok",
+		"yerleşikFonksiyon": "YerleşikFonksiyon", "tip": "Tip"} {
+		tekHata(t, "değişken a: "+ad, "Satır 1: '"+ad+"' TR'de bir tip adı değil; tip adının tek yazımı vardır: '"+asil+"' yazın")
+	}
+	tekHata(t, `fonksiyon f(x: liste) { sonuç x }`, "'liste' TR'de bir tip adı değil", "'Liste' yazın")
+	tekHata(t, `fonksiyon f(x) -> sözlük { sonuç {} }`, "'sözlük' TR'de bir tip adı değil", "'Sözlük' yazın")
+	tekHata(t, "değişken a: tam = 1\ndeğişken b: Tam = a", "Satır 1: 'tam'")
 }
 
 func TestTipUyumlulugu(t *testing.T) {
@@ -102,7 +117,7 @@ func TestTipUyumlulugu(t *testing.T) {
 		{"Metin", "Herhangi", true},
 		{"Liste", "Yok", true}, // 'yok' her tipe atanabilir
 		{"Yok", "Tam", false},
-		{"tam", "Tam", true}, // tip adları büyük/küçük harfe duyarsızdır
+		{"tam", "Tam", true}, // kabul edilmeyen harf yazımı hatayı tipAdiDenetle verir (3.14); uyuşmazlık eklenmez
 		{"Nokta", "Nokta", true},
 		{"Nokta", "Tam", false},
 		{"Liste", "Sözlük", false},
@@ -134,7 +149,6 @@ func TestTipBelirtimliDegiskenUyumlu(t *testing.T) {
 		`değişken a: Mantık = doğru ve yanlış`,
 		`değişken a: Liste = [1, 2]`,
 		`değişken a: Aralık = 1..=5`,
-		`değişken a: aralık = 0..3`,
 		`değişken a: Ondalık = 7 / 2`,
 		`değişken a: Ondalık = 2 ** -1`,
 		`değişken a: Tam = 7 % 2`,
@@ -152,7 +166,6 @@ func TestTipBelirtimliDegiskenUyumlu(t *testing.T) {
 		`değişken a: Metin = yok ?? "varsayılan"`,
 		`değişken a: Tam = -5`,
 		`değişken a: Tam = 2 ** 3`,
-		`değişken a: TAM = 7 % 2`,
 		`değişken a: Fonksiyon = fonksiyon(x) { sonuç x }`,
 		`sabit a: Tam = 1`,
 	} {

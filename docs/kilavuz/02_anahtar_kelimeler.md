@@ -6,7 +6,7 @@
 - **Koşul & Eşleştirme:** `eğer`, `değilse eğer`, `değilse`, `eşle`, `varsayılan`
 - **Döngüler & Liste Üreteci:** `döngü x içinde liste`, `1..10`, `1..=10`, `iken`, `çık`, `devam`, `[x * x döngü x içinde 1..=10 eğer x % 2 == 0]`
 - **Mantıksal & Boş:** `doğru`, `yanlış`, `yok`, `ve` (`&&`), `veya` (`||`), `değil` (`!`), `??`, `?.`
-- **Tipler:** `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Tensör` (matrisler 2 boyutlu tensördür). Tip açıklamasında büyük/küçük harf fark etmez (`MANTIK` ≡ `Mantık`), ama eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) kabul edilmez: `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`
+- **Tipler:** `Tam`, `Ondalık`, `Metin`, `Mantık`, `Yok`, `Liste`, `Sözlük`, `Tensör` (matrisler 2 boyutlu tensördür). Tip açıklamasında tip adı yalnızca kendi yazımıyla geçerlidir: `tam` ya da `MANTIK` yazılırsa denetleyici `'Tam' yazın` der (3.14). Eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) kabul edilmez: `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`
 - **Yapı:** `yapı`, `kendi` (kalıtım yoktur)
 - **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `dene`, `yakala`, `fırlat`, `ertele`, `kesme_noktası` (koşullu: `kesme_noktası eğer koşul`), `aktar "yol"`, `aktar "yol" olarak ad`, `eşzamanlı`, `bekle(saniye)`, `bekle_hepsi()`
 - **Test:** `test "ad" { ... }`, `doğrula(koşul, [mesaj])`, `eşit_mi(beklenen, gerçek, [mesaj])`

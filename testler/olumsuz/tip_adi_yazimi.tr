@@ -1,0 +1,3 @@
+// Bilerek hatalı: 3.14 — tip adının yalnızca kendi yazımı geçerlidir.
+değişken adet: tam = 3
+fonksiyon kare(x: ONDALIK): ondalık { sonuç x * x }

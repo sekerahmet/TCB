@@ -112,15 +112,27 @@ var tipSayi = tipTam + " ya da " + tipOndalik
 var aciklamaTipleri = []kod.Kod{kod.A200, kod.A201, kod.A202, kod.A203,
 	kod.A205, kod.A206, kod.A207, kod.A208, kod.A209, kod.A212, kod.A204, kod.A215}
 
-// tipYazimlari tip açıklamasında kabul edilen yazımların küçük harfli biçimi → tip adıdır.
-// Yazımlar sözlükten gelir (yalnızca Türkçe biçim; büyük/küçük harf fark etmez). Matris 2
-// boyutlu tensördür; ayrı bir tip değildir.
+// tipYazimlari tip açıklamasında kabul edilen yazımlar → tip adıdır. Yazımlar sözlükten
+// gelir ve tektir (3.14): yalnızca tip adının tam yazımı (Tam, Ondalık); büyük/küçük harfi
+// farklı bir yazım (tam, MANTIK) kabul edilmez. Matris 2 boyutlu tensördür; ayrı bir tip
+// değildir.
 var tipYazimlari = func() map[string]string {
 	m := map[string]string{}
 	for _, k := range aciklamaTipleri {
 		for _, y := range kod.Yazimlar(k) {
-			m[kucukHarf(y)] = kod.Ad(k)
+			m[y] = kod.Ad(k)
 		}
+	}
+	return m
+}()
+
+// tipHarfYazimlari kabul edilen yazımların Türkçe kuralla küçültülmüş biçimi → tip adıdır.
+// Yalnızca ipucu içindir: yazım bir tip adından yalnızca büyük/küçük harfle ayrılıyorsa
+// (tam, ONDALIK) denetleyici asıl yazımı söyler.
+var tipHarfYazimlari = func() map[string]string {
+	m := map[string]string{}
+	for y, ad := range tipYazimlari {
+		m[kucukHarf(y)] = ad
 	}
 	return m
 }()
@@ -131,7 +143,7 @@ var tipYazimlari = func() map[string]string {
 var tipOnerileri = func() map[string]string {
 	m := map[string]string{}
 	ekle := func(y, ad string) {
-		if _, gecerli := tipYazimlari[kucukHarf(y)]; !gecerli {
+		if _, gecerli := tipHarfYazimlari[kucukHarf(y)]; !gecerli {
 			m[kucukHarf(y)] = ad
 		}
 	}
@@ -147,13 +159,21 @@ var tipOnerileri = func() map[string]string {
 }()
 
 // kucukHarf tip adlarını Türkçe kurala göre küçültür (MANTIK → mantık, METİN → metin);
-// tip adları büyük/küçük harfe duyarsızdır.
+// yalnızca kabul edilmeyen bir yazımın ipucunu bulmak için kullanılır.
 func kucukHarf(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
 
 // tipAdiDenetle tip açıklamasındaki ad bir tip adının kabul edilmeyen bir yazımıysa
-// (ondalik, int) asıl adı öneren bir hata ekler.
+// (tam, ondalik, int) asıl adı öneren bir hata ekler.
 func (c *Checker) tipAdiDenetle(ad string, satir int) {
 	if ad == "" {
+		return
+	}
+	if _, gecerli := tipYazimlari[ad]; gecerli {
+		return
+	}
+	if asil, ok := tipHarfYazimlari[kucukHarf(ad)]; ok {
+		c.errors = append(c.errors, fmt.Sprintf(
+			"Satır %d: '%s' TR'de bir tip adı değil; tip adının tek yazımı vardır: '%s' yazın", satir, ad, asil))
 		return
 	}
 	if oneri, ok := tipOnerileri[kucukHarf(ad)]; ok {
@@ -166,11 +186,14 @@ func normalizeTypeName(t string) string {
 	if t == "" {
 		return tipHerhangi
 	}
-	if ad, ok := tipYazimlari[kucukHarf(t)]; ok {
+	if ad, ok := tipYazimlari[t]; ok {
 		return ad
 	}
-	// Kabul edilmeyen yazım (ondalik) tipAdiDenetle'de hata verir; aynı satırda bir de tip
-	// uyuşmazlığı çıkmasın diye önerilen tip varsayılır.
+	// Kabul edilmeyen yazım (tam, ondalik) tipAdiDenetle'de hata verir; aynı satırda bir de
+	// tip uyuşmazlığı çıkmasın diye önerilen tip varsayılır.
+	if ad, ok := tipHarfYazimlari[kucukHarf(t)]; ok {
+		return ad
+	}
 	if ad, ok := tipOnerileri[kucukHarf(t)]; ok {
 		return ad
 	}

@@ -224,3 +224,17 @@ test "3.13 açıklamasız değişkenin tipi kalıcı değildir" {
     değişken oran: Ondalık = 7 / 2
     eşit_mi(3.5, oran)
 }
+
+test "3.14 tip adının tek yazımı vardır" {
+    değişken adet: Tam = 3
+    fonksiyon kare(x: Ondalık): Ondalık { sonuç x * x }
+    eşit_mi(2.25, kare(1.5))
+    // Büyük/küçük harfi farklı yazım tip adı değildir; program çalıştırılmadan reddedilir
+    değişken mesaj = ""
+    dene { aktar "olumsuz/tip_adi_yazimi" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 2: 'tam' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Tam' yazın"), mesaj)
+    doğrula(mesaj.içerir("Satır 3: 'ONDALIK' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
+    doğrula(mesaj.içerir("Satır 3: 'ondalık' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
+    // Değer olarak okunan küçük harfli ad dönüşüm fonksiyonudur (3.12)
+    eşit_mi(adet, tam("3"))
+}
