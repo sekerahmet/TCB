@@ -41,7 +41,7 @@ döngü i içinde 0..3000 {
     değişken y = toplam(w * 3)
     deneme += 1
     dene { geri_yayılım(y) } yakala h { izsiz += 1 }
-    eğer bitti { kır }
+    eğer bitti { çık }
 }
 bekle_hepsi()
 yazdır(deneme > 0, izsiz)`)

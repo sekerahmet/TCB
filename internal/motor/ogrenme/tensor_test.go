@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/denetci"
 	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/yurut"
 )
@@ -32,8 +33,15 @@ func calistir(t *testing.T, kod string) (string, error) {
 	return out.String(), err
 }
 
+// mustCalistir kodu hatasız çalıştırır. Önce, tr komutunun yaptığı gibi tip denetiminden
+// geçirir: tanımsız ya da kaldırılmış bir ad (ör. 'çık'ın eski adı) yalnızca zamanlamaya bağlı
+// olarak çalışan bir satırda olsa da test her makinede kalır.
 func mustCalistir(t *testing.T, kod string) string {
 	t.Helper()
+	p := ayristir.New(sozcuk.New(kod))
+	if errs := denetci.New().CheckProgram(p.ParseProgram()); len(errs) > 0 {
+		t.Fatalf("tip denetimi hatası: %v\nkod:\n%s", errs, kod)
+	}
 	out, err := calistir(t, kod)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v\nkod:\n%s", err, kod)
