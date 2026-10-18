@@ -75,18 +75,18 @@
 // yazılırsa derleme düşer. Sabitler switch deyimlerinde kullanılabilir. Dil dosyasına kod
 // eklendiğinde, kaldırıldığında ya da taşındığında sabitler yeniden üretilir:
 //
-//	go generate ./internal/dil/kod   (ya da: go run ./bakim/uret/kod_sabitleri)
+//	go generate ./internal/dil/kod   (ya da: go run ./tools/uret/kod_sabitleri)
 //
 // Aynı komut kod listesinden üretilen öbür dosyaları da yeniler: docs/kodlar.md (her kodun ne
 // işe yaradığı, imzası ve örneği) ve eklentinin renklendirme listeleri
-// (duzenleyici/vscode/syntaxes/tr.tmLanguage.json).
+// (editors/vscode/syntaxes/tr.tmLanguage.json).
 //
 // Katman: dil çekirdeği (internal/dil); yalnızca internal/dil paketlerini içe aktarır.
 package kod
 
-//go:generate go run ../../../bakim/uret/kod_sabitleri
-//go:generate go run ../../../bakim/uret/kod_belgesi -kok ../../..
-//go:generate go run ../../../bakim/uret/eklenti_listeleri -kok ../../..
+//go:generate go run ../../../tools/uret/kod_sabitleri
+//go:generate go run ../../../tools/uret/kod_belgesi -kok ../../..
+//go:generate go run ../../../tools/uret/eklenti_listeleri -kok ../../..
 
 import "fmt"
 

@@ -1,5 +1,5 @@
-# Derlenmiş ikili dosyalar (go build / tr derle çıktıları); yorumlayıcı ikili/ altına derlenir
-ikili/
+# Derlenmiş program dosyaları (go build / tr derle çıktıları); yorumlayıcı bin/ altına derlenir
+bin/
 *.exe
 *.exe~
 *.test

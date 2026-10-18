@@ -519,7 +519,7 @@ func TestOrnekProgramlarHatasizDenetlenir(t *testing.T) {
 	// Depodaki programlar (örnekler, dil tanımı testleri ve kıyas programları)
 	// uyarısız denetlenmeli: yerleşik adları gölgeleyen kullanıcı adı olmamalı.
 	var hepsi []string
-	for _, desen := range []string{"ornekler/*.tr", "ornekler/*/*.tr", "testler/*.tr", "bakim/kiyas/tr/*.tr"} {
+	for _, desen := range []string{"ornekler/*.tr", "ornekler/*/*.tr", "testler/*.tr", "tools/kiyas/tr/*.tr"} {
 		d, _ := filepath.Glob(depo.Yol(desen))
 		hepsi = append(hepsi, d...)
 	}

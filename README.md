@@ -6,14 +6,14 @@ Her işin tek yazımı vardır: anahtar kelimeler, yerleşikler ve komutlar yaln
 
 ## Kurulum
 
-Yorumlayıcıyı proje kökünde derleyin (`go` derleyicisi kurulu olmalıdır); çıktı `ikili/` klasörüne yazılır ve bu klasör depoya girmez:
+Yorumlayıcıyı proje kökünde derleyin (`go` derleyicisi kurulu olmalıdır); çıktı `bin/` klasörüne yazılır ve bu klasör depoya girmez:
 
 ```bash
-GOAMD64=v3 go build -o ikili/tr.exe ./cmd/tr          # bash
-$env:GOAMD64="v3"; go build -o ikili/tr.exe ./cmd/tr   # PowerShell
+GOAMD64=v3 go build -o bin/tr.exe ./cmd/tr          # bash
+$env:GOAMD64="v3"; go build -o bin/tr.exe ./cmd/tr   # PowerShell
 ```
 
-`GOAMD64=v3` 2020 sonrası x86-64 işlemcileri (AVX2/FMA) hedefler ve matris çarpımını çok hızlandırır (512×512 çarpımda v1 derlemeye göre yaklaşık 8–14 kat; ölçüm: [`bakim/kiyas/`](bakim/kiyas/README.md)). Daha eski ya da bazı düşük güçlü işlemcilerde program açılmıyorsa `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez.
+`GOAMD64=v3` 2020 sonrası x86-64 işlemcileri (AVX2/FMA) hedefler ve matris çarpımını çok hızlandırır (512×512 çarpımda v1 derlemeye göre yaklaşık 8–14 kat; ölçüm: [`tools/kiyas/`](tools/kiyas/README.md)). Daha eski ya da bazı düşük güçlü işlemcilerde program açılmıyorsa `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez.
 
 ## İlk program
 
@@ -27,9 +27,9 @@ yazdır([1, 2, 3, 4].haritala { kare(o) })   // [1, 4, 9, 16]
 ```
 
 ```bash
-./ikili/tr.exe merhaba.tr          # çalıştırır
-./ikili/tr.exe kontrol merhaba.tr  # çalıştırmadan sözdizimi ve tip denetimi
-./ikili/tr.exe                     # etkileşimli kabuk
+./bin/tr.exe merhaba.tr          # çalıştırır
+./bin/tr.exe kontrol merhaba.tr  # çalıştırmadan sözdizimi ve tip denetimi
+./bin/tr.exe                     # etkileşimli kabuk
 ```
 
 ## Testler ve biçimlendirme
@@ -82,13 +82,13 @@ değişken girdi, hedef = ö.sonraki()                              // [8, 256] 
 
 ## VS Code eklentisi ve hata ayıklama
 
-[`duzenleyici/vscode/`](duzenleyici/vscode/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`tensör` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr hata_ayıkla dosya.tr`.
+[`editors/vscode/`](editors/vscode/README.md) `.tr` dosyalarına renklendirme, kod şablonları (`tensör` yazıp `Tab`: küçük bir eğitim döngüsü), çalıştırma (▶) ve hata ayıklama getirir. **F5** ile hata ayıklarken **İzleme Masası** paneli tüm değişkenleri tek tabloda gösterir; listeler, tensörler ve veri kümeleri tablo olarak açılır, değerler çalışma anında değiştirilebilir. Terminalde hata ayıklamak için: `tr hata_ayıkla dosya.tr`.
 
-Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosyayı `ikili/tr.exe` ile çalıştırır (`.vscode/tasks.json`). Çalıştırma görevleri yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce `Ctrl+Shift+P` → "Tasks: Run Task" → **TR: yorumlayıcıyı derle** görevini çalıştırın.
+Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosyayı `bin/tr.exe` ile çalıştırır (`.vscode/tasks.json`). Çalıştırma görevleri yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce `Ctrl+Shift+P` → "Tasks: Run Task" → **TR: yorumlayıcıyı derle** görevini çalıştırın.
 
 ## Örnekler
 
-[`ornekler/`](ornekler/) klasöründeki dosyalar sırayla okunacak şekilde numaralıdır; her biri kısa, kendi başına çalışır ve baştaki yorumda ne öğrettiğini anlatır. Proje kökünden çalıştırın: `./ikili/tr.exe ornekler/01_merhaba.tr`.
+[`ornekler/`](ornekler/) klasöründeki dosyalar sırayla okunacak şekilde numaralıdır; her biri kısa, kendi başına çalışır ve baştaki yorumda ne öğrettiğini anlatır. Proje kökünden çalıştırın: `./bin/tr.exe ornekler/01_merhaba.tr`.
 
 | Dosya | Ne öğretir |
 | :-- | :-- |
@@ -112,7 +112,7 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 - [`docs/yol_haritasi.md`](docs/yol_haritasi.md) — yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar.
 - [`docs/mimari.md`](docs/mimari.md) — katmanlar, bağımlılık kuralı ve paketlerin görevleri.
 - [`docs/katki.md`](docs/katki.md) — katkı rehberi: dosya ve fonksiyon boyu, adlar, paket belgesi, testler, yeni kod isteği, tam denetim, ölçüm.
-- [`bakim/kiyas/`](bakim/kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
+- [`tools/kiyas/`](tools/kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
 - [`SECURITY.md`](SECURITY.md) — güvenlik açığı bildirme, güvenilmeyen sayılan girdiler (`.trt`, `.npy`, `tokenizer.json` ...) ve bulanıklaştırma testleri.
 
 ## Depo yapısı
@@ -125,10 +125,10 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 | `internal/hesap` | Dili bilmeyen hesap çekirdekleri: tensör ve CPU çekirdekleri (`tensor`), parçalayıcı (`parca`), veri yükleyici (`veriyolu`) |
 | `internal/arac` | Hata ayıklayıcı (`ayikla`), biçimlendirici (`bicim`), `tr test` çekirdeği (`testkosucu`) |
 | `kitaplik/` | TR ile yazılan standart kitaplığın yeri (ikiliye gömülecek; bugün boş ve bağlı değil) |
-| `duzenleyici/vscode/` | VS Code eklentisi |
+| `editors/vscode/` | VS Code eklentisi |
 | `docs/` | Belgeler ([dizin](docs/README.md)) |
 | `ornekler/`, `testler/` | Örnek programlar ve dil tanımının kural testleri |
-| `bakim/` | Depo bakımı: `tam_denetim.sh`, `bulaniklastir.sh`, üreteçler (`uret/`), hız kıyas seti (`kiyas/`) |
+| `tools/` | Depo bakımı: `tam_denetim.sh`, `bulaniklastir.sh`, üreteçler (`uret/`), hız kıyas seti (`kiyas/`) |
 
 Katmanlar, aralarındaki bağımlılık kuralı ve her paketin görevi: [`docs/mimari.md`](docs/mimari.md).
 

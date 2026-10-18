@@ -27,12 +27,12 @@ TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları 
 
 **Ağ.** Yorumlayıcı bugün hiçbir ağ bağlantısı açmaz. İleride bir sunucu eklenirse yalnızca `127.0.0.1`'e bağlanır.
 
-**VS Code eklentisi.** Eklenti yalnızca güvenilen yorumlayıcıyı çalıştırır: yorumlayıcının yolu (`tr.yorumlayiciYolu`) yalnızca kullanıcı ayarından okunur, çalışma alanının kendi ayar dosyası onu değiştiremez; güvenilmeyen (kısıtlı kipteki) çalışma alanında hiçbir şey çalıştırılmaz; yorumlayıcı üst klasörlerde aranmaz ([eklenti belgesi](duzenleyici/vscode/README.md)).
+**VS Code eklentisi.** Eklenti yalnızca güvenilen yorumlayıcıyı çalıştırır: yorumlayıcının yolu (`tr.yorumlayiciYolu`) yalnızca kullanıcı ayarından okunur, çalışma alanının kendi ayar dosyası onu değiştiremez; güvenilmeyen (kısıtlı kipteki) çalışma alanında hiçbir şey çalıştırılmaz; yorumlayıcı üst klasörlerde aranmaz ([eklenti belgesi](editors/vscode/README.md)).
 
 ## Bulanıklaştırma testleri
 
 Yukarıdaki her girdinin bir bulanıklaştırma testi vardır (`go test` içinde `Fuzz` ile başlayan testler: tensör dosyası, `.npy` başlığı, parçalayıcı ve düzenli ifadeler, CSV, JSON, gömülü paket, hata ayıklama iletileri, sözcük çözümleyici, derleyici, biçimlendirici). Sıradan `go test` yalnızca kayıtlı girdileri koşar; otomatik sınama her hafta her hedefi rastgele girdiyle ayrıca koşar (`.github/workflows/bulaniklastirma.yml`). Yerelde tek bir hedef:
 
 ```sh
-bash bakim/bulaniklastir.sh 30s '^FuzzTensorKaydiCoz$'
+bash tools/bulaniklastir.sh 30s '^FuzzTensorKaydiCoz$'
 ```

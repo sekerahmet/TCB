@@ -7,4 +7,4 @@
 # Üretilmiş dosyalar: elle düzenlenmez, çakışmada yeniden üretilir (go generate ./internal/dil/kod)
 docs/kodlar.md linguist-generated=true
 internal/dil/kod/kodlar_uretilmis.go linguist-generated=true
-duzenleyici/vscode/syntaxes/tr.tmLanguage.json linguist-generated=true
+editors/vscode/syntaxes/tr.tmLanguage.json linguist-generated=true

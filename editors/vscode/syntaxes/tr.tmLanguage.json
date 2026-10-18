@@ -1,0 +1,353 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "comment": "Bu dosya kod listesinden (internal/dil/kod/tr.json) üretilir; elle düzenlemeyin: go run ./tools/uret/eklenti_listeleri",
+  "name": "TR Dili",
+  "scopeName": "source.tr",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#import"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#pronoun"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#builtins"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.tr",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.tr",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.tr",
+          "begin": "\"",
+          "end": "\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.tr"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.tr"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#string-content"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.tr",
+          "begin": "'",
+          "end": "'",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.tr"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.tr"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#string-content"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.other.raw.tr",
+          "begin": "`",
+          "end": "`",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.tr"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.tr"
+            }
+          }
+        }
+      ]
+    },
+    "string-content": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.brace.tr",
+          "match": "\\\\[{}]"
+        },
+        {
+          "name": "constant.character.escape.tr",
+          "match": "\\\\[ntr\"'\\\\]"
+        },
+        {
+          "name": "invalid.illegal.escape.tr",
+          "match": "\\\\."
+        },
+        {
+          "include": "#interpolation"
+        }
+      ]
+    },
+    "interpolation": {
+      "name": "meta.interpolation.tr",
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.begin.tr"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.end.tr"
+        }
+      },
+      "contentName": "meta.embedded.expression.tr",
+      "patterns": [
+        {
+          "include": "#nested-braces"
+        },
+        {
+          "include": "$self"
+        }
+      ]
+    },
+    "nested-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.braces.begin.tr"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.braces.end.tr"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#nested-braces"
+        },
+        {
+          "include": "$self"
+        }
+      ]
+    },
+    "import": {
+      "patterns": [
+        {
+          "match": "\\b(aktar)\\b\\s*(\"[^\"]*\"|'[^']*'|[^\\W\\d][\\w.]*)\\s+(olarak)\\b\\s*([^\\W\\d]\\w*)?",
+          "captures": {
+            "1": {
+              "name": "keyword.control.import.tr"
+            },
+            "2": {
+              "name": "string.other.module.tr"
+            },
+            "3": {
+              "name": "keyword.control.import.as.tr"
+            },
+            "4": {
+              "name": "entity.name.namespace.tr"
+            }
+          }
+        },
+        {
+          "name": "keyword.control.import.tr",
+          "match": "\\b(aktar)\\b"
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(fonksiyon)\\s+([^\\W\\d]\\w*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.function.tr"
+            },
+            "2": {
+              "name": "entity.name.function.tr"
+            }
+          }
+        },
+        {
+          "match": "\\b(yapı)\\s+([^\\W\\d]\\w*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.struct.tr"
+            },
+            "2": {
+              "name": "entity.name.type.tr"
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.tr",
+          "match": "\\b(eğer|değilse|eşle|varsayılan|döngü|içinde|iken|çık|devam|sonuç|dene|yakala|fırlat|eşzamanlı|ertele)\\b"
+        },
+        {
+          "name": "keyword.other.debugger.tr",
+          "match": "\\b(kesme_noktası)\\b"
+        },
+        {
+          "name": "storage.type.tr",
+          "match": "\\b(değişken|sabit|fonksiyon|yapı)\\b"
+        },
+        {
+          "name": "variable.language.self.tr",
+          "match": "\\b(kendi)\\b"
+        },
+        {
+          "name": "constant.language.boolean.tr",
+          "match": "\\b(doğru|yanlış)\\b"
+        },
+        {
+          "name": "constant.language.null.tr",
+          "match": "\\b(yok)\\b"
+        },
+        {
+          "name": "keyword.operator.logical.tr",
+          "match": "\\b(ve|veya|değil)\\b"
+        }
+      ]
+    },
+    "pronoun": {
+      "comment": "Sondaki blok (o-lambda) parametresi: liste.filtrele { o > 2 }",
+      "patterns": [
+        {
+          "name": "variable.language.pronoun.tr",
+          "match": "(?<![\\w.])o(?!\\w)"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "entity.name.type.tr",
+          "match": "\\b(Tam|Ondalık|Metin|Mantık|Yok|Liste|Sözlük|Aralık|Fonksiyon|YerleşikFonksiyon|YapıTanımı|Nesne|Tensör|Herhangi|İyileştirici|Tip|VeriKümesi|Örnekleyici|SıralıOkuyucu|Parçalayıcı|Yol|İlerleme|Günlük|SatırOkuyucu)\\b"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.tr",
+          "match": "\\b(yazdır|girdi|dosya_oku|dosya_yaz|dosya_satırları|yol|klasörü_listele|klasör_oluştur|sil|kopyala|taşı|tip|tam|ondalık|metin|aralık|toplam|min|maks|mutlak|karekök|yuvarla|ortalama|standart_sapma|ortanca|bekle|bekle_hepsi|zaman_ms|json_çöz|json_metin|csv_oku|doğrula|eşit_mi|ortam_değişkeni|komut_satırı|günlük|ilerleme)\\b"
+        },
+        {
+          "name": "support.function.ai.tr",
+          "match": "\\b(tensör|sıfırlar|birler|rastgele_normal|birim_matris|birleştir|relu|sigmoid|tanh|gelu|softmax|log_softmax|üstel|log|sinüs|kosinüs|maks_indeks|geri_yayılım|türevsiz|özel_türev|türev_denetle|AdamW|SGD|gradyan_kırp|gömme|katman_normu|rms_normu|dikkat|çapraz_entropi|parametreler|örnekle|tensör_kaydet|tensör_yükle|karışık_hassasiyet|varsayılan_cihaz|cihazlar|veri_kümesi|parçalayıcı_yükle)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.tr",
+          "match": "\\b\\d[\\d_]*(?:\\.\\d[\\d_]*)?[eE][+-]?\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.float.tr",
+          "match": "\\b\\d[\\d_]*\\.\\d[\\d_]*\\b"
+        },
+        {
+          "name": "constant.numeric.integer.tr",
+          "match": "\\b\\d[\\d_]*\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.range.tr",
+          "match": "\\.\\.=?"
+        },
+        {
+          "name": "keyword.operator.pipe.tr",
+          "match": "\\|>"
+        },
+        {
+          "name": "keyword.operator.null-coalescing.tr",
+          "match": "\\?\\?"
+        },
+        {
+          "name": "punctuation.accessor.optional.tr",
+          "match": "\\?\\."
+        },
+        {
+          "name": "keyword.operator.arrow.tr",
+          "match": "=>"
+        },
+        {
+          "name": "keyword.operator.comparison.tr",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.logical.tr",
+          "match": "&&|\\|\\||!"
+        },
+        {
+          "name": "keyword.operator.assignment.compound.tr",
+          "match": "\\+=|-=|\\*=|/="
+        },
+        {
+          "name": "keyword.operator.assignment.tr",
+          "match": ":=|="
+        },
+        {
+          "name": "keyword.operator.arithmetic.tr",
+          "match": "\\*\\*|@|[+\\-*/%]"
+        },
+        {
+          "name": "keyword.operator.ternary.tr",
+          "match": "\\?"
+        }
+      ]
+    }
+  }
+}

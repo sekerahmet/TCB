@@ -1,5 +1,5 @@
 # Sürekli tümleştirme: her gönderimde ve çekme isteğinde Windows ve Linux üzerinde tam denetim
-# (bakim/tam_denetim.sh) çalışır. "Bitti"nin tek tanımı o betiktir; burada yalnızca kurulum ve
+# (tools/tam_denetim.sh) çalışır. "Bitti"nin tek tanımı o betiktir; burada yalnızca kurulum ve
 # kip seçimi vardır. Betiğin yaptıkları: üretilmiş dosyaların güncelliği, gofmt, go vet, VS
 # Code eklentisinin JavaScript dosyaları ve package.json, derleme, Go testleri (-short), dil
 # tanımı testleri ve örnek testleri (tr test), örneklerin hepsinin duman testi (çıkış kodu 0,
@@ -58,7 +58,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Tam denetim
-        run: bash bakim/tam_denetim.sh --kip=${{ matrix.goamd64 }}
+        run: bash tools/tam_denetim.sh --kip=${{ matrix.goamd64 }}
 
   yaris:
     name: Yarış dedektörü (Linux)

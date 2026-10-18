@@ -110,7 +110,7 @@ yazdır(W.cihaz, varsayılan_cihaz())
 ```
 
 Veri kümesinin örnekleyicisi (`veri_kümesi(...).örnekleyici(...)`) de toplu işleri varsayılan
-cihazda verir; büyük bir modelin tamamı için örnek: `bakim/gpu/kiyas_gpu.tr`.
+cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/kiyas_gpu.tr`.
 
 - `cihazlar()` kullanılabilir cihazları verir (`["cpu", "gpu"]`); `varsayılan_cihaz()` geçerli
   cihazın adını. `t.cihaz` bir tensörün cihazını, `t.cihaza("cpu")` taşınmış kopyasını verir.

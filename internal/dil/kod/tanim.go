@@ -448,10 +448,10 @@ func TanimDenetle(d *Dil) []error {
 			hata("%s: tür %q, ama kodun ailesi %q gerektirir", k, t.Tur, bek)
 		}
 		if g.Tasindi != t.Tasindi {
-			hata("%s: dil dosyasının taşınma bilgisi (%s) tanımla (%s) aynı değil; go run ./bakim/uret/kod_sabitleri", k, g.Tasindi, t.Tasindi)
+			hata("%s: dil dosyasının taşınma bilgisi (%s) tanımla (%s) aynı değil; go run ./tools/uret/kod_sabitleri", k, g.Tasindi, t.Tasindi)
 		}
 		if g.Kaldirildi != t.Kaldirildi {
-			hata("%s: dil dosyasının kaldırılma bilgisi tanımla aynı değil; go run ./bakim/uret/kod_sabitleri", k)
+			hata("%s: dil dosyasının kaldırılma bilgisi tanımla aynı değil; go run ./tools/uret/kod_sabitleri", k)
 		}
 		if t.Kaldirildi {
 			if t.Tasindi != Yok || len(t.Uyeler) > 0 || len(t.Imza.Param) > 0 || len(t.Imza.Adli) > 0 || !t.Imza.Donus.Bos() || len(t.Iliskili) > 0 {

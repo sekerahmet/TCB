@@ -65,9 +65,9 @@ var uzunFonksiyonlar = map[string]istisna{
 	"internal/arac/bicim/bicim.go:bicimle":                  {119, "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde"},
 	"internal/arac/testkosucu/kosucu.go:DosyaCalistir":      {91, "test dosyasını ayrıştır, denetle, her testi yalıtılmış çalıştır ve raporla: sıralı tek akış"},
 	"cmd/tr/bicimle.go:bicimleKomutu":                       {83, "komut satırı bayrakları ve dosya/klasör dolaşımı tek akışta"},
-	"bakim/uret/kod_belgesi/main.go:Uret":                   {151, nUretec},
-	"bakim/uret/eklenti_listeleri/main.go:Uret":             {107, nUretec},
-	"bakim/kiyas/go/kiyas.go:main":                          {92, nUretec + " (kıyas programları sırayla)"},
+	"tools/uret/kod_belgesi/main.go:Uret":                   {151, nUretec},
+	"tools/uret/eklenti_listeleri/main.go:Uret":             {107, nUretec},
+	"tools/kiyas/go/kiyas.go:main":                          {92, nUretec + " (kıyas programları sırayla)"},
 
 	// Motorlar
 	"internal/motor/ogrenme/ozel_turev.go:turevDenetle":             {181, nYerlesik + " (sayısal türev denetimi)"},

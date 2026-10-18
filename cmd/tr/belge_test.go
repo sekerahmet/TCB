@@ -34,7 +34,7 @@ const uretilmisBelge = "docs/kodlar.md"
 func belgeListesi(t *testing.T) []string {
 	t.Helper()
 	liste := []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "kitaplik/README.md",
-		"duzenleyici/vscode/README.md", "bakim/kiyas/README.md", ".github/ISSUE_TEMPLATE/sozluk_istegi.md"}
+		"editors/vscode/README.md", "tools/kiyas/README.md", ".github/ISSUE_TEMPLATE/sozluk_istegi.md"}
 	for _, desen := range []string{"docs/*.md", "docs/*/*.md"} {
 		d, err := filepath.Glob(depo.Yol(desen))
 		if err != nil {
@@ -140,7 +140,7 @@ func yerTutuculariTanimla(govde, kod string) string {
 // Eklentinin kod şablonları varsayılan değerleriyle açıldığında derlenebilir kod üretmelidir
 // (hakem mimari 3: eşle şablonu derlenmeyen kod üretiyordu).
 func TestEklentiSablonlariDerlenir(t *testing.T) {
-	veri, err := os.ReadFile(depo.Yol("duzenleyici/vscode/snippets/tr.code-snippets"))
+	veri, err := os.ReadFile(depo.Yol("editors/vscode/snippets/tr.code-snippets"))
 	if err != nil {
 		t.Fatal(err)
 	}

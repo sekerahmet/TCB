@@ -3,7 +3,7 @@
 # Sıradan go test yalnızca tohum derlemini koşar; bu iş yeni girdi üretir. Elle de
 # tetiklenebilir (Actions → Bulanıklaştırma → Run workflow), süre seçilerek. Bir hedef düşerse
 # düşüren girdi günlükte yazılır; yerelde `go test -run=<Hedef>/<dosya>` ile yeniden üretmek
-# için dosya testdata/fuzz/<Hedef>/ altına konur. Koşum bakim/bulaniklastir.sh'tadır.
+# için dosya testdata/fuzz/<Hedef>/ altına konur. Koşum tools/bulaniklastir.sh'tadır.
 name: Bulanıklaştırma
 
 on:
@@ -41,4 +41,4 @@ jobs:
         env:
           # Girdi betiğe ortam değişkeniyle geçer (komut satırına doğrudan yazılmaz).
           SURE: ${{ inputs.sure || '30s' }}
-        run: bash bakim/bulaniklastir.sh "$SURE"
+        run: bash tools/bulaniklastir.sh "$SURE"

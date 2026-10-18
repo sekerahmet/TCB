@@ -27,7 +27,7 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 		}
 		if d.IsDir() {
 			switch d.Name() {
-			case ".git", "ikili", "olumsuz", "node_modules", ".claude":
+			case ".git", "bin", "olumsuz", "node_modules", ".claude":
 				return filepath.SkipDir
 			}
 			return nil

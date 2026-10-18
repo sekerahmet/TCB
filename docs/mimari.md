@@ -21,7 +21,7 @@ Ok "içe aktarabilir" demektir. Kural `internal/katman_test.go` ile denetlenir (
 | `internal/arac/**` | `internal/dil`, `internal/hesap`, `internal/motor`, `internal/arac` |
 | `cmd/tr` | hepsi (`internal/depo` dışında) |
 | `internal/depo`, `kitaplik` | hiçbiri |
-| `bakim/**` | hepsi |
+| `tools/**` | hepsi |
 
 Dil çekirdeğinin içinde de sıra vardır: bir dil paketi yalnızca kendisinden önce gelenleri içe aktarabilir (`internal/katman_test.go`, `dilSirasi`):
 
@@ -63,8 +63,8 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
 | `internal/depo` | Testlerin depo kökünü bulan yardımcı (testler `../../` yazmaz) |
 | `kitaplik` | TR ile yazılan standart kitaplığı ikiliye gömecek; bugün boş ve hiçbir program içe aktarmıyor |
-| `bakim/uret/*` | Üreteçler: Go kod sabitleri, `docs/kodlar.md`, eklentinin renklendirme listeleri (`go generate ./internal/dil/kod`) |
-| `bakim/kiyas/go` | Hız kıyas setinin derlenmiş başvuru sürümü |
+| `tools/uret/*` | Üreteçler: Go kod sabitleri, `docs/kodlar.md`, eklentinin renklendirme listeleri (`go generate ./internal/dil/kod`) |
+| `tools/kiyas/go` | Hız kıyas setinin derlenmiş başvuru sürümü |
 
 ### Yorumlayıcı kancaları
 
@@ -107,7 +107,7 @@ Motorların kendi kancaları:
   musl tabanlı dağıtımlarda (Alpine) ikili açılmaz. `-tags gpusuz` ile derlenen ikili statik
   kalır ve GPU desteği içermez. **Karar:** varsayılan ikili GPU desteklidir (glibc'ye bağlı);
   statik ikili isteyen `GOOS=linux CGO_ENABLED=0 go build -tags gpusuz ./cmd/tr` ile derler.
-  Tam denetim `gpusuz` derlemenin statik kaldığını `bakim/statik_denetim` ile doğrular.
+  Tam denetim `gpusuz` derlemenin statik kaldığını `tools/statik_denetim` ile doğrular.
 - **Bağlam ve iş parçacığı:** CUDA bağlamı işletim sistemi iş parçacığına bağlıdır. Her dışa
   açık yöntem girişte arka ucun kilidini alır, gorutini iş parçacığına kilitler ve cihazın
   birincil bağlamını bağlar (`cuCtxSetCurrent`); bütün işler tek akışta sırayla yürür.
@@ -134,7 +134,7 @@ Motorların kendi kancaları:
   görünmez (çıktı eşlemesi birebir olmalıdır; `ScatterAdd`/indirgeme hedefi örtüşen bir
   görünüm olamaz); yaklaşık komutlar (`ex2`, `lg2`, `sin`, `cos`) tam doğrulukla, `fma`
   float64 üzerinden hesaplanır (donanımla birkaç ulp fark; sınamalar toleranslıdır).
-- **Colab:** `bakim/gpu/` (paket hazırlama, kıyas betikleri, `COLAB.md`).
+- **Colab:** `tools/gpu/` (paket hazırlama, kıyas betikleri, `COLAB.md`).
 
 ## Klasörler
 
@@ -143,12 +143,12 @@ Motorların kendi kancaları:
 | `cmd/tr/` | Tek ikili |
 | `internal/` | Bütün Go kodu (yukarıdaki katmanlar) |
 | `kitaplik/` | TR ile yazılı standart kitaplık (ikiliye gömülecek; bugün boş ve bağlı değil) |
-| `duzenleyici/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
+| `editors/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
 | `docs/` | Belgeler: [`kilavuz/`](kilavuz/README.md), [`dil/`](dil/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
 | `ornekler/` | Öğrenme sırasıyla örnek programlar |
 | `testler/` | Dil tanımının kural testleri (`tr test testler`); `olumsuz/`, `alt/`, `veri/` |
-| `bakim/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas paketi: `colab_hazirla.sh`, `kiyas_gpu.tr`, `kiyas_gpu.py`, `COLAB.md`) |
-| `ikili/` | Derleme çıktısı (`go build -o ikili/tr.exe ./cmd/tr`); depoya girmez |
+| `tools/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas paketi: `colab_hazirla.sh`, `kiyas_gpu.tr`, `kiyas_gpu.py`, `COLAB.md`) |
+| `bin/` | Derleme çıktısı (`go build -o bin/tr.exe ./cmd/tr`); depoya girmez |
 | `calisma/` | Kişisel deneme klasörü; depoya girmez |
 
 ## Sahiplik
@@ -158,6 +158,6 @@ Motorların kendi kancaları:
 | Dil çekirdeği | `internal/dil/**`, `internal/motor/dosya`, `internal/arac/{bicim,testkosucu,ayikla}`, `internal/depo`, `cmd/tr`, `docs/dil/`, bu dosya |
 | Tensör ve GPU | `internal/hesap/tensor`, `internal/hesap/gpu`, `internal/motor/ogrenme`, ileride `kitaplik/cekirdek` |
 | Veri ve parçalayıcı | `internal/hesap/{parca,veriyolu}`, `internal/motor/{parcalayici,veri,veribicim}` |
-| Araçlar | `duzenleyici/`, `.vscode/`, `docs/kilavuz/`, `README.md` |
-| Hız | `bakim/kiyas/` |
+| Araçlar | `editors/`, `.vscode/`, `docs/kilavuz/`, `README.md` |
+| Hız | `tools/kiyas/` |
 | Test | `testler/`, `.github/`, eklenti testleri |

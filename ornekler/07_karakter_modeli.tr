@@ -3,7 +3,7 @@
 // Veri: TR'nin kendi Türkçe belgeleri. Model bir sonraki karakteri tahmin etmeyi öğrenir,
 // sonunda kendi yazdığı bir metin örneği verir (maks_indeks ile açgözlü üretim).
 // Öğrettikleri: metinden karakter sözlüğü kurmak, katman listesiyle derin model, parametre
-// sayımı, metin üretimi. Aynı modelin hız kıyası için başka dilde yazılmış eşi: bakim/kiyas/README.md.
+// sayımı, metin üretimi. Aynı modelin hız kıyası için başka dilde yazılmış eşi: tools/kiyas/README.md.
 // Proje kök klasöründen çalıştırın: tr ornekler/07_karakter_modeli.tr
 
 değişken ADIM = 300

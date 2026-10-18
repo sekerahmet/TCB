@@ -55,7 +55,7 @@ var nlsAnahtarRe = regexp.MustCompile(`^%([^%\s]+)%$`)
 // eklentiJSONOku eklenti klasöründeki bir JSON dosyasını genel biçimde okur.
 func eklentiJSONOku(t *testing.T, ad string) any {
 	t.Helper()
-	veri, err := os.ReadFile(depo.Yol("duzenleyici/vscode/" + ad))
+	veri, err := os.ReadFile(depo.Yol("editors/vscode/" + ad))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +222,7 @@ func TestEklentiYorumlayiciAyariMakineKapsamli(t *testing.T) {
 	if ozellik.Scope != "machine" {
 		t.Errorf("tr.yorumlayiciYolu kapsamı %q; \"machine\" olmalı", ozellik.Scope)
 	}
-	js, err := os.ReadFile(depo.Yol("duzenleyici/vscode/extension.js"))
+	js, err := os.ReadFile(depo.Yol("editors/vscode/extension.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,7 @@ func TestEklentiKisitliKip(t *testing.T) {
 	if sayi < 6 {
 		t.Errorf("çalıştırma menü öğeleri bulunamadı (%d)", sayi)
 	}
-	js, err := os.ReadFile(depo.Yol("duzenleyici/vscode/extension.js"))
+	js, err := os.ReadFile(depo.Yol("editors/vscode/extension.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestEklentiKisitliKip(t *testing.T) {
 	}
 }
 
-// Eklentinin JavaScript testleri (duzenleyici/vscode/test/*_test.js): İzleme Masası düğme →
+// Eklentinin JavaScript testleri (editors/vscode/test/*_test.js): İzleme Masası düğme →
 // VS Code komutu eşlemesi, yorumlayıcıyı bulma kuralı ve sahte vscode modülüyle çalıştırma ve
 // hata ayıklama yolları (F5, Ctrl+F5 ve "args"). Klasördeki her test kendiliğinden koşar.
 // Node yoksa atlanır (otomatik sınamada node vardır).
@@ -281,7 +281,7 @@ func TestEklentiJSTestleri(t *testing.T) {
 	if err != nil {
 		t.Skip("node bulunamadı; eklentinin JavaScript testleri atlandı")
 	}
-	testler, _ := filepath.Glob(depo.Yol("duzenleyici/vscode/test/*_test.js"))
+	testler, _ := filepath.Glob(depo.Yol("editors/vscode/test/*_test.js"))
 	if len(testler) < 3 {
 		t.Fatalf("eklenti JS testleri bulunamadı: %v", testler)
 	}

@@ -1,6 +1,6 @@
 # TR kod listesi
 
-<!-- Bu dosya internal/dil/kod/tanim.json ve internal/dil/kod/tr.json'dan üretilir; elle düzenlemeyin: go run ./bakim/uret/kod_belgesi -->
+<!-- Bu dosya internal/dil/kod/tanim.json ve internal/dil/kod/tr.json'dan üretilir; elle düzenlemeyin: go run ./tools/uret/kod_belgesi -->
 
 Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/dil/17_kodlar.md` §17). Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; "hangi kod ne işe yarar" sorusunun tek başvurusudur. Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.
 

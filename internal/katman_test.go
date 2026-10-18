@@ -30,10 +30,10 @@ var katmanlar = []struct {
 	{"internal/dil/", []string{"internal/dil/"}},
 	{"internal/motor/", []string{"internal/dil/", "internal/hesap/", "internal/motor/"}},
 	{"internal/arac/", []string{"internal/dil/", "internal/hesap/", "internal/motor/", "internal/arac/"}},
-	{"internal/depo", nil}, // testlerin depo kökü yardımcısı; yalnızca testlerden ve bakim/'dan içe aktarılır
+	{"internal/depo", nil}, // testlerin depo kökü yardımcısı; yalnızca testlerden ve tools/'dan içe aktarılır
 	{"kitaplik", nil},      // TR ile yazılı kitaplık: Go tarafında yalnızca gömme dosyası
 	{"cmd/", []string{"internal/dil/", "internal/hesap/", "internal/motor/", "internal/arac/", "kitaplik"}},
-	{"bakim/", []string{"internal/", "kitaplik"}},
+	{"tools/", []string{"internal/", "kitaplik"}},
 }
 
 // dilSirasi dil çekirdeğinin iç sırasıdır: bir dil paketi yalnızca bu listede kendisinden
@@ -54,7 +54,7 @@ var dilSirasi = []string{
 const modul = "tr_dili"
 
 // atlanan klasörler: Go paketi olmayan ya da depoya ait olmayan yerler.
-var atlanan = map[string]bool{".git": true, ".claude": true, "ikili": true, "calisma": true, "testdata": true, "node_modules": true}
+var atlanan = map[string]bool{".git": true, ".claude": true, "bin": true, "calisma": true, "testdata": true, "node_modules": true}
 
 // onekEslesir paket yolu önekin kendisi ya da onun altındaki bir paket mi? Önek sonunda "/"
 // olsa da olmasa da klasör sınırında eşlenir: "internal/depo" ve "kitaplik" önekleri
