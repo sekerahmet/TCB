@@ -255,7 +255,8 @@ func (k *Kume) onbellekKotaDenetle(adet int, enKisa int64) error {
 			"(kotayı büyütün ya da ileri bakışı/grup boyunu küçültün)",
 			ErrOnbellekYetersiz, ob.Kota(), adet, enBuyuk, gereken)
 	}
-	return nil
+	// Klasörü paylaşan diğer kümelerin ayırdığı yerle birlikte de sığmalı.
+	return ob.Ayir(gereken)
 }
 
 // onbellekHazirla, önbellek etkinse verilen parçaların arka planda

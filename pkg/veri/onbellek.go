@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -47,12 +48,29 @@ type OnbellekIstatistik struct {
 // Getir açıklayıcı bir hata döner; yavaş kaynaktan sessizce doğrudan
 // okumaya geri dönülmez.
 //
-// Önbellek tek bir sıralı okuyucuya (eğitim örnekleyicisi) göre
-// tasarlanmıştır: Hazirla her çağrıda bekleyen listeyi değiştirir. Aynı
-// dizini iki Onbellek örneği aynı anda kullanmamalıdır.
+// Aynı dizin için süreç içinde tek bir yönetici (obCekirdek) vardır: aynı
+// dizinle açılan her Onbellek (ör. eğitim ve doğrulama kümeleri) onu
+// paylaşır; kota, kayıtlar ve LRU sırası ortaktır. Her Onbellek kendi
+// Hazirla listesini bildirir; listeler sırayla harmanlanır. Dizin ayrıca
+// süreçler arası bir kilit dosyasıyla korunur: başka bir süreç aynı dizini
+// açmaya çalışırsa açık bir hata alır (birbirinin kopyalarını silmesinler).
 type Onbellek struct {
-	dizin string
-	kota  int64
+	c      *obCekirdek
+	mu     sync.Mutex
+	kapali bool
+}
+
+// obCekirdek bir önbellek dizininin süreç içindeki tek yöneticisidir.
+type obCekirdek struct {
+	dizin   string
+	anahtar string   // kayıt anahtarı (mutlak, temiz yol)
+	kota    int64    // paylaşılan kota (en son açılışta verilen); mu ile korunur
+	kilit   *os.File // süreçler arası kilit dosyası (açık kaldıkça kilitli)
+	// istemciler açık Onbellek'lerdir (açılış sırasıyla); listeler her
+	// birinin son Hazirla listesidir.
+	istemciler []*Onbellek
+	listeler   map[*Onbellek][]string
+	ayrilan    map[*Onbellek]int64 // Ayir ile bildirilen yer
 
 	mu        sync.Mutex
 	kayit     map[string]*obGirdi // yerel ad → girdi
@@ -92,6 +110,10 @@ var (
 	// bildirir (kota küçük ya da açık dosyalar yer kaplıyor).
 	ErrOnbellekYetersiz = errors.New("veri: önbellek kotası yetersiz")
 
+	// ErrOnbellekKilitli, önbellek dizinini başka bir sürecin kullandığını
+	// bildirir.
+	ErrOnbellekKilitli = errors.New("veri: önbellek dizini kilitli")
+
 	// kopyaKancasi, testlerde kopyalamayı yavaşlatmak için kopyadan hemen
 	// önce (kilit tutulmadan) çağrılır; üretimde nil'dir.
 	kopyaKancasi func(kaynak string, onYukleme bool)
@@ -100,8 +122,37 @@ var (
 	geciciSoneki = ".gecici"
 )
 
+// kilitDosyasi, önbellek dizinindeki süreçler arası kilit dosyasının adıdır
+// (yönetilen adlara uymaz; silinmez).
+const kilitDosyasi = ".onbellek.kilit"
+
+// obKayit, süreç içinde açık önbellek dizinleridir (anahtar: dizinAnahtari).
+var obKayit = struct {
+	mu sync.Mutex
+	m  map[string]*obCekirdek
+}{m: map[string]*obCekirdek{}}
+
+// dizinAnahtari dizinin süreç içi kayıt anahtarıdır: bağlantıları çözülmüş,
+// mutlak ve temiz yol (Windows'ta küçük harf).
+func dizinAnahtari(dizin string) string {
+	tam, err := filepath.Abs(dizin)
+	if err != nil {
+		tam = dizin
+	}
+	if g, err := filepath.EvalSymlinks(tam); err == nil {
+		tam = g
+	}
+	tam = filepath.Clean(tam)
+	if runtime.GOOS == "windows" {
+		tam = strings.ToLower(tam)
+	}
+	return tam
+}
+
 // OnbellekAc, önbelleği açar; dizinde önceki çalıştırmadan kalan kopyalar
-// varsa benimsenir (kaynakla boyut ve zaman eşleşirse kullanılır).
+// varsa benimsenir (kaynakla boyut ve zaman eşleşirse kullanılır). Dizin bu
+// süreçte zaten açıksa yöneticisi paylaşılır (tek kota; en son verilen
+// geçerlidir); başka bir süreç dizini kullanıyorsa hata döner.
 func OnbellekAc(s OnbellekSecenekleri) (*Onbellek, error) {
 	if s.Dizin == "" {
 		return nil, fmt.Errorf("veri: önbellek dizini verilmedi")
@@ -115,13 +166,52 @@ func OnbellekAc(s OnbellekSecenekleri) (*Onbellek, error) {
 	if err := os.MkdirAll(s.Dizin, 0o755); err != nil {
 		return nil, fmt.Errorf("veri: önbellek dizini oluşturulamadı: %w", err)
 	}
+	anahtar := dizinAnahtari(s.Dizin)
+	obKayit.mu.Lock()
+	defer obKayit.mu.Unlock()
+	c := obKayit.m[anahtar]
+	if c != nil {
+		// Paylaşılan tek kota vardır; en son verilen geçerlidir (küçüldüyse
+		// fazlası hemen silinir).
+		c.mu.Lock()
+		c.kota = s.Kota
+		c.yerAc(0, false)
+		c.mu.Unlock()
+	} else {
+		var err error
+		if c, err = cekirdekAc(s); err != nil {
+			return nil, err
+		}
+		c.anahtar = anahtar
+		obKayit.m[anahtar] = c
+	}
+	h := &Onbellek{c: c}
+	c.mu.Lock()
+	c.istemciler = append(c.istemciler, h)
+	c.mu.Unlock()
+	return h, nil
+}
+
+// cekirdekAc dizinin yöneticisini kurar: süreçler arası kilidi alır,
+// önceki çalıştırmadan kalan kopyaları benimser ve işçileri başlatır.
+func cekirdekAc(s OnbellekSecenekleri) (*obCekirdek, error) {
+	kilit, err := os.OpenFile(filepath.Join(s.Dizin, kilitDosyasi), os.O_RDWR|os.O_CREATE, 0o644)
+	if err != nil {
+		return nil, fmt.Errorf("veri: önbellek kilit dosyası açılamadı: %w", err)
+	}
+	if err := dosyaKilitle(kilit); err != nil {
+		_ = kilit.Close()
+		return nil, fmt.Errorf("%w: önbellek dizini %s başka bir program (süreç) tarafından kullanılıyor; "+
+			"iki program aynı önbellek klasörünü aynı anda kullanamaz, her birine ayrı bir klasör verin", ErrOnbellekKilitli, s.Dizin)
+	}
 	girdiler, err := os.ReadDir(s.Dizin)
 	if err != nil {
+		_ = kilit.Close()
 		return nil, fmt.Errorf("veri: önbellek dizini okunamadı: %w", err)
 	}
 	ctx, iptal := context.WithCancel(context.Background())
-	o := &Onbellek{
-		dizin: s.Dizin, kota: s.Kota,
+	o := &obCekirdek{
+		dizin: s.Dizin, kota: s.Kota, kilit: kilit, listeler: map[*Onbellek][]string{}, ayrilan: map[*Onbellek]int64{},
 		kayit: map[string]*obGirdi{}, istenenAd: map[string]bool{},
 		uyari: make(chan struct{}, s.Isci), ctx: ctx, iptal: iptal, isci: s.Isci,
 	}
@@ -179,11 +269,8 @@ func kopyaGecerli(yol string, boyut int64) bool {
 	return bs.VeriOfseti+bs.VeriBoyutu() <= boyut
 }
 
-// Kota, önbelleğin bayt kotasıdır.
-func (o *Onbellek) Kota() int64 { return o.kota }
-
 // pinliBayt, açık (iğneli) dosyaların toplam boyutudur; kilit tutulur.
-func (o *Onbellek) pinliBayt() int64 {
+func (o *obCekirdek) pinliBayt() int64 {
 	var t int64
 	for _, g := range o.kayit {
 		if g.pin > 0 {
@@ -213,17 +300,7 @@ func ayniZaman(a, b time.Time) bool {
 	return d < 2*time.Second && d > -2*time.Second
 }
 
-// Getir, kaynağın yerel kopyasının yolunu döner; kopya yoksa kopyalar (ya
-// da arka planda süren kopyayı bekler). Dönen birak işlevi çağrılana kadar
-// dosya silinmez. Yer yalnızca arka planda süren önden yükleme kopyaları
-// yüzünden geçici olarak doluysa onların bitmesi beklenir. Kotada yer
-// açılamıyorsa ErrOnbellekYetersiz'i saran açıklayıcı bir hata döner
-// (kaynaktan doğrudan okumaya geri dönülmez).
-func (o *Onbellek) Getir(ctx context.Context, kaynak string) (string, func(), error) {
-	return o.getir(ctx, kaynak, false)
-}
-
-func (o *Onbellek) getir(ctx context.Context, kaynak string, onYukleme bool) (string, func(), error) {
+func (o *obCekirdek) getir(ctx context.Context, kaynak string, onYukleme bool) (string, func(), error) {
 	st, err := os.Stat(kaynak)
 	if err != nil {
 		return "", nil, fmt.Errorf("veri: önbellek kaynağı: %w", err)
@@ -336,7 +413,7 @@ func (o *Onbellek) getir(ctx context.Context, kaynak string, onYukleme bool) (st
 	}
 }
 
-func (o *Onbellek) birakici(g *obGirdi) func() {
+func (o *obCekirdek) birakici(g *obGirdi) func() {
 	var bir sync.Once
 	return func() {
 		bir.Do(func() {
@@ -350,7 +427,7 @@ func (o *Onbellek) birakici(g *obGirdi) func() {
 }
 
 // sil, girdinin dosyasını siler; kilit tutulur. Silinemezse false döner.
-func (o *Onbellek) sil(g *obGirdi) bool {
+func (o *obCekirdek) sil(g *obGirdi) bool {
 	err := os.Remove(filepath.Join(o.dizin, g.ad))
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return false
@@ -366,7 +443,7 @@ func (o *Onbellek) sil(g *obGirdi) bool {
 // kullanılan önce. Önden yüklemede, hâlâ istenen dosyalar silinmez; eşzamanlı
 // Getir'de ise istenenler en son silinir. Yer açılamayacaksa hiçbir şey
 // silinmez ve false döner.
-func (o *Onbellek) yerAc(gerekli int64, onYukleme bool) bool {
+func (o *obCekirdek) yerAc(gerekli int64, onYukleme bool) bool {
 	if o.kullanim+gerekli <= o.kota {
 		return true
 	}
@@ -410,7 +487,7 @@ func (o *Onbellek) yerAc(gerekli int64, onYukleme bool) bool {
 // Önden yükleme kopyası bitince iğnelenmez, bu yüzden bekleyen eşzamanlı
 // Getir onu silerek yer açabilir; aksi halde Getir, kota yalnızca geçici
 // olarak doluyken yanlışlıkla ErrOnbellekYetersiz dönerdi.
-func (o *Onbellek) surenOnYukleme(gerekli int64) chan struct{} {
+func (o *obCekirdek) surenOnYukleme(gerekli int64) chan struct{} {
 	var serbest int64
 	var bekle chan struct{}
 	for _, g := range o.kayit {
@@ -492,16 +569,22 @@ func kopyala(ctx context.Context, kaynak, hedef string, beklenen int64, zaman ti
 
 // Hazirla, sıradaki kaynak dosyaları (öncelik sırasıyla) bildirir; arka
 // plandaki işçiler bunları sırayla ve aynı anda en çok Isci dosya olmak
-// üzere, kotanın izin verdiği kadar kopyalar. Her çağrı
-// önceki listenin yerini alır.
-func (o *Onbellek) Hazirla(kaynaklar []string) {
-	o.mu.Lock()
-	o.istenen = append([]string(nil), kaynaklar...)
-	o.istenenAd = make(map[string]bool, len(kaynaklar))
-	for _, k := range kaynaklar {
-		o.istenenAd[yerelAd(k)] = true
+// üzere, kotanın izin verdiği kadar kopyalar. Her çağrı bu Onbellek'in
+// önceki listesinin yerini alır; dizini paylaşan diğer Onbellek'lerin
+// listeleriyle sırayla (her birinden birer dosya) harmanlanır.
+func (h *Onbellek) Hazirla(kaynaklar []string) {
+	h.mu.Lock()
+	kapali := h.kapali
+	h.mu.Unlock()
+	if !kapali {
+		h.c.hazirla(h, kaynaklar)
 	}
-	o.nesil++
+}
+
+func (o *obCekirdek) hazirla(h *Onbellek, kaynaklar []string) {
+	o.mu.Lock()
+	o.listeler[h] = append([]string(nil), kaynaklar...)
+	o.listeleriHarmanla()
 	o.bekleyen = true
 	o.mu.Unlock()
 	// Tüm işçileri uyandır; meşgul olanlar listeyi bitirince yeniden bakar.
@@ -513,7 +596,7 @@ func (o *Onbellek) Hazirla(kaynaklar []string) {
 	}
 }
 
-func (o *Onbellek) calis() {
+func (o *obCekirdek) calis() {
 	defer o.wg.Done()
 	for {
 		select {
@@ -554,9 +637,7 @@ func (o *Onbellek) calis() {
 	}
 }
 
-// Bekle, Hazirla ile istenen dosyaların arka plan kopyası bitene (ya da
-// kota yüzünden durana) kadar bekler. Çoğunlukla testler içindir.
-func (o *Onbellek) Bekle(ctx context.Context) error {
+func (o *obCekirdek) bekle(ctx context.Context) error {
 	for {
 		o.mu.Lock()
 		bitti := !o.bekleyen || o.kapali
@@ -572,8 +653,7 @@ func (o *Onbellek) Bekle(ctx context.Context) error {
 	}
 }
 
-// Istatistik, sayaçların anlık kopyasıdır.
-func (o *Onbellek) Istatistik() OnbellekIstatistik {
+func (o *obCekirdek) istatistik() OnbellekIstatistik {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	s := o.ist
@@ -582,23 +662,134 @@ func (o *Onbellek) Istatistik() OnbellekIstatistik {
 	return s
 }
 
-// SonHata, arka plan kopyalamasında görülen son hatadır (yoksa nil).
-func (o *Onbellek) SonHata() error {
+func (o *obCekirdek) sonHataAl() error {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	return o.sonHata
 }
 
-// Dizin, önbellek dizinidir.
-func (o *Onbellek) Dizin() string { return o.dizin }
+// listeleriHarmanla istemcilerin listelerini sırayla (her birinden birer
+// dosya) birleştirir ve listenin değiştiğini işçilere bildirir; kilit tutulur.
+func (o *obCekirdek) listeleriHarmanla() {
+	o.istenen = nil
+	o.istenenAd = map[string]bool{}
+	for i := 0; ; i++ {
+		kalan := false
+		for _, h := range o.istemciler {
+			l := o.listeler[h]
+			if i >= len(l) {
+				continue
+			}
+			kalan = true
+			if ad := yerelAd(l[i]); !o.istenenAd[ad] {
+				o.istenenAd[ad] = true
+				o.istenen = append(o.istenen, l[i])
+			}
+		}
+		if !kalan {
+			break
+		}
+	}
+	o.nesil++
+}
 
-// Kapat, arka plan kopyalamasını durdurur ve gorutinin bitmesini bekler.
-// Yerel kopyalar diskte kalır ve sonraki açılışta benimsenir.
-func (o *Onbellek) Kapat() error {
+// Kapat, bu Onbellek'i kapatır. Dizini paylaşan başka açık Onbellek yoksa
+// arka plan kopyalamasını durdurur, gorutinlerin bitmesini bekler ve dizin
+// kilidini bırakır. Yerel kopyalar diskte kalır ve sonraki açılışta
+// benimsenir. Birden çok kez çağrılabilir.
+func (h *Onbellek) Kapat() error {
+	h.mu.Lock()
+	if h.kapali {
+		h.mu.Unlock()
+		return nil
+	}
+	h.kapali = true
+	h.mu.Unlock()
+	o := h.c
+	obKayit.mu.Lock()
 	o.mu.Lock()
-	o.kapali = true
+	delete(o.listeler, h)
+	delete(o.ayrilan, h)
+	for i, x := range o.istemciler {
+		if x == h {
+			o.istemciler = append(o.istemciler[:i], o.istemciler[i+1:]...)
+			break
+		}
+	}
+	son := len(o.istemciler) == 0
+	if son {
+		o.kapali = true
+		if obKayit.m[o.anahtar] == o {
+			delete(obKayit.m, o.anahtar)
+		}
+	} else {
+		o.listeleriHarmanla()
+	}
 	o.mu.Unlock()
+	obKayit.mu.Unlock()
+	if !son {
+		return nil
+	}
 	o.iptal()
 	o.wg.Wait()
+	return o.kilit.Close() // kilit, tutamak kapanınca bırakılır
+}
+
+// Getir, kaynağın yerel kopyasının yolunu döner; kopya yoksa kopyalar (ya
+// da arka planda süren kopyayı bekler). Dönen birak işlevi çağrılana kadar
+// dosya silinmez. Yer yalnızca arka planda süren önden yükleme kopyaları
+// yüzünden geçici olarak doluysa onların bitmesi beklenir. Kotada yer
+// açılamıyorsa ErrOnbellekYetersiz'i saran açıklayıcı bir hata döner
+// (kaynaktan doğrudan okumaya geri dönülmez).
+func (h *Onbellek) Getir(ctx context.Context, kaynak string) (string, func(), error) {
+	h.mu.Lock()
+	kapali := h.kapali
+	h.mu.Unlock()
+	if kapali {
+		return "", nil, ErrKapali
+	}
+	return h.c.getir(ctx, kaynak, false)
+}
+
+// Ayir, bu Onbellek'in (ör. bir örnekleyicinin) aynı anda yerelde tutacağı
+// bayt sayısını bildirir; önceki ayırmanın yerini alır. Dizini paylaşan
+// Onbellek'lerin ayırdıklarıyla birlikte kotayı aşarsa ErrOnbellekYetersiz'i
+// saran açıklayıcı bir hata döner (ayırma değişmez).
+func (h *Onbellek) Ayir(gereken int64) error {
+	o := h.c
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	var diger int64
+	for _, x := range o.istemciler {
+		if x != h {
+			diger += o.ayrilan[x]
+		}
+	}
+	if diger+gereken > o.kota {
+		return fmt.Errorf("%w: bu önbellek klasörünü paylaşan diğer kümeler %d bayt ayırdı, bu küme %d bayt daha istiyor; "+
+			"kota %d bayt. Aynı klasörü kullanan kümeler kotayı paylaşır: kotayı en az %d bayt yapın ya da kümelere ayrı klasörler verin",
+			ErrOnbellekYetersiz, diger, gereken, o.kota, diger+gereken)
+	}
+	o.ayrilan[h] = gereken
 	return nil
 }
+
+// Kota, önbelleğin (dizini paylaşanlarla ortak) bayt kotasıdır.
+func (h *Onbellek) Kota() int64 {
+	h.c.mu.Lock()
+	defer h.c.mu.Unlock()
+	return h.c.kota
+}
+
+// Dizin, önbellek dizinidir.
+func (h *Onbellek) Dizin() string { return h.c.dizin }
+
+// Istatistik, dizinin (paylaşılan) sayaçlarının anlık kopyasıdır.
+func (h *Onbellek) Istatistik() OnbellekIstatistik { return h.c.istatistik() }
+
+// SonHata, arka plan kopyalamasında görülen son hatadır (yoksa nil).
+func (h *Onbellek) SonHata() error { return h.c.sonHataAl() }
+
+// Bekle, Hazirla ile istenen dosyaların arka plan kopyası bitene (ya da
+// kota yüzünden durana) kadar bekler. Çoğunlukla testler içindir.
+func (h *Onbellek) Bekle(ctx context.Context) error { return h.c.bekle(ctx) }

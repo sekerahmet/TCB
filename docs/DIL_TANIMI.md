@@ -494,7 +494,7 @@ Model eğitimi için `tokenizer.json` parçalayıcıları ve `.npy` token parça
 
 **16.3** `.çöz(kimlikler)` kimlik listesinden ya da 1 boyutlu tensörden metin, listelerin listesinden ya da 2 boyutlu tensörden metin listesi üretir. Varsayılan olarak özel tokenlar çıktıya yazılmaz; `özel_tokenlar: doğru` onları da yazar. Sözlükte olmayan kimlikler atlanır.
 
-**16.4** `veri_kümesi(dizin)` bir klasördeki `.npy` parçalarını (ad sırasıyla) ya da tek bir `.npy` dosyasını `VeriKümesi` olarak açar; `meta.json` varsa token sayıları ondan okunur. `önbellek: klasör` parçaları yerel bir önbelleğe kopyalar; bu durumda `kota_gb:` zorunludur.
+**16.4** `veri_kümesi(dizin)` bir klasördeki `.npy` parçalarını (ad sırasıyla) ya da tek bir `.npy` dosyasını `VeriKümesi` olarak açar; `meta.json` varsa token sayıları ondan okunur. `önbellek: klasör` parçaları yerel bir önbelleğe kopyalar; bu durumda `kota_gb:` zorunludur. Aynı önbellek klasörünü kullanan kümeler tek kotayı paylaşır (en son verilen geçerlidir); klasörü aynı anda başka bir program kullanıyorsa hata verilir.
 
 **16.5** `.örnekleyici(toplu:, bağlam:, tohum: 0)` bir `Örnekleyici` döndürür. `.sonraki()` `[girdi, hedef]` listesidir: ikisi de `[toplu, bağlam]` şeklinde tam sayılı işaretli tensördür (`.değer` `Tam` listesi verir; işlem sonuçlarına bu işaret geçmez), `hedef` girdinin bir kaydırılmışıdır ve pencereler parça sınırını aşmaz. Aynı küme ve tohum aynı toplu işleri verir; örnekleyici sonsuz üretir.
 

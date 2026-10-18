@@ -163,7 +163,9 @@ func kumeAc(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, err
 		if !ok || d.Val == "" {
 			return nil, fmt.Errorf("%s: önbellek yerel bir klasör yolu (metin) olmalıdır, ör. önbellek: \"onbellek/veri\"", fn)
 		}
-		obDizin = d.Val
+		// Göreli yol, diğer yollar gibi tek kuralla çözülür (16.8): önce çalışma
+		// klasörü, orada yoksa programın klasörü.
+		obDizin = baglama.YolCoz(m, d.Val)
 	}
 	var kota int64
 	kotaV, kotaVar := baglama.AdliAl(named, adKota)
@@ -175,7 +177,11 @@ func kumeAc(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, err
 		if !ok || gb <= 0 || math.IsInf(gb, 0) || math.IsNaN(gb) {
 			return nil, fmt.Errorf("%s: kota_gb pozitif bir sayı olmalıdır (ör. kota_gb: 20), %s verildi", fn, kotaV.Inspect())
 		}
-		kota = int64(gb * (1 << 30))
+		// int64 bayt sayısına sığmayan kota (≈ 8,6 milyar GB) taşıp negatif olmasın.
+		if gb >= float64(math.MaxInt64)/(1<<30) {
+			return nil, fmt.Errorf("%s: kota_gb çok büyük (%s); en çok %d GB verilebilir", fn, kotaV.Inspect(), int64(math.MaxInt64>>30))
+		}
+		kota = max(int64(gb*(1<<30)), 1)
 	}
 
 	var k *dv.Kume
@@ -250,6 +256,8 @@ func veriHatasi(fn, yol string, err error, ekler ...string) error {
 		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, temizle(strings.TrimPrefix(err.Error(), dv.ErrOnbellekYetersiz.Error()+": ")))
 	case errors.Is(err, dv.ErrKapali):
 		return fmt.Errorf("%s: okuyucu kapatılmış (program sonlanıyor); yeni bir okuyucu oluşturun", fn)
+	case errors.Is(err, dv.ErrOnbellekKilitli):
+		return fmt.Errorf("%s: %s", fn, temizle(strings.TrimPrefix(err.Error(), dv.ErrOnbellekKilitli.Error()+": ")))
 	case baglama.YokMu(err) && strings.Contains(err.Error(), "küme açılamadı"):
 		return turkce.DosyaHatasi(fn, yol, "açılamadı", err,
 			append([]string{".npy token parçalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin"}, ekler...)...)
