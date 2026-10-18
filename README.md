@@ -108,6 +108,7 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 
 - [`KULLANIM_KILAVUZU.md`](KULLANIM_KILAVUZU.md) — komutlar, yerleşikler, yapay zekâ, web, veritabanı, hata ayıklayıcı.
 - [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) — dilin kuralları; her kuralın `testler/` altında bir testi vardır (`tr test testler`).
+- [`docs/YOL_HARITASI.md`](docs/YOL_HARITASI.md) — yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar.
 - [`kiyas/`](kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
 
 ## Depo yapısı
