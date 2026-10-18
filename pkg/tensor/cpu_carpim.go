@@ -188,10 +188,27 @@ func packA(a []float32, ais, aks, i0, m, p0, kb int, ap []float32) {
 
 // gemm toplu çarpım: her b için C_b += op(A_b)·op(B_b). a, b, c ilgili toplu
 // elemanın başından başlayan dilimlerdir; toplu adımları M*K, K*N, M*N'dir.
+//
+// B bütün toplu için birlikte paketlenir; paket tamponEnBuyuk elemanı aşacaksa toplu
+// parçalara bölünür. Böylece paketleme tamponu sınırlı kalır ve havuzdan gelir (önce
+// 64×(1024×64) gibi toplu çarpımlarda her çağrıda ~16 MB yeni ayırma oluyordu). Her toplu
+// elemanın hesabı parçalamadan bağımsızdır (sonuç bit düzeyinde aynı).
 func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool, c []float32) {
 	if batch == 0 || M == 0 || N == 0 || K == 0 {
 		return
 	}
+	bpLen := (N + nr - 1) / nr * K * nr
+	parca := batch
+	if batch*bpLen > tamponEnBuyuk {
+		parca = max(1, tamponEnBuyuk/bpLen)
+	}
+	for b0 := 0; b0 < batch; b0 += parca {
+		n := min(parca, batch-b0)
+		gemmParca(n, M, N, K, a[b0*M*K:(b0+n)*M*K], transA, b[b0*K*N:(b0+n)*K*N], transB, c[b0*M*N:(b0+n)*M*N])
+	}
+}
+
+func gemmParca(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool, c []float32) {
 	ais, aks := K, 1
 	if transA {
 		ais, aks = 1, M

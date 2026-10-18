@@ -337,8 +337,10 @@ func (b cpuBackend) Copy(dst Storage, dstOff int, src View) {
 }
 
 func (cpuBackend) CopyStrided(dst, src View) {
+	var gt gecici
+	defer gt.bitir()
 	c := cpuDepo(dst.S)
-	k := oku(src)
+	k := gt.oku(src)
 	kd := cd(k.S)
 	if c.tur == Float32 {
 		d := c.d
@@ -402,48 +404,81 @@ func (cpuBackend) Fill(dst Storage, v float32) {
 // Tür uyarlayıcıları: hesap çekirdekleri float32 görür
 // ----------------------------------------------------------------------------
 
+// gecici, bir arka uç çağrısının 16 bitlik depolamalar için açtığı float32 geçici
+// tamponları toplar; bitir hepsini havuza iade eder (çağrı bitince hiçbir görünüm onlara
+// bakmaz). Böylece 16 bitlik yoldaki her işlem tam boy yeni ayırma yapmaz; float32 yolu
+// geçici tampon kullanmaz.
+type gecici struct {
+	s [8]*cpuStorage
+	n int
+	f []*cpuStorage // 8'den fazlası (nadir)
+}
+
+// tampon n elemanlı float32 geçici depolama verir; sifirla doğruysa sıfırlanmıştır.
+func (g *gecici) tampon(n int, sifirla bool) *cpuStorage {
+	t := cpuBackend{}.ayir(n, Float32, sifirla).(*cpuStorage)
+	if g.n < len(g.s) {
+		g.s[g.n] = t
+		g.n++
+	} else {
+		g.f = append(g.f, t)
+	}
+	return t
+}
+
+// bitir geçici tamponları havuza iade eder.
+func (g *gecici) bitir() {
+	for _, t := range g.s[:g.n] {
+		cpuBackend{}.Release(t)
+	}
+	for _, t := range g.f {
+		cpuBackend{}.Release(t)
+	}
+	g.n, g.f = 0, nil
+}
+
 // oku görünümü float32 okunabilir hale getirir: float32 ise aynen, 16 bit ise
 // mantıksal elemanları float32'ye açılmış bitişik geçici bir görünüm.
-func oku(v View) View {
+func (g *gecici) oku(v View) View {
 	if v.S == nil || v.S.DType() == Float32 {
 		return v
 	}
-	tmp := make([]float32, v.Numel())
-	genisletInto(tmp, v)
-	return View{S: &cpuStorage{d: tmp}, Shape: v.Shape, Strides: contiguousStrides(v.Shape)}
+	tmp := g.tampon(v.Numel(), false)
+	genisletInto(tmp.d, v)
+	return View{S: tmp, Shape: v.Shape, Strides: contiguousStrides(v.Shape)}
 }
 
-func okuP(v *View) *View {
+func (g *gecici) okuP(v *View) *View {
 	if v == nil {
 		return nil
 	}
-	w := oku(*v)
+	w := g.oku(*v)
 	return &w
 }
 
 // okuD düz depolamanın (tüm elemanlar) float32 karşılığı.
-func okuD(s Storage) Storage {
+func (g *gecici) okuD(s Storage) Storage {
 	if s == nil || s.DType() == Float32 {
 		return s
 	}
 	c := cpuDepo(s)
-	tmp := make([]float32, len(c.h))
-	genislet16(tmp, c.h, c.tur)
-	return &cpuStorage{d: tmp}
+	tmp := g.tampon(len(c.h), false)
+	genislet16(tmp.d, c.h, c.tur)
+	return tmp
 }
 
 var bitir0 = func() {}
 
 // yaz hedef depolamanın float32 karşılığını ve geri yazma işlevini verir.
 // 16 bitlik hedefte float32 geçici tampon kullanılır (eski doğruysa mevcut
-// içerikle başlar: biriktirme ve yerinde güncellemeler için); geri yazma
-// float32 sonucu hedef türe bir kez yuvarlar.
-func yaz(s Storage, eski bool) (Storage, func()) {
+// içerikle başlar: biriktirme ve yerinde güncellemeler için; değilse sıfırdır);
+// geri yazma float32 sonucu hedef türe bir kez yuvarlar.
+func (g *gecici) yaz(s Storage, eski bool) (Storage, func()) {
 	if s == nil || s.DType() == Float32 {
 		return s, bitir0
 	}
 	c := cpuDepo(s)
-	tmp := &cpuStorage{d: make([]float32, len(c.h))}
+	tmp := g.tampon(len(c.h), !eski)
 	if eski {
 		genislet16(tmp.d, c.h, c.tur)
 	}
@@ -451,184 +486,248 @@ func yaz(s Storage, eski bool) (Storage, func()) {
 }
 
 func (b cpuBackend) AddTo(dst, src Storage, scale float32) {
-	d, son := yaz(dst, true)
-	b.f32AddTo(d, okuD(src), scale)
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(dst, true)
+	b.f32AddTo(d, gt.okuD(src), scale)
 	son()
 }
 
 func (b cpuBackend) ScatterAdd(dst Storage, dstOff int, dstStrides []int, src Storage, shape []int) {
-	d, son := yaz(dst, true)
-	b.f32ScatterAdd(d, dstOff, dstStrides, okuD(src), shape)
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(dst, true)
+	b.f32ScatterAdd(d, dstOff, dstStrides, gt.okuD(src), shape)
 	son()
 }
 
 func (b cpuBackend) ExpandAdd(dst Storage, dstShape []int, src Storage, srcShape []int, scale float32) {
-	d, son := yaz(dst, true)
-	b.f32ExpandAdd(d, dstShape, okuD(src), srcShape, scale)
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(dst, true)
+	b.f32ExpandAdd(d, dstShape, gt.okuD(src), srcShape, scale)
 	son()
 }
 
 func (b cpuBackend) Binary(op BinOp, out Storage, outShape []int, a, bv View) {
-	o, son := yaz(out, false)
-	b.f32Binary(op, o, outShape, oku(a), oku(bv))
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	b.f32Binary(op, o, outShape, gt.oku(a), gt.oku(bv))
 	son()
 }
 
 func (b cpuBackend) BinaryGrad(mode GradMode, dst Storage, dstShape, outShape []int, g Storage, o View, y Storage) {
-	d, son := yaz(dst, true)
-	b.f32BinaryGrad(mode, d, dstShape, outShape, okuD(g), oku(o), okuD(y))
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(dst, true)
+	b.f32BinaryGrad(mode, d, dstShape, outShape, gt.okuD(g), gt.oku(o), gt.okuD(y))
 	son()
 }
 
 func (b cpuBackend) Unary(op UnOp, p float32, out Storage, x View) {
-	o, son := yaz(out, false)
-	b.f32Unary(op, p, o, oku(x))
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	b.f32Unary(op, p, o, gt.oku(x))
 	son()
 }
 
 func (b cpuBackend) UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Storage) {
-	d, son := yaz(gx, true)
-	b.f32UnaryGrad(op, p, d, okuD(g), oku(x), okuD(y))
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(gx, true)
+	b.f32UnaryGrad(op, p, d, gt.okuD(g), gt.oku(x), gt.okuD(y))
 	son()
 }
 
 func (b cpuBackend) Sum(out Storage, x View, axis int, scale float32) {
-	o, son := yaz(out, false)
-	b.f32Sum(o, oku(x), axis, scale)
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	b.f32Sum(o, gt.oku(x), axis, scale)
 	son()
 }
 
 func (b cpuBackend) SumAll(out Storage, x View, scale float32) {
-	o, son := yaz(out, false)
-	b.f32SumAll(o, oku(x), scale)
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	b.f32SumAll(o, gt.oku(x), scale)
 	son()
 }
 
 func (b cpuBackend) Max(out Storage, x View, axis int) {
-	o, son := yaz(out, false)
-	b.f32Max(o, oku(x), axis)
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	b.f32Max(o, gt.oku(x), axis)
 	son()
 }
 
 func (b cpuBackend) MaxGrad(gx, g Storage, x View, axis int) {
-	d, son := yaz(gx, true)
-	b.f32MaxGrad(d, okuD(g), oku(x), axis)
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(gx, true)
+	b.f32MaxGrad(d, gt.okuD(g), gt.oku(x), axis)
 	son()
 }
 
-func (b cpuBackend) ArgMax(x View, axis int) []int { return b.f32ArgMax(oku(x), axis) }
+func (b cpuBackend) ArgMax(x View, axis int) []int {
+	var gt gecici
+	defer gt.bitir()
+	return b.f32ArgMax(gt.oku(x), axis)
+}
 
 func (b cpuBackend) Softmax(out Storage, x View, axis int, logKip bool) {
-	o, son := yaz(out, false)
-	b.f32Softmax(o, oku(x), axis, logKip)
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	b.f32Softmax(o, gt.oku(x), axis, logKip)
 	son()
 }
 
 func (b cpuBackend) SoftmaxGrad(gx, g, y Storage, shape []int, axis int, logKip bool) {
-	d, son := yaz(gx, true)
-	b.f32SoftmaxGrad(d, okuD(g), okuD(y), shape, axis, logKip)
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(gx, true)
+	b.f32SoftmaxGrad(d, gt.okuD(g), gt.okuD(y), shape, axis, logKip)
 	son()
 }
 
 func (b cpuBackend) Gemm(batch, M, N, K int, a View, transA bool, bv View, transB bool, c Storage) {
-	o, son := yaz(c, true)
-	b.f32Gemm(batch, M, N, K, oku(a), transA, oku(bv), transB, o)
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(c, true)
+	// 16 bitlik girdiler havuzdan gelen float32 tamponlara açılır (paketleme sırasında açmak
+	// ölçümde daha yavaştı: doğrudan A okuması ve vektörel kopya kaybediliyordu).
+	b.f32Gemm(batch, M, N, K, gt.oku(a), transA, gt.oku(bv), transB, o)
 	son()
 }
 
 func (b cpuBackend) Embedding(out Storage, w View, idx []int, D int) {
-	o, son := yaz(out, false)
-	b.f32Embedding(o, oku(w), idx, D)
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	b.f32Embedding(o, gt.oku(w), idx, D)
 	son()
 }
 
 func (b cpuBackend) EmbeddingGrad(gw, g Storage, idx []int, D int) {
-	d, son := yaz(gw, true)
-	b.f32EmbeddingGrad(d, okuD(g), idx, D)
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(gw, true)
+	b.f32EmbeddingGrad(d, gt.okuD(g), idx, D)
 	son()
 }
 
 func (b cpuBackend) CrossEntropy(x View, targets []int, C int) (Storage, Storage) {
-	return b.f32CrossEntropy(oku(x), targets, C)
+	var gt gecici
+	defer gt.bitir()
+	return b.f32CrossEntropy(gt.oku(x), targets, C)
 }
 
 func (b cpuBackend) CrossEntropyGrad(gx, g Storage, x View, lse Storage, targets []int, C int) {
-	d, son := yaz(gx, true)
-	b.f32CrossEntropyGrad(d, okuD(g), oku(x), okuD(lse), targets, C)
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(gx, true)
+	b.f32CrossEntropyGrad(d, gt.okuD(g), gt.oku(x), gt.okuD(lse), targets, C)
 	son()
 }
 
 func (b cpuBackend) LayerNorm(out Storage, x View, gamma, beta *View, D int, eps float32) (Storage, Storage) {
-	o, son := yaz(out, false)
-	mean, rstd := b.f32LayerNorm(o, oku(x), okuP(gamma), okuP(beta), D, eps)
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	mean, rstd := b.f32LayerNorm(o, gt.oku(x), gt.okuP(gamma), gt.okuP(beta), D, eps)
 	son()
 	return mean, rstd
 }
 
 func (b cpuBackend) LayerNormGrad(gx, ggamma, gbeta, g Storage, x View, gamma *View, mean, rstd Storage, D int) {
-	dx, son1 := yaz(gx, true)
-	dg, son2 := yaz(ggamma, true)
-	db, son3 := yaz(gbeta, true)
-	b.f32LayerNormGrad(dx, dg, db, okuD(g), oku(x), okuP(gamma), mean, rstd, D)
+	var gt gecici
+	defer gt.bitir()
+	dx, son1 := gt.yaz(gx, true)
+	dg, son2 := gt.yaz(ggamma, true)
+	db, son3 := gt.yaz(gbeta, true)
+	b.f32LayerNormGrad(dx, dg, db, gt.okuD(g), gt.oku(x), gt.okuP(gamma), mean, rstd, D)
 	son1()
 	son2()
 	son3()
 }
 
 func (b cpuBackend) RMSNorm(out Storage, x View, gamma *View, D int, eps float32) Storage {
-	o, son := yaz(out, false)
-	rinv := b.f32RMSNorm(o, oku(x), okuP(gamma), D, eps)
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	rinv := b.f32RMSNorm(o, gt.oku(x), gt.okuP(gamma), D, eps)
 	son()
 	return rinv
 }
 
 func (b cpuBackend) RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv Storage, D int) {
-	dx, son1 := yaz(gx, true)
-	dg, son2 := yaz(ggamma, true)
-	b.f32RMSNormGrad(dx, dg, okuD(g), oku(x), okuP(gamma), rinv, D)
+	var gt gecici
+	defer gt.bitir()
+	dx, son1 := gt.yaz(gx, true)
+	dg, son2 := gt.yaz(ggamma, true)
+	b.f32RMSNormGrad(dx, dg, gt.okuD(g), gt.oku(x), gt.okuP(gamma), rinv, D)
 	son1()
 	son2()
 }
 
 func (b cpuBackend) Attention(out Storage, q, k, v View, mask Storage, p AttentionParams) Storage {
-	o, son := yaz(out, false)
-	lse := b.f32Attention(o, oku(q), oku(k), oku(v), okuD(mask), p)
+	var gt gecici
+	defer gt.bitir()
+	o, son := gt.yaz(out, false)
+	lse := b.f32Attention(o, gt.oku(q), gt.oku(k), gt.oku(v), gt.okuD(mask), p)
 	son()
 	return lse
 }
 
 func (b cpuBackend) AttentionGrad(gq, gk, gv, g Storage, q, k, v View, mask Storage, o, lse Storage, p AttentionParams) {
-	dq, son1 := yaz(gq, true)
-	dk, son2 := yaz(gk, true)
-	dv, son3 := yaz(gv, true)
-	b.f32AttentionGrad(dq, dk, dv, okuD(g), oku(q), oku(k), oku(v), okuD(mask), okuD(o), lse, p)
+	var gt gecici
+	defer gt.bitir()
+	dq, son1 := gt.yaz(gq, true)
+	dk, son2 := gt.yaz(gk, true)
+	dv, son3 := gt.yaz(gv, true)
+	b.f32AttentionGrad(dq, dk, dv, gt.okuD(g), gt.oku(q), gt.oku(k), gt.oku(v), gt.okuD(mask), gt.okuD(o), lse, p)
 	son1()
 	son2()
 	son3()
 }
 
 func (b cpuBackend) SGDStep(p, g, vel Storage, lr, momentum, wd float32) {
-	pd, son1 := yaz(p, true)
-	vd, son2 := yaz(vel, true)
-	b.f32SGDStep(pd, okuD(g), vd, lr, momentum, wd)
+	var gt gecici
+	defer gt.bitir()
+	pd, son1 := gt.yaz(p, true)
+	vd, son2 := gt.yaz(vel, true)
+	b.f32SGDStep(pd, gt.okuD(g), vd, lr, momentum, wd)
 	son1()
 	son2()
 }
 
 func (b cpuBackend) AdamWStep(p, g, m, v Storage, lr, b1, b2, eps, wd, bc1, bc2 float32) {
-	pd, son1 := yaz(p, true)
-	md, son2 := yaz(m, true)
-	vd, son3 := yaz(v, true)
-	b.f32AdamWStep(pd, okuD(g), md, vd, lr, b1, b2, eps, wd, bc1, bc2)
+	var gt gecici
+	defer gt.bitir()
+	pd, son1 := gt.yaz(p, true)
+	md, son2 := gt.yaz(m, true)
+	vd, son3 := gt.yaz(v, true)
+	b.f32AdamWStep(pd, gt.okuD(g), md, vd, lr, b1, b2, eps, wd, bc1, bc2)
 	son1()
 	son2()
 	son3()
 }
 
-func (b cpuBackend) SumSquares(s Storage) float64 { return b.f32SumSquares(okuD(s)) }
+func (b cpuBackend) SumSquares(s Storage) float64 {
+	var gt gecici
+	defer gt.bitir()
+	return b.f32SumSquares(gt.okuD(s))
+}
 
 func (b cpuBackend) Scale(s Storage, k float32) {
-	d, son := yaz(s, true)
+	var gt gecici
+	defer gt.bitir()
+	d, son := gt.yaz(s, true)
 	b.f32Scale(d, k)
 	son()
 }
