@@ -83,19 +83,7 @@ func main() {
 		}
 		compileToExe(args[1], outPath)
 	case "hata_ayıkla":
-		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Hata: Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr hata_ayıkla ornek.tr")
-			os.Exit(1)
-		}
-		// Kaldırılan tarayıcı hata ayıklayıcısının bayrağı dosyadan önce ya da hemen sonra
-		// yazılırsa ipucu verilir; sonraki argümanlar programındır.
-		for _, a := range args[1:min(3, len(args))] {
-			if a == "--web" || a == "-w" {
-				fmt.Fprintln(os.Stderr, "Hata: Tarayıcıdaki hata ayıklayıcı kaldırıldı. VS Code'da F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr hata_ayıkla ornek.tr")
-				os.Exit(1)
-			}
-		}
-		debugFile(args[1], args[2:])
+		hataAyiklaKomutu(args[1:])
 	case "test":
 		testKomutu(args[1:])
 	case "biçimle":
@@ -169,6 +157,23 @@ func runFile(path string, argumanlar []string) {
 	machine.SourceCode = code
 	machine.ArgumanlariAyarla(argumanlar)
 	programCalistir(machine, prog, code)
+}
+
+// hataAyiklaKomutu 'tr hata_ayıkla dosya.tr [argümanlar]' komutudur. Kaldırılan tarayıcı
+// hata ayıklayıcısının bayrağı dosyadan önce ya da hemen sonra yazılırsa ipucu verilir;
+// sonraki argümanlar programındır.
+func hataAyiklaKomutu(args []string) {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "Hata: Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr hata_ayıkla ornek.tr")
+		os.Exit(1)
+	}
+	for _, a := range args[:min(2, len(args))] {
+		if a == "--web" || a == "-w" {
+			fmt.Fprintln(os.Stderr, "Hata: Tarayıcıdaki hata ayıklayıcı kaldırıldı. VS Code'da F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr hata_ayıkla ornek.tr")
+			os.Exit(1)
+		}
+	}
+	debugFile(args[0], args[1:])
 }
 
 func debugFile(path string, argumanlar []string) {
