@@ -131,11 +131,14 @@ func yukle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(yol) 1 parametre bekler, %d verildi", fn, len(args))
 	}
-	s, ok := args[0].(*yurut.StringVal)
+	ham, ok, yolHata := yurut.YolArgumani(fn, args[0])
 	if !ok {
 		return nil, fmt.Errorf("%s: yol bir metin olmalıdır (ör. \"tokenizer.json\"), %s verildi", fn, args[0].Type())
 	}
-	yol, bakilanlar := baglama.YolCozBakilan(m, s.Val)
+	if yolHata != nil {
+		return nil, yolHata
+	}
+	yol, bakilanlar := baglama.YolCozBakilan(m, ham)
 	var p *parca.Parcalayici
 	var err error
 	var bilgi os.FileInfo
@@ -146,15 +149,15 @@ func yukle(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut
 		}
 	})
 	if err != nil {
-		return nil, yuklemeHatasi(s.Val, err, bakilanlar)
+		return nil, yuklemeHatasi(ham, err, bakilanlar)
 	}
 	if bilgi.IsDir() {
 		aday := filepath.Join(yol, "tokenizer.json")
 		ek := ""
 		if _, e := os.Stat(aday); e == nil {
-			ek = fmt.Sprintf("; bu klasörde tokenizer.json var: parçalayıcı_yükle(%q) deneyin", filepath.ToSlash(filepath.Join(s.Val, "tokenizer.json")))
+			ek = fmt.Sprintf("; bu klasörde tokenizer.json var: parçalayıcı_yükle(%q) deneyin", filepath.ToSlash(filepath.Join(ham, "tokenizer.json")))
 		}
-		return nil, fmt.Errorf("%s: %q bir klasör; tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin%s", fn, s.Val, ek)
+		return nil, fmt.Errorf("%s: %q bir klasör; tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin%s", fn, ham, ek)
 	}
 	uyarilariYaz(yol, p)
 	return &Nesne{p: p, yol: yol}, nil

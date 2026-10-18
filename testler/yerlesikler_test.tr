@@ -62,6 +62,22 @@ test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çal�
     doğrula(m.biter("dosya_oku() 1. argüman olarak Metin (dosya yolu) bekler, Tam (5) verildi"), m)
 }
 
+test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham metni önerir" {
+    değişken m = ""
+    dene { dosya_oku("C:\tokenizer.json") } yakala h { m = h }
+    doğrula(m.içerir("dosya_oku(): dosya yolunda sekme karakteri var"), m)
+    doğrula(m.içerir("ham metin kullanın: `C:\\tokenizer.json`"), m)
+    dene { dosya_yaz("D:\new\rapor.txt", "x") } yakala h { m = h }
+    doğrula(m.içerir("dosya_yaz(): dosya yolunda satır sonu karakteri var"), m)
+    doğrula(m.içerir(`D:\new\rapor.txt`), m)
+    dene { tensör_yükle("a\tb.trt") } yakala h { m = h }
+    doğrula(m.içerir("tensör_yükle: dosya yolunda sekme"), m)
+    dene { parçalayıcı_yükle("a\tb.json") } yakala h { m = h }
+    doğrula(m.içerir("parçalayıcı_yükle: dosya yolunda sekme"), m)
+    dene { veri_kümesi("veri\tsayilar") } yakala h { m = h }
+    doğrula(m.içerir("veri_kümesi: dosya yolunda sekme"), m)
+}
+
 test "13.2 metin metotları" {
     eşit_mi("İSTANBUL", "istanbul".büyük_harf())
     eşit_mi("ılık", "ILIK".küçük_harf())

@@ -295,14 +295,17 @@ func dosyaOkuYerlesik(y *VM, args []Value, named map[string]Value) (Value, error
 	if len(args) != 1 {
 		return nil, ArgumanSayisiHatasi("dosya_oku", "1", len(args), "dosya_oku(yol)")
 	}
-	yol, ok := args[0].(*StringVal)
+	yol, ok, err := YolArgumani("dosya_oku()", args[0])
 	if !ok {
 		return nil, ArgumanTipHatasi("dosya_oku", 1, "Metin (dosya yolu)", args[0])
 	}
-	cozulen, bakilanlar := y.YolCoz(yol.Val)
+	if err != nil {
+		return nil, err
+	}
+	cozulen, bakilanlar := y.YolCoz(yol)
 	data, err := os.ReadFile(cozulen)
 	if err != nil {
-		return nil, OkumaHatasi("dosya_oku()", yol.Val, "okunamadı", err, bakilanlar)
+		return nil, OkumaHatasi("dosya_oku()", yol, "okunamadı", err, bakilanlar)
 	}
 	return &StringVal{Val: string(data)}, nil
 }
@@ -312,13 +315,16 @@ func dosyaYazYerlesik(y *VM, args []Value, named map[string]Value) (Value, error
 	if len(args) != 2 {
 		return nil, ArgumanSayisiHatasi("dosya_yaz", "2", len(args), "dosya_yaz(yol, içerik)")
 	}
-	yol, ok := args[0].(*StringVal)
+	yol, ok, err := YolArgumani("dosya_yaz()", args[0])
 	if !ok {
 		return nil, ArgumanTipHatasi("dosya_yaz", 1, "Metin (dosya yolu)", args[0])
 	}
-	cozulen, _ := y.YolCoz(yol.Val)
+	if err != nil {
+		return nil, err
+	}
+	cozulen, _ := y.YolCoz(yol)
 	if err := os.WriteFile(cozulen, []byte(args[1].Inspect()), 0644); err != nil {
-		return nil, turkce.DosyaHatasi("dosya_yaz()", yol.Val, "yazılamadı", err)
+		return nil, turkce.DosyaHatasi("dosya_yaz()", yol, "yazılamadı", err)
 	}
 	return TRUE, nil
 }

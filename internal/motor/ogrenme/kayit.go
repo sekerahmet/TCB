@@ -76,14 +76,17 @@ type kayitGirdisi struct {
 }
 
 func yolArg(fn string, v yurut.Value) (string, error) {
-	s, ok := v.(*yurut.StringVal)
+	yol, ok, err := yurut.YolArgumani(fn, v)
 	if !ok {
 		return "", fmt.Errorf("%s: dosya yolu metin olmalıdır, %s verildi", fn, tipAdi(v))
 	}
-	if s.Val == "" {
+	if err != nil {
+		return "", err
+	}
+	if yol == "" {
 		return "", fmt.Errorf("%s: dosya yolu boş", fn)
 	}
-	return s.Val, nil
+	return yol, nil
 }
 
 // tensorKaydet adları tensör olan bir sözlüğü dosyaya yazar: tensör_kaydet(yol, sözlük).

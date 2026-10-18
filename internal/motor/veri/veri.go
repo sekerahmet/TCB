@@ -153,21 +153,27 @@ func kumeAc(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yuru
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(dizin) 1 parametre bekler (.npy veri dosyalarının klasörü ya da tek bir .npy dosyası), %d verildi", fn, len(args))
 	}
-	s, ok := args[0].(*yurut.StringVal)
+	ham, ok, yolHata := yurut.YolArgumani(fn, args[0])
 	if !ok {
 		return nil, fmt.Errorf("%s: dizin bir metin olmalıdır, %s verildi", fn, args[0].Type())
 	}
-	yol, bakilanlar := baglama.YolCozBakilan(m, s.Val)
+	if yolHata != nil {
+		return nil, yolHata
+	}
+	yol, bakilanlar := baglama.YolCozBakilan(m, ham)
 
 	obDizin := ""
 	if v, ok := baglama.AdliAl(named, adOnbellek); ok {
-		d, ok := v.(*yurut.StringVal)
-		if !ok || d.Val == "" {
+		d, ok, obHata := yurut.YolArgumani(fn, v)
+		if !ok || d == "" {
 			return nil, fmt.Errorf("%s: önbellek yerel bir klasör yolu (metin) olmalıdır, ör. önbellek: \"onbellek/veri\"", fn)
+		}
+		if obHata != nil {
+			return nil, obHata
 		}
 		// Göreli yol, diğer yollar gibi tek kuralla çözülür (16.8): önce çalışma
 		// klasörü, orada yoksa programın klasörü.
-		obDizin = baglama.YolCoz(m, d.Val)
+		obDizin = baglama.YolCoz(m, d)
 	}
 	var kota int64
 	kotaV, kotaVar := baglama.AdliAl(named, adKota)
@@ -209,7 +215,7 @@ func kumeAc(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yuru
 		}
 	})
 	if err != nil {
-		return nil, veriHatasi(fn, s.Val, err, yurut.BakilanYerler(bakilanlar))
+		return nil, veriHatasi(fn, ham, err, yurut.BakilanYerler(bakilanlar))
 	}
 	if obDizin != "" && !kotaVar {
 		gereken := enBuyukParca(k) * int64(veriyolu.VarsayilanGrupBoyu+veriyolu.VarsayilanIleriBak)
@@ -217,7 +223,7 @@ func kumeAc(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yuru
 			"Bu kümenin örnekleyicisi aynı anda %d veri dosyasını yerelde tutar; en büyük veri dosyası %s olduğundan en az kota_gb: %d gerekir",
 			fn, veriyolu.VarsayilanGrupBoyu+veriyolu.VarsayilanIleriBak, baglama.BaytMetni(enBuyukParca(k)), int64(math.Ceil(float64(gereken)/(1<<30))))
 	}
-	tk := &Kume{k: k, yol: s.Val, ob: ob}
+	tk := &Kume{k: k, yol: ham, ob: ob}
 	if ob != nil {
 		tk.kaynak = kaynakEkle(tk, seviyeOnbellek, func(time.Duration) error { return ob.Kapat() })
 	}

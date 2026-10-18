@@ -205,6 +205,9 @@ func (v *VM) aktar(s *agac.ImportStatement, env *Environment, takma func(*Enviro
 // Başka bir görev aynı modülü yüklüyorsa bitmesi beklenir; yükleyen görevin kendi aktarım
 // zinciri modülü içeriyorsa bu döngüsel bir aktarımdır.
 func (v *VM) modulYukle(s *agac.ImportStatement, path string) (*DictVal, error) {
+	if err := YolDenetle("aktar", path); err != nil {
+		return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
+	}
 	// Modüller de dosyalar gibi aranır: önce çalışma klasörü, sonra kodun (ve programın) klasörü.
 	resolvedPath, bakilanlar := v.YolCoz(path)
 	absPath, err := filepath.Abs(resolvedPath)
