@@ -21,7 +21,7 @@ func (s *dapServer) variablesTable(msg *dapMessage) {
 			_, _, tblErr := TableData(e.Val)
 			list = append(list, map[string]interface{}{
 				"kapsam": kapsam, "ad": e.Name, "tip": typeLabel(e.Val), "tur": valueKind(e.Val),
-				"deger": display(e.Val), "tablo": tblErr == nil,
+				"deger": display(e.Val), "tablo": tblErr == nil, "ozet": izlemeOzeti(e.Val),
 			})
 		}
 	}
@@ -82,7 +82,7 @@ func valueKind(val yurut.Value) string {
 // typeLabel tip sütununda değerin yapısını özetler (ör. Tablo [3×3]).
 func typeLabel(val yurut.Value) string {
 	if iz, ok := val.(IzlemeDegeri); ok {
-		return iz.IzlemeEtiketi()
+		return izlemeGosterimi(val, iz)
 	}
 	switch v := val.(type) {
 	case *yurut.ListVal:

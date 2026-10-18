@@ -166,7 +166,7 @@ func display(val yurut.Value) string {
 	}
 	if iz, ok := val.(IzlemeDegeri); ok {
 		// Çok satırlı yazdırma biçimi yerine kısa özet gösterilir.
-		return iz.IzlemeEtiketi()
+		return izlemeGosterimi(val, iz)
 	}
 	var prefix string
 	switch v := val.(type) {

@@ -104,7 +104,9 @@ function cizDegiskenler() {
       adLink.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tabloAc(d); } });
       adHucre.appendChild(adLink);
       degerHucre = el('td', undefined, 'deger');
-      const link = el('span', acik ? '● Açık — sekmeye git' : '▸ Tabloyu aç', 'link'); link.setAttribute('role', 'button'); link.tabIndex = 0;
+      // Küçük değerler (ör. 1-8 elemanlı tensör) satır içinde de görünür; tablo bağlantısı yanında kalır.
+      if (d.ozet) { degerHucre.appendChild(el('span', d.ozet + '  ', 'ozet')); degerHucre.title = d.ozet; }
+      const link = el('span', acik ? '● Açık — sekmeye git' : (d.ozet ? '▸ Tablo' : '▸ Tabloyu aç'), 'link'); link.setAttribute('role', 'button'); link.tabIndex = 0;
       link.title = d.tip;
       link.addEventListener('click', (e) => { e.stopPropagation(); tabloAc(d); });
       link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tabloAc(d); } });

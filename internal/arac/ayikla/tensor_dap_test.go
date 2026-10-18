@@ -26,8 +26,9 @@ func TestDAPTensorDegiskenleri(t *testing.T) {
 	for _, v := range genel {
 		m := v.(map[string]interface{})
 		refler[m["name"].(string)] = int(m["variablesReference"].(float64))
-		if m["name"] == "t" && m["value"] != "Tensör [2×3]" {
-			t.Fatalf("t özeti Tensör [2×3] olmalı: %v", m)
+		// 1-8 elemanlı tensörün değerleri satır içinde görünür (bkz. izleme_ozeti_test.go)
+		if m["name"] == "t" && m["value"] != "[[1.0000, 2.0000, 3.0000], [4.0000, 5.0000, 6.0000]] (Tensör, 2×3)" {
+			t.Fatalf("t değeri satır içinde görünmeli: %v", m)
 		}
 	}
 	if refler["t"] == 0 || refler["büyük"] == 0 {
@@ -42,8 +43,8 @@ func TestDAPTensorDegiskenleri(t *testing.T) {
 		t.Fatalf("2 satır bekleniyordu: %v", satirlar)
 	}
 	ilk := satirlar[1].(map[string]interface{})
-	if ilk["name"] != "[1]" || ilk["value"] != "Tensör [3]" || ilk["evaluateName"] != "t[1]" {
-		t.Fatalf("t[1] satırı Tensör [3] olarak görünmeli: %v", ilk)
+	if ilk["name"] != "[1]" || ilk["value"] != "[4.0000, 5.0000, 6.0000] (Tensör, 3)" || ilk["evaluateName"] != "t[1]" {
+		t.Fatalf("t[1] satırı değerleriyle görünmeli: %v", ilk)
 	}
 	elemanlar := c.varsOf(int(ilk["variablesReference"].(float64)))
 	if elemanlar["[0]"] != "4.0" || elemanlar["[2]"] != "6.0" {
