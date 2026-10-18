@@ -52,16 +52,16 @@ değişken E = parametre([V, D], 0.1)
 değişken W1 = parametre([D, GİZLİ], 0.1)
 değişken W2 = parametre([GİZLİ, V], 0.1)
 
-fonksiyon ileri(girdi) {
-    sonuç gelu(gömme(E, girdi) @ W1) @ W2
+fonksiyon ileri(giriş) {
+    sonuç gelu(gömme(E, giriş) @ W1) @ W2
 }
 
 // --- Eğitim ---
 değişken iyileştirici = AdamW(parametreler, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
 döngü adım içinde 0..ADIM {
-    değişken girdi, hedef = ö.sonraki()
+    değişken giriş, hedef = ö.sonraki()
     iyileştirici.sıfırla()
-    değişken kayıp = çapraz_entropi(ileri(girdi), hedef)
+    değişken kayıp = çapraz_entropi(ileri(giriş), hedef)
     geri_yayılım(kayıp)
     iyileştirici.adım()
     eğer adım % 50 == 0 veya adım == ADIM - 1 {

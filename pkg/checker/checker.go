@@ -45,6 +45,8 @@ func (s *Scope) Resolve(name string) (TypeInfo, bool) {
 type Checker struct {
 	scope  *Scope
 	errors []string
+	// uyarilar programın çalışmasını engellemeyen bulgulardır (ör. yerleşik ad gölgeleme).
+	uyarilar []string
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
 	returnType string
 }
@@ -58,6 +60,21 @@ func New() *Checker {
 
 func (c *Checker) Errors() []string {
 	return c.errors
+}
+
+// Warnings denetimin uyarılarıdır. Uyarılar hata değildir: program çalışır, çıkış kodunu
+// etkilemezler; komut satırı onları hatalardan ayrı bir başlıkla yazar.
+func (c *Checker) Warnings() []string {
+	return c.uyarilar
+}
+
+// golgeDenetle ad bir yerleşik fonksiyonun adıysa (sözlükte G/T/V/W yerleşik kodu) uyarı
+// ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
+func (c *Checker) golgeDenetle(ad string, satir int) {
+	if k, ok := sozluk.Bul(sozluk.AlanGenel, ad); ok && k.Yerlesik() {
+		c.uyarilar = append(c.uyarilar, fmt.Sprintf(
+			"Satır %d: '%s' yerleşik bir ad; bu kapsamda yerleşik '%s' artık kullanılamaz", satir, ad, ad))
+	}
 }
 
 // Denetleyicinin kullandığı tip adları sözlüktedir (pkg/sozluk, A2xx).
@@ -169,6 +186,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	}
 	switch s := stmt.(type) {
 	case *ast.VarStatement:
+		c.golgeDenetle(s.Name.Value, s.Line())
 		c.tipAdiDenetle(s.TypeName, s.Line())
 		inferred := c.inferExpression(s.Value)
 		declared := normalizeTypeName(s.TypeName)
@@ -223,8 +241,10 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		prev := c.scope
 		c.scope = NewScope(prev)
 		if s.KeyVar != "" {
+			c.golgeDenetle(s.KeyVar, s.Line())
 			c.scope.Define(s.KeyVar, TypeInfo{TypeName: tipHerhangi})
 		}
+		c.golgeDenetle(s.ValueVar, s.Line())
 		c.scope.Define(s.ValueVar, TypeInfo{TypeName: tipHerhangi})
 		for _, bs := range s.Body.Statements {
 			c.checkStatement(bs)
@@ -239,6 +259,11 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.checkStatement(s.TryBody)
 		prev := c.scope
 		c.scope = NewScope(prev)
+		yakalaSatiri := s.Line()
+		if s.CatchBody != nil {
+			yakalaSatiri = s.CatchBody.Line()
+		}
+		c.golgeDenetle(s.ErrorVar, yakalaSatiri)
 		c.scope.Define(s.ErrorVar, TypeInfo{TypeName: tipMetin})
 		for _, bs := range s.CatchBody.Statements {
 			c.checkStatement(bs)
@@ -246,6 +271,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.scope = prev
 
 	case *ast.StructStatement:
+		c.golgeDenetle(s.Name, s.Line())
 		c.scope.Define(s.Name, TypeInfo{TypeName: s.Name})
 
 	case *ast.MultiVarStatement:
@@ -253,6 +279,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.inferExpression(v)
 		}
 		for _, name := range s.Names {
+			c.golgeDenetle(name.Value, s.Line())
 			c.scope.Define(name.Value, TypeInfo{TypeName: tipHerhangi, IsConst: s.IsConst})
 		}
 
@@ -384,6 +411,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		c.tipAdiDenetle(e.ReturnType, e.Line())
 		retType := normalizeTypeName(e.ReturnType)
 		if e.Name != "" {
+			c.golgeDenetle(e.Name, e.Line())
 			c.scope.Define(e.Name, TypeInfo{
 				TypeName:   tipFonksiyon,
 				ParamTypes: paramTypes,
@@ -397,6 +425,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			c.returnType = retType
 		}
 		for _, p := range e.Parameters {
+			c.golgeDenetle(p.Name, e.Line())
 			c.scope.Define(p.Name, TypeInfo{TypeName: normalizeTypeName(p.TypeName)})
 		}
 		for _, stmt := range e.Body.Statements {

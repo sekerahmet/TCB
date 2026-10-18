@@ -66,8 +66,8 @@ api.al("/api/personel", fonksiyon(istek) {
 // POST /api/ekle -> JSON gövdesini alıp veritabanına kaydeder
 api.gönder("/api/ekle", fonksiyon(istek) {
     değişken yeni_kisi = istek["veri"]
-    değişken toplam = vt.ekle("personel", yeni_kisi)
-    sonuç {"durum": "başarılı", "mesaj": "{yeni_kisi['ad']} eklendi", "toplam_personel": toplam}
+    değişken personel_sayısı = vt.ekle("personel", yeni_kisi)
+    sonuç {"durum": "başarılı", "mesaj": "{yeni_kisi['ad']} eklendi", "toplam_personel": personel_sayısı}
 })
 
 değişken sunucu_adresi = api.arka_planda_başlat()

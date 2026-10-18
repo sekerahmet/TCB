@@ -52,6 +52,26 @@ func TestKaldirilanYerlesikIpucu(t *testing.T) {
 	}
 }
 
+// Gölgelenmiş bir yerleşik çağrılırsa hata, değerin bir fonksiyon olmadığını ve yerleşiğin
+// hangi satırdaki tanımla gölgelendiğini söyler.
+func TestGolgelenmisYerlesikCagrisi(t *testing.T) {
+	for _, c := range []struct{ kod, want string }{
+		{"değişken uzunluk = 5\nuzunluk([1, 2])", "Satır 2: 'uzunluk' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'uzunluk' bu kapsamda gölgelendi"},
+		{"fonksiyon f(toplam) {\n    sonuç toplam([1])\n}\nf(\"a\")", "Satır 2: 'toplam' bir fonksiyon değil (Metin); 1. satırda bir parametreye verildi, yerleşik 'toplam' bu kapsamda gölgelendi"},
+		{"döngü metin içinde [1] {\n    metin(1)\n}", "'metin' bir fonksiyon değil (Tam); 1. satırda bir döngü değişkenine verildi"},
+	} {
+		_, _, err := runTRWithin(t, 5*time.Second, c.kod)
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu, alınan: %v", c.kod, c.want, err)
+		}
+	}
+	// Gölgelemeyen kapsamda yerleşik çalışır; fonksiyonla gölgelemek de çalışır.
+	val, err := runTR(t, "fonksiyon f() { değişken uzunluk = 1\n sonuç uzunluk }\nfonksiyon toplam(x) { sonuç 7 }\nsonuç [f(), uzunluk([1, 2]), toplam([1])]")
+	if err != nil || val.Inspect() != "[1, 2, 7]" {
+		t.Errorf("[1, 2, 7] bekleniyordu: %v %v", val, err)
+	}
+}
+
 // Kaldırılan adlar artık sıradan adlardır.
 func TestKaldirilanYerlesikAdlariSerbest(t *testing.T) {
 	val, err := runTR(t, `

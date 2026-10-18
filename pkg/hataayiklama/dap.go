@@ -331,7 +331,15 @@ func (s *dapServer) launch(msg *dapMessage) {
 	prog := p.ParseProgram()
 	errs := p.Errors()
 	if len(errs) == 0 {
-		errs = checker.New().CheckProgram(prog)
+		chk := checker.New()
+		errs = chk.CheckProgram(prog)
+		// Uyarılar (ör. yerleşik ad gölgeleme) programı durdurmaz; Debug Console'a yazılır.
+		if u := chk.Warnings(); len(u) > 0 {
+			s.output("stderr", "⚠️ Uyarılar:\n")
+			for _, e := range u {
+				s.output("stderr", "  • "+e+"\n"+indentLines(turkce.KodCercevesi(code, e), "    "))
+			}
+		}
 	}
 	if len(errs) > 0 {
 		s.output("stderr", "❌ Program başlatılamadı:\n")

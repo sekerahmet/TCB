@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -390,6 +391,44 @@ f(5)`)
 	}
 }
 
+// Yerleşik bir adı kullanıcı adı olarak tanımlamak hata değil uyarıdır: program çalışır,
+// ama o kapsamda yerleşik artık kullanılamaz.
+func TestYerlesikGolgelemeUyarisi(t *testing.T) {
+	uyari := func(satir int, ad string) string {
+		return fmt.Sprintf("Satır %d: '%s' yerleşik bir ad; bu kapsamda yerleşik '%s' artık kullanılamaz", satir, ad, ad)
+	}
+	kaynak := `değişken uzunluk = 5
+fonksiyon f(toplam, x) {
+    sonuç toplam + x
+}
+fonksiyon girdi() { sonuç 1 }
+döngü i, metin içinde ["a"] { yazdır(metin) }
+dene { fırlat "x" } yakala ekle { yazdır(ekle) }
+değişken a, sırala = 1, 2
+yapı Nokta {
+    x: Tam
+    fonksiyon uzunluk() { sonuç 1 }
+}
+değişken sayaç = uzunluk + sırala`
+	p := parser.New(lexer.New(kaynak))
+	prog := p.ParseProgram()
+	if len(p.Errors()) > 0 {
+		t.Fatal(p.Errors())
+	}
+	c := New()
+	if errs := c.CheckProgram(prog); len(errs) > 0 {
+		t.Fatalf("gölgeleme hata değildir: %v", errs)
+	}
+	beklenen := []string{uyari(1, "uzunluk"), uyari(2, "toplam"), uyari(5, "girdi"), uyari(6, "metin"), uyari(7, "ekle"), uyari(8, "sırala")}
+	if got := c.Warnings(); strings.Join(got, "\n") != strings.Join(beklenen, "\n") {
+		t.Errorf("uyarılar:\n%s\nbeklenen:\n%s", strings.Join(got, "\n"), strings.Join(beklenen, "\n"))
+	}
+	// Yapı metotları ve alanları yerleşikleri gölgelemez (x.uzunluk() ile erişilir).
+	if u := New().Warnings(); len(u) != 0 {
+		t.Errorf("yeni denetleyicide uyarı olmamalı: %v", u)
+	}
+}
+
 func TestBosProgram(t *testing.T) {
 	hataYok(t, "")
 	hataYok(t, "// yalnızca yorum")
@@ -457,5 +496,29 @@ func TestOrnekProgramlarHatasizDenetlenir(t *testing.T) {
 			}
 			hataYok(t, string(veri))
 		})
+	}
+	// Depodaki programlar (örnekler, dil tanımı testleri, kıyas ve çalışma dosyaları)
+	// uyarısız denetlenmeli: yerleşik adları gölgeleyen kullanıcı adı olmamalı.
+	var hepsi []string
+	for _, desen := range []string{"ornekler/*.tr", "ornekler/*/*.tr", "testler/*.tr", "kiyas/tr/*.tr", "calisma/*.tr"} {
+		d, _ := filepath.Glob(filepath.Join("..", "..", filepath.FromSlash(desen)))
+		hepsi = append(hepsi, d...)
+	}
+	for _, dosya := range hepsi {
+		veri, err := os.ReadFile(dosya)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := parser.New(lexer.New(strings.TrimPrefix(string(veri), "\ufeff")))
+		prog := p.ParseProgram()
+		if len(p.Errors()) > 0 {
+			t.Errorf("%s: %v", dosya, p.Errors())
+			continue
+		}
+		c := New()
+		c.CheckProgram(prog)
+		if u := c.Warnings(); len(u) > 0 {
+			t.Errorf("%s uyarısız denetlenmeli: %v", dosya, u)
+		}
 	}
 }

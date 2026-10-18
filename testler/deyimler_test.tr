@@ -67,9 +67,9 @@ test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
 }
 
 test "5.7 döngü ... içinde: liste, aralık, sözlük, metin" {
-    değişken toplam = 0
-    döngü x içinde [1, 2, 3] { toplam += x }
-    eşit_mi(6, toplam)
+    değişken birikim = 0
+    döngü x içinde [1, 2, 3] { birikim += x }
+    eşit_mi(6, birikim)
     değişken çiftler = []
     döngü i, x içinde ["a", "b"] { çiftler.ekle("{i}{x}") }
     eşit_mi(["0a", "1b"], çiftler)

@@ -29,6 +29,9 @@ const (
 	sozdizimiBasligi = "❌ Sözdizimi Hataları:"
 	tipBasligi       = "❌ Tip ve Güvenlik Denetimi Hataları:"
 	calismaBasligi   = "❌ Çalışma Zamanı Hatası:"
+	// uyariBasligi denetleyicinin uyarılarının (ör. yerleşik ad gölgeleme) başlığıdır.
+	// Uyarılar programı durdurmaz ve çıkış kodunu etkilemez.
+	uyariBasligi = "⚠️ Uyarılar:"
 )
 
 // Komutların kullandığı hazırlık biçimleri.
@@ -82,11 +85,22 @@ func kaynakHazirla(code string, h hazirlik) *ast.Program {
 	}
 
 	if h.tipBasligi != "" {
-		if errs := checker.New().CheckProgram(prog); len(errs) > 0 {
+		chk := checker.New()
+		errs := chk.CheckProgram(prog)
+		uyarilariYaz(chk.Warnings(), code)
+		if len(errs) > 0 {
 			hatalarlaCik(h.tipBasligi, errs, code)
 		}
 	}
 	return prog
+}
+
+// uyarilariYaz denetleyicinin uyarılarını (varsa) hatalardan ayrı bir başlıkla standart
+// hataya yazar; çıkış kodunu etkilemez.
+func uyarilariYaz(uyarilar []string, code string) {
+	if len(uyarilar) > 0 {
+		hatalariYaz(uyariBasligi, uyarilar, code)
+	}
 }
 
 // hatalariYaz başlığı ve her hatayı kod çerçevesiyle standart hataya yazar.

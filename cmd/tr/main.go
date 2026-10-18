@@ -168,7 +168,7 @@ func startREPL() {
 	scanner := bufio.NewScanner(os.Stdin)
 	machine := vm.New()
 	chk := checker.New()
-	oncekiTipHatalari := 0
+	oncekiTipHatalari, oncekiUyarilar := 0, 0
 
 	for {
 		fmt.Print("tr> ")
@@ -210,6 +210,10 @@ func startREPL() {
 		// Denetleyici satırlar arasında durumunu (ve hata listesini) korur; yalnızca bu
 		// satırın getirdiği yeni hatalar gösterilir.
 		errs := chk.CheckProgram(prog)
+		if u := chk.Warnings(); len(u) > oncekiUyarilar {
+			uyarilariYaz(u[oncekiUyarilar:], line)
+			oncekiUyarilar = len(u)
+		}
 		if len(errs) > oncekiTipHatalari {
 			yeni := errs[oncekiTipHatalari:]
 			oncekiTipHatalari = len(errs)

@@ -164,6 +164,21 @@ func TestEksikArguman(t *testing.T) {
 	}
 }
 
+// Yerleşik ad gölgeleme uyarısı standart hataya, hatalardan ayrı başlıkla yazılır; program
+// çalışır ve çıkış kodu 0 kalır.
+func TestGolgelemeUyarisi(t *testing.T) {
+	klasor := t.TempDir()
+	dosyaYaz(t, klasor, "a.tr", "değişken uzunluk = 5\nyazdır(uzunluk)\n")
+	for _, komut := range [][]string{{"a.tr"}, {"kontrol", "a.tr"}} {
+		s := tr(t, klasor, komut...)
+		bekle(t, s, 0, nil, []string{"⚠️ Uyarılar:\n  • Satır 1: 'uzunluk' yerleşik bir ad; bu kapsamda yerleşik 'uzunluk' artık kullanılamaz", "1 | değişken uzunluk = 5"})
+		if strings.Contains(s.hata, "❌") || strings.Contains(s.cikti, "Uyarı") {
+			t.Errorf("%v: uyarı hata başlığıyla ya da standart çıktıya yazılmamalı:\n%s\n%s", komut, s.cikti, s.hata)
+		}
+	}
+	bekle(t, tr(t, klasor, "a.tr"), 0, []string{"5"}, nil)
+}
+
 func TestBilinmeyenKomut(t *testing.T) {
 	klasor := t.TempDir()
 	s := tr(t, klasor, "olmayan_komut")

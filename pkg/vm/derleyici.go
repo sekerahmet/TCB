@@ -38,6 +38,9 @@ type derleyiciKapsam struct {
 	// dinamik: kapsamda takma adsız bir 'aktar' var; adları çalışma anında eklenir ve dış
 	// kapsamlardaki aynı adları gölgeleyebilir. Bu kapsamdan geçen adlar adla aranır.
 	dinamik bool
+	// golge bu kapsamda yerleşik adlarını gölgeleyen kullanıcı tanımlarıdır (golge.go);
+	// yalnızca hata mesajı için tutulur, çoğu kapsamda nil'dir.
+	golge map[string]golgeTanimi
 }
 
 // tanimla bir adı kapsamın tablosuna ekler (derleme anı).
@@ -57,6 +60,7 @@ func (k *derleyiciKapsam) tanimla(ad string) {
 func (k *derleyiciKapsam) onTanimla(stmts []ast.Statement) {
 	for _, st := range stmts {
 		deyimAdlari(st, k.tanimla)
+		k.deyimGolgeleri(st)
 	}
 }
 
@@ -361,6 +365,9 @@ func (c *derleyici) deyim(k *derleyiciKapsam, stmt ast.Statement) deyimKodu {
 		dene := c.blokDeyimi(k, s.TryBody)
 		alt := altKapsam(k)
 		hataYuva := alt.bilgi.yuva(s.ErrorVar)
+		if s.CatchBody != nil {
+			alt.golgeKaydet(s.ErrorVar, s.CatchBody.Line(), "yakalanan hataya")
+		}
 		var yakalaDeyimleri []ast.Statement
 		if s.CatchBody != nil {
 			yakalaDeyimleri = s.CatchBody.Statements
@@ -465,8 +472,10 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *ast.ForInStatement) deyim
 	anahtarYuva := -1
 	if s.KeyVar != "" {
 		anahtarYuva = alt.bilgi.yuva(s.KeyVar)
+		alt.golgeKaydet(s.KeyVar, s.Line(), "bir döngü değişkenine")
 	}
 	degerYuva := alt.bilgi.yuva(s.ValueVar)
+	alt.golgeKaydet(s.ValueVar, s.Line(), "bir döngü değişkenine")
 	var govdeDeyimleri []ast.Statement
 	yeniden := true
 	if s.Body != nil {
@@ -876,8 +885,13 @@ func (c *derleyici) fonksiyon(k *derleyiciKapsam, params []ast.Param, body *ast.
 	if fk.kendi >= 0 {
 		gorulen[fk.kendi] = true
 	}
+	parametreSatiri := 0
+	if body != nil {
+		parametreSatiri = body.Line()
+	}
 	for i, p := range params {
 		fk.param[i] = alt.bilgi.yuva(p.Name)
+		alt.golgeKaydet(p.Name, parametreSatiri, "bir parametreye")
 		if gorulen[fk.param[i]] {
 			fk.basit = false
 		}

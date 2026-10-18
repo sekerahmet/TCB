@@ -180,7 +180,14 @@ func (c *derleyici) ifade(k *derleyiciKapsam, expr ast.Expression) ifadeKodu {
 		}
 
 	case *ast.CallExpression:
-		return c.cagri(k, e)
+		kod := c.cagri(k, e)
+		// Gölgelenmiş bir yerleşiğin çağrısı: hata mesajı gölgelemeyi söyler (golge.go).
+		if id, ok := e.Function.(*ast.Identifier); ok && yerlesikAdi(id.Value) {
+			if g, ok := k.golgeBul(id.Value); ok {
+				return golgeliCagri(kod, c.ifade(k, id), id.Value, g, e.Line())
+			}
+		}
+		return kod
 
 	case *ast.IndexExpression:
 		sol := c.ifade(k, e.Left)

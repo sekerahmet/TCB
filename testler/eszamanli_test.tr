@@ -11,12 +11,12 @@ test "10.1 eşzamanlı blok ve çağrı biçimi; bekle_hepsi hepsini bekler" {
 }
 
 test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {
-    değişken toplam = 0
+    değişken birikim = 0
     döngü i içinde 1..=200 {
-        eşzamanlı { toplam += i }
+        eşzamanlı { birikim += i }
     }
     bekle_hepsi()
-    eşit_mi(20100, toplam)
+    eşit_mi(20100, birikim)
 }
 
 test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {

@@ -55,11 +55,11 @@ test "16.2 kodla: metin, metin listesi, özel_tokenlar ve ikinci" {
 
 test "16.3 çöz: varsayılan özel tokenları atlar; listeler ve tensörler" {
     değişken p = parçalayıcı_yükle("veri/parcalayici.json")
-    değişken metin = "İstanbul'da hava güzel."
-    eşit_mi(metin, p.çöz(p.kodla(metin)))
-    değişken eot = p.kodla(metin + "<|endoftext|>")
-    eşit_mi(metin, p.çöz(eot))
-    eşit_mi(metin + "<|endoftext|>", p.çöz(eot, özel_tokenlar: doğru))
+    değişken cümle = "İstanbul'da hava güzel."
+    eşit_mi(cümle, p.çöz(p.kodla(cümle)))
+    değişken eot = p.kodla(cümle + "<|endoftext|>")
+    eşit_mi(cümle, p.çöz(eot))
+    eşit_mi(cümle + "<|endoftext|>", p.çöz(eot, özel_tokenlar: doğru))
     eşit_mi(["bir", "iki üç"], p.çöz(p.kodla(["bir", "iki üç"])))
     eşit_mi("", p.çöz([]))
     // Tensör: 1 boyutlu → metin, 2 boyutlu → metin listesi.
@@ -81,13 +81,13 @@ test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebili
     değişken küme = veri_kümesi("veri/sayilar")
     değişken ö = küme.örnekleyici(toplu: 3, bağlam: 5, tohum: 1)
     eşit_mi("Örnekleyici", tip(ö))
-    değişken girdi, hedef = ö.sonraki()
-    eşit_mi("Tensör", tip(girdi))
-    eşit_mi([3, 5], girdi.şekil)
+    değişken giriş, hedef = ö.sonraki()
+    eşit_mi("Tensör", tip(giriş))
+    eşit_mi([3, 5], giriş.şekil)
     eşit_mi([3, 5], hedef.şekil)
     // Hedef, girdinin bir kaydırılmışıdır; pencereler parça sınırını aşmaz (değerler ardışık).
     döngü satır içinde 0..3 {
-        değişken g = girdi.değer[satır]
+        değişken g = giriş.değer[satır]
         değişken h = hedef.değer[satır]
         döngü j içinde 0..5 {
             eşit_mi(g[0] + j, g[j])
@@ -96,16 +96,16 @@ test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebili
     }
     // Aynı tohum aynı toplu işleri, farklı tohum farklı sırayı verir.
     değişken aynı = küme.örnekleyici(toplu: 3, bağlam: 5, tohum: 1).sonraki()
-    eşit_mi(girdi.değer, aynı[0].değer)
+    eşit_mi(giriş.değer, aynı[0].değer)
     değişken başka = küme.örnekleyici(toplu: 3, bağlam: 5, tohum: 2).sonraki()
-    doğrula(girdi.değer != başka[0].değer)
+    doğrula(giriş.değer != başka[0].değer)
     // Örnekleyici dönemler boyunca sonsuz üretir.
     döngü i içinde 0..40 { ö.sonraki() }
     doğrula(ö.sonraki() != yok)
     // Tensörler gömme ve çapraz_entropi'ye doğrudan verilir.
     değişken E = rastgele_normal([1200, 4], tohum: 1)
     değişken W = rastgele_normal([4, 1200], tohum: 2)
-    değişken çıktı = gömme(E, girdi) @ W
+    değişken çıktı = gömme(E, giriş) @ W
     eşit_mi([3, 5, 1200], çıktı.şekil)
     eşit_mi([], çapraz_entropi(çıktı, hedef).şekil)
 }
@@ -114,8 +114,8 @@ test "16.6 sıralı: pencereler sırayla, bitince yok" {
     değişken küme = veri_kümesi("veri/sayilar")
     değişken s = küme.sıralı(toplu: 2, bağlam: 4)
     eşit_mi("SıralıOkuyucu", tip(s))
-    değişken girdi, hedef = s.sonraki()
-    eşit_mi([[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0]], girdi.değer)
+    değişken giriş, hedef = s.sonraki()
+    eşit_mi([[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0]], giriş.değer)
     eşit_mi([[1, 2, 3, 4], [5, 6, 7, 8]], hedef.değer)
     değişken sayı = 1
     değişken son = yok

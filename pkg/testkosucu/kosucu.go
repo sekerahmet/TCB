@@ -129,7 +129,16 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 		ozet.Yuklenemez++
 		return ozet
 	}
-	if hatalar := checker.New().CheckProgram(prog); len(hatalar) > 0 {
+	denetleyici := checker.New()
+	hatalar := denetleyici.CheckProgram(prog)
+	if uyarilar := denetleyici.Warnings(); len(uyarilar) > 0 {
+		// Uyarılar testleri durdurmaz ve sonucu etkilemez.
+		fmt.Fprintln(cikti, "  ⚠️ uyarılar:")
+		for _, u := range uyarilar {
+			hataYaz(cikti, u, kaynak)
+		}
+	}
+	if len(hatalar) > 0 {
 		fmt.Fprintln(cikti, "  ✗ tip denetimi hataları nedeniyle testler çalıştırılamadı:")
 		for _, e := range hatalar {
 			hataYaz(cikti, e, kaynak)

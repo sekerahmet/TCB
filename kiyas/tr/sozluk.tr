@@ -5,10 +5,10 @@ iken i < 200000 {
     d["k" + metin(i)] = i
     i += 1
 }
-değişken toplam = 0
+değişken birikim = 0
 i = 0
 iken i < 200000 {
-    toplam += d["k" + metin(i)]
+    birikim += d["k" + metin(i)]
     i += 1
 }
-yazdır("sozluk {toplam} {zaman_ms() - bas}")
+yazdır("sozluk {birikim} {zaman_ms() - bas}")
