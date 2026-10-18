@@ -108,6 +108,32 @@ func TestKendiniIcerenKaplar(t *testing.T) {
 	}
 }
 
+// Tam sayı kenarları: en küçük değerin '/ -1' ve tekli eksisi taşma hatası verir; iki Tam
+// doğrudan karşılaştırılır.
+func TestTamSayiKenarlari(t *testing.T) {
+	_, val, err := runTROut(t, `
+		değişken en_kucuk = -9223372036854775807 - 1
+		değişken b = -1
+		değişken sonuclar = []
+		dene { sonuclar.ekle(en_kucuk / b) } yakala h { sonuclar.ekle(h) }
+		dene { sonuclar.ekle(-en_kucuk) } yakala h { sonuclar.ekle(h) }
+		dene { değişken x = en_kucuk
+			x /= -1 } yakala h { sonuclar.ekle("bileşik taşma") }
+		sonuclar.ekle(9007199254740993 == 9007199254740992)
+		sonuclar.ekle(9007199254740993 != 9007199254740992)
+		sonuclar.ekle([9007199254740993] == [9007199254740992])
+		sonuclar.ekle(1 == 1.0)
+		sonuclar.ekle(en_kucuk % b)
+		sonuç sonuclar
+	`)
+	want := `["Satır 5: Tam sayı taşması (-9223372036854775808 / -1); ondalık sonuç için örn. -9223372036854775808.0 / -1 yazın", ` +
+		`"Satır 6: Tam sayı taşması (-(-9223372036854775808)); ondalık sonuç için örn. -(-9223372036854775808.0) yazın", ` +
+		`"bileşik taşma", yanlış, doğru, yanlış, doğru, 0]`
+	if err != nil || val.Inspect() != want {
+		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
+	}
+}
+
 // Sonsuz ve tanımsız Ondalık değerler tensör biçimiyle yazılır; bilimsel yazım ayrıştırılır.
 func TestOndalikYazdirmaVeBilimselYazim(t *testing.T) {
 	for f, want := range map[float64]string{math.Inf(1): "+Sonsuz", math.Inf(-1): "-Sonsuz", math.NaN(): "NaN", 1e21: "1e+21", 2: "2.0", 0.5: "0.5"} {

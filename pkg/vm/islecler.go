@@ -221,6 +221,9 @@ func tamIslem(kod uint8, op string, a, b int64, line int) (Value, bool, error) {
 		if b == 0 {
 			return nil, true, fmt.Errorf("Satır %d: Sıfıra bölme hatası", line)
 		}
+		if a == math.MinInt64 && b == -1 {
+			return nil, true, tasmaHatasi(line, a, op, b)
+		}
 		if a%b == 0 {
 			return NewInt(a / b), true, nil
 		}
@@ -248,10 +251,10 @@ func tamIslem(kod uint8, op string, a, b int64, line int) (Value, bool, error) {
 	case opBuyukEsit:
 		return BoolToVal(a >= b), true, nil
 	case opEsit:
-		// ValuesEqual ile aynı kural: sayılar Ondalık olarak karşılaştırılır
-		return BoolToVal(float64(a) == float64(b)), true, nil
+		// İki Tam doğrudan karşılaştırılır (Ondalığa çevirmek 2^53 üstünde yanlış eşitlik verirdi)
+		return BoolToVal(a == b), true, nil
 	case opEsitDegil:
-		return BoolToVal(float64(a) != float64(b)), true, nil
+		return BoolToVal(a != b), true, nil
 	}
 	return nil, false, nil
 }
@@ -328,6 +331,11 @@ const esitlikDerinligi = 10000
 func degerlerEsit(a, b Value, derinlik int) bool {
 	if a.Type() == VAL_NULL && b.Type() == VAL_NULL {
 		return true
+	}
+	if ai, ok := a.(*IntVal); ok {
+		if bi, ok := b.(*IntVal); ok {
+			return ai.Val == bi.Val
+		}
 	}
 	if af, ok1 := ToFloat(a); ok1 {
 		if bf, ok2 := ToFloat(b); ok2 {

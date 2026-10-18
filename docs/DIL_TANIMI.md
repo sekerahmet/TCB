@@ -79,7 +79,7 @@ Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `t
 
 TR dinamik tiplidir; değerler tiplerini taşır. İsteğe bağlı tip açıklamalarını yalnızca çalıştırma öncesi tip denetleyicisi kullanır (3.13).
 
-**3.1** `Tam`: 64 bit işaretli tam sayı. `+ - * **` işlemleri sınırı aşarsa sessizce sarmak yerine "Tam sayı taşması" hatası verir.
+**3.1** `Tam`: 64 bit işaretli tam sayı. `+ - * / **` işlemleri ve tekli `-` sınırı aşarsa (ör. en küçük değerin `/ -1`'i ya da eksisi) sessizce sarmak yerine "Tam sayı taşması" hatası verir.
 
 **3.2** `Ondalık`: 64 bit kayan noktalı sayı; tam sayılı ondalıklar `1.0` biçiminde yazdırılır. Sonsuz ve tanımsız değerler tensör yazdırmasıyla aynı biçimde `+Sonsuz`, `-Sonsuz`, `NaN` yazılır.
 
@@ -150,7 +150,7 @@ değişken ad: Tam = "Ali"   // denetim hatası: Tip uyuşmazlığı
 
 **4.4** `< > <= >=` yalnızca sayılar arasında tanımlıdır (tensörlerde eleman bazlı 0/1 maskesi verir, bkz. 15.3); karşılaştırmalar zincirlenmez (`1 < 2 < 3` hatadır).
 
-**4.5** Eşitlik: iki sayı tipten bağımsız değerle karşılaştırılır (`1 == 1.0`); diğer değerler aynı tipte ve aynı içerikteyse eşittir (`[1, "a"] == [1, "a"]`, `"1" != 1`, `yok != yanlış`). Listeler, sözlükler ve yapı nesneleri eleman eleman bu kuralla karşılaştırılır (`[1, 2] == [1.0, 2]`); sözlüklerde anahtar sırası önemsizdir. Tensörler şekilleri ve tüm elemanları aynıysa eşittir.
+**4.5** Eşitlik: iki sayı tipten bağımsız değerle karşılaştırılır (`1 == 1.0`); iki `Tam` tam olarak karşılaştırılır (`9007199254740993 != 9007199254740992`); diğer değerler aynı tipte ve aynı içerikteyse eşittir (`[1, "a"] == [1, "a"]`, `"1" != 1`, `yok != yanlış`). Listeler, sözlükler ve yapı nesneleri eleman eleman bu kuralla karşılaştırılır (`[1, 2] == [1.0, 2]`); sözlüklerde anahtar sırası önemsizdir. Tensörler şekilleri ve tüm elemanları aynıysa eşittir.
 
 **4.6** `ve`/`&&` ile `veya`/`||` kısa devre yapar ve sonucu her zaman `Mantık` olarak verir (`1 && "a"` → `doğru`). `!x` ve `değil x` doğruluğun tersidir.
 

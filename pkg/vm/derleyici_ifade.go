@@ -3,6 +3,7 @@ package vm
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"tr_dili/pkg/ast"
 )
@@ -316,6 +317,9 @@ func (c *derleyici) onEk(k *derleyiciKapsam, e *ast.PrefixExpression) ifadeKodu 
 			}
 			switch rv := right.(type) {
 			case *IntVal:
+				if rv.Val == math.MinInt64 {
+					return nil, fmt.Errorf("Satır %d: Tam sayı taşması (-(%d)); ondalık sonuç için örn. -(%d.0) yazın", line, rv.Val, rv.Val)
+				}
 				return NewInt(-rv.Val), nil
 			case *FloatVal:
 				return &FloatVal{Val: -rv.Val}, nil
@@ -372,7 +376,7 @@ func tamHizliIslev(kod uint8) tamHizli {
 		}
 	case opBol:
 		return func(a, b int64) (Value, bool) {
-			if b == 0 {
+			if b == 0 || (a == math.MinInt64 && b == -1) {
 				return nil, false
 			}
 			if a%b == 0 {
@@ -389,10 +393,9 @@ func tamHizliIslev(kod uint8) tamHizli {
 	case opBuyukEsit:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a >= b), true }
 	case opEsit:
-		// ValuesEqual ile aynı kural: sayılar Ondalık olarak karşılaştırılır
-		return func(a, b int64) (Value, bool) { return BoolToVal(float64(a) == float64(b)), true }
+		return func(a, b int64) (Value, bool) { return BoolToVal(a == b), true }
 	case opEsitDegil:
-		return func(a, b int64) (Value, bool) { return BoolToVal(float64(a) != float64(b)), true }
+		return func(a, b int64) (Value, bool) { return BoolToVal(a != b), true }
 	}
 	return nil
 }
