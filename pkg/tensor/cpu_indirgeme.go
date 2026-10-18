@@ -18,37 +18,120 @@ func eksenDuzeni(shape []int, axis int) (outer, dim, inner int) {
 	return
 }
 
+// Sum indirgemesinde iş bölme ayarları. Seçimler yalnızca şekle bağlıdır (işçi
+// sayısına değil); böylece toplama sırası, dolayısıyla sonuç, her makinede ve her
+// çalıştırmada bit düzeyinde aynıdır.
+const (
+	// azDis bundan az dış satır varsa eksen boyunca da bölünür.
+	azDis = 16
+	// sutunBlok geniş iç eksenler sütun bloklarına bu genişlikte bölünür.
+	sutunBlok = 256
+)
+
 func (cpuBackend) Sum(out Storage, x View, axis int, scale float32) {
 	xd := gatherCPU(x)
 	y := cd(out)
 	outer, dim, inner := eksenDuzeni(x.Shape, axis)
 	sc := float64(scale)
-	parallelFor(outer, dim*inner, func(lo, hi int) {
-		acc := make([]float64, inner)
-		for o := lo; o < hi; o++ {
-			for i := range acc {
-				acc[i] = 0
+	switch {
+	case inner == 1:
+		// Son eksen: her çıktı düz bir dilimin toplamı.
+		if outer == 1 {
+			y[0] = float32(parallelSum(dim, 1, func(lo, hi int) float64 { return toplam64(xd[lo:hi]) }) * sc)
+			return
+		}
+		parallelFor(outer, dim, func(lo, hi int) {
+			for o := lo; o < hi; o++ {
+				y[o] = float32(toplam64(xd[o*dim:(o+1)*dim]) * sc)
 			}
-			base := o * dim * inner
-			for d := 0; d < dim; d++ {
-				row := xd[base+d*inner : base+(d+1)*inner]
-				for i, v := range row {
-					acc[i] += float64(v)
+		})
+	case outer >= azDis || outer*dim*inner < paralelEsik:
+		// Her dış satır tek görevde, eksen sırasıyla toplanır.
+		parallelFor(outer, dim*inner, func(lo, hi int) {
+			acc := make([]float64, inner)
+			for o := lo; o < hi; o++ {
+				sutunTopla(acc, xd[o*dim*inner:(o+1)*dim*inner], dim, inner, 0, inner)
+				olcekleYaz(y[o*inner:(o+1)*inner], acc, sc)
+			}
+		})
+	case inner >= 8*sutunBlok:
+		// Az dış satır, geniş iç eksen: (dış satır, sütun bloğu) görevleri.
+		nb := (inner + sutunBlok - 1) / sutunBlok
+		parallelFor(outer*nb, dim*sutunBlok, func(lo, hi int) {
+			acc := make([]float64, sutunBlok)
+			for t := lo; t < hi; t++ {
+				o, i0 := t/nb, (t%nb)*sutunBlok
+				i1 := min(i0+sutunBlok, inner)
+				a := acc[:i1-i0]
+				sutunTopla(a, xd[o*dim*inner:(o+1)*dim*inner], dim, inner, i0, i1)
+				olcekleYaz(y[o*inner+i0:o*inner+i1], a, sc)
+			}
+		})
+	default:
+		// Az dış satır, dar iç eksen (ör. eksen 0): eksen sabit uzunluklu satır
+		// parçalarına bölünür, kısmi toplamlar parça sırasıyla birleştirilir.
+		rpc := max(1, indirgemeParca/inner)
+		nc := (dim + rpc - 1) / rpc
+		kismi := make([]float64, outer*nc*inner)
+		parallelFor(outer*nc, rpc*inner, func(lo, hi int) {
+			for t := lo; t < hi; t++ {
+				o, c := t/nc, t%nc
+				d0, d1 := c*rpc, min((c+1)*rpc, dim)
+				blok := xd[(o*dim+d0)*inner : (o*dim+d1)*inner]
+				sutunTopla(kismi[t*inner:(t+1)*inner], blok, d1-d0, inner, 0, inner)
+			}
+		})
+		acc := make([]float64, inner)
+		for o := 0; o < outer; o++ {
+			clear(acc)
+			for c := 0; c < nc; c++ {
+				for i, v := range kismi[(o*nc+c)*inner : (o*nc+c+1)*inner] {
+					acc[i] += v
 				}
 			}
-			for i, v := range acc {
-				y[o*inner+i] = float32(v * sc)
-			}
+			olcekleYaz(y[o*inner:(o+1)*inner], acc, sc)
 		}
-	})
+	}
+}
+
+// sutunTopla acc[0:i1-i0] = Σ_d blok[d*inner + i0 : d*inner + i1] (d sırasıyla).
+func sutunTopla(acc []float64, blok []float32, dim, inner, i0, i1 int) {
+	clear(acc)
+	for d := 0; d < dim; d++ {
+		row := blok[d*inner+i0 : d*inner+i1]
+		a := acc[:len(row)]
+		for i, v := range row {
+			a[i] += float64(v)
+		}
+	}
+}
+
+func olcekleYaz(y []float32, acc []float64, sc float64) {
+	for i, v := range acc[:len(y)] {
+		y[i] = float32(v * sc)
+	}
+}
+
+// toplam64 dilimin float64 toplamı; dört ayrı biriktirici bağımlılık zincirini
+// kırar (sıra sabit olduğu için sonuç belirlenimcidir).
+func toplam64(xs []float32) float64 {
+	var s0, s1, s2, s3 float64
+	for len(xs) >= 4 {
+		s0 += float64(xs[0])
+		s1 += float64(xs[1])
+		s2 += float64(xs[2])
+		s3 += float64(xs[3])
+		xs = xs[4:]
+	}
+	for _, v := range xs {
+		s0 += float64(v)
+	}
+	return (s0 + s1) + (s2 + s3)
 }
 
 func (cpuBackend) SumAll(out Storage, x View, scale float32) {
 	xd := gatherCPU(x)
-	var s float64
-	for _, v := range xd {
-		s += float64(v)
-	}
+	s := parallelSum(len(xd), 1, func(lo, hi int) float64 { return toplam64(xd[lo:hi]) })
 	cd(out)[0] = float32(s * float64(scale))
 }
 

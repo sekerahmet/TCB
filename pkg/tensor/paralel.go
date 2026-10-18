@@ -63,3 +63,30 @@ func parallelFor(n, cost int, fn func(lo, hi int)) {
 	}
 	wg.Wait()
 }
+
+// indirgemeParca belirlenimci paralel toplamlarda sabit parça uzunluğu. Parça
+// sınırları yalnızca eleman sayısına bağlıdır (işçi sayısına değil); kısmi
+// toplamlar parça sırasıyla birleştirildiği için sonuç her çalıştırmada ve her
+// makinede bit düzeyinde aynıdır.
+const indirgemeParca = 1 << 14
+
+// parallelSum [0, n) aralığını indirgemeParca uzunluklu parçalara böler,
+// fn(lo, hi) kısmi toplamlarını paralel hesaplar ve sabit sırayla toplar.
+func parallelSum(n, cost int, fn func(lo, hi int) float64) float64 {
+	if n <= indirgemeParca {
+		return fn(0, n)
+	}
+	np := (n + indirgemeParca - 1) / indirgemeParca
+	kismi := make([]float64, np)
+	parallelFor(np, indirgemeParca*cost, func(lo, hi int) {
+		for c := lo; c < hi; c++ {
+			a := c * indirgemeParca
+			kismi[c] = fn(a, min(a+indirgemeParca, n))
+		}
+	})
+	var s float64
+	for _, v := range kismi {
+		s += v
+	}
+	return s
+}
