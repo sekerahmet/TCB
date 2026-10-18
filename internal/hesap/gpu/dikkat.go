@@ -258,9 +258,9 @@ func (g *arkaUc) dikkatHazirla(gt *gecici, mask tensor.Storage, p tensor.Attenti
 	if p.H%max(p.Hkv, 1) != 0 {
 		panic(fmt.Sprintf("tensor: GPU: dikkat baş sayıları uyumsuz (%d, %d)", p.H, p.Hkv))
 	}
-	boyDenetle(p.Batch * p.H * p.Tq * max(p.Tk, 1))
 	if mask != nil {
 		md = gt.okuD(mask)
+		boyDenetle(md.n) // maske dizini 32 bit
 		mo = gt.yukleTam(p.MaskOffsets)
 	}
 	return md, mo
@@ -268,6 +268,7 @@ func (g *arkaUc) dikkatHazirla(gt *gecici, mask tensor.Storage, p tensor.Attenti
 
 // dikkatMatris dikkatin matris çarpımı yolu (ileri); lse'yi doldurur.
 func (g *arkaUc) dikkatMatris(gt *gecici, od, lse *depo, q, k, v tensor.View, md, mo *depo, p tensor.AttentionParams) {
+	dikkatBoyDenetle(p, false)
 	R := p.Batch * p.H * p.Tq
 	G, Z := p.H/p.Hkv, p.Batch*p.Hkv
 	qv, kv, vv := gt.oku(q), gt.oku(k), gt.oku(v)
@@ -280,6 +281,7 @@ func (g *arkaUc) dikkatMatris(gt *gecici, od, lse *depo, q, k, v tensor.View, md
 
 // dikkatMatrisGeri dikkatin matris çarpımı yolu (geri); gradyanlar eklenir.
 func (g *arkaUc) dikkatMatrisGeri(gt *gecici, gq, gk, gv, gs tensor.Storage, q, k, v tensor.View, md, mo *depo, o, lse tensor.Storage, p tensor.AttentionParams) {
+	dikkatBoyDenetle(p, false)
 	R := p.Batch * p.H * p.Tq
 	Z, Mq := p.Batch*p.Hkv, p.H/p.Hkv*p.Tq
 	qv, kv, vv := gt.oku(q), gt.oku(k), gt.oku(v)

@@ -689,13 +689,27 @@ func (b cpuBackend) Attention(out Storage, q, k, v View, mask Storage, p Attenti
 func (b cpuBackend) AttentionGrad(gq, gk, gv, g Storage, q, k, v View, mask Storage, o, lse Storage, p AttentionParams) {
 	var gt gecici
 	defer gt.bitir()
-	dq, son1 := gt.yaz(gq, true)
-	dk, son2 := gt.yaz(gk, true)
-	dv, son3 := gt.yaz(gv, true)
-	b.f32AttentionGrad(dq, dk, dv, gt.okuD(g), gt.oku(q), gt.oku(k), gt.oku(v), gt.okuD(mask), gt.okuD(o), lse, p)
-	son1()
-	son2()
-	son3()
+	// q, k, v aynı tensörse gradyanları aynı depolamadır: 16 bitlikte tek geçici tampon
+	// kullanılır (ayrı tamponlar birbirinin sonucunu ezerdi).
+	var d [3]Storage
+	var sonlar []func()
+	g3 := [3]Storage{gq, gk, gv}
+	for i, s := range g3 {
+		for j := 0; j < i && s != nil; j++ {
+			if g3[j] == s {
+				d[i] = d[j]
+			}
+		}
+		if s != nil && d[i] == nil {
+			var son func()
+			d[i], son = gt.yaz(s, true)
+			sonlar = append(sonlar, son)
+		}
+	}
+	b.f32AttentionGrad(d[0], d[1], d[2], gt.okuD(g), gt.oku(q), gt.oku(k), gt.oku(v), gt.okuD(mask), gt.okuD(o), lse, p)
+	for _, son := range sonlar {
+		son()
+	}
 }
 
 func (b cpuBackend) SGDStep(p, g, vel Storage, lr, momentum, wd float32) {

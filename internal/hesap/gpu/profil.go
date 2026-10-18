@@ -21,7 +21,10 @@ import (
 // uçta geçen süre ve eşzamanlamada beklenen süre de toplanır. Adımlar iyileştiricinin
 // adımıyla işaretlenir.
 //
-// Kapalıyken maliyet her başlatmada tek bir atomik okumadır.
+// Kapalıyken maliyet her başlatmada tek bir atomik okumadır. Ölçüm koşarken kapatılırsa
+// bekleyen olaylar bir sonraki eşzamanlamada ya da yeniden açılınca çözülür; olaylar yok
+// edilmez, havuzda yeniden kullanılır (en çok ~32 bin olay).
+// Bellek için başlatılan çöp toplamalar adım başına sayılır (copKaydet).
 
 // profilAcik süreç genelinde ölçüm bayrağı.
 var profilAcik atomic.Bool
@@ -50,6 +53,8 @@ type adimIstat struct {
 	duvar, konak, esit time.Duration
 	gpuMs, boslukMs    float64
 	baslatma           int64
+	cop                int64         // bellek için başlatılan çöp toplama
+	copSure            time.Duration // çöp toplamada beklenen süre
 }
 
 // profil bir arka ucun ölçüm durumu. Olay işleri arka ucun kilidi altında yapılır;
@@ -85,7 +90,9 @@ func (g *arkaUc) olcBasla() uintptr {
 		if ev, s := g.sr.olayOlustur(); s == basarili {
 			p.destek = 1
 			p.bosOlay = append(p.bosOlay, ev)
+			p.mu.Lock()
 			p.istat = map[string]*cekIstat{}
+			p.mu.Unlock()
 		}
 	}
 	if p.destek < 0 {
@@ -189,6 +196,19 @@ func (g *arkaUc) adimIsaretle() {
 	}
 	p.adimlar = append(p.adimlar, adimIstat{})
 	p.adimBas = simdi
+	p.mu.Unlock()
+}
+
+// copKaydet bellek için başlatılan bir çöp toplamayı şimdiki adıma yazar.
+func (p *profil) copKaydet(d time.Duration) {
+	if !profilAcik.Load() {
+		return
+	}
+	p.mu.Lock()
+	if n := len(p.adimlar); n > 0 {
+		p.adimlar[n-1].cop++
+		p.adimlar[n-1].copSure += d
+	}
 	p.mu.Unlock()
 }
 

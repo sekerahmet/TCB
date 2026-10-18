@@ -75,10 +75,43 @@ func TestCarpimKitaplikAramaYolu(t *testing.T) {
 		}
 	}
 	t.Setenv("TR_GPU_CUBLASLT", "libcublasLt.so.12")
-	if _, _, err := carpimKitapligiAc(); err == nil || !strings.Contains(err.Error(), "tam yol") {
+	if _, _, err := carpimKitaplikAdaylari(); err == nil || !strings.Contains(err.Error(), "tam yol") {
 		t.Fatalf("göreli yol reddedilmedi: %v", err)
 	}
-	if aramaYoluGuvenli("/usr/lib::/opt") || aramaYoluGuvenli("lib") || !aramaYoluGuvenli("/a:/b") {
+	if aramaYoluGuvenli("/usr/lib::/opt") || aramaYoluGuvenli("lib") || aramaYoluGuvenli("/a;.") ||
+		!aramaYoluGuvenli("/a:/b") {
 		t.Fatal("LD_LIBRARY_PATH denetimi yanlış")
+	}
+}
+
+// TestCarpimKitaplikSurumVeHiza mimariye göre en düşük kitaplık sürümünü ve işaretçi hizası
+// hesabını denetler.
+func TestCarpimKitaplikSurumVeHiza(t *testing.T) {
+	for cc, enAz := range map[int]int{120: 120800, 100: 120800, 90: 110800, 89: 110800, 86: 110100, 80: 110000, 52: 110000} {
+		if v := ltEnAzSurumu(cc); v != enAz {
+			t.Fatalf("sm_%d için en az sürüm %d, %d bekleniyordu", cc, v, enAz)
+		}
+	}
+	for adr, h := range map[uint64]uint32{0: 256, 256: 256, 1 << 40: 256, 4: 4, 24: 8, 48: 16, 1<<20 + 96: 32, 1<<20 + 128: 128} {
+		if v := hiza(adr); v != h {
+			t.Fatalf("hiza(%d) = %d, %d bekleniyordu", adr, v, h)
+		}
+	}
+}
+
+// TestCarpimOfsetliGorunum bitişik ama ofsetli (256 bayta hizasız) görünümle çarpım: gerçek
+// GPU'da kitaplığa hizanın bildirildiğini, benzetimde kendi çekirdeğimizi sınar.
+func TestCarpimOfsetliGorunum(t *testing.T) {
+	rng := rand.New(rand.NewSource(4))
+	for _, d := range [][3]int{{5, 6, 4}, {9, 70, 33}, {40, 128, 64}} {
+		M, K, N := d[0], d[1], d[2]
+		av, bv := rastgele(rng, M*K, 1), rastgele(rng, K*N, 1)
+		karsilastir(t, fmt.Sprintf("çarpım ofsetli %v", d), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			a := ikiz(av, true, M, K)[c]
+			b := ikiz(bv, true, K, N)[c]
+			// Son satır (B=1 üretimde son konumun gizli durumu) ve birinci satırdan başlayan dilim.
+			return tensor.Add(tensor.MatMul(a.Slice(0, M-1, M), b).SumAll(), tensor.MatMul(a.Slice(0, 1, M), b).SumAll()),
+				[]*tensor.Tensor{a, b}
+		})
 	}
 }

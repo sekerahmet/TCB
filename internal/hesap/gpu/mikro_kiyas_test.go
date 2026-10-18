@@ -152,15 +152,21 @@ func mikroDikkat(g *arkaUc, bol int) {
 	}
 	// Nedensel FLOP: ileri 2 çarpım (QKᵀ, PV), yarısı görünür.
 	flop := 2 * 2 * float64(B*H) * float64(T*T*Dh) / 2
-	ms := mikroOlc(g, 10, ileri)
-	mikroYaz("dikkat ileri", "birleşik", ms, flop/(ms*1e6), "GFLOPS")
 	dO := rastgeleDepo(g, rng, n, 1)
 	gq, gk, gv := g.AllocUninit(n, tensor.Float32), g.AllocUninit(n, tensor.Float32), g.AllocUninit(n, tensor.Float32)
 	geri := func() {
 		g.AttentionGradSet(gq, gk, gv, dO, gor(q), gor(k), gor(v), nil, out, lse, p, [3]bool{true, true, true})
 	}
-	ms = mikroOlc(g, 10, geri)
-	mikroYaz("dikkat geri", "birleşik", ms, 2.5*flop/(ms*1e6), "GFLOPS")
+	// İki yol da ölçülür (TR_GPU_DIKKAT ile seçilen): birleşik çekirdek ve matris çarpımı yolu.
+	eski := g.dikkatYolu
+	for _, y := range []struct{ yol, ek, ad string }{{"birlesik", "", "birleşik"}, {"carpim", " (matris yolu)", "kendi"}} {
+		g.dikkatYolu = y.yol
+		ms := mikroOlc(g, 10, ileri)
+		mikroYaz("dikkat ileri"+y.ek, y.ad, ms, flop/(ms*1e6), "GFLOPS")
+		ms = mikroOlc(g, 10, geri)
+		mikroYaz("dikkat geri"+y.ek, y.ad, ms, 2.5*flop/(ms*1e6), "GFLOPS")
+	}
+	g.dikkatYolu = eski
 	for _, s := range []tensor.Storage{q, k, v, out, lse, dO, gq, gk, gv} {
 		g.Release(s)
 	}

@@ -52,7 +52,8 @@ func (k *yazici) ceDegerler(adr yazmac, n int) []yazmac {
 }
 
 // cevrimiciEkle (m, s) çiftine v'yi ekler: v > m ise s = s·e^{m−v} + 1, m = v; değilse
-// s += e^{v−m}. NaN, s'yi NaN yapar (CPU ile aynı).
+// s += e^{v−m}. v = −∞ katkı vermez (m = −∞ iken −∞ − (−∞) = NaN olurdu; CPU'da e^{−∞} = 0).
+// NaN, s'yi NaN yapar (CPU ile aynı).
 func (k *yazici) cevrimiciEkle(m, s, v yazmac) {
 	buyuk := k.p()
 	k.e("setp.gt.f32", buyuk, v, m)
@@ -60,6 +61,9 @@ func (k *yazici) cevrimiciEkle(m, s, v yazmac) {
 	k.e("sub.rn.f32", d1, m, v)
 	k.e("sub.rn.f32", d2, v, m)
 	k.e("selp.f32", d1, d1, d2, buyuk)
+	eksiSonsuz := k.p()
+	k.e("setp.eq.f32", eksiSonsuz, v, float32(math.Inf(-1)))
+	k.e("selp.f32", d1, float32(math.Inf(-1)), d1, eksiSonsuz)
 	e := k.ustel(d1)
 	s1 := k.f()
 	k.e("fma.rn.f32", s1, s, e, float32(1))

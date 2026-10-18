@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -100,39 +99,38 @@ func carpimKitaplikKlasorleri() []string {
 	return k
 }
 
-// carpimKitapligiAc kitaplığı arama sırasıyla açar; bulunan yolu (Linux'ta standart arama
-// yolundan bulunduysa dosya adını) da verir.
-func carpimKitapligiAc() (kutuphane, string, error) {
-	adlar := carpimKitaplikAdlari()
-	var adaylar []string
+// carpimKitaplikAdaylari aranacak yerleri verir: açıkça verilen yol (TR_GPU_CUBLASLT; tam yol
+// değilse hata) ve öbür adaylar (Linux'ta standart arama yolundakiler dosya adıyla). Var
+// olmayan mutlak yollar atlanır, aynı dosya (bağlar çözülerek) bir kez yer alır. Adaylar
+// arasından seçim sürüme göre yapılır (bkz. ltAdaylariAc).
+func carpimKitaplikAdaylari() (acik string, adaylar []string, err error) {
 	if p := os.Getenv("TR_GPU_CUBLASLT"); p != "" {
 		if !filepath.IsAbs(p) {
-			return nil, "", fmt.Errorf("TR_GPU_CUBLASLT tam yol olmalı: %q", p)
+			return "", nil, fmt.Errorf("TR_GPU_CUBLASLT tam yol olmalı: %q", p)
 		}
-		adaylar = append(adaylar, p)
+		acik = p
 	}
+	adlar := carpimKitaplikAdlari()
 	if runtime.GOOS != "windows" && aramaYoluGuvenli(os.Getenv("LD_LIBRARY_PATH")) {
 		adaylar = append(adaylar, adlar...) // standart arama yolu (dosya adıyla)
 	}
+	goruldu := map[string]bool{}
 	for _, k := range carpimKitaplikKlasorleri() {
 		for _, ad := range adlar {
-			adaylar = append(adaylar, filepath.Join(k, ad))
-		}
-	}
-	var son error = errors.New("hiçbir arama yerinde yok")
-	for _, a := range adaylar {
-		if filepath.IsAbs(a) {
-			if _, err := os.Stat(a); err != nil {
+			yol := filepath.Join(k, ad)
+			if _, err := os.Stat(yol); err != nil {
 				continue
 			}
+			if gercek, err := filepath.EvalSymlinks(yol); err == nil {
+				if goruldu[gercek] {
+					continue
+				}
+				goruldu[gercek] = true
+			}
+			adaylar = append(adaylar, yol)
 		}
-		k, err := kitaplikAc(a)
-		if err == nil {
-			return k, a, nil
-		}
-		son = err
 	}
-	return nil, "", son
+	return acik, adaylar, nil
 }
 
 // aramaYoluGuvenli LD_LIBRARY_PATH'in yalnızca mutlak klasörlerden oluştuğunu denetler
@@ -141,8 +139,9 @@ func aramaYoluGuvenli(yol string) bool {
 	if yol == "" {
 		return true
 	}
-	for _, p := range strings.Split(yol, ":") {
-		if !strings.HasPrefix(p, "/") { // Linux yolu (ayraç ':')
+	// Yükleyici ':' ve ';' ayraçlarının ikisini de kabul eder.
+	for _, p := range strings.Split(strings.ReplaceAll(yol, ";", ":"), ":") {
+		if !strings.HasPrefix(p, "/") { // Linux yolu
 			return false
 		}
 	}

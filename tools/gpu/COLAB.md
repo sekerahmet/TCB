@@ -23,8 +23,8 @@ nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv
 cd /content/tr && ./gpu_sinama -test.run '^$' 2>&1 | head -1
 ```
 
-İlk satır `matris çarpımı: cuBLASLt 12.x (/usr/local/cuda/lib64/libcublasLt.so.12)` gibi
-olmalıdır. `kendi çekirdeği (cuBLASLt bulunamadı ...)` yazıyorsa kitaplığın yolu açıkça
+İlk satır `matris çarpımı: cuBLASLt 12.8.x (/usr/local/cuda/lib64/libcublasLt.so.12)` gibi
+olmalıdır (Blackwell için en az 12.8; eski sürümlü adaylar `atlanan:` diye yazılır). `kendi çekirdeği (cuBLASLt bulunamadı ...)` yazıyorsa kitaplığın yolu açıkça
 verilebilir (PyTorch'un kurduğu kopya da olur):
 `export TR_GPU_CUBLASLT=$(python -c "import nvidia.cublas, os; print(os.path.join(nvidia.cublas.__path__[0], 'lib', 'libcublasLt.so.12'))")`.
 
@@ -147,6 +147,8 @@ TR_GPU_MIKRO=1 TR_GPU_KENDI_CARPIM=1 ncu --target-processes all -k regex:carpim 
   üreten çekirdekte bildirilir. Yavaştır; yalnızca teşhis için.
 - `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12`: matris çarpımı kitaplığının yolu.
 - `TR_GPU_KENDI_CARPIM=1`: kitaplık bulunsa da kendi matris çarpımı çekirdeğimiz.
+- `TR_GPU_DIKKAT=carpim`: dikkat birleşik çekirdek yerine matris çarpımı yolundan (karşılaştırma;
+  mikro kıyas iki yolu da ölçer, `dikkat ... (matris yolu)` satırları).
 - `TR_GPU_MIKRO=1`: gpu_sinama'da mikro kıyasları açar (`TR_GPU_MIKRO_BANT` kuramsal bant
   genişliği, GB/s; varsayılan 1800).
 - `TR_GPU_BENZETIM=1`: gerçek GPU yokken PTX benzetimini `"gpu"` cihazı olarak kurar.

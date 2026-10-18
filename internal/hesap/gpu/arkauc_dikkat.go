@@ -9,12 +9,29 @@ import (
 // Arka uç: dikkat. Baş boyları birleşik çekirdeğin paylaşımlı belleğine sığıyorsa (Dh, Dv ≤
 // 128 civarı; bkz. flashSec) birleşik yol, değilse matris çarpımı yolu (dikkat.go).
 
-// flashUygun birleşik yolun bu tanım için kullanılabildiği ve döşeme ayarı.
-func flashUygun(p tensor.AttentionParams, maske, geri bool) (flashAyar, bool) {
-	if p.Dh == 0 || p.Dv == 0 || p.H > 65535 || p.Batch > 65535 {
+// flashUygun birleşik yolun bu tanım için kullanılabildiği ve döşeme ayarı (yol
+// TR_GPU_DIKKAT ile zorlanmışsa ona göre).
+func (g *arkaUc) flashUygun(p tensor.AttentionParams, maske, geri bool) (flashAyar, bool) {
+	if g.dikkatYolu == "carpim" || p.Dh == 0 || p.Dv == 0 || p.H > 65535 || p.Batch > 65535 {
 		return flashAyar{}, false
 	}
-	return flashSec(p.Dh, p.Dv, maske, geri)
+	a, ok := flashSec(p.Dh, p.Dv, maske, geri)
+	if ok {
+		dikkatBoyDenetle(p, true)
+	}
+	return a, ok
+}
+
+// dikkatBoyDenetle çekirdeklerin 32 bitlik dizinlerinin sınırlarını denetler. Birleşik yolda
+// puan matrisi oluşmaz: q/çıktı (B·H·Tq·D) ve k/v (B·Hkv·Tk·D) dizinleri sınırlıdır. Matris
+// yolunda puan matrisi (B·H·Tq·Tk) de tek depolamadır.
+func dikkatBoyDenetle(p tensor.AttentionParams, birlesik bool) {
+	D := max(p.Dh, p.Dv)
+	boyDenetle(p.Batch * p.H * p.Tq * D)
+	boyDenetle(p.Batch * p.Hkv * p.Tk * D)
+	if !birlesik {
+		boyDenetle(p.Batch * p.H * p.Tq * max(p.Tk, 1))
+	}
 }
 
 func (g *arkaUc) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor.Storage, p tensor.AttentionParams) tensor.Storage {
@@ -35,7 +52,7 @@ func (g *arkaUc) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor.
 		return lse
 	}
 	md, mo := g.dikkatHazirla(gt, mask, p)
-	a, ok := flashUygun(p, md != nil, false)
+	a, ok := g.flashUygun(p, md != nil, false)
 	if !ok {
 		g.dikkatMatris(gt, od, lse, q, k, v, md, mo, p)
 		return lse
@@ -77,7 +94,7 @@ func (g *arkaUc) dikkatGeri(gq, gk, gv, gs tensor.Storage, q, k, v tensor.View, 
 	defer gt.bitir()
 	R := p.Batch * p.H * p.Tq
 	md, mo := g.dikkatHazirla(gt, mask, p)
-	a, ok := flashUygun(p, md != nil, true)
+	a, ok := g.flashUygun(p, md != nil, true)
 	if !ok || R == 0 || p.Tk == 0 {
 		// Taze gradyanlar sıfırlanmamıştır: önce sıfırlanır, sonra eklenir.
 		for i, s := range []tensor.Storage{gq, gk, gv} {
@@ -90,23 +107,18 @@ func (g *arkaUc) dikkatGeri(gq, gk, gv, gs tensor.Storage, q, k, v tensor.View, 
 		}
 		return
 	}
-	kip := func(i int, s tensor.Storage) int {
-		switch {
-		case s == nil:
-			return gradYok
-		case taze[i]:
-			return gradUzerine
-		}
-		return gradEkle
+	var cik [3]*depo
+	var kip [3]int
+	var sonlar []func()
+	for i, s := range []tensor.Storage{gq, gk, gv} {
+		cik[i], kip[i], sonlar = g.dikkatCikisi(gt, s, taze[i], cik[:i], []tensor.Storage{gq, gk, gv}[:i], sonlar)
 	}
-	kq, kk, kv := kip(0, gq), kip(1, gk), kip(2, gv)
+	dq, dk, dv := cik[0], cik[1], cik[2]
+	kq, kk, kv := kip[0], kip[1], kip[2]
 	qv, kvw, vv := gt.oku(q), gt.oku(k), gt.oku(v)
 	dO := gt.okuD(gs)
 	od := gt.okuD(o)
 	ld := gt.okuD(lse)
-	dq, sonQ := gt.yaz(gq, kq == gradEkle)
-	dk, sonK := gt.yaz(gk, kk == gradEkle)
-	dv, sonV := gt.yaz(gv, kv == gradEkle)
 	// D = satır başına Σ dO·O.
 	D := gt.tampon(R, false)
 	cd := g.cekirdekAl("dikkat_d", flashDCekirdegi)
@@ -124,7 +136,30 @@ func (g *arkaUc) dikkatGeri(gq, gk, gv, gs tensor.Storage, q, k, v tensor.View, 
 		g.dikkatOrtak(pr, md, mo, p)
 		g.baslat(c, [3]uint32{bloklar(p.Tk, a.Bc), uint32(p.Hkv), uint32(p.Batch)}, [3]uint32{flashIs, 1, 1}, pr)
 	}
-	sonQ()
-	sonK()
-	sonV()
+	for _, son := range sonlar {
+		son()
+	}
+}
+
+// dikkatCikisi bir gradyan çıktısının yazılacağı float32 depolamayı ve kipini verir. Önceki
+// bir çıktıyla aynı depolamaya düşen gradyan (q, k, v aynı tensörse) aynı (geçici) tamponu
+// kullanır ve ona ekler: çekirdekler Q, K, V sırasıyla yazdığından ilk yazan üzerine yazar
+// ya da ekler, sonrakiler ekler; 16 bitlik gradyanın geçici tamponu bir kez yüklenir ve bir
+// kez geri yazılır (ayrı tamponlar birbirinin sonucunu ezerdi).
+func (g *arkaUc) dikkatCikisi(gt *gecici, s tensor.Storage, taze bool, onceki []*depo, oncekiS []tensor.Storage, sonlar []func()) (*depo, int, []func()) {
+	if s == nil {
+		return nil, gradYok, sonlar
+	}
+	asil := g.depoOf(s)
+	for j, o := range oncekiS {
+		if o != nil && g.depoOf(o) == asil {
+			return onceki[j], gradEkle, sonlar
+		}
+	}
+	kip := gradEkle
+	if taze {
+		kip = gradUzerine
+	}
+	d, son := gt.yaz(s, kip == gradEkle)
+	return d, kip, append(sonlar, son)
 }

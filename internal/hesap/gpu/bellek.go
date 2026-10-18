@@ -256,7 +256,9 @@ func (g *arkaUc) suruculenAyir(sinif, istenen uint64) uint64 {
 // süre beklenir; gelirse verilir.
 func (g *arkaUc) copTopla(sinif uint64) (uint64, bool) {
 	g.havuz.yeni, g.hacim = 0, 0
+	bas := time.Now()
 	runtime.GC()
+	g.prof.copKaydet(time.Since(bas))
 	g.havuz.mu.Lock()
 	g.havuz.copToplama++
 	g.havuz.mu.Unlock()

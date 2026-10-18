@@ -34,7 +34,7 @@ func (l *linuxKutuphane) cagir(fn uintptr, args ...uintptr) uintptr {
 
 // cikisIsleyicileriniCalistir C kitaplığının çıkış işleyicilerini (atexit ile kaydedilenler)
 // çalıştırır: __cxa_finalize(NULL). Yalnızca program sonunda, dış bir profilleyici bağlıyken
-// çağrılır (bkz. araclariBosalt).
+// çağrılır (bkz. Kapat).
 func cikisIsleyicileriniCalistir() {
 	h, err := purego.Dlopen("libc.so.6", purego.RTLD_NOW|purego.RTLD_GLOBAL)
 	if err != nil {

@@ -83,23 +83,74 @@ func (g *arkaUc) AdamWStep(p, gs, m, v tensor.Storage, lr, b1, b2, eps, wd, bc1,
 		[]float32{bc1}, []float32{bc2})
 }
 
+// cokGeciciSinir çok tensörlü işte aynı anda canlı float32 geçici kopyaların (16 bitlik
+// parametre ya da gradyanların açılması) en çok baytı: aşılınca iş parçalara bölünür (her parça
+// tek başlatma), böylece tepe bellek tek tensörlü yoldakinden çok büyümez.
+var cokGeciciSinir = 256 << 20
+
+// cokYazici bir parçanın geçici tamponlarını ve geri yazma işlevlerini toplar.
+type cokYazici struct {
+	g      *arkaUc
+	gt     *gecici
+	sonlar []func()
+	bayt   int
+}
+
+// yaz depolamanın float32 karşılığı (16 bitlikse geçici kopya, sonda geri yazılır).
+func (c *cokYazici) yaz(s tensor.Storage) *depo {
+	d, son := c.gt.yaz(s, true)
+	c.sonlar = append(c.sonlar, son)
+	if s != nil && d != c.g.depoOf(s) {
+		c.bayt += 4 * d.n
+	}
+	return d
+}
+
+// oku yalnızca okunan depolamanın float32 karşılığı.
+func (c *cokYazici) oku(s tensor.Storage) *depo {
+	d := c.gt.okuD(s)
+	if d != c.g.depoOf(s) {
+		c.bayt += 4 * d.n
+	}
+	return d
+}
+
+// cokParcali n öğeyi ekle ile toplar; geçici baytlar cokGeciciSinir'i aşınca ya da sonda
+// baslat'ı çağırır (toplanan öğeleri başlatır), geçici kopyaları geri yazar ve bırakır.
+func (g *arkaUc) cokParcali(n int, ekle func(c *cokYazici, i int), baslat func(c *cokYazici)) {
+	c := &cokYazici{g: g, gt: g.gecici()}
+	bekleyen := false
+	bitir := func() {
+		if bekleyen {
+			baslat(c)
+		}
+		for _, son := range c.sonlar {
+			son()
+		}
+		c.gt.bitir()
+		c.gt, c.sonlar, c.bayt, bekleyen = g.gecici(), nil, 0, false
+	}
+	defer func() { c.gt.bitir() }()
+	for i := 0; i < n; i++ {
+		ekle(c, i)
+		bekleyen = true
+		if c.bayt > cokGeciciSinir {
+			bitir()
+		}
+	}
+	bitir()
+}
+
 func (g *arkaUc) adamW(ps, gs, ms, vs []tensor.Storage, lr, b1, b2, eps, wd float32, bc1, bc2 []float32) {
-	gt := g.gecici()
-	defer gt.bitir()
-	var sonlar []func()
-	ogeler := make([]cokOge, 0, len(ps))
-	for i := range ps {
-		pd, s1 := gt.yaz(ps[i], true)
-		md, s2 := gt.yaz(ms[i], true)
-		vd, s3 := gt.yaz(vs[i], true)
-		sonlar = append(sonlar, s1, s2, s3)
-		ogeler = append(ogeler, cokOge{d: [4]*depo{pd, gt.okuD(gs[i]), md, vd}, n: pd.n,
+	var ogeler []cokOge
+	g.cokParcali(len(ps), func(c *cokYazici, i int) {
+		pd, md, vd := c.yaz(ps[i]), c.yaz(ms[i]), c.yaz(vs[i])
+		ogeler = append(ogeler, cokOge{d: [4]*depo{pd, c.oku(gs[i]), md, vd}, n: pd.n,
 			f1: lr / bc1[i], f2: float32(math.Sqrt(float64(bc2[i])))})
-	}
-	g.cokBaslat(gt, cokAdamW, ogeler, []int{0, 2, 3}, []float32{b1, 1 - b1, b2, 1 - b2, eps, 1 - lr*wd}, nil)
-	for _, s := range sonlar {
-		s()
-	}
+	}, func(c *cokYazici) {
+		g.cokBaslat(c.gt, cokAdamW, ogeler, []int{0, 2, 3}, []float32{b1, 1 - b1, b2, 1 - b2, eps, 1 - lr*wd}, nil)
+		ogeler = ogeler[:0]
+	})
 }
 
 // SGDStepAll (tensor.MultiTensorOps) bütün parametrelerin SGD adımı tek başlatmada; vel nil
@@ -118,31 +169,26 @@ func (g *arkaUc) SGDStep(p, gs, vel tensor.Storage, lr, momentum, wd float32) {
 }
 
 func (g *arkaUc) sgd(ps, gs, vels []tensor.Storage, lr, momentum, wd float32) {
-	gt := g.gecici()
-	defer gt.bitir()
-	var sonlar []func()
 	var duz, mom []cokOge
-	for i := range ps {
-		pd, s1 := gt.yaz(ps[i], true)
+	ortak := []float32{lr, momentum, wd}
+	g.cokParcali(len(ps), func(c *cokYazici, i int) {
+		pd := c.yaz(ps[i])
 		var vel tensor.Storage
 		if i < len(vels) {
 			vel = vels[i]
 		}
-		vd, s2 := gt.yaz(vel, true)
-		sonlar = append(sonlar, s1, s2)
-		o := cokOge{d: [4]*depo{pd, gt.okuD(gs[i]), vd}, n: pd.n}
+		vd := c.yaz(vel)
+		o := cokOge{d: [4]*depo{pd, c.oku(gs[i]), vd}, n: pd.n}
 		if vd != nil {
 			mom = append(mom, o)
 		} else {
 			duz = append(duz, o)
 		}
-	}
-	ortak := []float32{lr, momentum, wd}
-	g.cokBaslat(gt, cokSGD, duz, []int{0}, ortak, nil)
-	g.cokBaslat(gt, cokSGDMomentum, mom, []int{0, 2}, ortak, nil)
-	for _, s := range sonlar {
-		s()
-	}
+	}, func(c *cokYazici) {
+		g.cokBaslat(c.gt, cokSGD, duz, []int{0}, ortak, nil)
+		g.cokBaslat(c.gt, cokSGDMomentum, mom, []int{0, 2}, ortak, nil)
+		duz, mom = duz[:0], mom[:0]
+	})
 }
 
 // ScaleAll (tensor.MultiTensorOps) her depolamayı k ile çarpar (tek başlatma).
@@ -159,19 +205,14 @@ func (g *arkaUc) Scale(s tensor.Storage, k float32) {
 }
 
 func (g *arkaUc) olcekle(ss []tensor.Storage, k float32) {
-	gt := g.gecici()
-	defer gt.bitir()
-	var sonlar []func()
 	var ogeler []cokOge
-	for _, s := range ss {
-		d, son := gt.yaz(s, true)
-		sonlar = append(sonlar, son)
+	g.cokParcali(len(ss), func(c *cokYazici, i int) {
+		d := c.yaz(ss[i])
 		ogeler = append(ogeler, cokOge{d: [4]*depo{d}, n: d.n})
-	}
-	g.cokBaslat(gt, cokOlcek, ogeler, []int{0}, []float32{k}, nil)
-	for _, s := range sonlar {
-		s()
-	}
+	}, func(c *cokYazici) {
+		g.cokBaslat(c.gt, cokOlcek, ogeler, []int{0}, []float32{k}, nil)
+		ogeler = ogeler[:0]
+	})
 }
 
 // SumSquaresAll (tensor.SquareSummer) depolamaların kareler toplamı: tek başlatma, tek

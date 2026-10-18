@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -99,12 +100,41 @@ func BellekOlcumleri() []BellekOlcumu {
 	return r
 }
 
-// Kapat program sonunda çağrılır: ölçüm açıksa özeti standart hataya yazar ve bağlı dış
-// profilleyicilere topladıkları veriyi yazdırır. Birden çok kez çağrılabilir; özet yalnızca
-// son yazımdan sonra yeni ölçüm varsa yeniden yazılır.
+// gpuKapandi dış profilleyici için C çıkış işleyicileri çalıştırıldıktan sonra doğrudur: o
+// andan sonra sürücüye hiçbir çağrı yapılmaz (gir açık hata verir).
+var gpuKapandi atomic.Bool
+
+var cikisBirKez sync.Once
+
+// Kapat program sonunda çağrılır: ölçüm açıksa özeti standart hataya yazar, matris çarpımı
+// kitaplığının tanımlarını yok eder ve bağlı dış profilleyicilere topladıkları veriyi
+// yazdırır. Birden çok kez çağrılabilir; özet yalnızca son yazımdan sonra yeni ölçüm varsa
+// yeniden yazılır.
+//
+// Dış profilleyici bağlıyken (CUDA_INJECTION64_PATH) bütün GPU'lar kapandıktan sonra, süreç
+// genelinde bir kez C çıkış işleyicileri çalıştırılır (__cxa_finalize(NULL)): Go programı
+// bunları çalıştırmadan biter, araçlar ise topladıklarını orada yazar. Bu işleyiciler
+// sürücünün ve araçların C++ durumunu da yıkar; bu yüzden ardından GPU kullanılamaz
+// (gpuKapandi) ve Kapat'ın sonraki çağrıları hiçbir şey yapmaz. Araç bağlı değilse hiç
+// çalıştırılmaz.
 func Kapat() {
+	if gpuKapandi.Load() {
+		return
+	}
 	for _, g := range kayitlilar() {
 		g.kapat()
+	}
+	if aracBagli() && len(kayitlilar()) > 0 {
+		cikisBirKez.Do(func() {
+			for _, g := range kayitlilar() {
+				g.mu.Lock() // başka bir gorutin GPU'yu kullanıyorsa bitmesini bekle
+			}
+			gpuKapandi.Store(true)
+			cikisIsleyicileriniCalistir()
+			for _, g := range kayitlilar() {
+				g.mu.Unlock()
+			}
+		})
 	}
 }
 
@@ -122,16 +152,20 @@ func (g *arkaUc) kapat() {
 			g.ozetYaz(os.Stderr)
 		}
 	}
+	g.ltKapat()
 	g.sr.araclariBosalt()
 }
 
-// ProfilOzetiYaz bütün GPU'ların ölçüm özetini w'ye yazar.
+// ProfilOzetiYaz bütün GPU'ların ölçüm özetini w'ye yazar (sürücü hatası yutulur).
 func ProfilOzetiYaz(w io.Writer) {
 	for _, g := range kayitlilar() {
-		g.gir()
-		g.esitle()
-		g.ozetYaz(w)
-		g.cik()
+		func() {
+			defer func() { _ = recover() }()
+			g.gir()
+			defer g.cik()
+			g.esitle()
+			g.ozetYaz(w)
+		}()
 	}
 }
 
@@ -153,6 +187,8 @@ func (g *arkaUc) ozetYaz(w io.Writer) {
 		top.gpuMs += a.gpuMs
 		top.boslukMs += a.boslukMs
 		top.baslatma += a.baslatma
+		top.cop += a.cop
+		top.copSure += a.copSure
 		sayi++
 	}
 	p.mu.Unlock()
@@ -160,8 +196,9 @@ func (g *arkaUc) ozetYaz(w io.Writer) {
 		n := float64(sayi)
 		ms := func(d time.Duration) float64 { return d.Seconds() * 1e3 / n }
 		fmt.Fprintf(w, "adım başına (%d adım): duvar %.2f ms · GPU çekirdek %.2f ms · GPU boşluğu %.2f ms · başlatma %.0f · "+
-			"konakta arka uç %.2f ms · eşzamanlama beklemesi %.2f ms\n",
-			sayi, ms(top.duvar), top.gpuMs/n, top.boslukMs/n, float64(top.baslatma)/n, ms(top.konak), ms(top.esit))
+			"konakta arka uç %.2f ms · eşzamanlama beklemesi %.2f ms · çöp toplama %.2f kez, %.2f ms\n",
+			sayi, ms(top.duvar), top.gpuMs/n, top.boslukMs/n, float64(top.baslatma)/n, ms(top.konak), ms(top.esit),
+			float64(top.cop)/n, ms(top.copSure))
 	}
 	olcumler := p.sirali()
 	var toplam time.Duration

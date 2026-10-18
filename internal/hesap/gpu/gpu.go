@@ -45,6 +45,11 @@ type arkaUc struct {
 	// lt matris çarpımı kitaplığı (yüklenemediyse nil: kendi çekirdeğimiz).
 	lt      *ltCarpim
 	ltNeden string // lt nil ise nedeni (teşhis)
+	// ltNotlar kurulumda atlanan kitaplık adayları; ltSonHata kitaplığın son reddettiği çağrı.
+	ltNotlar  []string
+	ltSonHata string
+	// dikkatYolu TR_GPU_DIKKAT: "birlesik" (varsayılan) ya da "carpim" (ölçüm ve karşılaştırma).
+	dikkatYolu string
 }
 
 func init() {
@@ -123,6 +128,7 @@ func yeniArkaUc(dev tensor.Device, sr surucu) *arkaUc {
 	g := &arkaUc{dev: dev, sr: sr, cekirdekler: map[string]*cekirdek{}}
 	g.havuz.bos = map[uint64][]uint64{}
 	g.eszamanli = os.Getenv("TR_GPU_ESZAMANLI") == "1"
+	g.dikkatYolu = os.Getenv("TR_GPU_DIKKAT")
 	g.carpim = varsayilanCarpim
 	return g
 }
@@ -149,6 +155,10 @@ func (g *arkaUc) MemoryPlace() string { return "bu GPU'da" }
 // gir kilidi alır, gorutini iş parçacığına kilitler ve bağlamı bağlar.
 func (g *arkaUc) gir() {
 	g.mu.Lock()
+	if gpuKapandi.Load() {
+		g.mu.Unlock()
+		panic("tensor: GPU: program sonunda dış profilleyici için GPU kapatıldı; GPU artık kullanılamaz")
+	}
 	g.prm.acik = false // panikle yarıda kalmış bir önceki zincir
 	runtime.LockOSThread()
 	if s := g.sr.bagla(); s != basarili {

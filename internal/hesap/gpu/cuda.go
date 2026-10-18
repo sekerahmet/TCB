@@ -429,15 +429,17 @@ func (s *cudaSurucu) olaySure(bas, son uintptr) (float32, sonuc) {
 	return s.cikti.f32, r
 }
 
-// araclariBosalt dış bir profilleyici bağlıysa (sürücü onu CUDA_INJECTION64_PATH ile
-// yükler) sıradaki işleri bitirir, profil toplamayı durdurur ve aracın çıkış
-// işleyicilerini çalıştırır. Go programları C çıkış işleyicilerini (atexit) çalıştırmadan
-// biter; araçlar topladıklarını orada yazdığından, bu olmadan rapor boş kalır.
+// araclariBosalt dış bir profilleyici bağlıysa (aracBagli) sıradaki işleri bitirir ve profil
+// toplamayı durdurur (cuProfilerStop: araçlar bu noktada topladıklarını boşaltabilir). C çıkış
+// işleyicileri ayrıca, bütün GPU'lar kapandıktan sonra bir kez çalıştırılır (bkz. Kapat).
 func (s *cudaSurucu) araclariBosalt() {
-	if os.Getenv("CUDA_INJECTION64_PATH") == "" {
+	if !aracBagli() {
 		return
 	}
 	s.esitle()
 	s.icagir(iProfilerStop)
-	cikisIsleyicileriniCalistir()
 }
+
+// aracBagli dış bir profilleyicinin (nsys, ncu) bağlı olduğu: sürücü aracı
+// CUDA_INJECTION64_PATH ile yükler.
+func aracBagli() bool { return os.Getenv("CUDA_INJECTION64_PATH") != "" }

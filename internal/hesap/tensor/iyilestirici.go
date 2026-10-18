@@ -99,6 +99,7 @@ func (o *SGD) SetMasterWeights(on bool) { o.ana.ayarla(on) }
 // Step bir güncelleme adımı uygular. Gradyanı olmayan parametreler atlanır.
 // Parametreler yerinde değiştiği için sürümleri artar.
 func (o *SGD) Step() {
+	sirali := tekrarli(o.Params)
 	var adimlar []iyiAdim
 	for k, p := range o.Params {
 		if p.grad == nil {
@@ -106,6 +107,12 @@ func (o *SGD) Step() {
 		}
 		if o.Momentum != 0 && o.hiz[k] == nil {
 			o.hiz[k] = p.be.Alloc(p.Numel(), Float32)
+		}
+		if sirali {
+			h := o.ana.hedef(k, p)
+			p.be.SGDStep(h, p.grad, o.hiz[k], o.LR, o.Momentum, o.WeightDecay)
+			o.ana.yaz(k, p, h)
+			continue
 		}
 		adimlar = append(adimlar, iyiAdim{k: k, p: p, h: o.ana.hedef(k, p), m: o.hiz[k]})
 	}
@@ -139,6 +146,10 @@ func (iyiAdim) sutunlar(a []iyiAdim) (h, g, m []Storage) {
 
 // cokluUygula ardışık, aynı arka uçtaki ve çok tensörlü işi destekleyen adımları tek çağrıda
 // (coklu), kalanları tek tek (tekli) uygular; sıra korunur.
+//
+// Aynı parametre listede iki kez geçerse (aynı depolama) grup orada bölünür: tek başlatmada iki
+// blok aynı belleği aynı anda güncellerdi; bölünce güncellemeler tek tek yoldaki gibi sırayla
+// yapılır.
 func cokluUygula(adimlar []iyiAdim, coklu func(MultiTensorOps, []iyiAdim), tekli func(iyiAdim)) {
 	for i := 0; i < len(adimlar); {
 		mt, ok := adimlar[i].p.be.(MultiTensorOps)
@@ -147,13 +158,29 @@ func cokluUygula(adimlar []iyiAdim, coklu func(MultiTensorOps, []iyiAdim), tekli
 			i++
 			continue
 		}
+		goruldu := map[Storage]bool{adimlar[i].p.grad: true}
 		j := i + 1
-		for j < len(adimlar) && adimlar[j].p.be == adimlar[i].p.be {
+		for j < len(adimlar) && adimlar[j].p.be == adimlar[i].p.be && !goruldu[adimlar[j].p.grad] {
+			goruldu[adimlar[j].p.grad] = true
 			j++
 		}
 		coklu(mt, adimlar[i:j])
 		i = j
 	}
+}
+
+// tekrarli listede aynı parametrenin (depolamanın) birden çok kez geçip geçmediği. Öyleyse
+// iyileştiriciler adımı parametre parametre (hedef, güncelleme, geri yazma sırasıyla) yapar:
+// ikinci geçiş birincinin sonucunu görür.
+func tekrarli(params []*Tensor) bool {
+	goruldu := make(map[Storage]bool, len(params))
+	for _, p := range params {
+		if goruldu[p.storage] {
+			return true
+		}
+		goruldu[p.storage] = true
+	}
+	return false
 }
 
 // ZeroGrad tüm parametre gradyanlarını sıfırlar.
@@ -200,6 +227,7 @@ func (o *AdamW) StepCount() int { return o.adim }
 // akmayan bir parametre) ilk güncellemesinde yeni bir iyileştiricideki gibi davranır.
 func (o *AdamW) Step() {
 	o.adim++
+	sirali := tekrarli(o.Params)
 	var adimlar []iyiAdim
 	for k, p := range o.Params {
 		if p.grad == nil {
@@ -211,8 +239,15 @@ func (o *AdamW) Step() {
 			o.m[k] = p.be.Alloc(p.Numel(), Float32)
 			o.v[k] = p.be.Alloc(p.Numel(), Float32)
 		}
-		adimlar = append(adimlar, iyiAdim{k: k, p: p, h: o.ana.hedef(k, p), m: o.m[k], v: o.v[k],
-			bc1: float32(1 - math.Pow(float64(o.Beta1), t)), bc2: float32(1 - math.Pow(float64(o.Beta2), t))})
+		a := iyiAdim{k: k, p: p, m: o.m[k], v: o.v[k],
+			bc1: float32(1 - math.Pow(float64(o.Beta1), t)), bc2: float32(1 - math.Pow(float64(o.Beta2), t))}
+		a.h = o.ana.hedef(k, p)
+		if sirali {
+			p.be.AdamWStep(a.h, p.grad, a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
+			o.ana.yaz(k, p, a.h)
+			continue
+		}
+		adimlar = append(adimlar, a)
 	}
 	cokluUygula(adimlar, func(be MultiTensorOps, a []iyiAdim) {
 		h, g, m := a[0].sutunlar(a)

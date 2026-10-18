@@ -123,22 +123,34 @@ Motorların kendi kancaları:
   yön; `cekirdek_flash*.go`), çok tensörlü iyileştirici/ölçekleme/kareler toplamı (bütün
   parametreler tek başlatmada; `cekirdek_cok.go`). Az çıktılı uzun indirgemeler iki aşamalı
   ve belirlenimcidir. Çıktısını tümüyle yazan işlemler (çarpım, çapraz entropi ve dikkat
-  gradyanı) taze gradyanı sıfırlamadan üzerine yazar (`tensor.GemmSetter` vb.).
+  gradyanı) taze gradyanı sıfırlamadan üzerine yazar (`tensor.GemmSetter` vb.). q, k, v aynı
+  tensörse dikkatin gradyanları tek (geçici) tamponda birikir. Dikkat yolu
+  `TR_GPU_DIKKAT=birlesik|carpim` ile zorlanabilir (ölçüm; varsayılan birleşik). Çok tensörlü
+  işte 16 bitlik açılmaların geçici belleği 256 MB'yi aşarsa iş parçalara bölünür; aynı
+  parametre listede iki kez geçerse güncellemeler sırayla yapılır.
 - **Matris çarpımı:** makinede NVIDIA cuBLASLt kuruluysa float32 çarpım onunla yapılır (TF32
   kapalı; adımlı toplu; sürücü gibi çalışma anında yüklenir, TR dağıtmaz). Arama sırası
   `carpim_kitaplik_yol.go`'da: `TR_GPU_CUBLASLT` (tam yol), Linux'ta standart arama yolu,
   CUDA klasörleri, pip ile kurulmuş NVIDIA paketleri, TR'nin önbellek klasörü (ileride
   kitaplığı NVIDIA'nın yeniden dağıtılabilir paketinden oraya indirecek bir komut için);
-  çalışma klasörü aranmaz. Bulunamazsa kendi çekirdeğimiz (`cekirdek_carpim.go`; döşemeli,
-  vektörel paylaşımlı bellek okumalı) kullanılır; `TR_GPU_KENDI_CARPIM=1` onu zorlar. Yol
+  çalışma klasörü aranmaz. Açıkça verilen yol önce, öbür adaylar sürümlerine göre (sayısal,
+  en yeni önce) denenir; kartın mimarisinin istediği en düşük sürümden eskiler atlanır
+  (sm_100/120 için 12.8, sm_89/90 için 11.8) ve `cublasLtCreate` başarılı olan ilk aday
+  kullanılır. Her şekil planına işaretçi hizaları bildirilir (ofsetli görünümler). Kitaplık
+  bir şekli yapamazsa ya da çağrı hata dönerse panik yerine kendi çekirdeğimize düşülür
+  (düşüşler sayılır). Planlar en çok 256'dır; program sonunda yok edilir. Bulunamazsa kendi
+  çekirdeğimiz (`cekirdek_carpim.go`; döşemeli, vektörel paylaşımlı bellek okumalı)
+  kullanılır; `TR_GPU_KENDI_CARPIM=1` onu zorlar. Yol, sürüm, atlanan adaylar ve düşüşler
   `gpu.Durum()`'da ve profilde görünür. 2b'de bf16/TF32 tensör çekirdekleri de bu arayüzden
   gelecek (veri türü parametresi hazır).
 - **Profil:** `TR_GPU_PROFIL=1` (ya da `gpu.ProfilAc`) her başlatmayı iki zamanlama olayıyla
   ölçer: çekirdek/aile başına çağrı ve GPU süresi, adım başına duvar, GPU, boşluk, konak ve
   eşzamanlama süreleri; program sonunda (`motor.Kapat` → `gpu.Kapat`) özet standart hataya
   yazılır. Canlı izleme için Go arayüzü: `gpu.CekirdekOlcumleri`, `gpu.BellekOlcumleri`.
-  Dış profilleyici (nsys/ncu) bağlıysa program sonunda C çıkış işleyicileri çalıştırılır
-  (araçlar veriyi orada yazar; Go çıkışta bunları çalıştırmaz).
+  Dış profilleyici (nsys/ncu) bağlıysa program sonunda, bütün GPU'lar kapandıktan sonra bir
+  kez C çıkış işleyicileri çalıştırılır (araçlar veriyi orada yazar; Go çıkışta bunları
+  çalıştırmaz); ardından GPU kullanılamaz. Adım başına çöp toplama sayısı ve süresi de
+  özettedir.
 - **Bellek:** boyut sınıflı havuz (1–64 MB arası her ikinin kuvveti aralığı dörde bölünür);
   depolama otomatik türevin `Release`'iyle ya da çöp toplayıcının temizliğiyle havuza döner
   (tek akış sayesinde eşzamanlama gerekmez). Çöp toplayıcı cihaz belleğini görmediğinden her
