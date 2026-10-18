@@ -84,7 +84,7 @@ yazdır(z["sapma"].gradyan.değer)`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(veri[:8]) != "TRTENSOR" || binary.LittleEndian.Uint16(veri[8:10]) != 1 || binary.LittleEndian.Uint32(veri[10:14]) != 4 {
+	if string(veri[:8]) != "TRTENSOR" || binary.LittleEndian.Uint16(veri[8:10]) != 2 || binary.LittleEndian.Uint32(veri[10:14]) != 4 {
 		t.Fatalf("başlık hatalı: % x", veri[:14])
 	}
 
@@ -107,7 +107,7 @@ yazdır(z["sapma"].gradyan.değer)`)
 		{yaz("bozuk.trt", bozuk), "sağlama toplamı tutmuyor"},
 		{yaz("baslik.trt", []byte("merhaba dünya, bu bir tensör dosyası değil")), "bir TR tensör dosyası değil"},
 		{yaz("kisa.trt", []byte("TRT")), "bir TR tensör dosyası değil"},
-		{yaz("surum.trt", surum), "dosya biçimi sürümü 9; bu TR sürümü en fazla 1 okuyabilir"},
+		{yaz("surum.trt", surum), "dosya biçimi sürümü 9; bu TR sürümü en fazla 2 okuyabilir"},
 		{yaz("tur.trt", tur), "desteklenmeyen veri türü kodu 7"},
 		{yaz("fazla.trt", append(append([]byte{}, veri...), 0)), "fazladan veri"},
 		{filepath.ToSlash(filepath.Join(klasor, "yok.trt")), "yüklenemedi: böyle bir dosya ya da klasör yok"},

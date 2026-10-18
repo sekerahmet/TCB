@@ -201,6 +201,22 @@ test "15.10 tensör_kaydet ve tensör_yükle hataları" {
     doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("değeri bir tensör olmalıdır"))
 }
 
+test "15.10a tensör dosyası sürüm 2 türü korur; sürüm 1 dosyaları okunur" {
+    // Fikstürler testler/veri altındadır; yazma gidiş-dönüşü Go testlerinde denetlenir.
+    // tensor_surum2.trt: bf16, fp16 ve float32 girdili sürüm 2 dosyası.
+    değişken y = tensör_yükle("veri/tensor_surum2.trt")
+    eşit_mi(["a", "b", "c"], y.anahtarlar())
+    eşit_mi(["bf16", "fp16", "float32"], [y["a"].tür, y["b"].tür, y["c"].tür])
+    doğrula(y["a"] == tensör([[1.5, -2.25], [3.0, 0.1]], tür: "bf16"))
+    doğrula(y["b"] == tensör([0.1, 65504.0], tür: "fp16"))
+    eşit_mi([0.1], y["c"].değer)
+    // tensor_surum1.trt: eski TR'nin yazdığı sürüm 1 (yalnızca float32) dosyası.
+    değişken e = tensör_yükle("veri/tensor_surum1.trt", türev_izle: doğru)
+    eşit_mi("float32", e["ağırlık"].tür)
+    eşit_mi([[0.5, -1.25], [3.0, 0.1]], e["ağırlık"].değer)
+    eşit_mi(yok, e["ağırlık"].gradyan)
+}
+
 test "15.11 tensör üzerinde döngü ve liste üreteci" {
     değişken t = tensör([[1, 2], [3, 4], [5, 6]])
     değişken satırlar = []
@@ -238,4 +254,169 @@ test "15.8 hatalar şekli gösterir ve yakalanabilir" {
     doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [5])).içerir("tablonun dışında"))
     doğrula(hata_metni(() => çapraz_entropi(sıfırlar([2, 3]), [[0, 1, 0], [1, 0, 0]])).içerir("one-hot verdiniz gibi görünüyor"))
     doğrula(hata_metni(() => AdamW([tensör(3.0)])).içerir("1. parametre ([]) türev izlemiyor"))
+}
+
+test "15.12 veri türleri: tür seçimi, .tür ve .türe" {
+    değişken a = tensör([[1.001, 2.0], [3.0, 4.0]], tür: "bf16")
+    eşit_mi("bf16", a.tür)
+    eşit_mi("float32", tensör([1.0]).tür)
+    // bf16'nın anlamlı kısmı 8 bittir: 1.001 en yakın bf16 değerine (1.0) yuvarlanır.
+    eşit_mi([[1.0, 2.0], [3.0, 4.0]], a.değer)
+    eşit_mi(["bf16", "fp16", "bf16"], [sıfırlar([2], tür: "bf16").tür, birler([2], tür: "fp16").tür, rastgele_normal([2], tür: "bf16", tohum: 1).tür])
+    eşit_mi([1.0, 1.0], birler([2], tür: "fp16").değer)
+    // Tensörden oluşturmada tür verilmezse kaynağın türü korunur.
+    eşit_mi("bf16", tensör(a).tür)
+    eşit_mi("float32", tensör(a, tür: "float32").tür)
+    eşit_mi("fp16", tensör(2.5, tür: "fp16").tür)
+    // Aynı türlü işlenenlerin sonucu o türde, farklı türlerinki float32'dir.
+    eşit_mi("bf16", (a @ a).tür)
+    eşit_mi("float32", (a + tensör([1.0, 1.0])).tür)
+    // .türe türevlenebilir: gradyan kaynak tensöre (kendi türünde) akar.
+    değişken w = tensör([[1.0, 2.0]], türev_izle: doğru)
+    değişken y = w.türe("fp16")
+    eşit_mi("fp16", y.tür)
+    geri_yayılım(toplam(y * 3))
+    eşit_mi([[3.0, 3.0]], w.gradyan.değer)
+    eşit_mi("float32", w.gradyan.tür)
+    doğrula(w.türe("float32") == w)
+    // Yazdırma türü yalnızca float32 dışındaki türlerde gösterir.
+    doğrula(metin(a).içerir("Tensör[2×2] bf16"))
+    doğrula(!metin(tensör([1.0])).içerir("float32"))
+}
+
+test "15.12a bilinmeyen tür yol gösteren bir hata verir" {
+    doğrula(hata_metni(() => tensör([1], tür: "bfloat16")).içerir("bilinmeyen veri türü \"bfloat16\"; geçerli türler: \"float32\", \"bf16\", \"fp16\". Bunu mu demek istediniz: \"bf16\"?"))
+    doğrula(hata_metni(() => sıfırlar([2], tür: "float16")).içerir("Bunu mu demek istediniz: \"fp16\"?"))
+    doğrula(hata_metni(() => tensör([1.0]).türe("float64")).içerir("Bunu mu demek istediniz: \"float32\"?"))
+    doğrula(hata_metni(() => tensör([1], tür: 16)).içerir("tür metin olmalıdır"))
+    doğrula(hata_metni(() => tensör([1], dtype: "bf16")).içerir("'dtype' adında bir parametre almaz"))
+    doğrula(hata_metni(() => karışık_hassasiyet("bf16")).içerir("bir blok bekler"))
+    doğrula(hata_metni(() => karışık_hassasiyet("int8") { 1 }).içerir("bilinmeyen veri türü \"int8\""))
+}
+
+// küçük_eğitim: küçük bir iki katmanlı ağı (float32 ağırlıklarla) eğitir; karışık doğruysa
+// her adım karışık_hassasiyet("bf16") bloğunda çalışır. Son kaybı döndürür.
+fonksiyon küçük_eğitim(karışık) {
+    değişken x = rastgele_normal([32, 8], tohum: 3)
+    değişken hedef = x @ rastgele_normal([8, 1], tohum: 4)
+    değişken w1 = tensör(rastgele_normal([8, 16], tohum: 5) * 0.3, türev_izle: doğru)
+    değişken w2 = tensör(rastgele_normal([16, 1], tohum: 6) * 0.3, türev_izle: doğru)
+    değişken opt = AdamW([w1, w2], öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
+    fonksiyon adım() {
+        opt.sıfırla()
+        değişken k = ortalama((gelu(x @ w1) @ w2 - hedef) ** 2)
+        geri_yayılım(k)
+        opt.adım()
+        sonuç k
+    }
+    değişken kayıp = yok
+    döngü i içinde 0..80 {
+        eğer karışık {
+            kayıp = karışık_hassasiyet("bf16") { adım() }
+        } değilse {
+            kayıp = adım()
+        }
+    }
+    // Ağırlıkların kendisi float32 kalır.
+    eşit_mi(["float32", "float32"], [w1.tür, w2.tür])
+    sonuç kayıp.değer
+}
+
+fonksiyon küçük_eğitim_başlangıç() {
+    değişken x = rastgele_normal([32, 8], tohum: 3)
+    değişken hedef = x @ rastgele_normal([8, 1], tohum: 4)
+    değişken w1 = rastgele_normal([8, 16], tohum: 5) * 0.3
+    değişken w2 = rastgele_normal([16, 1], tohum: 6) * 0.3
+    sonuç ortalama((gelu(x @ w1) @ w2 - hedef) ** 2).değer
+}
+
+test "15.13 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
+    değişken x = tensör([[1.001]])
+    değişken y = tensör([[1.0]])
+    eşit_mi([[1.001]], (x @ y).değer)
+    değişken blok_değeri = karışık_hassasiyet("bf16") {
+        // Girdiler bf16'ya çevrilir, çarpım float32 biriktirmeyle float32 sonuç verir.
+        değişken r = x @ y
+        eşit_mi("float32", r.tür)
+        eşit_mi([[1.0]], r.değer)
+        karışık_hassasiyet("fp16") { eşit_mi([[1.0009766]], (x @ y).değer) }
+        karışık_hassasiyet("float32") { eşit_mi([[1.001]], (x @ y).değer) }
+        // İç blok bitince dıştaki tür geri gelir.
+        eşit_mi([[1.0]], (x @ y).değer)
+        r * 2
+    }
+    eşit_mi([[2.0]], blok_değeri.değer)
+    eşit_mi([[1.001]], (x @ y).değer)
+    // Bloktan hatayla çıkılınca da önceki tür geri gelir.
+    dene {
+        karışık_hassasiyet("bf16") { fırlat "dur" }
+    } yakala h {
+        doğrula(h.içerir("dur"))
+    }
+    eşit_mi([[1.001]], (x @ y).değer)
+    // Normalizasyon, softmax, kayıp ve indirgemeler 16 bitlik girdiyi float32'de hesaplar.
+    karışık_hassasiyet("bf16") {
+        değişken b = tensör([[1.0, 2.0, 3.0]], tür: "bf16")
+        eşit_mi(["float32", "float32", "float32", "float32"], [softmax(b).tür, katman_normu(b).tür, toplam(b).tür, çapraz_entropi(b, [2]).tür])
+    }
+    // Küçük bir eğitim bf16 blokta float32'ye yakın kayıp verir.
+    değişken k0 = küçük_eğitim_başlangıç()
+    değişken k32 = küçük_eğitim(yanlış)
+    değişken kbf = küçük_eğitim(doğru)
+    doğrula(kbf < 0.2 * k0, "karışık hassasiyetle kayıp yeterince düşmedi: {k0} → {kbf}")
+    doğrula(mutlak(kbf - k32) <= 0.1 * k32 + 0.01, "float32 kaybı {k32}, bf16 kaybı {kbf}")
+}
+
+test "15.13a karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere sızmaz" {
+    değişken x = tensör([[1.001]])
+    değişken y = tensör([[1.0]])
+    değişken görev = []
+    eşzamanlı {
+        karışık_hassasiyet("bf16") {
+            görev.ekle((x @ y).değer[0][0])
+            bekle(0.3)   // kilit (GIL) bırakılır; ana görev bu sırada çalışır
+            görev.ekle((x @ y).değer[0][0])
+        }
+    }
+    // Görev bloğa girip beklemeye başlayana kadar bekle.
+    değişken tur = 0
+    döngü uzunluk(görev) == 0 ve tur < 500 {
+        bekle(0.01)
+        tur += 1
+    }
+    eşit_mi(1, uzunluk(görev))
+    // Görev bf16 bloğundayken ana görev float32 ile ve kendi fp16 bloğuyla hesaplar.
+    eşit_mi(1.001, (x @ y).değer[0][0])
+    eşit_mi(1.0009766, karışık_hassasiyet("fp16") { (x @ y).değer[0][0] })
+    bekle_hepsi()
+    // Görev, beklemeden sonra da kendi (bf16) türünü görür.
+    eşit_mi([1.0, 1.0], görev)
+}
+
+test "15.7a iyileştirici ana_kopya: 16 bitlik parametrelerde küçük adımlar kaybolmaz" {
+    fonksiyon eğit(ana) {
+        değişken p = tensör([1.0], tür: "bf16", türev_izle: doğru)
+        değişken opt = SGD([p], öğrenme_oranı: 0.001, ana_kopya: ana)
+        döngü i içinde 0..20 {
+            opt.sıfırla()
+            geri_yayılım(toplam(p))
+            opt.adım()
+        }
+        sonuç p.değer[0]
+    }
+    // 0.001'lik adım 1.0 yakınındaki bf16 aralığından (0.0039) küçüktür: ana kopya olmadan
+    // her adım yuvarlamada kaybolur; ana kopyayla 20 adım 0.98'e yakın bir değere ulaşır.
+    eşit_mi(1.0, eğit(yanlış))
+    değişken ana_ile = eğit(doğru)
+    doğrula(mutlak(ana_ile - 0.98) < 0.004, "ana kopyayla değer: {ana_ile}")
+    // Varsayılan açıktır.
+    değişken q = tensör([1.0], tür: "bf16", türev_izle: doğru)
+    değişken o = AdamW([q], öğrenme_oranı: 0.001)
+    döngü i içinde 0..20 {
+        o.sıfırla()
+        geri_yayılım(toplam(q))
+        o.adım()
+    }
+    doğrula(q.değer[0] < 0.99, "varsayılan ana kopyayla değer: {q.değer[0]}")
+    doğrula(hata_metni(() => SGD([q], ana_kopya: 1)).içerir("ana_kopya doğru ya da yanlış olmalıdır"))
 }

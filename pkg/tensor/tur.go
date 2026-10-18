@@ -82,3 +82,25 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	t.be.Copy(out.storage, 0, t.view())
 	return track(out, "cast", []*Tensor{t}, func() { gradDevret(t, out) })
 }
+
+// Bits16 v'yi 16 bitlik dt türüne (BFloat16 ya da Float16) en yakına-çifte
+// yuvarlayarak bit deseni olarak verir. Dosyaya 16 bitlik veri yazmak içindir:
+// o türden bir tensörün Data() değerleri kayıpsız geri çevrilir.
+func Bits16(dt DType, v float32) uint16 {
+	if dt != BFloat16 && dt != Float16 {
+		panic(fmt.Sprintf("tensor: Bits16 yalnızca bfloat16/float16 içindir, %s verildi", dt))
+	}
+	return daraltBir(v, dt)
+}
+
+// FromBits16 16 bitlik dt türündeki (BFloat16 ya da Float16) bit desenini
+// float32'ye kayıpsız açar.
+func FromBits16(dt DType, h uint16) float32 {
+	switch dt {
+	case BFloat16:
+		return bf16ToF32(h)
+	case Float16:
+		return f16ToF32(h)
+	}
+	panic(fmt.Sprintf("tensor: FromBits16 yalnızca bfloat16/float16 içindir, %s verildi", dt))
+}

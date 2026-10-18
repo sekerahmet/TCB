@@ -26,6 +26,13 @@ type IslecKancasi interface {
 	Islec(op string, diger Value, sagda bool) (sonuc Value, ok bool, err error)
 }
 
+// GorevliIslecKancasi IslecKancasi'nın işlemi yapan görevi (VM görünümünü) de alan
+// biçimidir. Sonucu göreve özel duruma bağlı olan işleçler (ör. karışık_hassasiyet bloğu
+// içinde tensör '@') bunu uygular; uygulayan değerde Islec yerine bu çağrılır.
+type GorevliIslecKancasi interface {
+	GorevliIslec(v *VM, op string, diger Value, sagda bool) (sonuc Value, ok bool, err error)
+}
+
 // Olumsuzlanabilir tekli eksiyi ('-x') sağlar.
 type Olumsuzlanabilir interface {
 	Olumsuz() (Value, error)
@@ -89,13 +96,21 @@ func satirEki(line int, err error) error {
 }
 
 // kancaIslec ikili işlemi (varsa) değerlerin işleç kancalarıyla yapar.
-func kancaIslec(op string, left, right Value, line int) (Value, bool, error) {
-	if k, ok := left.(IslecKancasi); ok {
+func (v *VM) kancaIslec(op string, left, right Value, line int) (Value, bool, error) {
+	if k, ok := left.(GorevliIslecKancasi); ok {
+		if val, ok, err := k.GorevliIslec(v, op, right, false); ok {
+			return val, true, satirEki(line, err)
+		}
+	} else if k, ok := left.(IslecKancasi); ok {
 		if val, ok, err := k.Islec(op, right, false); ok {
 			return val, true, satirEki(line, err)
 		}
 	}
-	if k, ok := right.(IslecKancasi); ok {
+	if k, ok := right.(GorevliIslecKancasi); ok {
+		if val, ok, err := k.GorevliIslec(v, op, left, true); ok {
+			return val, true, satirEki(line, err)
+		}
+	} else if k, ok := right.(IslecKancasi); ok {
 		if val, ok, err := k.Islec(op, left, true); ok {
 			return val, true, satirEki(line, err)
 		}

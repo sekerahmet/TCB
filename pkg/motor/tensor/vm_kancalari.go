@@ -12,13 +12,14 @@ import (
 // döngüyle gezinme ve dış biçimlere (JSON) dönüşüm.
 
 var (
-	_ vm.Esitlik          = (*Deger)(nil)
-	_ vm.IslecKancasi     = (*Deger)(nil)
-	_ vm.Olumsuzlanabilir = (*Deger)(nil)
-	_ vm.Indekslenebilir  = (*Deger)(nil)
-	_ vm.IndeksAtanabilir = (*Deger)(nil)
-	_ vm.Yinelenebilir    = (*Deger)(nil)
-	_ vm.DuzDegerli       = (*Deger)(nil)
+	_ vm.Esitlik             = (*Deger)(nil)
+	_ vm.IslecKancasi        = (*Deger)(nil)
+	_ vm.GorevliIslecKancasi = (*Deger)(nil)
+	_ vm.Olumsuzlanabilir    = (*Deger)(nil)
+	_ vm.Indekslenebilir     = (*Deger)(nil)
+	_ vm.IndeksAtanabilir    = (*Deger)(nil)
+	_ vm.Yinelenebilir       = (*Deger)(nil)
+	_ vm.DuzDegerli          = (*Deger)(nil)
 )
 
 // DuzDeger tensörü JSON gibi dış biçimlere yazmak için .değer'le aynı iç içe Ondalık
@@ -68,6 +69,27 @@ func (d *Deger) Olumsuz() (vm.Value, error) {
 
 // desteklenenIslecler hata mesajlarında gösterilir.
 const desteklenenIslecler = "+ - * / @ ** < > <= >= == !="
+
+// GorevliIslec işleci yapan görevle birlikte çağrılır: '@' görevin karışık hassasiyet
+// türüne göre (bkz. karışık_hassasiyet) hesaplanır; diğer işleçler Islec'e gider.
+func (d *Deger) GorevliIslec(m *vm.VM, op string, diger vm.Value, sagda bool) (vm.Value, bool, error) {
+	if op != "@" {
+		return d.Islec(op, diger, sagda)
+	}
+	o, err := tensoreCevir("matris çarpımı (@)", diger)
+	if err != nil {
+		return nil, true, err
+	}
+	a, b := d.t, o
+	if sagda {
+		a, b = o, d.t
+	}
+	r, err := matCarpTur(a, b, karisikTuru(m))
+	if err != nil {
+		return nil, true, err
+	}
+	return Yeni(r), true, nil
+}
 
 // Islec tensörün ikili işleçlerini uygular: '+', '-', '*', '/' (eleman bazlı, yayınlamalı;
 // diğer işlenen sayı, liste ya da tensör) ve '@' (matris çarpımı) her iki yönde; '**' sol
@@ -127,7 +149,7 @@ func (d *Deger) Islec(op string, diger vm.Value, sagda bool) (vm.Value, bool, er
 		if sagda {
 			a, b = o, d.t
 		}
-		r, err := matCarp(a, b)
+		r, err := matCarpTur(a, b, ct.Float32)
 		if err != nil {
 			return nil, true, err
 		}

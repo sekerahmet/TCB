@@ -2,3 +2,4 @@
 * text=auto eol=lf
 *.exe binary
 *.npy binary
+*.trt binary

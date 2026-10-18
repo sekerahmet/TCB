@@ -147,6 +147,18 @@ func gradyanKirp(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 	return &vm.FloatVal{Val: kisaFloat64(float32(norm))}, nil
 }
 
+// anaKopyaArg ana_kopya: doğru adlı argümanını okur (varsayılan doğru). Açıkken 16 bitlik
+// (bf16/fp16) parametrelerin float32 ana kopyası tutulur: güncelleme ana kopyada yapılıp
+// parametreye yuvarlanarak yazılır, böylece küçük adımlar 16 bitte kaybolmaz. float32
+// parametreleri etkilemez.
+func anaKopyaArg(fn string, named map[string]vm.Value) (bool, error) {
+	v, ok := baglama.AdliAl(named, adAnaKopya)
+	if !ok {
+		return true, nil
+	}
+	return baglama.Mantik(fn, adAnaKopya.TR, v)
+}
+
 func iyilestiriciParametreleri(fn string, args []vm.Value) ([]*ct.Tensor, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(parametreler, öğrenme_oranı: ...) 1 konumlu parametre bekler, %d verildi", fn, len(args))
@@ -156,7 +168,7 @@ func iyilestiriciParametreleri(fn string, args []vm.Value) ([]*ct.Tensor, error)
 
 func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	const fn = "AdamW"
-	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon); err != nil {
+	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon, adAnaKopya); err != nil {
 		return nil, err
 	}
 	params, err := iyilestiriciParametreleri(fn, args)
@@ -186,17 +198,22 @@ func adamWKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 	if err != nil {
 		return nil, err
 	}
+	anaKopya, err := anaKopyaArg(fn, named)
+	if err != nil {
+		return nil, err
+	}
 	a, err := guvenli(func() *ct.AdamW { return ct.NewAdamW(params, lr, wd) })
 	if err != nil {
 		return nil, err
 	}
 	a.Beta1, a.Beta2, a.Eps = b1, b2, eps
+	a.SetMasterWeights(anaKopya)
 	return &Iyilestirici{ad: fn, opt: a, adamw: a, params: params}, nil
 }
 
 func sgdKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	const fn = "SGD"
-	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi); err != nil {
+	if err := baglama.AdliDenetle(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi, adAnaKopya); err != nil {
 		return nil, err
 	}
 	params, err := iyilestiriciParametreleri(fn, args)
@@ -215,10 +232,15 @@ func sgdKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, err
 	if err != nil {
 		return nil, err
 	}
+	anaKopya, err := anaKopyaArg(fn, named)
+	if err != nil {
+		return nil, err
+	}
 	s, err := guvenli(func() *ct.SGD { return ct.NewSGD(params, lr, mom) })
 	if err != nil {
 		return nil, err
 	}
 	s.WeightDecay = wd
+	s.SetMasterWeights(anaKopya)
 	return &Iyilestirici{ad: fn, opt: s, sgd: s, params: params}, nil
 }

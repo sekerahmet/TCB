@@ -17,35 +17,64 @@ import (
 	"tr_dili/pkg/vm"
 )
 
-// TR tensör dosyası biçimi (sürüm 1). Tüm tam sayılar küçük sonlu (little-endian):
+// TR tensör dosyası biçimi (sürüm 2). Tüm tam sayılar küçük sonlu (little-endian):
 //
 //	sihirli    8 bayt   "TRTENSOR"
-//	sürüm      uint16   1
+//	sürüm      uint16   2
 //	girdi      uint32   girdi sayısı
 //	her girdi:
 //	  ad_uzun  uint32   adın bayt uzunluğu (en fazla 65535)
 //	  ad       UTF-8
-//	  tür      uint8    veri türü kodu: 1 = float32 (ileride başka türler eklenecek)
+//	  tür      uint8    veri türü kodu: 1 = float32, 2 = bf16, 3 = fp16
 //	  boyut    uint8    eksen sayısı (en fazla 32)
 //	  şekil    uint64 × boyut
-//	  veri     eleman sayısı × tür boyu bayt (satır öncelikli)
+//	  veri     eleman sayısı × tür boyu bayt (satır öncelikli; float32 4 bayt,
+//	           bf16/fp16 2 baytlık bit deseni)
 //	sağlama    uint32   önceki tüm baytların CRC-32 (IEEE) değeri
 //
-// Yüklemede başlık, sürüm, tür, boyutlar, dosya uzunluğu ve sağlama toplamı
+// Sürüm 1 aynı düzendedir ama yalnızca tür kodu 1'i (float32) içerir; okunmaya devam
+// eder. Yüklemede başlık, sürüm, tür, boyutlar, dosya uzunluğu ve sağlama toplamı
 // denetlenir; bozuk ya da eksik dosya açık bir hatayla reddedilir.
 
 const (
 	dosyaSihirli = "TRTENSOR"
-	dosyaSurumu  = 1
+	dosyaSurumu  = 2
 	turFloat32   = 1
+	turBF16      = 2
+	turFP16      = 3
 	enFazlaAdUz  = 65535
 	enFazlaBoyut = 32
 )
 
+// turKodu çekirdek türünün dosyadaki kodu.
+func turKodu(dt ct.DType) byte {
+	switch dt {
+	case ct.BFloat16:
+		return turBF16
+	case ct.Float16:
+		return turFP16
+	}
+	return turFloat32
+}
+
+// koddanTur dosyadaki tür kodunu çekirdek türüne çevirir; sürüm 1 yalnızca float32 içerir.
+func koddanTur(kod byte, surum uint16) (ct.DType, bool) {
+	switch {
+	case kod == turFloat32:
+		return ct.Float32, true
+	case kod == turBF16 && surum >= 2:
+		return ct.BFloat16, true
+	case kod == turFP16 && surum >= 2:
+		return ct.Float16, true
+	}
+	return 0, false
+}
+
 type kayitGirdisi struct {
 	ad    string
 	sekil []int
-	veri  []float32
+	tur   ct.DType
+	veri  []float32 // 16 bitlik türlerde de tensörün (kayıpsız açılmış) değerleri
 }
 
 func yolArg(fn string, v vm.Value) (string, error) {
@@ -93,7 +122,7 @@ func tensorKaydet(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Valu
 		if len(sh) > enFazlaBoyut {
 			return nil, fmt.Errorf("%s: %q en fazla %d eksenli olabilir, %s verildi", fn, k, enFazlaBoyut, sekilMetni(sh))
 		}
-		girdiler = append(girdiler, kayitGirdisi{ad: k, sekil: sh, veri: d.t.Data()})
+		girdiler = append(girdiler, kayitGirdisi{ad: k, sekil: sh, tur: d.t.DType(), veri: d.t.Data()})
 	}
 	// Göreli yol TR'nin tek yol kuralıyla çözülür (bkz. vm.(*VM).YolCoz).
 	cozulen := baglama.YolCoz(m, yol)
@@ -135,14 +164,20 @@ func dosyayaYaz(yol string, girdiler []kayitGirdisi) (err error) {
 	for _, g := range girdiler {
 		u32(uint32(len(g.ad)))
 		yaz([]byte(g.ad))
-		yaz([]byte{turFloat32, byte(len(g.sekil))})
+		yaz([]byte{turKodu(g.tur), byte(len(g.sekil))})
 		for _, d := range g.sekil {
 			u64(uint64(d))
 		}
+		on6 := g.tur == ct.BFloat16 || g.tur == ct.Float16
 		for i := 0; i < len(g.veri); {
 			tampon = tampon[:0]
 			for ; i < len(g.veri) && len(tampon) < cap(tampon); i++ {
-				tampon = binary.LittleEndian.AppendUint32(tampon, math.Float32bits(g.veri[i]))
+				if on6 {
+					// Değer 16 bitlik türden açıldığı için geri çevirme kayıpsızdır.
+					tampon = binary.LittleEndian.AppendUint16(tampon, ct.Bits16(g.tur, g.veri[i]))
+				} else {
+					tampon = binary.LittleEndian.AppendUint32(tampon, math.Float32bits(g.veri[i]))
+				}
 			}
 			yaz(tampon)
 		}
@@ -183,7 +218,12 @@ func tensorYukle(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 	}
 	sonuc := vm.NewDictVal()
 	for _, g := range girdiler {
-		t := ct.New(g.veri, g.sekil...)
+		var t *ct.Tensor
+		if g.tur == ct.Float32 {
+			t = ct.New(g.veri, g.sekil...)
+		} else {
+			t = ct.NewOf(g.tur, g.veri, g.sekil...)
+		}
 		t.SetRequiresGrad(izle)
 		sonuc.Set(g.ad, Yeni(t))
 	}
@@ -276,10 +316,15 @@ func dosyadanOku(yol string) ([]kayitGirdisi, error, error) {
 		if okumaHatasi != nil {
 			return nil, eksik(sira + " türü"), nil
 		}
-		tur, boyut := tb[0], int(tb[1])
-		if tur != turFloat32 {
-			return nil, fmt.Errorf("%s: desteklenmeyen veri türü kodu %d (bu TR sürümü yalnızca float32 = %d okuyabilir)", sira, tur, turFloat32), nil
+		kod, boyut := tb[0], int(tb[1])
+		tur, bilinen := koddanTur(kod, surum)
+		if !bilinen {
+			if surum == 1 {
+				return nil, fmt.Errorf("%s: desteklenmeyen veri türü kodu %d (sürüm 1 dosyası yalnızca float32 = %d içerebilir)", sira, kod, turFloat32), nil
+			}
+			return nil, fmt.Errorf("%s: desteklenmeyen veri türü kodu %d (bu TR sürümü float32 = %d, bf16 = %d, fp16 = %d okuyabilir)", sira, kod, turFloat32, turBF16, turFP16), nil
 		}
+		boy := int64(tur.Bits() / 8) // eleman başına bayt
 		if boyut > enFazlaBoyut {
 			return nil, fmt.Errorf("dosya bozuk: %s %d eksenli bildiriliyor (en fazla %d)", sira, boyut, enFazlaBoyut), nil
 		}
@@ -296,24 +341,29 @@ func dosyadanOku(yol string) ([]kayitGirdisi, error, error) {
 			sekil[i] = int(d)
 			n *= int64(d)
 		}
-		if n*4 > kalan-4 {
-			return nil, fmt.Errorf("dosya bozuk ya da eksik: %s %s şeklinde %d bayt veri bekliyor, dosyada %d bayt kaldı", sira, sekilMetni(sekil), n*4, max(kalan-4, 0)), nil
+		if n*boy > kalan-4 {
+			return nil, fmt.Errorf("dosya bozuk ya da eksik: %s %s şeklinde %d bayt veri bekliyor, dosyada %d bayt kaldı", sira, sekilMetni(sekil), n*boy, max(kalan-4, 0)), nil
 		}
 		veri := make([]float32, n)
 		tampon := make([]byte, 1<<16)
+		eb := int(boy)
 		for i := 0; i < len(veri); {
-			parca := min(len(tampon)/4, len(veri)-i)
-			if _, err := io.ReadFull(r, tampon[:parca*4]); err != nil {
+			parca := min(len(tampon)/eb, len(veri)-i)
+			if _, err := io.ReadFull(r, tampon[:parca*eb]); err != nil {
 				okumaHatasi = err
 				return nil, eksik(sira + " verisi"), nil
 			}
 			for k := 0; k < parca; k++ {
-				veri[i+k] = math.Float32frombits(binary.LittleEndian.Uint32(tampon[k*4:]))
+				if eb == 2 {
+					veri[i+k] = ct.FromBits16(tur, binary.LittleEndian.Uint16(tampon[k*2:]))
+				} else {
+					veri[i+k] = math.Float32frombits(binary.LittleEndian.Uint32(tampon[k*4:]))
+				}
 			}
 			i += parca
-			kalan -= int64(parca * 4)
+			kalan -= int64(parca * eb)
 		}
-		girdiler = append(girdiler, kayitGirdisi{ad: ad, sekil: sekil, veri: veri})
+		girdiler = append(girdiler, kayitGirdisi{ad: ad, sekil: sekil, tur: tur, veri: veri})
 	}
 	beklenen := crc.Sum32()
 	if _, err := io.ReadFull(br, b[:4]); err != nil {

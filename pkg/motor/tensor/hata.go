@@ -30,6 +30,8 @@ var (
 	adMomentum        = baglama.TRAd("momentum")
 	adAgirlik         = baglama.TRAd("ağırlık")
 	adSapma           = baglama.TRAd("sapma")
+	adTur             = baglama.TRAd("tür")
+	adAnaKopya        = baglama.TRAd("ana_kopya")
 )
 
 // guvenli fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.

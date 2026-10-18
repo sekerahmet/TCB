@@ -81,6 +81,11 @@ func (d *Deger) Inspect() string {
 	t := d.t
 	sh := t.Shape()
 	var ek []string
+	// Tür yalnızca float32 dışındaki türlerde gösterilir: "Tensör[2×3] bf16".
+	turEki := ""
+	if t.DType() != ct.Float32 {
+		turEki = " " + turAdi(t.DType())
+	}
 	if t.Device() != ct.CPU {
 		ek = append(ek, t.Device().String())
 	}
@@ -96,9 +101,9 @@ func (d *Deger) Inspect() string {
 		if len(ek) > 0 {
 			s += ", " + strings.Join(ek, ", ")
 		}
-		return "Tensör(" + s + ")"
+		return "Tensör(" + s + ")" + turEki
 	}
-	baslik := "Tensör[" + sekilCarpimi(sh) + "]"
+	baslik := "Tensör[" + sekilCarpimi(sh) + "]" + turEki
 	if len(ek) > 0 {
 		baslik += " (" + strings.Join(ek, ", ") + ")"
 	}
@@ -476,8 +481,11 @@ func (d *Deger) ikili(op string, other vm.Value) (vm.Value, error) {
 	return Yeni(r), nil
 }
 
-// matCarp '@' işlecidir: matris çarpımı. 1 boyutlu işlenenler vektör sayılır.
-func matCarp(a, b *ct.Tensor) (*ct.Tensor, error) {
+// matCarpTur '@' işlecidir: matris çarpımı. 1 boyutlu işlenenler vektör sayılır.
+// karisik Float32 değilse (karışık_hassasiyet bloğu) girdiler o türe çevrilir (türevlenebilir
+// kopya; ağırlıklar değişmez) ve çarpım float32 biriktirmeyle float32 sonuç verir. Aksi
+// halde sonuç girdilerin türündedir (türler farklıysa float32).
+func matCarpTur(a, b *ct.Tensor, karisik ct.DType) (*ct.Tensor, error) {
 	as, bs := a.Shape(), b.Shape()
 	if len(as) == 0 || len(bs) == 0 {
 		return nil, fmt.Errorf("%s ile %s matris çarpımı yapılamaz; skaler için '*' kullanın", sekilMetni(as), sekilMetni(bs))
@@ -514,7 +522,12 @@ func matCarp(a, b *ct.Tensor) (*ct.Tensor, error) {
 		if len(bs) == 1 {
 			y = y.Unsqueeze(1)
 		}
-		r := ct.MatMul(x, y)
+		var r *ct.Tensor
+		if karisik != ct.Float32 {
+			r = ct.MatMulOut(x.Cast(karisik), y.Cast(karisik), ct.Float32)
+		} else {
+			r = ct.MatMul(x, y)
+		}
 		if len(bs) == 1 {
 			r = r.Squeeze(-1)
 		}
@@ -529,7 +542,7 @@ func matCarp(a, b *ct.Tensor) (*ct.Tensor, error) {
 // Özellikler ve metotlar
 // ----------------------------------------------------------------------------
 
-var tensorUyeleri = []string{"şekil", "cihaz", "gradyan", "değer", "şekillendir", "devrik", "eksenleri_sırala", "dilim", "cihaza"}
+var tensorUyeleri = []string{"şekil", "cihaz", "tür", "gradyan", "değer", "şekillendir", "devrik", "eksenleri_sırala", "dilim", "cihaza", "türe"}
 
 // eskiMatrisUyeleri kaldırılan matris türünün (matris artık 2 boyutlu tensördür) tensörde
 // karşılığı olan üyeleridir; hata mesajında karşılıkları önerilir.
@@ -545,6 +558,10 @@ func (d *Deger) GetProperty(prop string) (vm.Value, error) {
 		return intListesi(t.Shape()), nil
 	case "cihaz":
 		return &vm.StringVal{Val: t.Device().String()}, nil
+	case "tür", "tur":
+		return &vm.StringVal{Val: turAdi(t.DType())}, nil
+	case "türe", "ture":
+		return d.metot("türe", d.ture), nil
 	case "gradyan", "türev", "turev":
 		if d.ara {
 			return nil, fmt.Errorf("bu tensör (%s) bir işlemin sonucu; gradyan yalnızca türev_izle: doğru ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici (AdamW, SGD) kullanın ya da yeni değeri türevsiz { } içinde hesaplayıp tensör(..., türev_izle: doğru) ile yeniden oluşturun", sekilMetni(t.Shape()))
@@ -841,13 +858,18 @@ func (d *Deger) cihaza(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Val
 // IzlemeTuru İzleme Masası'nda ikon seçimi için değerin türüdür.
 func (d *Deger) IzlemeTuru() string { return "tensor" }
 
-// IzlemeEtiketi tip sütununda gösterilen özettir (ör. "Tensör [2×3]").
+// IzlemeEtiketi tip sütununda gösterilen özettir (ör. "Tensör [2×3]"; float32 dışındaki
+// türlerde tür de eklenir: "Tensör [2×3] bf16").
 func (d *Deger) IzlemeEtiketi() string {
 	sh := d.t.Shape()
-	if len(sh) == 0 {
-		return "Tensör (skaler)"
+	turEki := ""
+	if dt := d.t.DType(); dt != ct.Float32 {
+		turEki = " " + turAdi(dt)
 	}
-	return "Tensör [" + sekilCarpimi(sh) + "]"
+	if len(sh) == 0 {
+		return "Tensör (skaler)" + turEki
+	}
+	return "Tensör [" + sekilCarpimi(sh) + "]" + turEki
 }
 
 // TabloVerisi 1-2 boyutlu tensörü tabloya (sütunlar + satırlar) çevirir.

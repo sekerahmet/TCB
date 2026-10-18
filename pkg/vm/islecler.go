@@ -128,7 +128,7 @@ func (v *VM) evalInfixKod(kod uint8, op string, left Value, right Value, line in
 	switch kod {
 	case opEsit, opEsitDegil:
 	default:
-		if val, ok, err := kancaIslec(op, left, right, line); ok {
+		if val, ok, err := v.kancaIslec(op, left, right, line); ok {
 			return val, err
 		}
 	}

@@ -92,6 +92,29 @@ type VM struct {
 
 	holdsGIL  bool // bu görünüm şu an yorumlayıcı kilidini tutuyor mu (yalnızca kendi goroutine'i okur/yazar)
 	asyncTask bool // 'eşzamanlı' bloğu içinde mi çalışıyor
+
+	// gorevDegerleri motorların göreve özel durumudur (ör. tensör motorunun
+	// karışık_hassasiyet bloğu); bkz. GorevDegeri. Çağrı yığını gibi yalnızca görevin
+	// kendi goroutine'i okur ve yazar; yeni görevler (NewTaskVM) boş başlar.
+	gorevDegerleri map[any]any
+}
+
+// GorevDegeri bu göreve (VM görünümüne) anahtarla bağlanmış motor durumunu verir; yoksa
+// nil. Değer başka görevlere (eşzamanlı bloklar, web/GUI istekleri) görünmez; görev GIL'i
+// bıraktığında (Blocking) başka bir görev kendi değerini okur. Anahtar, motorun dışa
+// açılmamış bir tipinden olmalıdır (çakışma olmasın).
+func (v *VM) GorevDegeri(anahtar any) any { return v.gorevDegerleri[anahtar] }
+
+// GorevDegeriAyarla bu göreve bağlı motor durumunu ayarlar; deger nil ise siler.
+func (v *VM) GorevDegeriAyarla(anahtar, deger any) {
+	if deger == nil {
+		delete(v.gorevDegerleri, anahtar)
+		return
+	}
+	if v.gorevDegerleri == nil {
+		v.gorevDegerleri = map[any]any{}
+	}
+	v.gorevDegerleri[anahtar] = deger
 }
 
 func New() *VM {

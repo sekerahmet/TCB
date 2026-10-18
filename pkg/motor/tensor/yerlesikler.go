@@ -88,6 +88,9 @@ func Kaydet(v *vm.VM) {
 	sar(v, []string{"geri_yayılım", "geri_yayilim"}, yeniYerlesik("geri_yayılım", geriYayilim))
 	sar(v, []string{"türevsiz", "turevsiz"}, yeniYerlesik("türevsiz", turevsiz))
 
+	// --- Veri türleri (veri_turu.go) ---
+	sar(v, []string{"karışık_hassasiyet", "karisik_hassasiyet"}, yeniYerlesik("karışık_hassasiyet", karisikHassasiyet))
+
 	// --- İyileştiriciler ---
 	sar(v, []string{"AdamW"}, yeniYerlesik("AdamW", adamWKur))
 	sar(v, []string{"SGD"}, yeniYerlesik("SGD", sgdKur))
@@ -181,8 +184,9 @@ func turevIzle(named map[string]vm.Value, konumlu vm.Value, varsayilan bool) boo
 	return varsayilan
 }
 
-// tensorYerlesik tensör(veri, türev_izle: yanlış) yerleşiğidir. Veri tek sayı (0 boyutlu
-// tensör), iç içe sayı listesi ya da tensör olabilir.
+// tensorYerlesik tensör(veri, türev_izle: yanlış, tür: "float32") yerleşiğidir. Veri tek
+// sayı (0 boyutlu tensör), iç içe sayı listesi ya da tensör olabilir. tür verilmezse
+// listeden float32, tensörden kaynağın türünde tensör oluşur.
 func tensorYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	if len(args) < 1 {
 		return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en az 1 parametre bekler")
@@ -190,7 +194,7 @@ func tensorYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Va
 	if len(args) > 2 {
 		return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en fazla 2 parametre alır, %d verildi", len(args))
 	}
-	if err := baglama.AdliDenetle("tensör()", named, adTurevIzle); err != nil {
+	if err := baglama.AdliDenetle("tensör()", named, adTurevIzle, adTur); err != nil {
 		return nil, err
 	}
 	var konumlu vm.Value
@@ -200,12 +204,30 @@ func tensorYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Va
 	izle := turevIzle(named, konumlu, false)
 	var t *ct.Tensor
 	if d, ok := args[0].(*Deger); ok {
+		dt, err := adliTur("tensör", named, d.t.DType())
+		if err != nil {
+			return nil, err
+		}
 		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak.
-		t = ct.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...)
+		t, err = guvenli(func() *ct.Tensor {
+			if dt == ct.Float32 {
+				return ct.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...)
+			}
+			return ct.NewOf(dt, d.t.Data(), d.t.Shape()...).To(d.t.Device())
+		})
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		var err error
+		dt, err := adliTur("tensör", named, ct.Float32)
+		if err != nil {
+			return nil, err
+		}
 		t, err = tensoreCevir("tensör", args[0])
 		if err != nil {
+			return nil, err
+		}
+		if t, err = tureCevir(t, dt); err != nil {
 			return nil, err
 		}
 	}
@@ -222,7 +244,7 @@ func sekilliOlusturucu(ad string, matrisBicimi bool, olustur func(sh []int, name
 		if len(args) == 0 {
 			return nil, fmt.Errorf("%s([2, 3]) şekli liste olarak bekler", ad)
 		}
-		izinli := []baglama.Ad{adTurevIzle}
+		izinli := []baglama.Ad{adTurevIzle, adTur}
 		if ad == "rastgele_normal" {
 			izinli = append(izinli, adTohum)
 		}
@@ -254,8 +276,16 @@ func sekilliOlusturucu(ad string, matrisBicimi bool, olustur func(sh []int, name
 		if err != nil {
 			return nil, err
 		}
+		dt, err := adliTur(ad, named, ct.Float32)
+		if err != nil {
+			return nil, err
+		}
 		t, err := olustur(sh, named)
 		if err != nil {
+			return nil, err
+		}
+		// Yeni tensör türev izlemediği için dönüşüm çizgeye kaydedilmez; sonuç yapraktır.
+		if t, err = tureCevir(t, dt); err != nil {
 			return nil, err
 		}
 		t.SetRequiresGrad(turevIzle(named, nil, false))
@@ -435,6 +465,9 @@ func softmaxKaydet(v *vm.VM, adlar []string, logKip bool) {
 			if err != nil {
 				return nil, err
 			}
+			if t, err = yuksekHassasiyet(m, t); err != nil {
+				return nil, err
+			}
 			e, verildi, err := eksenArg(ad, args, named)
 			if err != nil {
 				return nil, err
@@ -484,6 +517,13 @@ func indirgeme(v *vm.VM, adlar []string, ad string, fn func(t *ct.Tensor, eksen 
 				return nil, err
 			}
 			t := args[0].(*Deger).t
+			if !maksMin {
+				// Karışık hassasiyet bloğunda toplam/ortalama float32'de yapılır.
+				var err error
+				if t, err = yuksekHassasiyet(m, t); err != nil {
+					return nil, err
+				}
+			}
 			e, verildi, err := eksenArg(ad, args, named)
 			if err != nil {
 				return nil, err
@@ -710,7 +750,7 @@ func gomme(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, erro
 	return Yeni(r), nil
 }
 
-func caprazEntropi(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+func caprazEntropi(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("çapraz_entropi(çıktı, hedef) 2 parametre bekler, %d verildi", len(args))
 	}
@@ -719,6 +759,9 @@ func caprazEntropi(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Val
 	}
 	cikti, err := tensoreCevir("çapraz_entropi", args[0])
 	if err != nil {
+		return nil, err
+	}
+	if cikti, err = yuksekHassasiyet(m, cikti); err != nil {
 		return nil, err
 	}
 	sh := cikti.Shape()
@@ -814,9 +857,12 @@ func normArgs(fn string, args []vm.Value, named map[string]vm.Value, adlar []bag
 	return x, degerler, eps, nil
 }
 
-func katmanNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+func katmanNormu(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	x, p, eps, err := normArgs("katman_normu", args, named, []baglama.Ad{adAgirlik, adSapma})
 	if err != nil {
+		return nil, err
+	}
+	if x, err = yuksekHassasiyet(m, x); err != nil {
 		return nil, err
 	}
 	sh := x.Shape()
@@ -829,6 +875,12 @@ func katmanNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 	if err != nil {
 		return nil, err
 	}
+	if w, err = yuksekHassasiyet(m, w); err != nil {
+		return nil, err
+	}
+	if b, err = yuksekHassasiyet(m, b); err != nil {
+		return nil, err
+	}
 	r, err := guvenli(func() *ct.Tensor { return ct.LayerNorm(x, w, b, eps) })
 	if err != nil {
 		return nil, err
@@ -836,7 +888,7 @@ func katmanNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 	return Yeni(r), nil
 }
 
-func rmsNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+func rmsNormu(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 	x, p, eps, err := normArgs("rms_normu", args, named, []baglama.Ad{adAgirlik})
 	if err != nil {
 		return nil, err
@@ -844,6 +896,12 @@ func rmsNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 	sh := x.Shape()
 	w, err := normParam("rms_normu", "ağırlık", p[0], sh[len(sh)-1])
 	if err != nil {
+		return nil, err
+	}
+	if x, err = yuksekHassasiyet(m, x); err != nil {
+		return nil, err
+	}
+	if w, err = yuksekHassasiyet(m, w); err != nil {
 		return nil, err
 	}
 	r, err := guvenli(func() *ct.Tensor { return ct.RMSNorm(x, w, eps) })
