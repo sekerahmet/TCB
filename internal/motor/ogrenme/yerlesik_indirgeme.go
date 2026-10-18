@@ -1,0 +1,241 @@
+package ogrenme
+
+import (
+	"fmt"
+	"tr_dili/internal/dil/kod"
+	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/hesap/tensor"
+	"tr_dili/internal/motor/ortak/baglama"
+)
+
+// ----------------------------------------------------------------------------
+// İndirgemeler (toplam, ortalama, maks, min) ve en büyüğün indeksi
+// ----------------------------------------------------------------------------
+
+// indirgeme toplam/ortalama/maks/min'i kaydeder. Eksen verilmezse tüm elemanlar
+// indirgenir ve 0 boyutlu (skaler) tensör döner; eksen verilirse o eksen kaldırılır.
+// boyutu_koru: doğru indirgenen ekseni (eksen verilmezse bütün eksenleri) 1 uzunlukta
+// korur: [B, T, D] → [B, T, 1].
+func indirgeme(v *yurut.VM, kd kod.Kod, fn func(t *tensor.Tensor, eksen int, tum, koru bool) *tensor.Tensor) {
+	ad := kod.Ad(kd)
+	maksMin := kd == kod.G402 || kd == kod.G401 // maks, min
+	sar(v, kd, func(eski yurut.BuiltinFunc) yurut.BuiltinFunc {
+		return func(m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
+			if len(args) == 0 {
+				if err := baglama.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
+					return nil, err
+				}
+				return eskiCagir(ad, eski, m, args, named)
+			}
+			if _, ok := args[0].(*Deger); !ok {
+				return tensorOlmayanIndirgeme(kd, eski, m, args, named)
+			}
+			if maksMin && len(args) >= 2 {
+				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
+				return nil, fmt.Errorf("%s(x, %s): eksen için %s(x, eksen: %s) yazın; eleman bazlı sınır için %s kullanın",
+					ad, args[1].Inspect(), ad, args[1].Inspect(), map[bool]string{true: "relu(x - c) + c (en az c)", false: "relu(x * -1 + c) * -1 + c (en çok c)"}[kd == kod.G402])
+			}
+			if len(args) > 2 {
+				return nil, fmt.Errorf("%s(x, eksen: ...) en fazla 2 parametre alır, %d verildi", ad, len(args))
+			}
+			if err := baglama.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
+				return nil, err
+			}
+			koru, err := adliMantik(ad, named, adBoyutuKoru, false)
+			if err != nil {
+				return nil, err
+			}
+			t := args[0].(*Deger).t
+			if !maksMin {
+				// Karışık hassasiyet bloğunda toplam/ortalama float32'de yapılır.
+				if t, err = yuksekHassasiyet(m, t); err != nil {
+					return nil, err
+				}
+			}
+			e, verildi, err := eksenArg(ad, args, named)
+			if err != nil {
+				return nil, err
+			}
+			sh := t.Shape()
+			if verildi {
+				if e, err = eksenCoz(ad, e, sh); err != nil {
+					return nil, err
+				}
+				if maksMin && sh[e] == 0 {
+					return nil, fmt.Errorf("%s: %s şeklinde %d. eksen boş", ad, sekilMetni(sh), e)
+				}
+			} else if maksMin && t.Numel() == 0 {
+				return nil, fmt.Errorf("%s: boş tensörün (%s) en büyük/küçük elemanı yoktur", ad, sekilMetni(sh))
+			}
+			if kd == kod.G410 { // ortalama: boş kümenin ortalaması tanımsızdır
+				if !verildi && t.Numel() == 0 {
+					return nil, fmt.Errorf("%s: boş tensörün ortalaması tanımsız (şekil %s)", ad, sekilMetni(sh))
+				}
+				if verildi && sh[e] == 0 {
+					cikis := 1
+					for i, d := range sh {
+						if i != e {
+							cikis *= d
+						}
+					}
+					if cikis > 0 {
+						return nil, fmt.Errorf("%s: %s şeklinde %d. eksen boş; boş kümenin ortalaması tanımsız", ad, sekilMetni(sh), e)
+					}
+				}
+			}
+			r, err := guvenli(func() *tensor.Tensor {
+				r := fn(t, e, !verildi, koru)
+				if koru && !verildi {
+					birler := make([]int, len(sh))
+					for i := range birler {
+						birler[i] = 1
+					}
+					r = r.Reshape(birler...)
+				}
+				return r
+			})
+			if err != nil {
+				return nil, err
+			}
+			return Yeni(r), nil
+		}
+	})
+}
+
+// maksIndeks verilen eksende en büyük elemanın indeksini verir: maks_indeks(x, eksen: -1).
+// Sonuç her zaman tam sayı değerli bir tensördür (o eksen kaldırılmış şekilde; 1 boyutlu
+// girdide 0 boyutlu) ve türev izlemez. Tensör tam sayılı olarak işaretlenir: .değer Tam
+// (ya da Tam listesi) verir, böylece liste indeksi olarak doğrudan kullanılabilir; sonuç
+// gömme(...) ve çapraz_entropi(...) indeksi olarak da verilebilir.
+// Eşitlikte ilk en büyük eleman seçilir.
+func maksIndeks(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
+	const ad = "maks_indeks"
+	if len(args) != 1 {
+		if len(args) == 2 {
+			return nil, fmt.Errorf("%s(x, eksen: %s): eksen adlı verilir", ad, args[1].Inspect())
+		}
+		return nil, fmt.Errorf("%s(x, eksen: -1) 1 konumlu parametre bekler, %d verildi", ad, len(args))
+	}
+	if err := baglama.AdliDenetle(ad+"()", named, adEksen); err != nil {
+		return nil, err
+	}
+	d, ok := args[0].(*Deger)
+	if !ok {
+		return nil, fmt.Errorf("%s: bir tensör bekler, %s verildi; liste için %s(tensör(liste)) yazın", ad, tipAdi(args[0]), ad)
+	}
+	t := d.t
+	e, verildi, err := eksenArg(ad, args, named)
+	if err != nil {
+		return nil, err
+	}
+	if !verildi {
+		e = -1
+	}
+	sh := t.Shape()
+	if e, err = eksenCoz(ad, e, sh); err != nil {
+		return nil, err
+	}
+	if sh[e] == 0 {
+		return nil, fmt.Errorf("%s: %s şeklinde %d. eksen boş", ad, sekilMetni(sh), e)
+	}
+	r, err := guvenli(func() *tensor.Tensor {
+		idx := t.ArgMax(e)
+		veri := make([]float32, len(idx))
+		for i, x := range idx {
+			veri[i] = float32(x)
+		}
+		cikti := append(append([]int{}, sh[:e]...), sh[e+1:]...)
+		return tensor.NewOn(t.Device(), veri, cikti...)
+	})
+	if err != nil {
+		return nil, err
+	}
+	sonuc := Yeni(r)
+	sonuc.tamSayili = true
+	return sonuc, nil
+}
+
+// tensorOlmayanIndirgeme ilk argümanı tensör olmayan indirgeme çağrılarını işler. Eski
+// yerleşikler iç içe listeleri ve listedeki tensörleri sessizce atladığı için (toplam([[1, 2]])
+// → 0) bu durumlar burada yakalanır: toplam/ortalama listedeki tensörleri hesap çizgesini
+// koruyarak katlar, diğer durumlar açık hata verir.
+func tensorOlmayanIndirgeme(kd kod.Kod, eski yurut.BuiltinFunc, m *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
+	ad := kod.Ad(kd)
+	if err := baglama.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
+		return nil, err
+	}
+	if _, ok := baglama.AdliAl(named, adBoyutuKoru); ok {
+		return nil, fmt.Errorf("%s: boyutu_koru: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0, boyutu_koru: doğru)", ad, tipAdi(args[0]), ad)
+	}
+	if _, ok := baglama.AdliAl(named, adEksen); ok {
+		return nil, fmt.Errorf("%s: eksen: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0)", ad, tipAdi(args[0]), ad)
+	}
+	if l, ok := args[0].(*yurut.ListVal); ok && len(args) == 1 {
+		var tensorVar bool
+		for _, el := range l.Elements {
+			switch el.(type) {
+			case *yurut.ListVal:
+				return nil, fmt.Errorf("%s: iç içe liste indirgenemez (eski liste davranışı yalnızca düz sayı listesi alır); tensöre çevirin: %s(tensör(liste)) ya da eksen için %s(tensör(liste), eksen: 0)", ad, ad, ad)
+			case *Deger:
+				tensorVar = true
+			}
+		}
+		if tensorVar {
+			if kd != kod.G400 && kd != kod.G410 { // toplam, ortalama
+				return nil, fmt.Errorf("%s: tensör listesinin en %s elemanı tanımsız; tek bir tensör verin: %s(x) ya da %s(x, eksen: 0)", ad, map[bool]string{true: "büyük", false: "küçük"}[kd == kod.G402], ad, ad)
+			}
+			return tensorListesiTopla(ad, kd == kod.G410, l.Elements)
+		}
+	}
+	for _, a := range args[1:] {
+		if _, ok := a.(*Deger); ok {
+			return nil, fmt.Errorf("%s(x, eksen: ...) ilk parametre olarak tensör bekler, %s verildi", ad, tipAdi(args[0]))
+		}
+	}
+	return eskiCagir(ad, eski, m, args, named)
+}
+
+// tensorListesiTopla sayı ve tensörlerden oluşan bir listeyi yayınlamalı toplamla katlar;
+// ortalama için eleman sayısına böler. Sonuç türev izlenen girdilere bağlı kalır.
+func tensorListesiTopla(ad string, ortalama bool, el []yurut.Value) (yurut.Value, error) {
+	var acc *tensor.Tensor
+	sabit := 0.0
+	for i, e := range el {
+		switch x := e.(type) {
+		case *Deger:
+			if acc == nil {
+				acc = x.t
+				continue
+			}
+			if err := yayinDenetle("+", acc, x.t); err != nil {
+				return nil, fmt.Errorf("%s: %d. eleman eklenemiyor: %v", ad, i+1, err)
+			}
+			a := acc
+			r, err := guvenli(func() *tensor.Tensor { return tensor.Add(a, x.t) })
+			if err != nil {
+				return nil, err
+			}
+			acc = r
+		default:
+			f, ok := yurut.ToFloat(e)
+			if !ok {
+				return nil, fmt.Errorf("%s: listenin %d. elemanı sayı ya da tensör olmalıdır, %s verildi", ad, i+1, tipAdi(e))
+			}
+			sabit += f
+		}
+	}
+	r, err := guvenli(func() *tensor.Tensor {
+		out := acc
+		if sabit != 0 {
+			out = out.AddScalar(float32(sabit))
+		}
+		if ortalama {
+			out = tensor.Div(out, tensor.Scalar(float32(len(el))).To(out.Device()))
+		}
+		return out
+	})
+	if err != nil {
+		return nil, err
+	}
+	return Yeni(r), nil
+}
