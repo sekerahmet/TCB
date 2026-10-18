@@ -206,7 +206,16 @@ func (cpuBackend) f32Softmax(out Storage, x View, axis int, logKip bool) {
 				}
 			}
 			if math.IsInf(float64(m), -1) {
-				m = 0 // tüm satır -sonsuz: NaN üretmemek için kaydırma yok
+				// Tüm satır -sonsuz (tamamen maskeli): softmax 0, log_softmax -sonsuz
+				// (birleşik dikkatteki boş satırla tutarlı; gradyanı da 0'dır).
+				bos := float32(0)
+				if logKip {
+					bos = float32(math.Inf(-1))
+				}
+				for d := 0; d < dim; d++ {
+					y[base+d*inner] = bos
+				}
+				continue
 			}
 			var s float64
 			for d := 0; d < dim; d++ {
@@ -242,7 +251,15 @@ func softmaxSatir(y, x []float32, logKip bool) {
 		}
 	}
 	if math.IsInf(float64(m), -1) {
-		m = 0 // tüm satır -sonsuz: NaN üretmemek için kaydırma yok
+		// Tüm satır -sonsuz (tamamen maskeli): softmax 0, log_softmax -sonsuz.
+		bos := float32(0)
+		if logKip {
+			bos = float32(math.Inf(-1))
+		}
+		for i := range y {
+			y[i] = bos
+		}
+		return
 	}
 	for i, v := range x {
 		y[i] = v - m
@@ -273,7 +290,18 @@ func (cpuBackend) f32SoftmaxGrad(gx, g, y Storage, shape []int, axis int, logKip
 			base := o*dim*inner + i
 			var s float64
 			if logKip {
-				// dx = g - softmax · Σg
+				// dx = g - softmax · Σg. Tamamen maskeli satırda (bütün çıktılar -sonsuz)
+				// gradyan 0'dır (softmax'ta y = 0 olduğundan kendiliğinden öyledir).
+				bos := true
+				for d := 0; d < dim; d++ {
+					if !math.IsInf(float64(yd[base+d*inner]), -1) {
+						bos = false
+						break
+					}
+				}
+				if bos {
+					continue
+				}
 				for d := 0; d < dim; d++ {
 					s += float64(gd[base+d*inner])
 				}
