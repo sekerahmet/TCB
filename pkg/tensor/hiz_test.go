@@ -16,6 +16,14 @@ const (
 
 func hizRand(shape ...int) *Tensor { return Randn(rand.New(rand.NewSource(3)), shape...) }
 
+func hizDilim(rng *rand.Rand, n int) []float32 {
+	d := make([]float32, n)
+	for i := range d {
+		d[i] = float32(rng.NormFloat64())
+	}
+	return d
+}
+
 func BenchmarkHizSumSonEksen(b *testing.B) {
 	x := hizRand(hizR, hizD)
 	b.ResetTimer()
@@ -214,5 +222,33 @@ func BenchmarkHizEgitimAdimi(b *testing.B) {
 		h := Add(MatMul(LayerNorm(x, g, nil, 1e-5), W1), b1).Gelu()
 		CrossEntropy(MatMul(h, W2), hedef).Backward()
 		opt.Step()
+	}
+}
+
+// Karakter düzeyi küçük dil modelindeki çarpım boyutları (B=16, T=64, D=64, H=4).
+func BenchmarkHizModelMatMul(b *testing.B) {
+	rng := rand.New(rand.NewSource(33))
+	for _, d := range []struct {
+		ad             string
+		batch, M, N, K int
+		transA, transB bool
+	}{
+		{"1024x64x64", 1, 1024, 64, 64, false, false},
+		{"1024x64x256", 1, 1024, 256, 64, false, false},
+		{"1024x256x64", 1, 1024, 64, 256, false, false},
+		{"dA_1024x256_Bt", 1, 1024, 64, 256, false, true},
+		{"dB_At_64x256x1024", 1, 64, 256, 1024, true, false},
+		{"dikkat_QKt_64x64x16", 64, 64, 64, 16, false, true},
+		{"dikkat_AV_64x16x64", 64, 64, 16, 64, false, false},
+	} {
+		a := hizDilim(rng, d.batch*d.M*d.K)
+		bb := hizDilim(rng, d.batch*d.K*d.N)
+		c := make([]float32, d.batch*d.M*d.N)
+		b.Run(d.ad, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				gemm(d.batch, d.M, d.N, d.K, a, d.transA, bb, d.transB, c)
+			}
+			b.ReportMetric(2*float64(d.batch*d.M*d.N*d.K)*float64(b.N)/b.Elapsed().Seconds()/1e9, "GFLOPS")
+		})
 	}
 }

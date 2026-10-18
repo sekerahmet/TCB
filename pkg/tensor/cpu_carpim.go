@@ -18,15 +18,17 @@ import (
 //     sütun karosu). İşçi, A'nın o satırlarını
 //     kc derinliğinde mr yükseklikli panellere paketler (L2'de kalır).
 //   - En içte mr×nr'lik mikro çekirdek C bloğunu yazmaçlarda biriktirir;
-//     her k adımında mr+nr yükleme ile mr·nr çarpma-toplama yapar.
+//     her k adımında mr+nr yükleme ile mr·nr çarpma-toplama yapar. Çekirdek
+//     ve boyutu derlemeye göre seçilir: GOAMD64=v3'te AVX2/FMA ile 6×16
+//     (cpu_mikro_avx2.go), diğer derlemelerde taşınabilir Go ile 4×2
+//     (cpu_mikro_genel.go).
 //   - İş parçaları GOMAXPROCS kadar işçiye atomik bir sayaçla dağıtılır.
 const (
-	mr     = 4   // mikro çekirdek satır sayısı
-	nr     = 2   // mikro çekirdek sütun sayısı
-	kcBlok = 256 // K ekseni blok derinliği
-	satirB = 64  // bir iş parçasındaki en fazla satır sayısı
-	// enAzPanel sütun yönünde bölünürken bir iş parçasına düşen en az B paneli.
-	enAzPanel = 16
+	kcBlok = 256     // K ekseni blok derinliği
+	satirB = 16 * mr // bir iş parçasındaki en fazla satır sayısı (mr katı)
+	// enAzPanel sütun yönünde bölünürken bir iş parçasına düşen en az B paneli
+	// (en az 32 sütun).
+	enAzPanel = (32 + nr - 1) / nr
 	// tekCekirdekEsik bu kadar çarpma-toplamadan küçük işler tek çekirdekte yapılır.
 	tekCekirdekEsik = 1 << 18
 	// isciBasinaEnAz bir işçiye düşen en az çarpma-toplama; işçi sayısı buna
@@ -61,21 +63,28 @@ func paketAl(h *sync.Pool, n int) *[]float32 {
 func packBPanel(b []float32, bks, bjs, K, N, jp int, dst []float32) {
 	j0 := jp * nr
 	nn := N - j0
-	if nn >= nr && bjs == 1 {
+	switch {
+	case nn >= nr && bjs == 1:
 		for k := 0; k < K; k++ {
 			o := k*bks + j0
-			src := b[o : o+nr : o+nr]
-			d := dst[k*nr : k*nr+nr : k*nr+nr]
-			d[0], d[1] = src[0], src[1]
+			copy(dst[k*nr:k*nr+nr], b[o:o+nr])
 		}
-		return
-	}
-	for k := 0; k < K; k++ {
+	case nn >= nr && bks == 1:
+		// Devrik B: her sütun bellekte bitişik.
 		for c := 0; c < nr; c++ {
-			if c < nn {
-				dst[k*nr+c] = b[k*bks+(j0+c)*bjs]
-			} else {
-				dst[k*nr+c] = 0
+			o := (j0 + c) * bjs
+			for k, v := range b[o : o+K] {
+				dst[k*nr+c] = v
+			}
+		}
+	default:
+		for k := 0; k < K; k++ {
+			for c := 0; c < nr; c++ {
+				if c < nn {
+					dst[k*nr+c] = b[k*bks+(j0+c)*bjs]
+				} else {
+					dst[k*nr+c] = 0
+				}
 			}
 		}
 	}
@@ -83,7 +92,8 @@ func packBPanel(b []float32, bks, bjs, K, N, jp int, dst []float32) {
 
 // packA op(A)'nın [i0, i0+m) satırlarını ve [p0, p0+kb) sütunlarını mr
 // yükseklikli panellere yazar: panel ip içinde (k, r) elemanı
-// ap[ip*kb*mr + k*mr + r]'dedir. op(A)(i, k) = a[i*ais + k*aks].
+// ap[ip*kb*mr + k*mr + r]'dedir. op(A)(i, k) = a[i*ais + k*aks]. m'yi aşan
+// satırlar sıfırla doldurulur.
 func packA(a []float32, ais, aks, i0, m, p0, kb int, ap []float32) {
 	for ip := 0; ip*mr < m; ip++ {
 		pan := ap[ip*kb*mr : (ip+1)*kb*mr]
@@ -91,22 +101,17 @@ func packA(a []float32, ais, aks, i0, m, p0, kb int, ap []float32) {
 		ib := i0 + ip*mr
 		switch {
 		case rows >= mr && aks == 1:
-			r0 := a[ib*ais+p0:]
-			r1 := a[(ib+1)*ais+p0:]
-			r2 := a[(ib+2)*ais+p0:]
-			r3 := a[(ib+3)*ais+p0:]
-			r0, r1, r2, r3 = r0[:kb], r1[:kb], r2[:kb], r3[:kb]
-			for k := 0; k < kb; k++ {
-				d := pan[k*mr : k*mr+mr : k*mr+mr]
-				d[0], d[1], d[2], d[3] = r0[k], r1[k], r2[k], r3[k]
+			for r := 0; r < mr; r++ {
+				o := (ib+r)*ais + p0
+				for k, v := range a[o : o+kb] {
+					pan[k*mr+r] = v
+				}
 			}
 		case rows >= mr && ais == 1:
 			// Devrik A: ardışık satırlar bellekte yan yana.
 			for k := 0; k < kb; k++ {
 				o := (p0+k)*aks + ib
-				s := a[o : o+mr : o+mr]
-				d := pan[k*mr : k*mr+mr : k*mr+mr]
-				d[0], d[1], d[2], d[3] = s[0], s[1], s[2], s[3]
+				copy(pan[k*mr:k*mr+mr], a[o:o+mr])
 			}
 		default:
 			for k := 0; k < kb; k++ {
@@ -118,54 +123,6 @@ func packA(a []float32, ais, aks, i0, m, p0, kb int, ap []float32) {
 					}
 				}
 			}
-		}
-	}
-}
-
-// microKernel C[0:mm, 0:nn] += Ap·Bp (Ap: kb×mr, Bp: kb×nr paketli).
-// 4×2 boyutu, 8 biriktirici ve yükleme yazmaçlarının yazmaç dosyasına
-// taşmadan sığması için seçilmiştir (daha büyük bloklar yığına taşma
-// nedeniyle ölçümlerde daha yavaştı).
-func microKernel(kb int, ap, bp []float32, c []float32, ldc, mm, nn int) {
-	var c00, c01, c10, c11, c20, c21, c30, c31 float32
-	ap = ap[:kb*mr]
-	bp = bp[:kb*nr]
-	for len(ap) >= 4 && len(bp) >= 2 {
-		b0, b1 := bp[0], bp[1]
-		a0 := ap[0]
-		c00 += a0 * b0
-		c01 += a0 * b1
-		a1 := ap[1]
-		c10 += a1 * b0
-		c11 += a1 * b1
-		a2 := ap[2]
-		c20 += a2 * b0
-		c21 += a2 * b1
-		a3 := ap[3]
-		c30 += a3 * b0
-		c31 += a3 * b1
-		ap = ap[4:]
-		bp = bp[2:]
-	}
-	if mm == mr && nn == nr {
-		r := c[0:2:2]
-		r[0] += c00
-		r[1] += c01
-		r = c[ldc : ldc+2 : ldc+2]
-		r[0] += c10
-		r[1] += c11
-		r = c[2*ldc : 2*ldc+2 : 2*ldc+2]
-		r[0] += c20
-		r[1] += c21
-		r = c[3*ldc : 3*ldc+2 : 3*ldc+2]
-		r[0] += c30
-		r[1] += c31
-		return
-	}
-	t := [mr][nr]float32{{c00, c01}, {c10, c11}, {c20, c21}, {c30, c31}}
-	for i := 0; i < mm; i++ {
-		for j := 0; j < nn; j++ {
-			c[i*ldc+j] += t[i][j]
 		}
 	}
 }
