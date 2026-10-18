@@ -87,7 +87,7 @@ func parametreler(fn string, v vm.Value) ([]*ct.Tensor, error) {
 		if !t.RequiresGrad() {
 			return nil, fmt.Errorf("%s: %d. parametre (%s) türev izlemiyor; tensör(..., türev_izle: doğru) ile oluşturun", fn, i+1, sekilMetni(t.Shape()))
 		}
-		if !t.IsLeaf() {
+		if d.ara || !t.IsLeaf() {
 			return nil, fmt.Errorf("%s: %d. parametre (%s) bir işlemin sonucu (yaprak değil); parametreleri doğrudan tensör(..., türev_izle: doğru) ile oluşturun", fn, i+1, sekilMetni(t.Shape()))
 		}
 		if gorulen[t] {

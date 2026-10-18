@@ -220,7 +220,7 @@ yazdır(w.gradyan.değer)
 geri_yayılım(toplam(w * w))
 op.adım()
 yazdır(w.değer)`)
-	want := "[6.0, 6.0]\n[0.0, 0.0]\n[0.800000011920929, 1.600000023841858]\n"
+	want := "[6.0, 6.0]\n[0.0, 0.0]\n[0.8, 1.6]\n"
 	if out != want {
 		t.Fatalf("birikim/SGD:\n%q\nbeklenen:\n%q", out, want)
 	}

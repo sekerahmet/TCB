@@ -36,6 +36,8 @@ test "15.2 özellikler ve görünüm metotları" {
     eşit_mi([[4.0, 5.0, 6.0]], a.dilim(0, -1, 2).değer)
     değişken üç = tensör([[[1, 2], [3, 4]]])
     eşit_mi([[[1.0, 3.0], [2.0, 4.0]]], üç.eksenleri_sırala([0, 2, 1]).değer)
+    doğrula(tensör([0.1]).değer[0] == 0.1)
+    doğrula(!tensör([0.0]) ve tensör([3.0]))
     eşit_mi("cpu", a.cihaz)
     eşit_mi("cpu", a.cihaza("cpu").cihaz)
     doğrula(hata_metni(() => a.cihaza("gpu")).içerir("gpu:0 cihazı kullanılamıyor"))
@@ -109,6 +111,9 @@ test "15.6 geri yayılım, gradyan ve türevsiz" {
     doğrula(hata_metni(() => geri_yayılım(toplam(a))).içerir("türev izlenen hiçbir tensöre bağlı değil"))
     doğrula(hata_metni(() => geri_yayılım(toplam(b))).içerir("türev izlenen hiçbir tensöre bağlı değil"))
     doğrula(hata_metni(() => geri_yayılım(v * 2)).içerir("tek elemanlı (skaler) bir kayıp ister, [2] şeklinde"))
+    // Ara (işlem sonucu) tensörün gradyanı tutulmaz; 'yok' yerine açıklayıcı hata verir.
+    değişken ara = v * 2
+    doğrula(hata_metni(() => ara.gradyan).içerir("bir işlemin sonucu"))
 }
 
 test "15.7 iyileştiriciler: küçük doğrusal regresyon" {

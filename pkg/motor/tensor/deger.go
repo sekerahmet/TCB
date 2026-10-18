@@ -13,6 +13,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -25,16 +26,33 @@ import (
 // Deger, TR'de bir tensörü taşıyan değerdir. Tip adı "Tensör"dür.
 type Deger struct {
 	t *ct.Tensor
+	// ara, tensörün türev izlenen bir işlemin sonucu (yaprak olmayan) olduğunu gösterir.
+	// Çekirdek, geri yayılımdan sonra ara düğümlerin çizge bağlarını bıraktığı için bu
+	// bilgi oluşturma anında saklanır; böylece ara tensörün .gradyan'ı sessizce 'yok'
+	// dönmez ve ara tensör iyileştirici parametresi olarak kabul edilmez.
+	ara bool
 }
 
 // Yeni çekirdek tensörünü TR değeri olarak sarar.
-func Yeni(t *ct.Tensor) *Deger { return &Deger{t: t} }
+func Yeni(t *ct.Tensor) *Deger { return &Deger{t: t, ara: t.RequiresGrad() && !t.IsLeaf()} }
 
 // Tensor sarılı çekirdek tensörünü verir.
 func (d *Deger) Tensor() *ct.Tensor { return d.t }
 
 func (d *Deger) Type() vm.ValueType { return vm.VAL_TENSOR }
-func (d *Deger) IsTruthy() bool     { return d.t.Numel() > 0 }
+
+// IsTruthy tek elemanlı tensörde elemanın 0'dan farklı olup olmadığıdır; boş tensör
+// yanlıştır. Çok elemanlı tensörün doğruluk değeri belirsizdir; yorumlayıcı bu arayüzden
+// hata alamadığı için şimdilik "boş değil" (doğru) sayılır.
+func (d *Deger) IsTruthy() bool {
+	switch d.t.Numel() {
+	case 0:
+		return false
+	case 1:
+		return d.t.Item() != 0
+	}
+	return true
+}
 
 // ----------------------------------------------------------------------------
 // Yazdırma
@@ -490,6 +508,9 @@ func (d *Deger) GetProperty(prop string) (vm.Value, error) {
 	case "cihaz":
 		return &vm.StringVal{Val: t.Device().String()}, nil
 	case "gradyan", "türev", "turev":
+		if d.ara {
+			return nil, fmt.Errorf("bu tensör (%s) bir işlemin sonucu; gradyan yalnızca türev_izle: doğru ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici (AdamW, SGD) kullanın ya da yeni değeri türevsiz { } içinde hesaplayıp tensör(..., türev_izle: doğru) ile yeniden oluşturun", sekilMetni(t.Shape()))
+		}
 		g := t.Grad()
 		if g == nil {
 			return vm.NULL, nil
@@ -532,28 +553,68 @@ func intListesi(sh []int) *vm.ListVal {
 	return &vm.ListVal{Elements: el}
 }
 
+// kisaFloat64 float32 değeri, onu yazan en kısa ondalık gösterime karşılık gelen
+// float64'e çevirir: 0.1 (float32) → 0.1, 0.10000000149011612 değil. Böylece
+// a.değer[0] == 0.1 doğru olur.
+func kisaFloat64(x float32) float64 {
+	f := float64(x)
+	if f == math.Trunc(f) || math.IsInf(f, 0) || math.IsNaN(f) {
+		return f
+	}
+	var tampon [32]byte
+	s := strconv.AppendFloat(tampon[:0], f, 'g', -1, 32)
+	if g, err := strconv.ParseFloat(string(s), 64); err == nil {
+		return g
+	}
+	return f
+}
+
 // degerListesi tensörün değerlerini Ondalık (0 boyutlu) ya da iç içe liste olarak verir.
+// Büyük tensörlerde her liste ve sayı için ayrı ayırma yapmamak için tüm listeler,
+// eleman dilimleri ve sayılar önceden ayrılmış üç dilimden dağıtılır. Eleman dilimleri
+// kapasiteyle sınırlıdır (a[i:j:j]); listeye eleman eklemek komşu listeyi bozmaz.
 func (d *Deger) degerListesi() vm.Value {
 	veri := d.t.Data()
 	sh := d.t.Shape()
 	if len(sh) == 0 {
-		return &vm.FloatVal{Val: float64(veri[0])}
+		return &vm.FloatVal{Val: kisaFloat64(veri[0])}
 	}
-	k := 0
-	var kur func(eksen int) vm.Value
-	kur = func(eksen int) vm.Value {
-		el := make([]vm.Value, sh[eksen])
-		for i := range el {
-			if eksen == len(sh)-1 {
-				el[i] = &vm.FloatVal{Val: float64(veri[k])}
-				k++
-			} else {
-				el[i] = kur(eksen + 1)
+	nd := len(sh)
+	listeSay, degerSay, p := 0, 0, 1
+	for k := 0; k < nd; k++ {
+		listeSay += p
+		p *= sh[k]
+		degerSay += p
+	}
+	listeler := make([]vm.ListVal, listeSay)
+	degerler := make([]vm.Value, degerSay)
+	sayilar := make([]vm.FloatVal, len(veri))
+	for i, x := range veri {
+		sayilar[i].Val = kisaFloat64(x)
+	}
+	li, di := 0, 0 // bu seviyenin ilk listesi ve ilk eleman yeri
+	p = 1          // bu seviyedeki liste sayısı
+	for k := 0; k < nd; k++ {
+		n := sh[k]
+		sonrakiListe := li + p
+		for j := 0; j < p; j++ {
+			bas := di + j*n
+			el := degerler[bas : bas+n : bas+n]
+			for i := range el {
+				m := j*n + i // bu seviyedeki elemanın sırası
+				if k == nd-1 {
+					el[i] = &sayilar[m]
+				} else {
+					el[i] = &listeler[sonrakiListe+m]
+				}
 			}
+			listeler[li+j].Elements = el
 		}
-		return &vm.ListVal{Elements: el}
+		li = sonrakiListe
+		di += p * n
+		p *= n
 	}
-	return kur(0)
+	return &listeler[0]
 }
 
 func (d *Deger) sekillendir(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
