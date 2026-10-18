@@ -33,4 +33,8 @@ func TestIzlemeDegeriArayuzu(t *testing.T) {
 	if err != nil || len(cols) != 2 || len(rows) != 2 || rows[1][1] != "4" {
 		t.Fatalf("tablo: %v %v %v", cols, rows, err)
 	}
+	// Komut satırı ayıklayıcısının değişken kutusu çok satırlı biçimi tek satırda gösterir.
+	if got := tekSatir(v.Inspect()); got != "Tensör[2×2] [[1, 2], [3, 4]]" {
+		t.Fatalf("tek satır: %q", got)
+	}
 }

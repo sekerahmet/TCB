@@ -438,13 +438,27 @@ func (d *Debugger) renderDebugScreen(v *vm.VM, currentLine int, env *vm.Environm
 		fmt.Println("  📦 DEĞİŞKENLER (Canlı değiştirmek için: 'değiştir ad = değer'):")
 		for _, kv := range vars {
 			valPreview := kv.Val.Inspect()
-			if len(valPreview) > 52 {
-				valPreview = valPreview[:52] + "..."
+			if _, motor := kv.Val.(IzlemeDegeri); motor && strings.Contains(valPreview, "\n") {
+				valPreview = tekSatir(valPreview)
+			}
+			if r := []rune(valPreview); len(r) > 52 {
+				valPreview = string(r[:52]) + "..."
 			}
 			fmt.Printf("     • %-16s : %-10s = %s\n", kv.Name, "("+string(kv.Val.Type())+")", valPreview)
 		}
 	}
 	fmt.Println("╚══════════════════════════════════════════════════════════════════════════════╝")
+}
+
+// tekSatir çok satırlı yazdırma biçimini (ör. tensör) değişken kutusunda tek satıra indirir:
+// "Tensör[2×3] [\n  [1, 2, 3],\n  ...\n]" → "Tensör[2×3] [[1, 2, 3], ...]".
+func tekSatir(metin string) string {
+	satirlar := strings.Split(metin, "\n")
+	for i, s := range satirlar {
+		satirlar[i] = strings.TrimSpace(s)
+	}
+	tek := strings.Join(satirlar, " ")
+	return strings.NewReplacer("[ ", "[", " ]", "]").Replace(tek)
 }
 
 func (d *Debugger) inspectTable(name string, env *vm.Environment) {

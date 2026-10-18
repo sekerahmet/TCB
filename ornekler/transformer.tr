@@ -92,7 +92,7 @@ döngü adım içinde 0..300 {
     geri_yayılım(kayıp)
     iyileştirici.adım()
     eğer adım % 50 == 0 {
-        yazdır("adım {adım}: kayıp = {kayıp}")
+        yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 4)}")
     }
 }
 yazdır("süre: {zaman_ms() - başlangıç} ms")

@@ -124,11 +124,11 @@ döngü adım içinde 0..ADIM {
     geri_yayılım(kayıp)
     iyileştirici.adım()
     eğer adım % 50 == 0 veya adım == ADIM - 1 {
-        yazdır("adım {adım}: kayıp = {kayıp}")
+        yazdır("adım {adım}: kayıp = {yuvarla(kayıp.değer, 4)}")
     }
 }
 değişken süre = zaman_ms() - başlangıç
-yazdır("eğitim süresi: {süre} ms ({süre / ADIM} ms/adım)")
+yazdır("eğitim süresi: {süre} ms ({yuvarla(süre / ADIM, 1)} ms/adım)")
 
 // --- Metin üretimi (her adımda en olası karakter) ---
 değişken bağlam = []

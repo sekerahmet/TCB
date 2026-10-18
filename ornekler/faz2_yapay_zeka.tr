@@ -8,7 +8,7 @@ değişken Girdi = matris([[1.0, 2.0], [3.0, 4.0]])
 değişken Ağırlık = matris([[0.5, -0.5], [1.0, 2.0]])
 değişken KatmanÇıktısı = relu(Girdi @ Ağırlık)
 yazdır("ReLU(Girdi @ Ağırlık):\n{KatmanÇıktısı}")
-yazdır("Softmax([2.0, 1.0, 0.1]): {softmax([2.0, 1.0, 0.1])}")
+yazdır("Softmax([2.0, 1.0, 0.1]): {[yuvarla(p, 4) döngü p içinde softmax([2.0, 1.0, 0.1])]}")
 
 yazdır("\n=== 2. DÜŞÜK SEVİYE: Otomatik Türev (Autograd / geri_yayılım) ===")
 // y = x^2 + 2x + 1 fonksiyonunun x = 3 noktasındaki türevi (dy/dx = 2x + 2 = 8)
@@ -17,7 +17,7 @@ değişken y = x * x + 2 * x + 1
 geri_yayılım(y)
 yazdır("İfade: y = x*x + 2*x + 1  (x = {x.değer})")
 yazdır("Hesaplanan y değeri : {y.değer}")
-yazdır("Otomatik türev dy/dx: {x.gradyan} (Beklenen: 8.0)")
+yazdır("Otomatik türev dy/dx: {x.gradyan.değer} (Beklenen: 8.0)")
 
 yazdır("\n=== 3. YÜKSEK SEVİYE: 3 Satırda Yapay Sinir Ağı Eğitimi (XOR Problemi) ===")
 değişken X_veri = [[0, 0], [0, 1], [1, 0], [1, 1]]
