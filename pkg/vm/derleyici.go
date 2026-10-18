@@ -870,7 +870,7 @@ func (c *derleyici) fonksiyon(k *derleyiciKapsam, params []ast.Param, body *ast.
 		basit:      true,
 	}
 	if metot {
-		fk.kendi = alt.bilgi.yuva("kendi")
+		fk.kendi = alt.bilgi.yuva(kendiAdi)
 	}
 	gorulen := map[int]bool{}
 	if fk.kendi >= 0 {

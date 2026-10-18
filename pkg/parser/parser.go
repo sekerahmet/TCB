@@ -3,10 +3,20 @@ package parser
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"tr_dili/pkg/ast"
 	"tr_dili/pkg/lexer"
+	"tr_dili/pkg/sozluk"
+)
+
+// Bağlamsal sözcüklerin (test, olarak) yazımları ve 'kendi'nin adı sözlükten gelir
+// (pkg/sozluk: A101, A100, A051).
+var (
+	testYazimlari   = sozluk.Yazimlar(sozluk.A + 101)
+	olarakYazimlari = sozluk.Yazimlar(sozluk.A + 100)
+	kendiAdi        = sozluk.Ad(sozluk.A + 51)
 )
 
 const (
@@ -292,7 +302,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case lexer.TOKEN_IDENT:
 		// test "ad" { ... } — 'test' yalnızca deyim başında ve ardından metin geldiğinde
 		// anahtar kelimedir; başka her yerde sıradan bir addır (değişken test = 5).
-		if p.curToken().Literal == "test" && p.peekTokenIs(lexer.TOKEN_STRING) {
+		if slices.Contains(testYazimlari, p.curToken().Literal) && p.peekTokenIs(lexer.TOKEN_STRING) {
 			return p.parseTestStatement()
 		}
 		// x := 5 kısa değişken tanımı kontrolü
@@ -742,7 +752,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	p.nextToken()
 	path := p.curToken().Literal
 	stmt := &ast.ImportStatement{Token: tok, Path: path}
-	if p.peekTokenIs(lexer.TOKEN_IDENT) && p.peekToken().Literal == "olarak" {
+	if p.peekTokenIs(lexer.TOKEN_IDENT) && slices.Contains(olarakYazimlari, p.peekToken().Literal) {
 		p.nextToken() // 'olarak'
 		if p.expectPeek(lexer.TOKEN_IDENT) {
 			stmt.Alias = p.curToken().Literal
@@ -783,7 +793,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 			leftExp = &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal}
 		}
 	case lexer.TOKEN_KENDI:
-		leftExp = &ast.Identifier{Token: p.curToken(), Value: "kendi"}
+		leftExp = &ast.Identifier{Token: p.curToken(), Value: kendiAdi}
 	case lexer.TOKEN_INT:
 		leftExp = p.parseIntegerLiteral()
 	case lexer.TOKEN_FLOAT:

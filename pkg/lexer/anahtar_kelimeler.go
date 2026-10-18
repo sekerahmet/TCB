@@ -1,114 +1,118 @@
 package lexer
 
-import "fmt"
+import (
+	"fmt"
 
-// Anahtar kelime sözlüğü yalnızca veridir: hangi yazımın hangi token türünü ürettiğini
-// söyleyen tablolardan oluşur. Lexer bu tablolardan kurulan tek bir haritaya bakar.
-//
-// İleride ikinci bir yazım takımı eklemek için yeni bir []AnahtarKelime tablosu tanımlayıp
-// yazimTakimlari listesine eklemek yeterlidir; lexer, ayrıştırıcı ve yorumlayıcı kodu
-// değişmez. Farklı takımlar aynı yazımı farklı token türlerine bağlayamaz (bkz.
-// anahtarKelimeHaritasi).
+	"tr_dili/pkg/sozluk"
+)
 
-// AnahtarKelime bir token türünü onu üreten tüm yazımlarla eşler. İlk yazım asıl
-// (Türkçe karakterli) yazımdır; varsa ikincisi Türkçe karaktersiz (ASCII) yazımıdır.
-// Eş anlamlı yazım yoktur (bkz. kaldirilanYazimlar).
+// Anahtar kelimelerin adları sözlüktedir (pkg/sozluk, tr.json'daki A0xx kodları). Bu
+// dosya yalnızca hangi kodun hangi token türünü ürettiğini söyler; adı değiştirmek için
+// sözlükteki satır değişir, lexer, ayrıştırıcı ve yorumlayıcı kodu değişmez. Kabul edilen
+// yazımlar (ad ve varsa Türkçe karaktersiz biçimi) sozluk.Yazimlar'dan gelir.
+
+// AnahtarKelime bir sözlük kodunu ürettiği token türüne bağlar.
 type AnahtarKelime struct {
-	Tur      TokenType
-	Yazimlar []string
+	Kod sozluk.Kod
+	Tur TokenType
 }
 
-// turkceAnahtarKelimeler çift modlu (hem Türkçe karakterli hem ASCII) Türkçe sözlüktür.
-var turkceAnahtarKelimeler = []AnahtarKelime{
-	// Değişken ve sabit
-	{TOKEN_DEGISKEN, []string{"değişken", "degisken"}},
-	{TOKEN_SABIT, []string{"sabit"}},
-
-	// Fonksiyon ve dönüş
-	{TOKEN_FONKSIYON, []string{"fonksiyon"}},
-	{TOKEN_SONUC, []string{"sonuç", "sonuc"}},
-
+// anahtarKelimeler sözcük çözümleyicide ayrılmış bütün anahtar kelimelerdir.
+var anahtarKelimeler = []AnahtarKelime{
 	// Koşul ve eşleştirme
-	{TOKEN_EGER, []string{"eğer", "eger"}},
-	{TOKEN_DEGILSE, []string{"değilse", "degilse"}},
-	{TOKEN_ESLE, []string{"eşle", "esle"}},
-	{TOKEN_VARSAYILAN, []string{"varsayılan", "varsayilan"}},
+	{sozluk.A + 1, TOKEN_EGER},
+	{sozluk.A + 2, TOKEN_DEGILSE},
+	{sozluk.A + 3, TOKEN_ESLE},
+	{sozluk.A + 4, TOKEN_VARSAYILAN},
 
 	// Döngüler ve akış kontrolü
-	{TOKEN_DONGU, []string{"döngü", "dongu"}},
-	{TOKEN_ICINDE, []string{"içinde", "icinde"}},
-	{TOKEN_IKEN, []string{"iken"}},
-	{TOKEN_CIK, []string{"çık", "cik"}},
-	{TOKEN_DEVAM, []string{"devam"}},
+	{sozluk.A + 10, TOKEN_DONGU},
+	{sozluk.A + 11, TOKEN_ICINDE},
+	{sozluk.A + 12, TOKEN_IKEN},
+	{sozluk.A + 13, TOKEN_CIK},
+	{sozluk.A + 14, TOKEN_DEVAM},
+
+	// Fonksiyon ve dönüş
+	{sozluk.A + 20, TOKEN_FONKSIYON},
+	{sozluk.A + 21, TOKEN_SONUC},
+
+	// Değişken ve sabit
+	{sozluk.A + 30, TOKEN_DEGISKEN},
+	{sozluk.A + 31, TOKEN_SABIT},
 
 	// Mantıksal ve boş değerler
-	{TOKEN_DOGRU, []string{"doğru", "dogru"}},
-	{TOKEN_YANLIS, []string{"yanlış", "yanlis"}},
-	{TOKEN_YOK, []string{"yok"}},
-	{TOKEN_VE, []string{"ve"}},
-	{TOKEN_VEYA, []string{"veya"}},
-	{TOKEN_DEGIL, []string{"değil", "degil"}},
+	{sozluk.A + 40, TOKEN_DOGRU},
+	{sozluk.A + 41, TOKEN_YANLIS},
+	{sozluk.A + 42, TOKEN_YOK},
+	{sozluk.A + 43, TOKEN_VE},
+	{sozluk.A + 44, TOKEN_VEYA},
+	{sozluk.A + 45, TOKEN_DEGIL},
 
-	// Yapı, Sınıf, Kendi
-	{TOKEN_YAPI, []string{"yapı", "yapi"}},
-	{TOKEN_KENDI, []string{"kendi"}},
+	// Yapı ve kendi
+	{sozluk.A + 50, TOKEN_YAPI},
+	{sozluk.A + 51, TOKEN_KENDI},
 
-	// Hata yönetimi, Modül, Eşzamanlılık, Ertele, Kesme Noktası
-	{TOKEN_DENE, []string{"dene"}},
-	{TOKEN_YAKALA, []string{"yakala"}},
-	{TOKEN_FIRLAT, []string{"fırlat", "firlat"}},
-	{TOKEN_AKTAR, []string{"aktar"}},
-	{TOKEN_ESZAMANLI, []string{"eşzamanlı", "eszamanli"}},
-	{TOKEN_ERTELE, []string{"ertele"}},
-	{TOKEN_KESME_NOKTASI, []string{"kesme_noktası", "kesme_noktasi"}},
+	// Hata yönetimi, modül, eşzamanlılık, ertele, kesme noktası
+	{sozluk.A + 60, TOKEN_DENE},
+	{sozluk.A + 61, TOKEN_YAKALA},
+	{sozluk.A + 62, TOKEN_FIRLAT},
+	{sozluk.A + 70, TOKEN_AKTAR},
+	{sozluk.A + 80, TOKEN_ESZAMANLI},
+	{sozluk.A + 81, TOKEN_ERTELE},
+	{sozluk.A + 90, TOKEN_KESME_NOKTASI},
 }
 
-// yazimTakimlari lexer'ın tanıdığı tüm yazım takımlarıdır.
-var yazimTakimlari = [][]AnahtarKelime{
-	turkceAnahtarKelimeler,
-}
+// keywords yazım → token türü, turKodlari token türü → sözlük kodu haritasıdır.
+var keywords, turKodlari = anahtarKelimeHaritasi(anahtarKelimeler)
 
-// keywords tüm yazım takımlarından kurulan yazım → token türü haritasıdır.
-var keywords = anahtarKelimeHaritasi(yazimTakimlari)
-
-// anahtarKelimeHaritasi takımları tek bir haritada birleştirir. Aynı yazım iki farklı
-// token türüne bağlanmışsa bu bir sözlük hatasıdır ve program başlarken durur.
-func anahtarKelimeHaritasi(takimlar [][]AnahtarKelime) map[string]TokenType {
+// anahtarKelimeHaritasi tabloyu sözlükteki yazımlarla haritaya çevirir. Aynı yazım iki
+// token türüne ya da aynı tür iki koda bağlanmışsa bu bir geliştirici hatasıdır ve
+// program başlarken durur.
+func anahtarKelimeHaritasi(tablo []AnahtarKelime) (map[string]TokenType, map[TokenType]sozluk.Kod) {
 	harita := make(map[string]TokenType)
-	for _, takim := range takimlar {
-		for _, ak := range takim {
-			for _, yazim := range ak.Yazimlar {
-				if onceki, ok := harita[yazim]; ok && onceki != ak.Tur {
-					panic(fmt.Sprintf("anahtar kelime sözlüğü: %q hem %s hem %s olamaz", yazim, onceki, ak.Tur))
-				}
-				harita[yazim] = ak.Tur
+	kodlar := make(map[TokenType]sozluk.Kod)
+	for _, ak := range tablo {
+		if !ak.Kod.AnahtarKelime() {
+			panic(fmt.Sprintf("anahtar kelime tablosu: %s bir anahtar kelime kodu (A0xx) değil", ak.Kod))
+		}
+		if onceki, ok := kodlar[ak.Tur]; ok {
+			panic(fmt.Sprintf("anahtar kelime tablosu: %s hem %s hem %s", ak.Tur, onceki, ak.Kod))
+		}
+		kodlar[ak.Tur] = ak.Kod
+		for _, yazim := range sozluk.Yazimlar(ak.Kod) {
+			if onceki, ok := harita[yazim]; ok && onceki != ak.Tur {
+				panic(fmt.Sprintf("anahtar kelime sözlüğü: %q hem %s hem %s olamaz", yazim, onceki, ak.Tur))
 			}
+			harita[yazim] = ak.Tur
 		}
 	}
-	return harita
+	return harita, kodlar
 }
 
-// kaldirilanYazimlar TR'den kaldırılmış eş anlamlı anahtar kelimelerdir: her işin tek
-// yazımı olsun diye asıl yazımlar fonksiyon, sonuç, çık, yapı, olarak ve kesme_noktası'dır.
-// Kaldırılan sözcükler artık sıradan adlardır (ör. değişken sınıf = "9-A"); yalnızca bir
-// hata oluştuğunda, eski alışkanlıkla yazılmış olabilecekleri için ipucu gösterilir.
-var kaldirilanYazimlar = map[string]string{
-	"işlev": "fonksiyon", "islev": "fonksiyon",
-	"döndür": "sonuç", "dondur": "sonuc",
-	"kır": "çık", "kir": "cik",
-	"sınıf": "yapı", "sinif": "yapi",
-	"dur_noktası": "kesme_noktası", "dur_noktasi": "kesme_noktasi",
-	"durdurma_noktası": "kesme_noktası", "durdurma_noktasi": "kesme_noktasi",
-	"as": "olarak",
-}
-
-// KaldirilanYazimIpucu ad kaldırılmış bir anahtar kelimeyse hata mesajına eklenecek
-// ipucunu, değilse boş metni döndürür.
-func KaldirilanYazimIpucu(ad string) string {
-	if yeni, ok := kaldirilanYazimlar[ad]; ok {
-		return fmt.Sprintf(" ('%s' TR'de anahtar kelime değil; '%s' yazmak mı istediniz?)", ad, yeni)
+// AnahtarKelimeAdi token türü bir anahtar kelimeyse onun sözlükteki adını (ör. "sonuç"),
+// değilse boş metni döndürür.
+func AnahtarKelimeAdi(t TokenType) string {
+	if k, ok := turKodlari[t]; ok {
+		return sozluk.Ad(k)
 	}
 	return ""
+}
+
+// KaldirilanYazimIpucu ad kaldırılmış bir anahtar kelimeyse (sözlükte bir A kodunun
+// "eski" adı) hata mesajına eklenecek ipucunu, değilse boş metni döndürür. Kaldırılan
+// sözcükler artık sıradan adlardır (ör. değişken sınıf = "9-A"); yalnızca bir hata
+// oluştuğunda, eski alışkanlıkla yazılmış olabilecekleri için ipucu gösterilir. Eski ad
+// Türkçe karaktersiz yazılmışsa (islev) yeni adın da Türkçe karaktersiz biçimi önerilir.
+func KaldirilanYazimIpucu(ad string) string {
+	k, ascii, ok := sozluk.EskiBul(sozluk.AlanGenel, ad, func(k sozluk.Kod) bool { return k.Harf() == 'A' })
+	if !ok {
+		return ""
+	}
+	yeni := sozluk.Ad(k)
+	if ascii {
+		yeni = sozluk.ASCIIBicim(k)
+	}
+	return fmt.Sprintf(" ('%s' TR'de anahtar kelime değil; '%s' yazmak mı istediniz?)", ad, yeni)
 }
 
 // LookupIdent verilen kelimenin anahtar kelime mi yoksa tanımlayıcı mı olduğunu bulur.

@@ -3,8 +3,6 @@ package parser
 import (
 	"fmt"
 	"strconv"
-	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"tr_dili/pkg/lexer"
@@ -58,15 +56,10 @@ func tokenAciklamasi(tok lexer.Token) string {
 	return fmt.Sprintf("'%s'", tok.Literal)
 }
 
-// anahtarKelimeYazimi anahtar kelime türünün asıl (Türkçe karakterli) yazımını bulur;
-// tür bir anahtar kelime değilse "" döner. Tür adları yazımın büyük harflisidir
-// (SONUÇ → sonuç, KESME_NOKTASI → kesme_noktası); sonuç sözcük çözümleyiciyle doğrulanır.
+// anahtarKelimeYazimi anahtar kelime türünün sözlükteki adını bulur; tür bir anahtar
+// kelime değilse "" döner.
 func anahtarKelimeYazimi(t lexer.TokenType) string {
-	yazim := strings.ToLowerSpecial(unicode.TurkishCase, string(t))
-	if yazim == "" || lexer.LookupIdent(yazim) != t {
-		return ""
-	}
-	return yazim
+	return lexer.AnahtarKelimeAdi(t)
 }
 
 // kisaMetin hata mesajında gösterilecek metin sabitini kısaltır.

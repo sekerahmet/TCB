@@ -69,34 +69,35 @@ const (
 	TOKEN_LBRACKET  = "["
 	TOKEN_RBRACKET  = "]"
 
-	// Anahtar Kelimeler (Birlikte Seçilen TR Sözlüğü). Yazımları anahtar_kelimeler.go'daki
-	// tablolardadır; aşağıdaki yorumlar yalnızca hatırlatmadır.
-	TOKEN_DEGISKEN      = "DEĞİŞKEN"      // değişken / degisken
-	TOKEN_SABIT         = "SABİT"         // sabit
-	TOKEN_FONKSIYON     = "FONKSİYON"     // fonksiyon / işlev / islev
-	TOKEN_SONUC         = "SONUÇ"         // sonuç / sonuc / döndür / dondur
-	TOKEN_EGER          = "EĞER"          // eğer / eger
-	TOKEN_DEGILSE       = "DEĞİLSE"       // değilse / degilse
-	TOKEN_ESLE          = "EŞLE"          // eşle / esle
-	TOKEN_VARSAYILAN    = "VARSAYILAN"    // varsayılan / varsayilan
-	TOKEN_DONGU         = "DÖNGÜ"         // döngü / dongu
-	TOKEN_ICINDE        = "İÇİNDE"        // içinde / icinde
-	TOKEN_IKEN          = "İKEN"          // iken
-	TOKEN_CIK           = "ÇIK"           // çık / cik / kır / kir
-	TOKEN_DEVAM         = "DEVAM"         // devam
-	TOKEN_DOGRU         = "DOĞRU"         // doğru / dogru
-	TOKEN_YANLIS        = "YANLIŞ"        // yanlış / yanlis
-	TOKEN_YOK           = "YOK"           // yok
-	TOKEN_VE            = "VE"            // ve
-	TOKEN_VEYA          = "VEYA"          // veya
-	TOKEN_DEGIL         = "DEĞİL"         // değil / degil
-	TOKEN_YAPI          = "YAPI"          // yapı / yapi
-	TOKEN_KENDI         = "KENDİ"         // kendi
-	TOKEN_DENE          = "DENE"          // dene
-	TOKEN_YAKALA        = "YAKALA"        // yakala
-	TOKEN_FIRLAT        = "FIRLAT"        // fırlat / firlat
-	TOKEN_AKTAR         = "AKTAR"         // aktar
-	TOKEN_ESZAMANLI     = "EŞZAMANLI"     // eşzamanlı / eszamanli
-	TOKEN_ERTELE        = "ERTELE"        // ertele (defer)
-	TOKEN_KESME_NOKTASI = "KESME_NOKTASI" // kesme_noktası
+	// Anahtar Kelimeler. Tür adları içseldir, kullanıcıya gösterilmez; kullanıcının
+	// yazdığı adlar sözlüktedir (pkg/sozluk, A0xx) ve hangi kodun hangi türü ürettiği
+	// anahtar_kelimeler.go'dadır.
+	TOKEN_DEGISKEN      = "DEĞİŞKEN"      // A030
+	TOKEN_SABIT         = "SABİT"         // A031
+	TOKEN_FONKSIYON     = "FONKSİYON"     // A020
+	TOKEN_SONUC         = "SONUÇ"         // A021
+	TOKEN_EGER          = "EĞER"          // A001
+	TOKEN_DEGILSE       = "DEĞİLSE"       // A002
+	TOKEN_ESLE          = "EŞLE"          // A003
+	TOKEN_VARSAYILAN    = "VARSAYILAN"    // A004
+	TOKEN_DONGU         = "DÖNGÜ"         // A010
+	TOKEN_ICINDE        = "İÇİNDE"        // A011
+	TOKEN_IKEN          = "İKEN"          // A012
+	TOKEN_CIK           = "ÇIK"           // A013
+	TOKEN_DEVAM         = "DEVAM"         // A014
+	TOKEN_DOGRU         = "DOĞRU"         // A040
+	TOKEN_YANLIS        = "YANLIŞ"        // A041
+	TOKEN_YOK           = "YOK"           // A042
+	TOKEN_VE            = "VE"            // A043
+	TOKEN_VEYA          = "VEYA"          // A044
+	TOKEN_DEGIL         = "DEĞİL"         // A045
+	TOKEN_YAPI          = "YAPI"          // A050
+	TOKEN_KENDI         = "KENDİ"         // A051
+	TOKEN_DENE          = "DENE"          // A060
+	TOKEN_YAKALA        = "YAKALA"        // A061
+	TOKEN_FIRLAT        = "FIRLAT"        // A062
+	TOKEN_AKTAR         = "AKTAR"         // A070
+	TOKEN_ESZAMANLI     = "EŞZAMANLI"     // A080
+	TOKEN_ERTELE        = "ERTELE"        // A081
+	TOKEN_KESME_NOKTASI = "KESME_NOKTASI" // A090
 )

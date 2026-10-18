@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"tr_dili/pkg/ast"
+	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 )
 
@@ -11,6 +12,10 @@ import (
 // Go yığınını taşırıp süreci yakalanamaz biçimde çökertirdi; sınırda 'dene/yakala' ile
 // yakalanabilen bir hata döner.
 const maxCallDepth = 10000
+
+// kendiAdi yapı metotlarında nesneyi gösteren 'kendi' anahtar kelimesinin sözlükteki
+// adıdır (A051).
+var kendiAdi = sozluk.Ad(sozluk.A + 51)
 
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
 // sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar
@@ -176,7 +181,7 @@ func (v *VM) fonksiyonGovdesi(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, ken
 		if fk.kendi >= 0 {
 			fnEnv.vals[fk.kendi] = kendi
 		} else {
-			fnEnv.Define("kendi", kendi, false)
+			fnEnv.Define(kendiAdi, kendi, false)
 		}
 	}
 	for i, param := range fn.Parameters {
