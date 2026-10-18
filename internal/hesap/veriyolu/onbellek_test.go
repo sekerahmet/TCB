@@ -344,6 +344,15 @@ func TestOnbellekKopyaDogrulama(t *testing.T) {
 	}
 }
 
+// calisanIsciSayisi cekirdekAc'ın başlattığı işçi gorutinlerini sayar ("created by" satırı
+// gorutin henüz çalışmaya başlamamışken de vardır; giriş fonksiyonunun adı o sırada farklı
+// görünür). Toplam gorutin sayısıyla karşılaştırmak kararsızdı: önceki testlerden kalan
+// gorutinler bu arada bitince sayı düşüyor, işçiler başlamış olsa da test kalıyordu.
+func calisanIsciSayisi() int {
+	b := make([]byte, 1<<20)
+	return strings.Count(string(b[:runtime.Stack(b, true)]), "created by tr_dili/internal/hesap/veriyolu.cekirdekAc ")
+}
+
 func TestOnbellekIsciSayilari(t *testing.T) {
 	taban := runtime.NumGoroutine()
 	kaynak := t.TempDir()
@@ -358,8 +367,8 @@ func TestOnbellekIsciSayilari(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if runtime.NumGoroutine() < taban+isci {
-			t.Fatalf("%d işçi gorutini başlamadı", isci)
+		if n := calisanIsciSayisi(); n != isci {
+			t.Fatalf("%d işçi gorutini bekleniyordu, %d çalışıyor", isci, n)
 		}
 		o.Hazirla(yollar)
 		if err := o.Bekle(context.Background()); err != nil {
