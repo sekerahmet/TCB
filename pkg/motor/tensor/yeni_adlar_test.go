@@ -110,7 +110,7 @@ yazdır(z["sapma"].gradyan.değer)`)
 		{yaz("surum.trt", surum), "dosya biçimi sürümü 9; bu TR sürümü en fazla 1 okuyabilir"},
 		{yaz("tur.trt", tur), "desteklenmeyen veri türü kodu 7"},
 		{yaz("fazla.trt", append(append([]byte{}, veri...), 0)), "fazladan veri"},
-		{filepath.ToSlash(filepath.Join(klasor, "yok.trt")), "dosya bulunamadı"},
+		{filepath.ToSlash(filepath.Join(klasor, "yok.trt")), "yüklenemedi: böyle bir dosya ya da klasör yok"},
 		{filepath.ToSlash(klasor), "bir klasör"},
 	}
 	for _, d := range durumlar {

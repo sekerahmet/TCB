@@ -163,7 +163,7 @@ test "15.9 maks_indeks ve gradyan_kırp" {
 
 test "15.10 tensör_kaydet ve tensör_yükle hataları" {
     // Gidiş-dönüş Go testlerinde (geçici klasörde) denetlenir; burada dosya oluşturmayan hatalar.
-    doğrula(hata_metni(() => tensör_yükle("bu_dosya_yok_12345.trt")).içerir("dosya bulunamadı"))
+    doğrula(hata_metni(() => tensör_yükle("bu_dosya_yok_12345.trt")).içerir("yüklenemedi: böyle bir dosya ya da klasör yok"))
     doğrula(hata_metni(() => tensör_yükle(".")).içerir("bir klasör, tensör dosyası değil"))
     doğrula(hata_metni(() => tensör_kaydet("x.trt", [1])).içerir("adları tensör olan bir sözlük olmalıdır"))
     doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("değeri bir tensör olmalıdır"))

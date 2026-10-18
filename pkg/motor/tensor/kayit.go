@@ -13,6 +13,7 @@ import (
 
 	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
+	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
@@ -45,17 +46,6 @@ type kayitGirdisi struct {
 	ad    string
 	sekil []int
 	veri  []float32
-}
-
-// dosyaHatasi işletim sistemi hatalarını Türkçe açıklar.
-func dosyaHatasi(fn, yol string, err error) error {
-	switch {
-	case errors.Is(err, os.ErrNotExist):
-		return fmt.Errorf("%s: dosya bulunamadı: %q", fn, yol)
-	case errors.Is(err, os.ErrPermission):
-		return fmt.Errorf("%s: %q için erişim izni yok", fn, yol)
-	}
-	return fmt.Errorf("%s: %q kullanılamadı: %v", fn, yol, err)
 }
 
 func yolArg(fn string, v vm.Value) (string, error) {
@@ -105,10 +95,12 @@ func tensorKaydet(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Valu
 		}
 		girdiler = append(girdiler, kayitGirdisi{ad: k, sekil: sh, veri: d.t.Data()})
 	}
+	// Göreli yol TR'nin tek yol kuralıyla çözülür (bkz. vm.(*VM).YolCoz).
+	cozulen := baglama.YolCoz(m, yol)
 	var yazHata error
-	m.Blocking(func() { yazHata = dosyayaYaz(yol, girdiler) })
+	m.Blocking(func() { yazHata = dosyayaYaz(cozulen, girdiler) })
 	if yazHata != nil {
-		return nil, dosyaHatasi(fn, yol, yazHata)
+		return nil, turkce.DosyaHatasi(fn, yol, "yazılamadı", yazHata)
 	}
 	return vm.NULL, nil
 }
@@ -179,11 +171,12 @@ func tensorYukle(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 		return nil, err
 	}
 	izle := turevIzle(named, nil, false)
+	cozulen, bakilanlar := baglama.YolCozBakilan(m, yol)
 	var girdiler []kayitGirdisi
 	var okuHata, osHata error
-	m.Blocking(func() { girdiler, okuHata, osHata = dosyadanOku(yol) })
+	m.Blocking(func() { girdiler, okuHata, osHata = dosyadanOku(cozulen) })
 	if osHata != nil {
-		return nil, dosyaHatasi(fn, yol, osHata)
+		return nil, vm.OkumaHatasi(fn, yol, "yüklenemedi", osHata, bakilanlar)
 	}
 	if okuHata != nil {
 		return nil, fmt.Errorf("%s: %q: %v", fn, yol, okuHata)

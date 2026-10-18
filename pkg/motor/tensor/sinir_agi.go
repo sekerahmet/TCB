@@ -9,7 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
+	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
@@ -152,7 +154,9 @@ func matrisVerisi(t *ct.Tensor) [][]float64 {
 	return out
 }
 
-func (nn *SinirAgi) kaydet(yol string) error {
+// kaydet modeli JSON olarak yazar. Göreli yol TR'nin tek yol kuralıyla çözülür (bkz.
+// vm.(*VM).YolCoz); dosya hataları Türkçe anlatılır.
+func (nn *SinirAgi) kaydet(m *vm.VM, yol string) error {
 	agirliklar := make([][][]float64, len(nn.agirliklar))
 	sapmalar := make([][][]float64, len(nn.sapmalar))
 	for i := range nn.agirliklar {
@@ -168,10 +172,10 @@ func (nn *SinirAgi) kaydet(yol string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(yol, veri, 0644); err != nil {
-		return fmt.Errorf("Model kaydedilemedi: %v", err)
-	}
-	return nil
+	cozulen := baglama.YolCoz(m, yol)
+	var yazHata error
+	m.Blocking(func() { yazHata = os.WriteFile(cozulen, veri, 0644) })
+	return turkce.DosyaHatasi("model.kaydet", yol, "kaydedilemedi", yazHata)
 }
 
 func (nn *SinirAgi) GetProperty(prop string) (vm.Value, error) {
@@ -204,11 +208,15 @@ func (nn *SinirAgi) GetProperty(prop string) (vm.Value, error) {
 		return &vm.ListVal{Elements: elems}, nil
 
 	case "kaydet":
-		return &vm.BuiltinVal{Name: "model.kaydet", Fn: func(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+		return &vm.BuiltinVal{Name: "model.kaydet", Fn: func(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 1 {
 				return nil, fmt.Errorf("model.kaydet(dosya_yolu) 1 parametre bekler")
 			}
-			if err := nn.kaydet(args[0].Inspect()); err != nil {
+			yol, err := yolArg("model.kaydet", args[0])
+			if err != nil {
+				return nil, err
+			}
+			if err := nn.kaydet(m, yol); err != nil {
 				return nil, err
 			}
 			return vm.TRUE, nil
@@ -326,14 +334,21 @@ func yuklenenMatris(veri [][]float64) (*ct.Tensor, error) {
 
 // modelYukle model_yükle(dosya_yolu) yerleşiğidir: model.kaydet ile yazılmış (ya da eski
 // matris tabanlı modelin kaydettiği) JSON dosyasını okur.
-func modelYukle(_ *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+func modelYukle(m *vm.VM, args []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	const fn = "model_yükle"
 	if len(args) != 1 {
 		return nil, fmt.Errorf("model_yükle(dosya_yolu) 1 parametre bekler")
 	}
-	yol := args[0].Inspect()
-	veri, err := os.ReadFile(yol)
+	yol, err := yolArg(fn, args[0])
 	if err != nil {
-		return nil, fmt.Errorf("Model dosyası okunamadı (%s): %v", yol, err)
+		return nil, err
+	}
+	// Göreli yol TR'nin tek yol kuralıyla çözülür (bkz. vm.(*VM).YolCoz).
+	cozulen, bakilanlar := baglama.YolCozBakilan(m, yol)
+	var veri []byte
+	m.Blocking(func() { veri, err = os.ReadFile(cozulen) })
+	if err != nil {
+		return nil, vm.OkumaHatasi(fn, yol, "okunamadı", err, bakilanlar)
 	}
 	var kayitli struct {
 		Boyutlar   []int         `json:"katman_boyutları"`
