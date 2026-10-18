@@ -86,14 +86,21 @@ var (
 	tipYok       = sozluk.Ad(sozluk.A + 204)
 	tipListe     = sozluk.Ad(sozluk.A + 205)
 	tipSozluk    = sozluk.Ad(sozluk.A + 206)
+	tipAralik    = sozluk.Ad(sozluk.A + 207)
 	tipFonksiyon = sozluk.Ad(sozluk.A + 208)
 	tipTensor    = sozluk.Ad(sozluk.A + 212)
 	tipHerhangi  = sozluk.Ad(sozluk.A + 213)
 )
 
-// aciklamaTipleri tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır.
+// tipSayi denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
+// Tam / Tam: 6 / 3 = 2, 7 / 2 = 3.5). Kullanıcı açıklamasında yazılamaz; yalnızca Ondalık
+// (Tam da Ondalığa atanabildiği için) ve tipsiz yerlere atanabilir.
+const tipSayi = "Tam ya da Ondalık"
+
+// aciklamaTipleri tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
+// 3.11'deki çekirdek tip adları.
 var aciklamaTipleri = []sozluk.Kod{sozluk.A + 200, sozluk.A + 201, sozluk.A + 202, sozluk.A + 203,
-	sozluk.A + 205, sozluk.A + 206, sozluk.A + 212, sozluk.A + 204}
+	sozluk.A + 205, sozluk.A + 206, sozluk.A + 207, sozluk.A + 208, sozluk.A + 209, sozluk.A + 212, sozluk.A + 204}
 
 // tipYazimlari tip açıklamasında kabul edilen yazımların küçük harfli biçimi → tip adıdır.
 // Yazımlar sözlükten gelir (yalnızca Türkçe biçim; büyük/küçük harf fark etmez). Matris 2
@@ -166,8 +173,8 @@ func typesCompatible(expected, actual string) bool {
 	if exp == tipHerhangi || act == tipHerhangi || act == tipYok {
 		return true
 	}
-	// Tam sayı, Ondalık beklenen yere atanabilir
-	if exp == tipOndalik && act == tipTam {
+	// Tam sayı (ve Tam ya da Ondalık olabilen değer), Ondalık beklenen yere atanabilir
+	if exp == tipOndalik && (act == tipTam || act == tipSayi) {
 		return true
 	}
 	return exp == act
@@ -192,13 +199,19 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		declared := normalizeTypeName(s.TypeName)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
 			c.errors = append(c.errors, fmt.Sprintf(
-				"Satır %d: Tip uyuşmazlığı — %q değişkeni %q tipinde tanımlandı ancak %q tipinde değer atandı",
-				s.Line(), s.Name.Value, declared, inferred,
+				"Satır %d: Tip uyuşmazlığı — %q değişkeni %q tipinde tanımlandı ancak %q tipinde değer atandı%s",
+				s.Line(), s.Name.Value, declared, inferred, sayiIpucu(declared, inferred),
 			))
 		}
-		finalType := inferred
-		if s.TypeName != "" {
+		// Dil dinamiktir: açıklamasız bir değişkenin ilk değerden çıkarılan tipi kalıcı bir
+		// bildirim değildir (değişken sonra başka tipte değer alabilir), bu yüzden tipsiz
+		// sayılır. Sabitler yeniden atanamadığı için çıkarılan tipleri kalır.
+		finalType := tipHerhangi
+		switch {
+		case s.TypeName != "":
 			finalType = declared
+		case s.IsConst:
+			finalType = inferred
 		}
 		c.scope.Define(s.Name.Value, TypeInfo{
 			TypeName: finalType,
@@ -211,7 +224,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			if info, found := c.scope.Resolve(ident.Value); found {
 				// Bileşik atamada (x += y) atanan değer 'x + y' ifadesinin sonucudur
 				if op := strings.TrimSuffix(s.Operator, "="); op != "" {
-					valType = arithmeticType(op, info.TypeName, valType)
+					valType = arithmeticType(op, info.TypeName, valType, false)
 				}
 				if info.IsConst {
 					c.errors = append(c.errors, fmt.Sprintf(
@@ -221,8 +234,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 				}
 				if info.TypeName != tipHerhangi && info.TypeName != tipYok && !typesCompatible(info.TypeName, valType) {
 					c.errors = append(c.errors, fmt.Sprintf(
-						"Satır %d: Tip uyuşmazlığı — %q değişkeni (%s) içine %q tipinde değer atanamaz",
-						s.Line(), ident.Value, info.TypeName, valType,
+						"Satır %d: Tip uyuşmazlığı — %q değişkeni (%s) içine %q tipinde değer atanamaz%s",
+						s.Line(), ident.Value, info.TypeName, valType, sayiIpucu(info.TypeName, valType),
 					))
 				}
 			}
@@ -264,7 +277,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			yakalaSatiri = s.CatchBody.Line()
 		}
 		c.golgeDenetle(s.ErrorVar, yakalaSatiri)
-		c.scope.Define(s.ErrorVar, TypeInfo{TypeName: tipMetin})
+		// Yakalanan hata Metin'dir, ama değişken açıklamasızdır: sonra başka tipte değer alabilir.
+		c.scope.Define(s.ErrorVar, TypeInfo{TypeName: tipHerhangi})
 		for _, bs := range s.CatchBody.Statements {
 			c.checkStatement(bs)
 		}
@@ -310,8 +324,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		valType := c.inferExpression(s.ReturnValue)
 		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
 			c.errors = append(c.errors, fmt.Sprintf(
-				"Satır %d: Dönüş tipi uyuşmazlığı — fonksiyon %q döndürmeli ancak %q tipinde değer döndürülüyor",
-				s.Line(), c.returnType, valType,
+				"Satır %d: Dönüş tipi uyuşmazlığı — fonksiyon %q döndürmeli ancak %q tipinde değer döndürülüyor%s",
+				s.Line(), c.returnType, valType, sayiIpucu(c.returnType, valType),
 			))
 		}
 
@@ -337,18 +351,41 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	}
 }
 
-// arithmeticType bir aritmetik işlemin sonuç tipini çıkarır.
-func arithmeticType(op, left, right string) string {
-	if left == tipMetin && op == "+" {
+// sayiIpucu Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir.
+func sayiIpucu(beklenen, verilen string) string {
+	if normalizeTypeName(beklenen) == tipTam && verilen == tipSayi {
+		return "; '/' bölüm tam çıkmazsa, '**' üs negatifse Ondalık verir: Tam için tam(...) kullanın ya da tipi Ondalık yapın"
+	}
+	return ""
+}
+
+// sayisalTip tip bir sayı tipi mi (Tam, Ondalık ya da ikisinden biri)?
+func sayisalTip(t string) bool {
+	return t == tipTam || t == tipOndalik || t == tipSayi
+}
+
+// arithmeticType bir aritmetik işlemin sonuç tipini çalışma zamanının kurallarıyla çıkarır
+// (4.2, 4.3, 4.10): denetleyici çalışma zamanından farklı bir tip iddia etmez. Tam / Tam
+// tam bölünmezse Ondalık verir, Tam ** Tam üs negatifse Ondalık verir; bu yüzden ikisi de
+// "Tam ya da Ondalık"tır. tamUs, '**'in sağının negatif olmayan bir Tam sabiti olduğunu
+// söyler (2 ** 3 her zaman Tam'dır).
+func arithmeticType(op, left, right string, tamUs bool) string {
+	if op == "+" && (left == tipMetin || right == tipMetin) {
 		return tipMetin
+	}
+	if !sayisalTip(left) || !sayisalTip(right) {
+		return tipHerhangi
 	}
 	if left == tipOndalik || right == tipOndalik {
 		return tipOndalik
 	}
-	if left == tipTam && right == tipTam {
-		return tipTam
+	if op == "/" || (op == "**" && !(tamUs && left == tipTam)) {
+		return tipSayi
 	}
-	return tipHerhangi
+	if left == tipSayi || right == tipSayi {
+		return tipSayi
+	}
+	return tipTam
 }
 
 func (c *Checker) inferExpression(expr ast.Expression) string {
@@ -371,7 +408,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 	case *ast.DictLiteral:
 		return tipSozluk
 	case *ast.RangeExpression:
-		return tipListe
+		return tipAralik
 	case *ast.Identifier:
 		if info, ok := c.scope.Resolve(e.Value); ok {
 			return info.TypeName
@@ -399,7 +436,8 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		case "@":
 			return tipTensor
 		case "+", "-", "*", "/", "%", "**":
-			return arithmeticType(e.Operator, left, right)
+			lit, tamSabit := e.Right.(*ast.IntegerLiteral)
+			return arithmeticType(e.Operator, left, right, tamSabit && lit.Value >= 0)
 		}
 		return tipHerhangi
 	case *ast.FunctionLiteral:

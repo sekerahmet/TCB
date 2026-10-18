@@ -11,6 +11,10 @@ test "5.1 değişken ve := tanımı" {
 test "5.2 sabit: tanımlandıktan sonra değiştirilemez" {
     sabit PI = 3.14
     eşit_mi(3.14, PI)
+    // Yeniden atama denetleyicide yakalanır: dosyanın hiçbir satırı çalışmaz
+    değişken mesaj = ""
+    dene { aktar "olumsuz/sabit_yeniden" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("sabit_yeniden.tr, Satır 4: Sabit hatası — \"PI\" bir sabittir"), mesaj)
 }
 
 test "5.3 çoklu tanım, takas ve listeden açma" {

@@ -1,0 +1,4 @@
+// Bilerek hatalı: 3.13 — açıklanan tiple atanan değerin tipi uyuşmuyor.
+değişken yaş: Tam = 25
+değişken ad: Tam = "Ali"
+değişken r: Liste = 0..3

@@ -7,7 +7,8 @@ import "testing"
 func TestTipYazimlariAyni(t *testing.T) {
 	beklenen := map[string]string{
 		"tam": "Tam", "ondalık": "Ondalık", "metin": "Metin", "mantık": "Mantık",
-		"liste": "Liste", "sözlük": "Sözlük", "tensör": "Tensör", "yok": "Yok",
+		"liste": "Liste", "sözlük": "Sözlük", "tensör": "Tensör", "yok": "Yok", "aralık": "Aralık",
+		"fonksiyon": "Fonksiyon", "yerleşikfonksiyon": "YerleşikFonksiyon",
 	}
 	if len(tipYazimlari) != len(beklenen) {
 		t.Errorf("%d yazım bekleniyordu, %d var: %v", len(beklenen), len(tipYazimlari), tipYazimlari)

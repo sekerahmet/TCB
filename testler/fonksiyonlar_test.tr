@@ -131,4 +131,9 @@ test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
     fonksiyon a(x: Tam): Tam { sonuç x }
     fonksiyon b(x: Tam) -> Metin { sonuç metin(x) }
     eşit_mi("3", b(a(3)))
+    // Bildirilen tiple uyuşmayan sonuç değeri programı çalıştırmadan reddeder
+    değişken mesaj = ""
+    dene { aktar "olumsuz/donus_tipi" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("donus_tipi.tr, Satır 2: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Metin\""), mesaj)
+    doğrula(mesaj.içerir("donus_tipi.tr, Satır 4: Dönüş tipi uyuşmazlığı — fonksiyon \"Tam\" döndürmeli ancak \"Tam ya da Ondalık\""), mesaj)
 }

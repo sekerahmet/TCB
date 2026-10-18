@@ -132,7 +132,13 @@ func TestTipBelirtimliDegiskenUyumlu(t *testing.T) {
 		`değişken a: Mantık = !5`,
 		`değişken a: Mantık = doğru ve yanlış`,
 		`değişken a: Liste = [1, 2]`,
-		`değişken a: Liste = 1..=5`,
+		`değişken a: Aralık = 1..=5`,
+		`değişken a: aralık = 0..3`,
+		`değişken a: Ondalık = 7 / 2`,
+		`değişken a: Ondalık = 2 ** -1`,
+		`değişken a: Tam = 7 % 2`,
+		`değişken a: Tam = (2 ** 3) * 4`,
+		`değişken a = 7 / 2`,
 		`değişken a: Liste = [x * 2 döngü x içinde 1..3]`,
 		`değişken a: Sözlük = {"a": 1}`,
 		`değişken a: Tensör = m1 @ m2`,
@@ -166,7 +172,12 @@ func TestTipBelirtimliDegiskenUyumsuz(t *testing.T) {
 		{`değişken a: Tam = !doğru`, "Tam", "Mantık"},
 		{`değişken a: Liste = {"a": 1}`, "Liste", "Sözlük"},
 		{`değişken a: Sözlük = [1]`, "Sözlük", "Liste"},
-		{`değişken a: Tam = 1..5`, "Tam", "Liste"},
+		{`değişken a: Tam = 1..5`, "Tam", "Aralık"},
+		{`değişken a: Liste = 1..5`, "Liste", "Aralık"},
+		{`değişken a: Tam = 7 / 2`, "Tam", "Tam ya da Ondalık"},
+		{`değişken a: Tam = 6 / 3`, "Tam", "Tam ya da Ondalık"},
+		{`değişken a: Tam = 2 ** -1`, "Tam", "Tam ya da Ondalık"},
+		{`değişken a: Metin = 7 / 2`, "Metin", "Tam ya da Ondalık"},
 		{`değişken a: Metin = fonksiyon() { }`, "Metin", "Fonksiyon"},
 		{`değişken a: Nokta = 5`, "Nokta", "Tam"},
 		{`sabit a: Metin = doğru`, "Metin", "Mantık"},
@@ -191,9 +202,12 @@ func TestAtamaTipDenetimi(t *testing.T) {
 	tekHata(t, "değişken a: Tam = 1\na = \"x\"", "Satır 2:", "Tip uyuşmazlığı", `"a" değişkeni (Tam)`, `"Metin"`)
 	hataYok(t, "değişken a: Ondalık = 1\na = 2.5\na = 3")
 
-	// Mevcut davranış: tip belirtilmese de ilk değerden çıkarılan tip kilitlenir
-	tekHata(t, "değişken a = 5\na = \"beş\"", "Satır 2:", `"a" değişkeni (Tam)`)
-	tekHata(t, "x := doğru\nx = 1", "Satır 2:", `"x" değişkeni (Mantık)`)
+	// Dil dinamiktir: tip açıklaması olmayan değişkenin ilk değerden çıkarılan tipi kalıcı
+	// bir bildirim değildir; başka tipte değer atanabilir. Sabitlerin tipi kalır.
+	hataYok(t, "değişken a = 5\na = \"beş\"")
+	hataYok(t, "x := doğru\nx = 1")
+	hataYok(t, "değişken kayıp = 0\ndöngü i içinde 1..3 { kayıp += 0.5 }")
+	tekHata(t, "sabit S = 5\ndeğişken m: Metin = S", "Satır 2:", `"Metin"`, `"Tam"`)
 
 	// 'yok' veya bilinmeyen tipte başlayan değişkenler serbestçe atanabilir
 	hataYok(t, "değişken a = yok\na = 5\na = \"x\"")
@@ -212,14 +226,16 @@ func TestBilesikAtama(t *testing.T) {
 	hataYok(t, "değişken x = 1.5\nx += 1")
 	hataYok(t, "değişken x: Ondalık = 1\nx *= 2.5")
 
-	// 'x = x + 0.5' gibi, Tam bir değişkene Ondalık sonuç atanamaz
-	tekHata(t, "değişken x = 1\nx += 0.5", "Satır 2:", `"x" değişkeni (Tam)`, `"Ondalık"`)
-	tekHata(t, "değişken x = 1\nx = x + 0.5", "Satır 2:", `"x" değişkeni (Tam)`, `"Ondalık"`)
+	// 'x = x + 0.5' gibi, Tam açıklamalı bir değişkene Ondalık sonuç atanamaz; açıklamasız
+	// değişken (biriktirici) serbesttir.
+	tekHata(t, "değişken x: Tam = 1\nx += 0.5", "Satır 2:", `"x" değişkeni (Tam)`, `"Ondalık"`)
+	tekHata(t, "değişken x: Tam = 1\nx = x + 0.5", "Satır 2:", `"x" değişkeni (Tam)`, `"Ondalık"`)
+	hataYok(t, "değişken x = 1\nx += 0.5")
 
-	// Bilinen sınırlama: '/' Tam/Tam için Tam çıkarılır; oysa VM tam bölünmeyen
-	// durumda Ondalık üretir (10 / 4 = 2.5). Bu nedenle hata verilmez.
+	// '/' Tam/Tam'da tam bölünmezse Ondalık verir (10 / 4 = 2.5): sonuç "Tam ya da Ondalık"tır.
 	hataYok(t, "değişken x = 10\nx /= 4")
-	hataYok(t, "değişken y: Tam = 10 / 4")
+	tekHata(t, "değişken y: Tam = 10 / 4", "Satır 1:", `"Tam ya da Ondalık"`, "tam(...)")
+	tekHata(t, "değişken y: Tam = 10\ny /= 4", "Satır 2:", `"Tam ya da Ondalık"`)
 }
 
 func TestSabitDegistirilemez(t *testing.T) {
@@ -304,6 +320,9 @@ func TestDonusTipiDenetimi(t *testing.T) {
 	tekHata(t, "fonksiyon f(): Tam {\n  sonuç \"x\"\n}", "Satır 2:", "Dönüş tipi uyuşmazlığı", `"Tam"`, `"Metin"`)
 	tekHata(t, "fonksiyon f() -> Metin {\n  sonuç 1\n}", "Satır 2:", "Dönüş tipi uyuşmazlığı")
 	tekHata(t, "fonksiyon f(): Tam { sonuç 2.5 }", "Dönüş tipi uyuşmazlığı", `"Ondalık"`)
+	// Tam / Tam Tam olmayabilir (7 / 2 = 3.5): ': Tam' bildiren fonksiyon bunu döndüremez
+	tekHata(t, "fonksiyon ort(a: Tam, b: Tam): Tam { sonuç a / b }", "Dönüş tipi uyuşmazlığı", `"Tam ya da Ondalık"`)
+	hataYok(t, "fonksiyon ort(a: Tam, b: Tam): Ondalık { sonuç a / b }")
 
 	// İç bloklardaki dönüşler de denetlenir
 	tekHata(t, "fonksiyon f(x): Tam {\n  eğer x {\n    sonuç \"a\"\n  }\n  sonuç 1\n}", "Satır 3:", "Dönüş tipi uyuşmazlığı")
@@ -466,7 +485,6 @@ func TestBilinenSinirlamalar(t *testing.T) {
 		{"döngü değişkenleri tipsizdir", "döngü x içinde [1, 2] { değişken s: Metin = x }"},
 		{"uyumsuz işlenenler", "değişken a = \"x\" - 1\ndeğişken b = doğru + 1"},
 		{"koşul tipi", "eğer 5 { }\niken \"x\" { }"},
-		{"Tam/Tam bölmesi Ondalık olabilir", "değişken y: Tam = 7 / 2"},
 		{"liste üreteci değişkeni", "fonksiyon kare(x: Tam) { }\ndeğişken l = [kare(\"a\") döngü x içinde 1..3]"},
 	}
 	for _, tt := range testler {
@@ -475,8 +493,8 @@ func TestBilinenSinirlamalar(t *testing.T) {
 		})
 	}
 
-	// Yakalanan hata değişkeni Metin kabul edilir; başka tipte değer atanırsa hata verilir.
-	tekHata(t, "dene { } yakala h {\n  h = 5\n}", "Satır 2:", `"h" değişkeni (Metin)`)
+	// Yakalanan hata değişkeni açıklamasızdır: başka tipte değer alabilir.
+	hataYok(t, "dene { } yakala h {\n  h = 5\n}")
 }
 
 // ---------------------------------------------------------------------------

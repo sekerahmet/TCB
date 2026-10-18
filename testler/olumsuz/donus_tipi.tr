@@ -1,0 +1,5 @@
+// Bilerek hatalı: 6.8 — dönüş değerleri bildirilen dönüş tipine göre denetlenir.
+fonksiyon ad(): Tam { sonuç "Ali" }
+fonksiyon ort(a: Tam, b: Tam): Tam {
+    sonuç a / b
+}

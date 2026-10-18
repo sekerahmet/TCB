@@ -149,4 +149,25 @@ test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
     değişken yaş: Tam = 25
     fonksiyon iki_kat(x: Tam): Tam { sonuç x * 2 }
     eşit_mi(50, iki_kat(yaş))
+    değişken r: Aralık = 0..3
+    eşit_mi("Aralık", tip(r))
+    değişken f: Fonksiyon = x => x
+    eşit_mi(2, f(2))
+    // Uyuşmazlık programı çalıştırmadan reddeder (modül de aynı denetimden geçer)
+    değişken mesaj = ""
+    dene { aktar "olumsuz/tip_aciklamasi" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 3: Tip uyuşmazlığı — \"ad\" değişkeni \"Tam\" tipinde tanımlandı ancak \"Metin\" tipinde değer atandı"), mesaj)
+    doğrula(mesaj.içerir("Satır 4: Tip uyuşmazlığı — \"r\" değişkeni \"Liste\" tipinde tanımlandı ancak \"Aralık\" tipinde değer atandı"), mesaj)
+}
+
+test "3.13 açıklamasız değişkenin tipi kalıcı değildir" {
+    değişken kayıp = 0
+    döngü i içinde 1..=4 { kayıp += 0.5 }
+    eşit_mi(2.0, kayıp)
+    değişken x = 5
+    x = "beş"
+    eşit_mi("Metin", tip(x))
+    // '/' Tam / Tam'da tam bölünmezse Ondalık verir; denetleyici de böyle bilir
+    değişken oran: Ondalık = 7 / 2
+    eşit_mi(3.5, oran)
 }
