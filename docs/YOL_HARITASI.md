@@ -65,5 +65,5 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 - bf16/fp16 veri türleri ve `karışık_hassasiyet` bloğu.
 - Örnekler 01–09 öğrenme sırasıyla.
 - Kodlar: dilin bütün adları `pkg/kod/tr.json`'da sabit kodlara bağlı; açıklamalı başvuru `docs/KODLAR.md`.
-- Tek yazım: Türkçe harfsiz biçimler, eş yazımlar, `matris`, `#` yorum ve İngilizce eşler kaldırıldı; komut satırı tek Türkçe ad; yerleşik ad gölgeleme uyarısı; eklenti listeleri sözlükten üretiliyor.
+- Tek yazım: Türkçe harfsiz biçimler, eş yazımlar, `matris`, `#` yorum ve İngilizce eşler kaldırıldı; komut satırı tek Türkçe ad; yerleşik ad gölgeleme uyarısı; eklenti listeleri kod listesinden üretiliyor.
 - Model yapı taşları: `sinüs`/`kosinüs`, `birleştir`, `.böl`, `boyutu_koru`, birleşik `dikkat` (nedensel, pencereli, gruplu sorgu; T×T ara matrissiz, uzun bağlamda 2–10 kat hızlı), `örnekle`, `parametreler(model)`.
