@@ -3,7 +3,7 @@
 // fonksiyonları, türevsiz çalışma ve iyileştiriciler.
 //
 // Aynı adı taşıyan eski yerleşikler (toplam, min, maks, karekök, sıfırlar, birler, devrik,
-// softmax, relu, sigmoid, tanh, ortalama, tensör, geri_yayılım) silinmez; kayıt sırasında
+// softmax, relu, sigmoid, tanh, ortalama) silinmez; kayıt sırasında
 // sarılır: argüman tensörse yeni yol, değilse eski yerleşik çalışır. Bu yüzden bu motor
 // çekirdek yerleşiklerden ve yapay zekâ motorundan SONRA kaydedilmelidir (bkz. pkg/motor).
 package tensor
@@ -17,7 +17,6 @@ import (
 	"strings"
 	"sync"
 
-	"tr_dili/pkg/motor/yz"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
@@ -260,8 +259,6 @@ func tensoreCevir(fn string, v vm.Value) (*ct.Tensor, error) {
 		return ct.Scalar(float32(x.Val)), nil
 	case *vm.FloatVal:
 		return ct.Scalar(float32(x.Val)), nil
-	case *yz.TensorVal:
-		return ct.Scalar(float32(x.Val)), nil
 	case *vm.MatrixVal:
 		veri := make([]float32, 0, x.Rows*x.Cols)
 		for _, satir := range x.Data {
@@ -381,14 +378,6 @@ func listeVerisi(fn string, l *vm.ListVal) ([]float32, []int, error) {
 	return veri, sh, nil
 }
 
-// skalerMi değerin tek bir sayı (ya da eski tek sayılık tensör) olup olmadığını söyler.
-func skalerMi(v vm.Value) (float64, bool) {
-	if t, ok := v.(*yz.TensorVal); ok {
-		return t.Val, true
-	}
-	return vm.ToFloat(v)
-}
-
 // ----------------------------------------------------------------------------
 // İşleçler (vm.MatrixOperator)
 // ----------------------------------------------------------------------------
@@ -476,7 +465,7 @@ func yayinUyarisi(op string, a, b *ct.Tensor) {
 }
 
 func (d *Deger) ikili(op string, other vm.Value) (vm.Value, error) {
-	if s, ok := skalerMi(other); ok {
+	if s, ok := vm.ToFloat(other); ok {
 		f := float32(s)
 		r, err := guvenli(func() *ct.Tensor {
 			switch op {

@@ -97,7 +97,7 @@ func tensorKaydet(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Valu
 		}
 		d, ok := sozluk.Pairs[k].(*Deger)
 		if !ok {
-			return nil, fmt.Errorf("%s: %q değeri çok boyutlu bir tensör olmalıdır, %s verildi", fn, k, tipAdi(sozluk.Pairs[k]))
+			return nil, fmt.Errorf("%s: %q değeri bir tensör olmalıdır, %s verildi", fn, k, tipAdi(sozluk.Pairs[k]))
 		}
 		sh := d.t.Shape()
 		if len(sh) > enFazlaBoyut {

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"tr_dili/pkg/motor/internal/baglama"
-	"tr_dili/pkg/motor/yz"
 	"tr_dili/pkg/vm"
 )
 
@@ -86,18 +85,8 @@ func eksenCoz(fn string, eksen int, sh []int) (int, error) {
 	return e, nil
 }
 
-// tipAdi hata mesajlarında değerin tipini adlandırır. Eski tek sayılık türev değeri de
-// "Tensör" tipini taşıdığı için çelişkili mesaj ("tensör olmalıdır, Tensör verildi")
-// çıkmasın diye açıklayıcı biçimde yazılır.
-func tipAdi(v vm.Value) string {
-	switch v.(type) {
-	case *yz.TensorVal:
-		return "tek sayılık türev değeri (tensör(3.0))"
-	case *Deger:
-		return "çok boyutlu tensör"
-	}
-	return string(v.Type())
-}
+// tipAdi hata mesajlarında değerin tipini adlandırır.
+func tipAdi(v vm.Value) string { return string(v.Type()) }
 
 // argMetni argümanları virgülle ayrılmış biçimde yazar.
 func argMetni(args []vm.Value) string {

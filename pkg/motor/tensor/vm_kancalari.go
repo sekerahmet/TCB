@@ -17,11 +17,15 @@ var (
 	_ vm.Indekslenebilir  = (*Deger)(nil)
 )
 
-// Esit iki tensörün şekli ve tüm elemanları aynıysa doğrudur ('==' ve '!='). Tensör
-// olmayan değerlerle eşit değildir.
+// Esit iki tensörün şekli ve tüm elemanları aynıysa doğrudur ('==' ve '!='). 0 boyutlu
+// tensör, değeri (.değer ile aynı biçimde okunan) sayıya eşittir: m[1][0] == 7.0. Diğer
+// değerlerle eşit değildir.
 func (d *Deger) Esit(diger vm.Value) bool {
 	o, ok := diger.(*Deger)
 	if !ok {
+		if f, sayi := vm.ToFloat(diger); sayi && d.t.Dim() == 0 {
+			return kisaFloat64(d.t.Item()) == f
+		}
 		return false
 	}
 	if d == o || d.t == o.t {
@@ -65,7 +69,7 @@ func (d *Deger) Islec(op string, diger vm.Value, sagda bool) (vm.Value, bool, er
 		if !sagda {
 			return nil, false, nil // sol işlenende MatrixOperator (Sub/Div) çalışır
 		}
-		if s, ok := skalerMi(diger); ok {
+		if s, ok := vm.ToFloat(diger); ok {
 			f := float32(s)
 			r, err := guvenli(func() *ct.Tensor {
 				if op == "-" {
@@ -111,7 +115,7 @@ func (d *Deger) Islec(op string, diger vm.Value, sagda bool) (vm.Value, bool, er
 		return v, true, err
 
 	case "**":
-		s, ok := skalerMi(diger)
+		s, ok := vm.ToFloat(diger)
 		if sagda || !ok {
 			return nil, true, fmt.Errorf("tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için üstel(log(t) * u) kullanın")
 		}
@@ -134,7 +138,7 @@ func (d *Deger) Islec(op string, diger vm.Value, sagda bool) (vm.Value, bool, er
 func (d *Deger) karsilastir(op string, diger vm.Value, sagda bool) (vm.Value, error) {
 	a := d.t.Data()
 	var b []float32
-	if s, ok := skalerMi(diger); ok {
+	if s, ok := vm.ToFloat(diger); ok {
 		b = []float32{float32(s)}
 	} else {
 		o, err := tensoreCevir("tensör karşılaştırması", diger)

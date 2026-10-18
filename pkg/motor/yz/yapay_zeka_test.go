@@ -80,22 +80,6 @@ func TestMatrixIndexingAndAssignment(t *testing.T) {
 	}
 }
 
-func TestAutogradAndNeuralNet(t *testing.T) {
-	code := `
-		değişken x = tensör(3.0, türev_izle: doğru)
-		değişken y = x * x + 2 * x + 1
-		geri_yayılım(y)
-		sonuç [y.değer, x.gradyan]
-	`
-	val, err := runTR(t, code)
-	if err != nil {
-		t.Fatalf("Autograd hatası: %v", err)
-	}
-	if val.Inspect() != "[16.0, 8.0]" {
-		t.Fatalf("[16.0, 8.0] bekleniyordu, %s alındı", val.Inspect())
-	}
-}
-
 // yz_sor'un HTTP kısmı web paketinin ortak istemcisini kullanır: zaman aşımı "ulaşılamadı"
 // diye yanlış yönlendirmek yerine açıkça bildirilir.
 func TestYzSorTimeout(t *testing.T) {

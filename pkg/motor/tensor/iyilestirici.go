@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"tr_dili/pkg/motor/internal/baglama"
-	"tr_dili/pkg/motor/yz"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
@@ -84,11 +83,7 @@ func parametreler(fn string, v vm.Value) ([]*ct.Tensor, error) {
 	for i, el := range liste {
 		d, ok := el.(*Deger)
 		if !ok {
-			ipucu := ""
-			if _, eski := el.(*yz.TensorVal); eski {
-				ipucu = "; iyileştirici parametresi için tensör([3.0], türev_izle: doğru) gibi çok boyutlu tensör kullanın"
-			}
-			return nil, fmt.Errorf("%s: %d. parametre çok boyutlu bir tensör olmalıdır, %s verildi%s", fn, i+1, tipAdi(el), ipucu)
+			return nil, fmt.Errorf("%s: %d. parametre bir tensör olmalıdır, %s verildi", fn, i+1, tipAdi(el))
 		}
 		t := d.t
 		if !t.RequiresGrad() {

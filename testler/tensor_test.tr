@@ -166,7 +166,7 @@ test "15.10 tensör_kaydet ve tensör_yükle hataları" {
     doğrula(hata_metni(() => tensör_yükle("bu_dosya_yok_12345.trt")).içerir("dosya bulunamadı"))
     doğrula(hata_metni(() => tensör_yükle(".")).içerir("bir klasör, tensör dosyası değil"))
     doğrula(hata_metni(() => tensör_kaydet("x.trt", [1])).içerir("adları tensör olan bir sözlük olmalıdır"))
-    doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("çok boyutlu bir tensör olmalıdır"))
+    doğrula(hata_metni(() => tensör_kaydet("x.trt", {"a": 1})).içerir("değeri bir tensör olmalıdır"))
 }
 
 test "15.8 hatalar şekli gösterir ve yakalanabilir" {
@@ -177,5 +177,5 @@ test "15.8 hatalar şekli gösterir ve yakalanabilir" {
     doğrula(hata_metni(() => tensör([[1, 2], [3]])).içerir("iç içe liste düzensiz"))
     doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [5])).içerir("tablonun dışında"))
     doğrula(hata_metni(() => çapraz_entropi(sıfırlar([2, 3]), [[0, 1, 0], [1, 0, 0]])).içerir("one-hot verdiniz gibi görünüyor"))
-    doğrula(hata_metni(() => AdamW([tensör(3.0)])).içerir("tek sayılık türev değeri (tensör(3.0)) verildi"))
+    doğrula(hata_metni(() => AdamW([tensör(3.0)])).içerir("1. parametre ([]) türev izlemiyor"))
 }

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"tr_dili/pkg/motor/internal/baglama"
-	"tr_dili/pkg/motor/yz"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/vm"
 )
@@ -17,7 +16,7 @@ import (
 // argüman tensörse tensör yolu, değilse eski yerleşik çalışır.
 func Kaydet(v *vm.VM) {
 	// --- Oluşturucular ---
-	sar(v, []string{"tensör", "tensor"}, tensorYerlesik)
+	sar(v, []string{"tensör", "tensor"}, yeniYerlesik("tensör", tensorYerlesik))
 	sar(v, []string{"sıfırlar", "sifirlar"}, sekilliOlusturucu("sıfırlar", func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
 		return ct.Zeros(sh...), nil
 	}))
@@ -89,7 +88,7 @@ func Kaydet(v *vm.VM) {
 	sar(v, []string{"model_yükle", "model_yukle"}, yeniYerlesik("model_yükle", modelYukle))
 
 	// --- Türev ---
-	sar(v, []string{"geri_yayılım", "geri_yayilim"}, geriYayilim)
+	sar(v, []string{"geri_yayılım", "geri_yayilim"}, yeniYerlesik("geri_yayılım", geriYayilim))
 	sar(v, []string{"türevsiz", "turevsiz"}, yeniYerlesik("türevsiz", turevsiz))
 
 	// --- İyileştiriciler ---
@@ -178,42 +177,36 @@ func turevIzle(named map[string]vm.Value, konumlu vm.Value, varsayilan bool) boo
 	return varsayilan
 }
 
-func tensorYerlesik(eski vm.BuiltinFunc) vm.BuiltinFunc {
-	return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) < 1 {
-			return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en az 1 parametre bekler")
-		}
-		switch args[0].(type) {
-		case *vm.ListVal, *vm.MatrixVal, *Deger:
-		default:
-			// Tek sayı: eski tek sayılık otomatik türev değeri (geriye uyumluluk).
-			return eskiCagir("tensör", eski, m, args, named)
-		}
-		if len(args) > 2 {
-			return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en fazla 2 parametre alır, %d verildi", len(args))
-		}
-		if err := baglama.AdliDenetle("tensör()", named, adTurevIzle); err != nil {
+// tensorYerlesik tensör(veri, türev_izle: yanlış) yerleşiğidir. Veri tek sayı (0 boyutlu
+// tensör), iç içe sayı listesi ya da tensör olabilir.
+func tensorYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	if len(args) < 1 {
+		return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en az 1 parametre bekler")
+	}
+	if len(args) > 2 {
+		return nil, fmt.Errorf("tensör(veri, türev_izle: doğru) en fazla 2 parametre alır, %d verildi", len(args))
+	}
+	if err := baglama.AdliDenetle("tensör()", named, adTurevIzle); err != nil {
+		return nil, err
+	}
+	var konumlu vm.Value
+	if len(args) == 2 {
+		konumlu = args[1]
+	}
+	izle := turevIzle(named, konumlu, false)
+	var t *ct.Tensor
+	if d, ok := args[0].(*Deger); ok {
+		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak.
+		t = ct.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...)
+	} else {
+		var err error
+		t, err = tensoreCevir("tensör", args[0])
+		if err != nil {
 			return nil, err
 		}
-		var konumlu vm.Value
-		if len(args) == 2 {
-			konumlu = args[1]
-		}
-		izle := turevIzle(named, konumlu, false)
-		var t *ct.Tensor
-		if d, ok := args[0].(*Deger); ok {
-			// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak.
-			t = ct.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...)
-		} else {
-			var err error
-			t, err = tensoreCevir("tensör", args[0])
-			if err != nil {
-				return nil, err
-			}
-		}
-		t.SetRequiresGrad(izle)
-		return Yeni(t), nil
 	}
+	t.SetRequiresGrad(izle)
+	return Yeni(t), nil
 }
 
 // sekilliOlusturucu şekli liste olarak alan oluşturucular (sıfırlar([2, 3]) ...) içindir.
@@ -346,8 +339,6 @@ func eskiBicimdeUygula(ad string, v vm.Value, f func(float64) float64) (vm.Value
 			}
 		}
 		return m, nil
-	case *yz.TensorVal:
-		return nil, fmt.Errorf("%s: tek sayılık türev değeri (tensör(3.0)) desteklenmez; tensör([...]) ile çok boyutlu tensör kullanın", ad)
 	}
 	if s, ok := vm.ToFloat(v); ok {
 		return &vm.FloatVal{Val: f(s)}, nil
@@ -540,7 +531,7 @@ func maksIndeks(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value,
 	}
 	d, ok := args[0].(*Deger)
 	if !ok {
-		return nil, fmt.Errorf("%s: çok boyutlu bir tensör bekler, %s verildi; liste için %s(tensör(liste)) yazın", ad, tipAdi(args[0]), ad)
+		return nil, fmt.Errorf("%s: bir tensör bekler, %s verildi; liste için %s(tensör(liste)) yazın", ad, tipAdi(args[0]), ad)
 	}
 	t := d.t
 	e, verildi, err := eksenArg(ad, args, named)
@@ -583,21 +574,16 @@ func tensorOlmayanIndirgeme(ad string, eski vm.BuiltinFunc, m *vm.VM, args []vm.
 		return nil, fmt.Errorf("%s: eksen: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0)", ad, tipAdi(args[0]), ad)
 	}
 	if l, ok := args[0].(*vm.ListVal); ok && len(args) == 1 {
-		var tensorVar, eskiTensorVar bool
+		var tensorVar bool
 		for _, el := range l.Elements {
 			switch el.(type) {
 			case *vm.ListVal:
 				return nil, fmt.Errorf("%s: iç içe liste indirgenemez (eski liste davranışı yalnızca düz sayı listesi alır); tensöre çevirin: %s(tensör(liste)) ya da eksen için %s(tensör(liste), eksen: 0)", ad, ad, ad)
 			case *Deger:
 				tensorVar = true
-			case *yz.TensorVal:
-				eskiTensorVar = true
 			}
 		}
 		if tensorVar {
-			if eskiTensorVar {
-				return nil, fmt.Errorf("%s: listede tek sayılık türev değeri (tensör(3.0)) ile çok boyutlu tensör karışık; hepsini tensör([...]) ile oluşturun", ad)
-			}
 			if ad != "toplam" && ad != "ortalama" {
 				return nil, fmt.Errorf("%s: tensör listesinin en %s elemanı tanımsız; tek bir tensör verin: %s(x) ya da %s(x, eksen: 0)", ad, map[bool]string{true: "büyük", false: "küçük"}[ad == "maks"], ad, ad)
 			}
@@ -875,23 +861,30 @@ func rmsNormu(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 // Türev
 // ----------------------------------------------------------------------------
 
-func geriYayilim(eski vm.BuiltinFunc) vm.BuiltinFunc {
-	return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) != 1 || !tensorMu(args) {
-			return eskiCagir("geri_yayılım", eski, m, args, named)
-		}
-		t := args[0].(*Deger).t
-		if t.Numel() != 1 {
-			return nil, fmt.Errorf("geri_yayılım tek elemanlı (skaler) bir kayıp ister, %s şeklinde tensör verildi; önce toplam(...) ya da ortalama(...) ile indirgeyin", sekilMetni(t.Shape()))
-		}
-		if !t.RequiresGrad() {
-			return nil, fmt.Errorf("geri_yayılım: kayıp türev izlenen hiçbir tensöre bağlı değil; parametreleri tensör(..., türev_izle: doğru) ile oluşturun (türevsiz bloğu içinde hesaplanan değerler izlenmez)")
-		}
-		if _, err := guvenli(func() bool { t.Backward(); return true }); err != nil {
-			return nil, err
-		}
-		return vm.TRUE, nil
+// geriYayilim geri_yayılım(kayıp) yerleşiğidir: tek elemanlı kayıptan geri yayılım yapar;
+// yaprak tensörlerin gradyanları birikir.
+func geriYayilim(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("geri_yayılım(kayıp) 1 parametre bekler, %d verildi", len(args))
 	}
+	if err := baglama.AdliDenetle("geri_yayılım()", named); err != nil {
+		return nil, err
+	}
+	d, ok := args[0].(*Deger)
+	if !ok {
+		return nil, fmt.Errorf("geri_yayılım() bir tensör bekler, %s verildi", tipAdi(args[0]))
+	}
+	t := d.t
+	if t.Numel() != 1 {
+		return nil, fmt.Errorf("geri_yayılım tek elemanlı (skaler) bir kayıp ister, %s şeklinde tensör verildi; önce toplam(...) ya da ortalama(...) ile indirgeyin", sekilMetni(t.Shape()))
+	}
+	if !t.RequiresGrad() {
+		return nil, fmt.Errorf("geri_yayılım: kayıp türev izlenen hiçbir tensöre bağlı değil; parametreleri tensör(..., türev_izle: doğru) ile oluşturun (türevsiz bloğu içinde hesaplanan değerler izlenmez)")
+	}
+	if _, err := guvenli(func() bool { t.Backward(); return true }); err != nil {
+		return nil, err
+	}
+	return vm.TRUE, nil
 }
 
 // turevsiz iki biçimde çalışır: türevsiz { ... } bloğu türev izlemeden çalıştırır ve
@@ -906,8 +899,6 @@ func turevsiz(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, e
 	switch x := args[0].(type) {
 	case *Deger:
 		return Yeni(x.t.Detach()), nil
-	case *yz.TensorVal:
-		return yz.NewTensor(x.Val, false), nil
 	case *vm.FuncVal, *vm.BuiltinVal:
 		var sonuc vm.Value
 		var err error
