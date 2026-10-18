@@ -35,7 +35,10 @@ func gradDevret(t, out *Tensor) {
 }
 
 // Reshape tensörü yeni şekle sokar; bir eksen -1 olabilir (çıkarsanır).
-// Bitişik tensörlerde kopyasızdır; değilse önce Contiguous ile kopyalanır.
+// Kopyasızdır (görünüm) ancak yeni şekil eldeki adımlarla ifade edilebiliyorsa:
+// bitişik tensörlerde her zaman; bitişik olmayanlarda yalnızca birleştirilen her
+// eksen grubu depoda düzenli adımlıysa (ör. boyut 1 eksen ekleme/silme, düzenli
+// adımlı bir ekseni bölme). Aksi halde önce Contiguous ile kopyalanır.
 func (t *Tensor) Reshape(shape ...int) *Tensor {
 	sh := copyInts(shape)
 	n := t.Numel()
@@ -63,17 +66,76 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 	if numelOf(sh) != n {
 		panic(fmt.Sprintf("tensor: %v şeklindeki tensör %v şekline sokulamaz", t.shape, shape))
 	}
-	if !t.IsContiguous() {
+	var st []int
+	if t.IsContiguous() {
+		st = contiguousStrides(sh)
+	} else if g, ok := gorunumAdimlari(t.shape, t.strides, sh); ok {
+		st = g
+	} else {
 		return t.Contiguous().Reshape(sh...)
 	}
-	out := viewOf(t, t.offset, sh, contiguousStrides(sh))
+	return yenidenSekil(t, sh, st)
+}
+
+// yenidenSekil t'nin elemanlarına aynı mantıksal sırayla sh şekli ve st adımlarıyla bakan
+// görünümü kurar. Mantıksal sıra değişmediğinden gradyan ebeveyne olduğu gibi devredilir.
+func yenidenSekil(t *Tensor, sh, st []int) *Tensor {
+	out := viewOf(t, t.offset, sh, st)
 	return track(out, "reshape", []*Tensor{t}, func() { gradDevret(t, out) })
+}
+
+// gorunumAdimlari, eski şekil ve adımlarla bakılan elemanlara (satır öncelikli mantıksal
+// sırayı koruyarak) yeni şekille kopyasız bakılabiliyorsa yeni adımları verir. Boyutu 1
+// olan eksenler atlanır; kalan eski eksenler, depoda düzenli adımlı ardışık gruplara
+// (adım[i] = adım[i+1]·boyut[i+1]) ayrılır. Her grup, yeni şeklin sondan ardışık
+// eksenleriyle tam olarak örtüşmelidir; grup içinde yeni eksenlerin adımları grubun en
+// küçük adımından türetilir.
+func gorunumAdimlari(eski, eskiAdim, yeni []int) ([]int, bool) {
+	st := make([]int, len(yeni))
+	if numelOf(eski) == 0 {
+		return contiguousStrides(yeni), true
+	}
+	var boy, adim []int
+	for i, d := range eski {
+		if d != 1 {
+			boy = append(boy, d)
+			adim = append(adim, eskiAdim[i])
+		}
+	}
+	yi := len(yeni) - 1
+	for k := len(boy) - 1; k >= 0; {
+		// Grup: k'den geriye düzenli adımlı ardışık eksenler.
+		taban, toplam := adim[k], boy[k]
+		j := k - 1
+		for j >= 0 && adim[j] == adim[j+1]*boy[j+1] {
+			toplam *= boy[j]
+			j--
+		}
+		carpim := 1
+		for yi >= 0 && carpim < toplam {
+			st[yi] = taban * carpim
+			carpim *= yeni[yi]
+			yi--
+		}
+		if carpim != toplam {
+			return nil, false
+		}
+		k = j
+	}
+	// Kalan yeni eksenlerin hepsi 1 olmalıdır (eleman sayısı eşit olduğu için öyledir).
+	for ; yi >= 0; yi-- {
+		if yeni[yi] != 1 {
+			return nil, false
+		}
+		st[yi] = 1
+	}
+	return st, true
 }
 
 // Flatten tensörü tek boyuta indirir.
 func (t *Tensor) Flatten() *Tensor { return t.Reshape(-1) }
 
-// Unsqueeze verilen konuma uzunluğu 1 olan bir eksen ekler.
+// Unsqueeze verilen konuma uzunluğu 1 olan bir eksen ekler (kopyasız görünüm).
 func (t *Tensor) Unsqueeze(axis int) *Tensor {
 	nd := len(t.shape) + 1
 	if axis < 0 {
@@ -86,10 +148,20 @@ func (t *Tensor) Unsqueeze(axis int) *Tensor {
 	sh = append(sh, t.shape[:axis]...)
 	sh = append(sh, 1)
 	sh = append(sh, t.shape[axis:]...)
-	return t.Reshape(sh...)
+	// Saf görünüm: bitişik olmayan tensörde de kopya yok. Yeni eksenin adımı önemsizdir
+	// (tek eleman); sağındaki eksenin kapladığı aralık seçilir.
+	adim := 1
+	if axis < len(t.shape) {
+		adim = t.strides[axis] * t.shape[axis]
+	}
+	st := make([]int, 0, nd)
+	st = append(st, t.strides[:axis]...)
+	st = append(st, adim)
+	st = append(st, t.strides[axis:]...)
+	return yenidenSekil(t, sh, st)
 }
 
-// Squeeze uzunluğu 1 olan ekseni kaldırır.
+// Squeeze uzunluğu 1 olan ekseni kaldırır (kopyasız görünüm).
 func (t *Tensor) Squeeze(axis int) *Tensor {
 	axis = normAxis(axis, len(t.shape))
 	if t.shape[axis] != 1 {
@@ -98,7 +170,12 @@ func (t *Tensor) Squeeze(axis int) *Tensor {
 	sh := make([]int, 0, len(t.shape)-1)
 	sh = append(sh, t.shape[:axis]...)
 	sh = append(sh, t.shape[axis+1:]...)
-	return t.Reshape(sh...)
+	// Saf görünüm: boyutu 1 olan eksen ve adımı düşürülür; bitişik olmayan tensörde de
+	// kopya yok (t[i] ve döngü öğeleri buradan geçer).
+	st := make([]int, 0, len(t.shape)-1)
+	st = append(st, t.strides[:axis]...)
+	st = append(st, t.strides[axis+1:]...)
+	return yenidenSekil(t, sh, st)
 }
 
 // Permute eksenleri verilen sıraya dizer (kopyasız).
