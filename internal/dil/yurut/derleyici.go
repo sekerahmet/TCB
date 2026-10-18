@@ -228,7 +228,7 @@ func (b *blokKodu) ziplamaHedefi(satir int) (int, bool) {
 }
 
 // ZiplamaHedefi hata ayıklayıcı duraklatıldığında, duraklanan bloğun içinde satir'a
-// zıplanabiliyorsa zıplanacak deyimin satırını verir (VS Code "goto"). Zıplama yalnızca
+// zıplanabiliyorsa zıplanacak deyimin satırını verir (düzenleyicinin "goto" isteği). Zıplama yalnızca
 // şu an çalışan bloğun deyimleri arasında yapılabilir; blok dışındaki satırda ok yanlıştır.
 // Duraklatılmış görevin kendi goroutine'inde çağrılmalıdır.
 func (v *VM) ZiplamaHedefi(satir int) (int, bool) {

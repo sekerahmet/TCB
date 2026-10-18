@@ -56,3 +56,26 @@ func TestTerminalTuslariVSCodeIleAyni(t *testing.T) {
 		}
 	}
 }
+
+// Her komutun tek yazımı vardır: kısaltmalar, Türkçe karaktersiz ve İngilizce eşler
+// çalışmaz; asıl komutu söyleyen bir ipucu verir ve komut beklemeye devam edilir.
+func TestKomutlarinTekYazimi(t *testing.T) {
+	eskiCikti := os.Stdout
+	defer func() { os.Stdout = eskiCikti }()
+	for eski, asil := range map[string]string{"step": "adım", "adim": "adım", "next": "geç", "o": "dön",
+		"c": "devam", "set": "değiştir", "kalem": "değiştir", "goto": "zıpla", "break": "kesme",
+		"watch": "izle", "stack": "yığın", "p": "hesapla", "help": "yardım", "quit": "çıkış"} {
+		d := NewDebugger("t.tr", "x\n", false)
+		d.Mode = -1
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+		d.Reader = bufio.NewReader(strings.NewReader(eski + "\ndevam\n"))
+		d.promptCLI(yurut.New(), 1, yurut.NewEnvironment(nil))
+		w.Close()
+		veri, _ := io.ReadAll(r)
+		os.Stdout = eskiCikti
+		if want := "'" + eski + "' hata ayıklayıcıda bir komut değil; '" + asil + "' yazın"; d.Mode != StepContinue || !strings.Contains(string(veri), want) {
+			t.Errorf("%q: %q ipucu ve devam bekleniyordu, kip %d: %q", eski, want, d.Mode, veri)
+		}
+	}
+}

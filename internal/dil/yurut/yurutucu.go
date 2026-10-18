@@ -63,7 +63,7 @@ type vmShared struct {
 	Debugger  HataAyiklayici
 	GlobalEnv *Environment
 	Out       io.Writer
-	// Stdin girdi() için okunacak kaynaktır (nil ise os.Stdin). VS Code hata ayıklama
+	// Stdin girdi() için okunacak kaynaktır (nil ise os.Stdin). Düzenleyicinin hata ayıklama
 	// modunda standart giriş protokole ayrıldığı için burası değiştirilir. Okuma VM'in tek
 	// tamponlu okuyucusuyla yapılır (bkz. GirdiOkuyucu).
 	Stdin      io.Reader
@@ -76,7 +76,7 @@ type vmShared struct {
 	// modülü isterse yüklemenin bitmesini bekler.
 	yuklenen map[string]*modulYukleme
 	// Err programı durdurmayan hataların (eşzamanlı görev hataları) yazıldığı yerdir;
-	// varsayılanı standart hatadır. VS Code oturumu ve tr test kendi çıktılarına bağlar.
+	// varsayılanı standart hatadır. Düzenleyici oturumu ve tr test kendi çıktılarına bağlar.
 	Err          io.Writer
 	girdiMu      sync.Mutex
 	girdiOkuyucu *bufio.Reader

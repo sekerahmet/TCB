@@ -24,7 +24,7 @@ import (
 type StepMode int
 
 const (
-	// Tuş adları VS Code'dakiyle aynı anlamdadır (terminal ve VS Code hata ayıklayıcısı).
+	// Tuş adları düzenleyicinin hata ayıklama tuşlarıyla aynı anlamdadır (terminal ve düzenleyici).
 	StepInto     StepMode = iota // F11: Tek Adım (Fonksiyon içine girer)
 	StepOver                     // F10: Üstten Geç (Fonksiyonu tek adımda geçer)
 	StepOut                      // Shift+F11: Fonksiyondan Çık
@@ -50,13 +50,13 @@ type Debugger struct {
 	PauseReason string
 	StepCount   int
 
-	// pauseKind duraklamanın türüdür (VS Code'a bildirilir): "entry", "step",
+	// pauseKind duraklamanın türüdür (düzenleyiciye bildirilir): "entry", "step",
 	// "breakpoint", "data breakpoint", "pause", "goto".
 	pauseKind string
-	// dap, VS Code hata ayıklama oturumu (tr dap) etkinse bağlı sunucudur.
+	// dap, düzenleyicinin hata ayıklama oturumu (tr dap) etkinse bağlı sunucudur.
 	dap *dapServer
 
-	// mu: VS Code oturumunun goroutine'i ile VM arasında paylaşılan alanları korur
+	// mu: düzenleyici oturumunun goroutine'i ile VM arasında paylaşılan alanları korur
 	// (Breakpoints, Mode, PauseReason, StepCount).
 	mu sync.Mutex
 }
@@ -109,7 +109,7 @@ func (d *Debugger) BeforeStatement(v *yurut.VM, stmt agac.Statement, env *yurut.
 	// 1. Watchpoint (İzleme Noktası) kontrolü
 	wpReason := d.checkWatchpoints(v, env)
 
-	// VS Code oturumunda kesme noktaları koşul ve iz mesajı taşıyabilir; ifade
+	// Düzenleyici oturumunda kesme noktaları koşul ve iz mesajı taşıyabilir; ifade
 	// değerlendirmesi kilit dışında yapılır (iç içe deyimler BeforeStatement'ı çağırır).
 	bpHit := false
 	if d.dap != nil {
@@ -196,13 +196,13 @@ func (d *Debugger) checkWatchpoints(v *yurut.VM, env *yurut.Environment) string 
 				if es, ok := prog.Statements[0].(*agac.ExpressionStatement); ok {
 					val, err := v.EvalExpression(es.Expression, env)
 					if err == nil && val.IsTruthy() {
-						curStr := "doğru"
+						curStr := yurut.TRUE.Inspect()
 						if wp.LastVal != curStr {
 							wp.LastVal = curStr
 							return fmt.Sprintf("⚡ İZLEME NOKTASI (Watchpoint #%d): '%s' koşulu sağlandı!", wp.ID, wp.Expression)
 						}
 					} else {
-						wp.LastVal = "yanlış"
+						wp.LastVal = yurut.FALSE.Inspect()
 					}
 				}
 			}
@@ -221,20 +221,12 @@ func (d *Debugger) checkWatchpoints(v *yurut.VM, env *yurut.Environment) string 
 	return ""
 }
 
-// Adımlama sonrası durum metinleri; terminalde ve VS Code'da aynıdır.
+// Adımlama sonrası durum metinleri; terminalde ve düzenleyicide aynıdır.
 const (
 	durumAdim            = "Adım (F11)"
 	durumUsttenGec       = "Üstten geçildi (F10)"
 	durumFonksiyondanCik = "Fonksiyondan çıkıldı (Shift+F11)"
 )
-
-// tusRehberi komut isteminde gösterilen kısa tuş listesidir.
-const tusRehberi = "F5:devam | F10:geç | F11:adım | Shift+F11:dön | değiştir | zıpla | tablo | izle"
-
-// eskiTuslar önceki sürümün terminal tuşlarıdır (f5 adım, f6 geç, f7 dön, f8 devam). Bu
-// tuşlar artık VS Code'daki anlamlarıyla kullanılır; eski anlamla yazılanlar başka bir iş
-// yapmaz, yeni tuşu söyler.
-var eskiTuslar = map[string]string{"f6": "f10 (geç)", "f7": "shift+f11 (dön)", "f8": "f5 (devam)"}
 
 func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int {
 	d.renderDebugScreen(v, line, env)
@@ -260,30 +252,34 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 		cmd := strings.ToLower(parts[0])
 
 		if yeni, ok := eskiTuslar[cmd]; ok {
-			fmt.Printf("  ⚠️ Tuşlar VS Code'daki gibidir: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '%s' yerine %s yazın.\n", cmd, yeni)
+			fmt.Printf("  ⚠️ Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '%s' yerine %s yazın.\n", cmd, yeni)
+			continue
+		}
+		if asil, ok := eskiKomutlar[cmd]; ok {
+			fmt.Printf("  ⚠️ '%s' hata ayıklayıcıda bir komut değil; '%s' yazın.\n", cmd, asil)
 			continue
 		}
 
 		switch cmd {
-		case "f11", "adım", "adim", "a", "s", "step":
+		case "f11", "adım":
 			d.Mode = StepInto
 			return 0
 
-		case "f10", "geç", "gec", "g", "n", "next":
+		case "f10", "geç":
 			d.Mode = StepOver
 			d.TargetDepth = v.StackDepth()
 			return 0
 
-		case "shift+f11", "dön", "don", "o", "out":
+		case "shift+f11", "dön":
 			d.Mode = StepOut
 			d.TargetDepth = v.StackDepth()
 			return 0
 
-		case "f5", "devam", "d", "c", "continue":
+		case "f5", "devam":
 			d.Mode = StepContinue
 			return 0
 
-		case "değiştir", "degistir", "ata", "set", "kalem":
+		case "değiştir":
 			// değiştir bakiye = 5000
 			rest := strings.TrimSpace(cmdLine[len(parts[0]):])
 			if !strings.Contains(rest, "=") {
@@ -314,7 +310,7 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 				fmt.Printf("  ✏️ [CANLI DEĞİŞTİRİLDİ] %s = %s (%s)\n", varName, newVal.Inspect(), newVal.Type())
 			}
 
-		case "zıpla", "zipla", "git", "goto", "j":
+		case "zıpla":
 			if len(parts) < 2 {
 				fmt.Println("  ⚠️ Kullanım: zıpla <satır_no>  (Örn: zıpla 15)")
 				continue
@@ -329,7 +325,7 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 			d.PauseReason = fmt.Sprintf("Satır %s zıplandı", turkce.SayiEk(int64(targetLine), turkce.Yonelme))
 			return targetLine
 
-		case "kesme", "k", "b", "break":
+		case "kesme":
 			if len(parts) < 2 {
 				fmt.Println("  ⚠️ Kullanım: kesme <satır_no>  (Örn: kesme 20)")
 				continue
@@ -345,7 +341,7 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 				fmt.Printf("  🔴 %d. satıra kesme noktası (Breakpoint) eklendi.\n", bpLine)
 			}
 
-		case "izle", "watch", "w":
+		case "izle":
 			if len(parts) < 2 {
 				fmt.Println("  ⚠️ Kullanım: izle <değişken_veya_koşul>  (Örn: izle toplam  veya  izle bakiye < 0)")
 				continue
@@ -367,14 +363,14 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 			d.Watchpoints = append(d.Watchpoints, wp)
 			fmt.Printf("  👁️ İzleme Noktası (Watchpoint #%d) eklendi: %q\n", wp.ID, expr)
 
-		case "tablo", "incele", "t":
+		case "tablo":
 			if len(parts) < 2 {
 				fmt.Println("  ⚠️ Kullanım: tablo <değişken_adı>")
 				continue
 			}
 			d.inspectTable(parts[1], env)
 
-		case "yığın", "yigin", "stack", "bt":
+		case "yığın":
 			fmt.Println("  📚 ÇAĞRI YIĞINI:")
 			fmt.Printf("    #0 [Aktif] Satır %d\n", line)
 			stack := v.StackSnapshot()
@@ -383,7 +379,7 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 				fmt.Printf("    #%d %s (Çağrıldığı Satır: %d)\n", len(stack)-i, f.FuncName, f.Line)
 			}
 
-		case "hesapla", "yaz", "p", "?":
+		case "hesapla":
 			if len(parts) < 2 {
 				fmt.Println("  ⚠️ Kullanım: hesapla <ifade>  (Örn: hesapla x * 2 + 1)")
 				continue
@@ -403,13 +399,13 @@ func (d *Debugger) promptCLI(v *yurut.VM, line int, env *yurut.Environment) int 
 				}
 			}
 
-		case "ekran", "göster", "goster", "l":
+		case "ekran":
 			d.renderDebugScreen(v, line, env)
 
-		case "yardım", "yardim", "h", "help":
+		case "yardım":
 			d.printDebugHelp()
 
-		case "çıkış", "cikis", "q", "quit":
+		case "çıkış":
 			fmt.Println("Hata ayıklayıcıdan çıkılıyor...")
 			os.Exit(0)
 
@@ -532,23 +528,6 @@ func (d *Debugger) inspectTable(name string, env *yurut.Environment) {
 	default:
 		fmt.Printf("  Değer: %s\n", val.Inspect())
 	}
-}
-
-func (d *Debugger) printDebugHelp() {
-	fmt.Println("\n  🛠️  TR HATA AYIKLAYICI KOMUT REHBERİ:")
-	fmt.Println("  (Tuşlar VS Code'daki gibidir; tuş adını yazıp Enter'a basın.)")
-	fmt.Println("  • f11 / adım / Enter      : Tek adım ilerle (Fonksiyonların içine girer)")
-	fmt.Println("  • f10 / geç               : Üstten geç (Fonksiyonu tek adımda çalıştırır)")
-	fmt.Println("  • shift+f11 / dön         : Mevcut fonksiyondan çıkana kadar çalıştır")
-	fmt.Println("  • f5 / devam              : Sonraki kesme veya izleme noktasına kadar devam et")
-	fmt.Println("  • değiştir x = 100        : ✏️ Çalışma anında 'x' değişkeninin değerini canlı değiştir!")
-	fmt.Println("  • zıpla 15                : ⏭️ Çalışma sırasını 15. satıra geri/ileri taşı!")
-	fmt.Println("  • izle bakiye < 0         : 👁️ (Watchpoint) Koşul sağlandığında veya değişken değiştiğinde dur!")
-	fmt.Println("  • kesme 20                : 🔴 20. satıra kesme noktası (Breakpoint) ekle/kaldır")
-	fmt.Println("  • tablo liste_adı         : 📋 Liste, Tensör veya Sözlüğü tablo görünümünde aç")
-	fmt.Println("  • yığın                   : 📚 Çağrı yığınını (Call Stack) göster")
-	fmt.Println("  • hesapla x * 2           : 💡 Herhangi bir TR ifadesini anında hesapla")
-	fmt.Println("  • çıkış                   : Hata ayıklayıcıyı sonlandır")
 }
 
 type varEntry struct {

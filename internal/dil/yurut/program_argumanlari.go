@@ -7,7 +7,7 @@ import (
 
 // Betiğe komut satırında verilen argümanlar ('tr betik.tr --adım 5 veri' → ["--adım", "5",
 // "veri"]). 'tr betik.tr', 'tr çalıştır', 'tr hata_ayıkla', 'tr derle' ile üretilen uygulama
-// ve VS Code başlatma ayarındaki "args" aynı yoldan buraya gelir. Program argümanları
+// ve düzenleyicinin başlatma ayarındaki "args" aynı yoldan buraya gelir. Program argümanları
 // okuyan yerleşik (ileride komut_satırı) Argumanlar ile alır; okunmayan argümanlar program
 // bitince uyarıyla bildirilir (sessizce yok sayılmasın).
 

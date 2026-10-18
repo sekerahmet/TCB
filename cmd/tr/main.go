@@ -89,7 +89,7 @@ func main() {
 	case "biçimle":
 		bicimleKomutu(args[1:])
 	case "dap":
-		// VS Code hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
+		// Düzenleyicinin hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
 		if err := ayikla.ServeDAP(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "❌ Hata ayıklama sunucusu: %v\n", err)
 			os.Exit(1)
@@ -143,7 +143,7 @@ func printHelp() {
 	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür")
 	fmt.Println("  tr test [dosya.tr|klasör]   Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)")
 	fmt.Println("  tr biçimle [--kontrol] <dosya.tr|klasör>  Kodu standart biçime getirir (--kontrol: yalnızca denetler)")
-	fmt.Println("  tr dap                      VS Code hata ayıklama sunucusu (eklenti kendisi başlatır)")
+	fmt.Println("  tr dap                      düzenleyicinin hata ayıklama sunucusu (eklenti kendisi başlatır)")
 	fmt.Println("  tr yardım | -h              Bu yardımı gösterir")
 	fmt.Println("  tr sürüm | -v               Sürümü gösterir")
 }
@@ -169,7 +169,7 @@ func hataAyiklaKomutu(args []string) {
 	}
 	for _, a := range args[:min(2, len(args))] {
 		if a == "--web" || a == "-w" {
-			fmt.Fprintln(os.Stderr, "Hata: Tarayıcıdaki hata ayıklayıcı kaldırıldı. VS Code'da F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr hata_ayıkla ornek.tr")
+			fmt.Fprintln(os.Stderr, "Hata: Tarayıcıdaki hata ayıklayıcı kaldırıldı. Düzenleyicide F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr hata_ayıkla ornek.tr")
 			os.Exit(1)
 		}
 	}

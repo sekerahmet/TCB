@@ -22,7 +22,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 		StopOnEntry bool   `json:"stopOnEntry"`
 		NoDebug     bool   `json:"noDebug"`
 		Cwd         string `json:"cwd"`
-		// Args programa iletilen komut satırı argümanlarıdır (VS Code başlatma ayarı).
+		// Args programa iletilen komut satırı argümanlarıdır (düzenleyicinin başlatma ayarı).
 		Args []string `json:"args"`
 	}
 	if err := json.Unmarshal(msg.Arguments, &a); err != nil || a.Program == "" {
@@ -43,7 +43,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	if len(errs) == 0 {
 		chk := denetci.New()
 		errs = chk.CheckProgram(prog)
-		// Uyarılar (ör. yerleşik ad gölgeleme) programı durdurmaz; Debug Console'a yazılır.
+		// Uyarılar (ör. yerleşik ad gölgeleme) programı durdurmaz; hata ayıklama konsoluna yazılır.
 		if u := chk.Warnings(); len(u) > 0 {
 			s.output("stderr", "⚠️ Uyarılar:\n")
 			for _, e := range u {
@@ -56,7 +56,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 		for _, e := range errs {
 			s.output("stderr", "  • "+e+"\n"+indentLines(turkce.KodCercevesi(code, e), "    "))
 		}
-		s.respondErr(msg, "%s içinde hata var; ayrıntılar Debug Console'da", filepath.Base(path))
+		s.respondErr(msg, "%s içinde hata var; ayrıntılar hata ayıklama konsolunda", filepath.Base(path))
 		s.event("terminated", nil)
 		return
 	}
@@ -68,7 +68,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	machine.SourceFile = path
 	machine.SourceCode = code
 	machine.Out = dapOutput{s, "stdout"}
-	machine.Err = dapOutput{s, "stderr"} // eşzamanlı görev hataları da Debug Console'a
+	machine.Err = dapOutput{s, "stderr"} // eşzamanlı görev hataları da hata ayıklama konsoluna
 	machine.Stdin = dapNoStdin{}
 	machine.ArgumanlariAyarla(a.Args)
 
