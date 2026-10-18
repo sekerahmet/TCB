@@ -4,7 +4,8 @@ Kullanım (proje kökünden):  python kiyas/kos.py [--tekrar 3] [--yalniz tr] [t
 
 Her program kendi ölçtüğü süreyi (ms) ve bir sonuç değeri yazar; sonuç değerlerinin üç dilde
 aynı olması beklenir. Yorumlayıcı ve Go programı her çalıştırmada geçici bir klasöre yeniden
-derlenir. matris_yerlesik testinin Python sürümü numpy ister; yoksa atlanır.
+derlenir (GOAMD64 ortamda verilmemişse v3 ile: 2020 sonrası x86-64 işlemciler, AVX2/FMA; daha eski
+işlemcilerde GOAMD64=v1 verin). matris_yerlesik testinin Python sürümü numpy ister; yoksa atlanır.
 """
 import argparse, json, os, subprocess, sys, tempfile
 
@@ -17,8 +18,10 @@ UZANTI = ".exe" if os.name == "nt" else ""
 def derle(gecici):
     tr = os.path.join(gecici, "tr" + UZANTI)
     go = os.path.join(gecici, "kiyas" + UZANTI)
-    subprocess.run(["go", "build", "-o", tr, "./cmd/tr"], cwd=KOK, check=True)
-    subprocess.run(["go", "build", "-o", go, "./kiyas/go"], cwd=KOK, check=True)
+    ortam = dict(os.environ)
+    ortam.setdefault("GOAMD64", "v3")
+    subprocess.run(["go", "build", "-o", tr, "./cmd/tr"], cwd=KOK, check=True, env=ortam)
+    subprocess.run(["go", "build", "-o", go, "./kiyas/go"], cwd=KOK, check=True, env=ortam)
     return tr, go
 
 

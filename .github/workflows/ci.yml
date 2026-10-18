@@ -1,6 +1,7 @@
 # Sürekli tümleştirme: her gönderimde ve çekme isteğinde Windows ve Linux üzerinde
 # biçim denetimi, go vet, Go testleri, dil tanımı testleri (tr test) ve VS Code eklentisi
-# denetimleri çalışır.
+# denetimleri çalışır. Derlemeler ve testler GOAMD64=v3 ile yapılır (2020 sonrası x86-64
+# işlemciler, AVX2/FMA); eski işlemciler için GOAMD64=v1 derlemesinin bozulmadığı ayrıca denetlenir.
 name: CI
 
 on:
@@ -18,6 +19,8 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      GOAMD64: v3
     defaults:
       run:
         shell: bash
@@ -42,6 +45,9 @@ jobs:
 
       - name: Go testleri
         run: go test ./...
+
+      - name: Eski işlemci derlemesi (GOAMD64=v1)
+        run: GOAMD64=v1 go build ./...
 
       - name: Dil tanımı testleri (tr test)
         run: |

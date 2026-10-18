@@ -20,6 +20,13 @@ python kiyas/kos.py --json sonuc.json
 | `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme |
 | `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü numpy ister) |
 
+Derlemeler `GOAMD64=v3` ile yapılır (ortamda `GOAMD64` verilmişse o kullanılır). 2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez.
+Matris çarpımı v3 ile yaklaşık iki kat hızlıdır (FMA/VEX komutları). Elle derlemek için:
+
+```
+GOAMD64=v3 go build -o tr.exe ./cmd/tr
+```
+
 Süreler makineye ve o anki yüke göre değişir; karşılaştırmaları aynı makinede, bilgisayar
 boştayken yapın.
 

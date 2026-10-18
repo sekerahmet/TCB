@@ -2,6 +2,15 @@
 
 ## 1. Hızlı Başlangıç Komutları
 
+Yorumlayıcıyı proje kökünde derleyin:
+
+```bash
+GOAMD64=v3 go build -o tr.exe ./cmd/tr          # bash
+$env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
+```
+
+2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez. Eğitim ve sunucu derlemelerinde v3, matris çarpımını yaklaşık iki kat hızlandırır.
+
 | Komut | Açıklama |
 | :--- | :--- |
 | `.\tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile hata ayıklayıcı açılır) |
