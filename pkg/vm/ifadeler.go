@@ -143,7 +143,7 @@ func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression, u uyeBilgisi) (Value,
 		return nil, fmt.Errorf("Satır %d: 'yok' (null) değerin %q özelliğine erişilemez ('?.' güvenli erişim kullanabilirsiniz)", e.Line(), e.Property)
 	}
 
-	// Tensör, SinirAğı, WebSunucu, GörselArayüz ve Veritabanı özellikleri
+	// Tensör, iyileştirici, veri kümesi ve parçalayıcı özellikleri
 	if pg, ok := obj.(PropertyGetter); ok {
 		val, err := pg.GetProperty(u.kod, e.Property)
 		if err != nil && u.kod == kod.Yok {

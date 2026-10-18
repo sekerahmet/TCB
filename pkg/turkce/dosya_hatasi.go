@@ -33,7 +33,7 @@ func (h *dosyaHatasi) Unwrap() error { return h.ozgun }
 // çok uzun, yazmaya karşı korumalı disk. Bilinmeyen durumda Türkçe bir giriş cümlesinin
 // ardından işletim sisteminin hata kodu ve özgün metni verilir (aranabilsin diye).
 //
-// err nil ise nil döner. Motor paketleri (model_yükle, tensör_kaydet/yükle,
+// err nil ise nil döner. Motor paketleri (tensör_kaydet/yükle,
 // parçalayıcı_yükle, veri_kümesi) de dosya hatalarını bununla anlatmalıdır.
 func DosyaHatasi(fn, yol, islem string, err error, ekler ...string) error {
 	if err == nil {

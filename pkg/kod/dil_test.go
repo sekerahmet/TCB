@@ -151,7 +151,7 @@ func TestASCIIKabulEdilmezOneriTurkce(t *testing.T) {
 		{AlanGenel, "yazdir", "yazdır"}, {AlanGenel, "degisken", "değişken"},
 		{AlanGenel, "islev", "fonksiyon"}, {AlanGenel, "dondur", "sonuç"}, {AlanGenel, "işlev", "fonksiyon"},
 		{AlanGenel, "tur", "tip"}, {AlanUye, "tur", "tür"}, {AlanUye, "sekil", "şekil"},
-		{AlanGenel, "en_buyuk", "maks"}, {AlanParametre, "genislik", "genişlik"},
+		{AlanGenel, "en_buyuk", "maks"}, {AlanParametre, "turev_izle", "türev_izle"},
 	} {
 		k, ok := Oneri(c.al, c.ad, nil)
 		if !ok || Ad(k) != c.want {
@@ -257,17 +257,22 @@ func TestEsYazimlarKaldirildi(t *testing.T) {
 	for _, c := range []struct {
 		kod   Kod
 		yazim string
-	}{{Y + 702, "sorgu"}, {Y + 702, "seç"}, {Y + 702, "sec"}, {Y + 403, "türev"}, {Y + 6, "göster"},
-		{Y + 8, "kapat"}, {Y + 511, "tahmin"}, {Y + 800, "url"}, {Y + 802, "get"}, {Y + 803, "post"},
-		{Y + 804, "rota"}, {Y + 900, "metrik_ekle"}, {Y + 902, "bilgi_ekle"}, {Y + 4, "kayıt_ekle"},
-		{Y + 705, "tablo_al"}, {W + 200, "veritabanı"}, {W + 300, "pencere_oluştur"}, {W + 930, "nerede"},
-		{W + 934, "params"}, {A + 200, "tamsayı"}, {A + 200, "int"}, {A + 201, "float"}, {A + 202, "string"},
+	}{{Y + 403, "türev"}, {Y + 4, "kayıt_ekle"}, {T + 910, "öğrenme_hızı"}, {A + 200, "tamsayı"}, {A + 200, "int"}, {A + 201, "float"}, {A + 202, "string"},
 		{A + 203, "bool"}, {A + 204, "null"}, {A + 205, "dizi"}, {A + 206, "map"}, {A + 212, "matris"}} {
 		if k, ok := Bul(c.kod.Alan(), c.yazim); ok {
 			t.Errorf("%q kabul edilmemeli (%s)", c.yazim, k)
 		}
 		if k, ok := Oneri(c.kod.Alan(), c.yazim, nil); !ok || k != c.kod {
 			t.Errorf("Oneri(%q) = %s %v, %s bekleniyordu", c.yazim, k, ok, c.kod)
+		}
+	}
+	// Kaldırılan kodların adları ve eski adları öneri değil "kaldırıldı" bilgisi verir.
+	for _, c := range []struct {
+		al    Alan
+		yazim string
+	}{{AlanUye, "sorgula"}, {AlanUye, "sorgu"}, {AlanGenel, "veritabanı"}, {AlanGenel, "web_sunucu"}, {AlanParametre, "params"}} {
+		if k, ok := OluBul(c.al, c.yazim); !ok || !Kaldirildi(k) {
+			t.Errorf("OluBul(%s, %q) = %s %v; kaldırılmış bir kod bekleniyordu", c.al, c.yazim, k, ok)
 		}
 	}
 }

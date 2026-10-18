@@ -164,9 +164,6 @@ func Uret() ([]byte, error) {
 	tipler := grubundakiler('A', 2, nil)
 	genel := grubundakiler('G', -1, yerlesik)
 	yz := append(grubundakiler('T', -1, yerlesik), grubundakiler('V', -1, yerlesik)...)
-	veriTabani := grubundakiler('W', 2, yerlesik)
-	web := grubundakiler('W', 1, yerlesik)
-	arayuz := grubundakiler('W', 3, yerlesik)
 
 	ic := func(ad string) string { return regexp.QuoteMeta(ad) }
 
@@ -235,9 +232,6 @@ func Uret() ([]byte, error) {
 			{"builtins", nesne{{"patterns", []nesne{
 				kural("support.function.builtin.tr", kelimeler(genel)),
 				kural("support.function.ai.tr", kelimeler(yz)),
-				kural("support.function.data.tr", kelimeler(veriTabani)),
-				kural("support.function.web.tr", kelimeler(web)),
-				kural("support.function.gui.tr", kelimeler(arayuz)),
 			}}}},
 			{"numbers", nesne{{"patterns", []nesne{
 				kural("constant.numeric.float.tr", `\b\d[\d_]*(?:\.\d[\d_]*)?[eE][+-]?\d+\b`),

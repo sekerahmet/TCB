@@ -32,8 +32,7 @@ jobs:
     env:
       GOAMD64: ${{ matrix.goamd64 }}
       # Örnek duman testinde atlanacak dosyalar (boşlukla ayrılmış adlar). Dış ağ
-      # gerektiren örnekler buraya eklenir. 09_web_veritabani yalnızca yerel (localhost)
-      # sunucu açtığından koşar; 04_hata_ayiklama etkileşimlidir, kesme noktası boş
+      # gerektiren örnekler buraya eklenir. 04_hata_ayiklama etkileşimlidir, kesme noktası boş
       # standart girişte (EOF) devam eder. 03_testler_test ayrıca `tr test` ile koşar.
       ATLANACAK_ORNEKLER: ""
       # Tek bir örneğin en uzun süresi (saniye); aşılırsa örnek başarısız sayılır.

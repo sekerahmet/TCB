@@ -2,7 +2,7 @@ package vm
 
 import "sync"
 
-// Ek motorlar (yapay zeka, web/görsel arayüz, veritabanı...) kendi yerleşiklerini her yeni
+// Ek motorlar (tensör, veri, parçalayıcı, JSON/CSV ...) kendi yerleşiklerini her yeni
 // VM'ye MotorEkle ile kaydeder. pkg/vm bu motorları içe aktarmaz; hepsini doğru sırayla
 // tanıtan paket tr_dili/pkg/motor'dur.
 var (

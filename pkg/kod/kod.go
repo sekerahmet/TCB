@@ -28,11 +28,11 @@
 //	   T9xx adlı argümanlar
 //	Y  yöntemler: metot ve özellikler (x.ad)
 //	   Y0xx birden çok tipte ortak; Y1xx Metin; Y2xx Liste; Y3xx Sözlük; Y4xx Tensör;
-//	   Y5xx iyileştirici ve SinirAğı; Y6xx veri kümesi, okuyucu, parçalayıcı;
-//	   Y7xx veritabanı; Y8xx web sunucusu; Y9xx görsel arayüz
+//	   Y5xx iyileştirici; Y6xx veri kümesi, okuyucu, parçalayıcı;
+//	   (Y7xx veritabanı, Y8xx web sunucusu, Y9xx görsel arayüz: kaldırıldı)
 //	V  veri ve parçalayıcı
 //	   V1xx veri kümesi; V2xx parçalayıcı; V9xx adlı argümanlar
-//	W  web, veritabanı, arayüz
+//	W  web, veritabanı, arayüz (kaldırıldı; kodları bir daha kullanılmaz)
 //	   W1xx web istemcisi ve sunucusu; W2xx veritabanı; W3xx görsel arayüz;
 //	   W9xx adlı argümanlar
 //	H  hata mesajları (ikinci aşama; şimdilik boş)
@@ -96,7 +96,7 @@ const (
 	H                         // hata mesajları (ikinci aşama)
 	T                         // tensör ve yapay zekâ
 	V                         // veri ve parçalayıcı
-	W                         // web, veritabanı, arayüz
+	W                         // web, veritabanı, arayüz (kaldırıldı)
 	Y                         // yöntemler: metot ve özellikler
 )
 

@@ -11,25 +11,25 @@ import (
 )
 
 // Matris ayrı bir tür değildir: matris 2 boyutlu tensördür (tensör([[...]]), birim_matris,
-// sıfırlar(2, 3)), işleçler ve eleman bazlı fonksiyonlar tensör yolundan geçer, sonuçlar eski
+// sıfırlar([2, 3])), işleçler ve eleman bazlı fonksiyonlar tensör yolundan geçer, sonuçlar eski
 // float64 matrisle (float32 duyarlığında) aynıdır.
 func TestMatrisTensordur(t *testing.T) {
 	out := mustCalistir(t, `değişken G = tensör([[1.0, 2.0], [3.0, 4.0]])
 değişken A = tensör([[0.5, -0.5], [1.0, 2.0]])
-yazdır(tip(G), G.şekil, tip(G @ A), tip(sıfırlar(2, 3)), tip(birim_matris(2)), tip(rastgele_normal([2, 2])))
+yazdır(tip(G), G.şekil, tip(G @ A), tip(sıfırlar([2, 3])), tip(birim_matris(2)), tip(rastgele_normal([2, 2])))
 yazdır(relu(G @ A))
 yazdır((G @ A).değer, (G + A).değer, (G - 1).değer, (2 * G).değer, (G / 2).değer, (G * A).değer)
 yazdır((G + tensör([10, 20])).değer, G.devrik().değer, G.devrik().değer, tensör([[1, 2]]).devrik().şekil)
-yazdır(sıfırlar(2, 3).şekil, sıfırlar(4).şekil, birler(2, 2).değer, birim_matris(3).değer)
-yazdır(softmax(tensör([[1, 2], [3, 3]])).değer, sigmoid(sıfırlar(1, 2)).değer, tanh(sıfırlar(1, 1)).değer)
-yazdır(tensör(G) == G, kayıp_mse(G, [[1, 2], [3, 6]]))`)
+yazdır(sıfırlar([2, 3]).şekil, sıfırlar([1, 4]).şekil, birler([2, 2]).değer, birim_matris(3).değer)
+yazdır(softmax(tensör([[1, 2], [3, 3]])).değer, sigmoid(sıfırlar([1, 2])).değer, tanh(sıfırlar([1, 1])).değer)
+yazdır(tensör(G) == G)`)
 	want := "Tensör [2, 2] Tensör Tensör Tensör Tensör\n" +
 		"Tensör[2×2] [\n  [2.5000, 3.5000],\n  [5.5000, 6.5000]\n]\n" +
 		"[[2.5, 3.5], [5.5, 6.5]] [[1.5, 1.5], [4.0, 6.0]] [[0.0, 1.0], [2.0, 3.0]] [[2.0, 4.0], [6.0, 8.0]] [[0.5, 1.0], [1.5, 2.0]] [[0.5, -1.0], [3.0, 8.0]]\n" +
 		"[[11.0, 22.0], [13.0, 24.0]] [[1.0, 3.0], [2.0, 4.0]] [[1.0, 3.0], [2.0, 4.0]] [2, 1]\n" +
 		"[2, 3] [1, 4] [[1.0, 1.0], [1.0, 1.0]] [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]\n" +
 		"[[0.26894143, 0.7310586], [0.5, 0.5]] [[0.5, 0.5]] [[0.0]]\n" +
-		"doğru 1.0\n"
+		"doğru\n"
 	if out != want {
 		t.Fatalf("matris:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -104,16 +104,15 @@ geri_yayılım(kayip)`)
 
 func TestMatrisBoyutDenetimi(t *testing.T) {
 	for _, kod := range []string{
-		`sıfırlar(-2, 2)`,
-		`sıfırlar(-3)`,
-		`birler(0, 4)`,
+		`sıfırlar([-2, 2])`,
+		`sıfırlar(2, 3)`,
 		`birler(3)`,
-		`sıfırlar(2, 3, 4)`,
+		`sıfırlar([2], [3])`,
 		`birim_matris(-1)`,
 		`birim_matris(2.5)`,
 		`rastgele_normal([2, -7])`,
 		`rastgele_normal([2, 2], tohum: "a")`,
-		`sıfırlar(100000, 100000)`,
+		`sıfırlar([100000, 100000])`,
 		`tensör([[1, 2], [3]])`,
 		`tensör([["a"]])`,
 		`tensör([1, 2]).devrik()`,

@@ -1,5 +1,5 @@
 // Package jsonyaz TR değerlerini JSON metnine yazan tek yerdir: json_metin, web sunucusunun
-// yanıtları ve web_gönder'in gövdesi bunu kullanır. Go'nun map tabanlı yazımından farkları:
+// bunu kullanır. Go'nun map tabanlı yazımından farkları:
 //   - Sözlük anahtarları sözlükteki sırayla yazılır (json_metin(json_çöz('{"b":1,"a":2}'))
 //     '{"b":1,"a":2}' verir).
 //   - Döngüsel ya da çok derin değerler yığın taşması yerine Türkçe hata verir.

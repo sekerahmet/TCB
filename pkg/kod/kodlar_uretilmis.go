@@ -4,7 +4,7 @@ package kod
 
 // Sözlükteki (tr.json) her canlı kodun adlı sabiti. Sabitin adı kodun kendisidir,
 // kullanıcıya görünen ad değildir: ad değişse de sabit değişmez. Yorumdaki ad yalnızca
-// okuyana yardımdır. Taşınan (kaldırılan) kodların sabiti yoktur; bkz. tasinanlar.
+// okuyana yardımdır. Taşınan ve kaldırılan kodların sabiti yoktur; bkz. tasinanlar, kaldirilanlar.
 const (
 	A001 Kod = A + 1   // eğer
 	A002 Kod = A + 2   // değilse
@@ -53,14 +53,10 @@ const (
 	A211 Kod = A + 211 // Nesne
 	A212 Kod = A + 212 // Tensör
 	A213 Kod = A + 213 // Herhangi
-	A230 Kod = A + 230 // SinirAğı
 	A231 Kod = A + 231 // VeriKümesi
 	A232 Kod = A + 232 // Örnekleyici
 	A233 Kod = A + 233 // SıralıOkuyucu
 	A234 Kod = A + 234 // Parçalayıcı
-	A240 Kod = A + 240 // Veritabanı
-	A241 Kod = A + 241 // WebSunucu
-	A242 Kod = A + 242 // GörselArayüz
 	G100 Kod = G + 100 // yazdır
 	G101 Kod = G + 101 // girdi
 	G110 Kod = G + 110 // dosya_oku
@@ -116,15 +112,7 @@ const (
 	T502 Kod = T + 502 // rms_normu
 	T503 Kod = T + 503 // dikkat
 	T510 Kod = T + 510 // çapraz_entropi
-	T511 Kod = T + 511 // kayıp_mse
-	T520 Kod = T + 520 // sinir_ağı
-	T521 Kod = T + 521 // model_yükle
 	T530 Kod = T + 530 // parametreler
-	T600 Kod = T + 600 // normalize_et
-	T601 Kod = T + 601 // nokta_çarpım
-	T602 Kod = T + 602 // kosinüs_benzerliği
-	T603 Kod = T + 603 // öklid_uzaklığı
-	T610 Kod = T + 610 // yz_sor
 	T611 Kod = T + 611 // örnekle
 	T700 Kod = T + 700 // tensör_kaydet
 	T701 Kod = T + 701 // tensör_yükle
@@ -144,10 +132,6 @@ const (
 	T915 Kod = T + 915 // ana_kopya
 	T920 Kod = T + 920 // ağırlık
 	T921 Kod = T + 921 // sapma
-	T930 Kod = T + 930 // devir
-	T932 Kod = T + 932 // aktivasyon
-	T940 Kod = T + 940 // model
-	T941 Kod = T + 941 // adres
 	T950 Kod = T + 950 // nedensel
 	T951 Kod = T + 951 // pencere
 	T952 Kod = T + 952 // maske
@@ -166,33 +150,10 @@ const (
 	V903 Kod = V + 903 // bağlam
 	V910 Kod = V + 910 // özel_parçalar
 	V911 Kod = V + 911 // ikinci
-	W100 Kod = W + 100 // web_al
-	W101 Kod = W + 101 // web_gönder
-	W110 Kod = W + 110 // web_sunucu
-	W200 Kod = W + 200 // veritabanı_aç
-	W210 Kod = W + 210 // tablo_sorgula
-	W300 Kod = W + 300 // arayüz_oluştur
-	W900 Kod = W + 900 // port
-	W901 Kod = W + 901 // arka_plan
-	W910 Kod = W + 910 // genişlik
-	W911 Kod = W + 911 // yükseklik
-	W912 Kod = W + 912 // pencere_aç
-	W920 Kod = W + 920 // alt_bilgi
-	W921 Kod = W + 921 // renk
-	W922 Kod = W + 922 // tip
-	W930 Kod = W + 930 // koşul
-	W931 Kod = W + 931 // sırala
-	W932 Kod = W + 932 // limit
-	W933 Kod = W + 933 // alanlar
-	W934 Kod = W + 934 // parametreler
 	Y001 Kod = Y + 1   // uzunluk
 	Y002 Kod = Y + 2   // içerir
 	Y003 Kod = Y + 3   // ters_çevir
 	Y004 Kod = Y + 4   // ekle
-	Y005 Kod = Y + 5   // kaydet
-	Y006 Kod = Y + 6   // başlat
-	Y007 Kod = Y + 7   // arka_planda_başlat
-	Y008 Kod = Y + 8   // durdur
 	Y100 Kod = Y + 100 // büyük_harf
 	Y101 Kod = Y + 101 // küçük_harf
 	Y102 Kod = Y + 102 // kırp
@@ -223,9 +184,6 @@ const (
 	Y415 Kod = Y + 415 // türe
 	Y500 Kod = Y + 500 // adım
 	Y501 Kod = Y + 501 // sıfırla
-	Y510 Kod = Y + 510 // eğit
-	Y511 Kod = Y + 511 // tahmin_et
-	Y512 Kod = Y + 512 // ağırlıklar
 	Y600 Kod = Y + 600 // örnekleyici
 	Y601 Kod = Y + 601 // sıralı
 	Y602 Kod = Y + 602 // sonraki
@@ -233,28 +191,6 @@ const (
 	Y611 Kod = Y + 611 // çöz
 	Y612 Kod = Y + 612 // dağarcık_boyutu
 	Y613 Kod = Y + 613 // parça_kimliği
-	Y700 Kod = Y + 700 // tablolar
-	Y701 Kod = Y + 701 // tablo_oluştur
-	Y702 Kod = Y + 702 // sorgula
-	Y703 Kod = Y + 703 // güncelle
-	Y704 Kod = Y + 704 // sil
-	Y705 Kod = Y + 705 // hepsini_al
-	Y706 Kod = Y + 706 // say
-	Y800 Kod = Y + 800 // adres
-	Y801 Kod = Y + 801 // port
-	Y802 Kod = Y + 802 // al
-	Y803 Kod = Y + 803 // gönder
-	Y804 Kod = Y + 804 // rota_ekle
-	Y805 Kod = Y + 805 // statik_klasör
-	Y900 Kod = Y + 900 // kart_ekle
-	Y901 Kod = Y + 901 // başlık_ekle
-	Y902 Kod = Y + 902 // metin_ekle
-	Y903 Kod = Y + 903 // tablo_ekle
-	Y904 Kod = Y + 904 // grafik_ekle
-	Y905 Kod = Y + 905 // form_ekle
-	Y906 Kod = Y + 906 // buton_ekle
-	Y907 Kod = Y + 907 // html_kaydet
-	Y908 Kod = Y + 908 // html_üret
 )
 
 // tasinanlar kaldırılıp işi başka bir koda (başka bir biçime: fonksiyondan metoda ya da
@@ -271,4 +207,74 @@ var tasinanlar = map[Kod]Kod{
 	T + 120: Y + 411, // T120 → Y411
 	Y + 205: G + 400, // Y205 → G400
 	Y + 206: G + 410, // Y206 → G410
+}
+
+// kaldirilanlar yerine geçen olmadan dilden kaldırılan kodlardır (tanim.json'daki
+// "kaldırıldı" alanı). Numaraları bir daha kullanılmaz; adları yalnızca "TR'den
+// kaldırıldı" hatası için dil dosyasında kalır.
+var kaldirilanlar = map[Kod]bool{
+	A + 230: true, // A230 SinirAğı
+	A + 240: true, // A240 Veritabanı
+	A + 241: true, // A241 WebSunucu
+	A + 242: true, // A242 GörselArayüz
+	T + 511: true, // T511 kayıp_mse
+	T + 520: true, // T520 sinir_ağı
+	T + 521: true, // T521 model_yükle
+	T + 600: true, // T600 normalize_et
+	T + 601: true, // T601 nokta_çarpım
+	T + 602: true, // T602 kosinüs_benzerliği
+	T + 603: true, // T603 öklid_uzaklığı
+	T + 610: true, // T610 yz_sor
+	T + 930: true, // T930 devir
+	T + 932: true, // T932 aktivasyon
+	T + 940: true, // T940 model
+	T + 941: true, // T941 adres
+	W + 100: true, // W100 web_al
+	W + 101: true, // W101 web_gönder
+	W + 110: true, // W110 web_sunucu
+	W + 200: true, // W200 veritabanı_aç
+	W + 210: true, // W210 tablo_sorgula
+	W + 300: true, // W300 arayüz_oluştur
+	W + 900: true, // W900 port
+	W + 901: true, // W901 arka_plan
+	W + 910: true, // W910 genişlik
+	W + 911: true, // W911 yükseklik
+	W + 912: true, // W912 pencere_aç
+	W + 920: true, // W920 alt_bilgi
+	W + 921: true, // W921 renk
+	W + 922: true, // W922 tip
+	W + 930: true, // W930 koşul
+	W + 931: true, // W931 sırala
+	W + 932: true, // W932 limit
+	W + 933: true, // W933 alanlar
+	W + 934: true, // W934 parametreler
+	Y + 5:   true, // Y005 kaydet
+	Y + 6:   true, // Y006 başlat
+	Y + 7:   true, // Y007 arka_planda_başlat
+	Y + 8:   true, // Y008 durdur
+	Y + 510: true, // Y510 eğit
+	Y + 511: true, // Y511 tahmin_et
+	Y + 512: true, // Y512 ağırlıklar
+	Y + 700: true, // Y700 tablolar
+	Y + 701: true, // Y701 tablo_oluştur
+	Y + 702: true, // Y702 sorgula
+	Y + 703: true, // Y703 güncelle
+	Y + 704: true, // Y704 sil
+	Y + 705: true, // Y705 hepsini_al
+	Y + 706: true, // Y706 say
+	Y + 800: true, // Y800 adres
+	Y + 801: true, // Y801 port
+	Y + 802: true, // Y802 al
+	Y + 803: true, // Y803 gönder
+	Y + 804: true, // Y804 rota_ekle
+	Y + 805: true, // Y805 statik_klasör
+	Y + 900: true, // Y900 kart_ekle
+	Y + 901: true, // Y901 başlık_ekle
+	Y + 902: true, // Y902 metin_ekle
+	Y + 903: true, // Y903 tablo_ekle
+	Y + 904: true, // Y904 grafik_ekle
+	Y + 905: true, // Y905 form_ekle
+	Y + 906: true, // Y906 buton_ekle
+	Y + 907: true, // Y907 html_kaydet
+	Y + 908: true, // Y908 html_üret
 }

@@ -3,7 +3,7 @@
 // fonksiyonları, türevsiz çalışma, iyileştiriciler ve hazır sinir ağı modeli.
 //
 // Dilin tek sayısal dizi türü tensördür: tek sayıdan tensör 0 boyutlu, matris adlı
-// oluşturucuların (matris, sıfırlar(2, 3), birim_matris ...) sonucu 2 boyutlu tensördür.
+// oluşturucuların (sıfırlar([2, 3]), birim_matris ...) sonucu 2 boyutlu tensördür.
 //
 // Aynı adı taşıyan çekirdek ve yapay zekâ yerleşikleri (toplam, ortalama, min, maks,
 // karekök) silinmez; kayıt sırasında sarılır: argüman tensörse yeni yol, değilse eski

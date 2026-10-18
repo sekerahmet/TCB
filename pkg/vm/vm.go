@@ -159,6 +159,7 @@ func New() *VM {
 		CallStack: []StackFrame{},
 	}
 	v.registerBuiltins()
+	v.registerIstatistik()
 	v.registerMotors()
 	v.registerTestBuiltins()
 	return v

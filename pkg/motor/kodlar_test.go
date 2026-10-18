@@ -59,10 +59,10 @@ func calistirAyni(t *testing.T, m *vm.VM, kd string) (vm.Value, error) {
 	return m.Run(prog)
 }
 
-// Sözlükteki her üye kodu (Y) bütün yazımlarıyla en az bir tipte çalışmalı: kodu olup da
-// hiçbir switch'te karşılanmayan (ya da yalnızca bir yazımı karşılanan) üye kalmamalı.
-// Veri kümesi ve okuyucu üyeleri (Y600-Y602) dizin gerektirdiği için pkg/motor/veri
-// testlerinde denenir.
+// Kod listesindeki her üye kodu (Y) bütün yazımlarıyla en az bir tipte çalışmalı: kodu
+// olup da hiçbir switch'te karşılanmayan (ya da yalnızca bir yazımı karşılanan) üye
+// kalmamalı. Veri kümesi ve okuyucu üyeleri (Y600-Y602) dizin gerektirdiği için
+// pkg/motor/veri testlerinde denenir.
 func TestUyelerSozlukleTutarli(t *testing.T) {
 	m := vm.New()
 	kur := strings.Join([]string{
@@ -71,16 +71,12 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		`değişken u_sozluk = {"a": 1}`,
 		`değişken u_tensor = tensör([[1.0, 2.0]], türev_izle: doğru)`,
 		`değişken u_iyilestirici = SGD([u_tensor])`,
-		`değişken u_model = sinir_ağı([2, 1])`,
-		`değişken u_vt = veritabanı_aç(":bellek:")`,
-		`değişken u_web = web_sunucu(port: 18080)`, // başlatılmaz; port yalnızca geçerli olmalı
-		`değişken u_arayuz = arayüz_oluştur("deneme")`,
 		`değişken u_parcalayici = parçalayıcı_yükle("../parcalayici/testdata/p_bayt_bpe.json")`,
 	}, "\n")
 	if _, err := calistirAyni(t, m, kur); err != nil {
 		t.Fatal(err)
 	}
-	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_model", "u_vt", "u_web", "u_arayuz", "u_parcalayici"}
+	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici"}
 	for _, k := range kod.Kodlar() {
 		if k.Alan() != kod.AlanUye || (k >= kod.Y600 && k <= kod.Y602) {
 			continue
@@ -101,34 +97,20 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 	// Motor tiplerinde ASCII yazılmış üye adı hata verir ve Türkçe adı önerir; öneri
 	// yalnızca o tipte geçerli bir üye için yapılır.
 	for _, c := range []struct{ kod, want string }{
-		{"u_vt.tablo_olustur", "'tablo_olustur' TR'de yok; 'tablo_oluştur' yazmak mı istediniz?"},
-		{"u_web.baslat", "'baslat' TR'de yok; 'başlat' yazmak mı istediniz?"},
-		{"u_arayuz.baslik_ekle", "'baslik_ekle' TR'de yok; 'başlık_ekle' yazmak mı istediniz?"},
-		{"u_model.egit", "'egit' TR'de yok; 'eğit' yazmak mı istediniz?"},
+		{"u_tensor.sekil", "Bunu mu demek istediniz: 'şekil'?"},
+		{"u_iyilestirici.sifirla", "Bunu mu demek istediniz: 'sıfırla'?"},
+		{"u_parcalayici.coz", "Bunu mu demek istediniz: 'çöz'?"},
 	} {
 		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
 		}
 	}
-	if _, err := calistirAyni(t, m, "u_vt.baslik_ekle"); err == nil || strings.Contains(err.Error(), "başlık_ekle") {
-		t.Errorf("veritabanında başlık_ekle önerilmemeli: %v", err)
+	if _, err := calistirAyni(t, m, "u_tensor.kodla"); err == nil || strings.Contains(err.Error(), "yazmak mı istediniz") {
+		t.Errorf("tensörde kodla önerilmemeli: %v", err)
 	}
 	// Kaldırılan eş yazımlar hata verir ve asıl adı önerir.
 	for _, c := range []struct{ kod, want string }{
-		{"u_vt.sorgu", "'sorgu' TR'de yok; 'sorgula' yazmak mı istediniz?"},
-		{"u_vt.seç", "'seç' TR'de yok; 'sorgula' yazmak mı istediniz?"},
-		{"u_vt.tablo_al", "'tablo_al' TR'de yok; 'hepsini_al' yazmak mı istediniz?"},
-		{"u_vt.kayıt_ekle", "'kayıt_ekle' TR'de yok; 'ekle' yazmak mı istediniz?"},
 		{"u_liste.kayıt_ekle", "'kayıt_ekle' TR'de yok; 'ekle' yazmak mı istediniz?"},
-		{"u_web.url", "'url' TR'de yok; 'adres' yazmak mı istediniz?"},
-		{"u_web.get", "'get' TR'de yok; 'al' yazmak mı istediniz?"},
-		{"u_web.post", "'post' TR'de yok; 'gönder' yazmak mı istediniz?"},
-		{"u_web.rota", "'rota' TR'de yok; 'rota_ekle' yazmak mı istediniz?"},
-		{"u_web.kapat", "'kapat' TR'de yok; 'durdur' yazmak mı istediniz?"},
-		{"u_arayuz.göster", "'göster' TR'de yok; 'başlat' yazmak mı istediniz?"},
-		{"u_arayuz.metrik_ekle", "'metrik_ekle' TR'de yok; 'kart_ekle' yazmak mı istediniz?"},
-		{"u_arayuz.bilgi_ekle", "'bilgi_ekle' TR'de yok; 'metin_ekle' yazmak mı istediniz?"},
-		{"u_model.tahmin", "'tahmin' TR'de yok; 'tahmin_et' yazmak mı istediniz?"},
 		{"u_tensor.türev", "'gradyan'"},
 		{"u_parcalayici.sözlük_boyutu", "'sözlük_boyutu' TR'de yok; 'dağarcık_boyutu' yazmak mı istediniz?"},
 		{"u_parcalayici.token_kimliği", "'token_kimliği' TR'de yok; 'parça_kimliği' yazmak mı istediniz?"},
@@ -138,16 +120,26 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
 		}
 	}
-	// Kaldırılan yerleşik eş yazımları da asıl adı önerir.
+	// Dilden kaldırılan yerleşikler, üyeler ve onların eski adları: "TR'den kaldırıldı".
 	for _, c := range []struct{ kod, want string }{
-		{`veritabanı(":bellek:")`, "'veritabanı' TR'de yok; 'veritabanı_aç' yazmak mı istediniz?"},
-		{`pencere_oluştur("a")`, "'pencere_oluştur' TR'de yok; 'arayüz_oluştur' yazmak mı istediniz?"},
-		{`tablo_sorgula([{"a": 1}], nerede: "a = 1")`, "tablo_sorgula 'nerede' adında bir parametre almaz. Bunu mu demek istediniz: 'koşul'?"},
-		{`tablo_sorgula([{"a": 1}], "a = ?", params: [1])`, "Bunu mu demek istediniz: 'parametreler'?"},
-		{`u_vt.sorgula("SEÇ * TABLO t", params: [1])`, "vt.sorgula 'params' adında bir parametre almaz. Bunu mu demek istediniz: 'parametreler'?"},
+		{`veritabanı_aç(":bellek:")`, "'veritabanı_aç' TR'den kaldırıldı"},
+		{`veritabanı(":bellek:")`, "'veritabanı' TR'den kaldırıldı"},
+		{`web_sunucu(port: 8080)`, "'web_sunucu' TR'den kaldırıldı"},
+		{`arayüz_oluştur("a")`, "'arayüz_oluştur' TR'den kaldırıldı"},
+		{`pencere_oluştur("a")`, "'pencere_oluştur' TR'den kaldırıldı"},
+		{`sinir_ağı([2, 1])`, "'sinir_ağı' TR'den kaldırıldı"},
+		{`kayıp_mse([1], [1])`, "'kayıp_mse' TR'den kaldırıldı"},
+		{`yz_sor("a")`, "'yz_sor' TR'den kaldırıldı"},
+		{`nokta_çarpım([1], [1])`, "'nokta_çarpım' TR'den kaldırıldı"},
+		{"u_liste.kaydet", "'kaydet' TR'den kaldırıldı"},
+		{"u_tensor.eğit", "'eğit' TR'den kaldırıldı"},
 	} {
 		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
 		}
+	}
+	// Kaldırılan adlar sıradan adlardır.
+	if v, err := calistirAyni(t, m, "değişken web_sunucu = 3\nweb_sunucu + 1"); err != nil || v.Inspect() != "4" {
+		t.Errorf("kaldırılan ad değişken adı olabilmeli: %v %v", v, err)
 	}
 }

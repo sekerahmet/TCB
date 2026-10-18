@@ -46,7 +46,7 @@ func TestDilbilgisiTekYazim(t *testing.T) {
 			kelimeler[k] = true
 		}
 	}
-	for _, ad := range []string{"eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veritabanı_aç", "arayüz_oluştur", "kesme_noktası", "Ondalık"} {
+	for _, ad := range []string{"eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veri_kümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık"} {
 		if !kelimeler[ad] {
 			t.Errorf("%q listelerde olmalı", ad)
 		}

@@ -101,7 +101,7 @@ var aileler = []struct {
 		{'V', 2, "Parçalayıcı (V2xx)"},
 		{'V', 9, "Adlı argümanlar (V9xx)"},
 	}},
-	{'W', "W — Web, veritabanı, arayüz", []bolum{
+	{'W', "W — Web, veritabanı, arayüz (kaldırıldı)", []bolum{
 		{'W', 1, "Web istemcisi ve sunucusu (W1xx)"},
 		{'W', 2, "Veritabanı (W2xx)"},
 		{'W', 3, "Görsel arayüz (W3xx)"},
@@ -113,7 +113,7 @@ var aileler = []struct {
 		{'Y', 2, "Liste (Y2xx)"},
 		{'Y', 3, "Sözlük (Y3xx)"},
 		{'Y', 4, "Tensör (Y4xx)"},
-		{'Y', 5, "İyileştirici ve SinirAğı (Y5xx)"},
+		{'Y', 5, "İyileştirici (Y5xx)"},
 		{'Y', 6, "Veri kümesi, okuyucu, parçalayıcı (Y6xx)"},
 		{'Y', 7, "Veritabanı (Y7xx)"},
 		{'Y', 8, "Web sunucusu (Y8xx)"},
@@ -220,7 +220,7 @@ func Uret() ([]byte, error) {
 		return nil, fmt.Errorf("tanımlar tutarsız: %v", hatalar[0])
 	}
 	d := kod.Etkin()
-	tumu := append(d.Kodlar(), d.Tasinanlar()...)
+	tumu := append(d.Kodlar(), d.Olular()...)
 	sort.Slice(tumu, func(i, j int) bool { return tumu[i] < tumu[j] })
 
 	// Ters bağlar: adlı argümanı kullananlar, tipin üyeleri.
@@ -266,9 +266,9 @@ func Uret() ([]byte, error) {
 		t, _ := kod.Tanimi(k)
 		sayilar[t.Tur]++
 	}
-	fmt.Fprintf(&b, "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d tip, %d fonksiyon, %d metot, %d özellik, %d adlı argüman; %d kaldırılmış (taşınmış) kod.\n\n",
+	fmt.Fprintf(&b, "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d tip, %d fonksiyon, %d metot, %d özellik, %d adlı argüman; ayrıca %d taşınmış ve %d kaldırılmış kod (numaraları bir daha kullanılmaz).\n\n",
 		len(d.Kodlar()), sayilar[kod.TurAnahtarKelime], sayilar[kod.TurBaglamsal], sayilar[kod.TurTip], sayilar[kod.TurFonksiyon],
-		sayilar[kod.TurMetot], sayilar[kod.TurOzellik], sayilar[kod.TurAdliArguman], len(d.Tasinanlar()))
+		sayilar[kod.TurMetot], sayilar[kod.TurOzellik], sayilar[kod.TurAdliArguman], len(d.Tasinanlar()), len(d.Kaldirilanlar()))
 	b.WriteString("## İçindekiler\n\n")
 	for _, a := range aileler {
 		fmt.Fprintf(&b, "- %s: ", a.baslik)
@@ -296,6 +296,10 @@ func Uret() ([]byte, error) {
 			for _, k := range ks {
 				g, _ := d.Girdisi(k)
 				t, _ := kod.Tanimi(k)
+				if g.Kaldirildi {
+					fmt.Fprintf(&b, "#### %s `%s` — kaldırıldı\n\n%s\n\n", k, g.Ad, g.Aciklama)
+					continue
+				}
 				if g.Tasindi != kod.Yok {
 					fmt.Fprintf(&b, "#### %s `%s` — kaldırıldı\n\n", k, g.Ad)
 					fmt.Fprintf(&b, "Taşındı: %s → `%s`. %s\n\n", kodAdi(g.Tasindi), tasinmisBicim(g.Tasindi), g.Aciklama)

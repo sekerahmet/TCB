@@ -5,12 +5,8 @@
 *.out
 
 # Örnek programların çalışırken ürettiği dosyalar
-ornekler/kurumsal_panel.html
-ornekler/sirket_paneli.trdb
-ornekler/xor_modeli.json
 ornekler/agirliklar.trt
-*.trdb
-*.trdb.kilit
+ornekler/xor_agirliklari.trt
 
 # Go araç çıktıları
 coverage.*

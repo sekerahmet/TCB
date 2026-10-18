@@ -83,7 +83,7 @@ func yokIpucu(ad, asil string) string {
 	return fmt.Sprintf(" ('%s' TR'de yok; '%s' yazmak mı istediniz?)", ad, asil)
 }
 
-// uyeOneriHatasi motor tiplerinde (Tensör, Veritabanı, WebSunucu ...) bulunamayan bir üye
+// uyeOneriHatasi motor tiplerinde (Tensör, Parçalayıcı, VeriKümesi ...) bulunamayan bir üye
 // adı bu tipin bir üyesinin ASCII biçimi ya da kaldırılmış adıysa, hatayı asıl adı öneren
 // bir hatayla değiştirir; değilse hatayı olduğu gibi döndürür. Önerinin bu tipte gerçekten
 // geçerli olduğu asıl adla yeniden okunarak doğrulanır (üye okumak yan etkisizdir:

@@ -24,9 +24,12 @@ func alici(tip kod.Kod) string {
 // ASCII biçimiyse yeni biçimi gösteren hata metnini verir; değilse boş metin.
 // ör. "'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın".
 func tasinanGenelAdHatasi(ad string) string {
-	eski, ok := kod.TasinanBul(kod.AlanGenel, ad)
+	eski, ok := kod.OluBul(kod.AlanGenel, ad)
 	if !ok {
 		return ""
+	}
+	if kod.Kaldirildi(eski) {
+		return kaldirildiHatasi(ad)
 	}
 	yeni, _ := kod.Tasindi(eski)
 	if yeni.Alan() != kod.AlanUye {
@@ -39,9 +42,12 @@ func tasinanGenelAdHatasi(ad string) string {
 // tipi alıyorsa) yeni biçimi gösteren hata metnini verir; değilse boş metin.
 // ör. "'liste.toplam()' TR'de yok; 'toplam(liste)' yazın".
 func tasinanUyeHatasi(obj Value, prop string) string {
-	eski, ok := kod.TasinanBul(kod.AlanUye, prop)
+	eski, ok := kod.OluBul(kod.AlanUye, prop)
 	if !ok {
 		return ""
+	}
+	if kod.Kaldirildi(eski) {
+		return kaldirildiHatasi(prop)
 	}
 	yeni, _ := kod.Tasindi(eski)
 	tip, ok := kod.Bul(kod.AlanTip, string(obj.Type()))
@@ -54,4 +60,9 @@ func tasinanUyeHatasi(obj Value, prop string) string {
 	}
 	a := alici(tip)
 	return fmt.Sprintf("'%s.%s()' TR'de yok; '%s(%s)' yazın", a, prop, kod.Ad(yeni), a)
+}
+
+// kaldirildiHatasi yerine geçen olmadan kaldırılmış bir adın hata metnidir.
+func kaldirildiHatasi(ad string) string {
+	return fmt.Sprintf("'%s' TR'den kaldırıldı", ad)
 }

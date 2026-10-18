@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 249 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 22 tip, 76 fonksiyon, 58 metot, 12 özellik, 48 adlı argüman; 9 kaldırılmış (taşınmış) kod.
+Toplam 185 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 18 tip, 62 fonksiyon, 32 metot, 9 özellik, 31 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -16,8 +16,8 @@ Toplam 249 kod: 28 anahtar kelime, 5 bağlamsal sözcük, 22 tip, 76 fonksiyon, 
 - G — Genel yerleşikler: Giriş, çıkış ve dosya (G1xx) · Değer, tip ve dönüşüm (G2xx) · Liste (G3xx) · Matematik ve istatistik (G4xx) · Zaman ve eşzamanlılık (G5xx) · Veri biçimleri (G6xx) · Test (G7xx)
 - T — Tensör ve yapay zekâ: Tensör oluşturma ve görünüm (T1xx) · Etkinleştirme ve eleman bazlı matematik (T2xx) · Türev (T3xx) · İyileştiriciler (T4xx) · Katmanlar, kayıplar, hazır model (T5xx) · Vektör yardımcıları ve dil modeli (T6xx) · Kaydetme, yükleme, veri türleri (T7xx) · Adlı argümanlar (T9xx)
 - V — Veri ve parçalayıcı: Veri kümesi (V1xx) · Parçalayıcı (V2xx) · Adlı argümanlar (V9xx)
-- W — Web, veritabanı, arayüz: Web istemcisi ve sunucusu (W1xx) · Veritabanı (W2xx) · Görsel arayüz (W3xx) · Adlı argümanlar (W9xx)
-- Y — Metot ve özellikler (x.ad): Birden çok tipte ortak (Y0xx) · Metin (Y1xx) · Liste (Y2xx) · Sözlük (Y3xx) · Tensör (Y4xx) · İyileştirici ve SinirAğı (Y5xx) · Veri kümesi, okuyucu, parçalayıcı (Y6xx) · Veritabanı (Y7xx) · Web sunucusu (Y8xx) · Görsel arayüz (Y9xx)
+- W — Web, veritabanı, arayüz (kaldırıldı): Web istemcisi ve sunucusu (W1xx) · Veritabanı (W2xx) · Görsel arayüz (W3xx) · Adlı argümanlar (W9xx)
+- Y — Metot ve özellikler (x.ad): Birden çok tipte ortak (Y0xx) · Metin (Y1xx) · Liste (Y2xx) · Sözlük (Y3xx) · Tensör (Y4xx) · İyileştirici (Y5xx) · Veri kümesi, okuyucu, parçalayıcı (Y6xx) · Veritabanı (Y7xx) · Web sunucusu (Y8xx) · Görsel arayüz (Y9xx)
 - Boru hattıyla kullanılabilen fonksiyonlar
 
 ## A — Dilin çekirdeği
@@ -492,15 +492,9 @@ Tip denetleyicisinin tipi bilinmeyen değerler için kullandığı tiptir; Herha
 fonksiyon kimlik(x: Herhangi) { sonuç x }; yazdır(kimlik(5), kimlik("beş"))
 ```
 
-#### A230 `SinirAğı`
+#### A230 `SinirAğı` — kaldırıldı
 
-sinir_ağı(...) ile kurulan hazır modelin tipidir.
-
-```tr
-değişken ağ = sinir_ağı([2, 4, 1]); yazdır(tip(ağ) == "SinirAğı")
-```
-
-Üyeleri: Y005 `kaydet`, Y510 `eğit`, Y511 `tahmin_et`, Y512 `ağırlıklar` · İlişkili: T520 `sinir_ağı`
+Kaldırıldı: 'SinirAğı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### A231 `VeriKümesi`
 
@@ -542,35 +536,17 @@ değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(t
 
 Üyeleri: Y610 `kodla`, Y611 `çöz`, Y612 `dağarcık_boyutu`, Y613 `parça_kimliği` · İlişkili: V200 `parçalayıcı_yükle`
 
-#### A240 `Veritabanı`
+#### A240 `Veritabanı` — kaldırıldı
 
-veritabanı_aç(...) ile açılan veritabanının tipidir; ":bellek:" yolu bellekte bir veritabanı açar.
+Kaldırıldı: 'Veritabanı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-değişken vt = veritabanı_aç(":bellek:"); yazdır(tip(vt) == "Veritabanı")
-```
+#### A241 `WebSunucu` — kaldırıldı
 
-Üyeleri: Y004 `ekle`, Y005 `kaydet`, Y700 `tablolar`, Y701 `tablo_oluştur`, Y702 `sorgula`, Y703 `güncelle`, Y704 `sil`, Y705 `hepsini_al`, Y706 `say` · İlişkili: W200 `veritabanı_aç`
+Kaldırıldı: 'WebSunucu' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### A241 `WebSunucu`
+#### A242 `GörselArayüz` — kaldırıldı
 
-web_sunucu(...) ile oluşturulan web sunucusunun tipidir; oluşturmak sunucuyu başlatmaz.
-
-```tr
-değişken api = web_sunucu(port: 18080); yazdır(tip(api) == "WebSunucu")
-```
-
-Üyeleri: Y006 `başlat`, Y007 `arka_planda_başlat`, Y008 `durdur`, Y800 `adres`, Y801 `port`, Y802 `al`, Y803 `gönder`, Y804 `rota_ekle`, Y805 `statik_klasör` · İlişkili: W110 `web_sunucu`
-
-#### A242 `GörselArayüz`
-
-arayüz_oluştur(...) ile oluşturulan görsel arayüzün tipidir; oluşturmak pencere açmaz.
-
-```tr
-değişken ekran = arayüz_oluştur("Panel"); yazdır(tip(ekran) == "GörselArayüz")
-```
-
-Üyeleri: Y005 `kaydet`, Y006 `başlat`, Y007 `arka_planda_başlat`, Y008 `durdur`, Y900 `kart_ekle`, Y901 `başlık_ekle`, Y902 `metin_ekle`, Y903 `tablo_ekle`, Y904 `grafik_ekle`, Y905 `form_ekle`, Y906 `buton_ekle`, Y907 `html_kaydet`, Y908 `html_üret` · İlişkili: W300 `arayüz_oluştur`
+Kaldırıldı: 'GörselArayüz' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ## G — Genel yerleşikler
 
@@ -698,7 +674,7 @@ Taşındı: Y202 `sırala` → `liste.sırala()`. Kaldırıldı: listeyi sırala
 
 #### G304 `ekle` — kaldırıldı
 
-Taşındı: Y004 `ekle` → `x.ekle(...)`. Kaldırıldı: listeye eleman eklemek metottur; liste.ekle(x) yazılır. ekle(liste, x) hata verip yeni biçimi önerir.
+Taşındı: Y004 `ekle` → `liste.ekle(...)`. Kaldırıldı: listeye eleman eklemek metottur; liste.ekle(x) yazılır. ekle(liste, x) hata verip yeni biçimi önerir.
 
 #### G305 `aralık`
 
@@ -942,9 +918,9 @@ değişken t = tensör([[1, 2], [3, 4]], türev_izle: doğru); yazdır(t.şekil,
 
 #### T101 `sıfırlar`
 
-    sıfırlar(Liste | Tam, [Tam], türev_izle: Mantık = yanlış, tür: Metin = "float32") → Tensör
+    sıfırlar(Liste, türev_izle: Mantık = yanlış, tür: Metin = "float32") → Tensör
 
-Verilen şekilde, bütün elemanları 0 olan bir tensör oluşturur. Şekil liste olarak verilir; sıfırlar(2, 3) biçimi de kabul edilir ama adlı argüman almaz.
+Verilen şekilde, bütün elemanları 0 olan bir tensör oluşturur. Şekil yalnızca liste olarak verilir; sıfırlar(2, 3) yazımı hatadır ve liste biçimini önerir.
 
 ```tr
 yazdır(sıfırlar([2, 3]).şekil)
@@ -954,9 +930,9 @@ yazdır(sıfırlar([2, 3]).şekil)
 
 #### T102 `birler`
 
-    birler(Liste | Tam, [Tam], türev_izle: Mantık = yanlış, tür: Metin = "float32") → Tensör
+    birler(Liste, türev_izle: Mantık = yanlış, tür: Metin = "float32") → Tensör
 
-Verilen şekilde, bütün elemanları 1 olan bir tensör oluşturur. Şekil liste olarak verilir; birler(2, 3) biçimi de kabul edilir ama adlı argüman almaz.
+Verilen şekilde, bütün elemanları 1 olan bir tensör oluşturur. Şekil yalnızca liste olarak verilir ([2, 3]).
 
 ```tr
 yazdır(birler([2, 2], tür: "bf16").değer)
@@ -966,9 +942,9 @@ yazdır(birler([2, 2], tür: "bf16").değer)
 
 #### T103 `rastgele_normal`
 
-    rastgele_normal(Liste | Tam, [Tam...], türev_izle: Mantık = yanlış, tür: Metin = "float32", tohum: Tam) → Tensör
+    rastgele_normal(Liste, türev_izle: Mantık = yanlış, tür: Metin = "float32", tohum: Tam) → Tensör
 
-Ortalaması 0, standart sapması 1 olan normal dağılımdan rastgele sayılarla dolu bir tensör oluşturur. Aynı tam sayı tohum her çalıştırmada aynı değerleri verir; şekil liste ya da ayrı tam sayılar olarak verilebilir.
+Ortalaması 0, standart sapması 1 olan normal dağılımdan rastgele sayılarla dolu bir tensör oluşturur. Aynı tam sayı tohum her çalıştırmada aynı değerleri verir; şekil liste olarak verilir.
 
 ```tr
 yazdır(rastgele_normal([2, 3], tohum: 42).şekil)
@@ -1286,43 +1262,19 @@ Son ekseni sınıf olan çıktıyla satır başına bir sınıf indeksi arasınd
 yazdır(çapraz_entropi(tensör([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), [0, 1]).değer)
 ```
 
-İlişkili: T211 `log_softmax`, T511 `kayıp_mse`
+İlişkili: T211 `log_softmax`
 
-#### T511 `kayıp_mse`
+#### T511 `kayıp_mse` — kaldırıldı
 
-    kayıp_mse(Liste | Tensör, Liste | Tensör) → Ondalık
+Kaldırıldı: 'kayıp_mse' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Aynı şekildeki iki matrisin (liste ya da en fazla 2 boyutlu tensör) elemanları arasındaki kare farkların ortalamasını verir. Sonuç Ondalık'tır ve türev izlemez.
+#### T520 `sinir_ağı` — kaldırıldı
 
-```tr
-yazdır(kayıp_mse([[1.0, 2.0]], [[1.5, 2.5]]))
-```
+Kaldırıldı: 'sinir_ağı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-İlişkili: T510 `çapraz_entropi`
+#### T521 `model_yükle` — kaldırıldı
 
-#### T520 `sinir_ağı`
-
-    sinir_ağı(Liste, [Metin], aktivasyon: Metin = "tanh", tohum: Tam = 42) → SinirAğı
-
-Katman boyutları listesiyle (ör. [2, 8, 1]) tam bağlantılı hazır bir sinir ağı modeli kurar; .eğit, .tahmin_et, .ağırlıklar ve .kaydet üyeleri vardır. aktivasyon varsayılanı "tanh", tohum varsayılanı 42'dir; "relu" gizli katmanlarda sızıntılı ReLU'dur.
-
-```tr
-değişken model = sinir_ağı([2, 4, 1], aktivasyon: "tanh", tohum: 42); yazdır(model.eğit([[0, 0], [1, 1]], [[0], [1]], devir: 100, öğrenme_oranı: 0.1)["son_kayıp"])
-```
-
-İlişkili: T521 `model_yükle`, Y510 `eğit`, Y511 `tahmin_et`
-
-#### T521 `model_yükle`
-
-    model_yükle(Metin) → SinirAğı
-
-model.kaydet ile yazılmış JSON model dosyasını okuyup bir SinirAğı döndürür. Göreli yol dosya_oku ile aynı kuralla çözülür; bozuk dosya açık bir hatayla reddedilir.
-
-```tr
-sinir_ağı([2, 1]).kaydet("model.json"); yazdır(model_yükle("model.json").tahmin_et([[0, 1]]).şekil)
-```
-
-İlişkili: T520 `sinir_ağı`, Y005 `kaydet`
+Kaldırıldı: 'model_yükle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### T530 `parametreler`
 
@@ -1338,65 +1290,25 @@ değişken model = {"w": tensör([1.0], türev_izle: doğru), "b": tensör([0.0]
 
 ### Vektör yardımcıları ve dil modeli (T6xx)
 
-#### T600 `normalize_et`
+#### T600 `normalize_et` — kaldırıldı
 
-    normalize_et([Liste | Tam | Ondalık], [Tam | Ondalık...]) → Liste
+Kaldırıldı: 'normalize_et' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Sayıları en küçüğü 0, en büyüğü 1 olacak biçimde ölçekler (en küçük-en büyük normalleştirmesi) ve Ondalık listesi döndürür. Bütün değerler eşitse hepsi 0 olur; sayı olmayan elemanlar atlanır.
+#### T601 `nokta_çarpım` — kaldırıldı
 
-```tr
-yazdır(normalize_et([2, 4, 6]))
-```
+Kaldırıldı: 'nokta_çarpım' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-İlişkili: T601 `nokta_çarpım`, T602 `kosinüs_benzerliği`
+#### T602 `kosinüs_benzerliği` — kaldırıldı
 
-#### T601 `nokta_çarpım`
+Kaldırıldı: 'kosinüs_benzerliği' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-    nokta_çarpım(Liste | Tam | Ondalık, Liste | Tam | Ondalık) → Ondalık
+#### T603 `öklid_uzaklığı` — kaldırıldı
 
-Eşit uzunluktaki iki sayı listesinin nokta çarpımını (karşılıklı elemanların çarpımlarının toplamı) Ondalık olarak verir. Listeler boş ya da farklı uzunlukta olursa hata verir.
+Kaldırıldı: 'öklid_uzaklığı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-yazdır(nokta_çarpım([1, 2, 3], [4, 5, 6]))
-```
+#### T610 `yz_sor` — kaldırıldı
 
-İlişkili: T602 `kosinüs_benzerliği`, T603 `öklid_uzaklığı`
-
-#### T602 `kosinüs_benzerliği`
-
-    kosinüs_benzerliği(Liste | Tam | Ondalık, Liste | Tam | Ondalık) → Ondalık
-
-Eşit uzunluktaki iki vektör arasındaki açının kosinüsünü (-1 ile 1 arası) Ondalık olarak verir. Vektörlerden biri sıfır vektörüyse 0 döner.
-
-```tr
-yazdır(kosinüs_benzerliği([1, 0], [1, 1]))
-```
-
-İlişkili: T601 `nokta_çarpım`, T603 `öklid_uzaklığı`
-
-#### T603 `öklid_uzaklığı`
-
-    öklid_uzaklığı(Liste | Tam | Ondalık, Liste | Tam | Ondalık) → Ondalık
-
-Eşit uzunluktaki iki vektör arasındaki öklid uzaklığını (farkların karelerinin toplamının kökü) Ondalık olarak verir.
-
-```tr
-yazdır(öklid_uzaklığı([0, 0], [3, 4]))
-```
-
-İlişkili: T602 `kosinüs_benzerliği`
-
-#### T610 `yz_sor`
-
-    yz_sor(Metin, model: Metin, adres: Metin = "http://localhost:11434/api/generate") → Metin
-
-Bu bilgisayarda çalışan yerel bir dil modeli sunucusuna (varsayılan localhost:11434) istem gönderir ve üretilen metni döndürür. model: verilmezse sunucudaki ilk yüklü model kullanılır; sunucuya ulaşılamazsa hata verir.
-
-```tr
-yazdır(yz_sor("Türkiye'nin başkenti neresidir?"))
-```
-
-İlişkili: T611 `örnekle`
+Kaldırıldı: 'yz_sor' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### T611 `örnekle`
 
@@ -1482,13 +1394,13 @@ Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama`, T121 `birl
 
 #### T903 `tohum`
 
-Rastgele sayı üretecinin başlangıç değeridir (tam sayı); aynı tohum her çalıştırmada aynı sonucu verir. Verilmezse paylaşılan bir üreteç kullanılır (sinir_ağı'nda varsayılan 42).
+Rastgele sayı üretecinin başlangıç değeridir (tam sayı); aynı tohum her çalıştırmada aynı sonucu verir. Verilmezse paylaşılan bir üreteç kullanılır.
 
 ```tr
 yazdır(rastgele_normal([3], tohum: 7).değer)
 ```
 
-Kullananlar: T103 `rastgele_normal`, T520 `sinir_ağı`, T611 `örnekle`, Y600 `örnekleyici`
+Kullananlar: T103 `rastgele_normal`, T611 `örnekle`, Y600 `örnekleyici`
 
 #### T904 `en_fazla`
 
@@ -1522,13 +1434,13 @@ Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama` · İlişki
 
 #### T910 `öğrenme_oranı`
 
-İyileştiricinin her adımda parametreleri ne kadar değiştireceğini belirleyen orandır. Sonlu ve negatif olmayan bir sayı olmalıdır; varsayılan AdamW'de 0.001, SGD'de 0.01, model.eğit'te 0.1'dir.
+İyileştiricinin her adımda parametreleri ne kadar değiştireceğini belirleyen orandır. Sonlu ve negatif olmayan bir sayı olmalıdır; varsayılan AdamW'de 0.001, SGD'de 0.01'dir.
 
 ```tr
 değişken w = tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.5); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
 ```
 
-Kullananlar: T400 `AdamW`, T401 `SGD`, Y510 `eğit` · İlişkili: T911 `ağırlık_çürümesi` · Eski adlar: `öğrenme_hızı`
+Kullananlar: T400 `AdamW`, T401 `SGD` · İlişkili: T911 `ağırlık_çürümesi` · Eski adlar: `öğrenme_hızı`
 
 #### T911 `ağırlık_çürümesi`
 
@@ -1600,45 +1512,21 @@ yazdır(katman_normu(tensör([[1.0, 3.0]]), sapma: tensör([0.5, 0.5])).değer)
 
 Kullananlar: T501 `katman_normu` · İlişkili: T920 `ağırlık`
 
-#### T930 `devir`
+#### T930 `devir` — kaldırıldı
 
-model.eğit'in eğitim verisi üzerinden kaç tur geçeceğidir; pozitif bir Tam olmalıdır, varsayılan 500'dür.
+Kaldırıldı: 'devir' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-değişken model = sinir_ağı([2, 4, 1], tohum: 1); yazdır(model.eğit([[0, 1], [1, 0]], [[1], [1]], devir: 50)["devir"])
-```
+#### T932 `aktivasyon` — kaldırıldı
 
-Kullananlar: Y510 `eğit`
+Kaldırıldı: 'aktivasyon' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### T932 `aktivasyon`
+#### T940 `model` — kaldırıldı
 
-sinir_ağı'nın gizli katman etkinleştirmesini seçer: "tanh" (varsayılan), "relu" (sızıntılı) ya da "sigmoid". Çıkış katmanı "sigmoid"de sigmoid, diğerlerinde doğrusaldır.
+Kaldırıldı: 'model' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-değişken model = sinir_ağı([2, 3, 1], aktivasyon: "relu"); yazdır(model)
-```
+#### T941 `adres` — kaldırıldı
 
-Kullananlar: T520 `sinir_ağı`
-
-#### T940 `model`
-
-yz_sor'un kullanacağı yerel dil modelinin adıdır. Verilmezse sunucudaki ilk yüklü model seçilir.
-
-```tr
-yazdır(yz_sor("Merhaba de", model: "model_adı"))
-```
-
-Kullananlar: T610 `yz_sor` · İlişkili: T941 `adres`
-
-#### T941 `adres`
-
-yz_sor'un isteği gönderdiği metin üretme adresidir. Varsayılan http://localhost:11434/api/generate'tir.
-
-```tr
-yazdır(yz_sor("Merhaba de", adres: "http://localhost:11434/api/generate"))
-```
-
-Kullananlar: T610 `yz_sor` · İlişkili: T940 `model`
+Kaldırıldı: 'adres' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 #### T950 `nedensel`
 
@@ -1832,217 +1720,91 @@ yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").kodla("soru", iki
 
 Kullananlar: Y610 `kodla`
 
-## W — Web, veritabanı, arayüz
+## W — Web, veritabanı, arayüz (kaldırıldı)
 
 ### Web istemcisi ve sunucusu (W1xx)
 
-#### W100 `web_al`
+#### W100 `web_al` — kaldırıldı
 
-    web_al(Metin) → Sözlük | Liste | Metin
+Kaldırıldı: 'web_al' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Adrese GET isteği atar; JSON yanıtı sözlük ya da liste olarak, diğer yanıtları metin olarak döndürür. 2xx dışı durum kodu, 30 saniyelik zaman aşımı ve 50 MB'tan büyük gövde hata verir.
+#### W101 `web_gönder` — kaldırıldı
 
-```tr
-değişken yanıt = web_al("http://localhost:8080/api/urunler")
-```
+Kaldırıldı: 'web_gönder' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-İlişkili: W101 `web_gönder` · Eski adlar: `http_al`
+#### W110 `web_sunucu` — kaldırıldı
 
-#### W101 `web_gönder`
-
-    web_gönder(Metin, Herhangi) → Sözlük | Liste | Metin
-
-Veriyi JSON'a çevirip adrese POST isteğiyle gönderir ve yanıtı web_al gibi döndürür. JSON'a çevrilemeyen veri ya da 2xx dışı durum kodu hata verir.
-
-```tr
-değişken yanıt = web_gönder("http://localhost:8080/api/ekle", {"ad": "Laptop", "fiyat": 45000})
-```
-
-İlişkili: W100 `web_al`
-
-#### W110 `web_sunucu`
-
-    web_sunucu([Tam], port: Tam = 8080) → WebSunucu
-
-Rotaları al, gönder ve rota_ekle ile eklenen bir WebSunucu nesnesi oluşturur. başlat çağrılmadan dinlemez ve yalnızca bu bilgisayardan (127.0.0.1) erişilebilir.
-
-```tr
-değişken api = web_sunucu(port: 18080); yazdır(api.adres)
-```
-
-İlişkili: Y006 `başlat`, Y804 `rota_ekle` · Eski adlar: `web_sunucusu`
+Kaldırıldı: 'web_sunucu' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ### Veritabanı (W2xx)
 
-#### W200 `veritabanı_aç`
+#### W200 `veritabanı_aç` — kaldırıldı
 
-    veritabanı_aç([Metin]) → Veritabanı
+Kaldırıldı: 'veritabanı_aç' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Yerleşik Türkçe sorgulu veritabanını dosyadan açar (yoksa oluşturur) ya da ":bellek:" ile bellekte açar; argüman verilmezse bellekte açar. Aynı dosyayı aynı anda iki program açamaz.
+#### W210 `tablo_sorgula` — kaldırıldı
 
-```tr
-değişken vt = veritabanı_aç(":bellek:"); yazdır(vt.tablolar())
-```
-
-İlişkili: Y702 `sorgula`, W210 `tablo_sorgula` · Eski adlar: `veritabanı`
-
-#### W210 `tablo_sorgula`
-
-    tablo_sorgula(Liste, [Metin], [Liste], parametreler: Liste | Yok, koşul: Metin, sırala: Metin, limit: Tam, alanlar: Liste) → Liste
-
-Sözlüklerden oluşan bir listeyi tablo gibi süzer, sıralar, sınırlar ve sütunlarını seçer; yeni bir liste döndürür. Koşul yalnızca Türkçe sorgu sözcükleri ve simgelerle yazılır.
-
-```tr
-yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}, {"ad": "Can", "maas": 70000}], "maas > 85000"))
-```
-
-İlişkili: Y702 `sorgula`
+Kaldırıldı: 'tablo_sorgula' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ### Görsel arayüz (W3xx)
 
-#### W300 `arayüz_oluştur`
+#### W300 `arayüz_oluştur` — kaldırıldı
 
-    arayüz_oluştur([Metin], genişlik: Tam = 1080, yükseklik: Tam = 760) → GörselArayüz
-
-Kart, tablo, grafik ve form eklenebilen bir GörselArayüz nesnesi oluşturur. Pencere başlat ile açılır ya da sayfa html_kaydet ile dosyaya yazılır.
-
-```tr
-değişken ekran = arayüz_oluştur("Kurumsal Panel"); yazdır(ekran)
-```
-
-İlişkili: Y900 `kart_ekle`, Y006 `başlat` · Eski adlar: `pencere_oluştur`
+Kaldırıldı: 'arayüz_oluştur' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ### Adlı argümanlar (W9xx)
 
-#### W900 `port`
+#### W900 `port` — kaldırıldı
 
-Web sunucusunun ya da arayüzün dinleyeceği porttur (web_sunucu'da varsayılan 8080, arayüz başlatmada 8095). 1 ile 65535 arasında bir Tam olmalıdır.
+Kaldırıldı: 'port' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-yazdır(web_sunucu(port: 18088).port)
-```
+#### W901 `arka_plan` — kaldırıldı
 
-Kullananlar: W110 `web_sunucu`, Y006 `başlat`, Y007 `arka_planda_başlat`
+Kaldırıldı: 'arka_plan' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### W901 `arka_plan`
+#### W910 `genişlik` — kaldırıldı
 
-doğru verilirse başlat programı bekletmeden döner ve sunucu arka planda çalışır. Varsayılan yanlıştır: başlat sunucu durana kadar bekler.
+Kaldırıldı: 'genişlik' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-değişken s = web_sunucu(port: 18088); yazdır(s.başlat(arka_plan: doğru)); s.durdur()
-```
+#### W911 `yükseklik` — kaldırıldı
 
-Kullananlar: Y006 `başlat`
+Kaldırıldı: 'yükseklik' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### W910 `genişlik`
+#### W912 `pencere_aç` — kaldırıldı
 
-Arayüzün masaüstü penceresinin piksel genişliğidir (varsayılan 1080).
+Kaldırıldı: 'pencere_aç' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-değişken ekran = arayüz_oluştur("Panel", genişlik: 1100)
-```
+#### W920 `alt_bilgi` — kaldırıldı
 
-Kullananlar: W300 `arayüz_oluştur` · İlişkili: W911 `yükseklik`
+Kaldırıldı: 'alt_bilgi' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### W911 `yükseklik`
+#### W921 `renk` — kaldırıldı
 
-Arayüzün masaüstü penceresinin piksel yüksekliğidir (varsayılan 760).
+Kaldırıldı: 'renk' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-değişken ekran = arayüz_oluştur("Panel", yükseklik: 780)
-```
+#### W922 `tip` — kaldırıldı
 
-Kullananlar: W300 `arayüz_oluştur` · İlişkili: W910 `genişlik`
+Kaldırıldı: 'tip' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### W912 `pencere_aç`
+#### W930 `koşul` — kaldırıldı
 
-Arayüz başlatılırken masaüstü penceresinin açılıp açılmayacağını belirler. başlat'ta varsayılan doğru, arka_planda_başlat'ta yanlıştır.
+Kaldırıldı: 'koşul' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-değişken e = arayüz_oluştur("Panel"); yazdır(e.arka_planda_başlat(18095, pencere_aç: yanlış)); e.durdur()
-```
+#### W931 `sırala` — kaldırıldı
 
-Kullananlar: Y006 `başlat`, Y007 `arka_planda_başlat`
+Kaldırıldı: 'sırala' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### W920 `alt_bilgi`
+#### W932 `limit` — kaldırıldı
 
-kart_ekle ile eklenen kartın değerin altında gösterilen kısa açıklamasıdır. Konumlu üçüncü argümanın yerine geçer.
+Kaldırıldı: 'limit' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-değişken ekran = arayüz_oluştur("Panel").kart_ekle("Toplam Ciro", "1.450.000 TL", alt_bilgi: "+%18 artış")
-```
+#### W933 `alanlar` — kaldırıldı
 
-Kullananlar: Y900 `kart_ekle` · İlişkili: W921 `renk`
+Kaldırıldı: 'alanlar' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### W921 `renk`
+#### W934 `parametreler` — kaldırıldı
 
-Kartın vurgu rengidir. Yalnızca Türkçe renk adları (yeşil, mavi, kırmızı, sarı, turuncu, mor) ya da renk kodu kabul edilir.
-
-```tr
-değişken ekran = arayüz_oluştur("Panel").kart_ekle("Ortalama Maaş", "85.000 TL", renk: "yeşil")
-```
-
-Kullananlar: Y900 `kart_ekle` · İlişkili: W920 `alt_bilgi`
-
-#### W922 `tip`
-
-grafik_ekle ile eklenen grafiğin türüdür (varsayılan "çubuk"). Bugün çizim her zaman çubuk grafiktir; değer yalnızca saklanır.
-
-```tr
-değişken ekran = arayüz_oluştur("Panel").grafik_ekle("Aylık Satışlar", ["Ocak", "Şubat"], [420, 510], tip: "çubuk")
-```
-
-Kullananlar: Y904 `grafik_ekle`
-
-#### W930 `koşul`
-
-tablo_sorgula'da satırları süzen koşuldur ve konumlu ikinci argümanın yerine geçer. Koşul TR kodu olarak çalıştırılmaz; bilinmeyen sütun hata verir.
-
-```tr
-yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}], koşul: "maas > 85000"))
-```
-
-Kullananlar: W210 `tablo_sorgula` · İlişkili: W934 `parametreler` · Eski adlar: `nerede`
-
-#### W931 `sırala`
-
-tablo_sorgula'da sıralanacak sütundur; "sütun:azalan" yazılırsa azalan sıralar. Yön yalnızca Türkçe yazılır.
-
-```tr
-yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}, {"ad": "Can", "maas": 70000}], sırala: "maas:azalan"))
-```
-
-Kullananlar: W210 `tablo_sorgula`
-
-#### W932 `limit`
-
-tablo_sorgula'nın döndüreceği en çok satır sayısıdır ve sıralamadan sonra uygulanır. Sıfır ya da pozitif bir Tam olmalıdır.
-
-```tr
-yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}, {"ad": "Can", "maas": 70000}], limit: 1))
-```
-
-Kullananlar: W210 `tablo_sorgula`
-
-#### W933 `alanlar`
-
-tablo_sorgula sonucunda yalnızca listedeki sütunların tutulmasını sağlar.
-
-```tr
-yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}], alanlar: ["ad"]))
-```
-
-Kullananlar: W210 `tablo_sorgula`
-
-#### W934 `parametreler`
-
-Koşuldaki '?' yer tutucularına sırayla bağlanan değerlerin listesidir; dışarıdan gelen değerleri sorguya gömmeden kullanmayı sağlar. '?' sayısı ile değer sayısı eşit olmalıdır.
-
-```tr
-yazdır(tablo_sorgula([{"ad": "Ali", "maas": 90000}], "maas > ?", parametreler: [85000]))
-```
-
-Kullananlar: W210 `tablo_sorgula`, Y702 `sorgula`, Y703 `güncelle`, Y704 `sil`, Y706 `say` · İlişkili: W930 `koşul` · Eski adlar: `params`
+Kaldırıldı: 'parametreler' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ## Y — Metot ve özellikler (x.ad)
 
@@ -2092,68 +1854,30 @@ yazdır("kitap".ters_çevir(), [1, 2, 3].ters_çevir())
 #### Y004 `ekle`
 
     Liste.ekle(Herhangi...) → Liste
-    Veritabanı.ekle(Metin, Sözlük | Liste) → Tam
 
-Listede verilen elemanları sona ekler ve listeyi yerinde değiştirir. Veritabanında tabloya bir sözlük ya da sözlük listesi ekler (tablo yoksa oluşturur) ve tablonun satır sayısını verir.
-
-```tr
-değişken l = [1]; l.ekle(2, 3); yazdır(l, veritabanı_aç(":bellek:").ekle("personel", {"ad": "Ali"}))
-```
-
-İlişkili: Y701 `tablo_oluştur` · Eski adlar: `kayıt_ekle` · Önceki biçim: `ekle(...)` (G304, kaldırıldı)
-
-#### Y005 `kaydet`
-
-    SinirAğı.kaydet(Metin) → Mantık
-    Veritabanı.kaydet() → Mantık
-    GörselArayüz.kaydet(Metin) → Mantık
-
-Modeli verilen dosyaya yazar, veritabanını diske kaydeder (bellekteki veritabanında bir şey yapmaz), arayüzü HTML dosyası olarak kaydeder. Başarılı olursa doğru verir.
+Listenin sonuna verilen elemanları ekler; listeyi yerinde değiştirir ve listenin kendisini verir.
 
 ```tr
-yazdır(veritabanı_aç(":bellek:").kaydet())
+değişken l = [1]; l.ekle(2, 3); yazdır(l)
 ```
 
-İlişkili: T521 `model_yükle`, Y907 `html_kaydet`
+İlişkili: Y210 `ilk`, Y211 `son` · Eski adlar: `kayıt_ekle` · Önceki biçim: `ekle(...)` (G304, kaldırıldı)
 
-#### Y006 `başlat`
+#### Y005 `kaydet` — kaldırıldı
 
-    WebSunucu.başlat(arka_plan: Mantık = yanlış) → Metin
-    GörselArayüz.başlat([Tam], port: Tam = 8095, pencere_aç: Mantık = doğru, arka_plan: Mantık = yanlış) → Metin
+Kaldırıldı: 'kaydet' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Web sunucusunu ya da arayüzü başlatır ve adresini verir. arka_plan: doğru verilmezse program sunucu durana kadar bekler; arayüz varsayılan olarak pencere de açar.
+#### Y006 `başlat` — kaldırıldı
 
-```tr
-değişken s = web_sunucu(port: 18080); yazdır(s.başlat(arka_plan: doğru)); s.durdur()
-```
+Kaldırıldı: 'başlat' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-İlişkili: Y007 `arka_planda_başlat`, Y008 `durdur` · Eski adlar: `göster`
+#### Y007 `arka_planda_başlat` — kaldırıldı
 
-#### Y007 `arka_planda_başlat`
+Kaldırıldı: 'arka_planda_başlat' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-    WebSunucu.arka_planda_başlat() → Metin
-    GörselArayüz.arka_planda_başlat([Tam], port: Tam = 8095, pencere_aç: Mantık = yanlış) → Metin
+#### Y008 `durdur` — kaldırıldı
 
-Sunucuyu ya da arayüzü arka planda başlatır ve hemen adresini verir; program çalışmayı sürdürür. Arayüz bu yolla pencere açmaz (pencere_aç: doğru verilirse açar).
-
-```tr
-değişken s = web_sunucu(port: 18080); yazdır(s.arka_planda_başlat()); s.durdur()
-```
-
-İlişkili: Y006 `başlat`, Y008 `durdur`
-
-#### Y008 `durdur`
-
-    WebSunucu.durdur() → Mantık
-    GörselArayüz.durdur() → Mantık
-
-Çalışan web sunucusunu ya da arayüzü kapatır. Hiç başlatılmamış olsa da doğru verir.
-
-```tr
-değişken s = web_sunucu(port: 18080); s.arka_planda_başlat(); yazdır(s.durdur())
-```
-
-İlişkili: Y006 `başlat`, Y007 `arka_planda_başlat` · Eski adlar: `kapat`
+Kaldırıldı: 'durdur' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ### Metin (Y1xx)
 
@@ -2500,7 +2224,7 @@ yazdır(tensör([1.0, 2.0]).türe("bf16").tür)
 
 İlişkili: Y402 `tür`, T710 `karışık_hassasiyet`
 
-### İyileştirici ve SinirAğı (Y5xx)
+### İyileştirici (Y5xx)
 
 #### Y500 `adım`
 
@@ -2528,39 +2252,17 @@ değişken w = tensör([1.0], türev_izle: doğru); geri_yayılım(toplam(w * 2)
 
 İlişkili: Y500 `adım`
 
-#### Y510 `eğit`
+#### Y510 `eğit` — kaldırıldı
 
-    SinirAğı.eğit(Liste | Tensör, Liste | Tensör, [Tam], [Tam | Ondalık], devir: Tam = 500, öğrenme_oranı: Ondalık = 0.1) → Sözlük
+Kaldırıldı: 'eğit' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Hazır modeli girdi ve hedef matrisleriyle eğitir ve ilk_kayıp, son_kayıp, devir alanlı bir sözlük verir. Ağırlıkları yerinde değiştirir; varsayılanlar devir: 500, öğrenme_oranı: 0.1.
+#### Y511 `tahmin_et` — kaldırıldı
 
-```tr
-yazdır(sinir_ağı([2, 1]).eğit([[0, 1], [1, 0]], [[1], [0]], devir: 50))
-```
+Kaldırıldı: 'tahmin_et' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-İlişkili: Y511 `tahmin_et`
+#### Y512 `ağırlıklar` — kaldırıldı
 
-#### Y511 `tahmin_et`
-
-    SinirAğı.tahmin_et(Liste | Tensör) → Tensör
-
-Modeli verilen girdi matrisi (liste ya da tensör) üzerinde çalıştırır ve çıktıyı tensör olarak verir. Tek boyutlu girdi tek satır sayılır.
-
-```tr
-yazdır(sinir_ağı([2, 1]).tahmin_et([[0, 1]]).şekil)
-```
-
-İlişkili: Y510 `eğit` · Eski adlar: `tahmin`
-
-#### Y512 `ağırlıklar`
-
-    SinirAğı.ağırlıklar → Liste
-
-Modelin katman ağırlıklarını tensör listesi olarak verir. Tensörler modelle veriyi paylaşır ama türev çizgesine bağlı değildir.
-
-```tr
-yazdır(sinir_ağı([2, 1]).ağırlıklar[0].şekil)
-```
+Kaldırıldı: 'ağırlıklar' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ### Veri kümesi, okuyucu, parçalayıcı (Y6xx)
 
@@ -2651,268 +2353,100 @@ yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").parça_kimliği("
 
 ### Veritabanı (Y7xx)
 
-#### Y700 `tablolar`
+#### Y700 `tablolar` — kaldırıldı
 
-    Veritabanı.tablolar() → Liste
+Kaldırıldı: 'tablolar' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Veritabanındaki tabloların adlarını alfabe sırasıyla bir liste olarak verir.
+#### Y701 `tablo_oluştur` — kaldırıldı
 
-```tr
-değişken vt = veritabanı_aç(":bellek:"); vt.tablo_oluştur("personel"); yazdır(vt.tablolar())
-```
+Kaldırıldı: 'tablo_oluştur' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-İlişkili: Y701 `tablo_oluştur`
+#### Y702 `sorgula` — kaldırıldı
 
-#### Y701 `tablo_oluştur`
+Kaldırıldı: 'sorgula' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-    Veritabanı.tablo_oluştur(Metin, [Liste]) → Veritabanı
+#### Y703 `güncelle` — kaldırıldı
 
-Tablo yoksa oluşturur; sütun listesi verilirse sütunları ona göre ayarlar ("ad:tip" yazımında yalnızca ad kullanılır). Veritabanının kendisini verir.
+Kaldırıldı: 'güncelle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-yazdır(veritabanı_aç(":bellek:").tablo_oluştur("personel", ["ad", "puan"]).tablolar())
-```
+#### Y704 `sil` — kaldırıldı
 
-İlişkili: Y700 `tablolar`
+Kaldırıldı: 'sil' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### Y702 `sorgula`
+#### Y705 `hepsini_al` — kaldırıldı
 
-    Veritabanı.sorgula(Metin, [Liste], parametreler: Liste) → Liste | Tam
+Kaldırıldı: 'hepsini_al' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Türkçe bir sorgu çalıştırır (SEÇ ... TABLO ... NEREDE ... SIRALA ... LİMİT, ya da SİL TABLO ...). SEÇ satır sözlüklerinin listesini, SİL silinen satır sayısını verir; ? yer tutucuları parametre listesinden bağlanır.
+#### Y706 `say` — kaldırıldı
 
-```tr
-değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", {"ad": "Ali", "puan": 7}); yazdır(vt.sorgula("SEÇ ad TABLO personel NEREDE puan > ?", [5]))
-```
-
-İlişkili: Y705 `hepsini_al`, W210 `tablo_sorgula` · Eski adlar: `sorgu`, `seç`
-
-#### Y703 `güncelle`
-
-    Veritabanı.güncelle(Metin, Sözlük, [Metin], [Liste], parametreler: Liste) → Tam
-
-Koşula uyan satırlara sözlükteki alanları yazar ve güncellenen satır sayısını verir. Koşul verilmezse bütün satırlar güncellenir.
-
-```tr
-değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", {"ad": "Ali", "puan": 1}); yazdır(vt.güncelle("personel", {"puan": 9}, "ad == ?", ["Ali"]))
-```
-
-İlişkili: Y704 `sil`
-
-#### Y704 `sil`
-
-    Veritabanı.sil(Metin, [Metin], [Liste], parametreler: Liste) → Tam
-
-Koşula uyan satırları siler ve silinen satır sayısını verir. Koşul verilmezse tablonun bütün satırları silinir.
-
-```tr
-değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", [{"ad": "Ali", "puan": 3}, {"ad": "Can", "puan": 8}]); yazdır(vt.sil("personel", "puan < 5"))
-```
-
-İlişkili: Y703 `güncelle`
-
-#### Y705 `hepsini_al`
-
-    Veritabanı.hepsini_al(Metin) → Liste
-
-Tablonun bütün satırlarını sözlük listesi olarak verir; id alanı her sözlükte önce gelir. Olmayan tabloda hata verir.
-
-```tr
-değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", {"ad": "Ali"}); yazdır(vt.hepsini_al("personel"))
-```
-
-İlişkili: Y702 `sorgula` · Eski adlar: `tablo_al`
-
-#### Y706 `say`
-
-    Veritabanı.say(Metin, [Metin], [Liste], parametreler: Liste) → Tam
-
-Tablonun satır sayısını, koşul verilirse koşula uyan satırların sayısını verir.
-
-```tr
-değişken vt = veritabanı_aç(":bellek:"); vt.ekle("personel", [{"puan": 3}, {"puan": 8}]); yazdır(vt.say("personel"), vt.say("personel", "puan > 5"))
-```
+Kaldırıldı: 'say' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ### Web sunucusu (Y8xx)
 
-#### Y800 `adres`
+#### Y800 `adres` — kaldırıldı
 
-    WebSunucu.adres → Metin
+Kaldırıldı: 'adres' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Sunucunun yerel adresini "http://localhost:port" biçiminde verir. Parantezsiz yazılan bir özelliktir.
+#### Y801 `port` — kaldırıldı
 
-```tr
-yazdır(web_sunucu(port: 18080).adres)
-```
+Kaldırıldı: 'port' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-İlişkili: Y801 `port` · Eski adlar: `url`
+#### Y802 `al` — kaldırıldı
 
-#### Y801 `port`
+Kaldırıldı: 'al' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-    WebSunucu.port → Tam
+#### Y803 `gönder` — kaldırıldı
 
-Sunucunun dinlediği port numarasını Tam olarak verir. Parantezsiz yazılan bir özelliktir.
+Kaldırıldı: 'gönder' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-yazdır(web_sunucu(port: 18080).port)
-```
+#### Y804 `rota_ekle` — kaldırıldı
 
-İlişkili: Y800 `adres`
+Kaldırıldı: 'rota_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### Y802 `al`
+#### Y805 `statik_klasör` — kaldırıldı
 
-    WebSunucu.al(Metin, Fonksiyon) → WebSunucu
-
-Verilen yola GET isteği gelince çalışacak fonksiyonu kaydeder; fonksiyon istek sözlüğünü (yol, metod, parametreler, veri) alır. Sunucunun kendisini verir, zincirlenebilir.
-
-```tr
-değişken s = web_sunucu(port: 18080); s.al("/selam", (istek) => "merhaba"); s.arka_planda_başlat(); yazdır(web_al(s.adres + "/selam")); s.durdur()
-```
-
-İlişkili: Y803 `gönder`, Y804 `rota_ekle` · Eski adlar: `get`
-
-#### Y803 `gönder`
-
-    WebSunucu.gönder(Metin, Fonksiyon) → WebSunucu
-
-Verilen yola POST isteği gelince çalışacak fonksiyonu kaydeder; JSON gövde istek sözlüğünün veri alanına çözülür. Sunucunun kendisini verir.
-
-```tr
-değişken s = web_sunucu(port: 18080); s.gönder("/veri", (istek) => istek["veri"]); s.arka_planda_başlat(); yazdır(web_gönder(s.adres + "/veri", {"ad": "Ali"})); s.durdur()
-```
-
-İlişkili: Y802 `al`, Y804 `rota_ekle` · Eski adlar: `post`
-
-#### Y804 `rota_ekle`
-
-    WebSunucu.rota_ekle(Metin, Metin | Fonksiyon, [Fonksiyon]) → WebSunucu
-
-Bir yola işleyici kaydeder; metod ("GET", "POST" ...) verilmezse her metoda yanıt verir. Sunucunun kendisini verir.
-
-```tr
-değişken s = web_sunucu(port: 18080); s.rota_ekle("/durum", "GET", (istek) => "çalışıyor"); s.arka_planda_başlat(); yazdır(web_al(s.adres + "/durum")); s.durdur()
-```
-
-İlişkili: Y802 `al`, Y803 `gönder` · Eski adlar: `rota`
-
-#### Y805 `statik_klasör`
-
-    WebSunucu.statik_klasör(Metin, Metin) → WebSunucu
-
-Bir klasördeki dosyaları verilen adres önekinde sunar; adı nokta ile başlayan dosyalar sunulmaz. Klasör yoksa hata verir; rotalar her zaman önce gelir.
-
-```tr
-yazdır(web_sunucu(port: 18080).statik_klasör("/dosyalar/", "ornekler"))
-```
+Kaldırıldı: 'statik_klasör' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ### Görsel arayüz (Y9xx)
 
-#### Y900 `kart_ekle`
+#### Y900 `kart_ekle` — kaldırıldı
 
-    GörselArayüz.kart_ekle(Metin, Herhangi, [Metin], [Metin], alt_bilgi: Metin, renk: Metin) → GörselArayüz
+Kaldırıldı: 'kart_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Arayüzün üst şeridine başlık ve değer gösteren bir kart ekler; alt_bilgi ve renk (Türkçe renk adı ya da renk kodu) isteğe bağlıdır. Arayüzün kendisini verir.
+#### Y901 `başlık_ekle` — kaldırıldı
 
-```tr
-yazdır(arayüz_oluştur("Panel").kart_ekle("Ciro", "1.450 TL", alt_bilgi: "+%18", renk: "yeşil"))
-```
+Kaldırıldı: 'başlık_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Eski adlar: `metrik_ekle`
+#### Y902 `metin_ekle` — kaldırıldı
 
-#### Y901 `başlık_ekle`
+Kaldırıldı: 'metin_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-    GörselArayüz.başlık_ekle(Metin, [Metin]) → GörselArayüz
+#### Y903 `tablo_ekle` — kaldırıldı
 
-Arayüze bir bölüm başlığı ve isteğe bağlı alt metin ekler. Arayüzün kendisini verir.
+Kaldırıldı: 'tablo_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-```tr
-yazdır(arayüz_oluştur("Panel").başlık_ekle("Satışlar", "Bu ay"))
-```
+#### Y904 `grafik_ekle` — kaldırıldı
 
-İlişkili: Y902 `metin_ekle`
+Kaldırıldı: 'grafik_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-#### Y902 `metin_ekle`
+#### Y905 `form_ekle` — kaldırıldı
 
-    GörselArayüz.metin_ekle(Metin) → GörselArayüz
+Kaldırıldı: 'form_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-Arayüze düz bir metin paragrafı ekler. Arayüzün kendisini verir.
+#### Y906 `buton_ekle` — kaldırıldı
 
-```tr
-yazdır(arayüz_oluştur("Panel").metin_ekle("Rapor hazır."))
-```
+Kaldırıldı: 'buton_ekle' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-İlişkili: Y901 `başlık_ekle` · Eski adlar: `bilgi_ekle`
+#### Y907 `html_kaydet` — kaldırıldı
 
-#### Y903 `tablo_ekle`
+Kaldırıldı: 'html_kaydet' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
-    GörselArayüz.tablo_ekle(Metin, Liste) → GörselArayüz
+#### Y908 `html_üret` — kaldırıldı
 
-Arayüze aranabilir bir tablo ekler; veri sözlüklerden oluşan bir liste olmalıdır (sütunlar ilk sözlüğün anahtarlarıdır). Arayüzün kendisini verir.
-
-```tr
-yazdır(arayüz_oluştur("Panel").tablo_ekle("Siparişler", [{"ürün": "kalem", "adet": 3}]))
-```
-
-#### Y904 `grafik_ekle`
-
-    GörselArayüz.grafik_ekle(Metin, Liste, Liste, [Metin], tip: Metin = "çubuk") → GörselArayüz
-
-Arayüze etiket ve değer listelerinden bir çubuk grafik ekler; sayı olmayan değerler atlanır. Arayüzün kendisini verir.
-
-```tr
-yazdır(arayüz_oluştur("Panel").grafik_ekle("Aylık", ["Ocak", "Şubat"], [420, 510]))
-```
-
-#### Y905 `form_ekle`
-
-    GörselArayüz.form_ekle(Metin, Liste, Fonksiyon) → GörselArayüz
-
-Arayüze alan adlarından oluşan bir form ekler; gönderilince fonksiyon alan değerleriyle çağrılır. Arayüzün kendisini verir.
-
-```tr
-yazdır(arayüz_oluştur("Panel").form_ekle("Giriş", ["Ad"], (form) => "Kaydedildi"))
-```
-
-İlişkili: Y906 `buton_ekle`
-
-#### Y906 `buton_ekle`
-
-    GörselArayüz.buton_ekle(Metin, Fonksiyon) → GörselArayüz
-
-Arayüze tıklanınca fonksiyonu çalıştıran bir buton ekler. Arayüzün kendisini verir.
-
-```tr
-yazdır(arayüz_oluştur("Panel").buton_ekle("Yenile", () => "tamam"))
-```
-
-İlişkili: Y905 `form_ekle`
-
-#### Y907 `html_kaydet`
-
-    GörselArayüz.html_kaydet(Metin) → Mantık
-
-Arayüzü tek başına açılabilen bir HTML dosyası olarak yazar ve doğru verir. Yol Metin olmalıdır.
-
-```tr
-yazdır(arayüz_oluştur("Panel").metin_ekle("Merhaba").html_kaydet("panel.html"))
-```
-
-İlişkili: Y908 `html_üret`
-
-#### Y908 `html_üret`
-
-    GörselArayüz.html_üret() → Metin
-
-Arayüzün HTML sayfasını dosyaya yazmadan metin olarak verir.
-
-```tr
-yazdır(arayüz_oluştur("Panel").metin_ekle("Merhaba").html_üret().uzunluk > 0)
-```
-
-İlişkili: Y907 `html_kaydet`
+Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ## Boru hattıyla kullanılabilen fonksiyonlar
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/DIL_TANIMI.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `kayıp_mse`, `sinir_ağı`, `model_yükle`, `parametreler`, `normalize_et`, `nokta_çarpım`, `kosinüs_benzerliği`, `öklid_uzaklığı`, `yz_sor`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `veri_kümesi`, `parçalayıcı_yükle`, `web_al`, `web_gönder`, `web_sunucu`, `veritabanı_aç`, `tablo_sorgula`, `arayüz_oluştur`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `karışık_hassasiyet`, `veri_kümesi`, `parçalayıcı_yükle`

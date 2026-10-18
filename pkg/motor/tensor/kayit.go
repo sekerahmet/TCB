@@ -57,14 +57,14 @@ func turKodu(dt ct.DType) byte {
 	return turFloat32
 }
 
-// koddanTur dosyadaki tür kodunu çekirdek türüne çevirir; sürüm 1 yalnızca float32 içerir.
-func koddanTur(kod byte, surum uint16) (ct.DType, bool) {
-	switch {
-	case kod == turFloat32:
+// koddanTur dosyadaki tür kodunu çekirdek türüne çevirir.
+func koddanTur(kod byte) (ct.DType, bool) {
+	switch kod {
+	case turFloat32:
 		return ct.Float32, true
-	case kod == turBF16 && surum >= 2:
+	case turBF16:
 		return ct.BFloat16, true
-	case kod == turFP16 && surum >= 2:
+	case turFP16:
 		return ct.Float16, true
 	}
 	return 0, false
@@ -272,8 +272,8 @@ func dosyadanOku(yol string) ([]kayitGirdisi, error, error) {
 	if okumaHatasi != nil {
 		return nil, eksik("sürüm"), nil
 	}
-	if surum == 0 || surum > dosyaSurumu {
-		return nil, fmt.Errorf("dosya biçimi sürümü %d; bu TR sürümü en fazla %d okuyabilir", surum, dosyaSurumu), nil
+	if surum != dosyaSurumu {
+		return nil, fmt.Errorf("dosya biçimi sürümü %d; bu TR sürümü yalnızca sürüm %d okur (dosyayı tensör_kaydet ile yeniden yazın)", surum, dosyaSurumu), nil
 	}
 	sayi := binary.LittleEndian.Uint32(oku(4))
 	if okumaHatasi != nil {
@@ -314,11 +314,8 @@ func dosyadanOku(yol string) ([]kayitGirdisi, error, error) {
 			return nil, eksik(sira + " türü"), nil
 		}
 		kod, boyut := tb[0], int(tb[1])
-		tur, bilinen := koddanTur(kod, surum)
+		tur, bilinen := koddanTur(kod)
 		if !bilinen {
-			if surum == 1 {
-				return nil, fmt.Errorf("%s: desteklenmeyen veri türü kodu %d (sürüm 1 dosyası yalnızca float32 = %d içerebilir)", sira, kod, turFloat32), nil
-			}
 			return nil, fmt.Errorf("%s: desteklenmeyen veri türü kodu %d (bu TR sürümü float32 = %d, bf16 = %d, fp16 = %d okuyabilir)", sira, kod, turFloat32, turBF16, turFP16), nil
 		}
 		boy := int64(tur.Bits() / 8) // eleman başına bayt

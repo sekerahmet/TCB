@@ -42,7 +42,13 @@ type Girdi struct {
 	// Tasindi, kod kaldırılıp işi başka bir koda (başka bir biçime) taşındıysa yeni
 	// koddur, değilse Yok (bkz. Tasindi).
 	Tasindi Kod
+	// Kaldirildi, kod yerine geçen olmadan dilden kaldırıldıysa doğrudur (bkz. Kaldirildi).
+	Kaldirildi bool
 }
+
+// Olu kod dilde artık yoktur: taşınmış ya da kaldırılmış (adı kabul edilmez, yalnızca
+// hata mesajında kullanılır; numarası bir daha kullanılmaz).
+func (g Girdi) Olu() bool { return g.Tasindi != Yok || g.Kaldirildi }
 
 // eskiEslesme bir eski adın hangi koda ait olduğu ve adın, eski bir adın türetilmiş
 // ASCII biçimi olup olmadığıdır.
@@ -65,10 +71,10 @@ type Dil struct {
 	adlar    [alanSayisi]map[string]Kod
 	eskiler  [alanSayisi]map[string][]eskiEslesme
 	asil     [alanSayisi]map[string]string // ad alanı başına ad ve ASCII biçimi → ad
-	// tasinan taşınmış kodlardır (artan sırada); tasinanAd ad alanı başına taşınmış bir
-	// kodun adı, eski adları ve bunların ASCII biçimleri → taşınmış kod.
-	tasinan   []Kod
-	tasinanAd [alanSayisi]map[string]Kod
+	// olu taşınmış ya da kaldırılmış kodlardır (artan sırada); oluAd ad alanı başına böyle
+	// bir kodun adı, eski adları ve bunların ASCII biçimleri → kod.
+	olu   []Kod
+	oluAd [alanSayisi]map[string]Kod
 }
 
 // Yukle bir dil dosyasını okur ve doğrular. Biçim hatası, yinelenen kod ya da bir ad
@@ -105,7 +111,7 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			continue
 		}
 		gr := &Girdi{Kod: k, Ad: g.ad, Eski: g.eski, Aile: g.aile, ASCII: g.ascii == nil || *g.ascii,
-			Aciklama: g.aciklama, Ornek: g.ornek, Tasindi: tasinanlar[k]}
+			Aciklama: g.aciklama, Ornek: g.ornek, Tasindi: tasinanlar[k], Kaldirildi: kaldirilanlar[k]}
 		for _, e := range g.eski {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
 				hata("%s: eski ad boş olamaz ve boşluk içeremez (%q)", k, e)
@@ -116,15 +122,15 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 		}
 		d.girdiler[k] = gr
 		enBuyuk[int(k)/1000-1] = max(enBuyuk[int(k)/1000-1], k.Sayi())
-		if gr.Tasindi != Yok {
-			d.tasinan = append(d.tasinan, k)
+		if gr.Olu() {
+			d.olu = append(d.olu, k)
 			continue
 		}
 		d.kodlar = append(d.kodlar, k)
 		alanBoyu[k.Alan()] += 2
 	}
 	sort.Slice(d.kodlar, func(i, j int) bool { return d.kodlar[i] < d.kodlar[j] })
-	sort.Slice(d.tasinan, func(i, j int) bool { return d.tasinan[i] < d.tasinan[j] })
+	sort.Slice(d.olu, func(i, j int) bool { return d.olu[i] < d.olu[j] })
 	for i, n := range enBuyuk {
 		if n > 0 {
 			d.adDizi[i] = make([]string, n+1)
@@ -192,14 +198,18 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 	// Taşınmış kodlar: adları (ve eski adları) artık kabul edilmez; yalnızca hata
 	// mesajında yeni biçimi önermek için tutulur. Canlı bir adla ya da eski bir adla
 	// çakışırlarsa ipucu belirsiz olurdu.
-	for i := range d.tasinanAd {
-		d.tasinanAd[i] = map[string]Kod{}
+	for i := range d.oluAd {
+		d.oluAd[i] = map[string]Kod{}
 	}
-	for _, k := range d.tasinan {
+	for _, k := range d.olu {
 		g := d.girdiler[k]
 		al := k.Alan()
 		d.adDizi[int(k)/1000-1][k.Sayi()] = g.Ad
-		if h, ok := d.girdiler[g.Tasindi]; !ok || h.Tasindi != Yok {
+		tur := "kaldırılmış"
+		if g.Tasindi != Yok {
+			tur = "taşınmış"
+		}
+		if h, ok := d.girdiler[g.Tasindi]; g.Tasindi != Yok && (!ok || h.Olu()) {
 			hata("%s %s'e taşındı, ama %s dil dosyasında canlı bir kod değil", k, g.Tasindi, g.Tasindi)
 		}
 		adlar := []string{}
@@ -211,18 +221,18 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 		}
 		for _, ad := range adlar {
 			if o, ok := sahibi[al][asciiBicim(ad)]; ok && (ad == o.ad || ad == asciiBicim(o.ad)) {
-				hata("taşınmış %s'in adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", k, ad, o.kod, o.ad)
+				hata("%s %s'in adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", tur, k, ad, o.kod, o.ad)
 				continue
 			}
 			if e := d.eskiler[al][ad]; len(e) > 0 {
-				hata("taşınmış %s'in adı %q, %s'in eski adıyla çakışıyor; ipucu belirsiz olur", k, ad, e[0].kod)
+				hata("%s %s'in adı %q, %s'in eski adıyla çakışıyor; ipucu belirsiz olur", tur, k, ad, e[0].kod)
 				continue
 			}
-			if o, ok := d.tasinanAd[al][ad]; ok && o != k {
-				hata("%q hem %s hem %s taşınmış kodlarının adı; ipucu belirsiz olur", ad, o, k)
+			if o, ok := d.oluAd[al][ad]; ok && o != k {
+				hata("%q hem %s hem %s kodlarının (taşınmış ya da kaldırılmış) adı; ipucu belirsiz olur", ad, o, k)
 				continue
 			}
-			d.tasinanAd[al][ad] = k
+			d.oluAd[al][ad] = k
 		}
 	}
 	if len(hatalar) > 0 {
@@ -235,17 +245,33 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 // için bkz. Tasinanlar).
 func (d *Dil) Kodlar() []Kod { return append([]Kod(nil), d.kodlar...) }
 
-// Tasinanlar kaldırılıp işi başka bir koda taşınmış kodları artan sırayla verir. Adları
-// kabul edilmez; Ad ve Girdisi yine çalışır (hata mesajları için).
-func (d *Dil) Tasinanlar() []Kod { return append([]Kod(nil), d.tasinan...) }
+// Olular taşınmış ya da kaldırılmış kodları artan sırayla verir. Adları kabul edilmez;
+// Ad ve Girdisi yine çalışır (hata mesajları için).
+func (d *Dil) Olular() []Kod { return append([]Kod(nil), d.olu...) }
 
-// TasinanBul ad, verilen ad alanında taşınmış bir kodun adı, eski adı ya da bunların
-// ASCII biçimiyse o kodu verir (yeni kod Girdisi(k).Tasindi'dir).
-func (d *Dil) TasinanBul(al Alan, ad string) (Kod, bool) {
+// Tasinanlar işi başka bir koda taşınmış kodları artan sırayla verir.
+func (d *Dil) Tasinanlar() []Kod { return d.oluSuz(func(g *Girdi) bool { return g.Tasindi != Yok }) }
+
+// Kaldirilanlar yerine geçen olmadan kaldırılmış kodları artan sırayla verir.
+func (d *Dil) Kaldirilanlar() []Kod { return d.oluSuz(func(g *Girdi) bool { return g.Kaldirildi }) }
+
+func (d *Dil) oluSuz(uygun func(*Girdi) bool) []Kod {
+	var out []Kod
+	for _, k := range d.olu {
+		if uygun(d.girdiler[k]) {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// OluBul ad, verilen ad alanında taşınmış ya da kaldırılmış bir kodun adı, eski adı ya
+// da bunların ASCII biçimiyse o kodu verir (yeni kod, varsa, Girdisi(k).Tasindi'dir).
+func (d *Dil) OluBul(al Alan, ad string) (Kod, bool) {
 	if al >= alanSayisi {
 		return Yok, false
 	}
-	k, ok := d.tasinanAd[al][ad]
+	k, ok := d.oluAd[al][ad]
 	return k, ok
 }
 
@@ -365,9 +391,15 @@ func Yazimlar(k Kod) []string           { return etkin.Yazimlar(k) }
 func Bul(al Alan, y string) (Kod, bool) { return etkin.Bul(al, y) }
 func Kodlar() []Kod                     { return etkin.Kodlar() }
 func Tasinanlar() []Kod                 { return etkin.Tasinanlar() }
-func TasinanBul(al Alan, ad string) (Kod, bool) {
-	return etkin.TasinanBul(al, ad)
+func Kaldirilanlar() []Kod              { return etkin.Kaldirilanlar() }
+func Olular() []Kod                     { return etkin.Olular() }
+func OluBul(al Alan, ad string) (Kod, bool) {
+	return etkin.OluBul(al, ad)
 }
+
+// Kaldirildi k yerine geçen olmadan dilden kaldırıldıysa doğrudur (tanim.json,
+// "kaldırıldı"); üretilen kaldirilanlar tablosundan okunur.
+func Kaldirildi(k Kod) bool { return kaldirilanlar[k] }
 
 // Tasindi k kaldırılıp işi başka bir koda (başka bir biçime: fonksiyondan metoda ya da
 // metottan fonksiyona) taşındıysa yeni kodu verir. Bilgi dilden bağımsızdır (tanim.json,

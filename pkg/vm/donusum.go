@@ -40,8 +40,8 @@ func GoToTRValue(raw interface{}) Value {
 }
 
 // ErrDongusel kendini (doğrudan ya da dolaylı) içeren bir liste/sözlüğün dış biçime (JSON,
-// veritabanı, web) yazılmak istendiğini bildirir: l = [1]; l.ekle(l); json_metin(l).
-var ErrDongusel = errors.New("değer kendini içeriyor (döngüsel liste ya da sözlük); JSON'a, veritabanına ya da web yanıtına yazılamaz")
+// Go değerleri) yazılmak istendiğini bildirir: l = [1]; l.ekle(l); json_metin(l).
+var ErrDongusel = errors.New("değer kendini içeriyor (döngüsel liste ya da sözlük); JSON'a yazılamaz")
 
 // DisDegerDerinligi dış biçime yazılabilecek en derin iç içe liste/sözlük seviyesidir;
 // JSON okumadaki sınırla (maxJSONDepth) aynıdır, böylece yazılan her değer geri okunabilir.
@@ -131,7 +131,7 @@ func (g *DisGezgin) cevir(val Value, derinlik int) (interface{}, error) {
 		defer g.Cik(v)
 		res := make(map[string]interface{}, len(v.Pairs))
 		for k, el := range v.Pairs {
-			// JSON/veritabanı anahtarları metin olmak zorundadır; metin olmayan anahtarlar
+			// JSON anahtarları metin olmak zorundadır; metin olmayan anahtarlar
 			// görünen hâlleriyle yazılır (1 -> "1").
 			c, err := g.cevir(el, derinlik+1)
 			if err != nil {

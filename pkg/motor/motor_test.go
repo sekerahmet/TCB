@@ -16,7 +16,7 @@ func TestKaldirilanYerlesiklerKayitliDegil(t *testing.T) {
 		}
 	}
 	for _, ad := range []string{"yazdır", "girdi", "tip", "toplam", "ortalama", "maks", "min",
-		"bekle", "standart_sapma", "ortanca", "json_metin", "csv_oku", "web_al", "web_sunucu"} {
+		"bekle", "standart_sapma", "ortanca", "json_metin", "csv_oku", "veri_kümesi", "parçalayıcı_yükle"} {
 		if _, ok := m.GlobalEnv.Get(ad); !ok {
 			t.Errorf("asıl ad %q kayıtlı olmalı", ad)
 		}

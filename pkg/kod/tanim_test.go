@@ -29,14 +29,14 @@ func TestTasinanKodlar(t *testing.T) {
 		if k, ok := Bul(ek.Alan(), ad); ok {
 			t.Errorf("taşınan %s'in adı %q kabul edilmemeli (%s)", e, ad, k)
 		}
-		if k, ok := TasinanBul(ek.Alan(), ad); !ok || k != ek {
-			t.Errorf("TasinanBul(%s, %q) = %s %v", ek.Alan(), ad, k, ok)
+		if k, ok := OluBul(ek.Alan(), ad); !ok || k != ek {
+			t.Errorf("OluBul(%s, %q) = %s %v", ek.Alan(), ad, k, ok)
 		}
 	}
-	if k, ok := TasinanBul(AlanGenel, "sirala"); !ok || k.String() != "G303" {
+	if k, ok := OluBul(AlanGenel, "sirala"); !ok || k.String() != "G303" {
 		t.Errorf("ASCII biçim de taşınan koda gitmeli: %s %v", k, ok)
 	}
-	if k, ok := TasinanBul(AlanGenel, "boy"); !ok || k.String() != "G200" {
+	if k, ok := OluBul(AlanGenel, "boy"); !ok || k.String() != "G200" {
 		t.Errorf("taşınan kodun eski adı da taşınan koda gitmeli: %s %v", k, ok)
 	}
 	// Taşınan bir ad aynı ad alanında canlı bir adla çakışırsa dil dosyası reddedilir.

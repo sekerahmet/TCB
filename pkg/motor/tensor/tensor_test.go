@@ -7,14 +7,12 @@ import (
 	"testing"
 
 	"tr_dili/pkg/lexer"
-	"tr_dili/pkg/motor/yz"
 	"tr_dili/pkg/parser"
 	"tr_dili/pkg/vm"
 )
 
-// Testlerdeki VM'ler, gerçek programdaki sırayla yapay zekâ ve tensör motorlarını içersin.
+// Testlerdeki VM'ler tensör motorunu içersin.
 func init() {
-	vm.MotorEkle(yz.Kaydet)
 	vm.MotorEkle(Kaydet)
 }
 
@@ -190,7 +188,7 @@ func TestEskiDavranisKorunur(t *testing.T) {
 değişken y = x * x + 2 * x + 1
 geri_yayılım(y)
 yazdır(x.değer, y.değer, x.gradyan, tip(x))
-yazdır(sıfırlar(2, 3).şekil, tip(birler(2, 2)), tip(sıfırlar(3)))
+yazdır(sıfırlar([2, 3]).şekil, tip(birler([2, 2])), tip(sıfırlar([3])))
 yazdır(toplam([1, 2, 3]), min([3, 1, 2]), maks(4, 9), karekök(9), ortalama([1, 2, 3]))
 yazdır(softmax([1.0, 1.0]), relu(-2), tip(tensör([[1, 2]]).devrik()))`)
 	want := "3.0 16.0 Tensör(8.0000) Tensör\n[2, 3] Tensör Tensör\n6 1 9 3.0 2.0\n[0.5, 0.5] 0.0 Tensör\n"

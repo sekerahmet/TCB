@@ -113,8 +113,10 @@ type Tanim struct {
 	// sırasıyla).
 	Uyeler   []TipImzasi
 	Iliskili []Kod
-	// Tasindi, kod kaldırılıp işi taşındıysa yeni koddur.
-	Tasindi Kod
+	// Tasindi, kod kaldırılıp işi taşındıysa yeni koddur; Kaldirildi, kod yerine geçen
+	// olmadan kaldırıldıysa doğrudur.
+	Tasindi    Kod
+	Kaldirildi bool
 }
 
 // Tipler üyenin geçerli olduğu tiplerdir.
@@ -188,6 +190,7 @@ type hamTanim struct {
 	Imzalar  map[string]hamImza  `json:"imzalar"`
 	Iliskili []string            `json:"ilişkili"`
 	Tasindi  string              `json:"taşındı"`
+	Kaldir   bool                `json:"kaldırıldı"`
 }
 
 // TanimCoz bir tanım dosyasını çözer; biçim hatalarının hepsini tek hatada toplar.
@@ -276,6 +279,7 @@ func TanimCoz(veri []byte) (map[Kod]Tanim, []Kod, error) {
 				t.Tasindi = y[0]
 			}
 		}
+		t.Kaldirildi = h.Kaldir
 		out[k] = t
 		sira = append(sira, k)
 	}
@@ -373,8 +377,8 @@ func TanimDenetle(d *Dil) []error {
 	if err := TanimHatasi(); err != nil {
 		hata("%v", err)
 	}
-	dilde := func(k Kod) bool { _, ok := d.girdiler[k]; return ok }
-	tumu := append(d.Kodlar(), d.Tasinanlar()...)
+	canli := func(k Kod) bool { g, ok := d.girdiler[k]; return ok && !g.Olu() }
+	tumu := append(d.Kodlar(), d.Olular()...)
 	for _, k := range tumu {
 		if _, ok := Tanimi(k); !ok {
 			hata("%s (%s) dil dosyasında var, tanim.json'da tanımı yok", k, d.Ad(k))
@@ -385,7 +389,7 @@ func TanimDenetle(d *Dil) []error {
 			return true
 		}
 		g, ok := d.girdiler[k]
-		return ok && k.Harf() == 'A' && k.Grup() >= 2 && g.Tasindi == Yok
+		return ok && k.Harf() == 'A' && k.Grup() >= 2 && !g.Olu()
 	}
 	tipDenetle := func(k Kod, yer string, t TipIfadesi) {
 		for _, x := range t.Tipler {
@@ -402,7 +406,7 @@ func TanimDenetle(d *Dil) []error {
 			}
 		}
 		for _, a := range im.Adli {
-			if a.Kod.Alan() != AlanParametre || !dilde(a.Kod) {
+			if a.Kod.Alan() != AlanParametre || !canli(a.Kod) {
 				hata("%s %sadlı argüman %s bir adlı argüman kodu (x9xx) değil", k, yer, a.Kod)
 			}
 			tipDenetle(k, yer+"adlı argüman", a.Tip)
@@ -428,12 +432,21 @@ func TanimDenetle(d *Dil) []error {
 		if g.Tasindi != t.Tasindi {
 			hata("%s: dil dosyasının taşınma bilgisi (%s) tanımla (%s) aynı değil; go run ./araclar/kod_sabitleri", k, g.Tasindi, t.Tasindi)
 		}
+		if g.Kaldirildi != t.Kaldirildi {
+			hata("%s: dil dosyasının kaldırılma bilgisi tanımla aynı değil; go run ./araclar/kod_sabitleri", k)
+		}
+		if t.Kaldirildi {
+			if t.Tasindi != Yok || len(t.Uyeler) > 0 || len(t.Imza.Param) > 0 || len(t.Imza.Adli) > 0 || !t.Imza.Donus.Bos() || len(t.Iliskili) > 0 {
+				hata("%s kaldırıldı; yalnızca tür yazılır", k)
+			}
+			continue
+		}
 		if t.Tasindi != Yok {
 			if len(t.Uyeler) > 0 || len(t.Imza.Param) > 0 || len(t.Imza.Adli) > 0 || !t.Imza.Donus.Bos() {
 				hata("%s taşındı; imza yazılmaz (imza yeni kodda, %s)", k, t.Tasindi)
 			}
 			y, ok := d.girdiler[t.Tasindi]
-			if !ok || y.Tasindi != Yok {
+			if !ok || y.Olu() {
 				hata("%s %s'e taşındı, ama %s canlı bir kod değil", k, t.Tasindi, t.Tasindi)
 			} else if t.Tasindi.Alan() == k.Alan() {
 				hata("%s %s'e taşındı, ama ikisi aynı ad alanında (%s); taşıma biçim değiştirir (fonksiyon ↔ üye)", k, t.Tasindi, k.Alan())
@@ -462,8 +475,8 @@ func TanimDenetle(d *Dil) []error {
 			}
 		}
 		for _, x := range t.Iliskili {
-			if !dilde(x) {
-				hata("%s: ilişkili kod %s dil dosyasında yok", k, x)
+			if !canli(x) {
+				hata("%s: ilişkili kod %s dil dosyasında canlı bir kod değil", k, x)
 			} else if x == k {
 				hata("%s kendisiyle ilişkili yazılmış", k)
 			}

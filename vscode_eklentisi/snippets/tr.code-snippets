@@ -91,16 +91,6 @@
     ],
     "description": "Hata yakalama bloğu"
   },
-  "Yapay Sinir Ağı Eğitimi": {
-    "prefix": ["sinir", "sinir_ağı"],
-    "body": [
-      "değişken model = sinir_ağı([${1:2, 8, 1}], aktivasyon: \"tanh\", tohum: 42)",
-      "model.eğit(${2:X_veri}, ${3:Y_hedef}, devir: ${4:500}, öğrenme_oranı: ${5:0.1})",
-      "değişken tahmin = model.tahmin_et(${2:X_veri})",
-      "yazdır(tahmin)"
-    ],
-    "description": "3 satırda yapay sinir ağı oluşturur, eğitir ve tahmin alır"
-  },
   "Tensör ve Eğitim Döngüsü (Otomatik Türev)": {
     "prefix": ["tensör", "türev"],
     "body": [

@@ -118,6 +118,7 @@ type trGirdisi struct {
 type tanimGirdisi struct {
 	Tur     string `json:"tür"`
 	Tasindi string `json:"taşındı"`
+	Kaldir  bool   `json:"kaldırıldı"`
 }
 
 // Uret üretilen Go dosyasının içeriğini verir.
@@ -159,12 +160,16 @@ func Uret(kok string) ([]byte, error) {
 	b.WriteString("package kod\n\n")
 	b.WriteString("// Sözlükteki (tr.json) her canlı kodun adlı sabiti. Sabitin adı kodun kendisidir,\n")
 	b.WriteString("// kullanıcıya görünen ad değildir: ad değişse de sabit değişmez. Yorumdaki ad yalnızca\n")
-	b.WriteString("// okuyana yardımdır. Taşınan (kaldırılan) kodların sabiti yoktur; bkz. tasinanlar.\n")
+	b.WriteString("// okuyana yardımdır. Taşınan ve kaldırılan kodların sabiti yoktur; bkz. tasinanlar, kaldirilanlar.\n")
 	b.WriteString("const (\n")
-	var tasinan []kod
+	var tasinan, kaldirilan []kod
 	for _, k := range kodlar {
 		if tanimlar[k.metin].Tasindi != "" {
 			tasinan = append(tasinan, k)
+			continue
+		}
+		if tanimlar[k.metin].Kaldir {
+			kaldirilan = append(kaldirilan, k)
 			continue
 		}
 		fmt.Fprintf(&b, "\t%s Kod = %c + %d // %s\n", k.metin, k.harf, k.sayi, tr[k.metin].Ad)
@@ -182,6 +187,14 @@ func Uret(kok string) ([]byte, error) {
 			return nil, fmt.Errorf("%s: %s taşındı: %v", tanimYolu, k.metin, err)
 		}
 		fmt.Fprintf(&b, "\t%c + %d: %c + %d, // %s → %s\n", k.harf, k.sayi, hedef.harf, hedef.sayi, k.metin, hedef.metin)
+	}
+	b.WriteString("}\n\n")
+	b.WriteString("// kaldirilanlar yerine geçen olmadan dilden kaldırılan kodlardır (tanim.json'daki\n")
+	b.WriteString("// \"kaldırıldı\" alanı). Numaraları bir daha kullanılmaz; adları yalnızca \"TR'den\n")
+	b.WriteString("// kaldırıldı\" hatası için dil dosyasında kalır.\n")
+	b.WriteString("var kaldirilanlar = map[Kod]bool{\n")
+	for _, k := range kaldirilan {
+		fmt.Fprintf(&b, "\t%c + %d: true, // %s %s\n", k.harf, k.sayi, k.metin, tr[k.metin].Ad)
 	}
 	b.WriteString("}\n")
 	return format.Source(b.Bytes())

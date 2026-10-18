@@ -225,7 +225,7 @@ func TestJSONMetinSiraNaNVeDongu(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := val.Inspect()
-	if strings.Count(m, "kendini içeriyor") != 2 || strings.Count(m, "JSON'a yazılamaz") != 2 || strings.Contains(m, "unsupported") {
+	if strings.Count(m, "kendini içeriyor") != 2 || strings.Count(m, "JSON'a yazılamaz") != 4 || strings.Contains(m, "unsupported") {
 		t.Fatalf("Türkçe döngü ve NaN hataları bekleniyordu: %s", m)
 	}
 	// BOM'lu JSON metni de çözülür

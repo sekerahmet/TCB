@@ -22,13 +22,13 @@ func Kaydet(v *vm.VM) {
 
 	// --- Oluşturucular ---
 	sar(v, kod.T100, yeniYerlesik(tensorYerlesik))
-	sar(v, kod.T101, yeniYerlesik(sekilliOlusturucu(kod.T101, true, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
+	sar(v, kod.T101, yeniYerlesik(sekilliOlusturucu(kod.T101, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
 		return ct.Zeros(sh...), nil
 	})))
-	sar(v, kod.T102, yeniYerlesik(sekilliOlusturucu(kod.T102, true, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
+	sar(v, kod.T102, yeniYerlesik(sekilliOlusturucu(kod.T102, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
 		return ct.Ones(sh...), nil
 	})))
-	sar(v, kod.T103, yeniYerlesik(sekilliOlusturucu(kod.T103, false, rastgeleNormal)))
+	sar(v, kod.T103, yeniYerlesik(sekilliOlusturucu(kod.T103, rastgeleNormal)))
 
 	// --- Matris (2 boyutlu tensör) oluşturucusu (matris.go) ---
 	sar(v, kod.T111, yeniYerlesik(birimMatris))
@@ -82,14 +82,9 @@ func Kaydet(v *vm.VM) {
 	sar(v, kod.T510, yeniYerlesik(caprazEntropi))
 	sar(v, kod.T501, yeniYerlesik(katmanNormu))
 	sar(v, kod.T502, yeniYerlesik(rmsNormu))
-	sar(v, kod.T511, yeniYerlesik(kayipMSE))
 	sar(v, kod.T503, yeniYerlesik(dikkatYerlesik)) // model_araclari.go
 	sar(v, kod.T530, yeniYerlesik(parametrelerYerlesik))
 	sar(v, kod.T611, yeniYerlesik(orneklemeYerlesik))
-
-	// --- Hazır sinir ağı modeli (sinir_agi.go) ---
-	sar(v, kod.T520, yeniYerlesik(sinirAgiKur))
-	sar(v, kod.T521, yeniYerlesik(modelYukle))
 
 	// --- Türev ---
 	sar(v, kod.T300, yeniYerlesik(geriYayilim))
@@ -232,10 +227,9 @@ func tensorYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Va
 }
 
 // sekilliOlusturucu şekli liste olarak alan oluşturucular (sıfırlar([2, 3]) ...) içindir.
-// matrisBicimi doğruysa tam sayılar eski matris biçimidir: sıfırlar(2, 3) 2 boyutlu,
-// sıfırlar(n) [1, n] şeklinde tensör verir. Değilse tam sayılar da şekil sayılır:
-// rastgele_normal(2, 3, 4).
-func sekilliOlusturucu(kd kod.Kod, matrisBicimi bool, olustur func(sh []int, named map[string]vm.Value) (*ct.Tensor, error)) vm.BuiltinFunc {
+// Şeklin tek yazımı listedir: sıfırlar(2, 3) biçimi kaldırıldı, yazılınca liste biçimini
+// önerir.
+func sekilliOlusturucu(kd kod.Kod, olustur func(sh []int, named map[string]vm.Value) (*ct.Tensor, error)) vm.BuiltinFunc {
 	ad := kod.Ad(kd)
 	return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) == 0 {
@@ -245,31 +239,19 @@ func sekilliOlusturucu(kd kod.Kod, matrisBicimi bool, olustur func(sh []int, nam
 		if kd == kod.T103 { // rastgele_normal
 			izinli = append(izinli, adTohum)
 		}
-		var sh []int
-		var err error
-		if _, liste := args[0].(*vm.ListVal); !liste && matrisBicimi {
-			// Eski biçim (sıfırlar(2, 3)) adlı argüman almaz; sessizce yok saymak yerine
-			// şekil listeli biçime yönlendir.
-			if len(named) > 0 {
-				return nil, fmt.Errorf("%s(%s) eski matris biçimidir ve adlı argüman almaz; %s([%s], ...) yazın",
-					ad, argMetni(args), ad, argMetni(args))
+		if _, liste := args[0].(*vm.ListVal); !liste {
+			if _, tam := args[0].(*vm.IntVal); tam {
+				return nil, fmt.Errorf("%s(%s): şekil liste olarak verilir; %s([%s]) yazın", ad, argMetni(args), ad, argMetni(args))
 			}
-			sh, err = matrisSekli(kd, args)
-		} else {
-			if !liste {
-				if _, tam := args[0].(*vm.IntVal); !tam {
-					return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", ad, tipAdi(args[0]))
-				}
-				args = []vm.Value{&vm.ListVal{Elements: args}}
-			}
-			if len(args) != 1 {
-				return nil, fmt.Errorf("%s([2, 3]) tek parametre (şekil listesi) bekler, %d verildi", ad, len(args))
-			}
-			if err := baglama.AdliDenetle(ad+"()", named, izinli...); err != nil {
-				return nil, err
-			}
-			sh, err = sekilListesi(ad, args[0])
+			return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", ad, tipAdi(args[0]))
 		}
+		if len(args) != 1 {
+			return nil, fmt.Errorf("%s([2, 3]) tek parametre (şekil listesi) bekler, %d verildi", ad, len(args))
+		}
+		if err := baglama.AdliDenetle(ad+"()", named, izinli...); err != nil {
+			return nil, err
+		}
+		sh, err := sekilListesi(ad, args[0])
 		if err != nil {
 			return nil, err
 		}

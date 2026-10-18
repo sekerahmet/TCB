@@ -3,7 +3,6 @@ package tensor
 import (
 	"fmt"
 
-	"tr_dili/pkg/kod"
 	"tr_dili/pkg/motor/internal/baglama"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/vm"
@@ -14,7 +13,7 @@ import (
 // tensördür ve tensör([[1, 2], [3, 4]]) ile oluşturulur (rastgele olanı rastgele_normal([2,
 // 3]) ile); @, + - * /, relu, softmax ... tensör yolundan geçer.
 
-// matrisCevir matris alan işlevlerin (devrik, sinir_ağı, kayıp_mse ...) girdisini 2
+// matrisCevir matris alan işlevlerin girdisini 2
 // boyutlu tensöre çevirir: iç içe sayı listesi [satır, sütun], düz sayı listesi [1, n]
 // (satır vektörü) olur. 2 boyutlu tensör olduğu gibi, 1 boyutlu tensör [1, n] görünümüyle
 // kullanılır.
@@ -75,32 +74,6 @@ func tamArg(args []vm.Value, i int, imza string) (int64, error) {
 		return 0, fmt.Errorf("%s Tam sayı bekler, %s verildi", imza, tipAdi(args[i]))
 	}
 	return n.Val, nil
-}
-
-// matrisSekli sıfırlar(satır, sütun) / birler(satır, sütun) biçimini 2 boyutlu şekle
-// çevirir. Tek tam sayı (yalnızca sıfırlar(n)) tek satırlı [1, n] matristir.
-func matrisSekli(kd kod.Kod, args []vm.Value) ([]int, error) {
-	ad := kod.Ad(kd)
-	enAz := 2
-	if kd == kod.T101 { // sıfırlar
-		enAz = 1
-	}
-	imza := ad + "(satır, sütun)"
-	if len(args) < enAz || len(args) > 2 {
-		return nil, fmt.Errorf("%s %d parametre bekler, %d verildi; çok boyutlu tensör için %s([2, 3, 4]) yazın", imza, 2, len(args), ad)
-	}
-	boy := []int64{1, 0}
-	for i := range args {
-		n, err := tamArg(args, i, imza)
-		if err != nil {
-			return nil, err
-		}
-		boy[2-len(args)+i] = n
-	}
-	if err := matrisBoyutDenetle(ad, boy[0], boy[1]); err != nil {
-		return nil, err
-	}
-	return []int{int(boy[0]), int(boy[1])}, nil
 }
 
 // birimMatris birim_matris(n) yerleşiğidir: n×n birim matris.

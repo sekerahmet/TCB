@@ -62,7 +62,7 @@ type Yinelenebilir interface {
 	YinelemeOgesi(i int) (Value, error)
 }
 
-// DuzDegerli, değerin dış biçimlere (JSON, veritabanı, Go değerleri) yazılırken yerine
+// DuzDegerli, değerin dış biçimlere (JSON, Go değerleri) yazılırken yerine
 // geçen düz TR değerini verir (ör. tensör → iç içe Ondalık listesi).
 type DuzDegerli interface {
 	DuzDeger() Value

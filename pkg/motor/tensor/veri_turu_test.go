@@ -152,7 +152,7 @@ yazdır(görev, başla, ana, (x @ y).değer[0][0])`)
 	}
 }
 
-// Kayıt sürüm 2: tür kodu başlıkta, 16 bitlik veri 2 bayt; sürüm 1 dosyaları okunur.
+// Kayıt sürüm 2: tür kodu başlıkta, 16 bitlik veri 2 bayt; başka sürüm reddedilir.
 func TestTensorKaydetSurum2(t *testing.T) {
 	klasor := t.TempDir()
 	yol := filepath.ToSlash(filepath.Join(klasor, "turler.trt"))
@@ -185,25 +185,14 @@ yazdır(y["b"].gradyan, y["b"])`)
 		t.Fatalf("bf16 tür kodu 2 olmalı, %d", veri[14+4+1])
 	}
 
-	// Sürüm 1 dosyası (eski TR'nin yazdığı biçim) okunmaya devam eder.
+	// Yalnızca sürüm 2 okunur; başka sürüm açık bir hatayla reddedilir.
 	v1 := surum1Dosyasi(t, "w", []int{2}, []float32{0.5, -1.25}, 1)
 	v1yol := filepath.ToSlash(filepath.Join(klasor, "eski.trt"))
 	if err := os.WriteFile(filepath.FromSlash(v1yol), v1, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	out = mustCalistir(t, `değişken e = tensör_yükle("`+v1yol+`")
-yazdır(e["w"].tür, e["w"].değer)`)
-	if out != "float32 [0.5, -1.25]\n" {
-		t.Fatalf("sürüm 1 okuma: %q", out)
-	}
-	// Sürüm 1'de yalnızca float32 (kod 1) geçerlidir.
-	v1bf := surum1Dosyasi(t, "w", []int{2}, []float32{0.5, -1.25}, 2)
-	v1bfyol := filepath.ToSlash(filepath.Join(klasor, "eski_bf.trt"))
-	if err := os.WriteFile(filepath.FromSlash(v1bfyol), v1bf, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := calistir(t, `tensör_yükle("`+v1bfyol+`")`); err == nil || !strings.Contains(err.Error(), "sürüm 1 dosyası yalnızca float32 = 1 içerebilir") {
-		t.Errorf("sürüm 1 + bf16 kodu: %v", err)
+	if _, err := calistir(t, `tensör_yükle("`+v1yol+`")`); err == nil || !strings.Contains(err.Error(), "dosya biçimi sürümü 1; bu TR sürümü yalnızca sürüm 2 okur") {
+		t.Errorf("sürüm 1 dosyası reddedilmeli: %v", err)
 	}
 	// Eksik 16 bitlik veri bayt sayısıyla bildirilir.
 	if _, err := calistir(t, `tensör_yükle("`+kirpikYaz(t, klasor, veri, 14+4+1+2+16+4)+`")`); err == nil || !strings.Contains(err.Error(), "8 bayt veri bekliyor") {
@@ -211,7 +200,7 @@ yazdır(e["w"].tür, e["w"].değer)`)
 	}
 }
 
-// surum1Dosyasi tek girdili bir sürüm 1 dosyası üretir (veri float32 olarak yazılır).
+// surum1Dosyasi tek girdili, artık okunmayan eski sürüm 1 biçiminde bir dosya üretir.
 func surum1Dosyasi(t *testing.T, ad string, sekil []int, veri []float32, turKod byte) []byte {
 	t.Helper()
 	var b bytes.Buffer

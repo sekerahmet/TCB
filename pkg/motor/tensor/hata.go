@@ -121,9 +121,3 @@ func sekilListesi(fn string, v vm.Value) ([]int, error) {
 	}
 	return sh, nil
 }
-
-// sinir_ağı ve yz_sor'un adlı argümanları.
-var (
-	adDevir      = baglama.KodAd(kod.T930)
-	adAktivasyon = baglama.KodAd(kod.T932)
-)

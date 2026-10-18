@@ -1,6 +1,6 @@
 # TR — yapay zekâ için Türkçe programlama dili
 
-TR, yapay zekâ modellerini **eğiten** ve **kullanan** geliştiriciler için tasarlanmış, anahtar kelimeleri Türkçe bir programlama dilidir. Tensörler, otomatik türev, iyileştiriciler, `tokenizer.json` parçalayıcıları ve büyük token veri kümeleri dilin içinde yerleşik olarak gelir; aynı dosyada web sunucusu, veritabanı ve testler de yazılır. Hata mesajları Türkçedir ve sorunu satırıyla gösterir.
+TR, yapay zekâ modellerini **eğiten** ve **kullanan** geliştiriciler için tasarlanmış, anahtar kelimeleri Türkçe bir programlama dilidir. Tensörler, otomatik türev, iyileştiriciler, `tokenizer.json` parçalayıcıları ve büyük veri kümeleri dilin içinde yerleşik olarak gelir; testler de aynı dosyada yazılır. Hata mesajları Türkçedir ve sorunu satırıyla gösterir.
 
 Her işin tek yazımı vardır: anahtar kelimeler, yerleşikler ve komutlar yalnızca Türkçe adlarıyla yazılır (`değişken`, `yazdır`, `tr hata_ayıkla`). Türkçe harfsiz ya da eski bir ad yazılırsa (`degisken`, `yazdir`, `matris`) hata mesajı doğru adı önerir: `'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?`
 
@@ -65,7 +65,7 @@ döngü adım içinde 0..500 {
 yazdır("w = {yuvarla(w.değer[0][0], 3)}, b = {yuvarla(b.değer[0], 3)}")   // w = 2.0, b = -1.0
 ```
 
-Dilin tek sayısal dizi türü tensördür: matrisler 2 boyutlu tensördür (`tensör([[1, 2], [3, 4]])`), hesaplar `float32` ile yapılır. Tensörler `döngü satır içinde t` ile ilk ekseni boyunca gezilir ve `t[i] = d` ile yerinde değiştirilir. `@` matris çarpımıdır; `+ - * /` eleman bazlı ve yayınlamalıdır. `relu`, `gelu`, `softmax`, `katman_normu`, `gömme`, `çapraz_entropi`, `SGD`, `gradyan_kırp`, `tensör_kaydet` / `tensör_yükle` ve fazlası için: [Kullanım Kılavuzu §4.D](KULLANIM_KILAVUZU.md#d-tensörler-ve-otomatik-türev).
+Dilin tek sayısal dizi türü tensördür: matrisler 2 boyutlu tensördür (`tensör([[1, 2], [3, 4]])`), hesaplar `float32` ile yapılır. Tensörler `döngü satır içinde t` ile ilk ekseni boyunca gezilir ve `t[i] = d` ile yerinde değiştirilir. `@` matris çarpımıdır; `+ - * /` eleman bazlı ve yayınlamalıdır. `relu`, `gelu`, `softmax`, `katman_normu`, `gömme`, `çapraz_entropi`, `SGD`, `gradyan_kırp`, `tensör_kaydet` / `tensör_yükle` ve fazlası için: [Kullanım Kılavuzu §4.D](KULLANIM_KILAVUZU.md#c-tensörler-ve-otomatik-türev).
 
 ## Veri ve parçalayıcı
 
@@ -78,7 +78,7 @@ değişken ö = küme.örnekleyici(toplu: 8, bağlam: 256, tohum: 1)
 değişken girdi, hedef = ö.sonraki()                              // [8, 256] tensörler
 ```
 
-`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`ornekler/08_veri_ile_egitim.tr`](ornekler/08_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.E](KULLANIM_KILAVUZU.md#e-veri-ve-parçalayıcı).
+`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`ornekler/08_veri_ile_egitim.tr`](ornekler/08_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.E](KULLANIM_KILAVUZU.md#d-veri-ve-parçalayıcı).
 
 ## VS Code eklentisi ve hata ayıklama
 
@@ -96,17 +96,16 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | [`02_dil_turu.tr`](ornekler/02_dil_turu.tr) | Dilin turu: `eşle`, döngüler, liste üreteci, sondaki blok ve `o`, `\|>`, yapılar, `dene/yakala`, `ertele`, `eşzamanlı`, modüller |
 | [`03_testler_test.tr`](ornekler/03_testler_test.tr) | `test` blokları, `doğrula`, `eşit_mi`; `tr test ornekler/03_testler_test.tr` ile çalışır |
 | [`04_hata_ayiklama.tr`](ornekler/04_hata_ayiklama.tr) | `kesme_noktası` ile hata ayıklama, değeri çalışırken değiştirme (etkileşimli) |
-| [`05_tensor_ve_turev.tr`](ornekler/05_tensor_ve_turev.tr) | Tensörler, `@`, yayınlama, otomatik türev, AdamW ile doğrusal regresyon, `sinir_ağı`, kaydet/yükle |
+| [`05_tensor_ve_turev.tr`](ornekler/05_tensor_ve_turev.tr) | Tensörler, `@`, yayınlama, otomatik türev, AdamW ile doğrusal regresyon, tensörlerle iki katmanlı XOR ağı, kaydet/yükle |
 | [`06_transformer.tr`](ornekler/06_transformer.tr) | Elle yazılmış küçük transformer: çok başlı nedensel dikkat, katman normu |
 | [`07_karakter_modeli.tr`](ornekler/07_karakter_modeli.tr) | Projenin belgeleriyle eğitilen karakter düzeyi dil modeli ve metin üretimi |
 | [`08_veri_ile_egitim.tr`](ornekler/08_veri_ile_egitim.tr) | `tokenizer.json` parçalayıcısı ve `.npy` veri kümesiyle uçtan uca eğitim ve doğrulama |
-| [`09_web_veritabani.tr`](ornekler/09_web_veritabani.tr) | Türkçe SQL veritabanı, REST API sunucusu ve görsel arayüz |
 
 Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`, F5 ile denenecek `hata_ayiklama.tr`).
 
 ## Belgeler ve ölçümler
 
-- [`KULLANIM_KILAVUZU.md`](KULLANIM_KILAVUZU.md) — komutlar, yerleşikler, yapay zekâ, web, veritabanı, hata ayıklayıcı.
+- [`KULLANIM_KILAVUZU.md`](KULLANIM_KILAVUZU.md) — komutlar, yerleşikler, tensörler ve yapay zekâ, veri ve parçalayıcı, hata ayıklayıcı.
 - [`docs/DIL_TANIMI.md`](docs/DIL_TANIMI.md) — dilin kuralları; her kuralın `testler/` altında bir testi vardır (`tr test testler`).
 - [`docs/KODLAR.md`](docs/KODLAR.md) — her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği (kod listesinden üretilir).
 - [`docs/YOL_HARITASI.md`](docs/YOL_HARITASI.md) — yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar.
@@ -127,7 +126,7 @@ Kendi denemeleriniz için [`calisma/`](calisma/) klasörü vardır (`merhaba.tr`
 | `pkg/tensor` | n boyutlu tensörler, otomatik türev ve CPU çekirdekleri |
 | `pkg/parcalayici` | `tokenizer.json` parçalayıcısı (metin ↔ token kimliği) |
 | `pkg/veri` | `.npy` token veri kümesi, örnekleyici, önbellek |
-| `pkg/motor` | Tensör, parçalayıcı, veri, web, veritabanı ve yapay zekâ yerleşiklerini dile bağlar |
+| `pkg/motor` | Tensör, parçalayıcı, veri ve JSON/CSV yerleşiklerini dile bağlar |
 | `pkg/hataayiklama` | Terminal hata ayıklayıcısı ve VS Code hata ayıklama sunucusu |
 | `pkg/testkosucu` | `tr test` komutunun çekirdeği |
 | `pkg/bicim` | `tr biçimle` biçimlendiricisi |

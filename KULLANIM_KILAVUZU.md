@@ -9,7 +9,7 @@ GOAMD64=v3 go build -o tr.exe ./cmd/tr          # bash
 $env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
 ```
 
-2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez. Eğitim ve sunucu derlemelerinde v3, matris çarpımını v1 derlemeye göre çok hızlandırır (512×512 çarpımda yaklaşık 8–14 kat; bkz. `kiyas/README.md`).
+2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez. Eğitim derlemelerinde v3, matris çarpımını v1 derlemeye göre çok hızlandırır (512×512 çarpımda yaklaşık 8–14 kat; bkz. `kiyas/README.md`).
 
 | Komut | Açıklama |
 | :--- | :--- |
@@ -18,15 +18,15 @@ $env:GOAMD64="v3"; go build -o tr.exe ./cmd/tr   # PowerShell
 | `./tr.exe hata_ayıkla dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
 | `./tr.exe kontrol dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar |
 | `./tr.exe derle dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |
-| `./tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §9) |
-| `./tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (bkz. §10) |
+| `./tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §7) |
+| `./tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (bkz. §8) |
 | `./tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
 | `./tr.exe dap` | VS Code hata ayıklama sunucusu; eklenti kendisi başlatır, elle çalıştırılmaz |
 | `./tr.exe yardım` / `-h`, `./tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
 
 Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr hata_ayıkla' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `çıkış` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `çıkış` yazmanızı söyler.
 
-Öğrenmeye `ornekler/` klasöründeki numaralı örneklerle başlayın (`01_merhaba.tr` … `09_web_veritabani.tr`; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
+Öğrenmeye `ornekler/` klasöründeki numaralı örneklerle başlayın (`01_merhaba.tr` … `08_veri_ile_egitim.tr`; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
 
 ---
 
@@ -54,7 +54,7 @@ Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizc
 AdamW 'ogrenme_orani' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?
 ```
 
-Eş anlamlı ikinci adlar da kaldırıldı ve artık sıradan adlardır: `işlev`, `döndür`, `kır`, `sınıf`, `aktar ... as` yerine `fonksiyon`, `sonuç`, `çık`, `yapı`, `olarak`; `veritabanı(...)` yerine `veritabanı_aç(...)`, `pencere_oluştur(...)` yerine `arayüz_oluştur(...)`, `matris(...)` yerine `tensör([[...]])`, `.eğit(..., öğrenme_hızı: ...)` yerine `öğrenme_oranı:` yazın. Eski adla yazılan kodda hata mesajı doğrusunu önerir (`'işlev' TR'de anahtar kelime değil; 'fonksiyon' yazmak mı istediniz?`); ipucu hiçbir zaman Türkçe harfsiz bir biçim önermez (`islev` → `fonksiyon`). Kaldırılanların tam listesi `docs/DIL_TANIMI.md` 2.9a'dadır.
+Eş anlamlı ikinci adlar da kaldırıldı ve artık sıradan adlardır: `işlev`, `döndür`, `kır`, `sınıf`, `aktar ... as` yerine `fonksiyon`, `sonuç`, `çık`, `yapı`, `olarak`; `matris(...)` yerine `tensör([[...]])`, `öğrenme_hızı:` yerine `öğrenme_oranı:` yazın. Eski adla yazılan kodda hata mesajı doğrusunu önerir (`'işlev' TR'de anahtar kelime değil; 'fonksiyon' yazmak mı istediniz?`); ipucu hiçbir zaman Türkçe harfsiz bir biçim önermez (`islev` → `fonksiyon`). Kaldırılanların tam listesi `docs/DIL_TANIMI.md` 2.9a'dadır.
 
 ### Yerleşik ad gölgeleme uyarısı
 
@@ -92,7 +92,7 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/KODLAR.md`](docs/KODLAR.m
 - `ortalama(l)` boş listede ve sayı olmayan elemanda hata verir (`ortalama(): boş listenin ortalaması yoktur`), `toplam(l)` sayı olmayan elemanda hata verir.
 - `l.sırala()` yalnızca sayılardan ya da yalnızca metinlerden oluşan listeyi sıralar; karışık liste hatadır (`liste.sırala(): Tam (2) ile Metin ("a") karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır`). `min` ve `maks` sayı olmayan değerde (metin dahil) hata, boş listede `yok` verir.
 - Metotlar da yerleşikler gibi argüman sayısını ve tipini denetler: `metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))`, `liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi`.
-- Yerleşikler ve metotlar yalnızca imzalarındaki adlı argümanları kabul eder; bilinmeyen bir adlı argüman sessizce yok sayılmaz: `yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)`, `web_sunucu() 'adres' adında bir parametre almaz (geçerli adlar: port)`.
+- Yerleşikler ve metotlar yalnızca imzalarındaki adlı argümanları kabul eder; bilinmeyen bir adlı argüman sessizce yok sayılmaz: `yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)`, `tensör() 'ölçek' adında bir parametre almaz (geçerli adlar: türev_izle, tür)`.
 
 ### `o` zamiri ve sondaki blok
 
@@ -129,32 +129,17 @@ Kendi tanımladığınız adlarda öneriler Türkçe harf farkını hata saymaz 
 ## 4. Yerleşik Yapay Zeka ("İkisi Bir Arada") ve Veri Bilimi Komutları
 
 ### A. Düşük Seviye Matris ve Otomatik Türev
-- `tensör([[1, 2], [3, 4]])`, `sıfırlar([satır, sütun])`, `birler([satır, sütun])`, `birim_matris(n)`, `rastgele_normal([satır, sütun], tohum: 42)`: matris 2 boyutlu bir **tensördür** (ayrı bir matris tipi ya da `matris(...)` / `rastgele_matris(...)` oluşturucusu yoktur; ayrıntılar §4.D)
+- `tensör([[1, 2], [3, 4]])`, `sıfırlar([satır, sütun])`, `birler([satır, sütun])`, `birim_matris(n)`, `rastgele_normal([satır, sütun], tohum: 42)`: matris 2 boyutlu bir **tensördür** (ayrı bir matris tipi ya da `matris(...)` / `rastgele_matris(...)` oluşturucusu yoktur; ayrıntılar §4.C)
 - `A @ B` (Çok çekirdekli matris çarpımı), `A.devrik()`, `A.şekil` (`[satır, sütun]`)
 - `tensör(3.0, türev_izle: doğru)` (tek sayı 0 boyutlu tensör verir), `geri_yayılım(y)`, `x.gradyan`, `x.değer` (`x.gradyan` da bir tensördür; sayısını `x.gradyan.değer` verir)
-- Aktivasyonlar ve Kayıp: `relu(x)`, `sigmoid(x)`, `tanh(x)`, `softmax(x)`, `kayıp_mse(tahmin, gerçek)`
+- Aktivasyonlar ve kayıp: `relu(x)`, `sigmoid(x)`, `tanh(x)`, `softmax(x)`, `çapraz_entropi(çıktı, hedef)`; ortalama kare hata `ortalama((tahmin - hedef) ** 2)` ile yazılır
 
-### B. Yüksek Seviye Hazır Yapay Sinir Ağı + Kaydet/Yükle
-```tr
-değişken model = sinir_ağı([2, 8, 1], aktivasyon: "tanh", tohum: 42)
-model.eğit(X_veri, Y_hedef, devir: 800, öğrenme_oranı: 0.15)
-model.kaydet("modelim.json")
-
-değişken hazır_model = model_yükle("modelim.json")
-değişken tahmin = hazır_model.tahmin_et(X_veri)
-```
-
-### C. Veri Bilimi, Vektör Benzerlik, Web ve Dış Köprüler
-- İstatistik: `ortalama(liste)`, `standart_sapma(liste)`, `ortanca(liste)`, `normalize_et(liste)`
-- Vektör: `nokta_çarpım(v1, v2)`, `kosinüs_benzerliği(v1, v2)`, `öklid_uzaklığı(v1, v2)`
-- Veri, Web & Köprüler: `csv_oku(yol_veya_metin)`, `json_çöz(metin)`, `json_metin(değer)`, `web_al(url)`, `web_gönder(url, veri)`, `yz_sor(istem)`
+### B. İstatistik ve Veri Biçimleri
+- İstatistik: `ortalama(liste)`, `standart_sapma(liste)`, `ortanca(liste)` (vektör işleri tensörlerle yazılır: `toplam(a * b)`, `karekök(toplam(a * a))`)
+- Veri biçimleri: `csv_oku(yol_veya_metin)`, `json_çöz(metin)`, `json_metin(değer)`
 - `csv_oku`: argüman var olan bir dosyanın yoluysa dosya okunur. `.csv` ile biten ya da virgül içermeyip `/` veya `\` içeren tek satırlık bir argüman yol sayılır; öyle bir dosya yoksa "dosya bulunamadı" hatası verilir. Bunların dışındaki argüman CSV metninin kendisi olarak ayrıştırılır (`csv_oku("ad,yaş\nAli,30")`). Göreli yollar önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür. Baştaki bayt sırası işareti (BOM) atılır. Hücreler boşlukları kırpılarak **yalnızca katı sayı biçimindeyse** sayıya çevrilir: `42`, `-7` `Tam`; `1.0`, `2.5e3`, `1E-3` `Ondalık`. Öteki her hücre olduğu gibi `Metin` kalır, böylece hiçbir değer sessizce bozulmaz: baştaki sıfırlı `007` (posta kodu, kimlik), `Tam` aralığını aşan `12345678901234567890`, `NaN`, `Inf`, `0x10`, `1_000`, `+5`, `.5`.
 - `json_çöz` / `json_metin`: `json_çöz` sözlük anahtarlarının sırasını korur ve baştaki BOM'u atar; tam sayı değerli ondalıklar (`1.0`, `1e2`) `Tam` olur, `Tam` aralığını aşan tam sayılar (`12345678901234567890`) en yakın `Ondalık`'a yaklaşık çevrilir. `json_metin` anahtarları sözlükteki sırayla yazar (`json_metin(json_çöz("{\"b\": 1, \"a\": 2}"))` → `{"b":1,"a":2}`). JSON'da karşılığı olmayan değerler `dene/yakala` ile yakalanan Türkçe bir hata verir: Tanımsız ve sonsuz sayılar (`NaN sayısı JSON'a yazılamaz ...`), kendini içeren liste/sözlük (`değer kendini içeriyor ...`), 1000 seviyeden derin iç içe değerler ve `1` ile `"1"` gibi JSON'da aynı anahtara düşen iki anahtar.
-- `web_al` / `web_gönder`: 2xx dışı bir yanıt, durum kodu ve gövdenin kısa bir özetiyle hata verir (`web_al: ... adresi 404 Not Found durum kodu döndürdü: ...`; `dene/yakala` ile yakalanır). Yanıt gövdesi en çok 50 MB olabilir; JSON yanıt en çok 5 milyon değerle sözlük/liste olarak, diğerleri metin olarak döner (değer sınırı belleği korur: 50 MB'lık bir sayı dizisi gigabaytlarca bellek isterdi). 30 saniyelik zaman aşımı bağlanmayı, okumayı ve JSON'un çözülmesini birlikte kapsar; istek sürerken yorumlayıcı kilidi bırakılır, öteki görevler ilerler. `web_gönder`'in verisi `json_metin` kuralıyla yazılır.
-- **`web_al` hangi adrese bağlanırsa bağlansın** (yerel ağ ve `127.0.0.1` dahil) izin verir ve sunucunun yönlendirmelerini (en çok 10) izler; dış adresi yerel bir adrese yönlendiren bir site, programınızın yerel servislere istek atmasına yol açabilir. Kullanıcının yazdığı bir adresi `web_al`'a vermeden önce kendiniz denetleyin (ör. yalnızca bildiğiniz alan adlarına izin verin).
-- `yz_sor(istem, model: "model_adı", adres: "...")` bir **yerel dil modeli sunucusu** ister: bu bilgisayarda 11434 portunda dinleyen, metin üretme (`/api/generate`) ve yüklü model listesi (`/api/tags`) uç noktaları olan bir sunucu. `model:` verilmezse sunucudaki ilk yüklü model kullanılır; `adres:` başka bir sunucunun metin üretme adresidir. Sunucu kapalıysa sahte bir yanıt değil, yol gösteren bir hata döner (`yz_sor: yerel dil modeli sunucusuna (...) ulaşılamadı ...`); yanıt üretilmesi en çok 120 saniye beklenir.
-
-### D. Tensörler ve Otomatik Türev
+### C. Tensörler ve Otomatik Türev
 Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`; `bf16` ve `fp16` de seçilebilir, bkz. **Veri türleri**); yapay zekâ modellerinin ağırlıkları, girdileri ve ara sonuçları tensördür. Her işlem hesap çizgesine kaydedilir; `geri_yayılım(kayıp)` tüm gradyanları hesaplar. Çalıştırılabilir örnekler: `ornekler/05_tensor_ve_turev.tr`, `ornekler/06_transformer.tr`, `ornekler/07_karakter_modeli.tr`.
 
 - **Oluşturma:** `tensör(veri, türev_izle: doğru)` (veri: iç içe liste, tek sayı ya da tensör), `sıfırlar([2, 3])`, `birler([2, 3])`, `rastgele_normal([2, 3], tohum: 42)`. Şekil **liste** olarak verilir; `sıfırlar(2, 3)` gibi iki tam sayı da aynı 2 boyutlu tensörü verir. Matris 2 boyutlu tensördür: `tensör([[1, 2], [3, 4]])`, `birim_matris(n)` ve `rastgele_normal([satır, sütun], tohum: 7)` ile oluşturulur. Kaldırılan `matris(...)` ve `rastgele_matris(...)` yazılırsa hata karşılığı önerir (`'matris' TR'de yok; 'tensör' yazmak mı istediniz?`). `türev_izle` varsayılanı her zaman (tek sayıda da) `yanlış`tır: `tensör(3.0)` 0 boyutlu (skaler) bir tensördür (`.şekil` `[]`, `.değer` `3.0`, `.gradyan` `yok`); türevi izlenecekse `tensör(3.0, türev_izle: doğru)` yazın.
@@ -229,7 +214,7 @@ yazdır(türev_denetle(kapılı, [a, b]))               // doğru (yanlış bir 
 
 VS Code İzleme Masası'nda tensörler tip sütununda `Tensör [2×3]` (float32 dışındaki türlerde `Tensör [2×3] bf16`) olarak görünür; 1 ve 2 boyutlu tensörler tablo olarak açılabilir. Variables panelinde tensörler ilk ekseni boyunca açılır (satırlar, onların içinde sayılar; 1000'den çok satırda ilk 1000 satır ve bir `…` satırı gösterilir).
 
-### E. Veri ve Parçalayıcı
+### D. Veri ve Parçalayıcı
 Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` veri dosyalarını okuyan **veri kümesi**. Uçtan uca örnek: `ornekler/08_veri_ile_egitim.tr`.
 
 **Parçalayıcı**
@@ -250,7 +235,7 @@ Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `t
 - `.sonraki()` `[girdi, hedef]` listesi verir: ikisi de `[toplu, bağlam]` şeklinde, tam sayı değerli tensördür ve `hedef` girdinin bir kaydırılmışıdır. Doğrudan `gömme(E, girdi)` ve `çapraz_entropi(çıktı, hedef)`'e verilir: `değişken girdi, hedef = ö.sonraki()`. İkisi de tam sayılı işaretlidir: ondalıksız yazdırılır ve `.değer` `Tam` listesi verir, böylece liste indekslemede doğrudan kullanılır. Bu tensörlerle yapılan işlemlerin sonucu (ör. `girdi + 1`) Ondalık değerlidir.
 - **Önden yükleme her zaman açıktır:** sonraki 4 toplu iş arka planda hazırlanır. Bu iş TR kodu çalıştırmaz, yorumlayıcı kilidini tutmaz; `.sonraki()` beklerken kilit bırakılır, böylece `eşzamanlı` görevler ilerler. Aynı okuyucuyu birden çok görev paylaşabilir (her toplu iş bir göreve gider).
 - **Kaynaklar:** açık bir kapatma adı yoktur. Sıralı okuyucu bitince dosyalarını hemen kapatır; artık kullanılmayan (hiçbir değişkenin göstermediği) okuyucu ve kümeler çöp toplayıcı tarafından kapatılır; program bitince açık kalanların hepsi kapatılır (takılan bir ağ okumasında en çok birkaç saniye beklenir).
-- Göreli yollar, dosya okuyan ve yazan bütün yerleşiklerde (`dosya_oku`, `dosya_yaz`, `aktar`, `parçalayıcı_yükle`, `veri_kümesi`, `csv_oku`, `veritabanı_aç`, `html_kaydet`, `statik_klasör`) aynı kuralla çözülür: göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler.
+- Göreli yollar, dosya okuyan ve yazan bütün yerleşiklerde (`dosya_oku`, `dosya_yaz`, `aktar`, `parçalayıcı_yükle`, `veri_kümesi`, `csv_oku`, `tensör_kaydet`, `tensör_yükle`) aynı kuralla çözülür: göreli bir yol önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler.
 - Hatalar Türkçe ve yol göstericidir (dosya yok, `.npy` değil, kota yetersiz, bağlam veri dosyalarından uzun, adlı argüman yazım hatası...) ve `dene/yakala` ile yakalanır.
 
 ```tr
@@ -300,96 +285,7 @@ TR'nin **terminalde** (`tr hata_ayıkla dosya.tr`, kabukta `/h`) çalışan bir 
 
 ---
 
-## 6. Görsel Arayüz ve Web Sunucu Motoru
-
-Veritabanı, REST API ve arayüzü birlikte kullanan örnek: `ornekler/09_web_veritabani.tr`.
-
-### A. Görsel Arayüz Motoru (`arayüz_oluştur`)
-```tr
-değişken ekran = arayüz_oluştur("Kurumsal Panel", genişlik: 1100, yükseklik: 780)
-ekran.kart_ekle("Toplam Ciro", "1.450.000 TL", "+%18 Artış", "yeşil")
-ekran.grafik_ekle("Aylık Satışlar", ["Ocak", "Şubat", "Mart"], [420, 510, 520], "çubuk")
-ekran.tablo_ekle("Sipariş Tablosu", siparis_listesi)
-ekran.form_ekle("Hızlı Sipariş Girişi", ["Müşteri", "Tutar"], fonksiyon(form) {
-    sonuç "{form['Müşteri']} için {form['Tutar']} TL kaydedildi!"
-})
-ekran.html_kaydet("rapor.html") // veya ekran.başlat() ile canlı masaüstü penceresi açar
-```
-
-- Bileşenler: `kart_ekle(başlık, değer, [alt_bilgi], [renk])`, `başlık_ekle`, `metin_ekle`, `tablo_ekle`, `grafik_ekle`, `form_ekle`, `buton_ekle`; çıktı: `html_kaydet(yol)`, `html_üret()`, `başlat()`, `durdur()`.
-- **Renkler yalnızca Türkçe adlarla ya da renk koduyla verilir:** `yeşil`, `mavi`, `kırmızı`, `sarı`, `turuncu`, `mor` (büyük/küçük harf fark etmez) ya da `#22c55e`, `rgb(34, 197, 94)`, `hsl(...)`. İngilizce adlar ve Türkçe harfsiz yazımlar Türkçe adı öneren bir hata verir (`kart_ekle: 'green' TR'de yok; 'yeşil' yazmak mı istediniz?`, `'yesil'` için de aynı); bilinmeyen bir renk adı da hatadır (`kart_ekle: bilinmeyen renk "mavimsi"; bir renk adı (yeşil, mavi, kırmızı, sarı, turuncu, mor) ya da #22c55e, rgb(34, 197, 94) gibi bir renk kodu yazın`).
-
-### B. Web Sunucu & REST API Motoru (`web_sunucu`)
-```tr
-değişken api = web_sunucu(port: 8080)
-api.al("/api/urunler", fonksiyon(istek) {
-    sonuç [{"id": 1, "ad": "Laptop", "fiyat": 45000}]
-})
-api.gönder("/api/ekle", fonksiyon(istek) {
-    değişken gelen = istek["veri"]
-    sonuç {"durum": "tamam", "eklenen": gelen}
-})
-api.başlat() // veya api.arka_planda_başlat()
-```
-
-**Ağır işler sürerken istekler ve görevler:** Yorumlayıcı kilidi aynı anda yalnızca bir görevin TR kodu çalıştırmasına izin verir. Kilidi tutan görev, kilidi bekleyen başka bir görev varsa onu döngülerde düzenli aralıklarla ve her fonksiyon çağrısında devreder (bir deyim hiçbir zaman ortasından bölünmez). Böylece `api.arka_planda_başlat()` ile açılan sunucu, uzun bir eğitim ya da hesap döngüsü sürerken de isteklere yanıt verir; `eşzamanlı` görevler de döngünün bitmesini beklemeden ilerler.
-
-**Port:** `web_sunucu(port: 8080)` ve `arayüz.başlat(port: 8095)` 1 ile 65535 arasında bir `Tam` ister; `port: 0` (rastgele port) ya da metin port hata verir.
-
-**Güvenlik:** Web sunucusu ve görsel arayüz yalnızca bu bilgisayardan (127.0.0.1) erişilebilir ve tarayıcıda açık başka web sitelerine karşı korunur:
-- Başka sitelere okuma izni (CORS) verilmez.
-- Başka bir siteden (başka bir porttaki yerel siteler dahil) gelen **bütün istekler, GET dahil,** 403 ile reddedilir; böylece başka bir sayfadaki `<img src="http://localhost:8080/sil">` gibi bir bağlantı da işleyiciyi çalıştıramaz. Tarayıcılar isteğin kaynağını `Sec-Fetch-Site` ve `Origin` başlıklarıyla bildirir; bunları göndermeyen eski tarayıcılarda `Referer`'a bakılır. Uygulamayı adresi adres çubuğuna yazarak (ya da yer imiyle) açın; başka bir siteden verilen bağlantı reddedilir. Tarayıcı dışındaki programlar (`web_al`, komut satırı araçları) bu başlıkları göndermez ve etkilenmez.
-- `localhost`, `127.0.0.1` ve `[::1]` dışındaki Host başlıkları reddedilir.
-- İstek gövdesi en fazla 10 MB olabilir; JSON gövde en çok 5 milyon değerle çözülür (aşılırsa 413).
-- `istek["veri"]` yalnızca istek `Content-Type: application/json` ile gelirse sözlük/liste olarak çözülür; aksi hâlde metindir.
-- İşleyicinin döndürdüğü metin yalnızca tam bir HTML belgesiyse (`<!DOCTYPE html>` ya da `<html>` ile başlıyorsa) sayfa olarak sunulur; diğer metinler düz metin olarak gönderilir. Sözlük/liste yanıtları `json_metin` kuralıyla geçerli JSON olarak yazılır.
-- İşleyici hata verirse ya da yanıt JSON'a çevrilemezse (ör. `NaN` içeriyorsa) istemci yalnızca `500` ve genel bir `{"hata": "Sunucu hatası: ..."}` alır; hatanın ayrıntısı (satır, kod) istemciye gitmez, sunucuyu çalıştıran terminale yazılır.
-
-**Statik klasör:** `api.statik_klasör("/dosyalar/", "genel")` klasördeki dosyaları sunar (klasör TR'nin tek yol kuralıyla çözülür; yoksa hata). Adı nokta ile başlayan dosya ve klasörler (`.env`, `.git`) hiç sunulmaz, klasörler listelenmez (içinde `index.html` varsa o sunulur), bağlantı (kısayol, dizin bağlantısı) ile klasörün dışına çıkılamaz. `"/"` öneki de verilebilir; rotalar her zaman statik klasörden önce gelir.
-
----
-
-## 7. Yerleşik Türkçe SQL Veritabanı ve Listeyi Tablo Gibi Sorgulama
-
-```tr
-// 1. Kalıcı disk veritabanı (.trdb) ya da bellek veritabanı (":bellek:")
-değişken vt = veritabanı_aç("sirket.trdb")
-vt.ekle("personel", {"id": 101, "ad": "Ayşe Yılmaz", "departman": "Yapay Zeka", "maas": 92000})
-
-// Türkçe sorgu diliyle sorgulama
-değişken sonuç_listesi = vt.sorgula("SEÇ ad, maas TABLO personel NEREDE maas >= 80000 SIRALA maas AZALAN LİMİT 10")
-vt.güncelle("personel", {"maas": 98000}, "id == 101")
-
-// Dışarıdan gelen değerleri (form, adres parametresi) sorguya gömmeyin; '?' ile bağlayın:
-değişken departman = "Yapay Zeka"
-değişken ekip = vt.sorgula("SEÇ ad TABLO personel NEREDE departman == ? VE maas > ?", [departman, 50000])
-değişken silinecek_id = 101
-vt.sil("personel", "id == ?", [silinecek_id])   // güncelle(..., koşul, [parametreler]), say(tablo, koşul, [parametreler]) de aynı
-
-// 2. Bellekteki bir listeyi tablo gibi sorgulama
-değişken liste = [{"ad": "Ali", "maas": 90000}, {"ad": "Can", "maas": 70000}]
-değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", alanlar: ["ad", "maas"])
-```
-
-**Sorgu ve koşul dili yalnızca Türkçedir.** Sözcükler: `SEÇ`, `SİL`, `TABLO`, `NEREDE`, `SIRALA`, `AZALAN`, `LİMİT`; koşullarda `VE`, `VEYA`, `DEĞİL`, `DOĞRU`, `YANLIŞ`, `YOK`. Büyük/küçük harf fark etmez; harfler Türkçe kuralla eşlenir (`seç` ≡ `SEÇ`, `limit` ≡ `LİMİT`). Simgeler de kullanılabilir: `&&`, `||`, `!`, `=`, `==`, `!=`, `<>`, `<`, `>`, `<=`, `>=`, `+ - * / %` ve parantez.
-
-- İngilizce sözcükler (`SELECT`, `FROM`, `WHERE`, `ORDER BY`, `DESC`, `LIMIT`, `DELETE`, `AND`, `OR`, `NOT`, `TRUE`, `FALSE`, `NULL`), eş anlamlı `DAN` ve Türkçe harfsiz yazımlar (`SEC`, `SIL`, `DOGRU`, `YANLIS`, `DEGIL`) kabul edilmez; hata Türkçe karşılığı önerir: `Desteklenmeyen SQL komutu: 'SELECT' TR'de yok; 'SEÇ' yazmak mı istediniz?`, `Koşul hatası (maas > 1 AND maas < 9): 'AND' TR'de yok; 'VE' yazmak mı istediniz?`
-- `tablo_sorgula(..., sırala: "maas:azalan")` sıralama yönünü de yalnızca Türkçe alır (`"maas:desc"` hata verir). Bellekte veritabanı yalnızca `veritabanı_aç(":bellek:")` ile açılır (`":memory:"` hata verir).
-- Koşullar TR kodu olarak çalıştırılmaz; yalnızca sütun adları, sayılar, `'metin'`, yukarıdaki sözcük ve simgeler desteklenir. Bilinmeyen sütun ya da hatalı koşul sessizce boş liste döndürmez, hata verir.
-- Veritabanı yöntemleri (`sorgula`, `güncelle`, `sil`, `say`) ve `tablo_sorgula` bilinmeyen adlı argümanı yok saymaz, hata verir; kaldırılan adlar asıl adı önerir (`params:` → `parametreler:`, `nerede:` → `koşul:`).
-- Yöntem adları da tektir: `ekle`, `sorgula`, `hepsini_al`, `güncelle`, `sil`, `say`, `tablolar`, `tablo_oluştur`, `kaydet` (kaldırılanlar: `kayıt_ekle`, `sorgu`, `seç`, `tablo_al`).
-- **Tablo adları** büyük/küçük harfe duyarsızdır ve Türkçe kuralla eşlenir (`IŞIK` ≡ `ışık`, `İşler` ≡ `işler`). Olmayan bir tabloyu okumak, saymak, güncellemek ya da silmek (`SEÇ ... TABLO`, `SİL TABLO` dahil) sessizce boş sonuç vermez, en yakın adı öneren bir hata verir (`"personl" adında tablo yok. Bunu mu demek istediniz: 'personel'?`). Tablo `ekle` ya da `tablo_oluştur` ile oluşur; "yoksa oluştur, varsa boşalt" için `vt.tablo_oluştur("t")` ardından `vt.sil("t")` yazın.
-- **Kayıt:** dosyalı veritabanında her değişiklik hemen diske yazılır. Yazma başarısız olursa (klasör yok, disk dolu, izin yok) işlem Türkçe bir hatayla `dene/yakala`'ya düşer ve değişiklik bellekte de geri alınır; bellek ile dosya hiç ayrışmaz. Yazma atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılıp diske işlenir, sonra eskisinin yerine konur; yarıda kalan bir yazma eski dosyayı bozmaz.
-- **Aynı dosyayı açmak:** bir programda aynı dosyayı ikinci kez açan `veritabanı_aç` ilk nesneyi döndürür (iki nesne birbirinin kaydını silemez). Aynı veritabanını aynı anda iki **program** açamaz: dosyanın yanında `<dosya>.kilit` adlı bir kilit dosyası tutulur, ikinci program `"..." başka bir program tarafından açık` hatası alır. Kilit program kapanınca bırakılır (çöken programın kilidi kalmaz); kilit dosyasının kendisi silinmez, zararsızdır. (Windows, Linux, macOS ve BSD'de; başka platformlarda süreçler arası kilit yoktur.)
-- **Saklanabilen değerler:** Tam, Ondalık, Metin, Mantık, `yok`, liste ve sözlük. Tam/Ondalık ayrımı korunur (`2.0` yeniden açınca da `Ondalık`'tır) ve 2^53'ten büyük `Tam` sayılar bozulmaz. Tanımsız (`NaN`) ve sonsuz sayılar ile kendini içeren liste/sözlük eklenirken reddedilir (`NaN sayısı veritabanına yazılamaz ...`); eskiden bunlar sonraki bütün kayıtları sessizce bozuyordu. İç içe sözlüklerin anahtarları okunurken alfabetik sıradadır.
-- **id:** her satırın `id`'si tektir. Verilmezse otomatik verilir (en büyük `Tam` id'nin ardından devam eder); var olan bir id ile eklemek ya da güncellemek hata verir (`id 3 "t" tablosunda zaten var`). Bir listede hata veren satır olursa listenin hiçbiri eklenmez; listenin her elemanı sözlük olmalıdır.
-- **LİMİT / limit:** sıfır ya da pozitif bir tam sayı olmalıdır (`LİMİT -1`, `LİMİT iki`, `limit: 1.5` hata verir).
-- **Tırnaklar:** metin değerleri `'...'` ya da `"..."` içinde yazılır; tırnak içinde `\` sonraki karakteri kaçırır (`'a\\'` tek ters bölü, `'it\'s'`), aynı tırnağı ikilemek de tırnaktır (`'O''Brien'`). Koşuldaki tırnaklar ve sorgu sözcükleri (`LİMİT`, `SIRALA` ...) aynı kuralla ayrılır.
-- **Sınırlar:** koşul en çok 200 seviye iç içe parantez/önek işleç ve 10 000 terimlik zincir içerebilir; aşılırsa yakalanabilir bir hata verilir (dışarıdan gelen bir koşul programı çökertemez).
-
----
-
-## 8. VS Code Editör Eklentisi Kısayolları (Snippets)
+## 6. VS Code Editör Eklentisi Kısayolları (Snippets)
 `.tr` uzantılı bir dosya açtığınızda aşağıdaki kısayolları yazıp `Tab` tuşuna basabilirsiniz:
 - `fonk` / `fonksiyon` $\rightarrow$ Fonksiyon bloğu oluşturur
 - `eğer` $\rightarrow$ `eğer ... değilse` bloğu oluşturur
@@ -400,14 +296,13 @@ değişken elit = tablo_sorgula(liste, "maas > 85000", sırala: "maas:azalan", a
 - `liste_üret` $\rightarrow$ Tek satırda liste üreteci oluşturur
 - `yapı` $\rightarrow$ `yapı` ve metot şablonu oluşturur
 - `dene` $\rightarrow$ `dene ... yakala` hata yakalama bloğu oluşturur
-- `sinir` / `sinir_ağı` $\rightarrow$ 3 satırlık yapay sinir ağı eğitim şablonu oluşturur
 - `tensör` / `türev` $\rightarrow$ Tensörlerle küçük bir eğitim döngüsü oluşturur (`tensör(..., türev_izle: doğru)`, `AdamW`, `iyileştirici.sıfırla()`, `geri_yayılım`, `iyileştirici.adım()`)
 
 
 
 ---
 
-## 9. Test Yazma ve Çalıştırma (`tr test`)
+## 7. Test Yazma ve Çalıştırma (`tr test`)
 
 Testler kodun yanına `test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır. Örnek: `tr test ornekler/03_testler_test.tr`.
 
@@ -443,7 +338,7 @@ test "eşitlik" {
 
 ---
 
-## 10. Kod Biçimlendirme (`tr biçimle`)
+## 8. Kod Biçimlendirme (`tr biçimle`)
 
 `tr biçimle` kodu tek bir standart biçime getirir:
 
