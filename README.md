@@ -45,6 +45,7 @@ test "toplama" {
 
 - `tr test` bulunulan klasördeki (alt klasörler dahil) tüm `*_test.tr` dosyalarını, `tr test dosya.tr` yalnızca o dosyayı çalıştırır. Bir test kalırsa çıkış kodu 1'dir.
 - `tr biçimle dosya.tr` (ya da klasör) kodu standart biçime getirir; `tr biçimle --kontrol .` yalnızca denetler ve biçimlenmesi gereken dosya varsa 1 ile çıkar.
+- `tr kodla dosya.tr` (ya da klasör) dosyayı dilden bağımsız kodlu biçime çevirir (`yazdır` → `G100`); `tr çöz` Türkçe yazıma geri çevirir, `tr göster dosya.tr` kodlu dosyayı değiştirmeden Türkçe basar. Kodlu dosya çevrilmeden de çalışır; adlarınız, metinler ve yorumlar değişmez. Kurallar: [`docs/dil/17_kodlar.md`](docs/dil/17_kodlar.md).
 
 ## Tensörler ve otomatik türev
 
@@ -119,7 +120,7 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 
 | Klasör | İçerik |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
+| `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
 | `internal/dil` | Dil çekirdeği: kod listesi (`kod`, [`docs/kodlar.md`](docs/kodlar.md)), sözcük çözümleyici (`sozcuk`), sözdizimi ağacı (`agac`), ayrıştırıcı (`ayristir`), tip denetimi (`denetci`), yorumlayıcı (`yurut`), Türkçe ekler (`turkce`) |
 | `internal/motor` | Tensör ve öğrenme, parçalayıcı, veri, JSON/CSV yerleşiklerini dile bağlayan motorlar |
 | `internal/hesap` | Dili bilmeyen hesap çekirdekleri: tensör ve CPU çekirdekleri (`tensor`), parçalayıcı (`parca`), veri yükleyici (`veriyolu`) |
