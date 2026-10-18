@@ -8,7 +8,7 @@ import (
 )
 
 // ============================================================================
-// Satır çekirdekleri: softmax, log_softmax, çapraz entropi
+// Satır çekirdekleri: softmax, log_softmax (çapraz entropi: cekirdek_ce.go)
 // ============================================================================
 //
 // Her satıra bir blok düşer; iş parçacıkları satırın elemanlarını B adımla gezer, satır
@@ -182,112 +182,9 @@ func softmaxTurevCekirdegi(B int, logKip bool) func() *yazici {
 	}
 }
 
-// ceIleriCekirdegi satır başına lse = m + log Σ e^{x−m} ve kayıp = lse − x[hedef] yazar;
-// hedefi negatif satırlarda ikisi de 0'dır.
-func ceIleriCekirdegi(B int) func() *yazici {
-	return func() *yazici {
-		k := yeniYazici(fmt.Sprintf("ce_ileri_%d", B))
-		x := k.gosterici("x")
-		hedef := k.gosterici("hedef")
-		lse := k.yazilan("lse")
-		kayip := k.yazilan("kayip")
-		C := k.u32p("c")
-		sm := k.ortak("sm", 4*B)
-		tid := k.ozel("%tid.x")
-		r := k.ozel("%ctaid.x")
-		bir := k.tam(1)
-		taban := k.r()
-		k.e("mul.lo.s32", taban, r, C)
-		t := k.r()
-		k.e("ld.global.s32", t, bel(k.adres(hedef, r, 4), 0))
-		son, gecerli := k.etiket(), k.etiket()
-		p := k.p()
-		k.e("setp.ge.s32", p, t, 0)
-		k.gitEger(p, gecerli)
-		ilk := k.p()
-		k.e("setp.ne.u32", ilk, tid, 0)
-		k.gitEger(ilk, son)
-		sifir := k.sabit(0)
-		k.sakla(tensor.Float32, k.adres(lse, r, 4), sifir)
-		k.sakla(tensor.Float32, k.adres(kayip, r, 4), sifir)
-		k.git(son)
-		k.koy(gecerli)
-		m := k.sabit(float32(math.Inf(-1)))
-		k.satirDongu(tid, C, bir, taban, B, func(ofs, _ yazmac) {
-			v := k.yukle(tensor.Float32, k.satirAdresi(x, ofs))
-			b := k.p()
-			k.e("setp.gt.f32", b, v, m)
-			k.e("selp.f32", m, v, m, b)
-		})
-		m = k.blokIndirge(m, sm, tid, B, k.enBuyuk)
-		s := k.sabit(0)
-		k.satirDongu(tid, C, bir, taban, B, func(ofs, _ yazmac) {
-			v := k.yukle(tensor.Float32, k.satirAdresi(x, ofs))
-			k.e("sub.rn.f32", v, v, m)
-			k.e("add.rn.f32", s, s, k.ustel(v))
-		})
-		s = k.blokIndirge(s, sm, tid, B, k.topla)
-		k.gitEger(k.tidSifirDegil(tid), son)
-		l := k.logaritma(s)
-		k.e("add.rn.f32", l, l, m)
-		k.sakla(tensor.Float32, k.adres(lse, r, 4), l)
-		xt := k.r()
-		k.e("add.s32", xt, taban, t)
-		xv := k.yukle(tensor.Float32, k.adres(x, xt, 4))
-		kv := k.f()
-		k.e("sub.rn.f32", kv, l, xv)
-		k.sakla(tensor.Float32, k.adres(kayip, r, 4), kv)
-		k.koy(son)
-		return k
-	}
-}
-
 // tidSifirDegil tid ≠ 0 yüklemi.
 func (k *yazici) tidSifirDegil(tid yazmac) yazmac {
 	p := k.p()
 	k.e("setp.ne.u32", p, tid, 0)
 	return p
-}
-
-// ceGeriCekirdegi gx[r, c] += k·e^{x−lse} − (c = hedef ? k : 0), k = g·ters; ızgara
-// (satır, sütun blokları).
-func ceGeriCekirdegi() *yazici {
-	k := yeniYazici("ce_geri")
-	gx := k.yazilan("gx")
-	g := k.gosterici("g")
-	x := k.gosterici("x")
-	lse := k.gosterici("lse")
-	hedef := k.gosterici("hedef")
-	C := k.u32p("c")
-	ters := k.f32p("ters")
-	r := k.ozel("%ctaid.x")
-	cb, nt, tid := k.ozel("%ctaid.y"), k.ozel("%ntid.x"), k.ozel("%tid.x")
-	c := k.r()
-	k.e("mad.lo.s32", c, cb, nt, tid)
-	son := k.sinirli(c, C)
-	t := k.r()
-	k.e("ld.global.s32", t, bel(k.adres(hedef, r, 4), 0))
-	p := k.p()
-	k.e("setp.lt.s32", p, t, 0)
-	k.gitEger(p, son)
-	kat := k.yukle(tensor.Float32, g)
-	k.e("mul.rn.f32", kat, kat, ters)
-	o := k.r()
-	k.e("mad.lo.s32", o, r, C, c)
-	xv := k.yukle(tensor.Float32, k.adres(x, o, 4))
-	lv := k.yukle(tensor.Float32, k.adres(lse, r, 4))
-	k.e("sub.rn.f32", xv, xv, lv)
-	v := k.f()
-	k.e("mul.rn.f32", v, kat, k.ustel(xv))
-	esit := k.p()
-	k.e("setp.eq.s32", esit, c, t)
-	vk := k.f()
-	k.e("sub.rn.f32", vk, v, kat)
-	k.e("selp.f32", v, vk, v, esit)
-	ha := k.adres(gx, o, 4)
-	eski := k.yukle(tensor.Float32, ha)
-	k.e("add.rn.f32", eski, eski, v)
-	k.sakla(tensor.Float32, ha, eski)
-	k.koy(son)
-	return k
 }

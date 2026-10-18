@@ -63,6 +63,11 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	loss, lse := be.CrossEntropy(logits.view(), tg, C)
 	out := fromStorage(be, loss, nil)
 	return track(out, "cross_entropy", []*Tensor{logits}, func() {
+		cs, yazar := be.(CrossEntropyGradSetter)
+		if gx, taze := logits.tazeGrad(yazar); taze {
+			cs.CrossEntropyGradSet(gx, out.grad, logits.view(), lse, tg, C)
+			return
+		}
 		be.CrossEntropyGrad(logits.accGrad(), out.grad, logits.view(), lse, tg, C)
 	}, logits)
 }

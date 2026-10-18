@@ -116,6 +116,17 @@ func surumDenetle(order []*Tensor) {
 	}
 }
 
+// tazeGrad gradyan henüz yoksa ve destek doğruysa (arka uç üzerine yazan biçimi veriyorsa)
+// sıfırlanmamış gradyan depolaması ayırıp doğru döner: çağıran her elemanı yazmalıdır.
+// Gradyan varsa (birikim) ya da destek yoksa accGrad'ın depolamasını ve yanlış verir.
+func (t *Tensor) tazeGrad(destek bool) (Storage, bool) {
+	if t.grad != nil || !destek {
+		return t.accGrad(), false
+	}
+	t.grad = allocBos(t.be, t.Numel(), gradTuru(t.tur))
+	return t.grad, true
+}
+
 // accGrad gradyan depolamasını (gerekirse sıfırlanmış olarak ayırarak) verir;
 // çağıran arka uç işlemleriyle üzerine ekler.
 func (t *Tensor) accGrad() Storage {

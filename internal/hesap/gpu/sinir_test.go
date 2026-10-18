@@ -58,7 +58,9 @@ func TestSoftmax(t *testing.T) {
 
 func TestCaprazEntropi(t *testing.T) {
 	rng := rand.New(rand.NewSource(9))
-	for _, d := range [][2]int{{1, 2}, {5, 7}, {9, 300}, {4, 1031}} {
+	// 300 ve 2056: 4'lü vektör yolu (2056 > 4·256: satır birden çok turda gezilir); 1 ve 1031:
+	// tekli yol.
+	for _, d := range [][2]int{{1, 2}, {5, 7}, {9, 300}, {4, 1031}, {3, 2056}, {6, 1}} {
 		R, C := d[0], d[1]
 		v := rastgele(rng, R*C, 3)
 		hedef := make([]int, R)
@@ -71,6 +73,15 @@ func TestCaprazEntropi(t *testing.T) {
 		karsilastir(t, fmt.Sprintf("çapraz entropi %d×%d", R, C), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			x := ikiz(v, true, R, C)[c]
 			return tensor.CrossEntropy(x, hedef), []*tensor.Tensor{x}
+		})
+		// Aynı logitlerden iki kayıp: ikinci gradyan birincinin üzerine eklenir (birikim yolu).
+		ikinci := make([]int, R)
+		for i := range ikinci {
+			ikinci[i] = (hedef[i] + 1) % C
+		}
+		karsilastir(t, fmt.Sprintf("iki çapraz entropi %d×%d", R, C), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x := ikiz(v, true, R, C)[c]
+			return tensor.Add(tensor.CrossEntropy(x, hedef), tensor.CrossEntropy(x, ikinci)), []*tensor.Tensor{x}
 		})
 	}
 }
@@ -142,6 +153,13 @@ func TestDikkat(t *testing.T) {
 		{"iki yönlü pencere", 1, 1, 1, 9, 9, 4, 4, tensor.AttentionOptions{Window: 2}, false},
 		{"maske", 2, 2, 2, 5, 5, 4, 4, tensor.AttentionOptions{Scale: 0.3}, true},
 		{"uzun satır", 1, 1, 1, 3, 300, 4, 4, tensor.AttentionOptions{}, false},
+		// Birleşik çekirdekte birden çok sorgu/anahtar döşemesi, 16'nın katı olmayan boylar.
+		{"çok döşeme nedensel", 1, 2, 1, 70, 70, 20, 12, tensor.AttentionOptions{Causal: true}, false},
+		{"çok döşeme pencere", 1, 1, 1, 75, 75, 8, 8, tensor.AttentionOptions{Causal: true, Window: 20}, false},
+		{"çok döşeme iki yönlü", 1, 1, 1, 66, 66, 8, 8, tensor.AttentionOptions{Window: 9}, false},
+		{"Tq<Tk pencere", 1, 1, 1, 21, 90, 8, 8, tensor.AttentionOptions{Causal: true, Window: 30}, false},
+		{"büyük baş boyu", 1, 1, 1, 20, 20, 100, 72, tensor.AttentionOptions{Causal: true}, false},
+		{"matris yolu", 1, 1, 1, 5, 6, 300, 8, tensor.AttentionOptions{Causal: true}, false},
 	}
 	for _, d := range durumlar {
 		qv := rastgele(rng, d.B*d.H*d.Tq*d.Dh, 1)
@@ -170,4 +188,11 @@ func TestDikkat(t *testing.T) {
 			return tensor.Attention(q, k, v, opt), []*tensor.Tensor{q, k, v}
 		})
 	}
+	// Aynı q, k, v'den iki dikkat: ikinci geri yayılım gradyanları eskisine ekler.
+	qv, kv, vv := rastgele(rng, 2*20*8, 1), rastgele(rng, 2*20*8, 1), rastgele(rng, 2*20*8, 1)
+	karsilastir(t, "dikkat birikim", 5e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+		q, k, v := ikiz(qv, true, 1, 2, 20, 8)[c], ikiz(kv, true, 1, 2, 20, 8)[c], ikiz(vv, true, 1, 2, 20, 8)[c]
+		y := tensor.Add(tensor.Attention(q, k, v, tensor.AttentionOptions{Causal: true}), tensor.Attention(q, k, v, tensor.AttentionOptions{}))
+		return y, []*tensor.Tensor{q, k, v}
+	})
 }

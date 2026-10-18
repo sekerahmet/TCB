@@ -102,9 +102,9 @@ func (g *arkaUc) CrossEntropy(x tensor.View, targets []int, C int) (tensor.Stora
 	xv := gt.oku(x)
 	hedef := gt.yukleTam(targets)
 	kayip := gt.tampon(R, false)
-	B := ikiKuvvet(C, 32, 256)
-	c := g.cekirdekAl(fmt.Sprintf("ce_ileri:%d", B), ceIleriCekirdegi(B))
-	g.baslat(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(B), 1, 1}, g.param().okuV(xv).oku(hedef, 0).yaz(lse, 0).yaz(kayip, 0).u32(C))
+	vek := ceVektorel(xv, C)
+	c := g.cekirdekAl(fmt.Sprintf("ce_ileri:%v", vek), ceIleriCekirdegi(vek))
+	g.baslat(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{ceBlok, 1, 1}, g.param().okuV(xv).oku(hedef, 0).yaz(lse, 0).yaz(kayip, 0).u32(C))
 	olcek := float32(0)
 	if n := gecerliSayisi(targets); n > 0 {
 		olcek = float32(1 / float64(n))
@@ -113,29 +113,43 @@ func (g *arkaUc) CrossEntropy(x tensor.View, targets []int, C int) (tensor.Stora
 	return loss, lse
 }
 
+// ceVektorel satırların 4'lü vektörlerle okunup yazılabildiği (C % 4 = 0, hizalı görünüm).
+func ceVektorel(xv tensor.View, C int) bool { return C%4 == 0 && xv.Offset%4 == 0 }
+
 func (g *arkaUc) CrossEntropyGrad(gx, gs tensor.Storage, x tensor.View, lse tensor.Storage, targets []int, C int) {
 	g.gir()
 	defer g.cik()
+	g.ceGeri(gx, gs, x, lse, targets, C, false)
+}
+
+// CrossEntropyGradSet (tensor.CrossEntropyGradSetter) gx'in üzerine yazar.
+func (g *arkaUc) CrossEntropyGradSet(gx, gs tensor.Storage, x tensor.View, lse tensor.Storage, targets []int, C int) {
+	g.gir()
+	defer g.cik()
+	g.ceGeri(gx, gs, x, lse, targets, C, true)
+}
+
+func (g *arkaUc) ceGeri(gx, gs tensor.Storage, x tensor.View, lse tensor.Storage, targets []int, C int, uzerine bool) {
 	n := gecerliSayisi(targets)
 	R := len(targets)
-	if n == 0 || C == 0 {
-		return
-	}
 	gt := g.gecici()
 	defer gt.bitir()
-	d, son := gt.yaz(gx, true)
+	d, son := gt.yaz(gx, !uzerine)
+	defer son()
+	if n == 0 || C == 0 {
+		if uzerine {
+			g.doldur(d, 0)
+		}
+		return
+	}
 	gd := gt.okuD(gs)
 	xv := gt.oku(x)
 	hedef := gt.yukleTam(targets)
 	ld := gt.okuD(lse)
-	c := g.cekirdekAl("ce_geri", ceGeriCekirdegi)
-	sutun := bloklar(C, esBlok)
-	if sutun > 65535 {
-		yok(fmt.Sprintf("%d sınıflı çapraz entropi (en çok %d)", C, 65535*esBlok))
-	}
-	g.baslat(c, [3]uint32{uint32(R), sutun, 1}, [3]uint32{esBlok, 1, 1},
+	vek := ceVektorel(xv, C)
+	c := g.cekirdekAl(fmt.Sprintf("ce_geri:%v:%v", vek, uzerine), ceGeriCekirdegi(vek, uzerine))
+	g.baslat(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{ceBlok, 1, 1},
 		g.param().yaz(d, 0).oku(gd, 0).okuV(xv).oku(ld, 0).oku(hedef, 0).u32(C).f32(float32(1/float64(n))))
-	son()
 }
 
 func (g *arkaUc) Embedding(out tensor.Storage, w tensor.View, idx []int, D int) {

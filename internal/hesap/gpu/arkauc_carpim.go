@@ -54,10 +54,21 @@ func (g *arkaUc) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.V
 func (g *arkaUc) Gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage) {
 	g.gir()
 	defer g.cik()
+	g.gemmDis(batch, M, N, K, a, transA, b, transB, c, false)
+}
+
+// GemmSet (tensor.GemmSetter) C = op(A)·op(B); C'nin eski içeriği okunmaz.
+func (g *arkaUc) GemmSet(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage) {
+	g.gir()
+	defer g.cik()
+	g.gemmDis(batch, M, N, K, a, transA, b, transB, c, true)
+}
+
+func (g *arkaUc) gemmDis(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage, uzerine bool) {
 	gt := g.gecici()
 	defer gt.bitir()
-	cd, son := gt.yaz(c, true)
-	g.gemm(batch, M, N, K, gt.oku(a), transA, gt.oku(b), transB, cd, 0, false)
+	cd, son := gt.yaz(c, !uzerine)
+	g.gemm(batch, M, N, K, gt.oku(a), transA, gt.oku(b), transB, cd, 0, uzerine)
 	son()
 }
 

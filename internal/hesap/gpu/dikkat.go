@@ -8,7 +8,8 @@ import (
 )
 
 // ============================================================================
-// Dikkat (1. aşama: matris çarpımı + maske + softmax; birleşik çekirdek 2. aşamada)
+// Dikkat: matris çarpımı yolu (birleşik çekirdeğin paylaşımlı belleğine sığmayan baş
+// boyları için; birleşik yol cekirdek_flash*.go ve arkauc_dikkat.go'da)
 // ============================================================================
 //
 // GQA'da (H = G·Hkv) bir anahtar/değer başını paylaşan G sorgu başı bitişiktir: q,
@@ -265,24 +266,9 @@ func (g *arkaUc) dikkatHazirla(gt *gecici, mask tensor.Storage, p tensor.Attenti
 	return md, mo
 }
 
-func (g *arkaUc) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor.Storage, p tensor.AttentionParams) tensor.Storage {
-	g.gir()
-	defer g.cik()
-	gt := g.gecici()
-	defer gt.bitir()
+// dikkatMatris dikkatin matris çarpımı yolu (ileri); lse'yi doldurur.
+func (g *arkaUc) dikkatMatris(gt *gecici, od, lse *depo, q, k, v tensor.View, md, mo *depo, p tensor.AttentionParams) {
 	R := p.Batch * p.H * p.Tq
-	lse := g.ayir(R, tensor.Float32, false)
-	od, son := gt.yaz(out, false)
-	if R == 0 {
-		return lse
-	}
-	if p.Tk == 0 {
-		g.doldur(od, 0)
-		g.doldur(lse, float32(math.Inf(1)))
-		son()
-		return lse
-	}
-	md, mo := g.dikkatHazirla(gt, mask, p)
 	G, Z := p.H/p.Hkv, p.Batch*p.Hkv
 	qv, kv, vv := gt.oku(q), gt.oku(k), gt.oku(v)
 	s := gt.tampon(R*p.Tk, false)
@@ -290,20 +276,11 @@ func (g *arkaUc) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor.
 	g.gemm(Z, G*p.Tq, p.Tk, p.Dh, qv, false, kv, true, s, 0, true)
 	g.dikkatSatirlari(s, lse, md, mo, p, true)
 	g.gemm(Z, G*p.Tq, p.Dv, p.Tk, sv, false, vv, false, od, 0, true)
-	son()
-	return lse
 }
 
-func (g *arkaUc) AttentionGrad(gq, gk, gv, gs tensor.Storage, q, k, v tensor.View, mask tensor.Storage, o, lse tensor.Storage, p tensor.AttentionParams) {
-	g.gir()
-	defer g.cik()
+// dikkatMatrisGeri dikkatin matris çarpımı yolu (geri); gradyanlar eklenir.
+func (g *arkaUc) dikkatMatrisGeri(gt *gecici, gq, gk, gv, gs tensor.Storage, q, k, v tensor.View, md, mo *depo, o, lse tensor.Storage, p tensor.AttentionParams) {
 	R := p.Batch * p.H * p.Tq
-	if R == 0 || p.Tk == 0 || (gq == nil && gk == nil && gv == nil) {
-		return
-	}
-	gt := g.gecici()
-	defer gt.bitir()
-	md, mo := g.dikkatHazirla(gt, mask, p)
 	Z, Mq := p.Batch*p.Hkv, p.H/p.Hkv*p.Tq
 	qv, kv, vv := gt.oku(q), gt.oku(k), gt.oku(v)
 	dO := tensor.View{S: gt.okuD(gs)}

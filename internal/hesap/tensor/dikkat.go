@@ -125,17 +125,19 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 	out := emptyOf(isDikkat, be, outShape, outType)
 	lse := be.Attention(out.storage, qv, kv, vv, maske, p)
 	return track(out, "attention", []*Tensor{q, k, v}, func() {
-		var gq, gk, gv Storage
-		if q.requiresGrad {
-			gq = q.accGrad()
+		as, yazar := be.(AttentionGradSetter)
+		var g [3]Storage
+		var taze [3]bool
+		for i, t := range []*Tensor{q, k, v} {
+			if t.requiresGrad {
+				g[i], taze[i] = t.tazeGrad(yazar)
+			}
 		}
-		if k.requiresGrad {
-			gk = k.accGrad()
+		if yazar {
+			as.AttentionGradSet(g[0], g[1], g[2], out.grad, qv, kv, vv, maske, out.storage, lse, p, taze)
+			return
 		}
-		if v.requiresGrad {
-			gv = v.accGrad()
-		}
-		be.AttentionGrad(gq, gk, gv, out.grad, qv, kv, vv, maske, out.storage, lse, p)
+		be.AttentionGrad(g[0], g[1], g[2], out.grad, qv, kv, vv, maske, out.storage, lse, p)
 	}, q, k, v)
 }
 

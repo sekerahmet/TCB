@@ -42,18 +42,33 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	}
 
 	av, bv := a.contigView(), b.contigView()
-	out := zerosOf(isMatrisCarpimi, be, outShape, outType)
-	be.Gemm(batch, M, N, K, av, false, bv, false, out.storage)
+	gs, yazar := be.(GemmSetter)
+	var out *Tensor
+	if yazar {
+		out = emptyOf(isMatrisCarpimi, be, outShape, outType)
+		gs.GemmSet(batch, M, N, K, av, false, bv, false, out.storage)
+	} else {
+		out = zerosOf(isMatrisCarpimi, be, outShape, outType)
+		be.Gemm(batch, M, N, K, av, false, bv, false, out.storage)
+	}
 
+	// carp gradyanın ilkiyse (taze) üzerine yazar, değilse ekler.
+	carp := func(t *Tensor, M, N, K int, a View, ta bool, b View, tb bool) {
+		if c, taze := t.tazeGrad(yazar); taze {
+			gs.GemmSet(batch, M, N, K, a, ta, b, tb, c)
+		} else {
+			be.Gemm(batch, M, N, K, a, ta, b, tb, c)
+		}
+	}
 	return track(out, "matmul", []*Tensor{a, b}, func() {
 		g := out.gradView()
 		if a.requiresGrad {
 			// dA (M×K) += dC (M×N) · Bᵀ
-			be.Gemm(batch, M, K, N, g, false, bv, true, a.accGrad())
+			carp(a, M, K, N, g, false, bv, true)
 		}
 		if b.requiresGrad {
 			// dB (K×N) += Aᵀ · dC
-			be.Gemm(batch, K, N, M, av, true, g, false, b.accGrad())
+			carp(b, K, N, M, av, true, g, false)
 		}
 	}, a, b)
 }

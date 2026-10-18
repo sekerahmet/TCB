@@ -174,3 +174,24 @@ type SquareSummer interface {
 type BackwardFinisher interface {
 	BackwardDone()
 }
+
+// GemmSetter Gemm'in C'nin üzerine yazan biçimini (C = op(A)·op(B); C'nin eski içeriği
+// okunmaz, K = 0 ise C sıfır olur) veren arka uçların isteğe bağlı arayüzüdür. Çıktı ve ilk
+// gradyan sıfırlanmadan ayrılır: sıfırlama ve eski içeriğin okunması (iki tam bellek geçişi)
+// kalkar.
+type GemmSetter interface {
+	GemmSet(batch, M, N, K int, a View, transA bool, b View, transB bool, c Storage)
+}
+
+// AttentionGradSetter AttentionGrad'ın taze (ilk) gradyanların üzerine yazan biçimini veren
+// arka uçların isteğe bağlı arayüzüdür: taze[i] doğruysa gq, gk, gv'nin i.'si sıfırlanmadan
+// ayrılmıştır ve üzerine yazılır, değilse eklenir.
+type AttentionGradSetter interface {
+	AttentionGradSet(gq, gk, gv, g Storage, q, k, v View, mask Storage, o, lse Storage, p AttentionParams, taze [3]bool)
+}
+
+// CrossEntropyGradSetter CrossEntropyGrad'ın gx'in üzerine yazan biçimini (hedefi negatif
+// satırlar 0 olur) veren arka uçların isteğe bağlı arayüzüdür.
+type CrossEntropyGradSetter interface {
+	CrossEntropyGradSet(gx, g Storage, x View, lse Storage, targets []int, C int)
+}
