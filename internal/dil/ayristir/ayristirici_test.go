@@ -193,14 +193,24 @@ func TestUnclosedBlockBraceIsReported(t *testing.T) {
 	}
 }
 
-// Metin içinde ifade olarak çözümlenemeyen süslü parantezler (JSON, başka dillerde kod gibi)
-// bilinçli olarak düz metin kalır; bu meşru kullanımlar hata vermemeli.
-func TestNonExpressionBracesStayLiteral(t *testing.T) {
-	for _, code := range []string{
-		`yazdır("{\"kod\": 5}")`,
-		`yazdır("Nokta{x: 1, y: 2}")`,
-		`yazdır("şablon: {'a': 1}")`,
+// Kaçışsız her '{' bir yerleştirme başlatır (2.7): içi ifade olarak ayrıştırılamayan süslü
+// parantezler (JSON, başka dillerde kod) sessizce düz metin kalmaz, '{'nin konumunda
+// sözdizimi hatası verir. Düz süslü parantezin iki yazımı (\{ ve ham metin) hata vermez.
+func TestIfadeOlmayanYerlestirmeHatadir(t *testing.T) {
+	for code, sutun := range map[string]string{
+		`yazdır("{\"kod\": 5}")`:      "Sütun 9:",
+		`yazdır("Nokta{x: 1, y: 2}")`: "Sütun 14:",
+		`yazdır("şablon: {'a': 1}")`:  "Sütun 17:",
+		`yazdır("{değil}")`:           "Sütun 9:",
+		`yazdır("boş {}")`:            "Sütun 13:",
 	} {
+		errs := strings.Join(parseErrors(code), "\n")
+		if !strings.Contains(errs, sutun+" Sözdizimi hatası — metindeki her '{' bir yerleştirme başlatır") ||
+			!strings.Contains(errs, "ham metin") {
+			t.Errorf("%s: %s konumunda yerleştirme hatası bekleniyordu: %s", code, sutun, errs)
+		}
+	}
+	for _, code := range []string{"yazdır(\"\\{\\\"kod\\\": 5\\}\")", "yazdır(`{\"kod\": 5}`)", `yazdır("a {1 + 2} b")`} {
 		if errs := parseErrors(code); len(errs) != 0 {
 			t.Errorf("%s hata vermemeli: %v", code, errs)
 		}

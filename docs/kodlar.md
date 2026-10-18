@@ -877,7 +877,7 @@ değişken baş = zaman_ms(); bekle(0.05); yazdır(zaman_ms() - baş >= 50)
 JSON metnini TR değerine çevirir (nesne Sözlük, dizi Liste olur); anahtar sırası korunur, tam sayı değerli ondalıklar Tam olur.
 
 ```tr
-değişken v = json_çöz('{"ad": "Ali", "yaş": 30}'); yazdır(v["ad"], v["yaş"] + 1)
+değişken v = json_çöz(`{"ad": "Ali", "yaş": 30}`); yazdır(v["ad"], v["yaş"] + 1)
 ```
 
 İlişkili: G601 `json_metin`

@@ -17,7 +17,7 @@ test "7.1 yapı alanları ve varsayılan değerleri" {
     eşit_mi(0, p.x)
     eşit_mi(0, p.y)
     yapı Satır { a, b: Tam = 2; c }
-    eşit_mi("Satır{a: yok, b: 2, c: yok}", metin(Satır()))
+    eşit_mi(`Satır{a: yok, b: 2, c: yok}`, metin(Satır()))
 }
 
 test "7.1 yapı gövdesinde geçersiz içerik ve yinelenen ad sözdizimi hatasıdır" {
@@ -88,13 +88,13 @@ test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman ta
     eşit_mi(2, hatalar.uzunluk, metin(hatalar))
     doğrula(hatalar[0].içerir("Nokta yapısında 'z' alanı yok; yapı tanımına 'z' alanını ekleyin"), hatalar[0])
     doğrula(hatalar[1].içerir("'taşı' Nokta yapısının bir metodu; metoda değer atanamaz"), hatalar[1])
-    eşit_mi("Nokta{x: 1, y: 2}", metin(p))
+    eşit_mi(`Nokta{x: 1, y: 2}`, metin(p))
     doğrula(p == Nokta(1, 2))
 }
 
 test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini verir" {
     doğrula(Nokta(1, 2) == Nokta(1, 2))
-    eşit_mi("Nokta{x: 1, y: 2}", metin(Nokta(1, 2)))
+    eşit_mi(`Nokta{x: 1, y: 2}`, metin(Nokta(1, 2)))
     eşit_mi(Nokta, tip(Nokta()))
     doğrula(tip(Nokta()) == Nokta)
     eşit_mi("Nokta", metin(tip(Nokta())))

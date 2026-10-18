@@ -37,7 +37,7 @@ func calistir(t *testing.T, code string) (string, yurut.Value, error) {
 // json_çöz sözlük anahtarlarının sırasını korumuyordu (Go map'i sırasızdır).
 func TestJSONDecodePreservesKeyOrder(t *testing.T) {
 	_, val, err := calistir(t, `
-		değişken d = json_çöz("{\"zeta\": 1, \"alfa\": 2.5, \"orta\": [true, null, \"x\"], \"iç\": {\"b\": 1, \"a\": 2}}")
+		değişken d = json_çöz("\{\"zeta\": 1, \"alfa\": 2.5, \"orta\": [true, null, \"x\"], \"iç\": \{\"b\": 1, \"a\": 2\}\}")
 		sonuç [d.anahtarlar(), d["iç"].anahtarlar(), d["orta"], d["alfa"], json_metin(d)]`)
 	if err != nil {
 		t.Fatal(err)
@@ -82,7 +82,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 		değişken d = {"ad": "Ali", 1: "bir"}
 		yazdır(d)
 		yazdır(json_metin({"ad": "Ali"}))
-		değişken j = json_çöz("{\"x\": 1}")
+		değişken j = json_çöz("\{\"x\": 1\}")
 		yazdır(j["x"])
 	`)
 	if err != nil {
@@ -206,7 +206,7 @@ func TestCSVKatiSayiVeBOM(t *testing.T) {
 // Hakem bulgusu 15 ve 5: json_metin anahtar sırasını kaybediyordu, NaN'da İngilizce hata
 // veriyordu, döngüsel listede süreç yığın taşmasıyla çöküyordu (dene yakalayamıyordu).
 func TestJSONMetinSiraNaNVeDongu(t *testing.T) {
-	_, val, err := calistir(t, `sonuç json_metin(json_çöz("{\"b\": 1, \"a\": {\"z\": 2, \"y\": [3]}}"))`)
+	_, val, err := calistir(t, `sonuç json_metin(json_çöz("\{\"b\": 1, \"a\": \{\"z\": 2, \"y\": [3]\}\}"))`)
 	if err != nil || val.Inspect() != `{"b":1,"a":{"z":2,"y":[3]}}` {
 		t.Fatalf("sıra korunmalı: %v %v", val, err)
 	}
@@ -229,7 +229,7 @@ func TestJSONMetinSiraNaNVeDongu(t *testing.T) {
 		t.Fatalf("Türkçe döngü ve NaN hataları bekleniyordu: %s", m)
 	}
 	// BOM'lu JSON metni de çözülür
-	_, val, err = calistir(t, fmt.Sprintf(`sonuç json_çöz("%s{\"a\": 1}")["a"]`, "\ufeff"))
+	_, val, err = calistir(t, fmt.Sprintf(`sonuç json_çöz("%s\{\"a\": 1\}")["a"]`, "\ufeff"))
 	if err != nil || val.Inspect() != "1" {
 		t.Fatalf("BOM'lu JSON: %v %v", val, err)
 	}

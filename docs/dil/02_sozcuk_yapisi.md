@@ -25,7 +25,7 @@ değişken yol = `C:\veri\tokenizer.json`
 değişken tarih = `\d{4}-\d{2}-\d{2}`     // "\\d\{4\}-\\d\{2\}-\\d\{2\}" ile aynı
 ```
 
-**2.7** Metin içindeki `{ifade}` yerleştirmedir: ifade hesaplanıp metne yazılır. Yerleştirme aynı satırda kapanmalıdır; düz süslü parantez için `\{` ve `\}` yazılır (ya da ham metin, 2.6a). Ayrıştırılamayan `{...}` olduğu gibi metinde kalır.
+**2.7** Metin içindeki `{ifade}` yerleştirmedir: ifade hesaplanıp metne yazılır. Yerleştirme aynı satırda kapanmalıdır; düz süslü parantez için `\{` ve `\}` yazılır (ya da ham metin, 2.6a). Tırnaklı metinde kaçışsız her `{` bir yerleştirme başlatır: içi tek bir ifade olarak ayrıştırılamazsa (ya da boşsa) sözdizimi hatasıdır, düz metne dönülmez (`"{değil}"` → `metindeki her '{' bir yerleştirme başlatır, ama '{değil}' bir ifade değil ... Düz süslü parantez için '\{' yazın ya da ham metin kullanın`). Böylece bir parçanın kod mu metin mi olduğu dilin anahtar kelimelerine bağlı değildir; JSON gibi süslü parantezli metinler ham metinle yazılır: `` `{"ad": "Ali"}` ``.
 
 ```tr
 değişken ad = "Ali"

@@ -83,7 +83,7 @@ test "15.3 işleçler ve yayınlama" {
     eşit_mi([7.0, 8.0, 9.0], t[0].değer)
     doğrula(hata_metni(() => { t[0] = [1, 2] }).içerir("[3] şeklindeki yere [2] şeklinde veri atanamaz"))
     değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-    doğrula(hata_metni(() => { w[0] = 5 }).içerir("türevsiz { ... } içinde"))
+    doğrula(hata_metni(() => { w[0] = 5 }).içerir("türevsiz \{ ... \} içinde"))
     türevsiz {
         w[0] = 5
     }
@@ -249,7 +249,7 @@ test "15.6 türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     bekle_koşul(() => d["başladı"])
     // Diğer görevin türevsiz bloğu sürerken bu görev türev izler ve atama reddedilir.
     doğrula(izli(w * 3))
-    doğrula(hata_metni(() => { w[0] = 5 }).içerir("türevsiz { ... } içinde"))
+    doğrula(hata_metni(() => { w[0] = 5 }).içerir("türevsiz \{ ... \} içinde"))
     d["devam"] = doğru
     bekle_hepsi()
     eşit_mi([yanlış], a)

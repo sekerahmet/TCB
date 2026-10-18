@@ -1,6 +1,7 @@
 package ayristir
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -141,7 +142,8 @@ func (p *Parser) parseStringOrInterpolation() agac.Expression {
 			i++
 			continue
 		}
-		i++ // '{' geç
+		acSatir, acSutun := konum.ilerle(runes, i) // hata konumu: '{'
+		i++                                        // '{' geç
 		exprStart := i
 		depth := 1
 		for i < len(runes) {
@@ -155,16 +157,21 @@ func (p *Parser) parseStringOrInterpolation() agac.Expression {
 			i++
 		}
 		rawExpr := string(runes[exprStart:i])
-		if i < len(runes) {
+		kapali := i < len(runes)
+		if kapali {
 			i++ // '}' geç
 		}
-		ifade, tamam := p.yerlestirme(rawExpr, &konum, runes, exprStart)
+		ifade, sorun := p.yerlestirme(rawExpr, &konum, runes, exprStart)
 		if p.derinlikAsildi {
 			return &agac.StringLiteral{Token: tok, Value: ""}
 		}
-		if !tamam {
-			textBuf.WriteString("{" + unescapeBraces(rawExpr) + "}")
-			continue
+		if !kapali {
+			// Kapanmamış '{' sözcük çözümleyicide hatadır (aynı satırda '}' ile bitmeli).
+			return &agac.StringLiteral{Token: tok, Value: ""}
+		}
+		if sorun != "" {
+			p.yerlestirmeHatasi(acSatir, acSutun, rawExpr, sorun)
+			return &agac.StringLiteral{Token: tok, Value: ""}
 		}
 		if textBuf.Len() > 0 {
 			parts = append(parts, &agac.StringLiteral{Token: tok, Value: textBuf.String()})
@@ -186,14 +193,15 @@ func (p *Parser) parseStringOrInterpolation() agac.Expression {
 	return &agac.InterpolatedString{Token: tok, Parts: parts}
 }
 
-// yerlestirme metin içindeki bir '{ifade}' bölümünün ifadesini ayrıştırır; ayrıştırılamazsa
-// (ya da boşsa) yanlış döner ve bölüm metinde olduğu gibi kalır. Alt ayrıştırıcı üst
+// yerlestirme metin içindeki bir '{ifade}' bölümünün ifadesini ayrıştırır (2.4b): kaçışsız
+// her '{' bir yerleştirme başlatır. Bölüm tek bir ifade olarak ayrıştırılamazsa (ya da
+// boşsa) sorun bunu anlatan kısa metindir; düz metne dönülmez. Alt ayrıştırıcı üst
 // ayrıştırıcının iç içelik düzeyinden başlar: metin içindeki ifade de dosyanın iç içelik
 // sınırına (2.10) sayılır; sınır alt ayrıştırıcıda aşılırsa hata üst ayrıştırıcıya taşınır.
-func (p *Parser) yerlestirme(rawExpr string, konum *metinKonumu, runes []rune, exprStart int) (agac.Expression, bool) {
+func (p *Parser) yerlestirme(rawExpr string, konum *metinKonumu, runes []rune, exprStart int) (agac.Expression, string) {
 	exprCode := strings.TrimSpace(rawExpr)
 	if exprCode == "" {
-		return nil, false
+		return nil, "boş"
 	}
 	// İfadenin dosyadaki konumu: metnin açılış tırnağından sonraki karakter sayısı kadar
 	// ilerisi (önündeki kaçış dizileri konumu bir-iki sütun kaydırabilir)
@@ -207,16 +215,39 @@ func (p *Parser) yerlestirme(rawExpr string, konum *metinKonumu, runes []rune, e
 			p.errors = append(p.errors, subParser.errors[len(subParser.errors)-1])
 			p.derinlikAsildi = true
 		}
-		return nil, false
+		return nil, "iç içelik sınırı aşıldı"
 	}
-	if len(subParser.Errors()) != 0 || len(subProg.Statements) != 1 {
-		return nil, false
+	if hatalar := subParser.Errors(); len(hatalar) != 0 {
+		return nil, "bir ifade değil (" + konumOnekiniAt(hatalar[0]) + ")"
+	}
+	if len(subProg.Statements) != 1 {
+		return nil, "tek bir ifade olmalı"
 	}
 	es, ok := subProg.Statements[0].(*agac.ExpressionStatement)
 	if !ok || es.Expression == nil {
-		return nil, false
+		return nil, "bir ifade değil, bir deyim"
 	}
-	return es.Expression, true
+	return es.Expression, ""
+}
+
+// yerlestirmeHatasi metin içinde satir:sutun'daki '{' ile başlayan yerleştirme
+// ayrıştırılamadığında orada sözdizimi hatası kaydeder ve düz süslü parantezin iki yazımını
+// önerir.
+func (p *Parser) yerlestirmeHatasi(satir, sutun int, rawExpr, sorun string) {
+	p.hataKaydet(sozcuk.Token{Line: satir, Column: sutun}, fmt.Sprintf(
+		"Sözdizimi hatası — metindeki her '{' bir yerleştirme başlatır, ama '{%s' %s. Düz süslü parantez için '\\{' yazın ya da ham metin kullanın: `...{...}...`",
+		kisaMetin(unescapeBraces(rawExpr))+"}", sorun))
+}
+
+// konumOnekiniAt bir alt hata mesajının başındaki "Satır N, Sütun M: " ve "Sözdizimi
+// hatası — " öneklerini atar (mesaj yerleştirme hatasının içinde gösterilir).
+func konumOnekiniAt(m string) string {
+	if strings.HasPrefix(m, "Satır ") {
+		if i := strings.Index(m, ": "); i >= 0 {
+			m = m[i+2:]
+		}
+	}
+	return strings.TrimPrefix(m, "Sözdizimi hatası — ")
 }
 
 // metinKonumu metin sabitinin içinde ileriye doğru sayılan satır ve sütundur. Her

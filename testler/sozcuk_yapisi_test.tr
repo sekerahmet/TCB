@@ -70,6 +70,16 @@ test "2.7 metin içinde \{ifade\} yerleştirme, düz süslü parantez için kaç
     eşit_mi("Ayşe", "{p['ad']}")
 }
 
+test "2.7 kaçışsız her \{ bir yerleştirme başlatır; içi ifade değilse sözdizimi hatasıdır" {
+    // Sessizce düz metne dönülmez: bir parçanın kod mu metin mi olduğu dile bağlı olmasın.
+    değişken mesaj = ""
+    dene { aktar "olumsuz/yerlestirme" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir(`Satır 2, Sütun 9: Sözdizimi hatası — metindeki her '{' bir yerleştirme başlatır, ama '{değil}' bir ifade değil`), mesaj)
+    doğrula(mesaj.içerir(`'\{' yazın ya da ham metin kullanın`), mesaj)
+    // Düz süslü parantezin iki yazımı
+    eşit_mi(`{"kod": 5}`, "\{\"kod\": 5\}")
+}
+
 test "2.8 deyim sonu gerekmez; ; isteğe bağlıdır" {
     değişken a = 1; değişken b = 2;
     eşit_mi(3, a + b)

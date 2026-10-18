@@ -20,7 +20,7 @@ test "8.2 fırlat her değeri hata metnine çevirir" {
     değişken yakalanan = yok
     dene { fırlat {"kod": 5} } yakala h { yakalanan = h }
     eşit_mi(Metin, tip(yakalanan))
-    eşit_mi("{\"kod\": 5}", yakalanan)
+    eşit_mi(`{"kod": 5}`, yakalanan)
 }
 
 test "8.3 çalışma zamanı hataları yakalanabilir; mesaj satır bilgisi içerir" {
