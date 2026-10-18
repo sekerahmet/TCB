@@ -1,0 +1,11 @@
+# Satır geçmişini (git blame) bozmaması gereken mekanik commitler: taşıma, ad değiştirme,
+# belge bölme. Yerelde bir kez: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# (barındırma sitesi bu dosyayı kendisi okur). Commitler yeniden yazılırsa (rebase) karmaları
+# burada da güncellenmelidir.
+
+# yapı: pkg/ → internal/ katmanları; araclar → bakim; eklenti → duzenleyici
+42c6a517c78fdf4bdf83126493ce1be52646fbdc
+# yapı: çekirdek paket adları Türkçe; takma adlar kalktı
+2c23137650d805d156cf77d633e74d6b427dfd56
+# belgeler: dil tanımı ve kılavuz bölüm başına dosyalara bölündü
+8a7ac194eeb2d212e2a3b0d3f026cdc10daca797

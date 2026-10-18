@@ -22,7 +22,7 @@ for arac in bakim/uret/*/; do
 done
 
 adim "Biçim ve vet"
-bicimsiz=$(gofmt -l ./cmd ./internal ./bakim 2>/dev/null)
+bicimsiz=$(gofmt -l ./cmd ./internal ./kitaplik ./bakim 2>/dev/null)
 [ -z "$bicimsiz" ] || kalir "gofmt: $bicimsiz"
 go vet ./... || kalir "go vet"
 

@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	_ "tr_dili/internal/arac/ayikla" // koddaki kesme_noktası hata ayıklayıcıyı açar
 	"tr_dili/internal/dil/agac"
 	"tr_dili/internal/dil/ayristir"
 	"tr_dili/internal/dil/denetci"

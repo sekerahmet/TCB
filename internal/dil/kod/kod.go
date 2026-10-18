@@ -67,18 +67,21 @@
 // # Go'da kodlar
 //
 // Go kodu kodları dil dosyasından üretilen adlı sabitlerle yazar (kodlar_uretilmis.go):
-// sozluk.G100, sozluk.A001, sozluk.Y400. Sabitin adı kodun kendisidir, kullanıcıya görünen
+// kod.G100, kod.A001, kod.Y400. Sabitin adı kodun kendisidir, kullanıcıya görünen
 // ad değildir; ad değişse de sabit değişmez. Sözlükte olmayan (ya da taşınmış) bir kod
 // yazılırsa derleme düşer. Sabitler switch deyimlerinde kullanılabilir. Dil dosyasına kod
 // eklendiğinde, kaldırıldığında ya da taşındığında sabitler yeniden üretilir:
 //
 //	go generate ./internal/dil/kod   (ya da: go run ./bakim/uret/kod_sabitleri)
 //
-// Her kodun ne işe yaradığı, imzası ve örneği docs/SOZLUK.md'dedir (tanim.json ve tr.json'dan
-// üretilir).
+// Aynı komut kod listesinden üretilen öbür dosyaları da yeniler: docs/kodlar.md (her kodun ne
+// işe yaradığı, imzası ve örneği) ve eklentinin renklendirme listeleri
+// (duzenleyici/vscode/syntaxes/tr.tmLanguage.json).
 package kod
 
 //go:generate go run ../../../bakim/uret/kod_sabitleri
+//go:generate go run ../../../bakim/uret/kod_belgesi -kok ../../..
+//go:generate go run ../../../bakim/uret/eklenti_listeleri -kok ../../..
 
 import "fmt"
 

@@ -110,30 +110,25 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 - [`docs/dil/`](docs/dil/README.md) — dilin kuralları; her kuralın `testler/` altında bir testi vardır (`tr test testler`).
 - [`docs/kodlar.md`](docs/kodlar.md) — her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği (kod listesinden üretilir).
 - [`docs/yol_haritasi.md`](docs/yol_haritasi.md) — yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar.
+- [`docs/mimari.md`](docs/mimari.md) — katmanlar, bağımlılık kuralı ve paketlerin görevleri.
 - [`bakim/kiyas/`](bakim/kiyas/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
 
 ## Depo yapısı
 
 | Klasör | İçerik |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
-| `internal/dil/kod` | Kodlar: dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) sabit kodlara bağlı; adlar ve açıklamalar `tr.json`, dilden bağımsız tanımlar `tanim.json` ([`docs/kodlar.md`](docs/kodlar.md)) |
-| `internal/dil/sozcuk` | Kaynak metni sözcüklere ayırır |
-| `internal/dil/ayristir` | Sözcüklerden sözdizimi ağacı kurar |
-| `internal/dil/agac` | Sözdizimi ağacı düğümleri |
-| `internal/dil/denetci` | Çalıştırmadan önceki tip denetimi |
-| `internal/dil/yurut` | Yorumlayıcı: derleyici, değerler, yorumlayıcı kilidi, eşzamanlı görevler |
-| `internal/dil/turkce` | Mesajlarda doğru Türkçe ekler ve kod çerçevesi |
-| `internal/hesap/tensor` | n boyutlu tensörler, otomatik türev ve CPU çekirdekleri |
-| `internal/hesap/parca` | `tokenizer.json` parçalayıcısı (metin ↔ token kimliği) |
-| `internal/hesap/veriyolu` | `.npy` token veri kümesi, örnekleyici, önbellek |
-| `internal/motor` | Tensör, parçalayıcı, veri ve JSON/CSV yerleşiklerini dile bağlar |
-| `internal/arac/ayikla` | Terminal hata ayıklayıcısı ve VS Code hata ayıklama sunucusu |
-| `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
-| `internal/arac/bicim` | `tr biçimle` biçimlendiricisi |
-| `testler/` | Dil tanımının kural testleri |
-| `bakim/uret/` | Geliştirme araçları: kod listesinden `docs/kodlar.md`'yi üreten `kod_belgesi`, Go'daki adlı kod sabitlerini üreten `kod_sabitleri`, eklentinin renklendirme listelerini üreten `eklenti_listeleri` |
+| `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
+| `internal/dil` | Dil çekirdeği: kod listesi (`kod`, [`docs/kodlar.md`](docs/kodlar.md)), sözcük çözümleyici (`sozcuk`), sözdizimi ağacı (`agac`), ayrıştırıcı (`ayristir`), tip denetimi (`denetci`), yorumlayıcı (`yurut`), Türkçe ekler (`turkce`) |
+| `internal/motor` | Tensör ve öğrenme, parçalayıcı, veri, JSON/CSV yerleşiklerini dile bağlayan motorlar |
+| `internal/hesap` | Dili bilmeyen hesap çekirdekleri: tensör ve CPU çekirdekleri (`tensor`), parçalayıcı (`parca`), veri yükleyici (`veriyolu`) |
+| `internal/arac` | Hata ayıklayıcı (`ayikla`), biçimlendirici (`bicim`), `tr test` çekirdeği (`testkosucu`) |
+| `kitaplik/` | TR ile yazılan standart kitaplığın yeri (ikiliye gömülür) |
 | `duzenleyici/vscode/` | VS Code eklentisi |
+| `docs/` | Belgeler ([dizin](docs/README.md)) |
+| `ornekler/`, `testler/` | Örnek programlar ve dil tanımının kural testleri |
+| `bakim/` | Depo bakımı: `tam_denetim.sh`, üreteçler (`uret/`), hız kıyas seti (`kiyas/`) |
+
+Katmanlar, aralarındaki bağımlılık kuralı ve her paketin görevi: [`docs/mimari.md`](docs/mimari.md).
 
 ## Lisans
 

@@ -1,15 +1,17 @@
 // Package motor, çekirdek yorumlayıcının (internal/dil/yurut) içe aktarmadığı parçaları ona bağlar:
-// tensör ve yapay zekâ, veri ve parçalayıcı, JSON/CSV motorlarının yerleşikleri ile koddaki
-// kesme_noktası deyiminin açtığı hata ayıklayıcı. Tam dili çalıştıran her program bu
-// paketi içe aktarmalıdır:
+// tensör ve yapay zekâ, veri ve parçalayıcı, JSON/CSV motorlarının yerleşikleri. Tam dili
+// çalıştıran her program bu paketi içe aktarmalıdır:
 //
 //	import _ "tr_dili/internal/motor"
+//
+// Koddaki kesme_noktası deyiminin açtığı hata ayıklayıcı araç katmanındadır; onu isteyen
+// program ayrıca internal/arac/ayikla paketini içe aktarır (motor katmanı araç katmanına
+// bağlı değildir; bkz. internal/katman_test.go).
 package motor
 
 import (
 	"time"
 
-	"tr_dili/internal/arac/ayikla"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/motor/ogrenme"
 	"tr_dili/internal/motor/parcalayici"
@@ -25,10 +27,6 @@ func init() {
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
 	yurut.MotorEkle(parcalayici.Kaydet)
 	yurut.MotorEkle(veri.Kaydet)
-
-	yurut.YeniHataAyiklayici = func(sourceFile, sourceCode string) yurut.HataAyiklayici {
-		return ayikla.NewDebugger(sourceFile, sourceCode, true)
-	}
 }
 
 // Kapat motorların program boyunca açık kalmış kaynaklarını (veri kümesi okuyucuları,
