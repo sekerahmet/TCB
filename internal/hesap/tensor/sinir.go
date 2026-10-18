@@ -16,7 +16,7 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 	if len(shape) == 0 {
 		shape = []int{len(idx)}
 	}
-	if numelOf(shape) != len(idx) {
+	if n, tasma := elemanSayisi(shape); tasma || n != len(idx) {
 		panic(fmt.Sprintf("tensor: Embedding: %d indeks %v şekline uymuyor", len(idx), shape))
 	}
 	for _, ix := range idx {
@@ -25,7 +25,7 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 		}
 	}
 	ix := append([]int(nil), idx...)
-	out := emptyOf(w.be, append(copyInts(shape), D), w.tur)
+	out := emptyOf(isGomme, w.be, append(copyInts(shape), D), w.tur)
 	w.be.Embedding(out.storage, w.view(), ix, D)
 	return track(out, "embedding", []*Tensor{w}, func() {
 		w.be.EmbeddingGrad(w.accGrad(), out.grad, ix, D)
@@ -91,7 +91,7 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 	checkNormParam("LayerNorm", gamma, D)
 	checkNormParam("LayerNorm", beta, D)
 	be := sameDevice("LayerNorm", x, gamma, beta)
-	out := emptyOf(be, x.shape, x.tur)
+	out := emptyOf(isNormallestirme, be, x.shape, x.tur)
 	gv := optView(gamma)
 	mean, rstd := be.LayerNorm(out.storage, x.view(), gv, optView(beta), D, eps)
 	parents := []*Tensor{x}
@@ -113,7 +113,7 @@ func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
 	D := x.shape[len(x.shape)-1]
 	checkNormParam("RMSNorm", gamma, D)
 	be := sameDevice("RMSNorm", x, gamma)
-	out := emptyOf(be, x.shape, x.tur)
+	out := emptyOf(isNormallestirme, be, x.shape, x.tur)
 	gv := optView(gamma)
 	rinv := be.RMSNorm(out.storage, x.view(), gv, D, eps)
 	parents := []*Tensor{x}

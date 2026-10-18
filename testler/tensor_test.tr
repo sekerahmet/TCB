@@ -723,3 +723,15 @@ test "15.19 parametreler: sabit sıra, tekillik, yol adları" {
     op.adım()
     eşit_mi([-1.0], m.gömme.değer)
 }
+
+test "15.25 bellek sınırı: dev sonuç tensörü ayrılmadan yakalanabilir bir hata verir" {
+    // İki küçük tensörün yayınlanması [2000000, 2000000] (yaklaşık 14,6 TB) isterdi.
+    değişken m = hata_metni(() => sıfırlar([2000000, 1]) + sıfırlar([2000000]))
+    doğrula(m.içerir("toplama: sonuç tensörü [2000000, 2000000] şeklinde"))
+    doğrula(m.içerir("TB bellek ister; bu makinede"))
+    doğrula(m.içerir("yayınlama beklenmedik bir boyut üretmiş olabilir"))
+    // Verisiz (sıfır eksenli) tensörlerin çarpımı da denetlenir.
+    doğrula(hata_metni(() => sıfırlar([46000000, 0]) @ sıfırlar([0, 46000000])).içerir("matris çarpımı: sonuç tensörü [46000000, 46000000]"))
+    // Hatadan sonra program sürer; sınır içindeki işlemler etkilenmez.
+    eşit_mi([3, 4], (sıfırlar([3, 4]) + sıfırlar([4])).şekil)
+}

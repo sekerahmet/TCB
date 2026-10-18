@@ -43,27 +43,32 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 	sh := copyInts(shape)
 	n := t.Numel()
 	bilinmeyen := -1
-	carpim := 1
 	for i, d := range sh {
 		if d == -1 {
 			if bilinmeyen >= 0 {
 				panic("tensor: Reshape içinde yalnızca bir eksen -1 olabilir")
 			}
 			bilinmeyen = i
+			sh[i] = 1
 			continue
 		}
 		if d < 0 {
 			panic(fmt.Sprintf("tensor: Reshape için geçersiz şekil %v", shape))
 		}
-		carpim *= d
+	}
+	// Çarpım taşma denetimlidir: taşan bir şekil sessizce n'ye eşit görünmesin.
+	carpim, tasma := elemanSayisi(sh)
+	if tasma {
+		panic(sinirHatasi(isYenidenSekil, sh, t.tur, true))
 	}
 	if bilinmeyen >= 0 {
 		if carpim == 0 || n%carpim != 0 {
 			panic(fmt.Sprintf("tensor: %v şekli %d elemana uydurulamaz", shape, n))
 		}
 		sh[bilinmeyen] = n / carpim
+		carpim = n
 	}
-	if numelOf(sh) != n {
+	if carpim != n {
 		panic(fmt.Sprintf("tensor: %v şeklindeki tensör %v şekline sokulamaz", t.shape, shape))
 	}
 	var st []int
@@ -270,14 +275,14 @@ func (t *Tensor) Contiguous() *Tensor {
 	if t.IsContiguous() {
 		return t
 	}
-	out := emptyOf(t.be, t.shape, t.tur)
+	out := emptyOf(isKopya, t.be, t.shape, t.tur)
 	t.be.Copy(out.storage, 0, t.view())
 	return track(out, "contiguous", []*Tensor{t}, func() { gradDevret(t, out) })
 }
 
 // Clone verinin bitişik bir kopyasını üretir (türevlenebilir).
 func (t *Tensor) Clone() *Tensor {
-	out := emptyOf(t.be, t.shape, t.tur)
+	out := emptyOf(isKopya, t.be, t.shape, t.tur)
 	t.be.Copy(out.storage, 0, t.view())
 	return track(out, "clone", []*Tensor{t}, func() { gradDevret(t, out) })
 }

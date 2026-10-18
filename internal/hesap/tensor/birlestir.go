@@ -1,6 +1,9 @@
 package tensor
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 // Concat tensörleri verilen eksen boyunca birleştirir (negatif eksen sondan
 // sayar). Bütün girdiler aynı cihazda ve aynı eksen sayısında olmalı, birleşen
@@ -33,6 +36,12 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 				panic(fmt.Sprintf("tensor: Concat: %d. girdinin şekli %v, ilkininki %v; %d. eksen dışındaki eksenler eşit olmalı", i, t.shape, ilk.shape, axis))
 			}
 		}
+		if toplam > math.MaxInt-t.shape[axis] {
+			// Verisiz (sıfır eksenli) girdilerin dev eksenleri toplanırken taşma sessizce
+			// küçük bir şekle sarmasın.
+			panic(fmt.Sprintf("tensor: birleştirme: %d. eksenin toplam uzunluğu tam sayı sınırını aşıyor (%d. girdi %v); "+
+				"şekilleri denetleyin", axis, i, t.shape))
+		}
 		toplam += t.shape[axis]
 		dt = sonucTuru(dt, t.tur)
 	}
@@ -41,7 +50,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 	ost := contiguousStrides(outShape)
 
 	// Girdiler float32 bir tampona eklenir; 16 bitlik çıktıda tek kez yuvarlanır.
-	tampon := be.Alloc(numelOf(outShape), Float32)
+	tampon := be.Alloc(ayirmaBoyu(isBirlestirme, outShape, Float32), Float32)
 	ofset := 0
 	for _, t := range ts {
 		if t.Numel() > 0 {
@@ -53,7 +62,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 	if dt == Float32 {
 		out = fromStorage(be, tampon, outShape)
 	} else {
-		out = emptyOf(be, outShape, dt)
+		out = emptyOf(isBirlestirme, be, outShape, dt)
 		be.Copy(out.storage, 0, View{S: tampon, Shape: outShape, Strides: ost})
 	}
 	return track(out, "concat", ts, func() {

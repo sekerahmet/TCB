@@ -55,3 +55,33 @@ func TestKayitSifirEksenSiniri(t *testing.T) {
 		t.Fatalf("tensör_yükle açık bir hata vermeli: %v", err)
 	}
 }
+
+// Güvenlik denetimi Y2: dosyanın bildirdiği şekiller tek tek sınır içinde olsa da
+// işlemlerin çıktısı fiziksel belleği aşabilir ([46000000, 0] @ [0, 46000000] verisiz iki
+// tensörden yaklaşık 7,5 PB ister). Çekirdek ayırmadan önce denetler; hata dene/yakala ile
+// yakalanır, süreç çökmez.
+func TestKayitliSekillerinCiktisiSinirli(t *testing.T) {
+	dosya := kayitBaytlari(t, []kayitGirdisi{
+		{ad: "A", sekil: []int{46000000, 0}, tur: tensor.Float32, veri: []float32{}},
+		{ad: "B", sekil: []int{0, 46000000}, tur: tensor.Float32, veri: []float32{}},
+	})
+	yol := filepath.Join(t.TempDir(), "sekiller.trt")
+	if err := os.WriteFile(yol, dosya, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cikti, err := calistir(t, `değişken p = tensör_yükle("`+filepath.ToSlash(yol)+`")
+dene {
+    p["A"] @ p["B"]
+    yazdır("hata bekleniyordu")
+} yakala h {
+    yazdır(h)
+}`)
+	if err != nil {
+		t.Fatalf("hata yakalanmalıydı: %v", err)
+	}
+	for _, p := range []string{"matris çarpımı: sonuç tensörü [46000000, 46000000] şeklinde", "PB bellek ister", "bu makinede"} {
+		if !strings.Contains(cikti, p) {
+			t.Fatalf("mesajda %q yok: %s", p, cikti)
+		}
+	}
+}

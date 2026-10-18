@@ -57,8 +57,7 @@ func sonucTuru(a, b DType) DType {
 // NewOf veriyi dt türüne (en yakına-çifte yuvarlayarak) dönüştürüp varsayılan
 // cihazda tensör oluşturur.
 func NewOf(dt DType, data []float32, shape ...int) *Tensor {
-	checkShape(shape)
-	if len(data) != numelOf(shape) {
+	if len(data) != ayirmaBoyu(isOlusturma, shape, dt) {
 		panic(fmt.Sprintf("tensor: %d eleman %v şekline uymuyor", len(data), shape))
 	}
 	be := defaultBackend()
@@ -66,7 +65,9 @@ func NewOf(dt DType, data []float32, shape ...int) *Tensor {
 }
 
 // ZerosOf dt türünde sıfırlarla dolu tensör.
-func ZerosOf(dt DType, shape ...int) *Tensor { return zerosOf(defaultBackend(), shape, dt) }
+func ZerosOf(dt DType, shape ...int) *Tensor {
+	return zerosOf(isOlusturma, defaultBackend(), shape, dt)
+}
 
 // Cast tensörün dt türüne dönüştürülmüş bitişik bir kopyasını verir (en
 // yakına-çifte yuvarlama). Türevlenebilir: gradyan kaynak türün gradyanına
@@ -78,7 +79,7 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	if !dt.IsFloat() {
 		panic(fmt.Sprintf("tensor: Cast yalnızca kayan noktalı türlere yapılabilir, %s verildi", dt))
 	}
-	out := emptyOf(t.be, t.shape, dt)
+	out := emptyOf(isTurDonusumu, t.be, t.shape, dt)
 	t.be.Copy(out.storage, 0, t.view())
 	return track(out, "cast", []*Tensor{t}, func() { gradDevret(t, out) })
 }

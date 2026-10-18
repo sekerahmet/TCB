@@ -127,7 +127,7 @@ func (d *disDugum) geri(ctx any) {
 			if g := d.gelen[i]; g != nil {
 				grads[i] = fromStorage(o.be, g, o.shape)
 			} else {
-				grads[i] = zerosOf(o.be, o.shape, gradTuru(o.tur))
+				grads[i] = zerosOf(isGradyan, o.be, o.shape, gradTuru(o.tur))
 			}
 		}
 		d.gelen = nil

@@ -174,6 +174,16 @@ func BenchmarkHizKucukIslem(b *testing.B) {
 	}
 }
 
+// BenchmarkHizToplama64 en küçük sıcak yol: ayırma denetiminin payı burada görünür.
+func BenchmarkHizToplama64(b *testing.B) {
+	x := hizRand(64, 64)
+	y := hizRand(64, 64)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Add(x, y)
+	}
+}
+
 func BenchmarkHizKucukMatMul(b *testing.B) {
 	// tekCekirdekEsik sınırında (64³ = 2^18).
 	x := hizRand(64, 64)

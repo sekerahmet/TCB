@@ -42,7 +42,7 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	}
 
 	av, bv := a.contigView(), b.contigView()
-	out := zerosOf(be, outShape, outType)
+	out := zerosOf(isMatrisCarpimi, be, outShape, outType)
 	be.Gemm(batch, M, N, K, av, false, bv, false, out.storage)
 
 	return track(out, "matmul", []*Tensor{a, b}, func() {

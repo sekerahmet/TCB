@@ -253,6 +253,7 @@ func (b cpuBackend) allocBos(n int, dt DType) Storage { return b.ayir(n, dt, fal
 
 func (cpuBackend) ayir(n int, dt DType, sifirla bool) Storage {
 	cpuTurDenetle(dt)
+	elemanDenetle(n, dt)
 	if n >= havuzEnAz {
 		if h := havuzFor(havuzAnahtar{dt, n}, false); h != nil {
 			if s, ok := h.Get().(*cpuStorage); ok {
@@ -294,6 +295,7 @@ func (cpuBackend) Release(s Storage) {
 
 func (cpuBackend) FromHost(data []float32, dt DType) Storage {
 	cpuTurDenetle(dt)
+	elemanDenetle(len(data), dt)
 	if dt == Float32 {
 		d := make([]float32, len(data))
 		copy(d, data)
@@ -305,7 +307,7 @@ func (cpuBackend) FromHost(data []float32, dt DType) Storage {
 }
 
 func (cpuBackend) ToHost(src View) []float32 {
-	out := make([]float32, src.Numel())
+	out := make([]float32, elemanDenetle(src.Numel(), Float32))
 	if src.DType() == Float32 {
 		copyTo(out, src)
 	} else {

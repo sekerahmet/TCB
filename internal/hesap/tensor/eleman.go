@@ -82,7 +82,7 @@ func binary(a, b *Tensor, op BinOp) *Tensor { return binaryTur(a, b, op, sonucTu
 func binaryTur(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	be := sameDevice(binopAd[op], a, b)
 	outShape := broadcastShapes(a.shape, b.shape)
-	out := emptyOf(be, outShape, dt)
+	out := emptyOf(binopIslem[op], be, outShape, dt)
 	be.Binary(op, out.storage, outShape, a.view(), b.view())
 	var kaydet []*Tensor // geri yayılımın okuduğu girdiler
 	switch op {
@@ -160,7 +160,7 @@ var unopAd = map[UnOp]string{
 }
 
 func unary(t *Tensor, op UnOp, p float32) *Tensor {
-	out := emptyOf(t.be, t.shape, t.tur)
+	out := emptyOf(isElemanBazli, t.be, t.shape, t.tur)
 	t.be.Unary(op, p, out.storage, t.view())
 	var kaydet []*Tensor
 	switch op {

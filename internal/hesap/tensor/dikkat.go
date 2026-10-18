@@ -122,7 +122,7 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 		maske = maskeHazirla(be, opt.Mask, q.shape, &p)
 	}
 	qv, kv, vv := q.contigView(), k.contigView(), v.contigView()
-	out := emptyOf(be, outShape, outType)
+	out := emptyOf(isDikkat, be, outShape, outType)
 	lse := be.Attention(out.storage, qv, kv, vv, maske, p)
 	return track(out, "attention", []*Tensor{q, k, v}, func() {
 		var gq, gk, gv Storage

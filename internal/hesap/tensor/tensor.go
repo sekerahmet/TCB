@@ -114,14 +114,6 @@ func sameShape(a, b []int) bool {
 	return true
 }
 
-func checkShape(shape []int) {
-	for _, d := range shape {
-		if d < 0 {
-			panic(fmt.Sprintf("tensor: negatif boyut %v", shape))
-		}
-	}
-}
-
 // normAxis negatif eksen indeksini (sondan sayma) pozitife çevirir.
 func normAxis(axis, ndim int) int {
 	if axis < 0 {
@@ -144,12 +136,12 @@ func fromStorage(be Backend, s Storage, shape []int) *Tensor {
 }
 
 // zerosOn verilen arka uçta sıfırlarla dolu bitişik float32 tensör ayırır.
-func zerosOn(be Backend, shape []int) *Tensor { return zerosOf(be, shape, Float32) }
+func zerosOn(be Backend, shape []int) *Tensor { return zerosOf(isOlusturma, be, shape, Float32) }
 
-// zerosOf verilen arka uçta dt türünde sıfırlarla dolu bitişik tensör ayırır.
-func zerosOf(be Backend, shape []int, dt DType) *Tensor {
-	checkShape(shape)
-	return fromStorage(be, be.Alloc(numelOf(shape), dt), shape)
+// zerosOf verilen arka uçta dt türünde sıfırlarla dolu bitişik tensör ayırır; is,
+// ayırma sınırı aşılırsa hata mesajında adlandırılan işlemdir (bkz. bellek_siniri.go).
+func zerosOf(is islem, be Backend, shape []int, dt DType) *Tensor {
+	return fromStorage(be, be.Alloc(ayirmaBoyu(is, shape, dt), dt), shape)
 }
 
 // bosAyirici, içeriği belirsiz (sıfırlanmamış) depolama verebilen arka
@@ -168,9 +160,8 @@ type bosAyirici interface {
 // çıktıyı yazıyorsa kullanılmalıdır (ör. eleman bazlı işlemler, kopyalar,
 // softmax, normalleştirmeler); biriktiren çekirdekler (çarpım, gradyanlar)
 // zerosOf kullanır.
-func emptyOf(be Backend, shape []int, dt DType) *Tensor {
-	checkShape(shape)
-	return fromStorage(be, allocBos(be, numelOf(shape), dt), shape)
+func emptyOf(is islem, be Backend, shape []int, dt DType) *Tensor {
+	return fromStorage(be, allocBos(be, ayirmaBoyu(is, shape, dt), dt), shape)
 }
 
 // allocBos be destekliyorsa sıfırlanmamış, değilse sıfırlanmış depolama verir.
@@ -185,8 +176,7 @@ func defaultBackend() Backend { return BackendFor(DefaultDevice()) }
 
 // NewOn veriyi kopyalayarak verilen cihazda tensör oluşturur.
 func NewOn(dev Device, data []float32, shape ...int) *Tensor {
-	checkShape(shape)
-	if len(data) != numelOf(shape) {
+	if len(data) != ayirmaBoyu(isOlusturma, shape, Float32) {
 		panic(fmt.Sprintf("tensor: %d eleman %v şekline uymuyor", len(data), shape))
 	}
 	be := BackendFor(dev)
@@ -228,7 +218,7 @@ func Full(v float32, shape ...int) *Tensor {
 
 // Arange 0, 1, ..., n-1 değerlerini içeren 1 boyutlu tensör.
 func Arange(n int) *Tensor {
-	d := make([]float32, n)
+	d := make([]float32, ayirmaBoyu(isOlusturma, []int{n}, Float32))
 	for i := range d {
 		d[i] = float32(i)
 	}
@@ -238,8 +228,7 @@ func Arange(n int) *Tensor {
 // Randn standart normal dağılımdan örneklenmiş tensör (örnekleme konakta
 // yapılır, sonuç varsayılan cihaza aktarılır).
 func Randn(rng *rand.Rand, shape ...int) *Tensor {
-	checkShape(shape)
-	d := make([]float32, numelOf(shape))
+	d := make([]float32, ayirmaBoyu(isOlusturma, shape, Float32))
 	for i := range d {
 		d[i] = float32(rng.NormFloat64())
 	}
@@ -248,8 +237,7 @@ func Randn(rng *rand.Rand, shape ...int) *Tensor {
 
 // Rand [lo, hi) aralığında düzgün dağılımlı tensör.
 func Rand(rng *rand.Rand, lo, hi float32, shape ...int) *Tensor {
-	checkShape(shape)
-	d := make([]float32, numelOf(shape))
+	d := make([]float32, ayirmaBoyu(isOlusturma, shape, Float32))
 	for i := range d {
 		d[i] = lo + (hi-lo)*rng.Float32()
 	}
