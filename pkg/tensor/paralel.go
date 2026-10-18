@@ -105,16 +105,35 @@ type gorev struct {
 	sonraki  atomic.Int64
 	_        [56]byte
 	biten    atomic.Int64
+	// panik, bir parçada oluşan ilk paniktir; çağıran bütün parçalar bitince onu kendi
+	// goroutine'inde yeniden fırlatır (işçide kurtarılmayan panik süreci çökertirdi).
+	panik atomic.Pointer[parcaPanigi]
 }
 
-// yurut parçalar bitene kadar sayaçtan parça alıp yürütür.
+// parcaPanigi bir parçanın kurtarılmış panik değeri.
+type parcaPanigi struct{ deger any }
+
+// parcaYurut bir parçayı yürütür; panik oluşursa kaydeder (ilki kalır).
+func parcaYurut(p *atomic.Pointer[parcaPanigi], fn func(katilimci, c int), katilimci, c int) {
+	defer func() {
+		if r := recover(); r != nil {
+			p.CompareAndSwap(nil, &parcaPanigi{deger: r})
+		}
+	}()
+	fn(katilimci, c)
+}
+
+// yurut parçalar bitene kadar sayaçtan parça alıp yürütür. Bir parça panik verdiyse
+// kalan parçalar yürütülmeden bitmiş sayılır.
 func (g *gorev) yurut(katilimci int) {
 	for {
 		c := g.sonraki.Add(1) - 1
 		if c >= g.parca {
 			return
 		}
-		g.fn(katilimci, int(c))
+		if g.panik.Load() == nil {
+			parcaYurut(&g.panik, g.fn, katilimci, int(c))
+		}
 		g.biten.Add(1)
 	}
 }
@@ -232,6 +251,11 @@ func dagit(w, parca int, fn func(katilimci, c int)) {
 	// İşin kapanışını (ve yakaladığı tamponları) bırak; aynı sıra numarasıyla
 	// boş bir iş yayımlanır, işçiler onu yeni iş saymaz.
 	havuz.gorev.Store(&gorev{fn: bosIs, seq: g.seq})
+	// Bir parçada panik olduysa (bütün katılımcılar durduktan sonra) çağıranda yeniden
+	// fırlatılır; böylece kurtarma (ör. yorumlayıcının hata dönüşümü) çalışır.
+	if p := g.panik.Load(); p != nil {
+		panic(p.deger)
+	}
 }
 
 func bosIs(int, int) {}
@@ -239,21 +263,25 @@ func bosIs(int, int) {}
 // dagitGecici havuz kullanılamadığında her çağrıda goroutine açan yedek yol.
 func dagitGecici(w, parca int, fn func(katilimci, c int)) {
 	var next atomic.Int64
+	var panik atomic.Pointer[parcaPanigi]
 	var wg sync.WaitGroup
 	wg.Add(w)
 	for k := 0; k < w; k++ {
 		go func() {
 			defer wg.Done()
-			for {
+			for panik.Load() == nil {
 				c := int(next.Add(1) - 1)
 				if c >= parca {
 					return
 				}
-				fn(k, c)
+				parcaYurut(&panik, fn, k, c)
 			}
 		}()
 	}
 	wg.Wait()
+	if p := panik.Load(); p != nil {
+		panic(p.deger)
+	}
 }
 
 // parallelFor [0, n) aralığını parçalara bölüp fn(lo, hi) çağrılarını işçilere
