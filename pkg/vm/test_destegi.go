@@ -3,13 +3,14 @@ package vm
 import (
 	"fmt"
 	"tr_dili/pkg/ast"
+	"tr_dili/pkg/sozluk"
 )
 
 // registerTestBuiltins test yazmak için doğrulama yerleşiklerini kaydeder.
 // İkisi de test blokları dışında da çalışır (bir tür "assert").
 func (v *VM) registerTestBuiltins() {
 	// doğrula(koşul, [mesaj]): koşul yanlışsa hata fırlatır.
-	v.RegisterBuiltin("doğrula", "dogrula", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(sozluk.G+700, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 || len(args) > 2 {
 			return nil, fmt.Errorf("doğrula() 1 ya da 2 parametre bekler (koşul, [mesaj]), %d verildi", len(args))
 		}
@@ -23,7 +24,7 @@ func (v *VM) registerTestBuiltins() {
 	})
 
 	// eşit_mi(beklenen, gerçek, [mesaj]): iki değer '==' ile eşit değilse ikisini de gösteren hata fırlatır.
-	v.RegisterBuiltin("eşit_mi", "esit_mi", func(vm *VM, args []Value, named map[string]Value) (Value, error) {
+	v.RegisterBuiltinKod(sozluk.G+701, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 || len(args) > 3 {
 			return nil, fmt.Errorf("eşit_mi() 2 ya da 3 parametre bekler (beklenen, gerçek, [mesaj]), %d verildi", len(args))
 		}

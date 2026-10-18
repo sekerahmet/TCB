@@ -601,7 +601,7 @@ func paramsArg(args []vm.Value, idx int, named map[string]vm.Value) ([]vm.Value,
 	if idx < len(args) {
 		raw = args[idx]
 	}
-	for _, k := range []string{"parametreler", "params"} {
+	for _, k := range parametreYazimlari {
 		if pv, ok := named[k]; ok {
 			raw = pv
 		}

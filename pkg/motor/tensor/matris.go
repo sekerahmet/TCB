@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"tr_dili/pkg/motor/internal/baglama"
+	"tr_dili/pkg/sozluk"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/vm"
 )
@@ -78,9 +79,10 @@ func tamArg(args []vm.Value, i int, imza string) (int64, error) {
 
 // matrisSekli sıfırlar(satır, sütun) / birler(satır, sütun) biçimini 2 boyutlu şekle
 // çevirir. Tek tam sayı (yalnızca sıfırlar(n)) tek satırlı [1, n] matristir.
-func matrisSekli(ad string, args []vm.Value) ([]int, error) {
+func matrisSekli(kod sozluk.Kod, args []vm.Value) ([]int, error) {
+	ad := sozluk.Ad(kod)
 	enAz := 2
-	if ad == "sıfırlar" {
+	if kod == sozluk.T+101 { // sıfırlar
 		enAz = 1
 	}
 	imza := ad + "(satır, sütun)"

@@ -4,6 +4,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"tr_dili/pkg/sozluk"
+	"tr_dili/pkg/turkce"
 )
 
 // İkinci ad yalnızca Türkçe karaktersiz karşılık olabilir; eş anlamlı ad kayıtta panikler.
@@ -49,9 +52,21 @@ func TestKaldirilanYerlesikIpucu(t *testing.T) {
 			t.Errorf("%s: %q içeren hata bekleniyordu, alınan: %v", c.kod, c.want, err)
 		}
 	}
-	for ad := range kaldirilanYerlesikler {
-		if _, ok := New().GlobalEnv.Get(ad); ok {
-			t.Errorf("%q kaldırıldı, kayıtlı olmamalı", ad)
+	m := New()
+	for _, k := range sozluk.Kodlar() {
+		g, _ := sozluk.Etkin().Girdisi(k)
+		if !k.Yerlesik() {
+			continue
+		}
+		for _, ad := range g.Eski {
+			for _, y := range []string{ad, turkce.ASCII(ad)} {
+				if _, ok := m.GlobalEnv.Get(y); ok {
+					t.Errorf("%q (%s'in eski adı) kaldırıldı, kayıtlı olmamalı", y, k)
+				}
+				if KaldirilanYerlesikIpucu(y) == "" {
+					t.Errorf("%q için ipucu bekleniyordu", y)
+				}
+			}
 		}
 	}
 }

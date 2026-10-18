@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"tr_dili/pkg/sozluk"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/motor/tensor"
@@ -104,7 +105,7 @@ func (n *Nesne) metot(ad string, fn vm.BuiltinFunc) *vm.BuiltinVal {
 
 // Kaydet parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *vm.VM) {
-	v.RegisterBuiltin("parçalayıcı_yükle", "parcalayici_yukle", func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.V+200, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		return baglama.Guvenli("parçalayıcı_yükle", func() (vm.Value, error) { return yukle(m, args, named) })
 	})
 }
@@ -205,8 +206,8 @@ func uyarilariYaz(yol string, p *pc.Parcalayici) {
 // ----------------------------------------------------------------------------
 
 var (
-	adOzel   = baglama.Ad{TR: "özel_tokenlar", ASCII: "ozel_tokenlar"}
-	adIkinci = baglama.Ad{TR: "ikinci"}
+	adOzel   = baglama.KodAd(sozluk.V + 910)
+	adIkinci = baglama.KodAd(sozluk.V + 911)
 )
 
 // uzunMetin bu bayttan uzun tek metinler yorumlayıcı kilidi bırakılarak kodlanır.

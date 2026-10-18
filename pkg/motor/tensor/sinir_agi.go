@@ -239,16 +239,12 @@ func (nn *SinirAgi) egitYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.
 		return nil, fmt.Errorf("Hedef matrise çevrilemedi: %v", err)
 	}
 	devir, oran := 500, 0.1
-	if v, ok := named["devir"]; ok {
+	if v, ok := baglama.AdliAl(named, adDevir); ok {
 		if iv, ok := v.(*vm.IntVal); ok {
 			devir = int(iv.Val)
 		}
 	}
-	if v, ok := named["öğrenme_hızı"]; ok {
-		if f, ok := vm.ToFloat(v); ok {
-			oran = f
-		}
-	} else if v, ok := named["ogrenme_hizi"]; ok {
+	if v, ok := baglama.AdliAl(named, adOgrenmeHizi); ok {
 		if f, ok := vm.ToFloat(v); ok {
 			oran = f
 		}
@@ -303,10 +299,10 @@ func sinirAgiKur(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value
 	if len(args) >= 2 {
 		aktivasyon = args[1].Inspect()
 	}
-	if v, ok := named["aktivasyon"]; ok {
+	if v, ok := baglama.AdliAl(named, adAktivasyon); ok {
 		aktivasyon = v.Inspect()
 	}
-	if v, ok := named["tohum"]; ok {
+	if v, ok := baglama.AdliAl(named, adTohum); ok {
 		if iv, ok := v.(*vm.IntVal); ok {
 			tohum = iv.Val
 		}

@@ -9,8 +9,16 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/motor/web"
+	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/vm"
+)
+
+// yz_sor'un adlı argümanları; adları sözlüktedir (pkg/sozluk, T94x).
+var (
+	adModel = baglama.KodAd(sozluk.T + 940)
+	adAdres = baglama.KodAd(sozluk.T + 941)
 )
 
 // yzSorZamanAsimi yz_sor isteğinin toplam süre sınırıdır (modelin yanıt üretmesi dahil).
@@ -21,7 +29,7 @@ var yzSorZamanAsimi = 120 * time.Second
 // pkg/motor/veribicim, web_al/web_gönder ise pkg/motor/web paketindedir.
 func Kaydet(v *vm.VM) {
 	// --- Veri Bilimi, İstatistik ve Vektör Benzerlik ---
-	v.RegisterBuiltin("ortalama", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.G+410, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -33,7 +41,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: sum / float64(len(nums))}, nil
 	})
 
-	v.RegisterBuiltin("standart_sapma", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.G+411, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -52,7 +60,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: math.Sqrt(variance)}, nil
 	})
 
-	v.RegisterBuiltin("ortanca", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.G+412, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.FloatVal{Val: 0}, nil
@@ -67,7 +75,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: (sorted[mid-1] + sorted[mid]) / 2.0}, nil
 	})
 
-	v.RegisterBuiltin("normalize_et", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.T+600, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		nums := vm.ExtractNumericSlice(args)
 		if len(nums) == 0 {
 			return &vm.ListVal{Elements: []vm.Value{}}, nil
@@ -93,7 +101,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.ListVal{Elements: elems}, nil
 	})
 
-	v.RegisterBuiltin("nokta_çarpım", "nokta_carpim", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.T+601, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("nokta_çarpım(v1, v2) 2 parametre bekler")
 		}
@@ -109,7 +117,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: dot}, nil
 	})
 
-	v.RegisterBuiltin("kosinüs_benzerliği", "kosinus_benzerligi", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.T+602, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("kosinüs_benzerliği(v1, v2) 2 parametre bekler")
 		}
@@ -131,7 +139,7 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: dot / denom}, nil
 	})
 
-	v.RegisterBuiltin("öklid_uzaklığı", "oklid_uzakligi", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.T+603, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("öklid_uzaklığı(v1, v2) 2 parametre bekler")
 		}
@@ -149,7 +157,7 @@ func Kaydet(v *vm.VM) {
 	})
 
 	// --- Büyük Dil Modeli (LLM: yz_sor) ---
-	v.RegisterBuiltin("yz_sor", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.T+610, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("yz_sor(istem, [model: 'llama3']) en az 1 parametre bekler")
 		}
@@ -157,10 +165,10 @@ func Kaydet(v *vm.VM) {
 		model := "llama3"
 		endpoint := "http://localhost:11434/api/generate"
 		if named != nil {
-			if m, ok := named["model"]; ok {
+			if m, ok := baglama.AdliAl(named, adModel); ok {
 				model = m.Inspect()
 			}
-			if u, ok := named["adres"]; ok {
+			if u, ok := baglama.AdliAl(named, adAdres); ok {
 				endpoint = u.Inspect()
 			}
 		}

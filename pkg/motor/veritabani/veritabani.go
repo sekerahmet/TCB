@@ -8,9 +8,24 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"tr_dili/pkg/motor/internal/baglama"
+	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
+
+// Adlı argümanlar; adları sözlüktedir (pkg/sozluk, W9xx).
+var (
+	adKosul        = baglama.KodAd(sozluk.W + 930) // eş yazımı: nerede
+	adSirala       = baglama.KodAd(sozluk.W + 931)
+	adLimit        = baglama.KodAd(sozluk.W + 932)
+	adAlanlar      = baglama.KodAd(sozluk.W + 933)
+	adParametreler = baglama.KodAd(sozluk.W + 934) // eş yazımı: params
+)
+
+// parametreYazimlari parametre listesinin adlı argüman yazımlarıdır; sonra gelen öncekini
+// geçersiz kılar.
+var parametreYazimlari = adParametreler.Yazimlar()
 
 const VAL_DATABASE vm.ValueType = "Veritabanı"
 
@@ -655,12 +670,11 @@ func Kaydet(v *vm.VM) {
 		}
 		return db, nil
 	}
-	v.RegisterBuiltin("veritabanı_aç", "veritabani_ac", openDB)
-	v.RegisterBuiltin("veritabanı", "veritabani", openDB)
+	v.RegisterBuiltinKod(sozluk.W+200, openDB)
 
 	// 2. Bellekteki listeyi tablo gibi sorgulama:
 	// tablo_sorgula(siparisler, "tutar > 20000", sırala: "tutar:azalan", alanlar: ["musteri", "tutar"], limit: 5)
-	v.RegisterBuiltin("tablo_sorgula", "", func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.W+210, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("tablo_sorgula(liste, [koşul], [sırala], [alanlar], [limit]) en az 1 argüman bekler")
 		}
@@ -672,9 +686,7 @@ func Kaydet(v *vm.VM) {
 		if len(args) >= 2 {
 			cond = args[1].Inspect()
 		}
-		if c, ok := named["koşul"]; ok {
-			cond = c.Inspect()
-		} else if c, ok := named["nerede"]; ok {
+		if c, ok := baglama.AdliAl(named, adKosul); ok {
 			cond = c.Inspect()
 		}
 
@@ -701,7 +713,7 @@ func Kaydet(v *vm.VM) {
 		}
 
 		// Sıralama: sırala: "tutar:azalan" veya "tutar"
-		for _, sortKey := range []string{"sırala", "sirala"} {
+		for _, sortKey := range adSirala.Yazimlar() {
 			if sv, ok := named[sortKey]; ok {
 				parts := strings.Split(sv.Inspect(), ":")
 				col := strings.TrimSpace(parts[0])
@@ -717,7 +729,7 @@ func Kaydet(v *vm.VM) {
 		}
 
 		// Limit
-		if limVal, ok := named["limit"]; ok {
+		if limVal, ok := baglama.AdliAl(named, adLimit); ok {
 			if iv, ok := limVal.(*vm.IntVal); ok && int(iv.Val) < len(rows) {
 				rows = rows[:int(iv.Val)]
 			}
@@ -725,7 +737,7 @@ func Kaydet(v *vm.VM) {
 
 		// Alanlar (Projection)
 		var cols []string
-		if fVal, ok := named["alanlar"]; ok {
+		if fVal, ok := baglama.AdliAl(named, adAlanlar); ok {
 			if fl, ok := fVal.(*vm.ListVal); ok {
 				for _, item := range fl.Elements {
 					cols = append(cols, item.Inspect())

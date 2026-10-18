@@ -226,10 +226,12 @@ func (v *VM) StackSnapshot() []StackFrame {
 	return snap
 }
 
-// RegisterBuiltin bir yerleşik fonksiyonu genel kapsama kaydeder. asciiKarsilik, adın
-// Türkçe karakterleri ASCII'ye çevrilmiş biçimidir (sırala → sirala); ad zaten ASCII ise
-// boş verilir. Her işin tek yazımı vardır: ikinci ad eş anlamlı bir ad olamaz (bkz.
-// AsciiKarsilikDenetle).
+// RegisterBuiltin sözlükte olmayan bir yerleşiği (testlerin ve TR'yi gömen Go
+// programlarının kendi yardımcıları) verilen adla genel kapsama kaydeder. Dilin kendi
+// yerleşikleri RegisterBuiltinKod ile sözlük koduyla kaydedilir; adları pkg/sozluk'tadır.
+// asciiKarsilik, adın Türkçe karakterleri ASCII'ye çevrilmiş biçimidir (sırala → sirala);
+// ad zaten ASCII ise boş verilir. Her işin tek yazımı vardır: ikinci ad eş anlamlı bir ad
+// olamaz (bkz. AsciiKarsilikDenetle).
 func (v *VM) RegisterBuiltin(name string, asciiKarsilik string, fn BuiltinFunc) {
 	AsciiKarsilikDenetle(name, asciiKarsilik)
 	b := &BuiltinVal{Name: name, Fn: fn}

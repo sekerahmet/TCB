@@ -57,18 +57,29 @@ func TestTRSiraliVeSatirSatir(t *testing.T) {
 	}
 }
 
-// Farklı iki ad, ad alanları farklı olsa bile aynı ASCII biçime düşmemeli: AsilAd ve
-// ASCII yazımdan Türkçe yazıma ipucu belirsiz olurdu.
+// tumAdlar kodun adı ve eş yazımlarıdır.
+func tumAdlar(k Kod) []string {
+	g, _ := Etkin().Girdisi(k)
+	return append([]string{g.Ad}, g.Es...)
+}
+
+// Farklı iki ad (eş yazımlar dahil), ad alanları farklı olsa bile aynı ASCII biçime
+// düşmemeli: AsilAd ve ASCII yazımdan Türkçe yazıma ipucu belirsiz olurdu.
 func TestASCIIBicimlerCakismaz(t *testing.T) {
-	sahip := map[string]Kod{}
+	type sahibi struct {
+		kod Kod
+		ad  string
+	}
+	sahip := map[string]sahibi{}
 	for _, k := range Kodlar() {
-		ad := Ad(k)
-		a := turkce.ASCII(ad)
-		if o, ok := sahip[a]; ok && Ad(o) != ad {
-			t.Errorf("%s %q ile %s %q aynı ASCII biçime (%q) düşüyor", o, Ad(o), k, ad, a)
-			continue
+		for _, ad := range tumAdlar(k) {
+			a := turkce.ASCII(ad)
+			if o, ok := sahip[a]; ok && o.ad != ad {
+				t.Errorf("%s %q ile %s %q aynı ASCII biçime (%q) düşüyor", o.kod, o.ad, k, ad, a)
+				continue
+			}
+			sahip[a] = sahibi{k, ad}
 		}
-		sahip[a] = k
 	}
 	// Ad alanı içinde ASCII biçim ile eski ad çakışması Yukle'de yakalanır (bkz.
 	// TestCakismalarYakalanir). Farklı ad alanları arasındaki çakışma bir hata değildir
@@ -82,8 +93,8 @@ func TestASCIIBicimlerCakismaz(t *testing.T) {
 				yazimlar = append(yazimlar, a)
 			}
 			for _, y := range yazimlar {
-				if o, ok := sahip[turkce.ASCII(y)]; ok && (y == Ad(o) || y == turkce.ASCII(Ad(o))) && o.Alan() != k.Alan() {
-					t.Logf("bilgi: %s'in eski adı %q, başka ad alanındaki %s %q ile aynı yazılıyor", k, y, o, Ad(o))
+				if o, ok := sahip[turkce.ASCII(y)]; ok && (y == o.ad || y == turkce.ASCII(o.ad)) && o.kod.Alan() != k.Alan() {
+					t.Logf("bilgi: %s'in eski adı %q, başka ad alanındaki %s %q ile aynı yazılıyor", k, y, o.kod, o.ad)
 				}
 			}
 		}
@@ -182,6 +193,8 @@ func TestCakismalarYakalanir(t *testing.T) {
 		{`{"G100": {"ad": "a", "eski": ["işlev"]}, "G101": {"ad": "b", "eski": ["islev"]}}`, "\"islev\" hem G100 hem G101"},
 		{`{"G100": {"ad": "a", "eski": ["a"]}}`, "adın kendisi"},
 		{`{"G100": {"ad": "a b"}}`, "boşluk"},
+		{`{"G100": {"ad": "yazdır", "es": ["yaz"]}, "G101": {"ad": "yaz"}}`, "G100 \"yaz\" ile G101 \"yaz\""},
+		{`{"G100": {"ad": "yazdır", "es": ["yaz"]}, "G101": {"ad": "girdi", "eski": ["yaz"]}}`, "G101'in eski adı \"yaz\", G100 \"yaz\""},
 		{`{"X100": {"ad": "a"}}`, "aile harfi"},
 		{`{"H100": {"ad": "a"}}`, "henüz kullanılmıyor"},
 		{`{"G100": {"ad": "a", "bilinmeyen": 1}}`, "bilinmeyen"},
@@ -199,13 +212,35 @@ func TestCakismalarYakalanir(t *testing.T) {
 
 // "ascii": false olan adın yalnızca Türkçe biçimi kabul edilir.
 func TestASCIIKapali(t *testing.T) {
-	if y := Yazimlar(W + 930); len(y) != 1 || y[0] != "koşul" {
-		t.Errorf("W930 yalnızca 'koşul' olarak kabul edilmeli: %v", y)
+	if y := Yazimlar(W + 930); len(y) != 2 || y[0] != "koşul" || y[1] != "nerede" {
+		t.Errorf("W930 yalnızca 'koşul' ve eş yazımı 'nerede' olarak kabul edilmeli: %v", y)
 	}
 	if y := Yazimlar(G + 100); ASCIIKabul && (len(y) != 2 || y[1] != "yazdir") {
 		t.Errorf("G100 yazımları: %v", y)
 	}
 	if y := Yazimlar(G + 400); len(y) != 1 {
 		t.Errorf("ASCII ad tek yazımlı olmalı: %v", y)
+	}
+}
+
+// Eş yazımlar asıl adla aynı koda bağlıdır ve kabul edilir; EsYazimi onları ayırt eder.
+func TestEsYazimlar(t *testing.T) {
+	for _, c := range []struct {
+		kod   Kod
+		yazim string
+	}{{Y + 702, "sorgu"}, {Y + 702, "seç"}, {Y + 702, "sec"}, {Y + 403, "türev"}, {Y + 403, "turev"},
+		{W + 200, "veritabanı"}, {A + 200, "tamsayı"}, {A + 212, "matris"}} {
+		if k, ok := Bul(c.kod.Alan(), c.yazim); !ok || k != c.kod {
+			t.Errorf("Bul(%q) = %s, %s bekleniyordu", c.yazim, k, c.kod)
+		}
+		if !EsYazimi(c.kod, c.yazim) {
+			t.Errorf("%q, %s'in eş yazımı olmalı", c.yazim, c.kod)
+		}
+	}
+	if EsYazimi(Y+702, "sorgula") || EsYazimi(Y+403, "gradyan") {
+		t.Error("asıl ad eş yazım sayılmamalı")
+	}
+	if AsilAd("sec") != "seç" {
+		t.Errorf("AsilAd(sec) = %q", AsilAd("sec"))
 	}
 }

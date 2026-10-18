@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"tr_dili/pkg/sozluk"
 	"unicode/utf8"
 
 	"tr_dili/pkg/vm"
@@ -172,14 +173,14 @@ func webIstegi(makine *vm.VM, fn, yontem, adres string, govde []byte) (vm.Value,
 
 // istemciKaydet web_al ve web_gönder yerleşiklerini (ve eş yazımlarını) kaydeder.
 func istemciKaydet(v *vm.VM) {
-	v.RegisterBuiltin("web_al", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.W+100, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
 			return nil, fmt.Errorf("web_al(url) 1 parametre bekler")
 		}
 		return webIstegi(makine, "web_al", http.MethodGet, args[0].Inspect(), nil)
 	})
 
-	v.RegisterBuiltin("web_gönder", "web_gonder", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.W+101, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 2 {
 			return nil, fmt.Errorf("web_gönder(url, veri) 2 parametre bekler")
 		}

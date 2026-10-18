@@ -16,8 +16,22 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"tr_dili/pkg/motor/internal/baglama"
+	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
+)
+
+// Adlı argümanlar; adları sözlüktedir (pkg/sozluk, W9xx).
+var (
+	adPort      = baglama.KodAd(sozluk.W + 900)
+	adArkaPlan  = baglama.KodAd(sozluk.W + 901)
+	adGenislik  = baglama.KodAd(sozluk.W + 910)
+	adYukseklik = baglama.KodAd(sozluk.W + 911)
+	adPencereAc = baglama.KodAd(sozluk.W + 912)
+	adAltBilgi  = baglama.KodAd(sozluk.W + 920)
+	adRenk      = baglama.KodAd(sozluk.W + 921)
+	adTip       = baglama.KodAd(sozluk.W + 922)
 )
 
 const (
@@ -152,7 +166,7 @@ func (w *WebServerVal) GetProperty(prop string) (vm.Value, error) {
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 				w.vmRef = v
 				bg := false
-				if b, ok := named["arka_plan"]; ok && b.IsTruthy() {
+				if b, ok := baglama.AdliAl(named, adArkaPlan); ok && b.IsTruthy() {
 					bg = true
 				}
 				if err := w.startServer(bg); err != nil {
@@ -346,14 +360,14 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 				if len(args) >= 3 {
 					sub = args[2].Inspect()
 				}
-				if s, ok := named["alt_bilgi"]; ok {
+				if s, ok := baglama.AdliAl(named, adAltBilgi); ok {
 					sub = s.Inspect()
 				}
 				color := "#38bdf8"
 				if len(args) >= 4 {
 					color = resolveColor(args[3].Inspect())
 				}
-				if c, ok := named["renk"]; ok {
+				if c, ok := baglama.AdliAl(named, adRenk); ok {
 					color = resolveColor(c.Inspect())
 				}
 				g.KPIs = append(g.KPIs, guiWidget{
@@ -402,7 +416,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 			},
 		}, nil
 
-	case "tablo_ekle", "alv_ekle":
+	case "tablo_ekle":
 		return &vm.BuiltinVal{
 			Name: "arayüz.tablo_ekle",
 			Fn: func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -444,7 +458,7 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 				if len(args) >= 4 {
 					chartType = args[3].Inspect()
 				}
-				if ct, ok := named["tip"]; ok {
+				if ct, ok := baglama.AdliAl(named, adTip); ok {
 					chartType = ct.Inspect()
 				}
 				g.Widgets = append(g.Widgets, guiWidget{
@@ -539,13 +553,13 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 						port = int(iv.Val)
 					}
 				}
-				if p, ok := named["port"]; ok {
+				if p, ok := baglama.AdliAl(named, adPort); ok {
 					if iv, ok := p.(*vm.IntVal); ok {
 						port = int(iv.Val)
 					}
 				}
 				openWin := false
-				if ow, ok := named["pencere_aç"]; ok && ow.IsTruthy() {
+				if ow, ok := baglama.AdliAl(named, adPencereAc); ok && ow.IsTruthy() {
 					openWin = true
 				}
 				g.vmRef = v
@@ -566,17 +580,17 @@ func (g *GUIAppVal) GetProperty(prop string) (vm.Value, error) {
 						port = int(iv.Val)
 					}
 				}
-				if p, ok := named["port"]; ok {
+				if p, ok := baglama.AdliAl(named, adPort); ok {
 					if iv, ok := p.(*vm.IntVal); ok {
 						port = int(iv.Val)
 					}
 				}
 				openWin := true
-				if ow, ok := named["pencere_aç"]; ok {
+				if ow, ok := baglama.AdliAl(named, adPencereAc); ok {
 					openWin = ow.IsTruthy()
 				}
 				bg := false
-				if b, ok := named["arka_plan"]; ok && b.IsTruthy() {
+				if b, ok := baglama.AdliAl(named, adArkaPlan); ok && b.IsTruthy() {
 					bg = true
 				}
 				g.vmRef = v
@@ -956,14 +970,14 @@ func Kaydet(v *vm.VM) {
 	istemciKaydet(v)
 
 	// 1. web_sunucu(port: 8080)
-	v.RegisterBuiltin("web_sunucu", "", func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.W+110, func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		port := 8080
 		if len(args) >= 1 {
 			if iv, ok := args[0].(*vm.IntVal); ok {
 				port = int(iv.Val)
 			}
 		}
-		if p, ok := named["port"]; ok {
+		if p, ok := baglama.AdliAl(named, adPort); ok {
 			if iv, ok := p.(*vm.IntVal); ok {
 				port = int(iv.Val)
 			}
@@ -984,12 +998,12 @@ func Kaydet(v *vm.VM) {
 		}
 		width := 1080
 		height := 760
-		if w, ok := named["genişlik"]; ok {
+		if w, ok := baglama.AdliAl(named, adGenislik); ok {
 			if iv, ok := w.(*vm.IntVal); ok {
 				width = int(iv.Val)
 			}
 		}
-		if h, ok := named["yükseklik"]; ok {
+		if h, ok := baglama.AdliAl(named, adYukseklik); ok {
 			if iv, ok := h.(*vm.IntVal); ok {
 				height = int(iv.Val)
 			}
@@ -1004,6 +1018,5 @@ func Kaydet(v *vm.VM) {
 			vmRef:   v,
 		}, nil
 	}
-	v.RegisterBuiltin("arayüz_oluştur", "arayuz_olustur", createGUI)
-	v.RegisterBuiltin("pencere_oluştur", "pencere_olustur", createGUI)
+	v.RegisterBuiltinKod(sozluk.W+300, createGUI)
 }

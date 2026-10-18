@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"tr_dili/pkg/sozluk"
 
 	"tr_dili/pkg/motor/internal/baglama"
 	"tr_dili/pkg/motor/tensor"
@@ -42,17 +43,18 @@ const onYuklemeDerinligi = 4
 // enBuyukTamFloat32 float32'nin tam gösterebildiği en büyük tam sayıdır (2^24).
 const enBuyukTamFloat32 = 1 << 24
 
+// Adlı argümanlar; adları sözlüktedir (pkg/sozluk).
 var (
-	adOnbellek = baglama.Ad{TR: "önbellek", ASCII: "onbellek"}
-	adKota     = baglama.Ad{TR: "kota_gb"}
-	adToplu    = baglama.Ad{TR: "toplu"}
-	adBaglam   = baglama.Ad{TR: "bağlam", ASCII: "baglam"}
-	adTohum    = baglama.Ad{TR: "tohum"}
+	adOnbellek = baglama.KodAd(sozluk.V + 900)
+	adKota     = baglama.KodAd(sozluk.V + 901)
+	adToplu    = baglama.KodAd(sozluk.V + 902)
+	adBaglam   = baglama.KodAd(sozluk.V + 903)
+	adTohum    = baglama.KodAd(sozluk.T + 903)
 )
 
 // Kaydet veri yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *vm.VM) {
-	v.RegisterBuiltin("veri_kümesi", "veri_kumesi", func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.RegisterBuiltinKod(sozluk.V+100, func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		return baglama.Guvenli("veri_kümesi", func() (vm.Value, error) { return kumeAc(m, args, named) })
 	})
 }

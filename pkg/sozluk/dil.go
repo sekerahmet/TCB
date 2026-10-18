@@ -30,6 +30,10 @@ type Girdi struct {
 	Kod Kod
 	// Ad kodun bu dildeki adıdır.
 	Ad string
+	// Es, bugün adla aynı işi yapan eş yazımlardır (ör. sorgula için sorgu, seç). Kabul
+	// edilirler ama her işin tek adı olması için sonraki bir temizlikte kaldırılacaklardır;
+	// kaldırılınca bu alandan silinip gerekirse Eski'ye eklenirler.
+	Es []string
 	// Eski kaldırılmış adlardır: kabul edilmezler, yalnızca hata mesajında Ad önerilir.
 	// Türkçe karakterli eski adların ASCII biçimleri de (işlev → islev) eski sayılır.
 	Eski []string
@@ -57,6 +61,7 @@ type Dil struct {
 	girdiler map[Kod]*Girdi
 	sira     []Kod // dosyadaki sıra
 	yazimlar map[Kod][]string
+	esler    map[Kod][]string // eş yazımlar ve kabul edilen ASCII biçimleri
 	adlar    [alanSayisi]map[string]Kod
 	eskiler  [alanSayisi]map[string][]eskiEslesme
 	asil     [alanSayisi]map[string]string
@@ -65,6 +70,7 @@ type Dil struct {
 
 type girdiJSON struct {
 	Ad    string   `json:"ad"`
+	Es    []string `json:"es"`
 	Eski  []string `json:"eski"`
 	Aile  string   `json:"aile"`
 	ASCII *bool    `json:"ascii"`
@@ -74,7 +80,7 @@ type girdiJSON struct {
 // alanında çakışan ad (Türkçe ya da ASCII biçimiyle, eski adlar dahil) varsa hepsini
 // sayan bir hata döndürür.
 func Yukle(kodu string, veri []byte) (*Dil, error) {
-	d := &Dil{Kodu: kodu, girdiler: map[Kod]*Girdi{}, yazimlar: map[Kod][]string{}, asilTum: map[string]string{}}
+	d := &Dil{Kodu: kodu, girdiler: map[Kod]*Girdi{}, yazimlar: map[Kod][]string{}, esler: map[Kod][]string{}, asilTum: map[string]string{}}
 	var hatalar []string
 	hata := func(bicim string, a ...any) { hatalar = append(hatalar, fmt.Sprintf(bicim, a...)) }
 
@@ -110,7 +116,12 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 			hata("%s: ad boş olamaz ve boşluk içeremez (%q)", k, g.Ad)
 			continue
 		}
-		gr := &Girdi{Kod: k, Ad: g.Ad, Eski: g.Eski, Aile: g.Aile, ASCII: g.ASCII == nil || *g.ASCII}
+		gr := &Girdi{Kod: k, Ad: g.Ad, Es: g.Es, Eski: g.Eski, Aile: g.Aile, ASCII: g.ASCII == nil || *g.ASCII}
+		for _, e := range g.Es {
+			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
+				hata("%s: eş yazım boş olamaz ve boşluk içeremez (%q)", k, e)
+			}
+		}
 		for _, e := range g.Eski {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
 				hata("%s: eski ad boş olamaz ve boşluk içeremez (%q)", k, e)
@@ -135,50 +146,59 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 		d.eskiler[i] = map[string][]eskiEslesme{}
 		d.asil[i] = map[string]string{}
 	}
-	sahibi := [alanSayisi]map[string]Kod{} // ad alanında ASCII biçime göre adın sahibi
+	// sahibi: ad alanında ASCII biçime göre adın (ya da eş yazımın) sahibi kod ve Türkçe biçimi.
+	type sahip struct {
+		kod Kod
+		ad  string
+	}
+	sahibi := [alanSayisi]map[string]sahip{}
 	for i := range sahibi {
-		sahibi[i] = map[string]Kod{}
+		sahibi[i] = map[string]sahip{}
 	}
 	for _, k := range d.Kodlar() {
 		g := d.girdiler[k]
 		al := k.Alan()
-		ascii := turkce.ASCII(g.Ad)
-		if onceki, ok := sahibi[al][ascii]; ok {
-			hata("%s %q ile %s %q aynı ad alanında (%s) çakışıyor (ASCII biçimleri: %q)", onceki, d.girdiler[onceki].Ad, k, g.Ad, al, ascii)
-			continue
-		}
-		sahibi[al][ascii] = k
-		yaz := []string{g.Ad}
-		if ASCIIKabul && g.ASCII && ascii != g.Ad {
-			yaz = append(yaz, ascii)
+		var yaz, es []string
+		for i, ad := range append([]string{g.Ad}, g.Es...) {
+			ascii := turkce.ASCII(ad)
+			if o, ok := sahibi[al][ascii]; ok {
+				hata("%s %q ile %s %q aynı ad alanında (%s) çakışıyor (ASCII biçimleri: %q)", o.kod, o.ad, k, ad, al, ascii)
+				continue
+			}
+			sahibi[al][ascii] = sahip{k, ad}
+			biri := []string{ad}
+			if ASCIIKabul && g.ASCII && ascii != ad {
+				biri = append(biri, ascii)
+			}
+			yaz = append(yaz, biri...)
+			if i > 0 {
+				es = append(es, biri...)
+			}
+			d.asil[al][ad], d.asil[al][ascii] = ad, ad
+			if _, ok := d.asilTum[ascii]; !ok {
+				d.asilTum[ascii] = ad
+			}
+			if _, ok := d.asilTum[ad]; !ok {
+				d.asilTum[ad] = ad
+			}
 		}
 		d.yazimlar[k] = yaz
+		d.esler[k] = es
 		for _, y := range yaz {
 			d.adlar[al][y] = k
-		}
-		d.asil[al][g.Ad], d.asil[al][ascii] = g.Ad, g.Ad
-		if _, ok := d.asilTum[ascii]; !ok {
-			d.asilTum[ascii] = g.Ad
-		}
-		if _, ok := d.asilTum[g.Ad]; !ok {
-			d.asilTum[g.Ad] = g.Ad
 		}
 	}
 	for _, k := range d.Kodlar() {
 		g := d.girdiler[k]
 		al := k.Alan()
 		for _, e := range g.Eski {
-			yazimlar := []eskiEslesme{{kod: k}}
+			yazimlar := []string{e}
 			if a := turkce.ASCII(e); a != e {
-				yazimlar = append(yazimlar, eskiEslesme{kod: k, ascii: true})
+				yazimlar = append(yazimlar, a)
 			}
-			for i, es := range yazimlar {
-				ad := e
-				if i == 1 {
-					ad = turkce.ASCII(e)
-				}
-				if sahip, ok := sahibi[al][turkce.ASCII(ad)]; ok && (ad == d.girdiler[sahip].Ad || ad == turkce.ASCII(d.girdiler[sahip].Ad)) {
-					hata("%s'in eski adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", k, ad, sahip, d.girdiler[sahip].Ad)
+			for i, ad := range yazimlar {
+				if o, ok := sahibi[al][turkce.ASCII(ad)]; ok && (ad == o.ad || ad == turkce.ASCII(o.ad)) {
+					hata("%s'in eski adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", k, ad, o.kod, o.ad)
 					continue
 				}
 				for _, o := range d.eskiler[al][ad] {
@@ -186,7 +206,7 @@ func Yukle(kodu string, veri []byte) (*Dil, error) {
 						hata("eski ad %q hem %s hem %s için kayıtlı; ipucu belirsiz olur", ad, o.kod, k)
 					}
 				}
-				d.eskiler[al][ad] = append(d.eskiler[al][ad], es)
+				d.eskiler[al][ad] = append(d.eskiler[al][ad], eskiEslesme{kod: k, ascii: i == 1})
 			}
 		}
 	}
@@ -226,13 +246,25 @@ func (d *Dil) Ad(k Kod) string {
 }
 
 // Yazimlar kodun kabul edilen bütün yazımlarıdır: önce ad, ASCII biçimi kabul ediliyorsa
-// (bkz. ASCIIKabul) ardından ASCII biçimi. Dönen dilim değiştirilmemelidir.
+// (bkz. ASCIIKabul) ardından ASCII biçimi, sonra aynı düzenle eş yazımlar (Girdi.Es).
+// Dönen dilim değiştirilmemelidir.
 func (d *Dil) Yazimlar(k Kod) []string {
 	y, ok := d.yazimlar[k]
 	if !ok {
 		panic(fmt.Sprintf("sözlük %s: %s kodu dil dosyasında yok", d.Kodu, k))
 	}
 	return y
+}
+
+// EsYazimi yazım kodun eş yazımlarından biri (ya da onun kabul edilen ASCII biçimi) mi?
+// Adın kendisi ve ASCII biçimi için yanlıştır.
+func (d *Dil) EsYazimi(k Kod, yazim string) bool {
+	for _, e := range d.esler[k] {
+		if e == yazim {
+			return true
+		}
+	}
+	return false
 }
 
 // ASCIIBicim adın türetilmiş ASCII biçimidir (kabul edilip edilmediğinden bağımsız).
@@ -302,10 +334,14 @@ func TRVerisi() []byte { return trJSON }
 
 func Ad(k Kod) string                   { return etkin.Ad(k) }
 func Yazimlar(k Kod) []string           { return etkin.Yazimlar(k) }
+func EsYazimi(k Kod, y string) bool     { return etkin.EsYazimi(k, y) }
 func ASCIIBicim(k Kod) string           { return etkin.ASCIIBicim(k) }
 func Bul(al Alan, y string) (Kod, bool) { return etkin.Bul(al, y) }
 func Kodlar() []Kod                     { return etkin.Kodlar() }
 func AsilAd(ad string) string           { return etkin.AsilAd(ad) }
+func AsilAdAlanda(al Alan, ad string) (string, bool) {
+	return etkin.AsilAdAlanda(al, ad)
+}
 func EskiBul(al Alan, ad string, uygun func(Kod) bool) (Kod, bool, bool) {
 	return etkin.EskiBul(al, ad, uygun)
 }

@@ -8,65 +8,66 @@ import (
 	"time"
 
 	"tr_dili/pkg/motor/internal/baglama"
+	"tr_dili/pkg/sozluk"
 	ct "tr_dili/pkg/tensor"
 	"tr_dili/pkg/vm"
 )
 
-// Kaydet tensör yerleşiklerini VM'ye kaydeder. Aynı adlı çekirdek ve yapay zekâ
-// yerleşikleri (toplam, ortalama, min, maks, karekök) sarılır: argüman tensörse tensör
-// yolu, değilse eski yerleşik çalışır.
+// Kaydet tensör yerleşiklerini VM'ye kaydeder. Adlar sözlüktedir (pkg/sozluk); burada
+// yalnızca kodlar geçer. Aynı adlı çekirdek ve yapay zekâ yerleşikleri (toplam, ortalama,
+// min, maks, karekök) sarılır: argüman tensörse tensör yolu, değilse eski yerleşik çalışır.
 func Kaydet(v *vm.VM) {
 	// --- Oluşturucular ---
-	sar(v, []string{"tensör", "tensor"}, yeniYerlesik("tensör", tensorYerlesik))
-	sar(v, []string{"sıfırlar", "sifirlar"}, yeniYerlesik("sıfırlar", sekilliOlusturucu("sıfırlar", true, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
+	sar(v, sozluk.T+100, yeniYerlesik(tensorYerlesik))
+	sar(v, sozluk.T+101, yeniYerlesik(sekilliOlusturucu(sozluk.T+101, true, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
 		return ct.Zeros(sh...), nil
 	})))
-	sar(v, []string{"birler"}, yeniYerlesik("birler", sekilliOlusturucu("birler", true, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
+	sar(v, sozluk.T+102, yeniYerlesik(sekilliOlusturucu(sozluk.T+102, true, func(sh []int, _ map[string]vm.Value) (*ct.Tensor, error) {
 		return ct.Ones(sh...), nil
 	})))
-	sar(v, []string{"rastgele_normal"}, yeniYerlesik("rastgele_normal", sekilliOlusturucu("rastgele_normal", false, rastgeleNormal)))
+	sar(v, sozluk.T+103, yeniYerlesik(sekilliOlusturucu(sozluk.T+103, false, rastgeleNormal)))
 
 	// --- Matris (2 boyutlu tensör) oluşturucuları (matris.go) ---
-	sar(v, []string{"matris"}, yeniYerlesik("matris", matrisYerlesik))
-	sar(v, []string{"birim_matris"}, yeniYerlesik("birim_matris", birimMatris))
-	sar(v, []string{"rastgele_matris"}, yeniYerlesik("rastgele_matris", rastgeleMatris))
+	sar(v, sozluk.T+110, yeniYerlesik(matrisYerlesik))
+	sar(v, sozluk.T+111, yeniYerlesik(birimMatris))
+	sar(v, sozluk.T+112, yeniYerlesik(rastgeleMatris))
 
 	// --- Görünüm ---
-	sar(v, []string{"devrik"}, yeniYerlesik("devrik", devrikYerlesik))
+	sar(v, sozluk.T+120, yeniYerlesik(devrikYerlesik))
 
 	// --- Eleman bazlı matematik ---
-	birli(v, []string{"relu"}, (*ct.Tensor).Relu, relu64)
-	birli(v, []string{"sigmoid"}, (*ct.Tensor).Sigmoid, sigmoid64)
-	birli(v, []string{"tanh"}, (*ct.Tensor).Tanh, math.Tanh)
-	birli(v, []string{"gelu"}, (*ct.Tensor).Gelu, gelu64)
-	birli(v, []string{"karekök", "karekok"}, (*ct.Tensor).Sqrt, nil)
-	birli(v, []string{"üstel", "ustel"}, (*ct.Tensor).Exp, math.Exp)
-	birli(v, []string{"log"}, (*ct.Tensor).Log, math.Log)
+	birli(v, sozluk.T+200, (*ct.Tensor).Relu, relu64)
+	birli(v, sozluk.T+201, (*ct.Tensor).Sigmoid, sigmoid64)
+	birli(v, sozluk.T+202, (*ct.Tensor).Tanh, math.Tanh)
+	birli(v, sozluk.T+203, (*ct.Tensor).Gelu, gelu64)
+	birli(v, sozluk.G+404, (*ct.Tensor).Sqrt, nil) // karekök
+	birli(v, sozluk.T+220, (*ct.Tensor).Exp, math.Exp)
+	birli(v, sozluk.T+221, (*ct.Tensor).Log, math.Log)
 
 	// --- Softmax ---
-	softmaxKaydet(v, []string{"softmax"}, false)
-	softmaxKaydet(v, []string{"log_softmax"}, true)
+	softmaxKaydet(v, sozluk.T+210, false)
+	softmaxKaydet(v, sozluk.T+211, true)
 
-	// --- İndirgemeler ---
-	indirgeme(v, []string{"toplam"}, "toplam", func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	// --- İndirgemeler (toplam, ortalama, maks, min) ---
+	indirgeme(v, sozluk.G+400, func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
 		if tum {
 			return t.SumAll()
 		}
 		return t.Sum(e, false)
 	})
-	indirgeme(v, []string{"ortalama"}, "ortalama", func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	indirgeme(v, sozluk.G+410, func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
 		if tum {
 			return t.MeanAll()
 		}
 		return t.Mean(e, false)
 	})
-	indirgeme(v, []string{"maks"}, "maks", func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	indirgeme(v, sozluk.G+402, func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
 		if tum {
 			return t.Reshape(-1).Max(0, false)
 		}
 		return t.Max(e, false)
 	})
-	indirgeme(v, []string{"min"}, "min", func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
+	indirgeme(v, sozluk.G+401, func(t *ct.Tensor, e int, tum bool) *ct.Tensor {
 		if tum {
 			return enKucukTum(t)
 		}
@@ -74,32 +75,32 @@ func Kaydet(v *vm.VM) {
 	})
 
 	// --- Sinir ağı ---
-	sar(v, []string{"gömme", "gomme"}, yeniYerlesik("gömme", gomme))
-	sar(v, []string{"çapraz_entropi", "capraz_entropi"}, yeniYerlesik("çapraz_entropi", caprazEntropi))
-	sar(v, []string{"katman_normu"}, yeniYerlesik("katman_normu", katmanNormu))
-	sar(v, []string{"rms_normu"}, yeniYerlesik("rms_normu", rmsNormu))
-	sar(v, []string{"kayıp_mse", "kayip_mse"}, yeniYerlesik("kayıp_mse", kayipMSE))
+	sar(v, sozluk.T+500, yeniYerlesik(gomme))
+	sar(v, sozluk.T+510, yeniYerlesik(caprazEntropi))
+	sar(v, sozluk.T+501, yeniYerlesik(katmanNormu))
+	sar(v, sozluk.T+502, yeniYerlesik(rmsNormu))
+	sar(v, sozluk.T+511, yeniYerlesik(kayipMSE))
 
 	// --- Hazır sinir ağı modeli (sinir_agi.go) ---
-	sar(v, []string{"sinir_ağı", "sinir_agi"}, yeniYerlesik("sinir_ağı", sinirAgiKur))
-	sar(v, []string{"model_yükle", "model_yukle"}, yeniYerlesik("model_yükle", modelYukle))
+	sar(v, sozluk.T+520, yeniYerlesik(sinirAgiKur))
+	sar(v, sozluk.T+521, yeniYerlesik(modelYukle))
 
 	// --- Türev ---
-	sar(v, []string{"geri_yayılım", "geri_yayilim"}, yeniYerlesik("geri_yayılım", geriYayilim))
-	sar(v, []string{"türevsiz", "turevsiz"}, yeniYerlesik("türevsiz", turevsiz))
+	sar(v, sozluk.T+300, yeniYerlesik(geriYayilim))
+	sar(v, sozluk.T+301, yeniYerlesik(turevsiz))
 
 	// --- Veri türleri (veri_turu.go) ---
-	sar(v, []string{"karışık_hassasiyet", "karisik_hassasiyet"}, yeniYerlesik("karışık_hassasiyet", karisikHassasiyet))
+	sar(v, sozluk.T+710, yeniYerlesik(karisikHassasiyet))
 
 	// --- İyileştiriciler ---
-	sar(v, []string{"AdamW"}, yeniYerlesik("AdamW", adamWKur))
-	sar(v, []string{"SGD"}, yeniYerlesik("SGD", sgdKur))
-	sar(v, []string{"gradyan_kırp", "gradyan_kirp"}, yeniYerlesik("gradyan_kırp", gradyanKirp))
+	sar(v, sozluk.T+400, yeniYerlesik(adamWKur))
+	sar(v, sozluk.T+401, yeniYerlesik(sgdKur))
+	sar(v, sozluk.T+402, yeniYerlesik(gradyanKirp))
 
 	// --- İndeks, kaydetme ve yükleme ---
-	sar(v, []string{"maks_indeks"}, yeniYerlesik("maks_indeks", maksIndeks))
-	sar(v, []string{"tensör_kaydet", "tensor_kaydet"}, yeniYerlesik("tensör_kaydet", tensorKaydet))
-	sar(v, []string{"tensör_yükle", "tensor_yukle"}, yeniYerlesik("tensör_yükle", tensorYukle))
+	sar(v, sozluk.T+230, yeniYerlesik(maksIndeks))
+	sar(v, sozluk.T+700, yeniYerlesik(tensorKaydet))
+	sar(v, sozluk.T+701, yeniYerlesik(tensorYukle))
 }
 
 // enKucukTum tüm elemanların en küçüğünü 0 boyutlu tensör olarak verir. Çekirdekte Min
@@ -122,26 +123,14 @@ func enKucukTum(t *ct.Tensor) *ct.Tensor {
 	return ct.Scalar(m).To(t.Device())
 }
 
-// sar adların hepsine aynı yeni yerleşiği bağlar. adlar asıl ad ve varsa Türkçe
-// karaktersiz karşılığıdır; eş anlamlı ad kaydedilemez (bkz. vm.AsciiKarsilikDenetle).
-// Eski yerleşik ilk addan okunur (yoksa nil'dir) ve yeni fonksiyona verilir.
-func sar(v *vm.VM, adlar []string, kur func(eski vm.BuiltinFunc) vm.BuiltinFunc) {
-	if len(adlar) == 0 || len(adlar) > 2 {
-		panic(fmt.Sprintf("tensör yerleşiği %v: bir ad ve en çok bir ASCII karşılık verilir", adlar))
-	}
-	if len(adlar) == 2 {
-		vm.AsciiKarsilikDenetle(adlar[0], adlar[1])
-	}
+// sar kodun bütün yazımlarına (ad ve sözlüğe göre Türkçe karaktersiz biçimi) aynı yeni
+// yerleşiği bağlar. Eski yerleşik (varsa) bu koddan okunur ve yeni fonksiyona verilir.
+func sar(v *vm.VM, kod sozluk.Kod, kur func(eski vm.BuiltinFunc) vm.BuiltinFunc) {
 	var eski vm.BuiltinFunc
-	if onceki, ok := v.GlobalEnv.Get(adlar[0]); ok {
-		if b, ok := onceki.(*vm.BuiltinVal); ok {
-			eski = b.Fn
-		}
+	if b := v.Yerlesik(kod); b != nil {
+		eski = b.Fn
 	}
-	b := &vm.BuiltinVal{Name: adlar[0], Fn: kur(eski)}
-	for _, ad := range adlar {
-		v.GlobalEnv.Define(ad, b, true)
-	}
+	v.YerlesikTanimla(kod, &vm.BuiltinVal{Name: sozluk.Ad(kod), Fn: kur(eski)})
 }
 
 // eskiCagir eski yerleşiği çağırır; yoksa argümanın tensör olmadığını bildirir.
@@ -156,7 +145,7 @@ func eskiCagir(ad string, eski vm.BuiltinFunc, m *vm.VM, args []vm.Value, named 
 }
 
 // yeniYerlesik eski karşılığı olmayan bir yerleşik kurar.
-func yeniYerlesik(_ string, fn vm.BuiltinFunc) func(vm.BuiltinFunc) vm.BuiltinFunc {
+func yeniYerlesik(fn vm.BuiltinFunc) func(vm.BuiltinFunc) vm.BuiltinFunc {
 	return func(vm.BuiltinFunc) vm.BuiltinFunc { return fn }
 }
 
@@ -239,13 +228,14 @@ func tensorYerlesik(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Va
 // matrisBicimi doğruysa tam sayılar eski matris biçimidir: sıfırlar(2, 3) 2 boyutlu,
 // sıfırlar(n) [1, n] şeklinde tensör verir. Değilse tam sayılar da şekil sayılır:
 // rastgele_normal(2, 3, 4).
-func sekilliOlusturucu(ad string, matrisBicimi bool, olustur func(sh []int, named map[string]vm.Value) (*ct.Tensor, error)) vm.BuiltinFunc {
+func sekilliOlusturucu(kod sozluk.Kod, matrisBicimi bool, olustur func(sh []int, named map[string]vm.Value) (*ct.Tensor, error)) vm.BuiltinFunc {
+	ad := sozluk.Ad(kod)
 	return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) == 0 {
 			return nil, fmt.Errorf("%s([2, 3]) şekli liste olarak bekler", ad)
 		}
 		izinli := []baglama.Ad{adTurevIzle, adTur}
-		if ad == "rastgele_normal" {
+		if kod == sozluk.T+103 { // rastgele_normal
 			izinli = append(izinli, adTohum)
 		}
 		var sh []int
@@ -257,7 +247,7 @@ func sekilliOlusturucu(ad string, matrisBicimi bool, olustur func(sh []int, name
 				return nil, fmt.Errorf("%s(%s) eski matris biçimidir ve adlı argüman almaz; %s([%s], ...) yazın",
 					ad, argMetni(args), ad, argMetni(args))
 			}
-			sh, err = matrisSekli(ad, args)
+			sh, err = matrisSekli(kod, args)
 		} else {
 			if !liste {
 				if _, tam := args[0].(*vm.IntVal); !tam {
@@ -299,7 +289,7 @@ var (
 )
 
 func rastgeleNormal(sh []int, named map[string]vm.Value) (*ct.Tensor, error) {
-	if s, ok := named["tohum"]; ok {
+	if s, ok := baglama.AdliAl(named, adTohum); ok {
 		tohum, ok := s.(*vm.IntVal)
 		if !ok {
 			return nil, fmt.Errorf("rastgele_normal: tohum tam sayı olmalıdır, %s verildi", tipAdi(s))
@@ -332,9 +322,9 @@ func sigmoid64(x float64) float64 { return 1.0 / (1.0 + math.Exp(-x)) }
 // girdisinde tensör yolu çalışır. Tensör olmayan girdide eski yerleşiği varsa (karekök)
 // o çağrılır; yoksa sonuç girdinin biçimindedir: sayı → Ondalık (sayi64 ile), liste → aynı
 // yapıda liste.
-func birli(v *vm.VM, adlar []string, fn func(*ct.Tensor) *ct.Tensor, sayi64 func(float64) float64) {
-	ad := adlar[0]
-	sar(v, adlar, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
+func birli(v *vm.VM, kod sozluk.Kod, fn func(*ct.Tensor) *ct.Tensor, sayi64 func(float64) float64) {
+	ad := sozluk.Ad(kod)
+	sar(v, kod, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
 		return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 			if len(args) != 1 || !tensorMu(args) {
 				if eski != nil {
@@ -424,7 +414,7 @@ func eksenArg(fn string, args []vm.Value, named map[string]vm.Value) (int, bool,
 	if len(args) >= 2 {
 		ev = args[1]
 	}
-	if v, ok := named["eksen"]; ok {
+	if v, ok := baglama.AdliAl(named, adEksen); ok {
 		if ev != nil {
 			return 0, false, fmt.Errorf("%s: eksen hem konumlu hem adlı verildi", fn)
 		}
@@ -442,9 +432,9 @@ func eksenArg(fn string, args []vm.Value, named map[string]vm.Value) (int, bool,
 
 // softmaxKaydet softmax/log_softmax'ı kaydeder: tensörde (matris dahil) verilen eksende
 // (varsayılan son eksen) çalışır; düz sayı listesinde liste döndürür.
-func softmaxKaydet(v *vm.VM, adlar []string, logKip bool) {
-	ad := adlar[0]
-	sar(v, adlar, func(vm.BuiltinFunc) vm.BuiltinFunc {
+func softmaxKaydet(v *vm.VM, kod sozluk.Kod, logKip bool) {
+	ad := sozluk.Ad(kod)
+	sar(v, kod, func(vm.BuiltinFunc) vm.BuiltinFunc {
 		return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 			if len(args) == 0 || !tensorMu(args[:1]) {
 				if len(args) == 0 {
@@ -495,20 +485,21 @@ func softmaxKaydet(v *vm.VM, adlar []string, logKip bool) {
 
 // indirgeme toplam/ortalama/maks/min'i kaydeder. Eksen verilmezse tüm elemanlar
 // indirgenir ve 0 boyutlu (skaler) tensör döner; eksen verilirse o eksen kaldırılır.
-func indirgeme(v *vm.VM, adlar []string, ad string, fn func(t *ct.Tensor, eksen int, tum bool) *ct.Tensor) {
-	sar(v, adlar, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
+func indirgeme(v *vm.VM, kod sozluk.Kod, fn func(t *ct.Tensor, eksen int, tum bool) *ct.Tensor) {
+	ad := sozluk.Ad(kod)
+	maksMin := kod == sozluk.G+402 || kod == sozluk.G+401 // maks, min
+	sar(v, kod, func(eski vm.BuiltinFunc) vm.BuiltinFunc {
 		return func(m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 			if len(args) == 0 {
 				return eskiCagir(ad, eski, m, args, named)
 			}
-			maksMin := ad == "maks" || ad == "min"
 			if _, ok := args[0].(*Deger); !ok {
-				return tensorOlmayanIndirgeme(ad, eski, m, args, named)
+				return tensorOlmayanIndirgeme(kod, eski, m, args, named)
 			}
 			if maksMin && len(args) >= 2 {
 				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
 				return nil, fmt.Errorf("%s(x, %s): eksen için %s(x, eksen: %s) yazın; eleman bazlı sınır için %s kullanın",
-					ad, args[1].Inspect(), ad, args[1].Inspect(), map[bool]string{true: "relu(x - c) + c (en az c)", false: "relu(x * -1 + c) * -1 + c (en çok c)"}[ad == "maks"])
+					ad, args[1].Inspect(), ad, args[1].Inspect(), map[bool]string{true: "relu(x - c) + c (en az c)", false: "relu(x * -1 + c) * -1 + c (en çok c)"}[kod == sozluk.G+402])
 			}
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, eksen: ...) en fazla 2 parametre alır, %d verildi", ad, len(args))
@@ -533,10 +524,10 @@ func indirgeme(v *vm.VM, adlar []string, ad string, fn func(t *ct.Tensor, eksen 
 				if e, err = eksenCoz(ad, e, sh); err != nil {
 					return nil, err
 				}
-				if (ad == "maks" || ad == "min") && sh[e] == 0 {
+				if maksMin && sh[e] == 0 {
 					return nil, fmt.Errorf("%s: %s şeklinde %d. eksen boş", ad, sekilMetni(sh), e)
 				}
-			} else if (ad == "maks" || ad == "min") && t.Numel() == 0 {
+			} else if maksMin && t.Numel() == 0 {
 				return nil, fmt.Errorf("%s: boş tensörün (%s) en büyük/küçük elemanı yoktur", ad, sekilMetni(sh))
 			}
 			r, err := guvenli(func() *ct.Tensor { return fn(t, e, !verildi) })
@@ -605,8 +596,9 @@ func maksIndeks(_ *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value,
 // yerleşikler iç içe listeleri ve listedeki tensörleri sessizce atladığı için (toplam([[1, 2]])
 // → 0) bu durumlar burada yakalanır: toplam/ortalama listedeki tensörleri hesap çizgesini
 // koruyarak katlar, diğer durumlar açık hata verir.
-func tensorOlmayanIndirgeme(ad string, eski vm.BuiltinFunc, m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-	if _, ok := named["eksen"]; ok {
+func tensorOlmayanIndirgeme(kod sozluk.Kod, eski vm.BuiltinFunc, m *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	ad := sozluk.Ad(kod)
+	if _, ok := baglama.AdliAl(named, adEksen); ok {
 		return nil, fmt.Errorf("%s: eksen: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(tensör(...), eksen: 0)", ad, tipAdi(args[0]), ad)
 	}
 	if l, ok := args[0].(*vm.ListVal); ok && len(args) == 1 {
@@ -620,10 +612,10 @@ func tensorOlmayanIndirgeme(ad string, eski vm.BuiltinFunc, m *vm.VM, args []vm.
 			}
 		}
 		if tensorVar {
-			if ad != "toplam" && ad != "ortalama" {
-				return nil, fmt.Errorf("%s: tensör listesinin en %s elemanı tanımsız; tek bir tensör verin: %s(x) ya da %s(x, eksen: 0)", ad, map[bool]string{true: "büyük", false: "küçük"}[ad == "maks"], ad, ad)
+			if kod != sozluk.G+400 && kod != sozluk.G+410 { // toplam, ortalama
+				return nil, fmt.Errorf("%s: tensör listesinin en %s elemanı tanımsız; tek bir tensör verin: %s(x) ya da %s(x, eksen: 0)", ad, map[bool]string{true: "büyük", false: "küçük"}[kod == sozluk.G+402], ad, ad)
 			}
-			return tensorListesiTopla(ad, l.Elements)
+			return tensorListesiTopla(ad, kod == sozluk.G+410, l.Elements)
 		}
 	}
 	for _, a := range args[1:] {
@@ -636,7 +628,7 @@ func tensorOlmayanIndirgeme(ad string, eski vm.BuiltinFunc, m *vm.VM, args []vm.
 
 // tensorListesiTopla sayı ve tensörlerden oluşan bir listeyi yayınlamalı toplamla katlar;
 // ortalama için eleman sayısına böler. Sonuç türev izlenen girdilere bağlı kalır.
-func tensorListesiTopla(ad string, el []vm.Value) (vm.Value, error) {
+func tensorListesiTopla(ad string, ortalama bool, el []vm.Value) (vm.Value, error) {
 	var acc *ct.Tensor
 	sabit := 0.0
 	for i, e := range el {
@@ -668,7 +660,7 @@ func tensorListesiTopla(ad string, el []vm.Value) (vm.Value, error) {
 		if sabit != 0 {
 			out = out.AddScalar(float32(sabit))
 		}
-		if ad == "ortalama" {
+		if ortalama {
 			out = ct.Div(out, ct.Scalar(float32(len(el))).To(out.Device()))
 		}
 		return out

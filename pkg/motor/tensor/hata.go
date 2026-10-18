@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"tr_dili/pkg/motor/internal/baglama"
+	"tr_dili/pkg/sozluk"
 	"tr_dili/pkg/vm"
 )
 
@@ -15,23 +16,23 @@ import (
 // "Satır N:" ekler. Adlı argüman denetimi ve paniği yakalama pkg/motor/internal/baglama'nın
 // ortak yardımcılarıyla yapılır.
 
-// Adlı argümanların Türkçe adları (ve ASCII karşılıkları). Başka dillerden alışılmış
+// Adlı argümanlar. Adları sözlüktedir (pkg/sozluk, T9xx). Başka dillerden alışılmış
 // adlar (lr, axis...) kabul edilmez; baglama.AdliDenetle hata mesajında Türkçesini önerir.
 var (
-	adTurevIzle       = baglama.TRAd("türev_izle")
-	adEksen           = baglama.TRAd("eksen")
-	adTohum           = baglama.TRAd("tohum")
-	adEnFazla         = baglama.TRAd("en_fazla")
-	adEpsilon         = baglama.TRAd("epsilon")
-	adOgrenmeOrani    = baglama.TRAd("öğrenme_oranı")
-	adAgirlikCurumesi = baglama.TRAd("ağırlık_çürümesi")
-	adBeta1           = baglama.TRAd("beta1")
-	adBeta2           = baglama.TRAd("beta2")
-	adMomentum        = baglama.TRAd("momentum")
-	adAgirlik         = baglama.TRAd("ağırlık")
-	adSapma           = baglama.TRAd("sapma")
-	adTur             = baglama.TRAd("tür")
-	adAnaKopya        = baglama.TRAd("ana_kopya")
+	adTurevIzle       = baglama.KodAd(sozluk.T + 900)
+	adEksen           = baglama.KodAd(sozluk.T + 902)
+	adTohum           = baglama.KodAd(sozluk.T + 903)
+	adEnFazla         = baglama.KodAd(sozluk.T + 904)
+	adEpsilon         = baglama.KodAd(sozluk.T + 905)
+	adOgrenmeOrani    = baglama.KodAd(sozluk.T + 910)
+	adAgirlikCurumesi = baglama.KodAd(sozluk.T + 911)
+	adBeta1           = baglama.KodAd(sozluk.T + 912)
+	adBeta2           = baglama.KodAd(sozluk.T + 913)
+	adMomentum        = baglama.KodAd(sozluk.T + 914)
+	adAgirlik         = baglama.KodAd(sozluk.T + 920)
+	adSapma           = baglama.KodAd(sozluk.T + 921)
+	adTur             = baglama.KodAd(sozluk.T + 901)
+	adAnaKopya        = baglama.KodAd(sozluk.T + 915)
 )
 
 // guvenli fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.
@@ -120,3 +121,10 @@ func sekilListesi(fn string, v vm.Value) ([]int, error) {
 	}
 	return sh, nil
 }
+
+// sinir_ağı ve yz_sor'un adlı argümanları.
+var (
+	adDevir       = baglama.KodAd(sozluk.T + 930)
+	adOgrenmeHizi = baglama.KodAd(sozluk.T + 931)
+	adAktivasyon  = baglama.KodAd(sozluk.T + 932)
+)
