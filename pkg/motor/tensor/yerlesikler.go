@@ -318,7 +318,7 @@ func gelu64(x float64) float64 {
 }
 
 func relu64(x float64) float64 {
-	if x > 0 {
+	if x > 0 || x != x { // NaN yayılır (tensör relu'suyla aynı)
 		return x
 	}
 	return 0

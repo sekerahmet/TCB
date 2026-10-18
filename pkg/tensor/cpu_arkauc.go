@@ -537,7 +537,7 @@ func unaryDongu(op UnOp, p float32, y, x []float32) {
 		}
 	case OpRelu:
 		for i, v := range x {
-			if v > 0 {
+			if v > 0 || v != v { // NaN yayılır
 				y[i] = v
 			} else {
 				y[i] = 0
@@ -635,6 +635,8 @@ func unaryGradDongu(op UnOp, p float32, gx, g, x, y []float32) {
 			for i, v := range g {
 				gx[i] += v * (2 * x[i])
 			}
+		case 0:
+			// x^0 = 1 sabittir: gradyan 0 (x = 0'da 0·x^-1 = 0·sonsuz NaN üretirdi).
 		default:
 			pd := float64(p)
 			for i, v := range g {
@@ -666,8 +668,14 @@ func unaryGradDongu(op UnOp, p float32, gx, g, x, y []float32) {
 			gs, gxs := g[i0:i0+len(xs)], gx[i0:i0+len(xs)]
 			for i, v := range xs {
 				s := 1 / (1 + tb[i])
-				du := geluC * (1 + 3*geluA*v*v)
-				gxs[i] += gs[i] * (s + 2*v*s*(1-s)*du)
+				d := s
+				// s(1-s) = 0 iken (|x| büyük) ikinci terim sıfırdır; |x| ≳ 1.8e19'da
+				// v·v taşar ve 0·sonsuz NaN üretirdi.
+				if s*(1-s) != 0 {
+					du := geluC * (1 + 3*geluA*v*v)
+					d = s + 2*v*s*(1-s)*du
+				}
+				gxs[i] += gs[i] * d
 			}
 		}
 	case OpSigmoid:

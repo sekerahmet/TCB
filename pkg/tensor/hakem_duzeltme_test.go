@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strings"
 	"testing"
@@ -152,4 +153,54 @@ func TestGorunumReshapeRastgele(t *testing.T) {
 	if gorunum < 200 {
 		t.Fatalf("yalnızca %d görünüm; algoritma fazla kopyalıyor olabilir", gorunum)
 	}
+}
+
+// nanAyni iki dilimin NaN'lar dahil bit düzeyinde değil değer düzeyinde aynı olduğunu
+// (NaN yerinde NaN) doğrular.
+func nanAyni(t *testing.T, ad string, got, want []float32) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("%s: uzunluk %d, beklenen %d", ad, len(got), len(want))
+	}
+	for i := range got {
+		gn, wn := got[i] != got[i], want[i] != want[i]
+		if gn != wn || (!gn && got[i] != want[i]) {
+			t.Fatalf("%s: %v, beklenen %v", ad, got, want)
+		}
+	}
+}
+
+// Bulgu 4: maks/min/relu ve maks_indeks NaN'ı yayar (indirgemede NaN varsa sonuç NaN,
+// maks_indeks ilk NaN'ın yeri); 16 bitlik türlerde de aynı.
+func TestNaNYayilir(t *testing.T) {
+	nan := float32(math.NaN())
+	for _, dt := range []DType{Float32, BFloat16, Float16} {
+		x := New([]float32{1, nan, 3, nan, nan, nan, 0, 5, 2}, 3, 3).Cast(dt)
+		ad := dt.String()
+		nanAyni(t, ad+" Max(1)", x.Max(1, false).Data(), []float32{nan, nan, 5})
+		nanAyni(t, ad+" Max(0)", x.Max(0, false).Data(), []float32{nan, nan, nan})
+		nanAyni(t, ad+" -Max(-x)", x.Neg().Max(1, false).Neg().Data(), []float32{nan, nan, 0})
+		if got := x.ArgMax(1); got[0] != 1 || got[1] != 0 || got[2] != 1 {
+			t.Fatalf("%s ArgMax(1) = %v, beklenen [1 0 1]", ad, got)
+		}
+		if got := x.ArgMax(0); got[0] != 1 || got[1] != 0 || got[2] != 1 {
+			t.Fatalf("%s ArgMax(0) = %v, beklenen [1 0 1]", ad, got)
+		}
+		nanAyni(t, ad+" Relu", New([]float32{-1, nan, 2}, 3).Cast(dt).Relu().Data(), []float32{0, nan, 2})
+	}
+	// Gradyan ilk NaN'ın yerine gider.
+	x := New([]float32{1, nan, 3}, 3).SetRequiresGrad(true)
+	x.Max(0, false).Backward()
+	nanAyni(t, "Max gradyanı", x.Grad().Data(), []float32{0, 1, 0})
+}
+
+// Bulgu 12: GELU'nun çok büyük |x|'te ve x**0'ın x=0'da gradyanı NaN değildir.
+func TestGeluVeSifirinciKuvvetGradyani(t *testing.T) {
+	x := New([]float32{1e20, -1e20, 3e38, -3e38, 0, 2}, 6).SetRequiresGrad(true)
+	x.Gelu().SumAll().Backward()
+	yakin(t, "GELU' uçlarda", x.Grad().Data()[:4], []float32{1, 0, 1, 0}, 0)
+	z := New([]float32{0, 2, -1}, 3).SetRequiresGrad(true)
+	z.Pow(0).SumAll().Backward()
+	yakin(t, "d/dx x^0", z.Grad().Data(), []float32{0, 0, 0}, 0)
+	yakin(t, "x^0", z.Detach().Pow(0).Data(), []float32{1, 1, 1}, 0)
 }

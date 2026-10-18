@@ -137,6 +137,21 @@ test "15.4 matematik fonksiyonları ve indirgemeler" {
     doğrula(hata_metni(() => AdamW([tensör([1.0], türev_izle: doğru)], lr: 0.1)).içerir("'öğrenme_oranı'"))
 }
 
+test "15.4a sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {
+    değişken nan_mı = (x) => x != x
+    değişken y = tensör([1.0, 0.0, 3.0]) / tensör([1.0, 0.0, 1.0])     // [1, NaN, 3]
+    değişken yg = tensör(y, türev_izle: doğru)
+    doğrula(nan_mı(maks(y).değer) ve nan_mı(min(y).değer))
+    doğrula(nan_mı(maks(yg).değer) ve nan_mı(min(yg).değer))
+    değişken m = tensör([[1.0, 2.0], [3.0, 4.0]]) * tensör([[1.0, 0.0], [1.0, 1.0]]) / tensör([[1.0, 0.0], [1.0, 1.0]])
+    değişken me = maks(m, eksen: 1).değer                                  // [NaN, 4]
+    doğrula(nan_mı(me[0]) ve me[1] == 4.0)
+    doğrula(nan_mı(min(m, eksen: 1).değer[0]))
+    eşit_mi([1, 1], maks_indeks(m, eksen: 1).değer)                       // ilk NaN'ın yeri
+    değişken r = relu(y).değer
+    doğrula(r[0] == 1.0 ve nan_mı(r[1]) ve r[2] == 3.0)
+}
+
 test "15.5 sinir ağı fonksiyonları" {
     değişken tablo = tensör([[1, 1], [2, 2], [3, 3]])
     eşit_mi([[3.0, 3.0], [1.0, 1.0]], gömme(tablo, [2, 0]).değer)
