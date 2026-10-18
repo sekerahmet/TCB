@@ -22,3 +22,17 @@ python kiyas/kos.py --json sonuc.json
 
 Süreler makineye ve o anki yüke göre değişir; karşılaştırmaları aynı makinede, bilgisayar
 boştayken yapın.
+
+## Model eğitimi karşılaştırması
+
+`ornekler/karakter_modeli.tr` ile `py/karakter_modeli.py` aynı modeli (118.784 parametreli, 2 katmanlı,
+yalnızca kod çözücülü karakter transformer'ı) aynı veriyle (projenin Türkçe belgeleri), aynı toplu iş
+örneklemesiyle ve aynı ayarlarla eğitir. Kayıp eğrileri neredeyse aynı çıkmalıdır; süreler karşılaştırılır.
+
+```
+GOMAXPROCS=2 tr ornekler/karakter_modeli.tr
+python kiyas/py/karakter_modeli.py 300 2
+```
+
+İlk ölçüm (18.10.2026, 2 çekirdek): TR 161 ms/adım, PyTorch 13 ms/adım. Sürenin %69'u CPU matris
+çarpımı çekirdeğinde; vektör komutlarıyla yazılmış bir çekirdek bu farkı kapatmak için planlandı.
