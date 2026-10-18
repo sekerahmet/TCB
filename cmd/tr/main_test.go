@@ -149,7 +149,7 @@ func TestEksikArguman(t *testing.T) {
 func TestBilinmeyenKomut(t *testing.T) {
 	klasor := t.TempDir()
 	s := tr(t, klasor, "olmayan_komut")
-	bekle(t, s, 1, nil, []string{"Dosya okuma hatası (olmayan_komut)"})
+	bekle(t, s, 1, nil, []string{"Dosya okuma hatası", "olmayan_komut", "böyle bir dosya ya da klasör yok"})
 }
 
 func TestDosyaCalistirma(t *testing.T) {
@@ -192,7 +192,7 @@ func TestKontrol(t *testing.T) {
 	}
 	bekle(t, tr(t, klasor, "kontrol", "tip.tr"), 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları:"})
 	bekle(t, tr(t, klasor, "kontrol", "sozdizimi.tr"), 1, nil, []string{"❌ Sözdizimi Hataları:"})
-	bekle(t, tr(t, klasor, "kontrol", "yok.tr"), 1, nil, []string{"Dosya okuma hatası (yok.tr)"})
+	bekle(t, tr(t, klasor, "kontrol", "yok.tr"), 1, nil, []string{"Dosya okuma hatası", "yok.tr", "böyle bir dosya ya da klasör yok"})
 }
 
 func TestTestKomutu(t *testing.T) {

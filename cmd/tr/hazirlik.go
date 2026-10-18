@@ -9,6 +9,7 @@ import (
 	"tr_dili/pkg/lexer"
 	"tr_dili/pkg/motor"
 	"tr_dili/pkg/parser"
+	"tr_dili/pkg/turkce"
 	"tr_dili/pkg/vm"
 )
 
@@ -52,7 +53,7 @@ var (
 func kaynakOku(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası (%s): %v\n", path, err)
+		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkce.DosyaHatasi("", path, "okunamadı", err))
 		os.Exit(1)
 	}
 	return strings.TrimPrefix(string(data), "\xef\xbb\xbf")
