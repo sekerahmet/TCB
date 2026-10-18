@@ -25,7 +25,7 @@ Kod bir harf ve üç basamaklı bir sayıdır; harf aileyi, yüzler basamağı a
 - `ascii: false`, `ASCIIKabul` açılsa bile o adın ASCII biçimini kapalı tutar (bugün yalnızca birkaç adlı argüman); `ASCIIKabul` kapalıyken etkisizdir. `aile` insanlar için kısa bir grup adıdır.
 - `açıklama` kodun ne yaptığını ve önemli bir kısıtını söyleyen bir-iki cümledir; `örnek` tek satırlık, kendi başına çalışan bir TR kodudur. Her kodun açıklaması ve her canlı kodun örneği vardır; örnekler `tr kontrol`'den geçer ve çalışır (`go test ./internal/dil/kod ./internal/motor`).
 
-**Tanımlar** (`tanim.json`, dilden bağımsız): her kodun türü (`anahtar_kelime`, `bağlamsal`, `tip`, `fonksiyon`, `metot`, `özellik`, `adlı_argüman`), metot ve özelliklerde geçerli olduğu tipler (tip kodlarıyla; tip adı bir oluşturucunun adı olan `AdamW` ve `SGD` için oluşturucunun kodu `T400`, `T401`), imzası ve ilişkili kodları:
+**Tanımlar** (`tanim.json`, dilden bağımsız): her kodun türü (`anahtar_kelime`, `bağlamsal`, `tip`, `fonksiyon`, `metot`, `özellik`, `adlı_argüman`), metot ve özelliklerde geçerli olduğu tipler (tip kodlarıyla, ör. `AdamW` ve `SGD` değerleri için `A214` İyileştirici), imzası ve ilişkili kodları:
 
 ```json
 "G400": { "tür": "fonksiyon", "param": ["A205|A212", "A200?"], "adlı": [["T902", "A200", null], ["T906", "A203", false]], "dönüş": "A200|A201|A212", "ilişkili": ["G410"] },
