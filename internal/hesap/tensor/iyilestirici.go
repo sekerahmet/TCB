@@ -180,13 +180,7 @@ func (o *AdamW) ZeroGrad() { ZeroGrads(o.Params) }
 // ClipGradNorm parametre gradyanlarının toplam L2 normunu en fazla maxNorm
 // olacak şekilde ölçekler ve kırpma öncesi normu döndürür.
 func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
-	var s float64
-	for _, p := range params {
-		if p.grad != nil {
-			s += p.be.SumSquares(p.grad)
-		}
-	}
-	norm := math.Sqrt(s)
+	norm := math.Sqrt(gradKareToplami(params))
 	if norm > maxNorm && norm > 0 {
 		k := float32(maxNorm / norm)
 		for _, p := range params {
@@ -197,6 +191,34 @@ func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
 		}
 	}
 	return norm
+}
+
+// gradKareToplami gradyanların kareler toplamını verir. Toplu kareler toplamı veren
+// (SquareSummer) arka uçlarda aynı arka uçtaki ardışık gradyanlar tek çağrıda
+// toplanır (GPU'da tek eşzamanlama); toplama sırası parametre sırasıdır.
+func gradKareToplami(params []*Tensor) float64 {
+	var s float64
+	for i := 0; i < len(params); {
+		p := params[i]
+		if p.grad == nil {
+			i++
+			continue
+		}
+		ss, ok := p.be.(SquareSummer)
+		if !ok {
+			s += p.be.SumSquares(p.grad)
+			i++
+			continue
+		}
+		var grup []Storage
+		for ; i < len(params) && (params[i].grad == nil || params[i].be == p.be); i++ {
+			if params[i].grad != nil {
+				grup = append(grup, params[i].grad)
+			}
+		}
+		s += ss.SumSquaresAll(grup)
+	}
+	return s
 }
 
 // ----------------------------------------------------------------------------

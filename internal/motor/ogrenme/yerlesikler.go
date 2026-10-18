@@ -6,6 +6,7 @@ import (
 
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/yurut"
+	_ "tr_dili/internal/hesap/gpu" // GPU arka ucunu kaydeder (sürücü ilk kullanımda yüklenir)
 	"tr_dili/internal/hesap/tensor"
 )
 

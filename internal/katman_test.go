@@ -157,6 +157,51 @@ func TestKatmanKurali(t *testing.T) {
 	}
 }
 
+// disBagimliliklar modül dışı (standart kitaplık olmayan) içe aktarmalar ve onları içe
+// aktarabilen tek paket. Yeni bir dış bağımlılık baş geliştiricinin kararıdır; tek dosya
+// dağıtım ve cgo'suz derleme korunur. purego: GPU arka ucunun Linux'ta NVIDIA sürücü
+// kitaplığını cgo'suz yüklemesi (internal/hesap/gpu/cuda_linux.go).
+var disBagimliliklar = map[string]string{
+	"github.com/ebitengine/purego": "internal/hesap/gpu",
+}
+
+// TestDisBagimliliklar her işletim sistemi için (yapı kısıtları farklı dosyaları seçer)
+// modül dışı içe aktarmaları denetler.
+func TestDisBagimliliklar(t *testing.T) {
+	kok := depo.Kok()
+	for _, goos := range []string{"linux", "windows", "darwin"} {
+		ctx := build.Default
+		ctx.GOOS, ctx.CgoEnabled = goos, false
+		err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
+			if err != nil || !d.IsDir() {
+				return err
+			}
+			if yol != kok && (atlanan[d.Name()] || strings.HasPrefix(d.Name(), ".") || strings.HasPrefix(d.Name(), "_")) {
+				return filepath.SkipDir
+			}
+			p, err := ctx.ImportDir(yol, 0)
+			if err != nil {
+				return nil
+			}
+			goreli, _ := filepath.Rel(kok, yol)
+			goreli = filepath.ToSlash(goreli)
+			for _, imp := range p.Imports {
+				ilk, _, _ := strings.Cut(imp, "/")
+				if !strings.Contains(ilk, ".") {
+					continue // standart kitaplık ya da modülün kendisi
+				}
+				if izinli, ok := disBagimliliklar[imp]; !ok || izinli != goreli {
+					t.Errorf("%s (%s): dış bağımlılık %s izinli değil (izinliler: %v)", goreli, goos, imp, disBagimliliklar)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 // Dil çekirdeğinin iç sırası (dilSirasi): her dil paketi listede olmalı ve yalnızca
 // solundakileri içe aktarmalı.
 func TestDilIcSirasi(t *testing.T) {

@@ -2,7 +2,6 @@ package tensor
 
 import (
 	"fmt"
-	"sync"
 	"sync/atomic"
 )
 
@@ -44,7 +43,8 @@ type DeviceKind int
 const (
 	// KindCPU ana işlemci.
 	KindCPU DeviceKind = iota
-	// KindGPU grafik işlemci (henüz arka ucu yok; yer tutucu).
+	// KindGPU grafik işlemci (arka ucu internal/hesap/gpu; sürücü bulunursa ilk
+	// kullanımda kurulur, bkz. RegisterLazyBackend).
 	KindGPU
 )
 
@@ -61,11 +61,15 @@ var CPU = Device{Kind: KindCPU}
 // kullanılamaz).
 func GPU(index int) Device { return Device{Kind: KindGPU, Index: index} }
 
+// String cihazın kullanıcıya görünen adı: "cpu", "gpu" (ilk GPU), "gpu:1", ...
 func (d Device) String() string {
 	switch d.Kind {
 	case KindCPU:
 		return "cpu"
 	case KindGPU:
+		if d.Index == 0 {
+			return "gpu"
+		}
 		return fmt.Sprintf("gpu:%d", d.Index)
 	}
 	return fmt.Sprintf("cihaz(%d:%d)", d.Kind, d.Index)
@@ -321,57 +325,4 @@ type Backend interface {
 // görünümleri olabilir) iade edilmez.
 type Releaser interface {
 	Release(s Storage)
-}
-
-var (
-	backendMu sync.RWMutex
-	backends  = map[Device]Backend{}
-	// varsayilanCihaz oluşturucuların (Zeros, New, ...) kullandığı cihaz.
-	varsayilanCihaz = CPU
-)
-
-func init() {
-	RegisterBackend(cpuBackend{})
-}
-
-// RegisterBackend bir cihazın arka ucunu kaydeder (ör. GPU arka ucu
-// paketinin init işlevinden).
-func RegisterBackend(b Backend) {
-	backendMu.Lock()
-	backends[b.Device()] = b
-	backendMu.Unlock()
-}
-
-// BackendFor cihazın arka ucunu verir; kayıtlı değilse panik.
-func BackendFor(d Device) Backend {
-	backendMu.RLock()
-	b, ok := backends[d]
-	backendMu.RUnlock()
-	if !ok {
-		panic(fmt.Sprintf("tensor: %s cihazı için arka uç kayıtlı değil", d))
-	}
-	return b
-}
-
-// HasDevice cihazın arka ucu kayıtlı mı.
-func HasDevice(d Device) bool {
-	backendMu.RLock()
-	_, ok := backends[d]
-	backendMu.RUnlock()
-	return ok
-}
-
-// SetDefaultDevice oluşturucuların kullanacağı cihazı ayarlar.
-func SetDefaultDevice(d Device) {
-	BackendFor(d)
-	backendMu.Lock()
-	varsayilanCihaz = d
-	backendMu.Unlock()
-}
-
-// DefaultDevice oluşturucuların kullandığı cihaz.
-func DefaultDevice() Device {
-	backendMu.RLock()
-	defer backendMu.RUnlock()
-	return varsayilanCihaz
 }

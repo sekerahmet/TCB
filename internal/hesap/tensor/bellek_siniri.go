@@ -168,14 +168,40 @@ func elemanDenetle(n int, dt DType) int {
 		panic(fmt.Sprintf("tensor: arka uç: negatif eleman sayısı %d", n))
 	}
 	if !sigar(n, dt) {
-		panic(fmt.Sprintf("tensor: arka uç: %s elemanlık %s tampon %s bellek ister; bu makinede %s var",
-			sayiMetni(float64(n)), dt, baytMetni(float64(n)*float64(max(dt.Bits(), 1))/8), baytMetni(float64(ayirmaSiniri()))))
+		panic(SizeError(n, dt, ayirmaSiniri(), "bu makinede"))
+	}
+	return n
+}
+
+// ayirmaBoyuOn ayirmaBoyu'na ek olarak arka ucun kendi bellek sınırını (MemoryLimiter,
+// ör. GPU belleği) denetler; şekli bilinen ve bir arka uçta ayrılan her tensör buradan
+// geçer.
+func ayirmaBoyuOn(be Backend, is islem, shape []int, dt DType) int {
+	n := ayirmaBoyu(is, shape, dt)
+	if l, ok := be.(MemoryLimiter); ok {
+		if bayt := uint64(dt.StorageBytes(n)); bayt > uint64(l.MemoryLimit()) {
+			panic(sinirHatasiYer(is, shape, dt, false, l.MemoryLimit(), l.MemoryPlace()))
+		}
 	}
 	return n
 }
 
 // sinirHatasi sınırı aşan ayırmanın mesajını kurar (soğuk yol).
 func sinirHatasi(is islem, shape []int, dt DType, tasma bool) string {
+	return sinirHatasiYer(is, shape, dt, tasma, ayirmaSiniri(), "bu makinede")
+}
+
+// SizeError, arka uçların şekli bilinmeyen bir ayırmayı reddederken verdiği Türkçe
+// mesajdır (n eleman, dt türü; sınır ve yer: "bu GPU'da"). Mesaj cihazdan bağımsız
+// katmanın mesajlarıyla aynı biçimdedir.
+func SizeError(n int, dt DType, sinir int64, yer string) string {
+	return fmt.Sprintf("tensor: arka uç: %s elemanlık %s tampon %s bellek ister; %s %s var",
+		sayiMetni(float64(n)), dt, baytMetni(float64(n)*float64(max(dt.Bits(), 1))/8), yer, baytMetni(float64(sinir)))
+}
+
+// sinirHatasiYer sınırı aşan ayırmanın mesajını, sınır ve yer ("bu makinede", "bu
+// GPU'da") verilerek kurar.
+func sinirHatasiYer(is islem, shape []int, dt DType, tasma bool, sinir int64, yer string) string {
 	eleman := 1.0
 	for _, d := range shape {
 		eleman *= float64(d)
@@ -194,7 +220,7 @@ func sinirHatasi(is islem, shape []int, dt DType, tasma bool) string {
 	if tasma {
 		fmt.Fprintf(&sb, "; eleman sayısı (yaklaşık %s) tam sayı sınırını aşıyor", sayiMetni(eleman))
 	}
-	fmt.Fprintf(&sb, ", %s bellek ister; bu makinede %s var. Şekilleri denetleyin", baytMetni(bayt), baytMetni(float64(ayirmaSiniri())))
+	fmt.Fprintf(&sb, ", %s bellek ister; %s %s var. Şekilleri denetleyin", baytMetni(bayt), yer, baytMetni(float64(sinir)))
 	if is.yayinli() {
 		sb.WriteString(" (yayınlama beklenmedik bir boyut üretmiş olabilir)")
 	}

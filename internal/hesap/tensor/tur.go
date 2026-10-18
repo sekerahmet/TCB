@@ -57,10 +57,10 @@ func sonucTuru(a, b DType) DType {
 // NewOf veriyi dt türüne (en yakına-çifte yuvarlayarak) dönüştürüp varsayılan
 // cihazda tensör oluşturur.
 func NewOf(dt DType, data []float32, shape ...int) *Tensor {
-	if len(data) != ayirmaBoyu(isOlusturma, shape, dt) {
+	be := defaultBackend()
+	if len(data) != ayirmaBoyuOn(be, isOlusturma, shape, dt) {
 		panic(fmt.Sprintf("tensor: %d eleman %v şekline uymuyor", len(data), shape))
 	}
-	be := defaultBackend()
 	return fromStorage(be, be.FromHost(data, dt), shape)
 }
 

@@ -141,7 +141,7 @@ func zerosOn(be Backend, shape []int) *Tensor { return zerosOf(isOlusturma, be, 
 // zerosOf verilen arka uçta dt türünde sıfırlarla dolu bitişik tensör ayırır; is,
 // ayırma sınırı aşılırsa hata mesajında adlandırılan işlemdir (bkz. bellek_siniri.go).
 func zerosOf(is islem, be Backend, shape []int, dt DType) *Tensor {
-	return fromStorage(be, be.Alloc(ayirmaBoyu(is, shape, dt), dt), shape)
+	return fromStorage(be, be.Alloc(ayirmaBoyuOn(be, is, shape, dt), dt), shape)
 }
 
 // bosAyirici, içeriği belirsiz (sıfırlanmamış) depolama verebilen arka
@@ -161,13 +161,16 @@ type bosAyirici interface {
 // softmax, normalleştirmeler); biriktiren çekirdekler (çarpım, gradyanlar)
 // zerosOf kullanır.
 func emptyOf(is islem, be Backend, shape []int, dt DType) *Tensor {
-	return fromStorage(be, allocBos(be, ayirmaBoyu(is, shape, dt), dt), shape)
+	return fromStorage(be, allocBos(be, ayirmaBoyuOn(be, is, shape, dt), dt), shape)
 }
 
 // allocBos be destekliyorsa sıfırlanmamış, değilse sıfırlanmış depolama verir.
 func allocBos(be Backend, n int, dt DType) Storage {
-	if b, ok := be.(bosAyirici); ok {
+	switch b := be.(type) {
+	case bosAyirici:
 		return b.allocBos(n, dt)
+	case UninitAllocator:
+		return b.AllocUninit(n, dt)
 	}
 	return be.Alloc(n, dt)
 }
@@ -176,10 +179,10 @@ func defaultBackend() Backend { return BackendFor(DefaultDevice()) }
 
 // NewOn veriyi kopyalayarak verilen cihazda tensör oluşturur.
 func NewOn(dev Device, data []float32, shape ...int) *Tensor {
-	if len(data) != ayirmaBoyu(isOlusturma, shape, Float32) {
+	be := BackendFor(dev)
+	if len(data) != ayirmaBoyuOn(be, isOlusturma, shape, Float32) {
 		panic(fmt.Sprintf("tensor: %d eleman %v şekline uymuyor", len(data), shape))
 	}
-	be := BackendFor(dev)
 	return fromStorage(be, be.FromHost(data, Float32), shape)
 }
 

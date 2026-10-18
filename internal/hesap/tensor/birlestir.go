@@ -50,7 +50,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 	ost := contiguousStrides(outShape)
 
 	// Girdiler float32 bir tampona eklenir; 16 bitlik çıktıda tek kez yuvarlanır.
-	tampon := be.Alloc(ayirmaBoyu(isBirlestirme, outShape, Float32), Float32)
+	tampon := be.Alloc(ayirmaBoyuOn(be, isBirlestirme, outShape, Float32), Float32)
 	ofset := 0
 	for _, t := range ts {
 		if t.Numel() > 0 {
