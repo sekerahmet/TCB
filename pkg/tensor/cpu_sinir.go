@@ -19,13 +19,22 @@ func (cpuBackend) Embedding(out Storage, w View, idx []int, D int) {
 
 func (cpuBackend) EmbeddingGrad(gw, g Storage, idx []int, D int) {
 	wg, gd := cd(gw), cd(g)
-	for r, k := range idx {
-		dst := wg[k*D : (k+1)*D]
-		src := gd[r*D : (r+1)*D]
-		for j, v := range src {
-			dst[j] += v
+	V := len(wg) / max(D, 1)
+	// Tablo satırları işçilere bölünür; her işçi tüm indeksleri tarar ve yalnızca
+	// kendi aralığındaki satırlara, indeks sırasıyla ekler (yinelenen indeksler
+	// çakışmaz, sonuç belirlenimcidir).
+	parallelFor(V, len(idx)*D/max(V, 1)+1, func(lo, hi int) {
+		for r, k := range idx {
+			if k < lo || k >= hi {
+				continue
+			}
+			dst := wg[k*D : (k+1)*D]
+			src := gd[r*D : (r+1)*D]
+			for j, v := range src {
+				dst[j] += v
+			}
 		}
-	}
+	})
 }
 
 func (cpuBackend) CrossEntropy(x View, targets []int, C int) (Storage, Storage) {
@@ -331,16 +340,28 @@ func (cpuBackend) AdamWStep(p, g, m, v Storage, lr, b1, b2, eps, wd, bc1, bc2 fl
 }
 
 func (cpuBackend) SumSquares(s Storage) float64 {
-	var t float64
-	for _, v := range cd(s) {
-		t += float64(v) * float64(v)
-	}
-	return t
+	d := cd(s)
+	return parallelSum(len(d), 2, func(lo, hi int) float64 {
+		var t0, t1 float64
+		p := d[lo:hi]
+		for len(p) >= 2 {
+			t0 += float64(p[0]) * float64(p[0])
+			t1 += float64(p[1]) * float64(p[1])
+			p = p[2:]
+		}
+		for _, v := range p {
+			t0 += float64(v) * float64(v)
+		}
+		return t0 + t1
+	})
 }
 
 func (cpuBackend) Scale(s Storage, k float32) {
 	d := cd(s)
-	for i := range d {
-		d[i] *= k
-	}
+	parallelFor(len(d), 1, func(lo, hi int) {
+		p := d[lo:hi]
+		for i := range p {
+			p[i] *= k
+		}
+	})
 }

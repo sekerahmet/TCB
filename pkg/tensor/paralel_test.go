@@ -81,3 +81,97 @@ func TestSumAllParalel(t *testing.T) {
 	// Devrik (bitişik olmayan) görünüm.
 	yakin(t, "devrik SumAll", []float32{x.T().SumAll().Item()}, []float32{float32(s)}, 1e-5)
 }
+
+// tekVeCok fn'i tek işçiyle ve çok işçiyle çalıştırıp sonuçların bit düzeyinde
+// aynı olduğunu denetler (paralel yollar, sıralı yolla aynı toplama sırasını
+// korumalıdır).
+func tekVeCok(t *testing.T, ad string, fn func() []float32) {
+	t.Helper()
+	eski := runtime.GOMAXPROCS(1)
+	tek := fn()
+	runtime.GOMAXPROCS(max(eski, 8))
+	cok := fn()
+	runtime.GOMAXPROCS(eski)
+	if len(tek) != len(cok) {
+		t.Fatalf("%s: uzunluk %d != %d", ad, len(tek), len(cok))
+	}
+	for i := range tek {
+		if math.Float32bits(tek[i]) != math.Float32bits(cok[i]) {
+			t.Fatalf("%s: [%d] tek işçi %v, çok işçi %v", ad, i, tek[i], cok[i])
+		}
+	}
+}
+
+func TestParalelCekirdeklerSiraliylaAyni(t *testing.T) {
+	rng := rand.New(rand.NewSource(13))
+	x := Randn(rng, 256, 3, 200)
+	w := Randn(rng, 200)
+	k := Randn(rng, 256, 3, 1)
+	tablo := Randn(rng, 300, 128)
+	idx := make([]int, 1000)
+	for i := range idx {
+		idx[i] = rng.Intn(40) * 7 // yinelenen indeksler
+	}
+	gradlar := func(f func() *Tensor, ps ...*Tensor) []float32 {
+		for _, p := range ps {
+			p.SetRequiresGrad(true)
+			p.grad = nil
+		}
+		out := f()
+		out.BackwardWith(Ones(out.shape...))
+		var r []float32
+		r = append(r, out.Data()...)
+		for _, p := range ps {
+			r = append(r, p.Grad().Data()...)
+			p.SetRequiresGrad(false)
+			p.grad = nil
+		}
+		return r
+	}
+	durumlar := []struct {
+		ad string
+		fn func() []float32
+	}{
+		{"devrik kopya", func() []float32 { return x.Permute(2, 0, 1).Contiguous().Data() }},
+		{"dilim geri yayılımı", func() []float32 {
+			return gradlar(func() *Tensor { return x.Slice(2, 10, 150).Mul(x.Slice(2, 50, 190)) }, x)
+		}},
+		{"eksen toplamı geri yayılımı", func() []float32 {
+			return gradlar(func() *Tensor { return x.Sum(-1, true).Mul(k) }, x, k)
+		}},
+		{"sapma gradyanı", func() []float32 { return gradlar(func() *Tensor { return Add(x, w) }, x, w) }},
+		{"orta eksen yayını", func() []float32 { return gradlar(func() *Tensor { return Mul(x, k) }, x, k) }},
+		{"gömme geri yayılımı", func() []float32 {
+			return gradlar(func() *Tensor { return Embedding(tablo, idx).Square() }, tablo)
+		}},
+		{"kare toplamı", func() []float32 {
+			p := x.Detach().SetRequiresGrad(true)
+			p.grad = p.be.Alloc(p.Numel())
+			p.be.Copy(p.grad, 0, x.view())
+			n := ClipGradNorm([]*Tensor{p}, 1)
+			return append([]float32{float32(n)}, p.Grad().Data()...)
+		}},
+		{"doldurma", func() []float32 { return Full(2.5, 300, 300).Data() }},
+	}
+	for _, d := range durumlar {
+		tekVeCok(t, d.ad, d.fn)
+	}
+	// Başvuru değerleriyle karşılaştırma (sıralı yol da doğru olmalı).
+	gw := gradlar(func() *Tensor { return Embedding(tablo, idx) }, tablo)[len(idx)*128:]
+	beklenen := make([]float32, 300*128)
+	for _, ix := range idx {
+		for j := 0; j < 128; j++ {
+			beklenen[ix*128+j]++
+		}
+	}
+	yakin(t, "gömme gradyanı", gw, beklenen, 0)
+	dev := x.Permute(2, 0, 1).Contiguous().Data()
+	xd := x.Data()
+	for c := 0; c < 200; c += 37 {
+		for a := 0; a < 256; a += 51 {
+			if dev[(c*256+a)*3+1] != xd[(a*3+1)*200+c] {
+				t.Fatalf("devrik kopya yanlış (%d, %d)", c, a)
+			}
+		}
+	}
+}
