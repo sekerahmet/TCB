@@ -94,13 +94,7 @@ func (n *Nesne) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 	case uyeTokenKimligi:
 		return n.metot(kod.Ad(uyeTokenKimligi), n.tokenKimligi), nil
 	}
-	oneri := ""
-	if o := turkce.EnYakin(prop, uyeler); o != "" {
-		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
-	} else {
-		oneri = fmt.Sprintf(" (üyeler: %s)", strings.Join(uyeler, ", "))
-	}
-	return nil, fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", TipAdi, prop, oneri)
+	return nil, baglama.UyeHatasi(TipAdi, prop, uyeler)
 }
 
 func (n *Nesne) metot(ad string, fn yurut.BuiltinFunc) *yurut.BuiltinVal {

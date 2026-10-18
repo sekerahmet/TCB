@@ -87,6 +87,18 @@ func AdliDenetle(fn string, named map[string]yurut.Value, adlar ...Ad) error {
 	return nil
 }
 
+// UyeHatasi motor tiplerinde bulunamayan bir üye için hatadır: yazıma en yakın üyeyi, yakın
+// bir üye yoksa tipin üyelerini önerir. ne tipin (ya da nesnenin) kullanıcıya görünen adıdır.
+func UyeHatasi(ne, prop string, uyeler []string) error {
+	oneri := ""
+	if o := turkce.EnYakin(prop, uyeler); o != "" {
+		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+	} else {
+		oneri = fmt.Sprintf(" (üyeler: %s)", strings.Join(uyeler, ", "))
+	}
+	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", ne, prop, oneri)
+}
+
 // AdliAl adlı argümanı kabul edilen yazımlarıyla (önce adın kendisiyle) arar.
 func AdliAl(named map[string]yurut.Value, a Ad) (yurut.Value, bool) {
 	for _, y := range a.yazimlar {

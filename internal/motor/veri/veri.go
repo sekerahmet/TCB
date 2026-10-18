@@ -126,17 +126,7 @@ func (k *Kume) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 	case uyeSirali:
 		return metot(kod.Ad(uyeSirali), k.sirali), nil
 	}
-	return nil, uyeHatasi("Veri kümesi", prop, kumeUyeleri)
-}
-
-func uyeHatasi(ne, prop string, uyeler []string) error {
-	oneri := ""
-	if o := turkce.EnYakin(prop, uyeler); o != "" {
-		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
-	} else {
-		oneri = fmt.Sprintf(" (üyeler: %s)", strings.Join(uyeler, ", "))
-	}
-	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", ne, prop, oneri)
+	return nil, baglama.UyeHatasi("Veri kümesi", prop, kumeUyeleri)
 }
 
 func metot(ad string, fn yurut.BuiltinFunc) *yurut.BuiltinVal {
@@ -366,7 +356,7 @@ func (o *Okuyucu) GetProperty(kd kod.Kod, prop string) (yurut.Value, error) {
 	if o.sirali {
 		ne = "Sıralı okuyucu"
 	}
-	return nil, uyeHatasi(ne, prop, kod.Adlar(uyeSonraki))
+	return nil, baglama.UyeHatasi(ne, prop, kod.Adlar(uyeSonraki))
 }
 
 // okuyucuArgumanlari toplu, bağlam ve (örnekleyicide) tohum argümanlarını okur. Konumlu
