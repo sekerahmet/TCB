@@ -68,7 +68,11 @@ func (v *VM) registerBuiltins() {
 		case *IntVal:
 			return val, nil
 		case *FloatVal:
-			return NewInt(int64(val.Val)), nil
+			n, err := ondaliktanTam("tam()", val.Val)
+			if err != nil {
+				return nil, err
+			}
+			return NewInt(n), nil
 		case *StringVal:
 			n, err := strconv.ParseInt(strings.TrimSpace(val.Val), 10, 64)
 			if err != nil {
@@ -205,7 +209,9 @@ func (v *VM) registerBuiltins() {
 		}
 		copied := make([]Value, len(list.Elements))
 		copy(copied, list.Elements)
-		siralaDegerler(copied)
+		if err := siralaDegerler("sırala()", copied); err != nil {
+			return nil, err
+		}
 		return &ListVal{Elements: copied}, nil
 	})
 
@@ -266,50 +272,16 @@ func (v *VM) registerBuiltins() {
 		if !ok {
 			return nil, ArgumanTipHatasi("toplam", 1, "Liste", args[0])
 		}
-		sumFloat := 0.0
-		hasFloat := false
-		var sumInt int64 = 0
-		for _, el := range list.Elements {
-			if iv, ok := el.(*IntVal); ok {
-				sumInt += iv.Val
-				sumFloat += float64(iv.Val)
-			} else if fv, ok := el.(*FloatVal); ok {
-				hasFloat = true
-				sumFloat += fv.Val
-			}
-		}
-		if hasFloat {
-			return &FloatVal{Val: sumFloat}, nil
-		}
-		return NewInt(sumInt), nil
+		return sayiTopla("toplam()", list.Elements)
 	})
 
+	// min/maks: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
 	v.RegisterBuiltinKod(sozluk.G+401, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		elems := ExtractNumericSlice(args)
-		if len(elems) == 0 {
-			return NULL, nil
-		}
-		m := elems[0]
-		for _, x := range elems[1:] {
-			if x < m {
-				m = x
-			}
-		}
-		return formatNumberVal(m), nil
+		return enUcArgumanlari("min", args, false)
 	})
 
 	v.RegisterBuiltinKod(sozluk.G+402, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
-		elems := ExtractNumericSlice(args)
-		if len(elems) == 0 {
-			return NULL, nil
-		}
-		m := elems[0]
-		for _, x := range elems[1:] {
-			if x > m {
-				m = x
-			}
-		}
-		return formatNumberVal(m), nil
+		return enUcArgumanlari("maks", args, true)
 	})
 
 	v.RegisterBuiltinKod(sozluk.G+403, func(vm *VM, args []Value, named map[string]Value) (Value, error) {
@@ -317,6 +289,9 @@ func (v *VM) registerBuiltins() {
 			return nil, ArgumanSayisiHatasi("mutlak", "1", len(args), "mutlak(sayı)")
 		}
 		if iv, ok := args[0].(*IntVal); ok {
+			if iv.Val == math.MinInt64 {
+				return nil, fmt.Errorf("mutlak(): Tam sayı taşması (mutlak(%d)); ondalık sonuç için mutlak(ondalık(x)) yazın", iv.Val)
+			}
 			if iv.Val < 0 {
 				return NewInt(-iv.Val), nil
 			}
@@ -354,11 +329,24 @@ func (v *VM) registerBuiltins() {
 			}
 			digits = int(iv.Val)
 		}
-		if digits <= 0 {
-			return NewInt(int64(math.Round(fv))), nil
+		if digits > 0 {
+			pow := math.Pow(10, float64(digits))
+			return &FloatVal{Val: math.Round(fv*pow) / pow}, nil
 		}
-		pow := math.Pow(10, float64(digits))
-		return &FloatVal{Val: math.Round(fv*pow) / pow}, nil
+		// Basamak 0 ya da negatifse sonuç Tam'dır: yuvarla(1234, -2) → 1200
+		if iv, ok := args[0].(*IntVal); ok && digits == 0 {
+			return iv, nil
+		}
+		yuvarlanan := math.Round(fv)
+		if digits < 0 {
+			pow := math.Pow(10, float64(-digits))
+			yuvarlanan = math.Round(fv/pow) * pow
+		}
+		n, err := ondaliktanTam("yuvarla()", yuvarlanan)
+		if err != nil {
+			return nil, err
+		}
+		return NewInt(n), nil
 	})
 
 	// 8. Eşzamanlılık, Zaman ve Dosya İşlemleri
@@ -471,6 +459,22 @@ func checkRangeSize(start, end int64) error {
 	return nil
 }
 
+// enUcArgumanlari min/maks'ın argümanlarını açar: tek bir liste verilirse elemanları,
+// değilse argümanların kendisi karşılaştırılır.
+func enUcArgumanlari(ad string, args []Value, buyuk bool) (Value, error) {
+	if len(args) == 0 {
+		return nil, ArgumanSayisiHatasi(ad, "en az 1", 0, ad+"(liste) ya da "+ad+"(a, b, ...)")
+	}
+	if len(args) == 1 {
+		if list, ok := args[0].(*ListVal); ok {
+			return enUc(ad+"()", list.Elements, buyuk, true)
+		}
+	}
+	return enUc(ad, args, buyuk, false)
+}
+
+// ExtractNumericSlice argümanlardaki (ya da tek liste argümanının elemanlarındaki) sayıları
+// Ondalık olarak toplar; sayı olmayanları atlar. Motorların istatistik yerleşikleri kullanır.
 func ExtractNumericSlice(args []Value) []float64 {
 	var res []float64
 	if len(args) == 1 {
@@ -489,11 +493,4 @@ func ExtractNumericSlice(args []Value) []float64 {
 		}
 	}
 	return res
-}
-
-func formatNumberVal(f float64) Value {
-	if f == float64(int64(f)) {
-		return NewInt(int64(f))
-	}
-	return &FloatVal{Val: f}
 }

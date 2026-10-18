@@ -7,6 +7,21 @@ test "3.1 Tam: 64 bit, taşma hata verir" {
     doğrula(mesaj.içerir("taşma"), mesaj)
 }
 
+test "3.1 yerleşikler de taşmada sarmak yerine hata verir" {
+    değişken büyük = 9223372036854775807
+    değişken hatalar = []
+    dene { toplam([büyük, 1]) } yakala h { hatalar.ekle(h) }
+    dene { [büyük, 1].toplam() } yakala h { hatalar.ekle(h) }
+    dene { mutlak(-büyük - 1) } yakala h { hatalar.ekle(h) }
+    dene { tam(1e30) } yakala h { hatalar.ekle(h) }
+    dene { tam(-1e30) } yakala h { hatalar.ekle(h) }
+    dene { yuvarla(1e30) } yakala h { hatalar.ekle(h) }
+    eşit_mi(6, uzunluk(hatalar), metin(hatalar))
+    döngü h içinde hatalar { doğrula(h.içerir("Tam sayı taşması"), h) }
+    eşit_mi(büyük, toplam([büyük - 1, 1]))
+    eşit_mi(-büyük - 1, tam(ondalık(-büyük - 1)))
+}
+
 test "3.2 Ondalık: 64 bit kayan noktalı" {
     eşit_mi(0.75, 3 / 4)
     eşit_mi("1.0", metin(1.0))
@@ -24,6 +39,14 @@ test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {
     eşit_mi("r", "şeker"[-1])
     eşit_mi("ek", "şeker"[1..3])
     eşit_mi(yok, "abc"[10])
+}
+
+test "3.3 dilimde negatif uç indeksteki gibi sondan sayar" {
+    eşit_mi("ker", "şeker"[-3..5])
+    eşit_mi("eke", "şeker"[1..-1])
+    eşit_mi("eker", "şeker"[1..=-1])
+    eşit_mi("şeker", "şeker"[-10..10])
+    eşit_mi("", "şeker"[3..1])
 }
 
 test "3.4 Mantık: doğru ve yanlış" {
@@ -44,6 +67,10 @@ test "3.6 Liste: sıralı, karışık tipli, sınır dışı indeks yok döner" 
     eşit_mi(3.0, l[-1])
     eşit_mi(yok, l[5])
     eşit_mi([1, "iki"], l[0..2])
+    // Dilimde negatif uç sondan sayar; uçlar listenin sınırına kırpılır
+    eşit_mi([3, 4], [1, 2, 3, 4][-2..4])
+    eşit_mi([2, 3], [1, 2, 3, 4][1..=-2])
+    eşit_mi([1, 2, 3], [1, 2, 3][0..=9223372036854775807])
 }
 
 test "3.6 Liste: değerler başvuruyla paylaşılır" {
@@ -72,6 +99,19 @@ test "3.8 Aralık: a..b (b hariç), a..=b (b dahil)" {
     t = 0
     döngü i içinde 1..=4 { t += i }
     eşit_mi(10, t)
+}
+
+test "3.8 Aralık: Tam sınırındaki uçlar taşmadan gezilir" {
+    değişken üst = 9223372036854775807
+    değişken sayaç = 0
+    döngü i içinde (üst - 1)..=üst { sayaç += 1 }
+    eşit_mi(2, sayaç)
+    eşit_mi([üst - 1, üst], [x döngü x içinde (üst - 1)..=üst])
+    değişken alt = -üst - 1
+    eşit_mi([alt + 1, alt], [x döngü x içinde (alt + 1)..=alt])
+    eşit_mi([3, 2, 1], [x döngü x içinde 3..0])
+    eşit_mi([], [x döngü x içinde 2..2])
+    eşit_mi([2], [x döngü x içinde 2..=2])
 }
 
 test "3.9 fonksiyonlar birinci sınıf değerlerdir" {

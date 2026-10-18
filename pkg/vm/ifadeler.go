@@ -14,21 +14,13 @@ func uretecOgeleri(iterVal Value, line int) ([]Value, error) {
 	var items []Value
 	switch it := iterVal.(type) {
 	case *RangeVal:
-		end := it.End
-		if it.Inclusive {
-			end++
-		}
-		step := int64(1)
-		if it.Start > it.End {
-			step = -1
-			if it.Inclusive {
-				end = it.End - 1
-			} else {
-				end = it.End
+		if ilk, son, adim, bos := aralikAdimlari(it); !bos {
+			for i := ilk; ; i += adim {
+				items = append(items, NewInt(i))
+				if i == son {
+					break
+				}
 			}
-		}
-		for i := it.Start; (step > 0 && i < end) || (step < 0 && i > end); i += step {
-			items = append(items, NewInt(i))
 		}
 	case *ListVal:
 		items = it.Elements
@@ -72,22 +64,9 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 			}
 			return container.Elements[pos], nil
 		}
-		// Dilimleme (Slicing): liste[1..4]
+		// Dilimleme: liste[1..4]; negatif uç sondan sayar (liste[-2..] gibi)
 		if rng, ok := idx.(*RangeVal); ok {
-			start := int(rng.Start)
-			end := int(rng.End)
-			if rng.Inclusive {
-				end++
-			}
-			if start < 0 {
-				start = 0
-			}
-			if end > len(container.Elements) {
-				end = len(container.Elements)
-			}
-			if start > end {
-				return &ListVal{Elements: []Value{}}, nil
-			}
+			start, end := dilimUclari(rng, len(container.Elements))
 			sliced := make([]Value, end-start)
 			copy(sliced, container.Elements[start:end])
 			return &ListVal{Elements: sliced}, nil
@@ -119,20 +98,7 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 			runes = []rune(container.Val) // ASCII dilimleme: nadir yol
 		}
 		if rng, ok := idx.(*RangeVal); ok {
-			start := int(rng.Start)
-			end := int(rng.End)
-			if rng.Inclusive {
-				end++
-			}
-			if start < 0 {
-				start = 0
-			}
-			if end > len(runes) {
-				end = len(runes)
-			}
-			if start > end {
-				return &StringVal{Val: ""}, nil
-			}
+			start, end := dilimUclari(rng, len(runes))
 			return &StringVal{Val: string(runes[start:end])}, nil
 		}
 		iv, ok := idx.(*IntVal)

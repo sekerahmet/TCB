@@ -200,7 +200,9 @@ func init() {
 		elems := inst.(*ListVal).Elements
 		copied := make([]Value, len(elems))
 		copy(copied, elems)
-		siralaDegerler(copied)
+		if err := siralaDegerler("liste.sırala()", copied); err != nil {
+			return nil, err
+		}
 		return &ListVal{Elements: copied}, nil
 	})
 	metotEkle(tipListe, sozluk.Y+3, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
@@ -256,22 +258,7 @@ func init() {
 		return l, nil
 	})
 	metotEkle(tipListe, sozluk.Y+205, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
-		sumFloat := 0.0
-		hasFloat := false
-		var sumInt int64 = 0
-		for _, el := range inst.(*ListVal).Elements {
-			if iv, ok := el.(*IntVal); ok {
-				sumInt += iv.Val
-				sumFloat += float64(iv.Val)
-			} else if fv, ok := el.(*FloatVal); ok {
-				hasFloat = true
-				sumFloat += fv.Val
-			}
-		}
-		if hasFloat {
-			return &FloatVal{Val: sumFloat}, nil
-		}
-		return NewInt(sumInt), nil
+		return sayiTopla("liste.toplam()", inst.(*ListVal).Elements)
 	})
 	metotEkle(tipListe, sozluk.Y+206, func(vm *VM, inst Value, args []Value, line int) (Value, error) {
 		nums := ExtractNumericSlice([]Value{inst})

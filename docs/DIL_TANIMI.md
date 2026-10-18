@@ -96,11 +96,11 @@ Bağlamsal sözcükler anahtar kelime değildir ve ad olarak kullanılabilir: `t
 
 TR dinamik tiplidir; değerler tiplerini taşır. İsteğe bağlı tip açıklamalarını yalnızca çalıştırma öncesi tip denetleyicisi kullanır (3.13).
 
-**3.1** `Tam`: 64 bit işaretli tam sayı. `+ - * / **` işlemleri ve tekli `-` sınırı aşarsa (ör. en küçük değerin `/ -1`'i ya da eksisi) sessizce sarmak yerine "Tam sayı taşması" hatası verir.
+**3.1** `Tam`: 64 bit işaretli tam sayı. `+ - * / **` işlemleri ve tekli `-` sınırı aşarsa (ör. en küçük değerin `/ -1`'i ya da eksisi) sessizce sarmak yerine "Tam sayı taşması" hatası verir. Yerleşikler de aynı kurala uyar: `toplam`, `.toplam()`, `mutlak` (en küçük değerde), `tam` ve `yuvarla` (Ondalık'tan çevirirken `NaN`, sonsuz ya da Tam aralığı dışındaki değerde) taşma hatası verir.
 
 **3.2** `Ondalık`: 64 bit kayan noktalı sayı; en kısa gösterimiyle yazdırılır, tam sayılı ondalıklar `1.0` biçimindedir (`123456.0`). Büyüklüğü 1e6 ve üstü ya da 1e-4'ten küçük olanlar bilimsel gösterimle yazdırılır (`1e+06`, `1.6777216e+07`, `1e-05`; `0.0001` ise olduğu gibi). Sonsuz ve tanımsız değerler `+Sonsuz`, `-Sonsuz`, `NaN` olarak yazdırılır (tensör yazdırması bunları `Sonsuz`, `-Sonsuz`, `Tanımsız` olarak gösterir).
 
-**3.3** `Metin`: değiştirilemez Unicode metni; uzunluk ve indeks karakter (rune) bazındadır, negatif indeks sondan sayar, sınır dışı indeks `yok` verir, `m[a..b]` alt metin verir.
+**3.3** `Metin`: değiştirilemez Unicode metni; uzunluk ve indeks karakter (rune) bazındadır, negatif indeks sondan sayar, sınır dışı indeks `yok` verir, `m[a..b]` alt metin verir. Dilimde de negatif uç indeksteki gibi sondan sayar (`"şeker"[-3..5]` → `"ker"`, `"şeker"[1..=-1]` → `"eker"`); uçlar metnin sınırlarına kırpılır, başlangıç bitişten büyükse sonuç boştur.
 
 ```tr
 uzunluk("şeker")   // 5
@@ -112,11 +112,11 @@ uzunluk("şeker")   // 5
 
 **3.5** `yok`: değerin yokluğu; değer döndürmeyen fonksiyonlar ve bulunamayan indeksler `yok` verir.
 
-**3.6** `Liste`: sıralı, karışık tipli, değiştirilebilir dizi: `[1, "iki", 3.0]`. Negatif indeks sondan sayar, okuma sırasında sınır dışı indeks `yok` verir (yazmada hatadır), `l[a..b]` dilim verir. Listeler, sözlükler ve nesneler **başvuruyla** paylaşılır: `b = a` aynı listeyi gösterir.
+**3.6** `Liste`: sıralı, karışık tipli, değiştirilebilir dizi: `[1, "iki", 3.0]`. Negatif indeks sondan sayar, okuma sırasında sınır dışı indeks `yok` verir (yazmada hatadır), `l[a..b]` dilim verir (dilim uçları Metin'deki gibidir, 3.3: `[1, 2, 3, 4][-2..4]` → `[3, 4]`). Listeler, sözlükler ve nesneler **başvuruyla** paylaşılır: `b = a` aynı listeyi gösterir.
 
 **3.7** `Sözlük`: eklenme sırasını koruyan anahtar–değer tablosu. Çıplak ad anahtarı metindir (`{ad: "Ali"}` ≡ `{"ad": "Ali"}`); metin olmayan anahtarlar da geçerlidir (`{1: "bir"}`). Olmayan anahtar `yok` verir; `d.ad` biçimi `d["ad"]` ile aynıdır.
 
-**3.8** `Aralık`: `a..b` (b hariç) ve `a..=b` (b dahil); uçlar `Tam` olmalıdır. `a > b` ise geriye doğru sayar (`3..0` → 3, 2, 1).
+**3.8** `Aralık`: `a..b` (b hariç) ve `a..=b` (b dahil); uçlar `Tam` olmalıdır. `a > b` ise geriye doğru sayar (`3..0` → 3, 2, 1); `a..a` boş, `a..=a` tek elemanlıdır. Tam sınırındaki uçlar da taşmadan gezilir (`(üst - 1)..=üst`, üst = 9223372036854775807).
 
 **3.9** Fonksiyonlar birinci sınıf değerlerdir: değişkene atanır, listeye konur, argüman olarak geçer, döndürülür.
 
@@ -388,11 +388,11 @@ test "toplama doğru" {
 
 Tam liste `KULLANIM_KILAVUZU.md`'dedir; burada dilin parçası sayılan çekirdek seçki tanımlanır. Metotlar `değer.metot(...)` ile çağrılır; argümansız olanlar (`.uzunluk`, `.ilk`, `.son`) parantezsiz de yazılır. Her yerleşiğin ve metodun tek adı vardır ve yalnızca Türkçe yazımıyla geçerlidir (`sırala`; `sirala` sıradan bir addır); eş anlamlı ad yoktur (bkz. 2.9, 2.9a). Bir yerleşiğin adını kendi tanımınıza vermek uyarı verir (2.9a, "Yerleşik ad gölgeleme uyarısı").
 
-**13.1** Genel: `yazdır(...)` (değerleri boşlukla birleştirip yazar), `uzunluk`, `tip`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `aralık(a, b)`, `filtrele`, `haritala`, `indirge`, `sırala`, `ekle`, `bekle`, `bekle_hepsi`, `zaman_ms`, `dosya_oku`, `dosya_yaz`, `girdi`. `girdi([istem])` standart girişten bir satır okur (satır sonu atılır; giriş bittiyse boş metin verir); süreçteki bütün okumalar (art arda `girdi()` çağrıları, etkileşimli kabuk, terminal hata ayıklayıcısı) tek bir tamponlu okuyucudan yapılır, bu yüzden boruyla verilen satırlar sırayla gelir ve hiçbiri kaybolmaz. Yerleşikler eksik ya da fazla argümanı ve yanlış tipi reddeder; hata `aralık() 1. argüman olarak Tam bekler, Metin ("a") verildi` biçimindedir. `dosya_oku(yol)` ve `dosya_yaz(yol, içerik)` yolu `Metin` olarak ister; göreli bir yol önce çalışma klasörüne, orada yoksa kodun bulunduğu modülün klasörüne (11.5), sonra programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler. Dosya hataları Türkçedir (dosya ya da klasör yok, izin yok, bir klasör, disk dolu, dosya kullanımda...).
+**13.1** Genel: `yazdır(...)` (değerleri boşlukla birleştirip yazar), `uzunluk`, `tip`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `aralık(a, b)`, `filtrele`, `haritala`, `indirge`, `sırala`, `ekle`, `bekle`, `bekle_hepsi`, `zaman_ms`, `dosya_oku`, `dosya_yaz`, `girdi`. Sayı yerleşikleri işleçlerin kurallarına uyar (3.1, 4.2): `toplam(liste)` elemanlar Tam ise Tam, bir Ondalık varsa Ondalık verir, sayı olmayan eleman hatadır; `min` ve `maks` tek bir liste ya da birden çok sayı alır ve kazanan değerin kendisini tipiyle verir (`maks([2.0, 1.5])` → `2.0`), Tam'ları tam karşılaştırır (`maks([9007199254740993, 1])` → `9007199254740993`), sayı olmayan değerde (metin dahil) hata, boş listede `yok` verir; `yuvarla(x, basamak)` basamak pozitifse Ondalık, 0 ya da negatifse Tam verir (`yuvarla(1234, -2)` → `1200`). `girdi([istem])` standart girişten bir satır okur (satır sonu atılır; giriş bittiyse boş metin verir); süreçteki bütün okumalar (art arda `girdi()` çağrıları, etkileşimli kabuk, terminal hata ayıklayıcısı) tek bir tamponlu okuyucudan yapılır, bu yüzden boruyla verilen satırlar sırayla gelir ve hiçbiri kaybolmaz. Yerleşikler eksik ya da fazla argümanı ve yanlış tipi reddeder; hata `aralık() 1. argüman olarak Tam bekler, Metin ("a") verildi` biçimindedir. `dosya_oku(yol)` ve `dosya_yaz(yol, içerik)` yolu `Metin` olarak ister; göreli bir yol önce çalışma klasörüne, orada yoksa kodun bulunduğu modülün klasörüne (11.5), sonra programın bulunduğu klasöre göre çözülür ve dosyanın bulunduğu ilk yer kullanılır; dosya hiçbir yerde yoksa bulunacağı klasörün var olduğu ilk yer seçilir (düz bir `rapor.txt` için bu çalışma klasörüdür). Kural okuma ve yazma için aynıdır: programın yanındaki bir dosya okunup güncellenince yine oraya yazılır, yeni dosyalar çalışma klasöründe oluşur. Dosya bulunamazsa hata bakılan yerleri listeler. Dosya hataları Türkçedir (dosya ya da klasör yok, izin yok, bir klasör, disk dolu, dosya kullanımda...).
 
 **13.2** Metin metotları: `.uzunluk`, `.büyük_harf()` / `.küçük_harf()` (Türkçe `i/İ`, `ı/I` kurallarıyla), `.kırp()`, `.böl(ayırıcı)`, `.değiştir(eski, yeni)`, `.içerir(alt)`, `.başlar(önek)`, `.biter(sonek)`, `.ters_çevir()`.
 
-**13.3** Liste metotları: `.uzunluk`, `.ilk`, `.son`, `.filtrele(f)`, `.haritala(f)`, `.sırala()`, `.ters_çevir()`, `.birleştir(ayırıcı)`, `.benzersiz()`, `.içerir(x)`, `.ekle(x)` (listeyi yerinde değiştirir), `.toplam()`, `.ortalama()`.
+**13.3** Liste metotları: `.uzunluk`, `.ilk`, `.son`, `.filtrele(f)`, `.haritala(f)`, `.sırala()` (yerleşik `sırala(l)` ile aynı: yeni bir liste verir; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır, başka bir karışım karşılaştırılamaz ve hatadır; sayılar tam karşılaştırılır, eşitlerin sırası korunur, `NaN` sona gelir; metinler karakter kodu sırasıyladır), `.ters_çevir()`, `.birleştir(ayırıcı)`, `.benzersiz()`, `.içerir(x)`, `.ekle(x)` (listeyi yerinde değiştirir), `.toplam()`, `.ortalama()`.
 
 **13.4** Sözlük metotları: `.anahtarlar()`, `.değerler()`, `.içerir(anahtar)`.
 

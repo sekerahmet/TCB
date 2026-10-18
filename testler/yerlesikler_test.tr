@@ -10,6 +10,28 @@ test "13.1 genel yerleşikler" {
     eşit_mi([0, 1, 2], aralık(0, 3))
 }
 
+test "13.1 min ve maks türü korur, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
+    eşit_mi(2.0, maks([2.0, 1.5]))
+    eşit_mi("Ondalık", tip(maks([2.0, 1.5])))
+    eşit_mi("Tam", tip(min([1, 2.5])))
+    eşit_mi(9007199254740993, maks([9007199254740993, 1]))
+    doğrula(maks([9007199254740993, 9007199254740992]) != 9007199254740992)
+    eşit_mi("Tam", tip(maks(9223372036854775807, 1)))
+    eşit_mi(-7, min(3, -7, 0.5))
+    eşit_mi(yok, maks([]))
+    değişken hatalar = []
+    dene { maks([1, "a", 5]) } yakala h { hatalar.ekle(h) }
+    dene { min("abc") } yakala h { hatalar.ekle(h) }
+    dene { toplam([1, "a", 2]) } yakala h { hatalar.ekle(h) }
+    eşit_mi(3, uzunluk(hatalar), metin(hatalar))
+    doğrula(hatalar[0].içerir("maks(): listenin 2. elemanı Tam ya da Ondalık olmalıdır, Metin (\"a\") verildi"), hatalar[0])
+    doğrula(hatalar[1].içerir("min() 1. argüman olarak Tam ya da Ondalık bekler"), hatalar[1])
+    // Negatif basamak onlar, yüzler basamağına yuvarlar
+    eşit_mi(1200, yuvarla(1234, -2))
+    eşit_mi(1240, yuvarla(1235.0, -1))
+    eşit_mi(4, yuvarla(3.6))
+}
+
 test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
     değişken m = ""
     dene { aralık("a") } yakala h { m = h }
@@ -61,6 +83,18 @@ test "13.3 liste metotları" {
     eşit_mi(2, l.son)
     eşit_mi(2.0, l.ortalama())
     doğrula(l.içerir(1))
+}
+
+test "13.3 sırala sayıları tam, metinleri karakter sırasıyla dizer; karışık tip hatadır" {
+    eşit_mi([9007199254740992, 9007199254740993], [9007199254740993, 9007199254740992].sırala())
+    eşit_mi([-1, 0.5, 2, 2.5], sırala([2.5, 2, -1, 0.5]))
+    eşit_mi(["a", "b", "ç"], ["ç", "b", "a"].sırala())
+    değişken hatalar = []
+    dene { sırala([2, "10", 10]) } yakala h { hatalar.ekle(h) }
+    dene { [10, 2, "10"].sırala() } yakala h { hatalar.ekle(h) }
+    dene { [doğru, yanlış].sırala() } yakala h { hatalar.ekle(h) }
+    eşit_mi(3, uzunluk(hatalar), metin(hatalar))
+    döngü h içinde hatalar { doğrula(h.içerir("yalnızca sayılardan ya da yalnızca metinlerden"), h) }
 }
 
 test "13.4 sözlük metotları" {

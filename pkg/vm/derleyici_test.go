@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -125,18 +126,31 @@ func TestDerleyiciZipla(t *testing.T) {
 	}
 }
 
-// Hızlı sıralama yolu, kararlı genel sıralamayla aynı sonucu vermeli (eşitlerde özgün sıra).
+// Sayılar tam ve kararlı sıralanır (eşitlerde özgün sıra); büyük Tam'lar Ondalığa
+// yuvarlanmaz. Sayı ile metin karışımı karşılaştırılamaz: girdinin sırasına bağlı bir
+// sonuç yerine hata verir.
 func TestSiralaDegerlerKararli(t *testing.T) {
 	a, b := &FloatVal{Val: 2}, NewInt(2)
-	d := []Value{NewInt(3), a, NewInt(-1), b, &FloatVal{Val: 0.5}}
-	siralaDegerler(d)
-	if d[0].Inspect() != "-1" || d[1].Inspect() != "0.5" || d[2] != a || d[3] != b || d[4].Inspect() != "3" {
-		t.Fatalf("beklenmeyen sıra: %v", d)
+	d := []Value{NewInt(3), a, NewInt(-1), b, &FloatVal{Val: 0.5}, &FloatVal{Val: math.NaN()}, NewInt(9007199254740993), &FloatVal{Val: 9007199254740992}}
+	if err := siralaDegerler("sırala()", d); err != nil {
+		t.Fatal(err)
 	}
-	karisik := []Value{&StringVal{Val: "b"}, NewInt(1), &StringVal{Val: "a"}}
-	siralaDegerler(karisik)
-	if (&ListVal{Elements: karisik}).Inspect() != `[1, "a", "b"]` {
-		t.Fatalf("karışık sıralama: %v", (&ListVal{Elements: karisik}).Inspect())
+	if (&ListVal{Elements: d}).Inspect() != "[-1, 0.5, 2.0, 2, 3, 9.007199254740992e+15, 9007199254740993, NaN]" || d[2] != a || d[3] != b {
+		t.Fatalf("beklenmeyen sıra: %v", (&ListVal{Elements: d}).Inspect())
+	}
+	tamlar := []Value{NewInt(9007199254740993), NewInt(9007199254740992)}
+	_ = siralaDegerler("sırala()", tamlar)
+	if tamlar[0].(*IntVal).Val != 9007199254740992 {
+		t.Fatalf("büyük Tam'lar tam karşılaştırılmalı: %v", tamlar)
+	}
+	for _, karisik := range [][]Value{
+		{&StringVal{Val: "b"}, NewInt(1), &StringVal{Val: "a"}},
+		{NewInt(2), &StringVal{Val: "10"}, NewInt(10)},
+		{TRUE, FALSE},
+	} {
+		if err := siralaDegerler("sırala()", karisik); err == nil || !strings.Contains(err.Error(), "yalnızca sayılardan ya da yalnızca metinlerden") {
+			t.Fatalf("karışık liste hata vermeli: %v", err)
+		}
 	}
 }
 

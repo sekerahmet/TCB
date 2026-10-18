@@ -512,21 +512,13 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *ast.ForInStatement) deyim
 		var devir uint32
 		switch it := iterVal.(type) {
 		case *RangeVal:
-			end := it.End
-			if it.Inclusive {
-				end++
+			ilk, son, adim, bos := aralikAdimlari(it)
+			if bos {
+				break
 			}
 			idx := int64(0)
-			step := int64(1)
-			if it.Start > it.End {
-				step = -1
-				if it.Inclusive {
-					end = it.End - 1
-				} else {
-					end = it.End
-				}
-			}
-			for i := it.Start; (step > 0 && i < end) || (step < 0 && i > end); i += step {
+			// Son değer dahil gezilir ve döngü onda biter: int64 sınırında taşma olmaz.
+			for i := ilk; ; i += adim {
 				if devir++; devir&255 == 0 {
 					v.devret() // her 256 turda bir: bekleyen göreve kilidi devret
 				}
@@ -546,6 +538,9 @@ func (c *derleyici) donguIcinde(k *derleyiciKapsam, s *ast.ForInStatement) deyim
 					break
 				}
 				lastVal = val
+				if i == son {
+					break
+				}
 				idx++
 			}
 
