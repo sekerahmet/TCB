@@ -729,11 +729,8 @@ func tamIndeksler(fn string, v vm.Value) ([]int, []int, error) {
 	case *Deger:
 		veri, sh = x.t.Data(), x.t.Shape()
 	case *vm.ListVal:
-		var err error
-		veri, sh, err = listeVerisi(fn, x)
-		if err != nil {
-			return nil, nil, err
-		}
+		// Liste değerleri tam sayı olarak okunur (float32'den geçmez).
+		return listeTamSayilari(fn, x)
 	default:
 		return nil, nil, fmt.Errorf("%s: indeksler tam sayı, tam sayı listesi ya da tensör olmalıdır, %s verildi", fn, tipAdi(v))
 	}

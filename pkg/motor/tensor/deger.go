@@ -284,7 +284,45 @@ func tensoreCevir(fn string, v vm.Value) (*ct.Tensor, error) {
 
 // listeVerisi iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
 func listeVerisi(fn string, l *vm.ListVal) ([]float32, []int, error) {
-	// Şekil ilk elemanlar boyunca inilerek bulunur.
+	var veri []float32
+	sh, err := listeGez(fn, l, func(n int) { veri = make([]float32, 0, n) }, func(v vm.Value) error {
+		f, ok := vm.ToFloat(v)
+		if !ok {
+			return fmt.Errorf("%s: tensör elemanları sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), tipAdi(v))
+		}
+		veri = append(veri, float32(f))
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return veri, sh, nil
+}
+
+// listeTamSayilari iç içe tam sayı listesini düz dizi ve şekle çevirir. Değerler doğrudan
+// tam sayı olarak okunur (float32'den geçirilmez; 2^24 üstü indeksler yuvarlanmaz).
+func listeTamSayilari(fn string, l *vm.ListVal) ([]int, []int, error) {
+	var veri []int
+	sh, err := listeGez(fn, l, func(n int) { veri = make([]int, 0, n) }, func(v vm.Value) error {
+		n, ok := tamSayi(v)
+		if !ok {
+			if _, sayi := vm.ToFloat(v); sayi {
+				return fmt.Errorf("%s: indeksler tam sayı olmalıdır, %s verildi", fn, v.Inspect())
+			}
+			return fmt.Errorf("%s: indeksler tam sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), tipAdi(v))
+		}
+		veri = append(veri, n)
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return veri, sh, nil
+}
+
+// listeGez iç içe listenin şeklini bulur (ilk elemanlar boyunca inilerek), düzensizliği
+// reddeder ve yaprakları sırayla yaprak'a verir; hazirla eleman sayısıyla bir kez çağrılır.
+func listeGez(fn string, l *vm.ListVal, hazirla func(n int), yaprak func(v vm.Value) error) ([]int, error) {
 	var sh []int
 	var cur vm.Value = l
 	for {
@@ -302,22 +340,17 @@ func listeVerisi(fn string, l *vm.ListVal) ([]float32, []int, error) {
 	for _, d := range sh {
 		n *= d
 		if n > vm.MaxCollectionSize {
-			return nil, nil, fmt.Errorf("%s: liste çok büyük (en fazla %d eleman)", fn, vm.MaxCollectionSize)
+			return nil, fmt.Errorf("%s: liste çok büyük (en fazla %d eleman)", fn, vm.MaxCollectionSize)
 		}
 	}
-	veri := make([]float32, 0, n)
+	hazirla(n)
 	var gez func(v vm.Value, eksen int) error
 	gez = func(v vm.Value, eksen int) error {
 		if eksen == len(sh) {
-			f, ok := vm.ToFloat(v)
-			if !ok {
-				if _, liste := v.(*vm.ListVal); liste {
-					return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte sayı yerine liste var", fn, eksen+1)
-				}
-				return fmt.Errorf("%s: tensör elemanları sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), tipAdi(v))
+			if _, liste := v.(*vm.ListVal); liste {
+				return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte sayı yerine liste var", fn, eksen+1)
 			}
-			veri = append(veri, float32(f))
-			return nil
+			return yaprak(v)
 		}
 		ll, ok := v.(*vm.ListVal)
 		if !ok {
@@ -334,9 +367,9 @@ func listeVerisi(fn string, l *vm.ListVal) ([]float32, []int, error) {
 		return nil
 	}
 	if err := gez(l, 0); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return veri, sh, nil
+	return sh, nil
 }
 
 // ----------------------------------------------------------------------------

@@ -175,6 +175,10 @@ test "15.5a tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz ent
     değişken z = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
     doğrula(hata_metni(() => çapraz_entropi(z, [-1, -1])).içerir("bütün hedefler yok sayıldı"))
     eşit_mi(0.3133, yuvarla(çapraz_entropi(z, [-1, 1]).değer, 4))
+    // Liste indeksleri tam sayı olarak okunur (float32'den geçmez: 2^24 üstü yuvarlanmaz).
+    doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [16777217])).içerir("indeks 16777217"))
+    doğrula(hata_metni(() => çapraz_entropi(z, [0, 16777217])).içerir("hedef sınıf 16777217"))
+    doğrula(hata_metni(() => gömme(sıfırlar([3, 2]), [1.5])).içerir("tam sayı olmalıdır"))
 }
 
 test "15.5 sinir ağı fonksiyonları" {
