@@ -5,13 +5,13 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
-	"tr_dili/internal/arac/hataayiklama"
-	"tr_dili/internal/dil/checker"
+	"tr_dili/internal/arac/ayikla"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/denetci"
 	"tr_dili/internal/dil/kod"
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
+	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/turkce"
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/yurut"
 	_ "tr_dili/internal/motor"
 )
 
@@ -96,7 +96,7 @@ func main() {
 		bicimleKomutu(args[1:])
 	case "dap":
 		// VS Code hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
-		if err := hataayiklama.ServeDAP(os.Stdin, os.Stdout); err != nil {
+		if err := ayikla.ServeDAP(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "❌ Hata ayıklama sunucusu: %v\n", err)
 			os.Exit(1)
 		}
@@ -156,7 +156,7 @@ func printHelp() {
 
 func runFile(path string) {
 	code, prog := dosyaHazirla(path, calistirmaHazirligi)
-	machine := vm.New()
+	machine := yurut.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
 	programCalistir(machine, prog, code)
@@ -164,10 +164,10 @@ func runFile(path string) {
 
 func debugFile(path string) {
 	code, prog := dosyaHazirla(path, hataAyiklamaHazirligi)
-	machine := vm.New()
+	machine := yurut.New()
 	machine.SourceFile = path
 	machine.SourceCode = code
-	dbg := hataayiklama.NewDebugger(path, code, true)
+	dbg := ayikla.NewDebugger(path, code, true)
 	machine.Debugger = dbg
 
 	programCalistir(machine, prog, code)
@@ -183,11 +183,11 @@ func checkFile(path string) {
 func startREPL() {
 	fmt.Printf("🇹🇷 TR Programlama ve Yapay Zeka Dili (v%s) — Etkileşimli Kabuk\n", VERSION)
 	fmt.Println("Çıkmak için 'çıkış', hata ayıklayıcıyı açmak için '/h' yazın.")
-	machine := vm.New()
+	machine := yurut.New()
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
 	okuyucu := machine.GirdiOkuyucu()
-	chk := checker.New()
+	chk := denetci.New()
 	oncekiTipHatalari, oncekiUyarilar := 0, 0
 
 	for {
@@ -209,19 +209,19 @@ func startREPL() {
 			continue
 		}
 		if line == "/h" || line == "/H" {
-			machine.Debugger = hataayiklama.NewDebugger("<etkileşimli-kabuk>", "", true)
+			machine.Debugger = ayikla.NewDebugger("<etkileşimli-kabuk>", "", true)
 			fmt.Println("🐞 [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım çalışacak (F11 adım, F10 üstten geç, Shift+F11 dön, F5 devam).")
 			continue
 		}
 
 		// kesme_noktası deyimi de hata ayıklayıcıyı açmış olabilir
-		if dbg, ok := machine.Debugger.(*hataayiklama.Debugger); ok {
+		if dbg, ok := machine.Debugger.(*ayikla.Debugger); ok {
 			dbg.SourceLines = strings.Split(line, "\n")
 		}
 
 		// Hatalar dosya çalıştırmadakiyle aynı başlık ve biçimle standart hataya yazılır.
-		l := lexer.New(line)
-		p := parser.New(l)
+		l := sozcuk.New(line)
+		p := ayristir.New(l)
 		prog := p.ParseProgram()
 		if len(p.Errors()) > 0 {
 			hatalariYaz(sozdizimiBasligi, p.Errors(), line)
@@ -248,7 +248,7 @@ func startREPL() {
 			continue
 		}
 		machine.WaitAsync()
-		if val != nil && val.Type() != vm.VAL_NULL {
+		if val != nil && val.Type() != yurut.VAL_NULL {
 			if !yazdirIleBaslar(line) {
 				fmt.Println("=>", val.Inspect())
 			}

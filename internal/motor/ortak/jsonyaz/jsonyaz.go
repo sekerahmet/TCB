@@ -14,15 +14,15 @@ import (
 	"math"
 	"strconv"
 
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/yurut"
 )
 
 // Yaz değeri boşluksuz JSON olarak yazar.
-func Yaz(val vm.Value) ([]byte, error) { return YazGirintili(val, "") }
+func Yaz(val yurut.Value) ([]byte, error) { return YazGirintili(val, "") }
 
 // YazGirintili değeri her seviyede girinti kadar içeri alarak yazar; girinti boşsa
 // boşluksuz yazar.
-func YazGirintili(val vm.Value, girinti string) ([]byte, error) {
+func YazGirintili(val yurut.Value, girinti string) ([]byte, error) {
 	y := yazici{girinti: girinti}
 	if err := y.deger(val, 0); err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func YazGirintili(val vm.Value, girinti string) ([]byte, error) {
 type yazici struct {
 	b       []byte
 	girinti string
-	gezgin  vm.DisGezgin
+	gezgin  yurut.DisGezgin
 }
 
 func (y *yazici) satir(derinlik int) {
@@ -53,7 +53,7 @@ func (y *yazici) metin(s string) {
 
 func (y *yazici) sayi(f float64) error {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
-		return fmt.Errorf("%s sayısı JSON'a yazılamaz (JSON'da Tanımsız ya da sonsuz sayı yoktur)", (&vm.FloatVal{Val: f}).Inspect())
+		return fmt.Errorf("%s sayısı JSON'a yazılamaz (JSON'da Tanımsız ya da sonsuz sayı yoktur)", (&yurut.FloatVal{Val: f}).Inspect())
 	}
 	// encoding/json ile aynı biçim: küçük ve çok büyük sayılarda bilimsel yazım
 	bicim := byte('f')
@@ -72,19 +72,19 @@ func (y *yazici) sayi(f float64) error {
 	return nil
 }
 
-func (y *yazici) deger(val vm.Value, derinlik int) error {
+func (y *yazici) deger(val yurut.Value, derinlik int) error {
 	switch v := val.(type) {
-	case *vm.NullVal:
+	case *yurut.NullVal:
 		y.b = append(y.b, "null"...)
-	case *vm.BoolVal:
+	case *yurut.BoolVal:
 		y.b = strconv.AppendBool(y.b, v.Val)
-	case *vm.IntVal:
+	case *yurut.IntVal:
 		y.b = strconv.AppendInt(y.b, v.Val, 10)
-	case *vm.FloatVal:
+	case *yurut.FloatVal:
 		return y.sayi(v.Val)
-	case *vm.StringVal:
+	case *yurut.StringVal:
 		y.metin(v.Val)
-	case *vm.ListVal:
+	case *yurut.ListVal:
 		if err := y.gezgin.Gir(v, derinlik); err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func (y *yazici) deger(val vm.Value, derinlik int) error {
 			y.satir(derinlik)
 		}
 		y.b = append(y.b, ']')
-	case *vm.DictVal:
+	case *yurut.DictVal:
 		if err := y.gezgin.Gir(v, derinlik); err != nil {
 			return err
 		}
@@ -144,7 +144,7 @@ func (y *yazici) deger(val vm.Value, derinlik int) error {
 			y.satir(derinlik)
 		}
 		y.b = append(y.b, '}')
-	case vm.DuzDegerli:
+	case yurut.DuzDegerli:
 		// Dış değerler (ör. tensör → iç içe sayı listesi)
 		return y.deger(v.DuzDeger(), derinlik+1)
 	default:

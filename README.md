@@ -118,17 +118,17 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `çalıştır`, `kontrol`, `derle`, `test`, `biçimle`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
 | `internal/dil/kod` | Kodlar: dilin bütün adları (anahtar kelimeler, yerleşikler, metotlar, adlı argümanlar) sabit kodlara bağlı; adlar ve açıklamalar `tr.json`, dilden bağımsız tanımlar `tanim.json` ([`docs/KODLAR.md`](docs/KODLAR.md)) |
-| `internal/dil/lexer` | Kaynak metni sözcüklere ayırır |
-| `internal/dil/parser` | Sözcüklerden sözdizimi ağacı kurar |
-| `internal/dil/ast` | Sözdizimi ağacı düğümleri |
-| `internal/dil/checker` | Çalıştırmadan önceki tip denetimi |
-| `internal/dil/vm` | Yorumlayıcı: derleyici, değerler, yorumlayıcı kilidi, eşzamanlı görevler |
+| `internal/dil/sozcuk` | Kaynak metni sözcüklere ayırır |
+| `internal/dil/ayristir` | Sözcüklerden sözdizimi ağacı kurar |
+| `internal/dil/agac` | Sözdizimi ağacı düğümleri |
+| `internal/dil/denetci` | Çalıştırmadan önceki tip denetimi |
+| `internal/dil/yurut` | Yorumlayıcı: derleyici, değerler, yorumlayıcı kilidi, eşzamanlı görevler |
 | `internal/dil/turkce` | Mesajlarda doğru Türkçe ekler ve kod çerçevesi |
 | `internal/hesap/tensor` | n boyutlu tensörler, otomatik türev ve CPU çekirdekleri |
-| `internal/hesap/parcalayici` | `tokenizer.json` parçalayıcısı (metin ↔ token kimliği) |
-| `internal/hesap/veri` | `.npy` token veri kümesi, örnekleyici, önbellek |
+| `internal/hesap/parca` | `tokenizer.json` parçalayıcısı (metin ↔ token kimliği) |
+| `internal/hesap/veriyolu` | `.npy` token veri kümesi, örnekleyici, önbellek |
 | `internal/motor` | Tensör, parçalayıcı, veri ve JSON/CSV yerleşiklerini dile bağlar |
-| `internal/arac/hataayiklama` | Terminal hata ayıklayıcısı ve VS Code hata ayıklama sunucusu |
+| `internal/arac/ayikla` | Terminal hata ayıklayıcısı ve VS Code hata ayıklama sunucusu |
 | `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
 | `internal/arac/bicim` | `tr biçimle` biçimlendiricisi |
 | `testler/` | Dil tanımının kural testleri |

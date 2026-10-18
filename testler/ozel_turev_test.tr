@@ -214,7 +214,7 @@ test "15.24 türev_denetle: sayısal gradyanla karşılaştırma" {
 // çıktı[n] = silu(g·x[n]) · (u·x[n]) · w, g/u/w = W[indeks[n]]'in üç parçası.
 // ----------------------------------------------------------------------------
 
-// Üç sürüm. internal/motor/tensor/ozel_turev_test.go tanımları (başı/sonu işaretleri arasını) bu
+// Üç sürüm. internal/motor/ogrenme/ozel_turev_test.go tanımları (başı/sonu işaretleri arasını) bu
 // dosyadan okuyup hız ve bellek ölçümünde kullanır.
 // --- kapılı nöron tanımları başı ---
 

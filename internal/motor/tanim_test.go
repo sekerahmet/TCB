@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"tr_dili/internal/depo"
-	"tr_dili/internal/dil/ast"
-	"tr_dili/internal/dil/checker"
+	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/denetci"
 	"tr_dili/internal/dil/kod"
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/yurut"
 )
 
 // Kod listesinin (internal/dil/kod/tanim.json, tr.json) gerçek davranışla aynı olduğunu sınayan
@@ -45,10 +45,10 @@ func geciciKlasoreGec(t *testing.T) {
 
 func depoKoku(*testing.T) string { return depo.Kok() }
 
-func ornekProgrami(t *testing.T, k kod.Kod) (*ast.Program, string) {
+func ornekProgrami(t *testing.T, k kod.Kod) (*agac.Program, string) {
 	t.Helper()
 	g, _ := kod.Etkin().Girdisi(k)
-	p := parser.New(lexer.New(g.Ornek))
+	p := ayristir.New(sozcuk.New(g.Ornek))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Errorf("%s (%s) örneği ayrıştırılamadı: %v\n  %s", k, g.Ad, p.Errors(), g.Ornek)
@@ -59,9 +59,9 @@ func ornekProgrami(t *testing.T, k kod.Kod) (*ast.Program, string) {
 
 // ornekCalistir programı depo kökünde duran bir program gibi (göreli yollar depo köküne
 // göre de çözülür), boş girdiyle ve çıktısı atılarak çalıştırır.
-func ornekCalistir(t *testing.T, prog *ast.Program) error {
+func ornekCalistir(t *testing.T, prog *agac.Program) error {
 	t.Helper()
-	m := vm.New()
+	m := yurut.New()
 	m.Out = io.Discard
 	m.Err = io.Discard
 	m.Stdin = strings.NewReader("Ada\n")
@@ -95,7 +95,7 @@ func TestOrneklerCalisir(t *testing.T) {
 		if prog == nil {
 			continue
 		}
-		if hatalar := checker.New().CheckProgram(prog); len(hatalar) > 0 {
+		if hatalar := denetci.New().CheckProgram(prog); len(hatalar) > 0 {
 			t.Errorf("%s (%s) örneği tip denetiminden geçmedi: %v\n  %s", k, g.Ad, hatalar, ornek)
 			continue
 		}
@@ -109,8 +109,8 @@ func TestOrneklerCalisir(t *testing.T) {
 }
 
 // cagrilar programdaki çağrılardan uygun olanları verir.
-func cagrilar(dugum any, uygun func(*ast.CallExpression) bool) []*ast.CallExpression {
-	var out []*ast.CallExpression
+func cagrilar(dugum any, uygun func(*agac.CallExpression) bool) []*agac.CallExpression {
+	var out []*agac.CallExpression
 	gorulen := map[uintptr]bool{}
 	var gez func(v reflect.Value)
 	gez = func(v reflect.Value) {
@@ -120,7 +120,7 @@ func cagrilar(dugum any, uygun func(*ast.CallExpression) bool) []*ast.CallExpres
 				return
 			}
 			gorulen[v.Pointer()] = true
-			if c, ok := v.Interface().(*ast.CallExpression); ok && uygun(c) {
+			if c, ok := v.Interface().(*agac.CallExpression); ok && uygun(c) {
 				out = append(out, c)
 			}
 			gez(v.Elem())
@@ -200,11 +200,11 @@ func TestAdliArgumanlarTanimlaAyni(t *testing.T) {
 			continue
 		}
 		ad := kod.Ad(k)
-		cs := cagrilar(prog, func(c *ast.CallExpression) bool {
+		cs := cagrilar(prog, func(c *agac.CallExpression) bool {
 			switch f := c.Function.(type) {
-			case *ast.Identifier:
+			case *agac.Identifier:
 				return tn.Tur == kod.TurFonksiyon && f.Value == ad
-			case *ast.MemberExpression:
+			case *agac.MemberExpression:
 				return tn.Tur == kod.TurMetot && f.Property == ad
 			}
 			return false
@@ -214,7 +214,7 @@ func TestAdliArgumanlarTanimlaAyni(t *testing.T) {
 			continue
 		}
 		for _, c := range cs {
-			c.NamedArgs = append(c.NamedArgs, ast.NamedArg{Name: bilinmeyenAdli, Value: &ast.IntegerLiteral{Value: 1}})
+			c.NamedArgs = append(c.NamedArgs, agac.NamedArg{Name: bilinmeyenAdli, Value: &agac.IntegerLiteral{Value: 1}})
 		}
 		err := ornekCalistir(t, prog)
 		alinan, ok := gecerliAdlar(err)
@@ -243,7 +243,7 @@ func TestAdliArgumanlarTanimlaAyni(t *testing.T) {
 // tipten bir örnek değer üzerinde her üye okunur (metotlar çağrılmaz, bağlı değer olarak
 // döner); okuma hatasızsa (sözlükte: yok dönmezse) tip üyeyi destekler.
 func TestUyeTipleriTanimlaAyni(t *testing.T) {
-	m := vm.New()
+	m := yurut.New()
 	m.Out = io.Discard
 	m.SourceFile = filepath.Join(depoKoku(t), "ornek.tr")
 	ornekler := []struct {
@@ -274,7 +274,7 @@ func TestUyeTipleriTanimlaAyni(t *testing.T) {
 		var gercek []kod.Kod
 		for i, o := range ornekler {
 			v, err := calistirAyni(t, m, "u_"+string(rune('a'+i))+"."+kod.Ad(k))
-			if err == nil && !(o.tip == kod.A206 && v == vm.NULL) {
+			if err == nil && !(o.tip == kod.A206 && v == yurut.NULL) {
 				gercek = append(gercek, o.tip)
 			}
 		}

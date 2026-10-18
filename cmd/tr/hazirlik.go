@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"tr_dili/internal/dil/ast"
-	"tr_dili/internal/dil/checker"
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
+	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/denetci"
+	"tr_dili/internal/dil/sozcuk"
 	"tr_dili/internal/dil/turkce"
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/motor"
 )
 
@@ -64,15 +64,15 @@ func kaynakOku(path string) string {
 }
 
 // dosyaHazirla dosyayı okuyup kaynakHazirla'dan geçirir.
-func dosyaHazirla(path string, h hazirlik) (string, *ast.Program) {
+func dosyaHazirla(path string, h hazirlik) (string, *agac.Program) {
 	code := kaynakOku(path)
 	return code, kaynakHazirla(code, h)
 }
 
 // kaynakHazirla kodu ayrıştırır ve istenmişse tip denetiminden geçirir. Hata varsa
 // hepsini yazıp 1 koduyla çıkar.
-func kaynakHazirla(code string, h hazirlik) *ast.Program {
-	p := parser.New(lexer.New(code))
+func kaynakHazirla(code string, h hazirlik) *agac.Program {
+	p := ayristir.New(sozcuk.New(code))
 	prog := p.ParseProgram()
 
 	if errs := p.Errors(); len(errs) > 0 {
@@ -86,7 +86,7 @@ func kaynakHazirla(code string, h hazirlik) *ast.Program {
 	}
 
 	if h.tipBasligi != "" {
-		chk := checker.New()
+		chk := denetci.New()
 		errs := chk.CheckProgram(prog)
 		uyarilariYaz(chk.Warnings(), code)
 		if len(errs) > 0 {
@@ -121,7 +121,7 @@ func hatalarlaCik(baslik string, errs []string, code string) {
 // programCalistir programı çalıştırır, çalışma zamanı hatasını yazıp çıkar; başarılıysa
 // eşzamansız işlerin bitmesini bekler. Her iki durumda da motorların açık kaynakları
 // (veri okuyucuları, önbellekler) çıkmadan önce kapatılır.
-func programCalistir(machine *vm.VM, prog *ast.Program, code string) {
+func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
 	if _, err := machine.Run(prog); err != nil {
 		motor.Kapat()
 		calismaHatasiYaz(err, code)
@@ -135,7 +135,7 @@ func programCalistir(machine *vm.VM, prog *ast.Program, code string) {
 // ait hatanın (ya da modülün denetim hatalarının) çerçevesi o modülün kaynağından çizilir.
 func calismaHatasiYaz(err error, code string) {
 	fmt.Fprintln(os.Stderr, calismaBasligi)
-	for _, m := range vm.HataMaddeleri(err, code) {
+	for _, m := range yurut.HataMaddeleri(err, code) {
 		fmt.Fprintf(os.Stderr, "  • %s\n", m.Mesaj)
 		fmt.Fprint(os.Stderr, indentFrame(m.Cerceve))
 	}

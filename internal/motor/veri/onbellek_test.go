@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
-	"tr_dili/internal/dil/vm"
-	mveri "tr_dili/internal/motor/veri"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/motor/veri"
 )
 
 // Çok büyük kota_gb taşıp "pozitif olmalı" demek yerine açık hata verir.
@@ -33,16 +33,16 @@ func TestOnbellekYoluProgramKlasorunden(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(program, "onb_16_8"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	p := parser.New(lexer.New(`veri_kümesi("` + tr(d) + `", önbellek: "onb_16_8/kume", kota_gb: 0.001).örnekleyici(toplu: 2, bağlam: 8).sonraki()`))
+	p := ayristir.New(sozcuk.New(`veri_kümesi("` + tr(d) + `", önbellek: "onb_16_8/kume", kota_gb: 0.001).örnekleyici(toplu: 2, bağlam: 8).sonraki()`))
 	prog := p.ParseProgram()
-	m := vm.New()
+	m := yurut.New()
 	m.SourceFile = filepath.Join(program, "egit.tr")
 	m.Out = &bytes.Buffer{}
 	if _, err := m.Run(prog); err != nil {
 		t.Fatal(err)
 	}
 	m.WaitAsync()
-	mveri.TumunuKapat(time.Second)
+	veri.TumunuKapat(time.Second)
 	if _, err := os.Stat("onb_16_8"); err == nil {
 		_ = os.RemoveAll("onb_16_8")
 		t.Fatal("önbellek çalışma klasörüne açıldı")
@@ -91,7 +91,7 @@ yazdır("bitti")
 	if err == nil || !strings.Contains(err.Error(), "paylaşan") {
 		t.Fatalf("paylaşılan kota hatası bekleniyordu: %v", err)
 	}
-	mveri.TumunuKapat(time.Second)
+	veri.TumunuKapat(time.Second)
 	// İkisine yeten kotayla sorunsuz.
 	ob2 := filepath.Join(t.TempDir(), "onb")
 	out, _ := mustCalistir(t, program(ob2, 9000))
@@ -101,5 +101,5 @@ yazdır("bitti")
 	if n := klasorBoyu(ob2); n > 9000 {
 		t.Fatalf("paylaşılan önbellek kotayı aştı: %d > 9000 bayt", n)
 	}
-	mveri.TumunuKapat(time.Second)
+	veri.TumunuKapat(time.Second)
 }

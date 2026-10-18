@@ -1,7 +1,7 @@
 // Package veribicim, metin veri biçimlerinin (JSON ve CSV) TR yerleşiklerini içerir:
 // json_çöz, json_metin ve csv_oku. Bu yerleşikler ne matematik/yapay
 // zekâ ne de ağ işidir; ayrı bir paket olmaları yz ve web paketlerini kendi işlerine
-// odaklı tutar. Sıralı JSON çözme çekirdekte (vm.JSONToTR), sıralı JSON yazma
+// odaklı tutar. Sıralı JSON çözme çekirdekte (yurut.JSONToTR), sıralı JSON yazma
 // motorların ortak paketinde (internal/jsonyaz) kalır, çünkü web sunucusu ve istemcisi de
 // onları kullanır.
 package veribicim
@@ -15,25 +15,25 @@ import (
 	"tr_dili/internal/dil/kod"
 
 	"tr_dili/internal/dil/turkce"
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/motor/ortak/baglama"
 	"tr_dili/internal/motor/ortak/jsonyaz"
 )
 
 // Kaydet JSON ve CSV yerleşiklerini VM'ye kaydeder.
-func Kaydet(v *vm.VM) {
-	v.AdlisizKaydet(kod.G600, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+func Kaydet(v *yurut.VM) {
+	v.AdlisizKaydet(kod.G600, func(makine *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_çöz(metin) 1 parametre bekler")
 		}
-		val, err := vm.JSONToTR([]byte(bomSoy(args[0].Inspect())))
+		val, err := yurut.JSONToTR([]byte(bomSoy(args[0].Inspect())))
 		if err != nil {
 			return nil, fmt.Errorf("JSON çözümleme hatası: %v", err)
 		}
 		return val, nil
 	})
 
-	v.AdlisizKaydet(kod.G601, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.G601, func(makine *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("json_metin(değer) 1 parametre bekler")
 		}
@@ -41,10 +41,10 @@ func Kaydet(v *vm.VM) {
 		if err != nil {
 			return nil, fmt.Errorf("json_metin: %v", err)
 		}
-		return &vm.StringVal{Val: string(b)}, nil
+		return &yurut.StringVal{Val: string(b)}, nil
 	})
 
-	v.AdlisizKaydet(kod.G602, func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
+	v.AdlisizKaydet(kod.G602, func(makine *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("csv_oku(dosya_veya_metin) 1 parametre bekler")
 		}
@@ -63,7 +63,7 @@ func Kaydet(v *vm.VM) {
 //     verilir (eskiden "yok.csv" metni tek hücreli bir tablo olarak sessizce dönüyordu).
 //   - Aksi hâlde argüman CSV içeriğinin kendisi sayılır ve olduğu gibi ayrıştırılır
 //     (ör. csv_oku("ad,yaş\nAli,30")); bu eski davranış bilerek korunmuştur.
-func csvGirdisi(makine *vm.VM, arg string) (string, error) {
+func csvGirdisi(makine *yurut.VM, arg string) (string, error) {
 	yol, bakilanlar := baglama.YolCozBakilan(makine, arg)
 	bilgi, statErr := os.Stat(yol)
 	if statErr == nil {
@@ -77,7 +77,7 @@ func csvGirdisi(makine *vm.VM, arg string) (string, error) {
 		return string(data), nil
 	}
 	if yolGibi(arg) {
-		return "", vm.OkumaHatasi("csv_oku", arg, "okunamadı", statErr, bakilanlar)
+		return "", yurut.OkumaHatasi("csv_oku", arg, "okunamadı", statErr, bakilanlar)
 	}
 	return arg, nil
 }
@@ -103,21 +103,21 @@ func bomSoy(s string) string { return strings.TrimPrefix(s, "\ufeff") }
 
 // csvCoz CSV metnini satır listelerine çevirir; hücreler boşlukları kırpılarak hücreDegeri
 // kuralıyla sayıya ya da metne dönüşür.
-func csvCoz(input string) (vm.Value, error) {
+func csvCoz(input string) (yurut.Value, error) {
 	r := csv.NewReader(strings.NewReader(strings.TrimSpace(bomSoy(input))))
 	records, err := r.ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("CSV okuma hatası: %v", err)
 	}
-	var rows []vm.Value
+	var rows []yurut.Value
 	for _, rec := range records {
-		var cols []vm.Value
+		var cols []yurut.Value
 		for _, cell := range rec {
 			cols = append(cols, hucreDegeri(strings.TrimSpace(cell)))
 		}
-		rows = append(rows, &vm.ListVal{Elements: cols})
+		rows = append(rows, &yurut.ListVal{Elements: cols})
 	}
-	return &vm.ListVal{Elements: rows}, nil
+	return &yurut.ListVal{Elements: rows}, nil
 }
 
 // hucreDegeri bir CSV hücresini yalnızca katı ondalık sayı biçimindeyse sayıya çevirir, yoksa
@@ -128,21 +128,21 @@ func csvCoz(input string) (vm.Value, error) {
 //   - Geri kalan her şey Metin kalır: "007" ve "00.5" (posta kodu, kimlik), Tam aralığını
 //     aşan "12345678901234567890", "NaN", "Inf", "infinity", "0x10", "1_000", "+5", ".5",
 //     "1.", "1e400".
-func hucreDegeri(h string) vm.Value {
+func hucreDegeri(h string) yurut.Value {
 	tamSon, ondalik := sayiBicimi(h)
 	if tamSon < 0 {
-		return &vm.StringVal{Val: h}
+		return &yurut.StringVal{Val: h}
 	}
 	if !ondalik {
 		if iv, err := strconv.ParseInt(h, 10, 64); err == nil {
-			return &vm.IntVal{Val: iv}
+			return &yurut.IntVal{Val: iv}
 		}
-		return &vm.StringVal{Val: h}
+		return &yurut.StringVal{Val: h}
 	}
 	if fv, err := strconv.ParseFloat(h, 64); err == nil {
-		return &vm.FloatVal{Val: fv}
+		return &yurut.FloatVal{Val: fv}
 	}
-	return &vm.StringVal{Val: h}
+	return &yurut.StringVal{Val: h}
 }
 
 // sayiBicimi h'nin katı sayı biçiminde olup olmadığını söyler: biçim dışıysa -1, değilse

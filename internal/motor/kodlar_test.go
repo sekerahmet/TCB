@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"tr_dili/internal/depo"
+	"tr_dili/internal/dil/ayristir"
 	"tr_dili/internal/dil/kod"
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/yurut"
 )
 
 // Tüm motorlar yüklüyken genel kapsamdaki her yerleşiğin sözlükte bir yerleşik kodu
@@ -17,10 +17,10 @@ import (
 // adıyla kayıtlı olmalı. Böylece sözlükte adı olmayan
 // bir yerleşik kaydedilemez, sözlükte de kaydı olmayan bir yerleşik kodu kalamaz.
 func TestYerlesiklerSozlukleTutarli(t *testing.T) {
-	m := vm.New()
+	m := yurut.New()
 	for _, ad := range m.GlobalEnv.Names() {
 		d, _ := m.GlobalEnv.Get(ad)
-		b, ok := d.(*vm.BuiltinVal)
+		b, ok := d.(*yurut.BuiltinVal)
 		if !ok {
 			continue
 		}
@@ -51,9 +51,9 @@ func TestYerlesiklerSozlukleTutarli(t *testing.T) {
 }
 
 // calistirAyni TR kodunu verilen VM'de çalıştırır (genel tanımlar korunur).
-func calistirAyni(t *testing.T, m *vm.VM, kd string) (vm.Value, error) {
+func calistirAyni(t *testing.T, m *yurut.VM, kd string) (yurut.Value, error) {
 	t.Helper()
-	p := parser.New(lexer.New(kd))
+	p := ayristir.New(sozcuk.New(kd))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), kd)
@@ -66,14 +66,14 @@ func calistirAyni(t *testing.T, m *vm.VM, kd string) (vm.Value, error) {
 // kalmamalı. Veri kümesi ve okuyucu üyeleri (Y600-Y602) dizin gerektirdiği için
 // internal/motor/veri testlerinde denenir.
 func TestUyelerSozlukleTutarli(t *testing.T) {
-	m := vm.New()
+	m := yurut.New()
 	kur := strings.Join([]string{
 		`değişken u_metin = "abc"`,
 		`değişken u_liste = [1, 2]`,
 		`değişken u_sozluk = {"a": 1}`,
 		`değişken u_tensor = tensör([[1.0, 2.0]], türev_izle: doğru)`,
 		`değişken u_iyilestirici = SGD([u_tensor])`,
-		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(depo.Yol("internal/hesap/parcalayici/testdata/p_bayt_bpe.json")) + `")`,
+		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(depo.Yol("internal/hesap/parca/testdata/p_bayt_bpe.json")) + `")`,
 	}, "\n")
 	if _, err := calistirAyni(t, m, kur); err != nil {
 		t.Fatal(err)

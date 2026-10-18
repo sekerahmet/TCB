@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
-	"tr_dili/internal/dil/vm"
-	dv "tr_dili/internal/hesap/veri"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/hesap/veriyolu"
 )
 
 // kapiliKaynak ilk Doldur çağrısında kapı açılana kadar bekleyen bir toplu iş kaynağıdır.
@@ -19,7 +19,7 @@ type kapiliKaynak struct {
 	n    int
 }
 
-func (k *kapiliKaynak) Doldur(ctx context.Context, ti *dv.TopluIs) error {
+func (k *kapiliKaynak) Doldur(ctx context.Context, ti *veriyolu.TopluIs) error {
 	select {
 	case <-k.kapi:
 	case <-ctx.Done():
@@ -43,26 +43,26 @@ func TestSonrakiBeklerkenKilitBirakilir(t *testing.T) {
 	defer o.kaynak.Kapat(time.Second)
 
 	basladi := make(chan struct{}, 1)
-	m := vm.New()
+	m := yurut.New()
 	m.Out = &bytes.Buffer{}
 	m.GlobalEnv.Define("s", o, false)
-	m.RegisterBuiltin("başladı", func(*vm.VM, []vm.Value, map[string]vm.Value) (vm.Value, error) {
+	m.RegisterBuiltin("başladı", func(*yurut.VM, []yurut.Value, map[string]yurut.Value) (yurut.Value, error) {
 		basladi <- struct{}{}
-		return vm.NULL, nil
+		return yurut.NULL, nil
 	})
-	m.RegisterBuiltin("görevi_bekle", func(m *vm.VM, _ []vm.Value, _ map[string]vm.Value) (vm.Value, error) {
+	m.RegisterBuiltin("görevi_bekle", func(m *yurut.VM, _ []yurut.Value, _ map[string]yurut.Value) (yurut.Value, error) {
 		m.Blocking(func() {
 			<-basladi
 			// Görevin sonraki()'ye girmesine zaman tanı.
 			time.Sleep(50 * time.Millisecond)
 		})
-		return vm.NULL, nil
+		return yurut.NULL, nil
 	})
-	m.RegisterBuiltin("kapıyı_aç", func(*vm.VM, []vm.Value, map[string]vm.Value) (vm.Value, error) {
+	m.RegisterBuiltin("kapıyı_aç", func(*yurut.VM, []yurut.Value, map[string]yurut.Value) (yurut.Value, error) {
 		close(kaynak.kapi)
-		return vm.NULL, nil
+		return yurut.NULL, nil
 	})
-	p := parser.New(lexer.New(`
+	p := ayristir.New(sozcuk.New(`
 değişken alınan = yok
 eşzamanlı {
     başladı()
@@ -90,7 +90,7 @@ bekle_hepsi()
 		t.Fatal("program kilitlendi: sonraki() beklerken yorumlayıcı kilidi tutuluyor")
 	}
 	v, _ := m.GlobalEnv.Get("alınan")
-	l, ok := v.(*vm.ListVal)
+	l, ok := v.(*yurut.ListVal)
 	if !ok || len(l.Elements) != 2 {
 		t.Fatalf("[girdi, hedef] bekleniyordu: %v", v)
 	}

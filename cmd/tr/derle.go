@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/yurut"
 )
 
 // 'tr derle' ile üretilen uygulama, yorumlayıcı ikilisinin sonuna eklenmiş bir paketten
@@ -165,18 +165,18 @@ type aktarYeri struct {
 // 'aktar' sözcüğünden sonraki ilk sözcük biriminin metnini modül yolu sayar; burada da
 // aynısı yapılır, böylece iç bloklardaki aktarımlar da kaçmaz.
 func aktarYerleri(kod string) []aktarYeri {
-	l := lexer.New(kod)
+	l := sozcuk.New(kod)
 	var yerler []aktarYeri
 	for {
 		tok := l.NextToken()
-		if tok.Type == lexer.TOKEN_EOF {
+		if tok.Type == sozcuk.TOKEN_EOF {
 			return yerler
 		}
-		if tok.Type != lexer.TOKEN_AKTAR {
+		if tok.Type != sozcuk.TOKEN_AKTAR {
 			continue
 		}
 		yolTok := l.NextToken()
-		if yolTok.Type == lexer.TOKEN_EOF {
+		if yolTok.Type == sozcuk.TOKEN_EOF {
 			return yerler
 		}
 		bas, son := l.SonAralik()
@@ -184,7 +184,7 @@ func aktarYerleri(kod string) []aktarYeri {
 	}
 }
 
-// modulYolunuCoz bir 'aktar' yolunu yorumlayıcıyla (internal/dil/vm) aynı kuralla çözer: önce
+// modulYolunuCoz bir 'aktar' yolunu yorumlayıcıyla (internal/dil/yurut) aynı kuralla çözer: önce
 // bulunulan klasöre göre, bulunamazsa aktaran dosyanın klasörüne, o da olmazsa ana
 // programın klasörüne göre. aranan, hata iletisinde gösterilecek denenmiş yollardır.
 func modulYolunuCoz(yol, aktaran, ana string) (cozulen string, aranan []string, ok bool) {
@@ -250,7 +250,7 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 		}
 		// Modül yorumlayıcıdaki 'aktar' ile aynı denetimden geçer (sözdizimi, üst düzey
 		// 'sonuç', tip denetimi).
-		if _, tur, hatalar := vm.ModulDenetle(modul.Kod); len(hatalar) > 0 {
+		if _, tur, hatalar := yurut.ModulDenetle(modul.Kod); len(hatalar) > 0 {
 			return &modulDenetimHatasi{yol: filepath.ToSlash(cozulen), kod: modul.Kod, tur: tur, hatalar: hatalar}
 		}
 		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
@@ -498,7 +498,7 @@ func gomuluUygulamayiCalistir(pk *paket) {
 	}
 
 	prog := kaynakHazirla(kod, gomuluHazirlik)
-	machine := vm.New()
+	machine := yurut.New()
 	machine.SourceFile = gomuluKaynakAdi
 	// Hata çerçeveleri kullanıcının yazdığı (yönlendirilmemiş) kaynağı göstersin; satırlar aynıdır.
 	machine.SourceCode = pk.Ana.Kod

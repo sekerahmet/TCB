@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"tr_dili/internal/depo"
-	pc "tr_dili/internal/hesap/parcalayici"
-	dv "tr_dili/internal/hesap/veri"
+	"tr_dili/internal/hesap/parca"
+	"tr_dili/internal/hesap/veriyolu"
 )
 
 // testler/veri altındaki sentetik test verisi (TR testleri ve ornekler/08_veri_ile_egitim.tr
@@ -36,14 +36,14 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 	}
 	npyU16 := func(v []uint16) []byte {
 		var b bytes.Buffer
-		if err := dv.NpyYazU16(&b, v); err != nil {
+		if err := veriyolu.NpyYazU16(&b, v); err != nil {
 			t.Fatal(err)
 		}
 		return b.Bytes()
 	}
 	npyI32 := func(v []int32) []byte {
 		var b bytes.Buffer
-		if err := dv.NpyYazI32(&b, v); err != nil {
+		if err := veriyolu.NpyYazI32(&b, v); err != nil {
 			t.Fatal(err)
 		}
 		return b.Bytes()
@@ -51,9 +51,9 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 	d := map[string][]byte{}
 	// Parçalayıcılar: bayt düzeyi BPE (özel tokenlı, <|endoftext|> içerir) ve BERT
 	// tarzı WordPiece (son işleyicisi [CLS]/[SEP] ekler; çift kodlama için).
-	bpe := oku(depo.Yol("internal/hesap/parcalayici/testdata/p_bayt_bpe.json"))
+	bpe := oku(depo.Yol("internal/hesap/parca/testdata/p_bayt_bpe.json"))
 	d["parcalayici.json"] = bpe
-	d["parcalayici_bert.json"] = oku(depo.Yol("internal/hesap/parcalayici/testdata/p_wordpiece.json"))
+	d["parcalayici_bert.json"] = oku(depo.Yol("internal/hesap/parca/testdata/p_wordpiece.json"))
 
 	// sayilar/: değerleri konumunu söyleyen iki parça (uint16 ve int32).
 	a := make([]uint16, 100)
@@ -69,7 +69,7 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 
 	// metin/: örnek Türkçe metnin satırları belge sayılıp kodlanır, aralarına
 	// <|endoftext|> konur ve iki parçaya bölünür; meta.json parça token sayılarını verir.
-	p, err := pc.Ayristir(bpe)
+	p, err := parca.Ayristir(bpe)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 		t.Fatal("<|endoftext|> yok")
 	}
 	var belgeler []string
-	for _, s := range strings.Split(string(oku(depo.Yol("internal/hesap/parcalayici/testdata/ornek_metin.txt"))), "\n") {
+	for _, s := range strings.Split(string(oku(depo.Yol("internal/hesap/parca/testdata/ornek_metin.txt"))), "\n") {
 		if strings.TrimSpace(s) != "" {
 			belgeler = append(belgeler, s)
 		}

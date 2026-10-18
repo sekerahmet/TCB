@@ -8,26 +8,26 @@ import (
 	"strings"
 	"testing"
 
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/yurut"
 )
 
 // Testlerdeki VM'ler bu paketin yerleşiklerini de içersin (tr_dili/internal/motor gibi).
 func init() {
-	vm.MotorEkle(Kaydet)
+	yurut.MotorEkle(Kaydet)
 }
 
 // calistir programı çalıştırır; yazdır() çıktısını ve son değeri döndürür.
-func calistir(t *testing.T, code string) (string, vm.Value, error) {
+func calistir(t *testing.T, code string) (string, yurut.Value, error) {
 	t.Helper()
-	p := parser.New(lexer.New(code))
+	p := ayristir.New(sozcuk.New(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("Sözdizimi hatası: %v", p.Errors())
 	}
 	var out bytes.Buffer
-	machine := vm.New()
+	machine := yurut.New()
 	machine.Out = &out
 	val, err := machine.Run(prog)
 	machine.WaitAsync()
@@ -94,9 +94,9 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	}
 
 	// Metin olmayan anahtarlar Go/JSON tarafına görünen hâlleriyle aktarılır.
-	d := vm.NewDictVal()
-	d.SetValue(&vm.IntVal{Val: 7}, &vm.StringVal{Val: "yedi"})
-	m := vm.TRToGoValue(d).(map[string]interface{})
+	d := yurut.NewDictVal()
+	d.SetValue(&yurut.IntVal{Val: 7}, &yurut.StringVal{Val: "yedi"})
+	m := yurut.TRToGoValue(d).(map[string]interface{})
 	if m["7"] != "yedi" {
 		t.Fatalf("TRToGoValue anahtarı \"7\" olmalı, alınan: %v", m)
 	}
@@ -145,9 +145,9 @@ func TestCSVResolvesRelativeToProgram(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "yerel_tablo.csv"), []byte("a,b\n1,2"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	p := parser.New(lexer.New(`sonuç csv_oku("yerel_tablo.csv")`))
+	p := ayristir.New(sozcuk.New(`sonuç csv_oku("yerel_tablo.csv")`))
 	prog := p.ParseProgram()
-	machine := vm.New()
+	machine := yurut.New()
 	machine.SourceFile = filepath.Join(dir, "program.tr")
 	val, err := machine.Run(prog)
 	if err != nil {

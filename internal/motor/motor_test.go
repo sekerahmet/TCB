@@ -3,15 +3,15 @@ package motor
 import (
 	"testing"
 
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/yurut"
 )
 
 // Tüm motorlar yüklüyken kaldırılmış eş anlamlı yerleşik adlarından hiçbiri kayıtlı
 // olmamalıdır; asıl adlar (ör. ortanca, standart_sapma) kayıtlıdır.
 func TestKaldirilanYerlesiklerKayitliDegil(t *testing.T) {
-	m := vm.New()
+	m := yurut.New()
 	for _, ad := range m.GlobalEnv.Names() {
-		if ipucu := vm.KaldirilanYerlesikIpucu(ad); ipucu != "" {
+		if ipucu := yurut.KaldirilanYerlesikIpucu(ad); ipucu != "" {
 			t.Errorf("%q kayıtlı olmamalı:%s", ad, ipucu)
 		}
 	}

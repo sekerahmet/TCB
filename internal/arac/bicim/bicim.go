@@ -11,7 +11,7 @@
 // satır ve dosya sonunda tek bir satır sonu.
 //
 // Güvenlik: Biçimlenmiş kod yeniden ayrıştırılır; sözcük birimi dizisi ya da AST dökümü
-// (ast.Dokum) değişmişse sonuç reddedilir. Böylece biçimlendirici programın anlamını asla
+// (agac.Dokum) değişmişse sonuç reddedilir. Böylece biçimlendirici programın anlamını asla
 // değiştirmez.
 package bicim
 
@@ -19,19 +19,19 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"tr_dili/internal/dil/ast"
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
+	"tr_dili/internal/dil/agac"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/sozcuk"
 )
 
 const girintiBirimi = "    "
 
 // tokYorum bir yorum öğesinin türüdür (sözcük birimi türleriyle karışmaz).
-const tokYorum lexer.TokenType = "YORUM"
+const tokYorum sozcuk.TokenType = "YORUM"
 
 // oge biçimlendirilecek akıştaki bir öğedir: sözcük birimi ya da yorum.
 type oge struct {
-	tur     lexer.TokenType
+	tur     sozcuk.TokenType
 	metin   string // kaynaktaki ham metin
 	satirA  int    // öncesindeki boşlukta geçen satır sonu sayısı
 	satir   int    // sözcük biriminin kaynak satırı (yorumlarda 0)
@@ -72,7 +72,7 @@ func Bicimle(kaynak string) (string, error) {
 	// Satır sonları LF yazılır; metinlerin içindekiler de (sözcük çözümleyici çok satırlı
 	// metindeki CRLF'yi zaten '\n' okur, anlam değişmez): karışık satır sonu kalmaz.
 	kaynak = strings.ReplaceAll(kaynak, "\r\n", "\n")
-	p := parser.New(lexer.New(kaynak))
+	p := ayristir.New(sozcuk.New(kaynak))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		return "", &SozdizimiHatasi{Hatalar: p.Errors()}
@@ -87,9 +87,9 @@ func Bicimle(kaynak string) (string, error) {
 // AnlamAyniMi iki kaynağın aynı sözcük birimi dizisine ve aynı AST'ye sahip olduğunu
 // denetler; farklıysa *AnlamDegistiHatasi döner.
 func AnlamAyniMi(once, sonra string) error {
-	p1 := parser.New(lexer.New(once))
+	p1 := ayristir.New(sozcuk.New(once))
 	prog1 := p1.ParseProgram()
-	p2 := parser.New(lexer.New(sonra))
+	p2 := ayristir.New(sozcuk.New(sonra))
 	prog2 := p2.ParseProgram()
 	if len(p2.Errors()) > 0 {
 		return &AnlamDegistiHatasi{Ayrinti: "biçimlenmiş kod ayrıştırılamadı: " + p2.Errors()[0]}
@@ -109,13 +109,13 @@ func AnlamAyniMi(once, sonra string) error {
 	return nil
 }
 
-func sozcukler(kaynak string) []lexer.Token {
-	l := lexer.New(kaynak)
-	var t []lexer.Token
+func sozcukler(kaynak string) []sozcuk.Token {
+	l := sozcuk.New(kaynak)
+	var t []sozcuk.Token
 	for {
 		tok := l.NextToken()
 		t = append(t, tok)
-		if tok.Type == lexer.TOKEN_EOF {
+		if tok.Type == sozcuk.TOKEN_EOF {
 			return t
 		}
 	}
@@ -133,7 +133,7 @@ const (
 // ve sondaki bloklar. Bunlar ifadenin parçasıdır; yeni satırdaki böyle bir '{' önceki satıra
 // alınırsa anlam değişebilir. Listede olmayan her '{' bir gövde başlangıcıdır (eğer, döngü,
 // fonksiyon, yapı, dene...) ve ayrıştırıcı onu satırdan bağımsız okur.
-func suslular(prog *ast.Program) map[konum]int {
+func suslular(prog *agac.Program) map[konum]int {
 	sonuc := map[konum]int{}
 	var gez func(v reflect.Value)
 	gez = func(v reflect.Value) {
@@ -143,14 +143,14 @@ func suslular(prog *ast.Program) map[konum]int {
 				gez(v.Elem())
 			}
 		case reflect.Struct:
-			if _, ok := v.Interface().(lexer.Token); ok {
+			if _, ok := v.Interface().(sozcuk.Token); ok {
 				return
 			}
 			switch n := v.Addr().Interface().(type) {
-			case *ast.DictLiteral:
+			case *agac.DictLiteral:
 				sonuc[konum{n.Token.Line, n.Token.Column}] = susluSozluk
-			case *ast.FunctionLiteral:
-				if n.Token.Type == lexer.TOKEN_LBRACE {
+			case *agac.FunctionLiteral:
+				if n.Token.Type == sozcuk.TOKEN_LBRACE {
 					sonuc[konum{n.Token.Line, n.Token.Column}] = susluBlok
 				}
 			}
@@ -175,7 +175,7 @@ func suslular(prog *ast.Program) map[konum]int {
 
 // ogeler kaynağı sözcük birimleri ve yorumlardan oluşan bir akışa çevirir.
 func ogeler(kaynak string) []oge {
-	l := lexer.New(kaynak)
+	l := sozcuk.New(kaynak)
 	girdi := l.Girdi()
 	var sonuc []oge
 	onceki := 0 // önceki öğenin bittiği indeks
@@ -186,9 +186,9 @@ func ogeler(kaynak string) []oge {
 			bas = len(girdi)
 		}
 		sonuc = append(sonuc, araliktakiYorumlar(girdi[onceki:bas])...)
-		if tok.Type == lexer.TOKEN_EOF {
+		if tok.Type == sozcuk.TOKEN_EOF {
 			// Dosya sonundaki boşluk satır sayısı için işaretçi öğe
-			sonuc = append(sonuc, oge{tur: lexer.TOKEN_EOF, satirA: satirSayisi(girdi[onceki:bas])})
+			sonuc = append(sonuc, oge{tur: sozcuk.TOKEN_EOF, satirA: satirSayisi(girdi[onceki:bas])})
 			return sonuc
 		}
 		o := oge{
@@ -278,39 +278,39 @@ func satirSayisi(r []rune) int {
 }
 
 // Operatör sınıfları
-var ikiliOperatorler = map[lexer.TokenType]bool{
-	lexer.TOKEN_PLUS: true, lexer.TOKEN_MINUS: true, lexer.TOKEN_ASTERISK: true, lexer.TOKEN_SLASH: true,
-	lexer.TOKEN_PERCENT: true, lexer.TOKEN_POWER: true, lexer.TOKEN_MATMUL: true,
-	lexer.TOKEN_EQ: true, lexer.TOKEN_NOT_EQ: true, lexer.TOKEN_LT: true, lexer.TOKEN_GT: true,
-	lexer.TOKEN_LTE: true, lexer.TOKEN_GTE: true, lexer.TOKEN_AND: true, lexer.TOKEN_OR: true,
-	lexer.TOKEN_PIPE: true, lexer.TOKEN_NULL_COALESC: true, lexer.TOKEN_ARROW: true,
-	lexer.TOKEN_ASSIGN: true, lexer.TOKEN_WALRUS: true, lexer.TOKEN_PLUS_ASSIGN: true,
-	lexer.TOKEN_MINUS_ASSIGN: true, lexer.TOKEN_MUL_ASSIGN: true, lexer.TOKEN_DIV_ASSIGN: true,
+var ikiliOperatorler = map[sozcuk.TokenType]bool{
+	sozcuk.TOKEN_PLUS: true, sozcuk.TOKEN_MINUS: true, sozcuk.TOKEN_ASTERISK: true, sozcuk.TOKEN_SLASH: true,
+	sozcuk.TOKEN_PERCENT: true, sozcuk.TOKEN_POWER: true, sozcuk.TOKEN_MATMUL: true,
+	sozcuk.TOKEN_EQ: true, sozcuk.TOKEN_NOT_EQ: true, sozcuk.TOKEN_LT: true, sozcuk.TOKEN_GT: true,
+	sozcuk.TOKEN_LTE: true, sozcuk.TOKEN_GTE: true, sozcuk.TOKEN_AND: true, sozcuk.TOKEN_OR: true,
+	sozcuk.TOKEN_PIPE: true, sozcuk.TOKEN_NULL_COALESC: true, sozcuk.TOKEN_ARROW: true,
+	sozcuk.TOKEN_ASSIGN: true, sozcuk.TOKEN_WALRUS: true, sozcuk.TOKEN_PLUS_ASSIGN: true,
+	sozcuk.TOKEN_MINUS_ASSIGN: true, sozcuk.TOKEN_MUL_ASSIGN: true, sozcuk.TOKEN_DIV_ASSIGN: true,
 }
 
 // Satır sonunda kalırsa sonraki satırı devam satırı yapan sözcükler
-var devamEttirenSon = map[lexer.TokenType]bool{
-	lexer.TOKEN_VE: true, lexer.TOKEN_VEYA: true, lexer.TOKEN_DOT: true, lexer.TOKEN_SAFE_DOT: true,
-	lexer.TOKEN_COLON: true, lexer.TOKEN_RANGE: true, lexer.TOKEN_RANGE_INCL: true,
+var devamEttirenSon = map[sozcuk.TokenType]bool{
+	sozcuk.TOKEN_VE: true, sozcuk.TOKEN_VEYA: true, sozcuk.TOKEN_DOT: true, sozcuk.TOKEN_SAFE_DOT: true,
+	sozcuk.TOKEN_COLON: true, sozcuk.TOKEN_RANGE: true, sozcuk.TOKEN_RANGE_INCL: true,
 }
 
 // Satır başında gelirse o satırı devam satırı yapan sözcükler ('-' bilerek yok: satır başında
 // tekli eksi gibi görünür)
-var devamEdenBas = map[lexer.TokenType]bool{
-	lexer.TOKEN_PIPE: true, lexer.TOKEN_DOT: true, lexer.TOKEN_SAFE_DOT: true, lexer.TOKEN_NULL_COALESC: true,
-	lexer.TOKEN_AND: true, lexer.TOKEN_OR: true, lexer.TOKEN_VE: true, lexer.TOKEN_VEYA: true,
-	lexer.TOKEN_PLUS: true, lexer.TOKEN_ASTERISK: true, lexer.TOKEN_SLASH: true, lexer.TOKEN_PERCENT: true,
-	lexer.TOKEN_POWER: true, lexer.TOKEN_MATMUL: true, lexer.TOKEN_EQ: true, lexer.TOKEN_NOT_EQ: true,
-	lexer.TOKEN_LT: true, lexer.TOKEN_GT: true, lexer.TOKEN_LTE: true, lexer.TOKEN_GTE: true,
-	lexer.TOKEN_RANGE: true, lexer.TOKEN_RANGE_INCL: true,
+var devamEdenBas = map[sozcuk.TokenType]bool{
+	sozcuk.TOKEN_PIPE: true, sozcuk.TOKEN_DOT: true, sozcuk.TOKEN_SAFE_DOT: true, sozcuk.TOKEN_NULL_COALESC: true,
+	sozcuk.TOKEN_AND: true, sozcuk.TOKEN_OR: true, sozcuk.TOKEN_VE: true, sozcuk.TOKEN_VEYA: true,
+	sozcuk.TOKEN_PLUS: true, sozcuk.TOKEN_ASTERISK: true, sozcuk.TOKEN_SLASH: true, sozcuk.TOKEN_PERCENT: true,
+	sozcuk.TOKEN_POWER: true, sozcuk.TOKEN_MATMUL: true, sozcuk.TOKEN_EQ: true, sozcuk.TOKEN_NOT_EQ: true,
+	sozcuk.TOKEN_LT: true, sozcuk.TOKEN_GT: true, sozcuk.TOKEN_LTE: true, sozcuk.TOKEN_GTE: true,
+	sozcuk.TOKEN_RANGE: true, sozcuk.TOKEN_RANGE_INCL: true,
 }
 
-func acilis(t lexer.TokenType) bool {
-	return t == lexer.TOKEN_LBRACE || t == lexer.TOKEN_LPAREN || t == lexer.TOKEN_LBRACKET
+func acilis(t sozcuk.TokenType) bool {
+	return t == sozcuk.TOKEN_LBRACE || t == sozcuk.TOKEN_LPAREN || t == sozcuk.TOKEN_LBRACKET
 }
 
-func kapanis(t lexer.TokenType) bool {
-	return t == lexer.TOKEN_RBRACE || t == lexer.TOKEN_RPAREN || t == lexer.TOKEN_RBRACKET
+func kapanis(t sozcuk.TokenType) bool {
+	return t == sozcuk.TOKEN_RBRACE || t == sozcuk.TOKEN_RPAREN || t == sozcuk.TOKEN_RBRACKET
 }
 
 // tekliMi '-' işaretinin önceki sözcüğe bakarak önek (tekli) olup olmadığını belirler.
@@ -320,11 +320,11 @@ func tekliMi(onceki *oge) bool {
 	}
 	t := onceki.tur
 	switch {
-	case t == lexer.TOKEN_RPAREN || t == lexer.TOKEN_RBRACKET || t == lexer.TOKEN_RBRACE:
+	case t == sozcuk.TOKEN_RPAREN || t == sozcuk.TOKEN_RBRACKET || t == sozcuk.TOKEN_RBRACE:
 		return false
-	case t == lexer.TOKEN_IDENT || t == lexer.TOKEN_INT || t == lexer.TOKEN_FLOAT || t == lexer.TOKEN_STRING:
+	case t == sozcuk.TOKEN_IDENT || t == sozcuk.TOKEN_INT || t == sozcuk.TOKEN_FLOAT || t == sozcuk.TOKEN_STRING:
 		return false
-	case t == lexer.TOKEN_DOGRU || t == lexer.TOKEN_YANLIS || t == lexer.TOKEN_YOK || t == lexer.TOKEN_KENDI:
+	case t == sozcuk.TOKEN_DOGRU || t == sozcuk.TOKEN_YANLIS || t == sozcuk.TOKEN_YOK || t == sozcuk.TOKEN_KENDI:
 		return false
 	}
 	return true
@@ -336,31 +336,31 @@ func aradaBosluk(p, c *oge) bool {
 	switch {
 	case pt == tokYorum || ct == tokYorum:
 		return true
-	case ct == lexer.TOKEN_COMMA || ct == lexer.TOKEN_SEMICOLON || ct == lexer.TOKEN_RPAREN || ct == lexer.TOKEN_RBRACKET:
+	case ct == sozcuk.TOKEN_COMMA || ct == sozcuk.TOKEN_SEMICOLON || ct == sozcuk.TOKEN_RPAREN || ct == sozcuk.TOKEN_RBRACKET:
 		return false
-	case pt == lexer.TOKEN_LPAREN || pt == lexer.TOKEN_LBRACKET:
+	case pt == sozcuk.TOKEN_LPAREN || pt == sozcuk.TOKEN_LBRACKET:
 		return false
-	case pt == lexer.TOKEN_DOT || pt == lexer.TOKEN_SAFE_DOT || ct == lexer.TOKEN_DOT || ct == lexer.TOKEN_SAFE_DOT:
+	case pt == sozcuk.TOKEN_DOT || pt == sozcuk.TOKEN_SAFE_DOT || ct == sozcuk.TOKEN_DOT || ct == sozcuk.TOKEN_SAFE_DOT:
 		return false
-	case pt == lexer.TOKEN_LBRACE:
-		return ct != lexer.TOKEN_RBRACE && !p.sozluk
-	case ct == lexer.TOKEN_RBRACE:
+	case pt == sozcuk.TOKEN_LBRACE:
+		return ct != sozcuk.TOKEN_RBRACE && !p.sozluk
+	case ct == sozcuk.TOKEN_RBRACE:
 		return !c.sozluk
 	case p.tekli:
 		return false
 	// Dönüş tipi oku: fonksiyon f() -> Tam
-	case pt == lexer.TOKEN_MINUS && ct == lexer.TOKEN_GT && c.bitisik:
+	case pt == sozcuk.TOKEN_MINUS && ct == sozcuk.TOKEN_GT && c.bitisik:
 		return false
-	case ct == lexer.TOKEN_LPAREN || ct == lexer.TOKEN_LBRACKET:
+	case ct == sozcuk.TOKEN_LPAREN || ct == sozcuk.TOKEN_LBRACKET:
 		switch pt {
-		case lexer.TOKEN_IDENT, lexer.TOKEN_RPAREN, lexer.TOKEN_RBRACKET, lexer.TOKEN_RBRACE,
-			lexer.TOKEN_STRING, lexer.TOKEN_KENDI, lexer.TOKEN_FONKSIYON, lexer.TOKEN_KESME_NOKTASI:
+		case sozcuk.TOKEN_IDENT, sozcuk.TOKEN_RPAREN, sozcuk.TOKEN_RBRACKET, sozcuk.TOKEN_RBRACE,
+			sozcuk.TOKEN_STRING, sozcuk.TOKEN_KENDI, sozcuk.TOKEN_FONKSIYON, sozcuk.TOKEN_KESME_NOKTASI:
 			return false
 		}
 		return true
-	case pt == lexer.TOKEN_RANGE || pt == lexer.TOKEN_RANGE_INCL || ct == lexer.TOKEN_RANGE || ct == lexer.TOKEN_RANGE_INCL:
+	case pt == sozcuk.TOKEN_RANGE || pt == sozcuk.TOKEN_RANGE_INCL || ct == sozcuk.TOKEN_RANGE || ct == sozcuk.TOKEN_RANGE_INCL:
 		return false
-	case ct == lexer.TOKEN_COLON:
+	case ct == sozcuk.TOKEN_COLON:
 		return false
 	}
 	return true
@@ -379,21 +379,21 @@ func bicimle(kaynak string, sus map[konum]int) string {
 	var susYigin []*oge // açık '{' öğeleri (sözlük kapanışını eşlemek için)
 	for i := range og {
 		o := &og[i]
-		if o.tur == tokYorum || o.tur == lexer.TOKEN_EOF {
+		if o.tur == tokYorum || o.tur == sozcuk.TOKEN_EOF {
 			continue
 		}
-		if o.tur == lexer.TOKEN_BANG {
+		if o.tur == sozcuk.TOKEN_BANG {
 			o.tekli = true
-		} else if o.tur == lexer.TOKEN_MINUS {
-			oku := i+1 < len(og) && og[i+1].tur == lexer.TOKEN_GT && og[i+1].bitisik &&
-				oncekiTok != nil && (oncekiTok.tur == lexer.TOKEN_RPAREN)
+		} else if o.tur == sozcuk.TOKEN_MINUS {
+			oku := i+1 < len(og) && og[i+1].tur == sozcuk.TOKEN_GT && og[i+1].bitisik &&
+				oncekiTok != nil && (oncekiTok.tur == sozcuk.TOKEN_RPAREN)
 			o.tekli = !oku && tekliMi(oncekiTok)
 		}
 		switch o.tur {
-		case lexer.TOKEN_LBRACE:
+		case sozcuk.TOKEN_LBRACE:
 			o.sozluk = sus[konum{o.satir, o.sutun}] == susluSozluk
 			susYigin = append(susYigin, o)
-		case lexer.TOKEN_RBRACE:
+		case sozcuk.TOKEN_RBRACE:
 			if len(susYigin) > 0 {
 				o.sozluk = susYigin[len(susYigin)-1].sozluk
 				susYigin = susYigin[:len(susYigin)-1]
@@ -402,9 +402,9 @@ func bicimle(kaynak string, sus map[konum]int) string {
 		if o.satirA > 0 && i > 0 && og[i-1].tur != tokYorum {
 			onceki := og[i-1].tur
 			switch {
-			case o.tur == lexer.TOKEN_LBRACE && sus[konum{o.satir, o.sutun}] == 0:
+			case o.tur == sozcuk.TOKEN_LBRACE && sus[konum{o.satir, o.sutun}] == 0:
 				o.satirA = 0
-			case (o.tur == lexer.TOKEN_DEGILSE || o.tur == lexer.TOKEN_YAKALA) && onceki == lexer.TOKEN_RBRACE:
+			case (o.tur == sozcuk.TOKEN_DEGILSE || o.tur == sozcuk.TOKEN_YAKALA) && onceki == sozcuk.TOKEN_RBRACE:
 				o.satirA = 0
 			}
 		}
@@ -419,7 +419,7 @@ func bicimle(kaynak string, sus map[konum]int) string {
 	var satirlar []satir
 	for i := range og {
 		o := &og[i]
-		if o.tur == lexer.TOKEN_EOF {
+		if o.tur == sozcuk.TOKEN_EOF {
 			break
 		}
 		if len(satirlar) == 0 || o.satirA > 0 {

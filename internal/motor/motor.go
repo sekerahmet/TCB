@@ -1,4 +1,4 @@
-// Package motor, çekirdek yorumlayıcının (internal/dil/vm) içe aktarmadığı parçaları ona bağlar:
+// Package motor, çekirdek yorumlayıcının (internal/dil/yurut) içe aktarmadığı parçaları ona bağlar:
 // tensör ve yapay zekâ, veri ve parçalayıcı, JSON/CSV motorlarının yerleşikleri ile koddaki
 // kesme_noktası deyiminin açtığı hata ayıklayıcı. Tam dili çalıştıran her program bu
 // paketi içe aktarmalıdır:
@@ -9,25 +9,25 @@ package motor
 import (
 	"time"
 
-	"tr_dili/internal/arac/hataayiklama"
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/arac/ayikla"
+	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/motor/ogrenme"
 	"tr_dili/internal/motor/parcalayici"
-	"tr_dili/internal/motor/tensor"
 	"tr_dili/internal/motor/veri"
 	"tr_dili/internal/motor/veribicim"
 )
 
 func init() {
-	vm.MotorEkle(veribicim.Kaydet)
+	yurut.MotorEkle(veribicim.Kaydet)
 	// Tensör motoru (tensör, otomatik türev, katmanlar) çekirdek yerleşiklerini (toplam,
 	// ortalama, min, maks, karekök) sarar; bu yüzden onlardan SONRA kaydedilmelidir.
-	vm.MotorEkle(tensor.Kaydet)
+	yurut.MotorEkle(ogrenme.Kaydet)
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
-	vm.MotorEkle(parcalayici.Kaydet)
-	vm.MotorEkle(veri.Kaydet)
+	yurut.MotorEkle(parcalayici.Kaydet)
+	yurut.MotorEkle(veri.Kaydet)
 
-	vm.YeniHataAyiklayici = func(sourceFile, sourceCode string) vm.HataAyiklayici {
-		return hataayiklama.NewDebugger(sourceFile, sourceCode, true)
+	yurut.YeniHataAyiklayici = func(sourceFile, sourceCode string) yurut.HataAyiklayici {
+		return ayikla.NewDebugger(sourceFile, sourceCode, true)
 	}
 }
 

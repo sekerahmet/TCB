@@ -10,35 +10,35 @@ import (
 	"strings"
 	"testing"
 
-	"tr_dili/internal/arac/hataayiklama"
+	"tr_dili/internal/arac/ayikla"
 	"tr_dili/internal/depo"
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
-	"tr_dili/internal/dil/vm"
-	pc "tr_dili/internal/hesap/parcalayici"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/hesap/parca"
 	_ "tr_dili/internal/motor"
 )
 
 // Test parçalayıcıları; yollar TR kaynağına da yazıldığı için bölü çizgisiyle.
 var (
-	bpeYolu  = filepath.ToSlash(depo.Yol("internal/hesap/parcalayici/testdata/p_bayt_bpe.json"))
-	bertYolu = filepath.ToSlash(depo.Yol("internal/hesap/parcalayici/testdata/p_wordpiece.json"))
+	bpeYolu  = filepath.ToSlash(depo.Yol("internal/hesap/parca/testdata/p_bayt_bpe.json"))
+	bertYolu = filepath.ToSlash(depo.Yol("internal/hesap/parca/testdata/p_wordpiece.json"))
 )
 
-func calistir(t *testing.T, kod string) (*vm.VM, error) {
+func calistir(t *testing.T, kod string) (*yurut.VM, error) {
 	t.Helper()
-	p := parser.New(lexer.New(kod))
+	p := ayristir.New(sozcuk.New(kod))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())
 	}
-	m := vm.New()
+	m := yurut.New()
 	m.Out = &bytes.Buffer{}
 	_, err := m.Run(prog)
 	return m, err
 }
 
-func mustCalistir(t *testing.T, kod string) *vm.VM {
+func mustCalistir(t *testing.T, kod string) *yurut.VM {
 	t.Helper()
 	m, err := calistir(t, kod)
 	if err != nil {
@@ -47,7 +47,7 @@ func mustCalistir(t *testing.T, kod string) *vm.VM {
 	return m
 }
 
-func al(t *testing.T, m *vm.VM, ad string) vm.Value {
+func al(t *testing.T, m *yurut.VM, ad string) yurut.Value {
 	t.Helper()
 	v, ok := m.GlobalEnv.Get(ad)
 	if !ok {
@@ -56,22 +56,22 @@ func al(t *testing.T, m *vm.VM, ad string) vm.Value {
 	return v
 }
 
-func tamlar(t *testing.T, v vm.Value) []int {
+func tamlar(t *testing.T, v yurut.Value) []int {
 	t.Helper()
-	l, ok := v.(*vm.ListVal)
+	l, ok := v.(*yurut.ListVal)
 	if !ok {
 		t.Fatalf("liste bekleniyordu: %s", v.Inspect())
 	}
 	out := []int{}
 	for _, e := range l.Elements {
-		out = append(out, int(e.(*vm.IntVal).Val))
+		out = append(out, int(e.(*yurut.IntVal).Val))
 	}
 	return out
 }
 
-func goParcalayici(t *testing.T, yol string) *pc.Parcalayici {
+func goParcalayici(t *testing.T, yol string) *parca.Parcalayici {
 	t.Helper()
-	p, err := pc.Yukle(yol)
+	p, err := parca.Yukle(yol)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,13 +96,13 @@ değişken yok_token = p.parça_kimliği("böyle-bir-token-yok")
 	if got := tamlar(t, al(t, m, "tek")); !reflect.DeepEqual(got, g.Kodla(metinler[0])) {
 		t.Fatalf("kodla: %v, Go: %v", got, g.Kodla(metinler[0]))
 	}
-	toplu := al(t, m, "toplu").(*vm.ListVal)
+	toplu := al(t, m, "toplu").(*yurut.ListVal)
 	for i, s := range metinler {
 		if got := tamlar(t, toplu.Elements[i]); !reflect.DeepEqual(got, g.Kodla(s)) {
 			t.Fatalf("toplu kodla %d: %v, Go: %v", i, got, g.Kodla(s))
 		}
 	}
-	cozulen := al(t, m, "çözülen").(*vm.ListVal)
+	cozulen := al(t, m, "çözülen").(*yurut.ListVal)
 	for i, s := range metinler {
 		if got := cozulen.Elements[i].Inspect(); got != g.Coz(g.Kodla(s), true) {
 			t.Fatalf("toplu çöz %d: %q", i, got)
@@ -114,14 +114,14 @@ değişken yok_token = p.parça_kimliği("böyle-bir-token-yok")
 	if got := al(t, m, "özelsiz").Inspect(); strings.Contains(got, "<|endoftext|>") {
 		t.Fatalf("varsayılan çöz özel tokenları atlamalı: %q", got)
 	}
-	if got := al(t, m, "boyut").(*vm.IntVal).Val; int(got) != g.SozlukBoyutu() {
+	if got := al(t, m, "boyut").(*yurut.IntVal).Val; int(got) != g.SozlukBoyutu() {
 		t.Fatalf("sözlük boyutu %d", got)
 	}
 	id, _ := g.TokenKimligi("<|endoftext|>")
-	if got := al(t, m, "eot").(*vm.IntVal).Val; int(got) != id {
+	if got := al(t, m, "eot").(*yurut.IntVal).Val; int(got) != id {
 		t.Fatalf("token_kimliği %d", got)
 	}
-	if al(t, m, "yok_token") != vm.NULL {
+	if al(t, m, "yok_token") != yurut.NULL {
 		t.Fatal("olmayan token yok dönmeli")
 	}
 }
@@ -139,11 +139,11 @@ değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_parça
 	if got := tamlar(t, al(t, m, "a")); !reflect.DeepEqual(got, g.Kodla("merhaba dünya")) {
 		t.Fatalf("a: %v", got)
 	}
-	if got, b := tamlar(t, al(t, m, "b")), g.KodlaSecenekli("merhaba dünya", pc.Secenekler{OzelEklenmesin: true}); !reflect.DeepEqual(got, b) {
+	if got, b := tamlar(t, al(t, m, "b")), g.KodlaSecenekli("merhaba dünya", parca.Secenekler{OzelEklenmesin: true}); !reflect.DeepEqual(got, b) {
 		t.Fatalf("b: %v, Go: %v", got, b)
 	}
 	ik := "bağlam"
-	k := g.KodlaCift("soru", &ik, pc.Secenekler{})
+	k := g.KodlaCift("soru", &ik, parca.Secenekler{})
 	beklenen := []int{}
 	for _, x := range k.Idler {
 		beklenen = append(beklenen, int(x))
@@ -151,9 +151,9 @@ değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_parça
 	if got := tamlar(t, al(t, m, "c")); !reflect.DeepEqual(got, beklenen) {
 		t.Fatalf("c: %v, Go: %v", got, beklenen)
 	}
-	d := al(t, m, "d").(*vm.ListVal)
+	d := al(t, m, "d").(*yurut.ListVal)
 	ik2 := "iki"
-	k2 := g.KodlaCift("bir", &ik2, pc.Secenekler{OzelEklenmesin: true})
+	k2 := g.KodlaCift("bir", &ik2, parca.Secenekler{OzelEklenmesin: true})
 	beklenen = []int{}
 	for _, x := range k2.Idler {
 		beklenen = append(beklenen, int(x))
@@ -226,7 +226,7 @@ func stderrYakala(t *testing.T, f func()) string {
 func TestAdimSiniriVeUyari(t *testing.T) {
 	yol := riskliParcalayici(t)
 	kotu := strings.Repeat("a", 40)
-	var m *vm.VM
+	var m *yurut.VM
 	uyari := stderrYakala(t, func() {
 		m = mustCalistir(t, `
 değişken p = parçalayıcı_yükle("`+yol+`")
@@ -291,7 +291,7 @@ func TestYuklemeHatalari(t *testing.T) {
 
 func TestIzlemeMasasi(t *testing.T) {
 	m := mustCalistir(t, `değişken p = parçalayıcı_yükle("`+bpeYolu+`")`)
-	iz, ok := al(t, m, "p").(hataayiklama.IzlemeDegeri)
+	iz, ok := al(t, m, "p").(ayikla.IzlemeDegeri)
 	if !ok {
 		t.Fatal("IzlemeDegeri değil")
 	}

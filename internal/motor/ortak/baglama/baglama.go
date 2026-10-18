@@ -14,7 +14,7 @@ import (
 
 	"tr_dili/internal/dil/kod"
 	"tr_dili/internal/dil/turkce"
-	"tr_dili/internal/dil/vm"
+	"tr_dili/internal/dil/yurut"
 )
 
 // Ad bir adlı argümandır: sözlükteki kodu (x9xx), adı ve kabul edilen yazımları. Adlar
@@ -61,7 +61,7 @@ var yabanciAdlar = map[string]kod.Kod{
 // AdliDenetle verilen adlı argümanların bilinen adlardan olduğunu denetler; yazım
 // hatasında (ya da Türkçe karaktersiz yazılmış, kaldırılmış ya da İngilizce alışılmış bir
 // adda: ogrenme_orani, nerede, lr, axis...) en yakın TR adını önerir.
-func AdliDenetle(fn string, named map[string]vm.Value, adlar ...Ad) error {
+func AdliDenetle(fn string, named map[string]yurut.Value, adlar ...Ad) error {
 	for verilen := range named {
 		bilinen := false
 		for _, a := range adlar {
@@ -101,7 +101,7 @@ func AdliDenetle(fn string, named map[string]vm.Value, adlar ...Ad) error {
 }
 
 // AdliAl adlı argümanı kabul edilen yazımlarıyla (önce adın kendisiyle) arar.
-func AdliAl(named map[string]vm.Value, a Ad) (vm.Value, bool) {
+func AdliAl(named map[string]yurut.Value, a Ad) (yurut.Value, bool) {
 	for _, y := range a.yazimlar {
 		if v, ok := named[y]; ok {
 			return v, true
@@ -111,11 +111,11 @@ func AdliAl(named map[string]vm.Value, a Ad) (vm.Value, bool) {
 }
 
 // TamSayi bir TR değerini tam sayıya çevirir (tam değerli ondalıklar da kabul edilir).
-func TamSayi(v vm.Value) (int64, bool) {
+func TamSayi(v yurut.Value) (int64, bool) {
 	switch n := v.(type) {
-	case *vm.IntVal:
+	case *yurut.IntVal:
 		return n.Val, true
-	case *vm.FloatVal:
+	case *yurut.FloatVal:
 		if n.Val == float64(int64(n.Val)) {
 			return int64(n.Val), true
 		}
@@ -124,8 +124,8 @@ func TamSayi(v vm.Value) (int64, bool) {
 }
 
 // Mantik bir TR değerinin doğru/yanlış olmasını bekler.
-func Mantik(fn, ad string, v vm.Value) (bool, error) {
-	b, ok := v.(*vm.BoolVal)
+func Mantik(fn, ad string, v yurut.Value) (bool, error) {
+	b, ok := v.(*yurut.BoolVal)
 	if !ok {
 		return false, fmt.Errorf("%s: %s doğru ya da yanlış olmalıdır, %s verildi", fn, ad, v.Type())
 	}
@@ -145,9 +145,9 @@ func Kurtar[T any](fn func() T, cevir func(r any) error) (sonuc T, err error) {
 }
 
 // Guvenli f'yi çalıştırır; Go paniğini "beklenmeyen iç hata" olarak bildirir.
-func Guvenli(fn string, f func() (vm.Value, error)) (vm.Value, error) {
+func Guvenli(fn string, f func() (yurut.Value, error)) (yurut.Value, error) {
 	var ferr error
-	sonuc, err := Kurtar(func() vm.Value {
+	sonuc, err := Kurtar(func() yurut.Value {
 		v, e := f()
 		ferr = e
 		return v
@@ -161,13 +161,13 @@ func Guvenli(fn string, f func() (vm.Value, error)) (vm.Value, error) {
 // YolCoz göreli bir yolu TR'nin tek yol kuralıyla çözer (bkz. vm.(*VM).YolCoz: önce
 // çalışma klasörü, sonra programın klasörü). Hiçbir yerde yoksa hata mesajı kullanıcının
 // yazdığı yolu gösterebilsin diye çalışma klasörüne göre yol döner.
-func YolCoz(m *vm.VM, yol string) string {
+func YolCoz(m *yurut.VM, yol string) string {
 	cozulen, _ := YolCozBakilan(m, yol)
 	return cozulen
 }
 
 // YolCozBakilan YolCoz gibidir; ayrıca hata mesajları için bakılan yerleri döndürür.
-func YolCozBakilan(m *vm.VM, yol string) (string, []string) {
+func YolCozBakilan(m *yurut.VM, yol string) (string, []string) {
 	return m.YolCoz(yol) // m nil olabilir: o zaman yalnızca çalışma klasörüne bakılır
 }
 

@@ -11,26 +11,26 @@ import (
 	"time"
 	"tr_dili/internal/dil/kod"
 
-	"tr_dili/internal/arac/hataayiklama"
-	"tr_dili/internal/dil/lexer"
-	"tr_dili/internal/dil/parser"
-	"tr_dili/internal/dil/vm"
-	dv "tr_dili/internal/hesap/veri"
+	"tr_dili/internal/arac/ayikla"
+	"tr_dili/internal/dil/ayristir"
+	"tr_dili/internal/dil/sozcuk"
+	"tr_dili/internal/dil/yurut"
+	"tr_dili/internal/hesap/veriyolu"
 	_ "tr_dili/internal/motor"
+	"tr_dili/internal/motor/ogrenme"
 	"tr_dili/internal/motor/ortak/baglama"
-	"tr_dili/internal/motor/tensor"
-	mveri "tr_dili/internal/motor/veri"
+	"tr_dili/internal/motor/veri"
 )
 
 // calistir TR kodunu tam dille (motorlar dahil) çalıştırır; çıktıyı ve VM'yi döndürür.
-func calistir(t *testing.T, kd string) (string, *vm.VM, error) {
+func calistir(t *testing.T, kd string) (string, *yurut.VM, error) {
 	t.Helper()
-	p := parser.New(lexer.New(kd))
+	p := ayristir.New(sozcuk.New(kd))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())
 	}
-	m := vm.New()
+	m := yurut.New()
 	var out bytes.Buffer
 	m.Out = &out
 	_, err := m.Run(prog)
@@ -38,7 +38,7 @@ func calistir(t *testing.T, kd string) (string, *vm.VM, error) {
 	return out.String(), m, err
 }
 
-func mustCalistir(t *testing.T, kd string) (string, *vm.VM) {
+func mustCalistir(t *testing.T, kd string) (string, *yurut.VM) {
 	t.Helper()
 	out, m, err := calistir(t, kd)
 	if err != nil {
@@ -55,10 +55,10 @@ func kumeKur(t *testing.T) string {
 	t.Helper()
 	d := t.TempDir()
 	// Windows'ta açık dosyalar silinemez: geçici klasör silinmeden önce kaynaklar kapanır.
-	t.Cleanup(func() { mveri.TumunuKapat(time.Second) })
+	t.Cleanup(func() { veri.TumunuKapat(time.Second) })
 	yaz := func(ad string, v []int32) {
 		var b bytes.Buffer
-		if err := dv.NpyYazI32(&b, v); err != nil {
+		if err := veriyolu.NpyYazI32(&b, v); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(d, ad), b.Bytes(), 0o644); err != nil {
@@ -75,7 +75,7 @@ func kumeKur(t *testing.T) string {
 	return d
 }
 
-func degisken(t *testing.T, m *vm.VM, ad string) vm.Value {
+func degisken(t *testing.T, m *yurut.VM, ad string) yurut.Value {
 	t.Helper()
 	v, ok := m.GlobalEnv.Get(ad)
 	if !ok {
@@ -84,9 +84,9 @@ func degisken(t *testing.T, m *vm.VM, ad string) vm.Value {
 	return v
 }
 
-func tensorVerisi(t *testing.T, v vm.Value) ([]float32, []int) {
+func tensorVerisi(t *testing.T, v yurut.Value) ([]float32, []int) {
 	t.Helper()
-	d, ok := v.(*tensor.Deger)
+	d, ok := v.(*ogrenme.Deger)
 	if !ok {
 		t.Fatalf("tensör bekleniyordu, %T", v)
 	}
@@ -103,21 +103,21 @@ değişken ö = k.örnekleyici(toplu: 4, bağlam: 16, tohum: 7)
 değişken ilk = ö.sonraki()
 değişken ikinci = ö.sonraki()
 `)
-	gk, err := dv.KumeAc(d, dv.KumeSecenekleri{})
+	gk, err := veriyolu.KumeAc(d, veriyolu.KumeSecenekleri{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	o, err := gk.Ornekleyici(dv.OrnekleyiciSecenekleri{B: 4, T: 16, Tohum: 7})
+	o, err := gk.Ornekleyici(veriyolu.OrnekleyiciSecenekleri{B: 4, T: 16, Tohum: 7})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer o.Kapat()
 	for _, ad := range []string{"ilk", "ikinci"} {
-		var ti dv.TopluIs
+		var ti veriyolu.TopluIs
 		if err := o.Doldur(context.Background(), &ti); err != nil {
 			t.Fatal(err)
 		}
-		l := degisken(t, m, ad).(*vm.ListVal)
+		l := degisken(t, m, ad).(*yurut.ListVal)
 		if len(l.Elements) != 2 {
 			t.Fatalf("[girdi, hedef] bekleniyordu: %s", l.Inspect())
 		}
@@ -140,7 +140,7 @@ değişken ikinci = ö.sonraki()
 // bitince yok döner ve kaynaklarını hemen kapatır.
 func TestSiraliBitinceYokVeKapanir(t *testing.T) {
 	d := kumeKur(t)
-	taban := mveri.AcikKaynakSayisi()
+	taban := veri.AcikKaynakSayisi()
 	out, m := mustCalistir(t, `
 değişken k = veri_kümesi("`+tr(d)+`")
 değişken s = k.sıralı(toplu: 8, bağlam: 32)
@@ -160,12 +160,12 @@ yazdır(n, satır, s.sonraki())
 	if strings.TrimSpace(out) != "3 24 yok" {
 		t.Fatalf("çıktı %q", out)
 	}
-	son := degisken(t, m, "son").(*vm.ListVal)
+	son := degisken(t, m, "son").(*yurut.ListVal)
 	g, gs := tensorVerisi(t, son.Elements[0])
 	if gs[0] != 8 || gs[1] != 32 || g[0] != float32(10000+7*32) {
 		t.Fatalf("son toplu iş: şekil %v ilk %v", gs, g[0])
 	}
-	if n := mveri.AcikKaynakSayisi(); n != taban {
+	if n := veri.AcikKaynakSayisi(); n != taban {
 		t.Fatalf("bitmiş sıralı okuyucunun kaynağı açık kaldı: %d > %d", n, taban)
 	}
 }
@@ -173,8 +173,8 @@ yazdır(n, satır, s.sonraki())
 // Kullanılmayan okuyucular çöp toplayıcıyla, kalanlar TumunuKapat ile kapanır.
 func TestKaynaklarKapanir(t *testing.T) {
 	d := kumeKur(t)
-	mveri.TumunuKapat(time.Second)
-	taban := mveri.AcikKaynakSayisi()
+	veri.TumunuKapat(time.Second)
+	taban := veri.AcikKaynakSayisi()
 	_, m := mustCalistir(t, `
 değişken k = veri_kümesi("`+tr(d)+`")
 fonksiyon geçici() {
@@ -187,16 +187,16 @@ değişken kalıcı = k.örnekleyici(toplu: 2, bağlam: 8)
 kalıcı.sonraki()
 `)
 	son := time.Now().Add(5 * time.Second)
-	for mveri.AcikKaynakSayisi() > taban+1 {
+	for veri.AcikKaynakSayisi() > taban+1 {
 		if time.Now().After(son) {
-			t.Fatalf("erişilemez okuyucular kapanmadı: açık %d, beklenen %d", mveri.AcikKaynakSayisi(), taban+1)
+			t.Fatalf("erişilemez okuyucular kapanmadı: açık %d, beklenen %d", veri.AcikKaynakSayisi(), taban+1)
 		}
 		runtime.GC()
 		time.Sleep(10 * time.Millisecond)
 	}
 	runtime.KeepAlive(m)
-	mveri.TumunuKapat(time.Second)
-	if n := mveri.AcikKaynakSayisi(); n != taban {
+	veri.TumunuKapat(time.Second)
+	if n := veri.AcikKaynakSayisi(); n != taban {
 		t.Fatalf("TumunuKapat sonrası açık kaynak %d, beklenen %d", n, taban)
 	}
 	// Kapatılmış okuyucu açık bir hata verir, çökmez.
@@ -206,9 +206,9 @@ kalıcı.sonraki()
 	}
 }
 
-func mustUye(t *testing.T, v vm.Value, ad string) vm.Value {
+func mustUye(t *testing.T, v yurut.Value, ad string) yurut.Value {
 	t.Helper()
-	pg, ok := v.(vm.PropertyGetter)
+	pg, ok := v.(yurut.PropertyGetter)
 	if !ok {
 		t.Fatalf("%T üyesi yok", v)
 	}
@@ -292,7 +292,7 @@ yazdır(x[0].şekil)
 	if err == nil || !strings.Contains(err.Error(), "önbellek kotası yetersiz") {
 		t.Fatalf("kota hatası bekleniyordu: %v", err)
 	}
-	mveri.TumunuKapat(time.Second)
+	veri.TumunuKapat(time.Second)
 }
 
 func TestHataMesajlari(t *testing.T) {
@@ -332,9 +332,9 @@ func TestHataMesajlari(t *testing.T) {
 // Göreli yollar çalışma klasöründe yoksa programın klasörüne göre çözülür.
 func TestGoreliYolProgramKlasoru(t *testing.T) {
 	d := kumeKur(t)
-	p := parser.New(lexer.New(`değişken k = veri_kümesi("` + filepath.Base(d) + `")`))
+	p := ayristir.New(sozcuk.New(`değişken k = veri_kümesi("` + filepath.Base(d) + `")`))
 	prog := p.ParseProgram()
-	m := vm.New()
+	m := yurut.New()
 	m.Out = &bytes.Buffer{}
 	m.SourceFile = filepath.Join(filepath.Dir(d), "program.tr")
 	if _, err := m.Run(prog); err != nil {
@@ -355,7 +355,7 @@ değişken s = k.sıralı(toplu: 2, bağlam: 8)
 		"s": "Sıralı okuyucu (2×8, 0 toplu iş okundu)",
 	}
 	for ad, etiket := range beklenen {
-		iz, ok := degisken(t, m, ad).(hataayiklama.IzlemeDegeri)
+		iz, ok := degisken(t, m, ad).(ayikla.IzlemeDegeri)
 		if !ok {
 			t.Fatalf("%s IzlemeDegeri değil", ad)
 		}
@@ -363,12 +363,12 @@ değişken s = k.sıralı(toplu: 2, bağlam: 8)
 			t.Errorf("%s: etiket %q, beklenen %q", ad, iz.IzlemeEtiketi(), etiket)
 		}
 	}
-	cols, rows, err := degisken(t, m, "k").(hataayiklama.IzlemeDegeri).TabloVerisi()
+	cols, rows, err := degisken(t, m, "k").(ayikla.IzlemeDegeri).TabloVerisi()
 	if err != nil || len(cols) != 3 || len(rows) != 2 || rows[1][0] != "p1.npy" || rows[1][1] != "500" {
 		t.Fatalf("tablo: %v %v %v", cols, rows, err)
 	}
 	if s := baglama.KisaSayi(56_900_000_000); s != "56,9 milyar" {
 		t.Fatalf("KisaSayi: %q", s)
 	}
-	mveri.TumunuKapat(time.Second)
+	veri.TumunuKapat(time.Second)
 }
