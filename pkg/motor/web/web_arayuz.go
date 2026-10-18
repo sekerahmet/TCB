@@ -942,8 +942,12 @@ func (g *GUIAppVal) renderFormHTML(w guiWidget) string {
 	return sb.String()
 }
 
-// Kaydet web sunucu ve görsel arayüz yerleşiklerini VM'ye kaydeder.
+// Kaydet web istemcisi (web_al, web_gönder), web sunucu ve görsel arayüz yerleşiklerini
+// VM'ye kaydeder.
 func Kaydet(v *vm.VM) {
+	// 0. web_al(url), web_gönder(url, veri) — http_istemci.go
+	istemciKaydet(v)
+
 	// 1. web_sunucu(port: 8080)
 	v.RegisterBuiltin("web_sunucu", "web_sunucusu", func(v *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		port := 8080

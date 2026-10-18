@@ -6,15 +6,12 @@ import (
 	"testing"
 	"time"
 	"tr_dili/pkg/lexer"
-	"tr_dili/pkg/motor/yz"
 	"tr_dili/pkg/parser"
 	"tr_dili/pkg/vm"
 )
 
-// Testlerdeki VM'ler bu paketin ve testlerin kullandığı yapay zeka motorunun
-// (web_al vb.) yerleşiklerini içersin; sıra tr_dili/pkg/motor ile aynıdır.
+// Testlerdeki VM'ler bu paketin yerleşiklerini (web_al, web_sunucu vb.) içersin.
 func init() {
-	vm.MotorEkle(yz.Kaydet)
 	vm.MotorEkle(Kaydet)
 }
 

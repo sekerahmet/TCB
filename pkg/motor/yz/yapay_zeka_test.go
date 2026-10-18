@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"tr_dili/pkg/vm"
 )
 
 func TestBuiltinsRejectBadSizesWithoutPanic(t *testing.T) {
@@ -135,70 +134,25 @@ func TestAutogradAndNeuralNet(t *testing.T) {
 	}
 }
 
-// json_çöz sözlük anahtarlarının sırasını korumuyordu (Go map'i sırasızdır).
-func TestJSONDecodePreservesKeyOrder(t *testing.T) {
-	_, val, err := runTRWithin(t, 5*time.Second, `
-		değişken d = json_çöz("{\"zeta\": 1, \"alfa\": 2.5, \"orta\": [true, null, \"x\"], \"iç\": {\"b\": 1, \"a\": 2}}")
-		sonuç [d.anahtarlar(), d["iç"].anahtarlar(), d["orta"], d["alfa"], json_metin(d)]`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := `[["zeta", "alfa", "orta", "iç"], ["b", "a"], [doğru, yok, "x"], 2.5, `
-	if !strings.HasPrefix(val.Inspect(), want) {
-		t.Fatalf("%s… bekleniyordu, %s alındı", want, val.Inspect())
-	}
-}
+// yz_sor'un HTTP kısmı web paketinin ortak istemcisini kullanır: zaman aşımı "ulaşılamadı"
+// diye yanlış yönlendirmek yerine açıkça bildirilir.
+func TestYzSorTimeout(t *testing.T) {
+	eski := yzSorZamanAsimi
+	yzSorZamanAsimi = 200 * time.Millisecond
+	defer func() { yzSorZamanAsimi = eski }()
 
-// d[1] ile d["1"] eskiden Inspect() ile aynı anahtara düşüyordu.
-func TestDictKeysAreTypeAware(t *testing.T) {
-	val, err := runTR(t, `
-		değişken d = {1: "tam", "1": "metin"}
-		d[doğru] = "mantık"
-		d["doğru"] = "metin2"
-		sonuç [d[1], d["1"], d[doğru], d["doğru"], uzunluk(d), d.içerir(1), d.içerir("2")]
-	`)
-	if err != nil {
-		t.Fatalf("beklenmeyen hata: %v", err)
-	}
-	if val.Inspect() != `["tam", "metin", "mantık", "metin2", 4, doğru, yanlış]` {
-		t.Fatalf("beklenmeyen sonuç: %s", val.Inspect())
-	}
+	birak := make(chan struct{})
+	yavas := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-birak:
+		case <-time.After(5 * time.Second):
+		}
+	}))
+	defer yavas.Close()
+	defer close(birak)
 
-	// Döngü ve anahtarlar() özgün anahtar tiplerini geri vermeli.
-	val, err = runTR(t, `
-		değişken d = {1: "a", "b": 2}
-		değişken tipler = []
-		döngü k, v içinde d { tipler = tipler + [tip(k)] }
-		sonuç [tipler, d.anahtarlar(), [tip(k) döngü k içinde d]]
-	`)
-	if err != nil {
-		t.Fatalf("beklenmeyen hata: %v", err)
-	}
-	if val.Inspect() != `[["Tam", "Metin"], [1, "b"], ["Tam", "Metin"]]` {
-		t.Fatalf("beklenmeyen sonuç: %s", val.Inspect())
-	}
-
-	// Yazdırma ve JSON dönüşümü metin anahtarlar için değişmemeli.
-	out, _, err := runTROut(t, `
-		değişken d = {"ad": "Ali", 1: "bir"}
-		yazdır(d)
-		yazdır(json_metin({"ad": "Ali"}))
-		değişken j = json_çöz("{\"x\": 1}")
-		yazdır(j["x"])
-	`)
-	if err != nil {
-		t.Fatalf("beklenmeyen hata: %v", err)
-	}
-	want := "{\"ad\": \"Ali\", 1: \"bir\"}\n{\"ad\":\"Ali\"}\n1\n"
-	if out != want {
-		t.Fatalf("çıktı %q bekleniyordu, %q alındı", want, out)
-	}
-
-	// Metin olmayan anahtarlar Go/JSON tarafına görünen hâlleriyle aktarılır.
-	d := vm.NewDictVal()
-	d.SetValue(&vm.IntVal{Val: 7}, &vm.StringVal{Val: "yedi"})
-	m := vm.TRToGoValue(d).(map[string]interface{})
-	if m["7"] != "yedi" {
-		t.Fatalf("TRToGoValue anahtarı \"7\" olmalı, alınan: %v", m)
+	_, err := runTR(t, fmt.Sprintf(`sonuç yz_sor("merhaba", adres: %q)`, yavas.URL))
+	if err == nil || !strings.Contains(err.Error(), "zaman aşımı") || strings.Contains(err.Error(), "ulaşılamadı") {
+		t.Fatalf("zaman aşımı hatası bekleniyordu, alınan: %v", err)
 	}
 }

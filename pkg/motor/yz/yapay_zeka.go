@@ -1,11 +1,9 @@
 package yz
 
 import (
-	"bytes"
-	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"math"
 	"math/rand"
 	"net/http"
@@ -14,17 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"tr_dili/pkg/motor/web"
 	"tr_dili/pkg/vm"
 )
-
-// httpFetch bir HTTP yanıtının gövdesini okuyup kapatır.
-func httpFetch(resp *http.Response, err error) ([]byte, error) {
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
-}
 
 // loadedMatrix dosyadan okunan iç içe diziyi boş veya düzensiz (satır uzunlukları farklı) olmadığını denetleyerek matrise çevirir.
 func loadedMatrix(data [][]float64) (*vm.MatrixVal, error) {
@@ -619,8 +609,12 @@ func valueToMatrix(v vm.Value) (*vm.MatrixVal, error) {
 	return mat, nil
 }
 
-// Kaydet matris, tensör, sinir ağı, istatistik, JSON/CSV, model ve web isteği
-// yerleşiklerini VM'ye kaydeder.
+// yzSorZamanAsimi yz_sor isteğinin toplam süre sınırıdır (modelin yanıt üretmesi dahil).
+var yzSorZamanAsimi = 120 * time.Second
+
+// Kaydet matris, tensör, sinir ağı, istatistik, model ve yz_sor yerleşiklerini VM'ye
+// kaydeder. JSON/CSV yerleşikleri pkg/motor/veribicim, web_al/web_gönder ise
+// pkg/motor/web paketindedir.
 func Kaydet(v *vm.VM) {
 	// --- Matris Oluşturucular ---
 	v.RegisterBuiltin("matris", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
@@ -1047,60 +1041,6 @@ func Kaydet(v *vm.VM) {
 		return &vm.FloatVal{Val: math.Sqrt(sum)}, nil
 	})
 
-	// --- JSON ve CSV Veri Araçları ---
-	v.RegisterBuiltin("json_çöz", "json_coz", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) != 1 {
-			return nil, fmt.Errorf("json_çöz(metin) 1 parametre bekler")
-		}
-		val, err := vm.JSONToTR([]byte(args[0].Inspect()))
-		if err != nil {
-			return nil, fmt.Errorf("JSON çözümleme hatası: %v", err)
-		}
-		return val, nil
-	})
-
-	v.RegisterBuiltin("json_metin", "json_yaz", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) != 1 {
-			return nil, fmt.Errorf("json_metin(değer) 1 parametre bekler")
-		}
-		b, err := json.Marshal(vm.TRToGoValue(args[0]))
-		if err != nil {
-			return nil, err
-		}
-		return &vm.StringVal{Val: string(b)}, nil
-	})
-
-	v.RegisterBuiltin("csv_oku", "tablo_oku", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) != 1 {
-			return nil, fmt.Errorf("csv_oku(dosya_veya_metin) 1 parametre bekler")
-		}
-		input := args[0].Inspect()
-		if data, err := os.ReadFile(input); err == nil {
-			input = string(data)
-		}
-		r := csv.NewReader(strings.NewReader(strings.TrimSpace(input)))
-		records, err := r.ReadAll()
-		if err != nil {
-			return nil, fmt.Errorf("CSV okuma hatası: %v", err)
-		}
-		var rows []vm.Value
-		for _, rec := range records {
-			var cols []vm.Value
-			for _, cell := range rec {
-				cell = strings.TrimSpace(cell)
-				if iv, err := strconv.ParseInt(cell, 10, 64); err == nil {
-					cols = append(cols, &vm.IntVal{Val: iv})
-				} else if fv, err := strconv.ParseFloat(cell, 64); err == nil {
-					cols = append(cols, &vm.FloatVal{Val: fv})
-				} else {
-					cols = append(cols, &vm.StringVal{Val: cell})
-				}
-			}
-			rows = append(rows, &vm.ListVal{Elements: cols})
-		}
-		return &vm.ListVal{Elements: rows}, nil
-	})
-
 	// --- Büyük Dil Modeli (LLM: yz_sor) ---
 	v.RegisterBuiltin("yz_sor", "", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
 		if len(args) < 1 {
@@ -1119,37 +1059,28 @@ func Kaydet(v *vm.VM) {
 		}
 
 		// Yerel Ollama sunucusuna istek. Sunucu kapalıysa bağlantı hemen reddedilir;
-		// zaman aşımı yalnızca modelin yanıt üretme süresini sınırlar.
+		// zaman aşımı yalnızca modelin yanıt üretme süresini sınırlar. HTTP kısmı (gövde
+		// boyutu sınırı, zaman aşımı, kilidi bırakma) web paketinin ortak istemcisindedir.
 		payload, _ := json.Marshal(map[string]interface{}{
 			"model":  model,
 			"prompt": prompt,
 			"stream": false,
 		})
-		client := &http.Client{Timeout: 120 * time.Second}
-		var resp *http.Response
-		var err error
-		var body []byte
-		makine.Blocking(func() {
-			resp, err = client.Post(endpoint, "application/json", bytes.NewReader(payload))
-			if err == nil {
-				defer resp.Body.Close()
-				body, _ = io.ReadAll(resp.Body)
-			}
-		})
+		yanit, err := web.Iste(makine, http.MethodPost, endpoint, payload, "application/json", yzSorZamanAsimi)
 		// Sunucuya ulaşılamazsa sahte bir "yanıt" döndürmek yerine açık hata verilir;
 		// aksi hâlde program uydurma bir metni gerçek model çıktısı sanabilir.
 		if err != nil {
+			var ih *web.IstekHatasi
+			if errors.As(err, &ih) && (ih.ZamanAsim || ih.Buyuk) {
+				return nil, fmt.Errorf("yz_sor: YZ sunucusu (%s, model: %s): %v", endpoint, model, err)
+			}
 			return nil, fmt.Errorf("yz_sor: yerel YZ sunucusuna (%s) ulaşılamadı: %v (Ollama'yı 'ollama serve' ile başlatın ve modeli 'ollama pull %s' ile indirin)", endpoint, err, model)
 		}
-		if resp.StatusCode != http.StatusOK {
-			detay := strings.TrimSpace(string(body))
-			if len(detay) > 300 {
-				detay = detay[:300] + "..."
-			}
-			return nil, fmt.Errorf("yz_sor: YZ sunucusu %d durum kodu döndürdü (model: %s): %s", resp.StatusCode, model, detay)
+		if yanit.Durum != http.StatusOK {
+			return nil, fmt.Errorf("yz_sor: YZ sunucusu %d durum kodu döndürdü (model: %s): %s", yanit.Durum, model, yanit.GovdeOzeti(300))
 		}
 		var parsed map[string]interface{}
-		if json.Unmarshal(body, &parsed) == nil {
+		if json.Unmarshal(yanit.Govde, &parsed) == nil {
 			if ans, ok := parsed["response"].(string); ok {
 				return &vm.StringVal{Val: strings.TrimSpace(ans)}, nil
 			}
@@ -1203,48 +1134,6 @@ func Kaydet(v *vm.VM) {
 			nn.Weights[i], nn.Biases[i] = w, b
 		}
 		return nn, nil
-	})
-
-	// --- Yerleşik Web/API İstemcisi (web_al, web_gönder) ---
-	v.RegisterBuiltin("web_al", "http_al", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) < 1 {
-			return nil, fmt.Errorf("web_al(url) 1 parametre bekler")
-		}
-		url := args[0].Inspect()
-		client := &http.Client{Timeout: 10 * time.Second}
-		var body []byte
-		var netErr error
-		makine.Blocking(func() { body, netErr = httpFetch(client.Get(url)) })
-		if netErr != nil {
-			return nil, fmt.Errorf("Web bağlantı hatası (%s): %v", url, netErr)
-		}
-		if val, err := vm.JSONToTR(body); err == nil {
-			return val, nil
-		}
-		return &vm.StringVal{Val: string(body)}, nil
-	})
-
-	v.RegisterBuiltin("web_gönder", "web_gonder", func(makine *vm.VM, args []vm.Value, named map[string]vm.Value) (vm.Value, error) {
-		if len(args) < 2 {
-			return nil, fmt.Errorf("web_gönder(url, veri) 2 parametre bekler")
-		}
-		url := args[0].Inspect()
-		payloadBytes, err := json.Marshal(vm.TRToGoValue(args[1]))
-		if err != nil {
-			return nil, err
-		}
-		client := &http.Client{Timeout: 10 * time.Second}
-		var body []byte
-		var netErr error
-		// Ağ beklemesi sırasında yorumlayıcı kilidini bırak (aynı programın kendi sunucusuna istek atabilmesi için)
-		makine.Blocking(func() { body, netErr = httpFetch(client.Post(url, "application/json", bytes.NewReader(payloadBytes))) })
-		if netErr != nil {
-			return nil, fmt.Errorf("Web gönderim hatası (%s): %v", url, netErr)
-		}
-		if val, err := vm.JSONToTR(body); err == nil {
-			return val, nil
-		}
-		return &vm.StringVal{Val: string(body)}, nil
 	})
 }
 
