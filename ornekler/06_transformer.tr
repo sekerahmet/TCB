@@ -78,8 +78,8 @@ fonksiyon toplu_iş_üret() {
     sonuç [girdiler, hedefler]
 }
 
-değişken parametreler = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
-değişken iyileştirici = AdamW(parametreler, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
+değişken ağırlıklar = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
+değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
 
 değişken başlangıç = zaman_ms()
 döngü adım içinde 0..300 {

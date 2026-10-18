@@ -31,16 +31,16 @@ değişken KATMAN = 2
 
 // --- Parametreler ---
 değişken parametre_tohumu = 1
-değişken parametreler = []
+değişken ağırlıklar = []
 fonksiyon parametre(şekil, ölçek) {
     parametre_tohumu += 1
     değişken p = tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
-    parametreler.ekle(p)
+    ağırlıklar.ekle(p)
     sonuç p
 }
 fonksiyon sabit_parametre(şekil, değer) {
     değişken p = tensör(birler(şekil) * değer, türev_izle: doğru)
-    parametreler.ekle(p)
+    ağırlıklar.ekle(p)
     sonuç p
 }
 
@@ -60,7 +60,7 @@ değişken ss = sabit_parametre([D], 0.0)
 değişken Wu = parametre([D, V], 0.1)
 
 değişken toplam_parametre = 0
-döngü p içinde parametreler {
+döngü p içinde ağırlıklar {
     değişken n = 1
     döngü boyut içinde p.şekil { n = n * boyut }
     toplam_parametre += n
@@ -109,7 +109,7 @@ fonksiyon toplu_iş() {
 }
 
 // --- Eğitim ---
-değişken iyileştirici = AdamW(parametreler, öğrenme_oranı: 0.003, ağırlık_çürümesi: 0.0)
+değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: 0.003, ağırlık_çürümesi: 0.0)
 değişken başlangıç = zaman_ms()
 döngü adım içinde 0..ADIM {
     değişken tb = toplu_iş()

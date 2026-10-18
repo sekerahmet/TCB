@@ -40,12 +40,12 @@ değişken ö = küme.örnekleyici(toplu: TOPLU, bağlam: BAĞLAM, tohum: 1)
 
 // --- Model: gömme → ara katman → sözlük üzerinde dağılım (bir sonraki token yalnızca
 // şimdiki tokena bakılarak tahmin edilir; dikkatli bir model için ornekler/06_transformer.tr) ---
-değişken parametreler = []
+değişken ağırlıklar = []
 değişken parametre_tohumu = 0
 fonksiyon parametre(şekil, ölçek) {
     parametre_tohumu += 1
     değişken w = tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
-    parametreler.ekle(w)
+    ağırlıklar.ekle(w)
     sonuç w
 }
 değişken E = parametre([V, D], 0.1)
@@ -57,7 +57,7 @@ fonksiyon ileri(giriş) {
 }
 
 // --- Eğitim ---
-değişken iyileştirici = AdamW(parametreler, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
+değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
 döngü adım içinde 0..ADIM {
     değişken giriş, hedef = ö.sonraki()
     iyileştirici.sıfırla()
