@@ -163,19 +163,16 @@ func (b *blokKodu) calistir(v *VM, env *Environment) (Value, flowSignal, error) 
 			if stmt := b.deyimler[i]; stmt != nil {
 				// kesme_noktası satırının kendisinde değil, ya da kesme_noktası tetiklendikten sonra dur
 				if _, isBp := stmt.(*ast.BreakpointStatement); !isBp {
+					v.etkinBlok = b // hata ayıklayıcı zıplama hedeflerini bu bloğa göre sorar
 					jumpLine := v.Debugger.BeforeStatement(v, stmt, env)
-					if jumpLine > 0 {
-						jumped := false
+					if hedef, ok := b.ziplamaHedefi(jumpLine); jumpLine > 0 && ok {
 						for j, targetStmt := range b.deyimler {
-							if targetStmt != nil && targetStmt.Line() >= jumpLine {
+							if targetStmt != nil && targetStmt.Line() == hedef {
 								i = j - 1 // döngü sonunda i++ olacağı için j-1
-								jumped = true
 								break
 							}
 						}
-						if jumped {
-							continue
-						}
+						continue
 					}
 				}
 			}
@@ -190,6 +187,37 @@ func (b *blokKodu) calistir(v *VM, env *Environment) (Value, flowSignal, error) 
 		lastVal = val
 	}
 	return lastVal, signalNone, nil
+}
+
+// zıplamaHedefi blokta satir'a zıplanabiliyorsa zıplanacak deyimin satırını verir: satırdaki
+// ya da ondan sonraki ilk deyim; satır bloğun ilk deyiminden önceyse ya da son deyiminin
+// başından sonraysa (blok dışı) zıplanamaz.
+func (b *blokKodu) ziplamaHedefi(satir int) (int, bool) {
+	ilk := true
+	for _, st := range b.deyimler {
+		if st == nil {
+			continue
+		}
+		if ilk && satir < st.Line() {
+			return 0, false
+		}
+		ilk = false
+		if st.Line() >= satir {
+			return st.Line(), true
+		}
+	}
+	return 0, false
+}
+
+// ZiplamaHedefi hata ayıklayıcı duraklatıldığında, duraklanan bloğun içinde satir'a
+// zıplanabiliyorsa zıplanacak deyimin satırını verir (VS Code "goto"). Zıplama yalnızca
+// şu an çalışan bloğun deyimleri arasında yapılabilir; blok dışındaki satırda ok yanlıştır.
+// Duraklatılmış görevin kendi goroutine'inde çağrılmalıdır.
+func (v *VM) ZiplamaHedefi(satir int) (int, bool) {
+	if v.etkinBlok == nil {
+		return 0, false
+	}
+	return v.etkinBlok.ziplamaHedefi(satir)
 }
 
 // blokDeyimi bir bloğu derler: blok ad tanımlıyorsa her çalışmada yeni bir ortam açar,

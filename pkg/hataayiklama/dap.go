@@ -67,11 +67,14 @@ type dapServer struct {
 	outMu sync.Mutex
 	seq   int
 
-	mu          sync.Mutex
-	breakpoints map[int]dapBreakpoint
-	paused      bool
-	started     bool
-	cmds        chan *dapRequest
+	mu sync.Mutex
+	// kesmeNoktalari dosya başına (dosyaAnahtari) satır → kesme noktasıdır. VS Code
+	// launch'tan önce birden çok dosya için istek gönderebilir; istekler birbirini silmez.
+	// Yalnızca hata ayıklanan dosyanınkiler uygulanır.
+	kesmeNoktalari map[string]map[int]dapBreakpoint
+	paused         bool
+	started        bool
+	cmds           chan *dapRequest
 
 	// Yalnızca VM goroutine'i duraklatılmışken kullanılır.
 	curVM      *vm.VM
@@ -96,18 +99,22 @@ func ServeDAP(in io.Reader, out io.Writer) error {
 
 func newDAPServer(in io.Reader, out io.Writer) *dapServer {
 	return &dapServer{
-		in:          bufio.NewReader(in),
-		out:         out,
-		breakpoints: make(map[int]dapBreakpoint),
-		cmds:        make(chan *dapRequest),
-		finished:    make(chan struct{}),
-		exit:        os.Exit,
+		in:             bufio.NewReader(in),
+		out:            out,
+		kesmeNoktalari: make(map[string]map[int]dapBreakpoint),
+		cmds:           make(chan *dapRequest),
+		finished:       make(chan struct{}),
+		exit:           os.Exit,
 	}
 }
 
 // ---------------------------------------------------------------------------
 // İleti çerçeveleme (Content-Length başlığı + JSON gövde)
 // ---------------------------------------------------------------------------
+
+// dapEnBuyukIleti bir DAP iletisinin gövdesinin en fazla bayt sayısıdır: bozuk ya da
+// kötü niyetli bir Content-Length bellek tüketmesin.
+const dapEnBuyukIleti = 64 << 20
 
 func (s *dapServer) readMessage() (*dapMessage, error) {
 	length := -1
@@ -127,6 +134,9 @@ func (s *dapServer) readMessage() (*dapMessage, error) {
 			n, err := strconv.Atoi(strings.TrimSpace(v))
 			if err != nil || n < 0 {
 				return nil, fmt.Errorf("geçersiz Content-Length: %q", v)
+			}
+			if n > dapEnBuyukIleti {
+				return nil, fmt.Errorf("ileti çok büyük (Content-Length %d, en fazla %d bayt)", n, dapEnBuyukIleti)
 			}
 			length = n
 		}
@@ -269,13 +279,12 @@ func (s *dapServer) dispatch(msg *dapMessage) {
 		}
 		s.respond(msg, nil)
 	case "gotoTargets":
-		var a struct {
-			Line int `json:"line"`
+		// Hedefler duraklanan bloğa göredir: VM'in goroutine'inde yanıtlanır.
+		if s.isPaused() {
+			s.forward(msg)
+			return
 		}
-		_ = json.Unmarshal(msg.Arguments, &a)
-		s.respond(msg, map[string]interface{}{"targets": []interface{}{
-			map[string]interface{}{"id": a.Line, "label": "Satır " + strconv.Itoa(a.Line), "line": a.Line},
-		}})
+		s.respond(msg, map[string]interface{}{"targets": []interface{}{}})
 	case "setDataBreakpoints":
 		switch {
 		case s.isPaused():
@@ -439,25 +448,38 @@ func (s *dapServer) setBreakpoints(msg *dapMessage) {
 	}
 	_ = json.Unmarshal(msg.Arguments, &a)
 
-	// Şimdilik yalnızca hata ayıklanan dosyanın kesme noktaları desteklenir
-	// ('aktar' ile yüklenen modüllerin satırları ayrı dosyalardadır).
-	sameFile := s.programPath == "" || samePath(a.Source.Path, s.programPath)
+	// Kesme noktaları dosya başına tutulur: her istek yalnızca kendi dosyasınınkileri
+	// değiştirir. Şimdilik yalnızca hata ayıklanan dosyanınkiler uygulanır ('aktar' ile
+	// yüklenen modüllerin satırları ayrı dosyalardadır); launch'tan önce dosya bilinmediği
+	// için her istek doğrulanmış sayılır.
 	result := []interface{}{}
+	noktalar := make(map[int]dapBreakpoint, len(a.Breakpoints))
 	s.mu.Lock()
-	if sameFile {
-		s.breakpoints = make(map[int]dapBreakpoint)
-	}
+	s.kesmeNoktalari[dosyaAnahtari(a.Source.Path)] = noktalar
+	sameFile := s.programPath == "" || samePath(a.Source.Path, s.programPath)
 	for _, bp := range a.Breakpoints {
+		noktalar[bp.Line] = dapBreakpoint{Line: bp.Line, Condition: bp.Condition, LogMessage: bp.LogMessage}
 		entry := map[string]interface{}{"line": bp.Line, "verified": sameFile}
-		if sameFile {
-			s.breakpoints[bp.Line] = dapBreakpoint{Line: bp.Line, Condition: bp.Condition, LogMessage: bp.LogMessage}
-		} else {
+		if !sameFile {
 			entry["message"] = "Yalnızca hata ayıklanan dosyada kesme noktası konabilir"
 		}
 		result = append(result, entry)
 	}
 	s.mu.Unlock()
 	s.respond(msg, map[string]interface{}{"breakpoints": result})
+}
+
+// dosyaAnahtari bir yolu kesme noktası haritasının anahtarına çevirir (mutlak, temiz,
+// büyük/küçük harfe duyarsız: samePath ile aynı eşitlik).
+func dosyaAnahtari(yol string) string {
+	if yol == "" {
+		return ""
+	}
+	m, err := filepath.Abs(yol)
+	if err != nil {
+		m = yol
+	}
+	return strings.ToLower(filepath.Clean(m))
 }
 
 func samePath(a, b string) bool {
@@ -473,7 +495,7 @@ func samePath(a, b string) bool {
 // durmaz; iz noktası (logMessage) ise mesajı yazar ve durmaz.
 func (s *dapServer) breakpointHit(v *vm.VM, line int, env *vm.Environment) bool {
 	s.mu.Lock()
-	bp, ok := s.breakpoints[line]
+	bp, ok := s.kesmeNoktalari[dosyaAnahtari(s.programPath)][line]
 	s.mu.Unlock()
 	if !ok {
 		return false
@@ -630,9 +652,24 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 			s.respondErr(msg, "Geçersiz hedef satır")
 			return 0, false
 		}
-		s.resume(StepInto, 0, "Satır "+turkce.SayiEk(int64(a.TargetID), turkce.Yonelme)+" zıplandı", "goto")
+		hedef, ok := s.curVM.ZiplamaHedefi(a.TargetID)
+		if !ok {
+			s.respondErr(msg, "Satır %d şu an çalışan bloğun dışında; yalnızca bulunulan bloğun (fonksiyon, döngü ya da eğer gövdesinin) satırlarına zıplanabilir", a.TargetID)
+			return 0, false
+		}
+		s.resume(StepInto, 0, "Satır "+turkce.SayiEk(int64(hedef), turkce.Yonelme)+" zıplandı", "goto")
 		s.respond(msg, nil)
-		return a.TargetID, true
+		return hedef, true
+	case "gotoTargets":
+		var a struct {
+			Line int `json:"line"`
+		}
+		_ = json.Unmarshal(msg.Arguments, &a)
+		hedefler := []interface{}{}
+		if hedef, ok := s.curVM.ZiplamaHedefi(a.Line); ok {
+			hedefler = append(hedefler, map[string]interface{}{"id": hedef, "label": "Satır " + strconv.Itoa(hedef), "line": hedef})
+		}
+		s.respond(msg, map[string]interface{}{"targets": hedefler})
 	case "stackTrace":
 		s.stackTrace(msg)
 	case "scopes":

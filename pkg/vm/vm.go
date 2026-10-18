@@ -118,6 +118,8 @@ type VM struct {
 	// yukleme bu görevin yüklemekte olduğu modüllerin (mutlak yol) zinciridir; döngüsel
 	// aktarımı, başka bir görevin yüklemesini beklemekten ayırır.
 	yukleme []string
+	// etkinBlok hata ayıklayıcıya danışılan son deyimin bloğudur (bkz. ZiplamaHedefi).
+	etkinBlok *blokKodu
 
 	// gorevDegerleri motorların göreve özel durumudur (ör. tensör motorunun
 	// karışık_hassasiyet bloğu); bkz. GorevDegeri. Çağrı yığını gibi yalnızca görevin

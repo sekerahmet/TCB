@@ -345,6 +345,78 @@ func TestDAPGotoAndLaunchErrors(t *testing.T) {
 	}
 }
 
+// launch'tan önce gelen setBreakpoints istekleri birbirini silmemeli; başka bir dosyanın
+// kesme noktası hata ayıklanan dosyada tetiklenmemeli.
+func TestDAPKesmeNoktalariDosyaBasina(t *testing.T) {
+	c := startDAP(t)
+	path := writeProgram(t, "değişken a = 1\na = 2\na = 3\na = 4\nyazdır(a)\n")
+	baska := filepath.Join(t.TempDir(), "modul.tr")
+	c.request("initialize", map[string]interface{}{"adapterID": "tr"})
+	c.event("initialized")
+	c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": path}, "breakpoints": []interface{}{map[string]interface{}{"line": 2}}})
+	c.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": baska}, "breakpoints": []interface{}{map[string]interface{}{"line": 4}}})
+	c.request("launch", map[string]interface{}{"program": path})
+	c.request("configurationDone", nil)
+	c.event("stopped")
+	if line := c.topFrameLine(); line != 2 {
+		t.Fatalf("ana dosyanın 2. satırında durmalıydı, %d", line)
+	}
+	c.request("continue", map[string]interface{}{"threadId": 1})
+	c.event("terminated")
+	if !strings.Contains(c.output.String(), "4") {
+		t.Fatalf("program sonuna kadar çalışmalıydı: %q", c.output.String())
+	}
+	// Launch sonrası başka dosyanın kesme noktaları doğrulanmamış (verified: false) döner
+	c2 := startDAP(t)
+	c2.launch(path, false)
+	yanit := c2.request("setBreakpoints", map[string]interface{}{"source": map[string]interface{}{"path": baska}, "breakpoints": []interface{}{map[string]interface{}{"line": 1}}})
+	if bp := yanit["breakpoints"].([]interface{})[0].(map[string]interface{}); bp["verified"] != false {
+		t.Fatalf("başka dosyanın kesme noktası doğrulanmamalı: %v", bp)
+	}
+}
+
+// goto şu anki bloğun dışına zıplayamaz: hedef önerilmez, istek açık bir hatayla reddedilir
+// ("zıplandı" deyip başka satırda sürmez).
+func TestDAPGotoBlokDisiReddedilir(t *testing.T) {
+	c := startDAP(t)
+	path := writeProgram(t, "değişken x = 0\nfonksiyon f() {\n    x = 1\n    x = 2\n}\nf()\nx = 7\nyazdır(x)\n")
+	c.launch(path, false, map[string]interface{}{"line": 3})
+	c.event("stopped")
+	hedefler := c.request("gotoTargets", map[string]interface{}{"source": map[string]interface{}{"path": path}, "line": 7})
+	if n := len(hedefler["targets"].([]interface{})); n != 0 {
+		t.Fatalf("bloğun dışındaki satır hedef olarak önerilmemeli: %v", hedefler)
+	}
+	if n := len(c.request("gotoTargets", map[string]interface{}{"source": map[string]interface{}{"path": path}, "line": 4})["targets"].([]interface{})); n != 1 {
+		t.Fatalf("aynı bloktaki satır hedef olmalı")
+	}
+	seq := c.send("goto", map[string]interface{}{"threadId": 1, "targetId": 7})
+	yanit := c.next(func(m map[string]interface{}) bool {
+		return m["type"] == "response" && int(m["request_seq"].(float64)) == seq
+	}, "goto yanıtı")
+	if yanit["success"] != false || !strings.Contains(fmt.Sprint(yanit["message"]), "bloğun dışında") {
+		t.Fatalf("blok dışına goto reddedilmeli: %v", yanit)
+	}
+	// Program hâlâ 3. satırda duruyor
+	if line := c.topFrameLine(); line != 3 {
+		t.Fatalf("reddedilen goto sonrası 3. satırda kalmalı, %d", line)
+	}
+	c.request("goto", map[string]interface{}{"threadId": 1, "targetId": 4})
+	c.event("stopped")
+	if line := c.topFrameLine(); line != 4 {
+		t.Fatalf("4. satıra zıplamalıydı, %d", line)
+	}
+	c.request("continue", map[string]interface{}{"threadId": 1})
+	c.event("terminated")
+}
+
+// Çok büyük Content-Length bellek tüketmeden reddedilir.
+func TestDAPContentLengthSiniri(t *testing.T) {
+	s := newDAPServer(strings.NewReader("Content-Length: 99999999999\r\n\r\n{}"), io.Discard)
+	if _, err := s.readMessage(); err == nil || !strings.Contains(err.Error(), "çok büyük") {
+		t.Fatalf("büyük ileti reddedilmeli: %v", err)
+	}
+}
+
 // Eşzamanlı görev hataları Debug Console'a "stderr" kategorisiyle gelir.
 func TestDAPGorevHatasi(t *testing.T) {
 	c := startDAP(t)
