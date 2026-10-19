@@ -29,7 +29,7 @@ Dil çekirdeğinin içinde de sıra vardır: bir dil paketi yalnızca kendisinde
 turkce < kod < ipucu < sozcuk < agac < ayristir < denetci < kaynak < yurut
 ```
 
-Yorumlayıcı (`internal/lang/interp`) motorları ve hata ayıklayıcıyı içe aktarmaz; onlar yorumlayıcıya kendileri bağlanır: `internal/stdlib` paketi yüklenirken yerleşikleri `yurut.MotorEkle` ile, `internal/devtools/debugger` paketi yüklenirken koddaki `kesme_noktası` deyiminin açacağı hata ayıklayıcıyı `yurut.YeniHataAyiklayici` ile kaydeder. Tam dili çalıştıran program ikisini de içe aktarır (`cmd/tr`, `internal/devtools/testrunner`).
+Yorumlayıcı (`internal/lang/interp`) motorları ve hata ayıklayıcıyı içe aktarmaz; onlar yorumlayıcıya kendileri bağlanır: `internal/stdlib` paketi yüklenirken yerleşikleri `interp.AddEngine` ile, `internal/devtools/debugger` paketi yüklenirken koddaki `kesme_noktası` deyiminin açacağı hata ayıklayıcıyı `interp.NewDebugger` ile kaydeder. Tam dili çalıştıran program ikisini de içe aktarır (`cmd/tr`, `internal/devtools/testrunner`).
 
 ## Paketler
 
@@ -66,7 +66,7 @@ Yorumlayıcı (`internal/lang/interp`) motorları ve hata ayıklayıcıyı içe 
 | `internal/devtools/testrunner` | `tr test` komutunun çekirdeği |
 | `internal/devtools/profiler` | Canlı profil: `tr izle` ve `tr profil`'in çekirdeği, arka plan işinin `profil.json`'u (aşağıda "Canlı profil") |
 | `internal/reporoot` | Testlerin depo kökünü bulan yardımcı (testler `../../` yazmaz) |
-| `lib` | TR ile yazılan standart kitaplık (`katman.tr`, `iyilestirici.tr`, testleri yanında); `gomulu.go` onları `go:embed` ile ikiliye gömer, `cmd/tr` yorumlayıcıya `yurut.KitaplikBagla` ile bağlar. Kullanıcı `aktar "tr/katman"` yazar (dil tanımı 11.6); `tr derle` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`lib/README.md`](../lib/README.md) |
+| `lib` | TR ile yazılan standart kitaplık (`katman.tr`, `iyilestirici.tr`, testleri yanında); `gomulu.go` onları `go:embed` ile ikiliye gömer, `cmd/tr` yorumlayıcıya `interp.SetLibrary` ile bağlar. Kullanıcı `aktar "tr/katman"` yazar (dil tanımı 11.6); `tr derle` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`lib/README.md`](../lib/README.md) |
 | `tools/gen/*` | Üreteçler: Go kod sabitleri, `docs/kodlar.md`, eklentinin renklendirme listeleri (`go generate ./internal/lang/codes`) |
 | `tools/bench/go` | Hız kıyas setinin derlenmiş başvuru sürümü |
 
@@ -321,7 +321,7 @@ en iyi −%1, A/A gürültüsü ±%2). Örnekleme açıkken çağrı yoğun TR k
 | :-- | :-- |
 | Dil çekirdeği | `internal/lang/**`, `internal/stdlib/files`, `internal/devtools/{bicim,testkosucu,ayikla}`, `internal/reporoot`, `cmd/tr`, `docs/spec/`, bu dosya |
 | Tensör ve GPU | `internal/compute/tensor`, `internal/compute/gpu`, `internal/stdlib/ml`, ileride `lib/cekirdek` |
-| Veri ve parçalayıcı | `internal/compute/{parca,veriyolu}`, `internal/stdlib/{parcalayici,veri,veribicim}` |
+| Veri ve parçalayıcı | `internal/compute/{tokenize,dataload}`, `internal/stdlib/{tokenizer,dataset,formats}` |
 | Araçlar | `editors/`, `.vscode/`, `docs/guide/`, `README.md` |
 | Hız | `tools/bench/` |
 | Test | `tests/`, `.github/`, eklenti testleri |

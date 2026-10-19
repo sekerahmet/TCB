@@ -16,11 +16,11 @@ import (
 
 // Testlerdeki VM'ler bu paketin yerleşiklerini de içersin (github.com/sekerahmet/TCB/internal/stdlib gibi).
 func init() {
-	interp.AddEngine(Kaydet)
+	interp.AddEngine(Register)
 }
 
-// calistir programı çalıştırır; yazdır() çıktısını ve son değeri döndürür.
-func calistir(t *testing.T, code string) (string, interp.Value, error) {
+// run programı çalıştırır; yazdır() çıktısını ve son değeri döndürür.
+func run(t *testing.T, code string) (string, interp.Value, error) {
 	t.Helper()
 	p := parser.New(lexer.New(code))
 	prog := p.ParseProgram()
@@ -37,7 +37,7 @@ func calistir(t *testing.T, code string) (string, interp.Value, error) {
 
 // json_çöz sözlük anahtarlarının sırasını korumuyordu (Go map'i sırasızdır).
 func TestJSONDecodePreservesKeyOrder(t *testing.T) {
-	_, val, err := calistir(t, `
+	_, val, err := run(t, `
 		değişken d = json_çöz("\{\"zeta\": 1, \"alfa\": 2.5, \"orta\": [true, null, \"x\"], \"iç\": \{\"b\": 1, \"a\": 2\}\}")
 		sonuç [d.anahtarlar(), d["iç"].anahtarlar(), d["orta"], d["alfa"], json_metin(d)]`)
 	if err != nil {
@@ -51,7 +51,7 @@ func TestJSONDecodePreservesKeyOrder(t *testing.T) {
 
 // d[1] ile d["1"] eskiden Inspect() ile aynı anahtara düşüyordu.
 func TestDictKeysAreTypeAware(t *testing.T) {
-	_, val, err := calistir(t, `
+	_, val, err := run(t, `
 		değişken d = {1: "tam", "1": "metin"}
 		d[doğru] = "mantık"
 		d["doğru"] = "metin2"
@@ -65,7 +65,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	}
 
 	// Döngü ve anahtarlar() özgün anahtar tiplerini geri vermeli.
-	_, val, err = calistir(t, `
+	_, val, err = run(t, `
 		değişken d = {1: "a", "b": 2}
 		değişken tipler = []
 		döngü k, v içinde d { tipler = tipler + [tip(k)] }
@@ -79,7 +79,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	}
 
 	// Yazdırma ve JSON dönüşümü metin anahtarlar için değişmemeli.
-	out, _, err := calistir(t, `
+	out, _, err := run(t, `
 		değişken d = {"ad": "Ali", 1: "bir"}
 		yazdır(d)
 		yazdır(json_metin({"ad": "Ali"}))
@@ -106,12 +106,12 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 // olmayan bir argümanda eskiden [["yok.csv"]] döndürürken artık açık hata verir.
 func TestCSVReadFileTextAndMissingPath(t *testing.T) {
 	dir := t.TempDir()
-	dosya := filepath.ToSlash(filepath.Join(dir, "veri.csv"))
-	if err := os.WriteFile(dosya, []byte("ad, yaş\nAli, 30\nAyşe, 27.5\n"), 0644); err != nil {
+	file := filepath.ToSlash(filepath.Join(dir, "veri.csv"))
+	if err := os.WriteFile(file, []byte("ad, yaş\nAli, 30\nAyşe, 27.5\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	_, val, err := calistir(t, fmt.Sprintf(`sonuç [csv_oku(%q), csv_oku("x,1\ny,2"), csv_oku("tek"), csv_oku("tarih,1/2/2024")]`, dosya))
+	_, val, err := run(t, fmt.Sprintf(`sonuç [csv_oku(%q), csv_oku("x,1\ny,2"), csv_oku("tek"), csv_oku("tarih,1/2/2024")]`, file))
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
@@ -126,14 +126,14 @@ func TestCSVReadFileTextAndMissingPath(t *testing.T) {
 		filepath.ToSlash(filepath.Join(dir, "yok", "veri.txt")),
 		`klasor\yok`,
 	} {
-		_, val, err := calistir(t, fmt.Sprintf(`sonuç csv_oku(%q)`, arg))
+		_, val, err := run(t, fmt.Sprintf(`sonuç csv_oku(%q)`, arg))
 		if err == nil || !strings.Contains(err.Error(), "okunamadı: ") || !strings.Contains(err.Error(), " yok") {
 			t.Errorf("csv_oku(%q): 'dosya yok' hatası bekleniyordu, alınan: %v, %v", arg, val, err)
 		}
 	}
 
 	// Klasör yolu da sessizce metin sayılmamalı.
-	_, _, err = calistir(t, fmt.Sprintf(`sonuç csv_oku(%q)`, filepath.ToSlash(dir)))
+	_, _, err = run(t, fmt.Sprintf(`sonuç csv_oku(%q)`, filepath.ToSlash(dir)))
 	if err == nil || !strings.Contains(err.Error(), "klasör") {
 		t.Fatalf("klasör hatası bekleniyordu, alınan: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestCSVResolvesRelativeToProgram(t *testing.T) {
 	}
 }
 
-func TestYolGibi(t *testing.T) {
+func TestLooksLikePath(t *testing.T) {
 	for s, want := range map[string]bool{
 		"yok.csv":          true,
 		"a/b":              true,
@@ -169,8 +169,8 @@ func TestYolGibi(t *testing.T) {
 		"":                 false,
 		"sadece_bir_metin": false,
 	} {
-		if got := yolGibi(s); got != want {
-			t.Errorf("yolGibi(%q) = %v, %v bekleniyordu", s, got, want)
+		if got := looksLikePath(s); got != want {
+			t.Errorf("looksLikePath(%q) = %v, %v bekleniyordu", s, got, want)
 		}
 	}
 }
@@ -178,17 +178,17 @@ func TestYolGibi(t *testing.T) {
 // Hakem bulgusu 15: CSV'de BOM soyulmuyor, "NaN"/"Inf" sayıya çevriliyor, baştaki sıfırlar
 // ve Tam aralığını aşan sayılar sessizce bozuluyordu. Artık yalnızca katı sayı biçimi sayıdır;
 // öteki hücreler olduğu gibi metin kalır.
-func TestCSVKatiSayiVeBOM(t *testing.T) {
+func TestCSVStrictNumbersAndBOM(t *testing.T) {
 	dir := t.TempDir()
-	dosya := filepath.ToSlash(filepath.Join(dir, "bom.csv"))
-	if err := os.WriteFile(dosya, []byte("\ufeffad,deger\nx,1\n"), 0644); err != nil {
+	file := filepath.ToSlash(filepath.Join(dir, "bom.csv"))
+	if err := os.WriteFile(file, []byte("\ufeffad,deger\nx,1\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	_, val, err := calistir(t, fmt.Sprintf(`sonuç [csv_oku(%q)[0][0] == "ad", csv_oku("%sa,b")[0][0]]`, dosya, "\ufeff"))
+	_, val, err := run(t, fmt.Sprintf(`sonuç [csv_oku(%q)[0][0] == "ad", csv_oku("%sa,b")[0][0]]`, file, "\ufeff"))
 	if err != nil || val.Inspect() != `[doğru, "a"]` {
 		t.Fatalf("BOM soyulmalı: %v %v", val, err)
 	}
-	_, val, err = calistir(t, `
+	_, val, err = run(t, `
 		değişken s = csv_oku("a,b,c,d,e,f,g,h,i,j,k,l\nNaN,Inf,-Inf,infinity,007,12345678901234567890,0x10,1_000,1e400,+5,00.5,.5\n-0,0,1.0,2.5e3,-7,9223372036854775807,1E-3,0.0,,  42 ,1.,1e")
 		sonuç [s[1], [tip(h) döngü h içinde s[1]], s[2], [tip(h) döngü h içinde s[2]]]`)
 	if err != nil {
@@ -205,12 +205,12 @@ func TestCSVKatiSayiVeBOM(t *testing.T) {
 
 // Hakem bulgusu 15 ve 5: json_metin anahtar sırasını kaybediyordu, NaN'da İngilizce hata
 // veriyordu, döngüsel listede süreç yığın taşmasıyla çöküyordu (dene yakalayamıyordu).
-func TestJSONMetinSiraNaNVeDongu(t *testing.T) {
-	_, val, err := calistir(t, `sonuç json_metin(json_çöz("\{\"b\": 1, \"a\": \{\"z\": 2, \"y\": [3]\}\}"))`)
+func TestJSONTextOrderNaNAndCycle(t *testing.T) {
+	_, val, err := run(t, `sonuç json_metin(json_çöz("\{\"b\": 1, \"a\": \{\"z\": 2, \"y\": [3]\}\}"))`)
 	if err != nil || val.Inspect() != `{"b":1,"a":{"z":2,"y":[3]}}` {
 		t.Fatalf("sıra korunmalı: %v %v", val, err)
 	}
-	_, val, err = calistir(t, `
+	_, val, err = run(t, `
 		değişken l = [1]
 		l.ekle(l)
 		değişken d = {"a": 1}
@@ -229,7 +229,7 @@ func TestJSONMetinSiraNaNVeDongu(t *testing.T) {
 		t.Fatalf("Türkçe döngü ve NaN hataları bekleniyordu: %s", m)
 	}
 	// BOM'lu JSON metni de çözülür
-	_, val, err = calistir(t, fmt.Sprintf(`sonuç json_çöz("%s\{\"a\": 1\}")["a"]`, "\ufeff"))
+	_, val, err = run(t, fmt.Sprintf(`sonuç json_çöz("%s\{\"a\": 1\}")["a"]`, "\ufeff"))
 	if err != nil || val.Inspect() != "1" {
 		t.Fatalf("BOM'lu JSON: %v %v", val, err)
 	}

@@ -18,7 +18,7 @@ import (
 
 // Testlerdeki VM'ler bu paketin ve yol alan öteki motorların yerleşiklerini içersin.
 func init() {
-	interp.AddEngine(formats.Kaydet)
+	interp.AddEngine(formats.Register)
 	interp.AddEngine(ml.Kaydet)
 	interp.AddEngine(Kaydet)
 }
