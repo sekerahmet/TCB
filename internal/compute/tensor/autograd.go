@@ -276,6 +276,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 		n.parents = nil
 		n.registered = nil
 		n.outer = nil
+		n.castMemo.Store(nil)
 		n.free = true
 		n.behind.Store(false)
 	}

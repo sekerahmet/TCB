@@ -217,7 +217,7 @@ func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error
 		}
 		var r *tensor.Tensor
 		if mixed != tensor.Float32 {
-			r = tensor.MatMulOut(x.Cast(mixed), y.Cast(mixed), mixed)
+			r = tensor.MatMulOut(x.CastShared(mixed), y.CastShared(mixed), mixed)
 		} else {
 			r = tensor.MatMul(x, y)
 		}

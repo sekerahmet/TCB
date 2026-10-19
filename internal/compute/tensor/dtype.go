@@ -82,6 +82,31 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	return r
 }
 
+// castMemo bir ara sonucun saklanan dönüşümü ve o andaki depolama sürümleri.
+type castMemo struct {
+	out      *Tensor
+	src, dst uint64 // kaynağın ve sonucun depolama sürümü
+}
+
+// CastShared Cast gibidir; ancak bir ara sonucun aynı türe dönüşümünü, kaynak ve
+// sonuç o zamandan beri değişmediyse yeniden kullanır (ör. karışık hassasiyette
+// normun çıktısı q, k ve v çarpımları için üç kez değil bir kez dönüştürülür).
+// Sonuç başka çağrılarla paylaşılabilir; yerinde değiştirilmemelidir (değiştirilirse
+// sonraki çağrı yeniden dönüştürür). Yalnızca türev izlenen ara sonuçlarda saklanır:
+// yapraklarda (parametreler, veriler) ve türevsiz hesapta Cast'in kendisidir.
+func (t *Tensor) CastShared(dt DType) *Tensor {
+	if t.dtyp == dt || t.IsLeaf() || !GradEnabled() {
+		return t.Cast(dt)
+	}
+	if c := t.castMemo.Load(); c != nil && c.out.dtyp == dt && !c.out.free &&
+		c.src == t.storage.Version() && c.dst == c.out.storage.Version() {
+		return c.out
+	}
+	out := t.Cast(dt)
+	t.castMemo.Store(&castMemo{out: out, src: t.storage.Version(), dst: out.storage.Version()})
+	return out
+}
+
 // Bits16 v'yi 16 bitlik dt türüne (BFloat16 ya da Float16) en yakına-çifte
 // yuvarlayarak bit deseni olarak verir. Dosyaya 16 bitlik veri yazmak içindir:
 // o türden bir tensörün Data() değerleri kayıpsız geri çevrilir.

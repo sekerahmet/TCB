@@ -196,10 +196,11 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 
 // highPrecision karışık hassasiyet bloğu içinde 16 bitlik bir tensörü (normalizasyon,
 // softmax ve indirgemelerden önce) float32'ye açar; blok dışında ya da tensör zaten
-// float32 ise t'nin kendisi döner.
+// float32 ise t'nin kendisi döner. Bloğun kendi dönüşümleri kullanıcıya görünmediğinden
+// paylaşılır (CastShared): aynı ara sonuç bir kez dönüştürülür.
 func highPrecision(m *interp.VM, t *tensor.Tensor) (*tensor.Tensor, error) {
 	if t == nil || t.DType() == tensor.Float32 || mixedDType(m) == tensor.Float32 {
 		return t, nil
 	}
-	return castTo(t, tensor.Float32)
+	return safe(func() *tensor.Tensor { return t.CastShared(tensor.Float32) })
 }

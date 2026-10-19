@@ -44,6 +44,8 @@ type Tensor struct {
 	// passGrad, gradyanı girdisine olduğu gibi aktaran işlemin (dönüşüm, görünüm, kopya,
 	// cihaz değiştirme) çıktısını işaretler: gradyanının türü girdininkidir (bkz. gradDType).
 	passGrad bool
+	// castMemo, bu ara sonucun son paylaşılan dönüşümü (bkz. CastShared).
+	castMemo atomic.Pointer[castMemo]
 
 	// Hesap çizgesi: bu tensörü üreten işlemin girdileri ve geri yayılım işlevi.
 	// Yaprak tensörlerde (kullanıcının oluşturdukları) ikisi de boştur.

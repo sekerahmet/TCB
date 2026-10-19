@@ -237,6 +237,47 @@ func TestCastWeightGradStaysFloat32(t *testing.T) {
 	}
 }
 
+// CastShared bir ara sonucun aynı dönüşümünü yeniden kullanır; kaynak ya da sonuç
+// yerinde değişince, yaprakta ve türevsiz hesapta yeniden dönüştürür. Paylaşılan
+// dönüşümün gradyanı her kullanımdan birikir.
+func TestCastShared(t *testing.T) {
+	x := New([]float32{1, 2, 3}, 3).SetRequiresGrad(true)
+	h := x.Mul(x)
+	a, b := h.CastShared(BFloat16), h.CastShared(BFloat16)
+	if a != b {
+		t.Fatal("aynı ara sonucun dönüşümü paylaşılmadı")
+	}
+	if c := h.CastShared(Float16); c == a || c.DType() != Float16 {
+		t.Fatal("başka türe dönüşüm paylaşılmamalı")
+	}
+	if x.CastShared(BFloat16) == x.CastShared(BFloat16) {
+		t.Fatal("yaprağın dönüşümü paylaşılmamalı")
+	}
+	var n1, n2 *Tensor
+	NoGrad(func() { n1, n2 = h.CastShared(BFloat16), h.CastShared(BFloat16) })
+	if n1 == n2 || n1.RequiresGrad() {
+		t.Fatal("türevsiz hesapta dönüşüm paylaşılmamalı")
+	}
+	a2 := h.CastShared(BFloat16)
+	a2.Set(7, 0)
+	if h.CastShared(BFloat16) == a2 {
+		t.Fatal("yerinde değişen dönüşüm yeniden kullanıldı")
+	}
+	h3 := h.CastShared(BFloat16)
+	h.Set(5, 1)
+	if h.CastShared(BFloat16) == h3 {
+		t.Fatal("kaynak değişince dönüşüm yeniden yapılmalı")
+	}
+
+	y := x.Mul(x)
+	p, q := y.CastShared(BFloat16), y.CastShared(BFloat16)
+	p.Cast(Float32).SumAll().Add(q.Cast(Float32).SumAll()).Backward()
+	near(t, "paylaşılan dönüşümün gradyanı", x.Grad().Data(), []float32{4, 8, 12}, 0)
+	if y.castMemo.Load() != nil {
+		t.Fatal("geri yayılımdan sonra saklanan dönüşüm bırakılmalı")
+	}
+}
+
 func TestBF16MatMul(t *testing.T) {
 	rng := rand.New(rand.NewSource(52))
 	a := Randn(rng, 3, 64, 96)
