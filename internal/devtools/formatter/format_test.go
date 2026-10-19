@@ -14,7 +14,7 @@ func formatT(t *testing.T, src string) string {
 	t.Helper()
 	output, err := Format(src)
 	if err != nil {
-		t.Fatalf("Bicimle hata verdi: %v\nkaynak:\n%s", err, src)
+		t.Fatalf("Format hata verdi: %v\nkaynak:\n%s", err, src)
 	}
 	return output
 }

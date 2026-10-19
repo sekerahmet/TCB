@@ -30,8 +30,8 @@ func izleKomutu(args []string) {
 	s, path, argumanlar := profilArgumanlari("izle", args, "--çıktı")
 	machine, prog, code := programiHazirla(path, argumanlar)
 	gercekCikis, gercekHata := os.Stdout, os.Stderr
-	canli := profiler.YeniCanli(gercekHata, logging.IsTerminal(gercekHata), nil)
-	var yak *profiler.Yakalama
+	canli := profiler.NewLive(gercekHata, logging.IsTerminal(gercekHata), nil)
+	var yak *profiler.Capture
 	if canli.Terminal() {
 		yol := s.cikti
 		if yol == "" {
@@ -39,29 +39,29 @@ func izleKomutu(args []string) {
 			yol = filepath.Join(os.TempDir(), "tr-izle-"+ad+"-"+strconv.Itoa(os.Getpid())+".txt")
 		}
 		var err error
-		if yak, err = profiler.YakalamaBaslat(yol); err != nil {
-			canli.Kapat()
+		if yak, err = profiler.StartCapture(yol); err != nil {
+			canli.Close()
 			fmt.Fprintf(os.Stderr, "Hata: programın çıktı dosyası açılamadı: %v\n", err)
 			os.Exit(1)
 		}
-		canli.Yakala(yak)
-		os.Stdout, os.Stderr = yak.Yazici(), yak.Yazici()
-		machine.Out, machine.Err = yak.Yazici(), yak.Yazici()
+		canli.Capture(yak)
+		os.Stdout, os.Stderr = yak.Writer(), yak.Writer()
+		machine.Out, machine.Err = yak.Writer(), yak.Writer()
 	}
 	p := olcumluProfilBaslat(machine, path, code, prog)
-	p.Dinle(canli.Goster)
+	p.Listen(canli.Show)
 	cikisTemizligi = append(cikisTemizligi, func() {
-		son := p.Bitir(cikisKodu)
-		canli.Kapat()
+		son := p.Finish(cikisKodu)
+		canli.Close()
 		if yak != nil {
 			os.Stdout, os.Stderr = gercekCikis, gercekHata
-			yak.Kapat()
-			fmt.Fprintf(gercekHata, "\nProgramın son çıktısı (tamamı: %s):\n", yak.Yol())
-			for _, l := range yak.SonSatirlar(15) {
+			yak.Close()
+			fmt.Fprintf(gercekHata, "\nProgramın son çıktısı (tamamı: %s):\n", yak.Path())
+			for _, l := range yak.LastLines(15) {
 				fmt.Fprintln(gercekHata, "  │ "+l)
 			}
 		}
-		fmt.Fprint(gercekHata, "\n"+profiler.RaporMetni(son))
+		fmt.Fprint(gercekHata, "\n"+profiler.ReportText(son))
 	})
 	programCalistir(machine, prog, code)
 	temizle()

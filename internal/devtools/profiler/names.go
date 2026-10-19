@@ -5,15 +5,15 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// tensorIslemleri tablo başlığıdır ("Tensör işlemleri"; tip adı kod listesinden).
-func tensorIslemleri() string { return codes.Name(codes.A212) + " işlemleri" }
+// tensorOps tablo başlığıdır ("Tensör işlemleri"; tip adı kod listesinden).
+func tensorOps() string { return codes.Name(codes.A212) + " işlemleri" }
 
-// islemAdi tensör işleminin raporda görünen adıdır. Dildeki bir yerleşiğe ya da metoda
+// opName tensör işleminin raporda görünen adıdır. Dildeki bir yerleşiğe ya da metoda
 // karşılık gelen işlemler o adla (kod listesinden) yazılır: kullanıcı kendi kodunda gördüğü
 // adı görür, ad çevrilince rapor da çevrilir. Karşılığı tek bir ad olmayanlar (işleçler,
 // görünümler, kopyalar) Türkçe açıklamasıyla yazılır.
-func islemAdi(is tensor.OpKind) string {
-	if k, ok := islemKodu[is]; ok {
+func opName(is tensor.OpKind) string {
+	if k, ok := opCode[is]; ok {
 		return codes.Name(k)
 	}
 	switch is {
@@ -47,8 +47,8 @@ func islemAdi(is tensor.OpKind) string {
 	return is.String()
 }
 
-// islemKodu dildeki bir yerleşiğe birebir karşılık gelen işlemlerdir.
-var islemKodu = map[tensor.OpKind]codes.Code{
+// opCode dildeki bir yerleşiğe birebir karşılık gelen işlemlerdir.
+var opCode = map[tensor.OpKind]codes.Code{
 	tensor.OpKindExp:          codes.T220,
 	tensor.OpKindLog:          codes.T221,
 	tensor.OpKindSqrt:         codes.G404,
@@ -95,14 +95,14 @@ var islemKodu = map[tensor.OpKind]codes.Code{
 	tensor.OpKindClamp:        codes.G409,
 }
 
-// tamAd yönüyle birlikte görünen addır: geri yayılım "geri · " önekiyle. Çağrısız "diğer"
+// fullName yönüyle birlikte görünen addır: geri yayılım "geri · " önekiyle. Çağrısız "diğer"
 // kaydı yalnızca işlem dışında yapılan ayırmalardır (oluşturucular).
-func tamAd(is tensor.OpKind, geri bool, cagri int64) string {
-	if is == tensor.OpKindOther && cagri == 0 {
+func fullName(is tensor.OpKind, restore bool, calls int64) string {
+	if is == tensor.OpKindOther && calls == 0 {
 		return "işlem dışı ayırmalar"
 	}
-	if geri {
-		return "geri · " + islemAdi(is)
+	if restore {
+		return "geri · " + opName(is)
 	}
-	return islemAdi(is)
+	return opName(is)
 }

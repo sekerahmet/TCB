@@ -79,12 +79,12 @@ func uyariYazici(machine *interp.VM) func(string) {
 // olcumluProfilBaslat tr izle ve tr profil'in profilini başlatır: satır örneklemesi ve GPU
 // çekirdek ölçümü açık; arka plan işiyse durum dosyası da yazılır. GPU'nun son ölçümleri
 // motorlar kapanmadan alınır (kapanmadanOnce).
-func olcumluProfilBaslat(machine *interp.VM, path, code string, prog *ast.Program) *profiler.Profil {
-	p := profiler.Baslat(machine, profiler.Secenekler{
-		Program: path, Kaynak: code, Agac: prog, Ornekle: true, GPUOlcumu: true,
-		DurumDosyasi: profiler.IsDurumDosyasi(), Uyari: uyariYazici(machine),
+func olcumluProfilBaslat(machine *interp.VM, path, code string, prog *ast.Program) *profiler.Profile {
+	p := profiler.Start(machine, profiler.Options{
+		Program: path, Source: code, Tree: prog, SampleLines: true, GPUMeasure: true,
+		StatusFile: profiler.JobStatusFile(), Warning: uyariYazici(machine),
 	})
-	kapanmadanOnce = append(kapanmadanOnce, p.KapanmadanOnce)
+	kapanmadanOnce = append(kapanmadanOnce, p.BeforeClose)
 	return p
 }
 
@@ -99,8 +99,8 @@ func profilKomutu(args []string) {
 	}
 	p := olcumluProfilBaslat(machine, path, code, prog)
 	cikisTemizligi = append(cikisTemizligi, func() {
-		son := p.Bitir(cikisKodu)
-		fmt.Print("\n" + profiler.RaporMetni(son))
+		son := p.Finish(cikisKodu)
+		fmt.Print("\n" + profiler.ReportText(son))
 		if s.json != "" {
 			jsonRaporuYaz(s.json, son)
 		}
@@ -110,15 +110,15 @@ func profilKomutu(args []string) {
 }
 
 // jsonRaporuYaz raporu yola (klasörse içine speed.json) yazar; yazılamazsa bildirir.
-func jsonRaporuYaz(yol string, g *profiler.Goruntu) {
+func jsonRaporuYaz(yol string, g *profiler.Snapshot) {
 	if b, err := os.Stat(yol); (err == nil && b.IsDir()) || strings.HasSuffix(yol, "/") || strings.HasSuffix(yol, string(os.PathSeparator)) {
 		if err := os.MkdirAll(yol, 0o755); err != nil {
 			fmt.Fprintf(os.Stderr, "⚠️ profil: %s klasörü açılamadı: %v\n", yol, err)
 			return
 		}
-		yol = filepath.Join(yol, profiler.RaporDosyasiAdi)
+		yol = filepath.Join(yol, profiler.ReportFileName)
 	}
-	if err := profiler.DosyayaYaz(yol, g, func(m string) { fmt.Fprintln(os.Stderr, m) }); err != nil {
+	if err := profiler.WriteFile(yol, g, func(m string) { fmt.Fprintln(os.Stderr, m) }); err != nil {
 		fmt.Fprintf(os.Stderr, "⚠️ profil: JSON raporu yazılamadı: %v\n", err)
 		return
 	}
@@ -148,12 +148,12 @@ func goProfiliniBaslat(yol string) {
 // saniyede bir profil.json yazar (yalnızca her zaman açık sayaçlar; satır örneklemesi
 // yok: ek maliyet saniyede bir dosya yazmasıdır). İş değilse hiçbir şey yapmaz.
 func isProfiliniBaslat(machine *interp.VM, path, code string, prog *ast.Program) {
-	yol := profiler.IsDurumDosyasi()
+	yol := profiler.JobStatusFile()
 	if yol == "" {
 		return
 	}
-	p := profiler.Baslat(machine, profiler.Secenekler{
-		Program: path, Kaynak: code, Agac: prog, DurumDosyasi: yol, Uyari: uyariYazici(machine),
+	p := profiler.Start(machine, profiler.Options{
+		Program: path, Source: code, Tree: prog, StatusFile: yol, Warning: uyariYazici(machine),
 	})
-	cikisTemizligi = append(cikisTemizligi, func() { p.Bitir(cikisKodu) })
+	cikisTemizligi = append(cikisTemizligi, func() { p.Finish(cikisKodu) })
 }
