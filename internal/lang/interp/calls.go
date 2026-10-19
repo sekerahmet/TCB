@@ -51,6 +51,13 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	if nargs > len(fn.Parameters) {
 		return fmt.Errorf("Satır %d: %s en fazla %d argüman alır, %d verildi", line, name, len(fn.Parameters), nargs)
 	}
+	// Konumlu argümanın doldurduğu bir parametre adıyla da verilirse adlı değer sessizce
+	// yok sayılırdı; hangisinin kastedildiği belli olmadığından hatadır.
+	for i, p := range fn.Parameters[:nargs] {
+		if _, ok := named[p.Name]; ok {
+			return fmt.Errorf("Satır %d: %s '%s' parametresi hem sırayla (%d. argüman) hem adıyla verildi", line, name, p.Name, i+1)
+		}
+	}
 	var missing []string
 	required := 0
 	for i, p := range fn.Parameters {
@@ -62,7 +69,17 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 		}
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("Satır %d: %s %d argüman bekler, %d verildi (eksik: %s)", line, name, required, nargs+len(named), strings.Join(missing, ", "))
+		// Sayılı mesaj yalnızca sayılar eksikliği açıklıyorsa verilir. Adlı argümanlar ya da
+		// zorunlu olandan önce gelen varsayılanlı parametreler işin içindeyse ("1 argüman
+		// bekler, 1 verildi") kendisiyle çelişirdi; o zaman eksikler adlarıyla söylenir.
+		if len(named) == 0 && nargs < required {
+			return fmt.Errorf("Satır %d: %s %d argüman bekler, %d verildi (eksik: %s)", line, name, required, nargs, strings.Join(missing, ", "))
+		}
+		what := "argümanı"
+		if len(missing) > 1 {
+			what = "argümanları"
+		}
+		return fmt.Errorf("Satır %d: %s için zorunlu %s %s verilmedi", line, name, strings.Join(missing, ", "), what)
 	}
 	return nil
 }
@@ -89,6 +106,11 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 	}
 	if nargs > len(def.Fields) {
 		return fmt.Errorf("Satır %d: '%s' yapısı en fazla %d argüman alır (alanlar: %s), %d verildi", line, def.Name, len(def.Fields), strings.Join(nameList, ", "), nargs)
+	}
+	for i, f := range nameList[:nargs] {
+		if _, ok := named[f]; ok {
+			return fmt.Errorf("Satır %d: '%s' yapısının '%s' alanı hem sırayla (%d. argüman) hem adıyla verildi", line, def.Name, f, i+1)
+		}
 	}
 	return nil
 }

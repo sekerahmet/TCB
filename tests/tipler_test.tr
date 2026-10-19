@@ -243,6 +243,16 @@ test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
     doğrula(mesaj.içerir("Satır 4: Tip uyuşmazlığı — \"r\" değişkeni \"Liste\" tipinde tanımlandı ancak \"Aralık\" tipinde değer atandı"), mesaj)
 }
 
+test "3.13 denetim her ifadenin içine iner" {
+    // liste, sözlük, aralık, metin içi ifade, liste üreteci, indeks, üye, atama hedefi,
+    // yapı alan varsayılanı ve metot gövdesi, eşle deseni, parametre varsayılanı
+    değişken mesaj = ""
+    dene { aktar "negative/ic_ifade_tipleri" } yakala h { mesaj = h }
+    döngü satır içinde [3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 16] {
+        doğrula(mesaj.içerir("Satır {satır}: Fonksiyon çağrısı tip hatası — \"kare\" fonksiyonunun 1. parametresi \"Tam\" bekliyor ancak \"Metin\" verildi"), "{satır}: {mesaj}")
+    }
+}
+
 test "3.13 açıklamasız değişkenin tipi kalıcı değildir" {
     değişken kayıp = 0
     döngü i içinde 1..=4 { kayıp += 0.5 }

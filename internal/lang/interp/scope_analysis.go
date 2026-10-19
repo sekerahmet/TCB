@@ -2,34 +2,38 @@ package interp
 
 import "github.com/sekerahmet/TCB/internal/lang/ast"
 
-// Blok kapsam bayrakları (agac.BlockStatement.Bayraklar içinde önbelleğe alınır).
+// Blok kapsam bayrakları (derleyicinin blockFlagCache'inde önbelleğe alınır).
 const (
-	blockComputed uint8 = 1 << iota
 	// blockDefines: blok, çalıştığı ortama doğrudan bir ad tanımlar (değişken, sabit,
 	// adlı fonksiyon, yapı, aktar). Böyle olmayan bloklar için yeni ortam açılmaz.
-	blockDefines
+	blockDefines uint8 = 1 << iota
 	// blockCaptures: blok (iç içe herhangi bir yerinde) ortamı sonradan kullanılmak üzere
 	// yakalayabilecek bir yapı içerir (fonksiyon, yapı metodu, ertele, eşzamanlı). Böyle
 	// olmayan döngü gövdelerinin ortamı turlar arasında temizlenip yeniden kullanılır.
 	blockCaptures
 )
 
-// blockFlags bloğun kapsam bayraklarını döndürür; ilk çağrıda hesaplayıp saklar.
-func blockFlags(b *ast.BlockStatement) uint8 {
-	if b.Flags != 0 {
-		return b.Flags
+// blockFlagCache blokların kapsam bayraklarını bir derleme işi boyunca saklar. Önbellek
+// derleyicinindir, ağaçta değil: ağaç yalnızca veri taşır ve aynı ayrıştırılmış programı
+// aynı anda derleyen VM'ler ortak bir şey yazmaz (yarış olmaz).
+type blockFlagCache map[*ast.BlockStatement]uint8
+
+// flags bloğun kapsam bayraklarını döndürür; ilk çağrıda hesaplayıp saklar.
+func (fc blockFlagCache) flags(b *ast.BlockStatement) uint8 {
+	if f, ok := fc[b]; ok {
+		return f
 	}
-	f := blockComputed
+	var f uint8
 	if statementsDefine(b.Statements) {
 		f |= blockDefines
 	}
 	for _, st := range b.Statements {
-		if statementCaptures(st) {
+		if fc.statementCaptures(st) {
 			f |= blockCaptures
 			break
 		}
 	}
-	b.Flags = f
+	fc[b] = f
 	return f
 }
 
@@ -152,63 +156,63 @@ func exprNames(e ast.Expression, name func(string)) {
 
 // statementCaptures deyimin (iç içe her yerinde) ortamı yakalayabilecek bir yapı içerip
 // içermediğini söyler.
-func statementCaptures(st ast.Statement) bool {
+func (fc blockFlagCache) statementCaptures(st ast.Statement) bool {
 	switch s := st.(type) {
 	case nil:
 		return false
 	case *ast.StructStatement, *ast.DeferStatement, *ast.AsyncStatement:
 		return true
 	case *ast.VarStatement:
-		return exprCaptures(s.Value)
+		return fc.exprCaptures(s.Value)
 	case *ast.MultiVarStatement:
 		for _, e := range s.Values {
-			if exprCaptures(e) {
+			if fc.exprCaptures(e) {
 				return true
 			}
 		}
 	case *ast.AssignStatement:
-		return exprCaptures(s.Target) || exprCaptures(s.Value)
+		return fc.exprCaptures(s.Target) || fc.exprCaptures(s.Value)
 	case *ast.MultiAssignStatement:
 		for _, e := range s.Targets {
-			if exprCaptures(e) {
+			if fc.exprCaptures(e) {
 				return true
 			}
 		}
 		for _, e := range s.Values {
-			if exprCaptures(e) {
+			if fc.exprCaptures(e) {
 				return true
 			}
 		}
 	case *ast.ReturnStatement:
-		return exprCaptures(s.ReturnValue)
+		return fc.exprCaptures(s.ReturnValue)
 	case *ast.ThrowStatement:
-		return exprCaptures(s.Value)
+		return fc.exprCaptures(s.Value)
 	case *ast.ExpressionStatement:
-		return exprCaptures(s.Expression)
+		return fc.exprCaptures(s.Expression)
 	case *ast.BlockStatement:
-		return doesBlockCapture(s)
+		return fc.doesBlockCapture(s)
 	case *ast.ForInStatement:
-		return exprCaptures(s.Iterable) || doesBlockCapture(s.Body)
+		return fc.exprCaptures(s.Iterable) || fc.doesBlockCapture(s.Body)
 	case *ast.WhileStatement:
-		return exprCaptures(s.Condition) || doesBlockCapture(s.Body)
+		return fc.exprCaptures(s.Condition) || fc.doesBlockCapture(s.Body)
 	case *ast.TryCatchStatement:
-		return doesBlockCapture(s.TryBody) || doesBlockCapture(s.CatchBody)
+		return fc.doesBlockCapture(s.TryBody) || fc.doesBlockCapture(s.CatchBody)
 	case *ast.BreakpointStatement:
-		return exprCaptures(s.Condition)
+		return fc.exprCaptures(s.Condition)
 	}
 	return false
 }
 
-func doesBlockCapture(b *ast.BlockStatement) bool {
+func (fc blockFlagCache) doesBlockCapture(b *ast.BlockStatement) bool {
 	if b == nil {
 		return false
 	}
-	return blockFlags(b)&blockCaptures != 0
+	return fc.flags(b)&blockCaptures != 0
 }
 
 // exprCaptures ifadenin içinde (iç içe her yerde) bir fonksiyon değeri oluşturulup
 // oluşturulmadığını söyler.
-func exprCaptures(e ast.Expression) bool {
+func (fc blockFlagCache) exprCaptures(e ast.Expression) bool {
 	switch x := e.(type) {
 	case nil:
 		return false
@@ -216,71 +220,71 @@ func exprCaptures(e ast.Expression) bool {
 		return true
 	case *ast.InterpolatedString:
 		for _, p := range x.Parts {
-			if exprCaptures(p) {
+			if fc.exprCaptures(p) {
 				return true
 			}
 		}
 	case *ast.ListLiteral:
 		for _, el := range x.Elements {
-			if exprCaptures(el) {
+			if fc.exprCaptures(el) {
 				return true
 			}
 		}
 	case *ast.DictLiteral:
 		for _, p := range x.Pairs {
-			if exprCaptures(p.Key) || exprCaptures(p.Value) {
+			if fc.exprCaptures(p.Key) || fc.exprCaptures(p.Value) {
 				return true
 			}
 		}
 	case *ast.RangeExpression:
-		return exprCaptures(x.Start) || exprCaptures(x.End)
+		return fc.exprCaptures(x.Start) || fc.exprCaptures(x.End)
 	case *ast.PrefixExpression:
-		return exprCaptures(x.Right)
+		return fc.exprCaptures(x.Right)
 	case *ast.InfixExpression:
-		return exprCaptures(x.Left) || exprCaptures(x.Right)
+		return fc.exprCaptures(x.Left) || fc.exprCaptures(x.Right)
 	case *ast.IfExpression:
-		if exprCaptures(x.Condition) || doesBlockCapture(x.Consequence) || doesBlockCapture(x.Alternative) {
+		if fc.exprCaptures(x.Condition) || fc.doesBlockCapture(x.Consequence) || fc.doesBlockCapture(x.Alternative) {
 			return true
 		}
 		for _, ei := range x.ElseIfs {
-			if exprCaptures(ei.Condition) || doesBlockCapture(ei.Consequence) {
+			if fc.exprCaptures(ei.Condition) || fc.doesBlockCapture(ei.Consequence) {
 				return true
 			}
 		}
 	case *ast.MatchExpression:
-		if exprCaptures(x.Subject) {
+		if fc.exprCaptures(x.Subject) {
 			return true
 		}
 		for _, mc := range x.Cases {
 			for _, p := range mc.Patterns {
-				if exprCaptures(p) {
+				if fc.exprCaptures(p) {
 					return true
 				}
 			}
-			if exprCaptures(mc.ValueExpr) || doesBlockCapture(mc.Body) {
+			if fc.exprCaptures(mc.ValueExpr) || fc.doesBlockCapture(mc.Body) {
 				return true
 			}
 		}
 	case *ast.CallExpression:
-		if exprCaptures(x.Function) {
+		if fc.exprCaptures(x.Function) {
 			return true
 		}
 		for _, a := range x.Arguments {
-			if exprCaptures(a) {
+			if fc.exprCaptures(a) {
 				return true
 			}
 		}
 		for _, na := range x.NamedArgs {
-			if exprCaptures(na.Value) {
+			if fc.exprCaptures(na.Value) {
 				return true
 			}
 		}
 	case *ast.IndexExpression:
-		return exprCaptures(x.Left) || exprCaptures(x.Index)
+		return fc.exprCaptures(x.Left) || fc.exprCaptures(x.Index)
 	case *ast.MemberExpression:
-		return exprCaptures(x.Object)
+		return fc.exprCaptures(x.Object)
 	case *ast.ListComprehension:
-		return exprCaptures(x.Iterable) || exprCaptures(x.Output) || exprCaptures(x.Condition)
+		return fc.exprCaptures(x.Iterable) || fc.exprCaptures(x.Output) || fc.exprCaptures(x.Condition)
 	}
 	return false
 }

@@ -41,7 +41,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 	again := true
 	if s.Body != nil {
 		bodyStatements = s.Body.Statements
-		again = blockFlags(s.Body)&blockCaptures == 0
+		again = c.blockFlags(s.Body)&blockCaptures == 0
 	}
 	sub.predefine(bodyStatements)
 	bodyBlock := c.statements(sub, bodyStatements)
@@ -245,7 +245,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 	if s.Body != nil {
 		bodyStatements = s.Body.Statements
 	}
-	if s.Body == nil || blockFlags(s.Body)&blockDefines == 0 {
+	if s.Body == nil || c.blockFlags(s.Body)&blockDefines == 0 {
 		bodyBlock := c.statements(k, bodyStatements)
 		return func(v *VM, env *Environment) (Value, flowSignal, error) {
 			var lastVal Value = NULL
@@ -280,7 +280,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 	sub.predefine(bodyStatements)
 	bodyBlock := c.statements(sub, bodyStatements)
 	info := sub.info
-	again := blockFlags(s.Body)&blockCaptures == 0
+	again := c.blockFlags(s.Body)&blockCaptures == 0
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		var lastVal Value = NULL
 		kind := loopScope{outerEnv: env, info: info, again: again}
@@ -335,7 +335,7 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 	output := c.expression(sub, lc.Output)
 	info := sub.info
 	// Çıktı ya da koşul fonksiyon oluşturmuyorsa ortam yakalanamaz; tek ortam yeterlidir.
-	again := !exprCaptures(lc.Output) && !exprCaptures(lc.Condition)
+	again := !c.blocks.exprCaptures(lc.Output) && !c.blocks.exprCaptures(lc.Condition)
 	line := lc.Line()
 	return func(v *VM, env *Environment) (Value, error) {
 		iterVal, err := source(v, env)

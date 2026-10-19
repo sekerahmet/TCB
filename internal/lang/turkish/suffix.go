@@ -6,8 +6,8 @@
 package turkish
 
 import (
+	"strconv"
 	"strings"
-	"unicode"
 )
 
 // Case is the grammatical case suffix a noun takes.
@@ -37,14 +37,14 @@ func Suffix(word string, grammarCase Case) string {
 // NumberSuffix writes a number with the suffix that matches its pronunciation:
 // 6 → "6'ya", 3 → "3'e", 40 → "40'a".
 func NumberSuffix(n int64, grammarCase Case) string {
-	return Suffix(itoa(n), grammarCase)
+	return Suffix(strconv.FormatInt(n, 10), grammarCase)
 }
 
 // pronounce ekin seçimine esas olan sözcüğü döndürür. Sayılar okunuşlarıyla değerlendirilir
 // (6 = "altı"); diğer sözcükler kendileridir.
 func pronounce(s string) string {
-	if n, ok := parseInt(s); ok {
-		return lastNumberWord(n)
+	if w, ok := lastNumberWord(s); ok {
+		return w
 	}
 	return s
 }
@@ -115,68 +115,43 @@ func findSuffix(word string, grammarCase Case) string {
 var ones = []string{"sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"}
 var tens = []string{"", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"}
 
-// lastNumberWord bir sayının okunuşundaki son sözcüğü verir: 46 → "altı", 40 → "kırk", 2000 → "bin".
-func lastNumberWord(n int64) string {
-	if n < 0 {
-		n = -n
+// lastNumberWord yalnızca ASCII rakamlardan oluşan (başında '-' olabilen) bir sayının
+// okunuşundaki son sözcüğü verir: 46 → "altı", 40 → "kırk", 2000 → "bin". Sayı değil,
+// rakam dizisi olarak sondan okunur: int64'e sığmayan uzunlukta da taşma olmaz. Sayı
+// değilse ok false'tur (başka yazıların rakamları, ör. "٦", sayı sayılmaz).
+func lastNumberWord(s string) (word string, ok bool) {
+	digits := strings.TrimPrefix(s, "-")
+	if digits == "" {
+		return "", false
 	}
+	for i := 0; i < len(digits); i++ {
+		if digits[i] < '0' || digits[i] > '9' {
+			return "", false
+		}
+	}
+	// sondaki sıfırlar: kaçıncı basamakta sıfır olmayan bir rakam var?
+	zeros := 0
+	for zeros < len(digits) && digits[len(digits)-1-zeros] == '0' {
+		zeros++
+	}
+	if zeros == len(digits) {
+		return "sıfır", true
+	}
+	d := digits[len(digits)-1-zeros] - '0'
 	switch {
-	case n == 0:
-		return "sıfır"
-	case n%10 != 0:
-		return ones[n%10]
-	case n%100 != 0:
-		return tens[(n%100)/10]
-	case n%1000 != 0:
-		return "yüz"
-	case n%1_000_000 != 0:
-		return "bin"
-	case n%1_000_000_000 != 0:
-		return "milyon"
-	case n%1_000_000_000_000 != 0:
-		return "milyar"
+	case zeros == 0:
+		return ones[d], true
+	case zeros == 1:
+		return tens[d], true
+	case zeros == 2:
+		return "yüz", true
+	case zeros < 6:
+		return "bin", true
+	case zeros < 9:
+		return "milyon", true
+	case zeros < 12:
+		return "milyar", true
 	default:
-		return "trilyon"
+		return "trilyon", true
 	}
-}
-
-func parseInt(s string) (int64, bool) {
-	if s == "" {
-		return 0, false
-	}
-	var n int64
-	neg := false
-	for i, r := range s {
-		if i == 0 && r == '-' && len(s) > 1 {
-			neg = true
-			continue
-		}
-		if !unicode.IsDigit(r) {
-			return 0, false
-		}
-		n = n*10 + int64(r-'0')
-	}
-	if neg {
-		n = -n
-	}
-	return n, true
-}
-
-func itoa(n int64) string {
-	if n == 0 {
-		return "0"
-	}
-	neg := n < 0
-	if neg {
-		n = -n
-	}
-	var b []byte
-	for n > 0 {
-		b = append([]byte{byte('0' + n%10)}, b...)
-		n /= 10
-	}
-	if neg {
-		b = append([]byte{'-'}, b...)
-	}
-	return string(b)
 }

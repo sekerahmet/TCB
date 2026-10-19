@@ -239,6 +239,16 @@ func TestUserFunctionArityIsChecked(t *testing.T) {
 		{"fonksiyon f(isim) { sonuç isim }\nf(isimm: 1)", "'f' fonksiyonu 'isimm' adında bir parametre almaz. Bunu mu demek istediniz: 'isim'?"},
 		{"değişken g = (x, y) => x + y\ng(1)", "İsimsiz fonksiyon 2 argüman bekler, 1 verildi"},
 		{"fonksiyon iki(a, b) { sonuç a }\n5 |> iki", "'iki' fonksiyonu 2 argüman bekler, 1 verildi"},
+		// aynı parametre hem sırayla hem adıyla: adlı değer eskiden sessizce yok sayılırdı
+		{"fonksiyon f(a, b = 10) { sonuç [a, b] }\nf(1, a: 2)", "Satır 2: 'f' fonksiyonu 'a' parametresi hem sırayla (1. argüman) hem adıyla verildi"},
+		{"fonksiyon f(a, b) { sonuç [a, b] }\nf(1, 2, b: 3)", "'f' fonksiyonu 'b' parametresi hem sırayla (2. argüman) hem adıyla verildi"},
+		{"fonksiyon f(a, b) { sonuç a }\n5 |> f(a: 1)", "'f' fonksiyonu 'a' parametresi hem sırayla (1. argüman) hem adıyla verildi"},
+		{"yapı Nokta { x\n y }\nNokta(1, x: 2).x", "Satır 3: 'Nokta' yapısının 'x' alanı hem sırayla (1. argüman) hem adıyla verildi"},
+		{"yapı H { b\n fonksiyon kurucu(v) { kendi.b = v } }\nH(1, v: 2)", "'kurucu' fonksiyonu 'v' parametresi hem sırayla (1. argüman) hem adıyla verildi"},
+		// eksik zorunlu parametre: sayılar kendisiyle çelişmemeli ("1 bekler, 1 verildi")
+		{"fonksiyon f(a, b = 10) { sonuç a }\nf(b: 20)", "Satır 2: 'f' fonksiyonu için zorunlu 'a' argümanı verilmedi"},
+		{"fonksiyon f(a, b, c = 1) { sonuç a }\nf(c: 2)", "'f' fonksiyonu için zorunlu 'a', 'b' argümanları verilmedi"},
+		{"fonksiyon f(a = 1, b) { sonuç a }\nf(5)", "'f' fonksiyonu için zorunlu 'b' argümanı verilmedi"},
 	}
 	for _, c := range cases {
 		_, _, err := runTRWithin(t, 5*time.Second, c.code)

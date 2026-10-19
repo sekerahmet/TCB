@@ -55,6 +55,19 @@ test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
     doğrula(m.içerir("'kurucu' fonksiyonu en fazla 2 argüman alır, 3 verildi"), m)
 }
 
+test "7.2 bir alan hem sırayla hem adıyla verilemez" {
+    değişken m = ""
+    dene { Nokta(1, x: 2) } yakala h { m = h }
+    doğrula(m.içerir("'Nokta' yapısının 'x' alanı hem sırayla (1. argüman) hem adıyla verildi"), m)
+    eşit_mi(2, Nokta(1, y: 2).y)
+    yapı Hesap {
+        bakiye
+        fonksiyon kurucu(b, kat = 2) { kendi.bakiye = b * kat }
+    }
+    dene { Hesap(1, b: 2) } yakala h { m = h }
+    doğrula(m.içerir("'kurucu' fonksiyonu 'b' parametresi hem sırayla (1. argüman) hem adıyla verildi"), m)
+}
+
 test "7.3 metotlar kendi ile nesneye erişir" {
     değişken p = Nokta(3, 4)
     eşit_mi(25, p.uzaklık_kare())
