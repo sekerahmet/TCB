@@ -134,7 +134,8 @@ func karsilastirF(kip int, a, b float64) uint64 {
 	return 0
 }
 
-// donustur cvt: k.tur hedef, k.kaynak kaynak türü; k.kip yuvarlama (1 rni, 2 rzi, 3 rmi).
+// donustur cvt: k.tur hedef, k.kaynak kaynak türü; k.kip yuvarlama (1 rni, 2 rzi, 3 rmi,
+// 4 rpi).
 func donustur(k *bzKomut, a uint64) (uint64, error) {
 	switch k.kaynak {
 	case bzF32, bzF64, bzF16:
@@ -168,6 +169,8 @@ func yuvarla(kip int, f float64) float64 {
 		return math.Trunc(f)
 	case 3:
 		return math.Floor(f)
+	case 4:
+		return math.Ceil(f)
 	}
 	return f
 }

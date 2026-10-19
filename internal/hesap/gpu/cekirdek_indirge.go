@@ -24,10 +24,12 @@ import (
 type terimTuru int
 
 const (
-	tA     terimTuru = iota // a
-	tAO                     // a·o
-	tAbolO                  // a/o
-	tAYbO                   // a·y/o
+	tA          terimTuru = iota // a
+	tAO                          // a·o
+	tAbolO                       // a/o
+	tAYbO                        // a·y/o
+	tAsecO                       // o ≠ 0 (NaN dahil) ise a, değilse 0 (koşullu seçimin gradyanı)
+	tAsecOdegil                  // o = 0 ise a, değilse 0
 )
 
 // indirgeAyar indirgeme çekirdeğinin üretim ayarları.
@@ -64,6 +66,12 @@ func (k *yazici) terimHesapla(t terimTuru, a, o, y yazmac, oa, oo yazmac) yazmac
 		yv := k.yukle(tensor.Float32, k.adresS(y, oa, 4))
 		k.e("mul.rn.f32", r, av, yv)
 		k.e("div.rn.f32", r, r, ov)
+	case tAsecO, tAsecOdegil:
+		ov := k.yukle(tensor.Float32, k.adresS(o, oo, 4))
+		p := k.p()
+		kip := map[terimTuru]string{tAsecO: "neu", tAsecOdegil: "eq"}[t]
+		k.e("setp."+kip+".f32", p, ov, float32(0))
+		k.e("selp.f32", r, av, float32(0), p)
 	}
 	return r
 }

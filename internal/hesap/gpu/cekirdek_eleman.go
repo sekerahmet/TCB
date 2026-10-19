@@ -67,7 +67,7 @@ func (k *yazici) tekliIfade(op tensor.UnOp, kip string, x, p yazmac) yazmac {
 	case tensor.OpCos:
 		return k.kosinus(x)
 	default:
-		yok(fmt.Sprintf("tekli işlem %d", op))
+		return k.tekliIfadeGenis(op, x) // cekirdek_genis.go
 	}
 	return y
 }
@@ -130,7 +130,7 @@ func (k *yazici) tekliTurev(op tensor.UnOp, kip string, g, x, y, p yazmac) yazma
 		k.e("mul.rn.f32", t, g, k.sinus(x))
 		k.e("neg.f32", t, t)
 	default:
-		yok(fmt.Sprintf("tekli işlemin türevi %d", op))
+		k.e("mul.rn.f32", t, g, k.tekliTurevGenis(op, x, y)) // cekirdek_genis.go
 	}
 	return t
 }
@@ -206,9 +206,7 @@ func ikiliCekirdegi(op tensor.BinOp, nd int) func() *yazici {
 		}
 		av := k.yukle(tensor.Float32, k.adresS(a, oa, 4))
 		bv := k.yukle(tensor.Float32, k.adresS(b, ob, 4))
-		r := k.f()
-		k.e(ikiliKomut[op], r, av, bv)
-		k.sakla(tensor.Float32, k.adres(out, i, 4), r)
+		k.sakla(tensor.Float32, k.adres(out, i, 4), k.ikiliIfade(op, av, bv))
 		k.koy(son)
 		return k
 	}

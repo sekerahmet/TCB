@@ -394,6 +394,8 @@ func (a *bzAyristirici) ekler(k *bzKomut, ek []string) error {
 			k.kip = 2
 		case "rmi":
 			k.kip = 3
+		case "rpi":
+			k.kip = 4
 		case "param":
 			k.alan = alanParam
 		case "global":

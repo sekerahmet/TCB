@@ -39,6 +39,9 @@ const (
 	isCikarma
 	isCarpma
 	isBolme
+	isYayinliEleman
+	isKarsilastirma
+	isSecim
 	isMatrisCarpimi
 	isBirlestirme
 	isYenidenSekil
@@ -60,6 +63,9 @@ var islemAdlari = [...]string{
 	isCikarma:        "çıkarma",
 	isCarpma:         "çarpma",
 	isBolme:          "bölme",
+	isYayinliEleman:  "eleman bazlı işlem",
+	isKarsilastirma:  "karşılaştırma",
+	isSecim:          "koşullu seçim",
 	isMatrisCarpimi:  "matris çarpımı",
 	isBirlestirme:    "birleştirme",
 	isYenidenSekil:   "yeniden şekillendirme",
@@ -76,12 +82,13 @@ var islemAdlari = [...]string{
 }
 
 // binopIslem ikili işlemlerin (yayınlamalı) hata mesajı adları.
-var binopIslem = [...]islem{OpAdd: isToplama, OpSub: isCikarma, OpMul: isCarpma, OpDiv: isBolme}
+var binopIslem = [...]islem{OpAdd: isToplama, OpSub: isCikarma, OpMul: isCarpma, OpDiv: isBolme,
+	OpAtan2: isYayinliEleman, OpLt: isKarsilastirma, OpGt: isKarsilastirma, OpLe: isKarsilastirma, OpGe: isKarsilastirma}
 
 func (i islem) String() string { return islemAdlari[i] }
 
 // yayinli işlemin çıktı şeklinin yayınlamayla üretilip üretilmediği.
-func (i islem) yayinli() bool { return i >= isToplama && i <= isBolme }
+func (i islem) yayinli() bool { return i >= isToplama && i <= isSecim }
 
 // varsayilanBellek fiziksel bellek okunamazsa varsayılan sınır (64 GB).
 const varsayilanBellek = 64 << 30

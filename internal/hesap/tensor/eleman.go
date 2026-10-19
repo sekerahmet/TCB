@@ -73,7 +73,7 @@ func isSuffixShape(b, out []int) bool {
 // İkili işlemler
 // ============================================================================
 
-var binopAd = [...]string{"add", "sub", "mul", "div"}
+var binopAd = [...]string{"add", "sub", "mul", "div", "atan2", "lt", "gt", "le", "ge"}
 
 func binary(a, b *Tensor, op BinOp) *Tensor { return binaryTur(a, b, op, sonucTuru(a.tur, b.tur)) }
 
@@ -157,19 +157,30 @@ var unopAd = map[UnOp]string{
 	OpExp: "exp", OpLog: "log", OpSqrt: "sqrt", OpPow: "pow", OpTanh: "tanh", OpRelu: "relu",
 	OpGelu: "gelu", OpSigmoid: "sigmoid", OpAddScalar: "add_scalar", OpMulScalar: "mul_scalar",
 	OpRSubScalar: "rsub_scalar", OpRDivScalar: "rdiv_scalar", OpSin: "sin", OpCos: "cos",
+	OpSilu: "silu", OpTan: "tan", OpAsin: "asin", OpAcos: "acos", OpAtan: "atan", OpSinh: "sinh",
+	OpCosh: "cosh", OpLog1p: "log1p", OpLog2: "log2", OpLog10: "log10", OpExpm1: "expm1",
+	OpFloor: "floor", OpCeil: "ceil", OpSign: "sign",
 }
+
+// turevsizTekli türevi her yerde 0 olan (parçalı sabit) tekli işlemlerdir: geri yayılım
+// girdinin gradyanını (sıfır olarak) ayırır, arka uca hesap göndermez.
+func turevsizTekli(op UnOp) bool { return op == OpFloor || op == OpCeil || op == OpSign }
 
 func unary(t *Tensor, op UnOp, p float32) *Tensor {
 	out := emptyOf(isElemanBazli, t.be, t.shape, t.tur)
 	t.be.Unary(op, p, out.storage, t.view())
 	var kaydet []*Tensor
-	switch op {
-	case OpAddScalar, OpMulScalar, OpRSubScalar:
-		// Doğrusal: geri yayılım girdiyi okumaz.
+	switch {
+	case op == OpAddScalar || op == OpMulScalar || op == OpRSubScalar || turevsizTekli(op):
+		// Doğrusal ya da parçalı sabit: geri yayılım girdiyi okumaz.
 	default:
 		kaydet = []*Tensor{t, out}
 	}
 	return track(out, unopAd[op], []*Tensor{t}, func() {
+		if turevsizTekli(op) {
+			t.accGrad() // gradyan 0'dır; yaprakta sıfır gradyan görünür
+			return
+		}
 		t.be.UnaryGrad(op, p, t.accGrad(), out.grad, t.view(), out.storage)
 	}, kaydet...)
 }

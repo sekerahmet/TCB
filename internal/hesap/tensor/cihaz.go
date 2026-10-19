@@ -179,6 +179,12 @@ const (
 	OpSub
 	OpMul
 	OpDiv
+	OpAtan2 // atan2(a, b): a/b'nin açısı (dört bölge)
+	// Karşılaştırmalar: sonuç 0/1 (NaN içeren karşılaştırma 0); türevsizdir.
+	OpLt // a < b
+	OpGt // a > b
+	OpLe // a <= b
+	OpGe // a >= b
 )
 
 // UnOp tekli eleman bazlı işlem; bazıları bir skaler parametre (p) alır.
@@ -199,6 +205,20 @@ const (
 	OpRDivScalar      // p/x
 	OpSin             // sinüs
 	OpCos             // kosinüs
+	OpSilu            // x·σ(x)
+	OpTan             // tanjant
+	OpAsin            // arksinüs
+	OpAcos            // arkkosinüs
+	OpAtan            // arktanjant
+	OpSinh            // hiperbolik sinüs
+	OpCosh            // hiperbolik kosinüs
+	OpLog1p           // log(1+x), küçük x'te kararlı
+	OpLog2            // 2 tabanında logaritma
+	OpLog10           // 10 tabanında logaritma
+	OpExpm1           // e^x − 1, küçük x'te kararlı
+	OpFloor           // taban (türevi 0)
+	OpCeil            // tavan (türevi 0)
+	OpSign            // işaret: −1, 0, 1 (NaN korunur; türevi 0)
 )
 
 // GradMode ikili işlemlerin geri yayılımında hedefe eklenecek terim:
@@ -258,6 +278,38 @@ type Backend interface {
 	Unary(op UnOp, p float32, out Storage, x View)
 	// UnaryGrad gx += g·f'(x, y).
 	UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Storage)
+
+	// --- Genişletilmiş eleman bazlı işlemler ---
+
+	// Clamp out (bitişik) = x'in [lo, hi] aralığına sınırlanmışı; NaN korunur (sınır
+	// verilmeyen yan ±sonsuzdur).
+	Clamp(out Storage, x View, lo, hi float32)
+	// ClampGrad gx += g·[lo ≤ x ≤ hi].
+	ClampGrad(gx, g Storage, x View, lo, hi float32)
+	// Where out (outShape, bitişik) = c ≠ 0 ise a, değilse b (üçü de yayınlamalı; NaN
+	// koşul doğru sayılır).
+	Where(out Storage, outShape []int, c, a, b View)
+	// WhereGrad g'nin (outShape) koşulu sec olan (sec doğruysa c ≠ 0, değilse c = 0)
+	// elemanlarını dstShape'e indirgeyerek dst'ye ekler; diğer elemanlar katkı vermez.
+	WhereGrad(dst Storage, dstShape, outShape []int, g Storage, c View, sec bool)
+	// Atan2Grad atan2(a, b)'nin gradyanları: ga += indirge(g·b/(a²+b²)), gb +=
+	// indirge(−g·a/(a²+b²)); a = b = 0'da terim 0'dır. ga ya da gb nil olabilir.
+	Atan2Grad(ga, gb Storage, aShape, bShape, outShape []int, g Storage, a, b View)
+
+	// --- Eksen boyunca birikim ve sıralama ---
+
+	// CumSum eksen boyunca birikimli toplam; out bitişik, x ile aynı şekil.
+	CumSum(out Storage, x View, axis int)
+	// CumSumGrad gx (shape, bitişik) += g'nin eksen boyunca sondan birikimli toplamı.
+	CumSumGrad(gx, g Storage, shape []int, axis int)
+	// Sort eksen boyunca kararlı sıralamanın (desc: büyükten küçüğe) ilk k elemanını
+	// yazar: idx eksen indeksleri (float32 tam sayı), vals (nil olabilir) değerler; ikisi
+	// de bitişik, x'in şekli eksende k ile. NaN her sayıdan büyüktür; eşitlerde küçük
+	// indeks önce gelir (-0 ile +0 eşittir).
+	Sort(vals, idx Storage, x View, axis, k int, desc bool)
+	// GatherGrad gx (shape, bitişik) += eksen boyunca idx (k uzunluklu eksen; bir satırda
+	// her indeks en çok bir kez) konumlarına g.
+	GatherGrad(gx, g, idx Storage, shape []int, axis, k int)
 
 	// --- İndirgemeler ---
 

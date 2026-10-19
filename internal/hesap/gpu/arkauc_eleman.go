@@ -277,8 +277,8 @@ func (g *arkaUc) Unary(op tensor.UnOp, p float32, out tensor.Storage, x tensor.V
 func (g *arkaUc) UnaryGrad(op tensor.UnOp, p float32, gx, gs tensor.Storage, x tensor.View, y tensor.Storage) {
 	g.gir()
 	defer g.cik()
-	if op == tensor.OpPow && p == 0 {
-		return // x^0 sabittir: gradyan 0
+	if op == tensor.OpPow && p == 0 || op == tensor.OpFloor || op == tensor.OpCeil || op == tensor.OpSign {
+		return // x^0 sabittir, taban/tavan/işaret parçalı sabittir: gradyan 0
 	}
 	gt := g.gecici()
 	defer gt.bitir()

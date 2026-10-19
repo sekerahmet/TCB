@@ -1,9 +1,6 @@
 package tensor
 
-import (
-	"fmt"
-	"math"
-)
+import "math"
 
 // ============================================================================
 // CPU arka ucu: depolama, bellek işlemleri ve eleman bazlı çekirdekler
@@ -293,6 +290,8 @@ func binFlat(op BinOp, out, a, b []float32) {
 		for i, x := range a {
 			out[i] = x / b[i]
 		}
+	default:
+		binFlatGenis(op, out, a, b)
 	}
 }
 
@@ -315,6 +314,8 @@ func binStrided(op BinOp, out []float32, oo, os int, a []float32, ao, as int, b 
 		for i := 0; i < n; i++ {
 			out[oo+i*os] = a[ao+i*as] / b[bo+i*bs]
 		}
+	default:
+		binStridedGenis(op, out, oo, os, a, ao, as, b, bo, bs, n)
 	}
 }
 
@@ -627,7 +628,7 @@ func unaryDongu(op UnOp, p float32, y, x []float32) {
 			y[i] = cosf32(v)
 		}
 	default:
-		panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))
+		unaryDonguGenis(op, y, x) // cpu_eleman_genis.go
 	}
 }
 
@@ -710,7 +711,7 @@ func unaryGradDongu(op UnOp, p float32, gx, g, x, y []float32) {
 			gx[i] -= v * sinf32(x[i])
 		}
 	default:
-		panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))
+		unaryGradDonguGenis(op, gx, g, x, y) // cpu_eleman_genis.go
 	}
 }
 
