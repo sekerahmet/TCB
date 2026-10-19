@@ -38,6 +38,21 @@ Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekird
 - **Ortak test yardımcıları yardımcı paketlerdedir:** depo kökü `internal/depo` ile bulunur (`depo.Kok()`); testler `../../` gibi göreli yol yazmaz. Bir paketin kendi test yardımcıları `test_yardimcilari_test.go` gibi bir `_test.go` dosyasında durur.
 - Testlerde dış ağ yoktur; sunucular yalnızca `127.0.0.1`'e bağlanır; açılan her süreç kapatılır.
 
+### Testler nerede
+
+| Yer | Neyi denetler | Nasıl koşulur |
+| :-- | :-- | :-- |
+| `testler/*_test.tr` | Dil tanımının kuralları; her testin adı kural numarasıyla başlar (`test "5.2 sabit: ..."`, [`dil/`](dil/README.md)) | `bin/tr test testler` (tam denetim koşar) |
+| `kitaplik/*_test.tr` | TR ile yazılmış standart kitaplık (`tr/katman`, `tr/iyilestirici`) | `bin/tr test kitaplik` |
+| `ornekler/` | Örneklerin hepsi çalışır: çıkış kodu 0, zaman aşımı yok, uyarısız; `*_test.tr` örnekleri ayrıca `tr test` ile | yalnızca tam denetim; tek örnek: `bin/tr ornekler/01_merhaba.tr` |
+| Paketlerin yanında (`*_test.go`) | Go birim testleri: sözcük çözümleyici, ayrıştırıcı, denetleyici, yorumlayıcı, tensör ve türev, motorlar | `go test -short ./internal/...` ya da tek paket `go test ./internal/dil/yurut -run Ad` |
+| `internal/duzen_test.go`, `internal/katman_test.go` | Kod düzeni (dosya ve fonksiyon boyu, adlar, paket belgesi) ve katman kuralı | `go test ./internal` |
+| `cmd/tr/*_test.go` | `tr` komutunun beyaz kutu testleri: gömülü paket biçimi, aktar yönlendirmesi, depodaki `.tr` dosyalarının tanımsız ad denetimi | `go test ./cmd/tr` |
+| `cmd/tr/uctan_uca/` | Uçtan uca: derlenmiş `tr` ikilisi alt süreç olarak; komutlar, çıkış kodları, kesme ve kontrol noktasından devam, `derle`, kodlu dosyalar, belgelerdeki kod blokları ve bağlantılar | `go test ./cmd/tr/uctan_uca -run Ad` |
+| `internal/hesap/gpu`, `internal/motor/gpusinama` | GPU arka ucu ve GPU'da eğitim; kartsız makinede benzetimle koşar | `go test -short ./internal/hesap/gpu`; gerçek kartta `gpu_sinama` ikilisiyle (`go test -c -o gpu_sinama ./internal/hesap/gpu`, [`tools/gpu/COLAB.md`](../tools/gpu/COLAB.md)) |
+| `editors/vscode/test/*_test.js` | VS Code eklentisi: çalıştırma, hata ayıklama yolları, kodlu görünüm, İzleme Masası komutları (sahte `vscode` modülüyle) | `node editors/vscode/test/<ad>_test.js`; hepsi gerçek yorumlayıcıyla: `go test ./cmd/tr/uctan_uca -run EklentiJSTestleri` |
+| `Fuzz*` testleri | Dış girdi okuyan kod (dosya biçimleri, gömülü paket) | `bash tools/bulaniklastir.sh 2s '^FuzzAd$'` |
+
 ## Yeni kod (ad) isteği
 
 Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** ister. Kodu yalnızca baş geliştirici verir:

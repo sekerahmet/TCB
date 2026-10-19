@@ -11,4 +11,4 @@
 
 Depo kökündeki [`README.md`](../README.md) dili tanıtır ve ilk programı çalıştırmayı anlatır; VS Code eklentisi [`editors/vscode/README.md`](../editors/vscode/README.md)'de, hız kıyas seti [`tools/kiyas/README.md`](../tools/kiyas/README.md)'dedir.
 
-Belgelerdeki her ```tr kod bloğu `tr kontrol`den geçer ve her göreli bağlantı var olan bir dosyaya ve başlığa gider; ikisini de `go test ./cmd/tr` denetler.
+Belgelerdeki her ```tr kod bloğu `tr kontrol`den geçer ve her göreli bağlantı var olan bir dosyaya ve başlığa gider; ikisini de `go test ./cmd/tr/uctan_uca` denetler.

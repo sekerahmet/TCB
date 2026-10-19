@@ -4,7 +4,7 @@
 // açık kalır, Windows'ta açık dosya silinemez) sistemin geçici klasöründe tutulur. Ctrl+C ile
 // durdurma, süreç öldürülerek kesme, ayrı süreçlerle bit düzeyinde kabul testi, ağ sürücüsü
 // (yeniden adlandırma hatası) benzetimi ve GPU yolu Go testleriyle sınanır (internal/motor/kontrol,
-// cmd/tr, internal/motor/gpusinama).
+// cmd/tr/uctan_uca, internal/motor/gpusinama).
 
 sabit TABAN = yol(yol("veri").mutlak.üst_klasör, "gecici_kontrol_noktasi")
 // Günlük dosyaları bu koşunun geçici klasöründe (18.14); program bitince silinir.

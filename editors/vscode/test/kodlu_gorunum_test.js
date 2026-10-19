@@ -3,7 +3,7 @@
 // düzenle → kaydet → diskte kodlu ve 'tr göster' ile aynı; geri al; bozuk dosyanın kayıpsız
 // kaydı; satır eşlemesi (hata mesajı ve hata ayıklayıcı); kısıtlı kip. Depo kökünden:
 //   TR_YORUMLAYICI=bin/tr.exe node editors/vscode/test/kodlu_gorunum_test.js
-// (go test ./cmd/tr bunu TestEklentiJSTestleri ile, derlediği yorumlayıcıyla çalıştırır.
+// (go test ./cmd/tr/uctan_uca bunu TestEklentiJSTestleri ile, derlediği yorumlayıcıyla çalıştırır.
 // Yorumlayıcı yoksa yorumlayıcı gerektiren testler atlanır.)
 'use strict';
 

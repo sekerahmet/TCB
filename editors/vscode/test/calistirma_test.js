@@ -2,7 +2,7 @@
 // F5 / Ctrl+F5 yapılandırmasından yorumlayıcıya giden süreç ve argümanlar. Bağımlılıksız; depo
 // kökünden:
 //   node editors/vscode/test/calistirma_test.js
-// (go test ./cmd/tr bunu TestEklentiJSTestleri ile çalıştırır.)
+// (go test ./cmd/tr/uctan_uca bunu TestEklentiJSTestleri ile çalıştırır.)
 'use strict';
 
 const assert = require('assert');

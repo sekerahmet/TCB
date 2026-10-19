@@ -1,6 +1,6 @@
 # 19. Süreç ve kayıt
 
-Bir eğitim betiğinin dış dünyayla dört bağı vardır: ortam değişkenleri, komut satırı seçenekleri, eğitim günlüğü ve ilerleme çubuğu. Kullanım için `docs/kilavuz/04_yapay_zeka_ve_veri.md` §4.F'ye, her adın imzası için [`docs/kodlar.md`](../kodlar.md)'ye bakın. Kural testleri `testler/surec_ve_kayit_test.tr`'dedir; komut satırı yazımı, çıkış kodları ve terminaldeki çubuk `tr test` ile sınanamadığından Go testleriyle sınanır (`internal/motor/surec`, `internal/motor/gunluk`, `cmd/tr`).
+Bir eğitim betiğinin dış dünyayla dört bağı vardır: ortam değişkenleri, komut satırı seçenekleri, eğitim günlüğü ve ilerleme çubuğu. Kullanım için `docs/kilavuz/04_yapay_zeka_ve_veri.md` §4.F'ye, her adın imzası için [`docs/kodlar.md`](../kodlar.md)'ye bakın. Kural testleri `testler/surec_ve_kayit_test.tr`'dedir; komut satırı yazımı, çıkış kodları ve terminaldeki çubuk `tr test` ile sınanamadığından Go testleriyle sınanır (`internal/motor/surec`, `internal/motor/gunluk`, `cmd/tr/uctan_uca`).
 
 ## Ortam değişkenleri
 
@@ -12,7 +12,7 @@ Bir eğitim betiğinin dış dünyayla dört bağı vardır: ortam değişkenler
 
 **19.3** Seçenek adı sözlüğün anahtarıdır (veri; kodlanmaz), tipi varsayılandan çıkar: `Tam`, `Ondalık`, `Metin`, `Mantık`, öğeleri aynı tipte bir `Liste` (`Tam` ve `Ondalık` karışırsa `Ondalık`; boş liste `Metin` öğeli) ya da `yok` (verilirse `Metin`). Başka tipte varsayılan, sözlüğün üye adları (`uzunluk`, `içerir`, `anahtarlar` ...: `ayar.uzunluk` seçeneği değil üyeyi verirdi), `yardım` ve `h`, boş, `-` ile başlayan, boşluk ya da `=` içeren adlar kurulumda hatadır; `açıklamalar:` içindeki her ad bir seçenek olmalı, değeri `Metin`. Kurulum hataları sıradan çalışma zamanı hatalarıdır (`dene/yakala` yakalar) ve çağrıyı tüketmez.
 
-**Komut satırında yazım** (Go testleri: `internal/motor/surec`, `cmd/tr`). `tr betik.tr`, `tr çalıştır`, `tr hata_ayıkla`, `tr derle` ile üretilen uygulama ve düzenleyicinin başlatma ayarındaki `"args"` aynı yoldan geçer (bkz. §1).
+**Komut satırında yazım** (Go testleri: `internal/motor/surec`, `cmd/tr/uctan_uca`). `tr betik.tr`, `tr çalıştır`, `tr hata_ayıkla`, `tr derle` ile üretilen uygulama ve düzenleyicinin başlatma ayarındaki `"args"` aynı yoldan geçer (bkz. §1).
 - `--ad değer` ya da `--ad=değer`. `Mantık` seçenek değersiz yazılınca `doğru` olur (`--hızlı`); `yanlış` yalnızca `--hızlı=yanlış` ile.
 - Sayılar TR yazımıyla: `5000`, `5_000`, `1e-3`; `Ondalık` seçeneğe `3` verilirse `3.0`. Virgüllü ondalık (`0,001`), `NaN`, sonsuz ve `Tam` seçeneğe noktalı sayı hatadır. Liste değeri virgülle ayrılır (`--katmanlar 128,64`; boş değer boş liste).
 - `--yardım` ya da `-h` (başka argümanlar hatalı olsa da) seçenekleri tipleri, açıklamaları ve varsayılanlarıyla standart çıktıya yazar ve programı **0** koduyla bitirir.

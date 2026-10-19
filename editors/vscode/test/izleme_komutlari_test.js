@@ -1,6 +1,6 @@
 // İzleme Masası düğme → ileti → VS Code komutu eşlemesinin testi. Bağımlılıksız; depo kökünden:
 //   node editors/vscode/test/izleme_komutlari_test.js
-// (go test ./cmd/tr bunu TestEklentiJSTestleri ile çalıştırır.)
+// (go test ./cmd/tr/uctan_uca bunu TestEklentiJSTestleri ile çalıştırır.)
 'use strict';
 
 const assert = require('assert');
