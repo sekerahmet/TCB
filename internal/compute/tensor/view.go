@@ -19,6 +19,26 @@ func scatterBackward(parent, out *Tensor, gOff int, gStrides []int) func() {
 	}
 }
 
+// permuteBackward Permute'un geri yönüdür: ebeveynin gradyanı henüz yoksa çıktının
+// gradyanı ebeveynin eksen sırasına tek kopyayla yazılır (sıfırlayıp dağıtmak yerine);
+// varsa üzerine eklenir. ax[i], çıktının i. ekseninin ebeveyndeki eksenidir.
+func permuteBackward(parent, out *Tensor, ax, gst []int) func() {
+	scatter := scatterBackward(parent, out, 0, gst)
+	return func() {
+		if parent.grad != nil {
+			scatter()
+			return
+		}
+		oc := contiguousStrides(out.shape)
+		st := make([]int, len(ax))
+		for i, d := range ax {
+			st[d] = oc[i]
+		}
+		c, _ := parent.freshGrad(true)
+		parent.be.Copy(c, 0, View{S: out.grad, Shape: parent.shape, Strides: st})
+	}
+}
+
 // handOffGrad, düzeni ebeveyninkiyle aynı olan (aynı elemanlar, aynı satır
 // öncelikli sıra) bir çıktının gradyanını ebeveyne aktarır. Ebeveynin henüz
 // gradyanı yoksa depolama kopyalanmadan devredilir ve çıktıdan alınır; böylece
@@ -197,9 +217,11 @@ func (t *Tensor) Permute(dims ...int) *Tensor {
 	sh := make([]int, nd)
 	st := make([]int, nd)
 	gst := make([]int, nd)
+	ax := make([]int, nd)
 	cst := contiguousStrides(t.shape)
 	for i, d := range dims {
 		d = normAxis(d, nd)
+		ax[i] = d
 		if seen[d] {
 			panic(fmt.Sprintf("tensor: Permute eksenleri yinelenmiş %v", dims))
 		}
@@ -209,7 +231,7 @@ func (t *Tensor) Permute(dims ...int) *Tensor {
 		gst[i] = cst[d]
 	}
 	out := viewOf(t, t.offset, sh, st)
-	r := trackPass(out, "permute", t, scatterBackward(t, out, 0, gst))
+	r := trackPass(out, "permute", t, permuteBackward(t, out, ax, gst))
 	sy.finish()
 	return r
 }

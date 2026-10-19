@@ -156,3 +156,21 @@ func TestSliceStepBounds(t *testing.T) {
 		}
 	}
 }
+
+// Permute'un geri yönü: gradyanı olmayan ebeveyne tek kopyayla yazılır, gradyanı olana
+// eklenir; ikisi de sayısal gradyanla aynıdır (her eleman farklı bir katsayı alır).
+func TestPermuteGradCopyAndAdd(t *testing.T) {
+	rng := rand.New(rand.NewSource(11))
+	c := Randn(rng, 4, 2, 3)
+	d := Randn(rng, 3, 4, 2)
+	x := Randn(rng, 2, 3, 4)
+	checkGrad(t, "permute (kopya)", func(xs []*Tensor) *Tensor {
+		return xs[0].Permute(2, 0, 1).Mul(c).SumAll()
+	}, x)
+	checkGrad(t, "permute (ekleme)", func(xs []*Tensor) *Tensor {
+		return xs[0].Permute(2, 0, 1).Mul(c).SumAll().Add(xs[0].Permute(1, 2, 0).Mul(d).SumAll())
+	}, x)
+	checkGrad(t, "permute (görünüm üstü)", func(xs []*Tensor) *Tensor {
+		return xs[0].Reshape(6, 4).T().Reshape(4, 2, 3).Mul(c).SumAll()
+	}, x)
+}

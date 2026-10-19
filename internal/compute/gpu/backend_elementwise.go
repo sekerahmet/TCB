@@ -269,8 +269,23 @@ func (g *backend) Unary(op tensor.UnOp, p float32, out tensor.Storage, x tensor.
 func (g *backend) UnaryGrad(op tensor.UnOp, p float32, gx, gs tensor.Storage, x tensor.View, y tensor.Storage) {
 	g.enter()
 	defer g.exit()
+	g.unaryGrad(op, p, gx, gs, x, y, false)
+}
+
+// UnaryGradSet (tensor.UnaryGradSetter) UnaryGrad gibidir; gx'in üzerine yazar.
+func (g *backend) UnaryGradSet(op tensor.UnOp, p float32, gx, gs tensor.Storage, x tensor.View, y tensor.Storage) {
+	g.enter()
+	defer g.exit()
+	g.unaryGrad(op, p, gx, gs, x, y, true)
+}
+
+func (g *backend) unaryGrad(op tensor.UnOp, p float32, gx, gs tensor.Storage, x tensor.View, y tensor.Storage, set bool) {
 	if op == tensor.OpPow && p == 0 || op == tensor.OpFloor || op == tensor.OpCeil || op == tensor.OpSign {
-		return // x^0 sabittir, taban/tavan/işaret parçalı sabittir: gradyan 0
+		// x^0 sabittir, taban/tavan/işaret parçalı sabittir: gradyan 0
+		if set {
+			g.fill(g.storageOf(gx), 0)
+		}
+		return
 	}
 	gt := g.temp()
 	defer gt.finish()
@@ -293,7 +308,7 @@ func (g *backend) UnaryGrad(op tensor.UnOp, p float32, gx, gs tensor.Storage, x 
 		yd = gd // y'yi kullanmayan işlemler için okunabilir yer tutucu (aynı boyda)
 	}
 	dt := [4]tensor.DType{d.dtype, gd.dtype, g.storageOf(xv.S).dtype, yd.dtype}
-	c := g.takeKernel(fmt.Sprintf("tekli_turev:%d:%s:%v", op, mode2, dt), unaryGradKernel(op, mode2, dt))
+	c := g.takeKernel(fmt.Sprintf("tekli_turev:%d:%s:%v:%v", op, mode2, dt, set), unaryGradKernel(op, mode2, dt, set))
 	iz, bl := plain(n, sameBlock)
 	g.launch(c, iz, bl, g.param().write(d, 0).read(gd, 0).readV(xv).read(yd, 0).u32(n).f32(p))
 }

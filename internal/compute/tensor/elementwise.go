@@ -97,28 +97,28 @@ func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	r := track(out, binopName[op], []*Tensor{a, b}, func() {
 		g := out.grad
 		sh := out.shape
-		missing := View{}
 		switch op {
 		case OpAdd, OpSub:
-			if a.requiresGrad {
-				be.BinaryGrad(GradPlus, a.accGrad(), a.shape, sh, g, missing, nil)
-			}
+			// b önce: a, b ile aynı tensör olsa da gradyanı sonra devralabilsin.
 			if b.requiresGrad {
 				m := GradPlus
 				if op == OpSub {
 					m = GradMinus
 				}
-				be.BinaryGrad(m, b.accGrad(), b.shape, sh, g, missing, nil)
+				passBinaryGrad(b, out, m, false)
+			}
+			if a.requiresGrad {
+				passBinaryGrad(a, out, GradPlus, true)
 			}
 		case OpMul:
-			if a.requiresGrad {
+			if a.requiresGrad && !writeBinaryGrad(a, out, OpMul, b) {
 				be.BinaryGrad(GradMul, a.accGrad(), a.shape, sh, g, b.view(), nil)
 			}
-			if b.requiresGrad {
+			if b.requiresGrad && !writeBinaryGrad(b, out, OpMul, a) {
 				be.BinaryGrad(GradMul, b.accGrad(), b.shape, sh, g, a.view(), nil)
 			}
 		case OpDiv:
-			if a.requiresGrad {
+			if a.requiresGrad && !writeBinaryGrad(a, out, OpDiv, b) {
 				be.BinaryGrad(GradDiv, a.accGrad(), a.shape, sh, g, b.view(), nil)
 			}
 			if b.requiresGrad {
@@ -128,6 +128,48 @@ func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	}, save...)
 	sy.finish()
 	return r
+}
+
+// passBinaryGrad toplama/çıkarma geri yönünde out'un gradyanını t'ye aktarır (m:
+// GradPlus ya da GradMinus). t yayınlanmışsa indirgenir. Aynı şekilli t'de gradyan
+// henüz yoksa sıfırlanmadan yazılır; take doğruysa ve tür uyuyorsa depolama kopyasız
+// devredilir (out'tan alınır, handOffGrad gibi). Gradyan varsa üzerine eklenir.
+func passBinaryGrad(t, out *Tensor, m GradMode, take bool) {
+	be, g := t.be, out.grad
+	switch {
+	case !sameShape(t.shape, out.shape):
+		be.BinaryGrad(m, t.accGrad(), t.shape, out.shape, g, View{}, nil)
+	case t.grad != nil:
+		be.AddTo(t.grad, g, gradSign(m))
+	case take && m == GradPlus && g.DType() == t.gradDType():
+		t.grad = g
+		out.grad = nil
+	case m == GradPlus:
+		c, _ := t.freshGrad(true)
+		be.Copy(c, 0, out.gradView())
+	default:
+		be.AddTo(t.accGrad(), g, gradSign(m))
+	}
+}
+
+// writeBinaryGrad çarpma/bölme geri yönünde t'nin (birinci işlenen ya da çarpmada
+// herhangi biri) gradyanı henüz yoksa ve t yayınlanmamışsa gradyanı tek ikili işlemle
+// sıfırlamadan yazar: dt = g op o (hesap float32, gradyan türüne bir kez yuvarlanır).
+// Yazamazsa yanlış döner; çağıran genel yolla (indirgeme ile) ekler.
+func writeBinaryGrad(t, out *Tensor, op BinOp, o *Tensor) bool {
+	if t.grad != nil || !sameShape(t.shape, out.shape) {
+		return false
+	}
+	c, _ := t.freshGrad(true)
+	t.be.Binary(op, c, out.shape, out.gradView(), o.view())
+	return true
+}
+
+func gradSign(m GradMode) float32 {
+	if m == GradMinus {
+		return -1
+	}
+	return 1
 }
 
 // Add eleman bazlı toplama (yayınlamalı).
@@ -185,6 +227,11 @@ func unary(t *Tensor, op UnOp, p float32) *Tensor {
 	r := track(out, unopName[op], []*Tensor{t}, func() {
 		if unaryNoGrad(op) {
 			t.accGrad() // gradyan 0'dır; yaprakta sıfır gradyan görünür
+			return
+		}
+		us, writer := t.be.(UnaryGradSetter)
+		if gx, fresh := t.freshGrad(writer); fresh {
+			us.UnaryGradSet(op, p, gx, out.grad, t.view(), out.storage)
 			return
 		}
 		t.be.UnaryGrad(op, p, t.accGrad(), out.grad, t.view(), out.storage)

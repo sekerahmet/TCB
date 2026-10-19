@@ -164,9 +164,10 @@ func unaryKernel(op tensor.UnOp, mode2 string, xt, yt tensor.DType) func() *emit
 
 // unaryGradKernel gx[i] += f'(g, x, y); her depolama kendi türünde (dt: gx, g, x, y)
 // okunup yazılır, hesap float32'dedir.
-func unaryGradKernel(op tensor.UnOp, mode2 string, dt [4]tensor.DType) func() *emitter {
+// unaryGradKernel gx += g·f'(x, y); set doğruysa gx'in eski içeriği okunmaz, gx = g·f'(x, y).
+func unaryGradKernel(op tensor.UnOp, mode2 string, dt [4]tensor.DType, set bool) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("tekli_turev_%d_%s_%s_%s_%s_%s", op, mode2, dt[0], dt[1], dt[2], dt[3]))
+		k := newEmitter(fmt.Sprintf("tekli_turev_%d_%s_%s_%s_%s_%s_%v", op, mode2, dt[0], dt[1], dt[2], dt[3], set))
 		gx := k.written("gx")
 		g := k.pointer("g")
 		x := k.pointer("x")
@@ -180,9 +181,15 @@ func unaryGradKernel(op tensor.UnOp, mode2 string, dt [4]tensor.DType) func() *e
 		yv := k.load(dt[3], k.address(y, i, dtypeSize(dt[3])))
 		t := k.unaryGrad(op, mode2, gv, xv, yv, p)
 		ha := k.address(gx, i, dtypeSize(dt[0]))
-		old := k.load(dt[0], ha)
-		k.e("add.rn.f32", old, old, t)
-		k.store(dt[0], ha, old)
+		if set {
+			// +0 eklemek, sıfırlanmış gradyana eklemeyle (CPU) aynı sonucu verir: -0 → +0.
+			k.e("add.rn.f32", t, t, float32(0))
+			k.store(dt[0], ha, t)
+		} else {
+			old := k.load(dt[0], ha)
+			k.e("add.rn.f32", old, old, t)
+			k.store(dt[0], ha, old)
+		}
 		k.put(last)
 		return k
 	}

@@ -265,6 +265,7 @@ var (
 	_ tensor.GemmSetter             = (*backend)(nil)
 	_ tensor.AttentionGradSetter    = (*backend)(nil)
 	_ tensor.CrossEntropyGradSetter = (*backend)(nil)
+	_ tensor.UnaryGradSetter        = (*backend)(nil)
 	_ tensor.GradClipper            = (*backend)(nil)
 	_ tensor.Storage                = (*storage)(nil)
 )

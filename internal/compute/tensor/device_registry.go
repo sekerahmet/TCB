@@ -200,6 +200,12 @@ type AttentionGradSetter interface {
 	AttentionGradSet(gq, gk, gv, g Storage, q, k, v View, mask Storage, o, lse Storage, p AttentionParams, fresh [3]bool)
 }
 
+// UnaryGradSetter UnaryGrad'ın gx'in üzerine yazan biçimini (gx'in eski içeriği okunmaz)
+// veren arka uçların isteğe bağlı arayüzüdür.
+type UnaryGradSetter interface {
+	UnaryGradSet(op UnOp, p float32, gx, g Storage, x View, y Storage)
+}
+
 // CrossEntropyGradSetter CrossEntropyGrad'ın gx'in üzerine yazan biçimini (hedefi negatif
 // satırlar 0 olur) veren arka uçların isteğe bağlı arayüzüdür.
 type CrossEntropyGradSetter interface {
