@@ -7,7 +7,7 @@
 #   süre    her hedefin süresi, Go süre biçimiyle (varsayılan 30s)
 #   süzgeç  yalnızca adı bu düzenli ifadeye uyan hedefler (varsayılan: hepsi)
 # Bir hedef düşerse düşüren girdi testdata/fuzz/<Hedef>/ altına yazılır; betik onu günlüğe
-# basar (otomatik sınamada dosya kaybolur, girdi günlükte kalır).
+# basar (otomatik sınama ayrıca yapıt olarak saklar).
 set -u
 set -o pipefail
 cd "$(dirname "$0")/.."
@@ -19,6 +19,25 @@ if ! [[ "$sure" =~ ^[0-9]+(\.[0-9]+)?(ns|us|ms|s|m|h)$ ]]; then
 	exit 2
 fi
 
+# hedef_kos bir hedefi koşar. Go'nun bulanıklaştırma motoru süre dolarken yanıt vermeyen bir
+# işçiyi "context deadline exceeded" ile düşmüş sayabilir (girdi yazılmaz, çökme değildir):
+# öyleyse hedef bir kez yeniden koşulur, ikincisi de düşerse düşmüş sayılır.
+hedef_kos() {
+	local ad=$1 klasor=$2 cikti
+	cikti=$(go test -run='^$' -fuzz="^${ad}\$" -fuzztime="$sure" "./$klasor" 2>&1)
+	local kod=$?
+	echo "$cikti"
+	[ $kod -eq 0 ] && return 0
+	if echo "$cikti" | grep -q 'context deadline exceeded' &&
+		[ -z "$(git ls-files -o --exclude-standard -- "$klasor/testdata/fuzz/$ad")" ]; then
+		echo "-- $ad girdi yazmadan süre aşımıyla düştü (motorun zaman aşımı); bir kez yeniden koşuluyor"
+		if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::warning title=Bulanıklaştırma::$ad süre aşımıyla düştü, yeniden koşuldu"; fi
+		go test -run='^$' -fuzz="^${ad}\$" -fuzztime="$sure" "./$klasor"
+		return
+	fi
+	return $kod
+}
+
 hata=0
 sayi=0
 # Hedefler: izlenen test dosyalarındaki "func FuzzX(" bildirimleri; klasör paket yoludur.
@@ -28,7 +47,7 @@ while IFS=: read -r dosya _ satir; do
 	klasor=$(dirname "$dosya")
 	sayi=$((sayi + 1))
 	printf '\n== %s (./%s, %s)\n' "$ad" "$klasor" "$sure"
-	if ! go test -run='^$' -fuzz="^${ad}\$" -fuzztime="$sure" "./$klasor"; then
+	if ! hedef_kos "$ad" "$klasor"; then
 		echo "!! KALDI: $ad"
 		if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::error title=Bulanıklaştırma::$ad düştü"; fi
 		hata=1

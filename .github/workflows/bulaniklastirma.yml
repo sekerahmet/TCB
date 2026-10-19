@@ -2,8 +2,8 @@
 # hedefleri) haftada bir, her hedef kısa bir süre (varsayılan 30 sn) rastgele girdiyle koşar.
 # Sıradan go test yalnızca tohum derlemini koşar; bu iş yeni girdi üretir. Elle de
 # tetiklenebilir (Actions → Bulanıklaştırma → Run workflow), süre seçilerek. Bir hedef düşerse
-# düşüren girdi günlükte yazılır; yerelde `go test -run=<Hedef>/<dosya>` ile yeniden üretmek
-# için dosya testdata/fuzz/<Hedef>/ altına konur. Koşum tools/bulaniklastir.sh'tadır.
+# düşüren girdi günlükte yazılır ve "dusuren-girdiler" yapıtı olarak saklanır; yerelde
+# `go test -run=<Hedef>/<dosya>` ile yeniden üretmek için dosya testdata/fuzz/<Hedef>/ altına konur. Koşum tools/bulaniklastir.sh'tadır.
 name: Bulanıklaştırma
 
 on:
@@ -41,6 +41,16 @@ jobs:
         env:
           # Girdi betiğe ortam değişkeniyle geçer (komut satırına doğrudan yazılmaz).
           SURE: ${{ inputs.sure || '30s' }}
-          # v3: AVX2/FMA assembly çekirdekleri de bulanıklaştırılsın (v1'de saf Go yolu derlenir).
-          GOAMD64: v3
+        # AVX2 assembly çekirdekleri çalışma anında seçilir (koşucuda AVX2 var), bulanıklaştırma
+        # onları da Go eşleriyle karşılaştırır; GOAMD64 ayarı gerekmez.
         run: bash tools/bulaniklastir.sh "$SURE"
+
+      # Düşüren girdiler (testdata/fuzz/<Hedef>/) yapıt olarak saklanır: indirilip depoya
+      # konunca `go test -run=<Hedef>/<dosya>` ile yeniden üretilir.
+      - name: Düşüren girdileri sakla
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dusuren-girdiler
+          path: "**/testdata/fuzz/**"
+          if-no-files-found: ignore

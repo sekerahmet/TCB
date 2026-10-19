@@ -1,18 +1,13 @@
 # Sürekli tümleştirme: her gönderimde ve çekme isteğinde Windows ve Linux üzerinde tam denetim
 # (tools/tam_denetim.sh) çalışır. "Bitti"nin tek tanımı o betiktir; burada yalnızca kurulum ve
-# kip seçimi vardır. Betiğin yaptıkları: üretilmiş dosyaların güncelliği, gofmt, go vet, VS
-# Code eklentisinin JavaScript dosyaları ve package.json, derleme, Go testleri (-short), dil
-# tanımı testleri ve örnek testleri (tr test), örneklerin hepsinin duman testi (çıkış kodu 0,
-# zaman aşımı, uyarısız).
+# kip seçimi vardır (betiğin --kip argümanı; kiplerin ne yaptığı betiğin başında yazar).
 #
-# Matris iki işlemci düzeyini kapsar: GOAMD64=v3 (2020 sonrası x86-64 işlemciler, AVX2/FMA)
-# ve GOAMD64=v1 (eski işlemciler). AVX2 çekirdekleri çalışma anında seçildiğinden v1 işleri
-# onları kapatır (TR_CPU_AVX2=0) ve Go eşlerini sınar. v1 işlerinde derleme, Go testleri, tr
-# test ve örnekler de v1 ile koşar; işlemci düzeyinden bağımsız durağan denetimler (biçim, vet, üretilmiş
-# dosyalar, eklenti) yalnızca v3 işlerinde yapılır (betiğin --kip argümanı).
+# Matris iki yapılandırmayı kapsar: dagitim (kullanıcıya giden düz `go build`, GOAMD64=v1,
+# AVX2 çekirdekleri çalışma anında seçilir; durağan denetimler, ARM derlemesi, Go testleri, tr
+# testleri ve örnekler) ve go-esleri (AVX2 kapalı: assembly'siz Go eşleri).
 #
-# Ayrıca Linux'ta yarış dedektörüyle (go test -race) yorumlayıcı, motorlar ve veri hattı
-# sınanır. Bulanıklaştırma testleri haftalık ayrı bir işte uzun koşar (bulaniklastirma.yml).
+# Ayrıca Linux'ta yarış dedektörü (--kip=yaris) ve -short olmadan uzun Go testleri (--kip=uzun)
+# koşar. Bulanıklaştırma testleri haftalık ayrı bir işte uzun koşar (bulaniklastirma.yml).
 name: CI
 
 on:
@@ -25,12 +20,12 @@ permissions:
 jobs:
   denetim:
     # İş adı değişmez: dal korumasının zorunlu denetimleri bu adlara bağlı olabilir.
-    name: Denetim (${{ matrix.os }}, GOAMD64=${{ matrix.goamd64 }})
+    name: Denetim (${{ matrix.os }}, ${{ matrix.kip }})
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
-        goamd64: [v3, v1]
+        kip: [dagitim, go-esleri]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     env:
@@ -59,7 +54,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Tam denetim
-        run: bash tools/tam_denetim.sh --kip=${{ matrix.goamd64 }}
+        run: bash tools/tam_denetim.sh --kip=${{ matrix.kip }}
 
   yaris:
     name: Yarış dedektörü (Linux)
@@ -76,7 +71,26 @@ jobs:
         with:
           go-version-file: go.mod
 
-      # Eşzamanlı kod: yorumlayıcı kilidi ve eşzamanlı görevler, motorların kilitleri,
-      # önden yükleme ve önbellek. Yarış dedektörü cgo ister (Linux koşucusunda hazır).
+      # Hangi paketlerin sınandığı betiktedir (--kip=yaris). Yarış dedektörü cgo ister
+      # (Linux koşucusunda hazır).
       - name: Yarış dedektörüyle Go testleri
-        run: go test -race -short ./internal/lang/interp ./internal/stdlib/... ./internal/compute/dataload
+        run: bash tools/tam_denetim.sh --kip=yaris
+
+  uzun:
+    name: Uzun testler (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Kaynağı al
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Go kurulumu
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      # -short olmadan: her .tr dosyasının İngilizce gidiş-dönüşü gibi uzun sınamalar.
+      - name: Uzun Go testleri
+        run: bash tools/tam_denetim.sh --kip=uzun

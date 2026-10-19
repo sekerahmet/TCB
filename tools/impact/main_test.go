@@ -51,9 +51,9 @@ func TestNameUses(t *testing.T) {
 // The hooks the interpreter finds by type assertion: the implementers must be listed, because
 // a renamed method drops a hook without a compile error.
 func TestInterfaceImplementers(t *testing.T) {
-	mustContain(t, query(t, "interp.MemberAssignable"), "1 implementers", "ml.Iyilestirici")
-	mustContain(t, query(t, "interp.Iterable"), "ml.Deger")
-	mustContain(t, query(t, "interp.MemberAssignable.SetMember"), "ml.Iyilestirici")
+	mustContain(t, query(t, "interp.MemberAssignable"), "1 implementers", "ml.Optimizer")
+	mustContain(t, query(t, "interp.Iterable"), "ml.TensorValue")
+	mustContain(t, query(t, "interp.MemberAssignable.SetMember"), "ml.Optimizer")
 }
 
 // Methods are written Type.Member; a package can be named by its path or its last element.

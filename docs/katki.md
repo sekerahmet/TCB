@@ -66,11 +66,11 @@ Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** 
 İş sırasında yalnızca değiştirdiğiniz paketlerin testlerini çalıştırın. İşin sonunda bir kez tam denetim:
 
 ```sh
-bash tools/tam_denetim.sh          # üretilmiş dosyalar, gofmt, go vet, eklenti, derleme, iki derleme ayarıyla go test, tr test, örnekler
-bash tools/tam_denetim.sh --hizli  # yalnızca iş sırasında: GOAMD64=v1 testlerini atlar
+bash tools/tam_denetim.sh          # dagitim + go-esleri: durağan denetimler, ARM derlemesi, go test, tr test, örnekler
+bash tools/tam_denetim.sh --hizli  # yalnızca iş sırasında: yalnızca dagitim kipi (Go eşleri atlanır)
 ```
 
-"Bitti"nin tek tanımı bu betiktir: otomatik sınama (`.github/workflows/ci.yml`) da onu çağırır, her işte bir derleme ayarıyla (`--kip=v3`, `--kip=v1`; Windows ve Linux). Go testleri `-short` ile koşar; dil tanımı testleri (`tests/`) Go testinde yinelenmez, betikte bir kez `tr test tests` ile koşar. Kod düzeni testi (`go test ./internal`) tam denetimin içindedir. Otomatik sınama ayrıca Linux'ta yarış dedektörüyle (`go test -race`) yorumlayıcıyı, motorları ve veri hattını sınar; bulanıklaştırma testleri haftada bir uzun koşar (`tools/bulaniklastir.sh`; yerelde tek hedef: `bash tools/bulaniklastir.sh 2s '^FuzzNpyHeader$'`). Belgeler (`docs/spec/`, `docs/guide/`) işle birlikte güncellenir; her dil kuralının bir testi olur.
+"Bitti"nin tek tanımı bu betiktir: otomatik sınama (`.github/workflows/ci.yml`) da onu çağırır, Windows ve Linux'ta iki kiple: `dagitim` (kullanıcıya giden düz `go build`; AVX2 çekirdekleri çalışma anında seçilir) ve `go-esleri` (`TR_CPU_AVX2=0`: assembly'siz Go eşleri). Linux'ta ayrıca yarış dedektörü (`--kip=yaris`: yorumlayıcı, motorlar, veri hattı, tensör, parçalayıcı, GPU benzeticisi) ve `-short` olmadan uzun testler (`--kip=uzun`) koşar; bu iki kip yerelde de çalıştırılabilir (yarış dedektörü cgo ve bir C derleyicisi ister). Go testleri `-short` ile koşar; dil tanımı testleri (`tests/`) Go testinde yinelenmez, betikte `tr test tests` ile koşar. Örnekler geçici bir klasörde çalışır, depoda iz bırakmaz; denetim sonunda `git status` başlangıçtakiyle aynı olmalıdır. Kod düzeni testi (`go test ./internal`) tam denetimin içindedir. Bulanıklaştırma testleri haftada bir uzun koşar (`tools/bulaniklastir.sh`; yerelde tek hedef: `bash tools/bulaniklastir.sh 2s '^FuzzNpyHeader$'`); düşüren girdiler yapıt olarak saklanır. Zayıf makinede `TAM_DENETIM_P=2` go test'in aynı anda koşturduğu paket sayısını sınırlar. Belgeler (`docs/spec/`, `docs/guide/`) işle birlikte güncellenir; her dil kuralının bir testi olur.
 
 ## Ölçüm disiplini
 
@@ -81,6 +81,6 @@ python tools/bench/kos.py --yalniz tr --tekrar 5           # TR programları (to
 go test -run XXX -bench . -count 6 ./internal/stdlib/ml/ # Go kıyasları
 ```
 
-- Önce/sonra ölçümü aynı makinede, aynı ayarla (`GOAMD64=v3`) ve makine boşken yapılır. Başka işler çalışırken alınan ölçüm hüküm değildir: "gerileme var gibi" diye işaretlenir, kesin ölçümü baş geliştirici ya da hız uzmanı boş makinede yapar.
+- Önce/sonra ölçümü aynı makinede, aynı ayarla (düz `go build`; AVX2 çekirdekleri çalışma anında seçilir) ve makine boşken yapılır. Başka işler çalışırken alınan ölçüm hüküm değildir: "gerileme var gibi" diye işaretlenir, kesin ölçümü baş geliştirici ya da hız uzmanı boş makinede yapar.
 - Sıcak yolda ad araması ve gereksiz bellek ayırma olmaz: adlar derleme anında koda ve yuvaya çözülür, çalışma anında dizi indeksi ya da `switch` ile dağıtılır.
 - Ayrıntılar ve kıyas setinin testleri: [`tools/bench/README.md`](../tools/bench/README.md).
