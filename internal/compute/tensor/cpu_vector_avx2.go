@@ -130,7 +130,7 @@ func first64(s []float64) *float64 {
 }
 
 // lnForwardBlock katman normunun (mean nil ise RMS normunun) ileri yönü; tanım ve
-// taşınabilir eşi lnIleriBlokGo'dadır, sonuç onunla bit düzeyinde aynıdır.
+// taşınabilir eşi lnForwardBlockGo'dadır, sonuç onunla bit düzeyinde aynıdır.
 func lnForwardBlock(y, x, g, b, mean, rstd []float32, D int, eps float32) {
 	R := checkLN(D, x, y, g, b, mean, rstd, nil, nil, nil)
 	if R == 0 {
@@ -140,7 +140,7 @@ func lnForwardBlock(y, x, g, b, mean, rstd []float32, D int, eps float32) {
 }
 
 // lnBackwardBlock katman normunun (mean nil ise RMS normunun) geri yönü; tanım ve
-// taşınabilir eşi lnGeriBlokGo'dadır, sonuç onunla bit düzeyinde aynıdır.
+// taşınabilir eşi lnBackwardBlockGo'dadır, sonuç onunla bit düzeyinde aynıdır.
 func lnBackwardBlock(xg []float32, pg, pb []float64, x, gr, gammaPtr, mean, rstd []float32, D int) {
 	R := checkLN(D, x, gr, gammaPtr, nil, mean, rstd, xg, pg, pb)
 	if R == 0 {

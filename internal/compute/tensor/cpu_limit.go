@@ -213,13 +213,17 @@ func checkLN(D int, x, a, g, b, mean, rstd, xg []float32, pg, pb []float64) int 
 		return 0
 	}
 	R := len(x) / D
-	short := func(s int, n int) bool { return s != 0 && s < n }
-	if R*D != len(x) || len(a) < R*D || short(len(g), D) || short(len(b), D) || short(len(pg), D) ||
-		short(len(pb), D) || short(len(mean), R) || len(rstd) < R || short(len(xg), R*D) {
+	if R*D != len(x) || len(a) < R*D || short(g, D) || short(b, D) || short(pg, D) ||
+		short(pb, D) || short(mean, R) || len(rstd) < R || short(xg, R*D) {
 		panic("tensor: norm çekirdeğine uyumsuz dilim uzunlukları (iç hata)")
 	}
 	return R
 }
+
+// short isteğe bağlı bir dilimin verilip de kısa olduğunu bildirir. Boş ama nil olmayan
+// dilim de kısadır: Go eşleri onu "var" sayar, AVX2 çekirdekleri "yok" (ilk elemanın adresi
+// nil); ikisi farklı norm hesaplardı.
+func short[T float32 | float64](s []T, n int) bool { return s != nil && len(s) < n }
 
 // lnForwardBlockGo katman normunun (mean nil ise RMS normunun) taşınabilir ileri
 // yönü; x'in her D'lik satırı için:
