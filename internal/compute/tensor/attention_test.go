@@ -439,3 +439,14 @@ func TestAttentionNaNRow(t *testing.T) {
 		t.Fatalf("gradyan: NaN satırda NaN, öbüründe sayı olmalı: %v", g)
 	}
 }
+
+// Dikkatin geri yönü ileri çıktıyı da okur: çıktı geri yayılımdan önce yerinde değişirse
+// sessizce yanlış gradyan yerine "yerinde değiştirildi" hatası verilir (softmax gibi).
+func TestAttentionOutputChangedInPlace(t *testing.T) {
+	q := New([]float32{1, 0, 0, 1}, 2, 2).SetRequiresGrad(true)
+	k := New([]float32{1, 0, 0, 1, 1, 1}, 3, 2)
+	v := New([]float32{1, 2, 3, 4, 5, 6}, 3, 2)
+	y := Attention(q, k, v, AttentionOptions{})
+	y.Set(100, 0, 0)
+	panicContains(t, "dikkat çıktısı", "yerinde değiştirildi", func() { y.SumAll().Backward() })
+}

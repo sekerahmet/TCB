@@ -139,7 +139,9 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 			return
 		}
 		be.AttentionGrad(g[0], g[1], g[2], out.grad, qv, kv, vv, maskVal, out.storage, lse, p)
-	}, q, k, v)
+		// Geri yön ileri çıktıyı da okur (D = Σ dO·O): çıktı yerinde değişirse sürüm
+		// denetimi yakalar.
+	}, q, k, v, out)
 	sy.finish()
 	return r
 }
