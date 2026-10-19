@@ -4,7 +4,7 @@
 //             değişken op = MuonVeAdamW(model)            // gizli 2B ağırlıklar Muon, öbürleri AdamW
 //             op.sıfırla(); geri_yayılım(kayıp); op.adım()
 // Bu iyileştiriciler TR ile yazılmıştır: parametreyi türev izlemeden, yerinde güncellerler
-// (`türevsiz { p[0..p.şekil[0]] -= ... }`, dil tanımı 15.3). Kendi yönteminizi denemek için bu
+// (`türevsiz { p[0..p.şekil[0]] -= ... }`, dil tanımı 15.3 ve 15.7). Kendi yönteminizi denemek için bu
 // dosyayı kopyalayıp değiştirin.
 //
 // Ağırlık düzeni: katmanlar `x @ W` yazar, W [giriş, çıkış] şeklindedir; bir "nöron" W'nin bir

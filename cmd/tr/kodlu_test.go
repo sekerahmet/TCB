@@ -116,7 +116,9 @@ func TestKodluDosyalarAyniCiktiyiVerir(t *testing.T) {
 	devamSatiri := regexp.MustCompile(`(?m)^Kaldığı yerden devam: .*$`)
 	for _, klasor := range []string{"testler", "ornekler", "kitaplik"} {
 		s1, s2 := kokuSoy(tr(t, tr1, "test", klasor), tr1), kokuSoy(tr(t, tr2, "test", klasor), tr2)
-		s1.hata, s2.hata = devamSatiri.ReplaceAllString(s1.hata, ""), devamSatiri.ReplaceAllString(s2.hata, "")
+		for _, s := range []*sonuc{&s1, &s2} {
+			s.cikti, s.hata = devamSatiri.ReplaceAllString(s.cikti, ""), devamSatiri.ReplaceAllString(s.hata, "")
+		}
 		if s1.kod != 0 || s1.kod != s2.kod || s1.cikti != s2.cikti || s1.hata != s2.hata {
 			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", klasor, s1.kod, s2.kod, satirFarki(s1.cikti+s1.hata, s2.cikti+s2.hata))
 		}

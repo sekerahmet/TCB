@@ -197,7 +197,7 @@ func (v *VM) modulYukle(s *agac.ImportStatement, path string) (*DictVal, error) 
 	if err := YolDenetle(kod.Ad(kod.A070), path); err != nil {
 		return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
 	}
-	hedef, err := v.modulHedefi(s, path)
+	hedef, bakilanlar, err := v.modulHedefi(s, path)
 	if err != nil {
 		return nil, err
 	}
@@ -234,39 +234,45 @@ func (v *VM) modulYukle(s *agac.ImportStatement, path string) (*DictVal, error) 
 		v.importedMu.Unlock()
 		close(y.bitti)
 	}()
-	y.mod, y.err = v.modulCalistir(s, hedef, anahtar)
+	y.mod, y.err = v.modulCalistir(s, path, hedef, anahtar, bakilanlar)
 	if y.err == nil && y.mod == nil {
 		y.err = fmt.Errorf("Satır %d: %q modülü yüklenemedi", s.Line(), path)
 	}
 	return y.mod, y.err
 }
 
-// modulHedefi 'aktar' yolunun gösterdiği modülü bulup okur (kaynağı ve gösterilen adıyla).
-// "tr/" önekli yol dilin gömülü kitaplığındandır (11.6); kitaplık modülünün içindeki göreli
-// yol da kitaplıkta çözülür. Öbür göreli yollar önce aktaran dosyanın, sonra programın
-// klasörüne göre aranır (11.1).
-func (v *VM) modulHedefi(s *agac.ImportStatement, path string) (*Kaynak, error) {
+// modulHedefi 'aktar' yolunun gösterdiği modülü bulur (yolu ve gösterilen adı; kaynak yalnızca
+// yüklenirken okunur, bakilanlar okuma hatası içindir). "tr/" önekli yol dilin gömülü
+// kitaplığındandır (11.6); kitaplık modülünün içindeki göreli yol da
+// kitaplıkta çözülür. Öbür göreli yollar önce aktaran dosyanın, sonra programın klasörüne
+// göre aranır (11.1).
+func (v *VM) modulHedefi(s *agac.ImportStatement, path string) (hedef *Kaynak, bakilanlar []string, err error) {
 	ad, kitaplikta := KitaplikModulu(path)
 	if !kitaplikta && v.kaynak != nil && v.kaynak.Gomulu && !filepath.IsAbs(path) {
 		ad, kitaplikta = pathpkg.Join(pathpkg.Dir(strings.TrimPrefix(v.kaynak.Yol, KitaplikOneki)), filepath.ToSlash(path)), true
 	}
 	if kitaplikta {
-		veri, err := KitaplikOku(ad)
+		return &Kaynak{Yol: KitaplikOneki + ad, Ad: KitaplikOneki + ad, Gomulu: true}, nil, nil
+	}
+	cozulen, bakilanlar, _ := ModulYolunuCoz(path, v.aramaKlasorleri())
+	return &Kaynak{Yol: cozulen, Ad: gosterilenYol(cozulen)}, bakilanlar, nil
+}
+
+// modulCalistir modülü (diskten ya da kitaplıktan) okur, denetler ve kendi kaynağının bağlamında çalıştırır.
+func (v *VM) modulCalistir(s *agac.ImportStatement, path string, hedef *Kaynak, anahtar string, bakilanlar []string) (*DictVal, error) {
+	if hedef.Gomulu {
+		veri, err := KitaplikOku(strings.TrimPrefix(hedef.Yol, KitaplikOneki))
 		if err != nil {
 			return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
 		}
-		return &Kaynak{Yol: KitaplikOneki + ad, Ad: KitaplikOneki + ad, Kod: string(veri), Gomulu: true}, nil
+		hedef.Kod = string(veri)
+	} else {
+		data, err := os.ReadFile(hedef.Yol)
+		if err != nil {
+			return nil, fmt.Errorf("Satır %d: %w", s.Line(), OkumaHatasi(kod.Ad(kod.A070), path, "modülü okunamadı", err, bakilanlar))
+		}
+		hedef.Kod = string(data)
 	}
-	cozulen, bakilanlar, _ := ModulYolunuCoz(path, v.aramaKlasorleri())
-	data, err := os.ReadFile(cozulen)
-	if err != nil {
-		return nil, fmt.Errorf("Satır %d: %w", s.Line(), OkumaHatasi(kod.Ad(kod.A070), path, "modülü okunamadı", err, bakilanlar))
-	}
-	return &Kaynak{Yol: cozulen, Ad: gosterilenYol(cozulen), Kod: string(data)}, nil
-}
-
-// modulCalistir modülü okur, denetler ve kendi kaynağının bağlamında çalıştırır.
-func (v *VM) modulCalistir(s *agac.ImportStatement, hedef *Kaynak, anahtar string) (*DictVal, error) {
 	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
 	// adları görür; yerleşikler de oradadır.
 	ms := ModulDenetle(hedef.Kod, v.GlobalEnv.kapsam.adlar, false)
