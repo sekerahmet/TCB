@@ -18,7 +18,7 @@ import (
 // GPU'da CPU ile aynı kaybı verir: küçük bir GPT aynı veriyle önce CPU'da, sonra
 // varsayılan_cihaz("gpu") ile GPU'da Muon + AdamW (ve NorMuon) ile birkaç adım eğitilir.
 // Gerçek GPU yoksa PTX benzetimidir (yavaş; şekiller küçük).
-const gpuKitaplikProgrami = `
+const gpuLibraryProgram = `
 aktar "tr/katman"
 aktar "tr/iyilestirici"
 fonksiyon eğit(cihaz, normuon) {
@@ -49,12 +49,12 @@ döngü normuon içinde [yanlış, doğru] {
 }
 `
 
-func TestGPUdaKitaplikGPTsi(t *testing.T) {
+func TestGPULibraryGPT(t *testing.T) {
 	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	interp.SetLibrary(lib.Dosyalar)
 	defer interp.SetLibrary(nil)
-	p := parser.New(lexer.New(gpuKitaplikProgrami))
+	p := parser.New(lexer.New(gpuLibraryProgram))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())
@@ -66,17 +66,17 @@ func TestGPUdaKitaplikGPTsi(t *testing.T) {
 		t.Fatalf("program hatası: %v\nçıktı:\n%s", err, out.String())
 	}
 	m.WaitAsync()
-	satirlar := strings.Split(strings.TrimSpace(out.String()), "\n")
-	if len(satirlar) != 10 {
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 10 {
 		t.Fatalf("beklenmeyen çıktı:\n%s", out.String())
 	}
-	for blok := 0; blok < 2; blok++ {
-		s := satirlar[blok*5:]
+	for block := 0; block < 2; block++ {
+		s := lines[block*5:]
 		if s[0] != "cpu cpu cpu" || s[1] != "gpu gpu gpu" {
 			t.Fatalf("ağırlıklar ve iyileştirici durumu seçilen cihazda olmalı:\n%s", out.String())
 		}
-		for _, satir := range s[2:5] {
-			f := strings.Fields(satir)
+		for _, line := range s[2:5] {
+			f := strings.Fields(line)
 			c, _ := strconv.ParseFloat(f[0], 64)
 			g, _ := strconv.ParseFloat(f[1], 64)
 			if d := c - g; d > 1e-4*c || d < -1e-4*c {

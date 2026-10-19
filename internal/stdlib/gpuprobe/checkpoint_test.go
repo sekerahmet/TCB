@@ -20,7 +20,7 @@ import (
 // parametreleri_yükle iyileştiricinin tuttuğu cihaz tensörlerine yazar. Kesintisiz GPU eğitimi
 // ile 3. adımda kaydedilip yeni nesnelerle sürdürülen GPU eğitimi bit düzeyinde aynıdır. Gerçek
 // GPU yoksa PTX benzetimidir (yavaş; şekiller küçük).
-const gpuKontrolProgrami = `
+const gpuCheckpointProgram = `
 varsayılan_cihaz("gpu")
 değişken KOŞU = %q
 fonksiyon eğit(son) {
@@ -47,9 +47,9 @@ fonksiyon eğit(son) {
 }
 `
 
-func gpuCalistir(t *testing.T, kod string) string {
+func runOnGPU(t *testing.T, code string) string {
 	t.Helper()
-	p := parser.New(lexer.New(kod))
+	p := parser.New(lexer.New(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())
@@ -65,11 +65,11 @@ func gpuCalistir(t *testing.T, kod string) string {
 	return out.String()
 }
 
-func TestGPUdaKontrolNoktasi(t *testing.T) {
+func TestGPUCheckpoint(t *testing.T) {
 	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
 	defer tensor.SetDefaultDevice(tensor.CPU)
-	kosu := filepath.ToSlash(t.TempDir())
-	kod := fmt.Sprintf(gpuKontrolProgrami, kosu) + `
+	run := filepath.ToSlash(t.TempDir())
+	code := fmt.Sprintf(gpuCheckpointProgram, run) + `
 değişken a = eğit(6)
 // "kesilen" koşu: 3 adım; sonra aynı koşu klasöründe başka tohumlu yeni nesnelerle 6. adıma
 // kadar sürdürülür (yükleme yeni nesnelerin değerlerinin üzerine yazar).
@@ -113,10 +113,10 @@ geri_yayılım(toplam(p.w))
 sgd.adım()
 yazdır("yükle:", p.w.cihaz, p.w.cihaza("cpu").değer)
 `
-	cikti := gpuCalistir(t, kod)
-	for _, beklenen := range []string{"cihaz: gpu gpu 3", "parametre: doğru doğru", "durum: doğru doğru", "kayıp: doğru 6", "yükle: gpu [0.5, 1.5, 2.5, 3.5]"} {
-		if !strings.Contains(cikti, beklenen) {
-			t.Fatalf("%q bekleniyordu:\n%s", beklenen, cikti)
+	output := runOnGPU(t, code)
+	for _, want := range []string{"cihaz: gpu gpu 3", "parametre: doğru doğru", "durum: doğru doğru", "kayıp: doğru 6", "yükle: gpu [0.5, 1.5, 2.5, 3.5]"} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("%q bekleniyordu:\n%s", want, output)
 		}
 	}
 }

@@ -20,7 +20,7 @@ import (
 // küçültülmüşü aynı veri ve tohumla önce CPU'da, sonra varsayılan_cihaz("gpu") ile GPU'da
 // eğitilir; kayıplar karşılaştırılır. Gerçek GPU yoksa GPU PTX benzetimidir (yavaş; şekiller
 // küçük).
-const gpuEgitimProgrami = `
+const gpuTrainingProgram = `
 değişken B = 2
 değişken T = 4
 değişken D = 8
@@ -82,11 +82,11 @@ yazdır(g[1])
 döngü i içinde 0..3 { yazdır(c[0][i], g[0][i]) }
 `
 
-func TestGPUdaEgitimDilDuzeyinde(t *testing.T) {
+func TestGPUTrainingLanguageLevel(t *testing.T) {
 	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
 	defer tensor.SetDefaultDevice(tensor.CPU)
-	kod := gpuEgitimProgrami
-	p := parser.New(lexer.New(kod))
+	code := gpuTrainingProgram
+	p := parser.New(lexer.New(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())
@@ -98,11 +98,11 @@ func TestGPUdaEgitimDilDuzeyinde(t *testing.T) {
 		t.Fatalf("program hatası: %v\nçıktı:\n%s", err, out.String())
 	}
 	m.WaitAsync()
-	satirlar := strings.Split(strings.TrimSpace(out.String()), "\n")
-	if len(satirlar) != 5 || satirlar[0] != "cpu cpu cpu" || satirlar[1] != "gpu gpu gpu" {
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 5 || lines[0] != "cpu cpu cpu" || lines[1] != "gpu gpu gpu" {
 		t.Fatalf("beklenmeyen çıktı:\n%s", out.String())
 	}
-	for _, s := range satirlar[2:] {
+	for _, s := range lines[2:] {
 		f := strings.Fields(s)
 		c, _ := strconv.ParseFloat(f[0], 64)
 		g, _ := strconv.ParseFloat(f[1], 64)

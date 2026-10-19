@@ -32,7 +32,7 @@ func init() {
 	// ortalama, min, maks, karekök) sarar; bu yüzden onlardan SONRA kaydedilmelidir.
 	interp.AddEngine(ml.Kaydet)
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
-	interp.AddEngine(tokenizer.Kaydet)
+	interp.AddEngine(tokenizer.Register)
 	interp.AddEngine(dataset.Kaydet)
 	// Süreç (ortam, komut satırı), kayıt (günlük, ilerleme) ve kontrol noktası: günlüğün
 	// başlangıç kaydı ve kontrol noktası programın komut satırı ayarlarını yazar.
