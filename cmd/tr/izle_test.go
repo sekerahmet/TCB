@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -22,6 +24,31 @@ döngü i içinde 0..60 {
 }
 yazdır("eğitim bitti")
 `
+
+// orneklemeSayisi raporun "Örnekleme: ... aralıkla N örnek" satırındaki örnek sayısı
+// (binlik ayırıcı boşluk olabilir).
+var orneklemeSayisi = regexp.MustCompile(`aralıkla ([0-9 \x{00a0}]+) örnek`)
+
+// satirOrnekDenetle programın kendi satırının (satir, ör. "egit.tr:") sıcak satırlarda
+// görünmesini, rapor yeterince örnek topladıysa ister. Test programı birkaç on milisaniye
+// sürer: yüklü bir makinede (CI, Windows) örnekleyici o dosyanın satırlarına hiç denk
+// gelmeyebilir; o zaman yalnızca örnek sayısının raporda bildirildiği denetlenir.
+func satirOrnekDenetle(t *testing.T, rapor, satir string) {
+	t.Helper()
+	m := orneklemeSayisi.FindStringSubmatch(rapor)
+	if m == nil {
+		t.Fatalf("raporda örnekleme satırı yok:\n%s", rapor)
+	}
+	n, _ := strconv.Atoi(strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, m[1]))
+	if n >= 20 && !strings.Contains(rapor, satir) {
+		t.Errorf("%d örnekte %q satırı yok:\n%s", n, satir, rapor)
+	}
+}
 
 // raporOku speed.json/profil.json dosyasını çözer.
 func raporOku(t *testing.T, yol string) map[string]any {
@@ -55,8 +82,9 @@ func TestProfilKomutu(t *testing.T) {
 	kosu := filepath.Join(klasor, "kosular", "deneme1") + string(os.PathSeparator)
 	s := tr(t, klasor, "profil", "--json", kosu, "egit.tr")
 	bekle(t, s, 0, []string{"eğitim bitti", "⏱ Profil: egit.tr", "Adımlar: 60 adım", "Tensör işlemleri",
-		"matris çarpımı (@)", "geri · matris çarpımı (@)", "AdamW.adım", "En çok zaman alan satırlar", "egit.tr:"},
+		"matris çarpımı (@)", "geri · matris çarpımı (@)", "AdamW.adım", "En çok zaman alan satırlar"},
 		[]string{"speed.json"})
+	satirOrnekDenetle(t, s.cikti+s.hata, "egit.tr:")
 	d := raporOku(t, filepath.Join(kosu, "speed.json"))
 	if d["biçim"] != "tr-profil" || d["tür"] != "rapor" || d["çıkış_kodu"] != float64(0) {
 		t.Errorf("rapor kimliği: %v %v %v", d["biçim"], d["tür"], d["çıkış_kodu"])
@@ -91,7 +119,8 @@ func TestIzleKomutuTerminalDegil(t *testing.T) {
 	dosyaYaz(t, klasor, "egit.tr", izleEgitimi)
 	s := tr(t, klasor, "izle", "egit.tr")
 	bekle(t, s, 0, []string{"eğitim bitti"}, []string{"adım 60/60", "⏱ Profil: egit.tr", "Adımlar: 60 adım",
-		"geri · matris çarpımı (@)", "En çok zaman alan satırlar", "egit.tr:"})
+		"geri · matris çarpımı (@)", "En çok zaman alan satırlar"})
+	satirOrnekDenetle(t, s.hata, "egit.tr:")
 	if strings.Contains(s.hata, "\x1b[") {
 		t.Error("terminal değilken denetim dizisi yazılmamalı")
 	}
