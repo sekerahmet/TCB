@@ -3,10 +3,10 @@ package interp
 import (
 	"fmt"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // Metin, Liste ve Sözlük üzerinde nokta (.) ile çağrılan yerleşik metotlar. Metot gövdeleri
@@ -174,10 +174,10 @@ func init() {
 // setupStringMethods Metin tipinin metotlarını kaydeder.
 func setupStringMethods() {
 	addMethod(typeString, codes.Y100, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return &StringVal{Val: strings.ToUpperSpecial(unicode.TurkishCase, inst.(*StringVal).Val)}, nil
+		return &StringVal{Val: turkish.Upper(inst.(*StringVal).Val)}, nil
 	})
 	addMethod(typeString, codes.Y101, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return &StringVal{Val: strings.ToLowerSpecial(unicode.TurkishCase, inst.(*StringVal).Val)}, nil
+		return &StringVal{Val: turkish.Lower(inst.(*StringVal).Val)}, nil
 	})
 	addMethod(typeString, codes.Y102, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil

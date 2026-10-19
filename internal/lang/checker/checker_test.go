@@ -9,6 +9,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -567,8 +568,8 @@ func TestTypeSpellingsUnique(t *testing.T) {
 		if got, ok := typeSpellings[typ]; !ok || got != typ {
 			t.Errorf("tipYazimlari[%q] = %q, %v; kendisi bekleniyordu", typ, got, ok)
 		}
-		if _, ok := typeSpellings[lowerCase(typ)]; ok {
-			t.Errorf("%q kabul edilen bir yazım olmamalı (3.14)", lowerCase(typ))
+		if _, ok := typeSpellings[turkish.Lower(typ)]; ok {
+			t.Errorf("%q kabul edilen bir yazım olmamalı (3.14)", turkish.Lower(typ))
 		}
 	}
 	for _, c := range []struct{ in, want string }{{"", "Herhangi"}, {"TAM", "Tam"}, {"Herhangi", "Herhangi"}, {"herhangi", "herhangi"}, {"Nokta", "Nokta"}} {

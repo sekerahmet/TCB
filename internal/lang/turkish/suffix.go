@@ -51,7 +51,7 @@ func pronounce(s string) string {
 
 // findSuffix sözcüğün son ünlüsüne ve son sesine göre eki üretir.
 func findSuffix(word string, grammarCase Case) string {
-	w := []rune(strings.ToLower(word))
+	w := []rune(Lower(word))
 	if len(w) == 0 {
 		return ""
 	}

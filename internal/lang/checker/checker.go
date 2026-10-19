@@ -9,7 +9,6 @@ package checker
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -141,7 +140,7 @@ var typeSpellings = func() map[string]string {
 var typeCaseSpellings = func() map[string]string {
 	m := map[string]string{}
 	for y, name := range typeSpellings {
-		m[lowerCase(y)] = name
+		m[turkish.Lower(y)] = name
 	}
 	return m
 }()
@@ -152,8 +151,8 @@ var typeCaseSpellings = func() map[string]string {
 var typeSuggestions = func() map[string]string {
 	m := map[string]string{}
 	add := func(y, name string) {
-		if _, valid := typeCaseSpellings[lowerCase(y)]; !valid {
-			m[lowerCase(y)] = name
+		if _, valid := typeCaseSpellings[turkish.Lower(y)]; !valid {
+			m[turkish.Lower(y)] = name
 		}
 	}
 	for _, k := range annotationTypes {
@@ -169,7 +168,6 @@ var typeSuggestions = func() map[string]string {
 
 // lowerCase tip adlarını Türkçe kurala göre küçültür (MANTIK → mantık, METİN → metin);
 // yalnızca kabul edilmeyen bir yazımın ipucunu bulmak için kullanılır.
-func lowerCase(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
 
 // checkTypeName tip açıklamasındaki ad bir tip adının kabul edilmeyen bir yazımıysa
 // (tam, ondalik, int) asıl adı öneren bir hata ekler.
@@ -180,12 +178,12 @@ func (c *Checker) checkTypeName(name string, line int) {
 	if _, valid := typeSpellings[name]; valid {
 		return
 	}
-	if canonical, ok := typeCaseSpellings[lowerCase(name)]; ok {
+	if canonical, ok := typeCaseSpellings[turkish.Lower(name)]; ok {
 		c.errors = append(c.errors, fmt.Sprintf(
 			"Satır %d: '%s' TR'de bir tip adı değil; tip adının tek yazımı vardır: '%s' yazın", line, name, canonical))
 		return
 	}
-	if suggestion, ok := typeSuggestions[lowerCase(name)]; ok {
+	if suggestion, ok := typeSuggestions[turkish.Lower(name)]; ok {
 		c.errors = append(c.errors, fmt.Sprintf(
 			"Satır %d: '%s' TR'de bir tip adı değil; '%s' yazmak mı istediniz?", line, name, suggestion))
 	}
@@ -200,10 +198,10 @@ func normalizeTypeName(t string) string {
 	}
 	// Kabul edilmeyen yazım (tam, ondalik) tipAdiDenetle'de hata verir; aynı satırda bir de
 	// tip uyuşmazlığı çıkmasın diye önerilen tip varsayılır.
-	if name, ok := typeCaseSpellings[lowerCase(t)]; ok {
+	if name, ok := typeCaseSpellings[turkish.Lower(t)]; ok {
 		return name
 	}
-	if name, ok := typeSuggestions[lowerCase(t)]; ok {
+	if name, ok := typeSuggestions[turkish.Lower(t)]; ok {
 		return name
 	}
 	return t

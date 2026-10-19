@@ -8,7 +8,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"unicode"
+
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // Language-independent definitions (definitions.json): each code's kind (keyword, type,
@@ -355,7 +356,7 @@ func parseNamed(a []json.RawMessage) (NamedArg, error) {
 // ReceiverName is the name written for a type as a receiver in error messages and docs: the
 // type's name in lower case (Liste → liste, Sözlük → sözlük).
 func ReceiverName(typ Code) string {
-	return strings.ToLowerSpecial(unicode.TurkishCase, Name(typ))
+	return turkish.Lower(Name(typ))
 }
 
 // MemberName is a member's name written with its receiver: liste.filtrele, x.uzunluk. If the

@@ -35,6 +35,10 @@ func TestSuffixWord(t *testing.T) {
 		Suffix("Mehmet", Genitive):   "Mehmet'in",
 		Suffix("Ali", Genitive):      "Ali'nin",
 		Suffix("Konya", Accusative):  "Konya'yı",
+		// Büyük harfli sözcükte I ı'dır, İ i'dir (Türkçe büyük/küçük harf kuralı)
+		Suffix("KAPI", Dative):    "KAPI'ya",
+		Suffix("ADI", Genitive):   "ADI'nın",
+		Suffix("SİNİR", Locative): "SİNİR'de",
 	}
 	for got, want := range cases {
 		if got != want {
