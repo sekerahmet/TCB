@@ -61,7 +61,7 @@ var ayrilmisSecenekAdlari = []string{"yardım", "h"}
 
 func (d *Durum) komutSatiri(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.G801)
-	if err := bind.AdliDenetle(fn, named, adAciklama, adAciklamalar); err != nil {
+	if err := bind.CheckNamed(fn, named, adAciklama, adAciklamalar); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
@@ -195,14 +195,14 @@ func duzTur(v interp.Value) (tur, bool) {
 // seçeneklere yazılır, programın açıklaması döner.
 func aciklamalariOku(fn string, named map[string]interp.Value, secenekler []*secenek) (string, error) {
 	aciklama := ""
-	if v, ok := bind.AdliAl(named, adAciklama); ok {
+	if v, ok := bind.GetNamed(named, adAciklama); ok {
 		s, ok := v.(*interp.StringVal)
 		if !ok {
 			return "", fmt.Errorf("%s: %s: %s olmalıdır, %s verildi", fn, adAciklama.TR, codes.Name(codes.A202), interp.TypeAndSummary(v))
 		}
 		aciklama = s.Val
 	}
-	v, ok := bind.AdliAl(named, adAciklamalar)
+	v, ok := bind.GetNamed(named, adAciklamalar)
 	if !ok {
 		return aciklama, nil
 	}

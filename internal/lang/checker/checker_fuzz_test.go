@@ -16,7 +16,7 @@ import (
 // trSeeds adds every .tr file of the repository (tests/, examples/, lib/) as a seed.
 func trSeeds(f *testing.F) {
 	for _, dir := range []string{"tests", "examples", "lib"} {
-		_ = filepath.WalkDir(filepath.Join(reporoot.Kok(), dir), func(path string, d fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(filepath.Join(reporoot.Root(), dir), func(path string, d fs.DirEntry, err error) error {
 			if err == nil && !d.IsDir() && strings.HasSuffix(path, ".tr") {
 				if data, err := os.ReadFile(path); err == nil {
 					f.Add(string(data))

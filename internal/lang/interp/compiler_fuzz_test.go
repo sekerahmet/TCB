@@ -22,7 +22,7 @@ import (
 //	go test ./internal/lang/interp -run '^$' -fuzz FuzzCompileSource -fuzztime 5m
 func FuzzCompileSource(f *testing.F) {
 	for _, folder := range []string{"tests", "examples", "lib"} {
-		_ = filepath.WalkDir(filepath.Join(reporoot.Kok(), folder), func(filePath string, g fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(filepath.Join(reporoot.Root(), folder), func(filePath string, g fs.DirEntry, err error) error {
 			if err == nil && !g.IsDir() && strings.HasSuffix(filePath, ".tr") {
 				if payload, err := os.ReadFile(filePath); err == nil {
 					f.Add(string(payload))

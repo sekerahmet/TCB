@@ -113,7 +113,7 @@ var kapiliSurumler = []struct{ ad, fn string }{
 // okur; böylece ölçülen kod dil testinde doğrulanan kodla aynıdır.
 func kapiliTanimlar(tb testing.TB) string {
 	tb.Helper()
-	veri, err := os.ReadFile(reporoot.Yol("tests/ozel_turev_test.tr"))
+	veri, err := os.ReadFile(reporoot.Path("tests/ozel_turev_test.tr"))
 	if err != nil {
 		tb.Fatalf("test dosyası okunamadı: %v", err)
 	}

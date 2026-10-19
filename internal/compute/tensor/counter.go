@@ -147,7 +147,7 @@ var opNamesTR = [OpKindCount]string{
 	"AdamW adımı", "gradyan kırpma", "özel işlem",
 }
 
-// Kod işlemin dosya biçimlerindeki değişmez anahtarıdır (ör. "matris_carpimi").
+// Code işlemin dosya biçimlerindeki değişmez anahtarıdır (ör. "matris_carpimi").
 func (i OpKind) Code() string {
 	if i < OpKindCount {
 		return opCodes[i]

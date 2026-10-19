@@ -54,9 +54,9 @@ var KontrolTipi = interp.TypeName(codes.A258)
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	adHerDakika = bind.KodAd(codes.T984)
-	adTut       = bind.KodAd(codes.T985)
-	adTohum     = bind.KodAd(codes.T903)
+	adHerDakika = bind.NamedArg(codes.T984)
+	adTut       = bind.NamedArg(codes.T985)
+	adTohum     = bind.NamedArg(codes.T903)
 )
 
 // Varsayılanlar ve sınırlar.
@@ -75,7 +75,7 @@ var saat = time.Now
 // satırı ayarları noktaya yazılır); nil olabilir.
 func Kaydet(v *interp.VM, s *process.Durum) {
 	v.RegisterBuiltinCode(codes.T702, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Name(codes.T702), func() (interp.Value, error) { return kur(m, s, args, named) })
+		return bind.Safe(codes.Name(codes.T702), func() (interp.Value, error) { return kur(m, s, args, named) })
 	})
 }
 
@@ -111,20 +111,20 @@ func (kn *KontrolNoktasi) GetProperty(kd codes.Code, prop string) (interp.Value,
 		return interp.NewInt(kn.kaldigi), nil
 	case codes.Y010:
 		return &interp.BuiltinVal{Name: codes.Name(codes.Y010), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CallName(codes.Y010), func() (interp.Value, error) { return kn.guncelle(m, args) })
+			return bind.Safe(interp.CallName(codes.Y010), func() (interp.Value, error) { return kn.guncelle(m, args) })
 		}}, nil
 	case codes.Y521:
 		return &interp.BuiltinVal{Name: codes.Name(codes.Y521), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CallName(codes.Y521), func() (interp.Value, error) { return kn.kaydetTR(m, args) })
+			return bind.Safe(interp.CallName(codes.Y521), func() (interp.Value, error) { return kn.kaydetTR(m, args) })
 		}}, nil
 	}
-	return nil, bind.UyeHatasi(string(KontrolTipi), prop, codes.Names(codes.Y010, codes.Y520, codes.Y521))
+	return nil, bind.MemberError(string(KontrolTipi), prop, codes.Names(codes.Y010, codes.Y520, codes.Y521))
 }
 
 // kur kontrol_noktası(koşu, nesneler, her_dakika:, tut:) yerleşiğidir.
 func kur(m *interp.VM, s *process.Durum, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.T702)
-	if err := bind.AdliDenetle(fn, named, adHerDakika, adTut); err != nil {
+	if err := bind.CheckNamed(fn, named, adHerDakika, adTut); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
@@ -149,7 +149,7 @@ func kur(m *interp.VM, s *process.Durum, args []interp.Value, named map[string]i
 	if err != nil {
 		return nil, err
 	}
-	kosu := bind.YolCoz(m, yol)
+	kosu := bind.ResolvePath(m, yol)
 	if b, err := os.Stat(kosu); err == nil && !b.IsDir() {
 		return nil, fmt.Errorf("%s: %q bir dosya; koşu klasörü olmalı (noktalar %s/ altına yazılır)", fn, yol, klasorAdi)
 	}
@@ -167,7 +167,7 @@ func kur(m *interp.VM, s *process.Durum, args []interp.Value, named map[string]i
 // secenekler her_dakika: ve tut: adlı argümanlarını okur.
 func secenekler(fn string, named map[string]interp.Value) (time.Duration, int, error) {
 	dakika := float64(varsayilanDakika)
-	if v, ok := bind.AdliAl(named, adHerDakika); ok {
+	if v, ok := bind.GetNamed(named, adHerDakika); ok {
 		f, sayi := interp.ToFloat(v)
 		if !sayi || math.IsNaN(f) || f < 0 || f > enFazlaDakika {
 			return 0, 0, fmt.Errorf("%s: %s 0 ile %g arasında bir sayı (dakika) olmalı, %s verildi", fn, adHerDakika.TR, float64(enFazlaDakika), interp.TypeAndSummary(v))
@@ -175,7 +175,7 @@ func secenekler(fn string, named map[string]interp.Value) (time.Duration, int, e
 		dakika = f
 	}
 	tut := varsayilanTut
-	if v, ok := bind.AdliAl(named, adTut); ok {
+	if v, ok := bind.GetNamed(named, adTut); ok {
 		n, tam := v.(*interp.IntVal)
 		if !tam || n.Val < 1 || n.Val > 1000 {
 			return 0, 0, fmt.Errorf("%s: %s 1 ile 1000 arasında bir %s olmalı (saklanacak nokta sayısı), %s verildi", fn, adTut.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))

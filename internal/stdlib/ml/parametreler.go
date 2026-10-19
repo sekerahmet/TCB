@@ -27,7 +27,7 @@ func parametrelerYerlesik(_ *interp.VM, args []interp.Value, named map[string]in
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(model, %s: %s) 1 konumlu parametre bekler, %d verildi", fn, adAdlariyla.TR, codes.Name(codes.A041), len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named, adAdlariyla); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adAdlariyla); err != nil {
 		return nil, err
 	}
 	adlariyla, err := adliMantik(fn, named, adAdlariyla, false)
@@ -182,7 +182,7 @@ func parametreleriYukleYerlesik(_ *interp.VM, args []interp.Value, named map[str
 	if len(args) != 2 {
 		return nil, interp.ArgCountError(codes.T703, "2", len(args), "model", "{ad: tensör, ...}")
 	}
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	adlar, bulunan, err := ParametreleriTopla(fn, args[0])

@@ -47,7 +47,7 @@ func (kn *KontrolNoktasi) kaydet(m *interp.VM) (string, error) {
 	ad := noktaAdi(kn.adim)
 	gorunen := kn.gorunen + "/" + ad
 	var yazHata error
-	if _, err = bind.Kurtar(func() bool {
+	if _, err = bind.Recover(func() bool {
 		yazHata = kn.noktayiYaz(ad, durum, plan)
 		return true
 	}, func(r any) error { return fmt.Errorf("%v", r) }); err == nil {

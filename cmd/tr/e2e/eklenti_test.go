@@ -55,7 +55,7 @@ var nlsAnahtarRe = regexp.MustCompile(`^%([^%\s]+)%$`)
 // eklentiJSONOku eklenti klasöründeki bir JSON dosyasını genel biçimde okur.
 func eklentiJSONOku(t *testing.T, ad string) any {
 	t.Helper()
-	veri, err := os.ReadFile(reporoot.Yol("editors/vscode/" + ad))
+	veri, err := os.ReadFile(reporoot.Path("editors/vscode/" + ad))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestEklentiYorumlayiciAyariMakineKapsamli(t *testing.T) {
 	if ozellik.Scope != "machine" {
 		t.Errorf("tr.yorumlayiciYolu kapsamı %q; \"machine\" olmalı", ozellik.Scope)
 	}
-	js, err := os.ReadFile(reporoot.Yol("editors/vscode/extension.js"))
+	js, err := os.ReadFile(reporoot.Path("editors/vscode/extension.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +276,7 @@ func TestEklentiKisitliKip(t *testing.T) {
 	if sayi < 6 {
 		t.Errorf("çalıştırma menü öğeleri bulunamadı (%d)", sayi)
 	}
-	js, err := os.ReadFile(reporoot.Yol("editors/vscode/extension.js"))
+	js, err := os.ReadFile(reporoot.Path("editors/vscode/extension.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,7 +285,7 @@ func TestEklentiKisitliKip(t *testing.T) {
 	}
 	// Kodlu dosyaların Türkçe görünümü 'tr göster -' ve 'tr kodla -' çalıştırır: yalnızca
 	// güvenilen çalışma alanında (kısıtlı kipte salt okunur ham gösterim; kodlu_gorunum_test.js).
-	gorunum, err := os.ReadFile(reporoot.Yol("editors/vscode/kodlu_gorunum.js"))
+	gorunum, err := os.ReadFile(reporoot.Path("editors/vscode/kodlu_gorunum.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -305,7 +305,7 @@ func TestEklentiJSTestleri(t *testing.T) {
 	if err != nil {
 		t.Skip("node bulunamadı; eklentinin JavaScript testleri atlandı")
 	}
-	testler, _ := filepath.Glob(reporoot.Yol("editors/vscode/test/*_test.js"))
+	testler, _ := filepath.Glob(reporoot.Path("editors/vscode/test/*_test.js"))
 	if len(testler) < 4 {
 		t.Fatalf("eklenti JS testleri bulunamadı: %v", testler)
 	}

@@ -97,7 +97,7 @@ func tensorKaydet(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%s(yol, sözlük) 2 parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	yol, err := yolArg(fn, args[0])
@@ -128,7 +128,7 @@ func tensorKaydet(m *interp.VM, args []interp.Value, named map[string]interp.Val
 		girdiler = append(girdiler, kayitGirdisi{ad: k, sekil: sh, tur: d.t.DType(), veri: d.t.Data()})
 	}
 	// Göreli yol TR'nin tek yol kuralıyla çözülür (bkz. vm.(*VM).YolCoz).
-	cozulen := bind.YolCoz(m, yol)
+	cozulen := bind.ResolvePath(m, yol)
 	var yazHata error
 	m.Blocking(func() { yazHata = dosyayaYaz(cozulen, girdiler) })
 	if yazHata != nil {
@@ -241,7 +241,7 @@ func tensorYukle(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(yol) 1 parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named, adTurevIzle); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adTurevIzle); err != nil {
 		return nil, err
 	}
 	yol, err := yolArg(fn, args[0])
@@ -249,7 +249,7 @@ func tensorYukle(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 		return nil, err
 	}
 	izle := turevIzle(named, nil, false)
-	cozulen, bakilanlar := bind.YolCozBakilan(m, yol)
+	cozulen, bakilanlar := bind.ResolvePathTried(m, yol)
 	var girdiler []kayitGirdisi
 	var okuHata, osHata error
 	m.Blocking(func() { girdiler, okuHata, osHata = dosyadanOku(cozulen) })

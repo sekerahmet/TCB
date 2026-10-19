@@ -36,7 +36,7 @@ var (
 // dilTanimi docs/spec/ altındaki bölüm dosyalarını (NN_ad.md) sırayla okur.
 func dilTanimi(t *testing.T) map[string]string {
 	t.Helper()
-	dosyalar, err := filepath.Glob(reporoot.Yol("docs/spec/*.md"))
+	dosyalar, err := filepath.Glob(reporoot.Path("docs/spec/*.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestHerKuralBirTestte(t *testing.T) {
 		t.Fatalf("tanımda yalnızca %d kural bulundu; biçim değişmiş olabilir", len(kurallar))
 	}
 
-	dosyalar, _ := filepath.Glob(reporoot.Yol("tests/*_test.tr"))
+	dosyalar, _ := filepath.Glob(reporoot.Path("tests/*_test.tr"))
 	testli := map[string]bool{}
 	for _, d := range dosyalar {
 		veri, err := os.ReadFile(d)
@@ -122,12 +122,12 @@ func TestHerKuralBirTestte(t *testing.T) {
 // tests/negative/ altındaki bilerek hatalı modüller (yükleme hatası beklenen olumsuz
 // testler) bir teste bağlı olmalı: kullanılmayan bir fikstür hiçbir şeyi sınamaz.
 func TestOlumsuzFiksturlerKullanilir(t *testing.T) {
-	fiksturler, _ := filepath.Glob(reporoot.Yol("tests/negative/*.tr"))
+	fiksturler, _ := filepath.Glob(reporoot.Path("tests/negative/*.tr"))
 	if len(fiksturler) == 0 {
 		t.Fatal("tests/negative/ altında fikstür bulunamadı")
 	}
 	var tum []byte
-	dosyalar, _ := filepath.Glob(reporoot.Yol("tests/*_test.tr"))
+	dosyalar, _ := filepath.Glob(reporoot.Path("tests/*_test.tr"))
 	for _, d := range dosyalar {
 		veri, err := os.ReadFile(d)
 		if err != nil {
@@ -154,7 +154,7 @@ func TestDilTanimiTestleriGecer(t *testing.T) {
 	interp.SetLibrary(lib.Dosyalar)
 	defer interp.SetLibrary(nil)
 	var cikti bytes.Buffer
-	ozet, err := Calistir(reporoot.Yol("tests"), &cikti)
+	ozet, err := Calistir(reporoot.Path("tests"), &cikti)
 	if err != nil {
 		t.Fatal(err)
 	}

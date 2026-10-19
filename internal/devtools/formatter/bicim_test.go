@@ -176,7 +176,7 @@ func TestDepodakiDosyalar(t *testing.T) {
 	var dosyalar []string
 	// scratch/ kullanıcının kişisel deneme klasörüdür (depoda değil); denetlenmez.
 	for _, desen := range []string{"examples/*.tr", "tests/*.tr"} {
-		d, _ := filepath.Glob(reporoot.Yol(desen))
+		d, _ := filepath.Glob(reporoot.Path(desen))
 		dosyalar = append(dosyalar, d...)
 	}
 	if len(dosyalar) == 0 {

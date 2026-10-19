@@ -102,7 +102,7 @@ func (d *Deger) cihaza(_ *interp.VM, args []interp.Value, _ map[string]interp.Va
 // geçerli cihazın adını döndürür.
 func varsayilanCihazYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T720)
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
@@ -123,7 +123,7 @@ func varsayilanCihazYerlesik(_ *interp.VM, args []interp.Value, named map[string
 // cihazlarYerlesik cihazlar(): kullanılabilir cihaz adları ("cpu" ilk).
 func cihazlarYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T721)
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {

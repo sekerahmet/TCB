@@ -14,39 +14,39 @@ import (
 )
 
 var (
-	kokBir sync.Once
-	kok    string
+	rootOnce sync.Once
+	root     string
 )
 
-// Kok depo kökünün mutlak yoludur. go.mod bulunamazsa panikler (yalnızca testlerde
+// Root depo kökünün mutlak yoludur. go.mod bulunamazsa panikler (yalnızca testlerde
 // kullanıldığı için bu, testin anlaşılır bir iletiyle düşmesi demektir).
-func Kok() string {
-	kokBir.Do(func() {
+func Root() string {
+	rootOnce.Do(func() {
 		d, err := os.Getwd()
 		if err != nil {
 			panic("depo: çalışma klasörü okunamadı: " + err.Error())
 		}
 		for {
 			if _, err := os.Stat(filepath.Join(d, "go.mod")); err == nil {
-				kok = d
+				root = d
 				return
 			}
-			ust := filepath.Dir(d)
-			if ust == d {
+			parent := filepath.Dir(d)
+			if parent == d {
 				panic("depo: çalışma klasöründen yukarı doğru go.mod bulunamadı")
 			}
-			d = ust
+			d = parent
 		}
 	})
-	return kok
+	return root
 }
 
-// Yol depo köküne göre verilen yolu (bölü çizgisiyle yazılmış parçalar) mutlak yola çevirir:
-// depo.Yol("tests", "data") ya da depo.Yol("docs/spec").
-func Yol(parcalar ...string) string {
-	tam := []string{Kok()}
-	for _, p := range parcalar {
-		tam = append(tam, filepath.FromSlash(p))
+// Path depo köküne göre verilen yolu (bölü çizgisiyle yazılmış parçalar) mutlak yola çevirir:
+// reporoot.Path("tests", "data") ya da reporoot.Path("docs/spec").
+func Path(parts ...string) string {
+	full := []string{Root()}
+	for _, p := range parts {
+		full = append(full, filepath.FromSlash(p))
 	}
-	return filepath.Join(tam...)
+	return filepath.Join(full...)
 }

@@ -8,18 +8,18 @@ Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekird
 
 ## Adlar
 
-- **Kök klasörler: küresel standart + TR standardı.** Araçların ya da her geliştiricinin beklediği yerlerde dünyada yaygın ad kullanılır: `bin/` (derleme çıktısı, depoya girmez), `docs/`, `tools/` (bakım betikleri, üreteçler, kıyas), `editors/` (düzenleyici eklentileri), `cmd/`, `internal/`, `.github/`, `README.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`. İçeriği dilin kendisi olan ya da kullanıcının Türkçe okuduğu klasörler Türkçedir: `examples/`, `tests/`, `lib/` ve Go paket adları.
-- **Dosya ve paket klasörü adları Türkçe ve ASCII'dir:** küçük harf, rakam ve `_` (`ç→c`, `ğ→g`, `ı→i`, `ö→o`, `ş→s`, `ü→u`): `derleyici_dongu.go`, `yerlesik_indirgeme.go`. İngilizce sözcük kullanılmaz (`helper`, `parser`, `util`, `cache` ...; liste `duzen_test.go`'da). Özel adlar istisnadır: protokol ve biçim adları (`dap.go`, `npy.go`, `json_sirali.go`, `bpe.go`), donanım adları (`cpu_carpim.go`, `cpu_vektor_avx2.go`), Go'nun dosya adı ekleri (`_test`, `_windows`, `_unix`, `_amd64`) ve `main.go`.
-- **Dışa açık yeni adlar Türkçedir:** `Kaydet`, `YerlesikTanimla`, `Kok`. Go'nun standart arayüzlerinin adları (`String`, `Error`, `Read`, `Write`, `Len` ...) bu kuralın dışındadır. Bugün kalan İngilizce adların (`VM`, `Value`, `GetProperty` ...) Türkçeleştirilmesi ayrı bir iştir; yeni kod onlara benzetilmez.
-- **Yorumlar Türkçedir.** Başka ürün, şirket ya da kitaplık adı yorumlara da yazılmaz.
+- **Kök klasörler: küresel standart + TR standardı.** Araçların ya da her geliştiricinin beklediği yerlerde dünyada yaygın ad kullanılır: `bin/` (derleme çıktısı, depoya girmez), `docs/`, `tools/` (bakım betikleri, üreteçler, kıyas), `editors/` (düzenleyici eklentileri), `cmd/`, `internal/`, `.github/`, `README.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`. Dilin kendi içeriğini tutan klasörler de İngilizce adlıdır (`examples/`, `tests/`, `lib/`); içlerindeki `.tr` dosyaları ve kullanıcı belgeleri Türkçedir.
+- **Kod tabanı İngilizcedir:** Go dosya ve paket klasörü adları İngilizce, küçük harf ASCII'dir (harf, rakam ve `_`): `compiler_loop.go`, `builtin_reduce.go`. Go'nun dosya adı ekleri (`_test`, `_windows`, `_unix`, `_amd64`) olduğu gibi kullanılır.
+- **Go adları İngilizcedir:** dışa açık ve iç adlar, test ve kıyas adları (`Save`, `DefineBuiltin`, `TestLayoutFuncSize`). Geçişi henüz yapılmamış paketlerde kalan Türkçe adlar geçişle değişir; yeni kod İngilizce ad kullanır.
+- **Yorumlar şimdilik Türkçedir** (çevirileri ayrı bir iştir). Başka ürün, şirket ya da kitaplık adı yorumlara da yazılmaz.
 - **Kullanıcıya görünen adlar yalnızca [`internal/lang/codes/tr.json`](../internal/lang/codes/tr.json)'dadır** ve sabit kodlara bağlıdır (`kod.G100` → `yazdır`). Go kodu adı değil kodu yazar; ad değişirse yalnızca dil dosyasının satırı değişir. Her kodun ne işe yaradığı ve imzası: [`kodlar.md`](kodlar.md).
 
 ## Dosyalar ve fonksiyonlar
 
-- **Dosya başına tek konu.** Konusu birden çok olan dosya bölünür: `derleyici_deyim.go`, `derleyici_dongu.go`, `derleyici_cagri.go` gibi. Bölerken fonksiyon gövdeleri değiştirilmez, yalnızca taşınır (değişiklik geçmişte izlenebilir kalır); taşıma ile davranış değişikliği aynı committe olmaz.
+- **Dosya başına tek konu.** Konusu birden çok olan dosya bölünür: `compiler_stmt.go`, `compiler_loop.go`, `compiler_call.go` gibi. Bölerken fonksiyon gövdeleri değiştirilmez, yalnızca taşınır (değişiklik geçmişte izlenebilir kalır); taşıma ile davranış değişikliği aynı committe olmaz.
 - **Yumuşak dosya sınırı ~600 satır** (testler dahil, üretilmiş dosyalar hariç). Sınırı aşan dosya konularına göre bölünür.
 - **Fonksiyon sınırı ~80 satır** (`func` satırından kapanış parantezine; test fonksiyonları hariç, tablo tabanlı testler uzun olabilir). Uzun bir `switch` dallarına, uzun bir kayıt listesi tabloya, uzun bir akış adımlarına bölünür.
-- **İstisnalar** gerekçeleriyle [`internal/duzen_istisnalar_test.go`](../internal/duzen_istisnalar_test.go)'dadır. Liste **küçülmelidir**, büyümez: bir kayıt sınırın altına inince silinir ve en fazla sayısı azaltılır; yeni kayıt eklenmez, tavan yükseltilmez; küçük düzeltmeler için tavanın %10'u (en az 5 satır) kadar pay vardır. Sıcak yoldaki bir fonksiyon (yorumlayıcı döngüsü, hesap çekirdeği) ancak önce/sonra hız ölçümüyle bölünür.
+- **İstisnalar** gerekçeleriyle [`internal/layout_exceptions_test.go`](../internal/layout_exceptions_test.go)'dadır. Liste **küçülmelidir**, büyümez: bir kayıt sınırın altına inince silinir ve en fazla sayısı azaltılır; yeni kayıt eklenmez, tavan yükseltilmez; küçük düzeltmeler için tavanın %10'u (en az 5 satır) kadar pay vardır. Sıcak yoldaki bir fonksiyon (yorumlayıcı döngüsü, hesap çekirdeği) ancak önce/sonra hız ölçümüyle bölünür.
 - **Her paketin tek bir paket belgesi vardır:** paketin ana dosyasında `// Package ad ...` ile başlar, görevini söyler ve katmanını bildiren bir satırla biter:
 
   ```go
@@ -34,8 +34,8 @@ Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekird
 
 ## Testler
 
-- **Testler kodun yanındadır:** `derleyici.go`'nun testi aynı klasördeki `derleyici_test.go`'dur. Bir test dosyası konusuyla adlandırılır, onu doğuran işle değil: denetim turunun ya da işin adı (`hakem_duzeltme_test.go`, `yeni_adlar_test.go`) kalıcı bir konu değildir; böyle bir testin yeri sınadığı kodun test dosyasıdır (`atomik.go` → `atomik_test.go`). Dilin kural testleri `.tr` dosyaları olarak `tests/` altındadır (her kuralın [`dil/`](spec/README.md) tanımında bir numarası vardır).
-- **Ortak test yardımcıları yardımcı paketlerdedir:** depo kökü `internal/reporoot` ile bulunur (`depo.Kok()`); testler `../../` gibi göreli yol yazmaz. Bir paketin kendi test yardımcıları `test_yardimcilari_test.go` gibi bir `_test.go` dosyasında durur.
+- **Testler kodun yanındadır:** `compiler.go`'nun testi aynı klasördeki `compiler_test.go`'dur. Bir test dosyası konusuyla adlandırılır, onu doğuran işle değil: denetim turunun ya da işin adı (`review_fixes_test.go`, `new_names_test.go`) kalıcı bir konu değildir; böyle bir testin yeri sınadığı kodun test dosyasıdır (`atomic.go` → `atomic_test.go`). Dilin kural testleri `.tr` dosyaları olarak `tests/` altındadır (her kuralın [`dil/`](spec/README.md) tanımında bir numarası vardır).
+- **Ortak test yardımcıları yardımcı paketlerdedir:** depo kökü `internal/reporoot` ile bulunur (`reporoot.Root()`); testler `../../` gibi göreli yol yazmaz. Bir paketin kendi test yardımcıları `helpers_test.go` gibi bir `_test.go` dosyasında durur.
 - Testlerde dış ağ yoktur; sunucular yalnızca `127.0.0.1`'e bağlanır; açılan her süreç kapatılır.
 
 ### Testler nerede
@@ -46,7 +46,7 @@ Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekird
 | `lib/*_test.tr` | TR ile yazılmış standart kitaplık (`tr/katman`, `tr/iyilestirici`) | `bin/tr test lib` |
 | `examples/` | Örneklerin hepsi çalışır: çıkış kodu 0, zaman aşımı yok, uyarısız; `*_test.tr` örnekleri ayrıca `tr test` ile | yalnızca tam denetim; tek örnek: `bin/tr examples/01_merhaba.tr` |
 | Paketlerin yanında (`*_test.go`) | Go birim testleri: sözcük çözümleyici, ayrıştırıcı, denetleyici, yorumlayıcı, tensör ve türev, motorlar | `go test -short ./internal/...` ya da tek paket `go test ./internal/lang/interp -run Ad` |
-| `internal/duzen_test.go`, `internal/katman_test.go` | Kod düzeni (dosya ve fonksiyon boyu, adlar, paket belgesi) ve katman kuralı | `go test ./internal` |
+| `internal/layout_test.go`, `internal/layers_test.go` | Kod düzeni (dosya ve fonksiyon boyu, adlar, paket belgesi) ve katman kuralı | `go test ./internal` |
 | `cmd/tr/*_test.go` | `tr` komutunun beyaz kutu testleri: gömülü paket biçimi, aktar yönlendirmesi, depodaki `.tr` dosyalarının tanımsız ad denetimi | `go test ./cmd/tr` |
 | `cmd/tr/e2e/` | Uçtan uca: derlenmiş `tr` ikilisi alt süreç olarak; komutlar, çıkış kodları, kesme ve kontrol noktasından devam, `derle`, kodlu dosyalar, belgelerdeki kod blokları ve bağlantılar | `go test ./cmd/tr/e2e -run Ad` |
 | `internal/compute/gpu`, `internal/stdlib/gpuprobe` | GPU arka ucu ve GPU'da eğitim; kartsız makinede benzetimle koşar | `go test -short ./internal/compute/gpu`; gerçek kartta `gpu_sinama` ikilisiyle (`go test -c -o gpu_sinama ./internal/compute/gpu`, [`tools/gpu/COLAB.md`](../tools/gpu/COLAB.md)) |

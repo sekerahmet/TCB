@@ -16,7 +16,7 @@ import (
 // (a ile b'deki sayılar ilk tensör işlenenin türünü alır), üç şekil yayınlanır.
 func kosulluYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.Name(codes.T234)
-	if err := bind.AdliDenetle(ad+"()", named); err != nil {
+	if err := bind.CheckNamed(ad+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 3 {

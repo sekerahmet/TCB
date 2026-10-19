@@ -57,7 +57,7 @@ func GunlukMu(v interp.Value) (*Gunluk, bool) {
 func (g *Gunluk) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	if kd == codes.Y004 {
 		return &interp.BuiltinVal{Name: codes.Name(codes.Y004), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CallName(codes.Y004), func() (interp.Value, error) { return g.ekle(args) })
+			return bind.Safe(interp.CallName(codes.Y004), func() (interp.Value, error) { return g.ekle(args) })
 		}}, nil
 	}
 	return nil, uyeHatasi(string(GunlukTipi), prop, codes.Y004)
@@ -80,7 +80,7 @@ func (d *durum) gunlukAc(m *interp.VM, args []interp.Value) (interp.Value, error
 		return nil, fmt.Errorf("%s: %q bir günlük dosyası adı değil; günlük %s uzantılı olmalı (her satırı bir JSON kaydı), ör. %q",
 			fn, yol, gunlukUzantisi, strings.TrimSuffix(yol, filepath.Ext(yol))+gunlukUzantisi)
 	}
-	g := &Gunluk{m: m, d: d, yol: yol, tamYol: bind.YolCoz(m, yol), program: filepath.Base(m.SourceFile), acilis: saat()}
+	g := &Gunluk{m: m, d: d, yol: yol, tamYol: bind.ResolvePath(m, yol), program: filepath.Base(m.SourceFile), acilis: saat()}
 	if err := os.MkdirAll(filepath.Dir(g.tamYol), 0o755); err != nil {
 		return nil, turkish.FileError(fn, yol, "oluşturulamadı", err)
 	}

@@ -116,7 +116,7 @@ func (y *Yol) TaskMember(m *interp.VM, kd codes.Code, ad string) (interp.Value, 
 	case codes.Y318:
 		return y.bayt(m)
 	}
-	return nil, bind.UyeHatasi(string(YolTipi), ad, codes.Names(yolUyeKodlari...))
+	return nil, bind.MemberError(string(YolTipi), ad, codes.Names(yolUyeKodlari...))
 }
 
 // dosyaAdi son bileşendir; . ve kök için boştur.

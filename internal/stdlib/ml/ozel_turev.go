@@ -33,10 +33,10 @@ import (
 // görev, çekirdeğe BackwardCtx ile bağlam olarak verilir.
 
 var (
-	adIleri    = bind.KodAd(codes.T980)
-	adGeri     = bind.KodAd(codes.T981)
-	adAdim     = bind.KodAd(codes.T982)
-	adTolerans = bind.KodAd(codes.T983)
+	adIleri    = bind.NamedArg(codes.T980)
+	adGeri     = bind.NamedArg(codes.T981)
+	adAdim     = bind.NamedArg(codes.T982)
+	adTolerans = bind.NamedArg(codes.T983)
 )
 
 // ozelTurevKaydet özel_türev ve türev_denetle yerleşiklerini kaydeder (bkz. Kaydet).
@@ -90,14 +90,14 @@ type ozelIslem struct {
 // ozelTurev özel_türev(ileri:, geri:) yerleşiğidir.
 func ozelTurev(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T310)
-	if err := bind.AdliDenetle(fn+"()", named, adIleri, adGeri); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adIleri, adGeri); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {
 		return nil, fmt.Errorf("%s yalnızca adlı argüman alır (%s: ve %s:), %d konumlu parametre verildi; örnek: %s", fn, adIleri.TR, adGeri.TR, len(args), ozelTurevOrnek)
 	}
-	ileri, ok1 := bind.AdliAl(named, adIleri)
-	geri, ok2 := bind.AdliAl(named, adGeri)
+	ileri, ok1 := bind.GetNamed(named, adIleri)
+	geri, ok2 := bind.GetNamed(named, adGeri)
 	if !ok1 || !ok2 {
 		eksik := adIleri.TR + ":"
 		if ok1 {
@@ -313,7 +313,7 @@ func sekilEsitMi(a, b []int) bool {
 // Eleman başına koşul |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|).
 func turevDenetle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T311)
-	if err := bind.AdliDenetle(fn+"()", named, adAdim, adTolerans); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adAdim, adTolerans); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
@@ -516,8 +516,8 @@ func denetimCiktilari(fn string, v interp.Value) ([]*tensor.Tensor, error) {
 }
 
 // pozitifSayi adlı pozitif sayısal argümanı okur.
-func pozitifSayi(fn string, named map[string]interp.Value, ad bind.Ad, varsayilan float64) (float64, error) {
-	v, ok := bind.AdliAl(named, ad)
+func pozitifSayi(fn string, named map[string]interp.Value, ad bind.Named, varsayilan float64) (float64, error) {
+	v, ok := bind.GetNamed(named, ad)
 	if !ok {
 		return varsayilan, nil
 	}

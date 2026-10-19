@@ -18,7 +18,7 @@ import (
 // klasörü (içindekilerle: doğru ile dolu klasörü) siler, silinen dosya sayısını verir.
 func silYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.G123)
-	if err := bind.AdliDenetle(fn, named, adIcindekilerle); err != nil {
+	if err := bind.CheckNamed(fn, named, adIcindekilerle); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {

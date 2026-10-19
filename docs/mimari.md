@@ -11,7 +11,7 @@ araçlar (internal/devtools, cmd/tr) ─▶ motorlar (internal/stdlib) ─▶ di
 TR ile yazılı kitaplık (lib/*.tr) ── ikiliye gömülü; cmd/tr yorumlayıcıya bağlar (aktar "tr/...")
 ```
 
-Ok "içe aktarabilir" demektir. Kural `internal/katman_test.go` ile denetlenir (`go test ./internal`); yalnızca paketlerin kendi (test dışı) içe aktarmalarına uygulanır.
+Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (`go test ./internal`); yalnızca paketlerin kendi (test dışı) içe aktarmalarına uygulanır.
 
 | Katman | İçe aktarabileceği iç paketler |
 | :-- | :-- |
@@ -23,7 +23,7 @@ Ok "içe aktarabilir" demektir. Kural `internal/katman_test.go` ile denetlenir (
 | `internal/reporoot`, `lib` | hiçbiri |
 | `tools/**` | hepsi |
 
-Dil çekirdeğinin içinde de sıra vardır: bir dil paketi yalnızca kendisinden önce gelenleri içe aktarabilir (`internal/katman_test.go`, `dilSirasi`):
+Dil çekirdeğinin içinde de sıra vardır: bir dil paketi yalnızca kendisinden önce gelenleri içe aktarabilir (`internal/layers_test.go`, `langOrder`):
 
 ```
 turkce < kod < ipucu < sozcuk < agac < ayristir < denetci < kaynak < yurut
@@ -110,7 +110,7 @@ Motorların kendi kancaları:
   ancak bir cihaz sorulunca (`cihazlar()`, `.cihaza`, `varsayılan_cihaz`) yüklenir. Sürücü
   yoksa hiçbir şey kaydolmaz, her şey CPU'da çalışır.
 - **Sürücü:** cgo ve CUDA araç takımı gerekmez. Linux'ta `libcuda.so.1` dış bağımlılık olan
-  dinamik yükleyiciyle (`go.mod`; yalnızca `cuda_linux.go` içe aktarır, `internal/katman_test.go`
+  dinamik yükleyiciyle (`go.mod`; yalnızca `cuda_linux.go` içe aktarır, `internal/layers_test.go`
   denetler), Windows'ta `nvcuda.dll` yalnızca sistem klasöründen (LoadLibraryExW) yüklenir.
   **Bedel:** bu yükleyici Linux ikilisini glibc'ye dinamik bağlar (`/lib64/ld-linux-x86-64.so.2`;
   `libc.so.6`, `libdl.so.2`, `libpthread.so.0`), GPU kullanmayan Linux kullanıcıları için de;

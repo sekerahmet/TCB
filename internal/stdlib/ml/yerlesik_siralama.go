@@ -22,7 +22,7 @@ func eksenliTensor(ad, kullanim string, args []interp.Value, n int, named map[st
 		}
 		return nil, 0, fmt.Errorf("%s %d konumlu parametre bekler, %d verildi", kullanim, n, len(args))
 	}
-	if err := bind.AdliDenetle(ad+"()", named, adEksen); err != nil {
+	if err := bind.CheckNamed(ad+"()", named, adEksen); err != nil {
 		return nil, 0, err
 	}
 	d, ok := args[0].(*Deger)
@@ -33,7 +33,7 @@ func eksenliTensor(ad, kullanim string, args []interp.Value, n int, named map[st
 		return nil, 0, fmt.Errorf("%s: bir tensör bekler, %s verildi", ad, tipAdi(args[0]))
 	}
 	e := -1
-	if v, ok := bind.AdliAl(named, adEksen); ok {
+	if v, ok := bind.GetNamed(named, adEksen); ok {
 		var tam bool
 		if e, tam = tamSayi(v); !tam {
 			return nil, 0, fmt.Errorf("%s: eksen tam sayı olmalıdır, %s verildi", ad, v.Inspect())

@@ -86,8 +86,8 @@ func TestKodluDosyalarAyniCiktiyiVerir(t *testing.T) {
 	tr1, tr2 := t.TempDir(), t.TempDir()
 	// docs/ karakter modelinin eğitim verisidir.
 	for _, k := range []string{"tests", "examples", "docs", "lib"} {
-		kopyala(t, reporoot.Yol(k), filepath.Join(tr1, k))
-		kopyala(t, reporoot.Yol(k), filepath.Join(tr2, k))
+		kopyala(t, reporoot.Path(k), filepath.Join(tr1, k))
+		kopyala(t, reporoot.Path(k), filepath.Join(tr2, k))
 	}
 	// Karakter modelinin eğitimi kısaltılır (iki kopyada da aynı biçimde).
 	for _, kok := range []string{tr1, tr2} {
@@ -252,7 +252,7 @@ func TestDepodakiDosyalarIngilizceKayipsiz(t *testing.T) {
 	}
 	var dosyalar []string
 	for _, k := range []string{"tests", "examples", "lib", "tools"} {
-		filepath.WalkDir(reporoot.Yol(k), func(yol string, g fs.DirEntry, err error) error {
+		filepath.WalkDir(reporoot.Path(k), func(yol string, g fs.DirEntry, err error) error {
 			if err == nil && g.IsDir() && g.Name() == "negative" {
 				return filepath.SkipDir // bilerek hatalı dosyalar (ölü kodlar, bozuk başlıklar)
 			}

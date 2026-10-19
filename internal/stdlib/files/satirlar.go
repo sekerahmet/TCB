@@ -181,7 +181,7 @@ func (o *SatirOkuyucu) GetProperty(kd codes.Code, prop string) (interp.Value, er
 		b.NoNamedArgs = true
 		return b, nil
 	}
-	return nil, bind.UyeHatasi(string(SatirOkuyucuTipi), prop, codes.Names(codes.Y602, codes.Y012))
+	return nil, bind.MemberError(string(SatirOkuyucuTipi), prop, codes.Names(codes.Y602, codes.Y012))
 }
 
 // kapatMetodu x.kapat() metodudur: dosyayı bırakır; bu çağrı kapattıysa doğru, zaten kapalıysa

@@ -44,7 +44,7 @@ func gomme(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (in
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%s(tablo, indeksler) 2 parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	tablo, ok := args[0].(*Deger)
@@ -82,7 +82,7 @@ func caprazEntropi(m *interp.VM, args []interp.Value, named map[string]interp.Va
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%s(çıktı, hedef) 2 parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	cikti, err := tensoreCevir(fn, args[0])
@@ -155,8 +155,8 @@ func normParam(fn, ad string, v interp.Value, D int) (*tensor.Tensor, error) {
 }
 
 // normArgs x, ağırlık, sapma ve epsilon argümanlarını konumlu ya da adlı olarak okur.
-func normArgs(fn string, args []interp.Value, named map[string]interp.Value, adlar []bind.Ad) (*tensor.Tensor, []interp.Value, float32, error) {
-	if err := bind.AdliDenetle(fn+"()", named, append([]bind.Ad{adEpsilon}, adlar...)...); err != nil {
+func normArgs(fn string, args []interp.Value, named map[string]interp.Value, adlar []bind.Named) (*tensor.Tensor, []interp.Value, float32, error) {
+	if err := bind.CheckNamed(fn+"()", named, append([]bind.Named{adEpsilon}, adlar...)...); err != nil {
 		return nil, nil, 0, err
 	}
 	if len(args) < 1 || len(args) > 1+len(adlar) {
@@ -174,7 +174,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, adl
 		if 1+i < len(args) {
 			degerler[i] = args[1+i]
 		}
-		if v, ok := bind.AdliAl(named, a); ok {
+		if v, ok := bind.GetNamed(named, a); ok {
 			if degerler[i] != nil {
 				return nil, nil, 0, fmt.Errorf("%s: %s hem konumlu hem adlı verildi", fn, a.TR)
 			}
@@ -182,7 +182,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, adl
 		}
 	}
 	eps := float32(1e-5)
-	if v, ok := bind.AdliAl(named, adEpsilon); ok {
+	if v, ok := bind.GetNamed(named, adEpsilon); ok {
 		f, ok := interp.ToFloat(v)
 		if !ok || f <= 0 {
 			return nil, nil, 0, fmt.Errorf("%s: %s pozitif bir sayı olmalıdır, %s verildi", fn, adEpsilon.TR, v.Inspect())
@@ -194,7 +194,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, adl
 
 func katmanNormu(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T501)
-	x, p, eps, err := normArgs(fn, args, named, []bind.Ad{adAgirlik, adSapma})
+	x, p, eps, err := normArgs(fn, args, named, []bind.Named{adAgirlik, adSapma})
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func katmanNormu(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 
 func rmsNormu(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T502)
-	x, p, eps, err := normArgs(fn, args, named, []bind.Ad{adAgirlik})
+	x, p, eps, err := normArgs(fn, args, named, []bind.Named{adAgirlik})
 	if err != nil {
 		return nil, err
 	}

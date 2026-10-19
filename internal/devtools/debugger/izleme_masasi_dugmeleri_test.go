@@ -13,7 +13,7 @@ import (
 // noktasında yeniden durmalı ve değerler ilerlemeli; son turdan sonra program bitmeli.
 // Durdur, düzenleyicide terminate isteğine dönüşür.
 func TestDAPIzlemeMasasiDugmeleri(t *testing.T) {
-	html, err := os.ReadFile(reporoot.Yol("editors/vscode/media/izleme_masasi.html"))
+	html, err := os.ReadFile(reporoot.Path("editors/vscode/media/izleme_masasi.html"))
 	if err != nil {
 		t.Fatal(err)
 	}

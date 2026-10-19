@@ -50,8 +50,8 @@ var (
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	adGunluk = bind.KodAd(codes.G912)
-	adAdim   = bind.KodAd(codes.T982)
+	adGunluk = bind.NamedArg(codes.G912)
+	adAdim   = bind.NamedArg(codes.T982)
 )
 
 // Dosya biçiminin (sürüm 1) anahtarları ve kayıt türleri; bkz. paket belgesi. Dilin adları
@@ -88,10 +88,10 @@ type durum struct {
 func Kaydet(v *interp.VM, s *process.Durum) {
 	d := &durum{surec: s}
 	v.RegisterNoNamed(codes.G810, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Name(codes.G810), func() (interp.Value, error) { return d.gunlukAc(m, args) })
+		return bind.Safe(codes.Name(codes.G810), func() (interp.Value, error) { return d.gunlukAc(m, args) })
 	})
 	v.RegisterBuiltinCode(codes.G811, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Name(codes.G811), func() (interp.Value, error) { return d.ilerlemeAc(m, args, named) })
+		return bind.Safe(codes.Name(codes.G811), func() (interp.Value, error) { return d.ilerlemeAc(m, args, named) })
 	})
 }
 

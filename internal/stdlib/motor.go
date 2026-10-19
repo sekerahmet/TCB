@@ -6,7 +6,7 @@
 //
 // Koddaki kesme_noktası deyiminin açtığı hata ayıklayıcı araç katmanındadır; onu isteyen
 // program ayrıca internal/devtools/debugger paketini içe aktarır (motor katmanı araç katmanına
-// bağlı değildir; bkz. internal/katman_test.go).
+// bağlı değildir; bkz. internal/layers_test.go).
 //
 // Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package stdlib

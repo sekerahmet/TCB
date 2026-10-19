@@ -18,7 +18,7 @@ import (
 //	go test ./internal/devtools/formatter -run '^$' -fuzz FuzzBicimle -fuzztime 5m
 func FuzzBicimle(f *testing.F) {
 	for _, klasor := range []string{"tests", "examples", "lib"} {
-		_ = filepath.WalkDir(filepath.Join(reporoot.Kok(), klasor), func(yol string, g fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(filepath.Join(reporoot.Root(), klasor), func(yol string, g fs.DirEntry, err error) error {
 			if err == nil && !g.IsDir() && strings.HasSuffix(yol, ".tr") {
 				if veri, err := os.ReadFile(yol); err == nil {
 					f.Add(string(veri))

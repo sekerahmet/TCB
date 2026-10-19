@@ -18,7 +18,7 @@ import (
 // denetlenir. Bilerek hatalı fikstürler (tests/negative/) hariçtir. Başka dosyaların
 // aktardığı modüller, yorumlayıcıdaki gibi aktaranın genel adlarıyla denetlenir (11.1).
 func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
-	kok := reporoot.Kok()
+	kok := reporoot.Root()
 	kodlar := map[string]string{}
 	err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
 		if err != nil {

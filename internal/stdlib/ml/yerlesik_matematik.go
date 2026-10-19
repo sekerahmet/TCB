@@ -55,7 +55,7 @@ func yuvarlamaKaydet(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tenso
 	ad := codes.Name(kd)
 	sar(v, kd, func(eski interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-			if err := bind.AdliDenetle(ad+"()", named); err != nil {
+			if err := bind.CheckNamed(ad+"()", named); err != nil {
 				return nil, err
 			}
 			if len(args) == 1 {
@@ -88,7 +88,7 @@ func tekTensor(args []interp.Value) (*Deger, bool) {
 }
 
 // sinirSayisi sınırla'nın bir sınırını okur: sayı olmalı, NaN olamaz.
-func sinirSayisi(ad string, adli bind.Ad, v interp.Value) (float64, bool, error) {
+func sinirSayisi(ad string, adli bind.Named, v interp.Value) (float64, bool, error) {
 	f, ok := interp.ToFloat(v)
 	if !ok || f != f {
 		return 0, false, fmt.Errorf("%s: %s bir sayı olmalıdır, %s verildi", ad, adli.TR, v.Inspect())
@@ -104,17 +104,17 @@ func sinirlaYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s 1 konumlu parametre bekler, %d verildi", kullanim, len(args))
 	}
-	if err := bind.AdliDenetle(ad+"()", named, adEnAz, adEnFazla); err != nil {
+	if err := bind.CheckNamed(ad+"()", named, adEnAz, adEnFazla); err != nil {
 		return nil, err
 	}
 	lo, hi := math.Inf(-1), math.Inf(1)
 	tamSinir := true
 	var verildi bool
 	for _, s := range []struct {
-		adli  bind.Ad
+		adli  bind.Named
 		hedef *float64
 	}{{adEnAz, &lo}, {adEnFazla, &hi}} {
-		v, ok := bind.AdliAl(named, s.adli)
+		v, ok := bind.GetNamed(named, s.adli)
 		if !ok {
 			continue
 		}
@@ -177,7 +177,7 @@ func sinirla64(x, lo, hi float64) float64 {
 // türevli tensör (sayı tensörün türüne çevrilir).
 func arktanjant2Yerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.Name(codes.T228)
-	if err := bind.AdliDenetle(ad+"()", named); err != nil {
+	if err := bind.CheckNamed(ad+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {

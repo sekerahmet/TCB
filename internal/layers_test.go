@@ -22,9 +22,9 @@ import (
 // içe aktarmalarına uygulanır: testler, sınamak için daha üst katmanları da içe aktarabilir
 // (ör. motor testleri hata ayıklayıcıyla çalışır). Her paket tablodaki bir satıra düşmelidir;
 // yeni bir klasör açılınca tablo da güncellenir. Ayrıntı: docs/mimari.md.
-var katmanlar = []struct {
-	onek   string   // paket yolu bu önekle başlar (modül yoluna göre)
-	izinli []string // içe aktarabileceği iç paketlerin önekleri
+var layers = []struct {
+	prefix  string   // paket yolu bu önekle başlar (modül yoluna göre)
+	allowed []string // içe aktarabileceği iç paketlerin önekleri
 }{
 	{"internal/compute/", []string{"internal/compute/"}},
 	{"internal/lang/", []string{"internal/lang/"}},
@@ -36,11 +36,11 @@ var katmanlar = []struct {
 	{"tools/", []string{"internal/", "lib"}},
 }
 
-// dilSirasi dil çekirdeğinin iç sırasıdır: bir dil paketi yalnızca bu listede kendisinden
+// langOrder dil çekirdeğinin iç sırasıdır: bir dil paketi yalnızca bu listede kendisinden
 // önce gelen dil paketlerini içe aktarabilir (sözcük çözümleyici yorumlayıcıyı, denetleyici
 // yorumlayıcıyı bilmez). Döngüye en yakın katman burasıdır; yeni bir dil paketi listeye
 // yerine göre eklenir. Ayrıntı: docs/mimari.md.
-var dilSirasi = []string{
+var langOrder = []string{
 	"internal/lang/turkish", // Türkçe ek, harf ve hata çerçevesi yardımcıları
 	"internal/lang/codes",   // kod listesi (adlar ve tanımlar)
 	"internal/lang/hint",    // ad ipuçları (kaldırılan, taşınan, ASCII yazılan adlar)
@@ -52,23 +52,23 @@ var dilSirasi = []string{
 	"internal/lang/interp",
 }
 
-const modul = "github.com/sekerahmet/TCB"
+const module = "github.com/sekerahmet/TCB"
 
-// atlanan klasörler: Go paketi olmayan ya da depoya ait olmayan yerler.
-var atlanan = map[string]bool{".git": true, ".claude": true, "bin": true, "scratch": true, "testdata": true, "node_modules": true}
+// skipped klasörler: Go paketi olmayan ya da depoya ait olmayan yerler.
+var skipped = map[string]bool{".git": true, ".claude": true, "bin": true, "scratch": true, "testdata": true, "node_modules": true}
 
-// onekEslesir paket yolu önekin kendisi ya da onun altındaki bir paket mi? Önek sonunda "/"
+// prefixMatches paket yolu önekin kendisi ya da onun altındaki bir paket mi? Önek sonunda "/"
 // olsa da olmasa da klasör sınırında eşlenir: "internal/reporoot" ve "lib" önekleri
 // "internal/reporootx" ya da "libx" paketini kapsamaz.
-func onekEslesir(yol, onek string) bool {
-	o := strings.TrimSuffix(onek, "/")
-	return yol == o || strings.HasPrefix(yol, o+"/")
+func prefixMatches(path, prefix string) bool {
+	o := strings.TrimSuffix(prefix, "/")
+	return path == o || strings.HasPrefix(path, o+"/")
 }
 
-func TestOnekEslesmesi(t *testing.T) {
+func TestPrefixMatch(t *testing.T) {
 	for _, d := range []struct {
-		yol, onek string
-		esler     bool
+		path, prefix string
+		matches      bool
 	}{
 		{"internal/reporoot", "internal/reporoot", true},
 		{"internal/reporoot/alt", "internal/reporoot", true},
@@ -82,70 +82,70 @@ func TestOnekEslesmesi(t *testing.T) {
 		{"internal/computex", "internal/compute/", false},
 		{"cmd/tr", "cmd/", true},
 	} {
-		if g := onekEslesir(d.yol, d.onek); g != d.esler {
-			t.Errorf("onekEslesir(%q, %q) = %v; %v olmalı", d.yol, d.onek, g, d.esler)
+		if g := prefixMatches(d.path, d.prefix); g != d.matches {
+			t.Errorf("prefixMatches(%q, %q) = %v; %v olmalı", d.path, d.prefix, g, d.matches)
 		}
 	}
 }
 
-func katmanBul(yol string) (izinli []string, ok bool) {
-	for _, k := range katmanlar {
-		if onekEslesir(yol, k.onek) {
-			return k.izinli, true
+func findLayer(path string) (allowed []string, ok bool) {
+	for _, k := range layers {
+		if prefixMatches(path, k.prefix) {
+			return k.allowed, true
 		}
 	}
 	return nil, false
 }
 
-func TestKatmanKurali(t *testing.T) {
-	kok := reporoot.Kok()
-	paketSayisi := 0
-	err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
+func TestLayerRule(t *testing.T) {
+	root := reporoot.Root()
+	pkgCount := 0
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if !d.IsDir() {
 			return nil
 		}
-		if yol != kok && (atlanan[d.Name()] || strings.HasPrefix(d.Name(), ".") || strings.HasPrefix(d.Name(), "_")) {
+		if path != root && (skipped[d.Name()] || strings.HasPrefix(d.Name(), ".") || strings.HasPrefix(d.Name(), "_")) {
 			return filepath.SkipDir
 		}
-		p, err := build.ImportDir(yol, 0)
+		p, err := build.ImportDir(path, 0)
 		if err != nil {
-			var yok *build.NoGoError
-			if errors.As(err, &yok) {
+			var missing *build.NoGoError
+			if errors.As(err, &missing) {
 				return nil
 			}
-			t.Errorf("%s: %v", yol, err)
+			t.Errorf("%s: %v", path, err)
 			return nil
 		}
-		goreli, _ := filepath.Rel(kok, yol)
-		goreli = filepath.ToSlash(goreli)
+		rel, _ := filepath.Rel(root, path)
+		rel = filepath.ToSlash(rel)
 		if len(p.GoFiles) == 0 {
 			return nil // yalnızca test dosyası olan klasör (bu dosyanın kendisi gibi)
 		}
-		paketSayisi++
-		izinli, ok := katmanBul(goreli)
+		pkgCount++
+		allowed, ok := findLayer(rel)
 		if !ok {
-			t.Errorf("%s: paket hiçbir katmana düşmüyor; internal/katman_test.go tablosuna ekleyin", goreli)
+			t.Errorf("%s: paket hiçbir katmana düşmüyor; internal/layers_test.go tablosuna ekleyin", rel)
 			return nil
 		}
-		ice := append([]string(nil), p.Imports...)
-		sort.Strings(ice)
-		for _, imp := range ice {
-			if !strings.HasPrefix(imp, modul+"/") {
+		imports := append([]string(nil), p.Imports...)
+		sort.Strings(imports)
+		for _, imp := range imports {
+			if !strings.HasPrefix(imp, module+"/") {
 				continue
 			}
-			hedef := strings.TrimPrefix(imp, modul+"/")
-			izin := false
-			for _, o := range izinli {
-				if onekEslesir(hedef, o) {
-					izin = true
+			target := strings.TrimPrefix(imp, module+"/")
+			allow := false
+			for _, o := range allowed {
+				if prefixMatches(target, o) {
+					allow = true
 					break
 				}
 			}
-			if !izin {
-				t.Errorf("%s → %s: katman kuralına aykırı (izinli: %v)", goreli, hedef, izinli)
+			if !allow {
+				t.Errorf("%s → %s: katman kuralına aykırı (izinli: %v)", rel, target, allowed)
 			}
 		}
 		return nil
@@ -153,46 +153,46 @@ func TestKatmanKurali(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if paketSayisi < 20 {
-		t.Fatalf("yalnızca %d paket bulundu; depo yapısı değişmiş olabilir", paketSayisi)
+	if pkgCount < 20 {
+		t.Fatalf("yalnızca %d paket bulundu; depo yapısı değişmiş olabilir", pkgCount)
 	}
 }
 
-// disBagimliliklar modül dışı (standart kitaplık olmayan) içe aktarmalar ve onları içe
+// externalDeps modül dışı (standart kitaplık olmayan) içe aktarmalar ve onları içe
 // aktarabilen tek paket. Yeni bir dış bağımlılık baş geliştiricinin kararıdır; tek dosya
 // dağıtım ve cgo'suz derleme korunur. Dinamik yükleyici: GPU arka ucunun Linux'ta NVIDIA sürücü
 // kitaplığını cgo'suz yüklemesi (internal/compute/gpu/cuda_linux.go).
-var disBagimliliklar = map[string]string{
+var externalDeps = map[string]string{
 	"github.com/ebitengine/purego": "internal/compute/gpu",
 }
 
-// TestDisBagimliliklar her işletim sistemi için (yapı kısıtları farklı dosyaları seçer)
+// TestExternalDependencies her işletim sistemi için (yapı kısıtları farklı dosyaları seçer)
 // modül dışı içe aktarmaları denetler.
-func TestDisBagimliliklar(t *testing.T) {
-	kok := reporoot.Kok()
+func TestExternalDependencies(t *testing.T) {
+	root := reporoot.Root()
 	for _, goos := range []string{"linux", "windows", "darwin"} {
 		ctx := build.Default
 		ctx.GOOS, ctx.CgoEnabled = goos, false
-		err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
+		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || !d.IsDir() {
 				return err
 			}
-			if yol != kok && (atlanan[d.Name()] || strings.HasPrefix(d.Name(), ".") || strings.HasPrefix(d.Name(), "_")) {
+			if path != root && (skipped[d.Name()] || strings.HasPrefix(d.Name(), ".") || strings.HasPrefix(d.Name(), "_")) {
 				return filepath.SkipDir
 			}
-			p, err := ctx.ImportDir(yol, 0)
+			p, err := ctx.ImportDir(path, 0)
 			if err != nil {
 				return nil
 			}
-			goreli, _ := filepath.Rel(kok, yol)
-			goreli = filepath.ToSlash(goreli)
+			rel, _ := filepath.Rel(root, path)
+			rel = filepath.ToSlash(rel)
 			for _, imp := range p.Imports {
-				ilk, _, _ := strings.Cut(imp, "/")
-				if !strings.Contains(ilk, ".") || onekEslesir(imp, modul) {
+				first, _, _ := strings.Cut(imp, "/")
+				if !strings.Contains(first, ".") || prefixMatches(imp, module) {
 					continue // standart kitaplık ya da modülün kendisi
 				}
-				if izinli, ok := disBagimliliklar[imp]; !ok || izinli != goreli {
-					t.Errorf("%s (%s): dış bağımlılık %s izinli değil (izinliler: %v)", goreli, goos, imp, disBagimliliklar)
+				if allowed, ok := externalDeps[imp]; !ok || allowed != rel {
+					t.Errorf("%s (%s): dış bağımlılık %s izinli değil (izinliler: %v)", rel, goos, imp, externalDeps)
 				}
 			}
 			return nil
@@ -203,37 +203,37 @@ func TestDisBagimliliklar(t *testing.T) {
 	}
 }
 
-// Dil çekirdeğinin iç sırası (dilSirasi): her dil paketi listede olmalı ve yalnızca
+// Dil çekirdeğinin iç sırası (langOrder): her dil paketi listede olmalı ve yalnızca
 // solundakileri içe aktarmalı.
-func TestDilIcSirasi(t *testing.T) {
-	kok := reporoot.Kok()
-	sira := map[string]int{}
-	for i, p := range dilSirasi {
-		sira[p] = i
+func TestLangOrder(t *testing.T) {
+	root := reporoot.Root()
+	order := map[string]int{}
+	for i, p := range langOrder {
+		order[p] = i
 	}
-	girdiler, err := filepath.Glob(filepath.Join(kok, "internal", "lang", "*"))
+	entries, err := filepath.Glob(filepath.Join(root, "internal", "lang", "*"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, g := range girdiler {
+	for _, g := range entries {
 		p, err := build.ImportDir(g, 0)
 		if err != nil || len(p.GoFiles) == 0 {
 			continue // Go paketi değil ya da yalnızca test
 		}
-		goreli, _ := filepath.Rel(kok, g)
-		goreli = filepath.ToSlash(goreli)
-		yer, ok := sira[goreli]
+		rel, _ := filepath.Rel(root, g)
+		rel = filepath.ToSlash(rel)
+		place, ok := order[rel]
 		if !ok {
-			t.Errorf("%s: dil paketi internal/katman_test.go'daki dilSirasi listesinde yok", goreli)
+			t.Errorf("%s: dil paketi internal/layers_test.go'daki langOrder listesinde yok", rel)
 			continue
 		}
 		for _, imp := range p.Imports {
-			hedef := strings.TrimPrefix(imp, modul+"/")
-			if hedef == imp || !strings.HasPrefix(hedef, "internal/lang/") {
+			target := strings.TrimPrefix(imp, module+"/")
+			if target == imp || !strings.HasPrefix(target, "internal/lang/") {
 				continue
 			}
-			if h, ok := sira[hedef]; !ok || h >= yer {
-				t.Errorf("%s → %s: dil içi sıraya aykırı (bir dil paketi yalnızca dilSirasi'nda solundakileri içe aktarabilir)", goreli, hedef)
+			if h, ok := order[target]; !ok || h >= place {
+				t.Errorf("%s → %s: dil içi sıraya aykırı (bir dil paketi yalnızca langOrder'da solundakileri içe aktarabilir)", rel, target)
 			}
 		}
 	}

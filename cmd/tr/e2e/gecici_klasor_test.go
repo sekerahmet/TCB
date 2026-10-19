@@ -35,11 +35,11 @@ func geciciBosMu(t *testing.T, gecici, ne string) {
 func TestTestKomutuGeciciKlasorBirakmaz(t *testing.T) {
 	for _, dosya := range []string{"tests/surec_ve_kayit_test.tr", "tests/dosya_ve_yol_test.tr"} {
 		gecici, ortam := geciciOrtam(t)
-		s := calistir(t, trIkilisi, reporoot.Kok(), "", ortam, "test", filepath.FromSlash(dosya))
+		s := calistir(t, trIkilisi, reporoot.Root(), "", ortam, "test", filepath.FromSlash(dosya))
 		bekle(t, s, 0, []string{"0 kaldı"}, nil)
 		geciciBosMu(t, gecici, dosya)
 	}
-	if eski, _ := filepath.Glob(reporoot.Yol("tests/gecici_*")); len(eski) != 0 {
+	if eski, _ := filepath.Glob(reporoot.Path("tests/gecici_*")); len(eski) != 0 {
 		t.Errorf("testler depoda geçici klasör bırakmamalı: %v", eski)
 	}
 }

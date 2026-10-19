@@ -13,7 +13,7 @@ import (
 // trSeeds depodaki bütün .tr dosyalarını (tests/, examples/, lib/) tohum olarak ekler.
 func trSeeds(f *testing.F) {
 	for _, dir := range []string{"tests", "examples", "lib"} {
-		_ = filepath.WalkDir(filepath.Join(reporoot.Kok(), dir), func(path string, g fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(filepath.Join(reporoot.Root(), dir), func(path string, g fs.DirEntry, err error) error {
 			if err == nil && !g.IsDir() && strings.HasSuffix(path, ".tr") {
 				if data, err := os.ReadFile(path); err == nil {
 					f.Add(string(data))

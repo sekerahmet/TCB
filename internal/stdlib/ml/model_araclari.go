@@ -18,13 +18,13 @@ import (
 
 // Adlı argümanlar (adları kod listesinde, internal/lang/codes T9xx).
 var (
-	adBoyutuKoru = bind.KodAd(codes.T906)
-	adNedensel   = bind.KodAd(codes.T950)
-	adPencere    = bind.KodAd(codes.T951)
-	adMaske      = bind.KodAd(codes.T952)
-	adSicaklik   = bind.KodAd(codes.T960)
-	adEnIyiK     = bind.KodAd(codes.T961)
-	adAdlariyla  = bind.KodAd(codes.T970)
+	adBoyutuKoru = bind.NamedArg(codes.T906)
+	adNedensel   = bind.NamedArg(codes.T950)
+	adPencere    = bind.NamedArg(codes.T951)
+	adMaske      = bind.NamedArg(codes.T952)
+	adSicaklik   = bind.NamedArg(codes.T960)
+	adEnIyiK     = bind.NamedArg(codes.T961)
+	adAdlariyla  = bind.NamedArg(codes.T970)
 )
 
 // uyeBol tensörün .böl(parça_sayısı, eksen: -1) metodudur. Üye adları tipten bağımsız
@@ -32,12 +32,12 @@ var (
 const uyeBol = codes.Y103
 
 // adliMantik adlı bir Mantık argümanını okur; verilmemişse varsayilan döner.
-func adliMantik(fn string, named map[string]interp.Value, a bind.Ad, varsayilan bool) (bool, error) {
-	v, ok := bind.AdliAl(named, a)
+func adliMantik(fn string, named map[string]interp.Value, a bind.Named, varsayilan bool) (bool, error) {
+	v, ok := bind.GetNamed(named, a)
 	if !ok {
 		return varsayilan, nil
 	}
-	return bind.Mantik(fn, a.TR, v)
+	return bind.Bool(fn, a.TR, v)
 }
 
 // ----------------------------------------------------------------------------
@@ -51,7 +51,7 @@ func birlestirYerlesik(_ *interp.VM, args []interp.Value, named map[string]inter
 	if len(args) < 1 || len(args) > 2 {
 		return nil, fmt.Errorf("%s([a, b, ...], %s: -1) bir tensör listesi bekler, %d parametre verildi", fn, adEksen.TR, len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named, adEksen); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adEksen); err != nil {
 		return nil, err
 	}
 	l, ok := args[0].(*interp.ListVal)
@@ -108,7 +108,7 @@ func (d *Deger) bol(_ *interp.VM, args []interp.Value, named map[string]interp.V
 	if len(args) < 1 || len(args) > 2 {
 		return nil, fmt.Errorf("%s(parça_sayısı, %s: -1) parça sayısını bekler, %d parametre verildi", fn, adEksen.TR, len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named, adEksen); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adEksen); err != nil {
 		return nil, err
 	}
 	n, ok := tamSayi(args[0])
@@ -154,7 +154,7 @@ func dikkatYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.V
 		return nil, fmt.Errorf("%s(q, k, v, %s: %s, %s: 0, %s: %s) 3 konumlu parametre bekler, %d verildi",
 			fn, adNedensel.TR, codes.Name(codes.A040), adPencere.TR, adMaske.TR, codes.Name(codes.A042), len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named, adNedensel, adPencere, adMaske); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adNedensel, adPencere, adMaske); err != nil {
 		return nil, err
 	}
 	var qkv [3]*tensor.Tensor
@@ -171,7 +171,7 @@ func dikkatYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.V
 	if opt.Causal, err = adliMantik(fn, named, adNedensel, true); err != nil {
 		return nil, err
 	}
-	if pv, ok := bind.AdliAl(named, adPencere); ok {
+	if pv, ok := bind.GetNamed(named, adPencere); ok {
 		w, tam := tamSayi(pv)
 		if !tam || w < 0 {
 			return nil, fmt.Errorf("%s: pencere negatif olmayan bir tam sayı olmalıdır (0: pencere yok), %s verildi", fn, pv.Inspect())
@@ -181,7 +181,7 @@ func dikkatYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.V
 	if err := dikkatSekilDenetle(fn, q, k, v); err != nil {
 		return nil, err
 	}
-	if mv, ok := bind.AdliAl(named, adMaske); ok && mv != interp.NULL {
+	if mv, ok := bind.GetNamed(named, adMaske); ok && mv != interp.NULL {
 		mt, err := tensoreCevir(fn+": maske", mv)
 		if err != nil {
 			return nil, err
@@ -273,7 +273,7 @@ func orneklemeYerlesik(_ *interp.VM, args []interp.Value, named map[string]inter
 		return nil, fmt.Errorf("%s(logit, %s: 1.0, %s: 0, %s: %s) 1 konumlu parametre bekler, %d verildi",
 			fn, adSicaklik.TR, adEnIyiK.TR, adTohum.TR, codes.Name(codes.A042), len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named, adSicaklik, adEnIyiK, adTohum); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adSicaklik, adEnIyiK, adTohum); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*Deger)
@@ -289,7 +289,7 @@ func orneklemeYerlesik(_ *interp.VM, args []interp.Value, named map[string]inter
 		return nil, fmt.Errorf("%s: %s şeklinde son eksen boş", fn, sekilMetni(sh))
 	}
 	sicaklik := 1.0
-	if sv, ok := bind.AdliAl(named, adSicaklik); ok {
+	if sv, ok := bind.GetNamed(named, adSicaklik); ok {
 		f, sayi := interp.ToFloat(sv)
 		if !sayi || f < 0 || math.IsNaN(f) {
 			return nil, fmt.Errorf("%s: %s negatif olmayan bir sayı olmalıdır (0: en olası), %s verildi", fn, adSicaklik.TR, sv.Inspect())
@@ -297,7 +297,7 @@ func orneklemeYerlesik(_ *interp.VM, args []interp.Value, named map[string]inter
 		sicaklik = f
 	}
 	k := 0
-	if kv, ok := bind.AdliAl(named, adEnIyiK); ok {
+	if kv, ok := bind.GetNamed(named, adEnIyiK); ok {
 		n, tam := tamSayi(kv)
 		if !tam || n < 0 {
 			return nil, fmt.Errorf("%s: %s negatif olmayan bir tam sayı olmalıdır (0: hepsi), %s verildi", fn, adEnIyiK.TR, kv.Inspect())
@@ -308,7 +308,7 @@ func orneklemeYerlesik(_ *interp.VM, args []interp.Value, named map[string]inter
 		k = C
 	}
 	var rng *rand.Rand
-	if tv, ok := bind.AdliAl(named, adTohum); ok && tv != interp.NULL {
+	if tv, ok := bind.GetNamed(named, adTohum); ok && tv != interp.NULL {
 		t, tam := tv.(*interp.IntVal)
 		if !tam {
 			return nil, fmt.Errorf("%s: tohum tam sayı olmalıdır, %s verildi", fn, tipAdi(tv))

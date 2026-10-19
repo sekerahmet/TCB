@@ -151,7 +151,7 @@ var skippedDirs = map[string]bool{".git": true, ".claude": true, "bin": true, "s
 func repoFiles(t *testing.T, ext string) []string {
 	t.Helper()
 	var files []string
-	root := reporoot.Kok()
+	root := reporoot.Root()
 	err := filepath.WalkDir(root, func(path string, g fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -268,7 +268,7 @@ func TestRepoTRFilesEncodeLossless(t *testing.T) {
 	}
 	tested, skipped := 0, []string{}
 	for _, d := range files {
-		data, err := os.ReadFile(reporoot.Yol(d))
+		data, err := os.ReadFile(reporoot.Path(d))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -292,7 +292,7 @@ var trBlock = regexp.MustCompile("(?s)```tr\r?\n(.*?)```")
 func TestDocCodeBlocksEncodeLossless(t *testing.T) {
 	tested, skipped := 0, 0
 	for _, d := range repoFiles(t, ".md") {
-		data, err := os.ReadFile(reporoot.Yol(d))
+		data, err := os.ReadFile(reporoot.Path(d))
 		if err != nil {
 			t.Fatal(err)
 		}

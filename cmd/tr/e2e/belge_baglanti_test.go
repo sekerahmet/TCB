@@ -82,7 +82,7 @@ func TestBelgeBaglantilari(t *testing.T) {
 		if m, ok := okunan[yol]; ok {
 			return m, true
 		}
-		veri, err := os.ReadFile(reporoot.Yol(yol))
+		veri, err := os.ReadFile(reporoot.Path(yol))
 		if err != nil {
 			return "", false
 		}
@@ -111,7 +111,7 @@ func TestBelgeBaglantilari(t *testing.T) {
 					t.Errorf("%s:%d: %q depo dışına gidiyor", belge, i+1, hedef)
 					continue
 				}
-				bilgi, err := os.Stat(reporoot.Yol(hedefDosya))
+				bilgi, err := os.Stat(reporoot.Path(hedefDosya))
 				if err != nil {
 					t.Errorf("%s:%d: %q bağlantısının hedefi yok: %s", belge, i+1, hedef, hedefDosya)
 					continue

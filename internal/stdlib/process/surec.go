@@ -41,8 +41,8 @@ func (d *Durum) Ayarlar() *interp.DictVal {
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	adAciklama    = bind.KodAd(codes.G910)
-	adAciklamalar = bind.KodAd(codes.G911)
+	adAciklama    = bind.NamedArg(codes.G910)
+	adAciklamalar = bind.NamedArg(codes.G911)
 )
 
 // Kaydet süreç yerleşiklerini VM'ye kaydeder ve programın süreç durumunu döndürür.
@@ -50,7 +50,7 @@ func Kaydet(v *interp.VM) *Durum {
 	d := &Durum{}
 	v.RegisterNoNamed(codes.G800, ortamDegiskeni)
 	v.RegisterBuiltinCode(codes.G801, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Name(codes.G801), func() (interp.Value, error) { return d.komutSatiri(m, args, named) })
+		return bind.Safe(codes.Name(codes.G801), func() (interp.Value, error) { return d.komutSatiri(m, args, named) })
 	})
 	return d
 }

@@ -35,7 +35,7 @@ func birli(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor, 
 	sar(v, kd, func(eski interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 1 || !tensorMu(args) {
-				if err := bind.AdliDenetle(ad+"()", named); err != nil {
+				if err := bind.CheckNamed(ad+"()", named); err != nil {
 					return nil, err
 				}
 				if eski != nil {
@@ -46,7 +46,7 @@ func birli(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor, 
 				}
 				return sayiyaUygula(ad, args[0], sayi64)
 			}
-			if err := bind.AdliDenetle(ad+"()", named); err != nil {
+			if err := bind.CheckNamed(ad+"()", named); err != nil {
 				return nil, err
 			}
 			t, err := tensoreCevir(ad, args[0])
@@ -89,7 +89,7 @@ func eksenArg(fn string, args []interp.Value, named map[string]interp.Value) (in
 	if len(args) >= 2 {
 		ev = args[1]
 	}
-	if v, ok := bind.AdliAl(named, adEksen); ok {
+	if v, ok := bind.GetNamed(named, adEksen); ok {
 		if ev != nil {
 			return 0, false, fmt.Errorf("%s: eksen hem konumlu hem adlı verildi", fn)
 		}
@@ -123,7 +123,7 @@ func softmaxKaydet(v *interp.VM, kd codes.Code, logKip bool) {
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, %s: -1) en fazla 2 parametre alır, %d verildi", ad, adEksen.TR, len(args))
 			}
-			if err := bind.AdliDenetle(ad+"()", named, adEksen); err != nil {
+			if err := bind.CheckNamed(ad+"()", named, adEksen); err != nil {
 				return nil, err
 			}
 			t, err := tensoreCevir(ad, args[0])

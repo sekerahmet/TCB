@@ -54,7 +54,7 @@ func calistir(t *testing.T, kod string) (string, error) {
 // kökündedir) ve motorların kaynaklarını kapatır.
 func calistirVM(t *testing.T, m *interp.VM, kod string) (interp.Value, error) {
 	t.Helper()
-	m.SourceFile = filepath.Join(reporoot.Kok(), "egit.tr")
+	m.SourceFile = filepath.Join(reporoot.Root(), "egit.tr")
 	p := parser.New(lexer.New(kod))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
@@ -113,7 +113,7 @@ tensör_kaydet(yol(KOŞU, "op.trt"), op.durum)
 tensör_kaydet(yol(KOŞU, "op2.trt"), op2.durum)
 yazdır("izlenen:", izlenen)
 yazdır("ö:", ö.durum)
-`, trYol(kosu), trYol(filepath.Join(reporoot.Kok(), "tests", "data", "text")), ekSecenek, toplam, dur)
+`, trYol(kosu), trYol(filepath.Join(reporoot.Root(), "tests", "data", "text")), ekSecenek, toplam, dur)
 }
 
 // gecerliOlculer günlüğün geçerli ölçü kayıtlarını (adım → kayıp) okur: bir devam kaydından

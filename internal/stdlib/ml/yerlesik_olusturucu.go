@@ -21,7 +21,7 @@ func turevIzle(named map[string]interp.Value, konumlu interp.Value, varsayilan b
 	if konumlu != nil {
 		varsayilan = konumlu.IsTruthy()
 	}
-	if v, ok := bind.AdliAl(named, adTurevIzle); ok {
+	if v, ok := bind.GetNamed(named, adTurevIzle); ok {
 		return v.IsTruthy()
 	}
 	return varsayilan
@@ -38,7 +38,7 @@ func tensorYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.V
 	if len(args) > 2 {
 		return nil, fmt.Errorf("%s en fazla 2 parametre alır, %d verildi", turevIzleyenOrnek("veri"), len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named, adTurevIzle, adTur); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adTurevIzle, adTur); err != nil {
 		return nil, err
 	}
 	var konumlu interp.Value
@@ -50,7 +50,7 @@ func tensorYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.V
 	if d, ok := args[0].(*Deger); ok {
 		// Türü değiştirmenin tek yazımı t.türe(...)'dir; tür: yalnızca listeden ya da
 		// sayıdan oluştururken verilir (karar 14).
-		if _, verildi := bind.AdliAl(named, adTur); verildi {
+		if _, verildi := bind.GetNamed(named, adTur); verildi {
 			return nil, fmt.Errorf("%s: girdi zaten bir tensör; türünü değiştirmek için t.%s(...) yazın (%s: yalnızca listeden ya da sayıdan oluştururken verilir)", fn, codes.Name(codes.Y415), adTur.TR)
 		}
 		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak (aynı tür).
@@ -91,7 +91,7 @@ func sekilliOlusturucu(kd codes.Code, olustur func(sh []int, named map[string]in
 		if len(args) == 0 {
 			return nil, fmt.Errorf("%s([2, 3]) şekli liste olarak bekler", ad)
 		}
-		izinli := []bind.Ad{adTurevIzle, adTur}
+		izinli := []bind.Named{adTurevIzle, adTur}
 		if kd == codes.T103 { // rastgele_normal
 			izinli = append(izinli, adTohum)
 		}
@@ -104,7 +104,7 @@ func sekilliOlusturucu(kd codes.Code, olustur func(sh []int, named map[string]in
 		if len(args) != 1 {
 			return nil, fmt.Errorf("%s([2, 3]) tek parametre (şekil listesi) bekler, %d verildi", ad, len(args))
 		}
-		if err := bind.AdliDenetle(ad+"()", named, izinli...); err != nil {
+		if err := bind.CheckNamed(ad+"()", named, izinli...); err != nil {
 			return nil, err
 		}
 		sh, err := sekilListesi(ad, args[0])
@@ -156,7 +156,7 @@ func tohumsuzBildir() {
 }
 
 func rastgeleNormal(sh []int, named map[string]interp.Value) (*tensor.Tensor, error) {
-	if s, ok := bind.AdliAl(named, adTohum); ok {
+	if s, ok := bind.GetNamed(named, adTohum); ok {
 		tohum, ok := s.(*interp.IntVal)
 		if !ok {
 			return nil, fmt.Errorf("%s: %s tam sayı olmalıdır, %s verildi", codes.Name(codes.T103), adTohum.TR, tipAdi(s))

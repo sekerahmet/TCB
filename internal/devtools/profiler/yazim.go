@@ -74,7 +74,7 @@ func sureMetni(s float64) string {
 }
 
 // bayt bayt sayısını okunur yazar (1,2 GB).
-func bayt(n int64) string { return bind.BaytMetni(n) }
+func bayt(n int64) string { return bind.FormatBytes(n) }
 
 // kirp metni en çok n karaktere kırpar (sona … koyarak).
 func kirp(s string, n int) string {

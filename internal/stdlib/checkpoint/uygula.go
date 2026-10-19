@@ -65,7 +65,7 @@ func (kn *KontrolNoktasi) tensorleriYukle(o *okunanNokta) (map[string]map[string
 		}
 	}
 	var gezHata error
-	_, err := bind.Kurtar(func() bool {
+	_, err := bind.Recover(func() bool {
 		gezHata = o.tensorleriGez(func(nesneAdi, tensorAdi string, g ml.TensorGirdisi) error {
 			kaynak := tensor.NewOn(tensor.CPU, g.Veri, g.Sekil...)
 			if p, ok := modeller[nesneAdi][tensorAdi]; ok {

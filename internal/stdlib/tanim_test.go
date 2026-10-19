@@ -32,7 +32,7 @@ func geciciKlasoreGec(t *testing.T) {
 	t.Helper()
 	// Depo kökü çalışma klasöründen yukarı aranarak bulunur: klasör değişmeden önce bulunmalı
 	// (test tek başına koşunca kökü ilk kez bu test arar).
-	reporoot.Kok()
+	reporoot.Root()
 	eski, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +46,7 @@ func geciciKlasoreGec(t *testing.T) {
 	t.Cleanup(Kapat)
 }
 
-func depoKoku(*testing.T) string { return reporoot.Kok() }
+func depoKoku(*testing.T) string { return reporoot.Root() }
 
 func ornekProgrami(t *testing.T, k codes.Code) (*ast.Program, string) {
 	t.Helper()

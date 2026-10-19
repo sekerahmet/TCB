@@ -22,7 +22,7 @@ import (
 //	go test ./internal/stdlib/dataset -run TestOrnekVeri -guncelle
 var guncelle = flag.Bool("guncelle", false, "tests/data altındaki sentetik veriyi yeniden üret")
 
-var ornekKok = reporoot.Yol("tests/data")
+var ornekKok = reporoot.Path("tests/data")
 
 // ornekDosyalar depodaki sentetik verinin beklenen içeriğidir (göreli yol → içerik).
 func ornekDosyalar(t *testing.T) map[string][]byte {
@@ -51,9 +51,9 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 	d := map[string][]byte{}
 	// Parçalayıcılar: bayt düzeyi BPE (özel tokenlı, <|endoftext|> içerir) ve BERT
 	// tarzı WordPiece (son işleyicisi [CLS]/[SEP] ekler; çift kodlama için).
-	bpe := oku(reporoot.Yol("internal/compute/tokenize/testdata/p_bayt_bpe.json"))
+	bpe := oku(reporoot.Path("internal/compute/tokenize/testdata/p_bayt_bpe.json"))
 	d["parcalayici.json"] = bpe
-	d["parcalayici_bert.json"] = oku(reporoot.Yol("internal/compute/tokenize/testdata/p_wordpiece.json"))
+	d["parcalayici_bert.json"] = oku(reporoot.Path("internal/compute/tokenize/testdata/p_wordpiece.json"))
 
 	// sayilar/: değerleri konumunu söyleyen iki parça (uint16 ve int32).
 	a := make([]uint16, 100)
@@ -78,7 +78,7 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 		t.Fatal("<|endoftext|> yok")
 	}
 	var belgeler []string
-	for _, s := range strings.Split(string(oku(reporoot.Yol("internal/compute/tokenize/testdata/ornek_metin.txt"))), "\n") {
+	for _, s := range strings.Split(string(oku(reporoot.Path("internal/compute/tokenize/testdata/ornek_metin.txt"))), "\n") {
 		if strings.TrimSpace(s) != "" {
 			belgeler = append(belgeler, s)
 		}

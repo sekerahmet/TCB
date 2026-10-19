@@ -74,7 +74,7 @@ func csvGirdisi(makine *interp.VM, d interp.Value) (string, error) {
 	if kesinYol {
 		arg = yolDegeri.FilePath()
 	}
-	yol, bakilanlar := bind.YolCozBakilan(makine, arg)
+	yol, bakilanlar := bind.ResolvePathTried(makine, arg)
 	bilgi, statErr := os.Stat(yol)
 	if statErr == nil {
 		if bilgi.IsDir() {

@@ -94,12 +94,12 @@ func (n *Nesne) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	case uyeTokenKimligi:
 		return n.metot(codes.Name(uyeTokenKimligi), n.tokenKimligi), nil
 	}
-	return nil, bind.UyeHatasi(TipAdi, prop, uyeler)
+	return nil, bind.MemberError(TipAdi, prop, uyeler)
 }
 
 func (n *Nesne) metot(ad string, fn interp.BuiltinFunc) *interp.BuiltinVal {
 	return &interp.BuiltinVal{Name: ad, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(ad, func() (interp.Value, error) { return fn(m, args, named) })
+		return bind.Safe(ad, func() (interp.Value, error) { return fn(m, args, named) })
 	}}
 }
 
@@ -110,7 +110,7 @@ func (n *Nesne) metot(ad string, fn interp.BuiltinFunc) *interp.BuiltinVal {
 // Kaydet parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *interp.VM) {
 	v.RegisterBuiltinCode(codes.V200, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Name(codes.V200), func() (interp.Value, error) { return yukle(m, args, named) })
+		return bind.Safe(codes.Name(codes.V200), func() (interp.Value, error) { return yukle(m, args, named) })
 	})
 }
 
@@ -119,7 +119,7 @@ var uyarilanlar sync.Map
 
 func yukle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.V200)
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
@@ -132,7 +132,7 @@ func yukle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (in
 	if yolHata != nil {
 		return nil, yolHata
 	}
-	yol, bakilanlar := bind.YolCozBakilan(m, ham)
+	yol, bakilanlar := bind.ResolvePathTried(m, ham)
 	var p *tokenize.Tokenizer
 	var err error
 	var bilgi os.FileInfo
@@ -159,7 +159,7 @@ func yukle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (in
 
 func yuklemeHatasi(yol string, err error, bakilanlar []string) error {
 	fn := codes.Name(codes.V200)
-	if bind.YokMu(err) {
+	if bind.IsNotExist(err) {
 		return turkish.FileError(fn, yol, "yüklenemedi", err,
 			"tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin", interp.SearchedPlaces(bakilanlar))
 	}
@@ -213,8 +213,8 @@ func uyarilariYaz(yol string, p *tokenize.Tokenizer) {
 // ----------------------------------------------------------------------------
 
 var (
-	adOzel   = bind.KodAd(codes.V910)
-	adIkinci = bind.KodAd(codes.V911)
+	adOzel   = bind.NamedArg(codes.V910)
+	adIkinci = bind.NamedArg(codes.V911)
 )
 
 // uzunMetin bu bayttan uzun tek metinler yorumlayıcı kilidi bırakılarak kodlanır.
@@ -235,21 +235,21 @@ func adimHatasi(fn string, err error) error {
 
 func (n *Nesne) kodla(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(uyeKodla)
-	if err := bind.AdliDenetle(fn+"()", named, adOzel, adIkinci); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adOzel, adIkinci); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(metin) 1 parametre bekler (metin ya da metin listesi), %d verildi", fn, len(args))
 	}
 	var sec tokenize.Options
-	if v, ok := bind.AdliAl(named, adOzel); ok {
-		b, err := bind.Mantik(fn, codes.Name(codes.V910), v)
+	if v, ok := bind.GetNamed(named, adOzel); ok {
+		b, err := bind.Bool(fn, codes.Name(codes.V910), v)
 		if err != nil {
 			return nil, err
 		}
 		sec.DontAddSpecial = !b
 	}
-	ikinciV, ikinciVar := bind.AdliAl(named, adIkinci)
+	ikinciV, ikinciVar := bind.GetNamed(named, adIkinci)
 
 	switch x := args[0].(type) {
 	case *interp.StringVal:
@@ -416,7 +416,7 @@ func kimlikListesi32(ids []int32) *interp.ListVal {
 
 func (n *Nesne) coz(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(uyeCoz)
-	if err := bind.AdliDenetle(fn+"()", named, adOzel); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adOzel); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
@@ -425,8 +425,8 @@ func (n *Nesne) coz(m *interp.VM, args []interp.Value, named map[string]interp.V
 	// Varsayılan, başvuru kütüphanesininki gibi özel parçaları ATLAMAKTIR;
 	// özel_parçalar: doğru onları da çıktıya yazar.
 	atla := true
-	if v, ok := bind.AdliAl(named, adOzel); ok {
-		b, err := bind.Mantik(fn, codes.Name(codes.V910), v)
+	if v, ok := bind.GetNamed(named, adOzel); ok {
+		b, err := bind.Bool(fn, codes.Name(codes.V910), v)
 		if err != nil {
 			return nil, err
 		}
@@ -524,7 +524,7 @@ func kimlikDizileri(v interp.Value) (diziler [][]int, tek bool, err error) {
 func tamListe(ne string, el []interp.Value) ([]int, error) {
 	out := make([]int, len(el))
 	for i, e := range el {
-		n, ok := bind.TamSayi(e)
+		n, ok := bind.Int(e)
 		if !ok {
 			return nil, fmt.Errorf("çöz: kimlikler tam sayı olmalıdır; %s %d. elemanı %s", ne, i+1, e.Inspect())
 		}
@@ -538,7 +538,7 @@ func tamListe(ne string, el []interp.Value) ([]int, error) {
 // ----------------------------------------------------------------------------
 
 func (n *Nesne) tokenKimligi(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	if err := bind.AdliDenetle(codes.Name(codes.Y613)+"()", named); err != nil {
+	if err := bind.CheckNamed(codes.Name(codes.Y613)+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {

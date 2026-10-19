@@ -61,7 +61,7 @@ func tasimaYap(m *interp.VM, kd codes.Code, args []interp.Value, named map[strin
 // tasimaHazirla argümanları okur, kaynağı ve son hedefi bulur, güvenlik kurallarını denetler.
 func tasimaHazirla(m *interp.VM, kd codes.Code, args []interp.Value, named map[string]interp.Value, tasi bool) (*tasimaIsi, error) {
 	fn := interp.CallPrefix(kd)
-	if err := bind.AdliDenetle(fn, named, adUzerineYaz); err != nil {
+	if err := bind.CheckNamed(fn, named, adUzerineYaz); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
@@ -138,7 +138,7 @@ func (is *tasimaIsi) hedefBul(m *interp.VM, hedefHam string, klasorIste bool) er
 		return fmt.Errorf("%s: hedef %q bir bağlantı; TR bağlantıların gösterdiği yere yazmaz (önce %s(...) ile kaldırın)", is.fn, hedefHam, codes.Name(codes.G123))
 	case err == nil && klasorIste:
 		return fmt.Errorf("%s: hedef %q bir dosya, klasör değil", is.fn, hedefHam)
-	case err != nil && !bind.YokMu(err):
+	case err != nil && !bind.IsNotExist(err):
 		return turkish.FileError(is.fn, hedefHam, "açılamadı", err)
 	case err != nil && klasorIste:
 		return fmt.Errorf("%s: hedef klasör %q yok; önce %s(%q) ile oluşturun", is.fn, hedefHam, codes.Name(codes.G122), strings.TrimRight(hedefHam, `/\`))

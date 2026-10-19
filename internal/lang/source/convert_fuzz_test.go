@@ -18,7 +18,7 @@ import (
 //	go test ./internal/lang/source -run '^$' -fuzz FuzzEncodeDecode -fuzztime 5m
 func FuzzEncodeDecode(f *testing.F) {
 	for _, path := range []string{"examples/02_dil_turu.tr", "examples/03_testler_test.tr", "tests/yapilar_test.tr", "tests/sozcuk_yapisi_test.tr"} {
-		if data, err := os.ReadFile(reporoot.Yol(path)); err == nil {
+		if data, err := os.ReadFile(reporoot.Path(path)); err == nil {
 			f.Add(string(data))
 		}
 	}

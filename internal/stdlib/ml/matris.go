@@ -83,7 +83,7 @@ func birimMatris(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(n) 1 parametre bekler", fn)
 	}
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	n, err := tamArg(args, 0, fn+"(n)")

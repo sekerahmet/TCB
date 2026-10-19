@@ -19,7 +19,7 @@ func geriYayilim(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(kayıp) 1 parametre bekler, %d verildi", fn, len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*Deger)
@@ -49,7 +49,7 @@ func turevsiz(m *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s { ... } bir blok ya da %s(x) bir tensör bekler, %d parametre verildi", fn, fn, len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	switch x := args[0].(type) {

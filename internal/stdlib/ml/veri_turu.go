@@ -97,7 +97,7 @@ func turDegeriCoz(fn string, v interp.Value) (tensor.DType, error) {
 
 // adliTur tür: adlı argümanını okur; verilmemişse varsayilan döner.
 func adliTur(fn string, named map[string]interp.Value, varsayilan tensor.DType) (tensor.DType, error) {
-	v, ok := bind.AdliAl(named, adTur)
+	v, ok := bind.GetNamed(named, adTur)
 	if !ok {
 		return varsayilan, nil
 	}
@@ -119,7 +119,7 @@ func (d *Deger) ture(_ *interp.VM, args []interp.Value, named map[string]interp.
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(\"bf16\") 1 parametre (tür adı) bekler, %d verildi", codes.Name(uyeTure), len(args))
 	}
-	if err := bind.AdliDenetle(codes.Name(uyeTure)+"()", named); err != nil {
+	if err := bind.CheckNamed(codes.Name(uyeTure)+"()", named); err != nil {
 		return nil, err
 	}
 	dt, err := turDegeriCoz(codes.Name(uyeTure), args[0])
@@ -160,7 +160,7 @@ func karisikTuru(m *interp.VM) tensor.DType {
 // karışık hassasiyeti kapatır. Blok bitince (hata ile bitse de) önceki tür geri gelir.
 func karisikHassasiyet(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T710)
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {

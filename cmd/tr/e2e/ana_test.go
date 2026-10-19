@@ -132,7 +132,7 @@ func bekle(t *testing.T, s sonuc, kod int, ciktida, hatada []string) {
 func trSurumu(t *testing.T) string {
 	t.Helper()
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, reporoot.Yol("cmd/tr/main.go"), nil, 0)
+	f, err := parser.ParseFile(fset, reporoot.Path("cmd/tr/main.go"), nil, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -36,12 +36,12 @@ func belgeListesi(t *testing.T) []string {
 	liste := []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "lib/README.md",
 		"editors/vscode/README.md", "tools/bench/README.md", ".github/ISSUE_TEMPLATE/sozluk_istegi.md"}
 	for _, desen := range []string{"docs/*.md", "docs/*/*.md"} {
-		d, err := filepath.Glob(reporoot.Yol(desen))
+		d, err := filepath.Glob(reporoot.Path(desen))
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, yol := range d {
-			goreli, err := filepath.Rel(reporoot.Kok(), yol)
+			goreli, err := filepath.Rel(reporoot.Root(), yol)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -73,7 +73,7 @@ func TestBelgelerdekiTRKodBloklari(t *testing.T) {
 		if b == uretilmisBelge {
 			continue
 		}
-		veri, err := os.ReadFile(reporoot.Yol(b))
+		veri, err := os.ReadFile(reporoot.Path(b))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -140,7 +140,7 @@ func yerTutuculariTanimla(govde, kod string) string {
 // Eklentinin kod şablonları varsayılan değerleriyle açıldığında derlenebilir kod üretmelidir
 // (hakem mimari 3: eşle şablonu derlenmeyen kod üretiyordu).
 func TestEklentiSablonlariDerlenir(t *testing.T) {
-	veri, err := os.ReadFile(reporoot.Yol("editors/vscode/snippets/tr.code-snippets"))
+	veri, err := os.ReadFile(reporoot.Path("editors/vscode/snippets/tr.code-snippets"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +247,7 @@ func TestBelgelerdeKaldirilanAdYok(t *testing.T) {
 		if b == uretilmisBelge { // kodlar.md kaldırılan kodları bilerek listeler
 			continue
 		}
-		veri, err := os.ReadFile(reporoot.Yol(b))
+		veri, err := os.ReadFile(reporoot.Path(b))
 		if err != nil {
 			t.Fatal(err)
 		}

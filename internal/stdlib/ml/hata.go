@@ -19,21 +19,21 @@ import (
 // Adlı argümanlar. Adları kod listesindedir (internal/lang/codes, T9xx). Başka dillerden alışılmış
 // adlar (lr, axis...) kabul edilmez; baglama.AdliDenetle hata mesajında Türkçesini önerir.
 var (
-	adTurevIzle       = bind.KodAd(codes.T900)
-	adEksen           = bind.KodAd(codes.T902)
-	adTohum           = bind.KodAd(codes.T903)
-	adEnFazla         = bind.KodAd(codes.T904)
-	adEnAz            = bind.KodAd(codes.T907)
-	adEpsilon         = bind.KodAd(codes.T905)
-	adOgrenmeOrani    = bind.KodAd(codes.T910)
-	adAgirlikCurumesi = bind.KodAd(codes.T911)
-	adBeta1           = bind.KodAd(codes.T912)
-	adBeta2           = bind.KodAd(codes.T913)
-	adMomentum        = bind.KodAd(codes.T914)
-	adAgirlik         = bind.KodAd(codes.T920)
-	adSapma           = bind.KodAd(codes.T921)
-	adTur             = bind.KodAd(codes.T901)
-	adAnaKopya        = bind.KodAd(codes.T915)
+	adTurevIzle       = bind.NamedArg(codes.T900)
+	adEksen           = bind.NamedArg(codes.T902)
+	adTohum           = bind.NamedArg(codes.T903)
+	adEnFazla         = bind.NamedArg(codes.T904)
+	adEnAz            = bind.NamedArg(codes.T907)
+	adEpsilon         = bind.NamedArg(codes.T905)
+	adOgrenmeOrani    = bind.NamedArg(codes.T910)
+	adAgirlikCurumesi = bind.NamedArg(codes.T911)
+	adBeta1           = bind.NamedArg(codes.T912)
+	adBeta2           = bind.NamedArg(codes.T913)
+	adMomentum        = bind.NamedArg(codes.T914)
+	adAgirlik         = bind.NamedArg(codes.T920)
+	adSapma           = bind.NamedArg(codes.T921)
+	adTur             = bind.NamedArg(codes.T901)
+	adAnaKopya        = bind.NamedArg(codes.T915)
 )
 
 // turevIzleyenOrnek hata mesajlarındaki türev izleyen tensör örneğidir:
@@ -43,7 +43,7 @@ func turevIzleyenOrnek(veri string) string {
 }
 
 // guvenli fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.
-func guvenli[T any](fn func() T) (T, error) { return bind.Kurtar(fn, panikHatasi) }
+func guvenli[T any](fn func() T) (T, error) { return bind.Recover(fn, panikHatasi) }
 
 // panikHatasi çekirdeğin panik değerini kullanıcıya gösterilecek hataya çevirir.
 func panikHatasi(r any) error {
@@ -57,7 +57,7 @@ func panikHatasi(r any) error {
 
 // tamSayi bir TR değerini tam sayıya çevirir (tam değerli ondalıklar da kabul edilir).
 func tamSayi(v interp.Value) (int, bool) {
-	n, ok := bind.TamSayi(v)
+	n, ok := bind.Int(v)
 	return int(n), ok
 }
 

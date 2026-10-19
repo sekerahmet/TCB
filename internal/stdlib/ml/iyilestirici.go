@@ -156,8 +156,8 @@ func parametreler(fn string, v interp.Value) ([]*tensor.Tensor, error) {
 }
 
 // adliOran adlı sayısal bir argümanı okur.
-func adliOran(fn string, named map[string]interp.Value, varsayilan float64, enAz float64, ad bind.Ad) (float32, error) {
-	v, ok := bind.AdliAl(named, ad)
+func adliOran(fn string, named map[string]interp.Value, varsayilan float64, enAz float64, ad bind.Named) (float32, error) {
+	v, ok := bind.GetNamed(named, ad)
 	if !ok {
 		return float32(varsayilan), nil
 	}
@@ -183,7 +183,7 @@ func gradyanKirp(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(parametreler, %s: 1.0) 1 konumlu parametre bekler, %d verildi", fn, adEnFazla.TR, len(args))
 	}
-	if err := bind.AdliDenetle(fn+"()", named, adEnFazla); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adEnFazla); err != nil {
 		return nil, err
 	}
 	params, err := parametreler(fn, args[0])
@@ -191,7 +191,7 @@ func gradyanKirp(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 		return nil, err
 	}
 	enFazla := 1.0
-	if v, ok := bind.AdliAl(named, adEnFazla); ok {
+	if v, ok := bind.GetNamed(named, adEnFazla); ok {
 		f, ok := interp.ToFloat(v)
 		if !ok || !(f > 0) || math.IsInf(f, 0) {
 			return nil, fmt.Errorf("%s: %s pozitif bir sayı olmalıdır, %s verildi", fn, adEnFazla.TR, v.Inspect())
@@ -212,11 +212,11 @@ func gradyanKirp(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 // parametreye yuvarlanarak yazılır, böylece küçük adımlar 16 bitte kaybolmaz. float32
 // parametreleri etkilemez.
 func anaKopyaArg(fn string, named map[string]interp.Value) (bool, error) {
-	v, ok := bind.AdliAl(named, adAnaKopya)
+	v, ok := bind.GetNamed(named, adAnaKopya)
 	if !ok {
 		return true, nil
 	}
-	return bind.Mantik(fn, adAnaKopya.TR, v)
+	return bind.Bool(fn, adAnaKopya.TR, v)
 }
 
 func iyilestiriciParametreleri(fn string, args []interp.Value) ([]*tensor.Tensor, error) {
@@ -228,7 +228,7 @@ func iyilestiriciParametreleri(fn string, args []interp.Value) ([]*tensor.Tensor
 
 func adamWKur(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T400) // AdamW
-	if err := bind.AdliDenetle(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon, adAnaKopya); err != nil {
+	if err := bind.CheckNamed(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon, adAnaKopya); err != nil {
 		return nil, err
 	}
 	params, err := iyilestiriciParametreleri(fn, args)
@@ -273,7 +273,7 @@ func adamWKur(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 
 func sgdKur(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T401) // SGD
-	if err := bind.AdliDenetle(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi, adAnaKopya); err != nil {
+	if err := bind.CheckNamed(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi, adAnaKopya); err != nil {
 		return nil, err
 	}
 	params, err := iyilestiriciParametreleri(fn, args)

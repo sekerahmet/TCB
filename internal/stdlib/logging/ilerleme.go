@@ -81,7 +81,7 @@ func (c *Ilerleme) GetProperty(kd codes.Code, prop string) (interp.Value, error)
 	switch kd {
 	case codes.Y010:
 		return &interp.BuiltinVal{Name: codes.Name(codes.Y010), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CallName(codes.Y010), func() (interp.Value, error) { return c.guncelle(m, args, named) })
+			return bind.Safe(interp.CallName(codes.Y010), func() (interp.Value, error) { return c.guncelle(m, args, named) })
 		}}, nil
 	case codes.Y011:
 		return &interp.BuiltinVal{Name: codes.Name(codes.Y011), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
@@ -97,7 +97,7 @@ func (c *Ilerleme) GetProperty(kd codes.Code, prop string) (interp.Value, error)
 // ilerlemeAc ilerleme(toplam, günlük: g) yerleşiğidir.
 func (d *durum) ilerlemeAc(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.G811)
-	if err := bind.AdliDenetle(fn, named, adGunluk); err != nil {
+	if err := bind.CheckNamed(fn, named, adGunluk); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
@@ -105,7 +105,7 @@ func (d *durum) ilerlemeAc(m *interp.VM, args []interp.Value, named map[string]i
 	}
 	var toplam int64
 	if len(args) == 1 && args[0] != interp.NULL {
-		n, ok := bind.TamSayi(args[0])
+		n, ok := bind.Int(args[0])
 		if !ok {
 			return nil, interp.ArgTypeError(codes.G811, 1, args[0], codes.A200, codes.A204)
 		}
@@ -115,7 +115,7 @@ func (d *durum) ilerlemeAc(m *interp.VM, args []interp.Value, named map[string]i
 		toplam = n
 	}
 	c := &Ilerleme{m: m, d: d, toplam: toplam, baslangic: saat(), sira: cubukSirasi.Add(1)}
-	if v, ok := bind.AdliAl(named, adGunluk); ok && v != interp.NULL {
+	if v, ok := bind.GetNamed(named, adGunluk); ok && v != interp.NULL {
 		g, ok := v.(*Gunluk)
 		if !ok {
 			return nil, fmt.Errorf("%s: %s: bir %s olmalı (%s(...) ile açılır), %s verildi", fn, adGunluk.TR, GunlukTipi, codes.Name(codes.G810), interp.TypeAndSummary(v))
@@ -160,7 +160,7 @@ var terminalSecimi = func(w io.Writer) (bool, int) {
 // guncelle İlerleme.güncelle([ölçüler], adım: n) metodudur.
 func (c *Ilerleme) guncelle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.Y010)
-	if err := bind.AdliDenetle(fn, named, adAdim); err != nil {
+	if err := bind.CheckNamed(fn, named, adAdim); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
@@ -181,8 +181,8 @@ func (c *Ilerleme) guncelle(m *interp.VM, args []interp.Value, named map[string]
 		}
 	}
 	yeniAdim := int64(-1)
-	if v, ok := bind.AdliAl(named, adAdim); ok {
-		n, ok := bind.TamSayi(v)
+	if v, ok := bind.GetNamed(named, adAdim); ok {
+		n, ok := bind.Int(v)
 		if !ok || n < 0 {
 			return nil, fmt.Errorf("%s: %s: 0 ya da pozitif bir %s olmalı (tamamlanan adım sayısı), %s verildi", fn, adAdim.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))
 		}

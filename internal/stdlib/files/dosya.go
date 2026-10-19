@@ -28,8 +28,8 @@ import (
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	adUzerineYaz    = bind.KodAd(codes.G900)
-	adIcindekilerle = bind.KodAd(codes.G901)
+	adUzerineYaz    = bind.NamedArg(codes.G900)
+	adIcindekilerle = bind.NamedArg(codes.G901)
 )
 
 // Kaydet dosya ve yol yerleşiklerini VM'ye kaydeder.
@@ -48,7 +48,7 @@ func Kaydet(v *interp.VM) {
 func guvenli(kd codes.Code, fn interp.BuiltinFunc) interp.BuiltinFunc {
 	ad := interp.CallPrefix(kd)
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(ad, func() (interp.Value, error) { return fn(m, args, named) })
+		return bind.Safe(ad, func() (interp.Value, error) { return fn(m, args, named) })
 	}
 }
 
@@ -69,10 +69,10 @@ func yolOku(kd codes.Code, sira int, d interp.Value) (string, error) {
 }
 
 // mantikAdli adlı bir Mantık argümanını okur (verilmemişse yanlış).
-func mantikAdli(kd codes.Code, named map[string]interp.Value, a bind.Ad) (bool, error) {
-	d, ok := bind.AdliAl(named, a)
+func mantikAdli(kd codes.Code, named map[string]interp.Value, a bind.Named) (bool, error) {
+	d, ok := bind.GetNamed(named, a)
 	if !ok {
 		return false, nil
 	}
-	return bind.Mantik(interp.CallPrefix(kd), a.TR+":", d)
+	return bind.Bool(interp.CallPrefix(kd), a.TR+":", d)
 }

@@ -65,14 +65,14 @@ func TestGPTEgitimBetigiDumanTesti(t *testing.T) {
 	veri := t.TempDir()
 	for hedef, kaynak := range map[string]string{"tokenizer.json": "tests/data/parcalayici.json",
 		"train.npy": "tests/data/text/metin_000.npy", "valid.npy": "tests/data/text/metin_001.npy"} {
-		b, err := os.ReadFile(reporoot.Yol(kaynak))
+		b, err := os.ReadFile(reporoot.Path(kaynak))
 		if err != nil {
 			t.Fatal(err)
 		}
 		dosyaYaz(t, veri, hedef, string(b))
 	}
 	kosu := filepath.Join(t.TempDir(), "kosu")
-	args := []string{reporoot.Yol("tools/gpu/gpt_egitim.tr"), "--veri", veri, "--koşu", kosu, "--cihaz", "cpu",
+	args := []string{reporoot.Path("tools/gpu/gpt_egitim.tr"), "--veri", veri, "--koşu", kosu, "--cihaz", "cpu",
 		"--boyut", "16", "--katman", "1", "--baş", "2", "--bağlam", "16", "--toplu", "4", "--birikim", "2",
 		"--adım", "12", "--ısınma", "2", "--değerlendir_her", "6", "--değerlendir_toplu", "2", "--örnek_her", "6",
 		"--örnek_sayısı", "2", "--örnek_uzunluğu", "6", "--ölçüm_ısınması", "2", "--günlük_her", "3"}

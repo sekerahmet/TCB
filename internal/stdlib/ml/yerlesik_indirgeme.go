@@ -22,7 +22,7 @@ func indirgeme(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, eksen int,
 	sar(v, kd, func(eski interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) == 0 {
-				if err := bind.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
+				if err := bind.CheckNamed(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
 					return nil, err
 				}
 				return eskiCagir(ad, eski, m, args, named)
@@ -39,7 +39,7 @@ func indirgeme(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, eksen int,
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, %s: ...) en fazla 2 parametre alır, %d verildi", ad, adEksen.TR, len(args))
 			}
-			if err := bind.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
+			if err := bind.CheckNamed(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
 				return nil, err
 			}
 			koru, err := adliMantik(ad, named, adBoyutuKoru, false)
@@ -117,7 +117,7 @@ func maksIndeks(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 		}
 		return nil, fmt.Errorf("%s(x, %s: -1) 1 konumlu parametre bekler, %d verildi", ad, adEksen.TR, len(args))
 	}
-	if err := bind.AdliDenetle(ad+"()", named, adEksen); err != nil {
+	if err := bind.CheckNamed(ad+"()", named, adEksen); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*Deger)
@@ -162,14 +162,14 @@ func maksIndeks(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 // koruyarak katlar, diğer durumlar açık hata verir.
 func tensorOlmayanIndirgeme(kd codes.Code, eski interp.BuiltinFunc, m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.Name(kd)
-	if err := bind.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
+	if err := bind.CheckNamed(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
 		return nil, err
 	}
-	if _, ok := bind.AdliAl(named, adBoyutuKoru); ok {
+	if _, ok := bind.GetNamed(named, adBoyutuKoru); ok {
 		return nil, fmt.Errorf("%s: %s: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(%s(...), %s: 0, %s: %s)",
 			ad, adBoyutuKoru.TR, tipAdi(args[0]), ad, codes.Name(codes.T100), adEksen.TR, adBoyutuKoru.TR, codes.Name(codes.A040))
 	}
-	if _, ok := bind.AdliAl(named, adEksen); ok {
+	if _, ok := bind.GetNamed(named, adEksen); ok {
 		return nil, fmt.Errorf("%s: %s: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(%s(...), %s: 0)", ad, adEksen.TR, tipAdi(args[0]), ad, codes.Name(codes.T100), adEksen.TR)
 	}
 	if l, ok := args[0].(*interp.ListVal); ok && len(args) == 1 {

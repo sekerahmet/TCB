@@ -27,7 +27,7 @@ const (
 func (o *Iyilestirici) durumUyesi(kd codes.Code) (interp.Value, bool, error) {
 	switch kd {
 	case uyeDurum:
-		v, err := bind.Guvenli(interp.CallName(uyeDurum), func() (interp.Value, error) {
+		v, err := bind.Safe(interp.CallName(uyeDurum), func() (interp.Value, error) {
 			s := interp.NewDictVal()
 			adlar, tensorler := o.durumTensorleri(true)
 			for i, ad := range adlar {
@@ -38,7 +38,7 @@ func (o *Iyilestirici) durumUyesi(kd codes.Code) (interp.Value, bool, error) {
 		return v, true, err
 	case uyeDurumuYukle:
 		return &interp.BuiltinVal{Name: codes.Name(uyeDurumuYukle), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CallName(uyeDurumuYukle), func() (interp.Value, error) { return o.durumuYukleTR(args) })
+			return bind.Safe(interp.CallName(uyeDurumuYukle), func() (interp.Value, error) { return o.durumuYukleTR(args) })
 		}}, true, nil
 	}
 	return nil, false, nil
@@ -127,7 +127,7 @@ func (o *Iyilestirici) DurumuYukle(fn string, st map[string]*tensor.Tensor) erro
 		}
 	}
 	tasinmis := make(map[string]*tensor.Tensor, len(st))
-	_, err := bind.Kurtar(func() bool {
+	_, err := bind.Recover(func() bool {
 		for ad, t := range st {
 			if k, ok := o.parametreSirasi(ad); ok {
 				t = t.To(o.params[k].Device())

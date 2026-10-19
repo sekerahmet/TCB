@@ -56,7 +56,7 @@ func TestResolvePathSingleRule(t *testing.T) {
 	}
 	for filePath, wantSub := range caseList {
 		if got, searched := m.ResolvePath(filePath); got != wantSub || len(searched) != 2 {
-			t.Errorf("YolCoz(%q) = %q %v, %q bekleniyordu", filePath, got, searched, wantSub)
+			t.Errorf("ResolvePath(%q) = %q %v, %q bekleniyordu", filePath, got, searched, wantSub)
 		}
 	}
 	absolute := filepath.Join(program, "ikisinde.txt")

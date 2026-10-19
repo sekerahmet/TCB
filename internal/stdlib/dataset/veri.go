@@ -47,17 +47,17 @@ const enBuyukTamFloat32 = 1 << 24
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	adOnbellek = bind.KodAd(codes.V900)
-	adKota     = bind.KodAd(codes.V901)
-	adToplu    = bind.KodAd(codes.V902)
-	adBaglam   = bind.KodAd(codes.V903)
-	adTohum    = bind.KodAd(codes.T903)
+	adOnbellek = bind.NamedArg(codes.V900)
+	adKota     = bind.NamedArg(codes.V901)
+	adToplu    = bind.NamedArg(codes.V902)
+	adBaglam   = bind.NamedArg(codes.V903)
+	adTohum    = bind.NamedArg(codes.T903)
 )
 
 // Kaydet veri yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *interp.VM) {
 	v.RegisterBuiltinCode(codes.V100, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Name(codes.V100), func() (interp.Value, error) { return kumeAc(m, args, named) })
+		return bind.Safe(codes.Name(codes.V100), func() (interp.Value, error) { return kumeAc(m, args, named) })
 	})
 }
 
@@ -80,13 +80,13 @@ func (k *Kume) Type() interp.ValueType { return interp.ValueType(KumeTipi) }
 func (k *Kume) IsTruthy() bool         { return true }
 
 func (k *Kume) ozet() string {
-	return fmt.Sprintf("%d veri dosyası, %s parça", k.k.ShardCount(), bind.KisaSayi(k.k.TotalTokens()))
+	return fmt.Sprintf("%d veri dosyası, %s parça", k.k.ShardCount(), bind.ShortNumber(k.k.TotalTokens()))
 }
 
 func (k *Kume) Inspect() string {
 	ek := ""
 	if k.ob != nil {
-		ek = fmt.Sprintf(", önbellek %s", bind.BaytMetni(k.ob.Quota()))
+		ek = fmt.Sprintf(", önbellek %s", bind.FormatBytes(k.ob.Quota()))
 	}
 	return fmt.Sprintf("%s(%s%s)", KumeTipi, k.ozet(), ek)
 }
@@ -105,7 +105,7 @@ func (k *Kume) TabloVerisi() ([]string, [][]string, error) {
 		if i >= sinir {
 			break
 		}
-		satirlar = append(satirlar, []string{p.Name, fmt.Sprint(p.Token), bind.BaytMetni(p.Bytes)})
+		satirlar = append(satirlar, []string{p.Name, fmt.Sprint(p.Token), bind.FormatBytes(p.Bytes)})
 	}
 	return []string{"Veri dosyası", "Parça", "Boyut"}, satirlar, nil
 }
@@ -126,18 +126,18 @@ func (k *Kume) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	case uyeSirali:
 		return metot(codes.Name(uyeSirali), k.sirali), nil
 	}
-	return nil, bind.UyeHatasi("Veri kümesi", prop, kumeUyeleri)
+	return nil, bind.MemberError("Veri kümesi", prop, kumeUyeleri)
 }
 
 func metot(ad string, fn interp.BuiltinFunc) *interp.BuiltinVal {
 	return &interp.BuiltinVal{Name: ad, Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(ad, func() (interp.Value, error) { return fn(m, args, named) })
+		return bind.Safe(ad, func() (interp.Value, error) { return fn(m, args, named) })
 	}}
 }
 
 // onbellekDizini önbellek: adlı argümanının (verildiyse) çözülmüş klasör yoludur.
 func onbellekDizini(m *interp.VM, fn string, named map[string]interp.Value) (string, error) {
-	v, ok := bind.AdliAl(named, adOnbellek)
+	v, ok := bind.GetNamed(named, adOnbellek)
 	if !ok {
 		return "", nil
 	}
@@ -150,12 +150,12 @@ func onbellekDizini(m *interp.VM, fn string, named map[string]interp.Value) (str
 	}
 	// Göreli yol, diğer yollar gibi tek kuralla çözülür (16.8): önce çalışma
 	// klasörü, orada yoksa programın klasörü.
-	return bind.YolCoz(m, d), nil
+	return bind.ResolvePath(m, d), nil
 }
 
 func kumeAc(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.V100)
-	if err := bind.AdliDenetle(fn+"()", named, adOnbellek, adKota); err != nil {
+	if err := bind.CheckNamed(fn+"()", named, adOnbellek, adKota); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
@@ -168,14 +168,14 @@ func kumeAc(m *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 	if yolHata != nil {
 		return nil, yolHata
 	}
-	yol, bakilanlar := bind.YolCozBakilan(m, ham)
+	yol, bakilanlar := bind.ResolvePathTried(m, ham)
 
 	obDizin, obHata := onbellekDizini(m, fn, named)
 	if obHata != nil {
 		return nil, obHata
 	}
 	var kota int64
-	kotaV, kotaVar := bind.AdliAl(named, adKota)
+	kotaV, kotaVar := bind.GetNamed(named, adKota)
 	if kotaVar {
 		if obDizin == "" {
 			return nil, fmt.Errorf("%s: %s yalnızca %s: ile birlikte kullanılır (önbellek klasörünün en çok kaç GB kullanacağı)", fn, adKota.TR, adOnbellek.TR)
@@ -220,7 +220,7 @@ func kumeAc(m *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 		gereken := enBuyukParca(k) * int64(dataload.DefaultGroupSize+dataload.DefaultLookahead)
 		return nil, fmt.Errorf("%s: %s: verildiğinde %s: de verilmelidir (önbellek klasörünün kullanabileceği en çok disk alanı, GB). "+
 			"Bu kümenin örnekleyicisi aynı anda %d veri dosyasını yerelde tutar; en büyük veri dosyası %s olduğundan en az %s: %d gerekir",
-			fn, adOnbellek.TR, adKota.TR, dataload.DefaultGroupSize+dataload.DefaultLookahead, bind.BaytMetni(enBuyukParca(k)), adKota.TR, int64(math.Ceil(float64(gereken)/(1<<30))))
+			fn, adOnbellek.TR, adKota.TR, dataload.DefaultGroupSize+dataload.DefaultLookahead, bind.FormatBytes(enBuyukParca(k)), adKota.TR, int64(math.Ceil(float64(gereken)/(1<<30))))
 	}
 	tk := &Kume{k: k, yol: ham, ob: ob}
 	if ob != nil {
@@ -265,7 +265,7 @@ func veriHatasi(fn, yol string, err error, ekler ...string) error {
 		return fmt.Errorf("%s: okuyucu kapatılmış (program sonlanıyor); yeni bir okuyucu oluşturun", fn)
 	case errors.Is(err, dataload.ErrCacheLocked):
 		return fmt.Errorf("%s: %s", fn, temizle(strings.TrimPrefix(err.Error(), dataload.ErrCacheLocked.Error()+": ")))
-	case bind.YokMu(err) && strings.Contains(err.Error(), "küme açılamadı"):
+	case bind.IsNotExist(err) && strings.Contains(err.Error(), "küme açılamadı"):
 		return turkish.FileError(fn, yol, "açılamadı", err,
 			append([]string{".npy veri dosyalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin"}, ekler...)...)
 	}
@@ -362,17 +362,17 @@ func (o *Okuyucu) GetProperty(kd codes.Code, prop string) (interp.Value, error) 
 	if o.sirali {
 		ne = "Sıralı okuyucu"
 	}
-	return nil, bind.UyeHatasi(ne, prop, codes.Names(uyeSonraki, uyeDurum, uyeDurumuYukle))
+	return nil, bind.MemberError(ne, prop, codes.Names(uyeSonraki, uyeDurum, uyeDurumuYukle))
 }
 
 // okuyucuArgumanlari toplu, bağlam ve (örnekleyicide) tohum argümanlarını okur. Konumlu
 // olarak da aynı sırayla verilebilirler.
 func okuyucuArgumanlari(fn string, args []interp.Value, named map[string]interp.Value, tohumlu bool) (b, t int, tohum uint64, err error) {
-	adlar := []bind.Ad{adToplu, adBaglam}
+	adlar := []bind.Named{adToplu, adBaglam}
 	if tohumlu {
 		adlar = append(adlar, adTohum)
 	}
-	if err = bind.AdliDenetle(fn+"()", named, adlar...); err != nil {
+	if err = bind.CheckNamed(fn+"()", named, adlar...); err != nil {
 		return
 	}
 	if len(args) > len(adlar) {
@@ -381,7 +381,7 @@ func okuyucuArgumanlari(fn string, args []interp.Value, named map[string]interp.
 	}
 	degerler := make([]interp.Value, len(adlar))
 	for i, a := range adlar {
-		v, adli := bind.AdliAl(named, a)
+		v, adli := bind.GetNamed(named, a)
 		if i < len(args) {
 			if adli {
 				err = fmt.Errorf("%s: %s hem konumlu hem adlı verildi", fn, a.TR)
@@ -399,7 +399,7 @@ func okuyucuArgumanlari(fn string, args []interp.Value, named map[string]interp.
 		if v == nil {
 			return 0, fmt.Errorf("%s: %s: verilmedi; ör. %s", fn, ad, ornek)
 		}
-		n, ok := bind.TamSayi(v)
+		n, ok := bind.Int(v)
 		if !ok || n <= 0 || n > 1<<24 {
 			return 0, fmt.Errorf("%s: %s pozitif bir tam sayı olmalıdır, %s verildi", fn, ad, v.Inspect())
 		}
@@ -416,7 +416,7 @@ func okuyucuArgumanlari(fn string, args []interp.Value, named map[string]interp.
 		return
 	}
 	if tohumlu && degerler[2] != nil {
-		n, ok := bind.TamSayi(degerler[2])
+		n, ok := bind.Int(degerler[2])
 		if !ok || n < 0 {
 			err = fmt.Errorf("%s: %s negatif olmayan bir tam sayı olmalıdır, %s verildi", fn, adTohum.TR, degerler[2].Inspect())
 			return
@@ -493,7 +493,7 @@ func onYukleyiciKapatici(oy *dataload.Prefetcher) func(time.Duration) error {
 // sonraki bir sonraki toplu işi [girdi, hedef] olarak verir; sıralı okuyucu bitince yok.
 func (o *Okuyucu) sonraki(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(uyeSonraki)
-	if err := bind.AdliDenetle(fn+"()", named); err != nil {
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 0 {
