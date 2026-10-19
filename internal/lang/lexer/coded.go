@@ -27,7 +27,9 @@ import (
 // debugger and the editor report the same line and column as the text the person sees.
 func NewBody(input string, coded bool) *Lexer {
 	if !coded {
-		return newLexer(input)
+		l := newLexer(input)
+		l.checkBidi()
+		return l
 	}
 	pre := newLexer(input)
 	pre.coded = true
@@ -36,6 +38,7 @@ func NewBody(input string, coded bool) *Lexer {
 	l := newLexer(input)
 	l.coded = true
 	l.buildShifts(k)
+	l.checkBidi()
 	return l
 }
 

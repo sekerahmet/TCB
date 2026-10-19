@@ -86,7 +86,9 @@ func (l *Lexer) addError(line, col int, format string, args ...interface{}) {
 func New(input string) *Lexer {
 	// Bazı Windows editörlerinin dosya başına eklediği UTF-8 BOM'u (U+FEFF) atla;
 	// aksi halde ilk satırda GEÇERSİZ bir sözcük birimi oluşur.
-	return newLexer(strings.TrimPrefix(input, string(rune(0xFEFF))))
+	l := newLexer(strings.TrimPrefix(input, string(rune(0xFEFF))))
+	l.checkBidi()
+	return l
 }
 
 func newLexer(input string) *Lexer {
@@ -301,7 +303,9 @@ func (l *Lexer) NextToken() (result Token) {
 		tok = Token{Type: TOKEN_ILLEGAL, Literal: string(l.ch), Line: line, Column: col}
 	default:
 		if isLetter(l.ch) {
-			return l.nameToken(l.readIdentifier(), line, col)
+			name := l.readIdentifier()
+			l.checkName(name, line, col)
+			return l.nameToken(name, line, col)
 		} else if isDigit(l.ch) {
 			lit, isFloat := l.readNumber()
 			if isFloat {

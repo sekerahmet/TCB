@@ -2,6 +2,8 @@
 
 **2.1** Kaynak UTF-8 metindir; bazı Windows editörlerinin eklediği baştaki BOM (U+FEFF) yok sayılır. Konumlar 1'den başlayan satır ve karakter (bayt değil) sütunlarıyla bildirilir. Kaynağın ortasındaki NUL karakteri (U+0000) sözdizimi hatasıdır (metin dosyasında bulunmaz; ardından gelen kod sessizce yok sayılmaz). Dosya kodlu biçimde de saklanabilir (17.1).
 
+**2.1a** Göründüğünden farklı okunan kaynak kabul edilmez. Yazı yönünü değiştiren görünmez karakterler (U+202A–U+202E, U+2066–U+2069, U+200E, U+200F, U+061C) kaynağın hiçbir yerinde, yorum ve metin içinde de, kullanılamaz: bir satırın gösterim sırasını değiştirip kodun başka bir şey gibi görünmesine yol açarlar. Adlarda görünmez dolgu harfleri (U+115F, U+1160, U+3164, U+FFA0) kullanılamaz. Bir ad birbirine benzeyen yazı sistemlerinden (Latin, Kiril, Yunan) yalnızca birinin harfleriyle yazılır: `yetkі` (son harfi Kiril) hatadır, çünkü `yetki`'den ayırt edilemez; tamamı tek yazı sisteminde olan adlar (`öğrenme`, `привет`, `αβγ`) geçerlidir.
+
 **2.2** Yorumlar iki biçimdedir: satır sonuna kadar `//` ve çok satırlı `/* ... */`. Kapanmayan `/*` bir hatadır. `#` yorum değildir: metin dışında yazılan `#` bir sözdizimi hatasıdır (`'#' TR'de yorum değil; yorum için '//' yazın`); metin içinde (`"#22c55e"`) sıradan bir karakterdir.
 
 ```tr
