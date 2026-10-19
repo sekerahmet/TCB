@@ -532,7 +532,7 @@ func abs32(x float32) float32 { return math.Float32frombits(math.Float32bits(x) 
 // unaryMaliyet bir elemanın yaklaşık göreli maliyeti (işçi sayısı seçimi için).
 func unaryMaliyet(op UnOp) int {
 	switch op {
-	case OpAddScalar, OpMulScalar, OpRSubScalar, OpRelu:
+	case OpAddScalar, OpMulScalar, OpRSubScalar, OpRelu, OpAbs:
 		return 1
 	case OpRDivScalar, OpSqrt:
 		return 4

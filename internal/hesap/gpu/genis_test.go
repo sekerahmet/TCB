@@ -42,6 +42,39 @@ var genisTekliler = []genisTekli{
 	{"taban", (*tensor.Tensor).Floor, normal(5)},
 	{"tavan", (*tensor.Tensor).Ceil, normal(5)},
 	{"işaret", (*tensor.Tensor).Sign, normal(1)},
+	{"mutlak", (*tensor.Tensor).Abs, normal(3)},
+}
+
+// TestMutlakSifirdaTurev mutlak değerin türevinin 0'da (±0) tam 0, NaN'da NaN olduğunu ve
+// GPU'nun bitleri CPU'nunkiyle aynı verdiğini (−0 → 0, NaN korunur) denetler; 16 bitlik
+// girdiler dahil.
+func TestMutlakSifirdaTurev(t *testing.T) {
+	eksiSifir := float32(math.Copysign(0, -1))
+	veri := []float32{0, eksiSifir, -2, 3, float32(math.NaN()), float32(math.Inf(-1)), -1e-40}
+	for _, tur := range []tensor.DType{tensor.Float32, tensor.BFloat16, tensor.Float16} {
+		karsilastir(t, fmt.Sprintf("mutlak %v", tur), 0, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x := yaprakTurde(ikiz(veri, true, len(veri))[c], tur)
+			return x.Abs().Mul(tensor.NewOn(x.Device(), []float32{1, 2, 3, 4, 5, 6, 7}, 7).Cast(tur)), []*tensor.Tensor{x}
+		})
+	}
+	ileri := ikiz(veri, false, len(veri))
+	a, b := ileri[0].Abs().Data(), ileri[1].Abs().Data()
+	for i := range a {
+		if math.Float32bits(a[i]) != math.Float32bits(b[i]) || math.Signbit(float64(b[i])) {
+			t.Fatalf("mutlak(%v): GPU %v (%#x), CPU %v (%#x)", veri[i], b[i], math.Float32bits(b[i]), a[i], math.Float32bits(a[i]))
+		}
+	}
+	x := tensor.NewOn(gpuCihaz, veri, len(veri)).SetRequiresGrad(true)
+	x.Abs().SumAll().Backward()
+	g := x.Grad().Data()
+	for i, b := range []float32{0, 0, -1, 1} {
+		if g[i] != b || (b == 0 && math.Signbit(float64(g[i]))) {
+			t.Fatalf("mutlak türevi %v'de %v, %v bekleniyordu (%v)", veri[i], g[i], b, g)
+		}
+	}
+	if g[4] == g[4] {
+		t.Fatalf("NaN'da türev NaN olmalı: %v", g)
+	}
 }
 
 func TestTekliGenis(t *testing.T) {

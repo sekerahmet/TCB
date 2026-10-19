@@ -63,12 +63,12 @@ test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdır, 
     // q'yu ve k'yı bütün konumlara koy: [8, 4]
     değişken Q = döner_konum_uygula(tensör([q.değer[0] döngü i içinde 0..8]), kos, sin)
     değişken K = döner_konum_uygula(tensör([k.değer[0] döngü i içinde 0..8]), kos, sin)
-    değişken fark = toplam((toplam(Q * Q, eksen: -1) - toplam(q * q)) ** 2).değer
-    doğrula(fark < 0.000001, "döndürme normu korumalı: {fark}")
+    değişken fark = maks(mutlak(toplam(Q * Q, eksen: -1) - toplam(q * q))).değer
+    doğrula(fark < 0.00002, "döndürme normu korumalı: {fark}")
     değişken p = Q @ K.devrik() // p[i][j] = <R_i q, R_j k>
     değişken a = p[3][1].değer
     değişken b = p[6][4].değer
-    doğrula(a - b < 0.0001 ve b - a < 0.0001, "iç çarpım yalnızca i - j'ye bağlı olmalı: {a} / {b}")
+    doğrula(mutlak(a - b) < 0.0001, "iç çarpım yalnızca i - j'ye bağlı olmalı: {a} / {b}")
     fonksiyon f(x) { sonuç döner_konum_uygula(x, kos, sin) }
     doğrula(türev_denetle(f, [rastgele_girdi([2, 5, 4], 3)]))
 }

@@ -62,6 +62,7 @@ var tekliBasvurular = []tekliBasvuru{
 	{"floor", (*Tensor).Floor, math.Floor, 0, nil},
 	{"ceil", (*Tensor).Ceil, math.Ceil, 0, nil},
 	{"sign", (*Tensor).Sign, isaret64, 0, nil},
+	{"abs", (*Tensor).Abs, math.Abs, 0, isaret64},
 }
 
 // ulpFarki a ile b (float32) arasındaki fark, b'nin ulp'u biriminde; ikisi de NaN ise 0,
@@ -134,6 +135,9 @@ func TestTekliGenisKenar(t *testing.T) {
 		{"ceil(-2.5)", (*Tensor).Ceil, -2.5, -2},
 		{"sign(NaN)", (*Tensor).Sign, nan32, nan32},
 		{"sign(-0)", (*Tensor).Sign, float32(math.Copysign(0, -1)), 0},
+		{"abs(-sonsuz)", (*Tensor).Abs, eksiSonsuz32, artiSonsuz32},
+		{"abs(NaN)", (*Tensor).Abs, nan32, nan32},
+		{"abs(-1e-40)", (*Tensor).Abs, -1e-40, 1e-40},
 	}
 	for _, d := range durumlar {
 		got := d.f(New([]float32{d.x}, 1)).Data()[0]
@@ -188,6 +192,34 @@ func TestTurevsizTekliler(t *testing.T) {
 		x := New([]float32{-1.5, 0, 2.5, 3}, 4).SetRequiresGrad(true)
 		f(x).Mul(New([]float32{1, 2, 3, 4}, 4)).SumAll().Backward()
 		nanAyni(t, "türevsiz tekli gradyanı", x.Grad().Data(), []float32{0, 0, 0, 0})
+	}
+}
+
+// TestAbs mutlak değer: −0'ın sonucu +0'dır (işaret biti silinir); türev işaret(x), 0'da (±0)
+// tam 0, NaN'da NaN; 16 bitlik türlerde sonuç girdinin türündedir; işçi sayısından bağımsızdır.
+func TestAbs(t *testing.T) {
+	eksiSifir := float32(math.Copysign(0, -1))
+	if y := New([]float32{eksiSifir}, 1).Abs().Data()[0]; math.Float32bits(y) != 0 {
+		t.Fatalf("abs(-0) bitleri %#x, 0 bekleniyordu", math.Float32bits(y))
+	}
+	x := New([]float32{-1.5, 0, eksiSifir, 2.5, nan32, eksiSonsuz32}, 6).SetRequiresGrad(true)
+	x.Abs().Mul(New([]float32{1, 2, 3, 4, 5, 6}, 6)).SumAll().Backward()
+	nanAyni(t, "abs gradyanı", x.Grad().Data(), []float32{-1, 0, 0, 4, nan32, -6})
+	for _, tur := range []DType{BFloat16, Float16} {
+		y := New([]float32{-1.5, 2, -0.25}, 3).Cast(tur).Abs()
+		if y.DType() != tur {
+			t.Fatalf("abs %v sonucu %v türünde", tur, y.DType())
+		}
+		nanAyni(t, "abs 16 bit", y.Cast(Float32).Data(), []float32{1.5, 2, 0.25})
+	}
+	// Büyük girdi (paralel yol) tek elemanlı hesapla aynıdır.
+	rng := rand.New(rand.NewSource(8))
+	b := rastgele(rng, -3, 3, 0, 300, 700)
+	got := b.Abs().Data()
+	for i, v := range b.Data() {
+		if got[i] != abs32(v) {
+			t.Fatalf("abs paralel yol %d: %v, %v bekleniyordu", i, got[i], abs32(v))
+		}
 	}
 }
 

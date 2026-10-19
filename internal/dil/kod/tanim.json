@@ -88,7 +88,7 @@
   "G400": { "tür": "fonksiyon", "param": ["A205|A212", "A200?"], "adlı": [["T902", "A200", null], ["T906", "A203", false]], "dönüş": "A200|A201|A212", "ilişkili": ["G410"] },
   "G401": { "tür": "fonksiyon", "param": ["A205|A200|A201|A212", "A200|A201*"], "adlı": [["T902", "A200", null], ["T906", "A203", false]], "dönüş": "A200|A201|A204|A212", "ilişkili": ["G402"] },
   "G402": { "tür": "fonksiyon", "param": ["A205|A200|A201|A212", "A200|A201*"], "adlı": [["T902", "A200", null], ["T906", "A203", false]], "dönüş": "A200|A201|A204|A212", "ilişkili": ["G401", "T230"] },
-  "G403": { "tür": "fonksiyon", "param": ["A200|A201"], "dönüş": "A200|A201", "ilişkili": ["G405"] },
+  "G403": { "tür": "fonksiyon", "param": ["A200|A201|A212"], "dönüş": "A200|A201|A212", "ilişkili": ["G405", "G408"] },
   "G404": { "tür": "fonksiyon", "param": ["A200|A201|A212"], "dönüş": "A201|A212", "ilişkili": ["G403"] },
   "G405": { "tür": "fonksiyon", "param": ["A200|A201", "A200?"], "dönüş": "A200|A201", "ilişkili": ["G210"] },
   "G406": { "tür": "fonksiyon", "param": ["A200|A201|A212"], "dönüş": "A200|A201|A212", "ilişkili": ["G407", "G405"] },

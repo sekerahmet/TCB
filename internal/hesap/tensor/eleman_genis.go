@@ -52,6 +52,10 @@ func (t *Tensor) Ceil() *Tensor { return unary(t, OpCeil, 0) }
 // Sign işaret: pozitifte 1, negatifte −1, sıfırda 0; NaN korunur. Türevi 0.
 func (t *Tensor) Sign() *Tensor { return unary(t, OpSign, 0) }
 
+// Abs mutlak değer |x|: işaret biti silinir (−0 → 0, −sonsuz → sonsuz), NaN korunur. Türevi
+// işaret(x)'tir: pozitifte 1, negatifte −1, 0'da 0 (alt türevlerden 0 seçilir).
+func (t *Tensor) Abs() *Tensor { return unary(t, OpAbs, 0) }
+
 // Clamp her elemanı [lo, hi] aralığına sınırlar; sınırın yalnızca biri isteniyorsa diğeri
 // ±sonsuz verilir. NaN eleman NaN kalır. Türev aralığın içinde (sınırlar dahil) 1, dışında
 // 0'dır. lo > hi ya da NaN sınır hatadır.

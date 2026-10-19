@@ -48,6 +48,10 @@ func unaryDonguGenis(op UnOp, y, x []float32) {
 		for i, v := range x {
 			y[i] = isaret32(v)
 		}
+	case OpAbs:
+		for i, v := range x {
+			y[i] = abs32(v)
+		}
 	default:
 		panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))
 	}
@@ -149,6 +153,11 @@ func unaryGradDonguGenis(op UnOp, gx, g, x, y []float32) {
 		f64(func(x, _ float64) float64 { return 1 / (x * math.Ln10) })
 	case OpExpm1:
 		f64(func(_, y float64) float64 { return y + 1 })
+	case OpAbs:
+		// Türev işaret(x): 0'da (±0) çarpan sıfırdır, NaN'da NaN.
+		for i, v := range g {
+			gx[i] += v * isaret32(x[i])
+		}
 	case OpFloor, OpCeil, OpSign:
 		// Türev 0 (tensör katmanı bu işlemlerin geri yayılımını arka uca göndermez).
 	default:

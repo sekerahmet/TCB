@@ -12,8 +12,8 @@ import (
 
 // Genişletilmiş matematik yerleşikleri: etkinleştirme (silu), ters trigonometri,
 // hiperbolik, kararlı logaritma/üstel (birli ile: sayıda Ondalık, tensörde türevli
-// tensör), taban/tavan/işaret (sayı yolu internal/dil/yurut'ta; tensörde tam sayılı işaret
-// korunur), sınırla ve arktanjant2. Koşullu seçim yerlesik_secim.go'da, birikim ve sıralama
+// tensör), taban/tavan/işaret/mutlak (sayı yolu internal/dil/yurut'ta; tensörde tam sayılı
+// işaret korunur), sınırla ve arktanjant2. Koşullu seçim yerlesik_secim.go'da, birikim ve sıralama
 // yerlesik_siralama.go'dadır.
 
 func silu64(x float64) float64 {
@@ -39,6 +39,7 @@ func matematigiGenisKaydet(v *yurut.VM) {
 	yuvarlamaKaydet(v, kod.G406, (*tensor.Tensor).Floor)
 	yuvarlamaKaydet(v, kod.G407, (*tensor.Tensor).Ceil)
 	yuvarlamaKaydet(v, kod.G408, (*tensor.Tensor).Sign)
+	yuvarlamaKaydet(v, kod.G403, (*tensor.Tensor).Abs) // mutlak: türevli (işaret(x), 0'da 0)
 	sar(v, kod.G409, yeniYerlesik(sinirlaYerlesik))
 	sar(v, kod.T228, yeniYerlesik(arktanjant2Yerlesik))
 	sar(v, kod.T234, yeniYerlesik(kosulluYerlesik))         // yerlesik_secim.go
@@ -47,9 +48,9 @@ func matematigiGenisKaydet(v *yurut.VM) {
 	sar(v, kod.T233, yeniYerlesik(siralamaIndeksiYerlesik))
 }
 
-// yuvarlamaKaydet taban, tavan ve işareti sarar: tensörde eleman bazlı (türevi 0; tam sayılı
-// işaretli tensörün sonucu da tam sayılıdır), sayıda çekirdek yerleşiği (Tam → Tam), listede
-// yol gösteren hata.
+// yuvarlamaKaydet taban, tavan, işaret ve mutlak'ı sarar: tensörde eleman bazlı (türevi tensör
+// işleminindir: taban, tavan ve işarette 0, mutlak'ta işaret(x); tam sayılı işaretli tensörün
+// sonucu da tam sayılıdır), sayıda çekirdek yerleşiği (Tam → Tam), listede yol gösteren hata.
 func yuvarlamaKaydet(v *yurut.VM, kd kod.Kod, fn func(*tensor.Tensor) *tensor.Tensor) {
 	ad := kod.Ad(kd)
 	sar(v, kd, func(eski yurut.BuiltinFunc) yurut.BuiltinFunc {

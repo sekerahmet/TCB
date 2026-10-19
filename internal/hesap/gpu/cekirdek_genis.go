@@ -44,6 +44,10 @@ func (k *yazici) tekliIfadeGenis(op tensor.UnOp, x yazmac) yazmac {
 		return y
 	case tensor.OpSign:
 		return k.isaretF(x)
+	case tensor.OpAbs:
+		y := k.f()
+		k.e("abs.f32", y, x) // işaret biti silinir; NaN korunur
+		return y
 	}
 	yok(fmt.Sprintf("tekli işlem %d", op))
 	return ""
@@ -88,6 +92,8 @@ func (k *yazici) tekliTurevGenis(op tensor.UnOp, x, y yazmac) yazmac {
 		k.e("div.rn.f32", d, float32(1), d)
 	case tensor.OpExpm1:
 		k.e("add.rn.f32", d, y, float32(1))
+	case tensor.OpAbs:
+		return k.isaretF(x) // 0'da 0, NaN'da NaN (CPU ile aynı)
 	default:
 		yok(fmt.Sprintf("tekli işlemin türevi %d", op))
 	}

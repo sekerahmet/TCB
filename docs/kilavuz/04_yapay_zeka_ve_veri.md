@@ -36,6 +36,7 @@ Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`
   | Hiperbolik | `sinh`, `cosh` (`tanh` zaten var) | |
   | Kararlı logaritma ve üstel | `log1p(x)`, `log2`, `log10`, `üstel_eksi_bir(x)` | küçük x'te `log(1 + x)` ve `üstel(x) - 1`'den doğru |
   | Yuvarlama | `taban`, `tavan`, `işaret` | Tam'da Tam; türev 0 |
+  | Mutlak değer | `mutlak(x)` | Tam'da Tam; tensörde türevli (türev `işaret(x)`, 0'da 0); en büyük fark: `maks(mutlak(a - b))` |
   | Sınırlama | `sınırla(x, en_az: 0, en_fazla: 1)` | sınırlardan biri yeter; türev aralık içinde 1 |
   | Koşullu seçim | `koşullu(x > 0, x, 0)` | yayınlamalı; gradyan seçilen dala akar |
   | Birikimli toplam | `birikimli_toplam(x, eksen: -1)` | türevli, belirlenimci |

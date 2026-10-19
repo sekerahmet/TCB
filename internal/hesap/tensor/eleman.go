@@ -159,7 +159,7 @@ var unopAd = map[UnOp]string{
 	OpRSubScalar: "rsub_scalar", OpRDivScalar: "rdiv_scalar", OpSin: "sin", OpCos: "cos",
 	OpSilu: "silu", OpTan: "tan", OpAsin: "asin", OpAcos: "acos", OpAtan: "atan", OpSinh: "sinh",
 	OpCosh: "cosh", OpLog1p: "log1p", OpLog2: "log2", OpLog10: "log10", OpExpm1: "expm1",
-	OpFloor: "floor", OpCeil: "ceil", OpSign: "sign",
+	OpFloor: "floor", OpCeil: "ceil", OpSign: "sign", OpAbs: "abs",
 }
 
 // turevsizTekli türevi her yerde 0 olan (parçalı sabit) tekli işlemlerdir: geri yayılım

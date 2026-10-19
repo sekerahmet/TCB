@@ -906,15 +906,15 @@ yazdır(maks([2.0, 1.5]), maks(3, 7, 5), maks(tensör([[1, 5], [3, 2]]), eksen: 
 
 #### G403 `mutlak`
 
-    mutlak(Tam | Ondalık) → Tam | Ondalık
+    mutlak(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
 
-Sayının mutlak değerini verir; Tam Tam, Ondalık Ondalık kalır, en küçük Tam değerde taşma hatası verir.
+Sayının mutlak değerini verir; Tam Tam, Ondalık Ondalık kalır, en küçük Tam değerde taşma hatası verir. Tensörde eleman bazlı çalışır (−0 sıfır olur, NaN korunur, 16 bitlik tensör kendi türünde döner); türevi işaret(x)'tir, 0'da 0. Listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(mutlak(-5), mutlak(-2.5))
+yazdır(mutlak(-5), mutlak(-2.5), mutlak(tensör([-2.0, 0.0, 3.0])).değer)
 ```
 
-İlişkili: G405 `yuvarla`
+İlişkili: G405 `yuvarla`, G408 `işaret`
 
 #### G404 `karekök`
 

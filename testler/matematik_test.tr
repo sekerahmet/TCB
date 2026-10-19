@@ -105,6 +105,31 @@ test "15.32 taban, tavan, işaret tensörde: tam sayılı tensör tam sayılı k
     eşit_mi([0.0, 0.0, 0.0], x.gradyan.değer)
 }
 
+test "15.40 mutlak tensörde: eleman bazlı, türevi işaret(x) (0'da 0), 16 bit ve tam sayılı tür korunur" {
+    eşit_mi([2.0, 0.0, 3.5], mutlak(tensör([-2.0, 0.0, 3.5])).değer)
+    // −0'ın mutlağı +0'dır: 1 / +0 pozitif sonsuz verir.
+    değişken eksi_sıfır = tensör([0.0]) * -1
+    doğrula((1 / eksi_sıfır).değer[0] < 0)
+    doğrula((1 / mutlak(eksi_sıfır)).değer[0] > 0)
+    değişken n = mutlak(tensör([0.0]) / 0).değer[0]
+    doğrula(n != n, "NaN korunur")
+    doğrula((mutlak(tensör([-1.0]) / 0)).değer[0] > 1e308, "sonsuzun mutlağı sonsuz")
+    // Türev işaret(x): pozitifte 1, negatifte -1, 0'da 0.
+    değişken x = tensör([-1.5, 0.0, 2.5], türev_izle: doğru)
+    geri_yayılım(toplam(mutlak(x) * tensör([1.0, 2.0, 3.0])))
+    eşit_mi([-1.0, 0.0, 3.0], x.gradyan.değer)
+    eşit_mi(doğru, türev_denetle((t) => mutlak(t), [tensör([-0.7, 0.4, 1.3], türev_izle: doğru)]))
+    // 16 bitlik tensör kendi türünde döner; tam sayılı işaretli tensör tam sayılı kalır.
+    değişken h = mutlak(tensör([-1.5, 2.0], tür: "bf16"))
+    eşit_mi("bf16", h.tür)
+    eşit_mi([1.5, 2.0], h.değer)
+    eşit_mi(Tam, tip(mutlak(maks_indeks(tensör([1, 3]))).değer))
+    // Sayıda kural değişmez; listede çalışmaz.
+    eşit_mi(5, mutlak(-5))
+    eşit_mi(2.5, mutlak(-2.5))
+    doğrula(hata_metni(() => mutlak([-1, 2])).içerir("tensör("))
+}
+
 test "15.33 sınırla: aralık, tek sınır, NaN korunur, türev aralık içinde 1; hatalar" {
     eşit_mi([0.0, 0.5, 1.0], sınırla(tensör([-2.0, 0.5, 3.0]), en_az: 0, en_fazla: 1).değer)
     eşit_mi([0.0, 3.0], sınırla(tensör([-2.0, 3.0]), en_az: 0).değer)

@@ -20,8 +20,8 @@ test "dikleştir: uzun ve geniş matriste sonuç yaklaşık diktir (UᵀU ≈ I)
     değişken Y = dikleştir(G.devrik()) // [16, 32]: satırlar dik
     doğrula(sapma_rms(Y.devrik()) < 0.2, "geniş: {sapma_rms(Y.devrik())}")
     // Ölçekten bağımsızdır.
-    değişken fark = toplam((dikleştir(G * 1000) - X) ** 2).değer
-    doğrula(fark < 0.0001, "ölçek değişince sonuç değişmemeli: {fark}")
+    değişken fark = maks(mutlak(dikleştir(G * 1000) - X)).değer
+    doğrula(fark < 0.00001, "ölçek değişince sonuç değişmemeli: {fark}")
 }
 
 test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çıkış/giriş)" {
@@ -35,12 +35,12 @@ test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çıkı�
     // İlk adımda momentum (1 − β)·g'dir; dikleştirme ölçekten bağımsız olduğundan güncelleme
     // −η · √2 · dikleştir(g)'dir.
     değişken beklenen = önce - 0.1 * karekök(2.0) * dikleştir(G)
-    değişken fark = toplam((W - beklenen) ** 2).değer
-    doğrula(fark < 0.000001, "Muon adımı beklenenden farklı: {fark}")
+    değişken fark = maks(mutlak(W - beklenen)).değer
+    doğrula(fark < 0.00001, "Muon adımı beklenenden farklı: {fark}")
     eşit_mi(1, op.durum.momentum.uzunluk)
     // sıfırla gradyanı sıfırlar; gradyan almayan ağırlık güncellenmez.
     op.sıfırla()
-    eşit_mi(0.0, toplam(W.gradyan * W.gradyan).değer)
+    eşit_mi(0.0, maks(mutlak(W.gradyan)).değer)
     değişken V = tensör(birler([3, 3]), türev_izle: doğru)
     Muon([V]).adım()
     eşit_mi(birler([3, 3]), türevsiz(V))
@@ -105,10 +105,11 @@ test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½:
     op_b.adım()
     değişken tam_adım = türevsiz(a.gömme.tablo) - önce
     değişken yarım = türevsiz(b.gömme.tablo) - önce
-    doğrula(toplam(tam_adım ** 2).değer > 0, "AdamW gömmeyi güncellemeli")
+    doğrula(maks(mutlak(tam_adım)).değer > 0, "AdamW gömmeyi güncellemeli")
     // AdamW'nin adımı öğrenme oranıyla doğrusaldır (momentler orandan bağımsız): yarım oran,
     // float32 yuvarlamasıyla yarım adım verir.
-    doğrula(toplam((yarım - 0.5 * tam_adım) ** 2).değer < 0.0000000001, "yarım çarpan yarım adım vermeli")
+    değişken yarım_fark = maks(mutlak(yarım - 0.5 * tam_adım)).değer
+    doğrula(yarım_fark < 0.0000001, "yarım çarpan yarım adım vermeli: {yarım_fark}")
     eşit_mi(0.01, op_b.muon.öğrenme_oranı)
     eşit_mi(0.0015, op_b.adamw.öğrenme_oranı)
     eşit_mi(0.003, op_a.adamw.öğrenme_oranı)
@@ -147,7 +148,7 @@ test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükler" 
     eşit_mi(kesintisiz[1].muon.durum.momentum, sürdürülen[1].muon.durum.momentum)
     // Durum tensörleri türev izlemez (parametre değildir); kontrol noktası onları da saklar.
     eşit_mi(0, parametreler(sürdürülen[1].muon.durum).uzunluk)
-    doğrula(toplam(sürdürülen[1].muon.durum.momentum[0] ** 2).değer > 0, "momentum yüklenmeli")
+    doğrula(maks(mutlak(sürdürülen[1].muon.durum.momentum[0])).değer > 0, "momentum yüklenmeli")
 }
 
 // Ters çevirme görevi: [a b c d | d c b a]. İkinci yarı ilk yarıdan tahmin edilir.
