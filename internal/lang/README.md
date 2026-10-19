@@ -25,3 +25,13 @@ denetimiyle bulur; adı değişen bir metot, bu denetim olmadan kancayı sessizc
 
 **Değişiklikler.** Ad değişikliği ya da taşıma, davranış değişikliğiyle aynı commit'e girmez;
 taşınan kod olduğu gibi taşınır.
+
+## Bir değişikliğin etkisi
+
+Bir adı değiştirmeden önce nerede kullanıldığını koddan sorun; cevap her seferinde koddan
+hesaplanır, eskimez:
+
+    go run ./tools/impact codes.Name              // bir adın bütün kullanımları
+    go run ./tools/impact interp.Iterable         // bir kanca arayüzü: kullanımları ve gerçekleyenler
+    go run ./tools/impact interp.VM.Interrupt     // bir metot ya da alan
+    go run ./tools/impact internal/lang/parser    // bir paketi kim, hangi adlarıyla kullanıyor
