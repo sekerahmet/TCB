@@ -140,7 +140,7 @@ func setLazyBytes(o PreTokenizer) {
 // Parse tokenizer.json içeriğinden bir parçalayıcı kurar.
 func Parse(data []byte) (*Tokenizer, error) {
 	var d fileFormat
-	if err := json.Unmarshal(data, &d); err != nil {
+	if err := exactUnmarshal(data, &d); err != nil {
 		return nil, fmt.Errorf("parçalayıcı JSON'u çözümlenemedi: %w", err)
 	}
 	if !isEmpty(d.Truncation) {

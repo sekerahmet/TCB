@@ -149,7 +149,7 @@ func readKind(raw json.RawMessage, component string) (string, error) {
 	var t struct {
 		Type *string `json:"type"`
 	}
-	if err := json.Unmarshal(raw, &t); err != nil {
+	if err := exactUnmarshal(raw, &t); err != nil {
 		return "", fmt.Errorf("%s tanımı çözümlenemedi: %w", component, err)
 	}
 	if t.Type == nil {
@@ -298,9 +298,10 @@ func NewDecoder(raw json.RawMessage) (Decoder, error) {
 	return c, nil
 }
 
-// strictDecode JSON'u yapıya çözer; bilinmeyen alanlara izin verir.
+// strictDecode JSON'u yapıya çözer; bilinmeyen alanlara izin verir, yanlış harfli ya da
+// yinelenen anahtarı reddeder (bkz. exactUnmarshal).
 func strictDecode(raw json.RawMessage, target any) error {
-	if err := json.Unmarshal(raw, target); err != nil {
+	if err := exactUnmarshal(raw, target); err != nil {
 		return fmt.Errorf("tanım çözümlenemedi: %w", err)
 	}
 	return nil

@@ -103,7 +103,7 @@ func newTemplate(raw json.RawMessage, _ func(string) (int32, bool)) (PostProcess
 					TypeID int32  `json:"type_id"`
 				} `json:"SpecialToken"`
 			}
-			if err := json.Unmarshal(h, &p); err != nil {
+			if err := exactUnmarshal(h, &p); err != nil {
 				return nil, fmt.Errorf("şablon öğesi çözümlenemedi: %w", err)
 			}
 			switch {
