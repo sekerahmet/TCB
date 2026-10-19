@@ -62,7 +62,7 @@ func runVM(t *testing.T, m *interp.VM, code string) (interp.Value, error) {
 	}
 	v, err := m.Run(prog)
 	m.WaitAsync()
-	stdlib.Kapat()
+	stdlib.Close()
 	return v, err
 }
 

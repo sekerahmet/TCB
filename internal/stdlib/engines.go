@@ -43,12 +43,12 @@ func init() {
 	})
 }
 
-// Kapat motorların program boyunca açık kalmış kaynaklarını (veri kümesi okuyucuları,
+// Close motorların program boyunca açık kalmış kaynaklarını (veri kümesi okuyucuları,
 // önden yükleme gorutinleri, önbellekler, satır okuyucularının ve günlüklerin dosyaları) kapatır,
 // bitmemiş ilerleme çubuklarını bitirir ve geçici_klasör() ile oluşturulan klasörleri siler
 // (dosyalar kapandıktan sonra). Program bitince çağrılır; takılan bir okumada en çok birkaç
 // saniye bekler. Birden çok kez çağrılabilir.
-func Kapat() {
+func Close() {
 	logging.CloseAll()
 	dataset.CloseAll(3 * time.Second)
 	files.CloseAll()

@@ -61,7 +61,7 @@ func runOnGPU(t *testing.T, code string) string {
 		t.Fatalf("program hatası: %v\nçıktı:\n%s", err, out.String())
 	}
 	m.WaitAsync()
-	stdlib.Kapat()
+	stdlib.Close()
 	return out.String()
 }
 

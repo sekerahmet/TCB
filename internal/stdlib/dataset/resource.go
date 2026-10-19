@@ -17,7 +17,7 @@ import (
 //  1. Sıralı okuyucu sona erdiğinde (sonraki() ilk kez yok döndürdüğünde) hemen.
 //  2. TR nesnesi erişilemez olunca çöp toplayıcının sonlandırıcısıyla (runtime.SetFinalizer).
 //     Kapatma ayrı bir gorutinde yapılır; takılan bir okuma diğer temizlikleri bekletmez.
-//  3. Program bitince CloseAll ile (cmd/tr ana programı internal/stdlib.Kapat üzerinden çağırır).
+//  3. Program bitince CloseAll ile (cmd/tr ana programı internal/stdlib.Close üzerinden çağırır).
 //
 // Kayıt defteri yalnızca Go nesnelerini (önden yükleyici, önbellek) tutar, TR nesnelerini
 // tutmaz; böylece TR nesnesinin erişilemez olması engellenmez.

@@ -16,7 +16,7 @@ func testKomutu(args []string) {
 		hedef = args[0]
 	}
 	ozet, err := testrunner.Calistir(hedef, os.Stdout)
-	stdlib.Kapat()
+	stdlib.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
 		os.Exit(1)

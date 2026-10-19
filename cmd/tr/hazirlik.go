@@ -157,7 +157,7 @@ func motoruKapat() {
 	for _, f := range isler {
 		f()
 	}
-	stdlib.Kapat()
+	stdlib.Close()
 }
 
 // programCikisi bir yerleşiğin istediği program çıkışını yapar (ör. komut satırı

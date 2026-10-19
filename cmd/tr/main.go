@@ -95,7 +95,7 @@ func main() {
 		// Düzenleyicinin hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
 		// Oturum bitince motorların açık kaynakları kapanır, geçici klasörler silinir.
 		err := debugger.ServeDAP(os.Stdin, os.Stdout)
-		stdlib.Kapat()
+		stdlib.Close()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "❌ Hata ayıklama sunucusu: %v\n", err)
 			os.Exit(1)
@@ -218,7 +218,7 @@ func checkFile(path string) {
 }
 
 func startREPL() {
-	defer stdlib.Kapat() // açık dosyalar kapanır, geçici klasörler silinir
+	defer stdlib.Close() // açık dosyalar kapanır, geçici klasörler silinir
 	fmt.Printf("🇹🇷 TR Programlama ve Yapay Zeka Dili (v%s) — Etkileşimli Kabuk\n", VERSION)
 	fmt.Println("Çıkmak için 'çıkış', hata ayıklayıcıyı açmak için '/h' yazın.")
 	machine := interp.New()

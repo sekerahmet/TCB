@@ -17,21 +17,21 @@ import (
 // (G/T/V/W) olmalı ve kayıtlı ad o kodun adı olmalı; sözlükteki her yerleşik kodu da
 // adıyla kayıtlı olmalı. Böylece sözlükte adı olmayan
 // bir yerleşik kaydedilemez, sözlükte de kaydı olmayan bir yerleşik kodu kalamaz.
-func TestYerlesiklerSozlukleTutarli(t *testing.T) {
+func TestBuiltinsMatchDictionary(t *testing.T) {
 	m := interp.New()
-	for _, ad := range m.GlobalEnv.Names() {
-		d, _ := m.GlobalEnv.Get(ad)
+	for _, name := range m.GlobalEnv.Names() {
+		d, _ := m.GlobalEnv.Get(name)
 		b, ok := d.(*interp.BuiltinVal)
 		if !ok {
 			continue
 		}
-		k, ok := codes.Find(codes.NamespaceGlobal, ad)
+		k, ok := codes.Find(codes.NamespaceGlobal, name)
 		if !ok || !k.IsBuiltin() {
-			t.Errorf("kayıtlı yerleşik %q sözlükte bir yerleşik kodu değil", ad)
+			t.Errorf("kayıtlı yerleşik %q sözlükte bir yerleşik kodu değil", name)
 			continue
 		}
-		if asil, _ := codes.CanonicalNameIn(codes.NamespaceGlobal, ad); b.Name != asil {
-			t.Errorf("%q (%s) yerleşiğinin adı %q, sözlükte %q", ad, k, b.Name, asil)
+		if actual, _ := codes.CanonicalNameIn(codes.NamespaceGlobal, name); b.Name != actual {
+			t.Errorf("%q (%s) yerleşiğinin adı %q, sözlükte %q", name, k, b.Name, actual)
 		}
 	}
 	for _, k := range codes.Codes() {
@@ -60,8 +60,8 @@ func TestYerlesiklerSozlukleTutarli(t *testing.T) {
 	}
 }
 
-// calistirAyni TR kodunu verilen VM'de çalıştırır (genel tanımlar korunur).
-func calistirAyni(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
+// runSame TR kodunu verilen VM'de çalıştırır (genel tanımlar korunur).
+func runSame(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
 	t.Helper()
 	p := parser.New(lexer.New(kd))
 	prog := p.ParseProgram()
@@ -75,10 +75,10 @@ func calistirAyni(t *testing.T, m *interp.VM, kd string) (interp.Value, error) {
 // olup da hiçbir switch'te karşılanmayan (ya da yalnızca bir yazımı karşılanan) üye
 // kalmamalı. Veri kümesi ve okuyucu üyeleri (Y600-Y602) dizin gerektirdiği için
 // internal/stdlib/dataset testlerinde denenir.
-func TestUyelerSozlukleTutarli(t *testing.T) {
+func TestMembersMatchDictionary(t *testing.T) {
 	m := interp.New()
 	m.Err = io.Discard // açılan ilerleme çubuğu test çıktısına yazmasın
-	kur := strings.Join([]string{
+	setup := strings.Join([]string{
 		`değişken u_metin = "abc"`,
 		`değişken u_liste = [1, 2]`,
 		`değişken u_sozluk = {"a": 1}`,
@@ -88,55 +88,55 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		`değişken u_yol = yol("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
 		`değişken u_ilerleme = ilerleme(3)`,
 	}, "\n")
-	if _, err := calistirAyni(t, m, kur); err != nil {
+	if _, err := runSame(t, m, setup); err != nil {
 		t.Fatal(err)
 	}
-	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme"}
+	examples := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme"}
 	for _, k := range codes.Codes() {
 		if k.Namespace() != codes.NamespaceMember || (k >= codes.Y600 && k <= codes.Y602) {
 			continue
 		}
 		for _, y := range codes.Spellings(k) {
-			bulundu := false
-			for _, o := range ornekler {
-				if _, err := calistirAyni(t, m, o+"."+y); err == nil {
-					bulundu = true
+			found := false
+			for _, o := range examples {
+				if _, err := runSame(t, m, o+"."+y); err == nil {
+					found = true
 					break
 				}
 			}
-			if !bulundu {
+			if !found {
 				t.Errorf("üye %s (%q) hiçbir tipte karşılanmıyor", k, y)
 			}
 		}
 	}
 	// Motor tiplerinde ASCII yazılmış üye adı hata verir ve Türkçe adı önerir; öneri
 	// yalnızca o tipte geçerli bir üye için yapılır.
-	for _, c := range []struct{ kod, want string }{
+	for _, c := range []struct{ code, want string }{
 		{"u_tensor.sekil", "Bunu mu demek istediniz: 'şekil'?"},
 		{"u_iyilestirici.sifirla", "Bunu mu demek istediniz: 'sıfırla'?"},
 		{"u_parcalayici.coz", "Bunu mu demek istediniz: 'çöz'?"},
 	} {
-		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
+		if _, err := runSame(t, m, c.code); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.code, c.want, err)
 		}
 	}
-	if _, err := calistirAyni(t, m, "u_tensor.kodla"); err == nil || strings.Contains(err.Error(), "yazmak mı istediniz") {
+	if _, err := runSame(t, m, "u_tensor.kodla"); err == nil || strings.Contains(err.Error(), "yazmak mı istediniz") {
 		t.Errorf("tensörde kodla önerilmemeli: %v", err)
 	}
 	// Kaldırılan eş yazımlar hata verir ve asıl adı önerir.
-	for _, c := range []struct{ kod, want string }{
+	for _, c := range []struct{ code, want string }{
 		{"u_liste.kayıt_ekle", "'kayıt_ekle' TR'de yok; 'ekle' yazmak mı istediniz?"},
 		{"u_tensor.türev", "'gradyan'"},
 		{"u_parcalayici.sözlük_boyutu", "'sözlük_boyutu' TR'de yok; 'dağarcık_boyutu' yazmak mı istediniz?"},
 		{"u_parcalayici.token_kimliği", "'token_kimliği' TR'de yok; 'parça_kimliği' yazmak mı istediniz?"},
 		{`u_parcalayici.kodla("a", özel_tokenlar: yanlış)`, "Bunu mu demek istediniz: 'özel_parçalar'?"},
 	} {
-		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
+		if _, err := runSame(t, m, c.code); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.code, c.want, err)
 		}
 	}
 	// Dilden kaldırılan yerleşikler, üyeler ve onların eski adları: "TR'den kaldırıldı".
-	for _, c := range []struct{ kod, want string }{
+	for _, c := range []struct{ code, want string }{
 		{`veritabanı_aç(":bellek:")`, "'veritabanı_aç' TR'den kaldırıldı"},
 		{`veritabanı(":bellek:")`, "'veritabanı' TR'den kaldırıldı"},
 		{`web_sunucu(port: 8080)`, "'web_sunucu' TR'den kaldırıldı"},
@@ -149,17 +149,17 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		{"u_liste.tahmin_et", "'tahmin_et' TR'den kaldırıldı"},
 		{"u_tensor.eğit", "'eğit' TR'den kaldırıldı"},
 	} {
-		if _, err := calistirAyni(t, m, c.kod); err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.kod, c.want, err)
+		if _, err := runSame(t, m, c.code); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.code, c.want, err)
 		}
 	}
 	// Ölü kodun adı yeni bir koda verilince eski ipucu kalkar (17, ölü kodlar): kaydet (Y005)
 	// artık KontrolNoktası'nın üyesidir (Y521); listede sıradan bir bulunamayan üyedir.
-	if _, err := calistirAyni(t, m, "u_liste.kaydet"); err == nil || strings.Contains(err.Error(), "kaldırıldı") {
+	if _, err := runSame(t, m, "u_liste.kaydet"); err == nil || strings.Contains(err.Error(), "kaldırıldı") {
 		t.Errorf("u_liste.kaydet kaldırıldı ipucu vermemeli: %v", err)
 	}
 	// Kaldırılan adlar sıradan adlardır.
-	if v, err := calistirAyni(t, m, "değişken web_sunucu = 3\nweb_sunucu + 1"); err != nil || v.Inspect() != "4" {
+	if v, err := runSame(t, m, "değişken web_sunucu = 3\nweb_sunucu + 1"); err != nil || v.Inspect() != "4" {
 		t.Errorf("kaldırılan ad değişken adı olabilmeli: %v %v", v, err)
 	}
 }
