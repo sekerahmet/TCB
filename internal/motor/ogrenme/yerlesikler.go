@@ -19,6 +19,7 @@ func Kaydet(v *yurut.VM) {
 
 	olusturuculariKaydet(v)
 	matematigiKaydet(v)
+	matematigiGenisKaydet(v) // yerlesik_matematik.go
 
 	// --- Sinir ağı ---
 	sar(v, kod.T500, yeniYerlesik(gomme))

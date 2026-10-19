@@ -175,54 +175,37 @@ func (d *Deger) Islec(op string, diger yurut.Value, sagda bool) (yurut.Value, bo
 	return nil, true, fmt.Errorf("%s ile %q işlemi desteklenmiyor (desteklenen işleçler: %s)", yurut.VAL_TENSOR, op, desteklenenIslecler)
 }
 
-// karsilastir eleman bazlı karşılaştırmanın 0/1 maskesini (türev izlemeyen, aynı şekilli
-// tensör) verir. Diğer işlenen sayı ya da aynı şekilli tensör/liste olmalıdır.
+// karsilastirmaIslemi karşılaştırma işleçlerinin çekirdek işlemi.
+var karsilastirmaIslemi = map[string]tensor.BinOp{"<": tensor.OpLt, ">": tensor.OpGt, "<=": tensor.OpLe, ">=": tensor.OpGe}
+
+// karsilastir eleman bazlı karşılaştırmanın 0/1 maskesini (türev izlemeyen float32 tensör)
+// tensörün cihazında verir. Diğer işlenen sayı, liste ya da tensör olabilir; şekiller
+// yayınlanır (+ - * / gibi). NaN içeren karşılaştırma 0'dır.
 func (d *Deger) karsilastir(op string, diger yurut.Value, sagda bool) (yurut.Value, error) {
-	a := d.t.Data()
-	var b []float32
+	bop := karsilastirmaIslemi[op]
 	if s, ok := yurut.ToFloat(diger); ok {
-		b = []float32{float32(s)}
-	} else {
-		o, err := tensoreCevir("tensör karşılaştırması", diger)
+		r, err := guvenli(func() *tensor.Tensor { return d.t.CompareScalar(float32(s), bop, sagda) })
 		if err != nil {
 			return nil, err
 		}
-		sa, sb := d.t.Shape(), o.Shape()
-		ayni := len(sa) == len(sb)
-		for i := 0; ayni && i < len(sa); i++ {
-			ayni = sa[i] == sb[i]
-		}
-		if !ayni {
-			return nil, fmt.Errorf("tensör karşılaştırması (%s) için şekiller aynı olmalıdır: %s ile %s", op, sekilMetni(sa), sekilMetni(sb))
-		}
-		b = o.Data()
+		return Yeni(r), nil
 	}
-	sonuc := make([]float32, len(a))
-	for i, x := range a {
-		y := b[0]
-		if len(b) > 1 {
-			y = b[i]
-		}
-		l, r := x, y
-		if sagda {
-			l, r = y, x
-		}
-		var dogru bool
-		switch op {
-		case "<":
-			dogru = l < r
-		case ">":
-			dogru = l > r
-		case "<=":
-			dogru = l <= r
-		default:
-			dogru = l >= r
-		}
-		if dogru {
-			sonuc[i] = 1
-		}
+	ad := "tensör karşılaştırması (" + op + ")"
+	o, err := tensoreCevirCihaz(ad, diger, d.t)
+	if err != nil {
+		return nil, err
 	}
-	r, err := guvenli(func() *tensor.Tensor { return tensor.New(sonuc, d.t.Shape()...).To(d.t.Device()) })
+	a, b := d.t, o
+	if sagda {
+		a, b = o, d.t
+	}
+	if err := yayinDenetle(ad, a, b); err != nil {
+		return nil, err
+	}
+	if err := cihazDenetle(ad, a, b); err != nil {
+		return nil, err
+	}
+	r, err := guvenli(func() *tensor.Tensor { return tensor.Compare(a, b, bop) })
 	if err != nil {
 		return nil, err
 	}

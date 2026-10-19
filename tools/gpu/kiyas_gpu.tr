@@ -50,7 +50,6 @@ fonksiyon ağırlık(şekil, ölçek) {
     tohum_sayacı += 1
     sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: tohum_sayacı) * ölçek), türev_izle: doğru)
 }
-fonksiyon silu(x) { sonuç x * sigmoid(x) }
 
 yapı Blok {
     g1

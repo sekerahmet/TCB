@@ -23,6 +23,7 @@ var (
 	adEksen           = baglama.KodAd(kod.T902)
 	adTohum           = baglama.KodAd(kod.T903)
 	adEnFazla         = baglama.KodAd(kod.T904)
+	adEnAz            = baglama.KodAd(kod.T907)
 	adEpsilon         = baglama.KodAd(kod.T905)
 	adOgrenmeOrani    = baglama.KodAd(kod.T910)
 	adAgirlikCurumesi = baglama.KodAd(kod.T911)

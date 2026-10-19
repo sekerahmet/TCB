@@ -38,6 +38,15 @@ func TestYerlesiklerSozlukleTutarli(t *testing.T) {
 		if !k.Yerlesik() {
 			continue
 		}
+		if tn, _ := kod.Tanimi(k); tn.Tur == kod.TurSabit {
+			// Sabitler (pi) yerleşik fonksiyon değil, değer olarak kayıtlıdır.
+			for _, y := range kod.Yazimlar(k) {
+				if d, ok := m.GlobalEnv.Get(y); !ok || d == nil {
+					t.Errorf("sözlükteki sabit %s (%s) %q yazımıyla kayıtlı değil", k, kod.Ad(k), y)
+				}
+			}
+			continue
+		}
 		b := m.Yerlesik(k)
 		if b == nil {
 			t.Errorf("sözlükteki %s (%s) kayıtlı değil", k, kod.Ad(k))

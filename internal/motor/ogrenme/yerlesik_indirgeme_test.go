@@ -56,7 +56,7 @@ yazdır(toplam([1, 2, 3]), maks(4, 9), min([3, 1]), ortalama([1, 2, 3]))`)
 		{"ortalama([[1, 2]])", "ortalama: iç içe liste indirgenemez"},
 		{"maks([tensör([1]), tensör([2])])", "maks: tensör listesinin en büyük elemanı tanımsız"},
 		{"toplam([1, 2], eksen: 0)", "toplam: eksen: yalnızca tensörlerde kullanılır, Liste verildi"},
-		{"maks(tensör([1, 2]), 0)", "maks(x, 0): eksen için maks(x, eksen: 0) yazın; eleman bazlı sınır için relu(x - c) + c"},
+		{"maks(tensör([1, 2]), 0)", "maks(x, 0): eksen için maks(x, eksen: 0) yazın; eleman bazlı sınır için sınırla(x, en_az: 0) kullanın"},
 		{"min(tensör([1, 2]), 0)", "min(x, 0): eksen için min(x, eksen: 0) yazın"},
 		{"sıfırlar(2, 3, türev_izle: doğru)", "sıfırlar(2, 3): şekil liste olarak verilir; sıfırlar([2, 3]) yazın"},
 		{"rastgele_normal(2, 3)", "rastgele_normal(2, 3): şekil liste olarak verilir; rastgele_normal([2, 3]) yazın"},

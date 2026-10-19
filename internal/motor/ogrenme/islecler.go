@@ -27,14 +27,19 @@ func sondanEksen(t *tensor.Tensor, i int) int {
 
 // yayinDenetle iki tensörün şekillerinin yayınlanabilirliğini denetler (eksenler sağdan
 // hizalanır; eşit ya da biri 1 olan eksenler uyumludur). Sık çağrıldığı için ayırma
-// yapmaz; şekil metni yalnızca hata durumunda üretilir.
+// yapmaz; şekil metni yalnızca hata durumunda üretilir. op bir işleçse (+ - * /) işlemin
+// adı, değilse (ör. bir yerleşiğin adı) olduğu gibi yazılır.
 func yayinDenetle(op string, a, b *tensor.Tensor) error {
 	nd := max(a.Dim(), b.Dim())
 	for i := 1; i <= nd; i++ {
 		da, db := sondanEksen(a, i), sondanEksen(b, i)
 		if da != db && da != 1 && db != 1 {
+			ad, ok := islemAdi[op]
+			if !ok {
+				ad = op
+			}
 			return fmt.Errorf("%s ile %s şekilleri %s için yayınlanamaz; sondan %d. eksende %d ≠ %d (eksenler sağdan hizalanır, eşit ya da 1 olmalı)",
-				sekilMetni(a.Shape()), sekilMetni(b.Shape()), islemAdi[op], i, da, db)
+				sekilMetni(a.Shape()), sekilMetni(b.Shape()), ad, i, da, db)
 		}
 	}
 	return nil

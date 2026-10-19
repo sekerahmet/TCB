@@ -191,6 +191,8 @@ func imzaSatirlari(t kod.Tanim) []string {
 	switch t.Tur {
 	case kod.TurFonksiyon:
 		return []string{ad + "(" + argumanlar(t.Imza) + ")" + donus(t.Imza)}
+	case kod.TurSabit:
+		return []string{ad + donus(t.Imza)}
 	case kod.TurMetot, kod.TurOzellik:
 		var out []string
 		for _, u := range t.Uyeler {
@@ -268,9 +270,9 @@ func Uret() ([]byte, error) {
 		t, _ := kod.Tanimi(k)
 		sayilar[t.Tur]++
 	}
-	fmt.Fprintf(&b, "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d tip, %d fonksiyon, %d metot, %d özellik, %d adlı argüman; ayrıca %d taşınmış ve %d kaldırılmış kod (numaraları bir daha kullanılmaz).\n\n",
+	fmt.Fprintf(&b, "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d tip, %d fonksiyon, %d sabit, %d metot, %d özellik, %d adlı argüman; ayrıca %d taşınmış ve %d kaldırılmış kod (numaraları bir daha kullanılmaz).\n\n",
 		len(d.Kodlar()), sayilar[kod.TurAnahtarKelime], sayilar[kod.TurBaglamsal], sayilar[kod.TurTip], sayilar[kod.TurFonksiyon],
-		sayilar[kod.TurMetot], sayilar[kod.TurOzellik], sayilar[kod.TurAdliArguman], len(d.Tasinanlar()), len(d.Kaldirilanlar()))
+		sayilar[kod.TurSabit], sayilar[kod.TurMetot], sayilar[kod.TurOzellik], sayilar[kod.TurAdliArguman], len(d.Tasinanlar()), len(d.Kaldirilanlar()))
 	b.WriteString("## İçindekiler\n\n")
 	for _, a := range aileler {
 		fmt.Fprintf(&b, "- %s: ", a.baslik)

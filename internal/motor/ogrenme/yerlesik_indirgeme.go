@@ -32,9 +32,9 @@ func indirgeme(v *yurut.VM, kd kod.Kod, fn func(t *tensor.Tensor, eksen int, tum
 			}
 			if maksMin && len(args) >= 2 {
 				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
-				relu := kod.Ad(kod.T200)
-				return nil, fmt.Errorf("%s(x, %s): eksen için %s(x, %s: %s) yazın; eleman bazlı sınır için %s kullanın",
-					ad, args[1].Inspect(), ad, adEksen.TR, args[1].Inspect(), map[bool]string{true: relu + "(x - c) + c (en az c)", false: relu + "(x * -1 + c) * -1 + c (en çok c)"}[kd == kod.G402])
+				sinir := map[bool]string{true: adEnAz.TR, false: adEnFazla.TR}[kd == kod.G402]
+				return nil, fmt.Errorf("%s(x, %s): eksen için %s(x, %s: %s) yazın; eleman bazlı sınır için %s(x, %s: %s) kullanın",
+					ad, args[1].Inspect(), ad, adEksen.TR, args[1].Inspect(), kod.Ad(kod.G409), sinir, args[1].Inspect())
 			}
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, %s: ...) en fazla 2 parametre alır, %d verildi", ad, adEksen.TR, len(args))

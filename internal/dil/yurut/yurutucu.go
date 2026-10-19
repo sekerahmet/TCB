@@ -215,6 +215,7 @@ func New() *VM {
 	v.tipleriKaydet()
 	v.registerBuiltins()
 	v.registerIstatistik()
+	v.registerMatematik()
 	v.registerMotors()
 	v.registerTestBuiltins()
 	return v

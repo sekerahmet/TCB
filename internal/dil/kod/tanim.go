@@ -12,7 +12,7 @@ import (
 )
 
 // Dilden bağımsız tanımlar (tanim.json): her kodun türü (anahtar kelime, tip, fonksiyon,
-// metot ...), metot ve özelliklerde geçerli olduğu tipler, imzası (konumlu parametrelerin
+// sabit, metot ...), metot ve özelliklerde geçerli olduğu tipler, imzası (konumlu parametrelerin
 // sırası ve tipi, adlı argümanların kodu, tipi ve varsayılanı), dönüş tipi, ilişkili kodlar
 // ve kaldırılan kodlarda işin taşındığı yeni kod. Adlar burada geçmez: imzalar tip ve kod
 // listesidir, adları dil dosyası (tr.json) verir. docs/kodlar.md bu iki dosyadan üretilir.
@@ -47,9 +47,11 @@ const (
 	TurBaglamsal     Tur = "bağlamsal"
 	TurTip           Tur = "tip"
 	TurFonksiyon     Tur = "fonksiyon"
-	TurMetot         Tur = "metot"
-	TurOzellik       Tur = "özellik"
-	TurAdliArguman   Tur = "adlı_argüman"
+	// TurSabit değeri olan, çağrılmayan bir yerleşiktir (pi); imzası yalnızca dönüş tipidir.
+	TurSabit       Tur = "sabit"
+	TurMetot       Tur = "metot"
+	TurOzellik     Tur = "özellik"
+	TurAdliArguman Tur = "adlı_argüman"
 )
 
 // BeklenenTur kodun ailesinden ve grubundan çıkan türdür (Y üyelerinde metot ya da
@@ -444,6 +446,8 @@ func TanimDenetle(d *Dil) []error {
 		switch {
 		case bek == TurMetot && t.Tur != TurMetot && t.Tur != TurOzellik:
 			hata("%s: tür %q olamaz; üyeler (Y) metot ya da özelliktir", k, t.Tur)
+		case bek == TurFonksiyon && t.Tur == TurSabit:
+			// Yerleşik bir sabit (G/T/V/W ailesinde fonksiyonun yerinde).
 		case bek != TurMetot && t.Tur != bek:
 			hata("%s: tür %q, ama kodun ailesi %q gerektirir", k, t.Tur, bek)
 		}
@@ -486,6 +490,11 @@ func TanimDenetle(d *Dil) []error {
 				}
 			}
 		case TurFonksiyon:
+			imzaDenetle(k, "", t.Imza)
+		case TurSabit:
+			if len(t.Imza.Param) > 0 || len(t.Imza.Adli) > 0 || len(t.Uyeler) > 0 || t.Imza.Donus.Bos() {
+				hata("%s: sabit parametre almaz; yalnızca dönüş (değerin tipi) yazılır", k)
+			}
 			imzaDenetle(k, "", t.Imza)
 		default:
 			if len(t.Imza.Param) > 0 || len(t.Imza.Adli) > 0 || !t.Imza.Donus.Bos() || len(t.Uyeler) > 0 {

@@ -246,6 +246,8 @@ func mikroEleman(g *arkaUc, bant float64, bol int) {
 	}
 	yaz(fmt.Sprintf("eleman toplama %dM", n>>20), 12*n, func() { g.Binary(tensor.OpAdd, out, []int{n}, av, bv) })
 	yaz(fmt.Sprintf("eleman üstel %dM", n>>20), 8*n, func() { g.Unary(tensor.OpExp, 0, out, av) })
+	yaz(fmt.Sprintf("eleman silu %dM", n>>20), 8*n, func() { g.Unary(tensor.OpSilu, 0, out, av) })
+	yaz(fmt.Sprintf("eleman sınırla %dM", n>>20), 8*n, func() { g.Clamp(out, av, -0.5, 0.5) })
 	sh := []int{kenar, kenar}
 	dev := tensor.View{S: a, Shape: sh, Strides: []int{1, kenar}}
 	yaz(fmt.Sprintf("devrik kopya %d²", kenar), 8*n, func() { g.CopyStrided(tensor.View{S: out, Shape: sh, Strides: bitisik(sh)}, dev) })

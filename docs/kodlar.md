@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 232 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 78 fonksiyon, 37 metot, 20 özellik, 38 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 254 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 98 fonksiyon, 1 sabit, 37 metot, 20 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -940,6 +940,54 @@ yazdır(yuvarla(3.14159, 2), yuvarla(2.5), yuvarla(1234, -2))
 
 İlişkili: G210 `tam`
 
+#### G406 `taban`
+
+    taban(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
+
+Sayıyı aşağı (eksi sonsuza doğru) en yakın tam sayıya yuvarlar; Tam girdide Tam, Ondalık girdide Ondalık döner. Tensörde eleman bazlı çalışır (tam sayılı tensör tam sayılı kalır), türevi 0'dır; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(taban(3.7), taban(-2), taban(tensör([-1.5, 2.5])).değer)
+```
+
+İlişkili: G407 `tavan`, G405 `yuvarla`
+
+#### G407 `tavan`
+
+    tavan(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
+
+Sayıyı yukarı (artı sonsuza doğru) en yakın tam sayıya yuvarlar; Tam girdide Tam, Ondalık girdide Ondalık döner. Tensörde eleman bazlı çalışır (tam sayılı tensör tam sayılı kalır), türevi 0'dır; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(tavan(3.2), tavan(7), tavan(tensör([-1.5, 2.5])).değer)
+```
+
+İlişkili: G406 `taban`, G405 `yuvarla`
+
+#### G408 `işaret`
+
+    işaret(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
+
+Pozitif sayıda 1, negatifte -1, sıfırda 0 verir; Tam girdide Tam, Ondalık girdide Ondalık döner, NaN korunur. Tensörde eleman bazlı çalışır, türevi her yerde (0'da da) 0'dır; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(işaret(-4), işaret(0.0), işaret(tensör([-2.0, 0.0, 3.0])).değer)
+```
+
+İlişkili: G403 `mutlak`
+
+#### G409 `sınırla`
+
+    sınırla(Tam | Ondalık | Tensör, en_az: Tam | Ondalık = yok, en_fazla: Tam | Ondalık = yok) → Tam | Ondalık | Tensör
+
+Değeri en_az ile en_fazla arasına sınırlar; ikisinden en az biri verilmeli, en_az en_fazla'dan büyük olamaz. Sayıda tip korunur (sınırlardan biri Ondalık ise Ondalık), NaN korunur. Tensörde eleman bazlıdır; türev sınırların içinde (sınırlar dahil) 1, dışında 0'dır; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(sınırla(15, en_fazla: 10), sınırla(tensör([-2.0, 0.5, 3.0]), en_az: 0, en_fazla: 1).değer)
+```
+
+İlişkili: G401 `min`, G402 `maks`
+
 #### G410 `ortalama`
 
     ortalama(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Ondalık | Tensör
@@ -975,6 +1023,18 @@ yazdır(ortanca([3, 1, 4, 2]))
 ```
 
 İlişkili: G410 `ortalama` · Eski adlar: `medyan`
+
+#### G414 `pi`
+
+    pi → Ondalık
+
+Bir çemberin çevresinin çapına oranı olan π sayısıdır (Ondalık, 3.141592653589793); çağrılmaz, değer olarak yazılır. Sinüs, kosinüs ve tanjant radyanla çalışır: 180 derece pi radyandır.
+
+```tr
+yazdır(pi, sinüs(pi / 2), kosinüs(pi))
+```
+
+İlişkili: T222 `sinüs`, T224 `tanjant`
 
 ### Zaman ve eşzamanlılık (G5xx)
 
@@ -1208,6 +1268,18 @@ yazdır(gelu(tensör([-1.0, 0.0, 1.0])).değer)
 
 İlişkili: T200 `relu`
 
+#### T204 `silu`
+
+    silu(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+Eleman bazlı SiLU etkinleştirmesidir: x · sigmoid(x); tek geçişte hesaplanır, kapılı ileri beslemeli katmanların (SwiGLU) temelidir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)
+```
+
+İlişkili: T201 `sigmoid`, T203 `gelu`
+
 #### T210 `softmax`
 
     softmax(Tensör, [Tam], eksen: Tam = -1) → Tensör
@@ -1280,6 +1352,66 @@ yazdır(kosinüs(tensör([0.0, 1.0])).değer)
 
 İlişkili: T222 `sinüs`
 
+#### T224 `tanjant`
+
+    tanjant(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+Her elemanın tanjantını (radyan) hesaplar; türevi 1 + tanjant(x)²'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(tanjant(0.5), tanjant(tensör([0.0, 1.0])).değer)
+```
+
+İlişkili: T222 `sinüs`, T223 `kosinüs`, T227 `arktanjant`
+
+#### T225 `arksinüs`
+
+    arksinüs(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+Her elemanın arksinüsünü radyan olarak [-π/2, π/2] aralığında verir; [-1, 1] dışında NaN döner. Türevi 1 / karekök(1 - x²)'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(arksinüs(1.0), arksinüs(tensör([0.0, 0.5])).değer)
+```
+
+İlişkili: T226 `arkkosinüs`, T222 `sinüs`
+
+#### T226 `arkkosinüs`
+
+    arkkosinüs(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+Her elemanın arkkosinüsünü radyan olarak [0, π] aralığında verir; [-1, 1] dışında NaN döner. Türevi -1 / karekök(1 - x²)'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(arkkosinüs(0.0), arkkosinüs(tensör([1.0, -1.0])).değer)
+```
+
+İlişkili: T225 `arksinüs`, T223 `kosinüs`
+
+#### T227 `arktanjant`
+
+    arktanjant(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+Her elemanın arktanjantını radyan olarak (-π/2, π/2) aralığında verir; türevi 1 / (1 + x²)'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(arktanjant(1.0), arktanjant(tensör([0.0, 1.0])).değer)
+```
+
+İlişkili: T228 `arktanjant2`, T224 `tanjant`
+
+#### T228 `arktanjant2`
+
+    arktanjant2(Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+arktanjant2(y, x), (x, y) noktasının açısını (-π, π] aralığında radyan olarak verir; dört bölgeyi ayırır, (0, 0)'da 0 döner. Sayıda Ondalık, tensörde yayınlamalı ve türev izleyen tensör verir; (0, 0)'da türev 0 alınır. Listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(arktanjant2(1.0, -1.0), arktanjant2(tensör([1.0, -1.0]), tensör([0.0])).değer)
+```
+
+İlişkili: T227 `arktanjant`
+
 #### T230 `maks_indeks`
 
     maks_indeks(Tensör, eksen: Tam = -1) → Tensör
@@ -1291,6 +1423,126 @@ yazdır(maks_indeks(tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]]), eksen: -1).değ
 ```
 
 İlişkili: T611 `örnekle`
+
+#### T231 `birikimli_toplam`
+
+    birikimli_toplam(Tensör, eksen: Tam = -1) → Tensör
+
+Verilen eksende (varsayılan son eksen) her konuma kadar olan elemanların toplamını verir; şekil korunur, türev izler (gradyan sondan birikimli toplamdır), toplama sırası sabittir. Yalnızca tensörde çalışır, listede çalışmaz (tensör(...) ile çevrilir); eksen yalnızca adlı verilir.
+
+```tr
+yazdır(birikimli_toplam(tensör([1, 2, 3, 4])).değer, birikimli_toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
+```
+
+İlişkili: G400 `toplam`
+
+#### T232 `en_büyük_k`
+
+    en_büyük_k(Tensör, Tam, eksen: Tam = -1) → Liste
+
+Verilen eksende (varsayılan son eksen) en büyük k elemanı büyükten küçüğe [değerler, indeksler] listesi olarak verir: değerler türev izler, indeksler tam sayılı ve türevsizdir. Eşit değerlerde küçük indeks önce gelir, NaN her sayıdan büyüktür; k 0 ile eksen uzunluğu arasında olmalıdır.
+
+```tr
+değişken s = en_büyük_k(tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].değer, s[1].değer)
+```
+
+İlişkili: T233 `sıralama_indeksi`, T230 `maks_indeks`
+
+#### T233 `sıralama_indeksi`
+
+    sıralama_indeksi(Tensör, eksen: Tam = -1) → Tensör
+
+Verilen eksende (varsayılan son eksen) elemanları küçükten büyüğe sıralayan indeksleri verir; sıralama kararlıdır (eşitlerde küçük indeks önce), NaN'lar sondadır. Sonuç tam sayılı ve türevsiz bir tensördür.
+
+```tr
+yazdır(sıralama_indeksi(tensör([3.0, 1.0, 2.0])).değer)
+```
+
+İlişkili: T232 `en_büyük_k`, Y202 `sırala`
+
+#### T234 `koşullu`
+
+    koşullu(Tensör | Mantık | Tam | Ondalık, Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Tam | Ondalık
+
+koşullu(koşul, a, b), koşulun doğru (sıfırdan farklı) olduğu elemanlarda a'yı, diğerlerinde b'yi seçer; üçü de yayınlamalıdır, koşul 0/1 maskesi (ör. x > 0), sayı ya da Mantık olabilir. Gradyan a'ya koşulun doğru, b'ye yanlış olduğu yerlerden akar, koşul türev almaz; hiçbiri tensör değilse a ya da b olduğu gibi döner.
+
+```tr
+değişken x = tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).değer)
+```
+
+İlişkili: A001 `eğer`
+
+#### T240 `sinh`
+
+    sinh(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+Eleman bazlı hiperbolik sinüstür: (e^x - e^(-x)) / 2; türevi cosh(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(sinh(1.0), sinh(tensör([0.0, 1.0])).değer)
+```
+
+İlişkili: T241 `cosh`, T202 `tanh`
+
+#### T241 `cosh`
+
+    cosh(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+Eleman bazlı hiperbolik kosinüstür: (e^x + e^(-x)) / 2; türevi sinh(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(cosh(0.0), cosh(tensör([0.0, 1.0])).değer)
+```
+
+İlişkili: T240 `sinh`, T202 `tanh`
+
+#### T242 `log1p`
+
+    log1p(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+log(1 + x) hesaplar; küçük x'te 1 + x yuvarlamasından etkilenmez (log1p(1e-10) = 1e-10). x = -1'de -sonsuz, x < -1'de NaN; türevi 1 / (1 + x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(log1p(0.000001), log1p(tensör([0.0, 1.0])).değer)
+```
+
+İlişkili: T221 `log`, T245 `üstel_eksi_bir`
+
+#### T243 `log2`
+
+    log2(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+2 tabanında logaritmadır; ikinin kuvvetlerinde tam sonuç verir, 0'da -sonsuz, negatifte NaN. Türevi 1 / (x · ln 2)'dir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(log2(8), log2(tensör([1.0, 1024.0])).değer)
+```
+
+İlişkili: T221 `log`, T244 `log10`
+
+#### T244 `log10`
+
+    log10(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+10 tabanında logaritmadır; 0'da -sonsuz, negatifte NaN. Türevi 1 / (x · ln 10)'dur. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(log10(1000), log10(tensör([1.0, 100.0])).değer)
+```
+
+İlişkili: T221 `log`, T243 `log2`
+
+#### T245 `üstel_eksi_bir`
+
+    üstel_eksi_bir(Tensör | Tam | Ondalık) → Tensör | Ondalık
+
+e^x - 1 hesaplar; küçük x'te çıkarmadaki basamak kaybı olmaz (üstel_eksi_bir(1e-10) = 1e-10). Türevi üstel(x)'tir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+
+```tr
+yazdır(üstel_eksi_bir(0.000001), üstel_eksi_bir(tensör([0.0, 1.0])).değer)
+```
+
+İlişkili: T220 `üstel`, T242 `log1p`
 
 ### Türev (T3xx)
 
@@ -1616,7 +1868,7 @@ Kullananlar: T100 `tensör`, T101 `sıfırlar`, T102 `birler`, T103 `rastgele_no
 yazdır(toplam(tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama`, T121 `birleştir`, T210 `softmax`, T211 `log_softmax`, T230 `maks_indeks`, Y103 `böl` · İlişkili: T906 `boyutu_koru`
+Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama`, T121 `birleştir`, T210 `softmax`, T211 `log_softmax`, T230 `maks_indeks`, T231 `birikimli_toplam`, T232 `en_büyük_k`, T233 `sıralama_indeksi`, Y103 `böl` · İlişkili: T906 `boyutu_koru`
 
 #### T903 `tohum`
 
@@ -1630,13 +1882,13 @@ Kullananlar: T103 `rastgele_normal`, T611 `örnekle`, Y600 `örnekleyici`
 
 #### T904 `en_fazla`
 
-gradyan_kırp için izin verilen en büyük toplam gradyan normudur; pozitif bir sayı olmalıdır, varsayılan 1.0'dır.
+gradyan_kırp için izin verilen en büyük toplam gradyan normudur (pozitif bir sayı, varsayılan 1.0); sınırla için üst sınırdır (sayı; en_az'dan küçük olamaz).
 
 ```tr
 değişken w = tensör([3.0, 4.0], türev_izle: doğru); geri_yayılım(toplam(w * w)); yazdır(gradyan_kırp([w], en_fazla: 0.5))
 ```
 
-Kullananlar: T402 `gradyan_kırp`
+Kullananlar: G409 `sınırla`, T402 `gradyan_kırp` · İlişkili: T907 `en_az`
 
 #### T905 `epsilon`
 
@@ -1657,6 +1909,16 @@ yazdır(toplam(tensör([[1, 2], [3, 4]]), eksen: -1, boyutu_koru: doğru).şekil
 ```
 
 Kullananlar: G400 `toplam`, G401 `min`, G402 `maks`, G410 `ortalama` · İlişkili: T902 `eksen`
+
+#### T907 `en_az`
+
+sınırla için alt sınırdır: değerden küçük elemanlar bu değere çekilir. Bir sayı olmalıdır ve en_fazla'dan büyük olamaz; en_az ile en_fazla'dan en az biri verilmelidir.
+
+```tr
+yazdır(sınırla(-3.5, en_az: 0.0), sınırla(tensör([-1.0, 2.0]), en_az: 0).değer)
+```
+
+Kullananlar: G409 `sınırla` · İlişkili: T904 `en_fazla`
 
 #### T910 `öğrenme_oranı`
 
@@ -2888,4 +3150,4 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/dil/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `maks_indeks`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`

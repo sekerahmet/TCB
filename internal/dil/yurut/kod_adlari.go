@@ -51,6 +51,17 @@ func (v *VM) YerlesikTanimla(kd kod.Kod, b *BuiltinVal) *BuiltinVal {
 	return b
 }
 
+// SabitTanimla bir yerleşik sabiti (tanim.json'da "sabit" türü; ör. pi) değeriyle genel
+// kapsama bağlar. Sabit çağrılmaz, değer olarak okunur; yeniden atanamaz.
+func (v *VM) SabitTanimla(kd kod.Kod, deger Value) {
+	if !kd.Yerlesik() {
+		panic(fmt.Sprintf("sabit kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kd))
+	}
+	for _, yazim := range kod.Yazimlar(kd) {
+		v.GlobalEnv.Define(yazim, deger, true)
+	}
+}
+
 // Yerlesik kodun genel kapsamda kayıtlı yerleşiğini verir; yoksa nil.
 func (v *VM) Yerlesik(kd kod.Kod) *BuiltinVal {
 	b, _ := v.GlobalEnv.yerelDeger(kod.Ad(kd)).(*BuiltinVal)

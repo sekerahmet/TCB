@@ -246,11 +246,11 @@ değişken kapı_çekirdeği = özel_türev(
         değişken a = k[4]
         değişken b = k[5]
         değişken sa = k[6]
-        değişken silu = a * sa
+        değişken a_sa = a * sa
         değişken ds = toplam(G * w, eksen: 1)
         değişken da = (ds * b * sa * (1 + a * (1 - sa))).şekillendir([-1, 1])
-        değişken db = (ds * silu).şekillendir([-1, 1])
-        sonuç [da * g + db * u, da * x, db * x, (silu * b).şekillendir([-1, 1]) * G]
+        değişken db = (ds * a_sa).şekillendir([-1, 1])
+        sonuç [da * g + db * u, da * x, db * x, (a_sa * b).şekillendir([-1, 1]) * G]
     }
 )
 
@@ -282,14 +282,14 @@ değişken kapılı_nöron_tam = özel_türev(
         değişken b = k[4]
         değişken sa = k[5]
         değişken d = x.şekil[1]
-        değişken silu = a * sa
+        değişken a_sa = a * sa
         değişken ds = toplam(G * satırlar.dilim(1, 2 * d, 3 * d), eksen: 1)
         değişken da = (ds * b * sa * (1 + a * (1 - sa))).şekillendir([-1, 1])
-        değişken db = (ds * silu).şekillendir([-1, 1])
+        değişken db = (ds * a_sa).şekillendir([-1, 1])
         // Satır gradyanları [N, 3d]: üç parça yerleştirme matrisleriyle (birim matrisin
         // satır dilimleri) yan yana dizilir.
         değişken I = birim_matris(3 * d)
-        değişken d_satır = (da * x) @ I.dilim(0, 0, d) + (db * x) @ I.dilim(0, d, 2 * d) + ((silu * b).şekillendir([-1, 1]) * G) @ I.dilim(0, 2 * d, 3 * d)
+        değişken d_satır = (da * x) @ I.dilim(0, 0, d) + (db * x) @ I.dilim(0, d, 2 * d) + ((a_sa * b).şekillendir([-1, 1]) * G) @ I.dilim(0, 2 * d, 3 * d)
         değişken dW = gömme(birim_matris(k[1].şekil[0]), k[2]).devrik() @ d_satır
         değişken dx = da * satırlar.dilim(1, 0, d) + db * satırlar.dilim(1, d, 2 * d)
         sonuç [dx, dW, yok]

@@ -54,6 +54,7 @@ var ciplakAdIzinleri = map[string]map[string]string{
 	"internal/dil/kod/tanim.go": {
 		"tip":       "tanim.json tür değeri (TurTip)",
 		"fonksiyon": "tanim.json tür değeri (TurFonksiyon)",
+		"sabit":     "tanim.json tür değeri (TurSabit)",
 	},
 	// Hata türü başlıklarındaki düz yazı ("Fonksiyon çağrısı tip hatası", "Tip uyuşmazlığı",
 	// "Tip ve Güvenlik Denetimi"): sıradan sözcük, A208 Fonksiyon ya da A215 Tip adı değil.
