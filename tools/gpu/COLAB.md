@@ -1,27 +1,31 @@
 # GPU sınaması, mikro kıyaslar, model kıyası ve profil (Colab)
 
-Bu klasör `bash tools/gpu/colab_hazirla.sh KLASOR` ile hazırlanır ve Drive'a
-(`Drive'ım/TR_dili/`) kopyalanır. Hücreler tek oturumda, bir GPU çalışma zamanında (ör. G4)
+Kod GitHub'dan çekilir ve Colab'da derlenir; Drive yalnızca eğitim verisi ve sonuçlar
+içindir (`Drive'ım/TR_dili/`). Hücreler tek oturumda, bir GPU çalışma zamanında (ör. G4)
 sırayla çalıştırılır: sınamalar → mikro kıyaslar (TR ve PyTorch) → model kıyası → profil.
 Her hücrenin geri bildirilecek çıktısı kısadır ve tablo biçimindedir.
 
-## 1. Drive'ı bağla, dosyaları kopyala, GPU durumu
-
-```python
-from google.colab import drive
-drive.mount('/content/drive')
-```
+## 1. Kodu çek ve derle, GPU durumu
 
 ```bash
 %%bash
+# Go (oturumda bir kez, ~1 dk); sürüm go.mod'daki araç zinciridir.
+[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.25.13.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+export PATH=/usr/local/go/bin:$PATH
+rm -rf /content/TCB && git clone -q --depth 1 https://github.com/sekerahmet/TCB /content/TCB
+cd /content/TCB && git log -1 --format='commit: %h (%cd)' --date=iso
 mkdir -p /content/tr
-cp -r "/content/drive/MyDrive/TR_dili/." /content/tr/
-chmod +x /content/tr/tr /content/tr/gpu_sinama
-cat /content/tr/SURUM.txt
+CGO_ENABLED=0 go build -trimpath -o /content/tr/tr ./cmd/tr
+CGO_ENABLED=0 go test -c -trimpath -o /content/tr/gpu_sinama ./internal/compute/gpu
+cp tools/gpu/kiyas_gpu.tr tools/gpu/gpt_egitim.tr tools/gpu/kiyas_gpu.py tools/gpu/mikro_kiyas.py tools/gpu/mikro_tablo.py /content/tr/
+cp -r tests /content/tr/
 nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv,noheader
 # GPU durumu ve matris çarpımının yolu (cuBLASLt bulunduysa yolu yazılır):
 cd /content/tr && ./gpu_sinama -test.run '^$' 2>&1 | head -1
 ```
+
+Belirli bir commit'i sınamak için `git clone` satırından sonra `git fetch -q --depth 1 origin
+COMMIT && git checkout -q COMMIT` ekleyin.
 
 İlk satır `matris çarpımı: cuBLASLt 12.8.x (/usr/local/cuda/lib64/libcublasLt.so.12)` gibi
 olmalıdır (Blackwell için en az 12.8; eski sürümlü adaylar `atlanan:` diye yazılır). `kendi çekirdeği (cuBLASLt bulunamadı ...)` yazıyorsa kitaplığın yolu açıkça
@@ -38,7 +42,7 @@ verirse hata tam olarak o çekirdekte bildirilir. Ardından normal (eşzamansız
 cd /content/tr
 TR_GPU_ESZAMANLI=1 ./gpu_sinama -test.count=1 2>&1 | tail -5
 ./gpu_sinama -test.v -test.count=1 2>&1 | grep -E '^(--- FAIL|FAIL|ok|PASS)|panic' | head -20
-./gpu_sinama -test.v -test.count=1 -test.run 'CarpimKitapligi' 2>&1 | tail -3
+./gpu_sinama -test.v -test.count=1 -test.run 'GemmLibrary' 2>&1 | tail -3
 ```
 
 PTX derleme hatasında mesaj PTX metninin yazıldığı geçici dosyanın yolunu verir; o dosyayı da
@@ -66,6 +70,13 @@ python mikro_tablo.py mikro_tr.txt mikro_py.txt
 ```
 
 ## 5. Veri (isteğe bağlı)
+
+Drive yalnızca burada ve 9. hücrede gerekir:
+
+```python
+from google.colab import drive
+drive.mount('/content/drive')
+```
 
 Kendi `.npy` veri klasörünüz varsa yerel diske kopyalayın. Veri verilmezse kıyas sabit
 sentetik toplu işlerle koşar (süre geçerli, kayıp anlamsız).

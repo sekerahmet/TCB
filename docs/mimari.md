@@ -311,7 +311,7 @@ en iyi −%1, A/A gürültüsü ±%2). Örnekleme açıkken çağrı yoğun TR k
 | `docs/` | Belgeler: [`kilavuz/`](guide/README.md), [`dil/`](spec/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
 | `examples/` | Öğrenme sırasıyla örnek programlar |
 | `tests/` | Dil tanımının kural testleri (`tr test tests`); `olumsuz/`, `alt/`, `veri/` |
-| `tools/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas paketi: `colab_hazirla.sh`, `kiyas_gpu.tr`, `kiyas_gpu.py`, `mikro_kiyas.py`, `mikro_tablo.py`, `COLAB.md`) |
+| `tools/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas: `COLAB.md` Colab'da kodu GitHub'dan çekip derler; `kiyas_gpu.tr`, `gpt_egitim.tr`, `kiyas_gpu.py`, `mikro_kiyas.py`, `mikro_tablo.py`) |
 | `bin/` | Derleme çıktısı (`go build -o bin/tr.exe ./cmd/tr`); depoya girmez |
 | `scratch/` | Kişisel deneme klasörü; depoya girmez |
 

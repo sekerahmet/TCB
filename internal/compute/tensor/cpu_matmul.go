@@ -47,7 +47,7 @@ const (
 )
 
 // directBMaxM bu kadar satıra kadar (M) tam B panelleri paketlenmeden okunur (bkz.
-// gemmParca). Ölçüm (19.10.2026, i7-13700H, satır öncelikli B, N 64-256, K 64-1024):
+// gemmPart). Ölçüm (19.10.2026, i7-13700H, satır öncelikli B, N 64-256, K 64-1024):
 // M ≤ 64'te tek çekirdekte %14-83, 2 ve 20 çekirdekte %13-94 hızlı; M = 256'da tek
 // çekirdekte ±%5, çok çekirdekte %5-45 hızlı; M = 512'de tek çekirdekte %8'e varan kayıp,
 // M ≥ 1024'te paketli B ile aynı ya da biraz hızlı. Testler değiştirebilir.
@@ -127,6 +127,77 @@ func (y *bufStack) Put(p *[]float32) {
 		y.total += c
 	}
 	y.mu.Unlock()
+}
+
+// gemmTiles çarpımı iş parçalarına böler: katılımcı sayısı W, iş parçası başına satır rb ve
+// B paneli npb, toplu eleman başına satır bloğu tpr, sütun bloğu tpc ve parça sayısı nt.
+func gemmTiles(batch, M, N, K, np int) (W, rb, npb, tpr, tpc, nt int) {
+	is := batch * M * N * K
+	W = workerCount(is, minPerWorker, gemmBigJob)
+	mPad := (M + mr - 1) / mr * mr
+	rb = mPad // iş parçası başına satır
+	npb = np  // iş parçası başına B paneli (sütun bloğu)
+	if is < singleCoreThreshold || W == 1 {
+		W = 1
+	} else {
+		// Başarım ve verimlilik çekirdekleri karışık işlemcilerde yük dengesi
+		// belirleyici olduğundan işçi başına ~8 iş parçası hedeflenir; satır
+		// bloğu bu yüzden küçük tutulur. İş yine az kalırsa (küçük M) sütun
+		// yönünde de bölünür.
+		rb = (batch*M + W*8 - 1) / (W * 8)
+		rb = (rb + mr - 1) / mr * mr
+		if rb > rowB {
+			rb = rowB
+		}
+		if rb > mPad {
+			rb = mPad
+		}
+		rowJob := batch * ((M + rb - 1) / rb)
+		if target := W * 4; rowJob < target {
+			divFn := (target + rowJob - 1) / rowJob
+			npb = (np + divFn - 1) / divFn
+			if npb < minPanel {
+				npb = minPanel
+			}
+			if npb > np {
+				npb = np
+			}
+		}
+	}
+	tpr = (M + rb - 1) / rb    // toplu eleman başına satır bloğu
+	tpc = (np + npb - 1) / npb // sütun bloğu sayısı
+	nt = batch * tpr * tpc
+	if W > nt {
+		W = nt
+	}
+	return W, rb, npb, tpr, tpc, nt
+}
+
+// packB op(B)'nin first'ten başlayan panellerini (her toplu eleman için) bp'ye paketler;
+// first'ten önceki paneller paketlenmeden okunur (bkz. directBMaxM).
+func packB(batch, K, N int, b []float32, bks, bjs, first int, bp []float32) {
+	np := (N + nr - 1) / nr
+	bpLen := np * K * nr
+	packN := np - first
+	if packN <= 0 {
+		return
+	}
+	parallelFor(batch*packN, K*nr, func(lo, hi int) {
+		for t := lo; t < hi; t++ {
+			bi, jp := t/packN, first+t%packN
+			packBPanel(b[bi*K*N:(bi+1)*K*N], bks, bjs, K, N, jp, bp[bi*bpLen+jp*K*nr:bi*bpLen+(jp+1)*K*nr])
+		}
+	})
+}
+
+// microCall paketli A paneliyle (ap: kb×mr) mikro çekirdeği çağırır; B paketliyse (ldb = nr)
+// mimarinin microKernel'i, değilse adımlı microAB kullanılır.
+func microCall(kb int, ap, bp []float32, ldb int, c []float32, ldc, mm, nn int) {
+	if ldb == nr {
+		microKernel(kb, ap, bp, c, ldc, mm, nn)
+		return
+	}
+	microAB(kb, ap, 1, mr, bp, ldb, c, ldc, mm, nn)
 }
 
 // packBPanel op(B)'nin jp. nr genişlikli panelini dst'ye (K×nr) yazar.
@@ -217,11 +288,11 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 	}
 	for b0 := 0; b0 < batch; b0 += part {
 		n := min(part, batch-b0)
-		gemmParca(n, M, N, K, a[b0*M*K:(b0+n)*M*K], transA, b[b0*K*N:(b0+n)*K*N], transB, c[b0*M*N:(b0+n)*M*N])
+		gemmPart(n, M, N, K, a[b0*M*K:(b0+n)*M*K], transA, b[b0*K*N:(b0+n)*K*N], transB, c[b0*M*N:(b0+n)*M*N])
 	}
 }
 
-func gemmParca(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool, c []float32) {
+func gemmPart(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool, c []float32) {
 	ais, axisN := K, 1
 	if transA {
 		ais, axisN = 1, M
@@ -243,53 +314,9 @@ func gemmParca(batch, M, N, K int, a []float32, transA bool, b []float32, transB
 	if unpackedB {
 		first = full
 	}
-	if packN := np - first; packN > 0 {
-		parallelFor(batch*packN, K*nr, func(lo, hi int) {
-			for t := lo; t < hi; t++ {
-				bi, jp := t/packN, first+t%packN
-				packBPanel(b[bi*K*N:(bi+1)*K*N], bks, bjs, K, N, jp, bp[bi*bpLen+jp*K*nr:bi*bpLen+(jp+1)*K*nr])
-			}
-		})
-	}
+	packB(batch, K, N, b, bks, bjs, first, bp)
 
-	is := batch * M * N * K
-	W := workerCount(is, minPerWorker, gemmBigJob)
-	mPad := (M + mr - 1) / mr * mr
-	rb := mPad // iş parçası başına satır
-	npb := np  // iş parçası başına B paneli (sütun bloğu)
-	if is < singleCoreThreshold || W == 1 {
-		W = 1
-	} else {
-		// Başarım ve verimlilik çekirdekleri karışık işlemcilerde yük dengesi
-		// belirleyici olduğundan işçi başına ~8 iş parçası hedeflenir; satır
-		// bloğu bu yüzden küçük tutulur. İş yine az kalırsa (küçük M) sütun
-		// yönünde de bölünür.
-		rb = (batch*M + W*8 - 1) / (W * 8)
-		rb = (rb + mr - 1) / mr * mr
-		if rb > rowB {
-			rb = rowB
-		}
-		if rb > mPad {
-			rb = mPad
-		}
-		rowJob := batch * ((M + rb - 1) / rb)
-		if target := W * 4; rowJob < target {
-			divFn := (target + rowJob - 1) / rowJob
-			npb = (np + divFn - 1) / divFn
-			if npb < minPanel {
-				npb = minPanel
-			}
-			if npb > np {
-				npb = np
-			}
-		}
-	}
-	tpr := (M + rb - 1) / rb    // toplu eleman başına satır bloğu
-	tpc := (np + npb - 1) / npb // sütun bloğu sayısı
-	nt := batch * tpr * tpc
-	if W > nt {
-		W = nt
-	}
+	W, rb, npb, tpr, tpc, nt := gemmTiles(batch, M, N, K, np)
 	kcMax := kcBlock
 	if K < kcMax {
 		kcMax = K
@@ -334,9 +361,9 @@ func gemmParca(batch, M, N, K int, a []float32, transA bool, b []float32, transB
 				if nn > nr {
 					nn = nr
 				}
-				bpan := bB[jp*K*nr+p0*nr : jp*K*nr+(p0+kb)*nr]
+				bpan, ldb := bB[jp*K*nr+p0*nr:jp*K*nr+(p0+kb)*nr], nr
 				if unpackedB && jp < full {
-					bpan = b[bi*K*N+p0*N+j0:]
+					bpan, ldb = b[bi*K*N+p0*N+j0:], N
 				}
 				for ip := 0; ip*mr < m; ip++ {
 					mm := m - ip*mr
@@ -344,24 +371,13 @@ func gemmParca(batch, M, N, K int, a []float32, transA bool, b []float32, transB
 						mm = mr
 					}
 					cBlock := cB[(i0+ip*mr)*N+j0:]
-					if unpackedB && jp < full {
-						switch {
-						case ip < whole:
-							microAB(kb, aB[(i0+ip*mr)*ais+p0*axisN:], ais, axisN, bpan, N, cBlock, N, mm, nn)
-						case direct:
-							microAB(kb, ap[:kb*mr], 1, mr, bpan, N, cBlock, N, mm, nn)
-						default:
-							microAB(kb, ap[ip*kb*mr:(ip+1)*kb*mr], 1, mr, bpan, N, cBlock, N, mm, nn)
-						}
-						continue
-					}
 					switch {
 					case ip < whole:
-						microA(kb, aB[(i0+ip*mr)*ais+p0*axisN:], ais, axisN, bpan, cBlock, N, mm, nn)
+						microAB(kb, aB[(i0+ip*mr)*ais+p0*axisN:], ais, axisN, bpan, ldb, cBlock, N, mm, nn)
 					case direct:
-						microKernel(kb, ap[:kb*mr], bpan, cBlock, N, mm, nn)
+						microCall(kb, ap[:kb*mr], bpan, ldb, cBlock, N, mm, nn)
 					default:
-						microKernel(kb, ap[ip*kb*mr:(ip+1)*kb*mr], bpan, cBlock, N, mm, nn)
+						microCall(kb, ap[ip*kb*mr:(ip+1)*kb*mr], bpan, ldb, cBlock, N, mm, nn)
 					}
 				}
 			}

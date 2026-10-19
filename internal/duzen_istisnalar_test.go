@@ -72,7 +72,7 @@ var uzunFonksiyonlar = map[string]istisna{
 
 	// Hesap çekirdekleri
 	"internal/compute/tensor/cpu_attention.go:cpuBackend.f32Attention": {146, nCekirdek},
-	"internal/compute/tensor/cpu_matmul.go:gemmParca":                  {146, nCekirdek},
+	"internal/compute/tensor/cpu_matmul.go:gemmPart":                   {115, nCekirdek},
 	"internal/compute/tensor/autograd.go:Tensor.BackwardCtx":           {89, nCekirdek},
 	"internal/compute/tensor/cpu_backend.go:unaryLoop":                 {89, nCekirdek},
 	"internal/compute/tensor/cpu_backend.go:cpuBackend.f32BinaryGrad":  {85, nCekirdek},
