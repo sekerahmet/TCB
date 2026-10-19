@@ -56,6 +56,22 @@ test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
     doğrula(tensör([7.0]) != 7)
 }
 
+test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 üstünde de)" {
+    değişken büyük = 9007199254740993
+    değişken yakın = 9007199254740992.0
+    doğrula(büyük != yakın)
+    doğrula(büyük > yakın ve yakın < büyük)
+    doğrula(büyük - 1 == yakın)
+    // sözlük anahtarı ve sıralama aynı kuralla: iki ayrı anahtar, belirli bir sıra
+    değişken d = {}
+    d[büyük] = "tam"
+    d[yakın] = "ondalık"
+    eşit_mi(2, d.uzunluk)
+    eşit_mi([yakın, büyük], [büyük, yakın].sırala())
+    değişken nan = ondalık("nan")
+    doğrula(nan != 1 ve !(nan == 1) ve !(nan < 1) ve !(nan > 1))
+}
+
 test "4.5 fonksiyonlar kimlikle karşılaştırılır" {
     değişken f = x => x
     değişken g = f

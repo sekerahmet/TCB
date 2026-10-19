@@ -101,6 +101,9 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 				return val, err
 			}
 		case *FloatVal:
+			if val, ok := mixedCompare(codeVal, left, right); ok {
+				return val, nil
+			}
 			if val, ok, err := floatOp(codeVal, float64(l.Val), r.Val, line); ok {
 				return val, err
 			}
@@ -108,6 +111,9 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 	case *FloatVal:
 		switch r := right.(type) {
 		case *IntVal:
+			if val, ok := mixedCompare(codeVal, left, right); ok {
+				return val, nil
+			}
 			if val, ok, err := floatOp(codeVal, l.Val, float64(r.Val), line); ok {
 				return val, err
 			}
@@ -309,9 +315,14 @@ func valuesEqual(a, b Value, nestDepth int) bool {
 			return ai.Val == bi.Val
 		}
 	}
-	if af, ok1 := ToFloat(a); ok1 {
-		if bf, ok2 := ToFloat(b); ok2 {
-			return af == bf
+	// A Tam and an Ondalık are compared exactly; converting the Tam to Ondalık would make
+	// 9007199254740993 == 9007199254740992.0 true. NaN equals nothing.
+	if c, ok := compareNumbers(a, b); ok {
+		return c == 0
+	}
+	if _, ok1 := ToFloat(a); ok1 {
+		if _, ok2 := ToFloat(b); ok2 {
+			return false
 		}
 	}
 	// Değerin kendi eşitlik kuralı (ör. tensör: şekil ve tüm elemanlar)
@@ -431,4 +442,35 @@ func mulFits(a, b int64) bool {
 	}
 	c := a * b
 	return c/b == a && !(a == -1 && b == math.MinInt64) && !(b == -1 && a == math.MinInt64)
+}
+
+// mixedCompare compares a Tam with an Ondalık exactly (4.5) for the comparison operators;
+// converting the Tam to Ondalık loses precision above 2^53. With NaN only != is true.
+// ok is false for other operators (arithmetic stays in Ondalık).
+func mixedCompare(codeVal uint8, left, right Value) (Value, bool) {
+	switch codeVal {
+	case opLt, opGt, opLe, opGe, opEq, opNe:
+	default:
+		return nil, false
+	}
+	c, ok := compareNumbers(left, right)
+	if !ok {
+		return BoolToVal(codeVal == opNe), true
+	}
+	var r bool
+	switch codeVal {
+	case opLt:
+		r = c < 0
+	case opGt:
+		r = c > 0
+	case opLe:
+		r = c <= 0
+	case opGe:
+		r = c >= 0
+	case opEq:
+		r = c == 0
+	default:
+		r = c != 0
+	}
+	return BoolToVal(r), true
 }
