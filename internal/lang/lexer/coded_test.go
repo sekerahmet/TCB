@@ -105,7 +105,8 @@ func TestInterpolationPositions(t *testing.T) {
 
 // The coded-mode pre-scan descends into string interpolations; without a depth limit a file of
 // deeply nested strings took minutes (each level copies the text below it). It stops at the
-// parser's nesting limit, where the parser reports the error anyway.
+// parser's nesting limit, where the parser reports the error anyway, and a work budget keeps
+// the total linear in the input.
 func TestCodedPreScanDepthLimited(t *testing.T) {
 	body := "1"
 	for i := 0; i < 20000; i++ {
@@ -115,7 +116,7 @@ func TestCodedPreScanDepthLimited(t *testing.T) {
 	l := NewBody("A030 s = "+body+"\n", true)
 	for l.NextToken().Type != TOKEN_EOF {
 	}
-	if d := time.Since(begin); d > 10*time.Second {
+	if d := time.Since(begin); d > 5*time.Second { // linear: about 0.2 s on an idle machine
 		t.Errorf("20000 nested interpolations took %v", d)
 	}
 }

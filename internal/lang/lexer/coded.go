@@ -34,7 +34,8 @@ func NewBody(input string, coded bool) *Lexer {
 	pre := newLexer(input)
 	pre.coded = true
 	var k []shift
-	pre.scanCodes(&k, 0)
+	budget := maxPreScanFactor*len(input) + 1<<16
+	pre.scanCodes(&k, 0, &budget)
 	l := newLexer(input)
 	l.coded = true
 	l.buildShifts(k)
@@ -47,6 +48,12 @@ func NewBody(input string, coded bool) *Lexer {
 // and without a limit each level copies the text below it (quadratic time).
 const maxInterpolationNesting = 1000
 
+// maxPreScanFactor bounds the pre-scan's total work: the interpolation text it reads across all
+// levels stays below this many times the input (plus 64 KiB). Each level re-reads the text
+// below it, so code nested d levels costs d times its length; past the budget deeper levels
+// are skipped (only their column shifts are lost). Real code is never nested 32 levels deep.
+const maxPreScanFactor = 32
+
 // shift, kökün girdisindeki off konumundan başlayarak satırın geri kalanının gösterimdeki
 // sütun kaymasıdır (kodun adının uzunluğu - 4).
 type shift struct {
@@ -55,7 +62,7 @@ type shift struct {
 
 // scanCodes bütün sözcükleri (yerleştirmelerdekiler dahil) okuyup kodların sütun
 // kaymalarını toplar. Bulunan hatalar önemsenmez; asıl çözümleyici onları yeniden bulur.
-func (l *Lexer) scanCodes(k *[]shift, depth int) {
+func (l *Lexer) scanCodes(k *[]shift, depth int, budget *int) {
 	for {
 		tok := l.NextToken()
 		switch {
@@ -71,7 +78,9 @@ func (l *Lexer) scanCodes(k *[]shift, depth int) {
 				value := []rune(tok.Literal)
 				for _, y := range positions {
 					if expr, begin := InterpolationExpr(value, y[0]+1, y[1]); expr != "" {
-						l.Interpolation(tok, expr, begin).scanCodes(k, depth+1)
+						if *budget -= len(expr); *budget >= 0 {
+							l.Interpolation(tok, expr, begin).scanCodes(k, depth+1, budget)
+						}
 					}
 				}
 			}
