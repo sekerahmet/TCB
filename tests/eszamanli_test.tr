@@ -48,6 +48,16 @@ test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
     eşit_mi(3, ilk_bitiş, metin(iz))
 }
 
+test "10.3 bekle() negatif, sayı olmayan ya da aşırı uzun süreyi reddeder" {
+    değişken hatalar = []
+    dene { bekle(-5) } yakala h { hatalar.ekle(h) }
+    dene { bekle(ondalık("nan")) } yakala h { hatalar.ekle(h) }
+    dene { bekle(1e300) } yakala h { hatalar.ekle(h) }
+    dene { bekle(9.3e9) } yakala h { hatalar.ekle(h) }
+    eşit_mi(4, hatalar.uzunluk)
+    bekle(0)
+}
+
 test "10.4 görev değişkenleri döngü turuna aittir" {
     değişken görülen = []
     döngü i içinde 1..=3 {

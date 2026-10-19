@@ -334,6 +334,9 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 }
 
 // sleepBuiltin bekle() yerleşiğidir.
+// maxSleepSeconds is the longest bekle(): the largest time.Duration, about 292 years.
+const maxSleepSeconds = float64(math.MaxInt64) / float64(time.Second)
+
 func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G500, "1", len(args), "saniye")
@@ -341,6 +344,14 @@ func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	pick, ok := ToFloat(args[0])
 	if !ok {
 		return nil, ArgTypeError(codes.G500, 1, args[0], numberTypes...)
+	}
+	// A negative, NaN or huge duration used to return at once without an error (the
+	// conversion to time.Duration overflows).
+	if math.IsNaN(pick) || pick < 0 {
+		return nil, fmt.Errorf("%s: süre negatif ya da sayı değil (%v); 0 ya da daha büyük bir saniye verin", CallPrefix(codes.G500), args[0].Inspect())
+	}
+	if pick > maxSleepSeconds {
+		return nil, fmt.Errorf("%s: süre çok uzun (%v saniye); en fazla %.0f saniye beklenebilir", CallPrefix(codes.G500), args[0].Inspect(), maxSleepSeconds)
 	}
 	// Kesme istenirse (Ctrl+C) bekleme hemen biter; program sonraki güvenli noktada durur.
 	y.Blocking(func() { y.interruptibleSleep(time.Duration(pick * float64(time.Second))) })
