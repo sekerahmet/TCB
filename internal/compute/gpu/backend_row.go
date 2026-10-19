@@ -99,11 +99,12 @@ func (g *backend) CrossEntropy(x tensor.View, targets []int, C int) (tensor.Stor
 		return loss, lse
 	}
 	checkSize(R * C)
-	xv := gt.read(x)
+	xv := gt.readNative(x)
+	xt := g.storageOf(xv.S).dtype
 	target := gt.loadInt(targets)
 	loss2 := gt.buffer(R, false)
-	vec := ceVectorized(xv, C)
-	c := g.takeKernel(fmt.Sprintf("ce_ileri:%v", vec), ceForwardKernel(vec))
+	vec := ceVectorized(xt, xv, C)
+	c := g.takeKernel(fmt.Sprintf("ce_ileri:%v:%v", xt, vec), ceForwardKernel(xt, vec))
 	g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{ceBlock, 1, 1}, g.param().readV(xv).read(target, 0).write(lse, 0).write(loss2, 0).u32(C))
 	scaleF := float32(0)
 	if n := validCount(targets); n > 0 {
@@ -113,8 +114,11 @@ func (g *backend) CrossEntropy(x tensor.View, targets []int, C int) (tensor.Stor
 	return loss, lse
 }
 
-// ceVectorized satırların 4'lü vektörlerle okunup yazılabildiği (C % 4 = 0, hizalı görünüm).
-func ceVectorized(xv tensor.View, C int) bool { return C%4 == 0 && xv.Offset%4 == 0 }
+// ceVectorized satırların 4'lü vektörlerle okunup yazılabildiği (C % 4 = 0, hizalı görünüm;
+// float16'da tekil okuma).
+func ceVectorized(dt tensor.DType, xv tensor.View, C int) bool {
+	return C%4 == 0 && xv.Offset%4 == 0 && dt != tensor.Float16
+}
 
 func (g *backend) CrossEntropyGrad(gx, gs tensor.Storage, x tensor.View, lse tensor.Storage, targets []int, C int) {
 	g.enter()
@@ -134,8 +138,7 @@ func (g *backend) ceBackward(gx, gs tensor.Storage, x tensor.View, lse tensor.St
 	R := len(targets)
 	gt := g.temp()
 	defer gt.finish()
-	d, last := gt.write(gx, !over)
-	defer last()
+	d := g.storageOf(gx)
 	if n == 0 || C == 0 {
 		if over {
 			g.fill(d, 0)
@@ -143,11 +146,12 @@ func (g *backend) ceBackward(gx, gs tensor.Storage, x tensor.View, lse tensor.St
 		return
 	}
 	gd := gt.readD(gs)
-	xv := gt.read(x)
+	xv := gt.readNative(x)
+	xt := g.storageOf(xv.S).dtype
 	target := gt.loadInt(targets)
 	ld := gt.readD(lse)
-	vec := ceVectorized(xv, C)
-	c := g.takeKernel(fmt.Sprintf("ce_geri:%v:%v", vec, over), ceBackwardKernel(vec, over))
+	vec := ceVectorized(xt, xv, C) && d.dtype != tensor.Float16
+	c := g.takeKernel(fmt.Sprintf("ce_geri:%v:%v:%v:%v", xt, d.dtype, vec, over), ceBackwardKernel(xt, d.dtype, vec, over))
 	g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{ceBlock, 1, 1},
 		g.param().write(d, 0).read(gd, 0).readV(xv).read(ld, 0).read(target, 0).u32(C).f32(float32(1/float64(n))))
 }

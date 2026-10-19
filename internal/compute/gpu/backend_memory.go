@@ -23,8 +23,11 @@ type temp struct {
 
 func (g *backend) temp() *temp { return &temp{g: g} }
 
-func (t *temp) buffer(n int, reset bool) *storage {
-	d := t.g.allocate(n, tensor.Float32, reset)
+func (t *temp) buffer(n int, reset bool) *storage { return t.bufferOf(n, tensor.Float32, reset) }
+
+// bufferOf dt türünde geçici tampon (çağrı sonunda iade).
+func (t *temp) bufferOf(n int, dt tensor.DType, reset bool) *storage {
+	d := t.g.allocate(n, dt, reset)
 	t.t = append(t.t, d)
 	return d
 }
@@ -44,6 +47,21 @@ func (t *temp) read(v tensor.View) tensor.View {
 	}
 	n := v.Numel()
 	tmp := t.buffer(n, false)
+	hv := tensor.View{S: tmp, Shape: v.Shape, Strides: contiguous(v.Shape)}
+	t.g.copyStrided(hv, v, false, 0)
+	return hv
+}
+
+// readNative bitişik görünümü türü ne olursa olsun (float32 ya da 16 bit) olduğu gibi
+// bırakır; adımlı görünümü kendi türünde bitişiğe kopyalar. Çekirdek elemanları kendi
+// türünde okur (16 bitlik veri float32'ye açılmaz).
+func (t *temp) readNative(v tensor.View) tensor.View {
+	if v.IsContiguous() {
+		return v
+	}
+	d := t.g.storageOf(v.S)
+	n := v.Numel()
+	tmp := t.bufferOf(n, d.dtype, false)
 	hv := tensor.View{S: tmp, Shape: v.Shape, Strides: contiguous(v.Shape)}
 	t.g.copyStrided(hv, v, false, 0)
 	return hv

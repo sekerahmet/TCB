@@ -86,6 +86,41 @@ func TestCrossEntropy(t *testing.T) {
 	}
 }
 
+// TestCrossEntropy16Bit bfloat16 ve float16 logitlerle çapraz entropinin ileri ve geri yönünü
+// denetler: çekirdek logitleri kendi türünde okur, gradyanı kendi türünde (float32 ya da
+// logitlerle aynı 16 bitlik tür) yazar; üzerine ve iki kayıpta eskisine ekleyerek. bfloat16'da
+// 4'lü vektör yolu, float16'da tekli yol.
+func TestCrossEntropy16Bit(t *testing.T) {
+	old := tensor.GradDType()
+	defer tensor.SetGradDType(old)
+	rng := rand.New(rand.NewSource(19))
+	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+		for _, gt := range []tensor.DType{tensor.Float32, dt} {
+			tensor.SetGradDType(gt)
+			for _, d := range [][2]int{{5, 7}, {9, 300}, {3, 2056}} {
+				R, C := d[0], d[1]
+				v := random(rng, R*C, 3)
+				target, second := make([]int, R), make([]int, R)
+				for i := range target {
+					target[i] = rng.Intn(C)
+					second[i] = (target[i] + 1) % C
+				}
+				target[1] = -1 // yok sayılan satır
+				name := fmt.Sprintf("çapraz entropi %s (gradyan %s) %d×%d", dt, gt, R, C)
+				compare(t, name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x := twin(v, true, R, C)[c]
+					return tensor.CrossEntropy(x.Cast(dt), target), []*tensor.Tensor{x}
+				})
+				compare(t, "iki "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x := twin(v, true, R, C)[c]
+					h := x.Cast(dt)
+					return tensor.Add(tensor.CrossEntropy(h, target), tensor.CrossEntropy(h, second)), []*tensor.Tensor{x}
+				})
+			}
+		}
+	}
+}
+
 func TestNorms(t *testing.T) {
 	rng := rand.New(rand.NewSource(10))
 	for _, d := range [][2]int{{1, 1}, {3, 8}, {5, 129}, {2, 600}} {

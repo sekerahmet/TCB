@@ -258,24 +258,31 @@ func (k *emitter) store(dt tensor.DType, addr, v reg) {
 		k.e("cvt.rn.f16.f32", h, v)
 		k.e("st.global.u16", mem(addr, 0), h)
 	default:
-		b := k.r()
-		k.e("mov.b32", b, v)
-		abs2 := k.r()
-		k.e("and.b32", abs2, b, 0x7FFFFFFF)
-		nan := k.p()
-		k.e("setp.gt.u32", nan, abs2, 0x7F800000)
-		q := k.r()
-		k.e("shr.u32", q, b, 16)
-		k.e("or.b32", q, q, 0x40)
-		t := k.r()
-		k.e("shr.u32", t, b, 16)
-		k.e("and.b32", t, t, 1)
-		k.e("add.s32", t, t, 0x7FFF)
-		k.e("add.s32", b, b, t)
-		k.e("shr.u32", b, b, 16)
-		k.e("selp.b32", b, q, b, nan)
+		b := k.bf16Bits(v)
 		h := k.h()
 		k.e("cvt.u16.u32", h, b)
 		k.e("st.global.u16", mem(addr, 0), h)
 	}
+}
+
+// bf16Bits float32 v'nin en yakına-çifte yuvarlanmış bfloat16 bitlerini 32 bitlik yazmacın
+// alt yarısında verir (üst yarı 0). NaN sessiz NaN olarak (işaret korunarak) kalır.
+func (k *emitter) bf16Bits(v reg) reg {
+	b := k.r()
+	k.e("mov.b32", b, v)
+	abs2 := k.r()
+	k.e("and.b32", abs2, b, 0x7FFFFFFF)
+	nan := k.p()
+	k.e("setp.gt.u32", nan, abs2, 0x7F800000)
+	q := k.r()
+	k.e("shr.u32", q, b, 16)
+	k.e("or.b32", q, q, 0x40)
+	t := k.r()
+	k.e("shr.u32", t, b, 16)
+	k.e("and.b32", t, t, 1)
+	k.e("add.s32", t, t, 0x7FFF)
+	k.e("add.s32", b, b, t)
+	k.e("shr.u32", b, b, 16)
+	k.e("selp.b32", b, q, b, nan)
+	return b
 }

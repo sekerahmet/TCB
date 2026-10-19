@@ -16,14 +16,14 @@ import (
 // içinde sabit sırayla birleştirilir. Logitler bir kez okunur; softmax ara tensörü yoktur.
 // Geri: gx = k·e^{x−lse} − k·[c = hedef] (k = g/geçerli) doğrudan yazılır (üzerine ya da
 // eskisine eklenerek). vek doğruysa satır 4'lü vektörlerle okunur/yazılır (C % 4 = 0 ve
-// hizalı görünüm).
+// hizalı görünüm). Logitler ve gradyan kendi türlerinde (float32 ya da 16 bit) okunup yazılır;
+// lse, kayıp ve bütün ara hesap float32'dedir. 16 bitlik logitler float32'ye açılmaz.
 
 const ceBlock = 256
 
-// ceWalk satırın elemanlarını (vek ise 4'lülerle) iş parçacığı adımıyla gezer; govde her
-// elemanın değerini ve sütununu alır. adr satır tabanının bayt adresi (x için), ofs
-// işlevi diğer göstericiler için aynı bayt ofsetini verir.
-func (k *emitter) ceWalk(tid, C reg, vec bool, body func(ofs reg, c reg, n int)) {
+// ceWalk satırın elemanlarını (vek ise 4'lülerle) iş parçacığı adımıyla gezer; govde
+// elemanın (ya da 4'lünün ilkinin) sütununu alır.
+func (k *emitter) ceWalk(tid, C reg, vec bool, body func(c reg, n int)) {
 	step, n := ceBlock, 1
 	if vec {
 		step, n = 4*ceBlock, 4
@@ -35,20 +35,62 @@ func (k *emitter) ceWalk(tid, C reg, vec bool, body func(ofs reg, c reg, n int))
 	p := k.p()
 	k.e("setp.ge.u32", p, c, C)
 	k.jumpIf(p, last)
-	ofs := k.rd()
-	k.e("mul.wide.u32", ofs, c, 4)
-	body(ofs, c, n)
+	body(c, n)
 	k.e("add.s32", c, c, step)
 	k.jump(begin)
 	k.put(last)
 }
 
-// ceValues adresteki 1 ya da 4 float32.
-func (k *emitter) ceValues(addr reg, n int) []reg {
+// ceRow satır r'nin taban adresi: ptr + r·C·boy.
+func (k *emitter) ceRow(ptr, r, C reg, dt tensor.DType) reg {
+	row := k.rd()
+	k.e("mul.wide.u32", row, r, C)
+	k.e("mul.lo.s64", row, row, dtypeSize(dt))
+	k.e("add.s64", row, row, ptr)
+	return row
+}
+
+// ceValues adresteki 1 ya da 4 elemanı float32 olarak okur. 4 bfloat16 iki 32 bitlik
+// sözcükle okunup yarılarına ayrılır (bfloat16 float32'nin üst yarısıdır).
+func (k *emitter) ceValues(dt tensor.DType, addr reg, n int) []reg {
 	if n == 1 {
-		return []reg{k.load(tensor.Float32, addr)}
+		return []reg{k.load(dt, addr)}
 	}
-	return k.loadV("global", "", addr, 0, 4)
+	if dt == tensor.Float32 {
+		return k.loadV("global", "", addr, 0, 4)
+	}
+	w := []reg{k.r(), k.r()}
+	k.e("ld.global.v2.b32", vlist(w), mem(addr, 0))
+	out := make([]reg, 0, 4)
+	for _, x := range w {
+		lo, hi := k.r(), k.r()
+		k.e("shl.b32", lo, x, 16)
+		k.e("and.b32", hi, x, 0xFFFF0000)
+		for _, b := range []reg{lo, hi} {
+			f := k.f()
+			k.e("mov.b32", f, b)
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// ceStore 1 ya da 4 float32'yi dt türünde adrese yazar (4 bfloat16 iki sözcükle).
+func (k *emitter) ceStore(dt tensor.DType, addr reg, v []reg) {
+	switch {
+	case len(v) == 1:
+		k.store(dt, addr, v[0])
+	case dt == tensor.Float32:
+		k.storeV("global", "", addr, 0, v)
+	default:
+		w := []reg{k.r(), k.r()}
+		for i := range w {
+			lo, hi := k.bf16Bits(v[2*i]), k.bf16Bits(v[2*i+1])
+			k.e("shl.b32", hi, hi, 16)
+			k.e("or.b32", w[i], lo, hi)
+		}
+		k.e("st.global.v2.b32", mem(addr, 0), vlist(w))
+	}
 }
 
 // onlineAdd (m, s) çiftine v'yi ekler: v > m ise s = s·e^{m−v} + 1, m = v; değilse
@@ -125,9 +167,9 @@ func (k *emitter) pairReduce(m, s, smM, smS, tid reg, B int) (reg, reg) {
 
 // ceForwardKernel satır başına lse = m + log s ve kayıp = lse − x[hedef]; hedefi negatif
 // satırlarda ikisi de 0.
-func ceForwardKernel(vec bool) func() *emitter {
+func ceForwardKernel(xt tensor.DType, vec bool) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("ce_ileri_%v", vec))
+		k := newEmitter(fmt.Sprintf("ce_ileri_%v_%v", xt, vec))
 		x := k.pointer("x")
 		target := k.pointer("hedef")
 		lse := k.written("lse")
@@ -136,10 +178,7 @@ func ceForwardKernel(vec bool) func() *emitter {
 		smM, smS := k.shared("sm_m", 4*ceBlock), k.shared("sm_s", 4*ceBlock)
 		tid := k.special("%tid.x")
 		r := k.special("%ctaid.x")
-		base2 := k.rd()
-		k.e("mul.wide.u32", base2, r, C)
-		k.e("shl.b64", base2, base2, 2)
-		k.e("add.s64", base2, base2, x)
+		base2 := k.ceRow(x, r, C, xt)
 		t := k.r()
 		k.e("ld.global.s32", t, mem(k.address(target, r, 4), 0))
 		last, valid := k.label(), k.label()
@@ -153,8 +192,8 @@ func ceForwardKernel(vec bool) func() *emitter {
 		k.jump(last)
 		k.put(valid)
 		m, s := k.constant(float32(math.Inf(-1))), k.constant(0)
-		k.ceWalk(tid, C, vec, func(ofs, _ reg, n int) {
-			for _, v := range k.ceValues(k.rowAddress(base2, ofs), n) {
+		k.ceWalk(tid, C, vec, func(c reg, n int) {
+			for _, v := range k.ceValues(xt, k.address(base2, c, dtypeSize(xt)), n) {
 				k.onlineAdd(m, s, v)
 			}
 		})
@@ -163,7 +202,7 @@ func ceForwardKernel(vec bool) func() *emitter {
 		l := k.logarithm(s)
 		k.e("add.rn.f32", l, l, m)
 		k.store(tensor.Float32, k.address(lse, r, 4), l)
-		xv := k.load(tensor.Float32, k.addressS(base2, t, 4))
+		xv := k.load(xt, k.addressS(base2, t, dtypeSize(xt)))
 		kv := k.f()
 		k.e("sub.rn.f32", kv, l, xv)
 		k.store(tensor.Float32, k.address(loss2, r, 4), kv)
@@ -174,9 +213,9 @@ func ceForwardKernel(vec bool) func() *emitter {
 
 // ceBackwardKernel gx[r, c] (+)= k·e^{x−lse} − (c = hedef ? k : 0), k = g·ters; satır başına
 // blok. uzerine doğruysa eski içerik okunmaz ve hedefi negatif satırlar 0 yazılır.
-func ceBackwardKernel(vec, over bool) func() *emitter {
+func ceBackwardKernel(xt, gxt tensor.DType, vec, over bool) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("ce_geri_%v_%v", vec, over))
+		k := newEmitter(fmt.Sprintf("ce_geri_%v_%v_%v_%v", xt, gxt, vec, over))
 		gx := k.written("gx")
 		g := k.pointer("g")
 		x := k.pointer("x")
@@ -186,12 +225,7 @@ func ceBackwardKernel(vec, over bool) func() *emitter {
 		inverse := k.f32p("ters")
 		r := k.special("%ctaid.x")
 		tid := k.special("%tid.x")
-		row := k.rd()
-		k.e("mul.wide.u32", row, r, C)
-		k.e("shl.b64", row, row, 2)
-		xt, gt := k.rd(), k.rd()
-		k.e("add.s64", xt, row, x)
-		k.e("add.s64", gt, row, gx)
+		xr, gr := k.ceRow(x, r, C, xt), k.ceRow(gx, r, C, gxt)
 		t := k.r()
 		k.e("ld.global.s32", t, mem(k.address(target, r, 4), 0))
 		last := k.label()
@@ -203,12 +237,12 @@ func ceBackwardKernel(vec, over bool) func() *emitter {
 		coef := k.load(tensor.Float32, g)
 		k.e("mul.rn.f32", coef, coef, inverse)
 		lv := k.load(tensor.Float32, k.address(lse, r, 4))
-		k.ceWalk(tid, C, vec, func(ofs, c reg, n int) {
-			xs := k.ceValues(k.rowAddress(xt, ofs), n)
-			ha := k.rowAddress(gt, ofs)
+		k.ceWalk(tid, C, vec, func(c reg, n int) {
+			xs := k.ceValues(xt, k.address(xr, c, dtypeSize(xt)), n)
+			ha := k.address(gr, c, dtypeSize(gxt))
 			var old []reg
 			if !over {
-				old = k.ceValues(ha, n)
+				old = k.ceValues(gxt, ha, n)
 			}
 			out := make([]reg, n)
 			for i, xv := range xs {
@@ -230,11 +264,7 @@ func ceBackwardKernel(vec, over bool) func() *emitter {
 				}
 				out[i] = v
 			}
-			if n == 1 {
-				k.store(tensor.Float32, ha, out[0])
-			} else {
-				k.storeV("global", "", ha, 0, out)
-			}
+			k.ceStore(gxt, ha, out)
 		})
 		k.put(last)
 		return k
