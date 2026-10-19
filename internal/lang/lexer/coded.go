@@ -32,12 +32,17 @@ func NewBody(input string, coded bool) *Lexer {
 	pre := newLexer(input)
 	pre.coded = true
 	var k []shift
-	pre.scanCodes(&k)
+	pre.scanCodes(&k, 0)
 	l := newLexer(input)
 	l.coded = true
 	l.buildShifts(k)
 	return l
 }
+
+// maxInterpolationNesting is how deep the pre-scan follows interpolations inside
+// interpolations. It equals the parser's nesting limit: deeper code is a parse error anyway,
+// and without a limit each level copies the text below it (quadratic time).
+const maxInterpolationNesting = 1000
 
 // shift, kökün girdisindeki off konumundan başlayarak satırın geri kalanının gösterimdeki
 // sütun kaymasıdır (kodun adının uzunluğu - 4).
@@ -47,7 +52,7 @@ type shift struct {
 
 // scanCodes bütün sözcükleri (yerleştirmelerdekiler dahil) okuyup kodların sütun
 // kaymalarını toplar. Bulunan hatalar önemsenmez; asıl çözümleyici onları yeniden bulur.
-func (l *Lexer) scanCodes(k *[]shift) {
+func (l *Lexer) scanCodes(k *[]shift, depth int) {
 	for {
 		tok := l.NextToken()
 		switch {
@@ -58,12 +63,12 @@ func (l *Lexer) scanCodes(k *[]shift) {
 			if d := utf8.RuneCountInString(tok.Literal) - (end - begin); d != 0 {
 				*k = append(*k, shift{off: l.sourcePos(end), d: int32(d)})
 			}
-		case tok.Type == TOKEN_STRING:
+		case tok.Type == TOKEN_STRING && depth < maxInterpolationNesting:
 			if positions := l.Interpolations(tok); positions != nil {
 				value := []rune(tok.Literal)
 				for _, y := range positions {
 					if expr, begin := InterpolationExpr(value, y[0]+1, y[1]); expr != "" {
-						l.Interpolation(tok, expr, begin).scanCodes(k)
+						l.Interpolation(tok, expr, begin).scanCodes(k, depth+1)
 					}
 				}
 			}

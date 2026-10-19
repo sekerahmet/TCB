@@ -3,6 +3,7 @@ package lexer
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
@@ -99,5 +100,22 @@ func TestInterpolationPositions(t *testing.T) {
 	end := records[len(records)-1]
 	if string([]rune(source)[end.Start:end.End]) != "yaz" {
 		t.Errorf("kayıt aralığı [%d,%d) %q", end.Start, end.End, string([]rune(source)[end.Start:end.End]))
+	}
+}
+
+// The coded-mode pre-scan descends into string interpolations; without a depth limit a file of
+// deeply nested strings took minutes (each level copies the text below it). It stops at the
+// parser's nesting limit, where the parser reports the error anyway.
+func TestCodedPreScanDepthLimited(t *testing.T) {
+	body := "1"
+	for i := 0; i < 20000; i++ {
+		body = `"{` + body + `}"`
+	}
+	begin := time.Now()
+	l := NewBody("A030 s = "+body+"\n", true)
+	for l.NextToken().Type != TOKEN_EOF {
+	}
+	if d := time.Since(begin); d > 10*time.Second {
+		t.Errorf("20000 nested interpolations took %v", d)
 	}
 }
