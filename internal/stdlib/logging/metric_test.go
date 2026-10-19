@@ -8,7 +8,7 @@ import (
 )
 
 // Çubuktaki sayılar 3 anlamlı basamakla, Türkçe ondalık virgülüyle yazılır.
-func TestSayiYazimi(t *testing.T) {
+func TestFormatNumber(t *testing.T) {
 	for _, d := range []struct {
 		f    float64
 		want string
@@ -17,27 +17,27 @@ func TestSayiYazimi(t *testing.T) {
 		{0.0003, "3e-4"}, {1234.6, "1235"}, {1234567, "1,23e6"}, {0, "0"}, {-0.5, "-0,5"}, {1, "1"},
 		{math.NaN(), "NaN"}, {math.Inf(1), "+Sonsuz"}, {math.Inf(-1), "-Sonsuz"},
 	} {
-		if got := logging.SayiYazimi(d.f); got != d.want {
-			t.Errorf("SayiYazimi(%v) = %q, beklenen %q", d.f, got, d.want)
+		if got := logging.FormatNumber(d.f); got != d.want {
+			t.Errorf("FormatNumber(%v) = %q, beklenen %q", d.f, got, d.want)
 		}
 	}
 }
 
-func TestSureYazimiVeCubuk(t *testing.T) {
+func TestFormatDurationAndBar(t *testing.T) {
 	for _, d := range []struct {
-		sn   float64
+		sec  float64
 		want string
 	}{{0.2, "0 sn"}, {45, "45 sn"}, {182, "3 dk 2 sn"}, {3663.3, "61 dk 3 sn"}, {600, "10 dk"}, {7500, "2 sa 5 dk"}} {
-		if got := logging.SureYazimi(d.sn); got != d.want {
-			t.Errorf("SureYazimi(%v) = %q, beklenen %q", d.sn, got, d.want)
+		if got := logging.FormatDuration(d.sec); got != d.want {
+			t.Errorf("FormatDuration(%v) = %q, beklenen %q", d.sec, got, d.want)
 		}
 	}
 	for _, d := range []struct {
-		oran float64
-		want string
+		ratio float64
+		want  string
 	}{{0, "▕░░░░░░░░░░░░░░░░▏"}, {0.24, "▕███▊░░░░░░░░░░░░▏"}, {1, "▕████████████████▏"}, {2, "▕████████████████▏"}} {
-		if got := logging.Cubuk(d.oran); got != d.want {
-			t.Errorf("Cubuk(%v) = %q, beklenen %q", d.oran, got, d.want)
+		if got := logging.Bar(d.ratio); got != d.want {
+			t.Errorf("Cubuk(%v) = %q, beklenen %q", d.ratio, got, d.want)
 		}
 	}
 }

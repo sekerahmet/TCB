@@ -69,7 +69,7 @@ func (c *Canli) Goster(g *Goruntu) {
 		}
 		return
 	}
-	e := Ekran{Genislik: logging.TerminalGenisligi(c.w) - 1}
+	e := Ekran{Genislik: logging.TerminalWidth(c.w) - 1}
 	if c.yak != nil {
 		e.CiktiDosyasi, e.SonCikti = c.yak.Yol(), c.yak.SonSatirlar(8)
 	}

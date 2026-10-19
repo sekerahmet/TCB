@@ -30,7 +30,7 @@ func izleKomutu(args []string) {
 	s, path, argumanlar := profilArgumanlari("izle", args, "--çıktı")
 	machine, prog, code := programiHazirla(path, argumanlar)
 	gercekCikis, gercekHata := os.Stdout, os.Stderr
-	canli := profiler.YeniCanli(gercekHata, logging.TerminalMi(gercekHata), nil)
+	canli := profiler.YeniCanli(gercekHata, logging.IsTerminal(gercekHata), nil)
 	var yak *profiler.Yakalama
 	if canli.Terminal() {
 		yol := s.cikti

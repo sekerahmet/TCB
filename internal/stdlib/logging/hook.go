@@ -12,29 +12,29 @@ import (
 // dağılımını bu kancayla ölçer: kanca iki çağrı arasında geçen süreyi ve o arada biriken
 // sayaçları adıma bağlar. Kanca yoksa maliyet tek bir atomik okumadır.
 
-// AdimSiniri bir adım sınırının bilgisidir.
-type AdimSiniri struct {
+// StepBoundary bir adım sınırının bilgisidir.
+type StepBoundary struct {
 	// VM güncelle'yi çağıran görevdir (yorumlayıcı kilidini tutar).
 	VM *interp.VM
-	// Adim güncellemeden sonra tamamlanan adım sayısıdır; Toplam çubuğun toplamıdır (0:
+	// Step güncellemeden sonra tamamlanan adım sayısıdır; Total çubuğun toplamıdır (0:
 	// toplamsız sayaç).
-	Adim, Toplam int64
-	// Zaman çağrının anıdır (çubuğun kendi hız ölçümüyle aynı saat okuması).
-	Zaman time.Time
+	Step, Total int64
+	// Time çağrının anıdır (çubuğun kendi hız ölçümüyle aynı saat okuması).
+	Time time.Time
 }
 
-var adimKancasi atomic.Pointer[func(AdimSiniri)]
+var stepHook atomic.Pointer[func(StepBoundary)]
 
-// saat şimdiki zamandır; testler sıklık sınırlarını sınamak için değiştirir.
-var saat = time.Now
+// clock şimdiki zamandır; testler sıklık sınırlarını sınamak için değiştirir.
+var clock = time.Now
 
-// AdimKancasiAyarla her adım sınırında çağrılacak kancayı kurar (nil: kaldırır). Kanca
+// SetStepHook her adım sınırında çağrılacak kancayı kurar (nil: kaldırır). Kanca
 // yorumlayıcı kilidi altında, eğitim döngüsünün her adımında çağrılır: kısa olmalı, TR kodu
 // çalıştırmamalı ve beklememelidir. Herhangi bir goroutine'den kurulabilir.
-func AdimKancasiAyarla(f func(AdimSiniri)) {
+func SetStepHook(f func(StepBoundary)) {
 	if f == nil {
-		adimKancasi.Store(nil)
+		stepHook.Store(nil)
 		return
 	}
-	adimKancasi.Store(&f)
+	stepHook.Store(&f)
 }

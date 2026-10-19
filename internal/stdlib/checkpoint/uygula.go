@@ -86,11 +86,11 @@ func (kn *KontrolNoktasi) tensorleriYukle(o *okunanNokta) (map[string]map[string
 // gunlugeDevamYaz günlüğe devam kaydını yazar; günlük kayıttakinden kısaysa (silinmiş ya da
 // kesilmiş) uyarır.
 func (kn *KontrolNoktasi) gunlugeDevamYaz(m *interp.VM, fn string, n *nesne, o *okunanNokta) {
-	if u, err := n.gunluk.Uzunluk(); err == nil && u < o.nesneler[n.ad].kayit.Uzunluk {
+	if u, err := n.gunluk.Len(); err == nil && u < o.nesneler[n.ad].kayit.Uzunluk {
 		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %q günlüğü kayıttakinden kısa (%d bayt, kayıtta %d); günlük silinmiş ya da kesilmiş olabilir\n",
 			fn, n.ad, u, o.nesneler[n.ad].kayit.Uzunluk))
 	}
-	if err := n.gunluk.DevamYaz(o.adim); err != nil {
+	if err := n.gunluk.WriteResume(o.adim); err != nil {
 		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %q günlüğüne devam kaydı yazılamadı: %v\n", fn, n.ad, err))
 	}
 }

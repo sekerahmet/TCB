@@ -14,7 +14,7 @@
 // "tür" taşımayan satırlar ölçü kayıtlarıdır. Anahtarlar yazım dilinden bağımsızdır ve
 // çevrilmez (TRTENSOR imzası gibi); okuyan araçlar (İzleme Masası, tr izle) bunlara bakar.
 // Tanımsız (NaN) ve sonsuz değerler gizlenmez, "NaN", "+Sonsuz", "-Sonsuz" metni olarak
-// yazılır. Bir "devam" kaydı (kontrol noktasından sürdürme, bkz. Gunluk.DevamYaz) kendinden
+// yazılır. Bir "devam" kaydı (kontrol noktasından sürdürme, bkz. Log.WriteResume) kendinden
 // önce gelen ve adımı ondan büyük olan ölçü kayıtlarını geçersiz kılar (adımı eşit olan kayıt
 // kaydedilen noktaya dahildir).
 //
@@ -22,9 +22,9 @@
 // kez yenilenir (yorumlayıcının canlı satır kancasıyla: yazdır ve hata çıktısı çubuğa
 // karışmaz), terminal değilse 10 saniyede bir düz satır ve sonda özet satırı yazılır. Arka
 // plan işinde (TR_İŞ ortam değişkeni) ayrıca iş klasörüne ilerleme.json anlık görüntüsü
-// yazılır. Her İlerleme.güncelle çağrısı eğitimin bir adım sınırıdır (AdimKancasiAyarla).
+// yazılır. Her İlerleme.güncelle çağrısı eğitimin bir adım sınırıdır (SetStepHook).
 //
-// Gizli değerler (yurut.VM.GizliDegerEkle) günlükte, çubukta ve ilerleme.json'da ***
+// Gizli değerler (interp.VM.AddSecret) günlükte, çubukta ve ilerleme.json'da ***
 // olarak yazılır.
 //
 // Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
@@ -44,86 +44,86 @@ import (
 
 // Tip adları.
 var (
-	GunlukTipi   = interp.TypeName(codes.A256) // Günlük
-	IlerlemeTipi = interp.TypeName(codes.A255) // İlerleme
+	LogType      = interp.TypeName(codes.A256) // Günlük
+	ProgressType = interp.TypeName(codes.A255) // İlerleme
 )
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
-	adGunluk = bind.NamedArg(codes.G912)
-	adAdim   = bind.NamedArg(codes.T982)
+	nameLog  = bind.NamedArg(codes.G912)
+	nameStep = bind.NamedArg(codes.T982)
 )
 
 // Dosya biçiminin (sürüm 1) anahtarları ve kayıt türleri; bkz. paket belgesi. Dilin adları
 // değildir (çevrilmez), bu yüzden tek bir metinde tutulurlar.
-var bicimAdlari = strings.Fields("tür zaman sürüm program toplam ayarlar adım hız süre_sn mesaj ölçüler kalan_sn bitti başlangıç bitiş devam")
+var formatNames = strings.Fields("tür zaman sürüm program toplam ayarlar adım hız süre_sn mesaj ölçüler kalan_sn bitti başlangıç bitiş devam")
 
 var (
-	aTur, aZaman, aSurum, aProgram   = bicimAdlari[0], bicimAdlari[1], bicimAdlari[2], bicimAdlari[3]
-	aToplam, aAyarlar, aAdim, aHiz   = bicimAdlari[4], bicimAdlari[5], bicimAdlari[6], bicimAdlari[7]
-	aSure, aMesaj, aOlculer, aKalan  = bicimAdlari[8], bicimAdlari[9], bicimAdlari[10], bicimAdlari[11]
-	aBitti                           = bicimAdlari[12]
-	turBaslangic, turBitis, turDevam = bicimAdlari[13], bicimAdlari[14], bicimAdlari[15]
+	keyKind, keyTime, keyVersion, keyProgram          = formatNames[0], formatNames[1], formatNames[2], formatNames[3]
+	keyTotal, keySettings, keyStep, keyRate           = formatNames[4], formatNames[5], formatNames[6], formatNames[7]
+	keyDuration, keyMessage, keyMetrics, keyRemaining = formatNames[8], formatNames[9], formatNames[10], formatNames[11]
+	keyDone                                           = formatNames[12]
+	kindStart, kindEnd, kindResume                    = formatNames[13], formatNames[14], formatNames[15]
 )
 
-// bicimSurumu günlük dosyası biçiminin sürümüdür (başlangıç kaydında).
-const bicimSurumu = 1
+// formatVersion günlük dosyası biçiminin sürümüdür (başlangıç kaydında).
+const formatVersion = 1
 
-// zamanBicimi kayıtların zaman damgasıdır (milisaniyeli, saat dilimli).
-const zamanBicimi = "2006-01-02T15:04:05.000Z07:00"
+// timeFormat kayıtların zaman damgasıdır (milisaniyeli, saat dilimli).
+const timeFormat = "2006-01-02T15:04:05.000Z07:00"
 
-// durum bir programın (VM'nin) günlük ve ilerleme durumudur. Kaydet her VM için bir tane
+// state bir programın (VM'nin) günlük ve ilerleme durumudur. Kaydet her VM için bir tane
 // kurar; alanları yorumlayıcı kilidi altında değişir.
-type durum struct {
-	surec *process.State
-	// etkin ekranda görünen (canlı satırı olan) çubuktur; yenisi açılınca o görünür.
-	etkin *Ilerleme
-	// ekrandaki terminalde çizili canlı satırın karakter sayısıdır (silmek için); bütün
+type state struct {
+	process *process.State
+	// active ekranda görünen (canlı satırı olan) çubuktur; yenisi açılınca o görünür.
+	active *Progress
+	// onScreen terminalde çizili canlı satırın karakter sayısıdır (silmek için); bütün
 	// çubuklar aynı satırı paylaşır. Çıktı kilidi (VM.CanliSatirGuncelle) altında değişir.
-	ekrandaki int
+	onScreen int
 }
 
-// Kaydet günlük ve ilerleme yerleşiklerini VM'ye kaydeder. s programın süreç durumudur
+// Register günlük ve ilerleme yerleşiklerini VM'ye kaydeder. s programın süreç durumudur
 // (komut satırı ayarları başlangıç kaydına yazılır); nil olabilir.
-func Kaydet(v *interp.VM, s *process.State) {
-	d := &durum{surec: s}
+func Register(v *interp.VM, s *process.State) {
+	d := &state{process: s}
 	v.RegisterNoNamed(codes.G810, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(codes.Name(codes.G810), func() (interp.Value, error) { return d.gunlukAc(m, args) })
+		return bind.Safe(codes.Name(codes.G810), func() (interp.Value, error) { return d.openLog(m, args) })
 	})
 	v.RegisterBuiltinCode(codes.G811, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(codes.Name(codes.G811), func() (interp.Value, error) { return d.ilerlemeAc(m, args, named) })
+		return bind.Safe(codes.Name(codes.G811), func() (interp.Value, error) { return d.openProgress(m, args, named) })
 	})
 }
 
-// Açık günlükler ve bitmemiş çubuklar: program bitince TumunuKapat hepsini kapatır.
+// Açık günlükler ve bitmemiş çubuklar: program bitince CloseAll hepsini kapatır.
 var (
-	acikMu       sync.Mutex
-	acikGunluk   = map[*Gunluk]struct{}{}
-	acikIlerleme = map[*Ilerleme]struct{}{}
+	isOpen   sync.Mutex
+	openLogs = map[*Log]struct{}{}
+	openBars = map[*Progress]struct{}{}
 )
 
-// TumunuKapat bitmemiş çubukları bitirir (son satır ve günlükteki bitiş kaydı) ve açık
+// CloseAll bitmemiş çubukları bitirir (son satır ve günlükteki bitiş kaydı) ve açık
 // günlük dosyalarını kapatır. Program bitince (hata ya da kesilmeyle bitse de) çağrılır;
 // birden çok kez çağrılabilir. Kapatılan bir günlüğe sonra yazılırsa dosya yeniden açılır.
-func TumunuKapat() {
-	acikMu.Lock()
-	cubuklar := make([]*Ilerleme, 0, len(acikIlerleme))
-	for c := range acikIlerleme {
-		cubuklar = append(cubuklar, c)
+func CloseAll() {
+	isOpen.Lock()
+	bars := make([]*Progress, 0, len(openBars))
+	for c := range openBars {
+		bars = append(bars, c)
 	}
-	acikMu.Unlock()
+	isOpen.Unlock()
 	// Önce sonra açılanlar: iç içe çubuklarda görünen çubuk önce biter.
-	slices.SortFunc(cubuklar, func(a, b *Ilerleme) int { return cmp.Compare(b.sira, a.sira) })
-	for _, c := range cubuklar {
-		c.bitir(saat())
+	slices.SortFunc(bars, func(a, b *Progress) int { return cmp.Compare(b.order, a.order) })
+	for _, c := range bars {
+		c.finish(clock())
 	}
-	acikMu.Lock()
-	gunlukler := make([]*Gunluk, 0, len(acikGunluk))
-	for g := range acikGunluk {
-		gunlukler = append(gunlukler, g)
+	isOpen.Lock()
+	logs := make([]*Log, 0, len(openLogs))
+	for g := range openLogs {
+		logs = append(logs, g)
 	}
-	acikMu.Unlock()
-	for _, g := range gunlukler {
-		g.kapat()
+	isOpen.Unlock()
+	for _, g := range logs {
+		g.close()
 	}
 }

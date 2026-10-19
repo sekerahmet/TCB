@@ -56,7 +56,7 @@ func calistir(t *testing.T, kod string, s Secenekler) (*Goruntu, *interp.VM) {
 // alınmadan önce çağrılır.
 func calistirSonra(t *testing.T, kod string, s Secenekler, sonra func(*Profil)) (*Goruntu, *interp.VM) {
 	t.Helper()
-	t.Cleanup(logging.TumunuKapat)
+	t.Cleanup(logging.CloseAll)
 	p := parser.New(lexer.New(kod))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
@@ -127,8 +127,8 @@ func TestProfilBilinenSayidaIslem(t *testing.T) {
 func TestProfilAdimSinirindanMsAdim(t *testing.T) {
 	p := &Profil{baslangic: time.Now()}
 	t0 := time.Now()
-	p.adimSiniri(logging.AdimSiniri{Adim: 1, Toplam: 100, Zaman: t0})
-	p.adimSiniri(logging.AdimSiniri{Adim: 11, Toplam: 100, Zaman: t0.Add(250 * time.Millisecond)})
+	p.adimSiniri(logging.StepBoundary{Step: 1, Total: 100, Time: t0})
+	p.adimSiniri(logging.StepBoundary{Step: 11, Total: 100, Time: t0.Add(250 * time.Millisecond)})
 	b := adimBilgisi(p.adim)
 	if b == nil || b.Sayi != 11 || b.Toplam != 100 {
 		t.Fatalf("adım bilgisi %+v", b)
@@ -138,7 +138,7 @@ func TestProfilAdimSinirindanMsAdim(t *testing.T) {
 	}
 	// Pencere: önceki görüntüden bu yana 5 adım 50 ms.
 	once := anlik{zaman: t0, adim: p.adim}
-	p.adimSiniri(logging.AdimSiniri{Adim: 16, Toplam: 100, Zaman: t0.Add(300 * time.Millisecond)})
+	p.adimSiniri(logging.StepBoundary{Step: 16, Total: 100, Time: t0.Add(300 * time.Millisecond)})
 	w := p.pencere(anlik{zaman: t0.Add(time.Second), adim: p.adim}, &once)
 	if w.Adim != 5 || w.MsAdim != 10 {
 		t.Errorf("pencere: %d adım, %v ms/adım; beklenen 5 ve 10", w.Adim, w.MsAdim)

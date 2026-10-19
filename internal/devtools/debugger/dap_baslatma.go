@@ -98,7 +98,7 @@ func (s *dapServer) start() {
 		defer close(s.finished)
 		_, err := s.machine.Run(s.prog)
 		s.machine.WaitAsync()
-		logging.TumunuKapat() // bitmemiş ilerleme çubuklarının son satırı konsola
+		logging.CloseAll() // bitmemiş ilerleme çubuklarının son satırı konsola
 		exitCode := 0
 		if c, ok := interp.IsExitRequest(err); ok {
 			// Programın istediği çıkış (ör. komut satırı seçeneklerinde --yardım ya da hatalı

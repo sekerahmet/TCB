@@ -264,7 +264,7 @@ func TestUyeTipleriTanimlaAyni(t *testing.T) {
 		{codes.A256, `günlük("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
 		{codes.A258, `kontrol_noktası("` + filepath.ToSlash(t.TempDir()) + `", {w: tensör([1.0], türev_izle: doğru)})`},
 	}
-	t.Cleanup(logging.TumunuKapat)
+	t.Cleanup(logging.CloseAll)
 	var kur []string
 	for i, o := range ornekler {
 		kur = append(kur, "değişken u_"+string(rune('a'+i))+" = "+o.kur)

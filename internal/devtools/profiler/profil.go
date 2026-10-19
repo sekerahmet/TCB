@@ -84,7 +84,7 @@ const DurumDosyasiAdi = "profil.json"
 // IsDurumDosyasi program bir arka plan işi olarak çalışıyorsa (TR_İŞ) iş klasöründeki
 // profil.json'un yoludur; değilse boş (durum dosyası yazılmaz).
 func IsDurumDosyasi() string {
-	if k := logging.IsKlasoru(); k != "" {
+	if k := logging.JobDir(); k != "" {
 		return filepath.Join(k, DurumDosyasiAdi)
 	}
 	return ""
@@ -118,7 +118,7 @@ func Baslat(m *interp.VM, s Secenekler) *Profil {
 		p.gpuOnceki = gpuOlcumunuAc()
 		p.gpuActi, p.gpuOlculdu = !p.gpuOnceki, true
 	}
-	logging.AdimKancasiAyarla(p.adimSiniri)
+	logging.SetStepHook(p.adimSiniri)
 	p.mu.Lock()
 	p.taban = p.anlikAl()
 	p.gecmis = []anlik{p.taban}
@@ -136,13 +136,13 @@ func (p *Profil) Dinle(f func(*Goruntu)) {
 }
 
 // adimSiniri ilerleme(...).güncelle(...)'nin her çağrısında çalışır (yorumlayıcı kilidi altında).
-func (p *Profil) adimSiniri(a logging.AdimSiniri) {
+func (p *Profil) adimSiniri(a logging.StepBoundary) {
 	p.adimMu.Lock()
 	d := &p.adim
 	if !d.var_ {
-		d.var_, d.ilk, d.ilkZaman = true, a.Adim, a.Zaman
+		d.var_, d.ilk, d.ilkZaman = true, a.Step, a.Time
 	}
-	d.son, d.sonZaman, d.toplam = a.Adim, a.Zaman, a.Toplam
+	d.son, d.sonZaman, d.toplam = a.Step, a.Time, a.Total
 	p.adimMu.Unlock()
 }
 
@@ -190,7 +190,7 @@ func (p *Profil) Bitir(kod int) *Goruntu {
 		if p.orn != nil {
 			p.orn.durdur()
 		}
-		logging.AdimKancasiAyarla(nil)
+		logging.SetStepHook(nil)
 		p.mu.Lock()
 		if p.gpuActi {
 			p.gpuActi = false

@@ -38,7 +38,7 @@ func init() {
 	// başlangıç kaydı ve kontrol noktası programın komut satırı ayarlarını yazar.
 	interp.AddEngine(func(v *interp.VM) {
 		s := process.Register(v)
-		logging.Kaydet(v, s)
+		logging.Register(v, s)
 		checkpoint.Kaydet(v, s)
 	})
 }
@@ -49,7 +49,7 @@ func init() {
 // (dosyalar kapandıktan sonra). Program bitince çağrılır; takılan bir okumada en çok birkaç
 // saniye bekler. Birden çok kez çağrılabilir.
 func Kapat() {
-	logging.TumunuKapat()
+	logging.CloseAll()
 	dataset.CloseAll(3 * time.Second)
 	files.TumunuKapat()
 	ml.Kapat()

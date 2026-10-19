@@ -38,7 +38,7 @@ type nesne struct {
 	params  []*ml.Deger // model: tensörler (parametreler ve türev izlemeyen durum tensörleri)
 	op      *ml.Iyilestirici
 	durumlu Durumlu
-	gunluk  *logging.Gunluk
+	gunluk  *logging.Log
 }
 
 // nesneleriAyir kontrol_noktası'na verilen sözlüğü nesnelere ayırır ve her birinin
@@ -72,7 +72,7 @@ func nesneleriAyir(fn string, s *interp.DictVal) ([]*nesne, error) {
 // nesneKur bir değerin türünü belirler.
 func nesneKur(fn, ad string, v interp.Value) (*nesne, error) {
 	n := &nesne{ad: ad, deger: v}
-	if g, ok := logging.GunlukMu(v); ok {
+	if g, ok := logging.IsLog(v); ok {
 		n.tur, n.gunluk = turGunluk, g
 		return n, nil
 	}
@@ -143,7 +143,7 @@ func (n *nesne) kaydi(m *interp.VM) (nesneKaydi, error) {
 	case turIyilestirici:
 		k.Iyilestirici, k.ParametreSayisi = n.op.Ad(), n.op.ParametreSayisi()
 	case turGunluk:
-		k.Uzunluk, err = n.gunluk.Uzunluk()
+		k.Uzunluk, err = n.gunluk.Len()
 	case turDurumlu:
 		var s *interp.DictVal
 		if s, err = n.durumlu.DurumSozlugu(m); err == nil {

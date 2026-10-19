@@ -28,7 +28,7 @@ func yuzde(f float64) string {
 }
 
 // sayi bir ölçüyü 3 anlamlı basamakla yazar (çubukla aynı kural).
-func sayi(f float64) string { return logging.SayiYazimi(f) }
+func sayi(f float64) string { return logging.FormatNumber(f) }
 
 // msMetni milisaniyeyi tablo sütununa uygun yazar: 21,3 · 0,355 · 0,002 (üslü yazım yok).
 func msMetni(ms float64) string {
@@ -70,7 +70,7 @@ func sureMetni(s float64) string {
 	case s < 60:
 		return sayi(s) + " sn"
 	}
-	return logging.SureYazimi(s)
+	return logging.FormatDuration(s)
 }
 
 // bayt bayt sayısını okunur yazar (1,2 GB).
