@@ -34,6 +34,7 @@ import (
 // Depo köküne göre yollar.
 var (
 	trYolu    = filepath.Join("internal", "lang", "codes", "tr.json")
+	enYolu    = filepath.Join("internal", "lang", "codes", "en.json")
 	tanimYolu = filepath.Join("internal", "lang", "codes", "definitions.json")
 	ciktiYolu = filepath.Join("internal", "lang", "codes", "codes_generated.go")
 )
@@ -123,22 +124,36 @@ type tanimGirdisi struct {
 	Kaldir  bool   `json:"kaldırıldı"`
 }
 
+// readJSON decodes the JSON file at kok/path into v. A missing file is an error only when
+// required is true; otherwise v is left as it is.
+func readJSON(kok, path string, required bool, v any) error {
+	data, err := os.ReadFile(filepath.Join(kok, path))
+	if err != nil {
+		if !required && os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if err := json.Unmarshal(data, v); err != nil {
+		return fmt.Errorf("%s: %v", path, err)
+	}
+	return nil
+}
+
 // Uret üretilen Go dosyasının içeriğini verir.
 func Uret(kok string) ([]byte, error) {
-	trVeri, err := os.ReadFile(filepath.Join(kok, trYolu))
-	if err != nil {
+	var tr map[string]trGirdisi
+	if err := readJSON(kok, trYolu, true, &tr); err != nil {
 		return nil, err
 	}
-	var tr map[string]trGirdisi
-	if err := json.Unmarshal(trVeri, &tr); err != nil {
-		return nil, fmt.Errorf("%s: %v", trYolu, err)
+	// English names go next to the Turkish ones in the constants' comments, so a reader of the
+	// (English) Go code knows what a code is without opening the language file.
+	var en map[string]trGirdisi
+	if err := readJSON(kok, enYolu, false, &en); err != nil {
+		return nil, err
 	}
 	tanimlar := map[string]tanimGirdisi{}
-	if veri, err := os.ReadFile(filepath.Join(kok, tanimYolu)); err == nil {
-		if err := json.Unmarshal(veri, &tanimlar); err != nil {
-			return nil, fmt.Errorf("%s: %v", tanimYolu, err)
-		}
-	} else if !os.IsNotExist(err) {
+	if err := readJSON(kok, tanimYolu, false, &tanimlar); err != nil {
 		return nil, err
 	}
 
@@ -175,7 +190,11 @@ func Uret(kok string) ([]byte, error) {
 			kaldirilan = append(kaldirilan, k)
 			continue
 		}
-		fmt.Fprintf(&b, "\t%s Code = %c + %d // %s\n", k.metin, k.harf, k.sayi, tr[k.metin].Ad)
+		ad := tr[k.metin].Ad
+		if e := en[k.metin].Ad; e != "" && e != ad {
+			ad = e + " · " + ad
+		}
+		fmt.Fprintf(&b, "\t%s Code = %c + %d // %s\n", k.metin, k.harf, k.sayi, ad)
 	}
 	b.WriteString(")\n\n")
 
