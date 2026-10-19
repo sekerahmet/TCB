@@ -169,7 +169,9 @@ Motorların kendi kancaları:
   özettedir.
 - **Bellek:** boyut sınıflı havuz (1–64 MB arası her ikinin kuvveti aralığı dörde bölünür);
   depolama otomatik türevin `Release`'iyle ya da çöp toplayıcının temizliğiyle havuza döner
-  (tek akış sayesinde eşzamanlama gerekmez). Çöp toplayıcı cihaz belleğini görmediğinden her
+  (tek akış sayesinde eşzamanlama gerekmez). Çöp toplayıcı cihaz belleğini görmediğinden son
+  toplamadan bu yana verilen depolama eşiği aşınca (kart belleğinin 1/64'ü, 256 MB–2 GB;
+  `TR_GPU_COP_ESIGI` MB ile değişir; gpt30m'de tepe 38,9 → ~22 GB, hız farkı %0,6), her
   geri yayılımın sonunda (`tensor.BackwardFinisher`; son toplamadan bu yana verilen bellek
   yeterince büyükse) ve son toplamadan bu yana sürücüden ayrılan bellek toplamın 1/32'sini
   aşınca toplama açıkça başlatılır; böylece ileri yönün ara tensörleri bir sonraki adımdan

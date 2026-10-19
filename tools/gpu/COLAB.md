@@ -188,3 +188,5 @@ Koşu klasörü: `config.json`, `metrics.jsonl` (eğitim kaybı 10 adımda bir, 
 - `TR_GPU_MIKRO=1`: gpu_sinama'da mikro kıyasları açar (`TR_GPU_MIKRO_BANT` kuramsal bant
   genişliği, GB/s; varsayılan 1800).
 - `TR_GPU_BENZETIM=1`: gerçek GPU yokken PTX benzetimini `"gpu"` cihazı olarak kurar.
+- `TR_GPU_COP_ESIGI=MB`: GPU belleği için çöp toplama eşiği (varsayılan kart belleğinin 1/64'ü,
+  256 MB–2 GB; `0` kapatır). Küçültmek tepe belleği düşürür, hız farkı küçüktür.

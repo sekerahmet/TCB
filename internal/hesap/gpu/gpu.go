@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strconv"
 	"sync"
 
 	"tr_dili/internal/hesap/tensor"
@@ -50,6 +51,9 @@ type arkaUc struct {
 	ltSonHata string
 	// dikkatYolu TR_GPU_DIKKAT: "birlesik" (varsayılan) ya da "carpim" (ölçüm ve karşılaştırma).
 	dikkatYolu string
+	// copEsigi son çöp toplamadan bu yana bu kadar depolama verilince çöp toplama başlatılır
+	// (bkz. copEsigiSec; TR_GPU_COP_ESIGI ile MB olarak değiştirilir).
+	copEsigi uint64
 }
 
 func init() {
@@ -130,7 +134,20 @@ func yeniArkaUc(dev tensor.Device, sr surucu) *arkaUc {
 	g.eszamanli = os.Getenv("TR_GPU_ESZAMANLI") == "1"
 	g.dikkatYolu = os.Getenv("TR_GPU_DIKKAT")
 	g.carpim = varsayilanCarpim
+	g.copEsigi = copEsigiSec(sr.toplamBellek(), os.Getenv("TR_GPU_COP_ESIGI"))
 	return g
+}
+
+// copEsigiSec çöp toplama eşiği: kart belleğinin 1/64'ü, 256 MB ile 2 GB arasında (95 GB'ta
+// ~1,5 GB, 24 GB'ta 384 MB). Ara tensörlerin cihaz belleği ancak Go çöp toplayıcısı
+// çalışınca havuza döner; eşik tepe belleği bir adımın canlı tensörlerine yakın tutar.
+// Ölçüm (RTX PRO 6000, gpt30m): eşiksiz 38,9 GB, 2 GB'ta 23,5 GB, 512 MB'ta 21,1 GB tepe;
+// hız farkı %0,6. ortam (TR_GPU_COP_ESIGI, MB) verilirse o kullanılır; "0" eşiği kapatır.
+func copEsigiSec(toplam uint64, ortam string) uint64 {
+	if mb, err := strconv.Atoi(ortam); err == nil && mb >= 0 {
+		return uint64(mb) << 20
+	}
+	return min(max(toplam/64, 256<<20), 2<<30)
 }
 
 // BenzetimiKaydet, gerçek bir GPU yoksa PTX benzetimini "gpu" cihazı olarak kaydeder

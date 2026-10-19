@@ -24,9 +24,10 @@ import (
 // yeni işlerden önce biter; bu yüzden iadede eşzamanlama gerekmez.
 //
 // Go'nun çöp toplayıcısı cihaz belleğini görmez (küçük Go nesneleri büyük cihaz
-// bloklarını tutar). Bu yüzden toplama açıkça başlatılır: her geri yayılımın sonunda
-// (BackwardDone; ileri yönün ara tensörleri o anda ulaşılamaz olur) ve son toplamadan bu
-// yana sürücüden ayrılan cihaz belleği eşiği (toplamın 1/32'si) aşınca; ayırma başarısız olursa
+// bloklarını tutar). Bu yüzden toplama açıkça başlatılır: son toplamadan bu yana verilen
+// depolama copEsigi'ni aşınca (kart belleğine göre 256 MB–2 GB; havuzdan verilenler dahil,
+// böylece havuz bir adımın çöpüyle şişmez), her geri yayılımın sonunda (BackwardDone) ve
+// son toplamadan bu yana sürücüden ayrılan cihaz belleği toplamın 1/32'sini aşınca; ayırma başarısız olursa
 // önce toplama ve havuzun sürücüye boşaltılması denenir, yine olmazsa Türkçe ve
 // yakalanabilir bir hata verilir.
 //
@@ -176,6 +177,9 @@ func (g *arkaUc) ayir(n int, dt tensor.DType, sifirla bool) *depo {
 		return d
 	}
 	d.sinif = sinifBoyu(bayt)
+	if g.copEsigi > 0 && g.hacim > g.copEsigi {
+		g.copTopla(0)
+	}
 	g.hacim += d.sinif
 	adr, ok := g.havuz.al(d.sinif)
 	if !ok {
