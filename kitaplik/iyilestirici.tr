@@ -182,6 +182,7 @@ fonksiyon parametre_grupları(model, ayrı = ["gömme", "çıkış"]) {
 yapı MuonVeAdamW {
     muon
     adamw
+    diğer // AdamW'ye giden ağırlıklar
     muon_oranı
     adamw_oranı
     oran_çarpanı = 1.0
@@ -195,6 +196,7 @@ yapı MuonVeAdamW {
         } değilse {
             Muon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi)
         }
+        kendi.diğer = gruplar.diğer
         kendi.adamw = AdamW(gruplar.diğer, öğrenme_oranı: adamw_oranı, ağırlık_çürümesi: 0.0, beta1: 0.9, beta2: beta2)
     }
     fonksiyon çarpan_ayarla(çarpan) {
