@@ -15,13 +15,13 @@ func testKomutu(args []string) {
 	if len(args) > 0 {
 		hedef = args[0]
 	}
-	ozet, err := testrunner.Calistir(hedef, os.Stdout)
+	ozet, err := testrunner.Run(hedef, os.Stdout)
 	stdlib.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
 		os.Exit(1)
 	}
-	if !ozet.Basarili() {
+	if !ozet.OK() {
 		os.Exit(1)
 	}
 }
