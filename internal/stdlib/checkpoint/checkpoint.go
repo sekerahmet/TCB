@@ -265,7 +265,7 @@ func (kn *Checkpoint) saveTR(m *interp.VM, args []interp.Value) (interp.Value, e
 	if m.StopRequested() {
 		kn.halt(m)
 	}
-	return files.YeniYol(fpath), nil
+	return files.NewPath(fpath), nil
 }
 
 // halt ertelenen kesme isteğini karşılar: noktayı kaydeder (hata uyarıdır) ve programı

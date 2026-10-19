@@ -19,32 +19,32 @@ import (
 // kendisi bir bağlantıysa bağlantının kendisi silinir, gösterdiği yer değil). Windows ve
 // macOS'ta harf büyüklüğü fark etmez.
 
-// baglantiMi girdi bir bağlantı mı (sembolik bağlantı, Windows dizin bağlantısı ya da başka
+// isLink girdi bir bağlantı mı (sembolik bağlantı, Windows dizin bağlantısı ya da başka
 // bir yeniden ayrıştırma noktası)? Bağlantılar hiçbir işte izlenmez.
-func baglantiMi(mod fs.FileMode) bool { return mod&(fs.ModeSymlink|fs.ModeIrregular) != 0 }
+func isLink(mode fs.FileMode) bool { return mode&(fs.ModeSymlink|fs.ModeIrregular) != 0 }
 
-// gercekYol yolun bağlantıları çözülmüş mutlak biçimidir; yolun kendisi değil, yalnızca bulunduğu
+// realPath yolun bağlantıları çözülmüş mutlak biçimidir; yolun kendisi değil, yalnızca bulunduğu
 // klasör çözülür (bağlantının kendisi korunur).
-func gercekYol(yol string) string {
-	m, err := filepath.Abs(yol)
+func realPath(fpath string) string {
+	m, err := filepath.Abs(fpath)
 	if err != nil {
-		return yol
+		return fpath
 	}
-	ust, ad := filepath.Dir(m), filepath.Base(m)
-	if ad == string(filepath.Separator) || ust == m {
+	parent, name := filepath.Dir(m), filepath.Base(m)
+	if name == string(filepath.Separator) || parent == m {
 		return m
 	}
-	if g, err := filepath.EvalSymlinks(ust); err == nil {
-		return filepath.Join(g, ad)
+	if g, err := filepath.EvalSymlinks(parent); err == nil {
+		return filepath.Join(g, name)
 	}
 	return m
 }
 
-// cozulmusKlasor bir klasörün bağlantıları çözülmüş mutlak yoludur (çözülemezse mutlak yolu).
-func cozulmusKlasor(yol string) string {
-	m, err := filepath.Abs(yol)
+// resolvedDir bir klasörün bağlantıları çözülmüş mutlak yoludur (çözülemezse mutlak yolu).
+func resolvedDir(fpath string) string {
+	m, err := filepath.Abs(fpath)
 	if err != nil {
-		return yol
+		return fpath
 	}
 	if g, err := filepath.EvalSymlinks(m); err == nil {
 		return g
@@ -52,64 +52,64 @@ func cozulmusKlasor(yol string) string {
 	return m
 }
 
-func ayniYol(a, b string) bool {
+func samePath(a, b string) bool {
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 		return strings.EqualFold(a, b)
 	}
 	return a == b
 }
 
-// icindeMi a, b'nin kendisi ya da altında mı?
-func icindeMi(a, b string) bool {
-	if ayniYol(a, b) {
+// isInside a, b'nin kendisi ya da altında mı?
+func isInside(a, b string) bool {
+	if samePath(a, b) {
 		return true
 	}
-	ek := b
-	if !strings.HasSuffix(ek, string(filepath.Separator)) {
-		ek += string(filepath.Separator)
+	extra := b
+	if !strings.HasSuffix(extra, string(filepath.Separator)) {
+		extra += string(filepath.Separator)
 	}
-	return len(a) > len(ek) && ayniYol(a[:len(ek)], ek)
+	return len(a) > len(extra) && samePath(a[:len(extra)], extra)
 }
 
-// sistemKlasorleri işletim sisteminin bilinen klasörleridir (ev klasörünün altında
+// systemDirs işletim sisteminin bilinen klasörleridir (ev klasörünün altında
 // olmayanlar); kendileri ve üstleri silinmez. Windows'ta ortam değişkenlerinden okunur
 // (tanımsız olanlar atlanır).
-func sistemKlasorleri() []string {
+func systemDirs() []string {
 	if runtime.GOOS != "windows" {
 		return []string{"/bin", "/boot", "/dev", "/etc", "/lib", "/lib64", "/proc", "/sbin", "/sys", "/usr", "/var",
 			"/System", "/Library", "/Applications"}
 	}
 	var out []string
-	for _, ad := range []string{"SystemRoot", "ProgramFiles", "ProgramFiles(x86)", "ProgramData"} {
-		if k := os.Getenv(ad); k != "" && filepath.IsAbs(k) {
+	for _, name := range []string{"SystemRoot", "ProgramFiles", "ProgramFiles(x86)", "ProgramData"} {
+		if k := os.Getenv(name); k != "" && filepath.IsAbs(k) {
 			out = append(out, k)
 		}
 	}
 	return out
 }
 
-// silmeKorumasi mutlak (gercekYol ile bulunmuş) yol silinmemesi gereken bir yerse nedenini
+// deleteProtection mutlak (realPath ile bulunmuş) yol silinmemesi gereken bir yerse nedenini
 // verir; silinebilirse boş döner.
-func silmeKorumasi(m *interp.VM, yol string) string {
-	if filepath.Dir(yol) == yol {
+func deleteProtection(m *interp.VM, fpath string) string {
+	if filepath.Dir(fpath) == fpath {
 		return "bir kök klasör (sürücünün ya da dosya sisteminin kökü)"
 	}
-	if ev, err := os.UserHomeDir(); err == nil && ev != "" && icindeMi(cozulmusKlasor(ev), yol) {
-		if ayniYol(yol, cozulmusKlasor(ev)) {
+	if home, err := os.UserHomeDir(); err == nil && home != "" && isInside(resolvedDir(home), fpath) {
+		if samePath(fpath, resolvedDir(home)) {
 			return "ev klasörünüzün kendisi"
 		}
 		return "ev klasörünüzün bir üst klasörü (başka kullanıcıların ev klasörlerini de içerebilir)"
 	}
-	for _, k := range sistemKlasorleri() {
-		if icindeMi(cozulmusKlasor(k), yol) {
+	for _, k := range systemDirs() {
+		if isInside(resolvedDir(k), fpath) {
 			return "işletim sisteminin bir klasörü ya da onun bir üst klasörü"
 		}
 	}
-	if cw, err := os.Getwd(); err == nil && icindeMi(cozulmusKlasor(cw), yol) {
+	if cw, err := os.Getwd(); err == nil && isInside(resolvedDir(cw), fpath) {
 		return "çalışma klasörü ya da onun bir üst klasörü"
 	}
 	for _, k := range m.CodeDirs() {
-		if icindeMi(cozulmusKlasor(k), yol) {
+		if isInside(resolvedDir(k), fpath) {
 			return "programın (ya da modülün) klasörü ya da onun bir üst klasörü"
 		}
 	}

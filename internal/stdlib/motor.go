@@ -27,7 +27,7 @@ import (
 
 func init() {
 	interp.AddEngine(formats.Register)
-	interp.AddEngine(files.Kaydet)
+	interp.AddEngine(files.Register)
 	// Tensör motoru (tensör, otomatik türev, katmanlar) çekirdek yerleşiklerini (toplam,
 	// ortalama, min, maks, karekök) sarar; bu yüzden onlardan SONRA kaydedilmelidir.
 	interp.AddEngine(ml.Kaydet)
@@ -51,6 +51,6 @@ func init() {
 func Kapat() {
 	logging.CloseAll()
 	dataset.CloseAll(3 * time.Second)
-	files.TumunuKapat()
+	files.CloseAll()
 	ml.Kapat()
 }
