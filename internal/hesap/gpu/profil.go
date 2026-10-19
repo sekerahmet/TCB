@@ -263,8 +263,12 @@ func (g *arkaUc) esitBitir() {
 }
 
 // cekirdekAilesi çekirdek adının ailesi: ilk "_<rakam>" ya da "_true/_false" ekinden önceki
-// kısım (ör. "carpim_128_128_8" → "carpim", "tekli_turev_3_" → "tekli_turev").
+// kısım (ör. "carpim_128_128_8" → "carpim", "tekli_turev_3_" → "tekli_turev"). Kitaplığın
+// matris çarpımları da "carpim" ailesindedir (çekirdek tablosunda adlarıyla ayrılırlar).
 func cekirdekAilesi(ad string) string {
+	if strings.HasPrefix(ad, "cublaslt_carpim") {
+		return "carpim"
+	}
 	parca := strings.Split(ad, "_")
 	for i, p := range parca {
 		if i > 0 && (p == "" || p[0] >= '0' && p[0] <= '9' || p == "true" || p == "false") {

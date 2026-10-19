@@ -45,8 +45,13 @@ func (k *yazici) tekliIfadeGenis(op tensor.UnOp, x yazmac) yazmac {
 	case tensor.OpSign:
 		return k.isaretF(x)
 	case tensor.OpAbs:
+		// Yalnızca işaret biti silinir (CPU'daki gibi NaN yükü korunur); abs.f32 bazı
+		// mimarilerde (sm_120) NaN'ı 0x7fffffff'e çevirir.
+		b := k.r()
+		k.e("mov.b32", b, x)
+		k.e("and.b32", b, b, 0x7FFFFFFF)
 		y := k.f()
-		k.e("abs.f32", y, x) // işaret biti silinir; NaN korunur
+		k.e("mov.b32", y, b)
 		return y
 	}
 	yok(fmt.Sprintf("tekli işlem %d", op))

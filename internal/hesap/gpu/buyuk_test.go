@@ -51,11 +51,22 @@ func TestCokTopluCarpim(t *testing.T) {
 
 func TestBuyukDosemeOtomatik(t *testing.T) {
 	g := gpuArkaUc()
-	if g.carpimSec(1, 1024, 1024) != buyukCarpim || g.carpimSec(1, 200, 4096) != varsayilanCarpim {
-		t.Fatal("döşeme seçimi beklenen değil")
+	// Büyük döşeme, blok sayısı SM sayısını doldurduğunda seçilir: boy SM sayısından
+	// hesaplanır (188 SM'li bir kartta 1024×1024 yetmez).
+	_, sm := g.sr.yetenek()
+	M := 1024
+	for int(bloklar(M, buyukCarpim.BM))*int(bloklar(M, buyukCarpim.BN)) < max(sm, 1) {
+		M += 1024
 	}
+	if g.carpimSec(1, M, M) != buyukCarpim || g.carpimSec(1, 200, 4096) != varsayilanCarpim {
+		t.Fatalf("döşeme seçimi beklenen değil (%d SM, M=N=%d)", sm, M)
+	}
+	// Kitaplık bulunduysa çarpımı o yapardı: kendi büyük döşememiz sınanmak için kapatılır.
+	lt := g.lt
+	g.lt = nil
+	defer func() { g.lt = lt }()
 	rng := rand.New(rand.NewSource(21))
-	M, K, N := 1024, 3, 1030
+	K, N := 3, M+6
 	av, bv := rastgele(rng, M*K, 1), rastgele(rng, K*N, 1)
 	karsilastir(t, "büyük döşemeli çarpım", 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 		return tensor.MatMul(ikiz(av, false, M, K)[c], ikiz(bv, false, K, N)[c]), nil

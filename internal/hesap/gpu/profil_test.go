@@ -107,6 +107,7 @@ func TestCekirdekAilesi(t *testing.T) {
 	for ad, aile := range map[string]string{
 		"carpim_128_128_8_8_8_false_true_false": "carpim", "tekli_turev_3_": "tekli_turev",
 		"ce_ileri_256": "ce_ileri", "gomme": "gomme", "softmax_256_true": "softmax", "surucu_kopya": "surucu_kopya",
+		"cublaslt_carpim_nt": "carpim",
 	} {
 		if a := cekirdekAilesi(ad); a != aile {
 			t.Fatalf("%s: aile %q, %q bekleniyordu", ad, a, aile)
