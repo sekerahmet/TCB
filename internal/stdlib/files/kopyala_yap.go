@@ -81,7 +81,7 @@ func (is *tasimaIsi) dosyaKopyala() error {
 	if err != nil {
 		return err
 	}
-	err = interp.AtomikYaz(is.son, func(w io.Writer) error {
+	err = interp.WriteAtomic(is.son, func(w io.Writer) error {
 		_, e := io.Copy(w, k)
 		return e
 	})
@@ -94,7 +94,7 @@ func (is *tasimaIsi) dosyaKopyala() error {
 		return nil
 	}
 	if b, err := os.Stat(is.son); err != nil || b.Size() != is.kaynakBilgi.Size() {
-		return turkish.Neden(fmt.Sprintf("kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi (%q)", filepath.ToSlash(is.son)))
+		return turkish.Reason(fmt.Sprintf("kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi (%q)", filepath.ToSlash(is.son)))
 	}
 	_, err = agaciSil(is.kaynak, is.kaynakBilgi)
 	return err
@@ -126,10 +126,10 @@ func (is *tasimaIsi) klasorKopyala() (err error) {
 	}
 	if is.tasi {
 		if len(ozet.atlanan) > 0 {
-			return turkish.Neden(fmt.Sprintf("kaynakta %d bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)", len(ozet.atlanan)))
+			return turkish.Reason(fmt.Sprintf("kaynakta %d bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)", len(ozet.atlanan)))
 		}
 		if hedefOzet, err := agacOzeti(gecici); err != nil || hedefOzet != ozet.sayim {
-			return turkish.Neden("kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi")
+			return turkish.Reason("kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi")
 		}
 	}
 	if err = is.yerineKoy(gecici); err != nil {

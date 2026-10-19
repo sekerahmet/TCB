@@ -34,22 +34,22 @@ func (s *dapServer) launch(msg *dapMessage) {
 	path, _ := filepath.Abs(a.Program)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		s.respondErr(msg, "Hata ayıklanacak program okunamadı (%s): %s", path, turkish.DosyaHatasiNedeni(path, err))
+		s.respondErr(msg, "Hata ayıklanacak program okunamadı (%s): %s", path, turkish.FileErrorReason(path, err))
 		return
 	}
-	hazir := source.Hazirla(string(data), source.Secenekler{TipDenetimi: true})
-	code, prog, errs := hazir.Metin, hazir.Program, hazir.Hatalar
+	hazir := source.Prepare(string(data), source.Options{TypeCheck: true})
+	code, prog, errs := hazir.Text, hazir.Program, hazir.Errors
 	// Uyarılar (ör. yerleşik ad gölgeleme) programı durdurmaz; hata ayıklama konsoluna yazılır.
-	if u := hazir.Uyarilar; len(u) > 0 {
+	if u := hazir.Warnings; len(u) > 0 {
 		s.output("stderr", "⚠️ Uyarılar:\n")
 		for _, e := range u {
-			s.output("stderr", "  • "+e+"\n"+indentLines(turkish.KodCercevesi(code, e), "    "))
+			s.output("stderr", "  • "+e+"\n"+indentLines(turkish.CodeFrame(code, e), "    "))
 		}
 	}
 	if len(errs) > 0 {
 		s.output("stderr", "❌ Program başlatılamadı:\n")
 		for _, e := range errs {
-			s.output("stderr", "  • "+e+"\n"+indentLines(turkish.KodCercevesi(code, e), "    "))
+			s.output("stderr", "  • "+e+"\n"+indentLines(turkish.CodeFrame(code, e), "    "))
 		}
 		s.respondErr(msg, "%s içinde hata var; ayrıntılar hata ayıklama konsolunda", filepath.Base(path))
 		s.event("terminated", nil)
@@ -65,7 +65,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	machine.Out = dapOutput{s, "stdout"}
 	machine.Err = dapOutput{s, "stderr"} // eşzamanlı görev hataları da hata ayıklama konsoluna
 	machine.Stdin = dapNoStdin{}
-	machine.ArgumanlariAyarla(a.Args)
+	machine.SetArgs(a.Args)
 
 	if !a.NoDebug {
 		dbg := NewDebugger(path, code, a.StopOnEntry)
@@ -100,25 +100,25 @@ func (s *dapServer) start() {
 		s.machine.WaitAsync()
 		logging.TumunuKapat() // bitmemiş ilerleme çubuklarının son satırı konsola
 		exitCode := 0
-		if c, ok := interp.CikisIstegiMi(err); ok {
+		if c, ok := interp.IsExitRequest(err); ok {
 			// Programın istediği çıkış (ör. komut satırı seçeneklerinde --yardım ya da hatalı
 			// argüman): mesaj konsola, kod düzenleyiciye.
-			exitCode = c.Kod
+			exitCode = c.Code
 			kategori := "stderr"
-			if c.Kod == 0 {
+			if c.Code == 0 {
 				kategori = "stdout"
 			}
-			if c.Mesaj != "" {
-				s.output(kategori, s.machine.Maskele(c.Mesaj)+"\n")
+			if c.Message != "" {
+				s.output(kategori, s.machine.Mask(c.Message)+"\n")
 			}
 		} else if err != nil {
 			exitCode = 1
 			metin := "❌ Çalışma Zamanı Hatası:\n"
-			for _, m := range interp.HataMaddeleri(err, s.machine.SourceCode) {
-				metin += "  • " + m.Mesaj + "\n" + indentLines(m.Cerceve, "    ")
+			for _, m := range interp.ErrorItems(err, s.machine.SourceCode) {
+				metin += "  • " + m.Message + "\n" + indentLines(m.Frame, "    ")
 			}
-			s.output("stderr", s.machine.Maskele(metin))
-		} else if u := s.machine.KullanilmayanArgumanUyarisi(); u != "" {
+			s.output("stderr", s.machine.Mask(metin))
+		} else if u := s.machine.UnusedArgsWarning(); u != "" {
 			s.output("stderr", u+"\n")
 		}
 		s.event("exited", map[string]interface{}{"exitCode": exitCode})

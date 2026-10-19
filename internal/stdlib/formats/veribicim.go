@@ -5,7 +5,7 @@
 // motorların ortak paketinde (internal/jsonyaz) kalır, çünkü web sunucusu ve istemcisi de
 // onları kullanır.
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package formats
 
 import (
@@ -24,9 +24,9 @@ import (
 
 // Kaydet JSON ve CSV yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *interp.VM) {
-	v.AdlisizKaydet(codes.G600, func(makine *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterNoNamed(codes.G600, func(makine *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgumanSayisiHatasi(codes.G600, "1", len(args), codes.AliciAdi(codes.A202))
+			return nil, interp.ArgCountError(codes.G600, "1", len(args), codes.ReceiverName(codes.A202))
 		}
 		val, err := interp.JSONToTR([]byte(bomSoy(args[0].Inspect())))
 		if err != nil {
@@ -35,20 +35,20 @@ func Kaydet(v *interp.VM) {
 		return val, nil
 	})
 
-	v.AdlisizKaydet(codes.G601, func(makine *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterNoNamed(codes.G601, func(makine *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgumanSayisiHatasi(codes.G601, "1", len(args), "değer")
+			return nil, interp.ArgCountError(codes.G601, "1", len(args), "değer")
 		}
 		b, err := jsonwrite.Yaz(args[0])
 		if err != nil {
-			return nil, fmt.Errorf("%s: %v", codes.Ad(codes.G601), err)
+			return nil, fmt.Errorf("%s: %v", codes.Name(codes.G601), err)
 		}
 		return &interp.StringVal{Val: string(b)}, nil
 	})
 
-	v.AdlisizKaydet(codes.G602, func(makine *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterNoNamed(codes.G602, func(makine *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgumanSayisiHatasi(codes.G602, "1", len(args), "dosya ya da metin")
+			return nil, interp.ArgCountError(codes.G602, "1", len(args), "dosya ya da metin")
 		}
 		input, err := csvGirdisi(makine, args[0])
 		if err != nil {
@@ -68,11 +68,11 @@ func Kaydet(v *interp.VM) {
 //   - Aksi hâlde argüman CSV içeriğinin kendisi sayılır ve olduğu gibi ayrıştırılır
 //     (ör. csv_oku("ad,yaş\nAli,30")); bu eski davranış bilerek korunmuştur.
 func csvGirdisi(makine *interp.VM, d interp.Value) (string, error) {
-	fn := codes.Ad(codes.G602)
-	yolDegeri, kesinYol := d.(interp.YolDegerli)
+	fn := codes.Name(codes.G602)
+	yolDegeri, kesinYol := d.(interp.PathValuer)
 	arg := d.Inspect()
 	if kesinYol {
-		arg = yolDegeri.DosyaYolu()
+		arg = yolDegeri.FilePath()
 	}
 	yol, bakilanlar := bind.YolCozBakilan(makine, arg)
 	bilgi, statErr := os.Stat(yol)
@@ -80,14 +80,14 @@ func csvGirdisi(makine *interp.VM, d interp.Value) (string, error) {
 		if bilgi.IsDir() {
 			return "", fmt.Errorf("%s: %q bir klasör; CSV dosyasının yolunu verin", fn, arg)
 		}
-		data, err := interp.DosyaIceriginiOku(yol)
+		data, err := interp.ReadFileContent(yol)
 		if err != nil {
-			return "", turkish.DosyaHatasi(fn, arg, "okunamadı", err)
+			return "", turkish.FileError(fn, arg, "okunamadı", err)
 		}
 		return string(data), nil
 	}
 	if kesinYol || yolGibi(arg) {
-		return "", interp.OkumaHatasi(fn, arg, "okunamadı", statErr, bakilanlar)
+		return "", interp.ReadError(fn, arg, "okunamadı", statErr, bakilanlar)
 	}
 	return arg, nil
 }

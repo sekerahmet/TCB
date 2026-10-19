@@ -56,7 +56,7 @@ var (
 func kaynakOku(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.DosyaHatasi("", path, "okunamadı", err))
+		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.FileError("", path, "okunamadı", err))
 		os.Exit(1)
 	}
 	return string(data)
@@ -64,7 +64,7 @@ func kaynakOku(path string) string {
 
 // dosyaHazirla dosyayı okuyup kaynakHazirla'dan geçirir; dosyanın metnini (paket ve modül
 // denetimi için) ve hazırlığın sonucunu verir.
-func dosyaHazirla(path string, h hazirlik) (string, *source.Sonuc) {
+func dosyaHazirla(path string, h hazirlik) (string, *source.Result) {
 	metin := kaynakOku(path)
 	return metin, kaynakHazirla(metin, h)
 }
@@ -72,20 +72,20 @@ func dosyaHazirla(path string, h hazirlik) (string, *source.Sonuc) {
 // kaynakHazirla kodu ayrıştırır ve istenmişse tip denetiminden geçirir (kaynak.Hazirla). Hata
 // varsa hepsini yazıp 1 koduyla çıkar. Hata çerçeveleri ve yorumlayıcının kaynak metni
 // sonucun gövdesidir (kodlu dosyada başlıktan sonrası).
-func kaynakHazirla(metin string, h hazirlik) *source.Sonuc {
-	s := source.Hazirla(metin, source.Secenekler{TipDenetimi: h.tipBasligi != ""})
-	uyarilariYaz(s.Uyarilar, s.Metin)
-	switch s.Asama {
-	case source.AsamaSozdizimi:
+func kaynakHazirla(metin string, h hazirlik) *source.Result {
+	s := source.Prepare(metin, source.Options{TypeCheck: h.tipBasligi != ""})
+	uyarilariYaz(s.Warnings, s.Text)
+	switch s.Stage {
+	case source.StageSyntax:
 		if h.sozdizimiBasligi == "" {
-			for _, e := range s.Hatalar {
+			for _, e := range s.Errors {
 				fmt.Fprintln(os.Stderr, e)
 			}
 			os.Exit(1)
 		}
-		hatalarlaCik(h.sozdizimiBasligi, s.Hatalar, s.Metin)
-	case source.AsamaTip:
-		hatalarlaCik(h.tipBasligi, s.Hatalar, s.Metin)
+		hatalarlaCik(h.sozdizimiBasligi, s.Errors, s.Text)
+	case source.StageType:
+		hatalarlaCik(h.tipBasligi, s.Errors, s.Text)
 	}
 	return s
 }
@@ -121,12 +121,12 @@ func hatalarlaCik(baslik string, errs []string, code string) {
 func programCalistir(machine *interp.VM, prog *ast.Program, code string) {
 	kesmeyiYakala(machine)
 	if _, err := machine.Run(prog); err != nil {
-		if c, ok := interp.CikisIstegiMi(err); ok {
+		if c, ok := interp.IsExitRequest(err); ok {
 			machine.WaitAsync()
 			motoruKapat()
 			programCikisi(machine, c)
 		}
-		if errors.Is(err, interp.ErrKesildi) {
+		if errors.Is(err, interp.ErrInterrupted) {
 			machine.WaitAsync() // eşzamanlı görevler de kesildi; ertelenen işleri bitsin
 			motoruKapat()
 			kesilmeyiBildir(machine, err, code)
@@ -137,12 +137,12 @@ func programCalistir(machine *interp.VM, prog *ast.Program, code string) {
 	}
 	machine.WaitAsync()
 	motoruKapat()
-	if machine.Kesildi() {
+	if machine.Interrupted() {
 		// Kesme isteği programın son beklemesinde (ör. bekle) geldi; program yine de durduruldu.
 		kesilmeyiBildir(machine, nil, code)
 	}
-	if u := machine.KullanilmayanArgumanUyarisi(); u != "" {
-		machine.CiktiYaz(os.Stderr, u+"\n")
+	if u := machine.UnusedArgsWarning(); u != "" {
+		machine.WriteOutput(os.Stderr, u+"\n")
 	}
 }
 
@@ -163,15 +163,15 @@ func motoruKapat() {
 // programCikisi bir yerleşiğin istediği program çıkışını yapar (ör. komut satırı
 // seçeneklerinde --yardım: 0, hatalı argüman: 2): mesaj 0 kodunda standart çıktıya, öbür
 // kodlarda standart hataya yazılır.
-func programCikisi(machine *interp.VM, c *interp.CikisIstegi) {
-	if c.Mesaj != "" {
+func programCikisi(machine *interp.VM, c *interp.ExitRequest) {
+	if c.Message != "" {
 		w := os.Stderr
-		if c.Kod == 0 {
+		if c.Code == 0 {
 			w = os.Stdout
 		}
-		machine.CiktiYaz(w, c.Mesaj+"\n")
+		machine.WriteOutput(w, c.Message+"\n")
 	}
-	cik(c.Kod)
+	cik(c.Code)
 }
 
 // calismaHatasiYaz bir çalışma zamanı hatasını başlığıyla standart hataya yazar. Bir modüle
@@ -180,11 +180,11 @@ func programCikisi(machine *interp.VM, c *interp.CikisIstegi) {
 func calismaHatasiYaz(machine *interp.VM, err error, code string) {
 	var sb strings.Builder
 	sb.WriteString(calismaBasligi + "\n")
-	for _, m := range interp.HataMaddeleri(err, code) {
-		fmt.Fprintf(&sb, "  • %s\n", m.Mesaj)
-		sb.WriteString(indentFrame(m.Cerceve))
+	for _, m := range interp.ErrorItems(err, code) {
+		fmt.Fprintf(&sb, "  • %s\n", m.Message)
+		sb.WriteString(indentFrame(m.Frame))
 	}
-	machine.CiktiYaz(os.Stderr, sb.String())
+	machine.WriteOutput(os.Stderr, sb.String())
 }
 
 // modulBasligi bir hata başlığına modülün yolunu ekler: "❌ X:" → "❌ X (yol modülünde):".

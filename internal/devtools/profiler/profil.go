@@ -17,7 +17,7 @@
 // dosyasına (profil.json, arka plan işinde) atomik yazar. Program bitince son raporu kurar.
 // Biçim: goruntu.go; mimari: docs/mimari.md, "Canlı profil".
 //
-// Katman: araç (internal/devtools); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
+// Layer: developer tools (internal/devtools); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
 package profiler
 
 import (

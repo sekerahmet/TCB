@@ -4,7 +4,7 @@
 // VS Code eklentisinin dosyaları burada sınanır. 'main' paketinin iç işlevlerini çağıran beyaz
 // kutu testleri cmd/tr'de kalır. Koşmak için: go test ./cmd/tr/e2e -run <TestAdı>
 //
-// Katman: araç (cmd); yalnızca testlerden oluşur.
+// Layer: command (cmd); yalnızca testlerden oluşur.
 package e2e
 
 import (

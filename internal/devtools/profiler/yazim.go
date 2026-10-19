@@ -101,7 +101,7 @@ func saga(s string, n int) string {
 
 // adimYok program adım bildirmiyorsa gösterilen nottur (adlar kod listesinden).
 func adimYok() string {
-	return fmt.Sprintf("adım bilgisi yok: eğitim döngüsünde %s(...) ve .%s(...) kullanın", codes.Ad(codes.G811), codes.Ad(codes.Y010))
+	return fmt.Sprintf("adım bilgisi yok: eğitim döngüsünde %s(...) ve .%s(...) kullanın", codes.Name(codes.G811), codes.Name(codes.Y010))
 }
 
 // satirKonumu bir satırın "dosya:satır" yazımıdır; ana programın dışındaki (aktarılan

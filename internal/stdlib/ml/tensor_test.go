@@ -14,7 +14,7 @@ import (
 
 // Testlerdeki VM'ler tensör motorunu içersin.
 func init() {
-	interp.MotorEkle(Kaydet)
+	interp.AddEngine(Kaydet)
 }
 
 // calistir TR kodunu çalıştırır; çıktıyı ve hatayı döndürür.

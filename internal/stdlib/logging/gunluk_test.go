@@ -43,7 +43,7 @@ func yeniVM(t *testing.T, klasor string, argumanlar ...string) (*interp.VM, *esl
 	w := &esliYazici{}
 	m.Out, m.Err = w, w
 	m.SourceFile = filepath.Join(klasor, "egit.tr")
-	m.ArgumanlariAyarla(argumanlar)
+	m.SetArgs(argumanlar)
 	return m, w
 }
 
@@ -101,11 +101,11 @@ g.ekle({zaman: "elle", x: [1, 2]})
 	if b["tür"] != "başlangıç" || b["sürüm"] != 1.0 || b["program"] != "egit.tr" {
 		t.Errorf("başlangıç kaydı: %v", b)
 	}
-	if a, _ := b["ayarlar"].(map[string]any); a["adım"] != 10.0 || a["hf_token"] != interp.GizliMaske {
+	if a, _ := b["ayarlar"].(map[string]any); a["adım"] != 10.0 || a["hf_token"] != interp.SecretMask {
 		t.Errorf("ayarlar gizli değeri maskelenmiş olarak taşımalı: %v", b["ayarlar"])
 	}
 	o := s[1]
-	if o["kayıp"] != 2.5 || o["nan"] != "NaN" || o["sonsuz"] != "+Sonsuz" || o["belirteç"] != interp.GizliMaske {
+	if o["kayıp"] != 2.5 || o["nan"] != "NaN" || o["sonsuz"] != "+Sonsuz" || o["belirteç"] != interp.SecretMask {
 		t.Errorf("ölçü kaydı: %v", o)
 	}
 	if _, ok := o["zaman"].(string); !ok {

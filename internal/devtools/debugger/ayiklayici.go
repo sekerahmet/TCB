@@ -3,7 +3,7 @@
 // hata ayıklama sunucusu ('tr dap', dap*.go). Yükleme anında kendini yorumlayıcıya
 // yurut.YeniHataAyiklayici ile kaydeder.
 //
-// Katman: araç (internal/devtools); dil, motor ve hesap katmanlarını içe aktarabilir.
+// Layer: developer tools (internal/devtools); dil, motor ve hesap katmanlarını içe aktarabilir.
 package debugger
 
 import (
@@ -74,14 +74,14 @@ func NewDebugger(sourceFile string, sourceCode string, startPaused bool) *Debugg
 		Mode:        mode,
 		Breakpoints: make(map[int]bool),
 		Watchpoints: []*Watchpoint{},
-		Reader:      interp.StdinOkuyucu(),
+		Reader:      interp.StdinReader(),
 		Active:      true,
 		PauseReason: "Başlangıç (/h Hata Ayıklama Modu)",
 	}
 }
 
-// KesmeNoktasi koddaki kesme_noktası deyiminde çağrılır: bir sonraki deyimde durur.
-func (d *Debugger) KesmeNoktasi(gerekce string) {
+// Breakpoint koddaki kesme_noktası deyiminde çağrılır: bir sonraki deyimde durur.
+func (d *Debugger) Breakpoint(gerekce string) {
 	d.Mode = StepInto
 	d.pauseKind = "breakpoint"
 	d.PauseReason = gerekce
@@ -212,7 +212,7 @@ func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) strin
 				if wp.LastVal != "" && wp.LastVal != curStr {
 					old := wp.LastVal
 					wp.LastVal = curStr
-					return fmt.Sprintf("⚡ İZLEME NOKTASI (Watchpoint #%d): %q değişti (%s -> %s)", wp.ID, wp.Expression, v.Maskele(old), v.Maskele(curStr))
+					return fmt.Sprintf("⚡ İZLEME NOKTASI (Watchpoint #%d): %q değişti (%s -> %s)", wp.ID, wp.Expression, v.Mask(old), v.Mask(curStr))
 				}
 				wp.LastVal = curStr
 			}
@@ -307,7 +307,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				} else {
 					env.Define(varName, newVal, false)
 				}
-				fmt.Printf("  ✏️ [CANLI DEĞİŞTİRİLDİ] %s = %s (%s)\n", varName, v.Maskele(newVal.Inspect()), newVal.Type())
+				fmt.Printf("  ✏️ [CANLI DEĞİŞTİRİLDİ] %s = %s (%s)\n", varName, v.Mask(newVal.Inspect()), newVal.Type())
 			}
 
 		case "zıpla":
@@ -322,7 +322,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			}
 			fmt.Printf("  ⏭️ [SATIRA ZIPLANDI] Akış %d. satıra taşınıyor...\n", targetLine)
 			d.Mode = StepInto
-			d.PauseReason = fmt.Sprintf("Satır %s zıplandı", turkish.SayiEk(int64(targetLine), turkish.Yonelme))
+			d.PauseReason = fmt.Sprintf("Satır %s zıplandı", turkish.NumberSuffix(int64(targetLine), turkish.Dative))
 			return targetLine
 
 		case "kesme":
@@ -394,7 +394,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 					if err != nil {
 						fmt.Printf("  ❌ Hata: %v\n", err)
 					} else {
-						fmt.Printf("  💡 Sonuç (%s): %s\n", val.Type(), v.Maskele(val.Inspect()))
+						fmt.Printf("  💡 Sonuç (%s): %s\n", val.Type(), v.Mask(val.Inspect()))
 					}
 				}
 			}
@@ -412,7 +412,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 		default:
 			// Eğer doğrudan bir değişken adı yazıldıysa değerini göster
 			if val, ok := env.Get(cmdLine); ok {
-				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, val.Type(), v.Maskele(val.Inspect()))
+				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, val.Type(), v.Mask(val.Inspect()))
 			} else {
 				fmt.Println("  ❓ Bilinmeyen komut. Yardım için 'yardım' yazın.")
 			}
@@ -460,7 +460,7 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 	} else {
 		fmt.Println("  📦 DEĞİŞKENLER (Canlı değiştirmek için: 'değiştir ad = değer'):")
 		for _, kv := range vars {
-			valPreview := v.Maskele(kv.Val.Inspect())
+			valPreview := v.Mask(kv.Val.Inspect())
 			if _, motor := kv.Val.(IzlemeDegeri); motor && strings.Contains(valPreview, "\n") {
 				valPreview = tekSatir(valPreview)
 			}
@@ -499,19 +499,19 @@ func (d *Debugger) inspectTable(v *interp.VM, name string, env *interp.Environme
 		fmt.Printf("  %-8s | %-12s | %s\n", "İNDEKS", "TİP", "DEĞER")
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for i, el := range t.Elements {
-			fmt.Printf("  [%-6d] | %-12s | %s\n", i, el.Type(), v.Maskele(el.Inspect()))
+			fmt.Printf("  [%-6d] | %-12s | %s\n", i, el.Type(), v.Mask(el.Inspect()))
 		}
 	case IzlemeDegeri:
 		// Motor değerleri (ör. tensör): tablo verisi satır satır yazılır.
 		cols, rows, err := t.TabloVerisi()
 		if err != nil {
-			fmt.Printf("  %s\n  Değer: %s\n", t.IzlemeEtiketi(), v.Maskele(val.Inspect()))
+			fmt.Printf("  %s\n  Değer: %s\n", t.IzlemeEtiketi(), v.Mask(val.Inspect()))
 			break
 		}
 		fmt.Printf("  %s\n", t.IzlemeEtiketi())
 		fmt.Printf("  %-9s | %s\n", "SATIR", strings.Join(cols, " | "))
 		for i, r := range rows {
-			fmt.Printf("  %-9d | %s\n", i, v.Maskele(strings.Join(r, " | ")))
+			fmt.Printf("  %-9d | %s\n", i, v.Mask(strings.Join(r, " | ")))
 		}
 	case *interp.DictVal:
 		fmt.Printf("  Toplam Alan Sayısı: %d\n", len(t.Order))
@@ -519,15 +519,15 @@ func (d *Debugger) inspectTable(v *interp.VM, name string, env *interp.Environme
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for _, k := range t.Order {
 			e := t.Pairs[k]
-			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), e.Type(), v.Maskele(e.Inspect()))
+			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), e.Type(), v.Mask(e.Inspect()))
 		}
 	case *interp.StructInstanceVal:
 		fmt.Printf("  Yapı Türü: %s\n", t.Def.Name)
 		for k, e := range t.Fields {
-			fmt.Printf("  • %-16s (%s) = %s\n", k, e.Type(), v.Maskele(e.Inspect()))
+			fmt.Printf("  • %-16s (%s) = %s\n", k, e.Type(), v.Mask(e.Inspect()))
 		}
 	default:
-		fmt.Printf("  Değer: %s\n", v.Maskele(val.Inspect()))
+		fmt.Printf("  Değer: %s\n", v.Mask(val.Inspect()))
 	}
 }
 
@@ -547,7 +547,7 @@ func collectVisibleVariables(vm *interp.VM, env *interp.Environment) []varEntry 
 			}
 			seen[k] = true
 			// Yerleşik fonksiyonları ve yapı tanımlarını kalabalık yapmaması için gizle
-			if v.Type() == interp.VAL_BUILTIN || v.Type() == interp.VAL_STRUCT || v.Type() == interp.VAL_FUNC || v.Type() == interp.VAL_TYPE || vm.YerlesikSabitMi(k, v) {
+			if v.Type() == interp.VAL_BUILTIN || v.Type() == interp.VAL_STRUCT || v.Type() == interp.VAL_FUNC || v.Type() == interp.VAL_TYPE || vm.IsBuiltinConstant(k, v) {
 				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})
@@ -557,3 +557,9 @@ func collectVisibleVariables(vm *interp.VM, env *interp.Environment) []varEntry 
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	return list
 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.Debugger = (*Debugger)(nil)
+)

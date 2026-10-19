@@ -63,7 +63,7 @@ func kullanilabilirCihaz(fn string, v interp.Value) (tensor.Device, error) {
 	}
 	if !tensor.HasDevice(dev) {
 		m := fmt.Sprintf("%s cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: %s (%s())",
-			dev, strings.Join(cihazAdlari(), ", "), codes.Ad(codes.T721))
+			dev, strings.Join(cihazAdlari(), ", "), codes.Name(codes.T721))
 		if dev.Kind == tensor.KindGPU {
 			m += ". " + gpu.Durum()
 		}
@@ -73,7 +73,7 @@ func kullanilabilirCihaz(fn string, v interp.Value) (tensor.Device, error) {
 }
 
 func (d *Deger) cihaza(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(uyeCihaza)
+	fn := codes.Name(uyeCihaza)
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(\"cpu\") 1 parametre bekler", fn)
 	}
@@ -101,7 +101,7 @@ func (d *Deger) cihaza(_ *interp.VM, args []interp.Value, _ map[string]interp.Va
 // varsayilanCihazYerlesik varsayılan_cihaz([ad]): argümanla cihazı seçer; her durumda
 // geçerli cihazın adını döndürür.
 func varsayilanCihazYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T720)
+	fn := codes.Name(codes.T720)
 	if err := bind.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func varsayilanCihazYerlesik(_ *interp.VM, args []interp.Value, named map[string
 
 // cihazlarYerlesik cihazlar(): kullanılabilir cihaz adları ("cpu" ilk).
 func cihazlarYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T721)
+	fn := codes.Name(codes.T721)
 	if err := bind.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}

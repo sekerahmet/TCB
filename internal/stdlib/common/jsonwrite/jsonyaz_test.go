@@ -52,12 +52,12 @@ func TestEncodingJSONIleAyniBicim(t *testing.T) {
 func TestDongusVeDerinlikHata(t *testing.T) {
 	l := liste(interp.NewInt(1))
 	l.Elements = append(l.Elements, l)
-	if _, err := Yaz(l); !errors.Is(err, interp.ErrDongusel) {
+	if _, err := Yaz(l); !errors.Is(err, interp.ErrCyclic) {
 		t.Fatalf("döngü hatası bekleniyordu: %v", err)
 	}
 	d := interp.NewDictVal()
 	d.Set("ben", liste(d))
-	if _, err := Yaz(d); !errors.Is(err, interp.ErrDongusel) {
+	if _, err := Yaz(d); !errors.Is(err, interp.ErrCyclic) {
 		t.Fatalf("dolaylı döngü hatası bekleniyordu: %v", err)
 	}
 	// Paylaşılan (döngüsüz) alt değer serbesttir
@@ -66,7 +66,7 @@ func TestDongusVeDerinlikHata(t *testing.T) {
 		t.Fatalf("%s %v", b, err)
 	}
 	var derin interp.Value = interp.NewInt(0)
-	for i := 0; i < interp.DisDegerDerinligi+5; i++ {
+	for i := 0; i < interp.MaxExternalDepth+5; i++ {
 		derin = liste(derin)
 	}
 	if _, err := Yaz(derin); err == nil || !strings.Contains(err.Error(), "çok derin") {

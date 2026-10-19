@@ -3,7 +3,7 @@
 // paniği hataya çevirme ve sayıların Türkçe kısa yazımı. Kullanıcıya görünen hiçbir ad
 // tanımlamaz: adlı argümanların adları kod listesindedir (internal/lang/codes, x9xx kodları).
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package bind
 
 import (
@@ -22,7 +22,7 @@ import (
 // Ad bir adlı argümandır: sözlükteki kodu (x9xx), adı ve kabul edilen yazımları. Adlar
 // kod listesinden gelir (internal/lang/codes); Go kodu yalnızca kodu bilir.
 type Ad struct {
-	Kod codes.Kod
+	Kod codes.Code
 	// TR adın kendisidir (hata mesajlarında ve önerilerde gösterilir).
 	TR       string
 	yazimlar []string
@@ -30,11 +30,11 @@ type Ad struct {
 
 // KodAd sözlükteki bir adlı argüman kodunun Ad'ıdır. Paket düzeyinde (başlangıçta) bir
 // kez çağrılır; kod bir adlı argüman kodu değilse panikler.
-func KodAd(k codes.Kod) Ad {
-	if k.Alan() != codes.AlanParametre {
+func KodAd(k codes.Code) Ad {
+	if k.Namespace() != codes.NamespaceParam {
 		panic(fmt.Sprintf("baglama.KodAd: %s bir adlı argüman kodu (x9xx) değil", k))
 	}
-	return Ad{Kod: k, TR: codes.Ad(k), yazimlar: codes.Yazimlar(k)}
+	return Ad{Kod: k, TR: codes.Name(k), yazimlar: codes.Spellings(k)}
 }
 
 // Yazimlar adlı argümanın kabul edilen yazımlarıdır (önce adın kendisi). Dönen dilim
@@ -65,14 +65,14 @@ func AdliDenetle(fn string, named map[string]interp.Value, adlar ...Ad) error {
 			adaylar = append(adaylar, a.TR)
 		}
 		o := ""
-		if k, ok := codes.Oneri(codes.AlanParametre, verilen, nil); ok && slices.Contains(adaylar, codes.Ad(k)) {
-			o = codes.Ad(k)
+		if k, ok := codes.Suggest(codes.NamespaceParam, verilen, nil); ok && slices.Contains(adaylar, codes.Name(k)) {
+			o = codes.Name(k)
 		}
-		if k, ok := codes.Oneri(codes.AlanParametre, strings.ToLower(verilen), nil); o == "" && ok && slices.Contains(adaylar, codes.Ad(k)) {
-			o = codes.Ad(k) // LR, Seed: alışılmış adlar büyük harfle de tanınır
+		if k, ok := codes.Suggest(codes.NamespaceParam, strings.ToLower(verilen), nil); o == "" && ok && slices.Contains(adaylar, codes.Name(k)) {
+			o = codes.Name(k) // LR, Seed: alışılmış adlar büyük harfle de tanınır
 		}
 		if o == "" {
-			o = turkish.EnYakin(verilen, adaylar)
+			o = turkish.Closest(verilen, adaylar)
 		}
 		oneri := ""
 		if o != "" {
@@ -91,7 +91,7 @@ func AdliDenetle(fn string, named map[string]interp.Value, adlar ...Ad) error {
 // bir üye yoksa tipin üyelerini önerir. ne tipin (ya da nesnenin) kullanıcıya görünen adıdır.
 func UyeHatasi(ne, prop string, uyeler []string) error {
 	oneri := ""
-	if o := turkish.EnYakin(prop, uyeler); o != "" {
+	if o := turkish.Closest(prop, uyeler); o != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 	} else {
 		oneri = fmt.Sprintf(" (üyeler: %s)", strings.Join(uyeler, ", "))
@@ -136,7 +136,7 @@ func Mantik(fn, ad string, v interp.Value) (bool, error) {
 func Kurtar[T any](fn func() T, cevir func(r any) error) (sonuc T, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if interp.KesilmeMi(r) {
+			if interp.IsInterrupt(r) {
 				panic(r) // kesilme (Ctrl+C) hata değildir; yığın çözülmeye devam eder
 			}
 			var sifir T
@@ -170,7 +170,7 @@ func YolCoz(m *interp.VM, yol string) string {
 
 // YolCozBakilan YolCoz gibidir; ayrıca hata mesajları için bakılan yerleri döndürür.
 func YolCozBakilan(m *interp.VM, yol string) (string, []string) {
-	return m.YolCoz(yol) // m nil olabilir: o zaman yalnızca çalışma klasörüne bakılır
+	return m.ResolvePath(yol) // m nil olabilir: o zaman yalnızca çalışma klasörüne bakılır
 }
 
 // YokMu hatanın "dosya ya da klasör yok" anlamına gelip gelmediğini söyler.

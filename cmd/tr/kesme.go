@@ -28,10 +28,10 @@ func kesmeyiYakala(machine *interp.VM) {
 	signal.Notify(kanal, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
 		<-kanal
-		if machine.KesmeIste() {
-			machine.CiktiYaz(os.Stderr, "\n⏹️ Durduruluyor: adım bitince kontrol noktası kaydedilip çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
+		if machine.RequestInterrupt() {
+			machine.WriteOutput(os.Stderr, "\n⏹️ Durduruluyor: adım bitince kontrol noktası kaydedilip çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
 		} else {
-			machine.CiktiYaz(os.Stderr, "\n⏹️ Durduruluyor: ertelenen işler çalıştırılıp çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
+			machine.WriteOutput(os.Stderr, "\n⏹️ Durduruluyor: ertelenen işler çalıştırılıp çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
 		}
 		<-kanal
 		fmt.Fprintln(os.Stderr, "⏹️ Hemen çıkıldı.")
@@ -42,9 +42,9 @@ func kesmeyiYakala(machine *interp.VM) {
 // kesilmeyiBildir program kesme isteğiyle durduysa bildirimi yazar ve 3 koduyla çıkar.
 // err programın hatasıdır (kesilmeyse ertelenen işlerin hataları da içinde olabilir).
 func kesilmeyiBildir(machine *interp.VM, err error, code string) {
-	if err != nil && err != interp.ErrKesildi {
+	if err != nil && err != interp.ErrInterrupted {
 		calismaHatasiYaz(machine, err, code) // ertelenen işlerin hataları
 	}
-	machine.CiktiYaz(os.Stderr, "⏹️ Program durduruldu (kesme isteği); ertelenen işler çalıştı. Çıkış kodu 3.\n")
+	machine.WriteOutput(os.Stderr, "⏹️ Program durduruldu (kesme isteği); ertelenen işler çalıştı. Çıkış kodu 3.\n")
 	cik(kesilmeCikisKodu)
 }

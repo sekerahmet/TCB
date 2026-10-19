@@ -8,7 +8,7 @@
 // program ayrıca internal/devtools/debugger paketini içe aktarır (motor katmanı araç katmanına
 // bağlı değildir; bkz. internal/katman_test.go).
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package stdlib
 
 import (
@@ -26,17 +26,17 @@ import (
 )
 
 func init() {
-	interp.MotorEkle(formats.Kaydet)
-	interp.MotorEkle(files.Kaydet)
+	interp.AddEngine(formats.Kaydet)
+	interp.AddEngine(files.Kaydet)
 	// Tensör motoru (tensör, otomatik türev, katmanlar) çekirdek yerleşiklerini (toplam,
 	// ortalama, min, maks, karekök) sarar; bu yüzden onlardan SONRA kaydedilmelidir.
-	interp.MotorEkle(ml.Kaydet)
+	interp.AddEngine(ml.Kaydet)
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
-	interp.MotorEkle(tokenizer.Kaydet)
-	interp.MotorEkle(dataset.Kaydet)
+	interp.AddEngine(tokenizer.Kaydet)
+	interp.AddEngine(dataset.Kaydet)
 	// Süreç (ortam, komut satırı), kayıt (günlük, ilerleme) ve kontrol noktası: günlüğün
 	// başlangıç kaydı ve kontrol noktası programın komut satırı ayarlarını yazar.
-	interp.MotorEkle(func(v *interp.VM) {
+	interp.AddEngine(func(v *interp.VM) {
 		s := process.Kaydet(v)
 		logging.Kaydet(v, s)
 		checkpoint.Kaydet(v, s)

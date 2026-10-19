@@ -31,8 +31,8 @@ func gorunumAdresiYap(yol string) string {
 // kaynağı görünümün adresiyle ve aynı satırla bildirir (17.5; 17_kodlar.md, "Düzenleyicide").
 func TestDAPKodluDosyaGorunumu(t *testing.T) {
 	turkce := "değişken a = 1\na = 2\neğer a > 1 {\n    yazdır(\"büyük\")\n}\n"
-	kodlu, err := source.Kodla(turkce)
-	if err != nil || !strings.HasPrefix(kodlu, source.Baslik+"\n") {
+	kodlu, err := source.Encode(turkce)
+	if err != nil || !strings.HasPrefix(kodlu, source.Header+"\n") {
 		t.Fatalf("kodlanamadı: %q %v", kodlu, err)
 	}
 	path := writeProgram(t, kodlu)

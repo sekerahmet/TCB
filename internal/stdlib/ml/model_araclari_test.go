@@ -299,7 +299,7 @@ x.y = 3
 x.b = 4
 değişken cikti = x`)
 	var adlar []string
-	v.(*interp.StructInstanceVal).AlanlariGez(func(ad string, _ interp.Value) { adlar = append(adlar, ad) })
+	v.(*interp.StructInstanceVal).EachField(func(ad string, _ interp.Value) { adlar = append(adlar, ad) })
 	if strings.Join(adlar, ",") != "z,a,b,y" {
 		t.Fatalf("sıra: %v", adlar)
 	}

@@ -10,7 +10,7 @@
 // yorumlayıcının kopyası olduğundan kitaplık ona da girer. Testler (*_test.tr) de gömülür ama
 // modül olarak aktarılamaz; `tr test lib` ile koşar.
 //
-// Katman: TR kitaplığı (lib); hiçbir iç paketi içe aktarmaz (internal/katman_test.go).
+// Layer: TR library (lib); hiçbir iç paketi içe aktarmaz (internal/katman_test.go).
 package lib
 
 import "embed"

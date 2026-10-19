@@ -26,7 +26,7 @@
 // Kontrol noktası kurulunca ilk kesme isteği programı hemen durdurmaz (yurut.VM.KesmeIste):
 // sıradaki adım sınırında nokta kaydedilir ve program nazikçe (çıkış kodu 3) durur.
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini ve öbür motorları içe aktarır.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini ve öbür motorları içe aktarır.
 package checkpoint
 
 import (
@@ -50,7 +50,7 @@ import (
 )
 
 // KontrolTipi KontrolNoktası değerlerinin tip adıdır.
-var KontrolTipi = interp.TipAdi(codes.A258)
+var KontrolTipi = interp.TypeName(codes.A258)
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
 var (
@@ -74,8 +74,8 @@ var saat = time.Now
 // Kaydet kontrol_noktası yerleşiğini VM'ye kaydeder. s programın süreç durumudur (komut
 // satırı ayarları noktaya yazılır); nil olabilir.
 func Kaydet(v *interp.VM, s *process.Durum) {
-	v.RegisterBuiltinKod(codes.T702, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Ad(codes.T702), func() (interp.Value, error) { return kur(m, s, args, named) })
+	v.RegisterBuiltinCode(codes.T702, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return bind.Guvenli(codes.Name(codes.T702), func() (interp.Value, error) { return kur(m, s, args, named) })
 	})
 }
 
@@ -105,41 +105,41 @@ func (kn *KontrolNoktasi) Inspect() string {
 // Klasor noktaların çözülmüş klasörüdür (<koşu>/kontrol_noktalari).
 func (kn *KontrolNoktasi) Klasor() string { return kn.klasor }
 
-func (kn *KontrolNoktasi) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
+func (kn *KontrolNoktasi) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case codes.Y520:
 		return interp.NewInt(kn.kaldigi), nil
 	case codes.Y010:
-		return &interp.BuiltinVal{Name: codes.Ad(codes.Y010), AdliAlmaz: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CagriAdi(codes.Y010), func() (interp.Value, error) { return kn.guncelle(m, args) })
+		return &interp.BuiltinVal{Name: codes.Name(codes.Y010), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			return bind.Guvenli(interp.CallName(codes.Y010), func() (interp.Value, error) { return kn.guncelle(m, args) })
 		}}, nil
 	case codes.Y521:
-		return &interp.BuiltinVal{Name: codes.Ad(codes.Y521), AdliAlmaz: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CagriAdi(codes.Y521), func() (interp.Value, error) { return kn.kaydetTR(m, args) })
+		return &interp.BuiltinVal{Name: codes.Name(codes.Y521), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			return bind.Guvenli(interp.CallName(codes.Y521), func() (interp.Value, error) { return kn.kaydetTR(m, args) })
 		}}, nil
 	}
-	return nil, bind.UyeHatasi(string(KontrolTipi), prop, codes.Adlar(codes.Y010, codes.Y520, codes.Y521))
+	return nil, bind.UyeHatasi(string(KontrolTipi), prop, codes.Names(codes.Y010, codes.Y520, codes.Y521))
 }
 
 // kur kontrol_noktası(koşu, nesneler, her_dakika:, tut:) yerleşiğidir.
 func kur(m *interp.VM, s *process.Durum, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(codes.T702)
+	fn := interp.CallPrefix(codes.T702)
 	if err := bind.AdliDenetle(fn, named, adHerDakika, adTut); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, interp.ArgumanSayisiHatasi(codes.T702, "2", len(args), "koşu_klasörü, {model: model, op: op, ...}")
+		return nil, interp.ArgCountError(codes.T702, "2", len(args), "koşu_klasörü, {model: model, op: op, ...}")
 	}
-	yol, ok, err := interp.YolArgumani(fn, args[0])
+	yol, ok, err := interp.PathArg(fn, args[0])
 	if err != nil {
 		return nil, err
 	}
 	if !ok || yol == "" {
-		return nil, interp.ArgumanTipHatasi(codes.T702, 1, args[0], codes.A202, codes.A250)
+		return nil, interp.ArgTypeError(codes.T702, 1, args[0], codes.A202, codes.A250)
 	}
 	sozluk, ok := args[1].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgumanTipHatasi(codes.T702, 2, args[1], codes.A206)
+		return nil, interp.ArgTypeError(codes.T702, 2, args[1], codes.A206)
 	}
 	aralik, tut, err := secenekler(fn, named)
 	if err != nil {
@@ -159,7 +159,7 @@ func kur(m *interp.VM, s *process.Durum, args []interp.Value, named map[string]i
 		return nil, err
 	}
 	kn.sonKayit = saat()
-	m.KesmeyiErtele()
+	m.DeferInterrupts()
 	tohumsuzUyarisiKur(m)
 	return kn, nil
 }
@@ -170,7 +170,7 @@ func secenekler(fn string, named map[string]interp.Value) (time.Duration, int, e
 	if v, ok := bind.AdliAl(named, adHerDakika); ok {
 		f, sayi := interp.ToFloat(v)
 		if !sayi || math.IsNaN(f) || f < 0 || f > enFazlaDakika {
-			return 0, 0, fmt.Errorf("%s: %s 0 ile %g arasında bir sayı (dakika) olmalı, %s verildi", fn, adHerDakika.TR, float64(enFazlaDakika), interp.TipVeOzet(v))
+			return 0, 0, fmt.Errorf("%s: %s 0 ile %g arasında bir sayı (dakika) olmalı, %s verildi", fn, adHerDakika.TR, float64(enFazlaDakika), interp.TypeAndSummary(v))
 		}
 		dakika = f
 	}
@@ -178,7 +178,7 @@ func secenekler(fn string, named map[string]interp.Value) (time.Duration, int, e
 	if v, ok := bind.AdliAl(named, adTut); ok {
 		n, tam := v.(*interp.IntVal)
 		if !tam || n.Val < 1 || n.Val > 1000 {
-			return 0, 0, fmt.Errorf("%s: %s 1 ile 1000 arasında bir %s olmalı (saklanacak nokta sayısı), %s verildi", fn, adTut.TR, codes.Ad(codes.A200), interp.TipVeOzet(v))
+			return 0, 0, fmt.Errorf("%s: %s 1 ile 1000 arasında bir %s olmalı (saklanacak nokta sayısı), %s verildi", fn, adTut.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))
 		}
 		tut = int(n.Val)
 	}
@@ -191,20 +191,20 @@ func tohumsuzUyarisiKur(m *interp.VM) {
 	var bir sync.Once
 	ml.TohumsuzKancasiAyarla(func() {
 		bir.Do(func() {
-			m.CiktiYaz(m.Err, fmt.Sprintf("Uyarı: %s kurulduktan sonra tohumsuz rastgelelik kullanıldı (%s ya da %s, %s: verilmeden); sürdürülen eğitim kesintisizle aynı olmayacak. Rastgeleliği %s: ile verin.\n",
-				codes.Ad(codes.T702), codes.Ad(codes.T103), codes.Ad(codes.T611), adTohum.TR, adTohum.TR))
+			m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s kurulduktan sonra tohumsuz rastgelelik kullanıldı (%s ya da %s, %s: verilmeden); sürdürülen eğitim kesintisizle aynı olmayacak. Rastgeleliği %s: ile verin.\n",
+				codes.Name(codes.T702), codes.Name(codes.T103), codes.Name(codes.T611), adTohum.TR, adTohum.TR))
 		})
 	})
 }
 
 // adimArg güncelle'nin tamamlanan adım argümanını okur.
-func adimArg(kd codes.Kod, args []interp.Value) (int64, error) {
+func adimArg(kd codes.Code, args []interp.Value) (int64, error) {
 	if len(args) != 1 {
-		return 0, interp.ArgumanSayisiHatasi(kd, "1", len(args), "tamamlanan_adım")
+		return 0, interp.ArgCountError(kd, "1", len(args), "tamamlanan_adım")
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		return 0, fmt.Errorf("%s: tamamlanan adım sayısı 0 ya da pozitif bir %s olmalı, %s verildi", interp.Cagri(kd), codes.Ad(codes.A200), interp.TipVeOzet(args[0]))
+		return 0, fmt.Errorf("%s: tamamlanan adım sayısı 0 ya da pozitif bir %s olmalı, %s verildi", interp.CallPrefix(kd), codes.Name(codes.A200), interp.TypeAndSummary(args[0]))
 	}
 	return n.Val, nil
 }
@@ -217,7 +217,7 @@ func (kn *KontrolNoktasi) guncelle(m *interp.VM, args []interp.Value) (interp.Va
 		return nil, err
 	}
 	kn.adim = n
-	if m.DurdurmaIstendi() {
+	if m.StopRequested() {
 		kn.durdur(m)
 	}
 	if saat().Sub(kn.sonKayit) < kn.aralik {
@@ -242,11 +242,11 @@ func (kn *KontrolNoktasi) araliklaKaydet(m *interp.VM) (interp.Value, error) {
 	if kn.basarisiz >= enFazlaBasarisiz {
 		return nil, fmt.Errorf("%v; kontrol noktası art arda %d kez kaydedilemedi, eğitim durduruldu. %s", err, kn.basarisiz, kn.sonGecerliMetni())
 	}
-	ne := "sonraki " + codes.Ad(codes.Y010) + "'de"
+	ne := "sonraki " + codes.Name(codes.Y010) + "'de"
 	if kn.aralik > 0 {
 		ne = sureMetni(kn.aralik) + " sonra"
 	}
-	m.CiktiYaz(m.Err, fmt.Sprintf("Uyarı: %v (%d/%d; eğitim sürüyor, %s yeniden denenecek). %s\n",
+	m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %v (%d/%d; eğitim sürüyor, %s yeniden denenecek). %s\n",
 		err, kn.basarisiz, enFazlaBasarisiz, ne, kn.sonGecerliMetni()))
 	return interp.FALSE, nil
 }
@@ -254,7 +254,7 @@ func (kn *KontrolNoktasi) araliklaKaydet(m *interp.VM) (interp.Value, error) {
 // kaydetTR kn.kaydet() metodudur: hemen kaydeder; hata açık hatadır.
 func (kn *KontrolNoktasi) kaydetTR(m *interp.VM, args []interp.Value) (interp.Value, error) {
 	if len(args) != 0 {
-		return nil, interp.ArgumanSayisiHatasi(codes.Y521, "0", len(args))
+		return nil, interp.ArgCountError(codes.Y521, "0", len(args))
 	}
 	yol, err := kn.kaydet(m)
 	kn.sonKayit = saat()
@@ -262,7 +262,7 @@ func (kn *KontrolNoktasi) kaydetTR(m *interp.VM, args []interp.Value) (interp.Va
 		return nil, err
 	}
 	kn.basarisiz = 0
-	if m.DurdurmaIstendi() {
+	if m.StopRequested() {
 		kn.durdur(m)
 	}
 	return files.YeniYol(yol), nil
@@ -272,11 +272,11 @@ func (kn *KontrolNoktasi) kaydetTR(m *interp.VM, args []interp.Value) (interp.Va
 // nazikçe durdurur (dönmez).
 func (kn *KontrolNoktasi) durdur(m *interp.VM) {
 	if yol, err := kn.kaydet(m); err != nil {
-		m.CiktiYaz(m.Err, fmt.Sprintf("Uyarı: program durdurulurken kontrol noktası kaydedilemedi (%v). %s\n", err, kn.sonGecerliMetni()))
+		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: program durdurulurken kontrol noktası kaydedilemedi (%v). %s\n", err, kn.sonGecerliMetni()))
 	} else {
-		m.CiktiYaz(m.Err, fmt.Sprintf("Kontrol noktası kaydedildi: adım %d (%s). Sürdürmek için programı aynı komutla yeniden çalıştırın.\n", kn.adim, yol))
+		m.WriteOutput(m.Err, fmt.Sprintf("Kontrol noktası kaydedildi: adım %d (%s). Sürdürmek için programı aynı komutla yeniden çalıştırın.\n", kn.adim, yol))
 	}
-	m.SimdiKes()
+	m.InterruptNow()
 }
 
 // sonGecerliMetni son geçerli noktayı söyler (uyarı ve hata mesajları için).
@@ -294,3 +294,9 @@ func sureMetni(d time.Duration) string {
 	}
 	return strings.Replace(strconv.FormatFloat(d.Seconds(), 'g', 3, 64), ".", ",", 1) + " sn"
 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.PropertyGetter = (*KontrolNoktasi)(nil)
+)

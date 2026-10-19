@@ -78,7 +78,7 @@ type kayitGirdisi struct {
 }
 
 func yolArg(fn string, v interp.Value) (string, error) {
-	yol, ok, err := interp.YolArgumani(fn, v)
+	yol, ok, err := interp.PathArg(fn, v)
 	if !ok {
 		return "", fmt.Errorf("%s: dosya yolu metin olmalıdır, %s verildi", fn, tipAdi(v))
 	}
@@ -93,7 +93,7 @@ func yolArg(fn string, v interp.Value) (string, error) {
 
 // tensorKaydet adları tensör olan bir sözlüğü dosyaya yazar: tensör_kaydet(yol, sözlük).
 func tensorKaydet(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T700)
+	fn := codes.Name(codes.T700)
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%s(yol, sözlük) 2 parametre bekler, %d verildi", fn, len(args))
 	}
@@ -132,7 +132,7 @@ func tensorKaydet(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	var yazHata error
 	m.Blocking(func() { yazHata = dosyayaYaz(cozulen, girdiler) })
 	if yazHata != nil {
-		return nil, turkish.DosyaHatasi(fn, yol, "yazılamadı", yazHata)
+		return nil, turkish.FileError(fn, yol, "yazılamadı", yazHata)
 	}
 	return interp.NULL, nil
 }
@@ -140,7 +140,7 @@ func tensorKaydet(m *interp.VM, args []interp.Value, named map[string]interp.Val
 // dosyayaYaz girdileri yol'a atomik olarak yazar (bkz. yurut.AtomikYaz): yazma yarıda kalırsa
 // önceki kontrol noktası bozulmaz.
 func dosyayaYaz(yol string, girdiler []kayitGirdisi) error {
-	return interp.AtomikYaz(yol, func(f io.Writer) error { return girdileriYaz(f, girdiler) })
+	return interp.WriteAtomic(yol, func(f io.Writer) error { return girdileriYaz(f, girdiler) })
 }
 
 func girdileriYaz(f io.Writer, girdiler []kayitGirdisi) error {
@@ -237,7 +237,7 @@ func (y *TensorYazici) Bitir() error {
 
 // tensorYukle tensör_kaydet ile yazılmış dosyayı sözlük olarak okur.
 func tensorYukle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T701)
+	fn := codes.Name(codes.T701)
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(yol) 1 parametre bekler, %d verildi", fn, len(args))
 	}
@@ -254,7 +254,7 @@ func tensorYukle(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	var okuHata, osHata error
 	m.Blocking(func() { girdiler, okuHata, osHata = dosyadanOku(cozulen) })
 	if osHata != nil {
-		return nil, interp.OkumaHatasi(fn, yol, "yüklenemedi", osHata, bakilanlar)
+		return nil, interp.ReadError(fn, yol, "yüklenemedi", osHata, bakilanlar)
 	}
 	if okuHata != nil {
 		return nil, fmt.Errorf("%s: %q: %v", fn, yol, okuHata)

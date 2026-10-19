@@ -2,7 +2,7 @@
 // test "ad" { ... } bloklarını bulur, her birini yalıtılmış bir kapsamda çalıştırır
 // ve sonuçları Türkçe olarak raporlar.
 //
-// Katman: araç (internal/devtools); dil, motor ve hesap katmanlarını içe aktarabilir.
+// Layer: developer tools (internal/devtools); dil, motor ve hesap katmanlarını içe aktarabilir.
 package testrunner
 
 import (
@@ -115,22 +115,22 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 
 	veri, err := os.ReadFile(yol)
 	if err != nil {
-		fmt.Fprintf(cikti, "  ✗ %v\n", turkish.DosyaHatasi("", yol, "okunamadı", err))
+		fmt.Fprintf(cikti, "  ✗ %v\n", turkish.FileError("", yol, "okunamadı", err))
 		ozet.Yuklenemez++
 		return ozet
 	}
-	hazir := source.Hazirla(string(veri), source.Secenekler{TipDenetimi: true})
-	metin, prog := hazir.Metin, hazir.Program
-	if len(hazir.Uyarilar) > 0 {
+	hazir := source.Prepare(string(veri), source.Options{TypeCheck: true})
+	metin, prog := hazir.Text, hazir.Program
+	if len(hazir.Warnings) > 0 {
 		// Uyarılar testleri durdurmaz ve sonucu etkilemez.
 		fmt.Fprintln(cikti, "  ⚠️ uyarılar:")
-		for _, u := range hazir.Uyarilar {
+		for _, u := range hazir.Warnings {
 			hataYaz(cikti, u, metin)
 		}
 	}
-	if hazir.Asama != "" {
-		fmt.Fprintf(cikti, "  ✗ %s hataları nedeniyle testler çalıştırılamadı:\n", hazir.Asama)
-		for _, e := range hazir.Hatalar {
+	if hazir.Stage != "" {
+		fmt.Fprintf(cikti, "  ✗ %s hataları nedeniyle testler çalıştırılamadı:\n", hazir.Stage)
+		for _, e := range hazir.Errors {
 			hataYaz(cikti, e, metin)
 		}
 		ozet.Yuklenemez++
@@ -155,9 +155,9 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 	makine.SourceCode = metin
 	if _, err := makine.Run(prog); err != nil {
 		fmt.Fprintln(cikti, "  ✗ dosyanın üst düzey kodu hata verdi, testler çalıştırılamadı:")
-		for _, m := range interp.HataMaddeleri(err, metin) {
-			fmt.Fprintf(cikti, "    • %s\n", m.Mesaj)
-			fmt.Fprint(cikti, girintile(m.Cerceve, "      "))
+		for _, m := range interp.ErrorItems(err, metin) {
+			fmt.Fprintf(cikti, "    • %s\n", m.Message)
+			fmt.Fprint(cikti, girintile(m.Frame, "      "))
 		}
 		ozet.Yuklenemez++
 		return ozet
@@ -173,13 +173,13 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 				err = fmt.Errorf("Satır %d: %s", t.Line(), mesaj)
 			}
 			// Modüle ait hatanın çerçevesi modülün kaynağından çizilir.
-			for i, m := range interp.HataMaddeleri(err, metin) {
+			for i, m := range interp.ErrorItems(err, metin) {
 				if i == 0 {
-					fmt.Fprintf(cikti, "  ✗ %s — %s\n", t.Name, m.Mesaj)
+					fmt.Fprintf(cikti, "  ✗ %s — %s\n", t.Name, m.Message)
 				} else {
-					fmt.Fprintf(cikti, "      • %s\n", m.Mesaj)
+					fmt.Fprintf(cikti, "      • %s\n", m.Message)
 				}
-				fmt.Fprint(cikti, girintile(m.Cerceve, "      "))
+				fmt.Fprint(cikti, girintile(m.Frame, "      "))
 			}
 			continue
 		}
@@ -191,7 +191,7 @@ func DosyaCalistir(yol string, cikti io.Writer) Ozet {
 
 func hataYaz(cikti io.Writer, mesaj, kaynak string) {
 	fmt.Fprintf(cikti, "    • %s\n", mesaj)
-	fmt.Fprint(cikti, girintile(turkish.KodCercevesi(kaynak, mesaj), "      "))
+	fmt.Fprint(cikti, girintile(turkish.CodeFrame(kaynak, mesaj), "      "))
 }
 
 func girintile(metin, onek string) string {

@@ -3,7 +3,7 @@
 // dosyalara (belgeler, tests/, examples/, test verileri) "../../" gibi göreli yollarla değil
 // bu yardımcıyla ulaşır; böylece bir paket başka bir klasöre taşındığında testler kırılmaz.
 //
-// Katman: test yardımcısı (internal/reporoot); hiçbir iç paketi içe aktarmaz, her katmanın testi
+// Layer: test helper (internal/reporoot); hiçbir iç paketi içe aktarmaz, her katmanın testi
 // kullanabilir.
 package reporoot
 

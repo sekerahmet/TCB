@@ -47,7 +47,7 @@ func adliMantik(fn string, named map[string]interp.Value, a bind.Ad, varsayilan 
 // birlestirYerlesik birleştir([a, b, ...], eksen: -1) yerleşiğidir: tensörleri bir eksen
 // boyunca birleştirir. Birleşen eksen dışındaki eksenler eşit olmalıdır. Türevlenebilir.
 func birlestirYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T121)
+	fn := codes.Name(codes.T121)
 	if len(args) < 1 || len(args) > 2 {
 		return nil, fmt.Errorf("%s([a, b, ...], %s: -1) bir tensör listesi bekler, %d parametre verildi", fn, adEksen.TR, len(args))
 	}
@@ -104,7 +104,7 @@ func birlestirYerlesik(_ *interp.VM, args []interp.Value, named map[string]inter
 // bol .böl(parça_sayısı, eksen: -1) metodudur: tensörü verilen eksende eşit parçalara
 // böler; parçalar veriyi paylaşan, türev izleyen görünümlerdir.
 func (d *Deger) bol(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.Y103)
+	fn := codes.Name(codes.Y103)
 	if len(args) < 1 || len(args) > 2 {
 		return nil, fmt.Errorf("%s(parça_sayısı, %s: -1) parça sayısını bekler, %d parametre verildi", fn, adEksen.TR, len(args))
 	}
@@ -149,10 +149,10 @@ func (d *Deger) bol(_ *interp.VM, args []interp.Value, named map[string]interp.V
 // dikkatYerlesik dikkat(q, k, v, nedensel: doğru, pencere: 0, maske: yok) yerleşiğidir:
 // birleşik ölçekli nokta çarpımı dikkati (bkz. tensor.Attention). Ölçek 1/√dh'dir.
 func dikkatYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T503)
+	fn := codes.Name(codes.T503)
 	if len(args) != 3 {
 		return nil, fmt.Errorf("%s(q, k, v, %s: %s, %s: 0, %s: %s) 3 konumlu parametre bekler, %d verildi",
-			fn, adNedensel.TR, codes.Ad(codes.A040), adPencere.TR, adMaske.TR, codes.Ad(codes.A042), len(args))
+			fn, adNedensel.TR, codes.Name(codes.A040), adPencere.TR, adMaske.TR, codes.Name(codes.A042), len(args))
 	}
 	if err := bind.AdliDenetle(fn+"()", named, adNedensel, adPencere, adMaske); err != nil {
 		return nil, err
@@ -268,17 +268,17 @@ func maskeDenetle(fn string, mt, q, k *tensor.Tensor) error {
 // (maks_indeks ile aynı). Sonuç son ekseni düşürülmüş, tam sayılı işaretli ve türev
 // izlemeyen bir tensördür.
 func orneklemeYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T611)
+	fn := codes.Name(codes.T611)
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(logit, %s: 1.0, %s: 0, %s: %s) 1 konumlu parametre bekler, %d verildi",
-			fn, adSicaklik.TR, adEnIyiK.TR, adTohum.TR, codes.Ad(codes.A042), len(args))
+			fn, adSicaklik.TR, adEnIyiK.TR, adTohum.TR, codes.Name(codes.A042), len(args))
 	}
 	if err := bind.AdliDenetle(fn+"()", named, adSicaklik, adEnIyiK, adTohum); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*Deger)
 	if !ok {
-		return nil, fmt.Errorf("%s: logit bir tensör olmalıdır, %s verildi; liste için %s(%s(liste)) yazın", fn, tipAdi(args[0]), fn, codes.Ad(codes.T100))
+		return nil, fmt.Errorf("%s: logit bir tensör olmalıdır, %s verildi; liste için %s(%s(liste)) yazın", fn, tipAdi(args[0]), fn, codes.Name(codes.T100))
 	}
 	sh := d.t.Shape()
 	if len(sh) == 0 {

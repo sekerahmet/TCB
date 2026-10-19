@@ -48,7 +48,7 @@ func (s *dapServer) scopeVariables(h *dapHandle) []varEntry {
 			}
 			seen[k] = true
 			if v.Type() == interp.VAL_BUILTIN || v.Type() == interp.VAL_STRUCT || v.Type() == interp.VAL_FUNC || v.Type() == interp.VAL_TYPE ||
-				s.curVM.YerlesikSabitMi(k, v) {
+				s.curVM.IsBuiltinConstant(k, v) {
 				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})
@@ -78,15 +78,15 @@ func children(val interp.Value, expr string) []dapChild {
 	const limit = 5000
 	var out []dapChild
 	switch v := val.(type) {
-	case interp.Yinelenebilir:
+	case interp.Iterable:
 		// Dış değerler (ör. tensör): ilk eksen boyunca öğeler (tensörde 1 boyutluda sayılar,
 		// N boyutluda (N-1) boyutlu görünümler); çok büyük değerlerde ilk öğeler ve "…".
-		n, err := v.YinelemeUzunlugu()
+		n, err := v.IterLen()
 		if err != nil {
 			break
 		}
 		for i := 0; i < n && i < yinelemeSiniri; i++ {
-			el, err := v.YinelemeOgesi(i)
+			el, err := v.IterItem(i)
 			if err != nil {
 				break
 			}
@@ -147,8 +147,8 @@ func expandable(val interp.Value) bool {
 		return len(v.Pairs) > 0
 	case *interp.StructInstanceVal:
 		return len(v.Fields) > 0
-	case interp.Yinelenebilir:
-		n, err := v.YinelemeUzunlugu()
+	case interp.Iterable:
+		n, err := v.IterLen()
 		return err == nil && n > 0
 	}
 	return false
@@ -257,10 +257,10 @@ func (s *dapServer) setVariable(msg *dapMessage) {
 				}
 			case *interp.StructInstanceVal:
 				container.Fields[a.Name] = val
-			case interp.IndeksAtanabilir:
+			case interp.IndexAssignable:
 				// Dış değerler (ör. tensör satırı ya da elemanı): değer[i] = yeni değer
 				idx, _ := strconv.Atoi(strings.Trim(a.Name, "[]"))
-				if err := container.IndekseAta(interp.NewInt(int64(idx)), val); err != nil {
+				if err := container.SetIndex(interp.NewInt(int64(idx)), val); err != nil {
 					s.respondErr(msg, "%v", err)
 					return
 				}

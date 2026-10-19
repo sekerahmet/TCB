@@ -16,7 +16,7 @@ import (
 
 // Testlerdeki VM'ler bu paketin yerleşiklerini de içersin (github.com/sekerahmet/TCB/internal/stdlib gibi).
 func init() {
-	interp.MotorEkle(Kaydet)
+	interp.AddEngine(Kaydet)
 }
 
 // calistir programı çalıştırır; yazdır() çıktısını ve son değeri döndürür.

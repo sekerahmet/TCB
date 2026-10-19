@@ -151,8 +151,8 @@ func TestDilTanimiTestleriGecer(t *testing.T) {
 		t.Skip("-short: dil tanımı testleri tam denetimde `tr test tests` ile koşar")
 	}
 	// Komut satırındaki gibi dilin kitaplığı bağlanır (11.6: aktar "tr/...").
-	interp.KitaplikBagla(lib.Dosyalar)
-	defer interp.KitaplikBagla(nil)
+	interp.SetLibrary(lib.Dosyalar)
+	defer interp.SetLibrary(nil)
 	var cikti bytes.Buffer
 	ozet, err := Calistir(reporoot.Yol("tests"), &cikti)
 	if err != nil {

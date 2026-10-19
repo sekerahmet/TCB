@@ -27,7 +27,7 @@
 // Gizli değerler (yurut.VM.GizliDegerEkle) günlükte, çubukta ve ilerleme.json'da ***
 // olarak yazılır.
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package logging
 
 import (
@@ -44,8 +44,8 @@ import (
 
 // Tip adları.
 var (
-	GunlukTipi   = interp.TipAdi(codes.A256) // Günlük
-	IlerlemeTipi = interp.TipAdi(codes.A255) // İlerleme
+	GunlukTipi   = interp.TypeName(codes.A256) // Günlük
+	IlerlemeTipi = interp.TypeName(codes.A255) // İlerleme
 )
 
 // Adlı argümanlar; adları kod listesindedir (internal/lang/codes).
@@ -87,11 +87,11 @@ type durum struct {
 // (komut satırı ayarları başlangıç kaydına yazılır); nil olabilir.
 func Kaydet(v *interp.VM, s *process.Durum) {
 	d := &durum{surec: s}
-	v.AdlisizKaydet(codes.G810, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Ad(codes.G810), func() (interp.Value, error) { return d.gunlukAc(m, args) })
+	v.RegisterNoNamed(codes.G810, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+		return bind.Guvenli(codes.Name(codes.G810), func() (interp.Value, error) { return d.gunlukAc(m, args) })
 	})
-	v.RegisterBuiltinKod(codes.G811, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Ad(codes.G811), func() (interp.Value, error) { return d.ilerlemeAc(m, args, named) })
+	v.RegisterBuiltinCode(codes.G811, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return bind.Guvenli(codes.Name(codes.G811), func() (interp.Value, error) { return d.ilerlemeAc(m, args, named) })
 	})
 }
 

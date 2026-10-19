@@ -171,7 +171,7 @@ func (s *dapServer) send(m map[string]interface{}) {
 // görünen her şey insanın göreceği çıktıdır. Gizli değer yoksa ileti olduğu gibi kalır.
 func (s *dapServer) gizlileriMaskele(data []byte) []byte {
 	m := s.machine
-	if m == nil || !m.GizliDegerVar() {
+	if m == nil || !m.HasSecrets() {
 		return data
 	}
 	d := json.NewDecoder(bytes.NewReader(data))
@@ -180,7 +180,7 @@ func (s *dapServer) gizlileriMaskele(data []byte) []byte {
 	if d.Decode(&v) != nil {
 		return data
 	}
-	yeni, err := json.Marshal(metinleriMaskele(v, m.Maskele))
+	yeni, err := json.Marshal(metinleriMaskele(v, m.Mask))
 	if err != nil {
 		return data
 	}
@@ -251,7 +251,7 @@ func (o dapOutput) Write(p []byte) (int, error) {
 type dapNoStdin struct{}
 
 func (dapNoStdin) Read([]byte) (int, error) {
-	return 0, errors.New("düzenleyicinin hata ayıklama oturumunda " + interp.Cagri(codes.G101) + " kullanılamaz; programı terminalde çalıştırın (▶ veya Ctrl+F5)")
+	return 0, errors.New("düzenleyicinin hata ayıklama oturumunda " + interp.CallPrefix(codes.G101) + " kullanılamaz; programı terminalde çalıştırın (▶ veya Ctrl+F5)")
 }
 
 // ---------------------------------------------------------------------------

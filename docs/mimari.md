@@ -37,7 +37,7 @@ Yorumlayıcı (`internal/lang/interp`) motorları ve hata ayıklayıcıyı içe 
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `izle`, `profil`, `hata_ayıkla`, `dap`), işi `internal/`'a bırakır |
 | `cmd/tr/e2e` | `tr` komutunun uçtan uca testleri (yalnızca testler): ikiliyi bir kez derler, alt süreç olarak çalıştırır; komutlar, çıkış kodları, kesme, kontrol noktasından devam, belgelerdeki kod blokları ve bağlantılar, VS Code eklentisinin dosyaları ve JavaScript testleri |
-| `internal/lang/codes` | Dilin bütün adlarını sabit kodlara bağlayan kod listesi (`tanim.json`, `tr.json`) ve ondan üretilen Go sabitleri |
+| `internal/lang/codes` | Dilin bütün adlarını sabit kodlara bağlayan kod listesi (`definitions.json`, `tr.json`) ve ondan üretilen Go sabitleri |
 | `internal/lang/turkish` | Türkçe harf işlemleri, ekler, "bunu mu demek istediniz" önerileri ve hata çerçevesi |
 | `internal/lang/hint` | Dilin adlarıyla ilgili hata ipuçları: kaldırılan, taşınan ve Türkçe karaktersiz yazılan adlar, tanımsız ada en yakın ad (sözcük çözümleyici, ayrıştırıcı, denetleyici ve yorumlayıcı aynı metni kullanır) |
 | `internal/lang/lexer` | Sözcük çözümleyici: kaynak metni sözcük birimlerine ayırır; kodlu gövdede kodları etkin dilin adlarına çevirir, konumları Türkçe gösterime göre verir |

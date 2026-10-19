@@ -7,7 +7,7 @@ import "github.com/sekerahmet/TCB/internal/lang/interp"
 // bağlantıyı bu paket yüklenirken kurar. Tam dili hata ayıklayıcıyla çalıştıran programlar
 // (cmd/tr, tr test) bu paketi içe aktarır.
 func init() {
-	interp.YeniHataAyiklayici = func(sourceFile, sourceCode string) interp.HataAyiklayici {
+	interp.NewDebugger = func(sourceFile, sourceCode string) interp.Debugger {
 		return NewDebugger(sourceFile, sourceCode, true)
 	}
 }

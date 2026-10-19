@@ -108,7 +108,7 @@ func silmeKorumasi(m *interp.VM, yol string) string {
 	if cw, err := os.Getwd(); err == nil && icindeMi(cozulmusKlasor(cw), yol) {
 		return "çalışma klasörü ya da onun bir üst klasörü"
 	}
-	for _, k := range m.KodKlasorleri() {
+	for _, k := range m.CodeDirs() {
 		if icindeMi(cozulmusKlasor(k), yol) {
 			return "programın (ya da modülün) klasörü ya da onun bir üst klasörü"
 		}

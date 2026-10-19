@@ -66,7 +66,7 @@ func turAdiCoz(fn, ad string) (tensor.DType, error) {
 	kucuk := strings.ToLower(strings.TrimSpace(ad))
 	oneri := turAdOnerileri[kucuk]
 	if oneri == "" {
-		oneri = turkish.EnYakin(kucuk, turAdlari)
+		oneri = turkish.Closest(kucuk, turAdlari)
 	}
 	if oneri == "" {
 		// Yazım hatalı ama türü belli adlar: "bf61" → bf16, "fp61" → fp16.
@@ -117,12 +117,12 @@ func tureCevir(t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 // gradyan kaynak tensöre (kendi türünde) geri akar. Tür zaten aynıysa tensörün kendisi döner.
 func (d *Deger) ture(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(\"bf16\") 1 parametre (tür adı) bekler, %d verildi", codes.Ad(uyeTure), len(args))
+		return nil, fmt.Errorf("%s(\"bf16\") 1 parametre (tür adı) bekler, %d verildi", codes.Name(uyeTure), len(args))
 	}
-	if err := bind.AdliDenetle(codes.Ad(uyeTure)+"()", named); err != nil {
+	if err := bind.AdliDenetle(codes.Name(uyeTure)+"()", named); err != nil {
 		return nil, err
 	}
-	dt, err := turDegeriCoz(codes.Ad(uyeTure), args[0])
+	dt, err := turDegeriCoz(codes.Name(uyeTure), args[0])
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func karisikTuru(m *interp.VM) tensor.DType {
 	if m == nil {
 		return tensor.Float32
 	}
-	if dt, ok := m.GorevDegeri(karisikAnahtari{}).(tensor.DType); ok {
+	if dt, ok := m.TaskValue(karisikAnahtari{}).(tensor.DType); ok {
 		return dt
 	}
 	return tensor.Float32
@@ -159,7 +159,7 @@ func karisikTuru(m *interp.VM) tensor.DType {
 // türüyle çalıştırır ve bloğun son ifadesinin değerini döndürür. "float32" iç içe bir blokta
 // karışık hassasiyeti kapatır. Blok bitince (hata ile bitse de) önceki tür geri gelir.
 func karisikHassasiyet(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T710)
+	fn := codes.Name(codes.T710)
 	if err := bind.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
@@ -180,9 +180,9 @@ func karisikHassasiyet(m *interp.VM, args []interp.Value, named map[string]inter
 	default:
 		return nil, fmt.Errorf("%s(\"bf16\") { ... }: ikinci parametre bir blok olmalıdır, %s verildi", fn, tipAdi(args[1]))
 	}
-	onceki := m.GorevDegeri(karisikAnahtari{})
-	m.GorevDegeriAyarla(karisikAnahtari{}, dt)
-	defer m.GorevDegeriAyarla(karisikAnahtari{}, onceki)
+	onceki := m.TaskValue(karisikAnahtari{})
+	m.SetTaskValue(karisikAnahtari{}, dt)
+	defer m.SetTaskValue(karisikAnahtari{}, onceki)
 	sonuc, err := m.ApplyFunction(args[1], nil, nil, 0)
 	if err != nil {
 		return nil, err

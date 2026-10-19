@@ -40,7 +40,7 @@ func tamIndeksler(fn string, v interp.Value) ([]int, []int, error) {
 }
 
 func gomme(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T500)
+	fn := codes.Name(codes.T500)
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%s(tablo, indeksler) 2 parametre bekler, %d verildi", fn, len(args))
 	}
@@ -78,7 +78,7 @@ func gomme(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (in
 }
 
 func caprazEntropi(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T510)
+	fn := codes.Name(codes.T510)
 	if len(args) != 2 {
 		return nil, fmt.Errorf("%s(çıktı, hedef) 2 parametre bekler, %d verildi", fn, len(args))
 	}
@@ -193,7 +193,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, adl
 }
 
 func katmanNormu(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T501)
+	fn := codes.Name(codes.T501)
 	x, p, eps, err := normArgs(fn, args, named, []bind.Ad{adAgirlik, adSapma})
 	if err != nil {
 		return nil, err
@@ -225,7 +225,7 @@ func katmanNormu(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 }
 
 func rmsNormu(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T502)
+	fn := codes.Name(codes.T502)
 	x, p, eps, err := normArgs(fn, args, named, []bind.Ad{adAgirlik})
 	if err != nil {
 		return nil, err

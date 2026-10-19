@@ -86,7 +86,7 @@ func tamCoz(s string) (int64, error) {
 	}
 	n, err := strconv.ParseInt(temiz, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("; sayı %s aralığının dışında", codes.Ad(codes.A200))
+		return 0, fmt.Errorf("; sayı %s aralığının dışında", codes.Name(codes.A200))
 	}
 	return n, nil
 }
@@ -99,7 +99,7 @@ func ondalikCoz(s string) (float64, error) {
 	}
 	f, err := strconv.ParseFloat(temiz, 64)
 	if err != nil {
-		return 0, fmt.Errorf("; sayı %s aralığının dışında", codes.Ad(codes.A201))
+		return 0, fmt.Errorf("; sayı %s aralığının dışında", codes.Name(codes.A201))
 	}
 	return f, nil
 }

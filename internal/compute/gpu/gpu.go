@@ -8,7 +8,7 @@
 // Donanımsız sınama için sürücünün yerine geçen bir PTX benzetimi vardır (benzetim*.go):
 // arka ucun bütün çekirdekleri bu makinede de yürütülüp CPU arka ucuyla karşılaştırılır.
 //
-// Katman: hesap çekirdeği (internal/compute); yalnızca internal/compute paketlerini içe aktarır.
+// Layer: compute core (internal/compute); yalnızca internal/compute paketlerini içe aktarır.
 package gpu
 
 import (

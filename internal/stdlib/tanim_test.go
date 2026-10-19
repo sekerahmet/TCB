@@ -21,7 +21,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
-// Kod listesinin (internal/lang/codes/tanim.json, tr.json) gerçek davranışla aynı olduğunu sınayan
+// Kod listesinin (internal/lang/codes/definitions.json, tr.json) gerçek davranışla aynı olduğunu sınayan
 // testler: örnekler denetlenir ve çalışır, tanımdaki adlı argümanlar yerleşiklerin ve
 // metotların gerçekten kabul ettikleridir, üye tanımlarındaki tip listeleri üyeyi gerçekten
 // destekleyen tiplerdir.
@@ -48,16 +48,16 @@ func geciciKlasoreGec(t *testing.T) {
 
 func depoKoku(*testing.T) string { return reporoot.Kok() }
 
-func ornekProgrami(t *testing.T, k codes.Kod) (*ast.Program, string) {
+func ornekProgrami(t *testing.T, k codes.Code) (*ast.Program, string) {
 	t.Helper()
-	g, _ := codes.Etkin().Girdisi(k)
-	p := parser.New(lexer.New(g.Ornek))
+	g, _ := codes.Active().Entry(k)
+	p := parser.New(lexer.New(g.Example))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		t.Errorf("%s (%s) örneği ayrıştırılamadı: %v\n  %s", k, g.Ad, p.Errors(), g.Ornek)
-		return nil, g.Ornek
+		t.Errorf("%s (%s) örneği ayrıştırılamadı: %v\n  %s", k, g.Name, p.Errors(), g.Example)
+		return nil, g.Example
 	}
-	return prog, g.Ornek
+	return prog, g.Example
 }
 
 // ornekCalistir programı depo kökünde duran bir program gibi (göreli yollar depo köküne
@@ -89,9 +89,9 @@ func ornekCalistir(t *testing.T, prog *ast.Program) error {
 // yazdıkları dosyalar orada kalır.
 func TestOrneklerCalisir(t *testing.T) {
 	geciciKlasoreGec(t)
-	for _, k := range codes.Kodlar() {
-		g, _ := codes.Etkin().Girdisi(k)
-		if g.Ornek == "" {
+	for _, k := range codes.Codes() {
+		g, _ := codes.Active().Entry(k)
+		if g.Example == "" {
 			continue
 		}
 		prog, ornek := ornekProgrami(t, k)
@@ -99,11 +99,11 @@ func TestOrneklerCalisir(t *testing.T) {
 			continue
 		}
 		if hatalar := checker.New().CheckProgram(prog); len(hatalar) > 0 {
-			t.Errorf("%s (%s) örneği tip denetiminden geçmedi: %v\n  %s", k, g.Ad, hatalar, ornek)
+			t.Errorf("%s (%s) örneği tip denetiminden geçmedi: %v\n  %s", k, g.Name, hatalar, ornek)
 			continue
 		}
 		if err := ornekCalistir(t, prog); err != nil {
-			t.Errorf("%s (%s) örneği çalışmadı: %v\n  %s", k, g.Ad, err, ornek)
+			t.Errorf("%s (%s) örneği çalışmadı: %v\n  %s", k, g.Name, err, ornek)
 		}
 	}
 }
@@ -174,10 +174,10 @@ func gecerliAdlar(err error) ([]string, bool) {
 	return adlar, true
 }
 
-func adliAdlari(im codes.Imza) []string {
+func adliAdlari(im codes.Signature) []string {
 	out := []string{}
-	for _, a := range im.Adli {
-		out = append(out, codes.Ad(a.Kod))
+	for _, a := range im.Named {
+		out = append(out, codes.Name(a.Code))
 	}
 	sort.Strings(out)
 	return out
@@ -190,22 +190,22 @@ func adliAdlari(im codes.Imza) []string {
 func TestAdliArgumanlarTanimlaAyni(t *testing.T) {
 	geciciKlasoreGec(t)
 	denenen := 0
-	for _, k := range codes.Kodlar() {
-		tn, _ := codes.Tanimi(k)
-		if tn.Tur != codes.TurFonksiyon && tn.Tur != codes.TurMetot {
+	for _, k := range codes.Codes() {
+		tn, _ := codes.DefinitionOf(k)
+		if tn.Kind != codes.KindFunction && tn.Kind != codes.KindMethod {
 			continue
 		}
 		prog, ornek := ornekProgrami(t, k)
 		if prog == nil {
 			continue
 		}
-		ad := codes.Ad(k)
+		ad := codes.Name(k)
 		cs := cagrilar(prog, func(c *ast.CallExpression) bool {
 			switch f := c.Function.(type) {
 			case *ast.Identifier:
-				return tn.Tur == codes.TurFonksiyon && f.Value == ad
+				return tn.Kind == codes.KindFunction && f.Value == ad
 			case *ast.MemberExpression:
-				return tn.Tur == codes.TurMetot && f.Property == ad
+				return tn.Kind == codes.KindMethod && f.Property == ad
 			}
 			return false
 		})
@@ -224,11 +224,11 @@ func TestAdliArgumanlarTanimlaAyni(t *testing.T) {
 		}
 		denenen++
 		var beklenenler [][]string
-		if tn.Tur == codes.TurFonksiyon {
-			beklenenler = append(beklenenler, adliAdlari(tn.Imza))
+		if tn.Kind == codes.KindFunction {
+			beklenenler = append(beklenenler, adliAdlari(tn.Signature))
 		}
-		for _, u := range tn.Uyeler {
-			beklenenler = append(beklenenler, adliAdlari(u.Imza))
+		for _, u := range tn.Members {
+			beklenenler = append(beklenenler, adliAdlari(u.Signature))
 		}
 		if !slices.ContainsFunc(beklenenler, func(b []string) bool { return slices.Equal(b, alinan) }) {
 			t.Errorf("%s (%s): yerleşik %v adlı argümanlarını kabul ediyor, tanımda %v", k, ad, alinan, beklenenler)
@@ -247,7 +247,7 @@ func TestUyeTipleriTanimlaAyni(t *testing.T) {
 	m.Out, m.Err = io.Discard, io.Discard
 	m.SourceFile = filepath.Join(depoKoku(t), "ornek.tr")
 	ornekler := []struct {
-		tip codes.Kod
+		tip codes.Code
 		kur string
 	}{
 		{codes.A200, `5`}, {codes.A201, `2.5`}, {codes.A202, `"abc"`}, {codes.A203, `doğru`},
@@ -272,24 +272,24 @@ func TestUyeTipleriTanimlaAyni(t *testing.T) {
 	if _, err := calistirAyni(t, m, strings.Join(kur, "\n")); err != nil {
 		t.Fatal(err)
 	}
-	for _, k := range codes.Kodlar() {
-		tn, _ := codes.Tanimi(k)
-		if tn.Tur != codes.TurMetot && tn.Tur != codes.TurOzellik {
+	for _, k := range codes.Codes() {
+		tn, _ := codes.DefinitionOf(k)
+		if tn.Kind != codes.KindMethod && tn.Kind != codes.KindProperty {
 			continue
 		}
-		var gercek []codes.Kod
+		var gercek []codes.Code
 		for i, o := range ornekler {
-			v, err := calistirAyni(t, m, "u_"+string(rune('a'+i))+"."+codes.Ad(k))
+			v, err := calistirAyni(t, m, "u_"+string(rune('a'+i))+"."+codes.Name(k))
 			if err == nil && !(o.tip == codes.A206 && v == interp.NULL) {
 				gercek = append(gercek, o.tip)
 			}
 		}
 		slices.Sort(gercek)
 		gercek = slices.Compact(gercek) // aynı tipten birden çok örnek (AdamW, SGD: İyileştirici)
-		tanim := tn.Tipler()
+		tanim := tn.Types()
 		slices.Sort(tanim)
 		if !slices.Equal(gercek, tanim) {
-			t.Errorf("%s (%s): üyeyi destekleyen tipler %v, tanımda %v", k, codes.Ad(k), codes.Adlar(gercek...), codes.Adlar(tanim...))
+			t.Errorf("%s (%s): üyeyi destekleyen tipler %v, tanımda %v", k, codes.Name(k), codes.Names(gercek...), codes.Names(tanim...))
 		}
 	}
 }

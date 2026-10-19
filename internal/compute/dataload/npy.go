@@ -12,7 +12,7 @@
 //
 // Paket yalnızca standart kütüphaneyi kullanır.
 //
-// Katman: hesap çekirdeği (internal/compute); yalnızca internal/compute paketlerini içe aktarır.
+// Layer: compute core (internal/compute); yalnızca internal/compute paketlerini içe aktarır.
 package dataload
 
 import (

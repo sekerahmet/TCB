@@ -20,7 +20,7 @@ func komutSatiri(t *testing.T, kod string, argumanlar ...string) (string, error,
 	m := interp.New()
 	m.Out, m.Err = io.Discard, io.Discard
 	m.SourceFile = "egit.tr"
-	m.ArgumanlariAyarla(argumanlar)
+	m.SetArgs(argumanlar)
 	p := parser.New(lexer.New(kod))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
@@ -77,8 +77,8 @@ func TestKomutSatiriKullanimHatalari(t *testing.T) {
 		{[]string{"--veri", strings.Repeat("a", 1<<20+1)}, "değeri çok uzun"},
 	} {
 		_, err, _ := komutSatiri(t, kod, d.arg...)
-		c, ok := interp.CikisIstegiMi(err)
-		if !ok || c.Kod != 2 || !strings.Contains(c.Mesaj, d.want) || !strings.HasPrefix(c.Mesaj, "Hata: ") {
+		c, ok := interp.IsExitRequest(err)
+		if !ok || c.Code != 2 || !strings.Contains(c.Message, d.want) || !strings.HasPrefix(c.Message, "Hata: ") {
 			t.Errorf("%.60v: 2 kodlu, %q içeren çıkış isteği bekleniyordu: %v", d.arg, d.want, err)
 		}
 	}
@@ -102,8 +102,8 @@ Seçenekler:
   --yardım, -h                bu yardımı gösterir`
 	for _, arg := range [][]string{{"--yardım"}, {"-h"}, {"--adım", "x", "-h"}} {
 		_, err, _ := komutSatiri(t, kod, arg...)
-		c, ok := interp.CikisIstegiMi(err)
-		if !ok || c.Kod != 0 || c.Mesaj != want {
+		c, ok := interp.IsExitRequest(err)
+		if !ok || c.Code != 0 || c.Message != want {
 			t.Errorf("%v: yardım bekleniyordu:\n%v", arg, err)
 		}
 	}
@@ -128,7 +128,7 @@ func TestKomutSatiriKurulumHatalari(t *testing.T) {
 		{`komut_satırı({a: 1}); komut_satırı({a: 1})`, "programda bir kez çağrılır"},
 	} {
 		_, err, _ := komutSatiri(t, d.kod)
-		if _, cikis := interp.CikisIstegiMi(err); err == nil || cikis || !strings.Contains(err.Error(), d.want) {
+		if _, cikis := interp.IsExitRequest(err); err == nil || cikis || !strings.Contains(err.Error(), d.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.kod, d.want, err)
 		}
 	}
@@ -148,7 +148,7 @@ fonksiyon kur() {
 }
 ertele yazdır(iz)
 kur()`, "--b")
-	if c, ok := interp.CikisIstegiMi(err); !ok || c.Kod != 2 {
+	if c, ok := interp.IsExitRequest(err); !ok || c.Code != 2 {
 		t.Fatalf("çıkış isteği bekleniyordu: %v", err)
 	}
 	if v, _ := m.GlobalEnv.Get("iz"); v == nil || v.Inspect() != `["ertele"]` {
@@ -162,12 +162,12 @@ func TestKomutSatiriGizliDeger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := m.Maskele("a hf_abcdefgh123 131072 123456789"); got != "a *** 131072 123456789" {
+	if got := m.Mask("a hf_abcdefgh123 131072 123456789"); got != "a *** 131072 123456789" {
 		t.Errorf("maskeleme: %q", got)
 	}
 	// Bilinmeyen gizli adlı seçeneğin değeri de hata mesajında görünmez.
 	_, err, m = komutSatiri(t, `komut_satırı({a: 1})`, "--hf_token_x=hf_yazimhatasi")
-	if c, ok := interp.CikisIstegiMi(err); !ok || strings.Contains(c.Mesaj, "hf_yazimhatasi") || m.Maskele("hf_yazimhatasi") != interp.GizliMaske {
+	if c, ok := interp.IsExitRequest(err); !ok || strings.Contains(c.Message, "hf_yazimhatasi") || m.Mask("hf_yazimhatasi") != interp.SecretMask {
 		t.Errorf("bilinmeyen gizli seçeneğin değeri mesajda olmamalı ve süzgece girmeli: %v", err)
 	}
 }

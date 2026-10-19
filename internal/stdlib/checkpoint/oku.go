@@ -42,7 +42,7 @@ func (kn *KontrolNoktasi) yukle(m *interp.VM, fn string) error {
 	artiklariTemizle(kn.klasor)
 	noktalar, err := noktalariListele(kn.klasor)
 	if err != nil {
-		return turkish.DosyaHatasi(fn, kn.gorunen, "okunamadı", err)
+		return turkish.FileError(fn, kn.gorunen, "okunamadı", err)
 	}
 	if len(noktalar) == 0 {
 		return nil
@@ -59,7 +59,7 @@ func (kn *KontrolNoktasi) yukle(m *interp.VM, fn string) error {
 	}
 	kn.kaldigi, kn.adim, kn.sonGecerli = o.adim, o.adim, o.adim
 	kn.ayarlariKarsilastir(m, o.durum)
-	m.CiktiYaz(m.Err, fmt.Sprintf("Kaldığı yerden devam: adım %d (%s/%s)\n", o.adim, kn.gorunen, o.ad))
+	m.WriteOutput(m.Err, fmt.Sprintf("Kaldığı yerden devam: adım %d (%s/%s)\n", o.adim, kn.gorunen, o.ad))
 	return nil
 }
 
@@ -191,7 +191,7 @@ func ozetTutar(ad string, beklenen dosyaOzeti, bayt int64, ozet string) error {
 
 // okumaNedeni bir dosyanın okunamama nedenini Türkçe söyler.
 func okumaNedeni(ad string, err error) error {
-	return fmt.Errorf("%s okunamadı: %s", ad, turkish.DosyaHatasiNedeni(ad, err))
+	return fmt.Errorf("%s okunamadı: %s", ad, turkish.FileErrorReason(ad, err))
 }
 
 // uyumDenetle şimdiki nesnelerin kayıttakilerle aynı olduğunu ve her birinin kaydına

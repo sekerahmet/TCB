@@ -51,15 +51,15 @@ func matematigiGenisKaydet(v *interp.VM) {
 // yuvarlamaKaydet taban, tavan, işaret ve mutlak'ı sarar: tensörde eleman bazlı (türevi tensör
 // işleminindir: taban, tavan ve işarette 0, mutlak'ta işaret(x); tam sayılı işaretli tensörün
 // sonucu da tam sayılıdır), sayıda çekirdek yerleşiği (Tam → Tam), listede yol gösteren hata.
-func yuvarlamaKaydet(v *interp.VM, kd codes.Kod, fn func(*tensor.Tensor) *tensor.Tensor) {
-	ad := codes.Ad(kd)
+func yuvarlamaKaydet(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor) {
+	ad := codes.Name(kd)
 	sar(v, kd, func(eski interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if err := bind.AdliDenetle(ad+"()", named); err != nil {
 				return nil, err
 			}
 			if len(args) == 1 {
-				if err := listeHatasi(ad, args[0], "tensörde ve sayıda", ad+"("+codes.Ad(codes.T100)+"(...))"); err != nil {
+				if err := listeHatasi(ad, args[0], "tensörde ve sayıda", ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 					return nil, err
 				}
 			}
@@ -99,7 +99,7 @@ func sinirSayisi(ad string, adli bind.Ad, v interp.Value) (float64, bool, error)
 
 // sinirlaYerlesik sınırla(x, en_az: ..., en_fazla: ...).
 func sinirlaYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Ad(codes.G409)
+	ad := codes.Name(codes.G409)
 	kullanim := fmt.Sprintf("%s(x, %s: ..., %s: ...)", ad, adEnAz.TR, adEnFazla.TR)
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s 1 konumlu parametre bekler, %d verildi", kullanim, len(args))
@@ -153,7 +153,7 @@ func sinirlaYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.
 	case *interp.FloatVal:
 		return &interp.FloatVal{Val: sinirla64(x.Val, lo, hi)}, nil
 	}
-	if err := listeHatasi(ad, args[0], "tensörde ve sayıda", ad+"("+codes.Ad(codes.T100)+"(...), "+adEnAz.TR+": 0)"); err != nil {
+	if err := listeHatasi(ad, args[0], "tensörde ve sayıda", ad+"("+codes.Name(codes.T100)+"(...), "+adEnAz.TR+": 0)"); err != nil {
 		return nil, err
 	}
 	return nil, fmt.Errorf("%s: sayı ya da tensör bekleniyor, %s verildi", ad, tipAdi(args[0]))
@@ -176,7 +176,7 @@ func sinirla64(x, lo, hi float64) float64 {
 // arktanjant2Yerlesik arktanjant2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
 // türevli tensör (sayı tensörün türüne çevrilir).
 func arktanjant2Yerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Ad(codes.T228)
+	ad := codes.Name(codes.T228)
 	if err := bind.AdliDenetle(ad+"()", named); err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func arktanjant2Yerlesik(_ *interp.VM, args []interp.Value, named map[string]int
 		return nil, fmt.Errorf("%s(y, x) 2 parametre bekler, %d verildi", ad, len(args))
 	}
 	for _, a := range args {
-		if err := listeHatasi(ad, a, "tensörde ve sayıda", ad+"("+codes.Ad(codes.T100)+"(...), x)"); err != nil {
+		if err := listeHatasi(ad, a, "tensörde ve sayıda", ad+"("+codes.Name(codes.T100)+"(...), x)"); err != nil {
 			return nil, err
 		}
 	}

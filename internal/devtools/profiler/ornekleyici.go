@@ -105,8 +105,8 @@ func (o *ornekleyici) BeforeStatement(v *interp.VM, stmt ast.Statement, _ *inter
 	return 0
 }
 
-// KesmeNoktasi profil altında koddaki kesme noktası yok sayılır.
-func (o *ornekleyici) KesmeNoktasi(string) {}
+// Breakpoint profil altında koddaki kesme noktası yok sayılır.
+func (o *ornekleyici) Breakpoint(string) {}
 
 // fonksiyonNo adın numarasını verir (yoksa ekler).
 func (o *ornekleyici) fonksiyonNo(ad string) uint64 {
@@ -203,3 +203,9 @@ func (o *ornekleyici) goruntu() (konumlar []konumOrnegi, toplam time.Duration, o
 	}
 	return konumlar, o.toplam, o.ornek
 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.Debugger = (*ornekleyici)(nil)
+)

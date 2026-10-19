@@ -54,7 +54,7 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 	}
 	moduller := map[string]*genel{}
 	for yol, kod := range kodlar {
-		adlar, dinamik := checker.UstDuzeyAdlari(source.Hazirla(kod, source.Secenekler{}).Program)
+		adlar, dinamik := checker.TopLevelNames(source.Prepare(kod, source.Options{}).Program)
 		for _, y := range aktarYerleri(kod) {
 			cozulen, _, ok := modulYolunuCoz(y.yol, yol, yol)
 			if !ok {
@@ -82,9 +82,9 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 			for a := range g.adlar {
 				adlar = append(adlar, a)
 			}
-			hatalar = interp.ModulDenetle(kod, adlar, g.dinamik).Hatalar
+			hatalar = interp.CheckModule(kod, adlar, g.dinamik).Errors
 		} else {
-			hatalar = source.Hazirla(kod, source.Secenekler{TipDenetimi: true}).Hatalar
+			hatalar = source.Prepare(kod, source.Options{TypeCheck: true}).Errors
 		}
 		for _, h := range hatalar {
 			t.Errorf("%s: %s", filepath.ToSlash(goreli), h)

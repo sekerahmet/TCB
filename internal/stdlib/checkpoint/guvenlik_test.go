@@ -106,7 +106,7 @@ func TestErtelenenKesmeAdimSinirindaKaydeder(t *testing.T) {
 	w := &esliYazici{}
 	m.Out, m.Err = w, w
 	m.GlobalEnv.Define("kesme_iste", &interp.BuiltinVal{Name: "kesme_iste", Fn: func(m *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		return interp.BoolToVal(m.KesmeIste()), nil
+		return interp.BoolToVal(m.RequestInterrupt()), nil
 	}}, true)
 	_, err := calistirVM(t, m, fmt.Sprintf(`
 ertele { yazdır("ertelenen çalıştı") }
@@ -120,7 +120,7 @@ döngü adım içinde 0..10 {
 yazdır("döngü bitti")
 `, trYol(kosu)))
 	cikti := w.String()
-	if !errors.Is(err, interp.ErrKesildi) {
+	if !errors.Is(err, interp.ErrInterrupted) {
 		t.Fatalf("program kesilmeliydi: %v\n%s", err, cikti)
 	}
 	for _, s := range []string{"ertelendi: doğru", "adım bitti 3", "Kontrol noktası kaydedildi: adım 4", "ertelenen çalıştı"} {

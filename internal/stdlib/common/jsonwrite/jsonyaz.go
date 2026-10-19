@@ -7,7 +7,7 @@
 //   - Metin olmayan anahtar görünen hâliyle yazılır (1 → "1"); bu, aynı sözlükteki "1"
 //     metin anahtarıyla çakışırsa sessizce biri atılmaz, hata verilir.
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package jsonwrite
 
 import (
@@ -55,7 +55,7 @@ type yazici struct {
 	girinti       string
 	sayiDisiMetin bool
 	metinSuzgeci  func(string) string
-	gezgin        interp.DisGezgin
+	gezgin        interp.ContainerWalker
 }
 
 func (y *yazici) satir(derinlik int) {
@@ -114,10 +114,10 @@ func (y *yazici) deger(val interp.Value, derinlik int) error {
 	case *interp.StringVal:
 		y.metin(v.Val)
 	case *interp.ListVal:
-		if err := y.gezgin.Gir(v, derinlik); err != nil {
+		if err := y.gezgin.Enter(v, derinlik); err != nil {
 			return err
 		}
-		defer y.gezgin.Cik(v)
+		defer y.gezgin.Leave(v)
 		y.b = append(y.b, '[')
 		for i, el := range v.Elements {
 			if i > 0 {
@@ -133,10 +133,10 @@ func (y *yazici) deger(val interp.Value, derinlik int) error {
 		}
 		y.b = append(y.b, ']')
 	case *interp.DictVal:
-		if err := y.gezgin.Gir(v, derinlik); err != nil {
+		if err := y.gezgin.Enter(v, derinlik); err != nil {
 			return err
 		}
-		defer y.gezgin.Cik(v)
+		defer y.gezgin.Leave(v)
 		y.b = append(y.b, '{')
 		var gorulen map[string]bool
 		if len(v.KeyVals) > 0 {
@@ -173,9 +173,9 @@ func (y *yazici) deger(val interp.Value, derinlik int) error {
 			y.satir(derinlik)
 		}
 		y.b = append(y.b, '}')
-	case interp.DuzDegerli:
+	case interp.PlainValuer:
 		// Dış değerler (ör. tensör → iç içe sayı listesi)
-		return y.deger(v.DuzDeger(), derinlik+1)
+		return y.deger(v.PlainValue(), derinlik+1)
 	default:
 		y.metin(val.Inspect())
 	}

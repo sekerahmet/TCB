@@ -6,7 +6,7 @@ import (
 )
 
 // tensorIslemleri tablo başlığıdır ("Tensör işlemleri"; tip adı kod listesinden).
-func tensorIslemleri() string { return codes.Ad(codes.A212) + " işlemleri" }
+func tensorIslemleri() string { return codes.Name(codes.A212) + " işlemleri" }
 
 // islemAdi tensör işleminin raporda görünen adıdır. Dildeki bir yerleşiğe ya da metoda
 // karşılık gelen işlemler o adla (kod listesinden) yazılır: kullanıcı kendi kodunda gördüğü
@@ -14,7 +14,7 @@ func tensorIslemleri() string { return codes.Ad(codes.A212) + " işlemleri" }
 // görünümler, kopyalar) Türkçe açıklamasıyla yazılır.
 func islemAdi(is tensor.Islem) string {
 	if k, ok := islemKodu[is]; ok {
-		return codes.Ad(k)
+		return codes.Name(k)
 	}
 	switch is {
 	case tensor.IslemToplama:
@@ -36,19 +36,19 @@ func islemAdi(is tensor.Islem) string {
 	case tensor.IslemMatrisCarpimi:
 		return "matris çarpımı (@)"
 	case tensor.IslemCihazaTasima:
-		return "." + codes.Ad(codes.Y414)
+		return "." + codes.Name(codes.Y414)
 	case tensor.IslemTurDonusumu:
-		return "." + codes.Ad(codes.Y415)
+		return "." + codes.Name(codes.Y415)
 	case tensor.IslemAdamW:
-		return codes.Ad(codes.T400) + "." + codes.Ad(codes.Y500)
+		return codes.Name(codes.T400) + "." + codes.Name(codes.Y500)
 	case tensor.IslemSGD:
-		return codes.Ad(codes.T401) + "." + codes.Ad(codes.Y500)
+		return codes.Name(codes.T401) + "." + codes.Name(codes.Y500)
 	}
 	return is.String()
 }
 
 // islemKodu dildeki bir yerleşiğe birebir karşılık gelen işlemlerdir.
-var islemKodu = map[tensor.Islem]codes.Kod{
+var islemKodu = map[tensor.Islem]codes.Code{
 	tensor.IslemUstel:           codes.T220,
 	tensor.IslemLog:             codes.T221,
 	tensor.IslemKarekok:         codes.G404,

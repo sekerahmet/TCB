@@ -6,7 +6,7 @@
 // sınırı aşılırsa yarım sonuç yerine yol gösterici bir TR hatası oluşur. Uzun işler
 // (dosya yükleme, liste kodlama/çözme) yorumlayıcı kilidi bırakılarak yapılır.
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package tokenizer
 
 import (
@@ -29,7 +29,7 @@ import (
 )
 
 // TipAdi parçalayıcı nesnesinin TR'deki tip adıdır (kod listesinde A234).
-var TipAdi = string(interp.TipAdi(codes.A234))
+var TipAdi = string(interp.TypeName(codes.A234))
 
 // Nesne TR'de yüklenmiş bir parçalayıcıdır. Salt okunurdur; dosya tutamağı ya da
 // başka bir kaynak tutmaz (dosya yüklemede tümüyle okunup kapatılır).
@@ -81,18 +81,18 @@ const (
 	uyeTokenKimligi = codes.Y613
 )
 
-var uyeler = codes.Adlar(uyeKodla, uyeCoz, uyeSozlukBoyutu, uyeTokenKimligi)
+var uyeler = codes.Names(uyeKodla, uyeCoz, uyeSozlukBoyutu, uyeTokenKimligi)
 
-func (n *Nesne) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
+func (n *Nesne) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case uyeKodla:
-		return n.metot(codes.Ad(uyeKodla), n.kodla), nil
+		return n.metot(codes.Name(uyeKodla), n.kodla), nil
 	case uyeCoz:
-		return n.metot(codes.Ad(uyeCoz), n.coz), nil
+		return n.metot(codes.Name(uyeCoz), n.coz), nil
 	case uyeSozlukBoyutu:
 		return interp.NewInt(int64(n.p.SozlukBoyutu())), nil
 	case uyeTokenKimligi:
-		return n.metot(codes.Ad(uyeTokenKimligi), n.tokenKimligi), nil
+		return n.metot(codes.Name(uyeTokenKimligi), n.tokenKimligi), nil
 	}
 	return nil, bind.UyeHatasi(TipAdi, prop, uyeler)
 }
@@ -109,8 +109,8 @@ func (n *Nesne) metot(ad string, fn interp.BuiltinFunc) *interp.BuiltinVal {
 
 // Kaydet parçalayıcı yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *interp.VM) {
-	v.RegisterBuiltinKod(codes.V200, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Ad(codes.V200), func() (interp.Value, error) { return yukle(m, args, named) })
+	v.RegisterBuiltinCode(codes.V200, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return bind.Guvenli(codes.Name(codes.V200), func() (interp.Value, error) { return yukle(m, args, named) })
 	})
 }
 
@@ -118,14 +118,14 @@ func Kaydet(v *interp.VM) {
 var uyarilanlar sync.Map
 
 func yukle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.V200)
+	fn := codes.Name(codes.V200)
 	if err := bind.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(yol) 1 parametre bekler, %d verildi", fn, len(args))
 	}
-	ham, ok, yolHata := interp.YolArgumani(fn, args[0])
+	ham, ok, yolHata := interp.PathArg(fn, args[0])
 	if !ok {
 		return nil, fmt.Errorf("%s: yol bir metin olmalıdır (ör. \"tokenizer.json\"), %s verildi", fn, args[0].Type())
 	}
@@ -158,10 +158,10 @@ func yukle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (in
 }
 
 func yuklemeHatasi(yol string, err error, bakilanlar []string) error {
-	fn := codes.Ad(codes.V200)
+	fn := codes.Name(codes.V200)
 	if bind.YokMu(err) {
-		return turkish.DosyaHatasi(fn, yol, "yüklenemedi", err,
-			"tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin", interp.BakilanYerler(bakilanlar))
+		return turkish.FileError(fn, yol, "yüklenemedi", err,
+			"tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin", interp.SearchedPlaces(bakilanlar))
 	}
 	msg := err.Error()
 	switch {
@@ -185,7 +185,7 @@ func yuklemeHatasi(yol string, err error, bakilanlar []string) error {
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
-		return turkish.DosyaHatasi(fn, yol, "yüklenemedi", err)
+		return turkish.FileError(fn, yol, "yüklenemedi", err)
 	}
 	return fmt.Errorf("%s: %q yüklenemedi: %s", fn, yol, msg)
 }
@@ -234,7 +234,7 @@ func adimHatasi(fn string, err error) error {
 }
 
 func (n *Nesne) kodla(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(uyeKodla)
+	fn := codes.Name(uyeKodla)
 	if err := bind.AdliDenetle(fn+"()", named, adOzel, adIkinci); err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (n *Nesne) kodla(m *interp.VM, args []interp.Value, named map[string]interp
 	}
 	var sec tokenize.Secenekler
 	if v, ok := bind.AdliAl(named, adOzel); ok {
-		b, err := bind.Mantik(fn, codes.Ad(codes.V910), v)
+		b, err := bind.Mantik(fn, codes.Name(codes.V910), v)
 		if err != nil {
 			return nil, err
 		}
@@ -415,7 +415,7 @@ func kimlikListesi32(ids []int32) *interp.ListVal {
 // ----------------------------------------------------------------------------
 
 func (n *Nesne) coz(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(uyeCoz)
+	fn := codes.Name(uyeCoz)
 	if err := bind.AdliDenetle(fn+"()", named, adOzel); err != nil {
 		return nil, err
 	}
@@ -426,7 +426,7 @@ func (n *Nesne) coz(m *interp.VM, args []interp.Value, named map[string]interp.V
 	// özel_parçalar: doğru onları da çıktıya yazar.
 	atla := true
 	if v, ok := bind.AdliAl(named, adOzel); ok {
-		b, err := bind.Mantik(fn, codes.Ad(codes.V910), v)
+		b, err := bind.Mantik(fn, codes.Name(codes.V910), v)
 		if err != nil {
 			return nil, err
 		}
@@ -471,7 +471,7 @@ func (n *Nesne) coz(m *interp.VM, args []interp.Value, named map[string]interp.V
 // kimlikDizileri çöz'ün argümanını kimlik dizilerine çevirir. tek doğruysa argüman tek
 // bir dizidir (sonuç metin), değilse dizilerin listesidir (sonuç metin listesi).
 func kimlikDizileri(v interp.Value) (diziler [][]int, tek bool, err error) {
-	fn := codes.Ad(uyeCoz)
+	fn := codes.Name(uyeCoz)
 	switch x := v.(type) {
 	case *interp.ListVal:
 		if len(x.Elements) == 0 {
@@ -538,15 +538,15 @@ func tamListe(ne string, el []interp.Value) ([]int, error) {
 // ----------------------------------------------------------------------------
 
 func (n *Nesne) tokenKimligi(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	if err := bind.AdliDenetle(codes.Ad(codes.Y613)+"()", named); err != nil {
+	if err := bind.AdliDenetle(codes.Name(codes.Y613)+"()", named); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(parça) 1 parametre bekler, %d verildi", codes.Ad(codes.Y613), len(args))
+		return nil, fmt.Errorf("%s(parça) 1 parametre bekler, %d verildi", codes.Name(codes.Y613), len(args))
 	}
 	s, ok := args[0].(*interp.StringVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: parça bir metin olmalıdır (ör. \"<|endoftext|>\"), %s verildi", codes.Ad(codes.Y613), args[0].Type())
+		return nil, fmt.Errorf("%s: parça bir metin olmalıdır (ör. \"<|endoftext|>\"), %s verildi", codes.Name(codes.Y613), args[0].Type())
 	}
 	id, ok := n.p.TokenKimligi(s.Val)
 	if !ok {
@@ -554,3 +554,9 @@ func (n *Nesne) tokenKimligi(_ *interp.VM, args []interp.Value, named map[string
 	}
 	return interp.NewInt(int64(id)), nil
 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.PropertyGetter = (*Nesne)(nil)
+)

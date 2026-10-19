@@ -21,7 +21,7 @@ func TestOrtamDegiskeni(t *testing.T) {
 	if want := `["D:/veri", "varsayılan", "hf_ortamgizli99", "4096000", "D:/veri/tokenizer.json"]`; got != want {
 		t.Errorf("değerler %s, beklenen %s", got, want)
 	}
-	if s := m.Maskele("hf_ortamgizli99 4096000 D:/veri/tokenizer.json"); s != interp.GizliMaske+" 4096000 D:/veri/tokenizer.json" {
+	if s := m.Mask("hf_ortamgizli99 4096000 D:/veri/tokenizer.json"); s != interp.SecretMask+" 4096000 D:/veri/tokenizer.json" {
 		t.Errorf("maskeleme: %q", s)
 	}
 	for _, d := range []struct{ kod, want string }{

@@ -16,8 +16,8 @@ import (
 // indirgenir ve 0 boyutlu (skaler) tensör döner; eksen verilirse o eksen kaldırılır.
 // boyutu_koru: doğru indirgenen ekseni (eksen verilmezse bütün eksenleri) 1 uzunlukta
 // korur: [B, T, D] → [B, T, 1].
-func indirgeme(v *interp.VM, kd codes.Kod, fn func(t *tensor.Tensor, eksen int, tum, koru bool) *tensor.Tensor) {
-	ad := codes.Ad(kd)
+func indirgeme(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, eksen int, tum, koru bool) *tensor.Tensor) {
+	ad := codes.Name(kd)
 	maksMin := kd == codes.G402 || kd == codes.G401 // maks, min
 	sar(v, kd, func(eski interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
@@ -34,7 +34,7 @@ func indirgeme(v *interp.VM, kd codes.Kod, fn func(t *tensor.Tensor, eksen int, 
 				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
 				sinir := map[bool]string{true: adEnAz.TR, false: adEnFazla.TR}[kd == codes.G402]
 				return nil, fmt.Errorf("%s(x, %s): eksen için %s(x, %s: %s) yazın; eleman bazlı sınır için %s(x, %s: %s) kullanın",
-					ad, args[1].Inspect(), ad, adEksen.TR, args[1].Inspect(), codes.Ad(codes.G409), sinir, args[1].Inspect())
+					ad, args[1].Inspect(), ad, adEksen.TR, args[1].Inspect(), codes.Name(codes.G409), sinir, args[1].Inspect())
 			}
 			if len(args) > 2 {
 				return nil, fmt.Errorf("%s(x, %s: ...) en fazla 2 parametre alır, %d verildi", ad, adEksen.TR, len(args))
@@ -110,7 +110,7 @@ func indirgeme(v *interp.VM, kd codes.Kod, fn func(t *tensor.Tensor, eksen int, 
 // gömme(...) ve çapraz_entropi(...) indeksi olarak da verilebilir.
 // Eşitlikte ilk en büyük eleman seçilir.
 func maksIndeks(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Ad(codes.T230)
+	ad := codes.Name(codes.T230)
 	if len(args) != 1 {
 		if len(args) == 2 {
 			return nil, fmt.Errorf("%s(x, %s: %s): eksen adlı verilir", ad, adEksen.TR, args[1].Inspect())
@@ -122,7 +122,7 @@ func maksIndeks(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 	}
 	d, ok := args[0].(*Deger)
 	if !ok {
-		return nil, fmt.Errorf("%s: bir tensör bekler, %s verildi; liste için %s(%s(liste)) yazın", ad, tipAdi(args[0]), ad, codes.Ad(codes.T100))
+		return nil, fmt.Errorf("%s: bir tensör bekler, %s verildi; liste için %s(%s(liste)) yazın", ad, tipAdi(args[0]), ad, codes.Name(codes.T100))
 	}
 	t := d.t
 	e, verildi, err := eksenArg(ad, args, named)
@@ -160,24 +160,24 @@ func maksIndeks(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 // yerleşikler iç içe listeleri ve listedeki tensörleri sessizce atladığı için (toplam([[1, 2]])
 // → 0) bu durumlar burada yakalanır: toplam/ortalama listedeki tensörleri hesap çizgesini
 // koruyarak katlar, diğer durumlar açık hata verir.
-func tensorOlmayanIndirgeme(kd codes.Kod, eski interp.BuiltinFunc, m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Ad(kd)
+func tensorOlmayanIndirgeme(kd codes.Code, eski interp.BuiltinFunc, m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	ad := codes.Name(kd)
 	if err := bind.AdliDenetle(ad+"()", named, adEksen, adBoyutuKoru); err != nil {
 		return nil, err
 	}
 	if _, ok := bind.AdliAl(named, adBoyutuKoru); ok {
 		return nil, fmt.Errorf("%s: %s: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(%s(...), %s: 0, %s: %s)",
-			ad, adBoyutuKoru.TR, tipAdi(args[0]), ad, codes.Ad(codes.T100), adEksen.TR, adBoyutuKoru.TR, codes.Ad(codes.A040))
+			ad, adBoyutuKoru.TR, tipAdi(args[0]), ad, codes.Name(codes.T100), adEksen.TR, adBoyutuKoru.TR, codes.Name(codes.A040))
 	}
 	if _, ok := bind.AdliAl(named, adEksen); ok {
-		return nil, fmt.Errorf("%s: %s: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(%s(...), %s: 0)", ad, adEksen.TR, tipAdi(args[0]), ad, codes.Ad(codes.T100), adEksen.TR)
+		return nil, fmt.Errorf("%s: %s: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(%s(...), %s: 0)", ad, adEksen.TR, tipAdi(args[0]), ad, codes.Name(codes.T100), adEksen.TR)
 	}
 	if l, ok := args[0].(*interp.ListVal); ok && len(args) == 1 {
 		var tensorVar bool
 		for _, el := range l.Elements {
 			switch el.(type) {
 			case *interp.ListVal:
-				t := codes.Ad(codes.T100)
+				t := codes.Name(codes.T100)
 				return nil, fmt.Errorf("%s: iç içe liste indirgenemez (eski liste davranışı yalnızca düz sayı listesi alır); tensöre çevirin: %s(%s(liste)) ya da eksen için %s(%s(liste), %s: 0)", ad, ad, t, ad, t, adEksen.TR)
 			case *Deger:
 				tensorVar = true

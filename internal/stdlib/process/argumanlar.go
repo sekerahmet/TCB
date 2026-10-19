@@ -31,12 +31,12 @@ func argumanlariUygula(m *interp.VM, secenekler []*secenek, aciklama string) (*i
 	var argv []string
 	komut := "tr"
 	if m != nil {
-		argv = m.Argumanlar()
-		komut = m.ProgramKomutu()
+		argv = m.Args()
+		komut = m.ProgramCommand()
 	}
 	for _, a := range argv {
 		if a == yardimSecenekleri[0] || a == yardimSecenekleri[1] {
-			return nil, &interp.CikisIstegi{Kod: 0, Mesaj: yardimMetni(komut, aciklama, secenekler)}
+			return nil, &interp.ExitRequest{Code: 0, Message: yardimMetni(komut, aciklama, secenekler)}
 		}
 	}
 	verilen, err := ayristir(m, argv, secenekler)
@@ -45,8 +45,8 @@ func argumanlariUygula(m *interp.VM, secenekler []*secenek, aciklama string) (*i
 		if !strings.HasSuffix(mesaj, "?") {
 			mesaj += "."
 		}
-		return nil, &interp.CikisIstegi{Kod: kullanimHatasiKodu,
-			Mesaj: fmt.Sprintf("Hata: %s Seçenekler için: %s %s", mesaj, komut, yardimSecenekleri[0])}
+		return nil, &interp.ExitRequest{Code: kullanimHatasiKodu,
+			Message: fmt.Sprintf("Hata: %s Seçenekler için: %s %s", mesaj, komut, yardimSecenekleri[0])}
 	}
 	sonuc := interp.NewDictVal()
 	for _, s := range secenekler {
@@ -142,7 +142,7 @@ func bilinmeyenSecenek(verilen string, secenekler []*secenek) error {
 	for _, s := range secenekler {
 		adaylar = append(adaylar, s.ad)
 	}
-	o := turkish.EnYakin(ad, adaylar)
+	o := turkish.Closest(ad, adaylar)
 	if o == "" && bul(secenekler, ad) != nil {
 		o = ad // -adım → --adım
 	}
@@ -162,18 +162,18 @@ func degerCoz(s *secenek, deger string, degerli bool) (interp.Value, error) {
 			return interp.TRUE, nil
 		}
 		switch deger {
-		case codes.Ad(codes.A040):
+		case codes.Name(codes.A040):
 			return interp.TRUE, nil
-		case codes.Ad(codes.A041):
+		case codes.Name(codes.A041):
 			return interp.FALSE, nil
 		}
 		return nil, fmt.Errorf("'--%s' %s bir seçenek; %s ya da %s verin (yalnız --%s yazmak %s demektir), %q verildi",
-			s.ad, codes.Ad(codes.A203), codes.Ad(codes.A040), codes.Ad(codes.A041), s.ad, codes.Ad(codes.A040), kisalt(deger))
+			s.ad, codes.Name(codes.A203), codes.Name(codes.A040), codes.Name(codes.A041), s.ad, codes.Name(codes.A040), kisalt(deger))
 	}
 	if s.tur != turListe {
 		v, err := duzDegerCoz(s.tur, deger)
 		if err != nil {
-			return nil, fmt.Errorf("'--%s' %s bekler, %q verildi%s", s.ad, codes.Ad(s.tur.tipKodu()), kisalt(deger), err.Error())
+			return nil, fmt.Errorf("'--%s' %s bekler, %q verildi%s", s.ad, codes.Name(s.tur.tipKodu()), kisalt(deger), err.Error())
 		}
 		return v, nil
 	}
@@ -184,7 +184,7 @@ func degerCoz(s *secenek, deger string, degerli bool) (interp.Value, error) {
 	for i, p := range strings.Split(deger, ",") {
 		v, err := duzDegerCoz(s.ogeTuru, strings.TrimSpace(p))
 		if err != nil {
-			return nil, fmt.Errorf("'--%s' virgülle ayrılmış %s listesi bekler; %d. öğe %q%s", s.ad, codes.Ad(s.ogeTuru.tipKodu()), i+1, kisalt(p), err.Error())
+			return nil, fmt.Errorf("'--%s' virgülle ayrılmış %s listesi bekler; %d. öğe %q%s", s.ad, codes.Name(s.ogeTuru.tipKodu()), i+1, kisalt(p), err.Error())
 		}
 		liste.Elements = append(liste.Elements, v)
 	}
@@ -209,12 +209,12 @@ func duzDegerCoz(t tur, s string) (interp.Value, error) {
 		return &interp.FloatVal{Val: f}, nil
 	case turMantik:
 		switch s {
-		case codes.Ad(codes.A040):
+		case codes.Name(codes.A040):
 			return interp.TRUE, nil
-		case codes.Ad(codes.A041):
+		case codes.Name(codes.A041):
 			return interp.FALSE, nil
 		}
-		return nil, fmt.Errorf(" (%s ya da %s)", codes.Ad(codes.A040), codes.Ad(codes.A041))
+		return nil, fmt.Errorf(" (%s ya da %s)", codes.Name(codes.A040), codes.Name(codes.A041))
 	}
 	return &interp.StringVal{Val: s}, nil
 }
@@ -235,7 +235,7 @@ func duzOrnek(t tur) string {
 	case turOndalik:
 		return "0.001"
 	case turMantik:
-		return codes.Ad(codes.A040)
+		return codes.Name(codes.A040)
 	}
 	return "değer"
 }

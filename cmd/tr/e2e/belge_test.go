@@ -123,7 +123,7 @@ var adYerTutucuRe = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
 // tanımsız ad çalışmadan önce hatadır (5.14), şablon ise bu adların kullanıcıda var
 // olduğunu varsayar.
 func yerTutuculariTanimla(govde, kod string) string {
-	tanimli, _ := checker.UstDuzeyAdlari(parser.New(lexer.New(kod)).ParseProgram())
+	tanimli, _ := checker.TopLevelNames(parser.New(lexer.New(kod)).ParseProgram())
 	var on strings.Builder
 	goruldu := map[string]bool{}
 	for _, m := range sablonVarsayilanRe.FindAllStringSubmatch(govde, -1) {
@@ -200,47 +200,47 @@ var (
 
 // kaldirilanAd ad, verilen ad alanında (AlanYok: genel ya da tip) yerine geçen olmadan
 // kaldırılmış bir kodun adı ya da eski adıysa o kodu verir.
-func kaldirilanAd(al codes.Alan, ad string) (codes.Kod, bool) {
-	alanlar := []codes.Alan{al}
-	if al == codes.AlanYok {
-		alanlar = []codes.Alan{codes.AlanGenel, codes.AlanTip}
+func kaldirilanAd(al codes.Namespace, ad string) (codes.Code, bool) {
+	alanlar := []codes.Namespace{al}
+	if al == codes.NamespaceNone {
+		alanlar = []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType}
 	}
-	for _, a := range []codes.Alan{codes.AlanGenel, codes.AlanTip, codes.AlanUye, codes.AlanParametre} {
-		if _, canli := codes.Bul(a, ad); canli && (a == al || al == codes.AlanYok) {
-			return codes.Yok, false
+	for _, a := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember, codes.NamespaceParam} {
+		if _, canli := codes.Find(a, ad); canli && (a == al || al == codes.NamespaceNone) {
+			return codes.None, false
 		}
 	}
 	for _, a := range alanlar {
-		if k, ok := codes.OluBul(a, ad); ok && codes.Kaldirildi(k) {
+		if k, ok := codes.FindDead(a, ad); ok && codes.Removed(k) {
 			return k, true
 		}
 	}
-	return codes.Yok, false
+	return codes.None, false
 }
 
 // satirIciAdlar satır içi kod parçasındaki adları ad alanlarıyla verir.
-func satirIciAdlar(parca string) map[string]codes.Alan {
-	adlar := map[string]codes.Alan{}
+func satirIciAdlar(parca string) map[string]codes.Namespace {
+	adlar := map[string]codes.Namespace{}
 	if p := strings.TrimSpace(parca); tanimlayiciRe.FindString(p) == p {
-		adlar[p] = codes.AlanYok
+		adlar[p] = codes.NamespaceNone
 		return adlar
 	}
 	for _, m := range tanimlayiciRe.FindAllStringIndex(parca, -1) {
 		ad, once, sonra := parca[m[0]:m[1]], parca[:m[0]], parca[m[1]:]
 		switch {
 		case strings.HasSuffix(once, "."):
-			adlar[ad] = codes.AlanUye
+			adlar[ad] = codes.NamespaceMember
 		case strings.HasPrefix(sonra, ":"):
-			adlar[ad] = codes.AlanParametre
+			adlar[ad] = codes.NamespaceParam
 		case strings.HasPrefix(sonra, "("):
-			adlar[ad] = codes.AlanGenel
+			adlar[ad] = codes.NamespaceGlobal
 		}
 	}
 	return adlar
 }
 
 func TestBelgelerdeKaldirilanAdYok(t *testing.T) {
-	if len(codes.Kaldirilanlar()) == 0 {
+	if len(codes.RemovedCodes()) == 0 {
 		t.Skip("kaldırılmış kod yok")
 	}
 	for _, b := range belgeListesi(t) {
@@ -252,7 +252,7 @@ func TestBelgelerdeKaldirilanAdYok(t *testing.T) {
 			t.Fatal(err)
 		}
 		for i, satir := range kodsuzSatirlar(string(veri)) {
-			bulunan := map[string]codes.Alan{}
+			bulunan := map[string]codes.Namespace{}
 			for _, m := range satirIciKodRe.FindAllStringSubmatch(satir, -1) {
 				for ad, al := range satirIciAdlar(m[1]) {
 					bulunan[ad] = al
@@ -261,7 +261,7 @@ func TestBelgelerdeKaldirilanAdYok(t *testing.T) {
 			duz := satirIciKodRe.ReplaceAllString(satir, "")
 			for _, m := range cagriRe.FindAllStringSubmatchIndex(duz, -1) {
 				if m[0] == 0 || duz[m[0]-1] != '.' {
-					bulunan[duz[m[2]:m[3]]] = codes.AlanGenel
+					bulunan[duz[m[2]:m[3]]] = codes.NamespaceGlobal
 				}
 			}
 			for ad, al := range bulunan {

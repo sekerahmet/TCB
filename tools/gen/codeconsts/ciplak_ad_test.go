@@ -50,21 +50,21 @@ var ciplakAdIzinleri = map[string]map[string]string{
 		"metin": "İzleme Masası iletisinin değer türü (ikon seçimi)",
 		"yok":   "İzleme Masası iletisinin değer türü (ikon seçimi)",
 	},
-	// tanim.json'un "tür" alanının değerleri: dosya biçiminin sabit anahtarlarıdır.
-	"internal/lang/codes/tanim.go": {
-		"tip":       "tanim.json tür değeri (TurTip)",
-		"fonksiyon": "tanim.json tür değeri (TurFonksiyon)",
-		"sabit":     "tanim.json tür değeri (TurSabit)",
+	// definitions.json'un "tür" alanının değerleri: dosya biçiminin sabit anahtarlarıdır.
+	"internal/lang/codes/definition.go": {
+		"tip":       "definitions.json tür değeri (TurTip)",
+		"fonksiyon": "definitions.json tür değeri (TurFonksiyon)",
+		"sabit":     "definitions.json tür değeri (TurSabit)",
 	},
 	// Hata türü başlıklarındaki düz yazı ("Fonksiyon çağrısı tip hatası", "Tip uyuşmazlığı",
 	// "Tip ve Güvenlik Denetimi"): sıradan sözcük, A208 Fonksiyon ya da A215 Tip adı değil.
-	"internal/lang/checker/denetci.go": {
+	"internal/lang/checker/checker.go": {
 		"Fonksiyon": "hata türü başlığı: Fonksiyon çağrısı tip hatası",
 		"Tip":       "hata türü başlığı: Tip uyuşmazlığı",
 	},
 	"cmd/tr/hazirlik.go": {"Tip": "başlık: Tip ve Güvenlik Denetimi Hataları"},
 	// Sözdizimi yardımındaki yer tutucu: "ad: Tip" herhangi bir tip adı demektir.
-	"internal/lang/parser/yapi.go": {"Tip": "yer tutucu: ad: Tip (herhangi bir tip adı)"},
+	"internal/lang/parser/struct.go": {"Tip": "yer tutucu: ad: Tip (herhangi bir tip adı)"},
 }
 
 // taranacakKokler adları koddan üretmesi gereken katmanlardır.
@@ -72,20 +72,20 @@ var taranacakKokler = []string{"internal/lang", "internal/stdlib", "internal/dev
 
 // atlananDosyalar kodların kendisini tanımlayan (adları dil dosyasından okuyan) dosyalardır.
 var atlananDosyalar = map[string]bool{
-	"internal/lang/codes/kodlar_uretilmis.go": true, // üretilmiş: yorumlarda adlar
+	"internal/lang/codes/codes_generated.go": true, // üretilmiş: yorumlarda adlar
 }
 
 type canliAd struct {
-	kod dk.Kod
-	al  dk.Alan
+	kod dk.Code
+	al  dk.Namespace
 }
 
 // canliAdlar etkin dilin canlı adlarıdır (ad → kodlar; aynı ad farklı ad alanlarında olabilir).
 func canliAdlar() map[string][]canliAd {
 	m := map[string][]canliAd{}
-	for _, k := range dk.Kodlar() {
-		for _, y := range dk.Yazimlar(k) {
-			m[y] = append(m[y], canliAd{k, k.Alan()})
+	for _, k := range dk.Codes() {
+		for _, y := range dk.Spellings(k) {
+			m[y] = append(m[y], canliAd{k, k.Namespace()})
 		}
 	}
 	return m
@@ -139,17 +139,17 @@ func kodGibi(s string, i, j int, kayitlar []canliAd) bool {
 	butun := i == 0 && j == len(s) && utf8.RuneCountInString(w) > 1
 	for _, c := range kayitlar {
 		switch {
-		case butun && (c.al == dk.AlanGenel || c.al == dk.AlanTip):
+		case butun && (c.al == dk.NamespaceGlobal || c.al == dk.NamespaceType):
 			return true // metnin tamamı bir anahtar kelime, yerleşik ya da tip adı: "doğru"
-		case c.al == dk.AlanTip:
+		case c.al == dk.NamespaceType:
 			return true
 		case sonra == '(':
 			return true
-		case once == '.' && c.al == dk.AlanUye:
+		case once == '.' && c.al == dk.NamespaceMember:
 			return true
-		case sonra == ':' && c.al == dk.AlanParametre:
+		case sonra == ':' && c.al == dk.NamespaceParam:
 			return true
-		case c.kod.AnahtarKelime() && strings.HasPrefix(s[j:], " {"):
+		case c.kod.IsKeyword() && strings.HasPrefix(s[j:], " {"):
 			return true
 		}
 	}

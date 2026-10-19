@@ -14,7 +14,7 @@
 // (agac.Dokum) değişmişse sonuç reddedilir. Böylece biçimlendirici programın anlamını asla
 // değiştirmez.
 //
-// Katman: araç (internal/devtools); dil, motor ve hesap katmanlarını içe aktarabilir.
+// Layer: developer tools (internal/devtools); dil, motor ve hesap katmanlarını içe aktarabilir.
 package formatter
 
 import (
@@ -66,53 +66,53 @@ func (e *SozdizimiHatasi) Error() string {
 // Bicimle kaynağı standart biçime getirir. Kaynak ayrıştırılamıyorsa *SozdizimiHatasi,
 // sonuç özgün kodla aynı anlama gelmiyorsa *AnlamDegistiHatasi döner.
 func Bicimle(metin string) (string, error) {
-	// Dosya başındaki UTF-8 BOM ve kodlu biçim başlığı korunur (kaynak.Bolumler); kodlu
+	// Dosya başındaki UTF-8 BOM ve kodlu biçim başlığı korunur (source.Parts); kodlu
 	// dosyanın gövdesi kodlu biçimde biçimlenir (kodlar olduğu gibi kalır).
-	b, err := source.Ayir(metin)
+	b, err := source.Split(metin)
 	if err != nil {
 		return "", &SozdizimiHatasi{Hatalar: []string{err.Error()}}
 	}
 	// Satır sonları LF yazılır; metinlerin içindekiler de (sözcük çözümleyici çok satırlı
 	// metindeki CRLF'yi zaten '\n' okur, anlam değişmez): karışık satır sonu kalmaz.
-	b.Govde = strings.ReplaceAll(b.Govde, "\r\n", "\n")
-	if b.Kodlu {
-		b.SatirSonu = "\n"
+	b.Body = strings.ReplaceAll(b.Body, "\r\n", "\n")
+	if b.Coded {
+		b.HeaderEOL = "\n"
 	}
-	p := parser.New(b.Sozcukler())
+	p := parser.New(b.Lexer())
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		return "", &SozdizimiHatasi{Hatalar: p.Errors()}
 	}
 	yeni := b
-	yeni.Govde = donustur(b.Govde, b.Kodlu, suslular(prog))
-	if err := AnlamAyniMi(b.Birlestir(), yeni.Birlestir()); err != nil {
+	yeni.Body = donustur(b.Body, b.Coded, suslular(prog))
+	if err := AnlamAyniMi(b.Join(), yeni.Join()); err != nil {
 		return "", err
 	}
-	return yeni.Birlestir(), nil
+	return yeni.Join(), nil
 }
 
 // AnlamAyniMi iki kaynağın (dosyanın tamamı) aynı sözcük birimi dizisine ve aynı AST'ye sahip
 // olduğunu denetler; farklıysa *AnlamDegistiHatasi döner. Sözcükler türleriyle, kodla
 // yazılmış adlar kodlarıyla (kodlu dosyada), kullanıcının adları metinleriyle karşılaştırılır.
 func AnlamAyniMi(once, sonra string) error {
-	b1, err1 := source.Ayir(once)
-	b2, err2 := source.Ayir(sonra)
-	if err1 != nil || err2 != nil || b1.Kodlu != b2.Kodlu {
+	b1, err1 := source.Split(once)
+	b2, err2 := source.Split(sonra)
+	if err1 != nil || err2 != nil || b1.Coded != b2.Coded {
 		return &AnlamDegistiHatasi{Ayrinti: "dosyanın biçimi (kodlu ya da Türkçe yazım) değişti"}
 	}
-	p1 := parser.New(b1.Sozcukler())
+	p1 := parser.New(b1.Lexer())
 	prog1 := p1.ParseProgram()
-	p2 := parser.New(b2.Sozcukler())
+	p2 := parser.New(b2.Lexer())
 	prog2 := p2.ParseProgram()
 	if len(p2.Errors()) > 0 {
 		return &AnlamDegistiHatasi{Ayrinti: "biçimlenmiş kod ayrıştırılamadı: " + p2.Errors()[0]}
 	}
-	t1, t2 := sozcukler(b1.Govde, b1.Kodlu), sozcukler(b2.Govde, b2.Kodlu)
+	t1, t2 := sozcukler(b1.Body, b1.Coded), sozcukler(b2.Body, b2.Coded)
 	if len(t1) != len(t2) {
 		return &AnlamDegistiHatasi{Ayrinti: "sözcük birimi sayısı değişti"}
 	}
 	for i := range t1 {
-		if t1[i].Type != t2[i].Type || t1[i].Kod != t2[i].Kod || t1[i].Literal != t2[i].Literal {
+		if t1[i].Type != t2[i].Type || t1[i].Code != t2[i].Code || t1[i].Literal != t2[i].Literal {
 			return &AnlamDegistiHatasi{Ayrinti: fmt.Sprintf("satır %d: %q sözcüğü değişti", t2[i].Line, t1[i].Literal)}
 		}
 	}
@@ -124,7 +124,7 @@ func AnlamAyniMi(once, sonra string) error {
 
 // cozumleyici bir gövdenin sözcük çözümleyicisidir (kodlu gövdede kodları tanır).
 func cozumleyici(govde string, kodlu bool) *lexer.Lexer {
-	return source.Bolumler{Kodlu: kodlu, Govde: govde}.Sozcukler()
+	return source.Parts{Coded: kodlu, Body: govde}.Lexer()
 }
 
 func sozcukler(govde string, kodlu bool) []lexer.Token {
@@ -194,12 +194,12 @@ func suslular(prog *ast.Program) map[konum]int {
 // ogeler kaynağı sözcük birimleri ve yorumlardan oluşan bir akışa çevirir.
 func ogeler(kaynak string, kodlu bool) []oge {
 	l := cozumleyici(kaynak, kodlu)
-	girdi := l.Girdi()
+	girdi := l.Input()
 	var sonuc []oge
 	onceki := 0 // önceki öğenin bittiği indeks
 	for {
 		tok := l.NextToken()
-		bas, son := l.SonAralik()
+		bas, son := l.LastRange()
 		if bas > len(girdi) {
 			bas = len(girdi)
 		}
@@ -308,7 +308,7 @@ var ikiliOperatorler = map[lexer.TokenType]bool{
 
 // Satır sonunda kalırsa sonraki satırı devam satırı yapan sözcükler
 var devamEttirenSon = map[lexer.TokenType]bool{
-	lexer.TOKEN_VE: true, lexer.TOKEN_VEYA: true, lexer.TOKEN_DOT: true, lexer.TOKEN_SAFE_DOT: true,
+	lexer.TOKEN_KW_AND: true, lexer.TOKEN_KW_OR: true, lexer.TOKEN_DOT: true, lexer.TOKEN_SAFE_DOT: true,
 	lexer.TOKEN_COLON: true, lexer.TOKEN_RANGE: true, lexer.TOKEN_RANGE_INCL: true,
 }
 
@@ -316,7 +316,7 @@ var devamEttirenSon = map[lexer.TokenType]bool{
 // tekli eksi gibi görünür)
 var devamEdenBas = map[lexer.TokenType]bool{
 	lexer.TOKEN_PIPE: true, lexer.TOKEN_DOT: true, lexer.TOKEN_SAFE_DOT: true, lexer.TOKEN_NULL_COALESC: true,
-	lexer.TOKEN_AND: true, lexer.TOKEN_OR: true, lexer.TOKEN_VE: true, lexer.TOKEN_VEYA: true,
+	lexer.TOKEN_AND: true, lexer.TOKEN_OR: true, lexer.TOKEN_KW_AND: true, lexer.TOKEN_KW_OR: true,
 	lexer.TOKEN_PLUS: true, lexer.TOKEN_ASTERISK: true, lexer.TOKEN_SLASH: true, lexer.TOKEN_PERCENT: true,
 	lexer.TOKEN_POWER: true, lexer.TOKEN_MATMUL: true, lexer.TOKEN_EQ: true, lexer.TOKEN_NOT_EQ: true,
 	lexer.TOKEN_LT: true, lexer.TOKEN_GT: true, lexer.TOKEN_LTE: true, lexer.TOKEN_GTE: true,
@@ -342,7 +342,7 @@ func tekliMi(onceki *oge) bool {
 		return false
 	case t == lexer.TOKEN_IDENT || t == lexer.TOKEN_INT || t == lexer.TOKEN_FLOAT || t == lexer.TOKEN_STRING:
 		return false
-	case t == lexer.TOKEN_DOGRU || t == lexer.TOKEN_YANLIS || t == lexer.TOKEN_YOK || t == lexer.TOKEN_KENDI:
+	case t == lexer.TOKEN_TRUE || t == lexer.TOKEN_FALSE || t == lexer.TOKEN_NIL || t == lexer.TOKEN_SELF:
 		return false
 	}
 	return true
@@ -372,7 +372,7 @@ func aradaBosluk(p, c *oge) bool {
 	case ct == lexer.TOKEN_LPAREN || ct == lexer.TOKEN_LBRACKET:
 		switch pt {
 		case lexer.TOKEN_IDENT, lexer.TOKEN_RPAREN, lexer.TOKEN_RBRACKET, lexer.TOKEN_RBRACE,
-			lexer.TOKEN_STRING, lexer.TOKEN_KENDI, lexer.TOKEN_FONKSIYON, lexer.TOKEN_KESME_NOKTASI:
+			lexer.TOKEN_STRING, lexer.TOKEN_SELF, lexer.TOKEN_FUNCTION, lexer.TOKEN_BREAKPOINT:
 			return false
 		}
 		return true
@@ -422,7 +422,7 @@ func bicimle(kaynak string, kodlu bool, sus map[konum]int) string {
 			switch {
 			case o.tur == lexer.TOKEN_LBRACE && sus[konum{o.satir, o.sutun}] == 0:
 				o.satirA = 0
-			case (o.tur == lexer.TOKEN_DEGILSE || o.tur == lexer.TOKEN_YAKALA) && onceki == lexer.TOKEN_RBRACE:
+			case (o.tur == lexer.TOKEN_ELSE || o.tur == lexer.TOKEN_CATCH) && onceki == lexer.TOKEN_RBRACE:
 				o.satirA = 0
 			}
 		}

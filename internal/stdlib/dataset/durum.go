@@ -88,13 +88,13 @@ func (o *Okuyucu) DurumSozlugu(*interp.VM) (*interp.DictVal, error) {
 func (o *Okuyucu) durumuYukleTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(named) > 0 || len(args) != 1 {
 		if len(named) > 0 {
-			return nil, fmt.Errorf("%s adlı argüman almaz", interp.Cagri(uyeDurumuYukle))
+			return nil, fmt.Errorf("%s adlı argüman almaz", interp.CallPrefix(uyeDurumuYukle))
 		}
-		return nil, interp.ArgumanSayisiHatasi(uyeDurumuYukle, "1", len(args), "ö."+codes.Ad(uyeDurum))
+		return nil, interp.ArgCountError(uyeDurumuYukle, "1", len(args), "ö."+codes.Name(uyeDurum))
 	}
 	s, ok := args[0].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgumanTipHatasi(uyeDurumuYukle, 1, args[0], codes.A206)
+		return nil, interp.ArgTypeError(uyeDurumuYukle, 1, args[0], codes.A206)
 	}
 	if err := o.DurumuYukle(m, s); err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (o *Okuyucu) durumuYukleTR(m *interp.VM, args []interp.Value, named map[str
 // okuyucununkilerle aynı olmalıdır, değilse yol gösterici bir hata verir ve okuyucuyu
 // değiştirmez. Önden yükleme hattı durdurulur, okuyucu kaydedilen konumdan yeniden kurulur.
 func (o *Okuyucu) DurumuYukle(m *interp.VM, s *interp.DictVal) error {
-	fn := interp.Cagri(uyeDurumuYukle)
+	fn := interp.CallPrefix(uyeDurumuYukle)
 	d := durumOkuyucu{fn: fn, s: s}
 	tur := d.metin(dTur)
 	if d.hata == nil && tur != o.turAdi() {
@@ -172,7 +172,7 @@ func (d *durumOkuyucu) al(ad string) (interp.Value, bool) {
 	}
 	v, ok := d.s.Pairs[ad]
 	if !ok {
-		d.hata = fmt.Errorf("%s: durumda %q alanı yok; sözlük okuyucunun %s'u olmalı", d.fn, ad, codes.Ad(uyeDurum))
+		d.hata = fmt.Errorf("%s: durumda %q alanı yok; sözlük okuyucunun %s'u olmalı", d.fn, ad, codes.Name(uyeDurum))
 	}
 	return v, ok
 }
@@ -184,7 +184,7 @@ func (d *durumOkuyucu) metin(ad string) string {
 	}
 	m, ok := v.(*interp.StringVal)
 	if !ok {
-		d.hata = fmt.Errorf("%s: durumun %q alanı %s olmalı, %s verildi", d.fn, ad, codes.Ad(codes.A202), interp.TipVeOzet(v))
+		d.hata = fmt.Errorf("%s: durumun %q alanı %s olmalı, %s verildi", d.fn, ad, codes.Name(codes.A202), interp.TypeAndSummary(v))
 		return ""
 	}
 	return m.Val
@@ -197,7 +197,7 @@ func (d *durumOkuyucu) tam(ad string) int64 {
 	}
 	n, ok := v.(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		d.hata = fmt.Errorf("%s: durumun %q alanı 0 ya da pozitif bir %s olmalı, %s verildi", d.fn, ad, codes.Ad(codes.A200), interp.TipVeOzet(v))
+		d.hata = fmt.Errorf("%s: durumun %q alanı 0 ya da pozitif bir %s olmalı, %s verildi", d.fn, ad, codes.Name(codes.A200), interp.TypeAndSummary(v))
 		return 0
 	}
 	return n.Val
@@ -210,7 +210,7 @@ func (d *durumOkuyucu) mantik(ad string) bool {
 	}
 	b, ok := v.(*interp.BoolVal)
 	if !ok {
-		d.hata = fmt.Errorf("%s: durumun %q alanı %s olmalı, %s verildi", d.fn, ad, codes.Ad(codes.A203), interp.TipVeOzet(v))
+		d.hata = fmt.Errorf("%s: durumun %q alanı %s olmalı, %s verildi", d.fn, ad, codes.Name(codes.A203), interp.TypeAndSummary(v))
 		return false
 	}
 	return b.Val

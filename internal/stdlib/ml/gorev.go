@@ -19,11 +19,11 @@ type gradAnahtari struct{}
 
 // gorevGradBaglami görevin türev bağlamını verir; yoksa oluşturur.
 func gorevGradBaglami(m *interp.VM) *tensor.GradContext {
-	if c, ok := m.GorevDegeri(gradAnahtari{}).(*tensor.GradContext); ok {
+	if c, ok := m.TaskValue(gradAnahtari{}).(*tensor.GradContext); ok {
 		return c
 	}
 	c := tensor.NewGradContext()
-	m.GorevDegeriAyarla(gradAnahtari{}, c)
+	m.SetTaskValue(gradAnahtari{}, c)
 	return c
 }
 

@@ -25,34 +25,34 @@ func TestYerlesiklerSozlukleTutarli(t *testing.T) {
 		if !ok {
 			continue
 		}
-		k, ok := codes.Bul(codes.AlanGenel, ad)
-		if !ok || !k.Yerlesik() {
+		k, ok := codes.Find(codes.NamespaceGlobal, ad)
+		if !ok || !k.IsBuiltin() {
 			t.Errorf("kayıtlı yerleşik %q sözlükte bir yerleşik kodu değil", ad)
 			continue
 		}
-		if asil, _ := codes.AsilAdAlanda(codes.AlanGenel, ad); b.Name != asil {
+		if asil, _ := codes.CanonicalNameIn(codes.NamespaceGlobal, ad); b.Name != asil {
 			t.Errorf("%q (%s) yerleşiğinin adı %q, sözlükte %q", ad, k, b.Name, asil)
 		}
 	}
-	for _, k := range codes.Kodlar() {
-		if !k.Yerlesik() {
+	for _, k := range codes.Codes() {
+		if !k.IsBuiltin() {
 			continue
 		}
-		if tn, _ := codes.Tanimi(k); tn.Tur == codes.TurSabit {
+		if tn, _ := codes.DefinitionOf(k); tn.Kind == codes.KindConstant {
 			// Sabitler (pi) yerleşik fonksiyon değil, değer olarak kayıtlıdır.
-			for _, y := range codes.Yazimlar(k) {
+			for _, y := range codes.Spellings(k) {
 				if d, ok := m.GlobalEnv.Get(y); !ok || d == nil {
-					t.Errorf("sözlükteki sabit %s (%s) %q yazımıyla kayıtlı değil", k, codes.Ad(k), y)
+					t.Errorf("sözlükteki sabit %s (%s) %q yazımıyla kayıtlı değil", k, codes.Name(k), y)
 				}
 			}
 			continue
 		}
-		b := m.Yerlesik(k)
+		b := m.Builtin(k)
 		if b == nil {
-			t.Errorf("sözlükteki %s (%s) kayıtlı değil", k, codes.Ad(k))
+			t.Errorf("sözlükteki %s (%s) kayıtlı değil", k, codes.Name(k))
 			continue
 		}
-		for _, y := range codes.Yazimlar(k) {
+		for _, y := range codes.Spellings(k) {
 			if d, _ := m.GlobalEnv.Get(y); d != b {
 				t.Errorf("%s yazımı %q aynı yerleşiğe bağlı değil", k, y)
 			}
@@ -92,11 +92,11 @@ func TestUyelerSozlukleTutarli(t *testing.T) {
 		t.Fatal(err)
 	}
 	ornekler := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme"}
-	for _, k := range codes.Kodlar() {
-		if k.Alan() != codes.AlanUye || (k >= codes.Y600 && k <= codes.Y602) {
+	for _, k := range codes.Codes() {
+		if k.Namespace() != codes.NamespaceMember || (k >= codes.Y600 && k <= codes.Y602) {
 			continue
 		}
-		for _, y := range codes.Yazimlar(k) {
+		for _, y := range codes.Spellings(k) {
 			bulundu := false
 			for _, o := range ornekler {
 				if _, err := calistirAyni(t, m, o+"."+y); err == nil {

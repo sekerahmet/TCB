@@ -39,7 +39,7 @@ var (
 // turevIzleyenOrnek hata mesajlarındaki türev izleyen tensör örneğidir:
 // turevIzleyenOrnek("...") → "tensör(..., türev_izle: doğru)"; adlar koddan kurulur.
 func turevIzleyenOrnek(veri string) string {
-	return codes.Ad(codes.T100) + "(" + veri + ", " + adTurevIzle.TR + ": " + codes.Ad(codes.A040) + ")"
+	return codes.Name(codes.T100) + "(" + veri + ", " + adTurevIzle.TR + ": " + codes.Name(codes.A040) + ")"
 }
 
 // guvenli fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.

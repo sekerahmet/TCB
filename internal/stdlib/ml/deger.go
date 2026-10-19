@@ -9,7 +9,7 @@
 // karekök) silinmez; kayıt sırasında sarılır: argüman tensörse yeni yol, değilse eski
 // yerleşik çalışır. Bu yüzden bu motor onlardan SONRA kaydedilmelidir (bkz. internal/stdlib).
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package ml
 
 import (

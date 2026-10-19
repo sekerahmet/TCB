@@ -8,29 +8,29 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 )
 
-// Bu dosya tensör değerinin VM kancalarını (bkz. internal/lang/interp/kancalar.go) uygular: eşitlik,
+// Bu dosya tensör değerinin VM kancalarını (bkz. internal/lang/interp/hooks.go) uygular: eşitlik,
 // işleçler (@ + - * / ** ve karşılaştırmalar), tekli eksi, indeksleme, indeksle atama,
 // döngüyle gezinme ve dış biçimlere (JSON) dönüşüm.
 
 var (
-	_ interp.Esitlik             = (*Deger)(nil)
-	_ interp.IslecKancasi        = (*Deger)(nil)
-	_ interp.GorevliIslecKancasi = (*Deger)(nil)
-	_ interp.Olumsuzlanabilir    = (*Deger)(nil)
-	_ interp.Indekslenebilir     = (*Deger)(nil)
-	_ interp.IndeksAtanabilir    = (*Deger)(nil)
-	_ interp.Yinelenebilir       = (*Deger)(nil)
-	_ interp.DuzDegerli          = (*Deger)(nil)
+	_ interp.Equaler          = (*Deger)(nil)
+	_ interp.OperatorHook     = (*Deger)(nil)
+	_ interp.TaskOperatorHook = (*Deger)(nil)
+	_ interp.Negatable        = (*Deger)(nil)
+	_ interp.Indexable        = (*Deger)(nil)
+	_ interp.IndexAssignable  = (*Deger)(nil)
+	_ interp.Iterable         = (*Deger)(nil)
+	_ interp.PlainValuer      = (*Deger)(nil)
 )
 
-// DuzDeger tensörü JSON gibi dış biçimlere yazmak için .değer'le aynı iç içe Ondalık
+// PlainValue tensörü JSON gibi dış biçimlere yazmak için .değer'le aynı iç içe Ondalık
 // listesine (0 boyutluda Ondalık'a) çevirir.
-func (d *Deger) DuzDeger() interp.Value { return d.degerListesi() }
+func (d *Deger) PlainValue() interp.Value { return d.degerListesi() }
 
-// Esit iki tensörün şekli ve tüm elemanları aynıysa doğrudur ('==' ve '!='). 0 boyutlu
+// Equal iki tensörün şekli ve tüm elemanları aynıysa doğrudur ('==' ve '!='). 0 boyutlu
 // tensör, değeri (.değer ile aynı biçimde okunan) sayıya eşittir: m[1][0] == 7.0. Diğer
 // değerlerle eşit değildir.
-func (d *Deger) Esit(diger interp.Value) bool {
+func (d *Deger) Equal(diger interp.Value) bool {
 	o, ok := diger.(*Deger)
 	if !ok {
 		if f, sayi := interp.ToFloat(diger); sayi && d.t.Dim() == 0 {
@@ -59,8 +59,8 @@ func (d *Deger) Esit(diger interp.Value) bool {
 	return true
 }
 
-// Olumsuz tekli eksidir (-t); türev izlenir.
-func (d *Deger) Olumsuz() (interp.Value, error) {
+// Negate tekli eksidir (-t); türev izlenir.
+func (d *Deger) Negate() (interp.Value, error) {
 	r, err := guvenli(func() *tensor.Tensor { return d.t.Neg() })
 	if err != nil {
 		return nil, err
@@ -71,11 +71,11 @@ func (d *Deger) Olumsuz() (interp.Value, error) {
 // desteklenenIslecler hata mesajlarında gösterilir.
 const desteklenenIslecler = "+ - * / @ ** < > <= >= == !="
 
-// GorevliIslec işleci yapan görevle birlikte çağrılır: '@' görevin karışık hassasiyet
+// TaskOperator işleci yapan görevle birlikte çağrılır: '@' görevin karışık hassasiyet
 // türüne göre (bkz. karışık_hassasiyet) hesaplanır; diğer işleçler Islec'e gider.
-func (d *Deger) GorevliIslec(m *interp.VM, op string, diger interp.Value, sagda bool) (interp.Value, bool, error) {
+func (d *Deger) TaskOperator(m *interp.VM, op string, diger interp.Value, sagda bool) (interp.Value, bool, error) {
 	if op != "@" {
-		return d.Islec(op, diger, sagda)
+		return d.Operator(op, diger, sagda)
 	}
 	o, err := tensoreCevirCihaz("matris çarpımı (@)", diger, d.t)
 	if err != nil {
@@ -92,10 +92,10 @@ func (d *Deger) GorevliIslec(m *interp.VM, op string, diger interp.Value, sagda 
 	return Yeni(r), true, nil
 }
 
-// Islec tensörün ikili işleçlerini uygular: '+', '-', '*', '/' (eleman bazlı, yayınlamalı;
+// Operator tensörün ikili işleçlerini uygular: '+', '-', '*', '/' (eleman bazlı, yayınlamalı;
 // diğer işlenen sayı, liste ya da tensör) ve '@' (matris çarpımı) her iki yönde; '**' sol
 // işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (0/1 maskesi).
-func (d *Deger) Islec(op string, diger interp.Value, sagda bool) (interp.Value, bool, error) {
+func (d *Deger) Operator(op string, diger interp.Value, sagda bool) (interp.Value, bool, error) {
 	switch op {
 	case "+", "*":
 		// Değişmeli: yön sonucu değiştirmez.
@@ -159,7 +159,7 @@ func (d *Deger) Islec(op string, diger interp.Value, sagda bool) (interp.Value, 
 	case "**":
 		s, ok := interp.ToFloat(diger)
 		if sagda || !ok {
-			return nil, true, fmt.Errorf("tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için %s(%s(t) * u) kullanın", codes.Ad(codes.T220), codes.Ad(codes.T221))
+			return nil, true, fmt.Errorf("tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için %s(%s(t) * u) kullanın", codes.Name(codes.T220), codes.Name(codes.T221))
 		}
 		f := float32(s)
 		r, err := guvenli(func() *tensor.Tensor { return d.t.Pow(f) })
@@ -212,9 +212,9 @@ func (d *Deger) karsilastir(op string, diger interp.Value, sagda bool) (interp.V
 	return Yeni(r), nil
 }
 
-// Indeks t[i] (ilk eksende i. eleman; bir eksen eksilir) ve t[baş..son] (ilk eksende
+// Index t[i] (ilk eksende i. eleman; bir eksen eksilir) ve t[baş..son] (ilk eksende
 // dilim) okumasını yapar. Sonuç veriyi kopyalamayan bir görünümdür ve türev izlenir.
-func (d *Deger) Indeks(idx interp.Value) (interp.Value, error) {
+func (d *Deger) Index(idx interp.Value) (interp.Value, error) {
 	sh := d.t.Shape()
 	if len(sh) == 0 {
 		return nil, fmt.Errorf("skaler (0 boyutlu) tensör indekslenemez")
@@ -258,22 +258,22 @@ func (d *Deger) gorunum(r *tensor.Tensor) *Deger {
 	return g
 }
 
-// YinelemeUzunlugu 'döngü x içinde t' ve liste üretecinde gezilecek öğe sayısıdır (ilk
+// IterLen 'döngü x içinde t' ve liste üretecinde gezilecek öğe sayısıdır (ilk
 // eksenin uzunluğu). 0 boyutlu tensör üzerinde döngü kurulamaz.
-func (d *Deger) YinelemeUzunlugu() (int, error) {
+func (d *Deger) IterLen() (int, error) {
 	sh := d.t.Shape()
 	if len(sh) == 0 {
-		return 0, fmt.Errorf("skaler (0 boyutlu) tensör üzerinde döngü kurulamaz; değerini .%s ile okuyun", codes.Ad(uyeDeger))
+		return 0, fmt.Errorf("skaler (0 boyutlu) tensör üzerinde döngü kurulamaz; değerini .%s ile okuyun", codes.Name(uyeDeger))
 	}
 	return sh[0], nil
 }
 
-// YinelemeOgesi ilk eksen boyunca i. öğedir: 1 boyutlu tensörde sayı (.değer'deki gibi
+// IterItem ilk eksen boyunca i. öğedir: 1 boyutlu tensörde sayı (.değer'deki gibi
 // Ondalık; tam sayılı tensörde Tam), N boyutluda t[i] ile aynı (N-1) boyutlu görünüm
 // (veriyi paylaşır, türev izlenir).
-func (d *Deger) YinelemeOgesi(i int) (interp.Value, error) {
+func (d *Deger) IterItem(i int) (interp.Value, error) {
 	if d.t.Dim() != 1 {
-		return d.Indeks(interp.NewInt(int64(i)))
+		return d.Index(interp.NewInt(int64(i)))
 	}
 	x, err := guvenli(func() float32 { return d.t.At(i) })
 	if err != nil {
@@ -285,12 +285,12 @@ func (d *Deger) YinelemeOgesi(i int) (interp.Value, error) {
 	return &interp.FloatVal{Val: kisaFloat64(x)}, nil
 }
 
-// IndekseAta t[i] = değer ve t[baş..son] = değer atamasıdır (t[i][j] = değer, t[i]
+// SetIndex t[i] = değer ve t[baş..son] = değer atamasıdır (t[i][j] = değer, t[i]
 // görünümüne atamadır). Değer bir sayıysa hedefin tüm elemanlarına yazılır; liste ya da
 // tensörse şekli hedefin şekliyle aynı olmalıdır. Veri yerinde değişir: bu tensörü kullanmış,
 // henüz geri yayılmamış bir hesap çizgesi varsa geri yayılım hata verir. Türev izlenen bir
 // tensöre yalnızca türevsiz { ... } içinde atanabilir.
-func (d *Deger) IndekseAta(idx, deger interp.Value) error {
+func (d *Deger) SetIndex(idx, deger interp.Value) error {
 	if d.t.RequiresGrad() && tensor.GradEnabled() {
 		return fmt.Errorf("türev izlenen tensöre indeksle atama yapılamaz; değeri türevsiz { ... } içinde değiştirin")
 	}
@@ -298,7 +298,7 @@ func (d *Deger) IndekseAta(idx, deger interp.Value) error {
 	var err error
 	tensor.NoGrad(func() {
 		var v interp.Value
-		if v, err = d.Indeks(idx); err == nil {
+		if v, err = d.Index(idx); err == nil {
 			hedef = v.(*Deger).t
 		}
 	})
@@ -327,3 +327,17 @@ func (d *Deger) IndekseAta(idx, deger interp.Value) error {
 	})
 	return err
 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.PropertyGetter   = (*Deger)(nil)
+	_ interp.Equaler          = (*Deger)(nil)
+	_ interp.Indexable        = (*Deger)(nil)
+	_ interp.IndexAssignable  = (*Deger)(nil)
+	_ interp.Iterable         = (*Deger)(nil)
+	_ interp.Negatable        = (*Deger)(nil)
+	_ interp.OperatorHook     = (*Deger)(nil)
+	_ interp.TaskOperatorHook = (*Deger)(nil)
+	_ interp.PlainValuer      = (*Deger)(nil)
+)

@@ -2,7 +2,7 @@
 // biçimle, kodla, çöz, göster, izle, profil, hata_ayıkla, dap) ayrıştırır ve işi internal/
 // altındaki paketlere bırakır.
 //
-// Katman: araç (cmd); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
+// Layer: command (cmd); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
 package main
 
 import (
@@ -22,7 +22,7 @@ import (
 
 // Dilin TR ile yazılı kitaplığı ikiliye gömülüdür ve 'aktar "tr/..."' ile yüklenir (11.6);
 // test koşucusu ve hata ayıklama sunucusu da bu ikilinin içinde çalıştığından onu görür.
-func init() { interp.KitaplikBagla(lib.Dosyalar) }
+func init() { interp.SetLibrary(lib.Dosyalar) }
 
 const VERSION = "1.0.0"
 
@@ -130,7 +130,7 @@ var kaldirilanKomutlar = map[string]string{
 // printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
 func printError(msg, source string) {
 	fmt.Fprintf(os.Stderr, "  • %s\n", msg)
-	fmt.Fprint(os.Stderr, indentFrame(turkish.KodCercevesi(source, msg)))
+	fmt.Fprint(os.Stderr, indentFrame(turkish.CodeFrame(source, msg)))
 }
 
 // indentFrame kod çerçevesini madde işaretinin altına hizalar.
@@ -174,10 +174,10 @@ func runFile(path string, argumanlar []string) {
 	_, s := dosyaHazirla(path, calistirmaHazirligi)
 	machine := interp.New()
 	machine.SourceFile = path
-	machine.SourceCode = s.Metin
-	machine.ArgumanlariAyarla(argumanlar)
-	isProfiliniBaslat(machine, path, s.Metin, s.Program)
-	programCalistir(machine, s.Program, s.Metin)
+	machine.SourceCode = s.Text
+	machine.SetArgs(argumanlar)
+	isProfiliniBaslat(machine, path, s.Text, s.Program)
+	programCalistir(machine, s.Program, s.Text)
 	temizle()
 }
 
@@ -202,12 +202,12 @@ func debugFile(path string, argumanlar []string) {
 	_, s := dosyaHazirla(path, hataAyiklamaHazirligi)
 	machine := interp.New()
 	machine.SourceFile = path
-	machine.SourceCode = s.Metin
-	machine.ArgumanlariAyarla(argumanlar)
-	dbg := debugger.NewDebugger(path, s.Metin, true)
+	machine.SourceCode = s.Text
+	machine.SetArgs(argumanlar)
+	dbg := debugger.NewDebugger(path, s.Text, true)
 	machine.Debugger = dbg
 
-	programCalistir(machine, s.Program, s.Metin)
+	programCalistir(machine, s.Program, s.Text)
 }
 
 func checkFile(path string) {
@@ -224,7 +224,7 @@ func startREPL() {
 	machine := interp.New()
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
-	okuyucu := machine.GirdiOkuyucu()
+	okuyucu := machine.InputReader()
 	chk := checker.New()
 	oncekiTipHatalari, oncekiUyarilar := 0, 0
 
@@ -260,19 +260,19 @@ func startREPL() {
 		// Hatalar dosya çalıştırmadakiyle aynı başlık ve biçimle standart hataya yazılır.
 		// Denetleyici satırlar arasında durumunu (ve hata listesini) korur; yalnızca bu
 		// satırın getirdiği yeni hatalar gösterilir.
-		s := source.Hazirla(line, source.Secenekler{TipDenetimi: true, Denetleyici: chk})
-		if s.Asama == source.AsamaSozdizimi {
-			hatalariYaz(sozdizimiBasligi, s.Hatalar, s.Metin)
+		s := source.Prepare(line, source.Options{TypeCheck: true, Checker: chk})
+		if s.Stage == source.StageSyntax {
+			hatalariYaz(sozdizimiBasligi, s.Errors, s.Text)
 			continue
 		}
-		if u := s.Uyarilar; len(u) > oncekiUyarilar {
-			uyarilariYaz(u[oncekiUyarilar:], s.Metin)
+		if u := s.Warnings; len(u) > oncekiUyarilar {
+			uyarilariYaz(u[oncekiUyarilar:], s.Text)
 			oncekiUyarilar = len(u)
 		}
-		if errs := s.Hatalar; len(errs) > oncekiTipHatalari {
+		if errs := s.Errors; len(errs) > oncekiTipHatalari {
 			yeni := errs[oncekiTipHatalari:]
 			oncekiTipHatalari = len(errs)
-			hatalariYaz(tipBasligi, yeni, s.Metin)
+			hatalariYaz(tipBasligi, yeni, s.Text)
 			continue
 		}
 
@@ -292,7 +292,7 @@ func startREPL() {
 
 // yazdirIleBaslar satır yazdır yerleşiğinin (G100) bir yazımıyla mı başlıyor?
 func yazdirIleBaslar(satir string) bool {
-	for _, y := range codes.Yazimlar(codes.G100) {
+	for _, y := range codes.Spellings(codes.G100) {
 		if strings.HasPrefix(satir, y) {
 			return true
 		}

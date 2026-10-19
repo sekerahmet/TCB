@@ -107,7 +107,7 @@ func (c *Ilerleme) goster(simdi time.Time) {
 		c.mu.Lock()
 		s := c.cubukSatiri(simdi)
 		c.mu.Unlock()
-		c.m.CanliSatirGuncelle(func() {
+		c.m.UpdateLiveLine(func() {
 			c.satir = s
 			c.ciz()
 		})
@@ -120,14 +120,14 @@ func (c *Ilerleme) goster(simdi time.Time) {
 	c.mu.Lock()
 	s := c.cubukSatiri(simdi)
 	c.mu.Unlock()
-	c.m.CiktiYaz(c.w, s+"\n")
+	c.m.WriteOutput(c.w, s+"\n")
 }
 
 // sonuYaz bitiş satırını yazar. Terminalde görünen çubuğun satırı aynı yerde özet satırına
 // dönüşür ve (varsa) önce açılmış, bitmemiş çubuk yeniden görünür.
 func (c *Ilerleme) sonuYaz(son string) {
 	if !c.terminal || c.d.etkin != c {
-		c.m.CiktiYaz(c.w, son+"\n")
+		c.m.WriteOutput(c.w, son+"\n")
 		return
 	}
 	d := c.d
@@ -135,16 +135,16 @@ func (c *Ilerleme) sonuYaz(son string) {
 	for d.etkin != nil && d.etkin.bittiMi() {
 		d.etkin = d.etkin.onceki
 	}
-	c.m.CanliSatirAyarla(nil)
-	c.m.CanliSatirGuncelle(func() {
+	c.m.SetLiveLine(nil)
+	c.m.UpdateLiveLine(func() {
 		c.satir = son
 		c.ciz()
 		_, _ = io.WriteString(c.w, "\n")
 		d.ekrandaki = 0
 	})
 	if e := d.etkin; e != nil {
-		c.m.CanliSatirAyarla(e)
-		c.m.CanliSatirGuncelle(e.ciz)
+		c.m.SetLiveLine(e)
+		c.m.UpdateLiveLine(e.ciz)
 	}
 }
 
@@ -155,18 +155,18 @@ func (c *Ilerleme) bittiMi() bool {
 	return c.durdu
 }
 
-// Sil canlı satırı siler (yurut.CanliSatir); yorumlayıcı çıktı kilidi altında çağırır.
-func (c *Ilerleme) Sil() {
+// Clear canlı satırı siler (yurut.CanliSatir); yorumlayıcı çıktı kilidi altında çağırır.
+func (c *Ilerleme) Clear() {
 	if n := c.d.ekrandaki; n > 0 {
 		_, _ = io.WriteString(c.w, "\r"+strings.Repeat(" ", n)+"\r")
 		c.d.ekrandaki = 0
 	}
 }
 
-// Ciz canlı satırı yeniden çizer (yurut.CanliSatir); yorumlayıcı çıktı kilidi altında
+// Draw canlı satırı yeniden çizer (yurut.CanliSatir); yorumlayıcı çıktı kilidi altında
 // çağırır (ör. yazdır'dan sonra). Son güncelleme sıklık sınırı yüzünden çizilmediyse satır
 // önce tazelenir.
-func (c *Ilerleme) Ciz() {
+func (c *Ilerleme) Draw() {
 	if c.kirli.Load() {
 		c.mu.Lock()
 		c.satir = c.cubukSatiri(saat())
@@ -182,7 +182,7 @@ func (c *Ilerleme) ciz() {
 	if c.satir == "" {
 		return
 	}
-	s := c.m.Maskele(c.satir)
+	s := c.m.Mask(c.satir)
 	if r := []rune(s); c.genislik > 1 && len(r) > c.genislik-1 {
 		s = string(r[:c.genislik-2]) + "…"
 	}

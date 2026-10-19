@@ -18,9 +18,9 @@ import (
 
 // Testlerdeki VM'ler bu paketin ve yol alan öteki motorların yerleşiklerini içersin.
 func init() {
-	interp.MotorEkle(formats.Kaydet)
-	interp.MotorEkle(ml.Kaydet)
-	interp.MotorEkle(Kaydet)
+	interp.AddEngine(formats.Kaydet)
+	interp.AddEngine(ml.Kaydet)
+	interp.AddEngine(Kaydet)
 }
 
 // sonuc bir TR programının çalışmasıdır.

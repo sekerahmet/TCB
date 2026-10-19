@@ -42,7 +42,7 @@ type secenek struct {
 }
 
 // tipKodu seçenek tipinin (yardımda ve hatalarda gösterilen) tip kodudur.
-func (t tur) tipKodu() codes.Kod {
+func (t tur) tipKodu() codes.Code {
 	switch t {
 	case turTam:
 		return codes.A200
@@ -60,16 +60,16 @@ func (t tur) tipKodu() codes.Kod {
 var ayrilmisSecenekAdlari = []string{"yardım", "h"}
 
 func (d *Durum) komutSatiri(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(codes.G801)
+	fn := interp.CallPrefix(codes.G801)
 	if err := bind.AdliDenetle(fn, named, adAciklama, adAciklamalar); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgumanSayisiHatasi(codes.G801, "1", len(args), "{seçenek: varsayılan, ...}")
+		return nil, interp.ArgCountError(codes.G801, "1", len(args), "{seçenek: varsayılan, ...}")
 	}
 	sozluk, ok := args[0].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgumanTipHatasi(codes.G801, 1, args[0], codes.A206)
+		return nil, interp.ArgTypeError(codes.G801, 1, args[0], codes.A206)
 	}
 	// Kurulum önce denetlenir: tanımdaki hata, ikinci çağrıda da adıyla bildirilir.
 	secenekler, err := secenekleriKur(m, fn, sozluk)
@@ -106,7 +106,7 @@ func secenekleriKur(m *interp.VM, fn string, sozluk *interp.DictVal) ([]*secenek
 		}
 		if anahtar := sozluk.KeyValue(k); anahtar != nil {
 			if _, metin := anahtar.(*interp.StringVal); !metin {
-				return nil, fmt.Errorf("%s: seçenek adları %s olmalıdır, %s verildi", fn, codes.Ad(codes.A202), interp.TipVeOzet(anahtar))
+				return nil, fmt.Errorf("%s: seçenek adları %s olmalıdır, %s verildi", fn, codes.Name(codes.A202), interp.TypeAndSummary(anahtar))
 			}
 		}
 		if err := secenekAdiDenetle(fn, k); err != nil {
@@ -135,10 +135,10 @@ func secenekAdiDenetle(fn, ad string) error {
 	if slices.Contains(ayrilmisSecenekAdlari, ad) {
 		return fmt.Errorf("%s: %q seçenek adı olamaz: --yardım ve -h seçenekleri listeler", fn, ad)
 	}
-	if k, ok := codes.Bul(codes.AlanUye, ad); ok {
-		if tn, ok := codes.Tanimi(k); ok && slices.Contains(tn.Tipler(), codes.A206) {
+	if k, ok := codes.Find(codes.NamespaceMember, ad); ok {
+		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.A206) {
 			return fmt.Errorf("%s: %q seçenek adı olamaz: %s tipinin bir üyesidir, ayar.%s seçeneğin değerini değil üyeyi verirdi; başka bir ad seçin",
-				fn, ad, codes.Ad(codes.A206), ad)
+				fn, ad, codes.Name(codes.A206), ad)
 		}
 	}
 	return nil
@@ -158,7 +158,7 @@ func varsayilanTuru(fn, ad string, v interp.Value) (tur, tur, error) {
 			t, ok := duzTur(e)
 			if !ok {
 				return 0, 0, fmt.Errorf("%s: '%s' seçeneğinin liste varsayılanı yalnızca aynı tipte %s öğeler içerebilir; %d. öğe %s",
-					fn, ad, interp.TipAdlari(codes.A200, codes.A201, codes.A202, codes.A203), i+1, interp.TipVeOzet(e))
+					fn, ad, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), i+1, interp.TypeAndSummary(e))
 			}
 			switch {
 			case i == 0:
@@ -167,13 +167,13 @@ func varsayilanTuru(fn, ad string, v interp.Value) (tur, tur, error) {
 			case (oge == turTam && t == turOndalik) || (oge == turOndalik && t == turTam):
 				oge = turOndalik
 			default:
-				return 0, 0, fmt.Errorf("%s: '%s' seçeneğinin liste varsayılanındaki öğeler aynı tipte olmalı (%d. öğe %s)", fn, ad, i+1, interp.TipVeOzet(e))
+				return 0, 0, fmt.Errorf("%s: '%s' seçeneğinin liste varsayılanındaki öğeler aynı tipte olmalı (%d. öğe %s)", fn, ad, i+1, interp.TypeAndSummary(e))
 			}
 		}
 		return turListe, oge, nil
 	}
 	return 0, 0, fmt.Errorf("%s: '%s' seçeneğinin varsayılanı %s, %s ya da %s olmalı; %s verildi",
-		fn, ad, interp.TipAdlari(codes.A200, codes.A201, codes.A202, codes.A203), codes.Ad(codes.A205), codes.Ad(codes.A042), interp.TipVeOzet(v))
+		fn, ad, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.Name(codes.A205), codes.Name(codes.A042), interp.TypeAndSummary(v))
 }
 
 // duzTur Tam, Ondalık, Metin ya da Mantık değerin tipidir.
@@ -198,7 +198,7 @@ func aciklamalariOku(fn string, named map[string]interp.Value, secenekler []*sec
 	if v, ok := bind.AdliAl(named, adAciklama); ok {
 		s, ok := v.(*interp.StringVal)
 		if !ok {
-			return "", fmt.Errorf("%s: %s: %s olmalıdır, %s verildi", fn, adAciklama.TR, codes.Ad(codes.A202), interp.TipVeOzet(v))
+			return "", fmt.Errorf("%s: %s: %s olmalıdır, %s verildi", fn, adAciklama.TR, codes.Name(codes.A202), interp.TypeAndSummary(v))
 		}
 		aciklama = s.Val
 	}
@@ -208,7 +208,7 @@ func aciklamalariOku(fn string, named map[string]interp.Value, secenekler []*sec
 	}
 	sozluk, ok := v.(*interp.DictVal)
 	if !ok {
-		return "", fmt.Errorf("%s: %s: %s olmalıdır (seçenek adı → açıklama), %s verildi", fn, adAciklamalar.TR, codes.Ad(codes.A206), interp.TipVeOzet(v))
+		return "", fmt.Errorf("%s: %s: %s olmalıdır (seçenek adı → açıklama), %s verildi", fn, adAciklamalar.TR, codes.Name(codes.A206), interp.TypeAndSummary(v))
 	}
 	adlar := make([]string, len(secenekler))
 	for i, s := range secenekler {
@@ -222,14 +222,14 @@ func aciklamalariOku(fn string, named map[string]interp.Value, secenekler []*sec
 		i := slices.Index(adlar, k)
 		if i < 0 {
 			oneri := ""
-			if o := turkish.EnYakin(k, adlar); o != "" {
+			if o := turkish.Closest(k, adlar); o != "" {
 				oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 			}
 			return "", fmt.Errorf("%s: %s içindeki '%s' bir seçenek değil%s", fn, adAciklamalar.TR, sozluk.DisplayKey(k), oneri)
 		}
 		s, ok := deger.(*interp.StringVal)
 		if !ok {
-			return "", fmt.Errorf("%s: %s içinde '%s' seçeneğinin açıklaması %s olmalıdır, %s verildi", fn, adAciklamalar.TR, k, codes.Ad(codes.A202), interp.TipVeOzet(deger))
+			return "", fmt.Errorf("%s: %s içinde '%s' seçeneğinin açıklaması %s olmalıdır, %s verildi", fn, adAciklamalar.TR, k, codes.Name(codes.A202), interp.TypeAndSummary(deger))
 		}
 		secenekler[i].aciklama = s.Val
 	}

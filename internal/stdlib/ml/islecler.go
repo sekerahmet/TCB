@@ -47,7 +47,7 @@ func yayinDenetle(op string, a, b *tensor.Tensor) error {
 
 func cihazDenetle(islem string, a, b *tensor.Tensor) error {
 	if a.Device() != b.Device() {
-		return fmt.Errorf("%s: tensörler farklı cihazlarda (%s ve %s); önce .%s(...) ile aynı cihaza taşıyın", islem, a.Device(), b.Device(), codes.Ad(uyeCihaza))
+		return fmt.Errorf("%s: tensörler farklı cihazlarda (%s ve %s); önce .%s(...) ile aynı cihaza taşıyın", islem, a.Device(), b.Device(), codes.Name(uyeCihaza))
 	}
 	return nil
 }

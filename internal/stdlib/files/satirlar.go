@@ -18,7 +18,7 @@ import (
 )
 
 // SatirOkuyucuTipi dosya_satırları'nın verdiği okuyucunun tip adıdır (kod listesinde A257).
-var SatirOkuyucuTipi = interp.TipAdi(codes.A257)
+var SatirOkuyucuTipi = interp.TypeName(codes.A257)
 
 // satirSiniri bir satırın en çok bayt sayısıdır (64 MB); daha uzun bir "satır" çoğunlukla
 // satırlara bölünmemiş bir dosyadır ve belleği tüketirdi.
@@ -42,7 +42,7 @@ type SatirOkuyucu struct {
 }
 
 var (
-	_ interp.Akis           = (*SatirOkuyucu)(nil)
+	_ interp.Stream         = (*SatirOkuyucu)(nil)
 	_ interp.PropertyGetter = (*SatirOkuyucu)(nil)
 )
 
@@ -95,7 +95,7 @@ func acikDosyaHatasi(fn, ham, gercek string) error {
 		ne = "dosya"
 	}
 	return fmt.Errorf("%s: %q: %s bu programda bir %s ile okunuyor; önce okuyucuyu kapatın (x.%s()) ya da dosyayı sonuna kadar okuyun",
-		fn, ham, ne, SatirOkuyucuTipi, codes.Ad(codes.Y012))
+		fn, ham, ne, SatirOkuyucuTipi, codes.Name(codes.Y012))
 }
 
 // TumunuKapat açık kalmış satır okuyucularının dosyalarını kapatır, ardından geçici_klasör()
@@ -124,22 +124,22 @@ func okuyuculariKapat() {
 
 // satirlarYerlesik dosya_satırları(yol) yerleşiğidir: dosyayı açar (hata hemen verilir).
 func satirlarYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(codes.G112)
+	fn := interp.CallPrefix(codes.G112)
 	if len(args) != 1 {
-		return nil, interp.ArgumanSayisiHatasi(codes.G112, "1", len(args), "dosya")
+		return nil, interp.ArgCountError(codes.G112, "1", len(args), "dosya")
 	}
 	ham, err := yolOku(codes.G112, 1, args[0])
 	if err != nil {
 		return nil, err
 	}
-	cozulen, bakilanlar := m.YolCoz(filepath.FromSlash(ham))
+	cozulen, bakilanlar := m.ResolvePath(filepath.FromSlash(ham))
 	if b, err := os.Stat(cozulen); err == nil && b.IsDir() {
 		return nil, fmt.Errorf("%s: %q bir klasör; satırları okunacak dosyanın yolunu verin", fn, ham)
 	}
 	var r io.ReadCloser
-	m.Blocking(func() { r, err = interp.DosyaOkuyucuAc(cozulen) })
+	m.Blocking(func() { r, err = interp.OpenFileReader(cozulen) })
 	if err != nil {
-		return nil, interp.OkumaHatasi(fn, ham, "okunamadı", err, bakilanlar)
+		return nil, interp.ReadError(fn, ham, "okunamadı", err, bakilanlar)
 	}
 	o := &SatirOkuyucu{yol: ham, r: r, br: bufio.NewReaderSize(r, okumaTamponu)}
 	kayitEkle(r, gercekYol(cozulen))
@@ -163,34 +163,34 @@ func (o *SatirOkuyucu) Inspect() string {
 	return fmt.Sprintf("%s(%s, %s)", SatirOkuyucuTipi, o.yol, durum)
 }
 
-func (o *SatirOkuyucu) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
+func (o *SatirOkuyucu) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	if kd == codes.Y012 {
 		return o.kapatMetodu(), nil
 	}
 	if kd == codes.Y602 {
-		b := &interp.BuiltinVal{Name: codes.Ad(codes.Y602), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		b := &interp.BuiltinVal{Name: codes.Name(codes.Y602), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("%s() parametre almaz, %d verildi", codes.Ad(codes.Y602), len(args))
+				return nil, fmt.Errorf("%s() parametre almaz, %d verildi", codes.Name(codes.Y602), len(args))
 			}
-			d, devam, err := o.Sonraki(m)
+			d, devam, err := o.Next(m)
 			if err != nil || !devam {
 				return interp.NULL, err
 			}
 			return d, nil
 		}}
-		b.AdliAlmaz = true
+		b.NoNamedArgs = true
 		return b, nil
 	}
-	return nil, bind.UyeHatasi(string(SatirOkuyucuTipi), prop, codes.Adlar(codes.Y602, codes.Y012))
+	return nil, bind.UyeHatasi(string(SatirOkuyucuTipi), prop, codes.Names(codes.Y602, codes.Y012))
 }
 
 // kapatMetodu x.kapat() metodudur: dosyayı bırakır; bu çağrı kapattıysa doğru, zaten kapalıysa
 // yanlış verir. Kapatma (dosya sistemi çağrısı) yorumlayıcı kilidi bırakılarak yapılır; başka
 // bir görev o sırada diskten okuyorsa okuması bitince kapanır.
 func (o *SatirOkuyucu) kapatMetodu() *interp.BuiltinVal {
-	b := &interp.BuiltinVal{Name: codes.Ad(codes.Y012), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	b := &interp.BuiltinVal{Name: codes.Name(codes.Y012), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 0 {
-			return nil, fmt.Errorf("%s() parametre almaz, %d verildi", codes.Ad(codes.Y012), len(args))
+			return nil, fmt.Errorf("%s() parametre almaz, %d verildi", codes.Name(codes.Y012), len(args))
 		}
 		var kapatti bool
 		m.Blocking(func() {
@@ -202,19 +202,19 @@ func (o *SatirOkuyucu) kapatMetodu() *interp.BuiltinVal {
 		})
 		return interp.BoolToVal(kapatti), nil
 	}}
-	b.AdliAlmaz = true
+	b.NoNamedArgs = true
 	return b
 }
 
 // kapatildiHatasi kapatılmış okuyucudan satır istenince verilen hatadır.
 func (o *SatirOkuyucu) kapatildiHatasi() error {
 	return fmt.Errorf("%s: %q okuyucusu %s() ile kapatıldı; yeniden okumak için %s(...) ile yeni bir okuyucu açın",
-		SatirOkuyucuTipi, o.yol, codes.Ad(codes.Y012), codes.Ad(codes.G112))
+		SatirOkuyucuTipi, o.yol, codes.Name(codes.Y012), codes.Name(codes.G112))
 }
 
-// Sonraki sıradaki satırı verir; dosya bitince devam=false. Satır tamponda hazırsa yorumlayıcı
+// Next sıradaki satırı verir; dosya bitince devam=false. Satır tamponda hazırsa yorumlayıcı
 // kilidi bırakılmaz; diskten okumak gerekirse bırakılır (eşzamanlı görevler ilerler).
-func (o *SatirOkuyucu) Sonraki(m *interp.VM) (interp.Value, bool, error) {
+func (o *SatirOkuyucu) Next(m *interp.VM) (interp.Value, bool, error) {
 	if o.mu.TryLock() {
 		if o.bitti {
 			kapatildi := o.kapatildi
@@ -244,7 +244,7 @@ func (o *SatirOkuyucu) Sonraki(m *interp.VM) (interp.Value, bool, error) {
 		return nil, false, o.kapatildiHatasi()
 	}
 	if err != nil {
-		return nil, false, turkish.DosyaHatasi(interp.Cagri(codes.G112), o.yol, "okunamadı", err)
+		return nil, false, turkish.FileError(interp.CallPrefix(codes.G112), o.yol, "okunamadı", err)
 	}
 	if son {
 		return nil, false, nil
@@ -280,7 +280,7 @@ func (o *SatirOkuyucu) oku() (satir string, son bool, err error) {
 		if errors.Is(err, bufio.ErrBufferFull) {
 			if len(uzun)+len(parca) > satirSiniri {
 				o.kapat()
-				return "", false, turkish.Neden(fmt.Sprintf("%d. satır 64 MB'tan uzun; dosya satırlara bölünmemiş olabilir (bütün dosya için %s(...))", o.sayac+1, codes.Ad(codes.G110)))
+				return "", false, turkish.Reason(fmt.Sprintf("%d. satır 64 MB'tan uzun; dosya satırlara bölünmemiş olabilir (bütün dosya için %s(...))", o.sayac+1, codes.Name(codes.G110)))
 			}
 			uzun = append(uzun, parca...)
 			continue
@@ -325,3 +325,10 @@ func (o *SatirOkuyucu) kapat() {
 
 // bomBaytlari UTF-8 bayt sırası işaretidir (bazı programlar metin dosyalarının başına yazar).
 var bomBaytlari = []byte{0xEF, 0xBB, 0xBF}
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.PropertyGetter = (*SatirOkuyucu)(nil)
+	_ interp.Stream         = (*SatirOkuyucu)(nil)
+)

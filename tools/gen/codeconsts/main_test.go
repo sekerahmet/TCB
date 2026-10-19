@@ -31,10 +31,10 @@ func TestSabitlerGuncel(t *testing.T) {
 }
 
 // Go kaynaklarında (internal/lang/codes dışında) kodlar yalnızca adlı sabitlerle yazılır: aile + sayı
-// biçimi (kod.G + 100) kalmamalı. Sözlükte olmayan bir sabit yazılırsa derleme zaten düşer.
+// biçimi (codes.G + 100) kalmamalı. Sözlükte olmayan bir sabit yazılırsa derleme zaten düşer.
 func TestCiplakKodYok(t *testing.T) {
 	kok := reporoot.Kok()
-	desen := regexp.MustCompile(`\bkod\.[AGTYVWH] *\+`)
+	desen := regexp.MustCompile(`\bcodes\.[AGTYVWH] *\+`)
 	err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -54,7 +54,7 @@ func TestCiplakKodYok(t *testing.T) {
 		}
 		for i, satir := range strings.Split(string(veri), "\n") {
 			if desen.MatchString(satir) && !strings.Contains(satir, "desen") && !strings.HasPrefix(strings.TrimSpace(satir), "//") {
-				t.Errorf("%s:%d: kod adlı sabitle yazılmalı (kod.G100): %s", yol, i+1, strings.TrimSpace(satir))
+				t.Errorf("%s:%d: kod adlı sabitle yazılmalı (codes.G100): %s", yol, i+1, strings.TrimSpace(satir))
 			}
 		}
 		return nil

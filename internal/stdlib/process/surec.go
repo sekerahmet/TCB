@@ -7,7 +7,7 @@
 // Komut satırının sonucu (Durum.Ayarlar) başka motorlar için de saklanır: eğitim günlüğü
 // (internal/stdlib/logging) onu başlangıç kaydına yazar, kontrol noktası da kaydına koyabilir.
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package process
 
 import (
@@ -48,9 +48,9 @@ var (
 // Kaydet süreç yerleşiklerini VM'ye kaydeder ve programın süreç durumunu döndürür.
 func Kaydet(v *interp.VM) *Durum {
 	d := &Durum{}
-	v.AdlisizKaydet(codes.G800, ortamDegiskeni)
-	v.RegisterBuiltinKod(codes.G801, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Ad(codes.G801), func() (interp.Value, error) { return d.komutSatiri(m, args, named) })
+	v.RegisterNoNamed(codes.G800, ortamDegiskeni)
+	v.RegisterBuiltinCode(codes.G801, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return bind.Guvenli(codes.Name(codes.G801), func() (interp.Value, error) { return d.komutSatiri(m, args, named) })
 	})
 	return d
 }
@@ -123,14 +123,14 @@ func gizliEkle(m *interp.VM, deger string) {
 	if m == nil || sayiYaDaMantikMi(deger) {
 		return
 	}
-	m.GizliDegerEkle(deger)
+	m.AddSecret(deger)
 }
 
 // sayiYaDaMantikMi değer (boşluklar atılınca) bir sayı ya da mantık değeri mi?
 func sayiYaDaMantikMi(s string) bool {
 	s = strings.TrimSpace(s)
 	switch strings.ToLower(s) {
-	case "true", "false", codes.Ad(codes.A040), codes.Ad(codes.A041):
+	case "true", "false", codes.Name(codes.A040), codes.Name(codes.A041):
 		return true
 	}
 	if _, _, err := sayiBicimi(s); err == nil {

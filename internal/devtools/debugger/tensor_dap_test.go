@@ -10,7 +10,7 @@ import (
 
 // Bu paketin testlerinde gerçek tensör değerleri de kullanılabilsin diye tensör motoru
 // kaydedilir (motor paketi bu paketi içe aktardığından tamamı içe aktarılamaz).
-func init() { interp.MotorEkle(ml.Kaydet) }
+func init() { interp.AddEngine(ml.Kaydet) }
 
 // Değişkenler panelinde tensör ilk eksen boyunca açılır: 2 boyutluda satırlar (yine
 // açılabilir 1 boyutlu tensörler), 1 boyutluda sayılar; çok büyük tensörde ilk öğeler ve

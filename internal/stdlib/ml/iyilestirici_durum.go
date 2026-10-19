@@ -24,10 +24,10 @@ const (
 )
 
 // durumUyesi durum ve durumu_yükle üyelerini verir; başka bir üyeyse ok yanlış.
-func (o *Iyilestirici) durumUyesi(kd codes.Kod) (interp.Value, bool, error) {
+func (o *Iyilestirici) durumUyesi(kd codes.Code) (interp.Value, bool, error) {
 	switch kd {
 	case uyeDurum:
-		v, err := bind.Guvenli(interp.CagriAdi(uyeDurum), func() (interp.Value, error) {
+		v, err := bind.Guvenli(interp.CallName(uyeDurum), func() (interp.Value, error) {
 			s := interp.NewDictVal()
 			adlar, tensorler := o.durumTensorleri(true)
 			for i, ad := range adlar {
@@ -37,8 +37,8 @@ func (o *Iyilestirici) durumUyesi(kd codes.Kod) (interp.Value, bool, error) {
 		})
 		return v, true, err
 	case uyeDurumuYukle:
-		return &interp.BuiltinVal{Name: codes.Ad(uyeDurumuYukle), AdliAlmaz: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CagriAdi(uyeDurumuYukle), func() (interp.Value, error) { return o.durumuYukleTR(args) })
+		return &interp.BuiltinVal{Name: codes.Name(uyeDurumuYukle), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			return bind.Guvenli(interp.CallName(uyeDurumuYukle), func() (interp.Value, error) { return o.durumuYukleTR(args) })
 		}}, true, nil
 	}
 	return nil, false, nil
@@ -46,13 +46,13 @@ func (o *Iyilestirici) durumUyesi(kd codes.Kod) (interp.Value, bool, error) {
 
 // durumuYukleTR op.durumu_yükle(sözlük) metodudur.
 func (o *Iyilestirici) durumuYukleTR(args []interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(uyeDurumuYukle)
+	fn := interp.CallPrefix(uyeDurumuYukle)
 	if len(args) != 1 {
-		return nil, interp.ArgumanSayisiHatasi(uyeDurumuYukle, "1", len(args), "op."+codes.Ad(uyeDurum))
+		return nil, interp.ArgCountError(uyeDurumuYukle, "1", len(args), "op."+codes.Name(uyeDurum))
 	}
 	s, ok := args[0].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgumanTipHatasi(uyeDurumuYukle, 1, args[0], codes.A206)
+		return nil, interp.ArgTypeError(uyeDurumuYukle, 1, args[0], codes.A206)
 	}
 	st := make(map[string]*tensor.Tensor, len(s.Order))
 	for _, k := range s.Order {
@@ -63,7 +63,7 @@ func (o *Iyilestirici) durumuYukleTR(args []interp.Value) (interp.Value, error) 
 		d, ok := v.(*Deger)
 		if _, metin := s.KeyValue(k).(*interp.StringVal); !metin || !ok {
 			return nil, fmt.Errorf("%s: sözlük %s ile alınmış olmalı (anahtarları %s, değerleri %s); %q girdisi %s", fn,
-				codes.Ad(uyeDurum), codes.Ad(codes.A202), codes.Ad(codes.A212), s.DisplayKey(k), interp.TipVeOzet(v))
+				codes.Name(uyeDurum), codes.Name(codes.A202), codes.Name(codes.A212), s.DisplayKey(k), interp.TypeAndSummary(v))
 		}
 		st[k] = d.t
 	}
@@ -184,7 +184,7 @@ func (o *Iyilestirici) durumGirdisiDenetle(fn, ad string, sekil []int) error {
 		k = -1
 	case !sirali || !slices.Contains(gecerli, onek):
 		return fmt.Errorf("%s: %q bu iyileştiricinin (%s, %d parametre) durum anahtarı değil; durum aynı tipte ve aynı parametre listesiyle kurulmuş bir iyileştiricinin %s'u olmalı",
-			fn, ad, o.ad, len(o.params), codes.Ad(uyeDurum))
+			fn, ad, o.ad, len(o.params), codes.Name(uyeDurum))
 	}
 	beklenen := []int{2} // adım sayaçları
 	if k >= 0 && onek != "adim" {

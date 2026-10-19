@@ -31,7 +31,7 @@ func turevIzle(named map[string]interp.Value, konumlu interp.Value, varsayilan b
 // sayı (0 boyutlu tensör), iç içe sayı listesi ya da tensör olabilir. tür verilmezse
 // listeden float32, tensörden kaynağın türünde tensör oluşur.
 func tensorYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T100)
+	fn := codes.Name(codes.T100)
 	if len(args) < 1 {
 		return nil, fmt.Errorf("%s en az 1 parametre bekler", turevIzleyenOrnek("veri"))
 	}
@@ -51,7 +51,7 @@ func tensorYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.V
 		// Türü değiştirmenin tek yazımı t.türe(...)'dir; tür: yalnızca listeden ya da
 		// sayıdan oluştururken verilir (karar 14).
 		if _, verildi := bind.AdliAl(named, adTur); verildi {
-			return nil, fmt.Errorf("%s: girdi zaten bir tensör; türünü değiştirmek için t.%s(...) yazın (%s: yalnızca listeden ya da sayıdan oluştururken verilir)", fn, codes.Ad(codes.Y415), adTur.TR)
+			return nil, fmt.Errorf("%s: girdi zaten bir tensör; türünü değiştirmek için t.%s(...) yazın (%s: yalnızca listeden ya da sayıdan oluştururken verilir)", fn, codes.Name(codes.Y415), adTur.TR)
 		}
 		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak (aynı tür).
 		dt := d.t.DType()
@@ -85,8 +85,8 @@ func tensorYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.V
 // sekilliOlusturucu şekli liste olarak alan oluşturucular (sıfırlar([2, 3]) ...) içindir.
 // Şeklin tek yazımı listedir: sıfırlar(2, 3) biçimi kaldırıldı, yazılınca liste biçimini
 // önerir.
-func sekilliOlusturucu(kd codes.Kod, olustur func(sh []int, named map[string]interp.Value) (*tensor.Tensor, error)) interp.BuiltinFunc {
-	ad := codes.Ad(kd)
+func sekilliOlusturucu(kd codes.Code, olustur func(sh []int, named map[string]interp.Value) (*tensor.Tensor, error)) interp.BuiltinFunc {
+	ad := codes.Name(kd)
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) == 0 {
 			return nil, fmt.Errorf("%s([2, 3]) şekli liste olarak bekler", ad)
@@ -159,7 +159,7 @@ func rastgeleNormal(sh []int, named map[string]interp.Value) (*tensor.Tensor, er
 	if s, ok := bind.AdliAl(named, adTohum); ok {
 		tohum, ok := s.(*interp.IntVal)
 		if !ok {
-			return nil, fmt.Errorf("%s: %s tam sayı olmalıdır, %s verildi", codes.Ad(codes.T103), adTohum.TR, tipAdi(s))
+			return nil, fmt.Errorf("%s: %s tam sayı olmalıdır, %s verildi", codes.Name(codes.T103), adTohum.TR, tipAdi(s))
 		}
 		return tensor.Randn(rand.New(rand.NewSource(tohum.Val)), sh...), nil
 	}

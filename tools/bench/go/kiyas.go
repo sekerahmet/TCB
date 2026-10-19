@@ -2,7 +2,7 @@
 // programlarının yaptığı işleri aynı sonuç değerleriyle yapar ve sürelerini yazar.
 // tools/bench/kos.py derleyip çalıştırır.
 //
-// Katman: araçlar (tools); kullanıcıya gitmez.
+// Layer: tools (tools); kullanıcıya gitmez.
 package main
 
 import (

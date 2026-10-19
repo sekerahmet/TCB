@@ -27,7 +27,7 @@ func eksenliTensor(ad, kullanim string, args []interp.Value, n int, named map[st
 	}
 	d, ok := args[0].(*Deger)
 	if !ok {
-		if err := listeHatasi(ad, args[0], "tensörde", ad+"("+codes.Ad(codes.T100)+"(...))"); err != nil {
+		if err := listeHatasi(ad, args[0], "tensörde", ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 			return nil, 0, err
 		}
 		return nil, 0, fmt.Errorf("%s: bir tensör bekler, %s verildi", ad, tipAdi(args[0]))
@@ -49,7 +49,7 @@ func eksenliTensor(ad, kullanim string, args []interp.Value, n int, named map[st
 // birikimliToplamYerlesik birikimli_toplam(t, eksen: -1): şekil korunur, türev izler; tam
 // sayılı tensörün sonucu da tam sayılıdır.
 func birikimliToplamYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Ad(codes.T231)
+	ad := codes.Name(codes.T231)
 	d, e, err := eksenliTensor(ad, fmt.Sprintf("%s(t, %s: -1)", ad, adEksen.TR), args, 1, named)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func birikimliToplamYerlesik(_ *interp.VM, args []interp.Value, named map[string
 
 // enBuyukKYerlesik en_büyük_k(t, k, eksen: -1) → [değerler, indeksler].
 func enBuyukKYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Ad(codes.T232)
+	ad := codes.Name(codes.T232)
 	d, e, err := eksenliTensor(ad, fmt.Sprintf("%s(t, k, %s: -1)", ad, adEksen.TR), args, 2, named)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func enBuyukKYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp
 	k, ok := args[1].(*interp.IntVal)
 	L := d.t.Shape()[e]
 	if !ok {
-		return nil, fmt.Errorf("%s: k bir %s olmalıdır, %s verildi", ad, codes.Ad(codes.A200), tipAdi(args[1]))
+		return nil, fmt.Errorf("%s: k bir %s olmalıdır, %s verildi", ad, codes.Name(codes.A200), tipAdi(args[1]))
 	}
 	if k.Val < 0 || k.Val > int64(L) {
 		return nil, fmt.Errorf("%s: k = %d, ama %s şeklinde %d. eksenin uzunluğu %d; k 0 ile %d arasında olmalı",
@@ -90,7 +90,7 @@ func enBuyukKYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp
 
 // siralamaIndeksiYerlesik sıralama_indeksi(t, eksen: -1): kararlı, küçükten büyüğe.
 func siralamaIndeksiYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Ad(codes.T233)
+	ad := codes.Name(codes.T233)
 	d, e, err := eksenliTensor(ad, fmt.Sprintf("%s(t, %s: -1)", ad, adEksen.TR), args, 1, named)
 	if err != nil {
 		return nil, err

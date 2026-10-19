@@ -16,9 +16,9 @@ import (
 // listeleYerlesik klasörü_listele([klasör = "."], [kalıp = "*"]) yerleşiğidir: kalıba uyan
 // dosya ve klasörleri sıralı bir Yol listesi olarak verir.
 func listeleYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(codes.G121)
+	fn := interp.CallPrefix(codes.G121)
 	if len(args) > 2 {
-		return nil, interp.ArgumanSayisiHatasi(codes.G121, "0, 1 ya da 2", len(args), "", "klasör", "klasör, kalıp")
+		return nil, interp.ArgCountError(codes.G121, "0, 1 ya da 2", len(args), "", "klasör", "klasör, kalıp")
 	}
 	taban, desen := ".", "*"
 	if len(args) > 0 {
@@ -31,7 +31,7 @@ func listeleYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.
 	if len(args) > 1 {
 		s, ok := args[1].(*interp.StringVal)
 		if !ok {
-			return nil, interp.ArgumanTipHatasi(codes.G121, 2, args[1], codes.A202)
+			return nil, interp.ArgTypeError(codes.G121, 2, args[1], codes.A202)
 		}
 		desen = s.Val
 	}
@@ -39,10 +39,10 @@ func listeleYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.
 	if err != nil {
 		return nil, fmt.Errorf("%s: kalıp %q geçersiz: %v", fn, desen, err)
 	}
-	cozulen, bakilanlar := m.YolCoz(filepath.FromSlash(taban))
+	cozulen, bakilanlar := m.ResolvePath(filepath.FromSlash(taban))
 	bilgi, err := os.Stat(cozulen)
 	if err != nil {
-		return nil, interp.OkumaHatasi(fn, taban, "listelenemedi", err, bakilanlar)
+		return nil, interp.ReadError(fn, taban, "listelenemedi", err, bakilanlar)
 	}
 	if !bilgi.IsDir() {
 		return nil, fmt.Errorf("%s: %q bir dosya, klasör değil; listelenecek klasörü verin", fn, taban)
@@ -50,8 +50,8 @@ func listeleYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.
 	g := &gezgin{k: k, gorulen: map[string]bool{}}
 	m.Blocking(func() { g.gez(cozulen, "", 0) })
 	if g.okunamayan > 0 {
-		m.CiktiYaz(m.Err, fmt.Sprintf("Uyarı: %s: %d alt klasör okunamadı ve atlandı (ilki: %q: %s)\n",
-			fn, g.okunamayan, g.ilkOkunamayan, turkish.DosyaHatasiNedeni(g.ilkOkunamayan, g.ilkHata)))
+		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %d alt klasör okunamadı ve atlandı (ilki: %q: %s)\n",
+			fn, g.okunamayan, g.ilkOkunamayan, turkish.FileErrorReason(g.ilkOkunamayan, g.ilkHata)))
 	}
 	tabanYol := temizle(taban)
 	yollar := make([]string, len(g.bulunan))

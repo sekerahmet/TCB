@@ -31,13 +31,13 @@ const (
 )
 
 // tensorUyeKodlari öneri listesinin sırasıdır.
-var tensorUyeKodlari = []codes.Kod{uyeSekil, uyeCihaz, uyeTur, uyeGradyan, uyeDeger, uyeSekillendir, uyeDevrik, uyeEksenleriSirala, uyeDilim, uyeCihaza, uyeTure, uyeBol}
+var tensorUyeKodlari = []codes.Code{uyeSekil, uyeCihaz, uyeTur, uyeGradyan, uyeDeger, uyeSekillendir, uyeDevrik, uyeEksenleriSirala, uyeDilim, uyeCihaza, uyeTure, uyeBol}
 
-var tensorUyeleri = codes.Adlar(tensorUyeKodlari...)
+var tensorUyeleri = codes.Names(tensorUyeKodlari...)
 
-func tensorUyesi(k codes.Kod) bool { return slices.Contains(tensorUyeKodlari, k) }
+func tensorUyesi(k codes.Code) bool { return slices.Contains(tensorUyeKodlari, k) }
 
-func (d *Deger) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
+func (d *Deger) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	t := d.t
 	switch kd {
 	case uyeSekil:
@@ -51,7 +51,7 @@ func (d *Deger) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
 	case uyeGradyan:
 		if d.ara {
 			return nil, fmt.Errorf("bu tensör (%s) bir işlemin sonucu; gradyan yalnızca %s: %s ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici (%s, %s) kullanın ya da yeni değeri %s { } içinde hesaplayıp %s ile yeniden oluşturun",
-				sekilMetni(t.Shape()), adTurevIzle.TR, codes.Ad(codes.A040), codes.Ad(codes.T400), codes.Ad(codes.T401), codes.Ad(codes.T301), turevIzleyenOrnek("..."))
+				sekilMetni(t.Shape()), adTurevIzle.TR, codes.Name(codes.A040), codes.Name(codes.T400), codes.Name(codes.T401), codes.Name(codes.T301), turevIzleyenOrnek("..."))
 		}
 		g := t.Grad()
 		if g == nil {
@@ -65,7 +65,7 @@ func (d *Deger) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
 	case uyeDevrik:
 		return d.metot(uyeDevrik, func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("%s() argüman almaz", codes.Ad(uyeDevrik))
+				return nil, fmt.Errorf("%s() argüman almaz", codes.Name(uyeDevrik))
 			}
 			return devrik(t)
 		}), nil
@@ -79,13 +79,13 @@ func (d *Deger) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
 		return d.adliMetot(uyeBol, d.bol), nil
 	}
 	oneri := ""
-	if k, _, eski := codes.EskiBul(codes.AlanUye, prop, tensorUyesi); eski {
-		o := codes.Ad(k)
+	if k, _, eski := codes.FindOld(codes.NamespaceMember, prop, tensorUyesi); eski {
+		o := codes.Name(k)
 		if k == uyeDevrik {
 			o += "()" // metot
 		}
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
-	} else if o := turkish.EnYakin(prop, tensorUyeleri); o != "" {
+	} else if o := turkish.Closest(prop, tensorUyeleri); o != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 	}
 	return nil, fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", interp.VAL_TENSOR, prop, oneri)
@@ -93,12 +93,12 @@ func (d *Deger) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
 
 // metot adlı argüman almayan bir tensör metodunun bağlı değeridir; adliMetot adlı
 // argümanlarını kendisi denetleyen bir metodunkidir.
-func (d *Deger) metot(kd codes.Kod, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: codes.Ad(kd), Fn: fn, AdliAlmaz: true}
+func (d *Deger) metot(kd codes.Code, fn interp.BuiltinFunc) *interp.BuiltinVal {
+	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: fn, NoNamedArgs: true}
 }
 
-func (d *Deger) adliMetot(kd codes.Kod, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: codes.Ad(kd), Fn: fn}
+func (d *Deger) adliMetot(kd codes.Code, fn interp.BuiltinFunc) *interp.BuiltinVal {
+	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: fn}
 }
 
 func intListesi(sh []int) *interp.ListVal {
@@ -192,14 +192,14 @@ func (d *Deger) sekillendir(_ *interp.VM, args []interp.Value, _ map[string]inte
 		hedef = args
 	}
 	if len(hedef) == 0 {
-		return nil, fmt.Errorf("%s([4, 6]) yeni şekli liste olarak bekler", codes.Ad(uyeSekillendir))
+		return nil, fmt.Errorf("%s([4, 6]) yeni şekli liste olarak bekler", codes.Name(uyeSekillendir))
 	}
 	sh := make([]int, len(hedef))
 	bilinmeyen := 0
 	for i, v := range hedef {
 		n, ok := tamSayi(v)
 		if !ok || n < -1 {
-			return nil, fmt.Errorf("%s: şeklin %d. elemanı negatif olmayan bir tam sayı (ya da çıkarsanacak eksen için -1) olmalıdır, %s verildi", codes.Ad(uyeSekillendir), i+1, v.Inspect())
+			return nil, fmt.Errorf("%s: şeklin %d. elemanı negatif olmayan bir tam sayı (ya da çıkarsanacak eksen için -1) olmalıdır, %s verildi", codes.Name(uyeSekillendir), i+1, v.Inspect())
 		}
 		if n == -1 {
 			bilinmeyen++
@@ -207,7 +207,7 @@ func (d *Deger) sekillendir(_ *interp.VM, args []interp.Value, _ map[string]inte
 		sh[i] = n
 	}
 	if bilinmeyen > 1 {
-		return nil, fmt.Errorf("%s: yalnızca bir eksen -1 olabilir, %s verildi", codes.Ad(uyeSekillendir), sekilMetni(sh))
+		return nil, fmt.Errorf("%s: yalnızca bir eksen -1 olabilir, %s verildi", codes.Name(uyeSekillendir), sekilMetni(sh))
 	}
 	n := d.t.Numel()
 	carpim := 1
@@ -229,7 +229,7 @@ func (d *Deger) sekillendir(_ *interp.VM, args []interp.Value, _ map[string]inte
 func devrik(t *tensor.Tensor) (interp.Value, error) {
 	sh := t.Shape()
 	if len(sh) < 2 {
-		return nil, fmt.Errorf("%s() en az 2 boyutlu tensör ister, %s verildi", codes.Ad(uyeDevrik), sekilMetni(sh))
+		return nil, fmt.Errorf("%s() en az 2 boyutlu tensör ister, %s verildi", codes.Name(uyeDevrik), sekilMetni(sh))
 	}
 	r, err := guvenli(func() *tensor.Tensor { return t.T() })
 	if err != nil {
@@ -248,7 +248,7 @@ func (d *Deger) eksenleriSirala(_ *interp.VM, args []interp.Value, _ map[string]
 	if liste == nil {
 		liste = args
 	}
-	fn := codes.Ad(uyeEksenleriSirala)
+	fn := codes.Name(uyeEksenleriSirala)
 	sh := d.t.Shape()
 	if len(liste) != len(sh) {
 		return nil, fmt.Errorf("%s: %s şeklindeki %d boyutlu tensör için %d eksen verilmeli, %d verildi", fn, sekilMetni(sh), len(sh), len(sh), len(liste))
@@ -278,7 +278,7 @@ func (d *Deger) eksenleriSirala(_ *interp.VM, args []interp.Value, _ map[string]
 }
 
 func (d *Deger) dilim(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(uyeDilim)
+	fn := codes.Name(uyeDilim)
 	if len(args) != 3 {
 		return nil, fmt.Errorf("%s(eksen, baş, son) 3 parametre bekler, %d verildi", fn, len(args))
 	}

@@ -17,12 +17,12 @@ import (
 // silYerlesik sil(yol, içindekilerle: yanlış) yerleşiğidir: dosyayı, bağlantıyı ya da boş
 // klasörü (içindekilerle: doğru ile dolu klasörü) siler, silinen dosya sayısını verir.
 func silYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(codes.G123)
+	fn := interp.CallPrefix(codes.G123)
 	if err := bind.AdliDenetle(fn, named, adIcindekilerle); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgumanSayisiHatasi(codes.G123, "1", len(args), "dosya ya da klasör")
+		return nil, interp.ArgCountError(codes.G123, "1", len(args), "dosya ya da klasör")
 	}
 	ham, err := yolOku(codes.G123, 1, args[0])
 	if err != nil {
@@ -32,10 +32,10 @@ func silYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if err != nil {
 		return nil, err
 	}
-	cozulen, bakilanlar := m.YolCoz(filepath.FromSlash(ham))
+	cozulen, bakilanlar := m.ResolvePath(filepath.FromSlash(ham))
 	bilgi, err := os.Lstat(cozulen)
 	if err != nil {
-		return nil, interp.OkumaHatasi(fn, ham, "silinemedi", err, bakilanlar)
+		return nil, interp.ReadError(fn, ham, "silinemedi", err, bakilanlar)
 	}
 	gercek := gercekYol(cozulen)
 	if neden := silmeKorumasi(m, gercek); neden != "" {
@@ -47,7 +47,7 @@ func silYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if bilgi.IsDir() && !icindekilerle {
 		bos, err := bosKlasorMu(cozulen)
 		if err != nil {
-			return nil, turkish.DosyaHatasi(fn, ham, "silinemedi", err)
+			return nil, turkish.FileError(fn, ham, "silinemedi", err)
 		}
 		if !bos {
 			return nil, fmt.Errorf("%s: %q klasörü boş değil; içindekilerle birlikte silmek için %s doğru verin", fn, ham, adIcindekilerle.TR+":")
@@ -56,7 +56,7 @@ func silYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	var sayi int
 	m.Blocking(func() { sayi, err = agaciSil(cozulen, bilgi) })
 	if err != nil {
-		return nil, turkish.DosyaHatasi(fn, ham, "silinemedi", err)
+		return nil, turkish.FileError(fn, ham, "silinemedi", err)
 	}
 	return interp.NewInt(int64(sayi)), nil
 }
@@ -85,7 +85,7 @@ func saltOkunurHatasi(yol, ic string) error {
 	if ic != "" {
 		neden = fmt.Sprintf("içinde salt okunur bir dosya var (%q); TR salt okunur dosyaları zorla silmez, hiçbir şey silinmedi (önce yazma iznini açın)", ic)
 	}
-	return &fs.PathError{Op: "remove", Path: yol, Err: turkish.Neden(neden)}
+	return &fs.PathError{Op: "remove", Path: yol, Err: turkish.Reason(neden)}
 }
 
 // agaciSil yolu siler; klasörse içindekilerle birlikte. Bağlantıların gösterdiği yere

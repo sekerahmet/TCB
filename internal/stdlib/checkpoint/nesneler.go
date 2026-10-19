@@ -51,7 +51,7 @@ func nesneleriAyir(fn string, s *interp.DictVal) ([]*nesne, error) {
 			continue
 		}
 		if _, metin := s.KeyValue(k).(*interp.StringVal); !metin {
-			return nil, fmt.Errorf("%s: sözlük anahtarları nesne adları (%s) olmalıdır, %s verildi", fn, codes.Ad(codes.A202), s.DisplayKey(k))
+			return nil, fmt.Errorf("%s: sözlük anahtarları nesne adları (%s) olmalıdır, %s verildi", fn, codes.Name(codes.A202), s.DisplayKey(k))
 		}
 		if err := nesneAdiDenetle(k); err != nil {
 			return nil, fmt.Errorf("%s: %v", fn, err)
@@ -64,7 +64,7 @@ func nesneleriAyir(fn string, s *interp.DictVal) ([]*nesne, error) {
 	}
 	if len(out) == 0 || len(out) > enFazlaNesne {
 		return nil, fmt.Errorf("%s: kaydedilecek nesneler sözlüğü 1 ile %d arası nesne içermeli, ör. %s(\"runs/deneme1\", {model: model, op: op})",
-			fn, enFazlaNesne, codes.Ad(codes.T702))
+			fn, enFazlaNesne, codes.Name(codes.T702))
 	}
 	return out, nil
 }
@@ -105,10 +105,10 @@ func nesneKur(fn, ad string, v interp.Value) (*nesne, error) {
 		return nil, fmt.Errorf("%s: %q bir %s; düz bir değer doğrudan verilemez (geri yüklenirken yerine yazılamaz). Bir sözlüğe koyun: {%s: {değer: ...}}",
 			fn, ad, x.Type(), ad)
 	case *ml.Deger:
-		return nil, fmt.Errorf("%s: %q bir işlemin sonucu (ara tensör, %s); kaydedilecek tensörler yaprak olmalıdır: parametreler ve türevsiz güncellenen durum tensörleri", fn, ad, interp.TipVeOzet(v))
+		return nil, fmt.Errorf("%s: %q bir işlemin sonucu (ara tensör, %s); kaydedilecek tensörler yaprak olmalıdır: parametreler ve türevsiz güncellenen durum tensörleri", fn, ad, interp.TypeAndSummary(v))
 	}
 	return nil, fmt.Errorf("%s: %q kaydedilemez (%s); modeller, iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listeler verilebilir",
-		fn, ad, interp.TipVeOzet(v))
+		fn, ad, interp.TypeAndSummary(v))
 }
 
 // tensorPlani kaydedilecek bir tensördür: dosyadaki adı ve kaynağı.
@@ -240,7 +240,7 @@ func (n *nesne) modelUyumu(fn string, y *yuklenecek, surum int) error {
 	for _, ad := range y.sira {
 		if !slices.Contains(n.adlar, ad) {
 			oneri := ""
-			if o := turkish.EnYakin(ad, n.adlar); o != "" {
+			if o := turkish.Closest(ad, n.adlar); o != "" {
 				oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 			}
 			return fmt.Errorf("%s: kayıttaki %q tensörü modelde yok%s", fn, ad, oneri)
@@ -257,7 +257,7 @@ func ayarlarYazimi(m *interp.VM, a *interp.DictVal) json.RawMessage {
 	if a == nil {
 		return nil
 	}
-	b, err := duzYazSuzgecli(a, m.Maskele)
+	b, err := duzYazSuzgecli(a, m.Mask)
 	if err != nil {
 		return nil
 	}

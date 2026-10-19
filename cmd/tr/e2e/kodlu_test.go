@@ -58,9 +58,9 @@ func kodluKopya(t *testing.T, klasor string) int {
 		if err != nil {
 			return err
 		}
-		kodlu, err := source.Kodla(string(veri))
-		var sh *source.SozdizimiHatasi
-		var bh *source.BaslikHatasi
+		kodlu, err := source.Encode(string(veri))
+		var sh *source.SyntaxError
+		var bh *source.HeaderError
 		if errors.As(err, &sh) || errors.As(err, &bh) {
 			return nil
 		}
@@ -149,7 +149,7 @@ func TestKodlaCozGosterKomutlari(t *testing.T) {
 	s := tr(t, k, "kodla", k)
 	bekle(t, s, 1, []string{"kodlandı: ", "2 dosya incelendi, 1 dosya kodlandı."}, []string{"bozuk.tr: sözdizimi hatası olan kaynak çevrilmez"})
 	veri, _ := os.ReadFile(yol)
-	if want := source.Baslik + "\r\nA030 x = 1\r\nG100(\"x: {x}\") // yorum\r\n"; string(veri) != want {
+	if want := source.Header + "\r\nA030 x = 1\r\nG100(\"x: {x}\") // yorum\r\n"; string(veri) != want {
 		t.Errorf("kodlu dosya: %q, beklenen %q", veri, want)
 	}
 	if v, _ := os.ReadFile(bozuk); string(v) != "eğer {\n" {
@@ -182,7 +182,7 @@ func TestKodlaCozGosterKomutlari(t *testing.T) {
 func TestKodlaGosterStandartGiris(t *testing.T) {
 	turkce := "\xef\xbb\xbfdeğişken eğer_değil = 1\r\nyazdır(eğer_değil) // yorum\r\n"
 	kodla := calistir(t, trIkilisi, "", turkce, nil, "kodla", "-", "--dil", "tr")
-	if want := "\xef\xbb\xbf" + source.Baslik + "\r\nA030 eğer_değil = 1\r\nG100(eğer_değil) // yorum\r\n"; kodla.kod != 0 || kodla.cikti != want || kodla.hata != "" {
+	if want := "\xef\xbb\xbf" + source.Header + "\r\nA030 eğer_değil = 1\r\nG100(eğer_değil) // yorum\r\n"; kodla.kod != 0 || kodla.cikti != want || kodla.hata != "" {
 		t.Fatalf("tr kodla -: %q (çıkış %d, hata %q), beklenen %q", kodla.cikti, kodla.kod, kodla.hata, want)
 	}
 	if s := calistir(t, trIkilisi, "", kodla.cikti, nil, "göster", "-"); s.kod != 0 || s.cikti != turkce {
@@ -200,7 +200,7 @@ func TestKodlaGosterStandartGiris(t *testing.T) {
 	if bozuk.cikti != "" {
 		t.Errorf("ayrıştırılamayan metinde çıktı boş olmalı: %q", bozuk.cikti)
 	}
-	bekle(t, calistir(t, trIkilisi, "", source.Baslik+"\nA001 {\n", nil, "göster", "-"), 2, nil, []string{"Sözdizimi Hataları"})
+	bekle(t, calistir(t, trIkilisi, "", source.Header+"\nA001 {\n", nil, "göster", "-"), 2, nil, []string{"Sözdizimi Hataları"})
 	bekle(t, calistir(t, trIkilisi, "", "//! tr kodlu 2\n", nil, "kodla", "-"), 1, nil, []string{"tanımadığı bir kodlu biçim başlığı"})
 	bekle(t, calistir(t, trIkilisi, "", "x\n", nil, "göster", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
 	bekle(t, calistir(t, trIkilisi, "", "x\n", nil, "kodla", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})

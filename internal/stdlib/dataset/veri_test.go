@@ -212,7 +212,7 @@ func mustUye(t *testing.T, v interp.Value, ad string) interp.Value {
 	if !ok {
 		t.Fatalf("%T üyesi yok", v)
 	}
-	u, err := pg.GetProperty(codes.UyeKodu(ad), ad)
+	u, err := pg.GetProperty(codes.MemberCode(ad), ad)
 	if err != nil {
 		t.Fatal(err)
 	}

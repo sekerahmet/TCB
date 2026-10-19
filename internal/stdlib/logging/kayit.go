@@ -54,10 +54,10 @@ func GunlukMu(v interp.Value) (*Gunluk, bool) {
 	return g, ok
 }
 
-func (g *Gunluk) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
+func (g *Gunluk) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	if kd == codes.Y004 {
-		return &interp.BuiltinVal{Name: codes.Ad(codes.Y004), AdliAlmaz: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CagriAdi(codes.Y004), func() (interp.Value, error) { return g.ekle(args) })
+		return &interp.BuiltinVal{Name: codes.Name(codes.Y004), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			return bind.Guvenli(interp.CallName(codes.Y004), func() (interp.Value, error) { return g.ekle(args) })
 		}}, nil
 	}
 	return nil, uyeHatasi(string(GunlukTipi), prop, codes.Y004)
@@ -65,16 +65,16 @@ func (g *Gunluk) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
 
 // gunlukAc günlük(yol) yerleşiğidir.
 func (d *durum) gunlukAc(m *interp.VM, args []interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(codes.G810)
+	fn := interp.CallPrefix(codes.G810)
 	if len(args) != 1 {
-		return nil, interp.ArgumanSayisiHatasi(codes.G810, "1", len(args), "dosya")
+		return nil, interp.ArgCountError(codes.G810, "1", len(args), "dosya")
 	}
-	yol, ok, err := interp.YolArgumani(fn, args[0])
+	yol, ok, err := interp.PathArg(fn, args[0])
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, interp.ArgumanTipHatasi(codes.G810, 1, args[0], codes.A202)
+		return nil, interp.ArgTypeError(codes.G810, 1, args[0], codes.A202)
 	}
 	if !strings.EqualFold(filepath.Ext(yol), gunlukUzantisi) {
 		return nil, fmt.Errorf("%s: %q bir günlük dosyası adı değil; günlük %s uzantılı olmalı (her satırı bir JSON kaydı), ör. %q",
@@ -82,13 +82,13 @@ func (d *durum) gunlukAc(m *interp.VM, args []interp.Value) (interp.Value, error
 	}
 	g := &Gunluk{m: m, d: d, yol: yol, tamYol: bind.YolCoz(m, yol), program: filepath.Base(m.SourceFile), acilis: saat()}
 	if err := os.MkdirAll(filepath.Dir(g.tamYol), 0o755); err != nil {
-		return nil, turkish.DosyaHatasi(fn, yol, "oluşturulamadı", err)
+		return nil, turkish.FileError(fn, yol, "oluşturulamadı", err)
 	}
 	g.mu.Lock()
 	err = g.ac()
 	g.mu.Unlock()
 	if err != nil {
-		return nil, turkish.DosyaHatasi(fn, yol, "açılamadı", err)
+		return nil, turkish.FileError(fn, yol, "açılamadı", err)
 	}
 	return g, nil
 }
@@ -152,9 +152,9 @@ func (g *Gunluk) kapat() {
 
 // ekle Günlük.ekle(kayıt) metodudur: Sözlük bir kayıttır, Metin {"mesaj": ...} olur.
 func (g *Gunluk) ekle(args []interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(codes.Y004)
+	fn := interp.CallPrefix(codes.Y004)
 	if len(args) != 1 {
-		return nil, interp.ArgumanSayisiHatasi(codes.Y004, "1", len(args), "{ad: değer, ...}", "ileti")
+		return nil, interp.ArgCountError(codes.Y004, "1", len(args), "{ad: değer, ...}", "ileti")
 	}
 	kayit := interp.NewDictVal()
 	kayit.Set(aZaman, zamanDegeri(saat()))
@@ -166,7 +166,7 @@ func (g *Gunluk) ekle(args []interp.Value) (interp.Value, error) {
 			return nil, err
 		}
 	default:
-		return nil, interp.ArgumanTipHatasi(codes.Y004, 1, args[0], codes.A206, codes.A202)
+		return nil, interp.ArgTypeError(codes.Y004, 1, args[0], codes.A206, codes.A202)
 	}
 	if err := g.yaz(kayit); err != nil {
 		return nil, err
@@ -185,7 +185,7 @@ func olculeriEkle(fn string, kayit, sozluk *interp.DictVal, ayrilmis ...string) 
 		}
 		if a := sozluk.KeyValue(k); a != nil {
 			if _, metin := a.(*interp.StringVal); !metin {
-				return fmt.Errorf("%s: ölçü adları %s olmalıdır, %s verildi", fn, codes.Ad(codes.A202), interp.TipVeOzet(a))
+				return fmt.Errorf("%s: ölçü adları %s olmalıdır, %s verildi", fn, codes.Name(codes.A202), interp.TypeAndSummary(a))
 			}
 		}
 		for _, r := range ayrilmis {
@@ -232,11 +232,11 @@ func (g *Gunluk) yaz(kayit *interp.DictVal) error {
 	}
 	if g.dosya == nil {
 		if err := g.ac(); err != nil {
-			return turkish.DosyaHatasi(interp.Cagri(codes.G810), g.yol, "açılamadı", err)
+			return turkish.FileError(interp.CallPrefix(codes.G810), g.yol, "açılamadı", err)
 		}
 	}
 	if _, err := g.dosya.Write(satir); err != nil {
-		return turkish.DosyaHatasi(interp.Cagri(codes.G810), g.yol, "yazılamadı", err)
+		return turkish.FileError(interp.CallPrefix(codes.G810), g.yol, "yazılamadı", err)
 	}
 	g.baslangic = true
 	g.kayitlar++
@@ -245,9 +245,9 @@ func (g *Gunluk) yaz(kayit *interp.DictVal) error {
 
 // satir kaydı JSON satırına çevirir: NaN ve sonsuz metin olarak, gizli değerler *** olarak.
 func (g *Gunluk) satir(kayit *interp.DictVal) ([]byte, error) {
-	b, err := jsonwrite.YazSecenekli(kayit, jsonwrite.Secenekler{SayiDisiMetin: true, Metin: g.m.Maskele})
+	b, err := jsonwrite.YazSecenekli(kayit, jsonwrite.Secenekler{SayiDisiMetin: true, Metin: g.m.Mask})
 	if err != nil {
-		return nil, fmt.Errorf("%s: kayıt JSON'a yazılamadı: %v", interp.Cagri(codes.Y004), err)
+		return nil, fmt.Errorf("%s: kayıt JSON'a yazılamadı: %v", interp.CallPrefix(codes.Y004), err)
 	}
 	return append(b, '\n'), nil
 }
@@ -311,11 +311,17 @@ func zamanDegeri(t time.Time) *interp.StringVal {
 }
 
 // uyeHatasi tipin bilinmeyen bir üyesini, en yakın üyeyi önererek bildirir.
-func uyeHatasi(tip, prop string, uyeler ...codes.Kod) error {
-	adlar := codes.Adlar(uyeler...)
+func uyeHatasi(tip, prop string, uyeler ...codes.Code) error {
+	adlar := codes.Names(uyeler...)
 	oneri := fmt.Sprintf(" (üyeler: %s)", strings.Join(adlar, ", "))
-	if o := turkish.EnYakin(prop, adlar); o != "" {
+	if o := turkish.Closest(prop, adlar); o != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 	}
 	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", tip, prop, oneri)
 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.PropertyGetter = (*Gunluk)(nil)
+)

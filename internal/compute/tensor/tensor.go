@@ -18,7 +18,7 @@
 // veriyi kopyalamaz; yalnızca yeni ofset/adım üretir. Gradyanlar her zaman
 // tensörün kendi şekline göre bitişik ayrı bir depolamada tutulur.
 //
-// Katman: hesap çekirdeği (internal/compute); yalnızca internal/compute paketlerini içe aktarır.
+// Layer: compute core (internal/compute); yalnızca internal/compute paketlerini içe aktarır.
 package tensor
 
 import (

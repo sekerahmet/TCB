@@ -8,7 +8,7 @@
 // gorutin TR kodu çalıştırmaz, yorumlayıcı kilidini hiç tutmaz; .sonraki() beklerken
 // kilit bırakılır.
 //
-// Katman: motor (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
+// Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package dataset
 
 import (
@@ -34,9 +34,9 @@ import (
 
 // Tip adları.
 var (
-	KumeTipi        = string(interp.TipAdi(codes.A231)) // VeriKümesi
-	OrnekleyiciTipi = string(interp.TipAdi(codes.A232)) // Örnekleyici
-	SiraliTipi      = string(interp.TipAdi(codes.A233)) // SıralıOkuyucu
+	KumeTipi        = string(interp.TypeName(codes.A231)) // VeriKümesi
+	OrnekleyiciTipi = string(interp.TypeName(codes.A232)) // Örnekleyici
+	SiraliTipi      = string(interp.TypeName(codes.A233)) // SıralıOkuyucu
 )
 
 // onYuklemeDerinligi arka planda hazır tutulan toplu iş sayısıdır.
@@ -56,8 +56,8 @@ var (
 
 // Kaydet veri yerleşiklerini VM'ye kaydeder.
 func Kaydet(v *interp.VM) {
-	v.RegisterBuiltinKod(codes.V100, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		return bind.Guvenli(codes.Ad(codes.V100), func() (interp.Value, error) { return kumeAc(m, args, named) })
+	v.RegisterBuiltinCode(codes.V100, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		return bind.Guvenli(codes.Name(codes.V100), func() (interp.Value, error) { return kumeAc(m, args, named) })
 	})
 }
 
@@ -117,14 +117,14 @@ const (
 	uyeSonraki     = codes.Y602
 )
 
-var kumeUyeleri = codes.Adlar(uyeOrnekleyici, uyeSirali)
+var kumeUyeleri = codes.Names(uyeOrnekleyici, uyeSirali)
 
-func (k *Kume) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
+func (k *Kume) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case uyeOrnekleyici:
-		return metot(codes.Ad(uyeOrnekleyici), k.ornekleyici), nil
+		return metot(codes.Name(uyeOrnekleyici), k.ornekleyici), nil
 	case uyeSirali:
-		return metot(codes.Ad(uyeSirali), k.sirali), nil
+		return metot(codes.Name(uyeSirali), k.sirali), nil
 	}
 	return nil, bind.UyeHatasi("Veri kümesi", prop, kumeUyeleri)
 }
@@ -141,7 +141,7 @@ func onbellekDizini(m *interp.VM, fn string, named map[string]interp.Value) (str
 	if !ok {
 		return "", nil
 	}
-	d, ok, err := interp.YolArgumani(fn, v)
+	d, ok, err := interp.PathArg(fn, v)
 	if !ok || d == "" {
 		return "", fmt.Errorf("%s: %s yerel bir klasör yolu (metin) olmalıdır, ör. %s: \"onbellek/veri\"", fn, adOnbellek.TR, adOnbellek.TR)
 	}
@@ -154,14 +154,14 @@ func onbellekDizini(m *interp.VM, fn string, named map[string]interp.Value) (str
 }
 
 func kumeAc(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.V100)
+	fn := codes.Name(codes.V100)
 	if err := bind.AdliDenetle(fn+"()", named, adOnbellek, adKota); err != nil {
 		return nil, err
 	}
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(dizin) 1 parametre bekler (.npy veri dosyalarının klasörü ya da tek bir .npy dosyası), %d verildi", fn, len(args))
 	}
-	ham, ok, yolHata := interp.YolArgumani(fn, args[0])
+	ham, ok, yolHata := interp.PathArg(fn, args[0])
 	if !ok {
 		return nil, fmt.Errorf("%s: dizin bir metin olmalıdır, %s verildi", fn, args[0].Type())
 	}
@@ -214,7 +214,7 @@ func kumeAc(m *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 		}
 	})
 	if err != nil {
-		return nil, veriHatasi(fn, ham, err, interp.BakilanYerler(bakilanlar))
+		return nil, veriHatasi(fn, ham, err, interp.SearchedPlaces(bakilanlar))
 	}
 	if obDizin != "" && !kotaVar {
 		gereken := enBuyukParca(k) * int64(dataload.VarsayilanGrupBoyu+dataload.VarsayilanIleriBak)
@@ -266,13 +266,13 @@ func veriHatasi(fn, yol string, err error, ekler ...string) error {
 	case errors.Is(err, dataload.ErrOnbellekKilitli):
 		return fmt.Errorf("%s: %s", fn, temizle(strings.TrimPrefix(err.Error(), dataload.ErrOnbellekKilitli.Error()+": ")))
 	case bind.YokMu(err) && strings.Contains(err.Error(), "küme açılamadı"):
-		return turkish.DosyaHatasi(fn, yol, "açılamadı", err,
+		return turkish.FileError(fn, yol, "açılamadı", err,
 			append([]string{".npy veri dosyalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin"}, ekler...)...)
 	}
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
-		return turkish.DosyaHatasi(fn, filepath.ToSlash(pe.Path), "okunamadı", err)
+		return turkish.FileError(fn, filepath.ToSlash(pe.Path), "okunamadı", err)
 	}
 	msg := temizle(err.Error())
 	if strings.Contains(msg, "desenine uyan veri dosyası yok") {
@@ -346,23 +346,23 @@ func (o *Okuyucu) IzlemeEtiketi() string {
 
 // TabloVerisi okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.
 func (o *Okuyucu) TabloVerisi() ([]string, [][]string, error) {
-	return nil, nil, fmt.Errorf("okuyucu tablo olarak açılamaz; .%s() ile alınan girdi ve hedef tensörlerini inceleyin", codes.Ad(uyeSonraki))
+	return nil, nil, fmt.Errorf("okuyucu tablo olarak açılamaz; .%s() ile alınan girdi ve hedef tensörlerini inceleyin", codes.Name(uyeSonraki))
 }
 
-func (o *Okuyucu) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
+func (o *Okuyucu) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case uyeSonraki:
-		return metot(codes.Ad(uyeSonraki), o.sonraki), nil
+		return metot(codes.Name(uyeSonraki), o.sonraki), nil
 	case uyeDurum:
 		return o.DurumSozlugu(nil)
 	case uyeDurumuYukle:
-		return metot(codes.Ad(uyeDurumuYukle), o.durumuYukleTR), nil
+		return metot(codes.Name(uyeDurumuYukle), o.durumuYukleTR), nil
 	}
 	ne := OrnekleyiciTipi
 	if o.sirali {
 		ne = "Sıralı okuyucu"
 	}
-	return nil, bind.UyeHatasi(ne, prop, codes.Adlar(uyeSonraki, uyeDurum, uyeDurumuYukle))
+	return nil, bind.UyeHatasi(ne, prop, codes.Names(uyeSonraki, uyeDurum, uyeDurumuYukle))
 }
 
 // okuyucuArgumanlari toplu, bağlam ve (örnekleyicide) tohum argümanlarını okur. Konumlu
@@ -427,7 +427,7 @@ func okuyucuArgumanlari(fn string, args []interp.Value, named map[string]interp.
 }
 
 func (k *Kume) ornekleyici(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(uyeOrnekleyici)
+	fn := codes.Name(uyeOrnekleyici)
 	b, t, tohum, err := okuyucuArgumanlari(fn, args, named, true)
 	if err != nil {
 		return nil, err
@@ -443,7 +443,7 @@ func (k *Kume) ornekleyici(m *interp.VM, args []interp.Value, named map[string]i
 }
 
 func (k *Kume) sirali(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(uyeSirali)
+	fn := codes.Name(uyeSirali)
 	b, t, _, err := okuyucuArgumanlari(fn, args, named, false)
 	if err != nil {
 		return nil, err
@@ -492,7 +492,7 @@ func onYukleyiciKapatici(oy *dataload.OnYukleyici) func(time.Duration) error {
 
 // sonraki bir sonraki toplu işi [girdi, hedef] olarak verir; sıralı okuyucu bitince yok.
 func (o *Okuyucu) sonraki(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(uyeSonraki)
+	fn := codes.Name(uyeSonraki)
 	if err := bind.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
 	}
@@ -538,14 +538,14 @@ func (o *Okuyucu) sonraki(m *interp.VM, args []interp.Value, named map[string]in
 	return &interp.ListVal{Elements: []interp.Value{gt, ht}}, nil
 }
 
-var _ interp.Akis = (*Okuyucu)(nil)
+var _ interp.Stream = (*Okuyucu)(nil)
 
-// Sonraki sıralı okuyucuyu 'döngü iş içinde okuyucu { ... }' ile gezdirir (yurut.Akis):
+// Next sıralı okuyucuyu 'döngü iş içinde okuyucu { ... }' ile gezdirir (yurut.Akis):
 // her tur .sonraki()'nin verdiği [girdi, hedef] listesidir, veri bitince döngü biter.
 // Örnekleyici sonsuz ürettiği için döngüyle gezilmez.
-func (o *Okuyucu) Sonraki(m *interp.VM) (interp.Value, bool, error) {
+func (o *Okuyucu) Next(m *interp.VM) (interp.Value, bool, error) {
 	if !o.sirali {
-		return nil, false, fmt.Errorf("örnekleyici sonsuz toplu iş üretir, döngüyle gezilemez; adım sayısıyla döngü kurup .%s() kullanın (ya da .%s(...) ile sonlu bir okuyucu açın)", codes.Ad(uyeSonraki), codes.Ad(uyeSirali))
+		return nil, false, fmt.Errorf("örnekleyici sonsuz toplu iş üretir, döngüyle gezilemez; adım sayısıyla döngü kurup .%s() kullanın (ya da .%s(...) ile sonlu bir okuyucu açın)", codes.Name(uyeSonraki), codes.Name(uyeSirali))
 	}
 	d, err := o.sonraki(m, nil, nil)
 	if err != nil || d == interp.NULL {
@@ -577,3 +577,10 @@ func ayir(ti *dataload.TopluIs) ([]float32, []float32, error) {
 	}
 	return girdi, hedef, nil
 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.PropertyGetter = (*Kume)(nil)
+	_ interp.PropertyGetter = (*Okuyucu)(nil)
+)

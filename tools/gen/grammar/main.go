@@ -12,7 +12,7 @@
 //
 // Aynı denetim `go test ./tools/gen/...` ile de yapılır.
 //
-// Katman: araçlar (tools); kullanıcıya gitmez.
+// Layer: tools (tools); kullanıcıya gitmez.
 package main
 
 import (
@@ -67,11 +67,11 @@ func main() {
 
 // yazimDilleri gömülü bütün yazım dilleridir (Türkçe önce): kodlu dosya düzenleyicide seçilen
 // yazım dilinde (tr.yazimDili) gösterilir, renklendirme her dilin adlarını tanır.
-var yazimDilleri = func() []*codes.Dil {
-	d := []*codes.Dil{codes.Etkin()}
-	for _, kodu := range codes.Diller() {
-		if kodu != codes.Etkin().Kodu {
-			y, err := codes.DilYukle(kodu)
+var yazimDilleri = func() []*codes.Language {
+	d := []*codes.Language{codes.Active()}
+	for _, kodu := range codes.Languages() {
+		if kodu != codes.Active().Code {
+			y, err := codes.LoadLanguage(kodu)
 			if err != nil {
 				panic(err)
 			}
@@ -82,11 +82,11 @@ var yazimDilleri = func() []*codes.Dil {
 }()
 
 // dillerdekiAdlar kodun bütün yazım dillerindeki adlarıdır (yinelenmeden, Türkçe önce).
-func dillerdekiAdlar(k codes.Kod) []string {
+func dillerdekiAdlar(k codes.Code) []string {
 	var out []string
 	for _, d := range yazimDilleri {
-		if g, ok := d.Girdisi(k); ok && !slices.Contains(out, g.Ad) {
-			out = append(out, g.Ad)
+		if g, ok := d.Entry(k); ok && !slices.Contains(out, g.Name) {
+			out = append(out, g.Name)
 		}
 	}
 	return out
@@ -94,12 +94,12 @@ func dillerdekiAdlar(k codes.Kod) []string {
 
 // adlar kodların bütün yazım dillerindeki adlarıdır (önce Türkçeler sözlük sırasıyla, sonra
 // öbür dillerdekiler).
-func adlar(kodlar ...codes.Kod) []string {
+func adlar(kodlar ...codes.Code) []string {
 	var out []string
 	for _, d := range yazimDilleri {
 		for _, k := range kodlar {
-			if g, ok := d.Girdisi(k); ok && !slices.Contains(out, g.Ad) {
-				out = append(out, g.Ad)
+			if g, ok := d.Entry(k); ok && !slices.Contains(out, g.Name) {
+				out = append(out, g.Name)
 			}
 		}
 	}
@@ -108,10 +108,10 @@ func adlar(kodlar ...codes.Kod) []string {
 
 // grubundakiler harf ailesinin grup numaralı grubundaki (grup < 0 ise bütün ailedeki) ve
 // uygun(kod) doğru olan sözlük kodlarının adlarıdır.
-func grubundakiler(harf byte, grup int, uygun func(codes.Kod) bool) []string {
-	var secilen []codes.Kod
-	for _, k := range codes.Kodlar() {
-		if k.Harf() == harf && (grup < 0 || k.Grup() == grup) && (uygun == nil || uygun(k)) {
+func grubundakiler(harf byte, grup int, uygun func(codes.Code) bool) []string {
+	var secilen []codes.Code
+	for _, k := range codes.Codes() {
+		if k.Letter() == harf && (grup < 0 || k.Group() == grup) && (uygun == nil || uygun(k)) {
 			secilen = append(secilen, k)
 		}
 	}
@@ -119,7 +119,7 @@ func grubundakiler(harf byte, grup int, uygun func(codes.Kod) bool) []string {
 }
 
 // yerlesik kodun genel kapsamdaki bir yerleşik fonksiyon olup olmadığıdır.
-func yerlesik(k codes.Kod) bool { return k.Yerlesik() }
+func yerlesik(k codes.Code) bool { return k.IsBuiltin() }
 
 // kelimeler bir ad listesini \b(a|b|c)\b düzenli ifadesine çevirir. Adlar düzenli ifade
 // karakterleri içermez; yine de kaçışlanır.
@@ -199,7 +199,7 @@ func ekle(desenler ...string) []nesne {
 // Uret dil bilgisi dosyasının içeriğini sözlükten üretir.
 func Uret() ([]byte, error) {
 	// ad kodun bütün dillerdeki adlarının düzenli ifade seçeneğidir (değişken|var).
-	ad := func(k codes.Kod) string { return strings.Join(dillerdekiAdlar(k), "|") }
+	ad := func(k codes.Code) string { return strings.Join(dillerdekiAdlar(k), "|") }
 
 	kontrol := adlar(codes.A001, codes.A002, codes.A003, codes.A004, codes.A010, codes.A011, codes.A012, codes.A013, codes.A014, codes.A021, codes.A060, codes.A061, codes.A062, codes.A080, codes.A081)
 	bildirim := adlar(codes.A030, codes.A031, codes.A020, codes.A050)

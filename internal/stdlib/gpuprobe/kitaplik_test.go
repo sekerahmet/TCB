@@ -52,8 +52,8 @@ döngü normuon içinde [yanlış, doğru] {
 func TestGPUdaKitaplikGPTsi(t *testing.T) {
 	gpu.BenzetimiKaydet() // gerçek GPU varsa o kullanılır
 	defer tensor.SetDefaultDevice(tensor.CPU)
-	interp.KitaplikBagla(lib.Dosyalar)
-	defer interp.KitaplikBagla(nil)
+	interp.SetLibrary(lib.Dosyalar)
+	defer interp.SetLibrary(nil)
 	p := parser.New(lexer.New(gpuKitaplikProgrami))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {

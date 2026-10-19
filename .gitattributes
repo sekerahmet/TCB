@@ -11,5 +11,5 @@
 
 # Üretilmiş dosyalar: elle düzenlenmez, çakışmada yeniden üretilir (go generate ./internal/lang/codes)
 docs/kodlar.md linguist-generated=true
-internal/lang/codes/kodlar_uretilmis.go linguist-generated=true
+internal/lang/codes/codes_generated.go linguist-generated=true
 editors/vscode/syntaxes/tr.tmLanguage.json linguist-generated=true

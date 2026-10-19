@@ -22,10 +22,10 @@ func olcuDegeri(fn, ad string, v interp.Value) (interp.Value, error) {
 		if t := x.Tensor(); t.Numel() == 1 {
 			return &interp.FloatVal{Val: kisaOndalik(t.Item())}, nil
 		}
-		return x.DuzDeger(), nil
+		return x.PlainValue(), nil
 	}
 	return nil, fmt.Errorf("%s: '%s' ölçüsünün değeri %s ya da %s olmalı; %s verildi",
-		fn, ad, interp.TipAdlari(codes.A200, codes.A201, codes.A202, codes.A203), codes.Ad(codes.A212), interp.TipVeOzet(v))
+		fn, ad, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.Name(codes.A212), interp.TypeAndSummary(v))
 }
 
 // kisaOndalik float32'yi en kısa yazımıyla float64'e çevirir (0.1 → 0.1, 0.10000000149 değil).

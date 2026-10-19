@@ -15,7 +15,7 @@ import (
 // min, maks, karekök) sarılır: argüman tensörse tensör yolu, değilse eski yerleşik çalışır.
 func Kaydet(v *interp.VM) {
 	// Türevsiz kip görev başınadır (gorev.go).
-	v.GorevKancasiEkle(gorevKancasi)
+	v.AddTaskHook(gorevKancasi)
 
 	olusturuculariKaydet(v)
 	matematigiKaydet(v)
@@ -139,12 +139,12 @@ func enKucukTum(t *tensor.Tensor) *tensor.Tensor {
 
 // sar kodun bütün yazımlarına (ad ve sözlüğe göre Türkçe karaktersiz biçimi) aynı yeni
 // yerleşiği bağlar. Eski yerleşik (varsa) bu koddan okunur ve yeni fonksiyona verilir.
-func sar(v *interp.VM, kd codes.Kod, kur func(eski interp.BuiltinFunc) interp.BuiltinFunc) {
+func sar(v *interp.VM, kd codes.Code, kur func(eski interp.BuiltinFunc) interp.BuiltinFunc) {
 	var eski interp.BuiltinFunc
-	if b := v.Yerlesik(kd); b != nil {
+	if b := v.Builtin(kd); b != nil {
 		eski = b.Fn
 	}
-	v.YerlesikTanimla(kd, &interp.BuiltinVal{Name: codes.Ad(kd), Fn: kur(eski)})
+	v.DefineBuiltin(kd, &interp.BuiltinVal{Name: codes.Name(kd), Fn: kur(eski)})
 }
 
 // eskiCagir eski yerleşiği çağırır; yoksa argümanın tensör olmadığını bildirir.

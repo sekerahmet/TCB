@@ -39,7 +39,7 @@ type toplamaHatasi struct{ error }
 
 // kaydet noktayı kn.adim adımıyla yazar ve kullanıcıya gösterilecek yolunu verir.
 func (kn *KontrolNoktasi) kaydet(m *interp.VM) (string, error) {
-	fn := codes.Ad(codes.T702)
+	fn := codes.Name(codes.T702)
 	durum, plan, err := kn.topla(m)
 	if err != nil {
 		return "", toplamaHatasi{fmt.Errorf("%s: %v", fn, err)}
@@ -59,16 +59,16 @@ func (kn *KontrolNoktasi) kaydet(m *interp.VM) (string, error) {
 		if errors.As(err, &le) {
 			ekler = append(ekler, "ağ ve bulut sürücülerinde (ör. bağlanmış Drive) yeniden adlandırma başarısız olabilir: noktaları yerel diske kaydedip koşu klasörünü ara ara oraya kopyalayın")
 		}
-		return "", turkish.DosyaHatasi(fn, gorunen, "kaydedilemedi", err, ekler...)
+		return "", turkish.FileError(fn, gorunen, "kaydedilemedi", err, ekler...)
 	}
 	kn.sonGecerli = kn.adim
-	if err := interp.AtomikYaz(filepath.Join(kn.klasor, sonDosyasi), func(w io.Writer) error {
+	if err := interp.WriteAtomic(filepath.Join(kn.klasor, sonDosyasi), func(w io.Writer) error {
 		return json.NewEncoder(w).Encode(sonKaydi{Surum: bicimSurumu, Adim: kn.adim, Klasor: ad})
 	}); err != nil {
-		m.CiktiYaz(m.Err, fmt.Sprintf("Uyarı: %s: %s güncellenemedi (nokta kaydedildi; yükleme klasörlere bakar): %v\n", fn, sonDosyasi, turkish.DosyaHatasiNedeni(sonDosyasi, err)))
+		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %s güncellenemedi (nokta kaydedildi; yükleme klasörlere bakar): %v\n", fn, sonDosyasi, turkish.FileErrorReason(sonDosyasi, err)))
 	}
 	if err := kn.eskileriSil(ad); err != nil {
-		m.CiktiYaz(m.Err, fmt.Sprintf("Uyarı: %s: eski noktalar silinemedi: %v\n", fn, turkish.DosyaHatasiNedeni(kn.gorunen, err)))
+		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: eski noktalar silinemedi: %v\n", fn, turkish.FileErrorReason(kn.gorunen, err)))
 	}
 	return gorunen, nil
 }
@@ -107,7 +107,7 @@ func trSurumu() string {
 // noktayiYaz noktayı geçici klasöre yazar, diske işler ve yerine koyar.
 func (kn *KontrolNoktasi) noktayiYaz(ad string, durum []byte, plan []tensorPlani) (err error) {
 	if b, err := os.Stat(kn.klasor); err == nil && !b.IsDir() {
-		return turkish.Neden(klasorAdi + " bir dosya; noktaların klasörü olmalı")
+		return turkish.Reason(klasorAdi + " bir dosya; noktaların klasörü olmalı")
 	}
 	if err := os.MkdirAll(kn.klasor, 0o755); err != nil {
 		return err

@@ -15,7 +15,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-func adlar(kodlar ...codes.Kod) []Ad {
+func adlar(kodlar ...codes.Code) []Ad {
 	var a []Ad
 	for _, k := range kodlar {
 		a = append(a, KodAd(k))
@@ -26,7 +26,7 @@ func adlar(kodlar ...codes.Kod) []Ad {
 // KodAd yalnızca adlı argüman kodlarını (x9xx) kabul eder; yanlış kod başlangıçta panikler.
 func TestKodAd(t *testing.T) {
 	a := KodAd(codes.T910)
-	if a.TR != codes.Ad(codes.T910) || !a.Kabul(a.TR) || a.Yazimlar()[0] != a.TR {
+	if a.TR != codes.Name(codes.T910) || !a.Kabul(a.TR) || a.Yazimlar()[0] != a.TR {
 		t.Fatalf("KodAd(T910) = %+v", a)
 	}
 	defer func() {
@@ -42,9 +42,9 @@ func TestKodAd(t *testing.T) {
 // (büyük-küçük harf duyarsız), yine yalnızca bu fonksiyonun adlarındansa; (3) yazım
 // yakınlığı. Öneri yoksa geçerli adlar listelenir; fonksiyon adlı argüman almıyorsa söylenir.
 func TestAdliDenetleOneriSirasi(t *testing.T) {
-	ogrenme, eksen, epsilon := codes.Ad(codes.T910), codes.Ad(codes.T902), codes.Ad(codes.T905)
-	kaldirilan, ok := codes.OluBul(codes.AlanParametre, "nerede") // kaldırılmış bir adlı argümanın eski adı
-	if !ok || !codes.Kaldirildi(kaldirilan) {
+	ogrenme, eksen, epsilon := codes.Name(codes.T910), codes.Name(codes.T902), codes.Name(codes.T905)
+	kaldirilan, ok := codes.FindDead(codes.NamespaceParam, "nerede") // kaldırılmış bir adlı argümanın eski adı
+	if !ok || !codes.Removed(kaldirilan) {
 		t.Fatal("'nerede' kaldırılmış bir adlı argümanın eski adı olmalı; sınama verisini güncelleyin")
 	}
 	durumlar := []struct {
@@ -65,7 +65,7 @@ func TestAdliDenetleOneriSirasi(t *testing.T) {
 		{ad: "yabancı adın karşılığı bu fonksiyonda yok", verilen: "lr", adlar: adlar(codes.T902),
 			icerir: []string{eksen}, icermez: []string{ogrenme}},
 		{ad: "kaldırılmış kodun eski adı önerilmez", verilen: "nerede", adlar: adlar(codes.T902),
-			icerir: []string{eksen}, icermez: []string{"'" + codes.Ad(kaldirilan) + "'"}},
+			icerir: []string{eksen}, icermez: []string{"'" + codes.Name(kaldirilan) + "'"}},
 		{ad: "adlı argüman almayan fonksiyon", verilen: "eksen", adlar: nil, icerir: []string{"almaz"}},
 	}
 	for _, d := range durumlar {
@@ -172,7 +172,7 @@ func TestKurtarKesilmeyiYutmaz(t *testing.T) {
 	m := interp.New()
 	cevrildi := false
 	m.GlobalEnv.Define("dene_kurtar", &interp.BuiltinVal{Name: "dene_kurtar", Fn: func(y *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		y.Kes()
+		y.Interrupt()
 		_, _ = Kurtar(func() int {
 			y.Blocking(func() {}) // kilit geri alınınca kesilme paniği atılır
 			return 1
@@ -183,7 +183,7 @@ func TestKurtarKesilmeyiYutmaz(t *testing.T) {
 	if cevrildi {
 		t.Fatal("Kurtar kesilmeyi hataya çevirdi")
 	}
-	if !errors.Is(err, interp.ErrKesildi) {
+	if !errors.Is(err, interp.ErrInterrupted) {
 		t.Fatalf("görev kesilmiş olarak bitmeli: %v", err)
 	}
 }

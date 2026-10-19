@@ -23,9 +23,9 @@ import (
 // sırası) toplar. Aynı tensör bir kez yer alır. adlarıyla: doğru yol adı → tensör sözlüğü
 // verir ("bloklar.0.dikkat.Wq"); bu sözlük tensör_kaydet ile kaydedilebilir.
 func parametrelerYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T530)
+	fn := codes.Name(codes.T530)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(model, %s: %s) 1 konumlu parametre bekler, %d verildi", fn, adAdlariyla.TR, codes.Ad(codes.A041), len(args))
+		return nil, fmt.Errorf("%s(model, %s: %s) 1 konumlu parametre bekler, %d verildi", fn, adAdlariyla.TR, codes.Name(codes.A041), len(args))
 	}
 	if err := bind.AdliDenetle(fn+"()", named, adAdlariyla); err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func yapraklariTopla(fn string, model interp.Value, hepsi bool) (adlar []string,
 		case *interp.StructInstanceVal:
 			if !gezilen[x] {
 				gezilen[x] = true
-				x.AlanlariGez(func(ad string, d interp.Value) { gez(d, altYol(ad)) })
+				x.EachField(func(ad string, d interp.Value) { gez(d, altYol(ad)) })
 			}
 		case *interp.ListVal:
 			if !gezilen[x] {
@@ -156,7 +156,7 @@ func ParametreUyumu(fn string, adlar []string, bulunan []*Deger, kaynak map[stri
 	}
 	slices.Sort(fazla)
 	oneri := ""
-	if o := turkish.EnYakin(fazla[0], adlar); o != "" {
+	if o := turkish.Closest(fazla[0], adlar); o != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 	}
 	return fmt.Errorf("%s: %s %d fazla ad var, ilki %q modelde bir parametre değil%s", fn, kaynakAdi, len(fazla), fazla[0], oneri)
@@ -178,9 +178,9 @@ func TensoreYaz(p, kaynak *tensor.Tensor) {
 // sözlüğünü (tensör_yükle sonucu) modelin var olan parametrelerine yerinde yazar ve yazılan
 // parametre sayısını verir.
 func parametreleriYukleYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T703)
+	fn := codes.Name(codes.T703)
 	if len(args) != 2 {
-		return nil, interp.ArgumanSayisiHatasi(codes.T703, "2", len(args), "model", "{ad: tensör, ...}")
+		return nil, interp.ArgCountError(codes.T703, "2", len(args), "model", "{ad: tensör, ...}")
 	}
 	if err := bind.AdliDenetle(fn+"()", named); err != nil {
 		return nil, err
@@ -190,11 +190,11 @@ func parametreleriYukleYerlesik(_ *interp.VM, args []interp.Value, named map[str
 		return nil, err
 	}
 	if len(adlar) == 0 {
-		return nil, fmt.Errorf("%s: modelde türev izleyen parametre yok (%s); parametreler %s ile oluşturulmalı", fn, interp.TipVeOzet(args[0]), turevIzleyenOrnek("..."))
+		return nil, fmt.Errorf("%s: modelde türev izleyen parametre yok (%s); parametreler %s ile oluşturulmalı", fn, interp.TypeAndSummary(args[0]), turevIzleyenOrnek("..."))
 	}
 	s, ok := args[1].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgumanTipHatasi(codes.T703, 2, args[1], codes.A206)
+		return nil, interp.ArgTypeError(codes.T703, 2, args[1], codes.A206)
 	}
 	kaynak := make(map[string]*tensor.Tensor, len(s.Order))
 	sekiller := make(map[string][]int, len(s.Order))
@@ -204,11 +204,11 @@ func parametreleriYukleYerlesik(_ *interp.VM, args []interp.Value, named map[str
 			continue
 		}
 		if _, metin := s.KeyValue(k).(*interp.StringVal); !metin {
-			return nil, fmt.Errorf("%s: sözlük anahtarları parametre adları (%s) olmalıdır, %s verildi", fn, codes.Ad(codes.A202), s.DisplayKey(k))
+			return nil, fmt.Errorf("%s: sözlük anahtarları parametre adları (%s) olmalıdır, %s verildi", fn, codes.Name(codes.A202), s.DisplayKey(k))
 		}
 		d, ok := v.(*Deger)
 		if !ok {
-			return nil, fmt.Errorf("%s: %q değeri bir %s olmalıdır, %s verildi", fn, k, codes.Ad(codes.A212), tipAdi(v))
+			return nil, fmt.Errorf("%s: %q değeri bir %s olmalıdır, %s verildi", fn, k, codes.Name(codes.A212), tipAdi(v))
 		}
 		kaynak[k], sekiller[k] = d.t, d.t.Shape()
 	}

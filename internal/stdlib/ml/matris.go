@@ -79,7 +79,7 @@ func tamArg(args []interp.Value, i int, imza string) (int64, error) {
 
 // birimMatris birim_matris(n) yerleşiğidir: n×n birim matris.
 func birimMatris(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T111)
+	fn := codes.Name(codes.T111)
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(n) 1 parametre bekler", fn)
 	}

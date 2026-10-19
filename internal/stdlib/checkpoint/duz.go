@@ -104,8 +104,8 @@ func (y *duzYazici) yaz(v interp.Value, yol string, derinlik int) error {
 		b.WriteString("]}")
 	default:
 		return fmt.Errorf("%s: %s kaydedilemez; kontrol noktasındaki sözlük ve listeler yalnızca %s, %s, %s, %s, %s, %s ve %s içerebilir (tensörü .%s ile sayıya çevirin)",
-			yolAdi(yol), interp.TipVeOzet(v), codes.Ad(codes.A200), codes.Ad(codes.A201), codes.Ad(codes.A202), codes.Ad(codes.A203), codes.Ad(codes.A042),
-			codes.Ad(codes.A205), codes.Ad(codes.A206), codes.Ad(codes.Y404))
+			yolAdi(yol), interp.TypeAndSummary(v), codes.Name(codes.A200), codes.Name(codes.A201), codes.Name(codes.A202), codes.Name(codes.A203), codes.Name(codes.A042),
+			codes.Name(codes.A205), codes.Name(codes.A206), codes.Name(codes.Y404))
 	}
 	return nil
 }
@@ -224,17 +224,17 @@ func yerindeYenile(ad string, hedef, kayit interp.Value) error {
 	case *interp.DictVal:
 		k, ok := kayit.(*interp.DictVal)
 		if !ok {
-			return fmt.Errorf("%q kayıtta %s, şimdi %s", ad, interp.TipVeOzet(kayit), codes.Ad(codes.A206))
+			return fmt.Errorf("%q kayıtta %s, şimdi %s", ad, interp.TypeAndSummary(kayit), codes.Name(codes.A206))
 		}
 		*h = *k
 	case *interp.ListVal:
 		k, ok := kayit.(*interp.ListVal)
 		if !ok {
-			return fmt.Errorf("%q kayıtta %s, şimdi %s", ad, interp.TipVeOzet(kayit), codes.Ad(codes.A205))
+			return fmt.Errorf("%q kayıtta %s, şimdi %s", ad, interp.TypeAndSummary(kayit), codes.Name(codes.A205))
 		}
 		h.Elements = k.Elements
 	default:
-		return fmt.Errorf("%q yerinde yenilenemez (%s)", ad, interp.TipVeOzet(hedef))
+		return fmt.Errorf("%q yerinde yenilenemez (%s)", ad, interp.TypeAndSummary(hedef))
 	}
 	return nil
 }

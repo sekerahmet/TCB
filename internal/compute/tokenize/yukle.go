@@ -20,7 +20,7 @@
 //   - çözücü: ByteLevel, Metaspace, WordPiece, BPEDecoder, ByteFallback, Fuse,
 //     Strip, Replace, Sequence
 //
-// Katman: hesap çekirdeği (internal/compute); yalnızca internal/compute paketlerini içe aktarır.
+// Layer: compute core (internal/compute); yalnızca internal/compute paketlerini içe aktarır.
 package tokenize
 
 import (

@@ -50,8 +50,8 @@ func TestDilbilgisiTekYazim(t *testing.T) {
 	}
 	baskaDilde := map[string]bool{}
 	for _, d := range yazimDilleri[1:] {
-		for _, k := range d.Kodlar() {
-			baskaDilde[d.Ad(k)] = true
+		for _, k := range d.Codes() {
+			baskaDilde[d.Name(k)] = true
 		}
 	}
 	for _, ad := range []string{"eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veri_kümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık", "if", "var", "print", "Tensor"} {
@@ -59,12 +59,12 @@ func TestDilbilgisiTekYazim(t *testing.T) {
 			t.Errorf("%q listelerde olmalı", ad)
 		}
 	}
-	for _, k := range codes.Kodlar() {
-		g, _ := codes.Etkin().Girdisi(k)
-		if a := turkish.ASCII(g.Ad); a != g.Ad && kelimeler[a] && !baskaDilde[a] {
+	for _, k := range codes.Codes() {
+		g, _ := codes.Active().Entry(k)
+		if a := turkish.ASCII(g.Name); a != g.Name && kelimeler[a] && !baskaDilde[a] {
 			t.Errorf("%s'in ASCII yazımı %q listelerde olmamalı", k, a)
 		}
-		for _, e := range g.Eski {
+		for _, e := range g.Old {
 			if kelimeler[e] && !baskaDilde[e] {
 				t.Errorf("%s'in eski adı %q listelerde olmamalı", k, e)
 			}

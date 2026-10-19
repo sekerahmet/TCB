@@ -55,10 +55,10 @@ func yardimMetni(komut, aciklama string, secenekler []*secenek) string {
 // tipYazimi seçeneğin yardımdaki tipidir: <Tam>, <Metin>, <Tam,Tam,...>.
 func tipYazimi(s *secenek) string {
 	if s.tur == turListe {
-		t := codes.Ad(s.ogeTuru.tipKodu())
+		t := codes.Name(s.ogeTuru.tipKodu())
 		return t + "," + t + ",..."
 	}
-	return codes.Ad(s.tur.tipKodu())
+	return codes.Name(s.tur.tipKodu())
 }
 
 // varsayilanYazimi varsayılan değerin komut satırında yazılacağı biçimidir.

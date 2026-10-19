@@ -134,7 +134,7 @@ func TestTensorDuzDeger(t *testing.T) {
 		{tensor.Scalar(0.1), "0.1"},
 		{tensor.New([]float32{1, 2, 3}, 3), "[1.0, 2.0, 3.0]"},
 	} {
-		if got := Yeni(d.t).DuzDeger().Inspect(); got != d.want {
+		if got := Yeni(d.t).PlainValue().Inspect(); got != d.want {
 			t.Errorf("%v: %s, %s bekleniyordu", d.t.Shape(), got, d.want)
 		}
 	}

@@ -87,11 +87,11 @@ func (kn *KontrolNoktasi) tensorleriYukle(o *okunanNokta) (map[string]map[string
 // kesilmiş) uyarır.
 func (kn *KontrolNoktasi) gunlugeDevamYaz(m *interp.VM, fn string, n *nesne, o *okunanNokta) {
 	if u, err := n.gunluk.Uzunluk(); err == nil && u < o.nesneler[n.ad].kayit.Uzunluk {
-		m.CiktiYaz(m.Err, fmt.Sprintf("Uyarı: %s: %q günlüğü kayıttakinden kısa (%d bayt, kayıtta %d); günlük silinmiş ya da kesilmiş olabilir\n",
+		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %q günlüğü kayıttakinden kısa (%d bayt, kayıtta %d); günlük silinmiş ya da kesilmiş olabilir\n",
 			fn, n.ad, u, o.nesneler[n.ad].kayit.Uzunluk))
 	}
 	if err := n.gunluk.DevamYaz(o.adim); err != nil {
-		m.CiktiYaz(m.Err, fmt.Sprintf("Uyarı: %s: %q günlüğüne devam kaydı yazılamadı: %v\n", fn, n.ad, err))
+		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %q günlüğüne devam kaydı yazılamadı: %v\n", fn, n.ad, err))
 	}
 }
 
@@ -116,7 +116,7 @@ func (kn *KontrolNoktasi) ayarlariKarsilastir(m *interp.VM, d *durumKaydi) {
 	for _, k := range yeni.Order {
 		e, var_ := eski.Pairs[k]
 		if !var_ || e.Inspect() != yeni.Pairs[k].Inspect() {
-			eskiMetin := codes.Ad(codes.A042)
+			eskiMetin := codes.Name(codes.A042)
 			if var_ {
 				eskiMetin = e.Inspect()
 			}
@@ -127,6 +127,6 @@ func (kn *KontrolNoktasi) ayarlariKarsilastir(m *interp.VM, d *durumKaydi) {
 		return
 	}
 	slices.Sort(farklar)
-	m.CiktiYaz(m.Err, fmt.Sprintf("Not: %s: komut satırı ayarları kayıttakinden farklı (%s); bilerek değiştirdiyseniz sorun yok\n",
-		codes.Ad(codes.T702), strings.Join(farklar, ", ")))
+	m.WriteOutput(m.Err, fmt.Sprintf("Not: %s: komut satırı ayarları kayıttakinden farklı (%s); bilerek değiştirdiyseniz sorun yok\n",
+		codes.Name(codes.T702), strings.Join(farklar, ", ")))
 }

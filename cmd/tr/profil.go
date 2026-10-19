@@ -65,15 +65,15 @@ func programiHazirla(path string, argumanlar []string) (*interp.VM, *ast.Program
 	_, s := dosyaHazirla(path, calistirmaHazirligi)
 	machine := interp.New()
 	machine.SourceFile = path
-	machine.SourceCode = s.Metin
-	machine.ArgumanlariAyarla(argumanlar)
-	return machine, s.Program, s.Metin
+	machine.SourceCode = s.Text
+	machine.SetArgs(argumanlar)
+	return machine, s.Program, s.Text
 }
 
 // uyariYazici profil uyarılarını programın çıktı noktasından (canlı satırla eşgüdümlü)
 // standart hataya yazar.
 func uyariYazici(machine *interp.VM) func(string) {
-	return func(m string) { machine.CiktiYaz(os.Stderr, m+"\n") }
+	return func(m string) { machine.WriteOutput(os.Stderr, m+"\n") }
 }
 
 // olcumluProfilBaslat tr izle ve tr profil'in profilini başlatır: satır örneklemesi ve GPU

@@ -166,24 +166,24 @@ type aktarYeri struct {
 // aktarYerleri koddaki tüm 'aktar' deyimlerini kaynaktaki sırayla bulur. Ayrıştırıcı da
 // 'aktar' sözcüğünden sonraki ilk sözcük biriminin metnini modül yolu sayar; burada da
 // aynısı yapılır, böylece iç bloklardaki aktarımlar da kaçmaz. Aralıklar kaynağın gövdesine
-// göredir (kaynak.Bolumler; kodlu dosyada başlıktan sonrası).
+// göredir (source.Parts; kodlu dosyada başlıktan sonrası).
 func aktarYerleri(kod string) []aktarYeri {
-	b, _ := source.Ayir(kod)
-	l := b.Sozcukler()
+	b, _ := source.Split(kod)
+	l := b.Lexer()
 	var yerler []aktarYeri
 	for {
 		tok := l.NextToken()
 		if tok.Type == lexer.TOKEN_EOF {
 			return yerler
 		}
-		if tok.Type != lexer.TOKEN_AKTAR {
+		if tok.Type != lexer.TOKEN_IMPORT {
 			continue
 		}
 		yolTok := l.NextToken()
 		if yolTok.Type == lexer.TOKEN_EOF {
 			return yerler
 		}
-		bas, son := l.SonAralik()
+		bas, son := l.LastRange()
 		yerler = append(yerler, aktarYeri{bas: bas, son: son, yol: yolTok.Literal, satir: tok.Line})
 	}
 }
@@ -196,7 +196,7 @@ func modulYolunuCoz(yol, aktaran, ana string) (cozulen string, aranan []string, 
 	if !strings.HasSuffix(yol, ".tr") {
 		yol += ".tr"
 	}
-	return interp.ModulYolunuCoz(yol, interp.DosyaKlasorleri(aktaran, ana))
+	return interp.ResolveModulePath(yol, interp.FileDirs(aktaran, ana))
 }
 
 // kitaplikAktarimi pakette dilin gömülü kitaplığına (11.6) giden aktarımın işaretidir: bu
@@ -223,8 +223,8 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 	yerler := aktarYerleri(dosya.Kod)
 	dosya.Aktarimlar = make([]int, 0, len(yerler))
 	for _, y := range yerler {
-		if ad, ok := interp.KitaplikModulu(y.yol); ok {
-			if _, err := interp.KitaplikOku(ad); err != nil {
+		if ad, ok := interp.LibraryModule(y.yol); ok {
+			if _, err := interp.ReadLibrary(ad); err != nil {
 				return fmt.Errorf("%s, satır %d: %v", kaynakYolu, y.satir, err)
 			}
 			dosya.Aktarimlar = append(dosya.Aktarimlar, kitaplikAktarimi)
@@ -249,8 +249,8 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 		modul := paketDosyasi{Ad: filepath.ToSlash(cozulen), Kod: string(veri)}
 		// Modül yorumlayıcıdaki 'aktar' ile aynı denetimden geçer (sözdizimi, üst düzey
 		// 'sonuç', tip denetimi).
-		if s := interp.ModulDenetle(modul.Kod, t.genelAdlar, t.genelDinamik); s.Asama != "" {
-			return &modulDenetimHatasi{yol: filepath.ToSlash(cozulen), kod: s.Metin, tur: s.Asama, hatalar: s.Hatalar}
+		if s := interp.CheckModule(modul.Kod, t.genelAdlar, t.genelDinamik); s.Stage != "" {
+			return &modulDenetimHatasi{yol: filepath.ToSlash(cozulen), kod: s.Text, tur: s.Stage, hatalar: s.Errors}
 		}
 		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
 		// (döngünün kendisini yorumlayıcı çalışma anında bildirir).
@@ -281,7 +281,7 @@ func (e *modulDenetimHatasi) Error() string {
 // paketHazirla ana programı ve aktardığı tüm modülleri içeren paketi kurar.
 func paketHazirla(srcPath, kod string) (*paket, error) {
 	t := &modulToplayici{sira: map[string]int{}, ana: srcPath}
-	t.genelAdlar, t.genelDinamik = checker.UstDuzeyAdlari(source.Hazirla(kod, source.Secenekler{}).Program)
+	t.genelAdlar, t.genelDinamik = checker.TopLevelNames(source.Prepare(kod, source.Options{}).Program)
 	pk := &paket{Ana: paketDosyasi{Ad: filepath.ToSlash(srcPath), Kod: kod}}
 	if err := t.topla(&pk.Ana, srcPath); err != nil {
 		return nil, err
@@ -431,8 +431,8 @@ func aktarlariYonlendir(d paketDosyasi, yollar []string) (string, error) {
 	if len(yerler) == 0 {
 		return d.Kod, nil
 	}
-	b, _ := source.Ayir(d.Kod)
-	girdi := []rune(b.Govde)
+	b, _ := source.Split(d.Kod)
+	girdi := []rune(b.Body)
 	var sb strings.Builder
 	onceki := 0
 	for i, y := range yerler {
@@ -448,8 +448,8 @@ func aktarlariYonlendir(d paketDosyasi, yollar []string) (string, error) {
 		onceki = y.son
 	}
 	sb.WriteString(string(girdi[onceki:]))
-	b.Govde = sb.String()
-	return b.Birlestir(), nil
+	b.Body = sb.String()
+	return b.Join(), nil
 }
 
 // gomuluModulleriYaz modülleri geçici klasöre (aktarımları yönlendirilmiş olarak) yazar
@@ -507,10 +507,10 @@ func gomuluUygulamayiCalistir(pk *paket) {
 	machine.SourceFile = gomuluKaynakAdi
 	machine.KomutAdi = filepath.Base(os.Args[0])
 	// Hata çerçeveleri kullanıcının yazdığı (yönlendirilmemiş) kaynağı göstersin; satırlar aynıdır.
-	ozgun := source.Hazirla(pk.Ana.Kod, source.Secenekler{}).Metin
+	ozgun := source.Prepare(pk.Ana.Kod, source.Options{}).Text
 	machine.SourceCode = ozgun
 	// Üretilen uygulamanın bütün argümanları programındır (uygulama.exe --adım 5).
-	machine.ArgumanlariAyarla(os.Args[1:])
+	machine.SetArgs(os.Args[1:])
 	programCalistir(machine, s.Program, ozgun)
 	temizle()
 }

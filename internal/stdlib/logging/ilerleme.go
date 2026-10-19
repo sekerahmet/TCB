@@ -77,16 +77,16 @@ func (c *Ilerleme) Inspect() string {
 	return fmt.Sprintf("%s(%s%s)", IlerlemeTipi, c.adimYazimi(), ek)
 }
 
-func (c *Ilerleme) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
+func (c *Ilerleme) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case codes.Y010:
-		return &interp.BuiltinVal{Name: codes.Ad(codes.Y010), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-			return bind.Guvenli(interp.CagriAdi(codes.Y010), func() (interp.Value, error) { return c.guncelle(m, args, named) })
+		return &interp.BuiltinVal{Name: codes.Name(codes.Y010), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+			return bind.Guvenli(interp.CallName(codes.Y010), func() (interp.Value, error) { return c.guncelle(m, args, named) })
 		}}, nil
 	case codes.Y011:
-		return &interp.BuiltinVal{Name: codes.Ad(codes.Y011), AdliAlmaz: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+		return &interp.BuiltinVal{Name: codes.Name(codes.Y011), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, interp.ArgumanSayisiHatasi(codes.Y011, "0", len(args))
+				return nil, interp.ArgCountError(codes.Y011, "0", len(args))
 			}
 			return interp.BoolToVal(c.bitir(saat())), nil
 		}}, nil
@@ -96,21 +96,21 @@ func (c *Ilerleme) GetProperty(kd codes.Kod, prop string) (interp.Value, error) 
 
 // ilerlemeAc ilerleme(toplam, günlük: g) yerleşiğidir.
 func (d *durum) ilerlemeAc(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(codes.G811)
+	fn := interp.CallPrefix(codes.G811)
 	if err := bind.AdliDenetle(fn, named, adGunluk); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
-		return nil, interp.ArgumanSayisiHatasi(codes.G811, "0 ya da 1", len(args), "", "toplam_adım")
+		return nil, interp.ArgCountError(codes.G811, "0 ya da 1", len(args), "", "toplam_adım")
 	}
 	var toplam int64
 	if len(args) == 1 && args[0] != interp.NULL {
 		n, ok := bind.TamSayi(args[0])
 		if !ok {
-			return nil, interp.ArgumanTipHatasi(codes.G811, 1, args[0], codes.A200, codes.A204)
+			return nil, interp.ArgTypeError(codes.G811, 1, args[0], codes.A200, codes.A204)
 		}
 		if n <= 0 {
-			return nil, fmt.Errorf("%s: toplam adım sayısı pozitif olmalı, %d verildi (toplamsız bir sayaç için %s verin ya da argümansız çağırın)", fn, n, codes.Ad(codes.A042))
+			return nil, fmt.Errorf("%s: toplam adım sayısı pozitif olmalı, %d verildi (toplamsız bir sayaç için %s verin ya da argümansız çağırın)", fn, n, codes.Name(codes.A042))
 		}
 		toplam = n
 	}
@@ -118,7 +118,7 @@ func (d *durum) ilerlemeAc(m *interp.VM, args []interp.Value, named map[string]i
 	if v, ok := bind.AdliAl(named, adGunluk); ok && v != interp.NULL {
 		g, ok := v.(*Gunluk)
 		if !ok {
-			return nil, fmt.Errorf("%s: %s: bir %s olmalı (%s(...) ile açılır), %s verildi", fn, adGunluk.TR, GunlukTipi, codes.Ad(codes.G810), interp.TipVeOzet(v))
+			return nil, fmt.Errorf("%s: %s: bir %s olmalı (%s(...) ile açılır), %s verildi", fn, adGunluk.TR, GunlukTipi, codes.Name(codes.G810), interp.TypeAndSummary(v))
 		}
 		c.gunluk = g
 		g.toplamAyarla(toplam)
@@ -131,7 +131,7 @@ func (d *durum) ilerlemeAc(m *interp.VM, args []interp.Value, named map[string]i
 	if c.terminal {
 		c.onceki = d.etkin
 		d.etkin = c
-		m.CanliSatirAyarla(c)
+		m.SetLiveLine(c)
 	}
 	return c, nil
 }
@@ -159,18 +159,18 @@ var terminalSecimi = func(w io.Writer) (bool, int) {
 
 // guncelle İlerleme.güncelle([ölçüler], adım: n) metodudur.
 func (c *Ilerleme) guncelle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.Cagri(codes.Y010)
+	fn := interp.CallPrefix(codes.Y010)
 	if err := bind.AdliDenetle(fn, named, adAdim); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
-		return nil, interp.ArgumanSayisiHatasi(codes.Y010, "0 ya da 1", len(args), "", "{ölçü: değer, ...}")
+		return nil, interp.ArgCountError(codes.Y010, "0 ya da 1", len(args), "", "{ölçü: değer, ...}")
 	}
 	var olculer []olcu
 	if len(args) == 1 && args[0] != interp.NULL {
 		s, ok := args[0].(*interp.DictVal)
 		if !ok {
-			return nil, interp.ArgumanTipHatasi(codes.Y010, 1, args[0], codes.A206)
+			return nil, interp.ArgTypeError(codes.Y010, 1, args[0], codes.A206)
 		}
 		kayit := interp.NewDictVal()
 		if err := olculeriEkle(fn, kayit, s, aTur, aZaman, aAdim, aHiz); err != nil {
@@ -184,7 +184,7 @@ func (c *Ilerleme) guncelle(m *interp.VM, args []interp.Value, named map[string]
 	if v, ok := bind.AdliAl(named, adAdim); ok {
 		n, ok := bind.TamSayi(v)
 		if !ok || n < 0 {
-			return nil, fmt.Errorf("%s: %s: 0 ya da pozitif bir %s olmalı (tamamlanan adım sayısı), %s verildi", fn, adAdim.TR, codes.Ad(codes.A200), interp.TipVeOzet(v))
+			return nil, fmt.Errorf("%s: %s: 0 ya da pozitif bir %s olmalı (tamamlanan adım sayısı), %s verildi", fn, adAdim.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))
 		}
 		yeniAdim = n
 	}
@@ -208,7 +208,7 @@ func (c *Ilerleme) ilerle(fn string, simdi time.Time, yeniAdim int64, olculer []
 	c.mu.Lock()
 	if c.durdu {
 		c.mu.Unlock()
-		return false, fmt.Errorf("%s: çubuk bitti (%s); devam etmek için yeni bir %s(...) açın", fn, c.adimYazimi(), codes.Ad(codes.G811))
+		return false, fmt.Errorf("%s: çubuk bitti (%s); devam etmek için yeni bir %s(...) açın", fn, c.adimYazimi(), codes.Name(codes.G811))
 	}
 	switch {
 	case yeniAdim < 0:
@@ -305,3 +305,10 @@ func (c *Ilerleme) bitir(simdi time.Time) bool {
 
 // yuvarla bir ölçümü günlük için 3 ondalık basamağa yuvarlar.
 func yuvarla(f float64) float64 { return math.Round(f*1000) / 1000 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.PropertyGetter = (*Ilerleme)(nil)
+	_ interp.LiveLine       = (*Ilerleme)(nil)
+)

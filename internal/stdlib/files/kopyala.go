@@ -39,33 +39,33 @@ type tasimaIsi struct {
 	atlanan     []string
 }
 
-func tasimaYap(m *interp.VM, kd codes.Kod, args []interp.Value, named map[string]interp.Value, tasi bool) (interp.Value, error) {
+func tasimaYap(m *interp.VM, kd codes.Code, args []interp.Value, named map[string]interp.Value, tasi bool) (interp.Value, error) {
 	is, err := tasimaHazirla(m, kd, args, named, tasi)
 	if err != nil {
 		return nil, err
 	}
 	m.Blocking(func() { err = is.yap() })
 	if len(is.atlanan) > 0 {
-		m.CiktiYaz(m.Err, fmt.Sprintf("Uyarı: %s: %d bağlantı ya da özel dosya kopyalanmadı (ilki: %q); TR bağlantıları izlemez\n", is.fn, len(is.atlanan), is.atlanan[0]))
+		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %d bağlantı ya da özel dosya kopyalanmadı (ilki: %q); TR bağlantıları izlemez\n", is.fn, len(is.atlanan), is.atlanan[0]))
 	}
 	if err != nil {
 		islem := "kopyalanamadı"
 		if tasi {
 			islem = "taşınamadı"
 		}
-		return nil, turkish.DosyaHatasi(is.fn, is.kaynakHam, islem, err)
+		return nil, turkish.FileError(is.fn, is.kaynakHam, islem, err)
 	}
 	return YeniYol(is.sonHam), nil
 }
 
 // tasimaHazirla argümanları okur, kaynağı ve son hedefi bulur, güvenlik kurallarını denetler.
-func tasimaHazirla(m *interp.VM, kd codes.Kod, args []interp.Value, named map[string]interp.Value, tasi bool) (*tasimaIsi, error) {
-	fn := interp.Cagri(kd)
+func tasimaHazirla(m *interp.VM, kd codes.Code, args []interp.Value, named map[string]interp.Value, tasi bool) (*tasimaIsi, error) {
+	fn := interp.CallPrefix(kd)
 	if err := bind.AdliDenetle(fn, named, adUzerineYaz); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, interp.ArgumanSayisiHatasi(kd, "2", len(args), "kaynak, hedef")
+		return nil, interp.ArgCountError(kd, "2", len(args), "kaynak, hedef")
 	}
 	kaynakHam, err := yolOku(kd, 1, args[0])
 	if err != nil {
@@ -102,10 +102,10 @@ func klasorIstendi(d interp.Value) bool {
 }
 
 func (is *tasimaIsi) kaynakBul(m *interp.VM) error {
-	cozulen, bakilanlar := m.YolCoz(filepath.FromSlash(is.kaynakHam))
+	cozulen, bakilanlar := m.ResolvePath(filepath.FromSlash(is.kaynakHam))
 	b, err := os.Lstat(cozulen)
 	if err != nil {
-		return interp.OkumaHatasi(is.fn, is.kaynakHam, "bulunamadı", err, bakilanlar)
+		return interp.ReadError(is.fn, is.kaynakHam, "bulunamadı", err, bakilanlar)
 	}
 	switch {
 	case baglantiMi(b.Mode()) && !is.tasi:
@@ -127,7 +127,7 @@ func (is *tasimaIsi) kaynakBul(m *interp.VM) error {
 
 // hedefBul son hedefi bulur: hedef var olan bir klasörse kaynak onun içine aynı adla gider.
 func (is *tasimaIsi) hedefBul(m *interp.VM, hedefHam string, klasorIste bool) error {
-	hedef, _ := m.YolCoz(filepath.FromSlash(hedefHam))
+	hedef, _ := m.ResolvePath(filepath.FromSlash(hedefHam))
 	b, err := os.Lstat(hedef)
 	switch {
 	case err == nil && b.IsDir():
@@ -135,20 +135,20 @@ func (is *tasimaIsi) hedefBul(m *interp.VM, hedefHam string, klasorIste bool) er
 		is.son, is.sonHam = filepath.Join(hedef, ad), path.Join(temizle(hedefHam), ad)
 		return nil
 	case err == nil && baglantiMi(b.Mode()):
-		return fmt.Errorf("%s: hedef %q bir bağlantı; TR bağlantıların gösterdiği yere yazmaz (önce %s(...) ile kaldırın)", is.fn, hedefHam, codes.Ad(codes.G123))
+		return fmt.Errorf("%s: hedef %q bir bağlantı; TR bağlantıların gösterdiği yere yazmaz (önce %s(...) ile kaldırın)", is.fn, hedefHam, codes.Name(codes.G123))
 	case err == nil && klasorIste:
 		return fmt.Errorf("%s: hedef %q bir dosya, klasör değil", is.fn, hedefHam)
 	case err != nil && !bind.YokMu(err):
-		return turkish.DosyaHatasi(is.fn, hedefHam, "açılamadı", err)
+		return turkish.FileError(is.fn, hedefHam, "açılamadı", err)
 	case err != nil && klasorIste:
-		return fmt.Errorf("%s: hedef klasör %q yok; önce %s(%q) ile oluşturun", is.fn, hedefHam, codes.Ad(codes.G122), strings.TrimRight(hedefHam, `/\`))
+		return fmt.Errorf("%s: hedef klasör %q yok; önce %s(%q) ile oluşturun", is.fn, hedefHam, codes.Name(codes.G122), strings.TrimRight(hedefHam, `/\`))
 	}
 	if _, err := os.Stat(filepath.Dir(hedef)); err != nil {
 		var pe *fs.PathError
 		if errors.As(err, &pe) {
 			err = &fs.PathError{Op: pe.Op, Path: hedef, Err: pe.Err}
 		}
-		return turkish.DosyaHatasi(is.fn, hedefHam, "yazılamadı", err)
+		return turkish.FileError(is.fn, hedefHam, "yazılamadı", err)
 	}
 	is.son, is.sonHam = hedef, hedefHam
 	return nil
@@ -175,7 +175,7 @@ func (is *tasimaIsi) cakismaDenetle(m *interp.VM, uzerineYaz bool) error {
 	case !uzerineYaz:
 		return fmt.Errorf("%s: hedef %q zaten var; yerine koymak için %s doğru verin", is.fn, is.sonHam, adUzerineYaz.TR+":")
 	case baglantiMi(v.Mode()):
-		return fmt.Errorf("%s: hedef %q bir bağlantı; TR bağlantıların yerine yazmaz (önce %s(...) ile kaldırın)", is.fn, is.sonHam, codes.Ad(codes.G123))
+		return fmt.Errorf("%s: hedef %q bir bağlantı; TR bağlantıların yerine yazmaz (önce %s(...) ile kaldırın)", is.fn, is.sonHam, codes.Name(codes.G123))
 	case v.IsDir() && !is.kaynakBilgi.IsDir():
 		return fmt.Errorf("%s: hedef %q bir klasör, kaynak bir dosya; dosya bir klasörün yerine konmaz", is.fn, is.sonHam)
 	case !v.IsDir() && is.kaynakBilgi.IsDir():

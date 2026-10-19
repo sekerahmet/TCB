@@ -12,7 +12,7 @@ import (
 func TestKaldirilanYerlesiklerKayitliDegil(t *testing.T) {
 	m := interp.New()
 	for _, ad := range m.GlobalEnv.Names() {
-		if ipucu := hint.KaldirilanYerlesikIpucu(ad); ipucu != "" {
+		if ipucu := hint.BuiltinSpellingHint(ad); ipucu != "" {
 			t.Errorf("%q kayıtlı olmamalı:%s", ad, ipucu)
 		}
 	}

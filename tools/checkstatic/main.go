@@ -7,7 +7,7 @@
 //
 //	go run ./tools/checkstatic PROGRAM_DOSYASI   // statikse 0, değilse bağımlılıkları yazıp 1
 //
-// Katman: araçlar (tools); kullanıcıya gitmez.
+// Layer: tools (tools); kullanıcıya gitmez.
 package main
 
 import (

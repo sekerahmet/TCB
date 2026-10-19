@@ -15,7 +15,7 @@ import (
 // olmalıdır ve a ya da b olduğu gibi döner. Değilse sayılar ve Mantık tensöre çevrilir
 // (a ile b'deki sayılar ilk tensör işlenenin türünü alır), üç şekil yayınlanır.
 func kosulluYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	ad := codes.Ad(codes.T234)
+	ad := codes.Name(codes.T234)
 	if err := bind.AdliDenetle(ad+"()", named); err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func kosulluYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp.
 		return nil, fmt.Errorf("%s(koşul, a, b) 3 parametre bekler, %d verildi", ad, len(args))
 	}
 	for _, a := range args {
-		if err := listeHatasi(ad, a, "tensörde, sayıda ve "+codes.Ad(codes.A203)+" değerinde", ad+"("+codes.Ad(codes.T100)+"(...), a, b)"); err != nil {
+		if err := listeHatasi(ad, a, "tensörde, sayıda ve "+codes.Name(codes.A203)+" değerinde", ad+"("+codes.Name(codes.T100)+"(...), a, b)"); err != nil {
 			return nil, err
 		}
 	}
@@ -66,7 +66,7 @@ func kosulDegeri(ad string, v interp.Value) (bool, error) {
 	if f, ok := interp.ToFloat(v); ok {
 		return f != 0, nil
 	}
-	return false, fmt.Errorf("%s: koşul %s, sayı ya da tensör olmalıdır, %s verildi", ad, codes.Ad(codes.A203), tipAdi(v))
+	return false, fmt.Errorf("%s: koşul %s, sayı ya da tensör olmalıdır, %s verildi", ad, codes.Name(codes.A203), tipAdi(v))
 }
 
 // tamSayiliMi değer tam sayılı bir tensör ya da Tam mı (sonucun tam sayılı kalması için).
@@ -91,7 +91,7 @@ func kosulTensorleri(ad string, args []interp.Value) ([]*tensor.Tensor, error) {
 		}
 	} else if _, ok := kosul.(*Deger); !ok {
 		if _, sayi := interp.ToFloat(kosul); !sayi {
-			return nil, fmt.Errorf("%s: koşul %s, sayı ya da tensör olmalıdır, %s verildi", ad, codes.Ad(codes.A203), tipAdi(kosul))
+			return nil, fmt.Errorf("%s: koşul %s, sayı ya da tensör olmalıdır, %s verildi", ad, codes.Name(codes.A203), tipAdi(kosul))
 		}
 	}
 	for _, a := range args[1:] {

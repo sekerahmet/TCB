@@ -92,12 +92,12 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 			s.respondErr(msg, "Geçersiz hedef satır")
 			return 0, false
 		}
-		hedef, ok := s.curVM.ZiplamaHedefi(a.TargetID)
+		hedef, ok := s.curVM.JumpTarget(a.TargetID)
 		if !ok {
-			s.respondErr(msg, "Satır %d şu an çalışan bloğun dışında; yalnızca bulunulan bloğun (%s, %s ya da %s gövdesinin) satırlarına zıplanabilir", a.TargetID, codes.Ad(codes.A020), codes.Ad(codes.A010), codes.Ad(codes.A001))
+			s.respondErr(msg, "Satır %d şu an çalışan bloğun dışında; yalnızca bulunulan bloğun (%s, %s ya da %s gövdesinin) satırlarına zıplanabilir", a.TargetID, codes.Name(codes.A020), codes.Name(codes.A010), codes.Name(codes.A001))
 			return 0, false
 		}
-		s.resume(StepInto, 0, "Satır "+turkish.SayiEk(int64(hedef), turkish.Yonelme)+" zıplandı", "goto")
+		s.resume(StepInto, 0, "Satır "+turkish.NumberSuffix(int64(hedef), turkish.Dative)+" zıplandı", "goto")
 		s.respond(msg, nil)
 		return hedef, true
 	case "gotoTargets":
@@ -106,7 +106,7 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 		}
 		_ = json.Unmarshal(msg.Arguments, &a)
 		hedefler := []interface{}{}
-		if hedef, ok := s.curVM.ZiplamaHedefi(a.Line); ok {
+		if hedef, ok := s.curVM.JumpTarget(a.Line); ok {
 			hedefler = append(hedefler, map[string]interface{}{"id": hedef, "label": "Satır " + strconv.Itoa(hedef), "line": hedef})
 		}
 		s.respond(msg, map[string]interface{}{"targets": hedefler})

@@ -31,12 +31,12 @@ func (o *Iyilestirici) Inspect() string {
 	if o.adamw != nil {
 		a := o.adamw
 		return fmt.Sprintf("%s(parametre: %d, %s: %s, %s: %s, %s: %s, %s: %s, %s: %s, %s: %d)",
-			codes.Ad(codes.T400), len(o.params), adOgrenmeOrani.TR, f(a.LR), adAgirlikCurumesi.TR, f(a.WeightDecay),
-			adBeta1.TR, f(a.Beta1), adBeta2.TR, f(a.Beta2), adEpsilon.TR, f(a.Eps), codes.Ad(uyeAdim), a.StepCount())
+			codes.Name(codes.T400), len(o.params), adOgrenmeOrani.TR, f(a.LR), adAgirlikCurumesi.TR, f(a.WeightDecay),
+			adBeta1.TR, f(a.Beta1), adBeta2.TR, f(a.Beta2), adEpsilon.TR, f(a.Eps), codes.Name(uyeAdim), a.StepCount())
 	}
 	s := o.sgd
 	return fmt.Sprintf("%s(parametre: %d, %s: %s, %s: %s, %s: %s)",
-		codes.Ad(codes.T401), len(o.params), adOgrenmeOrani.TR, f(s.LR), adMomentum.TR, f(s.Momentum), adAgirlikCurumesi.TR, f(s.WeightDecay))
+		codes.Name(codes.T401), len(o.params), adOgrenmeOrani.TR, f(s.LR), adMomentum.TR, f(s.Momentum), adAgirlikCurumesi.TR, f(s.WeightDecay))
 }
 
 // İyileştirici üyeleri (adları kod listesinde, internal/lang/codes Y50x).
@@ -46,7 +46,7 @@ const (
 	uyeOgrenmeOrani = codes.Y504
 )
 
-var iyilestiriciUyeleri = codes.Adlar(uyeAdim, uyeSifirla, uyeDurum, uyeDurumuYukle, uyeOgrenmeOrani)
+var iyilestiriciUyeleri = codes.Names(uyeAdim, uyeSifirla, uyeDurum, uyeDurumuYukle, uyeOgrenmeOrani)
 
 // oranAlani iyileştiricinin öğrenme oranı alanıdır (AdamW ya da SGD); arka uç onu her adımda
 // okur, yeni oran sonraki adımda kullanılır.
@@ -59,9 +59,9 @@ func (o *Iyilestirici) oranAlani() *float32 {
 
 // UyeyeAta op.öğrenme_oranı = değer atamasıdır (yurut.UyeAtanabilir): yalnızca sonlu, negatif olmayan
 // ve 32 bite sığan bir Tam ya da Ondalık kabul edilir.
-func (o *Iyilestirici) UyeyeAta(kd codes.Kod, ad string, deger interp.Value) error {
+func (o *Iyilestirici) SetMember(kd codes.Code, ad string, deger interp.Value) error {
 	if kd != uyeOgrenmeOrani {
-		return fmt.Errorf("%s üzerinde %q üyesine atama yapılamaz; atanabilen üye: %s", o.ad, ad, codes.Ad(uyeOgrenmeOrani))
+		return fmt.Errorf("%s üzerinde %q üyesine atama yapılamaz; atanabilen üye: %s", o.ad, ad, codes.Name(uyeOgrenmeOrani))
 	}
 	var f float64
 	switch x := deger.(type) {
@@ -70,26 +70,26 @@ func (o *Iyilestirici) UyeyeAta(kd codes.Kod, ad string, deger interp.Value) err
 	case *interp.FloatVal:
 		f = x.Val
 	default:
-		return fmt.Errorf("%s.%s bir %s ya da %s olmalıdır, %s verildi", o.ad, codes.Ad(uyeOgrenmeOrani), codes.Ad(codes.A200), codes.Ad(codes.A201), tipAdi(deger))
+		return fmt.Errorf("%s.%s bir %s ya da %s olmalıdır, %s verildi", o.ad, codes.Name(uyeOgrenmeOrani), codes.Name(codes.A200), codes.Name(codes.A201), tipAdi(deger))
 	}
 	// 0 geçerlidir (kurucudaki gibi): oran planları eğitimin sonunda orana 0'a iner. Sıfır olmayan
 	// ama 32 bitte 0'a yuvarlanan değer reddedilir (sessizce dondurmasın).
 	if !(f >= 0) || math.IsInf(float64(float32(f)), 0) || (f != 0 && float32(f) == 0) {
-		return fmt.Errorf("%s.%s sonlu ve negatif olmayan bir sayı olmalıdır, %s verildi", o.ad, codes.Ad(uyeOgrenmeOrani), deger.Inspect())
+		return fmt.Errorf("%s.%s sonlu ve negatif olmayan bir sayı olmalıdır, %s verildi", o.ad, codes.Name(uyeOgrenmeOrani), deger.Inspect())
 	}
 	*o.oranAlani() = float32(f)
 	return nil
 }
 
 // iyilestiriciTipi AdamW ve SGD değerlerinin tip adıdır (tip(op) → "İyileştirici").
-var iyilestiriciTipi = interp.ValueType(interp.TipAdi(codes.A214))
+var iyilestiriciTipi = interp.ValueType(interp.TypeName(codes.A214))
 
-func (o *Iyilestirici) GetProperty(kd codes.Kod, prop string) (interp.Value, error) {
+func (o *Iyilestirici) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case uyeAdim:
-		return &interp.BuiltinVal{Name: codes.Ad(uyeAdim), AdliAlmaz: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+		return &interp.BuiltinVal{Name: codes.Name(uyeAdim), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("%s() argüman almaz", codes.Ad(uyeAdim))
+				return nil, fmt.Errorf("%s() argüman almaz", codes.Name(uyeAdim))
 			}
 			if _, err := guvenli(func() bool { o.opt.Step(); return true }); err != nil {
 				return nil, err
@@ -97,9 +97,9 @@ func (o *Iyilestirici) GetProperty(kd codes.Kod, prop string) (interp.Value, err
 			return interp.NULL, nil
 		}}, nil
 	case uyeSifirla:
-		return &interp.BuiltinVal{Name: codes.Ad(uyeSifirla), AdliAlmaz: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+		return &interp.BuiltinVal{Name: codes.Name(uyeSifirla), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("%s() argüman almaz", codes.Ad(uyeSifirla))
+				return nil, fmt.Errorf("%s() argüman almaz", codes.Name(uyeSifirla))
 			}
 			o.opt.ZeroGrad()
 			return interp.NULL, nil
@@ -112,7 +112,7 @@ func (o *Iyilestirici) GetProperty(kd codes.Kod, prop string) (interp.Value, err
 		return v, err // durum, durumu_yükle (iyilestirici_durum.go)
 	}
 	oneri := ""
-	if s := turkish.EnYakin(prop, iyilestiriciUyeleri); s != "" {
+	if s := turkish.Closest(prop, iyilestiriciUyeleri); s != "" {
 		oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", s)
 	}
 	return nil, fmt.Errorf("%s üzerinde %q metodu bulunamadı%s", o.ad, prop, oneri)
@@ -179,7 +179,7 @@ func adliOran(fn string, named map[string]interp.Value, varsayilan float64, enAz
 // gradyanKirp parametre gradyanlarının toplam L2 normunu en_fazla değerine indirir ve
 // kırpma öncesi normu 0 boyutlu tensör olarak döndürür: gradyan_kırp(parametreler, en_fazla: 1.0).
 func gradyanKirp(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T402)
+	fn := codes.Name(codes.T402)
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(parametreler, %s: 1.0) 1 konumlu parametre bekler, %d verildi", fn, adEnFazla.TR, len(args))
 	}
@@ -227,7 +227,7 @@ func iyilestiriciParametreleri(fn string, args []interp.Value) ([]*tensor.Tensor
 }
 
 func adamWKur(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T400) // AdamW
+	fn := codes.Name(codes.T400) // AdamW
 	if err := bind.AdliDenetle(fn, named, adOgrenmeOrani, adAgirlikCurumesi, adBeta1, adBeta2, adEpsilon, adAnaKopya); err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func adamWKur(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 }
 
 func sgdKur(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Ad(codes.T401) // SGD
+	fn := codes.Name(codes.T401) // SGD
 	if err := bind.AdliDenetle(fn, named, adOgrenmeOrani, adMomentum, adAgirlikCurumesi, adAnaKopya); err != nil {
 		return nil, err
 	}
@@ -304,3 +304,10 @@ func sgdKur(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 	s.SetMasterWeights(anaKopya)
 	return &Iyilestirici{ad: fn, opt: s, sgd: s, params: params}, nil
 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.PropertyGetter   = (*Iyilestirici)(nil)
+	_ interp.MemberAssignable = (*Iyilestirici)(nil)
+)

@@ -13,7 +13,7 @@ import (
 )
 
 // YolTipi Yol değerlerinin tip adıdır (kod listesinde A250).
-var YolTipi = interp.TipAdi(codes.A250)
+var YolTipi = interp.TypeName(codes.A250)
 
 // Yol temizlenmiş bir dosya ya da klasör yoludur. Değiştirilemez; ayırıcıyı her platformda
 // / ile saklar ve gösterir (Windows'ta \ de kabul edilir, işletim sistemine giderken
@@ -22,10 +22,10 @@ var YolTipi = interp.TipAdi(codes.A250)
 type Yol struct{ yol string }
 
 var (
-	_ interp.YolDegerli        = (*Yol)(nil)
-	_ interp.Esitlik           = (*Yol)(nil)
-	_ interp.GorevliUyeKancasi = (*Yol)(nil)
-	_ interp.DuzDegerli        = (*Yol)(nil)
+	_ interp.PathValuer     = (*Yol)(nil)
+	_ interp.Equaler        = (*Yol)(nil)
+	_ interp.TaskMemberHook = (*Yol)(nil)
+	_ interp.PlainValuer    = (*Yol)(nil)
 )
 
 // YeniYol bir yol metnini temizleyip Yol yapar.
@@ -35,17 +35,17 @@ func (y *Yol) Type() interp.ValueType { return YolTipi }
 func (y *Yol) Inspect() string        { return y.yol }
 func (y *Yol) IsTruthy() bool         { return true }
 
-// DosyaYolu yolun kendisidir (çözülmemiş; bkz. yurut.YolDegerli).
-func (y *Yol) DosyaYolu() string { return y.yol }
+// FilePath yolun kendisidir (çözülmemiş; bkz. yurut.YolDegerli).
+func (y *Yol) FilePath() string { return y.yol }
 
-// Esit iki yolun temizlenmiş yazımları aynıysa doğrudur.
-func (y *Yol) Esit(d interp.Value) bool {
+// Equal iki yolun temizlenmiş yazımları aynıysa doğrudur.
+func (y *Yol) Equal(d interp.Value) bool {
 	b, ok := d.(*Yol)
 	return ok && b.yol == y.yol
 }
 
-// DuzDeger yolun dış biçimlerdeki (JSON) karşılığıdır: yol metni.
-func (y *Yol) DuzDeger() interp.Value { return &interp.StringVal{Val: y.yol} }
+// PlainValue yolun dış biçimlerdeki (JSON) karşılığıdır: yol metni.
+func (y *Yol) PlainValue() interp.Value { return &interp.StringVal{Val: y.yol} }
 
 // temizle yolu tek yazıma indirir: Windows'ta \ → /, a/./b/../c → a/c, sondaki / atılır
 // (kök dışında).
@@ -64,14 +64,14 @@ func mutlakParcaMi(p string) bool {
 // yolYerlesik yol(...) yerleşiğidir: parçaları birleştirip temizler.
 func yolYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) == 0 {
-		return nil, interp.ArgumanSayisiHatasi(codes.G120, "en az 1", 0, "parça, ...")
+		return nil, interp.ArgCountError(codes.G120, "en az 1", 0, "parça, ...")
 	}
-	fn := interp.Cagri(codes.G120)
+	fn := interp.CallPrefix(codes.G120)
 	parcalar := make([]string, len(args))
 	for i, a := range args {
-		p, ok, err := interp.YolArgumani(fn, a)
+		p, ok, err := interp.PathArg(fn, a)
 		if !ok {
-			return nil, interp.ArgumanTipHatasi(codes.G120, i+1, a, codes.A202, codes.A250)
+			return nil, interp.ArgTypeError(codes.G120, i+1, a, codes.A202, codes.A250)
 		}
 		if err != nil {
 			return nil, err
@@ -88,17 +88,17 @@ func yolYerlesik(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 }
 
 // Yol üyeleri (adları kod listesinde, internal/lang/codes Y31x).
-var yolUyeKodlari = []codes.Kod{codes.Y310, codes.Y311, codes.Y312, codes.Y313, codes.Y314, codes.Y315, codes.Y316, codes.Y317, codes.Y318}
+var yolUyeKodlari = []codes.Code{codes.Y310, codes.Y311, codes.Y312, codes.Y313, codes.Y314, codes.Y315, codes.Y316, codes.Y317, codes.Y318}
 
 // GetProperty üyeyi görevsiz okur (göreli yol yalnızca çalışma klasörüne göre çözülür); nokta
 // erişimi GorevliUye'yi kullanır.
-func (y *Yol) GetProperty(kd codes.Kod, ad string) (interp.Value, error) {
-	return y.GorevliUye(nil, kd, ad)
+func (y *Yol) GetProperty(kd codes.Code, ad string) (interp.Value, error) {
+	return y.TaskMember(nil, kd, ad)
 }
 
-// GorevliUye yolun özelliğini verir; diske bakan özellikler yolu m'nin (çalışan kodun)
+// TaskMember yolun özelliğini verir; diske bakan özellikler yolu m'nin (çalışan kodun)
 // klasörlerine göre çözer.
-func (y *Yol) GorevliUye(m *interp.VM, kd codes.Kod, ad string) (interp.Value, error) {
+func (y *Yol) TaskMember(m *interp.VM, kd codes.Code, ad string) (interp.Value, error) {
 	switch kd {
 	case codes.Y310:
 		return &interp.StringVal{Val: y.dosyaAdi()}, nil
@@ -116,7 +116,7 @@ func (y *Yol) GorevliUye(m *interp.VM, kd codes.Kod, ad string) (interp.Value, e
 	case codes.Y318:
 		return y.bayt(m)
 	}
-	return nil, bind.UyeHatasi(string(YolTipi), ad, codes.Adlar(yolUyeKodlari...))
+	return nil, bind.UyeHatasi(string(YolTipi), ad, codes.Names(yolUyeKodlari...))
 }
 
 // dosyaAdi son bileşendir; . ve kök için boştur.
@@ -138,7 +138,7 @@ func uzanti(ad string) string {
 
 // coz yolu m'nin klasörlerine göre çözer (m nil ise yalnızca çalışma klasörü).
 func (y *Yol) coz(m *interp.VM) (string, []string) {
-	return m.YolCoz(filepath.FromSlash(y.yol))
+	return m.ResolvePath(filepath.FromSlash(y.yol))
 }
 
 func (y *Yol) mutlak(m *interp.VM) *Yol {
@@ -150,7 +150,7 @@ func (y *Yol) mutlak(m *interp.VM) *Yol {
 }
 
 // soru var_mı, dosya_mı ve klasör_mü'dür (bağlantı izlenir).
-func (y *Yol) soru(m *interp.VM, kd codes.Kod) interp.Value {
+func (y *Yol) soru(m *interp.VM, kd codes.Code) interp.Value {
 	c, _ := y.coz(m)
 	b, err := os.Stat(c)
 	switch {
@@ -165,14 +165,24 @@ func (y *Yol) soru(m *interp.VM, kd codes.Kod) interp.Value {
 }
 
 func (y *Yol) bayt(m *interp.VM) (interp.Value, error) {
-	fn := codes.UyeAdi(codes.Y318)
+	fn := codes.MemberName(codes.Y318)
 	c, bakilanlar := y.coz(m)
 	b, err := os.Stat(c)
 	if err != nil {
-		return nil, interp.OkumaHatasi(fn, y.yol, "okunamadı", err, bakilanlar)
+		return nil, interp.ReadError(fn, y.yol, "okunamadı", err, bakilanlar)
 	}
 	if b.IsDir() {
-		return nil, fmt.Errorf("%s: %q bir klasör; klasörün boyutu yoktur (içindeki dosyaların boyutunu toplayın: %s(...))", fn, y.yol, codes.Ad(codes.G121))
+		return nil, fmt.Errorf("%s: %q bir klasör; klasörün boyutu yoktur (içindeki dosyaların boyutunu toplayın: %s(...))", fn, y.yol, codes.Name(codes.G121))
 	}
 	return interp.NewInt(b.Size()), nil
 }
+
+// Compile-time checks: the interpreter finds these hooks with type assertions, so a
+// renamed or changed method would otherwise drop the hook silently.
+var (
+	_ interp.Equaler        = (*Yol)(nil)
+	_ interp.PathValuer     = (*Yol)(nil)
+	_ interp.PropertyGetter = (*Yol)(nil)
+	_ interp.PlainValuer    = (*Yol)(nil)
+	_ interp.TaskMemberHook = (*Yol)(nil)
+)
