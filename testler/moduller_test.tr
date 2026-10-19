@@ -13,6 +13,29 @@ test "11.1 modül yolu metin olarak yazılır; tırnaksız yazım hatadır" {
     doğrula(mesaj.içerir("'aktar' modül yolunu metin olarak bekler, ancak 'yardimci_modul' adı bulundu: aktar \"yardimci_modul\" yazın"), mesaj)
 }
 
+test "11.1 göreli aktar önce aktaran dosyanın, sonra programın klasörüne göre çözülür" {
+    aktar "alt/sira_modulu" olarak sm
+    eşit_mi("alt klasör", sm.sıra_kaynağı) // alt/sira_ortak.tr, testler/sira_ortak.tr değil
+    aktar "sira_ortak" olarak so
+    eşit_mi("program klasörü", so.kimden)
+}
+
+test "11.1 çalışma klasörü modül aramasına girmez" {
+    değişken çalışma = yol(".").mutlak
+    değişken program = yol("moduller_test.tr").mutlak.üst_klasör
+    eğer çalışma != program {
+        // Yeni dosya çalışma klasörüne yazılır (13.1); programın yanında öyle bir modül yok.
+        dosya_yaz("gecici_calisma_modulu.tr", "değişken çalışma_modülü = doğru
+")
+        ertele sil("gecici_calisma_modulu.tr")
+        doğrula(yol(çalışma, "gecici_calisma_modulu.tr").var_mı)
+        değişken mesaj = ""
+        dene { aktar "gecici_calisma_modulu" } yakala h { mesaj = h }
+        doğrula(mesaj.içerir("gecici_calisma_modulu.tr"), mesaj)
+        doğrula(değil mesaj.içerir(metin(yol(çalışma, "gecici_calisma_modulu.tr"))), "çalışma klasörüne bakılmamalı: {mesaj}")
+    }
+}
+
 test "11.2 olarak ile modül tek bir Sözlük olarak bağlanır" {
     eşit_mi(Sözlük, tip(ym))
     eşit_mi(4, ym.kare(2))
@@ -65,4 +88,23 @@ test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {
     // fırlat ile atılan değer olduğu gibi yakalanır
     dene { özel_fırlat() } yakala h { mesaj = h }
     eşit_mi("özel hata", mesaj)
+}
+
+test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {
+    aktar "tr/katman" olarak k
+    eşit_mi(Sözlük, tip(k))
+    doğrula(k.anahtarlar().içerir("GPT") ve k.anahtarlar().içerir("Doğrusal"), "kitaplığın katmanları gelmeli")
+    doğrula(değil k.anahtarlar().içerir("disk_katmanı"), "testler/tr/katman.tr yüklenmemeli")
+    aktar "./tr/katman" olarak d
+    eşit_mi(doğru, d.disk_katmanı)
+    eşit_mi([4, 3], k.Doğrusal(4, 3).ağırlık.şekil)
+    değişken mesaj = ""
+    dene { aktar "tr/olmayan_modul" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("\"tr/olmayan_modul\" dilin kitaplığında yok; kitaplıktaki modüller: tr/iyilestirici, tr/katman"), mesaj)
+    mesaj = ""
+    dene { aktar "tr/iyileştirici" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Bunu mu demek istediniz: \"tr/iyilestirici\"?"), mesaj)
+    mesaj = ""
+    dene { aktar "tr/katman_test" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("dilin kitaplığında yok"), "test dosyası modül değildir: {mesaj}")
 }

@@ -12,8 +12,9 @@ import (
 )
 
 // YolCoz TR programlarındaki göreli dosya yollarının TEK kuralını uygular; dosya
-// okuyan ve yazan her yerleşik (dosya_oku, dosya_yaz, aktar ve motor paketlerinin
-// yükle/kaydet işlevleri) yolu bununla çözmelidir.
+// okuyan ve yazan her yerleşik (dosya_oku, dosya_yaz ve motor paketlerinin yükle/kaydet
+// işlevleri) yolu bununla çözmelidir. 'aktar' modül yolunu kendi kuralıyla çözer
+// (ModulYolunuCoz: çalışma klasörü modül aramasına girmez, 11.1).
 //
 // Kural (okuma ve yazma için aynı): göreli bir yol önce çalışma klasörüne, sonra
 // (program bir dosyadan çalışıyorsa) programın klasörüne göre denenir ve dosyanın
@@ -89,13 +90,14 @@ func (v *VM) KodKlasorleri() []string { return v.aramaKlasorleri() }
 
 // aramaKlasorleri göreli yolların çalışma klasöründen sonra arandığı klasörlerdir: kod bir
 // modülde çalışıyorsa önce o modülün klasörü, sonra programın klasörü. Program bir
-// dosyadan çalışmıyorsa (etkileşimli kabuk, derlenmiş uygulama: "<...>") onun klasörü yoktur.
+// dosyadan çalışmıyorsa (etkileşimli kabuk, derlenmiş uygulama: "<...>") onun klasörü yoktur;
+// dilin gömülü kitaplığındaki bir modülün (11.6) diskte klasörü yoktur.
 func (v *VM) aramaKlasorleri() []string {
 	if v == nil {
 		return nil
 	}
 	var klasorler []string
-	if v.kaynak != nil && v.kaynak.Yol != "" && !strings.HasPrefix(v.kaynak.Yol, "<") {
+	if v.kaynak != nil && !v.kaynak.Gomulu && v.kaynak.Yol != "" && !strings.HasPrefix(v.kaynak.Yol, "<") {
 		klasorler = append(klasorler, filepath.Dir(v.kaynak.Yol))
 	}
 	if v.SourceFile != "" && !strings.HasPrefix(v.SourceFile, "<") {

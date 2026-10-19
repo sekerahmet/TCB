@@ -188,35 +188,21 @@ func aktarYerleri(kod string) []aktarYeri {
 	}
 }
 
-// modulYolunuCoz bir 'aktar' yolunu yorumlayıcıyla (internal/dil/yurut) aynı kuralla çözer: önce
-// bulunulan klasöre göre, bulunamazsa aktaran dosyanın klasörüne, o da olmazsa ana
-// programın klasörüne göre. aranan, hata iletisinde gösterilecek denenmiş yollardır.
+// modulYolunuCoz bir 'aktar' yolunu yorumlayıcıyla aynı kuralla (yurut.ModulYolunuCoz) çözer:
+// önce aktaran dosyanın klasörüne, bulunamazsa ana programın klasörüne göre (11.1). aranan,
+// hata iletisinde gösterilecek denenmiş yollardır. Dilin kitaplığındaki (tr/ önekli) modüller
+// diskte aranmaz; onları çağıran yurut.KitaplikModulu ile ayırır.
 func modulYolunuCoz(yol, aktaran, ana string) (cozulen string, aranan []string, ok bool) {
 	if !strings.HasSuffix(yol, ".tr") {
 		yol += ".tr"
 	}
-	aranan = append(aranan, yol)
-	if _, err := os.Stat(yol); err == nil {
-		return yol, aranan, true
-	}
-	if filepath.IsAbs(yol) {
-		return yol, aranan, false
-	}
-	for _, dosya := range []string{aktaran, ana} {
-		if dosya == "" || strings.HasPrefix(dosya, "<") {
-			continue
-		}
-		aday := filepath.Join(filepath.Dir(dosya), yol)
-		if slices.Contains(aranan, aday) {
-			continue
-		}
-		aranan = append(aranan, aday)
-		if _, err := os.Stat(aday); err == nil {
-			return aday, aranan, true
-		}
-	}
-	return yol, aranan, false
+	return yurut.ModulYolunuCoz(yol, yurut.DosyaKlasorleri(aktaran, ana))
 }
+
+// kitaplikAktarimi pakette dilin gömülü kitaplığına (11.6) giden aktarımın işaretidir: bu
+// modüller pakete gömülmez (uygulama zaten kitaplığı içeren yorumlayıcının kopyasıdır) ve
+// yolları yönlendirilmez.
+const kitaplikAktarimi = -1
 
 // modulToplayici derleme sırasında programın aktardığı modülleri özyinelemeli toplar.
 type modulToplayici struct {
@@ -237,6 +223,13 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 	yerler := aktarYerleri(dosya.Kod)
 	dosya.Aktarimlar = make([]int, 0, len(yerler))
 	for _, y := range yerler {
+		if ad, ok := yurut.KitaplikModulu(y.yol); ok {
+			if _, err := yurut.KitaplikOku(ad); err != nil {
+				return fmt.Errorf("%s, satır %d: %v", kaynakYolu, y.satir, err)
+			}
+			dosya.Aktarimlar = append(dosya.Aktarimlar, kitaplikAktarimi)
+			continue
+		}
 		cozulen, aranan, ok := modulYolunuCoz(y.yol, kaynakYolu, t.ana)
 		if !ok {
 			return fmt.Errorf("%s, satır %d: %q modülü bulunamadı (aranan: %s)", kaynakYolu, y.satir, y.yol, strings.Join(aranan, ", "))
@@ -444,6 +437,9 @@ func aktarlariYonlendir(d paketDosyasi, yollar []string) (string, error) {
 	onceki := 0
 	for i, y := range yerler {
 		hedef := d.Aktarimlar[i]
+		if hedef == kitaplikAktarimi {
+			continue // dilin kitaplığı: yol olduğu gibi kalır
+		}
 		if hedef < 0 || hedef >= len(yollar) {
 			return "", fmt.Errorf("gömülü paket bozuk: %q dosyasında geçersiz modül sırası %d", d.Ad, hedef)
 		}
@@ -501,7 +497,7 @@ func gomuluUygulamayiCalistir(pk *paket) {
 			fmt.Fprintf(os.Stderr, "❌ Gömülü modüller açılamadı: %v\n", err)
 			cik(1)
 		}
-	} else if len(pk.Ana.Aktarimlar) > 0 {
+	} else if slices.ContainsFunc(pk.Ana.Aktarimlar, func(i int) bool { return i != kitaplikAktarimi }) {
 		fmt.Fprintln(os.Stderr, "❌ Gömülü paket bozuk: aktarılan modüller pakette yok")
 		os.Exit(1)
 	}

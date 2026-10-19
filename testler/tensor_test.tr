@@ -289,6 +289,30 @@ test "15.7 AdamW ve SGD'nin tipi İyileştirici'dir" {
     doğrula(metin(SGD([w])).başlar("SGD("))
 }
 
+test "15.7 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamayla yerinde güncellenir" {
+    // TR'de yazılan bir iyileştiricinin (ör. tr/iyilestirici'deki Muon) tek yapı taşı:
+    // gradyanla hesaplanan yeni değer parametrenin kendisine, kopyasız yazılır.
+    değişken w = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    değişken b = tensör([1.0, -1.0], türev_izle: doğru)
+    değişken aynı_w = w
+    geri_yayılım(toplam(w * w) + toplam(b))
+    türevsiz {
+        w[0..w.şekil[0]] -= 0.25 * w.gradyan
+        b[0..b.şekil[0]] = b - 0.5 * b.gradyan
+        değişken g = w.gradyan
+        g[0..g.şekil[0]] = 0.0 // gradyanı yerinde sıfırlama
+    }
+    eşit_mi([[0.5, 1.0], [1.5, 2.0]], w.değer)
+    eşit_mi([0.5, -1.5], b.değer)
+    eşit_mi([[0.0, 0.0], [0.0, 0.0]], w.gradyan.değer)
+    doğrula(aynı_w.değer == w.değer, "aynı tensör güncellenir (yeni tensör kurulmaz)")
+    eşit_mi(doğru, w.gradyan != yok)
+    // Türevsiz blok dışında atama reddedilir.
+    değişken mesaj = ""
+    dene { w[0..2] = 0.0 } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("türev izlenen tensöre indeksle atama yapılamaz"), mesaj)
+}
+
 test "15.7 iyileştiriciler: küçük doğrusal regresyon" {
     // y = 2·x1 - 3·x2 + 0.5
     değişken X = tensör([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])

@@ -1,0 +1,2 @@
+// 11.6 testinin fikstürü: tr/ öneki bu dosyayı değil dilin kitaplığını yükler; ./tr/katman bunu yükler.
+değişken disk_katmanı = doğru

@@ -1,0 +1,3 @@
+// 11.1 testinin fikstürü: göreli aktar önce bu dosyanın klasörüne göre çözülür.
+aktar "sira_ortak" olarak o
+değişken sıra_kaynağı = o.kimden

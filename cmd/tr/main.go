@@ -17,7 +17,12 @@ import (
 	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/motor"
+	"tr_dili/kitaplik"
 )
+
+// Dilin TR ile yazılı kitaplığı ikiliye gömülüdür ve 'aktar "tr/..."' ile yüklenir (11.6);
+// test koşucusu ve hata ayıklama sunucusu da bu ikilinin içinde çalıştığından onu görür.
+func init() { yurut.KitaplikBagla(kitaplik.Dosyalar) }
 
 const VERSION = "1.0.0"
 

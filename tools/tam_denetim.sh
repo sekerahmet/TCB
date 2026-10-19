@@ -4,7 +4,7 @@
 #
 # Kullanım (depo kökünden): bash tools/tam_denetim.sh [--hizli] [--kip=v3|v1]
 #   (bayraksız)  durağan denetimler; Go testleri GOAMD64=v3 ve GOAMD64=v1 ile; tr (v3) ile dil
-#                tanımı testleri, örnek testleri ve örneklerin hepsi
+#                tanımı testleri, kitaplık testleri (kitaplik/), örnek testleri ve örneklerin hepsi
 #   --hizli      GOAMD64=v1 testlerini atlar (yalnızca iş sırasında; birleştirmeden önce tam
 #                koşulmalı). --kip=v3 ile aynıdır.
 #   --kip=v3     yalnızca GOAMD64=v3: durağan denetimler, Go testleri, tr testleri ve örnekler
@@ -130,6 +130,7 @@ done
 adim "TR testleri ve örnekler (tr, GOAMD64=$GOAMD64)"
 if mkdir -p bin && go build -o "$TR" ./cmd/tr; then
 	ozetle "tr test testler" "$TR" test testler
+	ozetle "tr test kitaplik" "$TR" test kitaplik
 	ozetle "tr test ornekler" "$TR" test ornekler
 	sure="${ORNEK_ZAMAN_ASIMI:-300}"
 	for f in ornekler/*.tr; do

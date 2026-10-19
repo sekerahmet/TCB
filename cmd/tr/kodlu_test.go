@@ -13,8 +13,8 @@ import (
 	"tr_dili/internal/dil/kaynak"
 )
 
-// Kodlu dosya Türkçesiyle aynı programdır (docs/dil/17_kodlar.md, 17.4): testler/ ve
-// ornekler/ iki kopyaya alınır, birinin bütün .tr dosyaları kodlu biçime çevrilir; iki
+// Kodlu dosya Türkçesiyle aynı programdır (docs/dil/17_kodlar.md, 17.4): testler/, ornekler/ ve
+// kitaplik/ iki kopyaya alınır, birinin bütün .tr dosyaları kodlu biçime çevrilir; iki
 // kopyada 'tr test' aynı raporu, örnekler aynı çıktıyı verir. (TR → kod → TR bayt bayt
 // kimliği internal/dil/kaynak'ta sınanır.)
 
@@ -85,7 +85,7 @@ var rakamlar = regexp.MustCompile(`[0-9]+`)
 func TestKodluDosyalarAyniCiktiyiVerir(t *testing.T) {
 	tr1, tr2 := t.TempDir(), t.TempDir()
 	// docs/ karakter modelinin eğitim verisidir.
-	for _, k := range []string{"testler", "ornekler", "docs"} {
+	for _, k := range []string{"testler", "ornekler", "docs", "kitaplik"} {
 		kopyala(t, depo.Yol(k), filepath.Join(tr1, k))
 		kopyala(t, depo.Yol(k), filepath.Join(tr2, k))
 	}
@@ -111,8 +111,12 @@ func TestKodluDosyalarAyniCiktiyiVerir(t *testing.T) {
 		}
 		return s
 	}
-	for _, klasor := range []string{"testler", "ornekler"} {
+	// Kitaplığın testleri: kodlanan test dosyalarıdır (aktarılan kitaplık ikiliye gömülüdür).
+	// Kontrol noktasının "Kaldığı yerden devam: ..." satırı geçici klasörün yolunu içerir.
+	devamSatiri := regexp.MustCompile(`(?m)^Kaldığı yerden devam: .*$`)
+	for _, klasor := range []string{"testler", "ornekler", "kitaplik"} {
 		s1, s2 := kokuSoy(tr(t, tr1, "test", klasor), tr1), kokuSoy(tr(t, tr2, "test", klasor), tr2)
+		s1.hata, s2.hata = devamSatiri.ReplaceAllString(s1.hata, ""), devamSatiri.ReplaceAllString(s2.hata, "")
 		if s1.kod != 0 || s1.kod != s2.kod || s1.cikti != s2.cikti || s1.hata != s2.hata {
 			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", klasor, s1.kod, s2.kod, satirFarki(s1.cikti+s1.hata, s2.cikti+s2.hata))
 		}

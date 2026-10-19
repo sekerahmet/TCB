@@ -1,0 +1,209 @@
+// tr/katman testleri: her katmanın şekli ve türevi (türev_denetle), döner konumun özellikleri,
+// nedensellik, GPT'nin kuruluşu ve küçük bir görevde öğrenmesi. Koşturma: tr test kitaplik
+aktar "tr/katman"
+
+fonksiyon rastgele_girdi(şekil, tohum) {
+    sonuç tensör(rastgele_normal(şekil, tohum: tohum), türev_izle: doğru)
+}
+
+test "Doğrusal: şekil, sapma ve türev" {
+    değişken d = Doğrusal(3, 5, sapmalı: doğru, tohum: 2)
+    eşit_mi([3, 5], d.ağırlık.şekil)
+    eşit_mi([5], d.sapma.şekil)
+    eşit_mi([2, 4, 5], d.ileri(rastgele_normal([2, 4, 3], tohum: 1)).şekil)
+    eşit_mi(yok, Doğrusal(3, 5).sapma)
+    eşit_mi(2, parametreler(d).uzunluk)
+    fonksiyon f(x, w, b) {
+        d.ağırlık = w
+        d.sapma = b
+        sonuç d.ileri(x)
+    }
+    doğrula(türev_denetle(f, [rastgele_girdi([2, 3], 3), rastgele_girdi([3, 5], 4), rastgele_girdi([5], 5)]))
+}
+
+test "Doğrusal: başlatma ölçeği std'dir, aynı tohum aynı ağırlığı verir" {
+    değişken d = Doğrusal(64, 64, std: 0.02, tohum: 9)
+    değişken s = karekök(ortalama(d.ağırlık * d.ağırlık)).değer
+    doğrula(s > 0.018 ve s < 0.022, "std 0.02 olmalı, {s}")
+    doğrula(Doğrusal(64, 64, tohum: 9).ağırlık == d.ağırlık, "aynı tohum aynı ağırlık")
+    doğrula(Doğrusal(64, 64, tohum: 10).ağırlık != d.ağırlık, "farklı tohum farklı ağırlık")
+}
+
+test "GömmeKatmanı: şekil ve türev" {
+    değişken g = GömmeKatmanı(7, 4, tohum: 1)
+    eşit_mi([2, 3, 4], g.ileri([[1, 2, 3], [6, 0, 1]]).şekil)
+    fonksiyon f(t) {
+        g.tablo = t
+        sonuç g.ileri([[1, 2], [2, 6]])
+    }
+    doğrula(türev_denetle(f, [rastgele_girdi([7, 4], 2)]))
+}
+
+test "RMSNormKatmanı: şekil, birim ölçek ve türev" {
+    değişken n = RMSNormKatmanı(4)
+    eşit_mi([1.0, 1.0, 1.0, 1.0], n.ağırlık.değer)
+    değişken y = n.ileri(rastgele_normal([3, 4], tohum: 1) * 5)
+    eşit_mi([3, 4], y.şekil)
+    değişken rms = karekök(ortalama(y * y)).değer
+    doğrula(rms > 0.999 ve rms < 1.001, "normlu çıktının RMS'i 1 olmalı, {rms}")
+    fonksiyon f(x, w) {
+        n.ağırlık = w
+        sonuç n.ileri(x)
+    }
+    doğrula(türev_denetle(f, [rastgele_girdi([2, 4], 2), rastgele_girdi([4], 3)]))
+}
+
+test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdır, türevlidir" {
+    değişken tablolar = döner_konum_tablosu(8, 4)
+    değişken kos = tablolar[0]
+    değişken sin = tablolar[1]
+    eşit_mi([8, 2], kos.şekil)
+    değişken q = rastgele_normal([1, 4], tohum: 1)
+    değişken k = rastgele_normal([1, 4], tohum: 2)
+    // q'yu ve k'yı bütün konumlara koy: [8, 4]
+    değişken Q = döner_konum_uygula(tensör([q.değer[0] döngü i içinde 0..8]), kos, sin)
+    değişken K = döner_konum_uygula(tensör([k.değer[0] döngü i içinde 0..8]), kos, sin)
+    değişken fark = toplam((toplam(Q * Q, eksen: -1) - toplam(q * q)) ** 2).değer
+    doğrula(fark < 0.000001, "döndürme normu korumalı: {fark}")
+    değişken p = Q @ K.devrik() // p[i][j] = <R_i q, R_j k>
+    değişken a = p[3][1].değer
+    değişken b = p[6][4].değer
+    doğrula(a - b < 0.0001 ve b - a < 0.0001, "iç çarpım yalnızca i - j'ye bağlı olmalı: {a} / {b}")
+    fonksiyon f(x) { sonuç döner_konum_uygula(x, kos, sin) }
+    doğrula(türev_denetle(f, [rastgele_girdi([2, 5, 4], 3)]))
+}
+
+test "NedenselDikkat: şekil, gruplu sorgu ve türev" {
+    değişken tablolar = döner_konum_tablosu(4, 2)
+    değişken d = NedenselDikkat(8, 4, kv_baş: 2, tohum: 1)
+    eşit_mi([8, 4], d.anahtar.ağırlık.şekil) // 2 kv başı × 2 baş boyutu
+    eşit_mi([2, 3, 8], d.ileri(rastgele_normal([2, 3, 8], tohum: 1), tablolar[0], tablolar[1]).şekil)
+    değişken k = NedenselDikkat(4, 2, kv_baş: 1, tohum: 3)
+    fonksiyon f(x, wq, wk, wv, wo) {
+        k.sorgu.ağırlık = wq
+        k.anahtar.ağırlık = wk
+        k.değer.ağırlık = wv
+        k.çıkış.ağırlık = wo
+        sonuç k.ileri(x, tablolar[0], tablolar[1])
+    }
+    değişken w = [rastgele_girdi([1, 3, 4], 2), rastgele_girdi([4, 4], 3) * 0.5, rastgele_girdi([4, 2], 4) * 0.5, rastgele_girdi([4, 2], 5), rastgele_girdi([4, 4], 6)]
+    doğrula(türev_denetle(f, w))
+}
+
+test "NedenselDikkat: bir konum sonraki konumlardan etkilenmez" {
+    değişken tablolar = döner_konum_tablosu(5, 4)
+    değişken d = NedenselDikkat(8, 2, tohum: 4)
+    değişken x = rastgele_normal([1, 5, 8], tohum: 1)
+    değişken x2 = tensör(x)
+    türevsiz { x2[0][4] = rastgele_normal([8], tohum: 99) }
+    değişken y1 = d.ileri(x, tablolar[0], tablolar[1])
+    değişken y2 = d.ileri(x2, tablolar[0], tablolar[1])
+    doğrula(y1[0][0..4] == y2[0][0..4], "ilk dört konum değişmemeli")
+    doğrula(y1[0][4] != y2[0][4], "son konum değişmeli")
+}
+
+test "NedenselDikkat: boyut baş sayısına bölünmeli" {
+    değişken mesaj = ""
+    dene { NedenselDikkat(10, 4) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("boyut (10) baş sayısına (4) bölünmeli"), mesaj)
+}
+
+test "SwiGLU: ara boyut, şekil ve türev" {
+    eşit_mi(1376, swiglu_ara_boyutu(512))
+    eşit_mi(96, swiglu_ara_boyutu(32))
+    değişken s = SwiGLU(4, ara_boyut: 6, tohum: 1)
+    eşit_mi([2, 3, 4], s.ileri(rastgele_normal([2, 3, 4], tohum: 1)).şekil)
+    fonksiyon f(x, wg, wu, wd) {
+        s.kapı.ağırlık = wg
+        s.yukarı.ağırlık = wu
+        s.aşağı.ağırlık = wd
+        sonuç s.ileri(x)
+    }
+    doğrula(türev_denetle(f, [rastgele_girdi([2, 4], 2), rastgele_girdi([4, 6], 3), rastgele_girdi([4, 6], 4), rastgele_girdi([6, 4], 5)]))
+}
+
+test "TransformerBloğu: şekil ve türev" {
+    değişken tablolar = döner_konum_tablosu(3, 2)
+    değişken b = TransformerBloğu(4, 2, ara_boyut: 4, tohum: 1)
+    eşit_mi([2, 3, 4], b.ileri(rastgele_normal([2, 3, 4], tohum: 1), tablolar[0], tablolar[1]).şekil)
+    fonksiyon f(x, wq, w2) {
+        b.dikkat.sorgu.ağırlık = wq
+        b.ileri_besleme.aşağı.ağırlık = w2
+        sonuç b.ileri(x, tablolar[0], tablolar[1])
+    }
+    doğrula(türev_denetle(f, [rastgele_girdi([1, 3, 4], 2), rastgele_girdi([4, 4], 3) * 0.5, rastgele_girdi([4, 4], 4) * 0.5]))
+}
+
+test "GPT: şekil, parametre adları, paylaşımlı çıkış ve küçültülmüş çıkış katmanları" {
+    değişken m = GPT(10, bağlam: 6, boyut: 8, katman: 2, baş: 2, tohum: 1)
+    eşit_mi([2, 6, 10], m.ileri([[1, 2, 3, 4, 5, 6], [0, 0, 1, 1, 2, 2]]).şekil)
+    değişken adlar = parametreler(m, adlarıyla: doğru).anahtarlar()
+    eşit_mi(21, adlar.uzunluk)
+    eşit_mi("gömme.tablo", adlar[0])
+    eşit_mi("çıkış.ağırlık", adlar[-1])
+    doğrula(adlar.içerir("bloklar.1.dikkat.çıkış.ağırlık"))
+    değişken p = GPT(10, bağlam: 6, boyut: 8, katman: 2, baş: 2, paylaşımlı: doğru)
+    eşit_mi(yok, p.çıkış)
+    eşit_mi(20, parametreler(p).uzunluk)
+    eşit_mi([1, 3, 10], p.ileri([[1, 2, 3]]).şekil)
+    // Artık yola yazan katmanlar 0.02 / √(2 · katman) ile başlar.
+    değişken büyük = GPT(10, bağlam: 4, boyut: 64, katman: 8, baş: 4)
+    değişken w = büyük.bloklar[0].ileri_besleme.aşağı.ağırlık
+    değişken s = karekök(ortalama(w * w)).değer
+    doğrula(s > 0.0045 ve s < 0.0055, "çıkış katmanının std'si 0.02/4 olmalı: {s}")
+}
+
+test "GPT: aynı tohum aynı modeli verir, kayıp başta ln(dağarcık) civarındadır" {
+    değişken a = GPT(16, bağlam: 4, boyut: 8, katman: 1, baş: 2, tohum: 5)
+    değişken b = GPT(16, bağlam: 4, boyut: 8, katman: 1, baş: 2, tohum: 5)
+    değişken x = [[1, 2, 3, 4]]
+    doğrula(a.ileri(x) == b.ileri(x))
+    değişken k = a.kayıp(x, [[2, 3, 4, 5]]).değer
+    doğrula(k > 2.6 ve k < 2.95, "başlangıç kaybı ln(16) ≈ 2.77 civarında olmalı: {k}")
+}
+
+test "GPT: üret istenen kadar parça ekler; tohumla tekrarlanır, bağlamdan uzun dizide çalışır" {
+    değişken m = GPT(12, bağlam: 4, boyut: 8, katman: 1, baş: 2)
+    değişken a = m.üret([1, 2], 6, tohum: 3)
+    eşit_mi(8, a.uzunluk)
+    eşit_mi([1, 2], a[0..2])
+    eşit_mi(a, m.üret([1, 2], 6, tohum: 3))
+    eşit_mi(m.üret([1], 3, sıcaklık: 0), m.üret([1], 3, sıcaklık: 0))
+}
+
+// Kopyalama görevi: [a b c d | a b c d]; ikinci yarı ilk yarıdan tahmin edilebilir.
+değişken kopya_tohumu = 11
+fonksiyon kopya_toplu(B, V, yarım) {
+    değişken girdiler = []
+    değişken hedefler = []
+    döngü b içinde 0..B {
+        değişken d = []
+        döngü i içinde 0..yarım {
+            kopya_tohumu = (kopya_tohumu * 1103515245 + 12345) % 2147483648
+            d.ekle(taban(kopya_tohumu / 65536) % V)
+        }
+        değişken dizi = d + d
+        girdiler.ekle(dizi[0..2 * yarım - 1])
+        hedefler.ekle([-1 döngü i içinde 0..yarım - 1] + dizi[yarım..2 * yarım])
+    }
+    sonuç [girdiler, hedefler]
+}
+
+test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin düşer)" {
+    kopya_tohumu = 11
+    değişken m = GPT(8, bağlam: 12, boyut: 32, katman: 2, baş: 4, tohum: 2)
+    değişken op = AdamW(parametreler(m), öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
+    değişken ilk = 0.0
+    değişken son = 0.0
+    döngü adım içinde 0..250 {
+        değişken g, h = kopya_toplu(16, 8, 6)
+        op.sıfırla()
+        değişken k = m.kayıp(g, h)
+        geri_yayılım(k)
+        op.adım()
+        eğer adım < 10 { ilk += k.değer / 10 }
+        eğer adım >= 240 { son += k.değer / 10 }
+    }
+    doğrula(ilk > 1.9, "başlangıç kaybı ln(8) ≈ 2.08 civarında olmalı: {ilk}")
+    doğrula(son < ilk / 2, "kopyalama öğrenilmeli: ilk {ilk}, son {son}")
+}

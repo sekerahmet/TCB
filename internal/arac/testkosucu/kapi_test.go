@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"tr_dili/internal/depo"
+	"tr_dili/internal/dil/yurut"
+	"tr_dili/kitaplik"
 )
 
 // Faz 3 kapısı: "her kural bir testte". Dil tanımında (docs/dil/NN_*.md) numarası geçen her
@@ -148,6 +150,9 @@ func TestDilTanimiTestleriGecer(t *testing.T) {
 	if testing.Short() {
 		t.Skip("-short: dil tanımı testleri tam denetimde `tr test testler` ile koşar")
 	}
+	// Komut satırındaki gibi dilin kitaplığı bağlanır (11.6: aktar "tr/...").
+	yurut.KitaplikBagla(kitaplik.Dosyalar)
+	defer yurut.KitaplikBagla(nil)
 	var cikti bytes.Buffer
 	ozet, err := Calistir(depo.Yol("testler"), &cikti)
 	if err != nil {
