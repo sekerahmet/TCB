@@ -176,7 +176,7 @@
     "import": {
       "patterns": [
         {
-          "match": "\\b(aktar)\\b\\s*(\"[^\"]*\"|'[^']*'|[^\\W\\d][\\w.]*)\\s+(olarak)\\b\\s*([^\\W\\d]\\w*)?",
+          "match": "\\b(aktar|import)\\b\\s*(\"[^\"]*\"|'[^']*'|[^\\W\\d][\\w.]*)\\s+(olarak|as)\\b\\s*([^\\W\\d]\\w*)?",
           "captures": {
             "1": {
               "name": "keyword.control.import.tr"
@@ -194,14 +194,14 @@
         },
         {
           "name": "keyword.control.import.tr",
-          "match": "\\b(aktar)\\b"
+          "match": "\\b(aktar|import)\\b"
         }
       ]
     },
     "declarations": {
       "patterns": [
         {
-          "match": "\\b(fonksiyon)\\s+([^\\W\\d]\\w*)",
+          "match": "\\b(fonksiyon|func)\\s+([^\\W\\d]\\w*)",
           "captures": {
             "1": {
               "name": "storage.type.function.tr"
@@ -212,7 +212,7 @@
           }
         },
         {
-          "match": "\\b(yapı)\\s+([^\\W\\d]\\w*)",
+          "match": "\\b(yapı|struct)\\s+([^\\W\\d]\\w*)",
           "captures": {
             "1": {
               "name": "storage.type.struct.tr"
@@ -228,31 +228,31 @@
       "patterns": [
         {
           "name": "keyword.control.tr",
-          "match": "\\b(eğer|değilse|eşle|varsayılan|döngü|içinde|iken|çık|devam|sonuç|dene|yakala|fırlat|eşzamanlı|ertele)\\b"
+          "match": "\\b(eğer|değilse|eşle|varsayılan|döngü|içinde|iken|çık|devam|sonuç|dene|yakala|fırlat|eşzamanlı|ertele|if|else|match|default|for|in|while|break|continue|return|try|catch|throw|async|defer)\\b"
         },
         {
           "name": "keyword.other.debugger.tr",
-          "match": "\\b(kesme_noktası)\\b"
+          "match": "\\b(kesme_noktası|breakpoint)\\b"
         },
         {
           "name": "storage.type.tr",
-          "match": "\\b(değişken|sabit|fonksiyon|yapı)\\b"
+          "match": "\\b(değişken|sabit|fonksiyon|yapı|var|const|func|struct)\\b"
         },
         {
           "name": "variable.language.self.tr",
-          "match": "\\b(kendi)\\b"
+          "match": "\\b(kendi|self)\\b"
         },
         {
           "name": "constant.language.boolean.tr",
-          "match": "\\b(doğru|yanlış)\\b"
+          "match": "\\b(doğru|yanlış|true|false)\\b"
         },
         {
           "name": "constant.language.null.tr",
-          "match": "\\b(yok)\\b"
+          "match": "\\b(yok|none)\\b"
         },
         {
           "name": "keyword.operator.logical.tr",
-          "match": "\\b(ve|veya|değil)\\b"
+          "match": "\\b(ve|veya|değil|and|or|not)\\b"
         }
       ]
     },
@@ -269,7 +269,7 @@
       "patterns": [
         {
           "name": "entity.name.type.tr",
-          "match": "\\b(Tam|Ondalık|Metin|Mantık|Yok|Liste|Sözlük|Aralık|Fonksiyon|YerleşikFonksiyon|YapıTanımı|Nesne|Tensör|Herhangi|İyileştirici|Tip|VeriKümesi|Örnekleyici|SıralıOkuyucu|Parçalayıcı|Yol|İlerleme|Günlük|SatırOkuyucu|KontrolNoktası)\\b"
+          "match": "\\b(Tam|Ondalık|Metin|Mantık|Yok|Liste|Sözlük|Aralık|Fonksiyon|YerleşikFonksiyon|YapıTanımı|Nesne|Tensör|Herhangi|İyileştirici|Tip|VeriKümesi|Örnekleyici|SıralıOkuyucu|Parçalayıcı|Yol|İlerleme|Günlük|SatırOkuyucu|KontrolNoktası|Int|Float|String|Bool|None|List|Dict|Range|Function|BuiltinFunction|StructType|Object|Tensor|Any|Optimizer|Type|Dataset|Sampler|SequentialReader|Tokenizer|Path|Progress|Logger|LineReader|Checkpoint)\\b"
         }
       ]
     },
@@ -277,11 +277,11 @@
       "patterns": [
         {
           "name": "support.function.builtin.tr",
-          "match": "\\b(yazdır|girdi|dosya_oku|dosya_yaz|dosya_satırları|yol|klasörü_listele|klasör_oluştur|sil|kopyala|taşı|geçici_klasör|tip|tam|ondalık|metin|aralık|toplam|min|maks|mutlak|karekök|yuvarla|taban|tavan|işaret|sınırla|ortalama|standart_sapma|ortanca|pi|bekle|bekle_hepsi|zaman_ms|json_çöz|json_metin|csv_oku|doğrula|eşit_mi|ortam_değişkeni|komut_satırı|günlük|ilerleme)\\b"
+          "match": "\\b(yazdır|girdi|dosya_oku|dosya_yaz|dosya_satırları|yol|klasörü_listele|klasör_oluştur|sil|kopyala|taşı|geçici_klasör|tip|tam|ondalık|metin|aralık|toplam|min|maks|mutlak|karekök|yuvarla|taban|tavan|işaret|sınırla|ortalama|standart_sapma|ortanca|pi|bekle|bekle_hepsi|zaman_ms|json_çöz|json_metin|csv_oku|doğrula|eşit_mi|ortam_değişkeni|komut_satırı|günlük|ilerleme|print|input|read_file|write_file|read_lines|path|list_dir|make_dir|remove|copy|move|temp_dir|type|int|float|str|range|sum|max|abs|sqrt|round|floor|ceil|sign|clamp|mean|std|median|sleep|wait_all|time_ms|json_parse|json_string|read_csv|assert|assert_equal|env|command_line|logger|progress)\\b"
         },
         {
           "name": "support.function.ai.tr",
-          "match": "\\b(tensör|sıfırlar|birler|rastgele_normal|birim_matris|birleştir|relu|sigmoid|tanh|gelu|silu|softmax|log_softmax|üstel|log|sinüs|kosinüs|tanjant|arksinüs|arkkosinüs|arktanjant|arktanjant2|maks_indeks|birikimli_toplam|en_büyük_k|sıralama_indeksi|koşullu|sinh|cosh|log1p|log2|log10|üstel_eksi_bir|geri_yayılım|türevsiz|özel_türev|türev_denetle|AdamW|SGD|gradyan_kırp|gömme|katman_normu|rms_normu|dikkat|çapraz_entropi|parametreler|örnekle|tensör_kaydet|tensör_yükle|kontrol_noktası|parametreleri_yükle|karışık_hassasiyet|varsayılan_cihaz|cihazlar|veri_kümesi|parçalayıcı_yükle)\\b"
+          "match": "\\b(tensör|sıfırlar|birler|rastgele_normal|birim_matris|birleştir|relu|sigmoid|tanh|gelu|silu|softmax|log_softmax|üstel|log|sinüs|kosinüs|tanjant|arksinüs|arkkosinüs|arktanjant|arktanjant2|maks_indeks|birikimli_toplam|en_büyük_k|sıralama_indeksi|koşullu|sinh|cosh|log1p|log2|log10|üstel_eksi_bir|geri_yayılım|türevsiz|özel_türev|türev_denetle|AdamW|SGD|gradyan_kırp|gömme|katman_normu|rms_normu|dikkat|çapraz_entropi|parametreler|örnekle|tensör_kaydet|tensör_yükle|kontrol_noktası|parametreleri_yükle|karışık_hassasiyet|varsayılan_cihaz|cihazlar|tensor|zeros|ones|randn|eye|concat|exp|sin|cos|tan|asin|acos|atan|atan2|argmax|cumsum|topk|argsort|where|expm1|backward|no_grad|custom_grad|grad_check|clip_grad|embedding|layer_norm|rms_norm|attention|cross_entropy|parameters|sample|save_tensors|load_tensors|checkpoint|load_parameters|mixed_precision|default_device|devices|veri_kümesi|parçalayıcı_yükle|dataset|load_tokenizer)\\b"
         }
       ]
     },

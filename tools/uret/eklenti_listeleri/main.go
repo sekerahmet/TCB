@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"tr_dili/internal/dil/kod"
@@ -64,19 +65,57 @@ func main() {
 
 // --- sözlükten listeler ---
 
-// adlar kodların adlarıdır (sözlük sırasıyla).
-func adlar(kodlar ...kod.Kod) []string { return kod.Adlar(kodlar...) }
+// yazimDilleri gömülü bütün yazım dilleridir (Türkçe önce): kodlu dosya düzenleyicide seçilen
+// yazım dilinde (tr.yazimDili) gösterilir, renklendirme her dilin adlarını tanır.
+var yazimDilleri = func() []*kod.Dil {
+	d := []*kod.Dil{kod.Etkin()}
+	for _, kodu := range kod.Diller() {
+		if kodu != kod.Etkin().Kodu {
+			y, err := kod.DilYukle(kodu)
+			if err != nil {
+				panic(err)
+			}
+			d = append(d, y)
+		}
+	}
+	return d
+}()
+
+// dillerdekiAdlar kodun bütün yazım dillerindeki adlarıdır (yinelenmeden, Türkçe önce).
+func dillerdekiAdlar(k kod.Kod) []string {
+	var out []string
+	for _, d := range yazimDilleri {
+		if g, ok := d.Girdisi(k); ok && !slices.Contains(out, g.Ad) {
+			out = append(out, g.Ad)
+		}
+	}
+	return out
+}
+
+// adlar kodların bütün yazım dillerindeki adlarıdır (önce Türkçeler sözlük sırasıyla, sonra
+// öbür dillerdekiler).
+func adlar(kodlar ...kod.Kod) []string {
+	var out []string
+	for _, d := range yazimDilleri {
+		for _, k := range kodlar {
+			if g, ok := d.Girdisi(k); ok && !slices.Contains(out, g.Ad) {
+				out = append(out, g.Ad)
+			}
+		}
+	}
+	return out
+}
 
 // grubundakiler harf ailesinin grup numaralı grubundaki (grup < 0 ise bütün ailedeki) ve
 // uygun(kod) doğru olan sözlük kodlarının adlarıdır.
 func grubundakiler(harf byte, grup int, uygun func(kod.Kod) bool) []string {
-	var out []string
+	var secilen []kod.Kod
 	for _, k := range kod.Kodlar() {
 		if k.Harf() == harf && (grup < 0 || k.Grup() == grup) && (uygun == nil || uygun(k)) {
-			out = append(out, kod.Ad(k))
+			secilen = append(secilen, k)
 		}
 	}
-	return out
+	return adlar(secilen...)
 }
 
 // yerlesik kodun genel kapsamdaki bir yerleşik fonksiyon olup olmadığıdır.
@@ -159,7 +198,8 @@ func ekle(desenler ...string) []nesne {
 
 // Uret dil bilgisi dosyasının içeriğini sözlükten üretir.
 func Uret() ([]byte, error) {
-	ad := kod.Ad
+	// ad kodun bütün dillerdeki adlarının düzenli ifade seçeneğidir (değişken|var).
+	ad := func(k kod.Kod) string { return strings.Join(dillerdekiAdlar(k), "|") }
 
 	kontrol := adlar(kod.A001, kod.A002, kod.A003, kod.A004, kod.A010, kod.A011, kod.A012, kod.A013, kod.A014, kod.A021, kod.A060, kod.A061, kod.A062, kod.A080, kod.A081)
 	bildirim := adlar(kod.A030, kod.A031, kod.A020, kod.A050)
@@ -167,7 +207,7 @@ func Uret() ([]byte, error) {
 	genel := grubundakiler('G', -1, yerlesik)
 	yz := append(grubundakiler('T', -1, yerlesik), grubundakiler('V', -1, yerlesik)...)
 
-	ic := func(ad string) string { return regexp.QuoteMeta(ad) }
+	ic := func(secenek string) string { return secenek } // adlar düzenli ifade karakteri içermez
 
 	dilbilgisi := nesne{
 		{"$schema", "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json"},

@@ -305,3 +305,34 @@ func TestEsYazimlarKaldirildi(t *testing.T) {
 		}
 	}
 }
+
+// Her yazım dili hatasız yüklenir ve Türkçenin her canlı kodunu adlandırır (yeni bir kodun adı
+// her dil dosyasına eklenmelidir); ölü kodlar yalnızca Türkçede adlıdır (başka dillerde eski
+// kod hiç olmadı, 17.6).
+func TestYazimDilleriTamDir(t *testing.T) {
+	if strings.Join(Diller(), ",") != "en,tr" {
+		t.Fatalf("diller: %v", Diller())
+	}
+	for _, kodu := range Diller() {
+		d, err := DilYukle(kodu)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, k := range Etkin().Kodlar() {
+			if _, ok := d.Girdisi(k); !ok {
+				t.Errorf("%s dilinde %s (%s) adsız", kodu, k, Etkin().Ad(k))
+			}
+		}
+		if kodu == "tr" {
+			continue
+		}
+		for _, k := range Etkin().Olular() {
+			if g, ok := d.Girdisi(k); ok {
+				t.Errorf("%s dilinde ölü kod %s adlı (%s)", kodu, k, g.Ad)
+			}
+		}
+	}
+	if _, err := DilYukle("xx"); err == nil || !strings.Contains(err.Error(), "var olanlar: en, tr") {
+		t.Fatalf("bilinmeyen dil: %v", err)
+	}
+}

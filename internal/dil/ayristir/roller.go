@@ -9,13 +9,14 @@ import "tr_dili/internal/dil/sozcuk"
 type AdRolu uint8
 
 const (
-	RolYok        AdRolu = iota
-	RolTip               // tip açıklaması: değişken x: Tam, fonksiyon f(a: Metin): Tam
-	RolUye               // üye adı: x.ad, x?.ad
-	RolYapiAlani         // yapı alanının tanımı
-	RolYapiMetodu        // yapı metodunun tanımı (fonksiyon ad(...) yapı gövdesinde)
-	RolTest              // test deyiminin bağlamsal sözcüğü (A101)
-	RolOlarak            // aktar ... olarak (A100)
+	RolYok            AdRolu = iota
+	RolTip                   // tip açıklaması: değişken x: Tam, fonksiyon f(a: Metin): Tam
+	RolUye                   // üye adı: x.ad, x?.ad
+	RolYapiAlani             // yapı alanının tanımı
+	RolYapiMetodu            // yapı metodunun tanımı (fonksiyon ad(...) yapı gövdesinde)
+	RolTest                  // test deyiminin bağlamsal sözcüğü (A101)
+	RolOlarak                // aktar ... olarak (A100)
+	RolSozlukAnahtari        // sözlük değişmezinin çıplak ad anahtarı: {ad: değer}
 )
 
 // RolleriKaydet ayrıştırma sırasında ad sözcüklerinin görevlerinin kaydedilmesini açar

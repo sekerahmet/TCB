@@ -13,6 +13,8 @@ import (
 //   - tip açıklaması (değişken x: Tam): tip adı;
 //   - üye adı (x.ad) ile yapı alanı ve metodu tanımı: üye kodu (Y5, tipten bağımsız; 'kurucu'
 //     bağlamsal A102);
+//   - sözlük değişmezinin çıplak ad anahtarı ({ad: değer}): adı bir üye koduysa o kod (anahtar
+//     x.ad ile okunur; iki yer birlikte çevrilsin);
 //   - test deyiminin ve aktar ... olarak'ın sözcükleri (A101, A100);
 //   - değer olarak okunan ad: kullanıcının görünen bir tanımı yoksa yerleşik ya da tip adı,
 //     kendi bloğunda örtük ad (o, birikim, hata);
@@ -30,6 +32,8 @@ func (c *cozumleme) dilOgesi(r sozcuk.Kayit) kod.Kod {
 		if ad == c.dil.Ad(kod.A102) {
 			return kod.A102
 		}
+		return c.bul(kod.AlanUye, ad)
+	case ayristir.RolSozlukAnahtari:
 		return c.bul(kod.AlanUye, ad)
 	case ayristir.RolTest:
 		return c.baglamsal(kod.A101, ad)

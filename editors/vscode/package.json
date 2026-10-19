@@ -214,10 +214,12 @@
         "tr.yazimDili": {
           "type": "string",
           "enum": [
-            "tr"
+            "tr",
+            "en"
           ],
           "enumDescriptions": [
-            "%ayar.yazimDili.tr%"
+            "%ayar.yazimDili.tr%",
+            "%ayar.yazimDili.en%"
           ],
           "default": "tr",
           "scope": "application",

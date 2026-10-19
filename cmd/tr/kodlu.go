@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 
 	"tr_dili/internal/dil/kaynak"
 	"tr_dili/internal/dil/kod"
@@ -35,8 +36,11 @@ const cikisSozdizimi = 2
 // kodlaKomutu 'tr kodla' komutudur; zaten kodlu dosyalara dokunulmaz.
 func kodlaKomutu(args []string) {
 	if len(args) > 0 && args[0] == "-" {
-		// Kodlanacak metin yazım dilinde yazılmıştır; bugün yalnızca Türkçe vardır (etkin dil).
-		dilArgumani(args[1:], "kodla")
+		// Kodlanacak metin yazım dilinde yazılmıştır. Dilin sözcük tabloları süreç başında etkin
+		// dilden kurulduğu için başka bir dil, süreci o dille yeniden çalıştırarak okunur.
+		if dil := dilArgumani(args[1:], "kodla"); dil.Kodu != kod.Etkin().Kodu {
+			dilleYenidenCalistir(dil.Kodu)
+		}
 		girdidenCevir(kaynak.Kodla)
 		return
 	}
@@ -210,10 +214,29 @@ func gosterKomutu(args []string) {
 	fmt.Print(metin)
 }
 
-// yazimDili bir yazım dili kodunun (ISO 639-1) kod listesidir. Bugün yalnızca Türkçe vardır.
+// yazimDili bir yazım dili kodunun (ISO 639-1) kod listesidir.
 func yazimDili(kodu string) (*kod.Dil, error) {
-	if kodu == kod.Etkin().Kodu {
-		return kod.Etkin(), nil
+	return kod.DilYukle(kodu)
+}
+
+// dilleYenidenCalistir aynı komutu etkin dil olarak dilKodu ile yeniden çalıştırır (standart
+// giriş, çıkış ve hata aynen geçer) ve onun çıkış koduyla çıkar.
+func dilleYenidenCalistir(dilKodu string) {
+	ben, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Hata: '%s' yazım dili için tr yeniden çalıştırılamadı: %v\n", dilKodu, err)
+		os.Exit(1)
 	}
-	return nil, fmt.Errorf("'%s' yazım dili yok; bugün yalnızca '%s' var", kodu, kod.Etkin().Kodu)
+	c := exec.Command(ben, os.Args[1:]...)
+	c.Env = append(os.Environ(), kod.DilOrtamDegiskeni+"="+dilKodu)
+	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := c.Run(); err != nil {
+		var ce *exec.ExitError
+		if errors.As(err, &ce) {
+			os.Exit(ce.ExitCode())
+		}
+		fmt.Fprintf(os.Stderr, "Hata: '%s' yazım dili için tr yeniden çalıştırılamadı: %v\n", dilKodu, err)
+		os.Exit(1)
+	}
+	os.Exit(0)
 }

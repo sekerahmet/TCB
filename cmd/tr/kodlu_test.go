@@ -162,7 +162,10 @@ func TestKodlaCozGosterKomutlari(t *testing.T) {
 	if s := tr(t, k, "göster", "a.tr", "--dil", "tr"); s.kod != 0 || s.cikti != tr1 {
 		t.Errorf("tr göster: %q (çıkış %d, hata %q)", s.cikti, s.kod, s.hata)
 	}
-	bekle(t, tr(t, k, "göster", "a.tr", "--dil", "en"), 1, nil, []string{"'en' yazım dili yok; bugün yalnızca 'tr' var"})
+	if s := tr(t, k, "göster", "a.tr", "--dil", "en"); s.kod != 0 || s.cikti != "var x = 1\r\nprint(\"x: {x}\") // yorum\r\n" {
+		t.Errorf("tr göster --dil en: %q (çıkış %d, hata %q)", s.cikti, s.kod, s.hata)
+	}
+	bekle(t, tr(t, k, "göster", "a.tr", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok; var olanlar: en, tr"})
 	bekle(t, tr(t, k, "göster", "a.tr", "--dil"), 1, nil, []string{"'--dil' bir yazım dili bekler"})
 	bekle(t, tr(t, k, "çöz", "a.tr"), 0, []string{"çözüldü: a.tr"}, nil)
 	if v, _ := os.ReadFile(yol); string(v) != tr1 {
@@ -199,9 +202,87 @@ func TestKodlaGosterStandartGiris(t *testing.T) {
 	}
 	bekle(t, calistir(t, trIkilisi, "", kaynak.Baslik+"\nA001 {\n", nil, "göster", "-"), 2, nil, []string{"Sözdizimi Hataları"})
 	bekle(t, calistir(t, trIkilisi, "", "//! tr kodlu 2\n", nil, "kodla", "-"), 1, nil, []string{"tanımadığı bir kodlu biçim başlığı"})
-	bekle(t, calistir(t, trIkilisi, "", "x\n", nil, "göster", "-", "--dil", "en"), 1, nil, []string{"'en' yazım dili yok"})
+	bekle(t, calistir(t, trIkilisi, "", "x\n", nil, "göster", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
+	bekle(t, calistir(t, trIkilisi, "", "x\n", nil, "kodla", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
 	bekle(t, calistir(t, trIkilisi, "", "x\n", nil, "kodla", "-", "a.tr"), 1, nil, []string{"fazladan argüman: a.tr"})
 	bekle(t, tr(t, "", "yardım"), 0, []string{"tr göster - [--dil tr]", "tr kodla - [--dil tr]"}, nil)
+}
+
+// İngilizce yazım dili (17.6): kodlu dosya İngilizce gösterilir, İngilizce yazılmış metin aynı
+// kodlu biçime kodlanır. Kullanıcının adları yazıldığı gibi kalır; üye adıyla aynı sözlük
+// anahtarı ({adım: 3}) üyeyle (ayar.adım) birlikte çevrilir. İngilizcede bir sözcük olarak
+// okunacak kullanıcı adı '$ad' kaçışıyla yazılır (name: İngilizcede Yol'un üyesi); kullanıcının
+// görünen tanımı olan ad (len) kaçışsızdır.
+func TestIngilizceYazimDili(t *testing.T) {
+	turkce := "değişken ayar = {adım: 3, renk: \"mavi\"}\n" +
+		"döngü i içinde 0..ayar.adım {\n" +
+		"    eğer i % 2 == 0 { yazdır(\"{i} {ayar.renk}\") }\n" +
+		"}\n" +
+		"değişken len = {name: ayar.uzunluk}\n" +
+		"yazdır(len.name)\n"
+	ingilizce := "var ayar = {step: 3, renk: \"mavi\"}\n" +
+		"for i in 0..ayar.step {\n" +
+		"    if i % 2 == 0 { print(\"{i} {ayar.renk}\") }\n" +
+		"}\n" +
+		"var len = {$name: ayar.length}\n" +
+		"print(len.$name)\n"
+	kodlu := calistir(t, trIkilisi, "", turkce, nil, "kodla", "-")
+	if kodlu.kod != 0 {
+		t.Fatalf("tr kodla -: çıkış %d, hata %q", kodlu.kod, kodlu.hata)
+	}
+	en := calistir(t, trIkilisi, "", kodlu.cikti, nil, "göster", "-", "--dil", "en")
+	if en.kod != 0 || en.cikti != ingilizce {
+		t.Fatalf("tr göster - --dil en:\n%s(çıkış %d, hata %q)\nbeklenen:\n%s", en.cikti, en.kod, en.hata, ingilizce)
+	}
+	geri := calistir(t, trIkilisi, "", en.cikti, nil, "kodla", "-", "--dil", "en")
+	if geri.kod != 0 || geri.cikti != kodlu.cikti {
+		t.Fatalf("İngilizce metin aynı kodlu biçime kodlanmadı:\n%s(çıkış %d, hata %q)\nbeklenen:\n%s", geri.cikti, geri.kod, geri.hata, kodlu.cikti)
+	}
+	if s := calistir(t, trIkilisi, "", geri.cikti, nil, "göster", "-"); s.kod != 0 || s.cikti != turkce {
+		t.Errorf("İngilizceden kodlanan metnin Türkçesi özgün değil: %q", s.cikti)
+	}
+	bekle(t, calistir(t, trIkilisi, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Sözdizimi Hataları"})
+}
+
+// Depodaki .tr dosyalarının İngilizce gidiş dönüşü: kodlu → İngilizce → kodlu bayt bayt aynıdır
+// (İngilizcenin sözcükleriyle çakışan kullanıcı adları kaçışla korunur).
+func TestDepodakiDosyalarIngilizceKayipsiz(t *testing.T) {
+	if testing.Short() {
+		t.Skip("her dosya için üç süreç çalıştırır")
+	}
+	var dosyalar []string
+	for _, k := range []string{"testler", "ornekler", "kitaplik", "tools"} {
+		filepath.WalkDir(depo.Yol(k), func(yol string, g fs.DirEntry, err error) error {
+			if err == nil && g.IsDir() && g.Name() == "olumsuz" {
+				return filepath.SkipDir // bilerek hatalı dosyalar (ölü kodlar, bozuk başlıklar)
+			}
+			if err == nil && !g.IsDir() && strings.HasSuffix(yol, ".tr") && !veriOlanTRDosyalari[g.Name()] {
+				dosyalar = append(dosyalar, yol)
+			}
+			return err
+		})
+	}
+	sinanan := 0
+	for _, yol := range dosyalar {
+		veri, err := os.ReadFile(yol)
+		if err != nil {
+			t.Fatal(err)
+		}
+		kodlu := calistir(t, trIkilisi, "", string(veri), nil, "kodla", "-")
+		if kodlu.kod == cikisSozdizimi {
+			continue // bilerek hatalı olumsuz test dosyaları
+		}
+		en := calistir(t, trIkilisi, "", kodlu.cikti, nil, "göster", "-", "--dil", "en")
+		geri := calistir(t, trIkilisi, "", en.cikti, nil, "kodla", "-", "--dil", "en")
+		if kodlu.kod != 0 || en.kod != 0 || geri.kod != 0 || geri.cikti != kodlu.cikti {
+			t.Errorf("%s: İngilizce gidiş dönüş kayıplı (çıkış %d/%d/%d, hata %q%q)\n%s", yol, kodlu.kod, en.kod, geri.kod, en.hata, geri.hata, satirFarki(kodlu.cikti, geri.cikti))
+			continue
+		}
+		sinanan++
+	}
+	if sinanan < 40 {
+		t.Fatalf("yalnızca %d dosya sınandı", sinanan)
+	}
 }
 
 // satirFarki iki çıktının ayrıldığı ilk satırları gösterir.

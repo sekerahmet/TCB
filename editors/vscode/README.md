@@ -69,7 +69,7 @@ Sınırlar: "Farklı Kaydet" ile kaydedilen yeni dosya Türkçe yazılır (kodla
 
 `.tr` dosyasında kısayolu yazıp `Tab`a basın: `fonk`, `eğer`, `eşle`, `döngü`, `liste_üret`, `yapı`, `dene`, `filtrele`, `haritala`, `indirge` ve `tensör` (tensörler, `AdamW`, `geri_yayılım`, `iyileştirici.adım()` ve `iyileştirici.sıfırla()` ile küçük bir eğitim döngüsü).
 
-Renklendirmenin anahtar kelime, tip ve yerleşik listeleri elle yazılmaz; dilin kod listesinden (`internal/dil/kod/tr.json`) üretilir. Kod listesinde bir ad değişince depo kökünde `go run ./tools/uret/eklenti_listeleri` çalıştırın (`go test ./...` dosyanın güncel olduğunu denetler). Her işin tek yazımı vardır: yalnızca Türkçe biçimler renklendirilir; `#` yorum değildir, yorumlar `//` ve `/* */` ile yazılır.
+Renklendirmenin anahtar kelime, tip ve yerleşik listeleri elle yazılmaz; dilin kod listesinden (`internal/dil/kod/tr.json`, ve İngilizce görünüm için `en.json`) üretilir. Kod listesinde bir ad değişince depo kökünde `go run ./tools/uret/eklenti_listeleri` çalıştırın (`go test ./...` dosyanın güncel olduğunu denetler). Her işin tek yazımı vardır: yalnızca Türkçe biçimler renklendirilir; `#` yorum değildir, yorumlar `//` ve `/* */` ile yazılır.
 
 | Ne yapmak istiyorsunuz? | Nasıl |
 | --- | --- |

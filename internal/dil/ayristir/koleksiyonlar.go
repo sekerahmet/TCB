@@ -75,6 +75,7 @@ func (p *Parser) parseDictLiteral() agac.Expression {
 		// Sözlük anahtarı çıplak tanımlayıcı ise (örn: {ad: "Ali"}), metin olarak al
 		if p.curTokenIs(sozcuk.TOKEN_IDENT) && p.peekTokenIs(sozcuk.TOKEN_COLON) {
 			key = &agac.StringLiteral{Token: p.curToken(), Value: p.curToken().Literal}
+			p.rol(p.curToken(), RolSozlukAnahtari)
 		} else {
 			key = p.parseExpression(LOWEST)
 		}

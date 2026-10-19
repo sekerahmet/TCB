@@ -30,8 +30,9 @@ func TestDilbilgisiGuncel(t *testing.T) {
 	}
 }
 
-// Üretilen listeler yalnızca sözlüğün bugünkü adlarını içerir: ASCII yazımlar ve
-// kaldırılmış (eski) adlar renklendirilmez.
+// Üretilen listeler yalnızca yazım dillerinin bugünkü adlarını içerir: Türkçe adların ASCII
+// yazımları ve kaldırılmış (eski) adlar renklendirilmez; başka bir yazım dilinde geçerli bir ad
+// olanlar (en: int, tensor) o dilin görünümü için renklendirilir.
 func TestDilbilgisiTekYazim(t *testing.T) {
 	veri, err := Uret()
 	if err != nil {
@@ -47,18 +48,24 @@ func TestDilbilgisiTekYazim(t *testing.T) {
 			kelimeler[k] = true
 		}
 	}
-	for _, ad := range []string{"eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veri_kümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık"} {
+	baskaDilde := map[string]bool{}
+	for _, d := range yazimDilleri[1:] {
+		for _, k := range d.Kodlar() {
+			baskaDilde[d.Ad(k)] = true
+		}
+	}
+	for _, ad := range []string{"eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veri_kümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık", "if", "var", "print", "Tensor"} {
 		if !kelimeler[ad] {
 			t.Errorf("%q listelerde olmalı", ad)
 		}
 	}
 	for _, k := range kod.Kodlar() {
 		g, _ := kod.Etkin().Girdisi(k)
-		if a := turkce.ASCII(g.Ad); a != g.Ad && kelimeler[a] {
+		if a := turkce.ASCII(g.Ad); a != g.Ad && kelimeler[a] && !baskaDilde[a] {
 			t.Errorf("%s'in ASCII yazımı %q listelerde olmamalı", k, a)
 		}
 		for _, e := range g.Eski {
-			if kelimeler[e] {
+			if kelimeler[e] && !baskaDilde[e] {
 				t.Errorf("%s'in eski adı %q listelerde olmamalı", k, e)
 			}
 		}

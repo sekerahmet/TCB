@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"unicode"
@@ -11,6 +12,19 @@ import (
 
 //go:embed tr.json
 var trJSON []byte
+
+//go:embed en.json
+var enJSON []byte
+
+// diller ikiliye gömülü yazım dilleridir (ISO 639-1 kodu → dil dosyası). Türkçe dilin asıl
+// dilidir: kodsuz (düz) yazılmış dosyalar Türkçedir; öbür diller kodlu dosyaların gösterimi
+// ve o dilde yazılmış metnin kodlanması içindir (docs/dil/17_kodlar.md, 17.6).
+var diller = map[string][]byte{"tr": trJSON, "en": enJSON}
+
+// DilOrtamDegiskeni sürecin etkin yazım dilini seçer (boş: tr). Dilin sözcük tabloları
+// paketler kurulurken etkin dilden bir kez çıkarıldığı için dil yalnızca süreç başında
+// seçilebilir; 'tr kodla --dil en' kendini bu değişkenle yeniden çalıştırır.
+const DilOrtamDegiskeni = "TR_DIL"
 
 // ASCIIKabul, adların Türkçe karakterleri ASCII'ye çevrilmiş biçimlerinin (yazdir,
 // sonuc, degisken) adın kendisi gibi kabul edilip edilmediğini belirleyen TEK açma-kapama
@@ -375,14 +389,45 @@ func (d *Dil) Oneri(al Alan, yazim string, uygun func(Kod) bool) (Kod, bool) {
 	return Yok, false
 }
 
-// etkin programın kullandığı dildir. Şimdilik yalnızca Türkçe vardır.
+// etkin programın kullandığı dildir (DilOrtamDegiskeni; varsayılan Türkçe).
 var etkin = func() *Dil {
-	d, err := Yukle("tr", trJSON)
+	kodu := os.Getenv(DilOrtamDegiskeni)
+	if kodu == "" {
+		kodu = "tr"
+	}
+	d, err := dilKur(kodu)
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Hata: %s=%s: %v\n", DilOrtamDegiskeni, kodu, err)
+		os.Exit(2)
 	}
 	return d
 }()
+
+// DilYukle gömülü bir yazım dilinin kod listesini kurar; etkin dil için kurulmuş olanı verir.
+func DilYukle(kodu string) (*Dil, error) {
+	if etkin != nil && etkin.Kodu == kodu {
+		return etkin, nil
+	}
+	return dilKur(kodu)
+}
+
+func dilKur(kodu string) (*Dil, error) {
+	veri, ok := diller[kodu]
+	if !ok {
+		return nil, fmt.Errorf("'%s' yazım dili yok; var olanlar: %s", kodu, strings.Join(Diller(), ", "))
+	}
+	return Yukle(kodu, veri)
+}
+
+// Diller gömülü yazım dillerinin kodlarıdır (sıralı).
+func Diller() []string {
+	var r []string
+	for k := range diller {
+		r = append(r, k)
+	}
+	sort.Strings(r)
+	return r
+}
 
 // Etkin programın kullandığı dili verir.
 func Etkin() *Dil { return etkin }

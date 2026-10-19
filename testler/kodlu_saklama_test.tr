@@ -1,4 +1,4 @@
-// Kodlu saklama (docs/dil/17_kodlar.md, 17.1-17.6) ve '$ad' kaçışı (2.11). Kodlu modül:
+// Kodlu saklama (docs/dil/17_kodlar.md, 17.1-17.7) ve '$ad' kaçışı (2.11). Kodlu modül:
 // testler/kodlu/ornek_kodlu.tr (Türkçe gösterimi: tr göster testler/kodlu/ornek_kodlu.tr).
 
 test "17.1 ilk satırı başlık olan dosya kodludur ve çevrilmeden çalışır" {
@@ -46,6 +46,19 @@ test "17.6 ölü kodlar okunmaya devam eder; bilinmeyen kod hatadır" {
     doğrula(mesaj.içerir("'uzunluk(...)' TR'de bir fonksiyon değil"), mesaj)
     dene { aktar "olumsuz/kodlu_bilinmeyen" } yakala h { mesaj = h }
     doğrula(mesaj.içerir("Satır 2, Sütun 1: 'G999' bilinen bir kod değil"), mesaj)
+}
+
+test "17.7 kodsuz dosya Türkçedir; başka yazım dillerinin sözcükleri burada kullanıcının adıdır" {
+    // İngilizcenin sözcükleri (var, print, if) Türkçe yazılmış dosyada sıradan adlardır.
+    değişken var = 1
+    değişken print = var + 1
+    fonksiyon if(x) { sonuç x * 2 }
+    eşit_mi(4, if(print))
+    // Kodlu dosyada üyenin adıyla aynı sözlük anahtarı ({Y500: 3}) Türkçe adıyla okunur.
+    aktar "kodlu/sozluk_anahtari" olarak m
+    eşit_mi(3, m.ayar.adım)
+    eşit_mi(3, m.ayar["adım"])
+    eşit_mi(["adım", "renk"], m.ayar.anahtarlar())
 }
 
 test "2.11 '$ad' kaçışı: ad dilin bir sözcüğüyle aynı olsa da kullanıcının adıdır" {
