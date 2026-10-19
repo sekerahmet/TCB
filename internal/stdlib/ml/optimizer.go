@@ -258,6 +258,11 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 	if err != nil {
 		return nil, err
 	}
+	if eps <= 0 {
+		// Sıfır gradyanlı ilk adımda 0 / (√0 + 0) = NaN olurdu (float32'de 0'a düşen değer de).
+		v, _ := bind.GetNamed(named, nameEpsilon)
+		return nil, fmt.Errorf("%s: %s pozitif olmalıdır (float32'de 0'dan büyük), %s verildi", fn, nameEpsilon.TR, v.Inspect())
+	}
 	masterCopy, err := masterCopyArg(fn, named)
 	if err != nil {
 		return nil, err

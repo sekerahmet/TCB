@@ -114,17 +114,31 @@ func shapeList(fn string, v interp.Value) ([]int, error) {
 		return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", fn, typeName(v))
 	}
 	sh := make([]int, len(l.Elements))
-	totalElems := 1
 	for i, el := range l.Elements {
 		d, ok := intNumber(el)
 		if !ok || d < 0 {
 			return nil, fmt.Errorf("%s: şeklin %d. elemanı negatif olmayan bir tam sayı olmalıdır, %s verildi", fn, i+1, el.Inspect())
 		}
 		sh[i] = d
-		if d > 0 && totalElems > interp.MaxCollectionSize/d {
-			return nil, fmt.Errorf("%s: %s şekli çok büyük (en fazla %d eleman)", fn, shapeText(sh[:i+1]), interp.MaxCollectionSize)
-		}
-		totalElems *= d
+	}
+	if err := checkShapeLimit(fn, sh); err != nil {
+		return nil, err
 	}
 	return sh, nil
+}
+
+// checkShapeLimit şeklin eleman sınırını aşmadığını denetler; sıfır uzunluklu eksenler 1
+// sayılır (tensör_yükle ile aynı kural): sıfır eksenli tensör veri tutmaz, ama öbür
+// eksenleri işlemlerin çıktısını ([4, 0] @ [0, N] → [4, N]) ve .değer'in liste sayısını
+// belirler. Çarpım taşmadan denetlenir; -1 (çıkarsanacak eksen) atlanır.
+func checkShapeLimit(fn string, sh []int) error {
+	limit := 1
+	for i, d := range sh {
+		d = max(d, 1)
+		if limit > interp.MaxCollectionSize/d {
+			return fmt.Errorf("%s: %s şekli çok büyük (en fazla %d eleman; sıfır uzunluklu eksenler 1 sayılır)", fn, shapeText(sh[:i+1]), interp.MaxCollectionSize)
+		}
+		limit *= d
+	}
+	return nil
 }

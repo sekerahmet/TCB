@@ -17,14 +17,19 @@ import (
 // ----------------------------------------------------------------------------
 
 // requiresGrad türev_izle adlı argümanını (ya da verilen konumlu değeri) okur.
-func requiresGrad(named map[string]interp.Value, positional interp.Value, defaultVal bool) bool {
+func requiresGrad(fn string, named map[string]interp.Value, positional interp.Value, defaultVal bool) (bool, error) {
+	// Mantık olmalı: dolu bir metin ("yanlış") doğru sayılıp türevi sessizce açardı.
 	if positional != nil {
-		defaultVal = positional.IsTruthy()
+		b, err := bind.Bool(fn, nameRequiresGrad.TR, positional)
+		if err != nil {
+			return false, err
+		}
+		defaultVal = b
 	}
 	if v, ok := bind.GetNamed(named, nameRequiresGrad); ok {
-		return v.IsTruthy()
+		return bind.Bool(fn, nameRequiresGrad.TR, v)
 	}
-	return defaultVal
+	return defaultVal, nil
 }
 
 // tensorBuiltin tensör(veri, türev_izle: yanlış, tür: "float32") yerleşiğidir. Veri tek
@@ -45,7 +50,10 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if len(args) == 2 {
 		positional = args[1]
 	}
-	watch := requiresGrad(named, positional, false)
+	watch, err := requiresGrad(fn, named, positional, false)
+	if err != nil {
+		return nil, err
+	}
 	var t *tensor.Tensor
 	if d, ok := args[0].(*TensorValue); ok {
 		// Türü değiştirmenin tek yazımı t.türe(...)'dir; tür: yalnızca listeden ya da
@@ -123,7 +131,11 @@ func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]int
 		if t, err = castTo(t, dt); err != nil {
 			return nil, err
 		}
-		t.SetRequiresGrad(requiresGrad(named, nil, false))
+		watch, err := requiresGrad(ad, named, nil, false)
+		if err != nil {
+			return nil, err
+		}
+		t.SetRequiresGrad(watch)
 		return New(t), nil
 	}
 }

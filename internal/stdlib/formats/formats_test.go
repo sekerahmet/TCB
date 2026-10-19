@@ -234,3 +234,17 @@ func TestJSONTextOrderNaNAndCycle(t *testing.T) {
 		t.Fatalf("BOM'lu JSON: %v %v", val, err)
 	}
 }
+
+// json_çöz ve csv_oku metin olmayan argümanı görünüşüyle ayrıştırmaz, açık hata verir
+// (json_çöz(5) eskiden 5'i, json_çöz([1]) listenin TR yazımını çözüyordu).
+func TestDecodersRequireText(t *testing.T) {
+	for _, code := range []string{`json_çöz(5)`, `json_çöz([1, 2])`, `csv_oku(5)`, `csv_oku([1])`} {
+		if _, _, err := run(t, code); err == nil || !strings.Contains(err.Error(), "bekler") {
+			t.Fatalf("%s: tip hatası beklenirdi: %v", code, err)
+		}
+	}
+	out, _, err := run(t, `yazdır(json_çöz("[1, 2]"), csv_oku("a,b\n1,2"))`)
+	if err != nil || out != "[1, 2] [[\"a\", \"b\"], [1, 2]]\n" {
+		t.Fatalf("metin argümanı: %q, %v", out, err)
+	}
+}

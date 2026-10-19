@@ -62,12 +62,15 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, fmt.Errorf("%s: liste boş; en az bir tensör verin", fn)
 	}
 	ts := make([]*tensor.Tensor, len(l.Elements))
+	ints := true // hepsi tam sayılı tensörse (ör. token kimlikleri) sonuç da tam sayılıdır
 	for i, el := range l.Elements {
 		t, err := toTensor(fmt.Sprintf("%s: %d. eleman", fn, i+1), el)
 		if err != nil {
 			return nil, err
 		}
 		ts[i] = t
+		tv, ok := el.(*TensorValue)
+		ints = ints && ok && tv.hasInts
 	}
 	e, given, err := axisArg(fn, args, named)
 	if err != nil {
@@ -98,7 +101,9 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if err != nil {
 		return nil, err
 	}
-	return New(r), nil
+	result := New(r)
+	result.hasInts = ints
+	return result, nil
 }
 
 // split .böl(parça_sayısı, eksen: -1) metodudur: tensörü verilen eksende eşit parçalara
@@ -368,6 +373,10 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 			w := math.Exp((float64(x[j]) - largestVal) / temperature)
 			weight[i] = w
 			top += w
+		}
+		if !(top > 0) || math.IsInf(top, 0) {
+			// NaN logit, hepsi -∞ ya da +∞: dağılım tanımsız; sessizce son aday seçilmesin.
+			return nil, fmt.Errorf("%s: %d. satırın logitlerinden dağılım kurulamıyor (NaN, sonsuz ya da hepsi -∞ değer var)", fn, r+1)
 		}
 		target := u[r] * top
 		picked := candidates[len(candidates)-1]

@@ -6,6 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
+	"math"
 )
 
 // ----------------------------------------------------------------------------
@@ -182,9 +183,11 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, nam
 	}
 	eps := float32(1e-5)
 	if v, ok := bind.GetNamed(named, nameEpsilon); ok {
+		// float32'de pozitif ve sonlu olmalı: NaN ve sonsuz (f <= 0 ikisini de geçirirdi) ya da
+		// float32'de 0'a düşen değer çıktıyı NaN yapardı.
 		f, ok := interp.ToFloat(v)
-		if !ok || f <= 0 {
-			return nil, nil, 0, fmt.Errorf("%s: %s pozitif bir sayı olmalıdır, %s verildi", fn, nameEpsilon.TR, v.Inspect())
+		if e := float32(f); !ok || !(e > 0) || math.IsInf(float64(e), 0) {
+			return nil, nil, 0, fmt.Errorf("%s: %s pozitif ve sonlu bir sayı olmalıdır, %s verildi", fn, nameEpsilon.TR, v.Inspect())
 		}
 		eps = float32(f)
 	}

@@ -119,6 +119,28 @@ func deleteTree(fpath string, info fs.FileInfo) (int, error) {
 	return number, os.Remove(fpath)
 }
 
+// checkDeletable deleteTree'nin yolu silebileceğini (salt okunur dosya olmadığını) önceden
+// denetler; hiçbir şeyi değiştirmez.
+func checkDeletable(fpath string) error {
+	info, err := os.Lstat(fpath)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		if readOnly(info) {
+			return readOnlyError(fpath, "")
+		}
+		return nil
+	}
+	root, err := os.OpenRoot(fpath)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	_, _, err = checkTree(root, fpath)
+	return err
+}
+
 // checkTree kökün altını (bağlantıların içine girmeden) gezer: klasör olmayan girdileri
 // sayar, salt okunur dosya arar ve kökün doğrudan altındaki adları verir.
 func checkTree(root *os.Root, fpath string) (int, []string, error) {

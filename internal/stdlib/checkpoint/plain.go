@@ -3,6 +3,7 @@ package checkpoint
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -29,6 +30,9 @@ var tagFloat, tagDict = plainTags[0], plainTags[1]
 // maxPlainDepth düz değerlerin iç içe derinliğidir (kendini içeren değerler için de sınır).
 const maxPlainDepth = 100
 
+// plainNodeLimit düz bir değerde yazılan en çok öğe sayısıdır (testler küçültür).
+var plainNodeLimit = interp.MaxCollectionSize
+
 // writePlain düz bir değeri yazar; yazılamayan bir değer yol ile (izlenen.en_iyi) bildirilir.
 func writePlain(v interp.Value) (json.RawMessage, error) { return writePlainFiltered(v, nil) }
 
@@ -45,12 +49,26 @@ func writePlainFiltered(v interp.Value, filter func(string) string) (json.RawMes
 type plainWriter struct {
 	b      bytes.Buffer
 	filter func(string) string
+	walker interp.ContainerWalker // kendini içeren liste/sözlük
+	nodes  int                    // yazılan değer sayısı (paylaşılan alt listeler her kullanımda sayılır)
 }
 
 func (y *plainWriter) write(v interp.Value, fpath string, depth int) error {
 	b := &y.b
 	if depth > maxPlainDepth {
-		return fmt.Errorf("%s: değer çok derin iç içe ya da kendini içeriyor (en çok %d düzey)", pathName(fpath), maxPlainDepth)
+		return fmt.Errorf("%s: değer çok derin iç içe (en çok %d düzey)", pathName(fpath), maxPlainDepth)
+	}
+	// Aynı alt listeyi birçok kez içeren değer (l = [l, l] 60 kez) kısa olsa da yazılırken
+	// üstel büyür: yazılan değer sayısı sınırlıdır.
+	if y.nodes++; y.nodes > plainNodeLimit {
+		return fmt.Errorf("%s: değer çok büyük (en çok %d öğe; aynı alt liste her kullanımda ayrıca yazılır)", pathName(fpath), plainNodeLimit)
+	}
+	switch v.(type) {
+	case *interp.ListVal, *interp.DictVal:
+		if err := y.walker.Enter(v, depth); err != nil && errors.Is(err, interp.ErrCyclic) {
+			return fmt.Errorf("%s: değer kendini içeriyor (döngüsel liste ya da sözlük); kaydedilemez", pathName(fpath))
+		}
+		defer y.walker.Leave(v)
 	}
 	switch x := v.(type) {
 	case *interp.NullVal:

@@ -72,7 +72,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 			return nil, err
 		}
 		if valued && IsSecretName(name) && m != nil {
-			addSecret(m, value) // hata mesajında da görünmesin
+			addSecretItems(m, value) // hata mesajında da görünmesin
 		}
 		s := find(options, name)
 		if s == nil {
@@ -91,7 +91,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 				return nil, fmt.Errorf("'--%s' değeri çok uzun (%d bayt; en çok 1 MB)", s.name, len(value))
 			}
 			if s.secret && m != nil {
-				addSecret(m, value)
+				addSecretItems(m, value)
 			}
 		}
 		v, err := parseValue(s, value, valued)
@@ -137,6 +137,11 @@ func unknownOption(given string, options []*option) error {
 	name := strings.TrimLeft(given, "-")
 	if i := strings.IndexByte(name, '='); i >= 0 {
 		name = name[:i]
+	}
+	// Değer iletide gösterilmez: yanlış yazılmış bir gizli seçeneğin (-api_key=...) değeri
+	// gizli değer süzgecine henüz verilmemiştir.
+	if i := strings.IndexByte(given, '='); i >= 0 {
+		given = given[:i] + "=…"
 	}
 	candidates := []string{"yardım"}
 	for _, s := range options {

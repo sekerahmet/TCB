@@ -144,7 +144,7 @@ func (c *Progress) writeResult(last string) {
 	})
 	if e := d.active; e != nil {
 		c.m.SetLiveLine(e)
-		c.m.UpdateLiveLine(e.draw)
+		c.m.UpdateLiveLine(e.Draw) // Draw: iç çubuk görünürken gelen güncellemeler satırı tazeler
 	}
 }
 

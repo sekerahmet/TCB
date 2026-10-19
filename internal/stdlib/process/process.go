@@ -126,6 +126,18 @@ func addSecret(m *interp.VM, value string) {
 	m.AddSecret(value)
 }
 
+// addSecretItems gizli bir seçeneğin komut satırındaki değerini ve (liste seçeneğinde)
+// virgülle ayrılmış her öğesini gizli değer süzgecine verir: öğe tek başına yazdırılsa ya
+// da günlüğe girse de gizlenir.
+func addSecretItems(m *interp.VM, value string) {
+	addSecret(m, value)
+	if strings.Contains(value, ",") {
+		for _, p := range strings.Split(value, ",") {
+			addSecret(m, strings.TrimSpace(p))
+		}
+	}
+}
+
 // isNumberOrBool değer (boşluklar atılınca) bir sayı ya da mantık değeri mi?
 func isNumberOrBool(s string) bool {
 	s = strings.TrimSpace(s)

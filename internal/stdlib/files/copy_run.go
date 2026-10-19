@@ -21,12 +21,23 @@ var rename = os.Rename
 
 // run denetlenmiş işi yapar (yorumlayıcı kilidi bırakılmışken; TR değerlerine dokunmaz).
 func (job *moveJob) run() error {
+	// Yerine konacak klasör sonunda silinir: salt okunur bir dosya içeriyorsa silinemez ve gizli
+	// bir .eski klasörü olarak kalırdı. Hiçbir şeye dokunmadan önce denetlenir.
+	if job.existingDir {
+		if err := checkDeletable(job.last); err != nil {
+			return err
+		}
+	}
 	if job.move {
 		err := job.replace(job.src)
 		if err == nil || !otherDevice(err) {
 			return err
 		}
-		// Başka bir diske: kopyala, doğrula, sonra kaynağı sil.
+		// Başka bir diske: kopyala, doğrula, sonra kaynağı sil. Kaynak silinemeyecekse (salt
+		// okunur dosya) hedef değiştirilmeden önce durulur; yoksa iki kopya kalırdı.
+		if err := checkDeletable(job.src); err != nil {
+			return err
+		}
 	}
 	if !job.srcInfo.IsDir() {
 		return job.copyFile()

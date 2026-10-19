@@ -148,14 +148,21 @@ func (o *Reader) seekTo(m *interp.VM, fn string, pos dataload.State, counter int
 		return fmt.Errorf("%s: kayıttaki konum bu veri kümesinde geçersiz (%s); kayıt bozuk ya da başka bir veriye ait: %v", fn, o.ds.path, clean(err.Error()))
 	}
 	o.mu.Lock()
-	defer o.mu.Unlock()
 	pf := dataload.Prefetch(context.Background(), goSource, prefetchDepth)
-	o.resource = o.resource.replace(prefetcherCloser(pf))
+	old := o.resource
+	o.resource = old.link(prefetcherCloser(pf))
 	o.pf, o.ti, o.pos = pf, dataload.Batch{}, pos
 	o.counter, o.epoch, o.done = counter, pos.Epoch, done
-	if done {
-		_ = o.resource.Close(0)
-	}
+	fresh := o.resource
+	o.mu.Unlock()
+	// Eski (ve okuyucu bittiyse yeni) önden yükleyicinin kapanması süren bir disk okumasını
+	// bekler: yorumlayıcı kilidi bırakılır, eşzamanlı görevler ilerler.
+	m.Blocking(func() {
+		_ = old.Close(0)
+		if done {
+			_ = fresh.Close(0)
+		}
+	})
 	return nil
 }
 

@@ -12,6 +12,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -28,7 +29,11 @@ func Register(v *interp.VM) {
 		if len(args) != 1 {
 			return nil, interp.ArgCountError(codes.G600, "1", len(args), codes.ReceiverName(codes.A202))
 		}
-		val, err := interp.JSONToTR([]byte(stripBOM(args[0].Inspect())))
+		s, ok := args[0].(*interp.StringVal)
+		if !ok {
+			return nil, fmt.Errorf("%s: JSON metni (%s) bekler, %s verildi", codes.Name(codes.G600), codes.Name(codes.A202), args[0].Type())
+		}
+		val, err := interp.JSONToTR([]byte(stripBOM(s.Val)))
 		if err != nil {
 			return nil, fmt.Errorf("JSON çözümleme hatası: %v", err)
 		}
@@ -50,11 +55,26 @@ func Register(v *interp.VM) {
 		if len(args) != 1 {
 			return nil, interp.ArgCountError(codes.G602, "1", len(args), "dosya ya da metin")
 		}
-		input, err := csvInput(vm, args[0])
+		if _, ok := args[0].(*interp.StringVal); !ok {
+			if _, isPath := args[0].(interp.PathValuer); !isPath {
+				return nil, fmt.Errorf("%s: dosya yolu ya da CSV metni (%s ya da %s) bekler, %s verildi", codes.Name(codes.G602), codes.Name(codes.A202), codes.Name(codes.A250), args[0].Type())
+			}
+		}
+		// Dosya okuma ve ayrıştırma yorumlayıcı kilidi bırakılarak yapılır (TR değerlerine
+		// dokunmaz); değerler kilit geri alınınca kurulur.
+		var records [][]string
+		var err error
+		resolved := resolveCSVPath(vm, args[0])
+		vm.Blocking(func() {
+			var input string
+			if input, err = csvInput(resolved); err == nil {
+				records, err = parseCSV(input)
+			}
+		})
 		if err != nil {
 			return nil, err
 		}
-		return decodeCSV(input)
+		return csvValues(records)
 	})
 }
 
@@ -67,29 +87,40 @@ func Register(v *interp.VM) {
 //     verilir (eskiden "yok.csv" metni tek hücreli bir tablo olarak sessizce dönüyordu).
 //   - Aksi hâlde argüman CSV içeriğinin kendisi sayılır ve olduğu gibi ayrıştırılır
 //     (ör. csv_oku("ad,yaş\nAli,30")); bu eski davranış bilerek korunmuştur.
-func csvInput(vm *interp.VM, d interp.Value) (string, error) {
+func csvInput(p csvPath) (string, error) {
 	fn := codes.Name(codes.G602)
-	pathValue, absPath := d.(interp.PathValuer)
-	arg := d.Inspect()
-	if absPath {
-		arg = pathValue.FilePath()
-	}
-	path, tried := bind.ResolvePathTried(vm, arg)
-	info, statErr := os.Stat(path)
+	info, statErr := os.Stat(p.path)
 	if statErr == nil {
 		if info.IsDir() {
-			return "", fmt.Errorf("%s: %q bir klasör; CSV dosyasının yolunu verin", fn, arg)
+			return "", fmt.Errorf("%s: %q bir klasör; CSV dosyasının yolunu verin", fn, p.arg)
 		}
-		data, err := interp.ReadFileContent(path)
+		data, err := interp.ReadFileContent(p.path)
 		if err != nil {
-			return "", turkish.FileError(fn, arg, "okunamadı", err)
+			return "", turkish.FileError(fn, p.arg, "okunamadı", err)
 		}
 		return string(data), nil
 	}
-	if absPath || looksLikePath(arg) {
-		return "", interp.ReadError(fn, arg, "okunamadı", statErr, tried)
+	if p.isPath || looksLikePath(p.arg) {
+		return "", interp.ReadError(fn, p.arg, "okunamadı", statErr, p.tried)
 	}
-	return arg, nil
+	return p.arg, nil
+}
+
+// csvPath csv_oku argümanının dosya yolu olarak çözümüdür (VM'ye bakılarak, kilit altında).
+type csvPath struct {
+	arg, path string
+	tried     []string
+	isPath    bool // argüman bir Yol
+}
+
+func resolveCSVPath(vm *interp.VM, d interp.Value) csvPath {
+	pathValue, isPath := d.(interp.PathValuer)
+	arg := d.Inspect()
+	if isPath {
+		arg = pathValue.FilePath()
+	}
+	path, tried := bind.ResolvePathTried(vm, arg)
+	return csvPath{arg: arg, path: path, tried: tried, isPath: isPath}
 }
 
 // looksLikePath argümanın CSV içeriği değil bir dosya yolu olarak yazıldığını tahmin eder.
@@ -111,23 +142,49 @@ func looksLikePath(s string) bool {
 // JSON dosyalarının başına bunu yazar ve yoksa ilk başlık görünmez bir karakter taşırdı.
 func stripBOM(s string) string { return strings.TrimPrefix(s, "\ufeff") }
 
-// decodeCSV CSV metnini satır listelerine çevirir; hücreler boşlukları kırpılarak hücreDegeri
-// kuralıyla sayıya ya da metne dönüşür.
-func decodeCSV(input string) (interp.Value, error) {
+// parseCSV CSV metnini kayıtlara ayırır (TR değerlerine dokunmaz; kilit bırakılmışken
+// çalışabilir). Satır sayısı ve toplam hücre sayısı koleksiyon sınırındadır.
+func parseCSV(input string) ([][]string, error) {
 	r := csv.NewReader(strings.NewReader(strings.TrimSpace(stripBOM(input))))
-	records, err := r.ReadAll()
-	if err != nil {
-		return nil, fmt.Errorf("CSV okuma hatası: %v", err)
+	r.ReuseRecord = false
+	var records [][]string
+	cells := 0
+	for {
+		rec, err := r.Read()
+		if err == io.EOF {
+			return records, nil
+		}
+		if err != nil {
+			return nil, fmt.Errorf("CSV okuma hatası: %v", err)
+		}
+		if cells += len(rec); cells > interp.MaxCollectionSize {
+			return nil, fmt.Errorf("%s: tablo çok büyük (en fazla %d hücre)", codes.Name(codes.G602), interp.MaxCollectionSize)
+		}
+		records = append(records, rec)
 	}
-	var rows []interp.Value
+}
+
+// csvValues kayıtları satır listelerine çevirir; hücreler boşlukları kırpılarak cellValue
+// kuralıyla sayıya ya da metne dönüşür.
+func csvValues(records [][]string) (interp.Value, error) {
+	rows := make([]interp.Value, 0, len(records))
 	for _, rec := range records {
-		var cols []interp.Value
+		cols := make([]interp.Value, 0, len(rec))
 		for _, cell := range rec {
 			cols = append(cols, cellValue(strings.TrimSpace(cell)))
 		}
 		rows = append(rows, &interp.ListVal{Elements: cols})
 	}
 	return &interp.ListVal{Elements: rows}, nil
+}
+
+// decodeCSV CSV metnini satır listelerine çevirir (parseCSV + csvValues).
+func decodeCSV(input string) (interp.Value, error) {
+	records, err := parseCSV(input)
+	if err != nil {
+		return nil, err
+	}
+	return csvValues(records)
 }
 
 // cellValue bir CSV hücresini yalnızca katı ondalık sayı biçimindeyse sayıya çevirir, yoksa

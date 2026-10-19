@@ -108,12 +108,16 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, err
 	}
 	lo, hi := math.Inf(-1), math.Inf(1)
+	// Tam sınırlar Tam'a ayrıca, float64'e çevrilmeden uygulanır (|x| > 2⁵³'te float64
+	// yuvarlaması kırpmayı bozar, int64(2⁶³) taşardı).
+	ilo, ihi := int64(math.MinInt64), int64(math.MaxInt64)
 	intLimit := true
 	var given bool
 	for _, s := range []struct {
 		isNamed bind.Named
 		target  *float64
-	}{{nameMin, &lo}, {nameMax, &hi}} {
+		exact   *int64
+	}{{nameMin, &lo, &ilo}, {nameMax, &hi, &ihi}} {
 		v, ok := bind.GetNamed(named, s.isNamed)
 		if !ok {
 			continue
@@ -123,9 +127,15 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 			return nil, err
 		}
 		*s.target, given, intLimit = f, true, intLimit && integer
+		if n, ok := v.(*interp.IntVal); ok {
+			*s.exact = n.Val
+		}
 	}
 	if !given {
 		return nil, fmt.Errorf("%s: %s ya da %s verilmelidir (ikisi de verilebilir): %s", ad, nameMin.TR, nameMax.TR, usage)
+	}
+	if intLimit && ilo > ihi {
+		return nil, fmt.Errorf("%s: %s (%d) %s'dan (%d) büyük olamaz", ad, nameMin.TR, ilo, nameMax.TR, ihi)
 	}
 	if lo > hi {
 		return nil, fmt.Errorf("%s: %s (%v) %s'dan (%v) büyük olamaz", ad, nameMin.TR, lo, nameMax.TR, hi)
@@ -141,13 +151,7 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		return s, nil
 	case *interp.IntVal:
 		if intLimit {
-			n := x.Val
-			if f := float64(n); f < lo {
-				n = int64(lo)
-			} else if f > hi {
-				n = int64(hi)
-			}
-			return interp.NewInt(n), nil
+			return interp.NewInt(min(max(x.Val, ilo), ihi)), nil
 		}
 		return &interp.FloatVal{Val: clamp64(float64(x.Val), lo, hi)}, nil
 	case *interp.FloatVal:

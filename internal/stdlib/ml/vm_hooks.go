@@ -24,8 +24,9 @@ var (
 )
 
 // PlainValue tensörü JSON gibi dış biçimlere yazmak için .değer'le aynı iç içe Ondalık
-// listesine (0 boyutluda Ondalık'a) çevirir.
-func (d *TensorValue) PlainValue() interp.Value { return d.valueList() }
+// listesine (0 boyutluda Ondalık'a) çevirir. Arayüz hata döndüremez; sıfır eksenli dev
+// şekiller oluşturulurken (sıfırlar, şekillendir) zaten engellenir.
+func (d *TensorValue) PlainValue() interp.Value { return d.nestedList() }
 
 // Equal iki tensörün şekli ve tüm elemanları aynıysa doğrudur ('==' ve '!='). 0 boyutlu
 // tensör, değeri (.değer ile aynı biçimde okunan) sayıya eşittir: m[1][0] == 7.0. Diğer
@@ -221,10 +222,20 @@ func (d *TensorValue) Index(idx interp.Value) (interp.Value, error) {
 	}
 	n := sh[0]
 	if rng, ok := idx.(*interp.RangeVal); ok {
+		// Listelerdeki gibi: negatif uç sondan sayılır, dahil uç (..=) bundan sonra eklenir
+		// (t[0..=-1] bütün tensör); sınır dışı uçlar kırpılır.
 		head, last := int(rng.Start), int(rng.End)
+		if head < 0 {
+			head += n
+		}
+		if last < 0 {
+			last += n
+		}
 		if rng.Inclusive {
 			last++
 		}
+		head = min(max(head, 0), n)
+		last = min(max(last, head), n)
 		r, err := safe(func() *tensor.Tensor { return d.t.Slice(0, head, last) })
 		if err != nil {
 			return nil, err

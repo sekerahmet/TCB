@@ -248,7 +248,10 @@ func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	if err != nil {
 		return nil, err
 	}
-	watch := requiresGrad(named, nil, false)
+	watch, err := requiresGrad(fn, named, nil, false)
+	if err != nil {
+		return nil, err
+	}
 	decoded, tried := bind.ResolvePathTried(m, fpath)
 	var inputs []fileEntry
 	var readErr, osErr error

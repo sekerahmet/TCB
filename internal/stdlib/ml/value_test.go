@@ -31,7 +31,8 @@ yazdır(m)`)
 	}
 	// Yapı: 3 boyutlu tensör doğru iç içe listeye dönüşür.
 	d := New(tensor.Arange(24).Reshape(2, 3, 4))
-	l := d.valueList().(*interp.ListVal)
+	v, _ := d.valueList()
+	l := v.(*interp.ListVal)
 	if got := l.Elements[1].(*interp.ListVal).Elements[2].(*interp.ListVal).Elements[3].(*interp.FloatVal).Val; got != 23 {
 		t.Fatalf("[1][2][3] = %v", got)
 	}
@@ -39,14 +40,15 @@ yazdır(m)`)
 		t.Fatalf("liste: %s", got)
 	}
 	// Boş eksenli tensör.
-	if got := New(tensor.Zeros(2, 0)).valueList().Inspect(); got != "[[], []]" {
+	if v, _ := New(tensor.Zeros(2, 0)).valueList(); v.Inspect() != "[[], []]" {
+		got := v.Inspect()
 		t.Fatalf("boş: %s", got)
 	}
 }
 
 func TestValueAllocations(t *testing.T) {
 	d := New(tensor.Zeros(100, 40))
-	alloc := testing.AllocsPerRun(5, func() { d.valueList() })
+	alloc := testing.AllocsPerRun(5, func() { _, _ = d.valueList() })
 	if alloc > 10 {
 		t.Fatalf(".değer %v ayırma yaptı; önceden ayrılmış dilimler bekleniyordu", alloc)
 	}

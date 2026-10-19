@@ -59,7 +59,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		}
 		return New(g), nil
 	case memberValue:
-		return d.valueList(), nil
+		return d.valueList()
 	case memberReshape:
 		return d.method(memberReshape, d.reshape), nil
 	case memberTranspose:
@@ -67,7 +67,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 			if len(args) != 0 {
 				return nil, fmt.Errorf("%s() argüman almaz", codes.Name(memberTranspose))
 			}
-			return transposed(t)
+			return transposed(d)
 		}), nil
 	case memberPermute:
 		return d.method(memberPermute, d.permute), nil
@@ -129,7 +129,19 @@ func shortFloat64(x float32) float64 {
 // Büyük tensörlerde her liste ve sayı için ayrı ayırma yapmamak için tüm listeler,
 // eleman dilimleri ve sayılar önceden ayrılmış üç dilimden dağıtılır. Eleman dilimleri
 // kapasiteyle sınırlıdır (a[i:j:j]); listeye eleman eklemek komşu listeyi bozmaz.
-func (d *TensorValue) valueList() interp.Value {
+func (d *TensorValue) valueList() (interp.Value, error) {
+	if d.t.Numel() == 0 {
+		// Veri yokken liste sayısı veriden bağımsızdır: [10⁹, 0] 10⁹ boş liste isterdi.
+		// Dolu tensörde liste sayısı eleman sayısını aşmaz.
+		if err := checkShapeLimit(codes.Name(memberValue), d.t.Shape()); err != nil {
+			return nil, err
+		}
+	}
+	return d.nestedList(), nil
+}
+
+// nestedList tensörü iç içe listeye çevirir (sınır denetimsiz; bkz. valueList).
+func (d *TensorValue) nestedList() interp.Value {
 	data := d.t.Data()
 	sh := d.t.Shape()
 	if len(sh) == 0 {
@@ -209,6 +221,13 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 	if unknown > 1 {
 		return nil, fmt.Errorf("%s: yalnızca bir eksen -1 olabilir, %s verildi", codes.Name(memberReshape), shapeText(sh))
 	}
+	if d.t.Numel() == 0 {
+		// Veri yokken eksenler serbesttir ([0] → [10¹², 0]); sınır sıfır eksenler 1 sayılarak
+		// uygulanır. Dolu tensörde eksenlerin çarpımı eleman sayısına eşit olmak zorundadır.
+		if err := checkShapeLimit(codes.Name(memberReshape), sh); err != nil {
+			return nil, err
+		}
+	}
 	n := d.t.Numel()
 	product := 1
 	for _, x := range sh {
@@ -223,10 +242,11 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 	if err != nil {
 		return nil, err
 	}
-	return New(r), nil
+	return d.view(r), nil
 }
 
-func transposed(t *tensor.Tensor) (interp.Value, error) {
+func transposed(d *TensorValue) (interp.Value, error) {
+	t := d.t
 	sh := t.Shape()
 	if len(sh) < 2 {
 		return nil, fmt.Errorf("%s() en az 2 boyutlu tensör ister, %s verildi", codes.Name(memberTranspose), shapeText(sh))
@@ -235,7 +255,7 @@ func transposed(t *tensor.Tensor) (interp.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return New(r), nil
+	return d.view(r), nil
 }
 
 func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
@@ -274,7 +294,7 @@ func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]in
 	if err != nil {
 		return nil, err
 	}
-	return New(r), nil
+	return d.view(r), nil
 }
 
 func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
@@ -310,5 +330,5 @@ func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]inte
 	if err != nil {
 		return nil, err
 	}
-	return New(r), nil
+	return d.view(r), nil
 }

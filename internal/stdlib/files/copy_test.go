@@ -139,4 +139,35 @@ func TestMoveToOtherDisk(t *testing.T) {
 	if !exists(filepath.Join(k, "b", "y.txt")) || exists(filepath.Join(k, "c")) {
 		t.Fatal("başarısız taşıma kaynağı ya da hedefi değiştirdi")
 	}
+	// Kaynakta salt okunur dosya varsa (kaynak silinemezdi) hedefe dokunmadan durulur; iki
+	// kopya kalmaz.
+	write(t, filepath.Join(k, "ro", "kilitli.txt"), "r")
+	locked := filepath.Join(k, "ro", "kilitli.txt")
+	os.Chmod(locked, 0o444)
+	t.Cleanup(func() { os.Chmod(locked, 0o644) })
+	errContains(t, `taşı("ro", "ro2")`, "salt okunur")
+	if !exists(locked) || exists(filepath.Join(k, "ro2")) {
+		t.Fatal("silinemeyecek kaynak başka diske kopyalandı")
+	}
+}
+
+// Yerine konacak klasörde salt okunur dosya varsa üzerine yazma başlamadan durur: eskiden
+// yeni klasör konuyor, eskisi silinemeyip gizli bir .eski klasörü olarak kalıyordu.
+func TestOverwriteDirWithReadOnlyFile(t *testing.T) {
+	k := tmpWork(t)
+	write(t, filepath.Join(k, "yeni", "a.txt"), "yeni")
+	write(t, filepath.Join(k, "hedef", "yeni", "kilitli.txt"), "eski") // hedef/yeni yerine konacak
+	locked := filepath.Join(k, "hedef", "yeni", "kilitli.txt")
+	os.Chmod(locked, 0o444)
+	t.Cleanup(func() { os.Chmod(locked, 0o644) })
+	errContains(t, `kopyala("yeni", "hedef", üzerine_yaz: doğru)`, "salt okunur")
+	if content(t, locked) != "eski" || exists(filepath.Join(k, "hedef", "yeni", "a.txt")) {
+		t.Fatal("hedef değişti")
+	}
+	entries, _ := os.ReadDir(filepath.Join(k, "hedef"))
+	for _, e := range entries {
+		if strings.Contains(e.Name(), ".eski") || strings.Contains(e.Name(), ".kopyalaniyor") {
+			t.Fatalf("artık klasör kaldı: %s", e.Name())
+		}
+	}
 }

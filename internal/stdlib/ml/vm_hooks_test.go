@@ -131,3 +131,18 @@ cikti[1][2] = 3`)
 		t.Fatalf("atama sonucu yanlış: %v", data[:8])
 	}
 }
+
+// Tensör aralık indekslemesi listelerinkiyle aynıdır: negatif uç sondan sayılır, dahil uç
+// (..=) bundan sonra eklenir, sınır dışı uçlar kırpılır.
+func TestRangeIndexMatchesLists(t *testing.T) {
+	out := mustRun(t, `değişken l = [1, 2, 3]
+değişken t = tensör([1, 2, 3])
+döngü a içinde [l[0..=-1], l[-5..2], l[2..1], l[1..=10], l[-2..=-2], l[-1..3]] { yazdır(a) }
+döngü b içinde [t[0..=-1], t[-5..2], t[2..1], t[1..=10], t[-2..=-2], t[-1..3]] { yazdır(b.değer) }`)
+	want := "[1, 2, 3]\n[1, 2]\n[]\n[2, 3]\n[2]\n[3]\n" +
+		"[1.0, 2.0, 3.0]\n[1.0, 2.0]\n[]\n[2.0, 3.0]\n[2.0]\n[3.0]\n"
+	if out != want {
+		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
+	}
+}
+

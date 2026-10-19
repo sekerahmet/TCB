@@ -120,3 +120,19 @@ yazdır(kn.kaldığı_adım, model.w.değer, model.m.değer, model.kos.değer)
 		t.Errorf("eksik parametre hatası bekleniyordu: %v", err)
 	}
 }
+
+// Kayıttaki bir komut satırı ayarı yeni koşuda yoksa da fark olarak bildirilir.
+func TestRemovedSettingReported(t *testing.T) {
+	runDir := trPath(t.TempDir())
+	program := `değişken ayar = komut_satırı(%s)
+değişken w = tensör([1.0], türev_izle: doğru)
+değişken kn = kontrol_noktası(%q, {w: w})
+kn.kaydet()`
+	if output, err := run(t, fmt.Sprintf(program, "{oran: 0.1, katman: 2}", runDir)); err != nil {
+		t.Fatalf("%v\n%s", err, output)
+	}
+	output, err := run(t, fmt.Sprintf(program, "{oran: 0.1}", runDir))
+	if err != nil || !strings.Contains(output, "katman: 2 → yok") {
+		t.Fatalf("kaldırılan ayar bildirilmedi: %v\n%s", err, output)
+	}
+}

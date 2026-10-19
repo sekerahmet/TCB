@@ -83,19 +83,30 @@ type walker struct {
 
 // walk klasor'ü (tabana göre yolu rel) kalıbın i. bileşeninden başlayarak eşler.
 func (g *walker) walk(dir, rel string, i int) {
-	b := g.k.components[i]
-	last := i == len(g.k.components)-1
-	if b.double {
-		if last {
-			g.all(dir, rel) // sondaki **: alttaki her şey
-			return
-		}
-		g.walk(dir, rel, i+1) // sıfır klasör
+	if g.k.components[i].double && i == len(g.k.components)-1 {
+		g.all(dir, rel) // sondaki **: alttaki her şey
+		return
 	}
 	inputs, err := os.ReadDir(dir)
 	if err != nil {
 		g.markUnreadable(dir, err)
 		return
+	}
+	g.walkEntries(dir, rel, i, inputs)
+}
+
+// walkEntries okunmuş klasör girdilerini kalıbın i. bileşeninden başlayarak eşler. Aradaki
+// ** önce sıfır klasör olarak (aynı girdilerle sonraki bileşen), sonra her alt klasöre inerek
+// eşlenir; klasör bir kez okunur.
+func (g *walker) walkEntries(dir, rel string, i int, inputs []fs.DirEntry) {
+	b := g.k.components[i]
+	last := i == len(g.k.components)-1
+	if b.double {
+		if last {
+			g.all(dir, rel)
+			return
+		}
+		g.walkEntries(dir, rel, i+1, inputs) // sıfır klasör
 	}
 	for _, e := range inputs {
 		name := e.Name()

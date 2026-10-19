@@ -305,3 +305,14 @@ değişken cikti = x`)
 		t.Fatalf("sıra: %v", names)
 	}
 }
+
+// örnekle tanımsız dağılımda (NaN logit, hepsi -∞, +∞) sessizce son adayı seçmez, hata verir.
+func TestSampleUndefinedDistribution(t *testing.T) {
+	for _, logits := range []string{"tensör([nan, 1.0, 2.0])", "tensör([-1e40, -1e40])", "tensör([1e40, 1.0])"} {
+		_, err := run(t, "değişken nan = log(tensör([-1.0])).değer[0]\nörnekle("+logits+", tohum: 1)")
+		if err == nil || !strings.Contains(err.Error(), "dağılım kurulamıyor") {
+			t.Fatalf("%s: hata beklenirdi: %v", logits, err)
+		}
+	}
+	mustRun(t, "örnekle(tensör([-1e40, 0.0]), tohum: 1)") // bir -∞ aday sorun değil
+}

@@ -122,3 +122,17 @@ func TestLineReaderClose(t *testing.T) {
 	// Açık okuyucu varken sil yol gösterir: kapat() önerilir.
 	errContains(t, `değişken o = dosya_satırları("s.txt"); o.sonraki(); sil("s.txt")`, "önce okuyucuyu kapatın (x.kapat())")
 }
+
+// Son satırı satır sonusuz biten dosyada okuyucu son satırla birlikte kapanır: dosya hemen
+// silinebilir (eskiden okuyucu kapatılmayı ya da bir çağrı daha bekliyordu).
+func TestLineReaderClosesAtEOFWithoutNewline(t *testing.T) {
+	tmpWork(t)
+	got := mustRunTR(t, `dosya_yaz("son.txt", "a\nb")
+değişken o = dosya_satırları("son.txt")
+değişken x = [o.sonraki(), o.sonraki()]
+sil("son.txt")
+[x, o.sonraki()]`)
+	if got != `[["a", "b"], yok]` {
+		t.Fatalf("sonuç: %s", got)
+	}
+}

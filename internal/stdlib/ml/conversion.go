@@ -1,6 +1,7 @@
 package ml
 
 import (
+	"errors"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -95,10 +96,17 @@ func listInts(fn string, l *interp.ListVal) ([]int, []int, error) {
 func walkList(fn string, l *interp.ListVal, prepare func(n int), leaf func(v interp.Value) error) ([]int, error) {
 	var sh []int
 	var cur interp.Value = l
+	var walker interp.ContainerWalker // kendini içeren liste ([a] içinde a) sonsuz şekil verirdi
 	for {
 		ll, ok := cur.(*interp.ListVal)
 		if !ok {
 			break
+		}
+		if err := walker.Enter(ll, len(sh)); err != nil {
+			if errors.Is(err, interp.ErrCyclic) {
+				return nil, fmt.Errorf("%s: liste kendini içeriyor (döngüsel liste); tensöre çevrilemez", fn)
+			}
+			return nil, fmt.Errorf("%s: liste çok derin iç içe (en fazla %d seviye)", fn, interp.MaxExternalDepth)
 		}
 		sh = append(sh, len(ll.Elements))
 		if len(ll.Elements) == 0 {

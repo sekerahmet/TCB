@@ -296,7 +296,11 @@ func (o *LineReader) read() (line string, last bool, err error) {
 				o.close()
 				return "", true, nil
 			}
-			return o.lineText(part), false, nil
+			// Son satır satır sonusuz: dosya bitti, hemen kapanır (sonraki çağrı yok verir); dosya
+			// silinip taşınabilir, okuyucu kapatılmayı beklemez.
+			line := o.lineText(part)
+			o.close()
+			return line, false, nil
 		}
 		if err != nil {
 			o.close()

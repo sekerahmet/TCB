@@ -27,3 +27,14 @@ yazdır(gradyan_kırp([w, b]))`)
 		}
 	}
 }
+
+// AdamW'nin epsilon'u pozitif olmalı: 0 (ya da float32'de 0'a düşen değer) sıfır gradyanlı
+// ilk adımda 0/(√0+0) = NaN üretirdi.
+func TestAdamWEpsilonPositive(t *testing.T) {
+	for _, eps := range []string{"0", "1e-50"} {
+		_, err := run(t, "değişken w = tensör([0.0], türev_izle: doğru)\nAdamW([w], epsilon: "+eps+")")
+		if err == nil || !strings.Contains(err.Error(), "pozitif olmalıdır") {
+			t.Fatalf("epsilon %s: hata beklenirdi: %v", eps, err)
+		}
+	}
+}

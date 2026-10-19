@@ -65,9 +65,16 @@ func registerResource(s level, closeFn func(timeout time.Duration) error) *resou
 // replace k'nin yerine yeni bir kaynak kaydeder ve k'yi kapatır; sahibin sonlandırıcısı
 // (k'den başlayan zincir) yenisini de kapatır. Yeni kaynağı döndürür.
 func (k *resource) replace(closeFn func(timeout time.Duration) error) *resource {
+	fresh := k.link(closeFn)
+	_ = k.Close(0)
+	return fresh
+}
+
+// link replace gibidir ama eski kaynağı kapatmaz: çağıran onu kendisi (ör. yorumlayıcı kilidi
+// bırakılmışken; önden yükleyicinin kapanması süren bir disk okumasını bekler) kapatır.
+func (k *resource) link(closeFn func(timeout time.Duration) error) *resource {
 	fresh := registerResource(k.level, closeFn)
 	k.next.Store(fresh)
-	_ = k.Close(0)
 	return fresh
 }
 

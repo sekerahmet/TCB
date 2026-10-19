@@ -80,3 +80,20 @@ func TestWideMathErrors(t *testing.T) {
 		}
 	}
 }
+
+// sınırla Tam sınırları float64'e çevirmeden uygular: 2⁵³'ten büyük değerlerde yuvarlama
+// kırpmayı bozmaz, en_az: 2⁶³-1 taşıp en küçük Tam'a dönmez.
+func TestClampIntLimits(t *testing.T) {
+	out := mustRun(t, `yazdır(sınırla(9223372036854775807, en_fazla: 9223372036854775806))
+yazdır(sınırla(5, en_az: 9223372036854775807))
+yazdır(sınırla(-9223372036854775807, en_az: -9223372036854775806, en_fazla: 0))
+yazdır(sınırla(7, en_az: 1, en_fazla: 3), sınırla(7, en_az: 1.5))`)
+	want := "9223372036854775806\n9223372036854775807\n-9223372036854775806\n3 7.0\n"
+	if out != want {
+		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
+	}
+	if _, err := run(t, "sınırla(1, en_az: 9223372036854775807, en_fazla: 9223372036854775806)"); err == nil ||
+		!strings.Contains(err.Error(), "9223372036854775807") {
+		t.Fatalf("ters sınır hatası tam değeri göstermeli: %v", err)
+	}
+}

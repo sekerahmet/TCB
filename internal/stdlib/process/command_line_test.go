@@ -171,3 +171,26 @@ func TestCommandLineSecretValue(t *testing.T) {
 		t.Errorf("bilinmeyen gizli seçeneğin değeri mesajda olmamalı ve süzgece girmeli: %v", err)
 	}
 }
+
+// Tek tireyle yanlış yazılmış bir seçeneğin değeri (-api_key=...) hata mesajında görünmez;
+// liste türündeki gizli seçeneğin her öğesi de (varsayılanda ve komut satırında) gizlenir.
+func TestCommandLineSecretLeaks(t *testing.T) {
+	_, err, _ := commandLine(t, `komut_satırı({api_key: ""})`, "-api_key=gizlideger99")
+	if c, ok := interp.IsExitRequest(err); !ok || strings.Contains(c.Message, "gizlideger99") {
+		t.Errorf("tek tireli seçeneğin değeri mesajda olmamalı: %v", err)
+	}
+	_, err, m := commandLine(t, `komut_satırı({api_key: ["varsayilangizli1"]})`, "--api_key=anahtarbir1,anahtariki2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := m.Mask("anahtarbir1 anahtariki2"); got != interp.SecretMask+" "+interp.SecretMask {
+		t.Errorf("liste öğeleri gizlenmeli: %q", got)
+	}
+	_, err, m = commandLine(t, `komut_satırı({api_key: ["varsayilangizli1", "varsayilangizli2"]})`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := m.Mask("varsayilangizli1 varsayilangizli2"); got != interp.SecretMask+" "+interp.SecretMask {
+		t.Errorf("varsayılan liste öğeleri gizlenmeli: %q", got)
+	}
+}

@@ -236,9 +236,15 @@ func readDescriptions(fn string, named map[string]interp.Value, options []*optio
 	return description, nil
 }
 
-// registerSecret gizli bir seçeneğin (metin olan) değerini gizli değer süzgecine verir.
+// registerSecret gizli bir seçeneğin metin değerini (liste seçeneğinde her metin öğesini)
+// gizli değer süzgecine verir.
 func registerSecret(m *interp.VM, v interp.Value) {
-	if s, ok := v.(*interp.StringVal); ok {
-		addSecret(m, s.Val)
+	switch x := v.(type) {
+	case *interp.StringVal:
+		addSecret(m, x.Val)
+	case *interp.ListVal:
+		for _, el := range x.Elements {
+			registerSecret(m, el)
+		}
 	}
 }

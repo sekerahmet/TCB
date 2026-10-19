@@ -56,6 +56,7 @@ type Progress struct {
 	rate     float64 // adım/sn (üstel ortalama; 0: henüz ölçülmedi)
 	rateStep int64
 	rateTime time.Time
+	advanced bool // en az bir güncelleme yapıldı (ilk güncellemedeki sıçrama sürdürmedir)
 
 	lastDraw  time.Time
 	lastPlain time.Time
@@ -207,25 +208,33 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 func (c *Progress) advance(fn string, now time.Time, newStep int64, metrics []metric) (bool, error) {
 	c.mu.Lock()
 	if c.stopped {
+		text := c.stepText()
 		c.mu.Unlock()
-		return false, fmt.Errorf("%s: çubuk bitti (%s); devam etmek için yeni bir %s(...) açın", fn, c.stepText(), codes.Name(codes.G811))
+		return false, fmt.Errorf("%s: çubuk bitti (%s); devam etmek için yeni bir %s(...) açın", fn, text, codes.Name(codes.G811))
 	}
+	measure := true
 	switch {
 	case newStep < 0:
 		c.step++
 	case c.total > 0 && newStep > c.total:
 		c.mu.Unlock()
 		return false, fmt.Errorf("%s: %s: %d toplam adım sayısından (%d) büyük olamaz", fn, nameStep.TR, newStep, c.total)
-	case newStep != c.step+1:
-		// Sıçrama (kaldığı yerden sürdürme): hız sıçramadan sonra yeniden ölçülür.
+	case newStep < c.step || (!c.advanced && newStep != c.step+1):
+		// Sıçrama (ilk güncellemede kaldığı yerden sürdürme ya da geri gitme): hız sıçramadan
+		// sonra yeniden ölçülür. İleri atlamalar (her 10 adımda bir güncelleme) sıçrama değildir.
 		c.step, c.rate, c.rateStep, c.rateTime = newStep, 0, newStep, now
+	case newStep == c.step:
+		measure = false // aynı adımın ikinci güncellemesi (ör. doğrulama kaybı): hız değişmez
 	default:
 		c.step = newStep
 	}
+	c.advanced = true
 	if metrics != nil {
 		c.metrics = metrics
 	}
-	c.measureRate(now)
+	if measure {
+		c.measureRate(now)
+	}
 	done := c.total > 0 && c.step >= c.total
 	record := c.logRecord(now)
 	c.mu.Unlock()

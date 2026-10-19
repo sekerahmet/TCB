@@ -196,3 +196,57 @@ func TestCloseAllFinishesBar(t *testing.T) {
 		t.Errorf("özet satırı: %q", got)
 	}
 }
+
+// Her 10 adımda bir (adım: ile) güncellenen çubuğun hızı ölçülür; aynı adımın ikinci
+// güncellemesi (doğrulama kaybı) hızı bozmaz. Eskiden her ileri atlama "sıçrama" sayılıp hız
+// hep 0 kalıyordu.
+func TestProgressRateWithStepGaps(t *testing.T) {
+	s := setClock(t)
+	k := t.TempDir()
+	path := filepath.Join(k, "i.jsonl")
+	m, _ := newVM(t, k)
+	if _, err := run(t, m, `değişken g = günlük("`+pathText(path)+`")
+değişken ç = ilerleme(100, günlük: g)`); err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 5; i++ {
+		s.advance(2 * time.Second) // 2 saniyede 10 adım: saniyede 5
+		if _, err := run(t, m, `ç.güncelle({kayıp: 1.0}, adım: `+strconv.Itoa(10*i)+`)`); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := run(t, m, `ç.güncelle({doğrulama: 2.0}, adım: `+strconv.Itoa(10*i)+`)`); err != nil {
+			t.Fatal(err)
+		}
+	}
+	records := lines(t, path)
+	last := records[len(records)-1]
+	if last["adım"] != 50.0 || last["hız"] != 5.0 {
+		t.Fatalf("hız ölçülmedi: %v", last)
+	}
+}
+
+// İç içe çubuklar: iç çubuk görünürken dış çubuk güncellenirse, iç çubuk bitince dış çubuk
+// eski değil güncel satırıyla yeniden çizilir.
+func TestNestedProgressRedrawsOuter(t *testing.T) {
+	t.Cleanup(logging.FakeTerminal(100))
+	s := setClock(t)
+	m, w := newVM(t, t.TempDir())
+	for _, code := range []string{
+		`değişken dış = ilerleme(3)`,
+		`dış.güncelle({kayıp: 9.0})`,
+		`değişken iç = ilerleme(2)`,
+		`iç.güncelle()`,
+		`dış.güncelle({kayıp: 7.0})`, // iç çubuk görünürken: yalnızca işaretlenir
+		`iç.güncelle()`,              // iç biter: dış yeniden çizilir
+	} {
+		s.advance(time.Second)
+		if _, err := run(t, m, code); err != nil {
+			t.Fatal(err)
+		}
+	}
+	out := w.String()
+	tail := out[strings.LastIndex(out, "\n")+1:]
+	if !strings.Contains(tail, "adım 2/3") || !strings.Contains(tail, "kayıp 7") {
+		t.Fatalf("dış çubuk güncel satırla çizilmeli; son satır %q\ntüm çıktı %q", tail, out)
+	}
+}
