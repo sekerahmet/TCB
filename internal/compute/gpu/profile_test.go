@@ -21,7 +21,7 @@ func TestProfileMeasures(t *testing.T) {
 	b := tensor.NewOn(gpuDevice, []float32{1, 0, 0, 1, 1, 1}, 3, 2)
 	before := map[string]int64{}
 	for _, o := range KernelSamples() {
-		before[o.Ad] = o.Calls
+		before[o.Name] = o.Calls
 	}
 	for step := 0; step < 4; step++ {
 		g.enter()
@@ -36,13 +36,13 @@ func TestProfileMeasures(t *testing.T) {
 	g.exit()
 	var gemm2, total int64
 	for _, o := range KernelSamples() {
-		fresh2 := o.Calls - before[o.Ad]
+		fresh2 := o.Calls - before[o.Name]
 		total += fresh2
 		if o.Family == "carpim" {
 			gemm2 += fresh2
 		}
 		if o.GPUTime < 0 {
-			t.Fatalf("%s: negatif süre", o.Ad)
+			t.Fatalf("%s: negatif süre", o.Name)
 		}
 	}
 	if gemm2 < 4 || total < 8 {

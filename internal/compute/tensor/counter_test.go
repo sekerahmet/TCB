@@ -151,13 +151,13 @@ func TestCounterActiveOpClearedOnNext(t *testing.T) {
 func TestCounterOpNames(t *testing.T) {
 	seen := map[string]bool{}
 	for i := OpKind(0); i < OpKindCount; i++ {
-		if i.Kod() == "" || i.String() == "" {
+		if i.Code() == "" || i.String() == "" {
 			t.Errorf("%d. işlemin adı eksik", i)
 		}
-		if seen[i.Kod()] {
-			t.Errorf("%q kodu iki kez", i.Kod())
+		if seen[i.Code()] {
+			t.Errorf("%q kodu iki kez", i.Code())
 		}
-		seen[i.Kod()] = true
+		seen[i.Code()] = true
 	}
 	if OpKindAdd+OpKind(OpDiv) != OpKindDiv || OpKindAdd+OpKind(OpGe) != OpKindGreaterEq ||
 		OpKindExp+OpKind(OpCos) != OpKindCos || OpKindExp+OpKind(OpAbs) != OpKindAbs {

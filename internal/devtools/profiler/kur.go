@@ -116,7 +116,7 @@ func (p *Profil) tensorBilgisi(sayaclar, eksi []tensor.CounterRecord, sure time.
 			continue
 		}
 		b := IslemBilgisi{
-			Kod: k.OpKind.Kod(), Ad: tamAd(k.OpKind, k.Backward, k.Calls), Yon: "ileri", Cihaz: "cpu",
+			Kod: k.OpKind.Code(), Ad: tamAd(k.OpKind, k.Backward, k.Calls), Yon: "ileri", Cihaz: "cpu",
 			Cagri: k.Calls, Olcum: k.Measured, SureSn: sn(k.Duration), Bayt: k.Bytes,
 		}
 		if k.Backward {

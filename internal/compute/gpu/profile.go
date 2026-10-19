@@ -284,14 +284,14 @@ func (p *profile) sorted() []KernelSample {
 	defer p.mu.Unlock()
 	r := make([]KernelSample, 0, len(p.stats))
 	for ad, s := range p.stats {
-		r = append(r, KernelSample{Ad: ad, Family: kernelFamily(ad), Calls: s.num,
+		r = append(r, KernelSample{Name: ad, Family: kernelFamily(ad), Calls: s.num,
 			GPUTime: time.Duration(s.ms * float64(time.Millisecond))})
 	}
 	sort.Slice(r, func(i, j int) bool {
 		if r[i].GPUTime != r[j].GPUTime {
 			return r[i].GPUTime > r[j].GPUTime
 		}
-		return r[i].Ad < r[j].Ad
+		return r[i].Name < r[j].Name
 	})
 	return r
 }

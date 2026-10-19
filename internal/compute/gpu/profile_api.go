@@ -21,7 +21,7 @@ import (
 
 // KernelSample bir çekirdeğin (ya da sürücü bellek işinin) toplamları.
 type KernelSample struct {
-	Ad      string // üretilen çekirdeğin adı (ör. "carpim_128_128_8_...")
+	Name    string // üretilen çekirdeğin adı (ör. "carpim_128_128_8_...")
 	Family  string // adın ailesi (ör. "carpim")
 	Calls   int64
 	GPUTime time.Duration
@@ -72,13 +72,13 @@ func KernelSamples() []KernelSample {
 	sum := map[string]*KernelSample{}
 	for _, g := range registeredAll() {
 		for _, o := range g.profiler.sorted() {
-			if t := sum[o.Ad]; t != nil {
+			if t := sum[o.Name]; t != nil {
 				t.Calls += o.Calls
 				t.GPUTime += o.GPUTime
 				continue
 			}
 			c := o
-			sum[o.Ad] = &c
+			sum[o.Name] = &c
 		}
 	}
 	r := make([]KernelSample, 0, len(sum))
@@ -210,7 +210,7 @@ func (g *backend) writeSummary(w io.Writer) {
 		total += o.GPUTime
 		a := family[o.Family]
 		if a == nil {
-			a = &KernelSample{Ad: o.Family}
+			a = &KernelSample{Name: o.Family}
 			family[o.Family] = a
 		}
 		a.Calls += o.Calls
@@ -231,7 +231,7 @@ func (g *backend) writeSummary(w io.Writer) {
 			if total > 0 {
 				percent = 100 * float64(o.GPUTime) / float64(total)
 			}
-			fmt.Fprintf(w, "%-44s %9d %12.2f %10.1f %6.1f\n", shorten(o.Ad, 44), o.Calls, o.GPUTime.Seconds()*1e3,
+			fmt.Fprintf(w, "%-44s %9d %12.2f %10.1f %6.1f\n", shorten(o.Name, 44), o.Calls, o.GPUTime.Seconds()*1e3,
 				o.GPUTime.Seconds()*1e6/float64(max(o.Calls, 1)), percent)
 		}
 	}

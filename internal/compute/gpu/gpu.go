@@ -247,3 +247,21 @@ func bytesText(b uint64) string {
 	}
 	return fmt.Sprintf("%d bayt", b)
 }
+
+// Compile-time checks: the tensor package finds the optional fast paths of a backend by type
+// assertion, so a renamed or changed method would otherwise make it fall back to the slow
+// path silently.
+var (
+	_ tensor.Backend                = (*backend)(nil)
+	_ tensor.Releaser               = (*backend)(nil)
+	_ tensor.MemoryLimiter          = (*backend)(nil)
+	_ tensor.UninitAllocator        = (*backend)(nil)
+	_ tensor.SquareSummer           = (*backend)(nil)
+	_ tensor.BackwardFinisher       = (*backend)(nil)
+	_ tensor.MultiTensorOps         = (*backend)(nil)
+	_ tensor.GemmSetter             = (*backend)(nil)
+	_ tensor.AttentionGradSetter    = (*backend)(nil)
+	_ tensor.CrossEntropyGradSetter = (*backend)(nil)
+	_ tensor.GradClipper            = (*backend)(nil)
+	_ tensor.Storage                = (*storage)(nil)
+)

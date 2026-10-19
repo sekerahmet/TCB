@@ -736,3 +736,12 @@ func exp32(x float32) float32  { return expf32(x) }
 func log32(x float32) float32  { return float32(math.Log(float64(x))) }
 func sqrt32(x float32) float32 { return float32(math.Sqrt(float64(x))) }
 func tanh32(x float32) float32 { return tanhf32(x) }
+
+// Compile-time checks: optional backend interfaces are found by type assertion, so a renamed
+// method would otherwise drop a fast path silently.
+var (
+	_ Backend        = cpuBackend{}
+	_ Releaser       = cpuBackend{}
+	_ AttentionTiler = cpuBackend{}
+	_ Storage        = (*cpuStorage)(nil)
+)

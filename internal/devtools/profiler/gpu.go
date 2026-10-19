@@ -32,7 +32,7 @@ func gpuAnlikAl() gpuAnlik {
 	}
 	a.cekirdek = map[string]gpu.KernelSample{}
 	for _, c := range gpu.KernelSamples() {
-		a.cekirdek[c.Ad] = c
+		a.cekirdek[c.Name] = c
 	}
 	return a
 }

@@ -148,7 +148,7 @@ var opNamesTR = [OpKindCount]string{
 }
 
 // Kod işlemin dosya biçimlerindeki değişmez anahtarıdır (ör. "matris_carpimi").
-func (i OpKind) Kod() string {
+func (i OpKind) Code() string {
 	if i < OpKindCount {
 		return opCodes[i]
 	}
