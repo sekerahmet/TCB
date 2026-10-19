@@ -1,0 +1,66 @@
+// 10 — Uzun eğitim: kontrol noktası ve kaldığı yerden devam.
+// Öğrettikleri: her eğitimi bir koşu klasörüne yazmak; kontrol_noktası ile eğitimin bütün
+// durumunu (model, iyileştirici, örnekleyici, günlük, kendi sayaçlarınız) düzenli kaydetmek;
+// Ctrl+C ile durdurup aynı komutla kaldığı yerden sürdürmek. Sürdürülen eğitim hiç
+// kesilmemiş bir eğitimle bit düzeyinde aynı sonucu verir.
+// Ayrıntılar: docs/guide/09_uzun_egitim.md, docs/spec/20_kontrol_noktasi.md §20.
+//
+// Çalıştırma (proje kökünden): tr examples/10_kontrol_noktasi.tr
+//   Eğitim sürerken Ctrl+C'ye basın: o adım biter, nokta kaydedilir, program durur.
+//   Aynı komutu yeniden çalıştırın: "Kaldığı yerden devam: adım ..." yazar ve oradan sürer.
+//   Eğitimi uzatmak için: tr examples/10_kontrol_noktasi.tr --adım 1000
+//   Baştan başlamak için koşu klasörünü silin ya da başka bir klasör verin: --koşu runs/deneme2
+// Bulut not defterinde koşu klasörünü yerel diskte tutup ara ara Drive'a kopyalayın (kılavuz §9).
+
+değişken ayar = komut_satırı({adım: 200, koşu: "runs/kontrol_noktasi_ornegi", her_dakika: 5.0, öğrenme_oranı: 0.01},
+    açıklama: "Küçük bir dil modelini kontrol noktasıyla eğitir; kesilirse aynı komutla sürer",
+    açıklamalar: {adım: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, ağırlıklar, kontrol noktaları)",
+        her_dakika: "kontrol noktası aralığı (dakika)"})
+değişken KOŞU = ayar.koşu
+
+// --- Veri ve model (examples/08_veri_ile_egitim.tr'deki küçük model) ---
+değişken p = parçalayıcı_yükle("../tests/data/parcalayici.json")
+değişken V = p.dağarcık_boyutu
+değişken ö = veri_kümesi("../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
+değişken parametre_tohumu = 0
+fonksiyon parametre(şekil, ölçek) {
+    parametre_tohumu += 1
+    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
+}
+değişken model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
+fonksiyon ileri(giriş) {
+    sonuç gelu(gömme(model.E, giriş) @ model.W1) @ model.W2
+}
+değişken op = AdamW(parametreler(model), öğrenme_oranı: ayar.öğrenme_oranı, ağırlık_çürümesi: 0.0)
+
+// --- Koşu klasörü: ayarlar, günlük ve kontrol noktası ---
+klasör_oluştur(KOŞU)
+dosya_yaz(yol(KOŞU, "config.json"), json_metin(ayar))
+değişken g = günlük(yol(KOŞU, "metrics.jsonl"))
+değişken izlenen = {en_iyi_kayıp: 99.0}
+// Sözlükteki her şey kaydedilir; klasörde bir nokta varsa burada yüklenir.
+değişken kn = kontrol_noktası(KOŞU, {model: model, op: op, ö: ö, g: g, izlenen: izlenen}, her_dakika: ayar.her_dakika)
+
+// --- Eğitim: döngü kaldığı adımdan başlar ---
+eğer kn.kaldığı_adım < ayar.adım {
+    değişken ç = ilerleme(ayar.adım, günlük: g)
+    döngü adım içinde kn.kaldığı_adım..ayar.adım {
+        değişken giriş, hedef = ö.sonraki()
+        op.sıfırla()
+        değişken kayıp = çapraz_entropi(ileri(giriş), hedef)
+        geri_yayılım(kayıp)
+        op.adım()
+        eğer kayıp.değer < izlenen.en_iyi_kayıp { izlenen.en_iyi_kayıp = kayıp.değer }
+        ç.güncelle({kayıp: kayıp}, adım: adım + 1)
+        kn.güncelle(adım + 1) // her_dakika dolunca ve Ctrl+C gelince burada kaydeder
+    }
+    yazdır("son nokta:", kn.kaydet())
+} değilse {
+    yazdır("Eğitim zaten {kn.kaldığı_adım}. adımda bitmiş; uzatmak için --adım ile daha büyük bir sayı verin")
+}
+
+// --- Sonuçlar koşu klasörüne ---
+tensör_kaydet(yol(KOŞU, "model.trt"), parametreler(model, adlarıyla: doğru))
+değişken son_adım = eğer kn.kaldığı_adım < ayar.adım { ayar.adım } değilse { kn.kaldığı_adım }
+dosya_yaz(yol(KOŞU, "results.json"), json_metin({adım: son_adım, en_iyi_kayıp: izlenen.en_iyi_kayıp}))
+yazdır("en iyi kayıp: {yuvarla(izlenen.en_iyi_kayıp, 3)}; koşu klasörü: {yol(KOŞU).mutlak}")

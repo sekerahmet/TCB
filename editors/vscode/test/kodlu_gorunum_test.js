@@ -1,9 +1,9 @@
-// Kodlu dosyaların Türkçe görünümü (kodlu_gorunum.js, docs/dil/17_kodlar.md "Düzenleyicide"), sahte vscode
+// Kodlu dosyaların Türkçe görünümü (kodlu_gorunum.js, docs/spec/17_kodlar.md "Düzenleyicide"), sahte vscode
 // modülüyle ve GERÇEK 'tr' yorumlayıcısıyla: kodlu dosyayı aç → Türkçe görünüm (başlık gizli),
 // düzenle → kaydet → diskte kodlu ve 'tr göster' ile aynı; geri al; bozuk dosyanın kayıpsız
 // kaydı; satır eşlemesi (hata mesajı ve hata ayıklayıcı); kısıtlı kip. Depo kökünden:
 //   TR_YORUMLAYICI=bin/tr.exe node editors/vscode/test/kodlu_gorunum_test.js
-// (go test ./cmd/tr/uctan_uca bunu TestEklentiJSTestleri ile, derlediği yorumlayıcıyla çalıştırır.
+// (go test ./cmd/tr/e2e bunu TestEklentiJSTestleri ile, derlediği yorumlayıcıyla çalıştırır.
 // Yorumlayıcı yoksa yorumlayıcı gerektiren testler atlanır.)
 'use strict';
 

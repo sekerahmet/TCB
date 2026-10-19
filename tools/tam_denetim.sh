@@ -4,7 +4,7 @@
 #
 # Kullanım (depo kökünden): bash tools/tam_denetim.sh [--hizli] [--kip=v3|v1]
 #   (bayraksız)  durağan denetimler; Go testleri GOAMD64=v3 ve GOAMD64=v1 ile; tr (v3) ile dil
-#                tanımı testleri, kitaplık testleri (kitaplik/), örnek testleri ve örneklerin hepsi
+#                tanımı testleri, kitaplık testleri (lib/), örnek testleri ve örneklerin hepsi
 #   --hizli      GOAMD64=v1 testlerini atlar (yalnızca iş sırasında; birleştirmeden önce tam
 #                koşulmalı). --kip=v3 ile aynıdır.
 #   --kip=v3     yalnızca GOAMD64=v3: durağan denetimler, Go testleri, tr testleri ve örnekler
@@ -15,10 +15,10 @@
 # Durağan denetimler: üretilmiş dosyalar güncel mi, gofmt, go vet, GPU'suz (-tags gpusuz) Linux
 # program dosyasının statik olması, VS Code eklentisinin
 # JavaScript dosyaları ve package.json. Go testleri -short ile koşar: dil tanımı testleri
-# (testler/) Go testinin içinde yinelenmez, burada bir kez `tr test testler` ile koşar.
+# (tests/) Go testinin içinde yinelenmez, burada bir kez `tr test tests` ile koşar.
 # Ortam değişkenleri: ATLANACAK_ORNEKLER (boşlukla ayrılmış örnek dosya adları; dış ağ
 # gerektiren bir örnek eklenirse), ORNEK_ZAMAN_ASIMI (bir örneğin en uzun süresi, saniye; 300).
-# Hız ölçümü bu betikte YOK: kesin ölçüm boş makinede ayrı yapılır (tools/kiyas/kos.py).
+# Hız ölçümü bu betikte YOK: kesin ölçüm boş makinede ayrı yapılır (tools/bench/kos.py).
 set -u
 # Borunun çıkış kodu, düşen ilk komutun kodudur; kodu bilerek ele alınan borular aşağıda
 # PIPESTATUS ile okunur.
@@ -71,7 +71,7 @@ export GOAMD64="${go_kipleri%% *}"
 
 if [ "$kip" != v1 ]; then
 	adim "Üretilmiş dosyalar güncel mi"
-	for arac in tools/uret/*/; do
+	for arac in tools/gen/*/; do
 		if grep -q -- '-denetle' "$arac"*.go 2>/dev/null; then
 			go run "./$arac" -denetle >/dev/null || kalir "$arac güncel değil (go run ./$arac ile üretin)"
 		fi
@@ -84,7 +84,7 @@ if [ "$kip" != v1 ]; then
 		bicimsiz=$(git ls-files -co --exclude-standard -- '*.go' ':!:.claude/**' |
 			while IFS= read -r f; do if [ -f "$f" ]; then printf '%s\n' "$f"; fi; done | xargs gofmt -l)
 	else
-		bicimsiz=$(gofmt -l ./cmd ./internal ./kitaplik ./tools)
+		bicimsiz=$(gofmt -l ./cmd ./internal ./lib ./tools)
 	fi
 	[ $? -eq 0 ] || kalir "gofmt çalışmadı"
 	[ -z "$bicimsiz" ] || kalir "gofmt ile biçimlenmesi gereken dosyalar: $bicimsiz"
@@ -95,7 +95,7 @@ if [ "$kip" != v1 ]; then
 	adim "GPU'suz Linux program dosyası statik mi (-tags gpusuz)"
 	statik_klasor=$(mktemp -d)
 	if GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags gpusuz -o "$statik_klasor/tr" ./cmd/tr; then
-		go run ./tools/statik_denetim "$statik_klasor/tr" || kalir "gpusuz Linux program dosyası statik değil"
+		go run ./tools/checkstatic "$statik_klasor/tr" || kalir "gpusuz Linux program dosyası statik değil"
 	else
 		kalir "gpusuz Linux derlemesi"
 	fi
@@ -129,11 +129,11 @@ done
 
 adim "TR testleri ve örnekler (tr, GOAMD64=$GOAMD64)"
 if mkdir -p bin && go build -o "$TR" ./cmd/tr; then
-	ozetle "tr test testler" "$TR" test testler
-	ozetle "tr test kitaplik" "$TR" test kitaplik
-	ozetle "tr test ornekler" "$TR" test ornekler
+	ozetle "tr test tests" "$TR" test tests
+	ozetle "tr test lib" "$TR" test lib
+	ozetle "tr test examples" "$TR" test examples
 	sure="${ORNEK_ZAMAN_ASIMI:-300}"
-	for f in ornekler/*.tr; do
+	for f in examples/*.tr; do
 		ad=$(basename "$f")
 		case " ${ATLANACAK_ORNEKLER:-} " in *" $ad "*)
 			echo "↷ $ad atlandı"

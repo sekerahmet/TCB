@@ -5,16 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/lang/checker"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
-	"tr_dili/internal/dil/denetci"
-	"tr_dili/internal/dil/kaynak"
-	"tr_dili/internal/dil/sozcuk"
-	"tr_dili/internal/dil/yurut"
 )
 
 // 'tr derle' ile üretilen uygulama, yorumlayıcı ikilisinin sonuna eklenmiş bir paketten
@@ -168,19 +168,19 @@ type aktarYeri struct {
 // aynısı yapılır, böylece iç bloklardaki aktarımlar da kaçmaz. Aralıklar kaynağın gövdesine
 // göredir (kaynak.Bolumler; kodlu dosyada başlıktan sonrası).
 func aktarYerleri(kod string) []aktarYeri {
-	b, _ := kaynak.Ayir(kod)
+	b, _ := source.Ayir(kod)
 	l := b.Sozcukler()
 	var yerler []aktarYeri
 	for {
 		tok := l.NextToken()
-		if tok.Type == sozcuk.TOKEN_EOF {
+		if tok.Type == lexer.TOKEN_EOF {
 			return yerler
 		}
-		if tok.Type != sozcuk.TOKEN_AKTAR {
+		if tok.Type != lexer.TOKEN_AKTAR {
 			continue
 		}
 		yolTok := l.NextToken()
-		if yolTok.Type == sozcuk.TOKEN_EOF {
+		if yolTok.Type == lexer.TOKEN_EOF {
 			return yerler
 		}
 		bas, son := l.SonAralik()
@@ -196,7 +196,7 @@ func modulYolunuCoz(yol, aktaran, ana string) (cozulen string, aranan []string, 
 	if !strings.HasSuffix(yol, ".tr") {
 		yol += ".tr"
 	}
-	return yurut.ModulYolunuCoz(yol, yurut.DosyaKlasorleri(aktaran, ana))
+	return interp.ModulYolunuCoz(yol, interp.DosyaKlasorleri(aktaran, ana))
 }
 
 // kitaplikAktarimi pakette dilin gömülü kitaplığına (11.6) giden aktarımın işaretidir: bu
@@ -223,8 +223,8 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 	yerler := aktarYerleri(dosya.Kod)
 	dosya.Aktarimlar = make([]int, 0, len(yerler))
 	for _, y := range yerler {
-		if ad, ok := yurut.KitaplikModulu(y.yol); ok {
-			if _, err := yurut.KitaplikOku(ad); err != nil {
+		if ad, ok := interp.KitaplikModulu(y.yol); ok {
+			if _, err := interp.KitaplikOku(ad); err != nil {
 				return fmt.Errorf("%s, satır %d: %v", kaynakYolu, y.satir, err)
 			}
 			dosya.Aktarimlar = append(dosya.Aktarimlar, kitaplikAktarimi)
@@ -249,7 +249,7 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 		modul := paketDosyasi{Ad: filepath.ToSlash(cozulen), Kod: string(veri)}
 		// Modül yorumlayıcıdaki 'aktar' ile aynı denetimden geçer (sözdizimi, üst düzey
 		// 'sonuç', tip denetimi).
-		if s := yurut.ModulDenetle(modul.Kod, t.genelAdlar, t.genelDinamik); s.Asama != "" {
+		if s := interp.ModulDenetle(modul.Kod, t.genelAdlar, t.genelDinamik); s.Asama != "" {
 			return &modulDenetimHatasi{yol: filepath.ToSlash(cozulen), kod: s.Metin, tur: s.Asama, hatalar: s.Hatalar}
 		}
 		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
@@ -281,7 +281,7 @@ func (e *modulDenetimHatasi) Error() string {
 // paketHazirla ana programı ve aktardığı tüm modülleri içeren paketi kurar.
 func paketHazirla(srcPath, kod string) (*paket, error) {
 	t := &modulToplayici{sira: map[string]int{}, ana: srcPath}
-	t.genelAdlar, t.genelDinamik = denetci.UstDuzeyAdlari(kaynak.Hazirla(kod, kaynak.Secenekler{}).Program)
+	t.genelAdlar, t.genelDinamik = checker.UstDuzeyAdlari(source.Hazirla(kod, source.Secenekler{}).Program)
 	pk := &paket{Ana: paketDosyasi{Ad: filepath.ToSlash(srcPath), Kod: kod}}
 	if err := t.topla(&pk.Ana, srcPath); err != nil {
 		return nil, err
@@ -431,7 +431,7 @@ func aktarlariYonlendir(d paketDosyasi, yollar []string) (string, error) {
 	if len(yerler) == 0 {
 		return d.Kod, nil
 	}
-	b, _ := kaynak.Ayir(d.Kod)
+	b, _ := source.Ayir(d.Kod)
 	girdi := []rune(b.Govde)
 	var sb strings.Builder
 	onceki := 0
@@ -503,11 +503,11 @@ func gomuluUygulamayiCalistir(pk *paket) {
 	}
 
 	s := kaynakHazirla(kod, gomuluHazirlik)
-	machine := yurut.New()
+	machine := interp.New()
 	machine.SourceFile = gomuluKaynakAdi
 	machine.KomutAdi = filepath.Base(os.Args[0])
 	// Hata çerçeveleri kullanıcının yazdığı (yönlendirilmemiş) kaynağı göstersin; satırlar aynıdır.
-	ozgun := kaynak.Hazirla(pk.Ana.Kod, kaynak.Secenekler{}).Metin
+	ozgun := source.Hazirla(pk.Ana.Kod, source.Secenekler{}).Metin
 	machine.SourceCode = ozgun
 	// Üretilen uygulamanın bütün argümanları programındır (uygulama.exe --adım 5).
 	machine.ArgumanlariAyarla(os.Args[1:])

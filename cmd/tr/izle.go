@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"tr_dili/internal/arac/profil"
-	"tr_dili/internal/motor/gunluk"
+	"github.com/sekerahmet/TCB/internal/devtools/profiler"
+	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
 // izleKomutu 'tr izle [--çıktı dosya] program.tr [argümanlar]': programı çalıştırır ve hızını
@@ -30,8 +30,8 @@ func izleKomutu(args []string) {
 	s, path, argumanlar := profilArgumanlari("izle", args, "--çıktı")
 	machine, prog, code := programiHazirla(path, argumanlar)
 	gercekCikis, gercekHata := os.Stdout, os.Stderr
-	canli := profil.YeniCanli(gercekHata, gunluk.TerminalMi(gercekHata), nil)
-	var yak *profil.Yakalama
+	canli := profiler.YeniCanli(gercekHata, logging.TerminalMi(gercekHata), nil)
+	var yak *profiler.Yakalama
 	if canli.Terminal() {
 		yol := s.cikti
 		if yol == "" {
@@ -39,7 +39,7 @@ func izleKomutu(args []string) {
 			yol = filepath.Join(os.TempDir(), "tr-izle-"+ad+"-"+strconv.Itoa(os.Getpid())+".txt")
 		}
 		var err error
-		if yak, err = profil.YakalamaBaslat(yol); err != nil {
+		if yak, err = profiler.YakalamaBaslat(yol); err != nil {
 			canli.Kapat()
 			fmt.Fprintf(os.Stderr, "Hata: programın çıktı dosyası açılamadı: %v\n", err)
 			os.Exit(1)
@@ -61,7 +61,7 @@ func izleKomutu(args []string) {
 				fmt.Fprintln(gercekHata, "  │ "+l)
 			}
 		}
-		fmt.Fprint(gercekHata, "\n"+profil.RaporMetni(son))
+		fmt.Fprint(gercekHata, "\n"+profiler.RaporMetni(son))
 	})
 	programCalistir(machine, prog, code)
 	temizle()

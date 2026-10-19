@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"tr_dili/internal/dil/yurut"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 )
 
 // Nazik çıkış kodları: 3 "durduruldu" (ertelenen işler çalıştı; kontrol noktası kullanan
@@ -23,7 +23,7 @@ const (
 // hemen durur. İkinci istek süreci hemen bitirir. Sınır: Windows konsol penceresi kapatılınca
 // işletim sistemi süreci birkaç saniye içinde öldürür; ertelenen işler ve uzun bir adım bu
 // sürede bitmeyebilir (gerçek güvence kontrol noktasının düzenli kaydıdır).
-func kesmeyiYakala(machine *yurut.VM) {
+func kesmeyiYakala(machine *interp.VM) {
 	kanal := make(chan os.Signal, 2)
 	signal.Notify(kanal, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
@@ -41,8 +41,8 @@ func kesmeyiYakala(machine *yurut.VM) {
 
 // kesilmeyiBildir program kesme isteğiyle durduysa bildirimi yazar ve 3 koduyla çıkar.
 // err programın hatasıdır (kesilmeyse ertelenen işlerin hataları da içinde olabilir).
-func kesilmeyiBildir(machine *yurut.VM, err error, code string) {
-	if err != nil && err != yurut.ErrKesildi {
+func kesilmeyiBildir(machine *interp.VM, err error, code string) {
+	if err != nil && err != interp.ErrKesildi {
 		calismaHatasiYaz(machine, err, code) // ertelenen işlerin hataları
 	}
 	machine.CiktiYaz(os.Stderr, "⏹️ Program durduruldu (kesme isteği); ertelenen işler çalıştı. Çıkış kodu 3.\n")

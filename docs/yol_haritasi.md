@@ -17,7 +17,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - eğitim için günlük kaydı ve ilerleme çubuğu (adım, kayıp, kalan süre), profil çıkarma.
    Her ad önce tasarlanıp onaylanır; aynı işi yapan iki kod olmaz.
 3. **Kodlu saklama** — dosyalar diskte dilden bağımsız sabit kodlarla saklanır (`A001`, `G100`); kişi kodu VS Code'da ya da başka bir düzenleyicide kendi yazım dilinde (`eğer` / `if`) görür ve düzenler. Böylece her dilde yazılan kod diskte aynıdır; farklı dillerde çalışan kişiler aynı dosyalar üzerinde birlikte çalışabilir.
-   - Tamamlandı (Ç1): kodlu biçim (`//! tr kodlu 1`, 17.1-17.6), kodlu dosya çevrilmeden çalışır; kapsamla kodlayan kayıpsız çevirici, `tr kodla`, `tr çöz`, `tr göster`; `tr biçimle` kodlu biçimi korur; `$ad` kaçışı (2.11); tek kaynak giriş noktası (`internal/dil/kaynak`).
+   - Tamamlandı (Ç1): kodlu biçim (`//! tr kodlu 1`, 17.1-17.6), kodlu dosya çevrilmeden çalışır; kapsamla kodlayan kayıpsız çevirici, `tr kodla`, `tr çöz`, `tr göster`; `tr biçimle` kodlu biçimi korur; `$ad` kaçışı (2.11); tek kaynak giriş noktası (`internal/lang/source`).
    - Tamamlandı (Ç2): VS Code izdüşümü (17_kodlar.md, "Düzenleyicide"): kişi Türkçe görür, kayıt kodlu yazar, başlık gizli ve satırlar hata mesajları ve hata ayıklayıcıyla aynı; bozuk dosya kayıpsız, başlıksız Türkçe kaydedilir ve ilk geçerli kayıtta yeniden kodlanır; kısıtlı kipte salt okunur ham gösterim; `tr göster -` ve `tr kodla -` (standart giriş kipi); git farkları için `tr göster` ile "textconv" tarifi.
    - Kalan: otomatik sınama kodlu biçimi denetler.
    - Depodaki örnekler ve testler, VS Code izdüşümü hazır olunca kodlu biçime çevrilir.
@@ -29,7 +29,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - testlerin VS Code test gezgininde koşması, satır üstünde "çalıştır" ve "hata ayıkla" düğmeleri;
    - yapay zekâya özel: tensör şekillerinin satır içinde gösterimi, eğitimi canlı izleyen panel (kayıp eğrisi, gradyan normu, öğrenme oranı), Model Sihirbazı.
 5. **Transformer kitaplığı (TR ile yazılı)** — katmanlar (Doğrusal, Gömme, RMSNormu, Dikkat, SwiGLU, Blok) ve yalnızca kod çözücülü `GPT`; model sıradan bir `yapı`, her model tek dosyada okunur.
-   - **1. aşama yapıldı:** `aktar "tr/..."` ile ikiliye gömülü kitaplık (11.6); `tr/katman`: `Doğrusal`, `GömmeKatmanı`, `RMSNormKatmanı`, döner konum (RoPE), `NedenselDikkat` (gruplu sorgu), `SwiGLU`, `TransformerBloğu`, `GPT` (paylaşımlı çıkış, `üret`); `tr/iyilestirici`: `Muon`, `NorMuon`, `MuonVeAdamW`, `parametre_grupları`, `oran_planı` (WSD) — hepsi TR kodu; örnek `ornekler/11_gpt.tr`, Colab betiği `tools/gpu/gpt_egitim.tr`.
+   - **1. aşama yapıldı:** `aktar "tr/..."` ile ikiliye gömülü kitaplık (11.6); `tr/katman`: `Doğrusal`, `GömmeKatmanı`, `RMSNormKatmanı`, döner konum (RoPE), `NedenselDikkat` (gruplu sorgu), `SwiGLU`, `TransformerBloğu`, `GPT` (paylaşımlı çıkış, `üret`); `tr/iyilestirici`: `Muon`, `NorMuon`, `MuonVeAdamW`, `parametre_grupları`, `oran_planı` (WSD) — hepsi TR kodu; örnek `examples/11_gpt.tr`, Colab betiği `tools/gpu/gpt_egitim.tr`.
    - Sırada: kitaplık adlarının yazım dillerinde çevirisi (8. madde, Ç3); KV önbellekli `üret` (9. madde); hazır eğitim döngüsü (`egitim/`); iyileştiricinin öğrenme oranının sonradan değiştirilebilmesi (bugün `MuonVeAdamW` AdamW adımını ölçekler); `kontrol_noktası`nın türev izlemeyen durum tensörlerini de saklaması.
 6. **GPU arka ucu** — Go'nun ürettiği GPU kodu (PTX) sürücüye verilir; tek dosya dağıtım korunur, ek derleyici gerekmez.
    - Önce **G4** ve **L4** (bf16, fp8); **T4** sonra (fp16 yolu).
@@ -67,7 +67,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 - Veri hattı: `.npy` parçaları, önden yükleme, önbellek; genel `tokenizer.json` parçalayıcısı.
 - bf16/fp16 veri türleri ve `karışık_hassasiyet` bloğu.
 - Örnekler 01–09 öğrenme sırasıyla.
-- Kodlar: dilin bütün adları `internal/dil/kod/tr.json`'da sabit kodlara bağlı; açıklamalı başvuru `docs/kodlar.md`.
+- Kodlar: dilin bütün adları `internal/lang/codes/tr.json`'da sabit kodlara bağlı; açıklamalı başvuru `docs/kodlar.md`.
 - Tek yazım: Türkçe harfsiz biçimler, eş yazımlar, `matris`, `#` yorum ve İngilizce eşler kaldırıldı; komut satırı tek Türkçe ad; yerleşik ad gölgeleme uyarısı; eklenti listeleri kod listesinden üretiliyor.
 - Matematik genişletmesi: `silu`, ters trigonometri (`tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`), `sinh`/`cosh`, `log1p`/`log2`/`log10`/`üstel_eksi_bir`, `taban`/`tavan`/`işaret`/`sınırla`, `pi`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu` ve yayınlamalı tensör karşılaştırmaları; hepsi türevli (uygun olanlar), CPU ve GPU çekirdekli, bf16/fp16 depolamada.
 - Model yapı taşları: `sinüs`/`kosinüs`, `birleştir`, `.böl`, `boyutu_koru`, birleşik `dikkat` (nedensel, pencereli, gruplu sorgu; T×T ara matrissiz, uzun bağlamda 2–10 kat hızlı), `örnekle`, `parametreler(model)`.

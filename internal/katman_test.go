@@ -9,13 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"tr_dili/internal/depo"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Katman kuralı: kim kimi içe aktarabilir. Okun yönü "içe aktarabilir" demektir:
 //
-//	araçlar (internal/arac, cmd/tr) ─▶ motorlar (internal/motor) ─▶ dil çekirdeği (internal/dil)
-//	                                        └──────▶ hesap çekirdekleri (internal/hesap)
+//	araçlar (internal/devtools, cmd/tr) ─▶ motorlar (internal/stdlib) ─▶ dil çekirdeği (internal/lang)
+//	                                        └──────▶ hesap çekirdekleri (internal/compute)
 //
 // Hesap çekirdekleri dili bilmez (tek başına sınanır ve ölçülür), dil çekirdeği motorları ve
 // araçları bilmez, motorlar araçları bilmez. Kural yalnızca paketlerin kendi (test dışı)
@@ -26,14 +26,14 @@ var katmanlar = []struct {
 	onek   string   // paket yolu bu önekle başlar (modül yoluna göre)
 	izinli []string // içe aktarabileceği iç paketlerin önekleri
 }{
-	{"internal/hesap/", []string{"internal/hesap/"}},
-	{"internal/dil/", []string{"internal/dil/"}},
-	{"internal/motor/", []string{"internal/dil/", "internal/hesap/", "internal/motor/"}},
-	{"internal/arac/", []string{"internal/dil/", "internal/hesap/", "internal/motor/", "internal/arac/"}},
-	{"internal/depo", nil}, // testlerin depo kökü yardımcısı; yalnızca testlerden ve tools/'dan içe aktarılır
-	{"kitaplik", nil},      // TR ile yazılı kitaplık: Go tarafında yalnızca gömme dosyası
-	{"cmd/", []string{"internal/dil/", "internal/hesap/", "internal/motor/", "internal/arac/", "kitaplik"}},
-	{"tools/", []string{"internal/", "kitaplik"}},
+	{"internal/compute/", []string{"internal/compute/"}},
+	{"internal/lang/", []string{"internal/lang/"}},
+	{"internal/stdlib/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/"}},
+	{"internal/devtools/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/"}},
+	{"internal/reporoot", nil}, // testlerin depo kökü yardımcısı; yalnızca testlerden ve tools/'dan içe aktarılır
+	{"lib", nil},               // TR ile yazılı kitaplık: Go tarafında yalnızca gömme dosyası
+	{"cmd/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "lib"}},
+	{"tools/", []string{"internal/", "lib"}},
 }
 
 // dilSirasi dil çekirdeğinin iç sırasıdır: bir dil paketi yalnızca bu listede kendisinden
@@ -41,25 +41,25 @@ var katmanlar = []struct {
 // yorumlayıcıyı bilmez). Döngüye en yakın katman burasıdır; yeni bir dil paketi listeye
 // yerine göre eklenir. Ayrıntı: docs/mimari.md.
 var dilSirasi = []string{
-	"internal/dil/turkce", // Türkçe ek, harf ve hata çerçevesi yardımcıları
-	"internal/dil/kod",    // kod listesi (adlar ve tanımlar)
-	"internal/dil/ipucu",  // ad ipuçları (kaldırılan, taşınan, ASCII yazılan adlar)
-	"internal/dil/sozcuk", // sözcük çözümleyici
-	"internal/dil/agac",   // sözdizimi ağacı
-	"internal/dil/ayristir",
-	"internal/dil/denetci",
-	"internal/dil/kaynak", // kaynaktan programa giriş noktası, kodlu biçim ve çevirici
-	"internal/dil/yurut",
+	"internal/lang/turkish", // Türkçe ek, harf ve hata çerçevesi yardımcıları
+	"internal/lang/codes",   // kod listesi (adlar ve tanımlar)
+	"internal/lang/hint",    // ad ipuçları (kaldırılan, taşınan, ASCII yazılan adlar)
+	"internal/lang/lexer",   // sözcük çözümleyici
+	"internal/lang/ast",     // sözdizimi ağacı
+	"internal/lang/parser",
+	"internal/lang/checker",
+	"internal/lang/source", // kaynaktan programa giriş noktası, kodlu biçim ve çevirici
+	"internal/lang/interp",
 }
 
-const modul = "tr_dili"
+const modul = "github.com/sekerahmet/TCB"
 
 // atlanan klasörler: Go paketi olmayan ya da depoya ait olmayan yerler.
-var atlanan = map[string]bool{".git": true, ".claude": true, "bin": true, "calisma": true, "testdata": true, "node_modules": true}
+var atlanan = map[string]bool{".git": true, ".claude": true, "bin": true, "scratch": true, "testdata": true, "node_modules": true}
 
 // onekEslesir paket yolu önekin kendisi ya da onun altındaki bir paket mi? Önek sonunda "/"
-// olsa da olmasa da klasör sınırında eşlenir: "internal/depo" ve "kitaplik" önekleri
-// "internal/depolama" ya da "kitaplikx" paketini kapsamaz.
+// olsa da olmasa da klasör sınırında eşlenir: "internal/reporoot" ve "lib" önekleri
+// "internal/reporootx" ya da "libx" paketini kapsamaz.
 func onekEslesir(yol, onek string) bool {
 	o := strings.TrimSuffix(onek, "/")
 	return yol == o || strings.HasPrefix(yol, o+"/")
@@ -70,16 +70,16 @@ func TestOnekEslesmesi(t *testing.T) {
 		yol, onek string
 		esler     bool
 	}{
-		{"internal/depo", "internal/depo", true},
-		{"internal/depo/alt", "internal/depo", true},
-		{"internal/depolama", "internal/depo", false},
-		{"kitaplik", "kitaplik", true},
-		{"kitaplikx", "kitaplik", false},
-		{"internal/motor", "internal/motor", true},
-		{"internal/motorlar", "internal/motor", false},
-		{"internal/hesap", "internal/hesap/", true},
-		{"internal/hesap/tensor", "internal/hesap/", true},
-		{"internal/hesaplama", "internal/hesap/", false},
+		{"internal/reporoot", "internal/reporoot", true},
+		{"internal/reporoot/alt", "internal/reporoot", true},
+		{"internal/reporootx", "internal/reporoot", false},
+		{"lib", "lib", true},
+		{"libx", "lib", false},
+		{"internal/stdlib", "internal/stdlib", true},
+		{"internal/stdlibx", "internal/stdlib", false},
+		{"internal/compute", "internal/compute/", true},
+		{"internal/compute/tensor", "internal/compute/", true},
+		{"internal/computex", "internal/compute/", false},
 		{"cmd/tr", "cmd/", true},
 	} {
 		if g := onekEslesir(d.yol, d.onek); g != d.esler {
@@ -98,7 +98,7 @@ func katmanBul(yol string) (izinli []string, ok bool) {
 }
 
 func TestKatmanKurali(t *testing.T) {
-	kok := depo.Kok()
+	kok := reporoot.Kok()
 	paketSayisi := 0
 	err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -161,15 +161,15 @@ func TestKatmanKurali(t *testing.T) {
 // disBagimliliklar modül dışı (standart kitaplık olmayan) içe aktarmalar ve onları içe
 // aktarabilen tek paket. Yeni bir dış bağımlılık baş geliştiricinin kararıdır; tek dosya
 // dağıtım ve cgo'suz derleme korunur. Dinamik yükleyici: GPU arka ucunun Linux'ta NVIDIA sürücü
-// kitaplığını cgo'suz yüklemesi (internal/hesap/gpu/cuda_linux.go).
+// kitaplığını cgo'suz yüklemesi (internal/compute/gpu/cuda_linux.go).
 var disBagimliliklar = map[string]string{
-	"github.com/ebitengine/purego": "internal/hesap/gpu",
+	"github.com/ebitengine/purego": "internal/compute/gpu",
 }
 
 // TestDisBagimliliklar her işletim sistemi için (yapı kısıtları farklı dosyaları seçer)
 // modül dışı içe aktarmaları denetler.
 func TestDisBagimliliklar(t *testing.T) {
-	kok := depo.Kok()
+	kok := reporoot.Kok()
 	for _, goos := range []string{"linux", "windows", "darwin"} {
 		ctx := build.Default
 		ctx.GOOS, ctx.CgoEnabled = goos, false
@@ -188,7 +188,7 @@ func TestDisBagimliliklar(t *testing.T) {
 			goreli = filepath.ToSlash(goreli)
 			for _, imp := range p.Imports {
 				ilk, _, _ := strings.Cut(imp, "/")
-				if !strings.Contains(ilk, ".") {
+				if !strings.Contains(ilk, ".") || onekEslesir(imp, modul) {
 					continue // standart kitaplık ya da modülün kendisi
 				}
 				if izinli, ok := disBagimliliklar[imp]; !ok || izinli != goreli {
@@ -206,12 +206,12 @@ func TestDisBagimliliklar(t *testing.T) {
 // Dil çekirdeğinin iç sırası (dilSirasi): her dil paketi listede olmalı ve yalnızca
 // solundakileri içe aktarmalı.
 func TestDilIcSirasi(t *testing.T) {
-	kok := depo.Kok()
+	kok := reporoot.Kok()
 	sira := map[string]int{}
 	for i, p := range dilSirasi {
 		sira[p] = i
 	}
-	girdiler, err := filepath.Glob(filepath.Join(kok, "internal", "dil", "*"))
+	girdiler, err := filepath.Glob(filepath.Join(kok, "internal", "lang", "*"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,7 +229,7 @@ func TestDilIcSirasi(t *testing.T) {
 		}
 		for _, imp := range p.Imports {
 			hedef := strings.TrimPrefix(imp, modul+"/")
-			if hedef == imp || !strings.HasPrefix(hedef, "internal/dil/") {
+			if hedef == imp || !strings.HasPrefix(hedef, "internal/lang/") {
 				continue
 			}
 			if h, ok := sira[hedef]; !ok || h >= yer {

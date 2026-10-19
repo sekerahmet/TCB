@@ -18,7 +18,7 @@ import (
 
 // Bu paketteki testler 'main' paketinin iç işlevlerini (gömülü paket biçimi, aktar
 // yönlendirmesi, işlemci notu) doğrudan çağıran beyaz kutu testleridir. Yalnızca derlenmiş
-// 'tr' ikilisini çalıştıran uçtan uca testler cmd/tr/uctan_uca'dadır.
+// 'tr' ikilisini çalıştıran uçtan uca testler cmd/tr/e2e'dadır.
 
 // Gömülü paket biçiminin iki testi, paketi gerçek bir yorumlayıcı ikilisinin sonuna ekleyip
 // çalıştırır. İkili yalnızca gerektiğinde, bir kez derlenir (ikiliKlasoru TestMain'de silinir).
@@ -69,7 +69,7 @@ type sonuc struct {
 	kod         int
 }
 
-// calistir ikiliyi verilen klasörde ve standart girişle çalıştırır (uctan_uca'daki aynı adlı
+// calistir ikiliyi verilen klasörde ve standart girişle çalıştırır (e2e'deki aynı adlı
 // yardımcının kısası).
 func calistir(t *testing.T, ikili, klasor, girdi string, ortam []string, args ...string) sonuc {
 	t.Helper()

@@ -38,7 +38,7 @@
 
 ## Hata ayıklama
 
-Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdadır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık (terminalde tuş adı yazılıp Enter'a basılır). **F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için). Denemek için depodaki `ornekler/09_hata_ayiklama_alistirmasi.tr` (adım adım alıştırma) ya da `ornekler/04_hata_ayiklama.tr` (koddaki koşullu `kesme_noktası`) dosyasını açıp F5'e basın.
+Tuşlar terminal hata ayıklayıcısında da (`tr hata_ayıkla`) aynı anlamdadır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık (terminalde tuş adı yazılıp Enter'a basılır). **F5** hata ayıklayıcıyı açık `.tr` dosyasında başlatır; **Ctrl+F5** hata ayıklamadan terminalde çalıştırır (`girdi()` kullanan programlar için). Denemek için depodaki `examples/09_hata_ayiklama_alistirmasi.tr` (adım adım alıştırma) ya da `examples/04_hata_ayiklama.tr` (koddaki koşullu `kesme_noktası`) dosyasını açıp F5'e basın.
 
 **İzleme Masası:** Program her durduğunda editörün yanında açılır.
 
@@ -61,7 +61,7 @@ TR dosyaları diskte dilden bağımsız kodlarla saklanabilir (`tr kodla`; ilk s
 - **Diskteki hâli görmek:** Komut Paleti → "TR: Kodlu Hâlini Göster" dosyanın kodlu hâlini yanda salt okunur açar.
 - **Kısıtlı kip:** Güvenilmeyen çalışma alanında yorumlayıcı çalıştırılmadığından çeviri yapılamaz; kodlu dosya **salt okunur, ham hâliyle** açılır ve nedeni söylenir. Çalışma alanına güvendiğinizde açık sekmeler Türkçe görünüme geçer.
 - **Yorumlayıcı bulunamazsa** kodlu dosya ham hâliyle açık kalır ve yorumlayıcının nasıl kurulacağı söylenir.
-- **Git farkları:** `git diff`'in Türkçe fark göstermesi için `tr göster`'i textconv olarak tanıtın ([kılavuz](../../docs/kilavuz/01_baslangic.md#kodlu-dosyalar-düzenleyici-ve-git-farkları)). VS Code'un kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.
+- **Git farkları:** `git diff`'in Türkçe fark göstermesi için `tr göster`'i textconv olarak tanıtın ([kılavuz](../../docs/guide/01_baslangic.md#kodlu-dosyalar-düzenleyici-ve-git-farkları)). VS Code'un kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.
 
 Sınırlar: "Farklı Kaydet" ile kaydedilen yeni dosya Türkçe yazılır (kodlamak için `tr kodla`). Çalışma alanında arama (Ctrl+Shift+F) diskteki kodlu metinde arar; sonuçtan açılan satır başlık yüzünden bir satır kayabilir.
 
@@ -69,7 +69,7 @@ Sınırlar: "Farklı Kaydet" ile kaydedilen yeni dosya Türkçe yazılır (kodla
 
 `.tr` dosyasında kısayolu yazıp `Tab`a basın: `fonk`, `eğer`, `eşle`, `döngü`, `liste_üret`, `yapı`, `dene`, `filtrele`, `haritala`, `indirge` ve `tensör` (tensörler, `AdamW`, `geri_yayılım`, `iyileştirici.adım()` ve `iyileştirici.sıfırla()` ile küçük bir eğitim döngüsü).
 
-Renklendirmenin anahtar kelime, tip ve yerleşik listeleri elle yazılmaz; dilin kod listesinden (`internal/dil/kod/tr.json`, ve İngilizce görünüm için `en.json`) üretilir. Kod listesinde bir ad değişince depo kökünde `go run ./tools/uret/eklenti_listeleri` çalıştırın (`go test ./...` dosyanın güncel olduğunu denetler). Her işin tek yazımı vardır: yalnızca Türkçe biçimler renklendirilir; `#` yorum değildir, yorumlar `//` ve `/* */` ile yazılır.
+Renklendirmenin anahtar kelime, tip ve yerleşik listeleri elle yazılmaz; dilin kod listesinden (`internal/lang/codes/tr.json`, ve İngilizce görünüm için `en.json`) üretilir. Kod listesinde bir ad değişince depo kökünde `go run ./tools/gen/grammar` çalıştırın (`go test ./...` dosyanın güncel olduğunu denetler). Her işin tek yazımı vardır: yalnızca Türkçe biçimler renklendirilir; `#` yorum değildir, yorumlar `//` ve `/* */` ile yazılır.
 
 | Ne yapmak istiyorsunuz? | Nasıl |
 | --- | --- |
@@ -91,7 +91,7 @@ Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (
 1. Yalnızca **güvenilen** çalışma alanında, dosyanın çalışma alanı klasörünün kökündeki `bin/tr.exe`, yoksa `tr.exe`
 2. PATH üzerindeki `tr`
 
-Üst klasörlere bakılmaz: indirdiğiniz bir klasörün içinde ya da üstünde duran yabancı bir `tr.exe` kendiliğinden çalıştırılmaz. Klasör açmadan tek bir `.tr` dosyası açtığınızda yalnızca bu ayar ve PATH kullanılır. Depoyu değil de bir alt klasörünü (örneğin `ornekler/`) açıyorsanız yorumlayıcının tam yolunu bu ayara yazın.
+Üst klasörlere bakılmaz: indirdiğiniz bir klasörün içinde ya da üstünde duran yabancı bir `tr.exe` kendiliğinden çalıştırılmaz. Klasör açmadan tek bir `.tr` dosyası açtığınızda yalnızca bu ayar ve PATH kullanılır. Depoyu değil de bir alt klasörünü (örneğin `examples/`) açıyorsanız yorumlayıcının tam yolunu bu ayara yazın.
 
 Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen (kısıtlı kipteki) klasörlerde renklendirme, şablonlar ve dosya okuma yine kullanılabilir; çalıştırma, denetleme ve hata ayıklama kapalıdır ve bu düğmeler görünmez. Kodlu dosyalar bu kipte Türkçeye çevrilmez, salt okunur ham hâliyle açılır.
 
@@ -105,4 +105,4 @@ Unicode işaretleme: VS Code kısıtlı kipte ASCII dışındaki her harfi sarı
 - `.tr` dosyalarında VS Code'un "belirsiz karakter" uyarısı kapalıdır; Türkçe `ı` harfi artık Latin `i` ile karıştırılabilir diye sarı kutuyla işaretlenmez.
 - Bu depoyu klasör olarak açtığınızda `.vscode/tasks.json` görevleri de kullanılabilir: `Ctrl+Shift+B` açık dosyayı `bin/tr.exe` ile çalıştırır; denetleme ve terminal hata ayıklama görevleri de aynı `bin/tr.exe`'yi kullanır. Bu görevler ve eklenti komutları (▶, F5) yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce "Tasks: Run Task" → **TR: yorumlayıcıyı derle** (`GOAMD64=v3 go build -o bin/tr.exe ./cmd/tr`) görevini çalıştırın.
 - `launch.json` ile özelleştirme: `"program"`, `"cwd"`, `"args"` (programa iletilen komut satırı argümanları, ör. `["--adım", "5"]`; F5'te de Ctrl+F5'te de iletilir) ve `"stopOnEntry": true` (ilk satırda dur) desteklenir.
-- Eklentinin arayüz metinleri (komut başlıkları, ayar açıklamaları) `package.nls.json`'dadır; başka bir yazım dili için `package.nls.<dil>.json` eklenir. Eklentinin testleri `test/` klasöründedir (`node test/<ad>_test.js`; `go test ./cmd/tr/uctan_uca` hepsini koşar); çalıştırma ve hata ayıklama yolları sahte bir `vscode` modülüyle sınanır.
+- Eklentinin arayüz metinleri (komut başlıkları, ayar açıklamaları) `package.nls.json`'dadır; başka bir yazım dili için `package.nls.<dil>.json` eklenir. Eklentinin testleri `test/` klasöründedir (`node test/<ad>_test.js`; `go test ./cmd/tr/e2e` hepsini koşar); çalıştırma ve hata ayıklama yolları sahte bir `vscode` modülüyle sınanır.

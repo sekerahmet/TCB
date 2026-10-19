@@ -6,7 +6,7 @@ labels: sözlük isteği
 ---
 
 <!--
-Dilin kullanıcıya görünen her adı sabit bir koda bağlıdır (internal/dil/kod/tr.json). Kodu ve
+Dilin kullanıcıya görünen her adı sabit bir koda bağlıdır (internal/lang/codes/tr.json). Kodu ve
 son adı YALNIZCA baş geliştirici verir; bu şablon bir istektir, kodu kendiniz eklemeyin.
 Önce docs/kodlar.md'ye bakın: aynı işi (fonksiyon ya da metot biçiminde) yapan bir kod varsa
 onu kullanın. Aynı işi yapan iki kod olamaz.

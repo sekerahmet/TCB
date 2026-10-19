@@ -7,13 +7,13 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"tr_dili/internal/arac/profil"
-	"tr_dili/internal/dil/agac"
-	"tr_dili/internal/dil/yurut"
+	"github.com/sekerahmet/TCB/internal/devtools/profiler"
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 )
 
 // 'tr profil' ve 'tr izle' komutlarının ortak parçaları ve 'tr profil'. Profilin çekirdeği
-// internal/arac/profil'dedir; burada yalnızca argümanlar, çıktı yerleri ve çıkış vardır.
+// internal/devtools/profiler'dedir; burada yalnızca argümanlar, çıktı yerleri ve çıkış vardır.
 
 // profilSecenekleri komutların program dosyasından önce yazılan seçenekleridir.
 type profilSecenekleri struct {
@@ -61,9 +61,9 @@ func icinde(liste []string, s string) bool {
 }
 
 // programiHazirla dosyayı hazırlar ve bir VM kurar (runFile ile aynı adımlar).
-func programiHazirla(path string, argumanlar []string) (*yurut.VM, *agac.Program, string) {
+func programiHazirla(path string, argumanlar []string) (*interp.VM, *ast.Program, string) {
 	_, s := dosyaHazirla(path, calistirmaHazirligi)
-	machine := yurut.New()
+	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Metin
 	machine.ArgumanlariAyarla(argumanlar)
@@ -72,17 +72,17 @@ func programiHazirla(path string, argumanlar []string) (*yurut.VM, *agac.Program
 
 // uyariYazici profil uyarılarını programın çıktı noktasından (canlı satırla eşgüdümlü)
 // standart hataya yazar.
-func uyariYazici(machine *yurut.VM) func(string) {
+func uyariYazici(machine *interp.VM) func(string) {
 	return func(m string) { machine.CiktiYaz(os.Stderr, m+"\n") }
 }
 
 // olcumluProfilBaslat tr izle ve tr profil'in profilini başlatır: satır örneklemesi ve GPU
 // çekirdek ölçümü açık; arka plan işiyse durum dosyası da yazılır. GPU'nun son ölçümleri
 // motorlar kapanmadan alınır (kapanmadanOnce).
-func olcumluProfilBaslat(machine *yurut.VM, path, code string, prog *agac.Program) *profil.Profil {
-	p := profil.Baslat(machine, profil.Secenekler{
+func olcumluProfilBaslat(machine *interp.VM, path, code string, prog *ast.Program) *profiler.Profil {
+	p := profiler.Baslat(machine, profiler.Secenekler{
 		Program: path, Kaynak: code, Agac: prog, Ornekle: true, GPUOlcumu: true,
-		DurumDosyasi: profil.IsDurumDosyasi(), Uyari: uyariYazici(machine),
+		DurumDosyasi: profiler.IsDurumDosyasi(), Uyari: uyariYazici(machine),
 	})
 	kapanmadanOnce = append(kapanmadanOnce, p.KapanmadanOnce)
 	return p
@@ -100,7 +100,7 @@ func profilKomutu(args []string) {
 	p := olcumluProfilBaslat(machine, path, code, prog)
 	cikisTemizligi = append(cikisTemizligi, func() {
 		son := p.Bitir(cikisKodu)
-		fmt.Print("\n" + profil.RaporMetni(son))
+		fmt.Print("\n" + profiler.RaporMetni(son))
 		if s.json != "" {
 			jsonRaporuYaz(s.json, son)
 		}
@@ -110,15 +110,15 @@ func profilKomutu(args []string) {
 }
 
 // jsonRaporuYaz raporu yola (klasörse içine speed.json) yazar; yazılamazsa bildirir.
-func jsonRaporuYaz(yol string, g *profil.Goruntu) {
+func jsonRaporuYaz(yol string, g *profiler.Goruntu) {
 	if b, err := os.Stat(yol); (err == nil && b.IsDir()) || strings.HasSuffix(yol, "/") || strings.HasSuffix(yol, string(os.PathSeparator)) {
 		if err := os.MkdirAll(yol, 0o755); err != nil {
 			fmt.Fprintf(os.Stderr, "⚠️ profil: %s klasörü açılamadı: %v\n", yol, err)
 			return
 		}
-		yol = filepath.Join(yol, profil.RaporDosyasiAdi)
+		yol = filepath.Join(yol, profiler.RaporDosyasiAdi)
 	}
-	if err := profil.DosyayaYaz(yol, g, func(m string) { fmt.Fprintln(os.Stderr, m) }); err != nil {
+	if err := profiler.DosyayaYaz(yol, g, func(m string) { fmt.Fprintln(os.Stderr, m) }); err != nil {
 		fmt.Fprintf(os.Stderr, "⚠️ profil: JSON raporu yazılamadı: %v\n", err)
 		return
 	}
@@ -147,12 +147,12 @@ func goProfiliniBaslat(yol string) {
 // isProfiliniBaslat program bir arka plan işi olarak çalışıyorsa (TR_İŞ) iş klasörüne
 // saniyede bir profil.json yazar (yalnızca her zaman açık sayaçlar; satır örneklemesi
 // yok: ek maliyet saniyede bir dosya yazmasıdır). İş değilse hiçbir şey yapmaz.
-func isProfiliniBaslat(machine *yurut.VM, path, code string, prog *agac.Program) {
-	yol := profil.IsDurumDosyasi()
+func isProfiliniBaslat(machine *interp.VM, path, code string, prog *ast.Program) {
+	yol := profiler.IsDurumDosyasi()
 	if yol == "" {
 		return
 	}
-	p := profil.Baslat(machine, profil.Secenekler{
+	p := profiler.Baslat(machine, profiler.Secenekler{
 		Program: path, Kaynak: code, Agac: prog, DurumDosyasi: yol, Uyari: uyariYazici(machine),
 	})
 	cikisTemizligi = append(cikisTemizligi, func() { p.Bitir(cikisKodu) })

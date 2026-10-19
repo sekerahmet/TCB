@@ -1,0 +1,325 @@
+// docs/spec/15_tensorler.md §15.20–15.24 — Kullanıcı tanımlı türev (özel_türev) ve türev_denetle
+
+// ot_hata: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+fonksiyon ot_hata(f) {
+    dene {
+        f()
+    } yakala h {
+        sonuç h
+    }
+    sonuç ""
+}
+
+// yakın: iki tensör eleman eleman 1e-4'ten yakın mı?
+fonksiyon yakın(a, b) {
+    değişken f = a - b
+    sonuç maks(f * f).değer < 0.00000001
+}
+
+değişken kare = özel_türev(
+    ileri: fonksiyon(x) { sonuç [x * x, [x]] },
+    geri: fonksiyon(saklananlar, g) {
+        değişken x = saklananlar[0]
+        sonuç [g * 2 * x]
+    }
+)
+
+test "15.20 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
+    eşit_mi(YerleşikFonksiyon, tip(kare))
+    değişken x = tensör([3.0], türev_izle: doğru)
+    değişken y = kare(x)
+    eşit_mi([9.0], y.değer)
+    geri_yayılım(toplam(y))
+    eşit_mi([6.0], x.gradyan.değer)
+    // Sonuç bir işlemin sonucudur: .gradyan'ı yoktur.
+    doğrula(ot_hata(() => y.gradyan).içerir("işlemin sonucu"))
+    // Bileşik sürümle aynı gradyan: kare(x) * x = x³ → 3x².
+    değişken a = tensör([[0.5, -2.0, 1.5]], türev_izle: doğru)
+    değişken b = tensör([[0.5, -2.0, 1.5]], türev_izle: doğru)
+    geri_yayılım(toplam(kare(a) * a))
+    geri_yayılım(toplam(b * b * b))
+    doğrula(yakın(a.gradyan, b.gradyan))
+    // Hiçbir girdi türev izlemiyorsa çizgeye bir şey kaydedilmez; türevsiz içinde de.
+    değişken z = kare(tensör([2.0]))
+    eşit_mi(yok, z.gradyan)
+    değişken t = türevsiz { sonuç kare(x) }
+    eşit_mi(yok, t.gradyan)
+    // ileri türevsiz çalışır: ileri'nin içinde hesaplanan değerler çizgeye bağlanmaz.
+    değişken iç_izli = yok
+    değişken dene_ileri = özel_türev(
+        ileri: fonksiyon(x) {
+            değişken y = x * 2
+            iç_izli = y.gradyan == yok
+            sonuç [y, []]
+        },
+        geri: fonksiyon(s, g) { sonuç [g * 2] }
+    )
+    geri_yayılım(toplam(dene_ileri(tensör([1.0, 2.0], türev_izle: doğru))))
+    doğrula(iç_izli)
+}
+
+test "15.21 özel_türev: çok girdi, türev izlemeyen ve tensör olmayan girdiler, adlı argümanlar" {
+    // Kapılı çarpım a * sigmoid(b), geri elle.
+    değişken kapılı = özel_türev(
+        ileri: fonksiyon(a, b) {
+            değişken s = sigmoid(b)
+            sonuç [a * s, [a, s]]
+        },
+        geri: fonksiyon(k, g) {
+            değişken a = k[0]
+            değişken s = k[1]
+            sonuç [g * s, g * a * s * (1 - s)]
+        }
+    )
+    değişken a1 = tensör([[1.0, -2.0], [0.5, 3.0]], türev_izle: doğru)
+    değişken b1 = tensör([[0.2, -0.7], [1.5, 0.0]], türev_izle: doğru)
+    değişken a2 = tensör([[1.0, -2.0], [0.5, 3.0]], türev_izle: doğru)
+    değişken b2 = tensör([[0.2, -0.7], [1.5, 0.0]], türev_izle: doğru)
+    geri_yayılım(toplam(kapılı(a1, b1) * tensör([[1.0, 2.0], [3.0, 4.0]])))
+    geri_yayılım(toplam(a2 * sigmoid(b2) * tensör([[1.0, 2.0], [3.0, 4.0]])))
+    doğrula(yakın(a1.gradyan, a2.gradyan))
+    doğrula(yakın(b1.gradyan, b2.gradyan))
+    // Türev izlemeyen girdi: gradyan hesaplanmaz; geri yok da döndürebilir.
+    değişken sabit_t = tensör([[0.0, 0.0], [0.0, 0.0]])
+    değişken a3 = tensör([[1.0, 1.0], [1.0, 1.0]], türev_izle: doğru)
+    geri_yayılım(toplam(kapılı(a3, sabit_t)))
+    eşit_mi([[0.5, 0.5], [0.5, 0.5]], a3.gradyan.değer)
+    eşit_mi(yok, sabit_t.gradyan)
+    // Tensör olmayan konumlu girdi ve adlı argümanlar ileri'ye geçer; gradyanları yoktur.
+    değişken ölçekli = özel_türev(
+        ileri: fonksiyon(x, n, ölçek = 1.0, ad = "") {
+            sonuç [x * n * ölçek, [n * ölçek, ad]]
+        },
+        geri: fonksiyon(k, g) {
+            eşit_mi("deneme", k[1])
+            sonuç [g * k[0], yok]
+        }
+    )
+    değişken x = tensör([1.0, 2.0], türev_izle: doğru)
+    değişken y = ölçekli(x, 3, ölçek: 0.5, ad: "deneme")
+    eşit_mi([1.5, 3.0], y.değer)
+    geri_yayılım(toplam(y))
+    eşit_mi([1.5, 1.5], x.gradyan.değer)
+}
+
+test "15.22 özel_türev: çok çıktı" {
+    // ileri bir çıktı listesi döndürür; geri'nin g'si her çıktı için bir gradyan listesidir.
+    değişken topla_fark = özel_türev(
+        ileri: fonksiyon(a, b) { sonuç [[a + b, a - b], []] },
+        geri: fonksiyon(k, g) { sonuç [g[0] + g[1], g[0] - g[1]] }
+    )
+    değişken a = tensör([1.0, 2.0], türev_izle: doğru)
+    değişken b = tensör([3.0, 5.0], türev_izle: doğru)
+    değişken sonuçlar = topla_fark(a, b)
+    eşit_mi(Liste, tip(sonuçlar))
+    eşit_mi([[4.0, 7.0], [-2.0, -3.0]], [sonuçlar[0].değer, sonuçlar[1].değer])
+    geri_yayılım(toplam(sonuçlar[0] * 2) + toplam(sonuçlar[1] * 3))
+    eşit_mi([5.0, 5.0], a.gradyan.değer)
+    eşit_mi([-1.0, -1.0], b.gradyan.değer)
+    // Kayba bağlı olmayan çıktının gradyanı sıfır tensördür.
+    değişken görülen = yok
+    değişken izle = özel_türev(
+        ileri: fonksiyon(x) { sonuç [[x * 2, x * 3], []] },
+        geri: fonksiyon(k, g) {
+            görülen = g[1].değer
+            sonuç [g[0] * 2 + g[1] * 3]
+        }
+    )
+    değişken x = tensör([1.0, 1.0], türev_izle: doğru)
+    geri_yayılım(toplam(izle(x)[0]))
+    eşit_mi([0.0, 0.0], görülen)
+    eşit_mi([2.0, 2.0], x.gradyan.değer)
+}
+
+test "15.23 özel_türev: hatalar" {
+    değişken x = tensör([[1.0, 2.0]], türev_izle: doğru)
+    // ileri yanlış biçim döndürürse.
+    değişken bozuk = özel_türev(ileri: fonksiyon(x) { sonuç x * x }, geri: fonksiyon(k, g) { sonuç [g] })
+    doğrula(ot_hata(() => bozuk(x)).içerir("ileri [çıktı, saklananlar] döndürmeli"))
+    değişken bozuk2 = özel_türev(ileri: fonksiyon(x) { sonuç [x, x] }, geri: fonksiyon(k, g) { sonuç [g] })
+    doğrula(ot_hata(() => bozuk2(x)).içerir("saklananlar bir liste olmalıdır"))
+    // Yanlış şekilli gradyan: yayınlama yapılmaz.
+    değişken şekilsiz = özel_türev(ileri: fonksiyon(x) { sonuç [x * 2, []] }, geri: fonksiyon(k, g) { sonuç [toplam(g)] })
+    değişken h = ot_hata(() => geri_yayılım(toplam(şekilsiz(x))))
+    doğrula(h.içerir("geri 1. girdi için [] şeklinde gradyan döndürdü, beklenen [1, 2]"))
+    doğrula(h.içerir("yayınlama yapılmaz"))
+    // Liste uzunluğu yanlış.
+    değişken eksik = özel_türev(ileri: fonksiyon(a, b) { sonuç [a + b, []] }, geri: fonksiyon(k, g) { sonuç [g] })
+    doğrula(ot_hata(() => geri_yayılım(toplam(eksik(x, x)))).içerir("geri 1 öğeli liste döndürdü ama işlemin 2 konumlu girdisi var"))
+    // Tensör olmayan girdi için gradyan verilemez.
+    değişken sayılı = özel_türev(ileri: fonksiyon(a, n) { sonuç [a * n, []] }, geri: fonksiyon(k, g) { sonuç [g, g] })
+    doğrula(ot_hata(() => geri_yayılım(toplam(sayılı(x, 2)))).içerir("2. girdi tensör değil (Tam); geri bu girdi için yok döndürmeli"))
+    // Saklanan bir tensör ileri hesaptan sonra yerinde değiştirilirse geri yayılım hata verir.
+    değişken c = tensör([[3.0, 4.0]])
+    değişken ölçekle = özel_türev(ileri: fonksiyon(x, c) { sonuç [x * c, [c]] }, geri: fonksiyon(k, g) { sonuç [g * k[0], yok] })
+    değişken y = ölçekle(x, c)
+    c[0] = [9.0, 9.0]
+    doğrula(ot_hata(() => geri_yayılım(toplam(y))).içerir("yerinde değiştirildi"))
+    // geri'deki hata dene/yakala ile yakalanır.
+    değişken fırlatan = özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(k, g) { fırlat "geri bozuk" })
+    doğrula(ot_hata(() => geri_yayılım(toplam(fırlatan(x)))).içerir("geri bozuk"))
+    // Kullanım hataları.
+    doğrula(ot_hata(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] })).içerir("geri: eksik"))
+    doğrula(ot_hata(() => özel_türev(ileri: 3, geri: fonksiyon(k, g) { sonuç [g] })).içerir("ileri bir fonksiyon olmalıdır"))
+    doğrula(ot_hata(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(g) { sonuç [g] })).içerir("geri iki parametre almalıdır"))
+    doğrula(ot_hata(() => özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, backward: fonksiyon(k, g) { sonuç [g] })).içerir("'backward' adında bir parametre almaz"))
+}
+
+test "15.24 türev_denetle: sayısal gradyanla karşılaştırma" {
+    doğrula(türev_denetle(kare, [tensör([[0.3, -1.2]], türev_izle: doğru)]))
+    // Yanlış bir geri hesabını yakalar ve en büyük farkın yerini yazar.
+    değişken yanlış_kare = özel_türev(
+        ileri: fonksiyon(x) { sonuç [x * x, [x]] },
+        geri: fonksiyon(k, g) { sonuç [g * k[0]] }
+    )
+    değişken h = ot_hata(() => türev_denetle(yanlış_kare, [tensör([[0.3, -1.2]], türev_izle: doğru)]))
+    doğrula(h.içerir("analitik (geri yayılım) ve sayısal gradyan uyuşmuyor"))
+    doğrula(h.içerir("1. girdinin [0, 1] elemanında"))
+    // Sıradan TR fonksiyonlarında, çok girdide ve çok çıktıda da çalışır.
+    doğrula(türev_denetle(fonksiyon(a, b) { sonuç a * sigmoid(b) }, [tensör([[0.3, -1.2]], türev_izle: doğru), tensör([[0.5, 2.0]], türev_izle: doğru)]))
+    doğrula(türev_denetle((a, b) => [a * b, a + b], [tensör([1.0, 2.0], türev_izle: doğru), tensör([3.0], türev_izle: doğru)]))
+    // Türev izlemeyen ve tensör olmayan girdiler denetlenmez; kullanıcının gradyanları değişmez.
+    değişken w = tensör([2.0, -1.0], türev_izle: doğru)
+    doğrula(türev_denetle((w, c, n) => toplam(w * c) * n, [w, tensör([1.0, 3.0]), 2]))
+    eşit_mi(yok, w.gradyan)
+    // adım ve tolerans.
+    doğrula(türev_denetle(kare, [tensör([1.0, 2.0], türev_izle: doğru)], adım: 0.01, tolerans: 0.001))
+    doğrula(ot_hata(() => türev_denetle(kare, [w], adım: 0)).içerir("adım pozitif bir sayı olmalıdır"))
+    doğrula(ot_hata(() => türev_denetle(kare, [tensör([1.0])])).içerir("girdilerden hiçbiri türev izlemiyor"))
+    doğrula(ot_hata(() => türev_denetle(kare, [w], step: 0.1)).içerir("'step' adında bir parametre almaz"))
+    // karışık_hassasiyet içinde: ileri ve geri bloğun türüyle çalışır, gradyanlar girdilerin türündedir.
+    değişken çarp = özel_türev(
+        ileri: fonksiyon(x, m) { sonuç [x @ m, [x, m]] },
+        geri: fonksiyon(k, g) { sonuç [g @ k[1].devrik(), k[0].devrik() @ g] }
+    )
+    değişken x1 = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    değişken m1 = tensör([[0.5, -1.0], [2.0, 0.25]], tür: "bf16", türev_izle: doğru)
+    değişken x2 = tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru)
+    değişken m2 = tensör([[0.5, -1.0], [2.0, 0.25]], tür: "bf16", türev_izle: doğru)
+    değişken tür = karışık_hassasiyet("bf16") {
+        değişken y = çarp(x1, m1)
+        geri_yayılım(toplam(y * y))
+        geri_yayılım(toplam((x2 @ m2) * (x2 @ m2)))
+        sonuç y.tür
+    }
+    eşit_mi("float32", tür)
+    eşit_mi(["float32", "float32"], [x1.gradyan.tür, m1.gradyan.tür])
+    doğrula(yakın(x1.gradyan, x2.gradyan))
+    doğrula(yakın(m1.gradyan, m2.gradyan))
+}
+
+// ----------------------------------------------------------------------------
+// Örnek: satıra özel kapılı nöron. Girdi x [N, d], satır tablosu W [R, 3d] (her satır
+// g, u, w vektörlerinin yan yana dizilişi), satır indeksleri [N]. Her n için
+// çıktı[n] = silu(g·x[n]) · (u·x[n]) · w, g/u/w = W[indeks[n]]'in üç parçası.
+// ----------------------------------------------------------------------------
+
+// Üç sürüm. internal/stdlib/ml/ozel_turev_test.go tanımları (başı/sonu işaretleri arasını) bu
+// dosyadan okuyup hız ve bellek ölçümünde kullanır.
+// --- kapılı nöron tanımları başı ---
+
+// Bileşik sürüm: her adım çizgeye kaydedilir.
+fonksiyon kapılı_bileşik(x, W, indeks) {
+    değişken d = x.şekil[1]
+    değişken satırlar = gömme(W, indeks)
+    değişken a = toplam(satırlar.dilim(1, 0, d) * x, eksen: 1)
+    değişken b = toplam(satırlar.dilim(1, d, 2 * d) * x, eksen: 1)
+    değişken s = (a * sigmoid(a) * b).şekillendir([-1, 1])
+    sonuç s * satırlar.dilim(1, 2 * d, 3 * d)
+}
+
+// Kapı çekirdeği: seçilmiş satırların g, u, w parçaları üzerinde tek düğüm. Geri hesap
+// yalnızca a = g·x, b = u·x ve sigmoid(a)'yı ([N] boyutlu) ek olarak saklar; g*x, u*x gibi
+// [N, d] boyutlu ara sonuçlar ileri hesaptan sonra bırakılır.
+değişken kapı_çekirdeği = özel_türev(
+    ileri: fonksiyon(x, g, u, w) {
+        değişken a = toplam(g * x, eksen: 1)
+        değişken b = toplam(u * x, eksen: 1)
+        değişken sa = sigmoid(a)
+        sonuç [(a * sa * b).şekillendir([-1, 1]) * w, [x, g, u, w, a, b, sa]]
+    },
+    geri: fonksiyon(k, G) {
+        değişken x = k[0]
+        değişken g = k[1]
+        değişken u = k[2]
+        değişken w = k[3]
+        değişken a = k[4]
+        değişken b = k[5]
+        değişken sa = k[6]
+        değişken a_sa = a * sa
+        değişken ds = toplam(G * w, eksen: 1)
+        değişken da = (ds * b * sa * (1 + a * (1 - sa))).şekillendir([-1, 1])
+        değişken db = (ds * a_sa).şekillendir([-1, 1])
+        sonuç [da * g + db * u, da * x, db * x, (a_sa * b).şekillendir([-1, 1]) * G]
+    }
+)
+
+// Satır seçimi (ve tablo gradyanının satırlara dağıtılması) gömme'ye bırakılır.
+fonksiyon kapılı_nöron(x, W, indeks) {
+    değişken d = x.şekil[1]
+    değişken satırlar = gömme(W, indeks)
+    sonuç kapı_çekirdeği(x, satırlar.dilim(1, 0, d), satırlar.dilim(1, d, 2 * d), satırlar.dilim(1, 2 * d, 3 * d))
+}
+
+// Tamamen elle: tablo gradyanı da geri hesapta, tek-sıcak satır matrisinin devriğiyle
+// çarpılarak dağıtılır (aynı satıra düşen gradyanlar birikir). Seçilen satırlar saklanmaz,
+// geri hesapta tablodan yeniden okunur: çizge ek olarak yalnızca [N] boyutlu a, b ve
+// sigmoid(a)'yı tutar (tablo saklandığı için ileri ile geri arasında değişirse geri yayılım
+// hata verir).
+değişken kapılı_nöron_tam = özel_türev(
+    ileri: fonksiyon(x, W, indeks) {
+        değişken d = x.şekil[1]
+        değişken satırlar = gömme(W, indeks)
+        değişken a = toplam(satırlar.dilim(1, 0, d) * x, eksen: 1)
+        değişken b = toplam(satırlar.dilim(1, d, 2 * d) * x, eksen: 1)
+        değişken sa = sigmoid(a)
+        sonuç [(a * sa * b).şekillendir([-1, 1]) * satırlar.dilim(1, 2 * d, 3 * d), [x, W, indeks, a, b, sa]]
+    },
+    geri: fonksiyon(k, G) {
+        değişken x = k[0]
+        değişken satırlar = gömme(k[1], k[2])
+        değişken a = k[3]
+        değişken b = k[4]
+        değişken sa = k[5]
+        değişken d = x.şekil[1]
+        değişken a_sa = a * sa
+        değişken ds = toplam(G * satırlar.dilim(1, 2 * d, 3 * d), eksen: 1)
+        değişken da = (ds * b * sa * (1 + a * (1 - sa))).şekillendir([-1, 1])
+        değişken db = (ds * a_sa).şekillendir([-1, 1])
+        // Satır gradyanları [N, 3d]: üç parça yerleştirme matrisleriyle (birim matrisin
+        // satır dilimleri) yan yana dizilir.
+        değişken I = birim_matris(3 * d)
+        değişken d_satır = (da * x) @ I.dilim(0, 0, d) + (db * x) @ I.dilim(0, d, 2 * d) + ((a_sa * b).şekillendir([-1, 1]) * G) @ I.dilim(0, 2 * d, 3 * d)
+        değişken dW = gömme(birim_matris(k[1].şekil[0]), k[2]).devrik() @ d_satır
+        değişken dx = da * satırlar.dilim(1, 0, d) + db * satırlar.dilim(1, d, 2 * d)
+        sonuç [dx, dW, yok]
+    }
+)
+// --- kapılı nöron tanımları sonu ---
+
+test "15.20 örnek: satıra özel kapılı nöron (özel türevli sürümler bileşik sürümle aynı gradyanı verir)" {
+    değişken x0 = rastgele_normal([6, 4], tohum: 11)
+    değişken W0 = rastgele_normal([5, 12], tohum: 12) * 0.5
+    değişken indeks = tensör([0, 3, 3, 1, 4, 0])
+    değişken ağırlık = rastgele_normal([6, 4], tohum: 13)
+    değişken gradyanlar = []
+    döngü f içinde [kapılı_bileşik, kapılı_nöron, kapılı_nöron_tam] {
+        değişken x = tensör(x0, türev_izle: doğru)
+        değişken W = tensör(W0, türev_izle: doğru)
+        değişken y = f(x, W, indeks)
+        geri_yayılım(toplam(y * ağırlık))
+        gradyanlar.ekle([y, x.gradyan, W.gradyan])
+    }
+    döngü i içinde 1..3 {
+        döngü j içinde 0..3 {
+            doğrula(yakın(gradyanlar[0][j], gradyanlar[i][j]))
+        }
+    }
+    // Kullanılmayan satır (2) gradyan almaz.
+    eşit_mi([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], gradyanlar[2][2][2].değer)
+    döngü f içinde [kapılı_bileşik, kapılı_nöron, kapılı_nöron_tam] {
+        doğrula(türev_denetle(f, [tensör(rastgele_normal([3, 2], tohum: 21), türev_izle: doğru), tensör(rastgele_normal([4, 6], tohum: 22), türev_izle: doğru), tensör([1, 3, 1])]))
+    }
+    değişken izli = (s) => tensör(rastgele_normal([3, 2], tohum: s), türev_izle: doğru)
+    doğrula(türev_denetle(kapı_çekirdeği, [izli(31), izli(32), izli(33), izli(34)]))
+}

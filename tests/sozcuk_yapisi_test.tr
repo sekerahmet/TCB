@@ -1,0 +1,138 @@
+// docs/spec/02_sozcuk_yapisi.md §2 — Sözcük yapısı
+aktar "bom_ornegi"
+
+test "2.1 kaynak UTF-8, baştaki BOM yok sayılır" {
+    doğrula(bom_okundu)
+}
+
+test "2.2 yorumlar: // ve /* */" {
+    değişken x = 1 // satır sonu yorumu
+    // tam satır yorumu
+    /* çok
+       satırlı yorum */
+    x = x /* satır içi */ + 1
+    eşit_mi(2, x)
+}
+
+test "2.3 tanımlayıcılar Türkçe harf, rakam ve _ içerebilir" {
+    değişken öğrenci_sayısı2 = 30
+    değişken _gizli = 1
+    eşit_mi(31, öğrenci_sayısı2 + _gizli)
+}
+
+test "2.4 tam sayılar _ ile gruplanabilir" {
+    eşit_mi(1000000, 1_000_000)
+    eşit_mi(Tam, tip(42))
+}
+
+test "2.5 ondalık sayılar noktayla yazılır" {
+    eşit_mi(Ondalık, tip(3.14))
+    eşit_mi(0.5, 1_0.5 - 10)
+}
+
+test "2.6 metinler çift ya da tek tırnakla, kaçış dizileriyle yazılır" {
+    eşit_mi('tek', "tek")
+    eşit_mi(3, "a\tb".uzunluk)
+    eşit_mi("\"", '"')
+    eşit_mi(3, "a\\b".uzunluk)
+    değişken iki_satir = "bir
+iki"
+    eşit_mi(2, iki_satir.böl("\n").uzunluk)
+}
+
+test "2.6 bilinmeyen kaçış dizisi sözdizimi hatasıdır; ham metin önerilir" {
+    değişken mesaj = ""
+    dene { aktar "negative/bilinmeyen_kacis" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir(`Satır 3, Sütun 19: bilinmeyen kaçış dizisi '\v'`), mesaj)
+    doğrula(mesaj.içerir(`Satır 4, Sütun 24: bilinmeyen kaçış dizisi '\d'`), mesaj)
+    doğrula(mesaj.içerir("ham metin"), mesaj)
+}
+
+test "2.3a kod biçimindeki adlar (büyük harf ve üç rakam) ayrılmıştır" {
+    değişken mesaj = ""
+    dene { aktar "negative/kod_bicimli_ad" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 2, Sütun 10: 'G100' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır"), mesaj)
+    // Benzer ama ayrılmamış adlar sıradandır
+    değişken g100, G1000, G100_ = 1, 2, 3
+    eşit_mi(6, g100 + G1000 + G100_)
+}
+
+test "2.6a ham metin: ters tırnak, kaçış ve yerleştirme yok, çok satırlı" {
+    değişken a = 5
+    eşit_mi("C:\\veri\\yeni", `C:\veri\yeni`)
+    eşit_mi("\\d\{3\}-\{a\}", `\d{3}-{a}`)
+    eşit_mi(4, `\n\t`.uzunluk)
+    değişken iki_satir = `bir
+iki`
+    eşit_mi("bir\niki", iki_satir)
+    eşit_mi(Metin, tip(`x`))
+    eşit_mi("", ``)
+    eşit_mi(`"tek" 'çift'`, "\"tek\" 'çift'")
+}
+
+test "2.7 metin içinde \{ifade\} yerleştirme, düz süslü parantez için kaçış" {
+    değişken ad = "Ali"
+    eşit_mi("Merhaba Ali, 1 + 2 = 3", "Merhaba {ad}, 1 + 2 = {1 + 2}")
+    eşit_mi(5, "\{düz\}".uzunluk)
+    eşit_mi("\{", "\{düz\}"[0])
+    değişken p = {"ad": "Ayşe"}
+    eşit_mi("Ayşe", "{p['ad']}")
+    // Yerleştirmenin içindeki tırnaklı metinde süslü parantez sayılmaz.
+    eşit_mi("x a\}b y", "x {"a}b"} y")
+}
+
+test "2.7 kaçışsız her \{ bir yerleştirme başlatır; içi ifade değilse sözdizimi hatasıdır" {
+    // Sessizce düz metne dönülmez: bir parçanın kod mu metin mi olduğu dile bağlı olmasın.
+    değişken mesaj = ""
+    dene { aktar "negative/yerlestirme" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir(`Satır 2, Sütun 9: Sözdizimi hatası — metindeki her '{' bir yerleştirme başlatır, ama '{değil}' bir ifade değil`), mesaj)
+    doğrula(mesaj.içerir(`'\{' yazın ya da ham metin kullanın`), mesaj)
+    // Düz süslü parantezin iki yazımı
+    eşit_mi(`{"kod": 5}`, "\{\"kod\": 5\}")
+}
+
+test "2.8 deyim sonu gerekmez; ; isteğe bağlıdır" {
+    değişken a = 1; değişken b = 2;
+    eşit_mi(3, a + b)
+}
+
+test "2.8 yeni satırdaki ( ve [ yeni deyim başlatır" {
+    değişken f = 5
+    (1 + 2) |> metin
+    eşit_mi(5, f)
+}
+
+test "2.8 satır sonundaki operatörden sonra ifade sürer" {
+    değişken t = 1 +
+        2
+    eşit_mi(3, t)
+}
+
+test "2.9 dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir" {
+    değişken degisken = 1 // ASCII biçim sıradan bir addır
+    eşit_mi(1, degisken)
+    değişken mesaj = ""
+    dene { dogru } yakala h { mesaj = "{h}" }
+    doğrula(mesaj.içerir("'dogru' TR'de anahtar kelime değil; 'doğru' yazmak mı istediniz?"), mesaj)
+    dene { yazdir("x") } yakala h { mesaj = "{h}" }
+    doğrula(mesaj.içerir("'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?"), mesaj)
+    dene { "abc".buyuk_harf() } yakala h { mesaj = "{h}" }
+    doğrula(mesaj.içerir("'buyuk_harf' TR'de yok; 'büyük_harf' yazmak mı istediniz?"), mesaj)
+}
+
+test "2.9a kaldırılan eş anlamlılar sıradan addır" {
+    değişken sınıf = "9-A"
+    değişken kır = "yeşil"
+    eşit_mi("9-A yeşil", "{sınıf} {kır}")
+    değişken mesaj = ""
+    dene { döndür } yakala h { mesaj = "{h}" }
+    doğrula(mesaj.içerir("'sonuç' yazmak mı istediniz"), mesaj)
+}
+
+test "2.10 iç içelik sınırı aşılınca sözdizimi hatası verilir" {
+    değişken derin = ((((((((((1))))))))))
+    eşit_mi(1, derin)
+    değişken mesaj = ""
+    dene { aktar "negative/cok_derin" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("çok derin iç içe (en fazla 1000 düzey)"), mesaj)
+}

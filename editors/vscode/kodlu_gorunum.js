@@ -1,4 +1,4 @@
-// Kodlu dosyaların Türkçe görünümü (docs/dil/17_kodlar.md, "Düzenleyicide"): diskte kodlu saklanan bir
+// Kodlu dosyaların Türkçe görünümü (docs/spec/17_kodlar.md, "Düzenleyicide"): diskte kodlu saklanan bir
 // .tr dosyası düzenleyicide kişinin yazım dilinde açılır, düzenlenir ve kaydedilince diske yine
 // kodlu yazılır.
 //

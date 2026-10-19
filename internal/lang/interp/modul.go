@@ -1,0 +1,305 @@
+package interp
+
+import (
+	"errors"
+	"fmt"
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
+	"os"
+	pathpkg "path"
+	"path/filepath"
+	"slices"
+	"strings"
+)
+
+// Kaynak bir kaynak dosyadır: ana program ya da 'aktar' ile alınan bir modül. Çalışan kodun
+// kaynağı göreve (VM görünümüne) ve çağrı çerçevesine aittir: bir modülde tanımlanan
+// fonksiyon nereden çağrılırsa çağrılsın kendi dosyasında çalışır (göreli yollar onun
+// klasörüne göre de aranır, hataları onun adı ve satırlarıyla yazılır).
+type Kaynak struct {
+	Yol string // dosyanın çözülmüş yolu (kitaplık modülünde "tr/katman.tr")
+	Ad  string // hata mesajlarında gösterilen yol (mümkünse çalışma klasörüne göre)
+	Kod string
+	// Gomulu, kaynağın diskte değil dilin gömülü kitaplığında olduğunu söyler (11.6): göreli
+	// dosya yolları onun klasörüne göre aranmaz, göreli 'aktar' kitaplığın içinde çözülür.
+	Gomulu bool
+}
+
+// gosterilenYol bir dosya yolunu hata mesajında gösterilecek biçime çevirir: çalışma
+// klasörünün altındaysa ona göre, değilse mutlak; ayırıcı '/'.
+func gosterilenYol(yol string) string {
+	if yol == "" || strings.HasPrefix(yol, "<") {
+		return yol
+	}
+	mutlak, err := filepath.Abs(yol)
+	if err != nil {
+		return filepath.ToSlash(yol)
+	}
+	if cwd, err := os.Getwd(); err == nil {
+		if rel, err := filepath.Rel(cwd, mutlak); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return filepath.ToSlash(rel)
+		}
+	}
+	return filepath.ToSlash(mutlak)
+}
+
+// anaKaynak ana programın kaynağıdır (SourceFile ve SourceCode'dan).
+func (v *VM) anaKaynak() *Kaynak {
+	return &Kaynak{Yol: v.SourceFile, Ad: gosterilenYol(v.SourceFile), Kod: v.SourceCode}
+}
+
+// ModulHatasi bir dosyanın (modülün ya da, başka bir dosyadan çağrılan kodunun) hatasıdır.
+// Mesajlar o dosyanın satırlarına göredir ve dosyanın adıyla başlar; kod çerçevesi o
+// dosyanın kaynağından çizilir (bkz. HataMaddeleri).
+//
+// İki biçimi vardır: çalışma hatası (Err) ve modülün yüklenmeden önceki denetim hataları
+// (Tur, Hatalar): sözdizimi ya da tip denetimi hatası olan modülün hiçbir satırı çalışmaz.
+type ModulHatasi struct {
+	Kaynak *Kaynak
+	Err    error
+
+	Tur         string   // "sözdizimi" ya da "tip denetimi" (denetim hatalarında)
+	Hatalar     []string // denetim hataları, modülün satırlarıyla
+	ModulYolu   string   // 'aktar'da yazılan yol
+	AktarSatiri int      // 'aktar' deyiminin satırı
+	Aktaran     *Kaynak  // 'aktar' deyiminin bulunduğu dosya (nil: ana program)
+}
+
+func (e *ModulHatasi) Error() string {
+	if len(e.Hatalar) == 0 {
+		return e.Kaynak.Ad + ", " + e.Err.Error()
+	}
+	parcalar := make([]string, len(e.Hatalar))
+	for i, h := range e.Hatalar {
+		parcalar[i] = e.Kaynak.Ad + ", " + h
+	}
+	return e.baslik() + ": " + strings.Join(parcalar, "; ")
+}
+
+func (e *ModulHatasi) Unwrap() error { return e.Err }
+
+// baslik denetim hatasının 'aktar' satırını gösteren ilk bölümüdür.
+func (e *ModulHatasi) baslik() string {
+	onek := ""
+	if e.Aktaran != nil {
+		onek = e.Aktaran.Ad + ", "
+	}
+	return fmt.Sprintf("%sSatır %d: %q modülü %s hataları nedeniyle yüklenemedi", onek, e.AktarSatiri, e.ModulYolu, e.Tur)
+}
+
+// HataMaddesi kullanıcıya gösterilecek bir hata satırı ve ait olduğu dosyadan çizilmiş
+// kod çerçevesidir (çerçeve konum bilinmiyorsa boştur).
+type HataMaddesi struct {
+	Mesaj   string
+	Cerceve string
+}
+
+// HataMaddeleri bir çalışma hatasını kullanıcıya gösterilecek maddelere ayırır. anaKod
+// ana programın kaynağıdır; bir modüle ait hatanın çerçevesi modülün kaynağından çizilir.
+// Modülün denetim hataları her biri ayrı madde olarak, 'aktar' satırının ardından gelir.
+func HataMaddeleri(err error, anaKod string) []HataMaddesi {
+	mesaj := err.Error()
+	var mh *ModulHatasi
+	if !errors.As(err, &mh) {
+		return []HataMaddesi{{mesaj, turkish.KodCercevesi(anaKod, mesaj)}}
+	}
+	if len(mh.Hatalar) == 0 {
+		return []HataMaddesi{{mesaj, turkish.KodCercevesi(mh.Kaynak.Kod, mh.Err.Error())}}
+	}
+	aktaranKod := anaKod
+	if mh.Aktaran != nil {
+		aktaranKod = mh.Aktaran.Kod
+	}
+	b := mh.baslik()
+	maddeler := []HataMaddesi{{b, turkish.KodCercevesi(aktaranKod, b)}}
+	for _, h := range mh.Hatalar {
+		maddeler = append(maddeler, HataMaddesi{mh.Kaynak.Ad + ", " + h, turkish.KodCercevesi(mh.Kaynak.Kod, h)})
+	}
+	return maddeler
+}
+
+// kaynakHatasi k dosyasında çalışan koddan çıkan konumlu bir hatayı o dosyaya bağlar
+// (k nil ise ana program). Zaten bir dosyaya bağlı hata ve konumsuz hatalar ('fırlat' ile
+// atılan değerler: yakalayan onları olduğu gibi görür) değişmez.
+func (v *VM) kaynakHatasi(k *Kaynak, err error) error {
+	var mh *ModulHatasi
+	if errors.As(err, &mh) || !satirliMi(err) {
+		return err
+	}
+	if k == nil {
+		k = v.anaKaynak()
+	}
+	return &ModulHatasi{Kaynak: k, Err: err}
+}
+
+// kaynaktaCagir başka bir dosyada tanımlanmış fonksiyonu kendi dosyasının bağlamında
+// çağırır; hatası o dosyaya bağlanır. Aynı dosyadaki çağrılar buraya uğramaz.
+func (v *VM) kaynaktaCagir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Value, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
+	onceki := v.kaynak
+	v.kaynak = fk.kaynak
+	defer func() { v.kaynak = onceki }()
+	val, err := v.cagirHazir(fn, fk, fnEnv, kendi, args, nargs, named, line)
+	if err != nil {
+		return nil, v.kaynakHatasi(fk.kaynak, err)
+	}
+	return val, nil
+}
+
+// ModulDenetle bir modülün kaynağını (dosyanın tamamı) çalıştırmadan önce denetler: modül
+// olarak ayrıştırır (üst düzeyde 'sonuç' hatadır) ve tip denetiminden geçirir; hata varsa
+// sonucun Asama'sı ("sözdizimi" ya da "tip denetimi") ve Hatalar'ı doludur. 'aktar', 'tr
+// kontrol' ve 'tr derle' aynı denetimi kullanır. Modül aktaranın genel kapsamının altında
+// çalıştığı için (11.1) genelAdlar modülde tanımlı sayılır, başka bir yerde tanımlanmayan ad
+// tanımsız ad hatasıdır (5.14); dinamik, genel adların tam bilinmediğini söyler (o zaman
+// tanımsız ad aranmaz).
+func ModulDenetle(metin string, genelAdlar []string, dinamik bool) *source.Sonuc {
+	return source.Hazirla(metin, source.Secenekler{Modul: true, TipDenetimi: true,
+		GenelKapsam: true, GenelAdlar: genelAdlar, GenelDinamik: dinamik})
+}
+
+// modulYukleme yüklenmekte olan bir modüldür; aynı modülü isteyen başka görevler yüklemenin
+// bitmesini bekler.
+type modulYukleme struct {
+	bitti chan struct{}
+	mod   *DictVal
+	err   error
+}
+
+// aktar 'aktar' deyimini çalıştırır. Modül, genel kapsamın altında kendi ortamında çalışır
+// ve ortamının tüm adları dışa aktarılır. takma, 'aktar ... olarak ad' biçiminde takma adı
+// çağıranın kapsamına tanımlar; takma adsız aktarımda adlar çağıranın ortamına adla
+// tanımlanır.
+func (v *VM) aktar(s *ast.ImportStatement, env *Environment, takma func(*Environment, Value, bool)) (Value, flowSignal, error) {
+	path := s.Path
+	if !strings.HasSuffix(path, ".tr") {
+		path += ".tr"
+	}
+	mod, err := v.modulYukle(s, path)
+	if err != nil {
+		return nil, signalNone, err
+	}
+	if takma != nil {
+		takma(env, mod, true)
+		return mod, signalNone, nil
+	}
+	for _, k := range mod.Order {
+		env.Define(k, mod.Pairs[k], false)
+	}
+	return mod, signalNone, nil
+}
+
+// modulYukle modülü (gerekirse) yükler. Bir modül program boyunca bir kez çalışır.
+// Başka bir görev aynı modülü yüklüyorsa bitmesi beklenir; yükleyen görevin kendi aktarım
+// zinciri modülü içeriyorsa bu döngüsel bir aktarımdır.
+func (v *VM) modulYukle(s *ast.ImportStatement, path string) (*DictVal, error) {
+	if err := YolDenetle(codes.Ad(codes.A070), path); err != nil {
+		return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
+	}
+	hedef, bakilanlar, err := v.modulHedefi(s, path)
+	if err != nil {
+		return nil, err
+	}
+	anahtar := hedef.Yol
+	if !hedef.Gomulu {
+		if mutlak, err := filepath.Abs(hedef.Yol); err == nil {
+			anahtar = mutlak
+		}
+	}
+
+	v.importedMu.Lock()
+	if mod, ok := v.Imported[anahtar]; ok {
+		v.importedMu.Unlock()
+		return mod, nil
+	}
+	if y := v.yuklenen[anahtar]; y != nil {
+		v.importedMu.Unlock()
+		if slices.Contains(v.yukleme, anahtar) {
+			return nil, fmt.Errorf("Satır %d: %q modülünde döngüsel aktarım tespit edildi (modül, yüklenirken kendini dolaylı olarak yeniden aktarıyor)", s.Line(), path)
+		}
+		v.Blocking(func() { <-y.bitti })
+		return y.mod, y.err
+	}
+	y := &modulYukleme{bitti: make(chan struct{})}
+	v.yuklenen[anahtar] = y
+	v.importedMu.Unlock()
+
+	defer func() {
+		v.importedMu.Lock()
+		delete(v.yuklenen, anahtar)
+		if y.err == nil && y.mod != nil {
+			v.Imported[anahtar] = y.mod
+		}
+		v.importedMu.Unlock()
+		close(y.bitti)
+	}()
+	y.mod, y.err = v.modulCalistir(s, path, hedef, anahtar, bakilanlar)
+	if y.err == nil && y.mod == nil {
+		y.err = fmt.Errorf("Satır %d: %q modülü yüklenemedi", s.Line(), path)
+	}
+	return y.mod, y.err
+}
+
+// modulHedefi 'aktar' yolunun gösterdiği modülü bulur (yolu ve gösterilen adı; kaynak yalnızca
+// yüklenirken okunur, bakilanlar okuma hatası içindir). "tr/" önekli yol dilin gömülü
+// kitaplığındandır (11.6); kitaplık modülünün içindeki göreli yol da
+// kitaplıkta çözülür. Öbür göreli yollar önce aktaran dosyanın, sonra programın klasörüne
+// göre aranır (11.1).
+func (v *VM) modulHedefi(s *ast.ImportStatement, path string) (hedef *Kaynak, bakilanlar []string, err error) {
+	ad, kitaplikta := KitaplikModulu(path)
+	if !kitaplikta && v.kaynak != nil && v.kaynak.Gomulu && !filepath.IsAbs(path) {
+		ad, kitaplikta = pathpkg.Join(pathpkg.Dir(strings.TrimPrefix(v.kaynak.Yol, KitaplikOneki)), filepath.ToSlash(path)), true
+	}
+	if kitaplikta {
+		return &Kaynak{Yol: KitaplikOneki + ad, Ad: KitaplikOneki + ad, Gomulu: true}, nil, nil
+	}
+	cozulen, bakilanlar, _ := ModulYolunuCoz(path, v.aramaKlasorleri())
+	return &Kaynak{Yol: cozulen, Ad: gosterilenYol(cozulen)}, bakilanlar, nil
+}
+
+// modulCalistir modülü (diskten ya da kitaplıktan) okur, denetler ve kendi kaynağının bağlamında çalıştırır.
+func (v *VM) modulCalistir(s *ast.ImportStatement, path string, hedef *Kaynak, anahtar string, bakilanlar []string) (*DictVal, error) {
+	if hedef.Gomulu {
+		veri, err := KitaplikOku(strings.TrimPrefix(hedef.Yol, KitaplikOneki))
+		if err != nil {
+			return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
+		}
+		hedef.Kod = string(veri)
+	} else {
+		data, err := os.ReadFile(hedef.Yol)
+		if err != nil {
+			return nil, fmt.Errorf("Satır %d: %w", s.Line(), OkumaHatasi(codes.Ad(codes.A070), path, "modülü okunamadı", err, bakilanlar))
+		}
+		hedef.Kod = string(data)
+	}
+	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
+	// adları görür; yerleşikler de oradadır.
+	ms := ModulDenetle(hedef.Kod, v.GlobalEnv.kapsam.adlar, false)
+	modKaynak := &Kaynak{Yol: hedef.Yol, Ad: hedef.Ad, Kod: ms.Metin, Gomulu: hedef.Gomulu}
+	if ms.Asama != "" {
+		return nil, &ModulHatasi{Kaynak: modKaynak, Tur: ms.Asama, Hatalar: ms.Hatalar, ModulYolu: s.Path, AktarSatiri: s.Line(), Aktaran: v.kaynak}
+	}
+	prog := ms.Program
+
+	onceki, oncekiZincir := v.kaynak, v.yukleme
+	v.kaynak = modKaynak
+	v.yukleme = append(v.yukleme[:len(v.yukleme):len(v.yukleme)], anahtar)
+	defer func() { v.kaynak, v.yukleme = onceki, oncekiZincir }()
+
+	// Modül, genel kapsamın altında kendi kapsamında derlenir
+	c := v.yeniDerleyici()
+	modKapsam := altKapsam(c.kok)
+	modKapsam.onTanimla(prog.Statements)
+	modKod := c.deyimler(modKapsam, prog.Statements)
+	modEnv := yeniOrtam(v.GlobalEnv, modKapsam.bilgi)
+
+	if _, _, err := modKod.calistir(v, modEnv); err != nil {
+		return nil, v.kaynakHatasi(modKaynak, err)
+	}
+	modDict := NewDictVal()
+	modEnv.EachLocal(func(k string, exportedVal Value) {
+		modDict.Set(k, exportedVal)
+	})
+	return modDict, nil
+}

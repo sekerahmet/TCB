@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/devtools/testrunner"
+	"github.com/sekerahmet/TCB/internal/stdlib"
 	"os"
-	"tr_dili/internal/arac/testkosucu"
-	"tr_dili/internal/motor"
 )
 
 // testKomutu 'tr test [dosya.tr | klasör]' komutudur. Hedef verilmezse bulunulan klasördeki
@@ -15,8 +15,8 @@ func testKomutu(args []string) {
 	if len(args) > 0 {
 		hedef = args[0]
 	}
-	ozet, err := testkosucu.Calistir(hedef, os.Stdout)
-	motor.Kapat()
+	ozet, err := testrunner.Calistir(hedef, os.Stdout)
+	stdlib.Kapat()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
 		os.Exit(1)

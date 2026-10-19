@@ -11,7 +11,7 @@
 // Kesilirse aynı komut kaldığı yerden sürer (her_dakika'da bir kayıt).
 //
 // Kullanım:
-//   ./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/kosular/gpt1
+//   ./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/runs/gpt1
 //   ./tr gpt_egitim.tr --veri /content/ss4096 --toplu 64 --birikim 2      (bellek yetmezse)
 //   ./tr gpt_egitim.tr --yardım
 // Model ayarları varsayılan olarak d512, 8 katman, 8 baş, bağlam 512, toplu 128'dir.
@@ -20,7 +20,7 @@ aktar "tr/katman"
 aktar "tr/iyilestirici"
 
 değişken ayar = komut_satırı({
-        veri: "", koşu: "kosular/gpt_ss", cihaz: "gpu", hassasiyet: "float32",
+        veri: "", koşu: "runs/gpt_ss", cihaz: "gpu", hassasiyet: "float32",
         boyut: 512, katman: 8, baş: 8, kv_baş: 0, bağlam: 512, toplu: 128, birikim: 1,
         adım: 5000, ısınma: 200, azalma: 0.2, muon_oranı: 0.02, adamw_oranı: 0.003,
         ağırlık_çürümesi: 0.0, normuon: yanlış, kırp: 1.0, paylaşımlı: doğru,

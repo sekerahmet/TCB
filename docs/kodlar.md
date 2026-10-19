@@ -1,8 +1,8 @@
 # TR kod listesi
 
-<!-- Bu dosya internal/dil/kod/tanim.json ve internal/dil/kod/tr.json'dan üretilir; elle düzenlemeyin: go run ./tools/uret/kod_belgesi -->
+<!-- Bu dosya internal/lang/codes/tanim.json ve internal/lang/codes/tr.json'dan üretilir; elle düzenlemeyin: go run ./tools/gen/codesdoc -->
 
-Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/dil/17_kodlar.md` §17). Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; "hangi kod ne işe yarar" sorusunun tek başvurusudur. Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.
+Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/spec/17_kodlar.md` §17). Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; "hangi kod ne işe yarar" sorusunun tek başvurusudur. Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.
 
 İmzalarda parametrelerin yalnızca tipleri yazılır: `[Tip]` isteğe bağlı, `[Tip...]` sıfır ya da çok, `Tip...` bir ya da çok argümandır; `ad: Tip = varsayılan` adlı argümandır, `→` dönüş tipidir. Metot ve özellikler `Tip.ad` biçiminde, geçerli oldukları her tip için ayrı satırda yazılır.
 
@@ -269,7 +269,7 @@ dene { fırlat {"kod": 5} } yakala h { yazdır(tip(h), h) }
 Başka bir .tr dosyasını program boyunca bir kez çalıştırır ve üst düzey adlarını getirir; yol metin sabiti olmalıdır, .tr uzantısı isteğe bağlıdır.
 
 ```tr
-aktar "testler/yardimci_modul"; yazdır(kare(PI))
+aktar "tests/yardimci_modul"; yazdır(kare(PI))
 ```
 
 İlişkili: A100 `olarak`
@@ -309,7 +309,7 @@ Eski adlar: `dur_noktası`, `durdurma_noktası`
 aktar ile alınan modülün adlarını tek bir Sözlük olarak verilen ada bağlar.
 
 ```tr
-aktar "testler/yardimci_modul" olarak ym; yazdır(ym.kare(2), ym["PI"])
+aktar "tests/yardimci_modul" olarak ym; yazdır(ym.kare(2), ym["PI"])
 ```
 
 İlişkili: A070 `aktar` · Eski adlar: `as`
@@ -533,7 +533,7 @@ Kaldırıldı: 'SinirAğı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 veri_kümesi(...) ile açılan, .npy veri dosyalarından oluşan veri kümesinin tipidir.
 
 ```tr
-değişken küme = veri_kümesi("testler/veri/sayilar"); yazdır(tip(küme) == VeriKümesi)
+değişken küme = veri_kümesi("tests/data/numbers"); yazdır(tip(küme) == VeriKümesi)
 ```
 
 Üyeleri: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V100 `veri_kümesi`
@@ -543,7 +543,7 @@ değişken küme = veri_kümesi("testler/veri/sayilar"); yazdır(tip(küme) == V
 Veri kümesinden tohuma göre rastgele [girdi, hedef] tensör çiftleri üreten okuyucunun tipidir; dönemler boyunca sonsuz üretir.
 
 ```tr
-değişken ö = veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağlam: 4, tohum: 1); yazdır(tip(ö) == Örnekleyici)
+değişken ö = veri_kümesi("tests/data/numbers").örnekleyici(toplu: 2, bağlam: 4, tohum: 1); yazdır(tip(ö) == Örnekleyici)
 ```
 
 Üyeleri: Y502 `durum`, Y503 `durumu_yükle`, Y602 `sonraki` · İlişkili: Y600 `örnekleyici`, A233 `SıralıOkuyucu`
@@ -553,7 +553,7 @@ değişken ö = veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağ
 Veri kümesini pencereler hâlinde sırayla okuyan okuyucunun tipidir; veri bitince .sonraki() yok verir.
 
 ```tr
-değişken s = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4); yazdır(tip(s) == SıralıOkuyucu)
+değişken s = veri_kümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4); yazdır(tip(s) == SıralıOkuyucu)
 ```
 
 Üyeleri: Y502 `durum`, Y503 `durumu_yükle`, Y602 `sonraki` · İlişkili: Y601 `sıralı`, A232 `Örnekleyici`
@@ -563,7 +563,7 @@ değişken s = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 
 parçalayıcı_yükle(...) ile yüklenen, metni parçalara ayırıp parça kimliklerine çeviren nesnenin tipidir.
 
 ```tr
-değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(tip(p) == Parçalayıcı)
+değişken p = parçalayıcı_yükle("tests/data/parcalayici.json"); yazdır(tip(p) == Parçalayıcı)
 ```
 
 Üyeleri: Y610 `kodla`, Y611 `çöz`, Y612 `dağarcık_boyutu`, Y613 `parça_kimliği` · İlişkili: V200 `parçalayıcı_yükle`
@@ -2147,7 +2147,7 @@ Kullananlar: T702 `kontrol_noktası` · İlişkili: T984 `her_dakika`
 Bir klasördeki .npy veri dosyalarını (ad sırasıyla) ya da tek bir .npy veri dosyasını VeriKümesi olarak açar; okuyucular .örnekleyici ve .sıralı ile alınır. önbellek: verilirse kota_gb: de verilmelidir.
 
 ```tr
-değişken küme = veri_kümesi("testler/veri/sayilar"); yazdır(küme)
+değişken küme = veri_kümesi("tests/data/numbers"); yazdır(küme)
 ```
 
 İlişkili: Y600 `örnekleyici`, Y601 `sıralı`
@@ -2161,7 +2161,7 @@ değişken küme = veri_kümesi("testler/veri/sayilar"); yazdır(küme)
 tokenizer.json biçimindeki bir parçalayıcı dosyasını yükler ve Parçalayıcı nesnesi döndürür. Adlı argüman almaz; klasör yolu verilirse hata verir.
 
 ```tr
-değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(p)
+değişken p = parçalayıcı_yükle("tests/data/parcalayici.json"); yazdır(p)
 ```
 
 İlişkili: Y610 `kodla`, Y611 `çöz`, Y612 `dağarcık_boyutu`, Y613 `parça_kimliği`
@@ -2173,7 +2173,7 @@ değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(p
 veri_kümesi'nin veri dosyalarını kullanmadan önce kopyalayacağı yerel önbellek klasörüdür; kota dolunca en uzun süredir kullanılmayan kopyalar silinir. Tek başına verilemez: kota_gb: zorunludur.
 
 ```tr
-değişken küme = veri_kümesi("testler/veri/sayilar", önbellek: "onbellek/veri", kota_gb: 1)
+değişken küme = veri_kümesi("tests/data/numbers", önbellek: "onbellek/veri", kota_gb: 1)
 ```
 
 Kullananlar: V100 `veri_kümesi` · İlişkili: V901 `kota_gb`
@@ -2183,7 +2183,7 @@ Kullananlar: V100 `veri_kümesi` · İlişkili: V901 `kota_gb`
 Önbellek klasörünün kullanabileceği en çok disk alanıdır (GB). Pozitif bir sayı olmalıdır ve yalnızca önbellek: ile birlikte geçerlidir.
 
 ```tr
-değişken küme = veri_kümesi("testler/veri/sayilar", önbellek: "onbellek/veri", kota_gb: 0.5)
+değişken küme = veri_kümesi("tests/data/numbers", önbellek: "onbellek/veri", kota_gb: 0.5)
 ```
 
 Kullananlar: V100 `veri_kümesi` · İlişkili: V900 `önbellek`
@@ -2193,7 +2193,7 @@ Kullananlar: V100 `veri_kümesi` · İlişkili: V900 `önbellek`
 Okuyucunun her .sonraki() çağrısında verdiği satır (toplu iş) sayısıdır. Pozitif bir tam sayı olmalıdır ve verilmesi zorunludur.
 
 ```tr
-değişken ö = veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 8, bağlam: 16)
+değişken ö = veri_kümesi("tests/data/numbers").örnekleyici(toplu: 8, bağlam: 16)
 ```
 
 Kullananlar: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V903 `bağlam`
@@ -2203,7 +2203,7 @@ Kullananlar: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V903 `bağlam`
 Okuyucunun her satırdaki pencere uzunluğudur; girdi ve hedef [toplu, bağlam] şeklinde olur. Zorunludur ve en uzun veri dosyasından kısa olmalıdır.
 
 ```tr
-değişken s = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 4, bağlam: 16)
+değişken s = veri_kümesi("tests/data/numbers").sıralı(toplu: 4, bağlam: 16)
 ```
 
 Kullananlar: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V902 `toplu`
@@ -2213,7 +2213,7 @@ Kullananlar: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V902 `toplu`
 Özel parçaların kodlamaya eklenip eklenmeyeceğini (kodla, varsayılan doğru) ya da çözülen metne yazılıp yazılmayacağını (çöz, varsayılan yanlış) belirler. Yalnızca doğru ya da yanlış olabilir.
 
 ```tr
-yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").kodla("merhaba dünya", özel_parçalar: yanlış))
+yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").kodla("merhaba dünya", özel_parçalar: yanlış))
 ```
 
 Kullananlar: Y610 `kodla`, Y611 `çöz` · Eski adlar: `özel_tokenlar`
@@ -2223,7 +2223,7 @@ Kullananlar: Y610 `kodla`, Y611 `çöz` · Eski adlar: `özel_tokenlar`
 kodla'ya ikinci bir metin vererek çift kodlama yapar. Liste kodlanırken aynı uzunlukta bir metin listesi olmalıdır.
 
 ```tr
-yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").kodla("soru", ikinci: "cevap"))
+yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").kodla("soru", ikinci: "cevap"))
 ```
 
 Kullananlar: Y610 `kodla`
@@ -2985,7 +2985,7 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_nokt
 Veri kümesinden rastgele pencereler alan bir örnekleyici kurar; toplu ve bağlam zorunludur, tohum isteğe bağlıdır. Örnekleyici sonsuzdur, dönemler bitince baştan sürer.
 
 ```tr
-yazdır(veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağlam: 4, tohum: 1))
+yazdır(veri_kümesi("tests/data/numbers").örnekleyici(toplu: 2, bağlam: 4, tohum: 1))
 ```
 
 İlişkili: Y601 `sıralı`, Y602 `sonraki`
@@ -2997,7 +2997,7 @@ yazdır(veri_kümesi("testler/veri/sayilar").örnekleyici(toplu: 2, bağlam: 4, 
 Veri kümesini baştan sona sırayla okuyan bir okuyucu kurar; toplu ve bağlam zorunludur. Veri bitince sonraki() yok verir.
 
 ```tr
-yazdır(veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4).sonraki()[0].şekil)
+yazdır(veri_kümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4).sonraki()[0].şekil)
 ```
 
 İlişkili: Y600 `örnekleyici`, Y602 `sonraki`
@@ -3011,7 +3011,7 @@ yazdır(veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4).sonr
 Örnekleyici ve sıralı okuyucuda bir sonraki toplu işi [girdi, hedef] tensörleri olarak (ikisi de [toplu, bağlam] şeklinde, hedef bir parça kaydırılmış), SatırOkuyucu'da sıradaki satırı Metin olarak verir. Sıralı okuyucu veri, SatırOkuyucu dosya bitince yok verir.
 
 ```tr
-değişken girdi, hedef = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2, bağlam: 4).sonraki(); yazdır(girdi.değer, hedef.değer)
+değişken girdi, hedef = veri_kümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4).sonraki(); yazdır(girdi.değer, hedef.değer)
 ```
 
 İlişkili: Y600 `örnekleyici`, Y601 `sıralı`, G112 `dosya_satırları`
@@ -3023,7 +3023,7 @@ değişken girdi, hedef = veri_kümesi("testler/veri/sayilar").sıralı(toplu: 2
 Metni parça kimliklerinin listesine çevirir; metin listesi verilirse her metni ayrı kodlar. özel_parçalar: yanlış verilmezse parçalayıcının özel parçaları eklenir; ikinci: ile metin çifti kodlanır.
 
 ```tr
-yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").kodla("Merhaba dünya!"))
+yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").kodla("Merhaba dünya!"))
 ```
 
 İlişkili: Y611 `çöz`
@@ -3035,7 +3035,7 @@ yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").kodla("Merhaba d�
 Parça kimliklerini (liste, listelerin listesi ya da tensör) metne geri çevirir. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar.
 
 ```tr
-değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(p.çöz(p.kodla("Merhaba dünya!")))
+değişken p = parçalayıcı_yükle("tests/data/parcalayici.json"); yazdır(p.çöz(p.kodla("Merhaba dünya!")))
 ```
 
 İlişkili: Y610 `kodla`
@@ -3047,7 +3047,7 @@ değişken p = parçalayıcı_yükle("testler/veri/parcalayici.json"); yazdır(p
 Parçalayıcının dağarcığındaki parça sayısını (eklenmiş özel parçalar dahil) Tam olarak verir. Parantezsiz yazılan bir özelliktir.
 
 ```tr
-yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").dağarcık_boyutu)
+yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").dağarcık_boyutu)
 ```
 
 İlişkili: Y613 `parça_kimliği` · Eski adlar: `sözlük_boyutu`
@@ -3059,7 +3059,7 @@ yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").dağarcık_boyutu
 Verilen parçanın dağarcıktaki kimliğini verir; parça dağarcıkta yoksa yok döner. Argüman Metin olmalıdır.
 
 ```tr
-yazdır(parçalayıcı_yükle("testler/veri/parcalayici.json").parça_kimliği("<|endoftext|>"))
+yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").parça_kimliği("<|endoftext|>"))
 ```
 
 İlişkili: Y612 `dağarcık_boyutu` · Eski adlar: `token_kimliği`
@@ -3160,6 +3160,6 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 ## Boru hattıyla kullanılabilen fonksiyonlar
 
-`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/dil/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
+`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
 `yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`

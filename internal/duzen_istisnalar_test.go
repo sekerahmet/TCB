@@ -24,20 +24,16 @@ const (
 	nParcalama = "parçalayıcı/düzenli ifade çekirdeği (veri ve parçalayıcı sahibinin alanı): başvuru uygulamasıyla birebir; hız ölçümüyle bölünmeli"
 )
 
-// izinliAdlar İngilizce sözcük denetiminden muaf dosyalardır (yol → gerekçe). Bugün boş:
-// protokol ve biçim adları (dap, npy, json, bpe) zaten yasak listede değildir.
-var izinliAdlar = map[string]string{}
-
 const enFazlaBuyukDosya = 6
 
 // buyukDosyalar dosyaSiniri'ni aşan el yazımı dosyalardır (üretilmiş dosyalar sayılmaz).
 var buyukDosyalar = map[string]istisna{
-	"internal/hesap/parca/duzifade.go":         {915, "düzenli ifade ayrıştırıcısı ve sınıf tabloları; " + nParcalama},
-	"internal/hesap/parca/duzifade_esle.go":    {615, "düzenli ifade eşleştiricisi; " + nParcalama},
-	"internal/hesap/parca/parcalayici_test.go": {737, "altın çıktı testleri ve kıyaslar (veri ve parçalayıcı sahibinin alanı); model türüne göre bölünebilir"},
-	"internal/hesap/tensor/cpu_arkauc.go":      {737, "CPU arka ucunun işlem tabloları ve döngüleri; " + nCekirdek},
-	"internal/hesap/tensor/cpu_tur.go":         {733, "veri türü (bf16/f16) dönüşüm çekirdekleri; " + nCekirdek},
-	"internal/hesap/veriyolu/onbellek.go":      {795, "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir"},
+	"internal/compute/tokenize/duzifade.go":         {915, "düzenli ifade ayrıştırıcısı ve sınıf tabloları; " + nParcalama},
+	"internal/compute/tokenize/duzifade_esle.go":    {615, "düzenli ifade eşleştiricisi; " + nParcalama},
+	"internal/compute/tokenize/parcalayici_test.go": {737, "altın çıktı testleri ve kıyaslar (veri ve parçalayıcı sahibinin alanı); model türüne göre bölünebilir"},
+	"internal/compute/tensor/cpu_arkauc.go":         {737, "CPU arka ucunun işlem tabloları ve döngüleri; " + nCekirdek},
+	"internal/compute/tensor/cpu_tur.go":            {733, "veri türü (bf16/f16) dönüşüm çekirdekleri; " + nCekirdek},
+	"internal/compute/dataload/onbellek.go":         {795, "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir"},
 }
 
 const enFazlaUzunFonksiyon = 41
@@ -45,50 +41,50 @@ const enFazlaUzunFonksiyon = 41
 // uzunFonksiyonlar fonksiyonSiniri'ni aşan test dışı fonksiyonlardır ("dosya:Alici.Ad").
 var uzunFonksiyonlar = map[string]istisna{
 	// Dil çekirdeği
-	"internal/dil/yurut/derleyici_dongu.go:derleyici.donguIcinde": {172, nSicakYol + " (liste/aralık/sözlük/metin döngülerinin hızlı yolları)"},
-	"internal/dil/yurut/derleyici_ifade.go:derleyici.ifade":       {168, nDagitim},
-	"internal/dil/yurut/derleyici_islec.go:derleyici.ikili":       {132, nSicakYol + " (işleç başına tam sayı/ondalık hızlı yolları)"},
-	"internal/dil/yurut/derleyici_cagri.go:derleyici.cagri":       {95, nSicakYol + " (yerleşik, metot ve fonksiyon çağrısının hızlı yolları)"},
-	"internal/dil/yurut/islecler.go:degerlerEsit":                 {90, nDagitim + " (değer tipi başına eşitlik)"},
-	"internal/dil/yurut/metotlar.go:listeMetotlariniKur":          {88, nTablo},
-	"internal/dil/sozcuk/sozcuk.go:Lexer.NextToken":               {164, nDagitim + " (karakter başına durum makinesi; " + nSicakYol + ")"},
-	"internal/dil/denetci/denetci.go:Checker.checkStatement":      {163, nDagitim},
-	"internal/dil/denetci/denetci.go:Checker.inferExpression":     {133, nDagitim},
-	"internal/dil/ayristir/yapi.go:Parser.parseStructStatement":   {97, "yapı tanımı: alanlar, varsayılanlar, metotlar ve hata kurtarma tek akışta; alan ve metot çözümlemesi ayrılabilir"},
-	"internal/dil/ayristir/ifadeler.go:Parser.parseExpression":    {92, nDagitim + " (Pratt döngüsü: önek ve ara işleç dağıtımı)"},
-	"internal/dil/kod/dil.go:Yukle":                               {160, nOkuma + " (dil dosyası)"},
-	"internal/dil/kod/tanim.go:TanimDenetle":                      {113, nOkuma + " (tanım dosyasının tutarlılık denetimleri)"},
-	"internal/dil/kod/tanim.go:TanimCoz":                          {96, nOkuma + " (tanım dosyası)"},
+	"internal/lang/interp/derleyici_dongu.go:derleyici.donguIcinde": {172, nSicakYol + " (liste/aralık/sözlük/metin döngülerinin hızlı yolları)"},
+	"internal/lang/interp/derleyici_ifade.go:derleyici.ifade":       {168, nDagitim},
+	"internal/lang/interp/derleyici_islec.go:derleyici.ikili":       {132, nSicakYol + " (işleç başına tam sayı/ondalık hızlı yolları)"},
+	"internal/lang/interp/derleyici_cagri.go:derleyici.cagri":       {95, nSicakYol + " (yerleşik, metot ve fonksiyon çağrısının hızlı yolları)"},
+	"internal/lang/interp/islecler.go:degerlerEsit":                 {90, nDagitim + " (değer tipi başına eşitlik)"},
+	"internal/lang/interp/metotlar.go:listeMetotlariniKur":          {88, nTablo},
+	"internal/lang/lexer/sozcuk.go:Lexer.NextToken":                 {164, nDagitim + " (karakter başına durum makinesi; " + nSicakYol + ")"},
+	"internal/lang/checker/denetci.go:Checker.checkStatement":       {163, nDagitim},
+	"internal/lang/checker/denetci.go:Checker.inferExpression":      {133, nDagitim},
+	"internal/lang/parser/yapi.go:Parser.parseStructStatement":      {97, "yapı tanımı: alanlar, varsayılanlar, metotlar ve hata kurtarma tek akışta; alan ve metot çözümlemesi ayrılabilir"},
+	"internal/lang/parser/ifadeler.go:Parser.parseExpression":       {92, nDagitim + " (Pratt döngüsü: önek ve ara işleç dağıtımı)"},
+	"internal/lang/codes/dil.go:Yukle":                              {160, nOkuma + " (dil dosyası)"},
+	"internal/lang/codes/tanim.go:TanimDenetle":                     {113, nOkuma + " (tanım dosyasının tutarlılık denetimleri)"},
+	"internal/lang/codes/tanim.go:TanimCoz":                         {96, nOkuma + " (tanım dosyası)"},
 
 	// Araçlar
-	"internal/arac/ayikla/ayiklayici.go:Debugger.promptCLI": {187, nDagitim + " (terminal hata ayıklayıcısının komutları)"},
-	"internal/arac/bicim/bicim.go:bicimle":                  {119, "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde"},
-	"cmd/tr/bicimle.go:bicimleKomutu":                       {83, "komut satırı bayrakları ve dosya/klasör dolaşımı tek akışta"},
-	"tools/uret/kod_belgesi/main.go:Uret":                   {151, nUretec},
-	"tools/uret/eklenti_listeleri/main.go:Uret":             {107, nUretec},
-	"tools/kiyas/go/kiyas.go:main":                          {92, nUretec + " (kıyas programları sırayla)"},
+	"internal/devtools/debugger/ayiklayici.go:Debugger.promptCLI": {187, nDagitim + " (terminal hata ayıklayıcısının komutları)"},
+	"internal/devtools/formatter/bicim.go:bicimle":                {119, "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde"},
+	"cmd/tr/bicimle.go:bicimleKomutu":                             {83, "komut satırı bayrakları ve dosya/klasör dolaşımı tek akışta"},
+	"tools/gen/codesdoc/main.go:Uret":                             {151, nUretec},
+	"tools/gen/grammar/main.go:Uret":                              {107, nUretec},
+	"tools/bench/go/kiyas.go:main":                                {92, nUretec + " (kıyas programları sırayla)"},
 
 	// Motorlar
-	"internal/motor/ogrenme/ozel_turev.go:turevDenetle":          {181, nYerlesik + " (sayısal türev denetimi)"},
-	"internal/motor/ogrenme/yazdirma.go:Deger.Inspect":           {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
-	"internal/motor/ogrenme/model_araclari.go:orneklemeYerlesik": {118, nYerlesik},
-	"internal/motor/ogrenme/yerlesik_indirgeme.go:indirgeme":     {85, nYerlesik},
-	"internal/motor/parcalayici/parcalayici.go:Nesne.kodla":      {88, nYerlesik},
+	"internal/stdlib/ml/ozel_turev.go:turevDenetle":          {181, nYerlesik + " (sayısal türev denetimi)"},
+	"internal/stdlib/ml/yazdirma.go:Deger.Inspect":           {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
+	"internal/stdlib/ml/model_araclari.go:orneklemeYerlesik": {118, nYerlesik},
+	"internal/stdlib/ml/yerlesik_indirgeme.go:indirgeme":     {85, nYerlesik},
+	"internal/stdlib/tokenizer/parcalayici.go:Nesne.kodla":   {88, nYerlesik},
 
 	// Hesap çekirdekleri
-	"internal/hesap/tensor/cpu_dikkat.go:cpuBackend.f32Attention":  {146, nCekirdek},
-	"internal/hesap/tensor/cpu_carpim.go:gemmParca":                {146, nCekirdek},
-	"internal/hesap/tensor/turev.go:Tensor.BackwardCtx":            {89, nCekirdek},
-	"internal/hesap/tensor/cpu_arkauc.go:unaryDongu":               {89, nCekirdek},
-	"internal/hesap/tensor/cpu_arkauc.go:cpuBackend.f32BinaryGrad": {85, nCekirdek},
-	"internal/hesap/tensor/cpu_arkauc.go:unaryGradDongu":           {81, nCekirdek},
-	"internal/hesap/parca/duzifade_esle.go:dfEslestirici.calistir": {167, nParcalama},
-	"internal/hesap/parca/yukle.go:Ayristir":                       {131, nOkuma + " (tokenizer.json)"},
-	"internal/hesap/parca/duzifade.go:dfAyristirici.grup":          {103, nParcalama},
-	"internal/hesap/parca/model_bpe.go:bpeKur":                     {99, nParcalama},
-	"internal/hesap/parca/model_diger.go:unigram.kodla":            {96, nParcalama},
-	"internal/hesap/parca/duzifade.go:dfAyristirici.sinifIc":       {89, nParcalama},
-	"internal/hesap/parca/model_bpe.go:bpeModel.semboller":         {84, nParcalama},
-	"internal/hesap/parca/cozuculer.go:init":                       {82, nTablo},
-	"internal/hesap/veriyolu/onbellek.go:obCekirdek.getir":         {112, "önbellekten getirme: kilit, bayatlık ve kopyalama durumları tek akışta (veri sahibinin alanı)"},
+	"internal/compute/tensor/cpu_dikkat.go:cpuBackend.f32Attention":     {146, nCekirdek},
+	"internal/compute/tensor/cpu_carpim.go:gemmParca":                   {146, nCekirdek},
+	"internal/compute/tensor/turev.go:Tensor.BackwardCtx":               {89, nCekirdek},
+	"internal/compute/tensor/cpu_arkauc.go:unaryDongu":                  {89, nCekirdek},
+	"internal/compute/tensor/cpu_arkauc.go:cpuBackend.f32BinaryGrad":    {85, nCekirdek},
+	"internal/compute/tensor/cpu_arkauc.go:unaryGradDongu":              {81, nCekirdek},
+	"internal/compute/tokenize/duzifade_esle.go:dfEslestirici.calistir": {167, nParcalama},
+	"internal/compute/tokenize/yukle.go:Ayristir":                       {131, nOkuma + " (tokenizer.json)"},
+	"internal/compute/tokenize/duzifade.go:dfAyristirici.grup":          {103, nParcalama},
+	"internal/compute/tokenize/model_bpe.go:bpeKur":                     {99, nParcalama},
+	"internal/compute/tokenize/model_diger.go:unigram.kodla":            {96, nParcalama},
+	"internal/compute/tokenize/duzifade.go:dfAyristirici.sinifIc":       {89, nParcalama},
+	"internal/compute/tokenize/model_bpe.go:bpeModel.semboller":         {84, nParcalama},
+	"internal/compute/tokenize/cozuculer.go:init":                       {82, nTablo},
+	"internal/compute/dataload/onbellek.go:obCekirdek.getir":            {112, "önbellekten getirme: kilit, bayatlık ve kopyalama durumları tek akışta (veri sahibinin alanı)"},
 }

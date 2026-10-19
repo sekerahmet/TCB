@@ -8,12 +8,12 @@ import (
 	"os"
 	"os/exec"
 
-	"tr_dili/internal/dil/kaynak"
-	"tr_dili/internal/dil/kod"
-	"tr_dili/internal/dil/turkce"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// Kodlu saklama komutları (docs/dil/17_kodlar.md, 17.1-17.6 ve "Düzenleyicide"):
+// Kodlu saklama komutları (docs/spec/17_kodlar.md, 17.1-17.6 ve "Düzenleyicide"):
 //
 //	tr kodla <dosya.tr | klasör>...       Türkçe yazılmış dosyaları yerinde kodlu biçime çevirir
 //	tr çöz <dosya.tr | klasör>...         kodlu dosyaları yerinde Türkçe yazıma geri çevirir
@@ -38,19 +38,19 @@ func kodlaKomutu(args []string) {
 	if len(args) > 0 && args[0] == "-" {
 		// Kodlanacak metin yazım dilinde yazılmıştır. Dilin sözcük tabloları süreç başında etkin
 		// dilden kurulduğu için başka bir dil, süreci o dille yeniden çalıştırarak okunur.
-		if dil := dilArgumani(args[1:], "kodla"); dil.Kodu != kod.Etkin().Kodu {
+		if dil := dilArgumani(args[1:], "kodla"); dil.Kodu != codes.Etkin().Kodu {
 			dilleYenidenCalistir(dil.Kodu)
 		}
-		girdidenCevir(kaynak.Kodla)
+		girdidenCevir(source.Kodla)
 		return
 	}
-	cevirKomutu(args, "kodla", "kodlandı", kaynak.Kodla)
+	cevirKomutu(args, "kodla", "kodlandı", source.Kodla)
 }
 
 // dilArgumani standart giriş kipinin '--dil <kod>' argümanını okur (yoksa etkin dil) ve yazım
 // dilini doğrular; başka bir argüman ya da bilinmeyen dil hatadır.
-func dilArgumani(args []string, komut string) *kod.Dil {
-	dilKodu := kod.Etkin().Kodu
+func dilArgumani(args []string, komut string) *codes.Dil {
+	dilKodu := codes.Etkin().Kodu
 	for i := 0; i < len(args); i++ {
 		switch {
 		case args[i] == "--dil" && i+1 < len(args):
@@ -82,9 +82,9 @@ func girdidenCevir(cevir func(string) (string, error)) {
 	}
 	metin, err := cevir(string(veri))
 	if err != nil {
-		var sh *kaynak.SozdizimiHatasi
+		var sh *source.SozdizimiHatasi
 		if errors.As(err, &sh) {
-			b, _ := kaynak.Ayir(string(veri))
+			b, _ := source.Ayir(string(veri))
 			hatalariYaz(sozdizimiBasligi, sh.Hatalar, b.Govde)
 			os.Exit(cikisSozdizimi)
 		}
@@ -97,7 +97,7 @@ func girdidenCevir(cevir func(string) (string, error)) {
 // cozKomutu 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz.
 func cozKomutu(args []string) {
 	cevirKomutu(args, "çöz", "çözüldü", func(metin string) (string, error) {
-		return kaynak.Coz(metin, kod.Etkin())
+		return source.Coz(metin, codes.Etkin())
 	})
 }
 
@@ -121,7 +121,7 @@ func cevirKomutu(args []string, komut, fiil string, cevir func(string) (string, 
 	for _, yol := range dosyalar {
 		veri, err := os.ReadFile(yol)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %v\n", turkce.DosyaHatasi("", yol, "okunamadı", err))
+			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.DosyaHatasi("", yol, "okunamadı", err))
 			hatali++
 			continue
 		}
@@ -156,7 +156,7 @@ func yerineYaz(yol, metin string) error {
 		izin = bilgi.Mode().Perm()
 	}
 	if err := os.WriteFile(yol, []byte(metin), izin); err != nil {
-		return turkce.DosyaHatasi("", yol, "yazılamadı", err)
+		return turkish.DosyaHatasi("", yol, "yazılamadı", err)
 	}
 	return nil
 }
@@ -167,11 +167,11 @@ func yerineYaz(yol, metin string) error {
 func gosterKomutu(args []string) {
 	if len(args) > 0 && args[0] == "-" {
 		dil := dilArgumani(args[1:], "göster")
-		girdidenCevir(func(metin string) (string, error) { return kaynak.Coz(metin, dil) })
+		girdidenCevir(func(metin string) (string, error) { return source.Coz(metin, dil) })
 		return
 	}
 	var dosya, dilKodu string
-	dilKodu = kod.Etkin().Kodu
+	dilKodu = codes.Etkin().Kodu
 	for i := 0; i < len(args); i++ {
 		switch {
 		case args[i] == "--dil" && i+1 < len(args):
@@ -198,14 +198,14 @@ func gosterKomutu(args []string) {
 	}
 	veri, err := os.ReadFile(dosya)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkce.DosyaHatasi("", dosya, "okunamadı", err))
+		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.DosyaHatasi("", dosya, "okunamadı", err))
 		os.Exit(1)
 	}
-	metin, err := kaynak.Coz(string(veri), dil)
+	metin, err := source.Coz(string(veri), dil)
 	if err != nil {
-		var sh *kaynak.SozdizimiHatasi
+		var sh *source.SozdizimiHatasi
 		if errors.As(err, &sh) {
-			b, _ := kaynak.Ayir(string(veri))
+			b, _ := source.Ayir(string(veri))
 			hatalarlaCik(sozdizimiBasligi, sh.Hatalar, b.Govde)
 		}
 		fmt.Fprintf(os.Stderr, "✗ %s: %v\n", dosya, err)
@@ -215,8 +215,8 @@ func gosterKomutu(args []string) {
 }
 
 // yazimDili bir yazım dili kodunun (ISO 639-1) kod listesidir.
-func yazimDili(kodu string) (*kod.Dil, error) {
-	return kod.DilYukle(kodu)
+func yazimDili(kodu string) (*codes.Dil, error) {
+	return codes.DilYukle(kodu)
 }
 
 // dilleYenidenCalistir aynı komutu etkin dil olarak dilKodu ile yeniden çalıştırır (standart
@@ -228,7 +228,7 @@ func dilleYenidenCalistir(dilKodu string) {
 		os.Exit(1)
 	}
 	c := exec.Command(ben, os.Args[1:]...)
-	c.Env = append(os.Environ(), kod.DilOrtamDegiskeni+"="+dilKodu)
+	c.Env = append(os.Environ(), codes.DilOrtamDegiskeni+"="+dilKodu)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := c.Run(); err != nil {
 		var ce *exec.ExitError

@@ -6,10 +6,10 @@ bin/
 *.out
 
 # Örnek programların çalışırken ürettiği dosyalar
-ornekler/agirliklar.trt
-ornekler/xor_agirliklari.trt
-# Koşu klasörleri (eğitimin ayarları, günlüğü, ağırlıkları ve kontrol noktaları; ornekler/10)
-koşular/
+examples/agirliklar.trt
+examples/xor_agirliklari.trt
+# Koşu klasörleri (eğitimin ayarları, günlüğü, ağırlıkları ve kontrol noktaları; examples/10)
+runs/
 
 # Kullanıcının verisi, ağırlıkları, parçalayıcısı ve gizli değerleri depoya girmez
 *.trt
@@ -19,11 +19,11 @@ tokenizer*.json
 .env.*
 *.pem
 # ... bilerek depoda tutulan test fikstürleri dışında
-!testler/veri/**
+!tests/data/**
 !**/testdata/**
 
-# Kişisel deneme klasörü (ornekler/01_merhaba.tr buraya kopyalanıp değiştirilir)
-calisma/
+# Kişisel deneme klasörü (examples/01_merhaba.tr buraya kopyalanıp değiştirilir)
+scratch/
 
 # Go araç çıktıları
 coverage.*

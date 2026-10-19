@@ -7,18 +7,18 @@ import (
 	"strings"
 	"testing"
 
-	"tr_dili/internal/depo"
-	"tr_dili/internal/dil/denetci"
-	"tr_dili/internal/dil/kaynak"
-	"tr_dili/internal/dil/yurut"
+	"github.com/sekerahmet/TCB/internal/lang/checker"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Tanımsız ad denetimi (docs/dil/05_deyimler.md §5.14) dinamik dilde yanlış alarm vermemeli:
+// Tanımsız ad denetimi (docs/spec/05_deyimler.md §5.14) dinamik dilde yanlış alarm vermemeli:
 // depodaki bütün .tr dosyaları (testler, örnekler, kıyas programları, kitaplık) hatasız
-// denetlenir. Bilerek hatalı fikstürler (testler/olumsuz/) hariçtir. Başka dosyaların
+// denetlenir. Bilerek hatalı fikstürler (tests/negative/) hariçtir. Başka dosyaların
 // aktardığı modüller, yorumlayıcıdaki gibi aktaranın genel adlarıyla denetlenir (11.1).
 func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
-	kok := depo.Kok()
+	kok := reporoot.Kok()
 	kodlar := map[string]string{}
 	err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -26,7 +26,7 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 		}
 		if d.IsDir() {
 			switch d.Name() {
-			case ".git", "bin", "olumsuz", "node_modules", ".claude":
+			case ".git", "bin", "negative", "node_modules", ".claude":
 				return filepath.SkipDir
 			}
 			return nil
@@ -54,7 +54,7 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 	}
 	moduller := map[string]*genel{}
 	for yol, kod := range kodlar {
-		adlar, dinamik := denetci.UstDuzeyAdlari(kaynak.Hazirla(kod, kaynak.Secenekler{}).Program)
+		adlar, dinamik := checker.UstDuzeyAdlari(source.Hazirla(kod, source.Secenekler{}).Program)
 		for _, y := range aktarYerleri(kod) {
 			cozulen, _, ok := modulYolunuCoz(y.yol, yol, yol)
 			if !ok {
@@ -82,9 +82,9 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 			for a := range g.adlar {
 				adlar = append(adlar, a)
 			}
-			hatalar = yurut.ModulDenetle(kod, adlar, g.dinamik).Hatalar
+			hatalar = interp.ModulDenetle(kod, adlar, g.dinamik).Hatalar
 		} else {
-			hatalar = kaynak.Hazirla(kod, kaynak.Secenekler{TipDenetimi: true}).Hatalar
+			hatalar = source.Hazirla(kod, source.Secenekler{TipDenetimi: true}).Hatalar
 		}
 		for _, h := range hatalar {
 			t.Errorf("%s: %s", filepath.ToSlash(goreli), h)

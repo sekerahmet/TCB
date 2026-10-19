@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
+	"github.com/sekerahmet/TCB/internal/stdlib"
 	"os"
 	"strings"
-	"tr_dili/internal/dil/agac"
-	"tr_dili/internal/dil/kaynak"
-	"tr_dili/internal/dil/turkce"
-	"tr_dili/internal/dil/yurut"
-	"tr_dili/internal/motor"
 )
 
 // hazirlik bir kaynağın çalıştırılmadan önce hangi aşamalardan geçeceğini ve hata
@@ -52,11 +52,11 @@ var (
 )
 
 // kaynakOku dosyanın metnini okur; okunamazsa hatayı yazıp çıkar. BOM ve kodlu biçim
-// başlığı internal/dil/kaynak'ta çözülür.
+// başlığı internal/lang/source'ta çözülür.
 func kaynakOku(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkce.DosyaHatasi("", path, "okunamadı", err))
+		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.DosyaHatasi("", path, "okunamadı", err))
 		os.Exit(1)
 	}
 	return string(data)
@@ -64,7 +64,7 @@ func kaynakOku(path string) string {
 
 // dosyaHazirla dosyayı okuyup kaynakHazirla'dan geçirir; dosyanın metnini (paket ve modül
 // denetimi için) ve hazırlığın sonucunu verir.
-func dosyaHazirla(path string, h hazirlik) (string, *kaynak.Sonuc) {
+func dosyaHazirla(path string, h hazirlik) (string, *source.Sonuc) {
 	metin := kaynakOku(path)
 	return metin, kaynakHazirla(metin, h)
 }
@@ -72,11 +72,11 @@ func dosyaHazirla(path string, h hazirlik) (string, *kaynak.Sonuc) {
 // kaynakHazirla kodu ayrıştırır ve istenmişse tip denetiminden geçirir (kaynak.Hazirla). Hata
 // varsa hepsini yazıp 1 koduyla çıkar. Hata çerçeveleri ve yorumlayıcının kaynak metni
 // sonucun gövdesidir (kodlu dosyada başlıktan sonrası).
-func kaynakHazirla(metin string, h hazirlik) *kaynak.Sonuc {
-	s := kaynak.Hazirla(metin, kaynak.Secenekler{TipDenetimi: h.tipBasligi != ""})
+func kaynakHazirla(metin string, h hazirlik) *source.Sonuc {
+	s := source.Hazirla(metin, source.Secenekler{TipDenetimi: h.tipBasligi != ""})
 	uyarilariYaz(s.Uyarilar, s.Metin)
 	switch s.Asama {
-	case kaynak.AsamaSozdizimi:
+	case source.AsamaSozdizimi:
 		if h.sozdizimiBasligi == "" {
 			for _, e := range s.Hatalar {
 				fmt.Fprintln(os.Stderr, e)
@@ -84,7 +84,7 @@ func kaynakHazirla(metin string, h hazirlik) *kaynak.Sonuc {
 			os.Exit(1)
 		}
 		hatalarlaCik(h.sozdizimiBasligi, s.Hatalar, s.Metin)
-	case kaynak.AsamaTip:
+	case source.AsamaTip:
 		hatalarlaCik(h.tipBasligi, s.Hatalar, s.Metin)
 	}
 	return s
@@ -118,15 +118,15 @@ func hatalarlaCik(baslik string, errs []string, code string) {
 //
 // Ctrl+C ve sonlandırma istekleri yakalanır (kesme.go): program nazikçe durur, ertelenen
 // işler çalışır ve 3 koduyla çıkılır.
-func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
+func programCalistir(machine *interp.VM, prog *ast.Program, code string) {
 	kesmeyiYakala(machine)
 	if _, err := machine.Run(prog); err != nil {
-		if c, ok := yurut.CikisIstegiMi(err); ok {
+		if c, ok := interp.CikisIstegiMi(err); ok {
 			machine.WaitAsync()
 			motoruKapat()
 			programCikisi(machine, c)
 		}
-		if errors.Is(err, yurut.ErrKesildi) {
+		if errors.Is(err, interp.ErrKesildi) {
 			machine.WaitAsync() // eşzamanlı görevler de kesildi; ertelenen işleri bitsin
 			motoruKapat()
 			kesilmeyiBildir(machine, err, code)
@@ -157,13 +157,13 @@ func motoruKapat() {
 	for _, f := range isler {
 		f()
 	}
-	motor.Kapat()
+	stdlib.Kapat()
 }
 
 // programCikisi bir yerleşiğin istediği program çıkışını yapar (ör. komut satırı
 // seçeneklerinde --yardım: 0, hatalı argüman: 2): mesaj 0 kodunda standart çıktıya, öbür
 // kodlarda standart hataya yazılır.
-func programCikisi(machine *yurut.VM, c *yurut.CikisIstegi) {
+func programCikisi(machine *interp.VM, c *interp.CikisIstegi) {
 	if c.Mesaj != "" {
 		w := os.Stderr
 		if c.Kod == 0 {
@@ -177,10 +177,10 @@ func programCikisi(machine *yurut.VM, c *yurut.CikisIstegi) {
 // calismaHatasiYaz bir çalışma zamanı hatasını başlığıyla standart hataya yazar. Bir modüle
 // ait hatanın (ya da modülün denetim hatalarının) çerçevesi o modülün kaynağından çizilir.
 // Metin VM'nin çıktı noktasından geçer (canlı satır, gizli değerler).
-func calismaHatasiYaz(machine *yurut.VM, err error, code string) {
+func calismaHatasiYaz(machine *interp.VM, err error, code string) {
 	var sb strings.Builder
 	sb.WriteString(calismaBasligi + "\n")
-	for _, m := range yurut.HataMaddeleri(err, code) {
+	for _, m := range interp.HataMaddeleri(err, code) {
 		fmt.Fprintf(&sb, "  • %s\n", m.Mesaj)
 		sb.WriteString(indentFrame(m.Cerceve))
 	}

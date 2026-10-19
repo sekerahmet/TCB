@@ -5,22 +5,22 @@ TR tek bir ikilidir (`tr`). Bütün Go kodu `internal/` altındadır; başka bir
 ## Katmanlar
 
 ```
-araçlar (internal/arac, cmd/tr) ─▶ motorlar (internal/motor) ─▶ dil çekirdeği (internal/dil)
+araçlar (internal/devtools, cmd/tr) ─▶ motorlar (internal/stdlib) ─▶ dil çekirdeği (internal/lang)
                                         │
-                                        └──────▶ hesap çekirdekleri (internal/hesap)
-TR ile yazılı kitaplık (kitaplik/*.tr) ── ikiliye gömülü; cmd/tr yorumlayıcıya bağlar (aktar "tr/...")
+                                        └──────▶ hesap çekirdekleri (internal/compute)
+TR ile yazılı kitaplık (lib/*.tr) ── ikiliye gömülü; cmd/tr yorumlayıcıya bağlar (aktar "tr/...")
 ```
 
 Ok "içe aktarabilir" demektir. Kural `internal/katman_test.go` ile denetlenir (`go test ./internal`); yalnızca paketlerin kendi (test dışı) içe aktarmalarına uygulanır.
 
 | Katman | İçe aktarabileceği iç paketler |
 | :-- | :-- |
-| `internal/hesap/**` | yalnızca `internal/hesap/**` (dili bilmez; tek başına sınanır ve ölçülür) |
-| `internal/dil/**` | yalnızca `internal/dil/**`, iç sırasına göre (aşağıda) |
-| `internal/motor/**` | `internal/dil`, `internal/hesap`, `internal/motor` |
-| `internal/arac/**` | `internal/dil`, `internal/hesap`, `internal/motor`, `internal/arac` |
-| `cmd/tr` | hepsi (`internal/depo` dışında) |
-| `internal/depo`, `kitaplik` | hiçbiri |
+| `internal/compute/**` | yalnızca `internal/compute/**` (dili bilmez; tek başına sınanır ve ölçülür) |
+| `internal/lang/**` | yalnızca `internal/lang/**`, iç sırasına göre (aşağıda) |
+| `internal/stdlib/**` | `internal/lang`, `internal/compute`, `internal/stdlib` |
+| `internal/devtools/**` | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/devtools` |
+| `cmd/tr` | hepsi (`internal/reporoot` dışında) |
+| `internal/reporoot`, `lib` | hiçbiri |
 | `tools/**` | hepsi |
 
 Dil çekirdeğinin içinde de sıra vardır: bir dil paketi yalnızca kendisinden önce gelenleri içe aktarabilir (`internal/katman_test.go`, `dilSirasi`):
@@ -29,50 +29,50 @@ Dil çekirdeğinin içinde de sıra vardır: bir dil paketi yalnızca kendisinde
 turkce < kod < ipucu < sozcuk < agac < ayristir < denetci < kaynak < yurut
 ```
 
-Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe aktarmaz; onlar yorumlayıcıya kendileri bağlanır: `internal/motor` paketi yüklenirken yerleşikleri `yurut.MotorEkle` ile, `internal/arac/ayikla` paketi yüklenirken koddaki `kesme_noktası` deyiminin açacağı hata ayıklayıcıyı `yurut.YeniHataAyiklayici` ile kaydeder. Tam dili çalıştıran program ikisini de içe aktarır (`cmd/tr`, `internal/arac/testkosucu`).
+Yorumlayıcı (`internal/lang/interp`) motorları ve hata ayıklayıcıyı içe aktarmaz; onlar yorumlayıcıya kendileri bağlanır: `internal/stdlib` paketi yüklenirken yerleşikleri `yurut.MotorEkle` ile, `internal/devtools/debugger` paketi yüklenirken koddaki `kesme_noktası` deyiminin açacağı hata ayıklayıcıyı `yurut.YeniHataAyiklayici` ile kaydeder. Tam dili çalıştıran program ikisini de içe aktarır (`cmd/tr`, `internal/devtools/testrunner`).
 
 ## Paketler
 
 | Paket | Görevi |
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `izle`, `profil`, `hata_ayıkla`, `dap`), işi `internal/`'a bırakır |
-| `cmd/tr/uctan_uca` | `tr` komutunun uçtan uca testleri (yalnızca testler): ikiliyi bir kez derler, alt süreç olarak çalıştırır; komutlar, çıkış kodları, kesme, kontrol noktasından devam, belgelerdeki kod blokları ve bağlantılar, VS Code eklentisinin dosyaları ve JavaScript testleri |
-| `internal/dil/kod` | Dilin bütün adlarını sabit kodlara bağlayan kod listesi (`tanim.json`, `tr.json`) ve ondan üretilen Go sabitleri |
-| `internal/dil/turkce` | Türkçe harf işlemleri, ekler, "bunu mu demek istediniz" önerileri ve hata çerçevesi |
-| `internal/dil/ipucu` | Dilin adlarıyla ilgili hata ipuçları: kaldırılan, taşınan ve Türkçe karaktersiz yazılan adlar, tanımsız ada en yakın ad (sözcük çözümleyici, ayrıştırıcı, denetleyici ve yorumlayıcı aynı metni kullanır) |
-| `internal/dil/sozcuk` | Sözcük çözümleyici: kaynak metni sözcük birimlerine ayırır; kodlu gövdede kodları etkin dilin adlarına çevirir, konumları Türkçe gösterime göre verir |
-| `internal/dil/agac` | Sözdizimi ağacının düğümleri |
-| `internal/dil/ayristir` | Ayrıştırıcı: sözcük birimlerinden sözdizimi ağacını kurar |
-| `internal/dil/denetci` | Çalıştırmadan önceki tip denetimi ve uyarılar; adların kapsam bilgisi (tanımsız ad denetimi ve kodlu saklamanın ad bağları) |
-| `internal/dil/kaynak` | Kaynaktan programa tek giriş noktası: dosya metnini bölümlerine ayırır (BOM, kodlu biçim başlığı), doğru sözcük çözümleyiciyi seçer, ayrıştırır, isteğe göre denetler (`Hazirla`); komut satırı, kabuk, test koşucusu, hata ayıklama sunucusu, modül yükleyici ve `tr derle` dosyaları yalnızca buradan okur. Kodlu saklamanın çeviricisi (`Kodla`, `Coz`) de buradadır |
-| `internal/dil/yurut` | Derleyici ve yorumlayıcı: değerler, çekirdek yerleşikler ve metotlar, modüller, eşzamanlı görevler, motor ve hata ayıklayıcı kancaları |
-| `internal/motor` | Bütün motorları doğru sırayla yorumlayıcıya kaydeder (`import _ "tr_dili/internal/motor"`) |
-| `internal/motor/ogrenme` | Tensör, matris, otomatik türev, sinir ağı katmanları, iyileştiriciler ve tensör kaydını TR yerleşikleri olarak dile bağlar |
-| `internal/motor/parcalayici` | `parçalayıcı_yükle` ve parçalayıcı nesnesinin üyeleri |
-| `internal/motor/veri` | `veri_kümesi`, örnekleyici ve sıralı okuyucu yerleşikleri |
-| `internal/motor/veribicim` | JSON ve CSV yerleşikleri |
-| `internal/motor/dosya` | Standart kitaplık: `Yol` tipi, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `dosya_satırları` (silme korumaları, bağlantı izlememe, `os.Root`) |
-| `internal/motor/surec` | Süreç yerleşikleri: `ortam_değişkeni`, `komut_satırı` (seçenekler, `--yardım`, kullanım hatası 2), gizli adların süzgece kaydı |
-| `internal/motor/gunluk` | Eğitim günlüğü (`günlük`, JSON satırları) ve ilerleme çubuğu (`ilerleme`; canlı satır, `ilerleme.json`), adım sınırı kancası |
-| `internal/motor/kontrol` | Kontrol noktası (`kontrol_noktası`): eğitimin bütün durumunun koşu klasörüne atomik çok dosyalı kaydı, doğrulanarak yüklenmesi ve kaldığı yerden devam; ertelenen kesme |
-| `internal/motor/ortak/baglama` | Motorların ortak yardımcıları: adlı argüman denetimi, göreli yol, panikten hataya, Türkçe sayı yazımı |
-| `internal/motor/ortak/jsonyaz` | TR değerlerini JSON'a yazar |
-| `internal/hesap/tensor` | n boyutlu tensör, görünümler, otomatik türev, arka uç arayüzü ve CPU arka ucu (AVX2/FMA çekirdekleri) |
-| `internal/hesap/gpu` | GPU arka ucu: sürücü bağlama (cgo'suz), Go içinden üretilen PTX çekirdekleri, cihaz belleği havuzu, PTX benzetimi (donanımsız sınama) |
-| `internal/hesap/parca` | `tokenizer.json` parçalayıcıları: BPE, WordPiece, Unigram, normalleştirme, ön bölme |
-| `internal/hesap/veriyolu` | `.npy` veri dosyaları, veri kümesi, örnekleyici, önbellek ve önden yükleme |
-| `internal/arac/ayikla` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`tr dap`) |
-| `internal/arac/bicim` | `tr biçimle` biçimlendiricisi |
-| `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
-| `internal/arac/profil` | Canlı profil: `tr izle` ve `tr profil`'in çekirdeği, arka plan işinin `profil.json`'u (aşağıda "Canlı profil") |
-| `internal/depo` | Testlerin depo kökünü bulan yardımcı (testler `../../` yazmaz) |
-| `kitaplik` | TR ile yazılan standart kitaplık (`katman.tr`, `iyilestirici.tr`, testleri yanında); `gomulu.go` onları `go:embed` ile ikiliye gömer, `cmd/tr` yorumlayıcıya `yurut.KitaplikBagla` ile bağlar. Kullanıcı `aktar "tr/katman"` yazar (dil tanımı 11.6); `tr derle` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`kitaplik/README.md`](../kitaplik/README.md) |
-| `tools/uret/*` | Üreteçler: Go kod sabitleri, `docs/kodlar.md`, eklentinin renklendirme listeleri (`go generate ./internal/dil/kod`) |
-| `tools/kiyas/go` | Hız kıyas setinin derlenmiş başvuru sürümü |
+| `cmd/tr/e2e` | `tr` komutunun uçtan uca testleri (yalnızca testler): ikiliyi bir kez derler, alt süreç olarak çalıştırır; komutlar, çıkış kodları, kesme, kontrol noktasından devam, belgelerdeki kod blokları ve bağlantılar, VS Code eklentisinin dosyaları ve JavaScript testleri |
+| `internal/lang/codes` | Dilin bütün adlarını sabit kodlara bağlayan kod listesi (`tanim.json`, `tr.json`) ve ondan üretilen Go sabitleri |
+| `internal/lang/turkish` | Türkçe harf işlemleri, ekler, "bunu mu demek istediniz" önerileri ve hata çerçevesi |
+| `internal/lang/hint` | Dilin adlarıyla ilgili hata ipuçları: kaldırılan, taşınan ve Türkçe karaktersiz yazılan adlar, tanımsız ada en yakın ad (sözcük çözümleyici, ayrıştırıcı, denetleyici ve yorumlayıcı aynı metni kullanır) |
+| `internal/lang/lexer` | Sözcük çözümleyici: kaynak metni sözcük birimlerine ayırır; kodlu gövdede kodları etkin dilin adlarına çevirir, konumları Türkçe gösterime göre verir |
+| `internal/lang/ast` | Sözdizimi ağacının düğümleri |
+| `internal/lang/parser` | Ayrıştırıcı: sözcük birimlerinden sözdizimi ağacını kurar |
+| `internal/lang/checker` | Çalıştırmadan önceki tip denetimi ve uyarılar; adların kapsam bilgisi (tanımsız ad denetimi ve kodlu saklamanın ad bağları) |
+| `internal/lang/source` | Kaynaktan programa tek giriş noktası: dosya metnini bölümlerine ayırır (BOM, kodlu biçim başlığı), doğru sözcük çözümleyiciyi seçer, ayrıştırır, isteğe göre denetler (`Hazirla`); komut satırı, kabuk, test koşucusu, hata ayıklama sunucusu, modül yükleyici ve `tr derle` dosyaları yalnızca buradan okur. Kodlu saklamanın çeviricisi (`Kodla`, `Coz`) de buradadır |
+| `internal/lang/interp` | Derleyici ve yorumlayıcı: değerler, çekirdek yerleşikler ve metotlar, modüller, eşzamanlı görevler, motor ve hata ayıklayıcı kancaları |
+| `internal/stdlib` | Bütün motorları doğru sırayla yorumlayıcıya kaydeder (`import _ "github.com/sekerahmet/TCB/internal/stdlib"`) |
+| `internal/stdlib/ml` | Tensör, matris, otomatik türev, sinir ağı katmanları, iyileştiriciler ve tensör kaydını TR yerleşikleri olarak dile bağlar |
+| `internal/stdlib/tokenizer` | `parçalayıcı_yükle` ve parçalayıcı nesnesinin üyeleri |
+| `internal/stdlib/dataset` | `veri_kümesi`, örnekleyici ve sıralı okuyucu yerleşikleri |
+| `internal/stdlib/formats` | JSON ve CSV yerleşikleri |
+| `internal/stdlib/files` | Standart kitaplık: `Yol` tipi, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `dosya_satırları` (silme korumaları, bağlantı izlememe, `os.Root`) |
+| `internal/stdlib/process` | Süreç yerleşikleri: `ortam_değişkeni`, `komut_satırı` (seçenekler, `--yardım`, kullanım hatası 2), gizli adların süzgece kaydı |
+| `internal/stdlib/logging` | Eğitim günlüğü (`günlük`, JSON satırları) ve ilerleme çubuğu (`ilerleme`; canlı satır, `ilerleme.json`), adım sınırı kancası |
+| `internal/stdlib/checkpoint` | Kontrol noktası (`kontrol_noktası`): eğitimin bütün durumunun koşu klasörüne atomik çok dosyalı kaydı, doğrulanarak yüklenmesi ve kaldığı yerden devam; ertelenen kesme |
+| `internal/stdlib/common/bind` | Motorların ortak yardımcıları: adlı argüman denetimi, göreli yol, panikten hataya, Türkçe sayı yazımı |
+| `internal/stdlib/common/jsonwrite` | TR değerlerini JSON'a yazar |
+| `internal/compute/tensor` | n boyutlu tensör, görünümler, otomatik türev, arka uç arayüzü ve CPU arka ucu (AVX2/FMA çekirdekleri) |
+| `internal/compute/gpu` | GPU arka ucu: sürücü bağlama (cgo'suz), Go içinden üretilen PTX çekirdekleri, cihaz belleği havuzu, PTX benzetimi (donanımsız sınama) |
+| `internal/compute/tokenize` | `tokenizer.json` parçalayıcıları: BPE, WordPiece, Unigram, normalleştirme, ön bölme |
+| `internal/compute/dataload` | `.npy` veri dosyaları, veri kümesi, örnekleyici, önbellek ve önden yükleme |
+| `internal/devtools/debugger` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`tr dap`) |
+| `internal/devtools/formatter` | `tr biçimle` biçimlendiricisi |
+| `internal/devtools/testrunner` | `tr test` komutunun çekirdeği |
+| `internal/devtools/profiler` | Canlı profil: `tr izle` ve `tr profil`'in çekirdeği, arka plan işinin `profil.json`'u (aşağıda "Canlı profil") |
+| `internal/reporoot` | Testlerin depo kökünü bulan yardımcı (testler `../../` yazmaz) |
+| `lib` | TR ile yazılan standart kitaplık (`katman.tr`, `iyilestirici.tr`, testleri yanında); `gomulu.go` onları `go:embed` ile ikiliye gömer, `cmd/tr` yorumlayıcıya `yurut.KitaplikBagla` ile bağlar. Kullanıcı `aktar "tr/katman"` yazar (dil tanımı 11.6); `tr derle` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`lib/README.md`](../lib/README.md) |
+| `tools/gen/*` | Üreteçler: Go kod sabitleri, `docs/kodlar.md`, eklentinin renklendirme listeleri (`go generate ./internal/lang/codes`) |
+| `tools/bench/go` | Hız kıyas setinin derlenmiş başvuru sürümü |
 
 ### Yorumlayıcı kancaları
 
-Motorlar ve standart kitaplık yorumlayıcıya (`internal/dil/yurut`) şu kancalarla bağlanır; yorumlayıcı onları bilmez:
+Motorlar ve standart kitaplık yorumlayıcıya (`internal/lang/interp`) şu kancalarla bağlanır; yorumlayıcı onları bilmez:
 
 | Kanca | Görevi |
 | :-- | :-- |
@@ -102,7 +102,7 @@ Motorların kendi kancaları:
 | `ogrenme.TensorYazici`, `TensorDosyasiGez`, `Iyilestirici.DurumGorunumu` | Tensör dosyasını girdi girdi yazma ve okuma; iyileştirici durumunun kopyasız görünümü (büyük modelde bellekte ikinci kopya yok) |
 | `ogrenme.TohumsuzKancasiAyarla` | Tohumsuz rastgelelik kullanılınca çağrılır (kontrol noktası bir kez uyarır) |
 
-### GPU arka ucu (`internal/hesap/gpu`)
+### GPU arka ucu (`internal/compute/gpu`)
 
 `tensor.Backend`'in NVIDIA uygulamasıdır; otomatik türev ve üst katmanlar cihazdan bağımsızdır.
 
@@ -117,7 +117,7 @@ Motorların kendi kancaları:
   musl tabanlı dağıtımlarda (Alpine) ikili açılmaz. `-tags gpusuz` ile derlenen ikili statik
   kalır ve GPU desteği içermez. **Karar:** varsayılan ikili GPU desteklidir (glibc'ye bağlı);
   statik ikili isteyen `GOOS=linux CGO_ENABLED=0 go build -tags gpusuz ./cmd/tr` ile derler.
-  Tam denetim `gpusuz` derlemenin statik kaldığını `tools/statik_denetim` ile doğrular.
+  Tam denetim `gpusuz` derlemenin statik kaldığını `tools/checkstatic` ile doğrular.
 - **Bağlam ve iş parçacığı:** CUDA bağlamı işletim sistemi iş parçacığına bağlıdır. Her dışa
   açık yöntem girişte arka ucun kilidini alır, gorutini iş parçacığına kilitler ve cihazın
   birincil bağlamını bağlar (`cuCtxSetCurrent`); bütün işler tek akışta sırayla yürür.
@@ -200,13 +200,13 @@ Motorların kendi kancaları:
   kıyaslar `gpu_sinama`'nın içindedir (`TR_GPU_MIKRO=1`, `TestMikroKiyas`); karşılaştırma
   tarafı `mikro_kiyas.py`, tablo `mikro_tablo.py`.
 
-### Canlı profil (`internal/arac/profil`)
+### Canlı profil (`internal/devtools/profiler`)
 
 `tr izle` (canlı tablo) ve `tr profil` (son rapor) aynı çekirdeği kullanır; arka plan işi olarak
 çalışan program (`TR_İŞ` iş klasörünü verir) da canlı durumunu buradan `profil.json`'a yazar.
 Ağ portu açılmaz: dışarıya yalnızca dosya yazılır. Dört kaynaktan okur:
 
-- **Tensör sayaçları** (`internal/hesap/tensor/sayac*.go`): her zaman açık. Her işlem türü
+- **Tensör sayaçları** (`internal/compute/tensor/sayac*.go`): her zaman açık. Her işlem türü
   (`tensor.Islem`: ikili ve tekli işlemler `BinOp`/`UnOp` sırasıyla, matris çarpımı, indirgeme,
   `dikkat`, iyileştirici adımı ...), yön (ileri / geri yayılım) ve cihaz (CPU / GPU) için çağrı
   sayısı (kesin), ayrılan bayt (kesin; ayırma sınırı denetimi `ayirmaBoyuOn` ve gradyan
@@ -276,7 +276,7 @@ başarısızsa sonraki saniyede yeniden denenir; program hiçbir durumda durmaz.
     "bellek": [{"cihaz": 0, "canlı_bayt": 109568, "ayrılmış_bayt": 114176, "havuzda_bayt": 4608,
       "tepe_canlı_bayt": 113664, "tepe_ayrılmış_bayt": 114176, "çöp_toplama": 0}]},
   "örnekleme": {"aralık_ms": 1, "örnek": 11800, "süre_sn": 11.8, "tensör_payı": 0.95,  // kapalıysa null
-    "satırlar": [{"dosya": "ornekler/11_gpt.tr", "satır": 49, "fonksiyon": "",
+    "satırlar": [{"dosya": "examples/11_gpt.tr", "satır": 49, "fonksiyon": "",
       "metin": "geri_yayılım(kayıp)", "süre_sn": 4.6, "pay": 0.39, "tensör_payı": 0.99}],
     "fonksiyonlar": [{"ad": "dikleştir", "süre_sn": 3.9, "pay": 0.33}]},
   "bellek": {"go_yığını_bayt": 7864320, "go_sistem_bayt": 44564480, "cpu_tensör_ayrılan_bayt": 7642211100},
@@ -306,22 +306,22 @@ en iyi −%1, A/A gürültüsü ±%2). Örnekleme açıkken çağrı yoğun TR k
 | :-- | :-- |
 | `cmd/tr/` | Tek ikili |
 | `internal/` | Bütün Go kodu (yukarıdaki katmanlar) |
-| `kitaplik/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`aktar "tr/katman"`, `aktar "tr/iyilestirici"`; testleri `tr test kitaplik`) |
+| `lib/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`aktar "tr/katman"`, `aktar "tr/iyilestirici"`; testleri `tr test lib`) |
 | `editors/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
-| `docs/` | Belgeler: [`kilavuz/`](kilavuz/README.md), [`dil/`](dil/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
-| `ornekler/` | Öğrenme sırasıyla örnek programlar |
-| `testler/` | Dil tanımının kural testleri (`tr test testler`); `olumsuz/`, `alt/`, `veri/` |
+| `docs/` | Belgeler: [`kilavuz/`](guide/README.md), [`dil/`](spec/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
+| `examples/` | Öğrenme sırasıyla örnek programlar |
+| `tests/` | Dil tanımının kural testleri (`tr test tests`); `olumsuz/`, `alt/`, `veri/` |
 | `tools/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı; otomatik sınama da bunu çalıştırır), `bulaniklastir.sh` (bulanıklaştırma testlerinin uzun koşusu), `uret/` (üreteçler), `kiyas/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas paketi: `colab_hazirla.sh`, `kiyas_gpu.tr`, `kiyas_gpu.py`, `mikro_kiyas.py`, `mikro_tablo.py`, `COLAB.md`) |
 | `bin/` | Derleme çıktısı (`go build -o bin/tr.exe ./cmd/tr`); depoya girmez |
-| `calisma/` | Kişisel deneme klasörü; depoya girmez |
+| `scratch/` | Kişisel deneme klasörü; depoya girmez |
 
 ## Sahiplik
 
 | Rol | Alan |
 | :-- | :-- |
-| Dil çekirdeği | `internal/dil/**`, `internal/motor/dosya`, `internal/arac/{bicim,testkosucu,ayikla}`, `internal/depo`, `cmd/tr`, `docs/dil/`, bu dosya |
-| Tensör ve GPU | `internal/hesap/tensor`, `internal/hesap/gpu`, `internal/motor/ogrenme`, ileride `kitaplik/cekirdek` |
-| Veri ve parçalayıcı | `internal/hesap/{parca,veriyolu}`, `internal/motor/{parcalayici,veri,veribicim}` |
-| Araçlar | `editors/`, `.vscode/`, `docs/kilavuz/`, `README.md` |
-| Hız | `tools/kiyas/` |
-| Test | `testler/`, `.github/`, eklenti testleri |
+| Dil çekirdeği | `internal/lang/**`, `internal/stdlib/files`, `internal/devtools/{bicim,testkosucu,ayikla}`, `internal/reporoot`, `cmd/tr`, `docs/spec/`, bu dosya |
+| Tensör ve GPU | `internal/compute/tensor`, `internal/compute/gpu`, `internal/stdlib/ml`, ileride `lib/cekirdek` |
+| Veri ve parçalayıcı | `internal/compute/{parca,veriyolu}`, `internal/stdlib/{parcalayici,veri,veribicim}` |
+| Araçlar | `editors/`, `.vscode/`, `docs/guide/`, `README.md` |
+| Hız | `tools/bench/` |
+| Test | `tests/`, `.github/`, eklenti testleri |

@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/devtools/formatter"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"tr_dili/internal/arac/bicim"
-	"tr_dili/internal/dil/turkce"
 )
 
 // bicimleKomutu 'tr biçimle [--kontrol] <dosya.tr | klasör>...' komutudur. Dosyaları standart
@@ -49,13 +49,13 @@ func bicimleKomutu(args []string) {
 	for _, yol := range dosyalar {
 		veri, err := os.ReadFile(yol)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %v\n", turkce.DosyaHatasi("", yol, "okunamadı", err))
+			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.DosyaHatasi("", yol, "okunamadı", err))
 			hatali++
 			continue
 		}
-		yeni, err := bicim.Bicimle(string(veri))
+		yeni, err := formatter.Bicimle(string(veri))
 		if err != nil {
-			var anlam *bicim.AnlamDegistiHatasi
+			var anlam *formatter.AnlamDegistiHatasi
 			if errors.As(err, &anlam) {
 				fmt.Fprintf(os.Stderr, "✗ %s: %v — lütfen bu dosyayı bir hata kaydıyla bildirin\n", yol, err)
 			} else {
@@ -78,7 +78,7 @@ func bicimleKomutu(args []string) {
 			izin = bilgi.Mode().Perm()
 		}
 		if err := os.WriteFile(yol, []byte(yeni), izin); err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %v\n", turkce.DosyaHatasi("", yol, "yazılamadı", err))
+			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.DosyaHatasi("", yol, "yazılamadı", err))
 			hatali++
 			continue
 		}
@@ -105,7 +105,7 @@ func bicimleKomutu(args []string) {
 func trDosyalari(hedef string) ([]string, error) {
 	bilgi, err := os.Stat(hedef)
 	if err != nil {
-		return nil, turkce.DosyaHatasi("", hedef, "biçimlenemedi", err)
+		return nil, turkish.DosyaHatasi("", hedef, "biçimlenemedi", err)
 	}
 	if !bilgi.IsDir() {
 		return []string{hedef}, nil
@@ -113,7 +113,7 @@ func trDosyalari(hedef string) ([]string, error) {
 	var dosyalar []string
 	err = filepath.WalkDir(hedef, func(yol string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return turkce.DosyaHatasi("", yol, "taranamadı", err)
+			return turkish.DosyaHatasi("", yol, "taranamadı", err)
 		}
 		if d.IsDir() {
 			if yol != hedef && (strings.HasPrefix(d.Name(), ".") || d.Name() == "node_modules") {

@@ -7,29 +7,29 @@ package main
 
 import (
 	"fmt"
+	"github.com/sekerahmet/TCB/internal/devtools/debugger"
+	"github.com/sekerahmet/TCB/internal/lang/checker"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
+	"github.com/sekerahmet/TCB/internal/stdlib"
+	"github.com/sekerahmet/TCB/lib"
 	"os"
 	"runtime/debug"
 	"strings"
-	"tr_dili/internal/arac/ayikla"
-	"tr_dili/internal/dil/denetci"
-	"tr_dili/internal/dil/kaynak"
-	"tr_dili/internal/dil/kod"
-	"tr_dili/internal/dil/turkce"
-	"tr_dili/internal/dil/yurut"
-	"tr_dili/internal/motor"
-	"tr_dili/kitaplik"
 )
 
 // Dilin TR ile yazılı kitaplığı ikiliye gömülüdür ve 'aktar "tr/..."' ile yüklenir (11.6);
 // test koşucusu ve hata ayıklama sunucusu da bu ikilinin içinde çalıştığından onu görür.
-func init() { yurut.KitaplikBagla(kitaplik.Dosyalar) }
+func init() { interp.KitaplikBagla(lib.Dosyalar) }
 
 const VERSION = "1.0.0"
 
 // gcHedefi çöp toplayıcının varsayılan hedefi (yığın, canlı belleğin bu yüzdesi kadar
 // büyüyünce toplama başlar; Go'nun varsayılanı 100). Eğitimde her adım çok sayıda
 // büyük ara tensör ayırır; 100'de karakter modeli adım başına ~0,8 toplama yapıyordu.
-// Ölçüm (ornekler/07, GOMAXPROCS=2, eşli dönüşümlü 26 tur): 200 ile 20/26 turda
+// Ölçüm (examples/07, GOMAXPROCS=2, eşli dönüşümlü 26 tur): 200 ile 20/26 turda
 // hızlı, ortanca −0,9…−1,5 ms/adım (~%6); tepe bellek 71 → 105 MB. Kullanıcının GOGC
 // ortam değişkeni her zaman önceliklidir.
 const gcHedefi = 200
@@ -94,8 +94,8 @@ func main() {
 	case "dap":
 		// Düzenleyicinin hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
 		// Oturum bitince motorların açık kaynakları kapanır, geçici klasörler silinir.
-		err := ayikla.ServeDAP(os.Stdin, os.Stdout)
-		motor.Kapat()
+		err := debugger.ServeDAP(os.Stdin, os.Stdout)
+		stdlib.Kapat()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "❌ Hata ayıklama sunucusu: %v\n", err)
 			os.Exit(1)
@@ -130,7 +130,7 @@ var kaldirilanKomutlar = map[string]string{
 // printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
 func printError(msg, source string) {
 	fmt.Fprintf(os.Stderr, "  • %s\n", msg)
-	fmt.Fprint(os.Stderr, indentFrame(turkce.KodCercevesi(source, msg)))
+	fmt.Fprint(os.Stderr, indentFrame(turkish.KodCercevesi(source, msg)))
 }
 
 // indentFrame kod çerçevesini madde işaretinin altına hizalar.
@@ -172,7 +172,7 @@ func printHelp() {
 // iletilir (tr betik.tr --adım 5).
 func runFile(path string, argumanlar []string) {
 	_, s := dosyaHazirla(path, calistirmaHazirligi)
-	machine := yurut.New()
+	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Metin
 	machine.ArgumanlariAyarla(argumanlar)
@@ -200,11 +200,11 @@ func hataAyiklaKomutu(args []string) {
 
 func debugFile(path string, argumanlar []string) {
 	_, s := dosyaHazirla(path, hataAyiklamaHazirligi)
-	machine := yurut.New()
+	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Metin
 	machine.ArgumanlariAyarla(argumanlar)
-	dbg := ayikla.NewDebugger(path, s.Metin, true)
+	dbg := debugger.NewDebugger(path, s.Metin, true)
 	machine.Debugger = dbg
 
 	programCalistir(machine, s.Program, s.Metin)
@@ -218,14 +218,14 @@ func checkFile(path string) {
 }
 
 func startREPL() {
-	defer motor.Kapat() // açık dosyalar kapanır, geçici klasörler silinir
+	defer stdlib.Kapat() // açık dosyalar kapanır, geçici klasörler silinir
 	fmt.Printf("🇹🇷 TR Programlama ve Yapay Zeka Dili (v%s) — Etkileşimli Kabuk\n", VERSION)
 	fmt.Println("Çıkmak için 'çıkış', hata ayıklayıcıyı açmak için '/h' yazın.")
-	machine := yurut.New()
+	machine := interp.New()
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
 	okuyucu := machine.GirdiOkuyucu()
-	chk := denetci.New()
+	chk := checker.New()
 	oncekiTipHatalari, oncekiUyarilar := 0, 0
 
 	for {
@@ -247,21 +247,21 @@ func startREPL() {
 			continue
 		}
 		if line == "/h" || line == "/H" {
-			machine.Debugger = ayikla.NewDebugger("<etkileşimli-kabuk>", "", true)
+			machine.Debugger = debugger.NewDebugger("<etkileşimli-kabuk>", "", true)
 			fmt.Println("🐞 [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım çalışacak (F11 adım, F10 üstten geç, Shift+F11 dön, F5 devam).")
 			continue
 		}
 
 		// kesme_noktası deyimi de hata ayıklayıcıyı açmış olabilir
-		if dbg, ok := machine.Debugger.(*ayikla.Debugger); ok {
+		if dbg, ok := machine.Debugger.(*debugger.Debugger); ok {
 			dbg.SourceLines = strings.Split(line, "\n")
 		}
 
 		// Hatalar dosya çalıştırmadakiyle aynı başlık ve biçimle standart hataya yazılır.
 		// Denetleyici satırlar arasında durumunu (ve hata listesini) korur; yalnızca bu
 		// satırın getirdiği yeni hatalar gösterilir.
-		s := kaynak.Hazirla(line, kaynak.Secenekler{TipDenetimi: true, Denetleyici: chk})
-		if s.Asama == kaynak.AsamaSozdizimi {
+		s := source.Hazirla(line, source.Secenekler{TipDenetimi: true, Denetleyici: chk})
+		if s.Asama == source.AsamaSozdizimi {
 			hatalariYaz(sozdizimiBasligi, s.Hatalar, s.Metin)
 			continue
 		}
@@ -282,7 +282,7 @@ func startREPL() {
 			continue
 		}
 		machine.WaitAsync()
-		if val != nil && val.Type() != yurut.VAL_NULL {
+		if val != nil && val.Type() != interp.VAL_NULL {
 			if !yazdirIleBaslar(line) {
 				fmt.Println("=>", val.Inspect())
 			}
@@ -292,7 +292,7 @@ func startREPL() {
 
 // yazdirIleBaslar satır yazdır yerleşiğinin (G100) bir yazımıyla mı başlıyor?
 func yazdirIleBaslar(satir string) bool {
-	for _, y := range kod.Yazimlar(kod.G100) {
+	for _, y := range codes.Yazimlar(codes.G100) {
 		if strings.HasPrefix(satir, y) {
 			return true
 		}

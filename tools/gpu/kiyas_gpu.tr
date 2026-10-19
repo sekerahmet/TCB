@@ -1,4 +1,4 @@
-// GPU kıyası: CPU kıyasının (tools/kiyas) modeli GPU'da. Aynı model ve ayarlar
+// GPU kıyası: CPU kıyasının (tools/bench) modeli GPU'da. Aynı model ve ayarlar
 // kiyas_gpu.py'de. Ayarlar aynı klasördeki kiyas_ayar.json'dan okunur:
 //   {"boyut": "kucuk" | "buyuk" | "buyuk_kisa" | "deneme", "veri": "/content/veri" ya da "", "cihaz": "gpu"}
 // "buyuk_kisa" büyük modelin kısa koşusudur (profil ve dış profilleyici için).

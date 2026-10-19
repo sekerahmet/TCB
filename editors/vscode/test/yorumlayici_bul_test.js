@@ -1,6 +1,6 @@
 // Yorumlayıcıyı (tr.exe) bulma kuralının testi. Bağımlılıksız; depo kökünden:
 //   node editors/vscode/test/yorumlayici_bul_test.js
-// (go test ./cmd/tr/uctan_uca bunu TestEklentiJSTestleri ile çalıştırır.)
+// (go test ./cmd/tr/e2e bunu TestEklentiJSTestleri ile çalıştırır.)
 'use strict';
 
 const assert = require('assert');

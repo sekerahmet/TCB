@@ -49,7 +49,7 @@ gönderin (`cat /tmp/tr_gpu_*.ptx | head -200`).
 ```bash
 %%bash
 cd /content/tr
-./tr test testler 2>&1 | tail -3
+./tr test tests 2>&1 | tail -3
 ```
 
 ## 4. Mikro kıyaslar (TR ve PyTorch, işlem işlem)
@@ -146,9 +146,9 @@ mkdir -p /content/ss4096
 cp "/content/drive/MyDrive/VERI/ss4096/"{tokenizer.json,train.npy,valid.npy} /content/ss4096/
 cd /content/tr
 # Önce birkaç dakikalık deneme: bellek ve hız (speed.json)
-./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/kosular/deneme --adım 60 --ısınma 10 \
+./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/runs/deneme --adım 60 --ısınma 10 \
   --değerlendir_her 30 --örnek_her 60 2>&1 | tail -4
-cat /content/kosular/deneme/speed.json
+cat /content/runs/deneme/speed.json
 ```
 
 Bellek yetmezse toplu işi bölün (adım başına aynı veri): `--toplu 64 --birikim 2` (ya da
@@ -158,8 +158,8 @@ Bellek yetmezse toplu işi bölün (adım başına aynı veri): `--toplu 64 --bi
 ```bash
 %%bash
 cd /content/tr
-./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/kosular/gpt1 --adım 5000 2>&1 | tail -8
-cp -r /content/kosular/gpt1 "/content/drive/MyDrive/TR_dili/kosular/"
+./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --adım 5000 2>&1 | tail -8
+cp -r /content/runs/gpt1 "/content/drive/MyDrive/TR_dili/kosular/"
 ```
 
 Oturum kesilirse aynı komut kaldığı yerden sürer (`kontrol_noktalari/`, 15 dakikada bir).

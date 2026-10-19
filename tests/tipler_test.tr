@@ -1,0 +1,240 @@
+// docs/spec/03_tipler.md §3 — Tipler ve değerler
+
+test "3.1 Tam: 64 bit, taşma hata verir" {
+    eşit_mi(9223372036854775807, 9223372036854775806 + 1)
+    değişken mesaj = ""
+    dene { değişken z = 9223372036854775807 + 1 } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("taşma"), mesaj)
+}
+
+test "3.1 yerleşikler de taşmada sarmak yerine hata verir" {
+    değişken büyük = 9223372036854775807
+    değişken hatalar = []
+    dene { toplam([büyük, 1]) } yakala h { hatalar.ekle(h) }
+    dene { toplam([büyük, 1]) } yakala h { hatalar.ekle(h) }
+    dene { mutlak(-büyük - 1) } yakala h { hatalar.ekle(h) }
+    dene { tam(1e30) } yakala h { hatalar.ekle(h) }
+    dene { tam(-1e30) } yakala h { hatalar.ekle(h) }
+    dene { yuvarla(1e30) } yakala h { hatalar.ekle(h) }
+    eşit_mi(6, hatalar.uzunluk, metin(hatalar))
+    döngü h içinde hatalar { doğrula(h.içerir("Tam sayı taşması"), h) }
+    eşit_mi(büyük, toplam([büyük - 1, 1]))
+    eşit_mi(-büyük - 1, tam(ondalık(-büyük - 1)))
+}
+
+test "3.2 Ondalık: 64 bit kayan noktalı" {
+    eşit_mi(0.75, 3 / 4)
+    eşit_mi("1.0", metin(1.0))
+    eşit_mi("123456.0", metin(123456.0))
+    // Büyüklüğü 1e6 ve üstü ya da 1e-4'ten küçük olanlar bilimsel gösterimle yazılır
+    eşit_mi("1e+06", metin(1e6))
+    eşit_mi("1.6777216e+07", metin(16777216.0))
+    eşit_mi("0.0001", metin(0.0001))
+    eşit_mi("1e-05", metin(0.00001))
+}
+
+test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {
+    eşit_mi(5, "şeker".uzunluk)
+    eşit_mi("ş", "şeker"[0])
+    eşit_mi("r", "şeker"[-1])
+    eşit_mi("ek", "şeker"[1..3])
+    eşit_mi(yok, "abc"[10])
+}
+
+test "3.3 dilimde negatif uç indeksteki gibi sondan sayar" {
+    eşit_mi("ker", "şeker"[-3..5])
+    eşit_mi("eke", "şeker"[1..-1])
+    eşit_mi("eker", "şeker"[1..=-1])
+    eşit_mi("şeker", "şeker"[-10..10])
+    eşit_mi("", "şeker"[3..1])
+}
+
+test "3.4 Mantık: doğru ve yanlış" {
+    eşit_mi(Mantık, tip(doğru))
+    doğrula(doğru != yanlış)
+}
+
+test "3.5 yok: boş değer" {
+    eşit_mi(Yok, tip(yok))
+    fonksiyon hicbir_sey() {}
+    eşit_mi(yok, hicbir_sey())
+}
+
+test "3.6 Liste: sıralı, karışık tipli, sınır dışı indeks yok döner" {
+    değişken l = [1, "iki", 3.0]
+    eşit_mi(3, l.uzunluk)
+    eşit_mi(1, l[0])
+    eşit_mi(3.0, l[-1])
+    eşit_mi(yok, l[5])
+    eşit_mi([1, "iki"], l[0..2])
+    // Dilimde negatif uç sondan sayar; uçlar listenin sınırına kırpılır
+    eşit_mi([3, 4], [1, 2, 3, 4][-2..4])
+    eşit_mi([2, 3], [1, 2, 3, 4][1..=-2])
+    eşit_mi([1, 2, 3], [1, 2, 3][0..=9223372036854775807])
+}
+
+test "3.6 Liste: değerler başvuruyla paylaşılır" {
+    değişken a = [1]
+    değişken b = a
+    b.ekle(2)
+    eşit_mi([1, 2], a)
+}
+
+test "3.7 Sözlük: eklenme sırasını korur, çıplak ad anahtarı metindir" {
+    değişken d = {ad: "Ali", "yaş": 30, 1: "bir"}
+    eşit_mi(["ad", "yaş", 1], d.anahtarlar())
+    eşit_mi("Ali", d["ad"])
+    eşit_mi("Ali", d.ad)
+    eşit_mi("bir", d[1])
+    eşit_mi(yok, d["yok_olan"])
+    d["yeni"] = doğru
+    eşit_mi(4, d.uzunluk)
+}
+
+test "3.7 sayı anahtarları sayı eşitliğiyle bulunur: d[1] ile d[1.0] aynı anahtardır" {
+    değişken d = {1: "bir"}
+    eşit_mi("bir", d[1.0])
+    d[2.0] = "iki"
+    eşit_mi("iki", d[2])
+    eşit_mi([1, 2.0], d.anahtarlar())
+    d[1.0] = "BİR"
+    eşit_mi(2, d.uzunluk)
+    eşit_mi("BİR", d[1])
+    doğrula(d.içerir(1.0))
+    eşit_mi("yarım", {0.5: "yarım"}[0.5])
+    eşit_mi(yok, {1: "bir"}["1"])
+}
+
+test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk eleman sayısıdır" {
+    değişken d = {"anahtarlar": 5, "a": 1}
+    eşit_mi(5, d["anahtarlar"])
+    eşit_mi(["anahtarlar", "a"], d.anahtarlar())
+    eşit_mi(2, d.uzunluk)
+    eşit_mi(2, {"x": 1, "y": 2}.uzunluk)
+    eşit_mi(1, d.a)
+    d.b = 3
+    eşit_mi(3, d["b"])
+    değişken m = ""
+    dene { d.anahtarlar = 7 } yakala h { m = h }
+    doğrula(m.içerir("'anahtarlar' sözlüğün bir üyesi; anahtar için d[\"anahtarlar\"] yazın"), m)
+}
+
+test "3.8 Aralık: a..b (b hariç), a..=b (b dahil)" {
+    eşit_mi(Aralık, tip(1..3))
+    değişken t = 0
+    döngü i içinde 1..4 { t += i }
+    eşit_mi(6, t)
+    t = 0
+    döngü i içinde 1..=4 { t += i }
+    eşit_mi(10, t)
+}
+
+test "3.8 Aralık: Tam sınırındaki uçlar taşmadan gezilir" {
+    değişken üst = 9223372036854775807
+    değişken sayaç = 0
+    döngü i içinde (üst - 1)..=üst { sayaç += 1 }
+    eşit_mi(2, sayaç)
+    eşit_mi([üst - 1, üst], [x döngü x içinde (üst - 1)..=üst])
+    değişken alt = -üst - 1
+    eşit_mi([alt + 1, alt], [x döngü x içinde (alt + 1)..=alt])
+    eşit_mi([3, 2, 1], [x döngü x içinde 3..0])
+    eşit_mi([], [x döngü x içinde 2..2])
+    eşit_mi([2], [x döngü x içinde 2..=2])
+}
+
+test "3.9 fonksiyonlar birinci sınıf değerlerdir" {
+    değişken f = fonksiyon(x) { sonuç x + 1 }
+    değişken l = [f]
+    eşit_mi(2, l[0](1))
+    eşit_mi(Fonksiyon, tip(f))
+}
+
+test "3.10 doğruluk: yanlış, yok, 0, 0.0, boş metin/liste/sözlük yanlış sayılır" {
+    değişken yanlislar = [yanlış, yok, 0, 0.0, "", [], {}]
+    döngü d içinde yanlislar { doğrula(değil d, "yanlış sayılmalıydı: {d}") }
+    değişken dogrular = [doğru, 1, -1, 0.1, "a", [0], {"a": 0}, 1..2]
+    döngü d içinde dogrular { doğrula(d, "doğru sayılmalıydı: {d}") }
+}
+
+test "3.11 tip(x) değerin tipini bir tip değeri olarak verir; tip adlarıyla karşılaştırılır" {
+    eşit_mi([Tam, Ondalık, Metin, Mantık, Yok, Liste, Sözlük],
+        [tip(1), tip(1.5), tip("a"), tip(doğru), tip(yok), tip([]), tip({})])
+    // Ayrı bir matris tipi yoktur: matris 2 boyutlu tensördür.
+    eşit_mi([Tensör, Tensör], [tip(tensör([1])), tip(tensör([[1, 2]]))])
+    doğrula(tip(42) == Tam)
+    doğrula(tip(42) != Ondalık)
+    // Tip değerinin kendisinin tipi Tip'tir; yazdırılınca ve metne çevrilince adı görünür.
+    eşit_mi(Tip, tip(Tam))
+    eşit_mi("Tam", metin(tip(42)))
+    eşit_mi("tip: Liste", "tip: " + tip([1]))
+    değişken t: Tip = tip(1.5)
+    eşit_mi(Ondalık, t)
+    // Tip değeri eşle desenlerinde de kullanılır.
+    eşit_mi("sayı", eşle tip(3) { Tam, Ondalık => "sayı"; varsayılan => "başka" })
+}
+
+test "3.11 tip değeri metinle karşılaştırılamaz: tip(x) == Tam yazılır" {
+    değişken mesaj = ""
+    değişken ad = "Tam"
+    dene { yazdır(tip(5) == ad) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("tip değeri metinle karşılaştırılamaz: tip(x) == \"Tam\" yerine tip(x) == Tam yazın"), mesaj)
+    mesaj = ""
+    dene { eşit_mi(ad, tip(5)) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("tip(x) == Tam yazın"), mesaj)
+    // Denetleyici tip(...) ile bir metin sabitinin karşılaştırılmasını çalıştırmadan önce bulur.
+    mesaj = ""
+    dene { aktar "negative/tip_metin" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 2: tip değeri metinle karşılaştırılamaz: tip(x) == \"Tam\" yerine tip(x) == Tam yazın"), mesaj)
+    doğrula(mesaj.içerir("Satır 3: tip değeri metinle karşılaştırılamaz: tip(x) != \"Liste\" yerine tip(x) != Liste yazın"), mesaj)
+}
+
+test "3.12 dönüşümler: tam, ondalık, metin" {
+    eşit_mi(43, tam("42") + 1)
+    eşit_mi(3, tam(3.9))
+    eşit_mi(1.5, ondalık("1.5"))
+    eşit_mi("12a", metin(12) + "a")
+    değişken mesaj = ""
+    dene { tam("abc") } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("çevrilemedi"), mesaj)
+}
+
+test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
+    değişken yaş: Tam = 25
+    fonksiyon iki_kat(x: Tam): Tam { sonuç x * 2 }
+    eşit_mi(50, iki_kat(yaş))
+    değişken r: Aralık = 0..3
+    eşit_mi(Aralık, tip(r))
+    değişken f: Fonksiyon = x => x
+    eşit_mi(2, f(2))
+    // Uyuşmazlık programı çalıştırmadan reddeder (modül de aynı denetimden geçer)
+    değişken mesaj = ""
+    dene { aktar "negative/tip_aciklamasi" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 3: Tip uyuşmazlığı — \"ad\" değişkeni \"Tam\" tipinde tanımlandı ancak \"Metin\" tipinde değer atandı"), mesaj)
+    doğrula(mesaj.içerir("Satır 4: Tip uyuşmazlığı — \"r\" değişkeni \"Liste\" tipinde tanımlandı ancak \"Aralık\" tipinde değer atandı"), mesaj)
+}
+
+test "3.13 açıklamasız değişkenin tipi kalıcı değildir" {
+    değişken kayıp = 0
+    döngü i içinde 1..=4 { kayıp += 0.5 }
+    eşit_mi(2.0, kayıp)
+    değişken x = 5
+    x = "beş"
+    eşit_mi(Metin, tip(x))
+    // '/' Tam / Tam'da tam bölünmezse Ondalık verir; denetleyici de böyle bilir
+    değişken oran: Ondalık = 7 / 2
+    eşit_mi(3.5, oran)
+}
+
+test "3.14 tip adının tek yazımı vardır" {
+    değişken adet: Tam = 3
+    fonksiyon kare(x: Ondalık): Ondalık { sonuç x * x }
+    eşit_mi(2.25, kare(1.5))
+    // Büyük/küçük harfi farklı yazım tip adı değildir; program çalıştırılmadan reddedilir
+    değişken mesaj = ""
+    dene { aktar "negative/tip_adi_yazimi" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 2: 'tam' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Tam' yazın"), mesaj)
+    doğrula(mesaj.içerir("Satır 3: 'ONDALIK' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
+    doğrula(mesaj.içerir("Satır 3: 'ondalık' TR'de bir tip adı değil; tip adının tek yazımı vardır: 'Ondalık' yazın"), mesaj)
+    // Değer olarak okunan küçük harfli ad dönüşüm fonksiyonudur (3.12)
+    eşit_mi(adet, tam("3"))
+}

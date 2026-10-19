@@ -1,0 +1,18 @@
+// 01 — Merhaba: ilk TR programı.
+// Öğrettikleri: değişken tanımlamak, yazdır ile metne değer yerleştirmek ({ad}),
+// listeler, sondaki blok ile filtreleme/dönüştürme (o = sıradaki eleman) ve fonksiyon.
+// Çalıştırma (proje kökünden): tr examples/01_merhaba.tr
+// Kendi denemeleriniz için bu dosyayı scratch/ klasörüne kopyalayıp değiştirebilirsiniz
+// (scratch/ depoya girmez).
+
+değişken ad = "dünya"
+yazdır("Merhaba, {ad}!")
+
+değişken sayılar = [1, 2, 3, 4, 5, 6]
+yazdır("Çift sayılar: {sayılar.filtrele { o % 2 == 0 }}")
+yazdır("Kareleri: {sayılar.haritala { o * o }}")
+
+fonksiyon selamla(isim) {
+    sonuç "Hoş geldin, {isim}"
+}
+yazdır(selamla("TR dili"))

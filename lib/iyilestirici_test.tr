@@ -1,0 +1,197 @@
+// tr/iyilestirici testleri: Newton–Schulz dikleştirmesi, Muon ve NorMuon'un güncellemesi,
+// parametre grupları, öğrenme oranı planı, kontrol noktası ve küçük bir görevde AdamW ile
+// karşılaştırma. Koşturma: tr test lib
+aktar "tr/katman"
+aktar "tr/iyilestirici"
+
+// sapma_rms ‖XᵀX − I‖'nın eleman başına kök ortalama karesidir (dik matriste 0).
+fonksiyon sapma_rms(X) {
+    değişken n = X.şekil[1]
+    sonuç karekök(ortalama((X.devrik() @ X - birim_matris(n)) ** 2)).değer
+}
+
+test "dikleştir: uzun ve geniş matriste sonuç yaklaşık diktir (UᵀU ≈ I)" {
+    değişken G = rastgele_normal([32, 16], tohum: 5)
+    değişken X = dikleştir(G)
+    eşit_mi([32, 16], X.şekil)
+    // Beşinci derece yineleme tekil değerleri ≈ [0.7, 1.2]'ye toplar: tam dik değil, yakın.
+    doğrula(sapma_rms(X) < 0.2, "uzun: {sapma_rms(X)}")
+    doğrula(sapma_rms(G / karekök(toplam(G * G))) > 0.2, "girdinin kendisi dik değil")
+    değişken Y = dikleştir(G.devrik()) // [16, 32]: satırlar dik
+    doğrula(sapma_rms(Y.devrik()) < 0.2, "geniş: {sapma_rms(Y.devrik())}")
+    // Ölçekten bağımsızdır.
+    değişken fark = maks(mutlak(dikleştir(G * 1000) - X)).değer
+    doğrula(fark < 0.00001, "ölçek değişince sonuç değişmemeli: {fark}")
+}
+
+test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çıkış/giriş)" {
+    değişken W = tensör(rastgele_normal([4, 8], tohum: 1), türev_izle: doğru)
+    değişken önce = tensör(W)
+    değişken op = Muon([W], öğrenme_oranı: 0.1, momentum: 0.9, nesterov: yanlış)
+    eşit_mi([karekök(2.0)], op.ölçekler)
+    değişken G = rastgele_normal([4, 8], tohum: 2)
+    geri_yayılım(toplam(W * G))
+    op.adım()
+    // İlk adımda momentum (1 − β)·g'dir; dikleştirme ölçekten bağımsız olduğundan güncelleme
+    // −η · √2 · dikleştir(g)'dir.
+    değişken beklenen = önce - 0.1 * karekök(2.0) * dikleştir(G)
+    değişken fark = maks(mutlak(W - beklenen)).değer
+    doğrula(fark < 0.00001, "Muon adımı beklenenden farklı: {fark}")
+    eşit_mi(1, op.durum.momentum.uzunluk)
+    // sıfırla gradyanı sıfırlar; gradyan almayan ağırlık güncellenmez.
+    op.sıfırla()
+    eşit_mi(0.0, maks(mutlak(W.gradyan)).değer)
+    değişken V = tensör(birler([3, 3]), türev_izle: doğru)
+    Muon([V]).adım()
+    eşit_mi(birler([3, 3]), türevsiz(V))
+}
+
+test "Muon ve NorMuon yalnızca 2 boyutlu ağırlık alır" {
+    değişken mesaj = ""
+    dene { Muon([tensör(birler([4]), türev_izle: doğru)]) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Muon yalnızca 2 boyutlu ağırlıklar içindir; 0. ağırlığın şekli [4]"), mesaj)
+    mesaj = ""
+    dene { NorMuon([tensör(birler([2, 2, 2]), türev_izle: doğru)]) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("NorMuon yalnızca 2 boyutlu ağırlıklar içindir"), mesaj)
+}
+
+test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·η'dır" {
+    değişken W = tensör(sıfırlar([6, 4]), türev_izle: doğru)
+    değişken op = NorMuon([W], öğrenme_oranı: 0.01)
+    eşit_mi([1, 4], op.durum.ikinci_moment[0].şekil)
+    geri_yayılım(toplam(W * rastgele_normal([6, 4], tohum: 3)))
+    op.adım()
+    değişken rms = karekök(ortalama(türevsiz(W) ** 2)).değer
+    doğrula(rms > 0.00199 ve rms < 0.00201, "güncellemenin RMS'i 0.002 olmalı: {rms}")
+    // Her nöronun (sütunun) güncellemesi aynı büyüklüktedir.
+    değişken sütun = karekök(ortalama(türevsiz(W) ** 2, eksen: 0)).değer
+    döngü s içinde sütun { doğrula(s > 0.00199 ve s < 0.00201, "sütun RMS'i {s}") }
+}
+
+test "parametre_grupları: gizli 2B ağırlıklar ile gömme, çıkış ve normlar ayrılır" {
+    değişken m = GPT(10, bağlam: 4, boyut: 8, katman: 2, baş: 2)
+    değişken g = parametre_grupları(m)
+    eşit_mi(14, g.gizli.uzunluk) // blok başına 7 matris
+    eşit_mi(7, g.diğer.uzunluk) // gömme, çıkış, 2·2 blok normu, son norm
+    doğrula(g.diğer.içerir(m.gömme.tablo) ve g.diğer.içerir(m.çıkış.ağırlık))
+    doğrula(g.gizli.içerir(m.bloklar[1].ileri_besleme.aşağı.ağırlık))
+    eşit_mi(parametreler(m).uzunluk, g.gizli.uzunluk + g.diğer.uzunluk)
+}
+
+test "oran_planı: ısınma, sabit, azalma" {
+    eşit_mi(0.25, oran_planı(0, 100, ısınma: 4))
+    eşit_mi(1.0, oran_planı(3, 100, ısınma: 4))
+    eşit_mi(1.0, oran_planı(79, 100, ısınma: 4))
+    eşit_mi(1.0, oran_planı(80, 100, azalma: 0.2))
+    eşit_mi(0.5, oran_planı(90, 100, azalma: 0.2))
+    eşit_mi(0.05, oran_planı(99, 100, azalma: 0.2))
+    eşit_mi(1.0, oran_planı(99, 100, azalma: 0.0))
+    eşit_mi(0.55, oran_planı(90, 100, azalma: 0.2, en_az: 0.1))
+}
+
+test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½: yarım adım)" {
+    fonksiyon kur() {
+        değişken m = GPT(6, bağlam: 3, boyut: 4, katman: 1, baş: 2, tohum: 3)
+        geri_yayılım(m.kayıp([[1, 2, 3]], [[2, 3, 4]]))
+        sonuç m
+    }
+    değişken a = kur()
+    değişken b = kur()
+    değişken önce = tensör(a.gömme.tablo)
+    değişken op_a = MuonVeAdamW(a)
+    değişken op_b = MuonVeAdamW(b)
+    op_b.çarpan_ayarla(0.5)
+    op_a.adım()
+    op_b.adım()
+    değişken tam_adım = türevsiz(a.gömme.tablo) - önce
+    değişken yarım = türevsiz(b.gömme.tablo) - önce
+    doğrula(maks(mutlak(tam_adım)).değer > 0, "AdamW gömmeyi güncellemeli")
+    // AdamW'nin adımı öğrenme oranıyla doğrusaldır (momentler orandan bağımsız): yarım oran,
+    // float32 yuvarlamasıyla yarım adım verir.
+    değişken yarım_fark = maks(mutlak(yarım - 0.5 * tam_adım)).değer
+    doğrula(yarım_fark < 0.0000001, "yarım çarpan yarım adım vermeli: {yarım_fark}")
+    eşit_mi(0.01, op_b.muon.öğrenme_oranı)
+    eşit_mi(0.0015, op_b.adamw.öğrenme_oranı)
+    eşit_mi(0.003, op_a.adamw.öğrenme_oranı)
+    // Çarpan 1 iken AdamW'nin adımı planı olmayan AdamW'ninkiyle bit düzeyinde aynıdır.
+    değişken d = kur()
+    değişken op_d = AdamW(parametre_grupları(d).diğer, öğrenme_oranı: 0.003, ağırlık_çürümesi: 0.0, beta1: 0.9, beta2: 0.95)
+    op_d.adım()
+    eşit_mi(türevsiz(a.gömme.tablo), türevsiz(d.gömme.tablo))
+    değişken c = kur()
+    değişken op_c = MuonVeAdamW(c, normuon: doğru)
+    eşit_mi(NorMuon, tip(op_c.muon))
+    değişken mesaj = ""
+    dene { op_c.çarpan_ayarla(0.0) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("oran çarpanı pozitif olmalı"), mesaj)
+    eşit_mi(1.0, op_c.oran_çarpanı)
+}
+
+test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükler" {
+    değişken klasör = geçici_klasör()
+    fonksiyon eğit(koşu, son) {
+        değişken m = GPT(6, bağlam: 3, boyut: 4, katman: 1, baş: 2, tohum: 3)
+        değişken op = MuonVeAdamW(m)
+        değişken kn = kontrol_noktası(koşu, {model: m, adamw: op.adamw, muon: op.muon.durum}, her_dakika: 0)
+        döngü adım içinde kn.kaldığı_adım..son {
+            op.sıfırla()
+            geri_yayılım(m.kayıp([[1, 2, adım % 6]], [[2, adım % 6, 4]]))
+            op.adım()
+            kn.güncelle(adım + 1)
+        }
+        sonuç [m, op]
+    }
+    eğit(yol(klasör, "kesilen"), 2) // 2. adımda kaydedip durur
+    değişken sürdürülen = eğit(yol(klasör, "kesilen"), 4) // kaldığı yerden sürer
+    değişken kesintisiz = eğit(yol(klasör, "kesintisiz"), 4)
+    eşit_mi(parametreler(kesintisiz[0], adlarıyla: doğru), parametreler(sürdürülen[0], adlarıyla: doğru))
+    eşit_mi(kesintisiz[1].muon.durum.momentum, sürdürülen[1].muon.durum.momentum)
+    // Durum tensörleri türev izlemez (parametre değildir); kontrol noktası onları da saklar.
+    eşit_mi(0, parametreler(sürdürülen[1].muon.durum).uzunluk)
+    doğrula(maks(mutlak(sürdürülen[1].muon.durum.momentum[0])).değer > 0, "momentum yüklenmeli")
+}
+
+// Ters çevirme görevi: [a b c d | d c b a]. İkinci yarı ilk yarıdan tahmin edilir.
+değişken ters_tohumu = 1
+fonksiyon ters_toplu(B, V, yarım) {
+    değişken girdiler = []
+    değişken hedefler = []
+    döngü b içinde 0..B {
+        değişken d = []
+        döngü i içinde 0..yarım {
+            ters_tohumu = (ters_tohumu * 1103515245 + 12345) % 2147483648
+            d.ekle(taban(ters_tohumu / 65536) % V)
+        }
+        değişken dizi = d + d.ters_çevir()
+        girdiler.ekle(dizi[0..2 * yarım - 1])
+        hedefler.ekle([-1 döngü i içinde 0..yarım - 1] + dizi[yarım..2 * yarım])
+    }
+    sonuç [girdiler, hedefler]
+}
+
+fonksiyon ters_eğit(kur, adım_sayısı) {
+    ters_tohumu = 1
+    değişken m = GPT(8, bağlam: 10, boyut: 32, katman: 2, baş: 4, tohum: 4)
+    değişken op = kur(m)
+    değişken ilk = 0.0
+    değişken son = 0.0
+    döngü adım içinde 0..adım_sayısı {
+        değişken g, h = ters_toplu(16, 8, 5)
+        op.sıfırla()
+        değişken k = m.kayıp(g, h)
+        geri_yayılım(k)
+        op.adım()
+        eğer adım < 10 { ilk += k.değer / 10 }
+        eğer adım >= adım_sayısı - 10 { son += k.değer / 10 }
+    }
+    sonuç [ilk, son]
+}
+
+test "Muon ve NorMuon küçük bir görevde AdamW'den kötü değildir" {
+    değişken adamw = ters_eğit(m => AdamW(parametreler(m), öğrenme_oranı: 0.003, ağırlık_çürümesi: 0.0), 300)
+    değişken muon = ters_eğit(m => MuonVeAdamW(m, adamw_oranı: 0.003), 300)
+    değişken normuon = ters_eğit(m => MuonVeAdamW(m, normuon: doğru, adamw_oranı: 0.003), 300)
+    doğrula(muon[1] < 0.7 * muon[0], "Muon ile kayıp belirgin düşmeli: {muon}")
+    doğrula(muon[1] <= adamw[1] * 1.05, "Muon AdamW'den kötü olmamalı: Muon {muon[1]}, AdamW {adamw[1]}")
+    doğrula(normuon[1] <= adamw[1] * 1.05, "NorMuon AdamW'den kötü olmamalı: NorMuon {normuon[1]}, AdamW {adamw[1]}")
+}

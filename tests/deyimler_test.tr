@@ -1,0 +1,196 @@
+// docs/spec/05_deyimler.md §5 — Deyimler ve kontrol yapıları
+
+test "5.1 değişken ve := tanımı" {
+    değişken a = 1
+    b := 2
+    değişken c
+    eşit_mi(3, a + b)
+    eşit_mi(yok, c)
+}
+
+test "5.2 sabit: tanımlandıktan sonra değiştirilemez" {
+    sabit PI = 3.14
+    eşit_mi(3.14, PI)
+    // Yeniden atama denetleyicide yakalanır: dosyanın hiçbir satırı çalışmaz
+    değişken mesaj = ""
+    dene { aktar "negative/sabit_yeniden" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("sabit_yeniden.tr, Satır 4: Sabit hatası — \"PI\" bir sabittir"), mesaj)
+}
+
+test "5.3 çoklu tanım, takas ve listeden açma" {
+    değişken a, b = 1, 2
+    a, b = b, a
+    eşit_mi([2, 1], [a, b])
+    değişken ad, soyad = ["Mustafa", "Kemal"]
+    eşit_mi("Kemal", soyad)
+}
+
+test "5.4 atama ve bileşik atama" {
+    değişken x = 5
+    x += 3
+    x -= 1
+    x *= 2
+    x /= 7
+    eşit_mi(2, x)
+    değişken l = [1, 2]
+    l[0] = 9
+    eşit_mi([9, 2], l)
+}
+
+test "5.4 tanımsız bir ada atama hatadır" {
+    // Hata çalışmadan önce bulunur (5.14): modülün hiçbir satırı çalışmaz.
+    değişken mesaj = ""
+    dene { aktar "negative/tanimsiz_adlar" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("tanimsiz_adlar.tr, Satır 5, Sütun 1: Tanımsız ad — 'tanımsız_değişken' adında bir değişken ya da fonksiyon yok"), mesaj)
+}
+
+test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
+    fonksiyon sınıflandır(n) {
+        sonuç eğer n < 0 { "negatif" } değilse eğer n == 0 { "sıfır" } değilse { "pozitif" }
+    }
+    eşit_mi("negatif", sınıflandır(-5))
+    eşit_mi("sıfır", sınıflandır(0))
+    eşit_mi("pozitif", sınıflandır(7))
+    eşit_mi(yok, eğer yanlış { 1 })
+}
+
+test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
+    fonksiyon not_adı(n) {
+        sonuç eşle n {
+            100 => "tam puan"
+            90..100 => "pekiyi"
+            50, 60, 70 => "yuvarlak"
+            varsayılan => "diğer"
+        }
+    }
+    eşit_mi("tam puan", not_adı(100))
+    eşit_mi("pekiyi", not_adı(95))
+    eşit_mi("yuvarlak", not_adı(60))
+    eşit_mi("diğer", not_adı(3))
+    eşit_mi("x", eşle 1 { _ => "x" })
+    eşit_mi(yok, eşle 9 { 1 => "bir" })
+}
+
+test "5.6 eşle: ad ve parantezli desen değeriyle karşılaştırılır (ok fonksiyonu değildir)" {
+    değişken sınır = 10
+    değişken kırmızı = "#f00"
+    fonksiyon tür(x) {
+        sonuç eşle x {
+            sınır => "sınırda"
+            (sınır * 2) => "iki katı"
+            kırmızı, "#ff0000" => "kırmızı"
+            varsayılan => "başka"
+        }
+    }
+    eşit_mi("sınırda", tür(10))
+    eşit_mi("iki katı", tür(20))
+    eşit_mi("kırmızı", tür("#f00"))
+    eşit_mi("kırmızı", tür("#ff0000"))
+    eşit_mi("başka", tür(3))
+    // Kolun sonucu bir ok fonksiyonu olabilir
+    değişken f = eşle 1 { 1 => (y) => y + 1 }
+    eşit_mi(5, f(4))
+}
+
+test "5.7 döngü ... içinde: liste, aralık, sözlük, metin" {
+    değişken birikim = 0
+    döngü x içinde [1, 2, 3] { birikim += x }
+    eşit_mi(6, birikim)
+    değişken çiftler = []
+    döngü i, x içinde ["a", "b"] { çiftler.ekle("{i}{x}") }
+    eşit_mi(["0a", "1b"], çiftler)
+    değişken anahtarlar = []
+    döngü k, v içinde {"a": 1, "b": 2} { anahtarlar.ekle(k + metin(v)) }
+    eşit_mi(["a1", "b2"], anahtarlar)
+    değişken harfler = []
+    döngü h içinde "çay" { harfler.ekle(h) }
+    eşit_mi(["ç", "a", "y"], harfler)
+    değişken geri = []
+    döngü i içinde 3..0 { geri.ekle(i) }
+    eşit_mi([3, 2, 1], geri)
+}
+
+test "5.8 koşullu döngü ve iken" {
+    değişken i = 0
+    iken i < 3 { i += 1 }
+    eşit_mi(3, i)
+    döngü i < 5 { i += 1 }
+    eşit_mi(5, i)
+}
+
+test "5.9 sonsuz döngü ve çık" {
+    değişken i = 0
+    döngü {
+        i += 1
+        eğer i == 4 { çık }
+    }
+    eşit_mi(4, i)
+    döngü x içinde 1..100 { eğer x == 2 { çık } }
+}
+
+test "5.10 devam sonraki turdan sürdürür" {
+    değişken tekler = []
+    döngü i içinde 1..6 {
+        eğer i % 2 == 0 { devam }
+        tekler.ekle(i)
+    }
+    eşit_mi([1, 3, 5], tekler)
+}
+
+test "5.11 liste üreteci" {
+    eşit_mi([1, 9, 25], [x * x döngü x içinde 1..=5 eğer x % 2 == 1])
+    eşit_mi([2, 4], [x * 2 döngü x içinde [1, 2]])
+}
+
+test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
+    değişken dış = 0
+    eğer doğru {
+        değişken iç = 1
+        dış = 5
+    }
+    eşit_mi(5, dış)
+    // Blokta tanımlanan ad dışarıda tanımsızdır; denetim bunu çalışmadan önce bulur (5.14).
+    değişken mesaj = ""
+    dene { aktar "negative/tanimsiz_adlar" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 9, Sütun 8: Tanımsız ad — 'iç' adında bir değişken ya da fonksiyon yok"), mesaj)
+}
+
+test "5.13 çık ve devam yalnızca döngü içinde geçerlidir" {
+    değişken l = []
+    döngü i içinde 0..5 {
+        eşle i {
+            1 => { devam }
+            3 => { çık }
+        }
+        l.ekle(i)
+    }
+    eşit_mi([0, 2], l)
+    // Döngü dışındaki çık/devam (fonksiyon, sondaki blok içinde de) derleme hatasıdır
+    değişken h1 = ""
+    dene { aktar "negative/dongu_disi_cik" } yakala h { h1 = h }
+    doğrula(h1.içerir("'çık' yalnızca bir döngünün içinde kullanılabilir; fonksiyondan çıkmak için 'sonuç' yazın"), h1)
+    değişken h2 = ""
+    dene { aktar "negative/dongu_disi_devam" } yakala h { h2 = h }
+    doğrula(h2.içerir("'devam' yalnızca bir döngünün içinde kullanılabilir"), h2)
+}
+
+test "5.14 tanımsız ad çalışmadan önce bulunur; dinamik adlar yanlış alarm vermez" {
+    değişken mesaj = ""
+    dene { aktar "negative/tanimsiz_adlar" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("modülü tip denetimi hataları nedeniyle yüklenemedi"), mesaj)
+    doğrula(mesaj.içerir("Satır 4, Sütun 1: Tanımsız ad — 'yazdir' adında bir değişken ya da fonksiyon yok ('yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?)"), mesaj)
+    doğrula(mesaj.içerir("Satır 11, Sütun 11: Tanımsız ad — 'bilinmeyen_ad'"), mesaj)
+    // Bunlar tanımlıdır; denetim yanlış alarm vermez.
+    fonksiyon önce() { sonuç sonra() + 1 }
+    fonksiyon sonra() { sonuç 1 }
+    eşit_mi(2, önce())
+    eşit_mi([2, 3], [1, 2].haritala { o + 1 })
+    değişken yakalanan = ""
+    dene { fırlat "x" } yakala { yakalanan = hata }
+    eşit_mi("x", yakalanan)
+    eşit_mi([0, 2], [k * 2 döngü k içinde 0..2])
+    yapı Sayaç { n = 0; fonksiyon artır() { kendi.n += 1 } }
+    değişken s = Sayaç()
+    s.artır()
+    eşit_mi(1, s.n)
+}

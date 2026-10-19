@@ -78,4 +78,4 @@ jobs:
       # Eşzamanlı kod: yorumlayıcı kilidi ve eşzamanlı görevler, motorların kilitleri,
       # önden yükleme ve önbellek. Yarış dedektörü cgo ister (Linux koşucusunda hazır).
       - name: Yarış dedektörüyle Go testleri
-        run: go test -race -short ./internal/dil/yurut ./internal/motor/... ./internal/hesap/veriyolu
+        run: go test -race -short ./internal/lang/interp ./internal/stdlib/... ./internal/compute/dataload

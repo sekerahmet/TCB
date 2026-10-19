@@ -1,0 +1,267 @@
+// docs/spec/18_dosya_ve_yol.md §18 — Dosya ve yol
+// Dosya yazan her test kendi geçici klasöründe çalışır (geçici_klasör(), 18.14); klasörler
+// program bitince içindekilerle silinir, depoda ya da geçici klasörde bir şey kalmaz.
+// Bağlantılı (sembolik bağlantı, Windows dizin bağlantısı) durumlar TR'den kurulamadığı için
+// internal/stdlib/files Go testlerinde sınanır.
+
+// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+fonksiyon hata_metni(f) {
+    dene {
+        f()
+    } yakala h {
+        sonuç h
+    }
+    sonuç ""
+}
+
+test "18.1 yol parçaları birleştirip temizler; mutlak ikinci parça ve boş parça hatadır" {
+    eşit_mi("a/c", metin(yol("a/./b/../c")))
+    eşit_mi("veri/eğitim/a.npy", metin(yol("veri", "eğitim", "a.npy")))
+    eşit_mi("veri/a", metin(yol(yol("veri/"), "a")))
+    eşit_mi(".", metin(yol("a", "..")))
+    eşit_mi(Yol, tip(yol("a")))
+    eşit_mi("x/y", "{yol("x", "y")}")
+    eşit_mi(`["a/b"]`, json_metin([yol("a/b")]))
+    doğrula(yol("a") == yol("a/./"))
+    doğrula(yol("a") != "a")
+    değişken m = hata_metni(() => yol("veri", "/etc/passwd"))
+    doğrula(m.içerir("yol() 2. parça \"/etc/passwd\" mutlak bir yol"), m)
+    m = hata_metni(() => yol("a", ""))
+    doğrula(m.içerir("2. parça boş metin"), m)
+    m = hata_metni(() => yol("C:\tokenizer.json"))
+    doğrula(m.içerir("sekme karakteri var"), m)
+}
+
+test "18.2 dosya_adı, uzantı, uzantısız_ad ve üst_klasör yolun yazımına bakar" {
+    değişken y = yol("veri/derlem.tar.gz")
+    eşit_mi("derlem.tar.gz", y.dosya_adı)
+    eşit_mi(".gz", y.uzantı)
+    eşit_mi("derlem.tar", y.uzantısız_ad)
+    eşit_mi(y.dosya_adı, y.uzantısız_ad + y.uzantı)
+    eşit_mi("", yol(".gitignore").uzantı)
+    eşit_mi("", yol("Makefile").uzantı)
+    eşit_mi("", yol(".").dosya_adı)
+    eşit_mi("veri", metin(y.üst_klasör))
+    eşit_mi(".", metin(yol("a.txt").üst_klasör))
+    eşit_mi(Yol, tip(y.üst_klasör))
+}
+
+test "18.3 diske bakan özellikler yolu tek kuralla çözer" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "a.txt"), "merhaba")
+    doğrula(yol(k, "a.txt").var_mı)
+    doğrula(yol(k, "a.txt").dosya_mı)
+    doğrula(değil yol(k, "a.txt").klasör_mü)
+    doğrula(k.klasör_mü)
+    doğrula(değil yol(k, "yok").var_mı)
+    eşit_mi(7, yol(k, "a.txt").bayt)
+    // Programın klasöründeki veri, program başka bir klasörden çalışsa da bulunur.
+    doğrula(yol("data/parcalayici.json").var_mı)
+    eşit_mi("parcalayici.json", yol("data/parcalayici.json").mutlak.dosya_adı)
+    değişken m = hata_metni(() => k.bayt)
+    doğrula(m.içerir("bir klasör"), m)
+    m = hata_metni(() => yol(k, "yok.txt").bayt)
+    doğrula(m.içerir("böyle bir dosya ya da klasör yok"), m)
+}
+
+test "18.4 yol alan yerleşikler Metin ya da Yol alır" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "t.csv"), "a,b\n1,2")
+    eşit_mi("a,b\n1,2", dosya_oku(yol(k, "t.csv")))
+    eşit_mi([["a", "b"], [1, 2]], csv_oku(yol(k, "t.csv")))
+    değişken m = hata_metni(() => dosya_oku(5))
+    doğrula(m.içerir("dosya_oku() 1. argüman olarak Metin ya da Yol bekler"), m)
+    m = hata_metni(() => csv_oku(yol(k, "olmayan.csv")))
+    doğrula(m.içerir("okunamadı"), m)
+}
+
+test "18.5 klasörü_listele kalıba uyan dosya ve klasörleri sıralı verir" {
+    değişken k = geçici_klasör()
+    klasör_oluştur(yol(k, "alt/derin"))
+    klasör_oluştur(yol(k, ".gizli"))
+    dosya_yaz(yol(k, "b.npy"), "1")
+    dosya_yaz(yol(k, "a.txt"), "1")
+    dosya_yaz(yol(k, "alt/c.npy"), "1")
+    dosya_yaz(yol(k, "alt/derin/d.npy"), "1")
+    dosya_yaz(yol(k, ".gizli/e.npy"), "1")
+    fonksiyon adlar(liste) {
+        sonuç [metin(p).böl(metin(k) + "/")[1] döngü p içinde liste]
+    }
+    eşit_mi(["a.txt", "alt", "b.npy"], adlar(klasörü_listele(k)))
+    eşit_mi(["alt/c.npy", "alt/derin/d.npy", "b.npy"], adlar(klasörü_listele(k, "**/*.npy")))
+    eşit_mi(["alt/c.npy", "alt/derin"], adlar(klasörü_listele(k, "alt/*")))
+    eşit_mi([".gizli"], adlar(klasörü_listele(k, ".*")))
+    eşit_mi(["a.txt", "b.npy"], adlar(klasörü_listele(k, "[ab].*")))
+    eşit_mi(Yol, tip(klasörü_listele(k)[0]))
+    değişken m = hata_metni(() => klasörü_listele(k, "../*"))
+    doğrula(m.içerir("kalıpta .. olamaz"), m)
+    m = hata_metni(() => klasörü_listele(k, "a**"))
+    doğrula(m.içerir("** yalnızca tam bir bileşen olabilir"), m)
+    m = hata_metni(() => klasörü_listele(yol(k, "olmayan")))
+    doğrula(m.içerir("listelenemedi"), m)
+}
+
+test "18.6 klasör_oluştur üst klasörleriyle oluşturur; varsa sorun değildir" {
+    değişken k = geçici_klasör()
+    değişken d = klasör_oluştur(yol(k, "a/b/c"))
+    doğrula(d.klasör_mü)
+    eşit_mi(Yol, tip(d))
+    eşit_mi(d, klasör_oluştur(yol(k, "a/b/c")))
+    dosya_yaz(yol(k, "dosya"), "x")
+    değişken m = hata_metni(() => klasör_oluştur(yol(k, "dosya")))
+    doğrula(m.içerir("aynı adda bir dosya var"), m)
+}
+
+test "18.7 sil dosyayı ya da boş klasörü siler; dolu klasör içindekilerle ister" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "a.txt"), "x")
+    eşit_mi(1, sil(yol(k, "a.txt")))
+    doğrula(değil yol(k, "a.txt").var_mı)
+    eşit_mi(0, sil(klasör_oluştur(yol(k, "boş"))))
+    klasör_oluştur(yol(k, "dolu/alt"))
+    dosya_yaz(yol(k, "dolu/a.txt"), "x")
+    dosya_yaz(yol(k, "dolu/alt/b.txt"), "x")
+    değişken m = hata_metni(() => sil(yol(k, "dolu")))
+    doğrula(m.içerir("klasörü boş değil; içindekilerle birlikte silmek için içindekilerle: doğru verin"), m)
+    eşit_mi(2, sil(yol(k, "dolu"), içindekilerle: doğru))
+    m = hata_metni(() => sil(yol(k, "olmayan.txt")))
+    doğrula(m.içerir("silinemedi: böyle bir dosya ya da klasör yok"), m)
+    dosya_yaz(yol(k, "s.txt"), "1\n2")
+    değişken o = dosya_satırları(yol(k, "s.txt"))
+    o.sonraki()
+    m = hata_metni(() => sil(k, içindekilerle: doğru))
+    doğrula(m.içerir("SatırOkuyucu ile okunuyor; önce okuyucuyu kapatın (x.kapat())"), m)
+    o.kapat()
+    eşit_mi(1, sil(yol(k, "s.txt")))
+}
+
+test "18.8 sil kökü, çalışma ve program klasörünü ve onların üstlerini silmez" {
+    değişken m = hata_metni(() => sil("."))
+    doğrula(m.içerir("çalışma klasörü ya da onun bir üst klasörü; TR bunu silmez"), m)
+    m = hata_metni(() => sil(".."))
+    doğrula(m.içerir("TR bunu silmez"), m)
+    m = hata_metni(() => sil(yol("data").mutlak.üst_klasör))
+    doğrula(m.içerir("TR bunu silmez"), m)
+    m = hata_metni(() => sil("/"))
+    doğrula(m.içerir("TR bunu silmez"), m)
+    doğrula(yol("data/parcalayici.json").var_mı)
+}
+
+test "18.9 kopyala hedef klasörün içine kopyalar; üzerine yazmak açık onay ister" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "model.txt"), "bir")
+    klasör_oluştur(yol(k, "yedek"))
+    eşit_mi(yol(k, "yedek/model.txt"), kopyala(yol(k, "model.txt"), yol(k, "yedek")))
+    eşit_mi("bir", dosya_oku(yol(k, "yedek/model.txt")))
+    dosya_yaz(yol(k, "model.txt"), "iki")
+    değişken m = hata_metni(() => kopyala(yol(k, "model.txt"), yol(k, "yedek")))
+    doğrula(m.içerir("zaten var; yerine koymak için üzerine_yaz: doğru verin"), m)
+    kopyala(yol(k, "model.txt"), yol(k, "yedek"), üzerine_yaz: doğru)
+    eşit_mi("iki", dosya_oku(yol(k, "yedek/model.txt")))
+    klasör_oluştur(yol(k, "ağaç/alt"))
+    dosya_yaz(yol(k, "ağaç/alt/a.txt"), "a")
+    kopyala(yol(k, "ağaç"), yol(k, "ağaç2"))
+    eşit_mi("a", dosya_oku(yol(k, "ağaç2/alt/a.txt")))
+    m = hata_metni(() => kopyala(yol(k, "ağaç"), yol(k, "ağaç/alt")))
+    doğrula(m.içerir("kendi içine"), m)
+    m = hata_metni(() => kopyala(yol(k, "model.txt"), yol(k, "model.txt"), üzerine_yaz: doğru))
+    doğrula(m.içerir("kaynak ile hedef aynı"), m)
+    klasör_oluştur(yol(k, "h/model.txt"))
+    m = hata_metni(() => kopyala(yol(k, "model.txt"), yol(k, "h"), üzerine_yaz: doğru))
+    doğrula(m.içerir("dosya bir klasörün yerine konmaz"), m)
+    // Geride geçici ad kalmaz.
+    eşit_mi([], klasörü_listele(k, ".*"))
+}
+
+test "18.10 taşı yeniden adlandırır; kurallar kopyala ile aynıdır" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "a.txt"), "x")
+    eşit_mi(yol(k, "b.txt"), taşı(yol(k, "a.txt"), yol(k, "b.txt")))
+    doğrula(değil yol(k, "a.txt").var_mı)
+    klasör_oluştur(yol(k, "d/alt"))
+    dosya_yaz(yol(k, "d/alt/c.txt"), "c")
+    taşı(yol(k, "d"), yol(k, "e"))
+    eşit_mi("c", dosya_oku(yol(k, "e/alt/c.txt")))
+    dosya_yaz(yol(k, "c.txt"), "yeni")
+    değişken m = hata_metni(() => taşı(yol(k, "c.txt"), yol(k, "b.txt")))
+    doğrula(m.içerir("zaten var"), m)
+    taşı(yol(k, "c.txt"), yol(k, "b.txt"), üzerine_yaz: doğru)
+    eşit_mi("yeni", dosya_oku(yol(k, "b.txt")))
+    m = hata_metni(() => taşı(".", yol(k, "x")))
+    doğrula(m.içerir("yerinden kaldırmaz"), m)
+}
+
+test "18.11 dosya_satırları dosyayı akışla satır satır okur" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "a.txt"), "bir\r\niki\n\nson")
+    eşit_mi(["bir", "iki", "", "son"], [s döngü s içinde dosya_satırları(yol(k, "a.txt"))])
+    // Baştaki BOM atılır (bom_ornegi.tr BOM ile başlar).
+    değişken ilk = dosya_satırları("bom_ornegi.tr").sonraki()
+    doğrula(ilk.başlar("// BOM ile"), ilk)
+    dosya_yaz(yol(k, "b.txt"), "1\n2\n3\n")
+    değişken o = dosya_satırları(yol(k, "b.txt"))
+    eşit_mi(SatırOkuyucu, tip(o))
+    eşit_mi("1", o.sonraki())
+    eşit_mi(["2", "3"], [s döngü s içinde o])
+    eşit_mi(yok, o.sonraki())
+    değişken m = hata_metni(() => dosya_satırları(yol(k, "olmayan.txt")))
+    doğrula(m.içerir("dosya_satırları(): "), m)
+    doğrula(m.içerir("okunamadı"), m)
+}
+
+test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılır" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "t.csv.gz"), "a,b\n1,2")
+    eşit_mi("a,b\n1,2", dosya_oku(yol(k, "t.csv.gz")))
+    eşit_mi([["a", "b"], [1, 2]], csv_oku(yol(k, "t.csv.gz")))
+    eşit_mi(["a,b", "1,2"], [s döngü s içinde dosya_satırları(yol(k, "t.csv.gz"))])
+    // Sıkıştırılmış dosya, aynı içeriğin düz yazımından farklıdır.
+    doğrula(yol(k, "t.csv.gz").bayt != 7)
+    dosya_yaz(yol(k, "duz.txt"), "sıkıştırılmamış")
+    kopyala(yol(k, "duz.txt"), yol(k, "duz.gz"))
+    değişken m = hata_metni(() => dosya_oku(yol(k, "duz.gz")))
+    doğrula(m.içerir("uzantısı .gz ama içerik gzip değil"), m)
+}
+
+test "18.13 dosya_yaz atomik yazar; geride geçici dosya kalmaz" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "a.txt"), "eski")
+    dosya_yaz(yol(k, "a.txt"), "yeni")
+    eşit_mi("yeni", dosya_oku(yol(k, "a.txt")))
+    eşit_mi([], klasörü_listele(k, ".*"))
+    değişken m = hata_metni(() => dosya_yaz(k, "x"))
+    doğrula(m.içerir("bu bir klasör"), m)
+}
+
+test "18.14 geçici_klasör yeni, boş bir klasör verir; program bitince silinir" {
+    değişken k = geçici_klasör()
+    eşit_mi(Yol, tip(k))
+    doğrula(k.klasör_mü)
+    eşit_mi(k, k.mutlak)
+    eşit_mi([], klasörü_listele(k, "**"))
+    değişken başka = geçici_klasör()
+    doğrula(k != başka)
+    dosya_yaz(yol(k, "a.txt"), "x")
+    doğrula(değil yol(başka, "a.txt").var_mı)
+    doğrula(hata_metni(() => geçici_klasör(1)).içerir("geçici_klasör() 0 argüman bekler, 1 verildi"))
+}
+
+test "18.15 SatırOkuyucu.kapat dosyayı bırakır; kapatılmış okuyucu satır vermez" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "s.txt"), "1\n2\n3")
+    değişken o = dosya_satırları(yol(k, "s.txt"))
+    eşit_mi("1", o.sonraki())
+    eşit_mi(doğru, o.kapat())
+    eşit_mi(yanlış, o.kapat())
+    // Dosya artık bu programda açık değildir: Windows'ta da silinir.
+    eşit_mi(1, sil(yol(k, "s.txt")))
+    değişken m = hata_metni(() => o.sonraki())
+    doğrula(m.içerir("okuyucusu kapat() ile kapatıldı; yeniden okumak için dosya_satırları(...) ile yeni bir okuyucu açın"), m)
+    m = hata_metni(() => [s döngü s içinde o])
+    doğrula(m.içerir("kapat() ile kapatıldı"), m)
+    // Sonuna kadar okunan okuyucunun dosyası zaten kapalıdır.
+    dosya_yaz(yol(k, "t.txt"), "a")
+    değişken t = dosya_satırları(yol(k, "t.txt"))
+    eşit_mi(["a"], [s döngü s içinde t])
+    eşit_mi(yanlış, t.kapat())
+}

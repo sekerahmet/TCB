@@ -1,0 +1,180 @@
+// docs/spec/16_veri_parcalayici.md §16 — Veri ve parçalayıcı
+// Sentetik test verisi tests/data altındadır (üreteci: internal/stdlib/dataset/ornek_veri_test.go).
+// Göreli yollar çalışma klasöründe yoksa bu dosyanın klasörüne göre çözülür (16.8).
+
+// hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
+fonksiyon hata_metni(f) {
+    dene {
+        f()
+    } yakala h {
+        sonuç h
+    }
+    sonuç ""
+}
+
+test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
+    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    eşit_mi(Parçalayıcı, tip(p))
+    eşit_mi(1005, p.dağarcık_boyutu)
+    eşit_mi(0, p.parça_kimliği("<|endoftext|>"))
+    eşit_mi(yok, p.parça_kimliği("böyle-bir-parça-yok"))
+}
+
+test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
+    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    değişken k = p.kodla("Merhaba dünya!")
+    eşit_mi(Liste, tip(k))
+    eşit_mi(Tam, tip(k[0]))
+    // Metindeki özel parça tek bir kimlik olarak tanınır.
+    eşit_mi(0, p.kodla("<|endoftext|>")[0])
+    eşit_mi(1, p.kodla("<|endoftext|>").uzunluk)
+    // Liste verilirse her metin ayrı kodlanır (paralel), sıra korunur.
+    değişken toplu = p.kodla(["Merhaba dünya!", "", "bir"])
+    eşit_mi(3, toplu.uzunluk)
+    eşit_mi(k, toplu[0])
+    eşit_mi([], toplu[1])
+    // Son işleyici özel parça ekleyen bir parçalayıcı ([CLS] ... [SEP]).
+    değişken b = parçalayıcı_yükle("data/parcalayici_bert.json")
+    değişken cls = b.parça_kimliği("[CLS]")
+    değişken sep = b.parça_kimliği("[SEP]")
+    değişken ozelli = b.kodla("merhaba dünya")
+    değişken ozelsiz = b.kodla("merhaba dünya", özel_parçalar: yanlış)
+    eşit_mi(cls, ozelli[0])
+    eşit_mi(sep, ozelli.son)
+    eşit_mi(ozelli.uzunluk - 2, ozelsiz.uzunluk)
+    doğrula(ozelsiz[0] != cls)
+    // ikinci: çift kodlar: [CLS] A [SEP] B [SEP]
+    değişken cift = b.kodla("merhaba", ikinci: "dünya")
+    eşit_mi(cls, cift[0])
+    eşit_mi(sep, cift.son)
+    eşit_mi(b.kodla("merhaba").uzunluk + b.kodla("dünya").uzunluk - 1, cift.uzunluk)
+    değişken ciftler = b.kodla(["merhaba", "bir"], ikinci: ["dünya", "iki"])
+    eşit_mi(cift, ciftler[0])
+    eşit_mi(b.kodla("merhaba", ikinci: "dünya", özel_parçalar: yanlış), b.kodla("merhaba dünya", özel_parçalar: yanlış))
+}
+
+test "16.3 çöz: varsayılan özel parçaları atlar; listeler ve tensörler" {
+    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    değişken cümle = "İstanbul'da hava güzel."
+    eşit_mi(cümle, p.çöz(p.kodla(cümle)))
+    değişken eot = p.kodla(cümle + "<|endoftext|>")
+    eşit_mi(cümle, p.çöz(eot))
+    eşit_mi(cümle + "<|endoftext|>", p.çöz(eot, özel_parçalar: doğru))
+    eşit_mi(["bir", "iki üç"], p.çöz(p.kodla(["bir", "iki üç"])))
+    eşit_mi("", p.çöz([]))
+    // Tensör: 1 boyutlu → metin, 2 boyutlu → metin listesi.
+    değişken k = p.kodla("bir iki")
+    eşit_mi("bir iki", p.çöz(tensör(k)))
+    eşit_mi(["bir iki", "bir iki"], p.çöz(tensör([k, k])))
+}
+
+test "16.4 veri_kümesi: klasör ya da tek .npy dosyası" {
+    değişken küme = veri_kümesi("data/numbers")
+    eşit_mi(VeriKümesi, tip(küme))
+    eşit_mi("VeriKümesi(2 veri dosyası, 250 parça)", metin(küme))
+    eşit_mi("VeriKümesi(1 veri dosyası, 100 parça)", metin(veri_kümesi("data/numbers/a.npy")))
+    // meta.json varsa veri dosyalarının parça sayıları oradan okunur.
+    eşit_mi("VeriKümesi(2 veri dosyası, 1,1 bin parça)", metin(veri_kümesi("data/text")))
+}
+
+test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebilir" {
+    değişken küme = veri_kümesi("data/numbers")
+    değişken ö = küme.örnekleyici(toplu: 3, bağlam: 5, tohum: 1)
+    eşit_mi(Örnekleyici, tip(ö))
+    değişken giriş, hedef = ö.sonraki()
+    eşit_mi(Tensör, tip(giriş))
+    eşit_mi([3, 5], giriş.şekil)
+    eşit_mi([3, 5], hedef.şekil)
+    // Hedef, girdinin bir kaydırılmışıdır; pencereler parça sınırını aşmaz (değerler ardışık).
+    döngü satır içinde 0..3 {
+        değişken g = giriş.değer[satır]
+        değişken h = hedef.değer[satır]
+        döngü j içinde 0..5 {
+            eşit_mi(g[0] + j, g[j])
+            eşit_mi(g[j] + 1, h[j])
+        }
+    }
+    // Aynı tohum aynı toplu işleri, farklı tohum farklı sırayı verir.
+    değişken aynı = küme.örnekleyici(toplu: 3, bağlam: 5, tohum: 1).sonraki()
+    eşit_mi(giriş.değer, aynı[0].değer)
+    değişken başka = küme.örnekleyici(toplu: 3, bağlam: 5, tohum: 2).sonraki()
+    doğrula(giriş.değer != başka[0].değer)
+    // Örnekleyici dönemler boyunca sonsuz üretir.
+    döngü i içinde 0..40 { ö.sonraki() }
+    doğrula(ö.sonraki() != yok)
+    // Tensörler gömme ve çapraz_entropi'ye doğrudan verilir.
+    değişken E = rastgele_normal([1200, 4], tohum: 1)
+    değişken W = rastgele_normal([4, 1200], tohum: 2)
+    değişken çıktı = gömme(E, giriş) @ W
+    eşit_mi([3, 5, 1200], çıktı.şekil)
+    eşit_mi([], çapraz_entropi(çıktı, hedef).şekil)
+}
+
+test "16.6 sıralı: pencereler sırayla, bitince yok" {
+    değişken küme = veri_kümesi("data/numbers")
+    değişken s = küme.sıralı(toplu: 2, bağlam: 4)
+    eşit_mi(SıralıOkuyucu, tip(s))
+    değişken giriş, hedef = s.sonraki()
+    eşit_mi([[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0]], giriş.değer)
+    eşit_mi([[1, 2, 3, 4], [5, 6, 7, 8]], hedef.değer)
+    değişken sayı = 1
+    değişken son = yok
+    döngü {
+        değişken x = s.sonraki()
+        eğer x == yok { çık }
+        sayı += 1
+        son = x
+    }
+    // a.npy 24, b.npy 37 pencere: 61 pencere → 31 toplu iş, sonuncusu tek satır.
+    eşit_mi(31, sayı)
+    eşit_mi([1, 4], son[0].şekil)
+    eşit_mi([[1144.0, 1145.0, 1146.0, 1147.0]], son[0].değer)
+    eşit_mi(yok, s.sonraki())
+    // Metin kümesi: ilk pencere metnin başıdır.
+    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    değişken m = veri_kümesi("data/text").sıralı(toplu: 1, bağlam: 16)
+    değişken mg, mh = m.sonraki()
+    doğrula(p.çöz(mg)[0].başlar("Bugün hava"))
+}
+
+test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
+    değişken küme = veri_kümesi("data/numbers")
+    değişken s = küme.sıralı(toplu: 2, bağlam: 4)
+    değişken sayı = 0
+    değişken ilk = yok
+    döngü i, iş içinde s {
+        değişken giriş, hedef = iş
+        eğer i == 0 { ilk = giriş.değer }
+        sayı += 1
+    }
+    eşit_mi(31, sayı)
+    eşit_mi([[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0]], ilk)
+    eşit_mi(yok, s.sonraki())
+    // Döngü kaldığı yerden tüketir; çık ile bırakılan okuyucu sonraki döngüde sürer
+    değişken s2 = küme.sıralı(toplu: 2, bağlam: 4)
+    döngü iş içinde s2 { çık }
+    eşit_mi(30, [1 döngü iş içinde s2].uzunluk)
+    doğrula(hata_metni(() => { döngü iş içinde küme.örnekleyici(toplu: 2, bağlam: 4) { } }).içerir("örnekleyici sonsuz toplu iş üretir"))
+}
+
+test "16.7 hatalar Türkçe ve yakalanabilir" {
+    doğrula(hata_metni(() => parçalayıcı_yükle("data/yok.json")).içerir("yüklenemedi: böyle bir dosya ya da klasör yok"))
+    doğrula(hata_metni(() => parçalayıcı_yükle("data/bozuk.npy")).içerir("geçerli bir tokenizer.json dosyası değil"))
+    doğrula(hata_metni(() => veri_kümesi("data/yok_klasor")).içerir("açılamadı: böyle bir dosya ya da klasör yok"))
+    doğrula(hata_metni(() => veri_kümesi("data/bozuk.npy")).içerir("geçerli bir .npy veri dosyası değil"))
+    doğrula(hata_metni(() => veri_kümesi("data/numbers", önbellek: "onb")).içerir("kota_gb: de verilmelidir"))
+    değişken küme = veri_kümesi("data/numbers")
+    doğrula(hata_metni(() => küme.örnekleyici(toplu: 2)).içerir("bağlam: verilmedi"))
+    doğrula(hata_metni(() => küme.örnekleyici(toplu: 2, bağlam: 500)).içerir("bağlam değerini küçültün"))
+    doğrula(hata_metni(() => küme.sıralı(toplu: 2, bağlm: 4)).içerir("Bunu mu demek istediniz: 'bağlam'"))
+    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    doğrula(hata_metni(() => p.kodla(5)).içerir("metin ya da metin listesi"))
+    doğrula(hata_metni(() => p.çöz(["a"])).içerir("tam sayı olmalıdır"))
+    doğrula(hata_metni(() => p.kodla("a", özel_parçalar: 1)).içerir("doğru ya da yanlış"))
+}
+
+test "16.8 göreli yollar programın klasörüne göre de çözülür" {
+    // Bu dosya proje kökünden (tr test tests) ya da başka bir klasörden çalıştırılsa da
+    // "veri/..." yolları tests/data'yi bulur.
+    eşit_mi(1005, parçalayıcı_yükle("data/parcalayici.json").dağarcık_boyutu)
+}

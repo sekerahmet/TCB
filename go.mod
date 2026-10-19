@@ -1,4 +1,4 @@
-module tr_dili
+module github.com/sekerahmet/TCB
 
 go 1.25.0
 
