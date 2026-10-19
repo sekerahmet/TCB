@@ -5,7 +5,7 @@ import "testing"
 // Skaler tensörün (ör. kayıp) değeri Değişkenler panelinde ve İzleme Masası'nda görünmeli;
 // yalnızca "Tensör (skaler)" yazıyordu. 1-8 elemanlı tensörler satır içinde, büyükler etiket
 // ve "Tabloyu aç" ile görünür; bf16/fp16 tensörde tür de yazılır.
-func TestDAPSkalerVeKucukTensorDegeri(t *testing.T) {
+func TestDAPScalarAndSmallTensorValue(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "değişken kayıp = tensör(0.60738)\n"+
 		"değişken w = tensör([[1.42981]])\n"+
@@ -15,40 +15,40 @@ func TestDAPSkalerVeKucukTensorDegeri(t *testing.T) {
 	c.launch(path, false, map[string]interface{}{"line": 5})
 	c.event("stopped")
 
-	degerler := c.varsOf(c.scopeRef("Genel"))
-	bekle := map[string]string{
+	values := c.varsOf(c.scopeRef("Genel"))
+	await := map[string]string{
 		"kayıp": "0.6074 (Tensör, skaler)",
 		"w":     "[[1.4298]] (Tensör, 1×1)",
 		"yarım": "2.5000 (Tensör, skaler, bf16)",
 		"büyük": "Tensör [3×4]",
 	}
-	for ad, b := range bekle {
-		if degerler[ad] != b {
-			t.Errorf("Değişkenler paneli %s = %q, beklenen %q", ad, degerler[ad], b)
+	for ad, b := range await {
+		if values[ad] != b {
+			t.Errorf("Değişkenler paneli %s = %q, beklenen %q", ad, values[ad], b)
 		}
 	}
-	if got := c.evaluate("kayıp"); got != bekle["kayıp"] {
+	if got := c.evaluate("kayıp"); got != await["kayıp"] {
 		t.Errorf("hata ayıklama konsolu / üzerine gelme kayıp = %q", got)
 	}
 
 	panel := c.request("trDegiskenler", nil)
-	ozetler := map[string]string{}
-	tablolar := map[string]bool{}
+	summaries := map[string]string{}
+	tables := map[string]bool{}
 	for _, d := range panel["degiskenler"].([]interface{}) {
 		dm := d.(map[string]interface{})
 		ad := dm["ad"].(string)
-		ozetler[ad], _ = dm["ozet"].(string)
-		tablolar[ad], _ = dm["tablo"].(bool)
-		if dm["deger"] != bekle[ad] {
-			t.Errorf("İzleme Masası %s değeri %q, beklenen %q", ad, dm["deger"], bekle[ad])
+		summaries[ad], _ = dm["ozet"].(string)
+		tables[ad], _ = dm["tablo"].(bool)
+		if dm["deger"] != await[ad] {
+			t.Errorf("İzleme Masası %s değeri %q, beklenen %q", ad, dm["deger"], await[ad])
 		}
 	}
 	// Webview satır içi değeri "ozet" alanından alır; büyük tensörde boştur (yalnızca tablo).
-	if ozetler["w"] != bekle["w"] || ozetler["kayıp"] != bekle["kayıp"] || ozetler["büyük"] != "" {
-		t.Errorf("ozet alanları: %v", ozetler)
+	if summaries["w"] != await["w"] || summaries["kayıp"] != await["kayıp"] || summaries["büyük"] != "" {
+		t.Errorf("ozet alanları: %v", summaries)
 	}
-	if !tablolar["w"] || !tablolar["büyük"] || tablolar["kayıp"] {
-		t.Errorf("1-2 boyutlu tensörler tablo olarak açılabilmeli, skaler açılamamalı: %v", tablolar)
+	if !tables["w"] || !tables["büyük"] || tables["kayıp"] {
+		t.Errorf("1-2 boyutlu tensörler tablo olarak açılabilmeli, skaler açılamamalı: %v", tables)
 	}
 	c.request("continue", map[string]interface{}{"threadId": 1})
 	c.event("terminated")

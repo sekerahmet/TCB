@@ -64,10 +64,10 @@ type dapServer struct {
 	seq   int
 
 	mu sync.Mutex
-	// kesmeNoktalari dosya başına (dosyaAnahtari) satır → kesme noktasıdır. Düzenleyici
+	// breakpointsArg dosya başına (fileKey) satır → kesme noktasıdır. Düzenleyici
 	// launch'tan önce birden çok dosya için istek gönderebilir; istekler birbirini silmez.
 	// Yalnızca hata ayıklanan dosyanınkiler uygulanır.
-	kesmeNoktalari map[string]map[int]dapBreakpoint
+	breakpointsArg map[string]map[int]dapBreakpoint
 	paused         bool
 	started        bool
 	cmds           chan *dapRequest
@@ -84,13 +84,13 @@ type dapServer struct {
 	dbg         *Debugger
 	prog        *ast.Program
 	programPath string
-	// gorunumAdresi düzenleyicinin programı gösterdiği adrestir (başlatma ayarı
-	// "gorunumAdresi"): kodlu dosya Türkçe görünümüyle açıldığında dosya yolu değil görünümün
+	// viewURI düzenleyicinin programı gösterdiği adrestir (başlatma ayarı
+	// "viewURI"): kodlu dosya Türkçe görünümüyle açıldığında dosya yolu değil görünümün
 	// adresidir. Çağrı yığınındaki kaynak bu adresle bildirilir ki düzenleyici satırı
 	// görünümde işaretlesin; boşsa dosya yolu bildirilir.
-	gorunumAdresi string
-	finished      chan struct{}
-	exit          func(int)
+	viewURI  string
+	finished chan struct{}
+	exit     func(int)
 }
 
 // ServeDAP düzenleyicinin bir hata ayıklama oturumunu in/out üzerinden yürütür (tr dap).
@@ -102,7 +102,7 @@ func newDAPServer(in io.Reader, out io.Writer) *dapServer {
 	return &dapServer{
 		in:             bufio.NewReader(in),
 		out:            out,
-		kesmeNoktalari: make(map[string]map[int]dapBreakpoint),
+		breakpointsArg: make(map[string]map[int]dapBreakpoint),
 		cmds:           make(chan *dapRequest),
 		finished:       make(chan struct{}),
 		exit:           os.Exit,
@@ -113,9 +113,9 @@ func newDAPServer(in io.Reader, out io.Writer) *dapServer {
 // İleti çerçeveleme (Content-Length başlığı + JSON gövde)
 // ---------------------------------------------------------------------------
 
-// dapEnBuyukIleti bir DAP iletisinin gövdesinin en fazla bayt sayısıdır: bozuk ya da
+// dapMaxMessage bir DAP iletisinin gövdesinin en fazla bayt sayısıdır: bozuk ya da
 // kötü niyetli bir Content-Length bellek tüketmesin.
-const dapEnBuyukIleti = 64 << 20
+const dapMaxMessage = 64 << 20
 
 func (s *dapServer) readMessage() (*dapMessage, error) {
 	length := -1
@@ -136,8 +136,8 @@ func (s *dapServer) readMessage() (*dapMessage, error) {
 			if err != nil || n < 0 {
 				return nil, fmt.Errorf("geçersiz Content-Length: %q", v)
 			}
-			if n > dapEnBuyukIleti {
-				return nil, fmt.Errorf("ileti çok büyük (Content-Length %d, en fazla %d bayt)", n, dapEnBuyukIleti)
+			if n > dapMaxMessage {
+				return nil, fmt.Errorf("ileti çok büyük (Content-Length %d, en fazla %d bayt)", n, dapMaxMessage)
 			}
 			length = n
 		}
@@ -162,14 +162,14 @@ func (s *dapServer) send(m map[string]interface{}) {
 	if err != nil {
 		return
 	}
-	data = s.gizlileriMaskele(data)
+	data = s.maskSecrets(data)
 	fmt.Fprintf(s.out, "Content-Length: %d\r\n\r\n%s", len(data), data)
 }
 
-// gizlileriMaskele iletideki bütün metinlerde (değişken değerleri, izleme ifadeleri, İzleme
+// maskSecrets iletideki bütün metinlerde (değişken değerleri, izleme ifadeleri, İzleme
 // Masası tablosu, konsol çıktısı) programın gizli değerlerini *** yapar: düzenleyicide
 // görünen her şey insanın göreceği çıktıdır. Gizli değer yoksa ileti olduğu gibi kalır.
-func (s *dapServer) gizlileriMaskele(data []byte) []byte {
+func (s *dapServer) maskSecrets(data []byte) []byte {
 	m := s.machine
 	if m == nil || !m.HasSecrets() {
 		return data
@@ -180,26 +180,26 @@ func (s *dapServer) gizlileriMaskele(data []byte) []byte {
 	if d.Decode(&v) != nil {
 		return data
 	}
-	yeni, err := json.Marshal(metinleriMaskele(v, m.Mask))
+	fresh, err := json.Marshal(maskStrings(v, m.Mask))
 	if err != nil {
 		return data
 	}
-	return yeni
+	return fresh
 }
 
-// metinleriMaskele çözülmüş bir JSON değerindeki metinlere (anahtarlar dahil) f'yi uygular.
-func metinleriMaskele(v any, f func(string) string) any {
+// maskStrings çözülmüş bir JSON değerindeki metinlere (anahtarlar dahil) f'yi uygular.
+func maskStrings(v any, f func(string) string) any {
 	switch x := v.(type) {
 	case string:
 		return f(x)
 	case []any:
 		for i, e := range x {
-			x[i] = metinleriMaskele(e, f)
+			x[i] = maskStrings(e, f)
 		}
 	case map[string]any:
 		y := make(map[string]any, len(x))
 		for k, e := range x {
-			y[f(k)] = metinleriMaskele(e, f)
+			y[f(k)] = maskStrings(e, f)
 		}
 		return y
 	}
@@ -239,11 +239,11 @@ func (s *dapServer) output(category, text string) {
 // verilen kategoriyle ("stdout", "stderr") yönlendirir.
 type dapOutput struct {
 	s        *dapServer
-	kategori string
+	category string
 }
 
 func (o dapOutput) Write(p []byte) (int, error) {
-	o.s.output(o.kategori, string(p))
+	o.s.output(o.category, string(p))
 	return len(p), nil
 }
 

@@ -56,12 +56,12 @@ var longFuncs = map[string]exception{
 	"internal/lang/codes/definition.go:ParseDefinitions":         {96, reasonRead + " (tanım dosyası)"},
 
 	// Araçlar
-	"internal/devtools/debugger/ayiklayici.go:Debugger.promptCLI": {187, reasonDispatch + " (terminal hata ayıklayıcısının komutları)"},
-	"internal/devtools/formatter/format.go:format":                {119, "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde"},
-	"cmd/tr/bicimle.go:bicimleKomutu":                             {83, "komut satırı bayrakları ve dosya/klasör dolaşımı tek akışta"},
-	"tools/gen/codesdoc/main.go:Uret":                             {151, reasonGenerator},
-	"tools/gen/grammar/main.go:Uret":                              {107, reasonGenerator},
-	"tools/bench/go/kiyas.go:main":                                {92, reasonGenerator + " (kıyas programları sırayla)"},
+	"internal/devtools/debugger/debugger.go:Debugger.promptCLI": {187, reasonDispatch + " (terminal hata ayıklayıcısının komutları)"},
+	"internal/devtools/formatter/format.go:format":              {119, "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde"},
+	"cmd/tr/bicimle.go:bicimleKomutu":                           {83, "komut satırı bayrakları ve dosya/klasör dolaşımı tek akışta"},
+	"tools/gen/codesdoc/main.go:Uret":                           {151, reasonGenerator},
+	"tools/gen/grammar/main.go:Uret":                            {107, reasonGenerator},
+	"tools/bench/go/kiyas.go:main":                              {92, reasonGenerator + " (kıyas programları sırayla)"},
 
 	// Motorlar
 	"internal/stdlib/ml/custom_grad.go:checkGrad":          {181, reasonBuiltin + " (sayısal türev denetimi)"},

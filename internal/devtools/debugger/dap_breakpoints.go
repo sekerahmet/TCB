@@ -37,12 +37,12 @@ func (s *dapServer) setBreakpoints(msg *dapMessage) {
 	// yüklenen modüllerin satırları ayrı dosyalardadır); launch'tan önce dosya bilinmediği
 	// için her istek doğrulanmış sayılır.
 	result := []interface{}{}
-	noktalar := make(map[int]dapBreakpoint, len(a.Breakpoints))
+	points := make(map[int]dapBreakpoint, len(a.Breakpoints))
 	s.mu.Lock()
-	s.kesmeNoktalari[dosyaAnahtari(a.Source.Path)] = noktalar
+	s.breakpointsArg[fileKey(a.Source.Path)] = points
 	sameFile := s.programPath == "" || samePath(a.Source.Path, s.programPath)
 	for _, bp := range a.Breakpoints {
-		noktalar[bp.Line] = dapBreakpoint{Line: bp.Line, Condition: bp.Condition, LogMessage: bp.LogMessage}
+		points[bp.Line] = dapBreakpoint{Line: bp.Line, Condition: bp.Condition, LogMessage: bp.LogMessage}
 		entry := map[string]interface{}{"line": bp.Line, "verified": sameFile}
 		if !sameFile {
 			entry["message"] = "Yalnızca hata ayıklanan dosyada kesme noktası konabilir"
@@ -53,16 +53,16 @@ func (s *dapServer) setBreakpoints(msg *dapMessage) {
 	s.respond(msg, map[string]interface{}{"breakpoints": result})
 }
 
-// dosyaAnahtari bir yolu kesme noktası haritasının anahtarına çevirir (mutlak, temiz,
+// fileKey bir yolu kesme noktası haritasının anahtarına çevirir (mutlak, temiz,
 // büyük/küçük harfe duyarsız: samePath ile aynı eşitlik).
-func dosyaAnahtari(yol string) string {
-	if yol == "" {
+func fileKey(fpath string) string {
+	if fpath == "" {
 		return ""
 	}
-	yol = kaynakYolu(yol)
-	m, err := filepath.Abs(yol)
+	fpath = sourcePath(fpath)
+	m, err := filepath.Abs(fpath)
 	if err != nil {
-		m = yol
+		m = fpath
 	}
 	return strings.ToLower(filepath.Clean(m))
 }
@@ -70,26 +70,26 @@ func samePath(a, b string) bool {
 	if a == "" || b == "" {
 		return false
 	}
-	pa, _ := filepath.Abs(kaynakYolu(a))
-	pb, _ := filepath.Abs(kaynakYolu(b))
+	pa, _ := filepath.Abs(sourcePath(a))
+	pb, _ := filepath.Abs(sourcePath(b))
 	return strings.EqualFold(filepath.Clean(pa), filepath.Clean(pb))
 }
 
-// adresOnekiRe bir adresin şema önekidir ("tr-kodlu:"). Şema en az iki karakterdir; böylece
+// uriPrefixRe bir adresin şema önekidir ("tr-kodlu:"). Şema en az iki karakterdir; böylece
 // Windows sürücü harfi ("C:") şema sanılmaz (düzenleyicinin kendi ayrımıyla aynı).
-var adresOnekiRe = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+\-.]+:`)
+var uriPrefixRe = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+\-.]+:`)
 
-// kaynakYolu düzenleyicinin bildirdiği kaynak yolunu dosya yoluna çevirir. Düzenleyici kodlu
+// sourcePath düzenleyicinin bildirdiği kaynak yolunu dosya yoluna çevirir. Düzenleyici kodlu
 // bir dosyayı Türkçe görünümüyle açtığında kesme noktaları dosya yolundan türetilmiş bir
 // adresle gelir ("tr-kodlu:/c%3A/proje/a.tr", ağ paylaşımında "tr-kodlu://sunucu/pay/a.tr");
 // adresin yolu dosyanın yoludur. Adres olmayan yol olduğu gibi döner.
-func kaynakYolu(yol string) string {
-	if !adresOnekiRe.MatchString(yol) {
-		return yol
+func sourcePath(fpath string) string {
+	if !uriPrefixRe.MatchString(fpath) {
+		return fpath
 	}
-	u, err := url.Parse(yol)
+	u, err := url.Parse(fpath)
 	if err != nil || u.Path == "" {
-		return yol
+		return fpath
 	}
 	p := u.Path
 	if u.Host != "" {
@@ -104,7 +104,7 @@ func kaynakYolu(yol string) string {
 // durmaz; iz noktası (logMessage) ise mesajı yazar ve durmaz.
 func (s *dapServer) breakpointHit(v *interp.VM, line int, env *interp.Environment) bool {
 	s.mu.Lock()
-	bp, ok := s.kesmeNoktalari[dosyaAnahtari(s.programPath)][line]
+	bp, ok := s.breakpointsArg[fileKey(s.programPath)][line]
 	s.mu.Unlock()
 	if !ok {
 		return false

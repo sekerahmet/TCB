@@ -66,12 +66,12 @@ func (s *dapServer) scopeVariables(h *dapHandle) []varEntry {
 type dapChild struct {
 	name, expr string
 	val        interp.Value
-	not        string
+	note       string
 }
 
-// yinelemeSiniri, gezilebilir dış değerlerde (ör. tensör) panelde gösterilen en fazla öğe
+// repeatLimit, gezilebilir dış değerlerde (ör. tensör) panelde gösterilen en fazla öğe
 // sayısıdır; fazlası tek bir "…" satırıyla özetlenir.
-const yinelemeSiniri = 1000
+const repeatLimit = 1000
 
 // children açılabilir bir değerin alt elemanlarını döndürür.
 func children(val interp.Value, expr string) []dapChild {
@@ -85,15 +85,15 @@ func children(val interp.Value, expr string) []dapChild {
 		if err != nil {
 			break
 		}
-		for i := 0; i < n && i < yinelemeSiniri; i++ {
+		for i := 0; i < n && i < repeatLimit; i++ {
 			el, err := v.IterItem(i)
 			if err != nil {
 				break
 			}
 			out = append(out, dapChild{name: fmt.Sprintf("[%d]", i), expr: fmt.Sprintf("%s[%d]", expr, i), val: el})
 		}
-		if n > yinelemeSiniri {
-			out = append(out, dapChild{name: "…", not: fmt.Sprintf("ilk %d öğe gösteriliyor (toplam %d)", yinelemeSiniri, n)})
+		if n > repeatLimit {
+			out = append(out, dapChild{name: "…", note: fmt.Sprintf("ilk %d öğe gösteriliyor (toplam %d)", repeatLimit, n)})
 		}
 	case *interp.ListVal:
 		for i, el := range v.Elements {
@@ -165,9 +165,9 @@ func display(val interp.Value) string {
 	if val == nil {
 		return interp.NULL.Inspect()
 	}
-	if iz, ok := val.(IzlemeDegeri); ok {
+	if iz, ok := val.(WatchValue); ok {
 		// Çok satırlı yazdırma biçimi yerine kısa özet gösterilir.
-		return izlemeGosterimi(val, iz)
+		return watchDisplay(val, iz)
 	}
 	var prefix string
 	switch v := val.(type) {
@@ -203,7 +203,7 @@ func (s *dapServer) variables(msg *dapMessage) {
 		} else {
 			for _, c := range children(h.value, h.expr) {
 				if c.val == nil {
-					vars = append(vars, map[string]interface{}{"name": c.name, "value": c.not, "variablesReference": 0})
+					vars = append(vars, map[string]interface{}{"name": c.name, "value": c.note, "variablesReference": 0})
 					continue
 				}
 				vars = append(vars, s.variableEntry(c.name, c.expr, c.val))

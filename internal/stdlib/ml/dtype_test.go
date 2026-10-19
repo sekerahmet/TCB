@@ -38,10 +38,10 @@ yazdır(w.gradyan.değer, w.gradyan.tür)`)
 		t.Fatalf("veri türleri:\n%q\nbeklenen:\n%q", out, want)
 	}
 	// İzleme Masası etiketi de türü gösterir (yalnızca float32 dışında).
-	if e := New(tensor.NewOf(tensor.BFloat16, []float32{1, 2, 3, 4, 5, 6}, 2, 3)).IzlemeEtiketi(); e != "Tensör [2×3] bf16" {
+	if e := New(tensor.NewOf(tensor.BFloat16, []float32{1, 2, 3, 4, 5, 6}, 2, 3)).WatchLabel(); e != "Tensör [2×3] bf16" {
 		t.Errorf("izleme etiketi: %q", e)
 	}
-	if e := New(tensor.New([]float32{1, 2}, 2)).IzlemeEtiketi(); e != "Tensör [2]" {
+	if e := New(tensor.New([]float32{1, 2}, 2)).WatchLabel(); e != "Tensör [2]" {
 		t.Errorf("izleme etiketi (float32): %q", e)
 	}
 	for _, d := range []struct{ code, expected string }{

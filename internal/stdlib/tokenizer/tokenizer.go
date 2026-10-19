@@ -48,16 +48,16 @@ func (n *Object) Inspect() string {
 	return fmt.Sprintf("%s(dağarcık %d, %s)", TypeName, n.p.VocabSize(), filepath.Base(n.path))
 }
 
-// IzlemeTuru İzleme Masası'nda ikon seçimi için türdür.
-func (n *Object) IzlemeTuru() string { return "diger" }
+// WatchKind İzleme Masası'nda ikon seçimi için türdür.
+func (n *Object) WatchKind() string { return "diger" }
 
-// IzlemeEtiketi tip sütununda gösterilen özettir.
-func (n *Object) IzlemeEtiketi() string {
+// WatchLabel tip sütununda gösterilen özettir.
+func (n *Object) WatchLabel() string {
 	return fmt.Sprintf("%s (dağarcık %d)", TypeName, n.p.VocabSize())
 }
 
-// TabloVerisi dağarcığa eklenmiş parçaları (özel parçalar dahil) tablo olarak verir.
-func (n *Object) TabloVerisi() ([]string, [][]string, error) {
+// TableData dağarcığa eklenmiş parçaları (özel parçalar dahil) tablo olarak verir.
+func (n *Object) TableData() ([]string, [][]string, error) {
 	extras := n.p.AddedTokens()
 	if len(extras) == 0 {
 		return nil, nil, fmt.Errorf("bu parçalayıcıda eklenmiş (özel) parça yok; dağarcık boyutu %d", n.p.VocabSize())

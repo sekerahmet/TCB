@@ -40,12 +40,12 @@ import (
 var ciplakAdIzinleri = map[string]map[string]string{
 	// Komut arayüzü: komut satırının alt komutları ve hata ayıklayıcının komutları dilin
 	// adları değil, aracın komutlarıdır. Kod listesine (K ailesi) çevirici işinde girecekler.
-	"cmd/tr/main.go": {"test": "komut satırı alt komutu (tr test)"},
-	"internal/devtools/debugger/ayiklayici.go":    {"devam": "hata ayıklayıcı komutu (devam); A014 anahtar kelimesi değil"},
-	"internal/devtools/debugger/komut_rehberi.go": {"devam": "hata ayıklayıcı komutu (devam); eski eşlerin ipucu tablosu"},
+	"cmd/tr/main.go":                              {"test": "komut satırı alt komutu (tr test)"},
+	"internal/devtools/debugger/debugger.go":      {"devam": "hata ayıklayıcı komutu (devam); A014 anahtar kelimesi değil"},
+	"internal/devtools/debugger/command_guide.go": {"devam": "hata ayıklayıcı komutu (devam); eski eşlerin ipucu tablosu"},
 	// Eklentiyle konuşulan iletinin alan adları ve değer türleri: protokolün sabit anahtarları
 	// (eklenti bunlara göre ikon ve sütun seçer); kullanıcıya dilin adı olarak görünmez.
-	"internal/devtools/debugger/dap_tablo.go": {
+	"internal/devtools/debugger/dap_table.go": {
 		"tip":   "İzleme Masası iletisinin alan adı (\"tip\": ...)",
 		"metin": "İzleme Masası iletisinin değer türü (ikon seçimi)",
 		"yok":   "İzleme Masası iletisinin değer türü (ikon seçimi)",

@@ -7,7 +7,7 @@ import (
 
 // Düzenleyicinin başlatma ayarındaki "args" programa iletilir; program okumazsa bitişte hata ayıklama
 // konsoluna (stderr) uyarı yazılır.
-func TestDAPArgumanlariIletilir(t *testing.T) {
+func TestDAPArgumentsPassed(t *testing.T) {
 	c := startDAP(t)
 	path := writeProgram(t, "yazdır(\"bitti\")\n")
 	c.request("initialize", map[string]interface{}{"adapterID": "tr"})
@@ -15,8 +15,8 @@ func TestDAPArgumanlariIletilir(t *testing.T) {
 	c.request("launch", map[string]interface{}{"program": path, "args": []string{"--adım", "5"}})
 	c.request("configurationDone", nil)
 	c.event("terminated")
-	cikti := c.output.String()
-	if !strings.Contains(cikti, "bitti") || !strings.Contains(cikti, "programa verilen 2 argüman kullanılmadı (--adım 5)") {
-		t.Fatalf("argüman uyarısı bekleniyordu: %q", cikti)
+	output := c.output.String()
+	if !strings.Contains(output, "bitti") || !strings.Contains(output, "programa verilen 2 argüman kullanılmadı (--adım 5)") {
+		t.Fatalf("argüman uyarısı bekleniyordu: %q", output)
 	}
 }

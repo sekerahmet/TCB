@@ -26,13 +26,13 @@ func TestWatchSummary(t *testing.T) {
 		{"boş", tensor.New(nil, 0), ""},
 	}
 	for _, d := range cases {
-		if got := New(d.t).IzlemeOzeti(); got != d.await {
+		if got := New(d.t).WatchSummary(); got != d.await {
 			t.Errorf("%s: %q, beklenen %q", d.ad, got, d.await)
 		}
 	}
 	// Tam sayılı tensör (maks_indeks sonucu) ondalıksız yazılır, yazdır() gibi.
 	v := value(t, "değişken cikti = maks_indeks(tensör([0.1, 0.9, 0.2]))")
-	if got := v.(*TensorValue).IzlemeOzeti(); got != "1 (Tensör, skaler)" {
+	if got := v.(*TensorValue).WatchSummary(); got != "1 (Tensör, skaler)" {
 		t.Errorf("tam sayılı skaler: %q", got)
 	}
 }

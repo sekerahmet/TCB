@@ -1,7 +1,7 @@
 // Package debugger TR'nin hata ayıklayıcısıdır: terminalde çalışan etkileşimli hata
 // ayıklayıcı ('tr hata_ayıkla', koddaki kesme_noktası) ve düzenleyicilerin bağlandığı
 // hata ayıklama sunucusu ('tr dap', dap*.go). Yükleme anında kendini yorumlayıcıya
-// yurut.YeniHataAyiklayici ile kaydeder.
+// interp.NewDebugger ile kaydeder.
 //
 // Layer: developer tools (internal/devtools); dil, motor ve hesap katmanlarını içe aktarabilir.
 package debugger
@@ -81,10 +81,10 @@ func NewDebugger(sourceFile string, sourceCode string, startPaused bool) *Debugg
 }
 
 // Breakpoint koddaki kesme_noktası deyiminde çağrılır: bir sonraki deyimde durur.
-func (d *Debugger) Breakpoint(gerekce string) {
+func (d *Debugger) Breakpoint(why string) {
 	d.Mode = StepInto
 	d.pauseKind = "breakpoint"
-	d.PauseReason = gerekce
+	d.PauseReason = why
 }
 
 // BeforeStatement her deyim çalışmadan önce VM tarafından çağrılır.
@@ -136,7 +136,7 @@ func (d *Debugger) BeforeStatement(v *interp.VM, stmt ast.Statement, env *interp
 		case StepInto:
 			shouldPause = true
 			if d.PauseReason == "" {
-				d.PauseReason = durumAdim
+				d.PauseReason = stateStep
 			}
 			if d.pauseKind == "" {
 				d.pauseKind = "step"
@@ -144,13 +144,13 @@ func (d *Debugger) BeforeStatement(v *interp.VM, stmt ast.Statement, env *interp
 		case StepOver:
 			if depth <= d.TargetDepth {
 				shouldPause = true
-				d.PauseReason = durumUsttenGec
+				d.PauseReason = stateStepOver
 				d.pauseKind = "step"
 			}
 		case StepOut:
 			if depth < d.TargetDepth {
 				shouldPause = true
-				d.PauseReason = durumFonksiyondanCik
+				d.PauseReason = stateStepOut
 				d.pauseKind = "step"
 			}
 		}
@@ -223,9 +223,9 @@ func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) strin
 
 // Adımlama sonrası durum metinleri; terminalde ve düzenleyicide aynıdır.
 const (
-	durumAdim            = "Adım (F11)"
-	durumUsttenGec       = "Üstten geçildi (F10)"
-	durumFonksiyondanCik = "Fonksiyondan çıkıldı (Shift+F11)"
+	stateStep     = "Adım (F11)"
+	stateStepOver = "Üstten geçildi (F10)"
+	stateStepOut  = "Fonksiyondan çıkıldı (Shift+F11)"
 )
 
 func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) int {
@@ -233,7 +233,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 	d.PauseReason = ""
 
 	for {
-		fmt.Print("\n[TR Hata Ayıklayıcı] (" + tusRehberi + ") > ")
+		fmt.Print("\n[TR Hata Ayıklayıcı] (" + keyGuide + ") > ")
 		input, err := d.Reader.ReadString('\n')
 		if err != nil {
 			d.Mode = StepContinue
@@ -251,12 +251,12 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 		parts := strings.Fields(cmdLine)
 		cmd := strings.ToLower(parts[0])
 
-		if yeni, ok := eskiTuslar[cmd]; ok {
-			fmt.Printf("  ⚠️ Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '%s' yerine %s yazın.\n", cmd, yeni)
+		if fresh, ok := oldKeys[cmd]; ok {
+			fmt.Printf("  ⚠️ Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '%s' yerine %s yazın.\n", cmd, fresh)
 			continue
 		}
-		if asil, ok := eskiKomutlar[cmd]; ok {
-			fmt.Printf("  ⚠️ '%s' hata ayıklayıcıda bir komut değil; '%s' yazın.\n", cmd, asil)
+		if actual, ok := oldCommands[cmd]; ok {
+			fmt.Printf("  ⚠️ '%s' hata ayıklayıcıda bir komut değil; '%s' yazın.\n", cmd, actual)
 			continue
 		}
 
@@ -461,8 +461,8 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 		fmt.Println("  📦 DEĞİŞKENLER (Canlı değiştirmek için: 'değiştir ad = değer'):")
 		for _, kv := range vars {
 			valPreview := v.Mask(kv.Val.Inspect())
-			if _, motor := kv.Val.(IzlemeDegeri); motor && strings.Contains(valPreview, "\n") {
-				valPreview = tekSatir(valPreview)
+			if _, engine := kv.Val.(WatchValue); engine && strings.Contains(valPreview, "\n") {
+				valPreview = singleLine(valPreview)
 			}
 			if r := []rune(valPreview); len(r) > 52 {
 				valPreview = string(r[:52]) + "..."
@@ -473,15 +473,15 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 	fmt.Println("╚══════════════════════════════════════════════════════════════════════════════╝")
 }
 
-// tekSatir çok satırlı yazdırma biçimini (ör. tensör) değişken kutusunda tek satıra indirir:
+// singleLine çok satırlı yazdırma biçimini (ör. tensör) değişken kutusunda tek satıra indirir:
 // "Tensör[2×3] [\n  [1, 2, 3],\n  ...\n]" → "Tensör[2×3] [[1, 2, 3], ...]".
-func tekSatir(metin string) string {
-	satirlar := strings.Split(metin, "\n")
-	for i, s := range satirlar {
-		satirlar[i] = strings.TrimSpace(s)
+func singleLine(text string) string {
+	lines := strings.Split(text, "\n")
+	for i, s := range lines {
+		lines[i] = strings.TrimSpace(s)
 	}
-	tek := strings.Join(satirlar, " ")
-	return strings.NewReplacer("[ ", "[", " ]", "]").Replace(tek)
+	single := strings.Join(lines, " ")
+	return strings.NewReplacer("[ ", "[", " ]", "]").Replace(single)
 }
 
 // inspectTable bir değişkeni tablo olarak yazar; değerlerdeki gizli değerler maskelenir.
@@ -501,14 +501,14 @@ func (d *Debugger) inspectTable(v *interp.VM, name string, env *interp.Environme
 		for i, el := range t.Elements {
 			fmt.Printf("  [%-6d] | %-12s | %s\n", i, el.Type(), v.Mask(el.Inspect()))
 		}
-	case IzlemeDegeri:
+	case WatchValue:
 		// Motor değerleri (ör. tensör): tablo verisi satır satır yazılır.
-		cols, rows, err := t.TabloVerisi()
+		cols, rows, err := t.TableData()
 		if err != nil {
-			fmt.Printf("  %s\n  Değer: %s\n", t.IzlemeEtiketi(), v.Mask(val.Inspect()))
+			fmt.Printf("  %s\n  Değer: %s\n", t.WatchLabel(), v.Mask(val.Inspect()))
 			break
 		}
-		fmt.Printf("  %s\n", t.IzlemeEtiketi())
+		fmt.Printf("  %s\n", t.WatchLabel())
 		fmt.Printf("  %-9s | %s\n", "SATIR", strings.Join(cols, " | "))
 		for i, r := range rows {
 			fmt.Printf("  %-9d | %s\n", i, v.Mask(strings.Join(r, " | ")))

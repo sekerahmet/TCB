@@ -91,14 +91,14 @@ func (k *Dataset) Inspect() string {
 	return fmt.Sprintf("%s(%s%s)", DatasetType, k.summary(), extra)
 }
 
-// IzlemeTuru İzleme Masası'nda ikon seçimi için türdür.
-func (k *Dataset) IzlemeTuru() string { return "diger" }
+// WatchKind İzleme Masası'nda ikon seçimi için türdür.
+func (k *Dataset) WatchKind() string { return "diger" }
 
-// IzlemeEtiketi tip sütununda gösterilen özettir.
-func (k *Dataset) IzlemeEtiketi() string { return "Veri kümesi (" + k.summary() + ")" }
+// WatchLabel tip sütununda gösterilen özettir.
+func (k *Dataset) WatchLabel() string { return "Veri kümesi (" + k.summary() + ")" }
 
-// TabloVerisi parçaları (ad, token, boyut) tablo olarak verir.
-func (k *Dataset) TabloVerisi() ([]string, [][]string, error) {
+// TableData parçaları (ad, token, boyut) tablo olarak verir.
+func (k *Dataset) TableData() ([]string, [][]string, error) {
 	const limit = 10000
 	var lines [][]string
 	for i, p := range k.k.Shards() {
@@ -328,11 +328,11 @@ func (o *Reader) Inspect() string {
 	return fmt.Sprintf("%s(%s: %d, %s: %d, %s: %d, dönem: %d, %d toplu iş)", SamplerType, nameBatch.TR, o.b, nameContext.TR, o.t, nameSeed.TR, o.seed, o.epoch, o.counter)
 }
 
-// IzlemeTuru İzleme Masası'nda ikon seçimi için türdür.
-func (o *Reader) IzlemeTuru() string { return "diger" }
+// WatchKind İzleme Masası'nda ikon seçimi için türdür.
+func (o *Reader) WatchKind() string { return "diger" }
 
-// IzlemeEtiketi tip sütununda gösterilen özettir.
-func (o *Reader) IzlemeEtiketi() string {
+// WatchLabel tip sütununda gösterilen özettir.
+func (o *Reader) WatchLabel() string {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if o.sequential {
@@ -344,8 +344,8 @@ func (o *Reader) IzlemeEtiketi() string {
 	return fmt.Sprintf("%s (%d×%d, dönem %d, %d toplu iş)", SamplerType, o.b, o.t, o.epoch, o.counter)
 }
 
-// TabloVerisi okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.
-func (o *Reader) TabloVerisi() ([]string, [][]string, error) {
+// TableData okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.
+func (o *Reader) TableData() ([]string, [][]string, error) {
 	return nil, nil, fmt.Errorf("okuyucu tablo olarak açılamaz; .%s() ile alınan girdi ve hedef tensörlerini inceleyin", codes.Name(memberNext))
 }
 

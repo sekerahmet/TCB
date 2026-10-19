@@ -13,12 +13,12 @@ import (
 // Hata ayıklayıcı (İzleme Masası) desteği
 // ----------------------------------------------------------------------------
 
-// IzlemeTuru İzleme Masası'nda ikon seçimi için değerin türüdür.
-func (d *TensorValue) IzlemeTuru() string { return "tensor" }
+// WatchKind İzleme Masası'nda ikon seçimi için değerin türüdür.
+func (d *TensorValue) WatchKind() string { return "tensor" }
 
-// IzlemeEtiketi tip sütununda gösterilen özettir (ör. "Tensör [2×3]"; float32 dışındaki
+// WatchLabel tip sütununda gösterilen özettir (ör. "Tensör [2×3]"; float32 dışındaki
 // türlerde tür de eklenir: "Tensör [2×3] bf16").
-func (d *TensorValue) IzlemeEtiketi() string {
+func (d *TensorValue) WatchLabel() string {
 	sh := d.t.Shape()
 	dtypeSuffix := ""
 	if dt := d.t.DType(); dt != tensor.Float32 {
@@ -30,8 +30,8 @@ func (d *TensorValue) IzlemeEtiketi() string {
 	return string(interp.VAL_TENSOR) + " [" + shapeProduct(sh) + "]" + dtypeSuffix
 }
 
-// TabloVerisi 1-2 boyutlu tensörü tabloya (sütunlar + satırlar) çevirir.
-func (d *TensorValue) TabloVerisi() ([]string, [][]string, error) {
+// TableData 1-2 boyutlu tensörü tabloya (sütunlar + satırlar) çevirir.
+func (d *TensorValue) TableData() ([]string, [][]string, error) {
 	const limit = 10000
 	sh := d.t.Shape()
 	data := d.t.Data()
@@ -69,13 +69,13 @@ func (d *TensorValue) TabloVerisi() ([]string, [][]string, error) {
 // özetlenir ve tablo olarak açılır.
 const watchInlineLimit = 8
 
-// IzlemeOzeti hata ayıklayıcının değer sütununda gösterilen kısa değerdir: skaler tensörde
+// WatchSummary hata ayıklayıcının değer sütununda gösterilen kısa değerdir: skaler tensörde
 // sayının kendisi ("0.6074 (Tensör, skaler)"), 1-8 elemanlı tensörde iç içe değerler
 // ("[[1.4298]] (Tensör, 1×1)"). float32 dışındaki türlerde tür de yazılır ("..., bf16").
 // Sayılar yazdır() ile aynı biçimdedir (4 basamak; çok küçük/büyükte bilimsel). Daha büyük
 // ya da boş tensörde boş metin döner: değer sütununda yalnızca etiket ve tablo bağlantısı
 // görünür.
-func (d *TensorValue) IzlemeOzeti() string {
+func (d *TensorValue) WatchSummary() string {
 	t := d.t
 	n := t.Numel()
 	if n == 0 || n > watchInlineLimit {

@@ -27,7 +27,7 @@ func (s *dapServer) waitForCommand(v *interp.VM, line int, env *interp.Environme
 	}
 	// Durum metinleri terminal ve düzenleyicide aynıdır (tuşlar da aynı anlamdadır).
 	if reason == "" && kind == "step" {
-		reason = durumAdim
+		reason = stateStep
 	}
 
 	s.mu.Lock()
@@ -92,24 +92,24 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 			s.respondErr(msg, "Geçersiz hedef satır")
 			return 0, false
 		}
-		hedef, ok := s.curVM.JumpTarget(a.TargetID)
+		target, ok := s.curVM.JumpTarget(a.TargetID)
 		if !ok {
 			s.respondErr(msg, "Satır %d şu an çalışan bloğun dışında; yalnızca bulunulan bloğun (%s, %s ya da %s gövdesinin) satırlarına zıplanabilir", a.TargetID, codes.Name(codes.A020), codes.Name(codes.A010), codes.Name(codes.A001))
 			return 0, false
 		}
-		s.resume(StepInto, 0, "Satır "+turkish.NumberSuffix(int64(hedef), turkish.Dative)+" zıplandı", "goto")
+		s.resume(StepInto, 0, "Satır "+turkish.NumberSuffix(int64(target), turkish.Dative)+" zıplandı", "goto")
 		s.respond(msg, nil)
-		return hedef, true
+		return target, true
 	case "gotoTargets":
 		var a struct {
 			Line int `json:"line"`
 		}
 		_ = json.Unmarshal(msg.Arguments, &a)
-		hedefler := []interface{}{}
-		if hedef, ok := s.curVM.JumpTarget(a.Line); ok {
-			hedefler = append(hedefler, map[string]interface{}{"id": hedef, "label": "Satır " + strconv.Itoa(hedef), "line": hedef})
+		targets := []interface{}{}
+		if target, ok := s.curVM.JumpTarget(a.Line); ok {
+			targets = append(targets, map[string]interface{}{"id": target, "label": "Satır " + strconv.Itoa(target), "line": target})
 		}
-		s.respond(msg, map[string]interface{}{"targets": hedefler})
+		s.respond(msg, map[string]interface{}{"targets": targets})
 	case "stackTrace":
 		s.stackTrace(msg)
 	case "scopes":
@@ -134,11 +134,11 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 	return 0, false
 }
 func (s *dapServer) source() map[string]interface{} {
-	yol := s.programPath
-	if s.gorunumAdresi != "" {
-		yol = s.gorunumAdresi
+	fpath := s.programPath
+	if s.viewURI != "" {
+		fpath = s.viewURI
 	}
-	return map[string]interface{}{"name": filepath.Base(s.programPath), "path": yol}
+	return map[string]interface{}{"name": filepath.Base(s.programPath), "path": fpath}
 }
 func (s *dapServer) stackTrace(msg *dapMessage) {
 	stack := s.curVM.StackSnapshot()

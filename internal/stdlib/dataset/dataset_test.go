@@ -355,15 +355,15 @@ değişken s = k.sıralı(toplu: 2, bağlam: 8)
 		"s": "Sıralı okuyucu (2×8, 0 toplu iş okundu)",
 	}
 	for name, label := range want {
-		iz, ok := variable(t, m, name).(debugger.IzlemeDegeri)
+		iz, ok := variable(t, m, name).(debugger.WatchValue)
 		if !ok {
-			t.Fatalf("%s IzlemeDegeri değil", name)
+			t.Fatalf("%s WatchValue değil", name)
 		}
-		if iz.IzlemeEtiketi() != label {
-			t.Errorf("%s: etiket %q, beklenen %q", name, iz.IzlemeEtiketi(), label)
+		if iz.WatchLabel() != label {
+			t.Errorf("%s: etiket %q, beklenen %q", name, iz.WatchLabel(), label)
 		}
 	}
-	cols, rows, err := variable(t, m, "k").(debugger.IzlemeDegeri).TabloVerisi()
+	cols, rows, err := variable(t, m, "k").(debugger.WatchValue).TableData()
 	if err != nil || len(cols) != 3 || len(rows) != 2 || rows[1][0] != "p1.npy" || rows[1][1] != "500" {
 		t.Fatalf("tablo: %v %v %v", cols, rows, err)
 	}

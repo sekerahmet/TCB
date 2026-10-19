@@ -9,17 +9,17 @@ import (
 // Terminal hata ayıklayıcısının komut tabloları ve yardım metni. Her komutun tek yazımı
 // vardır (F tuşları dışında); eski kısaltmalar ve eşler yalnızca ipucu verir.
 
-// tusRehberi komut isteminde gösterilen kısa tuş listesidir.
-const tusRehberi = "F5:devam | F10:geç | F11:adım | Shift+F11:dön | değiştir | zıpla | tablo | izle"
+// keyGuide komut isteminde gösterilen kısa tuş listesidir.
+const keyGuide = "F5:devam | F10:geç | F11:adım | Shift+F11:dön | değiştir | zıpla | tablo | izle"
 
-// eskiTuslar önceki sürümün terminal tuşlarıdır (f5 adım, f6 geç, f7 dön, f8 devam). Bu
+// oldKeys önceki sürümün terminal tuşlarıdır (f5 adım, f6 geç, f7 dön, f8 devam). Bu
 // tuşlar artık düzenleyicinin hata ayıklama tuşlarıyla aynı anlamda kullanılır; eski
 // anlamla yazılanlar başka bir iş yapmaz, yeni tuşu söyler.
-var eskiTuslar = map[string]string{"f6": "f10 (geç)", "f7": "shift+f11 (dön)", "f8": "f5 (devam)"}
+var oldKeys = map[string]string{"f6": "f10 (geç)", "f7": "shift+f11 (dön)", "f8": "f5 (devam)"}
 
-// eskiKomutlar komutların eski kısaltmaları, Türkçe karaktersiz ve İngilizce eşleridir. Her
+// oldCommands komutların eski kısaltmaları, Türkçe karaktersiz ve İngilizce eşleridir. Her
 // komutun tek yazımı vardır (F tuşları dışında); bunlar çalışmaz, asıl komutu söyler.
-var eskiKomutlar = map[string]string{
+var oldCommands = map[string]string{
 	"adim": "adım", "a": "adım", "s": "adım", "step": "adım",
 	"gec": "geç", "g": "geç", "n": "geç", "next": "geç",
 	"don": "dön", "o": "dön", "out": "dön",

@@ -23,9 +23,9 @@ func (s *dapServer) launch(msg *dapMessage) {
 		Cwd         string `json:"cwd"`
 		// Args programa iletilen komut satırı argümanlarıdır (düzenleyicinin başlatma ayarı).
 		Args []string `json:"args"`
-		// GorunumAdresi programın düzenleyicideki görünümünün adresidir (kodlu dosyanın
-		// Türkçe görünümü; bkz. dapServer.gorunumAdresi). Satırlar görünümün satırlarıdır.
-		GorunumAdresi string `json:"gorunumAdresi"`
+		// ViewURI programın düzenleyicideki görünümünün adresidir (kodlu dosyanın
+		// Türkçe görünümü; bkz. dapServer.viewURI). Satırlar görünümün satırlarıdır.
+		ViewURI string `json:"viewURI"`
 	}
 	if err := json.Unmarshal(msg.Arguments, &a); err != nil || a.Program == "" {
 		s.respondErr(msg, "Hata ayıklanacak .tr dosyası belirtilmedi ('program')")
@@ -37,10 +37,10 @@ func (s *dapServer) launch(msg *dapMessage) {
 		s.respondErr(msg, "Hata ayıklanacak program okunamadı (%s): %s", path, turkish.FileErrorReason(path, err))
 		return
 	}
-	hazir := source.Prepare(string(data), source.Options{TypeCheck: true})
-	code, prog, errs := hazir.Text, hazir.Program, hazir.Errors
+	ready := source.Prepare(string(data), source.Options{TypeCheck: true})
+	code, prog, errs := ready.Text, ready.Program, ready.Errors
 	// Uyarılar (ör. yerleşik ad gölgeleme) programı durdurmaz; hata ayıklama konsoluna yazılır.
-	if u := hazir.Warnings; len(u) > 0 {
+	if u := ready.Warnings; len(u) > 0 {
 		s.output("stderr", "⚠️ Uyarılar:\n")
 		for _, e := range u {
 			s.output("stderr", "  • "+e+"\n"+indentLines(turkish.CodeFrame(code, e), "    "))
@@ -82,7 +82,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	s.machine = machine
 	s.prog = prog
 	s.programPath = path
-	s.gorunumAdresi = a.GorunumAdresi
+	s.viewURI = a.ViewURI
 	s.respond(msg, nil)
 }
 func (s *dapServer) start() {
@@ -104,20 +104,20 @@ func (s *dapServer) start() {
 			// Programın istediği çıkış (ör. komut satırı seçeneklerinde --yardım ya da hatalı
 			// argüman): mesaj konsola, kod düzenleyiciye.
 			exitCode = c.Code
-			kategori := "stderr"
+			category := "stderr"
 			if c.Code == 0 {
-				kategori = "stdout"
+				category = "stdout"
 			}
 			if c.Message != "" {
-				s.output(kategori, s.machine.Mask(c.Message)+"\n")
+				s.output(category, s.machine.Mask(c.Message)+"\n")
 			}
 		} else if err != nil {
 			exitCode = 1
-			metin := "❌ Çalışma Zamanı Hatası:\n"
+			text := "❌ Çalışma Zamanı Hatası:\n"
 			for _, m := range interp.ErrorItems(err, s.machine.SourceCode) {
-				metin += "  • " + m.Message + "\n" + indentLines(m.Frame, "    ")
+				text += "  • " + m.Message + "\n" + indentLines(m.Frame, "    ")
 			}
-			s.output("stderr", s.machine.Mask(metin))
+			s.output("stderr", s.machine.Mask(text))
 		} else if u := s.machine.UnusedArgsWarning(); u != "" {
 			s.output("stderr", u+"\n")
 		}

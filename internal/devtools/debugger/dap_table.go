@@ -16,12 +16,12 @@ import (
 // (Kapsam | Değişken | Tip | Değer) döndürür; tablo olarak açılabilen değerler işaretlenir.
 func (s *dapServer) variablesTable(msg *dapMessage) {
 	list := []interface{}{}
-	add := func(kapsam string, h *dapHandle) {
+	add := func(scope string, h *dapHandle) {
 		for _, e := range s.scopeVariables(h) {
 			_, _, tblErr := TableData(e.Val)
 			list = append(list, map[string]interface{}{
-				"kapsam": kapsam, "ad": e.Name, "tip": typeLabel(e.Val), "tur": valueKind(e.Val),
-				"deger": display(e.Val), "tablo": tblErr == nil, "ozet": izlemeOzeti(e.Val),
+				"kapsam": scope, "ad": e.Name, "tip": typeLabel(e.Val), "tur": valueKind(e.Val),
+				"deger": display(e.Val), "tablo": tblErr == nil, "ozet": watchSummary(e.Val),
 			})
 		}
 	}
@@ -40,26 +40,26 @@ func (s *dapServer) variablesTable(msg *dapMessage) {
 	})
 }
 
-// IzlemeDegeri, motor paketlerinin kendi değer türlerini (ör. tensör) İzleme Masası'nda
+// WatchValue, motor paketlerinin kendi değer türlerini (ör. tensör) İzleme Masası'nda
 // göstermek için uyguladığı arayüzdür. ayikla bu paketleri içe aktarmaz; değer
 // arayüzü uyguluyorsa tür, tip etiketi ve tablo verisi ondan alınır.
-type IzlemeDegeri interface {
-	// IzlemeTuru ikon seçimi için türdür (ör. "tensor").
-	IzlemeTuru() string
-	// IzlemeEtiketi tip sütununda gösterilir (ör. "Tensör [2×3]").
-	IzlemeEtiketi() string
-	// TabloVerisi değeri tabloya çevirir; tablo olarak açılamıyorsa hata döner.
-	TabloVerisi() ([]string, [][]string, error)
+type WatchValue interface {
+	// WatchKind ikon seçimi için türdür (ör. "tensor").
+	WatchKind() string
+	// WatchLabel tip sütununda gösterilir (ör. "Tensör [2×3]").
+	WatchLabel() string
+	// TableData değeri tabloya çevirir; tablo olarak açılamıyorsa hata döner.
+	TableData() ([]string, [][]string, error)
 }
 
 // valueKind panelde ikon seçmek için değerin türünü verir.
 func valueKind(val interp.Value) string {
-	if iz, ok := val.(IzlemeDegeri); ok {
-		return iz.IzlemeTuru()
+	if iz, ok := val.(WatchValue); ok {
+		return iz.WatchKind()
 	}
 	switch v := val.(type) {
 	case *interp.ListVal:
-		if kayitListesi(v) {
+		if recordList(v) {
 			return "tablo"
 		}
 		return "liste"
@@ -81,12 +81,12 @@ func valueKind(val interp.Value) string {
 
 // typeLabel tip sütununda değerin yapısını özetler (ör. Tablo [3×3]).
 func typeLabel(val interp.Value) string {
-	if iz, ok := val.(IzlemeDegeri); ok {
-		return iz.IzlemeEtiketi()
+	if iz, ok := val.(WatchValue); ok {
+		return iz.WatchLabel()
 	}
 	switch v := val.(type) {
 	case *interp.ListVal:
-		if kayitListesi(v) {
+		if recordList(v) {
 			cols, rows, _ := TableData(v)
 			return fmt.Sprintf("Tablo [%d×%d]", len(rows), len(cols))
 		}
@@ -105,10 +105,10 @@ func typeLabel(val interp.Value) string {
 
 func (s *dapServer) table(msg *dapMessage) {
 	var a struct {
-		Ifade string `json:"ifade"`
+		Expression string `json:"ifade"`
 	}
 	_ = json.Unmarshal(msg.Arguments, &a)
-	val, err := s.evalQuiet(s.curVM, s.curEnv, a.Ifade)
+	val, err := s.evalQuiet(s.curVM, s.curEnv, a.Expression)
 	if err != nil {
 		s.respondErr(msg, "%v", err)
 		return
@@ -118,20 +118,20 @@ func (s *dapServer) table(msg *dapMessage) {
 		s.respondErr(msg, "%v", err)
 		return
 	}
-	s.respond(msg, map[string]interface{}{"baslik": a.Ifade, "sutunlar": cols, "satirlar": rows, "tip": string(val.Type())})
+	s.respond(msg, map[string]interface{}{"baslik": a.Expression, "sutunlar": cols, "satirlar": rows, "tip": string(val.Type())})
 }
 
 // TableData bir değeri tabloya (sütunlar + satırlar) dönüştürür:
-// sözlük/yapı listeleri, düz listeler, sözlükler, yapılar ve (IzlemeDegeri ile) tensörler
+// sözlük/yapı listeleri, düz listeler, sözlükler, yapılar ve (WatchValue ile) tensörler
 // desteklenir.
 func TableData(val interp.Value) ([]string, [][]string, error) {
 	const limit = 10000
-	if iz, ok := val.(IzlemeDegeri); ok {
-		return iz.TabloVerisi()
+	if iz, ok := val.(WatchValue); ok {
+		return iz.TableData()
 	}
 	switch v := val.(type) {
 	case *interp.ListVal:
-		if kayitListesi(v) {
+		if recordList(v) {
 			var cols []string
 			seen := map[string]bool{}
 			for _, el := range v.Elements {
@@ -183,9 +183,9 @@ func TableData(val interp.Value) ([]string, [][]string, error) {
 	return nil, nil, fmt.Errorf("tablo görünümü yalnızca liste, sözlük, yapı ve tensörler için kullanılabilir (bu değer: %s)", val.Type())
 }
 
-// kayitListesi liste, elemanlarının hepsi sözlük ya da yapı olan (her eleman bir satır, her
+// recordList liste, elemanlarının hepsi sözlük ya da yapı olan (her eleman bir satır, her
 // alan bir sütun olan) boş olmayan bir liste mi? Değilse tablo tek sütunlu düz listedir.
-func kayitListesi(v *interp.ListVal) bool {
+func recordList(v *interp.ListVal) bool {
 	for _, el := range v.Elements {
 		switch el.(type) {
 		case *interp.DictVal, *interp.StructInstanceVal:

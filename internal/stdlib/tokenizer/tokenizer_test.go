@@ -291,14 +291,14 @@ func TestLoadErrors(t *testing.T) {
 
 func TestWatchPanel(t *testing.T) {
 	m := mustRun(t, `değişken p = parçalayıcı_yükle("`+bpePath+`")`)
-	iz, ok := al(t, m, "p").(debugger.IzlemeDegeri)
+	iz, ok := al(t, m, "p").(debugger.WatchValue)
 	if !ok {
-		t.Fatal("IzlemeDegeri değil")
+		t.Fatal("WatchValue değil")
 	}
-	if iz.IzlemeEtiketi() != "Parçalayıcı (dağarcık 1005)" {
-		t.Fatalf("etiket %q", iz.IzlemeEtiketi())
+	if iz.WatchLabel() != "Parçalayıcı (dağarcık 1005)" {
+		t.Fatalf("etiket %q", iz.WatchLabel())
 	}
-	cols, rows, err := iz.TabloVerisi()
+	cols, rows, err := iz.TableData()
 	if err != nil || len(cols) != 3 || len(rows) == 0 || rows[0][1] != "<|endoftext|>" {
 		t.Fatalf("tablo %v %v %v", cols, rows, err)
 	}

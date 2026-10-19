@@ -326,15 +326,15 @@ func TestPanicToError(t *testing.T) {
 func TestWatchPanel(t *testing.T) {
 	v := value(t, "değişken cikti = tensör([[1, 2, 3], [4, 5, 6]])")
 	d := v.(*TensorValue)
-	if d.IzlemeEtiketi() != "Tensör [2×3]" || d.IzlemeTuru() != "tensor" {
-		t.Fatalf("etiket/tür: %q %q", d.IzlemeEtiketi(), d.IzlemeTuru())
+	if d.WatchLabel() != "Tensör [2×3]" || d.WatchKind() != "tensor" {
+		t.Fatalf("etiket/tür: %q %q", d.WatchLabel(), d.WatchKind())
 	}
-	cols, rows, err := d.TabloVerisi()
+	cols, rows, err := d.TableData()
 	if err != nil || len(cols) != 3 || len(rows) != 2 || rows[1][2] != "6" {
 		t.Fatalf("tablo: %v %v %v", cols, rows, err)
 	}
 	v = value(t, "değişken cikti = sıfırlar([2, 2, 2])")
-	if _, _, err := v.(*TensorValue).TabloVerisi(); err == nil {
+	if _, _, err := v.(*TensorValue).TableData(); err == nil {
 		t.Fatal("3 boyutlu tensör tablo olmamalı")
 	}
 }
