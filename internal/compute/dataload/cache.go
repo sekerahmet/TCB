@@ -80,11 +80,15 @@ type cacheCore struct {
 	requestedName map[string]bool
 	generation    uint64
 	pending       bool // Hazirla listesi henüz işlenip bitmedi
-	active        int  // listeyi işlemekte olan işçi sayısı
-	worker        int
-	closed        bool
-	statsNow      CacheStats
-	lastErr       error
+	// handled sonuna kadar işlenen (ya da kota yetmediği için bırakılan) en son liste
+	// kuşağıdır; pending, son kuşak işlenmiş ve çalışan işçi kalmamışsa düşer. Hangi işçinin
+	// en son bittiği önemli değildir (eski kuşağın listesinden dönen işçi de düşürebilir).
+	handled  uint64
+	active   int // listeyi işlemekte olan işçi sayısı
+	worker   int
+	closed   bool
+	statsNow CacheStats
+	lastErr  error
 
 	warning chan struct{}
 	ctx     context.Context
@@ -617,33 +621,47 @@ func (o *cacheCore) run() {
 		list, generation := o.requested, o.generation
 		o.active++
 		o.mu.Unlock()
-		for _, k := range list {
-			if o.ctx.Err() != nil {
-				return
-			}
-			o.mu.Lock()
-			changed := o.generation != generation
-			o.mu.Unlock()
-			if changed {
-				break // uyarı kanalında yeni liste bekliyor
-			}
-			_, _, err := o.fetch(o.ctx, k, true)
-			if errors.Is(err, ErrCacheInsufficient) {
-				break
-			}
-			if err != nil && o.ctx.Err() == nil {
-				o.mu.Lock()
-				o.lastErr = err
-				o.mu.Unlock()
-			}
-		}
+		completed := o.fetchList(list, generation)
 		o.mu.Lock()
 		o.active--
-		if o.generation == generation && o.active == 0 {
+		if completed && generation > o.handled {
+			o.handled = generation
+		}
+		if o.handled == o.generation && o.active == 0 {
 			o.pending = false
 		}
 		o.mu.Unlock()
+		if o.ctx.Err() != nil {
+			return
+		}
 	}
+}
+
+// fetchList kuşağın listesini önbelleğe alır; liste sonuna kadar işlendiyse (ya da kota
+// yetmediği için bırakıldıysa) doğru, yeni bir liste geldiği ya da önbellek kapandığı için
+// yarıda kaldıysa yanlış döner.
+func (o *cacheCore) fetchList(list []string, generation uint64) bool {
+	for _, k := range list {
+		if o.ctx.Err() != nil {
+			return false
+		}
+		o.mu.Lock()
+		changed := o.generation != generation
+		o.mu.Unlock()
+		if changed {
+			return false // uyarı kanalında yeni liste bekliyor
+		}
+		_, _, err := o.fetch(o.ctx, k, true)
+		if errors.Is(err, ErrCacheInsufficient) {
+			return true
+		}
+		if err != nil && o.ctx.Err() == nil {
+			o.mu.Lock()
+			o.lastErr = err
+			o.mu.Unlock()
+		}
+	}
+	return true
 }
 
 func (o *cacheCore) wait(ctx context.Context) error {
