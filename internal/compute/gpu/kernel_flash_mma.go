@@ -97,63 +97,97 @@ func (k *emitter) loadPair16(base2, row, col, lim reg, D int) reg {
 	return v
 }
 
-// loadKTile K döşemesini ([mmaBc][D], satırlar j0..) paylaşımlı belleğe [satır][D+8] düzeninde
-// yükler; Tk'nin dışındaki satırlar 0.
-func (k *emitter) loadKTile(sm, base2, j0, Tk, tid reg, D int) {
-	half := D / 2
-	for q := 0; q*flashJob < mmaBc*half; q++ {
-		e := k.r()
-		k.e("add.s32", e, tid, q*flashJob)
-		row, pc := k.r(), k.r()
-		k.e("div.u32", row, e, half)
-		k.e("rem.u32", pc, e, half)
-		col := k.r()
-		k.e("shl.b32", col, pc, 1)
-		j := k.r()
-		k.e("add.s32", j, j0, row)
-		v := k.loadPair16(base2, j, col, Tk, D)
+// tile16 paylaşımlı bellekte 16 bitlik bir döşeme hedefi: satır öncelikli [R][D+8] (row) ve/veya
+// devrik [D][R+8] (trans); boş yazmaç o düzenin yazılmayacağını gösterir.
+type tile16 struct {
+	row, trans reg
+	R, D       int
+}
+
+// store2x2 iki satırın (r, r+1) aynı sütun çiftini (c, c+1) döşemeye yazar: satır öncelikli
+// düzende v0 = (r, c..c+1), v1 = (r+1, c..c+1); devrik düzende (c, r..r+1) ve (c+1, r..r+1)
+// çiftleri 32 bitlik yazmalarla.
+func (k *emitter) store2x2(t tile16, r, c, v0, v1 reg) {
+	if t.row != "" {
 		so := k.r()
-		k.e("mad.lo.s32", so, row, D+8, col)
-		k.e("mad.lo.s32", so, so, 2, sm)
-		k.e("st.shared.b32", mem(so, 0), v)
+		k.e("mad.lo.s32", so, r, t.D+8, c)
+		k.e("mad.lo.s32", so, so, 2, t.row)
+		k.e("st.shared.b32", mem(so, 0), v0)
+		k.e("st.shared.b32", mem(so, 2*(t.D+8)), v1)
+	}
+	if t.trans != "" {
+		lo, hi, x := k.r(), k.r(), k.r()
+		k.e("and.b32", lo, v0, 0xFFFF)
+		k.e("shl.b32", x, v1, 16)
+		k.e("or.b32", lo, lo, x)
+		k.e("shr.u32", hi, v0, 16)
+		y := k.r()
+		k.e("and.b32", y, v1, -65536)
+		k.e("or.b32", hi, hi, y)
+		so := k.r()
+		k.e("mad.lo.s32", so, c, t.R+8, r)
+		k.e("mad.lo.s32", so, so, 2, t.trans)
+		k.e("st.shared.b32", mem(so, 0), lo)
+		k.e("st.shared.b32", mem(so, 2*(t.R+8)), hi)
 	}
 }
 
-// loadVTile V döşemesini devrik olarak ([D][mmaBc+8]) paylaşımlı belleğe yükler. Her iş
-// parçacığı ardışık iki anahtar satırının (j, j+1) aynı sütun çiftini (d, d+1) okur ve devrik
-// çiftleri Vᵀ[d][j..j+1], Vᵀ[d+1][j..j+1] olarak 32 bitlik yazmalarla koyar.
-func (k *emitter) loadVTile(sm, base2, j0, Tk, tid reg, D int) {
+// tileWork döşemenin 2×2'lik parçalarını iş parçacıklarına dağıtır: f(satır, sütun) her parça
+// için (satır ve sütun çift) çağrılır.
+func (k *emitter) tileWork(tid reg, R, D int, f func(r, c reg)) {
 	half := D / 2
-	for q := 0; q*flashJob < (mmaBc/2)*half; q++ {
+	for q := 0; q*flashJob < (R/2)*half; q++ {
 		e := k.r()
 		k.e("add.s32", e, tid, q*flashJob)
+		skip := k.label()
+		if (q+1)*flashJob > (R/2)*half {
+			p := k.p()
+			k.e("setp.ge.u32", p, e, (R/2)*half)
+			k.jumpIf(p, skip)
+		}
 		rp, pc := k.r(), k.r()
 		k.e("div.u32", rp, e, half)
 		k.e("rem.u32", pc, e, half)
-		row, col := k.r(), k.r()
-		k.e("shl.b32", row, rp, 1)
-		k.e("shl.b32", col, pc, 1)
-		j := k.r()
-		k.e("add.s32", j, j0, row)
-		j1 := k.r()
-		k.e("add.s32", j1, j, 1)
-		v0 := k.loadPair16(base2, j, col, Tk, D)
-		v1 := k.loadPair16(base2, j1, col, Tk, D)
-		// (V[j][d], V[j+1][d]) ve (V[j][d+1], V[j+1][d+1]).
-		lo, hi, t := k.r(), k.r(), k.r()
-		k.e("and.b32", lo, v0, 0xFFFF)
-		k.e("shl.b32", t, v1, 16)
-		k.e("or.b32", lo, lo, t)
-		k.e("shr.u32", hi, v0, 16)
-		t2 := k.r()
-		k.e("and.b32", t2, v1, -65536)
-		k.e("or.b32", hi, hi, t2)
-		so := k.r()
-		k.e("mad.lo.s32", so, col, mmaBc+8, row)
-		k.e("mad.lo.s32", so, so, 2, sm)
-		k.e("st.shared.b32", mem(so, 0), lo)
-		k.e("st.shared.b32", mem(so, 2*(mmaBc+8)), hi)
+		r, c := k.r(), k.r()
+		k.e("shl.b32", r, rp, 1)
+		k.e("shl.b32", c, pc, 1)
+		f(r, c)
+		k.put(skip)
 	}
+}
+
+// loadTile16 genel bellekteki 16 bitlik [T][D] matrisin r0'dan başlayan R satırını döşemeye
+// yükler; lim'in dışındaki satırlar 0.
+func (k *emitter) loadTile16(t tile16, base2, r0, lim, tid reg) {
+	k.tileWork(tid, t.R, t.D, func(r, c reg) {
+		g0, g1 := k.r(), k.r()
+		k.e("add.s32", g0, r0, r)
+		k.e("add.s32", g1, g0, 1)
+		k.store2x2(t, r, c, k.loadPair16(base2, g0, c, lim, t.D), k.loadPair16(base2, g1, c, lim, t.D))
+	})
+}
+
+// loadTileF32 genel bellekteki float32 [T][D] matrisin r0'dan başlayan R satırını 16 bite
+// (en yakına-çifte) yuvarlayarak döşemeye yükler; lim'in dışındaki satırlar 0.
+func (k *emitter) loadTileF32(t tile16, base2, r0, lim, tid reg, f16 bool) {
+	k.tileWork(tid, t.R, t.D, func(r, c reg) {
+		var v [2][2]reg
+		for i := range 2 {
+			g := k.r()
+			k.e("add.s32", g, r0, r)
+			k.e("add.s32", g, g, i)
+			p := k.p()
+			k.e("setp.lt.u32", p, g, lim)
+			idx := k.r()
+			k.e("mad.lo.s32", idx, g, t.D, c)
+			ad := k.address(base2, idx, 4)
+			for j := range 2 {
+				v[i][j] = k.constant(0)
+				k.ifCase(p, "ld.global.f32", v[i][j], mem(ad, 4*j))
+			}
+		}
+		k.store2x2(t, r, c, k.pack2(v[0][0], v[0][1], f16), k.pack2(v[1][0], v[1][1], f16))
+	})
 }
 
 // flashMmaForwardKernel tensör çekirdekli dikkatin ileri yönü; ızgara (⌈Tq/mmaBr⌉, H, Batch).
@@ -232,8 +266,8 @@ func flashMmaForwardKernel(a flashMma) func() *emitter {
 		k.e("setp.ge.u32", p, j0, jEnd)
 		k.jumpIf(p, done)
 		k.barrier() // önceki döşemeyi okuyan warp'lar bitti
-		k.loadKTile(ks, kb, j0, f.Tk, f.tid, a.Dh)
-		k.loadVTile(vts, vb, j0, f.Tk, f.tid, a.Dv)
+		k.loadTile16(tile16{row: ks, R: mmaBc, D: a.Dh}, kb, j0, f.Tk, f.tid)
+		k.loadTile16(tile16{trans: vts, R: mmaBc, D: a.Dv}, vb, j0, f.Tk, f.tid)
 		k.barrier()
 		// S = Q·Kᵀ
 		for i := range S {

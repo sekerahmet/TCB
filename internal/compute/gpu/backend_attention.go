@@ -1,6 +1,7 @@
 package gpu
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -103,8 +104,10 @@ func (g *backend) attnBackward(gq, gk, gv, gs tensor.Storage, q, k, v tensor.Vie
 	defer gt.finish()
 	R := p.Batch * p.H * p.Tq
 	md, mo := g.prepareAttn(gt, mask, p)
+	tc, tcOK := g.mmaFits(q, k, v, md != nil, p)
+	tcOK = tcOK && R > 0 && p.Tk > 0 && tc.Dh <= mmaBackMax && tc.Dv <= mmaBackMax
 	a, ok := g.flashFits(p, md != nil, true)
-	if !ok || R == 0 || p.Tk == 0 {
+	if !tcOK && (!ok || R == 0 || p.Tk == 0) {
 		// Taze gradyanlar sıfırlanmamıştır: önce sıfırlanır, sonra eklenir.
 		for i, s := range []tensor.Storage{gq, gk, gv} {
 			if s != nil && fresh[i] {
@@ -124,7 +127,6 @@ func (g *backend) attnBackward(gq, gk, gv, gs tensor.Storage, q, k, v tensor.Vie
 	}
 	dq, dk, dv := exit[0], exit[1], exit[2]
 	kq, kk, kv := mode2[0], mode2[1], mode2[2]
-	qv, kvw, vv := gt.read(q), gt.read(k), gt.read(v)
 	dO := gt.readD(gs)
 	od := gt.readD(o)
 	ld := gt.readD(lse)
@@ -133,6 +135,14 @@ func (g *backend) attnBackward(gq, gk, gv, gs tensor.Storage, q, k, v tensor.Vie
 	cd := g.takeKernel("dikkat_d", flashDKernel)
 	iz, bl := plain(R, sameBlock)
 	g.launch(cd, iz, bl, g.param().read(dO, 0).read(od, 0).write(D, 0).u32(R).u32(p.Dv))
+	if tcOK {
+		g.attnBackwardTC(tc, q, k, v, dO, ld, D, md, mo, dq, dk, dv, kq, kk, kv, p)
+		for _, last := range lasts {
+			last()
+		}
+		return
+	}
+	qv, kvw, vv := gt.read(q), gt.read(k), gt.read(v)
 	if kq != noGrad {
 		c := g.takeKernel(a.key("dikkat_geri_q")+string(rune('0'+kq)), flashBackwardQKernel(a, kq))
 		pr := g.param().readV(qv).readV(kvw).readV(vv).read(dO, 0).read(ld, 0).read(D, 0).writeTo(dq)
@@ -171,4 +181,20 @@ func (g *backend) attnOutput(gt *temp, s tensor.Storage, fresh bool, prev []*sto
 	}
 	d, last := gt.write(s, mode2 == addGrad)
 	return d, mode2, append(lasts, last)
+}
+
+// attnBackwardTC tensör çekirdekli geri yön: 16 bitlik q, k, v doğrudan okunur.
+func (g *backend) attnBackwardTC(tc flashMma, q, k, v tensor.View, dO, ld, D, md, mo, dq, dk, dv *storage, kq, kk, kv int, p tensor.AttentionParams) {
+	if kq != noGrad {
+		c := g.takeKernel(fmt.Sprintf("%s_%d", tc.key("dikkat_geri_q_tc"), kq), flashMmaBackwardQKernel(tc, kq))
+		pr := g.param().readV(q).readV(k).readV(v).read(dO, 0).read(ld, 0).read(D, 0).writeTo(dq)
+		g.attnShared(pr, md, mo, p)
+		g.launch(c, [3]uint32{blocks(p.Tq, mmaBr), uint32(p.H), uint32(p.Batch)}, [3]uint32{flashJob, 1, 1}, pr)
+	}
+	if kk != noGrad || kv != noGrad {
+		c := g.takeKernel(fmt.Sprintf("%s_%d_%d", tc.key("dikkat_geri_kv_tc"), kk, kv), flashMmaBackwardKVKernel(tc, kk, kv))
+		pr := g.param().readV(q).readV(k).readV(v).read(dO, 0).read(ld, 0).read(D, 0).writeTo(dk).writeTo(dv)
+		g.attnShared(pr, md, mo, p)
+		g.launch(c, [3]uint32{blocks(p.Tk, mmaKeys), uint32(p.Hkv), uint32(p.Batch)}, [3]uint32{flashJob, 1, 1}, pr)
+	}
 }
