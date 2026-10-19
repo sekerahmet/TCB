@@ -2,6 +2,7 @@ package interp
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -16,6 +17,10 @@ func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 	switch it := iterVal.(type) {
 	case *RangeVal:
 		if first, last, step, empty := rangeSteps(it); !empty {
+			// The items are built up front, so the size limit of aralık() applies here too.
+			if n := rangeCount(first, last, step); n > MaxCollectionSize {
+				return nil, fmt.Errorf("Satır %d: liste üreteci çok büyük: aralıkta %d eleman var, en fazla %d eleman üretilebilir", line, n, MaxCollectionSize)
+			}
 			for i := first; ; i += step {
 				items = append(items, NewInt(i))
 				if i == last {
@@ -236,4 +241,18 @@ func (v *VM) textChars(s *StringVal) (bool, []rune) {
 		}
 	}
 	return o.ascii, o.runes
+}
+
+// rangeCount is the number of items from first to last (inclusive) by step, computed without
+// overflow; it saturates at math.MaxInt64.
+func rangeCount(first, last, step int64) int64 {
+	span, by := uint64(last)-uint64(first), uint64(step)
+	if step < 0 {
+		span, by = uint64(first)-uint64(last), uint64(-step)
+	}
+	n := span/by + 1
+	if n > math.MaxInt64 || n == 0 {
+		return math.MaxInt64
+	}
+	return int64(n)
 }

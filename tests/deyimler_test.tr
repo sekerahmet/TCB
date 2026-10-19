@@ -142,6 +142,12 @@ test "5.11 liste üreteci" {
     eşit_mi([2, 4], [x * 2 döngü x içinde [1, 2]])
 }
 
+test "5.11 liste üreteci aralıkta da eleman sınırına uyar (bellek tükenmez)" {
+    değişken mesaj = ""
+    dene { değişken l = [x döngü x içinde 0..9000000000000000000] } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("çok büyük"), mesaj)
+}
+
 test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
     değişken dış = 0
     eğer doğru {
