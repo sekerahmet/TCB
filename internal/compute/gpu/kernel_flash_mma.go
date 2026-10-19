@@ -203,36 +203,15 @@ func flashMmaForwardKernel(a flashMma) func() *emitter {
 		ks := k.shared("ks", 2*mmaBc*(a.Dh+8))
 		vts := k.shared("vts", 2*a.Dv*(mmaBc+8))
 		l := k.lanes(f.tid)
-		q0 := k.r()
-		k.e("mul.lo.s32", q0, k.special("%ctaid.x"), mmaBr)
-		qb := k.base16(pq, f.bh, f.Tq, a.Dh)
-		kb := k.base16(pk, f.bhkv, f.Tk, a.Dh)
-		vb := k.base16(pv, f.bhkv, f.Tk, a.Dv)
-		// Warp'ın satırları: r[0] = q0 + 16w + g, r[1] = r[0] + 8.
-		var rows [2]reg
-		rows[0], rows[1] = k.r(), k.r()
-		k.e("mad.lo.s32", rows[0], l.w, 16, q0)
-		k.e("add.s32", rows[0], rows[0], l.g)
-		k.e("add.s32", rows[1], rows[0], 8)
 		t2 := k.r()
 		k.e("shl.b32", t2, l.t, 1)
-		// Q parçaları (A): her k adımı için (r0, 2t), (r1, 2t), (r0, 2t+8), (r1, 2t+8).
-		nks := a.Dh / 16
-		qa := make([][4]reg, nks)
-		for s := range nks {
-			for i, o := range [4][2]int{{0, 0}, {1, 0}, {0, 8}, {1, 8}} {
-				c := k.r()
-				k.e("add.s32", c, t2, 16*s+o[1])
-				qa[s][i] = k.loadPair16(qb, rows[o[0]], c, f.Tq, a.Dh)
-			}
-		}
-		var lo, hi [2]reg
-		for i := range rows {
-			lo[i], hi[i] = k.attnLimits(rows[i], f.Tq, f.Tk, f.reason2, f.pending2)
-			outside := k.p()
-			k.e("setp.ge.u32", outside, rows[i], f.Tq)
-			k.e("selp.b32", hi[i], lo[i], hi[i], outside)
-		}
+		q0 := k.r()
+		k.e("mul.lo.s32", q0, k.special("%ctaid.x"), mmaBr)
+		rows := k.fragRows(q0, l)
+		qa := k.fragA16(k.base16(pq, f.bh, f.Tq, a.Dh), rows, t2, f.Tq, a.Dh)
+		kb := k.base16(pk, f.bhkv, f.Tk, a.Dh)
+		vb := k.base16(pv, f.bhkv, f.Tk, a.Dv)
+		lo, hi := f.rowLimits(rows)
 		jStart, jEnd := f.keyRange(q0)
 		sc2 := k.f()
 		k.e("mul.rn.f32", sc2, f.scaleF, float32(math.Log2E))
@@ -240,24 +219,9 @@ func flashMmaForwardKernel(a flashMma) func() *emitter {
 		for i := range m {
 			m[i], sum[i] = k.constant(float32(math.Inf(-1))), k.constant(0)
 		}
-		nS, nO := mmaBc/8, a.Dv/8
-		S, O := make([][4]reg, nS), make([][4]reg, nO)
-		for i := range S {
-			for c := range 4 {
-				S[i][c] = k.f()
-			}
-		}
-		for i := range O {
-			for c := range 4 {
-				O[i][c] = k.constant(0)
-			}
-		}
-		// Paylaşımlı bellekte şeridin ilk okuma adresleri: K[g][2t], Vᵀ[g][2t].
-		kAddr, vAddr := k.r(), k.r()
-		k.e("mad.lo.s32", kAddr, l.g, a.Dh+8, t2)
-		k.e("mad.lo.s32", kAddr, kAddr, 2, ks)
-		k.e("mad.lo.s32", vAddr, l.g, mmaBc+8, t2)
-		k.e("mad.lo.s32", vAddr, vAddr, 2, vts)
+		S, O := k.zeroFrags(mmaBc/8), k.zeroFrags(a.Dv/8)
+		kAddr := k.laneAddr(ks, l, t2, a.Dh+8)
+		vAddr := k.laneAddr(vts, l, t2, mmaBc+8)
 		j0 := k.r()
 		k.e("mov.u32", j0, jStart)
 		loop, done := k.label(), k.label()
@@ -269,45 +233,28 @@ func flashMmaForwardKernel(a flashMma) func() *emitter {
 		k.loadTile16(tile16{row: ks, R: mmaBc, D: a.Dh}, kb, j0, f.Tk, f.tid)
 		k.loadTile16(tile16{trans: vts, R: mmaBc, D: a.Dv}, vb, j0, f.Tk, f.tid)
 		k.barrier()
-		// S = Q·Kᵀ
-		for i := range S {
-			for c := range 4 {
-				k.e("mov.f32", S[i][c], float32(0))
-			}
-		}
-		for s := range nks {
-			for n := range nS {
-				var b [2]reg
-				b[0], b[1] = k.r(), k.r()
-				ofs := 2 * (n*8*(a.Dh+8) + 16*s)
-				k.e("ld.shared.b32", b[0], mem(kAddr, ofs))
-				k.e("ld.shared.b32", b[1], mem(kAddr, ofs+16))
-				k.mma(S[n], S[n], qa[s], b, a.f16)
-			}
-		}
+		k.clearFrags(S)
+		k.fragMul(S, qa, kAddr, a.Dh+8, a.f16) // S = Q·Kᵀ
 		f.mmaSoftmax(S, O, rows, lo, hi, m, sum, j0, t2, sc2)
-		// O += P·V: P parçaları S'den (iki n döşemesi bir k adımı).
-		for s := range mmaBc / 16 {
-			var pa [4]reg
-			pa[0] = k.pack2(S[2*s][0], S[2*s][1], a.f16)
-			pa[1] = k.pack2(S[2*s][2], S[2*s][3], a.f16)
-			pa[2] = k.pack2(S[2*s+1][0], S[2*s+1][1], a.f16)
-			pa[3] = k.pack2(S[2*s+1][2], S[2*s+1][3], a.f16)
-			for n := range nO {
-				var b [2]reg
-				b[0], b[1] = k.r(), k.r()
-				ofs := 2 * (n*8*(mmaBc+8) + 16*s)
-				k.e("ld.shared.b32", b[0], mem(vAddr, ofs))
-				k.e("ld.shared.b32", b[1], mem(vAddr, ofs+16))
-				k.mma(O[n], O[n], pa, b, a.f16)
-			}
-		}
+		k.fragMul(O, k.fragToA(S, a.f16), vAddr, mmaBc+8, a.f16) // O += P·V
 		k.e("add.s32", j0, j0, mmaBc)
 		k.jump(loop)
 		k.put(done)
 		f.mmaWriteForward(O, rows, m, sum, t2, l.t, pout, plse)
 		return k
 	}
+}
+
+// rowLimits şeridin iki satırının görünür anahtar aralığı [lo, hi); Tq dışındaki satır boştur.
+func (f *flashShared) rowLimits(rows [2]reg) (lo, hi [2]reg) {
+	k := f.k
+	for i := range rows {
+		lo[i], hi[i] = k.attnLimits(rows[i], f.Tq, f.Tk, f.reason2, f.pending2)
+		outside := k.p()
+		k.e("setp.ge.u32", outside, rows[i], f.Tq)
+		k.e("selp.b32", hi[i], lo[i], hi[i], outside)
+	}
+	return lo, hi
 }
 
 // mmaSoftmax çevrimiçi softmax adımı (2 tabanında): S görünmeyenlerde −∞ olur, satırın yeni en

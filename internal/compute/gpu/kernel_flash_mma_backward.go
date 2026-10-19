@@ -329,34 +329,7 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		k.clearFrags(dPt)
 		k.fragMul(St, ka, qsAddr, a.Dh+8, a.f16)
 		k.fragMul(dPt, va, dosAddr, a.Dv+8, a.f16)
-		// Sütun (sorgu) bilgileri paylaşımlı bellekten: [lse2, D, alt, üst] × mmaQT.
-		colInfo := map[int][4]reg{}
-		get := func(n, c int) [4]reg {
-			key := 8*n + c%2
-			if v, ok := colInfo[key]; ok {
-				return v
-			}
-			ad := k.r()
-			k.e("add.s32", ad, t2, key)
-			k.e("mad.lo.s32", ad, ad, 4, info)
-			var v [4]reg
-			v[0], v[1] = k.f(), k.f()
-			v[2], v[3] = k.r(), k.r()
-			k.e("ld.shared.f32", v[0], mem(ad, 0))
-			k.e("ld.shared.f32", v[1], mem(ad, 4*mmaQT))
-			k.e("ld.shared.u32", v[2], mem(ad, 8*mmaQT))
-			k.e("ld.shared.u32", v[3], mem(ad, 12*mmaQT))
-			colInfo[key] = v
-			return v
-		}
-		f.probsGrad(St, dPt, sc2, func(n, c int) reg {
-			v := get(n, c)
-			p1, p2 := k.p(), k.p()
-			k.e("setp.ge.s32", p1, keys[c/2], v[2])
-			k.e("setp.lt.s32", p2, keys[c/2], v[3])
-			k.e("and.pred", p1, p1, p2)
-			return p1
-		}, func(n, c int) reg { return get(n, c)[0] }, func(n, c int) reg { return get(n, c)[1] })
+		f.kvProbs(St, dPt, keys, info, t2, sc2)
 		k.fragMul(dV, k.fragToA(St, a.f16), dotsAddr, mmaQT+8, a.f16)
 		k.fragMul(dK, k.fragToA(dPt, a.f16), qtsAddr, mmaQT+8, a.f16)
 		k.e("add.s32", i0, i0, mmaQT)
@@ -368,6 +341,45 @@ func flashMmaBackwardKVKernel(a flashMma, modeK, modeV int) func() *emitter {
 		k.mmaGradWrite(dK, modeK, k.matrixBase(pdk, f.bhkv, f.Tk, a.Dh), keys, f.Tk, t2, a.Dh)
 		k.mmaGradWrite(dV, modeV, k.matrixBase(pdv, f.bhkv, f.Tk, a.Dv), keys, f.Tk, t2, a.Dv)
 		return k
+	}
+}
+
+// kvProbs dK/dV çekirdeğinde Pᵀ ve dSᵀ'yi kurar: satırlar anahtar (keys), sütunlar sorgu;
+// sorgu bilgileri (lse2, D, görünür anahtar aralığı) paylaşımlı bellekten.
+func (f *flashShared) kvProbs(St, dPt [][4]reg, keys [2]reg, info, t2, sc2 reg) {
+	k := f.k
+	get := k.columnInfo(info, t2)
+	f.probsGrad(St, dPt, sc2, func(n, c int) reg {
+		v := get(n, c)
+		p1, p2 := k.p(), k.p()
+		k.e("setp.ge.s32", p1, keys[c/2], v[2])
+		k.e("setp.lt.s32", p2, keys[c/2], v[3])
+		k.e("and.pred", p1, p1, p2)
+		return p1
+	}, func(n, c int) reg { return get(n, c)[0] }, func(n, c int) reg { return get(n, c)[1] })
+}
+
+// columnInfo parça sütununun (sorgunun) paylaşımlı bellekteki bilgilerini [lse2, D, alt, üst]
+// okuyan işlevi verir; her sütun bir kez okunur.
+func (k *emitter) columnInfo(info, t2 reg) func(n, c int) [4]reg {
+	cache := map[int][4]reg{}
+	return func(n, c int) [4]reg {
+		key := 8*n + c%2
+		if v, ok := cache[key]; ok {
+			return v
+		}
+		ad := k.r()
+		k.e("add.s32", ad, t2, key)
+		k.e("mad.lo.s32", ad, ad, 4, info)
+		var v [4]reg
+		v[0], v[1] = k.f(), k.f()
+		v[2], v[3] = k.r(), k.r()
+		k.e("ld.shared.f32", v[0], mem(ad, 0))
+		k.e("ld.shared.f32", v[1], mem(ad, 4*mmaQT))
+		k.e("ld.shared.u32", v[2], mem(ad, 8*mmaQT))
+		k.e("ld.shared.u32", v[3], mem(ad, 12*mmaQT))
+		cache[key] = v
+		return v
 	}
 }
 
