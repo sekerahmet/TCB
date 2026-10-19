@@ -73,7 +73,7 @@ var saat = time.Now
 
 // Kaydet kontrol_noktası yerleşiğini VM'ye kaydeder. s programın süreç durumudur (komut
 // satırı ayarları noktaya yazılır); nil olabilir.
-func Kaydet(v *interp.VM, s *process.Durum) {
+func Kaydet(v *interp.VM, s *process.State) {
 	v.RegisterBuiltinCode(codes.T702, func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		return bind.Safe(codes.Name(codes.T702), func() (interp.Value, error) { return kur(m, s, args, named) })
 	})
@@ -87,7 +87,7 @@ type KontrolNoktasi struct {
 	nesneler []*nesne
 	aralik   time.Duration
 	tut      int
-	surec    *process.Durum
+	surec    *process.State
 
 	kaldigi    int64     // yüklenen noktanın adımı (yeni koşuda 0)
 	adim       int64     // son güncelle(adım)
@@ -122,7 +122,7 @@ func (kn *KontrolNoktasi) GetProperty(kd codes.Code, prop string) (interp.Value,
 }
 
 // kur kontrol_noktası(koşu, nesneler, her_dakika:, tut:) yerleşiğidir.
-func kur(m *interp.VM, s *process.Durum, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func kur(m *interp.VM, s *process.State, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.T702)
 	if err := bind.CheckNamed(fn, named, adHerDakika, adTut); err != nil {
 		return nil, err

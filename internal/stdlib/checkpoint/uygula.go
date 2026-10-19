@@ -101,7 +101,7 @@ func (kn *KontrolNoktasi) ayarlariKarsilastir(m *interp.VM, d *durumKaydi) {
 	if kn.surec == nil || len(d.Ayarlar) == 0 {
 		return
 	}
-	simdi := ayarlarYazimi(m, kn.surec.Ayarlar())
+	simdi := ayarlarYazimi(m, kn.surec.Settings())
 	if simdi == nil || bytes.Equal(simdi, d.Ayarlar) {
 		return
 	}

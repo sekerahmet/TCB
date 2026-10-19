@@ -9,11 +9,11 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 )
 
-// ortamDegiskeni ortam_değişkeni(ad) yerleşiğidir: değişkenin değeri (Metin) ya da
+// envVar ortam_değişkeni(ad) yerleşiğidir: değişkenin değeri (Metin) ya da
 // tanımsızsa yok. Bütün ortamı listeleyen ya da ortamı değiştiren bir ad bilerek yoktur
 // (yanlışlıkla döküm olmasın; TR alt süreç açmaz). Adı gizli bir sözcük içeren
 // değişkenin değeri gizli değer süzgecine kaydedilir.
-func ortamDegiskeni(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+func envVar(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
 		return nil, interp.ArgCountError(codes.G800, "1", len(args), "ad")
 	}
@@ -21,16 +21,16 @@ func ortamDegiskeni(m *interp.VM, args []interp.Value, _ map[string]interp.Value
 	if !ok {
 		return nil, interp.ArgTypeError(codes.G800, 1, args[0], codes.A202)
 	}
-	ad := s.Val
-	if ad == "" || strings.ContainsAny(ad, "=\x00") {
-		return nil, fmt.Errorf("%s: %q geçerli bir ortam değişkeni adı değil (boş olamaz, '=' içeremez)", interp.CallPrefix(codes.G800), ad)
+	name := s.Val
+	if name == "" || strings.ContainsAny(name, "=\x00") {
+		return nil, fmt.Errorf("%s: %q geçerli bir ortam değişkeni adı değil (boş olamaz, '=' içeremez)", interp.CallPrefix(codes.G800), name)
 	}
-	deger, bulundu := os.LookupEnv(ad)
-	if !bulundu {
+	value, found := os.LookupEnv(name)
+	if !found {
 		return interp.NULL, nil
 	}
-	if GizliAdMi(ad) && m != nil {
-		gizliEkle(m, deger)
+	if IsSecretName(name) && m != nil {
+		addSecret(m, value)
 	}
-	return &interp.StringVal{Val: deger}, nil
+	return &interp.StringVal{Val: value}, nil
 }

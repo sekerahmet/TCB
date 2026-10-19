@@ -37,7 +37,7 @@ func init() {
 	// Süreç (ortam, komut satırı), kayıt (günlük, ilerleme) ve kontrol noktası: günlüğün
 	// başlangıç kaydı ve kontrol noktası programın komut satırı ayarlarını yazar.
 	interp.AddEngine(func(v *interp.VM) {
-		s := process.Kaydet(v)
+		s := process.Register(v)
 		logging.Kaydet(v, s)
 		checkpoint.Kaydet(v, s)
 	})

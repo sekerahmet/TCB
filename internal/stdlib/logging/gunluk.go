@@ -75,7 +75,7 @@ const zamanBicimi = "2006-01-02T15:04:05.000Z07:00"
 // durum bir programın (VM'nin) günlük ve ilerleme durumudur. Kaydet her VM için bir tane
 // kurar; alanları yorumlayıcı kilidi altında değişir.
 type durum struct {
-	surec *process.Durum
+	surec *process.State
 	// etkin ekranda görünen (canlı satırı olan) çubuktur; yenisi açılınca o görünür.
 	etkin *Ilerleme
 	// ekrandaki terminalde çizili canlı satırın karakter sayısıdır (silmek için); bütün
@@ -85,7 +85,7 @@ type durum struct {
 
 // Kaydet günlük ve ilerleme yerleşiklerini VM'ye kaydeder. s programın süreç durumudur
 // (komut satırı ayarları başlangıç kaydına yazılır); nil olabilir.
-func Kaydet(v *interp.VM, s *process.Durum) {
+func Kaydet(v *interp.VM, s *process.State) {
 	d := &durum{surec: s}
 	v.RegisterNoNamed(codes.G810, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 		return bind.Safe(codes.Name(codes.G810), func() (interp.Value, error) { return d.gunlukAc(m, args) })

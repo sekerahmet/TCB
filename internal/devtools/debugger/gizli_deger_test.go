@@ -10,7 +10,7 @@ import (
 )
 
 // Süreç yerleşikleri (komut_satırı, ortam_değişkeni) bu paketin testlerinde de kayıtlı olsun.
-func init() { interp.AddEngine(func(v *interp.VM) { process.Kaydet(v) }) }
+func init() { interp.AddEngine(func(v *interp.VM) { process.Register(v) }) }
 
 // Hata ayıklama oturumunda gizli değerler düzenleyiciye giden hiçbir iletide görünmez:
 // değişkenler, izleme ifadesi, İzleme Masası tablosu ve konsol çıktısı.

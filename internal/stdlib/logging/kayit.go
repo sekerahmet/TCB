@@ -264,7 +264,7 @@ func (g *Gunluk) baslangicKaydi() *interp.DictVal {
 		k.Set(aToplam, interp.NewInt(g.toplam))
 	}
 	if g.d != nil && g.d.surec != nil {
-		if a := g.d.surec.Ayarlar(); a != nil {
+		if a := g.d.surec.Settings(); a != nil {
 			k.Set(aAyarlar, a)
 		}
 	}

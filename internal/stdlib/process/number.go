@@ -14,11 +14,11 @@ import (
 // ayırıcı değildir (0,001 yol gösteren hata), NaN ve sonsuz kabul edilmez. Hatalar, mesajın
 // sonuna eklenecek açıklamadır.
 
-var errSayiDegil = errors.New("")
+var errNotNumber = errors.New("")
 
-// sayiBicimi s'nin katı sayı yazımı olup olmadığını denetler ve alt çizgileri atılmış
+// numberFormat s'nin katı sayı yazımı olup olmadığını denetler ve alt çizgileri atılmış
 // biçimini verir; ondalik, nokta ya da üs içerip içermediğidir.
-func sayiBicimi(s string) (temiz string, ondalik bool, err error) {
+func numberFormat(s string) (clean string, float bool, err error) {
 	if strings.Contains(s, ",") {
 		return "", false, errors.New("; ondalık ayırıcı nokta olmalı (0.001), binlik ayırıcı için _ yazın (5_000)")
 	}
@@ -28,8 +28,8 @@ func sayiBicimi(s string) (temiz string, ondalik bool, err error) {
 		b.WriteByte(s[i])
 		i++
 	}
-	rakamlar := func() bool {
-		bas := i
+	digits := func() bool {
+		start := i
 		for i < len(s) {
 			c := s[i]
 			if c >= '0' && c <= '9' {
@@ -38,66 +38,66 @@ func sayiBicimi(s string) (temiz string, ondalik bool, err error) {
 				continue
 			}
 			// _ yalnızca iki rakamın arasında
-			if c == '_' && i > bas && i+1 < len(s) && s[i+1] >= '0' && s[i+1] <= '9' {
+			if c == '_' && i > start && i+1 < len(s) && s[i+1] >= '0' && s[i+1] <= '9' {
 				i++
 				continue
 			}
 			break
 		}
-		return i > bas
+		return i > start
 	}
-	if !rakamlar() {
-		return "", false, errSayiDegil
+	if !digits() {
+		return "", false, errNotNumber
 	}
 	if i < len(s) && s[i] == '.' {
 		b.WriteByte('.')
 		i++
-		ondalik = true
-		if !rakamlar() {
-			return "", false, errSayiDegil
+		float = true
+		if !digits() {
+			return "", false, errNotNumber
 		}
 	}
 	if i < len(s) && (s[i] == 'e' || s[i] == 'E') {
 		b.WriteByte('e')
 		i++
-		ondalik = true
+		float = true
 		if i < len(s) && (s[i] == '+' || s[i] == '-') {
 			b.WriteByte(s[i])
 			i++
 		}
-		if !rakamlar() {
-			return "", false, errSayiDegil
+		if !digits() {
+			return "", false, errNotNumber
 		}
 	}
 	if i != len(s) {
-		return "", false, errSayiDegil
+		return "", false, errNotNumber
 	}
-	return b.String(), ondalik, nil
+	return b.String(), float, nil
 }
 
-// tamCoz bir Tam değer okur.
-func tamCoz(s string) (int64, error) {
-	temiz, ondalik, err := sayiBicimi(s)
+// parseInt bir Tam değer okur.
+func parseInt(s string) (int64, error) {
+	clean, float, err := numberFormat(s)
 	if err != nil {
 		return 0, err
 	}
-	if ondalik {
+	if float {
 		return 0, errors.New("; tam sayı nokta ya da üs içermez")
 	}
-	n, err := strconv.ParseInt(temiz, 10, 64)
+	n, err := strconv.ParseInt(clean, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("; sayı %s aralığının dışında", codes.Name(codes.A200))
 	}
 	return n, nil
 }
 
-// ondalikCoz bir Ondalık değer okur (tam sayı yazımı da kabul edilir: 3 → 3.0).
-func ondalikCoz(s string) (float64, error) {
-	temiz, _, err := sayiBicimi(s)
+// parseFloat bir Ondalık değer okur (tam sayı yazımı da kabul edilir: 3 → 3.0).
+func parseFloat(s string) (float64, error) {
+	clean, _, err := numberFormat(s)
 	if err != nil {
 		return 0, err
 	}
-	f, err := strconv.ParseFloat(temiz, 64)
+	f, err := strconv.ParseFloat(clean, 64)
 	if err != nil {
 		return 0, fmt.Errorf("; sayı %s aralığının dışında", codes.Name(codes.A201))
 	}

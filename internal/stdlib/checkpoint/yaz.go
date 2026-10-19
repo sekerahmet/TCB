@@ -78,7 +78,7 @@ func (kn *KontrolNoktasi) topla(m *interp.VM) ([]byte, []tensorPlani, error) {
 	d := durumKaydi{Surum: bicimSurumu, Adim: kn.adim, Zaman: saat().Format(time.RFC3339), TR: trSurumu(),
 		Program: filepath.Base(m.SourceFile), Isci: runtime.GOMAXPROCS(0)}
 	if kn.surec != nil {
-		d.Ayarlar = ayarlarYazimi(m, kn.surec.Ayarlar())
+		d.Ayarlar = ayarlarYazimi(m, kn.surec.Settings())
 	}
 	var plan []tensorPlani
 	for _, n := range kn.nesneler {

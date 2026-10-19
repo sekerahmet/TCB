@@ -11,17 +11,17 @@ import (
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 )
 
-const secenekler = `{öğrenme_oranı: 0.001, adım: 5000, veri: "veri/train", katmanlar: [64, 64], hızlı: yanlış, etiket: yok, hf_token: ""}`
+const options = `{öğrenme_oranı: 0.001, adım: 5000, veri: "veri/train", katmanlar: [64, 64], hızlı: yanlış, etiket: yok, hf_token: ""}`
 
-// komutSatiri komut_satırı'nı verilen argümanlarla çalıştırır; sonucu (sözlüğün görünümü)
+// commandLine komut_satırı'nı verilen argümanlarla çalıştırır; sonucu (sözlüğün görünümü)
 // ya da hatayı döndürür.
-func komutSatiri(t *testing.T, kod string, argumanlar ...string) (string, error, *interp.VM) {
+func commandLine(t *testing.T, code string, arguments ...string) (string, error, *interp.VM) {
 	t.Helper()
 	m := interp.New()
 	m.Out, m.Err = io.Discard, io.Discard
 	m.SourceFile = "egit.tr"
-	m.SetArgs(argumanlar)
-	p := parser.New(lexer.New(kod))
+	m.SetArgs(arguments)
+	p := parser.New(lexer.New(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi: %v", p.Errors())
@@ -33,8 +33,8 @@ func komutSatiri(t *testing.T, kod string, argumanlar ...string) (string, error,
 	return v.Inspect(), nil, m
 }
 
-func TestKomutSatiriDegerleri(t *testing.T) {
-	kod := "komut_satırı(" + secenekler + ")"
+func TestCommandLineValues(t *testing.T) {
+	code := "komut_satırı(" + options + ")"
 	for _, d := range []struct {
 		arg  []string
 		want string
@@ -46,7 +46,7 @@ func TestKomutSatiriDegerleri(t *testing.T) {
 			`{"öğrenme_oranı": 3.0, "adım": 5000, "veri": "-x", "katmanlar": [], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
 		{[]string{"--adım", "-5"}, `{"öğrenme_oranı": 0.001, "adım": -5, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
 	} {
-		got, err, _ := komutSatiri(t, kod, d.arg...)
+		got, err, _ := commandLine(t, code, d.arg...)
 		if err != nil || got != d.want {
 			t.Errorf("%v:\n  %s (%v)\nbeklenen\n  %s", d.arg, got, err, d.want)
 		}
@@ -54,8 +54,8 @@ func TestKomutSatiriDegerleri(t *testing.T) {
 }
 
 // Kullanıcının argüman hataları programı 2 koduyla bitirme isteğidir; mesaj yol gösterir.
-func TestKomutSatiriKullanimHatalari(t *testing.T) {
-	kod := "komut_satırı(" + secenekler + ")"
+func TestCommandLineUsageErrors(t *testing.T) {
+	code := "komut_satırı(" + options + ")"
 	for _, d := range []struct {
 		arg  []string
 		want string
@@ -76,7 +76,7 @@ func TestKomutSatiriKullanimHatalari(t *testing.T) {
 		{[]string{"--"}, "'--' tek başına kullanılmaz"},
 		{[]string{"--veri", strings.Repeat("a", 1<<20+1)}, "değeri çok uzun"},
 	} {
-		_, err, _ := komutSatiri(t, kod, d.arg...)
+		_, err, _ := commandLine(t, code, d.arg...)
 		c, ok := interp.IsExitRequest(err)
 		if !ok || c.Code != 2 || !strings.Contains(c.Message, d.want) || !strings.HasPrefix(c.Message, "Hata: ") {
 			t.Errorf("%.60v: 2 kodlu, %q içeren çıkış isteği bekleniyordu: %v", d.arg, d.want, err)
@@ -85,8 +85,8 @@ func TestKomutSatiriKullanimHatalari(t *testing.T) {
 }
 
 // --yardım ve -h seçenekleri listeleyip programı 0 koduyla bitirir; hatalı argümanlar olsa da.
-func TestKomutSatiriYardim(t *testing.T) {
-	kod := `komut_satırı(` + secenekler + `, açıklama: "Küçük dil modelini eğitir", açıklamalar: {öğrenme_oranı: "öğrenme oranı", adım: "eğitim adımı sayısı"})`
+func TestCommandLineHelp(t *testing.T) {
+	code := `komut_satırı(` + options + `, açıklama: "Küçük dil modelini eğitir", açıklamalar: {öğrenme_oranı: "öğrenme oranı", adım: "eğitim adımı sayısı"})`
 	want := `Kullanım: tr egit.tr [seçenekler]
 
 Küçük dil modelini eğitir
@@ -101,7 +101,7 @@ Seçenekler:
   --hf_token <Metin>          (varsayılan: "")
   --yardım, -h                bu yardımı gösterir`
 	for _, arg := range [][]string{{"--yardım"}, {"-h"}, {"--adım", "x", "-h"}} {
-		_, err, _ := komutSatiri(t, kod, arg...)
+		_, err, _ := commandLine(t, code, arg...)
 		c, ok := interp.IsExitRequest(err)
 		if !ok || c.Code != 0 || c.Message != want {
 			t.Errorf("%v: yardım bekleniyordu:\n%v", arg, err)
@@ -110,8 +110,8 @@ Seçenekler:
 }
 
 // Kurulum hataları sıradan, yakalanabilir hatalardır.
-func TestKomutSatiriKurulumHatalari(t *testing.T) {
-	for _, d := range []struct{ kod, want string }{
+func TestCommandLineSetupErrors(t *testing.T) {
+	for _, d := range []struct{ code, want string }{
 		{`komut_satırı({uzunluk: 3})`, `"uzunluk" seçenek adı olamaz: Sözlük tipinin bir üyesidir`},
 		{`komut_satırı({anahtarlar: 3})`, `"anahtarlar" seçenek adı olamaz`},
 		{`komut_satırı({yardım: doğru})`, `"yardım" seçenek adı olamaz`},
@@ -127,21 +127,21 @@ func TestKomutSatiriKurulumHatalari(t *testing.T) {
 		{`komut_satırı([1])`, "1. argüman olarak Sözlük bekler"},
 		{`komut_satırı({a: 1}); komut_satırı({a: 1})`, "programda bir kez çağrılır"},
 	} {
-		_, err, _ := komutSatiri(t, d.kod)
-		if _, cikis := interp.IsExitRequest(err); err == nil || cikis || !strings.Contains(err.Error(), d.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.kod, d.want, err)
+		_, err, _ := commandLine(t, d.code)
+		if _, exit := interp.IsExitRequest(err); err == nil || exit || !strings.Contains(err.Error(), d.want) {
+			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.code, d.want, err)
 		}
 	}
 	// Kurulum hatası çağrıyı tüketmez; dene/yakala yakalar.
-	if got, err, _ := komutSatiri(t, `dene { komut_satırı({uzunluk: 1}) } yakala { }
+	if got, err, _ := commandLine(t, `dene { komut_satırı({uzunluk: 1}) } yakala { }
 komut_satırı({a: 1})`); err != nil || got != `{"a": 1}` {
 		t.Errorf("hatalı kurulumdan sonra çağrı geçerli olmalı: %s %v", got, err)
 	}
 }
 
 // Çıkış isteği dene/yakala ile yakalanmaz; ertele blokları çalışır.
-func TestCikisIstegiYakalanmaz(t *testing.T) {
-	_, err, m := komutSatiri(t, `değişken iz = []
+func TestExitRequestNotCaught(t *testing.T) {
+	_, err, m := commandLine(t, `değişken iz = []
 fonksiyon kur() {
     ertele iz.ekle("ertele")
     dene { sonuç komut_satırı({a: 1}) } yakala h { iz.ekle("yakalandı") }
@@ -157,8 +157,8 @@ kur()`, "--b")
 }
 
 // Gizli adlı seçeneğin (sayı olmayan) değeri süzgece girer; sayı değerli olan girmez.
-func TestKomutSatiriGizliDeger(t *testing.T) {
-	_, err, m := komutSatiri(t, `komut_satırı({hf_token: "", max_tokens: 0, api_key: ""})`, "--hf_token", "hf_abcdefgh123", "--max_tokens", "131072", "--api_key=123456789")
+func TestCommandLineSecretValue(t *testing.T) {
+	_, err, m := commandLine(t, `komut_satırı({hf_token: "", max_tokens: 0, api_key: ""})`, "--hf_token", "hf_abcdefgh123", "--max_tokens", "131072", "--api_key=123456789")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestKomutSatiriGizliDeger(t *testing.T) {
 		t.Errorf("maskeleme: %q", got)
 	}
 	// Bilinmeyen gizli adlı seçeneğin değeri de hata mesajında görünmez.
-	_, err, m = komutSatiri(t, `komut_satırı({a: 1})`, "--hf_token_x=hf_yazimhatasi")
+	_, err, m = commandLine(t, `komut_satırı({a: 1})`, "--hf_token_x=hf_yazimhatasi")
 	if c, ok := interp.IsExitRequest(err); !ok || strings.Contains(c.Message, "hf_yazimhatasi") || m.Mask("hf_yazimhatasi") != interp.SecretMask {
 		t.Errorf("bilinmeyen gizli seçeneğin değeri mesajda olmamalı ve süzgece girmeli: %v", err)
 	}
