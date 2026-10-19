@@ -10,18 +10,18 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-func bicimleT(t *testing.T, kaynak string) string {
+func formatT(t *testing.T, src string) string {
 	t.Helper()
-	cikti, err := Bicimle(kaynak)
+	output, err := Format(src)
 	if err != nil {
-		t.Fatalf("Bicimle hata verdi: %v\nkaynak:\n%s", err, kaynak)
+		t.Fatalf("Bicimle hata verdi: %v\nkaynak:\n%s", err, src)
 	}
-	return cikti
+	return output
 }
 
 // Gidiş-dönüş: beklenen standart biçim üretilmeli ve ikinci kez biçimlemek bir şey değiştirmemeli.
-func TestStandartBicim(t *testing.T) {
-	durumlar := []struct{ ad, girdi, beklenen string }{
+func TestStandardFormat(t *testing.T) {
+	cases := []struct{ ad, input, expected string }{
 		{"operatör boşlukları", "değişken   x=1+2*3\n", "değişken x = 1 + 2 * 3\n"},
 		{"virgül ve parantez", "yazdır( 1 ,2,  3 )\n", "yazdır(1, 2, 3)\n"},
 		{"tekli eksi", "x = -1\ny = a-b\nz = f(-x) * -2\nsonuç -1\n", "x = -1\ny = a - b\nz = f(-x) * -2\nsonuç -1\n"},
@@ -49,21 +49,21 @@ func TestStandartBicim(t *testing.T) {
 		{"test bloğu", "test \"ad\"{doğrula(1==1)}\n", "test \"ad\" { doğrula(1 == 1) }\n"},
 		{"boş kaynak", "", ""},
 	}
-	for _, d := range durumlar {
+	for _, d := range cases {
 		t.Run(d.ad, func(t *testing.T) {
-			cikti := bicimleT(t, d.girdi)
-			if cikti != d.beklenen {
-				t.Fatalf("beklenen:\n%q\nalınan:\n%q", d.beklenen, cikti)
+			output := formatT(t, d.input)
+			if output != d.expected {
+				t.Fatalf("beklenen:\n%q\nalınan:\n%q", d.expected, output)
 			}
-			if ikinci := bicimleT(t, cikti); ikinci != cikti {
-				t.Fatalf("idempotent değil:\n%q\n->\n%q", cikti, ikinci)
+			if second := formatT(t, output); second != output {
+				t.Fatalf("idempotent değil:\n%q\n->\n%q", output, second)
 			}
 		})
 	}
 }
 
-func TestYorumlarKorunur(t *testing.T) {
-	girdi := `// dosya başı yorumu
+func TestCommentsKept(t *testing.T) {
+	input := `// dosya başı yorumu
 // ikinci yorum
 değişken x = 1   // sondaki yorum
 /* çok
@@ -75,132 +75,132 @@ eğer x {
 }
 // dosya sonu
 `
-	cikti := bicimleT(t, girdi)
+	output := formatT(t, input)
 	for _, y := range []string{"// dosya başı yorumu", "// ikinci yorum", "// sondaki yorum",
 		"/* çok\n   satırlı yorum */", "// blok içi yorum", "/* satır içi */", "// kapanıştan önce", "// dosya sonu"} {
-		if !strings.Contains(cikti, y) {
-			t.Errorf("yorum kayboldu: %q\nçıktı:\n%s", y, cikti)
+		if !strings.Contains(output, y) {
+			t.Errorf("yorum kayboldu: %q\nçıktı:\n%s", y, output)
 		}
 	}
-	if !strings.Contains(cikti, "\n    // blok içi yorum\n") || !strings.Contains(cikti, "\n    // kapanıştan önce\n}") {
-		t.Errorf("blok içi yorumlar girintilenmedi:\n%s", cikti)
+	if !strings.Contains(output, "\n    // blok içi yorum\n") || !strings.Contains(output, "\n    // kapanıştan önce\n}") {
+		t.Errorf("blok içi yorumlar girintilenmedi:\n%s", output)
 	}
-	if !strings.Contains(cikti, "değişken x = 1 // sondaki yorum\n") {
-		t.Errorf("sondaki yorum satırında kalmadı:\n%s", cikti)
+	if !strings.Contains(output, "değişken x = 1 // sondaki yorum\n") {
+		t.Errorf("sondaki yorum satırında kalmadı:\n%s", output)
 	}
-	if ikinci := bicimleT(t, cikti); ikinci != cikti {
-		t.Errorf("yorumlu kodda idempotent değil:\n%s\n->\n%s", cikti, ikinci)
+	if second := formatT(t, output); second != output {
+		t.Errorf("yorumlu kodda idempotent değil:\n%s\n->\n%s", output, second)
 	}
 }
 
 // Yorum, '{' ile önceki satır arasındaysa '{' taşınmaz (yorum koddan sonra kalmasın diye).
-func TestYorumluSusluTasinmaz(t *testing.T) {
-	girdi := "eğer x // neden\n{\n    a()\n}\n"
-	if cikti := bicimleT(t, girdi); cikti != girdi {
-		t.Fatalf("beklenmeyen çıktı:\n%q", cikti)
+func TestCommentedBraceNotMoved(t *testing.T) {
+	input := "eğer x // neden\n{\n    a()\n}\n"
+	if output := formatT(t, input); output != input {
+		t.Fatalf("beklenmeyen çıktı:\n%q", output)
 	}
 }
 
-func TestMetinlerBaytBaytKorunur(t *testing.T) {
-	metinler := []string{
+func TestStringsKeptByteForByte(t *testing.T) {
+	texts := []string{
 		`"  iki  boşluk  "`, `'tek tırnak'`, `"kaçış \" \n \t \\ \{ \}"`, `"ara {x+1} değer"`,
 		`"{p['ad']}"`, "\"çok\nsatırlı   \n  metin\"",
 		// Ham metin (2.6a): ters bölü, süslü parantez ve boşluklar olduğu gibi
 		"`C:\\veri\\  {x+1}  \\d{3}`", "`çok\n    satırlı  \n`", "``",
 	}
-	for _, m := range metinler {
-		girdi := "değişken x = 1\ndeğişken p = {}\ndeğişken s = " + m + "\n"
-		cikti := bicimleT(t, girdi)
-		if !strings.Contains(cikti, m) {
-			t.Errorf("metin değişti: %s\nçıktı:\n%s", m, cikti)
+	for _, m := range texts {
+		input := "değişken x = 1\ndeğişken p = {}\ndeğişken s = " + m + "\n"
+		output := formatT(t, input)
+		if !strings.Contains(output, m) {
+			t.Errorf("metin değişti: %s\nçıktı:\n%s", m, output)
 		}
 	}
 }
 
 // Satıra duyarlı yapılar: yeni satırdaki '(', '[' ve sözlük '{' önceki ifadeye bağlanmamalı.
-func TestSatirYapisiKorunur(t *testing.T) {
-	girdiler := []string{
+func TestLineStructureKept(t *testing.T) {
+	inputs := []string{
 		"değişken f = 5\n(1 + 2) |> yazdır\n",
 		"değişken l = [1]\n[2, 3] |> yazdır\n",
 		"değişken s = l.filtrele\n{\"a\": 1} |> yazdır\n",
 	}
-	for _, g := range girdiler {
-		if cikti := bicimleT(t, g); cikti != g {
-			t.Errorf("satır yapısı değişti:\n%q\n->\n%q", g, cikti)
+	for _, g := range inputs {
+		if output := formatT(t, g); output != g {
+			t.Errorf("satır yapısı değişti:\n%q\n->\n%q", g, output)
 		}
 	}
 }
 
 // Anlamı değiştiren bir dönüşüm reddedilmeli.
-func TestAnlamDegisirseReddedilir(t *testing.T) {
-	eski := donustur
-	defer func() { donustur = eski }()
-	var anlam *AnlamDegistiHatasi
+func TestMeaningChangeRejected(t *testing.T) {
+	old := transform
+	defer func() { transform = old }()
+	var meaning *MeaningChangedError
 
 	// Bozuk dönüşüm: satırları birleştirir; yeni satırdaki '(' önceki ifadeye bağlanır (5(1 + 2)).
-	donustur = func(kaynak string, _ bool, sus map[konum]int) string {
-		return strings.ReplaceAll(kaynak, "\n", " ") + "\n"
+	transform = func(src string, _ bool, braces map[pos]int) string {
+		return strings.ReplaceAll(src, "\n", " ") + "\n"
 	}
-	if _, err := Bicimle("değişken f = 5\n(1 + 2) |> yazdır\n"); !errors.As(err, &anlam) {
+	if _, err := Format("değişken f = 5\n(1 + 2) |> yazdır\n"); !errors.As(err, &meaning) {
 		t.Fatalf("anlam değişikliği reddedilmedi, hata: %v", err)
 	}
 
 	// Sözcük değiştiren dönüşüm de reddedilmeli
-	donustur = func(kaynak string, _ bool, sus map[konum]int) string {
-		return strings.ReplaceAll(kaynak, "1", "2")
+	transform = func(src string, _ bool, braces map[pos]int) string {
+		return strings.ReplaceAll(src, "1", "2")
 	}
-	if _, err := Bicimle("a = 1\n"); !errors.As(err, &anlam) {
+	if _, err := Format("a = 1\n"); !errors.As(err, &meaning) {
 		t.Fatalf("sözcük değişikliği reddedilmedi, hata: %v", err)
 	}
 }
 
-func TestAnlamAyniMi(t *testing.T) {
-	if err := AnlamAyniMi("a=1+2\n", "a = 1 + 2\n"); err != nil {
+func TestSameMeaning(t *testing.T) {
+	if err := SameMeaning("a=1+2\n", "a = 1 + 2\n"); err != nil {
 		t.Fatalf("aynı anlamlı kaynaklar farklı sayıldı: %v", err)
 	}
-	if err := AnlamAyniMi("değişken f = 5\n(1)\n", "değişken f = 5 (1)\n"); err == nil {
+	if err := SameMeaning("değişken f = 5\n(1)\n", "değişken f = 5 (1)\n"); err == nil {
 		t.Fatal("farklı anlamlı kaynaklar aynı sayıldı")
 	}
 }
 
-func TestSozdizimiHatasiBicimlenmez(t *testing.T) {
-	_, err := Bicimle("değişken = \n")
-	var sh *SozdizimiHatasi
+func TestSyntaxErrorNotFormatted(t *testing.T) {
+	_, err := Format("değişken = \n")
+	var sh *SyntaxError
 	if !errors.As(err, &sh) {
 		t.Fatalf("sözdizimi hatası bildirilmedi: %v", err)
 	}
 }
 
 // Depodaki tüm .tr dosyaları biçimlenebilmeli ve sonuç idempotent olmalı.
-func TestDepodakiDosyalar(t *testing.T) {
-	var dosyalar []string
+func TestRepoFiles(t *testing.T) {
+	var files []string
 	// scratch/ kullanıcının kişisel deneme klasörüdür (depoda değil); denetlenmez.
-	for _, desen := range []string{"examples/*.tr", "tests/*.tr"} {
-		d, _ := filepath.Glob(reporoot.Path(desen))
-		dosyalar = append(dosyalar, d...)
+	for _, pattern := range []string{"examples/*.tr", "tests/*.tr"} {
+		d, _ := filepath.Glob(reporoot.Path(pattern))
+		files = append(files, d...)
 	}
-	if len(dosyalar) == 0 {
+	if len(files) == 0 {
 		t.Fatal("örnek dosya bulunamadı")
 	}
-	for _, yol := range dosyalar {
-		veri, err := os.ReadFile(yol)
+	for _, fpath := range files {
+		data, err := os.ReadFile(fpath)
 		if err != nil {
 			t.Fatal(err)
 		}
-		cikti, err := Bicimle(string(veri))
+		output, err := Format(string(data))
 		if err != nil {
-			t.Errorf("%s: %v", yol, err)
+			t.Errorf("%s: %v", fpath, err)
 			continue
 		}
-		if ikinci, err := Bicimle(cikti); err != nil || ikinci != cikti {
-			t.Errorf("%s: idempotent değil (hata: %v)", yol, err)
+		if second, err := Format(output); err != nil || second != output {
+			t.Errorf("%s: idempotent değil (hata: %v)", fpath, err)
 		}
 	}
 }
 
-func TestBOMKorunur(t *testing.T) {
-	cikti := bicimleT(t, "\xef\xbb\xbfa=1\n")
-	if cikti != "\xef\xbb\xbfa = 1\n" {
-		t.Fatalf("BOM korunmadı: %q", cikti)
+func TestBOMKept(t *testing.T) {
+	output := formatT(t, "\xef\xbb\xbfa=1\n")
+	if output != "\xef\xbb\xbfa = 1\n" {
+		t.Fatalf("BOM korunmadı: %q", output)
 	}
 }

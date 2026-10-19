@@ -53,9 +53,9 @@ func bicimleKomutu(args []string) {
 			hatali++
 			continue
 		}
-		yeni, err := formatter.Bicimle(string(veri))
+		yeni, err := formatter.Format(string(veri))
 		if err != nil {
-			var anlam *formatter.AnlamDegistiHatasi
+			var anlam *formatter.MeaningChangedError
 			if errors.As(err, &anlam) {
 				fmt.Fprintf(os.Stderr, "✗ %s: %v — lütfen bu dosyayı bir hata kaydıyla bildirin\n", yol, err)
 			} else {
