@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
@@ -163,5 +164,33 @@ func TestSourceFileBelongsToTask(t *testing.T) {
 	}
 	if !strings.Contains(out, "ana veri") || !strings.Contains(out, "modül verisi") || strings.Contains(out, "okunamadı") {
 		t.Fatalf("görev ana programın, modül fonksiyonu modülün klasörünü kullanmalı:\n%s", out)
+	}
+}
+
+// A cycle across two tasks: task A loads x, which imports y; task B loads y, which imports x.
+// Each waited for the other forever; a single task already got a clear error. The second task
+// to close the cycle now gets the same error instead of waiting.
+func TestConcurrentImportCycle(t *testing.T) {
+	root := t.TempDir()
+	runInDir(t, root)
+	done := make(chan string, 1)
+	go func() {
+		out, err := runWithModules(t, root, map[string]string{
+			"x.tr":   "bekle(0.1)\naktar \"y\"\n",
+			"y.tr":   "bekle(0.1)\naktar \"x\"\n",
+			"ana.tr": "eşzamanlı { aktar \"x\" }\neşzamanlı { aktar \"y\" }\nbekle_hepsi()\n",
+		})
+		if err != nil {
+			out += err.Error()
+		}
+		done <- out
+	}()
+	select {
+	case out := <-done:
+		if !strings.Contains(out, "döngüsel aktarım") {
+			t.Fatalf("döngüsel aktarım hatası bekleniyordu:\n%s", out)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("iki görev arasındaki döngüsel aktarım sonsuza kadar bekliyor")
 	}
 }

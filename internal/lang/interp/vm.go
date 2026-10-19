@@ -89,6 +89,9 @@ type vmShared struct {
 	// loaded yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
 	// modülü isterse yüklemenin bitmesini bekler.
 	loaded map[string]*moduleLoading
+	// waiting is the module each task (VM view) is waiting for another task to load; with
+	// moduleLoading.owner it detects import cycles across tasks.
+	waiting map[*VM]string
 	// Err programı durdurmayan hataların (eşzamanlı görev hataları) yazıldığı yerdir;
 	// varsayılanı standart hatadır. Düzenleyici oturumu ve tr test kendi çıktılarına bağlar.
 	Err         io.Writer
@@ -211,6 +214,7 @@ func New() *VM {
 			Err:       os.Stderr,
 			Imported:  make(map[string]*DictVal),
 			loaded:    make(map[string]*moduleLoading),
+			waiting:   make(map[*VM]string),
 
 			interruptChan: make(chan struct{}),
 		},

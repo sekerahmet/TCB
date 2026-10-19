@@ -165,6 +165,7 @@ func CheckModule(text string, globalNames []string, dynamic bool) *source.Result
 // bitmesini bekler.
 type moduleLoading struct {
 	finished chan struct{}
+	owner    *VM // the task loading the module
 	mod      *DictVal
 	err      error
 }
@@ -216,14 +217,13 @@ func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
 		return mod, nil
 	}
 	if y := v.loaded[keyStr]; y != nil {
-		v.isImported.Unlock()
 		if slices.Contains(v.loading, keyStr) {
+			v.isImported.Unlock()
 			return nil, fmt.Errorf("Satır %d: %q modülünde döngüsel aktarım tespit edildi (modül, yüklenirken kendini dolaylı olarak yeniden aktarıyor)", s.Line(), path)
 		}
-		v.Blocking(func() { <-y.finished })
-		return y.mod, y.err
+		return v.waitForModule(s, path, keyStr, y)
 	}
-	y := &moduleLoading{finished: make(chan struct{})}
+	y := &moduleLoading{finished: make(chan struct{}), owner: v}
 	v.loaded[keyStr] = y
 	v.isImported.Unlock()
 
@@ -240,6 +240,35 @@ func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
 	if y.err == nil && y.mod == nil {
 		y.err = fmt.Errorf("Satır %d: %q modülü yüklenemedi", s.Line(), path)
 	}
+	return y.mod, y.err
+}
+
+// waitForModule waits for another task to finish loading a module (called with
+// v.isImported held; it releases it). If the loading task is itself waiting, directly or
+// through other tasks, for a module this task is loading, waiting would never end: that is an
+// import cycle across tasks and an error.
+func (v *VM) waitForModule(s *ast.ImportStatement, path, keyStr string, y *moduleLoading) (*DictVal, error) {
+	for key, steps := keyStr, 0; steps <= len(v.loaded); steps++ {
+		l := v.loaded[key]
+		if l == nil {
+			break
+		}
+		if l.owner == v {
+			v.isImported.Unlock()
+			return nil, fmt.Errorf("Satır %d: %q modülünde döngüsel aktarım tespit edildi (modül, başka bir görevde yüklenirken bu görevin yüklediği bir modülü bekliyor)", s.Line(), path)
+		}
+		next, waiting := v.waiting[l.owner]
+		if !waiting {
+			break
+		}
+		key = next
+	}
+	v.waiting[v] = keyStr
+	v.isImported.Unlock()
+	v.Blocking(func() { <-y.finished })
+	v.isImported.Lock()
+	delete(v.waiting, v)
+	v.isImported.Unlock()
 	return y.mod, y.err
 }
 
