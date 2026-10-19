@@ -284,6 +284,7 @@ func (o *AdamW) ZeroGrad() { ZeroGrads(o.Params) }
 // ClipGradNorm parametre gradyanlarının toplam L2 normunu en fazla maxNorm
 // olacak şekilde ölçekler ve kırpma öncesi normu döndürür.
 func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
+	params = distinctGrads(params)
 	if len(params) == 0 {
 		return 0
 	}
@@ -322,6 +323,7 @@ type GradClipper interface {
 // konak beklemez; norm ancak okunduğunda (.değer, yazdırma) beklenir. Değilse norm konakta
 // hesaplanır (ClipGradNorm) ve CPU tensörü olarak döner.
 func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
+	params = distinctGrads(params)
 	var be Backend
 	var grads []Storage
 	single := true
@@ -348,6 +350,23 @@ func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
 		}
 	}
 	return NewOn(CPU, []float32{float32(ClipGradNorm(params, maxNorm))})
+}
+
+// distinctGrads gradyanı olan parametreleri her gradyan deposu bir kez olacak biçimde (ilk
+// görülme sırasıyla) verir: listede iki kez geçen (bağlı, paylaşılan) bir parametrenin
+// gradyanı norma iki kez girmez, kırpmada iki kez ölçeklenmez (k² olurdu) ve GPU'da aynı
+// depolama aynı çekirdeğe iki kez verilmez.
+func distinctGrads(params []*Tensor) []*Tensor {
+	seen := make(map[Storage]bool, len(params))
+	out := make([]*Tensor, 0, len(params))
+	for _, p := range params {
+		if p.grad == nil || seen[p.grad] {
+			continue
+		}
+		seen[p.grad] = true
+		out = append(out, p)
+	}
+	return out
 }
 
 // gradSquareSum gradyanların kareler toplamını verir. Toplu kareler toplamı veren

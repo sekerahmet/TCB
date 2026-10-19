@@ -110,3 +110,23 @@ func TestAdamWLoadStateRejectsBadCounters(t *testing.T) {
 	fresh, st = mk()
 	fresh.LoadState(st) // sağlam durum yüklenir
 }
+
+// Listede iki kez geçen (bağlı) parametrenin gradyanı norma bir kez girer ve bir kez
+// ölçeklenir: |g| = 5, en çok 1 → norm 5, kırpma sonrası |g| 1.
+func TestClipGradNormTiedParameter(t *testing.T) {
+	for _, tensorForm := range []bool{false, true} {
+		w := New([]float32{0, 0}, 2).SetRequiresGrad(true)
+		Mul(w, New([]float32{3, 4}, 2)).SumAll().Backward()
+		var norm float64
+		if tensorForm {
+			norm = float64(ClipGradNormTensor([]*Tensor{w, w}, 1).Item())
+		} else {
+			norm = ClipGradNorm([]*Tensor{w, w}, 1)
+		}
+		g := w.Grad().Data()
+		after := math.Hypot(float64(g[0]), float64(g[1]))
+		if math.Abs(norm-5) > 1e-5 || math.Abs(after-1) > 1e-5 {
+			t.Fatalf("tensör biçimi %v: norm %v (5 olmalı), kırpma sonrası %v (1 olmalı)", tensorForm, norm, after)
+		}
+	}
+}
