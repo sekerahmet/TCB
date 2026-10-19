@@ -136,21 +136,67 @@ func NewDictVal() *DictVal {
 	}
 }
 
-// nonStringKeyPrefix metin olmayan anahtarların iç kodlamasını başlatır. NUL
-// karakteri normal metinlerde bulunmadığından metin anahtarlarla çakışmaz.
+// nonStringKeyPrefix metin olmayan anahtarların iç kodlamasını başlatır. Bu önekle başlayan
+// bir metin anahtar da kodlanır (DictKey), böylece hiçbir metin başka bir anahtarla çakışmaz.
 const nonStringKeyPrefix = "\x00"
 
-// DictKey converts a value to its type-aware key inside a dict. Number keys follow number
-// equality (4.5: 1 == 1.0): an integral Ondalık is the same key as the Tam with that value.
+// DictKey converts a value to its type-aware key inside a dict. Keys follow equality (4.5):
+// number keys follow number equality (1 == 1.0: an integral Ondalık is the same key as the Tam
+// with that value); functions, builtins and struct definitions are keyed by identity. A string
+// that starts like an encoded key is encoded too, so no string collides with a non-string key.
+// Mutable values are not valid keys (see DictKeyError).
 func DictKey(v Value) string {
-	if s, ok := v.(*StringVal); ok {
-		return s.Val
+	switch x := v.(type) {
+	case *StringVal:
+		if strings.HasPrefix(x.Val, nonStringKeyPrefix) {
+			return nonStringKeyPrefix + string(VAL_STRING) + ":" + x.Val
+		}
+		return x.Val
+	case *FuncVal:
+		if x.codeVal == nil {
+			return identityKey(x)
+		}
+		bound := "-"
+		if x.BoundSelf != nil {
+			bound = fmt.Sprintf("%p", x.BoundSelf)
+		}
+		return fmt.Sprintf("%s%s:%p:%p:%p:%s", nonStringKeyPrefix, x.Type(), x.codeVal, x.Env, x.Body, bound)
+	case *TypeVal:
+		if x.Struct != nil {
+			return identityKey(x.Struct)
+		}
+	case *BoolVal, *NullVal, *FloatVal, *IntVal, *RangeVal:
+	default:
+		return identityKey(v)
 	}
 	if n, ok := intKeyValue(v); ok {
 		var b [32]byte
 		return string(intKey(b[:0], n))
 	}
 	return nonStringKeyPrefix + string(v.Type()) + ":" + v.Inspect()
+}
+
+// identityKey keys a value by identity: the same value is the same key, two values that only
+// look alike are not.
+func identityKey(v Value) string {
+	return fmt.Sprintf("%s%s:%p", nonStringKeyPrefix, v.Type(), v)
+}
+
+// DictKeyError reports why a value cannot be a dict key, or nil. A value whose contents can
+// change in place (a list, a dict, a struct instance, an engine object such as a tensor) would
+// be lost from the dict once changed, so it is rejected.
+func DictKeyError(v Value) error {
+	mutable := false
+	switch v.(type) {
+	case *ListVal, *DictVal, *StructInstanceVal:
+		mutable = true
+	case IndexAssignable, MemberAssignable:
+		mutable = true
+	}
+	if !mutable {
+		return nil
+	}
+	return fmt.Errorf("%s sözlük anahtarı olamaz: içeriği sonradan değişebilen değerler anahtar olarak kullanılamaz", v.Type())
 }
 
 // intKeyValue bir sayının Tam anahtar olarak değerini verir: Tam'ın kendisi ya da tam
@@ -167,7 +213,19 @@ func intKeyValue(v Value) (int64, bool) {
 	return 0, false
 }
 
+// Set stores val under the string key. A key that starts like an encoded non-string key is
+// encoded (see DictKey), so text from outside (JSON, file names, user names) never collides
+// with a number or another key.
 func (d *DictVal) Set(key string, val Value) {
+	if strings.HasPrefix(key, nonStringKeyPrefix) {
+		d.SetValue(&StringVal{Val: key}, val)
+		return
+	}
+	d.setRaw(key, val)
+}
+
+// setRaw stores val under an already encoded key.
+func (d *DictVal) setRaw(key string, val Value) {
 	// Tek harita işlemi: anahtar yeniyse harita büyür ve sıraya eklenir
 	n := len(d.Pairs)
 	d.Pairs[key] = val
@@ -202,7 +260,7 @@ func (d *DictVal) SetValue(key Value, val Value) {
 		return
 	}
 	k := DictKey(key)
-	if _, isStr := key.(*StringVal); !isStr {
+	if s, isStr := key.(*StringVal); !isStr || k != s.Val {
 		// Özgün anahtar yalnızca yeni girdide saklanır (d[1] varken d[1.0] = ... aynı girdiyi
 		// günceller, anahtar 1 olarak kalır)
 		if _, var_ := d.Pairs[k]; !var_ {
@@ -212,7 +270,7 @@ func (d *DictVal) SetValue(key Value, val Value) {
 			d.KeyVals[k] = key
 		}
 	}
-	d.Set(k, val)
+	d.setRaw(k, val)
 }
 
 // GetValue looks the key up as a TR value.

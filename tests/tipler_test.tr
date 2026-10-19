@@ -105,6 +105,36 @@ test "3.7 sayı anahtarları sayı eşitliğiyle bulunur: d[1] ile d[1.0] aynı 
     eşit_mi(yok, {1: "bir"}["1"])
 }
 
+test "3.7 anahtarlar eşitliğe uyar: metinler başka anahtarlarla çakışmaz, fonksiyonlar kimlikle anahtardır" {
+    // NUL ile başlayan bir metin anahtar (JSON'dan gelebilir) 1 sayısının anahtarıyla çakışmaz
+    değişken d = json_çöz(`{"\u0000Tam:1": "metin"}`)
+    d[1] = "sayı"
+    eşit_mi(2, d.uzunluk)
+    eşit_mi("sayı", d[1])
+    eşit_mi("metin", d[d.anahtarlar()[0]])
+    // görünüşü aynı iki fonksiyon iki ayrı anahtardır (4.5: kimlikle karşılaştırılır)
+    değişken f = x => x
+    değişken g = x => x
+    değişken e = {}
+    e[f] = 1
+    e[g] = 2
+    eşit_mi(2, e.uzunluk)
+    eşit_mi(1, e[f])
+}
+
+test "3.7 içeriği değişebilen değerler (liste, sözlük, yapı nesnesi) anahtar olamaz" {
+    değişken hatalar = []
+    dene { değişken a = {[1]: 1} } yakala h { hatalar.ekle(h) }
+    değişken d = {}
+    dene { d[[1]] = 1 } yakala h { hatalar.ekle(h) }
+    dene { değişken b = d[{}] } yakala h { hatalar.ekle(h) }
+    dene { değişken c = d.içerir([1]) } yakala h { hatalar.ekle(h) }
+    eşit_mi(4, hatalar.uzunluk)
+    döngü h içinde hatalar {
+        doğrula(h.içerir("sözlük anahtarı olamaz"), h)
+    }
+}
+
 test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk eleman sayısıdır" {
     değişken d = {"anahtarlar": 5, "a": 1}
     eşit_mi(5, d["anahtarlar"])

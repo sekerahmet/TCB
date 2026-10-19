@@ -120,6 +120,9 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 				if err != nil {
 					return nil, err
 				}
+				if err := DictKeyError(kVal); err != nil {
+					return nil, fmt.Errorf("Satır %d: %w", e.Line(), err)
+				}
 				dict.SetValue(kVal, vVal)
 			}
 			return dict, nil

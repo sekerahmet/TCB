@@ -324,6 +324,9 @@ func setupDictMethods() {
 		return &ListVal{Elements: elems}, nil
 	})
 	addMethod(typeDict, codes.Y002, signature{1, 1, "anahtar", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+		if err := DictKeyError(args[0]); err != nil {
+			return nil, fmt.Errorf("Satır %d: %w", line, err)
+		}
 		_, ok := inst.(*DictVal).GetValue(args[0])
 		return BoolToVal(ok), nil
 	})

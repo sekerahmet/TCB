@@ -39,6 +39,9 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		container.Elements[pos] = finalVal
 		return nil
 	case *DictVal:
+		if err := DictKeyError(idx); err != nil {
+			return fmt.Errorf("Satır %d: %w", line, err)
+		}
 		if codeVal == opAssign {
 			// Düz atamada mevcut değer gerekmez (atamaIslemi sağ tarafı olduğu gibi verir)
 			container.SetValue(idx, rightVal)

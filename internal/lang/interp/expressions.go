@@ -90,6 +90,9 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		return nil, fmt.Errorf("Satır %d: %s indeksi %s sayı olmalıdır", line, VAL_LIST, VAL_INT)
 
 	case *DictVal:
+		if err := DictKeyError(idx); err != nil {
+			return nil, fmt.Errorf("Satır %d: %w", line, err)
+		}
 		val, exists := container.GetValue(idx)
 		if !exists {
 			return NULL, nil
