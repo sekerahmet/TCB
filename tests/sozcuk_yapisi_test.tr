@@ -48,6 +48,18 @@ test "2.6 bilinmeyen kaçış dizisi sözdizimi hatasıdır; ham metin önerilir
     doğrula(mesaj.içerir("ham metin"), mesaj)
 }
 
+test "2.1a göründüğünden farklı okunan kaynak kabul edilmez" {
+    değişken mesaj = ""
+    dene { aktar "negative/yon_karakteri" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("Satır 2, Sütun 19: yazı yönünü değiştiren görünmez bir karakter var (U+202E)"), mesaj)
+    mesaj = ""
+    dene { aktar "negative/karisik_yazi_adi" } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("farklı yazı sistemlerinin harfleri karışık (Latin ve Kiril)"), mesaj)
+    // Tamamı tek yazı sisteminde olan adlar geçerlidir
+    değişken привет, αβγ = 1, 2
+    eşit_mi(3, привет + αβγ)
+}
+
 test "2.3a kod biçimindeki adlar (büyük harf ve üç rakam) ayrılmıştır" {
     değişken mesaj = ""
     dene { aktar "negative/kod_bicimli_ad" } yakala h { mesaj = h }
