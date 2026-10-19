@@ -416,6 +416,13 @@ func TestUnsupportedConfig(t *testing.T) {
 		b, _ := json.Marshal(raw)
 		return b
 	}
+	// template tek özel tokenlı bir TemplateProcessing verir.
+	template := func(id int64) map[string]any {
+		return map[string]any{"type": "TemplateProcessing",
+			"single":         []any{map[string]any{"SpecialToken": map[string]any{"id": "<s>", "type_id": 0}}, map[string]any{"Sequence": map[string]any{"id": "A", "type_id": 0}}},
+			"pair":           []any{map[string]any{"Sequence": map[string]any{"id": "A", "type_id": 0}}},
+			"special_tokens": map[string]any{"<s>": map[string]any{"id": "<s>", "ids": []any{id}, "tokens": []any{"<s>"}}}}
+	}
 	// Her durum: değişiklik ve hata iletisinde geçmesi gereken bileşen/tür adı.
 	cases := map[string]struct {
 		f          func(m map[string]any)
@@ -430,11 +437,16 @@ func TestUnsupportedConfig(t *testing.T) {
 			pt := m["pre_tokenizer"].(map[string]any)["pretokenizers"].([]any)
 			pt[0].(map[string]any)["pattern"] = map[string]any{"Regex": `(a)\1`}
 		}, "geri başvuru"},
-		"model türü": {func(m map[string]any) { m["model"].(map[string]any)["type"] = "Benzersiz" }, "model türü \"Benzersiz\""},
-		"dropout":    {func(m map[string]any) { m["model"].(map[string]any)["dropout"] = 0.1 }, "dropout"},
-		"çözücü":     {func(m map[string]any) { m["decoder"] = map[string]any{"type": "CTC"} }, "çözücü (decoder) türü \"CTC\""},
-		"son işlem":  {func(m map[string]any) { m["post_processor"] = map[string]any{"type": "Yok"} }, "son işleyici (post_processor) türü \"Yok\""},
-		"dolgu":      {func(m map[string]any) { m["padding"] = map[string]any{"length": 8} }, "padding"},
+		"model türü":     {func(m map[string]any) { m["model"].(map[string]any)["type"] = "Benzersiz" }, "model türü \"Benzersiz\""},
+		"dropout":        {func(m map[string]any) { m["model"].(map[string]any)["dropout"] = 0.1 }, "dropout"},
+		"çözücü":         {func(m map[string]any) { m["decoder"] = map[string]any{"type": "CTC"} }, "çözücü (decoder) türü \"CTC\""},
+		"son işlem":      {func(m map[string]any) { m["post_processor"] = map[string]any{"type": "Yok"} }, "son işleyici (post_processor) türü \"Yok\""},
+		"dolgu":          {func(m map[string]any) { m["padding"] = map[string]any{"length": 8} }, "padding"},
+		"şablon kimliği": {func(m map[string]any) { m["post_processor"] = template(1 << 30) }, "sözlükte yok"},
+		"taşan kimlik":   {func(m map[string]any) { m["post_processor"] = template(1<<32 + 1) }, "kimliği geçersiz"},
+		"cls kimliği": {func(m map[string]any) {
+			m["post_processor"] = map[string]any{"type": "BertProcessing", "sep": []any{"[SEP]", 1 << 30}, "cls": []any{"[CLS]", 0}}
+		}, "sözlükte yok"},
 		"birleştirme": {func(m map[string]any) {
 			mm := m["model"].(map[string]any)
 			mm["merges"] = append(mm["merges"].([]any), []any{"yokyok", "zzz"})

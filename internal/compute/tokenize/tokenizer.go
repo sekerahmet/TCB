@@ -267,6 +267,13 @@ func Parse(data []byte) (*Tokenizer, error) {
 			p.vocabSize++
 		}
 	}
+	if l, ok := p.postProcessor.(specialIDLister); ok {
+		for _, id := range l.specialIDs() {
+			if _, ok := p.IDToToken(int(id)); !ok {
+				return nil, fmt.Errorf("son işleyicinin eklediği özel token kimliği %d sözlükte yok", id)
+			}
+		}
+	}
 	return p, nil
 }
 

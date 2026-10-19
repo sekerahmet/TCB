@@ -3,6 +3,7 @@ package tokenize
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 )
 
 // ============================================================================
@@ -22,6 +23,15 @@ func init() {
 	})
 	RegisterPostProcessor("Sequence", newSeqProcessor)
 }
+
+// specialIDLister son işleyicinin eklediği özel token kimliklerini verir; yükleyici hepsinin
+// sözlükte olduğunu denetler (olmayan bir kimlik modele sözlük dışı bir girdi verirdi).
+type specialIDLister interface{ specialIDs() []int32 }
+
+var (
+	_ specialIDLister = (*template)(nil)
+	_ specialIDLister = (*clsSep)(nil)
+)
 
 // defaultProcess son işleyici yokken kullanılır: A'nın tür kimliği 0, B'ninki 1.
 func defaultProcess(a, b *Encoding) *Encoding {
@@ -114,6 +124,9 @@ func newTemplate(raw json.RawMessage, _ func(string) (int32, bool)) (PostProcess
 				}
 				var ids []int32
 				for _, x := range o.Ids {
+					if x < 0 || x > math.MaxInt32 {
+						return nil, fmt.Errorf("şablondaki özel token %q kimliği geçersiz: %d", p.SpecialToken.ID, x)
+					}
 					ids = append(ids, int32(x))
 				}
 				out = append(out, templatePiece{arr: -1, special: ids, kindID: p.SpecialToken.TypeID})
@@ -132,6 +145,16 @@ func newTemplate(raw json.RawMessage, _ func(string) (int32, bool)) (PostProcess
 		return nil, err
 	}
 	return s, nil
+}
+
+func (s *template) specialIDs() []int32 {
+	var ids []int32
+	for _, list := range [][]templatePiece{s.single, s.pair} {
+		for _, p := range list {
+			ids = append(ids, p.special...)
+		}
+	}
+	return ids
 }
 
 func (s *template) Process(a, b *Encoding, addSpecial bool) *Encoding {
@@ -190,6 +213,8 @@ func newClsSep(raw json.RawMessage, roberta bool) (PostProcessor, error) {
 	}
 	return c, nil
 }
+
+func (c *clsSep) specialIDs() []int32 { return []int32{c.cls, c.sep} }
 
 func (c *clsSep) Process(a, b *Encoding, addSpecial bool) *Encoding {
 	secondKind := int32(1)
