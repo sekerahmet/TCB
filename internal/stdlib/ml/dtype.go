@@ -18,9 +18,10 @@ import (
 // .tür (metin) ve .türe("bf16") (türevlenebilir dönüşüm). Hesaplar çekirdekte en az float32
 // biriktirmeyle yapılır; sonuç girdilerin türüne (farklıysa float32'ye) bir kez yuvarlanır.
 //
-// karışık_hassasiyet("bf16") { ... } bloğu içinde matris çarpımları ('@') girdilerini
-// bf16'ya çevirip float32 biriktirmeyle float32 sonuç verir; normalizasyon, softmax, kayıp ve
-// indirgemeler 16 bitlik girdileri float32'ye açarak hesaplanır. Ağırlıkların kendisi
+// karışık_hassasiyet("bf16") { ... } bloğu içinde matris çarpımları ('@') ve dikkat girdilerini
+// bf16'ya çevirip float32 biriktirmeyle bf16 sonuç verir; normalizasyon, softmax ve
+// indirgemeler 16 bitlik girdileri float32'ye açarak hesaplanır, çapraz entropi 16 bitlik
+// logitleri açmadan float32'de işler. Ağırlıkların kendisi
 // değişmez (dönüşüm kopyadır, türevlenebilir), bu yüzden geri yayılım ve iyileştirici
 // float32 ağırlıklarla çalışır.
 //
@@ -194,7 +195,7 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 }
 
 // highPrecision karışık hassasiyet bloğu içinde 16 bitlik bir tensörü (normalizasyon,
-// softmax, kayıp ve indirgemelerden önce) float32'ye açar; blok dışında ya da tensör zaten
+// softmax ve indirgemelerden önce) float32'ye açar; blok dışında ya da tensör zaten
 // float32 ise t'nin kendisi döner.
 func highPrecision(m *interp.VM, t *tensor.Tensor) (*tensor.Tensor, error) {
 	if t == nil || t.DType() == tensor.Float32 || mixedDType(m) == tensor.Float32 {

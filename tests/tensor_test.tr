@@ -571,9 +571,9 @@ test "15.13 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
     değişken y = tensör([[1.0]])
     eşit_mi([[1.001]], (x @ y).değer)
     değişken blok_değeri = karışık_hassasiyet("bf16") {
-        // Girdiler bf16'ya çevrilir, çarpım float32 biriktirmeyle float32 sonuç verir.
+        // Girdiler bf16'ya çevrilir, çarpım float32 biriktirmeyle bf16 sonuç verir.
         değişken r = x @ y
-        eşit_mi("float32", r.tür)
+        eşit_mi("bf16", r.tür)
         eşit_mi([[1.0]], r.değer)
         karışık_hassasiyet("fp16") { eşit_mi([[1.0009766]], (x @ y).değer) }
         karışık_hassasiyet("float32") { eşit_mi([[1.001]], (x @ y).değer) }
@@ -762,8 +762,8 @@ test "15.17 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli �
     doğrula(en_büyük_fark(dikkat(q, k, v, nedensel: yanlış, maske: m)[1][2][3], v[1][1][1]) < 0.0000000001)
     doğrula(hata_metni(() => dikkat(q, rastgele_normal([2, 3, 6, 8]), rastgele_normal([2, 3, 6, 8]))).içerir("katı olmalıdır"))
     doğrula(hata_metni(() => dikkat(q, k, v, ölçek: 1)).içerir("'ölçek' adında bir parametre almaz"))
-    // Karışık hassasiyet: girdiler bf16'ya çevrilir, sonuç float32.
-    eşit_mi("float32", karışık_hassasiyet("bf16") { dikkat(q, k, v) }.tür)
+    // Karışık hassasiyet: girdiler bf16'ya çevrilir, biriktirme float32, sonuç bf16 ('@' gibi).
+    eşit_mi("bf16", karışık_hassasiyet("bf16") { dikkat(q, k, v) }.tür)
 }
 
 test "15.18 örnekle: sıcaklık, en_iyi_k, tohum" {

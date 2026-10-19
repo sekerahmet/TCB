@@ -202,7 +202,7 @@ test "15.24 türev_denetle: sayısal gradyanla karşılaştırma" {
         geri_yayılım(toplam((x2 @ m2) * (x2 @ m2)))
         sonuç y.tür
     }
-    eşit_mi("float32", tür)
+    eşit_mi("bf16", tür)
     eşit_mi(["float32", "float32"], [x1.gradyan.tür, m1.gradyan.tür])
     doğrula(yakın(x1.gradyan, x2.gradyan))
     doğrula(yakın(m1.gradyan, m2.gradyan))

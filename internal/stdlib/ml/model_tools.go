@@ -199,8 +199,9 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	mixed := mixedDType(m)
 	r, err := safe(func() *tensor.Tensor {
 		if mixed != tensor.Float32 {
-			// Karışık hassasiyet: girdiler 16 bite çevrilir, biriktirme ve çıktı float32.
-			return tensor.AttentionOut(q.Cast(mixed), k.Cast(mixed), v.Cast(mixed), opt, tensor.Float32)
+			// Karışık hassasiyet: girdiler blok türüne çevrilir; biriktirme float32, sonuç blok
+			// türündedir ('@' ile aynı kural, PyTorch autocast'inde de dikkat 16 bittir).
+			return tensor.Attention(q.Cast(mixed), k.Cast(mixed), v.Cast(mixed), opt)
 		}
 		return tensor.Attention(q, k, v, opt)
 	})

@@ -174,9 +174,10 @@ func (d *TensorValue) binary(op string, other interp.Value) (interp.Value, error
 }
 
 // matmulDType '@' işlecidir: matris çarpımı. 1 boyutlu işlenenler vektör sayılır.
-// karisik Float32 değilse (karışık_hassasiyet bloğu) girdiler o türe çevrilir (türevlenebilir
-// kopya; ağırlıklar değişmez) ve çarpım float32 biriktirmeyle float32 sonuç verir. Aksi
-// halde sonuç girdilerin türündedir (türler farklıysa float32).
+// mixed Float32 değilse (karışık_hassasiyet bloğu) girdiler o türe çevrilir (türevlenebilir
+// kopya; ağırlıklar değişmez) ve çarpım float32 biriktirmeyle o türde sonuç verir (bir kez
+// yuvarlanır; PyTorch autocast'iyle aynı kural). Aksi halde sonuç girdilerin türündedir
+// (türler farklıysa float32).
 func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error) {
 	as, bs := a.Shape(), b.Shape()
 	if len(as) == 0 || len(bs) == 0 {
@@ -216,7 +217,7 @@ func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error
 		}
 		var r *tensor.Tensor
 		if mixed != tensor.Float32 {
-			r = tensor.MatMulOut(x.Cast(mixed), y.Cast(mixed), tensor.Float32)
+			r = tensor.MatMulOut(x.Cast(mixed), y.Cast(mixed), mixed)
 		} else {
 			r = tensor.MatMul(x, y)
 		}

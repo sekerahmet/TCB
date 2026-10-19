@@ -170,7 +170,8 @@ yazdır(dikkat(q, k, v, maske: yok).şekil)
 	}
 }
 
-// Karışık hassasiyet bloğunda dikkat girdileri bf16'ya çevirir, float32 sonuç verir.
+// Karışık hassasiyet bloğunda dikkat girdileri bf16'ya çevirir ve bf16 sonuç verir: blok
+// dışında bf16 girdilerle yapılan dikkatle aynıdır.
 func TestAttentionMixedPrecision(t *testing.T) {
 	out := mustRun(t, `
 fonksiyon fark(a, b) {
@@ -179,11 +180,11 @@ fonksiyon fark(a, b) {
 }
 değişken q = rastgele_normal([2, 6, 8], tohum: 1)
 değişken a = karışık_hassasiyet("bf16") { dikkat(q, q, q) }
-değişken b = dikkat(q.türe("bf16").türe("float32"), q.türe("bf16").türe("float32"), q.türe("bf16").türe("float32"))
-yazdır(a.tür, fark(a, b) < 0.0000000001)
+değişken b = dikkat(q.türe("bf16"), q.türe("bf16"), q.türe("bf16"))
+yazdır(a.tür, fark(a.türe("float32"), b.türe("float32")) < 0.0000000001)
 yazdır(dikkat(q.türe("bf16"), q.türe("bf16"), q.türe("bf16")).tür)
 `)
-	if out != "float32 doğru\nbf16\n" {
+	if out != "bf16 doğru\nbf16\n" {
 		t.Fatalf("çıktı: %q", out)
 	}
 }

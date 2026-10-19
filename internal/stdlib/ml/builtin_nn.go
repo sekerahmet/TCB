@@ -89,9 +89,8 @@ func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if err != nil {
 		return nil, err
 	}
-	if output, err = highPrecision(m, output); err != nil {
-		return nil, err
-	}
+	// 16 bitlik logitler float32'ye açılmaz: çekirdek onları kendi türünde okur, hesabı ve
+	// kaybı float32'de yapar (açılmış kopyayla aynı sonuç, B·T·V'lik kopya olmadan).
 	sh := output.Shape()
 	if len(sh) == 0 {
 		return nil, fmt.Errorf("%s: çıktı en az 1 boyutlu olmalıdır (son eksen sınıflar)", fn)
