@@ -42,32 +42,37 @@ type reduceConfig struct {
 	// kısmi toplamını (ölçeksiz) kismi[parça·K + j]'ye yazar (iki aşamalı indirgemenin
 	// ilk aşaması).
 	chunked bool
+	// dt: A, O, Y ve çıktının türleri (kendi türlerinde okunup yazılır; toplam float32'dedir).
+	// Kullanılmayan işlenenin türü Float32 kalır. Parçalı ilk aşamanın kısmi toplamları
+	// float32'dir.
+	dt [4]tensor.DType
 }
 
 func (a reduceConfig) key() string {
-	return fmt.Sprintf("indirge:%d:%d:%d:%v:%d:%v", a.nk, a.nr, a.term, a.add, a.block, a.chunked)
+	return fmt.Sprintf("indirge:%d:%d:%d:%v:%d:%v:%v", a.nk, a.nr, a.term, a.add, a.block, a.chunked, a.dt)
 }
 
-// computeTerm A (ve gerekirse O, Y) ofsetlerinden terimi yükler.
-func (k *emitter) computeTerm(t termType, a, o, y reg, oa, oo reg) reg {
-	av := k.load(tensor.Float32, k.addressS(a, oa, 4))
+// computeTerm A (ve gerekirse O, Y) ofsetlerinden terimi yükler; dt A, O, Y'nin türleri.
+func (k *emitter) computeTerm(t termType, dt [4]tensor.DType, a, o, y reg, oa, oo reg) reg {
+	at := func(p, ofs reg, d tensor.DType) reg { return k.load(d, k.addressS(p, ofs, dtypeSize(d))) }
+	av := at(a, oa, dt[0])
 	r := k.f()
 	switch t {
 	case tA:
 		return av
 	case tAO:
-		ov := k.load(tensor.Float32, k.addressS(o, oo, 4))
+		ov := at(o, oo, dt[1])
 		k.e("mul.rn.f32", r, av, ov)
 	case tAbolO:
-		ov := k.load(tensor.Float32, k.addressS(o, oo, 4))
+		ov := at(o, oo, dt[1])
 		k.e("div.rn.f32", r, av, ov)
 	case tAYbO:
-		ov := k.load(tensor.Float32, k.addressS(o, oo, 4))
-		yv := k.load(tensor.Float32, k.addressS(y, oa, 4))
+		ov := at(o, oo, dt[1])
+		yv := at(y, oa, dt[2])
 		k.e("mul.rn.f32", r, av, yv)
 		k.e("div.rn.f32", r, r, ov)
 	case tAsecO, tAsecOdegil:
-		ov := k.load(tensor.Float32, k.addressS(o, oo, 4))
+		ov := at(o, oo, dt[1])
 		p := k.p()
 		mode2 := map[termType]string{tAsecO: "neu", tAsecOdegil: "eq"}[t]
 		k.e("setp."+mode2+".f32", p, ov, float32(0))
@@ -156,7 +161,8 @@ func (k *emitter) sum(a, b reg) reg {
 
 func reduceKernel(a reduceConfig) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("indirge_%d_%d_%d_%v_%d_%v", a.nk, a.nr, a.term, a.add, a.block, a.chunked))
+		k := newEmitter(fmt.Sprintf("indirge_%d_%d_%d_%v_%d_%v_%s_%s_%s_%s", a.nk, a.nr, a.term, a.add, a.block, a.chunked,
+			a.dt[0], a.dt[1], a.dt[2], a.dt[3]))
 		pa := k.pointer("a")
 		po := k.pointer("o")
 		py := k.pointer("y")
@@ -201,7 +207,7 @@ func reduceKernel(a reduceConfig) func() *emitter {
 		oa, oo := k.r(), k.r()
 		k.e("add.s32", oa, kofs[0], rofs[0])
 		k.e("add.s32", oo, kofs[1], rofs[1])
-		t := k.computeTerm(a.term, pa, po, py, oa, oo)
+		t := k.computeTerm(a.term, a.dt, pa, po, py, oa, oo)
 		k.e("add.rn.f32", acc, acc, t)
 		k.e("add.s32", r, r, step)
 		k.jump(loop)
@@ -219,13 +225,14 @@ func reduceKernel(a reduceConfig) func() *emitter {
 			k.put(last)
 			return k
 		}
-		ha := k.addressS(out, kofs[2], 4)
+		ot := a.dt[3]
+		ha := k.addressS(out, kofs[2], dtypeSize(ot))
 		k.e("mul.rn.f32", acc, acc, scaleF)
 		if a.add {
-			old := k.load(tensor.Float32, ha)
+			old := k.load(ot, ha)
 			k.e("add.rn.f32", acc, old, acc)
 		}
-		k.store(tensor.Float32, ha, acc)
+		k.store(ot, ha, acc)
 		k.put(last)
 		return k
 	}

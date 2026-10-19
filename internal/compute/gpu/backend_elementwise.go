@@ -59,6 +59,12 @@ func (g *backend) reduce(is reduceJob) {
 		none(fmt.Sprintf("%d korunan, %d indirgenen eksenli indirgeme (en çok %d)", len(kSh), len(rSh), maxAxis))
 	}
 	config := reduceConfig{nk: len(kSh), nr: len(rSh), term: is.term, add: is.add}
+	for i, d := range []*storage{is.a, is.o, is.y, is.output} {
+		config.dt[i] = tensor.Float32
+		if d != nil {
+			config.dt[i] = d.dtype
+		}
+	}
 	// Çıktı başına blok: indirgenen eksen yeterince uzunsa; ancak çıktılar bitişik
 	// sütunlarsa (A'nın korunan iç adımı 1) ve çok sayıdaysa iş parçacığı başına çıktı
 	// okumaları birleştirir.
@@ -114,7 +120,7 @@ func (g *backend) reduceTwoStage(is reduceJob, config reduceConfig, meta, kSh, k
 	P := (R + S - 1) / S
 	partial := g.allocate(S*K, tensor.Float32, false)
 	defer g.release(partial)
-	config.chunked, config.add = true, false
+	config.chunked, config.add, config.dt[3] = true, false, tensor.Float32
 	c := g.takeKernel(config.key(), reduceKernel(config))
 	p := g.param().read(is.a, is.aOf)
 	if is.o != nil {
@@ -149,13 +155,8 @@ func (g *backend) AddTo(dst, src tensor.Storage, scale float32) {
 func (g *backend) ScatterAdd(dst tensor.Storage, dstOff int, dstStrides []int, src tensor.Storage, shape []int) {
 	g.enter()
 	defer g.exit()
-	gt := g.temp()
-	defer gt.finish()
-	d, last := gt.write(dst, true)
-	s := gt.readD(src)
-	g.reduce(reduceJob{a: s, output: d, outputOf: dstOff, shape2: shape, stA2: contiguous(shape), st: dstStrides,
-		term: tA, add: true, scaleF: 1})
-	last()
+	g.reduce(reduceJob{a: g.storageOf(src), output: g.storageOf(dst), outputOf: dstOff, shape2: shape, stA2: contiguous(shape),
+		st: dstStrides, term: tA, add: true, scaleF: 1})
 }
 
 // ExpandAdd dst += ölçek·yayın(src); türler AddTo'daki gibi korunur.
@@ -230,20 +231,17 @@ var gradTerm = map[tensor.GradMode]struct {
 func (g *backend) BinaryGrad(mode tensor.GradMode, dst tensor.Storage, dstShape, outShape []int, gs tensor.Storage, o tensor.View, y tensor.Storage) {
 	g.enter()
 	defer g.exit()
-	gt := g.temp()
-	defer gt.finish()
-	d, last := gt.write(dst, true)
-	gd := gt.readD(gs)
-	yd := gt.readD(y)
+	var yd *storage
+	if y != nil {
+		yd = g.storageOf(y)
+	}
 	tm := gradTerm[mode]
-	is := reduceJob{a: gd, y: yd, output: d, shape2: outShape, stA2: contiguous(outShape),
+	is := reduceJob{a: g.storageOf(gs), y: yd, output: g.storageOf(dst), shape2: outShape, stA2: contiguous(outShape),
 		st: broadcastStride(contiguous(dstShape), dstShape, outShape), term: tm.t, add: true, scaleF: tm.scaleF}
 	if o.S != nil && tm.t != tA {
-		o = gt.readStrided(o)
 		is.o, is.oOf, is.stO2 = g.storageOf(o.S), o.Offset, broadcastStride(o.Strides, o.Shape, outShape)
 	}
 	g.reduce(is)
-	last()
 }
 
 func (g *backend) Unary(op tensor.UnOp, p float32, out tensor.Storage, x tensor.View) {

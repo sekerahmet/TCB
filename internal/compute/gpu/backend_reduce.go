@@ -19,28 +19,18 @@ func noAxis(sh, st []int, axis int) ([]int, []int) {
 func (g *backend) Sum(out tensor.Storage, x tensor.View, axis int, scale float32) {
 	g.enter()
 	defer g.exit()
-	gt := g.temp()
-	defer gt.finish()
-	o, last := gt.write(out, false)
-	x = gt.readStrided(x)
 	// Çıktı adımları: eksensiz bitişik düzen, indirgenen eksende 0.
 	ks, _ := noAxis(x.Shape, x.Strides, axis)
 	kst := contiguous(ks)
 	st := append(append(append([]int{}, kst[:axis]...), 0), kst[axis:]...)
-	g.reduce(reduceJob{a: g.storageOf(x.S), aOf: x.Offset, output: o, shape2: x.Shape, stA2: x.Strides, st: st, term: tA, scaleF: scale})
-	last()
+	g.reduce(reduceJob{a: g.storageOf(x.S), aOf: x.Offset, output: g.storageOf(out), shape2: x.Shape, stA2: x.Strides, st: st, term: tA, scaleF: scale})
 }
 
 func (g *backend) SumAll(out tensor.Storage, x tensor.View, scale float32) {
 	g.enter()
 	defer g.exit()
-	gt := g.temp()
-	defer gt.finish()
-	o, last := gt.write(out, false)
-	x = gt.readStrided(x)
-	g.reduce(reduceJob{a: g.storageOf(x.S), aOf: x.Offset, output: o, shape2: x.Shape, stA2: x.Strides,
+	g.reduce(reduceJob{a: g.storageOf(x.S), aOf: x.Offset, output: g.storageOf(out), shape2: x.Shape, stA2: x.Strides,
 		st: make([]int, len(x.Shape)), term: tA, scaleF: scale})
-	last()
 }
 
 // argmax çekirdeğini kurar ve başlatır: kip 0 değer, 1 indeks, 2 gradyan.

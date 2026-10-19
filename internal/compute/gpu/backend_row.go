@@ -237,11 +237,7 @@ func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *te
 
 // rowSums hedef (D) += Σ_satır kaynak (R×D).
 func (g *backend) rowSums(target tensor.Storage, source *storage, R, D int) {
-	gt := g.temp()
-	defer gt.finish()
-	d, last := gt.write(target, true)
-	g.reduce(reduceJob{a: source, output: d, shape2: []int{R, D}, stA2: []int{D, 1}, st: []int{0, 1}, term: tA, add: true, scaleF: 1})
-	last()
+	g.reduce(reduceJob{a: source, output: g.storageOf(target), shape2: []int{R, D}, stA2: []int{D, 1}, st: []int{0, 1}, term: tA, add: true, scaleF: 1})
 }
 
 // normBackward katman ya da RMS normunun geri yönü.
