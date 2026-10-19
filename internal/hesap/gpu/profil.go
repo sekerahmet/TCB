@@ -55,6 +55,10 @@ type adimIstat struct {
 	baslatma           int64
 	cop                int64         // bellek için başlatılan çöp toplama
 	copSure            time.Duration // çöp toplamada beklenen süre
+	// bitti adım bir sonraki işaretle kapandı (duvar ölçüldü). Tamamlanmış adım süreye göre
+	// değil buna göre seçilir: Windows'ta konak saati kabadır (0,5-15,6 ms), kısa bir adımın
+	// duvar süresi 0 ölçülebilir.
+	bitti bool
 }
 
 // profil bir arka ucun ölçüm durumu. Olay işleri arka ucun kilidi altında yapılır;
@@ -193,6 +197,7 @@ func (g *arkaUc) adimIsaretle() {
 	p.mu.Lock()
 	if n := len(p.adimlar); n > 0 {
 		p.adimlar[n-1].duvar = simdi.Sub(p.adimBas)
+		p.adimlar[n-1].bitti = true
 	}
 	p.adimlar = append(p.adimlar, adimIstat{})
 	p.adimBas = simdi

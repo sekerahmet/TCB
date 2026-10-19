@@ -177,8 +177,9 @@ func (g *arkaUc) ozetYaz(w io.Writer) {
 	var top adimIstat
 	sayi := 0
 	// İlk iki adım (derleme ve ısınma) ve işaretten sonra yarım kalan son adım dışarıda.
+	isaretli := len(p.adimlar)
 	for i, a := range p.adimlar {
-		if i < 2 || a.duvar == 0 {
+		if i < 2 || !a.bitti {
 			continue
 		}
 		top.duvar += a.duvar
@@ -199,6 +200,8 @@ func (g *arkaUc) ozetYaz(w io.Writer) {
 			"konakta arka uç %.2f ms · eşzamanlama beklemesi %.2f ms · çöp toplama %.2f kez, %.2f ms\n",
 			sayi, ms(top.duvar), top.gpuMs/n, top.boslukMs/n, float64(top.baslatma)/n, ms(top.konak), ms(top.esit),
 			float64(top.cop)/n, ms(top.copSure))
+	} else {
+		fmt.Fprintf(w, "adım başına: adım bilgisi yok (%d adım işaretlendi; ilk iki adım ısınmadır, en az üç tamamlanmış adım gerekir; adımlar iyileştiricinin adımıyla işaretlenir)\n", isaretli)
 	}
 	olcumler := p.sirali()
 	var toplam time.Duration
