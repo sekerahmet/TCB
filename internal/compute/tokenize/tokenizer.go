@@ -215,49 +215,10 @@ func Parse(data []byte) (*Tokenizer, error) {
 		}
 		p.addedID[e.Content] = int32(id)
 	}
-	var raw, nrm []AddedToken
-	specialContent := make(map[string]bool)
-	// normalized=true ek tokenlar normalleştirilmiş metinde aranır; bu yüzden
-	// içerikleri de parçalayıcının normalleştiricisinden geçirilir (ör.
-	// küçük harfe çeviren bir normalleştiricide "ÇAY" -> "çay"). Kimliğin
-	// token metni de (çözmede kullanılan) bu normalleştirilmiş içeriktir;
-	// özel token kümesi ise özgün içeriklerdir (başvurudaki gibi: içeriği
-	// normalleştirmeyle değişen özel token çözmede atlanmaz). İki ek tokenın
-	// içeriği normalleştirmeden sonra aynıysa dosyadaki ilki kazanır (başvuru
-	// uygulamasında bu durumda sonuç çalıştırmadan çalıştırmaya değişiyor).
-	nrmContent := make(map[int]string)
-	// Ek tokenların normalleştirilmesi tek bir adım bütçesini paylaşır (bütün içeriklerin
-	// uzunluğuyla orantılı): her biri ayrı bir taban bütçe alsaydı çok sayıda ek token içeren
-	// kötü niyetli bir dosya yüklemeyi token sayısı kadar uzatabilirdi.
-	var extraBytes int
-	for _, e := range p.extras {
-		if e.Normalize {
-			extraBytes += len(e.Content)
-		}
+	nrmContent, specialContent, err := p.setupAddedMatchers()
+	if err != nil {
+		return nil, err
 	}
-	extraBudget := newBudget(extraBytes)
-	for _, e := range p.extras {
-		if e.Special {
-			specialContent[e.Content] = true
-		}
-		if e.Normalize {
-			if p.normalizer != nil {
-				var content string
-				if err := catchStepError(func() { content = normalizeBudgeted(p.normalizer, e.Content, extraBudget) }); err != nil {
-					return nil, fmt.Errorf("ek parça %q normalleştirilemedi: %w", e.Content, err)
-				}
-				nrmContent[e.ID] = content
-				e.Content = content
-			}
-			if e.Content != "" {
-				nrm = append(nrm, e)
-			}
-		} else {
-			raw = append(raw, e)
-		}
-	}
-	p.rawMatch = newAddedMatcher(raw)
-	p.nrmMatch = newAddedMatcher(nrm)
 
 	// Son işleyici, özel token kimliklerine erişebilsin diye en son kurulur.
 	if p.postProcessor, err = NewPostProcessor(d.PostProcessor, func(s string) (int32, bool) {
@@ -289,6 +250,55 @@ func Parse(data []byte) (*Tokenizer, error) {
 		}
 	}
 	return p, nil
+}
+
+// setupAddedMatchers ek tokenların eşleştiricilerini kurar; normalleştirilmiş içerikleri
+// (kimliğe göre) ve özel tokenların özgün içeriklerini verir.
+func (p *Tokenizer) setupAddedMatchers() (map[int]string, map[string]bool, error) {
+	var raw, nrm []AddedToken
+	specialContent := make(map[string]bool)
+	// normalized=true ek tokenlar normalleştirilmiş metinde aranır; bu yüzden
+	// içerikleri de parçalayıcının normalleştiricisinden geçirilir (ör.
+	// küçük harfe çeviren bir normalleştiricide "ÇAY" -> "çay"). Kimliğin
+	// token metni de (çözmede kullanılan) bu normalleştirilmiş içeriktir;
+	// özel token kümesi ise özgün içeriklerdir (başvurudaki gibi: içeriği
+	// normalleştirmeyle değişen özel token çözmede atlanmaz). İki ek tokenın
+	// içeriği normalleştirmeden sonra aynıysa dosyadaki ilki kazanır (başvuru
+	// uygulamasında bu durumda sonuç çalıştırmadan çalıştırmaya değişiyor).
+	nrmContent := make(map[int]string)
+	// Ek tokenların normalleştirilmesi tek bir adım bütçesini paylaşır (bütün içeriklerin
+	// uzunluğuyla orantılı): her biri ayrı bir taban bütçe alsaydı çok sayıda ek token içeren
+	// kötü niyetli bir dosya yüklemeyi token sayısı kadar uzatabilirdi.
+	var extraBytes int
+	for _, e := range p.extras {
+		if e.Normalize {
+			extraBytes += len(e.Content)
+		}
+	}
+	extraBudget := newBudget(extraBytes)
+	for _, e := range p.extras {
+		if e.Special {
+			specialContent[e.Content] = true
+		}
+		if e.Normalize {
+			if p.normalizer != nil {
+				var content string
+				if err := catchStepError(func() { content = normalizeBudgeted(p.normalizer, e.Content, extraBudget) }); err != nil {
+					return nil, nil, fmt.Errorf("ek parça %q normalleştirilemedi: %w", e.Content, err)
+				}
+				nrmContent[e.ID] = content
+				e.Content = content
+			}
+			if e.Content != "" {
+				nrm = append(nrm, e)
+			}
+		} else {
+			raw = append(raw, e)
+		}
+	}
+	p.rawMatch = newAddedMatcher(raw)
+	p.nrmMatch = newAddedMatcher(nrm)
+	return nrmContent, specialContent, nil
 }
 
 // VocabSize ek tokenlar dahil farklı token sayısını verir.
