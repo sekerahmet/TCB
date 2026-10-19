@@ -345,6 +345,56 @@ test "15.7 iyileştiriciler: küçük doğrusal regresyon" {
     doğrula(hata_metni(() => AdamW([p], öğrenme_oranı: 1e300)).içerir("sonlu bir sayı olmalıdır"))
 }
 
+test "15.39 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kullanılır" {
+    değişken w = tensör([1.0], türev_izle: doğru)
+    eşit_mi(0.001, AdamW([w]).öğrenme_oranı)
+    eşit_mi(0.01, SGD([w]).öğrenme_oranı)
+    değişken op = SGD([w], öğrenme_oranı: 0.5)
+    eşit_mi(0.5, op.öğrenme_oranı)
+    op.öğrenme_oranı = 0.25
+    geri_yayılım(toplam(w * w)) // gradyan 2
+    op.adım()
+    eşit_mi([0.5], w.değer)
+    // Bileşik atama ve Tam değer; oran Ondalık okunur.
+    op.öğrenme_oranı *= 0.5
+    eşit_mi(0.125, op.öğrenme_oranı)
+    op.öğrenme_oranı = 2
+    eşit_mi(2.0, op.öğrenme_oranı)
+    eşit_mi(Ondalık, tip(op.öğrenme_oranı))
+    // AdamW: kurulumda verilen oranla, sonradan atanan oran aynı adımı verir; oran değiştikçe
+    // momentler korunur (yalnızca adımın boyu değişir).
+    değişken a = tensör([1.0, -2.0], türev_izle: doğru)
+    değişken b = tensör([1.0, -2.0], türev_izle: doğru)
+    değişken opa = AdamW([a], öğrenme_oranı: 0.002, ağırlık_çürümesi: 0.1)
+    değişken opb = AdamW([b], öğrenme_oranı: 0.1, ağırlık_çürümesi: 0.1)
+    döngü adım içinde 0..3 {
+        opa.öğrenme_oranı = [0.002, 0.03, 0.0005][adım]
+        opb.öğrenme_oranı = [0.002, 0.03, 0.0005][adım]
+        opa.sıfırla()
+        opb.sıfırla()
+        geri_yayılım(toplam(a * a * a))
+        geri_yayılım(toplam(b * b * b))
+        opa.adım()
+        opb.adım()
+    }
+    eşit_mi(a.değer, b.değer)
+    doğrula(a.değer != [1.0, -2.0])
+    // Oran ayardır: duruma girmez.
+    eşit_mi(yanlış, opa.durum.anahtarlar().içerir("öğrenme_oranı"))
+    // Yalnızca sonlu, pozitif Tam ya da Ondalık atanabilir; hatada oran değişmez.
+    doğrula(hata_metni(() => { op.öğrenme_oranı = 0 }).içerir("sonlu ve pozitif"))
+    doğrula(hata_metni(() => { op.öğrenme_oranı = -0.1 }).içerir("sonlu ve pozitif"))
+    doğrula(hata_metni(() => { op.öğrenme_oranı = log(-1.0) }).içerir("sonlu ve pozitif"))
+    doğrula(hata_metni(() => { op.öğrenme_oranı = 1e300 }).içerir("sonlu ve pozitif"))
+    doğrula(hata_metni(() => { op.öğrenme_oranı = 1e-300 }).içerir("sonlu ve pozitif"))
+    doğrula(hata_metni(() => { op.öğrenme_oranı = "0.1" }).içerir("Tam ya da Ondalık olmalıdır"))
+    doğrula(hata_metni(() => { op.öğrenme_oranı = doğru }).içerir("Tam ya da Ondalık olmalıdır"))
+    eşit_mi(2.0, op.öğrenme_oranı)
+    // Başka üyeye atama yapılamaz.
+    doğrula(hata_metni(() => { op.adım = 1 }).içerir("atama yapılamaz"))
+    doğrula(hata_metni(() => { op.durum = {} }).içerir("atama yapılamaz"))
+}
+
 test "15.9 maks_indeks ve gradyan_kırp" {
     değişken x = tensör([[1, 9, 3], [7, 2, 7]])
     eşit_mi([1, 0], maks_indeks(x).değer)

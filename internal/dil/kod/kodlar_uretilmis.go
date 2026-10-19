@@ -251,6 +251,7 @@ const (
 	Y501 Kod = Y + 501 // sıfırla
 	Y502 Kod = Y + 502 // durum
 	Y503 Kod = Y + 503 // durumu_yükle
+	Y504 Kod = Y + 504 // öğrenme_oranı
 	Y520 Kod = Y + 520 // kaldığı_adım
 	Y521 Kod = Y + 521 // kaydet
 	Y600 Kod = Y + 600 // örnekleyici

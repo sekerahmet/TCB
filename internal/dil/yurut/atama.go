@@ -75,8 +75,8 @@ func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line i
 	return fmt.Errorf("Satır %d: Bu tipe indeks ile atama yapılamaz (%s)", line, left.Type())
 }
 
-// uyeyeAta nesne.alan = değer atamasını yapar.
-func (v *VM) uyeyeAta(obj Value, prop string, kod uint8, rightVal Value, line int) error {
+// uyeyeAta nesne.alan = değer atamasını yapar; u adın derleme anında çözülmüş kodudur.
+func (v *VM) uyeyeAta(obj Value, prop string, u uyeBilgisi, kod uint8, rightVal Value, line int) error {
 	switch inst := obj.(type) {
 	case *StructInstanceVal:
 		// Nesnenin alanları her zaman yapı tanımındakilerdir (7.5): tanımda olmayan alana ve
@@ -113,6 +113,19 @@ func (v *VM) uyeyeAta(obj Value, prop string, kod uint8, rightVal Value, line in
 		}
 		inst.Set(prop, finalVal)
 		return nil
+	case UyeAtanabilir:
+		// Dış değerler (ör. iyileştirici): bileşik atamada mevcut değer GetProperty ile okunur.
+		finalVal := rightVal
+		if pg, ok := obj.(PropertyGetter); ok && kod != opAta {
+			cur, err := pg.GetProperty(u.kod, prop)
+			if err != nil {
+				return satirEki(line, err)
+			}
+			if finalVal, err = v.atamaIslemi(kod, cur, rightVal, line); err != nil {
+				return err
+			}
+		}
+		return satirEki(line, inst.UyeyeAta(u.kod, prop, finalVal))
 	}
 	return fmt.Errorf("Satır %d: %s tipinin %q alanına atama yapılamaz", line, obj.Type(), prop)
 }

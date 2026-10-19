@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"tr_dili/internal/dil/kod"
 )
 
 // Bu dosyadaki arayüzler, VM dışında tanımlanan değerlerin (ör. internal/motor/ogrenme'daki
@@ -50,6 +52,15 @@ type Indekslenebilir interface {
 // IndekseAta ile yazar.
 type IndeksAtanabilir interface {
 	IndekseAta(idx Value, deger Value) error
+}
+
+// UyeAtanabilir 'nesne.üye = değer' atamasını sağlar (ör. iyileştiricinin öğrenme oranı). kd
+// üyenin sözlük kodudur (ad bir üye adı değilse kod.Yok; derleme anında çözülür), ad
+// kullanıcının yazdığı biçimdir. Bileşik atamada ('op.öğrenme_oranı *= 0.5') VM önce
+// GetProperty ile mevcut değeri okur, işlemi yapar ve sonucu UyeyeAta ile yazar. Atanamayan
+// üye ve uygun olmayan değer hatadır (satır bilgisini VM ekler).
+type UyeAtanabilir interface {
+	UyeyeAta(kd kod.Kod, ad string, deger Value) error
 }
 
 // Yinelenebilir 'döngü x içinde değer', 'döngü i, x içinde değer' ve liste üreteci

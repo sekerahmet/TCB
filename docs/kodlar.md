@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 254 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 98 fonksiyon, 1 sabit, 37 metot, 20 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 255 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 98 fonksiyon, 1 sabit, 37 metot, 21 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -512,7 +512,7 @@ AdamW(...) ve SGD(...) ile oluşturulan iyileştiricilerin tipidir; .adım() par
 değişken w = tensör([1.0], türev_izle: doğru); değişken op = AdamW([w], öğrenme_oranı: 0.1); yazdır(tip(op), tip(SGD([w])))
 ```
 
-Üyeleri: Y500 `adım`, Y501 `sıfırla`, Y502 `durum`, Y503 `durumu_yükle` · İlişkili: T400 `AdamW`, T401 `SGD`
+Üyeleri: Y500 `adım`, Y501 `sıfırla`, Y502 `durum`, Y503 `durumu_yükle`, Y504 `öğrenme_oranı` · İlişkili: T400 `AdamW`, T401 `SGD`
 
 #### A215 `Tip`
 
@@ -1928,7 +1928,7 @@ Kullananlar: G409 `sınırla` · İlişkili: T904 `en_fazla`
 değişken w = tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.5); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
 ```
 
-Kullananlar: T400 `AdamW`, T401 `SGD` · İlişkili: T911 `ağırlık_çürümesi` · Eski adlar: `öğrenme_hızı`
+Kullananlar: T400 `AdamW`, T401 `SGD` · İlişkili: T911 `ağırlık_çürümesi`, Y504 `öğrenme_oranı` · Eski adlar: `öğrenme_hızı`
 
 #### T911 `ağırlık_çürümesi`
 
@@ -2927,6 +2927,18 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken op = AdamW([w]); 
 ```
 
 İlişkili: Y502 `durum`
+
+#### Y504 `öğrenme_oranı`
+
+    İyileştirici.öğrenme_oranı → Ondalık
+
+İyileştiricinin (AdamW, SGD) şimdiki öğrenme oranıdır (Ondalık); okunur ve atanabilir: op.öğrenme_oranı = 0.0005 ataması sonraki adımdan başlayarak yeni oranı kullanır (ısınma, düşürme gibi öğrenme oranı planları). Atanan değer sonlu ve pozitif bir Tam ya da Ondalık olmalıdır; oran 32 bit saklanır. Ayar olduğu için duruma (durum) girmez.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.5); op.öğrenme_oranı = 0.25; geri_yayılım(toplam(w * w)); op.adım(); yazdır(op.öğrenme_oranı, w.değer)
+```
+
+İlişkili: T910 `öğrenme_oranı`, Y500 `adım`
 
 #### Y510 `eğit` — kaldırıldı
 

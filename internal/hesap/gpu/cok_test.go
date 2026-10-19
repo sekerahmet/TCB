@@ -10,7 +10,8 @@ import (
 
 // TestCokTensorluIyilestirici birden çok parametreyi (biri bir bloğun parçasından uzun, biri
 // bfloat16 ana kopyalı, biri gradyansız) tek başlatmada güncelleyen yolu ve gradyan kırpmanın
-// toplu ölçeklemesini CPU ile karşılaştırır.
+// toplu ölçeklemesini CPU ile karşılaştırır. Öğrenme oranı adımlar arasında değiştirilir: yeni
+// oran sonraki adımda kullanılmalıdır (öğrenme_oranı ataması, Y504).
 func TestCokTensorluIyilestirici(t *testing.T) {
 	rng := rand.New(rand.NewSource(21))
 	boylar := []int{7, cokParca + 300, 33, 5}
@@ -32,15 +33,21 @@ func TestCokTensorluIyilestirici(t *testing.T) {
 				ps = append(ps, p)
 			}
 			var adim func()
+			var oran *float32
 			switch ad {
 			case "adamw":
-				adim = tensor.NewAdamW(ps, 0.01, 0.1).Step
+				o := tensor.NewAdamW(ps, 0.01, 0.1)
+				adim, oran = o.Step, &o.LR
 			case "sgd":
-				adim = tensor.NewSGD(ps, 0.1, 0).Step
+				o := tensor.NewSGD(ps, 0.1, 0)
+				adim, oran = o.Step, &o.LR
 			default:
-				adim = tensor.NewSGD(ps, 0.1, 0.9).Step
+				o := tensor.NewSGD(ps, 0.1, 0.9)
+				adim, oran = o.Step, &o.LR
 			}
+			taban := *oran
 			for k := 0; k < 3; k++ {
+				*oran = taban * []float32{1, 0.3, 2}[k]
 				tensor.ZeroGrads(ps)
 				var kayip *tensor.Tensor
 				for i, p := range ps[:3] { // son parametre gradyan almaz

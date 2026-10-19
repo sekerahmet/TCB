@@ -89,7 +89,7 @@ test "oran_planı: ısınma, sabit, azalma" {
     eşit_mi(0.55, oran_planı(90, 100, azalma: 0.2, en_az: 0.1))
 }
 
-test "MuonVeAdamW: oran çarpanı AdamW adımını ölçekler (0: değişmez, ½: yarım adım)" {
+test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½: yarım adım)" {
     fonksiyon kur() {
         değişken m = GPT(6, bağlam: 3, boyut: 4, katman: 1, baş: 2, tohum: 3)
         geri_yayılım(m.kayıp([[1, 2, 3]], [[2, 3, 4]]))
@@ -106,14 +106,24 @@ test "MuonVeAdamW: oran çarpanı AdamW adımını ölçekler (0: değişmez, ½
     değişken tam_adım = türevsiz(a.gömme.tablo) - önce
     değişken yarım = türevsiz(b.gömme.tablo) - önce
     doğrula(toplam(tam_adım ** 2).değer > 0, "AdamW gömmeyi güncellemeli")
+    // AdamW'nin adımı öğrenme oranıyla doğrusaldır (momentler orandan bağımsız): yarım oran,
+    // float32 yuvarlamasıyla yarım adım verir.
     doğrula(toplam((yarım - 0.5 * tam_adım) ** 2).değer < 0.0000000001, "yarım çarpan yarım adım vermeli")
     eşit_mi(0.01, op_b.muon.öğrenme_oranı)
+    eşit_mi(0.0015, op_b.adamw.öğrenme_oranı)
+    eşit_mi(0.003, op_a.adamw.öğrenme_oranı)
+    // Çarpan 1 iken AdamW'nin adımı planı olmayan AdamW'ninkiyle bit düzeyinde aynıdır.
+    değişken d = kur()
+    değişken op_d = AdamW(parametre_grupları(d).diğer, öğrenme_oranı: 0.003, ağırlık_çürümesi: 0.0, beta1: 0.9, beta2: 0.95)
+    op_d.adım()
+    eşit_mi(türevsiz(a.gömme.tablo), türevsiz(d.gömme.tablo))
     değişken c = kur()
     değişken op_c = MuonVeAdamW(c, normuon: doğru)
-    op_c.çarpan_ayarla(0.0)
-    op_c.adım()
-    eşit_mi(önce, türevsiz(c.gömme.tablo))
     eşit_mi(NorMuon, tip(op_c.muon))
+    değişken mesaj = ""
+    dene { op_c.çarpan_ayarla(0.0) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("oran çarpanı pozitif olmalı"), mesaj)
+    eşit_mi(1.0, op_c.oran_çarpanı)
 }
 
 test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükler" {

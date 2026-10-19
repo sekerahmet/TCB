@@ -176,44 +176,37 @@ fonksiyon parametre_grupları(model, ayrı = ["gömme", "çıkış"]) {
 }
 
 // MuonVeAdamW: gizli 2B ağırlıklar Muon (ya da normuon: doğru ile NorMuon), öbürleri AdamW ile.
-// oran_çarpanı (planın çarpanı, oran_planı) iki grubun öğrenme oranını birlikte ölçekler:
-// Muon'un oranı doğrudan çarpılır; AdamW'nin adımı (oran sabit kurulduğu için) adımın yaptığı
-// değişiklik çarpanla ölçeklenerek uygulanır. AdamW'nin güncellemesi öğrenme oranıyla doğrusal
-// olduğundan (momentler orandan bağımsızdır) bu, o adımda oranı çarpanla çarpmakla aynıdır.
+// oran_çarpanı (planın çarpanı, oran_planı; pozitif) iki grubun öğrenme oranını birlikte
+// ölçekler: her adımda Muon'un ve AdamW'nin oranı (op.adamw.öğrenme_oranı, dil tanımı 15.39)
+// taban oranla çarpanın çarpımına ayarlanır.
 yapı MuonVeAdamW {
     muon
     adamw
-    diğer
     muon_oranı
+    adamw_oranı
     oran_çarpanı = 1.0
     fonksiyon kurucu(model, muon_oranı = yok, adamw_oranı = 0.003, ağırlık_çürümesi = 0.0, normuon = yanlış, ayrı = ["gömme", "çıkış"], beta2 = 0.95) {
         değişken gruplar = parametre_grupları(model, ayrı: ayrı)
         eğer muon_oranı == yok { muon_oranı = eğer normuon { 0.003 } değilse { 0.02 } }
         kendi.muon_oranı = muon_oranı
+        kendi.adamw_oranı = adamw_oranı
         kendi.muon = eğer normuon {
             NorMuon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi)
         } değilse {
             Muon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi)
         }
-        kendi.diğer = gruplar.diğer
         kendi.adamw = AdamW(gruplar.diğer, öğrenme_oranı: adamw_oranı, ağırlık_çürümesi: 0.0, beta1: 0.9, beta2: beta2)
     }
-    fonksiyon çarpan_ayarla(çarpan) { kendi.oran_çarpanı = çarpan }
+    fonksiyon çarpan_ayarla(çarpan) {
+        doğrula(çarpan > 0, "MuonVeAdamW: oran çarpanı pozitif olmalı, {çarpan} verildi")
+        kendi.oran_çarpanı = çarpan
+    }
     fonksiyon adım() {
         değişken c = kendi.oran_çarpanı
         kendi.muon.öğrenme_oranı = kendi.muon_oranı * c
+        kendi.adamw.öğrenme_oranı = kendi.adamw_oranı * c
         kendi.muon.adım()
-        eğer c == 1.0 {
-            kendi.adamw.adım()
-        } değilse {
-            değişken önceki = türevsiz { [tensör(p) döngü p içinde kendi.diğer] }
-            kendi.adamw.adım()
-            türevsiz {
-                döngü i, p içinde kendi.diğer {
-                    p[0..p.şekil[0]] = önceki[i] + c * (p - önceki[i])
-                }
-            }
-        }
+        kendi.adamw.adım()
     }
     fonksiyon sıfırla() {
         kendi.muon.sıfırla()

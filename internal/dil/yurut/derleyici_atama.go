@@ -70,12 +70,13 @@ func (c *derleyici) atamaHedefi(k *derleyiciKapsam, target agac.Expression, kod 
 	case *agac.MemberExpression:
 		nesne := c.ifade(k, t.Object)
 		prop := t.Property
+		u := uyeCoz(prop)
 		return func(v *VM, env *Environment, rhs Value) error {
 			obj, err := nesne(v, env)
 			if err != nil {
 				return err
 			}
-			return v.uyeyeAta(obj, prop, kod, rhs, line)
+			return v.uyeyeAta(obj, prop, u, kod, rhs, line)
 		}
 	}
 	return func(v *VM, env *Environment, rhs Value) error {

@@ -41,11 +41,43 @@ func (o *Iyilestirici) Inspect() string {
 
 // İyileştirici üyeleri (adları kod listesinde, internal/dil/kod Y50x).
 const (
-	uyeAdim    = kod.Y500
-	uyeSifirla = kod.Y501
+	uyeAdim         = kod.Y500
+	uyeSifirla      = kod.Y501
+	uyeOgrenmeOrani = kod.Y504
 )
 
-var iyilestiriciUyeleri = kod.Adlar(uyeAdim, uyeSifirla, uyeDurum, uyeDurumuYukle)
+var iyilestiriciUyeleri = kod.Adlar(uyeAdim, uyeSifirla, uyeDurum, uyeDurumuYukle, uyeOgrenmeOrani)
+
+// oranAlani iyileştiricinin öğrenme oranı alanıdır (AdamW ya da SGD); arka uç onu her adımda
+// okur, yeni oran sonraki adımda kullanılır.
+func (o *Iyilestirici) oranAlani() *float32 {
+	if o.adamw != nil {
+		return &o.adamw.LR
+	}
+	return &o.sgd.LR
+}
+
+// UyeyeAta op.öğrenme_oranı = değer atamasıdır (yurut.UyeAtanabilir): yalnızca sonlu, pozitif
+// ve 32 bite sığan bir Tam ya da Ondalık kabul edilir.
+func (o *Iyilestirici) UyeyeAta(kd kod.Kod, ad string, deger yurut.Value) error {
+	if kd != uyeOgrenmeOrani {
+		return fmt.Errorf("%s üzerinde %q üyesine atama yapılamaz; atanabilen üye: %s", o.ad, ad, kod.Ad(uyeOgrenmeOrani))
+	}
+	var f float64
+	switch x := deger.(type) {
+	case *yurut.IntVal:
+		f = float64(x.Val)
+	case *yurut.FloatVal:
+		f = x.Val
+	default:
+		return fmt.Errorf("%s.%s bir %s ya da %s olmalıdır, %s verildi", o.ad, kod.Ad(uyeOgrenmeOrani), kod.Ad(kod.A200), kod.Ad(kod.A201), tipAdi(deger))
+	}
+	if !(f > 0) || math.IsInf(float64(float32(f)), 0) || float32(f) == 0 {
+		return fmt.Errorf("%s.%s sonlu ve pozitif bir sayı olmalıdır, %s verildi", o.ad, kod.Ad(uyeOgrenmeOrani), deger.Inspect())
+	}
+	*o.oranAlani() = float32(f)
+	return nil
+}
 
 // iyilestiriciTipi AdamW ve SGD değerlerinin tip adıdır (tip(op) → "İyileştirici").
 var iyilestiriciTipi = yurut.ValueType(yurut.TipAdi(kod.A214))
@@ -70,6 +102,9 @@ func (o *Iyilestirici) GetProperty(kd kod.Kod, prop string) (yurut.Value, error)
 			o.opt.ZeroGrad()
 			return yurut.NULL, nil
 		}}, nil
+	case uyeOgrenmeOrani:
+		// Oran 32 bit saklanır; en kısa gösterimiyle verilir (0.003 → 0.003).
+		return &yurut.FloatVal{Val: kisaFloat64(*o.oranAlani())}, nil
 	}
 	if v, ok, err := o.durumUyesi(kd); ok {
 		return v, err // durum, durumu_yükle (iyilestirici_durum.go)
