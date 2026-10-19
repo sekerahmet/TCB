@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"testing"
 )
@@ -85,4 +86,27 @@ func TestOptimizerStateResume(t *testing.T) {
 			freshT([]*Tensor{Zeros(2).SetRequiresGrad(true)}).LoadState(state)
 		})
 	}
+}
+
+// Bozuk bir durumdaki adım sayacı (negatif, kesirli, NaN) ya da momentli ama sayaçsız
+// parametre yüklenmez: sapma düzeltmesi sıfıra bölünüp ağırlıklar NaN olurdu.
+func TestAdamWLoadStateRejectsBadCounters(t *testing.T) {
+	mk := func() (*AdamW, map[string]*Tensor) {
+		w := New([]float32{1, 2}, 2).SetRequiresGrad(true)
+		o := NewAdamW([]*Tensor{w}, 0.1, 0.0)
+		w.MulScalar(3).SumAll().Backward()
+		o.Step()
+		return NewAdamW([]*Tensor{New([]float32{1, 2}, 2).SetRequiresGrad(true)}, 0.1, 0.0), o.State()
+	}
+	nan := float32(math.NaN())
+	for _, bad := range [][]float32{{0, -1}, {-1, 0}, {nan, nan}, {0, 0.5}, {1 << 24, 0}} {
+		fresh, st := mk()
+		st["adim.0"] = New(bad, 2)
+		panicContains(t, fmt.Sprintf("sayaç %v", bad), "adım sayacı geçersiz", func() { fresh.LoadState(st) })
+	}
+	fresh, st := mk()
+	delete(st, "adim.0")
+	panicContains(t, "sayaçsız moment", "adım sayacı (adim.0) yok", func() { fresh.LoadState(st) })
+	fresh, st = mk()
+	fresh.LoadState(st) // sağlam durum yüklenir
 }

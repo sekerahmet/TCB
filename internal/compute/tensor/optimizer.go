@@ -395,11 +395,19 @@ func counterTensor(n int) *Tensor {
 	return New([]float32{float32(n >> 24), float32(n & (1<<24 - 1))}, 2)
 }
 
+// readCounter counterTensor'ın yazdığı sayacı okur. İki parça da 0 ile 2^24 arasında tam
+// sayı olmalıdır: bozuk bir durumdaki negatif, kesirli ya da sonlu olmayan sayaç sapma
+// düzeltmesini sıfıra böldürüp ağırlıkları NaN yapardı.
 func readCounter(ad string, t *Tensor) int {
 	if t == nil || !sameShape(t.shape, []int{2}) {
 		panic(fmt.Sprintf("tensor: iyileştirici durumu uyumsuz: %q adım sayacı [2] şeklinde olmalı", ad))
 	}
 	d := t.Data()
+	for _, x := range d {
+		if !(x >= 0 && x < 1<<24) || x != float32(math.Trunc(float64(x))) {
+			panic(fmt.Sprintf("tensor: iyileştirici durumu bozuk: %q adım sayacı geçersiz (%v); kayıt bozuk ya da başka bir iyileştiriciye ait", ad, d))
+		}
+	}
 	return int(d[0])<<24 | int(d[1])
 }
 
@@ -519,6 +527,11 @@ func (o *AdamW) LoadState(st map[string]*Tensor) {
 		o.steps[k] = 0
 		if t, ok := st[fmt.Sprintf("adim.%d", k)]; ok {
 			o.steps[k] = readCounter(fmt.Sprintf("adim.%d", k), t)
+		}
+		// Momentler sapma düzeltmesini adım sayısıyla birlikte anlamlıdır: momentli ama
+		// sayaçsız durum tutarsızdır (momentler ilk adımın momentleri sanılırdı).
+		if o.m[k] != nil && o.steps[k] == 0 {
+			panic(fmt.Sprintf("tensor: iyileştirici durumu bozuk: %d. parametrenin momentleri var ama adım sayacı (adim.%d) yok ya da 0", k, k))
 		}
 	}
 	o.master.loadFn(st, o.Params)
