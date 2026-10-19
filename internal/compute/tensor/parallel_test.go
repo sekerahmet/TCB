@@ -114,7 +114,7 @@ func TestParallelKernelsMatchSerial(t *testing.T) {
 	for i := range idx {
 		idx[i] = rng.Intn(40) * 7 // yinelenen indeksler
 	}
-	gradlar := func(f func() *Tensor, ps ...*Tensor) []float32 {
+	grads := func(f func() *Tensor, ps ...*Tensor) []float32 {
 		for _, p := range ps {
 			p.SetRequiresGrad(true)
 			p.grad = nil
@@ -136,15 +136,15 @@ func TestParallelKernelsMatchSerial(t *testing.T) {
 	}{
 		{"devrik kopya", func() []float32 { return x.Permute(2, 0, 1).Contiguous().Data() }},
 		{"dilim geri yayılımı", func() []float32 {
-			return gradlar(func() *Tensor { return x.Slice(2, 10, 150).Mul(x.Slice(2, 50, 190)) }, x)
+			return grads(func() *Tensor { return x.Slice(2, 10, 150).Mul(x.Slice(2, 50, 190)) }, x)
 		}},
 		{"eksen toplamı geri yayılımı", func() []float32 {
-			return gradlar(func() *Tensor { return x.Sum(-1, true).Mul(k) }, x, k)
+			return grads(func() *Tensor { return x.Sum(-1, true).Mul(k) }, x, k)
 		}},
-		{"sapma gradyanı", func() []float32 { return gradlar(func() *Tensor { return Add(x, w) }, x, w) }},
-		{"orta eksen yayını", func() []float32 { return gradlar(func() *Tensor { return Mul(x, k) }, x, k) }},
+		{"sapma gradyanı", func() []float32 { return grads(func() *Tensor { return Add(x, w) }, x, w) }},
+		{"orta eksen yayını", func() []float32 { return grads(func() *Tensor { return Mul(x, k) }, x, k) }},
 		{"gömme geri yayılımı", func() []float32 {
-			return gradlar(func() *Tensor { return Embedding(table, idx).Square() }, table)
+			return grads(func() *Tensor { return Embedding(table, idx).Square() }, table)
 		}},
 		{"kare toplamı", func() []float32 {
 			p := x.Detach().SetRequiresGrad(true)
@@ -159,7 +159,7 @@ func TestParallelKernelsMatchSerial(t *testing.T) {
 		singleAndMany(t, d.ad, d.fn)
 	}
 	// Başvuru değerleriyle karşılaştırma (sıralı yol da doğru olmalı).
-	gw := gradlar(func() *Tensor { return Embedding(table, idx) }, table)[len(idx)*128:]
+	gw := grads(func() *Tensor { return Embedding(table, idx) }, table)[len(idx)*128:]
 	expected := make([]float32, 300*128)
 	for _, ix := range idx {
 		for j := 0; j < 128; j++ {
