@@ -170,7 +170,10 @@ type bzIslev struct {
 	param     []paramTuru
 	yazmacSay int
 	ortakBayt int
-	komutlar  []bzKomut
+	// dinamik: devingen paylaşımlı dizi (.extern .shared) statik dizilerden sonra
+	// (ortakBayt'ta) başlar; boyu başlatmada verilir.
+	dinamik  bool
+	komutlar []bzKomut
 }
 
 // bzAyristirici tek bir modülün ayrıştırma durumu.
@@ -215,6 +218,9 @@ func bzAyristir(metin string) (*bzIslev, error) {
 		return nil, fmt.Errorf("benzetim: giriş noktası (.entry) yok")
 	}
 	a.is.yazmacSay = len(a.yazmac)
+	if a.is.ortakBayt > statikPaylasimSiniri {
+		return nil, fmt.Errorf("benzetim: %d bayt statik paylaşımlı bellek (sınır %d; üstü devingen diziyle)", a.is.ortakBayt, statikPaylasimSiniri)
+	}
 	return a.is, nil
 }
 
@@ -240,6 +246,11 @@ func (a *bzAyristirici) satir(s string, govde *bool) error {
 		return a.yazmacBildir(strings.TrimSuffix(s, ";"))
 	case strings.HasPrefix(s, ".shared "):
 		return a.ortakBildir(strings.TrimSuffix(s, ";"))
+	case strings.HasPrefix(s, ".extern .shared "):
+		if *govde {
+			return fmt.Errorf(".extern .shared modül düzeyinde bildirilmeli (ptxas gövdede kabul etmez)")
+		}
+		return a.dinamikBildir(strings.TrimSuffix(s, ";"))
 	case strings.HasSuffix(s, ":"):
 		a.etiket[strings.TrimSuffix(s, ":")] = int32(len(a.is.komutlar))
 		return nil
@@ -290,7 +301,24 @@ func (a *bzAyristirici) yazmacBildir(s string) error {
 	return nil
 }
 
+// dinamikBildir .extern .shared .align 16 .b8 ad[]: devingen dizi statik dizilerden sonra,
+// 16'ya hizalı başlar; ardından statik dizi bildirilemez (tek devingen dizi).
+func (a *bzAyristirici) dinamikBildir(s string) error {
+	f := strings.Fields(s)
+	son := f[len(f)-1]
+	if !strings.HasSuffix(son, "[]") || a.is.dinamik {
+		return fmt.Errorf("devingen paylaşımlı dizi bildirimi")
+	}
+	a.is.dinamik = true
+	a.is.ortakBayt = (a.is.ortakBayt + 15) &^ 15
+	a.ortak[strings.TrimSuffix(son, "[]")] = a.is.ortakBayt
+	return nil
+}
+
 func (a *bzAyristirici) ortakBildir(s string) error {
+	if a.is.dinamik {
+		return fmt.Errorf("devingen paylaşımlı diziden sonra statik dizi")
+	}
 	f := strings.Fields(s) // .shared .align 16 .b8 ad[4096]
 	son := f[len(f)-1]
 	i := strings.Index(son, "[")

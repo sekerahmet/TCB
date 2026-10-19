@@ -57,6 +57,11 @@ type yazici struct {
 	etiketNo int
 	// hedef PTX hedef mimarisi (52: taban sm_52; 80: cp.async kullanan çekirdekler).
 	hedef int
+	// dinamik doğruysa paylaşımlı diziler tek bir devingen dizinin (.extern .shared dsm)
+	// parçalarıdır (48 KB üstü; başlatmada paylasimBayt kadar açılır). paylasimBayt bütün
+	// paylaşımlı dizilerin (16'ya hizalı) toplamı.
+	dinamik      bool
+	paylasimBayt int
 }
 
 func yeniYazici(ad string) *yazici { return &yazici{ad: ad, hedef: 52} }
@@ -209,8 +214,17 @@ func (k *yazici) diziOku(ad string, i int) yazmac {
 
 // ortak bayt boyunda paylaşımlı bellek dizisi bildirir ve 32 bitlik adresini verir.
 func (k *yazici) ortak(ad string, bayt int) yazmac {
-	k.paylasim = append(k.paylasim, fmt.Sprintf("\t.shared .align 16 .b8 %s[%d];", ad, bayt))
+	ofs := (k.paylasimBayt + 15) &^ 15
+	k.paylasimBayt = ofs + bayt
 	r := k.r()
+	if k.dinamik {
+		k.e("mov.u32", r, "dsm")
+		if ofs > 0 {
+			k.e("add.s32", r, r, ofs)
+		}
+		return r
+	}
+	k.paylasim = append(k.paylasim, fmt.Sprintf("\t.shared .align 16 .b8 %s[%d];", ad, bayt))
 	k.e("mov.u32", r, ad)
 	return r
 }
@@ -272,6 +286,10 @@ func (k *yazici) tam(v int) yazmac {
 func (k *yazici) metin() string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, ".version 7.0\n.target sm_%d\n.address_size 64\n\n", k.hedef)
+	if k.dinamik {
+		// Devingen paylaşımlı dizi modül düzeyinde bildirilir (ptxas gövdede kabul etmez).
+		sb.WriteString(".extern .shared .align 16 .b8 dsm[];\n\n")
+	}
 	fmt.Fprintf(&sb, ".visible .entry %s(\n", k.ad)
 	sb.WriteString(strings.Join(k.param, ",\n"))
 	sb.WriteString("\n)\n{\n")

@@ -77,6 +77,7 @@ const (
 // kapatan sürücü işlevleri.
 var cudaIstegeBagliAdlar = [...]string{
 	"cuEventCreate", "cuEventRecord", "cuEventQuery", "cuEventElapsedTime", "cuProfilerStop",
+	"cuFuncSetAttribute",
 }
 
 const (
@@ -85,6 +86,7 @@ const (
 	iEventQuery
 	iEventElapsed
 	iProfilerStop
+	iFuncSetAttribute
 	iSayisi
 )
 
@@ -195,6 +197,8 @@ type cudaSurucu struct {
 	yetenek_ [2]int32
 	smSayisi int32
 	saatKHz  int32 // SM saati (kHz; okunamazsa 0)
+	// paylasim blok başına açılabilecek en çok paylaşımlı bellek (bayt; okunamazsa 48 KB).
+	paylasim int32
 	cikti    *cudaCikti
 	paramBuf []byte
 	paramPtr []uintptr
@@ -255,6 +259,10 @@ func cudaAc(sira int) (*cudaSurucu, error) {
 	}
 	if c.cagir(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), 13, uintptr(s.aygit)) == basarili {
 		s.saatKHz = o.i32 // CU_DEVICE_ATTRIBUTE_CLOCK_RATE (yalnızca kıyas raporu için)
+	}
+	s.paylasim = statikPaylasimSiniri
+	if c.ifn[iFuncSetAttribute] != 0 && c.cagir(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), 97, uintptr(s.aygit)) == basarili && o.i32 > s.paylasim {
+		s.paylasim = o.i32 // CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
 	}
 	if r := c.cagir(fPrimaryCtxRetain, uintptr(unsafe.Pointer(&o.tutamac)), uintptr(s.aygit)); r != basarili {
 		return nil, fmt.Errorf("cuDevicePrimaryCtxRetain: %s", c.hataAdi(r))
@@ -358,7 +366,7 @@ func (s *cudaSurucu) islev(modul uintptr, ad string) (uintptr, sonuc) {
 
 // baslat parametreleri kalıcı tampona kopyalar (her biri 8 bayta hizalı) ve
 // cuLaunchKernel'e her parametrenin adresini verir; sürücü değerleri başlatmada kopyalar.
-func (s *cudaSurucu) baslat(fn uintptr, izgara, blok [3]uint32, param [][]byte) sonuc {
+func (s *cudaSurucu) baslat(fn uintptr, izgara, blok [3]uint32, paylasim uint32, param [][]byte) sonuc {
 	toplam := 0
 	for _, p := range param {
 		toplam += (len(p) + 7) &^ 7
@@ -378,12 +386,19 @@ func (s *cudaSurucu) baslat(fn uintptr, izgara, blok [3]uint32, param [][]byte) 
 		s.paramPtr = append(s.paramPtr, 0)
 	}
 	r := s.cagir(fLaunchKernel, fn, uintptr(izgara[0]), uintptr(izgara[1]), uintptr(izgara[2]),
-		uintptr(blok[0]), uintptr(blok[1]), uintptr(blok[2]), 0, 0, uintptr(unsafe.Pointer(&s.paramPtr[0])), 0)
+		uintptr(blok[0]), uintptr(blok[1]), uintptr(blok[2]), uintptr(paylasim), 0, uintptr(unsafe.Pointer(&s.paramPtr[0])), 0)
 	runtime.KeepAlive(buf)
 	return r
 }
 
 func (s *cudaSurucu) esitle() sonuc { return s.cagir(fCtxSynchronize) }
+
+// paylasimIzni CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES (8).
+func (s *cudaSurucu) paylasimIzni(fn uintptr, bayt int) sonuc {
+	return s.icagir(iFuncSetAttribute, fn, 8, uintptr(bayt))
+}
+
+func (s *cudaSurucu) paylasimSiniri() int { return int(s.paylasim) }
 
 func (s *cudaSurucu) hataAdi(r sonuc) string { return s.c.hataAdi(r) }
 

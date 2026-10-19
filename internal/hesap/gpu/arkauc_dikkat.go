@@ -15,7 +15,7 @@ func (g *arkaUc) flashUygun(p tensor.AttentionParams, maske, geri bool) (flashAy
 	if g.dikkatYolu == "carpim" || p.Dh == 0 || p.Dv == 0 || p.H > 65535 || p.Batch > 65535 {
 		return flashAyar{}, false
 	}
-	a, ok := flashSec(p.Dh, p.Dv, maske, geri)
+	a, ok := flashSec(p.Dh, p.Dv, maske, geri, g.sr.paylasimSiniri())
 	if ok {
 		dikkatBoyDenetle(p, true)
 	}

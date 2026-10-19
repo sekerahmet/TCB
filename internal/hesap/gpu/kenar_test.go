@@ -74,15 +74,32 @@ func TestDikkatTakmaAd(t *testing.T) {
 	}
 }
 
-// TestDikkatGercekBoylar LLM'e özgü baş boyu (Dh = 64: ileri 64×32, geri 32×32 döşeme), GQA,
-// çok döşeme, Tq > Tk nedensel, pencere ve dolgu maskesi.
+// TestDikkatGercekBoylar LLM'e özgü baş boyu (Dh = 64: ileri 64×32; geri 48 KB'ta 32×32,
+// açılabilen paylaşımlı bellekte 64×64 devingen döşeme), GQA, çok döşeme, Tq > Tk nedensel,
+// pencere ve dolgu maskesi. Benzetimde iki geri döşeme de sınanır.
 func TestDikkatGercekBoylar(t *testing.T) {
-	if a, _ := flashSec(64, 64, false, false); a.Br != 64 || a.Bc != 32 {
+	if a, _ := flashSec(64, 64, false, false, 99<<10); a.Br != 64 || a.Bc != 32 {
 		t.Fatalf("Dh=64 ileri döşemesi %d×%d, 64×32 bekleniyordu", a.Br, a.Bc)
 	}
-	if a, _ := flashSec(64, 64, false, true); a.Br != 32 || a.Bc != 32 {
-		t.Fatalf("Dh=64 geri döşemesi %d×%d, 32×32 bekleniyordu", a.Br, a.Bc)
+	if a, _ := flashSec(64, 64, false, true, 48<<10); a.Br != 32 || a.Bc != 32 || a.dinamikMi(true) {
+		t.Fatalf("Dh=64 geri döşemesi (48 KB) %d×%d, statik 32×32 bekleniyordu", a.Br, a.Bc)
 	}
+	if a, _ := flashSec(64, 64, false, true, 99<<10); a.Br != 64 || a.Bc != 64 || !a.dinamikMi(true) {
+		t.Fatalf("Dh=64 geri döşemesi (99 KB) %d×%d, devingen 64×64 bekleniyordu", a.Br, a.Bc)
+	}
+	if bz, ok := gpuArkaUc().sr.(*benzetimSurucu); ok {
+		eski := bz.paylasim
+		for _, sinir := range []int{48 << 10, 99 << 10} {
+			bz.paylasim = sinir
+			t.Run(fmt.Sprintf("paylaşım %d KB", sinir>>10), dikkatGercekBoylar)
+		}
+		bz.paylasim = eski
+		return
+	}
+	dikkatGercekBoylar(t)
+}
+
+func dikkatGercekBoylar(t *testing.T) {
 	rng := rand.New(rand.NewSource(2))
 	durumlar := []struct {
 		ad                        string

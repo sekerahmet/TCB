@@ -19,6 +19,8 @@ type cekirdek struct {
 	ad   string
 	fn   uintptr
 	imza []paramTuru
+	// paylasim devingen paylaşımlı bellek (bayt; 0: statik diziler).
+	paylasim uint32
 }
 
 // cekirdekAl anahtarın çekirdeğini verir; önbellekte yoksa üretir ve sürücüye derletir.
@@ -36,6 +38,10 @@ func (g *arkaUc) cekirdekAl(anahtar string, uret func() *yazici) *cekirdek {
 	fn, s := g.sr.islev(mod, k.ad)
 	g.dene("cuModuleGetFunction("+k.ad+")", s)
 	c := &cekirdek{ad: k.ad, fn: fn, imza: k.imza}
+	if k.dinamik {
+		c.paylasim = uint32(k.paylasimBayt)
+		g.dene("cuFuncSetAttribute("+k.ad+")", g.sr.paylasimIzni(fn, k.paylasimBayt))
+	}
 	g.cekirdekler[anahtar] = c
 	return c
 }
@@ -230,7 +236,7 @@ func (g *arkaUc) baslat(c *cekirdek, izgara, blok [3]uint32, p *paramYazici) {
 	}
 	g.sonCekirdek = c.ad
 	ev := g.olcBasla()
-	if s := g.sr.baslat(c.fn, izgara, blok, parca); s != basarili {
+	if s := g.sr.baslat(c.fn, izgara, blok, c.paylasim, parca); s != basarili {
 		g.dene("cuLaunchKernel("+c.ad+")", s) // metin yalnızca hatada kurulur
 	}
 	g.olcBitir(c.ad, ev)

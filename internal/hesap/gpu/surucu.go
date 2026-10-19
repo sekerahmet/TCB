@@ -42,7 +42,13 @@ type surucu interface {
 	// modul PTX metnini derler; hata durumunda derleyici günlüğünü de verir.
 	modul(ptx string) (uintptr, string, sonuc)
 	islev(modul uintptr, ad string) (uintptr, sonuc)
-	baslat(fn uintptr, izgara, blok [3]uint32, param [][]byte) sonuc
+	// baslat çekirdeği sıraya koyar; paylasim devingen paylaşımlı bellek (bayt, .extern
+	// .shared; 0: yok).
+	baslat(fn uintptr, izgara, blok [3]uint32, paylasim uint32, param [][]byte) sonuc
+	// paylasimIzni işlevin devingen paylaşımlı belleğini bayt'a kadar açar (48 KB üstü için
+	// gerekir); paylasimSiniri blok başına açılabilecek en çok paylaşımlı bellek (bayt).
+	paylasimIzni(fn uintptr, bayt int) sonuc
+	paylasimSiniri() int
 	esitle() sonuc
 	// hataAdi sonuc kodunun adı (CUDA_ERROR_...).
 	hataAdi(s sonuc) string
@@ -96,3 +102,7 @@ const (
 	hataGecersizAdres sonuc = 700
 	hataBaslatma      sonuc = 719
 )
+
+// statikPaylasimSiniri blok başına statik (.shared dizileriyle) paylaşımlı belleğin sınırıdır;
+// üstü devingen paylaşımlı bellekle (.extern .shared) ve işlev başına izinle açılır.
+const statikPaylasimSiniri = 48 << 10

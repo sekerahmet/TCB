@@ -125,7 +125,7 @@ func (b *bzBlok) yaris(t *bzIs, adr, n int, yazma bool) error {
 }
 
 // bzBaslat bir çekirdeği bütün ızgarada yürütür.
-func bzBaslat(is *bzIslev, bel *bzBellek, izgara, blok [3]uint32, param [][]byte) error {
+func bzBaslat(is *bzIslev, bel *bzBellek, izgara, blok [3]uint32, dinamik int, param [][]byte) error {
 	if len(param) != len(is.param) {
 		return fmt.Errorf("%s: %d parametre bekleniyordu, %d verildi", is.ad, len(is.param), len(param))
 	}
@@ -142,8 +142,9 @@ func bzBaslat(is *bzIslev, bel *bzBellek, izgara, blok [3]uint32, param [][]byte
 		return fmt.Errorf("%s: ızgaranın y/z boyutu 65535'i aşıyor (%v)", is.ad, izgara)
 	}
 	butce := int64(4e9)
-	b := &bzBlok{is: is, param: param, ortak: make([]byte, is.ortakBayt), bel: bel, butce: &butce}
-	sozcuk := (is.ortakBayt + 3) / 4
+	ortakBayt := is.ortakBayt + dinamik
+	b := &bzBlok{is: is, param: param, ortak: make([]byte, ortakBayt), bel: bel, butce: &butce}
+	sozcuk := (ortakBayt + 3) / 4
 	b.yarisYazan, b.yarisOkuyan, b.yarisDonem = make([]int32, sozcuk), make([]int32, sozcuk), make([]uint32, sozcuk)
 	b.ozel[3], b.ozel[4], b.ozel[5] = blok[0], blok[1], blok[2]
 	b.ozel[9], b.ozel[10], b.ozel[11] = izgara[0], izgara[1], izgara[2]

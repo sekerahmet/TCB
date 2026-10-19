@@ -128,7 +128,9 @@ Motorların kendi kancaları:
   bilir; başlatma yeri okuma/yazma bildirir ve uyuşmazlık iç hatadır. Döşeme boyları arka ucun
   ayarıdır. Birleşik çekirdekler: çapraz entropi (tek geçişli logsumexp, gradyan doğrudan
   yazılır), dikkat (puan matrisi belleğe yazılmaz; döşemeli çevrimiçi softmax, atomiksiz geri
-  yön; `cekirdek_flash*.go`), çok tensörlü iyileştirici/ölçekleme/kareler toplamı (bütün
+  yön; `cekirdek_flash*.go`; geri yön kartın blok başına açtığı paylaşımlı bellek yetiyorsa
+  64×64 döşemeyle devingen paylaşımlı bellekte (`.extern .shared`, işlev başına
+  `cuFuncSetAttribute`), yetmiyorsa 48 KB statik bellekte 32×32), çok tensörlü iyileştirici/ölçekleme/kareler toplamı (bütün
   parametreler tek başlatmada; `cekirdek_cok.go`). Az çıktılı uzun indirgemeler iki aşamalı
   ve belirlenimcidir. Çıktısını tümüyle yazan işlemler (çarpım, çapraz entropi ve dikkat
   gradyanı) taze gradyanı sıfırlamadan üzerine yazar (`tensor.GemmSetter` vb.). q, k, v aynı

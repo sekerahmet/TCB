@@ -201,6 +201,7 @@ func (f *flashGeriDurum) sorguAraligi(j0 yazmac) (iBas, iSon yazmac) {
 func flashGeriKVCekirdegi(a flashAyar, kipK, kipV int) func() *yazici {
 	return func() *yazici {
 		k := yeniYazici(fmt.Sprintf("%s_%d_%d", a.anahtar("dikkat_geri_kv"), kipK, kipV))
+		k.dinamik = a.dinamikMi(true)
 		f := &flashGeriDurum{flashOrtak: &flashOrtak{k: k, a: a}}
 		pq, pk, pv, pdo := k.gosterici("q"), k.gosterici("k"), k.gosterici("v"), k.gosterici("do")
 		plse, pd := k.gosterici("lse"), k.gosterici("d")
@@ -267,6 +268,7 @@ func flashGeriKVCekirdegi(a flashAyar, kipK, kipV int) func() *yazici {
 func flashGeriQCekirdegi(a flashAyar, kipQ int) func() *yazici {
 	return func() *yazici {
 		k := yeniYazici(fmt.Sprintf("%s_%d", a.anahtar("dikkat_geri_q"), kipQ))
+		k.dinamik = a.dinamikMi(true)
 		f := &flashGeriDurum{flashOrtak: &flashOrtak{k: k, a: a}}
 		pq, pk, pv, pdo := k.gosterici("q"), k.gosterici("k"), k.gosterici("v"), k.gosterici("do")
 		plse, pd := k.gosterici("lse"), k.gosterici("d")

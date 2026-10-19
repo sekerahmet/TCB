@@ -53,19 +53,42 @@ func (a flashAyar) smBayt(geri bool) int {
 	return 4 * (a.Bc*(dh+dv) + a.Br*(dh+dv) + a.Br*(a.Bc+1))
 }
 
-// flashSec boylara uyan en büyük döşemeyi seçer (paylaşımlı bellek ≤ 48 KB); uyan yoksa
-// tamam yanlış (dikkat matris çarpımı yoluyla yapılır).
-func flashSec(Dh, Dv int, maske, geri bool) (flashAyar, bool) {
+// flashSec boylara uyan en büyük döşemeyi seçer; uyan yoksa tamam yanlış (dikkat matris
+// çarpımı yoluyla yapılır). İleri yön statik paylaşımlı belleğe (48 KB) sığar; geri yön
+// kartın blok başına açtığı paylaşımlı belleği (sinir, ör. 99 KB) kullanabilir: 64×64
+// döşemede iş parçacığı başına 4×4 çıktı (32×32'de 2×2) paylaşımlı bellek okumalarını
+// yarıya indirir.
+func flashSec(Dh, Dv int, maske, geri bool, sinir int) (flashAyar, bool) {
+	if !geri {
+		sinir = statikPaylasimSiniri
+	}
 	for _, d := range [][2]int{{64, 64}, {64, 32}, {32, 32}, {32, 16}, {16, 16}} {
 		a := flashAyar{Br: d[0], Bc: d[1], Dh: Dh, Dv: Dv, maske: maske}
 		if geri && a.Br != a.Bc {
 			continue
 		}
-		if a.smBayt(geri) <= 48<<10 {
+		if a.smBayt(geri) <= min(sinir, statikPaylasimSiniri) || (geri && a.smYuvarli(geri) <= sinir) {
 			return a, true
 		}
 	}
 	return flashAyar{}, false
+}
+
+// smYuvarli paylaşımlı dizilerin 16'ya hizalı gerçek toplamı (yazici.ortak'taki gibi; geri
+// çekirdeğin beş döşemesi); devingen paylaşımlı bellek bu kadar açılır.
+func (a flashAyar) smYuvarli(geri bool) int {
+	dh, dv := yuvarla16(a.Dh)+1, yuvarla16(a.Dv)+1
+	t := 0
+	for _, b := range []int{a.Br * dh, a.Br * dv, a.Bc * dh, a.Bc * dv, a.Br * (a.Bc + 1)} {
+		t = (t+15)&^15 + 4*b
+	}
+	return t
+}
+
+// dinamikMi çekirdeğin paylaşımlı belleği statik sınırı aşıyor mu (devingen diziyle
+// üretilir ve başlatmada açılır).
+func (a flashAyar) dinamikMi(geri bool) bool {
+	return geri && a.smYuvarli(geri) > statikPaylasimSiniri
 }
 
 // smDoseme paylaşımlı bellekte satır öncelikli bir döşeme.

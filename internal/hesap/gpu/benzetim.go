@@ -29,11 +29,16 @@ type benzetimSurucu struct {
 	olaylar []time.Time
 	// cc ve smSayisi bildirilen yetenek (döşeme seçimi sınamaları değiştirebilir).
 	cc, smSayisi int
+	// paylasim blok başına açılabilecek paylaşımlı bellek; izin işlev başına açılan
+	// devingen paylaşımlı bellek (gerçek sürücüdeki gibi 48 KB üstü izinsiz başlatılamaz).
+	paylasim int
+	izin     map[uintptr]int
 }
 
 // yeniBenzetim toplam belleği verilen bir benzetim sürücüsü kurar.
 func yeniBenzetim(bellek uint64) *benzetimSurucu {
-	return &benzetimSurucu{bellek: bellek, boyut: map[uint64]uint64{}, cc: 52, smSayisi: 4}
+	return &benzetimSurucu{bellek: bellek, boyut: map[uint64]uint64{}, cc: 52, smSayisi: 4,
+		paylasim: 99 << 10, izin: map[uintptr]int{}}
 }
 
 func (b *benzetimSurucu) yetenek() (int, int) { return b.cc, b.smSayisi }
@@ -219,11 +224,15 @@ func (b *benzetimSurucu) islev(modul uintptr, ad string) (uintptr, sonuc) {
 	return modul, basarili
 }
 
-func (b *benzetimSurucu) baslat(fn uintptr, izgara, blok [3]uint32, param [][]byte) sonuc {
+func (b *benzetimSurucu) baslat(fn uintptr, izgara, blok [3]uint32, paylasim uint32, param [][]byte) sonuc {
 	if fn == 0 || int(fn) > len(b.islevler) {
 		return 400
 	}
 	is := b.islevler[fn-1]
+	if (paylasim > 0) != is.dinamik || is.ortakBayt+int(paylasim) > max(b.izin[fn]+is.ortakBayt, statikPaylasimSiniri) {
+		b.detay = fmt.Sprintf("%s: %d bayt devingen paylaşımlı bellek (izin %d, .extern %v)", is.ad, paylasim, b.izin[fn], is.dinamik)
+		return hataGecersizDeger
+	}
 	kopya := make([][]byte, len(param))
 	for i, p := range param {
 		kopya[i] = append([]byte(nil), p...)
@@ -231,10 +240,20 @@ func (b *benzetimSurucu) baslat(fn uintptr, izgara, blok [3]uint32, param [][]by
 	if izgara[0] == 0 || izgara[1] == 0 || izgara[2] == 0 {
 		return hataGecersizDeger
 	}
-	return b.ekle(func() error { return bzBaslat(is, &b.bel, izgara, blok, kopya) })
+	return b.ekle(func() error { return bzBaslat(is, &b.bel, izgara, blok, int(paylasim), kopya) })
 }
 
 func (b *benzetimSurucu) esitle() sonuc { return b.bosalt() }
+
+func (b *benzetimSurucu) paylasimIzni(fn uintptr, bayt int) sonuc {
+	if fn == 0 || int(fn) > len(b.islevler) || bayt > b.paylasim {
+		return hataGecersizDeger
+	}
+	b.izin[fn] = bayt
+	return basarili
+}
+
+func (b *benzetimSurucu) paylasimSiniri() int { return b.paylasim }
 
 func (b *benzetimSurucu) hataAdi(s sonuc) string { return tablodanAd(s) }
 
