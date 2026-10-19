@@ -10,9 +10,9 @@
 // Ağırlık düzeni: katmanlar `x @ W` yazar, W [giriş, çıkış] şeklindedir; bir "nöron" W'nin bir
 // sütunudur (ağırlığı [çıkış, giriş] tutan düzende bir satır).
 //
-// Kontrol noktası: iyileştiricinin durum tensörleri (`op.muon.durum`) türev izleyen tensörler
-// olarak kurulur (hiç gradyan almazlar); `kontrol_noktası` bugün yalnızca türev izleyen
-// tensörleri model olarak sakladığından durum böylece kaydedilip geri yüklenebilir:
+// Kontrol noktası: iyileştiricinin durum tensörleri (`op.muon.durum`) türev izlemez;
+// `kontrol_noktası` bir nesnenin bütün tensörlerini (türev izlemeyenleri de) saklayıp yerinde
+// geri yazdığından (dil tanımı 20.2) durum ayrı bir nesne olarak verilir:
 //     kontrol_noktası(koşu, {model: model, adamw: op.adamw, muon: op.muon.durum, ...})
 
 // Newton–Schulz katsayıları (Muon'un yaygın kullanılan beşinci derece yinelemesi). Tam dik
@@ -38,9 +38,9 @@ fonksiyon dikleştir(G, adım_sayısı = 5) {
 }
 
 // durum_tensörü p ile aynı şekilde ve cihazda, sıfırla başlayan bir durum tensörü kurar
-// (türev izler ki kontrol noktası saklayabilsin; gradyan almaz, yalnızca türevsiz güncellenir).
+// (türev izlemez; yalnızca türevsiz blokta yerinde güncellenir).
 fonksiyon durum_tensörü(şekil, cihaz) {
-    sonuç tensör(sıfırlar(şekil).cihaza(cihaz), türev_izle: doğru)
+    sonuç sıfırlar(şekil).cihaza(cihaz)
 }
 
 // gradyanları_sıfırla ağırlıkların biriken gradyanlarını yerinde sıfırlar.

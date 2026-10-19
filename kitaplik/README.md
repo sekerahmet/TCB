@@ -66,7 +66,7 @@ Her katman sıradan bir `yapı`dır: ağırlıklar alanlarındadır, ileri hesap
 
 **Öğrenme oranı çarpanı.** `çarpan_ayarla(c)` (c pozitif) sonraki adımda iki grubun oranını birlikte ölçekler: `MuonVeAdamW` her adımda `op.muon.öğrenme_oranı`'nı ve `op.adamw.öğrenme_oranı`'nı (dil tanımı [15.39](../docs/dil/15_tensorler.md)) taban oran × c yapar. Kopya ya da ek bellek yoktur; c = 1 iken AdamW'nin adımı planı olmayan AdamW'ninkiyle bit düzeyinde aynıdır (`iyilestirici_test.tr` sınar).
 
-**Kontrol noktası.** Muon'un durum tensörleri `op.muon.durum` sözlüğündedir ve türev izleyen tensörler olarak kurulur (hiç gradyan almazlar): `kontrol_noktası` bugün yalnızca türev izleyen tensörleri model olarak sakladığı için durum böylece kaydedilir. Kontrol noktasına modelin yanında `op.adamw` ve `op.muon.durum` da verilir (örnek: `ornekler/11_gpt.tr`); sürdürülen eğitim kesintisizle aynıdır (`iyilestirici_test.tr`).
+**Kontrol noktası.** Muon'un durum tensörleri `op.muon.durum` sözlüğündedir ve türev izlemez (parametre değildir, yalnızca türevsiz blokta yerinde güncellenir); `kontrol_noktası` bir nesnenin türev izlemeyen tensörlerini de saklayıp yerinde geri yazar (dil tanımı [20.2](../docs/dil/20_kontrol_noktasi.md)). Kontrol noktasına modelin yanında `op.adamw` ve `op.muon.durum` da verilir (örnek: `ornekler/11_gpt.tr`); sürdürülen eğitim kesintisizle aynıdır (`iyilestirici_test.tr`).
 
 ## Adlar ve açık konular
 

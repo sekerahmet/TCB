@@ -4,12 +4,12 @@
 // sürecek biçimde devam ettirir. Kayıt adım sınırında yapılır: kn.güncelle(adım) (Y010)
 // her_dakika süresi dolunca ya da durdurma istenince (Ctrl+C), kn.kaydet() (Y521) hemen.
 //
-// Klasör düzeni (biçim sürümü 1; bkz. bicim.go):
+// Klasör düzeni (biçim sürümü 2; bkz. bicim.go):
 //
 //	<koşu>/kontrol_noktalari/
-//	  son.json              {"sürüm":1,"adım":1500,"klasör":"adim_0000001500"} (araçlar için)
+//	  son.json              {"sürüm":2,"adım":1500,"klasör":"adim_0000001500"} (araçlar için)
 //	  adim_0000001500/
-//	    tensorler.trt       parametreler ve iyileştirici durumları (tensör_kaydet biçimi)
+//	    tensorler.trt       modellerin tensörleri (türev izlemeyenler dahil), iyileştirici durumları
 //	    durum.json          adım, program, ayarlar, okuyucu durumları, düz değerler, günlük boyları
 //	    ozet.json           dosyaların bayt sayısı ve SHA-256 özeti (en son yazılır)
 //	  adim_0000001000/      tut: 2 → bir önceki de durur

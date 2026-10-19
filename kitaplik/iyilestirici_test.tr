@@ -145,6 +145,9 @@ test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükler" 
     değişken kesintisiz = eğit(yol(klasör, "kesintisiz"), 4)
     eşit_mi(parametreler(kesintisiz[0], adlarıyla: doğru), parametreler(sürdürülen[0], adlarıyla: doğru))
     eşit_mi(kesintisiz[1].muon.durum.momentum, sürdürülen[1].muon.durum.momentum)
+    // Durum tensörleri türev izlemez (parametre değildir); kontrol noktası onları da saklar.
+    eşit_mi(0, parametreler(sürdürülen[1].muon.durum).uzunluk)
+    doğrula(toplam(sürdürülen[1].muon.durum.momentum[0] ** 2).değer > 0, "momentum yüklenmeli")
 }
 
 // Ters çevirme görevi: [a b c d | d c b a]. İkinci yarı ilk yarıdan tahmin edilir.

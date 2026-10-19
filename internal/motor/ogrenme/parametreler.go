@@ -15,7 +15,7 @@ import (
 
 // Bir modelin parametrelerini toplama (parametreler) ve var olan parametrelere yükleme
 // (parametreleri_yükle). Kontrol noktası (internal/motor/kontrol) aynı Go fonksiyonlarını
-// kullanır: ParametreleriTopla, ParametreUyumu, TensoreYaz.
+// kullanır: ParametreleriTopla, TensorleriTopla, ParametreUyumu, TensoreYaz.
 
 // parametrelerYerlesik parametreler(model, adlarıyla: yanlış) yerleşiğidir: bir yapı
 // nesnesini (iç içe yapılar, listeler ve sözlüklerle birlikte) gezip türev izleyen yaprak
@@ -57,6 +57,19 @@ func parametrelerYerlesik(_ *yurut.VM, args []yurut.Value, named map[string]yuru
 // ile aynı sırayla ve yol adlarıyla verir; aynı tensör bir kez yer alır, model tek bir
 // tensörse adı "0"dır. fn hata mesajının başıdır. Model hiç parametre içermeyebilir.
 func ParametreleriTopla(fn string, model yurut.Value) (adlar []string, bulunan []*Deger, hata error) {
+	return yapraklariTopla(fn, model, false)
+}
+
+// TensorleriTopla ParametreleriTopla gibidir, ama türev izlemeyen tensörleri de (durum:
+// iyileştirici momentleri, sabit tablolar) aynı gezinti sırasıyla ve yol adlarıyla verir.
+// Ara sonuçlar (türev izleyen işlem sonuçları) yine atlanır. Kontrol noktası nesnenin bütün
+// tensörlerini bununla toplar.
+func TensorleriTopla(fn string, model yurut.Value) (adlar []string, bulunan []*Deger, hata error) {
+	return yapraklariTopla(fn, model, true)
+}
+
+// yapraklariTopla modeli gezer; hepsi yanlışsa yalnızca türev izleyen yaprakları toplar.
+func yapraklariTopla(fn string, model yurut.Value, hepsi bool) (adlar []string, bulunan []*Deger, hata error) {
 	gorulen := map[*tensor.Tensor]bool{}
 	gezilen := map[any]bool{}
 	adSahibi := map[string]*tensor.Tensor{}
@@ -73,7 +86,7 @@ func ParametreleriTopla(fn string, model yurut.Value) (adlar []string, bulunan [
 		}
 		switch x := v.(type) {
 		case *Deger:
-			if x.ara || !x.t.RequiresGrad() || gorulen[x.t] {
+			if x.ara || (!hepsi && !x.t.RequiresGrad()) || gorulen[x.t] {
 				return
 			}
 			if o, ok := adSahibi[yol]; ok && o != x.t {

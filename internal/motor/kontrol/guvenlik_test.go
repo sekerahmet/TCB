@@ -51,7 +51,9 @@ func TestKurcalanmisNoktaReddedilir(t *testing.T) {
 	}{
 		{"tensör baytı", "tensorler.trt", func(b []byte) []byte { b[len(b)/2] ^= 1; return b }, "tensorler.trt: dosya bozuk: sağlama toplamı tutmuyor"},
 		{"yarım tensör", "tensorler.trt", func(b []byte) []byte { return b[:len(b)-7] }, "tensorler.trt 6"},
-		{"yeni sürüm", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 1`, `"sürüm": 2`, 1)) }, "daha yeni bir TR sürümüyle yazılmış"},
+		{"yeni sürüm", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 3`, 1)) }, "daha yeni bir TR sürümüyle yazılmış"},
+		{"sürüm 0", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 0`, 1)) }, "biçim sürümü 0 geçersiz"},
+		{"özet ile durumun sürümü farklı", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 1`, 1)) }, "durum.json biçim sürümü 2, ozet.json 1 diyor"},
 		{"bilinmeyen alan", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `{`, `{"yol": "../../x", `, 1)) }, "unknown field"},
 		{"başka adım", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"adım": 2`, `"adım": 3`, 1)) }, "adım 3 diyor, klasör adı 2"},
 		{"büyük özet", "ozet.json", func(b []byte) []byte { return append(b, make([]byte, 70<<10)...) }, "çok büyük"},

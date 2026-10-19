@@ -3,8 +3,11 @@ package kontrol
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
 
 	"tr_dili/internal/dil/kod"
+	"tr_dili/internal/dil/turkce"
 	"tr_dili/internal/dil/yurut"
 	"tr_dili/internal/hesap/tensor"
 	"tr_dili/internal/motor/gunluk"
@@ -31,8 +34,8 @@ type nesne struct {
 	tur   nesneTuru
 	deger yurut.Value
 
-	adlar   []string         // model: parametre yol adları
-	params  []*ogrenme.Deger // model: parametreler
+	adlar   []string         // model: tensörlerin yol adları
+	params  []*ogrenme.Deger // model: tensörler (parametreler ve türev izlemeyen durum tensörleri)
 	op      *ogrenme.Iyilestirici
 	durumlu Durumlu
 	gunluk  *gunluk.Gunluk
@@ -81,7 +84,9 @@ func nesneKur(fn, ad string, v yurut.Value) (*nesne, error) {
 		n.tur, n.durumlu = turDurumlu, d
 		return n, nil
 	}
-	adlar, params, err := ogrenme.ParametreleriTopla(fn, v)
+	// Model: bütün tensörleri, türev izleyenler (parametreler) ve izlemeyenler (durum: TR ile
+	// yazılmış iyileştiricilerin momentleri, sabit tablolar) birlikte saklanır.
+	adlar, params, err := ogrenme.TensorleriTopla(fn, v)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +105,7 @@ func nesneKur(fn, ad string, v yurut.Value) (*nesne, error) {
 		return nil, fmt.Errorf("%s: %q bir %s; düz bir değer doğrudan verilemez (geri yüklenirken yerine yazılamaz). Bir sözlüğe koyun: {%s: {değer: ...}}",
 			fn, ad, x.Type(), ad)
 	case *ogrenme.Deger:
-		return nil, fmt.Errorf("%s: %q türev izlemeyen bir tensör; parametre değil. Model parametreleri %s ile oluşturulur", fn, ad, yurut.TipVeOzet(v))
+		return nil, fmt.Errorf("%s: %q bir işlemin sonucu (ara tensör, %s); kaydedilecek tensörler yaprak olmalıdır: parametreler ve türevsiz güncellenen durum tensörleri", fn, ad, yurut.TipVeOzet(v))
 	}
 	return nil, fmt.Errorf("%s: %q kaydedilemez (%s); modeller, iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listeler verilebilir",
 		fn, ad, yurut.TipVeOzet(v))
@@ -162,21 +167,15 @@ type yuklenecek struct {
 	deger    yurut.Value
 }
 
-// uyumDenetle kaydın şimdiki nesneye uyduğunu, hiçbir şey yüklemeden denetler.
-func (n *nesne) uyumDenetle(fn string, y *yuklenecek) error {
+// uyumDenetle kaydın şimdiki nesneye uyduğunu, hiçbir şey yüklemeden denetler. surum
+// noktanın biçim sürümüdür (modellerin kaydı sürüme bağlıdır, bkz. modelUyumu).
+func (n *nesne) uyumDenetle(fn string, y *yuklenecek, surum int) error {
 	if y.kayit.Tur != n.tur.String() {
 		return fmt.Errorf("%s: %q kayıtta bir %s, şimdi bir %s; aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin", fn, n.ad, y.kayit.Tur, n.tur)
 	}
 	switch n.tur {
 	case turModel:
-		if err := ogrenme.ParametreUyumu(fmt.Sprintf("%s: %q", fn, n.ad), n.adlar, n.params, y.sekiller, "kayıtta"); err != nil {
-			return err
-		}
-		for i, ad := range n.adlar {
-			if t, s := n.params[i].Tensor().DType(), y.turler[ad]; t != s {
-				return fmt.Errorf("%s: %q: %q parametresinin türü modelde %s, kayıtta %s; aynı veri türüyle sürdürün", fn, n.ad, ad, t, s)
-			}
-		}
+		return n.modelUyumu(fmt.Sprintf("%s: %q", fn, n.ad), y, surum)
 	case turIyilestirici:
 		if y.kayit.Iyilestirici != n.op.Ad() || y.kayit.ParametreSayisi != n.op.ParametreSayisi() {
 			return fmt.Errorf("%s: %q kayıtta %d parametreli bir %s, şimdi %d parametreli bir %s; aynı iyileştiriciyle sürdürün",
@@ -206,6 +205,52 @@ func (n *nesne) uyumDenetle(fn string, y *yuklenecek) error {
 	}
 	return nil
 }
+
+// modelUyumu modelin tensörlerini kayıttakilerle karşılaştırır: her tensör kayıtta aynı
+// şekil ve türde bulunmalı, kayıtta modelde olmayan tensör olmamalıdır. Sürüm 1 noktalarında
+// yalnızca türev izleyen tensörler kaydedilmişti: orada kayıtta olmayan türev izlemeyen
+// tensörler (ör. sabit tablolar) olduğu gibi kalır, kayıttaki tensörler modelde türev izlesin
+// izlemesin yerlerine yazılır.
+func (n *nesne) modelUyumu(fn string, y *yuklenecek, surum int) error {
+	bulunan := 0
+	for i, ad := range n.adlar {
+		t := n.params[i].Tensor()
+		sk, ok := y.sekiller[ad]
+		if !ok {
+			if surum == 1 && !t.RequiresGrad() {
+				continue
+			}
+			ne := "parametresi"
+			if !t.RequiresGrad() {
+				ne = "durum tensörü (türev izlemeyen)"
+			}
+			return fmt.Errorf("%s: modelin %q %s kayıtta yok (model %d, kayıt %d tensör); model ile kayıt aynı yapıda olmalı", fn, ad, ne, len(n.adlar), len(y.sekiller))
+		}
+		bulunan++
+		if sm := t.Shape(); !slices.Equal(sm, sk) {
+			return fmt.Errorf("%s: %q tensörünün şekli modelde %s, kayıtta %s", fn, ad, sekilYazisi(sm), sekilYazisi(sk))
+		}
+		if tm, tk := t.DType(), y.turler[ad]; tm != tk {
+			return fmt.Errorf("%s: %q tensörünün türü modelde %s, kayıtta %s; aynı veri türüyle sürdürün", fn, ad, tm, tk)
+		}
+	}
+	if bulunan == len(y.sekiller) {
+		return nil
+	}
+	for _, ad := range y.sira {
+		if !slices.Contains(n.adlar, ad) {
+			oneri := ""
+			if o := turkce.EnYakin(ad, n.adlar); o != "" {
+				oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+			}
+			return fmt.Errorf("%s: kayıttaki %q tensörü modelde yok%s", fn, ad, oneri)
+		}
+	}
+	return nil
+}
+
+// sekilYazisi bir şekli [2, 3] biçiminde yazar.
+func sekilYazisi(s []int) string { return strings.ReplaceAll(fmt.Sprint(s), " ", ", ") }
 
 // ayarlarYazimi programın komut satırı ayarlarıdır (gizliler maskeli, karşılaştırma için).
 func ayarlarYazimi(m *yurut.VM, a *yurut.DictVal) json.RawMessage {

@@ -11,14 +11,17 @@ import (
 	"strings"
 )
 
-// Kontrol noktası dosya biçimi (sürüm 1). Dosyalar güvenilmeyen girdidir (başkasından
+// Kontrol noktası dosya biçimi (sürüm 2; sürüm 1 de okunur: o sürümde modellerin yalnızca
+// türev izleyen tensörleri kaydedilirdi, sürüm 2'de türev izlemeyenler de kaydedilir; dosya
+// düzeni aynıdır). Dosyalar güvenilmeyen girdidir (başkasından
 // gelen ya da yarım kopyalanmış bir koşu klasörü): her dosyanın boyu sınırlıdır, JSON katı
 // çözülür (bilinmeyen alan, fazladan veri hata), sürüm, adım ve dosya adları birbiriyle
 // karşılaştırılır, her dosyanın SHA-256 özeti tutmalıdır. Biçimde yalnızca veri (tensörler,
 // sayılar, metinler) vardır; kod çalıştıran ya da yol çözen hiçbir alan yoktur.
 
 const (
-	bicimSurumu = 1
+	bicimSurumu  = 2 // yazılan sürüm
+	enEskiSurumu = 1 // okunabilen en eski sürüm
 
 	klasorAdi     = "kontrol_noktalari" // <koşu>/kontrol_noktalari/
 	sonDosyasi    = "son.json"          // en son kaydedilen noktayı gösterir (araçlar için)
@@ -137,10 +140,10 @@ func jsonCoz(b []byte, hedef any) error {
 // surumDenetle dosyanın biçim sürümünü denetler.
 func surumDenetle(dosya string, surum int) error {
 	switch {
-	case surum == bicimSurumu:
+	case surum >= enEskiSurumu && surum <= bicimSurumu:
 		return nil
 	case surum > bicimSurumu:
-		return fmt.Errorf("%s biçim sürümü %d: daha yeni bir TR sürümüyle yazılmış; bu TR yalnızca sürüm %d okur (TR'yi güncelleyin)", dosya, surum, bicimSurumu)
+		return fmt.Errorf("%s biçim sürümü %d: daha yeni bir TR sürümüyle yazılmış; bu TR %d ile %d arası sürümleri okur (TR'yi güncelleyin)", dosya, surum, enEskiSurumu, bicimSurumu)
 	}
 	return fmt.Errorf("%s biçim sürümü %d geçersiz", dosya, surum)
 }

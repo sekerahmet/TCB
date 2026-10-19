@@ -122,6 +122,9 @@ func noktaDogrula(klasor string, n noktaGirdisi) (*okunanNokta, error) {
 	if o.durum, err = durumCoz(db, n.adim); err != nil {
 		return nil, err
 	}
+	if o.durum.Surum != o.ozet.Surum {
+		return nil, fmt.Errorf("%s biçim sürümü %d, %s %d diyor", durumDosyasi, o.durum.Surum, ozetDosyasi, o.ozet.Surum)
+	}
 	o.nesneler = map[string]*yuklenecek{}
 	for _, k := range o.durum.Nesneler {
 		o.nesneler[k.Ad] = &yuklenecek{kayit: k, sekiller: map[string][]int{}, turler: map[string]tensor.DType{}}
@@ -199,7 +202,7 @@ func (kn *KontrolNoktasi) uyumDenetle(fn string, o *okunanNokta) error {
 		if !ok {
 			return fmt.Errorf("%s: %q kayıtta yok (kayıttaki nesneler: %s); aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin", fn, n.ad, o.nesneAdlari())
 		}
-		if err := n.uyumDenetle(fn, y); err != nil {
+		if err := n.uyumDenetle(fn, y, o.durum.Surum); err != nil {
 			return err
 		}
 	}

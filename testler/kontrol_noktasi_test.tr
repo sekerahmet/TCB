@@ -77,11 +77,35 @@ test "20.2 kaydedilebilen nesneler ve hatalar" {
     değişken k = koşu("nesneler_h")
     doğrula(hata_metni(() => kontrol_noktası(k, {})).içerir("1 ile 1000 arası nesne"))
     doğrula(hata_metni(() => kontrol_noktası(k, {en_iyi: 99.0})).içerir("düz bir değer doğrudan verilemez"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {t: tensör([1.0])})).içerir("türev izlemeyen bir tensör"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {t: w * 2})).içerir("ara tensör"))
     doğrula(hata_metni(() => kontrol_noktası(k, {f: (x) => x})).içerir("kaydedilemez"))
-    doğrula(hata_metni(() => kontrol_noktası(k, {izlenen: {t: tensör([1.0])}})).içerir("izlenen"))
+    doğrula(hata_metni(() => kontrol_noktası(k, {izlenen: {sayı: 1, f: (x) => x}})).içerir("izlenen"))
     doğrula(hata_metni(() => kontrol_noktası(k, {"a/b": w})).içerir("'/' ya da denetim karakteri içeremez"))
     doğrula(hata_metni(() => kontrol_noktası(k, {1: w})).içerir("nesne adları (Metin)"))
+}
+
+test "20.2 türev izlemeyen tensörler (durum) de saklanır ve yerinde geri yazılır" {
+    ertele { temizle() }
+    değişken k = koşu("durum_tensörleri")
+    değişken w = param([2], 1)
+    değişken kn = kontrol_noktası(k, {model: {w: w, kos: tensör([1.0, 0.5])}, opt: {m: tensör([0.5, -1.5]), sayaç: tensör(4.0)}})
+    kn.güncelle(3)
+    kn.kaydet()
+    değişken w2 = param([2], 7)
+    değişken m2 = tensör([0.0, 0.0])
+    değişken durum2 = {m: m2, sayaç: tensör(0.0)}
+    değişken model2 = {w: w2, kos: tensör([0.0, 0.0])}
+    değişken kn2 = kontrol_noktası(k, {model: model2, opt: durum2})
+    eşit_mi(3, kn2.kaldığı_adım)
+    eşit_mi(w.değer, w2.değer)
+    eşit_mi([1.0, 0.5], model2.kos.değer)
+    eşit_mi([0.5, -1.5], m2.değer) // aynı tensöre yazıldı
+    eşit_mi(4.0, durum2.sayaç.değer)
+    // Durum parametre değildir: parametreler yalnızca türev izleyenleri verir.
+    eşit_mi(0, parametreler(durum2).uzunluk)
+    eşit_mi(1, parametreler(model2).uzunluk)
+    // Kayıtta olan bir durum tensörü eksikse açık hata.
+    doğrula(hata_metni(() => kontrol_noktası(k, {model: model2, opt: {m: m2}})).içerir("\"sayaç\" tensörü modelde yok"))
 }
 
 test "20.3 güncelle tamamlanan adımı bildirir; her_dakika dolunca kaydeder" {
@@ -125,7 +149,7 @@ test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; son.json en
     değişken son = json_çöz(dosya_oku(yol(k, "kontrol_noktalari", "son.json")))
     eşit_mi(7, son["adım"])
     eşit_mi("adim_0000000007", son["klasör"])
-    eşit_mi(1, son["sürüm"])
+    eşit_mi(2, son["sürüm"])
     değişken durum = json_çöz(dosya_oku(yol(n, "durum.json")))
     eşit_mi(7, durum["adım"])
     eşit_mi(["w", "op"], durum["nesneler"].haritala { o["ad"] })
