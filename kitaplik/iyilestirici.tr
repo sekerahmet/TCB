@@ -8,7 +8,7 @@
 // dosyayı kopyalayıp değiştirin.
 //
 // Ağırlık düzeni: katmanlar `x @ W` yazar, W [giriş, çıkış] şeklindedir; bir "nöron" W'nin bir
-// sütunudur (PyTorch'taki [çıkış, giriş] düzeninde bir satır).
+// sütunudur (ağırlığı [çıkış, giriş] tutan düzende bir satır).
 //
 // Kontrol noktası: iyileştiricinin durum tensörleri (`op.muon.durum`) türev izleyen tensörler
 // olarak kurulur (hiç gradyan almazlar); `kontrol_noktası` bugün yalnızca türev izleyen
@@ -66,7 +66,7 @@ fonksiyon yalnızca_2b(ad, ağırlıklar) {
 //   m ← β·m + (1 − β)·g                      (momentum; varsayılan β = 0.95)
 //   u ← β·m + (1 − β)·g  (nesterov) ya da m
 //   W ← W·(1 − η·λ) − η · √max(1, çıkış / giriş) · dikleştir(u)
-// Ölçek düzeltmesi √max(1, çıkış/giriş), PyTorch'taki √max(1, satır/sütun)'un bu düzendeki
+// Ölçek düzeltmesi √max(1, çıkış/giriş), [çıkış, giriş] düzenindeki √max(1, satır/sütun)'un bu düzendeki
 // karşılığıdır. Yalnızca gizli katmanların 2 boyutlu ağırlıkları içindir; varsayılan öğrenme
 // oranı 0.02'dir (güncellemenin büyüklüğü AdamW'ninkinden farklıdır, oranlar ayrı ayarlanır).
 yapı Muon {

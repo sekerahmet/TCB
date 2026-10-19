@@ -29,6 +29,8 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - testlerin VS Code test gezgininde koşması, satır üstünde "çalıştır" ve "hata ayıkla" düğmeleri;
    - yapay zekâya özel: tensör şekillerinin satır içinde gösterimi, eğitimi canlı izleyen panel (kayıp eğrisi, gradyan normu, öğrenme oranı), Model Sihirbazı.
 5. **Transformer kitaplığı (TR ile yazılı)** — katmanlar (Doğrusal, Gömme, RMSNormu, Dikkat, SwiGLU, Blok) ve yalnızca kod çözücülü `GPT`; model sıradan bir `yapı`, her model tek dosyada okunur.
+   - **1. aşama yapıldı:** `aktar "tr/..."` ile ikiliye gömülü kitaplık (11.6); `tr/katman`: `Doğrusal`, `GömmeKatmanı`, `RMSNormKatmanı`, döner konum (RoPE), `NedenselDikkat` (gruplu sorgu), `SwiGLU`, `TransformerBloğu`, `GPT` (paylaşımlı çıkış, `üret`); `tr/iyilestirici`: `Muon`, `NorMuon`, `MuonVeAdamW`, `parametre_grupları`, `oran_planı` (WSD) — hepsi TR kodu; örnek `ornekler/11_gpt.tr`, Colab betiği `tools/gpu/gpt_egitim.tr`.
+   - Sırada: kitaplık adlarının yazım dillerinde çevirisi (8. madde, Ç3); KV önbellekli `üret` (9. madde); hazır eğitim döngüsü (`egitim/`); iyileştiricinin öğrenme oranının sonradan değiştirilebilmesi (bugün `MuonVeAdamW` AdamW adımını ölçekler); `kontrol_noktası`nın türev izlemeyen durum tensörlerini de saklaması.
 6. **GPU arka ucu** — Go'nun ürettiği GPU kodu (PTX) sürücüye verilir; tek dosya dağıtım korunur, ek derleyici gerekmez.
    - Önce **G4** ve **L4** (bf16, fp8); **T4** sonra (fp16 yolu).
    - Programa gömülü birleşik çekirdekler: dikkat, doğrusal katman + çapraz entropi, RMSNorm/RoPE/SwiGLU, AdamW.

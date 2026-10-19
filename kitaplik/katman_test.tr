@@ -76,14 +76,14 @@ test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdır, 
 test "NedenselDikkat: şekil, gruplu sorgu ve türev" {
     değişken tablolar = döner_konum_tablosu(4, 2)
     değişken d = NedenselDikkat(8, 4, kv_baş: 2, tohum: 1)
-    eşit_mi([8, 4], d.anahtar.ağırlık.şekil) // 2 kv başı × 2 baş boyutu
+    eşit_mi([8, 4], d.anahtar_katmanı.ağırlık.şekil) // 2 kv başı × 2 baş boyutu
     eşit_mi([2, 3, 8], d.ileri(rastgele_normal([2, 3, 8], tohum: 1), tablolar[0], tablolar[1]).şekil)
     değişken k = NedenselDikkat(4, 2, kv_baş: 1, tohum: 3)
     fonksiyon f(x, wq, wk, wv, wo) {
-        k.sorgu.ağırlık = wq
-        k.anahtar.ağırlık = wk
-        k.değer.ağırlık = wv
-        k.çıkış.ağırlık = wo
+        k.sorgu_katmanı.ağırlık = wq
+        k.anahtar_katmanı.ağırlık = wk
+        k.değer_katmanı.ağırlık = wv
+        k.çıkış_katmanı.ağırlık = wo
         sonuç k.ileri(x, tablolar[0], tablolar[1])
     }
     değişken w = [rastgele_girdi([1, 3, 4], 2), rastgele_girdi([4, 4], 3) * 0.5, rastgele_girdi([4, 2], 4) * 0.5, rastgele_girdi([4, 2], 5), rastgele_girdi([4, 4], 6)]
@@ -127,7 +127,7 @@ test "TransformerBloğu: şekil ve türev" {
     değişken b = TransformerBloğu(4, 2, ara_boyut: 4, tohum: 1)
     eşit_mi([2, 3, 4], b.ileri(rastgele_normal([2, 3, 4], tohum: 1), tablolar[0], tablolar[1]).şekil)
     fonksiyon f(x, wq, w2) {
-        b.dikkat.sorgu.ağırlık = wq
+        b.dikkat.sorgu_katmanı.ağırlık = wq
         b.ileri_besleme.aşağı.ağırlık = w2
         sonuç b.ileri(x, tablolar[0], tablolar[1])
     }
@@ -141,7 +141,7 @@ test "GPT: şekil, parametre adları, paylaşımlı çıkış ve küçültülmü
     eşit_mi(21, adlar.uzunluk)
     eşit_mi("gömme.tablo", adlar[0])
     eşit_mi("çıkış.ağırlık", adlar[-1])
-    doğrula(adlar.içerir("bloklar.1.dikkat.çıkış.ağırlık"))
+    doğrula(adlar.içerir("bloklar.1.dikkat.çıkış_katmanı.ağırlık"))
     değişken p = GPT(10, bağlam: 6, boyut: 8, katman: 2, baş: 2, paylaşımlı: doğru)
     eşit_mi(yok, p.çıkış)
     eşit_mi(20, parametreler(p).uzunluk)

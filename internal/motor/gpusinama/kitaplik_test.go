@@ -36,7 +36,7 @@ fonksiyon eğit(cihaz, normuon) {
         op.adım()
         kayıplar.ekle(kayıp.değer)
     }
-    değişken c = m.gömme.tablo.cihaz + " " + m.bloklar[0].dikkat.sorgu.ağırlık.cihaz + " " + op.muon.durum.momentum[0].cihaz
+    değişken c = m.gömme.tablo.cihaz + " " + m.bloklar[0].dikkat.sorgu_katmanı.ağırlık.cihaz + " " + op.muon.durum.momentum[0].cihaz
     varsayılan_cihaz("cpu")
     sonuç [kayıplar, c]
 }

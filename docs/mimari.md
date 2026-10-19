@@ -8,7 +8,7 @@ TR tek bir ikilidir (`tr`). Bütün Go kodu `internal/` altındadır; başka bir
 araçlar (internal/arac, cmd/tr) ─▶ motorlar (internal/motor) ─▶ dil çekirdeği (internal/dil)
                                         │
                                         └──────▶ hesap çekirdekleri (internal/hesap)
-TR ile yazılı kitaplık (kitaplik/) ── ikiliye gömülecek; bugün boş ve tr ikilisine bağlı değil
+TR ile yazılı kitaplık (kitaplik/*.tr) ── ikiliye gömülü; cmd/tr yorumlayıcıya bağlar (aktar "tr/...")
 ```
 
 Ok "içe aktarabilir" demektir. Kural `internal/katman_test.go` ile denetlenir (`go test ./internal`); yalnızca paketlerin kendi (test dışı) içe aktarmalarına uygulanır.
@@ -64,7 +64,7 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `internal/arac/bicim` | `tr biçimle` biçimlendiricisi |
 | `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
 | `internal/depo` | Testlerin depo kökünü bulan yardımcı (testler `../../` yazmaz) |
-| `kitaplik` | TR ile yazılan standart kitaplığı ikiliye gömecek; bugün boş ve hiçbir program içe aktarmıyor |
+| `kitaplik` | TR ile yazılan standart kitaplık (`katman.tr`, `iyilestirici.tr`, testleri yanında); `gomulu.go` onları `go:embed` ile ikiliye gömer, `cmd/tr` yorumlayıcıya `yurut.KitaplikBagla` ile bağlar. Kullanıcı `aktar "tr/katman"` yazar (dil tanımı 11.6); `tr derle` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`kitaplik/README.md`](../kitaplik/README.md) |
 | `tools/uret/*` | Üreteçler: Go kod sabitleri, `docs/kodlar.md`, eklentinin renklendirme listeleri (`go generate ./internal/dil/kod`) |
 | `tools/kiyas/go` | Hız kıyas setinin derlenmiş başvuru sürümü |
 
@@ -74,6 +74,7 @@ Motorlar ve standart kitaplık yorumlayıcıya (`internal/dil/yurut`) şu kancal
 
 | Kanca | Görevi |
 | :-- | :-- |
+| `KitaplikBagla` | Dilin gömülü kitaplığı (`kitaplik.Dosyalar`): `aktar "tr/..."` buradan okur (11.6). Yorumlayıcı kitaplık paketini içe aktarmaz; komut satırı (ve dili tam çalıştıran testler) bağlar |
 | `Yinelenebilir`, `Akis` | `döngü x içinde ...` ve liste üreteci: uzunluğu bilinen kaynak (tensör) ya da tembel akış (sıralı okuyucu) |
 | `YolDegerli`, `YolArgumani` | Yol alan yerleşiklerin ortak okuyucusu (Metin ya da `Yol`; sekme/satır sonu ipucu, 13.1a) |
 | `GorevliUyeKancasi` | Göreve özel üye okuma: sonucu çalışan koda bağlı özellikler (`Yol`'un diske bakan özellikleri kodun klasörüne göre çözülür) |
@@ -198,7 +199,7 @@ Motorların kendi kancaları:
 | :-- | :-- |
 | `cmd/tr/` | Tek ikili |
 | `internal/` | Bütün Go kodu (yukarıdaki katmanlar) |
-| `kitaplik/` | TR ile yazılı standart kitaplık (ikiliye gömülecek; bugün boş ve bağlı değil) |
+| `kitaplik/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`aktar "tr/katman"`, `aktar "tr/iyilestirici"`; testleri `tr test kitaplik`) |
 | `editors/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
 | `docs/` | Belgeler: [`kilavuz/`](kilavuz/README.md), [`dil/`](dil/README.md), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md) (kod düzeni), bu dosya |
 | `ornekler/` | Öğrenme sırasıyla örnek programlar |

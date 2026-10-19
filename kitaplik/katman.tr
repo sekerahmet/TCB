@@ -8,7 +8,7 @@
 // Şekiller: girdiler [toplu, uzunluk, boyut] (kısaca [B, T, D]); çarpım `x @ W` biçimindedir,
 // bu yüzden Doğrusal'ın ağırlığı [giriş, çıkış] şeklindedir.
 // Başlatma: bütün ağırlık matrisleri N(0, 0.02) ile başlar (`std`); artık yola yazan çıkış
-// katmanları (dikkatin `çıkış`ı, ileri beslemenin `aşağı`sı) 0.02 / √(2 · katman sayısı) ile
+// katmanları (dikkatin `çıkış_katmanı`, ileri beslemenin `aşağı`sı) 0.02 / √(2 · katman sayısı) ile
 // küçültülür, böylece derin modelde artık yolun varyansı katman sayısıyla büyümez. Norm
 // ağırlıkları 1, sapmalar 0 ile başlar. Her ağırlığın kendi sabit tohumu vardır: aynı `tohum`
 // aynı modeli verir.
@@ -83,10 +83,10 @@ yapı NedenselDikkat {
     baş
     kv_baş
     baş_boyutu
-    sorgu
-    anahtar
-    değer
-    çıkış
+    sorgu_katmanı
+    anahtar_katmanı
+    değer_katmanı
+    çıkış_katmanı
     fonksiyon kurucu(boyut, baş, kv_baş = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1) {
         eğer kv_baş == yok { kv_baş = baş }
         doğrula(boyut % baş == 0, "boyut ({boyut}) baş sayısına ({baş}) bölünmeli")
@@ -95,23 +95,23 @@ yapı NedenselDikkat {
         kendi.kv_baş = kv_baş
         kendi.baş_boyutu = boyut / baş
         değişken kv_boyut = kv_baş * kendi.baş_boyutu
-        kendi.sorgu = Doğrusal(boyut, boyut, sapmalı: sapmalı, std: std, tohum: tohum)
-        kendi.anahtar = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
-        kendi.değer = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 2)
-        kendi.çıkış = Doğrusal(boyut, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 3)
+        kendi.sorgu_katmanı = Doğrusal(boyut, boyut, sapmalı: sapmalı, std: std, tohum: tohum)
+        kendi.anahtar_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
+        kendi.değer_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 2)
+        kendi.çıkış_katmanı = Doğrusal(boyut, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 3)
     }
     // x [B, T, D]; kos/sin döner_konum_tablosu'ndan.
     fonksiyon ileri(x, kos, sin) {
         değişken B = x.şekil[0]
         değişken T = x.şekil[1]
         // [B, T, baş · baş_boyutu] → [B, baş, T, baş_boyutu]
-        değişken q = kendi.sorgu.ileri(x).şekillendir([B, T, kendi.baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
-        değişken k = kendi.anahtar.ileri(x).şekillendir([B, T, kendi.kv_baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
-        değişken v = kendi.değer.ileri(x).şekillendir([B, T, kendi.kv_baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
+        değişken q = kendi.sorgu_katmanı.ileri(x).şekillendir([B, T, kendi.baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
+        değişken k = kendi.anahtar_katmanı.ileri(x).şekillendir([B, T, kendi.kv_baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
+        değişken v = kendi.değer_katmanı.ileri(x).şekillendir([B, T, kendi.kv_baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
         q = döner_konum_uygula(q, kos, sin)
         k = döner_konum_uygula(k, kos, sin)
         değişken y = dikkat(q, k, v, nedensel: doğru) // [B, baş, T, baş_boyutu]
-        sonuç kendi.çıkış.ileri(y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, kendi.baş * kendi.baş_boyutu]))
+        sonuç kendi.çıkış_katmanı.ileri(y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, kendi.baş * kendi.baş_boyutu]))
     }
 }
 

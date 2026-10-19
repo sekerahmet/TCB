@@ -126,7 +126,7 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 | `internal/motor` | Tensör ve öğrenme, parçalayıcı, veri, JSON/CSV yerleşiklerini dile bağlayan motorlar |
 | `internal/hesap` | Dili bilmeyen hesap çekirdekleri: tensör ve CPU çekirdekleri (`tensor`), parçalayıcı (`parca`), veri yükleyici (`veriyolu`) |
 | `internal/arac` | Hata ayıklayıcı (`ayikla`), biçimlendirici (`bicim`), `tr test` çekirdeği (`testkosucu`) |
-| `kitaplik/` | TR ile yazılan standart kitaplığın yeri (ikiliye gömülecek; bugün boş ve bağlı değil) |
+| `kitaplik/` | TR ile yazılan standart kitaplık, ikiliye gömülü: transformer katmanları ve GPT (`aktar "tr/katman"`), Muon/NorMuon (`aktar "tr/iyilestirici"`) |
 | `editors/vscode/` | VS Code eklentisi |
 | `docs/` | Belgeler ([dizin](docs/README.md)) |
 | `ornekler/`, `testler/` | Örnek programlar ve dil tanımının kural testleri |
