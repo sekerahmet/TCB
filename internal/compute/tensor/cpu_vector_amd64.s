@@ -251,6 +251,8 @@ ce_ms:
 	VMAXPS       X11, X0, X11
 	VPERMILPS    $0xB1, X11, X0
 	VMAXPS       X11, X0, X11
+	VXORPS       X0, X0, X0
+	VADDSS       X0, X11, X11 // −0 + 0 = +0: kulvar sırası sıfırın işaretini değiştirmesin
 	VMOVSS       X11, m+16(FP)
 	VBROADCASTSS X11, Y11
 
@@ -289,9 +291,9 @@ ce_ts:
 	VZEROUPPER
 	RET
 
-// func ceGeriCekirdek(hedef, satir *float32, n int, l, k float32)
+// func ceBackwardKernel(target, row *float32, n int, l, k float32)
 //
-// Çapraz entropinin satır gradyanı: hedef += k·e^{x−l} (Go eşi ceGeriGo).
+// Çapraz entropinin satır gradyanı: hedef += k·e^{x−l} (Go eşi ceBackwardGo).
 TEXT ·ceBackwardKernel(SB), NOSPLIT, $0-32
 	MOVQ         target+0(FP), DI
 	MOVQ         row+8(FP), SI

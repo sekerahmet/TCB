@@ -34,18 +34,21 @@ func (cpuBackend) f32EmbeddingGrad(gw, g Storage, idx []int, D int) {
 	})
 }
 
-// Çapraz entropinin satır işleri ceSatir / ceGeri'dedir (GOAMD64=v3'te AVX2
+// Çapraz entropinin satır işleri ceRow / ceBackward'dadır (GOAMD64=v3'te AVX2
 // çekirdekleri, aksi halde aşağıdaki Go eşleri; işlem sırası aynıdır, yalnızca
 // üstel 1-2 ulp farklı olabilir).
 
-// ceRowGo satırın en büyüğü m (NaN'lar yok sayılır) ve Σ e^{x−m} (float64,
-// eleman konumuna göre 8 kulvarda; bkz. topla8).
+// ceRowGo satırın en büyüğü m (NaN'lar yok sayılır; sıfır her zaman +0) ve Σ e^{x−m}
+// (float64, eleman konumuna göre 8 kulvarda; bkz. sum8).
 func ceRowGo(row []float32) (float32, float64) {
 	m := float32(math.Inf(-1))
 	for _, v := range row {
 		if v > m {
 			m = v
 		}
+	}
+	if m == 0 {
+		m = 0 // −0 ile +0'ın hangisinin önce geldiği sonucu değiştirmesin (AVX2 eşi kulvarlarla arar)
 	}
 	var acc [8]float64
 	for j, v := range row {

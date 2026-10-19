@@ -75,7 +75,7 @@ func geluForwardVec(y, x []float32) {
 	geluForwardKernel(&y[0], &x[0], len(x))
 }
 
-// geluBackwardVec gx += g·GELU'(x); tanım ve taşınabilir eşi geluGeriGo'dadır.
+// geluBackwardVec gx += g·GELU'(x); tanım ve taşınabilir eşi geluBackwardGo'dadır.
 func geluBackwardVec(gx, g, x []float32) {
 	if len(gx) == 0 {
 		return
@@ -91,7 +91,7 @@ func ceRowKernel(row *float32, n int) (m float32, s float64)
 func ceBackwardKernel(target, row *float32, n int, l, k float32)
 
 // ceRow çapraz entropinin satır işi: en büyük m ve Σ e^{x−m}; tanım ve
-// taşınabilir eşi ceSatirGo'dadır (üstel 1-2 ulp farklı olabilir).
+// taşınabilir eşi ceRowGo'dadır (üstel 1-2 ulp farklı olabilir).
 func ceRow(row []float32) (float32, float64) {
 	if len(row) == 0 {
 		return float32(math.Inf(-1)), 0
@@ -99,7 +99,7 @@ func ceRow(row []float32) (float32, float64) {
 	return ceRowKernel(&row[0], len(row))
 }
 
-// ceBackward hedef += k·e^{x−l}; tanım ve taşınabilir eşi ceGeriGo'dadır.
+// ceBackward hedef += k·e^{x−l}; tanım ve taşınabilir eşi ceBackwardGo'dadır.
 func ceBackward(target, row []float32, l, k float32) {
 	if len(row) == 0 {
 		return

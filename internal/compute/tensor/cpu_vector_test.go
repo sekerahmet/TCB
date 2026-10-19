@@ -241,8 +241,17 @@ func TestGeluVectorMatchesGo(t *testing.T) {
 
 // Çapraz entropinin satır çekirdekleri Go eşleriyle aynı işlem sırasını izler:
 // en büyük tam olarak aynı, toplam ve gradyan birkaç ulp içinde olmalı; NaN
-// girdiler en büyükte yok sayılır, kuyruk dışına yazılmaz.
+// girdiler en büyükte yok sayılır, kuyruk dışına yazılmaz; en büyük sıfırsa işareti
+// kulvar sırasından bağımsız olarak +0'dır.
 func TestCrossEntropyVectorMatchesGo(t *testing.T) {
+	negZero := float32(math.Copysign(0, -1))
+	for _, x := range [][]float32{{negZero, 0}, {0, negZero}, {negZero, -1, -2, -3, -4, -5, -6, -7, 0}, {negZero, negZero, negZero}} {
+		m1, _ := ceRow(x)
+		m2, _ := ceRowGo(x)
+		if math.Float32bits(m1) != 0 || math.Float32bits(m2) != 0 {
+			t.Fatalf("%v: en büyük %v (%#x), Go eşi %v (%#x); +0 bekleniyordu", x, m1, math.Float32bits(m1), m2, math.Float32bits(m2))
+		}
+	}
 	rng := rand.New(rand.NewSource(17))
 	for _, n := range []int{1, 3, 8, 9, 16, 131, 1000} {
 		x := make([]float32, n)
