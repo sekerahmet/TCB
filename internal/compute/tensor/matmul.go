@@ -43,6 +43,8 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 
 	sy := counterStart(be, OpKindMatMul).start()
 	av, bv := a.contigView(), b.contigView()
+	// Bitişik kopyalar geri yönde de okunur; geri yön bitince (türev izlenmiyorsa hemen) iade edilir.
+	release := func() { giveBackCopy(a, av); giveBackCopy(b, bv) }
 	gs, writer := be.(GemmSetter)
 	var out *Tensor
 	if writer {
@@ -62,6 +64,7 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 		}
 	}
 	r := track(out, "matmul", []*Tensor{a, b}, func() {
+		defer release()
 		g := out.gradView()
 		// Karışık hassasiyet: girdiler aynı 16 bitlik türdeyse (bf16 ya da f16) gelen
 		// gradyan da o türe yuvarlanır; böylece geri yöndeki iki çarpım da 16 bitlik girdiyle
@@ -81,6 +84,9 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 			mulFn(b, K, N, M, av, true, g, false)
 		}
 	}, a, b)
+	if r.backward == nil {
+		release()
+	}
 	sy.finish()
 	return r
 }

@@ -77,3 +77,39 @@ func TestBinaryGradSameShape(t *testing.T) {
 		t.Fatalf("-0 çarpanın gradyanı %v, -0 bekleniyordu", g)
 	}
 }
+
+// CPU'da 16 bitlik tekli gradyan yalnızca işlemin okuduğu girdiyi (x, y ya da hiçbirini)
+// açar; sonuç float32 hesabıyla (y'nin bf16 yuvarlaması payıyla) aynıdır.
+func TestUnaryGrad16BitReads(t *testing.T) {
+	vals := []float32{0.25, 0.5, 0.75, 1.25}
+	ops := []struct {
+		name string
+		f    func(*Tensor) *Tensor
+	}{
+		{"exp", (*Tensor).Exp}, {"sqrt", (*Tensor).Sqrt}, {"tanh", (*Tensor).Tanh},
+		{"sigmoid", (*Tensor).Sigmoid}, {"tan", (*Tensor).Tan}, {"expm1", (*Tensor).Expm1},
+		{"log", (*Tensor).Log}, {"sin", (*Tensor).Sin}, {"silu", (*Tensor).Silu}, {"abs", (*Tensor).Abs},
+		{"3/x", func(x *Tensor) *Tensor { return x.RDivScalar(3) }},
+		{"x*3", func(x *Tensor) *Tensor { return x.MulScalar(3) }},
+		{"x^1", func(x *Tensor) *Tensor { return x.Pow(1) }},
+		{"x^3", func(x *Tensor) *Tensor { return x.Pow(3) }},
+	}
+	for _, op := range ops {
+		x16 := NewOf(BFloat16, vals, 4).SetRequiresGrad(true)
+		op.f(x16).Cast(Float32).SumAll().Backward()
+		x32 := New(NewOf(BFloat16, vals, 4).Data(), 4).SetRequiresGrad(true)
+		op.f(x32).SumAll().Backward()
+		near(t, op.name+" bf16 gradyanı", x16.Grad().Data(), x32.Grad().Data(), 2e-2)
+	}
+}
+
+// DivScalar çıktıyı saklamaz (pay gradyanı çıktıyı okumaz): çıktı geri yayılımdan önce
+// yerinde değişse de gradyan doğrudur ve sürüm denetimi hata vermez.
+func TestDivScalarDoesNotSaveOutput(t *testing.T) {
+	x := New([]float32{2, 4}, 2).SetRequiresGrad(true)
+	y := x.DivScalar(2)
+	z := y.MulScalar(3) // girdisini saklamaz
+	y.Set(9, 0)
+	z.SumAll().Backward()
+	near(t, "DivScalar gradyanı", x.Grad().Data(), []float32{1.5, 1.5}, 0)
+}

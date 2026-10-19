@@ -360,8 +360,36 @@ func (b cpuBackend) UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Stora
 	var gt temp
 	defer gt.finish()
 	d, last := gt.write(gx, true)
-	b.f32UnaryGrad(op, p, d, gt.readD(g), gt.read(x), gt.readD(y))
+	gd := gt.readD(g)
+	// Yalnızca işlemin okuduğu girdi float32'ye açılır; okunmayanın yerine (uzunluk için)
+	// okunan bir float32 depolama geçer.
+	readX, readY := unaryGradReads(op, p)
+	var yd Storage = gd
+	if readY {
+		yd = gt.readD(y)
+	}
+	xv := View{S: yd, Shape: x.Shape, Strides: contiguousStrides(x.Shape)}
+	if readX {
+		xv = gt.read(x)
+	}
+	b.f32UnaryGrad(op, p, d, gd, xv, yd)
 	last()
+}
+
+// unaryGradReads tekli işlemin geri yönünün x'i ve y'yi (çıktıyı) okuyup okumadığı
+// (unaryGradLoop ve unaryGradLoopWide ile uyumlu).
+func unaryGradReads(op UnOp, p float32) (x, y bool) {
+	switch op {
+	case OpExp, OpSqrt, OpTanh, OpSigmoid, OpTan, OpExpm1:
+		return false, true
+	case OpRDivScalar:
+		return true, true
+	case OpAddScalar, OpMulScalar, OpRSubScalar, OpFloor, OpCeil, OpSign:
+		return false, false
+	case OpPow:
+		return p != 1 && p != 0, false
+	}
+	return true, false
 }
 
 func (b cpuBackend) Sum(out Storage, x View, axis int, scale float32) {

@@ -89,8 +89,8 @@ type bufStack struct {
 }
 
 // takePack yığından en az n elemanlı en küçük tamponu alır (yoksa yenisini
-// ayırır). Yeni tamponun kapasitesi ikinin kuvvetine yuvarlanır: yakın
-// boyutlar aynı tamponu paylaşır.
+// ayırır). Havuza konabilecek yeni tamponun kapasitesi ikinin kuvvetine
+// yuvarlanır: yakın boyutlar aynı tamponu paylaşır.
 func takePack(y *bufStack, n int) *[]float32 {
 	y.mu.Lock()
 	k := -1
@@ -110,6 +110,11 @@ func takePack(y *bufStack, n int) *[]float32 {
 		return p
 	}
 	y.mu.Unlock()
+	if n > y.largest {
+		// Havuza konmayacak (Put bırakır): yuvarlamak yalnızca fazla bellek ayırırdı.
+		s := make([]float32, n)
+		return &s
+	}
 	s := make([]float32, n, 1<<bits.Len(uint(n-1)))
 	return &s
 }

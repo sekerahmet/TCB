@@ -493,6 +493,14 @@ func (t *Tensor) contigView() View {
 	return View{S: s, Shape: t.shape, Strides: contiguousStrides(t.shape)}
 }
 
+// giveBackCopy v, t'nin bitişik kopyasıysa (contigView'ün ayırdığı) depolamayı arka uca
+// iade eder; t'nin kendi depolamasıysa dokunmaz.
+func giveBackCopy(t *Tensor, v View) {
+	if v.S != t.storage {
+		giveBack(t.be, v.S)
+	}
+}
+
 // denseStorage ofseti 0 olan bitişik bir depolama verir (gerekirse kopyalar).
 func (t *Tensor) denseStorage() Storage {
 	if t.IsContiguous() && t.offset == 0 {

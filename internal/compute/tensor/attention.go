@@ -123,9 +123,12 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 		maskVal = prepareMask(be, opt.Mask, q.shape, &p)
 	}
 	qv, kv, vv := q.contigView(), k.contigView(), v.contigView()
+	// Bitişik kopyalar geri yönde de okunur; geri yön bitince (türev izlenmiyorsa hemen) iade edilir.
+	release := func() { giveBackCopy(q, qv); giveBackCopy(k, kv); giveBackCopy(v, vv) }
 	out := emptyOf(isAttention, be, outShape, outType)
 	lse := be.Attention(out.storage, qv, kv, vv, maskVal, p)
 	r := track(out, "attention", []*Tensor{q, k, v}, func() {
+		defer release()
 		as, writer := be.(AttentionGradSetter)
 		var g [3]Storage
 		var fresh [3]bool
@@ -142,6 +145,9 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 		// Geri yön ileri çıktıyı da okur (D = Σ dO·O): çıktı yerinde değişirse sürüm
 		// denetimi yakalar.
 	}, q, k, v, out)
+	if r.backward == nil {
+		release()
+	}
 	sy.finish()
 	return r
 }

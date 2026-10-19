@@ -92,7 +92,10 @@ func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	case OpMul:
 		save = []*Tensor{a, b}
 	case OpDiv:
-		save = []*Tensor{b, out}
+		save = []*Tensor{b}
+		if b.requiresGrad {
+			save = append(save, out) // paydanın gradyanı çıktıyı okur
+		}
 	}
 	r := track(out, binopName[op], []*Tensor{a, b}, func() {
 		g := out.grad
