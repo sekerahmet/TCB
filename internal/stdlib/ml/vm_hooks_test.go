@@ -145,4 +145,3 @@ döngü b içinde [t[0..=-1], t[-5..2], t[2..1], t[1..=10], t[-2..=-2], t[-1..3]
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
 	}
 }
-
