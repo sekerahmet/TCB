@@ -565,3 +565,25 @@ func TestCacheCrossProcessLock(t *testing.T) {
 	}
 	_ = o.Close()
 }
+
+// TestCacheSameTime saniye kesri olan kopya zamanının 10 ms, kesirsiz (saniyeye yuvarlanmış)
+// zamanın ±2 sn toleransla karşılaştırıldığını denetler.
+func TestCacheSameTime(t *testing.T) {
+	base := time.Date(2026, 10, 19, 12, 0, 10, 0, time.UTC)
+	precise := base.Add(300 * time.Millisecond)
+	for _, d := range []struct {
+		cached, source time.Time
+		want           bool
+	}{
+		{precise, precise, true},
+		{precise, precise.Add(80 * time.Nanosecond), true},   // NTFS'nin 100 ns yuvarlaması
+		{precise, precise.Add(20 * time.Millisecond), false}, // kesirli zaman: değişiklik görülür
+		{base, base.Add(1900 * time.Millisecond), true},      // yuvarlanmış zaman (FAT): tolerans
+		{base, base.Add(2 * time.Second), false},
+		{base, base.Add(-1500 * time.Millisecond), true},
+	} {
+		if got := sameTime(d.cached, d.source); got != d.want {
+			t.Errorf("sameTime(%v, %v) = %v, %v bekleniyordu", d.cached, d.source, got, d.want)
+		}
+	}
+}

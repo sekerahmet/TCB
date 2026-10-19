@@ -295,9 +295,18 @@ func localName(src string) string {
 	return fmt.Sprintf("%s.%016x.onb%s", strings.TrimSuffix(baseOff, uz), h.Sum64(), uz)
 }
 
-func sameTime(a, b time.Time) bool {
-	d := a.Sub(b)
-	return d < 2*time.Second && d > -2*time.Second
+// sameTime önbellekteki kopyanın zamanı (cached) kaynağınkiyle (source) aynı mı bildirir. Kopya
+// kaynağın zamanını alır, ama dosya sistemi onu yuvarlayabilir: NTFS 100 ns'ye, exFAT 10 ms'ye,
+// FAT 2 saniyeye, bazıları tam saniyeye. Kopyanın zamanında saniye kesri varsa en çok 10 ms
+// yuvarlanmıştır; yoksa ±2 sn tolerans gerekir. O durumda aynı boyutta kalıp 2 saniye içinde
+// yeniden yazılan bir kaynak değişmemiş sayılabilir (yeni kopya için önbellek klasörü silinir).
+func sameTime(cached, source time.Time) bool {
+	tolerance := 2 * time.Second
+	if cached.Nanosecond() != 0 {
+		tolerance = 10 * time.Millisecond
+	}
+	d := cached.Sub(source)
+	return d < tolerance && d > -tolerance
 }
 
 func (o *cacheCore) fetch(ctx context.Context, src string, prefetch bool) (string, func(), error) {
