@@ -84,7 +84,7 @@ func TestTanhf32(t *testing.T) {
 	}
 }
 
-// expVek (GOAMD64=v3'te AVX2 çekirdeği) skalerle aynı doğrulukta olmalı; normal
+// expVec (AVX2'li işlemcide AVX2 çekirdeği) skalerle aynı doğrulukta olmalı; normal
 // altı sonuçlar, taşma, -sonsuz ve NaN dahil.
 func TestExpVec(t *testing.T) {
 	rng := rand.New(rand.NewSource(43))
@@ -107,7 +107,7 @@ func TestExpVec(t *testing.T) {
 				continue
 			}
 			if d := ulpDiff(ys[i], want); d > 2 {
-				t.Fatalf("%s expVek(%v) = %v, beklenen %v (%d ulp)", microKernelName, x, ys[i], want, d)
+				t.Fatalf("%s expVek(%v) = %v, beklenen %v (%d ulp)", microKernelName(), x, ys[i], want, d)
 			}
 		}
 	}

@@ -34,7 +34,7 @@ func (cpuBackend) f32EmbeddingGrad(gw, g Storage, idx []int, D int) {
 	})
 }
 
-// Çapraz entropinin satır işleri ceRow / ceBackward'dadır (GOAMD64=v3'te AVX2
+// Çapraz entropinin satır işleri ceRow / ceBackward'dadır (AVX2'li işlemcide AVX2
 // çekirdekleri, aksi halde aşağıdaki Go eşleri; işlem sırası aynıdır, yalnızca
 // üstel 1-2 ulp farklı olabilir).
 
@@ -192,8 +192,8 @@ func optGather(v *View) []float32 {
 	return gatherCPU(*v)
 }
 
-// Katman ve RMS normu çekirdekleri. Satır işleri lnIleriBlok / lnGeriBlok'tadır
-// (GOAMD64=v3'te AVX2 çekirdekleri, aksi halde aşağıdaki Go eşleri). Toplamlar
+// Katman ve RMS normu çekirdekleri. Satır işleri lnForwardBlock / lnBackwardBlock'tadır
+// (AVX2'li işlemcide AVX2 çekirdekleri, aksi halde aşağıdaki Go eşleri). Toplamlar
 // float64'te, eleman konumuna göre 8 kulvarda (j mod 8) biriktirilir ve sabit
 // sırayla birleştirilir; kaynaştırılmış çarpma-toplama kullanılmaz. Böylece
 // vektör ve Go yolları bit düzeyinde aynı sonucu verir (testler: vektor_test.go).

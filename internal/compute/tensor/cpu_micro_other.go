@@ -1,8 +1,8 @@
-//go:build !amd64.v3
+//go:build !amd64
 
 package tensor
 
-// Taşınabilir mikro çekirdek (GOAMD64=v3 dışındaki tüm derlemeler).
+// Taşınabilir mikro çekirdek (amd64 dışındaki mimariler).
 const (
 	mr = 4 // mikro çekirdek satır sayısı
 	nr = 2 // mikro çekirdek sütun sayısı
@@ -12,13 +12,13 @@ const (
 
 // microA C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks]. Bu derlemede gemm
 // tarafından kullanılmaz (dogrudanA = false); arayüz eşliği ve testler için
-// başvurunun kendisidir (mikroAGo, cpu_basvuru.go).
+// başvurunun kendisidir (microAGo, cpu_reference.go).
 func microA(kb int, a []float32, rs, ks int, bp []float32, c []float32, ldc, mm, nn int) {
 	microAGo(kb, a, rs, ks, bp, c, ldc, mm, nn)
 }
 
 // microKernelName hız raporları ve testler için çekirdeğin adı.
-const microKernelName = "go-4x2"
+func microKernelName() string { return "go-4x2" }
 
 // microKernel C[0:mm, 0:nn] += Ap·Bp (Ap: kb×mr, Bp: kb×nr paketli).
 // 4×2 boyutu, 8 biriktirici ve yükleme yazmaçlarının yazmaç dosyasına

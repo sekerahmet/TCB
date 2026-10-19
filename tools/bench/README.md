@@ -20,13 +20,19 @@ python tools/bench/kos.py --json sonuc.json
 | `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme |
 | `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/kiyas.py`) |
 
-Derlemeler `GOAMD64=v3` ile yapılır (ortamda `GOAMD64` verilmişse o kullanılır). 2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez.
-Matris çarpımı v3 ile (AVX2/FMA çekirdeği) v1'deki taşınabilir çekirdekten çok daha hızlıdır: 512×512
-iki çarpım 20 turun ortalamasında 1 çekirdekte 65 → 4,7 ms, 2 çekirdekte 31,5 → 2,4 ms, 20 çekirdekte
-12,4 → 1,6 ms (yaklaşık 8–14 kat; 18.10.2026, `GOMAXPROCS` ile sınırlanarak). Elle derlemek için:
+Derlemeler varsayılan ayarla yapılır (ortamdaki `GOAMD64` geçerlidir). AVX2/FMA çekirdekleri çalışma
+anında seçilir; `TR_CPU_AVX2=0` taşınabilir Go eşlerini kullandırır. Matris çarpımı AVX2 çekirdeğiyle
+taşınabilir çekirdekten çok daha hızlıdır: 512×512 iki çarpım 20 turun ortalamasında 1 çekirdekte
+65 → 4,7 ms, 2 çekirdekte 31,5 → 2,4 ms, 20 çekirdekte 12,4 → 1,6 ms (yaklaşık 8–14 kat; 18.10.2026,
+`GOMAXPROCS` ile sınırlanarak; o gün çekirdek derlemeyle, `GOAMD64=v3`/`v1`, seçiliyordu).
+
+**Çalışma anında seçim (19.10.2026, karakter modeli, 2 çekirdek, 300 adım):** `GOAMD64=v1` derleme
+önce 81–88, şimdi 9,4–11 ms/adım (`GOAMD64=v3` ile aynı: 9,7–11,2). AVX2'siz yol (`TR_CPU_AVX2=0`)
+88–93 ms/adım: amd64'te çekirdek düzeni AVX2'ninkiyle aynı (6×16) olduğu için eski Go 4×2
+çekirdeğinden (80–88) ~%7 yavaş; bu yalnızca AVX2'siz işlemcileri etkiler. Elle derlemek için:
 
 ```
-GOAMD64=v3 go build -o bin/tr.exe ./cmd/tr
+go build -o bin/tr.exe ./cmd/tr
 ```
 
 Süreler makineye ve o anki yüke göre değişir; karşılaştırmaları aynı makinede, bilgisayar

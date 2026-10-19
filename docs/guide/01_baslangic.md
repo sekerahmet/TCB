@@ -3,11 +3,10 @@
 Yorumlayıcıyı proje kökünde derleyin:
 
 ```bash
-GOAMD64=v3 go build -o bin/tr.exe ./cmd/tr          # bash
-$env:GOAMD64="v3"; go build -o bin/tr.exe ./cmd/tr   # PowerShell
+go build -o bin/tr.exe ./cmd/tr
 ```
 
-2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez. Eğitim derlemelerinde v3, matris çarpımını v1 derlemeye göre çok hızlandırır (512×512 çarpımda yaklaşık 8–14 kat; bkz. `tools/bench/README.md`). İki derleme aynı tohumla son basamaklarda farklı sonuç verebilir (v3 kaynaştırılmış çarpma-toplama kullanır): aynı tohum aynı sonuç sözü aynı program dosyası için geçerlidir.
+Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör çekirdekleri çalışma anında seçilir. AVX2/FMA'lı işlemcide (Intel 2013, AMD 2015 sonrası) assembly çekirdekleri, öbürlerinde taşınabilir Go eşleri kullanılır; eğitim adımı AVX2'li yolda yaklaşık 8 kat hızlıdır (karakter modeli, 2 çekirdek: ~10 ve ~85 ms/adım; ölçüm: [`tools/bench/`](../../tools/bench/README.md)). `GOAMD64=v3` ile derlemek ölçümde hız kazandırmıyor, yalnızca AVX2'siz işlemcide açılmayan bir program dosyası verir. `TR_CPU_AVX2=0` çekirdekleri kapatır (sorun ayıklama için). ARM (arm64) taşınabilir çekirdekleri kullanır. Aynı tohumla aynı sonuç sözü aynı program dosyası ve aynı işlemci türü için geçerlidir: AVX2'li ve AVX2'siz yol (kaynaştırılmış çarpma-toplama yüzünden) son basamaklarda farklı sonuç verebilir.
 
 | Komut | Açıklama |
 | :--- | :--- |

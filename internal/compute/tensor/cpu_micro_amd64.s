@@ -1,5 +1,3 @@
-//go:build amd64.v3
-
 #include "textflag.h"
 
 // func sgemm6x16(kb int, a *float32, rs, ks int, bp, c *float32, ldc int)

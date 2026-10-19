@@ -1,11 +1,11 @@
 package tensor
 
-// Assembly çekirdeklerinin (GOAMD64=v3: cpu_mikro_amd64.s, cpu_vektor_amd64.s) taşınabilir
-// Go başvuruları. Yapı etiketi yoktur: v3 dışındaki derlemeler bunları çekirdek olarak
-// kullanır (cpu_mikro_genel.go, cpu_vektor_genel.go), v3 derlemesinde ise yalnızca testler
-// assembly sonucunu aynı programda bunlarla karşılaştırır (cekirdek_esi_test.go). Öteki
-// başvurular (geluIleriGo, geluGeriGo, ceSatirGo, ceGeriGo, lnIleriBlokGo, lnGeriBlokGo)
-// zaten etiketsiz dosyalardadır (cpu_arkauc.go, cpu_sinir.go).
+// Assembly çekirdeklerinin (amd64'te AVX2/FMA'lı işlemcide: cpu_micro_amd64.s,
+// cpu_vector_amd64.s) taşınabilir Go başvuruları. Yapı etiketi yoktur: AVX2'siz işlemciler ve
+// öbür mimariler bunları çekirdek olarak kullanır (cpu_vector_amd64.go, cpu_vector_other.go),
+// testler de assembly sonucunu aynı programda bunlarla karşılaştırır (cpu_reference_test.go).
+// Öteki başvurular (geluForwardGo, geluBackwardGo, ceRowGo, ceBackwardGo, lnForwardBlockGo,
+// lnBackwardBlockGo) cpu_backend.go ve cpu_limit.go'dadır.
 
 // microAGo C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks], bp kb×nr paketli, c satır
 // adımı ldc: mikroA'nın (v3'te sgemm6x16) basit döngülerle başvurusu. Her eleman için

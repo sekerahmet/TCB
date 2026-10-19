@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// Vektör çekirdekleri (GOAMD64=v3'te AVX2, aksi halde Go eşleri) taşınabilir Go
-// eşleriyle bit düzeyinde aynı sonucu vermeli: v1 ve v3 derlemeleri aynı
+// Vektör çekirdekleri (AVX2'li işlemcide AVX2, aksi halde Go eşleri) taşınabilir Go
+// eşleriyle bit düzeyinde aynı sonucu vermeli: AVX2'li ve AVX2'siz yol aynı
 // sonucu üretir. Kuyruklu (D mod 8 ≠ 0) ve seçeneksiz (γ/β/gradyan yok) yollar
 // dahil.
 
@@ -41,7 +41,7 @@ func TestNormVectorMatchesGo(t *testing.T) {
 		}
 		return d
 	}
-	t.Logf("çekirdek: %s", microKernelName)
+	t.Logf("çekirdek: %s", microKernelName())
 	for _, D := range []int{1, 3, 7, 8, 9, 15, 16, 17, 31, 64, 67, 131, 512} {
 		for _, R := range []int{1, 2, 5} {
 			for choice := 0; choice < 8; choice++ {
@@ -130,12 +130,12 @@ func normSummary() uint64 {
 	return h
 }
 
-// GOAMD64=v1 (Go eşleri) ve v3 (AVX2) derlemeleri aynı bitleri üretmeli; özet iki
-// derlemede de ölçülüp sabitlenmiştir.
+// AVX2'siz (Go eşleri) ve AVX2'li yol aynı bitleri üretmeli; özet ikisinde de ölçülüp
+// sabitlenmiştir (TR_CPU_AVX2=0 ile Go eşleri).
 func TestNormSameAcrossBuilds(t *testing.T) {
 	const expected = 0xfe0296651a382150
 	if h := normSummary(); h != expected {
-		t.Fatalf("norm çekirdeklerinin bit özeti %#x, beklenen %#x (%s)", h, uint64(expected), microKernelName)
+		t.Fatalf("norm çekirdeklerinin bit özeti %#x, beklenen %#x (%s)", h, uint64(expected), microKernelName())
 	}
 }
 

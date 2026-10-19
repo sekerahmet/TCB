@@ -490,9 +490,9 @@ const (
 	gelu3A  float32 = 3 * geluA  // u'/c = 1 + 3a·x²
 )
 
-// GELU'nun vektör çekirdekleri (geluIleriVek, geluGeriVek) GOAMD64=v3'te AVX2,
+// GELU'nun vektör çekirdekleri (geluForwardVec, geluBackwardVec) AVX2'li işlemcide AVX2,
 // aksi halde aşağıdaki Go eşleridir; işlem sırası aynıdır, yalnızca üstel
-// (expVek ile expf32 gibi) 1-2 ulp farklı olabilir.
+// (expVec ile expf32 gibi) 1-2 ulp farklı olabilir.
 
 // geluForwardGo y = x / (1 + e^{-2u}), u = c·(x + a·x³).
 func geluForwardGo(y, x []float32) {

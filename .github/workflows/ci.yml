@@ -6,8 +6,9 @@
 # zaman aşımı, uyarısız).
 #
 # Matris iki işlemci düzeyini kapsar: GOAMD64=v3 (2020 sonrası x86-64 işlemciler, AVX2/FMA)
-# ve GOAMD64=v1 (eski işlemciler). v1 işlerinde derleme, Go testleri, tr test ve örnekler de
-# v1 ile koşar; işlemci düzeyinden bağımsız durağan denetimler (biçim, vet, üretilmiş
+# ve GOAMD64=v1 (eski işlemciler). AVX2 çekirdekleri çalışma anında seçildiğinden v1 işleri
+# onları kapatır (TR_CPU_AVX2=0) ve Go eşlerini sınar. v1 işlerinde derleme, Go testleri, tr
+# test ve örnekler de v1 ile koşar; işlemci düzeyinden bağımsız durağan denetimler (biçim, vet, üretilmiş
 # dosyalar, eklenti) yalnızca v3 işlerinde yapılır (betiğin --kip argümanı).
 #
 # Ayrıca Linux'ta yarış dedektörüyle (go test -race) yorumlayıcı, motorlar ve veri hattı

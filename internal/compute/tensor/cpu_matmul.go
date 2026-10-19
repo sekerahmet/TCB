@@ -19,9 +19,9 @@ import (
 //     kc derinliğinde mr yükseklikli panellere paketler (L2'de kalır).
 //   - En içte mr×nr'lik mikro çekirdek C bloğunu yazmaçlarda biriktirir;
 //     her k adımında mr+nr yükleme ile mr·nr çarpma-toplama yapar. Çekirdek
-//     ve boyutu derlemeye göre seçilir: GOAMD64=v3'te AVX2/FMA ile 6×16
-//     (cpu_mikro_avx2.go), diğer derlemelerde taşınabilir Go ile 4×2
-//     (cpu_mikro_genel.go).
+//     ve boyutu mimariye göre seçilir: amd64'te 6×16 (cpu_micro_amd64.go; AVX2/FMA'lı
+//     işlemcide assembly, öbürlerinde Go), diğer mimarilerde taşınabilir Go ile 4×2
+//     (cpu_micro_other.go).
 //   - İş parçaları işçi havuzuna (paralel.go) atomik bir sayaçla dağıtılır;
 //     katılımcı sayısı çarpımın büyüklüğüne göre seçilir (gemmBuyukIs).
 const (

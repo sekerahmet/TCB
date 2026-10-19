@@ -8,13 +8,13 @@ import (
 	"testing"
 )
 
-// Assembly çekirdekleri (GOAMD64=v3: cpu_mikro_amd64.s, cpu_vektor_amd64.s) ile taşınabilir Go
-// başvuruları (cpu_basvuru.go, cpu_arkauc.go, cpu_sinir.go) AYNI programda, rastgele ve uç
+// Assembly çekirdekleri (cpu_micro_amd64.s, cpu_vector_amd64.s) ile taşınabilir Go
+// başvuruları (cpu_reference.go, cpu_backend.go, cpu_limit.go) AYNI programda, rastgele ve uç
 // girdilerle karşılaştırılır: kenar boylar (0, 1, 7, 8, 15, 16, 17, 31, 33, büyük; 8'li ve
 // 16'lı yazmaç bloklarının ve maskeli kuyruğun her durumu), hizasız başlangıçlar (dilim 32
 // baytlık sınırdan 1, 3, 7 eleman kaymış), NaN, ±sonsuz, ±0 ve alt-normal değerler. Her
-// çekirdeğin dilimin dışına yazmadığı da denetlenir. v3 dışındaki derlemelerde çekirdek
-// başvurunun kendisidir; test orada da koşar ve sonuçların bit düzeyinde aynı olmasını görür.
+// çekirdeğin dilimin dışına yazmadığı da denetlenir. AVX2'siz işlemcide (ya da TR_CPU_AVX2=0)
+// çekirdek başvurunun kendisidir; test orada da koşar ve sonuçların bit düzeyinde aynı olmasını görür.
 //
 // Toleranslar (gerekçeleriyle):
 //   - Mikro çekirdek (mikroA/sgemm6x16): iki taraf da her C elemanı için Σ_k a_k·b_k toplamını
@@ -307,7 +307,7 @@ func testMicroKernel(t *testing.T, r *rand.Rand, kb int, custom bool) {
 				if mn[1] == 0 {
 					continue
 				}
-				ad := fmt.Sprintf("%s mikroA kb=%d rs=%d ks=%d mm=%d nn=%d kayma=%d özel=%v", microKernelName, kb, rs, ks, mn[0], mn[1], shift, custom)
+				ad := fmt.Sprintf("%s mikroA kb=%d rs=%d ks=%d mm=%d nn=%d kayma=%d özel=%v", microKernelName(), kb, rs, ks, mn[0], mn[1], shift, custom)
 				checkMicro(t, ad, kb, a, rs, ks, bp, c0, ldc, mn[0], mn[1], shift)
 			}
 		}
@@ -317,7 +317,7 @@ func testMicroKernel(t *testing.T, r *rand.Rand, kb int, custom bool) {
 // Tablo: her boy, kayma ve değer türü (sıradan / uç değerli) için bütün çekirdekler.
 func TestAssemblyKernelsMatchGo(t *testing.T) {
 	r := rand.New(rand.NewSource(2026))
-	t.Logf("çekirdek: %s", microKernelName)
+	t.Logf("çekirdek: %s", microKernelName())
 	for _, custom := range []bool{false, true} {
 		for _, n := range kernelSizes {
 			for _, shift := range alignOffsets {
@@ -339,9 +339,9 @@ func TestAssemblyKernelsMatchGo(t *testing.T) {
 }
 
 // Bulanıklaştırma: rastgele baytlar float32 değerleri olarak (her bit deseni: NaN yükleri,
-// alt-normaller, sonsuzlar) bütün çekirdeklerden geçer. Assembly yalnızca GOAMD64=v3'te
-// derlendiği için hedef o ayarla koşulmalıdır; kısa koşu:
-// GOAMD64=v3 bash tools/bulaniklastir.sh 10s '^FuzzAssemblyCekirdekleriGoBasvurusu$'.
+// alt-normaller, sonsuzlar) bütün çekirdeklerden geçer. Assembly yalnızca AVX2'li işlemcide
+// seçildiği için hedef öyle bir makinede koşulmalıdır; kısa koşu:
+// bash tools/bulaniklastir.sh 10s '^FuzzAssemblyKernelsMatchGo$'.
 func FuzzAssemblyKernelsMatchGo(f *testing.F) {
 	f.Add([]byte{0, 0, 0x80, 0x7f, 0, 0, 0xc0, 0x7f, 1, 0, 0, 0, 0, 0, 0x80, 0x3f}, uint8(1), uint8(3))
 	f.Add(make([]byte, 4*33), uint8(0), uint8(16))

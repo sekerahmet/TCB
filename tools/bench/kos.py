@@ -4,8 +4,8 @@ Kullanım (proje kökünden):  python tools/bench/kos.py [--tekrar 3] [--yalniz 
 
 Her program kendi ölçtüğü süreyi (ms) ve bir sonuç değeri yazar; sonuç değerlerinin üç dilde
 aynı olması beklenir. Yorumlayıcı ve Go programı her çalıştırmada geçici bir klasöre yeniden
-derlenir (GOAMD64 ortamda verilmemişse v3 ile: 2020 sonrası x86-64 işlemciler, AVX2/FMA; daha eski
-işlemcilerde GOAMD64=v1 verin). matris_yerlesik testinin Python sürümü numpy ister; yoksa atlanır.
+derlenir (ortamdaki GOAMD64 ve TR_CPU_AVX2 geçerlidir; AVX2 çekirdekleri çalışma anında seçilir).
+matris_yerlesik testinin Python sürümü numpy ister; yoksa atlanır.
 """
 import argparse, json, os, subprocess, sys, tempfile
 
@@ -19,7 +19,6 @@ def derle(gecici):
     tr = os.path.join(gecici, "tr" + UZANTI)
     go = os.path.join(gecici, "kiyas" + UZANTI)
     ortam = dict(os.environ)
-    ortam.setdefault("GOAMD64", "v3")
     subprocess.run(["go", "build", "-o", tr, "./cmd/tr"], cwd=KOK, check=True, env=ortam)
     subprocess.run(["go", "build", "-o", go, "./tools/bench/go"], cwd=KOK, check=True, env=ortam)
     return tr, go

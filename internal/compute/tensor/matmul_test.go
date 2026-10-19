@@ -86,7 +86,7 @@ func checkGemm(t *testing.T, rng *rand.Rand, batch, M, N, K int, transA, transB 
 		limit := 4 * float64(K+2) * 6e-8 * abs[i]
 		if d := math.Abs(float64(c[i]) - want[i]); d > limit+1e-6 || math.IsNaN(float64(c[i])) {
 			t.Fatalf("%s gemm b=%d M=%d N=%d K=%d tA=%v tB=%v: [%d] = %v, beklenen %v (sınır %g)",
-				microKernelName, batch, M, N, K, transA, transB, i, c[i], want[i], limit)
+				microKernelName(), batch, M, N, K, transA, transB, i, c[i], want[i], limit)
 		}
 	}
 }
@@ -115,7 +115,7 @@ func TestMicroKernelEdges(t *testing.T) {
 				microKernel(kb, ap, bp, c, ldc, mm, nn)
 				for i := range c {
 					if math.Abs(float64(c[i])-want[i]) > 1e-4*(1+math.Abs(want[i])) {
-						t.Fatalf("%s kb=%d mm=%d nn=%d: [%d] = %v, beklenen %v", microKernelName, kb, mm, nn, i, c[i], want[i])
+						t.Fatalf("%s kb=%d mm=%d nn=%d: [%d] = %v, beklenen %v", microKernelName(), kb, mm, nn, i, c[i], want[i])
 					}
 				}
 			}
@@ -150,7 +150,7 @@ func TestMicroAStrided(t *testing.T) {
 				for i := range c {
 					if math.Abs(float64(c[i])-want[i]) > 1e-4*(1+math.Abs(want[i])) {
 						t.Fatalf("%s mikroA kb=%d rs=%d ks=%d mm=%d nn=%d: [%d] = %v, beklenen %v",
-							microKernelName, kb, rs, ks, mm, nn, i, c[i], want[i])
+							microKernelName(), kb, rs, ks, mm, nn, i, c[i], want[i])
 					}
 				}
 			}

@@ -7,10 +7,10 @@
 1. Önce TR yorumlayıcısını proje kökünde derleyin:
 
    ```bash
-   GOAMD64=v3 go build -o bin/tr.exe ./cmd/tr
+   go build -o bin/tr.exe ./cmd/tr
    ```
 
-   PowerShell'de: `$env:GOAMD64="v3"; go build -o bin/tr.exe ./cmd/tr`. Derlenen yorumlayıcı `bin/` klasörüne yazılır (bu klasör depoya girmez). 2020 sonrası x86-64 işlemciler (AVX2/FMA) hedeflenir; daha eski ya da bazı düşük güçlü işlemciler için `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez.
+   Derlenen yorumlayıcı `bin/` klasörüne yazılır (bu klasör depoya girmez). Her x86-64 işlemcide çalışır; AVX2/FMA çekirdekleri çalışma anında seçilir.
 
 2. Bu klasörü (`editors/vscode`) `%USERPROFILE%\.vscode\extensions\tr-dili-vscode` olarak kopyalayın:
 

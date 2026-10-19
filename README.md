@@ -9,11 +9,10 @@ Her işin tek yazımı vardır: anahtar kelimeler, yerleşikler ve komutlar yaln
 Yorumlayıcıyı proje kökünde derleyin (`go` derleyicisi kurulu olmalıdır); çıktı `bin/` klasörüne yazılır ve bu klasör depoya girmez:
 
 ```bash
-GOAMD64=v3 go build -o bin/tr.exe ./cmd/tr          # bash
-$env:GOAMD64="v3"; go build -o bin/tr.exe ./cmd/tr   # PowerShell
+go build -o bin/tr.exe ./cmd/tr
 ```
 
-`GOAMD64=v3` 2020 sonrası x86-64 işlemcileri (AVX2/FMA) hedefler ve matris çarpımını çok hızlandırır (512×512 çarpımda v1 derlemeye göre yaklaşık 8–14 kat; ölçüm: [`tools/bench/`](tools/bench/README.md)). Daha eski ya da bazı düşük güçlü işlemcilerde program açılmıyorsa `GOAMD64=v1` ile derleyin; ARM (arm64) bundan etkilenmez.
+Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör çekirdekleri çalışma anında seçilir. AVX2/FMA'lı işlemcide (Intel 2013, AMD 2015 sonrası) assembly çekirdekleri, öbürlerinde taşınabilir Go eşleri kullanılır; eğitim adımı AVX2'li yolda yaklaşık 8 kat hızlıdır (karakter modeli, 2 çekirdek: ~10 ve ~85 ms/adım; ölçüm: [`tools/bench/`](tools/bench/README.md)). `GOAMD64=v3` ile derlemek ölçümde hız kazandırmıyor, yalnızca AVX2'siz işlemcide açılmayan bir program dosyası verir. `TR_CPU_AVX2=0` çekirdekleri kapatır (sorun ayıklama için). ARM (arm64) taşınabilir çekirdekleri kullanır.
 
 ## İlk program
 

@@ -1,5 +1,3 @@
-//go:build amd64.v3
-
 #include "textflag.h"
 
 // UST: Y3 = e^Y0 (8 eleman; Y0 korunur, Y1, Y2, Y4-Y8 bozulur). R9 üstel sabit

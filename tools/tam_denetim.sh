@@ -8,9 +8,10 @@
 #   --hizli      GOAMD64=v1 testlerini atlar (yalnızca iş sırasında; birleştirmeden önce tam
 #                koşulmalı). --kip=v3 ile aynıdır.
 #   --kip=v3     yalnızca GOAMD64=v3: durağan denetimler, Go testleri, tr testleri ve örnekler
-#   --kip=v1     yalnızca GOAMD64=v1: derleme, Go testleri, tr testleri ve örnekler; işlemci
-#                düzeyinden bağımsız durağan denetimler (üretilmiş dosyalar, gofmt, vet,
-#                eklenti) atlanır. Otomatik sınamanın her işi bir kip koşar.
+#   --kip=v1     yalnızca GOAMD64=v1 (AVX2 çekirdekleri kapalı: TR_CPU_AVX2=0): derleme, Go
+#                testleri, tr testleri ve örnekler; işlemci düzeyinden bağımsız durağan
+#                denetimler (üretilmiş dosyalar, gofmt, vet, eklenti) atlanır. Otomatik
+#                sınamanın her işi bir kip koşar.
 #
 # Durağan denetimler: üretilmiş dosyalar güncel mi, gofmt, go vet, GPU'suz (-tags gpusuz) Linux
 # program dosyasının statik olması, VS Code eklentisinin
@@ -68,6 +69,10 @@ hepsi) go_kipleri="v3 v1" ;;
 esac
 # Derleme, vet ve tr program dosyası kipin işlemci düzeyiyle (bayraksız kipte v3) yapılır.
 export GOAMD64="${go_kipleri%% *}"
+# AVX2 çekirdekleri çalışma anında seçilir; v1 kipi eski işlemciyi taklit eder, Go eşlerini
+# sınamak için onları kapatır (TR_CPU_AVX2=0).
+avx2_for() { if [ "$1" = v1 ]; then echo 0; fi; }
+export TR_CPU_AVX2="$(avx2_for "$GOAMD64")"
 
 if [ "$kip" != v1 ]; then
 	adim "Üretilmiş dosyalar güncel mi"
@@ -123,7 +128,7 @@ go build ./... || kalir "go build"
 
 for k in $go_kipleri; do
 	adim "Go testleri (GOAMD64=$k, -short)"
-	GOAMD64=$k go test -short ./... 2>&1 | grep -v '^ok\|no test files'
+	GOAMD64=$k TR_CPU_AVX2="$(avx2_for "$k")" go test -short ./... 2>&1 | grep -v '^ok\|no test files'
 	[ "${PIPESTATUS[0]}" -eq 0 ] || kalir "go test (GOAMD64=$k)"
 done
 

@@ -1,8 +1,7 @@
-//go:build amd64.v3
-
 package tensor
 
-// AVX2/FMA mikro çekirdeği (GOAMD64=v3). 6×16'lık C bloğu 12 ymm yazmacında
+// amd64 mikro çekirdeği: AVX2/FMA'lı işlemcide assembly (hasAVX2), öbürlerinde aynı 6×16
+// düzenli Go eşi (micro6x16Go). AVX2 çekirdeğinde 6×16'lık C bloğu 12 ymm yazmacında
 // biriktirilir; her k adımında B'nin 16 elemanı iki yazmaca yüklenir, A'nın 6
 // elemanı sırayla yayınlanır ve 12 kaynaştırılmış çarpma-toplama yapılır
 // (16 yazmacın 15'i kullanılır, yığına taşma yoktur). Çekirdek A'yı adımlarla
@@ -17,10 +16,15 @@ const (
 )
 
 // microKernelName hız raporları ve testler için çekirdeğin adı.
-const microKernelName = "avx2-6x16"
+func microKernelName() string {
+	if hasAVX2 {
+		return "avx2-6x16"
+	}
+	return "go-6x16"
+}
 
 // sgemm6x16 C[0:6, 0:16] += A·Bp; A(r, k) = a[r*rs + k*ks], bp kb×16 paketli,
-// c satır adımı ldc (elemanlar). Assembly: cpu_mikro_amd64.s.
+// c satır adımı ldc (elemanlar). Assembly: cpu_micro_amd64.s.
 //
 //go:noescape
 func sgemm6x16(kb int, a *float32, rs, ks int, bp, c *float32, ldc int)
@@ -37,11 +41,19 @@ func microA(kb int, a []float32, rs, ks int, bp []float32, c []float32, ldc, mm,
 	_ = bp[kb*nr-1]
 	if mm == mr && nn == nr {
 		_ = c[(mr-1)*ldc+nr-1]
-		sgemm6x16(kb, &a[0], rs, ks, &bp[0], &c[0], ldc)
+		if hasAVX2 {
+			sgemm6x16(kb, &a[0], rs, ks, &bp[0], &c[0], ldc)
+		} else {
+			micro6x16Go(kb, a, rs, ks, bp, c, ldc)
+		}
 		return
 	}
 	var t [mr * nr]float32
-	sgemm6x16(kb, &a[0], rs, ks, &bp[0], &t[0], nr)
+	if hasAVX2 {
+		sgemm6x16(kb, &a[0], rs, ks, &bp[0], &t[0], nr)
+	} else {
+		micro6x16Go(kb, a, rs, ks, bp, t[:], nr)
+	}
 	for i := 0; i < mm; i++ {
 		row := c[i*ldc : i*ldc+nn]
 		for j := range row {
@@ -53,4 +65,39 @@ func microA(kb int, a []float32, rs, ks int, bp []float32, c []float32, ldc, mm,
 // microKernel C[0:mm, 0:nn] += Ap·Bp (Ap: kb×mr, Bp: kb×nr paketli).
 func microKernel(kb int, ap, bp []float32, c []float32, ldc, mm, nn int) {
 	microA(kb, ap, 1, mr, bp, c, ldc, mm, nn)
+}
+
+// micro6x16Go sgemm6x16'nın Go eşi (AVX2'siz amd64 işlemciler): C[0:6, 0:16] += A·Bp. Blok
+// 2×4'lük 12 alt blokta hesaplanır; her alt blok 8 biriktiriciyle yazmaçlarda kalır ve her k
+// adımında 6 yükleme ile 8 çarpma-toplama yapar (taşınabilir 4×2 çekirdeğiyle aynı oran).
+func micro6x16Go(kb int, a []float32, rs, ks int, bp, c []float32, ldc int) {
+	bp = bp[:kb*nr]
+	for i := 0; i < mr; i += 2 {
+		a0, a1 := a[i*rs:], a[(i+1)*rs:]
+		for j := 0; j < nr; j += 4 {
+			var c00, c01, c02, c03, c10, c11, c12, c13 float32
+			for k, o := 0, 0; k < kb; k, o = k+1, o+ks {
+				b := bp[k*nr+j : k*nr+j+4 : k*nr+j+4]
+				x0, x1 := a0[o], a1[o]
+				c00 += x0 * b[0]
+				c01 += x0 * b[1]
+				c02 += x0 * b[2]
+				c03 += x0 * b[3]
+				c10 += x1 * b[0]
+				c11 += x1 * b[1]
+				c12 += x1 * b[2]
+				c13 += x1 * b[3]
+			}
+			r := c[i*ldc+j : i*ldc+j+4 : i*ldc+j+4]
+			r[0] += c00
+			r[1] += c01
+			r[2] += c02
+			r[3] += c03
+			r = c[(i+1)*ldc+j : (i+1)*ldc+j+4 : (i+1)*ldc+j+4]
+			r[0] += c10
+			r[1] += c11
+			r[2] += c12
+			r[3] += c13
+		}
+	}
 }

@@ -11,9 +11,13 @@ parçalayıcı. Dil bu paketleri motorlar üzerinden kullanır; buradaki kod dil
 **Tek dosya, cgo'suz dağıtım.** Dış bağımlılık yalnızca GPU arka ucunun sürücüyü cgo'suz
 yüklemek için kullandığı kitaplıktır. GPU'suz derleme statik kalır.
 
-**Her yapılandırma derlenir.** Kod işletim sistemine, işlemciye (genel ve AVX2) ve derleme
-etiketlerine göre ayrılmış dosyalar içerir; her biri derlenir ve sınanır. Assembly ile yazılan
-çekirdeklerin Go'da bir başvuru karşılığı vardır ve aynı sonucu verir.
+**Her yapılandırma derlenir.** Kod işletim sistemine, mimariye ve derleme etiketlerine göre
+ayrılmış dosyalar içerir; her biri derlenir ve sınanır. Assembly ile yazılan çekirdeklerin Go'da
+bir başvuru karşılığı vardır ve aynı sonucu verir.
+
+**İşlemci yetenekleri çalışma anında seçilir.** Tek program dosyası her işlemcide çalışır: AVX2
+gibi bir yetenek varsa onun çekirdeği, yoksa Go karşılığı kullanılır. Hız derleme ayarına
+bağlanmaz; Go karşılıkları da sınanır (yeteneği kapatan ortam değişkeniyle).
 
 **Dosya biçimleri kararlıdır.** Diske yazılan ya da diskten okunan biçimler (veri parçaları,
 meta dosyaları, parçalayıcı tanımı, kontrol noktaları) Go adlarına bağlı değildir; bir ad

@@ -1,10 +1,8 @@
-//go:build amd64.v3
-
 package tensor
 
 import "math"
 
-// AVX2/FMA ile 8'li üstel (GOAMD64=v3). Algoritma expf32 ile aynıdır (aralık
+// AVX2/FMA ile 8'li üstel (yalnızca hasAVX2 ise; değilse her işlev Go eşine gider). Algoritma expf32 ile aynıdır (aralık
 // indirgemesi ve aynı polinom); ölçekleme iki çarpanla yapıldığı için normal
 // altı sonuçlar ve taşma kütüphane işlevine düşmeden doğru çıkar.
 
@@ -31,6 +29,10 @@ func expVecKernel(dst, src *float32, n int, constant *float32)
 // yüzünden çekirdekten 1 ulp farklı olabildiği için sonuç elemanın konumuna bağlı
 // olmasın.
 func expVec(dst, src []float32) {
+	if !hasAVX2 {
+		expVecGo(dst, src)
+		return
+	}
 	n := len(src)
 	dst = dst[:n]
 	m := n &^ 7
@@ -68,6 +70,10 @@ func geluBackwardKernel(gx, gr, x *float32, n int)
 // geluForwardVec y = GELU(x); tanım ve taşınabilir eşi geluIleriGo'dadır. Üstel
 // vektörel olduğundan sonuç Go eşinden en çok birkaç ulp farklı olabilir.
 func geluForwardVec(y, x []float32) {
+	if !hasAVX2 {
+		geluForwardGo(y, x)
+		return
+	}
 	if len(x) == 0 {
 		return
 	}
@@ -77,6 +83,10 @@ func geluForwardVec(y, x []float32) {
 
 // geluBackwardVec gx += g·GELU'(x); tanım ve taşınabilir eşi geluBackwardGo'dadır.
 func geluBackwardVec(gx, g, x []float32) {
+	if !hasAVX2 {
+		geluBackwardGo(gx, g, x)
+		return
+	}
 	if len(gx) == 0 {
 		return
 	}
@@ -93,6 +103,9 @@ func ceBackwardKernel(target, row *float32, n int, l, k float32)
 // ceRow çapraz entropinin satır işi: en büyük m ve Σ e^{x−m}; tanım ve
 // taşınabilir eşi ceRowGo'dadır (üstel 1-2 ulp farklı olabilir).
 func ceRow(row []float32) (float32, float64) {
+	if !hasAVX2 {
+		return ceRowGo(row)
+	}
 	if len(row) == 0 {
 		return float32(math.Inf(-1)), 0
 	}
@@ -101,6 +114,10 @@ func ceRow(row []float32) (float32, float64) {
 
 // ceBackward hedef += k·e^{x−l}; tanım ve taşınabilir eşi ceBackwardGo'dadır.
 func ceBackward(target, row []float32, l, k float32) {
+	if !hasAVX2 {
+		ceBackwardGo(target, row, l, k)
+		return
+	}
 	if len(row) == 0 {
 		return
 	}
@@ -136,6 +153,10 @@ func lnForwardBlock(y, x, g, b, mean, rstd []float32, D int, eps float32) {
 	if R == 0 {
 		return
 	}
+	if !hasAVX2 {
+		lnForwardBlockGo(y, x, g, b, mean, rstd, D, eps)
+		return
+	}
 	lnForwardKernel(&y[0], &x[0], first32(g), first32(b), first32(mean), &rstd[0], R, D, float64(D), float64(eps))
 }
 
@@ -144,6 +165,10 @@ func lnForwardBlock(y, x, g, b, mean, rstd []float32, D int, eps float32) {
 func lnBackwardBlock(xg []float32, pg, pb []float64, x, gr, gammaPtr, mean, rstd []float32, D int) {
 	R := checkLN(D, x, gr, gammaPtr, nil, mean, rstd, xg, pg, pb)
 	if R == 0 {
+		return
+	}
+	if !hasAVX2 {
+		lnBackwardBlockGo(xg, pg, pb, x, gr, gammaPtr, mean, rstd, D)
 		return
 	}
 	lnBackwardKernel(first32(xg), first64(pg), first64(pb), &x[0], &gr[0], first32(gammaPtr), first32(mean), &rstd[0], R, D, float64(D))
