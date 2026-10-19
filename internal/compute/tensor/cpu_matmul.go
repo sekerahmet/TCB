@@ -46,6 +46,13 @@ const (
 	gemmBigJob = 1 << 25
 )
 
+// directBMaxM bu kadar satıra kadar (M) tam B panelleri paketlenmeden okunur (bkz.
+// gemmParca). Ölçüm (19.10.2026, i7-13700H, satır öncelikli B, N 64-256, K 64-1024):
+// M ≤ 64'te tek çekirdekte %14-83, 2 ve 20 çekirdekte %13-94 hızlı; M = 256'da tek
+// çekirdekte ±%5, çok çekirdekte %5-45 hızlı; M = 512'de tek çekirdekte %8'e varan kayıp,
+// M ≥ 1024'te paketli B ile aynı ya da biraz hızlı. Testler değiştirebilir.
+var directBMaxM = 256
+
 // Paketleme tamponları çağrılar arasında yeniden kullanılır (eğitimde aynı
 // boyutlar her adımda yinelenir). Paketleme tamponun gereken her elemanını
 // yazdığından sıfırlama gerekmez. A ve B tamponları boyutları çok farklı
@@ -228,12 +235,22 @@ func gemmParca(batch, M, N, K int, a []float32, transA bool, b []float32, transB
 	bpBuf := takePack(&packPoolB, batch*bpLen)
 	defer packPoolB.Put(bpBuf)
 	bp := *bpBuf
-	parallelFor(batch*np, K*nr, func(lo, hi int) {
-		for t := lo; t < hi; t++ {
-			bi, jp := t/np, t%np
-			packBPanel(b[bi*K*N:(bi+1)*K*N], bks, bjs, K, N, jp, bp[bi*bpLen+jp*K*nr:bi*bpLen+(jp+1)*K*nr])
-		}
-	})
+	// B satır öncelikliyse ve az satırla çarpılacaksa tam paneller paketlenmeden okunur:
+	// her B elemanı yalnızca M/mr kez kullanılırken paketleme onu bir kez okuyup yazar.
+	unpackedB := directB && bjs == 1 && M <= directBMaxM
+	full := N / nr // tam panel sayısı (yalnızca bunlar paketlenmeden okunabilir)
+	first := 0
+	if unpackedB {
+		first = full
+	}
+	if packN := np - first; packN > 0 {
+		parallelFor(batch*packN, K*nr, func(lo, hi int) {
+			for t := lo; t < hi; t++ {
+				bi, jp := t/packN, first+t%packN
+				packBPanel(b[bi*K*N:(bi+1)*K*N], bks, bjs, K, N, jp, bp[bi*bpLen+jp*K*nr:bi*bpLen+(jp+1)*K*nr])
+			}
+		})
+	}
 
 	is := batch * M * N * K
 	W := workerCount(is, minPerWorker, gemmBigJob)
@@ -318,12 +335,26 @@ func gemmParca(batch, M, N, K int, a []float32, transA bool, b []float32, transB
 					nn = nr
 				}
 				bpan := bB[jp*K*nr+p0*nr : jp*K*nr+(p0+kb)*nr]
+				if unpackedB && jp < full {
+					bpan = b[bi*K*N+p0*N+j0:]
+				}
 				for ip := 0; ip*mr < m; ip++ {
 					mm := m - ip*mr
 					if mm > mr {
 						mm = mr
 					}
 					cBlock := cB[(i0+ip*mr)*N+j0:]
+					if unpackedB && jp < full {
+						switch {
+						case ip < whole:
+							microAB(kb, aB[(i0+ip*mr)*ais+p0*axisN:], ais, axisN, bpan, N, cBlock, N, mm, nn)
+						case direct:
+							microAB(kb, ap[:kb*mr], 1, mr, bpan, N, cBlock, N, mm, nn)
+						default:
+							microAB(kb, ap[ip*kb*mr:(ip+1)*kb*mr], 1, mr, bpan, N, cBlock, N, mm, nn)
+						}
+						continue
+					}
 					switch {
 					case ip < whole:
 						microA(kb, aB[(i0+ip*mr)*ais+p0*axisN:], ais, axisN, bpan, cBlock, N, mm, nn)

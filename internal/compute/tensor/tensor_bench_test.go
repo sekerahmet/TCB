@@ -267,7 +267,7 @@ func BenchmarkSpeedModelMatMul(b *testing.B) {
 // Karakter modelindeki çarpım dışı çekirdekler (B·T = 1024 satır, D = 64, 4D = 256,
 // V = 131), ayırma ve türev çizgesi dahil:
 //
-//	GOMAXPROCS=2 go test ./internal/compute/tensor/ -run '^$' -bench 'HizModelCekirdek' -count 5
+//	GOMAXPROCS=2 go test ./internal/compute/tensor/ -run '^$' -bench 'SpeedModelKernel' -count 5
 func BenchmarkSpeedModelKernel(b *testing.B) {
 	rng := rand.New(rand.NewSource(35))
 	x := Randn(rng, 1024, 64).SetRequiresGrad(true)

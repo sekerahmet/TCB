@@ -1,25 +1,28 @@
 #include "textflag.h"
 
-// func sgemm6x16(kb int, a *float32, rs, ks int, bp, c *float32, ldc int)
+// func sgemm6x16(kb int, a *float32, rs, ks int, bp *float32, ldb int, c *float32, ldc int)
 //
 // C[0:6, 0:16] += Σ_k A(0:6, k) · B[k, 0:16]
 // A(r, k) = a[r*rs + k*ks] (paketli: rs=1, ks=6; satır öncelikli: rs=lda, ks=1;
-// devrik: rs=1, ks=M). B paketli (kb×16), C satır adımı ldc (hepsi eleman).
+// devrik: rs=1, ks=M). B(k, j) = bp[k*ldb + j] (paketli: ldb=16; paketlenmemiş satır
+// öncelikli B: ldb=N), C satır adımı ldc (hepsi eleman).
 //
 // Y4..Y15: biriktiriciler (satır r için Y(4+2r) sütun 0-7, Y(5+2r) sütun 8-15)
 // Y0, Y1: B satırı; Y2, Y3: yayınlanan A elemanları.
 // SI: A satır 0, R11: A satır 3 (= SI + 3·rs); satır 1, 2, 4, 5 R10 = rs ile
-// adreslenir. Her k adımında SI ve R11, R12 = ks bayt ilerler.
-TEXT ·sgemm6x16(SB), NOSPLIT, $0-56
+// adreslenir. Her k adımında SI ve R11, R12 = ks bayt; DI, R13 = ldb bayt ilerler.
+TEXT ·sgemm6x16(SB), NOSPLIT, $0-64
 	MOVQ kb+0(FP), CX
 	MOVQ a+8(FP), SI
 	MOVQ rs+16(FP), R10
 	MOVQ ks+24(FP), R12
 	MOVQ bp+32(FP), DI
-	MOVQ c+40(FP), DX
-	MOVQ ldc+48(FP), R8
+	MOVQ ldb+40(FP), R13
+	MOVQ c+48(FP), DX
+	MOVQ ldc+56(FP), R8
 	SHLQ $2, R10
 	SHLQ $2, R12
+	SHLQ $2, R13
 	SHLQ $2, R8
 	LEAQ (R10)(R10*2), R11
 	ADDQ SI, R11
@@ -63,7 +66,7 @@ dongu:
 	VFMADD231PS  Y1, Y3, Y15
 	ADDQ         R12, SI
 	ADDQ         R12, R11
-	ADDQ         $64, DI
+	ADDQ         R13, DI
 	DECQ         CX
 	JNZ          dongu
 

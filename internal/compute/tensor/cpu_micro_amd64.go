@@ -27,32 +27,42 @@ func microKernelName() string {
 // c satır adımı ldc (elemanlar). Assembly: cpu_micro_amd64.s.
 //
 //go:noescape
-func sgemm6x16(kb int, a *float32, rs, ks int, bp, c *float32, ldc int)
+func sgemm6x16(kb int, a *float32, rs, ks int, bp *float32, ldb int, c *float32, ldc int)
 
 // microA C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks] (r < mr, k < kb).
 // Tam bloklar doğrudan C'ye yazılır; kenar blokları geçici bir 6×16 tampona
 // hesaplanıp geçerli kısmı eklenir. A'nın mr satırının tamamı okunabilir
 // olmalıdır (kenar panelleri paketlenip sıfırla doldurulur).
 func microA(kb int, a []float32, rs, ks int, bp []float32, c []float32, ldc, mm, nn int) {
+	microAB(kb, a, rs, ks, bp, nr, c, ldc, mm, nn)
+}
+
+// directB tam B panellerinin paketlenmeden (satır öncelikli B'den ldb adımıyla) okunabilmesi.
+const directB = true
+
+// microAB microA'nın B adımlı biçimi: B(k, j) = bp[k*ldb + j] (j < nr). Paketli B için
+// ldb = nr; paketlenmemiş satır öncelikli B için ldb = N (yalnızca tam paneller: 16 sütunun
+// hepsi okunabilir olmalıdır).
+func microAB(kb int, a []float32, rs, ks int, bp []float32, ldb int, c []float32, ldc, mm, nn int) {
 	if kb <= 0 || mm <= 0 || nn <= 0 {
 		return
 	}
 	_ = a[(mr-1)*rs+(kb-1)*ks]
-	_ = bp[kb*nr-1]
+	_ = bp[(kb-1)*ldb+nr-1]
 	if mm == mr && nn == nr {
 		_ = c[(mr-1)*ldc+nr-1]
 		if hasAVX2 {
-			sgemm6x16(kb, &a[0], rs, ks, &bp[0], &c[0], ldc)
+			sgemm6x16(kb, &a[0], rs, ks, &bp[0], ldb, &c[0], ldc)
 		} else {
-			micro6x16Go(kb, a, rs, ks, bp, c, ldc)
+			micro6x16Go(kb, a, rs, ks, bp, ldb, c, ldc)
 		}
 		return
 	}
 	var t [mr * nr]float32
 	if hasAVX2 {
-		sgemm6x16(kb, &a[0], rs, ks, &bp[0], &t[0], nr)
+		sgemm6x16(kb, &a[0], rs, ks, &bp[0], ldb, &t[0], nr)
 	} else {
-		micro6x16Go(kb, a, rs, ks, bp, t[:], nr)
+		micro6x16Go(kb, a, rs, ks, bp, ldb, t[:], nr)
 	}
 	for i := 0; i < mm; i++ {
 		row := c[i*ldc : i*ldc+nn]
@@ -67,17 +77,17 @@ func microKernel(kb int, ap, bp []float32, c []float32, ldc, mm, nn int) {
 	microA(kb, ap, 1, mr, bp, c, ldc, mm, nn)
 }
 
-// micro6x16Go sgemm6x16'nın Go eşi (AVX2'siz amd64 işlemciler): C[0:6, 0:16] += A·Bp. Blok
+// micro6x16Go sgemm6x16'nın Go eşi (AVX2'siz amd64 işlemciler): C[0:6, 0:16] += A·B. Blok
 // 2×4'lük 12 alt blokta hesaplanır; her alt blok 8 biriktiriciyle yazmaçlarda kalır ve her k
 // adımında 6 yükleme ile 8 çarpma-toplama yapar (taşınabilir 4×2 çekirdeğiyle aynı oran).
-func micro6x16Go(kb int, a []float32, rs, ks int, bp, c []float32, ldc int) {
-	bp = bp[:kb*nr]
+func micro6x16Go(kb int, a []float32, rs, ks int, bp []float32, ldb int, c []float32, ldc int) {
+	bp = bp[:(kb-1)*ldb+nr]
 	for i := 0; i < mr; i += 2 {
 		a0, a1 := a[i*rs:], a[(i+1)*rs:]
 		for j := 0; j < nr; j += 4 {
 			var c00, c01, c02, c03, c10, c11, c12, c13 float32
 			for k, o := 0, 0; k < kb; k, o = k+1, o+ks {
-				b := bp[k*nr+j : k*nr+j+4 : k*nr+j+4]
+				b := bp[k*ldb+j : k*ldb+j+4 : k*ldb+j+4]
 				x0, x1 := a0[o], a1[o]
 				c00 += x0 * b[0]
 				c01 += x0 * b[1]

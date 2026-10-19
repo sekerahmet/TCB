@@ -185,6 +185,35 @@ func TestGemmBatchPart(t *testing.T) {
 	}
 }
 
+// TestGemmUnpackedBSameBits paketlenmeden okunan B'nin (küçük M) paketli B ile bit düzeyinde
+// aynı sonucu verdiğini denetler: kenar paneller (N 16'nın katı değil), devrik A, toplu
+// çarpım, K bloklaması (K > kcBlock) ve paralel yol dahil.
+func TestGemmUnpackedBSameBits(t *testing.T) {
+	rng := rand.New(rand.NewSource(11))
+	for _, d := range []struct{ batch, M, N, K int }{
+		{1, 5, 16, 7}, {1, 64, 64, 64}, {2, 13, 37, 300}, {1, 200, 250, 64}, {3, 64, 17, 600}, {1, 256, 512, 512},
+	} {
+		for _, tA := range []bool{false, true} {
+			a := randomSlice(rng, d.batch*d.M*d.K)
+			b := randomSlice(rng, d.batch*d.K*d.N)
+			c0 := randomSlice(rng, d.batch*d.M*d.N)
+			packed := append([]float32(nil), c0...)
+			unpacked := append([]float32(nil), c0...)
+			old := directBMaxM
+			directBMaxM = 0
+			gemm(d.batch, d.M, d.N, d.K, a, tA, b, false, packed)
+			directBMaxM = 1 << 30
+			gemm(d.batch, d.M, d.N, d.K, a, tA, b, false, unpacked)
+			directBMaxM = old
+			for i := range packed {
+				if math.Float32bits(packed[i]) != math.Float32bits(unpacked[i]) {
+					t.Fatalf("%+v devrikA=%v: [%d] paketli %v, paketsiz %v", d, tA, i, packed[i], unpacked[i])
+				}
+			}
+		}
+	}
+}
+
 // Eşdeğerlik: çarpım, float64 ile yapılan düz üçlü döngüyle aynı sonucu vermeli
 // (float32 toleransı).
 func TestMatMulMatchesFloat64(t *testing.T) {

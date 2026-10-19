@@ -67,3 +67,15 @@ func microKernel(kb int, ap, bp []float32, c []float32, ldc, mm, nn int) {
 		}
 	}
 }
+
+// directB tam B panellerinin paketlenmeden okunması (bu çekirdekte hayır).
+const directB = false
+
+// microAB yalnızca paketli B ile (ldb = nr) çağrılır; directB kapalı olduğundan gemm
+// başka adım vermez.
+func microAB(kb int, a []float32, rs, ks int, bp []float32, ldb int, c []float32, ldc, mm, nn int) {
+	if ldb != nr {
+		panic("tensor: microAB paketlenmemiş B ile çağrıldı (iç hata)")
+	}
+	microAGo(kb, a, rs, ks, bp, c, ldc, mm, nn)
+}
