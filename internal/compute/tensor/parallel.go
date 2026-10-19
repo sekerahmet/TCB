@@ -67,6 +67,12 @@ const returningWorker = 3
 // uzun boşluklarda (veri hazırlama, yazdırma) işçiler uyur, CPU tüketmez.
 // 200 µs ile fark ölçülmedi; kısa tutmak dizüstü işlemcilerde güç bütçesini
 // çalışan çekirdeklere bırakır.
+//
+// 19.10.2026 yeniden ölçüldü (karakter modeli, 20 iş parçacığı, 3 tur): profilde
+// örneklerin ~%25'i dönen beklemede görünse de havuzBekleme 0 ya da 20 µs, çağıranın
+// dönmesini 4096 yerine 256 PAUSE'a indirmek ne adım süresini (8,4-9,8 ms) ne toplam
+// CPU süresini (10,6-12,2 sn) değiştirdi; donenIsci 1 CPU'yu %30 azaltıp adımı %35
+// yavaşlattı (12,5 ms).
 const poolWait = 50 * time.Microsecond
 
 // workers kullanılabilecek en çok işçi sayısı (GOMAXPROCS; çağıran dahil).
