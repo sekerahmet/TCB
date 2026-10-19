@@ -144,25 +144,29 @@ func (k *emitter) bounded(i, n reg) string {
 	return last
 }
 
-func unaryKernel(op tensor.UnOp, mode2 string) func() *emitter {
+// unaryKernel y[i] = f(x[i]); x ve y kendi türlerinde (float32 ya da 16 bit) okunup yazılır,
+// hesap float32'dedir.
+func unaryKernel(op tensor.UnOp, mode2 string, xt, yt tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("tekli_%d_%s", op, mode2))
+		k := newEmitter(fmt.Sprintf("tekli_%d_%s_%s_%s", op, mode2, xt, yt))
 		x := k.pointer("x")
 		y := k.written("y")
 		n := k.u32p("n")
 		p := k.f32p("p")
 		i := k.globalIndex()
 		last := k.bounded(i, n)
-		v := k.load(tensor.Float32, k.address(x, i, 4))
-		k.store(tensor.Float32, k.address(y, i, 4), k.unaryExpr(op, mode2, v, p))
+		v := k.load(xt, k.address(x, i, dtypeSize(xt)))
+		k.store(yt, k.address(y, i, dtypeSize(yt)), k.unaryExpr(op, mode2, v, p))
 		k.put(last)
 		return k
 	}
 }
 
-func unaryGradKernel(op tensor.UnOp, mode2 string) func() *emitter {
+// unaryGradKernel gx[i] += f'(g, x, y); her depolama kendi türünde (dt: gx, g, x, y)
+// okunup yazılır, hesap float32'dedir.
+func unaryGradKernel(op tensor.UnOp, mode2 string, dt [4]tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("tekli_turev_%d_%s", op, mode2))
+		k := newEmitter(fmt.Sprintf("tekli_turev_%d_%s_%s_%s_%s_%s", op, mode2, dt[0], dt[1], dt[2], dt[3]))
 		gx := k.written("gx")
 		g := k.pointer("g")
 		x := k.pointer("x")
@@ -171,14 +175,14 @@ func unaryGradKernel(op tensor.UnOp, mode2 string) func() *emitter {
 		p := k.f32p("p")
 		i := k.globalIndex()
 		last := k.bounded(i, n)
-		gv := k.load(tensor.Float32, k.address(g, i, 4))
-		xv := k.load(tensor.Float32, k.address(x, i, 4))
-		yv := k.load(tensor.Float32, k.address(y, i, 4))
+		gv := k.load(dt[1], k.address(g, i, dtypeSize(dt[1])))
+		xv := k.load(dt[2], k.address(x, i, dtypeSize(dt[2])))
+		yv := k.load(dt[3], k.address(y, i, dtypeSize(dt[3])))
 		t := k.unaryGrad(op, mode2, gv, xv, yv, p)
-		ha := k.address(gx, i, 4)
-		old := k.load(tensor.Float32, ha)
+		ha := k.address(gx, i, dtypeSize(dt[0]))
+		old := k.load(dt[0], ha)
 		k.e("add.rn.f32", old, old, t)
-		k.store(tensor.Float32, ha, old)
+		k.store(dt[0], ha, old)
 		k.put(last)
 		return k
 	}
@@ -188,10 +192,11 @@ var binaryInst = map[tensor.BinOp]string{tensor.OpAdd: "add.rn.f32", tensor.OpSu
 	tensor.OpMul: "mul.rn.f32", tensor.OpDiv: "div.rn.f32"}
 
 // binaryKernel out[i] = a[ofsA] op b[ofsB]; nd = 0 ise üç taraf da düz bitişiktir,
-// değilse a ve b'nin ofsetleri meta'dan (şekil, adımA, adımB) ayrıştırılır.
-func binaryKernel(op tensor.BinOp, nd int) func() *emitter {
+// değilse a ve b'nin ofsetleri meta'dan (şekil, adımA, adımB) ayrıştırılır. dt: a, b, out
+// türleri (kendi türlerinde okunup yazılır, hesap float32'dedir).
+func binaryKernel(op tensor.BinOp, nd int, dt [3]tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("ikili_%d_%d", op, nd))
+		k := newEmitter(fmt.Sprintf("ikili_%d_%d_%s_%s_%s", op, nd, dt[0], dt[1], dt[2]))
 		a := k.pointer("a")
 		b := k.pointer("b")
 		out := k.written("cikti")
@@ -204,9 +209,9 @@ func binaryKernel(op tensor.BinOp, nd int) func() *emitter {
 			ofs := k.parse(i, nd, 2, "meta")
 			oa, ob = ofs[0], ofs[1]
 		}
-		av := k.load(tensor.Float32, k.addressS(a, oa, 4))
-		bv := k.load(tensor.Float32, k.addressS(b, ob, 4))
-		k.store(tensor.Float32, k.address(out, i, 4), k.binaryExpr(op, av, bv))
+		av := k.load(dt[0], k.addressS(a, oa, dtypeSize(dt[0])))
+		bv := k.load(dt[1], k.addressS(b, ob, dtypeSize(dt[1])))
+		k.store(dt[2], k.address(out, i, dtypeSize(dt[2])), k.binaryExpr(op, av, bv))
 		k.put(last)
 		return k
 	}

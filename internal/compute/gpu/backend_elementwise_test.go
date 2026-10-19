@@ -149,3 +149,58 @@ func TestCasts(t *testing.T) {
 		})
 	}
 }
+
+// TestElementwise16Bit 16 bitlik girdilerle tekli ve ikili işlemlerin ileri ve geri yönünü
+// denetler: çekirdekler 16 bitlik değerleri kendi türünde okur ve yazar (float32'ye açmadan).
+// İkili işlemlerde iki taraf 16 bit (sonuç 16 bit) ya da biri float32 (sonuç float32),
+// yayınlı ve adımlı (devrik) görünümlerle; gradyan türü float32 ya da girdiyle aynıdır. Aynı
+// tensörün iki kez kullanılması gradyanı eskisine ekler (biriktirme).
+func TestElementwise16Bit(t *testing.T) {
+	old := tensor.GradDType()
+	defer tensor.SetGradDType(old)
+	rng := rand.New(rand.NewSource(20))
+	unary := []struct {
+		ad string
+		f  func(x *tensor.Tensor) *tensor.Tensor
+	}{
+		{"üstel", (*tensor.Tensor).Exp}, {"tanh", (*tensor.Tensor).Tanh}, {"gelu", (*tensor.Tensor).Gelu},
+		{"sigmoid", (*tensor.Tensor).Sigmoid}, {"relu", (*tensor.Tensor).Relu}, {"kare", (*tensor.Tensor).Square},
+		{"+s", func(x *tensor.Tensor) *tensor.Tensor { return x.AddScalar(1.5) }},
+	}
+	binary := []struct {
+		ad string
+		f  func(a, b *tensor.Tensor) *tensor.Tensor
+	}{{"+", tensor.Add}, {"-", tensor.Sub}, {"*", tensor.Mul}, {"/", tensor.Div}}
+	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+		for _, gt := range []tensor.DType{tensor.Float32, dt} {
+			tensor.SetGradDType(gt)
+			name := fmt.Sprintf("%s (gradyan %s)", dt, gt)
+			v := random(rng, 3*130, 1)
+			for _, u := range unary {
+				compare(t, u.ad+" "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x := twin(v, true, 3, 130)[c]
+					h := x.Cast(dt)
+					return tensor.Add(u.f(h), h).Cast(tensor.Float32), []*tensor.Tensor{x}
+				})
+			}
+			bv := random(rng, 130, 1)
+			for i := range bv {
+				bv[i] += 3 // bölmede sıfırdan uzak
+			}
+			for _, b := range binary {
+				compare(t, "16+16 "+b.ad+" "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x, y := twin(v, true, 3, 130)[c], twin(bv, true, 130)[c]
+					return b.f(x.Cast(dt), y.Cast(dt)).Cast(tensor.Float32), []*tensor.Tensor{x, y}
+				})
+				compare(t, "16+32 "+b.ad+" "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x, y := twin(v, true, 3, 130)[c], twin(bv, true, 130)[c]
+					return b.f(x.Cast(dt), y), []*tensor.Tensor{x, y}
+				})
+				compare(t, "devrik 16 "+b.ad+" "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x, y := twin(v, true, 3, 130)[c], twin(bv, true, 130, 1)[c]
+					return b.f(x.Cast(dt).Transpose(0, 1), y.Cast(dt)).Cast(tensor.Float32), []*tensor.Tensor{x, y}
+				})
+			}
+		}
+	}
+}

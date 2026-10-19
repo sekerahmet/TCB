@@ -136,16 +136,14 @@ func (g *backend) reduceTwoStage(is reduceJob, config reduceConfig, meta, kSh, k
 // plainV depolamanın tamamına bitişik görünüm.
 func plainV(d *storage) tensor.View { return tensor.View{S: d, Shape: []int{d.n}, Strides: []int{1}} }
 
+// AddTo dst += ölçek·src; iki taraf da kendi türünde okunur ve yazılır (16 bitlik hedef
+// float32'de toplanıp bir kez yuvarlanır).
 func (g *backend) AddTo(dst, src tensor.Storage, scale float32) {
 	g.enter()
 	defer g.exit()
-	gt := g.temp()
-	defer gt.finish()
-	d, last := gt.write(dst, true)
-	s := gt.readD(src)
+	d, s := g.storageOf(dst), g.storageOf(src)
 	v := plainV(d)
 	g.copyStrided(v, tensor.View{S: s, Shape: v.Shape, Strides: v.Strides}, true, scale)
-	last()
 }
 
 func (g *backend) ScatterAdd(dst tensor.Storage, dstOff int, dstStrides []int, src tensor.Storage, shape []int) {
@@ -160,16 +158,13 @@ func (g *backend) ScatterAdd(dst tensor.Storage, dstOff int, dstStrides []int, s
 	last()
 }
 
+// ExpandAdd dst += ölçek·yayın(src); türler AddTo'daki gibi korunur.
 func (g *backend) ExpandAdd(dst tensor.Storage, dstShape []int, src tensor.Storage, srcShape []int, scale float32) {
 	g.enter()
 	defer g.exit()
-	gt := g.temp()
-	defer gt.finish()
-	d, last := gt.write(dst, true)
-	s := gt.readD(src)
+	d, s := g.storageOf(dst), g.storageOf(src)
 	kv := tensor.View{S: s, Shape: dstShape, Strides: broadcastStride(contiguous(srcShape), srcShape, dstShape)}
 	g.copyStrided(tensor.View{S: d, Shape: dstShape, Strides: contiguous(dstShape)}, kv, true, scale)
-	last()
 }
 
 func sameShape(a, b []int) bool {
@@ -189,8 +184,7 @@ func (g *backend) Binary(op tensor.BinOp, out tensor.Storage, outShape []int, a,
 	defer g.exit()
 	gt := g.temp()
 	defer gt.finish()
-	o, last := gt.write(out, false)
-	a, b = gt.readStrided(a), gt.readStrided(b)
+	o := g.storageOf(out)
 	n := numel(outShape)
 	if n == 0 {
 		return
@@ -210,10 +204,10 @@ func (g *backend) Binary(op tensor.BinOp, out tensor.Storage, outShape []int, a,
 	if nd > 0 {
 		meta = append(append(append(meta, sh...), st[0]...), st[1]...)
 	}
-	c := g.takeKernel(fmt.Sprintf("ikili:%d:%d", op, nd), binaryKernel(op, nd))
+	dt := [3]tensor.DType{g.storageOf(a.S).dtype, g.storageOf(b.S).dtype, o.dtype}
+	c := g.takeKernel(fmt.Sprintf("ikili:%d:%d:%v", op, nd, dt), binaryKernel(op, nd, dt))
 	iz, bl := plain(n, sameBlock)
 	g.launch(c, iz, bl, g.param().readV(a).readV(b).write(o, 0).u32(n).arr(3*nd, meta...))
-	last()
 }
 
 // readStrided float32 görünümü olduğu gibi (adımlarıyla) bırakır; 16 bitlik görünümü
@@ -257,8 +251,8 @@ func (g *backend) Unary(op tensor.UnOp, p float32, out tensor.Storage, x tensor.
 	defer g.exit()
 	gt := g.temp()
 	defer gt.finish()
-	o, last := gt.write(out, false)
-	xv := gt.read(x)
+	o := g.storageOf(out)
+	xv := gt.readNative(x)
 	n := xv.Numel()
 	if n == 0 {
 		return
@@ -268,10 +262,10 @@ func (g *backend) Unary(op tensor.UnOp, p float32, out tensor.Storage, x tensor.
 	if op == tensor.OpPow {
 		mode2 = powMode(p)
 	}
-	c := g.takeKernel(fmt.Sprintf("tekli:%d:%s", op, mode2), unaryKernel(op, mode2))
+	xt := g.storageOf(xv.S).dtype
+	c := g.takeKernel(fmt.Sprintf("tekli:%d:%s:%s:%s", op, mode2, xt, o.dtype), unaryKernel(op, mode2, xt, o.dtype))
 	iz, bl := plain(n, sameBlock)
 	g.launch(c, iz, bl, g.param().readV(xv).write(o, 0).u32(n).f32(p))
-	last()
 }
 
 func (g *backend) UnaryGrad(op tensor.UnOp, p float32, gx, gs tensor.Storage, x tensor.View, y tensor.Storage) {
@@ -282,9 +276,12 @@ func (g *backend) UnaryGrad(op tensor.UnOp, p float32, gx, gs tensor.Storage, x 
 	}
 	gt := g.temp()
 	defer gt.finish()
-	d, last := gt.write(gx, true)
-	gd, yd := gt.readD(gs), gt.readD(y)
-	xv := gt.read(x)
+	d, gd := g.storageOf(gx), g.storageOf(gs)
+	var yd *storage
+	if y != nil {
+		yd = g.storageOf(y)
+	}
+	xv := gt.readNative(x)
 	n := xv.Numel()
 	if n == 0 {
 		return
@@ -294,13 +291,11 @@ func (g *backend) UnaryGrad(op tensor.UnOp, p float32, gx, gs tensor.Storage, x 
 	if op == tensor.OpPow {
 		mode2 = powMode(p)
 	}
-	c := g.takeKernel(fmt.Sprintf("tekli_turev:%d:%s", op, mode2), unaryGradKernel(op, mode2))
-	iz, bl := plain(n, sameBlock)
-	pr := g.param().write(d, 0).read(gd, 0).readV(xv)
 	if yd == nil {
 		yd = gd // y'yi kullanmayan işlemler için okunabilir yer tutucu (aynı boyda)
 	}
-	pr.read(yd, 0)
-	g.launch(c, iz, bl, pr.u32(n).f32(p))
-	last()
+	dt := [4]tensor.DType{d.dtype, gd.dtype, g.storageOf(xv.S).dtype, yd.dtype}
+	c := g.takeKernel(fmt.Sprintf("tekli_turev:%d:%s:%v", op, mode2, dt), unaryGradKernel(op, mode2, dt))
+	iz, bl := plain(n, sameBlock)
+	g.launch(c, iz, bl, g.param().write(d, 0).read(gd, 0).readV(xv).read(yd, 0).u32(n).f32(p))
 }
