@@ -20,6 +20,13 @@ type poolKey struct {
 // cpuPool iade edilen depolamaları tür ve eleman sayısına göre tutar. Eğitimde
 // aynı boyutlar her adımda yinelendiğinden tam boyut eşlemesi yeterlidir;
 // sync.Pool kullanılmayan tamponları çöp toplayıcıya bırakır.
+//
+// 19.10.2026 ölçüldü (karakter modeli): sync.Pool yerine toplamı sınırlı yığınlar
+// (matris çarpımı tamponlarındaki gibi) ayrılan baytı %8-13 azalttı ama adım süresini
+// ancak ~%4 (gürültü sınırında) kısalttı ve çöp toplama sayısını değiştirmedi; profilde
+// yeni ayırmaların neredeyse hepsi hâlâ allocate'te. Depolamaların çoğu (ileri geçişin
+// ara sonuçları) havuza hiç iade edilmiyor; kazanç onları geri yayılımdan sonra iade
+// etmekten gelir, bu da sahiplik bilgisi ister.
 var cpuPool struct {
 	mu sync.RWMutex
 	m  map[poolKey]*sync.Pool
