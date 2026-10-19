@@ -1,5 +1,6 @@
 # GPU kıyası, karşılaştırma tarafı: kiyas_gpu.tr ile aynı model ve ayarlar (CUDA).
 # Kullanım: python kiyas_gpu.py --boyut kucuk|buyuk [--veri KLASOR] [--derleme yok|var|ikisi]
+#           [--hassasiyet float32|bf16]  (bf16: ileri yön ve kayıp autocast ile, ağırlıklar float32)
 # --veri bir klasördür (içindeki ilk .npy dosyası okunur); verilmezse sabit sentetik toplu
 # işler kullanılır. Derlemeli ölçümde derleme süresi ısınma adımlarında kalır.
 # Çıktı: ısınma hariç ms/adım ve son kayıp. Veri yalnızca okunur.
@@ -16,6 +17,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--boyut", default="kucuk", choices=BOYUTLAR)
 ap.add_argument("--veri", default="")
 ap.add_argument("--derleme", default="ikisi", choices=["yok", "var", "ikisi"])
+ap.add_argument("--hassasiyet", default="float32", choices=["float32", "bf16"])
 arg = ap.parse_args()
 a = BOYUTLAR[arg.boyut]
 B, T, D, H, FF, L = a["B"], a["T"], a["D"], a["H"], a["FF"], a["L"]
@@ -85,7 +87,8 @@ def olc(derle):
             bas = time.perf_counter()
         w = next(kaynak)
         op.zero_grad(set_to_none=True)
-        kayip = F.cross_entropy(ileri(w[:, :-1]).reshape(-1, V), w[:, 1:].reshape(-1))
+        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=arg.hassasiyet == "bf16"):
+            kayip = F.cross_entropy(ileri(w[:, :-1]).reshape(-1, V), w[:, 1:].reshape(-1))
         kayip.backward()
         torch.nn.utils.clip_grad_norm_(m.parameters(), 1.0)
         op.step()
@@ -93,7 +96,7 @@ def olc(derle):
     torch.cuda.synchronize()
     sure = (time.perf_counter() - bas) * 1000 / (a["ADIM"] - a["ISINMA"])
     ad = "torch.compile ile" if derle else "derlemesiz"
-    print(f"PyTorch ({ad}): {sure:.2f} ms/adım · son kayıp {son:.4f} · en çok bellek {torch.cuda.max_memory_allocated() / 2**30:.2f} GB")
+    print(f"PyTorch ({ad}, {arg.hassasiyet}): {sure:.2f} ms/adım · son kayıp {son:.4f} · en çok bellek {torch.cuda.max_memory_allocated() / 2**30:.2f} GB")
 
 
 print(f"kart: {torch.cuda.get_device_name()} · torch {torch.__version__} · ayar: {arg.boyut} B={B} T={T} D={D} H={H} FF={FF} katman={L} V={V}")

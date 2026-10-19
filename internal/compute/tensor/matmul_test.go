@@ -236,3 +236,30 @@ func TestMatMulMatchesFloat64(t *testing.T) {
 	got := MatMul(FromFloat64(x, n, n), FromFloat64(y, n, n)).Data()
 	near(t, "float64 eşdeğerlik", got, want, 1e-4)
 }
+
+// TestMatMul16BitBackwardRoundsGrad 16 bitlik girdili çarpımın geri yönünde gelen gradyanın
+// girdi türüne yuvarlandığını denetler (karışık hassasiyet, 15.13). B birim matris olduğundan
+// dA = yuvarla(dC)·Bᵀ tam olarak yuvarlanmış gradyandır (gradyanlar float32 biriktirilir).
+func TestMatMul16BitBackwardRoundsGrad(t *testing.T) {
+	rng := rand.New(rand.NewSource(13))
+	eye := make([]float32, 16)
+	for i := 0; i < 4; i++ {
+		eye[i*5] = 1
+	}
+	for _, dt := range []DType{BFloat16, Float16} {
+		a := New(randomSlice(rng, 3*4), 3, 4).Cast(dt).SetRequiresGrad(true)
+		b := New(eye, 4, 4).Cast(dt)
+		seed := randomSlice(rng, 3*4)
+		for i := range seed {
+			seed[i] += 1.0 / 3 // 16 bite sığmayan değerler
+		}
+		MatMulOut(a, b, Float32).BackwardWith(New(seed, 3, 4))
+		want := New(seed, 3, 4).Cast(dt).Cast(Float32).Data()
+		got := a.Grad().Cast(Float32).Data()
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("%v: dA[%d] = %v, yuvarlanmış gradyan %v (yuvarlanmamış %v)", dt, i, got[i], want[i], seed[i])
+			}
+		}
+	}
+}

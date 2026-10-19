@@ -16,12 +16,15 @@ import (
 // kurulur: tanım, üç düzen, hizaların bildirildiği tercih ve sezgisel algoritma. Hiza bildirimi
 // gereklidir: kitaplık bildirilmezse 256 bayt varsayar, ofsetli görünümde (ör. bir dilimin
 // son satırı) hizasız erişim olurdu. Planlar en çok ltEnCokPlan tanedir (en eskisi yok edilir).
-// Veri türü (ltR32F) 16 bitlik türler (2b: tensör çekirdekleri) için parametredir.
+// A ve B'nin veri türü plan anahtarındadır: float32 ya da 16 bitlik girdiler (bf16, f16;
+// tensör çekirdekleri). C her zaman float32'dir, birikim float32'de yapılır (CUBLAS_COMPUTE_32F).
 
 // Kitaplık sabitleri (cublasLt.h, library_types.h).
 const (
 	ltCompute32F        = 68 // CUBLAS_COMPUTE_32F
 	ltR32F              = 0  // CUDA_R_32F
+	ltR16F              = 2  // CUDA_R_16F
+	ltR16BF             = 14 // CUDA_R_16BF
 	ltDescTransA        = 3  // CUBLASLT_MATMUL_DESC_TRANSA
 	ltDescTransB        = 4  // CUBLASLT_MATMUL_DESC_TRANSB
 	ltLayoutBatch       = 5  // CUBLASLT_MATRIX_LAYOUT_BATCH_COUNT
@@ -33,11 +36,13 @@ const (
 	ltMaxPlans   = 256
 )
 
-// ltKey bir planın önbellek anahtarı (hizalar kitaplığın A, B, C işaretçileri içindir).
+// ltKey bir planın önbellek anahtarı (hizalar kitaplığın A, B, C işaretçileri içindir; ab A
+// ile B'nin veri türüdür).
 type ltKey struct {
 	batch, M, N, K         int
 	ta, tb                 bool
 	alignA, alignB, alignC uint32
+	ab                     uintptr
 }
 
 // ltPlanFor bir şeklin tanımları ve seçilen algoritması.
@@ -153,7 +158,11 @@ func (l *ltGemm) setupDef(p *ltPlanFor, a ltKey) bool {
 		plain[1] = size{a.M, a.K, a.M * a.K}
 	}
 	for i, b := range plain {
-		if l.call(ltLayoutCreate, uintptr(unsafe.Pointer(&o.handle)), ltR32F, uintptr(b.row2), uintptr(b.column), uintptr(b.row2)) != 0 {
+		dt := uintptr(ltR32F)
+		if i < 2 {
+			dt = a.ab
+		}
+		if l.call(ltLayoutCreate, uintptr(unsafe.Pointer(&o.handle)), dt, uintptr(b.row2), uintptr(b.column), uintptr(b.row2)) != 0 {
 			return false
 		}
 		p.layout[i] = o.handle
@@ -190,13 +199,13 @@ func (l *ltGemm) setupPreference(p *ltPlanFor, a ltKey) bool {
 
 // ltMul C (+)= op(A)·op(B) kitaplıkla; kitaplık bu çağrıyı yapamazsa (algoritma yok ya da
 // çağrı hata döndü) yanlış döner ve kendi çekirdeğimiz kullanılır (düşüş sayılır). Adresler
-// cihaz adresleridir (float32 bitişik).
-func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool, c uint64, over bool) bool {
+// cihaz adresleridir (bitişik); A ile B ab türünde (ltR32F, ltR16BF, ltR16F), C float32.
+func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool, c uint64, over bool, ab uintptr) bool {
 	l := g.lt
 	if l == nil || K == 0 {
 		return false
 	}
-	p := l.takePlan(ltKey{batch: batch, M: M, N: N, K: K, ta: ta, tb: tb, alignA: align(b), alignB: align(a), alignC: align(c)})
+	p := l.takePlan(ltKey{batch: batch, M: M, N: N, K: K, ta: ta, tb: tb, alignA: align(b), alignB: align(a), alignC: align(c), ab: ab})
 	if !p.valid {
 		l.fallthroughCase++
 		return false

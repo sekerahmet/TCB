@@ -63,6 +63,15 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	}
 	r := track(out, "matmul", []*Tensor{a, b}, func() {
 		g := out.gradView()
+		// Karışık hassasiyet: girdiler aynı 16 bitlik türdeyse (bf16 ya da f16) gelen
+		// gradyan da o türe yuvarlanır; böylece geri yöndeki iki çarpım da 16 bitlik girdiyle
+		// (GPU'da tensör çekirdekleri) yapılır. Biriktirme yine en az float32'dedir.
+		if a.dtyp == b.dtyp && a.dtyp != Float32 && g.DType() != a.dtyp {
+			s := allocUninit(be, numelOf(g.Shape), a.dtyp)
+			be.Copy(s, 0, g)
+			defer giveBack(be, s)
+			g = View{S: s, Shape: g.Shape, Strides: g.Strides}
+		}
 		if a.requiresGrad {
 			// dA (M×K) += dC (M×N) · Bᵀ
 			mulFn(a, M, K, N, g, false, bv, true)

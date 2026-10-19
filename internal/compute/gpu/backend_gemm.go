@@ -31,7 +31,7 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 	for _, n := range []int{M * K, K * N, M * N} {
 		checkSize(n)
 	}
-	if g.ltMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over) {
+	if g.ltMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over, ltR32F) {
 		c.host = nil
 		return
 	}
@@ -70,8 +70,42 @@ func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b te
 	gt := g.temp()
 	defer gt.finish()
 	cd, last := gt.write(c, !over)
-	g.gemm(batch, M, N, K, gt.read(a), transA, gt.read(b), transB, cd, 0, over)
+	if !g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {
+		g.gemm(batch, M, N, K, gt.read(a), transA, gt.read(b), transB, cd, 0, over)
+	}
 	last()
+}
+
+// gemm16 bitişik 16 bitlik (bf16 ya da f16) girdileri float32'ye açmadan kitaplığa verir:
+// tensör çekirdekleri girdileri 16 bit okur, float32 biriktirir ve float32 C'ye yazar.
+// Kitaplık yoksa, girdilerin türü farklıysa ya da biri adımlıysa yanlış döner; o zaman
+// girdiler float32'ye açılıp çarpılır (karışık hassasiyette her çarpım eskiden böyleydi:
+// bf16 adım float32'den yavaştı).
+func (g *backend) gemm16(batch, M, N, K int, a tensor.View, ta bool, b tensor.View, tb bool, c *storage, over bool) bool {
+	if g.lt == nil || batch == 0 || M == 0 || N == 0 || K == 0 || !a.IsContiguous() || !b.IsContiguous() {
+		return false
+	}
+	da, db := g.storageOf(a.S), g.storageOf(b.S)
+	if da.dtype != db.dtype {
+		return false
+	}
+	var ab uintptr
+	switch da.dtype {
+	case tensor.BFloat16:
+		ab = ltR16BF
+	case tensor.Float16:
+		ab = ltR16F
+	default:
+		return false
+	}
+	for _, n := range []int{M * K, K * N, M * N} {
+		checkSize(n)
+	}
+	if !g.ltMul(batch, M, N, K, g.addressOf(a), ta, g.addressOf(b), tb, c.addr, over, ab) {
+		return false
+	}
+	c.host = nil
+	return true
 }
 
 // gemmTile matris çarpımının döşeme boylarını sabitler (sınama ve ölçüm için; nil
