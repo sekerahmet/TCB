@@ -22,28 +22,28 @@ var ErrInterrupted = errors.New("program durduruldu (kesme isteği: Ctrl+C ya da
 
 // kesilmePanigi yığını çözmek için atılan paniğin değeridir. Bir motorun panik kurtarıcısı
 // bunu yakalarsa KesilmeMi ile tanıyıp yeniden atmalıdır (hataya çevirmemelidir).
-type kesilmePanigi struct{}
+type interruptPanic struct{}
 
 // IsInterrupt reports whether a recovered panic value is an interruption. If so the caller must
 // re-panic: an interruption is not caught like an error.
 func IsInterrupt(r any) bool {
-	_, ok := r.(kesilmePanigi)
+	_, ok := r.(interruptPanic)
 	return ok
 }
 
 // Interrupt asks the program to stop gracefully; it may be called from any goroutine. It
 // returns true on the first call (later calls do nothing).
 func (v *VM) Interrupt() bool {
-	if !v.kesildi.CompareAndSwap(false, true) {
+	if !v.interrupted.CompareAndSwap(false, true) {
 		return false
 	}
-	close(v.kesilmeKanali)
-	v.bekleyen.Add(1) // döngüler ve çağrılar kilit devri yoluna girsin (bkz. kilidiDevret)
+	close(v.interruptChan)
+	v.pending.Add(1) // döngüler ve çağrılar kilit devri yoluna girsin (bkz. kilidiDevret)
 	return true
 }
 
 // Interrupted reports whether an interrupt was requested for the program.
-func (v *VM) Interrupted() bool { return v.kesildi.Load() }
+func (v *VM) Interrupted() bool { return v.interrupted.Load() }
 
 // Ertelenen kesme (kontrol noktası): bir kontrol noktası kurulunca (KesmeyiErtele) ilk
 // kesme isteği programı hemen durdurmaz, yalnızca bayrak koyar (DurdurmaIstendi). Eğitim
@@ -53,15 +53,15 @@ func (v *VM) Interrupted() bool { return v.kesildi.Load() }
 
 // DeferInterrupts asks that later interrupt requests be deferred to the step boundary; called
 // when a checkpoint is set up. It may be called from any goroutine.
-func (v *VM) DeferInterrupts() { v.kesmeErteleyen.Add(1) }
+func (v *VM) DeferInterrupts() { v.interruptDeferrers.Add(1) }
 
 // RequestInterrupt delivers an interrupt request (Ctrl+C, a termination signal, a background
 // job's stop request): if a checkpoint defers interrupts it only sets a flag and returns true
 // (the program saves and stops at the step boundary); otherwise it stops the program like
 // Interrupt and returns false. It may be called from any goroutine.
-func (v *VM) RequestInterrupt() (ertelendi bool) {
-	if v.kesmeErteleyen.Load() > 0 && !v.kesildi.Load() {
-		v.durdurmaIstendi.Store(true)
+func (v *VM) RequestInterrupt() (deferred bool) {
+	if v.interruptDeferrers.Load() > 0 && !v.interrupted.Load() {
+		v.stopRequested.Store(true)
 		return true
 	}
 	v.Interrupt()
@@ -70,7 +70,7 @@ func (v *VM) RequestInterrupt() (ertelendi bool) {
 
 // StopRequested reports whether a deferred interrupt request is pending. The checkpoint checks
 // it at the step boundary.
-func (v *VM) StopRequested() bool { return v.durdurmaIstendi.Load() }
+func (v *VM) StopRequested() bool { return v.stopRequested.Load() }
 
 // InterruptNow stops the program gracefully at this point: it calls Interrupt and starts
 // unwinding the stack right away (the calling builtin does not return; deferred work runs,
@@ -78,25 +78,25 @@ func (v *VM) StopRequested() bool { return v.durdurmaIstendi.Load() }
 // on the task holding the interpreter lock.
 func (v *VM) InterruptNow() {
 	v.Interrupt()
-	v.kesilmeyiDenetle()
+	v.checkInterrupt()
 }
 
 // InterruptChan is closed when an interrupt is requested; long waits (bekle, engines' waits)
 // wake up early with it.
-func (v *VM) InterruptChan() <-chan struct{} { return v.kesilmeKanali }
+func (v *VM) InterruptChan() <-chan struct{} { return v.interruptChan }
 
 // kesilmeyiDenetle kilit devrinden sonra çağrılır: kesme istendiyse ve bu görev henüz
 // çözülmeye başlamadıysa yığını çözen paniği atar. Çözülme sırasında çalışan 'ertele'
 // blokları yeniden kesilmez (görev başına bir kez).
-func (v *VM) kesilmeyiDenetle() {
-	if v.kesildi.Load() && !v.kesmeAtildi {
-		v.kesmeAtildi = true
-		panic(kesilmePanigi{})
+func (v *VM) checkInterrupt() {
+	if v.interrupted.Load() && !v.interruptThrown {
+		v.interruptThrown = true
+		panic(interruptPanic{})
 	}
 }
 
 // panikHatasi kurtarılan bir paniği hataya çevirir; kesilme ErrKesildi olur.
-func panikHatasi(r any) error {
+func panicError(r any) error {
 	if IsInterrupt(r) {
 		return ErrInterrupted
 	}
@@ -104,14 +104,14 @@ func panikHatasi(r any) error {
 }
 
 // kesilebilirUyu süre boyunca ya da kesme istenene kadar bekler.
-func (v *VM) kesilebilirUyu(sure time.Duration) {
-	if sure <= 0 {
+func (v *VM) interruptibleSleep(duration time.Duration) {
+	if duration <= 0 {
 		return
 	}
-	z := time.NewTimer(sure)
+	z := time.NewTimer(duration)
 	defer z.Stop()
 	select {
 	case <-z.C:
-	case <-v.kesilmeKanali:
+	case <-v.interruptChan:
 	}
 }

@@ -15,33 +15,33 @@ import (
 
 // tipMetinDenetle e, yerleşik tip()'in sonucunu bir metin sabitiyle (== ya da !=)
 // karşılaştırıyorsa hata ekler.
-func (c *Checker) tipMetinDenetle(e *ast.InfixExpression) {
+func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 	if e.Operator != "==" && e.Operator != "!=" {
 		return
 	}
-	metin, ok := e.Right.(*ast.StringLiteral)
-	cagri := e.Left
+	text, ok := e.Right.(*ast.StringLiteral)
+	call := e.Left
 	if !ok {
-		metin, ok = e.Left.(*ast.StringLiteral)
-		cagri = e.Right
+		text, ok = e.Left.(*ast.StringLiteral)
+		call = e.Right
 	}
-	if !ok || !c.tipCagrisi(cagri) {
+	if !ok || !c.isTypeCall(call) {
 		return
 	}
 	c.errors = append(c.errors, fmt.Sprintf("Satır %d: %s", e.Line(),
-		hint.TypeTextComparison(e.Operator, metin.Value, codes.Name(codes.A200))))
+		hint.TypeTextComparison(e.Operator, text.Value, codes.Name(codes.A200))))
 }
 
 // tipCagrisi ifade, kullanıcının gölgelemediği yerleşik tip()'in bir çağrısı mı?
-func (c *Checker) tipCagrisi(ifade ast.Expression) bool {
-	call, ok := ifade.(*ast.CallExpression)
+func (c *Checker) isTypeCall(expression ast.Expression) bool {
+	call, ok := expression.(*ast.CallExpression)
 	if !ok {
 		return false
 	}
-	ad, ok := call.Function.(*ast.Identifier)
-	if !ok || ad.Value != codes.Name(codes.G201) {
+	name, ok := call.Function.(*ast.Identifier)
+	if !ok || name.Value != codes.Name(codes.G201) {
 		return false
 	}
-	_, golge := c.scope.Resolve(ad.Value)
-	return !golge
+	_, shadowed := c.scope.Resolve(name.Value)
+	return !shadowed
 }

@@ -16,27 +16,27 @@ import (
 // çağrısı) tabloyu paylaşır. Tablo yalnızca büyür: çalışma anında adla yapılan bir tanım
 // (hata ayıklayıcı, takma adsız 'aktar') yeni bir ad ekleyebilir; böyle bir ad, o yuvası
 // henüz olmayan diğer ortamlarda "tanımsız" sayılır.
-type kapsamBilgisi struct {
-	adlar  []string
-	indeks map[string]int
+type scopeInfo struct {
+	nameList []string
+	index    map[string]int
 }
 
 // yuva adın indeksini döndürür; ad tabloda yoksa ekler.
-func (k *kapsamBilgisi) yuva(ad string) int {
-	if i, ok := k.indeks[ad]; ok {
+func (k *scopeInfo) slot(name string) int {
+	if i, ok := k.index[name]; ok {
 		return i
 	}
-	if k.indeks == nil {
-		k.indeks = make(map[string]int)
+	if k.index == nil {
+		k.index = make(map[string]int)
 	}
-	i := len(k.adlar)
-	k.adlar = append(k.adlar, ad)
-	k.indeks[ad] = i
+	i := len(k.nameList)
+	k.nameList = append(k.nameList, name)
+	k.index[name] = i
 	return i
 }
 
 // ortamEk ortamların nadiren gereken alanlarıdır (yer kazanmak için ayrı tutulur).
-type ortamEk struct {
+type envExtra struct {
 	defers []func() error
 	consts []bool // yuva başına 'sabit' bayrağı
 }
@@ -53,9 +53,9 @@ type ortamEk struct {
 // environments.
 type Environment struct {
 	vals       []Value
-	kapsam     *kapsamBilgisi
+	scope      *scopeInfo
 	outer      *Environment
-	ek         *ortamEk
+	extra      *envExtra
 	IsFuncRoot bool
 	// ic küçük ortamların yuvaları için satır içi depodur (ayrı bir ayırma gerekmez).
 	ic [4]Value
@@ -65,15 +65,15 @@ type Environment struct {
 func NewEnvironment(outer *Environment) *Environment {
 	return &Environment{
 		outer:      outer,
-		kapsam:     &kapsamBilgisi{},
+		scope:      &scopeInfo{},
 		IsFuncRoot: outer == nil,
 	}
 }
 
 // yeniOrtam derlenmiş bir kapsam için, tablodaki adlar kadar yuvayla ortam açar.
-func yeniOrtam(outer *Environment, k *kapsamBilgisi) *Environment {
-	e := &Environment{outer: outer, kapsam: k}
-	if n := len(k.adlar); n <= len(e.ic) {
+func newEnv(outer *Environment, k *scopeInfo) *Environment {
+	e := &Environment{outer: outer, scope: k}
+	if n := len(k.nameList); n <= len(e.ic) {
 		e.vals = e.ic[:n:n]
 	} else {
 		e.vals = make([]Value, n)
@@ -82,36 +82,36 @@ func yeniOrtam(outer *Environment, k *kapsamBilgisi) *Environment {
 }
 
 // temizle, turlar arasında yeniden kullanılan bir döngü ortamını yeni açılmış gibi boşaltır.
-func (e *Environment) temizle() {
+func (e *Environment) clear() {
 	clear(e.vals)
-	if e.ek != nil {
-		clear(e.ek.consts)
+	if e.extra != nil {
+		clear(e.extra.consts)
 	}
 }
 
-func (e *Environment) sabitMi(i int) bool {
-	return e.ek != nil && i < len(e.ek.consts) && e.ek.consts[i]
+func (e *Environment) isConstant(i int) bool {
+	return e.extra != nil && i < len(e.extra.consts) && e.extra.consts[i]
 }
 
 // tanimla i. yuvaya bir tanım yazar (Define'ın indeksli hâli).
-func (e *Environment) tanimla(i int, val Value, isConst bool) {
+func (e *Environment) define(i int, val Value, isConst bool) {
 	for len(e.vals) <= i {
 		e.vals = append(e.vals, nil)
 	}
 	// Yerleşik bir fonksiyonun adıyla (ör. 'toplam', 'uzunluk') değişken tanımlamak onu
 	// gölgeler; yeni değişken sabit değildir. Kullanıcının 'sabit' tanımları korunur.
-	if _, wasBuiltin := e.vals[i].(*BuiltinVal); wasBuiltin && !isConst && e.sabitMi(i) {
-		e.ek.consts[i] = false
+	if _, wasBuiltin := e.vals[i].(*BuiltinVal); wasBuiltin && !isConst && e.isConstant(i) {
+		e.extra.consts[i] = false
 	}
 	e.vals[i] = val
 	if isConst {
-		if e.ek == nil {
-			e.ek = &ortamEk{}
+		if e.extra == nil {
+			e.extra = &envExtra{}
 		}
-		for len(e.ek.consts) <= i {
-			e.ek.consts = append(e.ek.consts, false)
+		for len(e.extra.consts) <= i {
+			e.extra.consts = append(e.extra.consts, false)
 		}
-		e.ek.consts[i] = true
+		e.extra.consts[i] = true
 	}
 }
 
@@ -120,76 +120,76 @@ func (e *Environment) AddDefer(fn func() error) {
 	for target.outer != nil && !target.IsFuncRoot {
 		target = target.outer
 	}
-	if target.ek == nil {
-		target.ek = &ortamEk{}
+	if target.extra == nil {
+		target.extra = &envExtra{}
 	}
-	target.ek.defers = append(target.ek.defers, fn)
+	target.extra.defers = append(target.extra.defers, fn)
 }
 
 // RunDefers runs the recorded deferred work in reverse order. An error in one does not stop
 // the rest; the errors are joined in run order and returned (see erteleHatasiEkle).
 func (e *Environment) RunDefers() error {
-	if e.ek == nil || len(e.ek.defers) == 0 {
+	if e.extra == nil || len(e.extra.defers) == 0 {
 		return nil
 	}
-	list := e.ek.defers
-	e.ek.defers = nil
+	list := e.extra.defers
+	e.extra.defers = nil
 	var err error
 	for i := len(list) - 1; i >= 0; i-- {
-		err = erteleHatasiEkle(err, list[i]())
+		err = addDeferError(err, list[i]())
 	}
 	return err
 }
 
 // erteleHatasi, bir hataya (fonksiyonun ya da önceki ertelenen işin hatası) sonradan çalışan
 // ertelenen işlerin hatalarının eklenmiş hâlidir. İlk hata korunur (Unwrap onu verir).
-type erteleHatasi struct {
-	ana   error
-	ekler []error
+type deferError struct {
+	mainSrc error
+	extras  []error
 }
 
-func (h *erteleHatasi) Error() string {
-	parcalar := make([]string, len(h.ekler))
-	for i, e := range h.ekler {
-		parcalar[i] = e.Error()
+func (h *deferError) Error() string {
+	pieces := make([]string, len(h.extras))
+	for i, e := range h.extras {
+		pieces[i] = e.Error()
 	}
-	return h.ana.Error() + "; ertele içinde de hata: " + strings.Join(parcalar, "; ")
+	return h.mainSrc.Error() + "; ertele içinde de hata: " + strings.Join(pieces, "; ")
 }
 
-func (h *erteleHatasi) Unwrap() error { return h.ana }
+func (h *deferError) Unwrap() error { return h.mainSrc }
 
 // erteleHatasiEkle ertelenen işin hatasını (ek) mevcut hataya ekler: mevcut hata yoksa ek
 // hatanın kendisi olur, varsa ilk hata korunur ve ek ona eklenir.
-func erteleHatasiEkle(mevcut, ek error) error {
+func addDeferError(current, extra error) error {
 	switch {
-	case ek == nil:
-		return mevcut
-	case mevcut == nil:
-		return ek
+	case extra == nil:
+		return current
+	case current == nil:
+		return extra
 	}
-	if h, ok := mevcut.(*erteleHatasi); ok {
-		return &erteleHatasi{ana: h.ana, ekler: append(slices.Clip(h.ekler), ek)}
+	if h, ok := current.(*deferError); ok {
+		return &deferError{mainSrc: h.mainSrc, extras: append(slices.Clip(h.extras), extra)}
 	}
-	return &erteleHatasi{ana: mevcut, ekler: []error{ek}}
+	return &deferError{mainSrc: current, extras: []error{extra}}
 }
 
 // yerel adın bu ortamdaki değerini döndürür (tanımlı değilse nil).
-func (e *Environment) yerel(name string) (int, Value) {
-	if i, ok := e.kapsam.indeks[name]; ok && i < len(e.vals) {
+func (e *Environment) local(name string) (int, Value) {
+	if i, ok := e.scope.index[name]; ok && i < len(e.vals) {
 		return i, e.vals[i]
 	}
 	return -1, nil
 }
 
 // yerelDeger adın yalnızca bu ortamdaki değerini döndürür (yoksa nil).
-func (e *Environment) yerelDeger(name string) Value {
-	_, val := e.yerel(name)
+func (e *Environment) localValue(name string) Value {
+	_, val := e.local(name)
 	return val
 }
 
 func (e *Environment) Get(name string) (Value, bool) {
 	for cur := e; cur != nil; cur = cur.outer {
-		if _, val := cur.yerel(name); val != nil {
+		if _, val := cur.local(name); val != nil {
 			return val, true
 		}
 	}
@@ -197,13 +197,13 @@ func (e *Environment) Get(name string) (Value, bool) {
 }
 
 func (e *Environment) Define(name string, val Value, isConst bool) {
-	e.tanimla(e.kapsam.yuva(name), val, isConst)
+	e.define(e.scope.slot(name), val, isConst)
 }
 
 func (e *Environment) Assign(name string, val Value) error {
 	for cur := e; cur != nil; cur = cur.outer {
-		if i, old := cur.yerel(name); old != nil {
-			if cur.sabitMi(i) {
+		if i, old := cur.local(name); old != nil {
+			if cur.isConstant(i) {
 				return fmt.Errorf("%q bir sabittir ('%s') ve değeri değiştirilemez", name, codes.Name(codes.A031))
 			}
 			cur.vals[i] = val
@@ -245,12 +245,12 @@ func (e *Environment) Outer() *Environment {
 
 // EachLocal passes only the names defined in this scope (in definition order) to fn.
 func (e *Environment) EachLocal(fn func(name string, val Value)) {
-	for i, ad := range e.kapsam.adlar {
+	for i, name := range e.scope.nameList {
 		if i >= len(e.vals) {
 			break
 		}
 		if val := e.vals[i]; val != nil {
-			fn(ad, val)
+			fn(name, val)
 		}
 	}
 }

@@ -2,16 +2,17 @@ package interp
 
 import (
 	"bytes"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // girdi() her çağrıda yeni bir tamponlu okuyucu açınca ilk okuma kaynağın tamamını
 // tampona çekiyor, sonraki satırlar tamponla birlikte kayboluyordu. VM başına tek okuyucu
 // kullanılır: art arda okumalar satırları sırayla verir.
-func TestGirdiArdArdaSatirlariOkur(t *testing.T) {
+func TestInputReadsConsecutiveLines(t *testing.T) {
 	p := parser.New(lexer.New(`değişken a = girdi()
 değişken b = girdi()
 değişken c = girdi()
@@ -34,7 +35,7 @@ yazdır("a=[{a}] b=[{b}] c=[{c}]")`))
 
 // Kabuk ve hata ayıklayıcı da VM'in okuyucusunu kullanır: girdi() ile birlikte okununca
 // satır kaybolmaz.
-func TestGirdiOkuyucusuPaylasilir(t *testing.T) {
+func TestInputReaderShared(t *testing.T) {
 	m := New()
 	m.Stdin = strings.NewReader("komut\nveri\n")
 	if s, _ := m.InputReader().ReadString('\n'); s != "komut\n" {

@@ -23,18 +23,18 @@ const (
 // RecordRoles turns on recording of name-token roles during parsing (call it before
 // ParseProgram). It is off during ordinary parsing.
 func (p *Parser) RecordRoles() {
-	if p.roller == nil {
-		p.roller = map[[2]int]NameRole{}
+	if p.roles == nil {
+		p.roles = map[[2]int]NameRole{}
 	}
 }
 
 // Roles returns the recorded roles: token line and column → role. Tokens inside string
 // interpolations are included (with their positions in the file).
-func (p *Parser) Roles() map[[2]int]NameRole { return p.roller }
+func (p *Parser) Roles() map[[2]int]NameRole { return p.roles }
 
 // rol kayıt açıksa bir ad sözcüğünün görevini kaydeder.
-func (p *Parser) rol(tok lexer.Token, r NameRole) {
-	if p.roller != nil && tok.Type == lexer.TOKEN_IDENT {
-		p.roller[[2]int{tok.Line, tok.Column}] = r
+func (p *Parser) role(tok lexer.Token, r NameRole) {
+	if p.roles != nil && tok.Type == lexer.TOKEN_IDENT {
+		p.roles[[2]int{tok.Line, tok.Column}] = r
 	}
 }

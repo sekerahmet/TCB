@@ -21,150 +21,150 @@ import (
 // 'zıpla' ile atlandıysa) arama adla, ağaç yorumlayıcısındaki gibi sürdürülür; bu yüzden
 // anlam değişmez.
 
-type ifadeKodu func(v *VM, env *Environment) (Value, error)
-type deyimKodu func(v *VM, env *Environment) (Value, flowSignal, error)
+type exprCode func(v *VM, env *Environment) (Value, error)
+type statementCode func(v *VM, env *Environment) (Value, flowSignal, error)
 
 // derleyiciKapsam derleme anındaki bir kapsamdır.
-type derleyiciKapsam struct {
+type compilerScope struct {
 	// bilgi kapsamın ad tablosudur. nil ise kapsam, düzeni derleme anında bilinmeyen ve
 	// çalışma anında verilen bir ortamdır (hata ayıklayıcının değerlendirdiği ifadeler):
 	// buradan geçen adlar adla aranır, buradaki tanımlar adla yapılır.
-	bilgi *kapsamBilgisi
-	ust   *derleyiciKapsam
+	info   *scopeInfo
+	parent *compilerScope
 	// genel, bu kapsam genel kapsamsa onun ortamıdır; genel adlara derinlik yürümeden
 	// doğrudan erişilir.
-	genel *Environment
+	global *Environment
 	// dinamik: kapsamda takma adsız bir 'aktar' var; adları çalışma anında eklenir ve dış
 	// kapsamlardaki aynı adları gölgeleyebilir. Bu kapsamdan geçen adlar adla aranır.
-	dinamik bool
+	dynamic bool
 	// golge bu kapsamda yerleşik adlarını gölgeleyen kullanıcı tanımlarıdır (shadow.go);
 	// yalnızca hata mesajı için tutulur, çoğu kapsamda nil'dir.
-	golge map[string]golgeTanimi
+	shadow map[string]shadowDef
 	// henuzYok bir parametrenin varsayılan değeri derlenirken o parametre ve sonrakilerin
 	// adlarıdır: varsayılan yalnızca önceki parametreleri görür; bu adlar dış kapsamdaki
 	// aynı adlı değişkene çözülmez, okunursa hata verir.
-	henuzYok map[string]bool
+	notYet map[string]bool
 }
 
 // tanimla bir adı kapsamın tablosuna ekler (derleme anı).
-func (k *derleyiciKapsam) tanimla(ad string) {
-	if ad == "" {
-		k.dinamik = true
+func (k *compilerScope) define(name string) {
+	if name == "" {
+		k.dynamic = true
 		return
 	}
-	if k.bilgi != nil {
-		k.bilgi.yuva(ad)
+	if k.info != nil {
+		k.info.slot(name)
 	}
 }
 
 // onTanimla deyimlerin bu kapsama tanımlayacağı tüm adlara, deyimler derlenmeden önce yuva
 // ayırır. Böylece tanımdan önce gelen bir kullanım da (ör. hata ayıklayıcı geri atladığında)
 // doğru yuvaya çözülür.
-func (k *derleyiciKapsam) onTanimla(stmts []ast.Statement) {
+func (k *compilerScope) predefine(stmts []ast.Statement) {
 	for _, st := range stmts {
-		deyimAdlari(st, k.tanimla)
-		k.deyimGolgeleri(st)
+		statementNames(st, k.define)
+		k.statementShadows(st)
 	}
 }
 
 const (
-	cozDinamik = iota
-	cozYerel
-	cozGenel
-	cozHenuzYok // varsayılan değerde henüz bağlanmamış bir parametre (bkz. henuzYok)
+	resolveDynamic = iota
+	resolveLocal
+	resolveGlobal
+	resolveNotYet // varsayılan değerde henüz bağlanmamış bir parametre (bkz. henuzYok)
 )
 
-type cozum struct {
-	tur      int
-	derinlik int
-	yuva     int
-	genel    *Environment
+type resolution struct {
+	kind      int
+	nestDepth int
+	slot      int
+	global    *Environment
 }
 
 // coz bir adı derleme anında çözer.
-func (k *derleyiciKapsam) coz(ad string) cozum {
+func (k *compilerScope) resolve(name string) resolution {
 	d := 0
-	for c := k; c != nil; c = c.ust {
-		if c.henuzYok[ad] {
-			return cozum{tur: cozHenuzYok}
+	for c := k; c != nil; c = c.parent {
+		if c.notYet[name] {
+			return resolution{kind: resolveNotYet}
 		}
-		if c.bilgi == nil {
-			return cozum{}
+		if c.info == nil {
+			return resolution{}
 		}
-		if i, ok := c.bilgi.indeks[ad]; ok {
-			if c.genel != nil {
-				return cozum{tur: cozGenel, yuva: i, genel: c.genel}
+		if i, ok := c.info.index[name]; ok {
+			if c.global != nil {
+				return resolution{kind: resolveGlobal, slot: i, global: c.global}
 			}
-			return cozum{tur: cozYerel, derinlik: d, yuva: i}
+			return resolution{kind: resolveLocal, nestDepth: d, slot: i}
 		}
-		if c.dinamik {
-			return cozum{}
+		if c.dynamic {
+			return resolution{}
 		}
 		d++
 	}
-	return cozum{}
+	return resolution{}
 }
 
 // derleyici bir derleme işinin durumudur.
-type derleyici struct {
+type compiler struct {
 	// kok genel kapsamdır (yapı alanlarının varsayılanları burada değerlendirilir).
-	kok *derleyiciKapsam
+	root *compilerScope
 	// kaynak derlenen kodun dosyasıdır (nil: ana program); fonksiyonlar onu taşır.
-	kaynak *Source
+	source *Source
 }
 
 // yeniDerleyici görevin o an çalıştığı dosya için bir derleyici açar.
-func (v *VM) yeniDerleyici() *derleyici {
-	return &derleyici{kok: &derleyiciKapsam{bilgi: v.GlobalEnv.kapsam, genel: v.GlobalEnv}, kaynak: v.kaynak}
+func (v *VM) newCompiler() *compiler {
+	return &compiler{root: &compilerScope{info: v.GlobalEnv.scope, global: v.GlobalEnv}, source: v.source}
 }
 
 // altKapsam ust içinde yeni bir ortama karşılık gelen kapsam açar.
-func altKapsam(ust *derleyiciKapsam) *derleyiciKapsam {
-	return &derleyiciKapsam{bilgi: &kapsamBilgisi{}, ust: ust}
+func subScope(parent *compilerScope) *compilerScope {
+	return &compilerScope{info: &scopeInfo{}, parent: parent}
 }
 
 // sinirKapsami çalışma anında verilecek, düzeni bilinmeyen bir ortamı temsil eder.
-func sinirKapsami() *derleyiciKapsam {
-	return &derleyiciKapsam{}
+func boundaryScope() *compilerScope {
+	return &compilerScope{}
 }
 
 // tanimlayici k kapsamına ad tanımlayan bir işlev döndürür (yuvalı ya da adla).
-func tanimlayici(k *derleyiciKapsam, ad string) func(env *Environment, val Value, sabit bool) {
-	if k.bilgi == nil {
-		return func(env *Environment, val Value, sabit bool) { env.Define(ad, val, sabit) }
+func identifier(k *compilerScope, name string) func(env *Environment, val Value, constant bool) {
+	if k.info == nil {
+		return func(env *Environment, val Value, constant bool) { env.Define(name, val, constant) }
 	}
-	i := k.bilgi.yuva(ad)
-	return func(env *Environment, val Value, sabit bool) { env.tanimla(i, val, sabit) }
+	i := k.info.slot(name)
+	return func(env *Environment, val Value, constant bool) { env.define(i, val, constant) }
 }
 
 // --- BLOKLAR ---
 
 // blokKodu derlenmiş bir deyim listesidir. Deyimlerin kendisi hata ayıklayıcı (her
 // deyimden önce danışılır) ve 'zıpla' (satıra atlama) için saklanır.
-type blokKodu struct {
-	deyimler []ast.Statement
-	kodlar   []deyimKodu
+type blockCode struct {
+	statements []ast.Statement
+	codeList   []statementCode
 }
 
-func (c *derleyici) deyimler(k *derleyiciKapsam, stmts []ast.Statement) *blokKodu {
-	b := &blokKodu{deyimler: stmts, kodlar: make([]deyimKodu, len(stmts))}
+func (c *compiler) statements(k *compilerScope, stmts []ast.Statement) *blockCode {
+	b := &blockCode{statements: stmts, codeList: make([]statementCode, len(stmts))}
 	for i, st := range stmts {
-		b.kodlar[i] = c.deyim(k, st)
+		b.codeList[i] = c.statement(k, st)
 	}
 	return b
 }
 
-func (b *blokKodu) calistir(v *VM, env *Environment) (Value, flowSignal, error) {
+func (b *blockCode) run(v *VM, env *Environment) (Value, flowSignal, error) {
 	var lastVal Value = NULL
-	kodlar := b.kodlar
-	for i := 0; i < len(kodlar); i++ {
+	codeList := b.codeList
+	for i := 0; i < len(codeList); i++ {
 		if v.Debugger != nil {
-			if j, zipla := b.ayiklayiciyaDanis(v, i, env); zipla {
+			if j, jump := b.consultDebugger(v, i, env); jump {
 				i = j - 1 // döngü sonunda i++ olacağı için j-1
 				continue
 			}
 		}
-		val, sig, err := kodlar[i](v, env)
+		val, sig, err := codeList[i](v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
@@ -181,8 +181,8 @@ func (b *blokKodu) calistir(v *VM, env *Environment) (Value, flowSignal, error) 
 // tutulur (calistir'ın gövdesi küçük kalsın).
 //
 //go:noinline
-func (b *blokKodu) ayiklayiciyaDanis(v *VM, i int, env *Environment) (int, bool) {
-	stmt := b.deyimler[i]
+func (b *blockCode) consultDebugger(v *VM, i int, env *Environment) (int, bool) {
+	stmt := b.statements[i]
 	if stmt == nil {
 		return 0, false
 	}
@@ -190,17 +190,17 @@ func (b *blokKodu) ayiklayiciyaDanis(v *VM, i int, env *Environment) (int, bool)
 	if _, isBp := stmt.(*ast.BreakpointStatement); isBp {
 		return 0, false
 	}
-	v.etkinBlok = b // hata ayıklayıcı zıplama hedeflerini bu bloğa göre sorar
+	v.activeBlock = b // hata ayıklayıcı zıplama hedeflerini bu bloğa göre sorar
 	jumpLine := v.Debugger.BeforeStatement(v, stmt, env)
 	if jumpLine <= 0 {
 		return 0, false
 	}
-	hedef, ok := b.ziplamaHedefi(jumpLine)
+	dest, ok := b.jumpTarget(jumpLine)
 	if !ok {
 		return 0, false
 	}
-	for j, targetStmt := range b.deyimler {
-		if targetStmt != nil && targetStmt.Line() == hedef {
+	for j, targetStmt := range b.statements {
+		if targetStmt != nil && targetStmt.Line() == dest {
 			return j, true
 		}
 	}
@@ -210,17 +210,17 @@ func (b *blokKodu) ayiklayiciyaDanis(v *VM, i int, env *Environment) (int, bool)
 // zıplamaHedefi blokta satir'a zıplanabiliyorsa zıplanacak deyimin satırını verir: satırdaki
 // ya da ondan sonraki ilk deyim; satır bloğun ilk deyiminden önceyse ya da son deyiminin
 // başından sonraysa (blok dışı) zıplanamaz.
-func (b *blokKodu) ziplamaHedefi(satir int) (int, bool) {
-	ilk := true
-	for _, st := range b.deyimler {
+func (b *blockCode) jumpTarget(lineNo int) (int, bool) {
+	first := true
+	for _, st := range b.statements {
 		if st == nil {
 			continue
 		}
-		if ilk && satir < st.Line() {
+		if first && lineNo < st.Line() {
 			return 0, false
 		}
-		ilk = false
-		if st.Line() >= satir {
+		first = false
+		if st.Line() >= lineNo {
 			return st.Line(), true
 		}
 	}
@@ -231,32 +231,32 @@ func (b *blokKodu) ziplamaHedefi(satir int) (int, bool) {
 // execution can jump to satir inside the paused block (the editor's "goto" request). Jumps are
 // only possible between the statements of the block running now; for a line outside the block
 // ok is false. Must be called on the paused task's own goroutine.
-func (v *VM) JumpTarget(satir int) (int, bool) {
-	if v.etkinBlok == nil {
+func (v *VM) JumpTarget(lineNo int) (int, bool) {
+	if v.activeBlock == nil {
 		return 0, false
 	}
-	return v.etkinBlok.ziplamaHedefi(satir)
+	return v.activeBlock.jumpTarget(lineNo)
 }
 
 // blokDeyimi bir bloğu derler: blok ad tanımlıyorsa her çalışmada yeni bir ortam açar,
 // tanımlamıyorsa çevredeki ortamda çalışır.
-func (c *derleyici) blokDeyimi(k *derleyiciKapsam, b *ast.BlockStatement) deyimKodu {
+func (c *compiler) blockStatement(k *compilerScope, b *ast.BlockStatement) statementCode {
 	if b == nil {
-		return bosDeyim
+		return emptyStatement
 	}
-	if blokBayraklari(b)&blokTanimlar == 0 {
-		return c.deyimler(k, b.Statements).calistir
+	if blockFlags(b)&blockDefines == 0 {
+		return c.statements(k, b.Statements).run
 	}
-	alt := altKapsam(k)
-	alt.onTanimla(b.Statements)
-	bk := c.deyimler(alt, b.Statements)
-	bilgi := alt.bilgi
+	sub := subScope(k)
+	sub.predefine(b.Statements)
+	bk := c.statements(sub, b.Statements)
+	info := sub.info
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		return bk.calistir(v, yeniOrtam(env, bilgi))
+		return bk.run(v, newEnv(env, info))
 	}
 }
 
-func bosDeyim(v *VM, env *Environment) (Value, flowSignal, error) {
+func emptyStatement(v *VM, env *Environment) (Value, flowSignal, error) {
 	return NULL, signalNone, nil
 }
 
@@ -264,26 +264,26 @@ func bosDeyim(v *VM, env *Environment) (Value, flowSignal, error) {
 
 // programCalistir deyimleri genel kapsamda derleyip genel ortamda çalıştırır.
 func (v *VM) programCalistir(stmts []ast.Statement) (Value, flowSignal, error) {
-	c := v.yeniDerleyici()
-	c.kok.onTanimla(stmts)
-	return c.deyimler(c.kok, stmts).calistir(v, v.GlobalEnv)
+	c := v.newCompiler()
+	c.root.predefine(stmts)
+	return c.statements(c.root, stmts).run(v, v.GlobalEnv)
 }
 
 // genelAltindaCalistir deyimleri genel kapsamın altında yeni bir ortamda çalıştırır
 // (testler); ortam çağırana verilir ki 'ertele' blokları çalıştırılabilsin.
-func (v *VM) genelAltindaDerle(stmts []ast.Statement) (*blokKodu, *kapsamBilgisi) {
-	c := v.yeniDerleyici()
-	alt := altKapsam(c.kok)
-	alt.onTanimla(stmts)
-	return c.deyimler(alt, stmts), alt.bilgi
+func (v *VM) compileUnderGlobal(stmts []ast.Statement) (*blockCode, *scopeInfo) {
+	c := v.newCompiler()
+	sub := subScope(c.root)
+	sub.predefine(stmts)
+	return c.statements(sub, stmts), sub.info
 }
 
 // dinamikIfade ifadeyi, düzeni bilinmeyen bir ortamda (adla çözümlemeyle) değerlendirir.
-func (v *VM) dinamikIfade(expr ast.Expression, env *Environment) (Value, error) {
-	return v.yeniDerleyici().ifade(sinirKapsami(), expr)(v, env)
+func (v *VM) dynamicExpr(expr ast.Expression, env *Environment) (Value, error) {
+	return v.newCompiler().expression(boundaryScope(), expr)(v, env)
 }
 
 // dinamikDeyimler deyimleri, düzeni bilinmeyen bir ortamda (adla çözümlemeyle) çalıştırır.
-func (v *VM) dinamikDeyimler(stmts []ast.Statement, env *Environment) (Value, flowSignal, error) {
-	return v.yeniDerleyici().deyimler(sinirKapsami(), stmts).calistir(v, env)
+func (v *VM) dynamicStatements(stmts []ast.Statement, env *Environment) (Value, flowSignal, error) {
+	return v.newCompiler().statements(boundaryScope(), stmts).run(v, env)
 }

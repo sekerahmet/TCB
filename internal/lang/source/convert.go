@@ -42,109 +42,109 @@ var ErrLossy = errors.New("çeviri kayıpsız olmadı (programın anlamı ya da 
 // already coded is returned as is. The '$' of '$name' escapes is dropped (2.11). The result is
 // verified: the coded program's tree must equal the original's, and decoding and re-encoding
 // the coded text must not change it; otherwise it returns ErrLossy.
-func Encode(metin string) (string, error) {
-	b, err := Split(metin)
+func Encode(text string) (string, error) {
+	b, err := Split(text)
 	if err != nil || b.Coded {
-		return metin, err
+		return text, err
 	}
-	c, err := cozumle(b, codes.Active())
+	c, err := analyze(b, codes.Active())
 	if err != nil {
 		return "", err
 	}
-	kodlu := Parts{BOM: b.BOM, Coded: true, Body: c.kodluGovde()}
-	kodlu.HeaderEOL = satirSonuBul(kodlu.Body)
-	sonuc := kodlu.Join()
-	if err := c.ayniAnlam(kodlu); err != nil {
+	coded := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
+	coded.HeaderEOL = findEOL(coded.Body)
+	result := coded.Join()
+	if err := c.sameMeaning(coded); err != nil {
 		return "", err
 	}
-	if geri, err := Decode(sonuc, codes.Active()); err != nil || !yenidenKodlanir(geri, sonuc) {
+	if back, err := Decode(result, codes.Active()); err != nil || !reencodes(back, result) {
 		return "", ErrLossy
 	}
-	return sonuc, nil
+	return result, nil
 }
 
 // yenidenKodlanir kodlu metnin çözülmüş hâli kodlanınca aynı kodlu metni veriyor mu?
-func yenidenKodlanir(cozulmus, kodlu string) bool {
-	b, err := Split(cozulmus)
+func reencodes(decoded, coded string) bool {
+	b, err := Split(decoded)
 	if err != nil || b.Coded {
 		return false
 	}
-	c, err := cozumle(b, codes.Active())
+	c, err := analyze(b, codes.Active())
 	if err != nil {
 		return false
 	}
-	yeni := Parts{BOM: b.BOM, Coded: true, Body: c.kodluGovde()}
-	yeni.HeaderEOL = satirSonuBul(yeni.Body)
-	return yeni.Join() == kodlu
+	fresh := Parts{BOM: b.BOM, Coded: true, Body: c.codedBody()}
+	fresh.HeaderEOL = findEOL(fresh.Body)
+	return fresh.Join() == coded
 }
 
 // kodluGovde Türkçe gövdenin kodlu biçimidir: anahtar kelimeler ve dilin öğesi olan adlar
 // kodlarıyla yazılır, '$ad' kaçışlarının '$'ı atılır; başka hiçbir şey değişmez.
-func (c *cozumleme) kodluGovde() string {
-	var d []degisim
-	for _, r := range c.kayitlar {
-		if r.Type == lexer.TOKEN_IDENT && c.kacisli(r) {
-			d = append(d, degisim{r.Start, r.End, r.Literal})
-		} else if k := c.sozcukKodu(r); k != codes.None {
-			d = append(d, degisim{r.Start, r.End, k.String()})
+func (c *analysis) codedBody() string {
+	var d []change
+	for _, r := range c.records {
+		if r.Type == lexer.TOKEN_IDENT && c.escaped(r) {
+			d = append(d, change{r.Start, r.End, r.Literal})
+		} else if k := c.tokenCode(r); k != codes.None {
+			d = append(d, change{r.Start, r.End, k.String()})
 		}
 	}
-	return uygula(c.girdi, d)
+	return apply(c.input, d)
 }
 
 // Decode converts coded source (the whole file) to dil's spelling; source that is not coded
 // is returned as is. Codes become dil's names; user names that would read as a word of the
 // language in dil are written as '$name' (2.11). The header is dropped and the BOM kept.
-func Decode(metin string, dil *codes.Language) (string, error) {
-	b, err := Split(metin)
+func Decode(text string, lang *codes.Language) (string, error) {
+	b, err := Split(text)
 	if err != nil || !b.Coded {
-		return metin, err
+		return text, err
 	}
-	c, err := cozumle(b, dil)
+	c, err := analyze(b, lang)
 	if err != nil {
 		return "", err
 	}
-	return Parts{BOM: b.BOM, Body: c.gosterimGovdesi()}.Join(), nil
+	return Parts{BOM: b.BOM, Body: c.viewBody()}.Join(), nil
 }
 
 // gosterimGovdesi kodlu gövdenin c.dil'deki yazımıdır.
-func (c *cozumleme) gosterimGovdesi() string {
-	var d []degisim
-	for _, r := range c.kayitlar {
+func (c *analysis) viewBody() string {
+	var d []change
+	for _, r := range c.records {
 		switch {
 		case r.Code != codes.None:
-			d = append(d, degisim{r.Start, r.End, dilAdi(c.dil, r.Code)})
-		case r.Type == lexer.TOKEN_IDENT && !c.kacisli(r) && c.kacisGerekir(r):
-			d = append(d, degisim{r.Start, r.End, "$" + r.Literal})
+			d = append(d, change{r.Start, r.End, langName(c.lang, r.Code)})
+		case r.Type == lexer.TOKEN_IDENT && !c.escaped(r) && c.needsEscape(r):
+			d = append(d, change{r.Start, r.End, "$" + r.Literal})
 		}
 	}
-	return uygula(c.girdi, d)
+	return apply(c.input, d)
 }
 
 // gosterim kodlu bir gövdenin etkin dildeki yazımıdır: hata çerçeveleri ve hata ayıklayıcı
 // bu metni gösterir (konumlar ona göredir, 17.5). Gövde ayrıştırılamıyorsa yalnızca dosya
 // düzeyindeki kodlar adlarına çevrilir (yerleştirmelerdekiler kod kalır).
-func gosterim(b Parts) string {
-	if c, err := cozumle(b, codes.Active()); err == nil {
-		return c.gosterimGovdesi()
+func view(b Parts) string {
+	if c, err := analyze(b, codes.Active()); err == nil {
+		return c.viewBody()
 	}
 	l := b.Lexer()
 	l.StartRecording()
 	for l.NextToken().Type != lexer.TOKEN_EOF {
 	}
-	var d []degisim
+	var d []change
 	for _, r := range l.Records() {
 		if r.Code != codes.None {
-			d = append(d, degisim{r.Start, r.End, dilAdi(codes.Active(), r.Code)})
+			d = append(d, change{r.Start, r.End, langName(codes.Active(), r.Code)})
 		}
 	}
-	return uygula(l.Input(), d)
+	return apply(l.Input(), d)
 }
 
 // dilAdi kodun dil'deki adıdır; dil kodu tanımıyorsa (başka dillerde ölü kodlar isteğe
 // bağlıdır, 17.6) kod olduğu gibi kalır.
-func dilAdi(dil *codes.Language, k codes.Code) string {
-	if g, ok := dil.Entry(k); ok {
+func langName(lang *codes.Language, k codes.Code) string {
+	if g, ok := lang.Entry(k); ok {
 		return g.Name
 	}
 	return k.String()
@@ -152,19 +152,19 @@ func dilAdi(dil *codes.Language, k codes.Code) string {
 
 // cozumleme bir gövdenin çeviri için çıkarılmış bilgisidir: bütün sözcükler (yerleştirmelerdekiler
 // dahil) kaynak aralıklarıyla, ad sözcüklerinin görevleri ve adların bağları (dil'in adlarıyla).
-type cozumleme struct {
-	dil      *codes.Language
-	girdi    []rune
-	kayitlar []lexer.Record
-	roller   map[[2]int]parser.NameRole
-	baglar   map[[2]int]checker.NameBinding
+type analysis struct {
+	lang     *codes.Language
+	input    []rune
+	records  []lexer.Record
+	roles    map[[2]int]parser.NameRole
+	bindings map[[2]int]checker.NameBinding
 	// cakisanlar gösterimde kodlu bir sözcüğü yakalayacak kullanıcı adlarıdır; her yerde
 	// kaçışla yazılırlar (denetci.AdBaglari).
-	cakisanlar map[string]bool
-	prog       *ast.Program
+	conflicts map[string]bool
+	prog      *ast.Program
 }
 
-func cozumle(b Parts, dil *codes.Language) (*cozumleme, error) {
+func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 	if !utf8.ValidString(b.Body) {
 		return nil, ErrUTF8
 	}
@@ -176,21 +176,21 @@ func cozumle(b Parts, dil *codes.Language) (*cozumleme, error) {
 	if errs := p.Errors(); len(errs) > 0 {
 		return nil, &SyntaxError{Errors: errs}
 	}
-	c := &cozumleme{dil: dil, girdi: l.Input(), kayitlar: l.Records(), roller: p.Roles(),
-		baglar: map[[2]int]checker.NameBinding{}, prog: prog}
-	baglar, cakisanlar := checker.NameBindings(prog, dil, nil, false)
-	for _, bg := range baglar {
-		c.baglar[[2]int{bg.Token.Line, bg.Token.Column}] = bg
+	c := &analysis{lang: lang, input: l.Input(), records: l.Records(), roles: p.Roles(),
+		bindings: map[[2]int]checker.NameBinding{}, prog: prog}
+	bindings, conflicts := checker.NameBindings(prog, lang, nil, false)
+	for _, bg := range bindings {
+		c.bindings[[2]int{bg.Token.Line, bg.Token.Column}] = bg
 	}
-	c.cakisanlar = cakisanlar
+	c.conflicts = conflicts
 	return c, nil
 }
 
 // ayniAnlam kodlu gövdenin ağacının özgün ağaçla aynı olduğunu denetler (sözcük birimleri
 // konumlarıyla atlanır; kodlu sözcükler etkin dilin adlarıyla okunduğu için ağaçlar birebir
 // aynı olmalıdır).
-func (c *cozumleme) ayniAnlam(kodlu Parts) error {
-	p := parser.New(kodlu.Lexer())
+func (c *analysis) sameMeaning(coded Parts) error {
+	p := parser.New(coded.Lexer())
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 || ast.Dump(prog) != ast.Dump(c.prog) {
 		return ErrLossy
@@ -199,51 +199,51 @@ func (c *cozumleme) ayniAnlam(kodlu Parts) error {
 }
 
 // kacisli sözcük kaynakta '$ad' kaçışıyla mı yazılmış?
-func (c *cozumleme) kacisli(r lexer.Record) bool {
-	return r.Start < len(c.girdi) && c.girdi[r.Start] == '$'
+func (c *analysis) escaped(r lexer.Record) bool {
+	return r.Start < len(c.input) && c.input[r.Start] == '$'
 }
 
 // sozcukKodu bir sözcüğün kodlu biçimdeki kodudur: anahtar kelime, kodla yazılmış sözcük ya da
 // dilin öğesi olan ad; kullanıcının adında kod.Yok.
-func (c *cozumleme) sozcukKodu(r lexer.Record) codes.Code {
+func (c *analysis) tokenCode(r lexer.Record) codes.Code {
 	if r.Code != codes.None {
 		return r.Code
 	}
 	if r.Type == lexer.TOKEN_IDENT {
-		return c.dilOgesi(r)
+		return c.langElement(r)
 	}
 	return lexer.KeywordCode(r.Type)
 }
 
 // kacisGerekir kodlu kaynaktaki bir kullanıcı adı dil'de yazılınca dilin bir sözcüğü olarak
 // okunur mu? Öyleyse gösterimde '$ad' yazılır.
-func (c *cozumleme) kacisGerekir(r lexer.Record) bool {
-	if k, ok := c.dil.Find(codes.NamespaceGlobal, r.Literal); ok && k.IsKeyword() {
+func (c *analysis) needsEscape(r lexer.Record) bool {
+	if k, ok := c.lang.Find(codes.NamespaceGlobal, r.Literal); ok && k.IsKeyword() {
 		return true
 	}
-	return c.cakisanlar[r.Literal] || c.dilOgesi(r) != codes.None
+	return c.conflicts[r.Literal] || c.langElement(r) != codes.None
 }
 
 // degisim kaynakta [bas, son) karakter aralığının yerine yazılacak metindir.
-type degisim struct {
-	bas, son int
-	metin    string
+type change struct {
+	start, end int
+	text       string
 }
 
 // uygula değişimleri girdiye uygular; aynı aralık iki kez kaydedilmişse (bir yerleştirme iki
 // kez ayrıştırıldıysa) bir kez uygulanır.
-func uygula(girdi []rune, d []degisim) string {
-	sort.SliceStable(d, func(i, j int) bool { return d[i].bas < d[j].bas })
+func apply(input []rune, d []change) string {
+	sort.SliceStable(d, func(i, j int) bool { return d[i].start < d[j].start })
 	var sb strings.Builder
-	onceki := 0
+	prev := 0
 	for _, x := range d {
-		if x.bas < onceki {
+		if x.start < prev {
 			continue
 		}
-		sb.WriteString(string(girdi[onceki:x.bas]))
-		sb.WriteString(x.metin)
-		onceki = x.son
+		sb.WriteString(string(input[prev:x.start]))
+		sb.WriteString(x.text)
+		prev = x.end
 	}
-	sb.WriteString(string(girdi[onceki:]))
+	sb.WriteString(string(input[prev:]))
 	return sb.String()
 }

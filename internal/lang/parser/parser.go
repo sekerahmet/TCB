@@ -8,6 +8,7 @@ package parser
 
 import (
 	"fmt"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
@@ -18,13 +19,13 @@ import (
 // parametresi, indirge bloğunun birikimi) yazımları ve 'kendi'nin adı kod listesinden gelir
 // (internal/lang/codes: A101, A100, A103, A104, A105, A051).
 var (
-	testYazimlari    = codes.Spellings(codes.A101)
-	olarakYazimlari  = codes.Spellings(codes.A100)
-	kendiAdi         = codes.Name(codes.A051)
-	hataAdi          = codes.Name(codes.A103)
-	oAdi             = codes.Name(codes.A104)
-	birikimAdi       = codes.Name(codes.A105)
-	indirgeYazimlari = codes.Spellings(codes.Y207)
+	testSpellings   = codes.Spellings(codes.A101)
+	asSpellings     = codes.Spellings(codes.A100)
+	selfName        = codes.Name(codes.A051)
+	errName         = codes.Name(codes.A103)
+	itName          = codes.Name(codes.A104)
+	accName         = codes.Name(codes.A105)
+	reduceSpellings = codes.Spellings(codes.Y207)
 )
 
 const (
@@ -82,7 +83,7 @@ type Parser struct {
 	// çözümleyicisiyle okunur (konumlar, kodlu kip ve kayıt paylaşılır).
 	l *lexer.Lexer
 	// roller açıksa (RecordRoles) ad sözcüklerinin görevleri kaydedilir (roles.go).
-	roller map[[2]int]NameRole
+	roles map[[2]int]NameRole
 
 	// noBlock: 'eğer', 'iken', 'döngü' ve 'eşle' başlıklarında '{' gövdenin başlangıcıdır,
 	// sondaki blok (o-lambda) olarak okunmamalıdır. Parantez/köşeli parantez içinde yeniden açılır.
@@ -91,29 +92,29 @@ type Parser struct {
 	// hataModu bir deyimde sözdizimi hatası kaydedildikten sonra açıktır: deyim
 	// senkronizeOl ile atlanana dek yeni hata kaydedilmez (art arda gelen hatalar
 	// çoğunlukla ilkinin sonucudur). hataSatiri ilk hatanın satırıdır.
-	hataModu   bool
-	hataSatiri int
+	errorMode bool
+	errorLine int
 
 	// desenKipi bir eşle kolunun deseni okunurken açıktır: desenin hemen ardından gelen
 	// '=>' kolun okudur, ok fonksiyonu değildir (durum => ..., (a + 1) => ...). Yalnızca
 	// desenin en dıştaki ifadesini etkiler; parseExpression girişte kapatır.
-	desenKipi bool
+	patternMode bool
 
 	// baglam 'çık'/'devam'/'sonuç' deyimlerinin geçerliliği için izlenen bağlamdır
 	// (context.go); modul, kodun bir modül olarak ayrıştırıldığını söyler (ParseModule).
-	baglam deyimBaglami
-	modul  bool
+	ctx    stmtContext
+	module bool
 
 	// derinlik içinde bulunulan ifade/blok iç içelik düzeyidir; derinlikAsildi sınır
 	// aşıldıktan sonra açıktır (bkz. derinlikGir).
-	derinlik       int
-	derinlikAsildi bool
+	nesting       int
+	depthExceeded bool
 }
 
 // parseMatchPattern bir eşle kolunun desenini okur.
 func (p *Parser) parseMatchPattern() ast.Expression {
-	p.desenKipi = true
-	defer func() { p.desenKipi = false }()
+	p.patternMode = true
+	defer func() { p.patternMode = false }()
 	return p.parseExpression(LOWEST)
 }
 
@@ -149,12 +150,12 @@ func isTrailingBlockTarget(e ast.Expression) bool {
 // (l.indirge(0) { birikim + o } == l.indirge(0, (birikim, o) => birikim + o)).
 func (p *Parser) parseTrailingBlock(left ast.Expression) ast.Expression {
 	tok := p.curToken() // '{'
-	bas := p.pos
-	body := p.fonksiyonGovdesi()
-	params := []ast.Param{{Name: oAdi}}
-	if indirgeHedefi(left) {
-		params = []ast.Param{{Name: birikimAdi}, {Name: oAdi}}
-		p.eskiIndirgeBlogu(tok, bas)
+	begin := p.pos
+	body := p.functionBody()
+	params := []ast.Param{{Name: itName}}
+	if isReduceTarget(left) {
+		params = []ast.Param{{Name: accName}, {Name: itName}}
+		p.oldReduceBlock(tok, begin)
 	}
 	fn := &ast.FunctionLiteral{
 		Token:      tok,
@@ -241,13 +242,13 @@ func (p *Parser) expectPeek(t lexer.TokenType) bool {
 
 func (p *Parser) peekError(t lexer.TokenType) {
 	tok := p.peekToken()
-	p.hataKaydet(tok, fmt.Sprintf("Sözdizimi hatası — %s bekleniyordu, ancak %s bulundu%s",
-		turAciklamasi(t), tokenAciklamasi(tok), beklenmeyenIpucu(t, tok)))
+	p.recordError(tok, fmt.Sprintf("Sözdizimi hatası — %s bekleniyordu, ancak %s bulundu%s",
+		typeDescription(t), tokenDescription(tok), unexpectedHint(t, tok)))
 }
 
 // addError geçerli token'ın konumunda bir sözdizimi hatası kaydeder.
 func (p *Parser) addError(format string, args ...interface{}) {
-	p.hataKaydet(p.curToken(), fmt.Sprintf(format, args...))
+	p.recordError(p.curToken(), fmt.Sprintf(format, args...))
 }
 
 func (p *Parser) curPrecedence() int {
@@ -274,33 +275,33 @@ func (p *Parser) ParseProgram() *ast.Program {
 			p.nextToken()
 			continue
 		}
-		deyimBas := p.pos
+		stmtStart := p.pos
 		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
 		}
-		p.senkronizeOl(deyimBas, true)
+		p.synchronize(stmtStart, true)
 		p.nextToken()
 	}
-	p.kaldirilanYazimIpuclari()
+	p.removedSpellingHints()
 	return program
 }
 
 // kaldirilanYazimIpuclari sözdizimi hatası olan satırlarda kaldırılmış bir anahtar kelime
 // (ör. 'döndür', 'kır') ad olarak geçiyorsa, eski alışkanlığa yol gösteren bir ipucu ekler.
-func (p *Parser) kaldirilanYazimIpuclari() {
+func (p *Parser) removedSpellingHints() {
 	if len(p.errors) == 0 {
 		return
 	}
-	hataliSatir := map[int]bool{}
+	badLine := map[int]bool{}
 	for _, e := range p.errors {
-		var satir int
-		if _, err := fmt.Sscanf(e, "Satır %d", &satir); err == nil {
-			hataliSatir[satir] = true
+		var lineNo int
+		if _, err := fmt.Sscanf(e, "Satır %d", &lineNo); err == nil {
+			badLine[lineNo] = true
 		}
 	}
 	for _, t := range p.tokens {
-		if t.Type != lexer.TOKEN_IDENT || !hataliSatir[t.Line] {
+		if t.Type != lexer.TOKEN_IDENT || !badLine[t.Line] {
 			continue
 		}
 		if i := hint.KeywordSpellingHint(t.Literal); i != "" {

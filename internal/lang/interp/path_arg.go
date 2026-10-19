@@ -18,29 +18,29 @@ type PathValuer interface {
 // contains a tab or a newline it returns an explanatory error: these almost never occur in file
 // names and usually mean '\t' was taken as an escape in a Windows path like
 // "C:\tokenizer.json".
-func PathArg(fn string, d Value) (yol string, ok bool, err error) {
+func PathArg(fn string, d Value) (filePath string, ok bool, err error) {
 	switch x := d.(type) {
 	case *StringVal:
-		yol = x.Val
+		filePath = x.Val
 	case PathValuer:
-		yol = x.FilePath()
+		filePath = x.FilePath()
 	default:
 		return "", false, nil
 	}
-	return yol, true, CheckPath(fn, yol)
+	return filePath, true, CheckPath(fn, filePath)
 }
 
 // CheckPath looks for control characters (tab, newline) in a path that may have come from an
 // escape sequence; if it finds one it returns an error suggesting a raw string.
-func CheckPath(fn, yol string) error {
-	if !strings.ContainsAny(yol, "\t\n\r") {
+func CheckPath(fn, filePath string) error {
+	if !strings.ContainsAny(filePath, "\t\n\r") {
 		return nil
 	}
 	ne := "satır sonu"
-	if strings.Contains(yol, "\t") {
+	if strings.Contains(filePath, "\t") {
 		ne = "sekme"
 	}
-	gorunen := strings.NewReplacer("\t", `\t`, "\n", `\n`, "\r", `\r`).Replace(yol)
+	visible := strings.NewReplacer("\t", `\t`, "\n", `\n`, "\r", `\r`).Replace(filePath)
 	return fmt.Errorf("%s: dosya yolunda %s karakteri var; metindeki ters bölü bir kaçış dizisi sayıldı (\"\\t\" sekme, \"\\n\" satır sonudur). "+
-		"Windows yolu için ham metin kullanın: `%s` (ya da ters bölüleri ikileyin veya / yazın)", fn, ne, gorunen)
+		"Windows yolu için ham metin kullanın: `%s` (ya da ters bölüleri ikileyin veya / yazın)", fn, ne, visible)
 }

@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-var konumRe = regexp.MustCompile(`Satır (\d+)(?:, Sütun (\d+))?`)
-var tirnakliAdRe = regexp.MustCompile(`'([^'\s]+)'`)
+var posRe = regexp.MustCompile(`Satır (\d+)(?:, Sütun (\d+))?`)
+var quotedNameRe = regexp.MustCompile(`'([^'\s]+)'`)
 
 // CodeFrame shows the "Satır N, Sütun M" (line, column) position of an error message in
 // the source. When the column is known it underlines the faulty part with ^^^, as long as
@@ -17,49 +17,49 @@ var tirnakliAdRe = regexp.MustCompile(`'([^'\s]+)'`)
 //
 //	12 | yazdır(toplm + 1)
 //	   |        ^^^^^
-func CodeFrame(kaynak, mesaj string) string {
-	m := konumRe.FindStringSubmatch(mesaj)
-	if m == nil || kaynak == "" {
+func CodeFrame(source, message string) string {
+	m := posRe.FindStringSubmatch(message)
+	if m == nil || source == "" {
 		return ""
 	}
-	satirNo, _ := strconv.Atoi(m[1])
-	satirlar := strings.Split(strings.ReplaceAll(kaynak, "\r\n", "\n"), "\n")
-	if satirNo < 1 || satirNo > len(satirlar) {
+	lineNo, _ := strconv.Atoi(m[1])
+	lines := strings.Split(strings.ReplaceAll(source, "\r\n", "\n"), "\n")
+	if lineNo < 1 || lineNo > len(lines) {
 		return ""
 	}
-	satir := strings.TrimRight(satirlar[satirNo-1], "\r")
-	if strings.TrimSpace(satir) == "" {
+	line := strings.TrimRight(lines[lineNo-1], "\r")
+	if strings.TrimSpace(line) == "" {
 		return ""
 	}
-	numara := strconv.Itoa(satirNo)
-	bosluk := strings.Repeat(" ", len(numara))
+	number := strconv.Itoa(lineNo)
+	pad := strings.Repeat(" ", len(number))
 	var sb strings.Builder
-	fmt.Fprintf(&sb, " %s | %s\n", numara, satir)
+	fmt.Fprintf(&sb, " %s | %s\n", number, line)
 
 	if m[2] == "" {
 		return sb.String()
 	}
-	sutun, _ := strconv.Atoi(m[2])
-	runes := []rune(satir)
-	if sutun < 1 || sutun > len(runes)+1 {
+	col, _ := strconv.Atoi(m[2])
+	runes := []rune(line)
+	if col < 1 || col > len(runes)+1 {
 		return sb.String()
 	}
-	uzunluk := 1
-	if t := tirnakliAdRe.FindStringSubmatch(mesaj); t != nil {
-		ad := []rune(t[1])
-		if sutun-1+len(ad) <= len(runes) && string(runes[sutun-1:sutun-1+len(ad)]) == t[1] {
-			uzunluk = len(ad)
+	length := 1
+	if t := quotedNameRe.FindStringSubmatch(message); t != nil {
+		name := []rune(t[1])
+		if col-1+len(name) <= len(runes) && string(runes[col-1:col-1+len(name)]) == t[1] {
+			length = len(name)
 		}
 	}
 	// Sekmeler hizayı bozmasın diye işaretçinin önündeki boşluk kaynak satırdan kopyalanır
-	var onek strings.Builder
-	for _, r := range runes[:sutun-1] {
+	var prefix strings.Builder
+	for _, r := range runes[:col-1] {
 		if r == '\t' {
-			onek.WriteRune('\t')
+			prefix.WriteRune('\t')
 		} else {
-			onek.WriteRune(' ')
+			prefix.WriteRune(' ')
 		}
 	}
-	fmt.Fprintf(&sb, " %s | %s%s\n", bosluk, onek.String(), strings.Repeat("^", uzunluk))
+	fmt.Fprintf(&sb, " %s | %s%s\n", pad, prefix.String(), strings.Repeat("^", length))
 	return sb.String()
 }

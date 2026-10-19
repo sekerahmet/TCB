@@ -32,85 +32,85 @@ import (
 //
 // bakilanlar are the absolute paths of the places tried, shown as "bakılan yerler" in error
 // messages (nil for an absolute or empty path).
-func (v *VM) ResolvePath(yol string) (cozulen string, bakilanlar []string) {
-	if yol == "" || filepath.IsAbs(yol) {
-		return yol, nil
+func (v *VM) ResolvePath(filePath string) (resolved string, searched []string) {
+	if filePath == "" || filepath.IsAbs(filePath) {
+		return filePath, nil
 	}
-	adaylar := []string{yol}
-	bakilanlar = []string{mutlakYol(yol)}
-	for _, klasor := range v.aramaKlasorleri() {
-		aday := filepath.Join(klasor, yol)
-		if mutlak := mutlakYol(aday); !slices.Contains(bakilanlar, mutlak) {
-			adaylar = append(adaylar, aday)
-			bakilanlar = append(bakilanlar, mutlak)
+	candidates := []string{filePath}
+	searched = []string{absPath(filePath)}
+	for _, folder := range v.searchDirs() {
+		candidate := filepath.Join(folder, filePath)
+		if absolute := absPath(candidate); !slices.Contains(searched, absolute) {
+			candidates = append(candidates, candidate)
+			searched = append(searched, absolute)
 		}
 	}
 	// 1. Dosyanın (ya da klasörün) kendisinin bulunduğu ilk yer
-	for _, aday := range adaylar {
-		if _, err := os.Stat(aday); err == nil {
-			return aday, bakilanlar
+	for _, candidate := range candidates {
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate, searched
 		}
 	}
 	// 2. Yoksa, bulunacağı klasörün var olduğu ilk yer: yeni bir "çıktı/rapor.txt"
 	// programın yanındaki çıktı/ klasörüne yazılır; okumada "dosya yok" hatası o
 	// klasördeki eksik dosyayı söyler (yanıltıcı biçimde "klasör yok" demez).
-	for _, aday := range adaylar {
-		if bilgi, err := os.Stat(filepath.Dir(aday)); err == nil && bilgi.IsDir() {
-			return aday, bakilanlar
+	for _, candidate := range candidates {
+		if info, err := os.Stat(filepath.Dir(candidate)); err == nil && info.IsDir() {
+			return candidate, searched
 		}
 	}
-	return yol, bakilanlar
+	return filePath, searched
 }
 
 // SearchedPlaces turns the places returned by ResolvePath into the error message suffix.
-func SearchedPlaces(bakilanlar []string) string {
-	switch len(bakilanlar) {
+func SearchedPlaces(searched []string) string {
+	switch len(searched) {
 	case 0:
 		return ""
 	case 1:
-		return "bakılan yer: " + bakilanlar[0]
+		return "bakılan yer: " + searched[0]
 	}
-	return "bakılan yerler: " + strings.Join(bakilanlar, ", ")
+	return "bakılan yerler: " + strings.Join(searched, ", ")
 }
 
 // ReadError explains a read error with turkish.FileError; when the file was not found it adds
 // the places ResolvePath tried. fn is the builtin reporting the error, yol the path the user
 // wrote, islem an outcome such as "okunamadı".
-func ReadError(fn, yol, islem string, err error, bakilanlar []string) error {
-	ek := ""
+func ReadError(fn, filePath, operation string, err error, searched []string) error {
+	extra := ""
 	if errors.Is(err, fs.ErrNotExist) {
-		ek = SearchedPlaces(bakilanlar)
+		extra = SearchedPlaces(searched)
 	}
-	return turkish.FileError(fn, yol, islem, err, ek)
+	return turkish.FileError(fn, filePath, operation, err, extra)
 }
 
 // CodeDirs returns the directories of the running code: the module's directory first when the
 // code runs in a module, then the program's directory (where relative paths are searched after
 // the working directory; sil never deletes these or their parents). Empty when the program does
 // not run from a file.
-func (v *VM) CodeDirs() []string { return v.aramaKlasorleri() }
+func (v *VM) CodeDirs() []string { return v.searchDirs() }
 
 // aramaKlasorleri göreli yolların çalışma klasöründen sonra arandığı klasörlerdir: kod bir
 // modülde çalışıyorsa önce o modülün klasörü, sonra programın klasörü. Program bir
 // dosyadan çalışmıyorsa (etkileşimli kabuk, derlenmiş uygulama: "<...>") onun klasörü yoktur;
 // dilin gömülü kitaplığındaki bir modülün (11.6) diskte klasörü yoktur.
-func (v *VM) aramaKlasorleri() []string {
+func (v *VM) searchDirs() []string {
 	if v == nil {
 		return nil
 	}
-	var klasorler []string
-	if v.kaynak != nil && !v.kaynak.Embedded && v.kaynak.Path != "" && !strings.HasPrefix(v.kaynak.Path, "<") {
-		klasorler = append(klasorler, filepath.Dir(v.kaynak.Path))
+	var dirs []string
+	if v.source != nil && !v.source.Embedded && v.source.Path != "" && !strings.HasPrefix(v.source.Path, "<") {
+		dirs = append(dirs, filepath.Dir(v.source.Path))
 	}
 	if v.SourceFile != "" && !strings.HasPrefix(v.SourceFile, "<") {
-		klasorler = append(klasorler, filepath.Dir(v.SourceFile))
+		dirs = append(dirs, filepath.Dir(v.SourceFile))
 	}
-	return klasorler
+	return dirs
 }
 
-func mutlakYol(yol string) string {
-	if m, err := filepath.Abs(yol); err == nil {
+func absPath(filePath string) string {
+	if m, err := filepath.Abs(filePath); err == nil {
 		return m
 	}
-	return yol
+	return filePath
 }

@@ -20,12 +20,12 @@ import (
 // derleyici denetimden geçmeyen programları da görür). Derin arama:
 //
 //	go test ./internal/lang/interp -run '^$' -fuzz FuzzKaynakDerle -fuzztime 5m
-func FuzzKaynakDerle(f *testing.F) {
-	for _, klasor := range []string{"tests", "examples", "lib"} {
-		_ = filepath.WalkDir(filepath.Join(reporoot.Kok(), klasor), func(yol string, g fs.DirEntry, err error) error {
-			if err == nil && !g.IsDir() && strings.HasSuffix(yol, ".tr") {
-				if veri, err := os.ReadFile(yol); err == nil {
-					f.Add(string(veri))
+func FuzzCompileSource(f *testing.F) {
+	for _, folder := range []string{"tests", "examples", "lib"} {
+		_ = filepath.WalkDir(filepath.Join(reporoot.Kok(), folder), func(filePath string, g fs.DirEntry, err error) error {
+			if err == nil && !g.IsDir() && strings.HasSuffix(filePath, ".tr") {
+				if payload, err := os.ReadFile(filePath); err == nil {
+					f.Add(string(payload))
 				}
 			}
 			return nil
@@ -33,12 +33,12 @@ func FuzzKaynakDerle(f *testing.F) {
 	}
 	f.Add(strings.Repeat("(", 2000) + "1" + strings.Repeat(")", 2000))
 	f.Add("x = \"{'{\"{1}\"}'}\"\n")
-	f.Fuzz(func(t *testing.T, kod string) {
-		if len(kod) > 64<<10 {
+	f.Fuzz(func(t *testing.T, codeVal string) {
+		if len(codeVal) > 64<<10 {
 			return
 		}
-		_ = CheckModule(kod, nil, true)
-		p := parser.New(lexer.New(kod))
+		_ = CheckModule(codeVal, nil, true)
+		p := parser.New(lexer.New(codeVal))
 		prog := p.ParseProgram()
 		if len(p.Errors()) > 0 {
 			return
@@ -47,8 +47,8 @@ func FuzzKaynakDerle(f *testing.F) {
 		_ = chk.CheckProgram(prog)
 		_ = chk.Warnings()
 		v := New()
-		c := v.yeniDerleyici()
-		c.kok.onTanimla(prog.Statements)
-		_ = c.deyimler(c.kok, prog.Statements)
+		c := v.newCompiler()
+		c.root.predefine(prog.Statements)
+		_ = c.statements(c.root, prog.Statements)
 	})
 }

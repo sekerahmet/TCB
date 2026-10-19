@@ -6,86 +6,86 @@ import (
 
 // --- EĞER / EŞLE ---
 
-func (c *derleyici) eger(k *derleyiciKapsam, e *ast.IfExpression) deyimKodu {
-	kosul := c.ifade(k, e.Condition)
-	ana := c.blokDeyimi(k, e.Consequence)
-	digerKosul := make([]ifadeKodu, len(e.ElseIfs))
-	digerDal := make([]deyimKodu, len(e.ElseIfs))
+func (c *compiler) ifExpr(k *compilerScope, e *ast.IfExpression) statementCode {
+	condition := c.expression(k, e.Condition)
+	mainSrc := c.blockStatement(k, e.Consequence)
+	otherCond := make([]exprCode, len(e.ElseIfs))
+	otherBranch := make([]statementCode, len(e.ElseIfs))
 	for i, ei := range e.ElseIfs {
-		digerKosul[i] = c.ifade(k, ei.Condition)
-		digerDal[i] = c.blokDeyimi(k, ei.Consequence)
+		otherCond[i] = c.expression(k, ei.Condition)
+		otherBranch[i] = c.blockStatement(k, ei.Consequence)
 	}
-	var yoksa deyimKodu
+	var coalesce statementCode
 	if e.Alternative != nil {
-		yoksa = c.blokDeyimi(k, e.Alternative)
+		coalesce = c.blockStatement(k, e.Alternative)
 	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		cond, err := kosul(v, env)
+		cond, err := condition(v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
-		if dogruMu(cond) {
-			return ana(v, env)
+		if isTrue(cond) {
+			return mainSrc(v, env)
 		}
-		for i, dk := range digerKosul {
+		for i, dk := range otherCond {
 			elifCond, err := dk(v, env)
 			if err != nil {
 				return nil, signalNone, err
 			}
-			if dogruMu(elifCond) {
-				return digerDal[i](v, env)
+			if isTrue(elifCond) {
+				return otherBranch[i](v, env)
 			}
 		}
-		if yoksa != nil {
-			return yoksa(v, env)
+		if coalesce != nil {
+			return coalesce(v, env)
 		}
 		return NULL, signalNone, nil
 	}
 }
-func (c *derleyici) esle(k *derleyiciKapsam, e *ast.MatchExpression) deyimKodu {
-	type durumKodu struct {
-		varsayilan bool
-		desenler   []ifadeKodu
-		govde      deyimKodu
-		deger      ifadeKodu
+func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statementCode {
+	type statusCode struct {
+		defaultVal bool
+		patterns   []exprCode
+		bodyBlock  statementCode
+		value      exprCode
 	}
-	konu := c.ifade(k, e.Subject)
-	durumlar := make([]durumKodu, len(e.Cases))
+	topic := c.expression(k, e.Subject)
+	caseList := make([]statusCode, len(e.Cases))
 	for i, mc := range e.Cases {
-		d := durumKodu{varsayilan: mc.IsDefault, desenler: c.ifadeler(k, mc.Patterns)}
+		d := statusCode{defaultVal: mc.IsDefault, patterns: c.expressions(k, mc.Patterns)}
 		if mc.Body != nil {
-			d.govde = c.blokDeyimi(k, mc.Body)
+			d.bodyBlock = c.blockStatement(k, mc.Body)
 		}
 		if mc.ValueExpr != nil {
-			d.deger = c.ifade(k, mc.ValueExpr)
+			d.value = c.expression(k, mc.ValueExpr)
 		}
-		durumlar[i] = d
+		caseList[i] = d
 	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		subj, err := konu(v, env)
+		subj, err := topic(v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
-		for _, d := range durumlar {
-			matched := d.varsayilan
+		for _, d := range caseList {
+			matched := d.defaultVal
 			if !matched {
-				for _, pat := range d.desenler {
+				for _, pat := range d.patterns {
 					patVal, err := pat(v, env)
 					if err != nil {
 						return nil, signalNone, err
 					}
-					if desenUyar(subj, patVal) {
+					if patternMatches(subj, patVal) {
 						matched = true
 						break
 					}
 				}
 			}
 			if matched {
-				if d.govde != nil {
-					return d.govde(v, env)
+				if d.bodyBlock != nil {
+					return d.bodyBlock(v, env)
 				}
-				if d.deger != nil {
-					val, err := d.deger(v, env)
+				if d.value != nil {
+					val, err := d.value(v, env)
 					return val, signalNone, err
 				}
 				return NULL, signalNone, nil
@@ -96,7 +96,7 @@ func (c *derleyici) esle(k *derleyiciKapsam, e *ast.MatchExpression) deyimKodu {
 }
 
 // desenUyar 'eşle' deseninin konuya uyup uymadığını söyler (aralık desenleri dahil).
-func desenUyar(subj, patVal Value) bool {
+func patternMatches(subj, patVal Value) bool {
 	if rng, ok := patVal.(*RangeVal); ok {
 		if iv, ok := subj.(*IntVal); ok {
 			if rng.Inclusive && iv.Val >= rng.Start && iv.Val <= rng.End {

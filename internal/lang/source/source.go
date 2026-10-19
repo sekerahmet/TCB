@@ -21,7 +21,7 @@ const Header = lexer.CodedHeader
 
 // baslikOneki kodlu biçim başlıklarının ortak başıdır; bu önekle başlayıp Baslik olmayan
 // bir ilk satır, bu sürümün okuyamadığı bir biçimdir (sessizce Türkçe kaynak sayılmaz).
-const baslikOneki = "//! tr kodlu"
+const headerPrefix = "//! tr kodlu"
 
 const bom = "\xef\xbb\xbf"
 
@@ -47,42 +47,42 @@ type HeaderError struct {
 
 func (e *HeaderError) Error() string {
 	return fmt.Sprintf("Satır 1, Sütun 1: '%s' bu yorumlayıcının tanımadığı bir kodlu biçim başlığı; yalnızca '%s' okunur (dosya daha yeni bir TR sürümüyle yazılmış olabilir; '%s' ile başlayan ilk satır kodlu biçim için ayrılmıştır)",
-		e.Line, Header, baslikOneki)
+		e.Line, Header, headerPrefix)
 }
 
 // Split splits text into its parts. If the first line (after the BOM) is exactly Header the
 // file is coded; otherwise it is source written in Turkish (backward compatible). If the first
 // line starts with the header prefix but is not Header, it returns *HeaderError.
-func Split(metin string) (Parts, error) {
+func Split(text string) (Parts, error) {
 	var b Parts
-	if strings.HasPrefix(metin, bom) {
+	if strings.HasPrefix(text, bom) {
 		b.BOM = true
-		metin = metin[len(bom):]
+		text = text[len(bom):]
 	}
-	ilk, kalan, satirSonu := ilkSatir(metin)
+	first, rest, eol := firstLine(text)
 	switch {
-	case ilk == Header:
-		b.Coded, b.HeaderEOL, b.Body = true, satirSonu, kalan
-	case strings.HasPrefix(ilk, baslikOneki):
-		b.Body = metin
-		return b, &HeaderError{Line: ilk}
+	case first == Header:
+		b.Coded, b.HeaderEOL, b.Body = true, eol, rest
+	case strings.HasPrefix(first, headerPrefix):
+		b.Body = text
+		return b, &HeaderError{Line: first}
 	default:
-		b.Body = metin
+		b.Body = text
 	}
 	return b, nil
 }
 
 // ilkSatir metnin ilk satırını, ondan sonrasını ve aradaki satır sonunu verir.
-func ilkSatir(metin string) (ilk, kalan, satirSonu string) {
-	i := strings.IndexByte(metin, '\n')
+func firstLine(text string) (first, rest, eol string) {
+	i := strings.IndexByte(text, '\n')
 	if i < 0 {
-		return metin, "", ""
+		return text, "", ""
 	}
-	ilk, satirSonu = metin[:i], "\n"
-	if strings.HasSuffix(ilk, "\r") {
-		ilk, satirSonu = ilk[:len(ilk)-1], "\r\n"
+	first, eol = text[:i], "\n"
+	if strings.HasSuffix(first, "\r") {
+		first, eol = first[:len(first)-1], "\r\n"
 	}
-	return ilk, metin[i+1:], satirSonu
+	return first, text[i+1:], eol
 }
 
 // Join turns the parts back into file text (the inverse of Split).
@@ -106,8 +106,8 @@ func (b Parts) Lexer() *lexer.Lexer {
 
 // satirSonuBul bir gövdenin satır sonu biçimidir: ilk satır sonu CRLF ise "\r\n", yoksa "\n".
 // Kodla başlığı gövdenin biçimiyle yazar.
-func satirSonuBul(govde string) string {
-	if i := strings.IndexByte(govde, '\n'); i > 0 && govde[i-1] == '\r' {
+func findEOL(body string) string {
+	if i := strings.IndexByte(body, '\n'); i > 0 && body[i-1] == '\r' {
 		return "\r\n"
 	}
 	return "\n"

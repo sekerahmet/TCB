@@ -12,15 +12,15 @@ import (
 // bitince uyarıyla bildirilir (sessizce yok sayılmasın).
 
 // SetArgs records the program's arguments (once, before the program starts).
-func (v *VM) SetArgs(argumanlar []string) {
-	v.argumanlar = append([]string(nil), argumanlar...)
-	v.argumanlarOkundu.Store(false)
+func (v *VM) SetArgs(arguments []string) {
+	v.arguments = append([]string(nil), arguments...)
+	v.argsRead.Store(false)
 }
 
 // Args returns a copy of the program's arguments and marks them as read.
 func (v *VM) Args() []string {
-	v.argumanlarOkundu.Store(true)
-	return append([]string(nil), v.argumanlar...)
+	v.argsRead.Store(true)
+	return append([]string(nil), v.arguments...)
 }
 
 // ProgramCommand is how the command that started the program is written (KomutAdi; when empty
@@ -38,9 +38,9 @@ func (v *VM) ProgramCommand() string {
 // UnusedArgsWarning is the warning to write to standard error when the program ended without
 // reading its arguments; empty when no arguments were given or they were read.
 func (v *VM) UnusedArgsWarning() string {
-	if len(v.argumanlar) == 0 || v.argumanlarOkundu.Load() {
+	if len(v.arguments) == 0 || v.argsRead.Load() {
 		return ""
 	}
 	return fmt.Sprintf("⚠️ Uyarı: programa verilen %d argüman kullanılmadı (%s); program komut satırı argümanlarını okumuyor",
-		len(v.argumanlar), v.Mask(strings.Join(v.argumanlar, " ")))
+		len(v.arguments), v.Mask(strings.Join(v.arguments, " ")))
 }

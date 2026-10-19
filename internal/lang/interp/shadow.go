@@ -15,50 +15,50 @@ import (
 // adları için tutulur; çalışma anına yalnızca hata yolunda bir maliyet ekler.
 
 // golgeTanimi bir kapsamda yerleşik adını gölgeleyen tanımdır.
-type golgeTanimi struct {
-	satir int
-	ne    string // "bir değişkene", "bir parametreye" ...
+type shadowDef struct {
+	lineNo int
+	ne     string // "bir değişkene", "bir parametreye" ...
 }
 
 // yerlesikAdi ad sözlükteki bir yerleşik fonksiyonun (G/T/V/W) adı mı?
-func yerlesikAdi(ad string) bool {
-	k, ok := codes.Find(codes.NamespaceGlobal, ad)
+func builtinName(name string) bool {
+	k, ok := codes.Find(codes.NamespaceGlobal, name)
 	return ok && k.IsBuiltin()
 }
 
 // golgeKaydet ad bir yerleşik adıysa bu kapsamdaki tanımını kaydeder (kapsamdaki ilk
 // tanım tutulur).
-func (k *derleyiciKapsam) golgeKaydet(ad string, satir int, ne string) {
-	if !yerlesikAdi(ad) {
+func (k *compilerScope) recordShadow(name string, lineNo int, ne string) {
+	if !builtinName(name) {
 		return
 	}
-	if k.golge == nil {
-		k.golge = map[string]golgeTanimi{}
+	if k.shadow == nil {
+		k.shadow = map[string]shadowDef{}
 	}
-	if _, var_ := k.golge[ad]; !var_ {
-		k.golge[ad] = golgeTanimi{satir: satir, ne: ne}
+	if _, var_ := k.shadow[name]; !var_ {
+		k.shadow[name] = shadowDef{lineNo: lineNo, ne: ne}
 	}
 }
 
 // golgeBul ad, bu kapsamdan dışa doğru bir kullanıcı tanımıyla gölgelenmişse tanımı verir.
-func (k *derleyiciKapsam) golgeBul(ad string) (golgeTanimi, bool) {
-	for c := k; c != nil; c = c.ust {
-		if g, ok := c.golge[ad]; ok {
+func (k *compilerScope) findShadow(name string) (shadowDef, bool) {
+	for c := k; c != nil; c = c.parent {
+		if g, ok := c.shadow[name]; ok {
 			return g, true
 		}
 	}
-	return golgeTanimi{}, false
+	return shadowDef{}, false
 }
 
 // deyimGolgeleri deyimin bu kapsama tanımladığı adları satırlarıyla golgeKaydet'e verir
 // (deyimAdlari'nın yerleşik gölgeleme için gereken kısmı).
-func (k *derleyiciKapsam) deyimGolgeleri(st ast.Statement) {
+func (k *compilerScope) statementShadows(st ast.Statement) {
 	switch s := st.(type) {
 	case *ast.VarStatement:
-		k.golgeKaydet(s.Name.Value, s.Line(), "bir değişkene")
+		k.recordShadow(s.Name.Value, s.Line(), "bir değişkene")
 	case *ast.MultiVarStatement:
 		for _, n := range s.Names {
-			k.golgeKaydet(n.Value, s.Line(), "bir değişkene")
+			k.recordShadow(n.Value, s.Line(), "bir değişkene")
 		}
 	}
 }
@@ -66,15 +66,15 @@ func (k *derleyiciKapsam) deyimGolgeleri(st ast.Statement) {
 // golgeliCagri, adı gölgelenmiş bir yerleşik olan çağrının kodunu sarar: çağrı hata
 // verirse ve ad çağrılamaz bir değere bağlıysa hata gölgelemeyi anlatan mesajla
 // değiştirilir.
-func golgeliCagri(kd ifadeKodu, fonk ifadeKodu, ad string, g golgeTanimi, line int) ifadeKodu {
+func shadowedCall(kd exprCode, fun exprCode, name string, g shadowDef, line int) exprCode {
 	return func(v *VM, env *Environment) (Value, error) {
 		val, err := kd(v, env)
 		if err == nil {
 			return val, nil
 		}
-		if fv, e := fonk(v, env); e == nil && !cagrilabilir(fv) {
+		if fv, e := fun(v, env); e == nil && !callable(fv) {
 			return nil, fmt.Errorf("Satır %d: '%s' bir fonksiyon değil (%s); %d. satırda %s verildi, yerleşik '%s' bu kapsamda gölgelendi",
-				line, ad, fv.Type(), g.satir, g.ne, ad)
+				line, name, fv.Type(), g.lineNo, g.ne, name)
 		}
 		return nil, err
 	}

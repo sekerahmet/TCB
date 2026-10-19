@@ -26,49 +26,49 @@ import (
 //     'kendi' kendi kapsamlarında tanımlıdır.
 
 // adKapsami tanımsız ad denetiminin sözcüksel kapsamıdır.
-type adKapsami struct {
-	ust     *adKapsami
-	adlar   map[string]bool
-	dinamik bool // takma adsız 'aktar': adlar çalışma anında belli olur
+type nameScope struct {
+	parent  *nameScope
+	names   map[string]bool
+	dynamic bool // takma adsız 'aktar': adlar çalışma anında belli olur
 	// yapilar kapsamda tanımlanan yapılardır (kurucuya verilen adlı argümanlar alan adıdır);
 	// ortuk, kapsamın örtük adlarının bağlamsal kodlarıdır (sondaki bloğun 'o'su ve
 	// 'birikim'i, adı yazılmamış yakala'nın 'hata'sı). İkisi de ad bağlarında kullanılır
 	// (bindings.go).
-	yapilar map[string]*ast.StructStatement
-	ortuk   [2]codes.Code
+	structs  map[string]*ast.StructStatement
+	implicit [2]codes.Code
 }
 
-func yeniAdKapsami(ust *adKapsami) *adKapsami {
-	return &adKapsami{ust: ust, adlar: map[string]bool{}}
+func newNameScope(parent *nameScope) *nameScope {
+	return &nameScope{parent: parent, names: map[string]bool{}}
 }
 
-func (k *adKapsami) tanimla(ad string) {
-	if ad == "" {
-		k.dinamik = true
+func (k *nameScope) define(name string) {
+	if name == "" {
+		k.dynamic = true
 		return
 	}
-	k.adlar[ad] = true
+	k.names[name] = true
 }
 
 // bilinir ad bu kapsamdan görünüyor mu (ya da adları belirsiz bir kapsamın altında mı)?
-func (k *adKapsami) bilinir(ad string) bool {
-	for c := k; c != nil; c = c.ust {
-		if c.adlar[ad] || c.dinamik {
+func (k *nameScope) isKnown(name string) bool {
+	for c := k; c != nil; c = c.parent {
+		if c.names[name] || c.dynamic {
 			return true
 		}
 	}
-	return yerlesikAdlari()[ad]
+	return builtinNames()[name]
 }
 
 // gorunenler öneri için bu kapsamdan görünen adlardır (yerleşikler dahil).
-func (k *adKapsami) gorunenler() []string {
+func (k *nameScope) visible() []string {
 	var out []string
-	for c := k; c != nil; c = c.ust {
-		for a := range c.adlar {
+	for c := k; c != nil; c = c.parent {
+		for a := range c.names {
 			out = append(out, a)
 		}
 	}
-	for a := range yerlesikAdlari() {
+	for a := range builtinNames() {
 		out = append(out, a)
 	}
 	sort.Strings(out)
@@ -76,16 +76,16 @@ func (k *adKapsami) gorunenler() []string {
 }
 
 // adDenetleyici bir programın tanımsız ad denetimidir; bulunan hatalar Checker'a eklenir.
-type adDenetleyici struct {
-	c        *Checker
-	bildirim map[string]bool // aynı ad için tek hata (ilk geçtiği yer)
+type nameChecker struct {
+	c    *Checker
+	decl map[string]bool // aynı ad için tek hata (ilk geçtiği yer)
 	// baglar nil değilse gezinti hata aramaz, her adın neye bağlandığını dil'in adlarıyla
 	// kaydeder (NameBindings, bindings.go).
-	baglar *[]NameBinding
-	dil    *codes.Language
+	bindings *[]NameBinding
+	lang     *codes.Language
 	// cakisanlar kodla yazılmış bir sözcüğün dil'deki adını kendi yerinde yakalayan kullanıcı
 	// adlarıdır (AdBaglari).
-	cakisanlar map[string]bool
+	conflicts map[string]bool
 }
 
 // SetGlobalScope is for checking modules: a module runs under the global scope of the
@@ -93,319 +93,319 @@ type adDenetleyici struct {
 // names; dinamik says the names are not fully known (e.g. the global scope has an 'aktar'
 // with no alias), in which case undefined names are not reported in the module. Call it
 // before CheckProgram.
-func (c *Checker) SetGlobalScope(adlar []string, dinamik bool) {
-	ust := yeniAdKapsami(nil)
-	for _, a := range adlar {
-		ust.tanimla(a)
+func (c *Checker) SetGlobalScope(names []string, dynamic bool) {
+	parent := newNameScope(nil)
+	for _, a := range names {
+		parent.define(a)
 	}
-	ust.dinamik = ust.dinamik || dinamik
-	c.genelAdlar = yeniAdKapsami(ust)
+	parent.dynamic = parent.dynamic || dynamic
+	c.globalNames = newNameScope(parent)
 }
 
 // TopLevelNames returns the names the program defines directly in its global scope; dinamik
 // says the names are not fully known because of an 'aktar' with no alias. They are passed to
 // SetGlobalScope when the program's imported modules are checked.
-func TopLevelNames(prog *ast.Program) (adlar []string, dinamik bool) {
-	k := yeniAdKapsami(nil)
-	(&adDenetleyici{}).tanimlar(prog.Statements, k)
-	for a := range k.adlar {
-		adlar = append(adlar, a)
+func TopLevelNames(prog *ast.Program) (names []string, dynamic bool) {
+	k := newNameScope(nil)
+	(&nameChecker{}).declare(prog.Statements, k)
+	for a := range k.names {
+		names = append(names, a)
 	}
-	sort.Strings(adlar)
-	return adlar, k.dinamik
+	sort.Strings(names)
+	return names, k.dynamic
 }
 
 // adlariDenetle programı tanımsız adlar için denetler. Genel kapsam Checker'da kalıcıdır:
 // etkileşimli kabukta önceki satırların tanımları sonraki satırlarda görünür.
-func (c *Checker) adlariDenetle(prog *ast.Program) {
-	if c.genelAdlar == nil {
-		c.genelAdlar = yeniAdKapsami(nil)
+func (c *Checker) checkNames(prog *ast.Program) {
+	if c.globalNames == nil {
+		c.globalNames = newNameScope(nil)
 	}
-	d := &adDenetleyici{c: c, bildirim: map[string]bool{}}
-	d.tanimlar(prog.Statements, c.genelAdlar)
+	d := &nameChecker{c: c, decl: map[string]bool{}}
+	d.declare(prog.Statements, c.globalNames)
 	for _, st := range prog.Statements {
-		d.deyim(st, c.genelAdlar)
+		d.statement(st, c.globalNames)
 	}
 }
 
 // tanimlar deyimlerin, çalıştıkları kapsama doğrudan tanımladığı adları kapsama ekler
 // (çalışma anının kapsam kuralıyla aynı: değişken, sabit, yapı, takma adlı aktar ve
 // ifadelerin içindeki adlı fonksiyonlar; iç bloklar ve fonksiyon gövdeleri kendi kapsamıdır).
-func (d *adDenetleyici) tanimlar(stmts []ast.Statement, k *adKapsami) {
+func (d *nameChecker) declare(stmts []ast.Statement, k *nameScope) {
 	for _, st := range stmts {
 		switch s := st.(type) {
 		case *ast.VarStatement:
-			k.tanimla(s.Name.Value)
-			d.ifadeTanimlari(s.Value, k)
+			k.define(s.Name.Value)
+			d.exprDefinitions(s.Value, k)
 		case *ast.MultiVarStatement:
 			for _, n := range s.Names {
-				k.tanimla(n.Value)
+				k.define(n.Value)
 			}
 			for _, v := range s.Values {
-				d.ifadeTanimlari(v, k)
+				d.exprDefinitions(v, k)
 			}
 		case *ast.StructStatement:
-			k.tanimla(s.Name)
-			if k.yapilar == nil {
-				k.yapilar = map[string]*ast.StructStatement{}
+			k.define(s.Name)
+			if k.structs == nil {
+				k.structs = map[string]*ast.StructStatement{}
 			}
-			k.yapilar[s.Name] = s
+			k.structs[s.Name] = s
 		case *ast.ImportStatement:
-			k.tanimla(s.Alias)
+			k.define(s.Alias)
 		case *ast.ExpressionStatement:
-			d.ifadeTanimlari(s.Expression, k)
+			d.exprDefinitions(s.Expression, k)
 		case *ast.AssignStatement:
-			d.ifadeTanimlari(s.Target, k)
-			d.ifadeTanimlari(s.Value, k)
+			d.exprDefinitions(s.Target, k)
+			d.exprDefinitions(s.Value, k)
 		case *ast.MultiAssignStatement:
 			for _, e := range s.Targets {
-				d.ifadeTanimlari(e, k)
+				d.exprDefinitions(e, k)
 			}
 			for _, e := range s.Values {
-				d.ifadeTanimlari(e, k)
+				d.exprDefinitions(e, k)
 			}
 		case *ast.ReturnStatement:
-			d.ifadeTanimlari(s.ReturnValue, k)
+			d.exprDefinitions(s.ReturnValue, k)
 		case *ast.ThrowStatement:
-			d.ifadeTanimlari(s.Value, k)
+			d.exprDefinitions(s.Value, k)
 		case *ast.ForInStatement:
-			d.ifadeTanimlari(s.Iterable, k)
+			d.exprDefinitions(s.Iterable, k)
 		case *ast.WhileStatement:
-			d.ifadeTanimlari(s.Condition, k)
+			d.exprDefinitions(s.Condition, k)
 		case *ast.DeferStatement:
-			d.ifadeTanimlari(s.Call, k)
+			d.exprDefinitions(s.Call, k)
 		case *ast.AsyncStatement:
-			d.ifadeTanimlari(s.Call, k)
+			d.exprDefinitions(s.Call, k)
 		case *ast.BreakpointStatement:
-			d.ifadeTanimlari(s.Condition, k)
+			d.exprDefinitions(s.Condition, k)
 		}
 	}
 }
 
 // ifadeTanimlari ifadenin, değerlendirildiği kapsama tanımladığı adları (fonksiyon f() { }
 // biçimindeki adlı fonksiyonlar) ekler; fonksiyon gövdelerine ve bloklara inmez.
-func (d *adDenetleyici) ifadeTanimlari(e ast.Expression, k *adKapsami) {
-	agacGez(e, func(x ast.Expression) bool {
+func (d *nameChecker) exprDefinitions(e ast.Expression, k *nameScope) {
+	walkTree(e, func(x ast.Expression) bool {
 		if f, ok := x.(*ast.FunctionLiteral); ok {
 			if f.Name != "" {
-				k.tanimla(f.Name)
+				k.define(f.Name)
 			}
 			return false
 		}
-		_, blok := x.(*ast.IfExpression)
-		_, eslesme := x.(*ast.MatchExpression)
-		return !blok && !eslesme
+		_, block := x.(*ast.IfExpression)
+		_, match := x.(*ast.MatchExpression)
+		return !block && !match
 	})
 }
 
 // agacGez ifade ağacını ön sırayla gezer; ziyaret false dönerse düğümün çocuklarına inmez.
 // Blok içeren düğümlerin (eğer, eşle, fonksiyon) yalnızca ifade çocukları gezilir.
-func agacGez(e ast.Expression, ziyaret func(ast.Expression) bool) {
-	if e == nil || !ziyaret(e) {
+func walkTree(e ast.Expression, visit func(ast.Expression) bool) {
+	if e == nil || !visit(e) {
 		return
 	}
 	switch x := e.(type) {
 	case *ast.InterpolatedString:
 		for _, p := range x.Parts {
-			agacGez(p, ziyaret)
+			walkTree(p, visit)
 		}
 	case *ast.ListLiteral:
 		for _, el := range x.Elements {
-			agacGez(el, ziyaret)
+			walkTree(el, visit)
 		}
 	case *ast.DictLiteral:
 		for _, p := range x.Pairs {
-			agacGez(p.Key, ziyaret)
-			agacGez(p.Value, ziyaret)
+			walkTree(p.Key, visit)
+			walkTree(p.Value, visit)
 		}
 	case *ast.RangeExpression:
-		agacGez(x.Start, ziyaret)
-		agacGez(x.End, ziyaret)
+		walkTree(x.Start, visit)
+		walkTree(x.End, visit)
 	case *ast.PrefixExpression:
-		agacGez(x.Right, ziyaret)
+		walkTree(x.Right, visit)
 	case *ast.InfixExpression:
-		agacGez(x.Left, ziyaret)
-		agacGez(x.Right, ziyaret)
+		walkTree(x.Left, visit)
+		walkTree(x.Right, visit)
 	case *ast.CallExpression:
-		agacGez(x.Function, ziyaret)
+		walkTree(x.Function, visit)
 		for _, a := range x.Arguments {
-			agacGez(a, ziyaret)
+			walkTree(a, visit)
 		}
 		for _, na := range x.NamedArgs {
-			agacGez(na.Value, ziyaret)
+			walkTree(na.Value, visit)
 		}
 	case *ast.IndexExpression:
-		agacGez(x.Left, ziyaret)
-		agacGez(x.Index, ziyaret)
+		walkTree(x.Left, visit)
+		walkTree(x.Index, visit)
 	case *ast.MemberExpression:
-		agacGez(x.Object, ziyaret)
+		walkTree(x.Object, visit)
 	case *ast.ListComprehension:
-		agacGez(x.Iterable, ziyaret)
+		walkTree(x.Iterable, visit)
 	}
 }
 
 // blok deyimleri yeni bir alt kapsamda denetler; once alt kapsama önceden tanımlanacak
 // adları (döngü değişkeni, parametreler ...) ekler.
-func (d *adDenetleyici) blok(b *ast.BlockStatement, ust *adKapsami, once ...string) {
+func (d *nameChecker) block(b *ast.BlockStatement, parent *nameScope, preset ...string) {
 	if b == nil {
 		return
 	}
-	k := yeniAdKapsami(ust)
-	for _, a := range once {
-		k.tanimla(a)
+	k := newNameScope(parent)
+	for _, a := range preset {
+		k.define(a)
 	}
-	d.blokKapsamda(b, k)
+	d.blockInScope(b, k)
 }
 
 // blokKapsamda bloğun deyimlerini hazırlanmış k kapsamında denetler.
-func (d *adDenetleyici) blokKapsamda(b *ast.BlockStatement, k *adKapsami) {
+func (d *nameChecker) blockInScope(b *ast.BlockStatement, k *nameScope) {
 	if b == nil {
 		return
 	}
-	d.tanimlar(b.Statements, k)
+	d.declare(b.Statements, k)
 	for _, st := range b.Statements {
-		d.deyim(st, k)
+		d.statement(st, k)
 	}
 }
 
-func (d *adDenetleyici) deyim(st ast.Statement, k *adKapsami) {
+func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 	switch s := st.(type) {
 	case *ast.VarStatement:
-		d.ifade(s.Value, k)
+		d.expression(s.Value, k)
 	case *ast.MultiVarStatement:
 		for _, v := range s.Values {
-			d.ifade(v, k)
+			d.expression(v, k)
 		}
 	case *ast.AssignStatement:
-		d.hedef(s.Target, k)
-		d.ifade(s.Value, k)
+		d.target(s.Target, k)
+		d.expression(s.Value, k)
 	case *ast.MultiAssignStatement:
 		for _, t := range s.Targets {
-			d.hedef(t, k)
+			d.target(t, k)
 		}
 		for _, v := range s.Values {
-			d.ifade(v, k)
+			d.expression(v, k)
 		}
 	case *ast.ExpressionStatement:
-		d.ifade(s.Expression, k)
+		d.expression(s.Expression, k)
 	case *ast.ReturnStatement:
-		d.ifade(s.ReturnValue, k)
+		d.expression(s.ReturnValue, k)
 	case *ast.ThrowStatement:
-		d.ifade(s.Value, k)
+		d.expression(s.Value, k)
 	case *ast.BlockStatement:
-		d.blok(s, k)
+		d.block(s, k)
 	case *ast.ForInStatement:
-		d.ifade(s.Iterable, k)
-		var once []string
+		d.expression(s.Iterable, k)
+		var preset []string
 		if s.KeyVar != "" {
-			once = append(once, s.KeyVar)
+			preset = append(preset, s.KeyVar)
 		}
-		d.blok(s.Body, k, append(once, s.ValueVar)...)
+		d.block(s.Body, k, append(preset, s.ValueVar)...)
 	case *ast.WhileStatement:
-		d.ifade(s.Condition, k)
-		d.blok(s.Body, k)
+		d.expression(s.Condition, k)
+		d.block(s.Body, k)
 	case *ast.TryCatchStatement:
-		d.blok(s.TryBody, k)
-		yk := yeniAdKapsami(k)
-		yk.tanimla(s.ErrorVar)
+		d.block(s.TryBody, k)
+		ck := newNameScope(k)
+		ck.define(s.ErrorVar)
 		if s.ImplicitErrorVar {
-			yk.ortuk[0] = codes.A103
+			ck.implicit[0] = codes.A103
 		}
-		d.blokKapsamda(s.CatchBody, yk)
+		d.blockInScope(s.CatchBody, ck)
 	case *ast.StructStatement:
 		for _, f := range s.Fields {
-			d.ifade(f.DefaultValue, k)
+			d.expression(f.DefaultValue, k)
 		}
-		adlar := make([]string, 0, len(s.Methods))
-		for ad := range s.Methods {
-			adlar = append(adlar, ad)
+		names := make([]string, 0, len(s.Methods))
+		for name := range s.Methods {
+			names = append(names, name)
 		}
-		sort.Strings(adlar) // hatalar kararlı sırada
-		for _, ad := range adlar {
-			d.fonksiyon(s.Methods[ad], k, codes.Name(codes.A051))
+		sort.Strings(names) // hatalar kararlı sırada
+		for _, name := range names {
+			d.function(s.Methods[name], k, codes.Name(codes.A051))
 		}
 	case *ast.DeferStatement:
-		d.blok(s.Body, k)
-		d.ifade(s.Call, k)
+		d.block(s.Body, k)
+		d.expression(s.Call, k)
 	case *ast.AsyncStatement:
-		d.blok(s.Body, k)
-		d.ifade(s.Call, k)
+		d.block(s.Body, k)
+		d.expression(s.Call, k)
 	case *ast.BreakpointStatement:
-		d.ifade(s.Condition, k)
+		d.expression(s.Condition, k)
 	case *ast.TestStatement:
-		d.blok(s.Body, k)
+		d.block(s.Body, k)
 	}
 }
 
 // fonksiyon gövdeyi parametrelerin (ve metotta 'kendi'nin) tanımlı olduğu kapsamda denetler.
-func (d *adDenetleyici) fonksiyon(f *ast.FunctionLiteral, k *adKapsami, ek ...string) {
+func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...string) {
 	if f == nil {
 		return
 	}
-	adlar := append([]string{}, ek...)
+	names := append([]string{}, extra...)
 	for _, p := range f.Parameters {
-		adlar = append(adlar, p.Name)
+		names = append(names, p.Name)
 	}
-	pk := yeniAdKapsami(k)
-	for _, a := range adlar {
-		pk.tanimla(a)
+	pk := newNameScope(k)
+	for _, a := range names {
+		pk.define(a)
 	}
 	if f.Token.Type == lexer.TOKEN_LBRACE {
-		pk.ortuk = sondakiBlokOrtukleri(f)
+		pk.implicit = trailingBlockImplicits(f)
 	}
 	for _, p := range f.Parameters {
-		d.ifade(p.DefaultValue, pk)
+		d.expression(p.DefaultValue, pk)
 	}
-	d.blok(f.Body, pk)
+	d.block(f.Body, pk)
 }
 
 // hedef atamanın sol tarafını denetler: ad tanımlı olmalı (çalışma anında tanımsız ada
 // atama hatadır, bkz. 5.4); indeks ve alan hedeflerinde nesne okunur.
-func (d *adDenetleyici) hedef(e ast.Expression, k *adKapsami) {
-	d.ifade(e, k)
+func (d *nameChecker) target(e ast.Expression, k *nameScope) {
+	d.expression(e, k)
 }
 
-func (d *adDenetleyici) ifade(e ast.Expression, k *adKapsami) {
-	agacGez(e, func(x ast.Expression) bool {
+func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
+	walkTree(e, func(x ast.Expression) bool {
 		switch y := x.(type) {
 		case *ast.Identifier:
-			if d.baglar != nil {
-				d.bagla(y, k)
+			if d.bindings != nil {
+				d.bind(y, k)
 			} else {
-				d.ad(y, k)
+				d.name(y, k)
 			}
 		case *ast.CallExpression:
-			if d.baglar != nil {
-				d.adliBaglar(y, k)
+			if d.bindings != nil {
+				d.namedArgBindings(y, k)
 			}
 		case *ast.FunctionLiteral:
-			d.fonksiyon(y, k)
+			d.function(y, k)
 			return false
 		case *ast.IfExpression:
-			d.ifade(y.Condition, k)
-			d.blok(y.Consequence, k)
+			d.expression(y.Condition, k)
+			d.block(y.Consequence, k)
 			for _, elif := range y.ElseIfs {
-				d.ifade(elif.Condition, k)
-				d.blok(elif.Consequence, k)
+				d.expression(elif.Condition, k)
+				d.block(elif.Consequence, k)
 			}
-			d.blok(y.Alternative, k)
+			d.block(y.Alternative, k)
 			return false
 		case *ast.MatchExpression:
-			d.ifade(y.Subject, k)
+			d.expression(y.Subject, k)
 			for _, mc := range y.Cases {
 				for _, p := range mc.Patterns {
-					d.ifade(p, k)
+					d.expression(p, k)
 				}
-				d.blok(mc.Body, k)
-				d.ifade(mc.ValueExpr, k)
+				d.block(mc.Body, k)
+				d.expression(mc.ValueExpr, k)
 			}
 			return false
 		case *ast.ListComprehension:
-			d.ifade(y.Iterable, k)
-			uk := yeniAdKapsami(k)
-			uk.tanimla(y.VarName)
-			d.ifade(y.Output, uk)
-			d.ifade(y.Condition, uk)
+			d.expression(y.Iterable, k)
+			ik := newNameScope(k)
+			ik.define(y.VarName)
+			d.expression(y.Output, ik)
+			d.expression(y.Condition, ik)
 			return false
 		}
 		return true
@@ -413,24 +413,24 @@ func (d *adDenetleyici) ifade(e ast.Expression, k *adKapsami) {
 }
 
 // ad, okunan ya da atanan bir adın görünür olduğunu denetler.
-func (d *adDenetleyici) ad(id *ast.Identifier, k *adKapsami) {
-	if k.bilinir(id.Value) || d.bildirim[id.Value] {
+func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
+	if k.isKnown(id.Value) || d.decl[id.Value] {
 		return
 	}
-	d.bildirim[id.Value] = true
-	d.c.adHatalari = append(d.c.adHatalari, fmt.Sprintf("Satır %d, Sütun %d: Tanımsız ad — %s",
-		id.Line(), id.Token.Column, hint.UndefinedNameMessage(id.Value, k.gorunenler())))
+	d.decl[id.Value] = true
+	d.c.nameErrors = append(d.c.nameErrors, fmt.Sprintf("Satır %d, Sütun %d: Tanımsız ad — %s",
+		id.Line(), id.Token.Column, hint.UndefinedNameMessage(id.Value, k.visible())))
 }
 
 // satiraGoreSirala hata metinlerini baştaki "Satır N" numarasına göre (eşitlikte ilk
 // sırayı koruyarak) sıralar.
-func satiraGoreSirala(hatalar []string) {
-	satir := func(h string) int {
+func sortByLine(errList []string) {
+	line := func(h string) int {
 		var n int
 		if _, err := fmt.Sscanf(h, "Satır %d", &n); err != nil {
 			return 1 << 30
 		}
 		return n
 	}
-	sort.SliceStable(hatalar, func(i, j int) bool { return satir(hatalar[i]) < satir(hatalar[j]) })
+	sort.SliceStable(errList, func(i, j int) bool { return line(errList[i]) < line(errList[j]) })
 }

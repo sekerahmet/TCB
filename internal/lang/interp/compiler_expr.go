@@ -2,38 +2,39 @@ package interp
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
-	"strings"
 )
 
 // sabitKod her zaman aynı (değişmez) değeri veren kod üretir; sabitler bir kez kutulanır.
-func sabitKod(d Value) ifadeKodu {
+func constCode(d Value) exprCode {
 	return func(v *VM, env *Environment) (Value, error) { return d, nil }
 }
 
-var nullKod = sabitKod(NULL)
+var nullCode = constCode(NULL)
 
-func (c *derleyici) ifadeler(k *derleyiciKapsam, exprs []ast.Expression) []ifadeKodu {
-	kodlar := make([]ifadeKodu, len(exprs))
+func (c *compiler) expressions(k *compilerScope, exprs []ast.Expression) []exprCode {
+	codeList := make([]exprCode, len(exprs))
 	for i, e := range exprs {
-		kodlar[i] = c.ifade(k, e)
+		codeList[i] = c.expression(k, e)
 	}
-	return kodlar
+	return codeList
 }
 
 // ifadeSinyal deyim konumundaki bir ifadeyi derler. 'eğer' ve 'eşle' dallarında çalışan
 // 'sonuç', 'kır', 'devam' sinyalleri yukarı iletilir; diğer ifadeler sinyal üretmez.
-func (c *derleyici) ifadeSinyal(k *derleyiciKapsam, expr ast.Expression) deyimKodu {
+func (c *compiler) exprSignal(k *compilerScope, expr ast.Expression) statementCode {
 	switch e := expr.(type) {
 	case *ast.IfExpression:
-		return c.eger(k, e)
+		return c.ifExpr(k, e)
 	case *ast.MatchExpression:
-		return c.esle(k, e)
+		return c.matchExpr(k, e)
 	}
-	kod := c.ifade(k, expr)
+	codeVal := c.expression(k, expr)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		val, err := kod(v, env)
+		val, err := codeVal(v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
@@ -42,36 +43,36 @@ func (c *derleyici) ifadeSinyal(k *derleyiciKapsam, expr ast.Expression) deyimKo
 }
 
 // sinyalsiz deyim konumu dışında kullanılan 'eğer'/'eşle' için sinyali düşürür.
-func sinyalsiz(d deyimKodu) ifadeKodu {
+func noSignal(d statementCode) exprCode {
 	return func(v *VM, env *Environment) (Value, error) {
 		val, _, err := d(v, env)
 		return val, err
 	}
 }
 
-func (c *derleyici) ifade(k *derleyiciKapsam, expr ast.Expression) ifadeKodu {
+func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 	switch e := expr.(type) {
 	case nil:
-		return nullKod
+		return nullCode
 	case *ast.IntegerLiteral:
-		return sabitKod(NewInt(e.Value))
+		return constCode(NewInt(e.Value))
 	case *ast.FloatLiteral:
-		return sabitKod(&FloatVal{Val: e.Value})
+		return constCode(&FloatVal{Val: e.Value})
 	case *ast.StringLiteral:
-		return sabitKod(&StringVal{Val: e.Value})
+		return constCode(&StringVal{Val: e.Value})
 	case *ast.BooleanLiteral:
 		if e.Value {
-			return sabitKod(TRUE)
+			return constCode(TRUE)
 		}
-		return sabitKod(FALSE)
+		return constCode(FALSE)
 	case *ast.NullLiteral:
-		return nullKod
+		return nullCode
 
 	case *ast.InterpolatedString:
-		parcalar := c.ifadeler(k, e.Parts)
+		pieces := c.expressions(k, e.Parts)
 		return func(v *VM, env *Environment) (Value, error) {
 			var sb strings.Builder
-			for _, p := range parcalar {
+			for _, p := range pieces {
 				val, err := p(v, env)
 				if err != nil {
 					return nil, err
@@ -82,13 +83,13 @@ func (c *derleyici) ifade(k *derleyiciKapsam, expr ast.Expression) ifadeKodu {
 		}
 
 	case *ast.Identifier:
-		return c.adOku(k, e)
+		return c.readName(k, e)
 
 	case *ast.ListLiteral:
-		elemanlar := c.ifadeler(k, e.Elements)
+		elements := c.expressions(k, e.Elements)
 		return func(v *VM, env *Environment) (Value, error) {
-			elems := make([]Value, 0, len(elemanlar))
-			for _, el := range elemanlar {
+			elems := make([]Value, 0, len(elements))
+			for _, el := range elements {
 				val, err := el(v, env)
 				if err != nil {
 					return nil, err
@@ -99,23 +100,23 @@ func (c *derleyici) ifade(k *derleyiciKapsam, expr ast.Expression) ifadeKodu {
 		}
 
 	case *ast.ListComprehension:
-		return c.listeUreteci(k, e)
+		return c.listComprehension(k, e)
 
 	case *ast.DictLiteral:
-		anahtarlar := make([]ifadeKodu, len(e.Pairs))
-		degerler := make([]ifadeKodu, len(e.Pairs))
+		keyList := make([]exprCode, len(e.Pairs))
+		values := make([]exprCode, len(e.Pairs))
 		for i, p := range e.Pairs {
-			anahtarlar[i] = c.ifade(k, p.Key)
-			degerler[i] = c.ifade(k, p.Value)
+			keyList[i] = c.expression(k, p.Key)
+			values[i] = c.expression(k, p.Value)
 		}
 		return func(v *VM, env *Environment) (Value, error) {
 			dict := NewDictVal()
-			for i := range anahtarlar {
-				kVal, err := anahtarlar[i](v, env)
+			for i := range keyList {
+				kVal, err := keyList[i](v, env)
 				if err != nil {
 					return nil, err
 				}
-				vVal, err := degerler[i](v, env)
+				vVal, err := values[i](v, env)
 				if err != nil {
 					return nil, err
 				}
@@ -125,16 +126,16 @@ func (c *derleyici) ifade(k *derleyiciKapsam, expr ast.Expression) ifadeKodu {
 		}
 
 	case *ast.RangeExpression:
-		bas := c.ifade(k, e.Start)
-		son := c.ifade(k, e.End)
+		begin := c.expression(k, e.Start)
+		last := c.expression(k, e.End)
 		line := e.Line()
-		dahil := e.Inclusive
+		inclusive := e.Inclusive
 		return func(v *VM, env *Environment) (Value, error) {
-			startVal, err := bas(v, env)
+			startVal, err := begin(v, env)
 			if err != nil {
 				return nil, err
 			}
-			endVal, err := son(v, env)
+			endVal, err := last(v, env)
 			if err != nil {
 				return nil, err
 			}
@@ -143,26 +144,26 @@ func (c *derleyici) ifade(k *derleyiciKapsam, expr ast.Expression) ifadeKodu {
 			if !ok1 || !ok2 {
 				return nil, fmt.Errorf("Satır %d: %s ('..') uçları %s sayı olmalıdır", line, VAL_RANGE, VAL_INT)
 			}
-			return &RangeVal{Start: sInt.Val, End: eInt.Val, Inclusive: dahil}, nil
+			return &RangeVal{Start: sInt.Val, End: eInt.Val, Inclusive: inclusive}, nil
 		}
 
 	case *ast.PrefixExpression:
-		return c.onEk(k, e)
+		return c.prefixText(k, e)
 
 	case *ast.InfixExpression:
-		return c.ikili(k, e)
+		return c.binary(k, e)
 
 	case *ast.IfExpression:
-		return sinyalsiz(c.eger(k, e))
+		return noSignal(c.ifExpr(k, e))
 
 	case *ast.MatchExpression:
-		return sinyalsiz(c.esle(k, e))
+		return noSignal(c.matchExpr(k, e))
 
 	case *ast.FunctionLiteral:
-		fk := c.fonksiyon(k, e.Parameters, e.Body, false)
-		var tanim func(*Environment, Value, bool)
+		fk := c.function(k, e.Parameters, e.Body, false)
+		var definition func(*Environment, Value, bool)
 		if e.Name != "" {
-			tanim = tanimlayici(k, e.Name)
+			definition = identifier(k, e.Name)
 		}
 		return func(v *VM, env *Environment) (Value, error) {
 			fn := &FuncVal{
@@ -170,78 +171,78 @@ func (c *derleyici) ifade(k *derleyiciKapsam, expr ast.Expression) ifadeKodu {
 				Parameters: e.Parameters,
 				Body:       e.Body,
 				Env:        env,
-				kod:        fk,
+				codeVal:    fk,
 			}
-			if tanim != nil {
-				tanim(env, fn, false)
+			if definition != nil {
+				definition(env, fn, false)
 			}
 			return fn, nil
 		}
 
 	case *ast.CallExpression:
-		kod := c.cagri(k, e)
+		codeVal := c.call(k, e)
 		// Gölgelenmiş bir yerleşiğin çağrısı: hata mesajı gölgelemeyi söyler (shadow.go).
-		if id, ok := e.Function.(*ast.Identifier); ok && yerlesikAdi(id.Value) {
-			if g, ok := k.golgeBul(id.Value); ok {
-				return golgeliCagri(kod, c.ifade(k, id), id.Value, g, e.Line())
+		if id, ok := e.Function.(*ast.Identifier); ok && builtinName(id.Value) {
+			if g, ok := k.findShadow(id.Value); ok {
+				return shadowedCall(codeVal, c.expression(k, id), id.Value, g, e.Line())
 			}
 		}
-		return kod
+		return codeVal
 
 	case *ast.IndexExpression:
-		sol := c.ifade(k, e.Left)
-		indeks := c.ifade(k, e.Index)
+		leftFn := c.expression(k, e.Left)
+		index := c.expression(k, e.Index)
 		line := e.Line()
 		return func(v *VM, env *Environment) (Value, error) {
-			left, err := sol(v, env)
+			left, err := leftFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			idx, err := indeks(v, env)
+			idx, err := index(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return v.indeksDegeri(left, idx, line)
+			return v.indexValue(left, idx, line)
 		}
 
 	case *ast.MemberExpression:
-		nesne := c.ifade(k, e.Object)
-		u := uyeCoz(e.Property) // ad → kod derleme anında bir kez çözülür
+		object := c.expression(k, e.Object)
+		u := resolveMember(e.Property) // ad → kod derleme anında bir kez çözülür
 		return func(v *VM, env *Environment) (Value, error) {
-			obj, err := nesne(v, env)
+			obj, err := object(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return v.uyeDegeri(obj, e, u)
+			return v.memberValue(obj, e, u)
 		}
 	}
-	return nullKod
+	return nullCode
 }
 
 // --- DEĞİŞKEN OKUMA ---
 
 // adOku bir adın değerini okuyan kodu üretir. Derleme anında çözülen adlar yuvadan okunur;
 // yuva boşsa (ya da ad çözülemediyse) arama adla yapılır.
-func (c *derleyici) adOku(k *derleyiciKapsam, e *ast.Identifier) ifadeKodu {
-	r := k.coz(e.Value)
-	i := r.yuva
-	switch r.tur {
-	case cozHenuzYok:
+func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
+	r := k.resolve(e.Value)
+	i := r.slot
+	switch r.kind {
+	case resolveNotYet:
 		return func(v *VM, env *Environment) (Value, error) {
 			return nil, fmt.Errorf("Satır %d, Sütun %d: '%s' parametresi henüz tanımlanmadı; varsayılan değer yalnızca kendisinden önceki parametreleri görür", e.Line(), e.Token.Column, e.Value)
 		}
-	case cozGenel:
-		g := r.genel
+	case resolveGlobal:
+		g := r.global
 		return func(v *VM, env *Environment) (Value, error) {
 			if i < len(g.vals) {
 				if x := g.vals[i]; x != nil {
 					return x, nil
 				}
 			}
-			return adlaOku(env, e)
+			return readByName(env, e)
 		}
-	case cozYerel:
-		switch r.derinlik {
+	case resolveLocal:
+		switch r.nestDepth {
 		case 0:
 			return func(v *VM, env *Environment) (Value, error) {
 				if i < len(env.vals) {
@@ -249,7 +250,7 @@ func (c *derleyici) adOku(k *derleyiciKapsam, e *ast.Identifier) ifadeKodu {
 						return x, nil
 					}
 				}
-				return adlaOku(env, e)
+				return readByName(env, e)
 			}
 		case 1:
 			return func(v *VM, env *Environment) (Value, error) {
@@ -259,10 +260,10 @@ func (c *derleyici) adOku(k *derleyiciKapsam, e *ast.Identifier) ifadeKodu {
 						return x, nil
 					}
 				}
-				return adlaOku(env, e)
+				return readByName(env, e)
 			}
 		default:
-			d := r.derinlik
+			d := r.nestDepth
 			return func(v *VM, env *Environment) (Value, error) {
 				o := env
 				for j := 0; j < d; j++ {
@@ -273,16 +274,16 @@ func (c *derleyici) adOku(k *derleyiciKapsam, e *ast.Identifier) ifadeKodu {
 						return x, nil
 					}
 				}
-				return adlaOku(env, e)
+				return readByName(env, e)
 			}
 		}
 	}
 	return func(v *VM, env *Environment) (Value, error) {
-		return adlaOku(env, e)
+		return readByName(env, e)
 	}
 }
 
-func adlaOku(env *Environment, e *ast.Identifier) (Value, error) {
+func readByName(env *Environment, e *ast.Identifier) (Value, error) {
 	val, ok := env.Get(e.Value)
 	if !ok {
 		if h := hint.MovedGlobalNameError(e.Value); h != "" {
@@ -295,12 +296,12 @@ func adlaOku(env *Environment, e *ast.Identifier) (Value, error) {
 }
 
 // yuvaOrtami çözümün işaret ettiği ortamı döndürür (yalnızca cozYerel/cozGenel için).
-func yuvaOrtami(r cozum, env *Environment) *Environment {
-	if r.tur == cozGenel {
-		return r.genel
+func slotEnv(r resolution, env *Environment) *Environment {
+	if r.kind == resolveGlobal {
+		return r.global
 	}
 	o := env
-	for j := 0; j < r.derinlik; j++ {
+	for j := 0; j < r.nestDepth; j++ {
 		o = o.outer
 	}
 	return o

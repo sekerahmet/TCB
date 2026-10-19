@@ -7,10 +7,10 @@ import (
 )
 
 // İç token adları (DOSYA_SONU, TANIMLAYICI, SONUÇ...) kullanıcıya sızmamalı.
-var icAdRe = regexp.MustCompile(`DOSYA_SONU|TANIMLAYICI|TAM_SAYI|ONDALIK_SAYI|METİN|SONUÇ|DEĞİŞKEN|DEĞİLSE|EĞER|FONKSİYON|GEÇERSİZ`)
+var innerNameRe = regexp.MustCompile(`DOSYA_SONU|TANIMLAYICI|TAM_SAYI|ONDALIK_SAYI|METİN|SONUÇ|DEĞİŞKEN|DEĞİLSE|EĞER|FONKSİYON|GEÇERSİZ`)
 
-func TestHataMesajlariTurkceAnlatimKullanir(t *testing.T) {
-	durumlar := map[string]string{
+func TestErrorMessagesUseTurkishDescriptions(t *testing.T) {
+	caseList := map[string]string{
 		"yazdır(1":                    "')' bekleniyordu, ancak dosya sonu bulundu",
 		"değişken = 4":                "bir ad bekleniyordu, ancak '=' bulundu",
 		"eğer x = 5 { }":              "'{' bekleniyordu, ancak '=' bulundu (karşılaştırma için '==' yazın",
@@ -22,22 +22,22 @@ func TestHataMesajlariTurkceAnlatimKullanir(t *testing.T) {
 		"döngü i içinde [1] değilse":  "'{' bekleniyordu, ancak 'değilse' anahtar kelimesi bulundu",
 		"x = 99999999999999999999":    "99999999999999999999 tam sayı olarak çok büyük",
 	}
-	for kod, ister := range durumlar {
-		hatalar := parseErrors(kod)
-		if len(hatalar) == 0 || !strings.Contains(hatalar[0], ister) {
-			t.Errorf("%q: %q içeren hata bekleniyordu, alınan: %v", kod, ister, hatalar)
+	for codeVal, wantSub := range caseList {
+		errList := parseErrors(codeVal)
+		if len(errList) == 0 || !strings.Contains(errList[0], wantSub) {
+			t.Errorf("%q: %q içeren hata bekleniyordu, alınan: %v", codeVal, wantSub, errList)
 		}
-		for _, h := range hatalar {
-			if icAdRe.MatchString(h) {
-				t.Errorf("%q: iç token adı sızdı: %s", kod, h)
+		for _, h := range errList {
+			if innerNameRe.MatchString(h) {
+				t.Errorf("%q: iç token adı sızdı: %s", codeVal, h)
 			}
 		}
 	}
 }
 
 // Tek bir yanlış, ardından gelen geçerli satırlarda art arda hata üretmemeli.
-func TestTekHataArtArdaHataUretmez(t *testing.T) {
-	durumlar := map[string]int{
+func TestSingleErrorNoCascade(t *testing.T) {
+	caseList := map[string]int{
 		// '=' hatası; gövde ve 'değilse' kolu hatalı deyimin parçasıdır
 		"değişken x = 5\neğer x = 5 {\n    yazdır(\"a\")\n    yazdır(\"b\")\n} değilse {\n    yazdır(\"c\")\n}\nyazdır(x)": 1,
 		// Parametre listesindeki eksik virgül; gövde atlanır
@@ -49,20 +49,20 @@ func TestTekHataArtArdaHataUretmez(t *testing.T) {
 		// Ayrı satırlardaki bağımsız hatalar ayrı ayrı bildirilir
 		"değişken = 1\nyazdır(2)\ndeğişken = 3": 2,
 	}
-	for kod, ister := range durumlar {
-		if hatalar := parseErrors(kod); len(hatalar) != ister {
-			t.Errorf("%q: %d hata bekleniyordu, %d alındı:\n%s", kod, ister, len(hatalar), strings.Join(hatalar, "\n"))
+	for codeVal, wantSub := range caseList {
+		if errList := parseErrors(codeVal); len(errList) != wantSub {
+			t.Errorf("%q: %d hata bekleniyordu, %d alındı:\n%s", codeVal, wantSub, len(errList), strings.Join(errList, "\n"))
 		}
 	}
 }
 
 // Kaldırılmış yazımların ipucu (sozcuk.KaldirilanYazimIpucu) hatalı satırda korunur.
-func TestKaldirilanYazimIpucuKorunur(t *testing.T) {
-	hatalar := parseErrors("işlev topla(a, b) -> Tam { döndür a + b }")
-	birlesik := strings.Join(hatalar, "\n")
-	for _, ister := range []string{"'işlev' TR'de anahtar kelime değil; 'fonksiyon'", "'döndür' TR'de anahtar kelime değil; 'sonuç'"} {
-		if !strings.Contains(birlesik, ister) {
-			t.Errorf("%q ipucu bekleniyordu, alınan:\n%s", ister, birlesik)
+func TestRemovedSpellingHintKept(t *testing.T) {
+	errList := parseErrors("işlev topla(a, b) -> Tam { döndür a + b }")
+	compound := strings.Join(errList, "\n")
+	for _, wantSub := range []string{"'işlev' TR'de anahtar kelime değil; 'fonksiyon'", "'döndür' TR'de anahtar kelime değil; 'sonuç'"} {
+		if !strings.Contains(compound, wantSub) {
+			t.Errorf("%q ipucu bekleniyordu, alınan:\n%s", wantSub, compound)
 		}
 	}
 }

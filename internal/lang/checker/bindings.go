@@ -50,42 +50,42 @@ type NameBinding struct {
 // variable named 'yazdır' in dil would shadow the builtin 'yazdır'); these names are written
 // with an escape everywhere in the view. genelAdlar and dinamik are as in SetGlobalScope
 // (modules).
-func NameBindings(prog *ast.Program, dil *codes.Language, genelAdlar []string, dinamik bool) (baglar []NameBinding, cakisanlar map[string]bool) {
-	d := &adDenetleyici{baglar: &baglar, dil: dil, cakisanlar: map[string]bool{}}
-	ust := yeniAdKapsami(nil)
-	for _, a := range genelAdlar {
-		ust.tanimla(a)
+func NameBindings(prog *ast.Program, lang *codes.Language, globalNames []string, dynamic bool) (bindings []NameBinding, conflicts map[string]bool) {
+	d := &nameChecker{bindings: &bindings, lang: lang, conflicts: map[string]bool{}}
+	parent := newNameScope(nil)
+	for _, a := range globalNames {
+		parent.define(a)
 	}
-	ust.dinamik = dinamik
-	k := yeniAdKapsami(ust)
-	d.tanimlar(prog.Statements, k)
+	parent.dynamic = dynamic
+	k := newNameScope(parent)
+	d.declare(prog.Statements, k)
 	for _, st := range prog.Statements {
-		d.deyim(st, k)
+		d.statement(st, k)
 	}
-	return baglar, d.cakisanlar
+	return bindings, d.conflicts
 }
 
 // cozum adın görünen kapsamlardaki bağıdır; yapı, ad bir kullanıcı yapısıysa onun tanımıdır.
-func (d *adDenetleyici) cozum(ad string, k *adKapsami) (BindingKind, codes.Code, *ast.StructStatement) {
-	belirsiz := false
-	for c := k; c != nil; c = c.ust {
-		for _, o := range c.ortuk {
-			if o != codes.None && d.dil.Name(o) == ad {
+func (d *nameChecker) resolve(name string, k *nameScope) (BindingKind, codes.Code, *ast.StructStatement) {
+	ambiguous := false
+	for c := k; c != nil; c = c.parent {
+		for _, o := range c.implicit {
+			if o != codes.None && d.lang.Name(o) == name {
 				return BindImplicit, o, nil
 			}
 		}
-		if c.adlar[ad] {
-			return BindUser, codes.None, c.yapilar[ad]
+		if c.names[name] {
+			return BindUser, codes.None, c.structs[name]
 		}
-		belirsiz = belirsiz || c.dinamik
+		ambiguous = ambiguous || c.dynamic
 	}
-	if k, ok := d.dil.Find(codes.NamespaceGlobal, ad); ok && k.IsBuiltin() {
+	if k, ok := d.lang.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
 		return BindBuiltin, k, nil
 	}
-	if k, ok := d.dil.Find(codes.NamespaceType, ad); ok {
+	if k, ok := d.lang.Find(codes.NamespaceType, name); ok {
 		return BindBuiltin, k, nil
 	}
-	if belirsiz {
+	if ambiguous {
 		return BindUser, codes.None, nil
 	}
 	return BindUndefined, codes.None, nil
@@ -93,25 +93,25 @@ func (d *adDenetleyici) cozum(ad string, k *adKapsami) (BindingKind, codes.Code,
 
 // sozcukCozumu bir ad sözcüğünün bağıdır: kodlu kaynakta kodla yazılmış sözcük (Token.Kod)
 // kodun kendisine bağlıdır, başka her ad cozum ile kapsamlarda aranır.
-func (d *adDenetleyici) sozcukCozumu(tok lexer.Token, ad string, k *adKapsami) (BindingKind, codes.Code, *ast.StructStatement) {
-	switch kd := tok.Code; {
-	case kd == codes.None:
-		return d.cozum(ad, k)
-	case kd.Namespace() == codes.NamespaceGlobal && !kd.IsBuiltin():
-		return BindImplicit, kd, nil
+func (d *nameChecker) tokenResolution(tok lexer.Token, name string, k *nameScope) (BindingKind, codes.Code, *ast.StructStatement) {
+	switch code := tok.Code; {
+	case code == codes.None:
+		return d.resolve(name, k)
+	case code.Namespace() == codes.NamespaceGlobal && !code.IsBuiltin():
+		return BindImplicit, code, nil
 	default:
-		return BindBuiltin, kd, nil
+		return BindBuiltin, code, nil
 	}
 }
 
 // bagla değer olarak okunan (ya da atanan) bir adın bağını kaydeder.
-func (d *adDenetleyici) bagla(id *ast.Identifier, k *adKapsami) {
-	tur, kd, _ := d.sozcukCozumu(id.Token, id.Value, k)
-	*d.baglar = append(*d.baglar, NameBinding{Token: id.Token, Kind: tur, Code: kd})
-	if kd := id.Token.Code; kd.IsBuiltin() || kd.Namespace() == codes.NamespaceType {
-		if g, ok := d.dil.Entry(kd); ok {
-			if t, _, _ := d.cozum(g.Name, k); t == BindUser {
-				d.cakisanlar[g.Name] = true
+func (d *nameChecker) bind(id *ast.Identifier, k *nameScope) {
+	kind, code, _ := d.tokenResolution(id.Token, id.Value, k)
+	*d.bindings = append(*d.bindings, NameBinding{Token: id.Token, Kind: kind, Code: code})
+	if code := id.Token.Code; code.IsBuiltin() || code.Namespace() == codes.NamespaceType {
+		if g, ok := d.lang.Entry(code); ok {
+			if t, _, _ := d.resolve(g.Name, k); t == BindUser {
+				d.conflicts[g.Name] = true
 			}
 		}
 	}
@@ -122,38 +122,38 @@ func (d *adDenetleyici) bagla(id *ast.Identifier, k *adKapsami) {
 // dilin bir üyesi (x.ad, 17.3); kullanıcının fonksiyonlarına verilen adlı argümanlar
 // parametre adlarıdır, kullanıcının adıdır. Kurucusu olmayan bir yapının oluşturulmasında
 // adlı argümanlar alan adlarıdır; alan adı bir üye koduyla saklanıyorsa (Y5) argüman da öyle.
-func (d *adDenetleyici) adliBaglar(c *ast.CallExpression, k *adKapsami) {
+func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 	if len(c.NamedArgs) == 0 {
 		return
 	}
-	alan := codes.NamespaceParam
+	field := codes.NamespaceParam
 	switch f := c.Function.(type) {
 	case *ast.Identifier:
-		tur, _, yapi := d.sozcukCozumu(f.Token, f.Value, k)
+		kind, _, structDef := d.tokenResolution(f.Token, f.Value, k)
 		switch {
-		case tur == BindBuiltin:
-		case yapi != nil && yapi.Methods[codes.Name(codes.A102)] == nil:
-			alan = codes.NamespaceMember
+		case kind == BindBuiltin:
+		case structDef != nil && structDef.Methods[codes.Name(codes.A102)] == nil:
+			field = codes.NamespaceMember
 		default:
 			return
 		}
 	case *ast.MemberExpression:
-		if _, ok := d.dil.Find(codes.NamespaceMember, f.Property); !ok && f.NameToken.Code == codes.None {
+		if _, ok := d.lang.Find(codes.NamespaceMember, f.Property); !ok && f.NameToken.Code == codes.None {
 			return
 		}
 	default:
 		return
 	}
 	for _, na := range c.NamedArgs {
-		if kd, ok := d.dil.Find(alan, na.Name); ok {
-			*d.baglar = append(*d.baglar, NameBinding{Token: na.Token, Kind: BindNamed, Code: kd})
+		if code, ok := d.lang.Find(field, na.Name); ok {
+			*d.bindings = append(*d.bindings, NameBinding{Token: na.Token, Kind: BindNamed, Code: code})
 		}
 	}
 }
 
 // sondakiBlokOrtukleri sondaki bloğun (liste.filtrele { o > 2 }) örtük parametrelerinin
 // bağlamsal kodlarıdır: 'o' (A104) ve indirge bloğunda 'birikim' (A105).
-func sondakiBlokOrtukleri(f *ast.FunctionLiteral) [2]codes.Code {
+func trailingBlockImplicits(f *ast.FunctionLiteral) [2]codes.Code {
 	var o [2]codes.Code
 	for i, p := range f.Parameters {
 		if i >= len(o) {

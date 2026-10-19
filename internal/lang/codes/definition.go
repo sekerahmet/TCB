@@ -35,10 +35,10 @@ import (
 // name stays in the language file only for hints.
 
 //go:embed definitions.json
-var tanimJSON []byte
+var definitionsJSON []byte
 
 // DefinitionData returns the embedded definitions.json (for tests and tools).
-func DefinitionData() []byte { return tanimJSON }
+func DefinitionData() []byte { return definitionsJSON }
 
 // Kind is the kind of a code.
 type Kind string
@@ -137,11 +137,11 @@ func (t Definition) Types() []Code {
 // TypeSpecific reports whether the member's signature depends on the type (written with
 // "imzalar").
 func (t Definition) TypeSpecific() bool {
-	return len(t.Members) > 1 && !imzaEsit(t.Members[0].Signature, t.Members[1:]...)
+	return len(t.Members) > 1 && !sigEqual(t.Members[0].Signature, t.Members[1:]...)
 }
 
-func imzaEsit(a Signature, digerleri ...TypeSignature) bool {
-	for _, d := range digerleri {
+func sigEqual(a Signature, others ...TypeSignature) bool {
+	for _, d := range others {
 		if fmt.Sprint(a) != fmt.Sprint(d.Signature) {
 			return false
 		}
@@ -150,159 +150,159 @@ func imzaEsit(a Signature, digerleri ...TypeSignature) bool {
 }
 
 var (
-	tanimOnce   sync.Once
-	tanimlar    map[Code]Definition
-	tanimHatasi error
-	tanimSirasi []Code
+	defOnce  sync.Once
+	defs     map[Code]Definition
+	defErr   error
+	defOrder []Code
 )
 
 // DefinitionOf returns the code's definition. The definitions file is read on the first call
 // (the interpreter does not need it while running; tools, tests and error paths use it).
 func DefinitionOf(k Code) (Definition, bool) {
-	tanimYukle()
-	t, ok := tanimlar[k]
+	loadDefinitions()
+	t, ok := defs[k]
 	return t, ok
 }
 
 // DefinitionError returns the format error found while reading definitions.json, or nil.
 func DefinitionError() error {
-	tanimYukle()
-	return tanimHatasi
+	loadDefinitions()
+	return defErr
 }
 
 // DefinitionCodes returns every code in the definitions file, in ascending order.
 func DefinitionCodes() []Code {
-	tanimYukle()
-	return append([]Code(nil), tanimSirasi...)
+	loadDefinitions()
+	return append([]Code(nil), defOrder...)
 }
 
-func tanimYukle() {
-	tanimOnce.Do(func() {
-		tanimlar, tanimSirasi, tanimHatasi = ParseDefinitions(tanimJSON)
+func loadDefinitions() {
+	defOnce.Do(func() {
+		defs, defOrder, defErr = ParseDefinitions(definitionsJSON)
 	})
 }
 
-type hamImza struct {
+type rawSignature struct {
 	Param []string            `json:"param"`
 	Adli  [][]json.RawMessage `json:"adlı"`
 	Donus string              `json:"dönüş"`
 }
 
-type hamTanim struct {
-	Tur      string              `json:"tür"`
-	Tipler   []string            `json:"tipler"`
-	Param    []string            `json:"param"`
-	Adli     [][]json.RawMessage `json:"adlı"`
-	Donus    string              `json:"dönüş"`
-	Imzalar  map[string]hamImza  `json:"imzalar"`
-	Iliskili []string            `json:"ilişkili"`
-	Tasindi  string              `json:"taşındı"`
-	Kaldir   bool                `json:"kaldırıldı"`
+type rawDefinition struct {
+	Tur      string                  `json:"tür"`
+	Tipler   []string                `json:"tipler"`
+	Param    []string                `json:"param"`
+	Adli     [][]json.RawMessage     `json:"adlı"`
+	Donus    string                  `json:"dönüş"`
+	Imzalar  map[string]rawSignature `json:"imzalar"`
+	Iliskili []string                `json:"ilişkili"`
+	Tasindi  string                  `json:"taşındı"`
+	Kaldir   bool                    `json:"kaldırıldı"`
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
-func ParseDefinitions(veri []byte) (map[Code]Definition, []Code, error) {
-	var ham map[string]json.RawMessage
-	if err := json.Unmarshal(veri, &ham); err != nil {
+func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, nil, fmt.Errorf("definitions.json: %v", err)
 	}
-	var hatalar []string
-	hata := func(bicim string, a ...any) { hatalar = append(hatalar, fmt.Sprintf(bicim, a...)) }
-	out := make(map[Code]Definition, len(ham))
-	var sira []Code
-	for anahtar, satir := range ham {
-		k, err := Parse(anahtar)
+	var errs []string
+	errorf := func(form string, a ...any) { errs = append(errs, fmt.Sprintf(form, a...)) }
+	out := make(map[Code]Definition, len(raw))
+	var order []Code
+	for key, line := range raw {
+		k, err := Parse(key)
 		if err != nil {
-			hata("%v", err)
+			errorf("%v", err)
 			continue
 		}
-		var h hamTanim
-		dec := json.NewDecoder(bytes.NewReader(satir))
+		var h rawDefinition
+		dec := json.NewDecoder(bytes.NewReader(line))
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&h); err != nil {
-			hata("%s: %v", k, err)
+			errorf("%s: %v", k, err)
 			continue
 		}
 		t := Definition{Code: k, Kind: Kind(h.Tur)}
-		kodlar := func(alan string, ss []string) []Code {
+		codeList := func(field string, ss []string) []Code {
 			var ks []Code
 			for _, s := range ss {
 				x, err := Parse(s)
 				if err != nil {
-					hata("%s %s: %v", k, alan, err)
+					errorf("%s %s: %v", k, field, err)
 					continue
 				}
 				ks = append(ks, x)
 			}
 			return ks
 		}
-		imza := func(param []string, adli [][]json.RawMessage, donus string) Signature {
+		sig := func(param []string, named [][]json.RawMessage, ret string) Signature {
 			var im Signature
 			for _, p := range param {
 				ti, err := ParseType(p, true)
 				if err != nil {
-					hata("%s param: %v", k, err)
+					errorf("%s param: %v", k, err)
 				}
 				im.Params = append(im.Params, ti)
 			}
-			for _, a := range adli {
-				ad, err := adliCoz(a)
+			for _, a := range named {
+				name, err := parseNamed(a)
 				if err != nil {
-					hata("%s adlı: %v", k, err)
+					errorf("%s adlı: %v", k, err)
 					continue
 				}
-				im.Named = append(im.Named, ad)
+				im.Named = append(im.Named, name)
 			}
-			if donus != "" {
-				ti, err := ParseType(donus, false)
+			if ret != "" {
+				ti, err := ParseType(ret, false)
 				if err != nil {
-					hata("%s dönüş: %v", k, err)
+					errorf("%s dönüş: %v", k, err)
 				}
 				im.Return = ti
 			}
 			return im
 		}
-		t.Signature = imza(h.Param, h.Adli, h.Donus)
-		for _, tip := range kodlar("tipler", h.Tipler) {
-			t.Members = append(t.Members, TypeSignature{Type: tip, Signature: t.Signature})
+		t.Signature = sig(h.Param, h.Adli, h.Donus)
+		for _, typ := range codeList("tipler", h.Tipler) {
+			t.Members = append(t.Members, TypeSignature{Type: typ, Signature: t.Signature})
 		}
 		if len(h.Imzalar) > 0 {
 			if len(h.Tipler) > 0 || len(h.Param) > 0 || len(h.Adli) > 0 || h.Donus != "" {
-				hata("%s: \"imzalar\" varken \"tipler\", \"param\", \"adlı\" ve \"dönüş\" yazılmaz", k)
+				errorf("%s: \"imzalar\" varken \"tipler\", \"param\", \"adlı\" ve \"dönüş\" yazılmaz", k)
 			}
 			for s, hi := range h.Imzalar {
-				tip, err := Parse(s)
+				typ, err := Parse(s)
 				if err != nil {
-					hata("%s imzalar: %v", k, err)
+					errorf("%s imzalar: %v", k, err)
 					continue
 				}
-				t.Members = append(t.Members, TypeSignature{Type: tip, Signature: imza(hi.Param, hi.Adli, hi.Donus)})
+				t.Members = append(t.Members, TypeSignature{Type: typ, Signature: sig(hi.Param, hi.Adli, hi.Donus)})
 			}
 			sort.Slice(t.Members, func(i, j int) bool { return t.Members[i].Type < t.Members[j].Type })
 		}
-		t.Related = kodlar("ilişkili", h.Iliskili)
+		t.Related = codeList("ilişkili", h.Iliskili)
 		if h.Tasindi != "" {
-			if y := kodlar("taşındı", []string{h.Tasindi}); len(y) == 1 {
+			if y := codeList("taşındı", []string{h.Tasindi}); len(y) == 1 {
 				t.MovedTo = y[0]
 			}
 		}
 		t.Removed = h.Kaldir
 		out[k] = t
-		sira = append(sira, k)
+		order = append(order, k)
 	}
-	sort.Slice(sira, func(i, j int) bool { return sira[i] < sira[j] })
-	if len(hatalar) > 0 {
-		sort.Strings(hatalar)
-		return out, sira, fmt.Errorf("definitions.json:\n  %s", strings.Join(hatalar, "\n  "))
+	sort.Slice(order, func(i, j int) bool { return order[i] < order[j] })
+	if len(errs) > 0 {
+		sort.Strings(errs)
+		return out, order, fmt.Errorf("definitions.json:\n  %s", strings.Join(errs, "\n  "))
 	}
-	return out, sira, nil
+	return out, order, nil
 }
 
 // ParseType parses a type expression such as "A200|A201?"; suffixes are valid only on
 // positional parameters (when parametre is true).
-func ParseType(s string, parametre bool) (TypeExpr, error) {
+func ParseType(s string, isParam bool) (TypeExpr, error) {
 	var t TypeExpr
-	if parametre && s != "" {
+	if isParam && s != "" {
 		switch s[len(s)-1] {
 		case '?':
 			t.Optional, s = true, s[:len(s)-1]
@@ -322,40 +322,40 @@ func ParseType(s string, parametre bool) (TypeExpr, error) {
 	return t, nil
 }
 
-func adliCoz(a []json.RawMessage) (NamedArg, error) {
-	var ad NamedArg
+func parseNamed(a []json.RawMessage) (NamedArg, error) {
+	var name NamedArg
 	if len(a) < 2 || len(a) > 3 {
-		return ad, fmt.Errorf("adlı argüman [kod, tip] ya da [kod, tip, varsayılan] olmalı")
+		return name, fmt.Errorf("adlı argüman [kod, tip] ya da [kod, tip, varsayılan] olmalı")
 	}
 	var ks, ts string
 	if err := json.Unmarshal(a[0], &ks); err != nil {
-		return ad, err
+		return name, err
 	}
 	if err := json.Unmarshal(a[1], &ts); err != nil {
-		return ad, err
+		return name, err
 	}
 	k, err := Parse(ks)
 	if err != nil {
-		return ad, err
+		return name, err
 	}
 	ti, err := ParseType(ts, false)
 	if err != nil {
-		return ad, err
+		return name, err
 	}
-	ad.Code, ad.Type = k, ti
+	name.Code, name.Type = k, ti
 	if len(a) == 3 {
-		if err := json.Unmarshal(a[2], &ad.Default); err != nil {
-			return ad, err
+		if err := json.Unmarshal(a[2], &name.Default); err != nil {
+			return name, err
 		}
-		ad.HasDefault = true
+		name.HasDefault = true
 	}
-	return ad, nil
+	return name, nil
 }
 
 // ReceiverName is the name written for a type as a receiver in error messages and docs: the
 // type's name in lower case (Liste → liste, Sözlük → sözlük).
-func ReceiverName(tip Code) string {
-	return strings.ToLowerSpecial(unicode.TurkishCase, Name(tip))
+func ReceiverName(typ Code) string {
+	return strings.ToLowerSpecial(unicode.TurkishCase, Name(typ))
 }
 
 // MemberName is a member's name written with its receiver: liste.filtrele, x.uzunluk. If the
@@ -397,124 +397,124 @@ const SourceLanguage = "tr"
 // exist, a moved code points to a live code in another namespace, and the move information
 // in the language file matches the definition.
 func CheckDefinitions(d *Language) []error {
-	var hatalar []error
-	hata := func(bicim string, a ...any) { hatalar = append(hatalar, fmt.Errorf(bicim, a...)) }
+	var errs []error
+	errorf := func(form string, a ...any) { errs = append(errs, fmt.Errorf(form, a...)) }
 	if err := DefinitionError(); err != nil {
-		hata("%v", err)
+		errorf("%v", err)
 	}
-	canli := func(k Code) bool { g, ok := d.girdiler[k]; return ok && !g.Dead() }
-	tumu := append(d.Codes(), d.DeadCodes()...)
-	for _, k := range tumu {
+	live := func(k Code) bool { g, ok := d.entries[k]; return ok && !g.Dead() }
+	all := append(d.Codes(), d.DeadCodes()...)
+	for _, k := range all {
 		if _, ok := DefinitionOf(k); !ok {
-			hata("%s (%s) dil dosyasında var, definitions.json'da tanımı yok", k, d.Name(k))
+			errorf("%s (%s) dil dosyasında var, definitions.json'da tanımı yok", k, d.Name(k))
 		}
 	}
-	tipKodu := func(k Code) bool {
-		g, ok := d.girdiler[k]
+	typeCode := func(k Code) bool {
+		g, ok := d.entries[k]
 		return ok && k.Letter() == 'A' && k.Group() >= 2 && !g.Dead()
 	}
-	tipDenetle := func(k Code, yer string, t TypeExpr) {
+	checkType := func(k Code, pos string, t TypeExpr) {
 		for _, x := range t.Types {
-			if !tipKodu(x) {
-				hata("%s %s: %s bir tip kodu değil", k, yer, x)
+			if !typeCode(x) {
+				errorf("%s %s: %s bir tip kodu değil", k, pos, x)
 			}
 		}
 	}
-	imzaDenetle := func(k Code, yer string, im Signature) {
+	checkSig := func(k Code, pos string, im Signature) {
 		for i, p := range im.Params {
-			tipDenetle(k, fmt.Sprintf("%s%d. parametre", yer, i+1), p)
+			checkType(k, fmt.Sprintf("%s%d. parametre", pos, i+1), p)
 			if (p.Many || p.AtLeastOne) && i != len(im.Params)-1 {
-				hata("%s %s: '*' ya da '+' yalnızca son parametrede olabilir", k, yer)
+				errorf("%s %s: '*' ya da '+' yalnızca son parametrede olabilir", k, pos)
 			}
 		}
 		for _, a := range im.Named {
-			if a.Code.Namespace() != NamespaceParam || !canli(a.Code) {
-				hata("%s %sadlı argüman %s bir adlı argüman kodu (x9xx) değil", k, yer, a.Code)
+			if a.Code.Namespace() != NamespaceParam || !live(a.Code) {
+				errorf("%s %sadlı argüman %s bir adlı argüman kodu (x9xx) değil", k, pos, a.Code)
 			}
-			tipDenetle(k, yer+"adlı argüman", a.Type)
+			checkType(k, pos+"adlı argüman", a.Type)
 		}
 		if !im.Return.Empty() {
-			tipDenetle(k, yer+"dönüş", im.Return)
+			checkType(k, pos+"dönüş", im.Return)
 		}
 	}
 	for _, k := range DefinitionCodes() {
 		t, _ := DefinitionOf(k)
-		g, ok := d.girdiler[k]
+		g, ok := d.entries[k]
 		if !ok {
 			// Ölü kodların adları yalnızca ipucu içindir: kaynak dil (TR) onları tutar, öbür dil
 			// dosyalarında isteğe bağlıdırlar (o dilde hiç var olmamış adların karşılığı gerekmez).
 			if d.Code != SourceLanguage && (t.Removed || t.MovedTo != None) {
 				continue
 			}
-			hata("%s definitions.json'da var, dil dosyasında yok", k)
+			errorf("%s definitions.json'da var, dil dosyasında yok", k)
 			continue
 		}
-		bek := k.ExpectedKind()
+		exp := k.ExpectedKind()
 		switch {
-		case bek == KindMethod && t.Kind != KindMethod && t.Kind != KindProperty:
-			hata("%s: tür %q olamaz; üyeler (Y) metot ya da özelliktir", k, t.Kind)
-		case bek == KindFunction && t.Kind == KindConstant:
+		case exp == KindMethod && t.Kind != KindMethod && t.Kind != KindProperty:
+			errorf("%s: tür %q olamaz; üyeler (Y) metot ya da özelliktir", k, t.Kind)
+		case exp == KindFunction && t.Kind == KindConstant:
 			// Yerleşik bir sabit (G/T/V/W ailesinde fonksiyonun yerinde).
-		case bek != KindMethod && t.Kind != bek:
-			hata("%s: tür %q, ama kodun ailesi %q gerektirir", k, t.Kind, bek)
+		case exp != KindMethod && t.Kind != exp:
+			errorf("%s: tür %q, ama kodun ailesi %q gerektirir", k, t.Kind, exp)
 		}
 		if g.MovedTo != t.MovedTo {
-			hata("%s: dil dosyasının taşınma bilgisi (%s) tanımla (%s) aynı değil; go run ./tools/gen/codeconsts", k, g.MovedTo, t.MovedTo)
+			errorf("%s: dil dosyasının taşınma bilgisi (%s) tanımla (%s) aynı değil; go run ./tools/gen/codeconsts", k, g.MovedTo, t.MovedTo)
 		}
 		if g.Removed != t.Removed {
-			hata("%s: dil dosyasının kaldırılma bilgisi tanımla aynı değil; go run ./tools/gen/codeconsts", k)
+			errorf("%s: dil dosyasının kaldırılma bilgisi tanımla aynı değil; go run ./tools/gen/codeconsts", k)
 		}
 		if t.Removed {
 			if t.MovedTo != None || len(t.Members) > 0 || len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() || len(t.Related) > 0 {
-				hata("%s kaldırıldı; yalnızca tür yazılır", k)
+				errorf("%s kaldırıldı; yalnızca tür yazılır", k)
 			}
 			continue
 		}
 		if t.MovedTo != None {
 			if len(t.Members) > 0 || len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() {
-				hata("%s taşındı; imza yazılmaz (imza yeni kodda, %s)", k, t.MovedTo)
+				errorf("%s taşındı; imza yazılmaz (imza yeni kodda, %s)", k, t.MovedTo)
 			}
-			y, ok := d.girdiler[t.MovedTo]
+			y, ok := d.entries[t.MovedTo]
 			if !ok || y.Dead() {
-				hata("%s %s'e taşındı, ama %s canlı bir kod değil", k, t.MovedTo, t.MovedTo)
+				errorf("%s %s'e taşındı, ama %s canlı bir kod değil", k, t.MovedTo, t.MovedTo)
 			} else if t.MovedTo.Namespace() == k.Namespace() {
-				hata("%s %s'e taşındı, ama ikisi aynı ad alanında (%s); taşıma biçim değiştirir (fonksiyon ↔ üye)", k, t.MovedTo, k.Namespace())
+				errorf("%s %s'e taşındı, ama ikisi aynı ad alanında (%s); taşıma biçim değiştirir (fonksiyon ↔ üye)", k, t.MovedTo, k.Namespace())
 			}
 			continue
 		}
 		switch t.Kind {
 		case KindMethod, KindProperty:
 			if len(t.Members) == 0 {
-				hata("%s: üyenin geçerli olduğu tipler (tipler ya da imzalar) yazılmalı", k)
+				errorf("%s: üyenin geçerli olduğu tipler (tipler ya da imzalar) yazılmalı", k)
 			}
 			for _, u := range t.Members {
-				if !tipKodu(u.Type) {
-					hata("%s: %s bir tip kodu değil", k, u.Type)
+				if !typeCode(u.Type) {
+					errorf("%s: %s bir tip kodu değil", k, u.Type)
 				}
-				imzaDenetle(k, u.Type.String()+" ", u.Signature)
+				checkSig(k, u.Type.String()+" ", u.Signature)
 				if t.Kind == KindProperty && (len(u.Signature.Params) > 0 || len(u.Signature.Named) > 0) {
-					hata("%s: özellik parametre almaz", k)
+					errorf("%s: özellik parametre almaz", k)
 				}
 			}
 		case KindFunction:
-			imzaDenetle(k, "", t.Signature)
+			checkSig(k, "", t.Signature)
 		case KindConstant:
 			if len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || len(t.Members) > 0 || t.Signature.Return.Empty() {
-				hata("%s: sabit parametre almaz; yalnızca dönüş (değerin tipi) yazılır", k)
+				errorf("%s: sabit parametre almaz; yalnızca dönüş (değerin tipi) yazılır", k)
 			}
-			imzaDenetle(k, "", t.Signature)
+			checkSig(k, "", t.Signature)
 		default:
 			if len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() || len(t.Members) > 0 {
-				hata("%s: %s imza almaz", k, t.Kind)
+				errorf("%s: %s imza almaz", k, t.Kind)
 			}
 		}
 		for _, x := range t.Related {
-			if !canli(x) {
-				hata("%s: ilişkili kod %s dil dosyasında canlı bir kod değil", k, x)
+			if !live(x) {
+				errorf("%s: ilişkili kod %s dil dosyasında canlı bir kod değil", k, x)
 			} else if x == k {
-				hata("%s kendisiyle ilişkili yazılmış", k)
+				errorf("%s kendisiyle ilişkili yazılmış", k)
 			}
 		}
 	}
-	return hatalar
+	return errs
 }

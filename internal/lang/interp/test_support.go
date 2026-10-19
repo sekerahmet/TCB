@@ -2,6 +2,7 @@ package interp
 
 import (
 	"fmt"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
@@ -20,7 +21,7 @@ func (v *VM) registerTestBuiltins() {
 		if len(args) == 2 {
 			return nil, fmt.Errorf("doğrulama başarısız: %s", args[1].Inspect())
 		}
-		return nil, fmt.Errorf("doğrulama başarısız: koşul yanlış (%s)", testGoster(args[0]))
+		return nil, fmt.Errorf("doğrulama başarısız: koşul yanlış (%s)", testShow(args[0]))
 	})
 
 	// eşit_mi(beklenen, gerçek, [mesaj]): iki değer '==' ile eşit değilse ikisini de gösteren hata fırlatır.
@@ -28,23 +29,23 @@ func (v *VM) registerTestBuiltins() {
 		if len(args) < 2 || len(args) > 3 {
 			return nil, ArgCountError(codes.G701, "2 ya da 3", len(args), "beklenen, gerçek, [mesaj]")
 		}
-		if err := tipMetinHatasi("==", args[0], args[1]); err != nil {
+		if err := typeTextError("==", args[0], args[1]); err != nil {
 			return nil, err
 		}
 		if ValuesEqual(args[0], args[1]) {
 			return TRUE, nil
 		}
-		ek := ""
+		extra := ""
 		if len(args) == 3 {
-			ek = args[2].Inspect() + " — "
+			extra = args[2].Inspect() + " — "
 		}
-		return nil, fmt.Errorf("eşitlik başarısız: %sbeklenen %s, gerçek %s", ek, testGoster(args[0]), testGoster(args[1]))
+		return nil, fmt.Errorf("eşitlik başarısız: %sbeklenen %s, gerçek %s", extra, testShow(args[0]), testShow(args[1]))
 	})
 }
 
 // testGoster bir değeri tipiyle birlikte gösterir; metinler tırnak içinde yazılır ki
 // "5" ile 5 ayırt edilebilsin.
-func testGoster(d Value) string {
+func testShow(d Value) string {
 	if s, ok := d.(*StringVal); ok {
 		return fmt.Sprintf("%q (%s)", s.Val, VAL_STRING)
 	}
@@ -60,11 +61,11 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 		v.acquireGIL()
 		defer v.releaseGIL()
 	}
-	yiginBoyu := len(v.CallStack)
+	stackSize := len(v.CallStack)
 	defer func() {
 		if r := recover(); r != nil {
 			// Çöküşte yarıda kalan çağrıların çerçevelerini at (sonraki testler için)
-			v.yiginiKirp(yiginBoyu)
+			v.trimStack(stackSize)
 			if IsInterrupt(r) {
 				err = ErrInterrupted
 				return
@@ -76,14 +77,14 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 	if t.Body != nil {
 		stmts = t.Body.Statements
 	}
-	kd, bilgi := v.genelAltindaDerle(stmts)
-	env := yeniOrtam(v.GlobalEnv, bilgi)
+	kd, info := v.compileUnderGlobal(stmts)
+	env := newEnv(v.GlobalEnv, info)
 	env.IsFuncRoot = true
 	func() {
 		// Testin ertelenen işleri test bitince çalışır; hataları testin hatasına eklenir (9.4)
-		defer func() { err = erteleHatasiEkle(err, env.RunDefers()) }()
+		defer func() { err = addDeferError(err, env.RunDefers()) }()
 		if t.Body != nil {
-			_, _, err = kd.calistir(v, env)
+			_, _, err = kd.run(v, env)
 		}
 	}()
 	v.Blocking(v.wg.Wait)

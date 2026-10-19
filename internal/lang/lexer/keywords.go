@@ -18,7 +18,7 @@ type Keyword struct {
 }
 
 // anahtarKelimeler sözcük çözümleyicide ayrılmış bütün anahtar kelimelerdir.
-var anahtarKelimeler = []Keyword{
+var keywordTable = []Keyword{
 	// Koşul ve eşleştirme
 	{codes.A001, TOKEN_IF},
 	{codes.A002, TOKEN_ELSE},
@@ -63,36 +63,36 @@ var anahtarKelimeler = []Keyword{
 }
 
 // keywords yazım → token türü, turKodlari token türü → sözlük kodu haritasıdır.
-var keywords, turKodlari = anahtarKelimeHaritasi(anahtarKelimeler)
+var keywords, typeCodes = keywordMap(keywordTable)
 
 // anahtarKelimeHaritasi tabloyu sözlükteki yazımlarla haritaya çevirir. Aynı yazım iki
 // token türüne ya da aynı tür iki koda bağlanmışsa bu bir geliştirici hatasıdır ve
 // program başlarken durur.
-func anahtarKelimeHaritasi(tablo []Keyword) (map[string]TokenType, map[TokenType]codes.Code) {
-	harita := make(map[string]TokenType)
-	kodlar := make(map[TokenType]codes.Code)
-	for _, ak := range tablo {
-		if !ak.Code.IsKeyword() {
-			panic(fmt.Sprintf("anahtar kelime tablosu: %s bir anahtar kelime kodu (A0xx) değil", ak.Code))
+func keywordMap(table []Keyword) (map[string]TokenType, map[TokenType]codes.Code) {
+	posMap := make(map[string]TokenType)
+	codeList := make(map[TokenType]codes.Code)
+	for _, kw := range table {
+		if !kw.Code.IsKeyword() {
+			panic(fmt.Sprintf("anahtar kelime tablosu: %s bir anahtar kelime kodu (A0xx) değil", kw.Code))
 		}
-		if onceki, ok := kodlar[ak.Type]; ok {
-			panic(fmt.Sprintf("anahtar kelime tablosu: %s hem %s hem %s", ak.Type, onceki, ak.Code))
+		if prev, ok := codeList[kw.Type]; ok {
+			panic(fmt.Sprintf("anahtar kelime tablosu: %s hem %s hem %s", kw.Type, prev, kw.Code))
 		}
-		kodlar[ak.Type] = ak.Code
-		for _, yazim := range codes.Spellings(ak.Code) {
-			if onceki, ok := harita[yazim]; ok && onceki != ak.Type {
-				panic(fmt.Sprintf("anahtar kelime sözlüğü: %q hem %s hem %s olamaz", yazim, onceki, ak.Type))
+		codeList[kw.Type] = kw.Code
+		for _, spelling := range codes.Spellings(kw.Code) {
+			if prev, ok := posMap[spelling]; ok && prev != kw.Type {
+				panic(fmt.Sprintf("anahtar kelime sözlüğü: %q hem %s hem %s olamaz", spelling, prev, kw.Type))
 			}
-			harita[yazim] = ak.Type
+			posMap[spelling] = kw.Type
 		}
 	}
-	return harita, kodlar
+	return posMap, codeList
 }
 
 // KeywordName returns the dictionary name of a keyword token type (e.g. "sonuç"), or the
 // empty string for other types.
 func KeywordName(t TokenType) string {
-	if k, ok := turKodlari[t]; ok {
+	if k, ok := typeCodes[t]; ok {
 		return codes.Name(k)
 	}
 	return ""

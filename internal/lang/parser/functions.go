@@ -5,11 +5,11 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
-func (p *Parser) parseGroupedOrLambdaExpression(desen bool) ast.Expression {
+func (p *Parser) parseGroupedOrLambdaExpression(pattern bool) ast.Expression {
 	defer p.allowBlocks()()
 	// Önce bunun '(a, b) => ...' bir ok fonksiyonu (lambda) olup olmadığını kontrol et; eşle
 	// deseninde '(a + 1) => ...' parantezli bir desendir.
-	if !desen && p.isLambdaAhead() {
+	if !pattern && p.isLambdaAhead() {
 		return p.parseLambdaExpression()
 	}
 
@@ -46,10 +46,10 @@ func (p *Parser) parseSingleParamLambda() ast.Expression {
 	var body *ast.BlockStatement
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
-		body = p.fonksiyonGovdesi()
+		body = p.functionBody()
 	} else {
 		p.nextToken()
-		expr := p.fonksiyonIfadesi()
+		expr := p.functionExpr()
 		body = &ast.BlockStatement{
 			Token: arrowTok,
 			Statements: []ast.Statement{
@@ -75,10 +75,10 @@ func (p *Parser) parseLambdaExpression() ast.Expression {
 	var body *ast.BlockStatement
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
-		body = p.fonksiyonGovdesi()
+		body = p.functionBody()
 	} else {
 		p.nextToken()
-		expr := p.fonksiyonIfadesi()
+		expr := p.functionExpr()
 		body = &ast.BlockStatement{
 			Token: arrowTok,
 			Statements: []ast.Statement{
@@ -113,7 +113,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 		p.nextToken()
 		if p.expectPeek(lexer.TOKEN_IDENT) {
 			lit.ReturnType = p.curToken().Literal
-			p.rol(p.curToken(), RoleType)
+			p.role(p.curToken(), RoleType)
 		}
 	} else if p.peekTokenIs(lexer.TOKEN_MINUS) {
 		p.nextToken() // '-'
@@ -121,7 +121,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 			p.nextToken() // '>'
 			if p.expectPeek(lexer.TOKEN_IDENT) {
 				lit.ReturnType = p.curToken().Literal
-				p.rol(p.curToken(), RoleType)
+				p.role(p.curToken(), RoleType)
 			}
 		}
 	}
@@ -130,7 +130,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 		return nil
 	}
 
-	lit.Body = p.fonksiyonGovdesi()
+	lit.Body = p.functionBody()
 	return lit
 }
 func (p *Parser) parseFunctionParameters() []ast.Param {
@@ -149,7 +149,7 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 			p.nextToken() // ':'
 			if p.expectPeek(lexer.TOKEN_IDENT) {
 				param.TypeName = p.curToken().Literal
-				p.rol(p.curToken(), RoleType)
+				p.role(p.curToken(), RoleType)
 			}
 		}
 		if p.peekTokenIs(lexer.TOKEN_ASSIGN) {
@@ -190,11 +190,11 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 	p.nextToken()
 	for {
 		if p.curTokenIs(lexer.TOKEN_IDENT) && p.peekTokenIs(lexer.TOKEN_COLON) {
-			adTok := p.curToken()
+			nameTok := p.curToken()
 			p.nextToken() // ':'
 			p.nextToken()
 			val := p.parseExpression(LOWEST)
-			named = append(named, ast.NamedArg{Token: adTok, Name: adTok.Literal, Value: val})
+			named = append(named, ast.NamedArg{Token: nameTok, Name: nameTok.Literal, Value: val})
 		} else {
 			args = append(args, p.parseExpression(LOWEST))
 		}

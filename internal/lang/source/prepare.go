@@ -46,11 +46,11 @@ type Result struct {
 
 // Prepare turns source text (the whole file, BOM included) into a program: header parsing,
 // lexing, parsing and, when requested, type checking.
-func Prepare(metin string, s Options) *Result {
-	b, err := Split(metin)
+func Prepare(text string, s Options) *Result {
+	b, err := Split(text)
 	r := &Result{Parts: b, Text: b.Body}
 	if b.Coded {
-		r.Text = gosterim(b)
+		r.Text = view(b)
 	}
 	if err != nil {
 		r.Program = &ast.Program{}

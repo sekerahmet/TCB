@@ -17,23 +17,23 @@ import (
 // tasinanUyeHatasi prop, obj'nin tipinde taşınmış bir üyenin adıysa (ve yeni fonksiyon bu
 // tipi alıyorsa) yeni biçimi gösteren hata metnini verir; değilse boş metin.
 // ör. "'liste.toplam()' TR'de yok; 'toplam(liste)' yazın".
-func tasinanUyeHatasi(obj Value, prop string) string {
-	eski, ok := codes.FindDead(codes.NamespaceMember, prop)
+func movedMemberError(obj Value, prop string) string {
+	prevVal, ok := codes.FindDead(codes.NamespaceMember, prop)
 	if !ok {
 		return ""
 	}
-	if codes.Removed(eski) {
+	if codes.Removed(prevVal) {
 		return hint.RemovedError(prop)
 	}
-	yeni, _ := codes.MovedTo(eski)
-	tip, ok := codes.Find(codes.NamespaceType, string(obj.Type()))
+	fresh, _ := codes.MovedTo(prevVal)
+	typ, ok := codes.Find(codes.NamespaceType, string(obj.Type()))
 	if !ok {
 		return ""
 	}
-	t, _ := codes.DefinitionOf(yeni)
-	if t.Kind != codes.KindFunction || len(t.Signature.Params) == 0 || !slices.Contains(t.Signature.Params[0].Types, tip) {
+	t, _ := codes.DefinitionOf(fresh)
+	if t.Kind != codes.KindFunction || len(t.Signature.Params) == 0 || !slices.Contains(t.Signature.Params[0].Types, typ) {
 		return ""
 	}
-	a := codes.ReceiverName(tip)
-	return fmt.Sprintf("'%s.%s()' TR'de yok; '%s(%s)' yazın", a, prop, codes.Name(yeni), a)
+	a := codes.ReceiverName(typ)
+	return fmt.Sprintf("'%s.%s()' TR'de yok; '%s(%s)' yazın", a, prop, codes.Name(fresh), a)
 }

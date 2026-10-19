@@ -2,11 +2,11 @@ package turkish
 
 import "testing"
 
-func TestSayiEk(t *testing.T) {
+func TestNumberSuffix(t *testing.T) {
 	cases := []struct {
-		n    int64
-		hal  Case
-		want string
+		n           int64
+		grammarCase Case
+		want        string
 	}{
 		{3, Dative, "3'e"}, {6, Dative, "6'ya"}, {9, Dative, "9'a"}, {10, Dative, "10'a"},
 		{40, Dative, "40'a"}, {100, Dative, "100'e"}, {2000, Dative, "2000'e"}, {1, Dative, "1'e"},
@@ -19,13 +19,13 @@ func TestSayiEk(t *testing.T) {
 		{-6, Dative, "-6'ya"},
 	}
 	for _, c := range cases {
-		if got := NumberSuffix(c.n, c.hal); got != c.want {
-			t.Errorf("SayiEk(%d, %d) = %q, %q bekleniyordu", c.n, c.hal, got, c.want)
+		if got := NumberSuffix(c.n, c.grammarCase); got != c.want {
+			t.Errorf("SayiEk(%d, %d) = %q, %q bekleniyordu", c.n, c.grammarCase, got, c.want)
 		}
 	}
 }
 
-func TestEkSozcuk(t *testing.T) {
+func TestSuffixWord(t *testing.T) {
 	cases := map[string]string{
 		Suffix("Ankara", Locative):   "Ankara'da",
 		Suffix("İstanbul", Locative): "İstanbul'da",
@@ -39,25 +39,6 @@ func TestEkSozcuk(t *testing.T) {
 	for got, want := range cases {
 		if got != want {
 			t.Errorf("%q bekleniyordu, %q alındı", want, got)
-		}
-	}
-}
-
-func TestEnYakin(t *testing.T) {
-	adaylar := []string{"toplam", "topla", "yazdır", "yazdir", "değişken_adı", "sayılar", "uzunluk"}
-	cases := map[string]string{
-		"toplm":        "topla",        // eşit uzaklıkta alfabetik ilk: topla (1) < toplam (1)
-		"yazdr":        "yazdir",       // ASCII yazana ASCII öneri
-		"yazdırr":      "yazdır",       // Türkçe yazana Türkçe öneri
-		"degisken_adi": "değişken_adı", // yalnızca ASCII farkı
-		"sayilar":      "sayılar",
-		"uznluk":       "uzunluk",
-		"xyz":          "",
-		"bambaşka":     "",
-	}
-	for aranan, want := range cases {
-		if got := Closest(aranan, adaylar); got != want {
-			t.Errorf("EnYakin(%q) = %q, %q bekleniyordu", aranan, got, want)
 		}
 	}
 }

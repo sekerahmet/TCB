@@ -2,6 +2,7 @@ package interp
 
 import (
 	"fmt"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
@@ -10,14 +11,14 @@ import (
 // üye erişimi, liste üreteci kaynakları).
 
 // uretecOgeleri bir liste üretecinin dolaşacağı öğeleri döndürür.
-func uretecOgeleri(v *VM, iterVal Value, line int) ([]Value, error) {
+func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 	var items []Value
 	switch it := iterVal.(type) {
 	case *RangeVal:
-		if ilk, son, adim, bos := aralikAdimlari(it); !bos {
-			for i := ilk; ; i += adim {
+		if first, last, step, empty := rangeSteps(it); !empty {
+			for i := first; ; i += step {
 				items = append(items, NewInt(i))
-				if i == son {
+				if i == last {
 					break
 				}
 			}
@@ -36,22 +37,22 @@ func uretecOgeleri(v *VM, iterVal Value, line int) ([]Value, error) {
 		// Dış değerler (ör. tensör: ilk eksen boyunca öğeler)
 		n, err := it.IterLen()
 		if err != nil {
-			return nil, satirEki(line, err)
+			return nil, lineSuffix(line, err)
 		}
 		items = make([]Value, n)
 		for i := range items {
 			if items[i], err = it.IterItem(i); err != nil {
-				return nil, satirEki(line, err)
+				return nil, lineSuffix(line, err)
 			}
 		}
 	case Stream:
 		// Tembel kaynak (ör. sıralı okuyucu): biter ya da liste sınırına ulaşana kadar
 		for {
-			item, devam, err := it.Next(v)
+			item, cont, err := it.Next(v)
 			if err != nil {
-				return nil, satirEki(line, err)
+				return nil, lineSuffix(line, err)
 			}
-			if !devam {
+			if !cont {
 				break
 			}
 			if len(items) >= MaxCollectionSize {
@@ -66,7 +67,7 @@ func uretecOgeleri(v *VM, iterVal Value, line int) ([]Value, error) {
 }
 
 // indeksDegeri kap[idx] değerini döndürür.
-func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
+func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 	switch container := left.(type) {
 	case *ListVal:
 		if iv, ok := idx.(*IntVal); ok {
@@ -81,7 +82,7 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 		}
 		// Dilimleme: liste[1..4]; negatif uç sondan sayar (liste[-2..] gibi)
 		if rng, ok := idx.(*RangeVal); ok {
-			start, end := dilimUclari(rng, len(container.Elements))
+			start, end := sliceBounds(rng, len(container.Elements))
 			sliced := make([]Value, end-start)
 			copy(sliced, container.Elements[start:end])
 			return &ListVal{Elements: sliced}, nil
@@ -96,7 +97,7 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 		return val, nil
 
 	case *StringVal:
-		ascii, runes := v.metinKarakterleri(container)
+		ascii, runes := v.textChars(container)
 		if iv, ok := idx.(*IntVal); ok && ascii {
 			// ASCII hızlı yolu: karakter = bayt, dönüşüm ve ayırma yok
 			n := len(container.Val)
@@ -107,13 +108,13 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 			if pos < 0 || pos >= n {
 				return NULL, nil
 			}
-			return asciiKarakterler[container.Val[pos]], nil
+			return asciiChars[container.Val[pos]], nil
 		}
 		if ascii {
 			runes = []rune(container.Val) // ASCII dilimleme: nadir yol
 		}
 		if rng, ok := idx.(*RangeVal); ok {
-			start, end := dilimUclari(rng, len(runes))
+			start, end := sliceBounds(rng, len(runes))
 			return &StringVal{Val: string(runes[start:end])}, nil
 		}
 		iv, ok := idx.(*IntVal)
@@ -131,7 +132,7 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 
 	case Indexable:
 		val, err := container.Index(idx)
-		return val, satirEki(line, err)
+		return val, lineSuffix(line, err)
 	}
 
 	return nil, fmt.Errorf("Satır %d: %s tipi indekslenemez", line, left.Type())
@@ -139,13 +140,13 @@ func (v *VM) indeksDegeri(left Value, idx Value, line int) (Value, error) {
 
 // uyeDegeri nesne.özellik (ya da nesne?.özellik) değerini döndürür.
 // u, adın derleme anında çözülmüş kodudur (bkz. uyeCoz).
-func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression, u uyeBilgisi) (Value, error) {
+func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Value, error) {
 	// Sık türler arayüz denetimlerinden önce denenir (bu türler 'yok' ya da PropertyGetter
 	// değildir; adı "Yok" olan bir yapı eski yoldan geçer).
 	switch inst := obj.(type) {
 	case *StructInstanceVal:
 		if ValueType(inst.Def.Name) != VAL_NULL {
-			return yapiUyesi(inst, e)
+			return structMember(inst, e)
 		}
 	case *DictVal, *ListVal, *StringVal:
 		return v.evalBuiltinMember(obj, e.Property, u, e.Safe, e.Line())
@@ -163,28 +164,28 @@ func (v *VM) uyeDegeri(obj Value, e *ast.MemberExpression, u uyeBilgisi) (Value,
 		var val Value
 		var err error
 		if g, ok := pg.(TaskMemberHook); ok {
-			val, err = g.TaskMember(v, u.kod, e.Property)
+			val, err = g.TaskMember(v, u.codeVal, e.Property)
 		} else {
-			val, err = pg.GetProperty(u.kod, e.Property)
+			val, err = pg.GetProperty(u.codeVal, e.Property)
 		}
-		if err != nil && u.kod == codes.None {
-			if h := tasinanUyeHatasi(obj, e.Property); h != "" {
+		if err != nil && u.codeVal == codes.None {
+			if h := movedMemberError(obj, e.Property); h != "" {
 				err = fmt.Errorf("%s", h)
 			} else {
-				err = uyeOneriHatasi(pg, obj, e.Property, err)
+				err = memberSuggestionError(pg, obj, e.Property, err)
 			}
 		}
-		return val, satirEki(e.Line(), err)
+		return val, lineSuffix(e.Line(), err)
 	}
 
 	if inst, ok := obj.(*StructInstanceVal); ok {
-		return yapiUyesi(inst, e)
+		return structMember(inst, e)
 	}
 	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği bulunamadı", e.Line(), obj.Type(), e.Property)
 }
 
 // yapiUyesi nesnenin alanını ya da (bağlı fonksiyon olarak) metodunu döndürür.
-func yapiUyesi(inst *StructInstanceVal, e *ast.MemberExpression) (Value, error) {
+func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, error) {
 	if val, ok := inst.Fields[e.Property]; ok {
 		return val, nil
 	}
@@ -195,7 +196,7 @@ func yapiUyesi(inst *StructInstanceVal, e *ast.MemberExpression) (Value, error) 
 			Body:       method.Body,
 			Env:        method.Env,
 			BoundSelf:  inst,
-			kod:        method.kod,
+			codeVal:    method.codeVal,
 		}, nil
 	}
 	if e.Safe {
@@ -206,7 +207,7 @@ func yapiUyesi(inst *StructInstanceVal, e *ast.MemberExpression) (Value, error) 
 
 // asciiKarakterler tek karakterlik ASCII metinlerdir (indekslemede yeniden kullanılır;
 // metin değerleri değişmezdir).
-var asciiKarakterler = func() (t [128]*StringVal) {
+var asciiChars = func() (t [128]*StringVal) {
 	for i := range t {
 		t[i] = &StringVal{Val: string(rune(i))}
 	}
@@ -216,9 +217,9 @@ var asciiKarakterler = func() (t [128]*StringVal) {
 // metinKarakterleri metnin ASCII olup olmadığını ve (değilse) karakter dizisini verir. Son
 // indekslenen metnin sonucu saklanır: döngüde aynı metne art arda erişim her seferinde
 // []rune dönüşümü yapmaz. Yalnızca yorumlayıcı kilidi tutulurken çağrılır.
-func (v *VM) metinKarakterleri(s *StringVal) (bool, []rune) {
-	o := &v.metinOnbellegi
-	if o.metin != s {
+func (v *VM) textChars(s *StringVal) (bool, []rune) {
+	o := &v.stringCache
+	if o.text != s {
 		ascii := true
 		for i := 0; i < len(s.Val); i++ {
 			if s.Val[i] >= 0x80 {
@@ -226,7 +227,7 @@ func (v *VM) metinKarakterleri(s *StringVal) (bool, []rune) {
 				break
 			}
 		}
-		o.metin, o.ascii, o.runes = s, ascii, nil
+		o.text, o.ascii, o.runes = s, ascii, nil
 		if !ascii {
 			o.runes = []rune(s.Val)
 		}

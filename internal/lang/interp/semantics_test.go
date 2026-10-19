@@ -2,10 +2,11 @@ package interp
 
 import (
 	"bytes"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // runTROut programı çalıştırır ve yazdır() çıktısını da döndürür.
@@ -146,9 +147,9 @@ yazdır("tamam")`)
 
 // Tam sayı toplama/çıkarma/çarpma taşması sessizce sarmak yerine hata verir ('**' gibi).
 func TestIntegerOverflowIsError(t *testing.T) {
-	for _, kod := range []string{"sonuç 9223372036854775807 + 1", "sonuç -9223372036854775807 - 2", "sonuç 4294967296 * 4294967296"} {
-		if _, err := runTR(t, kod); err == nil || !strings.Contains(err.Error(), "taşma") {
-			t.Fatalf("%s: taşma hatası bekleniyordu, alınan: %v", kod, err)
+	for _, codeVal := range []string{"sonuç 9223372036854775807 + 1", "sonuç -9223372036854775807 - 2", "sonuç 4294967296 * 4294967296"} {
+		if _, err := runTR(t, codeVal); err == nil || !strings.Contains(err.Error(), "taşma") {
+			t.Fatalf("%s: taşma hatası bekleniyordu, alınan: %v", codeVal, err)
 		}
 	}
 	val, err := runTR(t, "sonuç 9223372036854775806 + 1 - 5 * 2")

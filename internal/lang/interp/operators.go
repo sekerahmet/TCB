@@ -9,135 +9,135 @@ import (
 // her işlemde metin karşılaştırması yapılmaz.
 const (
 	_ uint8 = iota // 0 kullanılmaz
-	opBilinmeyen
-	opTopla
-	opCikar
-	opCarp
-	opBol
+	opUnknown
+	opAdd
+	opSub
+	opMul
+	opDiv
 	opMod
-	opUs
-	opKucuk
-	opBuyuk
-	opKucukEsit
-	opBuyukEsit
-	opEsit
-	opEsitDegil
-	opVe
-	opVeya
-	opYoksa // ??
-	opBoru  // |>
-	opMatCarp
-	opAta // = (düz atama)
+	opPow
+	opLt
+	opGt
+	opLe
+	opGe
+	opEq
+	opNe
+	opAnd
+	opOr
+	opCoalesce // ??
+	opPipe     // |>
+	opMatMul
+	opAssign // = (düz atama)
 )
 
 // islecKodu bir işleç metninin kodunu döndürür. Bileşik atamalar (+=, ...) temel
 // işlecin koduna, düz atama opAta'ya çevrilir.
-func islecKodu(op string) uint8 {
+func opCode(op string) uint8 {
 	switch op {
 	case "+", "+=":
-		return opTopla
+		return opAdd
 	case "-", "-=":
-		return opCikar
+		return opSub
 	case "*", "*=":
-		return opCarp
+		return opMul
 	case "/", "/=":
-		return opBol
+		return opDiv
 	case "%":
 		return opMod
 	case "**":
-		return opUs
+		return opPow
 	case "<":
-		return opKucuk
+		return opLt
 	case ">":
-		return opBuyuk
+		return opGt
 	case "<=":
-		return opKucukEsit
+		return opLe
 	case ">=":
-		return opBuyukEsit
+		return opGe
 	case "==":
-		return opEsit
+		return opEq
 	case "!=":
-		return opEsitDegil
+		return opNe
 	case "&&":
-		return opVe
+		return opAnd
 	case "||":
-		return opVeya
+		return opOr
 	case "??":
-		return opYoksa
+		return opCoalesce
 	case "|>":
-		return opBoru
+		return opPipe
 	case "@":
-		return opMatCarp
+		return opMatMul
 	case "=":
-		return opAta
+		return opAssign
 	}
-	return opBilinmeyen
+	return opUnknown
 }
 
 // atamaIslecMetni bileşik atamanın kullandığı ikili işlecin metnini döndürür (hata mesajları için).
-func atamaIslecMetni(kod uint8) string {
-	switch kod {
-	case opTopla:
+func assignOpText(codeVal uint8) string {
+	switch codeVal {
+	case opAdd:
 		return "+"
-	case opCikar:
+	case opSub:
 		return "-"
-	case opCarp:
+	case opMul:
 		return "*"
-	case opBol:
+	case opDiv:
 		return "/"
 	}
 	return ""
 }
 
 // evalInfixKod ikili işlemi işleç koduyla yapar; op yalnızca hata mesajları içindir.
-func (v *VM) evalInfixKod(kod uint8, op string, left Value, right Value, line int) (Value, error) {
+func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, line int) (Value, error) {
 	// Hızlı yol: Tam ve Ondalık sayılar. Sayılar işleç kancası uygulamadığından bu denetim
 	// kancalardan önce yapılabilir.
 	switch l := left.(type) {
 	case *IntVal:
 		switch r := right.(type) {
 		case *IntVal:
-			if val, ok, err := tamIslem(kod, op, l.Val, r.Val, line); ok {
+			if val, ok, err := intOp(codeVal, op, l.Val, r.Val, line); ok {
 				return val, err
 			}
 		case *FloatVal:
-			if val, ok, err := ondalikIslem(kod, float64(l.Val), r.Val, line); ok {
+			if val, ok, err := floatOp(codeVal, float64(l.Val), r.Val, line); ok {
 				return val, err
 			}
 		}
 	case *FloatVal:
 		switch r := right.(type) {
 		case *IntVal:
-			if val, ok, err := ondalikIslem(kod, l.Val, float64(r.Val), line); ok {
+			if val, ok, err := floatOp(codeVal, l.Val, float64(r.Val), line); ok {
 				return val, err
 			}
 		case *FloatVal:
-			if val, ok, err := ondalikIslem(kod, l.Val, r.Val, line); ok {
+			if val, ok, err := floatOp(codeVal, l.Val, r.Val, line); ok {
 				return val, err
 			}
 		}
 	case *StringVal:
 		// Metin + Metin (aşağıdaki genel metin birleştirmeyle aynı sonuç; arayüz denetimleri atlanır)
-		if r, ok := right.(*StringVal); ok && kod == opTopla {
+		if r, ok := right.(*StringVal); ok && codeVal == opAdd {
 			return &StringVal{Val: l.Val + r.Val}, nil
 		}
 	}
 
 	// Değerlerin kendi işleç kancaları (ör. tensör @ tensör, 2 - tensör, tensör < 0);
 	// hatalarına satır bilgisi eklenir.
-	switch kod {
-	case opEsit, opEsitDegil:
+	switch codeVal {
+	case opEq, opNe:
 	default:
-		if val, ok, err := v.kancaIslec(op, left, right, line); ok {
+		if val, ok, err := v.hookOperator(op, left, right, line); ok {
 			return val, err
 		}
 	}
 
-	if kod == opEsit || kod == opEsitDegil {
-		return esitlikSonucu(kod == opEsit, op, left, right, line)
+	if codeVal == opEq || codeVal == opNe {
+		return equalityResult(codeVal == opEq, op, left, right, line)
 	}
 
-	if kod == opTopla {
+	if codeVal == opAdd {
 		// Metin birleştirme
 		if ls, ok := left.(*StringVal); ok {
 			return &StringVal{Val: ls.Val + right.Inspect()}, nil
@@ -161,31 +161,31 @@ func (v *VM) evalInfixKod(kod uint8, op string, left Value, right Value, line in
 }
 
 // tamIslem iki Tam sayı arasındaki işlemi yapar; işleç burada ele alınmıyorsa ok=false döner.
-func tamIslem(kod uint8, op string, a, b int64, line int) (Value, bool, error) {
-	switch kod {
-	case opTopla:
-		sonuc := a + b
-		if (sonuc > a) != (b > 0) {
-			return nil, true, tasmaHatasi(line, a, op, b)
+func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) {
+	switch codeVal {
+	case opAdd:
+		outcome := a + b
+		if (outcome > a) != (b > 0) {
+			return nil, true, overflowError(line, a, op, b)
 		}
-		return NewInt(sonuc), true, nil
-	case opCikar:
-		sonuc := a - b
-		if (sonuc < a) != (b > 0) {
-			return nil, true, tasmaHatasi(line, a, op, b)
+		return NewInt(outcome), true, nil
+	case opSub:
+		outcome := a - b
+		if (outcome < a) != (b > 0) {
+			return nil, true, overflowError(line, a, op, b)
 		}
-		return NewInt(sonuc), true, nil
-	case opCarp:
+		return NewInt(outcome), true, nil
+	case opMul:
 		if !mulFits(a, b) {
-			return nil, true, tasmaHatasi(line, a, op, b)
+			return nil, true, overflowError(line, a, op, b)
 		}
 		return NewInt(a * b), true, nil
-	case opBol:
+	case opDiv:
 		if b == 0 {
 			return nil, true, fmt.Errorf("Satır %d: Sıfıra bölme hatası", line)
 		}
 		if a == math.MinInt64 && b == -1 {
-			return nil, true, tasmaHatasi(line, a, op, b)
+			return nil, true, overflowError(line, a, op, b)
 		}
 		if a%b == 0 {
 			return NewInt(a / b), true, nil
@@ -196,7 +196,7 @@ func tamIslem(kod uint8, op string, a, b int64, line int) (Value, bool, error) {
 			return nil, true, fmt.Errorf("Satır %d: Sıfıra göre mod alma hatası", line)
 		}
 		return NewInt(a % b), true, nil
-	case opUs:
+	case opPow:
 		if b < 0 {
 			return &FloatVal{Val: math.Pow(float64(a), float64(b))}, true, nil
 		}
@@ -205,18 +205,18 @@ func tamIslem(kod uint8, op string, a, b int64, line int) (Value, bool, error) {
 			return nil, true, fmt.Errorf("Satır %d: %s sayı taşması (%d ** %d); ondalık sonuç için örn. %d.0 ** %d yazın", line, VAL_INT, a, b, a, b)
 		}
 		return NewInt(res), true, nil
-	case opKucuk:
+	case opLt:
 		return BoolToVal(a < b), true, nil
-	case opBuyuk:
+	case opGt:
 		return BoolToVal(a > b), true, nil
-	case opKucukEsit:
+	case opLe:
 		return BoolToVal(a <= b), true, nil
-	case opBuyukEsit:
+	case opGe:
 		return BoolToVal(a >= b), true, nil
-	case opEsit:
+	case opEq:
 		// İki Tam doğrudan karşılaştırılır (Ondalığa çevirmek 2^53 üstünde yanlış eşitlik verirdi)
 		return BoolToVal(a == b), true, nil
-	case opEsitDegil:
+	case opNe:
 		return BoolToVal(a != b), true, nil
 	}
 	return nil, false, nil
@@ -224,15 +224,15 @@ func tamIslem(kod uint8, op string, a, b int64, line int) (Value, bool, error) {
 
 // ondalikIslem Ondalık (veya Tam + Ondalık) sayı işlemlerini yapar; işleç burada ele
 // alınmıyorsa ok=false döner.
-func ondalikIslem(kod uint8, lf, rf float64, line int) (Value, bool, error) {
-	switch kod {
-	case opTopla:
+func floatOp(codeVal uint8, lf, rf float64, line int) (Value, bool, error) {
+	switch codeVal {
+	case opAdd:
 		return &FloatVal{Val: lf + rf}, true, nil
-	case opCikar:
+	case opSub:
 		return &FloatVal{Val: lf - rf}, true, nil
-	case opCarp:
+	case opMul:
 		return &FloatVal{Val: lf * rf}, true, nil
-	case opBol:
+	case opDiv:
 		if rf == 0 {
 			return nil, true, fmt.Errorf("Satır %d: Sıfıra bölme hatası", line)
 		}
@@ -242,26 +242,26 @@ func ondalikIslem(kod uint8, lf, rf float64, line int) (Value, bool, error) {
 			return nil, true, fmt.Errorf("Satır %d: Sıfıra göre mod alma hatası", line)
 		}
 		return &FloatVal{Val: math.Mod(lf, rf)}, true, nil
-	case opUs:
+	case opPow:
 		return &FloatVal{Val: math.Pow(lf, rf)}, true, nil
-	case opKucuk:
+	case opLt:
 		return BoolToVal(lf < rf), true, nil
-	case opBuyuk:
+	case opGt:
 		return BoolToVal(lf > rf), true, nil
-	case opKucukEsit:
+	case opLe:
 		return BoolToVal(lf <= rf), true, nil
-	case opBuyukEsit:
+	case opGe:
 		return BoolToVal(lf >= rf), true, nil
-	case opEsit:
+	case opEq:
 		return BoolToVal(lf == rf), true, nil
-	case opEsitDegil:
+	case opNe:
 		return BoolToVal(lf != rf), true, nil
 	}
 	return nil, false, nil
 }
 
 // tasmaHatasi int64 sınırını aşan tam sayı işlemleri için hata üretir (sessizce sarmak yerine).
-func tasmaHatasi(line int, a int64, op string, b int64) error {
+func overflowError(line int, a int64, op string, b int64) error {
 	return fmt.Errorf("Satır %d: %s sayı taşması (%d %s %d); ondalık sonuç için örn. %d.0 %s %d yazın", line, VAL_INT, a, op, b, a, op, b)
 }
 
@@ -285,22 +285,22 @@ func BoolToVal(b bool) Value {
 
 // esitlikSonucu == (esit) ya da != işleminin sonucudur. Tip değeri metinle
 // karşılaştırılamaz (3.11): sessizce yanlış dönmek yerine hata verir.
-func esitlikSonucu(esit bool, op string, left, right Value, line int) (Value, error) {
-	if err := tipMetinHatasi(op, left, right); err != nil {
+func equalityResult(equal bool, op string, left, right Value, line int) (Value, error) {
+	if err := typeTextError(op, left, right); err != nil {
 		return nil, fmt.Errorf("Satır %d: %w", line, err)
 	}
-	return BoolToVal(ValuesEqual(left, right) == esit), nil
+	return BoolToVal(ValuesEqual(left, right) == equal), nil
 }
 
 func ValuesEqual(a, b Value) bool {
-	return degerlerEsit(a, b, 0)
+	return valuesEqual(a, b, 0)
 }
 
 // esitlikDerinligi iç içe kap karşılaştırmasının en fazla derinliğidir; kendini içeren
 // kaplarda (l == l dışında) sonsuz özyinelemeyi önler, aşılırsa eşit sayılmaz.
-const esitlikDerinligi = 10000
+const equalityDepth = 10000
 
-func degerlerEsit(a, b Value, derinlik int) bool {
+func valuesEqual(a, b Value, nestDepth int) bool {
 	if a.Type() == VAL_NULL && b.Type() == VAL_NULL {
 		return true
 	}
@@ -331,7 +331,7 @@ func degerlerEsit(a, b Value, derinlik int) bool {
 		if a == b {
 			return true
 		}
-		if derinlik >= esitlikDerinligi {
+		if nestDepth >= equalityDepth {
 			return false
 		}
 	}
@@ -346,7 +346,7 @@ func degerlerEsit(a, b Value, derinlik int) bool {
 				return false
 			}
 			for i := range x.Elements {
-				if !degerlerEsit(x.Elements[i], y.Elements[i], derinlik+1) {
+				if !valuesEqual(x.Elements[i], y.Elements[i], nestDepth+1) {
 					return false
 				}
 			}
@@ -359,7 +359,7 @@ func degerlerEsit(a, b Value, derinlik int) bool {
 			}
 			for k, va := range x.Pairs {
 				vb, ok := y.Pairs[k]
-				if !ok || !degerlerEsit(va, vb, derinlik+1) {
+				if !ok || !valuesEqual(va, vb, nestDepth+1) {
 					return false
 				}
 			}
@@ -368,9 +368,9 @@ func degerlerEsit(a, b Value, derinlik int) bool {
 	case *StructInstanceVal:
 		if y, ok := b.(*StructInstanceVal); ok && x.Def == y.Def {
 			for _, f := range x.Def.Fields {
-				va, oka := x.Fields[f.Name]
-				vb, okb := y.Fields[f.Name]
-				if oka != okb || (oka && !degerlerEsit(va, vb, derinlik+1)) {
+				va, okA := x.Fields[f.Name]
+				vb, okB := y.Fields[f.Name]
+				if okA != okB || (okA && !valuesEqual(va, vb, nestDepth+1)) {
 					return false
 				}
 			}
@@ -385,23 +385,23 @@ func degerlerEsit(a, b Value, derinlik int) bool {
 		// Kimlik: aynı değer ya da aynı tanımın aynı ortamdaki (ve metotlarda aynı nesneye
 		// bağlı) kopyası. Görünüşü (Inspect) aynı olan farklı fonksiyonlar eşit değildir.
 		y := b.(*FuncVal)
-		return x == y || (x.kod != nil && x.kod == y.kod && x.Env == y.Env && x.Body == y.Body && ayniDeger(x.BoundSelf, y.BoundSelf))
+		return x == y || (x.codeVal != nil && x.codeVal == y.codeVal && x.Env == y.Env && x.Body == y.Body && sameValue(x.BoundSelf, y.BoundSelf))
 	}
 	// Diğer değerler (yerleşikler, yapı tanımları, motor nesneleri) kimlikle karşılaştırılır.
 	return a == b
 }
 
 // ayniDeger iki değerin (nil olabilir) aynı nesne olup olmadığını söyler.
-func ayniDeger(a, b Value) bool {
+func sameValue(a, b Value) bool {
 	if a == nil || b == nil {
 		return a == nil && b == nil
 	}
-	ap, aok := a.(*StructInstanceVal)
-	bp, bok := b.(*StructInstanceVal)
-	if aok && bok {
+	ap, aOK := a.(*StructInstanceVal)
+	bp, bOK := b.(*StructInstanceVal)
+	if aOK && bOK {
 		return ap == bp
 	}
-	return aok == bok && a == b
+	return aOK == bOK && a == b
 }
 
 // intPow tam sayı üssünü kare-çarp yöntemiyle hesaplar; int64 taşmasında ok=false döner.

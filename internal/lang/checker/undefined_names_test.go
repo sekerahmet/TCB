@@ -9,25 +9,25 @@ import (
 )
 
 // 5.14: tanımsız ad çalışmadan önce hatadır; ipucu çalışma anındakiyle aynıdır.
-func TestTanimsizAdHatadir(t *testing.T) {
-	tekHata(t, "yazdir(1)", "Satır 1, Sütun 1: Tanımsız ad", "'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?")
-	tekHata(t, "değişken öğrenci_sayısı = 1\nyazdır(öğrenci_sayis)", "Satır 2, Sütun 8", "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
-	tekHata(t, "tanımsız = 3", "Satır 1, Sütun 1: Tanımsız ad — 'tanımsız'")
-	tekHata(t, "değişken l = [1]\nfiltrele(l, (x) => x > 0)", "'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın")
-	tekHata(t, "matris([[1]])", "'matris' TR'de yok; 'tensör' yazmak mı istediniz?")
-	tekHata(t, "eğer doğru { değişken iç = 1 }\nyazdır(iç)", "Satır 2", "'iç'")
-	tekHata(t, "fonksiyon f() { sonuç g() }", "'g'")
-	tekHata(t, "test \"a\" { değişken yerel = 1 }\ntest \"b\" { yazdır(yerel) }", "Satır 2", "'yerel'")
-	tekHata(t, "yazdır(\"{bilinmeyen}\")", "'bilinmeyen'")
-	tekHata(t, "değişken l = [1, 2]\nyazdır([x * 2 döngü x içinde l eğer y > 0])", "'y'")
-	tekHata(t, "kendi.n = 1", "'kendi'")
+func TestUndefinedNameIsError(t *testing.T) {
+	singleError(t, "yazdir(1)", "Satır 1, Sütun 1: Tanımsız ad", "'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?")
+	singleError(t, "değişken öğrenci_sayısı = 1\nyazdır(öğrenci_sayis)", "Satır 2, Sütun 8", "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
+	singleError(t, "tanımsız = 3", "Satır 1, Sütun 1: Tanımsız ad — 'tanımsız'")
+	singleError(t, "değişken l = [1]\nfiltrele(l, (x) => x > 0)", "'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın")
+	singleError(t, "matris([[1]])", "'matris' TR'de yok; 'tensör' yazmak mı istediniz?")
+	singleError(t, "eğer doğru { değişken iç = 1 }\nyazdır(iç)", "Satır 2", "'iç'")
+	singleError(t, "fonksiyon f() { sonuç g() }", "'g'")
+	singleError(t, "test \"a\" { değişken yerel = 1 }\ntest \"b\" { yazdır(yerel) }", "Satır 2", "'yerel'")
+	singleError(t, "yazdır(\"{bilinmeyen}\")", "'bilinmeyen'")
+	singleError(t, "değişken l = [1, 2]\nyazdır([x * 2 döngü x içinde l eğer y > 0])", "'y'")
+	singleError(t, "kendi.n = 1", "'kendi'")
 	// Aynı ad tek kez bildirilir.
-	tekHata(t, "yazdır(a)\nyazdır(a + 1)", "Satır 1", "'a'")
+	singleError(t, "yazdır(a)\nyazdır(a + 1)", "Satır 1", "'a'")
 }
 
 // Dinamik dilde yanlış alarm yok: aşağıdakilerin hepsi tanımlıdır.
-func TestTanimsizAdYanlisAlarmVermez(t *testing.T) {
-	durumlar := map[string]string{
+func TestUndefinedNameNoFalseAlarm(t *testing.T) {
+	cases := map[string]string{
 		"sonra tanımlanan fonksiyon":  "fonksiyon a() { sonuç b() }\nfonksiyon b() { sonuç 1 }\nyazdır(a())",
 		"özyineleme":                  "fonksiyon f(n) { sonuç eğer n < 1 { 0 } değilse { f(n - 1) } }",
 		"sondaki blok o":              "yazdır([1, 2].haritala { o * 2 }.filtrele { o > 2 })",
@@ -49,16 +49,16 @@ func TestTanimsizAdYanlisAlarmVermez(t *testing.T) {
 		"kesme noktası koşulu":        "değişken x = 1\nkesme_noktası eğer x > 10",
 		"varsayılan parametre":        "değişken taban = 2\nfonksiyon üs(x, k = taban) { sonuç x ** k }",
 	}
-	for ad, kaynak := range durumlar {
-		if errs := denetle(t, kaynak); len(errs) > 0 {
-			t.Errorf("%s: hata beklenmiyordu: %v\n%s", ad, errs, kaynak)
+	for name, source := range cases {
+		if errs := check(t, source); len(errs) > 0 {
+			t.Errorf("%s: hata beklenmiyordu: %v\n%s", name, errs, source)
 		}
 	}
 }
 
 // Tip hatası, tanımsız ad ve gölgeleme uyarısı birlikte bildirilir; biri ötekini gizlemez.
 // Hatalar satır sırasıyladır.
-func TestTipHatasiVeTanimsizAdVeUyariBirlikte(t *testing.T) {
+func TestTypeErrorUndefinedNameAndWarningTogether(t *testing.T) {
 	p := parser.New(lexer.New("değişken toplam = [1, 2]\nyazdir(toplam)\ndeğişken x: Tam = \"metin\"\n"))
 	prog := p.ParseProgram()
 	c := New()
@@ -72,44 +72,44 @@ func TestTipHatasiVeTanimsizAdVeUyariBirlikte(t *testing.T) {
 }
 
 // Etkileşimli kabukta denetleyici satırlar arasında kalır: önceki satırın tanımı görünür.
-func TestTanimsizAdKabuktaSatirlarArasinda(t *testing.T) {
+func TestUndefinedNameAcrossREPLLines(t *testing.T) {
 	c := New()
-	satir := func(kaynak string) []string {
-		p := parser.New(lexer.New(kaynak))
+	line := func(source string) []string {
+		p := parser.New(lexer.New(source))
 		return c.CheckProgram(p.ParseProgram())
 	}
-	if errs := satir("değişken a = 1"); len(errs) != 0 {
+	if errs := line("değişken a = 1"); len(errs) != 0 {
 		t.Fatal(errs)
 	}
-	if errs := satir("yazdır(a)"); len(errs) != 0 {
+	if errs := line("yazdır(a)"); len(errs) != 0 {
 		t.Fatalf("önceki satırın tanımı görünmeli: %v", errs)
 	}
-	if errs := satir("yazdır(b)"); len(errs) != 1 {
+	if errs := line("yazdır(b)"); len(errs) != 1 {
 		t.Fatalf("tanımsız ad bildirilmeli: %v", errs)
 	}
 }
 
 // Modül aktaranın genel kapsamının altında çalışır (11.1): genel adlar modülde tanımlıdır;
 // adlar bilinmiyorsa (dinamik) tanımsız ad aranmaz.
-func TestTanimsizAdModulGenelKapsami(t *testing.T) {
-	modul := "yükleme_kaydı.ekle(1)\nyazdır(bilinmeyen)"
-	denetleModul := func(adlar []string, dinamik bool) []string {
+func TestUndefinedNameModuleGlobalScope(t *testing.T) {
+	module := "yükleme_kaydı.ekle(1)\nyazdır(bilinmeyen)"
+	checkModule := func(names []string, dynamic bool) []string {
 		c := New()
-		c.SetGlobalScope(adlar, dinamik)
-		return c.CheckProgram(parser.New(lexer.New(modul)).ParseModule())
+		c.SetGlobalScope(names, dynamic)
+		return c.CheckProgram(parser.New(lexer.New(module)).ParseModule())
 	}
-	errs := denetleModul([]string{"yükleme_kaydı"}, false)
+	errs := checkModule([]string{"yükleme_kaydı"}, false)
 	if len(errs) != 1 || !strings.Contains(errs[0], "'bilinmeyen'") {
 		t.Fatalf("yalnızca bilinmeyen ad bildirilmeli: %v", errs)
 	}
-	if errs := denetleModul(nil, true); len(errs) != 0 {
+	if errs := checkModule(nil, true); len(errs) != 0 {
 		t.Fatalf("dinamik genel kapsamda tanımsız ad aranmamalı: %v", errs)
 	}
-	adlar, dinamik := TopLevelNames(parser.New(lexer.New("değişken a = 1\nyapı Y { x }\nfonksiyon f() {}\naktar \"m\" olarak mm\neğer doğru { değişken iç = 2 }")).ParseProgram())
-	if strings.Join(adlar, ",") != "Y,a,f,mm" || dinamik {
-		t.Fatalf("üst düzey adlar: %v %v", adlar, dinamik)
+	names, dynamic := TopLevelNames(parser.New(lexer.New("değişken a = 1\nyapı Y { x }\nfonksiyon f() {}\naktar \"m\" olarak mm\neğer doğru { değişken iç = 2 }")).ParseProgram())
+	if strings.Join(names, ",") != "Y,a,f,mm" || dynamic {
+		t.Fatalf("üst düzey adlar: %v %v", names, dynamic)
 	}
-	if _, dinamik := TopLevelNames(parser.New(lexer.New("aktar \"m\"")).ParseProgram()); !dinamik {
+	if _, dynamic := TopLevelNames(parser.New(lexer.New("aktar \"m\"")).ParseProgram()); !dynamic {
 		t.Fatal("takma adsız aktar adları belirsiz kılmalı")
 	}
 }

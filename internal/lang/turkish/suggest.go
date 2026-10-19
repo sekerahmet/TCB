@@ -4,7 +4,7 @@ import "strings"
 
 // asciiKatla Türkçe karakterleri ASCII karşılıklarına indirger ve küçük harfe çevirir;
 // böylece 'degisken_adi' ile 'değişken_adı' aynı sözcük sayılır.
-func asciiKatla(s string) string {
+func foldASCII(s string) string {
 	var sb strings.Builder
 	for _, r := range s {
 		switch r {
@@ -28,7 +28,7 @@ func asciiKatla(s string) string {
 }
 
 // asciiCevirici Türkçe harfleri ASCII karşılıklarına çevirir; büyük/küçük harf korunur.
-var asciiCevirici = strings.NewReplacer(
+var asciiFolder = strings.NewReplacer(
 	"ı", "i", "İ", "I", "ş", "s", "Ş", "S", "ğ", "g", "Ğ", "G",
 	"ü", "u", "Ü", "U", "ö", "o", "Ö", "O", "ç", "c", "Ç", "C",
 )
@@ -36,64 +36,64 @@ var asciiCevirici = strings.NewReplacer(
 // ASCII returns the name with its Turkish letters replaced by their ASCII counterparts
 // (öğrenme_oranı → ogrenme_orani); other characters and letter case are unchanged.
 func ASCII(s string) string {
-	return asciiCevirici.Replace(s)
+	return asciiFolder.Replace(s)
 }
 
-func turkceHarfVar(s string) bool {
+func hasTurkishLetter(s string) bool {
 	return strings.ContainsAny(s, "ıİşŞğĞüÜöÖçÇ")
 }
 
 // uzaklik iki sözcük arasındaki düzenleme (Levenshtein) uzaklığıdır.
-func uzaklik(a, b string) int {
+func distance(a, b string) int {
 	x, y := []rune(a), []rune(b)
-	onceki := make([]int, len(y)+1)
-	simdi := make([]int, len(y)+1)
-	for j := range onceki {
-		onceki[j] = j
+	prev := make([]int, len(y)+1)
+	curr := make([]int, len(y)+1)
+	for j := range prev {
+		prev[j] = j
 	}
 	for i := 1; i <= len(x); i++ {
-		simdi[0] = i
+		curr[0] = i
 		for j := 1; j <= len(y); j++ {
-			maliyet := 1
+			cost := 1
 			if x[i-1] == y[j-1] {
-				maliyet = 0
+				cost = 0
 			}
-			simdi[j] = min(onceki[j]+1, simdi[j-1]+1, onceki[j-1]+maliyet)
+			curr[j] = min(prev[j]+1, curr[j-1]+1, prev[j-1]+cost)
 		}
-		onceki, simdi = simdi, onceki
+		prev, curr = curr, prev
 	}
-	return onceki[len(y)]
+	return prev[len(y)]
 }
 
 // Closest suggests the candidate closest to the searched word ("Bunu mu demek istediniz?",
 // "Did you mean?"). A Turkish/ASCII letter difference (degisken ↔ değişken) is not counted
 // as an error. Returns "" when no candidate is close enough. Ties go to the alphabetically
 // first candidate (deterministic).
-func Closest(aranan string, adaylar []string) string {
-	hedef := asciiKatla(aranan)
-	sinir := len([]rune(aranan)) / 3
-	if sinir < 1 {
-		sinir = 1
+func Closest(wanted string, candidates []string) string {
+	target := foldASCII(wanted)
+	limit := len([]rune(wanted)) / 3
+	if limit < 1 {
+		limit = 1
 	}
-	if sinir > 3 {
-		sinir = 3
+	if limit > 3 {
+		limit = 3
 	}
-	turkceYaziyor := turkceHarfVar(aranan)
-	en, enUzak, enUyumlu := "", sinir+1, false
-	for _, a := range adaylar {
-		if a == aranan || a == "" {
+	typesTurkish := hasTurkishLetter(wanted)
+	best, farthest, bestMatch := "", limit+1, false
+	for _, a := range candidates {
+		if a == wanted || a == "" {
 			continue
 		}
-		u := uzaklik(hedef, asciiKatla(a))
+		u := distance(target, foldASCII(a))
 		// Eşit uzaklıkta kullanıcının yazım tercihine (Türkçe / ASCII) uyan aday seçilir:
 		// 'yazdr' → 'yazdir', 'yazdırr' → 'yazdır'
-		uyumlu := turkceHarfVar(a) == turkceYaziyor
-		if u < enUzak || (u == enUzak && uyumlu && !enUyumlu) || (u == enUzak && uyumlu == enUyumlu && a < en) {
-			en, enUzak, enUyumlu = a, u, uyumlu
+		sameScript := hasTurkishLetter(a) == typesTurkish
+		if u < farthest || (u == farthest && sameScript && !bestMatch) || (u == farthest && sameScript == bestMatch && a < best) {
+			best, farthest, bestMatch = a, u, sameScript
 		}
 	}
-	if enUzak > sinir {
+	if farthest > limit {
 		return ""
 	}
-	return en
+	return best
 }

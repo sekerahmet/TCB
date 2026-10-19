@@ -30,13 +30,13 @@ func (v *VM) RegisterNoNamed(kd codes.Code, fn BuiltinFunc) *BuiltinVal {
 
 // NoNamedArgsError reports that named arguments were given to a builtin or method that takes
 // none; the format matches the unknown-name error of builtins that do take named arguments.
-func NoNamedArgsError(ad string, named map[string]Value) error {
-	adlar := make([]string, 0, len(named))
+func NoNamedArgsError(name string, named map[string]Value) error {
+	nameList := make([]string, 0, len(named))
 	for a := range named {
-		adlar = append(adlar, a)
+		nameList = append(nameList, a)
 	}
-	slices.Sort(adlar)
-	return fmt.Errorf("%s() '%s' adında bir parametre almaz (adlı argüman almaz)", ad, adlar[0])
+	slices.Sort(nameList)
+	return fmt.Errorf("%s() '%s' adında bir parametre almaz (adlı argüman almaz)", name, nameList[0])
 }
 
 // DefineBuiltin binds a ready builtin value (its name must be the code's name) in the global
@@ -46,8 +46,8 @@ func (v *VM) DefineBuiltin(kd codes.Code, b *BuiltinVal) *BuiltinVal {
 	if !kd.IsBuiltin() {
 		panic(fmt.Sprintf("yerleşik kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kd))
 	}
-	for _, yazim := range codes.Spellings(kd) {
-		v.GlobalEnv.Define(yazim, b, true)
+	for _, spelling := range codes.Spellings(kd) {
+		v.GlobalEnv.Define(spelling, b, true)
 	}
 	return b
 }
@@ -55,40 +55,40 @@ func (v *VM) DefineBuiltin(kd codes.Code, b *BuiltinVal) *BuiltinVal {
 // DefineConstant binds a builtin constant (kind "sabit" in definitions.json; e.g. pi) with its
 // value in the global scope. A constant is not called; it is read as a value and cannot be
 // reassigned.
-func (v *VM) DefineConstant(kd codes.Code, deger Value) {
+func (v *VM) DefineConstant(kd codes.Code, value Value) {
 	if !kd.IsBuiltin() {
 		panic(fmt.Sprintf("sabit kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kd))
 	}
-	if v.yerlesikSabitler == nil {
-		v.yerlesikSabitler = map[string]Value{}
+	if v.builtinConstants == nil {
+		v.builtinConstants = map[string]Value{}
 	}
-	for _, yazim := range codes.Spellings(kd) {
-		v.GlobalEnv.Define(yazim, deger, true)
-		v.yerlesikSabitler[yazim] = deger
+	for _, spelling := range codes.Spellings(kd) {
+		v.GlobalEnv.Define(spelling, value, true)
+		v.builtinConstants[spelling] = value
 	}
 }
 
 // IsBuiltinConstant reports whether ad is a builtin constant still holding val in scope (if
 // the user defined a variable with the same name, the value differs and it returns false).
-func (v *VM) IsBuiltinConstant(ad string, val Value) bool {
-	s, ok := v.yerlesikSabitler[ad]
+func (v *VM) IsBuiltinConstant(name string, val Value) bool {
+	s, ok := v.builtinConstants[name]
 	return ok && s == val
 }
 
 // Builtin returns the builtin registered in the global scope for a code, or nil.
 func (v *VM) Builtin(kd codes.Code) *BuiltinVal {
-	b, _ := v.GlobalEnv.yerelDeger(codes.Name(kd)).(*BuiltinVal)
+	b, _ := v.GlobalEnv.localValue(codes.Name(kd)).(*BuiltinVal)
 	return b
 }
 
 // kaldirilanUyeIpucu Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
 // kaldırılmış adı için ipucunu döndürür.
-func kaldirilanUyeIpucu(ad string) string {
-	k, ok := codes.Suggest(codes.NamespaceMember, ad, cekirdekUyesi)
+func removedMemberHint(name string) string {
+	k, ok := codes.Suggest(codes.NamespaceMember, name, coreMember)
 	if !ok {
 		return ""
 	}
-	return hint.NotInTRHint(ad, codes.Name(k))
+	return hint.NotInTRHint(name, codes.Name(k))
 }
 
 // uyeOneriHatasi motor tiplerinde (Tensör, Parçalayıcı, VeriKümesi ...) bulunamayan bir üye
@@ -96,7 +96,7 @@ func kaldirilanUyeIpucu(ad string) string {
 // bir hatayla değiştirir; değilse hatayı olduğu gibi döndürür. Önerinin bu tipte gerçekten
 // geçerli olduğu asıl adla yeniden okunarak doğrulanır (üye okumak yan etkisizdir:
 // metotlar bağlı değer olarak döner, çağrılmaz). Yalnızca hata yolunda çalışır.
-func uyeOneriHatasi(pg PropertyGetter, obj Value, prop string, err error) error {
+func memberSuggestionError(pg PropertyGetter, obj Value, prop string, err error) error {
 	k, ok := codes.Suggest(codes.NamespaceMember, prop, nil)
 	if !ok {
 		return err

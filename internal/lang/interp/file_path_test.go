@@ -11,81 +11,81 @@ import (
 )
 
 // klasordeCalis testi geçici bir çalışma klasöründe çalıştırır (pakette paralel test yok).
-func klasordeCalis(t *testing.T, klasor string) {
+func runInDir(t *testing.T, folder string) {
 	t.Helper()
-	eski, err := os.Getwd()
+	prevVal, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Chdir(klasor); err != nil {
+	if err := os.Chdir(folder); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = os.Chdir(eski) })
+	t.Cleanup(func() { _ = os.Chdir(prevVal) })
 }
 
-func dosyaYaz(t *testing.T, yol, icerik string) {
+func writeFile(t *testing.T, filePath, content string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(yol), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(yol, []byte(icerik), 0o644); err != nil {
+	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
 
 // Göreli yolların tek kuralı: önce çalışma klasörü, sonra programın klasörü; yeni dosya
 // klasörünün bulunduğu ilk yere (düz ad için çalışma klasörüne) yazılır.
-func TestYolCozTekKural(t *testing.T) {
-	kok := t.TempDir()
-	calisma := filepath.Join(kok, "scratch")
-	program := filepath.Join(kok, "program")
-	dosyaYaz(t, filepath.Join(calisma, "ikisinde.txt"), "çalışma")
-	dosyaYaz(t, filepath.Join(program, "ikisinde.txt"), "program")
-	dosyaYaz(t, filepath.Join(program, "yalniz_programda.txt"), "program")
-	dosyaYaz(t, filepath.Join(program, "cikti", "bos.txt"), "")
-	klasordeCalis(t, calisma)
+func TestResolvePathSingleRule(t *testing.T) {
+	root := t.TempDir()
+	execution := filepath.Join(root, "scratch")
+	program := filepath.Join(root, "program")
+	writeFile(t, filepath.Join(execution, "ikisinde.txt"), "çalışma")
+	writeFile(t, filepath.Join(program, "ikisinde.txt"), "program")
+	writeFile(t, filepath.Join(program, "yalniz_programda.txt"), "program")
+	writeFile(t, filepath.Join(program, "cikti", "bos.txt"), "")
+	runInDir(t, execution)
 
 	m := New()
 	m.SourceFile = filepath.Join(program, "ana.tr")
-	durumlar := map[string]string{
+	caseList := map[string]string{
 		"ikisinde.txt":         "ikisinde.txt",
 		"yalniz_programda.txt": filepath.Join(program, "yalniz_programda.txt"),
 		"yeni.txt":             "yeni.txt",
 		"cikti/rapor.txt":      filepath.Join(program, "cikti", "rapor.txt"),
 		"olmayan/rapor.txt":    "olmayan/rapor.txt",
 	}
-	for yol, ister := range durumlar {
-		if got, bakilanlar := m.ResolvePath(yol); got != ister || len(bakilanlar) != 2 {
-			t.Errorf("YolCoz(%q) = %q %v, %q bekleniyordu", yol, got, bakilanlar, ister)
+	for filePath, wantSub := range caseList {
+		if got, searched := m.ResolvePath(filePath); got != wantSub || len(searched) != 2 {
+			t.Errorf("YolCoz(%q) = %q %v, %q bekleniyordu", filePath, got, searched, wantSub)
 		}
 	}
-	mutlak := filepath.Join(program, "ikisinde.txt")
-	if got, bakilanlar := m.ResolvePath(mutlak); got != mutlak || bakilanlar != nil {
-		t.Errorf("mutlak yol olduğu gibi kalmalı: %q %v", got, bakilanlar)
+	absolute := filepath.Join(program, "ikisinde.txt")
+	if got, searched := m.ResolvePath(absolute); got != absolute || searched != nil {
+		t.Errorf("mutlak yol olduğu gibi kalmalı: %q %v", got, searched)
 	}
 	// Dosyadan çalışmayan program yalnızca çalışma klasörüne bakar
 	m.SourceFile = "<derlenmiş-uygulama>"
-	if got, bakilanlar := m.ResolvePath("yalniz_programda.txt"); got != "yalniz_programda.txt" || len(bakilanlar) != 1 {
-		t.Errorf("program klasörü olmadan: %q %v", got, bakilanlar)
+	if got, searched := m.ResolvePath("yalniz_programda.txt"); got != "yalniz_programda.txt" || len(searched) != 1 {
+		t.Errorf("program klasörü olmadan: %q %v", got, searched)
 	}
 }
 
-func TestDosyaYerlesikleriTekKuraliKullanir(t *testing.T) {
-	kok := t.TempDir()
-	calisma := filepath.Join(kok, "scratch")
-	program := filepath.Join(kok, "program")
-	dosyaYaz(t, filepath.Join(program, "sayac.txt"), "1")
-	if err := os.MkdirAll(calisma, 0o755); err != nil {
+func TestFileBuiltinsUseSingleRule(t *testing.T) {
+	root := t.TempDir()
+	execution := filepath.Join(root, "scratch")
+	program := filepath.Join(root, "program")
+	writeFile(t, filepath.Join(program, "sayac.txt"), "1")
+	if err := os.MkdirAll(execution, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	klasordeCalis(t, calisma)
+	runInDir(t, execution)
 
 	m := New()
 	m.SourceFile = filepath.Join(program, "ana.tr")
 	m.Out = &strings.Builder{}
-	calistir := func(kod string) (Value, error) {
+	run := func(codeVal string) (Value, error) {
 		t.Helper()
-		p := parser.New(lexer.New(kod))
+		p := parser.New(lexer.New(codeVal))
 		prog := p.ParseProgram()
 		if len(p.Errors()) > 0 {
 			t.Fatalf("sözdizimi hatası: %v", p.Errors())
@@ -93,20 +93,20 @@ func TestDosyaYerlesikleriTekKuraliKullanir(t *testing.T) {
 		return m.Run(prog)
 	}
 	// Programın yanındaki dosya okunur ve güncellenince yine oraya yazılır
-	if _, err := calistir(`dosya_yaz("sayac.txt", metin(tam(dosya_oku("sayac.txt")) + 1))`); err != nil {
+	if _, err := run(`dosya_yaz("sayac.txt", metin(tam(dosya_oku("sayac.txt")) + 1))`); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(program, "sayac.txt")); string(b) != "2" {
 		t.Errorf("sayac.txt programın klasöründe güncellenmeliydi: %q", b)
 	}
 	// Yeni dosya çalışma klasöründe oluşur
-	if _, err := calistir(`dosya_yaz("yeni.txt", "x")`); err != nil {
+	if _, err := run(`dosya_yaz("yeni.txt", "x")`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(calisma, "yeni.txt")); err != nil {
+	if _, err := os.Stat(filepath.Join(execution, "yeni.txt")); err != nil {
 		t.Errorf("yeni dosya çalışma klasöründe oluşmalıydı: %v", err)
 	}
-	_, err := calistir(`dosya_oku("yok.txt")`)
+	_, err := run(`dosya_oku("yok.txt")`)
 	if err == nil || !strings.Contains(err.Error(), `dosya_oku(): "yok.txt" okunamadı: böyle bir dosya ya da klasör yok`) ||
 		!strings.Contains(err.Error(), "bakılan yerler: ") || strings.Count(err.Error(), "yok.txt") != 3 {
 		t.Errorf("beklenmeyen hata: %v", err)

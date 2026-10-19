@@ -8,11 +8,12 @@ package checker
 
 import (
 	"fmt"
+	"strings"
+	"unicode"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
-	"strings"
-	"unicode"
 )
 
 // TypeInfo is what the checker knows about a name's type.
@@ -58,13 +59,13 @@ type Checker struct {
 	scope  *Scope
 	errors []string
 	// uyarilar programın çalışmasını engellemeyen bulgulardır (ör. yerleşik ad gölgeleme).
-	uyarilar []string
+	warnings []string
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
 	returnType string
 	// genelAdlar tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
 	// adHatalari son CheckProgram çağrısının tanımsız ad hatalarıdır (undefined_names.go).
-	genelAdlar *adKapsami
-	adHatalari []string
+	globalNames *nameScope
+	nameErrors  []string
 }
 
 // New returns a checker with an empty global scope.
@@ -83,50 +84,50 @@ func (c *Checker) Errors() []string {
 // Warnings returns the checker's warnings. Warnings are not errors: the program runs and
 // the exit code is unaffected; the command line prints them under a separate heading.
 func (c *Checker) Warnings() []string {
-	return c.uyarilar
+	return c.warnings
 }
 
 // golgeDenetle ad bir yerleşik fonksiyonun adıysa (sözlükte G/T/V/W yerleşik kodu) uyarı
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
-func (c *Checker) golgeDenetle(ad string, satir int) {
-	if k, ok := codes.Find(codes.NamespaceGlobal, ad); ok && k.IsBuiltin() {
-		c.uyarilar = append(c.uyarilar, fmt.Sprintf(
-			"Satır %d: '%s' yerleşik bir ad; bu kapsamda yerleşik '%s' artık kullanılamaz", satir, ad, ad))
+func (c *Checker) checkShadowing(name string, line int) {
+	if k, ok := codes.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
+		c.warnings = append(c.warnings, fmt.Sprintf(
+			"Satır %d: '%s' yerleşik bir ad; bu kapsamda yerleşik '%s' artık kullanılamaz", line, name, name))
 	}
 }
 
 // Denetleyicinin kullandığı tip adları kod listesindedir (internal/lang/codes, A2xx).
 var (
-	tipTam       = codes.Name(codes.A200)
-	tipOndalik   = codes.Name(codes.A201)
-	tipMetin     = codes.Name(codes.A202)
-	tipMantik    = codes.Name(codes.A203)
-	tipYok       = codes.Name(codes.A204)
-	tipListe     = codes.Name(codes.A205)
-	tipSozluk    = codes.Name(codes.A206)
-	tipAralik    = codes.Name(codes.A207)
-	tipFonksiyon = codes.Name(codes.A208)
-	tipTensor    = codes.Name(codes.A212)
-	tipHerhangi  = codes.Name(codes.A213)
+	typeInt      = codes.Name(codes.A200)
+	typeFloat    = codes.Name(codes.A201)
+	typeString   = codes.Name(codes.A202)
+	typeBool     = codes.Name(codes.A203)
+	typeNull     = codes.Name(codes.A204)
+	typeList     = codes.Name(codes.A205)
+	typeDict     = codes.Name(codes.A206)
+	typeRange    = codes.Name(codes.A207)
+	typeFunction = codes.Name(codes.A208)
+	typeTensor   = codes.Name(codes.A212)
+	typeAny      = codes.Name(codes.A213)
 )
 
 // tipSayi denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
 // Tam / Tam: 6 / 3 = 2, 7 / 2 = 3.5). Kullanıcı açıklamasında yazılamaz; yalnızca Ondalık
 // (Tam da Ondalığa atanabildiği için) ve tipsiz yerlere atanabilir.
-var tipSayi = tipTam + " ya da " + tipOndalik
+var typeNumber = typeInt + " ya da " + typeFloat
 
 // aciklamaTipleri tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
-var aciklamaTipleri = []codes.Code{codes.A200, codes.A201, codes.A202, codes.A203,
+var annotationTypes = []codes.Code{codes.A200, codes.A201, codes.A202, codes.A203,
 	codes.A205, codes.A206, codes.A207, codes.A208, codes.A209, codes.A212, codes.A204, codes.A215}
 
 // tipYazimlari tip açıklamasında kabul edilen yazımlar → tip adıdır. Yazımlar sözlükten
 // gelir ve tektir (3.14): yalnızca tip adının tam yazımı (Tam, Ondalık); büyük/küçük harfi
 // farklı bir yazım (tam, MANTIK) kabul edilmez. Matris 2 boyutlu tensördür; ayrı bir tip
 // değildir.
-var tipYazimlari = func() map[string]string {
+var typeSpellings = func() map[string]string {
 	m := map[string]string{}
-	for _, k := range aciklamaTipleri {
+	for _, k := range annotationTypes {
 		for _, y := range codes.Spellings(k) {
 			m[y] = codes.Name(k)
 		}
@@ -137,10 +138,10 @@ var tipYazimlari = func() map[string]string {
 // tipHarfYazimlari kabul edilen yazımların Türkçe kuralla küçültülmüş biçimi → tip adıdır.
 // Yalnızca ipucu içindir: yazım bir tip adından yalnızca büyük/küçük harfle ayrılıyorsa
 // (tam, ONDALIK) denetleyici asıl yazımı söyler.
-var tipHarfYazimlari = func() map[string]string {
+var typeCaseSpellings = func() map[string]string {
 	m := map[string]string{}
-	for y, ad := range tipYazimlari {
-		m[kucukHarf(y)] = ad
+	for y, name := range typeSpellings {
+		m[lowerCase(y)] = name
 	}
 	return m
 }()
@@ -148,19 +149,19 @@ var tipHarfYazimlari = func() map[string]string {
 // tipOnerileri kabul edilmeyen ama bir tip adına işaret eden yazımların (Türkçe
 // karaktersiz biçim: ondalik; kaldırılmış adlar) küçük harfli biçimi → önerilecek tip
 // adıdır. Bu yazımlar tip açıklamasında hata verir ve asıl adı önerir.
-var tipOnerileri = func() map[string]string {
+var typeSuggestions = func() map[string]string {
 	m := map[string]string{}
-	ekle := func(y, ad string) {
-		if _, gecerli := tipHarfYazimlari[kucukHarf(y)]; !gecerli {
-			m[kucukHarf(y)] = ad
+	add := func(y, name string) {
+		if _, valid := typeCaseSpellings[lowerCase(y)]; !valid {
+			m[lowerCase(y)] = name
 		}
 	}
-	for _, k := range aciklamaTipleri {
+	for _, k := range annotationTypes {
 		g, _ := codes.Active().Entry(k)
-		ekle(turkish.ASCII(g.Name), g.Name)
+		add(turkish.ASCII(g.Name), g.Name)
 		for _, e := range g.Old {
-			ekle(e, g.Name)
-			ekle(turkish.ASCII(e), g.Name)
+			add(e, g.Name)
+			add(turkish.ASCII(e), g.Name)
 		}
 	}
 	return m
@@ -168,42 +169,42 @@ var tipOnerileri = func() map[string]string {
 
 // kucukHarf tip adlarını Türkçe kurala göre küçültür (MANTIK → mantık, METİN → metin);
 // yalnızca kabul edilmeyen bir yazımın ipucunu bulmak için kullanılır.
-func kucukHarf(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
+func lowerCase(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
 
 // tipAdiDenetle tip açıklamasındaki ad bir tip adının kabul edilmeyen bir yazımıysa
 // (tam, ondalik, int) asıl adı öneren bir hata ekler.
-func (c *Checker) tipAdiDenetle(ad string, satir int) {
-	if ad == "" {
+func (c *Checker) checkTypeName(name string, line int) {
+	if name == "" {
 		return
 	}
-	if _, gecerli := tipYazimlari[ad]; gecerli {
+	if _, valid := typeSpellings[name]; valid {
 		return
 	}
-	if asil, ok := tipHarfYazimlari[kucukHarf(ad)]; ok {
+	if canonical, ok := typeCaseSpellings[lowerCase(name)]; ok {
 		c.errors = append(c.errors, fmt.Sprintf(
-			"Satır %d: '%s' TR'de bir tip adı değil; tip adının tek yazımı vardır: '%s' yazın", satir, ad, asil))
+			"Satır %d: '%s' TR'de bir tip adı değil; tip adının tek yazımı vardır: '%s' yazın", line, name, canonical))
 		return
 	}
-	if oneri, ok := tipOnerileri[kucukHarf(ad)]; ok {
+	if suggestion, ok := typeSuggestions[lowerCase(name)]; ok {
 		c.errors = append(c.errors, fmt.Sprintf(
-			"Satır %d: '%s' TR'de bir tip adı değil; '%s' yazmak mı istediniz?", satir, ad, oneri))
+			"Satır %d: '%s' TR'de bir tip adı değil; '%s' yazmak mı istediniz?", line, name, suggestion))
 	}
 }
 
 func normalizeTypeName(t string) string {
 	if t == "" {
-		return tipHerhangi
+		return typeAny
 	}
-	if ad, ok := tipYazimlari[t]; ok {
-		return ad
+	if name, ok := typeSpellings[t]; ok {
+		return name
 	}
 	// Kabul edilmeyen yazım (tam, ondalik) tipAdiDenetle'de hata verir; aynı satırda bir de
 	// tip uyuşmazlığı çıkmasın diye önerilen tip varsayılır.
-	if ad, ok := tipHarfYazimlari[kucukHarf(t)]; ok {
-		return ad
+	if name, ok := typeCaseSpellings[lowerCase(t)]; ok {
+		return name
 	}
-	if ad, ok := tipOnerileri[kucukHarf(t)]; ok {
-		return ad
+	if name, ok := typeSuggestions[lowerCase(t)]; ok {
+		return name
 	}
 	return t
 }
@@ -211,11 +212,11 @@ func normalizeTypeName(t string) string {
 func typesCompatible(expected, actual string) bool {
 	exp := normalizeTypeName(expected)
 	act := normalizeTypeName(actual)
-	if exp == tipHerhangi || act == tipHerhangi || act == tipYok {
+	if exp == typeAny || act == typeAny || act == typeNull {
 		return true
 	}
 	// Tam sayı (ve Tam ya da Ondalık olabilen değer), Ondalık beklenen yere atanabilir
-	if exp == tipOndalik && (act == tipTam || act == tipSayi) {
+	if exp == typeFloat && (act == typeInt || act == typeNumber) {
 		return true
 	}
 	return exp == act
@@ -223,15 +224,15 @@ func typesCompatible(expected, actual string) bool {
 
 // CheckProgram checks prog and returns the errors it found.
 func (c *Checker) CheckProgram(prog *ast.Program) []string {
-	bas := len(c.errors)
+	start := len(c.errors)
 	for _, stmt := range prog.Statements {
 		c.checkStatement(stmt)
 	}
 	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir.
-	c.adHatalari = c.adHatalari[:0]
-	c.adlariDenetle(prog)
-	c.errors = append(c.errors, c.adHatalari...)
-	satiraGoreSirala(c.errors[bas:])
+	c.nameErrors = c.nameErrors[:0]
+	c.checkNames(prog)
+	c.errors = append(c.errors, c.nameErrors...)
+	sortByLine(c.errors[start:])
 	return c.errors
 }
 
@@ -241,20 +242,20 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	}
 	switch s := stmt.(type) {
 	case *ast.VarStatement:
-		c.golgeDenetle(s.Name.Value, s.Line())
-		c.tipAdiDenetle(s.TypeName, s.Line())
+		c.checkShadowing(s.Name.Value, s.Line())
+		c.checkTypeName(s.TypeName, s.Line())
 		inferred := c.inferExpression(s.Value)
 		declared := normalizeTypeName(s.TypeName)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
 			c.errors = append(c.errors, fmt.Sprintf(
 				"Satır %d: Tip uyuşmazlığı — %q değişkeni %q tipinde tanımlandı ancak %q tipinde değer atandı%s",
-				s.Line(), s.Name.Value, declared, inferred, sayiIpucu(declared, inferred),
+				s.Line(), s.Name.Value, declared, inferred, numberHint(declared, inferred),
 			))
 		}
 		// Dil dinamiktir: açıklamasız bir değişkenin ilk değerden çıkarılan tipi kalıcı bir
 		// bildirim değildir (değişken sonra başka tipte değer alabilir), bu yüzden tipsiz
 		// sayılır. Sabitler yeniden atanamadığı için çıkarılan tipleri kalır.
-		finalType := tipHerhangi
+		finalType := typeAny
 		switch {
 		case s.TypeName != "":
 			finalType = declared
@@ -280,10 +281,10 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 						s.Line(), ident.Value, codes.Name(codes.A031),
 					))
 				}
-				if info.TypeName != tipHerhangi && info.TypeName != tipYok && !typesCompatible(info.TypeName, valType) {
+				if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
 					c.errors = append(c.errors, fmt.Sprintf(
 						"Satır %d: Tip uyuşmazlığı — %q değişkeni (%s) içine %q tipinde değer atanamaz%s",
-						s.Line(), ident.Value, info.TypeName, valType, sayiIpucu(info.TypeName, valType),
+						s.Line(), ident.Value, info.TypeName, valType, numberHint(info.TypeName, valType),
 					))
 				}
 			}
@@ -302,11 +303,11 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		prev := c.scope
 		c.scope = NewScope(prev)
 		if s.KeyVar != "" {
-			c.golgeDenetle(s.KeyVar, s.Line())
-			c.scope.Define(s.KeyVar, TypeInfo{TypeName: tipHerhangi})
+			c.checkShadowing(s.KeyVar, s.Line())
+			c.scope.Define(s.KeyVar, TypeInfo{TypeName: typeAny})
 		}
-		c.golgeDenetle(s.ValueVar, s.Line())
-		c.scope.Define(s.ValueVar, TypeInfo{TypeName: tipHerhangi})
+		c.checkShadowing(s.ValueVar, s.Line())
+		c.scope.Define(s.ValueVar, TypeInfo{TypeName: typeAny})
 		for _, bs := range s.Body.Statements {
 			c.checkStatement(bs)
 		}
@@ -320,20 +321,20 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.checkStatement(s.TryBody)
 		prev := c.scope
 		c.scope = NewScope(prev)
-		yakalaSatiri := s.Line()
+		catchLine := s.Line()
 		if s.CatchBody != nil {
-			yakalaSatiri = s.CatchBody.Line()
+			catchLine = s.CatchBody.Line()
 		}
-		c.golgeDenetle(s.ErrorVar, yakalaSatiri)
+		c.checkShadowing(s.ErrorVar, catchLine)
 		// Yakalanan hata Metin'dir, ama değişken açıklamasızdır: sonra başka tipte değer alabilir.
-		c.scope.Define(s.ErrorVar, TypeInfo{TypeName: tipHerhangi})
+		c.scope.Define(s.ErrorVar, TypeInfo{TypeName: typeAny})
 		for _, bs := range s.CatchBody.Statements {
 			c.checkStatement(bs)
 		}
 		c.scope = prev
 
 	case *ast.StructStatement:
-		c.golgeDenetle(s.Name, s.Line())
+		c.checkShadowing(s.Name, s.Line())
 		c.scope.Define(s.Name, TypeInfo{TypeName: s.Name})
 
 	case *ast.MultiVarStatement:
@@ -341,8 +342,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.inferExpression(v)
 		}
 		for _, name := range s.Names {
-			c.golgeDenetle(name.Value, s.Line())
-			c.scope.Define(name.Value, TypeInfo{TypeName: tipHerhangi, IsConst: s.IsConst})
+			c.checkShadowing(name.Value, s.Line())
+			c.scope.Define(name.Value, TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
 		}
 
 	case *ast.MultiAssignStatement:
@@ -373,7 +374,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
 			c.errors = append(c.errors, fmt.Sprintf(
 				"Satır %d: Dönüş tipi uyuşmazlığı — fonksiyon %q döndürmeli ancak %q tipinde değer döndürülüyor%s",
-				s.Line(), c.returnType, valType, sayiIpucu(c.returnType, valType),
+				s.Line(), c.returnType, valType, numberHint(c.returnType, valType),
 			))
 		}
 
@@ -400,17 +401,17 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 }
 
 // sayiIpucu Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir.
-func sayiIpucu(beklenen, verilen string) string {
-	if normalizeTypeName(beklenen) == tipTam && verilen == tipSayi {
+func numberHint(expected, given string) string {
+	if normalizeTypeName(expected) == typeInt && given == typeNumber {
 		return fmt.Sprintf("; '/' bölüm tam çıkmazsa, '**' üs negatifse %s verir: %s için %s(...) kullanın ya da tipi %s yapın",
-			tipOndalik, tipTam, codes.Name(codes.G210), tipOndalik)
+			typeFloat, typeInt, codes.Name(codes.G210), typeFloat)
 	}
 	return ""
 }
 
 // sayisalTip tip bir sayı tipi mi (Tam, Ondalık ya da ikisinden biri)?
-func sayisalTip(t string) bool {
-	return t == tipTam || t == tipOndalik || t == tipSayi
+func numericType(t string) bool {
+	return t == typeInt || t == typeFloat || t == typeNumber
 }
 
 // arithmeticType bir aritmetik işlemin sonuç tipini çalışma zamanının kurallarıyla çıkarır
@@ -418,90 +419,90 @@ func sayisalTip(t string) bool {
 // tam bölünmezse Ondalık verir, Tam ** Tam üs negatifse Ondalık verir; bu yüzden ikisi de
 // "Tam ya da Ondalık"tır. tamUs, '**'in sağının negatif olmayan bir Tam sabiti olduğunu
 // söyler (2 ** 3 her zaman Tam'dır).
-func arithmeticType(op, left, right string, tamUs bool) string {
-	if op == "+" && (left == tipMetin || right == tipMetin) {
-		return tipMetin
+func arithmeticType(op, left, right string, intExponent bool) string {
+	if op == "+" && (left == typeString || right == typeString) {
+		return typeString
 	}
-	if !sayisalTip(left) || !sayisalTip(right) {
-		return tipHerhangi
+	if !numericType(left) || !numericType(right) {
+		return typeAny
 	}
-	if left == tipOndalik || right == tipOndalik {
-		return tipOndalik
+	if left == typeFloat || right == typeFloat {
+		return typeFloat
 	}
-	if op == "/" || (op == "**" && !(tamUs && left == tipTam)) {
-		return tipSayi
+	if op == "/" || (op == "**" && !(intExponent && left == typeInt)) {
+		return typeNumber
 	}
-	if left == tipSayi || right == tipSayi {
-		return tipSayi
+	if left == typeNumber || right == typeNumber {
+		return typeNumber
 	}
-	return tipTam
+	return typeInt
 }
 
 func (c *Checker) inferExpression(expr ast.Expression) string {
 	if expr == nil {
-		return tipYok
+		return typeNull
 	}
 	switch e := expr.(type) {
 	case *ast.IntegerLiteral:
-		return tipTam
+		return typeInt
 	case *ast.FloatLiteral:
-		return tipOndalik
+		return typeFloat
 	case *ast.StringLiteral, *ast.InterpolatedString:
-		return tipMetin
+		return typeString
 	case *ast.BooleanLiteral:
-		return tipMantik
+		return typeBool
 	case *ast.NullLiteral:
-		return tipYok
+		return typeNull
 	case *ast.ListLiteral, *ast.ListComprehension:
-		return tipListe
+		return typeList
 	case *ast.DictLiteral:
-		return tipSozluk
+		return typeDict
 	case *ast.RangeExpression:
-		return tipAralik
+		return typeRange
 	case *ast.Identifier:
 		if info, ok := c.scope.Resolve(e.Value); ok {
 			return info.TypeName
 		}
-		return tipHerhangi
+		return typeAny
 	case *ast.PrefixExpression:
 		right := c.inferExpression(e.Right)
 		if e.Operator == "!" {
-			return tipMantik
+			return typeBool
 		}
 		return right
 	case *ast.InfixExpression:
 		left := c.inferExpression(e.Left)
 		right := c.inferExpression(e.Right)
-		c.tipMetinDenetle(e)
+		c.checkTypeTextComparison(e)
 		switch e.Operator {
 		case "==", "!=", "<", ">", "<=", ">=", "&&", "||":
-			return tipMantik
+			return typeBool
 		case "??":
-			if left != tipYok && left != tipHerhangi {
+			if left != typeNull && left != typeAny {
 				return left
 			}
 			return right
 		case "|>":
-			return tipHerhangi
+			return typeAny
 		case "@":
-			return tipTensor
+			return typeTensor
 		case "+", "-", "*", "/", "%", "**":
-			lit, tamSabit := e.Right.(*ast.IntegerLiteral)
-			return arithmeticType(e.Operator, left, right, tamSabit && lit.Value >= 0)
+			lit, intConst := e.Right.(*ast.IntegerLiteral)
+			return arithmeticType(e.Operator, left, right, intConst && lit.Value >= 0)
 		}
-		return tipHerhangi
+		return typeAny
 	case *ast.FunctionLiteral:
 		var paramTypes []string
 		for _, p := range e.Parameters {
-			c.tipAdiDenetle(p.TypeName, e.Line())
+			c.checkTypeName(p.TypeName, e.Line())
 			paramTypes = append(paramTypes, normalizeTypeName(p.TypeName))
 		}
-		c.tipAdiDenetle(e.ReturnType, e.Line())
+		c.checkTypeName(e.ReturnType, e.Line())
 		retType := normalizeTypeName(e.ReturnType)
 		if e.Name != "" {
-			c.golgeDenetle(e.Name, e.Line())
+			c.checkShadowing(e.Name, e.Line())
 			c.scope.Define(e.Name, TypeInfo{
-				TypeName:   tipFonksiyon,
+				TypeName:   typeFunction,
 				ParamTypes: paramTypes,
 				ReturnType: retType,
 			})
@@ -513,14 +514,14 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			c.returnType = retType
 		}
 		for _, p := range e.Parameters {
-			c.golgeDenetle(p.Name, e.Line())
+			c.checkShadowing(p.Name, e.Line())
 			c.scope.Define(p.Name, TypeInfo{TypeName: normalizeTypeName(p.TypeName)})
 		}
 		for _, stmt := range e.Body.Statements {
 			c.checkStatement(stmt)
 		}
 		c.scope, c.returnType = prev, prevRet
-		return tipFonksiyon
+		return typeFunction
 	case *ast.CallExpression:
 		var info TypeInfo
 		var found bool
@@ -542,10 +543,10 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		for _, na := range e.NamedArgs {
 			c.inferExpression(na.Value)
 		}
-		if found && info.TypeName == tipFonksiyon && info.ReturnType != "" {
+		if found && info.TypeName == typeFunction && info.ReturnType != "" {
 			return info.ReturnType
 		}
-		return tipHerhangi
+		return typeAny
 	case *ast.IfExpression:
 		c.inferExpression(e.Condition)
 		c.checkStatement(e.Consequence)
@@ -556,7 +557,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		if e.Alternative != nil {
 			c.checkStatement(e.Alternative)
 		}
-		return tipHerhangi
+		return typeAny
 	case *ast.MatchExpression:
 		c.inferExpression(e.Subject)
 		for _, mc := range e.Cases {
@@ -567,7 +568,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 				c.inferExpression(mc.ValueExpr)
 			}
 		}
-		return tipHerhangi
+		return typeAny
 	}
-	return tipHerhangi
+	return typeAny
 }

@@ -2,33 +2,34 @@ package interp
 
 import (
 	"fmt"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
 // --- DEYİMLER ---
 
-func (c *derleyici) deyim(k *derleyiciKapsam, stmt ast.Statement) deyimKodu {
+func (c *compiler) statement(k *compilerScope, stmt ast.Statement) statementCode {
 	switch s := stmt.(type) {
 	case nil:
-		return bosDeyim
+		return emptyStatement
 	case *ast.VarStatement:
-		return c.tanimDeyimi(k, s)
+		return c.varStatement(k, s)
 
 	case *ast.MultiVarStatement:
-		return c.cokluTanimDeyimi(k, s)
+		return c.multiVarStatement(k, s)
 
 	case *ast.AssignStatement:
-		return c.atamaDeyimi(k, s)
+		return c.assignStatement(k, s)
 
 	case *ast.MultiAssignStatement:
-		return c.cokluAtamaDeyimi(k, s)
+		return c.multiAssignStatement(k, s)
 
 	case *ast.DeferStatement:
-		return c.erteleDeyimi(k, s)
+		return c.deferStatement(k, s)
 
 	case *ast.ReturnStatement:
-		return c.donDeyimi(k, s)
+		return c.returnStatement(k, s)
 
 	case *ast.BreakStatement:
 		return func(v *VM, env *Environment) (Value, flowSignal, error) {
@@ -41,77 +42,77 @@ func (c *derleyici) deyim(k *derleyiciKapsam, stmt ast.Statement) deyimKodu {
 		}
 
 	case *ast.BlockStatement:
-		return c.blokDeyimi(k, s)
+		return c.blockStatement(k, s)
 
 	case *ast.ForInStatement:
-		return c.donguIcinde(k, s)
+		return c.inLoop(k, s)
 
 	case *ast.WhileStatement:
-		return c.iken(k, s)
+		return c.whileStmt(k, s)
 
 	case *ast.StructStatement:
-		return c.yapiTanimi(k, s)
+		return c.structDef(k, s)
 
 	case *ast.TryCatchStatement:
-		return c.deneYakalaDeyimi(k, s)
+		return c.tryCatchStatement(k, s)
 
 	case *ast.ThrowStatement:
 		return c.firlatDeyimi(k, s)
 
 	case *ast.AsyncStatement:
-		return c.eszamanli(k, s)
+		return c.concurrent(k, s)
 
 	case *ast.ImportStatement:
-		return c.aktarDeyimi(k, s)
+		return c.importStatement(k, s)
 
 	case *ast.TestStatement:
 		// Test blokları normal çalıştırmada atlanır; 'tr test' bunları RunTest ile çalıştırır.
-		return bosDeyim
+		return emptyStatement
 
 	case *ast.BreakpointStatement:
-		return c.kesmeNoktasiDeyimi(k, s)
+		return c.breakpointStatement(k, s)
 
 	case *ast.ExpressionStatement:
-		return c.ifadeSinyal(k, s.Expression)
+		return c.exprSignal(k, s.Expression)
 	}
-	return bosDeyim
+	return emptyStatement
 }
 
 // tanimDeyimi 'değişken'/'sabit' tanımını derler.
-func (c *derleyici) tanimDeyimi(k *derleyiciKapsam, s *ast.VarStatement) deyimKodu {
-	deger := c.ifade(k, s.Value)
-	tanim := tanimlayici(k, s.Name.Value)
-	sabit := s.IsConst
+func (c *compiler) varStatement(k *compilerScope, s *ast.VarStatement) statementCode {
+	value := c.expression(k, s.Value)
+	definition := identifier(k, s.Name.Value)
+	constant := s.IsConst
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		val, err := deger(v, env)
+		val, err := value(v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
-		tanim(env, val, sabit)
+		definition(env, val, constant)
 		return val, signalNone, nil
 	}
 }
 
 // cokluTanimDeyimi çoklu tanımı (değişken a, b = ...) derler.
-func (c *derleyici) cokluTanimDeyimi(k *derleyiciKapsam, s *ast.MultiVarStatement) deyimKodu {
-	degerler := c.ifadeler(k, s.Values)
-	tanimlar := make([]func(*Environment, Value, bool), len(s.Names))
+func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement) statementCode {
+	values := c.expressions(k, s.Values)
+	definitions := make([]func(*Environment, Value, bool), len(s.Names))
 	for i, n := range s.Names {
-		tanimlar[i] = tanimlayici(k, n.Value)
+		definitions[i] = identifier(k, n.Value)
 	}
-	sabit := s.IsConst
+	constant := s.IsConst
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		evalVals, err := cokluDegerler(v, env, degerler, len(tanimlar))
+		evalVals, err := multiValues(v, env, values, len(definitions))
 		if err != nil {
 			return nil, signalNone, err
 		}
 		var lastVal Value = NULL
-		for i, tanim := range tanimlar {
+		for i, definition := range definitions {
 			var val Value = NULL
 			if i < len(evalVals) {
 				val = evalVals[i]
 			}
-			tanim(env, val, sabit)
+			definition(env, val, constant)
 			lastVal = val
 		}
 		return lastVal, signalNone, nil
@@ -119,15 +120,15 @@ func (c *derleyici) cokluTanimDeyimi(k *derleyiciKapsam, s *ast.MultiVarStatemen
 }
 
 // atamaDeyimi atamayı (bileşik atama dahil) derler.
-func (c *derleyici) atamaDeyimi(k *derleyiciKapsam, s *ast.AssignStatement) deyimKodu {
-	deger := c.ifade(k, s.Value)
-	hedef := c.atamaHedefi(k, s.Target, islecKodu(s.Operator), s.Line())
+func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) statementCode {
+	value := c.expression(k, s.Value)
+	dest := c.assignTarget(k, s.Target, opCode(s.Operator), s.Line())
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		val, err := deger(v, env)
+		val, err := value(v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
-		if err := hedef(v, env, val); err != nil {
+		if err := dest(v, env, val); err != nil {
 			return nil, signalNone, err
 		}
 		return val, signalNone, nil
@@ -135,25 +136,25 @@ func (c *derleyici) atamaDeyimi(k *derleyiciKapsam, s *ast.AssignStatement) deyi
 }
 
 // cokluAtamaDeyimi çoklu atamayı (a, b = b, a) derler.
-func (c *derleyici) cokluAtamaDeyimi(k *derleyiciKapsam, s *ast.MultiAssignStatement) deyimKodu {
+func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStatement) statementCode {
 	// Önce sağdaki tüm ifadeler hesaplanır (a, b = b, a takası için kritik!)
-	degerler := c.ifadeler(k, s.Values)
-	hedefler := make([]func(*VM, *Environment, Value) error, len(s.Targets))
+	values := c.expressions(k, s.Values)
+	dests := make([]func(*VM, *Environment, Value) error, len(s.Targets))
 	for i, t := range s.Targets {
-		hedefler[i] = c.atamaHedefi(k, t, opAta, s.Line())
+		dests[i] = c.assignTarget(k, t, opAssign, s.Line())
 	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		evalVals, err := cokluDegerler(v, env, degerler, len(hedefler))
+		evalVals, err := multiValues(v, env, values, len(dests))
 		if err != nil {
 			return nil, signalNone, err
 		}
 		var lastVal Value = NULL
-		for i, hedef := range hedefler {
+		for i, dest := range dests {
 			var val Value = NULL
 			if i < len(evalVals) {
 				val = evalVals[i]
 			}
-			if err := hedef(v, env, val); err != nil {
+			if err := dest(v, env, val); err != nil {
 				return nil, signalNone, err
 			}
 			lastVal = val
@@ -163,27 +164,27 @@ func (c *derleyici) cokluAtamaDeyimi(k *derleyiciKapsam, s *ast.MultiAssignState
 }
 
 // erteleDeyimi 'ertele' deyimini derler.
-func (c *derleyici) erteleDeyimi(k *derleyiciKapsam, s *ast.DeferStatement) deyimKodu {
-	var govde *blokKodu
-	var govdeBilgi *kapsamBilgisi
-	var cagri ifadeKodu
+func (c *compiler) deferStatement(k *compilerScope, s *ast.DeferStatement) statementCode {
+	var bodyBlock *blockCode
+	var bodyInfo *scopeInfo
+	var call exprCode
 	if s.Body != nil {
-		alt := altKapsam(k)
-		alt.onTanimla(s.Body.Statements)
-		govde = c.deyimler(alt, s.Body.Statements)
-		govdeBilgi = alt.bilgi
+		sub := subScope(k)
+		sub.predefine(s.Body.Statements)
+		bodyBlock = c.statements(sub, s.Body.Statements)
+		bodyInfo = sub.info
 	} else if s.Call != nil {
-		cagri = c.ifade(k, s.Call)
+		call = c.expression(k, s.Call)
 	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		capturedEnv := env
 		// Ertelenen işin hatası yutulmaz; fonksiyonun hatasına eklenir (9.4).
 		env.AddDefer(func() error {
-			if govde != nil {
-				_, _, err := govde.calistir(v, yeniOrtam(capturedEnv, govdeBilgi))
+			if bodyBlock != nil {
+				_, _, err := bodyBlock.run(v, newEnv(capturedEnv, bodyInfo))
 				return err
-			} else if cagri != nil {
-				_, err := cagri(v, capturedEnv)
+			} else if call != nil {
+				_, err := call(v, capturedEnv)
 				return err
 			}
 			return nil
@@ -193,10 +194,10 @@ func (c *derleyici) erteleDeyimi(k *derleyiciKapsam, s *ast.DeferStatement) deyi
 }
 
 // donDeyimi 'dön' deyimini derler.
-func (c *derleyici) donDeyimi(k *derleyiciKapsam, s *ast.ReturnStatement) deyimKodu {
-	deger := c.ifade(k, s.ReturnValue)
+func (c *compiler) returnStatement(k *compilerScope, s *ast.ReturnStatement) statementCode {
+	value := c.expression(k, s.ReturnValue)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		val, err := deger(v, env)
+		val, err := value(v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
@@ -205,39 +206,39 @@ func (c *derleyici) donDeyimi(k *derleyiciKapsam, s *ast.ReturnStatement) deyimK
 }
 
 // deneYakalaDeyimi 'dene'/'yakala' deyimini derler.
-func (c *derleyici) deneYakalaDeyimi(k *derleyiciKapsam, s *ast.TryCatchStatement) deyimKodu {
-	dene := c.blokDeyimi(k, s.TryBody)
-	alt := altKapsam(k)
-	hataYuva := alt.bilgi.yuva(s.ErrorVar)
+func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement) statementCode {
+	tryBlock := c.blockStatement(k, s.TryBody)
+	sub := subScope(k)
+	errSlot := sub.info.slot(s.ErrorVar)
 	if s.CatchBody != nil {
-		alt.golgeKaydet(s.ErrorVar, s.CatchBody.Line(), "yakalanan hataya")
+		sub.recordShadow(s.ErrorVar, s.CatchBody.Line(), "yakalanan hataya")
 	}
-	var yakalaDeyimleri []ast.Statement
+	var catchStatements []ast.Statement
 	if s.CatchBody != nil {
-		yakalaDeyimleri = s.CatchBody.Statements
+		catchStatements = s.CatchBody.Statements
 	}
-	alt.onTanimla(yakalaDeyimleri)
-	yakala := c.deyimler(alt, yakalaDeyimleri)
-	bilgi := alt.bilgi
+	sub.predefine(catchStatements)
+	catchClause := c.statements(sub, catchStatements)
+	info := sub.info
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		val, sig, err := dene(v, env)
+		val, sig, err := tryBlock(v, env)
 		if err != nil {
-			if yakalanamaz(err) {
+			if uncatchable(err) {
 				return nil, signalNone, err // kesilme (Ctrl+C) ve program çıkışı isteği yakalanmaz
 			}
-			catchEnv := yeniOrtam(env, bilgi)
-			catchEnv.tanimla(hataYuva, &StringVal{Val: err.Error()}, false)
-			return yakala.calistir(v, catchEnv)
+			catchEnv := newEnv(env, info)
+			catchEnv.define(errSlot, &StringVal{Val: err.Error()}, false)
+			return catchClause.run(v, catchEnv)
 		}
 		return val, sig, nil
 	}
 }
 
 // firlatDeyimi 'fırlat' deyimini derler.
-func (c *derleyici) firlatDeyimi(k *derleyiciKapsam, s *ast.ThrowStatement) deyimKodu {
-	deger := c.ifade(k, s.Value)
+func (c *compiler) firlatDeyimi(k *compilerScope, s *ast.ThrowStatement) statementCode {
+	value := c.expression(k, s.Value)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		val, err := deger(v, env)
+		val, err := value(v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
@@ -246,25 +247,25 @@ func (c *derleyici) firlatDeyimi(k *derleyiciKapsam, s *ast.ThrowStatement) deyi
 }
 
 // aktarDeyimi 'aktar' deyimini derler.
-func (c *derleyici) aktarDeyimi(k *derleyiciKapsam, s *ast.ImportStatement) deyimKodu {
-	var takma func(*Environment, Value, bool)
+func (c *compiler) importStatement(k *compilerScope, s *ast.ImportStatement) statementCode {
+	var alias func(*Environment, Value, bool)
 	if s.Alias != "" {
-		takma = tanimlayici(k, s.Alias)
+		alias = identifier(k, s.Alias)
 	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		return v.aktar(s, env, takma)
+		return v.imp(s, env, alias)
 	}
 }
 
 // kesmeNoktasiDeyimi 'kesme_noktası' deyimini derler.
-func (c *derleyici) kesmeNoktasiDeyimi(k *derleyiciKapsam, s *ast.BreakpointStatement) deyimKodu {
-	var kosul ifadeKodu
+func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatement) statementCode {
+	var condition exprCode
 	if s.Condition != nil {
-		kosul = c.ifade(k, s.Condition)
+		condition = c.expression(k, s.Condition)
 	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		if kosul != nil {
-			condVal, err := kosul(v, env)
+		if condition != nil {
+			condVal, err := condition(v, env)
 			if err != nil {
 				return nil, signalNone, err
 			}
@@ -273,7 +274,7 @@ func (c *derleyici) kesmeNoktasiDeyimi(k *derleyiciKapsam, s *ast.BreakpointStat
 			}
 		}
 		if v.Debugger == nil && NewDebugger != nil {
-			k := v.kaynak
+			k := v.source
 			if k == nil {
 				k = &Source{Path: v.SourceFile, Code: v.SourceCode}
 			}
@@ -292,16 +293,16 @@ func (c *derleyici) kesmeNoktasiDeyimi(k *derleyiciKapsam, s *ast.BreakpointStat
 
 // cokluDegerler çoklu tanım/atamanın sağ tarafını hesaplar; tek bir Liste birden çok ada
 // açılır.
-func cokluDegerler(v *VM, env *Environment, degerler []ifadeKodu, adSayisi int) ([]Value, error) {
-	evalVals := make([]Value, 0, len(degerler))
-	for _, d := range degerler {
+func multiValues(v *VM, env *Environment, values []exprCode, nameCount int) ([]Value, error) {
+	evalVals := make([]Value, 0, len(values))
+	for _, d := range values {
 		val, err := d(v, env)
 		if err != nil {
 			return nil, err
 		}
 		evalVals = append(evalVals, val)
 	}
-	if len(evalVals) == 1 && adSayisi > 1 {
+	if len(evalVals) == 1 && nameCount > 1 {
 		if lv, ok := evalVals[0].(*ListVal); ok {
 			evalVals = lv.Elements
 		}
@@ -310,72 +311,72 @@ func cokluDegerler(v *VM, env *Environment, degerler []ifadeKodu, adSayisi int) 
 }
 
 // yapiTanimi 'yapı' deyimini derler: metotlar ve alan varsayılanları bir kez derlenir.
-func (c *derleyici) yapiTanimi(k *derleyiciKapsam, s *ast.StructStatement) deyimKodu {
-	type metotKodu struct {
-		ad  string
-		lit *ast.FunctionLiteral
-		kod *fonkKodu
+func (c *compiler) structDef(k *compilerScope, s *ast.StructStatement) statementCode {
+	type methodCode struct {
+		name    string
+		lit     *ast.FunctionLiteral
+		codeVal *funcCode
 	}
-	metotlar := make([]metotKodu, 0, len(s.Methods))
+	methodList := make([]methodCode, 0, len(s.Methods))
 	for name, fnLit := range s.Methods {
-		metotlar = append(metotlar, metotKodu{ad: name, lit: fnLit, kod: c.fonksiyon(k, fnLit.Parameters, fnLit.Body, true)})
+		methodList = append(methodList, methodCode{name: name, lit: fnLit, codeVal: c.function(k, fnLit.Parameters, fnLit.Body, true)})
 	}
 	// Alan varsayılanları yapının tanımlandığı kapsamda derlenir ve o ortamda
 	// değerlendirilir (modüldeki bir yapı modülün adlarını görür).
-	alanKod := c.alanVarsayilanlari(k, s.Fields)
-	tanim := tanimlayici(k, s.Name)
+	fieldCode := c.fieldDefaults(k, s.Fields)
+	definition := identifier(k, s.Name)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		methods := make(map[string]*FuncVal, len(metotlar))
-		for _, m := range metotlar {
-			methods[m.ad] = &FuncVal{
-				Name:       m.ad,
+		methods := make(map[string]*FuncVal, len(methodList))
+		for _, m := range methodList {
+			methods[m.name] = &FuncVal{
+				Name:       m.name,
 				Parameters: m.lit.Parameters,
 				Body:       m.lit.Body,
 				Env:        env,
-				kod:        m.kod,
+				codeVal:    m.codeVal,
 			}
 		}
 		def := &StructDefVal{
 			Name:      s.Name,
 			Fields:    s.Fields,
 			Methods:   methods,
-			alanKod:   alanKod,
-			alanOrtam: env,
+			fieldCode: fieldCode,
+			fieldEnv:  env,
 		}
-		tanim(env, def, true)
+		definition(env, def, true)
 		return def, signalNone, nil
 	}
 }
 
 // alanVarsayilanlari alan varsayılanlarını k kapsamında derler (nesne oluşturulurken
 // yapının tanımlandığı ortamda değerlendirilirler).
-func (c *derleyici) alanVarsayilanlari(k *derleyiciKapsam, fields []ast.StructField) []ifadeKodu {
-	kodlar := make([]ifadeKodu, len(fields))
+func (c *compiler) fieldDefaults(k *compilerScope, fields []ast.StructField) []exprCode {
+	codeList := make([]exprCode, len(fields))
 	for i, f := range fields {
 		if f.DefaultValue != nil {
-			kodlar[i] = c.ifade(k, f.DefaultValue)
+			codeList[i] = c.expression(k, f.DefaultValue)
 		}
 	}
-	return kodlar
+	return codeList
 }
 
 // eszamanli 'eşzamanlı' bloğunu derler: gövde, kendi kök ortamında ayrı bir görevde çalışır.
-func (c *derleyici) eszamanli(k *derleyiciKapsam, s *ast.AsyncStatement) deyimKodu {
-	alt := altKapsam(k)
-	var govde *blokKodu
-	var cagri ifadeKodu
+func (c *compiler) concurrent(k *compilerScope, s *ast.AsyncStatement) statementCode {
+	sub := subScope(k)
+	var bodyBlock *blockCode
+	var call exprCode
 	if s.Body != nil {
-		alt.onTanimla(s.Body.Statements)
-		govde = c.deyimler(alt, s.Body.Statements)
+		sub.predefine(s.Body.Statements)
+		bodyBlock = c.statements(sub, s.Body.Statements)
 	} else if s.Call != nil {
-		ifadeAdlari(s.Call, alt.tanimla)
-		cagri = c.ifade(alt, s.Call)
+		exprNames(s.Call, sub.define)
+		call = c.expression(sub, s.Call)
 	}
-	bilgi := alt.bilgi
+	info := sub.info
 	line := s.Line()
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		v.wg.Add(1)
-		asyncEnv := yeniOrtam(env, bilgi)
+		asyncEnv := newEnv(env, info)
 		asyncEnv.IsFuncRoot = true // görev içindeki 'ertele' blokları görev bitince çalışır
 		task := v.NewTaskVM()
 		go func(e *Environment) {
@@ -390,14 +391,14 @@ func (c *derleyici) eszamanli(k *derleyiciKapsam, s *ast.AsyncStatement) deyimKo
 			var err error
 			defer func() {
 				// Görevin ertelenen işleri görev bitince çalışır; hataları görev hatasına eklenir.
-				if err = erteleHatasiEkle(err, e.RunDefers()); err != nil {
+				if err = addDeferError(err, e.RunDefers()); err != nil {
 					task.reportAsyncError(line, err)
 				}
 			}()
-			if govde != nil {
-				_, _, err = govde.calistir(task, e)
-			} else if cagri != nil {
-				_, err = cagri(task, e)
+			if bodyBlock != nil {
+				_, _, err = bodyBlock.run(task, e)
+			} else if call != nil {
+				_, err = call(task, e)
 			}
 		}(asyncEnv)
 		return TRUE, signalNone, nil

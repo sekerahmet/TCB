@@ -11,27 +11,27 @@ import (
 
 // Taşınan kodlar canlı kodlardan ayrıdır: adları kabul edilmez, yeni koda yol gösterir;
 // Go'da sabitleri yoktur, numaraları bir daha kullanılmaz.
-func TestTasinanKodlar(t *testing.T) {
-	beklenen := map[string]string{"G200": "Y001", "G300": "Y200", "G301": "Y201", "G302": "Y207", "G303": "Y202",
+func TestMovedCodes(t *testing.T) {
+	expected := map[string]string{"G200": "Y001", "G300": "Y200", "G301": "Y201", "G302": "Y207", "G303": "Y202",
 		"G304": "Y004", "T120": "Y411", "Y205": "G400", "Y206": "G410"}
-	if len(MovedCodes()) != len(beklenen) {
-		t.Errorf("taşınan kodlar %v, %d bekleniyordu", MovedCodes(), len(beklenen))
+	if len(MovedCodes()) != len(expected) {
+		t.Errorf("taşınan kodlar %v, %d bekleniyordu", MovedCodes(), len(expected))
 	}
-	for e, y := range beklenen {
-		ek, _ := Parse(e)
+	for e, y := range expected {
+		extra, _ := Parse(e)
 		yk, _ := Parse(y)
-		if got, ok := MovedTo(ek); !ok || got != yk {
+		if got, ok := MovedTo(extra); !ok || got != yk {
 			t.Errorf("Tasindi(%s) = %s %v; %s bekleniyordu", e, got, ok, y)
 		}
-		if slices.Contains(Codes(), ek) {
+		if slices.Contains(Codes(), extra) {
 			t.Errorf("%s taşındı; canlı kodlar arasında olmamalı", e)
 		}
-		ad := Name(ek)
-		if k, ok := Find(ek.Namespace(), ad); ok {
-			t.Errorf("taşınan %s'in adı %q kabul edilmemeli (%s)", e, ad, k)
+		name := Name(extra)
+		if k, ok := Find(extra.Namespace(), name); ok {
+			t.Errorf("taşınan %s'in adı %q kabul edilmemeli (%s)", e, name, k)
 		}
-		if k, ok := FindDead(ek.Namespace(), ad); !ok || k != ek {
-			t.Errorf("OluBul(%s, %q) = %s %v", ek.Namespace(), ad, k, ok)
+		if k, ok := FindDead(extra.Namespace(), name); !ok || k != extra {
+			t.Errorf("OluBul(%s, %q) = %s %v", extra.Namespace(), name, k, ok)
 		}
 	}
 	if k, ok := FindDead(NamespaceGlobal, "sirala"); !ok || k.String() != "G303" {
@@ -49,29 +49,29 @@ func TestTasinanKodlar(t *testing.T) {
 
 // Ölü (kaldırılmış ya da taşınmış) kodlar yalnızca kaynak dil dosyasında (TR) zorunludur;
 // başka bir dil dosyası onları yazmayabilir. Canlı bir kodun eksikliği her dilde hatadır.
-func TestOluKodlarTRDisindaIstegeBagli(t *testing.T) {
-	var ham map[string]json.RawMessage
-	if err := json.Unmarshal(TRData(), &ham); err != nil {
+func TestDeadCodesOptionalOutsideTR(t *testing.T) {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(TRData(), &raw); err != nil {
 		t.Fatal(err)
 	}
 	for _, k := range DeadCodes() {
-		delete(ham, k.String())
+		delete(raw, k.String())
 	}
-	kur := func(kodu string, m map[string]json.RawMessage) []error {
-		veri, err := json.Marshal(m)
+	build := func(langCode string, m map[string]json.RawMessage) []error {
+		data, err := json.Marshal(m)
 		if err != nil {
 			t.Fatal(err)
 		}
-		d, err := Load(kodu, veri)
+		d, err := Load(langCode, data)
 		if err != nil {
-			t.Fatalf("%s yüklenmedi: %v", kodu, err)
+			t.Fatalf("%s yüklenmedi: %v", langCode, err)
 		}
 		return CheckDefinitions(d)
 	}
-	if hatalar := kur("en", ham); len(hatalar) != 0 {
-		t.Errorf("ölü kodları olmayan başka bir dil dosyası geçmeli: %v", hatalar)
+	if errs := build("en", raw); len(errs) != 0 {
+		t.Errorf("ölü kodları olmayan başka bir dil dosyası geçmeli: %v", errs)
 	}
-	if hatalar := kur(SourceLanguage, ham); len(hatalar) == 0 {
+	if errs := build(SourceLanguage, raw); len(errs) == 0 {
 		t.Error("kaynak dil dosyasında ölü kodlar zorunlu olmalı")
 	}
 	// Ölü bir kodun adı yeniden kullanılırsa ölü kodun adı kodun kendisi yazılır: kod biçimli
@@ -82,15 +82,15 @@ func TestOluKodlarTRDisindaIstegeBagli(t *testing.T) {
 	if _, err := Load("dene", []byte(`{"G100": {"ad": "G100"}}`)); err == nil || !strings.Contains(err.Error(), "kod biçiminde") {
 		t.Errorf("canlı bir kodun adı kod biçiminde olamaz: %v", err)
 	}
-	delete(ham, "G100")
-	if hatalar := kur("en", ham); len(hatalar) == 0 || !strings.Contains(fmt.Sprint(hatalar), "G100 definitions.json'da var, dil dosyasında yok") {
-		t.Errorf("canlı kodun eksikliği her dilde hata olmalı: %v", hatalar)
+	delete(raw, "G100")
+	if errs := build("en", raw); len(errs) == 0 || !strings.Contains(fmt.Sprint(errs), "G100 definitions.json'da var, dil dosyasında yok") {
+		t.Errorf("canlı kodun eksikliği her dilde hata olmalı: %v", errs)
 	}
 }
 
 // definitions.json dil dosyasıyla tutarlıdır: her kodun tanımı var, türler ailelere uygun,
 // imzalardaki tip ve adlı argüman kodları geçerli, taşınan kodlar canlı bir koda gider.
-func TestTanimlarTutarli(t *testing.T) {
+func TestDefinitionsConsistent(t *testing.T) {
 	for _, err := range CheckDefinitions(Active()) {
 		t.Error(err)
 	}
@@ -98,7 +98,7 @@ func TestTanimlarTutarli(t *testing.T) {
 
 // Her kodun (taşınmışlar dahil) Türkçe bir açıklaması, her canlı kodun bir örneği vardır.
 // Açıklama bir-iki cümledir.
-func TestHerKodunAciklamasiVar(t *testing.T) {
+func TestEveryCodeHasDescription(t *testing.T) {
 	d := Active()
 	for _, k := range append(d.Codes(), d.MovedCodes()...) {
 		g, _ := d.Entry(k)
@@ -119,16 +119,16 @@ func TestHerKodunAciklamasiVar(t *testing.T) {
 
 // Dosya insanlar tarafından düzenlenir: kodlar artan sırada, her girdi iki boşluk girintili
 // tek bir satırdır.
-func TestTanimSiraliVeSatirSatir(t *testing.T) {
-	veri := DefinitionData()
-	if !json.Valid(veri) {
+func TestDefinitionsSortedOnePerLine(t *testing.T) {
+	data := DefinitionData()
+	if !json.Valid(data) {
 		t.Fatal("definitions.json geçerli JSON değil")
 	}
-	dec := json.NewDecoder(bytes.NewReader(veri))
+	dec := json.NewDecoder(bytes.NewReader(data))
 	if _, err := dec.Token(); err != nil {
 		t.Fatal(err)
 	}
-	var onceki Code
+	var prev Code
 	for dec.More() {
 		tk, err := dec.Token()
 		if err != nil {
@@ -138,28 +138,28 @@ func TestTanimSiraliVeSatirSatir(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if k <= onceki {
-			t.Errorf("%s, %s'den sonra geliyor; kodlar artan sırada olmalı", k, onceki)
+		if k <= prev {
+			t.Errorf("%s, %s'den sonra geliyor; kodlar artan sırada olmalı", k, prev)
 		}
-		onceki = k
+		prev = k
 		var g json.RawMessage
 		if err := dec.Decode(&g); err != nil {
 			t.Fatal(err)
 		}
 	}
-	for i, satir := range strings.Split(strings.TrimSpace(string(veri)), "\n") {
-		s := strings.TrimSpace(satir)
+	for i, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		s := strings.TrimSpace(line)
 		if s == "{" || s == "}" {
 			continue
 		}
-		if !strings.HasPrefix(satir, "  \"") || strings.Count(s, "\"tür\"") != 1 {
-			t.Errorf("satır %d: her girdi iki boşluk girintili tek satır olmalı: %s", i+1, satir)
+		if !strings.HasPrefix(line, "  \"") || strings.Count(s, "\"tür\"") != 1 {
+			t.Errorf("satır %d: her girdi iki boşluk girintili tek satır olmalı: %s", i+1, line)
 		}
 	}
 }
 
 // Tip ifadeleri çözülür; geçersiz bir tanım satırı hatayla bildirilir.
-func TestTanimCoz(t *testing.T) {
+func TestParseDefinitions(t *testing.T) {
 	ti, err := ParseType("A200|A201?", true)
 	if err != nil || !ti.Optional || len(ti.Types) != 2 || ti.Types[1] != A201 {
 		t.Fatalf("TipCoz: %+v %v", ti, err)

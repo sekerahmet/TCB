@@ -2,10 +2,11 @@ package parser
 
 import (
 	"fmt"
-	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
 // shape ifade ağacını parantezli biçimde yazar (yalnızca testlerde kullanılan düğümler).
@@ -196,8 +197,8 @@ func TestUnclosedBlockBraceIsReported(t *testing.T) {
 // Kaçışsız her '{' bir yerleştirme başlatır (2.7): içi ifade olarak ayrıştırılamayan süslü
 // parantezler (JSON, başka dillerde kod) sessizce düz metin kalmaz, '{'nin konumunda
 // sözdizimi hatası verir. Düz süslü parantezin iki yazımı (\{ ve ham metin) hata vermez.
-func TestIfadeOlmayanYerlestirmeHatadir(t *testing.T) {
-	for code, sutun := range map[string]string{
+func TestNonExpressionInterpolationIsError(t *testing.T) {
+	for code, colNo := range map[string]string{
 		`yazdır("{\"kod\": 5}")`:      "Sütun 9:",
 		`yazdır("Nokta{x: 1, y: 2}")`: "Sütun 14:",
 		`yazdır("şablon: {'a': 1}")`:  "Sütun 17:",
@@ -205,9 +206,9 @@ func TestIfadeOlmayanYerlestirmeHatadir(t *testing.T) {
 		`yazdır("boş {}")`:            "Sütun 13:",
 	} {
 		errs := strings.Join(parseErrors(code), "\n")
-		if !strings.Contains(errs, sutun+" Sözdizimi hatası — metindeki her '{' bir yerleştirme başlatır") ||
+		if !strings.Contains(errs, colNo+" Sözdizimi hatası — metindeki her '{' bir yerleştirme başlatır") ||
 			!strings.Contains(errs, "ham metin") {
-			t.Errorf("%s: %s konumunda yerleştirme hatası bekleniyordu: %s", code, sutun, errs)
+			t.Errorf("%s: %s konumunda yerleştirme hatası bekleniyordu: %s", code, colNo, errs)
 		}
 	}
 	for _, code := range []string{"yazdır(\"\\{\\\"kod\\\": 5\\}\")", "yazdır(`{\"kod\": 5}`)", `yazdır("a {1 + 2} b")`} {

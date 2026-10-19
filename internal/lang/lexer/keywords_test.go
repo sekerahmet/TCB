@@ -8,35 +8,35 @@ import (
 
 // Sözlükteki her anahtar kelime kodu (A0xx) tabloda tam bir kez bir token türüne bağlı
 // olmalı; tablodaki her kodun sözlükte adı olmalı.
-func TestAnahtarKelimeSozluguDuzgun(t *testing.T) {
-	tablodaki := map[codes.Code]bool{}
-	for _, ak := range anahtarKelimeler {
-		if tablodaki[ak.Code] {
-			t.Errorf("%s tabloda iki kez", ak.Code)
+func TestKeywordDictionaryValid(t *testing.T) {
+	inTable := map[codes.Code]bool{}
+	for _, kw := range keywordTable {
+		if inTable[kw.Code] {
+			t.Errorf("%s tabloda iki kez", kw.Code)
 		}
-		tablodaki[ak.Code] = true
-		for _, y := range codes.Spellings(ak.Code) {
-			if LookupIdent(y) != ak.Type {
-				t.Errorf("%q → %s bekleniyordu, %s", y, ak.Type, LookupIdent(y))
+		inTable[kw.Code] = true
+		for _, y := range codes.Spellings(kw.Code) {
+			if LookupIdent(y) != kw.Type {
+				t.Errorf("%q → %s bekleniyordu, %s", y, kw.Type, LookupIdent(y))
 			}
 		}
-		if KeywordName(ak.Type) != codes.Name(ak.Code) {
-			t.Errorf("%s adı %q, %q bekleniyordu", ak.Type, KeywordName(ak.Type), codes.Name(ak.Code))
+		if KeywordName(kw.Type) != codes.Name(kw.Code) {
+			t.Errorf("%s adı %q, %q bekleniyordu", kw.Type, KeywordName(kw.Type), codes.Name(kw.Code))
 		}
 	}
 	for _, k := range codes.Codes() {
-		if k.IsKeyword() && !tablodaki[k] {
+		if k.IsKeyword() && !inTable[k] {
 			t.Errorf("sözlükteki %s (%s) bir token türüne bağlı değil", k, codes.Name(k))
 		}
 	}
 }
 
 // Aynı token türü iki koda bağlanırsa başlangıçta yakalanmalı.
-func TestAnahtarKelimeHaritasiCakismayiYakalar(t *testing.T) {
+func TestKeywordMapCatchesClash(t *testing.T) {
 	defer func() {
 		if recover() == nil {
 			t.Fatal("çakışan tablo için panik bekleniyordu")
 		}
 	}()
-	anahtarKelimeHaritasi([]Keyword{{codes.A001, TOKEN_IF}, {codes.A002, TOKEN_IF}})
+	keywordMap([]Keyword{{codes.A001, TOKEN_IF}, {codes.A002, TOKEN_IF}})
 }

@@ -19,7 +19,7 @@ var enJSON []byte
 // diller ikiliye gömülü yazım dilleridir (ISO 639-1 kodu → dil dosyası). Türkçe dilin asıl
 // dilidir: kodsuz (düz) yazılmış dosyalar Türkçedir; öbür diller kodlu dosyaların gösterimi
 // ve o dilde yazılmış metnin kodlanması içindir (docs/spec/17_kodlar.md, 17.6).
-var diller = map[string][]byte{"tr": trJSON, "en": enJSON}
+var languages = map[string][]byte{"tr": trJSON, "en": enJSON}
 
 // LanguageEnvVar selects the process's active writing language (empty: tr). The lexer's word
 // tables are built once from the active language while packages initialize, so the language
@@ -68,8 +68,8 @@ func (g Entry) Dead() bool { return g.MovedTo != None || g.Removed }
 
 // eskiEslesme bir eski adın hangi koda ait olduğu ve adın, eski bir adın türetilmiş
 // ASCII biçimi olup olmadığıdır.
-type eskiEslesme struct {
-	kod   Code
+type oldMatch struct {
+	code  Code
 	ascii bool
 }
 
@@ -79,211 +79,213 @@ type Language struct {
 	// Code is the language's ISO 639-1 code ("tr"; with a region when needed: "pt-BR").
 	Code string
 
-	girdiler map[Code]*Entry
+	entries map[Code]*Entry
 	// adDizi aile başına sayı → addır; Ad çalışma anında da harita araması yapmasın diye dizi.
-	adDizi   [len(aileHarfleri)][]string
-	kodlar   []Code // artan sırada
-	yazimlar map[Code][]string
-	adlar    [alanSayisi]map[string]Code
-	eskiler  [alanSayisi]map[string][]eskiEslesme
-	asil     [alanSayisi]map[string]string // ad alanı başına ad ve ASCII biçimi → ad
+	nameArr   [len(familyLetters)][]string
+	codeList  []Code // artan sırada
+	spellings map[Code][]string
+	names     [namespaceCount]map[string]Code
+	oldNames  [namespaceCount]map[string][]oldMatch
+	canonical [namespaceCount]map[string]string // ad alanı başına ad ve ASCII biçimi → ad
 	// olu taşınmış ya da kaldırılmış kodlardır (artan sırada); oluAd ad alanı başına böyle
 	// bir kodun adı, eski adları ve bunların ASCII biçimleri → kod.
-	olu   []Code
-	oluAd [alanSayisi]map[string]Code
+	dead      []Code
+	deadNames [namespaceCount]map[string]Code
 }
 
 // Load reads and validates a language file. On format errors, duplicate codes or clashing
 // names in a namespace (in Turkish or ASCII form, old names included) it returns one error
 // listing all of them.
-func Load(kodu string, veri []byte) (*Language, error) {
-	var hatalar []string
-	hata := func(bicim string, a ...any) { hatalar = append(hatalar, fmt.Sprintf(bicim, a...)) }
+func Load(langCode string, data []byte) (*Language, error) {
+	var errs []string
+	errorf := func(form string, a ...any) { errs = append(errs, fmt.Sprintf(form, a...)) }
 
-	ham, err := dosyaCoz(veri)
+	raw, err := parseFile(data)
 	if err != nil {
-		return nil, fmt.Errorf("kod listesi %s: dosya okunamadı (bir JSON nesnesi { \"G100\": { \"ad\": ... }, ... } olmalı): %v", kodu, err)
+		return nil, fmt.Errorf("kod listesi %s: dosya okunamadı (bir JSON nesnesi { \"G100\": { \"ad\": ... }, ... } olmalı): %v", langCode, err)
 	}
 
-	d := &Language{Code: kodu, girdiler: make(map[Code]*Entry, len(ham)), yazimlar: make(map[Code][]string, len(ham))}
-	var alanBoyu [alanSayisi]int // ad alanı başına yazım sayısı (haritaların boyu için)
-	var enBuyuk [len(aileHarfleri)]int
-	for _, g := range ham {
-		k, err := Parse(g.anahtar)
+	d := &Language{Code: langCode, entries: make(map[Code]*Entry, len(raw)), spellings: make(map[Code][]string, len(raw))}
+	var nsCount [namespaceCount]int // ad alanı başına yazım sayısı (haritaların boyu için)
+	var largest [len(familyLetters)]int
+	for _, g := range raw {
+		k, err := Parse(g.key)
 		if err != nil {
-			hata("%v", err)
+			errorf("%v", err)
 			continue
 		}
-		if _, var_ := d.girdiler[k]; var_ {
-			hata("%s iki kez tanımlı", k)
+		if _, var_ := d.entries[k]; var_ {
+			errorf("%s iki kez tanımlı", k)
 			continue
 		}
 		if k.Namespace() == NamespaceNone {
-			hata("%s: %c ailesi henüz kullanılmıyor", k, k.Letter())
+			errorf("%s: %c ailesi henüz kullanılmıyor", k, k.Letter())
 			continue
 		}
-		if g.ad == "" || strings.IndexFunc(g.ad, unicode.IsSpace) >= 0 {
-			hata("%s: ad boş olamaz ve boşluk içeremez (%q)", k, g.ad)
+		if g.name == "" || strings.IndexFunc(g.name, unicode.IsSpace) >= 0 {
+			errorf("%s: ad boş olamaz ve boşluk içeremez (%q)", k, g.name)
 			continue
 		}
-		gr := &Entry{Code: k, Name: g.ad, Old: g.eski, Foreign: g.yabanci, Family: g.aile,
-			Description: g.aciklama, Example: g.ornek, MovedTo: tasinanlar[k], Removed: kaldirilanlar[k]}
-		for _, e := range append(append([]string(nil), g.eski...), g.yabanci...) {
+		gr := &Entry{Code: k, Name: g.name, Old: g.old, Foreign: g.foreign, Family: g.family,
+			Description: g.description, Example: g.example, MovedTo: movedMap[k], Removed: removedSet[k]}
+		for _, e := range append(append([]string(nil), g.old...), g.foreign...) {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
-				hata("%s: eski ya da yabancı ad boş olamaz ve boşluk içeremez (%q)", k, e)
+				errorf("%s: eski ya da yabancı ad boş olamaz ve boşluk içeremez (%q)", k, e)
 			}
-			if e == g.ad || asciiBicim(e) == asciiBicim(g.ad) {
-				hata("%s: eski ya da yabancı ad %q adın kendisi (ya da ASCII biçimi) olamaz", k, e)
+			if e == g.name || asciiForm(e) == asciiForm(g.name) {
+				errorf("%s: eski ya da yabancı ad %q adın kendisi (ya da ASCII biçimi) olamaz", k, e)
 			}
 		}
-		d.girdiler[k] = gr
-		enBuyuk[int(k)/1000-1] = max(enBuyuk[int(k)/1000-1], k.Number())
+		d.entries[k] = gr
+		largest[int(k)/1000-1] = max(largest[int(k)/1000-1], k.Number())
 		if gr.Dead() {
-			d.olu = append(d.olu, k)
+			d.dead = append(d.dead, k)
 			continue
 		}
-		if IsCodeForm(g.ad) {
+		if IsCodeForm(g.name) {
 			// Kod biçimli adlar ayrılmıştır (2.3a); yalnızca adı yeniden kullanılmış ölü bir kodun
 			// ipucusuz adı olabilir (bkz. docs/spec/17_kodlar.md, Ölü kodlar).
-			hata("%s: ad %q kod biçiminde (büyük harf ve üç rakam); bu biçim ayrılmıştır", k, g.ad)
+			errorf("%s: ad %q kod biçiminde (büyük harf ve üç rakam); bu biçim ayrılmıştır", k, g.name)
 			continue
 		}
-		d.kodlar = append(d.kodlar, k)
-		alanBoyu[k.Namespace()] += 2
+		d.codeList = append(d.codeList, k)
+		nsCount[k.Namespace()] += 2
 	}
-	sort.Slice(d.kodlar, func(i, j int) bool { return d.kodlar[i] < d.kodlar[j] })
-	sort.Slice(d.olu, func(i, j int) bool { return d.olu[i] < d.olu[j] })
-	for i, n := range enBuyuk {
+	sort.Slice(d.codeList, func(i, j int) bool { return d.codeList[i] < d.codeList[j] })
+	sort.Slice(d.dead, func(i, j int) bool { return d.dead[i] < d.dead[j] })
+	for i, n := range largest {
 		if n > 0 {
-			d.adDizi[i] = make([]string, n+1)
+			d.nameArr[i] = make([]string, n+1)
 		}
 	}
 
 	// Ad alanı tabloları. Kod sırasıyla kurulur ki hata mesajları kararlı olsun.
-	for i := range d.adlar {
-		d.adlar[i] = make(map[string]Code, alanBoyu[i])
-		d.eskiler[i] = map[string][]eskiEslesme{}
-		d.asil[i] = make(map[string]string, alanBoyu[i])
+	for i := range d.names {
+		d.names[i] = make(map[string]Code, nsCount[i])
+		d.oldNames[i] = map[string][]oldMatch{}
+		d.canonical[i] = make(map[string]string, nsCount[i])
 	}
 	// sahibi: ad alanında ASCII biçime göre adın sahibi kod ve Türkçe biçimi.
-	type sahip struct {
-		kod Code
-		ad  string
+	type owner struct {
+		code Code
+		name string
 	}
-	sahibi := [alanSayisi]map[string]sahip{}
-	for i := range sahibi {
-		sahibi[i] = make(map[string]sahip, alanBoyu[i]/2)
+	owners := [namespaceCount]map[string]owner{}
+	for i := range owners {
+		owners[i] = make(map[string]owner, nsCount[i]/2)
 	}
-	for _, k := range d.kodlar {
-		g := d.girdiler[k]
-		al := k.Namespace()
-		ad := g.Name
-		ascii := asciiBicim(ad)
-		if o, ok := sahibi[al][ascii]; ok {
-			hata("%s %q ile %s %q aynı ad alanında (%s) çakışıyor (ASCII biçimleri: %q)", o.kod, o.ad, k, ad, al, ascii)
+	for _, k := range d.codeList {
+		g := d.entries[k]
+		ns := k.Namespace()
+		name := g.Name
+		ascii := asciiForm(name)
+		if o, ok := owners[ns][ascii]; ok {
+			errorf("%s %q ile %s %q aynı ad alanında (%s) çakışıyor (ASCII biçimleri: %q)", o.code, o.name, k, name, ns, ascii)
 			continue
 		}
-		sahibi[al][ascii] = sahip{k, ad}
-		yaz := []string{ad}
-		if AcceptASCII && ascii != ad {
-			yaz = append(yaz, ascii)
+		owners[ns][ascii] = owner{k, name}
+		write := []string{name}
+		if AcceptASCII && ascii != name {
+			write = append(write, ascii)
 		}
-		d.asil[al][ad], d.asil[al][ascii] = ad, ad
-		d.yazimlar[k] = yaz
-		d.adDizi[int(k)/1000-1][k.Number()] = g.Name
-		for _, y := range yaz {
-			d.adlar[al][y] = k
+		d.canonical[ns][name], d.canonical[ns][ascii] = name, name
+		d.spellings[k] = write
+		d.nameArr[int(k)/1000-1][k.Number()] = g.Name
+		for _, y := range write {
+			d.names[ns][y] = k
 		}
 	}
 	// Eski ve yabancı adlar: kabul edilmez, hata mesajında asıl adı önerir (EskiBul, Oneri).
-	for _, k := range d.kodlar {
-		g := d.girdiler[k]
-		al := k.Namespace()
+	for _, k := range d.codeList {
+		g := d.entries[k]
+		ns := k.Namespace()
 		for _, e := range append(append([]string(nil), g.Old...), g.Foreign...) {
-			yazimlar := []string{e}
-			if a := asciiBicim(e); a != e {
-				yazimlar = append(yazimlar, a)
+			spellings := []string{e}
+			if a := asciiForm(e); a != e {
+				spellings = append(spellings, a)
 			}
-			for i, ad := range yazimlar {
-				if o, ok := sahibi[al][asciiBicim(ad)]; ok && (ad == o.ad || ad == asciiBicim(o.ad)) {
-					hata("%s'in eski adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", k, ad, o.kod, o.ad)
+			for i, name := range spellings {
+				if o, ok := owners[ns][asciiForm(name)]; ok && (name == o.name || name == asciiForm(o.name)) {
+					errorf("%s'in eski adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", k, name, o.code, o.name)
 					continue
 				}
-				for _, o := range d.eskiler[al][ad] {
-					if o.kod != k {
-						hata("eski ad %q hem %s hem %s için kayıtlı; ipucu belirsiz olur", ad, o.kod, k)
+				for _, o := range d.oldNames[ns][name] {
+					if o.code != k {
+						errorf("eski ad %q hem %s hem %s için kayıtlı; ipucu belirsiz olur", name, o.code, k)
 					}
 				}
-				d.eskiler[al][ad] = append(d.eskiler[al][ad], eskiEslesme{kod: k, ascii: i == 1})
+				d.oldNames[ns][name] = append(d.oldNames[ns][name], oldMatch{code: k, ascii: i == 1})
 			}
 		}
 	}
 	// Taşınmış kodlar: adları (ve eski adları) artık kabul edilmez; yalnızca hata
 	// mesajında yeni biçimi önermek için tutulur. Canlı bir adla ya da eski bir adla
 	// çakışırlarsa ipucu belirsiz olurdu.
-	for i := range d.oluAd {
-		d.oluAd[i] = map[string]Code{}
+	for i := range d.deadNames {
+		d.deadNames[i] = map[string]Code{}
 	}
-	for _, k := range d.olu {
-		g := d.girdiler[k]
-		al := k.Namespace()
-		d.adDizi[int(k)/1000-1][k.Number()] = g.Name
-		tur := "kaldırılmış"
+	for _, k := range d.dead {
+		g := d.entries[k]
+		ns := k.Namespace()
+		d.nameArr[int(k)/1000-1][k.Number()] = g.Name
+		kind := "kaldırılmış"
 		if g.MovedTo != None {
-			tur = "taşınmış"
+			kind = "taşınmış"
 		}
-		if h, ok := d.girdiler[g.MovedTo]; g.MovedTo != None && (!ok || h.Dead()) {
-			hata("%s %s'e taşındı, ama %s dil dosyasında canlı bir kod değil", k, g.MovedTo, g.MovedTo)
+		if h, ok := d.entries[g.MovedTo]; g.MovedTo != None && (!ok || h.Dead()) {
+			errorf("%s %s'e taşındı, ama %s dil dosyasında canlı bir kod değil", k, g.MovedTo, g.MovedTo)
 		}
-		adlar := []string{}
-		for _, ad := range append([]string{g.Name}, g.Old...) {
-			adlar = append(adlar, ad)
-			if a := asciiBicim(ad); a != ad {
-				adlar = append(adlar, a)
+		names := []string{}
+		for _, name := range append([]string{g.Name}, g.Old...) {
+			names = append(names, name)
+			if a := asciiForm(name); a != name {
+				names = append(names, a)
 			}
 		}
-		for _, ad := range adlar {
-			if o, ok := sahibi[al][asciiBicim(ad)]; ok && (ad == o.ad || ad == asciiBicim(o.ad)) {
-				hata("%s %s'in adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", tur, k, ad, o.kod, o.ad)
+		for _, name := range names {
+			if o, ok := owners[ns][asciiForm(name)]; ok && (name == o.name || name == asciiForm(o.name)) {
+				errorf("%s %s'in adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", kind, k, name, o.code, o.name)
 				continue
 			}
-			if e := d.eskiler[al][ad]; len(e) > 0 {
-				hata("%s %s'in adı %q, %s'in eski adıyla çakışıyor; ipucu belirsiz olur", tur, k, ad, e[0].kod)
+			if e := d.oldNames[ns][name]; len(e) > 0 {
+				errorf("%s %s'in adı %q, %s'in eski adıyla çakışıyor; ipucu belirsiz olur", kind, k, name, e[0].code)
 				continue
 			}
-			if o, ok := d.oluAd[al][ad]; ok && o != k {
-				hata("%q hem %s hem %s kodlarının (taşınmış ya da kaldırılmış) adı; ipucu belirsiz olur", ad, o, k)
+			if o, ok := d.deadNames[ns][name]; ok && o != k {
+				errorf("%q hem %s hem %s kodlarının (taşınmış ya da kaldırılmış) adı; ipucu belirsiz olur", name, o, k)
 				continue
 			}
-			d.oluAd[al][ad] = k
+			d.deadNames[ns][name] = k
 		}
 	}
-	if len(hatalar) > 0 {
-		return nil, errors.New("kod listesi " + kodu + ":\n  " + strings.Join(hatalar, "\n  "))
+	if len(errs) > 0 {
+		return nil, errors.New("kod listesi " + langCode + ":\n  " + strings.Join(errs, "\n  "))
 	}
 	return d, nil
 }
 
 // Codes returns every live code in the language in ascending order (moved codes excluded;
 // see MovedCodes).
-func (d *Language) Codes() []Code { return append([]Code(nil), d.kodlar...) }
+func (d *Language) Codes() []Code { return append([]Code(nil), d.codeList...) }
 
 // DeadCodes returns the moved or removed codes in ascending order. Their names are not
 // accepted; Name and Entry still work for them (for error messages).
-func (d *Language) DeadCodes() []Code { return append([]Code(nil), d.olu...) }
+func (d *Language) DeadCodes() []Code { return append([]Code(nil), d.dead...) }
 
 // MovedCodes returns, in ascending order, the codes whose job moved to another code.
 func (d *Language) MovedCodes() []Code {
-	return d.oluSuz(func(g *Entry) bool { return g.MovedTo != None })
+	return d.deadWhere(func(g *Entry) bool { return g.MovedTo != None })
 }
 
 // RemovedCodes returns, in ascending order, the codes removed with no replacement.
-func (d *Language) RemovedCodes() []Code { return d.oluSuz(func(g *Entry) bool { return g.Removed }) }
+func (d *Language) RemovedCodes() []Code {
+	return d.deadWhere(func(g *Entry) bool { return g.Removed })
+}
 
-func (d *Language) oluSuz(uygun func(*Entry) bool) []Code {
+func (d *Language) deadWhere(accept func(*Entry) bool) []Code {
 	var out []Code
-	for _, k := range d.olu {
-		if uygun(d.girdiler[k]) {
+	for _, k := range d.dead {
+		if accept(d.entries[k]) {
 			out = append(out, k)
 		}
 	}
@@ -293,17 +295,17 @@ func (d *Language) oluSuz(uygun func(*Entry) bool) []Code {
 // FindDead returns the code when ad is, in the given namespace, the name or an old name of a
 // moved or removed code, or the ASCII form of either (the new code, if any, is
 // Entry(k).MovedTo).
-func (d *Language) FindDead(al Namespace, ad string) (Code, bool) {
-	if al >= alanSayisi {
+func (d *Language) FindDead(ns Namespace, name string) (Code, bool) {
+	if ns >= namespaceCount {
 		return None, false
 	}
-	k, ok := d.oluAd[al][ad]
+	k, ok := d.deadNames[ns][name]
 	return k, ok
 }
 
 // Entry returns the code's line in the language file.
 func (d *Language) Entry(k Code) (Entry, bool) {
-	g, ok := d.girdiler[k]
+	g, ok := d.entries[k]
 	if !ok {
 		return Entry{}, false
 	}
@@ -314,8 +316,8 @@ func (d *Language) Entry(k Code) (Entry, bool) {
 // from the language file is a developer error and panics (codes are constants in Go; if a
 // line was deleted from the file the program stops at startup).
 func (d *Language) Name(k Code) string {
-	if f, n := int(k)/1000-1, k.Number(); f >= 0 && f < len(d.adDizi) && n < len(d.adDizi[f]) {
-		if a := d.adDizi[f][n]; a != "" {
+	if f, n := int(k)/1000-1, k.Number(); f >= 0 && f < len(d.nameArr) && n < len(d.nameArr[f]) {
+		if a := d.nameArr[f][n]; a != "" {
 			return a
 		}
 	}
@@ -326,7 +328,7 @@ func (d *Language) Name(k Code) string {
 // spelling this is just the name (if AcceptASCII were on, the ASCII form would follow). The
 // returned slice must not be modified.
 func (d *Language) Spellings(k Code) []string {
-	y, ok := d.yazimlar[k]
+	y, ok := d.spellings[k]
 	if !ok {
 		panic(fmt.Sprintf("kod listesi %s: %s kodu dil dosyasında yok", d.Code, k))
 	}
@@ -335,11 +337,11 @@ func (d *Language) Spellings(k Code) []string {
 
 // Find returns the code of a spelling (the name or an accepted ASCII form) in the given
 // namespace.
-func (d *Language) Find(al Namespace, yazim string) (Code, bool) {
-	if al >= alanSayisi {
+func (d *Language) Find(ns Namespace, spelling string) (Code, bool) {
+	if ns >= namespaceCount {
 		return None, false
 	}
-	k, ok := d.adlar[al][yazim]
+	k, ok := d.names[ns][spelling]
 	return k, ok
 }
 
@@ -347,13 +349,13 @@ func (d *Language) Find(al Namespace, yazim string) (Code, bool) {
 // if uygun is not nil only codes with uygun(code) true are considered. ascii reports that ad
 // is the derived ASCII form of an old name (e.g. islev); a hint may then suggest the ASCII
 // form of the new name.
-func (d *Language) FindOld(al Namespace, ad string, uygun func(Code) bool) (kod Code, ascii bool, ok bool) {
-	if al >= alanSayisi {
+func (d *Language) FindOld(ns Namespace, name string, accept func(Code) bool) (code Code, ascii bool, ok bool) {
+	if ns >= namespaceCount {
 		return None, false, false
 	}
-	for _, e := range d.eskiler[al][ad] {
-		if uygun == nil || uygun(e.kod) {
-			return e.kod, e.ascii, true
+	for _, e := range d.oldNames[ns][name] {
+		if accept == nil || accept(e.code) {
+			return e.code, e.ascii, true
 		}
 	}
 	return None, false, false
@@ -364,11 +366,11 @@ func (d *Language) FindOld(al Namespace, ad string, uygun func(Code) bool) (kod 
 // when the name is not in that namespace. The same ASCII spelling can belong to different
 // names in different namespaces ("tur" is the old name of G201 tip among global names and
 // the ASCII form of Y402 tür among members), so it is always asked with a namespace.
-func (d *Language) CanonicalNameIn(al Namespace, ad string) (string, bool) {
-	if al >= alanSayisi {
+func (d *Language) CanonicalNameIn(ns Namespace, name string) (string, bool) {
+	if ns >= namespaceCount {
 		return "", false
 	}
-	a, ok := d.asil[al][ad]
+	a, ok := d.canonical[ns][name]
 	return a, ok
 }
 
@@ -378,33 +380,33 @@ func (d *Language) CanonicalNameIn(al Namespace, ad string) (string, bool) {
 // only codes with uygun(code) true are suggested. The suggestion is always the code's name
 // (its Turkish form); the ASCII form is never suggested. There is no suggestion when the
 // spelling is a valid name in the namespace.
-func (d *Language) Suggest(al Namespace, yazim string, uygun func(Code) bool) (Code, bool) {
-	if al >= alanSayisi {
+func (d *Language) Suggest(ns Namespace, spelling string, accept func(Code) bool) (Code, bool) {
+	if ns >= namespaceCount {
 		return None, false
 	}
-	if _, gecerli := d.adlar[al][yazim]; gecerli {
+	if _, valid := d.names[ns][spelling]; valid {
 		return None, false
 	}
-	if ad, ok := d.asil[al][yazim]; ok && ad != yazim {
-		if k, ok := d.adlar[al][ad]; ok && (uygun == nil || uygun(k)) {
+	if name, ok := d.canonical[ns][spelling]; ok && name != spelling {
+		if k, ok := d.names[ns][name]; ok && (accept == nil || accept(k)) {
 			return k, true
 		}
 	}
-	if k, _, ok := d.FindOld(al, yazim, uygun); ok {
+	if k, _, ok := d.FindOld(ns, spelling, accept); ok {
 		return k, true
 	}
 	return None, false
 }
 
 // etkin programın kullandığı dildir (LanguageEnvVar; varsayılan Türkçe).
-var etkin = func() *Language {
-	kodu := os.Getenv(LanguageEnvVar)
-	if kodu == "" {
-		kodu = "tr"
+var active = func() *Language {
+	langCode := os.Getenv(LanguageEnvVar)
+	if langCode == "" {
+		langCode = "tr"
 	}
-	d, err := dilKur(kodu)
+	d, err := buildLanguage(langCode)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %s=%s: %v\n", LanguageEnvVar, kodu, err)
+		fmt.Fprintf(os.Stderr, "Hata: %s=%s: %v\n", LanguageEnvVar, langCode, err)
 		os.Exit(2)
 	}
 	return d
@@ -412,25 +414,25 @@ var etkin = func() *Language {
 
 // LoadLanguage builds the code list of an embedded writing language; for the active language
 // it returns the one already built.
-func LoadLanguage(kodu string) (*Language, error) {
-	if etkin != nil && etkin.Code == kodu {
-		return etkin, nil
+func LoadLanguage(langCode string) (*Language, error) {
+	if active != nil && active.Code == langCode {
+		return active, nil
 	}
-	return dilKur(kodu)
+	return buildLanguage(langCode)
 }
 
-func dilKur(kodu string) (*Language, error) {
-	veri, ok := diller[kodu]
+func buildLanguage(langCode string) (*Language, error) {
+	data, ok := languages[langCode]
 	if !ok {
-		return nil, fmt.Errorf("'%s' yazım dili yok; var olanlar: %s", kodu, strings.Join(Languages(), ", "))
+		return nil, fmt.Errorf("'%s' yazım dili yok; var olanlar: %s", langCode, strings.Join(Languages(), ", "))
 	}
-	return Load(kodu, veri)
+	return Load(langCode, data)
 }
 
 // Languages returns the codes of the embedded writing languages, sorted.
 func Languages() []string {
 	var r []string
-	for k := range diller {
+	for k := range languages {
 		r = append(r, k)
 	}
 	sort.Strings(r)
@@ -438,7 +440,7 @@ func Languages() []string {
 }
 
 // Active returns the language the program uses.
-func Active() *Language { return etkin }
+func Active() *Language { return active }
 
 // TRData returns the embedded Turkish language file (for tests and tools).
 func TRData() []byte { return trJSON }
@@ -446,50 +448,50 @@ func TRData() []byte { return trJSON }
 // Name, Spellings, Find, FindOld, Suggest, CanonicalNameIn, Codes and the other functions
 // below are the same-named methods of the active language.
 
-func Name(k Code) string                       { return etkin.Name(k) }
-func Spellings(k Code) []string                { return etkin.Spellings(k) }
-func Find(al Namespace, y string) (Code, bool) { return etkin.Find(al, y) }
-func Codes() []Code                            { return etkin.Codes() }
-func MovedCodes() []Code                       { return etkin.MovedCodes() }
-func RemovedCodes() []Code                     { return etkin.RemovedCodes() }
-func DeadCodes() []Code                        { return etkin.DeadCodes() }
-func FindDead(al Namespace, ad string) (Code, bool) {
-	return etkin.FindDead(al, ad)
+func Name(k Code) string                       { return active.Name(k) }
+func Spellings(k Code) []string                { return active.Spellings(k) }
+func Find(ns Namespace, y string) (Code, bool) { return active.Find(ns, y) }
+func Codes() []Code                            { return active.Codes() }
+func MovedCodes() []Code                       { return active.MovedCodes() }
+func RemovedCodes() []Code                     { return active.RemovedCodes() }
+func DeadCodes() []Code                        { return active.DeadCodes() }
+func FindDead(ns Namespace, name string) (Code, bool) {
+	return active.FindDead(ns, name)
 }
 
 // Removed reports whether k was removed from the language with no replacement
 // (definitions.json, "kaldırıldı"); it reads the generated kaldirilanlar table.
-func Removed(k Code) bool { return kaldirilanlar[k] }
+func Removed(k Code) bool { return removedSet[k] }
 
 // MovedTo returns the new code when k was removed and its job moved to another code (another
 // form: from function to method or back). This is language independent (definitions.json,
 // "taşındı"); it reads the generated tasinanlar table.
 func MovedTo(k Code) (Code, bool) {
-	y, ok := tasinanlar[k]
+	y, ok := movedMap[k]
 	return y, ok
 }
-func CanonicalNameIn(al Namespace, ad string) (string, bool) {
-	return etkin.CanonicalNameIn(al, ad)
+func CanonicalNameIn(ns Namespace, name string) (string, bool) {
+	return active.CanonicalNameIn(ns, name)
 }
-func FindOld(al Namespace, ad string, uygun func(Code) bool) (Code, bool, bool) {
-	return etkin.FindOld(al, ad, uygun)
+func FindOld(ns Namespace, name string, accept func(Code) bool) (Code, bool, bool) {
+	return active.FindOld(ns, name, accept)
 }
-func Suggest(al Namespace, yazim string, uygun func(Code) bool) (Code, bool) {
-	return etkin.Suggest(al, yazim, uygun)
+func Suggest(ns Namespace, spelling string, accept func(Code) bool) (Code, bool) {
+	return active.Suggest(ns, spelling, accept)
 }
 
 // MemberCode returns the code of a method or property name (x.name), or None when it is not
 // a member. The compiler calls it once at compile time; at run time only codes are compared.
-func MemberCode(ad string) Code {
-	k, _ := etkin.adlar[NamespaceMember][ad]
+func MemberCode(name string) Code {
+	k, _ := active.names[NamespaceMember][name]
 	return k
 }
 
 // Names returns the names of the codes in the same order (for suggestion lists).
-func Names(kodlar ...Code) []string {
-	out := make([]string, len(kodlar))
-	for i, k := range kodlar {
-		out[i] = etkin.Name(k)
+func Names(codeList ...Code) []string {
+	out := make([]string, len(codeList))
+	for i, k := range codeList {
+		out[i] = active.Name(k)
 	}
 	return out
 }

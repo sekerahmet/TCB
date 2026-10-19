@@ -10,10 +10,6 @@ package interp
 import (
 	"bufio"
 	"fmt"
-	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/hint"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"io"
 	"os"
 	"runtime"
@@ -21,6 +17,11 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 type flowSignal int
@@ -38,7 +39,7 @@ const (
 // codes rather than names. ad is the spelling the user wrote (for error messages and
 // suggestions).
 type PropertyGetter interface {
-	GetProperty(kd codes.Code, ad string) (Value, error)
+	GetProperty(kd codes.Code, name string) (Value, error)
 }
 
 // TaskMemberHook is the form of PropertyGetter that also receives the task reading the member
@@ -47,7 +48,7 @@ type PropertyGetter interface {
 // implement it; for such values dot access calls it instead of GetProperty (GetProperty stays
 // for task-less reads on the suggestion and error paths).
 type TaskMemberHook interface {
-	TaskMember(v *VM, kd codes.Code, ad string) (Value, error)
+	TaskMember(v *VM, kd codes.Code, name string) (Value, error)
 }
 
 // Debugger is the debugger the VM consults before every statement. Its implementation lives in
@@ -58,7 +59,7 @@ type Debugger interface {
 	BeforeStatement(v *VM, stmt ast.Statement, env *Environment) int
 	// Breakpoint is called when a kesme_noktası statement runs, to stop at the next
 	// statement with the given reason.
-	Breakpoint(gerekce string)
+	Breakpoint(reason string)
 }
 
 // NewDebugger creates a debugger when a kesme_noktası statement runs and none is attached
@@ -83,19 +84,19 @@ type vmShared struct {
 	// "uygulama.exe"); komut satırı seçeneklerinin yardımında ve hatalarında gösterilir.
 	// Boşsa "tr <SourceFile>" kullanılır.
 	KomutAdi   string
-	importedMu sync.Mutex
+	isImported sync.Mutex
 	Imported   map[string]*DictVal
 	// yuklenen yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
 	// modülü isterse yüklemenin bitmesini bekler.
-	yuklenen map[string]*modulYukleme
+	loaded map[string]*moduleLoading
 	// Err programı durdurmayan hataların (eşzamanlı görev hataları) yazıldığı yerdir;
 	// varsayılanı standart hatadır. Düzenleyici oturumu ve tr test kendi çıktılarına bağlar.
-	Err          io.Writer
-	girdiMu      sync.Mutex
-	girdiOkuyucu *bufio.Reader
+	Err         io.Writer
+	isInput     sync.Mutex
+	inputReader *bufio.Reader
 	// yerlesikSabitler genel kapsama kaydedilen yerleşik sabitlerdir (ad → değer; ör. pi);
 	// hata ayıklayıcı onları kullanıcı değişkenlerinden ayırır (YerlesikSabitMi).
-	yerlesikSabitler map[string]Value
+	builtinConstants map[string]Value
 
 	// gil (Yorumlayıcı Kilidi): Aynı anda yalnızca bir görev TR kodu çalıştırır. Böylece
 	// paylaşılan Liste/Sözlük/Yapı değerleri eşzamanlı yazımda bozulmaz ve 's += 1' gibi
@@ -106,40 +107,40 @@ type vmShared struct {
 	// turlarında ve fonksiyon çağrılarında bu sayaca bakar; bekleyen varsa kilidi devreder
 	// (bkz. devret). Böylece CPU-yoğun bir döngü eşzamanlı görevleri sonuna kadar
 	// bekletmez.
-	bekleyen atomic.Int32
+	pending atomic.Int32
 	// gorevKancalari, bir görev kilidi her aldığında çağrılan motor kancalarıdır (bkz.
 	// GorevKancasiEkle). Yalnızca kayıt sırasında (program başlamadan) yazılır.
-	gorevKancalari []func(*VM)
+	taskHooks []func(*VM)
 
 	// argumanlar betiğe komut satırında verilen argümanlardır; argumanlarOkundu program
 	// onları okuduysa açıktır (bkz. program_args.go).
-	argumanlar       []string
-	argumanlarOkundu atomic.Bool
+	arguments []string
+	argsRead  atomic.Bool
 
 	// kesildi programın nazikçe durdurulması istendiyse açıktır; kesilmeKanali o anda
 	// kapanır (bkz. interrupt.go).
-	kesildi       atomic.Bool
-	kesilmeKanali chan struct{}
+	interrupted   atomic.Bool
+	interruptChan chan struct{}
 	// kesmeErteleyen kesme isteğini adım sınırına erteleyen kontrol noktası sayısıdır;
 	// durdurmaIstendi ertelenen bir istek geldiyse açıktır (bkz. KesmeIste).
-	kesmeErteleyen  atomic.Int32
-	durdurmaIstendi atomic.Bool
+	interruptDeferrers atomic.Int32
+	stopRequested      atomic.Bool
 
 	// ciktiMu çıktı noktalarını (CiktiYaz) etkin canlı satırla sıralar; canliVar canlı satır
 	// varken açıktır (yoksa kilit alınmaz). Bkz. output.go.
-	ciktiMu  sync.Mutex
-	canli    LiveLine
-	canliVar atomic.Bool
+	isOutput sync.Mutex
+	live     LiveLine
+	hasLive  atomic.Bool
 
 	// gizliler gizli değer süzgecine kayıtlı değerlerdir; maske onlardan kurulmuş
 	// değiştiricidir (gizli değer yoksa nil: çıktı noktalarında maliyet bir atomik okuma).
-	gizliMu  sync.Mutex
-	gizliler []string
-	maske    atomic.Pointer[strings.Replacer]
+	isSecret sync.Mutex
+	secrets  []string
+	mask     atomic.Pointer[strings.Replacer]
 
 	// metinOnbellegi son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
-	metinOnbellegi struct {
-		metin *StringVal
+	stringCache struct {
+		text  *StringVal
 		ascii bool
 		runes []rune
 	}
@@ -166,39 +167,39 @@ type VM struct {
 	// durumda değil görevde tutulur: bir modül yüklenirken kilidi bırakınca başka bir görev
 	// kendi dosyasının bağlamında kalır. Başka dosyada tanımlı bir fonksiyon çağrılınca o
 	// fonksiyonun dosyasına geçilir (kaynaktaCagir).
-	kaynak *Source
+	source *Source
 	// yukleme bu görevin yüklemekte olduğu modüllerin (mutlak yol) zinciridir; döngüsel
 	// aktarımı, başka bir görevin yüklemesini beklemekten ayırır.
-	yukleme []string
+	loading []string
 	// etkinBlok hata ayıklayıcıya danışılan son deyimin bloğudur (bkz. ZiplamaHedefi).
-	etkinBlok *blokKodu
+	activeBlock *blockCode
 
 	// gorevDegerleri motorların göreve özel durumudur (ör. tensör motorunun
 	// karışık_hassasiyet bloğu); bkz. GorevDegeri. Çağrı yığını gibi yalnızca görevin
 	// kendi goroutine'i okur ve yazar; yeni görevler (NewTaskVM) boş başlar.
-	gorevDegerleri map[any]any
+	taskValues map[any]any
 
 	// kesmeAtildi bu görevin kesilme paniğini attığını söyler: yığın çözülürken çalışan
 	// 'ertele' blokları yeniden kesilmez (bkz. kesilmeyiDenetle).
-	kesmeAtildi bool
+	interruptThrown bool
 }
 
 // TaskValue returns the engine state bound to this task (VM view) under a key, or nil. The
 // value is not visible to other tasks (concurrent blocks); when the task releases the GIL
 // (Blocking) another task reads its own value. The key must be of an unexported type of the
 // engine (to avoid collisions).
-func (v *VM) TaskValue(anahtar any) any { return v.gorevDegerleri[anahtar] }
+func (v *VM) TaskValue(keyStr any) any { return v.taskValues[keyStr] }
 
 // SetTaskValue sets the engine state bound to this task; a nil deger removes it.
-func (v *VM) SetTaskValue(anahtar, deger any) {
-	if deger == nil {
-		delete(v.gorevDegerleri, anahtar)
+func (v *VM) SetTaskValue(keyStr, value any) {
+	if value == nil {
+		delete(v.taskValues, keyStr)
 		return
 	}
-	if v.gorevDegerleri == nil {
-		v.gorevDegerleri = map[any]any{}
+	if v.taskValues == nil {
+		v.taskValues = map[any]any{}
 	}
-	v.gorevDegerleri[anahtar] = deger
+	v.taskValues[keyStr] = value
 }
 
 func New() *VM {
@@ -209,17 +210,17 @@ func New() *VM {
 			Out:       os.Stdout,
 			Err:       os.Stderr,
 			Imported:  make(map[string]*DictVal),
-			yuklenen:  make(map[string]*modulYukleme),
+			loaded:    make(map[string]*moduleLoading),
 
-			kesilmeKanali: make(chan struct{}),
+			interruptChan: make(chan struct{}),
 		},
 		CallStack: []StackFrame{},
 	}
-	v.tipleriKaydet()
+	v.registerTypes()
 	v.registerBuiltins()
-	v.registerIstatistik()
-	v.registerMatematik()
-	v.registerMotors()
+	v.registerStats()
+	v.registerMath()
+	v.registerEngines()
 	v.registerTestBuiltins()
 	return v
 }
@@ -232,15 +233,15 @@ func (v *VM) NewTaskVM() *VM {
 	// Görev başlatıldığı yerin dosyasında ve aktarım zincirinde başlar (modül yüklenirken
 	// başlatılan görev o modülü aktarırsa bu döngüdür, beklemek kilitlenirdi).
 	return &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: true,
-		kaynak: v.kaynak, yukleme: slices.Clip(v.yukleme)}
+		source: v.source, loading: slices.Clip(v.loading)}
 }
 
 func (v *VM) acquireGIL() {
-	v.bekleyen.Add(1)
+	v.pending.Add(1)
 	v.gil.Lock()
-	v.bekleyen.Add(-1)
+	v.pending.Add(-1)
 	v.holdsGIL = true
-	for _, f := range v.gorevKancalari {
+	for _, f := range v.taskHooks {
 		f(v)
 	}
 }
@@ -249,19 +250,19 @@ func (v *VM) acquireGIL() {
 // arasında (döngü turu başında, fonksiyon çağrısı girişinde) çağrılır; bir deyimin
 // okuma-yazma adımları ('s += 1') bu yüzden bölünmez. Sayaç denetimi tek görevli
 // programlarda yalnızca bir bellek okumasıdır.
-func (v *VM) devret() {
-	if v.bekleyen.Load() != 0 && v.holdsGIL {
-		v.kilidiDevret()
+func (v *VM) handOff() {
+	if v.pending.Load() != 0 && v.holdsGIL {
+		v.handOffLock()
 	}
 }
 
-func (v *VM) kilidiDevret() {
+func (v *VM) handOffLock() {
 	v.releaseGIL()
 	// Bekleyen görev kilidi alabilsin; sync.Mutex 1 ms'den uzun bekleyen göreve kilidi
 	// doğrudan devreder (açlık kipi), Gosched ise uyanan göreve hemen sıra verir.
 	runtime.Gosched()
 	v.acquireGIL()
-	v.kesilmeyiDenetle()
+	v.checkInterrupt()
 }
 
 func (v *VM) releaseGIL() {
@@ -280,7 +281,7 @@ func (v *VM) Blocking(fn func()) {
 	defer func() {
 		v.acquireGIL()
 		// Bekleme sırasında kesme istendiyse (bekle, veri okuma ...) program burada durur.
-		v.kesilmeyiDenetle()
+		v.checkInterrupt()
 	}()
 	fn()
 }
@@ -288,7 +289,7 @@ func (v *VM) Blocking(fn func()) {
 // yiginiKirp çağrı yığınını n çerçeveye indirir. Derlenmiş çağrılar çerçevelerini Go
 // 'defer' olmadan kaldırır; bir çöküş (panic) yakalandığında yarıda kalan çerçeveler
 // burada atılır.
-func (v *VM) yiginiKirp(n int) {
+func (v *VM) trimStack(n int) {
 	if len(v.CallStack) > n {
 		v.CallStack = v.CallStack[:n]
 	}
@@ -310,22 +311,22 @@ func (v *VM) Run(prog *ast.Program) (result Value, err error) {
 		defer v.releaseGIL()
 	}
 	// Yerleşik fonksiyonlardaki beklenmedik paniklerin tüm süreci çökertmesini engelle
-	yiginBoyu := len(v.CallStack)
+	stackSize := len(v.CallStack)
 	defer func() {
 		if r := recover(); r != nil {
-			v.yiginiKirp(yiginBoyu)
+			v.trimStack(stackSize)
 			if IsInterrupt(r) {
 				// Kesilme: ertelenen işler çalıştı; onların hatası varsa kesilmeye eklenir.
-				result, err = nil, erteleHatasiEkle(ErrInterrupted, err)
+				result, err = nil, addDeferError(ErrInterrupted, err)
 				return
 			}
-			result, err = nil, panikHatasi(r)
+			result, err = nil, panicError(r)
 		}
 	}()
 	defer func() {
 		// Programın üst düzey ertelenen işleri; hataları programın hatası olur (9.4)
 		if derr := v.GlobalEnv.RunDefers(); derr != nil {
-			result, err = nil, erteleHatasiEkle(err, derr)
+			result, err = nil, addDeferError(err, derr)
 		}
 	}()
 	val, _, err := v.programCalistir(prog.Statements)

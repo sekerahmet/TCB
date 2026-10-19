@@ -32,38 +32,38 @@ type Lexer struct {
 
 	// kodlu, kaynağın kodlu biçimde (17.10) yazıldığını söyler: kodlar (A001, G100) dilin
 	// sözcükleri, kod olmayan her ad kullanıcının adıdır (coded.go).
-	kodlu bool
+	coded bool
 	// kok dosyanın çözümleyicisidir (kökte kendisi). Metin içi yerleştirmelerin alt
 	// çözümleyicileri konumlarını, metin haritalarını ve kayıtlarını kökle paylaşır.
-	kok *Lexer
+	root *Lexer
 	// harita alt çözümleyicide girdinin her karakterinin kökteki konumudur (interpolation.go).
-	harita []int32
+	posMap []int32
 	// metinler kökte, yerleştirme içeren metin sabitlerinin bilgisidir (sözcük biriminin satır
 	// ve sütunuyla anahtarlı; interpolation.go); metinTampon ve yerTampon okunmakta olan metnin
 	// konumlarını ve yerleştirme aralıklarını biriktirir.
-	metinler    map[[2]int]*metinBilgisi
-	metinTampon []int32
-	yerTampon   [][2]int
+	stringInfos map[[2]int]*stringInfo
+	strBuf      []int32
+	posBuf      [][2]int
 	// satirBaslari kökte satırların başladığı karakter indeksleridir (gerektiğinde kurulur).
-	satirBaslari []int
+	lineStarts []int
 	// kayit açıksa (Kaydet) kökte üretilen bütün sözcük birimleri kaynak aralıklarıyla tutulur.
-	kayit *[]Record
+	rec *[]Record
 	// kaymalar kodlu kökte gösterimdeki sütun kaymalarıdır (coded.go); kaymaToplam birikimli
 	// toplamları, kaymaSira kök çözümleyicinin sıradaki kayma noktasıdır.
-	kaymalar    []kayma
-	kaymaToplam []int32
-	kaymaSira   int
+	shifts   []shift
+	shiftSum []int32
+	shiftIdx int
 }
 
 // LastRange returns the source character (rune) range [bas, son) of the token returned by
 // the last NextToken call. The formatter uses it to keep the raw text of tokens (escape
 // sequences undecoded) and the comments between them.
-func (l *Lexer) LastRange() (bas, son int) {
-	son = l.position
-	if son > len(l.input) {
-		son = len(l.input)
+func (l *Lexer) LastRange() (begin, end int) {
+	end = l.position
+	if end > len(l.input) {
+		end = len(l.input)
 	}
-	return l.tokenStart, son
+	return l.tokenStart, end
 }
 
 // Input returns the source the lexer reads (BOM removed, as runes).
@@ -86,16 +86,16 @@ func (l *Lexer) addError(line, col int, format string, args ...interface{}) {
 func New(input string) *Lexer {
 	// Bazı Windows editörlerinin dosya başına eklediği UTF-8 BOM'u (U+FEFF) atla;
 	// aksi halde ilk satırda GEÇERSİZ bir sözcük birimi oluşur.
-	return yeniCozumleyici(strings.TrimPrefix(input, string(rune(0xFEFF))))
+	return newLexer(strings.TrimPrefix(input, string(rune(0xFEFF))))
 }
 
-func yeniCozumleyici(input string) *Lexer {
+func newLexer(input string) *Lexer {
 	l := &Lexer{
 		input:  []rune(input),
 		line:   1,
 		column: 0,
 	}
-	l.kok = l
+	l.root = l
 	l.readChar()
 	return l
 }
@@ -108,10 +108,10 @@ func (l *Lexer) readChar() {
 	}
 	l.position = l.readPosition
 	l.readPosition++
-	if l.harita != nil {
+	if l.posMap != nil {
 		// Alt çözümleyicinin konumu kökteki karşılığından okunur: kaçış dizileri metnin
 		// değerinde kaynaktakinden kısadır.
-		l.line, l.column = l.kok.satirSutun(int(l.kaynakKonumu(l.position)))
+		l.line, l.column = l.root.lineCol(int(l.sourcePos(l.position)))
 		return
 	}
 	if l.ch == '\n' {
@@ -120,8 +120,8 @@ func (l *Lexer) readChar() {
 	} else {
 		l.column++
 	}
-	if l.kaymalar != nil {
-		l.kaymaUygula()
+	if l.shifts != nil {
+		l.applyShift()
 	}
 }
 
@@ -142,9 +142,9 @@ func (l *Lexer) peekCharN(n int) rune {
 
 // NextToken reads the next token; when recording is on (StartRecording) it adds the token
 // with its source range to the root's record.
-func (l *Lexer) NextToken() (sonuc Token) {
-	if l.kok.kayit != nil {
-		defer func() { l.kaydet(sonuc) }()
+func (l *Lexer) NextToken() (result Token) {
+	if l.root.rec != nil {
+		defer func() { l.record(result) }()
 	}
 	l.skipWhitespaceAndComments()
 	l.tokenStart = l.position
@@ -291,17 +291,17 @@ func (l *Lexer) NextToken() (sonuc Token) {
 		return Token{Type: TOKEN_STRING, Literal: l.readRawString(line, col), Line: line, Column: col}
 	case 0:
 		if l.position < len(l.input) {
-			return l.nulKarakteri(line, col)
+			return l.nulChar(line, col)
 		}
 		return Token{Type: TOKEN_EOF, Literal: "", Line: line, Column: col}
 	case '$':
 		if isLetter(l.peekChar()) {
-			return l.kacisliAd(line, col)
+			return l.escapedName(line, col)
 		}
 		tok = Token{Type: TOKEN_ILLEGAL, Literal: string(l.ch), Line: line, Column: col}
 	default:
 		if isLetter(l.ch) {
-			return l.adSozcugu(l.readIdentifier(), line, col)
+			return l.nameToken(l.readIdentifier(), line, col)
 		} else if isDigit(l.ch) {
 			lit, isFloat := l.readNumber()
 			if isFloat {
@@ -315,49 +315,6 @@ func (l *Lexer) NextToken() (sonuc Token) {
 
 	l.readChar()
 	return tok
-}
-
-func (l *Lexer) skipWhitespaceAndComments() {
-	for {
-		// Boşluk karakterlerini atla
-		for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
-			l.readChar()
-		}
-		// '#' yorum değildir (her işin tek yazımı: satır yorumu yalnızca '//'). Başka
-		// dillerden alışkanlıkla yazılmış olabileceği için açık bir hata verilir; satırın
-		// geri kalanı atlanır ki ardından gelen sözcükler ikinci bir hata üretmesin.
-		if l.ch == '#' {
-			l.addError(l.line, l.column, "'#' TR'de yorum değil; yorum için '//' yazın")
-			for l.ch != '\n' && l.ch != 0 {
-				l.readChar()
-			}
-			continue
-		}
-		// '//' ile başlayan C/Go tarzı yorum satırı
-		if l.ch == '/' && l.peekChar() == '/' {
-			for l.ch != '\n' && l.ch != 0 {
-				l.readChar()
-			}
-			continue
-		}
-		// '/* ... */' çok satırlı yorum
-		if l.ch == '/' && l.peekChar() == '*' {
-			startLine, startCol := l.line, l.column
-			l.readChar()
-			l.readChar()
-			for !(l.ch == '*' && l.peekChar() == '/') && l.ch != 0 {
-				l.readChar()
-			}
-			if l.ch != 0 {
-				l.readChar()
-				l.readChar()
-			} else {
-				l.addError(startLine, startCol, "kapatılmamış yorum: '/*' ile başlayan yorum dosya sonuna kadar '*/' ile kapanmadı")
-			}
-			continue
-		}
-		break
-	}
 }
 
 func (l *Lexer) readIdentifier() string {
@@ -394,13 +351,13 @@ func (l *Lexer) readNumber() (string, bool) {
 
 	// Bilimsel yazım: 1e-5, 3.2E+4, 2e10 (üsten sonra en az bir rakam gelmelidir)
 	if l.ch == 'e' || l.ch == 'E' {
-		sonraki := l.peekChar()
-		isaretli := (sonraki == '+' || sonraki == '-') && isDigit(l.peekCharN(2))
-		if isDigit(sonraki) || isaretli {
+		next := l.peekChar()
+		marked := (next == '+' || next == '-') && isDigit(l.peekCharN(2))
+		if isDigit(next) || marked {
 			isFloat = true
 			sb.WriteRune(l.ch)
 			l.readChar()
-			if isaretli {
+			if marked {
 				sb.WriteRune(l.ch)
 				l.readChar()
 			}
@@ -414,75 +371,6 @@ func (l *Lexer) readNumber() (string, bool) {
 	}
 
 	return sb.String(), isFloat
-}
-
-// readString bir metin sabitini okur. Metin içindeki '{ifade}' bölümleri
-// (interpolasyon) ayrıştırıcıya olduğu gibi aktarılır; bu bölümlerin içinde
-// tırnaklı alt metinler bulunabilir ("{p['ad']}"). Bir interpolasyon aynı satırda
-// kapanmalıdır; kapanmazsa veya metnin kapanış tırnağı hiç gelmezse açık bir
-// hata kaydedilir. Düz süslü parantez için '\{' ve '\}' kullanılır.
-func (l *Lexer) readString(quote rune, startLine, startCol int) string {
-	var sb strings.Builder
-	l.readChar() // açılış tırnağını geç
-	// Değerdeki her karakterin kaynaktaki konumu biriktirilir; metin bir yerleştirme
-	// içeriyorsa ayrıştırıcı ifadenin konumunu buradan okur (interpolation.go).
-	l.metinTampon, l.yerTampon = l.metinTampon[:0], l.yerTampon[:0]
-	yerlestirmeli := false
-	defer func() {
-		if yerlestirmeli {
-			l.metinKonumlariniSakla(startLine, startCol)
-		}
-	}()
-	braceDepth := 0
-	braceLine, braceCol := 0, 0
-	var inner rune // interpolasyon içindeki alt metnin tırnağı (0 = alt metin yok)
-
-	for {
-		if l.ch == 0 || (braceDepth > 0 && l.ch == '\n') {
-			if braceDepth > 0 {
-				l.addError(braceLine, braceCol, "metin içindeki '{' kapatılmamış (interpolasyon aynı satırda '}' ile bitmeli; düz süslü parantez için '\\{' yazın)")
-			} else {
-				l.addError(startLine, startCol, "kapatılmamış metin: %c ile başlayan metin dosya sonuna kadar kapanmadı", quote)
-			}
-			return sb.String()
-		}
-
-		if l.ch == '\\' {
-			l.kacisOku(&sb)
-			continue
-		}
-
-		if inner != 0 {
-			if l.ch == inner {
-				inner = 0
-			}
-		} else if braceDepth > 0 && (l.ch == '"' || l.ch == '\'') {
-			inner = l.ch
-		} else if l.ch == '{' {
-			if braceDepth == 0 {
-				braceLine, braceCol = l.line, l.column
-				l.yerTampon = append(l.yerTampon, [2]int{len(l.metinTampon), -1})
-			}
-			braceDepth++
-			yerlestirmeli = true
-		} else if l.ch == '}' && braceDepth > 0 {
-			if braceDepth--; braceDepth == 0 {
-				l.yerTampon[len(l.yerTampon)-1][1] = len(l.metinTampon)
-			}
-		} else if l.ch == quote && braceDepth == 0 {
-			l.readChar() // kapanış tırnağını geç
-			return sb.String()
-		}
-
-		// Çok satırlı metinde satır sonu kaynağın biçiminden bağımsız olarak '\n'dir:
-		// CRLF'li dosyada metnin değerine '\r' girmez (yalnızca \r kaçışıyla yazılır).
-		if l.ch == '\r' && l.peekChar() == '\n' {
-			l.readChar()
-			continue
-		}
-		l.metinYaz(&sb, l.ch, l.position)
-		l.readChar()
-	}
 }
 
 func isLetter(ch rune) bool {

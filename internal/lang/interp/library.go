@@ -22,64 +22,64 @@ const LibraryPrefix = "tr/"
 
 // kitaplikDosyalari dilin gömülü kitaplığıdır; komut satırı (cmd/tr) KitaplikBagla ile bağlar.
 // Yorumlayıcı kitaplık paketini içe aktarmaz (katman kuralı, docs/mimari.md).
-var kitaplikDosyalari fs.FS
+var libraryFiles fs.FS
 
 // SetLibrary installs the language's library written in TR (the embedded files of the lib
 // package). Call it once before the program starts; nil removes the library.
-func SetLibrary(f fs.FS) { kitaplikDosyalari = f }
+func SetLibrary(f fs.FS) { libraryFiles = f }
 
 // LibraryModule, when the path points into the language's library (tr/ prefix), returns the
 // module's name relative to the library root with the ".tr" extension: "tr/katman" →
 // "katman.tr". A backslash also counts as a separator.
-func LibraryModule(yol string) (ad string, ok bool) {
-	y := strings.ReplaceAll(yol, `\`, "/")
+func LibraryModule(filePath string) (name string, ok bool) {
+	y := strings.ReplaceAll(filePath, `\`, "/")
 	if !strings.HasPrefix(y, LibraryPrefix) {
 		return "", false
 	}
-	ad = strings.TrimPrefix(y, LibraryPrefix)
-	if !strings.HasSuffix(ad, ".tr") {
-		ad += ".tr"
+	name = strings.TrimPrefix(y, LibraryPrefix)
+	if !strings.HasSuffix(name, ".tr") {
+		name += ".tr"
 	}
-	return ad, true
+	return name, true
 }
 
 // ReadLibrary reads the source of a library module. If the module does not exist the error
 // lists the library's modules and, if any, the closest name. Test files (*_test.tr) are not
 // modules.
-func ReadLibrary(ad string) ([]byte, error) {
-	if kitaplikDosyalari == nil {
+func ReadLibrary(name string) ([]byte, error) {
+	if libraryFiles == nil {
 		return nil, errors.New("dilin kitaplığı bu programa bağlı değil")
 	}
-	gecerli := fs.ValidPath(ad) && pathpkg.Clean(ad) == ad && !strings.HasSuffix(ad, "_test.tr")
-	if gecerli {
-		if veri, err := fs.ReadFile(kitaplikDosyalari, ad); err == nil {
-			return veri, nil
+	valid := fs.ValidPath(name) && pathpkg.Clean(name) == name && !strings.HasSuffix(name, "_test.tr")
+	if valid {
+		if payload, err := fs.ReadFile(libraryFiles, name); err == nil {
+			return payload, nil
 		}
 	}
-	moduller := LibraryModules()
-	aranan := LibraryPrefix + strings.TrimSuffix(ad, ".tr")
-	mesaj := fmt.Sprintf("%q dilin kitaplığında yok; kitaplıktaki modüller: %s", aranan, strings.Join(moduller, ", "))
-	if oneri := turkish.Closest(aranan, moduller); oneri != "" {
-		mesaj += fmt.Sprintf(". Bunu mu demek istediniz: %q?", oneri)
+	modules := LibraryModules()
+	wanted := LibraryPrefix + strings.TrimSuffix(name, ".tr")
+	message := fmt.Sprintf("%q dilin kitaplığında yok; kitaplıktaki modüller: %s", wanted, strings.Join(modules, ", "))
+	if suggestion := turkish.Closest(wanted, modules); suggestion != "" {
+		message += fmt.Sprintf(". Bunu mu demek istediniz: %q?", suggestion)
 	}
-	return nil, errors.New(mesaj)
+	return nil, errors.New(message)
 }
 
 // LibraryModules returns the 'aktar' paths of the library's modules ("tr/katman", ...),
 // sorted.
 func LibraryModules() []string {
-	if kitaplikDosyalari == nil {
+	if libraryFiles == nil {
 		return nil
 	}
-	var adlar []string
-	fs.WalkDir(kitaplikDosyalari, ".", func(yol string, d fs.DirEntry, err error) error {
-		if err == nil && !d.IsDir() && strings.HasSuffix(yol, ".tr") && !strings.HasSuffix(yol, "_test.tr") {
-			adlar = append(adlar, LibraryPrefix+strings.TrimSuffix(yol, ".tr"))
+	var nameList []string
+	fs.WalkDir(libraryFiles, ".", func(filePath string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && strings.HasSuffix(filePath, ".tr") && !strings.HasSuffix(filePath, "_test.tr") {
+			nameList = append(nameList, LibraryPrefix+strings.TrimSuffix(filePath, ".tr"))
 		}
 		return nil
 	})
-	sort.Strings(adlar)
-	return adlar
+	sort.Strings(nameList)
+	return nameList
 }
 
 // ResolveModulePath is the SINGLE rule for a relative 'aktar' path (11.1): the path is tried
@@ -90,41 +90,41 @@ func LibraryModules() []string {
 // must not load a same-named file from the working directory instead of the one next to it.
 // Absolute paths are tried as is. The interpreter, 'tr derle' and 'tr kontrol' use this
 // function. bakilanlar are the places tried, for the error message.
-func ResolveModulePath(yol string, klasorler []string) (cozulen string, bakilanlar []string, ok bool) {
-	if filepath.IsAbs(yol) {
-		_, err := os.Stat(yol)
-		return yol, []string{yol}, err == nil
+func ResolveModulePath(filePath string, dirs []string) (resolved string, searched []string, ok bool) {
+	if filepath.IsAbs(filePath) {
+		_, err := os.Stat(filePath)
+		return filePath, []string{filePath}, err == nil
 	}
-	if len(klasorler) == 0 {
-		klasorler = []string{"."}
+	if len(dirs) == 0 {
+		dirs = []string{"."}
 	}
-	var adaylar []string
-	for _, k := range klasorler {
-		aday := filepath.Join(k, yol)
-		mutlak := mutlakYol(aday)
-		if slices.Contains(bakilanlar, mutlak) {
+	var candidates []string
+	for _, k := range dirs {
+		candidate := filepath.Join(k, filePath)
+		absolute := absPath(candidate)
+		if slices.Contains(searched, absolute) {
 			continue
 		}
-		adaylar = append(adaylar, aday)
-		bakilanlar = append(bakilanlar, mutlak)
+		candidates = append(candidates, candidate)
+		searched = append(searched, absolute)
 	}
-	for _, aday := range adaylar {
-		if bilgi, err := os.Stat(aday); err == nil && !bilgi.IsDir() {
-			return aday, bakilanlar, true
+	for _, candidate := range candidates {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return candidate, searched, true
 		}
 	}
-	return adaylar[0], bakilanlar, false
+	return candidates[0], searched, false
 }
 
 // FileDirs returns the directories of file paths; empty sources and those named "<...>" (with
 // no file) are skipped. It builds the directory list for ResolveModulePath from the importing
 // and program files.
-func FileDirs(dosyalar ...string) []string {
-	var klasorler []string
-	for _, d := range dosyalar {
+func FileDirs(files ...string) []string {
+	var dirs []string
+	for _, d := range files {
 		if d != "" && !strings.HasPrefix(d, "<") {
-			klasorler = append(klasorler, filepath.Dir(d))
+			dirs = append(dirs, filepath.Dir(d))
 		}
 	}
-	return klasorler
+	return dirs
 }

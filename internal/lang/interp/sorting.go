@@ -12,11 +12,11 @@ import (
 // başka bir tip ya da sayı ile metin karışımı karşılaştırılamaz ve hata verir. Sayılar
 // tam olarak karşılaştırılır (iki Tam int64 olarak; Tam ile Ondalık Ondalığa yuvarlanmadan),
 // NaN'lar sona konur. Metinler karakter kodu sırasıyla dizilir. ad hata mesajındaki adıdır.
-func siralaDegerler(ad string, d []Value) error {
+func sortValues(name string, d []Value) error {
 	if len(d) < 2 {
-		if len(d) == 1 && !sayiMi(d[0]) {
-			if _, metin := d[0].(*StringVal); !metin {
-				return siralamaTipHatasi(ad, d[0], nil)
+		if len(d) == 1 && !isNumber(d[0]) {
+			if _, text := d[0].(*StringVal); !text {
+				return sortTypeError(name, d[0], nil)
 			}
 		}
 		return nil
@@ -24,39 +24,39 @@ func siralaDegerler(ad string, d []Value) error {
 	switch d[0].(type) {
 	case *IntVal, *FloatVal:
 		// Hızlı yol: hepsi Tam (en sık durum: anahtarlar bir kez çıkarılır)
-		tamlar := true
+		ints := true
 		for _, x := range d {
 			switch x.(type) {
 			case *IntVal:
 			case *FloatVal:
-				tamlar = false
+				ints = false
 			default:
-				return siralamaTipHatasi(ad, d[0], x)
+				return sortTypeError(name, d[0], x)
 			}
 		}
-		if tamlar {
-			type anahtarli struct {
+		if ints {
+			type keyed struct {
 				k int64
 				v Value
 			}
-			cift := make([]anahtarli, len(d))
+			pair := make([]keyed, len(d))
 			for i, x := range d {
-				cift[i] = anahtarli{x.(*IntVal).Val, x}
+				pair[i] = keyed{x.(*IntVal).Val, x}
 			}
 			// Eşit Tam'lar ayırt edilemez; kararsız sıralama aynı sonucu verir.
-			slices.SortFunc(cift, func(a, b anahtarli) int { return cmp.Compare(a.k, b.k) })
-			for i := range cift {
-				d[i] = cift[i].v
+			slices.SortFunc(pair, func(a, b keyed) int { return cmp.Compare(a.k, b.k) })
+			for i := range pair {
+				d[i] = pair[i].v
 			}
 			return nil
 		}
 		slices.SortStableFunc(d, func(a, b Value) int {
-			c, ok := sayiKarsilastir(a, b)
+			c, ok := compareNumbers(a, b)
 			if ok {
 				return c
 			}
 			// NaN'lar sona (kendi aralarında eşit)
-			an, bn := nanMi(a), nanMi(b)
+			an, bn := isNaN(a), isNaN(b)
 			switch {
 			case an && bn:
 				return 0
@@ -69,25 +69,25 @@ func siralaDegerler(ad string, d []Value) error {
 	case *StringVal:
 		for _, x := range d {
 			if _, ok := x.(*StringVal); !ok {
-				return siralamaTipHatasi(ad, d[0], x)
+				return sortTypeError(name, d[0], x)
 			}
 		}
 		slices.SortStableFunc(d, func(a, b Value) int { return cmp.Compare(a.(*StringVal).Val, b.(*StringVal).Val) })
 		return nil
 	}
-	return siralamaTipHatasi(ad, d[0], nil)
+	return sortTypeError(name, d[0], nil)
 }
 
-func nanMi(v Value) bool {
+func isNaN(v Value) bool {
 	f, ok := v.(*FloatVal)
 	return ok && math.IsNaN(f.Val)
 }
 
 // siralamaTipHatasi sıralanamayan bir listenin hatasıdır: ilk elemanın tipi sıralanamıyorsa
 // (b nil) ya da iki elemanın tipleri birbiriyle karşılaştırılamıyorsa.
-func siralamaTipHatasi(ad string, a, b Value) error {
+func sortTypeError(name string, a, b Value) error {
 	if b == nil {
-		return fmt.Errorf("%s: %s sıralanamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır", ad, TypeAndSummary(a))
+		return fmt.Errorf("%s: %s sıralanamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır", name, TypeAndSummary(a))
 	}
-	return fmt.Errorf("%s: %s ile %s karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır", ad, TypeAndSummary(a), TypeAndSummary(b))
+	return fmt.Errorf("%s: %s ile %s karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır", name, TypeAndSummary(a), TypeAndSummary(b))
 }

@@ -7,22 +7,22 @@ import "sort"
 // can add those) in name order. TR code cannot assign to a field outside the definition (7.5).
 // Engines (e.g. the builtin that collects parameters) walk objects in this order; it does not
 // depend on map iteration order.
-func (si *StructInstanceVal) EachField(fn func(ad string, deger Value)) {
-	tanimli := make(map[string]bool, len(si.Def.Fields))
+func (si *StructInstanceVal) EachField(fn func(name string, value Value)) {
+	defined := make(map[string]bool, len(si.Def.Fields))
 	for _, f := range si.Def.Fields {
-		tanimli[f.Name] = true
+		defined[f.Name] = true
 		if v, ok := si.Fields[f.Name]; ok {
 			fn(f.Name, v)
 		}
 	}
-	var ek []string
-	for ad := range si.Fields {
-		if !tanimli[ad] {
-			ek = append(ek, ad)
+	var extra []string
+	for name := range si.Fields {
+		if !defined[name] {
+			extra = append(extra, name)
 		}
 	}
-	sort.Strings(ek)
-	for _, ad := range ek {
-		fn(ad, si.Fields[ad])
+	sort.Strings(extra)
+	for _, name := range extra {
+		fn(name, si.Fields[name])
 	}
 }

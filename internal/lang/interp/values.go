@@ -2,11 +2,12 @@ package interp
 
 import (
 	"fmt"
-	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
 // ValueType is the type name of a value (tip() result, error messages). The names are in the
@@ -115,7 +116,7 @@ type ListVal struct {
 }
 
 func (l *ListVal) Type() ValueType { return VAL_LIST }
-func (l *ListVal) Inspect() string { return kapYaz(l, nil) }
+func (l *ListVal) Inspect() string { return writeContainer(l, nil) }
 func (l *ListVal) IsTruthy() bool  { return len(l.Elements) > 0 }
 
 // DictVal is an ordered dict. String keys are stored as is in Pairs/Order (so Go-side accesses
@@ -145,21 +146,21 @@ func DictKey(v Value) string {
 	if s, ok := v.(*StringVal); ok {
 		return s.Val
 	}
-	if n, ok := tamAnahtarDegeri(v); ok {
+	if n, ok := intKeyValue(v); ok {
 		var b [32]byte
-		return string(tamAnahtar(b[:0], n))
+		return string(intKey(b[:0], n))
 	}
 	return nonStringKeyPrefix + string(v.Type()) + ":" + v.Inspect()
 }
 
 // tamAnahtarDegeri bir sayının Tam anahtar olarak değerini verir: Tam'ın kendisi ya da tam
 // değerli (kesirsiz, Tam aralığında) bir Ondalık.
-func tamAnahtarDegeri(v Value) (int64, bool) {
+func intKeyValue(v Value) (int64, bool) {
 	switch x := v.(type) {
 	case *IntVal:
 		return x.Val, true
 	case *FloatVal:
-		if x.Val == math.Trunc(x.Val) && x.Val >= -tamSiniri && x.Val < tamSiniri {
+		if x.Val == math.Trunc(x.Val) && x.Val >= -intLimit && x.Val < intLimit {
 			return int64(x.Val), true
 		}
 	}
@@ -177,7 +178,7 @@ func (d *DictVal) Set(key string, val Value) {
 
 // tamAnahtar bir Tam anahtarın iç kodlamasını (DictKey ile aynı) buf'a yazar; böylece
 // aramada ara metin ayrılmaz.
-func tamAnahtar(buf []byte, n int64) []byte {
+func intKey(buf []byte, n int64) []byte {
 	buf = append(buf, nonStringKeyPrefix+string(VAL_INT)+":"...)
 	return strconv.AppendInt(buf, n, 10)
 }
@@ -188,7 +189,7 @@ func (d *DictVal) SetValue(key Value, val Value) {
 		// Tam anahtar: tek ayırma ve tek harita işlemi; özgün anahtar yalnızca yeni girdide
 		// saklanır (aynı sayının her Tam değeri eşdeğerdir)
 		var b [32]byte
-		k := string(tamAnahtar(b[:0], iv.Val))
+		k := string(intKey(b[:0], iv.Val))
 		n := len(d.Pairs)
 		d.Pairs[k] = val
 		if len(d.Pairs) != n {
@@ -218,7 +219,7 @@ func (d *DictVal) SetValue(key Value, val Value) {
 func (d *DictVal) GetValue(key Value) (Value, bool) {
 	if iv, ok := key.(*IntVal); ok {
 		var b [32]byte
-		val, ok := d.Pairs[string(tamAnahtar(b[:0], iv.Val))] // dönüşüm ayırmaz
+		val, ok := d.Pairs[string(intKey(b[:0], iv.Val))] // dönüşüm ayırmaz
 		return val, ok
 	}
 	val, ok := d.Pairs[DictKey(key)]
@@ -242,7 +243,7 @@ func (d *DictVal) DisplayKey(k string) string {
 }
 
 func (d *DictVal) Type() ValueType { return VAL_DICT }
-func (d *DictVal) Inspect() string { return kapYaz(d, nil) }
+func (d *DictVal) Inspect() string { return writeContainer(d, nil) }
 func (d *DictVal) IsTruthy() bool  { return len(d.Pairs) > 0 }
 
 type RangeVal struct {
@@ -267,7 +268,7 @@ type FuncVal struct {
 	Env        *Environment
 	BoundSelf  Value
 	// kod fonksiyonun derlenmiş hâlidir (nil ise ilk çağrıda derlenir).
-	kod *fonkKodu
+	codeVal *funcCode
 }
 
 func (f *FuncVal) Type() ValueType { return VAL_FUNC }
@@ -304,11 +305,11 @@ type StructDefVal struct {
 	Methods map[string]*FuncVal
 	// alanKod alanların derlenmiş varsayılan değer ifadeleridir (Fields ile aynı sırada;
 	// varsayılanı olmayan alan için nil). nil dilimse varsayılanlar ilk kullanımda derlenir.
-	alanKod []ifadeKodu
+	fieldCode []exprCode
 	// alanOrtam varsayılanların değerlendirildiği ortamdır (yapının tanımlandığı ortam).
-	alanOrtam *Environment
+	fieldEnv *Environment
 	// tip nesnelerinin tip değeridir (tip(p) → Nokta; bkz. tipDegeri).
-	tip *TypeVal
+	typ *TypeVal
 }
 
 func (s *StructDefVal) Type() ValueType { return VAL_STRUCT }
@@ -321,7 +322,7 @@ type StructInstanceVal struct {
 }
 
 func (si *StructInstanceVal) Type() ValueType { return ValueType(si.Def.Name) }
-func (si *StructInstanceVal) Inspect() string { return kapYaz(si, nil) }
+func (si *StructInstanceVal) Inspect() string { return writeContainer(si, nil) }
 func (si *StructInstanceVal) IsTruthy() bool  { return true }
 
 // --- KÜÇÜK TAMSAYI ÖNBELLEĞİ ---
@@ -330,22 +331,22 @@ func (si *StructInstanceVal) IsTruthy() bool  { return true }
 // adına -128..1023 aralığındaki tamsayılar önceden oluşturulur. IntVal değişmezdir (hiçbir
 // yerde Val yerinde değiştirilmez); bu yüzden aynı nesne güvenle paylaşılabilir.
 const (
-	kucukIntEnAz  = -128
-	kucukIntEnCok = 1023
+	smallIntMin = -128
+	smallIntMax = 1023
 )
 
-var kucukIntler = func() [kucukIntEnCok - kucukIntEnAz + 1]*IntVal {
-	var t [kucukIntEnCok - kucukIntEnAz + 1]*IntVal
+var smallInts = func() [smallIntMax - smallIntMin + 1]*IntVal {
+	var t [smallIntMax - smallIntMin + 1]*IntVal
 	for i := range t {
-		t[i] = &IntVal{Val: int64(i + kucukIntEnAz)}
+		t[i] = &IntVal{Val: int64(i + smallIntMin)}
 	}
 	return t
 }()
 
 // NewInt returns an integer value; small values come from a cache.
 func NewInt(n int64) *IntVal {
-	if n >= kucukIntEnAz && n <= kucukIntEnCok {
-		return kucukIntler[n-kucukIntEnAz]
+	if n >= smallIntMin && n <= smallIntMax {
+		return smallInts[n-smallIntMin]
 	}
 	return &IntVal{Val: n}
 }

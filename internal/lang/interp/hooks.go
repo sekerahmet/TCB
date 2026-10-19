@@ -15,7 +15,7 @@ import (
 // Equaler gives a value its own equality rule for '==' and '!='. Values that do not implement
 // it are compared by type and displayed text.
 type Equaler interface {
-	Equal(diger Value) bool
+	Equal(other Value) bool
 }
 
 // OperatorHook provides binary operators ('+', '-', '*', '/', '@', '**', '%', '<', '>', '<=',
@@ -25,14 +25,14 @@ type Equaler interface {
 // VM produces the generic error; a value that wants a clearer error returns ok=true with an
 // error. '==' and '!=' do not go through this hook (see Equaler).
 type OperatorHook interface {
-	Operator(op string, diger Value, sagda bool) (sonuc Value, ok bool, err error)
+	Operator(op string, other Value, onRight bool) (outcome Value, ok bool, err error)
 }
 
 // TaskOperatorHook is the form of OperatorHook that also receives the task doing the operation
 // (the VM view). Operators whose result depends on task-specific state (e.g. tensor '@' inside
 // a karışık_hassasiyet block) implement it; for such values it is called instead of Operator.
 type TaskOperatorHook interface {
-	TaskOperator(v *VM, op string, diger Value, sagda bool) (sonuc Value, ok bool, err error)
+	TaskOperator(v *VM, op string, other Value, onRight bool) (outcome Value, ok bool, err error)
 }
 
 // Negatable provides unary minus ('-x').
@@ -51,7 +51,7 @@ type Indexable interface {
 // ('x[i] += 1') the VM first reads the current value with Index, applies the operation, and
 // writes the result with SetIndex.
 type IndexAssignable interface {
-	SetIndex(idx Value, deger Value) error
+	SetIndex(idx Value, value Value) error
 }
 
 // MemberAssignable provides the assignment 'object.member = value' (e.g. an optimizer's
@@ -61,7 +61,7 @@ type IndexAssignable interface {
 // operation, and writes the result with SetMember. An unassignable member or an unsuitable
 // value is an error (the VM adds the line).
 type MemberAssignable interface {
-	SetMember(kd codes.Code, ad string, deger Value) error
+	SetMember(kd codes.Code, name string, value Value) error
 }
 
 // Iterable provides the items to visit for 'döngü x içinde value', 'döngü i, x içinde value'
@@ -81,7 +81,7 @@ type Iterable interface {
 // items). If Next will wait long (disk, network) it releases the interpreter lock with
 // v.Blocking. A value that is both Iterable and Stream is used as Iterable.
 type Stream interface {
-	Next(v *VM) (deger Value, devam bool, err error)
+	Next(v *VM) (value Value, cont bool, err error)
 }
 
 // PlainValuer returns the plain TR value that stands in for a value when it is written to
@@ -104,38 +104,38 @@ func (h *LineError) Unwrap() error { return h.Err }
 
 // satirliMi hata zaten satır bilgisi taşıyor mu? Tipli hata önceliklidir; VM'nin metinle
 // ürettiği "Satır N: ..." hataları için metin öneki yedek olarak denetlenir.
-func satirliMi(err error) bool {
+func hasLine(err error) bool {
 	var sh *LineError
 	var mh *ModuleError
 	return errors.As(err, &sh) || errors.As(err, &mh) || strings.HasPrefix(err.Error(), "Satır ")
 }
 
 // satirEki hatayı (satır bilgisi yoksa) "Satır N: " önekli bir SatirliHata'ya çevirir.
-func satirEki(line int, err error) error {
-	if err == nil || line <= 0 || satirliMi(err) {
+func lineSuffix(line int, err error) error {
+	if err == nil || line <= 0 || hasLine(err) {
 		return err
 	}
 	return &LineError{Line: line, Err: err}
 }
 
 // kancaIslec ikili işlemi (varsa) değerlerin işleç kancalarıyla yapar.
-func (v *VM) kancaIslec(op string, left, right Value, line int) (Value, bool, error) {
+func (v *VM) hookOperator(op string, left, right Value, line int) (Value, bool, error) {
 	if k, ok := left.(TaskOperatorHook); ok {
 		if val, ok, err := k.TaskOperator(v, op, right, false); ok {
-			return val, true, satirEki(line, err)
+			return val, true, lineSuffix(line, err)
 		}
 	} else if k, ok := left.(OperatorHook); ok {
 		if val, ok, err := k.Operator(op, right, false); ok {
-			return val, true, satirEki(line, err)
+			return val, true, lineSuffix(line, err)
 		}
 	}
 	if k, ok := right.(TaskOperatorHook); ok {
 		if val, ok, err := k.TaskOperator(v, op, left, true); ok {
-			return val, true, satirEki(line, err)
+			return val, true, lineSuffix(line, err)
 		}
 	} else if k, ok := right.(OperatorHook); ok {
 		if val, ok, err := k.Operator(op, left, true); ok {
-			return val, true, satirEki(line, err)
+			return val, true, lineSuffix(line, err)
 		}
 	}
 	return nil, false, nil

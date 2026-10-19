@@ -5,7 +5,7 @@ import "testing"
 // Yerleştirmenin aralığını sözcük çözümleyici bulur: içindeki tırnaklı metinlerde süslü
 // parantez sayılmaz (2.7). Eskiden ayrıştırıcı süslü parantezleri ayrıca sayıyordu; tırnaklı
 // metindeki '}' yerleştirmeyi erken kapatıyor, '{' ise metni sessizce boş metne çeviriyordu.
-func TestYerlestirmedekiTirnakliMetin(t *testing.T) {
+func TestQuotedStringInInterpolation(t *testing.T) {
 	if errs := parseErrors(`yazdır("x {"a}b"} y")`); len(errs) != 0 {
 		t.Errorf("tırnaklı metindeki '}' yerleştirmeyi kapatmamalı: %v", errs)
 	}
@@ -15,10 +15,10 @@ func TestYerlestirmedekiTirnakliMetin(t *testing.T) {
 }
 
 // Üye adı bir ad olmalıdır: başka bir sözcük sessizce üye adı sayılmaz.
-func TestUyeAdiBirAdOlmali(t *testing.T) {
-	for _, kod := range []string{"x.1", "x.$", "x?.eğer"} {
-		if errs := parseErrors("değişken x = 1\n" + kod); len(errs) == 0 {
-			t.Errorf("%s hata vermeli", kod)
+func TestMemberNameMustBeName(t *testing.T) {
+	for _, codeVal := range []string{"x.1", "x.$", "x?.eğer"} {
+		if errs := parseErrors("değişken x = 1\n" + codeVal); len(errs) == 0 {
+			t.Errorf("%s hata vermeli", codeVal)
 		}
 	}
 }

@@ -17,36 +17,36 @@ import (
 
 // metinYaz metnin değerine bir karakter yazar ve karakterin kaynaktaki konumunu biriktirir
 // (kaynak, bu çözümleyicinin girdisindeki indekstir).
-func (l *Lexer) metinYaz(sb *strings.Builder, r rune, kaynak int) {
+func (l *Lexer) appendString(sb *strings.Builder, r rune, source int) {
 	sb.WriteRune(r)
-	l.metinTampon = append(l.metinTampon, l.kaynakKonumu(kaynak))
+	l.strBuf = append(l.strBuf, l.sourcePos(source))
 }
 
 // metinBilgisi yerleştirme içeren bir metin sabitinin bilgisidir: değerdeki her karakterin
 // kökün girdisindeki konumu ve yerleştirmelerin değerdeki aralıkları ('{' ve onu kapatan '}'
 // indeksleri; kapanmayanda son -1). Aralıkları sözcük çözümleyici metni okurken çıkarır;
 // ayrıştırıcı ve kodlu biçimin ön taraması aynı aralıkları kullanır.
-type metinBilgisi struct {
-	konum  []int32
-	yerler [][2]int
+type stringInfo struct {
+	srcPos    []int32
+	positions [][2]int
 }
 
 // metinKonumlariniSakla okunan metnin bilgisini kökte, metnin satır ve sütunuyla saklar.
-func (l *Lexer) metinKonumlariniSakla(satir, sutun int) {
-	k := l.kok
-	if k.metinler == nil {
-		k.metinler = map[[2]int]*metinBilgisi{}
+func (l *Lexer) saveStringPositions(lineNo, colNo int) {
+	k := l.root
+	if k.stringInfos == nil {
+		k.stringInfos = map[[2]int]*stringInfo{}
 	}
-	k.metinler[[2]int{satir, sutun}] = &metinBilgisi{
-		konum:  append([]int32(nil), l.metinTampon...),
-		yerler: append([][2]int(nil), l.yerTampon...),
+	k.stringInfos[[2]int{lineNo, colNo}] = &stringInfo{
+		srcPos:    append([]int32(nil), l.strBuf...),
+		positions: append([][2]int(nil), l.posBuf...),
 	}
 }
 
 // metinHaritasi metin sabitinin karakter konumlarıdır (yoksa nil).
-func (l *Lexer) metinHaritasi(metin Token) []int32 {
-	if b := l.kok.metinler[[2]int{metin.Line, metin.Column}]; b != nil {
-		return b.konum
+func (l *Lexer) stringMap(text Token) []int32 {
+	if b := l.root.stringInfos[[2]int{text.Line, text.Column}]; b != nil {
+		return b.srcPos
 	}
 	return nil
 }
@@ -54,15 +54,15 @@ func (l *Lexer) metinHaritasi(metin Token) []int32 {
 // Interpolations returns the ranges of the interpolations in a string literal's value: the
 // index of '{' and of the matching '}'; for an unclosed interpolation (a lexer error) the
 // second is len(value).
-func (l *Lexer) Interpolations(metin Token) [][2]int {
-	b := l.kok.metinler[[2]int{metin.Line, metin.Column}]
+func (l *Lexer) Interpolations(text Token) [][2]int {
+	b := l.root.stringInfos[[2]int{text.Line, text.Column}]
 	if b == nil {
 		return nil
 	}
-	out := make([][2]int, len(b.yerler))
-	for i, y := range b.yerler {
+	out := make([][2]int, len(b.positions))
+	for i, y := range b.positions {
 		if y[1] < 0 {
-			y[1] = len(b.konum)
+			y[1] = len(b.srcPos)
 		}
 		out[i] = y
 	}
@@ -70,68 +70,68 @@ func (l *Lexer) Interpolations(metin Token) [][2]int {
 }
 
 // kaynakKonumu girdideki i. karakterin kökün girdisindeki indeksidir.
-func (l *Lexer) kaynakKonumu(i int) int32 {
-	if l.harita == nil {
+func (l *Lexer) sourcePos(i int) int32 {
+	if l.posMap == nil {
 		return int32(i)
 	}
-	if i < len(l.harita) {
-		return l.harita[i]
+	if i < len(l.posMap) {
+		return l.posMap[i]
 	}
-	if len(l.harita) == 0 {
+	if len(l.posMap) == 0 {
 		return 0
 	}
-	return l.harita[len(l.harita)-1] + 1
+	return l.posMap[len(l.posMap)-1] + 1
 }
 
 // satirSutun kökün girdisindeki bir indeksin satır ve sütunudur (1'den başlar; sütun karakter
 // sayar). Satır başları ilk istendiğinde bir kez çıkarılır.
-func (l *Lexer) satirSutun(i int) (int, int) {
-	if l.satirBaslari == nil {
-		l.satirBaslari = []int{0}
+func (l *Lexer) lineCol(i int) (int, int) {
+	if l.lineStarts == nil {
+		l.lineStarts = []int{0}
 		for j, r := range l.input {
 			if r == '\n' {
-				l.satirBaslari = append(l.satirBaslari, j+1)
+				l.lineStarts = append(l.lineStarts, j+1)
 			}
 		}
 	}
-	s := sort.SearchInts(l.satirBaslari, i+1) - 1
-	return s + 1, i - l.satirBaslari[s] + 1 + l.satirKaymasi(l.satirBaslari[s], i)
+	s := sort.SearchInts(l.lineStarts, i+1) - 1
+	return s + 1, i - l.lineStarts[s] + 1 + l.lineShift(l.lineStarts[s], i)
 }
 
 // Interpolation returns the sub-lexer for one '{expr}' part of a string literal. metin is the
 // literal's token, ifade the part's text, and bas the index of the expression's first
 // character in the string's value. The sub-lexer shares the root's coded mode, positions and
 // record.
-func (l *Lexer) Interpolation(metin Token, ifade string, bas int) *Lexer {
-	girdi := []rune(ifade)
-	harita := l.metinHaritasi(metin)
-	alt := &Lexer{input: girdi, kodlu: l.kodlu, kok: l.kok}
-	if harita != nil && bas >= 0 && bas+len(girdi) <= len(harita) {
-		alt.harita = harita[bas : bas+len(girdi) : bas+len(girdi)]
+func (l *Lexer) Interpolation(text Token, expr string, begin int) *Lexer {
+	src := []rune(expr)
+	posMap := l.stringMap(text)
+	sub := &Lexer{input: src, coded: l.coded, root: l.root}
+	if posMap != nil && begin >= 0 && begin+len(src) <= len(posMap) {
+		sub.posMap = posMap[begin : begin+len(src) : begin+len(src)]
 	} else {
 		// Haritası olmayan metin (başka bir çözümleyicinin sözcüğü): konum metnin başı sayılır.
-		alt.line, alt.column = metin.Line, metin.Column
+		sub.line, sub.column = text.Line, text.Column
 	}
-	alt.readChar()
-	return alt
+	sub.readChar()
+	return sub
 }
 
 // InterpolationExpr returns the expression of the interpolation in value[bas:son] (leading
 // and trailing spaces trimmed) and the index of its first character in the value.
-func InterpolationExpr(deger []rune, bas, son int) (string, int) {
-	ham := string(deger[bas:son])
-	ifade := strings.TrimSpace(ham)
-	return ifade, bas + len([]rune(ham)) - len([]rune(strings.TrimLeftFunc(ham, unicode.IsSpace)))
+func InterpolationExpr(value []rune, begin, end int) (string, int) {
+	ham := string(value[begin:end])
+	expr := strings.TrimSpace(ham)
+	return expr, begin + len([]rune(ham)) - len([]rune(strings.TrimLeftFunc(ham, unicode.IsSpace)))
 }
 
 // StringPos returns the line and column in the file of the i-th character of a string
 // literal's value; without a position map it returns the literal's own position.
-func (l *Lexer) StringPos(metin Token, i int) (int, int) {
-	harita := l.metinHaritasi(metin)
-	if i < 0 || i >= len(harita) {
-		return metin.Line, metin.Column
+func (l *Lexer) StringPos(text Token, i int) (int, int) {
+	posMap := l.stringMap(text)
+	if i < 0 || i >= len(posMap) {
+		return text.Line, text.Column
 	}
-	return l.kok.satirSutun(int(harita[i]))
+	return l.root.lineCol(int(posMap[i]))
 }
 
 // Record is a token and its character range [Start, End) in the root's input.
@@ -144,26 +144,26 @@ type Record struct {
 // interpolations included) with its source range; read them with Records. The coded-form
 // converter uses it; it is off during ordinary runs.
 func (l *Lexer) StartRecording() {
-	if l.kok.kayit == nil {
-		l.kok.kayit = new([]Record)
+	if l.root.rec == nil {
+		l.root.rec = new([]Record)
 	}
 }
 
 // Records returns the recorded tokens (in the order produced; the tokens of an
 // interpolation are added when the parser reads it).
 func (l *Lexer) Records() []Record {
-	if l.kok.kayit == nil {
+	if l.root.rec == nil {
 		return nil
 	}
-	return *l.kok.kayit
+	return *l.root.rec
 }
 
-func (l *Lexer) kaydet(tok Token) {
-	bas, son := l.LastRange()
-	kb := int(l.kaynakKonumu(bas))
+func (l *Lexer) record(tok Token) {
+	begin, end := l.LastRange()
+	kb := int(l.sourcePos(begin))
 	ks := kb
-	if son > bas {
-		ks = int(l.kaynakKonumu(son-1)) + 1
+	if end > begin {
+		ks = int(l.sourcePos(end-1)) + 1
 	}
-	*l.kok.kayit = append(*l.kok.kayit, Record{Token: tok, Start: kb, End: ks})
+	*l.root.rec = append(*l.root.rec, Record{Token: tok, Start: kb, End: ks})
 }

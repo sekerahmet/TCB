@@ -11,7 +11,7 @@ import (
 
 // Gömülü tr.json geçerli olmalı ve hatasız yüklenmeli (yinelenen kod, ad alanı içinde
 // Türkçe ya da ASCII biçimiyle çakışan ad, geçerli adla çakışan eski ad olmamalı).
-func TestTRYuklenir(t *testing.T) {
+func TestTRLoads(t *testing.T) {
 	if !json.Valid(trJSON) {
 		t.Fatal("tr.json geçerli JSON değil")
 	}
@@ -22,12 +22,12 @@ func TestTRYuklenir(t *testing.T) {
 
 // Dosya insanlar tarafından düzenlenir: kodlar artan sırada ve her girdi kendi satırında
 // olmalı.
-func TestTRSiraliVeSatirSatir(t *testing.T) {
+func TestTRSortedOnePerLine(t *testing.T) {
 	dec := json.NewDecoder(bytes.NewReader(trJSON))
 	if _, err := dec.Token(); err != nil {
 		t.Fatal(err)
 	}
-	var onceki Code
+	var prev Code
 	for dec.More() {
 		tk, err := dec.Token()
 		if err != nil {
@@ -37,42 +37,42 @@ func TestTRSiraliVeSatirSatir(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if k <= onceki {
-			t.Errorf("%s, %s'den sonra geliyor; kodlar artan sırada olmalı", k, onceki)
+		if k <= prev {
+			t.Errorf("%s, %s'den sonra geliyor; kodlar artan sırada olmalı", k, prev)
 		}
-		onceki = k
+		prev = k
 		var g json.RawMessage
 		if err := dec.Decode(&g); err != nil {
 			t.Fatal(err)
 		}
 	}
-	for i, satir := range strings.Split(strings.TrimSpace(string(trJSON)), "\n") {
-		s := strings.TrimSpace(satir)
+	for i, line := range strings.Split(strings.TrimSpace(string(trJSON)), "\n") {
+		s := strings.TrimSpace(line)
 		if s == "{" || s == "}" {
 			continue
 		}
-		if !strings.HasPrefix(satir, "  \"") || strings.Count(s, "\"ad\"") != 1 {
-			t.Errorf("satır %d: her girdi iki boşluk girintili tek satır olmalı: %s", i+1, satir)
+		if !strings.HasPrefix(line, "  \"") || strings.Count(s, "\"ad\"") != 1 {
+			t.Errorf("satır %d: her girdi iki boşluk girintili tek satır olmalı: %s", i+1, line)
 		}
 	}
 }
 
 // Farklı iki ad, ad alanları farklı olsa bile aynı ASCII biçime
 // düşmemeli: ASCII yazımdan Türkçe yazıma ipucu (Oneri) belirsiz olurdu.
-func TestASCIIBicimlerCakismaz(t *testing.T) {
-	type sahibi struct {
-		kod Code
-		ad  string
+func TestASCIIFormsDoNotClash(t *testing.T) {
+	type owners struct {
+		code Code
+		name string
 	}
-	sahip := map[string]sahibi{}
+	owner := map[string]owners{}
 	for _, k := range Codes() {
-		ad := Name(k)
-		a := turkish.ASCII(ad)
-		if o, ok := sahip[a]; ok && o.ad != ad {
-			t.Errorf("%s %q ile %s %q aynı ASCII biçime (%q) düşüyor", o.kod, o.ad, k, ad, a)
+		name := Name(k)
+		a := turkish.ASCII(name)
+		if o, ok := owner[a]; ok && o.name != name {
+			t.Errorf("%s %q ile %s %q aynı ASCII biçime (%q) düşüyor", o.code, o.name, k, name, a)
 			continue
 		}
-		sahip[a] = sahibi{k, ad}
+		owner[a] = owners{k, name}
 	}
 	// Ad alanı içinde ASCII biçim ile eski ad çakışması Yukle'de yakalanır (bkz.
 	// TestCakismalarYakalanir). Farklı ad alanları arasındaki çakışma bir hata değildir
@@ -81,13 +81,13 @@ func TestASCIIBicimlerCakismaz(t *testing.T) {
 	for _, k := range Codes() {
 		g, _ := Active().Entry(k)
 		for _, e := range g.Old {
-			yazimlar := []string{e}
+			spellings := []string{e}
 			if a := turkish.ASCII(e); a != e {
-				yazimlar = append(yazimlar, a)
+				spellings = append(spellings, a)
 			}
-			for _, y := range yazimlar {
-				if o, ok := sahip[turkish.ASCII(y)]; ok && (y == o.ad || y == turkish.ASCII(o.ad)) && o.kod.Namespace() != k.Namespace() {
-					t.Logf("bilgi: %s'in eski adı %q, başka ad alanındaki %s %q ile aynı yazılıyor", k, y, o.kod, o.ad)
+			for _, y := range spellings {
+				if o, ok := owner[turkish.ASCII(y)]; ok && (y == o.name || y == turkish.ASCII(o.name)) && o.code.Namespace() != k.Namespace() {
+					t.Logf("bilgi: %s'in eski adı %q, başka ad alanındaki %s %q ile aynı yazılıyor", k, y, o.code, o.name)
 				}
 			}
 		}
@@ -95,46 +95,46 @@ func TestASCIIBicimlerCakismaz(t *testing.T) {
 }
 
 // Bir ad alanı içinde her ad benzersizdir; anahtar kelimeler yerleşiklerle çakışmaz.
-func TestAdAlanlariBenzersiz(t *testing.T) {
-	for al := NamespaceGlobal; al < alanSayisi; al++ {
-		gorulen := map[string]Code{}
+func TestNamespacesUnique(t *testing.T) {
+	for ns := NamespaceGlobal; ns < namespaceCount; ns++ {
+		seen := map[string]Code{}
 		for _, k := range Codes() {
-			if k.Namespace() != al {
+			if k.Namespace() != ns {
 				continue
 			}
 			for _, y := range Spellings(k) {
-				if o, ok := gorulen[y]; ok {
-					t.Errorf("%s: %q hem %s hem %s", al, y, o, k)
+				if o, ok := seen[y]; ok {
+					t.Errorf("%s: %q hem %s hem %s", ns, y, o, k)
 				}
-				gorulen[y] = k
-				if b, ok := Find(al, y); !ok || b != k {
-					t.Errorf("Bul(%s, %q) = %s, %s bekleniyordu", al, y, b, k)
+				seen[y] = k
+				if b, ok := Find(ns, y); !ok || b != k {
+					t.Errorf("Bul(%s, %q) = %s, %s bekleniyordu", ns, y, b, k)
 				}
 			}
 		}
 	}
 }
 
-func TestAsilAdAlanda(t *testing.T) {
+func TestCanonicalNameIn(t *testing.T) {
 	for _, c := range []struct {
-		al        Namespace
-		ad, want  string
-		bulunmali bool
+		ns         Namespace
+		name, want string
+		mustExist  bool
 	}{
 		{NamespaceGlobal, "yazdir", "yazdır", true}, {NamespaceGlobal, "yazdır", "yazdır", true},
 		{NamespaceGlobal, "sonuc", "sonuç", true}, {NamespaceGlobal, "degisken", "değişken", true},
 		{NamespaceMember, "sekil", "şekil", true}, {NamespaceParam, "ogrenme_orani", "öğrenme_oranı", true},
 		{NamespaceMember, "tur", "tür", true}, {NamespaceGlobal, "tur", "", false}, {NamespaceGlobal, "tanimsiz_ad", "", false},
 	} {
-		if got, ok := CanonicalNameIn(c.al, c.ad); ok != c.bulunmali || got != c.want {
-			t.Errorf("AsilAdAlanda(%s, %q) = %q %v; %q %v bekleniyordu", c.al, c.ad, got, ok, c.want, c.bulunmali)
+		if got, ok := CanonicalNameIn(c.ns, c.name); ok != c.mustExist || got != c.want {
+			t.Errorf("AsilAdAlanda(%s, %q) = %q %v; %q %v bekleniyordu", c.ns, c.name, got, ok, c.want, c.mustExist)
 		}
 	}
 }
 
 // ASCII biçimler kabul edilmez (her işin tek yazımı); Oneri onlar için ve eski adlar için
 // her zaman Türkçe adı önerir, ASCII biçimi asla önermez.
-func TestASCIIKabulEdilmezOneriTurkce(t *testing.T) {
+func TestASCIINotAcceptedSuggestsTurkish(t *testing.T) {
 	if AcceptASCII {
 		t.Fatal("ASCII biçimler kapalı olmalı")
 	}
@@ -144,8 +144,8 @@ func TestASCIIKabulEdilmezOneriTurkce(t *testing.T) {
 		}
 	}
 	for _, c := range []struct {
-		al   Namespace
-		ad   string
+		ns   Namespace
+		name string
 		want string
 	}{
 		{NamespaceGlobal, "yazdir", "yazdır"}, {NamespaceGlobal, "degisken", "değişken"},
@@ -153,9 +153,9 @@ func TestASCIIKabulEdilmezOneriTurkce(t *testing.T) {
 		{NamespaceGlobal, "tur", "tip"}, {NamespaceMember, "tur", "tür"}, {NamespaceMember, "sekil", "şekil"},
 		{NamespaceGlobal, "en_buyuk", "maks"}, {NamespaceParam, "turev_izle", "türev_izle"},
 	} {
-		k, ok := Suggest(c.al, c.ad, nil)
+		k, ok := Suggest(c.ns, c.name, nil)
 		if !ok || Name(k) != c.want {
-			t.Errorf("Oneri(%s, %q) = %s %v; %q bekleniyordu", c.al, c.ad, k, ok, c.want)
+			t.Errorf("Oneri(%s, %q) = %s %v; %q bekleniyordu", c.ns, c.name, k, ok, c.want)
 		}
 	}
 	if _, ok := Suggest(NamespaceGlobal, "yazdır", nil); ok {
@@ -166,7 +166,7 @@ func TestASCIIKabulEdilmezOneriTurkce(t *testing.T) {
 	}
 }
 
-func TestKodBicimi(t *testing.T) {
+func TestIsCodeForm(t *testing.T) {
 	for _, c := range []struct {
 		k Code
 		s string
@@ -197,15 +197,15 @@ func TestKodBicimi(t *testing.T) {
 }
 
 // Eski adlar ve ASCII biçimleri: işlev → islev de eski sayılır ve ascii olarak işaretlenir.
-func TestEskiBul(t *testing.T) {
+func TestFindOld(t *testing.T) {
 	for _, c := range []struct {
-		ad    string
-		kod   Code
+		name  string
+		code  Code
 		ascii bool
 	}{{"işlev", A + 20, false}, {"islev", A + 20, true}, {"as", A + 100, false}, {"en_buyuk", G + 402, true}} {
-		k, a, ok := FindOld(NamespaceGlobal, c.ad, nil)
-		if !ok || k != c.kod || a != c.ascii {
-			t.Errorf("EskiBul(%q) = %s %v %v; %s %v bekleniyordu", c.ad, k, a, ok, c.kod, c.ascii)
+		k, a, ok := FindOld(NamespaceGlobal, c.name, nil)
+		if !ok || k != c.code || a != c.ascii {
+			t.Errorf("EskiBul(%q) = %s %v %v; %s %v bekleniyordu", c.name, k, a, ok, c.code, c.ascii)
 		}
 	}
 	if _, _, ok := FindOld(NamespaceGlobal, "işlev", func(k Code) bool { return k.IsBuiltin() }); ok {
@@ -217,7 +217,7 @@ func TestEskiBul(t *testing.T) {
 }
 
 // Yukle kod listesi hatalarını hangi kodların çakıştığını söyleyerek yakalar.
-func TestCakismalarYakalanir(t *testing.T) {
+func TestClashesCaught(t *testing.T) {
 	for _, c := range []struct{ json, want string }{
 		{`{"G100": {"ad": "a"}, "G100": {"ad": "b"}}`, "G100 iki kez"},
 		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "yazdır"}}`, "G100 \"yazdır\" ile G101"},
@@ -246,7 +246,7 @@ func TestCakismalarYakalanir(t *testing.T) {
 // 'kapat' ölü Y008'in eski adıydı; Y008'in adı kodun kendisi yapıldığından (17, ölü kodlar)
 // ad serbesttir ve Y012'ye verildi. Ad üyelerde yalnızca Y012'dir, hiçbir ölü kodun adı ya da
 // eski adı değildir; eski ad kalsaydı yükleme çakışmayı reddederdi.
-func TestKapatY012ileCakismaz(t *testing.T) {
+func TestKapatDoesNotClashWithY012(t *testing.T) {
 	if k, ok := Find(NamespaceMember, "kapat"); !ok || k != Y+12 {
 		t.Fatalf("üyelerde 'kapat' Y012 olmalı: %s %v", k, ok)
 	}
@@ -266,7 +266,7 @@ func TestKapatY012ileCakismaz(t *testing.T) {
 }
 
 // Her adın tek yazımı vardır: yalnızca Türkçe biçimi kabul edilir.
-func TestTekYazim(t *testing.T) {
+func TestSingleSpelling(t *testing.T) {
 	for _, k := range Codes() {
 		if y := Spellings(k); len(y) != 1 || y[0] != Name(k) {
 			t.Errorf("%s tek yazımlı olmalı (%q): %v", k, Name(k), y)
@@ -282,26 +282,26 @@ func TestTekYazim(t *testing.T) {
 
 // Kaldırılan eş yazımlar (eskiden kabul edilen ikinci adlar) artık eski adlardır: kabul
 // edilmezler, Oneri asıl adı önerir.
-func TestEsYazimlarKaldirildi(t *testing.T) {
+func TestAltSpellingsRemoved(t *testing.T) {
 	for _, c := range []struct {
-		kod   Code
-		yazim string
+		code     Code
+		spelling string
 	}{{Y + 403, "türev"}, {Y + 4, "kayıt_ekle"}, {T + 910, "öğrenme_hızı"}, {A + 200, "tamsayı"}, {A + 200, "int"}, {A + 201, "float"}, {A + 202, "string"},
 		{A + 203, "bool"}, {A + 204, "null"}, {A + 205, "dizi"}, {A + 206, "map"}, {A + 212, "matris"}} {
-		if k, ok := Find(c.kod.Namespace(), c.yazim); ok {
-			t.Errorf("%q kabul edilmemeli (%s)", c.yazim, k)
+		if k, ok := Find(c.code.Namespace(), c.spelling); ok {
+			t.Errorf("%q kabul edilmemeli (%s)", c.spelling, k)
 		}
-		if k, ok := Suggest(c.kod.Namespace(), c.yazim, nil); !ok || k != c.kod {
-			t.Errorf("Oneri(%q) = %s %v, %s bekleniyordu", c.yazim, k, ok, c.kod)
+		if k, ok := Suggest(c.code.Namespace(), c.spelling, nil); !ok || k != c.code {
+			t.Errorf("Oneri(%q) = %s %v, %s bekleniyordu", c.spelling, k, ok, c.code)
 		}
 	}
 	// Kaldırılan kodların adları ve eski adları öneri değil "kaldırıldı" bilgisi verir.
 	for _, c := range []struct {
-		al    Namespace
-		yazim string
+		ns       Namespace
+		spelling string
 	}{{NamespaceMember, "sorgula"}, {NamespaceMember, "sorgu"}, {NamespaceGlobal, "veritabanı"}, {NamespaceGlobal, "web_sunucu"}, {NamespaceParam, "params"}} {
-		if k, ok := FindDead(c.al, c.yazim); !ok || !Removed(k) {
-			t.Errorf("OluBul(%s, %q) = %s %v; kaldırılmış bir kod bekleniyordu", c.al, c.yazim, k, ok)
+		if k, ok := FindDead(c.ns, c.spelling); !ok || !Removed(k) {
+			t.Errorf("OluBul(%s, %q) = %s %v; kaldırılmış bir kod bekleniyordu", c.ns, c.spelling, k, ok)
 		}
 	}
 }
@@ -309,30 +309,39 @@ func TestEsYazimlarKaldirildi(t *testing.T) {
 // Her yazım dili hatasız yüklenir ve Türkçenin her canlı kodunu adlandırır (yeni bir kodun adı
 // her dil dosyasına eklenmelidir); ölü kodlar yalnızca Türkçede adlıdır (başka dillerde eski
 // kod hiç olmadı, 17.6).
-func TestYazimDilleriTamDir(t *testing.T) {
+func TestWritingLanguagesComplete(t *testing.T) {
 	if strings.Join(Languages(), ",") != "en,tr" {
 		t.Fatalf("diller: %v", Languages())
 	}
-	for _, kodu := range Languages() {
-		d, err := LoadLanguage(kodu)
+	for _, langCode := range Languages() {
+		d, err := LoadLanguage(langCode)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, k := range Active().Codes() {
 			if _, ok := d.Entry(k); !ok {
-				t.Errorf("%s dilinde %s (%s) adsız", kodu, k, Active().Name(k))
+				t.Errorf("%s dilinde %s (%s) adsız", langCode, k, Active().Name(k))
 			}
 		}
-		if kodu == "tr" {
+		if langCode == "tr" {
 			continue
 		}
 		for _, k := range Active().DeadCodes() {
 			if g, ok := d.Entry(k); ok {
-				t.Errorf("%s dilinde ölü kod %s adlı (%s)", kodu, k, g.Name)
+				t.Errorf("%s dilinde ölü kod %s adlı (%s)", langCode, k, g.Name)
 			}
 		}
 	}
 	if _, err := LoadLanguage("xx"); err == nil || !strings.Contains(err.Error(), "var olanlar: en, tr") {
 		t.Fatalf("bilinmeyen dil: %v", err)
+	}
+}
+
+// Sözlük program başlarken bir kez yüklenir; başlangıç süresine katkısı küçük kalmalı.
+func BenchmarkLoad(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		if _, err := Load("tr", trJSON); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

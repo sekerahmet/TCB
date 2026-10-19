@@ -3,6 +3,7 @@ package interp
 import (
 	"errors"
 	"fmt"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 )
 
@@ -10,73 +11,73 @@ import (
 
 // atamaHedefi bir atama hedefini derler; dönen işlev sağ taraf değerini hedefe yazar
 // (bileşik atamada önce mevcut değerle işlem yapar).
-func (c *derleyici) atamaHedefi(k *derleyiciKapsam, target ast.Expression, kod uint8, line int) func(v *VM, env *Environment, rhs Value) error {
-	bilesik := kod == opTopla || kod == opCikar || kod == opCarp || kod == opBol
+func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal uint8, line int) func(v *VM, env *Environment, rhs Value) error {
+	compound := codeVal == opAdd || codeVal == opSub || codeVal == opMul || codeVal == opDiv
 	switch t := target.(type) {
 	case *ast.Identifier:
-		r := k.coz(t.Value)
-		if r.tur == cozDinamik || r.tur == cozHenuzYok {
+		r := k.resolve(t.Value)
+		if r.kind == resolveDynamic || r.kind == resolveNotYet {
 			return func(v *VM, env *Environment, rhs Value) error {
-				return v.adlaAta(env, t, kod, rhs, line)
+				return v.assignByName(env, t, codeVal, rhs, line)
 			}
 		}
-		i := r.yuva
-		hizli := tamHizliIslev(kod)
-		opMetni := atamaIslecMetni(kod)
+		i := r.slot
+		fast := intFastFunc(codeVal)
+		opText := assignOpText(codeVal)
 		return func(v *VM, env *Environment, rhs Value) error {
-			o := yuvaOrtami(r, env)
+			o := slotEnv(r, env)
 			if i < len(o.vals) {
-				if cur := o.vals[i]; cur != nil && !o.sabitMi(i) {
-					if !bilesik {
+				if cur := o.vals[i]; cur != nil && !o.isConstant(i) {
+					if !compound {
 						o.vals[i] = rhs
 						return nil
 					}
 					if li, ok := cur.(*IntVal); ok {
 						if ri, ok := rhs.(*IntVal); ok {
-							if x, ok := hizli(li.Val, ri.Val); ok {
+							if x, ok := fast(li.Val, ri.Val); ok {
 								o.vals[i] = x
 								return nil
 							}
 						}
 					}
-					yeni, err := v.evalInfixKod(kod, opMetni, cur, rhs, line)
+					fresh, err := v.evalInfixKod(codeVal, opText, cur, rhs, line)
 					if err != nil {
 						return err
 					}
-					o.vals[i] = yeni
+					o.vals[i] = fresh
 					return nil
 				}
 			}
-			return v.adlaAta(env, t, kod, rhs, line)
+			return v.assignByName(env, t, codeVal, rhs, line)
 		}
 
 	case *ast.IndexExpression:
 		// A[i][j] = değer, A[i] okumasının sonucuna [j] ile atamadır (tensör satırı veriyi
 		// paylaşan bir görünümdür; bkz. IndeksAtanabilir).
-		sol := c.ifade(k, t.Left)
-		indeks := c.ifade(k, t.Index)
+		leftFn := c.expression(k, t.Left)
+		index := c.expression(k, t.Index)
 		return func(v *VM, env *Environment, rhs Value) error {
-			left, err := sol(v, env)
+			left, err := leftFn(v, env)
 			if err != nil {
 				return err
 			}
-			idx, err := indeks(v, env)
+			idx, err := index(v, env)
 			if err != nil {
 				return err
 			}
-			return v.indekseAta(left, idx, kod, rhs, line)
+			return v.setIndex(left, idx, codeVal, rhs, line)
 		}
 
 	case *ast.MemberExpression:
-		nesne := c.ifade(k, t.Object)
+		object := c.expression(k, t.Object)
 		prop := t.Property
-		u := uyeCoz(prop)
+		u := resolveMember(prop)
 		return func(v *VM, env *Environment, rhs Value) error {
-			obj, err := nesne(v, env)
+			obj, err := object(v, env)
 			if err != nil {
 				return err
 			}
-			return v.uyeyeAta(obj, prop, u, kod, rhs, line)
+			return v.setMember(obj, prop, u, codeVal, rhs, line)
 		}
 	}
 	return func(v *VM, env *Environment, rhs Value) error {
@@ -85,23 +86,23 @@ func (c *derleyici) atamaHedefi(k *derleyiciKapsam, target ast.Expression, kod u
 }
 
 // adlaAta bir ada (yuvası bilinmeden) atama yapar.
-func (v *VM) adlaAta(env *Environment, t *ast.Identifier, kod uint8, rightVal Value, line int) error {
+func (v *VM) assignByName(env *Environment, t *ast.Identifier, codeVal uint8, rightVal Value, line int) error {
 	var finalVal Value = rightVal
-	if kod != opAta {
+	if codeVal != opAssign {
 		cur, ok := env.Get(t.Value)
 		if !ok {
 			return fmt.Errorf("Satır %d, Sütun %d: '%s' adında bir değişken yok%s",
 				line, t.Token.Column, t.Value, suggestName(t.Value, env))
 		}
 		var err error
-		finalVal, err = v.atamaIslemi(kod, cur, rightVal, line)
+		finalVal, err = v.assignOp(codeVal, cur, rightVal, line)
 		if err != nil {
 			return err
 		}
 	}
 	if err := env.Assign(t.Value, finalVal); err != nil {
-		var tanimsiz *UndefinedVarError
-		if errors.As(err, &tanimsiz) {
+		var undefined *UndefinedVarError
+		if errors.As(err, &undefined) {
 			return fmt.Errorf("Satır %d, Sütun %d: %v%s", line, t.Token.Column, err, suggestName(t.Value, env))
 		}
 		return fmt.Errorf("Satır %d: %v", line, err)

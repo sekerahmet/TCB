@@ -8,12 +8,12 @@ import "github.com/sekerahmet/TCB/internal/lang/ast"
 
 // EvalExpression evaluates an expression in the given environment.
 func (v *VM) EvalExpression(expr ast.Expression, env *Environment) (Value, error) {
-	return v.dinamikIfade(expr, env)
+	return v.dynamicExpr(expr, env)
 }
 
 // ExecStatements runs statements in the given environment and returns the last value;
 // return/break/continue signals are ignored.
 func (v *VM) ExecStatements(stmts []ast.Statement, env *Environment) (Value, error) {
-	val, _, err := v.dinamikDeyimler(stmts, env)
+	val, _, err := v.dynamicStatements(stmts, env)
 	return val, err
 }

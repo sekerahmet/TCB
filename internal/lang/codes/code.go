@@ -26,7 +26,7 @@ const (
 
 // aileHarfleri alfabe sırasındadır; böylece kodların sayısal sırası dil dosyasındaki
 // (harf, sayı) sırasıyla aynıdır.
-const aileHarfleri = "AGHTVWY"
+const familyLetters = "AGHTVWY"
 
 // None is the zero value returned for a name that has no code.
 const None Code = 0
@@ -34,10 +34,10 @@ const None Code = 0
 // Letter is the code's family letter ('A', 'G' ...); 0 for an invalid code.
 func (k Code) Letter() byte {
 	i := int(k)/1000 - 1
-	if i < 0 || i >= len(aileHarfleri) {
+	if i < 0 || i >= len(familyLetters) {
 		return 0
 	}
-	return aileHarfleri[i]
+	return familyLetters[i]
 }
 
 // Number is the code's number inside its family (0-999).
@@ -59,14 +59,14 @@ func Parse(s string) (Code, error) {
 	if len(s) != 4 {
 		return None, fmt.Errorf("kod %q geçersiz: bir harf ve üç basamak olmalı (ör. G100)", s)
 	}
-	aile := -1
-	for i := 0; i < len(aileHarfleri); i++ {
-		if s[0] == aileHarfleri[i] {
-			aile = i
+	family := -1
+	for i := 0; i < len(familyLetters); i++ {
+		if s[0] == familyLetters[i] {
+			family = i
 		}
 	}
-	if aile < 0 {
-		return None, fmt.Errorf("kod %q geçersiz: aile harfi %s harflerinden biri olmalı", s, aileHarfleri)
+	if family < 0 {
+		return None, fmt.Errorf("kod %q geçersiz: aile harfi %s harflerinden biri olmalı", s, familyLetters)
 	}
 	n := 0
 	for _, c := range s[1:] {
@@ -78,7 +78,7 @@ func Parse(s string) (Code, error) {
 	if n == 0 {
 		return None, fmt.Errorf("kod %q geçersiz: 000 kullanılmaz", s)
 	}
-	return Code(1000*(aile+1) + n), nil
+	return Code(1000*(family+1) + n), nil
 }
 
 // IsCodeForm reports whether s has the form of a code: an upper-case letter and three digits
@@ -106,7 +106,7 @@ const (
 	NamespaceType                    // type names (A2xx)
 	NamespaceMember                  // methods and properties (Y)
 	NamespaceParam                   // named arguments (the x9xx groups in G/T/V/W)
-	alanSayisi
+	namespaceCount
 )
 
 func (a Namespace) String() string {

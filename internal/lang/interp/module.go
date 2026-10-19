@@ -3,15 +3,16 @@ package interp
 import (
 	"errors"
 	"fmt"
-	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/source"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"os"
 	pathpkg "path"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // Source is a source file: the main program or a module brought in with 'aktar'. The source of
@@ -30,25 +31,25 @@ type Source struct {
 
 // gosterilenYol bir dosya yolunu hata mesajında gösterilecek biçime çevirir: çalışma
 // klasörünün altındaysa ona göre, değilse mutlak; ayırıcı '/'.
-func gosterilenYol(yol string) string {
-	if yol == "" || strings.HasPrefix(yol, "<") {
-		return yol
+func shownPath(filePath string) string {
+	if filePath == "" || strings.HasPrefix(filePath, "<") {
+		return filePath
 	}
-	mutlak, err := filepath.Abs(yol)
+	absolute, err := filepath.Abs(filePath)
 	if err != nil {
-		return filepath.ToSlash(yol)
+		return filepath.ToSlash(filePath)
 	}
 	if cwd, err := os.Getwd(); err == nil {
-		if rel, err := filepath.Rel(cwd, mutlak); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		if rel, err := filepath.Rel(cwd, absolute); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 			return filepath.ToSlash(rel)
 		}
 	}
-	return filepath.ToSlash(mutlak)
+	return filepath.ToSlash(absolute)
 }
 
 // anaKaynak ana programın kaynağıdır (SourceFile ve SourceCode'dan).
-func (v *VM) anaKaynak() *Source {
-	return &Source{Path: v.SourceFile, Name: gosterilenYol(v.SourceFile), Code: v.SourceCode}
+func (v *VM) mainSource() *Source {
+	return &Source{Path: v.SourceFile, Name: shownPath(v.SourceFile), Code: v.SourceCode}
 }
 
 // ModuleError is an error of a file (a module, or code of it called from another file). The
@@ -72,22 +73,22 @@ func (e *ModuleError) Error() string {
 	if len(e.Errors) == 0 {
 		return e.Source.Name + ", " + e.Err.Error()
 	}
-	parcalar := make([]string, len(e.Errors))
+	pieces := make([]string, len(e.Errors))
 	for i, h := range e.Errors {
-		parcalar[i] = e.Source.Name + ", " + h
+		pieces[i] = e.Source.Name + ", " + h
 	}
-	return e.baslik() + ": " + strings.Join(parcalar, "; ")
+	return e.header() + ": " + strings.Join(pieces, "; ")
 }
 
 func (e *ModuleError) Unwrap() error { return e.Err }
 
 // baslik denetim hatasının 'aktar' satırını gösteren ilk bölümüdür.
-func (e *ModuleError) baslik() string {
-	onek := ""
+func (e *ModuleError) header() string {
+	prefix := ""
 	if e.Importer != nil {
-		onek = e.Importer.Name + ", "
+		prefix = e.Importer.Name + ", "
 	}
-	return fmt.Sprintf("%sSatır %d: %q modülü %s hataları nedeniyle yüklenemedi", onek, e.ImportLine, e.ModulePath, e.Kind)
+	return fmt.Sprintf("%sSatır %d: %q modülü %s hataları nedeniyle yüklenemedi", prefix, e.ImportLine, e.ModulePath, e.Kind)
 }
 
 // ErrorItem is one error line to show the user and the code frame drawn from the file it
@@ -100,50 +101,50 @@ type ErrorItem struct {
 // ErrorItems splits a runtime error into items to show the user. anaKod is the main program's
 // source; the frame of an error that belongs to a module is drawn from the module's source.
 // Each of the module's check errors becomes its own item after the 'aktar' line.
-func ErrorItems(err error, anaKod string) []ErrorItem {
-	mesaj := err.Error()
+func ErrorItems(err error, mainCode string) []ErrorItem {
+	message := err.Error()
 	var mh *ModuleError
 	if !errors.As(err, &mh) {
-		return []ErrorItem{{mesaj, turkish.CodeFrame(anaKod, mesaj)}}
+		return []ErrorItem{{message, turkish.CodeFrame(mainCode, message)}}
 	}
 	if len(mh.Errors) == 0 {
-		return []ErrorItem{{mesaj, turkish.CodeFrame(mh.Source.Code, mh.Err.Error())}}
+		return []ErrorItem{{message, turkish.CodeFrame(mh.Source.Code, mh.Err.Error())}}
 	}
-	aktaranKod := anaKod
+	importerCode := mainCode
 	if mh.Importer != nil {
-		aktaranKod = mh.Importer.Code
+		importerCode = mh.Importer.Code
 	}
-	b := mh.baslik()
-	maddeler := []ErrorItem{{b, turkish.CodeFrame(aktaranKod, b)}}
+	b := mh.header()
+	entries := []ErrorItem{{b, turkish.CodeFrame(importerCode, b)}}
 	for _, h := range mh.Errors {
-		maddeler = append(maddeler, ErrorItem{mh.Source.Name + ", " + h, turkish.CodeFrame(mh.Source.Code, h)})
+		entries = append(entries, ErrorItem{mh.Source.Name + ", " + h, turkish.CodeFrame(mh.Source.Code, h)})
 	}
-	return maddeler
+	return entries
 }
 
 // kaynakHatasi k dosyasında çalışan koddan çıkan konumlu bir hatayı o dosyaya bağlar
 // (k nil ise ana program). Zaten bir dosyaya bağlı hata ve konumsuz hatalar ('fırlat' ile
 // atılan değerler: yakalayan onları olduğu gibi görür) değişmez.
-func (v *VM) kaynakHatasi(k *Source, err error) error {
+func (v *VM) sourceError(k *Source, err error) error {
 	var mh *ModuleError
-	if errors.As(err, &mh) || !satirliMi(err) {
+	if errors.As(err, &mh) || !hasLine(err) {
 		return err
 	}
 	if k == nil {
-		k = v.anaKaynak()
+		k = v.mainSource()
 	}
 	return &ModuleError{Source: k, Err: err}
 }
 
 // kaynaktaCagir başka bir dosyada tanımlanmış fonksiyonu kendi dosyasının bağlamında
 // çağırır; hatası o dosyaya bağlanır. Aynı dosyadaki çağrılar buraya uğramaz.
-func (v *VM) kaynaktaCagir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Value, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
-	onceki := v.kaynak
-	v.kaynak = fk.kaynak
-	defer func() { v.kaynak = onceki }()
-	val, err := v.cagirHazir(fn, fk, fnEnv, kendi, args, nargs, named, line)
+func (v *VM) callInSource(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Value, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
+	prev := v.source
+	v.source = fk.source
+	defer func() { v.source = prev }()
+	val, err := v.callPrepared(fn, fk, fnEnv, self, args, nargs, named, line)
 	if err != nil {
-		return nil, v.kaynakHatasi(fk.kaynak, err)
+		return nil, v.sourceError(fk.source, err)
 	}
 	return val, nil
 }
@@ -155,34 +156,34 @@ func (v *VM) kaynaktaCagir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi 
 // count as defined in the module, and a name defined nowhere else is an undefined-name error
 // (5.14); dinamik says the global names are not fully known (then undefined names are not
 // reported).
-func CheckModule(metin string, genelAdlar []string, dinamik bool) *source.Result {
-	return source.Prepare(metin, source.Options{Module: true, TypeCheck: true,
-		InGlobalScope: true, GlobalNames: genelAdlar, GlobalDynamic: dinamik})
+func CheckModule(text string, globalNames []string, dynamic bool) *source.Result {
+	return source.Prepare(text, source.Options{Module: true, TypeCheck: true,
+		InGlobalScope: true, GlobalNames: globalNames, GlobalDynamic: dynamic})
 }
 
 // modulYukleme yüklenmekte olan bir modüldür; aynı modülü isteyen başka görevler yüklemenin
 // bitmesini bekler.
-type modulYukleme struct {
-	bitti chan struct{}
-	mod   *DictVal
-	err   error
+type moduleLoading struct {
+	finished chan struct{}
+	mod      *DictVal
+	err      error
 }
 
 // aktar 'aktar' deyimini çalıştırır. Modül, genel kapsamın altında kendi ortamında çalışır
 // ve ortamının tüm adları dışa aktarılır. takma, 'aktar ... olarak ad' biçiminde takma adı
 // çağıranın kapsamına tanımlar; takma adsız aktarımda adlar çağıranın ortamına adla
 // tanımlanır.
-func (v *VM) aktar(s *ast.ImportStatement, env *Environment, takma func(*Environment, Value, bool)) (Value, flowSignal, error) {
+func (v *VM) imp(s *ast.ImportStatement, env *Environment, alias func(*Environment, Value, bool)) (Value, flowSignal, error) {
 	path := s.Path
 	if !strings.HasSuffix(path, ".tr") {
 		path += ".tr"
 	}
-	mod, err := v.modulYukle(s, path)
+	mod, err := v.loadModule(s, path)
 	if err != nil {
 		return nil, signalNone, err
 	}
-	if takma != nil {
-		takma(env, mod, true)
+	if alias != nil {
+		alias(env, mod, true)
 		return mod, signalNone, nil
 	}
 	for _, k := range mod.Order {
@@ -194,48 +195,48 @@ func (v *VM) aktar(s *ast.ImportStatement, env *Environment, takma func(*Environ
 // modulYukle modülü (gerekirse) yükler. Bir modül program boyunca bir kez çalışır.
 // Başka bir görev aynı modülü yüklüyorsa bitmesi beklenir; yükleyen görevin kendi aktarım
 // zinciri modülü içeriyorsa bu döngüsel bir aktarımdır.
-func (v *VM) modulYukle(s *ast.ImportStatement, path string) (*DictVal, error) {
+func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
 	if err := CheckPath(codes.Name(codes.A070), path); err != nil {
 		return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
 	}
-	hedef, bakilanlar, err := v.modulHedefi(s, path)
+	dest, searched, err := v.moduleTarget(s, path)
 	if err != nil {
 		return nil, err
 	}
-	anahtar := hedef.Path
-	if !hedef.Embedded {
-		if mutlak, err := filepath.Abs(hedef.Path); err == nil {
-			anahtar = mutlak
+	keyStr := dest.Path
+	if !dest.Embedded {
+		if absolute, err := filepath.Abs(dest.Path); err == nil {
+			keyStr = absolute
 		}
 	}
 
-	v.importedMu.Lock()
-	if mod, ok := v.Imported[anahtar]; ok {
-		v.importedMu.Unlock()
+	v.isImported.Lock()
+	if mod, ok := v.Imported[keyStr]; ok {
+		v.isImported.Unlock()
 		return mod, nil
 	}
-	if y := v.yuklenen[anahtar]; y != nil {
-		v.importedMu.Unlock()
-		if slices.Contains(v.yukleme, anahtar) {
+	if y := v.loaded[keyStr]; y != nil {
+		v.isImported.Unlock()
+		if slices.Contains(v.loading, keyStr) {
 			return nil, fmt.Errorf("Satır %d: %q modülünde döngüsel aktarım tespit edildi (modül, yüklenirken kendini dolaylı olarak yeniden aktarıyor)", s.Line(), path)
 		}
-		v.Blocking(func() { <-y.bitti })
+		v.Blocking(func() { <-y.finished })
 		return y.mod, y.err
 	}
-	y := &modulYukleme{bitti: make(chan struct{})}
-	v.yuklenen[anahtar] = y
-	v.importedMu.Unlock()
+	y := &moduleLoading{finished: make(chan struct{})}
+	v.loaded[keyStr] = y
+	v.isImported.Unlock()
 
 	defer func() {
-		v.importedMu.Lock()
-		delete(v.yuklenen, anahtar)
+		v.isImported.Lock()
+		delete(v.loaded, keyStr)
 		if y.err == nil && y.mod != nil {
-			v.Imported[anahtar] = y.mod
+			v.Imported[keyStr] = y.mod
 		}
-		v.importedMu.Unlock()
-		close(y.bitti)
+		v.isImported.Unlock()
+		close(y.finished)
 	}()
-	y.mod, y.err = v.modulCalistir(s, path, hedef, anahtar, bakilanlar)
+	y.mod, y.err = v.runModule(s, path, dest, keyStr, searched)
 	if y.err == nil && y.mod == nil {
 		y.err = fmt.Errorf("Satır %d: %q modülü yüklenemedi", s.Line(), path)
 	}
@@ -247,56 +248,56 @@ func (v *VM) modulYukle(s *ast.ImportStatement, path string) (*DictVal, error) {
 // kitaplığındandır (11.6); kitaplık modülünün içindeki göreli yol da
 // kitaplıkta çözülür. Öbür göreli yollar önce aktaran dosyanın, sonra programın klasörüne
 // göre aranır (11.1).
-func (v *VM) modulHedefi(s *ast.ImportStatement, path string) (hedef *Source, bakilanlar []string, err error) {
-	ad, kitaplikta := LibraryModule(path)
-	if !kitaplikta && v.kaynak != nil && v.kaynak.Embedded && !filepath.IsAbs(path) {
-		ad, kitaplikta = pathpkg.Join(pathpkg.Dir(strings.TrimPrefix(v.kaynak.Path, LibraryPrefix)), filepath.ToSlash(path)), true
+func (v *VM) moduleTarget(s *ast.ImportStatement, path string) (dest *Source, searched []string, err error) {
+	name, inLibrary := LibraryModule(path)
+	if !inLibrary && v.source != nil && v.source.Embedded && !filepath.IsAbs(path) {
+		name, inLibrary = pathpkg.Join(pathpkg.Dir(strings.TrimPrefix(v.source.Path, LibraryPrefix)), filepath.ToSlash(path)), true
 	}
-	if kitaplikta {
-		return &Source{Path: LibraryPrefix + ad, Name: LibraryPrefix + ad, Embedded: true}, nil, nil
+	if inLibrary {
+		return &Source{Path: LibraryPrefix + name, Name: LibraryPrefix + name, Embedded: true}, nil, nil
 	}
-	cozulen, bakilanlar, _ := ResolveModulePath(path, v.aramaKlasorleri())
-	return &Source{Path: cozulen, Name: gosterilenYol(cozulen)}, bakilanlar, nil
+	resolved, searched, _ := ResolveModulePath(path, v.searchDirs())
+	return &Source{Path: resolved, Name: shownPath(resolved)}, searched, nil
 }
 
 // modulCalistir modülü (diskten ya da kitaplıktan) okur, denetler ve kendi kaynağının bağlamında çalıştırır.
-func (v *VM) modulCalistir(s *ast.ImportStatement, path string, hedef *Source, anahtar string, bakilanlar []string) (*DictVal, error) {
-	if hedef.Embedded {
-		veri, err := ReadLibrary(strings.TrimPrefix(hedef.Path, LibraryPrefix))
+func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr string, searched []string) (*DictVal, error) {
+	if dest.Embedded {
+		payload, err := ReadLibrary(strings.TrimPrefix(dest.Path, LibraryPrefix))
 		if err != nil {
 			return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
 		}
-		hedef.Code = string(veri)
+		dest.Code = string(payload)
 	} else {
-		data, err := os.ReadFile(hedef.Path)
+		data, err := os.ReadFile(dest.Path)
 		if err != nil {
-			return nil, fmt.Errorf("Satır %d: %w", s.Line(), ReadError(codes.Name(codes.A070), path, "modülü okunamadı", err, bakilanlar))
+			return nil, fmt.Errorf("Satır %d: %w", s.Line(), ReadError(codes.Name(codes.A070), path, "modülü okunamadı", err, searched))
 		}
-		hedef.Code = string(data)
+		dest.Code = string(data)
 	}
 	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
 	// adları görür; yerleşikler de oradadır.
-	ms := CheckModule(hedef.Code, v.GlobalEnv.kapsam.adlar, false)
-	modKaynak := &Source{Path: hedef.Path, Name: hedef.Name, Code: ms.Text, Embedded: hedef.Embedded}
+	ms := CheckModule(dest.Code, v.GlobalEnv.scope.nameList, false)
+	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Embedded: dest.Embedded}
 	if ms.Stage != "" {
-		return nil, &ModuleError{Source: modKaynak, Kind: ms.Stage, Errors: ms.Errors, ModulePath: s.Path, ImportLine: s.Line(), Importer: v.kaynak}
+		return nil, &ModuleError{Source: modSource, Kind: ms.Stage, Errors: ms.Errors, ModulePath: s.Path, ImportLine: s.Line(), Importer: v.source}
 	}
 	prog := ms.Program
 
-	onceki, oncekiZincir := v.kaynak, v.yukleme
-	v.kaynak = modKaynak
-	v.yukleme = append(v.yukleme[:len(v.yukleme):len(v.yukleme)], anahtar)
-	defer func() { v.kaynak, v.yukleme = onceki, oncekiZincir }()
+	prev, prevChain := v.source, v.loading
+	v.source = modSource
+	v.loading = append(v.loading[:len(v.loading):len(v.loading)], keyStr)
+	defer func() { v.source, v.loading = prev, prevChain }()
 
 	// Modül, genel kapsamın altında kendi kapsamında derlenir
-	c := v.yeniDerleyici()
-	modKapsam := altKapsam(c.kok)
-	modKapsam.onTanimla(prog.Statements)
-	modKod := c.deyimler(modKapsam, prog.Statements)
-	modEnv := yeniOrtam(v.GlobalEnv, modKapsam.bilgi)
+	c := v.newCompiler()
+	modScope := subScope(c.root)
+	modScope.predefine(prog.Statements)
+	modCode := c.statements(modScope, prog.Statements)
+	modEnv := newEnv(v.GlobalEnv, modScope.info)
 
-	if _, _, err := modKod.calistir(v, modEnv); err != nil {
-		return nil, v.kaynakHatasi(modKaynak, err)
+	if _, _, err := modCode.run(v, modEnv); err != nil {
+		return nil, v.sourceError(modSource, err)
 	}
 	modDict := NewDictVal()
 	modEnv.EachLocal(func(k string, exportedVal Value) {

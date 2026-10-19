@@ -5,7 +5,7 @@ package codes
 // A named constant for every live code in the dictionary (tr.json). The constant's name is
 // the code itself, not the user-visible name: renaming a name never changes the constant.
 // The name in the comment only helps the reader. Moved and removed codes have no constant;
-// see tasinanlar and kaldirilanlar.
+// see movedMap and removedSet.
 const (
 	A001 Code = A + 1   // eğer
 	A002 Code = A + 2   // değilse
@@ -264,11 +264,11 @@ const (
 	Y613 Code = Y + 613 // parça_kimliği
 )
 
-// tasinanlar kaldırılıp işi başka bir koda (başka bir biçime: fonksiyondan metoda ya da
+// movedMap kaldırılıp işi başka bir koda (başka bir biçime: fonksiyondan metoda ya da
 // metottan fonksiyona) taşınan kodlardır: eski kod → yeni kod (definitions.json'daki
 // "taşındı" alanı). Eski kodun numarası bir daha kullanılmaz; adı yalnızca hata
 // mesajında yeni biçimi önermek için dil dosyasında kalır.
-var tasinanlar = map[Code]Code{
+var movedMap = map[Code]Code{
 	G + 200: Y + 1,   // G200 → Y001
 	G + 300: Y + 200, // G300 → Y200
 	G + 301: Y + 201, // G301 → Y201
@@ -280,10 +280,10 @@ var tasinanlar = map[Code]Code{
 	Y + 206: G + 410, // Y206 → G410
 }
 
-// kaldirilanlar yerine geçen olmadan dilden kaldırılan kodlardır (definitions.json'daki
+// removedSet yerine geçen olmadan dilden kaldırılan kodlardır (definitions.json'daki
 // "kaldırıldı" alanı). Numaraları bir daha kullanılmaz; adları yalnızca "TR'den
 // kaldırıldı" hatası için dil dosyasında kalır.
-var kaldirilanlar = map[Code]bool{
+var removedSet = map[Code]bool{
 	A + 230: true, // A230 SinirAğı
 	A + 240: true, // A240 Veritabanı
 	A + 241: true, // A241 WebSunucu

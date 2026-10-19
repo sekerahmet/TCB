@@ -75,7 +75,7 @@ func (p *Parser) parseDictLiteral() ast.Expression {
 		// Sözlük anahtarı çıplak tanımlayıcı ise (örn: {ad: "Ali"}), metin olarak al
 		if p.curTokenIs(lexer.TOKEN_IDENT) && p.peekTokenIs(lexer.TOKEN_COLON) {
 			key = &ast.StringLiteral{Token: p.curToken(), Value: p.curToken().Literal}
-			p.rol(p.curToken(), RoleDictKey)
+			p.role(p.curToken(), RoleDictKey)
 		} else {
 			key = p.parseExpression(LOWEST)
 		}
@@ -115,13 +115,13 @@ func (p *Parser) parseMemberExpression(left ast.Expression) ast.Expression {
 	if !p.expectPeek(lexer.TOKEN_IDENT) {
 		return nil
 	}
-	ad := p.curToken()
-	p.rol(ad, RoleMember)
+	name := p.curToken()
+	p.role(name, RoleMember)
 	return &ast.MemberExpression{
 		Token:     tok,
 		Object:    left,
-		Property:  ad.Literal,
-		NameToken: ad,
+		Property:  name.Literal,
+		NameToken: name,
 		Safe:      safe,
 	}
 }

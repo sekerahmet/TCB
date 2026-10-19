@@ -2,11 +2,12 @@ package interp
 
 import (
 	"fmt"
+	"slices"
+	"strings"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
-	"slices"
-	"strings"
 )
 
 // maxCallDepth iç içe kullanıcı fonksiyonu çağrılarının üst sınırıdır. Sınırsız özyineleme
@@ -16,10 +17,10 @@ const maxCallDepth = 10000
 
 // kendiAdi yapı metotlarında nesneyi gösteren 'kendi' anahtar kelimesinin sözlükteki
 // adıdır (A051).
-var kendiAdi = codes.Name(codes.A051)
+var selfName = codes.Name(codes.A051)
 
 // kurucuAdi nesne oluşturulurken çağrılan metodun adıdır (7.4; sözlükte A102).
-var kurucuAdi = codes.Name(codes.A102)
+var ctorName = codes.Name(codes.A102)
 
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
 // sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar
@@ -31,12 +32,12 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	}
 	// Hızlı yol: adlı argüman yoksa ve verilmeyen her parametrenin varsayılanı varsa sorun
 	// yoktur. Hata mesajı için gereken metin ve haritalar yalnızca hata yolunda kurulur.
-	if len(named) == 0 && nargs <= len(fn.Parameters) && varsayilanlarYeter(fn, nargs) {
+	if len(named) == 0 && nargs <= len(fn.Parameters) && defaultsSuffice(fn, nargs) {
 		return nil
 	}
-	ad := "'" + fn.Name + "' fonksiyonu"
+	name := "'" + fn.Name + "' fonksiyonu"
 	if fn.Name == "" {
-		ad = "İsimsiz fonksiyon"
+		name = "İsimsiz fonksiyon"
 	}
 	known := make(map[string]bool, len(fn.Parameters))
 	for _, p := range fn.Parameters {
@@ -44,24 +45,24 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	}
 	for k := range named {
 		if !known[k] {
-			return fmt.Errorf("Satır %d: %s '%s' adında bir parametre almaz%s", line, ad, k, suggestParam(k, fn.Parameters))
+			return fmt.Errorf("Satır %d: %s '%s' adında bir parametre almaz%s", line, name, k, suggestParam(k, fn.Parameters))
 		}
 	}
 	if nargs > len(fn.Parameters) {
-		return fmt.Errorf("Satır %d: %s en fazla %d argüman alır, %d verildi", line, ad, len(fn.Parameters), nargs)
+		return fmt.Errorf("Satır %d: %s en fazla %d argüman alır, %d verildi", line, name, len(fn.Parameters), nargs)
 	}
-	var eksik []string
-	gerekli := 0
+	var missing []string
+	required := 0
 	for i, p := range fn.Parameters {
 		if p.DefaultValue == nil {
-			gerekli++
+			required++
 		}
 		if i >= nargs && named[p.Name] == nil && p.DefaultValue == nil {
-			eksik = append(eksik, "'"+p.Name+"'")
+			missing = append(missing, "'"+p.Name+"'")
 		}
 	}
-	if len(eksik) > 0 {
-		return fmt.Errorf("Satır %d: %s %d argüman bekler, %d verildi (eksik: %s)", line, ad, gerekli, nargs+len(named), strings.Join(eksik, ", "))
+	if len(missing) > 0 {
+		return fmt.Errorf("Satır %d: %s %d argüman bekler, %d verildi (eksik: %s)", line, name, required, nargs+len(named), strings.Join(missing, ", "))
 	}
 	return nil
 }
@@ -69,25 +70,25 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 // yapiArgumanDenetle kurucusu olmayan bir yapının oluşturulmasındaki argümanları alanlara
 // göre denetler: alan sayısından fazla konumlu argüman ya da alan olmayan bir adla verilen
 // argüman hatadır.
-func yapiArgumanDenetle(def *StructDefVal, nargs int, named map[string]Value, line int) error {
+func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line int) error {
 	if nargs <= len(def.Fields) && len(named) == 0 {
 		return nil
 	}
-	adlar := make([]string, len(def.Fields))
+	nameList := make([]string, len(def.Fields))
 	for i, f := range def.Fields {
-		adlar[i] = f.Name
+		nameList[i] = f.Name
 	}
 	for k := range named {
-		if !slices.Contains(adlar, k) {
-			oneri := ""
-			if o := turkish.Closest(k, adlar); o != "" {
-				oneri = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+		if !slices.Contains(nameList, k) {
+			suggestion := ""
+			if o := turkish.Closest(k, nameList); o != "" {
+				suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
 			}
-			return fmt.Errorf("Satır %d: '%s' yapısının '%s' adında bir alanı yok%s", line, def.Name, k, oneri)
+			return fmt.Errorf("Satır %d: '%s' yapısının '%s' adında bir alanı yok%s", line, def.Name, k, suggestion)
 		}
 	}
 	if nargs > len(def.Fields) {
-		return fmt.Errorf("Satır %d: '%s' yapısı en fazla %d argüman alır (alanlar: %s), %d verildi", line, def.Name, len(def.Fields), strings.Join(adlar, ", "), nargs)
+		return fmt.Errorf("Satır %d: '%s' yapısı en fazla %d argüman alır (alanlar: %s), %d verildi", line, def.Name, len(def.Fields), strings.Join(nameList, ", "), nargs)
 	}
 	return nil
 }
@@ -106,19 +107,19 @@ func suggestParam(name string, params []ast.Param) string {
 func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, line int) (Value, error) {
 	switch fn := fnVal.(type) {
 	case *FuncVal:
-		fk := fn.kod
+		fk := fn.codeVal
 		if fk == nil {
-			fk = v.fonkKoduHazirla(fn)
+			fk = v.prepareFuncCode(fn)
 		}
-		return v.cagirHazir(fn, fk, fk.ortamAl(fn.Env), fn.BoundSelf, args, len(args), named, line)
+		return v.callPrepared(fn, fk, fk.getEnv(fn.Env), fn.BoundSelf, args, len(args), named, line)
 
 	case *BuiltinVal:
 		if fn.NoNamedArgs && len(named) > 0 {
-			return nil, satirEki(line, NoNamedArgsError(fn.Name, named))
+			return nil, lineSuffix(line, NoNamedArgsError(fn.Name, named))
 		}
 		res, err := fn.Fn(v, args, named)
 		if err != nil {
-			return nil, satirEki(line, err)
+			return nil, lineSuffix(line, err)
 		}
 		return res, nil
 
@@ -127,20 +128,20 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 			Def:    fn,
 			Fields: make(map[string]Value),
 		}
-		if fn.alanKod == nil {
+		if fn.fieldCode == nil {
 			// Derleyici dışında kurulmuş tanım: varsayılanlar genel kapsamda değerlendirilir
-			c := v.yeniDerleyici()
-			fn.alanKod = c.alanVarsayilanlari(c.kok, fn.Fields)
-			fn.alanOrtam = v.GlobalEnv
+			c := v.newCompiler()
+			fn.fieldCode = c.fieldDefaults(c.root, fn.Fields)
+			fn.fieldEnv = v.GlobalEnv
 		}
-		alanOrtam := fn.alanOrtam
-		if alanOrtam == nil {
-			alanOrtam = v.GlobalEnv
+		fieldEnv := fn.fieldEnv
+		if fieldEnv == nil {
+			fieldEnv = v.GlobalEnv
 		}
-		initMethod, kuruculu := fn.Methods[kurucuAdi]
-		if !kuruculu {
+		initMethod, withCtor := fn.Methods[ctorName]
+		if !withCtor {
 			// kurucu yoksa argümanlar alanlara gider: fazlası ya da bilinmeyen adlısı hatadır
-			if err := yapiArgumanDenetle(fn, len(args), named, line); err != nil {
+			if err := checkStructArgs(fn, len(args), named, line); err != nil {
 				return nil, err
 			}
 		}
@@ -149,8 +150,8 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 				inst.Fields[f.Name] = args[i]
 			} else if named != nil && named[f.Name] != nil {
 				inst.Fields[f.Name] = named[f.Name]
-			} else if f.DefaultValue != nil && i < len(fn.alanKod) && fn.alanKod[i] != nil {
-				defVal, err := fn.alanKod[i](v, alanOrtam)
+			} else if f.DefaultValue != nil && i < len(fn.fieldCode) && fn.fieldCode[i] != nil {
+				defVal, err := fn.fieldCode[i](v, fieldEnv)
 				if err != nil {
 					return nil, err
 				}
@@ -159,7 +160,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 				inst.Fields[f.Name] = NULL
 			}
 		}
-		if kuruculu {
+		if withCtor {
 			// kurucu varsa argümanlar onun imzasına göre denetlenir
 			if err := checkArity(initMethod, len(args), named, line); err != nil {
 				return nil, err
@@ -170,7 +171,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 				Body:       initMethod.Body,
 				Env:        initMethod.Env,
 				BoundSelf:  inst,
-				kod:        initMethod.kod,
+				codeVal:    initMethod.codeVal,
 			}
 			_, err := v.ApplyFunction(boundInit, args, named, line)
 			if err != nil {
@@ -188,18 +189,18 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 // (yalnızca fk.basit iken). Kalan parametreler adlı argümanlardan, varsayılanlardan ya da
 // 'yok' ile doldurulur. kendi, metot çağrılarında nesnedir (bağlı fonksiyon değerinin
 // BoundSelf'i ya da doğrudan derlenmiş 'nesne.metot(...)' çağrısının nesnesi).
-func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Value, args []Value, nargs int, named map[string]Value, line int) (val Value, err error) {
-	if fk.kaynak != v.kaynak {
+func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Value, args []Value, nargs int, named map[string]Value, line int) (val Value, err error) {
+	if fk.source != v.source {
 		// Başka bir dosyada (modülde) tanımlı fonksiyon: o dosyanın bağlamında çalışır.
-		return v.kaynaktaCagir(fn, fk, fnEnv, kendi, args, nargs, named, line)
+		return v.callInSource(fn, fk, fnEnv, self, args, nargs, named, line)
 	}
 	fnEnv.IsFuncRoot = true
-	v.devret() // özyinelemeli (döngüsüz) hesaplarda da kilit devredilebilsin
-	if fk.erteleVar {
+	v.handOff() // özyinelemeli (döngüsüz) hesaplarda da kilit devredilebilsin
+	if fk.hasDefer {
 		// 'ertele' blokları bir çöküşte de (Go panic) çalışmalıdır; hataları yutulmaz (9.4)
 		defer func() {
 			if derr := fnEnv.RunDefers(); derr != nil {
-				val, err = nil, erteleHatasiEkle(err, derr)
+				val, err = nil, addDeferError(err, derr)
 			}
 		}()
 	}
@@ -214,52 +215,52 @@ func (v *VM) cagirHazir(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Val
 		FuncName: fnName,
 		Line:     line,
 	})
-	val, err = v.fonksiyonGovdesi(fn, fk, fnEnv, kendi, args, nargs, named)
+	val, err = v.functionBody(fn, fk, fnEnv, self, args, nargs, named)
 	if len(v.CallStack) > 0 {
 		v.CallStack = v.CallStack[:len(v.CallStack)-1]
 	}
-	if !fk.erteleVar {
+	if !fk.hasDefer {
 		if derr := fnEnv.RunDefers(); derr != nil {
-			val, err = nil, erteleHatasiEkle(err, derr)
+			val, err = nil, addDeferError(err, derr)
 		}
 		// Hata ayıklayıcı bağlıyken ortam onun elinde kalabilir; havuza konmaz.
-		if fk.havuzlu && v.Debugger == nil {
-			fk.birak(fnEnv)
+		if fk.pooled && v.Debugger == nil {
+			fk.release(fnEnv)
 		}
 	}
 	return val, err
 }
 
-func (v *VM) fonksiyonGovdesi(fn *FuncVal, fk *fonkKodu, fnEnv *Environment, kendi Value, args []Value, nargs int, named map[string]Value) (Value, error) {
-	if kendi != nil {
-		if fk.kendi >= 0 {
-			fnEnv.vals[fk.kendi] = kendi
+func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Value, args []Value, nargs int, named map[string]Value) (Value, error) {
+	if self != nil {
+		if fk.self >= 0 {
+			fnEnv.vals[fk.self] = self
 		} else {
-			fnEnv.Define(kendiAdi, kendi, false)
+			fnEnv.Define(selfName, self, false)
 		}
 	}
 	for i, param := range fn.Parameters {
 		if i >= len(fk.param) {
 			break
 		}
-		yuva := fk.param[i]
+		slot := fk.param[i]
 		if i < nargs {
 			if args != nil {
-				fnEnv.vals[yuva] = args[i]
+				fnEnv.vals[slot] = args[i]
 			}
 		} else if named != nil && named[param.Name] != nil {
-			fnEnv.vals[yuva] = named[param.Name]
-		} else if param.DefaultValue != nil && fk.varsayilan[i] != nil {
-			defVal, err := fk.varsayilan[i](v, fnEnv)
+			fnEnv.vals[slot] = named[param.Name]
+		} else if param.DefaultValue != nil && fk.defaultVal[i] != nil {
+			defVal, err := fk.defaultVal[i](v, fnEnv)
 			if err != nil {
 				return nil, err
 			}
-			fnEnv.vals[yuva] = defVal
+			fnEnv.vals[slot] = defVal
 		} else {
-			fnEnv.vals[yuva] = NULL
+			fnEnv.vals[slot] = NULL
 		}
 	}
-	val, _, err := fk.govde.calistir(v, fnEnv)
+	val, _, err := fk.bodyBlock.run(v, fnEnv)
 	if err != nil {
 		return nil, err
 	}

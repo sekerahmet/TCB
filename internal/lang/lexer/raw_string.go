@@ -40,9 +40,9 @@ func (l *Lexer) readRawString(startLine, startCol int) string {
 
 // kacisOku tırnaklı metindeki bir kaçış dizisini (ters bölü ve ardındaki karakter) okur ve
 // karşılığını yazar. Dosya sonunda ters bölüden sonra durur; readString hatayı bildirir.
-func (l *Lexer) kacisOku(sb *strings.Builder) {
-	kacisSatir, kacisSutun := l.line, l.column
-	bas := l.position // karşılığın kaynaktaki konumu: ters bölü
+func (l *Lexer) readEscape(sb *strings.Builder) {
+	escLine, escCol := l.line, l.column
+	begin := l.position // karşılığın kaynaktaki konumu: ters bölü
 	l.readChar()
 	var r rune
 	switch l.ch {
@@ -68,26 +68,26 @@ func (l *Lexer) kacisOku(sb *strings.Builder) {
 	default:
 		// Bilinmeyen kaçış hatadır: ters bölüyü sessizce atmak düzenli ifadeleri
 		// ("\d") ve Windows yollarını ("C:\veri") fark edilmeden bozardı.
-		l.addError(kacisSatir, kacisSutun, "%s", bilinmeyenKacis(l.ch))
-		l.metinYaz(sb, '\\', bas)
+		l.addError(escLine, escCol, "%s", unknownEscape(l.ch))
+		l.appendString(sb, '\\', begin)
 		if l.ch == '\r' && l.peekChar() == '\n' {
 			l.readChar()
 		}
-		r, bas = l.ch, l.position
+		r, begin = l.ch, l.position
 	}
-	l.metinYaz(sb, r, bas)
+	l.appendString(sb, r, begin)
 	l.readChar()
 }
 
 // bilinmeyenKacis tırnaklı metindeki tanınmayan '\c' kaçış dizisinin hata mesajıdır.
-func bilinmeyenKacis(c rune) string {
-	dizi := "'\\" + string(c) + "'"
+func unknownEscape(c rune) string {
+	arr := "'\\" + string(c) + "'"
 	switch c {
 	case '\n', '\r':
-		dizi = "'\\' ve satır sonu"
+		arr = "'\\' ve satır sonu"
 	case '\t':
-		dizi = "'\\' ve sekme"
+		arr = "'\\' ve sekme"
 	}
 	return fmt.Sprintf("bilinmeyen kaçış dizisi %s (bilinenler: \\n \\t \\r \\\" \\' \\\\ \\{ \\}); "+
-		"ters bölüyü olduğu gibi yazmak için ham metin (`C:\\veri`, `\\d+`) kullanın ya da ters bölüyü ikileyin (\"\\\\\")", dizi)
+		"ters bölüyü olduğu gibi yazmak için ham metin (`C:\\veri`, `\\d+`) kullanın ya da ters bölüyü ikileyin (\"\\\\\")", arr)
 }

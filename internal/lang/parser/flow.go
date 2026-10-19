@@ -11,7 +11,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 	// Sonsuz döngü: döngü { ... }
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
-		body := p.donguGovdesi()
+		body := p.loopBody()
 		return &ast.WhileStatement{
 			Token:     tok,
 			Condition: &ast.BooleanLiteral{Token: tok, Value: true},
@@ -44,7 +44,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 		if !p.expectPeek(lexer.TOKEN_LBRACE) {
 			return nil
 		}
-		body := p.donguGovdesi()
+		body := p.loopBody()
 
 		return &ast.ForInStatement{
 			Token:    tok,
@@ -61,7 +61,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
-	body := p.donguGovdesi()
+	body := p.loopBody()
 	return &ast.WhileStatement{
 		Token:     tok,
 		Condition: cond,
@@ -75,7 +75,7 @@ func (p *Parser) parseWhileStatement() *ast.WhileStatement {
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
-	body := p.donguGovdesi()
+	body := p.loopBody()
 	return &ast.WhileStatement{
 		Token:     tok,
 		Condition: cond,
@@ -93,8 +93,8 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 		return nil
 	}
 
-	errVar := hataAdi
-	ortuk := !p.peekTokenIs(lexer.TOKEN_IDENT) && !p.peekTokenIs(lexer.TOKEN_LPAREN)
+	errVar := errName
+	implicit := !p.peekTokenIs(lexer.TOKEN_IDENT) && !p.peekTokenIs(lexer.TOKEN_LPAREN)
 	if p.peekTokenIs(lexer.TOKEN_IDENT) {
 		p.nextToken()
 		errVar = p.curToken().Literal
@@ -115,7 +115,7 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 		Token:            tok,
 		TryBody:          tryBody,
 		ErrorVar:         errVar,
-		ImplicitErrorVar: ortuk,
+		ImplicitErrorVar: implicit,
 		CatchBody:        catchBody,
 	}
 }
@@ -133,7 +133,7 @@ func (p *Parser) parseAsyncStatement() *ast.AsyncStatement {
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
 		var body *ast.BlockStatement
-		p.sinirIcinde(false, false, func() { body = p.parseBlockStatement() })
+		p.withinLimit(false, false, func() { body = p.parseBlockStatement() })
 		return &ast.AsyncStatement{Token: tok, Body: body}
 	}
 	p.nextToken()

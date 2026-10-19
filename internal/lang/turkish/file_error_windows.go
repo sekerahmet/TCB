@@ -5,8 +5,8 @@ package turkish
 import "syscall"
 
 // sistemHatasiNedeni Windows hata kodlarından bilinenleri Türkçe anlatır; bilinmeyende "" döner.
-func sistemHatasiNedeni(kod syscall.Errno) string {
-	switch kod {
+func systemErrorReason(code syscall.Errno) string {
+	switch code {
 	case 4: // ERROR_TOO_MANY_OPEN_FILES
 		return "aynı anda çok fazla dosya açık (açık dosyaları kapatıp yeniden deneyin)"
 	case 15: // ERROR_INVALID_DRIVE

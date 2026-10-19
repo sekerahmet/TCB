@@ -22,58 +22,58 @@ const (
 )
 
 const (
-	kalinUnluler = "aıou"
-	inceUnluler  = "eiöü"
-	sertUnsuzler = "çfhkpsşt"
+	backVowels     = "aıou"
+	frontVowels    = "eiöü"
+	hardConsonants = "çfhkpsşt"
 )
 
 // Suffix appends the case suffix with an apostrophe: Suffix("Ankara", Locative) = "Ankara'da".
 // The apostrophe is used for proper names, numbers and names in code.
 // Note: loanwords that break vowel harmony (Kemal'in, saat'e) are not supported yet.
-func Suffix(sozcuk string, hal Case) string {
-	return sozcuk + "'" + ekBul(okunus(sozcuk), hal)
+func Suffix(word string, grammarCase Case) string {
+	return word + "'" + findSuffix(pronounce(word), grammarCase)
 }
 
 // NumberSuffix writes a number with the suffix that matches its pronunciation:
 // 6 → "6'ya", 3 → "3'e", 40 → "40'a".
-func NumberSuffix(n int64, hal Case) string {
-	return Suffix(itoa(n), hal)
+func NumberSuffix(n int64, grammarCase Case) string {
+	return Suffix(itoa(n), grammarCase)
 }
 
 // okunus ekin seçimine esas olan sözcüğü döndürür. Sayılar okunuşlarıyla değerlendirilir
 // (6 = "altı"); diğer sözcükler kendileridir.
-func okunus(s string) string {
+func pronounce(s string) string {
 	if n, ok := parseInt(s); ok {
-		return sayiSonSozcuk(n)
+		return lastNumberWord(n)
 	}
 	return s
 }
 
 // ekBul sözcüğün son ünlüsüne ve son sesine göre eki üretir.
-func ekBul(sozcuk string, hal Case) string {
-	w := []rune(strings.ToLower(sozcuk))
+func findSuffix(word string, grammarCase Case) string {
+	w := []rune(strings.ToLower(word))
 	if len(w) == 0 {
 		return ""
 	}
-	sonUnlu := 'e'
+	lastVowel := 'e'
 	for i := len(w) - 1; i >= 0; i-- {
-		if strings.ContainsRune(kalinUnluler+inceUnluler, w[i]) {
-			sonUnlu = w[i]
+		if strings.ContainsRune(backVowels+frontVowels, w[i]) {
+			lastVowel = w[i]
 			break
 		}
 	}
-	son := w[len(w)-1]
-	unluyleBiter := strings.ContainsRune(kalinUnluler+inceUnluler, son)
-	sertleBiter := strings.ContainsRune(sertUnsuzler, son)
-	kalin := strings.ContainsRune(kalinUnluler, sonUnlu)
+	last := w[len(w)-1]
+	endsWithVowel := strings.ContainsRune(backVowels+frontVowels, last)
+	endsHard := strings.ContainsRune(hardConsonants, last)
+	backVowel := strings.ContainsRune(backVowels, lastVowel)
 
 	// İki yönlü (a/e) ve dört yönlü (ı/i/u/ü) ünlü uyumu
 	a := "e"
-	if kalin {
+	if backVowel {
 		a = "a"
 	}
 	var i string
-	switch sonUnlu {
+	switch lastVowel {
 	case 'a', 'ı':
 		i = "ı"
 	case 'e', 'i':
@@ -84,18 +84,18 @@ func ekBul(sozcuk string, hal Case) string {
 		i = "ü"
 	}
 	d := "d"
-	if sertleBiter {
+	if endsHard {
 		d = "t"
 	}
 
-	switch hal {
+	switch grammarCase {
 	case Accusative:
-		if unluyleBiter {
+		if endsWithVowel {
 			return "y" + i
 		}
 		return i
 	case Dative:
-		if unluyleBiter {
+		if endsWithVowel {
 			return "y" + a
 		}
 		return a
@@ -104,7 +104,7 @@ func ekBul(sozcuk string, hal Case) string {
 	case Ablative:
 		return d + a + "n"
 	case Genitive:
-		if unluyleBiter {
+		if endsWithVowel {
 			return "n" + i + "n"
 		}
 		return i + "n"
@@ -112,11 +112,11 @@ func ekBul(sozcuk string, hal Case) string {
 	return ""
 }
 
-var birler = []string{"sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"}
-var onlar = []string{"", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"}
+var ones = []string{"sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"}
+var tens = []string{"", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"}
 
 // sayiSonSozcuk bir sayının okunuşundaki son sözcüğü verir: 46 → "altı", 40 → "kırk", 2000 → "bin".
-func sayiSonSozcuk(n int64) string {
+func lastNumberWord(n int64) string {
 	if n < 0 {
 		n = -n
 	}
@@ -124,9 +124,9 @@ func sayiSonSozcuk(n int64) string {
 	case n == 0:
 		return "sıfır"
 	case n%10 != 0:
-		return birler[n%10]
+		return ones[n%10]
 	case n%100 != 0:
-		return onlar[(n%100)/10]
+		return tens[(n%100)/10]
 	case n%1000 != 0:
 		return "yüz"
 	case n%1_000_000 != 0:

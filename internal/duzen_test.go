@@ -322,3 +322,44 @@ func duzeltmePayi(tavan int) int {
 	}
 	return 5
 }
+
+// testFileRuleRoots are the trees where every X_test.go must sit next to the X.go it tests
+// (X_fuzz_test.go also belongs to X.go). The list grows as each layer is cleaned up; a test
+// that covers a whole package rather than one file goes in packageWideTests with its reason.
+var testFileRuleRoots = []string{"internal/lang/"}
+
+var packageWideTests = map[string]string{
+	"internal/lang/interp/semantics_test.go":  "end-to-end language semantics: TR programs run through the whole interpreter",
+	"internal/lang/interp/robustness_test.go": "crash, deadlock and concurrency safety of the whole interpreter",
+}
+
+// A test file is named after the file it tests, so a reader can find the tests of a file (and
+// the file a test covers) from the name alone.
+func TestTestFileMatchesSource(t *testing.T) {
+	seen := map[string]bool{}
+	for _, d := range goDosyalari(t) {
+		if !d.test {
+			continue
+		}
+		inScope := false
+		for _, r := range testFileRuleRoots {
+			inScope = inScope || strings.HasPrefix(d.yol, r)
+		}
+		if !inScope {
+			continue
+		}
+		if _, ok := packageWideTests[d.yol]; ok {
+			seen[d.yol] = true
+			continue
+		}
+		base := strings.TrimSuffix(strings.TrimSuffix(d.yol, "_test.go"), "_fuzz")
+		if _, err := os.Stat(filepath.Join(reporoot.Kok(), filepath.FromSlash(base+".go"))); err != nil {
+			t.Errorf("%s: no %s.go next to it; name the test after the file it tests or move its tests there", d.yol, filepath.Base(base))
+		}
+	}
+	for f := range packageWideTests {
+		if !seen[f] {
+			t.Errorf("packageWideTests: %s not found; remove it from the list", f)
+		}
+	}
+}

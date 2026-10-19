@@ -14,7 +14,7 @@ import (
 
 // turAciklamasi beklenen bir token türünü anlatır (ör. "'{'", "bir ad",
 // "'içinde' anahtar kelimesi").
-func turAciklamasi(t lexer.TokenType) string {
+func typeDescription(t lexer.TokenType) string {
 	switch t {
 	case lexer.TOKEN_EOF:
 		return "dosya sonu"
@@ -29,15 +29,15 @@ func turAciklamasi(t lexer.TokenType) string {
 	case lexer.TOKEN_ILLEGAL:
 		return "geçersiz bir karakter"
 	}
-	if yazim := anahtarKelimeYazimi(t); yazim != "" {
-		return fmt.Sprintf("'%s' anahtar kelimesi", yazim)
+	if spelling := keywordSpelling(t); spelling != "" {
+		return fmt.Sprintf("'%s' anahtar kelimesi", spelling)
 	}
 	return fmt.Sprintf("'%s'", string(t))
 }
 
 // tokenAciklamasi kaynakta bulunan bir token'ı yazıldığı biçimiyle anlatır
 // (ör. "'x' adı", "42 sayısı", "'sonuç' anahtar kelimesi", "dosya sonu").
-func tokenAciklamasi(tok lexer.Token) string {
+func tokenDescription(tok lexer.Token) string {
 	switch tok.Type {
 	case lexer.TOKEN_EOF:
 		return "dosya sonu"
@@ -46,11 +46,11 @@ func tokenAciklamasi(tok lexer.Token) string {
 	case lexer.TOKEN_INT, lexer.TOKEN_FLOAT:
 		return fmt.Sprintf("%s sayısı", tok.Literal)
 	case lexer.TOKEN_STRING:
-		return fmt.Sprintf("%s metni", strconv.Quote(kisaMetin(unescapeBraces(tok.Literal))))
+		return fmt.Sprintf("%s metni", strconv.Quote(shortText(unescapeBraces(tok.Literal))))
 	case lexer.TOKEN_ILLEGAL:
 		return fmt.Sprintf("geçersiz '%s' karakteri", tok.Literal)
 	}
-	if anahtarKelimeYazimi(tok.Type) != "" {
+	if keywordSpelling(tok.Type) != "" {
 		return fmt.Sprintf("'%s' anahtar kelimesi", tok.Literal)
 	}
 	return fmt.Sprintf("'%s'", tok.Literal)
@@ -58,28 +58,28 @@ func tokenAciklamasi(tok lexer.Token) string {
 
 // anahtarKelimeYazimi anahtar kelime türünün sözlükteki adını bulur; tür bir anahtar
 // kelime değilse "" döner.
-func anahtarKelimeYazimi(t lexer.TokenType) string {
+func keywordSpelling(t lexer.TokenType) string {
 	return lexer.KeywordName(t)
 }
 
 // kisaMetin hata mesajında gösterilecek metin sabitini kısaltır.
-func kisaMetin(s string) string {
-	const sinir = 30
-	if utf8.RuneCountInString(s) <= sinir {
+func shortText(s string) string {
+	const limit = 30
+	if utf8.RuneCountInString(s) <= limit {
 		return s
 	}
-	return string([]rune(s)[:sinir-1]) + "…"
+	return string([]rune(s)[:limit-1]) + "…"
 }
 
 // beklenmeyenIpucu sık yapılan yanlışlar için hata mesajına eklenecek ipucunu verir.
-func beklenmeyenIpucu(beklenen lexer.TokenType, bulunan lexer.Token) string {
+func unexpectedHint(expected lexer.TokenType, found lexer.Token) string {
 	switch {
-	case beklenen == lexer.TOKEN_LBRACE && bulunan.Type == lexer.TOKEN_ASSIGN:
+	case expected == lexer.TOKEN_LBRACE && found.Type == lexer.TOKEN_ASSIGN:
 		return " (karşılaştırma için '==' yazın; '=' yalnızca atamadır)"
-	case beklenen == lexer.TOKEN_RPAREN && bulunan.Type == lexer.TOKEN_EOF,
-		beklenen == lexer.TOKEN_RBRACKET && bulunan.Type == lexer.TOKEN_EOF,
-		beklenen == lexer.TOKEN_RBRACE && bulunan.Type == lexer.TOKEN_EOF:
-		return fmt.Sprintf(" (açılan bir parantez kapatılmamış olabilir; '%s' ekleyin)", string(beklenen))
+	case expected == lexer.TOKEN_RPAREN && found.Type == lexer.TOKEN_EOF,
+		expected == lexer.TOKEN_RBRACKET && found.Type == lexer.TOKEN_EOF,
+		expected == lexer.TOKEN_RBRACE && found.Type == lexer.TOKEN_EOF:
+		return fmt.Sprintf(" (açılan bir parantez kapatılmamış olabilir; '%s' ekleyin)", string(expected))
 	}
 	return ""
 }
@@ -87,38 +87,38 @@ func beklenmeyenIpucu(beklenen lexer.TokenType, bulunan lexer.Token) string {
 // hataKaydet bir sözdizimi hatası kaydeder. Bir deyimde yalnızca ilk hata kaydedilir:
 // ardından gelenler çoğunlukla ilkinin sonucudur ve kullanıcıyı yanıltır. Deyim
 // döngüleri senkronizeOl ile hatalı deyimin geri kalanını atlayıp kaydı yeniden açar.
-func (p *Parser) hataKaydet(tok lexer.Token, mesaj string) {
-	if p.hataModu || p.derinlikAsildi {
+func (p *Parser) recordError(tok lexer.Token, message string) {
+	if p.errorMode || p.depthExceeded {
 		return
 	}
-	p.hataModu = true
-	p.hataSatiri = tok.Line
-	p.errors = append(p.errors, fmt.Sprintf("Satır %d, Sütun %d: %s", tok.Line, tok.Column, mesaj))
+	p.errorMode = true
+	p.errorLine = tok.Line
+	p.errors = append(p.errors, fmt.Sprintf("Satır %d, Sütun %d: %s", tok.Line, tok.Column, message))
 }
 
 // blokSonunaAtla, içinde bulunulan '{ ... }' bloğunu kapatan '}' işaretine kadar
 // (iç içe blokları sayarak) ilerler; dosya biterse dosya sonunda durur.
-func (p *Parser) blokSonunaAtla() {
-	derinlik := 0
+func (p *Parser) skipToBlockEnd() {
+	nesting := 0
 	for !p.curTokenIs(lexer.TOKEN_EOF) {
 		if p.curTokenIs(lexer.TOKEN_LBRACE) {
-			derinlik++
+			nesting++
 		} else if p.curTokenIs(lexer.TOKEN_RBRACE) {
-			if derinlik == 0 {
+			if nesting == 0 {
 				return
 			}
-			derinlik--
+			nesting--
 		}
 		p.nextToken()
 	}
 }
 
 // acanMi ve kapayanMi parantez, köşeli parantez ve süslü parantezleri tanır.
-func acanMi(t lexer.TokenType) bool {
+func isOpener(t lexer.TokenType) bool {
 	return t == lexer.TOKEN_LBRACE || t == lexer.TOKEN_LPAREN || t == lexer.TOKEN_LBRACKET
 }
 
-func kapayanMi(t lexer.TokenType) bool {
+func isCloser(t lexer.TokenType) bool {
 	return t == lexer.TOKEN_RBRACE || t == lexer.TOKEN_RPAREN || t == lexer.TOKEN_RBRACKET
 }
 
@@ -128,46 +128,46 @@ func kapayanMi(t lexer.TokenType) bool {
 // bloğu kapatan '}' işaretine kadar ilerler. 'değilse' ve 'yakala' ile başlayan
 // satırlar hatalı deyimin devamı sayılır. ustDuzey dosyanın en üst düzeyidir: orada
 // kapatılacak blok olmadığından sahipsiz '}' de atlanır.
-func (p *Parser) senkronizeOl(deyimBas int, ustDuzey bool) {
-	if !p.hataModu {
+func (p *Parser) synchronize(stmtStart int, topLevel bool) {
+	if !p.errorMode {
 		return
 	}
-	defer func() { p.hataModu = false }()
+	defer func() { p.errorMode = false }()
 
 	// Hatalı deyim, içinde bulunduğu bloğu kapatan '}' işaretine kadar okuduysa
 	// (ör. 'eğer x { yazdır( }'), o '}' bloğa geri bırakılır.
-	if !ustDuzey && p.curTokenIs(lexer.TOKEN_RBRACE) && p.pos > deyimBas {
-		suslu := 0
-		for i := deyimBas; i <= p.pos && i < len(p.tokens); i++ {
+	if !topLevel && p.curTokenIs(lexer.TOKEN_RBRACE) && p.pos > stmtStart {
+		brace := 0
+		for i := stmtStart; i <= p.pos && i < len(p.tokens); i++ {
 			switch p.tokens[i].Type {
 			case lexer.TOKEN_LBRACE:
-				suslu++
+				brace++
 			case lexer.TOKEN_RBRACE:
-				suslu--
+				brace--
 			}
 		}
-		if suslu < 0 {
+		if brace < 0 {
 			p.pos--
 			return
 		}
 	}
 	// Sayım hatanın ardından başlar: kapatılmamış bir '(' dosyanın geri kalanını yutmasın.
-	derinlik := 0
+	nesting := 0
 	for !p.peekTokenIs(lexer.TOKEN_EOF) {
 		pk := p.peekToken()
-		if derinlik == 0 {
-			if pk.Type == lexer.TOKEN_SEMICOLON || (pk.Type == lexer.TOKEN_RBRACE && !ustDuzey) {
+		if nesting == 0 {
+			if pk.Type == lexer.TOKEN_SEMICOLON || (pk.Type == lexer.TOKEN_RBRACE && !topLevel) {
 				return
 			}
-			yeniSatir := pk.Line > p.hataSatiri && pk.Line > p.curToken().Line
-			if yeniSatir && pk.Type != lexer.TOKEN_ELSE && pk.Type != lexer.TOKEN_CATCH {
+			newline := pk.Line > p.errorLine && pk.Line > p.curToken().Line
+			if newline && pk.Type != lexer.TOKEN_ELSE && pk.Type != lexer.TOKEN_CATCH {
 				return
 			}
 		}
-		if acanMi(pk.Type) {
-			derinlik++
-		} else if kapayanMi(pk.Type) && derinlik > 0 {
-			derinlik--
+		if isOpener(pk.Type) {
+			nesting++
+		} else if isCloser(pk.Type) && nesting > 0 {
+			nesting--
 		}
 		p.nextToken()
 	}

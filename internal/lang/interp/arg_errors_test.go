@@ -8,7 +8,7 @@ import (
 )
 
 // Hata yardımcıları dilin adlarını koddan alır: yerleşik ve tip adları Go metninde yazılmaz.
-func TestArgumanHatalariBicimi(t *testing.T) {
+func TestArgErrorsFormat(t *testing.T) {
 	if got := ArgTypeError(codes.T101, 1, &StringVal{Val: "a"}, codes.A200).Error(); got != `sıfırlar() 1. argüman olarak Tam bekler, Metin ("a") verildi` {
 		t.Errorf("tip hatası: %s", got)
 	}
@@ -25,16 +25,16 @@ func TestArgumanHatalariBicimi(t *testing.T) {
 		t.Errorf("kullanım: %s", got)
 	}
 	// Büyük değerler özetlenir: hata mesajı binlerce elemanı yazdırmaz
-	buyuk := &ListVal{}
+	upper := &ListVal{}
 	for i := 0; i < 10000; i++ {
-		buyuk.Elements = append(buyuk.Elements, NewInt(int64(i)))
+		upper.Elements = append(upper.Elements, NewInt(int64(i)))
 	}
-	if got := ValueSummary(buyuk); got != "[0, 1, 2, …], 10000 eleman" {
+	if got := ValueSummary(upper); got != "[0, 1, 2, …], 10000 eleman" {
 		t.Errorf("liste özeti: %s", got)
 	}
-	uzun := ValueSummary(&StringVal{Val: strings.Repeat("ğ", 100)})
-	if !strings.HasSuffix(uzun, `…"`) || len([]rune(uzun)) != ozetSiniri+2 {
-		t.Errorf("metin özeti: %s", uzun)
+	long := ValueSummary(&StringVal{Val: strings.Repeat("ğ", 100)})
+	if !strings.HasSuffix(long, `…"`) || len([]rune(long)) != summaryLimit+2 {
+		t.Errorf("metin özeti: %s", long)
 	}
 	if got := TypeAndSummary(nil); got != "hiçbir değer" {
 		t.Errorf("nil: %s", got)

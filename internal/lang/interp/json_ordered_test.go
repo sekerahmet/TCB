@@ -6,14 +6,14 @@ import (
 )
 
 func TestJSONDecodeRejectsBadInput(t *testing.T) {
-	derin := strings.Repeat("[", maxJSONDepth+5) + strings.Repeat("]", maxJSONDepth+5)
-	for girdi, want := range map[string]string{
-		derin:            "çok derin",
+	deep := strings.Repeat("[", maxJSONDepth+5) + strings.Repeat("]", maxJSONDepth+5)
+	for input, want := range map[string]string{
+		deep:             "çok derin",
 		`{"a": 1} fazla`: "beklenmeyen veri",
 		`{"a": }`:        "invalid",
 	} {
-		if _, err := JSONToTR([]byte(girdi)); err == nil || !strings.Contains(err.Error(), want) {
-			t.Errorf("%.30q için %q içeren hata bekleniyordu, alınan: %v", girdi, want, err)
+		if _, err := JSONToTR([]byte(input)); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%.30q için %q içeren hata bekleniyordu, alınan: %v", input, want, err)
 		}
 	}
 	// Tam sayı ve ondalık ayrımı korunur; tam değerli ondalık eskisi gibi Tam olur

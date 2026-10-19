@@ -8,7 +8,7 @@ import (
 )
 
 // tumTokenlar girdinin tüm sözcük birimlerini (DOSYA_SONU dahil) ve sözcük çözümleyici hatalarını döndürür.
-func tumTokenlar(t *testing.T, input string) ([]Token, []string) {
+func allTokens(t *testing.T, input string) ([]Token, []string) {
 	t.Helper()
 	l := New(input)
 	var toks []Token
@@ -26,23 +26,23 @@ func tumTokenlar(t *testing.T, input string) ([]Token, []string) {
 }
 
 // hatasizTokenlar hata beklenmeyen girdiler içindir.
-func hatasizTokenlar(t *testing.T, input string) []Token {
+func tokensNoErrors(t *testing.T, input string) []Token {
 	t.Helper()
-	toks, errs := tumTokenlar(t, input)
+	toks, errs := allTokens(t, input)
 	if len(errs) > 0 {
 		t.Fatalf("%q için beklenmeyen sözcük çözümleyici hataları: %v", input, errs)
 	}
 	return toks
 }
 
-type beklenen struct {
+type expected struct {
 	typ TokenType
 	lit string
 }
 
-func tokenlariDogrula(t *testing.T, input string, want []beklenen) {
+func tokenlariDogrula(t *testing.T, input string, want []expected) {
 	t.Helper()
-	toks := hatasizTokenlar(t, input)
+	toks := tokensNoErrors(t, input)
 	if len(toks) != len(want) {
 		t.Fatalf("%q: %d token bekleniyordu, %d geldi: %v", input, len(want), len(toks), toks)
 	}
@@ -58,18 +58,18 @@ func tokenlariDogrula(t *testing.T, input string, want []beklenen) {
 // ---------------------------------------------------------------------------
 
 // Sözlükteki her anahtar kelime tek başına doğru türde token üretmeli.
-func TestAnahtarKelimeTablosununTamami(t *testing.T) {
-	for kelime, tur := range keywords {
-		toks := hatasizTokenlar(t, kelime)
+func TestKeywordTableComplete(t *testing.T) {
+	for word, kind := range keywords {
+		toks := tokensNoErrors(t, word)
 		if len(toks) != 2 {
-			t.Errorf("%q: tek token + DOSYA_SONU bekleniyordu, gelen: %v", kelime, toks)
+			t.Errorf("%q: tek token + DOSYA_SONU bekleniyordu, gelen: %v", word, toks)
 			continue
 		}
-		if toks[0].Type != tur || toks[0].Literal != kelime {
-			t.Errorf("%q: %s bekleniyordu, %s %q geldi", kelime, tur, toks[0].Type, toks[0].Literal)
+		if toks[0].Type != kind || toks[0].Literal != word {
+			t.Errorf("%q: %s bekleniyordu, %s %q geldi", word, kind, toks[0].Type, toks[0].Literal)
 		}
 		if toks[0].Line != 1 || toks[0].Column != 1 {
-			t.Errorf("%q: konum 1:1 bekleniyordu, %d:%d geldi", kelime, toks[0].Line, toks[0].Column)
+			t.Errorf("%q: konum 1:1 bekleniyordu, %d:%d geldi", word, toks[0].Line, toks[0].Column)
 		}
 	}
 }
@@ -77,10 +77,10 @@ func TestAnahtarKelimeTablosununTamami(t *testing.T) {
 // Anahtar kelimelerin yalnızca Türkçe yazımı geçerlidir (her işin tek yazımı); ASCII
 // yazım sıradan bir addır ve hata mesajında Türkçe biçim önerilir. Bu liste, tablodan
 // bir yazımın yanlışlıkla silinmesini de yakalar.
-func TestAnahtarKelimeYalnizcaTurkceYazim(t *testing.T) {
-	ciftler := []struct {
-		turkce, ascii string
-		tur           TokenType
+func TestKeywordTurkishSpellingOnly(t *testing.T) {
+	pairs := []struct {
+		turkishSpelling, ascii string
+		kind                   TokenType
 	}{
 		{"değişken", "degisken", TOKEN_VAR},
 		{"sonuç", "sonuc", TOKEN_RETURN},
@@ -99,42 +99,42 @@ func TestAnahtarKelimeYalnizcaTurkceYazim(t *testing.T) {
 		{"eşzamanlı", "eszamanli", TOKEN_CONCURRENT},
 		{"kesme_noktası", "kesme_noktasi", TOKEN_BREAKPOINT},
 	}
-	for _, c := range ciftler {
-		if got := LookupIdent(c.turkce); got != c.tur {
-			t.Errorf("LookupIdent(%q) = %s, beklenen %s", c.turkce, got, c.tur)
+	for _, c := range pairs {
+		if got := LookupIdent(c.turkishSpelling); got != c.kind {
+			t.Errorf("LookupIdent(%q) = %s, beklenen %s", c.turkishSpelling, got, c.kind)
 		}
 		if got := LookupIdent(c.ascii); got != TOKEN_IDENT {
 			t.Errorf("LookupIdent(%q) = %s; ASCII yazım sıradan bir ad olmalı", c.ascii, got)
 		}
-		want := " ('" + c.ascii + "' TR'de anahtar kelime değil; '" + c.turkce + "' yazmak mı istediniz?)"
+		want := " ('" + c.ascii + "' TR'de anahtar kelime değil; '" + c.turkishSpelling + "' yazmak mı istediniz?)"
 		if got := hint.KeywordSpellingHint(c.ascii); got != want {
 			t.Errorf("ipucu.KaldirilanYazimIpucu(%q) = %q, %q bekleniyordu", c.ascii, got, want)
 		}
 	}
 
 	// Tek yazımı olan anahtar kelimeler
-	tekler := map[string]TokenType{
+	singles := map[string]TokenType{
 		"sabit": TOKEN_CONST, "fonksiyon": TOKEN_FUNCTION, "iken": TOKEN_WHILE,
 		"devam": TOKEN_CONTINUE, "yok": TOKEN_NIL, "ve": TOKEN_KW_AND, "veya": TOKEN_KW_OR,
 		"kendi": TOKEN_SELF, "dene": TOKEN_TRY, "yakala": TOKEN_CATCH,
 		"aktar": TOKEN_IMPORT, "ertele": TOKEN_DEFER,
 	}
-	for kelime, tur := range tekler {
-		if got := LookupIdent(kelime); got != tur {
-			t.Errorf("LookupIdent(%q) = %s, beklenen %s", kelime, got, tur)
+	for word, kind := range singles {
+		if got := LookupIdent(word); got != kind {
+			t.Errorf("LookupIdent(%q) = %s, beklenen %s", word, got, kind)
 		}
 	}
 }
 
 // Anahtar kelimeler büyük/küçük harfe duyarlıdır ve yalnızca tam kelime olarak eşleşir.
-func TestAnahtarKelimeOlmayanlar(t *testing.T) {
+func TestNonKeywords(t *testing.T) {
 	for _, s := range []string{
 		"Eğer", "EĞER", "Değişken", "DOĞRU", // büyük harfli yazımlar tanımlayıcıdır
 		"eğerki", "değişkenler", "dongu2", "_eger", "sabitler", // anahtar kelime önekli tanımlayıcılar
 		"egér",
 		"break_point", // eski İngilizce yazım kaldırıldı; artık sıradan bir ad
 	} {
-		toks := hatasizTokenlar(t, s)
+		toks := tokensNoErrors(t, s)
 		if len(toks) != 2 || toks[0].Type != TOKEN_IDENT || toks[0].Literal != s {
 			t.Errorf("%q: tek bir TANIMLAYICI bekleniyordu, gelen: %v", s, toks)
 		}
@@ -145,20 +145,20 @@ func TestAnahtarKelimeOlmayanlar(t *testing.T) {
 // Tanımlayıcılar
 // ---------------------------------------------------------------------------
 
-func TestTurkceKarakterliTanimlayicilar(t *testing.T) {
+func TestTurkishIdentifiers(t *testing.T) {
 	for _, s := range []string{
 		"ışık", "İstanbul", "şeker", "ağaç", "üzüm", "göz", "çiçek",
 		"IĞDIR", "öğrenci_sayısı", "_gizli", "x1", "değer2", "ÇÖĞŞÜİı",
 	} {
-		toks := hatasizTokenlar(t, s)
+		toks := tokensNoErrors(t, s)
 		if len(toks) != 2 || toks[0].Type != TOKEN_IDENT || toks[0].Literal != s {
 			t.Errorf("%q: tek bir TANIMLAYICI bekleniyordu, gelen: %v", s, toks)
 		}
 	}
 }
 
-func TestTanimlayiciVeOperatorSinirlari(t *testing.T) {
-	tokenlariDogrula(t, "öğrenci.yaş+çarpan", []beklenen{
+func TestIdentifierAndOperatorBoundaries(t *testing.T) {
+	tokenlariDogrula(t, "öğrenci.yaş+çarpan", []expected{
 		{TOKEN_IDENT, "öğrenci"},
 		{TOKEN_DOT, "."},
 		{TOKEN_IDENT, "yaş"},
@@ -172,11 +172,11 @@ func TestTanimlayiciVeOperatorSinirlari(t *testing.T) {
 // Sayılar
 // ---------------------------------------------------------------------------
 
-func TestSayilar(t *testing.T) {
-	testler := []struct {
-		girdi string
-		tur   TokenType
-		lit   string
+func TestNumbers(t *testing.T) {
+	tests := []struct {
+		src  string
+		kind TokenType
+		lit  string
 	}{
 		{"0", TOKEN_INT, "0"},
 		{"42", TOKEN_INT, "42"},
@@ -190,53 +190,53 @@ func TestSayilar(t *testing.T) {
 		{"1_", TOKEN_INT, "1"},
 		{"1__0", TOKEN_INT, "10"},
 	}
-	for _, tt := range testler {
-		tokenlariDogrula(t, tt.girdi, []beklenen{{tt.tur, tt.lit}, {TOKEN_EOF, ""}})
+	for _, tt := range tests {
+		tokenlariDogrula(t, tt.src, []expected{{tt.kind, tt.lit}, {TOKEN_EOF, ""}})
 	}
 }
 
-func TestSayiVeAralikAyrimi(t *testing.T) {
+func TestNumberAndRangeSplit(t *testing.T) {
 	// '1..10' ondalık sayı değil, aralıktır
-	tokenlariDogrula(t, "1..10", []beklenen{
+	tokenlariDogrula(t, "1..10", []expected{
 		{TOKEN_INT, "1"}, {TOKEN_RANGE, ".."}, {TOKEN_INT, "10"}, {TOKEN_EOF, ""},
 	})
-	tokenlariDogrula(t, "0..=5", []beklenen{
+	tokenlariDogrula(t, "0..=5", []expected{
 		{TOKEN_INT, "0"}, {TOKEN_RANGE_INCL, "..="}, {TOKEN_INT, "5"}, {TOKEN_EOF, ""},
 	})
 	// Noktadan sonra rakam yoksa sayı tam sayı olarak biter (üye erişimi için)
-	tokenlariDogrula(t, "5.kare", []beklenen{
+	tokenlariDogrula(t, "5.kare", []expected{
 		{TOKEN_INT, "5"}, {TOKEN_DOT, "."}, {TOKEN_IDENT, "kare"}, {TOKEN_EOF, ""},
 	})
-	tokenlariDogrula(t, "1.5..2.5", []beklenen{
+	tokenlariDogrula(t, "1.5..2.5", []expected{
 		{TOKEN_FLOAT, "1.5"}, {TOKEN_RANGE, ".."}, {TOKEN_FLOAT, "2.5"}, {TOKEN_EOF, ""},
 	})
 }
 
 // Bilimsel yazım: üs harfi (e/E), isteğe bağlı işaret ve en az bir rakam; sonuç Ondalık'tır.
-func TestBilimselSayilar(t *testing.T) {
-	testler := []struct{ girdi, lit string }{
+func TestScientificNumbers(t *testing.T) {
+	tests := []struct{ src, lit string }{
 		{"1e-5", "1e-5"},
 		{"3.2E+4", "3.2E+4"},
 		{"2e10", "2e10"},
 		{"6.02e2_3", "6.02e23"},
 	}
-	for _, tt := range testler {
-		tokenlariDogrula(t, tt.girdi, []beklenen{{TOKEN_FLOAT, tt.lit}, {TOKEN_EOF, ""}})
+	for _, tt := range tests {
+		tokenlariDogrula(t, tt.src, []expected{{TOKEN_FLOAT, tt.lit}, {TOKEN_EOF, ""}})
 	}
 	// Üsten sonra rakam yoksa 'e' sayıya ait değildir
-	tokenlariDogrula(t, "2e", []beklenen{{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_EOF, ""}})
-	tokenlariDogrula(t, "2e+x", []beklenen{
+	tokenlariDogrula(t, "2e", []expected{{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_EOF, ""}})
+	tokenlariDogrula(t, "2e+x", []expected{
 		{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_PLUS, "+"}, {TOKEN_IDENT, "x"}, {TOKEN_EOF, ""},
 	})
-	tokenlariDogrula(t, "1e3..5", []beklenen{
+	tokenlariDogrula(t, "1e3..5", []expected{
 		{TOKEN_FLOAT, "1e3"}, {TOKEN_RANGE, ".."}, {TOKEN_INT, "5"}, {TOKEN_EOF, ""},
 	})
 }
 
 // Mevcut davranış: sayıya bitişik harfler ayrı bir tanimlayıcı olur; sözcük çözümleyici hata vermez
 // (ayrıştırıcı ardışık ifadeyi ayrıca değerlendirir).
-func TestSayiyaBitisikHarf(t *testing.T) {
-	tokenlariDogrula(t, "12abc", []beklenen{
+func TestLetterAfterNumber(t *testing.T) {
+	tokenlariDogrula(t, "12abc", []expected{
 		{TOKEN_INT, "12"}, {TOKEN_IDENT, "abc"}, {TOKEN_EOF, ""},
 	})
 }
@@ -245,10 +245,10 @@ func TestSayiyaBitisikHarf(t *testing.T) {
 // Operatörler ve ayırıcılar
 // ---------------------------------------------------------------------------
 
-func TestTumOperatorler(t *testing.T) {
-	testler := []struct {
-		girdi string
-		tur   TokenType
+func TestAllOperators(t *testing.T) {
+	tests := []struct {
+		src  string
+		kind TokenType
 	}{
 		{"=", TOKEN_ASSIGN}, {":=", TOKEN_WALRUS}, {"+", TOKEN_PLUS}, {"-", TOKEN_MINUS},
 		{"*", TOKEN_ASTERISK}, {"/", TOKEN_SLASH}, {"%", TOKEN_PERCENT}, {"**", TOKEN_POWER},
@@ -262,58 +262,58 @@ func TestTumOperatorler(t *testing.T) {
 		{"?", TOKEN_QUESTION}, {"(", TOKEN_LPAREN}, {")", TOKEN_RPAREN}, {"{", TOKEN_LBRACE},
 		{"}", TOKEN_RBRACE}, {"[", TOKEN_LBRACKET}, {"]", TOKEN_RBRACKET},
 	}
-	for _, tt := range testler {
+	for _, tt := range tests {
 		// Hem tek başına hem de iki tanımlayıcı arasında doğru okunmalı
-		tokenlariDogrula(t, tt.girdi, []beklenen{{tt.tur, tt.girdi}, {TOKEN_EOF, ""}})
-		tokenlariDogrula(t, "a"+tt.girdi+"b", []beklenen{
-			{TOKEN_IDENT, "a"}, {tt.tur, tt.girdi}, {TOKEN_IDENT, "b"}, {TOKEN_EOF, ""},
+		tokenlariDogrula(t, tt.src, []expected{{tt.kind, tt.src}, {TOKEN_EOF, ""}})
+		tokenlariDogrula(t, "a"+tt.src+"b", []expected{
+			{TOKEN_IDENT, "a"}, {tt.kind, tt.src}, {TOKEN_IDENT, "b"}, {TOKEN_EOF, ""},
 		})
 	}
 }
 
 // En uzun eşleşme kuralı ve iki token'a bölünen birleşimler.
-func TestOperatorBirlesimleri(t *testing.T) {
-	testler := []struct {
-		girdi string
-		want  []beklenen
+func TestOperatorCombinations(t *testing.T) {
+	tests := []struct {
+		src  string
+		want []expected
 	}{
 		// '->' tek token değildir; ayrıştırıcı '-' ve '>' çiftini dönüş tipi oku olarak tanır
-		{"->", []beklenen{{TOKEN_MINUS, "-"}, {TOKEN_GT, ">"}}},
-		{"**=", []beklenen{{TOKEN_POWER, "**"}, {TOKEN_ASSIGN, "="}}},
-		{"===", []beklenen{{TOKEN_EQ, "=="}, {TOKEN_ASSIGN, "="}}},
-		{"==>", []beklenen{{TOKEN_EQ, "=="}, {TOKEN_GT, ">"}}},
-		{"...", []beklenen{{TOKEN_RANGE, ".."}, {TOKEN_DOT, "."}}},
-		{"???", []beklenen{{TOKEN_NULL_COALESC, "??"}, {TOKEN_QUESTION, "?"}}},
-		{"!!", []beklenen{{TOKEN_BANG, "!"}, {TOKEN_BANG, "!"}}},
-		{"<<", []beklenen{{TOKEN_LT, "<"}, {TOKEN_LT, "<"}}},
-		{"|||", []beklenen{{TOKEN_OR, "||"}, {TOKEN_ILLEGAL, "|"}}},
-		{"x?.y??z", []beklenen{
+		{"->", []expected{{TOKEN_MINUS, "-"}, {TOKEN_GT, ">"}}},
+		{"**=", []expected{{TOKEN_POWER, "**"}, {TOKEN_ASSIGN, "="}}},
+		{"===", []expected{{TOKEN_EQ, "=="}, {TOKEN_ASSIGN, "="}}},
+		{"==>", []expected{{TOKEN_EQ, "=="}, {TOKEN_GT, ">"}}},
+		{"...", []expected{{TOKEN_RANGE, ".."}, {TOKEN_DOT, "."}}},
+		{"???", []expected{{TOKEN_NULL_COALESC, "??"}, {TOKEN_QUESTION, "?"}}},
+		{"!!", []expected{{TOKEN_BANG, "!"}, {TOKEN_BANG, "!"}}},
+		{"<<", []expected{{TOKEN_LT, "<"}, {TOKEN_LT, "<"}}},
+		{"|||", []expected{{TOKEN_OR, "||"}, {TOKEN_ILLEGAL, "|"}}},
+		{"x?.y??z", []expected{
 			{TOKEN_IDENT, "x"}, {TOKEN_SAFE_DOT, "?."}, {TOKEN_IDENT, "y"},
 			{TOKEN_NULL_COALESC, "??"}, {TOKEN_IDENT, "z"},
 		}},
-		{"liste |> filtrele", []beklenen{
+		{"liste |> filtrele", []expected{
 			{TOKEN_IDENT, "liste"}, {TOKEN_PIPE, "|>"}, {TOKEN_IDENT, "filtrele"},
 		}},
-		{"(x) => x ** 2", []beklenen{
+		{"(x) => x ** 2", []expected{
 			{TOKEN_LPAREN, "("}, {TOKEN_IDENT, "x"}, {TOKEN_RPAREN, ")"}, {TOKEN_ARROW, "=>"},
 			{TOKEN_IDENT, "x"}, {TOKEN_POWER, "**"}, {TOKEN_INT, "2"},
 		}},
 	}
-	for _, tt := range testler {
-		tokenlariDogrula(t, tt.girdi, append(tt.want, beklenen{TOKEN_EOF, ""}))
+	for _, tt := range tests {
+		tokenlariDogrula(t, tt.src, append(tt.want, expected{TOKEN_EOF, ""}))
 	}
 }
 
-func TestGecersizKarakterler(t *testing.T) {
+func TestIllegalCharacters(t *testing.T) {
 	// '`' ham metin başlatır (2.6a); geçersiz karakter değildir.
 	for _, s := range []string{"&", "|", "$", "^", "~", "\\", "😀"} {
-		toks := hatasizTokenlar(t, s)
+		toks := tokensNoErrors(t, s)
 		if len(toks) != 2 || toks[0].Type != TOKEN_ILLEGAL || toks[0].Literal != s {
 			t.Errorf("%q: tek bir GEÇERSİZ token bekleniyordu, gelen: %v", s, toks)
 		}
 	}
 	// Geçersiz karakterden sonra okumaya devam edilmeli
-	tokenlariDogrula(t, "a $ b", []beklenen{
+	tokenlariDogrula(t, "a $ b", []expected{
 		{TOKEN_IDENT, "a"}, {TOKEN_ILLEGAL, "$"}, {TOKEN_IDENT, "b"}, {TOKEN_EOF, ""},
 	})
 }
@@ -322,14 +322,14 @@ func TestGecersizKarakterler(t *testing.T) {
 // Bütünleşik örnek
 // ---------------------------------------------------------------------------
 
-func TestTamProgram(t *testing.T) {
-	girdi := `fonksiyon topla(a: Tam, b: Tam) -> Tam {
+func TestFullProgram(t *testing.T) {
+	src := `fonksiyon topla(a: Tam, b: Tam) -> Tam {
 	sonuç a + b
 }
 sabit liste = [1, 2.5, "üç"]
 döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 `
-	tokenlariDogrula(t, girdi, []beklenen{
+	tokenlariDogrula(t, src, []expected{
 		{TOKEN_FUNCTION, "fonksiyon"}, {TOKEN_IDENT, "topla"}, {TOKEN_LPAREN, "("},
 		{TOKEN_IDENT, "a"}, {TOKEN_COLON, ":"}, {TOKEN_IDENT, "Tam"}, {TOKEN_COMMA, ","},
 		{TOKEN_IDENT, "b"}, {TOKEN_COLON, ":"}, {TOKEN_IDENT, "Tam"}, {TOKEN_RPAREN, ")"},
@@ -349,20 +349,94 @@ döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 }
 
 // Kaldırılan eş anlamlılar artık sıradan adlardır.
-func TestKaldirilanEsAnlamlilarAddir(t *testing.T) {
-	for _, ad := range []string{"işlev", "islev", "döndür", "dondur", "kır", "kir", "sınıf", "sinif",
+func TestRemovedSynonymsAreNames(t *testing.T) {
+	for _, name := range []string{"işlev", "islev", "döndür", "dondur", "kır", "kir", "sınıf", "sinif",
 		"dur_noktası", "dur_noktasi", "durdurma_noktası", "durdurma_noktasi"} {
-		if tur := LookupIdent(ad); tur != TOKEN_IDENT {
-			t.Errorf("%q artık ad olmalı, %s", ad, tur)
+		if kind := LookupIdent(name); kind != TOKEN_IDENT {
+			t.Errorf("%q artık ad olmalı, %s", name, kind)
 		}
-		if hint.KeywordSpellingHint(ad) == "" {
-			t.Errorf("%q için ipucu bekleniyordu", ad)
+		if hint.KeywordSpellingHint(name) == "" {
+			t.Errorf("%q için ipucu bekleniyordu", name)
 		}
 	}
 	// Eski adın ASCII biçimi de Türkçe adı önerir (ASCII biçim önerilmez).
-	for ad, want := range map[string]string{"islev": "'fonksiyon'", "dondur": "'sonuç'", "kir": "'çık'"} {
-		if got := hint.KeywordSpellingHint(ad); !strings.Contains(got, want) {
-			t.Errorf("ipucu.KaldirilanYazimIpucu(%q) = %q, %s önermeli", ad, got, want)
+	for name, want := range map[string]string{"islev": "'fonksiyon'", "dondur": "'sonuç'", "kir": "'çık'"} {
+		if got := hint.KeywordSpellingHint(name); !strings.Contains(got, want) {
+			t.Errorf("ipucu.KaldirilanYazimIpucu(%q) = %q, %s önermeli", name, got, want)
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Satır ve sütun numaraları
+// ---------------------------------------------------------------------------
+
+type srcPos struct {
+	lit       string
+	line, col int
+}
+
+func checkPositions(t *testing.T, input string, want []srcPos) {
+	t.Helper()
+	toks := tokensNoErrors(t, input)
+	if len(toks) != len(want) {
+		t.Fatalf("%q: %d token bekleniyordu, %d geldi: %v", input, len(want), len(toks), toks)
+	}
+	for i, w := range want {
+		if toks[i].Literal != w.lit || toks[i].Line != w.line || toks[i].Column != w.col {
+			t.Errorf("token[%d] = %q @%d:%d, beklenen %q @%d:%d",
+				i, toks[i].Literal, toks[i].Line, toks[i].Column, w.lit, w.line, w.col)
+		}
+	}
+}
+
+// Sütunlar 1 tabanlıdır ve bayt değil rune (karakter) sayar.
+func TestLineAndColumnNumbers(t *testing.T) {
+	src := "değişken ğüş = 1\n" +
+		"eğer ğüş >= 10 {\n" +
+		"\tyazdır(\"çok\")\n" +
+		"}"
+	checkPositions(t, src, []srcPos{
+		{"değişken", 1, 1}, {"ğüş", 1, 10}, {"=", 1, 14}, {"1", 1, 16},
+		{"eğer", 2, 1}, {"ğüş", 2, 6}, {">=", 2, 10}, {"10", 2, 13}, {"{", 2, 16},
+		{"yazdır", 3, 2}, {"(", 3, 8}, {"çok", 3, 9}, {")", 3, 14}, // sekme tek sütun sayılır
+		{"}", 4, 1},
+		{"", 4, 2},
+	})
+}
+func TestBlankLinesAndEOFPosition(t *testing.T) {
+	checkPositions(t, "\n\n   x\n", []srcPos{{"x", 3, 4}, {"", 4, 1}})
+	checkPositions(t, "", []srcPos{{"", 1, 1}})
+}
+func TestCRLFLineEndings(t *testing.T) {
+	src := "değişken a = 1\r\n" +
+		"a += 2 // yorum\r\n" +
+		"\r\n" +
+		"yazdır(\"x\")\r\n"
+	checkPositions(t, src, []srcPos{
+		{"değişken", 1, 1}, {"a", 1, 10}, {"=", 1, 12}, {"1", 1, 14},
+		{"a", 2, 1}, {"+=", 2, 3}, {"2", 2, 6},
+		{"yazdır", 4, 1}, {"(", 4, 7}, {"x", 4, 8}, {")", 4, 11},
+		{"", 5, 1},
+	})
+
+	// '\r' hiçbir yerde GEÇERSİZ token üretmemeli
+	for _, tok := range tokensNoErrors(t, "a\r\nb\rc") {
+		if tok.Type == TOKEN_ILLEGAL {
+			t.Errorf("'\\r' için GEÇERSİZ token üretildi: %v", tok)
+		}
+	}
+}
+
+// Windows'ta bazı editörler dosyanın başına UTF-8 BOM (U+FEFF) ekler; sözcük çözümleyici bunu atlamalı.
+func TestUTF8BOM(t *testing.T) {
+	bom := string(rune(0xFEFF))
+	checkPositions(t, bom+"değişken x = 1", []srcPos{
+		{"değişken", 1, 1}, {"x", 1, 10}, {"=", 1, 12}, {"1", 1, 14}, {"", 1, 15},
+	})
+	// Yalnızca dosya başındaki BOM atlanır; metnin ortasındakine dokunulmaz
+	toks := tokensNoErrors(t, "\"a"+bom+"b\"")
+	if toks[0].Literal != "a"+bom+"b" {
+		t.Errorf("metin içindeki U+FEFF korunmalı, gelen: %q", toks[0].Literal)
 	}
 }

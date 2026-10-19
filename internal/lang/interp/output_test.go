@@ -11,14 +11,14 @@ import (
 )
 
 // sahteCanliSatir silinip çizildiğini ortak çıktıya işaretleyen bir canlı satırdır.
-type sahteCanliSatir struct{ w *bytes.Buffer }
+type fakeLiveLine struct{ w *bytes.Buffer }
 
-func (s *sahteCanliSatir) Clear() { s.w.WriteString("[sil]") }
-func (s *sahteCanliSatir) Draw()  { s.w.WriteString("[çiz]") }
+func (s *fakeLiveLine) Clear() { s.w.WriteString("[sil]") }
+func (s *fakeLiveLine) Draw()  { s.w.WriteString("[çiz]") }
 
-func kodCalistir(t *testing.T, vmx *VM, kod string) {
+func execCode(t *testing.T, vmx *VM, codeVal string) {
 	t.Helper()
-	p := parser.New(lexer.New(kod))
+	p := parser.New(lexer.New(codeVal))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatal(p.Errors())
@@ -30,38 +30,38 @@ func kodCalistir(t *testing.T, vmx *VM, kod string) {
 
 // Etkin bir canlı satır (ilerleme çubuğu) varken yazdır, girdi istemi ve hata çıktısı
 // önce satırı siler, metni yazar, satırı yeniden çizer; canlı satır kaldırılınca düz yazılır.
-func TestCanliSatirKancasi(t *testing.T) {
-	var cikti bytes.Buffer
+func TestLiveLineHook(t *testing.T) {
+	var output bytes.Buffer
 	vmx := New()
-	vmx.Out, vmx.Err = &cikti, &cikti
+	vmx.Out, vmx.Err = &output, &output
 	vmx.Stdin = bytes.NewBufferString("ali\n")
-	vmx.SetLiveLine(&sahteCanliSatir{w: &cikti})
-	kodCalistir(t, vmx, "yazdır(\"a\", 1)\ndeğişken ad = girdi(\"ad: \")\n")
+	vmx.SetLiveLine(&fakeLiveLine{w: &output})
+	execCode(t, vmx, "yazdır(\"a\", 1)\ndeğişken ad = girdi(\"ad: \")\n")
 	vmx.reportAsyncError(3, errors.New("bozuk"))
-	beklenen := "[sil]a 1\n[çiz][sil]ad: [çiz][sil]⚠️  Eşzamanlı görev hatası (satır 3'te başlatılan): bozuk\n[çiz]"
-	if cikti.String() != beklenen {
-		t.Errorf("çıktı\n%q\nbeklenen\n%q", cikti.String(), beklenen)
+	expected := "[sil]a 1\n[çiz][sil]ad: [çiz][sil]⚠️  Eşzamanlı görev hatası (satır 3'te başlatılan): bozuk\n[çiz]"
+	if output.String() != expected {
+		t.Errorf("çıktı\n%q\nbeklenen\n%q", output.String(), expected)
 	}
-	cikti.Reset()
+	output.Reset()
 	vmx.SetLiveLine(nil)
-	kodCalistir(t, vmx, "yazdır(\"b\")\n")
-	if cikti.String() != "b\n" {
-		t.Errorf("canlı satır kaldırılınca düz yazılmalı: %q", cikti.String())
+	execCode(t, vmx, "yazdır(\"b\")\n")
+	if output.String() != "b\n" {
+		t.Errorf("canlı satır kaldırılınca düz yazılmalı: %q", output.String())
 	}
 	// Canlı satırın kendi çizimi de aynı kilit altında
-	vmx.UpdateLiveLine(func() { cikti.WriteString("çubuk") })
-	if cikti.String() != "b\nçubuk" {
-		t.Errorf("CanliSatirGuncelle: %q", cikti.String())
+	vmx.UpdateLiveLine(func() { output.WriteString("çubuk") })
+	if output.String() != "b\nçubuk" {
+		t.Errorf("CanliSatirGuncelle: %q", output.String())
 	}
 }
 
 // Gizli değer süzgeci: kayıtlı değerler çıktı noktalarında (yazdır, hata çıktısı, argüman
 // uyarısı) *** ile maskelenir; değerin kendisi (yazdır'ın döndürdüğü, değişkenler) değişmez.
 // Kısa değerler kaydedilmez; biri ötekini içeren değerlerde uzunu bütünüyle maskelenir.
-func TestGizliDegerSuzgeci(t *testing.T) {
-	var cikti bytes.Buffer
+func TestSecretFilter(t *testing.T) {
+	var output bytes.Buffer
 	vmx := New()
-	vmx.Out, vmx.Err = &cikti, &cikti
+	vmx.Out, vmx.Err = &output, &output
 	if vmx.Mask("hf_gizli123") != "hf_gizli123" {
 		t.Error("kayıt yokken metin değişmemeli")
 	}
@@ -72,16 +72,16 @@ func TestGizliDegerSuzgeci(t *testing.T) {
 		t.Fatal("gizli değer kaydedilemedi")
 	}
 	vmx.GlobalEnv.Define("anahtar", &StringVal{Val: "hf_gizli123"}, false)
-	kodCalistir(t, vmx, "değişken d = yazdır(\"anahtar: {anahtar}, uzun: hf_gizli123_uzun, abc\")\n")
-	if got := cikti.String(); got != "anahtar: ***, uzun: ***, abc\n" {
+	execCode(t, vmx, "değişken d = yazdır(\"anahtar: {anahtar}, uzun: hf_gizli123_uzun, abc\")\n")
+	if got := output.String(); got != "anahtar: ***, uzun: ***, abc\n" {
 		t.Errorf("yazdır çıktısı maskelenmeli: %q", got)
 	}
 	if d, _ := vmx.GlobalEnv.Get("d"); d.Inspect() != "anahtar: hf_gizli123, uzun: hf_gizli123_uzun, abc" {
 		t.Errorf("yazdır'ın döndürdüğü değer (veri) değişmemeli: %s", d.Inspect())
 	}
-	cikti.Reset()
+	output.Reset()
 	vmx.reportAsyncError(1, errors.New("istek reddedildi: hf_gizli123"))
-	if got := cikti.String(); !strings.Contains(got, "istek reddedildi: ***") {
+	if got := output.String(); !strings.Contains(got, "istek reddedildi: ***") {
 		t.Errorf("hata çıktısı maskelenmeli: %q", got)
 	}
 	vmx.SetArgs([]string{"--anahtar", "hf_gizli123"})

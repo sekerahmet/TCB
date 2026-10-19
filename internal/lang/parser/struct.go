@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
@@ -27,18 +28,18 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 
 	// Yapı gövdesinde yalnızca alanlar ve fonksiyon tanımları bulunur; her ad bir kez
 	// tanımlanır. Başka içerik sessizce alan sayılmaz ya da atlanmaz: sözdizimi hatasıdır.
-	tanimli := map[string]bool{}
-	adDenetle := func(tok lexer.Token, ad, tur string) bool {
-		if tanimli[ad] {
-			p.hataKaydet(tok, fmt.Sprintf("Sözdizimi hatası — '%s' %s '%s' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)", ad, tur, stmt.Name))
+	defined := map[string]bool{}
+	checkName := func(tok lexer.Token, name, kind string) bool {
+		if defined[name] {
+			p.recordError(tok, fmt.Sprintf("Sözdizimi hatası — '%s' %s '%s' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)", name, kind, stmt.Name))
 			return false
 		}
-		tanimli[ad] = true
+		defined[name] = true
 		return true
 	}
-	gecersiz := func(tok lexer.Token, ne string) *ast.StructStatement {
-		p.hataKaydet(tok, "Sözdizimi hatası — yapı gövdesinde yalnızca alanlar (ad, ad: Tip, ad = değer) ve fonksiyon tanımları bulunabilir; "+ne)
-		p.blokSonunaAtla()
+	invalid := func(tok lexer.Token, what string) *ast.StructStatement {
+		p.recordError(tok, "Sözdizimi hatası — yapı gövdesinde yalnızca alanlar (ad, ad: Tip, ad = değer) ve fonksiyon tanımları bulunabilir; "+what)
+		p.skipToBlockEnd()
 		return stmt
 	}
 	for !p.curTokenIs(lexer.TOKEN_RBRACE) && !p.curTokenIs(lexer.TOKEN_EOF) {
@@ -48,21 +49,21 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 		}
 		if p.curTokenIs(lexer.TOKEN_FUNCTION) {
 			fnTok := p.curToken()
-			p.rol(p.peekToken(), RoleStructMethod)
+			p.role(p.peekToken(), RoleStructMethod)
 			// Hatalı metod tanımında parseFunctionLiteral nil döner; tip dönüşümü panik yapmamalı
 			fn, _ := p.parseFunctionLiteral().(*ast.FunctionLiteral)
 			if fn == nil {
 				// Hata zaten kaydedildi; yapının kapanışına kadar atla
-				p.blokSonunaAtla()
+				p.skipToBlockEnd()
 				break
 			}
 			if fn.Name == "" {
-				p.hataKaydet(fnTok, "Sözdizimi hatası — yapı metodunun bir adı olmalı: fonksiyon ad(...) { ... }")
-				p.blokSonunaAtla()
+				p.recordError(fnTok, "Sözdizimi hatası — yapı metodunun bir adı olmalı: fonksiyon ad(...) { ... }")
+				p.skipToBlockEnd()
 				break
 			}
-			if !adDenetle(fnTok, fn.Name, "metodu") {
-				p.blokSonunaAtla()
+			if !checkName(fnTok, fn.Name, "metodu") {
+				p.skipToBlockEnd()
 				break
 			}
 			stmt.Methods[fn.Name] = fn
@@ -73,16 +74,16 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 			p.nextToken()
 		}
 		if !p.curTokenIs(lexer.TOKEN_IDENT) {
-			return gecersiz(p.curToken(), tokenAciklamasi(p.curToken())+" bir alan tanımı değil")
+			return invalid(p.curToken(), tokenDescription(p.curToken())+" bir alan tanımı değil")
 		}
-		alanTok := p.curToken()
-		p.rol(alanTok, RoleStructField)
-		field := ast.StructField{Name: alanTok.Literal}
+		fieldTok := p.curToken()
+		p.role(fieldTok, RoleStructField)
+		field := ast.StructField{Name: fieldTok.Literal}
 		if p.peekTokenIs(lexer.TOKEN_COLON) {
 			p.nextToken() // ':'
 			if p.expectPeek(lexer.TOKEN_IDENT) {
 				field.TypeName = p.curToken().Literal
-				p.rol(p.curToken(), RoleType)
+				p.role(p.curToken(), RoleType)
 			}
 		}
 		if p.peekTokenIs(lexer.TOKEN_ASSIGN) {
@@ -92,12 +93,12 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 		}
 		// Alan virgül, ';', satır sonu ya da '}' ile biter: aynı satırda başka bir şey
 		// (ör. 'yazdır("...")' çağrısının '(' işareti) alan değildir.
-		if sonraki := p.peekToken(); sonraki.Type != lexer.TOKEN_RBRACE && sonraki.Type != lexer.TOKEN_COMMA &&
-			sonraki.Type != lexer.TOKEN_SEMICOLON && sonraki.Type != lexer.TOKEN_EOF && sonraki.Line == p.curToken().Line {
-			return gecersiz(alanTok, fmt.Sprintf("'%s' ardından gelen %s bir alan tanımı değil (alanlar virgül ya da satır sonuyla ayrılır)", alanTok.Literal, tokenAciklamasi(sonraki)))
+		if next := p.peekToken(); next.Type != lexer.TOKEN_RBRACE && next.Type != lexer.TOKEN_COMMA &&
+			next.Type != lexer.TOKEN_SEMICOLON && next.Type != lexer.TOKEN_EOF && next.Line == p.curToken().Line {
+			return invalid(fieldTok, fmt.Sprintf("'%s' ardından gelen %s bir alan tanımı değil (alanlar virgül ya da satır sonuyla ayrılır)", fieldTok.Literal, tokenDescription(next)))
 		}
-		if !adDenetle(alanTok, field.Name, "alanı") {
-			p.blokSonunaAtla()
+		if !checkName(fieldTok, field.Name, "alanı") {
+			p.skipToBlockEnd()
 			break
 		}
 		stmt.Fields = append(stmt.Fields, field)

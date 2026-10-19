@@ -163,7 +163,7 @@ func Uret(kok string) ([]byte, error) {
 	b.WriteString("// A named constant for every live code in the dictionary (tr.json). The constant's name is\n")
 	b.WriteString("// the code itself, not the user-visible name: renaming a name never changes the constant.\n")
 	b.WriteString("// The name in the comment only helps the reader. Moved and removed codes have no constant;\n")
-	b.WriteString("// see tasinanlar and kaldirilanlar.\n")
+	b.WriteString("// see movedMap and removedSet.\n")
 	b.WriteString("const (\n")
 	var tasinan, kaldirilan []kod
 	for _, k := range kodlar {
@@ -179,11 +179,11 @@ func Uret(kok string) ([]byte, error) {
 	}
 	b.WriteString(")\n\n")
 
-	b.WriteString("// tasinanlar kaldırılıp işi başka bir koda (başka bir biçime: fonksiyondan metoda ya da\n")
+	b.WriteString("// movedMap kaldırılıp işi başka bir koda (başka bir biçime: fonksiyondan metoda ya da\n")
 	b.WriteString("// metottan fonksiyona) taşınan kodlardır: eski kod → yeni kod (definitions.json'daki\n")
 	b.WriteString("// \"taşındı\" alanı). Eski kodun numarası bir daha kullanılmaz; adı yalnızca hata\n")
 	b.WriteString("// mesajında yeni biçimi önermek için dil dosyasında kalır.\n")
-	b.WriteString("var tasinanlar = map[Code]Code{\n")
+	b.WriteString("var movedMap = map[Code]Code{\n")
 	for _, k := range tasinan {
 		hedef, err := kodCoz(tanimlar[k.metin].Tasindi)
 		if err != nil {
@@ -192,10 +192,10 @@ func Uret(kok string) ([]byte, error) {
 		fmt.Fprintf(&b, "\t%c + %d: %c + %d, // %s → %s\n", k.harf, k.sayi, hedef.harf, hedef.sayi, k.metin, hedef.metin)
 	}
 	b.WriteString("}\n\n")
-	b.WriteString("// kaldirilanlar yerine geçen olmadan dilden kaldırılan kodlardır (definitions.json'daki\n")
+	b.WriteString("// removedSet yerine geçen olmadan dilden kaldırılan kodlardır (definitions.json'daki\n")
 	b.WriteString("// \"kaldırıldı\" alanı). Numaraları bir daha kullanılmaz; adları yalnızca \"TR'den\n")
 	b.WriteString("// kaldırıldı\" hatası için dil dosyasında kalır.\n")
-	b.WriteString("var kaldirilanlar = map[Code]bool{\n")
+	b.WriteString("var removedSet = map[Code]bool{\n")
 	for _, k := range kaldirilan {
 		fmt.Fprintf(&b, "\t%c + %d: true, // %s %s\n", k.harf, k.sayi, k.metin, tr[k.metin].Ad)
 	}

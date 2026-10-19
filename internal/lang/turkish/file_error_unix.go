@@ -5,8 +5,8 @@ package turkish
 import "syscall"
 
 // sistemHatasiNedeni POSIX hata kodlarından bilinenleri Türkçe anlatır; bilinmeyende "" döner.
-func sistemHatasiNedeni(kod syscall.Errno) string {
-	switch kod {
+func systemErrorReason(code syscall.Errno) string {
+	switch code {
 	case syscall.ENOSPC:
 		return "diskte yer kalmadı (yer açıp yeniden deneyin)"
 	case syscall.EDQUOT:

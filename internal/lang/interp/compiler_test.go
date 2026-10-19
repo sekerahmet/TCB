@@ -1,19 +1,20 @@
 package interp
 
 import (
-	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // Kapanış derleyicisinin kapsam kurallarını ağaç yorumlayıcısının anlamıyla karşılaştıran testler.
 
-func TestDerleyiciKapsamlari(t *testing.T) {
+func TestCompilerScopes(t *testing.T) {
 	out, _, err := runTROut(t, `
 		değişken x = "genel"
 		fonksiyon f() {
@@ -55,7 +56,7 @@ func TestDerleyiciKapsamlari(t *testing.T) {
 
 // Hata ayıklayıcının değerlendirdiği ifade ve deyimler, düzeni derleme anında bilinmeyen
 // ortamlarda adla çalışmalı; tanımladıkları adlar sonradan derlenmiş koddan görünmeli.
-func TestDerleyiciDinamikDegerlendirme(t *testing.T) {
+func TestCompilerDynamicEval(t *testing.T) {
 	machine := New()
 	env := NewEnvironment(machine.GlobalEnv)
 	env.Define("a", NewInt(4), false)
@@ -68,10 +69,10 @@ func TestDerleyiciDinamikDegerlendirme(t *testing.T) {
 	if err != nil || val.Inspect() != "13" {
 		t.Fatalf("13 bekleniyordu: %v %v", val, err)
 	}
-	var adlar []string
-	env.EachLocal(func(ad string, _ Value) { adlar = append(adlar, ad) })
-	if strings.Join(adlar, ",") != "a,b" {
-		t.Fatalf("yerel adlar: %v", adlar)
+	var nameList []string
+	env.EachLocal(func(name string, _ Value) { nameList = append(nameList, name) })
+	if strings.Join(nameList, ",") != "a,b" {
+		t.Fatalf("yerel adlar: %v", nameList)
 	}
 	if _, err := machine.EvalExpression(expr, machine.GlobalEnv); err == nil || !strings.Contains(err.Error(), "'a' adında") {
 		t.Fatalf("genel kapsamda 'a' bulunmamalı: %v", err)
@@ -80,40 +81,40 @@ func TestDerleyiciDinamikDegerlendirme(t *testing.T) {
 
 // zıplayanAyiklayici belirli bir satıra ilk gelişte başka bir satıra atlatır ve gördüğü
 // ortamda adla değişken okur.
-type zıplayanAyiklayici struct {
-	kaynak, hedef int
-	atladi        bool
-	gorulen       []string
+type jumpingDebugger struct {
+	source, dest int
+	skipped      bool
+	seenSet      []string
 }
 
-func (d *zıplayanAyiklayici) BeforeStatement(v *VM, stmt ast.Statement, env *Environment) int {
+func (d *jumpingDebugger) BeforeStatement(v *VM, stmt ast.Statement, env *Environment) int {
 	if val, ok := env.Get("s"); ok {
-		d.gorulen = append(d.gorulen, val.Inspect())
+		d.seenSet = append(d.seenSet, val.Inspect())
 	}
-	if stmt.Line() == d.kaynak && !d.atladi {
-		d.atladi = true
-		return d.hedef
+	if stmt.Line() == d.source && !d.skipped {
+		d.skipped = true
+		return d.dest
 	}
 	return 0
 }
 
-func (d *zıplayanAyiklayici) Breakpoint(string) {}
+func (d *jumpingDebugger) Breakpoint(string) {}
 
 // Hata ayıklayıcı bir satır döndürdüğünde yürütme o satıra (fonksiyon gövdesinde de) atlamalı.
-func TestDerleyiciZipla(t *testing.T) {
-	kod := "fonksiyon f() {\n" + // 1
+func TestCompilerJump(t *testing.T) {
+	codeVal := "fonksiyon f() {\n" + // 1
 		"    değişken s = 0\n" + // 2
 		"    s += 1\n" + // 3
 		"    s += 10\n" + // 4
 		"    sonuç s\n" + // 5
 		"}\n" + // 6
 		"yazdır(f())\n" // 7
-	p := parser.New(lexer.New(kod))
+	p := parser.New(lexer.New(codeVal))
 	prog := p.ParseProgram()
 	var out strings.Builder
 	machine := New()
 	machine.Out = &out
-	d := &zıplayanAyiklayici{kaynak: 5, hedef: 3}
+	d := &jumpingDebugger{source: 5, dest: 3}
 	machine.Debugger = d
 	if _, err := machine.Run(prog); err != nil {
 		t.Fatal(err)
@@ -121,41 +122,41 @@ func TestDerleyiciZipla(t *testing.T) {
 	if out.String() != "22\n" {
 		t.Fatalf("geri zıplama sonrası 22 bekleniyordu, alınan %q", out.String())
 	}
-	if !d.atladi || len(d.gorulen) == 0 {
-		t.Fatalf("hata ayıklayıcı yerel 's' değişkenini görmeliydi: %v", d.gorulen)
+	if !d.skipped || len(d.seenSet) == 0 {
+		t.Fatalf("hata ayıklayıcı yerel 's' değişkenini görmeliydi: %v", d.seenSet)
 	}
 }
 
 // Sayılar tam ve kararlı sıralanır (eşitlerde özgün sıra); büyük Tam'lar Ondalığa
 // yuvarlanmaz. Sayı ile metin karışımı karşılaştırılamaz: girdinin sırasına bağlı bir
 // sonuç yerine hata verir.
-func TestSiralaDegerlerKararli(t *testing.T) {
+func TestSortValuesStable(t *testing.T) {
 	a, b := &FloatVal{Val: 2}, NewInt(2)
 	d := []Value{NewInt(3), a, NewInt(-1), b, &FloatVal{Val: 0.5}, &FloatVal{Val: math.NaN()}, NewInt(9007199254740993), &FloatVal{Val: 9007199254740992}}
-	if err := siralaDegerler("sırala()", d); err != nil {
+	if err := sortValues("sırala()", d); err != nil {
 		t.Fatal(err)
 	}
 	if (&ListVal{Elements: d}).Inspect() != "[-1, 0.5, 2.0, 2, 3, 9.007199254740992e+15, 9007199254740993, NaN]" || d[2] != a || d[3] != b {
 		t.Fatalf("beklenmeyen sıra: %v", (&ListVal{Elements: d}).Inspect())
 	}
-	tamlar := []Value{NewInt(9007199254740993), NewInt(9007199254740992)}
-	_ = siralaDegerler("sırala()", tamlar)
-	if tamlar[0].(*IntVal).Val != 9007199254740992 {
-		t.Fatalf("büyük Tam'lar tam karşılaştırılmalı: %v", tamlar)
+	ints := []Value{NewInt(9007199254740993), NewInt(9007199254740992)}
+	_ = sortValues("sırala()", ints)
+	if ints[0].(*IntVal).Val != 9007199254740992 {
+		t.Fatalf("büyük Tam'lar tam karşılaştırılmalı: %v", ints)
 	}
-	for _, karisik := range [][]Value{
+	for _, mixed := range [][]Value{
 		{&StringVal{Val: "b"}, NewInt(1), &StringVal{Val: "a"}},
 		{NewInt(2), &StringVal{Val: "10"}, NewInt(10)},
 		{TRUE, FALSE},
 	} {
-		if err := siralaDegerler("sırala()", karisik); err == nil || !strings.Contains(err.Error(), "yalnızca sayılardan ya da yalnızca metinlerden") {
+		if err := sortValues("sırala()", mixed); err == nil || !strings.Contains(err.Error(), "yalnızca sayılardan ya da yalnızca metinlerden") {
 			t.Fatalf("karışık liste hata vermeli: %v", err)
 		}
 	}
 }
 
 // Havuzdan alınan çağrı ortamları özyinelemede ve hata sonrasında karışmamalı.
-func TestCagriOrtamHavuzu(t *testing.T) {
+func TestCallEnvPool(t *testing.T) {
 	_, val, err := runTROut(t, `
 		fonksiyon fib(n) {
 			eğer n < 2 { sonuç n }
@@ -175,7 +176,7 @@ func TestCagriOrtamHavuzu(t *testing.T) {
 }
 
 // Doğrudan metot çağrıları bağlı yerleşik yoluyla aynı sonucu vermeli.
-func TestDogrudanMetotCagrilari(t *testing.T) {
+func TestDirectMethodCalls(t *testing.T) {
 	_, val, err := runTROut(t, `
 		değişken l = [1]
 		l.ekle(l.uzunluk, l.uzunluk)
@@ -196,14 +197,14 @@ func TestDogrudanMetotCagrilari(t *testing.T) {
 }
 
 // Yapı alanı varsayılanları yapının tanımlandığı kapsamda değerlendirilir (modül, fonksiyon).
-func TestYapiVarsayilaniTanimKapsaminda(t *testing.T) {
+func TestStructDefaultInDefScope(t *testing.T) {
 	dir := t.TempDir()
-	modul := filepath.Join(dir, "modk.tr")
-	if err := os.WriteFile(modul, []byte("sabit VARS = 5\nyapı K { a: Tam = VARS }\nfonksiyon K_yap() { sonuç K() }\n"), 0o644); err != nil {
+	module := filepath.Join(dir, "modk.tr")
+	if err := os.WriteFile(module, []byte("sabit VARS = 5\nyapı K { a: Tam = VARS }\nfonksiyon K_yap() { sonuç K() }\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, val, err := runTROut(t, `
-		aktar "`+filepath.ToSlash(modul)+`" olarak m
+		aktar "`+filepath.ToSlash(module)+`" olarak m
 		fonksiyon yerel_yapi() {
 			değişken taban = 7
 			yapı Y { b: Tam = taban * 2 }
@@ -219,7 +220,7 @@ func TestYapiVarsayilaniTanimKapsaminda(t *testing.T) {
 
 // Hızlı yollar (ASCII metin indeksi, Tam anahtarlı sözlük, doğrudan yapı metodu) eski
 // anlamı korumalı.
-func TestHizliYollarAnlami(t *testing.T) {
+func TestFastPathSemantics(t *testing.T) {
 	_, val, err := runTROut(t, `
 		değişken s = "abç"
 		değişken a = "xyz"
@@ -249,7 +250,7 @@ func TestHizliYollarAnlami(t *testing.T) {
 }
 
 // Yerleşik adı gölgeleyen genel değişken sabit sayılmamalı; kullanıcı sabiti korunmalı.
-func TestDerleyiciGolgelemeVeSabit(t *testing.T) {
+func TestCompilerShadowingAndConst(t *testing.T) {
 	_, val, err := runTROut(t, `
 		değişken toplam = 0
 		döngü i içinde 1..=4 { toplam += i }

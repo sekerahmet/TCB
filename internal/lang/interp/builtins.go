@@ -2,52 +2,53 @@ package interp
 
 import (
 	"fmt"
-	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"io"
 	"math"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // cekirdekYerlesikleri çekirdeğin adlı argüman almayan yerleşikleridir; kayıt sırası
 // tablodaki sıradır. Adlar kod listesindedir (internal/lang/codes).
-var cekirdekYerlesikleri = [...]struct {
+var coreBuiltins = [...]struct {
 	kd codes.Code
 	fn BuiltinFunc
 }{
-	{codes.G100, yazdirYerlesik},
-	{codes.G101, girdiYerlesik},
-	{codes.G201, tipYerlesik},
-	{codes.G210, tamYerlesik},
-	{codes.G211, ondalikYerlesik},
-	{codes.G212, metinYerlesik},
-	{codes.G305, aralikYerlesik},
-	{codes.G400, toplamYerlesik},
-	{codes.G401, minYerlesik},
-	{codes.G402, maksYerlesik},
-	{codes.G403, mutlakYerlesik},
-	{codes.G404, karekokYerlesik},
-	{codes.G405, yuvarlaYerlesik},
-	{codes.G501, bekleHepsiYerlesik},
-	{codes.G502, zamanMsYerlesik},
-	{codes.G110, dosyaOkuYerlesik},
-	{codes.G111, dosyaYazYerlesik},
-	{codes.G500, bekleYerlesik},
+	{codes.G100, printBuiltin},
+	{codes.G101, inputBuiltin},
+	{codes.G201, typeBuiltin},
+	{codes.G210, intBuiltin},
+	{codes.G211, floatBuiltin},
+	{codes.G212, stringBuiltin},
+	{codes.G305, rangeBuiltin},
+	{codes.G400, sumBuiltin},
+	{codes.G401, minBuiltin},
+	{codes.G402, maxBuiltin},
+	{codes.G403, absBuiltin},
+	{codes.G404, sqrtBuiltin},
+	{codes.G405, roundBuiltin},
+	{codes.G501, waitAllBuiltin},
+	{codes.G502, timeMsBuiltin},
+	{codes.G110, readFileBuiltin},
+	{codes.G111, writeFileBuiltin},
+	{codes.G500, sleepBuiltin},
 }
 
 func (v *VM) registerBuiltins() {
-	for _, k := range cekirdekYerlesikleri {
+	for _, k := range coreBuiltins {
 		v.RegisterNoNamed(k.kd, k.fn)
 	}
-	v.tekArgumanli(codes.G212, metinTek)
+	v.singleArg(codes.G212, singleChar)
 }
 
 // yazdirYerlesik yazdır() yerleşiğidir.
 // Ekrana Yazdırma: yazdır(...)
-func yazdirYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func printBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	var parts []string
 	for _, a := range args {
 		parts = append(parts, a.Inspect())
@@ -59,14 +60,14 @@ func yazdirYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) 
 
 // girdiYerlesik girdi() yerleşiğidir.
 // Kullanıcıdan Girdi Alma: girdi("Adınız: ")
-func girdiYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) > 1 {
 		return nil, ArgCountError(codes.G101, "0 ya da 1", len(args), "", "istem")
 	}
 	if len(args) > 0 {
 		y.WriteOutput(y.Out, args[0].Inspect())
 	}
-	line, readErr := y.satirOku()
+	line, readErr := y.readLine()
 	if readErr != nil && readErr != io.EOF && line == "" {
 		return nil, fmt.Errorf("%s: standart girdi okunamadı: %s", CallPrefix(codes.G101), turkish.FileErrorReason("", readErr))
 	}
@@ -76,7 +77,7 @@ func girdiYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
 
 // tipYerlesik tip() yerleşiğidir.
 // Tip Sorgulama: tip(x)
-func tipYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func typeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G201, "1", len(args), "değer")
 	}
@@ -85,7 +86,7 @@ func tipYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
 
 // tamYerlesik tam() yerleşiğidir.
 // Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
-func tamYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func intBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G210, "1", len(args), "değer")
 	}
@@ -93,7 +94,7 @@ func tamYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
 	case *IntVal:
 		return val, nil
 	case *FloatVal:
-		n, err := ondaliktanTam(CallPrefix(codes.G210), val.Val)
+		n, err := floatToInt(CallPrefix(codes.G210), val.Val)
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +116,7 @@ func tamYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
 }
 
 // ondalikYerlesik ondalık() yerleşiğidir.
-func ondalikYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G211, "1", len(args), "değer")
 	}
@@ -136,16 +137,16 @@ func ondalikYerlesik(y *VM, args []Value, named map[string]Value) (Value, error)
 }
 
 // metinYerlesik metin() yerleşiğidir.
-func metinYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func stringBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G212, "1", len(args), "değer")
 	}
-	return metinTek(y, args[0])
+	return singleChar(y, args[0])
 }
 
 // aralikYerlesik aralık() yerleşiğidir.
 // Liste: aralık(bitiş) ya da aralık(başlangıç, bitiş)
-func aralikYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func rangeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) == 1 {
 		end, ok := args[0].(*IntVal)
 		if !ok {
@@ -183,7 +184,7 @@ func aralikYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) 
 
 // toplamYerlesik toplam() yerleşiğidir.
 // Temel Matematik Fonksiyonları
-func toplamYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func sumBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G400, "1", len(args), "liste")
 	}
@@ -191,22 +192,22 @@ func toplamYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) 
 	if !ok {
 		return nil, ArgTypeError(codes.G400, 1, args[0], codes.A205)
 	}
-	return sayiTopla(CallPrefix(codes.G400), list.Elements)
+	return sumNumbers(CallPrefix(codes.G400), list.Elements)
 }
 
 // minYerlesik min() yerleşiğidir.
 // min/maks: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
-func minYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
-	return enUcArgumanlari(codes.G401, args, false)
+func minBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	return extremeArgs(codes.G401, args, false)
 }
 
 // maksYerlesik maks() yerleşiğidir.
-func maksYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
-	return enUcArgumanlari(codes.G402, args, true)
+func maxBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	return extremeArgs(codes.G402, args, true)
 }
 
 // mutlakYerlesik mutlak() yerleşiğidir.
-func mutlakYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G403, "1", len(args), "sayı")
 	}
@@ -223,28 +224,28 @@ func mutlakYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) 
 	if fv, ok := ToFloat(args[0]); ok {
 		return &FloatVal{Val: math.Abs(fv)}, nil
 	}
-	return nil, ArgTypeError(codes.G403, 1, args[0], sayiTipleri...)
+	return nil, ArgTypeError(codes.G403, 1, args[0], numberTypes...)
 }
 
 // karekokYerlesik karekök() yerleşiğidir.
-func karekokYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func sqrtBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G404, "1", len(args), "sayı")
 	}
 	if fv, ok := ToFloat(args[0]); ok {
 		return &FloatVal{Val: math.Sqrt(fv)}, nil
 	}
-	return nil, ArgTypeError(codes.G404, 1, args[0], sayiTipleri...)
+	return nil, ArgTypeError(codes.G404, 1, args[0], numberTypes...)
 }
 
 // yuvarlaYerlesik yuvarla() yerleşiğidir.
-func yuvarlaYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, ArgCountError(codes.G405, "1 ya da 2", len(args), "sayı", "sayı, basamak")
 	}
 	fv, ok := ToFloat(args[0])
 	if !ok {
-		return nil, ArgTypeError(codes.G405, 1, args[0], sayiTipleri...)
+		return nil, ArgTypeError(codes.G405, 1, args[0], numberTypes...)
 	}
 	digits := 0
 	if len(args) == 2 {
@@ -262,12 +263,12 @@ func yuvarlaYerlesik(y *VM, args []Value, named map[string]Value) (Value, error)
 	if iv, ok := args[0].(*IntVal); ok && digits == 0 {
 		return iv, nil
 	}
-	yuvarlanan := math.Round(fv)
+	rounded := math.Round(fv)
 	if digits < 0 {
 		pow := math.Pow(10, float64(-digits))
-		yuvarlanan = math.Round(fv/pow) * pow
+		rounded = math.Round(fv/pow) * pow
 	}
-	n, err := ondaliktanTam(CallPrefix(codes.G405), yuvarlanan)
+	n, err := floatToInt(CallPrefix(codes.G405), rounded)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +277,7 @@ func yuvarlaYerlesik(y *VM, args []Value, named map[string]Value) (Value, error)
 
 // bekleHepsiYerlesik bekle_hepsi() yerleşiğidir.
 // Eşzamanlılık, Zaman ve Dosya İşlemleri
-func bekleHepsiYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
 	if y.asyncTask {
 		return nil, fmt.Errorf("%s '%s' bloğu içinden çağrılamaz; ana programda kullanın", CallPrefix(codes.G501), codes.Name(codes.A080))
@@ -286,76 +287,76 @@ func bekleHepsiYerlesik(y *VM, args []Value, named map[string]Value) (Value, err
 }
 
 // zamanMsYerlesik zaman_ms() yerleşiğidir.
-func zamanMsYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func timeMsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return NewInt(time.Now().UnixMilli()), nil
 }
 
 // dosyaOkuYerlesik dosya_oku() yerleşiğidir.
-func dosyaOkuYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G110, "1", len(args), "dosya")
 	}
-	yol, ok, err := PathArg(CallPrefix(codes.G110), args[0])
+	filePath, ok, err := PathArg(CallPrefix(codes.G110), args[0])
 	if !ok {
 		return nil, ArgTypeError(codes.G110, 1, args[0], codes.A202, codes.A250)
 	}
 	if err != nil {
 		return nil, err
 	}
-	cozulen, bakilanlar := y.ResolvePath(yol)
+	resolved, searched := y.ResolvePath(filePath)
 	var data []byte
-	y.Blocking(func() { data, err = ReadFileContent(cozulen) })
+	y.Blocking(func() { data, err = ReadFileContent(resolved) })
 	if err != nil {
-		return nil, ReadError(CallPrefix(codes.G110), yol, "okunamadı", err, bakilanlar)
+		return nil, ReadError(CallPrefix(codes.G110), filePath, "okunamadı", err, searched)
 	}
 	return &StringVal{Val: string(data)}, nil
 }
 
 // dosyaYazYerlesik dosya_yaz() yerleşiğidir. Yazma atomiktir (bkz. AtomikYaz).
-func dosyaYazYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 2 {
 		return nil, ArgCountError(codes.G111, "2", len(args), "yol, içerik")
 	}
-	yol, ok, err := PathArg(CallPrefix(codes.G111), args[0])
+	filePath, ok, err := PathArg(CallPrefix(codes.G111), args[0])
 	if !ok {
 		return nil, ArgTypeError(codes.G111, 1, args[0], codes.A202, codes.A250)
 	}
 	if err != nil {
 		return nil, err
 	}
-	cozulen, _ := y.ResolvePath(yol)
-	icerik := []byte(args[1].Inspect())
-	y.Blocking(func() { err = WriteFileContent(cozulen, icerik) })
+	resolved, _ := y.ResolvePath(filePath)
+	content := []byte(args[1].Inspect())
+	y.Blocking(func() { err = WriteFileContent(resolved, content) })
 	if err != nil {
-		return nil, turkish.FileError(CallPrefix(codes.G111), yol, "yazılamadı", err)
+		return nil, turkish.FileError(CallPrefix(codes.G111), filePath, "yazılamadı", err)
 	}
 	return TRUE, nil
 }
 
 // bekleYerlesik bekle() yerleşiğidir.
-func bekleYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G500, "1", len(args), "saniye")
 	}
-	sec, ok := ToFloat(args[0])
+	pick, ok := ToFloat(args[0])
 	if !ok {
-		return nil, ArgTypeError(codes.G500, 1, args[0], sayiTipleri...)
+		return nil, ArgTypeError(codes.G500, 1, args[0], numberTypes...)
 	}
 	// Kesme istenirse (Ctrl+C) bekleme hemen biter; program sonraki güvenli noktada durur.
-	y.Blocking(func() { y.kesilebilirUyu(time.Duration(sec * float64(time.Second))) })
+	y.Blocking(func() { y.interruptibleSleep(time.Duration(pick * float64(time.Second))) })
 	return TRUE, nil
 }
 
 // sayiTipleri sayı bekleyen yerleşiklerin kabul ettiği tiplerdir; sayiTipi hata
 // mesajlarındaki adlarıdır ("Tam ya da Ondalık").
 var (
-	sayiTipleri = []codes.Code{codes.A200, codes.A201}
-	sayiTipi    = TypeNames(sayiTipleri...)
+	numberTypes = []codes.Code{codes.A200, codes.A201}
+	numberType  = TypeNames(numberTypes...)
 )
 
 // cagrilabilir değerin filtrele/haritala/indirge gibi metotlara fonksiyon olarak
 // verilebilir olup olmadığını söyler.
-func cagrilabilir(v Value) bool {
+func callable(v Value) bool {
 	switch v.(type) {
 	case *FuncVal, *BuiltinVal, *StructDefVal:
 		return true
@@ -368,16 +369,16 @@ func cagrilabilir(v Value) bool {
 const MaxCollectionSize = 50_000_000
 
 // metinTek metin(x) yerleşiğinin tek argümanlı gövdesidir.
-func metinTek(_ *VM, a Value) (Value, error) {
+func singleChar(_ *VM, a Value) (Value, error) {
 	return &StringVal{Val: a.Inspect()}, nil
 }
 
 // tekArgumanli kayıtlı bir yerleşiğe, tek argümanla (adlı argümansız) çağrıldığında
 // argüman dilimi ayırmadan çalışan gövdesini bağlar. Gövde, Fn'in tek argümanlı
 // durumuyla birebir aynı olmalıdır.
-func (v *VM) tekArgumanli(kd codes.Code, tek func(*VM, Value) (Value, error)) {
+func (v *VM) singleArg(kd codes.Code, single func(*VM, Value) (Value, error)) {
 	if b := v.Builtin(kd); b != nil {
-		b.Single = tek
+		b.Single = single
 	}
 }
 
@@ -391,14 +392,14 @@ func checkRangeSize(start, end int64) error {
 
 // enUcArgumanlari min/maks'ın argümanlarını açar: tek bir liste verilirse elemanları,
 // değilse argümanların kendisi karşılaştırılır.
-func enUcArgumanlari(kd codes.Code, args []Value, buyuk bool) (Value, error) {
+func extremeArgs(kd codes.Code, args []Value, upper bool) (Value, error) {
 	if len(args) == 0 {
 		return nil, ArgCountError(kd, "en az 1", 0, "liste", "a, b, ...")
 	}
 	if len(args) == 1 {
 		if list, ok := args[0].(*ListVal); ok {
-			return enUc(kd, list.Elements, buyuk, true)
+			return extreme(kd, list.Elements, upper, true)
 		}
 	}
-	return enUc(kd, args, buyuk, false)
+	return extreme(kd, args, upper, false)
 }

@@ -12,13 +12,13 @@ import (
 
 // dosyaHatasi işletim sisteminin dosya hatasını Türkçe anlatır. Özgün hata Unwrap ile
 // korunur: errors.Is(err, os.ErrNotExist) gibi denetimler çalışmaya devam eder.
-type dosyaHatasi struct {
-	mesaj string
-	ozgun error
+type fileError struct {
+	message string
+	orig    error
 }
 
-func (h *dosyaHatasi) Error() string { return h.mesaj }
-func (h *dosyaHatasi) Unwrap() error { return h.ozgun }
+func (h *fileError) Error() string { return h.message }
+func (h *fileError) Unwrap() error { return h.orig }
 
 // Reason is a file error carrying its own Turkish reason sentence (cases that do not come
 // from the operating system: "uzantısı .gz ama içerik gzip değil", "salt okunur dosya" ...).
@@ -43,7 +43,7 @@ func (n Reason) Error() string { return string(n) }
 //
 // Returns nil when err is nil. Standard library packages (tensör_kaydet/yükle,
 // parçalayıcı_yükle, veri_kümesi) must report file errors through it as well.
-func FileError(fn, yol, islem string, err error, ekler ...string) error {
+func FileError(fn, path, op string, err error, suffixes ...string) error {
 	if err == nil {
 		return nil
 	}
@@ -52,19 +52,19 @@ func FileError(fn, yol, islem string, err error, ekler ...string) error {
 		sb.WriteString(fn)
 		sb.WriteString(": ")
 	}
-	fmt.Fprintf(&sb, "%q %s: %s", yol, islem, FileErrorReason(yol, err))
-	for _, ek := range ekler {
-		if ek != "" {
+	fmt.Fprintf(&sb, "%q %s: %s", path, op, FileErrorReason(path, err))
+	for _, suffix := range suffixes {
+		if suffix != "" {
 			sb.WriteString("; ")
-			sb.WriteString(ek)
+			sb.WriteString(suffix)
 		}
 	}
-	return &dosyaHatasi{mesaj: sb.String(), ozgun: err}
+	return &fileError{message: sb.String(), orig: err}
 }
 
 // FileErrorReason returns only the Turkish reason sentence of the error (e.g. "böyle bir
 // dosya ya da klasör yok"). For callers that build their own message.
-func FileErrorReason(yol string, err error) string {
+func FileErrorReason(path string, err error) string {
 	if err == nil {
 		return ""
 	}
@@ -76,19 +76,19 @@ func FileErrorReason(yol string, err error) string {
 	// klasörüne göre çözülmüş olabilir).
 	var pe *fs.PathError
 	if errors.As(err, &pe) && pe.Path != "" {
-		yol = pe.Path
+		path = pe.Path
 	}
 	// Yol var ve bir klasörse işletim sistemleri bunu farklı biçimlerde bildirir
 	// (Windows'ta "Incorrect function", Unix'te EISDIR); hepsi aynı cümleye iner.
-	if yol != "" {
-		if bilgi, e := os.Stat(yol); e == nil && bilgi.IsDir() {
+	if path != "" {
+		if info, e := os.Stat(path); e == nil && info.IsDir() {
 			return "bu bir klasör, dosya değil (klasörün içindeki bir dosyanın yolunu verin)"
 		}
 	}
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		if klasor := eksikKlasor(yol); klasor != "" {
-			return fmt.Sprintf("%q klasörü yok", klasor)
+		if dir := missingDir(path); dir != "" {
+			return fmt.Sprintf("%q klasörü yok", dir)
 		}
 		return "böyle bir dosya ya da klasör yok (yolun yazımını denetleyin)"
 	case errors.Is(err, fs.ErrPermission):
@@ -98,43 +98,43 @@ func FileErrorReason(yol string, err error) string {
 	case errors.Is(err, syscall.EISDIR):
 		return "bu bir klasör, dosya değil (klasörün içindeki bir dosyanın yolunu verin)"
 	}
-	var kod syscall.Errno
-	if errors.As(err, &kod) {
-		if neden := sistemHatasiNedeni(kod); neden != "" {
-			return neden
+	var code syscall.Errno
+	if errors.As(err, &code) {
+		if reason := systemErrorReason(code); reason != "" {
+			return reason
 		}
-		return fmt.Sprintf("işletim sistemi beklenmeyen bir hata bildirdi (hata kodu %d: %s)", uintptr(kod), kod.Error())
+		return fmt.Sprintf("işletim sistemi beklenmeyen bir hata bildirdi (hata kodu %d: %s)", uintptr(code), code.Error())
 	}
-	ozgun := err.Error()
+	orig := err.Error()
 	if pe != nil {
-		ozgun = pe.Err.Error()
+		orig = pe.Err.Error()
 	}
-	return fmt.Sprintf("beklenmeyen bir hata oluştu (özgün hata: %s)", ozgun)
+	return fmt.Sprintf("beklenmeyen bir hata oluştu (özgün hata: %s)", orig)
 }
 
 // eksikKlasor yolun klasör kısımlarından ilk olmayanını kullanıcının yazdığı biçimde
 // döndürür; klasörler tamamsa (eksik olan dosyanın kendisiyse) "" döner.
-func eksikKlasor(yol string) string {
-	if yol == "" {
+func missingDir(path string) string {
+	if path == "" {
 		return ""
 	}
-	klasor := filepath.Dir(yol)
-	if klasor == "." || klasor == yol {
+	dir := filepath.Dir(path)
+	if dir == "." || dir == path {
 		return ""
 	}
-	if _, err := os.Stat(klasor); err == nil {
+	if _, err := os.Stat(dir); err == nil {
 		return ""
 	}
 	// En üstteki eksik klasörü bul: "a/b/c.txt" için 'a' yoksa "a" söylenir.
 	for {
-		ust := filepath.Dir(klasor)
-		if ust == "." || ust == klasor {
+		parentDir := filepath.Dir(dir)
+		if parentDir == "." || parentDir == dir {
 			break
 		}
-		if _, err := os.Stat(ust); err == nil {
+		if _, err := os.Stat(parentDir); err == nil {
 			break
 		}
-		klasor = ust
+		dir = parentDir
 	}
-	return filepath.ToSlash(klasor)
+	return filepath.ToSlash(dir)
 }

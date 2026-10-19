@@ -75,7 +75,7 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 
 		if !p.expectPeek(lexer.TOKEN_ARROW) {
 			// Kalan durumlar da hatalı okunup art arda hata vermesin diye eşle bloğu atlanır
-			p.blokSonunaAtla()
+			p.skipToBlockEnd()
 			return nil
 		}
 

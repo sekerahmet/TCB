@@ -2,10 +2,11 @@ package parser
 
 import (
 	"fmt"
+	"slices"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
-	"slices"
 )
 
 func (p *Parser) parseStatement() ast.Statement {
@@ -17,14 +18,14 @@ func (p *Parser) parseStatement() ast.Statement {
 	case lexer.TOKEN_RETURN:
 		return p.parseReturnStatement()
 	case lexer.TOKEN_BREAK:
-		p.sinyalDenetle(p.curToken())
+		p.checkSignal(p.curToken())
 		stmt := &ast.BreakStatement{Token: p.curToken()}
 		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
 			p.nextToken()
 		}
 		return stmt
 	case lexer.TOKEN_CONTINUE:
-		p.sinyalDenetle(p.curToken())
+		p.checkSignal(p.curToken())
 		stmt := &ast.ContinueStatement{Token: p.curToken()}
 		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
 			p.nextToken()
@@ -51,7 +52,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case lexer.TOKEN_IDENT:
 		// test "ad" { ... } — 'test' yalnızca deyim başında ve ardından metin geldiğinde
 		// anahtar kelimedir; başka her yerde sıradan bir addır (değişken test = 5).
-		if slices.Contains(testYazimlari, p.curToken().Literal) && p.peekTokenIs(lexer.TOKEN_STRING) {
+		if slices.Contains(testSpellings, p.curToken().Literal) && p.peekTokenIs(lexer.TOKEN_STRING) {
 			return p.parseTestStatement()
 		}
 		// x := 5 kısa değişken tanımı kontrolü
@@ -65,14 +66,14 @@ func (p *Parser) parseStatement() ast.Statement {
 }
 func (p *Parser) parseTestStatement() ast.Statement {
 	tok := p.curToken() // test
-	p.rol(tok, RoleTest)
+	p.role(tok, RoleTest)
 	p.nextToken() // test adı (metin)
 	name := unescapeBraces(p.curToken().Literal)
 	if !p.expectPeek(lexer.TOKEN_LBRACE) {
 		return nil
 	}
 	var body *ast.BlockStatement
-	p.sinirIcinde(false, true, func() { body = p.parseBlockStatement() })
+	p.withinLimit(false, true, func() { body = p.parseBlockStatement() })
 	return &ast.TestStatement{Token: tok, Name: name, Body: body}
 }
 func (p *Parser) parseBreakpointStatement() *ast.BreakpointStatement {
@@ -102,7 +103,7 @@ func (p *Parser) parseDeferStatement() *ast.DeferStatement {
 	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
 		p.nextToken()
 		var body *ast.BlockStatement
-		p.sinirIcinde(false, false, func() { body = p.parseBlockStatement() })
+		p.withinLimit(false, false, func() { body = p.parseBlockStatement() })
 		return &ast.DeferStatement{Token: tok, Body: body}
 	}
 	p.nextToken()
@@ -132,7 +133,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 		}
 		if !p.peekTokenIs(lexer.TOKEN_ASSIGN) && !p.peekTokenIs(lexer.TOKEN_WALRUS) {
 			tok := p.peekToken()
-			p.hataKaydet(tok, fmt.Sprintf("Sözdizimi hatası — çoklu değişken tanımında '=' bekleniyordu, ancak %s bulundu", tokenAciklamasi(tok)))
+			p.recordError(tok, fmt.Sprintf("Sözdizimi hatası — çoklu değişken tanımında '=' bekleniyordu, ancak %s bulundu", tokenDescription(tok)))
 			return nil
 		}
 		p.nextToken() // '='
@@ -163,7 +164,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 			return nil
 		}
 		stmt.TypeName = p.curToken().Literal
-		p.rol(p.curToken(), RoleType)
+		p.role(p.curToken(), RoleType)
 	}
 
 	if p.peekTokenIs(lexer.TOKEN_ASSIGN) || p.peekTokenIs(lexer.TOKEN_WALRUS) {
@@ -197,7 +198,7 @@ func (p *Parser) parseShortVarStatement() *ast.VarStatement {
 	return stmt
 }
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
-	p.sonucDenetle(p.curToken())
+	p.checkReturn(p.curToken())
 	stmt := &ast.ReturnStatement{Token: p.curToken()}
 
 	// Eğer hemen ardından '}' veya ';' veya EOF geliyorsa boş dönüş
@@ -277,11 +278,11 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	defer p.allowBlocks()()
 	block := &ast.BlockStatement{Token: p.curToken()}
 	block.Statements = []ast.Statement{}
-	if !p.derinlikGir() {
-		p.blokSonunaAtla()
+	if !p.enterDepth() {
+		p.skipToBlockEnd()
 		return block
 	}
-	defer p.derinlikCik()
+	defer p.leaveDepth()
 
 	p.nextToken()
 
@@ -290,12 +291,12 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 			p.nextToken()
 			continue
 		}
-		deyimBas := p.pos
+		stmtStart := p.pos
 		stmt := p.parseStatement()
 		if stmt != nil {
 			block.Statements = append(block.Statements, stmt)
 		}
-		p.senkronizeOl(deyimBas, false)
+		p.synchronize(stmtStart, false)
 		p.nextToken()
 	}
 	p.requireClosingBrace(block.Token)
@@ -307,28 +308,28 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 // Aksi hâlde sonraki tüm kod sessizce bloğun içine girerdi (test raporu Y1).
 func (p *Parser) requireClosingBrace(open lexer.Token) {
 	if p.curTokenIs(lexer.TOKEN_EOF) {
-		p.hataKaydet(open, "'{' kapatılmadı; dosya bitti ama bu bloğu kapatan '}' bulunamadı")
+		p.recordError(open, "'{' kapatılmadı; dosya bitti ama bu bloğu kapatan '}' bulunamadı")
 	}
 }
 func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	tok := p.curToken()
 	// Modül yolu bir metin olarak yazılır: aktar "yol" (§11). Tırnaksız ad yol sayılmaz.
 	if !p.peekTokenIs(lexer.TOKEN_STRING) {
-		sonraki := p.peekToken()
-		ornek := "yardımcı"
-		if sonraki.Type == lexer.TOKEN_IDENT {
-			ornek = sonraki.Literal
+		next := p.peekToken()
+		example := "yardımcı"
+		if next.Type == lexer.TOKEN_IDENT {
+			example = next.Literal
 		}
-		aktar := codes.Name(codes.A070)
-		p.hataKaydet(sonraki, fmt.Sprintf("Sözdizimi hatası — '%s' modül yolunu metin olarak bekler, ancak %s bulundu: %s \"%s\" yazın", aktar, tokenAciklamasi(sonraki), aktar, ornek))
+		imp := codes.Name(codes.A070)
+		p.recordError(next, fmt.Sprintf("Sözdizimi hatası — '%s' modül yolunu metin olarak bekler, ancak %s bulundu: %s \"%s\" yazın", imp, tokenDescription(next), imp, example))
 		return nil
 	}
 	p.nextToken()
 	path := p.curToken().Literal
 	stmt := &ast.ImportStatement{Token: tok, Path: path}
-	if p.peekTokenIs(lexer.TOKEN_IDENT) && slices.Contains(olarakYazimlari, p.peekToken().Literal) {
+	if p.peekTokenIs(lexer.TOKEN_IDENT) && slices.Contains(asSpellings, p.peekToken().Literal) {
 		p.nextToken() // 'olarak'
-		p.rol(p.curToken(), RoleAs)
+		p.role(p.curToken(), RoleAs)
 		if p.expectPeek(lexer.TOKEN_IDENT) {
 			stmt.Alias = p.curToken().Literal
 		}

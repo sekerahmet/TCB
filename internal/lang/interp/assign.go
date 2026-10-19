@@ -9,16 +9,16 @@ import (
 
 // atamaIslemi bileşik atamada mevcut değerle sağ tarafı birleştirir; düz atamada sağ
 // tarafı olduğu gibi döndürür.
-func (v *VM) atamaIslemi(kod uint8, cur Value, rhs Value, line int) (Value, error) {
-	switch kod {
-	case opTopla, opCikar, opCarp, opBol:
-		return v.evalInfixKod(kod, atamaIslecMetni(kod), cur, rhs, line)
+func (v *VM) assignOp(codeVal uint8, cur Value, rhs Value, line int) (Value, error) {
+	switch codeVal {
+	case opAdd, opSub, opMul, opDiv:
+		return v.evalInfixKod(codeVal, assignOpText(codeVal), cur, rhs, line)
 	}
 	return rhs, nil
 }
 
 // indekseAta kap[idx] = değer atamasını yapar.
-func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line int) error {
+func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line int) error {
 	switch container := left.(type) {
 	case *ListVal:
 		iv, ok := idx.(*IntVal)
@@ -32,14 +32,14 @@ func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line i
 		if pos < 0 || pos >= len(container.Elements) {
 			return fmt.Errorf("Satır %d: %s indeksi sınır dışı (%d)", line, VAL_LIST, iv.Val)
 		}
-		finalVal, err := v.atamaIslemi(kod, container.Elements[pos], rightVal, line)
+		finalVal, err := v.assignOp(codeVal, container.Elements[pos], rightVal, line)
 		if err != nil {
 			return err
 		}
 		container.Elements[pos] = finalVal
 		return nil
 	case *DictVal:
-		if kod == opAta {
+		if codeVal == opAssign {
 			// Düz atamada mevcut değer gerekmez (atamaIslemi sağ tarafı olduğu gibi verir)
 			container.SetValue(idx, rightVal)
 			return nil
@@ -48,7 +48,7 @@ func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line i
 		if cur == nil {
 			cur = NULL
 		}
-		finalVal, err := v.atamaIslemi(kod, cur, rightVal, line)
+		finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
 		if err != nil {
 			return err
 		}
@@ -57,33 +57,33 @@ func (v *VM) indekseAta(left Value, idx Value, kod uint8, rightVal Value, line i
 	case IndexAssignable:
 		// Dış değerler (ör. tensör): bileşik atamada mevcut değer Indeks ile okunur.
 		finalVal := rightVal
-		if kod != opAta {
-			okunan, ok := left.(Indexable)
+		if codeVal != opAssign {
+			readCount, ok := left.(Indexable)
 			if !ok {
 				return fmt.Errorf("Satır %d: %s tipinde indeksli bileşik atama yapılamaz", line, left.Type())
 			}
-			cur, err := okunan.Index(idx)
+			cur, err := readCount.Index(idx)
 			if err != nil {
-				return satirEki(line, err)
+				return lineSuffix(line, err)
 			}
-			if finalVal, err = v.atamaIslemi(kod, cur, rightVal, line); err != nil {
+			if finalVal, err = v.assignOp(codeVal, cur, rightVal, line); err != nil {
 				return err
 			}
 		}
-		return satirEki(line, container.SetIndex(idx, finalVal))
+		return lineSuffix(line, container.SetIndex(idx, finalVal))
 	}
 	return fmt.Errorf("Satır %d: Bu tipe indeks ile atama yapılamaz (%s)", line, left.Type())
 }
 
 // uyeyeAta nesne.alan = değer atamasını yapar; u adın derleme anında çözülmüş kodudur.
-func (v *VM) uyeyeAta(obj Value, prop string, u uyeBilgisi, kod uint8, rightVal Value, line int) error {
+func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, rightVal Value, line int) error {
 	switch inst := obj.(type) {
 	case *StructInstanceVal:
 		// Nesnenin alanları her zaman yapı tanımındakilerdir (7.5): tanımda olmayan alana ve
 		// metoda atama yapılamaz.
-		cur, alan := inst.Fields[prop]
-		if !alan {
-			if _, metot := inst.Def.Methods[prop]; metot {
+		cur, field := inst.Fields[prop]
+		if !field {
+			if _, meth := inst.Def.Methods[prop]; meth {
 				return fmt.Errorf("Satır %d: '%s' %s yapısının bir metodu; metoda değer atanamaz", line, prop, inst.Def.Name)
 			}
 			return fmt.Errorf("Satır %d: %s yapısında '%s' alanı yok; yapı tanımına '%s' alanını ekleyin", line, inst.Def.Name, prop, prop)
@@ -91,7 +91,7 @@ func (v *VM) uyeyeAta(obj Value, prop string, u uyeBilgisi, kod uint8, rightVal 
 		if cur == nil {
 			cur = NULL
 		}
-		finalVal, err := v.atamaIslemi(kod, cur, rightVal, line)
+		finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
 		if err != nil {
 			return err
 		}
@@ -100,14 +100,14 @@ func (v *VM) uyeyeAta(obj Value, prop string, u uyeBilgisi, kod uint8, rightVal 
 	case *DictVal:
 		// d.ad = ..., d["ad"] = ... ile aynıdır; ancak sözlük üyelerinin adları (d.anahtarlar,
 		// d.uzunluk) okumada üyeyi verdiği için atamada da anahtar sayılmaz (3.7).
-		if sozlukUyesiMi(prop) {
+		if isDictMember(prop) {
 			return fmt.Errorf("Satır %d: '%s' sözlüğün bir üyesi; anahtar için d[%q] yazın", line, prop, prop)
 		}
 		cur := inst.Pairs[prop]
 		if cur == nil {
 			cur = NULL
 		}
-		finalVal, err := v.atamaIslemi(kod, cur, rightVal, line)
+		finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
 		if err != nil {
 			return err
 		}
@@ -116,16 +116,16 @@ func (v *VM) uyeyeAta(obj Value, prop string, u uyeBilgisi, kod uint8, rightVal 
 	case MemberAssignable:
 		// Dış değerler (ör. iyileştirici): bileşik atamada mevcut değer GetProperty ile okunur.
 		finalVal := rightVal
-		if pg, ok := obj.(PropertyGetter); ok && kod != opAta {
-			cur, err := pg.GetProperty(u.kod, prop)
+		if pg, ok := obj.(PropertyGetter); ok && codeVal != opAssign {
+			cur, err := pg.GetProperty(u.codeVal, prop)
 			if err != nil {
-				return satirEki(line, err)
+				return lineSuffix(line, err)
 			}
-			if finalVal, err = v.atamaIslemi(kod, cur, rightVal, line); err != nil {
+			if finalVal, err = v.assignOp(codeVal, cur, rightVal, line); err != nil {
 				return err
 			}
 		}
-		return satirEki(line, inst.SetMember(u.kod, prop, finalVal))
+		return lineSuffix(line, inst.SetMember(u.codeVal, prop, finalVal))
 	}
 	return fmt.Errorf("Satır %d: %s tipinin %q alanına atama yapılamaz", line, obj.Type(), prop)
 }

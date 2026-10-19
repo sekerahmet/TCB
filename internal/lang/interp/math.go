@@ -9,16 +9,16 @@ import (
 // registerMatematik taban, tavan ve işaret yerleşiklerinin sayı yolunu ve pi sabitini
 // kaydeder. Tensör yolu internal/stdlib/ml'dadır; o, bu yerleşikleri sarar (karekök
 // gibi). Tam girdide sonuç Tam, Ondalık girdide Ondalık'tır.
-func (v *VM) registerMatematik() {
-	v.RegisterNoNamed(codes.G406, yuvarlamaYerlesik(codes.G406, math.Floor))
-	v.RegisterNoNamed(codes.G407, yuvarlamaYerlesik(codes.G407, math.Ceil))
-	v.RegisterNoNamed(codes.G408, isaretYerlesik)
+func (v *VM) registerMath() {
+	v.RegisterNoNamed(codes.G406, roundingBuiltin(codes.G406, math.Floor))
+	v.RegisterNoNamed(codes.G407, roundingBuiltin(codes.G407, math.Ceil))
+	v.RegisterNoNamed(codes.G408, signBuiltin)
 	v.DefineConstant(codes.G414, &FloatVal{Val: math.Pi})
 }
 
 // yuvarlamaYerlesik taban ve tavan: Tam olduğu gibi, Ondalık f ile yuvarlanmış Ondalık döner
 // (NaN ve sonsuzlar korunur).
-func yuvarlamaYerlesik(kd codes.Code, f func(float64) float64) BuiltinFunc {
+func roundingBuiltin(kd codes.Code, f func(float64) float64) BuiltinFunc {
 	return func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgCountError(kd, "1", len(args), "sayı")
@@ -29,13 +29,13 @@ func yuvarlamaYerlesik(kd codes.Code, f func(float64) float64) BuiltinFunc {
 		case *FloatVal:
 			return &FloatVal{Val: f(a.Val)}, nil
 		}
-		return nil, ArgTypeError(kd, 1, args[0], sayiTipleri...)
+		return nil, ArgTypeError(kd, 1, args[0], numberTypes...)
 	}
 }
 
 // isaretYerlesik işaret(): pozitifte 1, negatifte -1, sıfırda 0; Tam girdide Tam, Ondalık
 // girdide Ondalık (NaN ve işaretli sıfır korunur).
-func isaretYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) {
+func signBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G408, "1", len(args), "sayı")
 	}
@@ -57,5 +57,5 @@ func isaretYerlesik(y *VM, args []Value, named map[string]Value) (Value, error) 
 		}
 		return a, nil
 	}
-	return nil, ArgTypeError(codes.G408, 1, args[0], sayiTipleri...)
+	return nil, ArgTypeError(codes.G408, 1, args[0], numberTypes...)
 }

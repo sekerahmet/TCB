@@ -8,8 +8,8 @@ import (
 // kapYaz bir kabı (Liste, Sözlük, yapı nesnesi) yazdırır. yol, şu an yazdırılmakta olan
 // dış kaplardır: kendini (doğrudan ya da dolaylı) içeren bir kap yeniden görülünce sonsuz
 // özyineleme yerine "[...]" / "{...}" / "Ad{...}" yazılır.
-func kapYaz(v Value, yol []Value) string {
-	for _, u := range yol {
+func writeContainer(v Value, filePath []Value) string {
+	for _, u := range filePath {
 		if u == v {
 			switch x := v.(type) {
 			case *ListVal:
@@ -20,7 +20,7 @@ func kapYaz(v Value, yol []Value) string {
 			return "{...}"
 		}
 	}
-	yol = append(yol, v)
+	filePath = append(filePath, v)
 	var sb strings.Builder
 	switch x := v.(type) {
 	case *ListVal:
@@ -32,7 +32,7 @@ func kapYaz(v Value, yol []Value) string {
 			if el.Type() == VAL_STRING {
 				fmt.Fprintf(&sb, "%q", el.Inspect())
 			} else {
-				sb.WriteString(ogeYaz(el, yol))
+				sb.WriteString(writeItem(el, filePath))
 			}
 		}
 		sb.WriteByte(']')
@@ -52,23 +52,23 @@ func kapYaz(v Value, yol []Value) string {
 			if val.Type() == VAL_STRING {
 				fmt.Fprintf(&sb, "%q", val.Inspect())
 			} else {
-				sb.WriteString(ogeYaz(val, yol))
+				sb.WriteString(writeItem(val, filePath))
 			}
 		}
 		sb.WriteByte('}')
 	case *StructInstanceVal:
 		sb.WriteString(x.Def.Name)
 		sb.WriteByte('{')
-		ilk := true
+		first := true
 		for _, f := range x.Def.Fields {
 			if val, ok := x.Fields[f.Name]; ok {
-				if !ilk {
+				if !first {
 					sb.WriteString(", ")
 				}
-				ilk = false
+				first = false
 				sb.WriteString(f.Name)
 				sb.WriteString(": ")
-				sb.WriteString(ogeYaz(val, yol))
+				sb.WriteString(writeItem(val, filePath))
 			}
 		}
 		sb.WriteByte('}')
@@ -77,10 +77,10 @@ func kapYaz(v Value, yol []Value) string {
 }
 
 // ogeYaz bir kabın elemanını yazar; eleman da bir kapsa döngü denetimi sürer.
-func ogeYaz(v Value, yol []Value) string {
+func writeItem(v Value, filePath []Value) string {
 	switch v.(type) {
 	case *ListVal, *DictVal, *StructInstanceVal:
-		return kapYaz(v, yol)
+		return writeContainer(v, filePath)
 	}
 	return v.Inspect()
 }

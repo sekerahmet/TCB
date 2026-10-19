@@ -2,19 +2,20 @@ package interp
 
 import (
 	"fmt"
-	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/ast"
 )
 
 // --- İŞLEÇLER ---
 
-func (c *derleyici) onEk(k *derleyiciKapsam, e *ast.PrefixExpression) ifadeKodu {
-	sag := c.ifade(k, e.Right)
+func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCode {
+	rightFn := c.expression(k, e.Right)
 	line := e.Line()
 	switch e.Operator {
 	case "!":
 		return func(v *VM, env *Environment) (Value, error) {
-			right, err := sag(v, env)
+			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
@@ -25,7 +26,7 @@ func (c *derleyici) onEk(k *derleyiciKapsam, e *ast.PrefixExpression) ifadeKodu 
 		}
 	case "-":
 		return func(v *VM, env *Environment) (Value, error) {
-			right, err := sag(v, env)
+			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
@@ -39,13 +40,13 @@ func (c *derleyici) onEk(k *derleyiciKapsam, e *ast.PrefixExpression) ifadeKodu 
 				return &FloatVal{Val: -rv.Val}, nil
 			case Negatable:
 				val, err := rv.Negate()
-				return val, satirEki(line, err)
+				return val, lineSuffix(line, err)
 			}
 			return nil, fmt.Errorf("Satır %d: '-' operatörü %s tipine uygulanamaz", line, right.Type())
 		}
 	}
 	return func(v *VM, env *Environment) (Value, error) {
-		if _, err := sag(v, env); err != nil {
+		if _, err := rightFn(v, env); err != nil {
 			return nil, err
 		}
 		return NULL, nil
@@ -54,11 +55,11 @@ func (c *derleyici) onEk(k *derleyiciKapsam, e *ast.PrefixExpression) ifadeKodu 
 
 // tamHizli iki Tam sayı arasındaki işlemin hızlı yoludur; ok=false ise (taşma, sıfıra
 // bölme, desteklenmeyen işleç) genel yola (evalInfixKod) düşülür ve hata orada üretilir.
-type tamHizli func(a, b int64) (Value, bool)
+type intFast func(a, b int64) (Value, bool)
 
-func tamHizliIslev(kod uint8) tamHizli {
-	switch kod {
-	case opTopla:
+func intFastFunc(codeVal uint8) intFast {
+	switch codeVal {
+	case opAdd:
 		return func(a, b int64) (Value, bool) {
 			s := a + b
 			if (s > a) != (b > 0) {
@@ -66,7 +67,7 @@ func tamHizliIslev(kod uint8) tamHizli {
 			}
 			return NewInt(s), true
 		}
-	case opCikar:
+	case opSub:
 		return func(a, b int64) (Value, bool) {
 			s := a - b
 			if (s < a) != (b > 0) {
@@ -74,7 +75,7 @@ func tamHizliIslev(kod uint8) tamHizli {
 			}
 			return NewInt(s), true
 		}
-	case opCarp:
+	case opMul:
 		return func(a, b int64) (Value, bool) {
 			if !mulFits(a, b) {
 				return nil, false
@@ -88,7 +89,7 @@ func tamHizliIslev(kod uint8) tamHizli {
 			}
 			return NewInt(a % b), true
 		}
-	case opBol:
+	case opDiv:
 		return func(a, b int64) (Value, bool) {
 			if b == 0 || (a == math.MinInt64 && b == -1) {
 				return nil, false
@@ -98,85 +99,85 @@ func tamHizliIslev(kod uint8) tamHizli {
 			}
 			return &FloatVal{Val: float64(a) / float64(b)}, true
 		}
-	case opKucuk:
+	case opLt:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a < b), true }
-	case opBuyuk:
+	case opGt:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a > b), true }
-	case opKucukEsit:
+	case opLe:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a <= b), true }
-	case opBuyukEsit:
+	case opGe:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a >= b), true }
-	case opEsit:
+	case opEq:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a == b), true }
-	case opEsitDegil:
+	case opNe:
 		return func(a, b int64) (Value, bool) { return BoolToVal(a != b), true }
 	}
 	return nil
 }
-func (c *derleyici) ikili(k *derleyiciKapsam, e *ast.InfixExpression) ifadeKodu {
-	kod := islecKodu(e.Operator)
-	sol := c.ifade(k, e.Left)
-	sag := c.ifade(k, e.Right)
+func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
+	codeVal := opCode(e.Operator)
+	leftFn := c.expression(k, e.Left)
+	rightFn := c.expression(k, e.Right)
 	op := e.Operator
 	line := e.Line()
 
 	// Kısa devre ve özel operatörler (&&, ||, ??, |>)
-	switch kod {
-	case opVe:
+	switch codeVal {
+	case opAnd:
 		return func(v *VM, env *Environment) (Value, error) {
-			left, err := sol(v, env)
+			left, err := leftFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			if !dogruMu(left) {
+			if !isTrue(left) {
 				return FALSE, nil
 			}
-			right, err := sag(v, env)
+			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return BoolToVal(dogruMu(right)), nil
+			return BoolToVal(isTrue(right)), nil
 		}
-	case opVeya:
+	case opOr:
 		return func(v *VM, env *Environment) (Value, error) {
-			left, err := sol(v, env)
+			left, err := leftFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			if dogruMu(left) {
+			if isTrue(left) {
 				return TRUE, nil
 			}
-			right, err := sag(v, env)
+			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return BoolToVal(dogruMu(right)), nil
+			return BoolToVal(isTrue(right)), nil
 		}
-	case opYoksa:
+	case opCoalesce:
 		return func(v *VM, env *Environment) (Value, error) {
-			left, err := sol(v, env)
+			left, err := leftFn(v, env)
 			if err != nil {
 				return nil, err
 			}
 			if left.Type() != VAL_NULL {
 				return left, nil
 			}
-			return sag(v, env)
+			return rightFn(v, env)
 		}
-	case opBoru:
-		return c.boru(k, e.Left, e.Right)
+	case opPipe:
+		return c.pipe(k, e.Left, e.Right)
 	}
 
-	hizli := tamHizliIslev(kod)
-	if hizli != nil {
+	fast := intFastFunc(codeVal)
+	if fast != nil {
 		// Sağ taraf Tam sayı sabitiyse (i < 1000, x % 7) sağ kod hiç çağrılmaz
 		if lit, ok := e.Right.(*ast.IntegerLiteral); ok {
 			b := lit.Value
-			sagDeger := NewInt(b)
+			rightValue := NewInt(b)
 			// Sol taraf yerel (derinlik 0) ya da genel bir değişkense yuvası doğrudan okunur
 			if id, ok := e.Left.(*ast.Identifier); ok {
-				if r := k.coz(id.Value); r.tur == cozGenel || (r.tur == cozYerel && r.derinlik == 0) {
-					i, g := r.yuva, r.genel
+				if r := k.resolve(id.Value); r.kind == resolveGlobal || (r.kind == resolveLocal && r.nestDepth == 0) {
+					i, g := r.slot, r.global
 					return func(v *VM, env *Environment) (Value, error) {
 						o := g
 						if o == nil {
@@ -187,91 +188,91 @@ func (c *derleyici) ikili(k *derleyiciKapsam, e *ast.InfixExpression) ifadeKodu 
 							left = o.vals[i]
 						}
 						if li, ok := left.(*IntVal); ok {
-							if x, ok := hizli(li.Val, b); ok {
+							if x, ok := fast(li.Val, b); ok {
 								return x, nil
 							}
 						}
 						if left == nil {
 							var err error
-							if left, err = sol(v, env); err != nil {
+							if left, err = leftFn(v, env); err != nil {
 								return nil, err
 							}
 						}
-						return v.evalInfixKod(kod, op, left, sagDeger, line)
+						return v.evalInfixKod(codeVal, op, left, rightValue, line)
 					}
 				}
 			}
 			return func(v *VM, env *Environment) (Value, error) {
-				left, err := sol(v, env)
+				left, err := leftFn(v, env)
 				if err != nil {
 					return nil, err
 				}
 				if li, ok := left.(*IntVal); ok {
-					if x, ok := hizli(li.Val, b); ok {
+					if x, ok := fast(li.Val, b); ok {
 						return x, nil
 					}
 				}
-				return v.evalInfixKod(kod, op, left, sagDeger, line)
+				return v.evalInfixKod(codeVal, op, left, rightValue, line)
 			}
 		}
 		return func(v *VM, env *Environment) (Value, error) {
-			left, err := sol(v, env)
+			left, err := leftFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			right, err := sag(v, env)
+			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
 			if li, ok := left.(*IntVal); ok {
 				if ri, ok := right.(*IntVal); ok {
-					if x, ok := hizli(li.Val, ri.Val); ok {
+					if x, ok := fast(li.Val, ri.Val); ok {
 						return x, nil
 					}
 				}
 			}
-			return v.evalInfixKod(kod, op, left, right, line)
+			return v.evalInfixKod(codeVal, op, left, right, line)
 		}
 	}
 	return func(v *VM, env *Environment) (Value, error) {
-		left, err := sol(v, env)
+		left, err := leftFn(v, env)
 		if err != nil {
 			return nil, err
 		}
-		right, err := sag(v, env)
+		right, err := rightFn(v, env)
 		if err != nil {
 			return nil, err
 		}
-		return v.evalInfixKod(kod, op, left, right, line)
+		return v.evalInfixKod(codeVal, op, left, right, line)
 	}
 }
 
 // boru 'veri |> f(...)' ve 'veri |> f' ifadelerini derler.
-func (c *derleyici) boru(k *derleyiciKapsam, left ast.Expression, right ast.Expression) ifadeKodu {
-	sol := c.ifade(k, left)
+func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Expression) exprCode {
+	leftFn := c.expression(k, left)
 	// Sağ taraf bir fonksiyon çağrısı ise (örn: veri |> filtrele((x) => x > 2))
 	if callExpr, ok := right.(*ast.CallExpression); ok {
-		fonk := c.ifade(k, callExpr.Function)
-		argKod := c.ifadeler(k, callExpr.Arguments)
-		adlar := make([]string, len(callExpr.NamedArgs))
-		adliKod := make([]ifadeKodu, len(callExpr.NamedArgs))
+		fun := c.expression(k, callExpr.Function)
+		argCode := c.expressions(k, callExpr.Arguments)
+		nameList := make([]string, len(callExpr.NamedArgs))
+		namedCode := make([]exprCode, len(callExpr.NamedArgs))
 		for i, na := range callExpr.NamedArgs {
-			adlar[i] = na.Name
-			adliKod[i] = c.ifade(k, na.Value)
+			nameList[i] = na.Name
+			namedCode[i] = c.expression(k, na.Value)
 		}
 		line := callExpr.Line()
 		return func(v *VM, env *Environment) (Value, error) {
-			leftVal, err := sol(v, env)
+			leftVal, err := leftFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			fnVal, err := fonk(v, env)
+			fnVal, err := fun(v, env)
 			if err != nil {
 				return nil, err
 			}
-			args := make([]Value, 1, len(argKod)+1)
+			args := make([]Value, 1, len(argCode)+1)
 			args[0] = leftVal
-			for _, a := range argKod {
+			for _, a := range argCode {
 				av, err := a(v, env)
 				if err != nil {
 					return nil, err
@@ -279,12 +280,12 @@ func (c *derleyici) boru(k *derleyiciKapsam, left ast.Expression, right ast.Expr
 				args = append(args, av)
 			}
 			named := make(map[string]Value)
-			for i, na := range adliKod {
+			for i, na := range namedCode {
 				nv, err := na(v, env)
 				if err != nil {
 					return nil, err
 				}
-				named[adlar[i]] = nv
+				named[nameList[i]] = nv
 			}
 			if err := checkArity(fnVal, len(args), named, line); err != nil {
 				return nil, err
@@ -294,14 +295,14 @@ func (c *derleyici) boru(k *derleyiciKapsam, left ast.Expression, right ast.Expr
 	}
 
 	// Sağ taraf doğrudan bir fonksiyon ise (örn: veri |> sırala)
-	fonk := c.ifade(k, right)
+	fun := c.expression(k, right)
 	line := right.Line()
 	return func(v *VM, env *Environment) (Value, error) {
-		leftVal, err := sol(v, env)
+		leftVal, err := leftFn(v, env)
 		if err != nil {
 			return nil, err
 		}
-		fnVal, err := fonk(v, env)
+		fnVal, err := fun(v, env)
 		if err != nil {
 			return nil, err
 		}

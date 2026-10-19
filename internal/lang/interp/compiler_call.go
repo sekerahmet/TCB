@@ -6,10 +6,10 @@ import (
 
 // --- ÇAĞRILAR ---
 
-func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
-	fonk := c.ifade(k, e.Function)
-	argKod := c.ifadeler(k, e.Arguments)
-	nargs := len(argKod)
+func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
+	fun := c.expression(k, e.Function)
+	argCode := c.expressions(k, e.Arguments)
+	nargs := len(argCode)
 	line := e.Line()
 
 	if len(e.NamedArgs) == 0 {
@@ -17,24 +17,24 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 		// fonksiyon/yerleşik değeri ayrılmadan doğrudan çağrılır (liste.ekle(x) argüman
 		// dilimi de ayırmaz). Diğer durumlarda üye değeri okunup çağrılır.
 		if mem, ok := e.Function.(*ast.MemberExpression); ok {
-			nesne := c.ifade(k, mem.Object)
-			u := uyeCoz(mem.Property) // ad → kod ve Metin/Liste/Sözlük metotları derleme anında
-			ekle := u.cekirdek != nil && u.kod == uyeEkle
-			uyeSatiri := mem.Line() // geri çağrıların hata satırı (bağlı yerleşikteki gibi)
+			object := c.expression(k, mem.Object)
+			u := resolveMember(mem.Property) // ad → kod ve Metin/Liste/Sözlük metotları derleme anında
+			add := u.core != nil && u.codeVal == addMember
+			memberLine := mem.Line() // geri çağrıların hata satırı (bağlı yerleşikteki gibi)
 			return func(v *VM, env *Environment) (Value, error) {
-				obj, err := nesne(v, env)
+				obj, err := object(v, env)
 				if err != nil {
 					return nil, err
 				}
 				if inst, ok := obj.(*StructInstanceVal); ok {
-					if _, alan := inst.Fields[mem.Property]; !alan {
-						if metot, ok := inst.Def.Methods[mem.Property]; ok && metot.kod != nil {
-							return v.metotCagir(metot, inst, argKod, env, line)
+					if _, field := inst.Fields[mem.Property]; !field {
+						if meth, ok := inst.Def.Methods[mem.Property]; ok && meth.codeVal != nil {
+							return v.callMethod(meth, inst, argCode, env, line)
 						}
 					}
-				} else if m := metotBul(obj, u.cekirdek); m != nil {
-					if l, liste := obj.(*ListVal); liste && ekle && nargs == 1 {
-						av, err := argKod[0](v, env)
+				} else if m := findMethod(obj, u.core); m != nil {
+					if l, listVal := obj.(*ListVal); listVal && add && nargs == 1 {
+						av, err := argCode[0](v, env)
 						if err != nil {
 							return nil, err
 						}
@@ -42,45 +42,45 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 						return l, nil
 					}
 					// Yerleşik çağrısıyla aynı sıra: önce tüm argümanlar, sonra gövde
-					args, err := argumanlar(v, env, argKod)
+					args, err := arguments(v, env, argCode)
 					if err != nil {
 						return nil, err
 					}
-					res, err := m.f(v, obj, args, uyeSatiri)
+					res, err := m.f(v, obj, args, memberLine)
 					if err != nil {
-						return nil, satirEki(line, err)
+						return nil, lineSuffix(line, err)
 					}
 					return res, nil
 				}
-				fnVal, err := v.uyeDegeri(obj, mem, u)
+				fnVal, err := v.memberValue(obj, mem, u)
 				if err != nil {
 					return nil, err
 				}
-				return v.konumluCagir(fnVal, argKod, env, line)
+				return v.callAt(fnVal, argCode, env, line)
 			}
 		}
 		return func(v *VM, env *Environment) (Value, error) {
-			fnVal, err := fonk(v, env)
+			fnVal, err := fun(v, env)
 			if err != nil {
 				return nil, err
 			}
-			return v.konumluCagir(fnVal, argKod, env, line)
+			return v.callAt(fnVal, argCode, env, line)
 		}
 	}
 
-	adlar := make([]string, len(e.NamedArgs))
-	adliKod := make([]ifadeKodu, len(e.NamedArgs))
+	nameList := make([]string, len(e.NamedArgs))
+	namedCode := make([]exprCode, len(e.NamedArgs))
 	for i, na := range e.NamedArgs {
-		adlar[i] = na.Name
-		adliKod[i] = c.ifade(k, na.Value)
+		nameList[i] = na.Name
+		namedCode[i] = c.expression(k, na.Value)
 	}
 	return func(v *VM, env *Environment) (Value, error) {
-		fnVal, err := fonk(v, env)
+		fnVal, err := fun(v, env)
 		if err != nil {
 			return nil, err
 		}
 		args := make([]Value, 0, nargs)
-		for _, a := range argKod {
+		for _, a := range argCode {
 			av, err := a(v, env)
 			if err != nil {
 				return nil, err
@@ -88,12 +88,12 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 			args = append(args, av)
 		}
 		named := make(map[string]Value)
-		for i, na := range adliKod {
+		for i, na := range namedCode {
 			nv, err := na(v, env)
 			if err != nil {
 				return nil, err
 			}
-			named[adlar[i]] = nv
+			named[nameList[i]] = nv
 		}
 		if err := checkArity(fnVal, len(args), named, line); err != nil {
 			return nil, err
@@ -103,9 +103,9 @@ func (c *derleyici) cagri(k *derleyiciKapsam, e *ast.CallExpression) ifadeKodu {
 }
 
 // argumanlar argüman kodlarını sırayla hesaplar.
-func argumanlar(v *VM, env *Environment, argKod []ifadeKodu) ([]Value, error) {
-	args := make([]Value, 0, len(argKod))
-	for _, a := range argKod {
+func arguments(v *VM, env *Environment, argCode []exprCode) ([]Value, error) {
+	args := make([]Value, 0, len(argCode))
+	for _, a := range argCode {
 		av, err := a(v, env)
 		if err != nil {
 			return nil, err
@@ -117,63 +117,63 @@ func argumanlar(v *VM, env *Environment, argKod []ifadeKodu) ([]Value, error) {
 
 // metotCagir bir yapı metodunu, bağlı fonksiyon değeri ayırmadan, kendi = inst ile çağırır
 // (bağlı değerle yapılan çağrıyla aynı denetim ve sırayla).
-func (v *VM) metotCagir(metot *FuncVal, inst Value, argKod []ifadeKodu, env *Environment, line int) (Value, error) {
-	nargs := len(argKod)
-	fk := metot.kod
-	if fk.basit && nargs <= len(metot.Parameters) && varsayilanlarYeter(metot, nargs) {
-		fnEnv := fk.ortamAl(metot.Env)
-		for i, a := range argKod {
+func (v *VM) callMethod(meth *FuncVal, inst Value, argCode []exprCode, env *Environment, line int) (Value, error) {
+	nargs := len(argCode)
+	fk := meth.codeVal
+	if fk.simple && nargs <= len(meth.Parameters) && defaultsSuffice(meth, nargs) {
+		fnEnv := fk.getEnv(meth.Env)
+		for i, a := range argCode {
 			av, err := a(v, env)
 			if err != nil {
 				return nil, err
 			}
 			fnEnv.vals[fk.param[i]] = av
 		}
-		return v.cagirHazir(metot, fk, fnEnv, inst, nil, nargs, nil, line)
+		return v.callPrepared(meth, fk, fnEnv, inst, nil, nargs, nil, line)
 	}
-	args, err := argumanlar(v, env, argKod)
+	args, err := arguments(v, env, argCode)
 	if err != nil {
 		return nil, err
 	}
-	if err := checkArity(metot, len(args), nil, line); err != nil {
+	if err := checkArity(meth, len(args), nil, line); err != nil {
 		return nil, err
 	}
-	return v.cagirHazir(metot, fk, fk.ortamAl(metot.Env), inst, args, len(args), nil, line)
+	return v.callPrepared(meth, fk, fk.getEnv(meth.Env), inst, args, len(args), nil, line)
 }
 
 // konumluCagir fnVal'ı (adlı argümansız) konumlu argümanlarla çağırır.
-func (v *VM) konumluCagir(fnVal Value, argKod []ifadeKodu, env *Environment, line int) (Value, error) {
-	nargs := len(argKod)
+func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int) (Value, error) {
+	nargs := len(argCode)
 	switch fn := fnVal.(type) {
 	case *FuncVal:
 		// Hızlı yol: derlenmiş kullanıcı fonksiyonu. Argümanlar ara dilim kurulmadan
 		// doğrudan yeni ortamın yuvalarına hesaplanır.
-		if fk := fn.kod; fk != nil && fk.basit && nargs <= len(fn.Parameters) && varsayilanlarYeter(fn, nargs) {
-			fnEnv := fk.ortamAl(fn.Env)
-			for i, a := range argKod {
+		if fk := fn.codeVal; fk != nil && fk.simple && nargs <= len(fn.Parameters) && defaultsSuffice(fn, nargs) {
+			fnEnv := fk.getEnv(fn.Env)
+			for i, a := range argCode {
 				av, err := a(v, env)
 				if err != nil {
 					return nil, err
 				}
 				fnEnv.vals[fk.param[i]] = av
 			}
-			return v.cagirHazir(fn, fk, fnEnv, fn.BoundSelf, nil, nargs, nil, line)
+			return v.callPrepared(fn, fk, fnEnv, fn.BoundSelf, nil, nargs, nil, line)
 		}
 	case *BuiltinVal:
 		// Hızlı yol: tek argümanlı yerleşik (argüman dilimi ayrılmaz)
 		if fn.Single != nil && nargs == 1 {
-			av, err := argKod[0](v, env)
+			av, err := argCode[0](v, env)
 			if err != nil {
 				return nil, err
 			}
 			res, err := fn.Single(v, av)
 			if err != nil {
-				return nil, satirEki(line, err)
+				return nil, lineSuffix(line, err)
 			}
 			return res, nil
 		}
 	}
-	args, err := argumanlar(v, env, argKod)
+	args, err := arguments(v, env, argCode)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (v *VM) konumluCagir(fnVal Value, argKod []ifadeKodu, env *Environment, lin
 }
 
 // varsayilanlarYeter verilmeyen her parametrenin varsayılanı var mı (checkArity'nin hızlı yolu)?
-func varsayilanlarYeter(fn *FuncVal, nargs int) bool {
+func defaultsSuffice(fn *FuncVal, nargs int) bool {
 	for _, p := range fn.Parameters[nargs:] {
 		if p.DefaultValue == nil {
 			return false

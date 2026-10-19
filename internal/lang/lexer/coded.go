@@ -25,45 +25,45 @@ import (
 // shown as its name, so every later column on the line shifts by the name's length. A
 // pre-scan finds the shifts (codes inside interpolations included), so error messages, the
 // debugger and the editor report the same line and column as the text the person sees.
-func NewBody(input string, kodlu bool) *Lexer {
-	if !kodlu {
-		return yeniCozumleyici(input)
+func NewBody(input string, coded bool) *Lexer {
+	if !coded {
+		return newLexer(input)
 	}
-	on := yeniCozumleyici(input)
-	on.kodlu = true
-	var k []kayma
-	on.kodTaramasi(&k)
-	l := yeniCozumleyici(input)
-	l.kodlu = true
-	l.kaymalarKur(k)
+	pre := newLexer(input)
+	pre.coded = true
+	var k []shift
+	pre.scanCodes(&k)
+	l := newLexer(input)
+	l.coded = true
+	l.buildShifts(k)
 	return l
 }
 
 // kayma, kökün girdisindeki off konumundan başlayarak satırın geri kalanının gösterimdeki
 // sütun kaymasıdır (kodun adının uzunluğu - 4).
-type kayma struct {
+type shift struct {
 	off, d int32
 }
 
 // kodTaramasi bütün sözcükleri (yerleştirmelerdekiler dahil) okuyup kodların sütun
 // kaymalarını toplar. Bulunan hatalar önemsenmez; asıl çözümleyici onları yeniden bulur.
-func (l *Lexer) kodTaramasi(k *[]kayma) {
+func (l *Lexer) scanCodes(k *[]shift) {
 	for {
 		tok := l.NextToken()
 		switch {
 		case tok.Type == TOKEN_EOF:
 			return
 		case tok.Code != codes.None:
-			bas, son := l.LastRange()
-			if d := utf8.RuneCountInString(tok.Literal) - (son - bas); d != 0 {
-				*k = append(*k, kayma{off: l.kaynakKonumu(son), d: int32(d)})
+			begin, end := l.LastRange()
+			if d := utf8.RuneCountInString(tok.Literal) - (end - begin); d != 0 {
+				*k = append(*k, shift{off: l.sourcePos(end), d: int32(d)})
 			}
 		case tok.Type == TOKEN_STRING:
-			if yerler := l.Interpolations(tok); yerler != nil {
-				deger := []rune(tok.Literal)
-				for _, y := range yerler {
-					if ifade, bas := InterpolationExpr(deger, y[0]+1, y[1]); ifade != "" {
-						l.Interpolation(tok, ifade, bas).kodTaramasi(k)
+			if positions := l.Interpolations(tok); positions != nil {
+				value := []rune(tok.Literal)
+				for _, y := range positions {
+					if expr, begin := InterpolationExpr(value, y[0]+1, y[1]); expr != "" {
+						l.Interpolation(tok, expr, begin).scanCodes(k)
 					}
 				}
 			}
@@ -73,44 +73,44 @@ func (l *Lexer) kodTaramasi(k *[]kayma) {
 
 // kaymalarKur kaymaları konuma göre sıralar ve birikimli toplamlarını kurar. Satır sonundaki
 // kaymalar atılır (satır bitmiştir).
-func (l *Lexer) kaymalarKur(k []kayma) {
+func (l *Lexer) buildShifts(k []shift) {
 	sort.Slice(k, func(i, j int) bool { return k[i].off < k[j].off })
-	l.kaymalar = k[:0]
+	l.shifts = k[:0]
 	for _, x := range k {
 		if int(x.off) >= len(l.input) || l.input[x.off] != '\n' {
-			l.kaymalar = append(l.kaymalar, x)
+			l.shifts = append(l.shifts, x)
 		}
 	}
-	l.kaymaToplam = make([]int32, len(l.kaymalar)+1)
-	for i, x := range l.kaymalar {
-		l.kaymaToplam[i+1] = l.kaymaToplam[i] + x.d
+	l.shiftSum = make([]int32, len(l.shifts)+1)
+	for i, x := range l.shifts {
+		l.shiftSum[i+1] = l.shiftSum[i] + x.d
 	}
 }
 
 // kaymaUygula kök çözümleyici bir kayma noktasına geldiğinde sütunu kaydırır.
-func (l *Lexer) kaymaUygula() {
-	for l.kaymaSira < len(l.kaymalar) && int(l.kaymalar[l.kaymaSira].off) <= l.position {
-		if int(l.kaymalar[l.kaymaSira].off) == l.position {
-			l.column += int(l.kaymalar[l.kaymaSira].d)
+func (l *Lexer) applyShift() {
+	for l.shiftIdx < len(l.shifts) && int(l.shifts[l.shiftIdx].off) <= l.position {
+		if int(l.shifts[l.shiftIdx].off) == l.position {
+			l.column += int(l.shifts[l.shiftIdx].d)
 		}
-		l.kaymaSira++
+		l.shiftIdx++
 	}
 }
 
 // satirKaymasi kökün girdisinde satır başı bas ile i arasındaki (i dahil) kaymaların toplamıdır.
-func (l *Lexer) satirKaymasi(bas, i int) int {
-	if len(l.kaymalar) == 0 {
+func (l *Lexer) lineShift(begin, i int) int {
+	if len(l.shifts) == 0 {
 		return 0
 	}
-	lo := sort.Search(len(l.kaymalar), func(j int) bool { return int(l.kaymalar[j].off) >= bas })
-	hi := sort.Search(len(l.kaymalar), func(j int) bool { return int(l.kaymalar[j].off) > i })
-	return int(l.kaymaToplam[hi] - l.kaymaToplam[lo])
+	lo := sort.Search(len(l.shifts), func(j int) bool { return int(l.shifts[j].off) >= begin })
+	hi := sort.Search(len(l.shifts), func(j int) bool { return int(l.shifts[j].off) > i })
+	return int(l.shiftSum[hi] - l.shiftSum[lo])
 }
 
 // kodTurleri anahtar kelime kodu → token türü haritasıdır (turKodlari'nın tersi).
-var kodTurleri = func() map[codes.Code]TokenType {
-	m := make(map[codes.Code]TokenType, len(turKodlari))
-	for t, k := range turKodlari {
+var codeTypes = func() map[codes.Code]TokenType {
+	m := make(map[codes.Code]TokenType, len(typeCodes))
+	for t, k := range typeCodes {
 		m[k] = t
 	}
 	return m
@@ -118,27 +118,27 @@ var kodTurleri = func() map[codes.Code]TokenType {
 
 // KeywordCode returns the code of a keyword token type, or codes.None for other types.
 func KeywordCode(t TokenType) codes.Code {
-	return turKodlari[t]
+	return typeCodes[t]
 }
 
 // adSozcugu okunan bir adın sözcük birimidir: Türkçe yazılmış kaynakta anahtar kelime ya da
 // ad (kod biçimli ad hatadır, 2.3a), kodlu kaynakta kodluSozcuk.
-func (l *Lexer) adSozcugu(lit string, line, col int) Token {
-	if l.kodlu {
-		return l.kodluSozcuk(lit, line, col)
+func (l *Lexer) nameToken(lit string, line, col int) Token {
+	if l.coded {
+		return l.codedToken(lit, line, col)
 	}
-	tur := LookupIdent(lit)
-	if tur == TOKEN_IDENT {
-		l.kodBicimiDenetle(lit, line, col)
+	kind := LookupIdent(lit)
+	if kind == TOKEN_IDENT {
+		l.checkCodeForm(lit, line, col)
 	}
-	return Token{Type: tur, Literal: lit, Line: line, Column: col}
+	return Token{Type: kind, Literal: lit, Line: line, Column: col}
 }
 
 // kodluSozcuk kodlu kaynaktaki bir adı okur: kod biçimindeyse (G100) kodun etkin dildeki
 // adını ve (anahtar kelimeyse) türünü taşıyan sözcük birimi, değilse kullanıcı adıdır.
 // Ölü (taşınmış ya da kaldırılmış) kodlar eski adlarıyla okunur: o adın ipucu (13.6, 2.9a)
 // kendiliğinden çalışır (uyumluluk sözü, 17.6).
-func (l *Lexer) kodluSozcuk(lit string, line, col int) Token {
+func (l *Lexer) codedToken(lit string, line, col int) Token {
 	if !codes.IsCodeForm(lit) {
 		return Token{Type: TOKEN_IDENT, Literal: lit, Line: line, Column: col}
 	}
@@ -149,7 +149,7 @@ func (l *Lexer) kodluSozcuk(lit string, line, col int) Token {
 			lit, codes.G100)
 		return Token{Type: TOKEN_IDENT, Literal: lit, Line: line, Column: col}
 	}
-	if t, ok := kodTurleri[k]; ok && !g.Dead() {
+	if t, ok := codeTypes[k]; ok && !g.Dead() {
 		return Token{Type: t, Literal: g.Name, Line: line, Column: col, Code: k}
 	}
 	return Token{Type: TOKEN_IDENT, Literal: g.Name, Line: line, Column: col, Code: k}
@@ -160,27 +160,27 @@ func (l *Lexer) kodluSozcuk(lit string, line, col int) Token {
 // dilinde gösterilirken o dilin sözcükleriyle çakışan kullanıcı adları içindir; kodlama '$'ı
 // atar. Kod biçimli adlar kaçışla da ayrılmıştır (2.3a). '$' bir harfe, rakama ya da '_'ye
 // bitişik yazılamaz: '$' atılınca iki sözcük birleşirdi (a$b → ab, 1$e5 → 1e5).
-func (l *Lexer) kacisliAd(line, col int) Token {
+func (l *Lexer) escapedName(line, col int) Token {
 	if l.position > 0 && (isLetter(l.input[l.position-1]) || isDigit(l.input[l.position-1])) {
 		l.addError(line, col, "'$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun")
 	}
 	l.readChar() // '$'
 	lit := l.readIdentifier()
-	l.kodBicimiDenetle(lit, line, col+1)
+	l.checkCodeForm(lit, line, col+1)
 	return Token{Type: TOKEN_IDENT, Literal: lit, Line: line, Column: col}
 }
 
 // nulKarakteri kaynağın ortasındaki NUL (U+0000) karakterini hata olarak bildirir. Sözcük
 // çözümleyici girdinin sonunu 0 karakteriyle tanır; NUL eskiden dosyanın sonu sayılır, ardından
 // gelen kod sessizce yok sayılırdı.
-func (l *Lexer) nulKarakteri(line, col int) Token {
+func (l *Lexer) nulChar(line, col int) Token {
 	l.addError(line, col, "kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir")
 	l.readChar()
 	return Token{Type: TOKEN_ILLEGAL, Literal: "\x00", Line: line, Column: col}
 }
 
 // kodBicimiDenetle Türkçe yazılmış kaynakta kod biçimli bir adı (2.3a) hata olarak bildirir.
-func (l *Lexer) kodBicimiDenetle(lit string, line, col int) {
+func (l *Lexer) checkCodeForm(lit string, line, col int) {
 	if !codes.IsCodeForm(lit) {
 		return
 	}

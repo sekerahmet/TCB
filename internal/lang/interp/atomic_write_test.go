@@ -10,33 +10,33 @@ import (
 
 // Bulgu 9: kayıt atomiktir: içerik önce aynı klasörde geçici dosyaya yazılır, sonra yerine
 // konur. Yazma yarıda hata verirse eski dosya bozulmaz ve geçici dosya kalmaz.
-func TestAtomikYaz(t *testing.T) {
-	klasor := t.TempDir()
-	yol := filepath.Join(klasor, "model.trt")
-	if err := os.WriteFile(yol, []byte("eski"), 0o644); err != nil {
+func TestWriteAtomic(t *testing.T) {
+	folder := t.TempDir()
+	filePath := filepath.Join(folder, "model.trt")
+	if err := os.WriteFile(filePath, []byte("eski"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	hata := errors.New("disk doldu")
-	err := WriteAtomic(yol, func(w io.Writer) error {
+	failure := errors.New("disk doldu")
+	err := WriteAtomic(filePath, func(w io.Writer) error {
 		w.Write([]byte("yarım"))
-		return hata
+		return failure
 	})
-	if !errors.Is(err, hata) {
+	if !errors.Is(err, failure) {
 		t.Fatalf("hata: %v", err)
 	}
-	if b, _ := os.ReadFile(yol); string(b) != "eski" {
+	if b, _ := os.ReadFile(filePath); string(b) != "eski" {
 		t.Fatalf("yarım yazma eski dosyayı bozdu: %q", b)
 	}
-	if g, _ := os.ReadDir(klasor); len(g) != 1 {
+	if g, _ := os.ReadDir(folder); len(g) != 1 {
 		t.Fatalf("geçici dosya kaldı: %v", g)
 	}
-	if err := WriteAtomic(yol, func(w io.Writer) error { _, e := w.Write([]byte("yeni")); return e }); err != nil {
+	if err := WriteAtomic(filePath, func(w io.Writer) error { _, e := w.Write([]byte("yeni")); return e }); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := os.ReadFile(yol); string(b) != "yeni" {
+	if b, _ := os.ReadFile(filePath); string(b) != "yeni" {
 		t.Fatalf("içerik: %q", b)
 	}
-	if g, _ := os.ReadDir(klasor); len(g) != 1 {
+	if g, _ := os.ReadDir(folder); len(g) != 1 {
 		t.Fatalf("geçici dosya kaldı: %v", g)
 	}
 }

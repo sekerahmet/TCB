@@ -59,24 +59,24 @@ func DepthError() error {
 type ContainerWalker struct {
 	// acik şu an yazılmakta olan (atası olunan) kapsayıcılardır; yalnızca bunlara geri
 	// dönmek döngüdür.
-	acik map[Value]bool
+	opened map[Value]bool
 }
 
 // Enter enters container v at the given depth; it returns an error on a cycle or excessive
 // depth.
-func (g *ContainerWalker) Enter(v Value, derinlik int) error {
-	if derinlik > MaxExternalDepth {
+func (g *ContainerWalker) Enter(v Value, nestDepth int) error {
+	if nestDepth > MaxExternalDepth {
 		return DepthError()
 	}
-	if g.acik == nil {
-		g.acik = map[Value]bool{}
+	if g.opened == nil {
+		g.opened = map[Value]bool{}
 	}
-	if g.acik[v] {
+	if g.opened[v] {
 		return ErrCyclic
 	}
-	g.acik[v] = true
+	g.opened[v] = true
 	return nil
 }
 
 // Leave leaves container v.
-func (g *ContainerWalker) Leave(v Value) { delete(g.acik, v) }
+func (g *ContainerWalker) Leave(v Value) { delete(g.opened, v) }
