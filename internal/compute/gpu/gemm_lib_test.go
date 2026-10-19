@@ -67,7 +67,8 @@ func TestGemmLibraryMissingUsesOwnKernel(t *testing.T) {
 }
 
 // TestGemmLibrarySearchPath arama yolunun yalnızca mutlak yerlerden oluştuğunu ve göreli
-// bir TR_GPU_CUBLASLT'nin reddedildiğini denetler (kitaplık kaçırma).
+// bir TR_GPU_CUBLASLT'nin reddedildiğini, LD_LIBRARY_PATH güvensizken sürücünün de yalnızca
+// tam yolla arandığını denetler (kitaplık kaçırma).
 func TestGemmLibrarySearchPath(t *testing.T) {
 	for _, k := range gemmLibDirs() {
 		if !strings.HasPrefix(k, "/") && !(len(k) > 2 && k[1] == ':') {
@@ -81,6 +82,17 @@ func TestGemmLibrarySearchPath(t *testing.T) {
 	if searchPathSafe("/usr/lib::/opt") || searchPathSafe("lib") || searchPathSafe("/a;.") ||
 		!searchPathSafe("/a:/b") {
 		t.Fatal("LD_LIBRARY_PATH denetimi yanlış")
+	}
+	// Sürücü kitaplığı: güvenli arama yolunda dosya adıyla, güvensizde yalnızca tam yolla.
+	if c := driverLibCandidates("/usr/lib64-nvidia"); c[0] != "libcuda.so.1" {
+		t.Fatalf("güvenli arama yolunda dosya adı bekleniyordu: %v", c)
+	}
+	for _, ld := range []string{"/usr/lib::/opt", "lib", ".:/usr/lib"} {
+		for _, c := range driverLibCandidates(ld) {
+			if !strings.HasPrefix(c, "/") {
+				t.Fatalf("LD_LIBRARY_PATH=%q iken göreli aday: %q", ld, c)
+			}
+		}
 	}
 }
 

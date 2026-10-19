@@ -4,6 +4,7 @@ package gpu
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/ebitengine/purego"
 )
@@ -15,7 +16,7 @@ type linuxLibrary struct{ handle uintptr }
 
 func openLib() (library, error) {
 	var last error
-	for _, ad := range []string{"libcuda.so.1", "libcuda.so"} {
+	for _, ad := range driverLibCandidates(os.Getenv("LD_LIBRARY_PATH")) {
 		h, err := purego.Dlopen(ad, purego.RTLD_NOW|purego.RTLD_GLOBAL)
 		if err == nil {
 			return &linuxLibrary{handle: h}, nil

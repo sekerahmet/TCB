@@ -133,6 +133,30 @@ func gemmLibCandidates() (open string, candidates []string, err error) {
 	return open, candidates, nil
 }
 
+// driverDirs NVIDIA sürücüsünün libcuda'yı koyduğu bilinen Linux klasörleridir (dağıtımlar,
+// Colab ve kapsayıcı kalıpları, WSL).
+var driverDirs = []string{
+	"/usr/lib/x86_64-linux-gnu", "/usr/lib/aarch64-linux-gnu", "/usr/lib64", "/usr/lib",
+	"/usr/lib64-nvidia", "/usr/local/nvidia/lib64", "/usr/lib/wsl/lib",
+}
+
+// driverLibCandidates sürücü kitaplığı için denenecek adları verir: LD_LIBRARY_PATH güvenliyse
+// dosya adları (standart arama yolu), değilse yalnızca bilinen sürücü klasörlerindeki tam
+// yollar (boş öğe ya da göreli yol çalışma klasöründeki sahte bir libcuda'yı yükletirdi).
+func driverLibCandidates(ldPath string) []string {
+	names := []string{"libcuda.so.1", "libcuda.so"}
+	if searchPathSafe(ldPath) {
+		return names
+	}
+	var paths []string
+	for _, d := range driverDirs {
+		for _, n := range names {
+			paths = append(paths, d+"/"+n)
+		}
+	}
+	return paths
+}
+
 // searchPathSafe LD_LIBRARY_PATH'in yalnızca mutlak klasörlerden oluştuğunu denetler
 // (boş öğe ya da göreli yol çalışma klasörünü aratırdı).
 func searchPathSafe(path string) bool {
