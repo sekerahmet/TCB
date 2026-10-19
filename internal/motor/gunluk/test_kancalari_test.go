@@ -21,9 +21,6 @@ func SaatTaklidi(f func() time.Time) func() {
 	return func() { saat = eski }
 }
 
-// SayiYazimi, SureYazimi ve Cubuk çubuk görünümünün iç yardımcılarıdır.
-var (
-	SayiYazimi = sayiYazimi
-	SureYazimi = sureYazimi
-	Cubuk      = cubuk
-)
+// Cubuk çubuk görünümünün iç yardımcısıdır (SayiYazimi ve SureYazimi dışa açıktır:
+// disa_acik.go).
+var Cubuk = cubuk
