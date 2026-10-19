@@ -49,7 +49,10 @@ type backend struct {
 	// ltNotes kurulumda atlanan kitaplık adayları; ltSonHata kitaplığın son reddettiği çağrı.
 	ltNotes     []string
 	ltLastError string
-	// attnPath TR_GPU_DIKKAT: "birlesik" (varsayılan) ya da "carpim" (ölçüm ve karşılaştırma).
+	// attnPath TR_GPU_DIKKAT: boş (varsayılan: 16 bitlik girdilerde sm_80+ tensör çekirdekli,
+	// öbürlerinde SIMT birleşik yol), "birlesik" (SIMT birleşik yolu zorlar), "carpim" (matris
+	// çarpımı yolu) ya da "tensor" (tensör çekirdekli yolu sm denetimi olmadan zorlar; benzetimde
+	// sınama için). Ölçüm ve karşılaştırma içindir.
 	attnPath string
 	// gcThreshold son çöp toplamadan bu yana bu kadar depolama verilince çöp toplama başlatılır
 	// (bkz. copEsigiSec; TR_GPU_COP_ESIGI ile MB olarak değiştirilir).

@@ -59,6 +59,9 @@ const (
 	simCp      // cp.async (genelden paylaşımlıya eşzamansız kopya)
 	simCpGroup // cp.async.commit_group
 	simCpWait  // cp.async.wait_group
+	simMma     // mma.sync (warp düzeyi matris çarpımı; bkz. sim_warp.go)
+	simShfl    // shfl.sync (warp içi değiş tokuş)
+	simCvtPack // cvt.rn.bf16x2.f32 / cvt.rn.f16x2.f32 (iki float32'yi 16 bitlik çifte)
 )
 
 var simOpNames = map[string]simOp{
@@ -163,6 +166,8 @@ type simInst struct {
 	// cp.async: kaynak (genel bellek) adresi, kopya boyu (o[0]) ve kaynak boyu (o[1]).
 	baseB   simTerm
 	offset2 int64
+	// mma.sync işlenenleri (yalnızca simMma).
+	mma *simMmaArgs
 }
 
 type simFunc struct {
@@ -351,6 +356,12 @@ func (a *simParser) parseInstruction(s string) error {
 	op, args := s, ""
 	if sp := strings.IndexByte(s, ' '); sp >= 0 {
 		op, args = s[:sp], strings.TrimSpace(s[sp+1:])
+	}
+	if ok, err := a.parseWarp(&k, op, args); ok {
+		if err == nil {
+			a.is.instructions = append(a.is.instructions, k)
+		}
+		return err
 	}
 	// Vektör işleneni ({a, b, c, d}) tek terim olarak yer tutucuyla değiştirilir.
 	var vecList []string

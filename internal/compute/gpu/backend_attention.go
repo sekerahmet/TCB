@@ -6,8 +6,10 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// Arka uç: dikkat. Baş boyları birleşik çekirdeğin paylaşımlı belleğine sığıyorsa (Dh, Dv ≤
-// 128 civarı; bkz. flashSec) birleşik yol, değilse matris çarpımı yolu (dikkat.go).
+// Arka uç: dikkat. 16 bitlik girdilerde (sm_80+) tensör çekirdekli birleşik yol
+// (kernel_flash_mma.go); öbür durumlarda baş boyları birleşik çekirdeğin paylaşımlı belleğine
+// sığıyorsa (Dh, Dv ≤ 128 civarı; bkz. pickFlash) SIMT birleşik yol, değilse matris çarpımı
+// yolu (attention.go).
 
 // flashFits birleşik yolun bu tanım için kullanılabildiği ve döşeme ayarı (yol
 // TR_GPU_DIKKAT ile zorlanmışsa ona göre).
@@ -52,6 +54,13 @@ func (g *backend) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor
 		return lse
 	}
 	md, mo := g.prepareAttn(gt, mask, p)
+	if tc, ok := g.mmaFits(q, k, v, md != nil, p); ok {
+		c := g.takeKernel(tc.key("dikkat_ileri_tc"), flashMmaForwardKernel(tc))
+		pr := g.param().readV(q).readV(k).readV(v).write(od, 0).write(lse, 0)
+		g.attnShared(pr, md, mo, p)
+		g.launch(c, [3]uint32{blocks(p.Tq, mmaBr), uint32(p.H), uint32(p.Batch)}, [3]uint32{flashJob, 1, 1}, pr)
+		return lse
+	}
 	a, ok := g.flashFits(p, md != nil, false)
 	if !ok {
 		g.attnMatrix(gt, od, lse, q, k, v, md, mo, p)

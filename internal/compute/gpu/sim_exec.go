@@ -64,6 +64,7 @@ func (m *simMemory) slice(addr uint64, n int) ([]byte, error) {
 const (
 	dRunning = iota
 	dAtBarrier
+	dAtWarp // warp düzeyi komutta (mma.sync, shfl.sync) bütün şeridi bekliyor
 	dDone
 )
 
@@ -177,7 +178,7 @@ func (b *simBlock) execute(jobs []simJob) error {
 	}
 	b.epoch++
 	for {
-		atBarrier, finished := 0, 0
+		atBarrier, finished, atWarp := 0, 0, 0
 		for i := range jobs {
 			t := &jobs[i]
 			if t.state == dRunning {
@@ -189,9 +190,17 @@ func (b *simBlock) execute(jobs []simJob) error {
 			switch t.state {
 			case dAtBarrier:
 				atBarrier++
+			case dAtWarp:
+				atWarp++
 			case dDone:
 				finished++
 			}
+		}
+		if atWarp > 0 {
+			if err := b.warpStep(jobs); err != nil {
+				return err
+			}
+			continue
 		}
 		if atBarrier == 0 {
 			return nil
@@ -246,6 +255,9 @@ func (b *simBlock) run(t *simJob) error {
 			return nil
 		case simRet:
 			return b.finish(t)
+		case simMma, simShfl:
+			t.state = dAtWarp
+			return nil
 		case simCp, simCpGroup, simCpWait:
 			if err := b.cpRun(t, k); err != nil {
 				return err
@@ -392,6 +404,9 @@ func (b *simBlock) compute(t *simJob, k *simInst) error {
 	var r uint64
 	var err error
 	switch {
+	case k.op == simCvtPack:
+		t.y[k.d] = packPair(a, c, k.mode2 == 1)
+		return nil
 	case k.op == simCvt:
 		r, err = convert(k, a)
 		if err == nil {
