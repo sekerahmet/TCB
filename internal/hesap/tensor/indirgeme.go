@@ -27,6 +27,7 @@ func (t *Tensor) Mean(axis int, keepdim bool) *Tensor {
 }
 
 func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
+	sy := sayacBasla(t.be, indirgemeIslemi(mean)).baslat()
 	axis = normAxis(axis, len(t.shape))
 	scale := float32(1)
 	op := "sum"
@@ -46,9 +47,11 @@ func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
 	out := zerosOf(isIndirgeme, t.be, reducedShape(t.shape, axis, keepdim), t.tur)
 	t.be.Sum(out.storage, t.view(), axis, scale)
 	kd := reducedShape(t.shape, axis, true)
-	return track(out, op, []*Tensor{t}, func() {
+	r := track(out, op, []*Tensor{t}, func() {
 		t.be.ExpandAdd(t.accGrad(), t.shape, out.grad, kd, scale)
 	})
+	sy.bitir()
+	return r
 }
 
 // SumAll tüm elemanları toplar ve skaler (0 boyutlu) tensör verir.
@@ -58,6 +61,7 @@ func (t *Tensor) SumAll() *Tensor { return t.allScaled(false) }
 func (t *Tensor) MeanAll() *Tensor { return t.allScaled(true) }
 
 func (t *Tensor) allScaled(mean bool) *Tensor {
+	sy := sayacBasla(t.be, indirgemeIslemi(mean)).baslat()
 	scale := float32(1)
 	op := "sum_all"
 	if mean {
@@ -70,29 +74,37 @@ func (t *Tensor) allScaled(mean bool) *Tensor {
 	}
 	out := zerosOf(isIndirgeme, t.be, nil, t.tur)
 	t.be.SumAll(out.storage, t.view(), scale)
-	return track(out, op, []*Tensor{t}, func() {
+	r := track(out, op, []*Tensor{t}, func() {
 		t.be.ExpandAdd(t.accGrad(), t.shape, out.grad, nil, scale)
 	})
+	sy.bitir()
+	return r
 }
 
 // Max verilen eksen boyunca en büyük değeri alır. Gradyan, eşitlik halinde
 // ilk en büyük elemana gider.
 func (t *Tensor) Max(axis int, keepdim bool) *Tensor {
+	sy := sayacBasla(t.be, IslemEnBuyuk).baslat()
 	axis = normAxis(axis, len(t.shape))
 	if t.shape[axis] == 0 {
 		panic("tensor: boş eksende Max alınamaz")
 	}
 	out := zerosOf(isIndirgeme, t.be, reducedShape(t.shape, axis, keepdim), t.tur)
 	t.be.Max(out.storage, t.view(), axis)
-	return track(out, "max", []*Tensor{t}, func() {
+	r := track(out, "max", []*Tensor{t}, func() {
 		t.be.MaxGrad(t.accGrad(), out.grad, t.view(), axis)
 	}, t)
+	sy.bitir()
+	return r
 }
 
 // ArgMax verilen eksen boyunca en büyük elemanın indeksini verir (türevsiz).
 // Sonuç, eksen çıkarılmış şeklin bitişik düzenindedir.
 func (t *Tensor) ArgMax(axis int) []int {
-	return t.be.ArgMax(t.view(), normAxis(axis, len(t.shape)))
+	sy := sayacBasla(t.be, IslemEnBuyukIndeks).baslat()
+	idx := t.be.ArgMax(t.view(), normAxis(axis, len(t.shape)))
+	sy.bitir()
+	return idx
 }
 
 // Softmax verilen eksen boyunca sayısal kararlı softmax (en büyük değer
@@ -103,6 +115,11 @@ func (t *Tensor) Softmax(axis int) *Tensor { return t.softmaxImpl(axis, false) }
 func (t *Tensor) LogSoftmax(axis int) *Tensor { return t.softmaxImpl(axis, true) }
 
 func (t *Tensor) softmaxImpl(axis int, logKip bool) *Tensor {
+	is := IslemSoftmax
+	if logKip {
+		is = IslemLogSoftmax
+	}
+	sy := sayacBasla(t.be, is).baslat()
 	axis = normAxis(axis, len(t.shape))
 	out := emptyOf(isSoftmax, t.be, t.shape, t.tur)
 	t.be.Softmax(out.storage, t.view(), axis, logKip)
@@ -110,7 +127,17 @@ func (t *Tensor) softmaxImpl(axis int, logKip bool) *Tensor {
 	if logKip {
 		op = "log_softmax"
 	}
-	return track(out, op, []*Tensor{t}, func() {
+	r := track(out, op, []*Tensor{t}, func() {
 		t.be.SoftmaxGrad(t.accGrad(), out.grad, out.storage, t.shape, axis, logKip)
 	}, out)
+	sy.bitir()
+	return r
+}
+
+// indirgemeIslemi toplamın ya da ortalamanın sayaç işlem türüdür.
+func indirgemeIslemi(ortalama bool) Islem {
+	if ortalama {
+		return IslemOrtalama
+	}
+	return IslemToplam
 }

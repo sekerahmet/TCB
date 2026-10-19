@@ -79,9 +79,12 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	if !dt.IsFloat() {
 		panic(fmt.Sprintf("tensor: Cast yalnızca kayan noktalı türlere yapılabilir, %s verildi", dt))
 	}
+	sy := sayacBasla(t.be, IslemTurDonusumu).baslat()
 	out := emptyOf(isTurDonusumu, t.be, t.shape, dt)
 	t.be.Copy(out.storage, 0, t.view())
-	return track(out, "cast", []*Tensor{t}, func() { gradDevret(t, out) })
+	r := track(out, "cast", []*Tensor{t}, func() { gradDevret(t, out) })
+	sy.bitir()
+	return r
 }
 
 // Bits16 v'yi 16 bitlik dt türüne (BFloat16 ya da Float16) en yakına-çifte

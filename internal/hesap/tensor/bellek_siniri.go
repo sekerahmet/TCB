@@ -190,6 +190,7 @@ func ayirmaBoyuOn(be Backend, is islem, shape []int, dt DType) int {
 			panic(sinirHatasiYer(is, shape, dt, false, l.MemoryLimit(), l.MemoryPlace()))
 		}
 	}
+	sayacBayt(be, dt.StorageBytes(n))
 	return n
 }
 

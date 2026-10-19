@@ -85,8 +85,11 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 // yenidenSekil t'nin elemanlarına aynı mantıksal sırayla sh şekli ve st adımlarıyla bakan
 // görünümü kurar. Mantıksal sıra değişmediğinden gradyan ebeveyne olduğu gibi devredilir.
 func yenidenSekil(t *Tensor, sh, st []int) *Tensor {
+	sy := sayacBasla(t.be, IslemGorunum).baslat()
 	out := viewOf(t, t.offset, sh, st)
-	return track(out, "reshape", []*Tensor{t}, func() { gradDevret(t, out) })
+	r := track(out, "reshape", []*Tensor{t}, func() { gradDevret(t, out) })
+	sy.bitir()
+	return r
 }
 
 // gorunumAdimlari, eski şekil ve adımlarla bakılan elemanlara (satır öncelikli mantıksal
@@ -185,6 +188,7 @@ func (t *Tensor) Squeeze(axis int) *Tensor {
 
 // Permute eksenleri verilen sıraya dizer (kopyasız).
 func (t *Tensor) Permute(dims ...int) *Tensor {
+	sy := sayacBasla(t.be, IslemGorunum).baslat()
 	nd := len(t.shape)
 	if len(dims) != nd {
 		panic(fmt.Sprintf("tensor: Permute %d eksen bekler, %d verildi", nd, len(dims)))
@@ -205,7 +209,9 @@ func (t *Tensor) Permute(dims ...int) *Tensor {
 		gst[i] = cst[d]
 	}
 	out := viewOf(t, t.offset, sh, st)
-	return track(out, "permute", []*Tensor{t}, scatterBackward(t, out, 0, gst))
+	r := track(out, "permute", []*Tensor{t}, scatterBackward(t, out, 0, gst))
+	sy.bitir()
+	return r
 }
 
 // Transpose iki ekseni yer değiştirir (kopyasız).
@@ -237,6 +243,7 @@ func (t *Tensor) Slice(axis, start, end int) *Tensor {
 // SliceStep verilen eksende start'tan end'e (hariç) step adımlarla seçer
 // (kopyasız). step pozitif olmalıdır.
 func (t *Tensor) SliceStep(axis, start, end, step int) *Tensor {
+	sy := sayacBasla(t.be, IslemGorunum).baslat()
 	nd := len(t.shape)
 	axis = normAxis(axis, nd)
 	n := t.shape[axis]
@@ -267,7 +274,9 @@ func (t *Tensor) SliceStep(axis, start, end, step int) *Tensor {
 	gOff := start * gst[axis]
 	gst[axis] *= step
 	out := viewOf(t, t.offset+start*t.strides[axis], sh, st)
-	return track(out, "slice", []*Tensor{t}, scatterBackward(t, out, gOff, gst))
+	r := track(out, "slice", []*Tensor{t}, scatterBackward(t, out, gOff, gst))
+	sy.bitir()
+	return r
 }
 
 // Contiguous tensör bitişikse kendisini, değilse bitişik bir kopyasını verir.
@@ -275,14 +284,20 @@ func (t *Tensor) Contiguous() *Tensor {
 	if t.IsContiguous() {
 		return t
 	}
+	sy := sayacBasla(t.be, IslemKopya).baslat()
 	out := emptyOf(isKopya, t.be, t.shape, t.tur)
 	t.be.Copy(out.storage, 0, t.view())
-	return track(out, "contiguous", []*Tensor{t}, func() { gradDevret(t, out) })
+	r := track(out, "contiguous", []*Tensor{t}, func() { gradDevret(t, out) })
+	sy.bitir()
+	return r
 }
 
 // Clone verinin bitişik bir kopyasını üretir (türevlenebilir).
 func (t *Tensor) Clone() *Tensor {
+	sy := sayacBasla(t.be, IslemKopya).baslat()
 	out := emptyOf(isKopya, t.be, t.shape, t.tur)
 	t.be.Copy(out.storage, 0, t.view())
-	return track(out, "clone", []*Tensor{t}, func() { gradDevret(t, out) })
+	r := track(out, "clone", []*Tensor{t}, func() { gradDevret(t, out) })
+	sy.bitir()
+	return r
 }

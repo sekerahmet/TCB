@@ -99,6 +99,8 @@ func (o *SGD) SetMasterWeights(on bool) { o.ana.ayarla(on) }
 // Step bir güncelleme adımı uygular. Gradyanı olmayan parametreler atlanır.
 // Parametreler yerinde değiştiği için sürümleri artar.
 func (o *SGD) Step() {
+	sy := adimSayaci(o.Params, IslemSGD).baslat()
+	defer sy.bitir()
 	sirali := tekrarli(o.Params)
 	var adimlar []iyiAdim
 	for k, p := range o.Params {
@@ -125,6 +127,16 @@ func (o *SGD) Step() {
 	for _, a := range adimlar {
 		o.ana.yaz(a.k, a.p, a.h)
 	}
+}
+
+// adimSayaci iyileştirici adımının profil sayacını başlatır: bir adım (bütün parametreler,
+// çok tensörlü yolda tek arka uç çağrısı) bir çağrı sayılır. Cihaz ilk parametreninkidir.
+func adimSayaci(params []*Tensor, is Islem) sayacOlcumu {
+	be := Backend(cpuBackend{})
+	if len(params) > 0 {
+		be = params[0].be
+	}
+	return sayacBasla(be, is)
 }
 
 // iyiAdim bir parametrenin bu adımdaki güncellemesi: güncellenecek depolama (h; ana kopya
@@ -226,6 +238,8 @@ func (o *AdamW) StepCount() int { return o.adim }
 // almayan bir parametre (ör. o adımda kullanılmayan gömme satırları değil, hiç gradyan
 // akmayan bir parametre) ilk güncellemesinde yeni bir iyileştiricideki gibi davranır.
 func (o *AdamW) Step() {
+	sy := adimSayaci(o.Params, IslemAdamW).baslat()
+	defer sy.bitir()
 	o.adim++
 	sirali := tekrarli(o.Params)
 	var adimlar []iyiAdim
@@ -270,6 +284,11 @@ func (o *AdamW) ZeroGrad() { ZeroGrads(o.Params) }
 // ClipGradNorm parametre gradyanlarının toplam L2 normunu en fazla maxNorm
 // olacak şekilde ölçekler ve kırpma öncesi normu döndürür.
 func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
+	if len(params) == 0 {
+		return 0
+	}
+	sy := sayacBasla(params[0].be, IslemGradyanKirpma).baslat()
+	defer sy.bitir()
 	norm := math.Sqrt(gradKareToplami(params))
 	if norm > maxNorm && norm > 0 {
 		k := float32(maxNorm / norm)

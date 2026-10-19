@@ -93,6 +93,7 @@ func track(out *Tensor, op string, parents []*Tensor, bw func(), kaydet ...*Tens
 	out.parents = parents
 	out.backward = bw
 	out.op = op
+	out.islem = etkinTur() // düğümün profil sayacı türü (bkz. sayac.go)
 	for _, k := range kaydet {
 		if k != nil {
 			out.kayitli = append(out.kayitli, kayitliSurum{k, k.storage.Version()})
@@ -123,7 +124,9 @@ func (t *Tensor) tazeGrad(destek bool) (Storage, bool) {
 	if t.grad != nil || !destek {
 		return t.accGrad(), false
 	}
-	t.grad = allocBos(t.be, t.Numel(), gradTuru(t.tur))
+	dt := gradTuru(t.tur)
+	t.grad = allocBos(t.be, t.Numel(), dt)
+	sayacBayt(t.be, dt.StorageBytes(t.Numel()))
 	return t.grad, true
 }
 
@@ -131,7 +134,9 @@ func (t *Tensor) tazeGrad(destek bool) (Storage, bool) {
 // çağıran arka uç işlemleriyle üzerine ekler.
 func (t *Tensor) accGrad() Storage {
 	if t.grad == nil {
-		t.grad = t.be.Alloc(t.Numel(), gradTuru(t.tur))
+		dt := gradTuru(t.tur)
+		t.grad = t.be.Alloc(t.Numel(), dt)
+		sayacBayt(t.be, dt.StorageBytes(t.Numel()))
 	}
 	return t.grad
 }
@@ -229,7 +234,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 			continue // yaprak
 		}
 		if n.grad != nil {
-			n.geriCalistir(ctx)
+			n.geriSayacli(ctx)
 		}
 		// Hâlâ bu düğümde duran gradyanın tek sahibi düğümdür (görünüm
 		// işlemleri devrettikleri gradyanı düğümden alır); arka uca iade edilir.

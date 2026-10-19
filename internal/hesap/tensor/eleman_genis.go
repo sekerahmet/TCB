@@ -63,11 +63,14 @@ func (t *Tensor) Clamp(lo, hi float32) *Tensor {
 	if lo != lo || hi != hi || lo > hi {
 		panic(fmt.Sprintf("tensor: Clamp sınırları geçersiz: alt %v, üst %v (alt üstten büyük olamaz, NaN olamaz)", lo, hi))
 	}
+	sy := sayacBasla(t.be, IslemSinirlama).baslat()
 	out := emptyOf(isElemanBazli, t.be, t.shape, t.tur)
 	t.be.Clamp(out.storage, t.view(), lo, hi)
-	return track(out, "clamp", []*Tensor{t}, func() {
+	r := track(out, "clamp", []*Tensor{t}, func() {
 		t.be.ClampGrad(t.accGrad(), out.grad, t.view(), lo, hi)
 	}, t)
+	sy.bitir()
+	return r
 }
 
 // ClampMin yalnızca alt sınırla Clamp.
@@ -81,10 +84,11 @@ func (t *Tensor) ClampMax(hi float32) *Tensor { return t.Clamp(float32(math.Inf(
 // Türevler ∂/∂y = x/(x²+y²), ∂/∂x = −y/(x²+y²); (0, 0)'da ikisi de 0 alınır.
 func Atan2(y, x *Tensor) *Tensor {
 	be := sameDevice("atan2", y, x)
+	sy := sayacBasla(be, IslemAtan2).baslat()
 	outShape := broadcastShapes(y.shape, x.shape)
 	out := emptyOf(isYayinliEleman, be, outShape, sonucTuru(y.tur, x.tur))
 	be.Binary(OpAtan2, out.storage, outShape, y.view(), x.view())
-	return track(out, "atan2", []*Tensor{y, x}, func() {
+	r := track(out, "atan2", []*Tensor{y, x}, func() {
 		var gy, gx Storage
 		if y.requiresGrad {
 			gy = y.accGrad()
@@ -94,6 +98,8 @@ func Atan2(y, x *Tensor) *Tensor {
 		}
 		be.Atan2Grad(gy, gx, y.shape, x.shape, out.shape, out.grad, y.view(), x.view())
 	}, y, x)
+	sy.bitir()
+	return r
 }
 
 // Compare eleman bazlı karşılaştırmanın (op: OpLt, OpGt, OpLe, OpGe) 0/1 maskesini verir
@@ -103,9 +109,11 @@ func Compare(a, b *Tensor, op BinOp) *Tensor {
 		panic(fmt.Sprintf("tensor: Compare bir karşılaştırma işlemi ister, %d verildi", op))
 	}
 	be := sameDevice("karşılaştırma", a, b)
+	sy := sayacBasla(be, IslemToplama+Islem(op)).baslat()
 	outShape := broadcastShapes(a.shape, b.shape)
 	out := emptyOf(isKarsilastirma, be, outShape, Float32)
 	be.Binary(op, out.storage, outShape, a.view(), b.view())
+	sy.bitir()
 	return out
 }
 
@@ -125,10 +133,11 @@ func (t *Tensor) CompareScalar(s float32, op BinOp, sagda bool) *Tensor {
 // gradyandaki NaN öbür dala sızmaz); koşul türev almaz.
 func Where(c, a, b *Tensor) *Tensor {
 	be := sameDevice("koşullu seçim", c, a, b)
+	sy := sayacBasla(be, IslemKosulluSecim).baslat()
 	outShape := broadcastShapes(broadcastShapes(c.shape, a.shape), b.shape)
 	out := emptyOf(isSecim, be, outShape, sonucTuru(a.tur, b.tur))
 	be.Where(out.storage, outShape, c.view(), a.view(), b.view())
-	return track(out, "where", []*Tensor{a, b}, func() {
+	r := track(out, "where", []*Tensor{a, b}, func() {
 		if a.requiresGrad {
 			be.WhereGrad(a.accGrad(), a.shape, out.shape, out.grad, c.view(), true)
 		}
@@ -136,4 +145,6 @@ func Where(c, a, b *Tensor) *Tensor {
 			be.WhereGrad(b.accGrad(), b.shape, out.shape, out.grad, c.view(), false)
 		}
 	}, c)
+	sy.bitir()
+	return r
 }

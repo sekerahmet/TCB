@@ -36,6 +36,8 @@ type Tensor struct {
 	shape   []int   // her eksenin uzunluğu
 	strides []int   // her eksende bir adım ilerlemenin depodaki karşılığı
 	tur     DType   // eleman türü (depolamanın türü)
+	// islem, düğümü üreten işlemin profil sayacı türüdür (geri yayılım bu adla sayılır).
+	islem Islem
 
 	grad         Storage // bitişik gradyan (şekil = shape), gerekince ayrılır
 	requiresGrad bool
@@ -180,10 +182,13 @@ func defaultBackend() Backend { return BackendFor(DefaultDevice()) }
 // NewOn veriyi kopyalayarak verilen cihazda tensör oluşturur.
 func NewOn(dev Device, data []float32, shape ...int) *Tensor {
 	be := BackendFor(dev)
+	sy := sayacBasla(be, IslemOlusturma).baslat()
 	if len(data) != ayirmaBoyuOn(be, isOlusturma, shape, Float32) {
 		panic(fmt.Sprintf("tensor: %d eleman %v şekline uymuyor", len(data), shape))
 	}
-	return fromStorage(be, be.FromHost(data, Float32), shape)
+	t := fromStorage(be, be.FromHost(data, Float32), shape)
+	sy.bitir()
+	return t
 }
 
 // New veriyi kopyalayarak varsayılan cihazda tensör oluşturur.
@@ -306,7 +311,12 @@ func (t *Tensor) DType() DType { return t.tur }
 func (t *Tensor) Version() uint64 { return t.storage.Version() }
 
 // Data elemanların mantıksal sırayla (satır öncelikli) konaktaki bir kopyasını verir.
-func (t *Tensor) Data() []float32 { return t.be.ToHost(t.view()) }
+func (t *Tensor) Data() []float32 {
+	sy := sayacBasla(t.be, IslemKonagaOkuma).baslat()
+	d := t.be.ToHost(t.view())
+	sy.bitir()
+	return d
+}
 
 // Float64s elemanları float64 olarak verir.
 func (t *Tensor) Float64s() []float64 {
@@ -403,7 +413,9 @@ func (t *Tensor) Grad() *Tensor {
 // takma adı olan) bir gradyanı kaydetmiş çizgenin geri yayılımı hata verir.
 func (t *Tensor) ZeroGrad() {
 	if t.grad != nil {
+		sy := sayacBasla(t.be, IslemGradyanSifirlama).baslat()
 		t.be.Fill(t.grad, 0)
+		sy.bitir()
 		t.grad.BumpVersion()
 	}
 }
@@ -416,11 +428,14 @@ func (t *Tensor) To(dev Device) *Tensor {
 		return t
 	}
 	hedef := BackendFor(dev)
-	out := fromStorage(hedef, hedef.FromHost(t.Data(), t.tur), t.shape)
-	return track(out, "to", []*Tensor{t}, func() {
+	sy := sayacBasla(hedef, IslemCihazaTasima).baslat()
+	out := fromStorage(hedef, hedef.FromHost(t.be.ToHost(t.view()), t.tur), t.shape)
+	r := track(out, "to", []*Tensor{t}, func() {
 		g := t.be.FromHost(hedef.ToHost(View{S: out.grad, Shape: out.shape, Strides: contiguousStrides(out.shape)}), gradTuru(t.tur))
 		t.be.AddTo(t.accGrad(), g, 1)
 	})
+	sy.bitir()
+	return r
 }
 
 // String kısa bir metin gösterimi verir.

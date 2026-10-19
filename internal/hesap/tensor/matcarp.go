@@ -41,6 +41,7 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 		M = a.shape[len(a.shape)-2]
 	}
 
+	sy := sayacBasla(be, IslemMatrisCarpimi).baslat()
 	av, bv := a.contigView(), b.contigView()
 	gs, yazar := be.(GemmSetter)
 	var out *Tensor
@@ -60,7 +61,7 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 			be.Gemm(batch, M, N, K, a, ta, b, tb, c)
 		}
 	}
-	return track(out, "matmul", []*Tensor{a, b}, func() {
+	r := track(out, "matmul", []*Tensor{a, b}, func() {
 		g := out.gradView()
 		if a.requiresGrad {
 			// dA (M×K) += dC (M×N) · Bᵀ
@@ -71,6 +72,8 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 			carp(b, K, N, M, av, true, g, false)
 		}
 	}, a, b)
+	sy.bitir()
+	return r
 }
 
 // MatMul yöntem biçimi.

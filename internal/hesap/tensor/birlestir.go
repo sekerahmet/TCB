@@ -19,6 +19,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 		panic("tensor: Concat en az bir tensör ister")
 	}
 	be := sameDevice("concat", ts...)
+	sy := sayacBasla(be, IslemBirlestirme).baslat()
 	ilk := ts[0]
 	nd := len(ilk.shape)
 	if nd == 0 {
@@ -65,7 +66,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 		out = emptyOf(isBirlestirme, be, outShape, dt)
 		be.Copy(out.storage, 0, View{S: tampon, Shape: outShape, Strides: ost})
 	}
-	return track(out, "concat", ts, func() {
+	r := track(out, "concat", ts, func() {
 		ofset := 0
 		for _, t := range ts {
 			bas := ofset * ost[axis]
@@ -86,6 +87,8 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 			iadeEt(be, s)
 		}
 	})
+	sy.bitir()
+	return r
 }
 
 // Split tensörü verilen eksen boyunca n eşit parçaya böler; parçalar veriyi

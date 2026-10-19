@@ -82,6 +82,7 @@ func binary(a, b *Tensor, op BinOp) *Tensor { return binaryTur(a, b, op, sonucTu
 func binaryTur(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	be := sameDevice(binopAd[op], a, b)
 	outShape := broadcastShapes(a.shape, b.shape)
+	sy := sayacBasla(be, IslemToplama+Islem(op)).baslat()
 	out := emptyOf(binopIslem[op], be, outShape, dt)
 	be.Binary(op, out.storage, outShape, a.view(), b.view())
 	var kaydet []*Tensor // geri yayılımın okuduğu girdiler
@@ -91,7 +92,7 @@ func binaryTur(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	case OpDiv:
 		kaydet = []*Tensor{b, out}
 	}
-	return track(out, binopAd[op], []*Tensor{a, b}, func() {
+	r := track(out, binopAd[op], []*Tensor{a, b}, func() {
 		g := out.grad
 		sh := out.shape
 		yok := View{}
@@ -123,6 +124,8 @@ func binaryTur(a, b *Tensor, op BinOp, dt DType) *Tensor {
 			}
 		}
 	}, kaydet...)
+	sy.bitir()
+	return r
 }
 
 // Add eleman bazlı toplama (yayınlamalı).
@@ -167,6 +170,7 @@ var unopAd = map[UnOp]string{
 func turevsizTekli(op UnOp) bool { return op == OpFloor || op == OpCeil || op == OpSign }
 
 func unary(t *Tensor, op UnOp, p float32) *Tensor {
+	sy := sayacBasla(t.be, IslemUstel+Islem(op)).baslat()
 	out := emptyOf(isElemanBazli, t.be, t.shape, t.tur)
 	t.be.Unary(op, p, out.storage, t.view())
 	var kaydet []*Tensor
@@ -176,13 +180,15 @@ func unary(t *Tensor, op UnOp, p float32) *Tensor {
 	default:
 		kaydet = []*Tensor{t, out}
 	}
-	return track(out, unopAd[op], []*Tensor{t}, func() {
+	r := track(out, unopAd[op], []*Tensor{t}, func() {
 		if turevsizTekli(op) {
 			t.accGrad() // gradyan 0'dır; yaprakta sıfır gradyan görünür
 			return
 		}
 		t.be.UnaryGrad(op, p, t.accGrad(), out.grad, t.view(), out.storage)
 	}, kaydet...)
+	sy.bitir()
+	return r
 }
 
 // AddScalar her elemana s ekler.

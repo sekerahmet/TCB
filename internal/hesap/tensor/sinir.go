@@ -13,6 +13,7 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 		panic(fmt.Sprintf("tensor: Embedding 2 boyutlu tablo ister, şekil %v", w.shape))
 	}
 	V, D := w.shape[0], w.shape[1]
+	sy := sayacBasla(w.be, IslemGomme).baslat()
 	if len(shape) == 0 {
 		shape = []int{len(idx)}
 	}
@@ -27,9 +28,11 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 	ix := append([]int(nil), idx...)
 	out := emptyOf(isGomme, w.be, append(copyInts(shape), D), w.tur)
 	w.be.Embedding(out.storage, w.view(), ix, D)
-	return track(out, "embedding", []*Tensor{w}, func() {
+	r := track(out, "embedding", []*Tensor{w}, func() {
 		w.be.EmbeddingGrad(w.accGrad(), out.grad, ix, D)
 	})
+	sy.bitir()
+	return r
 }
 
 // CrossEntropy logits (..., C) ve hedef sınıf indeksleri (satır başına bir
@@ -40,6 +43,7 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	if len(logits.shape) < 1 {
 		panic("tensor: CrossEntropy en az 1 boyutlu logit ister")
 	}
+	sy := sayacBasla(logits.be, IslemCaprazEntropi).baslat()
 	C := logits.shape[len(logits.shape)-1]
 	R := logits.Numel() / max(C, 1)
 	if len(targets) != R {
@@ -62,7 +66,7 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	be := logits.be
 	loss, lse := be.CrossEntropy(logits.view(), tg, C)
 	out := fromStorage(be, loss, nil)
-	return track(out, "cross_entropy", []*Tensor{logits}, func() {
+	r := track(out, "cross_entropy", []*Tensor{logits}, func() {
 		cs, yazar := be.(CrossEntropyGradSetter)
 		if gx, taze := logits.tazeGrad(yazar); taze {
 			cs.CrossEntropyGradSet(gx, out.grad, logits.view(), lse, tg, C)
@@ -70,6 +74,8 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 		}
 		be.CrossEntropyGrad(logits.accGrad(), out.grad, logits.view(), lse, tg, C)
 	}, logits)
+	sy.bitir()
+	return r
 }
 
 func optView(t *Tensor) *View {
@@ -96,6 +102,7 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 	checkNormParam("LayerNorm", gamma, D)
 	checkNormParam("LayerNorm", beta, D)
 	be := sameDevice("LayerNorm", x, gamma, beta)
+	sy := sayacBasla(be, IslemKatmanNormu).baslat()
 	out := emptyOf(isNormallestirme, be, x.shape, x.tur)
 	gv := optView(gamma)
 	mean, rstd := be.LayerNorm(out.storage, x.view(), gv, optView(beta), D, eps)
@@ -106,9 +113,11 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 	if beta != nil {
 		parents = append(parents, beta)
 	}
-	return track(out, "layer_norm", parents, func() {
+	r := track(out, "layer_norm", parents, func() {
 		be.LayerNormGrad(optGrad(x), optGrad(gamma), optGrad(beta), out.grad, x.view(), gv, mean, rstd, D)
 	}, x, gamma)
+	sy.bitir()
+	return r
 }
 
 // RMSNorm son eksen boyunca karekök-ortalama-kare normalleştirmesi:
@@ -118,6 +127,7 @@ func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
 	D := x.shape[len(x.shape)-1]
 	checkNormParam("RMSNorm", gamma, D)
 	be := sameDevice("RMSNorm", x, gamma)
+	sy := sayacBasla(be, IslemRMSNormu).baslat()
 	out := emptyOf(isNormallestirme, be, x.shape, x.tur)
 	gv := optView(gamma)
 	rinv := be.RMSNorm(out.storage, x.view(), gv, D, eps)
@@ -125,9 +135,11 @@ func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
 	if gamma != nil {
 		parents = append(parents, gamma)
 	}
-	return track(out, "rms_norm", parents, func() {
+	r := track(out, "rms_norm", parents, func() {
 		be.RMSNormGrad(optGrad(x), optGrad(gamma), out.grad, x.view(), gv, rinv, D)
 	}, x, gamma)
+	sy.bitir()
+	return r
 }
 
 // normBoyutDenetle normalleştirilecek girdinin en az 1 boyutlu olduğunu denetler.

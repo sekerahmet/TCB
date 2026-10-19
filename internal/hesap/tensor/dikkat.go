@@ -110,6 +110,7 @@ func Attention(q, k, v *Tensor, opt AttentionOptions) *Tensor {
 // satırının çıktısı 0'dır (gradyanı da 0).
 func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor {
 	be := sameDevice("attention", q, k, v)
+	sy := sayacBasla(be, IslemDikkat).baslat()
 	p := attentionParams(q, k, v, opt)
 	outShape := copyInts(q.shape)
 	outShape[len(outShape)-1] = p.Dv
@@ -124,7 +125,7 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 	qv, kv, vv := q.contigView(), k.contigView(), v.contigView()
 	out := emptyOf(isDikkat, be, outShape, outType)
 	lse := be.Attention(out.storage, qv, kv, vv, maske, p)
-	return track(out, "attention", []*Tensor{q, k, v}, func() {
+	r := track(out, "attention", []*Tensor{q, k, v}, func() {
 		as, yazar := be.(AttentionGradSetter)
 		var g [3]Storage
 		var taze [3]bool
@@ -139,6 +140,8 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 		}
 		be.AttentionGrad(g[0], g[1], g[2], out.grad, qv, kv, vv, maske, out.storage, lse, p)
 	}, q, k, v)
+	sy.bitir()
+	return r
 }
 
 // attentionParams şekilleri denetler ve arka uç tanımını kurar.
