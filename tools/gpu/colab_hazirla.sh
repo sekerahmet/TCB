@@ -8,6 +8,7 @@
 #   tr             TR yorumlayıcısı (linux/amd64, GOAMD64=v3, CGO_ENABLED=0)
 #   gpu_sinama     GPU arka ucunun Go sınama ikilisi (go test -c ./internal/hesap/gpu)
 #   kiyas_gpu.tr   kıyas modeli (TR)
+#   gpt_egitim.tr  SimpleStories GPT eğitimi (dilin kitaplığıyla: tr/katman, tr/iyilestirici)
 #   kiyas_gpu.py   kıyas modeli (karşılaştırma tarafı)
 #   mikro_kiyas.py mikro kıyaslar (karşılaştırma tarafı; TR tarafı gpu_sinama'da TestMikroKiyas)
 #   mikro_tablo.py iki tarafın mikro kıyas çıktılarını tek tabloya çevirir
@@ -33,7 +34,7 @@ echo "== GPU sınama ikilisi derleniyor"
 go test -c -trimpath -o "$hedef/gpu_sinama" ./internal/hesap/gpu
 unset GOOS GOARCH GOAMD64 CGO_ENABLED
 
-cp tools/gpu/kiyas_gpu.tr tools/gpu/kiyas_gpu.py tools/gpu/mikro_kiyas.py tools/gpu/mikro_tablo.py tools/gpu/COLAB.md "$hedef/"
+cp tools/gpu/kiyas_gpu.tr tools/gpu/gpt_egitim.tr tools/gpu/kiyas_gpu.py tools/gpu/mikro_kiyas.py tools/gpu/mikro_tablo.py tools/gpu/COLAB.md "$hedef/"
 # Dil tanımı testleri (15.26–15.30 GPU kuralları GPU'lu makinede koşar).
 mkdir -p "$hedef/testler"
 cp -r testler/. "$hedef/testler/"

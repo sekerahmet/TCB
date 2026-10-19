@@ -132,6 +132,41 @@ TR_GPU_MIKRO=1 TR_GPU_KENDI_CARPIM=1 ncu --target-processes all -k regex:carpim 
   --section SpeedOfLight ./gpu_sinama -test.run 'TestMikroKiyas$' 2>&1 | grep -E 'carpim|Throughput|Duration' | head -20
 ```
 
+## 9. SimpleStories ile GPT eğitimi (dilin kitaplığıyla)
+
+`gpt_egitim.tr` dilin kitaplığındaki GPT'yi (`aktar "tr/katman"`) gizli ağırlıklarda Muon,
+gömme/norm ağırlıklarında AdamW ile (`aktar "tr/iyilestirici"`), ısınma–sabit–azalma (WSD)
+öğrenme oranı planıyla eğitir. Veri klasörü: `tokenizer.json`, `train.npy`, `valid.npy`
+(uint16 parça kimlikleri). Varsayılan model d512, 8 katman, 8 baş, bağlam 512, toplu 128.
+Koşu klasörünü yerel diskte tutun, bitince Drive'a kopyalayın.
+
+```bash
+%%bash
+mkdir -p /content/ss4096
+cp "/content/drive/MyDrive/VERI/ss4096/"{tokenizer.json,train.npy,valid.npy} /content/ss4096/
+cd /content/tr
+# Önce birkaç dakikalık deneme: bellek ve hız (speed.json)
+./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/kosular/deneme --adım 60 --ısınma 10 \
+  --değerlendir_her 30 --örnek_her 60 2>&1 | tail -4
+cat /content/kosular/deneme/speed.json
+```
+
+Bellek yetmezse toplu işi bölün (adım başına aynı veri): `--toplu 64 --birikim 2` (ya da
+`--toplu 32 --birikim 4`). Karışık hassasiyet: `--hassasiyet bf16`. NorMuon: `--normuon`
+(öğrenme oranı AdamW ölçeğindedir: `--muon_oranı 0.003`). Bütün ayarlar: `./tr gpt_egitim.tr --yardım`.
+
+```bash
+%%bash
+cd /content/tr
+./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/kosular/gpt1 --adım 5000 2>&1 | tail -8
+cp -r /content/kosular/gpt1 "/content/drive/MyDrive/TR_dili/kosular/"
+```
+
+Oturum kesilirse aynı komut kaldığı yerden sürer (`kontrol_noktalari/`, 15 dakikada bir).
+Koşu klasörü: `config.json`, `metrics.jsonl` (eğitim kaybı 10 adımda bir, `oran_çarpanı`,
+`doğrulama_kaybı`), `samples.json` ("Once upon a time" ile örnekler), `speed.json`
+(`ms_adım`, `parça_sn`), `model.trt`.
+
 ## Geri bildirilecekler
 
 1. 1. hücrenin son iki satırı (kart, matris çarpımı yolu).
@@ -139,6 +174,7 @@ TR_GPU_MIKRO=1 TR_GPU_KENDI_CARPIM=1 ncu --target-processes all -k regex:carpim 
 3. 4. hücrenin tablosu.
 4. 6. hücrenin çıktısı (ms/adım, son kayıp, GPU kullanımı, bellek).
 5. 7. hücrenin özeti; 8. hücre çalıştırıldıysa çıktısı.
+6. 9. hücre çalıştırıldıysa: speed.json, son doğrulama kaybı ve samples.json'daki son örnek.
 
 ## Ortam değişkenleri
 

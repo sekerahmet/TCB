@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"tr_dili/internal/depo"
 )
 
 // Kural 11.1 (güvenlik bulgusu O2): başka klasörden çalıştırılan programın göreli 'aktar'ı
@@ -52,4 +56,44 @@ func TestKitaplikModuluKontrolVeDerle(t *testing.T) {
 	dosyaYaz(t, proje, "hatali.tr", "aktar \"tr/olmayan\"\n")
 	bekle(t, tr(t, proje, "kontrol", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/iyilestirici, tr/katman`})
 	bekle(t, tr(t, proje, "derle", "hatali.tr", cikis), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok`})
+}
+
+// Colab eğitim betiğinin (tools/gpu/gpt_egitim.tr) duman testi: depodaki sentetik veri
+// SimpleStories klasörü düzenine (tokenizer.json, train.npy, valid.npy) konur, çok küçük ayarla
+// CPU'da koşturulur; koşu klasörüne beş çıktı yazılır, aynı komut kaldığı yerden sürer.
+func TestGPTEgitimBetigiDumanTesti(t *testing.T) {
+	veri := t.TempDir()
+	for hedef, kaynak := range map[string]string{"tokenizer.json": "testler/veri/parcalayici.json",
+		"train.npy": "testler/veri/metin/metin_000.npy", "valid.npy": "testler/veri/metin/metin_001.npy"} {
+		b, err := os.ReadFile(depo.Yol(kaynak))
+		if err != nil {
+			t.Fatal(err)
+		}
+		dosyaYaz(t, veri, hedef, string(b))
+	}
+	kosu := filepath.Join(t.TempDir(), "kosu")
+	args := []string{depo.Yol("tools/gpu/gpt_egitim.tr"), "--veri", veri, "--koşu", kosu, "--cihaz", "cpu",
+		"--boyut", "16", "--katman", "1", "--baş", "2", "--bağlam", "16", "--toplu", "4", "--birikim", "2",
+		"--adım", "12", "--ısınma", "2", "--değerlendir_her", "6", "--değerlendir_toplu", "2", "--örnek_her", "6",
+		"--örnek_sayısı", "2", "--örnek_uzunluğu", "6", "--ölçüm_ısınması", "2", "--günlük_her", "3"}
+	s := tr(t, t.TempDir(), args...)
+	bekle(t, s, 0, []string{"ms/adım", "bitti: en iyi doğrulama kaybı", "Once upon a time"}, nil)
+	if strings.Contains(s.hata, "Uyar") {
+		t.Errorf("betik uyarı verdi:\n%s", s.hata)
+	}
+	for _, ad := range []string{"config.json", "metrics.jsonl", "samples.json", "speed.json", "model.trt"} {
+		if _, err := os.Stat(filepath.Join(kosu, ad)); err != nil {
+			t.Errorf("%s yazılmadı: %v", ad, err)
+		}
+	}
+	var hiz map[string]any
+	if b, err := os.ReadFile(filepath.Join(kosu, "speed.json")); err != nil || json.Unmarshal(b, &hiz) != nil || hiz["ms_adım"] == nil {
+		t.Errorf("speed.json okunamadı: %v %v", err, hiz)
+	}
+	metrik, _ := os.ReadFile(filepath.Join(kosu, "metrics.jsonl"))
+	if !strings.Contains(string(metrik), `"doğrulama_kaybı"`) || !strings.Contains(string(metrik), `"oran_çarpanı"`) {
+		t.Errorf("metrics.jsonl'de doğrulama kaybı ya da oran çarpanı yok:\n%s", metrik)
+	}
+	// Aynı komut: eğitim bitmiş, kontrol noktasından yüklenir.
+	bekle(t, tr(t, t.TempDir(), args...), 0, []string{"bitti"}, []string{"Kaldığı yerden devam: adım 12"})
 }
