@@ -42,51 +42,55 @@ func TestNormVectorMatchesGo(t *testing.T) {
 		return d
 	}
 	t.Logf("çekirdek: %s", microKernelName())
-	for _, D := range []int{1, 3, 7, 8, 9, 15, 16, 17, 31, 64, 67, 131, 512} {
-		for _, R := range []int{1, 2, 5} {
-			for choice := 0; choice < 8; choice++ {
-				rms := choice&4 != 0
-				x := slice(R*D, 0.7)
-				var g, b []float32
-				if choice&1 != 0 {
-					g = slice(D, 1)
-				}
-				if choice&2 != 0 && !rms {
-					b = slice(D, 0)
-				}
-				y1, y2 := make([]float32, R*D), make([]float32, R*D)
-				rs1, rs2 := make([]float32, R), make([]float32, R)
-				var m1, m2 []float32
-				if !rms {
-					m1, m2 = make([]float32, R), make([]float32, R)
-				}
-				lnForwardBlock(y1, x, g, b, m1, rs1, D, 1e-5)
-				lnForwardBlockGo(y2, x, g, b, m2, rs2, D, 1e-5)
-				equalBits32(t, "ileri y", y1, y2)
-				equalBits32(t, "ileri rstd", rs1, rs2)
-				equalBits32(t, "ileri mean", m1, m2)
+	// shift 3e36: ortalaması çok büyük, varyansı (float32'de) sıfır satırlar; kuyruk
+	// şeritlerinde (0 - ortalama)·rstd taşar, maskelenmezse geri yön NaN üretirdi.
+	for _, shift := range []float64{0.7, 3e36} {
+		for _, D := range []int{1, 3, 7, 8, 9, 15, 16, 17, 31, 64, 67, 131, 512} {
+			for _, R := range []int{1, 2, 5} {
+				for choice := 0; choice < 8; choice++ {
+					rms := choice&4 != 0
+					x := slice(R*D, shift)
+					var g, b []float32
+					if choice&1 != 0 {
+						g = slice(D, 1)
+					}
+					if choice&2 != 0 && !rms {
+						b = slice(D, 0)
+					}
+					y1, y2 := make([]float32, R*D), make([]float32, R*D)
+					rs1, rs2 := make([]float32, R), make([]float32, R)
+					var m1, m2 []float32
+					if !rms {
+						m1, m2 = make([]float32, R), make([]float32, R)
+					}
+					lnForwardBlock(y1, x, g, b, m1, rs1, D, 1e-5)
+					lnForwardBlockGo(y2, x, g, b, m2, rs2, D, 1e-5)
+					equalBits32(t, "ileri y", y1, y2)
+					equalBits32(t, "ileri rstd", rs1, rs2)
+					equalBits32(t, "ileri mean", m1, m2)
 
-				gr := slice(R*D, 0)
-				for hasXG := 0; hasXG < 2; hasXG++ {
-					var xg1, xg2 []float32
-					if hasXG == 1 {
-						xg1, xg2 = slice(R*D, 0), make([]float32, R*D)
-						copy(xg2, xg1)
+					gr := slice(R*D, 0)
+					for hasXG := 0; hasXG < 2; hasXG++ {
+						var xg1, xg2 []float32
+						if hasXG == 1 {
+							xg1, xg2 = slice(R*D, 0), make([]float32, R*D)
+							copy(xg2, xg1)
+						}
+						pg1, pg2 := make([]float64, D), make([]float64, D)
+						pb1, pb2 := make([]float64, D), make([]float64, D)
+						for i := range pg1 {
+							pg1[i] = rng.Float64()
+							pg2[i], pb1[i], pb2[i] = pg1[i], -pg1[i], -pg1[i]
+						}
+						if choice&2 != 0 {
+							pb1, pb2 = nil, nil
+						}
+						lnBackwardBlock(xg1, pg1, pb1, x, gr, g, m1, rs1, D)
+						lnBackwardBlockGo(xg2, pg2, pb2, x, gr, g, m2, rs2, D)
+						equalBits32(t, "geri xg", xg1, xg2)
+						equalBits64(t, "geri pg", pg1, pg2)
+						equalBits64(t, "geri pb", pb1, pb2)
 					}
-					pg1, pg2 := make([]float64, D), make([]float64, D)
-					pb1, pb2 := make([]float64, D), make([]float64, D)
-					for i := range pg1 {
-						pg1[i] = rng.Float64()
-						pg2[i], pb1[i], pb2[i] = pg1[i], -pg1[i], -pg1[i]
-					}
-					if choice&2 != 0 {
-						pb1, pb2 = nil, nil
-					}
-					lnBackwardBlock(xg1, pg1, pb1, x, gr, g, m1, rs1, D)
-					lnBackwardBlockGo(xg2, pg2, pb2, x, gr, g, m2, rs2, D)
-					equalBits32(t, "geri xg", xg1, xg2)
-					equalBits64(t, "geri pg", pg1, pg2)
-					equalBits64(t, "geri pb", pb1, pb2)
 				}
 			}
 		}

@@ -604,6 +604,9 @@ lng_ak:
 	VMASKMOVPS (SI)(AX*1), Y14, Y4
 	VSUBPS     Y7, Y4, Y4
 	VMULPS     Y8, Y4, Y4
+	// Geçersiz şeritlerde (0 - ortalama)·rstd büyük ortalamada ±Inf olur; Inf·0 = NaN
+	// satır toplamlarına girmesin diye sıfırlanır (ileri yön de böyle maskeler).
+	VANDPS     Y14, Y4, Y4
 	VMASKMOVPS (R10)(AX*1), Y14, Y5
 	TESTQ      R8, R8
 	JZ         lng_ak1
