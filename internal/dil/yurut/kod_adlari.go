@@ -57,9 +57,20 @@ func (v *VM) SabitTanimla(kd kod.Kod, deger Value) {
 	if !kd.Yerlesik() {
 		panic(fmt.Sprintf("sabit kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kd))
 	}
+	if v.yerlesikSabitler == nil {
+		v.yerlesikSabitler = map[string]Value{}
+	}
 	for _, yazim := range kod.Yazimlar(kd) {
 		v.GlobalEnv.Define(yazim, deger, true)
+		v.yerlesikSabitler[yazim] = deger
 	}
+}
+
+// YerlesikSabitMi ad kapsamda val değeriyle duran bir yerleşik sabit mi (kullanıcı aynı adla
+// bir değişken tanımladıysa değeri farklıdır ve yanlış döner)?
+func (v *VM) YerlesikSabitMi(ad string, val Value) bool {
+	s, ok := v.yerlesikSabitler[ad]
+	return ok && s == val
 }
 
 // Yerlesik kodun genel kapsamda kayıtlı yerleşiğini verir; yoksa nil.

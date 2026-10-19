@@ -134,6 +134,11 @@ Motorların kendi kancaları:
   `TR_GPU_DIKKAT=birlesik|carpim` ile zorlanabilir (ölçüm; varsayılan birleşik). Çok tensörlü
   işte 16 bitlik açılmaların geçici belleği 256 MB'yi aşarsa iş parçalara bölünür; aynı
   parametre listede iki kez geçerse güncellemeler sırayla yapılır.
+- **Sıralama ve birikim** (`cekirdek_sirala.go`): birikimli toplam satır başına bir blokla
+  (parça toplamları paylaşımlı bellekte sabit sıralı taramayla); sıralama ve en büyük k 64 bitlik
+  (sıra anahtarı, indeks) çiftleriyle bitonik ağla: dolgulu satır 4096'ya kadar paylaşımlı
+  bellekte tek başlatma, daha uzunu genel bellekte adım başına bir başlatma. Anahtarlar tekil
+  olduğundan sonuç kararlı ve CPU ile aynıdır.
 - **Matris çarpımı:** makinede NVIDIA cuBLASLt kuruluysa float32 çarpım onunla yapılır (TF32
   kapalı; adımlı toplu; sürücü gibi çalışma anında yüklenir, TR dağıtmaz). Arama sırası
   `carpim_kitaplik_yol.go`'da: `TR_GPU_CUBLASLT` (tam yol), Linux'ta standart arama yolu,
@@ -181,6 +186,8 @@ Motorların kendi kancaları:
   görünmez (çıktı eşlemesi birebir olmalıdır; `ScatterAdd`/indirgeme hedefi örtüşen bir
   görünüm olamaz); yaklaşık komutlar (`ex2`, `lg2`, `sin`, `cos`) tam doğrulukla, `fma`
   float64 üzerinden hesaplanır (donanımla birkaç ulp fark; sınamalar toleranslıdır).
+  Sinüs, kosinüs ve tanjantın aralık indirgemesi float32'dedir: |x| ≤ 10⁵ radyanda doğrudur,
+  daha büyük argümanda CPU'dan (float64 indirgeme) farklı sonuç verir.
 - **Colab:** `tools/gpu/` (paket hazırlama, model ve mikro kıyas betikleri, `COLAB.md`). Mikro
   kıyaslar `gpu_sinama`'nın içindedir (`TR_GPU_MIKRO=1`, `TestMikroKiyas`); karşılaştırma
   tarafı `mikro_kiyas.py`, tablo `mikro_tablo.py`.

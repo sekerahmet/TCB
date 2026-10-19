@@ -453,7 +453,7 @@ func (d *Debugger) renderDebugScreen(v *yurut.VM, currentLine int, env *yurut.En
 
 	fmt.Println("╟──────────────────────────────────────────────────────────────────────────────╢")
 	// Yerel ve genel değişkenlerin özeti
-	vars := collectVisibleVariables(env)
+	vars := collectVisibleVariables(v, env)
 	fmt.Printf("  📊 SİSTEM: SY-LINNO=%d | SY-STEP=%d | YIĞIN_DERİNLİĞİ=%d\n", currentLine, d.StepCount, v.StackDepth())
 	if len(vars) == 0 {
 		fmt.Println("  📦 DEĞİŞKENLER: (Henüz kullanıcı değişkeni tanımlanmadı)")
@@ -536,7 +536,7 @@ type varEntry struct {
 	Val  yurut.Value
 }
 
-func collectVisibleVariables(env *yurut.Environment) []varEntry {
+func collectVisibleVariables(vm *yurut.VM, env *yurut.Environment) []varEntry {
 	seen := make(map[string]bool)
 	var list []varEntry
 	cur := env
@@ -547,7 +547,7 @@ func collectVisibleVariables(env *yurut.Environment) []varEntry {
 			}
 			seen[k] = true
 			// Yerleşik fonksiyonları ve yapı tanımlarını kalabalık yapmaması için gizle
-			if v.Type() == yurut.VAL_BUILTIN || v.Type() == yurut.VAL_STRUCT || v.Type() == yurut.VAL_FUNC || v.Type() == yurut.VAL_TYPE {
+			if v.Type() == yurut.VAL_BUILTIN || v.Type() == yurut.VAL_STRUCT || v.Type() == yurut.VAL_FUNC || v.Type() == yurut.VAL_TYPE || vm.YerlesikSabitMi(k, v) {
 				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})

@@ -93,6 +93,9 @@ type vmShared struct {
 	Err          io.Writer
 	girdiMu      sync.Mutex
 	girdiOkuyucu *bufio.Reader
+	// yerlesikSabitler genel kapsama kaydedilen yerleşik sabitlerdir (ad → değer; ör. pi);
+	// hata ayıklayıcı onları kullanıcı değişkenlerinden ayırır (YerlesikSabitMi).
+	yerlesikSabitler map[string]Value
 
 	// gil (Yorumlayıcı Kilidi): Aynı anda yalnızca bir görev TR kodu çalıştırır. Böylece
 	// paylaşılan Liste/Sözlük/Yapı değerleri eşzamanlı yazımda bozulmaz ve 's += 1' gibi

@@ -47,6 +47,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
    - dizüstü bilgisayarda ya da tek bir bulut GPU'sunda çalışan küçük model tarifleri;
    - eğitilen modeli tek dosya uygulama ya da web hizmeti olarak paylaşma.
 12. **Statik şekil denetimi** — tensör şekil hatalarının çalıştırmadan önce yakalanması.
+13. **Matematik: doğrusal cebir ve Fourier** — doğrusal sistem çözme, ters matris, ayrışımlar (QR, Cholesky, tekil değer), determinant ve normlar; hızlı Fourier dönüşümü. Hepsi türevli, CPU ve GPU çekirdekli.
 
 ## Platformlar
 
@@ -66,6 +67,7 @@ TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici iç
 - Örnekler 01–09 öğrenme sırasıyla.
 - Kodlar: dilin bütün adları `internal/dil/kod/tr.json`'da sabit kodlara bağlı; açıklamalı başvuru `docs/kodlar.md`.
 - Tek yazım: Türkçe harfsiz biçimler, eş yazımlar, `matris`, `#` yorum ve İngilizce eşler kaldırıldı; komut satırı tek Türkçe ad; yerleşik ad gölgeleme uyarısı; eklenti listeleri kod listesinden üretiliyor.
+- Matematik genişletmesi: `silu`, ters trigonometri (`tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`), `sinh`/`cosh`, `log1p`/`log2`/`log10`/`üstel_eksi_bir`, `taban`/`tavan`/`işaret`/`sınırla`, `pi`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu` ve yayınlamalı tensör karşılaştırmaları; hepsi türevli (uygun olanlar), CPU ve GPU çekirdekli, bf16/fp16 depolamada.
 - Model yapı taşları: `sinüs`/`kosinüs`, `birleştir`, `.böl`, `boyutu_koru`, birleşik `dikkat` (nedensel, pencereli, gruplu sorgu; T×T ara matrissiz, uzun bağlamda 2–10 kat hızlı), `örnekle`, `parametreler(model)`.
 - Standart kitaplığın temeli (Aşama 0): ham metin `` `...` `` ve bilinmeyen kaçış hatası, yol ve tembel yineleme kancaları, betik argümanları, Ctrl+C ile nazik çıkış (ertelenen işler çalışır, çıkış kodu 3), canlı satır ve gizli değer süzgeci; `İyileştirici` tipi, `indirge` bloğunda `birikim`.
 - Güvenlik denetimi: tensör dosyası ve tensör ayırmaları bellek sınırıyla denetlenir, metin içi yerleştirmeye derinlik sınırı, güvenilmeyen girdiler için bulanıklaştırma testleri, VS Code eklentisi yalnızca güvenilen yorumlayıcıyı çalıştırır, otomatik sınamada sabitlenmiş eylemler, Go 1.25.

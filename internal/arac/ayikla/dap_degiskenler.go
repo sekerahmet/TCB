@@ -47,7 +47,8 @@ func (s *dapServer) scopeVariables(h *dapHandle) []varEntry {
 				return
 			}
 			seen[k] = true
-			if v.Type() == yurut.VAL_BUILTIN || v.Type() == yurut.VAL_STRUCT || v.Type() == yurut.VAL_FUNC || v.Type() == yurut.VAL_TYPE {
+			if v.Type() == yurut.VAL_BUILTIN || v.Type() == yurut.VAL_STRUCT || v.Type() == yurut.VAL_FUNC || v.Type() == yurut.VAL_TYPE ||
+				s.curVM.YerlesikSabitMi(k, v) {
 				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})
