@@ -123,20 +123,20 @@ func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
 	if _, err := machine.Run(prog); err != nil {
 		if c, ok := yurut.CikisIstegiMi(err); ok {
 			machine.WaitAsync()
-			motor.Kapat()
+			motoruKapat()
 			programCikisi(machine, c)
 		}
 		if errors.Is(err, yurut.ErrKesildi) {
 			machine.WaitAsync() // eşzamanlı görevler de kesildi; ertelenen işleri bitsin
-			motor.Kapat()
+			motoruKapat()
 			kesilmeyiBildir(machine, err, code)
 		}
-		motor.Kapat()
+		motoruKapat()
 		calismaHatasiYaz(machine, err, code)
 		cik(1)
 	}
 	machine.WaitAsync()
-	motor.Kapat()
+	motoruKapat()
 	if machine.Kesildi() {
 		// Kesme isteği programın son beklemesinde (ör. bekle) geldi; program yine de durduruldu.
 		kesilmeyiBildir(machine, nil, code)
@@ -144,6 +144,20 @@ func programCalistir(machine *yurut.VM, prog *agac.Program, code string) {
 	if u := machine.KullanilmayanArgumanUyarisi(); u != "" {
 		machine.CiktiYaz(os.Stderr, u+"\n")
 	}
+}
+
+// kapanmadanOnce program bittiğinde, motorlar kapanmadan önce çalışacak işlerdir (ör. tr izle
+// ve tr profil GPU'nun son ölçümlerini arka uç kapanmadan alır).
+var kapanmadanOnce []func()
+
+// motoruKapat kapanmadanOnce işlerini (bir kez) çalıştırır ve motorları kapatır.
+func motoruKapat() {
+	isler := kapanmadanOnce
+	kapanmadanOnce = nil
+	for _, f := range isler {
+		f()
+	}
+	motor.Kapat()
 }
 
 // programCikisi bir yerleşiğin istediği program çıkışını yapar (ör. komut satırı

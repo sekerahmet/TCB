@@ -526,8 +526,12 @@ func temizle() {
 	cikisTemizligi = nil
 }
 
+// cikisKodu cik'e verilen koddur; temizlik işleri (ör. tr profil'in son raporu) okur.
+var cikisKodu int
+
 // cik temizlik işlerini yapıp verilen kodla çıkar.
 func cik(kod int) {
+	cikisKodu = kod
 	temizle()
 	os.Exit(kod)
 }

@@ -1,6 +1,6 @@
 // tr, TR dilinin tek ikilisidir: alt komutları (çalıştır, kabuk, kontrol, derle, test,
-// biçimle, kodla, çöz, göster, hata_ayıkla, dap) ayrıştırır ve işi internal/ altındaki
-// paketlere bırakır.
+// biçimle, kodla, çöz, göster, izle, profil, hata_ayıkla, dap) ayrıştırır ve işi internal/
+// altındaki paketlere bırakır.
 //
 // Katman: araç (cmd); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
 package main
@@ -63,6 +63,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	if komut, ok := argumanliKomutlar[args[0]]; ok {
+		komut(args[1:])
+		return
+	}
 	switch args[0] {
 	case "yardım", "-h":
 		printHelp()
@@ -87,18 +91,6 @@ func main() {
 			outPath = args[2]
 		}
 		compileToExe(args[1], outPath)
-	case "hata_ayıkla":
-		hataAyiklaKomutu(args[1:])
-	case "test":
-		testKomutu(args[1:])
-	case "biçimle":
-		bicimleKomutu(args[1:])
-	case "kodla":
-		kodlaKomutu(args[1:])
-	case "çöz":
-		cozKomutu(args[1:])
-	case "göster":
-		gosterKomutu(args[1:])
 	case "dap":
 		// Düzenleyicinin hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
 		// Oturum bitince motorların açık kaynakları kapanır, geçici klasörler silinir.
@@ -119,13 +111,20 @@ func main() {
 	}
 }
 
+// argumanliKomutlar argümanlarını kendisi ayrıştıran alt komutlardır (komut adından
+// sonrakiler verilir).
+var argumanliKomutlar = map[string]func([]string){
+	"hata_ayıkla": hataAyiklaKomutu, "test": testKomutu, "biçimle": bicimleKomutu, "kodla": kodlaKomutu,
+	"çöz": cozKomutu, "göster": gosterKomutu, "izle": izleKomutu, "profil": profilKomutu,
+}
+
 // kaldirilanKomutlar kaldırılan komut adlarının (Türkçe karaktersiz ve İngilizce yazımlar)
 // asıl adlarıdır. Her komutun tek Türkçe adı vardır; kısa bayraklar -h ve -v simgedir, kalır.
 // Bu adlar KABUL EDİLMEZ: dosya adı sanılıp çalıştırılmaya çalışılmaz, asıl komut önerilir.
 var kaldirilanKomutlar = map[string]string{
 	"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla", "debug": "hata_ayıkla",
 	"yardim": "yardım", "--help": "yardım", "help": "yardım", "surum": "sürüm", "--version": "sürüm",
-	"version": "sürüm", "coz": "çöz", "goster": "göster",
+	"version": "sürüm", "coz": "çöz", "goster": "göster", "watch": "izle", "profile": "profil",
 }
 
 // printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
@@ -162,6 +161,8 @@ func printHelp() {
 	fmt.Println("  tr göster <dosya.tr> [--dil tr]  Dosyayı bir yazım dilinde gösterir (kodlu dosya da)")
 	fmt.Println("  tr göster - [--dil tr]      Metni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)")
 	fmt.Println("  tr kodla - [--dil tr]       Metni standart girişten okur, kodlu biçimini çıkışa yazar (düzenleyiciler için)")
+	fmt.Println("  tr izle <dosya.tr> [argümanlar]    Programı çalıştırır, hızını canlı gösterir (ms/adım, tensör işlemleri, sıcak satırlar, bellek)")
+	fmt.Println("  tr profil [--json yol] <dosya.tr>  Programı çalıştırır, bitince hız raporu verir (--json: rapor dosyası ya da koşu klasörü)")
 	fmt.Println("  tr dap                      düzenleyicinin hata ayıklama sunucusu (eklenti kendisi başlatır)")
 	fmt.Println("  tr yardım | -h              Bu yardımı gösterir")
 	fmt.Println("  tr sürüm | -v               Sürümü gösterir")
@@ -175,7 +176,9 @@ func runFile(path string, argumanlar []string) {
 	machine.SourceFile = path
 	machine.SourceCode = s.Metin
 	machine.ArgumanlariAyarla(argumanlar)
+	isProfiliniBaslat(machine, path, s.Metin, s.Program)
 	programCalistir(machine, s.Program, s.Metin)
+	temizle()
 }
 
 // hataAyiklaKomutu 'tr hata_ayıkla dosya.tr [argümanlar]' komutudur. Kaldırılan tarayıcı
