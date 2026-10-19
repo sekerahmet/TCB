@@ -323,14 +323,21 @@ func duzeltmePayi(tavan int) int {
 	return 5
 }
 
-// testFileRuleRoots are the trees where every X_test.go must sit next to the X.go it tests
-// (X_fuzz_test.go also belongs to X.go). The list grows as each layer is cleaned up; a test
-// that covers a whole package rather than one file goes in packageWideTests with its reason.
-var testFileRuleRoots = []string{"internal/lang/"}
+// testFileRuleRoots are the trees where every X_test.go must sit next to the X.go it tests.
+// X_fuzz_test.go and X_bench_test.go also belong to X.go, and X may be split by platform
+// (X_linux.go, X_avx2.go ...). The list grows as each layer is cleaned up; a test that covers
+// a whole package rather than one file goes in packageWideTests with its reason.
+var testFileRuleRoots = []string{"internal/lang/", "internal/compute/"}
 
 var packageWideTests = map[string]string{
-	"internal/lang/interp/semantics_test.go":  "end-to-end language semantics: TR programs run through the whole interpreter",
-	"internal/lang/interp/robustness_test.go": "crash, deadlock and concurrency safety of the whole interpreter",
+	"internal/lang/interp/semantics_test.go":     "end-to-end language semantics: TR programs run through the whole interpreter",
+	"internal/lang/interp/robustness_test.go":    "crash, deadlock and concurrency safety of the whole interpreter",
+	"internal/compute/dataload/helpers_test.go":  "test helpers shared by the package's tests",
+	"internal/compute/tensor/helpers_test.go":    "test helpers shared by the package's tests",
+	"internal/compute/tensor/forward_test.go":    "forward values of every op against hand-computed results",
+	"internal/compute/tensor/end_to_end_test.go": "small models trained end to end on the CPU backend",
+	"internal/compute/gpu/helpers_test.go":       "TestMain and test helpers shared by the package's tests",
+	"internal/compute/gpu/nn_test.go":            "neural network ops on the GPU against the CPU backend",
 }
 
 // A test file is named after the file it tests, so a reader can find the tests of a file (and
@@ -352,8 +359,9 @@ func TestTestFileMatchesSource(t *testing.T) {
 			seen[d.yol] = true
 			continue
 		}
-		base := strings.TrimSuffix(strings.TrimSuffix(d.yol, "_test.go"), "_fuzz")
-		if _, err := os.Stat(filepath.Join(reporoot.Kok(), filepath.FromSlash(base+".go"))); err != nil {
+		base := strings.TrimSuffix(d.yol, "_test.go")
+		base = strings.TrimSuffix(strings.TrimSuffix(base, "_fuzz"), "_bench")
+		if !hasSource(base) {
 			t.Errorf("%s: no %s.go next to it; name the test after the file it tests or move its tests there", d.yol, filepath.Base(base))
 		}
 	}
@@ -362,4 +370,20 @@ func TestTestFileMatchesSource(t *testing.T) {
 			t.Errorf("packageWideTests: %s not found; remove it from the list", f)
 		}
 	}
+}
+
+// hasSource reports whether base.go, or a platform variant base_*.go, exists (base is a path
+// relative to the repository root, without the .go extension).
+func hasSource(base string) bool {
+	full := filepath.Join(reporoot.Kok(), filepath.FromSlash(base))
+	if _, err := os.Stat(full + ".go"); err == nil {
+		return true
+	}
+	variants, _ := filepath.Glob(full + "_*.go")
+	for _, v := range variants {
+		if !strings.HasSuffix(v, "_test.go") {
+			return true
+		}
+	}
+	return false
 }

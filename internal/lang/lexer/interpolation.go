@@ -119,9 +119,9 @@ func (l *Lexer) Interpolation(text Token, expr string, begin int) *Lexer {
 // InterpolationExpr returns the expression of the interpolation in value[bas:son] (leading
 // and trailing spaces trimmed) and the index of its first character in the value.
 func InterpolationExpr(value []rune, begin, end int) (string, int) {
-	ham := string(value[begin:end])
-	expr := strings.TrimSpace(ham)
-	return expr, begin + len([]rune(ham)) - len([]rune(strings.TrimLeftFunc(ham, unicode.IsSpace)))
+	rawStr := string(value[begin:end])
+	expr := strings.TrimSpace(rawStr)
+	return expr, begin + len([]rune(rawStr)) - len([]rune(strings.TrimLeftFunc(rawStr, unicode.IsSpace)))
 }
 
 // StringPos returns the line and column in the file of the i-th character of a string

@@ -10,7 +10,7 @@
 #   kiyas_gpu.tr   kıyas modeli (TR)
 #   gpt_egitim.tr  SimpleStories GPT eğitimi (dilin kitaplığıyla: tr/katman, tr/iyilestirici)
 #   kiyas_gpu.py   kıyas modeli (karşılaştırma tarafı)
-#   mikro_kiyas.py mikro kıyaslar (karşılaştırma tarafı; TR tarafı gpu_sinama'da TestMikroKiyas)
+#   mikro_kiyas.py mikro kıyaslar (karşılaştırma tarafı; TR tarafı gpu_sinama'da TestMicroBench)
 #   mikro_tablo.py iki tarafın mikro kıyas çıktılarını tek tabloya çevirir
 #   COLAB.md       hücre hücre çalıştırma adımları
 #   tests/       dil tanımı testleri (depodaki tests/ klasörünün kopyası)

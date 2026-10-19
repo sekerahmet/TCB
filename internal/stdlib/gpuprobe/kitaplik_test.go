@@ -50,7 +50,7 @@ döngü normuon içinde [yanlış, doğru] {
 `
 
 func TestGPUdaKitaplikGPTsi(t *testing.T) {
-	gpu.BenzetimiKaydet() // gerçek GPU varsa o kullanılır
+	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	interp.SetLibrary(lib.Dosyalar)
 	defer interp.SetLibrary(nil)

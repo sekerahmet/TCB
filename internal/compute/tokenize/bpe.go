@@ -19,139 +19,139 @@ import (
 // kullanılır.
 
 // birlesme bir çift için kural sırası ve sonuç token kimliği.
-type birlesme struct {
-	sira int32
-	yeni int32
+type mergeRule struct {
+	order int32
+	fresh int32
 }
 
-func ciftAnahtar(a, b int32) uint64 { return uint64(uint32(a))<<32 | uint64(uint32(b)) }
+func pairKey(a, b int32) uint64 { return uint64(uint32(a))<<32 | uint64(uint32(b)) }
 
 // birlesmeTablosu çift -> birleştirme eşlemesi için açık adresli, doğrusal
 // yoklamalı bir karma tablodur; genel amaçlı eşlemeden belirgin biçimde
 // hızlıdır. Boş yuva anahtar = bosAnahtar ile işaretlenir (kimlikler negatif
 // olmadığından gerçek bir anahtar bu değeri alamaz).
-type birlesmeTablosu struct {
-	yuvalar []tabloYuvasi
-	maske   uint64
-	kaydir  uint
+type mergeTable struct {
+	slots []tableSlot
+	mask  uint64
+	shift uint
 }
 
 // tabloYuvasi anahtarı ve değeri yan yana tutar (tek önbellek satırı erişimi).
-type tabloYuvasi struct {
-	anahtar uint64
-	deger   birlesme
+type tableSlot struct {
+	key   uint64
+	value mergeRule
 }
 
-const bosAnahtar = ^uint64(0)
+const emptyKey = ^uint64(0)
 
-func yeniBirlesmeTablosu(m map[uint64]birlesme) *birlesmeTablosu {
-	boy, kaydir := uint64(16), uint(60)
-	for boy < uint64(len(m))*2 {
-		boy <<= 1
-		kaydir--
+func newMergeTable(m map[uint64]mergeRule) *mergeTable {
+	size, shift := uint64(16), uint(60)
+	for size < uint64(len(m))*2 {
+		size <<= 1
+		shift--
 	}
-	t := &birlesmeTablosu{
-		yuvalar: make([]tabloYuvasi, boy),
-		maske:   boy - 1,
-		kaydir:  kaydir,
+	t := &mergeTable{
+		slots: make([]tableSlot, size),
+		mask:  size - 1,
+		shift: shift,
 	}
-	for i := range t.yuvalar {
-		t.yuvalar[i].anahtar = bosAnahtar
+	for i := range t.slots {
+		t.slots[i].key = emptyKey
 	}
 	for k, v := range m {
-		i := t.yuva(k)
-		for t.yuvalar[i].anahtar != bosAnahtar {
-			i = (i + 1) & t.maske
+		i := t.slot(k)
+		for t.slots[i].key != emptyKey {
+			i = (i + 1) & t.mask
 		}
-		t.yuvalar[i] = tabloYuvasi{k, v}
+		t.slots[i] = tableSlot{k, v}
 	}
 	return t
 }
 
-func (t *birlesmeTablosu) yuva(k uint64) uint64 {
-	return (k * 0x9E3779B97F4A7C15) >> t.kaydir
+func (t *mergeTable) slot(k uint64) uint64 {
+	return (k * 0x9E3779B97F4A7C15) >> t.shift
 }
 
 // bul çiftin birleştirmesini verir; yoksa sira = -1.
-func (t *birlesmeTablosu) bul(a, b int32) birlesme {
-	k := ciftAnahtar(a, b)
-	i := t.yuva(k)
+func (t *mergeTable) find(a, b int32) mergeRule {
+	k := pairKey(a, b)
+	i := t.slot(k)
 	for {
-		y := &t.yuvalar[i]
-		ak := y.anahtar
+		y := &t.slots[i]
+		ak := y.key
 		if ak == k {
-			return y.deger
+			return y.value
 		}
-		if ak == bosAnahtar {
-			return birlesme{-1, -1}
+		if ak == emptyKey {
+			return mergeRule{-1, -1}
 		}
-		i = (i + 1) & t.maske
+		i = (i + 1) & t.mask
 	}
 }
 
 // birlestirKisa doğrudan tarama ile birleştirir.
 // Her komşu çiftin birleştirmesi bir kez aranıp dizide tutulur; bir
 // birleştirmeden sonra yalnızca değişen iki komşu çift yeniden aranır.
-func (p *bpeModel) birlestirKisa(sem []int32) []int32 {
+func (p *bpeModel) joinShort(sem []int32) []int32 {
 	if len(sem) < 2 {
 		return sem
 	}
-	t := p.tablo
-	var ciftDizi [kisaEsik]birlesme
-	var cift []birlesme
-	if len(sem)-1 <= kisaEsik {
-		cift = ciftDizi[:len(sem)-1]
+	t := p.table
+	var pairArr [shortThreshold]mergeRule
+	var pair []mergeRule
+	if len(sem)-1 <= shortThreshold {
+		pair = pairArr[:len(sem)-1]
 	} else {
-		cift = make([]birlesme, len(sem)-1)
+		pair = make([]mergeRule, len(sem)-1)
 	}
-	for k := range cift {
-		cift[k] = t.bul(sem[k], sem[k+1])
+	for k := range pair {
+		pair[k] = t.find(sem[k], sem[k+1])
 	}
-	for len(cift) > 0 {
-		konum := -1
-		enIyi := int32(0)
-		for k, m := range cift {
-			if m.sira >= 0 && (konum < 0 || m.sira < enIyi) {
-				enIyi, konum = m.sira, k
+	for len(pair) > 0 {
+		pos := -1
+		best := int32(0)
+		for k, m := range pair {
+			if m.order >= 0 && (pos < 0 || m.order < best) {
+				best, pos = m.order, k
 			}
 		}
-		if konum < 0 {
+		if pos < 0 {
 			break
 		}
-		sem[konum] = cift[konum].yeni
-		copy(sem[konum+1:], sem[konum+2:])
+		sem[pos] = pair[pos].fresh
+		copy(sem[pos+1:], sem[pos+2:])
 		sem = sem[:len(sem)-1]
-		copy(cift[konum:], cift[konum+1:])
-		cift = cift[:len(cift)-1]
-		if konum > 0 {
-			cift[konum-1] = t.bul(sem[konum-1], sem[konum])
+		copy(pair[pos:], pair[pos+1:])
+		pair = pair[:len(pair)-1]
+		if pos > 0 {
+			pair[pos-1] = t.find(sem[pos-1], sem[pos])
 		}
-		if konum < len(cift) {
-			cift[konum] = t.bul(sem[konum], sem[konum+1])
+		if pos < len(pair) {
+			pair[pos] = t.find(sem[pos], sem[pos+1])
 		}
 	}
 	return sem
 }
 
 // adayBirlesme yığındaki bir birleştirme adayı.
-type adayBirlesme struct {
-	konum int32 // soldaki sembolün dizini
-	sira  int32
-	yeni  int32
+type candidateMerge struct {
+	pos   int32 // soldaki sembolün dizini
+	order int32
+	fresh int32
 }
 
-type adayYigini []adayBirlesme
+type candidateHeap []candidateMerge
 
-func (h adayYigini) Len() int { return len(h) }
-func (h adayYigini) Less(i, j int) bool {
-	if h[i].sira != h[j].sira {
-		return h[i].sira < h[j].sira
+func (h candidateHeap) Len() int { return len(h) }
+func (h candidateHeap) Less(i, j int) bool {
+	if h[i].order != h[j].order {
+		return h[i].order < h[j].order
 	}
-	return h[i].konum < h[j].konum
+	return h[i].pos < h[j].pos
 }
-func (h adayYigini) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
-func (h *adayYigini) Push(x any)   { *h = append(*h, x.(adayBirlesme)) }
-func (h *adayYigini) Pop() any {
+func (h candidateHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+func (h *candidateHeap) Push(x any)   { *h = append(*h, x.(candidateMerge)) }
+func (h *candidateHeap) Pop() any {
 	old := *h
 	x := old[len(old)-1]
 	*h = old[:len(old)-1]
@@ -159,54 +159,54 @@ func (h *adayYigini) Pop() any {
 }
 
 // birlestirUzun bağlı liste ve öncelik kuyruğu ile birleştirir (O(n log n)).
-func (p *bpeModel) birlestirUzun(sem []int32) []int32 {
+func (p *bpeModel) joinLong(sem []int32) []int32 {
 	n := len(sem)
-	onceki := make([]int32, n)
-	sonraki := make([]int32, n)
-	canli := make([]bool, n)
+	prev := make([]int32, n)
+	next := make([]int32, n)
+	live := make([]bool, n)
 	for i := range sem {
-		onceki[i] = int32(i - 1)
-		sonraki[i] = int32(i + 1)
-		canli[i] = true
+		prev[i] = int32(i - 1)
+		next[i] = int32(i + 1)
+		live[i] = true
 	}
-	sonraki[n-1] = -1
-	h := make(adayYigini, 0, n)
+	next[n-1] = -1
+	h := make(candidateHeap, 0, n)
 	for i := 0; i+1 < n; i++ {
-		if m := p.tablo.bul(sem[i], sem[i+1]); m.sira >= 0 {
-			h = append(h, adayBirlesme{int32(i), m.sira, m.yeni})
+		if m := p.table.find(sem[i], sem[i+1]); m.order >= 0 {
+			h = append(h, candidateMerge{int32(i), m.order, m.fresh})
 		}
 	}
 	heap.Init(&h)
 	for h.Len() > 0 {
-		a := heap.Pop(&h).(adayBirlesme)
-		i := a.konum
-		if !canli[i] || sonraki[i] < 0 {
+		a := heap.Pop(&h).(candidateMerge)
+		i := a.pos
+		if !live[i] || next[i] < 0 {
 			continue
 		}
-		j := sonraki[i]
-		m := p.tablo.bul(sem[i], sem[j])
-		if m.sira < 0 || m.yeni != a.yeni {
+		j := next[i]
+		m := p.table.find(sem[i], sem[j])
+		if m.order < 0 || m.fresh != a.fresh {
 			continue // aday bayatlamış
 		}
-		sem[i] = a.yeni
-		canli[j] = false
-		sonraki[i] = sonraki[j]
-		if sonraki[j] >= 0 {
-			onceki[sonraki[j]] = i
+		sem[i] = a.fresh
+		live[j] = false
+		next[i] = next[j]
+		if next[j] >= 0 {
+			prev[next[j]] = i
 		}
-		if o := onceki[i]; o >= 0 {
-			if m := p.tablo.bul(sem[o], sem[i]); m.sira >= 0 {
-				heap.Push(&h, adayBirlesme{o, m.sira, m.yeni})
+		if o := prev[i]; o >= 0 {
+			if m := p.table.find(sem[o], sem[i]); m.order >= 0 {
+				heap.Push(&h, candidateMerge{o, m.order, m.fresh})
 			}
 		}
-		if s := sonraki[i]; s >= 0 {
-			if m := p.tablo.bul(sem[i], sem[s]); m.sira >= 0 {
-				heap.Push(&h, adayBirlesme{i, m.sira, m.yeni})
+		if s := next[i]; s >= 0 {
+			if m := p.table.find(sem[i], sem[s]); m.order >= 0 {
+				heap.Push(&h, candidateMerge{i, m.order, m.fresh})
 			}
 		}
 	}
 	out := sem[:0]
-	for i := int32(0); i >= 0; i = sonraki[i] {
+	for i := int32(0); i >= 0; i = next[i] {
 		out = append(out, sem[i])
 	}
 	return out
@@ -221,39 +221,39 @@ func (p *bpeModel) birlestirUzun(sem []int32) []int32 {
 // parça kendi kilidine sahiptir. Önbellek dolunca yeni girdi eklenmez.
 
 const (
-	onbellekParcaSayisi  = 64
-	onbellekAzamiUzunluk = 256 // bundan uzun parçalar önbelleğe alınmaz
+	cacheShardCount = 64
+	cacheMaxLen     = 256 // bundan uzun parçalar önbelleğe alınmaz
 )
 
-type onbellekParcasi struct {
+type cacheShard struct {
 	mu sync.RWMutex
 	m  map[string][]int32
 	_  [40]byte // komşu parçaların kilitleri aynı önbellek satırını paylaşmasın
 }
 
-type onbellek struct {
-	tohum       maphash.Seed
-	parcaSiniri int
-	parcalar    [onbellekParcaSayisi]onbellekParcasi
+type cache struct {
+	seed       maphash.Seed
+	pieceLimit int
+	pieces     [cacheShardCount]cacheShard
 }
 
-func yeniOnbellek(kapasite int) *onbellek {
-	if kapasite <= 0 {
+func newCache(capacity int) *cache {
+	if capacity <= 0 {
 		return nil
 	}
-	o := &onbellek{tohum: maphash.MakeSeed(), parcaSiniri: (kapasite + onbellekParcaSayisi - 1) / onbellekParcaSayisi}
-	for i := range o.parcalar {
-		o.parcalar[i].m = make(map[string][]int32)
+	o := &cache{seed: maphash.MakeSeed(), pieceLimit: (capacity + cacheShardCount - 1) / cacheShardCount}
+	for i := range o.pieces {
+		o.pieces[i].m = make(map[string][]int32)
 	}
 	return o
 }
 
-func (o *onbellek) parca(k string) *onbellekParcasi {
-	return &o.parcalar[maphash.String(o.tohum, k)%onbellekParcaSayisi]
+func (o *cache) piece(k string) *cacheShard {
+	return &o.pieces[maphash.String(o.seed, k)%cacheShardCount]
 }
 
-func (o *onbellek) al(k string) ([]int32, bool) {
-	pp := o.parca(k)
+func (o *cache) al(k string) ([]int32, bool) {
+	pp := o.piece(k)
 	pp.mu.RLock()
 	v, ok := pp.m[k]
 	pp.mu.RUnlock()
@@ -261,18 +261,18 @@ func (o *onbellek) al(k string) ([]int32, bool) {
 }
 
 // koy sonucu (kopyalayarak) önbelleğe ekler; önbellek doluysa bir şey yapmaz.
-func (o *onbellek) koy(k string, v []int32) {
-	pp := o.parca(k)
+func (o *cache) put(k string, v []int32) {
+	pp := o.piece(k)
 	pp.mu.RLock()
-	dolu := len(pp.m) >= o.parcaSiniri
+	full := len(pp.m) >= o.pieceLimit
 	pp.mu.RUnlock()
-	if dolu {
+	if full {
 		return
 	}
-	kopya := append([]int32(nil), v...)
+	dup := append([]int32(nil), v...)
 	pp.mu.Lock()
-	if len(pp.m) < o.parcaSiniri {
-		pp.m[strings.Clone(k)] = kopya
+	if len(pp.m) < o.pieceLimit {
+		pp.m[strings.Clone(k)] = dup
 	}
 	pp.mu.Unlock()
 }

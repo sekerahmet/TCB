@@ -21,7 +21,7 @@ type kapiliKaynak struct {
 	n    int
 }
 
-func (k *kapiliKaynak) Doldur(ctx context.Context, ti *dataload.TopluIs) error {
+func (k *kapiliKaynak) Fill(ctx context.Context, ti *dataload.Batch) error {
 	select {
 	case <-k.kapi:
 	case <-ctx.Done():
@@ -32,7 +32,7 @@ func (k *kapiliKaynak) Doldur(ctx context.Context, ti *dataload.TopluIs) error {
 	}
 	k.n++
 	ti.B, ti.T = 1, 2
-	ti.Veri = append(ti.Veri[:0], 1, 2, 3)
+	ti.Data = append(ti.Data[:0], 1, 2, 3)
 	return nil
 }
 
@@ -111,7 +111,7 @@ func sonrakiBeklemede(t *testing.T) {
 		yigin := string(buf[:runtime.Stack(buf, true)])
 		for _, g := range strings.Split(yigin, "\n\n") {
 			baslik, _, _ := strings.Cut(g, "\n")
-			if strings.Contains(baslik, "[select") && strings.Contains(g, "(*Okuyucu).sonraki") && strings.Contains(g, "(*OnYukleyici).Al") {
+			if strings.Contains(baslik, "[select") && strings.Contains(g, "(*Okuyucu).sonraki") && strings.Contains(g, "(*Prefetcher).Take") {
 				return
 			}
 		}

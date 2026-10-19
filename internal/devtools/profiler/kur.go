@@ -97,32 +97,32 @@ func (p *Profil) pencere(a anlik, once *anlik) *PencereBilgisi {
 type sayacAnahtari struct {
 	c tensor.DeviceKind
 	g bool
-	i tensor.Islem
+	i tensor.OpKind
 }
 
 // tensorBilgisi sayaçlardan (eksi varsa onların) işlem listesini kurar; sure payların
 // paydasıdır, adim varsa adım başına süre eklenir.
-func (p *Profil) tensorBilgisi(sayaclar, eksi []tensor.SayacKaydi, sure time.Duration, adim adimDurumu) TensorBilgisi {
-	onceki := map[sayacAnahtari]tensor.SayacKaydi{}
+func (p *Profil) tensorBilgisi(sayaclar, eksi []tensor.CounterRecord, sure time.Duration, adim adimDurumu) TensorBilgisi {
+	onceki := map[sayacAnahtari]tensor.CounterRecord{}
 	for _, k := range eksi {
-		onceki[sayacAnahtari{k.Cihaz, k.Geri, k.Islem}] = k
+		onceki[sayacAnahtari{k.Device, k.Backward, k.OpKind}] = k
 	}
 	var t TensorBilgisi
 	adimSayisi := adim.son - adim.ilk
 	for _, k := range sayaclar {
-		o := onceki[sayacAnahtari{k.Cihaz, k.Geri, k.Islem}]
-		k.Cagri, k.Olcum, k.Sure, k.Bayt = k.Cagri-o.Cagri, k.Olcum-o.Olcum, k.Sure-o.Sure, k.Bayt-o.Bayt
-		if k.Cagri == 0 && k.Bayt == 0 {
+		o := onceki[sayacAnahtari{k.Device, k.Backward, k.OpKind}]
+		k.Calls, k.Measured, k.Duration, k.Bytes = k.Calls-o.Calls, k.Measured-o.Measured, k.Duration-o.Duration, k.Bytes-o.Bytes
+		if k.Calls == 0 && k.Bytes == 0 {
 			continue
 		}
 		b := IslemBilgisi{
-			Kod: k.Islem.Kod(), Ad: tamAd(k.Islem, k.Geri, k.Cagri), Yon: "ileri", Cihaz: "cpu",
-			Cagri: k.Cagri, Olcum: k.Olcum, SureSn: sn(k.Sure), Bayt: k.Bayt,
+			Kod: k.OpKind.Kod(), Ad: tamAd(k.OpKind, k.Backward, k.Calls), Yon: "ileri", Cihaz: "cpu",
+			Cagri: k.Calls, Olcum: k.Measured, SureSn: sn(k.Duration), Bayt: k.Bytes,
 		}
-		if k.Geri {
+		if k.Backward {
 			b.Yon = "geri"
 		}
-		if k.Cihaz != tensor.KindCPU {
+		if k.Device != tensor.KindCPU {
 			b.Cihaz = "gpu"
 		}
 		if adim.var_ && adimSayisi > 0 {
@@ -211,16 +211,16 @@ func (p *Profil) bellekBilgisi(a anlik) BellekBilgisi {
 }
 
 // cpuBayti CPU tensör işlemlerinin (eksi'den bu yana) ayırdığı bayttır.
-func cpuBayti(sayaclar, eksi []tensor.SayacKaydi) int64 {
+func cpuBayti(sayaclar, eksi []tensor.CounterRecord) int64 {
 	var n int64
 	for _, k := range sayaclar {
-		if k.Cihaz == tensor.KindCPU {
-			n += k.Bayt
+		if k.Device == tensor.KindCPU {
+			n += k.Bytes
 		}
 	}
 	for _, k := range eksi {
-		if k.Cihaz == tensor.KindCPU {
-			n -= k.Bayt
+		if k.Device == tensor.KindCPU {
+			n -= k.Bytes
 		}
 	}
 	return n

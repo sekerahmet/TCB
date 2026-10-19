@@ -168,7 +168,7 @@ func (o *ornekleyici) ornekle(d time.Duration) {
 	if k == 0 || d <= 0 {
 		return // program henüz ilk deyime gelmedi
 	}
-	_, _, tensorde := tensor.EtkinIslem()
+	_, _, tensorde := tensor.ActiveOp()
 	o.mu.Lock()
 	b := o.konumlar[k]
 	if b == nil {

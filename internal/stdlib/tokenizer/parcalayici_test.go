@@ -69,9 +69,9 @@ func tamlar(t *testing.T, v interp.Value) []int {
 	return out
 }
 
-func goParcalayici(t *testing.T, yol string) *tokenize.Parcalayici {
+func goParcalayici(t *testing.T, yol string) *tokenize.Tokenizer {
 	t.Helper()
-	p, err := tokenize.Yukle(yol)
+	p, err := tokenize.Load(yol)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,18 +93,18 @@ değişken boyut = p.dağarcık_boyutu
 değişken eot = p.parça_kimliği("<|endoftext|>")
 değişken yok_token = p.parça_kimliği("böyle-bir-token-yok")
 `)
-	if got := tamlar(t, al(t, m, "tek")); !reflect.DeepEqual(got, g.Kodla(metinler[0])) {
-		t.Fatalf("kodla: %v, Go: %v", got, g.Kodla(metinler[0]))
+	if got := tamlar(t, al(t, m, "tek")); !reflect.DeepEqual(got, g.Encode(metinler[0])) {
+		t.Fatalf("kodla: %v, Go: %v", got, g.Encode(metinler[0]))
 	}
 	toplu := al(t, m, "toplu").(*interp.ListVal)
 	for i, s := range metinler {
-		if got := tamlar(t, toplu.Elements[i]); !reflect.DeepEqual(got, g.Kodla(s)) {
-			t.Fatalf("toplu kodla %d: %v, Go: %v", i, got, g.Kodla(s))
+		if got := tamlar(t, toplu.Elements[i]); !reflect.DeepEqual(got, g.Encode(s)) {
+			t.Fatalf("toplu kodla %d: %v, Go: %v", i, got, g.Encode(s))
 		}
 	}
 	cozulen := al(t, m, "çözülen").(*interp.ListVal)
 	for i, s := range metinler {
-		if got := cozulen.Elements[i].Inspect(); got != g.Coz(g.Kodla(s), true) {
+		if got := cozulen.Elements[i].Inspect(); got != g.Decode(g.Encode(s), true) {
 			t.Fatalf("toplu çöz %d: %q", i, got)
 		}
 	}
@@ -114,10 +114,10 @@ değişken yok_token = p.parça_kimliği("böyle-bir-token-yok")
 	if got := al(t, m, "özelsiz").Inspect(); strings.Contains(got, "<|endoftext|>") {
 		t.Fatalf("varsayılan çöz özel tokenları atlamalı: %q", got)
 	}
-	if got := al(t, m, "boyut").(*interp.IntVal).Val; int(got) != g.SozlukBoyutu() {
+	if got := al(t, m, "boyut").(*interp.IntVal).Val; int(got) != g.VocabSize() {
 		t.Fatalf("sözlük boyutu %d", got)
 	}
-	id, _ := g.TokenKimligi("<|endoftext|>")
+	id, _ := g.TokenToID("<|endoftext|>")
 	if got := al(t, m, "eot").(*interp.IntVal).Val; int(got) != id {
 		t.Fatalf("token_kimliği %d", got)
 	}
@@ -136,16 +136,16 @@ değişken b = p.kodla("merhaba dünya", özel_parçalar: yanlış)
 değişken c = p.kodla("soru", ikinci: "bağlam")
 değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_parçalar: yanlış)
 `)
-	if got := tamlar(t, al(t, m, "a")); !reflect.DeepEqual(got, g.Kodla("merhaba dünya")) {
+	if got := tamlar(t, al(t, m, "a")); !reflect.DeepEqual(got, g.Encode("merhaba dünya")) {
 		t.Fatalf("a: %v", got)
 	}
-	if got, b := tamlar(t, al(t, m, "b")), g.KodlaSecenekli("merhaba dünya", tokenize.Secenekler{OzelEklenmesin: true}); !reflect.DeepEqual(got, b) {
+	if got, b := tamlar(t, al(t, m, "b")), g.EncodeWithOptions("merhaba dünya", tokenize.Options{DontAddSpecial: true}); !reflect.DeepEqual(got, b) {
 		t.Fatalf("b: %v, Go: %v", got, b)
 	}
 	ik := "bağlam"
-	k := g.KodlaCift("soru", &ik, tokenize.Secenekler{})
+	k := g.EncodePair("soru", &ik, tokenize.Options{})
 	beklenen := []int{}
-	for _, x := range k.Idler {
+	for _, x := range k.IDs {
 		beklenen = append(beklenen, int(x))
 	}
 	if got := tamlar(t, al(t, m, "c")); !reflect.DeepEqual(got, beklenen) {
@@ -153,9 +153,9 @@ değişken d = p.kodla(["soru", "bir"], ikinci: ["bağlam", "iki"], özel_parça
 	}
 	d := al(t, m, "d").(*interp.ListVal)
 	ik2 := "iki"
-	k2 := g.KodlaCift("bir", &ik2, tokenize.Secenekler{OzelEklenmesin: true})
+	k2 := g.EncodePair("bir", &ik2, tokenize.Options{DontAddSpecial: true})
 	beklenen = []int{}
-	for _, x := range k2.Idler {
+	for _, x := range k2.IDs {
 		beklenen = append(beklenen, int(x))
 	}
 	if got := tamlar(t, d.Elements[1]); !reflect.DeepEqual(got, beklenen) {

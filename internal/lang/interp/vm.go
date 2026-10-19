@@ -83,9 +83,9 @@ type vmShared struct {
 	// KomutAdi programı başlatan komuttur (ör. "tr egit.tr", derlenmiş uygulamada
 	// "uygulama.exe"); komut satırı seçeneklerinin yardımında ve hatalarında gösterilir.
 	// Boşsa "tr <SourceFile>" kullanılır.
-	KomutAdi   string
-	isImported sync.Mutex
-	Imported   map[string]*DictVal
+	CommandName string
+	isImported  sync.Mutex
+	Imported    map[string]*DictVal
 	// yuklenen yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
 	// modülü isterse yüklemenin bitmesini bekler.
 	loaded map[string]*moduleLoading
@@ -329,7 +329,7 @@ func (v *VM) Run(prog *ast.Program) (result Value, err error) {
 			result, err = nil, addDeferError(err, derr)
 		}
 	}()
-	val, _, err := v.programCalistir(prog.Statements)
+	val, _, err := v.runProgram(prog.Statements)
 	if err != nil {
 		return nil, err
 	}

@@ -60,7 +60,7 @@ GFLOPS/GB/s verir; son sütun TR'nin en iyi süresinin PyTorch'a oranıdır (< 1
 ```bash
 %%bash
 cd /content/tr
-TR_GPU_MIKRO=1 ./gpu_sinama -test.run 'TestMikroKiyas$' -test.v > mikro_tr.txt 2>&1
+TR_GPU_MIKRO=1 ./gpu_sinama -test.run 'TestMicroBench$' -test.v > mikro_tr.txt 2>&1
 python mikro_kiyas.py > mikro_py.txt 2>&1
 python mikro_tablo.py mikro_tr.txt mikro_py.txt
 ```
@@ -129,7 +129,7 @@ Tek bir çekirdeğin donanım sayaçları (ör. kendi matris çarpımımız):
 %%bash
 cd /content/tr
 TR_GPU_MIKRO=1 TR_GPU_KENDI_CARPIM=1 ncu --target-processes all -k regex:carpim --launch-count 2 \
-  --section SpeedOfLight ./gpu_sinama -test.run 'TestMikroKiyas$' 2>&1 | grep -E 'carpim|Throughput|Duration' | head -20
+  --section SpeedOfLight ./gpu_sinama -test.run 'TestMicroBench$' 2>&1 | grep -E 'carpim|Throughput|Duration' | head -20
 ```
 
 ## 9. SimpleStories ile GPT eğitimi (dilin kitaplığıyla)

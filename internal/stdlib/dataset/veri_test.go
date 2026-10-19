@@ -58,7 +58,7 @@ func kumeKur(t *testing.T) string {
 	t.Cleanup(func() { dataset.TumunuKapat(time.Second) })
 	yaz := func(ad string, v []int32) {
 		var b bytes.Buffer
-		if err := dataload.NpyYazI32(&b, v); err != nil {
+		if err := dataload.WriteNpyI32(&b, v); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(d, ad), b.Bytes(), 0o644); err != nil {
@@ -103,18 +103,18 @@ değişken ö = k.örnekleyici(toplu: 4, bağlam: 16, tohum: 7)
 değişken ilk = ö.sonraki()
 değişken ikinci = ö.sonraki()
 `)
-	gk, err := dataload.KumeAc(d, dataload.KumeSecenekleri{})
+	gk, err := dataload.OpenDataset(d, dataload.DatasetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	o, err := gk.Ornekleyici(dataload.OrnekleyiciSecenekleri{B: 4, T: 16, Tohum: 7})
+	o, err := gk.Sampler(dataload.SamplerOptions{B: 4, T: 16, Seed: 7})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer o.Kapat()
+	defer o.Close()
 	for _, ad := range []string{"ilk", "ikinci"} {
-		var ti dataload.TopluIs
-		if err := o.Doldur(context.Background(), &ti); err != nil {
+		var ti dataload.Batch
+		if err := o.Fill(context.Background(), &ti); err != nil {
 			t.Fatal(err)
 		}
 		l := degisken(t, m, ad).(*interp.ListVal)
@@ -128,7 +128,7 @@ değişken ikinci = ö.sonraki()
 		}
 		for i := 0; i < 4; i++ {
 			for j := 0; j < 16; j++ {
-				if g[i*16+j] != float32(ti.Girdi(i)[j]) || h[i*16+j] != float32(ti.Hedef(i)[j]) {
+				if g[i*16+j] != float32(ti.Input(i)[j]) || h[i*16+j] != float32(ti.Target(i)[j]) {
 					t.Fatalf("%s: satır %d sütun %d farklı", ad, i, j)
 				}
 			}

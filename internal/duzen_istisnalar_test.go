@@ -24,16 +24,15 @@ const (
 	nParcalama = "parçalayıcı/düzenli ifade çekirdeği (veri ve parçalayıcı sahibinin alanı): başvuru uygulamasıyla birebir; hız ölçümüyle bölünmeli"
 )
 
-const enFazlaBuyukDosya = 6
+const enFazlaBuyukDosya = 5
 
 // buyukDosyalar dosyaSiniri'ni aşan el yazımı dosyalardır (üretilmiş dosyalar sayılmaz).
 var buyukDosyalar = map[string]istisna{
-	"internal/compute/tokenize/duzifade.go":         {915, "düzenli ifade ayrıştırıcısı ve sınıf tabloları; " + nParcalama},
-	"internal/compute/tokenize/duzifade_esle.go":    {615, "düzenli ifade eşleştiricisi; " + nParcalama},
-	"internal/compute/tokenize/parcalayici_test.go": {737, "altın çıktı testleri ve kıyaslar (veri ve parçalayıcı sahibinin alanı); model türüne göre bölünebilir"},
-	"internal/compute/tensor/cpu_arkauc.go":         {737, "CPU arka ucunun işlem tabloları ve döngüleri; " + nCekirdek},
-	"internal/compute/tensor/cpu_tur.go":            {733, "veri türü (bf16/f16) dönüşüm çekirdekleri; " + nCekirdek},
-	"internal/compute/dataload/onbellek.go":         {795, "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir"},
+	"internal/compute/tokenize/regex.go":          {915, "düzenli ifade ayrıştırıcısı ve sınıf tabloları; " + nParcalama},
+	"internal/compute/tokenize/regex_match.go":    {615, "düzenli ifade eşleştiricisi; " + nParcalama},
+	"internal/compute/tokenize/tokenizer_test.go": {737, "altın çıktı testleri ve kıyaslar (veri ve parçalayıcı sahibinin alanı); model türüne göre bölünebilir"},
+	"internal/compute/tensor/cpu_backend.go":      {737, "CPU arka ucunun işlem tabloları ve döngüleri; " + nCekirdek},
+	"internal/compute/dataload/cache.go":          {795, "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir"},
 }
 
 const enFazlaUzunFonksiyon = 41
@@ -72,19 +71,19 @@ var uzunFonksiyonlar = map[string]istisna{
 	"internal/stdlib/tokenizer/parcalayici.go:Nesne.kodla":   {88, nYerlesik},
 
 	// Hesap çekirdekleri
-	"internal/compute/tensor/cpu_dikkat.go:cpuBackend.f32Attention":     {146, nCekirdek},
-	"internal/compute/tensor/cpu_carpim.go:gemmParca":                   {146, nCekirdek},
-	"internal/compute/tensor/turev.go:Tensor.BackwardCtx":               {89, nCekirdek},
-	"internal/compute/tensor/cpu_arkauc.go:unaryDongu":                  {89, nCekirdek},
-	"internal/compute/tensor/cpu_arkauc.go:cpuBackend.f32BinaryGrad":    {85, nCekirdek},
-	"internal/compute/tensor/cpu_arkauc.go:unaryGradDongu":              {81, nCekirdek},
-	"internal/compute/tokenize/duzifade_esle.go:dfEslestirici.calistir": {167, nParcalama},
-	"internal/compute/tokenize/yukle.go:Ayristir":                       {131, nOkuma + " (tokenizer.json)"},
-	"internal/compute/tokenize/duzifade.go:dfAyristirici.grup":          {103, nParcalama},
-	"internal/compute/tokenize/model_bpe.go:bpeKur":                     {99, nParcalama},
-	"internal/compute/tokenize/model_diger.go:unigram.kodla":            {96, nParcalama},
-	"internal/compute/tokenize/duzifade.go:dfAyristirici.sinifIc":       {89, nParcalama},
-	"internal/compute/tokenize/model_bpe.go:bpeModel.semboller":         {84, nParcalama},
-	"internal/compute/tokenize/cozuculer.go:init":                       {82, nTablo},
-	"internal/compute/dataload/onbellek.go:obCekirdek.getir":            {112, "önbellekten getirme: kilit, bayatlık ve kopyalama durumları tek akışta (veri sahibinin alanı)"},
+	"internal/compute/tensor/cpu_attention.go:cpuBackend.f32Attention": {146, nCekirdek},
+	"internal/compute/tensor/cpu_matmul.go:gemmParca":                  {146, nCekirdek},
+	"internal/compute/tensor/autograd.go:Tensor.BackwardCtx":           {89, nCekirdek},
+	"internal/compute/tensor/cpu_backend.go:unaryLoop":                 {89, nCekirdek},
+	"internal/compute/tensor/cpu_backend.go:cpuBackend.f32BinaryGrad":  {85, nCekirdek},
+	"internal/compute/tensor/cpu_backend.go:unaryGradLoop":             {81, nCekirdek},
+	"internal/compute/tokenize/regex_match.go:reMatcher.run":           {167, nParcalama},
+	"internal/compute/tokenize/tokenizer.go:Parse":                     {131, nOkuma + " (tokenizer.json)"},
+	"internal/compute/tokenize/regex.go:reParser.group":                {103, nParcalama},
+	"internal/compute/tokenize/model_bpe.go:newBPE":                    {99, nParcalama},
+	"internal/compute/tokenize/model_other.go:unigram.encode":          {96, nParcalama},
+	"internal/compute/tokenize/regex.go:reParser.classInner":           {89, nParcalama},
+	"internal/compute/tokenize/model_bpe.go:bpeModel.symbols":          {84, nParcalama},
+	"internal/compute/tokenize/decoders.go:init":                       {82, nTablo},
+	"internal/compute/dataload/cache.go:cacheCore.fetch":               {112, "önbellekten getirme: kilit, bayatlık ve kopyalama durumları tek akışta (veri sahibinin alanı)"},
 }

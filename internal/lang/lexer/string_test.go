@@ -22,7 +22,7 @@ func TestSimpleStrings(t *testing.T) {
 		{`"a}b"`, "a}b"}, // eşi olmayan '}' düz karakterdir
 	}
 	for _, tt := range tests {
-		tokenlariDogrula(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
 	}
 }
 func TestStringEscapes(t *testing.T) {
@@ -41,7 +41,7 @@ func TestStringEscapes(t *testing.T) {
 		{`"\\{x}"`, `\{x}`},
 	}
 	for _, tt := range tests {
-		tokenlariDogrula(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
 	}
 }
 
@@ -63,7 +63,7 @@ func TestStringInterpolation(t *testing.T) {
 		{`"\{{x}\}"`, string(EscapedLBrace) + "{x}" + string(EscapedRBrace)},
 	}
 	for _, tt := range tests {
-		tokenlariDogrula(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
 	}
 }
 

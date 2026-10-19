@@ -505,7 +505,7 @@ func gomuluUygulamayiCalistir(pk *paket) {
 	s := kaynakHazirla(kod, gomuluHazirlik)
 	machine := interp.New()
 	machine.SourceFile = gomuluKaynakAdi
-	machine.KomutAdi = filepath.Base(os.Args[0])
+	machine.CommandName = filepath.Base(os.Args[0])
 	// Hata çerçeveleri kullanıcının yazdığı (yönlendirilmemiş) kaynağı göstersin; satırlar aynıdır.
 	ozgun := source.Prepare(pk.Ana.Kod, source.Options{}).Text
 	machine.SourceCode = ozgun

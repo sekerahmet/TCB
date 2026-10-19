@@ -263,7 +263,7 @@ func emptyStatement(v *VM, env *Environment) (Value, flowSignal, error) {
 // --- GİRİŞ NOKTALARI ---
 
 // programCalistir deyimleri genel kapsamda derleyip genel ortamda çalıştırır.
-func (v *VM) programCalistir(stmts []ast.Statement) (Value, flowSignal, error) {
+func (v *VM) runProgram(stmts []ast.Statement) (Value, flowSignal, error) {
 	c := v.newCompiler()
 	c.root.predefine(stmts)
 	return c.statements(c.root, stmts).run(v, v.GlobalEnv)

@@ -20,18 +20,18 @@ import (
 
 // gpuAnlik bir anın GPU ölçüleridir.
 type gpuAnlik struct {
-	cekirdek map[string]gpu.CekirdekOlcumu
-	bellek   []gpu.BellekOlcumu
+	cekirdek map[string]gpu.KernelSample
+	bellek   []gpu.MemorySample
 }
 
 // gpuAnlikAl ölçüleri okur (GPU kurulmamışsa ikisi de boş; sürücü yüklenmez).
 func gpuAnlikAl() gpuAnlik {
-	a := gpuAnlik{bellek: gpu.BellekOlcumleri()}
+	a := gpuAnlik{bellek: gpu.MemorySamples()}
 	if len(a.bellek) == 0 {
 		return a
 	}
-	a.cekirdek = map[string]gpu.CekirdekOlcumu{}
-	for _, c := range gpu.CekirdekOlcumleri() {
+	a.cekirdek = map[string]gpu.KernelSample{}
+	for _, c := range gpu.KernelSamples() {
 		a.cekirdek[c.Ad] = c
 	}
 	return a
@@ -39,14 +39,14 @@ func gpuAnlikAl() gpuAnlik {
 
 // gpuOlcumunuAc çekirdek ölçümünü açar; önceki durumu verir (Bitir geri yükler).
 func gpuOlcumunuAc() (onceki bool) {
-	onceki = gpu.ProfilAcik()
-	gpu.ProfilAc(true)
+	onceki = gpu.ProfileEnabled()
+	gpu.EnableProfile(true)
 	return onceki
 }
 
 // gpuFarki a ile once arasındaki çekirdek ölçümlerini (ad başına) ve aile toplamlarını
 // süreye göre sıralı verir; toplam cihazda geçen süredir.
-func gpuFarki(a, once map[string]gpu.CekirdekOlcumu) (cekirdekler, aileler []CekirdekBilgisi, toplam time.Duration) {
+func gpuFarki(a, once map[string]gpu.KernelSample) (cekirdekler, aileler []CekirdekBilgisi, toplam time.Duration) {
 	aile := map[string]*CekirdekBilgisi{}
 	type ham struct {
 		ad    string
@@ -56,13 +56,13 @@ func gpuFarki(a, once map[string]gpu.CekirdekOlcumu) (cekirdekler, aileler []Cek
 	var hamlar []ham
 	for ad, c := range a {
 		o := once[ad]
-		n, d := c.Cagri-o.Cagri, c.GPUSuresi-o.GPUSuresi
+		n, d := c.Calls-o.Calls, c.GPUTime-o.GPUTime
 		if n <= 0 && d <= 0 {
 			continue
 		}
 		toplam += d
 		hamlar = append(hamlar, ham{ad, n, d})
-		ai := c.Aile
+		ai := c.Family
 		if ai == "" {
 			ai = ad
 		}
@@ -102,7 +102,7 @@ func (p *Profil) gpuBilgisi(a gpuAnlik) GPUBilgisi {
 	p.mu.Lock()
 	olculdu, ozet := p.gpuOlculdu, p.gpuOzet
 	p.mu.Unlock()
-	g := GPUBilgisi{Kullanildi: true, Olcum: olculdu || gpu.ProfilAcik(), ozet: ozet}
+	g := GPUBilgisi{Kullanildi: true, Olcum: olculdu || gpu.ProfileEnabled(), ozet: ozet}
 	var toplam time.Duration
 	g.Cekirdekler, g.Aileler, toplam = gpuFarki(a.cekirdek, p.taban.gpu.cekirdek)
 	g.SureSn = sn(toplam)
@@ -115,8 +115,8 @@ func (p *Profil) gpuBilgisi(a gpuAnlik) GPUBilgisi {
 	}
 	for _, b := range a.bellek {
 		g.Bellek = append(g.Bellek, GPUBellegi{
-			Cihaz: b.Cihaz, Canli: b.Canli, Ayrilmis: b.Ayrilmis, Havuzda: b.Havuzda,
-			TepeCanli: b.TepeCanli, TepeAyrilmis: b.TepeAyrilmis, CopToplama: b.CopToplama,
+			Cihaz: b.Device, Canli: b.Live, Ayrilmis: b.Reserved, Havuzda: b.Pooled,
+			TepeCanli: b.PeakLive, TepeAyrilmis: b.PeakReserved, CopToplama: b.GCRuns,
 		})
 	}
 	return g
@@ -137,14 +137,14 @@ func (p *Profil) KapanmadanOnce() {
 	if !ac {
 		return
 	}
-	if len(gpu.BellekOlcumleri()) > 0 {
+	if len(gpu.MemorySamples()) > 0 {
 		var b strings.Builder
-		gpu.ProfilOzetiYaz(&b)
+		gpu.WriteProfileSummary(&b)
 		p.mu.Lock()
 		p.gpuOzet = strings.TrimRight(b.String(), "\n")
 		p.mu.Unlock()
 	}
-	gpu.ProfilAc(p.gpuOnceki)
+	gpu.EnableProfile(p.gpuOnceki)
 }
 
 // gpuPenceresi pencerenin GPU ölçüleridir.

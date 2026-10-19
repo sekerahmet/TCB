@@ -83,7 +83,7 @@ döngü i içinde 0..3 { yazdır(c[0][i], g[0][i]) }
 `
 
 func TestGPUdaEgitimDilDuzeyinde(t *testing.T) {
-	gpu.BenzetimiKaydet() // gerçek GPU varsa o kullanılır
+	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	kod := gpuEgitimProgrami
 	p := parser.New(lexer.New(kod))

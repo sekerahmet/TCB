@@ -18,7 +18,7 @@ import (
 // her çekirdek NVIDIA donanımı olmadan da sınanabilir.
 
 // yazmac bir PTX yazmacının adıdır (ör. "%f3").
-type yazmac string
+type reg string
 
 // Yazmaç türleri.
 const (
@@ -28,10 +28,10 @@ const (
 	yzP         // .pred
 	yzH         // .b16
 	yzFD        // .f64
-	yzSayisi
+	regClassCount
 )
 
-var yazmacBilgi = [yzSayisi]struct{ tur, onek string }{
+var regInfo = [regClassCount]struct{ dtype, prefix string }{
 	yzF: {".f32", "%f"}, yzR: {".b32", "%r"}, yzRD: {".b64", "%rd"},
 	yzP: {".pred", "%p"}, yzH: {".b16", "%h"}, yzFD: {".f64", "%fd"},
 }
@@ -39,49 +39,49 @@ var yazmacBilgi = [yzSayisi]struct{ tur, onek string }{
 // paramTuru çekirdek parametresinin imzası: adı, bayt boyu, gösterici mi ve çekirdeğin
 // gösterdiği belleğe yazıp yazmadığı. Başlatıcı, başlatma yerinin bildirdiği okuma/yazma
 // ile imzayı karşılaştırır ve yazılan depolamaların konak gölgesini kendisi siler.
-type paramTuru struct {
-	ad        string
-	bayt      int
-	gosterici bool
-	yazilir   bool
+type paramType struct {
+	ad       string
+	byteN    int
+	pointer  bool
+	writable bool
 }
 
 // yazici bir PTX çekirdeğini kurar.
-type yazici struct {
-	ad       string
-	imza     []paramTuru
-	param    []string
-	paylasim []string
-	satir    []string
-	sayac    [yzSayisi]int
-	etiketNo int
+type emitter struct {
+	ad        string
+	signature []paramType
+	param     []string
+	sharedMem []string
+	row       []string
+	counter   [regClassCount]int
+	labelNo   int
 	// hedef PTX hedef mimarisi (52: taban sm_52; 80: cp.async kullanan çekirdekler).
-	hedef int
+	target int
 	// dinamik doğruysa paylaşımlı diziler tek bir devingen dizinin (.extern .shared dsm)
 	// parçalarıdır (48 KB üstü; başlatmada paylasimBayt kadar açılır). paylasimBayt bütün
 	// paylaşımlı dizilerin (16'ya hizalı) toplamı.
-	dinamik      bool
-	paylasimBayt int
+	dynamic        bool
+	sharedMemBytes int
 }
 
-func yeniYazici(ad string) *yazici { return &yazici{ad: ad, hedef: 52} }
+func newEmitter(ad string) *emitter { return &emitter{ad: ad, target: 52} }
 
-func (k *yazici) yeni(t int) yazmac {
-	k.sayac[t]++
-	return yazmac(yazmacBilgi[t].onek + strconv.Itoa(k.sayac[t]))
+func (k *emitter) fresh2(t int) reg {
+	k.counter[t]++
+	return reg(regInfo[t].prefix + strconv.Itoa(k.counter[t]))
 }
 
-func (k *yazici) f() yazmac  { return k.yeni(yzF) }
-func (k *yazici) r() yazmac  { return k.yeni(yzR) }
-func (k *yazici) rd() yazmac { return k.yeni(yzRD) }
-func (k *yazici) p() yazmac  { return k.yeni(yzP) }
-func (k *yazici) h() yazmac  { return k.yeni(yzH) }
-func (k *yazici) fd() yazmac { return k.yeni(yzFD) }
+func (k *emitter) f() reg  { return k.fresh2(yzF) }
+func (k *emitter) r() reg  { return k.fresh2(yzR) }
+func (k *emitter) rd() reg { return k.fresh2(yzRD) }
+func (k *emitter) p() reg  { return k.fresh2(yzP) }
+func (k *emitter) h() reg  { return k.fresh2(yzH) }
+func (k *emitter) fd() reg { return k.fresh2(yzFD) }
 
 // terim bir işleneni PTX yazımına çevirir.
-func terim(a any) string {
+func term(a any) string {
 	switch v := a.(type) {
-	case yazmac:
+	case reg:
 		return string(v)
 	case string:
 		return v
@@ -101,7 +101,7 @@ func terim(a any) string {
 	panic(fmt.Sprintf("gpu: PTX yazıcısına bilinmeyen işlenen %T (iç hata)", a))
 }
 
-func (k *yazici) komut(on, op string, args []any) {
+func (k *emitter) instruction(on, op string, args []any) {
 	var sb strings.Builder
 	sb.WriteString("\t")
 	sb.WriteString(on)
@@ -112,66 +112,68 @@ func (k *yazici) komut(on, op string, args []any) {
 		} else {
 			sb.WriteString(", ")
 		}
-		sb.WriteString(terim(a))
+		sb.WriteString(term(a))
 	}
 	sb.WriteString(";")
-	k.satir = append(k.satir, sb.String())
+	k.row = append(k.row, sb.String())
 }
 
 // e bir komut yazar: k.e("add.f32", d, a, b).
-func (k *yazici) e(op string, args ...any) { k.komut("", op, args) }
+func (k *emitter) e(op string, args ...any) { k.instruction("", op, args) }
 
 // eger koşullu komut yazar (@p op ...).
-func (k *yazici) eger(p yazmac, op string, args ...any) { k.komut("@"+string(p)+" ", op, args) }
+func (k *emitter) ifCase(p reg, op string, args ...any) { k.instruction("@"+string(p)+" ", op, args) }
 
 // degilse koşulun yanlışlığına bağlı komut yazar (@!p op ...).
-func (k *yazici) degilse(p yazmac, op string, args ...any) { k.komut("@!"+string(p)+" ", op, args) }
-
-// etiket tekil bir etiket adı üretir; koy ile yerleştirilir.
-func (k *yazici) etiket() string {
-	k.etiketNo++
-	return "L" + strconv.Itoa(k.etiketNo)
+func (k *emitter) otherwise(p reg, op string, args ...any) {
+	k.instruction("@!"+string(p)+" ", op, args)
 }
 
-func (k *yazici) koy(l string) { k.satir = append(k.satir, l+":") }
+// etiket tekil bir etiket adı üretir; koy ile yerleştirilir.
+func (k *emitter) label() string {
+	k.labelNo++
+	return "L" + strconv.Itoa(k.labelNo)
+}
+
+func (k *emitter) put(l string) { k.row = append(k.row, l+":") }
 
 // git koşulsuz dallanma.
-func (k *yazici) git(l string) { k.e("bra", l) }
+func (k *emitter) jump(l string) { k.e("bra", l) }
 
 // gitEger p doğruysa dallanır; gitDegilse p yanlışsa.
-func (k *yazici) gitEger(p yazmac, l string)    { k.eger(p, "bra", l) }
-func (k *yazici) gitDegilse(p yazmac, l string) { k.degilse(p, "bra", l) }
+func (k *emitter) jumpIf(p reg, l string)     { k.ifCase(p, "bra", l) }
+func (k *emitter) jumpUnless(p reg, l string) { k.otherwise(p, "bra", l) }
 
 // engel bloktaki bütün iş parçacıklarını bekler.
-func (k *yazici) engel() { k.e("bar.sync", 0) }
+func (k *emitter) barrier() { k.e("bar.sync", 0) }
 
 // bel bir bellek işleneni yazar: [taban+ofset].
-func bel(taban yazmac, ofset int) string {
-	if ofset == 0 {
-		return "[" + string(taban) + "]"
+func mem(base2 reg, offset int) string {
+	if offset == 0 {
+		return "[" + string(base2) + "]"
 	}
-	return "[" + string(taban) + "+" + strconv.Itoa(ofset) + "]"
+	return "[" + string(base2) + "+" + strconv.Itoa(offset) + "]"
 }
 
 // ----------------------------------------------------------------------------
 // Parametreler
 // ----------------------------------------------------------------------------
 
-func (k *yazici) paramEkle(tur, ad string, bayt int) {
-	k.param = append(k.param, "\t.param "+tur+" "+ad)
-	k.imza = append(k.imza, paramTuru{ad: ad, bayt: bayt})
+func (k *emitter) addParam(dtype, ad string, byteN int) {
+	k.param = append(k.param, "\t.param "+dtype+" "+ad)
+	k.signature = append(k.signature, paramType{ad: ad, byteN: byteN})
 }
 
 // gosterici çekirdeğin yalnızca okuduğu bir genel bellek göstericisi parametresi
 // bildirir ve yükler.
-func (k *yazici) gosterici(ad string) yazmac { return k.gostericiBildir(ad, false) }
+func (k *emitter) pointer(ad string) reg { return k.declarePointer(ad, false) }
 
 // yazilan çekirdeğin yazdığı (ya da okuyup yazdığı) bir gösterici parametresi bildirir.
-func (k *yazici) yazilan(ad string) yazmac { return k.gostericiBildir(ad, true) }
+func (k *emitter) written(ad string) reg { return k.declarePointer(ad, true) }
 
-func (k *yazici) gostericiBildir(ad string, yazilir bool) yazmac {
+func (k *emitter) declarePointer(ad string, writable bool) reg {
 	k.param = append(k.param, "\t.param .u64 "+ad)
-	k.imza = append(k.imza, paramTuru{ad: ad, bayt: 8, gosterici: true, yazilir: yazilir})
+	k.signature = append(k.signature, paramType{ad: ad, byteN: 8, pointer: true, writable: writable})
 	r := k.rd()
 	k.e("ld.param.u64", r, "["+ad+"]")
 	k.e("cvta.to.global.u64", r, r)
@@ -179,30 +181,30 @@ func (k *yazici) gostericiBildir(ad string, yazilir bool) yazmac {
 }
 
 // u32p 32 bitlik tam sayı parametresi bildirir ve yükler.
-func (k *yazici) u32p(ad string) yazmac {
-	k.paramEkle(".u32", ad, 4)
+func (k *emitter) u32p(ad string) reg {
+	k.addParam(".u32", ad, 4)
 	r := k.r()
 	k.e("ld.param.u32", r, "["+ad+"]")
 	return r
 }
 
 // f32p float32 parametresi bildirir ve yükler.
-func (k *yazici) f32p(ad string) yazmac {
-	k.paramEkle(".f32", ad, 4)
+func (k *emitter) f32p(ad string) reg {
+	k.addParam(".f32", ad, 4)
 	r := k.f()
 	k.e("ld.param.f32", r, "["+ad+"]")
 	return r
 }
 
 // dizi n elemanlı 32 bitlik tam sayı dizisini değerle geçen parametre bildirir.
-func (k *yazici) dizi(ad string, n int) {
+func (k *emitter) arr(ad string, n int) {
 	n = max(n, 1)
 	k.param = append(k.param, fmt.Sprintf("\t.param .align 4 .b8 %s[%d]", ad, 4*n))
-	k.imza = append(k.imza, paramTuru{ad: ad, bayt: 4 * n})
+	k.signature = append(k.signature, paramType{ad: ad, byteN: 4 * n})
 }
 
 // diziOku dizinin i. elemanını yükler.
-func (k *yazici) diziOku(ad string, i int) yazmac {
+func (k *emitter) readArr(ad string, i int) reg {
 	r := k.r()
 	k.e("ld.param.u32", r, fmt.Sprintf("[%s+%d]", ad, 4*i))
 	return r
@@ -213,32 +215,32 @@ func (k *yazici) diziOku(ad string, i int) yazmac {
 // ----------------------------------------------------------------------------
 
 // ortak bayt boyunda paylaşımlı bellek dizisi bildirir ve 32 bitlik adresini verir.
-func (k *yazici) ortak(ad string, bayt int) yazmac {
-	ofs := (k.paylasimBayt + 15) &^ 15
-	k.paylasimBayt = ofs + bayt
+func (k *emitter) shared(ad string, byteN int) reg {
+	ofs := (k.sharedMemBytes + 15) &^ 15
+	k.sharedMemBytes = ofs + byteN
 	r := k.r()
-	if k.dinamik {
+	if k.dynamic {
 		k.e("mov.u32", r, "dsm")
 		if ofs > 0 {
 			k.e("add.s32", r, r, ofs)
 		}
 		return r
 	}
-	k.paylasim = append(k.paylasim, fmt.Sprintf("\t.shared .align 16 .b8 %s[%d];", ad, bayt))
+	k.sharedMem = append(k.sharedMem, fmt.Sprintf("\t.shared .align 16 .b8 %s[%d];", ad, byteN))
 	k.e("mov.u32", r, ad)
 	return r
 }
 
 // ozel bir özel yazmacı (%tid.x, %ctaid.y, ...) okur.
-func (k *yazici) ozel(ad string) yazmac {
+func (k *emitter) special(ad string) reg {
 	r := k.r()
 	k.e("mov.u32", r, ad)
 	return r
 }
 
 // genelIndeks ctaid.x·ntid.x + tid.x.
-func (k *yazici) genelIndeks() yazmac {
-	b, n, t := k.ozel("%ctaid.x"), k.ozel("%ntid.x"), k.ozel("%tid.x")
+func (k *emitter) globalIndex() reg {
+	b, n, t := k.special("%ctaid.x"), k.special("%ntid.x"), k.special("%tid.x")
 	i := k.r()
 	k.e("mad.lo.s32", i, b, n, t)
 	return i
@@ -249,30 +251,30 @@ func (k *yazici) genelIndeks() yazmac {
 // ----------------------------------------------------------------------------
 
 // adres taban + idx·boy (idx işaretsiz 32 bit).
-func (k *yazici) adres(taban, idx yazmac, boy int) yazmac {
+func (k *emitter) address(base2, idx reg, size int) reg {
 	r := k.rd()
-	k.e("mul.wide.u32", r, idx, boy)
-	k.e("add.s64", r, r, taban)
+	k.e("mul.wide.u32", r, idx, size)
+	k.e("add.s64", r, r, base2)
 	return r
 }
 
 // adresS taban + idx·boy (idx işaretli 32 bit).
-func (k *yazici) adresS(taban, idx yazmac, boy int) yazmac {
+func (k *emitter) addressS(base2, idx reg, size int) reg {
 	r := k.rd()
-	k.e("mul.wide.s32", r, idx, boy)
-	k.e("add.s64", r, r, taban)
+	k.e("mul.wide.s32", r, idx, size)
+	k.e("add.s64", r, r, base2)
 	return r
 }
 
 // sabit float32 sabitini yazmaca koyar.
-func (k *yazici) sabit(v float32) yazmac {
+func (k *emitter) constant(v float32) reg {
 	r := k.f()
 	k.e("mov.f32", r, v)
 	return r
 }
 
 // tam 32 bitlik tam sayı sabitini yazmaca koyar.
-func (k *yazici) tam(v int) yazmac {
+func (k *emitter) whole(v int) reg {
 	r := k.r()
 	k.e("mov.u32", r, v)
 	return r
@@ -283,26 +285,26 @@ func (k *yazici) tam(v int) yazmac {
 // ----------------------------------------------------------------------------
 
 // metin modülün PTX metnini verir.
-func (k *yazici) metin() string {
+func (k *emitter) text() string {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, ".version 7.0\n.target sm_%d\n.address_size 64\n\n", k.hedef)
-	if k.dinamik {
+	fmt.Fprintf(&sb, ".version 7.0\n.target sm_%d\n.address_size 64\n\n", k.target)
+	if k.dynamic {
 		// Devingen paylaşımlı dizi modül düzeyinde bildirilir (ptxas gövdede kabul etmez).
 		sb.WriteString(".extern .shared .align 16 .b8 dsm[];\n\n")
 	}
 	fmt.Fprintf(&sb, ".visible .entry %s(\n", k.ad)
 	sb.WriteString(strings.Join(k.param, ",\n"))
 	sb.WriteString("\n)\n{\n")
-	for t := 0; t < yzSayisi; t++ {
-		if k.sayac[t] > 0 {
-			fmt.Fprintf(&sb, "\t.reg %s %s<%d>;\n", yazmacBilgi[t].tur, yazmacBilgi[t].onek, k.sayac[t]+1)
+	for t := 0; t < regClassCount; t++ {
+		if k.counter[t] > 0 {
+			fmt.Fprintf(&sb, "\t.reg %s %s<%d>;\n", regInfo[t].dtype, regInfo[t].prefix, k.counter[t]+1)
 		}
 	}
-	for _, s := range k.paylasim {
+	for _, s := range k.sharedMem {
 		sb.WriteString(s)
 		sb.WriteString("\n")
 	}
-	for _, s := range k.satir {
+	for _, s := range k.row {
 		sb.WriteString(s)
 		sb.WriteString("\n")
 	}

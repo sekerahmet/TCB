@@ -36,14 +36,14 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 	}
 	npyU16 := func(v []uint16) []byte {
 		var b bytes.Buffer
-		if err := dataload.NpyYazU16(&b, v); err != nil {
+		if err := dataload.WriteNpyU16(&b, v); err != nil {
 			t.Fatal(err)
 		}
 		return b.Bytes()
 	}
 	npyI32 := func(v []int32) []byte {
 		var b bytes.Buffer
-		if err := dataload.NpyYazI32(&b, v); err != nil {
+		if err := dataload.WriteNpyI32(&b, v); err != nil {
 			t.Fatal(err)
 		}
 		return b.Bytes()
@@ -69,11 +69,11 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 
 	// metin/: örnek Türkçe metnin satırları belge sayılıp kodlanır, aralarına
 	// <|endoftext|> konur ve iki parçaya bölünür; meta.json parça token sayılarını verir.
-	p, err := tokenize.Ayristir(bpe)
+	p, err := tokenize.Parse(bpe)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ayirici, ok := p.TokenKimligi("<|endoftext|>")
+	ayirici, ok := p.TokenToID("<|endoftext|>")
 	if !ok {
 		t.Fatal("<|endoftext|> yok")
 	}
@@ -83,7 +83,7 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 			belgeler = append(belgeler, s)
 		}
 	}
-	tokenlar := p.BelgeleriBirlestir(belgeler, ayirici, 1)
+	tokenlar := p.JoinDocuments(belgeler, ayirici, 1)
 	yari := len(tokenlar) / 2
 	parcalar := [][]int32{tokenlar[:yari], tokenlar[yari:]}
 	meta := map[string]any{"tokenizer": "../parcalayici.json", "parts": map[string]any{}}

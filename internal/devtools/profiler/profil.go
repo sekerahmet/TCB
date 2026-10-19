@@ -194,7 +194,7 @@ func (p *Profil) Bitir(kod int) *Goruntu {
 		p.mu.Lock()
 		if p.gpuActi {
 			p.gpuActi = false
-			gpu.ProfilAc(p.gpuOnceki)
+			gpu.EnableProfile(p.gpuOnceki)
 		}
 		p.mu.Unlock()
 	})
@@ -213,7 +213,7 @@ func (p *Profil) Bitir(kod int) *Goruntu {
 // anlik bir anın ham ölçüleridir (pencere farkları bunlardan alınır).
 type anlik struct {
 	zaman     time.Time
-	sayaclar  []tensor.SayacKaydi
+	sayaclar  []tensor.CounterRecord
 	adim      adimDurumu
 	konumlar  []konumOrnegi
 	ornekSure time.Duration
@@ -223,7 +223,7 @@ type anlik struct {
 }
 
 func (p *Profil) anlikAl() anlik {
-	a := anlik{zaman: time.Now(), sayaclar: tensor.SayacGoruntusu()}
+	a := anlik{zaman: time.Now(), sayaclar: tensor.CounterSnapshot()}
 	p.adimMu.Lock()
 	a.adim = p.adim
 	p.adimMu.Unlock()

@@ -29,13 +29,13 @@ import (
 // gorutinin yığıtı da taşınmaz.
 
 // kutuphane sürücü kitaplığından işlev adresi bulan ve çağıran platform katmanı.
-type kutuphane interface {
-	bul(ad string) (uintptr, error)
-	cagir(fn uintptr, args ...uintptr) uintptr
+type library interface {
+	find(ad string) (uintptr, error)
+	call(fn uintptr, args ...uintptr) uintptr
 }
 
 // cudaIslevAdlari yüklenen sürücü işlevleri (sıra cudaIslevler alanlarıyla aynı).
-var cudaIslevAdlari = [...]string{
+var cudaFuncNames = [...]string{
 	"cuInit", "cuDeviceGetCount", "cuDeviceGet", "cuDeviceGetName", "cuDeviceTotalMem_v2",
 	"cuDeviceGetAttribute", "cuDevicePrimaryCtxRetain", "cuCtxSetCurrent", "cuCtxSynchronize",
 	"cuMemAlloc_v2", "cuMemFree_v2", "cuMemAllocHost_v2", "cuMemcpyHtoD_v2", "cuMemcpyHtoDAsync_v2",
@@ -70,12 +70,12 @@ const (
 	fGetErrorName
 	fDriverGetVersion
 	fPrimaryCtxRelease
-	fSayisi
+	fCount
 )
 
 // cudaIstegeBagliAdlar bulunamazsa yalnızca ilgili özelliği (profil, araç boşaltma)
 // kapatan sürücü işlevleri.
-var cudaIstegeBagliAdlar = [...]string{
+var cudaOptionalNames = [...]string{
 	"cuEventCreate", "cuEventRecord", "cuEventQuery", "cuEventElapsedTime", "cuProfilerStop",
 	"cuFuncSetAttribute",
 }
@@ -87,95 +87,95 @@ const (
 	iEventElapsed
 	iProfilerStop
 	iFuncSetAttribute
-	iSayisi
+	iCount
 )
 
 // cudaKitaplik süreç genelinde bir kez yüklenen sürücü kitaplığı.
-type cudaKitaplik struct {
-	k      kutuphane
-	fn     [fSayisi]uintptr
-	ifn    [iSayisi]uintptr
-	sayi   int
-	surum  int32
-	hata   error
-	cikti  *cudaCikti
-	cagriM sync.Mutex // kitaplık düzeyindeki çağrılar (kurulum)
-	adM    sync.Mutex // hata adı çıkış alanı
-	ad     *struct{ g unsafe.Pointer }
+type cudaLibrary struct {
+	k       library
+	fn      [fCount]uintptr
+	ifn     [iCount]uintptr
+	num     int
+	version int32
+	failure error
+	output  *cudaOutput
+	callM   sync.Mutex // kitaplık düzeyindeki çağrılar (kurulum)
+	nameM   sync.Mutex // hata adı çıkış alanı
+	ad      *struct{ g unsafe.Pointer }
 }
 
 // cudaCikti sürücünün yazdığı çıkış değerleri (yığında, taşınmaz).
-type cudaCikti struct {
+type cudaOutput struct {
 	u64, u64b uint64
 	i32       int32
 	f32       float32
-	tutamac   uintptr
-	gosterge  unsafe.Pointer
+	handle    uintptr
+	indicator unsafe.Pointer
 	ad        [256]byte
 }
 
 var (
-	cudaBirKez sync.Once
-	cudaKit    *cudaKitaplik
+	cudaOnce   sync.Once
+	cudaKitLib *cudaLibrary
 )
 
 // cudaYukle sürücü kitaplığını yükler ve cuInit çağırır (bir kez).
-func cudaYukle() *cudaKitaplik {
-	cudaBirKez.Do(func() {
-		c := &cudaKitaplik{cikti: &cudaCikti{}, ad: &struct{ g unsafe.Pointer }{}}
-		cudaKit = c
-		k, err := kutuphaneAc()
+func loadCUDA() *cudaLibrary {
+	cudaOnce.Do(func() {
+		c := &cudaLibrary{output: &cudaOutput{}, ad: &struct{ g unsafe.Pointer }{}}
+		cudaKitLib = c
+		k, err := openLib()
 		if err != nil {
-			c.hata = err
+			c.failure = err
 			return
 		}
 		c.k = k
-		for i, ad := range cudaIslevAdlari {
-			if c.fn[i], err = k.bul(ad); err != nil {
-				c.hata = fmt.Errorf("sürücüde %s işlevi yok (sürücü çok eski olabilir): %v", ad, err)
+		for i, ad := range cudaFuncNames {
+			if c.fn[i], err = k.find(ad); err != nil {
+				c.failure = fmt.Errorf("sürücüde %s işlevi yok (sürücü çok eski olabilir): %v", ad, err)
 				return
 			}
 		}
-		for i, ad := range cudaIstegeBagliAdlar {
-			c.ifn[i], _ = k.bul(ad) // yoksa 0: özellik kapalı
+		for i, ad := range cudaOptionalNames {
+			c.ifn[i], _ = k.find(ad) // yoksa 0: özellik kapalı
 		}
-		if s := c.cagir(fInit, 0); s != basarili {
-			c.hata = fmt.Errorf("cuInit başarısız: %s", c.hataAdi(s))
+		if s := c.call(fInit, 0); s != succeeded {
+			c.failure = fmt.Errorf("cuInit başarısız: %s", c.errName(s))
 			return
 		}
-		c.cagir(fDriverGetVersion, uintptr(unsafe.Pointer(&c.cikti.i32)))
-		c.surum = c.cikti.i32
-		if s := c.cagir(fDeviceGetCount, uintptr(unsafe.Pointer(&c.cikti.i32))); s != basarili {
-			c.hata = fmt.Errorf("cuDeviceGetCount başarısız: %s", c.hataAdi(s))
+		c.call(fDriverGetVersion, uintptr(unsafe.Pointer(&c.output.i32)))
+		c.version = c.output.i32
+		if s := c.call(fDeviceGetCount, uintptr(unsafe.Pointer(&c.output.i32))); s != succeeded {
+			c.failure = fmt.Errorf("cuDeviceGetCount başarısız: %s", c.errName(s))
 			return
 		}
-		c.sayi = int(c.cikti.i32)
+		c.num = int(c.output.i32)
 	})
-	return cudaKit
+	return cudaKitLib
 }
 
-func (c *cudaKitaplik) cagir(f int, args ...uintptr) sonuc {
-	r := c.k.cagir(c.fn[f], args...)
-	runtime.KeepAlive(c.cikti)
-	return sonuc(int32(uint32(r)))
+func (c *cudaLibrary) call(f int, args ...uintptr) result {
+	r := c.k.call(c.fn[f], args...)
+	runtime.KeepAlive(c.output)
+	return result(int32(uint32(r)))
 }
 
 // hataAdi sürücüden kodun adını ister (cuGetErrorName); veremezse tablodan.
-func (c *cudaKitaplik) hataAdi(s sonuc) string {
+func (c *cudaLibrary) errName(s result) string {
 	if c.k == nil || c.fn[fGetErrorName] == 0 {
-		return tablodanAd(s)
+		return nameFromTable(s)
 	}
-	c.adM.Lock()
-	defer c.adM.Unlock()
+	c.nameM.Lock()
+	defer c.nameM.Unlock()
 	c.ad.g = nil
-	if r := c.k.cagir(c.fn[fGetErrorName], uintptr(s), uintptr(unsafe.Pointer(&c.ad.g))); r != 0 || c.ad.g == nil {
-		return tablodanAd(s)
+	if r := c.k.call(c.fn[fGetErrorName], uintptr(s), uintptr(unsafe.Pointer(&c.ad.g))); r != 0 || c.ad.g == nil {
+		return nameFromTable(s)
 	}
-	return cMetin(c.ad.g, 128)
+	return cText(c.ad.g, 128)
 }
 
 // cMetin sıfırla biten C metnini okur (en çok n bayt).
-func cMetin(p unsafe.Pointer, n int) string {
+func cText(p unsafe.Pointer, n int) string {
 	var sb strings.Builder
 	for i := 0; i < n; i++ {
 		b := *(*byte)(unsafe.Add(p, i))
@@ -188,193 +188,193 @@ func cMetin(p unsafe.Pointer, n int) string {
 }
 
 // cudaSurucu bir cihazın sürücü bağlantısı.
-type cudaSurucu struct {
-	c        *cudaKitaplik
-	aygit    int32
-	baglam   uintptr
-	ad       string
-	bellek   uint64
-	yetenek_ [2]int32
-	smSayisi int32
-	saatKHz  int32 // SM saati (kHz; okunamazsa 0)
+type cudaDriver struct {
+	c           *cudaLibrary
+	device      int32
+	context     uintptr
+	ad          string
+	memory      uint64
+	capability_ [2]int32
+	smCount     int32
+	clockKHz    int32 // SM saati (kHz; okunamazsa 0)
 	// paylasim blok başına açılabilecek en çok paylaşımlı bellek (bayt; okunamazsa 48 KB).
-	paylasim int32
-	cikti    *cudaCikti
-	paramBuf []byte
-	paramPtr []uintptr
-	jit      *jitAlani
+	sharedMem int32
+	output    *cudaOutput
+	paramBuf  []byte
+	paramPtr  []uintptr
+	jit       *jitSpace
 	// metin sürücüye verilen C metinlerinin (PTX, çekirdek adı) kalıcı tamponu: nesnenin
 	// yığın (heap) alanıdır, gorutin yığıtında değildir (yığıt büyürken taşınabilirdi).
-	metin    []byte
-	sonDetay string
+	text       []byte
+	lastDetail string
 }
 
 // cMetni s'yi sıfırla biten C metni olarak kalıcı tampona yazar ve adresini verir; adres
 // bir sonraki cMetni çağrısına kadar geçerlidir.
-func (s *cudaSurucu) cMetni(m string) unsafe.Pointer {
-	s.metin = append(append(s.metin[:0], m...), 0)
-	return unsafe.Pointer(&s.metin[0])
+func (s *cudaDriver) cTextOf(m string) unsafe.Pointer {
+	s.text = append(append(s.text[:0], m...), 0)
+	return unsafe.Pointer(&s.text[0])
 }
 
-type jitAlani struct {
-	secenek [4]int32
-	deger   [4]uintptr
-	bilgi   [8192]byte
-	hata    [8192]byte
+type jitSpace struct {
+	option  [4]int32
+	value   [4]uintptr
+	info    [8192]byte
+	failure [8192]byte
 }
 
 // cudaAc verilen sıradaki cihazın birincil bağlamını açar.
-func cudaAc(sira int) (*cudaSurucu, error) {
-	c := cudaYukle()
-	if c.hata != nil {
-		return nil, c.hata
+func openCUDA(order int) (*cudaDriver, error) {
+	c := loadCUDA()
+	if c.failure != nil {
+		return nil, c.failure
 	}
-	c.cagriM.Lock()
-	defer c.cagriM.Unlock()
+	c.callM.Lock()
+	defer c.callM.Unlock()
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	s := &cudaSurucu{c: c, cikti: &cudaCikti{}, paramBuf: make([]byte, 0, 8192), jit: &jitAlani{}}
-	o := s.cikti
-	if r := c.cagir(fDeviceGet, uintptr(unsafe.Pointer(&o.i32)), uintptr(sira)); r != basarili {
-		return nil, fmt.Errorf("cuDeviceGet(%d): %s", sira, c.hataAdi(r))
+	s := &cudaDriver{c: c, output: &cudaOutput{}, paramBuf: make([]byte, 0, 8192), jit: &jitSpace{}}
+	o := s.output
+	if r := c.call(fDeviceGet, uintptr(unsafe.Pointer(&o.i32)), uintptr(order)); r != succeeded {
+		return nil, fmt.Errorf("cuDeviceGet(%d): %s", order, c.errName(r))
 	}
-	s.aygit = o.i32
-	if r := c.cagir(fDeviceGetName, uintptr(unsafe.Pointer(&o.ad[0])), uintptr(len(o.ad)), uintptr(s.aygit)); r != basarili {
-		return nil, fmt.Errorf("cuDeviceGetName: %s", c.hataAdi(r))
+	s.device = o.i32
+	if r := c.call(fDeviceGetName, uintptr(unsafe.Pointer(&o.ad[0])), uintptr(len(o.ad)), uintptr(s.device)); r != succeeded {
+		return nil, fmt.Errorf("cuDeviceGetName: %s", c.errName(r))
 	}
-	s.ad = cMetin(unsafe.Pointer(&o.ad[0]), len(o.ad))
-	if r := c.cagir(fDeviceTotalMem, uintptr(unsafe.Pointer(&o.u64)), uintptr(s.aygit)); r != basarili {
-		return nil, fmt.Errorf("cuDeviceTotalMem: %s", c.hataAdi(r))
+	s.ad = cText(unsafe.Pointer(&o.ad[0]), len(o.ad))
+	if r := c.call(fDeviceTotalMem, uintptr(unsafe.Pointer(&o.u64)), uintptr(s.device)); r != succeeded {
+		return nil, fmt.Errorf("cuDeviceTotalMem: %s", c.errName(r))
 	}
-	s.bellek = o.u64
+	s.memory = o.u64
 	for i, oz := range []int{75, 76, 16} { // yetenek büyük/küçük, SM sayısı
-		if r := c.cagir(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), uintptr(oz), uintptr(s.aygit)); r != basarili {
-			return nil, fmt.Errorf("cuDeviceGetAttribute(%d): %s", oz, c.hataAdi(r))
+		if r := c.call(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), uintptr(oz), uintptr(s.device)); r != succeeded {
+			return nil, fmt.Errorf("cuDeviceGetAttribute(%d): %s", oz, c.errName(r))
 		}
 		if i < 2 {
-			s.yetenek_[i] = o.i32
+			s.capability_[i] = o.i32
 		} else {
-			s.smSayisi = o.i32
+			s.smCount = o.i32
 		}
 	}
-	if c.cagir(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), 13, uintptr(s.aygit)) == basarili {
-		s.saatKHz = o.i32 // CU_DEVICE_ATTRIBUTE_CLOCK_RATE (yalnızca kıyas raporu için)
+	if c.call(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), 13, uintptr(s.device)) == succeeded {
+		s.clockKHz = o.i32 // CU_DEVICE_ATTRIBUTE_CLOCK_RATE (yalnızca kıyas raporu için)
 	}
-	s.paylasim = statikPaylasimSiniri
-	if c.ifn[iFuncSetAttribute] != 0 && c.cagir(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), 97, uintptr(s.aygit)) == basarili && o.i32 > s.paylasim {
-		s.paylasim = o.i32 // CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
+	s.sharedMem = staticSharedMemLimit
+	if c.ifn[iFuncSetAttribute] != 0 && c.call(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), 97, uintptr(s.device)) == succeeded && o.i32 > s.sharedMem {
+		s.sharedMem = o.i32 // CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
 	}
-	if r := c.cagir(fPrimaryCtxRetain, uintptr(unsafe.Pointer(&o.tutamac)), uintptr(s.aygit)); r != basarili {
-		return nil, fmt.Errorf("cuDevicePrimaryCtxRetain: %s", c.hataAdi(r))
+	if r := c.call(fPrimaryCtxRetain, uintptr(unsafe.Pointer(&o.handle)), uintptr(s.device)); r != succeeded {
+		return nil, fmt.Errorf("cuDevicePrimaryCtxRetain: %s", c.errName(r))
 	}
-	s.baglam = o.tutamac
-	if r := s.bagla(); r != basarili {
-		c.cagir(fPrimaryCtxRelease, uintptr(s.aygit)) // tutulan bağlam bırakılır
-		return nil, fmt.Errorf("cuCtxSetCurrent: %s", c.hataAdi(r))
+	s.context = o.handle
+	if r := s.bind(); r != succeeded {
+		c.call(fPrimaryCtxRelease, uintptr(s.device)) // tutulan bağlam bırakılır
+		return nil, fmt.Errorf("cuCtxSetCurrent: %s", c.errName(r))
 	}
 	return s, nil
 }
 
-func (s *cudaSurucu) cagir(f int, args ...uintptr) sonuc {
-	r := s.c.cagir(f, args...)
+func (s *cudaDriver) call(f int, args ...uintptr) result {
+	r := s.c.call(f, args...)
 	runtime.KeepAlive(s)
 	return r
 }
 
-func (s *cudaSurucu) bagla() sonuc { return s.cagir(fCtxSetCurrent, s.baglam) }
+func (s *cudaDriver) bind() result { return s.call(fCtxSetCurrent, s.context) }
 
-func (s *cudaSurucu) kartAdi() string {
-	return fmt.Sprintf("%s (sm_%d%d, %d SM, sürücü CUDA %d.%d)", s.ad, s.yetenek_[0], s.yetenek_[1], s.smSayisi,
-		s.c.surum/1000, s.c.surum%1000/10)
+func (s *cudaDriver) cardName() string {
+	return fmt.Sprintf("%s (sm_%d%d, %d SM, sürücü CUDA %d.%d)", s.ad, s.capability_[0], s.capability_[1], s.smCount,
+		s.c.version/1000, s.c.version%1000/10)
 }
 
-func (s *cudaSurucu) toplamBellek() uint64 { return s.bellek }
+func (s *cudaDriver) totalMemory() uint64 { return s.memory }
 
-func (s *cudaSurucu) bosBellek() (uint64, uint64, sonuc) {
-	r := s.cagir(fMemGetInfo, uintptr(unsafe.Pointer(&s.cikti.u64)), uintptr(unsafe.Pointer(&s.cikti.u64b)))
-	return s.cikti.u64, s.cikti.u64b, r
+func (s *cudaDriver) freeMemory() (uint64, uint64, result) {
+	r := s.call(fMemGetInfo, uintptr(unsafe.Pointer(&s.output.u64)), uintptr(unsafe.Pointer(&s.output.u64b)))
+	return s.output.u64, s.output.u64b, r
 }
 
-func (s *cudaSurucu) ayir(bayt uint64) (uint64, sonuc) {
-	r := s.cagir(fMemAlloc, uintptr(unsafe.Pointer(&s.cikti.u64)), uintptr(bayt))
-	return s.cikti.u64, r
+func (s *cudaDriver) allocate(byteN uint64) (uint64, result) {
+	r := s.call(fMemAlloc, uintptr(unsafe.Pointer(&s.output.u64)), uintptr(byteN))
+	return s.output.u64, r
 }
 
-func (s *cudaSurucu) birak(adr uint64) sonuc { return s.cagir(fMemFree, uintptr(adr)) }
+func (s *cudaDriver) release(addr uint64) result { return s.call(fMemFree, uintptr(addr)) }
 
-func (s *cudaSurucu) konakAyir(bayt int) (unsafe.Pointer, sonuc) {
-	r := s.cagir(fMemAllocHost, uintptr(unsafe.Pointer(&s.cikti.gosterge)), uintptr(bayt))
-	return s.cikti.gosterge, r
+func (s *cudaDriver) hostAlloc(byteN int) (unsafe.Pointer, result) {
+	r := s.call(fMemAllocHost, uintptr(unsafe.Pointer(&s.output.indicator)), uintptr(byteN))
+	return s.output.indicator, r
 }
 
 // yukle konaktan cihaza kopyalar. Eşzamansız kopyanın kaynağı sayfası kilitli (Go dışı)
 // bellek olmalıdır (hazırlık halkası); eşzamanlı kopyanın kaynağı Go belleği olabilir ve
 // kopya bitene kadar (çağrı dönene kadar) canlı tutulur.
-func (s *cudaSurucu) yukle(hedef uint64, kaynak unsafe.Pointer, bayt uint64, esz bool) sonuc {
-	var r sonuc
-	if esz {
-		r = s.cagir(fMemcpyHtoDAsync, uintptr(hedef), uintptr(kaynak), uintptr(bayt), 0)
+func (s *cudaDriver) load(target uint64, source unsafe.Pointer, byteN uint64, concurrent2 bool) result {
+	var r result
+	if concurrent2 {
+		r = s.call(fMemcpyHtoDAsync, uintptr(target), uintptr(source), uintptr(byteN), 0)
 	} else {
-		r = s.cagir(fMemcpyHtoD, uintptr(hedef), uintptr(kaynak), uintptr(bayt))
+		r = s.call(fMemcpyHtoD, uintptr(target), uintptr(source), uintptr(byteN))
 	}
-	runtime.KeepAlive(kaynak)
+	runtime.KeepAlive(source)
 	return r
 }
 
 // indir cihazdan konağa eşzamanlı kopyalar; hedef çağrı süresince canlı tutulur.
-func (s *cudaSurucu) indir(hedef unsafe.Pointer, kaynak uint64, bayt uint64) sonuc {
-	r := s.cagir(fMemcpyDtoH, uintptr(hedef), uintptr(kaynak), uintptr(bayt))
-	runtime.KeepAlive(hedef)
+func (s *cudaDriver) download(target unsafe.Pointer, source uint64, byteN uint64) result {
+	r := s.call(fMemcpyDtoH, uintptr(target), uintptr(source), uintptr(byteN))
+	runtime.KeepAlive(target)
 	return r
 }
 
-func (s *cudaSurucu) kopyala(hedef, kaynak, bayt uint64) sonuc {
-	return s.cagir(fMemcpyDtoDAsync, uintptr(hedef), uintptr(kaynak), uintptr(bayt), 0)
+func (s *cudaDriver) copyFn(target, source, byteN uint64) result {
+	return s.call(fMemcpyDtoDAsync, uintptr(target), uintptr(source), uintptr(byteN), 0)
 }
 
-func (s *cudaSurucu) doldur32(hedef uint64, deger uint32, n uint64) sonuc {
-	return s.cagir(fMemsetD32Async, uintptr(hedef), uintptr(deger), uintptr(n), 0)
+func (s *cudaDriver) fill32(target uint64, value uint32, n uint64) result {
+	return s.call(fMemsetD32Async, uintptr(target), uintptr(value), uintptr(n), 0)
 }
 
-func (s *cudaSurucu) doldur16(hedef uint64, deger uint16, n uint64) sonuc {
-	return s.cagir(fMemsetD16Async, uintptr(hedef), uintptr(deger), uintptr(n), 0)
+func (s *cudaDriver) fill16(target uint64, value uint16, n uint64) result {
+	return s.call(fMemsetD16Async, uintptr(target), uintptr(value), uintptr(n), 0)
 }
 
 // modul PTX'i cuModuleLoadDataEx ile derler; derleyicinin bilgi ve hata günlüklerini
 // toplar.
-func (s *cudaSurucu) modul(ptx string) (uintptr, string, sonuc) {
+func (s *cudaDriver) module(ptx string) (uintptr, string, result) {
 	j := s.jit
-	j.secenek = [4]int32{3, 4, 5, 6} // bilgi günlüğü, boyu, hata günlüğü, boyu
-	j.deger = [4]uintptr{uintptr(unsafe.Pointer(&j.bilgi[0])), uintptr(len(j.bilgi)),
-		uintptr(unsafe.Pointer(&j.hata[0])), uintptr(len(j.hata))}
+	j.option = [4]int32{3, 4, 5, 6} // bilgi günlüğü, boyu, hata günlüğü, boyu
+	j.value = [4]uintptr{uintptr(unsafe.Pointer(&j.info[0])), uintptr(len(j.info)),
+		uintptr(unsafe.Pointer(&j.failure[0])), uintptr(len(j.failure))}
 	// Önceki derlemenin günlüğü görünmesin (sürücü boş günlükte tampona yazmayabilir).
-	j.bilgi[0], j.hata[0] = 0, 0
-	metin := s.cMetni(ptx)
-	r := s.cagir(fModuleLoadDataEx, uintptr(unsafe.Pointer(&s.cikti.tutamac)), uintptr(metin),
-		4, uintptr(unsafe.Pointer(&j.secenek[0])), uintptr(unsafe.Pointer(&j.deger[0])))
-	gunluk := strings.TrimSpace(cMetin(unsafe.Pointer(&j.hata[0]), len(j.hata)))
-	if b := strings.TrimSpace(cMetin(unsafe.Pointer(&j.bilgi[0]), len(j.bilgi))); b != "" {
-		gunluk = strings.TrimSpace(gunluk + "\n" + b)
+	j.info[0], j.failure[0] = 0, 0
+	text := s.cTextOf(ptx)
+	r := s.call(fModuleLoadDataEx, uintptr(unsafe.Pointer(&s.output.handle)), uintptr(text),
+		4, uintptr(unsafe.Pointer(&j.option[0])), uintptr(unsafe.Pointer(&j.value[0])))
+	log := strings.TrimSpace(cText(unsafe.Pointer(&j.failure[0]), len(j.failure)))
+	if b := strings.TrimSpace(cText(unsafe.Pointer(&j.info[0]), len(j.info))); b != "" {
+		log = strings.TrimSpace(log + "\n" + b)
 	}
-	return s.cikti.tutamac, gunluk, r
+	return s.output.handle, log, r
 }
 
-func (s *cudaSurucu) islev(modul uintptr, ad string) (uintptr, sonuc) {
-	r := s.cagir(fModuleGetFunction, uintptr(unsafe.Pointer(&s.cikti.tutamac)), modul, uintptr(s.cMetni(ad)))
-	return s.cikti.tutamac, r
+func (s *cudaDriver) fn(module uintptr, ad string) (uintptr, result) {
+	r := s.call(fModuleGetFunction, uintptr(unsafe.Pointer(&s.output.handle)), module, uintptr(s.cTextOf(ad)))
+	return s.output.handle, r
 }
 
 // baslat parametreleri kalıcı tampona kopyalar (her biri 8 bayta hizalı) ve
 // cuLaunchKernel'e her parametrenin adresini verir; sürücü değerleri başlatmada kopyalar.
-func (s *cudaSurucu) baslat(fn uintptr, izgara, blok [3]uint32, paylasim uint32, param [][]byte) sonuc {
-	toplam := 0
+func (s *cudaDriver) launch(fn uintptr, grid, block [3]uint32, sharedMem uint32, param [][]byte) result {
+	total := 0
 	for _, p := range param {
-		toplam += (len(p) + 7) &^ 7
+		total += (len(p) + 7) &^ 7
 	}
-	if cap(s.paramBuf) < toplam {
-		s.paramBuf = make([]byte, 0, 2*toplam)
+	if cap(s.paramBuf) < total {
+		s.paramBuf = make([]byte, 0, 2*total)
 	}
-	buf := s.paramBuf[:toplam]
+	buf := s.paramBuf[:total]
 	s.paramPtr = s.paramPtr[:0]
 	o := 0
 	for _, p := range param {
@@ -385,76 +385,76 @@ func (s *cudaSurucu) baslat(fn uintptr, izgara, blok [3]uint32, paylasim uint32,
 	if len(s.paramPtr) == 0 {
 		s.paramPtr = append(s.paramPtr, 0)
 	}
-	r := s.cagir(fLaunchKernel, fn, uintptr(izgara[0]), uintptr(izgara[1]), uintptr(izgara[2]),
-		uintptr(blok[0]), uintptr(blok[1]), uintptr(blok[2]), uintptr(paylasim), 0, uintptr(unsafe.Pointer(&s.paramPtr[0])), 0)
+	r := s.call(fLaunchKernel, fn, uintptr(grid[0]), uintptr(grid[1]), uintptr(grid[2]),
+		uintptr(block[0]), uintptr(block[1]), uintptr(block[2]), uintptr(sharedMem), 0, uintptr(unsafe.Pointer(&s.paramPtr[0])), 0)
 	runtime.KeepAlive(buf)
 	return r
 }
 
-func (s *cudaSurucu) esitle() sonuc { return s.cagir(fCtxSynchronize) }
+func (s *cudaDriver) equalize() result { return s.call(fCtxSynchronize) }
 
 // paylasimIzni CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES (8).
-func (s *cudaSurucu) paylasimIzni(fn uintptr, bayt int) sonuc {
-	return s.icagir(iFuncSetAttribute, fn, 8, uintptr(bayt))
+func (s *cudaDriver) sharedMemOptIn(fn uintptr, byteN int) result {
+	return s.invoke(iFuncSetAttribute, fn, 8, uintptr(byteN))
 }
 
-func (s *cudaSurucu) paylasimSiniri() int { return int(s.paylasim) }
+func (s *cudaDriver) sharedMemLimit() int { return int(s.sharedMem) }
 
-func (s *cudaSurucu) hataAdi(r sonuc) string { return s.c.hataAdi(r) }
+func (s *cudaDriver) errName(r result) string { return s.c.errName(r) }
 
-func (s *cudaSurucu) ayrinti() string { return s.sonDetay }
+func (s *cudaDriver) detail() string { return s.lastDetail }
 
 // tepeGFLOPS kartın kuramsal float32 tepe hızı (GFLOPS; SM başına float32 birimi yetenek
 // düzeyinden tahmin edilir: 6.0, 7.x, 8.0 için 64, diğerleri 128). Yalnızca kıyas raporu.
-func (s *cudaSurucu) tepeGFLOPS() float64 {
-	cc, sm := s.yetenek()
-	birim := 128
+func (s *cudaDriver) peakGFLOPS() float64 {
+	cc, sm := s.capability()
+	unit := 128
 	if cc == 60 || (cc >= 70 && cc < 80) || cc == 80 {
-		birim = 64
+		unit = 64
 	}
-	return float64(sm) * float64(birim) * 2 * float64(s.saatKHz) / 1e6
+	return float64(sm) * float64(unit) * 2 * float64(s.clockKHz) / 1e6
 }
 
-func (s *cudaSurucu) yetenek() (int, int) {
-	return int(s.yetenek_[0]*10 + s.yetenek_[1]), int(s.smSayisi)
+func (s *cudaDriver) capability() (int, int) {
+	return int(s.capability_[0]*10 + s.capability_[1]), int(s.smCount)
 }
 
 // icagir isteğe bağlı bir sürücü işlevini çağırır (yoksa CUDA_ERROR_NOT_SUPPORTED).
-func (s *cudaSurucu) icagir(f int, args ...uintptr) sonuc {
+func (s *cudaDriver) invoke(f int, args ...uintptr) result {
 	if s.c.ifn[f] == 0 {
 		return 801
 	}
-	r := s.c.k.cagir(s.c.ifn[f], args...)
+	r := s.c.k.call(s.c.ifn[f], args...)
 	runtime.KeepAlive(s)
-	runtime.KeepAlive(s.cikti)
-	return sonuc(int32(uint32(r)))
+	runtime.KeepAlive(s.output)
+	return result(int32(uint32(r)))
 }
 
-func (s *cudaSurucu) olayOlustur() (uintptr, sonuc) {
-	r := s.icagir(iEventCreate, uintptr(unsafe.Pointer(&s.cikti.tutamac)), 0)
-	return s.cikti.tutamac, r
+func (s *cudaDriver) createEvent() (uintptr, result) {
+	r := s.invoke(iEventCreate, uintptr(unsafe.Pointer(&s.output.handle)), 0)
+	return s.output.handle, r
 }
 
-func (s *cudaSurucu) olayKaydet(ev uintptr) sonuc { return s.icagir(iEventRecord, ev, 0) }
+func (s *cudaDriver) recordEvent(ev uintptr) result { return s.invoke(iEventRecord, ev, 0) }
 
-func (s *cudaSurucu) olayHazir(ev uintptr) bool { return s.icagir(iEventQuery, ev) == basarili }
+func (s *cudaDriver) eventReady(ev uintptr) bool { return s.invoke(iEventQuery, ev) == succeeded }
 
-func (s *cudaSurucu) olaySure(bas, son uintptr) (float32, sonuc) {
-	r := s.icagir(iEventElapsed, uintptr(unsafe.Pointer(&s.cikti.f32)), bas, son)
-	return s.cikti.f32, r
+func (s *cudaDriver) eventTime(begin, last uintptr) (float32, result) {
+	r := s.invoke(iEventElapsed, uintptr(unsafe.Pointer(&s.output.f32)), begin, last)
+	return s.output.f32, r
 }
 
 // araclariBosalt dış bir profilleyici bağlıysa (aracBagli) sıradaki işleri bitirir ve profil
 // toplamayı durdurur (cuProfilerStop: araçlar bu noktada topladıklarını boşaltabilir). C çıkış
 // işleyicileri ayrıca, bütün GPU'lar kapandıktan sonra bir kez çalıştırılır (bkz. Kapat).
-func (s *cudaSurucu) araclariBosalt() {
-	if !aracBagli() {
+func (s *cudaDriver) flushTools() {
+	if !toolAttached() {
 		return
 	}
-	s.esitle()
-	s.icagir(iProfilerStop)
+	s.equalize()
+	s.invoke(iProfilerStop)
 }
 
 // aracBagli dış bir profilleyicinin (nsys, ncu) bağlı olduğu: sürücü aracı
 // CUDA_INJECTION64_PATH ile yükler.
-func aracBagli() bool { return os.Getenv("CUDA_INJECTION64_PATH") != "" }
+func toolAttached() bool { return os.Getenv("CUDA_INJECTION64_PATH") != "" }

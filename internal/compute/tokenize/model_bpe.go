@@ -17,31 +17,31 @@ import (
 // denenir; ikisi de yoksa karakter atlanır. Ardından birleştirme kuralları
 // öncelik sırasıyla uygulanır (bkz. bpe.go).
 
-func init() { ModelKaydet("BPE", bpeKur) }
+func init() { RegisterModel("BPE", newBPE) }
 
 // kisaEsik bu uzunluğa kadar (sembol sayısı) doğrudan tarama kullanılır.
-const kisaEsik = 48
+const shortThreshold = 48
 
 type bpeModel struct {
-	sozluk         map[string]int32
-	tablo          *birlesmeTablosu
-	birlesmeSayisi int
+	vocab      map[string]int32
+	table      *mergeTable
+	mergeCount int
 
-	bilinmeyen   int32 // -1: yok
-	birlestirBil bool  // fuse_unk
-	baytYedegi   bool  // byte_fallback
-	birlesmeYok  bool  // ignore_merges
-	onek, sonek  string
+	unknown        int32 // -1: yok
+	joinUnknown    bool  // fuse_unk
+	byteFallback   bool  // byte_fallback
+	noMerges       bool  // ignore_merges
+	prefix, suffix string
 
-	karakterID map[rune]int32 // tek karakterlik tokenlar
-	dusukID    [0x200]int32   // karakterID'nin küçük kod noktaları için dizisi
-	baytKarID  [256]int32     // bayt düzeyi karakterin kimliği (-1: yok)
-	yedekID    [256]int32     // "<0xXX>" tokenları (-1: yok)
-	baytSozluk map[string]int32
-	onbellek   *onbellek
+	charID     map[rune]int32 // tek karakterlik tokenlar
+	lowID      [0x200]int32   // karakterID'nin küçük kod noktaları için dizisi
+	byteCharID [256]int32     // bayt düzeyi karakterin kimliği (-1: yok)
+	fallbackID [256]int32     // "<0xXX>" tokenları (-1: yok)
+	byteVocab  map[string]int32
+	cache      *cache
 }
 
-func bpeKur(ham json.RawMessage) (Model, error) {
+func newBPE(raw json.RawMessage) (Model, error) {
 	var m struct {
 		Dropout                 *float64          `json:"dropout"`
 		UnkToken                *string           `json:"unk_token"`
@@ -53,53 +53,53 @@ func bpeKur(ham json.RawMessage) (Model, error) {
 		Vocab                   map[string]int64  `json:"vocab"`
 		Merges                  []json.RawMessage `json:"merges"`
 	}
-	if err := katiCoz(ham, &m); err != nil {
+	if err := strictDecode(raw, &m); err != nil {
 		return nil, err
 	}
 	if m.Dropout != nil && *m.Dropout != 0 {
 		return nil, fmt.Errorf("dropout=%v desteklenmiyor (rastgele birleştirme kodlamayı belirsiz yapar)", *m.Dropout)
 	}
-	sozluk, err := sozlukDonustur(m.Vocab)
+	vocab, err := convertVocab(m.Vocab)
 	if err != nil {
 		return nil, err
 	}
 	b := &bpeModel{
-		sozluk:       sozluk,
-		bilinmeyen:   -1,
-		birlestirBil: m.FuseUnk,
-		baytYedegi:   m.ByteFallback,
-		birlesmeYok:  m.IgnoreMerges,
-		karakterID:   make(map[rune]int32),
-		baytSozluk:   make(map[string]int32),
-		onbellek:     yeniOnbellek(VarsayilanOnbellekKapasitesi),
+		vocab:        vocab,
+		unknown:      -1,
+		joinUnknown:  m.FuseUnk,
+		byteFallback: m.ByteFallback,
+		noMerges:     m.IgnoreMerges,
+		charID:       make(map[rune]int32),
+		byteVocab:    make(map[string]int32),
+		cache:        newCache(DefaultCacheCapacity),
 	}
 	if m.ContinuingSubwordPrefix != nil {
-		b.onek = *m.ContinuingSubwordPrefix
+		b.prefix = *m.ContinuingSubwordPrefix
 	}
 	if m.EndOfWordSuffix != nil {
-		b.sonek = *m.EndOfWordSuffix
+		b.suffix = *m.EndOfWordSuffix
 	}
 	if m.UnkToken != nil {
-		id, ok := sozluk[*m.UnkToken]
+		id, ok := vocab[*m.UnkToken]
 		if !ok {
 			return nil, fmt.Errorf("bilinmeyen parça %q dağarcıkta yok", *m.UnkToken)
 		}
-		b.bilinmeyen = id
+		b.unknown = id
 	}
-	for i := range b.dusukID {
-		b.dusukID[i] = -1
+	for i := range b.lowID {
+		b.lowID[i] = -1
 	}
-	for tok, id := range sozluk {
+	for tok, id := range vocab {
 		if r, w := utf8.DecodeRuneInString(tok); w == len(tok) && w > 0 {
-			b.karakterID[r] = id
-			if r < rune(len(b.dusukID)) {
-				b.dusukID[r] = id
+			b.charID[r] = id
+			if r < rune(len(b.lowID)) {
+				b.lowID[r] = id
 			}
 		}
 		ok := true
 		bs := make([]byte, 0, len(tok))
 		for _, r := range tok {
-			c, var_ := karakterBayt[r]
+			c, var_ := charByte[r]
 			if !var_ {
 				ok = false
 				break
@@ -107,41 +107,41 @@ func bpeKur(ham json.RawMessage) (Model, error) {
 			bs = append(bs, c)
 		}
 		if ok {
-			b.baytSozluk[string(bs)] = id
+			b.byteVocab[string(bs)] = id
 		}
 	}
 	for c := 0; c < 256; c++ {
-		b.baytKarID[c] = b.kar(baytKarakter[c])
-		if id, ok := sozluk[fmt.Sprintf("<0x%02X>", c)]; ok {
-			b.yedekID[c] = id
+		b.byteCharID[c] = b.chr(byteChar[c])
+		if id, ok := vocab[fmt.Sprintf("<0x%02X>", c)]; ok {
+			b.fallbackID[c] = id
 		} else {
-			b.yedekID[c] = -1
+			b.fallbackID[c] = -1
 		}
 	}
-	birlesmeler := make(map[uint64]birlesme, len(m.Merges))
+	mergeList := make(map[uint64]mergeRule, len(m.Merges))
 	for i, r := range m.Merges {
-		x, y, err := birlesmeCiftiCoz(r)
+		x, y, err := parseMergePair(r)
 		if err != nil {
 			return nil, fmt.Errorf("%d. birleştirme: %w", i, err)
 		}
-		ia, ok1 := sozluk[x]
-		ib, ok2 := sozluk[y]
-		if !ok1 || !ok2 || len(y) < len(b.onek) {
+		ia, ok1 := vocab[x]
+		ib, ok2 := vocab[y]
+		if !ok1 || !ok2 || len(y) < len(b.prefix) {
 			return nil, fmt.Errorf("%d. birleştirme (%q, %q) dağarcıkta olmayan bir parça içeriyor", i, x, y)
 		}
-		yeni, ok3 := sozluk[x+y[len(b.onek):]]
+		fresh, ok3 := vocab[x+y[len(b.prefix):]]
 		if !ok3 {
-			return nil, fmt.Errorf("%d. birleştirmenin sonucu %q dağarcıkta yok", i, x+y[len(b.onek):])
+			return nil, fmt.Errorf("%d. birleştirmenin sonucu %q dağarcıkta yok", i, x+y[len(b.prefix):])
 		}
 		// Aynı çift birden çok kez geçerse sonuncusu geçerlidir.
-		birlesmeler[ciftAnahtar(ia, ib)] = birlesme{sira: int32(i), yeni: yeni}
+		mergeList[pairKey(ia, ib)] = mergeRule{order: int32(i), fresh: fresh}
 	}
-	b.birlesmeSayisi = len(m.Merges)
-	b.tablo = yeniBirlesmeTablosu(birlesmeler)
+	b.mergeCount = len(m.Merges)
+	b.table = newMergeTable(mergeList)
 	return b, nil
 }
 
-func sozlukDonustur(v map[string]int64) (map[string]int32, error) {
+func convertVocab(v map[string]int64) (map[string]int32, error) {
 	s := make(map[string]int32, len(v))
 	for tok, id := range v {
 		if id < 0 || id > 1<<30 {
@@ -153,7 +153,7 @@ func sozlukDonustur(v map[string]int64) (map[string]int32, error) {
 }
 
 // birlesmeCiftiCoz bir birleştirme girdisini ("a b" ya da ["a","b"]) çözer.
-func birlesmeCiftiCoz(r json.RawMessage) (string, string, error) {
+func parseMergePair(r json.RawMessage) (string, string, error) {
 	var s string
 	if err := json.Unmarshal(r, &s); err == nil {
 		for i := 0; i < len(s); i++ {
@@ -170,68 +170,68 @@ func birlesmeCiftiCoz(r json.RawMessage) (string, string, error) {
 	return c[0], c[1], nil
 }
 
-func (b *bpeModel) Sozluk() map[string]int32 { return b.sozluk }
+func (b *bpeModel) Vocab() map[string]int32 { return b.vocab }
 
-func (b *bpeModel) kar(r rune) int32 {
-	if r >= 0 && r < rune(len(b.dusukID)) {
-		return b.dusukID[r]
+func (b *bpeModel) chr(r rune) int32 {
+	if r >= 0 && r < rune(len(b.lowID)) {
+		return b.lowID[r]
 	}
-	if id, ok := b.karakterID[r]; ok {
+	if id, ok := b.charID[r]; ok {
 		return id
 	}
 	return -1
 }
 
 // Kodla parçayı (önbellek yardımıyla) kodlar.
-func (b *bpeModel) Kodla(dst []int32, p Parca) []int32 {
-	o := b.onbellek
-	if o == nil || len(p.Metin) > onbellekAzamiUzunluk {
-		return b.kodla(dst, p)
+func (b *bpeModel) Encode(dst []int32, p Piece) []int32 {
+	o := b.cache
+	if o == nil || len(p.Text) > cacheMaxLen {
+		return b.encode(dst, p)
 	}
-	if v, ok := o.al(p.Metin); ok {
+	if v, ok := o.al(p.Text); ok {
 		return append(dst, v...)
 	}
 	n := len(dst)
-	dst = b.kodla(dst, p)
-	o.koy(p.Metin, dst[n:])
+	dst = b.encode(dst, p)
+	o.put(p.Text, dst[n:])
 	return dst
 }
 
-func (b *bpeModel) kodla(dst []int32, p Parca) []int32 {
-	if b.birlesmeYok {
+func (b *bpeModel) encode(dst []int32, p Piece) []int32 {
+	if b.noMerges {
 		var id int32
 		var ok bool
-		if p.baytDuzeyi {
-			id, ok = b.baytSozluk[p.Metin]
+		if p.byteLevel {
+			id, ok = b.byteVocab[p.Text]
 		} else {
-			id, ok = b.sozluk[p.Metin]
+			id, ok = b.vocab[p.Text]
 		}
 		if ok {
 			return append(dst, id)
 		}
 	}
-	var yerel [kisaEsik]int32
-	sem := yerel[:0]
-	if len(p.Metin) > kisaEsik {
-		sem = make([]int32, 0, len(p.Metin))
+	var local [shortThreshold]int32
+	sem := local[:0]
+	if len(p.Text) > shortThreshold {
+		sem = make([]int32, 0, len(p.Text))
 	}
-	sem = b.semboller(sem, p)
-	if len(sem) <= kisaEsik {
-		sem = b.birlestirKisa(sem)
+	sem = b.symbols(sem, p)
+	if len(sem) <= shortThreshold {
+		sem = b.joinShort(sem)
 	} else {
-		sem = b.birlestirUzun(sem)
+		sem = b.joinLong(sem)
 	}
 	return append(dst, sem...)
 }
 
 // semboller parçanın ilk sembol dizisini üretir.
-func (b *bpeModel) semboller(sem []int32, p Parca) []int32 {
-	m := p.Metin
+func (b *bpeModel) symbols(sem []int32, p Piece) []int32 {
+	m := p.Text
 	// Hızlı yol: bayt düzeyi, önek/sonek yok, her bayt sözlükte.
-	if p.baytDuzeyi && b.onek == "" && b.sonek == "" {
+	if p.byteLevel && b.prefix == "" && b.suffix == "" {
 		i := 0
 		for ; i < len(m); i++ {
-			id := b.baytKarID[m[i]]
+			id := b.byteCharID[m[i]]
 			if id < 0 {
 				break
 			}
@@ -242,70 +242,70 @@ func (b *bpeModel) semboller(sem []int32, p Parca) []int32 {
 		}
 		sem = sem[:0]
 	}
-	bekleyen := int32(-1) // bekleyen bilinmeyen token
-	ekleBekleyen := func() {
-		if bekleyen >= 0 {
-			sem = append(sem, bekleyen)
-			bekleyen = -1
+	pending := int32(-1) // bekleyen bilinmeyen token
+	addPending := func() {
+		if pending >= 0 {
+			sem = append(sem, pending)
+			pending = -1
 		}
 	}
 	// Karakterleri (bayt düzeyinde: baytların temsil karakterlerini) gez.
-	var karakterler []rune
-	if p.baytDuzeyi {
-		karakterler = make([]rune, len(m))
+	var chars []rune
+	if p.byteLevel {
+		chars = make([]rune, len(m))
 		for i := 0; i < len(m); i++ {
-			karakterler[i] = baytKarakter[m[i]]
+			chars[i] = byteChar[m[i]]
 		}
 	} else {
-		karakterler = []rune(m)
+		chars = []rune(m)
 	}
-	for i, c := range karakterler {
+	for i, c := range chars {
 		var id int32 = -1
 		var s string
-		if b.onek == "" && b.sonek == "" {
-			id = b.kar(c)
+		if b.prefix == "" && b.suffix == "" {
+			id = b.chr(c)
 		} else {
 			s = string(c)
 			if i > 0 {
-				s = b.onek + s
+				s = b.prefix + s
 			}
-			if i == len(karakterler)-1 {
-				s += b.sonek
+			if i == len(chars)-1 {
+				s += b.suffix
 			}
-			if v, ok := b.sozluk[s]; ok {
+			if v, ok := b.vocab[s]; ok {
 				id = v
 			}
 		}
 		if id >= 0 {
-			ekleBekleyen()
+			addPending()
 			sem = append(sem, id)
 			continue
 		}
 		if s == "" {
 			s = string(c)
 		}
-		if b.baytYedegi {
-			tamam := true
+		if b.byteFallback {
+			done := true
 			for k := 0; k < len(s); k++ {
-				if b.yedekID[s[k]] < 0 {
-					tamam = false
+				if b.fallbackID[s[k]] < 0 {
+					done = false
 					break
 				}
 			}
-			if tamam {
+			if done {
 				for k := 0; k < len(s); k++ {
-					sem = append(sem, b.yedekID[s[k]])
+					sem = append(sem, b.fallbackID[s[k]])
 				}
 				continue
 			}
 		}
-		if b.bilinmeyen >= 0 {
-			if bekleyen >= 0 && !b.birlestirBil {
-				ekleBekleyen()
+		if b.unknown >= 0 {
+			if pending >= 0 && !b.joinUnknown {
+				addPending()
 			}
-			bekleyen = b.bilinmeyen
+			pending = b.unknown
 		}
 	}
-	ekleBekleyen()
+	addPending()
 	return sem
 }

@@ -40,7 +40,7 @@ type expected struct {
 	lit string
 }
 
-func tokenlariDogrula(t *testing.T, input string, want []expected) {
+func checkTokens(t *testing.T, input string, want []expected) {
 	t.Helper()
 	toks := tokensNoErrors(t, input)
 	if len(toks) != len(want) {
@@ -158,7 +158,7 @@ func TestTurkishIdentifiers(t *testing.T) {
 }
 
 func TestIdentifierAndOperatorBoundaries(t *testing.T) {
-	tokenlariDogrula(t, "öğrenci.yaş+çarpan", []expected{
+	checkTokens(t, "öğrenci.yaş+çarpan", []expected{
 		{TOKEN_IDENT, "öğrenci"},
 		{TOKEN_DOT, "."},
 		{TOKEN_IDENT, "yaş"},
@@ -191,23 +191,23 @@ func TestNumbers(t *testing.T) {
 		{"1__0", TOKEN_INT, "10"},
 	}
 	for _, tt := range tests {
-		tokenlariDogrula(t, tt.src, []expected{{tt.kind, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{tt.kind, tt.lit}, {TOKEN_EOF, ""}})
 	}
 }
 
 func TestNumberAndRangeSplit(t *testing.T) {
 	// '1..10' ondalık sayı değil, aralıktır
-	tokenlariDogrula(t, "1..10", []expected{
+	checkTokens(t, "1..10", []expected{
 		{TOKEN_INT, "1"}, {TOKEN_RANGE, ".."}, {TOKEN_INT, "10"}, {TOKEN_EOF, ""},
 	})
-	tokenlariDogrula(t, "0..=5", []expected{
+	checkTokens(t, "0..=5", []expected{
 		{TOKEN_INT, "0"}, {TOKEN_RANGE_INCL, "..="}, {TOKEN_INT, "5"}, {TOKEN_EOF, ""},
 	})
 	// Noktadan sonra rakam yoksa sayı tam sayı olarak biter (üye erişimi için)
-	tokenlariDogrula(t, "5.kare", []expected{
+	checkTokens(t, "5.kare", []expected{
 		{TOKEN_INT, "5"}, {TOKEN_DOT, "."}, {TOKEN_IDENT, "kare"}, {TOKEN_EOF, ""},
 	})
-	tokenlariDogrula(t, "1.5..2.5", []expected{
+	checkTokens(t, "1.5..2.5", []expected{
 		{TOKEN_FLOAT, "1.5"}, {TOKEN_RANGE, ".."}, {TOKEN_FLOAT, "2.5"}, {TOKEN_EOF, ""},
 	})
 }
@@ -221,14 +221,14 @@ func TestScientificNumbers(t *testing.T) {
 		{"6.02e2_3", "6.02e23"},
 	}
 	for _, tt := range tests {
-		tokenlariDogrula(t, tt.src, []expected{{TOKEN_FLOAT, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TOKEN_FLOAT, tt.lit}, {TOKEN_EOF, ""}})
 	}
 	// Üsten sonra rakam yoksa 'e' sayıya ait değildir
-	tokenlariDogrula(t, "2e", []expected{{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_EOF, ""}})
-	tokenlariDogrula(t, "2e+x", []expected{
+	checkTokens(t, "2e", []expected{{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_EOF, ""}})
+	checkTokens(t, "2e+x", []expected{
 		{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_PLUS, "+"}, {TOKEN_IDENT, "x"}, {TOKEN_EOF, ""},
 	})
-	tokenlariDogrula(t, "1e3..5", []expected{
+	checkTokens(t, "1e3..5", []expected{
 		{TOKEN_FLOAT, "1e3"}, {TOKEN_RANGE, ".."}, {TOKEN_INT, "5"}, {TOKEN_EOF, ""},
 	})
 }
@@ -236,7 +236,7 @@ func TestScientificNumbers(t *testing.T) {
 // Mevcut davranış: sayıya bitişik harfler ayrı bir tanimlayıcı olur; sözcük çözümleyici hata vermez
 // (ayrıştırıcı ardışık ifadeyi ayrıca değerlendirir).
 func TestLetterAfterNumber(t *testing.T) {
-	tokenlariDogrula(t, "12abc", []expected{
+	checkTokens(t, "12abc", []expected{
 		{TOKEN_INT, "12"}, {TOKEN_IDENT, "abc"}, {TOKEN_EOF, ""},
 	})
 }
@@ -264,8 +264,8 @@ func TestAllOperators(t *testing.T) {
 	}
 	for _, tt := range tests {
 		// Hem tek başına hem de iki tanımlayıcı arasında doğru okunmalı
-		tokenlariDogrula(t, tt.src, []expected{{tt.kind, tt.src}, {TOKEN_EOF, ""}})
-		tokenlariDogrula(t, "a"+tt.src+"b", []expected{
+		checkTokens(t, tt.src, []expected{{tt.kind, tt.src}, {TOKEN_EOF, ""}})
+		checkTokens(t, "a"+tt.src+"b", []expected{
 			{TOKEN_IDENT, "a"}, {tt.kind, tt.src}, {TOKEN_IDENT, "b"}, {TOKEN_EOF, ""},
 		})
 	}
@@ -300,7 +300,7 @@ func TestOperatorCombinations(t *testing.T) {
 		}},
 	}
 	for _, tt := range tests {
-		tokenlariDogrula(t, tt.src, append(tt.want, expected{TOKEN_EOF, ""}))
+		checkTokens(t, tt.src, append(tt.want, expected{TOKEN_EOF, ""}))
 	}
 }
 
@@ -313,7 +313,7 @@ func TestIllegalCharacters(t *testing.T) {
 		}
 	}
 	// Geçersiz karakterden sonra okumaya devam edilmeli
-	tokenlariDogrula(t, "a $ b", []expected{
+	checkTokens(t, "a $ b", []expected{
 		{TOKEN_IDENT, "a"}, {TOKEN_ILLEGAL, "$"}, {TOKEN_IDENT, "b"}, {TOKEN_EOF, ""},
 	})
 }
@@ -329,7 +329,7 @@ func TestFullProgram(t *testing.T) {
 sabit liste = [1, 2.5, "üç"]
 döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 `
-	tokenlariDogrula(t, src, []expected{
+	checkTokens(t, src, []expected{
 		{TOKEN_FUNCTION, "fonksiyon"}, {TOKEN_IDENT, "topla"}, {TOKEN_LPAREN, "("},
 		{TOKEN_IDENT, "a"}, {TOKEN_COLON, ":"}, {TOKEN_IDENT, "Tam"}, {TOKEN_COMMA, ","},
 		{TOKEN_IDENT, "b"}, {TOKEN_COLON, ":"}, {TOKEN_IDENT, "Tam"}, {TOKEN_RPAREN, ")"},

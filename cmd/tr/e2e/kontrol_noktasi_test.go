@@ -90,7 +90,7 @@ func kontrolVerisi(t *testing.T) string {
 			v[j] = uint16(r.IntN(2048))
 		}
 		var b bytes.Buffer
-		if err := dataload.NpyYazU16(&b, v); err != nil {
+		if err := dataload.WriteNpyU16(&b, v); err != nil {
 			t.Fatal(err)
 		}
 		dosyaYaz(t, d, fmt.Sprintf("parca_%d.npy", i), b.String())

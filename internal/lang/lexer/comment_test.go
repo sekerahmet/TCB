@@ -29,7 +29,7 @@ func TestComments(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tokenlariDogrula(t, tt.src, append(tt.want, expected{TOKEN_EOF, ""}))
+			checkTokens(t, tt.src, append(tt.want, expected{TOKEN_EOF, ""}))
 		})
 	}
 }
@@ -84,5 +84,5 @@ func TestUnterminatedBlockComment(t *testing.T) {
 		}
 	}
 	// '/**/' boş ama kapalı bir yorumdur
-	tokenlariDogrula(t, "/**/x", []expected{{TOKEN_IDENT, "x"}, {TOKEN_EOF, ""}})
+	checkTokens(t, "/**/x", []expected{{TOKEN_IDENT, "x"}, {TOKEN_EOF, ""}})
 }

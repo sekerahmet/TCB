@@ -34,18 +34,18 @@ var TipAdi = string(interp.TypeName(codes.A234))
 // Nesne TR'de yüklenmiş bir parçalayıcıdır. Salt okunurdur; dosya tutamağı ya da
 // başka bir kaynak tutmaz (dosya yüklemede tümüyle okunup kapatılır).
 type Nesne struct {
-	p   *tokenize.Parcalayici
+	p   *tokenize.Tokenizer
 	yol string
 }
 
 // Parcalayici sarılı Go parçalayıcısını verir.
-func (n *Nesne) Parcalayici() *tokenize.Parcalayici { return n.p }
+func (n *Nesne) Parcalayici() *tokenize.Tokenizer { return n.p }
 
 func (n *Nesne) Type() interp.ValueType { return interp.ValueType(TipAdi) }
 func (n *Nesne) IsTruthy() bool         { return true }
 
 func (n *Nesne) Inspect() string {
-	return fmt.Sprintf("%s(dağarcık %d, %s)", TipAdi, n.p.SozlukBoyutu(), filepath.Base(n.yol))
+	return fmt.Sprintf("%s(dağarcık %d, %s)", TipAdi, n.p.VocabSize(), filepath.Base(n.yol))
 }
 
 // IzlemeTuru İzleme Masası'nda ikon seçimi için türdür.
@@ -53,22 +53,22 @@ func (n *Nesne) IzlemeTuru() string { return "diger" }
 
 // IzlemeEtiketi tip sütununda gösterilen özettir.
 func (n *Nesne) IzlemeEtiketi() string {
-	return fmt.Sprintf("%s (dağarcık %d)", TipAdi, n.p.SozlukBoyutu())
+	return fmt.Sprintf("%s (dağarcık %d)", TipAdi, n.p.VocabSize())
 }
 
 // TabloVerisi dağarcığa eklenmiş parçaları (özel parçalar dahil) tablo olarak verir.
 func (n *Nesne) TabloVerisi() ([]string, [][]string, error) {
-	ekler := n.p.EkTokenlar()
+	ekler := n.p.AddedTokens()
 	if len(ekler) == 0 {
-		return nil, nil, fmt.Errorf("bu parçalayıcıda eklenmiş (özel) parça yok; dağarcık boyutu %d", n.p.SozlukBoyutu())
+		return nil, nil, fmt.Errorf("bu parçalayıcıda eklenmiş (özel) parça yok; dağarcık boyutu %d", n.p.VocabSize())
 	}
 	var satirlar [][]string
 	for _, e := range ekler {
 		ozel := "hayır"
-		if e.Ozel {
+		if e.Special {
 			ozel = "evet"
 		}
-		satirlar = append(satirlar, []string{fmt.Sprint(e.ID), e.Icerik, ozel})
+		satirlar = append(satirlar, []string{fmt.Sprint(e.ID), e.Content, ozel})
 	}
 	return []string{"Kimlik", "Parça", "Özel"}, satirlar, nil
 }
@@ -90,7 +90,7 @@ func (n *Nesne) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	case uyeCoz:
 		return n.metot(codes.Name(uyeCoz), n.coz), nil
 	case uyeSozlukBoyutu:
-		return interp.NewInt(int64(n.p.SozlukBoyutu())), nil
+		return interp.NewInt(int64(n.p.VocabSize())), nil
 	case uyeTokenKimligi:
 		return n.metot(codes.Name(uyeTokenKimligi), n.tokenKimligi), nil
 	}
@@ -133,13 +133,13 @@ func yukle(m *interp.VM, args []interp.Value, named map[string]interp.Value) (in
 		return nil, yolHata
 	}
 	yol, bakilanlar := bind.YolCozBakilan(m, ham)
-	var p *tokenize.Parcalayici
+	var p *tokenize.Tokenizer
 	var err error
 	var bilgi os.FileInfo
 	m.Blocking(func() {
 		bilgi, err = os.Stat(yol)
 		if err == nil && !bilgi.IsDir() {
-			p, err = tokenize.Yukle(yol)
+			p, err = tokenize.Load(yol)
 		}
 	})
 	if err != nil {
@@ -190,8 +190,8 @@ func yuklemeHatasi(yol string, err error, bakilanlar []string) error {
 	return fmt.Errorf("%s: %q yüklenemedi: %s", fn, yol, msg)
 }
 
-func uyarilariYaz(yol string, p *tokenize.Parcalayici) {
-	u := p.Uyarilar()
+func uyarilariYaz(yol string, p *tokenize.Tokenizer) {
+	u := p.Warnings()
 	if len(u) == 0 {
 		return
 	}
@@ -221,14 +221,14 @@ var (
 const uzunMetin = 1 << 16
 
 func adimHatasi(fn string, err error) error {
-	var ah *tokenize.AdimSiniriHatasi
-	if errors.As(err, &ah) && ah.Bellek {
+	var ah *tokenize.StepLimitError
+	if errors.As(err, &ah) && ah.Memory {
 		return fmt.Errorf("%s: parçalayıcının düzenli ifadesi %q bu metinde geri izleme belleği sınırını aştı (aramanın başladığı bayt: %d); desen çok uzun bir yinelemeyi geri izlenebilir tutuyor ve işlem güvenlik için durduruldu. Metni daha küçük parçalara bölmeyi ya da olağan dışı uzun tekrarları temizlemeyi deneyin",
-			fn, ah.Desen, ah.Konum)
+			fn, ah.Pattern, ah.Pos)
 	}
 	if ah != nil {
 		return fmt.Errorf("%s: parçalayıcının düzenli ifadesi %q bu metinde adım sınırını (%d adım) aştı (aramanın başladığı bayt: %d); desen bu girdide aşırı geri izleme yapıyor ve işlem güvenlik için durduruldu. Metni daha küçük parçalara bölmeyi ya da olağan dışı uzun tekrarları (ör. binlerce aynı karakter) temizlemeyi deneyin",
-			fn, ah.Desen, ah.Butce, ah.Konum)
+			fn, ah.Pattern, ah.Budget, ah.Pos)
 	}
 	return fmt.Errorf("%s: %v", fn, err)
 }
@@ -241,13 +241,13 @@ func (n *Nesne) kodla(m *interp.VM, args []interp.Value, named map[string]interp
 	if len(args) != 1 {
 		return nil, fmt.Errorf("%s(metin) 1 parametre bekler (metin ya da metin listesi), %d verildi", fn, len(args))
 	}
-	var sec tokenize.Secenekler
+	var sec tokenize.Options
 	if v, ok := bind.AdliAl(named, adOzel); ok {
 		b, err := bind.Mantik(fn, codes.Name(codes.V910), v)
 		if err != nil {
 			return nil, err
 		}
-		sec.OzelEklenmesin = !b
+		sec.DontAddSpecial = !b
 	}
 	ikinciV, ikinciVar := bind.AdliAl(named, adIkinci)
 
@@ -258,17 +258,17 @@ func (n *Nesne) kodla(m *interp.VM, args []interp.Value, named map[string]interp
 			if !ok {
 				return nil, fmt.Errorf("%s: tek metinle %s: de bir metin olmalıdır, %s verildi", fn, adIkinci.TR, ikinciV.Type())
 			}
-			var k *tokenize.Kodlama
+			var k *tokenize.Encoding
 			var err error
-			n.belkiBirak(m, len(x.Val)+len(ik.Val), func() { k, err = n.p.GuvenliKodlaCift(x.Val, &ik.Val, sec) })
+			n.belkiBirak(m, len(x.Val)+len(ik.Val), func() { k, err = n.p.SafeEncodePair(x.Val, &ik.Val, sec) })
 			if err != nil {
 				return nil, adimHatasi(fn, err)
 			}
-			return kimlikListesi32(k.Idler), nil
+			return kimlikListesi32(k.IDs), nil
 		}
 		var ids []int
 		var err error
-		n.belkiBirak(m, len(x.Val), func() { ids, err = n.p.GuvenliKodla(x.Val, sec) })
+		n.belkiBirak(m, len(x.Val), func() { ids, err = n.p.SafeEncode(x.Val, sec) })
 		if err != nil {
 			return nil, adimHatasi(fn, err)
 		}
@@ -295,16 +295,16 @@ func (n *Nesne) kodla(m *interp.VM, args []interp.Value, named map[string]interp
 		var hatalar []error
 		m.Blocking(func() {
 			if ikinciler == nil {
-				sonuc, hatalar = n.p.GuvenliTopluKodla(metinler, sec, 0)
+				sonuc, hatalar = n.p.SafeEncodeBatch(metinler, sec, 0)
 				return
 			}
 			sonuc = make([][]int, len(metinler))
 			hatalar = make([]error, len(metinler))
 			paralel(len(metinler), func(i int) {
-				k, err := n.p.GuvenliKodlaCift(metinler[i], &ikinciler[i], sec)
+				k, err := n.p.SafeEncodePair(metinler[i], &ikinciler[i], sec)
 				hatalar[i] = err
 				if err == nil {
-					sonuc[i] = int32ToInt(k.Idler)
+					sonuc[i] = int32ToInt(k.IDs)
 				}
 			})
 		})
@@ -440,10 +440,10 @@ func (n *Nesne) coz(m *interp.VM, args []interp.Value, named map[string]interp.V
 	hatalar := make([]error, len(diziler))
 	is := func() {
 		if len(diziler) == 1 {
-			sonuc[0], hatalar[0] = n.p.GuvenliCoz(diziler[0], atla)
+			sonuc[0], hatalar[0] = n.p.SafeDecode(diziler[0], atla)
 			return
 		}
-		paralel(len(diziler), func(i int) { sonuc[i], hatalar[i] = n.p.GuvenliCoz(diziler[i], atla) })
+		paralel(len(diziler), func(i int) { sonuc[i], hatalar[i] = n.p.SafeDecode(diziler[i], atla) })
 	}
 	toplam := 0
 	for _, d := range diziler {
@@ -548,7 +548,7 @@ func (n *Nesne) tokenKimligi(_ *interp.VM, args []interp.Value, named map[string
 	if !ok {
 		return nil, fmt.Errorf("%s: parça bir metin olmalıdır (ör. \"<|endoftext|>\"), %s verildi", codes.Name(codes.Y613), args[0].Type())
 	}
-	id, ok := n.p.TokenKimligi(s.Val)
+	id, ok := n.p.TokenToID(s.Val)
 	if !ok {
 		return interp.NULL, nil
 	}

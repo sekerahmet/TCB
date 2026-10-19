@@ -65,7 +65,7 @@ func kullanilabilirCihaz(fn string, v interp.Value) (tensor.Device, error) {
 		m := fmt.Sprintf("%s cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: %s (%s())",
 			dev, strings.Join(cihazAdlari(), ", "), codes.Name(codes.T721))
 		if dev.Kind == tensor.KindGPU {
-			m += ". " + gpu.Durum()
+			m += ". " + gpu.Status()
 		}
 		return dev, fmt.Errorf("%s", m)
 	}
@@ -142,5 +142,5 @@ func cihazlarYerlesik(_ *interp.VM, args []interp.Value, named map[string]interp
 // kurduğu tohumsuz rastgelelik kancasını kaldırır (aynı süreçte sonraki programa geçmesin).
 func Kapat() {
 	TohumsuzKancasiAyarla(nil)
-	gpu.Kapat()
+	gpu.Close()
 }

@@ -67,26 +67,26 @@ func Kaydet(v *interp.VM) {
 
 // Kume TR'de açılmış bir veri kümesidir.
 type Kume struct {
-	k      *dataload.Kume
+	k      *dataload.Dataset
 	yol    string // kullanıcının verdiği yol
-	ob     *dataload.Onbellek
+	ob     *dataload.Cache
 	kaynak *kaynak // yalnızca önbellek varsa
 }
 
 // GoKumesi sarılı Go kümesini verir.
-func (k *Kume) GoKumesi() *dataload.Kume { return k.k }
+func (k *Kume) GoKumesi() *dataload.Dataset { return k.k }
 
 func (k *Kume) Type() interp.ValueType { return interp.ValueType(KumeTipi) }
 func (k *Kume) IsTruthy() bool         { return true }
 
 func (k *Kume) ozet() string {
-	return fmt.Sprintf("%d veri dosyası, %s parça", k.k.ParcaSayisi(), bind.KisaSayi(k.k.ToplamToken()))
+	return fmt.Sprintf("%d veri dosyası, %s parça", k.k.ShardCount(), bind.KisaSayi(k.k.TotalTokens()))
 }
 
 func (k *Kume) Inspect() string {
 	ek := ""
 	if k.ob != nil {
-		ek = fmt.Sprintf(", önbellek %s", bind.BaytMetni(k.ob.Kota()))
+		ek = fmt.Sprintf(", önbellek %s", bind.BaytMetni(k.ob.Quota()))
 	}
 	return fmt.Sprintf("%s(%s%s)", KumeTipi, k.ozet(), ek)
 }
@@ -101,11 +101,11 @@ func (k *Kume) IzlemeEtiketi() string { return "Veri kümesi (" + k.ozet() + ")"
 func (k *Kume) TabloVerisi() ([]string, [][]string, error) {
 	const sinir = 10000
 	var satirlar [][]string
-	for i, p := range k.k.Parcalar() {
+	for i, p := range k.k.Shards() {
 		if i >= sinir {
 			break
 		}
-		satirlar = append(satirlar, []string{p.Ad, fmt.Sprint(p.Token), bind.BaytMetni(p.Bayt)})
+		satirlar = append(satirlar, []string{p.Name, fmt.Sprint(p.Token), bind.BaytMetni(p.Bytes)})
 	}
 	return []string{"Veri dosyası", "Parça", "Boyut"}, satirlar, nil
 }
@@ -191,25 +191,25 @@ func kumeAc(m *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 		kota = max(int64(gb*(1<<30)), 1)
 	}
 
-	var k *dataload.Kume
-	var ob *dataload.Onbellek
+	var k *dataload.Dataset
+	var ob *dataload.Cache
 	var err error
 	m.Blocking(func() {
 		// Önbelleksiz okumada parçalar belleğe eşlenmez: her pencere ReadAt ile okunur.
 		// Ağ ya da akışlı bulut sürücülerinde yalnızca istenen baytlar okunur; yerel
 		// diskte de bir toplu iş başına birkaç düzine küçük okuma eğitim adımının yanında
 		// önemsizdir. Önbellekteki yerel kopyalar eşlenerek okunur.
-		sec := dataload.KumeSecenekleri{Parca: dataload.ParcaSecenekleri{EslemeKapali: obDizin == ""}}
+		sec := dataload.DatasetOptions{Shard: dataload.ShardOptions{NoMmap: obDizin == ""}}
 		if obDizin != "" && kotaVar {
-			ob, err = dataload.OnbellekAc(dataload.OnbellekSecenekleri{Dizin: obDizin, Kota: kota})
+			ob, err = dataload.OpenCache(dataload.CacheOptions{Dir: obDizin, Quota: kota})
 			if err != nil {
 				return
 			}
-			sec.Onbellek = ob
+			sec.Cache = ob
 		}
-		k, err = dataload.KumeAc(yol, sec)
+		k, err = dataload.OpenDataset(yol, sec)
 		if err != nil && ob != nil {
-			_ = ob.Kapat()
+			_ = ob.Close()
 			ob = nil
 		}
 	})
@@ -217,22 +217,22 @@ func kumeAc(m *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 		return nil, veriHatasi(fn, ham, err, interp.SearchedPlaces(bakilanlar))
 	}
 	if obDizin != "" && !kotaVar {
-		gereken := enBuyukParca(k) * int64(dataload.VarsayilanGrupBoyu+dataload.VarsayilanIleriBak)
+		gereken := enBuyukParca(k) * int64(dataload.DefaultGroupSize+dataload.DefaultLookahead)
 		return nil, fmt.Errorf("%s: %s: verildiğinde %s: de verilmelidir (önbellek klasörünün kullanabileceği en çok disk alanı, GB). "+
 			"Bu kümenin örnekleyicisi aynı anda %d veri dosyasını yerelde tutar; en büyük veri dosyası %s olduğundan en az %s: %d gerekir",
-			fn, adOnbellek.TR, adKota.TR, dataload.VarsayilanGrupBoyu+dataload.VarsayilanIleriBak, bind.BaytMetni(enBuyukParca(k)), adKota.TR, int64(math.Ceil(float64(gereken)/(1<<30))))
+			fn, adOnbellek.TR, adKota.TR, dataload.DefaultGroupSize+dataload.DefaultLookahead, bind.BaytMetni(enBuyukParca(k)), adKota.TR, int64(math.Ceil(float64(gereken)/(1<<30))))
 	}
 	tk := &Kume{k: k, yol: ham, ob: ob}
 	if ob != nil {
-		tk.kaynak = kaynakEkle(tk, seviyeOnbellek, func(time.Duration) error { return ob.Kapat() })
+		tk.kaynak = kaynakEkle(tk, seviyeOnbellek, func(time.Duration) error { return ob.Close() })
 	}
 	return tk, nil
 }
 
-func enBuyukParca(k *dataload.Kume) int64 {
+func enBuyukParca(k *dataload.Dataset) int64 {
 	var b int64
-	for _, p := range k.Parcalar() {
-		b = max(b, p.Bayt)
+	for _, p := range k.Shards() {
+		b = max(b, p.Bytes)
 	}
 	return b
 }
@@ -250,21 +250,21 @@ func sayi(v interp.Value) (float64, bool) {
 // veriHatasi Go veri paketinin hatasını yol gösterici bir TR hatasına çevirir; ekler
 // küme bulunamadığında mesaja eklenir (ör. bakılan yerler).
 func veriHatasi(fn, yol string, err error, ekler ...string) error {
-	var bh *dataload.BicimHatasi
+	var bh *dataload.FormatError
 	switch {
 	case errors.As(err, &bh):
-		dosya := bh.Yol
+		dosya := bh.Path
 		if dosya == "" {
 			dosya = yol
 		}
 		return fmt.Errorf("%s: %q geçerli bir .npy veri dosyası değil: %s. Veri dosyaları standart .npy biçiminde tek boyutlu, küçük uçlu uint16, uint32 ya da int32 dizileri olmalıdır",
-			fn, filepath.ToSlash(dosya), bh.Neden)
-	case errors.Is(err, dataload.ErrOnbellekYetersiz):
-		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, temizle(strings.TrimPrefix(err.Error(), dataload.ErrOnbellekYetersiz.Error()+": ")))
-	case errors.Is(err, dataload.ErrKapali):
+			fn, filepath.ToSlash(dosya), bh.Reason)
+	case errors.Is(err, dataload.ErrCacheInsufficient):
+		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, temizle(strings.TrimPrefix(err.Error(), dataload.ErrCacheInsufficient.Error()+": ")))
+	case errors.Is(err, dataload.ErrClosed):
 		return fmt.Errorf("%s: okuyucu kapatılmış (program sonlanıyor); yeni bir okuyucu oluşturun", fn)
-	case errors.Is(err, dataload.ErrOnbellekKilitli):
-		return fmt.Errorf("%s: %s", fn, temizle(strings.TrimPrefix(err.Error(), dataload.ErrOnbellekKilitli.Error()+": ")))
+	case errors.Is(err, dataload.ErrCacheLocked):
+		return fmt.Errorf("%s: %s", fn, temizle(strings.TrimPrefix(err.Error(), dataload.ErrCacheLocked.Error()+": ")))
 	case bind.YokMu(err) && strings.Contains(err.Error(), "küme açılamadı"):
 		return turkish.FileError(fn, yol, "açılamadı", err,
 			append([]string{".npy veri dosyalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin"}, ekler...)...)
@@ -297,9 +297,9 @@ type Okuyucu struct {
 	tohum  uint64
 
 	mu     sync.Mutex
-	oy     *dataload.OnYukleyici
-	ti     dataload.TopluIs
-	konum  dataload.Durum // tüketilen son toplu işten sonraki konum (durum, durum.go)
+	oy     *dataload.Prefetcher
+	ti     dataload.Batch
+	konum  dataload.State // tüketilen son toplu işten sonraki konum (durum, durum.go)
 	sayac  int
 	donem  int
 	bitti  bool
@@ -432,9 +432,9 @@ func (k *Kume) ornekleyici(m *interp.VM, args []interp.Value, named map[string]i
 	if err != nil {
 		return nil, err
 	}
-	var ok *dataload.Ornekleyici
+	var ok *dataload.Sampler
 	m.Blocking(func() {
-		ok, err = k.k.Ornekleyici(dataload.OrnekleyiciSecenekleri{B: b, T: t, Tohum: tohum})
+		ok, err = k.k.Sampler(dataload.SamplerOptions{B: b, T: t, Seed: tohum})
 	})
 	if err != nil {
 		return nil, okuyucuHatasi(fn, k, t, err)
@@ -448,9 +448,9 @@ func (k *Kume) sirali(m *interp.VM, args []interp.Value, named map[string]interp
 	if err != nil {
 		return nil, err
 	}
-	var so *dataload.SiraliOkuyucu
+	var so *dataload.SequentialReader
 	m.Blocking(func() {
-		so, err = k.k.Sirali(dataload.SiraliSecenekleri{B: b, T: t})
+		so, err = k.k.Sequential(dataload.SequentialOptions{B: b, T: t})
 	})
 	if err != nil {
 		return nil, okuyucuHatasi(fn, k, t, err)
@@ -461,19 +461,19 @@ func (k *Kume) sirali(m *interp.VM, args []interp.Value, named map[string]interp
 func okuyucuHatasi(fn string, k *Kume, t int, err error) error {
 	if strings.Contains(err.Error(), "parçadan uzun değil") {
 		var enUzun int64
-		for _, p := range k.k.Parcalar() {
+		for _, p := range k.k.Shards() {
 			enUzun = max(enUzun, p.Token)
 		}
 		return fmt.Errorf("%s: %s: %d için her pencere %d parça ister, ama en uzun veri dosyası %d parça; %s değerini küçültün", fn, adBaglam.TR, t, t+1, enUzun, adBaglam.TR)
 	}
-	if errors.Is(err, dataload.ErrOnbellekYetersiz) {
-		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, temizle(strings.TrimPrefix(err.Error(), dataload.ErrOnbellekYetersiz.Error()+": ")))
+	if errors.Is(err, dataload.ErrCacheInsufficient) {
+		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, temizle(strings.TrimPrefix(err.Error(), dataload.ErrCacheInsufficient.Error()+": ")))
 	}
 	return veriHatasi(fn, k.yol, err)
 }
 
-func (k *Kume) okuyucuKur(sirali bool, b, t int, tohum uint64, kaynakGo dataload.Kaynak) *Okuyucu {
-	oy := dataload.OnYukle(context.Background(), kaynakGo, onYuklemeDerinligi)
+func (k *Kume) okuyucuKur(sirali bool, b, t int, tohum uint64, kaynakGo dataload.Source) *Okuyucu {
+	oy := dataload.Prefetch(context.Background(), kaynakGo, onYuklemeDerinligi)
 	o := &Okuyucu{sirali: sirali, kume: k, b: b, t: t, tohum: tohum, oy: oy}
 	o.kaynak = kaynakEkle(o, seviyeOkuyucu, onYukleyiciKapatici(oy))
 	return o
@@ -481,12 +481,12 @@ func (k *Kume) okuyucuKur(sirali bool, b, t int, tohum uint64, kaynakGo dataload
 
 // onYukleyiciKapatici önden yükleyicinin kaynak kaydındaki kapatıcısıdır: önden yükleyici,
 // gorutini durduktan sonra örnekleyiciyi/okuyucuyu (ve açık parçaları) kapatır.
-func onYukleyiciKapatici(oy *dataload.OnYukleyici) func(time.Duration) error {
+func onYukleyiciKapatici(oy *dataload.Prefetcher) func(time.Duration) error {
 	return func(sure time.Duration) error {
 		if sure > 0 {
-			return oy.KapatZamanli(sure)
+			return oy.CloseTimeout(sure)
 		}
-		return oy.Kapat()
+		return oy.Close()
 	}
 }
 
@@ -512,7 +512,7 @@ func (o *Okuyucu) sonraki(m *interp.VM, args []interp.Value, named map[string]in
 			son = true
 			return
 		}
-		err = o.oy.Al(&o.ti)
+		err = o.oy.Take(&o.ti)
 		if errors.Is(err, io.EOF) {
 			o.bitti, son, err = true, true, nil
 			_ = o.kaynak.Kapat(0)
@@ -522,8 +522,8 @@ func (o *Okuyucu) sonraki(m *interp.VM, args []interp.Value, named map[string]in
 			return
 		}
 		o.sayac++
-		o.donem = o.ti.Durum.Donem
-		o.konum = o.ti.Durum
+		o.donem = o.ti.State.Epoch
+		o.konum = o.ti.State
 		b, t = o.ti.B, o.ti.T
 		girdi, hedef, err = ayir(&o.ti)
 	})
@@ -556,12 +556,12 @@ func (o *Okuyucu) Next(m *interp.VM) (interp.Value, bool, error) {
 
 // ayir [B, T+1] toplu işini [B, T] girdi ve bir kaydırılmış [B, T] hedef dizilerine
 // (float32) böler.
-func ayir(ti *dataload.TopluIs) ([]float32, []float32, error) {
+func ayir(ti *dataload.Batch) ([]float32, []float32, error) {
 	n := ti.B * ti.T
 	girdi := make([]float32, n)
 	hedef := make([]float32, n)
 	for i := 0; i < ti.B; i++ {
-		satir := ti.Satir(i)
+		satir := ti.Row(i)
 		for j := 0; j < ti.T; j++ {
 			a, h := satir[j], satir[j+1]
 			if a < 0 || a >= enBuyukTamFloat32 || h < 0 || h >= enBuyukTamFloat32 {

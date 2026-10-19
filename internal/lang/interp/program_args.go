@@ -26,8 +26,8 @@ func (v *VM) Args() []string {
 // ProgramCommand is how the command that started the program is written (KomutAdi; when empty
 // "tr <SourceFile>").
 func (v *VM) ProgramCommand() string {
-	if v.KomutAdi != "" {
-		return v.KomutAdi
+	if v.CommandName != "" {
+		return v.CommandName
 	}
 	if v.SourceFile == "" {
 		return "tr"

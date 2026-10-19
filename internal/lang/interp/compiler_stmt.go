@@ -57,7 +57,7 @@ func (c *compiler) statement(k *compilerScope, stmt ast.Statement) statementCode
 		return c.tryCatchStatement(k, s)
 
 	case *ast.ThrowStatement:
-		return c.firlatDeyimi(k, s)
+		return c.throwStatement(k, s)
 
 	case *ast.AsyncStatement:
 		return c.concurrent(k, s)
@@ -235,7 +235,7 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 }
 
 // firlatDeyimi 'fırlat' deyimini derler.
-func (c *compiler) firlatDeyimi(k *compilerScope, s *ast.ThrowStatement) statementCode {
+func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) statementCode {
 	value := c.expression(k, s.Value)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := value(v, env)

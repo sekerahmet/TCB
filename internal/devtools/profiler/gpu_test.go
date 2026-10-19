@@ -28,7 +28,7 @@ varsayılan_cihaz("cpu")
 // cihaz CPU'ya döner.
 func gpuKur(t *testing.T) {
 	t.Helper()
-	gpu.BenzetimiKaydet()
+	gpu.RegisterSimulator()
 	if !tensor.HasDevice(tensor.GPU(0)) {
 		t.Skip("GPU ya da benzetim kurulamadı")
 	}
@@ -39,11 +39,11 @@ func gpuKur(t *testing.T) {
 // açar ve bitince eski durumuna döndürür; arka ucun kendi raporu metin raporuna eklenir.
 func TestProfilGPUCekirdekleriVeBellegi(t *testing.T) {
 	gpuKur(t)
-	if gpu.ProfilAcik() {
+	if gpu.ProfileEnabled() {
 		t.Skip("TR_GPU_PROFIL açık: ölçümün açılıp kapanması sınanamaz")
 	}
 	g, _ := calistirKapanisla(t, gpuEgitimi, Secenekler{GPUOlcumu: true})
-	if gpu.ProfilAcik() {
+	if gpu.ProfileEnabled() {
 		t.Error("profil bitince GPU ölçümü eski durumuna (kapalı) dönmedi")
 	}
 	gp := g.GPU
@@ -83,7 +83,7 @@ func TestProfilGPUCekirdekleriVeBellegi(t *testing.T) {
 // Arka plan işinin profili GPU ölçümünü açmaz; GPU belleği yine görünür.
 func TestProfilGPUOlcumuKapali(t *testing.T) {
 	gpuKur(t)
-	if gpu.ProfilAcik() {
+	if gpu.ProfileEnabled() {
 		t.Skip("TR_GPU_PROFIL açık")
 	}
 	g, _ := calistirKapanisla(t, gpuEgitimi, Secenekler{})

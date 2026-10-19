@@ -197,7 +197,7 @@ Motorların kendi kancaları:
   Sinüs, kosinüs ve tanjantın aralık indirgemesi float32'dedir: |x| ≤ 10⁵ radyanda doğrudur,
   daha büyük argümanda CPU'dan (float64 indirgeme) farklı sonuç verir.
 - **Colab:** `tools/gpu/` (paket hazırlama, model ve mikro kıyas betikleri, `COLAB.md`). Mikro
-  kıyaslar `gpu_sinama`'nın içindedir (`TR_GPU_MIKRO=1`, `TestMikroKiyas`); karşılaştırma
+  kıyaslar `gpu_sinama`'nın içindedir (`TR_GPU_MIKRO=1`, `TestMicroBench`); karşılaştırma
   tarafı `mikro_kiyas.py`, tablo `mikro_tablo.py`.
 
 ### Canlı profil (`internal/devtools/profiler`)
@@ -295,7 +295,7 @@ adını ve satırı bilir. `ölçüm` süresi ölçülen çağrı sayısıdır (
 
 **Maliyet** (ölçüm yöntemi: önce/sonra test ikilileri dönüşümlü, P çekirdeklere sabit; makine
 yüklüyken ölçüldü, boş makinede yinelenmeli): sayaçların işlem başına yükü ~4 ns
-(`BenchmarkSayacBaslaBitir`); 16 elemanlı tensörlerle `BenchmarkSayacKucuk*` (işlem başına
+(`BenchmarkCounterStartStop`); 16 elemanlı tensörlerle `BenchmarkCounterSmall*` (işlem başına
 ~350 ns) %1–3; 64 boyutlu küçük MLP eğitim adımında (~75 µs) gürültü içinde (ortanca +%2,
 en iyi −%1, A/A gürültüsü ±%2). Örnekleme açıkken çağrı yoğun TR kodu ~2 kat yavaşlar
 (hata ayıklayıcı yuvası doluyken yorumlayıcı fonksiyon ortamlarını havuzlamaz).

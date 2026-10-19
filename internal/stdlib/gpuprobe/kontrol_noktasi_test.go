@@ -66,7 +66,7 @@ func gpuCalistir(t *testing.T, kod string) string {
 }
 
 func TestGPUdaKontrolNoktasi(t *testing.T) {
-	gpu.BenzetimiKaydet() // gerçek GPU varsa o kullanılır
+	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	kosu := filepath.ToSlash(t.TempDir())
 	kod := fmt.Sprintf(gpuKontrolProgrami, kosu) + `

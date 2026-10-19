@@ -1,5 +1,5 @@
-# GPU mikro kıyasları, karşılaştırma tarafı: internal/compute/gpu/mikro_kiyas_test.go'daki
-# TestMikroKiyas ile aynı işlemler ve aynı satır biçimi:
+# GPU mikro kıyasları, karşılaştırma tarafı: internal/compute/gpu/gpu_bench_test.go'daki
+# TestMicroBench ile aynı işlemler ve aynı satır biçimi:
 #     MIKRO|işlem|pytorch|ms|değer|birim
 # float32, TF32 kapalı. Süreler iki CUDA olayı arasında, bir ısınmadan sonra 10 tekrarın
 # ortalamasıdır. Kullanım: python mikro_kiyas.py > mikro_py.txt

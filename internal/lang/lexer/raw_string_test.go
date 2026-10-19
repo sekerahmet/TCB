@@ -52,7 +52,7 @@ func TestRawString(t *testing.T) {
 		{"`\\`", `\`},
 	}
 	for _, tt := range tests {
-		tokenlariDogrula(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
 	}
 	// Ham metinden sonra sözcük birimleri ve konumlar sürer
 	l := New("x = `a\nb` + 1")

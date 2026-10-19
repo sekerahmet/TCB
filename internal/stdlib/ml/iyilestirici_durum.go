@@ -97,11 +97,11 @@ func (o *Iyilestirici) durumTensorleri(kopya bool) ([]string, []*tensor.Tensor) 
 	case o.adamw != nil && kopya:
 		st = o.adamw.State()
 	case o.adamw != nil:
-		st = o.adamw.DurumGorunumu()
+		st = o.adamw.StateView()
 	case kopya:
 		st = o.sgd.State()
 	default:
-		st = o.sgd.DurumGorunumu()
+		st = o.sgd.StateView()
 	}
 	adlar := make([]string, 0, len(st))
 	for ad := range st {

@@ -12,93 +12,93 @@ func tensorIslemleri() string { return codes.Name(codes.A212) + " işlemleri" }
 // karşılık gelen işlemler o adla (kod listesinden) yazılır: kullanıcı kendi kodunda gördüğü
 // adı görür, ad çevrilince rapor da çevrilir. Karşılığı tek bir ad olmayanlar (işleçler,
 // görünümler, kopyalar) Türkçe açıklamasıyla yazılır.
-func islemAdi(is tensor.Islem) string {
+func islemAdi(is tensor.OpKind) string {
 	if k, ok := islemKodu[is]; ok {
 		return codes.Name(k)
 	}
 	switch is {
-	case tensor.IslemToplama:
+	case tensor.OpKindAdd:
 		return "toplama (+)"
-	case tensor.IslemCikarma:
+	case tensor.OpKindSub:
 		return "çıkarma (-)"
-	case tensor.IslemCarpma:
+	case tensor.OpKindMul:
 		return "çarpma (*)"
-	case tensor.IslemBolme:
+	case tensor.OpKindDiv:
 		return "bölme (/)"
-	case tensor.IslemKucuk:
+	case tensor.OpKindLess:
 		return "karşılaştırma (<)"
-	case tensor.IslemBuyuk:
+	case tensor.OpKindGreater:
 		return "karşılaştırma (>)"
-	case tensor.IslemKucukEsit:
+	case tensor.OpKindLessEq:
 		return "karşılaştırma (<=)"
-	case tensor.IslemBuyukEsit:
+	case tensor.OpKindGreaterEq:
 		return "karşılaştırma (>=)"
-	case tensor.IslemMatrisCarpimi:
+	case tensor.OpKindMatMul:
 		return "matris çarpımı (@)"
-	case tensor.IslemCihazaTasima:
+	case tensor.OpKindToDevice:
 		return "." + codes.Name(codes.Y414)
-	case tensor.IslemTurDonusumu:
+	case tensor.OpKindCast:
 		return "." + codes.Name(codes.Y415)
-	case tensor.IslemAdamW:
+	case tensor.OpKindAdamW:
 		return codes.Name(codes.T400) + "." + codes.Name(codes.Y500)
-	case tensor.IslemSGD:
+	case tensor.OpKindSGD:
 		return codes.Name(codes.T401) + "." + codes.Name(codes.Y500)
 	}
 	return is.String()
 }
 
 // islemKodu dildeki bir yerleşiğe birebir karşılık gelen işlemlerdir.
-var islemKodu = map[tensor.Islem]codes.Code{
-	tensor.IslemUstel:           codes.T220,
-	tensor.IslemLog:             codes.T221,
-	tensor.IslemKarekok:         codes.G404,
-	tensor.IslemTanh:            codes.T202,
-	tensor.IslemRelu:            codes.T200,
-	tensor.IslemGelu:            codes.T203,
-	tensor.IslemSigmoid:         codes.T201,
-	tensor.IslemSinus:           codes.T222,
-	tensor.IslemKosinus:         codes.T223,
-	tensor.IslemToplam:          codes.G400,
-	tensor.IslemOrtalama:        codes.G410,
-	tensor.IslemEnBuyuk:         codes.G402,
-	tensor.IslemEnBuyukIndeks:   codes.T230,
-	tensor.IslemSoftmax:         codes.T210,
-	tensor.IslemLogSoftmax:      codes.T211,
-	tensor.IslemGomme:           codes.T500,
-	tensor.IslemCaprazEntropi:   codes.T510,
-	tensor.IslemKatmanNormu:     codes.T501,
-	tensor.IslemRMSNormu:        codes.T502,
-	tensor.IslemDikkat:          codes.T503,
-	tensor.IslemBirlestirme:     codes.T121,
-	tensor.IslemGradyanKirpma:   codes.T402,
-	tensor.IslemOzel:            codes.T310,
-	tensor.IslemSilu:            codes.T204,
-	tensor.IslemTanjant:         codes.T224,
-	tensor.IslemArksinus:        codes.T225,
-	tensor.IslemArkkosinus:      codes.T226,
-	tensor.IslemArktanjant:      codes.T227,
-	tensor.IslemAtan2:           codes.T228,
-	tensor.IslemBirikimliToplam: codes.T231,
-	tensor.IslemEnBuyukK:        codes.T232,
-	tensor.IslemSiralamaIndeksi: codes.T233,
-	tensor.IslemKosulluSecim:    codes.T234,
-	tensor.IslemSinh:            codes.T240,
-	tensor.IslemCosh:            codes.T241,
-	tensor.IslemLog1p:           codes.T242,
-	tensor.IslemLog2:            codes.T243,
-	tensor.IslemLog10:           codes.T244,
-	tensor.IslemUstelEksiBir:    codes.T245,
-	tensor.IslemMutlak:          codes.G403,
-	tensor.IslemTaban:           codes.G406,
-	tensor.IslemTavan:           codes.G407,
-	tensor.IslemIsaret:          codes.G408,
-	tensor.IslemSinirlama:       codes.G409,
+var islemKodu = map[tensor.OpKind]codes.Code{
+	tensor.OpKindExp:          codes.T220,
+	tensor.OpKindLog:          codes.T221,
+	tensor.OpKindSqrt:         codes.G404,
+	tensor.OpKindTanh:         codes.T202,
+	tensor.OpKindRelu:         codes.T200,
+	tensor.OpKindGelu:         codes.T203,
+	tensor.OpKindSigmoid:      codes.T201,
+	tensor.OpKindSin:          codes.T222,
+	tensor.OpKindCos:          codes.T223,
+	tensor.OpKindSum:          codes.G400,
+	tensor.OpKindMean:         codes.G410,
+	tensor.OpKindMax:          codes.G402,
+	tensor.OpKindArgMax:       codes.T230,
+	tensor.OpKindSoftmax:      codes.T210,
+	tensor.OpKindLogSoftmax:   codes.T211,
+	tensor.OpKindEmbedding:    codes.T500,
+	tensor.OpKindCrossEntropy: codes.T510,
+	tensor.OpKindLayerNorm:    codes.T501,
+	tensor.OpKindRMSNorm:      codes.T502,
+	tensor.OpKindAttention:    codes.T503,
+	tensor.OpKindConcat:       codes.T121,
+	tensor.OpKindClipGrad:     codes.T402,
+	tensor.OpKindCustom:       codes.T310,
+	tensor.OpKindSilu:         codes.T204,
+	tensor.OpKindTan:          codes.T224,
+	tensor.OpKindAsin:         codes.T225,
+	tensor.OpKindAcos:         codes.T226,
+	tensor.OpKindAtan:         codes.T227,
+	tensor.OpKindAtan2:        codes.T228,
+	tensor.OpKindCumSum:       codes.T231,
+	tensor.OpKindTopK:         codes.T232,
+	tensor.OpKindArgSort:      codes.T233,
+	tensor.OpKindWhere:        codes.T234,
+	tensor.OpKindSinh:         codes.T240,
+	tensor.OpKindCosh:         codes.T241,
+	tensor.OpKindLog1p:        codes.T242,
+	tensor.OpKindLog2:         codes.T243,
+	tensor.OpKindLog10:        codes.T244,
+	tensor.OpKindExpm1:        codes.T245,
+	tensor.OpKindAbs:          codes.G403,
+	tensor.OpKindFloor:        codes.G406,
+	tensor.OpKindCeil:         codes.G407,
+	tensor.OpKindSign:         codes.G408,
+	tensor.OpKindClamp:        codes.G409,
 }
 
 // tamAd yönüyle birlikte görünen addır: geri yayılım "geri · " önekiyle. Çağrısız "diğer"
 // kaydı yalnızca işlem dışında yapılan ayırmalardır (oluşturucular).
-func tamAd(is tensor.Islem, geri bool, cagri int64) string {
-	if is == tensor.IslemDiger && cagri == 0 {
+func tamAd(is tensor.OpKind, geri bool, cagri int64) string {
+	if is == tensor.OpKindOther && cagri == 0 {
 		return "işlem dışı ayırmalar"
 	}
 	if geri {

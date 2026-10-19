@@ -1,4 +1,4 @@
-# Mikro kıyas çıktılarını (TR: gpu_sinama -test.run TestMikroKiyas, karşılaştırma:
+# Mikro kıyas çıktılarını (TR: gpu_sinama -test.run TestMicroBench, karşılaştırma:
 # mikro_kiyas.py) tek tabloya çevirir. "MIKRO|" ile başlamayan satırlar yok sayılır.
 # Kullanım: python mikro_tablo.py mikro_tr.txt mikro_py.txt
 import sys

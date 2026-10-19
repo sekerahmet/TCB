@@ -39,11 +39,11 @@ var (
 // kumeOzeti veri kümesinin kimliğidir: veri dosyalarının adları ve parça sayılarının özeti.
 // Veri klasörü taşınsa da (yerel disk → bulut sürücüsü) aynı kalır; dosya eklenir, çıkarılır
 // ya da değişirse farklılaşır.
-func kumeOzeti(k *dataload.Kume) string {
+func kumeOzeti(k *dataload.Dataset) string {
 	h := sha256.New()
 	var b [8]byte
-	for _, p := range k.Parcalar() {
-		h.Write([]byte(p.Ad))
+	for _, p := range k.Shards() {
+		h.Write([]byte(p.Name))
 		h.Write([]byte{0})
 		binary.LittleEndian.PutUint64(b[:], uint64(p.Token))
 		h.Write(b[:])
@@ -73,10 +73,10 @@ func (o *Okuyucu) DurumSozlugu(*interp.VM) (*interp.DictVal, error) {
 	}
 	s.Set(dKume, &interp.StringVal{Val: kumeOzeti(o.kume.k)})
 	if !o.sirali {
-		s.Set(dDonem, interp.NewInt(int64(o.konum.Donem)))
+		s.Set(dDonem, interp.NewInt(int64(o.konum.Epoch)))
 	}
-	s.Set(dSira, interp.NewInt(int64(o.konum.Sira)))
-	s.Set(dPencere, interp.NewInt(o.konum.Pencere))
+	s.Set(dSira, interp.NewInt(int64(o.konum.Pos)))
+	s.Set(dPencere, interp.NewInt(o.konum.Window))
 	s.Set(dSayac, interp.NewInt(int64(o.sayac)))
 	if o.sirali {
 		s.Set(dBitti, interp.BoolToVal(o.bitti))
@@ -120,11 +120,11 @@ func (o *Okuyucu) DurumuYukle(m *interp.VM, s *interp.DictVal) error {
 	if k := d.metin(dKume); d.hata == nil && k != kumeOzeti(o.kume.k) {
 		d.hata = fmt.Errorf("%s: kayıt başka bir veri kümesine ait (veri dosyalarının adları ya da boyları farklı: %q); aynı veriyle sürdürün ya da yeni bir koşu klasörü verin", fn, o.kume.yol)
 	}
-	var konum dataload.Durum
+	var konum dataload.State
 	if !o.sirali {
-		konum.Donem = int(d.tam(dDonem))
+		konum.Epoch = int(d.tam(dDonem))
 	}
-	konum.Sira, konum.Pencere = int(d.tam(dSira)), d.tam(dPencere)
+	konum.Pos, konum.Window = int(d.tam(dSira)), d.tam(dPencere)
 	sayac := int(d.tam(dSayac))
 	bitti := o.sirali && d.mantik(dBitti)
 	if d.hata != nil {
@@ -134,14 +134,14 @@ func (o *Okuyucu) DurumuYukle(m *interp.VM, s *interp.DictVal) error {
 }
 
 // konumaGetir okuyucuyu verilen konumdan yeniden kurar ve eski önden yükleme hattını kapatır.
-func (o *Okuyucu) konumaGetir(m *interp.VM, fn string, konum dataload.Durum, sayac int, bitti bool) error {
-	var kaynakGo dataload.Kaynak
+func (o *Okuyucu) konumaGetir(m *interp.VM, fn string, konum dataload.State, sayac int, bitti bool) error {
+	var kaynakGo dataload.Source
 	var err error
 	m.Blocking(func() {
 		if o.sirali {
-			kaynakGo, err = o.kume.k.Sirali(dataload.SiraliSecenekleri{B: o.b, T: o.t, Baslangic: &konum})
+			kaynakGo, err = o.kume.k.Sequential(dataload.SequentialOptions{B: o.b, T: o.t, Start: &konum})
 		} else {
-			kaynakGo, err = o.kume.k.Ornekleyici(dataload.OrnekleyiciSecenekleri{B: o.b, T: o.t, Tohum: o.tohum, Baslangic: &konum})
+			kaynakGo, err = o.kume.k.Sampler(dataload.SamplerOptions{B: o.b, T: o.t, Seed: o.tohum, Start: &konum})
 		}
 	})
 	if err != nil {
@@ -149,10 +149,10 @@ func (o *Okuyucu) konumaGetir(m *interp.VM, fn string, konum dataload.Durum, say
 	}
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	oy := dataload.OnYukle(context.Background(), kaynakGo, onYuklemeDerinligi)
+	oy := dataload.Prefetch(context.Background(), kaynakGo, onYuklemeDerinligi)
 	o.kaynak = o.kaynak.degistir(onYukleyiciKapatici(oy))
-	o.oy, o.ti, o.konum = oy, dataload.TopluIs{}, konum
-	o.sayac, o.donem, o.bitti = sayac, konum.Donem, bitti
+	o.oy, o.ti, o.konum = oy, dataload.Batch{}, konum
+	o.sayac, o.donem, o.bitti = sayac, konum.Epoch, bitti
 	if bitti {
 		_ = o.kaynak.Kapat(0)
 	}
