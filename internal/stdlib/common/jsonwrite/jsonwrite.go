@@ -19,78 +19,78 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 )
 
-// Yaz değeri boşluksuz JSON olarak yazar.
-func Yaz(val interp.Value) ([]byte, error) { return YazGirintili(val, "") }
+// Write değeri boşluksuz JSON olarak yazar.
+func Write(val interp.Value) ([]byte, error) { return WriteIndent(val, "") }
 
-// YazGirintili değeri her seviyede girinti kadar içeri alarak yazar; girinti boşsa
+// WriteIndent değeri her seviyede girinti kadar içeri alarak yazar; girinti boşsa
 // boşluksuz yazar.
-func YazGirintili(val interp.Value, girinti string) ([]byte, error) {
-	return YazSecenekli(val, Secenekler{Girinti: girinti})
+func WriteIndent(val interp.Value, indent string) ([]byte, error) {
+	return WriteOptions(val, Options{Indent: indent})
 }
 
-// Secenekler yazımı ayarlar; sıfır değeri Yaz ile aynıdır.
-type Secenekler struct {
-	// Girinti her seviyede eklenen girintidir; boşsa boşluksuz yazılır.
-	Girinti string
-	// SayiDisiMetin Tanımsız (NaN) ve sonsuz sayıları hata yerine TR'deki yazımlarıyla metin
+// Options yazımı ayarlar; sıfır değeri Yaz ile aynıdır.
+type Options struct {
+	// Indent her seviyede eklenen girintidir; boşsa boşluksuz yazılır.
+	Indent string
+	// NonFiniteAsText Tanımsız (NaN) ve sonsuz sayıları hata yerine TR'deki yazımlarıyla metin
 	// olarak yazar ("NaN", "+Sonsuz", "-Sonsuz"); eğitim günlüğünde kayıpta beliren NaN
 	// gizlenmesin diye.
-	SayiDisiMetin bool
-	// Metin yazılan her metne (sözlük anahtarları dahil) uygulanır, ör. gizli değer süzgeci;
+	NonFiniteAsText bool
+	// TextFilter yazılan her metne (sözlük anahtarları dahil) uygulanır, ör. gizli değer süzgeci;
 	// nil ise metinler olduğu gibi yazılır.
-	Metin func(string) string
+	TextFilter func(string) string
 }
 
-// YazSecenekli değeri verilen seçeneklerle yazar.
-func YazSecenekli(val interp.Value, s Secenekler) ([]byte, error) {
-	y := yazici{girinti: s.Girinti, sayiDisiMetin: s.SayiDisiMetin, metinSuzgeci: s.Metin}
-	if err := y.deger(val, 0); err != nil {
+// WriteOptions değeri verilen seçeneklerle yazar.
+func WriteOptions(val interp.Value, s Options) ([]byte, error) {
+	y := writer{indent: s.Indent, nonFiniteAsText: s.NonFiniteAsText, textFilter: s.TextFilter}
+	if err := y.value(val, 0); err != nil {
 		return nil, err
 	}
 	return y.b, nil
 }
 
-type yazici struct {
-	b             []byte
-	girinti       string
-	sayiDisiMetin bool
-	metinSuzgeci  func(string) string
-	gezgin        interp.ContainerWalker
+type writer struct {
+	b               []byte
+	indent          string
+	nonFiniteAsText bool
+	textFilter      func(string) string
+	walker          interp.ContainerWalker
 }
 
-func (y *yazici) satir(derinlik int) {
-	if y.girinti == "" {
+func (y *writer) newline(depth int) {
+	if y.indent == "" {
 		return
 	}
 	y.b = append(y.b, '\n')
-	for i := 0; i < derinlik; i++ {
-		y.b = append(y.b, y.girinti...)
+	for i := 0; i < depth; i++ {
+		y.b = append(y.b, y.indent...)
 	}
 }
 
-func (y *yazici) metin(s string) {
-	if y.metinSuzgeci != nil {
-		s = y.metinSuzgeci(s)
+func (y *writer) text(s string) {
+	if y.textFilter != nil {
+		s = y.textFilter(s)
 	}
 	b, _ := json.Marshal(s) // metin her zaman yazılabilir
 	y.b = append(y.b, b...)
 }
 
-func (y *yazici) sayi(f float64) error {
+func (y *writer) number(f float64) error {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
-		if y.sayiDisiMetin {
-			y.metin((&interp.FloatVal{Val: f}).Inspect())
+		if y.nonFiniteAsText {
+			y.text((&interp.FloatVal{Val: f}).Inspect())
 			return nil
 		}
 		return fmt.Errorf("%s sayısı JSON'a yazılamaz (JSON'da Tanımsız ya da sonsuz sayı yoktur)", (&interp.FloatVal{Val: f}).Inspect())
 	}
 	// encoding/json ile aynı biçim: küçük ve çok büyük sayılarda bilimsel yazım
-	bicim := byte('f')
+	format := byte('f')
 	if a := math.Abs(f); a != 0 && (a < 1e-6 || a >= 1e21) {
-		bicim = 'e'
+		format = 'e'
 	}
-	y.b = strconv.AppendFloat(y.b, f, bicim, -1, 64)
-	if bicim == 'e' {
+	y.b = strconv.AppendFloat(y.b, f, format, -1, 64)
+	if format == 'e' {
 		// 1e-07 → 1e-7
 		n := len(y.b)
 		if n >= 4 && y.b[n-4] == 'e' && y.b[n-3] == '-' && y.b[n-2] == '0' {
@@ -101,7 +101,7 @@ func (y *yazici) sayi(f float64) error {
 	return nil
 }
 
-func (y *yazici) deger(val interp.Value, derinlik int) error {
+func (y *writer) value(val interp.Value, depth int) error {
 	switch v := val.(type) {
 	case *interp.NullVal:
 		y.b = append(y.b, "null"...)
@@ -110,74 +110,74 @@ func (y *yazici) deger(val interp.Value, derinlik int) error {
 	case *interp.IntVal:
 		y.b = strconv.AppendInt(y.b, v.Val, 10)
 	case *interp.FloatVal:
-		return y.sayi(v.Val)
+		return y.number(v.Val)
 	case *interp.StringVal:
-		y.metin(v.Val)
+		y.text(v.Val)
 	case *interp.ListVal:
-		if err := y.gezgin.Enter(v, derinlik); err != nil {
+		if err := y.walker.Enter(v, depth); err != nil {
 			return err
 		}
-		defer y.gezgin.Leave(v)
+		defer y.walker.Leave(v)
 		y.b = append(y.b, '[')
-		for i, el := range v.Elements {
+		for i, elem := range v.Elements {
 			if i > 0 {
 				y.b = append(y.b, ',')
 			}
-			y.satir(derinlik + 1)
-			if err := y.deger(el, derinlik+1); err != nil {
+			y.newline(depth + 1)
+			if err := y.value(elem, depth+1); err != nil {
 				return err
 			}
 		}
 		if len(v.Elements) > 0 {
-			y.satir(derinlik)
+			y.newline(depth)
 		}
 		y.b = append(y.b, ']')
 	case *interp.DictVal:
-		if err := y.gezgin.Enter(v, derinlik); err != nil {
+		if err := y.walker.Enter(v, depth); err != nil {
 			return err
 		}
-		defer y.gezgin.Leave(v)
+		defer y.walker.Leave(v)
 		y.b = append(y.b, '{')
-		var gorulen map[string]bool
+		var seen map[string]bool
 		if len(v.KeyVals) > 0 {
-			gorulen = make(map[string]bool, len(v.Order))
+			seen = make(map[string]bool, len(v.Order))
 		}
-		ilk := true
+		first := true
 		for _, k := range v.Order {
-			el, ok := v.Pairs[k]
+			elem, ok := v.Pairs[k]
 			if !ok {
 				continue
 			}
-			ad := v.DisplayKey(k)
-			if gorulen != nil {
-				if gorulen[ad] {
-					return fmt.Errorf("sözlükte görünüşü aynı iki anahtar var (%s); JSON'da anahtarlar metindir, ikisi aynı anahtar olurdu", strconv.Quote(ad))
+			name := v.DisplayKey(k)
+			if seen != nil {
+				if seen[name] {
+					return fmt.Errorf("sözlükte görünüşü aynı iki anahtar var (%s); JSON'da anahtarlar metindir, ikisi aynı anahtar olurdu", strconv.Quote(name))
 				}
-				gorulen[ad] = true
+				seen[name] = true
 			}
-			if !ilk {
+			if !first {
 				y.b = append(y.b, ',')
 			}
-			ilk = false
-			y.satir(derinlik + 1)
-			y.metin(ad)
+			first = false
+			y.newline(depth + 1)
+			y.text(name)
 			y.b = append(y.b, ':')
-			if y.girinti != "" {
+			if y.indent != "" {
 				y.b = append(y.b, ' ')
 			}
-			if err := y.deger(el, derinlik+1); err != nil {
+			if err := y.value(elem, depth+1); err != nil {
 				return err
 			}
 		}
-		if !ilk {
-			y.satir(derinlik)
+		if !first {
+			y.newline(depth)
 		}
 		y.b = append(y.b, '}')
 	case interp.PlainValuer:
 		// Dış değerler (ör. tensör → iç içe sayı listesi)
-		return y.deger(v.PlainValue(), derinlik+1)
+		return y.value(v.PlainValue(), depth+1)
 	default:
-		y.metin(val.Inspect())
+		y.text(val.Inspect())
 	}
 	return nil
 }

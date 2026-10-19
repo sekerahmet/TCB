@@ -245,7 +245,7 @@ func (g *Gunluk) yaz(kayit *interp.DictVal) error {
 
 // satir kaydı JSON satırına çevirir: NaN ve sonsuz metin olarak, gizli değerler *** olarak.
 func (g *Gunluk) satir(kayit *interp.DictVal) ([]byte, error) {
-	b, err := jsonwrite.YazSecenekli(kayit, jsonwrite.Secenekler{SayiDisiMetin: true, Metin: g.m.Mask})
+	b, err := jsonwrite.WriteOptions(kayit, jsonwrite.Options{NonFiniteAsText: true, TextFilter: g.m.Mask})
 	if err != nil {
 		return nil, fmt.Errorf("%s: kayıt JSON'a yazılamadı: %v", interp.CallPrefix(codes.Y004), err)
 	}

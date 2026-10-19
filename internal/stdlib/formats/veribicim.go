@@ -39,7 +39,7 @@ func Kaydet(v *interp.VM) {
 		if len(args) != 1 {
 			return nil, interp.ArgCountError(codes.G601, "1", len(args), "değer")
 		}
-		b, err := jsonwrite.Yaz(args[0])
+		b, err := jsonwrite.Write(args[0])
 		if err != nil {
 			return nil, fmt.Errorf("%s: %v", codes.Name(codes.G601), err)
 		}

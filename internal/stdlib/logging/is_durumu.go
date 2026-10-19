@@ -65,7 +65,7 @@ func (c *Ilerleme) isDurumunuYaz(simdi time.Time, son bool) {
 	k.Set(aZaman, zamanDegeri(simdi))
 	k.Set(aBitti, interp.BoolToVal(c.durdu))
 	c.mu.Unlock()
-	b, err := jsonwrite.YazSecenekli(k, jsonwrite.Secenekler{SayiDisiMetin: true, Metin: c.m.Mask})
+	b, err := jsonwrite.WriteOptions(k, jsonwrite.Options{NonFiniteAsText: true, TextFilter: c.m.Mask})
 	if err != nil {
 		return
 	}
