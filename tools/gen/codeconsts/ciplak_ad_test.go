@@ -157,7 +157,7 @@ func kodGibi(s string, i, j int, kayitlar []canliAd) bool {
 }
 
 func TestCiplakAdYok(t *testing.T) {
-	kok := reporoot.Kok()
+	kok := reporoot.Root()
 	adlar := canliAdlar()
 	kullanilanIzin := map[string]map[string]bool{}
 	var bulgular []string

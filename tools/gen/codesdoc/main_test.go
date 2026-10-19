@@ -16,7 +16,7 @@ func TestBelgeGuncel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	eski, err := os.ReadFile(filepath.Join(reporoot.Kok(), belgeYolu))
+	eski, err := os.ReadFile(filepath.Join(reporoot.Root(), belgeYolu))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -17,7 +17,7 @@ var (
 
 func repo(t *testing.T) *module {
 	t.Helper()
-	loadOnce.Do(func() { loaded, loadErr = load(reporoot.Kok()) })
+	loadOnce.Do(func() { loaded, loadErr = load(reporoot.Root()) })
 	if loadErr != nil {
 		t.Fatal(loadErr)
 	}

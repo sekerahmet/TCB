@@ -21,7 +21,7 @@ func TestDilbilgisiGuncel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	eski, err := os.ReadFile(filepath.Join(reporoot.Kok(), dilbilgisiYolu))
+	eski, err := os.ReadFile(filepath.Join(reporoot.Root(), dilbilgisiYolu))
 	if err != nil {
 		t.Fatal(err)
 	}

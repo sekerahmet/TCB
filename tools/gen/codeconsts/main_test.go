@@ -16,7 +16,7 @@ import (
 // kaldırıldığında ya da taşındığında `go run ./tools/gen/codeconsts` çalıştırılmadıysa
 // bu test düşer.
 func TestSabitlerGuncel(t *testing.T) {
-	kok := reporoot.Kok()
+	kok := reporoot.Root()
 	yeni, err := Uret(kok)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestSabitlerGuncel(t *testing.T) {
 // Go kaynaklarında (internal/lang/codes dışında) kodlar yalnızca adlı sabitlerle yazılır: aile + sayı
 // biçimi (codes.G + 100) kalmamalı. Sözlükte olmayan bir sabit yazılırsa derleme zaten düşer.
 func TestCiplakKodYok(t *testing.T) {
-	kok := reporoot.Kok()
+	kok := reporoot.Root()
 	desen := regexp.MustCompile(`\bcodes\.[AGTYVWH] *\+`)
 	err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
 		if err != nil {
