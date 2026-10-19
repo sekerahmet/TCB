@@ -79,7 +79,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 			}
 			g := View{S: out.grad, Offset: begin, Shape: t.shape, Strides: ost}
 			if t.grad == nil {
-				s := allocUninit(be, t.Numel(), gradDTypeFor(t.dtyp))
+				s := allocUninit(be, t.Numel(), t.gradDType())
 				be.Copy(s, 0, g)
 				t.grad = s
 				continue

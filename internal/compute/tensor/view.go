@@ -26,7 +26,7 @@ func scatterBackward(parent, out *Tensor, gOff int, gStrides []int) func() {
 // ara gradyanı ayrıca bırakmaz/iade etmez). Aksi halde üzerine eklenir.
 func handOffGrad(t, out *Tensor) {
 	g := out.grad
-	if t.grad == nil && g.Len() == t.Numel() && g.DType() == gradDTypeFor(t.dtyp) {
+	if t.grad == nil && g.Len() == t.Numel() && g.DType() == t.gradDType() {
 		t.grad = g
 		out.grad = nil
 		return
@@ -87,7 +87,7 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 func reshaped(t *Tensor, sh, st []int) *Tensor {
 	sy := counterStart(t.be, OpKindView).start()
 	out := viewOf(t, t.offset, sh, st)
-	r := track(out, "reshape", []*Tensor{t}, func() { handOffGrad(t, out) })
+	r := trackPass(out, "reshape", t, func() { handOffGrad(t, out) })
 	sy.finish()
 	return r
 }
@@ -209,7 +209,7 @@ func (t *Tensor) Permute(dims ...int) *Tensor {
 		gst[i] = cst[d]
 	}
 	out := viewOf(t, t.offset, sh, st)
-	r := track(out, "permute", []*Tensor{t}, scatterBackward(t, out, 0, gst))
+	r := trackPass(out, "permute", t, scatterBackward(t, out, 0, gst))
 	sy.finish()
 	return r
 }
@@ -275,7 +275,7 @@ func (t *Tensor) SliceStep(axis, start, end, step int) *Tensor {
 	gOff := start * gst[axis]
 	gst[axis] *= step
 	out := viewOf(t, t.offset+start*t.strides[axis], sh, st)
-	r := track(out, "slice", []*Tensor{t}, scatterBackward(t, out, gOff, gst))
+	r := trackPass(out, "slice", t, scatterBackward(t, out, gOff, gst))
 	sy.finish()
 	return r
 }
@@ -288,7 +288,7 @@ func (t *Tensor) Contiguous() *Tensor {
 	sy := counterStart(t.be, OpKindCopy).start()
 	out := emptyOf(isCopy, t.be, t.shape, t.dtyp)
 	t.be.Copy(out.storage, 0, t.view())
-	r := track(out, "contiguous", []*Tensor{t}, func() { handOffGrad(t, out) })
+	r := trackPass(out, "contiguous", t, func() { handOffGrad(t, out) })
 	sy.finish()
 	return r
 }
@@ -298,7 +298,7 @@ func (t *Tensor) Clone() *Tensor {
 	sy := counterStart(t.be, OpKindCopy).start()
 	out := emptyOf(isCopy, t.be, t.shape, t.dtyp)
 	t.be.Copy(out.storage, 0, t.view())
-	r := track(out, "clone", []*Tensor{t}, func() { handOffGrad(t, out) })
+	r := trackPass(out, "clone", t, func() { handOffGrad(t, out) })
 	sy.finish()
 	return r
 }

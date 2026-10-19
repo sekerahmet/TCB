@@ -41,6 +41,9 @@ type Tensor struct {
 
 	grad         Storage // bitişik gradyan (şekil = shape), gerekince ayrılır
 	requiresGrad bool
+	// passGrad, gradyanı girdisine olduğu gibi aktaran işlemin (dönüşüm, görünüm, kopya,
+	// cihaz değiştirme) çıktısını işaretler: gradyanının türü girdininkidir (bkz. gradDType).
+	passGrad bool
 
 	// Hesap çizgesi: bu tensörü üreten işlemin girdileri ve geri yayılım işlevi.
 	// Yaprak tensörlerde (kullanıcının oluşturdukları) ikisi de boştur.
@@ -430,8 +433,8 @@ func (t *Tensor) To(dev Device) *Tensor {
 	target := BackendFor(dev)
 	sy := counterStart(target, OpKindToDevice).start()
 	out := fromStorage(target, target.FromHost(t.be.ToHost(t.view()), t.dtyp), t.shape)
-	r := track(out, "to", []*Tensor{t}, func() {
-		g := t.be.FromHost(target.ToHost(View{S: out.grad, Shape: out.shape, Strides: contiguousStrides(out.shape)}), gradDTypeFor(t.dtyp))
+	r := trackPass(out, "to", t, func() {
+		g := t.be.FromHost(target.ToHost(View{S: out.grad, Shape: out.shape, Strides: contiguousStrides(out.shape)}), t.gradDType())
 		t.be.AddTo(t.accGrad(), g, 1)
 	})
 	sy.finish()

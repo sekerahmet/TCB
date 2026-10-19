@@ -13,20 +13,23 @@ import (
 //   - Arka uçlar iç toplamaları (matris çarpımı, indirgemeler, normlar,
 //     softmax, çapraz entropi) en az float32'de yapar; sonuç çıktı türüne bir
 //     kez yuvarlanır.
-//   - 16 bitlik tensörlerin gradyanları GradDType türünde (varsayılan
-//     float32) tutulur; float32 tensörlerin gradyanları her zaman float32'dir.
+//   - 16 bitlik yaprakların (parametrelerin) gradyanları GradDType türünde
+//     (varsayılan float32), 16 bitlik ara sonuçlarınki kendi türünde tutulur;
+//     dönüşüm ve görünümlerin çıktısı girdinin gradyan türünü izler. float32
+//     tensörlerin gradyanları her zaman float32'dir (bkz. gradDType).
 //   - İyileştiriciler 16 bitlik parametreler için float32 ana ağırlık kopyası
 //     tutar (SetMasterWeights); güncelleme ana kopyada yapılır ve parametreye
 //     yuvarlanarak yazılır, böylece küçük adımlar yuvarlamada kaybolmaz.
 //   - Çapraz entropi kaybı her zaman float32'dir; MatMulOut ile 16 bitlik
 //     girdilerden float32 çıktı alınabilir.
 
-// gradDTypeSetting 16 bitlik tensörlerin gradyan türü.
+// gradDTypeSetting 16 bitlik yaprak tensörlerin gradyan türü.
 var gradDTypeSetting atomic.Uint32 // DType; sıfır değer Float32
 
-// SetGradDType 16 bitlik (bfloat16/float16) tensörlerin gradyan biriktirme
-// türünü ayarlar (varsayılan Float32). float32 tensörlerin gradyanı her zaman
-// float32'dir. Süreç geneli bir ayardır.
+// SetGradDType 16 bitlik (bfloat16/float16) yaprak tensörlerin (parametrelerin)
+// gradyan biriktirme türünü ayarlar (varsayılan Float32). Ara sonuçların gradyanı
+// bu ayara bağlı değildir; float32 tensörlerin gradyanı her zaman float32'dir.
+// Süreç geneli bir ayardır.
 func SetGradDType(dt DType) {
 	if !dt.IsFloat() {
 		panic(fmt.Sprintf("tensor: gradyan türü kayan noktalı olmalı, %s verildi", dt))
@@ -34,16 +37,8 @@ func SetGradDType(dt DType) {
 	gradDTypeSetting.Store(uint32(dt))
 }
 
-// GradDType 16 bitlik tensörlerin gradyan biriktirme türü.
+// GradDType 16 bitlik yaprak tensörlerin gradyan biriktirme türü.
 func GradDType() DType { return DType(gradDTypeSetting.Load()) }
-
-// gradDTypeFor t türündeki bir tensörün gradyan depolamasının türü.
-func gradDTypeFor(t DType) DType {
-	if t == Float32 {
-		return Float32
-	}
-	return GradDType()
-}
 
 // resultDType iki işlenenli işlemin çıktı türü: türler aynıysa o tür, aksi halde
 // float32 (daha geniş tür).
@@ -82,7 +77,7 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	sy := counterStart(t.be, OpKindCast).start()
 	out := emptyOf(isCast, t.be, t.shape, dt)
 	t.be.Copy(out.storage, 0, t.view())
-	r := track(out, "cast", []*Tensor{t}, func() { handOffGrad(t, out) })
+	r := trackPass(out, "cast", t, func() { handOffGrad(t, out) })
 	sy.finish()
 	return r
 }

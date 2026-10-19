@@ -102,6 +102,36 @@ func track(out *Tensor, op string, parents []*Tensor, bw func(), save ...*Tensor
 	return out
 }
 
+// trackPass, gradyanı tek girdisine olduğu gibi aktaran (dönüşüm, görünüm, kopya)
+// bir işlemi track ile kaydeder ve çıktıyı işaretler: çıktının gradyanı girdinin
+// gradyan türünde tutulur (bkz. gradDType).
+func trackPass(out *Tensor, op string, t *Tensor, bw func()) *Tensor {
+	out.passGrad = true
+	return track(out, op, []*Tensor{t}, bw)
+}
+
+// gradDType gradyan depolamasının türü:
+//   - float32 tensörde float32;
+//   - 16 bitlik yaprakta (parametre) GradDType (varsayılan float32);
+//   - gradyanı girdisine olduğu gibi aktaran işlemin çıktısında girdinin gradyan
+//     türü (ör. float32 ağırlığın bfloat16 dönüşümünün gradyanı float32'dir; çarpımın
+//     geri yönü ağırlık gradyanını yuvarlamadan float32 yazar);
+//   - diğer 16 bitlik ara sonuçlarda kendi türü (PyTorch autocast gibi; geri yöndeki
+//     çarpımlar gelen gradyanı dönüştürmeden 16 bitlik girdiyle yapılır).
+func (t *Tensor) gradDType() DType {
+	for {
+		switch {
+		case t.dtyp == Float32:
+			return Float32
+		case t.IsLeaf():
+			return GradDType()
+		case !t.passGrad:
+			return t.dtyp
+		}
+		t = t.parents[0]
+	}
+}
+
 // checkVersion, çizgedeki her düğümün kaydettiği girdilerin ileri hesaptan bu
 // yana yerinde değiştirilmediğini denetler.
 func checkVersion(order []*Tensor) {
@@ -124,7 +154,7 @@ func (t *Tensor) freshGrad(support bool) (Storage, bool) {
 	if t.grad != nil || !support {
 		return t.accGrad(), false
 	}
-	dt := gradDTypeFor(t.dtyp)
+	dt := t.gradDType()
 	t.grad = allocUninit(t.be, t.Numel(), dt)
 	counterBytes(t.be, dt.StorageBytes(t.Numel()))
 	return t.grad, true
@@ -134,7 +164,7 @@ func (t *Tensor) freshGrad(support bool) (Storage, bool) {
 // çağıran arka uç işlemleriyle üzerine ekler.
 func (t *Tensor) accGrad() Storage {
 	if t.grad == nil {
-		dt := gradDTypeFor(t.dtyp)
+		dt := t.gradDType()
 		t.grad = t.be.Alloc(t.Numel(), dt)
 		counterBytes(t.be, dt.StorageBytes(t.Numel()))
 	}

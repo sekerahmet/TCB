@@ -161,14 +161,15 @@ func TestCustomOpContextPassed(t *testing.T) {
 	}
 }
 
-// Karışık türler: bf16 çıktının gradyanı GradDType türündedir; bf16 girdinin gradyanı da.
+// Karışık türler: bf16 çıktı bir ara sonuçtur, gradyanı kendi türündedir (bf16); bf16
+// yaprak girdinin gradyanı GradDType türündedir.
 func TestCustomOpBF16(t *testing.T) {
 	x := NewOf(BFloat16, []float32{1, 2}, 2).SetRequiresGrad(true)
 	var y *Tensor
 	NoGrad(func() { y = x.Mul(x) })
 	out := CustomOp("kare16", []*Tensor{x}, []*Tensor{y}, []*Tensor{x}, func(_ any, g []*Tensor) []*Tensor {
-		if g[0].DType() != GradDType() {
-			t.Errorf("çıktı gradyanı %s, %s bekleniyordu", g[0].DType(), GradDType())
+		if g[0].DType() != BFloat16 {
+			t.Errorf("çıktı gradyanı %s, bfloat16 bekleniyordu", g[0].DType())
 		}
 		return []*Tensor{g[0].Mul(x).MulScalar(2)}
 	})[0]
@@ -177,6 +178,9 @@ func TestCustomOpBF16(t *testing.T) {
 	}
 	out.Cast(Float32).SumAll().Backward()
 	near(t, "bf16 gradyan", x.Grad().Data(), []float32{2, 4}, 0)
+	if x.Grad().DType() != GradDType() {
+		t.Fatalf("yaprak gradyanı %s, %s bekleniyordu", x.Grad().DType(), GradDType())
+	}
 }
 
 func panicMessage(fn func()) (message string) {

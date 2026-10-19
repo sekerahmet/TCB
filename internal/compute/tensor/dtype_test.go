@@ -193,6 +193,50 @@ func TestCastGrad(t *testing.T) {
 	near(t, "bf16 gradyan", w.Grad().Data(), []float32{7, 11, 9, 13}, 1e-2)
 }
 
+// Gradyan türü kuralı: 16 bitlik ara sonucun gradyanı kendi türünde; dönüşüm ve
+// görünümler girdinin gradyan türünü izler; yaprakta GradDType.
+func TestIntermediateGradDType(t *testing.T) {
+	w := New([]float32{1, 2, 3, 4, 5, 6}, 2, 3).SetRequiresGrad(true)
+	x := NewOf(BFloat16, []float32{1, 2, 3, 4, 5, 6}, 2, 3).SetRequiresGrad(true)
+	wc := w.Cast(BFloat16)
+	y := x.Mul(x)
+	cases := []struct {
+		name string
+		t    *Tensor
+		want DType
+	}{
+		{"float32 yaprak", w, Float32},
+		{"bf16 yaprak", x, GradDType()},
+		{"float32'nin dönüşümü", wc, Float32},
+		{"dönüşümün devriği", wc.T(), Float32},
+		{"dönüşümün kopyası", wc.T().Contiguous().Reshape(6).Slice(0, 1, 4), Float32},
+		{"bf16 yaprağın görünümü", x.Reshape(3, 2), GradDType()},
+		{"bf16 ara sonuç", y, BFloat16},
+		{"bf16 ara sonucun görünümü", y.T().Clone(), BFloat16},
+		{"bf16 ara sonucun float32 dönüşümü", y.Cast(Float32), Float32},
+	}
+	for _, c := range cases {
+		if got := c.t.gradDType(); got != c.want {
+			t.Errorf("%s: gradyan türü %s, %s bekleniyordu", c.name, got, c.want)
+		}
+	}
+}
+
+// float32 ağırlığın bf16 dönüşümüyle yapılan çarpımda ağırlık gradyanı bf16'ya
+// yuvarlanmadan float32 yazılır: 1 + 2⁻⁸ bf16'da gösterilemez (1'e yuvarlanırdı).
+func TestCastWeightGradStaysFloat32(t *testing.T) {
+	x := NewOf(BFloat16, []float32{1, 1.0 / 256}, 2, 1)
+	w := New([]float32{3}, 1, 1).SetRequiresGrad(true)
+	out := MatMul(x, w.Cast(BFloat16))
+	if out.DType() != BFloat16 {
+		t.Fatalf("çıktı türü %s", out.DType())
+	}
+	out.Cast(Float32).SumAll().Backward()
+	if g := w.Grad().Data()[0]; g != 1+1.0/256 {
+		t.Fatalf("ağırlık gradyanı %v, %v bekleniyordu (bf16'ya yuvarlanmamalı)", g, 1+1.0/256)
+	}
+}
+
 func TestBF16MatMul(t *testing.T) {
 	rng := rand.New(rand.NewSource(52))
 	a := Randn(rng, 3, 64, 96)

@@ -127,7 +127,7 @@ func (d *outerNode) back(ctx any) {
 			if g := d.incoming[i]; g != nil {
 				grads[i] = fromStorage(o.be, g, o.shape)
 			} else {
-				grads[i] = zerosOf(isGrad, o.be, o.shape, gradDTypeFor(o.dtyp))
+				grads[i] = zerosOf(isGrad, o.be, o.shape, o.gradDType())
 			}
 		}
 		d.incoming = nil
