@@ -45,6 +45,7 @@ test "toplama" {
 
 - `tr test` bulunulan klasördeki (alt klasörler dahil) tüm `*_test.tr` dosyalarını, `tr test dosya.tr` yalnızca o dosyayı çalıştırır. Bir test kalırsa çıkış kodu 1'dir.
 - `tr biçimle dosya.tr` (ya da klasör) kodu standart biçime getirir; `tr biçimle --kontrol .` yalnızca denetler ve biçimlenmesi gereken dosya varsa 1 ile çıkar.
+- `tr izle egit.tr` programı çalıştırırken hızını canlı gösterir (ms/adım, en pahalı tensör işlemleri, en sıcak satırlar, GPU ve bellek); `tr profil egit.tr` bitince hız raporu verir (`--json koşu_klasörü/` ile `speed.json`). Ayrıntılar: [`docs/kilavuz/11_hizi_izlemek.md`](docs/kilavuz/11_hizi_izlemek.md).
 - `tr kodla dosya.tr` (ya da klasör) dosyayı dilden bağımsız kodlu biçime çevirir (`yazdır` → `G100`); `tr çöz` Türkçe yazıma geri çevirir, `tr göster dosya.tr` kodlu dosyayı değiştirmeden Türkçe basar. Kodlu dosya çevrilmeden de çalışır; adlarınız, metinler ve yorumlar değişmez. VS Code'da kodlu dosya Türkçe görünür ve düzenlenir, kaydedince yine kodlu yazılır; satırlar hata mesajları ve hata ayıklayıcıyla aynıdır ([eklenti belgesi](editors/vscode/README.md#kodlu-dosyalar)). Kurallar: [`docs/dil/17_kodlar.md`](docs/dil/17_kodlar.md).
 
 ## Tensörler ve otomatik türev
@@ -121,11 +122,11 @@ Kendi denemeleriniz için kökte bir `calisma/` klasörü açıp örnekleri oray
 
 | Klasör | İçerik |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
+| `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `izle`, `profil`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
 | `internal/dil` | Dil çekirdeği: kod listesi (`kod`, [`docs/kodlar.md`](docs/kodlar.md)), sözcük çözümleyici (`sozcuk`), sözdizimi ağacı (`agac`), ayrıştırıcı (`ayristir`), tip denetimi (`denetci`), yorumlayıcı (`yurut`), Türkçe ekler (`turkce`) |
 | `internal/motor` | Tensör ve öğrenme, parçalayıcı, veri, JSON/CSV yerleşiklerini dile bağlayan motorlar |
 | `internal/hesap` | Dili bilmeyen hesap çekirdekleri: tensör ve CPU çekirdekleri (`tensor`), parçalayıcı (`parca`), veri yükleyici (`veriyolu`) |
-| `internal/arac` | Hata ayıklayıcı (`ayikla`), biçimlendirici (`bicim`), `tr test` çekirdeği (`testkosucu`) |
+| `internal/arac` | Hata ayıklayıcı (`ayikla`), biçimlendirici (`bicim`), `tr test` çekirdeği (`testkosucu`), canlı profil (`profil`: `tr izle`, `tr profil`) |
 | `kitaplik/` | TR ile yazılan standart kitaplık, ikiliye gömülü: transformer katmanları ve GPT (`aktar "tr/katman"`), Muon/NorMuon (`aktar "tr/iyilestirici"`) |
 | `editors/vscode/` | VS Code eklentisi |
 | `docs/` | Belgeler ([dizin](docs/README.md)) |

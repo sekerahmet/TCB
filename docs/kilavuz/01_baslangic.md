@@ -13,6 +13,8 @@ $env:GOAMD64="v3"; go build -o bin/tr.exe ./cmd/tr   # PowerShell
 | :--- | :--- |
 | `./bin/tr.exe` | Etkileşimli Türkçe TR kabuğunu (REPL) başlatır (`/h` ile hata ayıklayıcı açılır) |
 | `./bin/tr.exe dosya.tr [argümanlar]` | `.tr` kaynak dosyasını derler ve anında çalıştırır (`./bin/tr.exe çalıştır dosya.tr` ile aynı). Dosya adından sonrakiler programa iletilir; program okumazsa çıkışta uyarı yazılır |
+| `./bin/tr.exe izle dosya.tr [argümanlar]` | Programı çalıştırır ve hızını canlı gösterir: ms/adım, en pahalı tensör işlemleri, en sıcak satırlar, GPU, bellek; bitince rapor (bkz. §11) |
+| `./bin/tr.exe profil [--json yol] dosya.tr [argümanlar]` | Programı çalıştırır, bitince hız raporu verir; `--json` ile JSON raporu (klasör verilirse içine `speed.json`) (bkz. §11) |
 | `./bin/tr.exe hata_ayıkla dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
 | `./bin/tr.exe kontrol dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar |
 | `./bin/tr.exe derle dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |

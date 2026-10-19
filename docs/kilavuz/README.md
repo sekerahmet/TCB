@@ -14,3 +14,4 @@ Kılavuz dili kullanmayı anlatır; dilin kuralları [`docs/dil/`](../dil/README
 8. [Kod biçimlendirme (`tr biçimle`)](08_bicimlendirme.md)
 9. [Uzun eğitim: kontrol noktası ve devam](09_uzun_egitim.md)
 10. [Hazır katmanlarla GPT (`aktar "tr/katman"`), Muon ve kendi iyileştiricin](10_hazir_katmanlarla_gpt.md)
+11. [Hızı izlemek: `tr izle` ve `tr profil`](11_hizi_izlemek.md)

@@ -142,6 +142,7 @@ cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/kiyas_gpu.tr
   `TR_GPU_ESZAMANLI=1` ortam değişkeniyle çalıştırılır (her işlemden sonra bekler; yavaştır).
 - Hız dökümü: `TR_GPU_PROFIL=1` ile çalışan program sonunda standart hataya GPU profilini
   yazar (adım başına süreler, hangi çekirdeğin GPU zamanının ne kadarını aldığı, bellek).
+  `tr izle` ve `tr profil` aynı ölçümü canlı tabloda ve raporda gösterir (bkz. §11).
 - Matris çarpımı, makinede NVIDIA'nın cuBLASLt kitaplığı kuruluysa (CUDA araç takımı ya da
   PyTorch ile gelir) onunla yapılır; yoksa TR'nin kendi çekirdeğiyle (sonuç aynı, hız farklı).
   Kitaplık başka bir yerdeyse yolu `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12` ile verilir

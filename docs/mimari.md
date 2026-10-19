@@ -35,7 +35,7 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 
 | Paket | Görevi |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `hata_ayıkla`, `dap`), işi `internal/`'a bırakır |
+| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `izle`, `profil`, `hata_ayıkla`, `dap`), işi `internal/`'a bırakır |
 | `internal/dil/kod` | Dilin bütün adlarını sabit kodlara bağlayan kod listesi (`tanim.json`, `tr.json`) ve ondan üretilen Go sabitleri |
 | `internal/dil/turkce` | Türkçe harf işlemleri, ekler, "bunu mu demek istediniz" önerileri ve hata çerçevesi |
 | `internal/dil/ipucu` | Dilin adlarıyla ilgili hata ipuçları: kaldırılan, taşınan ve Türkçe karaktersiz yazılan adlar, tanımsız ada en yakın ad (sözcük çözümleyici, ayrıştırıcı, denetleyici ve yorumlayıcı aynı metni kullanır) |
@@ -63,6 +63,7 @@ Yorumlayıcı (`internal/dil/yurut`) motorları ve hata ayıklayıcıyı içe ak
 | `internal/arac/ayikla` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`tr dap`) |
 | `internal/arac/bicim` | `tr biçimle` biçimlendiricisi |
 | `internal/arac/testkosucu` | `tr test` komutunun çekirdeği |
+| `internal/arac/profil` | Canlı profil: `tr izle` ve `tr profil`'in çekirdeği, arka plan işinin `profil.json`'u (aşağıda "Canlı profil") |
 | `internal/depo` | Testlerin depo kökünü bulan yardımcı (testler `../../` yazmaz) |
 | `kitaplik` | TR ile yazılan standart kitaplık (`katman.tr`, `iyilestirici.tr`, testleri yanında); `gomulu.go` onları `go:embed` ile ikiliye gömer, `cmd/tr` yorumlayıcıya `yurut.KitaplikBagla` ile bağlar. Kullanıcı `aktar "tr/katman"` yazar (dil tanımı 11.6); `tr derle` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`kitaplik/README.md`](../kitaplik/README.md) |
 | `tools/uret/*` | Üreteçler: Go kod sabitleri, `docs/kodlar.md`, eklentinin renklendirme listeleri (`go generate ./internal/dil/kod`) |
@@ -158,7 +159,8 @@ Motorların kendi kancaları:
 - **Profil:** `TR_GPU_PROFIL=1` (ya da `gpu.ProfilAc`) her başlatmayı iki zamanlama olayıyla
   ölçer: çekirdek/aile başına çağrı ve GPU süresi, adım başına duvar, GPU, boşluk, konak ve
   eşzamanlama süreleri; program sonunda (`motor.Kapat` → `gpu.Kapat`) özet standart hataya
-  yazılır. Canlı izleme için Go arayüzü: `gpu.CekirdekOlcumleri`, `gpu.BellekOlcumleri`.
+  yazılır. Canlı izleme için Go arayüzü: `gpu.CekirdekOlcumleri`, `gpu.BellekOlcumleri`
+  (canlı profil bunları okur; aşağıda).
   Dış profilleyici (nsys/ncu) bağlıysa program sonunda, bütün GPU'lar kapandıktan sonra bir
   kez C çıkış işleyicileri çalıştırılır (araçlar veriyi orada yazar; Go çıkışta bunları
   çalıştırmaz); ardından GPU kullanılamaz. Adım başına çöp toplama sayısı ve süresi de
@@ -192,6 +194,106 @@ Motorların kendi kancaları:
 - **Colab:** `tools/gpu/` (paket hazırlama, model ve mikro kıyas betikleri, `COLAB.md`). Mikro
   kıyaslar `gpu_sinama`'nın içindedir (`TR_GPU_MIKRO=1`, `TestMikroKiyas`); karşılaştırma
   tarafı `mikro_kiyas.py`, tablo `mikro_tablo.py`.
+
+### Canlı profil (`internal/arac/profil`)
+
+`tr izle` (canlı tablo) ve `tr profil` (son rapor) aynı çekirdeği kullanır; arka plan işi olarak
+çalışan program (`TR_İŞ` iş klasörünü verir) da canlı durumunu buradan `profil.json`'a yazar.
+Ağ portu açılmaz: dışarıya yalnızca dosya yazılır. Dört kaynaktan okur:
+
+- **Tensör sayaçları** (`internal/hesap/tensor/sayac*.go`): her zaman açık. Her işlem türü
+  (`tensor.Islem`: ikili ve tekli işlemler `BinOp`/`UnOp` sırasıyla, matris çarpımı, indirgeme,
+  `dikkat`, iyileştirici adımı ...), yön (ileri / geri yayılım) ve cihaz (CPU / GPU) için çağrı
+  sayısı (kesin), ayrılan bayt (kesin; ayırma sınırı denetimi `ayirmaBoyuOn` ve gradyan
+  ayırmaları sayar) ve süre. Süre CPU'da uyarlamalı örneklenir: her kayıt ölçülecek çağrıyı
+  p = 1/32 olasılıklı bağımsız (geometrik aralıklı) seçimle belirler ve ölçülen süreyi 1/p ile
+  ağırlıklar (Horvitz–Thompson; p yalnızca geçmiş ölçümlere bağlı olduğundan yansız); son
+  ölçümü ~10 µs'yi aşan işlemde her çağrı ölçülür. GPU işlemlerinin her çağrısı ölçülür
+  (başlatma mikrosaniyeler sürer; eşzamanlama beklemesi az sayıda ve uzundur, örneklenirse
+  tahmini çok oynardı). Saat amd64'te değişmez zaman damgası sayacı (RDTSC), başka yerde
+  monoton saat. Sıcak yol (`sayacBasla`, `bitir`, `sayacBayt`, `etkinTur`) satır içine alınır;
+  çalışan işlem küresel bir numarada tutulur (`etkinNo`; gösterici değil: çöp toplayıcının
+  yazma engelinden geçmez). Geri yayılım düğümü, ileri işlem çalışırken `track`'te o işlemin
+  türüyle etiketlenir (`Tensor.islem`) ve geri hesabı o türün geri sayacıyla sayılır.
+  Sayaçlar kilitsizdir (yarış denetimli derlemede atomik). Okuma: `tensor.SayacGoruntusu`,
+  `tensor.EtkinIslem`.
+- **Yorumlayıcı örneklemesi** (`ornekleyici.go`): yalnızca `tr izle` ve `tr profil` altında.
+  Yorumlayıcının hata ayıklayıcı yuvasına (`VM.Debugger`) bağlanır; yuva boşken yorumlayıcının
+  her deyimdeki maliyeti bir nil denetimidir (kapalıyken sıfır maliyet). Açıkken her deyim
+  konumunu (fonksiyon numarası, satır) çağrı derinliğinin yuvasına yazar; ayrı bir goroutine
+  1 ms'de bir o anki konuma geçen süreyi ve o an bir tensör işlemi çalışıyorsa tensör payını
+  ekler. Derinlikten okumak, fonksiyon döndükten sonra çağıran satırın kalan işini doğru
+  satıra yazar. `kesme_noktası` profil altında yok sayılır.
+- **Adım sınırı** (`gunluk.AdimKancasiAyarla`): `İlerleme.güncelle` her çağrıda adım sayısını
+  ve zamanı bildirir; ms/adım ve adım başına işlem dağılımı buradan.
+- **GPU arka ucunun profili** (`gpu.CekirdekOlcumleri`, `gpu.BellekOlcumleri`): `tr izle` ve
+  `tr profil` çekirdek ölçümünü açar (`gpu.ProfilAc`; `TR_GPU_PROFIL=1` ile zaten açıksa
+  dokunmaz), program bitince motorlar kapanmadan önce (`Profil.KapanmadanOnce`, komut
+  satırının `kapanmadanOnce` işleri) cihazı eşzamanlayıp arka ucun raporunu (`gpu.ProfilOzetiYaz`)
+  alır ve ölçümü eski durumuna döndürür; arka uç kapanırken raporu ikinci kez yazmaz. Arka
+  plan işinin profili ölçümü açmaz; GPU belleği yine okunur. Okumalar arka ucu beklemez.
+
+Profil saniyede bir anlık görüntü alır (`Goruntu`), son 5 saniyenin farklarından pencere
+ölçülerini kurar (canlı tablonun hızları), dinleyiciye (canlı tablo) verir ve iş klasörü varsa
+dosyaya yazar. Program bitince (hata, `çıkış` ya da Ctrl+C ile bitse de; komut satırının
+çıkış temizliği) son raporu kurar. Sayaçlar süreç genelidir; profil başlangıcındaki değerler
+çıkarılır.
+
+**Canlı tablo** (`ekran.go`, `tablo.go`): standart hata bir terminalse tablo ekranın başından
+denetim dizileriyle yeniden çizilir (Windows'ta konsolun sanal terminal kipi açılır). Programın
+standart çıkışı ve hatası bir boruya alınır (`yakalama.go`): tamamı bir dosyaya yazılır, son
+satırları tablonun altında görünür, program bitince yeniden yazılır; boru terminal
+olmadığından ilerleme çubuğu düz satır kipine geçer. Terminal değilse çıktı olduğu gibi akar,
+10 saniyede bir tek satırlık özet eklenir.
+
+**Dosya biçimi** (`goruntu.go`): `profil.json` (canlı, iş klasöründe) ve `speed.json` /
+`tr profil --json` (son rapor) aynı yapıdadır. Anahtarlar dosya biçiminin parçasıdır
+(yazım dilinden bağımsız, çevrilmez); işlemlerin `kod` alanı değişmez anahtardır, `ad`
+insana gösterilen addır (dildeki ad; çevrilebilir). Süreler saniye, baytlar bayt, paylar
+0..1'dir. Yazma atomiktir (aynı klasörde geçici dosya + yeniden adlandırma); yeniden
+adlandırmayı desteklemeyen sürücüde bir kez uyarılıp doğrudan yazmaya geçilir, yazma
+başarısızsa sonraki saniyede yeniden denenir; program hiçbir durumda durmaz. Sürüm 1:
+
+```jsonc
+{
+  "biçim": "tr-profil", "sürüm": 1, "tür": "canlı",        // "canlı" ya da "rapor"
+  "program": "egit.tr", "başlangıç": "2026-10-19T08:49:12.511+03:00",
+  "zaman": "2026-10-19T08:49:24.511+03:00", "süre_sn": 12.0, "bitti": false,
+  "çıkış_kodu": 0,                                          // yalnızca bitince
+  "adım": {"sayı": 715, "toplam": 1500, "ms_adım": 16.7, "adım_sn": 59.7},   // ilerleme yoksa null
+  "tensör": {"süre_sn": 11.4, "pay": 0.95, "çağrı": 772761, "bayt": 7642211100,
+    "işlemler": [{"kod": "matris_carpimi", "ad": "matris çarpımı (@)", "yön": "ileri",
+      "cihaz": "cpu", "çağrı": 160966, "ölçüm": 160529, "süre_sn": 4.99, "pay": 0.44,
+      "bayt": 2044092928, "ms_adım": 6.99}]},              // süreye göre sıralı, en çok 30
+  "gpu": {"kullanıldı": true, "ölçüm": true, "not": "", "süre_sn": 0.088,
+    "aileler": [{"ad": "carpim", "çağrı": 40, "süre_sn": 0.069, "pay": 0.78}],
+    "çekirdekler": [{"ad": "carpim_64_64_16_4_4_false_false_true", "çağrı": 20, "süre_sn": 0.040, "pay": 0.46}],
+    "bellek": [{"cihaz": 0, "canlı_bayt": 109568, "ayrılmış_bayt": 114176, "havuzda_bayt": 4608,
+      "tepe_canlı_bayt": 113664, "tepe_ayrılmış_bayt": 114176, "çöp_toplama": 0}]},
+  "örnekleme": {"aralık_ms": 1, "örnek": 11800, "süre_sn": 11.8, "tensör_payı": 0.95,  // kapalıysa null
+    "satırlar": [{"dosya": "ornekler/11_gpt.tr", "satır": 49, "fonksiyon": "",
+      "metin": "geri_yayılım(kayıp)", "süre_sn": 4.6, "pay": 0.39, "tensör_payı": 0.99}],
+    "fonksiyonlar": [{"ad": "dikleştir", "süre_sn": 3.9, "pay": 0.33}]},
+  "bellek": {"go_yığını_bayt": 7864320, "go_sistem_bayt": 44564480, "cpu_tensör_ayrılan_bayt": 7642211100},
+  "çöp_toplama": {"sayı": 423, "duraklama_sn": 0.113},
+  "son_pencere": {"süre_sn": 5.0, "adım": 292, "ms_adım": 17.1, "adım_sn": 58.3,   // yalnızca canlıda
+    "tensör_payı": 0.96, "işlemler": [], "satırlar": [], "çöp_toplama_sayı": 165,
+    "duraklama_sn": 0.055, "cpu_tensör_ayrılan_bayt": 2980000000,
+    "gpu_süre_sn": 0, "gpu_payı": 0, "gpu_aileler": []}
+}
+```
+
+Satırın `dosya`sı ana programın dışındaysa (aktarılan modül) boştur: örnek yalnızca fonksiyon
+adını ve satırı bilir. `ölçüm` süresi ölçülen çağrı sayısıdır (`çağrı`dan küçükse süre
+örneklenmiştir). Canlı CPU tensör baytı ayrıca izlenmez (CPU tensörleri Go yığınındadır);
+`cpu_tensör_ayrılan_bayt` ayırma akışıdır.
+
+**Maliyet** (ölçüm yöntemi: önce/sonra test ikilileri dönüşümlü, P çekirdeklere sabit; makine
+yüklüyken ölçüldü, boş makinede yinelenmeli): sayaçların işlem başına yükü ~4 ns
+(`BenchmarkSayacBaslaBitir`); 16 elemanlı tensörlerle `BenchmarkSayacKucuk*` (işlem başına
+~350 ns) %1–3; 64 boyutlu küçük MLP eğitim adımında (~75 µs) gürültü içinde (ortanca +%2,
+en iyi −%1, A/A gürültüsü ±%2). Örnekleme açıkken çağrı yoğun TR kodu ~2 kat yavaşlar
+(hata ayıklayıcı yuvası doluyken yorumlayıcı fonksiyon ortamlarını havuzlamaz).
 
 ## Klasörler
 
