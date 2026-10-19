@@ -1,6 +1,7 @@
 package tokenize
 
 import (
+	"sync"
 	"unicode/utf8"
 )
 
@@ -224,9 +225,19 @@ type reMatcher struct {
 	ceil    int64 // bütçenin toplamı (hata iletisi için)
 	begin   int   // geçerli aramanın başlangıcı (hata iletisi için)
 	stack   []reBack
-	stackN  int // geri izleme yığınının en çok kayıt sayısı
+	stackN  int  // geri izleme yığınının en çok kayıt sayısı
+	big     bool // yığın smallBacktrack'i aştı, bigSearch tutuluyor
 	reg     []int
 }
+
+// smallBacktrack her aramanın beklemeden kullanabileceği geri izleme kaydı sayısıdır (~1,5 MB;
+// bilinen parçalayıcı desenleri milyon karakterlik metinde bile birkaç kayıt kullanır). Bunu
+// aşan aramalar bigSearch'ü alıp sırayla yürür: paralel kodlamada her işçinin BacktrackLimit
+// kadar (~96 MB) yığın tutması bellek kullanımını işçi sayısıyla çarpardı. Sonuç ve sınır
+// değişmez, yalnızca büyük aramalar aynı anda yürümez.
+const smallBacktrack = 1 << 16
+
+var bigSearch sync.Mutex
 
 func (m *reMatcher) exceeded(mem bool) {
 	panic(&StepLimitError{Pattern: m.pattern, Pos: m.begin, Budget: m.ceil, Memory: mem})
@@ -236,7 +247,21 @@ func (m *reMatcher) it(g reBack) {
 	if len(m.stack) >= m.stackN {
 		m.exceeded(true)
 	}
+	if len(m.stack) >= smallBacktrack && !m.big {
+		bigSearch.Lock()
+		m.big = true
+	}
 	m.stack = append(m.stack, g)
+}
+
+// releaseBig aramanın sonunda bigSearch'ü bırakır ve büyümüş yığını atar (bekleyen başka bir
+// büyük arama belleği yeniden kullanabilsin).
+func (m *reMatcher) releaseBig() {
+	if m.big {
+		m.big = false
+		m.stack = nil
+		bigSearch.Unlock()
+	}
 }
 
 func (m *reMatcher) prev(pos int) (rune, int) {
@@ -586,6 +611,7 @@ func (d *Regex) allMatches(s string, f func(begin, last int), b *reBudget) int64
 
 // findM bas'tan itibaren ilk eşleşmeyi arar.
 func (d *Regex) findM(m *reMatcher, begin int) (int, int, bool) {
+	defer m.releaseBig()
 	m.begin = begin
 	for p := begin; p <= len(m.s); {
 		if d.first != nil {

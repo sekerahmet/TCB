@@ -65,6 +65,47 @@ func TestBacktrackMemoryLimit(t *testing.T) {
 	}
 }
 
+// TestBigSearchesQueue geri izleme yığını küçük payı aşan aramaların sırayla yürüdüğünü (paralel
+// kodlamada bellek işçi sayısıyla çarpılmasın), küçük aramaların beklemediğini ve sonuçların
+// değişmediğini denetler.
+func TestBigSearchesQueue(t *testing.T) {
+	expr, err := CompileRegex(`(?:ab)+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	long := strings.Repeat("ab", 4*smallBacktrack)
+	bigSearch.Lock()
+	small := make(chan error, 1)
+	go func() {
+		_, _, _, err := expr.Find(strings.Repeat("ab", 100), 0)
+		small <- err
+	}()
+	if err := <-small; err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan int, 4)
+	for i := 0; i < cap(done); i++ {
+		go func() {
+			_, e, _, err := expr.Find(long, 0)
+			if err != nil {
+				e = -1
+			}
+			done <- e
+		}()
+	}
+	select {
+	case <-done:
+		t.Fatal("büyük arama kilit tutulurken yürüdü")
+	case <-time.After(50 * time.Millisecond):
+	}
+	bigSearch.Unlock()
+	for i := 0; i < cap(done); i++ {
+		if e := <-done; e != len(long) {
+			t.Fatalf("büyük arama %d'de bitti, %d bekleniyordu", e, len(long))
+		}
+	}
+}
+
 // Çok derin iç içe desenler derlemede açık hatayla reddedilir (eskiden
 // ayrıştırıcının özyinelemesi yığını taşırıyordu).
 func TestDeepPatternRejected(t *testing.T) {
