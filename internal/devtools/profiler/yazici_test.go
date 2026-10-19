@@ -83,7 +83,7 @@ func TestDurumDosyasiOkuyanYarimDosyaGormez(t *testing.T) {
 			t.Fatalf("görüntü eksik: %d işlem", len(d.Tensor.Islemler))
 		}
 		okunan++
-		time.Sleep(2 * time.Millisecond) // okuyan araçlar saniyede bir okur; sıkı döngü Windows'ta yerine koymayı sürekli engellerdi
+		time.Sleep(10 * time.Millisecond) // okuyan araçlar saniyede bir okur; sıkı döngü Windows'ta yerine koymayı (yük altında 250 ms boyunca) engelliyordu
 	}
 	close(dur)
 	wg.Wait()
