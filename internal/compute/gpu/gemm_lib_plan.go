@@ -37,12 +37,12 @@ const (
 )
 
 // ltKey bir planın önbellek anahtarı (hizalar kitaplığın A, B, C işaretçileri içindir; ab A
-// ile B'nin veri türüdür).
+// ile B'nin, ct C'nin veri türüdür).
 type ltKey struct {
 	batch, M, N, K         int
 	ta, tb                 bool
 	alignA, alignB, alignC uint32
-	ab                     uintptr
+	ab, ct                 uintptr
 }
 
 // ltPlanFor bir şeklin tanımları ve seçilen algoritması.
@@ -158,7 +158,7 @@ func (l *ltGemm) setupDef(p *ltPlanFor, a ltKey) bool {
 		plain[1] = size{a.M, a.K, a.M * a.K}
 	}
 	for i, b := range plain {
-		dt := uintptr(ltR32F)
+		dt := a.ct
 		if i < 2 {
 			dt = a.ab
 		}
@@ -199,13 +199,15 @@ func (l *ltGemm) setupPreference(p *ltPlanFor, a ltKey) bool {
 
 // ltMul C (+)= op(A)·op(B) kitaplıkla; kitaplık bu çağrıyı yapamazsa (algoritma yok ya da
 // çağrı hata döndü) yanlış döner ve kendi çekirdeğimiz kullanılır (düşüş sayılır). Adresler
-// cihaz adresleridir (bitişik); A ile B ab türünde (ltR32F, ltR16BF, ltR16F), C float32.
-func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool, c uint64, over bool, ab uintptr) bool {
+// cihaz adresleridir (bitişik); A ile B ab türünde (ltR32F, ltR16BF, ltR16F), C ct türünde
+// (float32 ya da A ile aynı 16 bitlik tür). Biriktirme her zaman float32'dedir; 16 bitlik C
+// eski içeriğiyle birlikte (β = 1) float32'de toplanıp bir kez yuvarlanır.
+func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool, c uint64, over bool, ab, ct uintptr) bool {
 	l := g.lt
 	if l == nil || K == 0 {
 		return false
 	}
-	p := l.takePlan(ltKey{batch: batch, M: M, N: N, K: K, ta: ta, tb: tb, alignA: align(b), alignB: align(a), alignC: align(c), ab: ab})
+	p := l.takePlan(ltKey{batch: batch, M: M, N: N, K: K, ta: ta, tb: tb, alignA: align(b), alignB: align(a), alignC: align(c), ab: ab, ct: ct})
 	if !p.valid {
 		l.fallthroughCase++
 		return false

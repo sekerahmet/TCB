@@ -31,7 +31,7 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 	for _, n := range []int{M * K, K * N, M * N} {
 		checkSize(n)
 	}
-	if g.ltMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over, ltR32F) {
+	if g.ltMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over, ltR32F, ltR32F) {
 		c.host = nil
 		return
 	}
@@ -67,6 +67,11 @@ func (g *backend) GemmSet(batch, M, N, K int, a tensor.View, transA bool, b tens
 }
 
 func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage, over bool) {
+	// 16 bitlik C, girdilerle aynı türdeyse kitaplık onu doğrudan yazar (float32 ara tampon
+	// ve iki kopya yok).
+	if cd := g.storageOf(c); cd.dtype != tensor.Float32 && g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {
+		return
+	}
 	gt := g.temp()
 	defer gt.finish()
 	cd, last := gt.write(c, !over)
@@ -77,8 +82,9 @@ func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b te
 }
 
 // gemm16 bitişik 16 bitlik (bf16 ya da f16) girdileri float32'ye açmadan kitaplığa verir:
-// tensör çekirdekleri girdileri 16 bit okur, float32 biriktirir ve float32 C'ye yazar.
-// Kitaplık yoksa, girdilerin türü farklıysa ya da biri adımlıysa yanlış döner; o zaman
+// tensör çekirdekleri girdileri 16 bit okur, float32 biriktirir ve C'ye (float32 ya da
+// girdilerle aynı 16 bitlik tür) bir kez yuvarlayıp yazar. Kitaplık yoksa, girdilerin türü
+// farklıysa, C başka bir türdeyse ya da girdilerden biri adımlıysa yanlış döner; o zaman
 // girdiler float32'ye açılıp çarpılır (karışık hassasiyette her çarpım eskiden böyleydi:
 // bf16 adım float32'den yavaştı).
 func (g *backend) gemm16(batch, M, N, K int, a tensor.View, ta bool, b tensor.View, tb bool, c *storage, over bool) bool {
@@ -98,10 +104,18 @@ func (g *backend) gemm16(batch, M, N, K int, a tensor.View, ta bool, b tensor.Vi
 	default:
 		return false
 	}
+	ct := uintptr(ltR32F)
+	switch c.dtype {
+	case tensor.Float32:
+	case da.dtype:
+		ct = ab
+	default:
+		return false
+	}
 	for _, n := range []int{M * K, K * N, M * N} {
 		checkSize(n)
 	}
-	if !g.ltMul(batch, M, N, K, g.addressOf(a), ta, g.addressOf(b), tb, c.addr, over, ab) {
+	if !g.ltMul(batch, M, N, K, g.addressOf(a), ta, g.addressOf(b), tb, c.addr, over, ab, ct) {
 		return false
 	}
 	c.host = nil

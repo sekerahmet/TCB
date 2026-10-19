@@ -52,7 +52,9 @@ func TestGemmLibraryMatchesOwnKernel(t *testing.T) {
 
 // TestGemmLibrary16Bit gerçek GPU'da 16 bitlik girdilerin (bf16, f16) float32'ye açılmadan
 // kitaplığa verildiğini (tensör çekirdekleri) ve sonucun, aynı girdiler float32'ye açılarak
-// yapılan çarpımla float32 birikim yuvarlaması içinde aynı olduğunu denetler.
+// yapılan çarpımla float32 birikim yuvarlaması içinde aynı olduğunu denetler. C float32 ya da
+// girdilerle aynı 16 bitlik türdedir; 16 bitlik C de ara tampon olmadan doğrudan yazılır,
+// üzerine yazılarak ya da eski içeriğine eklenerek.
 func TestGemmLibrary16Bit(t *testing.T) {
 	g := gpuBackend()
 	if g.lt == nil {
@@ -65,25 +67,37 @@ func TestGemmLibrary16Bit(t *testing.T) {
 	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
 		for _, d := range [][4]int{{1, 64, 64, 64}, {3, 130, 72, 40}, {1, 1024, 512, 2048}} {
 			b, M, K, N := d[0], d[1], d[2], d[3]
-			av, bv := random(rng, b*M*K, 1), random(rng, b*K*N, 1)
-			for _, tr := range [][2]bool{{false, false}, {false, true}, {true, false}} {
-				var result [2][]float32
-				for path := 0; path < 2; path++ {
-					a, bb := g.FromHost(av, dt), g.FromHost(bv, dt)
-					c := g.Alloc(b*M*N, tensor.Float32)
-					before := g.lt.fallthroughCase
-					lt := g.lt
-					if path == 1 {
-						g.lt = nil // girdiler float32'ye açılıp kendi çekirdeğimizle çarpılır
-					}
-					g.GemmSet(b, M, N, K, v(a, b*M*K), tr[0], v(bb, b*K*N), tr[1], c)
-					g.lt = lt
-					if path == 0 && g.lt.fallthroughCase != before {
-						t.Fatalf("%v %v: kitaplık 16 bitlik çarpımı yapmadı (%s)", dt, d, g.ltLastError)
-					}
-					result[path] = g.ToHost(v(c, b*M*N))
+			av, bv, cv := random(rng, b*M*K, 1), random(rng, b*K*N, 1), random(rng, b*M*N, 1)
+			for _, ct := range []tensor.DType{tensor.Float32, dt} {
+				// 16 bitlik C bir kez yuvarlanır: iki yolun farkı en çok bir son basamaktır.
+				tol := 1e-3
+				if ct != tensor.Float32 {
+					tol = 2e-2
 				}
-				checkDiff(t, fmt.Sprintf("%v %v devrik %v", dt, d, tr), result[0], result[1], 1e-3)
+				for _, tr := range [][2]bool{{false, false}, {false, true}, {true, false}} {
+					for _, set := range []bool{true, false} {
+						var result [2][]float32
+						for path := 0; path < 2; path++ {
+							a, bb, c := g.FromHost(av, dt), g.FromHost(bv, dt), g.FromHost(cv, ct)
+							before := g.lt.fallthroughCase
+							lt := g.lt
+							if path == 1 {
+								g.lt = nil // girdiler float32'ye açılıp kendi çekirdeğimizle çarpılır
+							}
+							if set {
+								g.GemmSet(b, M, N, K, v(a, b*M*K), tr[0], v(bb, b*K*N), tr[1], c)
+							} else {
+								g.Gemm(b, M, N, K, v(a, b*M*K), tr[0], v(bb, b*K*N), tr[1], c)
+							}
+							g.lt = lt
+							if path == 0 && g.lt.fallthroughCase != before {
+								t.Fatalf("%v %v C %v: kitaplık 16 bitlik çarpımı yapmadı (%s)", dt, d, ct, g.ltLastError)
+							}
+							result[path] = g.ToHost(v(c, b*M*N))
+						}
+						checkDiff(t, fmt.Sprintf("%v %v C %v devrik %v üzerine %v", dt, d, ct, tr, set), result[0], result[1], tol)
+					}
+				}
 			}
 		}
 	}
