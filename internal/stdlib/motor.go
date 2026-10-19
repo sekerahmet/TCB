@@ -39,7 +39,7 @@ func init() {
 	interp.AddEngine(func(v *interp.VM) {
 		s := process.Register(v)
 		logging.Register(v, s)
-		checkpoint.Kaydet(v, s)
+		checkpoint.Register(v, s)
 	})
 }
 

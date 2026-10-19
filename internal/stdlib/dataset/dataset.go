@@ -354,7 +354,7 @@ func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	case memberNext:
 		return method(codes.Name(memberNext), o.nextTR), nil
 	case memberState:
-		return o.DurumSozlugu(nil)
+		return o.StateDict(nil)
 	case memberLoadState:
 		return method(codes.Name(memberLoadState), o.loadStateTR), nil
 	}

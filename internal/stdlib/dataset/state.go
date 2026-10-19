@@ -18,7 +18,7 @@ import (
 // tüketilen son toplu işten sonraki konumdur (önden yükleme hattında bekleyen toplu işler
 // sayılmaz); yüklemede önden yükleme hattı boşaltılıp okuyucu konumdan yeniden kurulur. Böylece
 // sürdürülen eğitim kesintisizle aynı toplu işleri aynı sırayla alır. Kontrol noktası
-// (internal/stdlib/checkpoint) okuyucuyu bu iki Go yöntemiyle kaydeder (DurumSozlugu, DurumuYukle).
+// (internal/stdlib/checkpoint) okuyucuyu bu iki Go yöntemiyle kaydeder (StateDict, LoadState).
 
 const (
 	memberState     = codes.Y502
@@ -58,10 +58,10 @@ func (o *Reader) kindName() string {
 	return kindSampler
 }
 
-// DurumSozlugu okuyucunun durumudur (TR'de ö.durum): tür, toplu, bağlam, (örnekleyicide)
+// StateDict okuyucunun durumudur (TR'de ö.durum): tür, toplu, bağlam, (örnekleyicide)
 // tohum, küme özeti, konum (dönem, sıra, pencere), okunan toplu iş sayısı ve (sıralıda)
 // bitti. Değerler düz değerlerdir; sözlük JSON'a yazılabilir.
-func (o *Reader) DurumSozlugu(*interp.VM) (*interp.DictVal, error) {
+func (o *Reader) StateDict(*interp.VM) (*interp.DictVal, error) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	s := interp.NewDictVal()
@@ -96,16 +96,16 @@ func (o *Reader) loadStateTR(m *interp.VM, args []interp.Value, named map[string
 	if !ok {
 		return nil, interp.ArgTypeError(memberLoadState, 1, args[0], codes.A206)
 	}
-	if err := o.DurumuYukle(m, s); err != nil {
+	if err := o.LoadState(m, s); err != nil {
 		return nil, err
 	}
 	return interp.TRUE, nil
 }
 
-// DurumuYukle durumu (DurumSozlugu biçiminde) yükler: tür, toplu, bağlam, tohum ve küme
+// LoadState durumu (StateDict biçiminde) yükler: tür, toplu, bağlam, tohum ve küme
 // okuyucununkilerle aynı olmalıdır, değilse yol gösterici bir hata verir ve okuyucuyu
 // değiştirmez. Önden yükleme hattı durdurulur, okuyucu kaydedilen konumdan yeniden kurulur.
-func (o *Reader) DurumuYukle(m *interp.VM, s *interp.DictVal) error {
+func (o *Reader) LoadState(m *interp.VM, s *interp.DictVal) error {
 	fn := interp.CallPrefix(memberLoadState)
 	d := stateReader{fn: fn, s: s}
 	kind := d.text(sKind)

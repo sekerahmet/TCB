@@ -21,44 +21,44 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/checkpoint"
 )
 
-// esliYazici bir tamponu birden çok çıkışa paylaştırır.
-type esliYazici struct {
+// teeWriter bir tamponu birden çok çıkışa paylaştırır.
+type teeWriter struct {
 	mu sync.Mutex
 	b  bytes.Buffer
 }
 
-func (e *esliYazici) Write(p []byte) (int, error) {
+func (e *teeWriter) Write(p []byte) (int, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.b.Write(p)
 }
 
-func (e *esliYazici) String() string {
+func (e *teeWriter) String() string {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.b.String()
 }
 
-// calistir kodu yeni bir VM'de (yeni bir program gibi) çalıştırır; standart çıktıyı ve
+// run kodu yeni bir VM'de (yeni bir program gibi) çalıştırır; standart çıktıyı ve
 // hatayı birlikte verir.
-func calistir(t *testing.T, kod string) (string, error) {
+func run(t *testing.T, code string) (string, error) {
 	t.Helper()
 	m := interp.New()
-	w := &esliYazici{}
+	w := &teeWriter{}
 	m.Out, m.Err = w, w
-	_, err := calistirVM(t, m, kod)
+	_, err := runVM(t, m, code)
 	return w.String(), err
 }
 
-// calistirVM kodu verilen VM'de bir program olarak çalıştırır (program dosyası depo
+// runVM kodu verilen VM'de bir program olarak çalıştırır (program dosyası depo
 // kökündedir) ve motorların kaynaklarını kapatır.
-func calistirVM(t *testing.T, m *interp.VM, kod string) (interp.Value, error) {
+func runVM(t *testing.T, m *interp.VM, code string) (interp.Value, error) {
 	t.Helper()
 	m.SourceFile = filepath.Join(reporoot.Root(), "egit.tr")
-	p := parser.New(lexer.New(kod))
+	p := parser.New(lexer.New(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), kod)
+		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), code)
 	}
 	v, err := m.Run(prog)
 	m.WaitAsync()
@@ -66,13 +66,13 @@ func calistirVM(t *testing.T, m *interp.VM, kod string) (interp.Value, error) {
 	return v, err
 }
 
-func trYol(s string) string { return filepath.ToSlash(s) }
+func trPath(s string) string { return filepath.ToSlash(s) }
 
-// egitimProgrami küçük bir modeli kontrol noktasıyla dur adıma kadar eğitir (toplam adımlık
+// trainingProgram küçük bir modeli kontrol noktasıyla dur adıma kadar eğitir (toplam adımlık
 // bir koşunun parçası). İki model (AdamW ve momentumlu SGD), örnekleyici, sıralı okuyucu,
 // günlük ve düz değerler noktaya girer; sonunda parametreler ve iyileştirici durumları
 // karşılaştırma için kaydedilir.
-func egitimProgrami(kosu string, dur, toplam int, ekSecenek string) string {
+func trainingProgram(runDir string, stop, total int, extraOption string) string {
 	return fmt.Sprintf(`
 değişken KOŞU = %q
 değişken V = 4096
@@ -113,101 +113,101 @@ tensör_kaydet(yol(KOŞU, "op.trt"), op.durum)
 tensör_kaydet(yol(KOŞU, "op2.trt"), op2.durum)
 yazdır("izlenen:", izlenen)
 yazdır("ö:", ö.durum)
-`, trYol(kosu), trYol(filepath.Join(reporoot.Root(), "tests", "data", "text")), ekSecenek, toplam, dur)
+`, trPath(runDir), trPath(filepath.Join(reporoot.Root(), "tests", "data", "text")), extraOption, total, stop)
 }
 
-// gecerliOlculer günlüğün geçerli ölçü kayıtlarını (adım → kayıp) okur: bir devam kaydından
+// validMetrics günlüğün geçerli ölçü kayıtlarını (adım → kayıp) okur: bir devam kaydından
 // önce gelen ve adımı ondan büyük olan kayıtlar geçersizdir (19, günlük okuyucu kuralı).
-func gecerliOlculer(t *testing.T, yol string) []string {
+func validMetrics(t *testing.T, fpath string) []string {
 	t.Helper()
-	veri, err := os.ReadFile(yol)
+	data, err := os.ReadFile(fpath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	type olcu struct {
-		adim  int64
-		kayip string
+	type metric struct {
+		step int64
+		lost string
 	}
-	var olculer []olcu
-	for _, s := range strings.Split(strings.TrimSpace(string(veri)), "\n") {
+	var metrics []metric
+	for _, s := range strings.Split(strings.TrimSpace(string(data)), "\n") {
 		var k map[string]json.RawMessage
 		if err := json.Unmarshal([]byte(s), &k); err != nil {
 			t.Fatalf("geçersiz satır %q", s)
 		}
-		var adim int64
-		_ = json.Unmarshal(k["adım"], &adim)
-		var tur string
-		_ = json.Unmarshal(k["tür"], &tur)
-		switch tur {
+		var step int64
+		_ = json.Unmarshal(k["adım"], &step)
+		var kind string
+		_ = json.Unmarshal(k["tür"], &kind)
+		switch kind {
 		case "devam":
-			olculer = slices.DeleteFunc(olculer, func(o olcu) bool { return o.adim > adim })
+			metrics = slices.DeleteFunc(metrics, func(o metric) bool { return o.step > step })
 		case "":
-			olculer = append(olculer, olcu{adim, string(k["kayıp"])})
+			metrics = append(metrics, metric{step, string(k["kayıp"])})
 		}
 	}
 	var out []string
-	for _, o := range olculer {
-		out = append(out, fmt.Sprintf("%d:%s", o.adim, o.kayip))
+	for _, o := range metrics {
+		out = append(out, fmt.Sprintf("%d:%s", o.step, o.lost))
 	}
 	return out
 }
 
-// sonuclarAyni iki koşunun parametre, iyileştirici dosyalarının, geçerli kayıp dizisinin ve
+// sameResults iki koşunun parametre, iyileştirici dosyalarının, geçerli kayıp dizisinin ve
 // programın son çıktısının (düz değerler, okuyucu durumu) bit düzeyinde aynı olduğunu denetler.
-func sonuclarAyni(t *testing.T, a, b, ciktiA, ciktiB string) {
+func sameResults(t *testing.T, a, b, outputA, outputB string) {
 	t.Helper()
-	for _, ad := range []string{"son.trt", "op.trt", "op2.trt"} {
-		x, err1 := os.ReadFile(filepath.Join(a, ad))
-		y, err2 := os.ReadFile(filepath.Join(b, ad))
+	for _, name := range []string{"son.trt", "op.trt", "op2.trt"} {
+		x, err1 := os.ReadFile(filepath.Join(a, name))
+		y, err2 := os.ReadFile(filepath.Join(b, name))
 		if err1 != nil || err2 != nil {
-			t.Fatalf("%s okunamadı: %v %v", ad, err1, err2)
+			t.Fatalf("%s okunamadı: %v %v", name, err1, err2)
 		}
 		if !bytes.Equal(x, y) {
-			t.Errorf("%s bit düzeyinde aynı değil", ad)
+			t.Errorf("%s bit düzeyinde aynı değil", name)
 		}
 	}
-	ka, kb := gecerliOlculer(t, filepath.Join(a, "metrics.jsonl")), gecerliOlculer(t, filepath.Join(b, "metrics.jsonl"))
+	ka, kb := validMetrics(t, filepath.Join(a, "metrics.jsonl")), validMetrics(t, filepath.Join(b, "metrics.jsonl"))
 	if !slices.Equal(ka, kb) {
 		t.Errorf("geçerli kayıp dizileri farklı:\n%v\n%v", ka, kb)
 	}
-	son := func(c string) string { return c[strings.LastIndex(c, "izlenen:"):] }
-	if son(ciktiA) != son(ciktiB) {
-		t.Errorf("son durum farklı:\n%s\n%s", son(ciktiA), son(ciktiB))
+	last := func(c string) string { return c[strings.LastIndex(c, "izlenen:"):] }
+	if last(outputA) != last(outputB) {
+		t.Errorf("son durum farklı:\n%s\n%s", last(outputA), last(outputB))
 	}
 }
 
 // Kesintisiz eğitim ile kesilip (aralıklı kayıttan, kaydedilmemiş adımlar yeniden
 // hesaplanarak) sürdürülen eğitim aynı son adımda bit düzeyinde aynı parametreleri,
 // iyileştirici durumlarını, kayıp dizisini, okuyucu konumlarını ve düz değerleri verir.
-func TestKesintisizleSurdurulenAyni(t *testing.T) {
-	var simdi time.Time
-	t.Cleanup(checkpoint.SaatTaklidi(func() time.Time { simdi = simdi.Add(time.Minute); return simdi }))
+func TestResumedSameAsUninterrupted(t *testing.T) {
+	var now time.Time
+	t.Cleanup(checkpoint.FakeClock(func() time.Time { now = now.Add(time.Minute); return now }))
 	// Her güncelle'de saat 1 dk ilerler: her_dakika: 3 ile yaklaşık üç adımda bir kayıt.
 	a := t.TempDir()
-	ciktiA, err := calistir(t, egitimProgrami(a, 24, 24, ", her_dakika: 3"))
+	outputA, err := run(t, trainingProgram(a, 24, 24, ", her_dakika: 3"))
 	if err != nil {
-		t.Fatalf("%v\n%s", err, ciktiA)
+		t.Fatalf("%v\n%s", err, outputA)
 	}
 	b := t.TempDir()
-	if c, err := calistir(t, egitimProgrami(b, 13, 24, ", her_dakika: 3")); err != nil {
+	if c, err := run(t, trainingProgram(b, 13, 24, ", her_dakika: 3")); err != nil {
 		t.Fatalf("%v\n%s", err, c)
 	}
-	ciktiB, err := calistir(t, egitimProgrami(b, 24, 24, ", her_dakika: 3"))
+	outputB, err := run(t, trainingProgram(b, 24, 24, ", her_dakika: 3"))
 	if err != nil {
-		t.Fatalf("%v\n%s", err, ciktiB)
+		t.Fatalf("%v\n%s", err, outputB)
 	}
-	if !strings.Contains(ciktiB, "Kaldığı yerden devam: adım 1") || strings.Contains(ciktiB, "adım 13 (") {
-		t.Fatalf("13. adımdan önceki son aralıklı noktadan sürmeliydi:\n%s", ciktiB)
+	if !strings.Contains(outputB, "Kaldığı yerden devam: adım 1") || strings.Contains(outputB, "adım 13 (") {
+		t.Fatalf("13. adımdan önceki son aralıklı noktadan sürmeliydi:\n%s", outputB)
 	}
-	sonuclarAyni(t, a, b, ciktiA, ciktiB)
+	sameResults(t, a, b, outputA, outputB)
 	// tut: 2 → en yeni iki nokta kalır.
-	girdiler, _ := os.ReadDir(filepath.Join(b, "kontrol_noktalari"))
-	var noktalar []string
-	for _, g := range girdiler {
-		noktalar = append(noktalar, g.Name())
+	inputs, _ := os.ReadDir(filepath.Join(b, "kontrol_noktalari"))
+	var ckpts []string
+	for _, g := range inputs {
+		ckpts = append(ckpts, g.Name())
 	}
-	if len(noktalar) != 3 || noktalar[2] != "son.json" {
-		t.Errorf("iki nokta ve son.json bekleniyordu: %v", noktalar)
+	if len(ckpts) != 3 || ckpts[2] != "son.json" {
+		t.Errorf("iki nokta ve son.json bekleniyordu: %v", ckpts)
 	}
 }
 
@@ -215,16 +215,16 @@ func TestKesintisizleSurdurulenAyni(t *testing.T) {
 // durdurmaz (uyarı, sonraki aralıkta yeniden deneme), önceki geçerli nokta bozulmaz, geçici
 // klasör kalmaz; art arda üçüncü başarısızlıkta açık hata verilir. Yeniden adlandırma
 // düzelince kayıt sürer ve sayaç sıfırlanır.
-func TestYenidenAdlandirmaHatasiEgitimiDurdurmaz(t *testing.T) {
-	var bozuk atomicBool
-	t.Cleanup(checkpoint.YenidenAdlandirmaTaklidi(func(eski, yeni string) error {
-		if bozuk.al() && filepath.Base(filepath.Dir(yeni)) == "kontrol_noktalari" && strings.HasPrefix(filepath.Base(yeni), "adim_") {
-			return &os.LinkError{Op: "rename", Old: eski, New: yeni, Err: errors.New("Input/output error")}
+func TestRenameErrorDoesNotStopTraining(t *testing.T) {
+	var broken atomicBool
+	t.Cleanup(checkpoint.FakeRename(func(old, fresh string) error {
+		if broken.load() && filepath.Base(filepath.Dir(fresh)) == "kontrol_noktalari" && strings.HasPrefix(filepath.Base(fresh), "adim_") {
+			return &os.LinkError{Op: "rename", Old: old, New: fresh, Err: errors.New("Input/output error")}
 		}
-		return os.Rename(eski, yeni)
+		return os.Rename(old, fresh)
 	}))
-	kosu := t.TempDir()
-	program := func(n int, bozukAdimlar string) string {
+	runDir := t.TempDir()
+	program := func(n int, brokenSteps string) string {
 		return fmt.Sprintf(`
 değişken w = tensör([1.0, 2.0], türev_izle: doğru)
 değişken op = SGD([w], öğrenme_oranı: 0.1)
@@ -239,42 +239,42 @@ döngü adım içinde kn.kaldığı_adım..%d {
     düzelt()
 }
 yazdır("sonuçlar:", sonuçlar)
-`, trYol(kosu), n, bozukAdimlar)
+`, trPath(runDir), n, brokenSteps)
 	}
-	kancalar := func(kod string) string {
-		return strings.ReplaceAll(strings.ReplaceAll(kod, "boz()", "bozuk_yap(doğru)"), "düzelt()", "bozuk_yap(yanlış)")
+	hooks := func(code string) string {
+		return strings.ReplaceAll(strings.ReplaceAll(code, "boz()", "bozuk_yap(doğru)"), "düzelt()", "bozuk_yap(yanlış)")
 	}
-	cikti, err := calistirKancali(t, kancalar(program(6, "3, 4")), &bozuk)
+	output, err := runHooked(t, hooks(program(6, "3, 4")), &broken)
 	if err != nil {
-		t.Fatalf("iki başarısızlık eğitimi durdurmamalıydı: %v\n%s", err, cikti)
+		t.Fatalf("iki başarısızlık eğitimi durdurmamalıydı: %v\n%s", err, output)
 	}
-	if !strings.Contains(cikti, "sonuçlar: [doğru, doğru, yanlış, yanlış, doğru, doğru]") ||
-		strings.Count(cikti, "Uyarı: kontrol_noktası: ") != 2 ||
-		!strings.Contains(cikti, "(1/3; eğitim sürüyor") || !strings.Contains(cikti, "Son geçerli nokta: adım 2") ||
-		!strings.Contains(cikti, "yerel diske kaydedip") {
-		t.Fatalf("beklenen uyarılar ve sonuçlar yok:\n%s", cikti)
+	if !strings.Contains(output, "sonuçlar: [doğru, doğru, yanlış, yanlış, doğru, doğru]") ||
+		strings.Count(output, "Uyarı: kontrol_noktası: ") != 2 ||
+		!strings.Contains(output, "(1/3; eğitim sürüyor") || !strings.Contains(output, "Son geçerli nokta: adım 2") ||
+		!strings.Contains(output, "yerel diske kaydedip") {
+		t.Fatalf("beklenen uyarılar ve sonuçlar yok:\n%s", output)
 	}
-	artiklariDenetle(t, kosu)
-	cikti, err = calistirKancali(t, kancalar(program(12, "8, 9, 10")), &bozuk)
+	checkLeftovers(t, runDir)
+	output, err = runHooked(t, hooks(program(12, "8, 9, 10")), &broken)
 	if err == nil || !strings.Contains(err.Error(), "art arda 3 kez kaydedilemedi, eğitim durduruldu") || !strings.Contains(err.Error(), "Son geçerli nokta: adım 7") {
-		t.Fatalf("üçüncü başarısızlık açık hata vermeliydi: %v\n%s", err, cikti)
+		t.Fatalf("üçüncü başarısızlık açık hata vermeliydi: %v\n%s", err, output)
 	}
-	if !strings.Contains(cikti, "Kaldığı yerden devam: adım 6") {
-		t.Fatalf("önceki koşunun son noktasından sürmeliydi:\n%s", cikti)
+	if !strings.Contains(output, "Kaldığı yerden devam: adım 6") {
+		t.Fatalf("önceki koşunun son noktasından sürmeliydi:\n%s", output)
 	}
-	artiklariDenetle(t, kosu)
+	checkLeftovers(t, runDir)
 	// Önceki geçerli nokta sağlam: sürdürme 7'den başlar.
-	cikti, err = calistirKancali(t, kancalar(program(8, "")), &bozuk)
-	if err != nil || !strings.Contains(cikti, "Kaldığı yerden devam: adım 7") {
-		t.Fatalf("son geçerli noktadan sürmeliydi: %v\n%s", err, cikti)
+	output, err = runHooked(t, hooks(program(8, "")), &broken)
+	if err != nil || !strings.Contains(output, "Kaldığı yerden devam: adım 7") {
+		t.Fatalf("son geçerli noktadan sürmeliydi: %v\n%s", err, output)
 	}
 }
 
-// artiklariDenetle noktalar klasöründe geçici ya da kenara alınmış klasör kalmadığını denetler.
-func artiklariDenetle(t *testing.T, kosu string) {
+// checkLeftovers noktalar klasöründe geçici ya da kenara alınmış klasör kalmadığını denetler.
+func checkLeftovers(t *testing.T, runDir string) {
 	t.Helper()
-	girdiler, _ := os.ReadDir(filepath.Join(kosu, "kontrol_noktalari"))
-	for _, g := range girdiler {
+	inputs, _ := os.ReadDir(filepath.Join(runDir, "kontrol_noktalari"))
+	for _, g := range inputs {
 		if strings.Contains(g.Name(), ".tmp-") || strings.Contains(g.Name(), ".eski-") {
 			t.Errorf("artık klasör kaldı: %s", g.Name())
 		}
@@ -286,24 +286,24 @@ type atomicBool struct {
 	v  bool
 }
 
-func (a *atomicBool) al() bool { a.mu.Lock(); defer a.mu.Unlock(); return a.v }
-func (a *atomicBool) ver(v bool) {
+func (a *atomicBool) load() bool { a.mu.Lock(); defer a.mu.Unlock(); return a.v }
+func (a *atomicBool) store(v bool) {
 	a.mu.Lock()
 	a.v = v
 	a.mu.Unlock()
 }
 
-// calistirKancali calistir gibidir; programa bozuk_yap(Mantık) yerleşiği eklenir (testin
+// runHooked calistir gibidir; programa bozuk_yap(Mantık) yerleşiği eklenir (testin
 // yeniden adlandırma benzetimini açıp kapatır).
-func calistirKancali(t *testing.T, kod string, bozuk *atomicBool) (string, error) {
+func runHooked(t *testing.T, code string, broken *atomicBool) (string, error) {
 	t.Helper()
 	m := interp.New()
-	w := &esliYazici{}
+	w := &teeWriter{}
 	m.Out, m.Err = w, w
 	m.GlobalEnv.Define("bozuk_yap", &interp.BuiltinVal{Name: "bozuk_yap", Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		bozuk.ver(args[0] == interp.TRUE)
+		broken.store(args[0] == interp.TRUE)
 		return interp.NULL, nil
 	}}, true)
-	_, err := calistirVM(t, m, kod)
+	_, err := runVM(t, m, code)
 	return w.String(), err
 }
