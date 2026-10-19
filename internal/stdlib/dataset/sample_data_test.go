@@ -19,16 +19,16 @@ import (
 // kullanır) bu dosyadaki üreteçle oluşturulur. Varsayılan olarak test, depodaki dosyaların
 // üreteçle birebir aynı olduğunu denetler; yeniden üretmek için:
 //
-//	go test ./internal/stdlib/dataset -run TestOrnekVeri -guncelle
-var guncelle = flag.Bool("guncelle", false, "tests/data altındaki sentetik veriyi yeniden üret")
+//	go test ./internal/stdlib/dataset -run TestSampleData -guncelle
+var update = flag.Bool("guncelle", false, "tests/data altındaki sentetik veriyi yeniden üret")
 
-var ornekKok = reporoot.Path("tests/data")
+var sampleRoot = reporoot.Path("tests/data")
 
-// ornekDosyalar depodaki sentetik verinin beklenen içeriğidir (göreli yol → içerik).
-func ornekDosyalar(t *testing.T) map[string][]byte {
+// sampleFiles depodaki sentetik verinin beklenen içeriğidir (göreli yol → içerik).
+func sampleFiles(t *testing.T) map[string][]byte {
 	t.Helper()
-	oku := func(yol string) []byte {
-		b, err := os.ReadFile(yol)
+	read := func(path string) []byte {
+		b, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -51,9 +51,9 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 	d := map[string][]byte{}
 	// Parçalayıcılar: bayt düzeyi BPE (özel tokenlı, <|endoftext|> içerir) ve BERT
 	// tarzı WordPiece (son işleyicisi [CLS]/[SEP] ekler; çift kodlama için).
-	bpe := oku(reporoot.Path("internal/compute/tokenize/testdata/p_bayt_bpe.json"))
+	bpe := read(reporoot.Path("internal/compute/tokenize/testdata/p_bayt_bpe.json"))
 	d["parcalayici.json"] = bpe
-	d["parcalayici_bert.json"] = oku(reporoot.Path("internal/compute/tokenize/testdata/p_wordpiece.json"))
+	d["parcalayici_bert.json"] = read(reporoot.Path("internal/compute/tokenize/testdata/p_wordpiece.json"))
 
 	// sayilar/: değerleri konumunu söyleyen iki parça (uint16 ve int32).
 	a := make([]uint16, 100)
@@ -73,28 +73,28 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ayirici, ok := p.TokenToID("<|endoftext|>")
+	sep, ok := p.TokenToID("<|endoftext|>")
 	if !ok {
 		t.Fatal("<|endoftext|> yok")
 	}
-	var belgeler []string
-	for _, s := range strings.Split(string(oku(reporoot.Path("internal/compute/tokenize/testdata/ornek_metin.txt"))), "\n") {
+	var docs []string
+	for _, s := range strings.Split(string(read(reporoot.Path("internal/compute/tokenize/testdata/ornek_metin.txt"))), "\n") {
 		if strings.TrimSpace(s) != "" {
-			belgeler = append(belgeler, s)
+			docs = append(docs, s)
 		}
 	}
-	tokenlar := p.JoinDocuments(belgeler, ayirici, 1)
-	yari := len(tokenlar) / 2
-	parcalar := [][]int32{tokenlar[:yari], tokenlar[yari:]}
+	tokens := p.JoinDocuments(docs, sep, 1)
+	half := len(tokens) / 2
+	parts := [][]int32{tokens[:half], tokens[half:]}
 	meta := map[string]any{"tokenizer": "../parcalayici.json", "parts": map[string]any{}}
-	for i, pt := range parcalar {
+	for i, pt := range parts {
 		u := make([]uint16, len(pt))
 		for j, x := range pt {
 			u[j] = uint16(x)
 		}
-		ad := fmt.Sprintf("metin_%03d.npy", i)
-		d["text/"+ad] = npyU16(u)
-		meta["parts"].(map[string]any)[ad] = map[string]any{"tokens": len(pt)}
+		name := fmt.Sprintf("metin_%03d.npy", i)
+		d["text/"+name] = npyU16(u)
+		meta["parts"].(map[string]any)[name] = map[string]any{"tokens": len(pt)}
 	}
 	mj, err := json.MarshalIndent(meta, "", "  ")
 	if err != nil {
@@ -107,28 +107,28 @@ func ornekDosyalar(t *testing.T) map[string][]byte {
 	return d
 }
 
-func TestOrnekVeri(t *testing.T) {
-	beklenen := ornekDosyalar(t)
-	if *guncelle {
-		for ad, icerik := range beklenen {
-			yol := filepath.Join(ornekKok, filepath.FromSlash(ad))
-			if err := os.MkdirAll(filepath.Dir(yol), 0o755); err != nil {
+func TestSampleData(t *testing.T) {
+	want := sampleFiles(t)
+	if *update {
+		for name, content := range want {
+			path := filepath.Join(sampleRoot, filepath.FromSlash(name))
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(yol, icerik, 0o644); err != nil {
+			if err := os.WriteFile(path, content, 0o644); err != nil {
 				t.Fatal(err)
 			}
 		}
 		return
 	}
-	for ad, icerik := range beklenen {
-		got, err := os.ReadFile(filepath.Join(ornekKok, filepath.FromSlash(ad)))
+	for name, content := range want {
+		got, err := os.ReadFile(filepath.Join(sampleRoot, filepath.FromSlash(name)))
 		if err != nil {
-			t.Errorf("%s okunamadı (yeniden üretmek için -guncelle): %v", ad, err)
+			t.Errorf("%s okunamadı (yeniden üretmek için -guncelle): %v", name, err)
 			continue
 		}
-		if !bytes.Equal(got, icerik) {
-			t.Errorf("%s üreteçle aynı değil (yeniden üretmek için -guncelle)", ad)
+		if !bytes.Equal(got, content) {
+			t.Errorf("%s üreteçle aynı değil (yeniden üretmek için -guncelle)", name)
 		}
 	}
 }

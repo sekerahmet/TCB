@@ -16,10 +16,10 @@ import (
 )
 
 // Çok büyük kota_gb taşıp "pozitif olmalı" demek yerine açık hata verir.
-func TestKotaCokBuyuk(t *testing.T) {
-	d := kumeKur(t)
-	ob := filepath.Join(t.TempDir(), "onb")
-	_, _, err := calistir(t, `veri_kümesi("`+tr(d)+`", önbellek: "`+tr(ob)+`", kota_gb: 1e10)`)
+func TestQuotaTooLarge(t *testing.T) {
+	d := buildDataset(t)
+	cache := filepath.Join(t.TempDir(), "onb")
+	_, _, err := run(t, `veri_kümesi("`+trPath(d)+`", önbellek: "`+trPath(cache)+`", kota_gb: 1e10)`)
 	if err == nil || !strings.Contains(err.Error(), "kota_gb çok büyük") {
 		t.Fatalf("çok büyük kota hatası bekleniyordu: %v", err)
 	}
@@ -27,13 +27,13 @@ func TestKotaCokBuyuk(t *testing.T) {
 
 // önbellek: yolu da tek yol kuralıyla çözülür (16.8): çalışma klasöründe
 // yoksa programın klasörüne göre.
-func TestOnbellekYoluProgramKlasorunden(t *testing.T) {
-	d := kumeKur(t)
+func TestCachePathFromProgramDir(t *testing.T) {
+	d := buildDataset(t)
 	program := t.TempDir()
 	if err := os.Mkdir(filepath.Join(program, "onb_16_8"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	p := parser.New(lexer.New(`veri_kümesi("` + tr(d) + `", önbellek: "onb_16_8/kume", kota_gb: 0.001).örnekleyici(toplu: 2, bağlam: 8).sonraki()`))
+	p := parser.New(lexer.New(`veri_kümesi("` + trPath(d) + `", önbellek: "onb_16_8/kume", kota_gb: 0.001).örnekleyici(toplu: 2, bağlam: 8).sonraki()`))
 	prog := p.ParseProgram()
 	m := interp.New()
 	m.SourceFile = filepath.Join(program, "egit.tr")
@@ -42,27 +42,27 @@ func TestOnbellekYoluProgramKlasorunden(t *testing.T) {
 		t.Fatal(err)
 	}
 	m.WaitAsync()
-	dataset.TumunuKapat(time.Second)
+	dataset.CloseAll(time.Second)
 	if _, err := os.Stat("onb_16_8"); err == nil {
 		_ = os.RemoveAll("onb_16_8")
 		t.Fatal("önbellek çalışma klasörüne açıldı")
 	}
-	girdiler, err := os.ReadDir(filepath.Join(program, "onb_16_8", "kume"))
-	if err != nil || len(girdiler) == 0 {
-		t.Fatalf("önbellek programın klasöründe açılmadı: %v %d", err, len(girdiler))
+	inputs, err := os.ReadDir(filepath.Join(program, "onb_16_8", "kume"))
+	if err != nil || len(inputs) == 0 {
+		t.Fatalf("önbellek programın klasöründe açılmadı: %v %d", err, len(inputs))
 	}
 }
 
 // Aynı önbellek klasörünü paylaşan iki küme tek kotayı paylaşır: klasör
 // kotayı aşmaz; ikisine birden yetmeyen kota açık hatayla bildirilir
 // (eskiden her küme kotayı ayrı sayıyor, klasör kotanın iki katına çıkıyordu).
-func TestPaylasilanOnbellekKotasi(t *testing.T) {
-	a, b := kumeKur(t), kumeKur(t)
-	program := func(ob string, kota int64) string {
+func TestSharedCacheQuota(t *testing.T) {
+	a, b := buildDataset(t), buildDataset(t)
+	program := func(cache string, quota int64) string {
 		return `
-değişken K = ` + strconv.FormatInt(kota, 10) + ` / 1073741824
-değişken a = veri_kümesi("` + tr(a) + `", önbellek: "` + tr(ob) + `", kota_gb: K)
-değişken b = veri_kümesi("` + tr(b) + `", önbellek: "` + tr(ob) + `", kota_gb: K)
+değişken K = ` + strconv.FormatInt(quota, 10) + ` / 1073741824
+değişken a = veri_kümesi("` + trPath(a) + `", önbellek: "` + trPath(cache) + `", kota_gb: K)
+değişken b = veri_kümesi("` + trPath(b) + `", önbellek: "` + trPath(cache) + `", kota_gb: K)
 değişken öa = a.örnekleyici(toplu: 1, bağlam: 8, tohum: 1)
 değişken öb = b.örnekleyici(toplu: 1, bağlam: 8, tohum: 1)
 döngü i içinde 0..50 {
@@ -72,34 +72,34 @@ döngü i içinde 0..50 {
 yazdır("bitti")
 `
 	}
-	klasorBoyu := func(ob string) int64 {
+	dirSize := func(cache string) int64 {
 		var n int64
-		girdiler, _ := os.ReadDir(ob)
-		for _, g := range girdiler {
-			if bilgi, err := g.Info(); err == nil && strings.Contains(g.Name(), ".onb") {
-				n += bilgi.Size()
+		inputs, _ := os.ReadDir(cache)
+		for _, g := range inputs {
+			if info, err := g.Info(); err == nil && strings.Contains(g.Name(), ".onb") {
+				n += info.Size()
 			}
 		}
 		return n
 	}
 	// Bir küme 2 parça × 2128 bayt tutar: 6000 bayt birine yeter, ikisine yetmez.
-	ob := filepath.Join(t.TempDir(), "onb")
-	_, _, err := calistir(t, program(ob, 6000))
-	if n := klasorBoyu(ob); n > 6000 {
+	cache := filepath.Join(t.TempDir(), "onb")
+	_, _, err := run(t, program(cache, 6000))
+	if n := dirSize(cache); n > 6000 {
 		t.Fatalf("paylaşılan önbellek kotayı aştı: %d > 6000 bayt", n)
 	}
 	if err == nil || !strings.Contains(err.Error(), "paylaşan") {
 		t.Fatalf("paylaşılan kota hatası bekleniyordu: %v", err)
 	}
-	dataset.TumunuKapat(time.Second)
+	dataset.CloseAll(time.Second)
 	// İkisine yeten kotayla sorunsuz.
-	ob2 := filepath.Join(t.TempDir(), "onb")
-	out, _ := mustCalistir(t, program(ob2, 9000))
+	cache2 := filepath.Join(t.TempDir(), "onb")
+	out, _ := mustRun(t, program(cache2, 9000))
 	if strings.TrimSpace(out) != "bitti" {
 		t.Fatalf("çıktı %q", out)
 	}
-	if n := klasorBoyu(ob2); n > 9000 {
+	if n := dirSize(cache2); n > 9000 {
 		t.Fatalf("paylaşılan önbellek kotayı aştı: %d > 9000 bayt", n)
 	}
-	dataset.TumunuKapat(time.Second)
+	dataset.CloseAll(time.Second)
 }

@@ -33,7 +33,7 @@ func init() {
 	interp.AddEngine(ml.Kaydet)
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
 	interp.AddEngine(tokenizer.Register)
-	interp.AddEngine(dataset.Kaydet)
+	interp.AddEngine(dataset.Register)
 	// Süreç (ortam, komut satırı), kayıt (günlük, ilerleme) ve kontrol noktası: günlüğün
 	// başlangıç kaydı ve kontrol noktası programın komut satırı ayarlarını yazar.
 	interp.AddEngine(func(v *interp.VM) {
@@ -50,7 +50,7 @@ func init() {
 // saniye bekler. Birden çok kez çağrılabilir.
 func Kapat() {
 	logging.TumunuKapat()
-	dataset.TumunuKapat(3 * time.Second)
+	dataset.CloseAll(3 * time.Second)
 	files.TumunuKapat()
 	ml.Kapat()
 }

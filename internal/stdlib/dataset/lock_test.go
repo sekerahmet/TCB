@@ -15,15 +15,15 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// kapiliKaynak ilk Doldur çağrısında kapı açılana kadar bekleyen bir toplu iş kaynağıdır.
-type kapiliKaynak struct {
-	kapi chan struct{}
+// gatedSource ilk Doldur çağrısında kapı açılana kadar bekleyen bir toplu iş kaynağıdır.
+type gatedSource struct {
+	gate chan struct{}
 	n    int
 }
 
-func (k *kapiliKaynak) Fill(ctx context.Context, ti *dataload.Batch) error {
+func (k *gatedSource) Fill(ctx context.Context, ti *dataload.Batch) error {
 	select {
-	case <-k.kapi:
+	case <-k.gate:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
@@ -39,31 +39,31 @@ func (k *kapiliKaynak) Fill(ctx context.Context, ti *dataload.Batch) error {
 // .sonraki() önden yükleyiciyi beklerken yorumlayıcı kilidini bırakmalıdır: bir görev
 // sonraki()'de beklerken ana program ilerleyebilmeli ve kapıyı açabilmelidir. Kilit
 // tutulsaydı program kilitlenirdi (test zaman aşımıyla düşer).
-func TestSonrakiBeklerkenKilitBirakilir(t *testing.T) {
-	kaynak := &kapiliKaynak{kapi: make(chan struct{})}
-	o := (&Kume{yol: "sahte"}).okuyucuKur(true, 1, 2, 0, kaynak)
-	defer o.kaynak.Kapat(time.Second)
+func TestNextReleasesLockWhileWaiting(t *testing.T) {
+	resource := &gatedSource{gate: make(chan struct{})}
+	o := (&Dataset{path: "sahte"}).newReader(true, 1, 2, 0, resource)
+	defer o.resource.Close(time.Second)
 
-	basladi := make(chan struct{}, 1)
+	started := make(chan struct{}, 1)
 	m := interp.New()
 	m.Out = &bytes.Buffer{}
 	m.GlobalEnv.Define("s", o, false)
-	testYerlesigi(m, "başladı", func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
-		basladi <- struct{}{}
+	testBuiltin(m, "başladı", func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
+		started <- struct{}{}
 		return interp.NULL, nil
 	})
-	testYerlesigi(m, "görevi_bekle", func(m *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	testBuiltin(m, "görevi_bekle", func(m *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 		m.Blocking(func() {
-			<-basladi
+			<-started
 			// Görev sonraki()'nin içinde önden yükleyiciyi beklemeye girene kadar beklenir
 			// (uyku değil): görev oraya varmadan kapı açılsaydı test, sınadığını sınamadan
 			// geçerdi.
-			sonrakiBeklemede(t)
+			nextWaiting(t)
 		})
 		return interp.NULL, nil
 	})
-	testYerlesigi(m, "kapıyı_aç", func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
-		close(kaynak.kapi)
+	testBuiltin(m, "kapıyı_aç", func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
+		close(resource.gate)
 		return interp.NULL, nil
 	})
 	p := parser.New(lexer.New(`
@@ -80,13 +80,13 @@ bekle_hepsi()
 	if len(p.Errors()) > 0 {
 		t.Fatal(p.Errors())
 	}
-	bitti := make(chan error, 1)
+	done := make(chan error, 1)
 	go func() {
 		_, err := m.Run(prog)
-		bitti <- err
+		done <- err
 	}()
 	select {
-	case err := <-bitti:
+	case err := <-done:
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -100,31 +100,31 @@ bekle_hepsi()
 	}
 }
 
-// sonrakiBeklemede bir görevin .sonraki() içinde önden yükleyiciden toplu iş beklediğini
+// nextWaiting bir görevin .sonraki() içinde önden yükleyiciden toplu iş beklediğini
 // (gorutinin kanal beklemesinde durduğunu) yığın dökümünden görene kadar bekler. Program
 // ayrı bir gorutinde koştuğu için t.Fatal değil t.Error kullanılır. Süre sınırı yalnızca
 // takılmaya karşıdır.
-func sonrakiBeklemede(t *testing.T) {
-	son := time.Now().Add(5 * time.Second)
+func nextWaiting(t *testing.T) {
+	last := time.Now().Add(5 * time.Second)
 	buf := make([]byte, 1<<20)
 	for {
-		yigin := string(buf[:runtime.Stack(buf, true)])
-		for _, g := range strings.Split(yigin, "\n\n") {
-			baslik, _, _ := strings.Cut(g, "\n")
-			if strings.Contains(baslik, "[select") && strings.Contains(g, "(*Okuyucu).sonraki") && strings.Contains(g, "(*Prefetcher).Take") {
+		stack := string(buf[:runtime.Stack(buf, true)])
+		for _, g := range strings.Split(stack, "\n\n") {
+			header, _, _ := strings.Cut(g, "\n")
+			if strings.Contains(header, "[select") && strings.Contains(g, "(*Reader).nextTR") && strings.Contains(g, "(*Prefetcher).Take") {
 				return
 			}
 		}
-		if time.Now().After(son) {
-			t.Errorf("görev sonraki() içinde beklemeye girmedi:\n%s", yigin)
+		if time.Now().After(last) {
+			t.Errorf("görev sonraki() içinde beklemeye girmedi:\n%s", stack)
 			return
 		}
 		time.Sleep(time.Millisecond)
 	}
 }
 
-// testYerlesigi testin yardımcı yerleşiğini genel kapsama bağlar (kod listesinde olmayan,
+// testBuiltin testin yardımcı yerleşiğini genel kapsama bağlar (kod listesinde olmayan,
 // yalnızca bu testte geçen bir ad).
-func testYerlesigi(m *interp.VM, ad string, fn interp.BuiltinFunc) {
-	m.GlobalEnv.Define(ad, &interp.BuiltinVal{Name: ad, Fn: fn}, true)
+func testBuiltin(m *interp.VM, name string, fn interp.BuiltinFunc) {
+	m.GlobalEnv.Define(name, &interp.BuiltinVal{Name: name, Fn: fn}, true)
 }
