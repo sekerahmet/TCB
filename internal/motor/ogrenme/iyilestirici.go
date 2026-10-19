@@ -57,7 +57,7 @@ func (o *Iyilestirici) oranAlani() *float32 {
 	return &o.sgd.LR
 }
 
-// UyeyeAta op.öğrenme_oranı = değer atamasıdır (yurut.UyeAtanabilir): yalnızca sonlu, pozitif
+// UyeyeAta op.öğrenme_oranı = değer atamasıdır (yurut.UyeAtanabilir): yalnızca sonlu, negatif olmayan
 // ve 32 bite sığan bir Tam ya da Ondalık kabul edilir.
 func (o *Iyilestirici) UyeyeAta(kd kod.Kod, ad string, deger yurut.Value) error {
 	if kd != uyeOgrenmeOrani {
@@ -72,8 +72,10 @@ func (o *Iyilestirici) UyeyeAta(kd kod.Kod, ad string, deger yurut.Value) error 
 	default:
 		return fmt.Errorf("%s.%s bir %s ya da %s olmalıdır, %s verildi", o.ad, kod.Ad(uyeOgrenmeOrani), kod.Ad(kod.A200), kod.Ad(kod.A201), tipAdi(deger))
 	}
-	if !(f > 0) || math.IsInf(float64(float32(f)), 0) || float32(f) == 0 {
-		return fmt.Errorf("%s.%s sonlu ve pozitif bir sayı olmalıdır, %s verildi", o.ad, kod.Ad(uyeOgrenmeOrani), deger.Inspect())
+	// 0 geçerlidir (kurucudaki gibi): oran planları eğitimin sonunda orana 0'a iner. Sıfır olmayan
+	// ama 32 bitte 0'a yuvarlanan değer reddedilir (sessizce dondurmasın).
+	if !(f >= 0) || math.IsInf(float64(float32(f)), 0) || (f != 0 && float32(f) == 0) {
+		return fmt.Errorf("%s.%s sonlu ve negatif olmayan bir sayı olmalıdır, %s verildi", o.ad, kod.Ad(uyeOgrenmeOrani), deger.Inspect())
 	}
 	*o.oranAlani() = float32(f)
 	return nil

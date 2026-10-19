@@ -381,12 +381,16 @@ test "15.39 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kul
     doğrula(a.değer != [1.0, -2.0])
     // Oran ayardır: duruma girmez.
     eşit_mi(yanlış, opa.durum.anahtarlar().içerir("öğrenme_oranı"))
-    // Yalnızca sonlu, pozitif Tam ya da Ondalık atanabilir; hatada oran değişmez.
-    doğrula(hata_metni(() => { op.öğrenme_oranı = 0 }).içerir("sonlu ve pozitif"))
-    doğrula(hata_metni(() => { op.öğrenme_oranı = -0.1 }).içerir("sonlu ve pozitif"))
-    doğrula(hata_metni(() => { op.öğrenme_oranı = log(-1.0) }).içerir("sonlu ve pozitif"))
-    doğrula(hata_metni(() => { op.öğrenme_oranı = 1e300 }).içerir("sonlu ve pozitif"))
-    doğrula(hata_metni(() => { op.öğrenme_oranı = 1e-300 }).içerir("sonlu ve pozitif"))
+    // Yalnızca sonlu, negatif olmayan Tam ya da Ondalık atanabilir; hatada oran değişmez.
+    // 0 geçerlidir: oran planları eğitimin sonunda 0'a iner.
+    değişken önceki_oran = op.öğrenme_oranı
+    op.öğrenme_oranı = 0
+    eşit_mi(0.0, op.öğrenme_oranı)
+    op.öğrenme_oranı = önceki_oran
+    doğrula(hata_metni(() => { op.öğrenme_oranı = -0.1 }).içerir("sonlu ve negatif olmayan"))
+    doğrula(hata_metni(() => { op.öğrenme_oranı = log(-1.0) }).içerir("sonlu ve negatif olmayan"))
+    doğrula(hata_metni(() => { op.öğrenme_oranı = 1e300 }).içerir("sonlu ve negatif olmayan"))
+    doğrula(hata_metni(() => { op.öğrenme_oranı = 1e-300 }).içerir("sonlu ve negatif olmayan"))
     doğrula(hata_metni(() => { op.öğrenme_oranı = "0.1" }).içerir("Tam ya da Ondalık olmalıdır"))
     doğrula(hata_metni(() => { op.öğrenme_oranı = doğru }).içerir("Tam ya da Ondalık olmalıdır"))
     eşit_mi(2.0, op.öğrenme_oranı)
