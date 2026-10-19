@@ -10,7 +10,8 @@ import (
 
 // 16 bitlik türler (bfloat16, float16) float32'ye açılmadan işlenir: çekirdekler 16 bitlik
 // değerleri kendi türünde okur ve yazar, hesap float32'dedir. Bu dosyanın testleri bu
-// davranışı birden çok çekirdek ailesinde (çapraz entropi, eleman işlemleri, indirgeme)
+// davranışı birden çok çekirdek ailesinde (çapraz entropi, eleman işlemleri, indirgeme,
+// normlar, softmax)
 // CPU ile karşılaştırarak sınar; matris çarpımının 16 bitlik kitaplık yolu gemm_lib_test.go'da,
 // tensör çekirdekli dikkat kernel_flash_mma*_test.go'dadır.
 
@@ -131,6 +132,64 @@ func TestReduce16Bit(t *testing.T) {
 					x := twin(v, true, sh[0], sh[1])[c]
 					return x.Cast(dt).SumAll().Cast(tensor.Float32), []*tensor.Tensor{x}
 				})
+			}
+		}
+	}
+}
+
+// TestNorms16Bit 16 bitlik x (ve γ, β) ile RMS normunu ve katman normunu, ileri ve geri
+// yönde denetler: çıktı x'in türündedir.
+func TestNorms16Bit(t *testing.T) {
+	old := tensor.GradDType()
+	defer tensor.SetGradDType(old)
+	rng := rand.New(rand.NewSource(22))
+	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+		for _, gt := range []tensor.DType{tensor.Float32, dt} {
+			tensor.SetGradDType(gt)
+			for _, d := range [][2]int{{3, 8}, {5, 129}, {2, 600}} {
+				R, D := d[0], d[1]
+				xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
+				name := fmt.Sprintf("%s (gradyan %s) %d×%d", dt, gt, R, D)
+				compare(t, "rms normu "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x, gm := twin(xv, true, R, D)[c], twin(gv, true, D)[c]
+					y := tensor.RMSNorm(x.Cast(dt), gm.Cast(dt), 1e-5)
+					if y.DType() != dt {
+						t.Fatalf("normun türü %s olmalıydı, %s", dt, y.DType())
+					}
+					return y.Cast(tensor.Float32), []*tensor.Tensor{x, gm}
+				})
+				compare(t, "katman normu (γ, β float32) "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+					x, gm, bt := twin(xv, true, R, D)[c], twin(gv, true, D)[c], twin(bv, true, D)[c]
+					return tensor.LayerNorm(x.Cast(dt), gm, bt, 1e-5).Cast(tensor.Float32), []*tensor.Tensor{x, gm, bt}
+				})
+			}
+		}
+	}
+}
+
+// TestSoftmax16Bit 16 bitlik girdiyle softmax ve log_softmax'ı, son ve iç eksende, ileri ve
+// geri yönde denetler.
+func TestSoftmax16Bit(t *testing.T) {
+	old := tensor.GradDType()
+	defer tensor.SetGradDType(old)
+	rng := rand.New(rand.NewSource(23))
+	v := random(rng, 4*70*3, 2)
+	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+		for _, gt := range []tensor.DType{tensor.Float32, dt} {
+			tensor.SetGradDType(gt)
+			for _, logMode := range []bool{false, true} {
+				for _, ax := range []int{2, 1} {
+					name := fmt.Sprintf("softmax log=%v eksen %d %s (gradyan %s)", logMode, ax, dt, gt)
+					compare(t, name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+						x := twin(v, true, 4, 70, 3)[c]
+						h := x.Cast(dt)
+						y := h.Softmax(ax)
+						if logMode {
+							y = h.LogSoftmax(ax)
+						}
+						return y.Cast(tensor.Float32), []*tensor.Tensor{x}
+					})
+				}
 			}
 		}
 	}

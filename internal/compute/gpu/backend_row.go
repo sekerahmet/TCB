@@ -25,8 +25,8 @@ func (g *backend) Softmax(out tensor.Storage, x tensor.View, axis int, logMode b
 	defer g.exit()
 	gt := g.temp()
 	defer gt.finish()
-	o, last := gt.write(out, false)
-	xv := gt.read(x)
+	o := g.storageOf(out)
+	xv := gt.readNative(x)
 	outer, L, ic := axisOrder(x.Shape, axis)
 	row := outer * ic
 	if row == 0 || L == 0 {
@@ -34,18 +34,15 @@ func (g *backend) Softmax(out tensor.Storage, x tensor.View, axis int, logMode b
 	}
 	checkSize(row * L)
 	B := powerOfTwo(L, 32, 256)
-	c := g.takeKernel(fmt.Sprintf("softmax:%d:%v", B, logMode), softmaxKernel(B, logMode))
+	xt := g.storageOf(xv.S).dtype
+	c := g.takeKernel(fmt.Sprintf("softmax:%d:%v:%s:%s", B, logMode, xt, o.dtype), softmaxKernel(B, logMode, xt, o.dtype))
 	g.launch(c, [3]uint32{uint32(row), 1, 1}, [3]uint32{uint32(B), 1, 1}, g.param().readV(xv).write(o, 0).u32(L).u32(ic))
-	last()
 }
 
 func (g *backend) SoftmaxGrad(gx, gs, y tensor.Storage, shape []int, axis int, logMode bool) {
 	g.enter()
 	defer g.exit()
-	gt := g.temp()
-	defer gt.finish()
-	d, last := gt.write(gx, true)
-	gd, yd := gt.readD(gs), gt.readD(y)
+	d, gd, yd := g.storageOf(gx), g.storageOf(gs), g.storageOf(y)
 	outer, L, ic := axisOrder(shape, axis)
 	row := outer * ic
 	if row == 0 || L == 0 {
@@ -53,9 +50,9 @@ func (g *backend) SoftmaxGrad(gx, gs, y tensor.Storage, shape []int, axis int, l
 	}
 	checkSize(row * L)
 	B := powerOfTwo(L, 32, 256)
-	c := g.takeKernel(fmt.Sprintf("softmax_turev:%d:%v", B, logMode), softmaxGradKernel(B, logMode))
+	dt := [3]tensor.DType{d.dtype, gd.dtype, yd.dtype}
+	c := g.takeKernel(fmt.Sprintf("softmax_turev:%d:%v:%v", B, logMode, dt), softmaxGradKernel(B, logMode, dt))
 	g.launch(c, [3]uint32{uint32(row), 1, 1}, [3]uint32{uint32(B), 1, 1}, g.param().write(d, 0).read(gd, 0).read(yd, 0).u32(L).u32(ic))
-	last()
 }
 
 // ints []int'i 32 bitlik tam sayılara çevirir (indeksler, hedefler).
@@ -212,14 +209,15 @@ func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *te
 		avg = g.allocate(R, tensor.Float32, false)
 	}
 	rstd := g.allocate(R, tensor.Float32, false)
-	o, last := gt.write(out, false)
+	o := g.storageOf(out)
 	if R == 0 {
 		return avg, rstd
 	}
 	checkSize(R * D)
-	xv := gt.read(x)
-	gv, bv := gt.readP(gamma), gt.readP(beta)
-	a := normConfig{B: powerOfTwo(D, 32, 256), layer: layer, gamma: gv != nil, beta: bv != nil}
+	xv := gt.readNative(x)
+	gv, bv := gt.readNativeP(gamma), gt.readNativeP(beta)
+	a := normConfig{B: powerOfTwo(D, 32, 256), layer: layer, gamma: gv != nil, beta: bv != nil,
+		dt: [5]tensor.DType{g.storageOf(xv.S).dtype, o.dtype, g.viewType(gv), g.viewType(bv), tensor.Float32}}
 	c := g.takeKernel(a.key("norm_ileri"), normForwardKernel(a))
 	p := g.param().readV(xv)
 	for _, v := range []*tensor.View{gv, bv} {
@@ -231,7 +229,6 @@ func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *te
 	}
 	p.write(o, 0).writeTo(avg).write(rstd, 0).u32(D).f32(eps)
 	g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(a.B), 1, 1}, p)
-	last()
 	return avg, rstd
 }
 
@@ -252,16 +249,24 @@ func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.Vi
 		return
 	}
 	checkSize(R * D)
-	gd := gt.readD(gs)
+	gd := g.storageOf(gs)
 	if gx != nil || ggamma != nil {
-		xv := gt.read(x)
-		gv := gt.readP(gamma)
-		dx, last := gt.write(gx, true)
+		xv := gt.readNative(x)
+		gv := gt.readNativeP(gamma)
+		var dx *storage
+		if gx != nil {
+			dx = g.storageOf(gx)
+		}
 		var term *storage
 		if ggamma != nil {
 			term = gt.buffer(R*D, false)
 		}
-		a := normConfig{B: powerOfTwo(D, 32, 256), layer: layer, gamma: gv != nil, xGrad: dx != nil, gammaGrad: term != nil}
+		dxT := tensor.Float32
+		if dx != nil {
+			dxT = dx.dtype
+		}
+		a := normConfig{B: powerOfTwo(D, 32, 256), layer: layer, gamma: gv != nil, xGrad: dx != nil, gammaGrad: term != nil,
+			dt: [5]tensor.DType{g.storageOf(xv.S).dtype, gd.dtype, g.viewType(gv), tensor.Float32, dxT}}
 		c := g.takeKernel(a.key("norm_geri"), normBackwardKernel(a))
 		p := g.param().writeTo(dx).writeTo(term).read(gd, 0).readV(xv)
 		if gv != nil {
@@ -275,7 +280,6 @@ func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.Vi
 		}
 		p.readFrom(od).read(g.storageOf(rstd), 0).u32(D)
 		g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(a.B), 1, 1}, p)
-		last()
 		if term != nil {
 			g.rowSums(ggamma, term, R, D)
 		}

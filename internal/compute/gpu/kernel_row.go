@@ -23,9 +23,19 @@ func (k *emitter) largest(a, b reg) reg {
 	return r
 }
 
-// rowLoop l = tid; l < L; l += B döngüsünü kurar; govde, elemanın bayt ofsetini
-// ((taban + l·I)·4) alır ve kendi göstericisine ekler (satirAdresi).
+// rowLoop l = tid; l < L; l += B döngüsünü kurar; govde, float32 elemanın bayt ofsetini
+// ((taban + l·I)·4) alır ve kendi göstericisine ekler (rowAddress).
 func (k *emitter) rowLoop(tid, L, I, base2 reg, B int, body func(addr reg, l reg)) {
+	k.rowLoopE(tid, L, I, base2, B, func(o, l reg) {
+		b := k.rd()
+		k.e("mul.wide.u32", b, o, 4)
+		body(b, l)
+	})
+}
+
+// rowLoopE rowLoop'un eleman ofsetini (taban + l·I) veren biçimi; türü kendi bilen
+// göstericiler (16 bitlik depolama) adresi rowAt ile kurar.
+func (k *emitter) rowLoopE(tid, L, I, base2 reg, B int, body func(o reg, l reg)) {
 	l := k.r()
 	k.e("mov.u32", l, tid)
 	begin, last := k.label(), k.label()
@@ -35,15 +45,16 @@ func (k *emitter) rowLoop(tid, L, I, base2 reg, B int, body func(addr reg, l reg
 	k.jumpIf(p, last)
 	o := k.r()
 	k.e("mad.lo.s32", o, l, I, base2)
-	b := k.rd()
-	k.e("mul.wide.u32", b, o, 4)
-	body(b, l)
+	body(o, l)
 	k.e("add.s32", l, l, B)
 	k.jump(begin)
 	k.put(last)
 }
 
-// rowAddress göstericiye satirDongu'nun verdiği bayt ofsetini ekler.
+// rowAt dt türündeki depolamada o. elemanın adresi.
+func (k *emitter) rowAt(ptr, o reg, dt tensor.DType) reg { return k.address(ptr, o, dtypeSize(dt)) }
+
+// rowAddress göstericiye rowLoop'un verdiği bayt ofsetini ekler.
 func (k *emitter) rowAddress(ptr, ofs reg) reg {
 	r := k.rd()
 	k.e("add.s64", r, ptr, ofs)
@@ -62,9 +73,10 @@ func (k *emitter) rowStart(L, I reg) reg {
 	return t
 }
 
-func softmaxKernel(B int, logMode bool) func() *emitter {
+// softmaxKernel x (xt) ve y (yt) kendi türlerinde okunup yazılır; hesap float32'dedir.
+func softmaxKernel(B int, logMode bool, xt, yt tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("softmax_%d_%v", B, logMode))
+		k := newEmitter(fmt.Sprintf("softmax_%d_%v_%s_%s", B, logMode, xt, yt))
 		x := k.pointer("x")
 		y := k.written("y")
 		L := k.u32p("l")
@@ -73,8 +85,8 @@ func softmaxKernel(B int, logMode bool) func() *emitter {
 		tid := k.special("%tid.x")
 		base2 := k.rowStart(L, I)
 		m := k.constant(float32(math.Inf(-1)))
-		k.rowLoop(tid, L, I, base2, B, func(ofs, _ reg) {
-			v := k.load(tensor.Float32, k.rowAddress(x, ofs))
+		k.rowLoopE(tid, L, I, base2, B, func(o, _ reg) {
+			v := k.load(xt, k.rowAt(x, o, xt))
 			b := k.p()
 			k.e("setp.gt.f32", b, v, m)
 			k.e("selp.f32", m, v, m, b)
@@ -90,14 +102,14 @@ func softmaxKernel(B int, logMode bool) func() *emitter {
 			padding = float32(math.Inf(-1))
 		}
 		dv := k.constant(padding)
-		k.rowLoop(tid, L, I, base2, B, func(ofs, _ reg) {
-			k.store(tensor.Float32, k.rowAddress(y, ofs), dv)
+		k.rowLoopE(tid, L, I, base2, B, func(o, _ reg) {
+			k.store(yt, k.rowAt(y, o, yt), dv)
 		})
 		k.jump(last)
 		k.put(full)
 		s := k.constant(0)
-		k.rowLoop(tid, L, I, base2, B, func(ofs, _ reg) {
-			v := k.load(tensor.Float32, k.rowAddress(x, ofs))
+		k.rowLoopE(tid, L, I, base2, B, func(o, _ reg) {
+			v := k.load(xt, k.rowAt(x, o, xt))
 			k.e("sub.rn.f32", v, v, m)
 			k.e("add.rn.f32", s, s, k.exponential(v))
 		})
@@ -108,8 +120,8 @@ func softmaxKernel(B int, logMode bool) func() *emitter {
 		} else {
 			k.e("rcp.rn.f32", multiplier, s)
 		}
-		k.rowLoop(tid, L, I, base2, B, func(ofs, _ reg) {
-			v := k.load(tensor.Float32, k.rowAddress(x, ofs))
+		k.rowLoopE(tid, L, I, base2, B, func(o, _ reg) {
+			v := k.load(xt, k.rowAt(x, o, xt))
 			k.e("sub.rn.f32", v, v, m)
 			r := k.f()
 			if logMode {
@@ -117,16 +129,17 @@ func softmaxKernel(B int, logMode bool) func() *emitter {
 			} else {
 				k.e("mul.rn.f32", r, k.exponential(v), multiplier)
 			}
-			k.store(tensor.Float32, k.rowAddress(y, ofs), r)
+			k.store(yt, k.rowAt(y, o, yt), r)
 		})
 		k.put(last)
 		return k
 	}
 }
 
-func softmaxGradKernel(B int, logMode bool) func() *emitter {
+// softmaxGradKernel gx (dt[0]) += ...(g dt[1], y dt[2]); her depolama kendi türünde.
+func softmaxGradKernel(B int, logMode bool, dt [3]tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("softmax_turev_%d_%v", B, logMode))
+		k := newEmitter(fmt.Sprintf("softmax_turev_%d_%v_%s_%s_%s", B, logMode, dt[0], dt[1], dt[2]))
 		gx := k.written("gx")
 		g := k.pointer("g")
 		y := k.pointer("y")
@@ -139,8 +152,8 @@ func softmaxGradKernel(B int, logMode bool) func() *emitter {
 		if logMode {
 			// Tamamen maskeli satır (bütün çıktılar −sonsuz): gradyan 0.
 			full := k.constant(0)
-			k.rowLoop(tid, L, I, base2, B, func(ofs, _ reg) {
-				v := k.load(tensor.Float32, k.rowAddress(y, ofs))
+			k.rowLoopE(tid, L, I, base2, B, func(o, _ reg) {
+				v := k.load(dt[2], k.rowAt(y, o, dt[2]))
 				b := k.p()
 				k.e("setp.ne.f32", b, v, float32(math.Inf(-1)))
 				k.e("selp.f32", full, float32(1), full, b)
@@ -151,19 +164,19 @@ func softmaxGradKernel(B int, logMode bool) func() *emitter {
 			k.jumpIf(b, last)
 		}
 		s := k.constant(0)
-		k.rowLoop(tid, L, I, base2, B, func(ofs, _ reg) {
-			gv := k.load(tensor.Float32, k.rowAddress(g, ofs))
+		k.rowLoopE(tid, L, I, base2, B, func(o, _ reg) {
+			gv := k.load(dt[1], k.rowAt(g, o, dt[1]))
 			if logMode {
 				k.e("add.rn.f32", s, s, gv)
 				return
 			}
-			yv := k.load(tensor.Float32, k.rowAddress(y, ofs))
+			yv := k.load(dt[2], k.rowAt(y, o, dt[2]))
 			k.e("fma.rn.f32", s, gv, yv, s)
 		})
 		s = k.blockReduce(s, sm, tid, B, k.sum)
-		k.rowLoop(tid, L, I, base2, B, func(ofs, _ reg) {
-			gv := k.load(tensor.Float32, k.rowAddress(g, ofs))
-			yv := k.load(tensor.Float32, k.rowAddress(y, ofs))
+		k.rowLoopE(tid, L, I, base2, B, func(o, _ reg) {
+			gv := k.load(dt[1], k.rowAt(g, o, dt[1]))
+			yv := k.load(dt[2], k.rowAt(y, o, dt[2]))
 			t := k.f()
 			if logMode {
 				k.e("mul.rn.f32", t, k.exponential(yv), s)
@@ -172,10 +185,10 @@ func softmaxGradKernel(B int, logMode bool) func() *emitter {
 				k.e("sub.rn.f32", t, gv, s)
 				k.e("mul.rn.f32", t, yv, t)
 			}
-			ha := k.rowAddress(gx, ofs)
-			old := k.load(tensor.Float32, ha)
+			ha := k.rowAt(gx, o, dt[0])
+			old := k.load(dt[0], ha)
 			k.e("add.rn.f32", old, old, t)
-			k.store(tensor.Float32, ha, old)
+			k.store(dt[0], ha, old)
 		})
 		k.put(last)
 		return k

@@ -330,14 +330,15 @@ func fixMargin(ceiling int) int {
 var testFileRuleRoots = []string{"internal/lang/", "internal/compute/"}
 
 var packageWideTests = map[string]string{
-	"internal/lang/interp/semantics_test.go":     "end-to-end language semantics: TR programs run through the whole interpreter",
-	"internal/lang/interp/robustness_test.go":    "crash, deadlock and concurrency safety of the whole interpreter",
-	"internal/compute/dataload/helpers_test.go":  "test helpers shared by the package's tests",
-	"internal/compute/tensor/helpers_test.go":    "test helpers shared by the package's tests",
-	"internal/compute/tensor/forward_test.go":    "forward values of every op against hand-computed results",
-	"internal/compute/tensor/end_to_end_test.go": "small models trained end to end on the CPU backend",
-	"internal/compute/gpu/helpers_test.go":       "TestMain and test helpers shared by the package's tests",
-	"internal/compute/gpu/nn_test.go":            "neural network ops on the GPU against the CPU backend",
+	"internal/lang/interp/semantics_test.go":      "end-to-end language semantics: TR programs run through the whole interpreter",
+	"internal/lang/interp/robustness_test.go":     "crash, deadlock and concurrency safety of the whole interpreter",
+	"internal/compute/dataload/helpers_test.go":   "test helpers shared by the package's tests",
+	"internal/compute/tensor/helpers_test.go":     "test helpers shared by the package's tests",
+	"internal/compute/tensor/forward_test.go":     "forward values of every op against hand-computed results",
+	"internal/compute/tensor/end_to_end_test.go":  "small models trained end to end on the CPU backend",
+	"internal/compute/gpu/helpers_test.go":        "TestMain and test helpers shared by the package's tests",
+	"internal/compute/gpu/nn_test.go":             "neural network ops on the GPU against the CPU backend",
+	"internal/compute/gpu/half_precision_test.go": "16-bit types processed without widening, across kernel families",
 }
 
 // A test file is named after the file it tests, so a reader can find the tests of a file (and

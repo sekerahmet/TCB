@@ -67,6 +67,23 @@ func (t *temp) readNative(v tensor.View) tensor.View {
 	return hv
 }
 
+// readNativeP readNative'in isteğe bağlı görünüm biçimi.
+func (t *temp) readNativeP(v *tensor.View) *tensor.View {
+	if v == nil {
+		return nil
+	}
+	w := t.readNative(*v)
+	return &w
+}
+
+// viewType isteğe bağlı görünümün türü (nil: Float32, kullanılmayan işlenen).
+func (g *backend) viewType(v *tensor.View) tensor.DType {
+	if v == nil {
+		return tensor.Float32
+	}
+	return g.storageOf(v.S).dtype
+}
+
 // readP isteğe bağlı görünüm.
 func (t *temp) readP(v *tensor.View) *tensor.View {
 	if v == nil {
