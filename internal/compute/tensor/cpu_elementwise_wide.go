@@ -350,9 +350,7 @@ func (b cpuBackend) WhereGrad(dst Storage, dstShape, outShape []int, g Storage, 
 func (b cpuBackend) Atan2Grad(ga, gb Storage, aShape, bShape, outShape []int, g Storage, a, bv View) {
 	var gt temp
 	defer gt.finish()
-	da, lastA := gt.write(ga, true)
-	db, lastB := gt.write(gb, true)
-	b.f32Atan2Grad(da, db, aShape, bShape, outShape, gt.readD(g), gt.read(a), gt.read(bv))
-	lastA()
-	lastB()
+	d, last := gt.writeAll(ga, gb)
+	b.f32Atan2Grad(d[0], d[1], aShape, bShape, outShape, gt.readD(g), gt.read(a), gt.read(bv))
+	last()
 }

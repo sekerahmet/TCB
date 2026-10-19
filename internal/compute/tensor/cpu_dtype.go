@@ -282,6 +282,32 @@ func (g *temp) write(s Storage, old bool) (Storage, func()) {
 	return tmp, func() { narrow(c.h, tmp.d, c.dtyp) }
 }
 
+// writeAll write'ın birden çok gradyan çıktısı için biçimidir: aynı depolama birden çok
+// çıktıda geçiyorsa (aynı tensör iki girdi olarak verilmiş: atan2(x, x),
+// katman_normu(x, w, w)) hepsine tek geçici tampon verilir; ayrı tamponlar 16 bitlik
+// hedefe sırayla yazılınca sonraki öncekinin sonucunu ezerdi. Dönen işlev hepsini yazar.
+func (g *temp) writeAll(ss ...Storage) ([]Storage, func()) {
+	d := make([]Storage, len(ss))
+	var lasts []func()
+	for i, s := range ss {
+		for j := 0; j < i && s != nil; j++ {
+			if ss[j] == s {
+				d[i] = d[j]
+			}
+		}
+		if s != nil && d[i] == nil {
+			var last func()
+			d[i], last = g.write(s, true)
+			lasts = append(lasts, last)
+		}
+	}
+	return d, func() {
+		for _, last := range lasts {
+			last()
+		}
+	}
+}
+
 func (b cpuBackend) AddTo(dst, src Storage, scale float32) {
 	var gt temp
 	defer gt.finish()
@@ -444,13 +470,9 @@ func (b cpuBackend) LayerNorm(out Storage, x View, gamma, beta *View, D int, eps
 func (b cpuBackend) LayerNormGrad(gx, ggamma, gbeta, g Storage, x View, gamma *View, mean, rstd Storage, D int) {
 	var gt temp
 	defer gt.finish()
-	dx, last1 := gt.write(gx, true)
-	dg, last2 := gt.write(ggamma, true)
-	db, last3 := gt.write(gbeta, true)
-	b.f32LayerNormGrad(dx, dg, db, gt.readD(g), gt.read(x), gt.readP(gamma), mean, rstd, D)
-	last1()
-	last2()
-	last3()
+	d, last := gt.writeAll(gx, ggamma, gbeta)
+	b.f32LayerNormGrad(d[0], d[1], d[2], gt.readD(g), gt.read(x), gt.readP(gamma), mean, rstd, D)
+	last()
 }
 
 func (b cpuBackend) RMSNorm(out Storage, x View, gamma *View, D int, eps float32) Storage {
@@ -465,11 +487,9 @@ func (b cpuBackend) RMSNorm(out Storage, x View, gamma *View, D int, eps float32
 func (b cpuBackend) RMSNormGrad(gx, ggamma, g Storage, x View, gamma *View, rinv Storage, D int) {
 	var gt temp
 	defer gt.finish()
-	dx, last1 := gt.write(gx, true)
-	dg, last2 := gt.write(ggamma, true)
-	b.f32RMSNormGrad(dx, dg, gt.readD(g), gt.read(x), gt.readP(gamma), rinv, D)
-	last1()
-	last2()
+	d, last := gt.writeAll(gx, ggamma)
+	b.f32RMSNormGrad(d[0], d[1], gt.readD(g), gt.read(x), gt.readP(gamma), rinv, D)
+	last()
 }
 
 func (b cpuBackend) Attention(out Storage, q, k, v View, mask Storage, p AttentionParams) Storage {
@@ -484,27 +504,10 @@ func (b cpuBackend) Attention(out Storage, q, k, v View, mask Storage, p Attenti
 func (b cpuBackend) AttentionGrad(gq, gk, gv, g Storage, q, k, v View, mask Storage, o, lse Storage, p AttentionParams) {
 	var gt temp
 	defer gt.finish()
-	// q, k, v aynı tensörse gradyanları aynı depolamadır: 16 bitlikte tek geçici tampon
-	// kullanılır (ayrı tamponlar birbirinin sonucunu ezerdi).
-	var d [3]Storage
-	var lasts []func()
-	g3 := [3]Storage{gq, gk, gv}
-	for i, s := range g3 {
-		for j := 0; j < i && s != nil; j++ {
-			if g3[j] == s {
-				d[i] = d[j]
-			}
-		}
-		if s != nil && d[i] == nil {
-			var last func()
-			d[i], last = gt.write(s, true)
-			lasts = append(lasts, last)
-		}
-	}
+	// q, k, v aynı tensörse gradyanları aynı depolamadır (bkz. writeAll).
+	d, last := gt.writeAll(gq, gk, gv)
 	b.f32AttentionGrad(d[0], d[1], d[2], gt.readD(g), gt.read(q), gt.read(k), gt.read(v), gt.readD(mask), gt.readD(o), lse, p)
-	for _, last := range lasts {
-		last()
-	}
+	last()
 }
 
 func (b cpuBackend) SGDStep(p, g, vel Storage, lr, momentum, wd float32) {

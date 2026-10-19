@@ -121,8 +121,22 @@ func (g *backend) Atan2Grad(ga, gb tensor.Storage, aShape, bShape, outShape []in
 		return
 	}
 	checkSize(n)
-	da, lastA := gt.write(ga, true)
-	db, lastB := gt.write(gb, true)
+	// Gradyanlar hedefe doğrudan (kendi türünde) eklenir. Aynı depolama iki çıktıda geçerse
+	// (atan2(x, x)) iki katkı tek bir float32 tamponda toplanıp bir kez yuvarlanır (CPU gibi;
+	// 16 bitlik hedefe sırayla eklemek iki kez yuvarlardı).
+	var da, db *storage
+	if ga != nil && ga == gb {
+		d, last := gt.write(ga, true)
+		defer last()
+		da, db = d, d
+	} else {
+		if ga != nil {
+			da = g.storageOf(ga)
+		}
+		if gb != nil {
+			db = g.storageOf(gb)
+		}
+	}
 	gd := gt.readD(gs)
 	a, b = gt.readStrided(a), gt.readStrided(b)
 	ta, tb := gt.buffer(n, false), gt.buffer(n, false)
@@ -141,8 +155,6 @@ func (g *backend) Atan2Grad(ga, gb tensor.Storage, aShape, bShape, outShape []in
 		g.reduce(reduceJob{a: h.t, output: h.d, shape2: outShape, stA2: contiguous(outShape),
 			st: broadcastStride(contiguous(h.sh), h.sh, outShape), term: tA, add: true, scaleF: 1})
 	}
-	lastA()
-	lastB()
 }
 
 // ----------------------------------------------------------------------------
