@@ -141,7 +141,7 @@ func narrowOne(v float32, dt DType) uint16 {
 	return f32ToF16(v)
 }
 
-// daralt dst = tür(src) (paralel).
+// narrow dst = tür(src) (paralel).
 func narrow(dst []uint16, src []float32, dt DType) {
 	src = src[:len(dst)]
 	parallelFor(len(dst), 2, func(lo, hi int) {
@@ -158,7 +158,7 @@ func narrow(dst []uint16, src []float32, dt DType) {
 	})
 }
 
-// genislet16 dst = float32(src) (paralel).
+// widen16 dst = float32(src) (paralel).
 func widen16(dst []float32, src []uint16, dt DType) {
 	src = src[:len(dst)]
 	parallelFor(len(dst), 2, func(lo, hi int) {
@@ -175,7 +175,7 @@ func widen16(dst []float32, src []uint16, dt DType) {
 	})
 }
 
-// genisletInto 16 bitlik görünümün elemanlarını mantıksal sırayla float32
+// widenInto 16 bitlik görünümün elemanlarını mantıksal sırayla float32
 // olarak out'a yazar.
 func widenInto(out []float32, v View) {
 	c := cpuStore(v.S)
@@ -201,7 +201,7 @@ func widenInto(out []float32, v View) {
 // Tür uyarlayıcıları: hesap çekirdekleri float32 görür
 // ----------------------------------------------------------------------------
 
-// gecici, bir arka uç çağrısının 16 bitlik depolamalar için açtığı float32 geçici
+// temp, bir arka uç çağrısının 16 bitlik depolamalar için açtığı float32 geçici
 // tamponları toplar; bitir hepsini havuza iade eder (çağrı bitince hiçbir görünüm onlara
 // bakmaz). Böylece 16 bitlik yoldaki her işlem tam boy yeni ayırma yapmaz; float32 yolu
 // geçici tampon kullanmaz.
@@ -211,7 +211,7 @@ type temp struct {
 	f []*cpuStorage // 8'den fazlası (nadir)
 }
 
-// tampon n elemanlı float32 geçici depolama verir; sifirla doğruysa sıfırlanmıştır.
+// buffer n elemanlı float32 geçici depolama verir; sifirla doğruysa sıfırlanmıştır.
 func (g *temp) buffer(n int, reset bool) *cpuStorage {
 	t := cpuBackend{}.allocate(n, Float32, reset).(*cpuStorage)
 	if g.n < len(g.s) {
@@ -223,7 +223,7 @@ func (g *temp) buffer(n int, reset bool) *cpuStorage {
 	return t
 }
 
-// bitir geçici tamponları havuza iade eder.
+// finish geçici tamponları havuza iade eder.
 func (g *temp) finish() {
 	for _, t := range g.s[:g.n] {
 		cpuBackend{}.Release(t)
@@ -234,7 +234,7 @@ func (g *temp) finish() {
 	g.n, g.f = 0, nil
 }
 
-// oku görünümü float32 okunabilir hale getirir: float32 ise aynen, 16 bit ise
+// read görünümü float32 okunabilir hale getirir: float32 ise aynen, 16 bit ise
 // mantıksal elemanları float32'ye açılmış bitişik geçici bir görünüm.
 func (g *temp) read(v View) View {
 	if v.S == nil || v.S.DType() == Float32 {
@@ -253,7 +253,7 @@ func (g *temp) readP(v *View) *View {
 	return &w
 }
 
-// okuD düz depolamanın (tüm elemanlar) float32 karşılığı.
+// readD düz depolamanın (tüm elemanlar) float32 karşılığı.
 func (g *temp) readD(s Storage) Storage {
 	if s == nil || s.DType() == Float32 {
 		return s
@@ -266,7 +266,7 @@ func (g *temp) readD(s Storage) Storage {
 
 var finish0 = func() {}
 
-// yaz hedef depolamanın float32 karşılığını ve geri yazma işlevini verir.
+// write hedef depolamanın float32 karşılığını ve geri yazma işlevini verir.
 // 16 bitlik hedefte float32 geçici tampon kullanılır (eski doğruysa mevcut
 // içerikle başlar: biriktirme ve yerinde güncellemeler için; değilse sıfırdır);
 // geri yazma float32 sonucu hedef türe bir kez yuvarlar.

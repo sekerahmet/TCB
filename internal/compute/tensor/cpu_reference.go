@@ -7,7 +7,7 @@ package tensor
 // başvurular (geluIleriGo, geluGeriGo, ceSatirGo, ceGeriGo, lnIleriBlokGo, lnGeriBlokGo)
 // zaten etiketsiz dosyalardadır (cpu_arkauc.go, cpu_sinir.go).
 
-// mikroAGo C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks], bp kb×nr paketli, c satır
+// microAGo C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks], bp kb×nr paketli, c satır
 // adımı ldc: mikroA'nın (v3'te sgemm6x16) basit döngülerle başvurusu. Her eleman için
 // toplam sıfırdan k sırasıyla biriktirilip c'ye eklenir (çekirdeğin işlem sırası).
 func microAGo(kb int, a []float32, rs, ks int, bp []float32, c []float32, ldc, mm, nn int) {
@@ -22,7 +22,7 @@ func microAGo(kb int, a []float32, rs, ks int, bp []float32, c []float32, ldc, m
 	}
 }
 
-// expVekGo dst[i] = e^src[i] (dst ve src aynı dilim olabilir): expVek'in skaler expf32
+// expVecGo dst[i] = e^src[i] (dst ve src aynı dilim olabilir): expVek'in skaler expf32
 // döngüsüyle başvurusu.
 func expVecGo(dst, src []float32) {
 	dst = dst[:len(src)]

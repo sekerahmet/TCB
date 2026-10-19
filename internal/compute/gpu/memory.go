@@ -42,7 +42,7 @@ import (
 // yukleKonak); hepsi hedef depolamayı alır ve gölgesini siler. Sürücünün yazma işlevleri
 // başka yerden çağrılmaz.
 
-// depo bir GPU depolaması.
+// storage bir GPU depolaması.
 type storage struct {
 	tensor.VersionCounter
 	g        *backend
@@ -59,10 +59,10 @@ func (d *storage) Device() tensor.Device { return d.g.dev }
 func (d *storage) Len() int              { return d.n }
 func (d *storage) DType() tensor.DType   { return d.dtype }
 
-// golgeSiniri bundan büyük depolamalar konak gölgesi tutmaz.
+// shadowLimit bundan büyük depolamalar konak gölgesi tutmaz.
 const shadowLimit = 1 << 20
 
-// depoOf depolamanın bu arka uca ait GPU depolaması olduğunu denetler.
+// storageOf depolamanın bu arka uca ait GPU depolaması olduğunu denetler.
 func (g *backend) storageOf(s tensor.Storage) *storage {
 	d, ok := s.(*storage)
 	if !ok || d.g != g {
@@ -74,13 +74,13 @@ func (g *backend) storageOf(s tensor.Storage) *storage {
 	return d
 }
 
-// adresi görünümün ilk elemanının cihaz adresi.
+// addressOf görünümün ilk elemanının cihaz adresi.
 func (g *backend) addressOf(v tensor.View) uint64 {
 	d := g.storageOf(v.S)
 	return d.addr + uint64(v.Offset*dtypeSize(d.dtype))
 }
 
-// havuz boyut sınıflı serbest blok listeleri ve bellek sayaçları (bayt).
+// pool boyut sınıflı serbest blok listeleri ve bellek sayaçları (bayt).
 type pool struct {
 	mu     sync.Mutex
 	empty  map[uint64][]uint64
@@ -91,7 +91,7 @@ type pool struct {
 	gcRuns, driverAllocs   int64
 }
 
-// sinifBoyu ayırmanın yuvarlandığı boy: 256 bayta kadar 256; 1 MB'ye kadar ikinin
+// classSize ayırmanın yuvarlandığı boy: 256 bayta kadar 256; 1 MB'ye kadar ikinin
 // kuvvetleri; 1 MB–64 MB arası her ikinin kuvveti aralığı dört eşit sınıfa bölünür (en çok
 // %25 boşluk); üstü 2 MB'nin katları.
 func classSize(byteN uint64) uint64 {
@@ -107,7 +107,7 @@ func classSize(byteN uint64) uint64 {
 	return (byteN + (2<<20 - 1)) &^ (2<<20 - 1)
 }
 
-// iade bloğu sınıfının listesine koyar (çöp toplayıcının temizlik iş parçacığından da
+// release2 bloğu sınıfının listesine koyar (çöp toplayıcının temizlik iş parçacığından da
 // çağrılır; yalnızca havuzun kilidini alır).
 func (h *pool) release2(addr, class uint64) {
 	h.mu.Lock()
@@ -131,13 +131,13 @@ func (h *pool) al(class uint64) (uint64, bool) {
 	return addr, true
 }
 
-// canliEkle canlı sayaçlarını artırır (kilit tutulurken).
+// addLive canlı sayaçlarını artırır (kilit tutulurken).
 func (h *pool) addLive(class uint64) {
 	h.live += class
 	h.peakLive = max(h.peakLive, h.live)
 }
 
-// yeniBlok sürücüden yeni ayrılan bloğu sayar.
+// newBlock sürücüden yeni ayrılan bloğu sayar.
 func (h *pool) newBlock(class uint64) {
 	h.mu.Lock()
 	h.reserved += class
@@ -147,7 +147,7 @@ func (h *pool) newBlock(class uint64) {
 	h.mu.Unlock()
 }
 
-// olcum sayaçların anlık görüntüsü.
+// measurement sayaçların anlık görüntüsü.
 func (h *pool) measurement() MemorySample {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -160,7 +160,7 @@ type cleanupInfo struct {
 	addr, class uint64
 }
 
-// ayir n elemanlı dt türünde depolama verir; sifirla doğruysa içerik sıfırdır.
+// allocate n elemanlı dt türünde depolama verir; sifirla doğruysa içerik sıfırdır.
 func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 	if dt != tensor.Float32 && dt != tensor.BFloat16 && dt != tensor.Float16 {
 		none(dt.String() + " türünde depolama")
@@ -193,7 +193,7 @@ func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 	return d
 }
 
-// sifirla depolamanın bütün baytlarını sıfırlar.
+// reset depolamanın bütün baytlarını sıfırlar.
 func (g *backend) reset(d *storage) {
 	if d.n == 0 {
 		return
@@ -208,7 +208,7 @@ func (g *backend) reset(d *storage) {
 	g.measureEnd("surucu_sifirla", ev)
 }
 
-// doldur32 float32 depolamanın bütün elemanlarını verilen bitlerle doldurur.
+// fill32 float32 depolamanın bütün elemanlarını verilen bitlerle doldurur.
 func (g *backend) fill32(d *storage, bitsList uint32) {
 	if d.n == 0 {
 		return
@@ -219,7 +219,7 @@ func (g *backend) fill32(d *storage, bitsList uint32) {
 	g.measureEnd("surucu_doldur", ev)
 }
 
-// dKopyala cihaz içi kopya: hedefin hOfs'undan başlayarak kaynağın kOfs'undaki n eleman
+// dCopy cihaz içi kopya: hedefin hOfs'undan başlayarak kaynağın kOfs'undaki n eleman
 // (aynı tür).
 func (g *backend) dCopy(target *storage, hOfs int, source *storage, kOfs, n int) {
 	if n == 0 {
@@ -232,7 +232,7 @@ func (g *backend) dCopy(target *storage, hOfs int, source *storage, kOfs, n int)
 	g.measureEnd("surucu_kopya", ev)
 }
 
-// suruculenAyir sürücüden yeni blok ayırır; gerekirse çöp toplamayı başlatır, bellek
+// driverAlloc sürücüden yeni blok ayırır; gerekirse çöp toplamayı başlatır, bellek
 // yetmezse havuzu boşaltıp yeniden dener.
 func (g *backend) driverAlloc(class, requested uint64) uint64 {
 	if g.pool.fresh2+class > max(g.sr.totalMemory()/32, 256<<20) {
@@ -255,7 +255,7 @@ func (g *backend) driverAlloc(class, requested uint64) uint64 {
 	return addr
 }
 
-// copTopla Go çöp toplayıcısını çalıştırır: ulaşılamayan depolamaların temizlikleri
+// collectGarbage Go çöp toplayıcısını çalıştırır: ulaşılamayan depolamaların temizlikleri
 // blokları havuza döndürür. Temizlikler ayrı bir gorutinde koştuğundan sınıfın bloğu kısa
 // süre beklenir; gelirse verilir.
 func (g *backend) collectGarbage(class uint64) (uint64, bool) {
@@ -290,7 +290,7 @@ func (g *backend) BackwardDone() {
 	}
 }
 
-// bellekKurtar çöp toplayıcıyı çalıştırır, temizliklerin havuza dönmesini kısa süre
+// reclaimMemory çöp toplayıcıyı çalıştırır, temizliklerin havuza dönmesini kısa süre
 // bekler, havuzdaki bütün blokları sürücüye geri verir ve ayırmayı yeniden dener.
 func (g *backend) reclaimMemory(class uint64) (uint64, result) {
 	runtime.GC()
@@ -318,7 +318,7 @@ func (g *backend) reclaimMemory(class uint64) (uint64, result) {
 	return g.sr.allocate(class)
 }
 
-// birak depolamayı havuza iade eder (Release).
+// release depolamayı havuza iade eder (Release).
 func (g *backend) release(d *storage) {
 	if d.n == 0 || d.release2 {
 		return
@@ -333,7 +333,7 @@ func (g *backend) release(d *storage) {
 // Konak hazırlık halkası (sayfası kilitli bellek; eşzamansız yükleme)
 // ----------------------------------------------------------------------------
 
-// hazirlik eşzamansız yüklemeler için sayfası kilitli konak belleği. Yüklenecek veri
+// setup eşzamansız yüklemeler için sayfası kilitli konak belleği. Yüklenecek veri
 // halkaya kopyalanır ve eşzamansız kopya sıraya eklenir; halka dolunca bir kez
 // eşzamanlanıp baştan kullanılır. Her eşzamanlamada ofset sıfırlanır (önceki kopyalar
 // bitmiştir).
@@ -349,7 +349,7 @@ const (
 	setupMax  = 16 << 20 // bundan büyük yüklemeler eşzamanlı yapılır
 )
 
-// yukleKonak konak verisini depolamanın başına kopyalar (küçükse halka üzerinden
+// loadHost konak verisini depolamanın başına kopyalar (küçükse halka üzerinden
 // eşzamansız).
 func (g *backend) loadHost(d *storage, data unsafe.Pointer, byteN int) {
 	if byteN == 0 {
@@ -387,7 +387,7 @@ func (g *backend) loadHost(d *storage, data unsafe.Pointer, byteN int) {
 	g.measureEnd("konaktan_yukle", ev)
 }
 
-// yukleTam 32 bitlik tam sayıları yeni bir cihaz tamponuna yükler (indeksler, hedefler).
+// loadInt 32 bitlik tam sayıları yeni bir cihaz tamponuna yükler (indeksler, hedefler).
 func (g *backend) loadInt(v []int32) *storage {
 	d := g.allocate(len(v), tensor.Float32, false)
 	if len(v) > 0 {
@@ -396,7 +396,7 @@ func (g *backend) loadInt(v []int32) *storage {
 	return d
 }
 
-// indir cihazdaki bayt baytlık bölgeyi konağa kopyalar (eşzamanlar).
+// download cihazdaki bayt baytlık bölgeyi konağa kopyalar (eşzamanlar).
 func (g *backend) download(target unsafe.Pointer, source uint64, byteN int) {
 	if byteN == 0 {
 		return

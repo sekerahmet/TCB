@@ -8,7 +8,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
-// indirgeHedefi sondaki bloğun bağlandığı ifade bir liste.indirge çağrısı mı
+// isReduceTarget sondaki bloğun bağlandığı ifade bir liste.indirge çağrısı mı
 // (l.indirge { ... }, l.indirge(0) { ... })? Bu bloklar iki parametrelidir (birikim, o).
 func isReduceTarget(e ast.Expression) bool {
 	if c, ok := e.(*ast.CallExpression); ok {
@@ -18,7 +18,7 @@ func isReduceTarget(e ast.Expression) bool {
 	return ok && slices.Contains(reduceSpellings, m.Property)
 }
 
-// eskiIndirgeBlogu indirge bloğu eski biçimde (o, [birikim, eleman] listesiyken: o[0] ve
+// oldReduceBlock indirge bloğu eski biçimde (o, [birikim, eleman] listesiyken: o[0] ve
 // o[1]) yazılmışsa ve 'birikim' hiç geçmiyorsa yol gösteren bir sözdizimi hatası kaydeder.
 // bas bloğun '{' sözcük biriminin indeksidir; blok p.pos'ta bitmiştir.
 func (p *Parser) oldReduceBlock(tok lexer.Token, begin int) {

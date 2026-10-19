@@ -30,14 +30,14 @@ const (
 	multiSGDMomentum
 	multiScale
 	multiSquare
-	// cokOlcekBellek ölçeği bellekteki bir float32'den okur (konak beklemeden kırpma); ölçek
+	// multiScaleMem ölçeği bellekteki bir float32'den okur (konak beklemeden kırpma); ölçek
 	// 1 ise blok hiçbir şey yazmaz.
 	multiScaleMem
 )
 
 var multiNames = [...]string{"cok_adamw", "cok_sgd", "cok_sgd_momentum", "cok_olcek", "cok_kare", "cok_olcek_bellek"}
 
-// cokOrtakAdlari kiplerin ortak (bütün tensörler için aynı) sayı parametreleri.
+// multiSharedNames kiplerin ortak (bütün tensörler için aynı) sayı parametreleri.
 var multiSharedNames = [...][]string{
 	multiAdamW:       {"b1", "b1c", "b2", "b2c", "eps", "cur"},
 	multiSGD:         {"lr", "momentum", "wd"},
@@ -47,7 +47,7 @@ var multiSharedNames = [...][]string{
 	multiScaleMem:    nil,
 }
 
-// cokCekirdegi kipe göre çok tensörlü çekirdeği üretir. Parametreler: tensör tablosu, blok
+// multiKernel kipe göre çok tensörlü çekirdeği üretir. Parametreler: tensör tablosu, blok
 // tablosu, (kare kipinde) kısmi toplamlar ve kipin ortak sayıları.
 func multiKernel(mode2 int) func() *emitter {
 	return func() *emitter {
@@ -128,7 +128,7 @@ func multiKernel(mode2 int) func() *emitter {
 	}
 }
 
-// adamWAdim tek elemanın AdamW adımı (CPU f32AdamWStep ile aynı sıra). s: b1, 1−b1, b2,
+// adamWStep tek elemanın AdamW adımı (CPU f32AdamWStep ile aynı sıra). s: b1, 1−b1, b2,
 // 1−b2, eps, 1−lr·wd.
 func (k *emitter) adamWStep(pa, ga, ma, va, stepLR, bc2s reg, s []reg) {
 	b1, b1c, b2, b2c, eps, cur := s[0], s[1], s[2], s[3], s[4], s[5]
@@ -155,7 +155,7 @@ func (k *emitter) adamWStep(pa, ga, ma, va, stepLR, bc2s reg, s []reg) {
 	k.store(tensor.Float32, pa, pv)
 }
 
-// sgdAdim tek elemanın SGD adımı (CPU f32SGDStep ile aynı sıra).
+// sgdStep tek elemanın SGD adımı (CPU f32SGDStep ile aynı sıra).
 func (k *emitter) sgdStep(pa, ga, va, lr, mom, wd reg, momentum bool) {
 	pv := k.load(tensor.Float32, pa)
 	gi := k.load(tensor.Float32, ga)
@@ -174,7 +174,7 @@ func (k *emitter) sgdStep(pa, ga, va, lr, mom, wd reg, momentum bool) {
 	k.store(tensor.Float32, pa, pv)
 }
 
-// kirpNormCekirdegi kareler toplamının blok kısmi toplamlarından (float64, kismi[0..n))
+// clipNormKernel kareler toplamının blok kısmi toplamlarından (float64, kismi[0..n))
 // normu ve kırpma ölçeğini hesaplar (tek blok): norm = √Σ, ölçek = norm > en_fazla ise
 // en_fazla / norm, değilse 1. İş parçacıkları kısmi toplamları sabit adımla, sonra ağaçla
 // toplar (belirlenimci). Konak beklemez: ölçeği cok_olcek_bellek okur.
@@ -245,7 +245,7 @@ func clipNormKernel() *emitter {
 	return k
 }
 
-// kareBlokYaz bloğun float64 kısmi toplamlarını ağaç biçiminde indirger ve kismi[b]'ye yazar.
+// writeSquareBlock bloğun float64 kısmi toplamlarını ağaç biçiminde indirger ve kismi[b]'ye yazar.
 func (k *emitter) writeSquareBlock(acc, partial, b, tid reg) {
 	sm := k.shared("sm", 8*squareBlock)
 	addr := k.r()

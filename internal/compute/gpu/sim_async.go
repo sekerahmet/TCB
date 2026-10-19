@@ -19,7 +19,7 @@ import (
 // hedefi benzetimde de eski değeri verir ve sınamada yanlış sonuç olarak görünür. Bekleyen
 // kopyası kalan bir iş parçacığının bitmesi hatadır.
 
-// bzCpIs bekleyen bir eşzamansız kopya.
+// simCpJob bekleyen bir eşzamansız kopya.
 type simCpJob struct {
 	group      int32
 	smAddr     int
@@ -27,7 +27,7 @@ type simCpJob struct {
 	size, read int
 }
 
-// vektor vektör işlenenini (yer tutucu "@V") komutun yazmaç ya da terim listesine çözer.
+// vector vektör işlenenini (yer tutucu "@V") komutun yazmaç ya da terim listesine çözer.
 func (a *simParser) vector(k *simInst, t, list []string) error {
 	if list == nil {
 		if k.vec != 0 {
@@ -66,7 +66,7 @@ func (a *simParser) vector(k *simInst, t, list []string) error {
 	return nil
 }
 
-// cpTerimleri cp.async.cg.shared.global [hedef], [kaynak], boy[, kaynak_boyu].
+// cpTerms cp.async.cg.shared.global [hedef], [kaynak], boy[, kaynak_boyu].
 func (a *simParser) cpTerms(k *simInst, t []string) error {
 	if len(t) != 3 && len(t) != 4 {
 		return fmt.Errorf("cp.async 3 ya da 4 işlenen ister")
@@ -103,7 +103,7 @@ func (a *simParser) cpTerms(k *simInst, t []string) error {
 	return err
 }
 
-// vekYukle vektörel ld.
+// vecLoad vektörel ld.
 func (b *simBlock) vecLoad(t *simJob, k *simInst) error {
 	n := int(k.vec)
 	d, err := b.addressSlice(t, k, 4*n, false)
@@ -116,7 +116,7 @@ func (b *simBlock) vecLoad(t *simJob, k *simInst) error {
 	return nil
 }
 
-// vekSakla vektörel st.
+// vecStore vektörel st.
 func (b *simBlock) vecStore(t *simJob, k *simInst) error {
 	if k.space == spaceParam {
 		return fmt.Errorf("parametre alanına yazılamaz")
@@ -132,7 +132,7 @@ func (b *simBlock) vecStore(t *simJob, k *simInst) error {
 	return nil
 }
 
-// cpEkle eşzamansız kopyayı iş parçacığının bekleyen listesine koyar.
+// cpAdd eşzamansız kopyayı iş parçacığının bekleyen listesine koyar.
 func (b *simBlock) cpAdd(t *simJob, k *simInst) error {
 	size := int(k.o[0].s)
 	read := int(uint32(b.read(t, &k.o[1])))
@@ -151,7 +151,7 @@ func (b *simBlock) cpAdd(t *simJob, k *simInst) error {
 	return nil
 }
 
-// cpBekle en yeni n grup dışındaki kopyaları yapar.
+// cpWait en yeni n grup dışındaki kopyaları yapar.
 func (b *simBlock) cpWait(t *simJob, n int32) error {
 	rest := t.cp[:0]
 	for _, c := range t.cp {
@@ -176,7 +176,7 @@ func (b *simBlock) cpWait(t *simJob, n int32) error {
 	return nil
 }
 
-// cpYurut cp.async ailesinin komutlarını yürütür.
+// cpRun cp.async ailesinin komutlarını yürütür.
 func (b *simBlock) cpRun(t *simJob, k *simInst) error {
 	switch k.op {
 	case simCp:

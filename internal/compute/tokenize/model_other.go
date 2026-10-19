@@ -157,7 +157,7 @@ type unigram struct {
 	cache        *cache
 }
 
-// unigramDugum bayt tabanlı önek ağacının düğümü.
+// unigramNode bayt tabanlı önek ağacının düğümü.
 type unigramNode struct {
 	child map[byte]*unigramNode
 	id    int32 // -1: burada biten token yok

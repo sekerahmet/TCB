@@ -6,14 +6,14 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// yerlesikOnbellegi etkin dilin yerleşik adlarını bir kez hesaplar.
+// builtinCache etkin dilin yerleşik adlarını bir kez hesaplar.
 var builtinCache struct {
 	sync.Mutex
 	lang  *codes.Language
 	names map[string]bool
 }
 
-// yerlesikAdlari sözlükteki yerleşiklerin (G/T/V/W) ve tip adlarının (A2xx; ifadede tip
+// builtinNames sözlükteki yerleşiklerin (G/T/V/W) ve tip adlarının (A2xx; ifadede tip
 // değeridir: tip(x) == Tam) kabul edilen adlarıdır; denetimde bu adlar her kapsamda
 // tanımlıdır (çalışma anında genel kapsama kaydedilirler).
 func builtinNames() map[string]bool {

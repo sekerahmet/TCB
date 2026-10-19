@@ -32,7 +32,7 @@ import (
 	"sort"
 )
 
-// EkToken sözlüğe sonradan eklenmiş (özel ya da sıradan) bir tokendır.
+// AddedToken sözlüğe sonradan eklenmiş (özel ya da sıradan) bir tokendır.
 type AddedToken struct {
 	ID         int    `json:"id"`
 	Content    string `json:"content"`
@@ -43,7 +43,7 @@ type AddedToken struct {
 	Special    bool   `json:"special"`
 }
 
-// Parcalayici yüklenmiş bir parçalayıcıdır. Yüklendikten sonra salt
+// Tokenizer yüklenmiş bir parçalayıcıdır. Yüklendikten sonra salt
 // okunurdur; birden çok goroutine'den aynı anda kullanılabilir.
 type Tokenizer struct {
 	normalizer    Normalizer
@@ -71,14 +71,14 @@ type Tokenizer struct {
 	encodeRegex, parseRegex int
 }
 
-// ifadeSay bir bileşen (zinciri) içindeki düzenli ifadeleri sayar.
+// exprCount bir bileşen (zinciri) içindeki düzenli ifadeleri sayar.
 func exprCount(b any) int {
 	n := 0
 	walkExprs(b, func(*Regex) { n++ })
 	return n
 }
 
-// kodlaButcesi bayt uzunluğundaki bir metnin kodlanması için paylaşılan adım
+// encodeBudget bayt uzunluğundaki bir metnin kodlanması için paylaşılan adım
 // bütçesini açar (düzenli ifade yoksa nil).
 func (p *Tokenizer) encodeBudget(byteVal int) *reBudget {
 	if p.encodeRegex == 0 {
@@ -87,10 +87,10 @@ func (p *Tokenizer) encodeBudget(byteVal int) *reBudget {
 	return newBudget(p.encodeRegex * byteVal)
 }
 
-// VarsayilanOnbellekKapasitesi sözcük önbelleğinin varsayılan girdi sayısıdır.
+// DefaultCacheCapacity sözcük önbelleğinin varsayılan girdi sayısıdır.
 const DefaultCacheCapacity = 1 << 17
 
-// Yukle verilen yoldaki tokenizer.json dosyasını okur.
+// Load verilen yoldaki tokenizer.json dosyasını okur.
 func Load(path string) (*Tokenizer, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -99,7 +99,7 @@ func Load(path string) (*Tokenizer, error) {
 	return Parse(data)
 }
 
-// Oku bir okuyucudan tokenizer.json içeriğini okur.
+// Read bir okuyucudan tokenizer.json içeriğini okur.
 func Read(r io.Reader) (*Tokenizer, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
@@ -124,7 +124,7 @@ func isEmpty(r json.RawMessage) bool {
 	return len(t) == 0 || bytes.Equal(t, []byte("null"))
 }
 
-// tembelBaytAyarla zincirin son adımı bayt düzeyi ön bölücüyse dönüşümü
+// setLazyBytes zincirin son adımı bayt düzeyi ön bölücüyse dönüşümü
 // modele bırakır (bayt -> karakter çevirisi ve fazladan bellek ayırma olmaz).
 func setLazyBytes(o PreTokenizer) {
 	switch x := o.(type) {
@@ -137,7 +137,7 @@ func setLazyBytes(o PreTokenizer) {
 	}
 }
 
-// Ayristir tokenizer.json içeriğinden bir parçalayıcı kurar.
+// Parse tokenizer.json içeriğinden bir parçalayıcı kurar.
 func Parse(data []byte) (*Tokenizer, error) {
 	var d fileFormat
 	if err := json.Unmarshal(data, &d); err != nil {
@@ -270,10 +270,10 @@ func Parse(data []byte) (*Tokenizer, error) {
 	return p, nil
 }
 
-// SozlukBoyutu ek tokenlar dahil farklı token sayısını verir.
+// VocabSize ek tokenlar dahil farklı token sayısını verir.
 func (p *Tokenizer) VocabSize() int { return p.vocabSize }
 
-// BirlesmeSayisi BPE modelindeki birleştirme kuralı sayısını verir (BPE değilse 0).
+// MergeCount BPE modelindeki birleştirme kuralı sayısını verir (BPE değilse 0).
 func (p *Tokenizer) MergeCount() int {
 	if b, ok := p.model.(*bpeModel); ok {
 		return b.mergeCount
@@ -284,7 +284,7 @@ func (p *Tokenizer) MergeCount() int {
 // Model parçalayıcının modelini verir.
 func (p *Tokenizer) Model() Model { return p.model }
 
-// TokenKimligi bir token metninin kimliğini verir (ek tokenlar önceliklidir).
+// TokenToID bir token metninin kimliğini verir (ek tokenlar önceliklidir).
 func (p *Tokenizer) TokenToID(token string) (int, bool) {
 	if id, ok := p.addedID[token]; ok {
 		return int(id), true
@@ -295,7 +295,7 @@ func (p *Tokenizer) TokenToID(token string) (int, bool) {
 	return 0, false
 }
 
-// KimlikToken bir kimliğin token metnini (modelin gösterimiyle) verir.
+// IDToToken bir kimliğin token metnini (modelin gösterimiyle) verir.
 func (p *Tokenizer) IDToToken(id int) (string, bool) {
 	k := p.tokID(id)
 	if k == nil {
@@ -304,20 +304,20 @@ func (p *Tokenizer) IDToToken(id int) (string, bool) {
 	return k.token, true
 }
 
-// OzelMi kimliğin özel bir token olup olmadığını söyler.
+// IsSpecial kimliğin özel bir token olup olmadığını söyler.
 func (p *Tokenizer) IsSpecial(id int) bool {
 	k := p.tokID(id)
 	return k != nil && k.special
 }
 
-// EkTokenlar ek tokenların bir kopyasını kimlik sırasıyla verir.
+// AddedTokens ek tokenların bir kopyasını kimlik sırasıyla verir.
 func (p *Tokenizer) AddedTokens() []AddedToken {
 	out := append([]AddedToken(nil), p.extras...)
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out
 }
 
-// OnbellekKapasitesiAyarla modelin sözcük önbelleğini verilen kapasiteyle
+// SetCacheCapacity modelin sözcük önbelleğini verilen kapasiteyle
 // yeniden kurar (0: önbellek kapalı). Kodlama sürerken çağrılmamalıdır.
 func (p *Tokenizer) SetCacheCapacity(capacity int) {
 	switch m := p.model.(type) {

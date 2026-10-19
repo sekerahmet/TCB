@@ -30,7 +30,7 @@ func init() {
 	RegisterNormalizer("BertNormalizer", newBertNorm)
 }
 
-// NormallestiriciSirasi normalleştiricileri sırayla uygular.
+// NormalizerSequence normalleştiricileri sırayla uygular.
 type NormalizerSequence []Normalizer
 
 func (s NormalizerSequence) Normalize(m string) string { return s.normalizeB(m, nil) }
@@ -42,13 +42,13 @@ func (s NormalizerSequence) normalizeB(m string, b *reBudget) string {
 	return m
 }
 
-// butceliNormallestirici düzenli ifade kullanan normalleştiricilerdir: bir
+// budgetedNormalizer düzenli ifade kullanan normalleştiricilerdir: bir
 // kodlama çağrısının paylaşılan adım bütçesiyle çalışabilirler.
 type budgetedNormalizer interface {
 	normalizeB(m string, b *reBudget) string
 }
 
-// normallestirButceli n'yi, destekliyorsa b bütçesiyle uygular.
+// normalizeBudgeted n'yi, destekliyorsa b bütçesiyle uygular.
 func normalizeBudgeted(n Normalizer, m string, b *reBudget) string {
 	if bn, ok := n.(budgetedNormalizer); ok && b != nil {
 		return bn.normalizeB(m, b)
@@ -82,7 +82,7 @@ func (n unicodeNorm) Normalize(m string) string {
 	return unicodeNormalize(m, n.compat, n.joinFn)
 }
 
-// kucukHarf her karakteri tek tek küçük harfe çevirir (bağlama bakmadan).
+// lowerCase her karakteri tek tek küçük harfe çevirir (bağlama bakmadan).
 // 'İ' (U+0130) Unicode'un koşulsuz özel durumuna göre "i̇" (i + U+0307) olur.
 type lowerCase struct{}
 
@@ -103,7 +103,7 @@ func (lowerCase) Normalize(m string) string {
 	return sb.String()
 }
 
-// aksanSil birleşen işaretleri (M) siler; genellikle NFD'den sonra kullanılır.
+// stripAccent birleşen işaretleri (M) siler; genellikle NFD'den sonra kullanılır.
 type stripAccent struct{}
 
 func (stripAccent) Normalize(m string) string {
@@ -157,7 +157,7 @@ func newStripNorm(raw json.RawMessage) (Normalizer, error) {
 	return stripNorm{t.Left, t.Right}, nil
 }
 
-// degistirici bir deseni (düz metin ya da düzenli ifade) içerikle değiştirir.
+// replacer bir deseni (düz metin ya da düzenli ifade) içerikle değiştirir.
 type replacer struct {
 	plain   string
 	expr    *Regex
@@ -188,7 +188,7 @@ func newReplacer(raw json.RawMessage) (*replacer, error) {
 	return d, nil
 }
 
-// uygula değiştirmeyi yapar; b nil değilse düzenli ifade adımları o
+// apply değiştirmeyi yapar; b nil değilse düzenli ifade adımları o
 // bütçeden düşülür.
 func (d *replacer) apply(m string, b *reBudget) string {
 	if d.expr == nil {

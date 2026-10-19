@@ -21,7 +21,7 @@ var (
 	oneOver   = float32(1 / (2 * math.Pi))
 )
 
-// ustel e^x: t = x·log2e, düzeltme t_al = fma(x, log2e, -t) + x·log2e_al ve
+// exponential e^x: t = x·log2e, düzeltme t_al = fma(x, log2e, -t) + x·log2e_al ve
 // 2^t·(1 + t_al·ln2). |t| > 126'da düzeltme sıfırlanır (taşma, -sonsuz ve NaN için).
 func (k *emitter) exponential(x reg) reg {
 	t := k.f()
@@ -46,7 +46,7 @@ func (k *emitter) exponential(x reg) reg {
 	return d
 }
 
-// logaritma doğal logaritma.
+// logarithm doğal logaritma.
 func (k *emitter) logarithm(x reg) reg {
 	r := k.f()
 	k.e("lg2.approx.f32", r, x)
@@ -126,7 +126,7 @@ func (k *emitter) gelu(x reg) reg {
 	return r
 }
 
-// geluTurev GELU türevi (CPU geluGeriGo): s = 1/(1+e^u), q = s(1−s),
+// geluGrad GELU türevi (CPU geluGeriGo): s = 1/(1+e^u), q = s(1−s),
 // d = q = 0 ise s, değilse (2x·q)·u' + s, u' = (x²·3a + 1)·c.
 func (k *emitter) geluGrad(x reg) reg {
 	e := k.exponential(k.geluU(x))
@@ -153,7 +153,7 @@ func (k *emitter) geluGrad(x reg) reg {
 	return d
 }
 
-// aciIndirge x − round(x/2π)·2π (iki parçalı 2π ile).
+// angleReduce x − round(x/2π)·2π (iki parçalı 2π ile).
 func (k *emitter) angleReduce(x reg) reg {
 	n := k.f()
 	k.e("mul.rn.f32", n, x, oneOver)
@@ -167,7 +167,7 @@ func (k *emitter) angleReduce(x reg) reg {
 	return r
 }
 
-// sinus ve kosinus aralık indirgemeli sin.approx/cos.approx.
+// sine ve kosinus aralık indirgemeli sin.approx/cos.approx.
 func (k *emitter) sine(x reg) reg {
 	r := k.f()
 	k.e("sin.approx.f32", r, k.angleReduce(x))
@@ -218,7 +218,7 @@ func (k *emitter) us(x, p reg) reg {
 // Veri türü yükleme ve saklama
 // ----------------------------------------------------------------------------
 
-// turBoyu depolama türünün eleman baytı (desteklenen kayan noktalı türler).
+// dtypeSize depolama türünün eleman baytı (desteklenen kayan noktalı türler).
 func dtypeSize(dt tensor.DType) int {
 	if dt == tensor.Float32 {
 		return 4
@@ -226,7 +226,7 @@ func dtypeSize(dt tensor.DType) int {
 	return 2
 }
 
-// yukle adresteki dt türündeki elemanı float32 olarak yükler.
+// load adresteki dt türündeki elemanı float32 olarak yükler.
 func (k *emitter) load(dt tensor.DType, addr reg) reg {
 	v := k.f()
 	switch dt {
@@ -247,7 +247,7 @@ func (k *emitter) load(dt tensor.DType, addr reg) reg {
 	return v
 }
 
-// sakla float32 v'yi dt türüne (en yakına-çifte) yuvarlayıp adrese yazar. bfloat16 NaN
+// store float32 v'yi dt türüne (en yakına-çifte) yuvarlayıp adrese yazar. bfloat16 NaN
 // sessiz NaN olarak (işaret korunarak) kalır; taşma sonsuza gider (CPU f32ToBF16 ile aynı).
 func (k *emitter) store(dt tensor.DType, addr, v reg) {
 	switch dt {

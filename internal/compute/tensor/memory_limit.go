@@ -30,7 +30,7 @@ import (
 // ucu ayrıca her depolama ayırmasını eleman sayısıyla denetler (iç tamponlar,
 // gradyanlar, iyileştirici durumları).
 
-// islem bir ayırmanın hangi işlemden geldiğini hata mesajında adlandırır.
+// opKind bir ayırmanın hangi işlemden geldiğini hata mesajında adlandırır.
 type opKind uint8
 
 const (
@@ -81,23 +81,23 @@ var opNames = [...]string{
 	isBackend:       "arka uç",
 }
 
-// binopIslem ikili işlemlerin (yayınlamalı) hata mesajı adları.
+// binopOp ikili işlemlerin (yayınlamalı) hata mesajı adları.
 var binopOp = [...]opKind{OpAdd: isAdd, OpSub: isSub, OpMul: isMul, OpDiv: isDiv,
 	OpAtan2: isBroadcastElem, OpLt: isCompare, OpGt: isCompare, OpLe: isCompare, OpGe: isCompare}
 
 func (i opKind) String() string { return opNames[i] }
 
-// yayinli işlemin çıktı şeklinin yayınlamayla üretilip üretilmediği.
+// broadcasted işlemin çıktı şeklinin yayınlamayla üretilip üretilmediği.
 func (i opKind) broadcasted() bool { return i >= isAdd && i <= isSelect }
 
-// varsayilanBellek fiziksel bellek okunamazsa varsayılan sınır (64 GB).
+// defaultMemory fiziksel bellek okunamazsa varsayılan sınır (64 GB).
 const defaultMemory = 64 << 30
 
-// sinirBayt tek ayırmanın en fazla baytı; 0 henüz okunmadığını gösterir. İlk
+// limitBytes tek ayırmanın en fazla baytı; 0 henüz okunmadığını gösterir. İlk
 // kullanımda fiziksel bellekten bir kez okunur. Testler küçültüp geri yükleyebilir.
 var limitBytes atomic.Int64
 
-// ayirmaSiniri tek ayırmanın en fazla baytını verir (fiziksel bellek).
+// allocLimit tek ayırmanın en fazla baytını verir (fiziksel bellek).
 func allocLimit() int64 {
 	if s := limitBytes.Load(); s > 0 {
 		return s
@@ -105,7 +105,7 @@ func allocLimit() int64 {
 	return readLimit()
 }
 
-// sinirOku sınırı fiziksel bellekten okuyup saklar (ayirmaSiniri'nin soğuk yolu; sıcak
+// readLimit sınırı fiziksel bellekten okuyup saklar (ayirmaSiniri'nin soğuk yolu; sıcak
 // yol satır içine alınabilsin diye ayrıdır).
 func readLimit() int64 {
 	b, ok := physicalMemory()
@@ -116,7 +116,7 @@ func readLimit() int64 {
 	return int64(b)
 }
 
-// elemanSayisi şeklin eleman sayısını taşma denetimli verir. Negatif eksen paniktir;
+// elemCount şeklin eleman sayısını taşma denetimli verir. Negatif eksen paniktir;
 // sıfır uzunluklu bir eksen varsa sonuç 0'dır (öbür eksenler ne kadar büyük olursa
 // olsun); çarpım int'e sığmıyorsa tasma doğrudur.
 func elemCount(shape []int) (n int, overflow bool) {
@@ -157,7 +157,7 @@ func sigar(n int, dt DType) bool {
 	return hi == 0 && lo <= uint64(allocLimit())*8
 }
 
-// ayirmaBoyu, is işleminin dt türünde shape şeklinde ayıracağı tensörün eleman
+// allocSize, is işleminin dt türünde shape şeklinde ayıracağı tensörün eleman
 // sayısını verir; şekil taşıyorsa ya da tensör fiziksel belleğe sığmıyorsa Türkçe
 // bir hatayla panik eder. Tensör verisi ayıran her yol bu denetimden geçer.
 func allocSize(is opKind, shape []int, dt DType) int {
@@ -168,7 +168,7 @@ func allocSize(is opKind, shape []int, dt DType) int {
 	return n
 }
 
-// elemanDenetle şekli bilinmeyen n elemanlık bir depolama ayırmasını denetler ve n'yi
+// checkElem şekli bilinmeyen n elemanlık bir depolama ayırmasını denetler ve n'yi
 // verir (arka uçların son savunması: gradyanlar, iç tamponlar, iyileştirici durumları).
 func checkElem(n int, dt DType) int {
 	if n < 0 {
@@ -180,7 +180,7 @@ func checkElem(n int, dt DType) int {
 	return n
 }
 
-// ayirmaBoyuOn ayirmaBoyu'na ek olarak arka ucun kendi bellek sınırını (MemoryLimiter,
+// allocSizeOn ayirmaBoyu'na ek olarak arka ucun kendi bellek sınırını (MemoryLimiter,
 // ör. GPU belleği) denetler; şekli bilinen ve bir arka uçta ayrılan her tensör buradan
 // geçer.
 func allocSizeOn(be Backend, is opKind, shape []int, dt DType) int {
@@ -194,7 +194,7 @@ func allocSizeOn(be Backend, is opKind, shape []int, dt DType) int {
 	return n
 }
 
-// sinirHatasi sınırı aşan ayırmanın mesajını kurar (soğuk yol).
+// limitError sınırı aşan ayırmanın mesajını kurar (soğuk yol).
 func limitError(is opKind, shape []int, dt DType, overflow bool) string {
 	return limitErrorAt(is, shape, dt, overflow, allocLimit(), "bu makinede")
 }
@@ -207,7 +207,7 @@ func SizeError(n int, dt DType, limit int64, place string) string {
 		numberText(float64(n)), dt, bytesText(float64(n)*float64(max(dt.Bits(), 1))/8), place, bytesText(float64(limit)))
 }
 
-// sinirHatasiYer sınırı aşan ayırmanın mesajını, sınır ve yer ("bu makinede", "bu
+// limitErrorAt sınırı aşan ayırmanın mesajını, sınır ve yer ("bu makinede", "bu
 // GPU'da") verilerek kurar.
 func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, place string) string {
 	elemFn := 1.0
@@ -236,7 +236,7 @@ func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, 
 	return sb.String()
 }
 
-// sekilYazi bir şekli "[2, 3]" biçiminde yazar.
+// shapeText bir şekli "[2, 3]" biçiminde yazar.
 func shapeText(shape []int) string {
 	p := make([]string, len(shape))
 	for i, d := range shape {
@@ -245,7 +245,7 @@ func shapeText(shape []int) string {
 	return "[" + strings.Join(p, ", ") + "]"
 }
 
-// baytMetni bayt sayısını insan okunur birimle (1024 tabanlı, ondalık virgülle) yazar.
+// bytesText bayt sayısını insan okunur birimle (1024 tabanlı, ondalık virgülle) yazar.
 func bytesText(b float64) string {
 	units := [...]string{"bayt", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
 	i := 0
@@ -262,7 +262,7 @@ func bytesText(b float64) string {
 	return strings.Replace(strconv.FormatFloat(b, 'f', 1, 64), ".", ",", 1) + " " + units[i]
 }
 
-// sayiMetni büyük bir sayıyı yaklaşık yazar: küçükse tam, büyükse "1,2 × 10^24".
+// numberText büyük bir sayıyı yaklaşık yazar: küçükse tam, büyükse "1,2 × 10^24".
 func numberText(x float64) string {
 	if x < 1e15 {
 		return strconv.FormatFloat(x, 'f', 0, 64)

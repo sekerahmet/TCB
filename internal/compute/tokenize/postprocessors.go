@@ -23,7 +23,7 @@ func init() {
 	RegisterPostProcessor("Sequence", newSeqProcessor)
 }
 
-// varsayilanIsle son işleyici yokken kullanılır: A'nın tür kimliği 0, B'ninki 1.
+// defaultProcess son işleyici yokken kullanılır: A'nın tür kimliği 0, B'ninki 1.
 func defaultProcess(a, b *Encoding) *Encoding {
 	if b == nil {
 		return a

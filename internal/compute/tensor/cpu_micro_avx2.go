@@ -12,11 +12,11 @@ package tensor
 const (
 	mr = 6  // mikro çekirdek satır sayısı
 	nr = 16 // mikro çekirdek sütun sayısı
-	// dogrudanA tam A panellerinin paketlenmeden okunması.
+	// directA tam A panellerinin paketlenmeden okunması.
 	directA = true
 )
 
-// mikroCekirdekAdi hız raporları ve testler için çekirdeğin adı.
+// microKernelName hız raporları ve testler için çekirdeğin adı.
 const microKernelName = "avx2-6x16"
 
 // sgemm6x16 C[0:6, 0:16] += A·Bp; A(r, k) = a[r*rs + k*ks], bp kb×16 paketli,
@@ -25,7 +25,7 @@ const microKernelName = "avx2-6x16"
 //go:noescape
 func sgemm6x16(kb int, a *float32, rs, ks int, bp, c *float32, ldc int)
 
-// mikroA C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks] (r < mr, k < kb).
+// microA C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks] (r < mr, k < kb).
 // Tam bloklar doğrudan C'ye yazılır; kenar blokları geçici bir 6×16 tampona
 // hesaplanıp geçerli kısmı eklenir. A'nın mr satırının tamamı okunabilir
 // olmalıdır (kenar panelleri paketlenip sıfırla doldurulur).

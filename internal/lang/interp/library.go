@@ -20,7 +20,7 @@ import (
 // is imported with "./tr/...".
 const LibraryPrefix = "tr/"
 
-// kitaplikDosyalari dilin gömülü kitaplığıdır; komut satırı (cmd/tr) KitaplikBagla ile bağlar.
+// libraryFiles dilin gömülü kitaplığıdır; komut satırı (cmd/tr) KitaplikBagla ile bağlar.
 // Yorumlayıcı kitaplık paketini içe aktarmaz (katman kuralı, docs/mimari.md).
 var libraryFiles fs.FS
 

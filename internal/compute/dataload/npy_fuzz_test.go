@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// FuzzNpyBaslik: .npy veri dosyaları güvenilmeyen girdidir (indirilen veri kümesi).
+// FuzzNpyHeader: .npy veri dosyaları güvenilmeyen girdidir (indirilen veri kümesi).
 // Başlık çözücü hiçbir baytta çökmemeli; dosyadan (ReadAt) ve bellekten okuma aynı
 // sonucu vermeli; kabul edilen başlığın veri konumu ve boyu taşmasız olmalı ve
 // bildirilen veri dosyaya sığıyorsa her eleman çözülebilmelidir. Derin arama:

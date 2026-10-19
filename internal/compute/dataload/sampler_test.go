@@ -409,7 +409,7 @@ func TestSequentialReader(t *testing.T) {
 	}
 }
 
-// kiyasKumesi, 4 parça × 4M tokenlık sentetik '<u2' küme kurar.
+// benchDataset, 4 parça × 4M tokenlık sentetik '<u2' küme kurar.
 func benchDataset(b *testing.B, mapping bool) *Dataset {
 	b.Helper()
 	d := b.TempDir()

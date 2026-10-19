@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// TopluIs, [B, T+1] boyutlu bir token toplu işidir. Satır i, ardışık T+1
+// Batch, [B, T+1] boyutlu bir token toplu işidir. Satır i, ardışık T+1
 // tokendır: girdi ilk T token, hedef ise bir kaydırılmış son T tokendır.
 // Veri satır öncelikli ve bitişiktir.
 type Batch struct {
@@ -14,7 +14,7 @@ type Batch struct {
 	State State   // bu toplu iş üretildikten sonraki örnekleyici durumu
 }
 
-// hazirla, Veri'yi B*(T+1) uzunluğa getirir; yeterli kapasite varsa
+// prepare, Veri'yi B*(T+1) uzunluğa getirir; yeterli kapasite varsa
 // yeniden ayırmaz.
 func (t *Batch) prepare(b, tt int) {
 	t.B, t.T = b, tt
@@ -26,25 +26,25 @@ func (t *Batch) prepare(b, tt int) {
 	}
 }
 
-// Satir, i'inci satırın T+1 tokenıdır (kopya değil, görünüm).
+// Row, i'inci satırın T+1 tokenıdır (kopya değil, görünüm).
 func (t *Batch) Row(i int) []int32 {
 	s := t.T + 1
 	return t.Data[i*s : (i+1)*s]
 }
 
-// Girdi, i'inci satırın ilk T tokenıdır (görünüm).
+// Input, i'inci satırın ilk T tokenıdır (görünüm).
 func (t *Batch) Input(i int) []int32 {
 	s := t.T + 1
 	return t.Data[i*s : i*s+t.T]
 }
 
-// Hedef, i'inci satırın bir kaydırılmış T tokenıdır (görünüm).
+// Target, i'inci satırın bir kaydırılmış T tokenıdır (görünüm).
 func (t *Batch) Target(i int) []int32 {
 	s := t.T + 1
 	return t.Data[i*s+1 : (i+1)*s]
 }
 
-// Ayir, girdi ve hedefi bitişik [B, T] dizilere kopyalar. Verilen dilimlerin
+// SplitInputTarget, girdi ve hedefi bitişik [B, T] dizilere kopyalar. Verilen dilimlerin
 // kapasitesi yetmezse yenileri ayrılır; sonuç dilimleri döner.
 func (t *Batch) SplitInputTarget(input, target []int32) ([]int32, []int32) {
 	n := t.B * t.T
@@ -78,14 +78,14 @@ func (t *Batch) U16(dst []uint16) ([]uint16, error) {
 	return dst, nil
 }
 
-// Kopya, toplu işin bağımsız bir kopyasıdır.
+// Clone, toplu işin bağımsız bir kopyasıdır.
 func (t *Batch) Clone() *Batch {
 	k := *t
 	k.Data = append([]int32(nil), t.Data...)
 	return &k
 }
 
-// Kaynak, toplu iş üreten her şeydir (Ornekleyici, SiraliOkuyucu).
+// Source, toplu iş üreten her şeydir (Ornekleyici, SiraliOkuyucu).
 // Doldur, ti'yi sonraki toplu işle doldurur; kaynak bittiğinde io.EOF döner.
 type Source interface {
 	Fill(ctx context.Context, ti *Batch) error

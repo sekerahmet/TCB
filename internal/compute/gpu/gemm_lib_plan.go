@@ -33,14 +33,14 @@ const (
 	ltMaxPlans   = 256
 )
 
-// ltAnahtar bir planın önbellek anahtarı (hizalar kitaplığın A, B, C işaretçileri içindir).
+// ltKey bir planın önbellek anahtarı (hizalar kitaplığın A, B, C işaretçileri içindir).
 type ltKey struct {
 	batch, M, N, K         int
 	ta, tb                 bool
 	alignA, alignB, alignC uint32
 }
 
-// ltPlan bir şeklin tanımları ve seçilen algoritması.
+// ltPlanFor bir şeklin tanımları ve seçilen algoritması.
 type ltPlanFor struct {
 	def, preference uintptr
 	layout          [3]uintptr // kitaplığın A'sı (bizim B), B'si (bizim A), C/D
@@ -49,7 +49,7 @@ type ltPlanFor struct {
 	valid           bool
 }
 
-// ltCikti kitaplığın yazdığı ve okuduğu değerler (yığında, taşınmaz).
+// ltOutput kitaplığın yazdığı ve okuduğu değerler (yığında, taşınmaz).
 type ltOutput struct {
 	handle      uintptr
 	heuristic   [12]uint64 // cublasLtMatmulHeuristicResult_t (96 bayt)
@@ -61,7 +61,7 @@ type ltOutput struct {
 	u64         uint64
 }
 
-// ltCarpim bir GPU'nun kitaplık bağlantısı.
+// ltGemm bir GPU'nun kitaplık bağlantısı.
 type ltGemm struct {
 	kitLib          *ltLibrary
 	h               uintptr
@@ -73,7 +73,7 @@ type ltGemm struct {
 	fallthroughCase int64 // kendi çekirdeğe düşülen çağrı sayısı
 }
 
-// hiza adresi bölen en büyük ikinin kuvveti (en çok 256 bayt).
+// align adresi bölen en büyük ikinin kuvveti (en çok 256 bayt).
 func align(addr uint64) uint32 {
 	if addr%256 == 0 {
 		return 256
@@ -81,7 +81,7 @@ func align(addr uint64) uint32 {
 	return uint32(addr & -addr)
 }
 
-// planYoket planın kitaplık nesnelerini yok eder.
+// planDestroy planın kitaplık nesnelerini yok eder.
 func (l *ltGemm) planDestroy(p *ltPlanFor) {
 	if p.def != 0 {
 		l.call(ltDescDestroy, p.def)
@@ -96,7 +96,7 @@ func (l *ltGemm) planDestroy(p *ltPlanFor) {
 	}
 }
 
-// planAl şeklin planını kurar (bir kez); kitaplık algoritma vermezse geçersiz plan.
+// takePlan şeklin planını kurar (bir kez); kitaplık algoritma vermezse geçersiz plan.
 func (l *ltGemm) takePlan(a ltKey) *ltPlanFor {
 	if p, ok := l.plan[a]; ok {
 		return p
@@ -126,7 +126,7 @@ func (l *ltGemm) takePlan(a ltKey) *ltPlanFor {
 	return p
 }
 
-// tanimKur işlem tanımını ve düzenleri kurar.
+// setupDef işlem tanımını ve düzenleri kurar.
 func (l *ltGemm) setupDef(p *ltPlanFor, a ltKey) bool {
 	o := l.o
 	if l.call(ltDescCreate, uintptr(unsafe.Pointer(&o.handle)), ltCompute32F, ltR32F) != 0 {
@@ -168,7 +168,7 @@ func (l *ltGemm) setupDef(p *ltPlanFor, a ltKey) bool {
 	return true
 }
 
-// tercihKur çalışma alanı sınırı ve işaretçi hizalarıyla tercih nesnesini kurar.
+// setupPreference çalışma alanı sınırı ve işaretçi hizalarıyla tercih nesnesini kurar.
 func (l *ltGemm) setupPreference(p *ltPlanFor, a ltKey) bool {
 	o := l.o
 	if l.call(ltPrefCreate, uintptr(unsafe.Pointer(&o.handle))) != 0 {
@@ -188,7 +188,7 @@ func (l *ltGemm) setupPreference(p *ltPlanFor, a ltKey) bool {
 	return true
 }
 
-// ltCarp C (+)= op(A)·op(B) kitaplıkla; kitaplık bu çağrıyı yapamazsa (algoritma yok ya da
+// ltMul C (+)= op(A)·op(B) kitaplıkla; kitaplık bu çağrıyı yapamazsa (algoritma yok ya da
 // çağrı hata döndü) yanlış döner ve kendi çekirdeğimiz kullanılır (düşüş sayılır). Adresler
 // cihaz adresleridir (float32 bitişik).
 func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool, c uint64, over bool) bool {

@@ -16,7 +16,7 @@ var trJSON []byte
 //go:embed en.json
 var enJSON []byte
 
-// diller ikiliye gömülü yazım dilleridir (ISO 639-1 kodu → dil dosyası). Türkçe dilin asıl
+// languages ikiliye gömülü yazım dilleridir (ISO 639-1 kodu → dil dosyası). Türkçe dilin asıl
 // dilidir: kodsuz (düz) yazılmış dosyalar Türkçedir; öbür diller kodlu dosyaların gösterimi
 // ve o dilde yazılmış metnin kodlanması içindir (docs/spec/17_kodlar.md, 17.6).
 var languages = map[string][]byte{"tr": trJSON, "en": enJSON}
@@ -66,7 +66,7 @@ type Entry struct {
 // name is not accepted and appears only in error messages; its number is never reused).
 func (g Entry) Dead() bool { return g.MovedTo != None || g.Removed }
 
-// eskiEslesme bir eski adın hangi koda ait olduğu ve adın, eski bir adın türetilmiş
+// oldMatch bir eski adın hangi koda ait olduğu ve adın, eski bir adın türetilmiş
 // ASCII biçimi olup olmadığıdır.
 type oldMatch struct {
 	code  Code
@@ -80,14 +80,14 @@ type Language struct {
 	Code string
 
 	entries map[Code]*Entry
-	// adDizi aile başına sayı → addır; Ad çalışma anında da harita araması yapmasın diye dizi.
+	// nameArr aile başına sayı → addır; Ad çalışma anında da harita araması yapmasın diye dizi.
 	nameArr   [len(familyLetters)][]string
 	codeList  []Code // artan sırada
 	spellings map[Code][]string
 	names     [namespaceCount]map[string]Code
 	oldNames  [namespaceCount]map[string][]oldMatch
 	canonical [namespaceCount]map[string]string // ad alanı başına ad ve ASCII biçimi → ad
-	// olu taşınmış ya da kaldırılmış kodlardır (artan sırada); oluAd ad alanı başına böyle
+	// dead taşınmış ya da kaldırılmış kodlardır (artan sırada); oluAd ad alanı başına böyle
 	// bir kodun adı, eski adları ve bunların ASCII biçimleri → kod.
 	dead      []Code
 	deadNames [namespaceCount]map[string]Code
@@ -398,7 +398,7 @@ func (d *Language) Suggest(ns Namespace, spelling string, accept func(Code) bool
 	return None, false
 }
 
-// etkin programın kullandığı dildir (LanguageEnvVar; varsayılan Türkçe).
+// active programın kullandığı dildir (LanguageEnvVar; varsayılan Türkçe).
 var active = func() *Language {
 	langCode := os.Getenv(LanguageEnvVar)
 	if langCode == "" {

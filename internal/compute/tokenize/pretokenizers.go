@@ -71,7 +71,7 @@ func init() {
 	})
 }
 
-// noktalamaMi ASCII noktalama ya da Unicode P kategorisi.
+// isPunct ASCII noktalama ya da Unicode P kategorisi.
 func isPunct(r rune) bool {
 	if r < utf8.RuneSelf {
 		return (r >= '!' && r <= '/') || (r >= ':' && r <= '@') || (r >= '[' && r <= '`') || (r >= '{' && r <= '~')
@@ -79,7 +79,7 @@ func isPunct(r rune) bool {
 	return tableBertPunct.inside(r)
 }
 
-// OnBolucuSirasi ön bölücüleri sırayla uygular.
+// PreTokenizerSequence ön bölücüleri sırayla uygular.
 type PreTokenizerSequence []PreTokenizer
 
 func (s PreTokenizerSequence) PreTokenize(dst, pieces []Piece) []Piece {
@@ -89,7 +89,7 @@ func (s PreTokenizerSequence) PreTokenize(dst, pieces []Piece) []Piece {
 	return dst
 }
 
-// akis zinciri derinlik öncelikli uygular: her parça, bir sonraki adıma
+// stream zinciri derinlik öncelikli uygular: her parça, bir sonraki adıma
 // hemen aktarılır; ara dilimler kurulmaz (büyük belgelerde bellek dostu).
 func (s PreTokenizerSequence) stream(p Piece, f func(Piece)) {
 	step := make([]func(Piece), len(s)+1)
@@ -101,12 +101,12 @@ func (s PreTokenizerSequence) stream(p Piece, f func(Piece)) {
 	step[0](p)
 }
 
-// akisOnBolucu parçaları dilim kurmadan tek tek üretebilen ön bölücüdür.
+// streamPreTokenizer parçaları dilim kurmadan tek tek üretebilen ön bölücüdür.
 type streamPreTokenizer interface {
 	stream(p Piece, f func(Piece))
 }
 
-// onBolAkis o'yu p'ye uygular ve her sonuç parçası için f'yi çağırır.
+// preTokenizeStream o'yu p'ye uygular ve her sonuç parçası için f'yi çağırır.
 func preTokenizeStream(o PreTokenizer, p Piece, f func(Piece)) {
 	if a, ok := o.(streamPreTokenizer); ok {
 		a.stream(p, f)
@@ -167,13 +167,13 @@ func readBehavior(s string) (splitBehavior, error) {
 	return 0, fmt.Errorf("bilinmeyen bölme davranışı %q", s)
 }
 
-// aralik parçanın içindeki bir bölümdür; esles bölümün desene uyup uymadığıdır.
+// span parçanın içindeki bir bölümdür; esles bölümün desene uyup uymadığıdır.
 type span struct {
 	begin, last int
 	matchFn     bool
 }
 
-// davranisUygula eşleşme listesini davranışa göre birleştirip parçaları üretir.
+// applyBehavior eşleşme listesini davranışa göre birleştirip parçaları üretir.
 func applyBehavior(dst []Piece, p Piece, text string, a []span, d splitBehavior) []Piece {
 	type result struct {
 		begin, last int
@@ -234,7 +234,7 @@ func applyBehavior(dst []Piece, p Piece, text string, a []span, d splitBehavior)
 	return dst
 }
 
-// eslesmeAraliklari eşleşmeleri, aralarındaki eşleşmeyen bölümlerle birlikte listeler.
+// matchSpans eşleşmeleri, aralarındaki eşleşmeyen bölümlerle birlikte listeler.
 func matchSpans(n int, find func(f func(b, e int))) []span {
 	var a []span
 	prev := 0
@@ -356,7 +356,7 @@ func (b *splitWithPattern) stream(p Piece, f func(Piece)) {
 	}
 }
 
-// karakterleBol her uyan karakteri ayrı bir eşleşme sayarak böler.
+// splitChars her uyan karakteri ayrı bir eşleşme sayarak böler.
 type splitChars struct {
 	cond     func(rune) bool
 	behavior splitBehavior
@@ -377,7 +377,7 @@ func (k splitChars) PreTokenize(dst, pieces []Piece) []Piece {
 	return dst
 }
 
-// bosluklaBol: "\w+|[^\w\s]+" eşleşmelerini tutar, aradaki boşlukları atar.
+// splitWhitespace: "\w+|[^\w\s]+" eşleşmelerini tutar, aradaki boşlukları atar.
 type splitWhitespace struct{}
 
 func (splitWhitespace) PreTokenize(dst, pieces []Piece) []Piece {
@@ -420,7 +420,7 @@ func (splitWhitespace) PreTokenize(dst, pieces []Piece) []Piece {
 // ByteLevel
 // ---------------------------------------------------------------------------
 
-// BaytDuzeyiDeseni bayt düzeyi ön bölücünün use_regex=true iken kullandığı desendir.
+// ByteLevelPattern bayt düzeyi ön bölücünün use_regex=true iken kullandığı desendir.
 const ByteLevelPattern = `'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+`
 
 var byteLevelRegex *Regex
@@ -428,7 +428,7 @@ var byteLevelRegex *Regex
 type bytePreTok struct {
 	prefixSpace bool
 	withPattern bool
-	// tembel doğruysa bayt -> karakter dönüşümü yapılmaz, parça işaretlenir
+	// lazy doğruysa bayt -> karakter dönüşümü yapılmaz, parça işaretlenir
 	// (yalnızca zincirin son adımıyken güvenlidir; kurulumda ayarlanır).
 	lazy bool
 }

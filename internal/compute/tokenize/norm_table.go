@@ -2,7 +2,7 @@
 
 package tokenize
 
-// ayristirmaVerisi satır biçimi: "<kod> <c|d|k> <kod> <kod>..."
+// parseData satır biçimi: "<kod> <c|d|k> <kod> <kod>..."
 // c: kanonik ve birincil birleşik, d: kanonik (yeniden birleştirilmez), k: uyumluluk.
 const parseData = `A0 k 0020
 A8 k 0020 0308
@@ -5727,7 +5727,7 @@ FFEE k 25CB
 2FA1C d 9F3B
 2FA1D d 2A600`
 
-// birlesimSinifiVerisi satır biçimi: "<ilk> <son> <sınıf>"
+// unionClassData satır biçimi: "<ilk> <son> <sınıf>"
 const unionClassData = `300 314 230
 315 315 232
 316 319 220

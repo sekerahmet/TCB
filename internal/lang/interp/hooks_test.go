@@ -11,7 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// sahteDeger kancaları sınamak için kendi eşitliğini, işleçlerini ve indekslemesini sağlar.
+// fakeValue kancaları sınamak için kendi eşitliğini, işleçlerini ve indekslemesini sağlar.
 type fakeValue struct{ n int }
 
 func (s *fakeValue) Type() ValueType { return "Sahte" }
@@ -171,7 +171,7 @@ func TestFloatPrintingAndScientific(t *testing.T) {
 	}
 }
 
-// atanabilirDeger indeksli atama ve dış biçime dönüşüm kancalarını sınar: a[i] = d, i
+// assignableValue indeksli atama ve dış biçime dönüşüm kancalarını sınar: a[i] = d, i
 // konumuna d yazar; a[i] okuması yazılmış değeri (yoksa 0) verir.
 type assignableValue struct{ cell map[int64]Value }
 
@@ -215,7 +215,7 @@ func TestIndexAssignAndPlainValueHooks(t *testing.T) {
 	}
 }
 
-// yinelenenDeger n öğeli (öğe i: i*10) bir dış değerdir; n < 0 ise döngü kurulamaz.
+// iteratedValue n öğeli (öğe i: i*10) bir dış değerdir; n < 0 ise döngü kurulamaz.
 type iteratedValue struct{ n int }
 
 func (y *iteratedValue) Type() ValueType { return "Yinelenen" }
@@ -272,7 +272,7 @@ değişken üretilen = [x + 1 döngü x içinde y eğer x > 0]
 	}
 }
 
-// akisDeger 0, 10, 20 ... değerlerini n tane üreten tembel bir kaynaktır (yurut.Akis);
+// streamValue 0, 10, 20 ... değerlerini n tane üreten tembel bir kaynaktır (yurut.Akis);
 // n < 0 ise ilk istekte hata verir. kac kaç öğe istendiğini sayar (tembellik sınaması).
 type streamValue struct{ i, n, howMany int }
 

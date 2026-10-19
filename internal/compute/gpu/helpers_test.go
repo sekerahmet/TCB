@@ -24,10 +24,10 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// gpuArkaUc sınamaların GPU arka ucu.
+// gpuBackend sınamaların GPU arka ucu.
 func gpuBackend() *backend { return tensor.BackendFor(gpuDevice).(*backend) }
 
-// benzetimde sınamaların benzetimde koşup koşmadığı.
+// inSim sınamaların benzetimde koşup koşmadığı.
 func inSim() bool {
 	_, ok := gpuBackend().sr.(*simDriver)
 	return ok
@@ -41,7 +41,7 @@ func random(rng *rand.Rand, n int, scaleF float64) []float32 {
 	return d
 }
 
-// ikiz aynı veriyle CPU ve GPU'da birer tensör kurar.
+// twin aynı veriyle CPU ve GPU'da birer tensör kurar.
 func twin(data []float32, grad bool, shape ...int) [2]*tensor.Tensor {
 	return [2]*tensor.Tensor{
 		tensor.NewOn(tensor.CPU, data, shape...).SetRequiresGrad(grad),
@@ -49,7 +49,7 @@ func twin(data []float32, grad bool, shape ...int) [2]*tensor.Tensor {
 	}
 }
 
-// farkDenetle iki dizinin göreli farkını denetler: |a−b| ≤ tol·(1 + |b|).
+// checkDiff iki dizinin göreli farkını denetler: |a−b| ≤ tol·(1 + |b|).
 func checkDiff(t *testing.T, ad string, gpu, cpu []float32, tol float64) {
 	t.Helper()
 	if len(gpu) != len(cpu) {
@@ -79,7 +79,7 @@ func checkDiff(t *testing.T, ad string, gpu, cpu []float32, tol float64) {
 	}
 }
 
-// karsilastir kur'un iki cihazda ürettiği çıktıyı ve (geri yayılımla) yaprakların
+// compare kur'un iki cihazda ürettiği çıktıyı ve (geri yayılımla) yaprakların
 // gradyanlarını karşılaştırır. kur aynı veriden tensörleri cihaz sırasıyla (0 CPU, 1 GPU)
 // kurmalı ve çıktıyla yaprakları vermelidir. Geri yayılımın tohumu, çıktıyla aynı
 // şekilli sabit rastgele ağırlıklardır.
@@ -116,7 +116,7 @@ func compare(t *testing.T, ad string, tol float64, setupFn func(c int) (*tensor.
 	}
 }
 
-// panikMetni fn'in panik mesajını verir (panik yoksa boş).
+// panicText fn'in panik mesajını verir (panik yoksa boş).
 func panicText(fn func()) (m string) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -8,7 +8,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// TestCopEsigiSec eşiğin kart belleğine göre seçildiğini ve ortam değişkeniyle
+// TestPickGCThreshold eşiğin kart belleğine göre seçildiğini ve ortam değişkeniyle
 // değiştirilebildiğini denetler.
 func TestPickGCThreshold(t *testing.T) {
 	for _, d := range []struct {
@@ -30,7 +30,7 @@ func TestPickGCThreshold(t *testing.T) {
 	}
 }
 
-// TestCopEsigiToplamaBaslatir eşiği aşan ayırmanın çöp toplamayı başlattığını ve
+// TestGCThresholdStartsCollection eşiği aşan ayırmanın çöp toplamayı başlattığını ve
 // ulaşılamaz depolamaların havuza döndüğünü denetler (benzetim: 1 MB eşik).
 func TestGCThresholdStartsCollection(t *testing.T) {
 	g := newBackend(tensor.GPU(7), newSim(64<<20))
@@ -50,7 +50,7 @@ func TestGCThresholdStartsCollection(t *testing.T) {
 
 // Konak gölgesi, iyileştiriciler ve küçük bir dönüştürücü modelin uçtan uca eğitimi.
 
-// TestGolgeHerYazmadaGecersizlesir konaktan yüklenmiş (gölgeli) bir depolamaya her yazma
+// TestShadowInvalidatedOnWrite konaktan yüklenmiş (gölgeli) bir depolamaya her yazma
 // yolundan sonra okunan değerin cihazdaki değer olduğunu denetler.
 func TestShadowInvalidatedOnWrite(t *testing.T) {
 	g := gpuBackend()
@@ -140,7 +140,7 @@ func TestOptimizers(t *testing.T) {
 	}
 }
 
-// kucukModel kıyas modelinin küçültülmüşü: gömme, RMS normu, nedensel çok başlı dikkat,
+// smallModel kıyas modelinin küçültülmüşü: gömme, RMS normu, nedensel çok başlı dikkat,
 // SwiGLU, paylaşımlı çıkış, çapraz entropi.
 type smallModel struct {
 	E, g1, wq, wk, wv, wo, wg, wu, w2, gs *tensor.Tensor
@@ -185,7 +185,7 @@ func (m *smallModel) loss2(input, target []int) *tensor.Tensor {
 	return tensor.CrossEntropy(output.Reshape(kmB*kmT, kmV), target)
 }
 
-// yaprakTurde tensörü dt türünde türev izleyen bir yaprağa çevirir.
+// inLeafDType tensörü dt türünde türev izleyen bir yaprağa çevirir.
 func inLeafDType(t *tensor.Tensor, dt tensor.DType) *tensor.Tensor {
 	if dt != tensor.Float32 {
 		t = t.Cast(dt).Detach()
@@ -193,7 +193,7 @@ func inLeafDType(t *tensor.Tensor, dt tensor.DType) *tensor.Tensor {
 	return t.SetRequiresGrad(true)
 }
 
-// TestKucukModelEgitimi küçük dönüştürücüyü float32 ve bfloat16 ağırlıklarla (ana kopyalı
+// TestSmallModelTraining küçük dönüştürücüyü float32 ve bfloat16 ağırlıklarla (ana kopyalı
 // AdamW) CPU ve GPU'da aynı veriyle eğitir ve kayıpları karşılaştırır. bf16 yolunda dikkatin
 // geri yayılımı 16 bitlik çıktıyı açar (iç içe başlatma hatasının sınaması).
 func TestSmallModelTraining(t *testing.T) {

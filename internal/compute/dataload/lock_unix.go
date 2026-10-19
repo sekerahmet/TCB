@@ -7,7 +7,7 @@ import (
 	"syscall"
 )
 
-// dosyaKilitle f üzerinde bekletmeden özel (yazma) kilidi alır; kilit başka
+// lockFile f üzerinde bekletmeden özel (yazma) kilidi alır; kilit başka
 // bir açık tutamaktaysa hata döner. Kilit, tutamak kapanınca (süreç
 // çökse de) bırakılır.
 func lockFile(f *os.File) error {

@@ -18,7 +18,8 @@ yorumlar, kullanıcının adları, metinler ve sayılar bayt bayt korunur. Yorum
 içi hiçbir zaman çevrilmez.
 
 **Çeviri kayıpsız olmalıdır, değilse dosyaya dokunulmaz.** Her çeviri denetlenir: anlam (sözdizimi
-ağacı) aynı kalmalı, çevrilen metin geri çevrilince özgününe dönmelidir. Sözdizimi hatası, bozuk
+ağacı) aynı kalmalı, çevrilen metin geri çevrilince özgününe dönmelidir. Kodlu metnin bir yazım
+diline çevrilmesinde bu denetim, sözcük çözümleyicinin okuyabildiği dil olan etkin dilde yapılır. Sözdizimi hatası, bozuk
 UTF-8 ya da kayıp durumunda hata döner ve dosya yazılmaz. Depodaki bütün `.tr` dosyaları ve
 belgelerdeki kod blokları bu denetimden geçmelidir.
 

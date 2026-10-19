@@ -57,7 +57,7 @@ func DepthError() error {
 // format. Code that writes a value to another format (e.g. ordered JSON) calls Enter on every
 // list/dict it enters and Leave when it leaves; the zero value is ready to use.
 type ContainerWalker struct {
-	// acik şu an yazılmakta olan (atası olunan) kapsayıcılardır; yalnızca bunlara geri
+	// opened şu an yazılmakta olan (atası olunan) kapsayıcılardır; yalnızca bunlara geri
 	// dönmek döngüdür.
 	opened map[Value]bool
 }

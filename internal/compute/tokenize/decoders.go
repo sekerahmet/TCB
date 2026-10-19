@@ -95,7 +95,7 @@ func init() {
 	})
 }
 
-// CozucuSirasi çözücüleri sırayla uygular.
+// DecoderSequence çözücüleri sırayla uygular.
 type DecoderSequence []Decoder
 
 func (s DecoderSequence) DecodeChain(t []string) []string { return s.decodeChainB(t, nil) }
@@ -107,13 +107,13 @@ func (s DecoderSequence) decodeChainB(t []string, b *reBudget) []string {
 	return t
 }
 
-// butceliCozucu düzenli ifade kullanan çözücülerdir: bir çözme çağrısının
+// budgetedDecoder düzenli ifade kullanan çözücülerdir: bir çözme çağrısının
 // paylaşılan adım bütçesiyle çalışabilirler.
 type budgetedDecoder interface {
 	decodeChainB(t []string, b *reBudget) []string
 }
 
-// cozButceli c'yi, destekliyorsa b bütçesiyle uygular.
+// decodeBudgeted c'yi, destekliyorsa b bütçesiyle uygular.
 func decodeBudgeted(c Decoder, t []string, b *reBudget) []string {
 	if bc, ok := c.(budgetedDecoder); ok && b != nil {
 		return bc.decodeChainB(t, b)
@@ -121,7 +121,7 @@ func decodeBudgeted(c Decoder, t []string, b *reBudget) []string {
 	return c.DecodeChain(t)
 }
 
-// baytCozucu tokenları bayt düzeyi karakterlerden baytlara çevirir ve tümünü
+// byteDecoder tokenları bayt düzeyi karakterlerden baytlara çevirir ve tümünü
 // tek bir (kayıplı UTF-8 ile onarılmış) metne birleştirir.
 type byteDecoder struct{}
 
@@ -202,7 +202,7 @@ func (c suffixDecoder) DecodeChain(t []string) []string {
 	return out
 }
 
-// baytYedegiCozucu "<0xXX>" tokenlarını baytlara çevirir; ardışık baytlar
+// byteFallbackDecoder "<0xXX>" tokenlarını baytlara çevirir; ardışık baytlar
 // geçerli UTF-8 değilse her bayt için bir U+FFFD üretilir.
 type byteFallbackDecoder struct{}
 

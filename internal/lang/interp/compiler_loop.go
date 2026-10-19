@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 )
 
-// donguOrtami bir döngünün her turunda gövdenin çalışacağı ortamı sağlar. Gövde ortamı
+// loopScope bir döngünün her turunda gövdenin çalışacağı ortamı sağlar. Gövde ortamı
 // yakalayamıyorsa (içinde fonksiyon, ertele, eşzamanlı, yapı yoksa) tek bir ortam turlar
 // arasında temizlenip yeniden kullanılır; aksi hâlde her tur yeni ortam açılır.
 type loopScope struct {
@@ -25,7 +25,7 @@ func (d *loopScope) fresh() *Environment {
 	return d.env
 }
 
-// donguIcinde 'döngü x içinde ...' deyimini derler. Döngü değişkenleri ve gövdenin
+// inLoop 'döngü x içinde ...' deyimini derler. Döngü değişkenleri ve gövdenin
 // tanımları her turun kendi ortamındadır.
 func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode {
 	source := c.expression(k, s.Iterable)
@@ -203,7 +203,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 	}
 }
 
-// akisDongusu tembel bir kaynağı (Akis) biter, 'çık' ya da 'sonuç' gelene kadar gezer.
+// streamLoop tembel bir kaynağı (Akis) biter, 'çık' ya da 'sonuç' gelene kadar gezer.
 // Öğe sayısı önceden bilinmediğinden her tur Sonraki ile istenir.
 func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyBlock *blockCode, line int) (Value, flowSignal, error) {
 	var lastVal Value = NULL
@@ -238,7 +238,7 @@ func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyB
 	}
 }
 
-// iken 'iken koşul { ... }' deyimini derler. Gövde ad tanımlamıyorsa tur ortamı açılmaz.
+// whileStmt 'iken koşul { ... }' deyimini derler. Gövde ad tanımlamıyorsa tur ortamı açılmaz.
 func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementCode {
 	condition := c.expression(k, s.Condition)
 	var bodyStatements []ast.Statement
@@ -312,7 +312,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 	}
 }
 
-// dogruMu bir değerin doğruluğunu (Mantık değerleri için arayüz çağrısı yapmadan) verir.
+// isTrue bir değerin doğruluğunu (Mantık değerleri için arayüz çağrısı yapmadan) verir.
 func isTrue(x Value) bool {
 	if b, ok := x.(*BoolVal); ok {
 		return b.Val

@@ -2,5 +2,5 @@
 
 package tensor
 
-// fizikselBellek bu işletim sisteminde okunmaz; varsayılan sınır kullanılır.
+// physicalMemory bu işletim sisteminde okunmaz; varsayılan sınır kullanılır.
 func physicalMemory() (uint64, bool) { return 0, false }

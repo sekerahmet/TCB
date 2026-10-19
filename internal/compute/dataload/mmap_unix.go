@@ -7,10 +7,10 @@ import (
 	"syscall"
 )
 
-// eslemeDestekli, bu platformda bellek eşlemenin denenip denenmeyeceğidir.
+// mmapSupported, bu platformda bellek eşlemenin denenip denenmeyeceğidir.
 const mmapSupported = true
 
-// dosyaEsle, f'nin ilk boyut baytını salt okunur ve paylaşımlı olarak
+// mmapFile, f'nin ilk boyut baytını salt okunur ve paylaşımlı olarak
 // belleğe eşler. Eşleme açıldıktan sonra dosya tutamağı kapatılabilir.
 func mmapFile(f *os.File, dim int64) ([]byte, func() error, error) {
 	if dim <= 0 {

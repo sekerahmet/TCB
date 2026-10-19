@@ -47,7 +47,7 @@ func (g *backend) ClampGrad(gx, gs tensor.Storage, x tensor.View, lo, hi float32
 	last()
 }
 
-// yayinMeta görünümlerin çıktı şekline yayınlanmış adımlarını birleştirir: nd = 0 ise
+// broadcastMeta görünümlerin çıktı şekline yayınlanmış adımlarını birleştirir: nd = 0 ise
 // hepsi düz bitişiktir (meta boş).
 func broadcastMeta(op string, outShape []int, vs ...tensor.View) (int, []int) {
 	steps := make([][]int, 0, len(vs)+1)
@@ -149,7 +149,7 @@ func (g *backend) Atan2Grad(ga, gb tensor.Storage, aShape, bShape, outShape []in
 // Birikimli toplam
 // ----------------------------------------------------------------------------
 
-// eksenUcu (dış, eksen, iç) üçlüsü.
+// axisEnd (dış, eksen, iç) üçlüsü.
 func axisEnd(shape []int, axis int) (outer, L, ic int) {
 	outer, ic = 1, 1
 	for _, d := range shape[:axis] {
@@ -161,7 +161,7 @@ func axisEnd(shape []int, axis int) (outer, L, ic int) {
 	return outer, shape[axis], ic
 }
 
-// birikim satır başına bir blokla birikimli toplam başlatır.
+// accum satır başına bir blokla birikimli toplam başlatır.
 func (g *backend) accum(y *storage, x tensor.View, shape []int, axis int, inverse, add bool) {
 	outer, L, ic := axisEnd(shape, axis)
 	row := outer * ic
@@ -235,7 +235,7 @@ func (g *backend) Sort(vals, idx tensor.Storage, x tensor.View, axis, kCount int
 	lastV()
 }
 
-// siralaGenel P > ortakSiralamaSiniri satırları genel bellekteki anahtar tamponunda her
+// sortGlobal P > ortakSiralamaSiniri satırları genel bellekteki anahtar tamponunda her
 // bitonik adım için bir başlatmayla sıralar.
 func (g *backend) sortGlobal(v, id *storage, xv tensor.View, row, L, ic, kCount, P int, desc bool) {
 	total := row * P

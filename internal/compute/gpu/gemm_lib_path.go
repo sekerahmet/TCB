@@ -23,7 +23,7 @@ import (
 //  5. TR'nin kendi önbellek klasörü (trOnbellekKlasoru; ileride kitaplığı oraya indirecek
 //     bir komut için ayrılmıştır, şimdilik yalnızca aranır)
 
-// carpimKitaplikAdlari kitaplığın sürüm sırasıyla dosya adları.
+// gemmLibNames kitaplığın sürüm sırasıyla dosya adları.
 func gemmLibNames() []string {
 	if runtime.GOOS == "windows" {
 		return []string{"cublasLt64_13.dll", "cublasLt64_12.dll"}
@@ -31,7 +31,7 @@ func gemmLibNames() []string {
 	return []string{"libcublasLt.so.13", "libcublasLt.so.12"}
 }
 
-// trOnbellekKlasoru TR'nin GPU kitaplıkları için ayırdığı klasör (kullanıcı önbelleği
+// trCacheDir TR'nin GPU kitaplıkları için ayırdığı klasör (kullanıcı önbelleği
 // altında tr/gpu/lib); kullanıcı önbelleği bilinmiyorsa boş.
 func trCacheDir() string {
 	d, err := os.UserCacheDir()
@@ -41,7 +41,7 @@ func trCacheDir() string {
 	return filepath.Join(d, "tr", "gpu", "lib")
 }
 
-// globla deseni mutlak yollara açar; en yeni sürüm önce (ters sözlük sırası).
+// toGlobal deseni mutlak yollara açar; en yeni sürüm önce (ters sözlük sırası).
 func toGlobal(pattern string) []string {
 	if !filepath.IsAbs(pattern) {
 		return nil
@@ -51,7 +51,7 @@ func toGlobal(pattern string) []string {
 	return r
 }
 
-// carpimKitaplikKlasorleri 3.–5. adımların klasörleri (sırayla).
+// gemmLibDirs 3.–5. adımların klasörleri (sırayla).
 func gemmLibDirs() []string {
 	var k []string
 	add := func(paths ...string) {
@@ -99,7 +99,7 @@ func gemmLibDirs() []string {
 	return k
 }
 
-// carpimKitaplikAdaylari aranacak yerleri verir: açıkça verilen yol (TR_GPU_CUBLASLT; tam yol
+// gemmLibCandidates aranacak yerleri verir: açıkça verilen yol (TR_GPU_CUBLASLT; tam yol
 // değilse hata) ve öbür adaylar (Linux'ta standart arama yolundakiler dosya adıyla). Var
 // olmayan mutlak yollar atlanır, aynı dosya (bağlar çözülerek) bir kez yer alır. Adaylar
 // arasından seçim sürüme göre yapılır (bkz. ltAdaylariAc).
@@ -133,7 +133,7 @@ func gemmLibCandidates() (open string, candidates []string, err error) {
 	return open, candidates, nil
 }
 
-// aramaYoluGuvenli LD_LIBRARY_PATH'in yalnızca mutlak klasörlerden oluştuğunu denetler
+// searchPathSafe LD_LIBRARY_PATH'in yalnızca mutlak klasörlerden oluştuğunu denetler
 // (boş öğe ya da göreli yol çalışma klasörünü aratırdı).
 func searchPathSafe(path string) bool {
 	if path == "" {

@@ -13,7 +13,7 @@ import (
 // hatadır; denetleyici, yerleşik tip() çağrısının bir metin sabitiyle karşılaştırıldığını
 // çalıştırmadan önce bulur.
 
-// tipMetinDenetle e, yerleşik tip()'in sonucunu bir metin sabitiyle (== ya da !=)
+// checkTypeTextComparison e, yerleşik tip()'in sonucunu bir metin sabitiyle (== ya da !=)
 // karşılaştırıyorsa hata ekler.
 func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 	if e.Operator != "==" && e.Operator != "!=" {
@@ -32,7 +32,7 @@ func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 		hint.TypeTextComparison(e.Operator, text.Value, codes.Name(codes.A200))))
 }
 
-// tipCagrisi ifade, kullanıcının gölgelemediği yerleşik tip()'in bir çağrısı mı?
+// isTypeCall ifade, kullanıcının gölgelemediği yerleşik tip()'in bir çağrısı mı?
 func (c *Checker) isTypeCall(expression ast.Expression) bool {
 	call, ok := expression.(*ast.CallExpression)
 	if !ok {

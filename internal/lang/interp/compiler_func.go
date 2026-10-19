@@ -6,7 +6,7 @@ import (
 
 // --- FONKSİYONLAR ---
 
-// fonkKodu bir fonksiyonun derlenmiş hâlidir; o fonksiyondan üretilen tüm değerler
+// funcCode bir fonksiyonun derlenmiş hâlidir; o fonksiyondan üretilen tüm değerler
 // (her kapanış) paylaşır.
 type funcCode struct {
 	info      *scopeInfo
@@ -17,24 +17,24 @@ type funcCode struct {
 	param      []int
 	defaultVal []exprCode
 	self       int // metotlarda 'kendi'nin yuvası, değilse -1
-	// basit: parametre yuvaları birbirinden ve 'kendi'den farklı; argümanlar doğrudan
+	// simple: parametre yuvaları birbirinden ve 'kendi'den farklı; argümanlar doğrudan
 	// yuvalara yazılabilir (bağlama sırası sonucu değiştirmez).
 	simple   bool
 	hasDefer bool
-	// havuzlu: gövde ortamı yakalayamaz (iç fonksiyon, ertele, eşzamanlı, yapı yok); çağrı
+	// pooled: gövde ortamı yakalayamaz (iç fonksiyon, ertele, eşzamanlı, yapı yok); çağrı
 	// bitince ortam temizlenip sonraki çağrılarda yeniden kullanılabilir. serbest bu
 	// ortamların yığınıdır (yalnızca yorumlayıcı kilidi tutulurken erişilir).
 	pooled bool
 	free   []*Environment
-	// kaynak fonksiyonun tanımlandığı dosyadır (nil: ana program); çağıranınkinden farklıysa
+	// source fonksiyonun tanımlandığı dosyadır (nil: ana program); çağıranınkinden farklıysa
 	// çağrı o dosyanın bağlamında yapılır (kaynaktaCagir).
 	source *Source
 }
 
-// havuzSiniri bir fonksiyon için saklanan boş ortam sayısının üst sınırıdır.
+// poolLimit bir fonksiyon için saklanan boş ortam sayısının üst sınırıdır.
 const poolLimit = 64
 
-// ortamAl fonksiyonun bir çağrısı için ortam verir (varsa havuzdan).
+// getEnv fonksiyonun bir çağrısı için ortam verir (varsa havuzdan).
 func (fk *funcCode) getEnv(outer *Environment) *Environment {
 	if n := len(fk.free); n > 0 {
 		e := fk.free[n-1]
@@ -47,7 +47,7 @@ func (fk *funcCode) getEnv(outer *Environment) *Environment {
 	return newEnv(outer, fk.info)
 }
 
-// birak biten bir çağrının ortamını havuza geri koyar.
+// release biten bir çağrının ortamını havuza geri koyar.
 func (fk *funcCode) release(e *Environment) {
 	if len(fk.free) >= poolLimit {
 		return
@@ -58,7 +58,7 @@ func (fk *funcCode) release(e *Environment) {
 	fk.free = append(fk.free, e)
 }
 
-// fonksiyon bir fonksiyon gövdesini, tanımlandığı k kapsamının içinde derler.
+// function bir fonksiyon gövdesini, tanımlandığı k kapsamının içinde derler.
 func (c *compiler) function(k *compilerScope, params []ast.Param, body *ast.BlockStatement, meth bool) *funcCode {
 	sub := subScope(k)
 	fk := &funcCode{
@@ -119,7 +119,7 @@ func (c *compiler) function(k *compilerScope, params []ast.Param, body *ast.Bloc
 	return fk
 }
 
-// fonkKoduHazirla derleyici dışında oluşturulmuş bir fonksiyon değerini (kod alanı boş)
+// prepareFuncCode derleyici dışında oluşturulmuş bir fonksiyon değerini (kod alanı boş)
 // adla çözümlemeyle derler.
 func (v *VM) prepareFuncCode(fn *FuncVal) *funcCode {
 	fk := v.newCompiler().function(boundaryScope(), fn.Parameters, fn.Body, fn.BoundSelf != nil)

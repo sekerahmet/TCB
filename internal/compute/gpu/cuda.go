@@ -28,13 +28,13 @@ import (
 // (runtime.KeepAlive). Çöp toplayıcı Go nesnelerini taşımaz; sistem çağrısındaki bir
 // gorutinin yığıtı da taşınmaz.
 
-// kutuphane sürücü kitaplığından işlev adresi bulan ve çağıran platform katmanı.
+// library sürücü kitaplığından işlev adresi bulan ve çağıran platform katmanı.
 type library interface {
 	find(ad string) (uintptr, error)
 	call(fn uintptr, args ...uintptr) uintptr
 }
 
-// cudaIslevAdlari yüklenen sürücü işlevleri (sıra cudaIslevler alanlarıyla aynı).
+// cudaFuncNames yüklenen sürücü işlevleri (sıra cudaIslevler alanlarıyla aynı).
 var cudaFuncNames = [...]string{
 	"cuInit", "cuDeviceGetCount", "cuDeviceGet", "cuDeviceGetName", "cuDeviceTotalMem_v2",
 	"cuDeviceGetAttribute", "cuDevicePrimaryCtxRetain", "cuCtxSetCurrent", "cuCtxSynchronize",
@@ -73,7 +73,7 @@ const (
 	fCount
 )
 
-// cudaIstegeBagliAdlar bulunamazsa yalnızca ilgili özelliği (profil, araç boşaltma)
+// cudaOptionalNames bulunamazsa yalnızca ilgili özelliği (profil, araç boşaltma)
 // kapatan sürücü işlevleri.
 var cudaOptionalNames = [...]string{
 	"cuEventCreate", "cuEventRecord", "cuEventQuery", "cuEventElapsedTime", "cuProfilerStop",
@@ -90,7 +90,7 @@ const (
 	iCount
 )
 
-// cudaKitaplik süreç genelinde bir kez yüklenen sürücü kitaplığı.
+// cudaLibrary süreç genelinde bir kez yüklenen sürücü kitaplığı.
 type cudaLibrary struct {
 	k       library
 	fn      [fCount]uintptr
@@ -104,7 +104,7 @@ type cudaLibrary struct {
 	ad      *struct{ g unsafe.Pointer }
 }
 
-// cudaCikti sürücünün yazdığı çıkış değerleri (yığında, taşınmaz).
+// cudaOutput sürücünün yazdığı çıkış değerleri (yığında, taşınmaz).
 type cudaOutput struct {
 	u64, u64b uint64
 	i32       int32
@@ -119,7 +119,7 @@ var (
 	cudaKitLib *cudaLibrary
 )
 
-// cudaYukle sürücü kitaplığını yükler ve cuInit çağırır (bir kez).
+// loadCUDA sürücü kitaplığını yükler ve cuInit çağırır (bir kez).
 func loadCUDA() *cudaLibrary {
 	cudaOnce.Do(func() {
 		c := &cudaLibrary{output: &cudaOutput{}, ad: &struct{ g unsafe.Pointer }{}}
@@ -160,7 +160,7 @@ func (c *cudaLibrary) call(f int, args ...uintptr) result {
 	return result(int32(uint32(r)))
 }
 
-// hataAdi sürücüden kodun adını ister (cuGetErrorName); veremezse tablodan.
+// errName sürücüden kodun adını ister (cuGetErrorName); veremezse tablodan.
 func (c *cudaLibrary) errName(s result) string {
 	if c.k == nil || c.fn[fGetErrorName] == 0 {
 		return nameFromTable(s)
@@ -174,7 +174,7 @@ func (c *cudaLibrary) errName(s result) string {
 	return cText(c.ad.g, 128)
 }
 
-// cMetin sıfırla biten C metnini okur (en çok n bayt).
+// cText sıfırla biten C metnini okur (en çok n bayt).
 func cText(p unsafe.Pointer, n int) string {
 	var sb strings.Builder
 	for i := 0; i < n; i++ {
@@ -187,7 +187,7 @@ func cText(p unsafe.Pointer, n int) string {
 	return sb.String()
 }
 
-// cudaSurucu bir cihazın sürücü bağlantısı.
+// cudaDriver bir cihazın sürücü bağlantısı.
 type cudaDriver struct {
 	c           *cudaLibrary
 	device      int32
@@ -197,19 +197,19 @@ type cudaDriver struct {
 	capability_ [2]int32
 	smCount     int32
 	clockKHz    int32 // SM saati (kHz; okunamazsa 0)
-	// paylasim blok başına açılabilecek en çok paylaşımlı bellek (bayt; okunamazsa 48 KB).
+	// sharedMem blok başına açılabilecek en çok paylaşımlı bellek (bayt; okunamazsa 48 KB).
 	sharedMem int32
 	output    *cudaOutput
 	paramBuf  []byte
 	paramPtr  []uintptr
 	jit       *jitSpace
-	// metin sürücüye verilen C metinlerinin (PTX, çekirdek adı) kalıcı tamponu: nesnenin
+	// text sürücüye verilen C metinlerinin (PTX, çekirdek adı) kalıcı tamponu: nesnenin
 	// yığın (heap) alanıdır, gorutin yığıtında değildir (yığıt büyürken taşınabilirdi).
 	text       []byte
 	lastDetail string
 }
 
-// cMetni s'yi sıfırla biten C metni olarak kalıcı tampona yazar ve adresini verir; adres
+// cTextOf s'yi sıfırla biten C metni olarak kalıcı tampona yazar ve adresini verir; adres
 // bir sonraki cMetni çağrısına kadar geçerlidir.
 func (s *cudaDriver) cTextOf(m string) unsafe.Pointer {
 	s.text = append(append(s.text[:0], m...), 0)
@@ -223,7 +223,7 @@ type jitSpace struct {
 	failure [8192]byte
 }
 
-// cudaAc verilen sıradaki cihazın birincil bağlamını açar.
+// openCUDA verilen sıradaki cihazın birincil bağlamını açar.
 func openCUDA(order int) (*cudaDriver, error) {
 	c := loadCUDA()
 	if c.failure != nil {
@@ -307,7 +307,7 @@ func (s *cudaDriver) hostAlloc(byteN int) (unsafe.Pointer, result) {
 	return s.output.indicator, r
 }
 
-// yukle konaktan cihaza kopyalar. Eşzamansız kopyanın kaynağı sayfası kilitli (Go dışı)
+// load konaktan cihaza kopyalar. Eşzamansız kopyanın kaynağı sayfası kilitli (Go dışı)
 // bellek olmalıdır (hazırlık halkası); eşzamanlı kopyanın kaynağı Go belleği olabilir ve
 // kopya bitene kadar (çağrı dönene kadar) canlı tutulur.
 func (s *cudaDriver) load(target uint64, source unsafe.Pointer, byteN uint64, concurrent2 bool) result {
@@ -321,7 +321,7 @@ func (s *cudaDriver) load(target uint64, source unsafe.Pointer, byteN uint64, co
 	return r
 }
 
-// indir cihazdan konağa eşzamanlı kopyalar; hedef çağrı süresince canlı tutulur.
+// download cihazdan konağa eşzamanlı kopyalar; hedef çağrı süresince canlı tutulur.
 func (s *cudaDriver) download(target unsafe.Pointer, source uint64, byteN uint64) result {
 	r := s.call(fMemcpyDtoH, uintptr(target), uintptr(source), uintptr(byteN))
 	runtime.KeepAlive(target)
@@ -340,7 +340,7 @@ func (s *cudaDriver) fill16(target uint64, value uint16, n uint64) result {
 	return s.call(fMemsetD16Async, uintptr(target), uintptr(value), uintptr(n), 0)
 }
 
-// modul PTX'i cuModuleLoadDataEx ile derler; derleyicinin bilgi ve hata günlüklerini
+// module PTX'i cuModuleLoadDataEx ile derler; derleyicinin bilgi ve hata günlüklerini
 // toplar.
 func (s *cudaDriver) module(ptx string) (uintptr, string, result) {
 	j := s.jit
@@ -364,7 +364,7 @@ func (s *cudaDriver) fn(module uintptr, ad string) (uintptr, result) {
 	return s.output.handle, r
 }
 
-// baslat parametreleri kalıcı tampona kopyalar (her biri 8 bayta hizalı) ve
+// launch parametreleri kalıcı tampona kopyalar (her biri 8 bayta hizalı) ve
 // cuLaunchKernel'e her parametrenin adresini verir; sürücü değerleri başlatmada kopyalar.
 func (s *cudaDriver) launch(fn uintptr, grid, block [3]uint32, sharedMem uint32, param [][]byte) result {
 	total := 0
@@ -393,7 +393,7 @@ func (s *cudaDriver) launch(fn uintptr, grid, block [3]uint32, sharedMem uint32,
 
 func (s *cudaDriver) equalize() result { return s.call(fCtxSynchronize) }
 
-// paylasimIzni CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES (8).
+// sharedMemOptIn CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES (8).
 func (s *cudaDriver) sharedMemOptIn(fn uintptr, byteN int) result {
 	return s.invoke(iFuncSetAttribute, fn, 8, uintptr(byteN))
 }
@@ -404,7 +404,7 @@ func (s *cudaDriver) errName(r result) string { return s.c.errName(r) }
 
 func (s *cudaDriver) detail() string { return s.lastDetail }
 
-// tepeGFLOPS kartın kuramsal float32 tepe hızı (GFLOPS; SM başına float32 birimi yetenek
+// peakGFLOPS kartın kuramsal float32 tepe hızı (GFLOPS; SM başına float32 birimi yetenek
 // düzeyinden tahmin edilir: 6.0, 7.x, 8.0 için 64, diğerleri 128). Yalnızca kıyas raporu.
 func (s *cudaDriver) peakGFLOPS() float64 {
 	cc, sm := s.capability()
@@ -419,7 +419,7 @@ func (s *cudaDriver) capability() (int, int) {
 	return int(s.capability_[0]*10 + s.capability_[1]), int(s.smCount)
 }
 
-// icagir isteğe bağlı bir sürücü işlevini çağırır (yoksa CUDA_ERROR_NOT_SUPPORTED).
+// invoke isteğe bağlı bir sürücü işlevini çağırır (yoksa CUDA_ERROR_NOT_SUPPORTED).
 func (s *cudaDriver) invoke(f int, args ...uintptr) result {
 	if s.c.ifn[f] == 0 {
 		return 801
@@ -444,7 +444,7 @@ func (s *cudaDriver) eventTime(begin, last uintptr) (float32, result) {
 	return s.output.f32, r
 }
 
-// araclariBosalt dış bir profilleyici bağlıysa (aracBagli) sıradaki işleri bitirir ve profil
+// flushTools dış bir profilleyici bağlıysa (aracBagli) sıradaki işleri bitirir ve profil
 // toplamayı durdurur (cuProfilerStop: araçlar bu noktada topladıklarını boşaltabilir). C çıkış
 // işleyicileri ayrıca, bütün GPU'lar kapandıktan sonra bir kez çalıştırılır (bkz. Kapat).
 func (s *cudaDriver) flushTools() {
@@ -455,6 +455,6 @@ func (s *cudaDriver) flushTools() {
 	s.invoke(iProfilerStop)
 }
 
-// aracBagli dış bir profilleyicinin (nsys, ncu) bağlı olduğu: sürücü aracı
+// toolAttached dış bir profilleyicinin (nsys, ncu) bağlı olduğu: sürücü aracı
 // CUDA_INJECTION64_PATH ile yükler.
 func toolAttached() bool { return os.Getenv("CUDA_INJECTION64_PATH") != "" }

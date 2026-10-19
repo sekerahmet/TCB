@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// denemeYolu YolDegerli'yi uygulayan bir dış değerdir (ileride standart kitaplığın Yol tipi).
+// testPath YolDegerli'yi uygulayan bir dış değerdir (ileride standart kitaplığın Yol tipi).
 type testPath struct{ filePath string }
 
 func (d *testPath) Type() ValueType  { return "DenemeYolu" }

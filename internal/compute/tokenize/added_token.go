@@ -40,13 +40,13 @@ func newAddedMatcher(extras []AddedToken) *addedMatcher {
 	return e
 }
 
-// ekParca metnin bir bölümüdür: id >= 0 ise ek tokendır, değilse düz metin.
+// addedPiece metnin bir bölümüdür: id >= 0 ise ek tokendır, değilse düz metin.
 type addedPiece struct {
 	begin, last int
 	id          int32
 }
 
-// bol metni ek tokenlara göre böler. ozelleriAtla doğruysa özel tokenlar
+// splitFn metni ek tokenlara göre böler. ozelleriAtla doğruysa özel tokenlar
 // tanınmaz (düz metin sayılır); sıradan ek tokenlar yine tanınır.
 func (e *addedMatcher) splitFn(s string, skipSpecial bool, f func(addedPiece)) {
 	if e.empty || s == "" {

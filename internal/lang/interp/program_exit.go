@@ -35,7 +35,7 @@ func IsExitRequest(err error) (*ExitRequest, bool) {
 	return nil, false
 }
 
-// yakalanamaz dene/yakala'nın yakalamadığı hatalardır: kesilme ve program çıkışı isteği.
+// uncatchable dene/yakala'nın yakalamadığı hatalardır: kesilme ve program çıkışı isteği.
 func uncatchable(err error) bool {
 	if errors.Is(err, ErrInterrupted) {
 		return true

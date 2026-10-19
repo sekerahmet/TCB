@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-// bellekDurumu çekirdek kitaplığının bellek durumu yapısıdır (64 bayt).
+// memState çekirdek kitaplığının bellek durumu yapısıdır (64 bayt).
 type memState struct {
 	length           uint32
 	load             uint32
@@ -18,7 +18,7 @@ type memState struct {
 	freeLargeVirtual uint64
 }
 
-// fizikselBellek makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
+// physicalMemory makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
 func physicalMemory() (uint64, bool) {
 	proc := syscall.NewLazyDLL("kernel32.dll").NewProc("GlobalMemoryStatusEx")
 	if proc.Find() != nil {

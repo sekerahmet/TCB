@@ -93,7 +93,7 @@ func TestNormVectorMatchesGo(t *testing.T) {
 	}
 }
 
-// normOzeti sabit girdilerle katman/RMS normu ileri ve geri sonuçlarının bit özeti.
+// normSummary sabit girdilerle katman/RMS normu ileri ve geri sonuçlarının bit özeti.
 func normSummary() uint64 {
 	rng := rand.New(rand.NewSource(5))
 	h := uint64(14695981039346656037)

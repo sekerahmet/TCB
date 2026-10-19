@@ -57,7 +57,7 @@ func WriteAtomic(filePath string, write func(w io.Writer) error) (err error) {
 	return nil
 }
 
-// atomikHedef yazılacak gerçek dosyayı (bağlantı ise gösterdiği yeri) ve izin bitlerini bulur.
+// atomicTarget yazılacak gerçek dosyayı (bağlantı ise gösterdiği yeri) ve izin bitlerini bulur.
 func atomicTarget(filePath string) (string, fs.FileMode, error) {
 	dest := filePath
 	if b, e := os.Lstat(filePath); e == nil && b.Mode()&fs.ModeSymlink != 0 {
@@ -75,7 +75,7 @@ func atomicTarget(filePath string) (string, fs.FileMode, error) {
 	return dest, mod, nil
 }
 
-// yolHatasi işletim sisteminin hatasını kullanıcının verdiği yolla yeniden sarar (geçici
+// pathError işletim sisteminin hatasını kullanıcının verdiği yolla yeniden sarar (geçici
 // dosyanın adı mesaja sızmasın).
 func pathError(op, filePath string, err error) error {
 	var pe *fs.PathError

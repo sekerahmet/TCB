@@ -13,7 +13,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// cekirdekYerlesikleri çekirdeğin adlı argüman almayan yerleşikleridir; kayıt sırası
+// coreBuiltins çekirdeğin adlı argüman almayan yerleşikleridir; kayıt sırası
 // tablodaki sıradır. Adlar kod listesindedir (internal/lang/codes).
 var coreBuiltins = [...]struct {
 	kd codes.Code
@@ -46,7 +46,7 @@ func (v *VM) registerBuiltins() {
 	v.singleArg(codes.G212, singleChar)
 }
 
-// yazdirYerlesik yazdır() yerleşiğidir.
+// printBuiltin yazdır() yerleşiğidir.
 // Ekrana Yazdırma: yazdır(...)
 func printBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	var parts []string
@@ -58,7 +58,7 @@ func printBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return &StringVal{Val: out}, nil
 }
 
-// girdiYerlesik girdi() yerleşiğidir.
+// inputBuiltin girdi() yerleşiğidir.
 // Kullanıcıdan Girdi Alma: girdi("Adınız: ")
 func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) > 1 {
@@ -75,7 +75,7 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return &StringVal{Val: line}, nil
 }
 
-// tipYerlesik tip() yerleşiğidir.
+// typeBuiltin tip() yerleşiğidir.
 // Tip Sorgulama: tip(x)
 func typeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
@@ -84,7 +84,7 @@ func typeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return TypeOfValue(args[0]), nil
 }
 
-// tamYerlesik tam() yerleşiğidir.
+// intBuiltin tam() yerleşiğidir.
 // Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
 func intBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
@@ -115,7 +115,7 @@ func intBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	}
 }
 
-// ondalikYerlesik ondalık() yerleşiğidir.
+// floatBuiltin ondalık() yerleşiğidir.
 func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G211, "1", len(args), "değer")
@@ -136,7 +136,7 @@ func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	}
 }
 
-// metinYerlesik metin() yerleşiğidir.
+// stringBuiltin metin() yerleşiğidir.
 func stringBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G212, "1", len(args), "değer")
@@ -144,7 +144,7 @@ func stringBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return singleChar(y, args[0])
 }
 
-// aralikYerlesik aralık() yerleşiğidir.
+// rangeBuiltin aralık() yerleşiğidir.
 // Liste: aralık(bitiş) ya da aralık(başlangıç, bitiş)
 func rangeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) == 1 {
@@ -182,7 +182,7 @@ func rangeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return nil, ArgCountError(codes.G305, "1 ya da 2", len(args), "bitiş", "başlangıç, bitiş")
 }
 
-// toplamYerlesik toplam() yerleşiğidir.
+// sumBuiltin toplam() yerleşiğidir.
 // Temel Matematik Fonksiyonları
 func sumBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
@@ -195,18 +195,18 @@ func sumBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return sumNumbers(CallPrefix(codes.G400), list.Elements)
 }
 
-// minYerlesik min() yerleşiğidir.
+// minBuiltin min() yerleşiğidir.
 // min/maks: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
 func minBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return extremeArgs(codes.G401, args, false)
 }
 
-// maksYerlesik maks() yerleşiğidir.
+// maxBuiltin maks() yerleşiğidir.
 func maxBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return extremeArgs(codes.G402, args, true)
 }
 
-// mutlakYerlesik mutlak() yerleşiğidir.
+// absBuiltin mutlak() yerleşiğidir.
 func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G403, "1", len(args), "sayı")
@@ -227,7 +227,7 @@ func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return nil, ArgTypeError(codes.G403, 1, args[0], numberTypes...)
 }
 
-// karekokYerlesik karekök() yerleşiğidir.
+// sqrtBuiltin karekök() yerleşiğidir.
 func sqrtBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G404, "1", len(args), "sayı")
@@ -238,7 +238,7 @@ func sqrtBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return nil, ArgTypeError(codes.G404, 1, args[0], numberTypes...)
 }
 
-// yuvarlaYerlesik yuvarla() yerleşiğidir.
+// roundBuiltin yuvarla() yerleşiğidir.
 func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, ArgCountError(codes.G405, "1 ya da 2", len(args), "sayı", "sayı, basamak")
@@ -275,7 +275,7 @@ func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return NewInt(n), nil
 }
 
-// bekleHepsiYerlesik bekle_hepsi() yerleşiğidir.
+// waitAllBuiltin bekle_hepsi() yerleşiğidir.
 // Eşzamanlılık, Zaman ve Dosya İşlemleri
 func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
@@ -286,12 +286,12 @@ func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) 
 	return TRUE, nil
 }
 
-// zamanMsYerlesik zaman_ms() yerleşiğidir.
+// timeMsBuiltin zaman_ms() yerleşiğidir.
 func timeMsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return NewInt(time.Now().UnixMilli()), nil
 }
 
-// dosyaOkuYerlesik dosya_oku() yerleşiğidir.
+// readFileBuiltin dosya_oku() yerleşiğidir.
 func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G110, "1", len(args), "dosya")
@@ -312,7 +312,7 @@ func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error)
 	return &StringVal{Val: string(data)}, nil
 }
 
-// dosyaYazYerlesik dosya_yaz() yerleşiğidir. Yazma atomiktir (bkz. AtomikYaz).
+// writeFileBuiltin dosya_yaz() yerleşiğidir. Yazma atomiktir (bkz. AtomikYaz).
 func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 2 {
 		return nil, ArgCountError(codes.G111, "2", len(args), "yol, içerik")
@@ -333,7 +333,7 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 	return TRUE, nil
 }
 
-// bekleYerlesik bekle() yerleşiğidir.
+// sleepBuiltin bekle() yerleşiğidir.
 func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.G500, "1", len(args), "saniye")
@@ -354,7 +354,7 @@ var (
 	numberType  = TypeNames(numberTypes...)
 )
 
-// cagrilabilir değerin filtrele/haritala/indirge gibi metotlara fonksiyon olarak
+// callable değerin filtrele/haritala/indirge gibi metotlara fonksiyon olarak
 // verilebilir olup olmadığını söyler.
 func callable(v Value) bool {
 	switch v.(type) {
@@ -368,12 +368,12 @@ func callable(v Value) bool {
 // guards against running out of memory).
 const MaxCollectionSize = 50_000_000
 
-// metinTek metin(x) yerleşiğinin tek argümanlı gövdesidir.
+// singleChar metin(x) yerleşiğinin tek argümanlı gövdesidir.
 func singleChar(_ *VM, a Value) (Value, error) {
 	return &StringVal{Val: a.Inspect()}, nil
 }
 
-// tekArgumanli kayıtlı bir yerleşiğe, tek argümanla (adlı argümansız) çağrıldığında
+// singleArg kayıtlı bir yerleşiğe, tek argümanla (adlı argümansız) çağrıldığında
 // argüman dilimi ayırmadan çalışan gövdesini bağlar. Gövde, Fn'in tek argümanlı
 // durumuyla birebir aynı olmalıdır.
 func (v *VM) singleArg(kd codes.Code, single func(*VM, Value) (Value, error)) {
@@ -390,7 +390,7 @@ func checkRangeSize(start, end int64) error {
 	return nil
 }
 
-// enUcArgumanlari min/maks'ın argümanlarını açar: tek bir liste verilirse elemanları,
+// extremeArgs min/maks'ın argümanlarını açar: tek bir liste verilirse elemanları,
 // değilse argümanların kendisi karşılaştırılır.
 func extremeArgs(kd codes.Code, args []Value, upper bool) (Value, error) {
 	if len(args) == 0 {

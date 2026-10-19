@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// tumu bir çözümleyicinin bütün sözcük birimlerini (dosya sonu hariç) okur.
+// allOf bir çözümleyicinin bütün sözcük birimlerini (dosya sonu hariç) okur.
 func allOf(l *Lexer) []Token {
 	var t []Token
 	for tok := l.NextToken(); tok.Type != TOKEN_EOF; tok = l.NextToken() {

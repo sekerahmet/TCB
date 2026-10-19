@@ -25,21 +25,21 @@ import (
 	"strings"
 )
 
-// Tur, .npy dosyasındaki elemanların türüdür.
+// DType, .npy dosyasındaki elemanların türüdür.
 type DType uint8
 
 const (
-	// TurGecersiz tanınmayan türdür.
+	// DTypeInvalid tanınmayan türdür.
 	DTypeInvalid DType = iota
-	// TurU16 küçük uçlu işaretsiz 16 bit ('<u2').
+	// DTypeU16 küçük uçlu işaretsiz 16 bit ('<u2').
 	DTypeU16
-	// TurU32 küçük uçlu işaretsiz 32 bit ('<u4').
+	// DTypeU32 küçük uçlu işaretsiz 32 bit ('<u4').
 	DTypeU32
-	// TurI32 küçük uçlu işaretli 32 bit ('<i4').
+	// DTypeI32 küçük uçlu işaretli 32 bit ('<i4').
 	DTypeI32
 )
 
-// Boyut, bir elemanın bayt cinsinden boyutudur.
+// Size, bir elemanın bayt cinsinden boyutudur.
 func (t DType) Size() int {
 	switch t {
 	case DTypeU16:
@@ -78,7 +78,7 @@ func parseDType(descr string) (DType, error) {
 	return DTypeInvalid, fmt.Errorf("desteklenmeyen eleman türü %q (yalnızca '<u2', '<u4', '<i4')", descr)
 }
 
-// Baslik, çözümlenmiş bir .npy başlığıdır.
+// Header, çözümlenmiş bir .npy başlığıdır.
 type Header struct {
 	Version      uint8 // ana sürüm: 1, 2 ya da 3
 	MinorVersion uint8
@@ -87,10 +87,10 @@ type Header struct {
 	DataOffset   int64 // verinin dosya başından itibaren bayt konumu
 }
 
-// VeriBoyutu, veri bölümünün bayt cinsinden boyutudur.
+// DataSize, veri bölümünün bayt cinsinden boyutudur.
 func (b Header) DataSize() int64 { return b.Length * int64(b.DType.Size()) }
 
-// BicimHatasi, geçersiz ya da desteklenmeyen bir .npy başlığını bildirir.
+// FormatError, geçersiz ya da desteklenmeyen bir .npy başlığını bildirir.
 type FormatError struct {
 	Path   string // biliniyorsa dosya yolu
 	Reason string
@@ -116,7 +116,7 @@ const (
 	minFileStart   = headerPrefixV1
 )
 
-// BaslikOku, r'nin başından .npy başlığını okur ve çözümler. Yalnızca
+// ReadHeader, r'nin başından .npy başlığını okur ve çözümler. Yalnızca
 // başlık baytları okunur; veri bölümüne dokunulmaz.
 func ReadHeader(r io.ReaderAt) (Header, error) {
 	var on [headerPrefixV2]byte
@@ -161,7 +161,7 @@ func ReadHeader(r io.ReaderAt) (Header, error) {
 	return ParseHeader(exact)
 }
 
-// BaslikCoz, bellekteki baytlardan (en az tüm başlık) .npy başlığını çözümler.
+// ParseHeader, bellekteki baytlardan (en az tüm başlık) .npy başlığını çözümler.
 func ParseHeader(b []byte) (Header, error) {
 	if len(b) < minFileStart {
 		return Header{}, formatError("başlık çok kısa (%d bayt)", len(b))
@@ -436,7 +436,7 @@ func (a *dictParser) integer() (int64, error) {
 // Yazma
 // ---------------------------------------------------------------------------
 
-// BaslikYaz, uzunluk elemanlı tek boyutlu bir dizi için .npy başlığını w'ye
+// WriteHeader, uzunluk elemanlı tek boyutlu bir dizi için .npy başlığını w'ye
 // yazar. surum 1 ya da 2 olmalıdır. Başlık toplamı 64 bayta hizalanır.
 func WriteHeader(w io.Writer, dtype DType, length int64, version int) error {
 	if dtype.Size() == 0 {
@@ -477,7 +477,7 @@ func WriteHeader(w io.Writer, dtype DType, length int64, version int) error {
 	return err
 }
 
-// NpyYazU16, veriyi '<u2' türünde sürüm 1 .npy olarak w'ye yazar.
+// WriteNpyU16, veriyi '<u2' türünde sürüm 1 .npy olarak w'ye yazar.
 func WriteNpyU16(w io.Writer, data []uint16) error {
 	if err := WriteHeader(w, DTypeU16, int64(len(data)), 1); err != nil {
 		return err
@@ -490,7 +490,7 @@ func WriteNpyU16(w io.Writer, data []uint16) error {
 	return err
 }
 
-// NpyYazI32, veriyi '<i4' türünde sürüm 1 .npy olarak w'ye yazar.
+// WriteNpyI32, veriyi '<i4' türünde sürüm 1 .npy olarak w'ye yazar.
 func WriteNpyI32(w io.Writer, data []int32) error {
 	if err := WriteHeader(w, DTypeI32, int64(len(data)), 1); err != nil {
 		return err

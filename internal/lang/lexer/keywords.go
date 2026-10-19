@@ -17,7 +17,7 @@ type Keyword struct {
 	Type TokenType
 }
 
-// anahtarKelimeler sözcük çözümleyicide ayrılmış bütün anahtar kelimelerdir.
+// keywordTable sözcük çözümleyicide ayrılmış bütün anahtar kelimelerdir.
 var keywordTable = []Keyword{
 	// Koşul ve eşleştirme
 	{codes.A001, TOKEN_IF},
@@ -65,7 +65,7 @@ var keywordTable = []Keyword{
 // keywords yazım → token türü, turKodlari token türü → sözlük kodu haritasıdır.
 var keywords, typeCodes = keywordMap(keywordTable)
 
-// anahtarKelimeHaritasi tabloyu sözlükteki yazımlarla haritaya çevirir. Aynı yazım iki
+// keywordMap tabloyu sözlükteki yazımlarla haritaya çevirir. Aynı yazım iki
 // token türüne ya da aynı tür iki koda bağlanmışsa bu bir geliştirici hatasıdır ve
 // program başlarken durur.
 func keywordMap(table []Keyword) (map[string]TokenType, map[TokenType]codes.Code) {

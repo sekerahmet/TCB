@@ -12,7 +12,7 @@ import (
 // ikili (atan2, karşılaştırmalar), sınırlama, koşullu seçim, atan2 gradyanı
 // ============================================================================
 
-// tekliIfadeGenis genişletilmiş tekli işlemlerin ifadesi y = f(x).
+// unaryExprWide genişletilmiş tekli işlemlerin ifadesi y = f(x).
 func (k *emitter) unaryExprWide(op tensor.UnOp, x reg) reg {
 	switch op {
 	case tensor.OpSilu:
@@ -58,7 +58,7 @@ func (k *emitter) unaryExprWide(op tensor.UnOp, x reg) reg {
 	return ""
 }
 
-// tekliTurevGenis genişletilmiş tekli işlemlerin türev çarpanı f'(x, y); çağıran g ile
+// unaryGradWide genişletilmiş tekli işlemlerin türev çarpanı f'(x, y); çağıran g ile
 // çarpar.
 func (k *emitter) unaryGradWide(op tensor.UnOp, x, y reg) reg {
 	d := k.f()
@@ -105,7 +105,7 @@ func (k *emitter) unaryGradWide(op tensor.UnOp, x, y reg) reg {
 	return d
 }
 
-// ikiliIfade ikili işlemin a op b ifadesi; karşılaştırmalar 1/0 verir (NaN: 0).
+// binaryExpr ikili işlemin a op b ifadesi; karşılaştırmalar 1/0 verir (NaN: 0).
 func (k *emitter) binaryExpr(op tensor.BinOp, a, b reg) reg {
 	if c, ok := binaryInst[op]; ok {
 		r := k.f()
@@ -125,7 +125,7 @@ func (k *emitter) binaryExpr(op tensor.BinOp, a, b reg) reg {
 	return ""
 }
 
-// sinirlaCekirdegi y = min(max(x, alt), üst) (NaN korunur); turev doğruysa
+// clampKernel y = min(max(x, alt), üst) (NaN korunur); turev doğruysa
 // gx += [alt ≤ x ≤ üst]·g.
 func clampKernel(derivative bool) func() *emitter {
 	return func() *emitter {
@@ -168,7 +168,7 @@ func clampKernel(derivative bool) func() *emitter {
 	}
 }
 
-// ucluOfsetler nd = 0 ise üç işlenen de i'de (düz bitişik), değilse meta'dan ayrıştırılır.
+// tripleOffsets nd = 0 ise üç işlenen de i'de (düz bitişik), değilse meta'dan ayrıştırılır.
 func (k *emitter) tripleOffsets(i reg, nd, nOperand int) []reg {
 	if nd == 0 {
 		ofs := make([]reg, nOperand)
@@ -180,7 +180,7 @@ func (k *emitter) tripleOffsets(i reg, nd, nOperand int) []reg {
 	return k.parse(i, nd, nOperand, "meta")
 }
 
-// secimCekirdegi cikti[i] = c ≠ 0 (NaN dahil) ise a, değilse b; c, a, b yayınlamalı.
+// selectKernel cikti[i] = c ≠ 0 (NaN dahil) ise a, değilse b; c, a, b yayınlamalı.
 // Meta: şekil, c adımı, a adımı, b adımı.
 func selectKernel(nd int) func() *emitter {
 	return func() *emitter {
@@ -205,7 +205,7 @@ func selectKernel(nd int) func() *emitter {
 	}
 }
 
-// atan2TurevCekirdegi çıktı şeklinde iki terim yazar: ta = g·x/(x²+y²), tb = −g·y/(x²+y²)
+// atan2GradKernel çıktı şeklinde iki terim yazar: ta = g·x/(x²+y²), tb = −g·y/(x²+y²)
 // (y = a, x = b; yayınlamalı). Taşma ve alt taşmaya karşı m = max(|x|, |y|) ile
 // ölçeklenir; m = 0 ya da sonsuzsa terimler 0'dır. Meta: şekil, a adımı, b adımı.
 func atan2GradKernel(nd int) func() *emitter {

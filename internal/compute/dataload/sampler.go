@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-// Durum, bir örnekleyicinin konumudur; eğitimi kaldığı yerden sürdürmek
+// State, bir örnekleyicinin konumudur; eğitimi kaldığı yerden sürdürmek
 // için kaydedilip OrnekleyiciSecenekleri.Baslangic olarak geri verilebilir.
 // Durum yalnızca aynı küme, aynı tohum ve aynı GrupBoyu ile anlamlıdır.
 type State struct {
@@ -19,32 +19,32 @@ type State struct {
 	Window int64 // Ornekleyici: grubun karışık pencere sırasındaki konum; SiraliOkuyucu: token konumu
 }
 
-// VarsayilanGrupBoyu, bir grupta birlikte karıştırılan parça sayısıdır.
+// DefaultGroupSize, bir grupta birlikte karıştırılan parça sayısıdır.
 const DefaultGroupSize = 4
 
-// VarsayilanIleriBak, önbellekte şimdiki grubun ötesinde hazırlanan parça
+// DefaultLookahead, önbellekte şimdiki grubun ötesinde hazırlanan parça
 // sayısıdır.
 const DefaultLookahead = 4
 
-// OrnekleyiciSecenekleri, rastgele pencere örneklemenin ayarlarıdır.
+// SamplerOptions, rastgele pencere örneklemenin ayarlarıdır.
 type SamplerOptions struct {
 	B, T int    // toplu iş boyutu ve bağlam uzunluğu; satırlar T+1 tokendır
 	Seed uint64 // aynı tohum ve aynı küme → aynı toplu işler
-	// GrupBoyu, karıştırılmış parça sırasında ardışık kaç parçanın tek bir
+	// GroupSize, karıştırılmış parça sırasında ardışık kaç parçanın tek bir
 	// grup olarak birlikte açılıp pencerelerinin tek permütasyonda
 	// karıştırılacağıdır. 0 → VarsayilanGrupBoyu; 1 → her parça ayrı (bir
 	// toplu işin tüm satırları çoğunlukla aynı parçadan gelir).
 	GroupSize int
-	// Baslangic verilirse örnekleme bu konumdan sürer.
+	// Start verilirse örnekleme bu konumdan sürer.
 	Start *State
-	// IleriBak, önbellek etkinse şimdiki grubun parçalarından sonra kaç
+	// Lookahead, önbellek etkinse şimdiki grubun parçalarından sonra kaç
 	// parçanın arka planda hazırlanacağıdır. 0 → VarsayilanIleriBak, negatif →
 	// hiç. Önbellek kotası en az (GrupBoyu + IleriBak) × en büyük parça
 	// boyutu olmalıdır; değilse örnekleyici kurulmaz.
 	Lookahead int
 }
 
-// Ornekleyici, kümeden tohumlu ve tekrar üretilebilir rastgele pencereler
+// Sampler, kümeden tohumlu ve tekrar üretilebilir rastgele pencereler
 // üretir.
 //
 // Her dönemde parça sırası yeniden karıştırılır ve bu sıra ardışık
@@ -92,7 +92,7 @@ type groupShard struct {
 	offset int64
 }
 
-// Ornekleyici, kümeden rastgele toplu iş üreten bir örnekleyici kurar.
+// Sampler, kümeden rastgele toplu iş üreten bir örnekleyici kurar.
 func (k *Dataset) Sampler(s SamplerOptions) (*Sampler, error) {
 	if s.B <= 0 || s.T <= 0 {
 		return nil, fmt.Errorf("veri: B ve T pozitif olmalı (B=%d, T=%d)", s.B, s.T)
@@ -131,7 +131,7 @@ func (k *Dataset) Sampler(s SamplerOptions) (*Sampler, error) {
 	return o, nil
 }
 
-// karistir, 64 bitlik değerleri tek bir tohuma katlar (splitmix64 adımları).
+// shuffle, 64 bitlik değerleri tek bir tohuma katlar (splitmix64 adımları).
 func shuffle(values ...uint64) uint64 {
 	h := uint64(0x6A09E667F3BCC909)
 	for _, d := range values {
@@ -149,7 +149,7 @@ func (o *Sampler) random(label, epoch, ek uint64) *rand.Rand {
 	return rand.New(rand.NewPCG(shuffle(o.s.Seed, label, epoch, ek), shuffle(label, o.s.Seed, ek, epoch)))
 }
 
-// donemSirasi, verilen dönemin karıştırılmış parça sırasını hesaplar.
+// epochOrder, verilen dönemin karıştırılmış parça sırasını hesaplar.
 func (o *Sampler) epochOrder(epoch int, dst []int) []int {
 	n := len(o.k.shards)
 	if cap(dst) < n {
@@ -171,13 +171,13 @@ func (o *Sampler) prepareOrder() {
 	}
 }
 
-// grupParcalari, verilen sıralamada g'inci grubun parça sıralarıdır.
+// groupShards, verilen sıralamada g'inci grubun parça sıralarıdır.
 func (o *Sampler) groupShards(sortFn []int, g int) []int {
 	begin := g * o.s.GroupSize
 	return sortFn[begin:min(begin+o.s.GroupSize, len(sortFn))]
 }
 
-// yukle, (donem, sira) grubunun parçalarını açar ve karışık pencere
+// load, (donem, sira) grubunun parçalarını açar ve karışık pencere
 // sırasını kurar.
 func (o *Sampler) load(ctx context.Context) error {
 	o.prepareOrder()
@@ -223,7 +223,7 @@ func (o *Sampler) load(ctx context.Context) error {
 	return nil
 }
 
-// konum, gruptaki i'inci karışık pencerenin parçasını ve başlangıcını verir.
+// pos, gruptaki i'inci karışık pencerenin parçasını ve başlangıcını verir.
 func (o *Sampler) pos(i int64) (*Shard, int64) {
 	var e int64
 	if o.perm64 != nil {
@@ -236,7 +236,7 @@ func (o *Sampler) pos(i int64) (*Shard, int64) {
 	return g.shard, g.offset + (e-o.limit[j])*o.row
 }
 
-// ipucuVer, önbelleğe şimdiki grubun parçalarını ve sonraki IleriBak
+// hint, önbelleğe şimdiki grubun parçalarını ve sonraki IleriBak
 // parçayı (dönem sınırını aşarak) bildirir.
 func (o *Sampler) hint() {
 	if o.k.pick.Cache == nil {
@@ -276,7 +276,7 @@ func (o *Sampler) closeGroup() error {
 	return errors.Join(errs...)
 }
 
-// ilerle, şimdiki grubu kapatıp sıradakine geçer.
+// advance, şimdiki grubu kapatıp sıradakine geçer.
 func (o *Sampler) advance() error {
 	err := o.closeGroup()
 	o.loaded = false
@@ -289,7 +289,7 @@ func (o *Sampler) advance() error {
 	return err
 }
 
-// Doldur, ti'yi B adet rastgele pencereyle doldurur. Bir hata olursa
+// Fill, ti'yi B adet rastgele pencereyle doldurur. Bir hata olursa
 // örnekleyicinin konumu toplu işin ortasında kalabilir.
 func (o *Sampler) Fill(ctx context.Context, ti *Batch) error {
 	o.mu.Lock()
@@ -325,10 +325,10 @@ func (o *Sampler) Fill(ctx context.Context, ti *Batch) error {
 	return nil
 }
 
-// Sonraki, Doldur'un bağlamsız kısa yoludur.
+// Next, Doldur'un bağlamsız kısa yoludur.
 func (o *Sampler) Next(ti *Batch) error { return o.Fill(context.Background(), ti) }
 
-// Durum, sonraki pencerenin konumudur.
+// State, sonraki pencerenin konumudur.
 func (o *Sampler) State() State {
 	o.mu.Lock()
 	defer o.mu.Unlock()
@@ -337,17 +337,17 @@ func (o *Sampler) State() State {
 
 func (o *Sampler) state() State { return State{Epoch: o.epoch, Pos: o.order, Window: o.window} }
 
-// Donem, şimdiki dönem numarasıdır.
+// Epoch, şimdiki dönem numarasıdır.
 func (o *Sampler) Epoch() int {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	return o.epoch
 }
 
-// GrupSayisi, bir dönemdeki grup sayısıdır.
+// GroupCount, bir dönemdeki grup sayısıdır.
 func (o *Sampler) GroupCount() int { return o.groupN }
 
-// DonemPencereSayisi, bir dönemde üretilen pencere (satır) sayısıdır.
+// EpochWindows, bir dönemde üretilen pencere (satır) sayısıdır.
 func (o *Sampler) EpochWindows() int64 {
 	var t int64
 	for _, p := range o.k.shards {
@@ -356,7 +356,7 @@ func (o *Sampler) EpochWindows() int64 {
 	return t
 }
 
-// Kapat, açık parçaları kapatır. Birden çok kez çağrılabilir.
+// Close, açık parçaları kapatır. Birden çok kez çağrılabilir.
 func (o *Sampler) Close() error {
 	o.mu.Lock()
 	defer o.mu.Unlock()

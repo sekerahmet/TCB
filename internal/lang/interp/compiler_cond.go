@@ -95,7 +95,7 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 	}
 }
 
-// desenUyar 'eşle' deseninin konuya uyup uymadığını söyler (aralık desenleri dahil).
+// patternMatches 'eşle' deseninin konuya uyup uymadığını söyler (aralık desenleri dahil).
 func patternMatches(subj, patVal Value) bool {
 	if rng, ok := patVal.(*RangeVal); ok {
 		if iv, ok := subj.(*IntVal); ok {

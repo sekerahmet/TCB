@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// siraliHepsi okuyucunun kalan bütün satırlarını ve her toplu işten sonraki durumu verir.
+// sequentialAll okuyucunun kalan bütün satırlarını ve her toplu işten sonraki durumu verir.
 func sequentialAll(t *testing.T, so *SequentialReader) ([][]int32, []State) {
 	t.Helper()
 	var rows [][]int32

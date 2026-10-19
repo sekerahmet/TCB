@@ -14,7 +14,7 @@ import (
 // bir değeri dönüştüren ya da ona soru soran iş metottur, matematik ve tensör işi
 // fonksiyondur (bkz. docs/spec/13_yerlesikler.md 13.6). Bu işlevler yalnızca hata yolunda çalışır.
 
-// tasinanUyeHatasi prop, obj'nin tipinde taşınmış bir üyenin adıysa (ve yeni fonksiyon bu
+// movedMemberError prop, obj'nin tipinde taşınmış bir üyenin adıysa (ve yeni fonksiyon bu
 // tipi alıyorsa) yeni biçimi gösteren hata metnini verir; değilse boş metin.
 // ör. "'liste.toplam()' TR'de yok; 'toplam(liste)' yazın".
 func movedMemberError(obj Value, prop string) string {

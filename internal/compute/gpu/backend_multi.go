@@ -11,7 +11,7 @@ import (
 // Arka uç: çok tensörlü iyileştirici adımları, ölçekleme ve kareler toplamı (tek başlatma;
 // bkz. cekirdek_cok.go). Tek tensörlü yöntemler de aynı yoldan geçer.
 
-// cokOge çok tensörlü işin bir tensörü: göstericiler (kipe göre p, g, m, v), eleman sayısı ve
+// multiItem çok tensörlü işin bir tensörü: göstericiler (kipe göre p, g, m, v), eleman sayısı ve
 // tensöre özgü iki sayı.
 type multiItem struct {
 	d      [4]*storage
@@ -19,7 +19,7 @@ type multiItem struct {
 	f1, f2 float32
 }
 
-// cokBaslat tabloları kurup yükler ve çekirdeği başlatır; blok sayısını verir. Yazılan
+// multiLaunch tabloları kurup yükler ve çekirdeği başlatır; blok sayısını verir. Yazılan
 // depolamaların (yaz) gölgesi silinir. kismi yalnızca kare kipinde verilir.
 func (g *backend) multiLaunch(gt *temp, mode2 int, items []multiItem, write []int, shared []float32, partial *storage) int {
 	table := make([]byte, multiTensor*max(len(items), 1))
@@ -68,7 +68,7 @@ func (g *backend) multiLaunch(gt *temp, mode2 int, items []multiItem, write []in
 	return nb
 }
 
-// cokBlokSayisi n elemanın blok sayısı.
+// multiBlockCount n elemanın blok sayısı.
 func multiBlockCount(n int) int { return (n + multiPart - 1) / multiPart }
 
 // AdamWStepAll (tensor.MultiTensorOps) bütün parametrelerin AdamW adımı tek başlatmada.
@@ -86,12 +86,12 @@ func (g *backend) AdamWStep(p, gs, m, v tensor.Storage, lr, b1, b2, eps, wd, bc1
 		[]float32{bc1}, []float32{bc2})
 }
 
-// cokGeciciSinir çok tensörlü işte aynı anda canlı float32 geçici kopyaların (16 bitlik
+// multiTempLimit çok tensörlü işte aynı anda canlı float32 geçici kopyaların (16 bitlik
 // parametre ya da gradyanların açılması) en çok baytı: aşılınca iş parçalara bölünür (her parça
 // tek başlatma), böylece tepe bellek tek tensörlü yoldakinden çok büyümez.
 var multiTempLimit = 256 << 20
 
-// cokYazici bir parçanın geçici tamponlarını ve geri yazma işlevlerini toplar.
+// multiWriter bir parçanın geçici tamponlarını ve geri yazma işlevlerini toplar.
 type multiWriter struct {
 	g     *backend
 	gt    *temp
@@ -99,7 +99,7 @@ type multiWriter struct {
 	byteN int
 }
 
-// yaz depolamanın float32 karşılığı (16 bitlikse geçici kopya, sonda geri yazılır).
+// write depolamanın float32 karşılığı (16 bitlikse geçici kopya, sonda geri yazılır).
 func (c *multiWriter) write(s tensor.Storage) *storage {
 	d, last := c.gt.write(s, true)
 	c.lasts = append(c.lasts, last)
@@ -109,7 +109,7 @@ func (c *multiWriter) write(s tensor.Storage) *storage {
 	return d
 }
 
-// oku yalnızca okunan depolamanın float32 karşılığı.
+// read yalnızca okunan depolamanın float32 karşılığı.
 func (c *multiWriter) read(s tensor.Storage) *storage {
 	d := c.gt.readD(s)
 	if d != c.g.storageOf(s) {
@@ -118,7 +118,7 @@ func (c *multiWriter) read(s tensor.Storage) *storage {
 	return d
 }
 
-// cokParcali n öğeyi ekle ile toplar; geçici baytlar cokGeciciSinir'i aşınca ya da sonda
+// multiChunked n öğeyi ekle ile toplar; geçici baytlar cokGeciciSinir'i aşınca ya da sonda
 // baslat'ı çağırır (toplanan öğeleri başlatır), geçici kopyaları geri yazar ve bırakır.
 func (g *backend) multiChunked(n int, add func(c *multiWriter, i int), launch func(c *multiWriter)) {
 	c := &multiWriter{g: g, gt: g.temp()}

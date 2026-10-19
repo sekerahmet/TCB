@@ -20,7 +20,7 @@ import (
 // Meta düzeni: korunan eksenler (nk) için şekil, A adımı, O adımı, çıktı adımı; indirgenen
 // eksenler (nr) için şekil, A adımı, O adımı. Y (gerekirse) A ile aynı adımlıdır.
 
-// terimTuru indirgenen terim.
+// termType indirgenen terim.
 type termType int
 
 const (
@@ -32,13 +32,13 @@ const (
 	tAsecOdegil                 // o = 0 ise a, değilse 0
 )
 
-// indirgeAyar indirgeme çekirdeğinin üretim ayarları.
+// reduceConfig indirgeme çekirdeğinin üretim ayarları.
 type reduceConfig struct {
 	nk, nr int
 	term   termType
 	add    bool // çıktı += ölçek·toplam (değilse çıktı = ölçek·toplam)
 	block  int  // 0: çıktı başına iş parçacığı; > 0: çıktı başına bu boyda blok
-	// parcali: indirgenen doğrusal aralık ızgaranın y'sindeki parçalara bölünür; her parça
+	// chunked: indirgenen doğrusal aralık ızgaranın y'sindeki parçalara bölünür; her parça
 	// kısmi toplamını (ölçeksiz) kismi[parça·K + j]'ye yazar (iki aşamalı indirgemenin
 	// ilk aşaması).
 	chunked bool
@@ -48,7 +48,7 @@ func (a reduceConfig) key() string {
 	return fmt.Sprintf("indirge:%d:%d:%d:%v:%d:%v", a.nk, a.nr, a.term, a.add, a.block, a.chunked)
 }
 
-// terimHesapla A (ve gerekirse O, Y) ofsetlerinden terimi yükler.
+// computeTerm A (ve gerekirse O, Y) ofsetlerinden terimi yükler.
 func (k *emitter) computeTerm(t termType, a, o, y reg, oa, oo reg) reg {
 	av := k.load(tensor.Float32, k.addressS(a, oa, 4))
 	r := k.f()
@@ -76,7 +76,7 @@ func (k *emitter) computeTerm(t termType, a, o, y reg, oa, oo reg) reg {
 	return r
 }
 
-// ayristirTaban ayristir'in meta'nın taban konumundan başlayan biçimi.
+// parseBase ayristir'in meta'nın taban konumundan başlayan biçimi.
 func (k *emitter) parseBase(i reg, nd, nOperand, base2 int, meta string) []reg {
 	ofs := make([]reg, nOperand)
 	for j := range ofs {
@@ -107,7 +107,7 @@ func (k *emitter) parseBase(i reg, nd, nOperand, base2 int, meta string) []reg {
 	return ofs
 }
 
-// blokIndirge bloktaki iş parçacıklarının v değerlerini birlestir ile ağaç biçiminde
+// blockReduce bloktaki iş parçacıklarının v değerlerini birlestir ile ağaç biçiminde
 // (sabit sıra) indirger; sonuç bütün iş parçacıklarına döner. sm en az 4·B baytlık
 // paylaşımlı bellek adresi, tid iş parçacığı numarasıdır. Sonda engel vardır: paylaşımlı
 // bellek yeniden kullanılabilir.
@@ -134,7 +134,7 @@ func (k *emitter) blockReduce(v, sm, tid reg, B int, join func(a, b reg) reg) re
 	return r
 }
 
-// parcaAraligi parçalı indirgemede ızgaranın y'sindeki parça s'nin aralığı: r'ye başını
+// partRange parçalı indirgemede ızgaranın y'sindeki parça s'nin aralığı: r'ye başını
 // ekler, sonunu (min(R, (s+1)·parça)) verir.
 func (k *emitter) partRange(r, part, R reg) (s, last reg) {
 	s = k.special("%ctaid.y")
@@ -147,7 +147,7 @@ func (k *emitter) partRange(r, part, R reg) (s, last reg) {
 	return s, last
 }
 
-// topla birlestir işlevi: a + b.
+// sum birlestir işlevi: a + b.
 func (k *emitter) sum(a, b reg) reg {
 	r := k.f()
 	k.e("add.rn.f32", r, a, b)
@@ -231,7 +231,7 @@ func reduceKernel(a reduceConfig) func() *emitter {
 	}
 }
 
-// argmaxCekirdegi her korunan çıktı için tek eksen boyunca ilk en büyük elemanı bulur
+// argmaxKernel her korunan çıktı için tek eksen boyunca ilk en büyük elemanı bulur
 // (NaN her sayıdan büyük sayılır, ilk NaN kazanır: CPU argmaxCPU ile aynı kural). kip:
 // 0 değer yazar, 1 indeksi (32 bitlik tam sayı) yazar, 2 gradyanı (gx[konum] += g[j])
 // ekler. Çıktı başına bir iş parçacığı ekseni sırayla gezer.

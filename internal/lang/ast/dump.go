@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
-// sozcukTipi sözcük birimi alanlarının tipidir (Dump onları atlar).
+// tokenType sözcük birimi alanlarının tipidir (Dump onları atlar).
 var tokenType = reflect.TypeOf(lexer.Token{})
 
 // Dump writes a node's meaning (without positions) as text. Tokens (lexer.Token fields) are

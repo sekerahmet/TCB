@@ -24,7 +24,7 @@ const (
 	Y                          // yöntemler: metot ve özellikler
 )
 
-// aileHarfleri alfabe sırasındadır; böylece kodların sayısal sırası dil dosyasındaki
+// familyLetters alfabe sırasındadır; böylece kodların sayısal sırası dil dosyasındaki
 // (harf, sayı) sırasıyla aynıdır.
 const familyLetters = "AGHTVWY"
 

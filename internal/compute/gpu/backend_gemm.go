@@ -8,7 +8,7 @@ import (
 
 // Arka uç: toplu matris çarpımı.
 
-// carpimSec problem boyuna göre döşeme ayarını seçer: büyük döşemeyle de bütün SM'lere
+// pickGemm problem boyuna göre döşeme ayarını seçer: büyük döşemeyle de bütün SM'lere
 // en az bir blok düşüyorsa büyük döşeme, değilse varsayılan.
 func (g *backend) pickGemm(batch, M, N int) gemmConfig {
 	if g.gemmConst != nil {
@@ -74,7 +74,7 @@ func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b te
 	last()
 }
 
-// carpimDosemesi matris çarpımının döşeme boylarını sabitler (sınama ve ölçüm için; nil
+// gemmTile matris çarpımının döşeme boylarını sabitler (sınama ve ölçüm için; nil
 // otomatik seçime döner). Arka ucun ayarıdır, kullanıcıya görünmez.
 func (g *backend) gemmTile(a *gemmConfig) {
 	g.mu.Lock()

@@ -94,7 +94,7 @@ func minMaxF32(a, b float32, smallest bool) float32 {
 	return b
 }
 
-// karsilastirF sıralı (eq, lt, ...) ve sırasız (equ, ltu, ...) karşılaştırmalar.
+// compareF sıralı (eq, lt, ...) ve sırasız (equ, ltu, ...) karşılaştırmalar.
 func compareF(mode2 int, a, b float64) uint64 {
 	nan := a != a || b != b
 	var r bool
@@ -134,7 +134,7 @@ func compareF(mode2 int, a, b float64) uint64 {
 	return 0
 }
 
-// donustur cvt: k.tur hedef, k.kaynak kaynak türü; k.kip yuvarlama (1 rni, 2 rzi, 3 rmi,
+// convert cvt: k.tur hedef, k.kaynak kaynak türü; k.kip yuvarlama (1 rni, 2 rzi, 3 rmi,
 // 4 rpi).
 func convert(k *simInst, a uint64) (uint64, error) {
 	switch k.source {
@@ -217,7 +217,7 @@ func fromInt(k *simInst, f float64, s int64) (uint64, error) {
 	return 0, fmt.Errorf("benzetimde desteklenmeyen cvt hedefi")
 }
 
-// f32ToF16Bz IEEE yarım hassasiyete en yakına-çifte yuvarlama (donanımın cvt.rn.f16.f32
+// f32ToF16Sim IEEE yarım hassasiyete en yakına-çifte yuvarlama (donanımın cvt.rn.f16.f32
 // komutunun benzetimi): taşma sonsuza, küçükler normal altına ya da sıfıra gider.
 func f32ToF16Sim(f float32) uint16 {
 	b := math.Float32bits(f)
@@ -245,7 +245,7 @@ func f32ToF16Sim(f float32) uint16 {
 	return sign | uint16(us+15)<<10 | uint16(m)
 }
 
-// f16ToF32Bz yarım hassasiyeti float32'ye açar.
+// f16ToF32Sim yarım hassasiyeti float32'ye açar.
 func f16ToF32Sim(h uint16) float32 {
 	sign := 1.0
 	if h&0x8000 != 0 {

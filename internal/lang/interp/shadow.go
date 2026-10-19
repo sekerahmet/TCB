@@ -14,19 +14,19 @@ import (
 // yerine gölgelemeyi ve tanımın satırını söyler. Kayıt derleme anında, yalnızca yerleşik
 // adları için tutulur; çalışma anına yalnızca hata yolunda bir maliyet ekler.
 
-// golgeTanimi bir kapsamda yerleşik adını gölgeleyen tanımdır.
+// shadowDef bir kapsamda yerleşik adını gölgeleyen tanımdır.
 type shadowDef struct {
 	lineNo int
 	ne     string // "bir değişkene", "bir parametreye" ...
 }
 
-// yerlesikAdi ad sözlükteki bir yerleşik fonksiyonun (G/T/V/W) adı mı?
+// builtinName ad sözlükteki bir yerleşik fonksiyonun (G/T/V/W) adı mı?
 func builtinName(name string) bool {
 	k, ok := codes.Find(codes.NamespaceGlobal, name)
 	return ok && k.IsBuiltin()
 }
 
-// golgeKaydet ad bir yerleşik adıysa bu kapsamdaki tanımını kaydeder (kapsamdaki ilk
+// recordShadow ad bir yerleşik adıysa bu kapsamdaki tanımını kaydeder (kapsamdaki ilk
 // tanım tutulur).
 func (k *compilerScope) recordShadow(name string, lineNo int, ne string) {
 	if !builtinName(name) {
@@ -40,7 +40,7 @@ func (k *compilerScope) recordShadow(name string, lineNo int, ne string) {
 	}
 }
 
-// golgeBul ad, bu kapsamdan dışa doğru bir kullanıcı tanımıyla gölgelenmişse tanımı verir.
+// findShadow ad, bu kapsamdan dışa doğru bir kullanıcı tanımıyla gölgelenmişse tanımı verir.
 func (k *compilerScope) findShadow(name string) (shadowDef, bool) {
 	for c := k; c != nil; c = c.parent {
 		if g, ok := c.shadow[name]; ok {
@@ -50,7 +50,7 @@ func (k *compilerScope) findShadow(name string) (shadowDef, bool) {
 	return shadowDef{}, false
 }
 
-// deyimGolgeleri deyimin bu kapsama tanımladığı adları satırlarıyla golgeKaydet'e verir
+// statementShadows deyimin bu kapsama tanımladığı adları satırlarıyla golgeKaydet'e verir
 // (deyimAdlari'nın yerleşik gölgeleme için gereken kısmı).
 func (k *compilerScope) statementShadows(st ast.Statement) {
 	switch s := st.(type) {
@@ -63,7 +63,7 @@ func (k *compilerScope) statementShadows(st ast.Statement) {
 	}
 }
 
-// golgeliCagri, adı gölgelenmiş bir yerleşik olan çağrının kodunu sarar: çağrı hata
+// shadowedCall, adı gölgelenmiş bir yerleşik olan çağrının kodunu sarar: çağrı hata
 // verirse ve ad çağrılamaz bir değere bağlıysa hata gölgelemeyi anlatan mesajla
 // değiştirilir.
 func shadowedCall(kd exprCode, fun exprCode, name string, g shadowDef, line int) exprCode {

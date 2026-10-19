@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// sahteGPU kayıt sınaması için yalnızca cihazı GPU olan bir arka uç.
+// fakeGPU kayıt sınaması için yalnızca cihazı GPU olan bir arka uç.
 type fakeGPU struct {
 	cpuBackend
 	i int

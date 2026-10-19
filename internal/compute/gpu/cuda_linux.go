@@ -32,7 +32,7 @@ func (l *linuxLibrary) call(fn uintptr, args ...uintptr) uintptr {
 	return r
 }
 
-// cikisIsleyicileriniCalistir C kitaplığının çıkış işleyicilerini (atexit ile kaydedilenler)
+// runExitHandlers C kitaplığının çıkış işleyicilerini (atexit ile kaydedilenler)
 // çalıştırır: __cxa_finalize(NULL). Yalnızca program sonunda, dış bir profilleyici bağlıyken
 // çağrılır (bkz. Kapat).
 func runExitHandlers() {
@@ -45,7 +45,7 @@ func runExitHandlers() {
 	}
 }
 
-// kitaplikAc bir kitaplığı (tam yol ya da standart arama yolundaki dosya adı) yükler.
+// openLibrary bir kitaplığı (tam yol ya da standart arama yolundaki dosya adı) yükler.
 func openLibrary(path string) (library, error) {
 	h, err := purego.Dlopen(path, purego.RTLD_NOW|purego.RTLD_LOCAL)
 	if err != nil {

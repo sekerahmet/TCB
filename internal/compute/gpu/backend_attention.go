@@ -9,7 +9,7 @@ import (
 // Arka uç: dikkat. Baş boyları birleşik çekirdeğin paylaşımlı belleğine sığıyorsa (Dh, Dv ≤
 // 128 civarı; bkz. flashSec) birleşik yol, değilse matris çarpımı yolu (dikkat.go).
 
-// flashUygun birleşik yolun bu tanım için kullanılabildiği ve döşeme ayarı (yol
+// flashFits birleşik yolun bu tanım için kullanılabildiği ve döşeme ayarı (yol
 // TR_GPU_DIKKAT ile zorlanmışsa ona göre).
 func (g *backend) flashFits(p tensor.AttentionParams, mask2, backward bool) (flashConfig, bool) {
 	if g.attnPath == "carpim" || p.Dh == 0 || p.Dv == 0 || p.H > 65535 || p.Batch > 65535 {
@@ -22,7 +22,7 @@ func (g *backend) flashFits(p tensor.AttentionParams, mask2, backward bool) (fla
 	return a, ok
 }
 
-// dikkatBoyDenetle çekirdeklerin 32 bitlik dizinlerinin sınırlarını denetler. Birleşik yolda
+// checkAttnSize çekirdeklerin 32 bitlik dizinlerinin sınırlarını denetler. Birleşik yolda
 // puan matrisi oluşmaz: q/çıktı (B·H·Tq·D) ve k/v (B·Hkv·Tk·D) dizinleri sınırlıdır. Matris
 // yolunda puan matrisi (B·H·Tq·Tk) de tek depolamadır.
 func checkAttnSize(p tensor.AttentionParams, fused bool) {
@@ -65,7 +65,7 @@ func (g *backend) Attention(out tensor.Storage, q, k, v tensor.View, mask tensor
 	return lse
 }
 
-// dikkatOrtak çekirdeklerin ortak parametreleri (flashOrtak.ortakParametreler sırası).
+// attnShared çekirdeklerin ortak parametreleri (flashOrtak.ortakParametreler sırası).
 func (g *backend) attnShared(pr *paramWriter, md, mo *storage, p tensor.AttentionParams) {
 	reason2 := 0
 	if p.Causal {
@@ -141,7 +141,7 @@ func (g *backend) attnBackward(gq, gk, gv, gs tensor.Storage, q, k, v tensor.Vie
 	}
 }
 
-// dikkatCikisi bir gradyan çıktısının yazılacağı float32 depolamayı ve kipini verir. Önceki
+// attnOutput bir gradyan çıktısının yazılacağı float32 depolamayı ve kipini verir. Önceki
 // bir çıktıyla aynı depolamaya düşen gradyan (q, k, v aynı tensörse) aynı (geçici) tamponu
 // kullanır ve ona ekler: çekirdekler Q, K, V sırasıyla yazdığından ilk yazan üzerine yazar
 // ya da ekler, sonrakiler ekler; 16 bitlik gradyanın geçici tamponu bir kez yüklenir ve bir

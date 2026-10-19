@@ -175,7 +175,7 @@ func BenchmarkSpeedSmallOp(b *testing.B) {
 	}
 }
 
-// BenchmarkHizToplama64 en küçük sıcak yol: ayırma denetiminin payı burada görünür.
+// BenchmarkSpeedAdd64 en küçük sıcak yol: ayırma denetiminin payı burada görünür.
 func BenchmarkSpeedAdd64(b *testing.B) {
 	x := speedRand(64, 64)
 	y := speedRand(64, 64)

@@ -19,18 +19,18 @@ type Meta struct {
 	Valid     *MetaValid                 `json:"valid"`
 }
 
-// MetaParca, meta.json içindeki bir parça kaydıdır.
+// MetaPart, meta.json içindeki bir parça kaydıdır.
 type MetaPart struct {
 	Tokens int64 `json:"tokens"`
 }
 
-// MetaDogrulama, meta.json içindeki doğrulama kümesi kaydıdır.
+// MetaValid, meta.json içindeki doğrulama kümesi kaydıdır.
 type MetaValid struct {
 	Tokens int64 `json:"tokens"`
 	Docs   int64 `json:"docs"`
 }
 
-// TokenizerYolu, 'tokenizer' alanı bir metinse onu döner.
+// TokenizerPath, 'tokenizer' alanı bir metinse onu döner.
 func (m *Meta) TokenizerPath() string {
 	var s string
 	if m == nil || json.Unmarshal(m.Tokenizer, &s) != nil {
@@ -39,7 +39,7 @@ func (m *Meta) TokenizerPath() string {
 	return s
 }
 
-// MetaOku, verilen meta.json dosyasını okur.
+// ReadMeta, verilen meta.json dosyasını okur.
 func ReadMeta(path string) (*Meta, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -52,7 +52,7 @@ func ReadMeta(path string) (*Meta, error) {
 	return &m, nil
 }
 
-// ParcaBilgisi, kümedeki bir parçanın adı, yolu ve token sayısıdır.
+// ShardInfo, kümedeki bir parçanın adı, yolu ve token sayısıdır.
 type ShardInfo struct {
 	Name  string
 	Path  string
@@ -60,15 +60,15 @@ type ShardInfo struct {
 	Bytes int64 // dosya boyutu (dizin listesinden)
 }
 
-// KumeSecenekleri, KumeAc'ın davranışını belirler.
+// DatasetOptions, KumeAc'ın davranışını belirler.
 type DatasetOptions struct {
-	// Desen, parça dosyalarının adı için kalıptır (varsayılan "*.npy").
+	// Pattern, parça dosyalarının adı için kalıptır (varsayılan "*.npy").
 	Pattern string
-	// MetaYok true ise meta.json aranmaz; tüm parçaların başlığı okunur.
+	// NoMeta true ise meta.json aranmaz; tüm parçaların başlığı okunur.
 	NoMeta bool
-	// Parca, parçaların açılış seçenekleridir.
+	// Shard, parçaların açılış seçenekleridir.
 	Shard ShardOptions
-	// Onbellek verilirse parçalar açılmadan önce yerel önbelleğe alınır;
+	// Cache verilirse parçalar açılmadan önce yerel önbelleğe alınır;
 	// yerel kopya alınamazsa parça açma hata verir (kaynağa geri dönülmez).
 	// Varsayılan (nil): önbellek kapalı, parçalar doğrudan kaynaktan
 	// okunur. UYARI: kaynak yavaşsa (ağ ya da akışlı bulut sürücüsü)
@@ -77,7 +77,7 @@ type DatasetOptions struct {
 	Cache *Cache
 }
 
-// Kume, bir dizindeki .npy parçalarının sıralı listesidir. Parçalar ancak
+// Dataset, bir dizindeki .npy parçalarının sıralı listesidir. Parçalar ancak
 // okunacakları zaman açılır.
 type Dataset struct {
 	dir    string
@@ -87,7 +87,7 @@ type Dataset struct {
 	pick   DatasetOptions
 }
 
-// KumeAc, dizindeki parçaları tanır. dizin tek bir .npy dosyası da olabilir.
+// OpenDataset, dizindeki parçaları tanır. dizin tek bir .npy dosyası da olabilir.
 // Dizinde ya da üst dizinde meta.json varsa, parça token sayıları oradan
 // alınır ve dosya başlıkları açılışta okunmaz (yavaş kaynaklarda önemli);
 // sayılar parça açıldığında başlıkla karşılaştırılır.
@@ -188,22 +188,22 @@ func headerLen(path string) (int64, error) {
 	return bs.Length, nil
 }
 
-// Dizin, kümenin açıldığı yoldur.
+// Dir, kümenin açıldığı yoldur.
 func (k *Dataset) Dir() string { return k.dir }
 
 // Meta, bulunduysa meta.json içeriğidir (yoksa nil).
 func (k *Dataset) Meta() *Meta { return k.meta }
 
-// Parcalar, parçaların ada göre sıralı listesidir (kopya).
+// Shards, parçaların ada göre sıralı listesidir (kopya).
 func (k *Dataset) Shards() []ShardInfo { return append([]ShardInfo(nil), k.shards...) }
 
-// ParcaSayisi, parça sayısıdır.
+// ShardCount, parça sayısıdır.
 func (k *Dataset) ShardCount() int { return len(k.shards) }
 
-// ToplamToken, tüm parçalardaki token sayısıdır.
+// TotalTokens, tüm parçalardaki token sayısıdır.
 func (k *Dataset) TotalTokens() int64 { return k.total }
 
-// ParcaAc, i'inci parçayı açar. Önbellek etkinse parça önce yerel
+// OpenShard, i'inci parçayı açar. Önbellek etkinse parça önce yerel
 // önbelleğe alınır (gerekirse kopyalanmasını bekler) ve Kapat'a kadar
 // önbellekten silinmez.
 func (k *Dataset) OpenShard(ctx context.Context, i int) (*Shard, error) {
@@ -232,7 +232,7 @@ func (k *Dataset) OpenShard(ctx context.Context, i int) (*Shard, error) {
 	return p, nil
 }
 
-// onbellekKotaDenetle, önbellek etkinse kotanın aynı anda gereken parça
+// checkCacheQuota, önbellek etkinse kotanın aynı anda gereken parça
 // sayısına (açık parçalar + ileri bakış) en büyük parça boyutuyla yettiğini
 // denetler. enKisa tokendan kısa parçalar hiç açılmadığı için sayılmaz.
 func (k *Dataset) checkCacheQuota(count int, shortest int64) error {
@@ -259,7 +259,7 @@ func (k *Dataset) checkCacheQuota(count int, shortest int64) error {
 	return ob.Reserve(needed)
 }
 
-// onbellekHazirla, önbellek etkinse verilen parçaların arka planda
+// prepareCache, önbellek etkinse verilen parçaların arka planda
 // kopyalanmasını ister.
 func (k *Dataset) prepareCache(orders []int) {
 	if k.pick.Cache == nil {

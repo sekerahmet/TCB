@@ -10,7 +10,7 @@ import (
 // float32'ye bir kez yuvarlanır (başvuru doğruluğu). 16 bitlik türler tür uyarlayıcılarıyla
 // (gecici) float32'ye açılır.
 
-// unaryDonguGenis unaryDongu'nun genişletilmiş işlemleri: y = f(x).
+// unaryLoopWide unaryDongu'nun genişletilmiş işlemleri: y = f(x).
 func unaryLoopWide(op UnOp, y, x []float32) {
 	f64 := func(f func(float64) float64) {
 		for i, v := range x {
@@ -57,7 +57,7 @@ func unaryLoopWide(op UnOp, y, x []float32) {
 	}
 }
 
-// isaret32 x > 0 ise 1, x < 0 ise −1, sıfırda (işaretiyle) sıfır, NaN'da NaN.
+// sign32 x > 0 ise 1, x < 0 ise −1, sıfırda (işaretiyle) sıfır, NaN'da NaN.
 func sign32(x float32) float32 {
 	switch {
 	case x > 0:
@@ -68,7 +68,7 @@ func sign32(x float32) float32 {
 	return x
 }
 
-// siluIleri y = x·σ(x); σ sigmoid'deki gibi e = e^{-|x|} ile sayısal kararlı biçimde
+// siluForward y = x·σ(x); σ sigmoid'deki gibi e = e^{-|x|} ile sayısal kararlı biçimde
 // (x ≥ 0 için 1/(1+e), aksi halde e/(1+e)) hesaplanır. x < −87 civarında σ(x) normal
 // altı bölgededir: sonucun göreli hatası büyür, mutlak hatası 1e-38'in altında kalır.
 func siluForward(y, x []float32) {
@@ -95,7 +95,7 @@ func siluForward(y, x []float32) {
 	}
 }
 
-// siluGeri gx += g·d, d = s + x·s·(1−s) (s = σ(x)). s·(1−s) = 0 iken (|x| büyük ya da
+// siluBackward gx += g·d, d = s + x·s·(1−s) (s = σ(x)). s·(1−s) = 0 iken (|x| büyük ya da
 // sonsuz) d = s alınır: x·0 sonsuzda NaN üretirdi.
 func siluBackward(gx, g, x []float32) {
 	var t [vecBlock]float32
@@ -122,7 +122,7 @@ func siluBackward(gx, g, x []float32) {
 	}
 }
 
-// unaryGradDonguGenis unaryGradDongu'nun genişletilmiş işlemleri: gx += g·f'(x, y).
+// unaryGradLoopWide unaryGradDongu'nun genişletilmiş işlemleri: gx += g·f'(x, y).
 // Türev çarpanları float64'te hesaplanır.
 func unaryGradLoopWide(op UnOp, gx, g, x, y []float32) {
 	f64 := func(f func(x, y float64) float64) {
@@ -169,7 +169,7 @@ func unaryGradLoopWide(op UnOp, gx, g, x, y []float32) {
 // İkili: iki argümanlı arktanjant ve karşılaştırmalar
 // ----------------------------------------------------------------------------
 
-// binDeger tek elemanlı ikili işlem (genişletilmiş işlemler).
+// binValue tek elemanlı ikili işlem (genişletilmiş işlemler).
 func binValue(op BinOp, a, b float32) float32 {
 	var d bool
 	switch op {
@@ -192,14 +192,14 @@ func binValue(op BinOp, a, b float32) float32 {
 	return 0
 }
 
-// binFlatGenis binFlat'in genişletilmiş işlemleri.
+// binFlatWide binFlat'in genişletilmiş işlemleri.
 func binFlatWide(op BinOp, out, a, b []float32) {
 	for i, x := range a {
 		out[i] = binValue(op, x, b[i])
 	}
 }
 
-// binStridedGenis binStrided'ın genişletilmiş işlemleri.
+// binStridedWide binStrided'ın genişletilmiş işlemleri.
 func binStridedWide(op BinOp, out []float32, oo, os int, a []float32, ao, as int, b []float32, bo, bs int, n int) {
 	for i := 0; i < n; i++ {
 		out[oo+i*os] = binValue(op, a[ao+i*as], b[bo+i*bs])
@@ -210,7 +210,7 @@ func binStridedWide(op BinOp, out []float32, oo, os int, a []float32, ao, as int
 // Sınırlama, koşullu seçim, arktanjant gradyanı
 // ----------------------------------------------------------------------------
 
-// sinirla32 x'i [lo, hi]'ye sınırlar; NaN korunur.
+// clamp32 x'i [lo, hi]'ye sınırlar; NaN korunur.
 func clamp32(x, lo, hi float32) float32 {
 	if x < lo {
 		return lo

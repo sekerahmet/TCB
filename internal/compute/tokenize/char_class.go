@@ -2,7 +2,7 @@ package tokenize
 
 import "sort"
 
-// karakterTablosu sıralı, çakışmayan [ilk, son] kod noktası aralıklarıdır.
+// charTable sıralı, çakışmayan [ilk, son] kod noktası aralıklarıdır.
 // Tablolar karaktertablo.go'da başvuru uygulamasından çıkarılarak üretilir
 // (bkz. testdata/karakter_tablolari_uret.py).
 type charTable [][2]rune
@@ -12,7 +12,7 @@ func (t charTable) inside(r rune) bool {
 	return i < len(t) && t[i][0] <= r
 }
 
-// sozcukKarakteri başvuru uygulamasının "sözcük karakteri" tanımıdır (Unicode
+// wordChar başvuru uygulamasının "sözcük karakteri" tanımıdır (Unicode
 // UTS #18 \w: Alphabetic, M, Nd, Pc, Join_Control). Whitespace ön bölücüsü ve
 // ek tokenların single_word seçeneği bunu kullanır.
 func wordChar(r rune) bool {
@@ -22,7 +22,7 @@ func wordChar(r rune) bool {
 	return tableWord.inside(r)
 }
 
-// ifadeSozcuk düzenli ifadelerdeki \w sınıfıdır (L, M, N, Pc).
+// exprWord düzenli ifadelerdeki \w sınıfıdır (L, M, N, Pc).
 func exprWord(r rune) bool {
 	if r < 0x80 {
 		return r == '_' || (r >= '0' && r <= '9') || (r|0x20 >= 'a' && r|0x20 <= 'z')
@@ -30,7 +30,7 @@ func exprWord(r rune) bool {
 	return tableExprWord.inside(r)
 }
 
-// ifadeBosluk düzenli ifadelerdeki \s sınıfıdır.
+// exprSpace düzenli ifadelerdeki \s sınıfıdır.
 func exprSpace(r rune) bool {
 	if r < 0x80 {
 		return r == ' ' || (r >= '\t' && r <= '\r')

@@ -17,7 +17,7 @@ import (
 // yalnızca benzetimin (benzetim_*.go) de yürüttüğü komut altkümesini kullanır; bu yüzden
 // her çekirdek NVIDIA donanımı olmadan da sınanabilir.
 
-// yazmac bir PTX yazmacının adıdır (ör. "%f3").
+// reg bir PTX yazmacının adıdır (ör. "%f3").
 type reg string
 
 // Yazmaç türleri.
@@ -36,7 +36,7 @@ var regInfo = [regClassCount]struct{ dtype, prefix string }{
 	yzP: {".pred", "%p"}, yzH: {".b16", "%h"}, yzFD: {".f64", "%fd"},
 }
 
-// paramTuru çekirdek parametresinin imzası: adı, bayt boyu, gösterici mi ve çekirdeğin
+// paramType çekirdek parametresinin imzası: adı, bayt boyu, gösterici mi ve çekirdeğin
 // gösterdiği belleğe yazıp yazmadığı. Başlatıcı, başlatma yerinin bildirdiği okuma/yazma
 // ile imzayı karşılaştırır ve yazılan depolamaların konak gölgesini kendisi siler.
 type paramType struct {
@@ -46,7 +46,7 @@ type paramType struct {
 	writable bool
 }
 
-// yazici bir PTX çekirdeğini kurar.
+// emitter bir PTX çekirdeğini kurar.
 type emitter struct {
 	ad        string
 	signature []paramType
@@ -55,9 +55,9 @@ type emitter struct {
 	row       []string
 	counter   [regClassCount]int
 	labelNo   int
-	// hedef PTX hedef mimarisi (52: taban sm_52; 80: cp.async kullanan çekirdekler).
+	// target PTX hedef mimarisi (52: taban sm_52; 80: cp.async kullanan çekirdekler).
 	target int
-	// dinamik doğruysa paylaşımlı diziler tek bir devingen dizinin (.extern .shared dsm)
+	// dynamic doğruysa paylaşımlı diziler tek bir devingen dizinin (.extern .shared dsm)
 	// parçalarıdır (48 KB üstü; başlatmada paylasimBayt kadar açılır). paylasimBayt bütün
 	// paylaşımlı dizilerin (16'ya hizalı) toplamı.
 	dynamic        bool
@@ -78,7 +78,7 @@ func (k *emitter) p() reg  { return k.fresh2(yzP) }
 func (k *emitter) h() reg  { return k.fresh2(yzH) }
 func (k *emitter) fd() reg { return k.fresh2(yzFD) }
 
-// terim bir işleneni PTX yazımına çevirir.
+// term bir işleneni PTX yazımına çevirir.
 func term(a any) string {
 	switch v := a.(type) {
 	case reg:
@@ -121,15 +121,15 @@ func (k *emitter) instruction(on, op string, args []any) {
 // e bir komut yazar: k.e("add.f32", d, a, b).
 func (k *emitter) e(op string, args ...any) { k.instruction("", op, args) }
 
-// eger koşullu komut yazar (@p op ...).
+// ifCase koşullu komut yazar (@p op ...).
 func (k *emitter) ifCase(p reg, op string, args ...any) { k.instruction("@"+string(p)+" ", op, args) }
 
-// degilse koşulun yanlışlığına bağlı komut yazar (@!p op ...).
+// otherwise koşulun yanlışlığına bağlı komut yazar (@!p op ...).
 func (k *emitter) otherwise(p reg, op string, args ...any) {
 	k.instruction("@!"+string(p)+" ", op, args)
 }
 
-// etiket tekil bir etiket adı üretir; koy ile yerleştirilir.
+// label tekil bir etiket adı üretir; koy ile yerleştirilir.
 func (k *emitter) label() string {
 	k.labelNo++
 	return "L" + strconv.Itoa(k.labelNo)
@@ -137,17 +137,17 @@ func (k *emitter) label() string {
 
 func (k *emitter) put(l string) { k.row = append(k.row, l+":") }
 
-// git koşulsuz dallanma.
+// jump koşulsuz dallanma.
 func (k *emitter) jump(l string) { k.e("bra", l) }
 
-// gitEger p doğruysa dallanır; gitDegilse p yanlışsa.
+// jumpIf p doğruysa dallanır; gitDegilse p yanlışsa.
 func (k *emitter) jumpIf(p reg, l string)     { k.ifCase(p, "bra", l) }
 func (k *emitter) jumpUnless(p reg, l string) { k.otherwise(p, "bra", l) }
 
-// engel bloktaki bütün iş parçacıklarını bekler.
+// barrier bloktaki bütün iş parçacıklarını bekler.
 func (k *emitter) barrier() { k.e("bar.sync", 0) }
 
-// bel bir bellek işleneni yazar: [taban+ofset].
+// mem bir bellek işleneni yazar: [taban+ofset].
 func mem(base2 reg, offset int) string {
 	if offset == 0 {
 		return "[" + string(base2) + "]"
@@ -164,11 +164,11 @@ func (k *emitter) addParam(dtype, ad string, byteN int) {
 	k.signature = append(k.signature, paramType{ad: ad, byteN: byteN})
 }
 
-// gosterici çekirdeğin yalnızca okuduğu bir genel bellek göstericisi parametresi
+// pointer çekirdeğin yalnızca okuduğu bir genel bellek göstericisi parametresi
 // bildirir ve yükler.
 func (k *emitter) pointer(ad string) reg { return k.declarePointer(ad, false) }
 
-// yazilan çekirdeğin yazdığı (ya da okuyup yazdığı) bir gösterici parametresi bildirir.
+// written çekirdeğin yazdığı (ya da okuyup yazdığı) bir gösterici parametresi bildirir.
 func (k *emitter) written(ad string) reg { return k.declarePointer(ad, true) }
 
 func (k *emitter) declarePointer(ad string, writable bool) reg {
@@ -196,14 +196,14 @@ func (k *emitter) f32p(ad string) reg {
 	return r
 }
 
-// dizi n elemanlı 32 bitlik tam sayı dizisini değerle geçen parametre bildirir.
+// arr n elemanlı 32 bitlik tam sayı dizisini değerle geçen parametre bildirir.
 func (k *emitter) arr(ad string, n int) {
 	n = max(n, 1)
 	k.param = append(k.param, fmt.Sprintf("\t.param .align 4 .b8 %s[%d]", ad, 4*n))
 	k.signature = append(k.signature, paramType{ad: ad, byteN: 4 * n})
 }
 
-// diziOku dizinin i. elemanını yükler.
+// readArr dizinin i. elemanını yükler.
 func (k *emitter) readArr(ad string, i int) reg {
 	r := k.r()
 	k.e("ld.param.u32", r, fmt.Sprintf("[%s+%d]", ad, 4*i))
@@ -214,7 +214,7 @@ func (k *emitter) readArr(ad string, i int) reg {
 // Paylaşımlı bellek ve özel yazmaçlar
 // ----------------------------------------------------------------------------
 
-// ortak bayt boyunda paylaşımlı bellek dizisi bildirir ve 32 bitlik adresini verir.
+// shared bayt boyunda paylaşımlı bellek dizisi bildirir ve 32 bitlik adresini verir.
 func (k *emitter) shared(ad string, byteN int) reg {
 	ofs := (k.sharedMemBytes + 15) &^ 15
 	k.sharedMemBytes = ofs + byteN
@@ -231,14 +231,14 @@ func (k *emitter) shared(ad string, byteN int) reg {
 	return r
 }
 
-// ozel bir özel yazmacı (%tid.x, %ctaid.y, ...) okur.
+// special bir özel yazmacı (%tid.x, %ctaid.y, ...) okur.
 func (k *emitter) special(ad string) reg {
 	r := k.r()
 	k.e("mov.u32", r, ad)
 	return r
 }
 
-// genelIndeks ctaid.x·ntid.x + tid.x.
+// globalIndex ctaid.x·ntid.x + tid.x.
 func (k *emitter) globalIndex() reg {
 	b, n, t := k.special("%ctaid.x"), k.special("%ntid.x"), k.special("%tid.x")
 	i := k.r()
@@ -250,7 +250,7 @@ func (k *emitter) globalIndex() reg {
 // Adres ve sabit yardımcıları
 // ----------------------------------------------------------------------------
 
-// adres taban + idx·boy (idx işaretsiz 32 bit).
+// address taban + idx·boy (idx işaretsiz 32 bit).
 func (k *emitter) address(base2, idx reg, size int) reg {
 	r := k.rd()
 	k.e("mul.wide.u32", r, idx, size)
@@ -258,7 +258,7 @@ func (k *emitter) address(base2, idx reg, size int) reg {
 	return r
 }
 
-// adresS taban + idx·boy (idx işaretli 32 bit).
+// addressS taban + idx·boy (idx işaretli 32 bit).
 func (k *emitter) addressS(base2, idx reg, size int) reg {
 	r := k.rd()
 	k.e("mul.wide.s32", r, idx, size)
@@ -266,14 +266,14 @@ func (k *emitter) addressS(base2, idx reg, size int) reg {
 	return r
 }
 
-// sabit float32 sabitini yazmaca koyar.
+// constant float32 sabitini yazmaca koyar.
 func (k *emitter) constant(v float32) reg {
 	r := k.f()
 	k.e("mov.f32", r, v)
 	return r
 }
 
-// tam 32 bitlik tam sayı sabitini yazmaca koyar.
+// whole 32 bitlik tam sayı sabitini yazmaca koyar.
 func (k *emitter) whole(v int) reg {
 	r := k.r()
 	k.e("mov.u32", r, v)
@@ -284,7 +284,7 @@ func (k *emitter) whole(v int) reg {
 // Metin
 // ----------------------------------------------------------------------------
 
-// metin modülün PTX metnini verir.
+// text modülün PTX metnini verir.
 func (k *emitter) text() string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, ".version 7.0\n.target sm_%d\n.address_size 64\n\n", k.target)

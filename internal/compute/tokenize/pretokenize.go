@@ -22,7 +22,7 @@ import "unicode/utf8"
 //   - \p{N}: sayı (Nd, Nl, No)
 //   - \s   : Unicode "White_Space" (9-13, 0x20, 0x85, 0xA0, Zs, Zl, Zp)
 
-// BolmeDeseni bu paketin elle uyguladığı tek ön bölme desenidir.
+// SplitPattern bu paketin elle uyguladığı tek ön bölme desenidir.
 const SplitPattern = `[’']\p{L}+| ?\p{L}+| ?\p{N}| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+`
 
 // Karakter sınıfı bitleri (ASCII için önceden hesaplanır).
@@ -55,7 +55,7 @@ func computeClass(r rune) uint8 {
 	return 0
 }
 
-// sinif bir karakterin sınıf bitini verir (0: "diğer").
+// class bir karakterin sınıf bitini verir (0: "diğer").
 func class(r rune) uint8 {
 	if r >= 0 && r < rune(len(lowClass)) {
 		return lowClass[r]
@@ -63,7 +63,7 @@ func class(r rune) uint8 {
 	return computeClass(r)
 }
 
-// karakter s[i] konumundaki karakteri ve bayt genişliğini verir.
+// char s[i] konumundaki karakteri ve bayt genişliğini verir.
 func char(s string, i int) (rune, int) {
 	if c := s[i]; c < utf8.RuneSelf {
 		return rune(c), 1
@@ -71,7 +71,7 @@ func char(s string, i int) (rune, int) {
 	return utf8.DecodeRuneInString(s[i:])
 }
 
-// harfSonu i'den başlayan en uzun harf dizisinin bitiş konumunu verir.
+// letterEnd i'den başlayan en uzun harf dizisinin bitiş konumunu verir.
 func letterEnd(s string, i int) int {
 	for i < len(s) {
 		r, w := char(s, i)
@@ -83,7 +83,7 @@ func letterEnd(s string, i int) int {
 	return i
 }
 
-// digerSonu i'den başlayan, harf/sayı/boşluk olmayan en uzun dizinin sonunu verir.
+// otherEnd i'den başlayan, harf/sayı/boşluk olmayan en uzun dizinin sonunu verir.
 func otherEnd(s string, i int) int {
 	for i < len(s) {
 		r, w := char(s, i)
@@ -95,7 +95,7 @@ func otherEnd(s string, i int) int {
 	return i
 }
 
-// eslesmeSonu i konumunda başlayan eşleşmenin bitiş konumunu verir (i < len(s)).
+// matchEnd i konumunda başlayan eşleşmenin bitiş konumunu verir (i < len(s)).
 func matchEnd(s string, i int) int {
 	r, w := char(s, i)
 	n := len(s)
@@ -149,7 +149,7 @@ func matchEnd(s string, i int) int {
 	return last
 }
 
-// onBol metni desene göre parçalara böler ve her parça için f'yi çağırır.
+// preTokenize metni desene göre parçalara böler ve her parça için f'yi çağırır.
 func preTokenize(s string, f func(piece string)) {
 	for i := 0; i < len(s); {
 		j := matchEnd(s, i)
@@ -158,7 +158,7 @@ func preTokenize(s string, f func(piece string)) {
 	}
 }
 
-// DesenleBol metni BolmeDeseni'ne göre parçalara ayırır (sınama ve inceleme için).
+// SplitByPattern metni BolmeDeseni'ne göre parçalara ayırır (sınama ve inceleme için).
 func SplitByPattern(text string) []string {
 	text = validText(text)
 	var out []string

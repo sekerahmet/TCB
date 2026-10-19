@@ -53,7 +53,7 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 	}
 }
 
-// tamHizli iki Tam sayı arasındaki işlemin hızlı yoludur; ok=false ise (taşma, sıfıra
+// intFast iki Tam sayı arasındaki işlemin hızlı yoludur; ok=false ise (taşma, sıfıra
 // bölme, desteklenmeyen işleç) genel yola (evalInfixKod) düşülür ve hata orada üretilir.
 type intFast func(a, b int64) (Value, bool)
 
@@ -247,7 +247,7 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 	}
 }
 
-// boru 'veri |> f(...)' ve 'veri |> f' ifadelerini derler.
+// pipe 'veri |> f(...)' ve 'veri |> f' ifadelerini derler.
 func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Expression) exprCode {
 	leftFn := c.expression(k, left)
 	// Sağ taraf bir fonksiyon çağrısı ise (örn: veri |> filtrele((x) => x > 2))

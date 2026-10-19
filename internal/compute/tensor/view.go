@@ -19,7 +19,7 @@ func scatterBackward(parent, out *Tensor, gOff int, gStrides []int) func() {
 	}
 }
 
-// gradDevret, düzeni ebeveyninkiyle aynı olan (aynı elemanlar, aynı satır
+// handOffGrad, düzeni ebeveyninkiyle aynı olan (aynı elemanlar, aynı satır
 // öncelikli sıra) bir çıktının gradyanını ebeveyne aktarır. Ebeveynin henüz
 // gradyanı yoksa depolama kopyalanmadan devredilir ve çıktıdan alınır; böylece
 // her gradyan depolamasının tek bir sahibi olur (geri yayılım, sahibi kalmayan
@@ -82,7 +82,7 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 	return reshaped(t, sh, st)
 }
 
-// yenidenSekil t'nin elemanlarına aynı mantıksal sırayla sh şekli ve st adımlarıyla bakan
+// reshaped t'nin elemanlarına aynı mantıksal sırayla sh şekli ve st adımlarıyla bakan
 // görünümü kurar. Mantıksal sıra değişmediğinden gradyan ebeveyne olduğu gibi devredilir.
 func reshaped(t *Tensor, sh, st []int) *Tensor {
 	sy := counterStart(t.be, OpKindView).start()
@@ -92,7 +92,7 @@ func reshaped(t *Tensor, sh, st []int) *Tensor {
 	return r
 }
 
-// gorunumAdimlari, eski şekil ve adımlarla bakılan elemanlara (satır öncelikli mantıksal
+// viewStrides, eski şekil ve adımlarla bakılan elemanlara (satır öncelikli mantıksal
 // sırayı koruyarak) yeni şekille kopyasız bakılabiliyorsa yeni adımları verir. Boyutu 1
 // olan eksenler atlanır; kalan eski eksenler, depoda düzenli adımlı ardışık gruplara
 // (adım[i] = adım[i+1]·boyut[i+1]) ayrılır. Her grup, yeni şeklin sondan ardışık

@@ -10,7 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// trTohumlari depodaki bütün .tr dosyalarını (tests/, examples/, lib/) tohum olarak ekler.
+// trSeeds depodaki bütün .tr dosyalarını (tests/, examples/, lib/) tohum olarak ekler.
 func trSeeds(f *testing.F) {
 	for _, dir := range []string{"tests", "examples", "lib"} {
 		_ = filepath.WalkDir(filepath.Join(reporoot.Kok(), dir), func(path string, g fs.DirEntry, err error) error {

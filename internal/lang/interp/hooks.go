@@ -102,7 +102,7 @@ type LineError struct {
 func (h *LineError) Error() string { return fmt.Sprintf("Satır %d: %v", h.Line, h.Err) }
 func (h *LineError) Unwrap() error { return h.Err }
 
-// satirliMi hata zaten satır bilgisi taşıyor mu? Tipli hata önceliklidir; VM'nin metinle
+// hasLine hata zaten satır bilgisi taşıyor mu? Tipli hata önceliklidir; VM'nin metinle
 // ürettiği "Satır N: ..." hataları için metin öneki yedek olarak denetlenir.
 func hasLine(err error) bool {
 	var sh *LineError
@@ -110,7 +110,7 @@ func hasLine(err error) bool {
 	return errors.As(err, &sh) || errors.As(err, &mh) || strings.HasPrefix(err.Error(), "Satır ")
 }
 
-// satirEki hatayı (satır bilgisi yoksa) "Satır N: " önekli bir SatirliHata'ya çevirir.
+// lineSuffix hatayı (satır bilgisi yoksa) "Satır N: " önekli bir SatirliHata'ya çevirir.
 func lineSuffix(line int, err error) error {
 	if err == nil || line <= 0 || hasLine(err) {
 		return err
@@ -118,7 +118,7 @@ func lineSuffix(line int, err error) error {
 	return &LineError{Line: line, Err: err}
 }
 
-// kancaIslec ikili işlemi (varsa) değerlerin işleç kancalarıyla yapar.
+// hookOperator ikili işlemi (varsa) değerlerin işleç kancalarıyla yapar.
 func (v *VM) hookOperator(op string, left, right Value, line int) (Value, bool, error) {
 	if k, ok := left.(TaskOperatorHook); ok {
 		if val, ok, err := k.TaskOperator(v, op, right, false); ok {

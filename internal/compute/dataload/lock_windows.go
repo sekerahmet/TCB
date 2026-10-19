@@ -15,7 +15,7 @@ const (
 	lockExclusive = 0x2 // LOCKFILE_EXCLUSIVE_LOCK
 )
 
-// dosyaKilitle f üzerinde bekletmeden özel kilit alır; kilit başka bir
+// lockFile f üzerinde bekletmeden özel kilit alır; kilit başka bir
 // tutamaktaysa hata döner. Kilit, tutamak kapanınca (süreç çökse de)
 // bırakılır.
 func lockFile(f *os.File) error {

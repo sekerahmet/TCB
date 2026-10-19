@@ -10,7 +10,7 @@ import (
 	"syscall"
 )
 
-// dosyaHatasi işletim sisteminin dosya hatasını Türkçe anlatır. Özgün hata Unwrap ile
+// fileError işletim sisteminin dosya hatasını Türkçe anlatır. Özgün hata Unwrap ile
 // korunur: errors.Is(err, os.ErrNotExist) gibi denetimler çalışmaya devam eder.
 type fileError struct {
 	message string
@@ -112,7 +112,7 @@ func FileErrorReason(path string, err error) string {
 	return fmt.Sprintf("beklenmeyen bir hata oluştu (özgün hata: %s)", orig)
 }
 
-// eksikKlasor yolun klasör kısımlarından ilk olmayanını kullanıcının yazdığı biçimde
+// missingDir yolun klasör kısımlarından ilk olmayanını kullanıcının yazdığı biçimde
 // döndürür; klasörler tamamsa (eksik olan dosyanın kendisiyse) "" döner.
 func missingDir(path string) string {
 	if path == "" {

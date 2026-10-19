@@ -9,7 +9,7 @@ import (
 // Bellek
 // ----------------------------------------------------------------------------
 
-// havuzEnAz bundan küçük depolamalar havuza alınmaz (küçük ayırmalar ucuzdur).
+// poolMin bundan küçük depolamalar havuza alınmaz (küçük ayırmalar ucuzdur).
 const poolMin = 1 << 12
 
 type poolKey struct {
@@ -17,7 +17,7 @@ type poolKey struct {
 	n    int
 }
 
-// cpuHavuz iade edilen depolamaları tür ve eleman sayısına göre tutar. Eğitimde
+// cpuPool iade edilen depolamaları tür ve eleman sayısına göre tutar. Eğitimde
 // aynı boyutlar her adımda yinelendiğinden tam boyut eşlemesi yeterlidir;
 // sync.Pool kullanılmayan tamponları çöp toplayıcıya bırakır.
 var cpuPool struct {
@@ -54,7 +54,7 @@ func cpuCheckDType(dt DType) {
 // depolama varsa onu (paralel olarak sıfırlayıp) yeniden kullanır.
 func (b cpuBackend) Alloc(n int, dt DType) Storage { return b.allocate(n, dt, true) }
 
-// allocBos (bosAyirici) içeriği belirsiz depolama verir: havuzdan gelen
+// allocUninit (bosAyirici) içeriği belirsiz depolama verir: havuzdan gelen
 // depolama sıfırlanmaz. Yalnızca her elemanı yazılacak çıktılar için.
 func (b cpuBackend) allocUninit(n int, dt DType) Storage { return b.allocate(n, dt, false) }
 

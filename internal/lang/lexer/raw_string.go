@@ -38,7 +38,7 @@ func (l *Lexer) readRawString(startLine, startCol int) string {
 	return sb.String()
 }
 
-// kacisOku tırnaklı metindeki bir kaçış dizisini (ters bölü ve ardındaki karakter) okur ve
+// readEscape tırnaklı metindeki bir kaçış dizisini (ters bölü ve ardındaki karakter) okur ve
 // karşılığını yazar. Dosya sonunda ters bölüden sonra durur; readString hatayı bildirir.
 func (l *Lexer) readEscape(sb *strings.Builder) {
 	escLine, escCol := l.line, l.column
@@ -79,7 +79,7 @@ func (l *Lexer) readEscape(sb *strings.Builder) {
 	l.readChar()
 }
 
-// bilinmeyenKacis tırnaklı metindeki tanınmayan '\c' kaçış dizisinin hata mesajıdır.
+// unknownEscape tırnaklı metindeki tanınmayan '\c' kaçış dizisinin hata mesajıdır.
 func unknownEscape(c rune) string {
 	arr := "'\\" + string(c) + "'"
 	switch c {

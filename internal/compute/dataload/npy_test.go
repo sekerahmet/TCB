@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// elleBaslik, verilen sözlük metniyle ham bir başlık üretir (dolgu ve
+// manualHeader, verilen sözlük metniyle ham bir başlık üretir (dolgu ve
 // satır sonu dahil, 64 bayta hizalı).
 func manualHeader(version int, dict string) []byte {
 	prefix := 10

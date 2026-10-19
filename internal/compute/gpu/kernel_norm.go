@@ -20,7 +20,7 @@ import (
 // tampona yazılır ve satırlar boyunca (belirlenimci) indirgenir; β'nınki g'nin satır
 // toplamıdır.
 
-// normAyar norm çekirdeğinin üretim ayarları.
+// normConfig norm çekirdeğinin üretim ayarları.
 type normConfig struct {
 	B                  int
 	layer, gamma, beta bool

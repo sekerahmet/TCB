@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// TestCaprazEntropiEksiSonsuz −∞ logitli satırlar (başta, ortada, tamamı): −∞ katkı vermez;
+// TestCrossEntropyNegInf −∞ logitli satırlar (başta, ortada, tamamı): −∞ katkı vermez;
 // tamamı −∞ olan satır CPU'daki gibi NaN verir. Tekli ve 4'lü vektör yolu.
 func TestCrossEntropyNegInf(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))

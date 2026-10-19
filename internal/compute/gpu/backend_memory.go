@@ -12,7 +12,7 @@ import (
 
 func f32bit(v float32) uint32 { return math.Float32bits(v) }
 
-// gecici, bir çağrının açtığı geçici tamponları toplar; bitir hepsini havuza iade eder.
+// temp, bir çağrının açtığı geçici tamponları toplar; bitir hepsini havuza iade eder.
 // Hesap çekirdekleri float32 bitişik görür: 16 bitlik (ya da adımlı) girdiler float32
 // bitişik geçici tampona açılır, 16 bitlik hedefler float32 tamponda hesaplanıp bir kez
 // yuvarlanarak geri yazılır (CPU arka ucuyla aynı düzen).
@@ -36,7 +36,7 @@ func (t *temp) finish() {
 	t.t = nil
 }
 
-// oku görünümü float32 bitişik görünüme çevirir (zaten öyleyse aynen).
+// read görünümü float32 bitişik görünüme çevirir (zaten öyleyse aynen).
 func (t *temp) read(v tensor.View) tensor.View {
 	d := t.g.storageOf(v.S)
 	if d.dtype == tensor.Float32 && v.IsContiguous() {
@@ -49,7 +49,7 @@ func (t *temp) read(v tensor.View) tensor.View {
 	return hv
 }
 
-// okuP isteğe bağlı görünüm.
+// readP isteğe bağlı görünüm.
 func (t *temp) readP(v *tensor.View) *tensor.View {
 	if v == nil {
 		return nil
@@ -58,7 +58,7 @@ func (t *temp) readP(v *tensor.View) *tensor.View {
 	return &w
 }
 
-// okuD düz depolamanın float32 karşılığı (nil için nil).
+// readD düz depolamanın float32 karşılığı (nil için nil).
 func (t *temp) readD(s tensor.Storage) *storage {
 	if s == nil {
 		return nil
@@ -70,7 +70,7 @@ func (t *temp) readD(s tensor.Storage) *storage {
 	return t.g.storageOf(t.read(tensor.View{S: d, Shape: []int{d.n}, Strides: []int{1}}).S)
 }
 
-// yaz hedefin float32 karşılığını ve geri yazma işlevini verir; eski doğruysa geçici
+// write hedefin float32 karşılığını ve geri yazma işlevini verir; eski doğruysa geçici
 // tampon mevcut içerikle başlar (biriktirme), değilse sıfırdır. nil hedef nil döner.
 func (t *temp) write(s tensor.Storage, old bool) (*storage, func()) {
 	if s == nil {
@@ -165,7 +165,7 @@ func (g *backend) ToHost(src tensor.View) []float32 {
 	return out
 }
 
-// golgedenTopla görünümün elemanlarını konak gölgesinden mantıksal sırayla toplar.
+// sumFromShadow görünümün elemanlarını konak gölgesinden mantıksal sırayla toplar.
 func sumFromShadow(out, source []float32, v tensor.View) {
 	nd := len(v.Shape)
 	idx := make([]int, nd)

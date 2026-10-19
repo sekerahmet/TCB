@@ -79,7 +79,7 @@ func TestCompilerDynamicEval(t *testing.T) {
 	}
 }
 
-// zıplayanAyiklayici belirli bir satıra ilk gelişte başka bir satıra atlatır ve gördüğü
+// jumpingDebugger belirli bir satıra ilk gelişte başka bir satıra atlatır ve gördüğü
 // ortamda adla değişken okur.
 type jumpingDebugger struct {
 	source, dest int

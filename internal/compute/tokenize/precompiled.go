@@ -71,7 +71,7 @@ func daValue(u uint32) uint32 { return u & (1<<31 - 1) }
 func daLabel(u uint32) uint32 { return u & (1<<31 | 0xFF) }
 func daShift(u uint32) uint32 { return (u >> 10) << ((u & (1 << 9)) >> 6) }
 
-// ilkOnek anahtarın ağaçtaki İLK (en kısa) önek eşleşmesinin değerini verir.
+// firstPrefix anahtarın ağaçtaki İLK (en kısa) önek eşleşmesinin değerini verir.
 func (p *precompiled) firstPrefix(key string) (uint32, bool) {
 	pos := uint32(0)
 	unit := p.arr[0]
@@ -174,7 +174,7 @@ func graphemeExtend(r rune) bool {
 	return unicode.In(r, unicode.Mn, unicode.Me, unicode.Other_Grapheme_Extend)
 }
 
-// grafemAralikIsareti GCB=SpacingMark (Mc'nin çoğu ve birkaç ek karakter).
+// graphemeSpacingMark GCB=SpacingMark (Mc'nin çoğu ve birkaç ek karakter).
 func graphemeSpacingMark(r rune) bool {
 	switch {
 	case r == 0x0E33 || r == 0x0EB3:
@@ -193,7 +193,7 @@ func graphemePrepend(r rune) bool {
 		r == 0x1193F || r == 0x11941 || r == 0x11A3A || (r >= 0x11A84 && r <= 0x11A89) || r == 0x11D46 || r == 0x11F02
 }
 
-// grafemSonu i'de başlayan grafem kümesinin bitişini verir.
+// graphemeEnd i'de başlayan grafem kümesinin bitişini verir.
 func graphemeEnd(s string, i int) int {
 	r, w := utf8.DecodeRuneInString(s[i:])
 	j := i + w

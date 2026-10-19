@@ -8,7 +8,7 @@ import "math"
 // indirgemesi ve aynı polinom); ölçekleme iki çarpanla yapıldığı için normal
 // altı sonuçlar ve taşma kütüphane işlevine düşmeden doğru çıkar.
 
-// expSabit çekirdeğin sabit tablosu: her değer 8 kez (bir ymm) yinelenir.
+// expConst çekirdeğin sabit tablosu: her değer 8 kez (bir ymm) yinelenir.
 var expConst = func() (t [13 * 8]float32) {
 	values := [...]float32{
 		-104, 89, log2e32, ln2Hi, ln2Lo,
@@ -26,7 +26,7 @@ var expConst = func() (t [13 * 8]float32) {
 //go:noescape
 func expVecKernel(dst, src *float32, n int, constant *float32)
 
-// expVek dst[i] = e^src[i] (dst ve src aynı dilim olabilir). 8'in katı olmayan kuyruk
+// expVec dst[i] = e^src[i] (dst ve src aynı dilim olabilir). 8'in katı olmayan kuyruk
 // da aynı çekirdekten (sıfır dolgulu 8'lik blokla) geçer: skaler expf32 FMA birleştirmesi
 // yüzünden çekirdekten 1 ulp farklı olabildiği için sonuç elemanın konumuna bağlı
 // olmasın.
@@ -45,11 +45,11 @@ func expVec(dst, src []float32) {
 	}
 }
 
-// vekMaske kuyruk maskeleri: &vekMaske[8-k]'dan okunan 8 değerin ilk k'sı -1'dir
+// vecMask kuyruk maskeleri: &vekMaske[8-k]'dan okunan 8 değerin ilk k'sı -1'dir
 // (k < 8 elemanlık kuyruk, maskeli yükleme ve saklamayla işlenir).
 var vecMask = [16]int32{-1, -1, -1, -1, -1, -1, -1, -1}
 
-// geluSabit GELU çekirdeklerinin sabitleri (her biri 8 kez): a, −2c, 1, c, 3a.
+// geluConst GELU çekirdeklerinin sabitleri (her biri 8 kez): a, −2c, 1, c, 3a.
 var geluConst = func() (t [5 * 8]float32) {
 	for i, v := range [...]float32{geluA, geluM2C, 1, geluC, gelu3A} {
 		for j := 0; j < 8; j++ {
@@ -65,7 +65,7 @@ func geluForwardKernel(y, x *float32, n int)
 //go:noescape
 func geluBackwardKernel(gx, gr, x *float32, n int)
 
-// geluIleriVek y = GELU(x); tanım ve taşınabilir eşi geluIleriGo'dadır. Üstel
+// geluForwardVec y = GELU(x); tanım ve taşınabilir eşi geluIleriGo'dadır. Üstel
 // vektörel olduğundan sonuç Go eşinden en çok birkaç ulp farklı olabilir.
 func geluForwardVec(y, x []float32) {
 	if len(x) == 0 {
@@ -75,7 +75,7 @@ func geluForwardVec(y, x []float32) {
 	geluForwardKernel(&y[0], &x[0], len(x))
 }
 
-// geluGeriVek gx += g·GELU'(x); tanım ve taşınabilir eşi geluGeriGo'dadır.
+// geluBackwardVec gx += g·GELU'(x); tanım ve taşınabilir eşi geluGeriGo'dadır.
 func geluBackwardVec(gx, g, x []float32) {
 	if len(gx) == 0 {
 		return
@@ -90,7 +90,7 @@ func ceRowKernel(row *float32, n int) (m float32, s float64)
 //go:noescape
 func ceBackwardKernel(target, row *float32, n int, l, k float32)
 
-// ceSatir çapraz entropinin satır işi: en büyük m ve Σ e^{x−m}; tanım ve
+// ceRow çapraz entropinin satır işi: en büyük m ve Σ e^{x−m}; tanım ve
 // taşınabilir eşi ceSatirGo'dadır (üstel 1-2 ulp farklı olabilir).
 func ceRow(row []float32) (float32, float64) {
 	if len(row) == 0 {
@@ -99,7 +99,7 @@ func ceRow(row []float32) (float32, float64) {
 	return ceRowKernel(&row[0], len(row))
 }
 
-// ceGeri hedef += k·e^{x−l}; tanım ve taşınabilir eşi ceGeriGo'dadır.
+// ceBackward hedef += k·e^{x−l}; tanım ve taşınabilir eşi ceGeriGo'dadır.
 func ceBackward(target, row []float32, l, k float32) {
 	if len(row) == 0 {
 		return
@@ -114,7 +114,7 @@ func lnForwardKernel(y, x, gammaPtr, betaPtr, mean, rstd *float32, row, size int
 //go:noescape
 func lnBackwardKernel(xg *float32, pg, pb *float64, x, gr, gammaPtr, mean, rstd *float32, row, size int, dD float64)
 
-// ilk32 dilimin ilk elemanının adresi; boş dilim için nil (çekirdeklerde "yok").
+// first32 dilimin ilk elemanının adresi; boş dilim için nil (çekirdeklerde "yok").
 func first32(s []float32) *float32 {
 	if len(s) == 0 {
 		return nil
@@ -129,7 +129,7 @@ func first64(s []float64) *float64 {
 	return &s[0]
 }
 
-// lnIleriBlok katman normunun (mean nil ise RMS normunun) ileri yönü; tanım ve
+// lnForwardBlock katman normunun (mean nil ise RMS normunun) ileri yönü; tanım ve
 // taşınabilir eşi lnIleriBlokGo'dadır, sonuç onunla bit düzeyinde aynıdır.
 func lnForwardBlock(y, x, g, b, mean, rstd []float32, D int, eps float32) {
 	R := checkLN(D, x, y, g, b, mean, rstd, nil, nil, nil)
@@ -139,7 +139,7 @@ func lnForwardBlock(y, x, g, b, mean, rstd []float32, D int, eps float32) {
 	lnForwardKernel(&y[0], &x[0], first32(g), first32(b), first32(mean), &rstd[0], R, D, float64(D), float64(eps))
 }
 
-// lnGeriBlok katman normunun (mean nil ise RMS normunun) geri yönü; tanım ve
+// lnBackwardBlock katman normunun (mean nil ise RMS normunun) geri yönü; tanım ve
 // taşınabilir eşi lnGeriBlokGo'dadır, sonuç onunla bit düzeyinde aynıdır.
 func lnBackwardBlock(xg []float32, pg, pb []float64, x, gr, gammaPtr, mean, rstd []float32, D int) {
 	R := checkLN(D, x, gr, gammaPtr, nil, mean, rstd, xg, pg, pb)

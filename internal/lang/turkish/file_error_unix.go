@@ -4,7 +4,7 @@ package turkish
 
 import "syscall"
 
-// sistemHatasiNedeni POSIX hata kodlarından bilinenleri Türkçe anlatır; bilinmeyende "" döner.
+// systemErrorReason POSIX hata kodlarından bilinenleri Türkçe anlatır; bilinmeyende "" döner.
 func systemErrorReason(code syscall.Errno) string {
 	switch code {
 	case syscall.ENOSPC:

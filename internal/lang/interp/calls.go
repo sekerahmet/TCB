@@ -15,11 +15,11 @@ import (
 // yakalanabilen bir hata döner.
 const maxCallDepth = 10000
 
-// kendiAdi yapı metotlarında nesneyi gösteren 'kendi' anahtar kelimesinin sözlükteki
+// selfName yapı metotlarında nesneyi gösteren 'kendi' anahtar kelimesinin sözlükteki
 // adıdır (A051).
 var selfName = codes.Name(codes.A051)
 
-// kurucuAdi nesne oluşturulurken çağrılan metodun adıdır (7.4; sözlükte A102).
+// ctorName nesne oluşturulurken çağrılan metodun adıdır (7.4; sözlükte A102).
 var ctorName = codes.Name(codes.A102)
 
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
@@ -67,7 +67,7 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	return nil
 }
 
-// yapiArgumanDenetle kurucusu olmayan bir yapının oluşturulmasındaki argümanları alanlara
+// checkStructArgs kurucusu olmayan bir yapının oluşturulmasındaki argümanları alanlara
 // göre denetler: alan sayısından fazla konumlu argüman ya da alan olmayan bir adla verilen
 // argüman hatadır.
 func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line int) error {
@@ -184,7 +184,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 	return nil, fmt.Errorf("Satır %d: %s tipi bir fonksiyon olarak çağrılamaz", line, fnVal.Type())
 }
 
-// cagirHazir bir kullanıcı fonksiyonunu fnEnv ortamında çalıştırır. args nil değilse
+// callPrepared bir kullanıcı fonksiyonunu fnEnv ortamında çalıştırır. args nil değilse
 // argümanlar sırayla bağlanır; nil ise ilk nargs argüman zaten yuvalara yazılmıştır
 // (yalnızca fk.basit iken). Kalan parametreler adlı argümanlardan, varsayılanlardan ya da
 // 'yok' ile doldurulur. kendi, metot çağrılarında nesnedir (bağlı fonksiyon değerinin

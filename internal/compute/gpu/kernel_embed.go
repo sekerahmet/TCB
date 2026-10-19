@@ -17,7 +17,7 @@ import (
 
 const embedBlock = 128
 
-// gommeCekirdegi out[r, :] = w[idx[r], :]; satır başına blok. Tablo kendi türünde (16 bitlik
+// embedKernel out[r, :] = w[idx[r], :]; satır başına blok. Tablo kendi türünde (16 bitlik
 // tablo float32'ye açılmadan) okunur.
 func embedKernel(dt tensor.DType) func() *emitter {
 	return func() *emitter { return genEmbed(dt) }
@@ -45,7 +45,7 @@ func genEmbed(dt tensor.DType) *emitter {
 	return k
 }
 
-// gommeGeriCekirdegi gw[tekil[u], :] += Σ_{p ∈ grup u} g[konum[p], :] (sırayla).
+// embedBackwardKernel gw[tekil[u], :] += Σ_{p ∈ grup u} g[konum[p], :] (sırayla).
 func embedBackwardKernel() *emitter {
 	k := newEmitter("gomme_geri")
 	gw := k.written("gw")
@@ -88,7 +88,7 @@ func embedBackwardKernel() *emitter {
 	return k
 }
 
-// gommeGruplari indeksleri tekil satırlara göre gruplar: tekil satırlar (artan),
+// embedGroups indeksleri tekil satırlara göre gruplar: tekil satırlar (artan),
 // grupların başlangıçları (son eleman toplam) ve her gruptaki konumlar (artan).
 func embedGroups(idx []int) (singular, begin, pos []int32) {
 	num := map[int]int{}

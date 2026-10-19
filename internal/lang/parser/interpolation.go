@@ -67,7 +67,7 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 	return &ast.InterpolatedString{Token: tok, Parts: parts}
 }
 
-// yerlestirme metin içindeki bir '{ifade}' bölümünün ifadesini ayrıştırır (2.4b): kaçışsız
+// interpolation metin içindeki bir '{ifade}' bölümünün ifadesini ayrıştırır (2.4b): kaçışsız
 // her '{' bir yerleştirme başlatır. Bölüm tek bir ifade olarak ayrıştırılamazsa (ya da
 // boşsa) sorun bunu anlatan kısa metindir; düz metne dönülmez. Alt ayrıştırıcı üst
 // ayrıştırıcının iç içelik düzeyinden başlar: metin içindeki ifade de dosyanın iç içelik
@@ -103,7 +103,7 @@ func (p *Parser) interpolation(text lexer.Token, curValue []rune, begin, end int
 	return es.Expression, ""
 }
 
-// yerlestirmeHatasi metin içinde satir:sutun'daki '{' ile başlayan yerleştirme
+// interpolationError metin içinde satir:sutun'daki '{' ile başlayan yerleştirme
 // ayrıştırılamadığında orada sözdizimi hatası kaydeder ve düz süslü parantezin iki yazımını
 // önerir.
 func (p *Parser) interpolationError(lineNo, colNo int, rawExpr, problem string) {
@@ -112,7 +112,7 @@ func (p *Parser) interpolationError(lineNo, colNo int, rawExpr, problem string) 
 		shortText(unescapeBraces(rawExpr))+"}", problem))
 }
 
-// konumOnekiniAt bir alt hata mesajının başındaki "Satır N, Sütun M: " ve "Sözdizimi
+// stripPosPrefix bir alt hata mesajının başındaki "Satır N, Sütun M: " ve "Sözdizimi
 // hatası — " öneklerini atar (mesaj yerleştirme hatasının içinde gösterilir).
 func stripPosPrefix(m string) string {
 	if strings.HasPrefix(m, "Satır ") {
@@ -123,7 +123,7 @@ func stripPosPrefix(m string) string {
 	return strings.TrimPrefix(m, "Sözdizimi hatası — ")
 }
 
-// kacissizYaz bir karakteri, sözcük çözümleyicinin '\{' ve '\}' işaretçilerini düz süslü
+// writeUnescaped bir karakteri, sözcük çözümleyicinin '\{' ve '\}' işaretçilerini düz süslü
 // parantezlere çevirerek yazar.
 func writeUnescaped(sb *strings.Builder, r rune) {
 	switch r {

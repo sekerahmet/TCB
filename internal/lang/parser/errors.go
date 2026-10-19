@@ -12,7 +12,7 @@ import (
 // TANIMLAYICI) göstermez; bunların yerine "dosya sonu", "'sonuç' anahtar kelimesi",
 // "'x' adı" gibi Türkçe anlatımlar kullanılır.
 
-// turAciklamasi beklenen bir token türünü anlatır (ör. "'{'", "bir ad",
+// typeDescription beklenen bir token türünü anlatır (ör. "'{'", "bir ad",
 // "'içinde' anahtar kelimesi").
 func typeDescription(t lexer.TokenType) string {
 	switch t {
@@ -35,7 +35,7 @@ func typeDescription(t lexer.TokenType) string {
 	return fmt.Sprintf("'%s'", string(t))
 }
 
-// tokenAciklamasi kaynakta bulunan bir token'ı yazıldığı biçimiyle anlatır
+// tokenDescription kaynakta bulunan bir token'ı yazıldığı biçimiyle anlatır
 // (ör. "'x' adı", "42 sayısı", "'sonuç' anahtar kelimesi", "dosya sonu").
 func tokenDescription(tok lexer.Token) string {
 	switch tok.Type {
@@ -56,13 +56,13 @@ func tokenDescription(tok lexer.Token) string {
 	return fmt.Sprintf("'%s'", tok.Literal)
 }
 
-// anahtarKelimeYazimi anahtar kelime türünün sözlükteki adını bulur; tür bir anahtar
+// keywordSpelling anahtar kelime türünün sözlükteki adını bulur; tür bir anahtar
 // kelime değilse "" döner.
 func keywordSpelling(t lexer.TokenType) string {
 	return lexer.KeywordName(t)
 }
 
-// kisaMetin hata mesajında gösterilecek metin sabitini kısaltır.
+// shortText hata mesajında gösterilecek metin sabitini kısaltır.
 func shortText(s string) string {
 	const limit = 30
 	if utf8.RuneCountInString(s) <= limit {
@@ -71,7 +71,7 @@ func shortText(s string) string {
 	return string([]rune(s)[:limit-1]) + "…"
 }
 
-// beklenmeyenIpucu sık yapılan yanlışlar için hata mesajına eklenecek ipucunu verir.
+// unexpectedHint sık yapılan yanlışlar için hata mesajına eklenecek ipucunu verir.
 func unexpectedHint(expected lexer.TokenType, found lexer.Token) string {
 	switch {
 	case expected == lexer.TOKEN_LBRACE && found.Type == lexer.TOKEN_ASSIGN:
@@ -84,7 +84,7 @@ func unexpectedHint(expected lexer.TokenType, found lexer.Token) string {
 	return ""
 }
 
-// hataKaydet bir sözdizimi hatası kaydeder. Bir deyimde yalnızca ilk hata kaydedilir:
+// recordError bir sözdizimi hatası kaydeder. Bir deyimde yalnızca ilk hata kaydedilir:
 // ardından gelenler çoğunlukla ilkinin sonucudur ve kullanıcıyı yanıltır. Deyim
 // döngüleri senkronizeOl ile hatalı deyimin geri kalanını atlayıp kaydı yeniden açar.
 func (p *Parser) recordError(tok lexer.Token, message string) {
@@ -96,7 +96,7 @@ func (p *Parser) recordError(tok lexer.Token, message string) {
 	p.errors = append(p.errors, fmt.Sprintf("Satır %d, Sütun %d: %s", tok.Line, tok.Column, message))
 }
 
-// blokSonunaAtla, içinde bulunulan '{ ... }' bloğunu kapatan '}' işaretine kadar
+// skipToBlockEnd, içinde bulunulan '{ ... }' bloğunu kapatan '}' işaretine kadar
 // (iç içe blokları sayarak) ilerler; dosya biterse dosya sonunda durur.
 func (p *Parser) skipToBlockEnd() {
 	nesting := 0
@@ -113,7 +113,7 @@ func (p *Parser) skipToBlockEnd() {
 	}
 }
 
-// acanMi ve kapayanMi parantez, köşeli parantez ve süslü parantezleri tanır.
+// isOpener ve kapayanMi parantez, köşeli parantez ve süslü parantezleri tanır.
 func isOpener(t lexer.TokenType) bool {
 	return t == lexer.TOKEN_LBRACE || t == lexer.TOKEN_LPAREN || t == lexer.TOKEN_LBRACKET
 }
@@ -122,7 +122,7 @@ func isCloser(t lexer.TokenType) bool {
 	return t == lexer.TOKEN_RBRACE || t == lexer.TOKEN_RPAREN || t == lexer.TOKEN_RBRACKET
 }
 
-// senkronizeOl, hatalı bir deyimden sonra (deyim deyimBas konumundaki token'da
+// synchronize, hatalı bir deyimden sonra (deyim deyimBas konumundaki token'da
 // başlamıştı) deyimin geri kalanını atlar: açılıp kapanan parantezleri ve blokları
 // sayarak, yeni bir satırda başlayan ilk deyime, ';' işaretine ya da içinde bulunulan
 // bloğu kapatan '}' işaretine kadar ilerler. 'değilse' ve 'yakala' ile başlayan

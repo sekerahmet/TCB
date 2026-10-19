@@ -18,13 +18,13 @@ import (
 
 const smallPath = "testdata/p_bayt_bpe.json"
 
-// sentetikParcalayicilar testdata'daki parçalayıcıların adlarıdır.
+// syntheticTokenizers testdata'daki parçalayıcıların adlarıdır.
 var syntheticTokenizers = []string{
 	"bayt_bpe", "metaspace_bpe", "llama_tarzi", "kelime_bpe", "onekli_bpe",
 	"wordpiece", "unigram", "gpt2_tarzi", "llama3_tarzi",
 }
 
-// altinDosya altin_<ad>.json biçimidir. Kodlama: [girdi sırası, kimlikler,
+// goldenFile altin_<ad>.json biçimidir. Kodlama: [girdi sırası, kimlikler,
 // özel tanımadan kimlikler, özel eklemeden kimlikler]. Çift: [a, b, kimlikler,
 // tür kimlikleri, özel maske, özelsiz kimlikler, özelsiz tür kimlikleri].
 // Çözme: [kimlikler, metin, özel atlanmış metin].
@@ -100,7 +100,7 @@ func decode[T any](t testing.TB, r json.RawMessage) T {
 	return v
 }
 
-// kucukYukle bayt düzeyi BPE parçalayıcısını ve altın kodlamalarını verir.
+// loadSmall bayt düzeyi BPE parçalayıcısını ve altın kodlamalarını verir.
 func loadSmall(t testing.TB) (*Tokenizer, *goldenData) {
 	t.Helper()
 	g := loadInputs(t)
@@ -146,7 +146,7 @@ func equalBool(a []bool, b []int) bool {
 	return true
 }
 
-// TestSentetikParcalayicilar her sentetik parçalayıcıyı altın çıktılarla
+// TestSyntheticTokenizers her sentetik parçalayıcıyı altın çıktılarla
 // karşılaştırır: tek metin kodlama (üç seçenekle), çift kodlama (tür
 // kimlikleri ve özel maske dahil) ve çözme (özel atlamalı ve atlamasız).
 func TestSyntheticTokenizers(t *testing.T) {
@@ -205,7 +205,7 @@ func TestSyntheticTokenizers(t *testing.T) {
 	}
 }
 
-// TestBilesenler tek tek bileşenleri (normalleştirici, ön bölücü, çözücü)
+// TestComponents tek tek bileşenleri (normalleştirici, ön bölücü, çözücü)
 // altın çıktılarla karşılaştırır.
 func TestComponents(t *testing.T) {
 	g := loadInputs(t)[1:140]
@@ -220,7 +220,7 @@ func TestComponents(t *testing.T) {
 	compareComponent(t, g, records)
 }
 
-// TestBilesenlerGenis, TR_PARCALAYICI_BILESEN_ALTIN ile verilen geniş altın
+// TestComponentsWide, TR_PARCALAYICI_BILESEN_ALTIN ile verilen geniş altın
 // veriyle (ör. bütün Unicode kod noktaları) bileşenleri karşılaştırır.
 // Biçim: {"girdiler": [...], "kayitlar": [bilesenler.json kayıtları]}.
 func TestComponentsWide(t *testing.T) {
@@ -654,7 +654,7 @@ func TestRealTokenizer(t *testing.T) {
 // Hız ölçümleri
 // ============================================================================
 
-// olcumMetni ölçüm metnini verir: TR_PARCALAYICI_OLCUM_METNI ayarlıysa o
+// benchText ölçüm metnini verir: TR_PARCALAYICI_OLCUM_METNI ayarlıysa o
 // dosyanın içeriği, değilse örnek metnin ~1 MB'a tekrarlanmış hâli.
 func benchText(tb testing.TB) string {
 	if path := os.Getenv("TR_PARCALAYICI_OLCUM_METNI"); path != "" {

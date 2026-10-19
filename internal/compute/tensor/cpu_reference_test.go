@@ -42,10 +42,10 @@ var (
 	alignOffsets = []int{0, 1, 3, 7}
 )
 
-// koruyucu dilimin dışına yazılmadığını görmek için çevreye konan değerdir.
+// guard dilimin dışına yazılmadığını görmek için çevreye konan değerdir.
 const guard = float32(-12345.5)
 
-// kayikDilim n elemanlık, başı kayma eleman kaymış ve iki yanı koruyucuyla dolu bir dilim verir;
+// shiftedSlice n elemanlık, başı kayma eleman kaymış ve iki yanı koruyucuyla dolu bir dilim verir;
 // tam dilimi (koruyucuları denetlemek için) de döndürür.
 func shiftedSlice(n, shift int) (slice, whole []float32) {
 	whole = make([]float32, shift+n+9)
@@ -64,7 +64,7 @@ func checkGuard(t *testing.T, ad string, whole []float32, shift, n int) {
 	}
 }
 
-// ozelDeger çekirdekleri zorlayan değerlerden birini verir: büyük çoğunluk sıradan, kalanı
+// customValue çekirdekleri zorlayan değerlerden birini verir: büyük çoğunluk sıradan, kalanı
 // NaN, ±sonsuz, ±0, alt-normal, çok büyük ve çok küçük normal değerler.
 func customValue(r *rand.Rand, scaleF float64, custom bool) float32 {
 	if !custom || r.Intn(4) != 0 {
@@ -100,7 +100,7 @@ func fill(r *rand.Rand, d []float32, scaleF float64, custom bool) {
 	}
 }
 
-// ulpIcinde got ile want'ın yakınlığı: ikisi de NaN, ya da sonsuzsa eşit, değilse en çok ulp
+// withinULP got ile want'ın yakınlığı: ikisi de NaN, ya da sonsuzsa eşit, değilse en çok ulp
 // birim (işaretleri farklı ±0/alt-normal komşular mutlak olarak en çok ulp·2⁻¹⁴⁹).
 func withinULP(got, want float32, ulp int64) bool {
 	gn, wn := got != got, want != want
@@ -126,7 +126,7 @@ func nearSlice(t *testing.T, ad string, got, want []float32, ulp int64) {
 	}
 }
 
-// vektorCekirdekleriniDenetle bir girdi dizisi için vektör çekirdeklerini (üstel, GELU, çapraz
+// checkVectorKernels bir girdi dizisi için vektör çekirdeklerini (üstel, GELU, çapraz
 // entropi) başvurularıyla karşılaştırır.
 func checkVectorKernels(t *testing.T, ad string, x, g []float32, shift int) {
 	t.Helper()
@@ -177,7 +177,7 @@ func checkVectorKernels(t *testing.T, ad string, x, g []float32, shift int) {
 	nearSlice(t, ad+" ceGeri", h, want, 2)
 }
 
-// normCekirdekleriniDenetle katman normunu (rms: RMS normu) R×D girdide başvurusuyla bit
+// checkNormKernels katman normunu (rms: RMS normu) R×D girdide başvurusuyla bit
 // düzeyinde karşılaştırır; g/b ve gradyan biriktiricileri isteğe bağlıdır (secim bitleri).
 func checkNormKernels(t *testing.T, ad string, r *rand.Rand, R, D, shift int, rms bool, choice int, custom bool) {
 	t.Helper()
@@ -244,7 +244,7 @@ func bitEqual64(t *testing.T, ad string, got, want []float64) {
 	}
 }
 
-// mikroDenetle mikroA'yı (v3'te sgemm6x16) mikroAGo ile karşılaştırır; C'nin geçerli bloğu
+// checkMicro mikroA'yı (v3'te sgemm6x16) mikroAGo ile karşılaştırır; C'nin geçerli bloğu
 // dışındaki elemanlar ve dizinin çevresi değişmemelidir.
 func checkMicro(t *testing.T, ad string, kb int, a []float32, rs, ks int, bp []float32, c0 []float32, ldc, mm, nn, shift int) {
 	t.Helper()
@@ -287,7 +287,7 @@ func checkMicro(t *testing.T, ad string, kb int, a []float32, rs, ks int, bp []f
 	}
 }
 
-// mikroDuzenleri A'nın okunuş düzenleri (rs, ks): paketli, satır öncelikli, devrik.
+// microLayouts A'nın okunuş düzenleri (rs, ks): paketli, satır öncelikli, devrik.
 func microLayouts(kb int) [][2]int { return [][2]int{{1, mr}, {kb + 3, 1}, {1, mr + 2}} }
 
 func testMicroKernel(t *testing.T, r *rand.Rand, kb int, custom bool) {

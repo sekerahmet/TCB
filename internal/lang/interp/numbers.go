@@ -11,10 +11,10 @@ import (
 // hesaplanır ve karşılaştırılır, sınırı aşan sonuç sessizce sarmak yerine "Tam sayı
 // taşması" hatası verir (3.1); Ondalık'a çevrim yalnızca bir Ondalık işlenen varsa olur.
 
-// tamSiniri 2^63'tür: int64'e çevrilebilecek Ondalık değerler [-2^63, 2^63) aralığındadır.
+// intLimit 2^63'tür: int64'e çevrilebilecek Ondalık değerler [-2^63, 2^63) aralığındadır.
 const intLimit = 9223372036854775808.0
 
-// ondaliktanTam bir Ondalık değeri (kesirli kısmı atılmış) Tam'a çevirir; NaN, sonsuz ya
+// floatToInt bir Ondalık değeri (kesirli kısmı atılmış) Tam'a çevirir; NaN, sonsuz ya
 // da int64 aralığı dışındaki değerde hata verir.
 func floatToInt(name string, f float64) (int64, error) {
 	if math.IsNaN(f) || math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
@@ -24,7 +24,7 @@ func floatToInt(name string, f float64) (int64, error) {
 	return int64(f), nil
 }
 
-// tamOndalikKarsilastir bir Tam ile (NaN olmayan) bir Ondalığı tam olarak karşılaştırır
+// compareIntFloat bir Tam ile (NaN olmayan) bir Ondalığı tam olarak karşılaştırır
 // (Ondalığa çevirmek 2^53 üstünde eşitlik uydururdu): a < f ise -1, eşitse 0, büyükse 1.
 func compareIntFloat(a int64, f float64) int {
 	if f >= intLimit {
@@ -48,7 +48,7 @@ func compareIntFloat(a int64, f float64) int {
 	return 0
 }
 
-// sayiKarsilastir iki sayıyı (Tam ya da Ondalık) tam olarak karşılaştırır. ok yanlışsa
+// compareNumbers iki sayıyı (Tam ya da Ondalık) tam olarak karşılaştırır. ok yanlışsa
 // değerlerden biri sayı değildir ya da NaN'dır (karşılaştırılamaz).
 func compareNumbers(a, b Value) (int, bool) {
 	switch x := a.(type) {
@@ -90,7 +90,7 @@ func compareNumbers(a, b Value) (int, bool) {
 	return 0, false
 }
 
-// sayiMi değerin Tam ya da Ondalık olup olmadığını söyler.
+// isNumber değerin Tam ya da Ondalık olup olmadığını söyler.
 func isNumber(v Value) bool {
 	switch v.(type) {
 	case *IntVal, *FloatVal:
@@ -99,7 +99,7 @@ func isNumber(v Value) bool {
 	return false
 }
 
-// sayiTopla bir listenin elemanlarını işleçlerle aynı kuralla toplar: hepsi Tam ise sonuç
+// sumNumbers bir listenin elemanlarını işleçlerle aynı kuralla toplar: hepsi Tam ise sonuç
 // Tam'dır ve taşma hata verir; bir Ondalık varsa sonuç Ondalık'tır. Sayı olmayan eleman
 // hatadır. ad hata mesajındaki yerleşiğin adıdır.
 func sumNumbers(name string, elems []Value) (Value, error) {
@@ -139,7 +139,7 @@ func ListElementError(name string, i int, expected string, given Value) error {
 	return fmt.Errorf("%s: listenin %d. elemanı %s olmalıdır, %s verildi", name, i+1, expected, TypeAndSummary(given))
 }
 
-// enUc min/maks'ın (kd) ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en
+// extreme min/maks'ın (kd) ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en
 // büyüğünü, değerin kendisini (tipi korunarak) döndürür. Tam'lar tam karşılaştırılır; sayı
 // olmayan değer hatadır; NaN varsa sonuç NaN'dır. Boş girdide yok döner. liste, değerlerin
 // tek bir liste argümanının elemanları olduğunu söyler (hata mesajı için).
@@ -170,7 +170,7 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 	return picked, nil
 }
 
-// aralikAdimlari bir aralığın gezilecek ilk ve son değerini ve adımını verir; bos doğruysa
+// rangeSteps bir aralığın gezilecek ilk ve son değerini ve adımını verir; bos doğruysa
 // aralıkta hiç değer yoktur. Son değer dahil hesaplandığı için int64 sınırındaki aralıklar
 // (0..=9223372036854775807) taşmadan gezilir.
 func rangeSteps(r *RangeVal) (first, last, step int64, empty bool) {
@@ -191,7 +191,7 @@ func rangeSteps(r *RangeVal) (first, last, step int64, empty bool) {
 	return first, last, step, empty
 }
 
-// dilimUclari a..b (ya da a..=b) dilimini n uzunluklu bir kabın [bas, son) aralığına
+// sliceBounds a..b (ya da a..=b) dilimini n uzunluklu bir kabın [bas, son) aralığına
 // çevirir: negatif uç, indekste olduğu gibi sondan sayar (-1 son eleman); uçlar kabın
 // sınırlarına kırpılır, bas > son ise dilim boştur.
 func sliceBounds(r *RangeVal, n int) (begin, last int) {

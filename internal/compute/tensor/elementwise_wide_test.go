@@ -16,7 +16,7 @@ var (
 	nan32    = float32(math.NaN())
 )
 
-// ozelGirdiler her tekli işlemin denendiği kenar değerler: sıfırlar, ±1, alt-normaller,
+// customInputs her tekli işlemin denendiği kenar değerler: sıfırlar, ±1, alt-normaller,
 // küçük ve büyük sayılar, sonsuzlar, NaN.
 var customInputs = []float32{0, float32(math.Copysign(0, -1)), 1, -1, 0.5, -0.5, 1e-40, -1e-40, 1e-30, -1e-30,
 	1e-8, -1e-8, 1e-4, -1e-4, 0.3, -0.3, 0.999, -0.999, 2, -2, 10, -10, 50, -50, 88, -88, 89, -89, 100, -100,
@@ -65,7 +65,7 @@ var unaryRefs = []unaryRef{
 	{"abs", (*Tensor).Abs, math.Abs, 0, sign64},
 }
 
-// ulpFarki a ile b (float32) arasındaki fark, b'nin ulp'u biriminde; ikisi de NaN ise 0,
+// ulpDistance a ile b (float32) arasındaki fark, b'nin ulp'u biriminde; ikisi de NaN ise 0,
 // biri NaN ya da sonsuzsa ve öbürü aynı değilse sonsuz.
 func ulpDistance(a, b float32) float64 {
 	if a != a || b != b {
@@ -105,7 +105,7 @@ func TestUnaryWideRef(t *testing.T) {
 	}
 }
 
-// TestTekliGenisKenar belgelenen kenar değerler: tanım dışı NaN, sonsuzlar, işaretli sıfır,
+// TestUnaryWideEdges belgelenen kenar değerler: tanım dışı NaN, sonsuzlar, işaretli sıfır,
 // log1p ve expm1'in küçük x kararlılığı.
 func TestUnaryWideEdges(t *testing.T) {
 	cases := []struct {
@@ -186,7 +186,7 @@ func TestUnaryWideGrad(t *testing.T) {
 	}
 }
 
-// TestTurevsizTekliler taban, tavan ve işaretin gradyanı her yerde 0'dır (işaret 0'da da).
+// TestUnaryNoGrad taban, tavan ve işaretin gradyanı her yerde 0'dır (işaret 0'da da).
 func TestUnaryNoGrad(t *testing.T) {
 	for _, f := range []func(*Tensor) *Tensor{(*Tensor).Floor, (*Tensor).Ceil, (*Tensor).Sign} {
 		x := New([]float32{-1.5, 0, 2.5, 3}, 4).SetRequiresGrad(true)
@@ -285,7 +285,7 @@ func TestCompareAndWhere(t *testing.T) {
 		random(rng, -1, 1, 0, 2, 3), random(rng, -1, 1, 0, 3))
 }
 
-// TestGenisBit16 16 bitlik girdiler float32'ye açılarak hesaplanır; sonuç girdinin
+// TestWideBits16 16 bitlik girdiler float32'ye açılarak hesaplanır; sonuç girdinin
 // türündedir ve float32 sonucun o türe yuvarlanmışıdır.
 func TestWideBits16(t *testing.T) {
 	data := []float32{-2, -0.75, -0.1, 0, 0.3, 0.9, 1.7, 3}

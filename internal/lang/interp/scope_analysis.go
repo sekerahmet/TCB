@@ -5,16 +5,16 @@ import "github.com/sekerahmet/TCB/internal/lang/ast"
 // Blok kapsam bayrakları (agac.BlockStatement.Bayraklar içinde önbelleğe alınır).
 const (
 	blockComputed uint8 = 1 << iota
-	// blokTanimlar: blok, çalıştığı ortama doğrudan bir ad tanımlar (değişken, sabit,
+	// blockDefines: blok, çalıştığı ortama doğrudan bir ad tanımlar (değişken, sabit,
 	// adlı fonksiyon, yapı, aktar). Böyle olmayan bloklar için yeni ortam açılmaz.
 	blockDefines
-	// blokYakalar: blok (iç içe herhangi bir yerinde) ortamı sonradan kullanılmak üzere
+	// blockCaptures: blok (iç içe herhangi bir yerinde) ortamı sonradan kullanılmak üzere
 	// yakalayabilecek bir yapı içerir (fonksiyon, yapı metodu, ertele, eşzamanlı). Böyle
 	// olmayan döngü gövdelerinin ortamı turlar arasında temizlenip yeniden kullanılır.
 	blockCaptures
 )
 
-// blokBayraklari bloğun kapsam bayraklarını döndürür; ilk çağrıda hesaplayıp saklar.
+// blockFlags bloğun kapsam bayraklarını döndürür; ilk çağrıda hesaplayıp saklar.
 func blockFlags(b *ast.BlockStatement) uint8 {
 	if b.Flags != 0 {
 		return b.Flags
@@ -33,7 +33,7 @@ func blockFlags(b *ast.BlockStatement) uint8 {
 	return f
 }
 
-// deyimlerTanimlar deyimlerden biri çalıştığı ortama doğrudan bir ad tanımlıyor mu?
+// statementsDefine deyimlerden biri çalıştığı ortama doğrudan bir ad tanımlıyor mu?
 func statementsDefine(stmts []ast.Statement) bool {
 	var var_ bool
 	for _, st := range stmts {
@@ -45,7 +45,7 @@ func statementsDefine(stmts []ast.Statement) bool {
 	return false
 }
 
-// deyimAdlari deyimin, çalıştığı ortama doğrudan tanımladığı adları ad'a verir. Takma adsız
+// statementNames deyimin, çalıştığı ortama doğrudan tanımladığı adları ad'a verir. Takma adsız
 // 'aktar' (adları çalışma anında belli olur) için ad("") çağrılır. İç bloklar (kendi
 // kararlarını verdikleri için) ve fonksiyon gövdeleri incelenmez.
 func statementNames(st ast.Statement, name func(string)) {
@@ -88,7 +88,7 @@ func statementNames(st ast.Statement, name func(string)) {
 	}
 }
 
-// ifadeAdlari ifadenin, değerlendirildiği ortama tanımladığı adları (fonksiyon f() { ... }
+// exprNames ifadenin, değerlendirildiği ortama tanımladığı adları (fonksiyon f() { ... }
 // biçimindeki adlı fonksiyonlar) ad'a verir.
 func exprNames(e ast.Expression, name func(string)) {
 	switch x := e.(type) {
@@ -150,7 +150,7 @@ func exprNames(e ast.Expression, name func(string)) {
 	}
 }
 
-// deyimYakalar deyimin (iç içe her yerinde) ortamı yakalayabilecek bir yapı içerip
+// statementCaptures deyimin (iç içe her yerinde) ortamı yakalayabilecek bir yapı içerip
 // içermediğini söyler.
 func statementCaptures(st ast.Statement) bool {
 	switch s := st.(type) {
@@ -206,7 +206,7 @@ func doesBlockCapture(b *ast.BlockStatement) bool {
 	return blockFlags(b)&blockCaptures != 0
 }
 
-// ifadeYakalar ifadenin içinde (iç içe her yerde) bir fonksiyon değeri oluşturulup
+// exprCaptures ifadenin içinde (iç içe her yerde) bir fonksiyon değeri oluşturulup
 // oluşturulmadığını söyler.
 func exprCaptures(e ast.Expression) bool {
 	switch x := e.(type) {
@@ -285,7 +285,7 @@ func exprCaptures(e ast.Expression) bool {
 	return false
 }
 
-// govdedeErteleVar fonksiyon gövdesinde (iç fonksiyonlar ve eşzamanlı bloklar hariç; onların
+// bodyHasDefer fonksiyon gövdesinde (iç fonksiyonlar ve eşzamanlı bloklar hariç; onların
 // kendi kökleri vardır) bir 'ertele' deyimi olup olmadığını söyler.
 func bodyHasDefer(stmts []ast.Statement) bool {
 	for _, st := range stmts {
@@ -314,7 +314,7 @@ func statementHasDefer(st ast.Statement) bool {
 	return false
 }
 
-// ifadeErteleVar 'eğer' ve 'eşle' dallarındaki blokları inceler (dallar deyim olarak çalışır).
+// exprHasDefer 'eğer' ve 'eşle' dallarındaki blokları inceler (dallar deyim olarak çalışır).
 func exprHasDefer(e ast.Expression) bool {
 	switch x := e.(type) {
 	case *ast.IfExpression:

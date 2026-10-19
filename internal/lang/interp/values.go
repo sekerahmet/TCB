@@ -153,7 +153,7 @@ func DictKey(v Value) string {
 	return nonStringKeyPrefix + string(v.Type()) + ":" + v.Inspect()
 }
 
-// tamAnahtarDegeri bir sayının Tam anahtar olarak değerini verir: Tam'ın kendisi ya da tam
+// intKeyValue bir sayının Tam anahtar olarak değerini verir: Tam'ın kendisi ya da tam
 // değerli (kesirsiz, Tam aralığında) bir Ondalık.
 func intKeyValue(v Value) (int64, bool) {
 	switch x := v.(type) {
@@ -176,7 +176,7 @@ func (d *DictVal) Set(key string, val Value) {
 	}
 }
 
-// tamAnahtar bir Tam anahtarın iç kodlamasını (DictKey ile aynı) buf'a yazar; böylece
+// intKey bir Tam anahtarın iç kodlamasını (DictKey ile aynı) buf'a yazar; böylece
 // aramada ara metin ayrılmaz.
 func intKey(buf []byte, n int64) []byte {
 	buf = append(buf, nonStringKeyPrefix+string(VAL_INT)+":"...)
@@ -267,7 +267,7 @@ type FuncVal struct {
 	Body       *ast.BlockStatement
 	Env        *Environment
 	BoundSelf  Value
-	// kod fonksiyonun derlenmiş hâlidir (nil ise ilk çağrıda derlenir).
+	// codeVal fonksiyonun derlenmiş hâlidir (nil ise ilk çağrıda derlenir).
 	codeVal *funcCode
 }
 
@@ -303,12 +303,12 @@ type StructDefVal struct {
 	Name    string
 	Fields  []ast.StructField
 	Methods map[string]*FuncVal
-	// alanKod alanların derlenmiş varsayılan değer ifadeleridir (Fields ile aynı sırada;
+	// fieldCode alanların derlenmiş varsayılan değer ifadeleridir (Fields ile aynı sırada;
 	// varsayılanı olmayan alan için nil). nil dilimse varsayılanlar ilk kullanımda derlenir.
 	fieldCode []exprCode
-	// alanOrtam varsayılanların değerlendirildiği ortamdır (yapının tanımlandığı ortam).
+	// fieldEnv varsayılanların değerlendirildiği ortamdır (yapının tanımlandığı ortam).
 	fieldEnv *Environment
-	// tip nesnelerinin tip değeridir (tip(p) → Nokta; bkz. tipDegeri).
+	// typ nesnelerinin tip değeridir (tip(p) → Nokta; bkz. tipDegeri).
 	typ *TypeVal
 }
 

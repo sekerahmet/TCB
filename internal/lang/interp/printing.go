@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// kapYaz bir kabı (Liste, Sözlük, yapı nesnesi) yazdırır. yol, şu an yazdırılmakta olan
+// writeContainer bir kabı (Liste, Sözlük, yapı nesnesi) yazdırır. yol, şu an yazdırılmakta olan
 // dış kaplardır: kendini (doğrudan ya da dolaylı) içeren bir kap yeniden görülünce sonsuz
 // özyineleme yerine "[...]" / "{...}" / "Ad{...}" yazılır.
 func writeContainer(v Value, filePath []Value) string {
@@ -76,7 +76,7 @@ func writeContainer(v Value, filePath []Value) string {
 	return sb.String()
 }
 
-// ogeYaz bir kabın elemanını yazar; eleman da bir kapsa döngü denetimi sürer.
+// writeItem bir kabın elemanını yazar; eleman da bir kapsa döngü denetimi sürer.
 func writeItem(v Value, filePath []Value) string {
 	switch v.(type) {
 	case *ListVal, *DictVal, *StructInstanceVal:

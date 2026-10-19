@@ -26,7 +26,7 @@ const (
 	gradOver
 )
 
-// flashDCekirdegi D[r] = Σ_d dO[r,d]·O[r,d]; satır başına iş parçacığı.
+// flashDKernel D[r] = Σ_d dO[r,d]·O[r,d]; satır başına iş parçacığı.
 func flashDKernel() *emitter {
 	k := newEmitter("dikkat_d")
 	do, o := k.pointer("do"), k.pointer("o")
@@ -56,7 +56,7 @@ func flashDKernel() *emitter {
 	return k
 }
 
-// flashGeriDurum geri çekirdeklerin döşemeleri ve satır bilgileri.
+// flashBackwardState geri çekirdeklerin döşemeleri ve satır bilgileri.
 type flashBackwardState struct {
 	*flashShared
 	qs, tilesDone, ks, vs, ps smTile
@@ -73,7 +73,7 @@ func (f *flashBackwardState) tiles() {
 	f.ps = smTile{k.shared("ps", 4*a.Br*(a.Bc+1)), a.Br, a.Bc + 1}
 }
 
-// satirBilgisi sorgu döşemesinin (q0) iş parçacığına düşen satırları: indeksleri, sınırları,
+// rowInfo sorgu döşemesinin (q0) iş parçacığına düşen satırları: indeksleri, sınırları,
 // lse'leri (Tq dışında +∞) ve D'leri.
 func (f *flashBackwardState) rowInfo(q0, row0, bh, plse, pd reg) ([]reg, [][3]reg, []reg, []reg) {
 	k := f.k
@@ -99,7 +99,7 @@ func (f *flashBackwardState) rowInfo(q0, row0, bh, plse, pd reg) ([]reg, [][3]re
 	return rows, limit, lse, dd
 }
 
-// olasiliklar S ve dP'yi kurar ve P ile dS'ye çevirir (yerinde: S → P, dP → dS).
+// probs S ve dP'yi kurar ve P ile dS'ye çevirir (yerinde: S → P, dP → dS).
 func (f *flashBackwardState) probs(row0 reg, rows []reg, j0 reg, limit [][3]reg, lse, dd []reg) ([][]reg, [][]reg) {
 	k, a := f.k, f.a
 	rpt, cpt := a.Br/16, a.Bc/16
@@ -123,10 +123,10 @@ func (f *flashBackwardState) probs(row0 reg, rows []reg, j0 reg, limit [][3]reg,
 	return S, dP
 }
 
-// psYaz P ya da dS'yi ps döşemesine yazar ([sorgu][anahtar]).
+// psWrite P ya da dS'yi ps döşemesine yazar ([sorgu][anahtar]).
 func (f *flashBackwardState) psWrite(M [][]reg, row0 reg) { f.writeTile(M, row0, f.ps) }
 
-// gradYazKip biriktirilen döşemeyi (satırlar r0 + ty·rpt + i < lim, sütunlar < D) yazar.
+// gradWriteMode biriktirilen döşemeyi (satırlar r0 + ty·rpt + i < lim, sütunlar < D) yazar.
 func (f *flashBackwardState) gradWriteMode(M [][]reg, mode2 int, ptr, r0, lim reg, D int) {
 	if mode2 == noGrad {
 		return
@@ -161,7 +161,7 @@ func (f *flashBackwardState) gradWriteMode(M [][]reg, mode2 int, ptr, r0, lim re
 	}
 }
 
-// sorguAraligi anahtar döşemesini [j0, j0+Bc) görebilecek sorgu satırlarını kapsayan aralık
+// queryRange anahtar döşemesini [j0, j0+Bc) görebilecek sorgu satırlarını kapsayan aralık
 // [iBas, iSon) (iBas Br'nin katı; sınırlar satırla azalmadığından iki uç yeter).
 func (f *flashBackwardState) queryRange(j0 reg) (iStart, iEnd reg) {
 	k := f.k
@@ -197,7 +197,7 @@ func (f *flashBackwardState) queryRange(j0 reg) (iStart, iEnd reg) {
 	return iStart, iEnd
 }
 
-// flashGeriKVCekirdegi dK ve dV; ızgara (anahtar döşemeleri, Hkv, Batch).
+// flashBackwardKVKernel dK ve dV; ızgara (anahtar döşemeleri, Hkv, Batch).
 func flashBackwardKVKernel(a flashConfig, modeK, modeV int) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("%s_%d_%d", a.key("dikkat_geri_kv"), modeK, modeV))
@@ -264,7 +264,7 @@ func flashBackwardKVKernel(a flashConfig, modeK, modeV int) func() *emitter {
 	}
 }
 
-// flashGeriQCekirdegi dQ; ızgara (sorgu döşemeleri, H, Batch).
+// flashBackwardQKernel dQ; ızgara (sorgu döşemeleri, H, Batch).
 func flashBackwardQKernel(a flashConfig, modeQ int) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("%s_%d", a.key("dikkat_geri_q"), modeQ))

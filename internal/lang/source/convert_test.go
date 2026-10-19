@@ -14,7 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// kodlaCoz Türkçe kaynağın kodlu biçimini verir ve kodlu biçimin çözülünce özgün kaynağa
+// encodeDecode Türkçe kaynağın kodlu biçimini verir ve kodlu biçimin çözülünce özgün kaynağa
 // döndüğünü sınar.
 func encodeDecode(t *testing.T, tr string) string {
 	t.Helper()
@@ -96,7 +96,7 @@ func TestEncodeBOMAndCRLF(t *testing.T) {
 	}
 }
 
-// sahteDil Türkçe dil dosyasındaki bazı adları değiştirerek ikinci bir yazım dili kurar:
+// fakeLanguage Türkçe dil dosyasındaki bazı adları değiştirerek ikinci bir yazım dili kurar:
 // kaçışın (2.11) başka bir dilde nasıl çalıştığını sınamak için.
 func fakeLanguage(t *testing.T) *codes.Language {
 	t.Helper()
@@ -144,10 +144,10 @@ func TestEscapeInOtherLanguage(t *testing.T) {
 // dosyanın Türkçesiyle aynı çıktıyı verdiği (tr test ve örnekler) internal/devtools/testrunner'da
 // sınanır.
 
-// atlananKlasorler depoya ait olmayan ya da üretilmiş klasörlerdir.
+// skippedDirs depoya ait olmayan ya da üretilmiş klasörlerdir.
 var skippedDirs = map[string]bool{".git": true, ".claude": true, "bin": true, "scratch": true, "node_modules": true}
 
-// depoDosyalari depodaki uzantısı verilen bütün dosyalardır (göreli yollarıyla).
+// repoFiles depodaki uzantısı verilen bütün dosyalardır (göreli yollarıyla).
 func repoFiles(t *testing.T, ext string) []string {
 	t.Helper()
 	var files []string
@@ -171,7 +171,7 @@ func repoFiles(t *testing.T, ext string) []string {
 	return files
 }
 
-// gidisDonus bir kaynağın iki yönlü kimliğini sınar. Kaynak ayrıştırılamıyorsa (bilerek
+// roundTrip bir kaynağın iki yönlü kimliğini sınar. Kaynak ayrıştırılamıyorsa (bilerek
 // hatalı test dosyaları, belgelerdeki hata örnekleri) false döner.
 func roundTrip(t *testing.T, name, text string) bool {
 	t.Helper()
@@ -221,7 +221,7 @@ func roundTrip(t *testing.T, name, text string) bool {
 	return true
 }
 
-// oluKodVar kodlu gövdede ölü (taşınmış ya da kaldırılmış) bir kod var mı?
+// hasDeadCode kodlu gövdede ölü (taşınmış ya da kaldırılmış) bir kod var mı?
 func hasDeadCode(b Parts) bool {
 	l := b.Lexer()
 	for tok := l.NextToken(); tok.Type != lexer.TOKEN_EOF; tok = l.NextToken() {
@@ -232,7 +232,7 @@ func hasDeadCode(b Parts) bool {
 	return false
 }
 
-// ilkFark iki metnin ayrıldığı ilk satırı gösterir.
+// firstDiff iki metnin ayrıldığı ilk satırı gösterir.
 func firstDiff(a, b string) string {
 	as, bs := strings.Split(a, "\n"), strings.Split(b, "\n")
 	for i := 0; i < len(as) || i < len(bs); i++ {
@@ -286,7 +286,7 @@ func TestRepoTRFilesEncodeLossless(t *testing.T) {
 	}
 }
 
-// trBlogu belgelerdeki ```tr ... ``` kod bloklarıdır.
+// trBlock belgelerdeki ```tr ... ``` kod bloklarıdır.
 var trBlock = regexp.MustCompile("(?s)```tr\r?\n(.*?)```")
 
 func TestDocCodeBlocksEncodeLossless(t *testing.T) {
@@ -307,5 +307,14 @@ func TestDocCodeBlocksEncodeLossless(t *testing.T) {
 	t.Logf("belgelerde %d tr kod bloğu sınandı, %d blok ayrıştırılamadığı için atlandı", tested, skipped)
 	if tested < 50 {
 		t.Errorf("belgelerde yalnızca %d kod bloğu sınandı; tarama bozulmuş olabilir", tested)
+	}
+}
+
+// A coded file may hold a code that is dead in the view language (moved or removed): its view
+// would not read back as the same program, so Decode must refuse it instead of showing it.
+func TestDecodeRefusesLossyView(t *testing.T) {
+	coded := Header + "\nA030 l = [1]\nG200(l)\n"
+	if out, err := Decode(coded, codes.Active()); !errors.Is(err, ErrLossy) {
+		t.Fatalf("Decode gave %q, %v; ErrLossy expected", out, err)
 	}
 }

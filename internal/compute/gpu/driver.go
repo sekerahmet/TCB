@@ -15,46 +15,46 @@ import (
 // yürür; "eşzamansız" yöntemler sıraya ekler ve hemen döner, konağa okuma (indir) ve
 // esitle sıradaki her işin bitmesini bekler.
 
-// sonuc sürücü dönüş kodudur (CUresult).
+// result sürücü dönüş kodudur (CUresult).
 type result int32
 
 const succeeded result = 0
 
-// surucu arka ucun kullandığı sürücü işlemleri.
+// driver arka ucun kullandığı sürücü işlemleri.
 type driver interface {
-	// bagla sürücü bağlamını çağıran işletim sistemi iş parçacığına bağlar (her girişte).
+	// bind sürücü bağlamını çağıran işletim sistemi iş parçacığına bağlar (her girişte).
 	bind() result
 	cardName() string
 	totalMemory() uint64
 	freeMemory() (empty, total uint64, s result)
 	allocate(byteN uint64) (uint64, result)
 	release(addr uint64) result
-	// konakAyir sayfası kilitli (eşzamansız kopyaya uygun) konak belleği ayırır.
+	// hostAlloc sayfası kilitli (eşzamansız kopyaya uygun) konak belleği ayırır.
 	hostAlloc(byteN int) (unsafe.Pointer, result)
-	// yukle konaktan cihaza kopyalar; esz doğruysa eşzamansızdır (kaynak sayfası kilitli
+	// load konaktan cihaza kopyalar; esz doğruysa eşzamansızdır (kaynak sayfası kilitli
 	// bellekte olmalı ve kopya bitene kadar değişmemeli).
 	load(target uint64, source unsafe.Pointer, byteN uint64, concurrent2 bool) result
-	// indir cihazdan konağa eşzamanlı kopyalar (önce sıradaki işler biter).
+	// download cihazdan konağa eşzamanlı kopyalar (önce sıradaki işler biter).
 	download(target unsafe.Pointer, source uint64, byteN uint64) result
 	copyFn(target, source, byteN uint64) result
 	fill32(target uint64, value uint32, n uint64) result
 	fill16(target uint64, value uint16, n uint64) result
-	// modul PTX metnini derler; hata durumunda derleyici günlüğünü de verir.
+	// module PTX metnini derler; hata durumunda derleyici günlüğünü de verir.
 	module(ptx string) (uintptr, string, result)
 	fn(module uintptr, ad string) (uintptr, result)
-	// baslat çekirdeği sıraya koyar; paylasim devingen paylaşımlı bellek (bayt, .extern
+	// launch çekirdeği sıraya koyar; paylasim devingen paylaşımlı bellek (bayt, .extern
 	// .shared; 0: yok).
 	launch(fn uintptr, grid, block [3]uint32, sharedMem uint32, param [][]byte) result
-	// paylasimIzni işlevin devingen paylaşımlı belleğini bayt'a kadar açar (48 KB üstü için
+	// sharedMemOptIn işlevin devingen paylaşımlı belleğini bayt'a kadar açar (48 KB üstü için
 	// gerekir); paylasimSiniri blok başına açılabilecek en çok paylaşımlı bellek (bayt).
 	sharedMemOptIn(fn uintptr, byteN int) result
 	sharedMemLimit() int
 	equalize() result
-	// hataAdi sonuc kodunun adı (CUDA_ERROR_...).
+	// errName sonuc kodunun adı (CUDA_ERROR_...).
 	errName(s result) string
-	// ayrinti son hatanın sürücüye özgü açıklaması (benzetimde çekirdek ve komut).
+	// detail son hatanın sürücüye özgü açıklaması (benzetimde çekirdek ve komut).
 	detail() string
-	// yetenek hesaplama yeteneği (ör. 120 = sm_120) ve SM sayısı.
+	// capability hesaplama yeteneği (ör. 120 = sm_120) ve SM sayısı.
 	capability() (cc, sm int)
 	// Olaylar (profil): olayOlustur zamanlamalı bir olay verir; olayKaydet olayı sıraya
 	// koyar; olayHazir olay geçildiyse doğru döner (beklemez); olaySure iki geçilmiş
@@ -63,12 +63,12 @@ type driver interface {
 	recordEvent(ev uintptr) result
 	eventReady(ev uintptr) bool
 	eventTime(begin, last uintptr) (float32, result)
-	// araclariBosalt bağlı profil araçlarına (dış profilleyiciler) toplanan veriyi
+	// flushTools bağlı profil araçlarına (dış profilleyiciler) toplanan veriyi
 	// yazdırır (program sonunda; araç yoksa etkisiz).
 	flushTools()
 }
 
-// hataAdlari sürücü dönüş kodlarının adlarıdır (sürücü adı veremezse ve benzetimde).
+// errNames sürücü dönüş kodlarının adlarıdır (sürücü adı veremezse ve benzetimde).
 var errNames = map[result]string{
 	0: "CUDA_SUCCESS", 1: "CUDA_ERROR_INVALID_VALUE", 2: "CUDA_ERROR_OUT_OF_MEMORY",
 	3: "CUDA_ERROR_NOT_INITIALIZED", 4: "CUDA_ERROR_DEINITIALIZED", 34: "CUDA_ERROR_STUB_LIBRARY",
@@ -86,7 +86,7 @@ var errNames = map[result]string{
 	999: "CUDA_ERROR_UNKNOWN",
 }
 
-// tablodanAd kodun tablodaki adı; yoksa sayısıyla.
+// nameFromTable kodun tablodaki adı; yoksa sayısıyla.
 func nameFromTable(s result) string {
 	if ad, ok := errNames[s]; ok {
 		return ad
@@ -103,6 +103,6 @@ const (
 	errLaunch         result = 719
 )
 
-// statikPaylasimSiniri blok başına statik (.shared dizileriyle) paylaşımlı belleğin sınırıdır;
+// staticSharedMemLimit blok başına statik (.shared dizileriyle) paylaşımlı belleğin sınırıdır;
 // üstü devingen paylaşımlı bellekle (.extern .shared) ve işlev başına izinle açılır.
 const staticSharedMemLimit = 48 << 10

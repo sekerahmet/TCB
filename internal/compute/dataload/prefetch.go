@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// OnYukleyici, bir Kaynak'tan sonraki toplu işleri arka plandaki tek bir
+// Prefetcher, bir Kaynak'tan sonraki toplu işleri arka plandaki tek bir
 // gorutinde hazırlar. derinlik adet tampon dolaşımdadır: üretici boş
 // tamponları doldurup kuyruğa koyar, Al dolu bir tamponu çağıranın
 // TopluIs'i ile takas eder (kopyalama yok) ve eskisini üreticiye geri verir.
@@ -35,7 +35,7 @@ type Prefetcher struct {
 	srcErr error
 }
 
-// kapatici, kendi Kapat yöntemi olan kaynaklardır (Ornekleyici, SiraliOkuyucu).
+// closer, kendi Kapat yöntemi olan kaynaklardır (Ornekleyici, SiraliOkuyucu).
 type closer interface{ Close() error }
 
 type resultBatch struct {
@@ -43,7 +43,7 @@ type resultBatch struct {
 	fault error
 }
 
-// OnYukle, kaynaktan önden yüklemeye başlar. derinlik < 1 ise 2 kullanılır.
+// Prefetch, kaynaktan önden yüklemeye başlar. derinlik < 1 ise 2 kullanılır.
 // ctx iptal edilirse üretici durur ve Al bağlam hatasını döner.
 func Prefetch(ctx context.Context, k Source, depth int) *Prefetcher {
 	if depth < 1 {
@@ -90,7 +90,7 @@ func (o *Prefetcher) produce() {
 	}
 }
 
-// Al, sonraki toplu işi dst'ye yerleştirir. dst'nin eski tamponu yeniden
+// Take, sonraki toplu işi dst'ye yerleştirir. dst'nin eski tamponu yeniden
 // kullanılmak üzere üreticiye verilir; bu yüzden önceki Al'dan dönen veri
 // dilimleri Al'dan sonra geçersizdir (saklanacaksa Kopya alınmalı).
 // Kaynak bittiğinde io.EOF, kapatıldıktan sonra ErrKapali döner.
@@ -147,11 +147,11 @@ func (o *Prefetcher) lastErr(err error) error {
 	return o.persistentErr
 }
 
-// Kapat, üreticiyi durdurur, bitmesini bekler ve ardından kaynağı (kapatılabilir
+// Close, üreticiyi durdurur, bitmesini bekler ve ardından kaynağı (kapatılabilir
 // ise) kapatır. Birden çok kez çağrılabilir; kaynak yalnızca bir kez kapatılır.
 func (o *Prefetcher) Close() error { return o.closeFn(0) }
 
-// KapatZamanli, Kapat gibidir ama üretici sure içinde durmazsa (ör. ağ
+// CloseTimeout, Kapat gibidir ama üretici sure içinde durmazsa (ör. ağ
 // okuması takıldıysa) beklemeyi bırakıp hata döner. Bu durumda kaynak
 // KAPATILMAZ (üretici hâlâ onu kullanıyor olabilir); üretici gorutini,
 // takılan okuma dönünce kendiliğinden biter. Sonraki bir Kapat çağrısı

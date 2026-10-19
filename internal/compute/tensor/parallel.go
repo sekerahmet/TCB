@@ -39,7 +39,7 @@ import (
 // belirler; parça sınırları çağıranlarca seçilir. Toplamlar işçi sayısından
 // bağımsız sabit parçalarla yapıldığından (indirgemeParca) sonuçlar değişmez.
 
-// paralelEsik eleman bazlı işlerde bir işçiye düşen en az iş (eleman × göreli
+// parallelThreshold eleman bazlı işlerde bir işçiye düşen en az iş (eleman × göreli
 // maliyet). Toplam iş bunun altındaysa doğrudan çağıranda yürütülür.
 //
 // Ölçüm (i7-13700H): 2^15 birimlik iş (ör. 32 bin elemanlık toplama, çıktı
@@ -48,20 +48,20 @@ import (
 // işçi kazandırmıyordu.
 const parallelThreshold = 1 << 15
 
-// elemanBuyukIs bu kadar birimden büyük eleman bazlı işler bütün işçileri
+// elemBigJob bu kadar birimden büyük eleman bazlı işler bütün işçileri
 // kullanabilir; daha küçükleri en çok donenIsci+1 katılımcıyla yürütülür.
 // 2^22 birim (ör. 256 bin elemanlık GELU) tek çekirdekte ~0,5 ms sürer;
 // uyuyan işçileri uyandırmanın (~20 µs/işçi, zincirleme) karşılığı bu
 // büyüklükten sonra alınıyordu.
 const elemBigJob = 1 << 22
 
-// donenIsci küçük işler arasında dönerek bekleyen (hemen hazır) işçi sayısı.
+// returningWorker küçük işler arasında dönerek bekleyen (hemen hazır) işçi sayısı.
 // Ölçüm (karakter modeli, 20 iş parçacığı): 3, 1 ve 2'den belirgin iyiydi; 4-5
 // ölçüm gürültüsü içinde aynıydı. Bütün işçilerin dönmesi ise GC duraklamaları
 // yüzünden adımı ~%25 yavaşlatıyordu.
 const returningWorker = 3
 
-// havuzBekleme dönen işçinin iş bittikten sonra yeni iş için beklediği süre.
+// poolWait dönen işçinin iş bittikten sonra yeni iş için beklediği süre.
 // Eğitim adımında ardışık tensör işlemleri arasında yorumlayıcı birkaç ile
 // birkaç on µs harcar; işçi bu sürede uyumazsa uyandırma maliyeti olmaz. Daha
 // uzun boşluklarda (veri hazırlama, yazdırma) işçiler uyur, CPU tüketmez.
@@ -78,7 +78,7 @@ func workers() int {
 	return w
 }
 
-// isciSayisi is birimlik bir iş için katılımcı sayısını (çağıran dahil)
+// workerCount is birimlik bir iş için katılımcı sayısını (çağıran dahil)
 // seçer: her katılımcıya en az enAz birim düşer; is < buyuk ise en çok
 // donenIsci+1 katılımcı kullanılır.
 func workerCount(is, minN, large int) int {
@@ -92,7 +92,7 @@ func workerCount(is, minN, large int) int {
 	return w
 }
 
-// gorev havuza yayımlanan bir iş: [0, parca) parçalarının her biri için
+// task havuza yayımlanan bir iş: [0, parca) parçalarının her biri için
 // fn(katilimci, parca) çağrılır. katilimci 0 çağırandır, 1..yardimci işçilerdir;
 // aynı katilimci numarası aynı anda tek goroutine'de çalışır (katılımcı başına
 // geçici tampon tutmak için).
@@ -105,15 +105,15 @@ type task struct {
 	next     atomic.Int64
 	_        [56]byte
 	finished atomic.Int64
-	// panik, bir parçada oluşan ilk paniktir; çağıran bütün parçalar bitince onu kendi
+	// panicVal, bir parçada oluşan ilk paniktir; çağıran bütün parçalar bitince onu kendi
 	// goroutine'inde yeniden fırlatır (işçide kurtarılmayan panik süreci çökertirdi).
 	panicVal atomic.Pointer[partPanic]
 }
 
-// parcaPanigi bir parçanın kurtarılmış panik değeri.
+// partPanic bir parçanın kurtarılmış panik değeri.
 type partPanic struct{ value any }
 
-// parcaYurut bir parçayı yürütür; panik oluşursa kaydeder (ilki kalır).
+// runPart bir parçayı yürütür; panik oluşursa kaydeder (ilki kalır).
 func runPart(p *atomic.Pointer[partPanic], fn func(participant, c int), participant, c int) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -123,7 +123,7 @@ func runPart(p *atomic.Pointer[partPanic], fn func(participant, c int), particip
 	fn(participant, c)
 }
 
-// yurut parçalar bitene kadar sayaçtan parça alıp yürütür. Bir parça panik verdiyse
+// runFn parçalar bitene kadar sayaçtan parça alıp yürütür. Bir parça panik verdiyse
 // kalan parçalar yürütülmeden bitmiş sayılır.
 func (g *task) runFn(participant int) {
 	for {
@@ -151,7 +151,7 @@ var pool struct {
 	task    atomic.Pointer[task]
 }
 
-// iscileriHazirla en az n işçinin çalıştığını güvence eder (havuz.mu tutulur).
+// prepareWorkers en az n işçinin çalıştığını güvence eder (havuz.mu tutulur).
 func prepareWorkers(n int) {
 	for len(pool.workers) < n {
 		i := &worker{wake: make(chan struct{}, 1)}
@@ -161,7 +161,7 @@ func prepareWorkers(n int) {
 	}
 }
 
-// calis işçi döngüsü: no, işçinin sırasıdır (katılımcı numarası no+1).
+// run işçi döngüsü: no, işçinin sırasıdır (katılımcı numarası no+1).
 func (i *worker) run(no int) {
 	var last uint64
 	shouldReturn := false
@@ -176,7 +176,7 @@ func (i *worker) run(no int) {
 	}
 }
 
-// bekle sırası son'dan farklı ve bu işçinin katılacağı bir iş gelene kadar
+// wait sırası son'dan farklı ve bu işçinin katılacağı bir iş gelene kadar
 // bekler: donsun ise önce havuzBekleme süresince döner, sonra uyur.
 func (i *worker) wait(no int, last uint64, shouldReturn bool) *task {
 	for {
@@ -210,7 +210,7 @@ func (i *worker) wait(no int, last uint64, shouldReturn bool) *task {
 	}
 }
 
-// dagit [0, parca) parçalarını en çok w katılımcıyla (çağıran dahil) yürütür.
+// distribute [0, parca) parçalarını en çok w katılımcıyla (çağıran dahil) yürütür.
 // fn(katilimci, c) için katilimci [0, w) aralığındadır. w <= 1 ise ya da tek
 // parça varsa her şey çağıranda yürütülür.
 func distribute(w, part int, fn func(participant, c int)) {
@@ -260,7 +260,7 @@ func distribute(w, part int, fn func(participant, c int)) {
 
 func emptyJob(int, int) {}
 
-// dagitGecici havuz kullanılamadığında her çağrıda goroutine açan yedek yol.
+// distributeTemp havuz kullanılamadığında her çağrıda goroutine açan yedek yol.
 func distributeTemp(w, part int, fn func(participant, c int)) {
 	var next atomic.Int64
 	var panicVal atomic.Pointer[partPanic]
@@ -326,12 +326,12 @@ func parallelFor(n, cost int, fn func(lo, hi int)) {
 	})
 }
 
-// yonluEnAz parallelFor'un yönlendirmeli parçalarında bir parçanın en az işi
+// directedMin parallelFor'un yönlendirmeli parçalarında bir parçanın en az işi
 // (eleman × göreli maliyet; ~2-3 µs). Daha küçük parçalarda sayaç erişimi ve
 // çağrı maliyeti öne çıkar.
 const directedMin = parallelThreshold / 4
 
-// indirgemeParca belirlenimci paralel toplamlarda sabit parça uzunluğu. Parça
+// reducePart belirlenimci paralel toplamlarda sabit parça uzunluğu. Parça
 // sınırları yalnızca eleman sayısına bağlıdır (işçi sayısına değil); kısmi
 // toplamlar parça sırasıyla birleştirildiği için sonuç her çalıştırmada ve her
 // makinede bit düzeyinde aynıdır.

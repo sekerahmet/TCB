@@ -8,7 +8,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 )
 
-// sabitKod her zaman aynı (değişmez) değeri veren kod üretir; sabitler bir kez kutulanır.
+// constCode her zaman aynı (değişmez) değeri veren kod üretir; sabitler bir kez kutulanır.
 func constCode(d Value) exprCode {
 	return func(v *VM, env *Environment) (Value, error) { return d, nil }
 }
@@ -23,7 +23,7 @@ func (c *compiler) expressions(k *compilerScope, exprs []ast.Expression) []exprC
 	return codeList
 }
 
-// ifadeSinyal deyim konumundaki bir ifadeyi derler. 'eğer' ve 'eşle' dallarında çalışan
+// exprSignal deyim konumundaki bir ifadeyi derler. 'eğer' ve 'eşle' dallarında çalışan
 // 'sonuç', 'kır', 'devam' sinyalleri yukarı iletilir; diğer ifadeler sinyal üretmez.
 func (c *compiler) exprSignal(k *compilerScope, expr ast.Expression) statementCode {
 	switch e := expr.(type) {
@@ -42,7 +42,7 @@ func (c *compiler) exprSignal(k *compilerScope, expr ast.Expression) statementCo
 	}
 }
 
-// sinyalsiz deyim konumu dışında kullanılan 'eğer'/'eşle' için sinyali düşürür.
+// noSignal deyim konumu dışında kullanılan 'eğer'/'eşle' için sinyali düşürür.
 func noSignal(d statementCode) exprCode {
 	return func(v *VM, env *Environment) (Value, error) {
 		val, _, err := d(v, env)
@@ -221,7 +221,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 
 // --- DEĞİŞKEN OKUMA ---
 
-// adOku bir adın değerini okuyan kodu üretir. Derleme anında çözülen adlar yuvadan okunur;
+// readName bir adın değerini okuyan kodu üretir. Derleme anında çözülen adlar yuvadan okunur;
 // yuva boşsa (ya da ad çözülemediyse) arama adla yapılır.
 func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
 	r := k.resolve(e.Value)
@@ -295,7 +295,7 @@ func readByName(env *Environment, e *ast.Identifier) (Value, error) {
 	return val, nil
 }
 
-// yuvaOrtami çözümün işaret ettiği ortamı döndürür (yalnızca cozYerel/cozGenel için).
+// slotEnv çözümün işaret ettiği ortamı döndürür (yalnızca cozYerel/cozGenel için).
 func slotEnv(r resolution, env *Environment) *Environment {
 	if r.kind == resolveGlobal {
 		return r.global

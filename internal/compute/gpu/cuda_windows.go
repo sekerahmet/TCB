@@ -11,7 +11,7 @@ import (
 
 type windowsLibrary struct{ h syscall.Handle }
 
-// sistemKlasorunden LoadLibraryExW'nin LOAD_LIBRARY_SEARCH_SYSTEM32 bayrağı: DLL yalnızca
+// fromSystemDir LoadLibraryExW'nin LOAD_LIBRARY_SEARCH_SYSTEM32 bayrağı: DLL yalnızca
 // sistem klasöründen (sürücünün kurulduğu yer) yüklenir; çalışma klasöründeki aynı adlı
 // bir dosya yüklenmez.
 const fromSystemDir = 0x00000800
@@ -39,13 +39,13 @@ func (w *windowsLibrary) call(fn uintptr, args ...uintptr) uintptr {
 	return r
 }
 
-// cikisIsleyicileriniCalistir Windows'ta gerekmez: araçlar süreç sonunu kendileri yakalar.
+// runExitHandlers Windows'ta gerekmez: araçlar süreç sonunu kendileri yakalar.
 func runExitHandlers() {}
 
 // Bağımlılıklar yalnızca DLL'in kendi klasöründen ve sistem klasöründen yüklenir.
 const fromDLLDirAndSystem = 0x00000100 | fromSystemDir
 
-// kitaplikAc bir DLL'i tam yolundan yükler (arama yolu kullanılmaz).
+// openLibrary bir DLL'i tam yolundan yükler (arama yolu kullanılmaz).
 func openLibrary(path string) (library, error) {
 	loader := syscall.NewLazyDLL("kernel32.dll").NewProc("LoadLibraryExW")
 	if err := loader.Find(); err != nil {

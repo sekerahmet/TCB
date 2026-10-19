@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// sayacFarki, f'nin çalışması boyunca (cpu, yön, işlem) kaydında biriken çağrı, ölçüm ve
+// counterDiff, f'nin çalışması boyunca (cpu, yön, işlem) kaydında biriken çağrı, ölçüm ve
 // baytı verir. Sayaçlar süreç genelidir: bu testler t.Parallel kullanmaz (paralel testler
 // sıralı testler bitince koşar, sayaçlara aynı anda yazılmaz).
 func counterDiff(back bool, is OpKind, f func()) (call, measurement, byteN int64, dur time.Duration) {

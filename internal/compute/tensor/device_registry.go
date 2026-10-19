@@ -13,13 +13,13 @@ import (
 var (
 	backendMu sync.RWMutex
 	backends  = map[Device]Backend{}
-	// varsayilanCihaz oluşturucuların (Zeros, New, ...) kullandığı cihaz.
+	// defaultDevice oluşturucuların (Zeros, New, ...) kullandığı cihaz.
 	defaultDevice = CPU
 
-	// tembelMu tembel kurulumları sıraya koyar (kurulum backendMu tutulmadan yapılır).
+	// isLazy tembel kurulumları sıraya koyar (kurulum backendMu tutulmadan yapılır).
 	isLazy sync.Mutex
 	lazies = map[DeviceKind]LazyBackend{}
-	// denenen kurulumu denenmiş (başarılı ya da başarısız) cihazlar.
+	// tried kurulumu denenmiş (başarılı ya da başarısız) cihazlar.
 	tried = map[Device]bool{}
 )
 
@@ -58,7 +58,7 @@ func RegisterLazyBackend(kind DeviceKind, l LazyBackend) {
 	isLazy.Unlock()
 }
 
-// arkaUcBul cihazın arka ucunu verir; kayıtlı değilse tembel kurulumu bir kez dener.
+// findBackend cihazın arka ucunu verir; kayıtlı değilse tembel kurulumu bir kez dener.
 func findBackend(d Device) (Backend, bool) {
 	backendMu.RLock()
 	b, ok := backends[d]

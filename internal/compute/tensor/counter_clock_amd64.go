@@ -12,7 +12,7 @@ func tsc() int64
 //go:noescape
 func cpuid(leaf, sub uint32) (eax, ebx, ecx, edx uint32)
 
-// tscVar işlemci değişmez (çekirdekler arasında eş, frekanstan bağımsız) zaman damgası
+// hasTSC işlemci değişmez (çekirdekler arasında eş, frekanstan bağımsız) zaman damgası
 // sayacını bildiriyor mu: CPUID 0x80000007, EDX bit 8.
 var hasTSC = func() bool {
 	if largest, _, _, _ := cpuid(0x80000000, 0); largest < 0x80000007 {
@@ -22,7 +22,7 @@ var hasTSC = func() bool {
 	return edx&(1<<8) != 0
 }()
 
-// saat sayaçların tık birimindeki şimdiki zamandır.
+// clock sayaçların tık birimindeki şimdiki zamandır.
 func clock() int64 {
 	if hasTSC {
 		return tsc()

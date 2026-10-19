@@ -4,6 +4,6 @@ package dataload
 
 import "os"
 
-// dosyaKilitle bu platformda süreçler arası kilit desteklemez; süreç içi
+// lockFile bu platformda süreçler arası kilit desteklemez; süreç içi
 // paylaşım yine tek yöneticiyle korunur.
 func lockFile(f *os.File) error { return nil }

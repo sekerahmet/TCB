@@ -99,7 +99,7 @@ func TypeOfValue(v Value) *TypeVal {
 	return typeValues[codes.A213.Number()] // Herhangi: tipi kod listesinde olmayan değer
 }
 
-// tipDegeri yapının nesnelerinin tip değeridir; ilk kullanımda kurulur (yorumlayıcı kilidi
+// typeValue yapının nesnelerinin tip değeridir; ilk kullanımda kurulur (yorumlayıcı kilidi
 // altında).
 func (s *StructDefVal) typeValue() *TypeVal {
 	if s.typ == nil {
@@ -108,7 +108,7 @@ func (s *StructDefVal) typeValue() *TypeVal {
 	return s.typ
 }
 
-// tipleriKaydet tip adlarını genel kapsama tip değerleri olarak bağlar (tip(x) == Tam).
+// registerTypes tip adlarını genel kapsama tip değerleri olarak bağlar (tip(x) == Tam).
 func (v *VM) registerTypes() {
 	for _, k := range codes.Codes() {
 		if k.Namespace() == codes.NamespaceType {
@@ -119,7 +119,7 @@ func (v *VM) registerTypes() {
 	}
 }
 
-// tipMetinHatasi tip değeri metinle karşılaştırılıyorsa yol gösteren hatayı verir (tip
+// typeTextError tip değeri metinle karşılaştırılıyorsa yol gösteren hatayı verir (tip
 // değeri hiçbir metne eşit değildir; sessizce yanlış dönmek yerine hata). Değilse nil.
 func typeTextError(op string, a, b Value) error {
 	t, ok := a.(*TypeVal)
@@ -133,3 +133,7 @@ func typeTextError(op string, a, b Value) error {
 	}
 	return errors.New(hint.TypeTextComparison(op, m.Val, t.Inspect()))
 }
+
+// Compile-time check: the interpreter finds Equaler by type assertion, so a renamed or changed
+// method would otherwise drop it silently.
+var _ Equaler = (*TypeVal)(nil)

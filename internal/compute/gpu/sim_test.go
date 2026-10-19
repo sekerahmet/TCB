@@ -20,7 +20,7 @@ func newSimBackend(memory uint64) *backend {
 	return g
 }
 
-// calistirHata, govde'nin yazdığı tek bloklu (4 iş parçacığı) çekirdeği 16 baytlık bir
+// runErr, govde'nin yazdığı tek bloklu (4 iş parçacığı) çekirdeği 16 baytlık bir
 // tamponla başlatır ve eşzamanlama hatasının mesajını verir.
 func runErr(t *testing.T, ad string, body func(k *emitter, x reg)) string {
 	t.Helper()
@@ -129,7 +129,7 @@ func TestParamDeclChecked(t *testing.T) {
 	}
 }
 
-// TestIcIceParametreZinciri, bir başlatmanın parametreleri yazılırken ikinci bir başlatma
+// TestNestedParamChain, bir başlatmanın parametreleri yazılırken ikinci bir başlatma
 // hazırlanmasının (dış zinciri silerdi) iç hata verdiğini ve sonraki girişin temiz
 // başladığını denetler.
 func TestNestedParamChain(t *testing.T) {
@@ -189,7 +189,7 @@ func TestUnsupported(t *testing.T) {
 	}
 }
 
-// TestSurucuYoksaZarif NVIDIA sürücüsü olmayan makinede (Linux'ta dlopen, Windows'ta
+// TestNoDriverGraceful NVIDIA sürücüsü olmayan makinede (Linux'ta dlopen, Windows'ta
 // DLL yükleme hatası) paketin paniklemeden "GPU yok" dediğini ve tensörlerin CPU'da
 // kaldığını denetler. Gerçek GPU'lu makinede atlanır.
 func TestNoDriverGraceful(t *testing.T) {
@@ -210,7 +210,7 @@ func TestNoDriverGraceful(t *testing.T) {
 	}
 }
 
-// cihazdan depolamanın içeriğini gölgeye bakmadan cihazdan okur.
+// fromDevice depolamanın içeriğini gölgeye bakmadan cihazdan okur.
 func fromDevice(g *backend, s tensor.Storage) []float32 {
 	g.enter()
 	defer g.exit()

@@ -164,7 +164,7 @@ func iterRowsPar(shape []int, base []int, strides [][]int, write int, fn func(of
 	})
 }
 
-// satirParca satır içi eksen bölünürken bir parçanın en az eleman sayısı.
+// rowPart satır içi eksen bölünürken bir parçanın en az eleman sayısı.
 const rowPart = 64
 
 // gatherCPU görünümün elemanlarını mantıksal sırayla verir. Görünüm zaten
@@ -435,7 +435,7 @@ func (cpuBackend) f32BinaryGrad(mode GradMode, dst Storage, dstShape, outShape [
 	})
 }
 
-// satirIndirge dg (m) += Σ_r terim(g[r], o[r]) (R satır). Satırlar, uzunluğu
+// rowReduce dg (m) += Σ_r terim(g[r], o[r]) (R satır). Satırlar, uzunluğu
 // yalnızca m'ye bağlı parçalara bölünür; her parçanın kısmi toplamı ayrı
 // hesaplanır ve parçalar sabit sırayla birleştirilir (belirlenimci).
 func rowReduce(mode GradMode, dg, gd, od []float32, R, m int) {
@@ -494,7 +494,7 @@ const (
 // aksi halde aşağıdaki Go eşleridir; işlem sırası aynıdır, yalnızca üstel
 // (expVek ile expf32 gibi) 1-2 ulp farklı olabilir.
 
-// geluIleriGo y = x / (1 + e^{-2u}), u = c·(x + a·x³).
+// geluForwardGo y = x / (1 + e^{-2u}), u = c·(x + a·x³).
 func geluForwardGo(y, x []float32) {
 	y = y[:len(x)]
 	for i, v := range x {
@@ -504,7 +504,7 @@ func geluForwardGo(y, x []float32) {
 	}
 }
 
-// geluGeriGo gx += g·d; s = σ(2u) = 1/(1+e^{-2u}), q = s(1-s) ile
+// geluBackwardGo gx += g·d; s = σ(2u) = 1/(1+e^{-2u}), q = s(1-s) ile
 // d = s + 2x·q·u' (u' = c·(1 + 3a·x²)). q = 0 iken (|x| büyük) ikinci terim
 // sıfırdır; |x| ≳ 1.8e19'da x² taşar ve 0·sonsuz NaN üretirdi, bu yüzden d = s.
 func geluBackwardGo(gx, g, x []float32) {
@@ -524,12 +524,12 @@ func geluBackwardGo(gx, g, x []float32) {
 	}
 }
 
-// vekBlok vektörel üstel için blok uzunluğu (yığında, L1'de kalır).
+// vecBlock vektörel üstel için blok uzunluğu (yığında, L1'de kalır).
 const vecBlock = 256
 
 func abs32(x float32) float32 { return math.Float32frombits(math.Float32bits(x) &^ (1 << 31)) }
 
-// unaryMaliyet bir elemanın yaklaşık göreli maliyeti (işçi sayısı seçimi için).
+// unaryCost bir elemanın yaklaşık göreli maliyeti (işçi sayısı seçimi için).
 func unaryCost(op UnOp) int {
 	switch op {
 	case OpAddScalar, OpMulScalar, OpRSubScalar, OpRelu, OpAbs:
@@ -540,7 +540,7 @@ func unaryCost(op UnOp) int {
 	return 16
 }
 
-// unaryDongu y = f(x). İşlem seçimi döngünün dışındadır: her işlemin kendi sıkı
+// unaryLoop y = f(x). İşlem seçimi döngünün dışındadır: her işlemin kendi sıkı
 // döngüsü vardır, eleman başına dolaylı çağrı yapılmaz.
 func unaryLoop(op UnOp, p float32, y, x []float32) {
 	y = y[:len(x)]
@@ -632,7 +632,7 @@ func unaryLoop(op UnOp, p float32, y, x []float32) {
 	}
 }
 
-// unaryGradDongu gx += g·f'(x, y); işlem seçimi döngünün dışındadır.
+// unaryGradLoop gx += g·f'(x, y); işlem seçimi döngünün dışındadır.
 func unaryGradLoop(op UnOp, p float32, gx, g, x, y []float32) {
 	g = g[:len(gx)]
 	x = x[:len(gx)]

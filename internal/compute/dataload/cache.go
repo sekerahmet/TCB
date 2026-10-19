@@ -16,21 +16,21 @@ import (
 	"time"
 )
 
-// OnbellekSecenekleri, yerel önbelleğin ayarlarıdır.
+// CacheOptions, yerel önbelleğin ayarlarıdır.
 type CacheOptions struct {
-	// Dizin, kopyaların konacağı yerel dizindir (zorunlu). Önbellek bu
+	// Dir, kopyaların konacağı yerel dizindir (zorunlu). Önbellek bu
 	// dizinde yalnızca kendi adlandırdığı dosyalara dokunur.
 	Dir string
-	// Kota, önbelleğin kullanabileceği en çok bayt sayısıdır (zorunlu, > 0).
+	// Quota, önbelleğin kullanabileceği en çok bayt sayısıdır (zorunlu, > 0).
 	// Örnekleyiciyle kullanıldığında en az (aynı anda açık parça sayısı +
 	// ileri bakış) × en büyük parça boyutu olmalıdır; örnekleyici kurulurken
 	// denetlenir.
 	Quota int64
-	// Isci, arka planda aynı anda kopyalayan gorutin sayısıdır (varsayılan 2).
+	// Workers, arka planda aynı anda kopyalayan gorutin sayısıdır (varsayılan 2).
 	Workers int
 }
 
-// OnbellekIstatistik, önbelleğin sayaçlarıdır.
+// CacheStats, önbelleğin sayaçlarıdır.
 type CacheStats struct {
 	Hits        int64 // yerel kopyadan karşılanan Getir çağrıları
 	Misses      int64 // Getir sırasında eşzamanlı kopyalanan dosyalar
@@ -41,7 +41,7 @@ type CacheStats struct {
 	FileCount   int
 }
 
-// Onbellek, yavaş bir kaynak dizindeki (ör. ağ sürücüsü) dosyaları yerel
+// Cache, yavaş bir kaynak dizindeki (ör. ağ sürücüsü) dosyaları yerel
 // bir dizine kopyalayan, disk kotası olan bir katmandır. Kota dolduğunda en
 // uzun süredir kullanılmayan ve o an açık olmayan dosyalar silinir. Hazirla
 // ile bildirilen sıradaki dosyalar arka planda kopyalanır. Yer açılamazsa
@@ -60,13 +60,13 @@ type Cache struct {
 	closed bool
 }
 
-// obCekirdek bir önbellek dizininin süreç içindeki tek yöneticisidir.
+// cacheCore bir önbellek dizininin süreç içindeki tek yöneticisidir.
 type cacheCore struct {
 	dir   string
 	key   string   // kayıt anahtarı (mutlak, temiz yol)
 	quota int64    // paylaşılan kota (en son açılışta verilen); mu ile korunur
 	lock  *os.File // süreçler arası kilit dosyası (açık kaldıkça kilitli)
-	// istemciler açık Onbellek'lerdir (açılış sırasıyla); listeler her
+	// clients açık Onbellek'lerdir (açılış sırasıyla); listeler her
 	// birinin son Hazirla listesidir.
 	clients  []*Cache
 	lists    map[*Cache][]string
@@ -100,21 +100,21 @@ type cacheEntry struct {
 	pin   int           // açık kullanıcı sayısı; > 0 iken silinmez
 	ready bool          // dosya tamamen kopyalandı
 	dup   chan struct{} // nil değilse kopyalanıyor; bitince kapanır
-	// onYukleme, süren kopyayı arka plan işçisinin (Hazirla) başlattığını
+	// prefetch, süren kopyayı arka plan işçisinin (Hazirla) başlattığını
 	// bildirir. Böyle bir kopya bitince iğnelenmez, silinebilir hale gelir.
 	prefetch bool
 }
 
 var (
-	// ErrOnbellekYetersiz, önbellek kotasında dosya için yer açılamadığını
+	// ErrCacheInsufficient, önbellek kotasında dosya için yer açılamadığını
 	// bildirir (kota küçük ya da açık dosyalar yer kaplıyor).
 	ErrCacheInsufficient = errors.New("veri: önbellek kotası yetersiz")
 
-	// ErrOnbellekKilitli, önbellek dizinini başka bir sürecin kullandığını
+	// ErrCacheLocked, önbellek dizinini başka bir sürecin kullandığını
 	// bildirir.
 	ErrCacheLocked = errors.New("veri: önbellek dizini kilitli")
 
-	// kopyaKancasi, testlerde kopyalamayı yavaşlatmak için kopyadan hemen
+	// copyHook, testlerde kopyalamayı yavaşlatmak için kopyadan hemen
 	// önce (kilit tutulmadan) çağrılır; üretimde nil'dir.
 	copyHook func(src string, prefetch bool)
 
@@ -122,17 +122,17 @@ var (
 	tempSuffix  = ".gecici"
 )
 
-// kilitDosyasi, önbellek dizinindeki süreçler arası kilit dosyasının adıdır
+// lockPath, önbellek dizinindeki süreçler arası kilit dosyasının adıdır
 // (yönetilen adlara uymaz; silinmez).
 const lockPath = ".onbellek.kilit"
 
-// obKayit, süreç içinde açık önbellek dizinleridir (anahtar: dizinAnahtari).
+// cacheRecord, süreç içinde açık önbellek dizinleridir (anahtar: dizinAnahtari).
 var cacheRecord = struct {
 	mu sync.Mutex
 	m  map[string]*cacheCore
 }{m: map[string]*cacheCore{}}
 
-// dizinAnahtari dizinin süreç içi kayıt anahtarıdır: bağlantıları çözülmüş,
+// dirKey dizinin süreç içi kayıt anahtarıdır: bağlantıları çözülmüş,
 // mutlak ve temiz yol (Windows'ta küçük harf).
 func dirKey(dir string) string {
 	exact, err := filepath.Abs(dir)
@@ -149,7 +149,7 @@ func dirKey(dir string) string {
 	return exact
 }
 
-// OnbellekAc, önbelleği açar; dizinde önceki çalıştırmadan kalan kopyalar
+// OpenCache, önbelleği açar; dizinde önceki çalıştırmadan kalan kopyalar
 // varsa benimsenir (kaynakla boyut ve zaman eşleşirse kullanılır). Dizin bu
 // süreçte zaten açıksa yöneticisi paylaşılır (tek kota; en son verilen
 // geçerlidir); başka bir süreç dizini kullanıyorsa hata döner.
@@ -192,7 +192,7 @@ func OpenCache(s CacheOptions) (*Cache, error) {
 	return h, nil
 }
 
-// cekirdekAc dizinin yöneticisini kurar: süreçler arası kilidi alır,
+// openCore dizinin yöneticisini kurar: süreçler arası kilidi alır,
 // önceki çalıştırmadan kalan kopyaları benimser ve işçileri başlatır.
 func openCore(s CacheOptions) (*cacheCore, error) {
 	lock, err := os.OpenFile(filepath.Join(s.Dir, lockPath), os.O_RDWR|os.O_CREATE, 0o644)
@@ -250,7 +250,7 @@ func openCore(s CacheOptions) (*cacheCore, error) {
 	return o, nil
 }
 
-// kopyaGecerli, benimsenecek kopya .npy ise başlığının geçerli ve verinin
+// copyValid, benimsenecek kopya .npy ise başlığının geçerli ve verinin
 // tam olduğunu denetler. Diğer dosyalarda yalnızca boyut (Getir sırasında
 // kaynakla) karşılaştırılır.
 func copyValid(path string, dim int64) bool {
@@ -269,7 +269,7 @@ func copyValid(path string, dim int64) bool {
 	return bs.DataOffset+bs.DataSize() <= dim
 }
 
-// pinliBayt, açık (iğneli) dosyaların toplam boyutudur; kilit tutulur.
+// pinnedBytes, açık (iğneli) dosyaların toplam boyutudur; kilit tutulur.
 func (o *cacheCore) pinnedBytes() int64 {
 	var t int64
 	for _, g := range o.record {
@@ -280,7 +280,7 @@ func (o *cacheCore) pinnedBytes() int64 {
 	return t
 }
 
-// yerelAd, kaynak yolu için önbellekteki dosya adını üretir. Ad, kaynağın
+// localName, kaynak yolu için önbellekteki dosya adını üretir. Ad, kaynağın
 // tam yolunun özetini içerir; farklı dizinlerdeki aynı adlı dosyalar
 // çakışmaz.
 func localName(src string) string {
@@ -426,7 +426,7 @@ func (o *cacheCore) releaser(g *cacheEntry) func() {
 	}
 }
 
-// sil, girdinin dosyasını siler; kilit tutulur. Silinemezse false döner.
+// remove, girdinin dosyasını siler; kilit tutulur. Silinemezse false döner.
 func (o *cacheCore) remove(g *cacheEntry) bool {
 	err := os.Remove(filepath.Join(o.dir, g.ad))
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -438,7 +438,7 @@ func (o *cacheCore) remove(g *cacheEntry) bool {
 	return true
 }
 
-// yerAc, gerekli bayt için kotada yer açar; kilit tutulur. Silinecek
+// makeRoom, gerekli bayt için kotada yer açar; kilit tutulur. Silinecek
 // adaylar: hazır, açık olmayan ve kopyalanmayan dosyalar, en eski
 // kullanılan önce. Önden yüklemede, hâlâ istenen dosyalar silinmez; eşzamanlı
 // Getir'de ise istenenler en son silinir. Yer açılamayacaksa hiçbir şey
@@ -481,7 +481,7 @@ func (o *cacheCore) makeRoom(required int64, prefetch bool) bool {
 	return o.usage+required <= o.quota
 }
 
-// surenOnYukleme, gerekli bayt için şu an yer açılamıyor ama süren önden
+// ongoingPrefetch, gerekli bayt için şu an yer açılamıyor ama süren önden
 // yükleme kopyaları bitip silinebilir hale gelince açılabilecekse bu
 // kopyalardan birinin bitiş kanalını döner; yoksa nil. Kilit tutulur.
 // Önden yükleme kopyası bitince iğnelenmez, bu yüzden bekleyen eşzamanlı
@@ -507,7 +507,7 @@ func (o *cacheCore) ongoingPrefetch(required int64) chan struct{} {
 	return wait
 }
 
-// kopyala, kaynağı geçici bir dosyaya kopyalar, yazılan bayt sayısını
+// copyFile, kaynağı geçici bir dosyaya kopyalar, yazılan bayt sayısını
 // beklenenle karşılaştırır, diske yazılmasını (Sync) sağlar, değişiklik
 // zamanını kaynakla eşitler ve ancak bundan sonra hedef adına taşır. Böylece
 // hedef adında yalnızca tam ve kalıcı kopyalar bulunur.
@@ -567,7 +567,7 @@ func copyFile(ctx context.Context, src, target string, expected int64, when time
 	return nil
 }
 
-// Hazirla, sıradaki kaynak dosyaları (öncelik sırasıyla) bildirir; arka
+// Prepare, sıradaki kaynak dosyaları (öncelik sırasıyla) bildirir; arka
 // plandaki işçiler bunları sırayla ve aynı anda en çok Isci dosya olmak
 // üzere, kotanın izin verdiği kadar kopyalar. Her çağrı bu Onbellek'in
 // önceki listesinin yerini alır; dizini paylaşan diğer Onbellek'lerin
@@ -668,7 +668,7 @@ func (o *cacheCore) takeLastErr() error {
 	return o.lastErr
 }
 
-// listeleriHarmanla istemcilerin listelerini sırayla (her birinden birer
+// interleaveLists istemcilerin listelerini sırayla (her birinden birer
 // dosya) birleştirir ve listenin değiştiğini işçilere bildirir; kilit tutulur.
 func (o *cacheCore) interleaveLists() {
 	o.requested = nil
@@ -693,7 +693,7 @@ func (o *cacheCore) interleaveLists() {
 	o.generation++
 }
 
-// Kapat, bu Onbellek'i kapatır. Dizini paylaşan başka açık Onbellek yoksa
+// Close, bu Onbellek'i kapatır. Dizini paylaşan başka açık Onbellek yoksa
 // arka plan kopyalamasını durdurur, gorutinlerin bitmesini bekler ve dizin
 // kilidini bırakır. Yerel kopyalar diskte kalır ve sonraki açılışta
 // benimsenir. Birden çok kez çağrılabilir.
@@ -735,7 +735,7 @@ func (h *Cache) Close() error {
 	return o.lock.Close() // kilit, tutamak kapanınca bırakılır
 }
 
-// Getir, kaynağın yerel kopyasının yolunu döner; kopya yoksa kopyalar (ya
+// Fetch, kaynağın yerel kopyasının yolunu döner; kopya yoksa kopyalar (ya
 // da arka planda süren kopyayı bekler). Dönen birak işlevi çağrılana kadar
 // dosya silinmez. Yer yalnızca arka planda süren önden yükleme kopyaları
 // yüzünden geçici olarak doluysa onların bitmesi beklenir. Kotada yer
@@ -751,7 +751,7 @@ func (h *Cache) Fetch(ctx context.Context, src string) (string, func(), error) {
 	return h.c.fetch(ctx, src, false)
 }
 
-// Ayir, bu Onbellek'in (ör. bir örnekleyicinin) aynı anda yerelde tutacağı
+// Reserve, bu Onbellek'in (ör. bir örnekleyicinin) aynı anda yerelde tutacağı
 // bayt sayısını bildirir; önceki ayırmanın yerini alır. Dizini paylaşan
 // Onbellek'lerin ayırdıklarıyla birlikte kotayı aşarsa ErrOnbellekYetersiz'i
 // saran açıklayıcı bir hata döner (ayırma değişmez).
@@ -774,22 +774,22 @@ func (h *Cache) Reserve(needed int64) error {
 	return nil
 }
 
-// Kota, önbelleğin (dizini paylaşanlarla ortak) bayt kotasıdır.
+// Quota, önbelleğin (dizini paylaşanlarla ortak) bayt kotasıdır.
 func (h *Cache) Quota() int64 {
 	h.c.mu.Lock()
 	defer h.c.mu.Unlock()
 	return h.c.quota
 }
 
-// Dizin, önbellek dizinidir.
+// Dir, önbellek dizinidir.
 func (h *Cache) Dir() string { return h.c.dir }
 
-// Istatistik, dizinin (paylaşılan) sayaçlarının anlık kopyasıdır.
+// Stats, dizinin (paylaşılan) sayaçlarının anlık kopyasıdır.
 func (h *Cache) Stats() CacheStats { return h.c.stats() }
 
-// SonHata, arka plan kopyalamasında görülen son hatadır (yoksa nil).
+// LastError, arka plan kopyalamasında görülen son hatadır (yoksa nil).
 func (h *Cache) LastError() error { return h.c.takeLastErr() }
 
-// Bekle, Hazirla ile istenen dosyaların arka plan kopyası bitene (ya da
+// Wait, Hazirla ile istenen dosyaların arka plan kopyası bitene (ya da
 // kota yüzünden durana) kadar bekler. Çoğunlukla testler içindir.
 func (h *Cache) Wait(ctx context.Context) error { return h.c.wait(ctx) }

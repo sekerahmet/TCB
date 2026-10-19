@@ -57,7 +57,7 @@ type (
 	reAnchor struct{ kind byte } // ^ $ A z Z b B
 )
 
-// DuzIfade derlenmiş bir desendir.
+// Regex derlenmiş bir desendir.
 type Regex struct {
 	source   string
 	root     reNode
@@ -67,12 +67,12 @@ type Regex struct {
 	warnings []string
 }
 
-// dfEnCokDerinlik desenin iç içe derinlik sınırıdır (gruplar, sınıflar ve
+// reMaxDepth desenin iç içe derinlik sınırıdır (gruplar, sınıflar ve
 // üst üste niceleyiciler). Derleme ve çözümleme özyinelemeli olduğundan
 // sınırsız derinlik yığını taşırabilirdi.
 const reMaxDepth = 1000
 
-// DuzIfadeDerle deseni derler; desteklenmeyen bir yapı görülürse hata döner.
+// CompileRegex deseni derler; desteklenmeyen bir yapı görülürse hata döner.
 func CompileRegex(pattern string) (*Regex, error) {
 	a := &reParser{s: []rune(pattern)}
 	root, err := a.option()
@@ -97,7 +97,7 @@ func CompileRegex(pattern string) (*Regex, error) {
 	return &Regex{source: pattern, root: root, prog: prog, slot: c.slot, first: reBuildFirstSet(root), warnings: warnings}, nil
 }
 
-// dfKisalt hata iletileri için çok uzun desenleri kısaltır.
+// reShorten hata iletileri için çok uzun desenleri kısaltır.
 func reShorten(pattern string) string {
 	if len(pattern) <= 200 {
 		return pattern
@@ -109,7 +109,7 @@ func reShorten(pattern string) string {
 	return pattern[:i] + "…"
 }
 
-// dfAgacDerinligi desen ağacının derinliğini özyinelemesiz hesaplar.
+// reTreeDepth desen ağacının derinliğini özyinelemesiz hesaplar.
 func reTreeDepth(root reNode) int {
 	type item struct {
 		d reNode
@@ -157,7 +157,7 @@ type reParser struct {
 	depth       int // iç içe grup ve sınıf derinliği
 }
 
-// gir bir iç içe yapıya girer; derinlik sınırı aşılırsa hata verir.
+// enter bir iç içe yapıya girer; derinlik sınırı aşılırsa hata verir.
 func (a *reParser) enter() error {
 	a.depth++
 	if a.depth > reMaxDepth {
@@ -269,7 +269,7 @@ func (a *reParser) quantified() (reNode, error) {
 	return d, nil
 }
 
-// aralik "{n}", "{n,}", "{n,m}", "{,m}" sözdizimini okur.
+// span "{n}", "{n,}", "{n,m}", "{,m}" sözdizimini okur.
 func (a *reParser) span() (int, int, bool) {
 	j := a.i + 1
 	num := func() (int, bool) {
@@ -320,11 +320,11 @@ func (a *reParser) charNode(r rune) reNode {
 	return k
 }
 
-// katlamaYorungesi büyük/küçük harf duyarsız eşleşmede r'nin eşdeğerleridir
+// foldOrbit büyük/küçük harf duyarsız eşleşmede r'nin eşdeğerleridir
 // (başvuru uygulamasından çıkarılmış tablo; bkz. ozelliktablo.go).
 func foldOrbit(r rune) []rune { return exprFold[r] }
 
-// sinifKatla köşeli parantezli bir sınıfı büyük/küçük harf duyarsız yapar:
+// classFold köşeli parantezli bir sınıfı büyük/küçük harf duyarsız yapar:
 // bir karakter, kendisi ya da bir eşdeğeri sınıftaysa eşleşir. Başvurudaki
 // gibi yalnızca köşeli parantezli sınıflara ve olumsuzlamadan önce uygulanır
 // ((?i)[^a-z] "A"yı da dışlar); köşeli parantezsiz \p{..}, \w, \d, \s
@@ -482,7 +482,7 @@ func (a *reParser) group() (reNode, error) {
 	return wrap(d), nil
 }
 
-// dfEnUzun düğümün eşleyebileceği en çok karakter sayısını verir.
+// reMaxLen düğümün eşleyebileceği en çok karakter sayısını verir.
 func reMaxLen(d reNode) (int, bool) {
 	switch x := d.(type) {
 	case nil:
@@ -538,7 +538,7 @@ func (a *reParser) readHex(minN, maxN int) (rune, error) {
 	return rune(n), nil
 }
 
-// kacisKarakteri sınıf içinde ve dışında ortak olan tek karakterlik kaçışları
+// escapeChar sınıf içinde ve dışında ortak olan tek karakterlik kaçışları
 // çözer; tanınmazsa ok=false.
 func (a *reParser) escapeChar(c rune) (rune, bool, error) {
 	switch c {
@@ -586,7 +586,7 @@ func (a *reParser) escapeChar(c rune) (rune, bool, error) {
 	return 0, false, nil
 }
 
-// kacisSinifi \d \s \w \h \p{..} ve olumsuzlarını çözer.
+// escapeClass \d \s \w \h \p{..} ve olumsuzlarını çözer.
 func (a *reParser) escapeClass(c rune) (func(rune) bool, bool, error) {
 	switch c {
 	case 'd':
@@ -685,7 +685,7 @@ func (a *reParser) escape() (reNode, error) {
 	return a.charNode(c), nil
 }
 
-// sinif "[...]" karakter sınıfını (olumsuzlaması uygulanmış olarak) ayrıştırır.
+// class "[...]" karakter sınıfını (olumsuzlaması uygulanmış olarak) ayrıştırır.
 func (a *reParser) class() (func(rune) bool, error) {
 	f, negated, err := a.classInner()
 	if err == nil && negated {
@@ -694,7 +694,7 @@ func (a *reParser) class() (func(rune) bool, error) {
 	return f, err
 }
 
-// sinifIc "[...]" karakter sınıfının olumsuzlanmamış kümesini ve olumsuz
+// classInner "[...]" karakter sınıfının olumsuzlanmamış kümesini ve olumsuz
 // olup olmadığını verir.
 func (a *reParser) classInner() (func(rune) bool, bool, error) {
 	a.i++ // '['
@@ -802,7 +802,7 @@ func reConcat(p []func(rune) bool) func(rune) bool {
 	}
 }
 
-// sinifOgesi sınıf içindeki tek bir öğeyi okur: ya bir karakter ya bir alt sınıf.
+// classItem sınıf içindeki tek bir öğeyi okur: ya bir karakter ya bir alt sınıf.
 func (a *reParser) classItem() (rune, func(rune) bool, error) {
 	c := a.look()
 	a.i++
@@ -855,7 +855,7 @@ func (a *reParser) posixClass() (func(rune) bool, bool) {
 	return f, true
 }
 
-// unicodeOzelligi \p{ad} için sınama işlevini verir. Ad büyük/küçük harf,
+// unicodeProperty \p{ad} için sınama işlevini verir. Ad büyük/küçük harf,
 // boşluk, '_' ve '-' farkı gözetmeden eşlenir.
 func unicodeProperty(ad string) (func(rune) bool, error) {
 	n := strings.Map(func(r rune) rune {
@@ -886,7 +886,7 @@ func rePosixes() map[string]func(rune) bool {
 	return rePosixTable
 }
 
-// dfOzellikKur sınıf tablolarını kurar. Bütün tablolar (genel kategoriler,
+// reBuildProp sınıf tablolarını kurar. Bütün tablolar (genel kategoriler,
 // yazı sistemleri, ikili özellikler, POSIX sınıfları) başvuru uygulamasının
 // düzenli ifade motorundan çıkarılmıştır (karaktertablo.go, ozelliktablo.go):
 // Unicode sürümü ve sınıf tanımları (ör. [[:punct:]] = P ve ASCII simgeleri)

@@ -9,7 +9,7 @@ import (
 
 // Arka uç: eksen indirgemeleri (Sum, SumAll, Max, MaxGrad, ArgMax).
 
-// eksensiz şeklin axis ekseni çıkarılmış hali ve adımları.
+// noAxis şeklin axis ekseni çıkarılmış hali ve adımları.
 func noAxis(sh, st []int, axis int) ([]int, []int) {
 	s := append(append([]int{}, sh[:axis]...), sh[axis+1:]...)
 	a := append(append([]int{}, st[:axis]...), st[axis+1:]...)

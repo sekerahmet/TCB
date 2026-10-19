@@ -39,13 +39,13 @@ func NewBody(input string, coded bool) *Lexer {
 	return l
 }
 
-// kayma, kökün girdisindeki off konumundan başlayarak satırın geri kalanının gösterimdeki
+// shift, kökün girdisindeki off konumundan başlayarak satırın geri kalanının gösterimdeki
 // sütun kaymasıdır (kodun adının uzunluğu - 4).
 type shift struct {
 	off, d int32
 }
 
-// kodTaramasi bütün sözcükleri (yerleştirmelerdekiler dahil) okuyup kodların sütun
+// scanCodes bütün sözcükleri (yerleştirmelerdekiler dahil) okuyup kodların sütun
 // kaymalarını toplar. Bulunan hatalar önemsenmez; asıl çözümleyici onları yeniden bulur.
 func (l *Lexer) scanCodes(k *[]shift) {
 	for {
@@ -71,7 +71,7 @@ func (l *Lexer) scanCodes(k *[]shift) {
 	}
 }
 
-// kaymalarKur kaymaları konuma göre sıralar ve birikimli toplamlarını kurar. Satır sonundaki
+// buildShifts kaymaları konuma göre sıralar ve birikimli toplamlarını kurar. Satır sonundaki
 // kaymalar atılır (satır bitmiştir).
 func (l *Lexer) buildShifts(k []shift) {
 	sort.Slice(k, func(i, j int) bool { return k[i].off < k[j].off })
@@ -87,7 +87,7 @@ func (l *Lexer) buildShifts(k []shift) {
 	}
 }
 
-// kaymaUygula kök çözümleyici bir kayma noktasına geldiğinde sütunu kaydırır.
+// applyShift kök çözümleyici bir kayma noktasına geldiğinde sütunu kaydırır.
 func (l *Lexer) applyShift() {
 	for l.shiftIdx < len(l.shifts) && int(l.shifts[l.shiftIdx].off) <= l.position {
 		if int(l.shifts[l.shiftIdx].off) == l.position {
@@ -97,7 +97,7 @@ func (l *Lexer) applyShift() {
 	}
 }
 
-// satirKaymasi kökün girdisinde satır başı bas ile i arasındaki (i dahil) kaymaların toplamıdır.
+// lineShift kökün girdisinde satır başı bas ile i arasındaki (i dahil) kaymaların toplamıdır.
 func (l *Lexer) lineShift(begin, i int) int {
 	if len(l.shifts) == 0 {
 		return 0
@@ -107,7 +107,7 @@ func (l *Lexer) lineShift(begin, i int) int {
 	return int(l.shiftSum[hi] - l.shiftSum[lo])
 }
 
-// kodTurleri anahtar kelime kodu → token türü haritasıdır (turKodlari'nın tersi).
+// codeTypes anahtar kelime kodu → token türü haritasıdır (turKodlari'nın tersi).
 var codeTypes = func() map[codes.Code]TokenType {
 	m := make(map[codes.Code]TokenType, len(typeCodes))
 	for t, k := range typeCodes {
@@ -121,7 +121,7 @@ func KeywordCode(t TokenType) codes.Code {
 	return typeCodes[t]
 }
 
-// adSozcugu okunan bir adın sözcük birimidir: Türkçe yazılmış kaynakta anahtar kelime ya da
+// nameToken okunan bir adın sözcük birimidir: Türkçe yazılmış kaynakta anahtar kelime ya da
 // ad (kod biçimli ad hatadır, 2.3a), kodlu kaynakta kodluSozcuk.
 func (l *Lexer) nameToken(lit string, line, col int) Token {
 	if l.coded {
@@ -134,7 +134,7 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 	return Token{Type: kind, Literal: lit, Line: line, Column: col}
 }
 
-// kodluSozcuk kodlu kaynaktaki bir adı okur: kod biçimindeyse (G100) kodun etkin dildeki
+// codedToken kodlu kaynaktaki bir adı okur: kod biçimindeyse (G100) kodun etkin dildeki
 // adını ve (anahtar kelimeyse) türünü taşıyan sözcük birimi, değilse kullanıcı adıdır.
 // Ölü (taşınmış ya da kaldırılmış) kodlar eski adlarıyla okunur: o adın ipucu (13.6, 2.9a)
 // kendiliğinden çalışır (uyumluluk sözü, 17.6).
@@ -155,7 +155,7 @@ func (l *Lexer) codedToken(lit string, line, col int) Token {
 	return Token{Type: TOKEN_IDENT, Literal: g.Name, Line: line, Column: col, Code: k}
 }
 
-// kacisliAd '$ad' kaçışını okur (2.11): '$' ardından gelen ad her zaman kullanıcının adıdır,
+// escapedName '$ad' kaçışını okur (2.11): '$' ardından gelen ad her zaman kullanıcının adıdır,
 // dilin bir sözcüğüyle aynı olsa bile (değişken $eğer = 1). Kaçış, bir dosya başka bir yazım
 // dilinde gösterilirken o dilin sözcükleriyle çakışan kullanıcı adları içindir; kodlama '$'ı
 // atar. Kod biçimli adlar kaçışla da ayrılmıştır (2.3a). '$' bir harfe, rakama ya da '_'ye
@@ -170,7 +170,7 @@ func (l *Lexer) escapedName(line, col int) Token {
 	return Token{Type: TOKEN_IDENT, Literal: lit, Line: line, Column: col}
 }
 
-// nulKarakteri kaynağın ortasındaki NUL (U+0000) karakterini hata olarak bildirir. Sözcük
+// nulChar kaynağın ortasındaki NUL (U+0000) karakterini hata olarak bildirir. Sözcük
 // çözümleyici girdinin sonunu 0 karakteriyle tanır; NUL eskiden dosyanın sonu sayılır, ardından
 // gelen kod sessizce yok sayılırdı.
 func (l *Lexer) nulChar(line, col int) Token {
@@ -179,7 +179,7 @@ func (l *Lexer) nulChar(line, col int) Token {
 	return Token{Type: TOKEN_ILLEGAL, Literal: "\x00", Line: line, Column: col}
 }
 
-// kodBicimiDenetle Türkçe yazılmış kaynakta kod biçimli bir adı (2.3a) hata olarak bildirir.
+// checkCodeForm Türkçe yazılmış kaynakta kod biçimli bir adı (2.3a) hata olarak bildirir.
 func (l *Lexer) checkCodeForm(lit string, line, col int) {
 	if !codes.IsCodeForm(lit) {
 		return

@@ -10,7 +10,7 @@ import (
 // Bu dosyada derlenmiş kodun değer düzeyinde kullandığı yardımcılar vardır (indeksleme,
 // üye erişimi, liste üreteci kaynakları).
 
-// uretecOgeleri bir liste üretecinin dolaşacağı öğeleri döndürür.
+// comprehensionItems bir liste üretecinin dolaşacağı öğeleri döndürür.
 func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 	var items []Value
 	switch it := iterVal.(type) {
@@ -66,7 +66,7 @@ func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 	return items, nil
 }
 
-// indeksDegeri kap[idx] değerini döndürür.
+// indexValue kap[idx] değerini döndürür.
 func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 	switch container := left.(type) {
 	case *ListVal:
@@ -138,7 +138,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 	return nil, fmt.Errorf("Satır %d: %s tipi indekslenemez", line, left.Type())
 }
 
-// uyeDegeri nesne.özellik (ya da nesne?.özellik) değerini döndürür.
+// memberValue nesne.özellik (ya da nesne?.özellik) değerini döndürür.
 // u, adın derleme anında çözülmüş kodudur (bkz. uyeCoz).
 func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Value, error) {
 	// Sık türler arayüz denetimlerinden önce denenir (bu türler 'yok' ya da PropertyGetter
@@ -184,7 +184,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği bulunamadı", e.Line(), obj.Type(), e.Property)
 }
 
-// yapiUyesi nesnenin alanını ya da (bağlı fonksiyon olarak) metodunu döndürür.
+// structMember nesnenin alanını ya da (bağlı fonksiyon olarak) metodunu döndürür.
 func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, error) {
 	if val, ok := inst.Fields[e.Property]; ok {
 		return val, nil
@@ -205,7 +205,7 @@ func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, erro
 	return nil, fmt.Errorf("Satır %d: %s yapısında %q alanı veya metodu bulunamadı", e.Line(), inst.Def.Name, e.Property)
 }
 
-// asciiKarakterler tek karakterlik ASCII metinlerdir (indekslemede yeniden kullanılır;
+// asciiChars tek karakterlik ASCII metinlerdir (indekslemede yeniden kullanılır;
 // metin değerleri değişmezdir).
 var asciiChars = func() (t [128]*StringVal) {
 	for i := range t {
@@ -214,7 +214,7 @@ var asciiChars = func() (t [128]*StringVal) {
 	return t
 }()
 
-// metinKarakterleri metnin ASCII olup olmadığını ve (değilse) karakter dizisini verir. Son
+// textChars metnin ASCII olup olmadığını ve (değilse) karakter dizisini verir. Son
 // indekslenen metnin sonucu saklanır: döngüde aynı metne art arda erişim her seferinde
 // []rune dönüşümü yapmaz. Yalnızca yorumlayıcı kilidi tutulurken çağrılır.
 func (v *VM) textChars(s *StringVal) (bool, []rune) {

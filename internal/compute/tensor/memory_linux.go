@@ -2,7 +2,7 @@ package tensor
 
 import "syscall"
 
-// fizikselBellek makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
+// physicalMemory makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
 func physicalMemory() (uint64, bool) {
 	var b syscall.Sysinfo_t
 	if syscall.Sysinfo(&b) != nil {

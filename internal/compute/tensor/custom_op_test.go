@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// kareOzel x² işleminin dış düğümle yazılmış biçimi: ileri türevsiz, geri 2·x·g.
+// squareCustom x² işleminin dış düğümle yazılmış biçimi: ileri türevsiz, geri 2·x·g.
 func squareCustom(x *Tensor) *Tensor {
 	var y *Tensor
 	NoGrad(func() { y = x.Mul(x) })
@@ -77,7 +77,7 @@ func TestCustomOpUntrackedInput(t *testing.T) {
 	})
 }
 
-// toplaFark (a+b, a-b) iki çıktılı bir işlem; geri hesap kaç kez çağrıldığını sayar.
+// sumDiff (a+b, a-b) iki çıktılı bir işlem; geri hesap kaç kez çağrıldığını sayar.
 func sumDiff(a, b *Tensor, counter *int) (*Tensor, *Tensor) {
 	var s, f *Tensor
 	NoGrad(func() { s, f = a.Add(b), a.Sub(b) })

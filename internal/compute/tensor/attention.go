@@ -184,7 +184,7 @@ func attentionParams(q, k, v *Tensor, opt AttentionOptions) AttentionParams {
 	return p
 }
 
-// maskeHazirla maskeyi float32 bitişik depolamaya çevirir ve [lead..., H, Tq,
+// prepareMask maskeyi float32 bitişik depolamaya çevirir ve [lead..., H, Tq,
 // Tk]'ye yayınlanmış adımlarını p'ye yazar.
 func prepareMask(be Backend, m *Tensor, qShape []int, p *AttentionParams) Storage {
 	whole := append(copyInts(qShape[:len(qShape)-1]), p.Tk) // [..., H, Tq, Tk]

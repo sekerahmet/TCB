@@ -7,7 +7,7 @@ import (
 // Bu dosyada derlenmiş atamaların değer düzeyindeki yardımcıları vardır. kod opAta ise düz
 // atamadır; opTopla/opCikar/opCarp/opBol bileşik atamalardır (+=, -=, *=, /=).
 
-// atamaIslemi bileşik atamada mevcut değerle sağ tarafı birleştirir; düz atamada sağ
+// assignOp bileşik atamada mevcut değerle sağ tarafı birleştirir; düz atamada sağ
 // tarafı olduğu gibi döndürür.
 func (v *VM) assignOp(codeVal uint8, cur Value, rhs Value, line int) (Value, error) {
 	switch codeVal {
@@ -17,7 +17,7 @@ func (v *VM) assignOp(codeVal uint8, cur Value, rhs Value, line int) (Value, err
 	return rhs, nil
 }
 
-// indekseAta kap[idx] = değer atamasını yapar.
+// setIndex kap[idx] = değer atamasını yapar.
 func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line int) error {
 	switch container := left.(type) {
 	case *ListVal:
@@ -75,7 +75,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 	return fmt.Errorf("Satır %d: Bu tipe indeks ile atama yapılamaz (%s)", line, left.Type())
 }
 
-// uyeyeAta nesne.alan = değer atamasını yapar; u adın derleme anında çözülmüş kodudur.
+// setMember nesne.alan = değer atamasını yapar; u adın derleme anında çözülmüş kodudur.
 func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, rightVal Value, line int) error {
 	switch inst := obj.(type) {
 	case *StructInstanceVal:

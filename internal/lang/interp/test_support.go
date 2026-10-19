@@ -43,7 +43,7 @@ func (v *VM) registerTestBuiltins() {
 	})
 }
 
-// testGoster bir değeri tipiyle birlikte gösterir; metinler tırnak içinde yazılır ki
+// testShow bir değeri tipiyle birlikte gösterir; metinler tırnak içinde yazılır ki
 // "5" ile 5 ayırt edilebilsin.
 func testShow(d Value) string {
 	if s, ok := d.(*StringVal); ok {

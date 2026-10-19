@@ -11,7 +11,7 @@ import (
 // Benzetimin vektörel erişimleri ve cp.async'i: doğru kullanım doğru sonuç verir; beklemeden
 // okuma, beklenmeyen kopya ve hizasız erişim yakalanır.
 
-// vekCekirdek 4 iş parçacıklı tek blok: her iş parçacığı girdinin kendi 4'lüsünü paylaşımlı
+// vecKernel 4 iş parçacıklı tek blok: her iş parçacığı girdinin kendi 4'lüsünü paylaşımlı
 // belleğe taşır (vektörel ld/st ya da cp.async), engelden sonra komşusunun 4'lüsünü çıktıya
 // vektörel yazar. kip: "vek", "cp", "cp_beklemesiz", "cp_engelsiz", "hizasiz".
 func vecKernel(mode2 string) func() *emitter {
@@ -105,7 +105,7 @@ func TestSimVectorAndCpAsync(t *testing.T) {
 	}
 }
 
-// TestCpAsyncSifirDoldurur kaynak boyu 0 olan kopyanın hedefi sıfırladığını denetler.
+// TestCpAsyncZeroFills kaynak boyu 0 olan kopyanın hedefi sıfırladığını denetler.
 func TestCpAsyncZeroFills(t *testing.T) {
 	g := newSimBackend(1 << 20)
 	g.enter()
@@ -137,14 +137,14 @@ func TestCpAsyncZeroFills(t *testing.T) {
 	}
 }
 
-// kilitliIndir arka ucun kilidi tutulurken depolamayı cihazdan okur.
+// lockedDownload arka ucun kilidi tutulurken depolamayı cihazdan okur.
 func lockedDownload(g *backend, d *storage) []float32 {
 	out := make([]float32, d.n)
 	g.download(unsafe.Pointer(&out[0]), d.addr, 4*d.n)
 	return out
 }
 
-// kilitliYukle arka ucun kilidi tutulurken konak verisini yeni bir depolamaya yükler.
+// lockedLoad arka ucun kilidi tutulurken konak verisini yeni bir depolamaya yükler.
 func lockedLoad(g *backend, data []float32) *storage {
 	d := g.allocate(len(data), tensor.Float32, false)
 	g.loadHost(d, unsafe.Pointer(&data[0]), 4*len(data))

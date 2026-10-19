@@ -30,25 +30,25 @@ type Lexer struct {
 	errors       []string
 	tokenStart   int // son okunan sözcük biriminin başladığı karakter (rune) indeksi
 
-	// kodlu, kaynağın kodlu biçimde (17.10) yazıldığını söyler: kodlar (A001, G100) dilin
+	// coded, kaynağın kodlu biçimde (17.10) yazıldığını söyler: kodlar (A001, G100) dilin
 	// sözcükleri, kod olmayan her ad kullanıcının adıdır (coded.go).
 	coded bool
-	// kok dosyanın çözümleyicisidir (kökte kendisi). Metin içi yerleştirmelerin alt
+	// root dosyanın çözümleyicisidir (kökte kendisi). Metin içi yerleştirmelerin alt
 	// çözümleyicileri konumlarını, metin haritalarını ve kayıtlarını kökle paylaşır.
 	root *Lexer
-	// harita alt çözümleyicide girdinin her karakterinin kökteki konumudur (interpolation.go).
+	// posMap alt çözümleyicide girdinin her karakterinin kökteki konumudur (interpolation.go).
 	posMap []int32
-	// metinler kökte, yerleştirme içeren metin sabitlerinin bilgisidir (sözcük biriminin satır
+	// stringInfos kökte, yerleştirme içeren metin sabitlerinin bilgisidir (sözcük biriminin satır
 	// ve sütunuyla anahtarlı; interpolation.go); metinTampon ve yerTampon okunmakta olan metnin
 	// konumlarını ve yerleştirme aralıklarını biriktirir.
 	stringInfos map[[2]int]*stringInfo
 	strBuf      []int32
 	posBuf      [][2]int
-	// satirBaslari kökte satırların başladığı karakter indeksleridir (gerektiğinde kurulur).
+	// lineStarts kökte satırların başladığı karakter indeksleridir (gerektiğinde kurulur).
 	lineStarts []int
-	// kayit açıksa (Kaydet) kökte üretilen bütün sözcük birimleri kaynak aralıklarıyla tutulur.
+	// rec açıksa (Kaydet) kökte üretilen bütün sözcük birimleri kaynak aralıklarıyla tutulur.
 	rec *[]Record
-	// kaymalar kodlu kökte gösterimdeki sütun kaymalarıdır (coded.go); kaymaToplam birikimli
+	// shifts kodlu kökte gösterimdeki sütun kaymalarıdır (coded.go); kaymaToplam birikimli
 	// toplamları, kaymaSira kök çözümleyicinin sıradaki kayma noktasıdır.
 	shifts   []shift
 	shiftSum []int32

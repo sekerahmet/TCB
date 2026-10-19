@@ -25,17 +25,17 @@ type simDriver struct {
 	memory    uint64 // bildirilen toplam bellek
 	allocated uint64
 	dim       map[uint64]uint64
-	// olaylar profil olaylarının geçildiği an (sıfır: henüz geçilmedi).
+	// events profil olaylarının geçildiği an (sıfır: henüz geçilmedi).
 	events []time.Time
 	// cc ve smSayisi bildirilen yetenek (döşeme seçimi sınamaları değiştirebilir).
 	cc, smCount int
-	// paylasim blok başına açılabilecek paylaşımlı bellek; izin işlev başına açılan
+	// sharedMem blok başına açılabilecek paylaşımlı bellek; izin işlev başına açılan
 	// devingen paylaşımlı bellek (gerçek sürücüdeki gibi 48 KB üstü izinsiz başlatılamaz).
 	sharedMem int
 	allow     map[uintptr]int
 }
 
-// yeniBenzetim toplam belleği verilen bir benzetim sürücüsü kurar.
+// newSim toplam belleği verilen bir benzetim sürücüsü kurar.
 func newSim(memory uint64) *simDriver {
 	return &simDriver{memory: memory, dim: map[uint64]uint64{}, cc: 52, smCount: 4,
 		sharedMem: 99 << 10, allow: map[uintptr]int{}}
@@ -104,7 +104,7 @@ func (b *simDriver) hostAlloc(byteN int) (unsafe.Pointer, result) {
 	return unsafe.Pointer(&d[0]), succeeded
 }
 
-// ekle bir işi sıraya ekler; yapışkan hata varsa eklenmez.
+// add bir işi sıraya ekler; yapışkan hata varsa eklenmez.
 func (b *simDriver) add(f func() error) result {
 	if b.failure != succeeded {
 		return b.failure
@@ -113,7 +113,7 @@ func (b *simDriver) add(f func() error) result {
 	return succeeded
 }
 
-// bosalt sıradaki işleri yürütür; ilk hata yapışkandır (gerçek sürücüdeki gibi bağlam
+// flush sıradaki işleri yürütür; ilk hata yapışkandır (gerçek sürücüdeki gibi bağlam
 // bundan sonra kullanılamaz).
 func (b *simDriver) flush() result {
 	if b.failure != succeeded {

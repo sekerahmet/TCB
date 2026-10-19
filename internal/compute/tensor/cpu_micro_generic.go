@@ -6,18 +6,18 @@ package tensor
 const (
 	mr = 4 // mikro çekirdek satır sayısı
 	nr = 2 // mikro çekirdek sütun sayısı
-	// dogrudanA tam A panellerinin paketlenmeden okunması (bu çekirdekte hayır).
+	// directA tam A panellerinin paketlenmeden okunması (bu çekirdekte hayır).
 	directA = false
 )
 
-// mikroA C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks]. Bu derlemede gemm
+// microA C[0:mm, 0:nn] += A·Bp; A(r, k) = a[r*rs + k*ks]. Bu derlemede gemm
 // tarafından kullanılmaz (dogrudanA = false); arayüz eşliği ve testler için
 // başvurunun kendisidir (mikroAGo, cpu_basvuru.go).
 func microA(kb int, a []float32, rs, ks int, bp []float32, c []float32, ldc, mm, nn int) {
 	microAGo(kb, a, rs, ks, bp, c, ldc, mm, nn)
 }
 
-// mikroCekirdekAdi hız raporları ve testler için çekirdeğin adı.
+// microKernelName hız raporları ve testler için çekirdeğin adı.
 const microKernelName = "go-4x2"
 
 // microKernel C[0:mm, 0:nn] += Ap·Bp (Ap: kb×mr, Bp: kb×nr paketli).

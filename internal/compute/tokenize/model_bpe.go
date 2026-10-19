@@ -19,7 +19,7 @@ import (
 
 func init() { RegisterModel("BPE", newBPE) }
 
-// kisaEsik bu uzunluğa kadar (sembol sayısı) doğrudan tarama kullanılır.
+// shortThreshold bu uzunluğa kadar (sembol sayısı) doğrudan tarama kullanılır.
 const shortThreshold = 48
 
 type bpeModel struct {
@@ -152,7 +152,7 @@ func convertVocab(v map[string]int64) (map[string]int32, error) {
 	return s, nil
 }
 
-// birlesmeCiftiCoz bir birleştirme girdisini ("a b" ya da ["a","b"]) çözer.
+// parseMergePair bir birleştirme girdisini ("a b" ya da ["a","b"]) çözer.
 func parseMergePair(r json.RawMessage) (string, string, error) {
 	var s string
 	if err := json.Unmarshal(r, &s); err == nil {
@@ -182,7 +182,7 @@ func (b *bpeModel) chr(r rune) int32 {
 	return -1
 }
 
-// Kodla parçayı (önbellek yardımıyla) kodlar.
+// Encode parçayı (önbellek yardımıyla) kodlar.
 func (b *bpeModel) Encode(dst []int32, p Piece) []int32 {
 	o := b.cache
 	if o == nil || len(p.Text) > cacheMaxLen {
@@ -224,7 +224,7 @@ func (b *bpeModel) encode(dst []int32, p Piece) []int32 {
 	return append(dst, sem...)
 }
 
-// semboller parçanın ilk sembol dizisini üretir.
+// symbols parçanın ilk sembol dizisini üretir.
 func (b *bpeModel) symbols(sem []int32, p Piece) []int32 {
 	m := p.Text
 	// Hızlı yol: bayt düzeyi, önek/sonek yok, her bayt sözlükte.

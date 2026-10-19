@@ -44,7 +44,7 @@ func (cpuBackend) f32CumSumGrad(gx, g Storage, shape []int, axis int) {
 	f32CumSum(cd(gx), cd(g), shape, axis, true, true)
 }
 
-// siraAnahtari float32'yi sıralama düzenini koruyan 32 bitlik anahtara çevirir: -0 ile +0
+// orderKey float32'yi sıralama düzenini koruyan 32 bitlik anahtara çevirir: -0 ile +0
 // eşittir, NaN (işaretinden bağımsız) en büyüktür. azalan doğruysa düzen tersine çevrilir
 // (NaN en küçük, yani ilk olur). GPU arka ucu aynı anahtarı kullanır.
 func orderKey(v float32, descending bool) uint32 {

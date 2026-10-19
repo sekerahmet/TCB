@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// sinirKoy testin süresince tek ayırmanın sınırını bayt olarak koyar (gerçek bellek
+// setLimit testin süresince tek ayırmanın sınırını bayt olarak koyar (gerçek bellek
 // ayrılmadan sınırın iki yanı sınanır); test bitince eski değer geri gelir.
 func setLimit(t *testing.T, byteN int64) {
 	t.Helper()
@@ -15,7 +15,7 @@ func setLimit(t *testing.T, byteN int64) {
 	t.Cleanup(func() { limitBytes.Store(old) })
 }
 
-// beklenenPanik fn'in, parcalar'ın hepsini içeren bir mesajla panik etmesini ister
+// expectedPanic fn'in, parcalar'ın hepsini içeren bir mesajla panik etmesini ister
 // (panikMesaji ozel_turev_test.go'dadır).
 func expectedPanic(t *testing.T, ad string, fn func(), parts ...string) {
 	t.Helper()
@@ -125,7 +125,7 @@ func TestOpOutputsBounded(t *testing.T) {
 	expectedPanic(t, "gömme taşma", func() { Embedding(Zeros(2, 4), nil, 1<<62, 4) }, "Embedding: 0 indeks")
 }
 
-// BenchmarkAyirmaDenetimi denetimin kendi maliyeti: sıcak yolda her çıktı için bir şekil
+// BenchmarkAllocCheck denetimin kendi maliyeti: sıcak yolda her çıktı için bir şekil
 // denetimi ve bir arka uç denetimi yapılır.
 func BenchmarkAllocCheck(b *testing.B) {
 	sh := []int{8, 64, 64}

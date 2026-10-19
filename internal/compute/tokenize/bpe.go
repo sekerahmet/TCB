@@ -18,7 +18,7 @@ import (
 // verir. Kısa parçalarda doğrudan tarama, uzun parçalarda yığın (heap)
 // kullanılır.
 
-// birlesme bir çift için kural sırası ve sonuç token kimliği.
+// mergeRule bir çift için kural sırası ve sonuç token kimliği.
 type mergeRule struct {
 	order int32
 	fresh int32
@@ -26,7 +26,7 @@ type mergeRule struct {
 
 func pairKey(a, b int32) uint64 { return uint64(uint32(a))<<32 | uint64(uint32(b)) }
 
-// birlesmeTablosu çift -> birleştirme eşlemesi için açık adresli, doğrusal
+// mergeTable çift -> birleştirme eşlemesi için açık adresli, doğrusal
 // yoklamalı bir karma tablodur; genel amaçlı eşlemeden belirgin biçimde
 // hızlıdır. Boş yuva anahtar = bosAnahtar ile işaretlenir (kimlikler negatif
 // olmadığından gerçek bir anahtar bu değeri alamaz).
@@ -36,7 +36,7 @@ type mergeTable struct {
 	shift uint
 }
 
-// tabloYuvasi anahtarı ve değeri yan yana tutar (tek önbellek satırı erişimi).
+// tableSlot anahtarı ve değeri yan yana tutar (tek önbellek satırı erişimi).
 type tableSlot struct {
 	key   uint64
 	value mergeRule
@@ -72,7 +72,7 @@ func (t *mergeTable) slot(k uint64) uint64 {
 	return (k * 0x9E3779B97F4A7C15) >> t.shift
 }
 
-// bul çiftin birleştirmesini verir; yoksa sira = -1.
+// find çiftin birleştirmesini verir; yoksa sira = -1.
 func (t *mergeTable) find(a, b int32) mergeRule {
 	k := pairKey(a, b)
 	i := t.slot(k)
@@ -89,7 +89,7 @@ func (t *mergeTable) find(a, b int32) mergeRule {
 	}
 }
 
-// birlestirKisa doğrudan tarama ile birleştirir.
+// joinShort doğrudan tarama ile birleştirir.
 // Her komşu çiftin birleştirmesi bir kez aranıp dizide tutulur; bir
 // birleştirmeden sonra yalnızca değişen iki komşu çift yeniden aranır.
 func (p *bpeModel) joinShort(sem []int32) []int32 {
@@ -133,7 +133,7 @@ func (p *bpeModel) joinShort(sem []int32) []int32 {
 	return sem
 }
 
-// adayBirlesme yığındaki bir birleştirme adayı.
+// candidateMerge yığındaki bir birleştirme adayı.
 type candidateMerge struct {
 	pos   int32 // soldaki sembolün dizini
 	order int32
@@ -158,7 +158,7 @@ func (h *candidateHeap) Pop() any {
 	return x
 }
 
-// birlestirUzun bağlı liste ve öncelik kuyruğu ile birleştirir (O(n log n)).
+// joinLong bağlı liste ve öncelik kuyruğu ile birleştirir (O(n log n)).
 func (p *bpeModel) joinLong(sem []int32) []int32 {
 	n := len(sem)
 	prev := make([]int32, n)
@@ -260,7 +260,7 @@ func (o *cache) al(k string) ([]int32, bool) {
 	return v, ok
 }
 
-// koy sonucu (kopyalayarak) önbelleğe ekler; önbellek doluysa bir şey yapmaz.
+// put sonucu (kopyalayarak) önbelleğe ekler; önbellek doluysa bir şey yapmaz.
 func (o *cache) put(k string, v []int32) {
 	pp := o.piece(k)
 	pp.mu.RLock()

@@ -21,7 +21,7 @@ import (
 //   - Çapraz entropi kaybı her zaman float32'dir; MatMulOut ile 16 bitlik
 //     girdilerden float32 çıktı alınabilir.
 
-// gradTuruAyar 16 bitlik tensörlerin gradyan türü.
+// gradDTypeSetting 16 bitlik tensörlerin gradyan türü.
 var gradDTypeSetting atomic.Uint32 // DType; sıfır değer Float32
 
 // SetGradDType 16 bitlik (bfloat16/float16) tensörlerin gradyan biriktirme
@@ -37,7 +37,7 @@ func SetGradDType(dt DType) {
 // GradDType 16 bitlik tensörlerin gradyan biriktirme türü.
 func GradDType() DType { return DType(gradDTypeSetting.Load()) }
 
-// gradTuru t türündeki bir tensörün gradyan depolamasının türü.
+// gradDTypeFor t türündeki bir tensörün gradyan depolamasının türü.
 func gradDTypeFor(t DType) DType {
 	if t == Float32 {
 		return Float32
@@ -45,7 +45,7 @@ func gradDTypeFor(t DType) DType {
 	return GradDType()
 }
 
-// sonucTuru iki işlenenli işlemin çıktı türü: türler aynıysa o tür, aksi halde
+// resultDType iki işlenenli işlemin çıktı türü: türler aynıysa o tür, aksi halde
 // float32 (daha geniş tür).
 func resultDType(a, b DType) DType {
 	if a == b {

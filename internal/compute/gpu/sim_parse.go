@@ -17,7 +17,7 @@ import (
 // dışındaki bir komut açık hatadır; böylece yazıcı benzetimin bilmediği bir komut
 // üretemez.
 
-// bzIslem komut ailesi.
+// simOp komut ailesi.
 type simOp uint8
 
 const (
@@ -70,7 +70,7 @@ var simOpNames = map[string]simOp{
 	"bra": simBra, "bar": simBar, "ret": simRet, "cp": simCp,
 }
 
-// bzTur işlenen türü.
+// simType işlenen türü.
 type simType uint8
 
 const (
@@ -170,13 +170,13 @@ type simFunc struct {
 	param       []paramType
 	regCount    int
 	sharedBytes int
-	// dinamik: devingen paylaşımlı dizi (.extern .shared) statik dizilerden sonra
+	// dynamic: devingen paylaşımlı dizi (.extern .shared) statik dizilerden sonra
 	// (ortakBayt'ta) başlar; boyu başlatmada verilir.
 	dynamic      bool
 	instructions []simInst
 }
 
-// bzAyristirici tek bir modülün ayrıştırma durumu.
+// simParser tek bir modülün ayrıştırma durumu.
 type simParser struct {
 	is         *simFunc
 	reg        map[string]int32
@@ -189,7 +189,7 @@ type simParser struct {
 	}
 }
 
-// bzAyristir PTX modülünü çözer (tek giriş noktası).
+// simParse PTX modülünü çözer (tek giriş noktası).
 func simParse(text string) (*simFunc, error) {
 	a := &simParser{is: &simFunc{}, reg: map[string]int32{}, shared: map[string]int{},
 		paramIndex: map[string]int32{}, label: map[string]int32{}}
@@ -301,7 +301,7 @@ func (a *simParser) declareReg(s string) error {
 	return nil
 }
 
-// dinamikBildir .extern .shared .align 16 .b8 ad[]: devingen dizi statik dizilerden sonra,
+// declareDynamic .extern .shared .align 16 .b8 ad[]: devingen dizi statik dizilerden sonra,
 // 16'ya hizalı başlar; ardından statik dizi bildirilemez (tek devingen dizi).
 func (a *simParser) declareDynamic(s string) error {
 	f := strings.Fields(s)
@@ -390,7 +390,7 @@ func (a *simParser) parseInstruction(s string) error {
 	return nil
 }
 
-// ekler komutun nokta eklerini (tür, kip, alan) çözer.
+// extras komutun nokta eklerini (tür, kip, alan) çözer.
 func (a *simParser) extras(k *simInst, ek []string) error {
 	var dtypes []simType
 	for _, e := range ek {
@@ -525,7 +525,7 @@ func (a *simParser) targetReg(k *simInst, s string) error {
 	return nil
 }
 
-// terim bir kaynak işleneni çözer: yazmaç, özel yazmaç, paylaşımlı bellek sembolü ya da
+// term bir kaynak işleneni çözer: yazmaç, özel yazmaç, paylaşımlı bellek sembolü ya da
 // sabit (ondalık tam sayı, 0f/0d onaltılık kayan nokta).
 func (a *simParser) term(s string, dtype simType) (simTerm, error) {
 	if y, ok := a.reg[s]; ok {
@@ -558,7 +558,7 @@ func (a *simParser) term(s string, dtype simType) (simTerm, error) {
 	return simTerm{variant: tmConst, s: uint64(n)}, nil
 }
 
-// bellek [taban+ofset] işlenenini çözer.
+// memory [taban+ofset] işlenenini çözer.
 func (a *simParser) memory(k *simInst, s string) error {
 	if !strings.HasPrefix(s, "[") || !strings.HasSuffix(s, "]") {
 		return fmt.Errorf("bellek işleneni bekleniyordu: %s", s)

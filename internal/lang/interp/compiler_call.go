@@ -102,7 +102,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 	}
 }
 
-// argumanlar argüman kodlarını sırayla hesaplar.
+// arguments argüman kodlarını sırayla hesaplar.
 func arguments(v *VM, env *Environment, argCode []exprCode) ([]Value, error) {
 	args := make([]Value, 0, len(argCode))
 	for _, a := range argCode {
@@ -115,7 +115,7 @@ func arguments(v *VM, env *Environment, argCode []exprCode) ([]Value, error) {
 	return args, nil
 }
 
-// metotCagir bir yapı metodunu, bağlı fonksiyon değeri ayırmadan, kendi = inst ile çağırır
+// callMethod bir yapı metodunu, bağlı fonksiyon değeri ayırmadan, kendi = inst ile çağırır
 // (bağlı değerle yapılan çağrıyla aynı denetim ve sırayla).
 func (v *VM) callMethod(meth *FuncVal, inst Value, argCode []exprCode, env *Environment, line int) (Value, error) {
 	nargs := len(argCode)
@@ -141,7 +141,7 @@ func (v *VM) callMethod(meth *FuncVal, inst Value, argCode []exprCode, env *Envi
 	return v.callPrepared(meth, fk, fk.getEnv(meth.Env), inst, args, len(args), nil, line)
 }
 
-// konumluCagir fnVal'ı (adlı argümansız) konumlu argümanlarla çağırır.
+// callAt fnVal'ı (adlı argümansız) konumlu argümanlarla çağırır.
 func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int) (Value, error) {
 	nargs := len(argCode)
 	switch fn := fnVal.(type) {
@@ -183,7 +183,7 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 	return v.ApplyFunction(fnVal, args, nil, line)
 }
 
-// varsayilanlarYeter verilmeyen her parametrenin varsayılanı var mı (checkArity'nin hızlı yolu)?
+// defaultsSuffice verilmeyen her parametrenin varsayılanı var mı (checkArity'nin hızlı yolu)?
 func defaultsSuffice(fn *FuncVal, nargs int) bool {
 	for _, p := range fn.Parameters[nargs:] {
 		if p.DefaultValue == nil {

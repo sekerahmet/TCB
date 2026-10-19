@@ -14,16 +14,16 @@ import (
 // Çekirdek önbelleği ve başlatma
 // ============================================================================
 
-// cekirdek derlenmiş bir PTX giriş noktası.
+// kernel derlenmiş bir PTX giriş noktası.
 type kernel struct {
 	ad        string
 	fn        uintptr
 	signature []paramType
-	// paylasim devingen paylaşımlı bellek (bayt; 0: statik diziler).
+	// sharedMem devingen paylaşımlı bellek (bayt; 0: statik diziler).
 	sharedMem uint32
 }
 
-// cekirdekAl anahtarın çekirdeğini verir; önbellekte yoksa üretir ve sürücüye derletir.
+// takeKernel anahtarın çekirdeğini verir; önbellekte yoksa üretir ve sürücüye derletir.
 // Anahtar, üreteci belirleyen bütün ayarları (tür, eksen sayısı, blok boyu) içermelidir.
 func (g *backend) takeKernel(key string, generate func() *emitter) *kernel {
 	if c, ok := g.kernels[key]; ok {
@@ -46,12 +46,12 @@ func (g *backend) takeKernel(key string, generate func() *emitter) *kernel {
 	return c
 }
 
-// ptxDokumKlasoru derlenemeyen PTX metninin teşhis için yazıldığı klasördür ("": işletim
+// ptxDumpDir derlenemeyen PTX metninin teşhis için yazıldığı klasördür ("": işletim
 // sisteminin geçici klasörü). Sınamalar kendi geçici klasörlerine yönlendirir; yoksa her koşu
 // geçici klasörde bir dosya bırakırdı.
 var ptxDumpDir = ""
 
-// derlemeHatasi PTX derleme hatasını, derleyici günlüğünü ve PTX'in yazıldığı geçici
+// compileError PTX derleme hatasını, derleyici günlüğünü ve PTX'in yazıldığı geçici
 // dosyanın yolunu içeren bir mesaja çevirir.
 func (g *backend) compileError(ad, text, log string, s result) string {
 	var sb strings.Builder
@@ -75,7 +75,7 @@ const (
 	pWrite        // çekirdeğin yazdığı depolama
 )
 
-// paramYazici bir başlatmanın parametrelerini sırayla biriktirir (yeniden kullanılır).
+// paramWriter bir başlatmanın parametrelerini sırayla biriktirir (yeniden kullanılır).
 // Göstericiler yalnızca depolamayla verilir (oku/yaz); ham adres verilemez. Böylece
 // başlatıcı yazılan her depolamayı bilir: konak gölgesini siler ve bildirimi çekirdeğin
 // imzasıyla karşılaştırır (yazan çekirdeğe "oku" ile verilen depolama iç hatadır).
@@ -85,7 +85,7 @@ type paramWriter struct {
 	variant []int
 	writer  []*storage
 	partOf  [][]byte
-	// acik, param() ile başlayıp baslat ile biten bir zincirin sürdüğünü gösterir; zincir
+	// open, param() ile başlayıp baslat ile biten bir zincirin sürdüğünü gösterir; zincir
 	// açıkken yeni bir param() (ör. zincirin ortasında kopya çekirdeği başlatan bir
 	// gecici.oku) dış zincirin parametrelerini silerdi: iç hata.
 	open bool
@@ -115,15 +115,15 @@ func (p *paramWriter) indicator(d *storage, offset int, c int) *paramWriter {
 	return p.addVariant(b[:], c)
 }
 
-// oku çekirdeğin yalnızca okuduğu depolama (ofset eleman cinsinden).
+// read çekirdeğin yalnızca okuduğu depolama (ofset eleman cinsinden).
 func (p *paramWriter) read(d *storage, offset int) *paramWriter { return p.indicator(d, offset, pRead) }
 
-// yaz çekirdeğin yazdığı depolama.
+// write çekirdeğin yazdığı depolama.
 func (p *paramWriter) write(d *storage, offset int) *paramWriter {
 	return p.indicator(d, offset, pWrite)
 }
 
-// okuV ve yazV görünümün ilk elemanından başlayan gösterici.
+// readV ve yazV görünümün ilk elemanından başlayan gösterici.
 func (p *paramWriter) readV(v tensor.View) *paramWriter {
 	return p.read(v.S.(*storage), v.Offset)
 }
@@ -132,7 +132,7 @@ func (p *paramWriter) writeV(v tensor.View) *paramWriter {
 	return p.write(v.S.(*storage), v.Offset)
 }
 
-// bos, çekirdeğin bu başlatmada kullanmadığı bir okuma göstericisi (0 adres); bosYaz
+// empty, çekirdeğin bu başlatmada kullanmadığı bir okuma göstericisi (0 adres); bosYaz
 // aynısının yazılan parametreler için olanı (çekirdek o yola hiç girmez).
 func (p *paramWriter) empty() *paramWriter {
 	var b [8]byte
@@ -144,7 +144,7 @@ func (p *paramWriter) writeEmpty() *paramWriter {
 	return p.addVariant(b[:], pWrite)
 }
 
-// okuYa d nil değilse okuma göstericisi, nil ise boş gösterici ekler; yazYa aynısının
+// readFrom d nil değilse okuma göstericisi, nil ise boş gösterici ekler; yazYa aynısının
 // yazılan parametreler için olanı.
 func (p *paramWriter) readFrom(d *storage) *paramWriter {
 	if d == nil {
@@ -175,7 +175,7 @@ func (p *paramWriter) f32(v float32) *paramWriter {
 	return p.add(b[:])
 }
 
-// dizi n elemanlık 32 bitlik tam sayı dizisi (eksik elemanlar 0).
+// arr n elemanlık 32 bitlik tam sayı dizisi (eksik elemanlar 0).
 func (p *paramWriter) arr(n int, v ...int) *paramWriter {
 	begin := len(p.buf)
 	for i := 0; i < 4*max(n, 1); i++ {
@@ -211,7 +211,7 @@ func (g *backend) param() *paramWriter {
 	return g.prm.reset()
 }
 
-// baslat çekirdeği verilen ızgara ve blokla sıraya ekler. Parametreler imzayla
+// launch çekirdeği verilen ızgara ve blokla sıraya ekler. Parametreler imzayla
 // denetlenir (sayı ve bayt boyu).
 func (g *backend) launch(c *kernel, grid, block [3]uint32, p *paramWriter) {
 	p.open = false
@@ -247,10 +247,10 @@ func (g *backend) launch(c *kernel, grid, block [3]uint32, p *paramWriter) {
 	}
 }
 
-// bloklar n işi b'lik bloklara bölen ızgara boyu.
+// blocks n işi b'lik bloklara bölen ızgara boyu.
 func blocks(n, b int) uint32 { return uint32((n + b - 1) / b) }
 
-// duz bir boyutlu ızgara/blok.
+// plain bir boyutlu ızgara/blok.
 func plain(n, b int) ([3]uint32, [3]uint32) {
 	return [3]uint32{blocks(n, b), 1, 1}, [3]uint32{uint32(b), 1, 1}
 }

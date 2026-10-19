@@ -11,36 +11,36 @@ import (
 // Kodlama (metin -> kimlik) ve çözme (kimlik -> metin)
 // ============================================================================
 
-// Secenekler kodlama seçenekleridir. Sıfır değer, başvuru uygulamasının
+// Options kodlama seçenekleridir. Sıfır değer, başvuru uygulamasının
 // varsayılan davranışıdır: metindeki özel tokenlar tanınır ve son işleyici
 // (varsa) özel tokenları (ör. BOS/EOS) ekler.
 type Options struct {
-	// OzelTaninmasin doğruysa metindeki "<|end|>" gibi özel tokenlar
+	// DontParseSpecial doğruysa metindeki "<|end|>" gibi özel tokenlar
 	// tanınmaz, sıradan metin gibi parçalanır (özel olmayan ek tokenlar yine
 	// tanınır). Kullanıcıdan gelen metni güvenle kodlamak için uygundur.
 	DontParseSpecial bool
-	// OzelEklenmesin doğruysa son işleyici özel token eklemez.
+	// DontAddSpecial doğruysa son işleyici özel token eklemez.
 	DontAddSpecial bool
 }
 
-// Kodla metni token kimliklerine çevirir (varsayılan seçeneklerle).
+// Encode metni token kimliklerine çevirir (varsayılan seçeneklerle).
 // Parçalayıcının bir düzenli ifadesi adım sınırını aşarsa *AdimSiniriHatasi
 // ile panikler; kullanıcı girdisi işleyen sunucular GuvenliKodla kullanmalıdır.
 func (p *Tokenizer) Encode(text string) []int {
 	return p.EncodeWithOptions(text, Options{})
 }
 
-// KodlaDuz metni, içindeki özel tokenları TANIMADAN kodlar.
+// EncodePlain metni, içindeki özel tokenları TANIMADAN kodlar.
 func (p *Tokenizer) EncodePlain(text string) []int {
 	return p.EncodeWithOptions(text, Options{DontParseSpecial: true})
 }
 
-// KodlaSecenekli metni verilen seçeneklerle kodlar.
+// EncodeWithOptions metni verilen seçeneklerle kodlar.
 func (p *Tokenizer) EncodeWithOptions(text string, s Options) []int {
 	return toInt(nil, p.Encode32(nil, text, s))
 }
 
-// KodlaEkle metnin kimliklerini dst'nin sonuna ekler ve dst'yi döndürür.
+// EncodeAppend metnin kimliklerini dst'nin sonuna ekler ve dst'yi döndürür.
 // ozelleriTani yanlışsa özel tokenlar metin içinde tanınmaz.
 func (p *Tokenizer) EncodeAppend(dst []int, text string, parseSpecial bool) []int {
 	return toInt(dst, p.Encode32(nil, text, Options{DontParseSpecial: !parseSpecial}))
@@ -56,7 +56,7 @@ func toInt(dst []int, ids []int32) []int {
 	return dst
 }
 
-// Kodla32 metni 32 bitlik kimliklere çevirip dst'ye ekler (büyük derlemler
+// Encode32 metni 32 bitlik kimliklere çevirip dst'ye ekler (büyük derlemler
 // için bellek dostu biçim).
 func (p *Tokenizer) Encode32(dst []int32, text string, s Options) []int32 {
 	if p.postProcessor == nil {
@@ -66,13 +66,13 @@ func (p *Tokenizer) Encode32(dst []int32, text string, s Options) []int32 {
 	return append(dst, k.IDs...)
 }
 
-// KodlaAyrintili tek bir metni kodlar; tür kimliklerini ve özel token
+// EncodeDetailed tek bir metni kodlar; tür kimliklerini ve özel token
 // maskesini de verir.
 func (p *Tokenizer) EncodeDetailed(text string, s Options) *Encoding {
 	return p.EncodePair(text, nil, s)
 }
 
-// KodlaCift bir metin çiftini (ör. soru ve bağlam) kodlar; ikinci nil ise
+// EncodePair bir metin çiftini (ör. soru ve bağlam) kodlar; ikinci nil ise
 // tek metin kodlanır.
 func (p *Tokenizer) EncodePair(firstArg string, second *string, s Options) *Encoding {
 	a := &Encoding{IDs: p.arr(nil, firstArg, s.DontParseSpecial)}
@@ -91,7 +91,7 @@ func (p *Tokenizer) EncodePair(firstArg string, second *string, s Options) *Enco
 	return p.postProcessor.Process(a, b, !s.DontAddSpecial)
 }
 
-// dizi tek bir metnin (son işleme öncesi) kimliklerini dst'ye ekler.
+// arr tek bir metnin (son işleme öncesi) kimliklerini dst'ye ekler.
 func (p *Tokenizer) arr(dst []int32, text string, skipSpecial bool) []int32 {
 	text = validText(text)
 	modelEncode := func(x Piece) { dst = p.model.Encode(dst, x) }
@@ -131,7 +131,7 @@ func (p *Tokenizer) arr(dst []int32, text string, skipSpecial bool) []int32 {
 	return dst
 }
 
-// Tokenlar metnin token metinlerini (modelin gösterimiyle) verir.
+// Tokens metnin token metinlerini (modelin gösterimiyle) verir.
 func (p *Tokenizer) Tokens(text string) []string {
 	ids := p.Encode(text)
 	out := make([]string, len(ids))
@@ -141,7 +141,7 @@ func (p *Tokenizer) Tokens(text string) []string {
 	return out
 }
 
-// Coz kimlik dizisini metne çevirir. ozelleriAtla doğruysa özel tokenlar
+// Decode kimlik dizisini metne çevirir. ozelleriAtla doğruysa özel tokenlar
 // çıktıya yazılmaz. Sözlükte olmayan kimlikler sessizce atlanır. Bayt düzeyi
 // çözücüde tokenların birleşimi geçerli UTF-8 değilse (ör. çok baytlı bir
 // karakterin yarısı) bozuk diziler U+FFFD ile değiştirilir.
@@ -175,12 +175,12 @@ func (p *Tokenizer) Decode(idList []int, skipSpecial bool) string {
 	return strings.Join(decodeBudgeted(p.decoder, tokenList, budget), "")
 }
 
-// Coz32 32 bitlik kimlik dizisini metne çevirir (bkz. Coz).
+// Decode32 32 bitlik kimlik dizisini metne çevirir (bkz. Coz).
 func (p *Tokenizer) Decode32(idList []int32, skipSpecial bool) string {
 	return p.Decode(toInt(nil, idList), skipSpecial)
 }
 
-// CozBayt kimlik dizisinin ham baytlarını verir. Bayt düzeyi çözücüde UTF-8
+// DecodeBytes kimlik dizisinin ham baytlarını verir. Bayt düzeyi çözücüde UTF-8
 // onarımı yapılmaz; akış hâlinde üretimde yarım karakterleri biriktirmek
 // için kullanışlıdır. Diğer çözücülerde Coz'un sonucunun baytlarıdır.
 func (p *Tokenizer) DecodeBytes(idList []int, skipSpecial bool) []byte {
@@ -206,7 +206,7 @@ func (p *Tokenizer) addByte(buf []byte, id int, skipSpecial bool) []byte {
 // Toplu ve paralel işlem
 // ============================================================================
 
-// isciSayisi 0 ya da negatifse kullanılabilir işlemci sayısını verir.
+// workerCount 0 ya da negatifse kullanılabilir işlemci sayısını verir.
 func workerCount(n, is int) int {
 	if n <= 0 {
 		n = runtime.GOMAXPROCS(0)
@@ -220,7 +220,7 @@ func workerCount(n, is int) int {
 	return n
 }
 
-// paralel 0..is-1 işlerini isci goroutine'e dağıtır.
+// parallel 0..is-1 işlerini isci goroutine'e dağıtır.
 func parallel(is, worker int, f func(i int)) {
 	worker = workerCount(worker, is)
 	if worker == 1 {
@@ -260,7 +260,7 @@ func parallel(is, worker int, f func(i int)) {
 	}
 }
 
-// TopluKodla metinleri paralel olarak kodlar; sonuç sırası girdi sırasıyla
+// EncodeBatch metinleri paralel olarak kodlar; sonuç sırası girdi sırasıyla
 // aynıdır. isci <= 0 ise tüm işlemciler kullanılır.
 func (p *Tokenizer) EncodeBatch(texts []string, s Options, worker int) [][]int {
 	out := make([][]int, len(texts))
@@ -270,7 +270,7 @@ func (p *Tokenizer) EncodeBatch(texts []string, s Options, worker int) [][]int {
 	return out
 }
 
-// TopluKodla32 TopluKodla'nın 32 bitlik kimlik üreten biçimidir.
+// EncodeBatch32 TopluKodla'nın 32 bitlik kimlik üreten biçimidir.
 func (p *Tokenizer) EncodeBatch32(texts []string, s Options, worker int) [][]int32 {
 	out := make([][]int32, len(texts))
 	parallel(len(texts), worker, func(i int) {
@@ -279,7 +279,7 @@ func (p *Tokenizer) EncodeBatch32(texts []string, s Options, worker int) [][]int
 	return out
 }
 
-// TopluCoz kimlik dizilerini paralel olarak çözer.
+// DecodeBatch kimlik dizilerini paralel olarak çözer.
 func (p *Tokenizer) DecodeBatch(arrs [][]int, skipSpecial bool, worker int) []string {
 	out := make([]string, len(arrs))
 	parallel(len(arrs), worker, func(i int) {
@@ -288,7 +288,7 @@ func (p *Tokenizer) DecodeBatch(arrs [][]int, skipSpecial bool, worker int) []st
 	return out
 }
 
-// BelgeleriBirlestir belgeleri paralel kodlar ve her belgenin sonuna ayirici
+// JoinDocuments belgeleri paralel kodlar ve her belgenin sonuna ayirici
 // kimliğini (ör. <|endoftext|>) koyarak tek bir eğitim dizisi hâlinde
 // birleştirir. ayirici < 0 ise ayırıcı eklenmez.
 func (p *Tokenizer) JoinDocuments(docs []string, separator int, worker int) []int32 {

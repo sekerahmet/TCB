@@ -45,7 +45,7 @@ var wideUnaries = []wideUnary{
 	{"mutlak", (*tensor.Tensor).Abs, normal(3)},
 }
 
-// TestMutlakSifirdaTurev mutlak değerin türevinin 0'da (±0) tam 0, NaN'da NaN olduğunu ve
+// TestAbsGradAtZero mutlak değerin türevinin 0'da (±0) tam 0, NaN'da NaN olduğunu ve
 // GPU'nun bitleri CPU'nunkiyle aynı verdiğini (−0 → 0, NaN korunur) denetler; 16 bitlik
 // girdiler dahil.
 func TestAbsGradAtZero(t *testing.T) {
@@ -93,7 +93,7 @@ func TestUnaryWide(t *testing.T) {
 	}
 }
 
-// TestTekliGenisOzelDegerler sıfırlar, ±1, alt-normaller, büyük ve küçük sayılar,
+// TestUnaryWideSpecialValues sıfırlar, ±1, alt-normaller, büyük ve küçük sayılar,
 // sonsuzlar, NaN ve tanım dışı değerler.
 func TestUnaryWideSpecialValues(t *testing.T) {
 	inf := float32(math.Inf(1))
@@ -189,7 +189,7 @@ func TestCumSum(t *testing.T) {
 	})
 }
 
-// siralamaVerisi bol eşitlikli, NaN ve işaretli sıfırlı veri.
+// sortData bol eşitlikli, NaN ve işaretli sıfırlı veri.
 func sortData(rng *rand.Rand, n int) []float32 {
 	v := make([]float32, n)
 	for i := range v {
@@ -228,7 +228,7 @@ func TestSort(t *testing.T) {
 	sortCompare(t, [][]int{{1}, {2}, {5}, {37}, {4, 9}, {3, 2, 5}, {2, 600}})
 }
 
-// TestSiralamaGenelBellek uzun satırların genel bellek yolu (paylaşımlı bellek sınırı
+// TestSortGlobalMemory uzun satırların genel bellek yolu (paylaşımlı bellek sınırı
 // sınama için küçültülür).
 func TestSortGlobalMemory(t *testing.T) {
 	old := sharedSortLimit
@@ -237,7 +237,7 @@ func TestSortGlobalMemory(t *testing.T) {
 	sortCompare(t, [][]int{{17}, {3, 40}, {50, 2}})
 }
 
-// TestGenis16BitVeBelirlenimci 16 bitlik depolamada float32'ye açılıp hesaplanır; aynı
+// TestWide16BitDeterministic 16 bitlik depolamada float32'ye açılıp hesaplanır; aynı
 // girdi aynı bitleri verir.
 func TestWide16BitDeterministic(t *testing.T) {
 	rng := rand.New(rand.NewSource(16))

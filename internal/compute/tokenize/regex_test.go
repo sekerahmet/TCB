@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// kucukYigin sınama süresince goroutine yığınını küçük bir sınıra indirir:
+// smallStack sınama süresince goroutine yığınını küçük bir sınıra indirir:
 // girdi uzunluğuyla büyüyen bir özyineleme, süreci (kurtarılamaz) yığın
 // taşmasıyla hemen çökertir.
 func smallStack(t *testing.T) {
@@ -108,7 +108,7 @@ func TestTokenizerGroupRepeat(t *testing.T) {
 	}
 }
 
-// desenliParcalayici küçük sınama parçalayıcısının ön bölücüsünü verilen
+// patternTokenizer küçük sınama parçalayıcısının ön bölücüsünü verilen
 // Split deseniyle (önce boşluklarla bölüp) değiştirir.
 func patternTokenizer(t *testing.T, pattern string) *Tokenizer {
 	t.Helper()

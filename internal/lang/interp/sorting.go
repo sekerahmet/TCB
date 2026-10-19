@@ -7,7 +7,7 @@ import (
 	"slices"
 )
 
-// siralaDegerler değerleri sırala() kuralıyla kararlı (eşitlerin sırası korunarak) sıralar.
+// sortValues değerleri sırala() kuralıyla kararlı (eşitlerin sırası korunarak) sıralar.
 // Liste ya yalnızca sayılardan (Tam ve Ondalık) ya da yalnızca metinlerden oluşmalıdır;
 // başka bir tip ya da sayı ile metin karışımı karşılaştırılamaz ve hata verir. Sayılar
 // tam olarak karşılaştırılır (iki Tam int64 olarak; Tam ile Ondalık Ondalığa yuvarlanmadan),
@@ -83,7 +83,7 @@ func isNaN(v Value) bool {
 	return ok && math.IsNaN(f.Val)
 }
 
-// siralamaTipHatasi sıralanamayan bir listenin hatasıdır: ilk elemanın tipi sıralanamıyorsa
+// sortTypeError sıralanamayan bir listenin hatasıdır: ilk elemanın tipi sıralanamıyorsa
 // (b nil) ya da iki elemanın tipleri birbiriyle karşılaştırılamıyorsa.
 func sortTypeError(name string, a, b Value) error {
 	if b == nil {

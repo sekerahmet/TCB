@@ -2,7 +2,7 @@ package turkish
 
 import "strings"
 
-// asciiKatla Türkçe karakterleri ASCII karşılıklarına indirger ve küçük harfe çevirir;
+// foldASCII Türkçe karakterleri ASCII karşılıklarına indirger ve küçük harfe çevirir;
 // böylece 'degisken_adi' ile 'değişken_adı' aynı sözcük sayılır.
 func foldASCII(s string) string {
 	var sb strings.Builder
@@ -27,7 +27,7 @@ func foldASCII(s string) string {
 	return sb.String()
 }
 
-// asciiCevirici Türkçe harfleri ASCII karşılıklarına çevirir; büyük/küçük harf korunur.
+// asciiFolder Türkçe harfleri ASCII karşılıklarına çevirir; büyük/küçük harf korunur.
 var asciiFolder = strings.NewReplacer(
 	"ı", "i", "İ", "I", "ş", "s", "Ş", "S", "ğ", "g", "Ğ", "G",
 	"ü", "u", "Ü", "U", "ö", "o", "Ö", "O", "ç", "c", "Ç", "C",
@@ -43,7 +43,7 @@ func hasTurkishLetter(s string) bool {
 	return strings.ContainsAny(s, "ıİşŞğĞüÜöÖçÇ")
 }
 
-// uzaklik iki sözcük arasındaki düzenleme (Levenshtein) uzaklığıdır.
+// distance iki sözcük arasındaki düzenleme (Levenshtein) uzaklığıdır.
 func distance(a, b string) int {
 	x, y := []rune(a), []rune(b)
 	prev := make([]int, len(y)+1)

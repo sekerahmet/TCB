@@ -51,7 +51,7 @@ func TestSums(t *testing.T) {
 	}
 }
 
-// TestSapmaGradyani yayınlanan toplamanın (sapma) gradyanını uzun satır ekseninde denetler
+// TestBiasGrad yayınlanan toplamanın (sapma) gradyanını uzun satır ekseninde denetler
 // (iki aşamalı sütun indirgemesi).
 func TestBiasGrad(t *testing.T) {
 	rng := rand.New(rand.NewSource(8))
@@ -62,7 +62,7 @@ func TestBiasGrad(t *testing.T) {
 	})
 }
 
-// TestBelirlenimci aynı girdinin her çalıştırmada bit düzeyinde aynı sonucu verdiğini
+// TestDeterministic aynı girdinin her çalıştırmada bit düzeyinde aynı sonucu verdiğini
 // denetler (indirgemeler, matris çarpımı, gradyanlar; atomik toplama yok).
 func TestDeterministic(t *testing.T) {
 	rng := rand.New(rand.NewSource(17))

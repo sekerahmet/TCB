@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// asciiBicim adın Türkçe karakterleri ASCII'ye çevrilmiş biçimidir (turkce.ASCII); ASCII
+// asciiForm adın Türkçe karakterleri ASCII'ye çevrilmiş biçimidir (turkce.ASCII); ASCII
 // adlarda ayırma yapmadan adın kendisini döndürür.
 func asciiForm(s string) string {
 	for i := 0; i < len(s); i++ {
@@ -26,7 +26,7 @@ func asciiForm(s string) string {
 // listesi ya da doğru/yanlış) tanıyan çözümleyiciyle okunur. Girdi yine standart JSON'dur;
 // testler dosyanın encoding/json ile de geçerli olduğunu denetler.
 
-// hamGirdi dosyadaki bir satırın çözülmüş biçimidir.
+// rawEntry dosyadaki bir satırın çözülmüş biçimidir.
 type rawEntry struct {
 	key                  string
 	name                 string
@@ -63,7 +63,7 @@ func (c *jsonParser) skipSpace() {
 	}
 }
 
-// bekle boşluktan sonra b karakterini bekler.
+// expect boşluktan sonra b karakterini bekler.
 func (c *jsonParser) expect(b byte) error {
 	c.skipSpace()
 	if c.i >= len(c.data) || c.data[c.i] != b {
@@ -73,7 +73,7 @@ func (c *jsonParser) expect(b byte) error {
 	return nil
 }
 
-// sonraki boşluktan sonraki karakterdir (dosya bittiyse 0).
+// next boşluktan sonraki karakterdir (dosya bittiyse 0).
 func (c *jsonParser) next() byte {
 	c.skipSpace()
 	if c.i >= len(c.data) {
@@ -82,7 +82,7 @@ func (c *jsonParser) next() byte {
 	return c.data[c.i]
 }
 
-// metin bir JSON metnini (kaçış dizileriyle) okur.
+// str bir JSON metnini (kaçış dizileriyle) okur.
 func (c *jsonParser) str() (string, error) {
 	if err := c.expect('"'); err != nil {
 		return "", err
@@ -144,7 +144,7 @@ func (c *jsonParser) strList() ([]string, error) {
 	}
 }
 
-// girdi { "ad": ..., "eski": [...], "yabancı": [...], "aile": ..., "açıklama": ..., "örnek": ... }
+// entry { "ad": ..., "eski": [...], "yabancı": [...], "aile": ..., "açıklama": ..., "örnek": ... }
 // nesnesini okur.
 func (c *jsonParser) entry(g *rawEntry) error {
 	if err := c.expect('{'); err != nil {
@@ -198,7 +198,7 @@ func (c *jsonParser) entry(g *rawEntry) error {
 	}
 }
 
-// dosyaCoz dil dosyasını dosyadaki sırasıyla girdilere çevirir. Yinelenen anahtarlar
+// parseFile dil dosyasını dosyadaki sırasıyla girdilere çevirir. Yinelenen anahtarlar
 // olduğu gibi döner (Yukle bildirir).
 func parseFile(data []byte) ([]rawEntry, error) {
 	c := &jsonParser{data: data}

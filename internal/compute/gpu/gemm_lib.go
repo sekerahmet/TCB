@@ -31,7 +31,7 @@ import (
 // Hesap float32'dir (TF32 kapalı: CUBLAS_COMPUTE_32F). Çağrılar ve plan önbelleği
 // carpim_kitaplik_plan.go'da.
 
-// ltIslevAdlari yüklenen kitaplık işlevleri.
+// ltFuncNames yüklenen kitaplık işlevleri.
 var ltFuncNames = [...]string{
 	"cublasLtGetVersion", "cublasLtCreate", "cublasLtMatmulDescCreate", "cublasLtMatmulDescSetAttribute",
 	"cublasLtMatrixLayoutCreate", "cublasLtMatrixLayoutSetAttribute", "cublasLtMatmulPreferenceCreate",
@@ -57,7 +57,7 @@ const (
 	ltCount
 )
 
-// ltKitaplik açılmış bir kitaplık adayı.
+// ltLibrary açılmış bir kitaplık adayı.
 type ltLibrary struct {
 	k       library
 	fn      [ltCount]uintptr
@@ -65,14 +65,14 @@ type ltLibrary struct {
 	version int
 }
 
-// ltAdayListesi süreç genelinde bir kez açılan adaylar (sıralı) ve açılamayanların notları.
+// ltCandidateList süreç genelinde bir kez açılan adaylar (sıralı) ve açılamayanların notları.
 var ltCandidateList struct {
 	before     sync.Once
 	candidates []*ltLibrary
 	notes      []string
 }
 
-// ltAc bir adayı açar ve işlevlerini bulur.
+// ltOpen bir adayı açar ve işlevlerini bulur.
 func ltOpen(path string) (*ltLibrary, error) {
 	k, err := openLibrary(path)
 	if err != nil {
@@ -88,7 +88,7 @@ func ltOpen(path string) (*ltLibrary, error) {
 	return l, nil
 }
 
-// ltAdaylariAc adayları açar: açıkça verilen önce, öbürleri sürüme göre büyükten küçüğe.
+// ltOpenCandidates adayları açar: açıkça verilen önce, öbürleri sürüme göre büyükten küçüğe.
 func ltOpenCandidates() ([]*ltLibrary, []string) {
 	a := &ltCandidateList
 	a.before.Do(func() {
@@ -118,7 +118,7 @@ func ltOpenCandidates() ([]*ltLibrary, []string) {
 	return a.candidates, a.notes
 }
 
-// ltEnAzSurumu hesaplama yeteneği için gereken en düşük cuBLAS sürümü (major·10000 +
+// ltMinVersion hesaplama yeteneği için gereken en düşük cuBLAS sürümü (major·10000 +
 // minor·100). Kaynak: CUDA araç takımı sürüm notları — sm_100/sm_120 (Blackwell) desteği
 // CUDA 12.8'de, sm_90 (Hopper) ve sm_89 (Ada) desteği CUDA 11.8'de, sm_86 CUDA 11.1'de
 // geldi; daha eskiler için 11.0.
@@ -136,7 +136,7 @@ func ltMinVersion(cc int) int {
 
 func versionText(v int) string { return fmt.Sprintf("%d.%d.%d", v/10000, v/100%100, v%100) }
 
-// ltKur bu GPU için kitaplık bağlantısını kurar (kurulumda, bir kez). Kurulamazsa g.lt nil
+// ltSetup bu GPU için kitaplık bağlantısını kurar (kurulumda, bir kez). Kurulamazsa g.lt nil
 // kalır ve kendi çekirdeğimiz kullanılır; nedeni carpimYolu'nda görünür.
 func (g *backend) ltSetup() {
 	if os.Getenv("TR_GPU_KENDI_CARPIM") == "1" {
@@ -171,7 +171,7 @@ func (g *backend) ltSetup() {
 	g.ltReason = "kendi çekirdeği (" + strings.Join(notes, "; ") + ")"
 }
 
-// carpimYolu matris çarpımının hangi yoldan yapıldığı (teşhis ve profil).
+// gemmPath matris çarpımının hangi yoldan yapıldığı (teşhis ve profil).
 func (g *backend) gemmPath() string {
 	if g.lt != nil {
 		y := fmt.Sprintf("cuBLASLt %s (%s)", versionText(g.lt.kitLib.version), g.lt.kitLib.path)
@@ -192,7 +192,7 @@ func (g *backend) gemmPath() string {
 	return "kendi çekirdeği"
 }
 
-// ltKapat plan tanımlarını ve kitaplık tutamacını yok eder (program sonu).
+// ltClose plan tanımlarını ve kitaplık tutamacını yok eder (program sonu).
 func (g *backend) ltClose() {
 	l := g.lt
 	if l == nil {

@@ -24,29 +24,29 @@ import (
 type exprCode func(v *VM, env *Environment) (Value, error)
 type statementCode func(v *VM, env *Environment) (Value, flowSignal, error)
 
-// derleyiciKapsam derleme anındaki bir kapsamdır.
+// compilerScope derleme anındaki bir kapsamdır.
 type compilerScope struct {
-	// bilgi kapsamın ad tablosudur. nil ise kapsam, düzeni derleme anında bilinmeyen ve
+	// info kapsamın ad tablosudur. nil ise kapsam, düzeni derleme anında bilinmeyen ve
 	// çalışma anında verilen bir ortamdır (hata ayıklayıcının değerlendirdiği ifadeler):
 	// buradan geçen adlar adla aranır, buradaki tanımlar adla yapılır.
 	info   *scopeInfo
 	parent *compilerScope
-	// genel, bu kapsam genel kapsamsa onun ortamıdır; genel adlara derinlik yürümeden
+	// global, bu kapsam genel kapsamsa onun ortamıdır; genel adlara derinlik yürümeden
 	// doğrudan erişilir.
 	global *Environment
-	// dinamik: kapsamda takma adsız bir 'aktar' var; adları çalışma anında eklenir ve dış
+	// dynamic: kapsamda takma adsız bir 'aktar' var; adları çalışma anında eklenir ve dış
 	// kapsamlardaki aynı adları gölgeleyebilir. Bu kapsamdan geçen adlar adla aranır.
 	dynamic bool
-	// golge bu kapsamda yerleşik adlarını gölgeleyen kullanıcı tanımlarıdır (shadow.go);
+	// shadow bu kapsamda yerleşik adlarını gölgeleyen kullanıcı tanımlarıdır (shadow.go);
 	// yalnızca hata mesajı için tutulur, çoğu kapsamda nil'dir.
 	shadow map[string]shadowDef
-	// henuzYok bir parametrenin varsayılan değeri derlenirken o parametre ve sonrakilerin
+	// notYet bir parametrenin varsayılan değeri derlenirken o parametre ve sonrakilerin
 	// adlarıdır: varsayılan yalnızca önceki parametreleri görür; bu adlar dış kapsamdaki
 	// aynı adlı değişkene çözülmez, okunursa hata verir.
 	notYet map[string]bool
 }
 
-// tanimla bir adı kapsamın tablosuna ekler (derleme anı).
+// define bir adı kapsamın tablosuna ekler (derleme anı).
 func (k *compilerScope) define(name string) {
 	if name == "" {
 		k.dynamic = true
@@ -57,7 +57,7 @@ func (k *compilerScope) define(name string) {
 	}
 }
 
-// onTanimla deyimlerin bu kapsama tanımlayacağı tüm adlara, deyimler derlenmeden önce yuva
+// predefine deyimlerin bu kapsama tanımlayacağı tüm adlara, deyimler derlenmeden önce yuva
 // ayırır. Böylece tanımdan önce gelen bir kullanım da (ör. hata ayıklayıcı geri atladığında)
 // doğru yuvaya çözülür.
 func (k *compilerScope) predefine(stmts []ast.Statement) {
@@ -81,7 +81,7 @@ type resolution struct {
 	global    *Environment
 }
 
-// coz bir adı derleme anında çözer.
+// resolve bir adı derleme anında çözer.
 func (k *compilerScope) resolve(name string) resolution {
 	d := 0
 	for c := k; c != nil; c = c.parent {
@@ -105,30 +105,30 @@ func (k *compilerScope) resolve(name string) resolution {
 	return resolution{}
 }
 
-// derleyici bir derleme işinin durumudur.
+// compiler bir derleme işinin durumudur.
 type compiler struct {
-	// kok genel kapsamdır (yapı alanlarının varsayılanları burada değerlendirilir).
+	// root genel kapsamdır (yapı alanlarının varsayılanları burada değerlendirilir).
 	root *compilerScope
-	// kaynak derlenen kodun dosyasıdır (nil: ana program); fonksiyonlar onu taşır.
+	// source derlenen kodun dosyasıdır (nil: ana program); fonksiyonlar onu taşır.
 	source *Source
 }
 
-// yeniDerleyici görevin o an çalıştığı dosya için bir derleyici açar.
+// newCompiler görevin o an çalıştığı dosya için bir derleyici açar.
 func (v *VM) newCompiler() *compiler {
 	return &compiler{root: &compilerScope{info: v.GlobalEnv.scope, global: v.GlobalEnv}, source: v.source}
 }
 
-// altKapsam ust içinde yeni bir ortama karşılık gelen kapsam açar.
+// subScope ust içinde yeni bir ortama karşılık gelen kapsam açar.
 func subScope(parent *compilerScope) *compilerScope {
 	return &compilerScope{info: &scopeInfo{}, parent: parent}
 }
 
-// sinirKapsami çalışma anında verilecek, düzeni bilinmeyen bir ortamı temsil eder.
+// boundaryScope çalışma anında verilecek, düzeni bilinmeyen bir ortamı temsil eder.
 func boundaryScope() *compilerScope {
 	return &compilerScope{}
 }
 
-// tanimlayici k kapsamına ad tanımlayan bir işlev döndürür (yuvalı ya da adla).
+// identifier k kapsamına ad tanımlayan bir işlev döndürür (yuvalı ya da adla).
 func identifier(k *compilerScope, name string) func(env *Environment, val Value, constant bool) {
 	if k.info == nil {
 		return func(env *Environment, val Value, constant bool) { env.Define(name, val, constant) }
@@ -139,7 +139,7 @@ func identifier(k *compilerScope, name string) func(env *Environment, val Value,
 
 // --- BLOKLAR ---
 
-// blokKodu derlenmiş bir deyim listesidir. Deyimlerin kendisi hata ayıklayıcı (her
+// blockCode derlenmiş bir deyim listesidir. Deyimlerin kendisi hata ayıklayıcı (her
 // deyimden önce danışılır) ve 'zıpla' (satıra atlama) için saklanır.
 type blockCode struct {
 	statements []ast.Statement
@@ -176,7 +176,7 @@ func (b *blockCode) run(v *VM, env *Environment) (Value, flowSignal, error) {
 	return lastVal, signalNone, nil
 }
 
-// ayiklayiciyaDanis i. deyimden önce hata ayıklayıcıya danışır; ayıklayıcı bloğun içinde
+// consultDebugger i. deyimden önce hata ayıklayıcıya danışır; ayıklayıcı bloğun içinde
 // bir satıra zıplamak isterse o deyimin indeksini ve doğru döner. Sıcak döngünün dışında
 // tutulur (calistir'ın gövdesi küçük kalsın).
 //
@@ -238,7 +238,7 @@ func (v *VM) JumpTarget(lineNo int) (int, bool) {
 	return v.activeBlock.jumpTarget(lineNo)
 }
 
-// blokDeyimi bir bloğu derler: blok ad tanımlıyorsa her çalışmada yeni bir ortam açar,
+// blockStatement bir bloğu derler: blok ad tanımlıyorsa her çalışmada yeni bir ortam açar,
 // tanımlamıyorsa çevredeki ortamda çalışır.
 func (c *compiler) blockStatement(k *compilerScope, b *ast.BlockStatement) statementCode {
 	if b == nil {
@@ -262,7 +262,7 @@ func emptyStatement(v *VM, env *Environment) (Value, flowSignal, error) {
 
 // --- GİRİŞ NOKTALARI ---
 
-// programCalistir deyimleri genel kapsamda derleyip genel ortamda çalıştırır.
+// runProgram deyimleri genel kapsamda derleyip genel ortamda çalıştırır.
 func (v *VM) runProgram(stmts []ast.Statement) (Value, flowSignal, error) {
 	c := v.newCompiler()
 	c.root.predefine(stmts)
@@ -278,12 +278,12 @@ func (v *VM) compileUnderGlobal(stmts []ast.Statement) (*blockCode, *scopeInfo) 
 	return c.statements(sub, stmts), sub.info
 }
 
-// dinamikIfade ifadeyi, düzeni bilinmeyen bir ortamda (adla çözümlemeyle) değerlendirir.
+// dynamicExpr ifadeyi, düzeni bilinmeyen bir ortamda (adla çözümlemeyle) değerlendirir.
 func (v *VM) dynamicExpr(expr ast.Expression, env *Environment) (Value, error) {
 	return v.newCompiler().expression(boundaryScope(), expr)(v, env)
 }
 
-// dinamikDeyimler deyimleri, düzeni bilinmeyen bir ortamda (adla çözümlemeyle) çalıştırır.
+// dynamicStatements deyimleri, düzeni bilinmeyen bir ortamda (adla çözümlemeyle) çalıştırır.
 func (v *VM) dynamicStatements(stmts []ast.Statement, env *Environment) (Value, flowSignal, error) {
 	return v.newCompiler().statements(boundaryScope(), stmts).run(v, env)
 }

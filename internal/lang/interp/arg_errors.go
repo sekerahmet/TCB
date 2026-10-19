@@ -92,7 +92,7 @@ func TypeAndSummary(v Value) string {
 	return fmt.Sprintf("%s (%s)", v.Type(), ValueSummary(v))
 }
 
-// ozetSiniri hata mesajlarındaki değer özetinin en fazla karakter sayısıdır.
+// summaryLimit hata mesajlarındaki değer özetinin en fazla karakter sayısıdır.
 const summaryLimit = 40
 
 // ValueSummary writes a value short enough for an error message: strings in quotes, long
@@ -125,7 +125,7 @@ func ValueSummary(v Value) string {
 	return shorten(s, summaryLimit)
 }
 
-// kisalt metni en fazla n karaktere (rune) indirir; kısaltılınca sonuna "…" ekler.
+// shorten metni en fazla n karaktere (rune) indirir; kısaltılınca sonuna "…" ekler.
 func shorten(s string, n int) string {
 	if utf8.RuneCountInString(s) <= n {
 		return s

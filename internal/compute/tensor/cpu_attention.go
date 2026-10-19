@@ -58,7 +58,7 @@ func (cpuBackend) AttentionBlocks() (q, k int) {
 	return int(cpuAttnBlockQ.Load()), int(cpuAttnBlockK.Load())
 }
 
-// dikkatBloklari p için kullanılacak blok boyutları.
+// attnBlocks p için kullanılacak blok boyutları.
 func attnBlocks(p *AttentionParams) (bq, bk int) {
 	bq, bk = int(cpuAttnBlockQ.Load()), int(cpuAttnBlockK.Load())
 	if bq <= 0 {
@@ -83,7 +83,7 @@ func (cpuBackend) SetAttentionBlocks(q, k int) {
 	cpuAttnBlockK.Store(int32(k))
 }
 
-// dikkatTampon bir katılımcının geçici tamponları (çağrılar arasında havuzda).
+// attnBuf bir katılımcının geçici tamponları (çağrılar arasında havuzda).
 type attnBuf struct {
 	bp, ap     []float32 // matris çarpımı paketleme
 	s, dp      []float32 // puan / olasılık ve dP blokları
@@ -100,7 +100,7 @@ func takeAttnBuf() *attnBuf {
 	return &attnBuf{}
 }
 
-// boyutla b'yi n uzunluğa getirir (gerekirse yeniden ayırır; içerik belirsiz).
+// sized b'yi n uzunluğa getirir (gerekirse yeniden ayırır; içerik belirsiz).
 func sized(b []float32, n int) []float32 {
 	if cap(b) < n {
 		return make([]float32, n)
@@ -108,7 +108,7 @@ func sized(b []float32, n int) []float32 {
 	return b[:n]
 }
 
-// gemmTek tek iş parçacıklı C += op(A)·op(B): op(A)(i, k) = a[i*ais + k*aks],
+// gemmSingle tek iş parçacıklı C += op(A)·op(B): op(A)(i, k) = a[i*ais + k*aks],
 // op(B)(k, j) = b[k*bks + j*bjs], C(i, j) = c[i*ldc + j]. Matris çarpımının
 // paketleme ve mikro çekirdeklerini kullanır (bkz. cpu_carpim.go).
 func gemmSingle(M, N, K int, a []float32, ais, axisN int, b []float32, bks, bjs int, c []float32, ldc int, tb *attnBuf) {
@@ -162,7 +162,7 @@ func gemmSingle(M, N, K int, a []float32, ais, axisN int, b []float32, bks, bjs 
 
 var negInf = float32(math.Inf(-1))
 
-// dikkatIsciSayisi toplam iş (yaklaşık çarpma-toplama) için katılımcı sayısı.
+// attnWorkerCount toplam iş (yaklaşık çarpma-toplama) için katılımcı sayısı.
 func attnWorkerCount(is int) int {
 	if is < singleCoreThreshold {
 		return 1
@@ -170,7 +170,7 @@ func attnWorkerCount(is int) int {
 	return workerCount(is, minPerWorker, gemmBigJob)
 }
 
-// dikkatIs ileri ya da geri geçişin yaklaşık çarpma-toplama sayısı.
+// attnJob ileri ya da geri geçişin yaklaşık çarpma-toplama sayısı.
 func attnJob(p *AttentionParams) int {
 	is := p.Batch * p.H * p.Tq * p.Tk * (p.Dh + p.Dv)
 	if p.Causal && p.Tq > 1 {
@@ -182,12 +182,12 @@ func attnJob(p *AttentionParams) int {
 	return max(is, 1)
 }
 
-// maskeli sorgu satırı i'nin anahtar jg'ye bakamadığını söyler (ek maske).
+// masked sorgu satırı i'nin anahtar jg'ye bakamadığını söyler (ek maske).
 func masked(md []float32, floorV, i, jg int, p *AttentionParams) bool {
 	return md[floorV+i*p.MaskStrideQ+jg*p.MaskStrideK] == 0
 }
 
-// blokAraligi sorgu satırı i'nin [j0, j0+n) anahtar bloğunda nedensellik ve
+// blockRange sorgu satırı i'nin [j0, j0+n) anahtar bloğunda nedensellik ve
 // pencereye göre bakabildiği sütunları [a, c) olarak verir (blok içi indeks).
 func (p *AttentionParams) blockRange(i, j0, n int) (a, c int) {
 	lo, hi := p.Limits(i)
@@ -196,7 +196,7 @@ func (p *AttentionParams) blockRange(i, j0, n int) (a, c int) {
 	return a, max(a, c)
 }
 
-// ustelMaskeli seg = e^seg; ek maskenin kapattığı yerler (seg'de -sonsuz) 0
+// expMasked seg = e^seg; ek maskenin kapattığı yerler (seg'de -sonsuz) 0
 // olur. Kapalı yerler üstele -sonsuz olarak verilmez: AVX2 çekirdeğinde normal
 // altı ara sonuçlar mikro kod yardımıyla çok yavaştır (karakter modelinde
 // üstel, adımın en pahalı işiydi).
@@ -365,7 +365,7 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 	return lse
 }
 
-// dikkatGeri geri geçişin paylaşılan (salt okunur) durumu.
+// attnBackward geri geçişin paylaşılan (salt okunur) durumu.
 type attnBackward struct {
 	p                 *AttentionParams
 	qd, kd, vd        []float32
@@ -386,7 +386,7 @@ func (s *attnBackward) buffer(factor int) *attnBuf {
 	return tb
 }
 
-// ikili sorgu bloğu [i0, i0+m) (baş bh) ile anahtar bloğu [j0, j0+n) (k/v başı
+// binaryArg sorgu bloğu [i0, i0+m) (baş bh) ile anahtar bloğu [j0, j0+n) (k/v başı
 // kvh) için P'yi tb.s'ye yeniden hesaplar; dS isteniyorsa dS = P∘(dP-D)·ölçek'i
 // tb.dp'ye yazar. dVa verilmişse dVa += Pᵀ·dO eklenir.
 func (s *attnBackward) binaryArg(tb *attnBuf, bh, kvh, i0, m, j0, n int, dVa []float32, dS bool) {
@@ -451,7 +451,7 @@ func (s *attnBackward) binaryArg(tb *attnBuf, bh, kvh, i0, m, j0, n int, dVa []f
 	}
 }
 
-// sorguAraligi anahtar bloğu [j0, j1)'e bakan sorgu satırlarını kapsayan,
+// queryRange anahtar bloğu [j0, j1)'e bakan sorgu satırlarını kapsayan,
 // sorgu blok ızgarasına hizalı aralık [iBas, iSon).
 func (s *attnBackward) queryRange(j0, j1 int) (iStart, iEnd int) {
 	p := s.p
@@ -463,7 +463,7 @@ func (s *attnBackward) queryRange(j0, j1 int) (iStart, iEnd int) {
 	return iMin / s.bq * s.bq, iMax
 }
 
-// anahtarBlogu k/v başı kvh'nin jb. anahtar bloğu için dK ve dV'yi (bu k/v
+// keyBlock k/v başı kvh'nin jb. anahtar bloğu için dK ve dV'yi (bu k/v
 // başını kullanan bütün sorgu başları ve bloğa bakan bütün sorgu blokları
 // üzerinden) hesaplayıp gk/gv'ye ekler; dq doğruysa dQ katkılarını da gq'ya
 // ekler (yalnızca tek geçiş kipinde: o zaman bir sorgu başının bütün anahtar
@@ -518,7 +518,7 @@ func (s *attnBackward) keyBlock(tb *attnBuf, kvh, jb int, dq bool) {
 	}
 }
 
-// sorguBlogu baş bh'nin ib. sorgu bloğunun dQ'sunu, bloğun baktığı anahtar
+// queryBlock baş bh'nin ib. sorgu bloğunun dQ'sunu, bloğun baktığı anahtar
 // bloklarını artan sırayla gezerek gq'ya ekler (iki geçiş kipinin ikinci
 // geçişi). Toplama sırası ve blok ızgarası tek geçiş kipiyle aynıdır; sonuç
 // bit düzeyinde aynıdır.

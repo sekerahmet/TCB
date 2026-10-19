@@ -58,11 +58,11 @@ func (s *Scope) Resolve(name string) (TypeInfo, bool) {
 type Checker struct {
 	scope  *Scope
 	errors []string
-	// uyarilar programın çalışmasını engellemeyen bulgulardır (ör. yerleşik ad gölgeleme).
+	// warnings programın çalışmasını engellemeyen bulgulardır (ör. yerleşik ad gölgeleme).
 	warnings []string
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
 	returnType string
-	// genelAdlar tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
+	// globalNames tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
 	// adHatalari son CheckProgram çağrısının tanımsız ad hatalarıdır (undefined_names.go).
 	globalNames *nameScope
 	nameErrors  []string
@@ -87,7 +87,7 @@ func (c *Checker) Warnings() []string {
 	return c.warnings
 }
 
-// golgeDenetle ad bir yerleşik fonksiyonun adıysa (sözlükte G/T/V/W yerleşik kodu) uyarı
+// checkShadowing ad bir yerleşik fonksiyonun adıysa (sözlükte G/T/V/W yerleşik kodu) uyarı
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
 func (c *Checker) checkShadowing(name string, line int) {
 	if k, ok := codes.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
@@ -111,17 +111,17 @@ var (
 	typeAny      = codes.Name(codes.A213)
 )
 
-// tipSayi denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
+// typeNumber denetleyicinin iç tipidir: değer çalışma anında Tam da Ondalık da olabilir (ör.
 // Tam / Tam: 6 / 3 = 2, 7 / 2 = 3.5). Kullanıcı açıklamasında yazılamaz; yalnızca Ondalık
 // (Tam da Ondalığa atanabildiği için) ve tipsiz yerlere atanabilir.
 var typeNumber = typeInt + " ya da " + typeFloat
 
-// aciklamaTipleri tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
+// annotationTypes tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
 var annotationTypes = []codes.Code{codes.A200, codes.A201, codes.A202, codes.A203,
 	codes.A205, codes.A206, codes.A207, codes.A208, codes.A209, codes.A212, codes.A204, codes.A215}
 
-// tipYazimlari tip açıklamasında kabul edilen yazımlar → tip adıdır. Yazımlar sözlükten
+// typeSpellings tip açıklamasında kabul edilen yazımlar → tip adıdır. Yazımlar sözlükten
 // gelir ve tektir (3.14): yalnızca tip adının tam yazımı (Tam, Ondalık); büyük/küçük harfi
 // farklı bir yazım (tam, MANTIK) kabul edilmez. Matris 2 boyutlu tensördür; ayrı bir tip
 // değildir.
@@ -135,7 +135,7 @@ var typeSpellings = func() map[string]string {
 	return m
 }()
 
-// tipHarfYazimlari kabul edilen yazımların Türkçe kuralla küçültülmüş biçimi → tip adıdır.
+// typeCaseSpellings kabul edilen yazımların Türkçe kuralla küçültülmüş biçimi → tip adıdır.
 // Yalnızca ipucu içindir: yazım bir tip adından yalnızca büyük/küçük harfle ayrılıyorsa
 // (tam, ONDALIK) denetleyici asıl yazımı söyler.
 var typeCaseSpellings = func() map[string]string {
@@ -146,7 +146,7 @@ var typeCaseSpellings = func() map[string]string {
 	return m
 }()
 
-// tipOnerileri kabul edilmeyen ama bir tip adına işaret eden yazımların (Türkçe
+// typeSuggestions kabul edilmeyen ama bir tip adına işaret eden yazımların (Türkçe
 // karaktersiz biçim: ondalik; kaldırılmış adlar) küçük harfli biçimi → önerilecek tip
 // adıdır. Bu yazımlar tip açıklamasında hata verir ve asıl adı önerir.
 var typeSuggestions = func() map[string]string {
@@ -167,11 +167,11 @@ var typeSuggestions = func() map[string]string {
 	return m
 }()
 
-// kucukHarf tip adlarını Türkçe kurala göre küçültür (MANTIK → mantık, METİN → metin);
+// lowerCase tip adlarını Türkçe kurala göre küçültür (MANTIK → mantık, METİN → metin);
 // yalnızca kabul edilmeyen bir yazımın ipucunu bulmak için kullanılır.
 func lowerCase(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
 
-// tipAdiDenetle tip açıklamasındaki ad bir tip adının kabul edilmeyen bir yazımıysa
+// checkTypeName tip açıklamasındaki ad bir tip adının kabul edilmeyen bir yazımıysa
 // (tam, ondalik, int) asıl adı öneren bir hata ekler.
 func (c *Checker) checkTypeName(name string, line int) {
 	if name == "" {
@@ -400,7 +400,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	}
 }
 
-// sayiIpucu Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir.
+// numberHint Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir.
 func numberHint(expected, given string) string {
 	if normalizeTypeName(expected) == typeInt && given == typeNumber {
 		return fmt.Sprintf("; '/' bölüm tam çıkmazsa, '**' üs negatifse %s verir: %s için %s(...) kullanın ya da tipi %s yapın",
@@ -409,7 +409,7 @@ func numberHint(expected, given string) string {
 	return ""
 }
 
-// sayisalTip tip bir sayı tipi mi (Tam, Ondalık ya da ikisinden biri)?
+// numericType tip bir sayı tipi mi (Tam, Ondalık ya da ikisinden biri)?
 func numericType(t string) bool {
 	return t == typeInt || t == typeFloat || t == typeNumber
 }

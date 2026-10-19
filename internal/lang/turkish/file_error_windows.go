@@ -4,7 +4,7 @@ package turkish
 
 import "syscall"
 
-// sistemHatasiNedeni Windows hata kodlarından bilinenleri Türkçe anlatır; bilinmeyende "" döner.
+// systemErrorReason Windows hata kodlarından bilinenleri Türkçe anlatır; bilinmeyende "" döner.
 func systemErrorReason(code syscall.Errno) string {
 	switch code {
 	case 4: // ERROR_TOO_MANY_OPEN_FILES

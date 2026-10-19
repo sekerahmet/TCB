@@ -26,7 +26,7 @@ func checkParams(params []*Tensor) {
 	}
 }
 
-// anaAgirliklar 16 bitlik parametreler için float32 ana ağırlık kopyalarını
+// masterWeights 16 bitlik parametreler için float32 ana ağırlık kopyalarını
 // yönetir. Güncelleme ana kopyada yapılır ve parametreye yuvarlanarak yazılır;
 // böylece parametrenin 16 bitlik çözünürlüğünden küçük adımlar kaybolmaz.
 // Parametre iyileştirici dışında değiştirilirse (sürümü son yazımdan farklıysa)
@@ -41,7 +41,7 @@ func newMasterWeights(n int) masterWeights {
 	return masterWeights{master: make([]Storage, n), version: make([]uint64, n)}
 }
 
-// hedef k. parametrenin güncelleneceği depolama.
+// target k. parametrenin güncelleneceği depolama.
 func (a *masterWeights) target(k int, p *Tensor) Storage {
 	if a.closed || p.dtyp == Float32 {
 		return p.storage
@@ -55,7 +55,7 @@ func (a *masterWeights) target(k int, p *Tensor) Storage {
 	return a.master[k]
 }
 
-// yaz güncellenmiş hedefi (ana kopyaysa yuvarlayarak) parametreye yazar ve
+// write güncellenmiş hedefi (ana kopyaysa yuvarlayarak) parametreye yazar ve
 // parametrenin sürümünü artırır (yerinde değişiklik).
 func (a *masterWeights) write(k int, p *Tensor, h Storage) {
 	if h != p.storage {
@@ -65,7 +65,7 @@ func (a *masterWeights) write(k int, p *Tensor, h Storage) {
 	a.version[k] = p.storage.Version()
 }
 
-// ayarla ana kopya kullanımını açar/kapatır.
+// configure ana kopya kullanımını açar/kapatır.
 func (a *masterWeights) configure(open bool) {
 	a.closed = !open
 	if !open {
@@ -129,7 +129,7 @@ func (o *SGD) Step() {
 	}
 }
 
-// adimSayaci iyileştirici adımının profil sayacını başlatır: bir adım (bütün parametreler,
+// stepCounter iyileştirici adımının profil sayacını başlatır: bir adım (bütün parametreler,
 // çok tensörlü yolda tek arka uç çağrısı) bir çağrı sayılır. Cihaz ilk parametreninkidir.
 func stepCounter(params []*Tensor, is OpKind) counterMeasure {
 	be := Backend(cpuBackend{})
@@ -139,7 +139,7 @@ func stepCounter(params []*Tensor, is OpKind) counterMeasure {
 	return counterStart(be, is)
 }
 
-// iyiAdim bir parametrenin bu adımdaki güncellemesi: güncellenecek depolama (h; ana kopya
+// goodStep bir parametrenin bu adımdaki güncellemesi: güncellenecek depolama (h; ana kopya
 // olabilir), durum depolamaları (m, v) ve sapma düzeltmeleri.
 type goodStep struct {
 	k        int
@@ -148,7 +148,7 @@ type goodStep struct {
 	bc1, bc2 float32
 }
 
-// sutunlar adımların h, gradyan ve m depolamaları.
+// cols adımların h, gradyan ve m depolamaları.
 func (goodStep) cols(a []goodStep) (h, g, m []Storage) {
 	for _, x := range a {
 		h, g, m = append(h, x.h), append(g, x.p.grad), append(m, x.m)
@@ -156,7 +156,7 @@ func (goodStep) cols(a []goodStep) (h, g, m []Storage) {
 	return h, g, m
 }
 
-// cokluUygula ardışık, aynı arka uçtaki ve çok tensörlü işi destekleyen adımları tek çağrıda
+// multiApply ardışık, aynı arka uçtaki ve çok tensörlü işi destekleyen adımları tek çağrıda
 // (coklu), kalanları tek tek (tekli) uygular; sıra korunur.
 //
 // Aynı parametre listede iki kez geçerse (aynı depolama) grup orada bölünür: tek başlatmada iki
@@ -181,7 +181,7 @@ func multiApply(steps []goodStep, multi func(MultiTensorOps, []goodStep), unaryA
 	}
 }
 
-// tekrarli listede aynı parametrenin (depolamanın) birden çok kez geçip geçmediği. Öyleyse
+// repeated listede aynı parametrenin (depolamanın) birden çok kez geçip geçmediği. Öyleyse
 // iyileştiriciler adımı parametre parametre (hedef, güncelleme, geri yazma sırasıyla) yapar:
 // ikinci geçiş birincinin sonucunu görür.
 func repeated(params []*Tensor) bool {
@@ -350,7 +350,7 @@ func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
 	return NewOn(CPU, []float32{float32(ClipGradNorm(params, maxNorm))})
 }
 
-// gradKareToplami gradyanların kareler toplamını verir. Toplu kareler toplamı veren
+// gradSquareSum gradyanların kareler toplamını verir. Toplu kareler toplamı veren
 // (SquareSummer) arka uçlarda aynı arka uçtaki ardışık gradyanlar tek çağrıda
 // toplanır (GPU'da tek eşzamanlama); toplama sırası parametre sırasıdır.
 func gradSquareSum(params []*Tensor) float64 {
@@ -390,7 +390,7 @@ func gradSquareSum(params []*Tensor) float64 {
 // parametrelerin float32 ana kopyası). Sözlük doğrudan dosyaya yazılabilir. Öğrenme oranı
 // gibi ayarlar duruma dahil değildir (kurulumda verilir).
 
-// sayacTensoru n'yi 2^24'e bölünmüş iki float32 parça olarak kayıpsız taşır.
+// counterTensor n'yi 2^24'e bölünmüş iki float32 parça olarak kayıpsız taşır.
 func counterTensor(n int) *Tensor {
 	return New([]float32{float32(n >> 24), float32(n & (1<<24 - 1))}, 2)
 }
@@ -403,7 +403,7 @@ func readCounter(ad string, t *Tensor) int {
 	return int(d[0])<<24 | int(d[1])
 }
 
-// durumTensoru s'yi p'nin şeklinde tensör olarak verir: kopya ise bitişik bir kopyası
+// stateTensor s'yi p'nin şeklinde tensör olarak verir: kopya ise bitişik bir kopyası
 // (State), değilse depolamanın kendisinin görünümü (DurumGorunumu).
 func stateTensor(p *Tensor, s Storage, dup bool) *Tensor {
 	if !dup {
@@ -412,14 +412,14 @@ func stateTensor(p *Tensor, s Storage, dup bool) *Tensor {
 	return stateCopy(p, s)
 }
 
-// durumKopya depolamanın bitişik float32 kopyasını tensör olarak verir.
+// stateCopy depolamanın bitişik float32 kopyasını tensör olarak verir.
 func stateCopy(p *Tensor, s Storage) *Tensor {
 	c := p.be.Alloc(s.Len(), s.DType())
 	p.be.Copy(c, 0, View{S: s, Shape: p.shape, Strides: contiguousStrides(p.shape)})
 	return fromStorage(p.be, c, p.shape)
 }
 
-// durumYukle st[ad]'ı p'nin şeklinde, p'nin cihazında yeni bir float32 depolamaya
+// loadState st[ad]'ı p'nin şeklinde, p'nin cihazında yeni bir float32 depolamaya
 // kopyalar; yoksa nil.
 func loadState(st map[string]*Tensor, ad string, p *Tensor) Storage {
 	t, ok := st[ad]
@@ -435,7 +435,7 @@ func loadState(st map[string]*Tensor, ad string, p *Tensor) Storage {
 	return c
 }
 
-// durumAnahtarDenetle durumdaki her anahtarın bilinen biçimde ve parametre sayısıyla
+// checkStateKeys durumdaki her anahtarın bilinen biçimde ve parametre sayısıyla
 // uyumlu olduğunu denetler (başka bir modelin durumu sessizce kısmen yüklenmesin).
 func checkStateKeys(st map[string]*Tensor, n int, prefixes ...string) {
 	for ad := range st {
@@ -482,7 +482,7 @@ func (a *masterWeights) loadFn(st map[string]*Tensor, params []*Tensor) {
 // State AdamW'nin durumunu verir (bkz. yukarıdaki açıklama).
 func (o *AdamW) State() map[string]*Tensor { return o.state(true) }
 
-// DurumGorunumu State gibidir ama kopya almaz: moment ve ana kopya tensörleri
+// StateView State gibidir ama kopya almaz: moment ve ana kopya tensörleri
 // iyileştiricinin kendi depolarının görünümleridir (adım sayaçları yeni tensördür). Yalnızca
 // okunmalı ve bir sonraki Step'ten önce kullanılmalıdır. Kontrol noktası durumu cihazda
 // ikinci bir kopya ayırmadan konağa indirmek için kullanır (büyük modelde GPU belleği).
@@ -527,7 +527,7 @@ func (o *AdamW) LoadState(st map[string]*Tensor) {
 // State SGD'nin durumunu (momentum hızları ve ana kopyalar) verir.
 func (o *SGD) State() map[string]*Tensor { return o.state(true) }
 
-// DurumGorunumu State gibidir ama kopya almaz (bkz. AdamW.DurumGorunumu).
+// StateView State gibidir ama kopya almaz (bkz. AdamW.DurumGorunumu).
 func (o *SGD) StateView() map[string]*Tensor { return o.state(false) }
 
 func (o *SGD) state(dup bool) map[string]*Tensor {

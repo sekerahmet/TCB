@@ -10,7 +10,7 @@ import (
 
 // --- ÇALIŞMA ORTAMI (ENVIRONMENT) ---
 
-// kapsamBilgisi bir kapsamın ad tablosudur: her ada bir yuva (slot) indeksi verir. Derleyici
+// scopeInfo bir kapsamın ad tablosudur: her ada bir yuva (slot) indeksi verir. Derleyici
 // kapsamda tanımlanan adları derleme anında buraya ekler; derlenmiş kod değişkenlere adla
 // değil indeksle erişir. Aynı kapsamdan açılan tüm ortamlar (ör. bir fonksiyonun her
 // çağrısı) tabloyu paylaşır. Tablo yalnızca büyür: çalışma anında adla yapılan bir tanım
@@ -21,7 +21,7 @@ type scopeInfo struct {
 	index    map[string]int
 }
 
-// yuva adın indeksini döndürür; ad tabloda yoksa ekler.
+// slot adın indeksini döndürür; ad tabloda yoksa ekler.
 func (k *scopeInfo) slot(name string) int {
 	if i, ok := k.index[name]; ok {
 		return i
@@ -35,7 +35,7 @@ func (k *scopeInfo) slot(name string) int {
 	return i
 }
 
-// ortamEk ortamların nadiren gereken alanlarıdır (yer kazanmak için ayrı tutulur).
+// envExtra ortamların nadiren gereken alanlarıdır (yer kazanmak için ayrı tutulur).
 type envExtra struct {
 	defers []func() error
 	consts []bool // yuva başına 'sabit' bayrağı
@@ -70,7 +70,7 @@ func NewEnvironment(outer *Environment) *Environment {
 	}
 }
 
-// yeniOrtam derlenmiş bir kapsam için, tablodaki adlar kadar yuvayla ortam açar.
+// newEnv derlenmiş bir kapsam için, tablodaki adlar kadar yuvayla ortam açar.
 func newEnv(outer *Environment, k *scopeInfo) *Environment {
 	e := &Environment{outer: outer, scope: k}
 	if n := len(k.nameList); n <= len(e.ic) {
@@ -81,7 +81,7 @@ func newEnv(outer *Environment, k *scopeInfo) *Environment {
 	return e
 }
 
-// temizle, turlar arasında yeniden kullanılan bir döngü ortamını yeni açılmış gibi boşaltır.
+// clear, turlar arasında yeniden kullanılan bir döngü ortamını yeni açılmış gibi boşaltır.
 func (e *Environment) clear() {
 	clear(e.vals)
 	if e.extra != nil {
@@ -93,7 +93,7 @@ func (e *Environment) isConstant(i int) bool {
 	return e.extra != nil && i < len(e.extra.consts) && e.extra.consts[i]
 }
 
-// tanimla i. yuvaya bir tanım yazar (Define'ın indeksli hâli).
+// define i. yuvaya bir tanım yazar (Define'ın indeksli hâli).
 func (e *Environment) define(i int, val Value, isConst bool) {
 	for len(e.vals) <= i {
 		e.vals = append(e.vals, nil)
@@ -141,7 +141,7 @@ func (e *Environment) RunDefers() error {
 	return err
 }
 
-// erteleHatasi, bir hataya (fonksiyonun ya da önceki ertelenen işin hatası) sonradan çalışan
+// deferError, bir hataya (fonksiyonun ya da önceki ertelenen işin hatası) sonradan çalışan
 // ertelenen işlerin hatalarının eklenmiş hâlidir. İlk hata korunur (Unwrap onu verir).
 type deferError struct {
 	mainSrc error
@@ -158,7 +158,7 @@ func (h *deferError) Error() string {
 
 func (h *deferError) Unwrap() error { return h.mainSrc }
 
-// erteleHatasiEkle ertelenen işin hatasını (ek) mevcut hataya ekler: mevcut hata yoksa ek
+// addDeferError ertelenen işin hatasını (ek) mevcut hataya ekler: mevcut hata yoksa ek
 // hatanın kendisi olur, varsa ilk hata korunur ve ek ona eklenir.
 func addDeferError(current, extra error) error {
 	switch {
@@ -173,7 +173,7 @@ func addDeferError(current, extra error) error {
 	return &deferError{mainSrc: current, extras: []error{extra}}
 }
 
-// yerel adın bu ortamdaki değerini döndürür (tanımlı değilse nil).
+// local adın bu ortamdaki değerini döndürür (tanımlı değilse nil).
 func (e *Environment) local(name string) (int, Value) {
 	if i, ok := e.scope.index[name]; ok && i < len(e.vals) {
 		return i, e.vals[i]
@@ -181,7 +181,7 @@ func (e *Environment) local(name string) (int, Value) {
 	return -1, nil
 }
 
-// yerelDeger adın yalnızca bu ortamdaki değerini döndürür (yoksa nil).
+// localValue adın yalnızca bu ortamdaki değerini döndürür (yoksa nil).
 func (e *Environment) localValue(name string) Value {
 	_, val := e.local(name)
 	return val

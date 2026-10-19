@@ -20,7 +20,7 @@ import (
 
 const ceBlock = 256
 
-// ceGez satırın elemanlarını (vek ise 4'lülerle) iş parçacığı adımıyla gezer; govde her
+// ceWalk satırın elemanlarını (vek ise 4'lülerle) iş parçacığı adımıyla gezer; govde her
 // elemanın değerini ve sütununu alır. adr satır tabanının bayt adresi (x için), ofs
 // işlevi diğer göstericiler için aynı bayt ofsetini verir.
 func (k *emitter) ceWalk(tid, C reg, vec bool, body func(ofs reg, c reg, n int)) {
@@ -43,7 +43,7 @@ func (k *emitter) ceWalk(tid, C reg, vec bool, body func(ofs reg, c reg, n int))
 	k.put(last)
 }
 
-// ceDegerler adresteki 1 ya da 4 float32.
+// ceValues adresteki 1 ya da 4 float32.
 func (k *emitter) ceValues(addr reg, n int) []reg {
 	if n == 1 {
 		return []reg{k.load(tensor.Float32, addr)}
@@ -51,7 +51,7 @@ func (k *emitter) ceValues(addr reg, n int) []reg {
 	return k.loadV("global", "", addr, 0, 4)
 }
 
-// cevrimiciEkle (m, s) çiftine v'yi ekler: v > m ise s = s·e^{m−v} + 1, m = v; değilse
+// onlineAdd (m, s) çiftine v'yi ekler: v > m ise s = s·e^{m−v} + 1, m = v; değilse
 // s += e^{v−m}. v = −∞ katkı vermez (m = −∞ iken −∞ − (−∞) = NaN olurdu; CPU'da e^{−∞} = 0).
 // NaN, s'yi NaN yapar (CPU ile aynı).
 func (k *emitter) onlineAdd(m, s, v reg) {
@@ -72,7 +72,7 @@ func (k *emitter) onlineAdd(m, s, v reg) {
 	k.e("selp.f32", m, v, m, large)
 }
 
-// ciftBirlestir iki (m, s) çiftinin birleşimi; s = 0 olan (boş) çift katkı vermez.
+// pairJoin iki (m, s) çiftinin birleşimi; s = 0 olan (boş) çift katkı vermez.
 func (k *emitter) pairJoin(m1, s1, m2, s2 reg) (reg, reg) {
 	m := k.f()
 	k.e("max.f32", m, m1, m2)
@@ -91,7 +91,7 @@ func (k *emitter) pairJoin(m1, s1, m2, s2 reg) (reg, reg) {
 	return m, s
 }
 
-// ciftIndirge blokta (m, s) çiftlerini ağaç biçiminde birleştirir; sonuç bütün iş
+// pairReduce blokta (m, s) çiftlerini ağaç biçiminde birleştirir; sonuç bütün iş
 // parçacıklarına döner. smM, smS en az 4·B baytlık paylaşımlı bellek.
 func (k *emitter) pairReduce(m, s, smM, smS, tid reg, B int) (reg, reg) {
 	am, as := k.r(), k.r()
@@ -123,7 +123,7 @@ func (k *emitter) pairReduce(m, s, smM, smS, tid reg, B int) (reg, reg) {
 	return rm, rs
 }
 
-// ceIleriCekirdegi satır başına lse = m + log s ve kayıp = lse − x[hedef]; hedefi negatif
+// ceForwardKernel satır başına lse = m + log s ve kayıp = lse − x[hedef]; hedefi negatif
 // satırlarda ikisi de 0.
 func ceForwardKernel(vec bool) func() *emitter {
 	return func() *emitter {
@@ -172,7 +172,7 @@ func ceForwardKernel(vec bool) func() *emitter {
 	}
 }
 
-// ceGeriCekirdegi gx[r, c] (+)= k·e^{x−lse} − (c = hedef ? k : 0), k = g·ters; satır başına
+// ceBackwardKernel gx[r, c] (+)= k·e^{x−lse} − (c = hedef ? k : 0), k = g·ters; satır başına
 // blok. uzerine doğruysa eski içerik okunmaz ve hedefi negatif satırlar 0 yazılır.
 func ceBackwardKernel(vec, over bool) func() *emitter {
 	return func() *emitter {

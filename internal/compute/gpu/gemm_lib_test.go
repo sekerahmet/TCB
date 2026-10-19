@@ -50,7 +50,7 @@ func TestGemmLibraryMatchesOwnKernel(t *testing.T) {
 	}
 }
 
-// TestCarpimKitapligiYoksaKendiCekirdegi benzetimde kitaplık yokken matris çarpımının kendi
+// TestGemmLibraryMissingUsesOwnKernel benzetimde kitaplık yokken matris çarpımının kendi
 // çekirdeğimizle yapıldığını ve yolun teşhiste göründüğünü denetler.
 func TestGemmLibraryMissingUsesOwnKernel(t *testing.T) {
 	if !inSim() {
@@ -66,7 +66,7 @@ func TestGemmLibraryMissingUsesOwnKernel(t *testing.T) {
 	}
 }
 
-// TestCarpimKitaplikAramaYolu arama yolunun yalnızca mutlak yerlerden oluştuğunu ve göreli
+// TestGemmLibrarySearchPath arama yolunun yalnızca mutlak yerlerden oluştuğunu ve göreli
 // bir TR_GPU_CUBLASLT'nin reddedildiğini denetler (kitaplık kaçırma).
 func TestGemmLibrarySearchPath(t *testing.T) {
 	for _, k := range gemmLibDirs() {
@@ -84,7 +84,7 @@ func TestGemmLibrarySearchPath(t *testing.T) {
 	}
 }
 
-// TestCarpimKitaplikSurumVeHiza mimariye göre en düşük kitaplık sürümünü ve işaretçi hizası
+// TestGemmLibraryVersionAndAlign mimariye göre en düşük kitaplık sürümünü ve işaretçi hizası
 // hesabını denetler.
 func TestGemmLibraryVersionAndAlign(t *testing.T) {
 	for cc, minN := range map[int]int{120: 120800, 100: 120800, 90: 110800, 89: 110800, 86: 110100, 80: 110000, 52: 110000} {
@@ -99,7 +99,7 @@ func TestGemmLibraryVersionAndAlign(t *testing.T) {
 	}
 }
 
-// TestCarpimOfsetliGorunum bitişik ama ofsetli (256 bayta hizasız) görünümle çarpım: gerçek
+// TestGemmOffsetView bitişik ama ofsetli (256 bayta hizasız) görünümle çarpım: gerçek
 // GPU'da kitaplığa hizanın bildirildiğini, benzetimde kendi çekirdeğimizi sınar.
 func TestGemmOffsetView(t *testing.T) {
 	rng := rand.New(rand.NewSource(4))

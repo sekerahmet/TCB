@@ -79,7 +79,7 @@ func binary(a, b *Tensor, op BinOp) *Tensor {
 	return binaryKind(a, b, op, resultDType(a.dtyp, b.dtyp))
 }
 
-// binaryTur binary gibidir; sonucun türü dt'dir (hesap en az float32'de yapılıp dt'ye
+// binaryKind binary gibidir; sonucun türü dt'dir (hesap en az float32'de yapılıp dt'ye
 // bir kez yuvarlanır).
 func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	be := sameDevice(binopName[op], a, b)
@@ -167,7 +167,7 @@ var unopName = map[UnOp]string{
 	OpFloor: "floor", OpCeil: "ceil", OpSign: "sign", OpAbs: "abs",
 }
 
-// turevsizTekli türevi her yerde 0 olan (parçalı sabit) tekli işlemlerdir: geri yayılım
+// unaryNoGrad türevi her yerde 0 olan (parçalı sabit) tekli işlemlerdir: geri yayılım
 // girdinin gradyanını (sıfır olarak) ayırır, arka uca hesap göndermez.
 func unaryNoGrad(op UnOp) bool { return op == OpFloor || op == OpCeil || op == OpSign }
 

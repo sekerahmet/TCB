@@ -10,7 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// sahteCanliSatir silinip çizildiğini ortak çıktıya işaretleyen bir canlı satırdır.
+// fakeLiveLine silinip çizildiğini ortak çıktıya işaretleyen bir canlı satırdır.
 type fakeLiveLine struct{ w *bytes.Buffer }
 
 func (s *fakeLiveLine) Clear() { s.w.WriteString("[sil]") }

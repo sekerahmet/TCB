@@ -29,7 +29,7 @@ func (v *VM) InputReader() *bufio.Reader {
 	return v.inputReader
 }
 
-// satirOku girdi() için bir satır okur. Okuma yorumlayıcı kilidi bırakılarak yapılır;
+// readLine girdi() için bir satır okur. Okuma yorumlayıcı kilidi bırakılarak yapılır;
 // aynı anda okuyan görevler okuyucuyu sırayla kullanır.
 func (v *VM) readLine() (string, error) {
 	r := v.InputReader()
@@ -43,5 +43,5 @@ func (v *VM) readLine() (string, error) {
 	return lineNo, err
 }
 
-// girdiSirasi aynı okuyucudan aynı anda okuyan görevleri sıraya koyar.
+// inputOrder aynı okuyucudan aynı anda okuyan görevleri sıraya koyar.
 var inputOrder sync.Mutex

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// bilesikDikkat başvuru sürümüdür: softmax(q·kᵀ·ölçek + toplamsal maske)·v,
+// fusedAttention başvuru sürümüdür: softmax(q·kᵀ·ölçek + toplamsal maske)·v,
 // GQA için k/v başları birleştirilerek çoğaltılır. Toplamsal maske nedensellik,
 // pencere ve ek maskeden kurulur (bakılamayan yer -1e9).
 func fusedAttention(q, k, v *Tensor, opt AttentionOptions) *Tensor {
@@ -50,7 +50,7 @@ type attnState struct {
 	maskBroadcast  bool
 }
 
-// rastgeleMaske her satırın en az bir anahtara bakabildiği 0/1 maskesi.
+// randomMask her satırın en az bir anahtara bakabildiği 0/1 maskesi.
 func randomMask(rng *rand.Rand, d attnState) *Tensor {
 	sh := []int{d.B, d.H, d.Tq, d.Tk}
 	if d.maskBroadcast {
@@ -65,7 +65,7 @@ func randomMask(rng *rand.Rand, d attnState) *Tensor {
 	return New(m, sh...)
 }
 
-// gecerliSatirlar her sorgu satırının (nedensellik, pencere ve maske ile)
+// validRows her sorgu satırının (nedensellik, pencere ve maske ile)
 // en az bir anahtara bakıp bakmadığı: bileşik sürüm tamamen kapalı satırda
 // tanımsızdır, bu satırlar karşılaştırılmaz.
 func validRows(d attnState, p AttentionParams, maskVal *Tensor) []bool {
@@ -311,7 +311,7 @@ func TestAttentionMemoryLinear(t *testing.T) {
 	}
 }
 
-// ayrilanBayt fn'in çalışırken ayırdığı toplam bayt.
+// allocatedBytes fn'in çalışırken ayırdığı toplam bayt.
 func allocatedBytes(fn func()) uint64 {
 	var a, b runtime.MemStats
 	runtime.ReadMemStats(&a)
@@ -397,7 +397,7 @@ func TestConcatAndSplit(t *testing.T) {
 	}, random(rng, -1, 1, 0, 3, 4))
 }
 
-// TestDikkatTakmaAdGradyani q, k, v aynı tensör olduğunda gradyanın, aynı veriden kurulmuş üç
+// TestAttentionAliasGrad q, k, v aynı tensör olduğunda gradyanın, aynı veriden kurulmuş üç
 // ayrı tensörün gradyanlarının toplamına eşit olduğunu denetler (16 bitlik gradyanda ayrı
 // geçici tamponlar birbirinin sonucunu ezmemeli).
 func TestAttentionAliasGrad(t *testing.T) {

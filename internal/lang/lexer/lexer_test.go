@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 )
 
-// tumTokenlar girdinin tüm sözcük birimlerini (DOSYA_SONU dahil) ve sözcük çözümleyici hatalarını döndürür.
+// allTokens girdinin tüm sözcük birimlerini (DOSYA_SONU dahil) ve sözcük çözümleyici hatalarını döndürür.
 func allTokens(t *testing.T, input string) ([]Token, []string) {
 	t.Helper()
 	l := New(input)
@@ -25,7 +25,7 @@ func allTokens(t *testing.T, input string) ([]Token, []string) {
 	return toks, l.Errors()
 }
 
-// hatasizTokenlar hata beklenmeyen girdiler içindir.
+// tokensNoErrors hata beklenmeyen girdiler içindir.
 func tokensNoErrors(t *testing.T, input string) []Token {
 	t.Helper()
 	toks, errs := allTokens(t, input)

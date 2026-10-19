@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// u16Yaz, dizinde ad adlı '<u2' .npy dosyası oluşturur.
+// writeU16, dizinde ad adlı '<u2' .npy dosyası oluşturur.
 func writeU16(t testing.TB, dir, ad string, data []uint16) string {
 	t.Helper()
 	var b bytes.Buffer
@@ -24,7 +24,7 @@ func writeU16(t testing.TB, dir, ad string, data []uint16) string {
 	return path
 }
 
-// i32Yaz, dizinde ad adlı '<i4' .npy dosyası oluşturur.
+// writeI32, dizinde ad adlı '<i4' .npy dosyası oluşturur.
 func writeI32(t testing.TB, dir, ad string, data []int32) string {
 	t.Helper()
 	var b bytes.Buffer
@@ -38,7 +38,7 @@ func writeI32(t testing.TB, dir, ad string, data []int32) string {
 	return path
 }
 
-// kodluKume, her tokenın değeri parça*1e6 + konum olan '<i4' parçalardan
+// encodedDataset, her tokenın değeri parça*1e6 + konum olan '<i4' parçalardan
 // bir dizin kurar. Böylece her token hangi parçadan ve konumdan geldiğini
 // kendisi söyler.
 func encodedDataset(t testing.TB, lengths ...int) string {
@@ -58,7 +58,7 @@ func shardName(p int) string {
 	return "p_" + string(rune('a'+p/26)) + string(rune('a'+p%26)) + ".npy"
 }
 
-// sozdeU16, tohumdan belirlenimli sahte token dizisi üretir (< 40000).
+// fakeU16, tohumdan belirlenimli sahte token dizisi üretir (< 40000).
 func fakeU16(n int, seed uint64) []uint16 {
 	v := make([]uint16, n)
 	x := seed*0x9E3779B97F4A7C15 + 1
@@ -71,7 +71,7 @@ func fakeU16(n int, seed uint64) []uint16 {
 	return v
 }
 
-// gorutinBekle, gorutin sayısı taban'a inene kadar bekler; inmezse hata.
+// waitGoroutine, gorutin sayısı taban'a inene kadar bekler; inmezse hata.
 func waitGoroutine(t *testing.T, baseOff int) {
 	t.Helper()
 	last := time.Now().Add(3 * time.Second)
@@ -89,7 +89,7 @@ func waitGoroutine(t *testing.T, baseOff int) {
 	}
 }
 
-// gorutinBeklemede, yığınında islev geçen bir gorutin kanal beklemesinde (select ya da
+// goroutineWaiting, yığınında islev geçen bir gorutin kanal beklemesinde (select ya da
 // kanaldan alma) durana kadar bekler. Uyku yerine kullanılır: "Al beklerken Kapat" gibi
 // sınamalar beklemenin gerçekten başladığından emin olur, yoksa sınadığını sınamadan da
 // geçebilirdi. Süre sınırı yalnızca takılmaya karşıdır.
@@ -112,7 +112,7 @@ func goroutineWaiting(t *testing.T, function string) {
 	}
 }
 
-// sinyalBekle kanaldan bir sinyal gelene kadar bekler; süre sınırı yalnızca takılmaya karşıdır.
+// waitSignal kanaldan bir sinyal gelene kadar bekler; süre sınırı yalnızca takılmaya karşıdır.
 func waitSignal(t *testing.T, c <-chan struct{}, ne string) {
 	t.Helper()
 	select {
@@ -122,7 +122,7 @@ func waitSignal(t *testing.T, c <-chan struct{}, ne string) {
 	}
 }
 
-// parcaSizintiDenetle, test sonunda açık parça kalmadığını denetler.
+// checkShardLeak, test sonunda açık parça kalmadığını denetler.
 func checkShardLeak(t *testing.T) {
 	t.Helper()
 	baseOff := openShardCount.Load()

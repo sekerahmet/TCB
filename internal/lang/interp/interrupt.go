@@ -20,7 +20,7 @@ import (
 // not catch it.
 var ErrInterrupted = errors.New("program durduruldu (kesme isteği: Ctrl+C ya da sonlandırma sinyali)")
 
-// kesilmePanigi yığını çözmek için atılan paniğin değeridir. Bir motorun panik kurtarıcısı
+// interruptPanic yığını çözmek için atılan paniğin değeridir. Bir motorun panik kurtarıcısı
 // bunu yakalarsa KesilmeMi ile tanıyıp yeniden atmalıdır (hataya çevirmemelidir).
 type interruptPanic struct{}
 
@@ -85,7 +85,7 @@ func (v *VM) InterruptNow() {
 // wake up early with it.
 func (v *VM) InterruptChan() <-chan struct{} { return v.interruptChan }
 
-// kesilmeyiDenetle kilit devrinden sonra çağrılır: kesme istendiyse ve bu görev henüz
+// checkInterrupt kilit devrinden sonra çağrılır: kesme istendiyse ve bu görev henüz
 // çözülmeye başlamadıysa yığını çözen paniği atar. Çözülme sırasında çalışan 'ertele'
 // blokları yeniden kesilmez (görev başına bir kez).
 func (v *VM) checkInterrupt() {
@@ -95,7 +95,7 @@ func (v *VM) checkInterrupt() {
 	}
 }
 
-// panikHatasi kurtarılan bir paniği hataya çevirir; kesilme ErrKesildi olur.
+// panicError kurtarılan bir paniği hataya çevirir; kesilme ErrKesildi olur.
 func panicError(r any) error {
 	if IsInterrupt(r) {
 		return ErrInterrupted
@@ -103,7 +103,7 @@ func panicError(r any) error {
 	return fmt.Errorf("İç hata (çökme önlendi): %v", r)
 }
 
-// kesilebilirUyu süre boyunca ya da kesme istenene kadar bekler.
+// interruptibleSleep süre boyunca ya da kesme istenene kadar bekler.
 func (v *VM) interruptibleSleep(duration time.Duration) {
 	if duration <= 0 {
 		return

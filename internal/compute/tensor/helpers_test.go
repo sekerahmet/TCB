@@ -39,7 +39,7 @@ func expectPanic(t *testing.T, ad string, fn func()) {
 	fn()
 }
 
-// sirali 1, 2, 3, ... değerleriyle tensör.
+// sorted 1, 2, 3, ... değerleriyle tensör.
 func sorted(shape ...int) *Tensor {
 	d := make([]float32, numelOf(shape))
 	for i := range d {
@@ -48,7 +48,7 @@ func sorted(shape ...int) *Tensor {
 	return New(d, shape...)
 }
 
-// naifMatMul float64 birikimli başvuru çarpımı.
+// naiveMatMul float64 birikimli başvuru çarpımı.
 func naiveMatMul(a, b []float32, M, N, K int) []float32 {
 	c := make([]float32, M*N)
 	for i := 0; i < M; i++ {
@@ -63,7 +63,7 @@ func naiveMatMul(a, b []float32, M, N, K int) []float32 {
 	return c
 }
 
-// rastgele [lo,hi) aralığında; mutlak değeri enAz'dan küçük değerleri iter
+// random [lo,hi) aralığında; mutlak değeri enAz'dan küçük değerleri iter
 // (türevi süreksiz noktalardan uzak durmak için).
 func random(rng *rand.Rand, lo, hi, minN float32, shape ...int) *Tensor {
 	d := make([]float32, numelOf(shape))
@@ -87,7 +87,7 @@ const (
 	gcRtol = 2e-2
 )
 
-// gradDenetle, f'nin analitik gradyanlarını merkezi sonlu farklarla
+// checkGrad, f'nin analitik gradyanlarını merkezi sonlu farklarla
 // karşılaştırır. Kayıp L = Σ f(xs)·w (w sabit rastgele) float64 ile
 // hesaplanır; böylece her çıktı elemanının türevi denetlenmiş olur.
 func checkGrad(t *testing.T, ad string, f func(xs []*Tensor) *Tensor, xs ...*Tensor) {
@@ -143,7 +143,7 @@ func checkGrad(t *testing.T, ad string, f func(xs []*Tensor) *Tensor, xs ...*Ten
 	}
 }
 
-// panikIcerir fn'in, mesajında parca geçen bir panik verdiğini doğrular.
+// panicContains fn'in, mesajında parca geçen bir panik verdiğini doğrular.
 func panicContains(t *testing.T, ad, part string, fn func()) {
 	t.Helper()
 	if m := panicMessage(fn); !strings.Contains(m, part) {
@@ -151,7 +151,7 @@ func panicContains(t *testing.T, ad, part string, fn func()) {
 	}
 }
 
-// nanAyni iki dilimin NaN'lar dahil bit düzeyinde değil değer düzeyinde aynı olduğunu
+// nanSame iki dilimin NaN'lar dahil bit düzeyinde değil değer düzeyinde aynı olduğunu
 // (NaN yerinde NaN) doğrular.
 func nanSame(t *testing.T, ad string, got, want []float32) {
 	t.Helper()

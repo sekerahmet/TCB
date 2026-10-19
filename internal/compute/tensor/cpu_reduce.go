@@ -4,7 +4,7 @@ import "math"
 
 // CPU arka ucu: indirgemeler ve softmax.
 
-// eksenDuzeni bir eksen etrafında tensörü (dış, eksen, iç) üçlüsüne ayırır:
+// axisOrder bir eksen etrafında tensörü (dış, eksen, iç) üçlüsüne ayırır:
 // bitişik düzende eleman (o, d, i) konumu (o*dim + d)*inner + i'dedir.
 func axisOrder(shape []int, axis int) (outer, dim, inner int) {
 	outer, inner = 1, 1
@@ -22,9 +22,9 @@ func axisOrder(shape []int, axis int) (outer, dim, inner int) {
 // sayısına değil); böylece toplama sırası, dolayısıyla sonuç, her makinede ve her
 // çalıştırmada bit düzeyinde aynıdır.
 const (
-	// azDis bundan az dış satır varsa eksen boyunca da bölünür.
+	// fewOuter bundan az dış satır varsa eksen boyunca da bölünür.
 	fewOuter = 16
-	// sutunBlok geniş iç eksenler sütun bloklarına bu genişlikte bölünür.
+	// colBlock geniş iç eksenler sütun bloklarına bu genişlikte bölünür.
 	colBlock = 256
 )
 
@@ -94,7 +94,7 @@ func (cpuBackend) f32Sum(out Storage, x View, axis int, scale float32) {
 	}
 }
 
-// sutunTopla acc[0:i1-i0] = Σ_d blok[d*inner + i0 : d*inner + i1] (d sırasıyla).
+// colSum acc[0:i1-i0] = Σ_d blok[d*inner + i0 : d*inner + i1] (d sırasıyla).
 func colSum(acc []float64, blk []float32, dim, inner, i0, i1 int) {
 	clear(acc)
 	for d := 0; d < dim; d++ {
@@ -112,7 +112,7 @@ func scaleWrite(y []float32, acc []float64, sc float64) {
 	}
 }
 
-// toplam64 dilimin float64 toplamı; dört ayrı biriktirici bağımlılık zincirini
+// total64 dilimin float64 toplamı; dört ayrı biriktirici bağımlılık zincirini
 // kırar (sıra sabit olduğu için sonuç belirlenimcidir).
 func total64(xs []float32) float64 {
 	var s0, s1, s2, s3 float64
@@ -215,7 +215,7 @@ func (cpuBackend) f32Softmax(out Storage, x View, axis int, logMode bool) {
 	})
 }
 
-// softmaxSatir bitişik bir satırın (log) softmax'ı; toplam float64'tedir.
+// softmaxRow bitişik bir satırın (log) softmax'ı; toplam float64'tedir.
 func softmaxRow(y, x []float32, logMode bool) {
 	y = y[:len(x)]
 	m := float32(math.Inf(-1))

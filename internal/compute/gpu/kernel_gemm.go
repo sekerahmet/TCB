@@ -21,21 +21,21 @@ import (
 // ayarıdır (carpimAyari), kullanıcıya görünmez. Makinede üreticinin kitaplığı varsa çarpım
 // onunla yapılır (carpim_kitaplik.go); bu çekirdek yedektir.
 
-// carpimAyari matris çarpımı döşeme boyları (hepsi ikinin kuvveti).
+// gemmConfig matris çarpımı döşeme boyları (hepsi ikinin kuvveti).
 type gemmConfig struct {
 	BM, BN, BK, TM, TN int
 }
 
 var (
-	// varsayilanCarpim küçük ve orta matrisler için.
+	// defaultGemm küçük ve orta matrisler için.
 	defaultGemm = gemmConfig{64, 64, 16, 4, 4}
-	// buyukCarpim büyük matrisler için (iş parçacığı başına 8×8).
+	// largeGemm büyük matrisler için (iş parçacığı başına 8×8).
 	largeGemm = gemmConfig{128, 128, 8, 8, 8}
 )
 
 func (a gemmConfig) is() int { return (a.BM / a.TM) * (a.BN / a.TN) }
 
-// gecerli ayarın yükleme bölüşümünün tam olduğunu denetler.
+// valid ayarın yükleme bölüşümünün tam olduğunu denetler.
 func (a gemmConfig) valid() bool {
 	t := a.is()
 	twoK := func(n int) bool { return n > 0 && n&(n-1) == 0 }
@@ -123,7 +123,7 @@ func gemmKernel(a gemmConfig, transA, transB, over bool) func() *emitter {
 	}
 }
 
-// carpimPaylari bir döşemenin (dış boy D, K boyu BK) yükleme paylarını kurar. kBitisik
+// gemmShares bir döşemenin (dış boy D, K boyu BK) yükleme paylarını kurar. kBitisik
 // doğruysa genel bellekte K ekseni bitişiktir (A: transA değil; B: transB), değilse dış
 // eksen bitişiktir. Paylaşımlı bellekte düzen [k][dış] (satır adımı sat).
 func (k *emitter) gemmShares(tid reg, D, BK, row2, T int, outerContiguous bool) []gemmShare {
@@ -143,7 +143,7 @@ func (k *emitter) gemmShares(tid reg, D, BK, row2, T int, outerContiguous bool) 
 	return shares
 }
 
-// carpimYukle payları genel bellekten (sınır dışı 0) paylaşımlı belleğe taşır. Genel
+// loadGemm payları genel bellekten (sınır dışı 0) paylaşımlı belleğe taşır. Genel
 // bellekteki eleman: disBitisik ise (k0+kk)·Dboy + (d0+dis), değilse (d0+dis)·K + k0+kk.
 func (k *emitter) loadGemm(shares []gemmShare, ptr, sm, d0, k0, DSize, K reg, outerContiguous bool) {
 	for _, py := range shares {
@@ -168,17 +168,17 @@ func (k *emitter) loadGemm(shares []gemmShare, ptr, sm, d0, k0, DSize, K reg, ou
 	}
 }
 
-// grupGenisligi iş parçacığının bitişik satır (sütun) grubunun boyu.
+// groupWidth iş parçacığının bitişik satır (sütun) grubunun boyu.
 func groupWidth(T int) int { return min(T, 4) }
 
-// grupOfseti iş parçacığının i. satırının (ya da sütununun) döşeme içindeki ofsetinin
+// groupOffset iş parçacığının i. satırının (ya da sütununun) döşeme içindeki ofsetinin
 // iş parçacığından bağımsız kısmı: g·(D·w/T) + i%w (g = i/w).
 func groupOffset(i, D, T int) int {
 	w := groupWidth(T)
 	return i/w*(D*w/T) + i%w
 }
 
-// grupYukle paylaşımlı bellekten bir grubu (w = 4, 2, 1 eleman) yükler.
+// loadGroup paylaşımlı bellekten bir grubu (w = 4, 2, 1 eleman) yükler.
 func (k *emitter) loadGroup(addr reg, offset int, r []reg) {
 	if len(r) == 1 {
 		k.e("ld.shared.f32", r[0], mem(addr, offset))
@@ -187,7 +187,7 @@ func (k *emitter) loadGroup(addr reg, offset int, r []reg) {
 	k.loadVInto("shared", "", addr, offset, r)
 }
 
-// carpimHesapla döşemenin BK adımını açılmış olarak biriktirir.
+// computeGemm döşemenin BK adımını açılmış olarak biriktirir.
 func (k *emitter) computeGemm(a gemmConfig, acc []reg, sa, sb, tx, ty reg) {
 	wm, wn := groupWidth(a.TM), groupWidth(a.TN)
 	at, bt := k.r(), k.r()
@@ -216,7 +216,7 @@ func (k *emitter) computeGemm(a gemmConfig, acc []reg, sa, sb, tx, ty reg) {
 	}
 }
 
-// carpimYaz biriktirilen bloğu C'ye yazar (uzerine değilse ekler).
+// writeGemm biriktirilen bloğu C'ye yazar (uzerine değilse ekler).
 func (k *emitter) writeGemm(a gemmConfig, acc []reg, pc, m0, n0, tx, ty, M, N reg, over bool) {
 	for i := 0; i < a.TM; i++ {
 		row := k.r()

@@ -1,6 +1,6 @@
 package tokenize
 
-// kimlikBilgisi bir kimliğin token metni ve çözme bilgileridir.
+// idInfo bir kimliğin token metni ve çözme bilgileridir.
 type idInfo struct {
 	token   string
 	byteVal []byte // yalnızca bayt düzeyi çözücüde: tokenın baytları
@@ -8,11 +8,11 @@ type idInfo struct {
 	special bool   // özel token (çözmede atlanabilir)
 }
 
-// seyreklikSiniri: en büyük kimlik bundan ve girdi sayısının 4 katından
+// sparsityLimit: en büyük kimlik bundan ve girdi sayısının 4 katından
 // büyükse kimlik tablosu seyrek haritayla tutulur.
 const sparsityLimit = 1 << 16
 
-// kimlik id'nin bilgisini verir (yoksa nil).
+// tokID id'nin bilgisini verir (yoksa nil).
 func (p *Tokenizer) tokID(id int) *idInfo {
 	if p.sparse != nil {
 		if id < 0 || id > 1<<31-1 {
@@ -30,7 +30,7 @@ func (p *Tokenizer) tokID(id int) *idInfo {
 	return &p.idValues[id]
 }
 
-// kimlikTablosuKur kimlik -> token tablosunu kurar.
+// buildIDTable kimlik -> token tablosunu kurar.
 func (p *Tokenizer) buildIDTable(vocab map[string]int32, nrmContent map[int]string, specialContent map[string]bool) {
 	largest := -1
 	for _, id := range vocab {

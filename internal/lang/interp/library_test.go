@@ -7,7 +7,7 @@ import (
 	"testing/fstest"
 )
 
-// kitaplikla f kitaplığını test boyunca bağlar.
+// withLibrary f kitaplığını test boyunca bağlar.
 func withLibrary(t *testing.T, f fstest.MapFS) {
 	t.Helper()
 	prev := libraryFiles

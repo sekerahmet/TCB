@@ -25,22 +25,22 @@ import (
 //     yinelemenin içinde aynı karakterle başlayan seçenekler (ör. "(a|ab)*")
 //     uyarı olarak kaydedilir.
 
-// DuzIfadeAyarlari motorun güvenlik ayarlarıdır.
+// RegexSettings motorun güvenlik ayarlarıdır.
 type RegexSettings struct {
-	// AdimTabani ve AdimCarpani bir çağrının (ör. bir metnin kodlanması)
+	// StepBase ve AdimCarpani bir çağrının (ör. bir metnin kodlanması)
 	// bütün aramalarının paylaştığı adım bütçesini belirler:
 	// AdimTabani + AdimCarpani * (işlenen bayt sayısı).
 	StepBase   int64
 	StepFactor int64
-	// RiskliDesenIzni doğruysa iç içe sınırsız niceleyicili desenler
+	// AllowRiskyPatterns doğruysa iç içe sınırsız niceleyicili desenler
 	// reddedilmez (adım bütçesi yine geçerlidir).
 	AllowRiskyPatterns bool
-	// GeriIzlemeSiniri bir aramanın aynı anda tutabileceği en çok geri
+	// BacktrackLimit bir aramanın aynı anda tutabileceği en çok geri
 	// izleme noktası sayısıdır (bellek sınırı; kayıt başına ~24 bayt).
 	BacktrackLimit int
 }
 
-// VarsayilanDuzIfadeAyarlari varsayılan güvenlik ayarlarıdır.
+// DefaultRegexSettings varsayılan güvenlik ayarlarıdır.
 var DefaultRegexSettings = RegexSettings{StepBase: 1_000_000, StepFactor: 100, BacktrackLimit: 1 << 22}
 
 var regexSetting atomic.Pointer[RegexSettings]
@@ -50,7 +50,7 @@ func init() {
 	regexSetting.Store(&a)
 }
 
-// DuzIfadeAyarla motorun güvenlik ayarlarını değiştirir (bütün desenler için,
+// SetRegexSettings motorun güvenlik ayarlarını değiştirir (bütün desenler için,
 // eşzamanlı kullanımda güvenlidir). Sıfır ya da negatif bütçe değerleri
 // varsayılana çevrilir.
 func SetRegexSettings(a RegexSettings) {
@@ -66,10 +66,10 @@ func SetRegexSettings(a RegexSettings) {
 	regexSetting.Store(&a)
 }
 
-// DuzIfadeAyarlariniAl geçerli güvenlik ayarlarını verir.
+// CurrentRegexSettings geçerli güvenlik ayarlarını verir.
 func CurrentRegexSettings() RegexSettings { return *regexSetting.Load() }
 
-// AdimSiniriHatasi bir çağrının düzenli ifade adım bütçesini ya da geri
+// StepLimitError bir çağrının düzenli ifade adım bütçesini ya da geri
 // izleme belleği sınırını aştığını bildirir.
 type StepLimitError struct {
 	Pattern string // desenin kaynağı (200 bayttan uzunsa kısaltılmış)
@@ -88,7 +88,7 @@ func (e *StepLimitError) Error() string {
 		"desen bu girdide üstel ya da aşırı geri izleme yapıyor; parçalama durduruldu", reShorten(e.Pattern), e.Pos, e.Budget)
 }
 
-// adimHatasiniYakala f'yi çalıştırır; adım sınırı aşılırsa hatayı döndürür
+// catchStepError f'yi çalıştırır; adım sınırı aşılırsa hatayı döndürür
 // (diğer panikler olduğu gibi sürer).
 func catchStepError(f func()) (err error) {
 	defer func() {
@@ -108,7 +108,7 @@ func catchStepError(f func()) (err error) {
 // Derleme anında risk çözümlemesi
 // ---------------------------------------------------------------------------
 
-// dfDoyma uzunluk hesaplarının doyduğu (taşmadığı) üst sınırdır.
+// reSaturation uzunluk hesaplarının doyduğu (taşmadığı) üst sınırdır.
 const reSaturation = 1 << 40
 
 func reSatMul(a, b int) int {
@@ -135,7 +135,7 @@ func reUnbounded(t *reRepeat) bool {
 	return (t.parent < 0 || t.parent >= riskyUpperLimit) && !t.claimer
 }
 
-// dfEnKisa düğümün eşleyebileceği en az karakter sayısı.
+// reMinLen düğümün eşleyebileceği en az karakter sayısı.
 func reMinLen(d reNode) int {
 	switch x := d.(type) {
 	case *reChar, *reClass, *reDot:
@@ -165,7 +165,7 @@ func reMinLen(d reNode) int {
 	return 0
 }
 
-// dfSerbestYineleme: düğümün bir yinelemesi, kendisi de sınırsız olan bir iç
+// reFreeRepeat: düğümün bir yinelemesi, kendisi de sınırsız olan bir iç
 // niceleyiciyle (geri kalanı boş eşleşebilecek biçimde) tamamen
 // karşılanabiliyorsa doğru. Bu durumda dış yineleme, girdiyi üstel sayıda
 // farklı biçimde bölebilir.
@@ -215,7 +215,7 @@ func reFreeRepeat(d reNode) bool {
 	return false
 }
 
-// dfIlkKarakterler düğümün ilk karakteri için olası düz karakterleri ve
+// reFirstChars düğümün ilk karakteri için olası düz karakterleri ve
 // sınıf koşullarını verir (yaklaşık; çakışma uyarısı için).
 func reFirstChars(d reNode) ([]rune, []func(rune) bool) {
 	switch x := d.(type) {
@@ -277,7 +277,7 @@ func reOverlaps(a, b reNode) bool {
 	return false
 }
 
-// dfRiskCozumle desen ağacını gezer; reddedilecek yapı için hata iletisi,
+// reRiskAnalyze desen ağacını gezer; reddedilecek yapı için hata iletisi,
 // ayrıca uyarılar döndürür.
 func reRiskAnalyze(d reNode) (failure string, warnings []string) {
 	var walk func(d reNode)
@@ -318,5 +318,5 @@ func reRiskAnalyze(d reNode) (failure string, warnings []string) {
 	return failure, warnings
 }
 
-// Uyarilar desenin derlenirken bulunan risk uyarılarını verir.
+// Warnings desenin derlenirken bulunan risk uyarılarını verir.
 func (d *Regex) Warnings() []string { return append([]string(nil), d.warnings...) }

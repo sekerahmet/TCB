@@ -9,7 +9,7 @@ import (
 
 // --- ATAMA ---
 
-// atamaHedefi bir atama hedefini derler; dönen işlev sağ taraf değerini hedefe yazar
+// assignTarget bir atama hedefini derler; dönen işlev sağ taraf değerini hedefe yazar
 // (bileşik atamada önce mevcut değerle işlem yapar).
 func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal uint8, line int) func(v *VM, env *Environment, rhs Value) error {
 	compound := codeVal == opAdd || codeVal == opSub || codeVal == opMul || codeVal == opDiv
@@ -85,7 +85,7 @@ func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal
 	}
 }
 
-// adlaAta bir ada (yuvası bilinmeden) atama yapar.
+// assignByName bir ada (yuvası bilinmeden) atama yapar.
 func (v *VM) assignByName(env *Environment, t *ast.Identifier, codeVal uint8, rightVal Value, line int) error {
 	var finalVal Value = rightVal
 	if codeVal != opAssign {

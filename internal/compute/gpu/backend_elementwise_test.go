@@ -18,7 +18,7 @@ func TestUnaryOps(t *testing.T) {
 	ops := []struct {
 		ad string
 		f  func(x *tensor.Tensor) *tensor.Tensor
-		// pozitif: girdi |x| + 0,1 alınır (log, karekök, üs)
+		// positive: girdi |x| + 0,1 alınır (log, karekök, üs)
 		positive bool
 	}{
 		{"üstel", (*tensor.Tensor).Exp, false},
@@ -62,7 +62,7 @@ func TestUnaryOps(t *testing.T) {
 	}
 }
 
-// TestTekliOzelDegerler büyük, küçük ve özel değerlerde (sonsuz, NaN, sıfır) tekli
+// TestUnarySpecialValues büyük, küçük ve özel değerlerde (sonsuz, NaN, sıfır) tekli
 // işlemlerin CPU ile uyuştuğunu denetler.
 func TestUnarySpecialValues(t *testing.T) {
 	inf := float32(math.Inf(1))
@@ -105,7 +105,7 @@ func TestBinaryBroadcast(t *testing.T) {
 	}
 }
 
-// TestAdimliGorunumler devrik, eksen sıralama, dilim ve adımlı dilim görünümleri
+// TestStridedViews devrik, eksen sıralama, dilim ve adımlı dilim görünümleri
 // üzerinde işlemleri ve gradyanlarını (dağıtma) denetler.
 func TestStridedViews(t *testing.T) {
 	rng := rand.New(rand.NewSource(3))
@@ -133,7 +133,7 @@ func TestStridedViews(t *testing.T) {
 	}
 }
 
-// TestTurDonusumleri bfloat16 ve float16 depolamada dönüşümleri ve eleman işlemlerini
+// TestCasts bfloat16 ve float16 depolamada dönüşümleri ve eleman işlemlerini
 // denetler: dönüşüm bit düzeyinde CPU ile aynı olmalıdır.
 func TestCasts(t *testing.T) {
 	rng := rand.New(rand.NewSource(4))

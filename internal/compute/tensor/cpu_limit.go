@@ -38,7 +38,7 @@ func (cpuBackend) f32EmbeddingGrad(gw, g Storage, idx []int, D int) {
 // çekirdekleri, aksi halde aşağıdaki Go eşleri; işlem sırası aynıdır, yalnızca
 // üstel 1-2 ulp farklı olabilir).
 
-// ceSatirGo satırın en büyüğü m (NaN'lar yok sayılır) ve Σ e^{x−m} (float64,
+// ceRowGo satırın en büyüğü m (NaN'lar yok sayılır) ve Σ e^{x−m} (float64,
 // eleman konumuna göre 8 kulvarda; bkz. topla8).
 func ceRowGo(row []float32) (float32, float64) {
 	m := float32(math.Inf(-1))
@@ -54,7 +54,7 @@ func ceRowGo(row []float32) (float32, float64) {
 	return m, sum8(&acc)
 }
 
-// ceGeriGo hedef += k·e^{x−l} (l = log Σ e^x: softmax'ın k katı).
+// ceBackwardGo hedef += k·e^{x−l} (l = log Σ e^x: softmax'ın k katı).
 func ceBackwardGo(target, row []float32, l, k float32) {
 	target = target[:len(row)]
 	for c, v := range row {
@@ -121,7 +121,7 @@ func (cpuBackend) f32CrossEntropyGrad(gx, g Storage, x View, lse Storage, target
 	})
 }
 
-// parcaliToplam norm katmanlarının ölçek/sapma gradyanlarını belirlenimci
+// partialSum norm katmanlarının ölçek/sapma gradyanlarını belirlenimci
 // biriktirir: satırlar uzunluğu yalnızca D'ye bağlı parçalara bölünür, her
 // parçanın kısmi toplamı ayrı tutulur ve sonunda parça sırasıyla birleştirilir.
 // Sonuç işçi sayısından ve zamanlamadan bağımsızdır (bit düzeyinde aynı).
@@ -148,10 +148,10 @@ func newPartialSum(R, D int, hasG, hasB bool) *partialSum {
 	return p
 }
 
-// aralik c. parçanın satır aralığı.
+// span c. parçanın satır aralığı.
 func (p *partialSum) span(c int) (int, int) { return c * p.rpc, min((c+1)*p.rpc, p.R) }
 
-// kismi c. parçanın kısmi toplam dilimleri (gerekmeyenler nil).
+// partial c. parçanın kısmi toplam dilimleri (gerekmeyenler nil).
 func (p *partialSum) partial(c int) (g, b []float64) {
 	if p.g != nil {
 		g = p.g[c*p.D : (c+1)*p.D]
@@ -162,7 +162,7 @@ func (p *partialSum) partial(c int) (g, b []float64) {
 	return
 }
 
-// birlestir kısmi toplamları parça sırasıyla toplayıp hedeflere ekler.
+// concatFn kısmi toplamları parça sırasıyla toplayıp hedeflere ekler.
 func (p *partialSum) concatFn(gg, bg []float32) {
 	sumFn := func(dst []float32, k []float64) {
 		if dst == nil || k == nil {
@@ -195,13 +195,13 @@ func optGather(v *View) []float32 {
 // sırayla birleştirilir; kaynaştırılmış çarpma-toplama kullanılmaz. Böylece
 // vektör ve Go yolları bit düzeyinde aynı sonucu verir (testler: vektor_test.go).
 
-// topla8 8 kulvarlık float64 kısmi toplamları sabit sırayla birleştirir
+// sum8 8 kulvarlık float64 kısmi toplamları sabit sırayla birleştirir
 // (AVX2 çekirdeklerindeki TOPLA8 ile aynı sıra).
 func sum8(a *[8]float64) float64 {
 	return ((a[0] + a[4]) + (a[2] + a[6])) + ((a[1] + a[5]) + (a[3] + a[7]))
 }
 
-// lnDenetle norm çekirdeklerinin dilim uzunluklarını denetler ve satır sayısını
+// checkLN norm çekirdeklerinin dilim uzunluklarını denetler ve satır sayısını
 // döner (D <= 0 ya da boş girdide 0). a, x ile aynı uzunlukta olmalıdır (ileri
 // yönde çıktı, geri yönde gelen gradyan); g, b, pg, pb nil ya da en az D,
 // mean nil ya da en az R, rstd en az R, xg nil ya da x uzunluğunda olmalıdır.
@@ -218,7 +218,7 @@ func checkLN(D int, x, a, g, b, mean, rstd, xg []float32, pg, pb []float64) int 
 	return R
 }
 
-// lnIleriBlokGo katman normunun (mean nil ise RMS normunun) taşınabilir ileri
+// lnForwardBlockGo katman normunun (mean nil ise RMS normunun) taşınabilir ileri
 // yönü; x'in her D'lik satırı için:
 //
 //	mu = Σx / D (RMS: 0),  v = Σ(x − mu)² / D,  rs = 1 / √(v + eps),
@@ -263,7 +263,7 @@ func lnForwardBlockGo(y, x, g, b, mean, rstd []float32, D int, eps float32) {
 	}
 }
 
-// lnGeriBlokGo katman normunun (mean nil ise RMS normunun) taşınabilir geri
+// lnBackwardBlockGo katman normunun (mean nil ise RMS normunun) taşınabilir geri
 // yönü; h = (x − m)·rs, dh = gr·gam (gam nil ise gr) ile her satır için:
 //
 //	pg[j] += gr·h,  pb[j] += gr                     (float64; nil olabilir),

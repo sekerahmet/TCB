@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// dilOgesi bir ad sözcüğünün (kodla yazılmamış, kaçışsız TANIMLAYICI) bulunduğu yerde
+// langElement bir ad sözcüğünün (kodla yazılmamış, kaçışsız TANIMLAYICI) bulunduğu yerde
 // c.dil'in hangi öğesi olduğudur; kullanıcının adıysa kod.Yok (17.3):
 //
 //   - tip açıklaması (değişken x: Tam): tip adı;
@@ -49,7 +49,7 @@ func (c *analysis) langElement(r lexer.Record) codes.Code {
 	return codes.None
 }
 
-// bul adın c.dil'de verilen ad alanındaki canlı kodudur.
+// find adın c.dil'de verilen ad alanındaki canlı kodudur.
 func (c *analysis) find(ns codes.Namespace, name string) codes.Code {
 	if k, ok := c.lang.Find(ns, name); ok {
 		return k
@@ -57,7 +57,7 @@ func (c *analysis) find(ns codes.Namespace, name string) codes.Code {
 	return codes.None
 }
 
-// baglamsal ad c.dil'de k bağlamsal sözcüğünün adıysa k'dir.
+// contextual ad c.dil'de k bağlamsal sözcüğünün adıysa k'dir.
 func (c *analysis) contextual(k codes.Code, name string) codes.Code {
 	if c.lang.Name(k) == name {
 		return k

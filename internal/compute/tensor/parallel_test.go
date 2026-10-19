@@ -12,7 +12,7 @@ import (
 // Paralel çekirdek yollarının doğruluk ve belirlenimcilik testleri. Boyutlar,
 // paralelleştirme eşiklerini aşacak şekilde seçilmiştir.
 
-// naifSum float64 birikimli başvuru eksen toplamı.
+// naiveSum float64 birikimli başvuru eksen toplamı.
 func naiveSum(xd []float32, shape []int, axis int) []float32 {
 	outer, dim, inner := axisOrder(shape, axis)
 	out := make([]float32, outer*inner)
@@ -84,7 +84,7 @@ func TestSumAllParallel(t *testing.T) {
 	near(t, "devrik SumAll", []float32{x.T().SumAll().Item()}, []float32{float32(s)}, 1e-5)
 }
 
-// tekVeCok fn'i tek işçiyle ve çok işçiyle çalıştırıp sonuçların bit düzeyinde
+// singleAndMany fn'i tek işçiyle ve çok işçiyle çalıştırıp sonuçların bit düzeyinde
 // aynı olduğunu denetler (paralel yollar, sıralı yolla aynı toplama sırasını
 // korumalıdır).
 func singleAndMany(t *testing.T, ad string, fn func() []float32) {

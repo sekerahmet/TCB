@@ -9,10 +9,10 @@ import (
 	"unsafe"
 )
 
-// eslemeDestekli, bu platformda bellek eşlemenin denenip denenmeyeceğidir.
+// mmapSupported, bu platformda bellek eşlemenin denenip denenmeyeceğidir.
 const mmapSupported = true
 
-// dosyaEsle, f'nin ilk boyut baytını salt okunur olarak belleğe eşler.
+// mmapFile, f'nin ilk boyut baytını salt okunur olarak belleğe eşler.
 // Dönen kapat işlevi eşlemeyi ve eşleme tutamağını serbest bırakır. Eşleme
 // açıldıktan sonra dosya tutamağı kapatılabilir; eşleme geçerli kalır.
 func mmapFile(f *os.File, dim int64) ([]byte, func() error, error) {

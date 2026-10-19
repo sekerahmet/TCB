@@ -16,7 +16,7 @@ import (
 // girişte etkin olan bağlamı yakalar ve çıkışta aynı bağlamı geri sayar; arada etkin
 // bağlam değişip geri gelse de sayaç tutarlı kalır.
 type GradContext struct {
-	// kapali sıfırdan büyükse işlemler hesap çizgesine kaydedilmez. Sayaç olduğu için
+	// closed sıfırdan büyükse işlemler hesap çizgesine kaydedilmez. Sayaç olduğu için
 	// iç içe NoGrad çağrıları güvenlidir.
 	closed atomic.Int32
 }
@@ -32,7 +32,7 @@ var (
 	activeGrad  atomic.Pointer[GradContext]
 )
 
-// etkinBaglam etkin türev bağlamını verir.
+// activeContext etkin türev bağlamını verir.
 func activeContext() *GradContext {
 	if c := activeGrad.Load(); c != nil {
 		return c
@@ -63,7 +63,7 @@ func NoGrad(fn func()) {
 // GradEnabled etkin bağlamın türevli kipte olup olmadığını bildirir.
 func GradEnabled() bool { return activeContext().closed.Load() == 0 }
 
-// kayitliSurum ileri hesapta kaydedilmiş (geri yayılımın okuyacağı) bir
+// savedVersion ileri hesapta kaydedilmiş (geri yayılımın okuyacağı) bir
 // tensörün o andaki depolama sürümü.
 type savedVersion struct {
 	t *Tensor
@@ -102,7 +102,7 @@ func track(out *Tensor, op string, parents []*Tensor, bw func(), save ...*Tensor
 	return out
 }
 
-// surumDenetle, çizgedeki her düğümün kaydettiği girdilerin ileri hesaptan bu
+// checkVersion, çizgedeki her düğümün kaydettiği girdilerin ileri hesaptan bu
 // yana yerinde değiştirilmediğini denetler.
 func checkVersion(order []*Tensor) {
 	for _, n := range order {
@@ -117,7 +117,7 @@ func checkVersion(order []*Tensor) {
 	}
 }
 
-// tazeGrad gradyan henüz yoksa ve destek doğruysa (arka uç üzerine yazan biçimi veriyorsa)
+// freshGrad gradyan henüz yoksa ve destek doğruysa (arka uç üzerine yazan biçimi veriyorsa)
 // sıfırlanmamış gradyan depolaması ayırıp doğru döner: çağıran her elemanı yazmalıdır.
 // Gradyan varsa (birikim) ya da destek yoksa accGrad'ın depolamasını ve yanlış verir.
 func (t *Tensor) freshGrad(support bool) (Storage, bool) {
@@ -254,7 +254,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 	}
 }
 
-// iadeEt arka uç destekliyorsa depolamayı iade eder.
+// giveBack arka uç destekliyorsa depolamayı iade eder.
 func giveBack(be Backend, s Storage) {
 	if r, ok := be.(Releaser); ok {
 		r.Release(s)

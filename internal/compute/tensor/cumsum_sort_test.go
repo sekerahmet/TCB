@@ -10,7 +10,7 @@ import (
 // Birikimli toplam ve sıralama: float64 başvuru, eksenler, gradyanlar, eşitlik ve NaN
 // kuralları, 16 bitlik türler, hatalar.
 
-// cumsumBasvuru eksen boyunca float64 birikimli toplam.
+// cumsumRef eksen boyunca float64 birikimli toplam.
 func cumsumRef(x []float32, shape []int, axis int) []float32 {
 	outer, dim, inner := axisOrder(shape, axis)
 	out := make([]float32, len(x))
@@ -54,7 +54,7 @@ func TestCumSum(t *testing.T) {
 	nanSame(t, "bf16 cumsum", c.Data(), []float32{1, 3, 6, 6.5})
 }
 
-// siralamaBasvuru eksen boyunca kararlı sıralama (NaN en büyük, eşitlerde küçük indeks önce).
+// sortRef eksen boyunca kararlı sıralama (NaN en büyük, eşitlerde küçük indeks önce).
 func sortRef(x []float32, shape []int, axis int, desc bool) []float32 {
 	outer, dim, inner := axisOrder(shape, axis)
 	out := make([]float32, len(x))

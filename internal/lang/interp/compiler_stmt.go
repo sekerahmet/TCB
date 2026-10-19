@@ -78,7 +78,7 @@ func (c *compiler) statement(k *compilerScope, stmt ast.Statement) statementCode
 	return emptyStatement
 }
 
-// tanimDeyimi 'değişken'/'sabit' tanımını derler.
+// varStatement 'değişken'/'sabit' tanımını derler.
 func (c *compiler) varStatement(k *compilerScope, s *ast.VarStatement) statementCode {
 	value := c.expression(k, s.Value)
 	definition := identifier(k, s.Name.Value)
@@ -93,7 +93,7 @@ func (c *compiler) varStatement(k *compilerScope, s *ast.VarStatement) statement
 	}
 }
 
-// cokluTanimDeyimi çoklu tanımı (değişken a, b = ...) derler.
+// multiVarStatement çoklu tanımı (değişken a, b = ...) derler.
 func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement) statementCode {
 	values := c.expressions(k, s.Values)
 	definitions := make([]func(*Environment, Value, bool), len(s.Names))
@@ -119,7 +119,7 @@ func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement)
 	}
 }
 
-// atamaDeyimi atamayı (bileşik atama dahil) derler.
+// assignStatement atamayı (bileşik atama dahil) derler.
 func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) statementCode {
 	value := c.expression(k, s.Value)
 	dest := c.assignTarget(k, s.Target, opCode(s.Operator), s.Line())
@@ -135,7 +135,7 @@ func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) sta
 	}
 }
 
-// cokluAtamaDeyimi çoklu atamayı (a, b = b, a) derler.
+// multiAssignStatement çoklu atamayı (a, b = b, a) derler.
 func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStatement) statementCode {
 	// Önce sağdaki tüm ifadeler hesaplanır (a, b = b, a takası için kritik!)
 	values := c.expressions(k, s.Values)
@@ -163,7 +163,7 @@ func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStat
 	}
 }
 
-// erteleDeyimi 'ertele' deyimini derler.
+// deferStatement 'ertele' deyimini derler.
 func (c *compiler) deferStatement(k *compilerScope, s *ast.DeferStatement) statementCode {
 	var bodyBlock *blockCode
 	var bodyInfo *scopeInfo
@@ -193,7 +193,7 @@ func (c *compiler) deferStatement(k *compilerScope, s *ast.DeferStatement) state
 	}
 }
 
-// donDeyimi 'dön' deyimini derler.
+// returnStatement 'dön' deyimini derler.
 func (c *compiler) returnStatement(k *compilerScope, s *ast.ReturnStatement) statementCode {
 	value := c.expression(k, s.ReturnValue)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
@@ -205,7 +205,7 @@ func (c *compiler) returnStatement(k *compilerScope, s *ast.ReturnStatement) sta
 	}
 }
 
-// deneYakalaDeyimi 'dene'/'yakala' deyimini derler.
+// tryCatchStatement 'dene'/'yakala' deyimini derler.
 func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement) statementCode {
 	tryBlock := c.blockStatement(k, s.TryBody)
 	sub := subScope(k)
@@ -234,7 +234,7 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 	}
 }
 
-// firlatDeyimi 'fırlat' deyimini derler.
+// throwStatement 'fırlat' deyimini derler.
 func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) statementCode {
 	value := c.expression(k, s.Value)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
@@ -246,7 +246,7 @@ func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) state
 	}
 }
 
-// aktarDeyimi 'aktar' deyimini derler.
+// importStatement 'aktar' deyimini derler.
 func (c *compiler) importStatement(k *compilerScope, s *ast.ImportStatement) statementCode {
 	var alias func(*Environment, Value, bool)
 	if s.Alias != "" {
@@ -257,7 +257,7 @@ func (c *compiler) importStatement(k *compilerScope, s *ast.ImportStatement) sta
 	}
 }
 
-// kesmeNoktasiDeyimi 'kesme_noktası' deyimini derler.
+// breakpointStatement 'kesme_noktası' deyimini derler.
 func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatement) statementCode {
 	var condition exprCode
 	if s.Condition != nil {
@@ -291,7 +291,7 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 	}
 }
 
-// cokluDegerler çoklu tanım/atamanın sağ tarafını hesaplar; tek bir Liste birden çok ada
+// multiValues çoklu tanım/atamanın sağ tarafını hesaplar; tek bir Liste birden çok ada
 // açılır.
 func multiValues(v *VM, env *Environment, values []exprCode, nameCount int) ([]Value, error) {
 	evalVals := make([]Value, 0, len(values))
@@ -310,7 +310,7 @@ func multiValues(v *VM, env *Environment, values []exprCode, nameCount int) ([]V
 	return evalVals, nil
 }
 
-// yapiTanimi 'yapı' deyimini derler: metotlar ve alan varsayılanları bir kez derlenir.
+// structDef 'yapı' deyimini derler: metotlar ve alan varsayılanları bir kez derlenir.
 func (c *compiler) structDef(k *compilerScope, s *ast.StructStatement) statementCode {
 	type methodCode struct {
 		name    string
@@ -348,7 +348,7 @@ func (c *compiler) structDef(k *compilerScope, s *ast.StructStatement) statement
 	}
 }
 
-// alanVarsayilanlari alan varsayılanlarını k kapsamında derler (nesne oluşturulurken
+// fieldDefaults alan varsayılanlarını k kapsamında derler (nesne oluşturulurken
 // yapının tanımlandığı ortamda değerlendirilirler).
 func (c *compiler) fieldDefaults(k *compilerScope, fields []ast.StructField) []exprCode {
 	codeList := make([]exprCode, len(fields))
@@ -360,7 +360,7 @@ func (c *compiler) fieldDefaults(k *compilerScope, fields []ast.StructField) []e
 	return codeList
 }
 
-// eszamanli 'eşzamanlı' bloğunu derler: gövde, kendi kök ortamında ayrı bir görevde çalışır.
+// concurrent 'eşzamanlı' bloğunu derler: gövde, kendi kök ortamında ayrı bir görevde çalışır.
 func (c *compiler) concurrent(k *compilerScope, s *ast.AsyncStatement) statementCode {
 	sub := subScope(k)
 	var bodyBlock *blockCode

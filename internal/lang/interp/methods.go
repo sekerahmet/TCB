@@ -14,7 +14,7 @@ import (
 // çağrılarını bağlı bir yerleşik nesnesi ayırmadan doğrudan bunlara yönlendirir;
 // 'x.metot' bir değer olarak okunursa (ör. değişkene atanırsa) bağlı yerleşik üretilir.
 
-// metotGovdesi bir yerleşik metodun gövdesidir; line, geri çağrılan fonksiyonların
+// methodBody bir yerleşik metodun gövdesidir; line, geri çağrılan fonksiyonların
 // hata satırıdır.
 type methodBody func(y *VM, inst Value, args []Value, line int) (Value, error)
 
@@ -24,14 +24,14 @@ type builtinMethod struct {
 	f        methodBody
 }
 
-// cekirdekMetot bir üye kodunun Metin, Liste ve Sözlük üzerindeki gövdeleridir (tipte yoksa
+// coreMethod bir üye kodunun Metin, Liste ve Sözlük üzerindeki gövdeleridir (tipte yoksa
 // nil). Derleyici x.ad'ı derleme anında koda ve bu yapıya çevirir; çalışma anında yalnızca
 // nesnenin tipine göre alan seçilir, ad ya da kod araması yapılmaz.
 type coreMethod struct {
 	text, listVal, dictVal *builtinMethod
 }
 
-// cekirdekMetotlari üye kodu → Metin/Liste/Sözlük metotları. Adlar kod listesindedir (internal/lang/codes, Y).
+// coreMethods üye kodu → Metin/Liste/Sözlük metotları. Adlar kod listesindedir (internal/lang/codes, Y).
 var coreMethods = map[codes.Code]*coreMethod{}
 
 const (
@@ -40,7 +40,7 @@ const (
 	typeDict
 )
 
-// argTipi bir metot argümanının beklenen tipidir (hata mesajındaki tip kodu ve denetimi).
+// argKind bir metot argümanının beklenen tipidir (hata mesajındaki tip kodu ve denetimi).
 type argKind struct {
 	typ  codes.Code
 	warn func(Value) bool
@@ -51,7 +51,7 @@ var (
 	funcArg = &argKind{codes.A208, callable}
 )
 
-// imza bir metodun argüman sayısı ve tipleridir: en az enAz, en çok enCok (< 0: sınırsız)
+// signature bir metodun argüman sayısı ve tipleridir: en az enAz, en çok enCok (< 0: sınırsız)
 // argüman; tipler[i] i. argümanın tipi (nil ya da eksikse her tip). parametreler kullanım
 // metnindeki parametre adlarıdır ("alt", "eski, yeni").
 type signature struct {
@@ -60,11 +60,11 @@ type signature struct {
 	typesOf    []*argKind
 }
 
-// tipKodlari metodun alıcı tipinin kodudur; hata mesajlarında metot tipiyle yazılır
+// typeCodes metodun alıcı tipinin kodudur; hata mesajlarında metot tipiyle yazılır
 // (metin.içerir(); bkz. kod.AliciAdi).
 var typeCodes = [...]codes.Code{typeString: codes.A202, typeList: codes.A205, typeDict: codes.A206}
 
-// metotEkle metodu sözlük koduyla kaydeder; ad sözlükten gelir. Gövde çağrılmadan önce
+// addMethod metodu sözlük koduyla kaydeder; ad sözlükten gelir. Gövde çağrılmadan önce
 // argümanlar imzaya göre denetlenir (yerleşik fonksiyonlarla aynı hata biçimi).
 func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 	if kd.Namespace() != codes.NamespaceMember {
@@ -114,14 +114,14 @@ const (
 	memberLast   = codes.Y211 // son (Liste)
 )
 
-// uyeBilgisi bir x.ad erişiminin derleme anında çözülmüş biçimidir.
+// memberInfo bir x.ad erişiminin derleme anında çözülmüş biçimidir.
 type memberInfo struct {
 	codeVal codes.Code // ad bir üye adı değilse kod.Yok
-	// cekirdek Metin/Liste/Sözlük metotlarıdır; ad bunların metodu değilse nil.
+	// core Metin/Liste/Sözlük metotlarıdır; ad bunların metodu değilse nil.
 	core *coreMethod
 }
 
-// uyeCoz adı derleme anında çözer.
+// resolveMember adı derleme anında çözer.
 func resolveMember(name string) memberInfo {
 	u := memberInfo{codeVal: codes.MemberCode(name)}
 	if u.codeVal == codes.None {
@@ -131,13 +131,13 @@ func resolveMember(name string) memberInfo {
 	return u
 }
 
-// cekirdekUyesi kod Metin, Liste ya da Sözlük üyesi mi (kaldırılmış ad ipuçlarının süzgeci)?
+// coreMember kod Metin, Liste ya da Sözlük üyesi mi (kaldırılmış ad ipuçlarının süzgeci)?
 func coreMember(k codes.Code) bool {
 	_, meth := coreMethods[k]
 	return meth || k == memberLength || k == memberFirst || k == memberLast
 }
 
-// sozlukUyesiMi ad bir sözlük üyesinin (metot ya da .uzunluk) adı mı?
+// isDictMember ad bir sözlük üyesinin (metot ya da .uzunluk) adı mı?
 func isDictMember(name string) bool {
 	k := codes.MemberCode(name)
 	if k == memberLength {
@@ -147,7 +147,7 @@ func isDictMember(name string) bool {
 	return cm != nil && cm.dictVal != nil
 }
 
-// metotBul nesnenin tipine göre derleme anında çözülmüş metodu döndürür.
+// findMethod nesnenin tipine göre derleme anında çözülmüş metodu döndürür.
 func findMethod(obj Value, cm *coreMethod) *builtinMethod {
 	if cm == nil {
 		return nil
@@ -171,7 +171,7 @@ func init() {
 	setupDictMethods()
 }
 
-// metinMetotlariniKur Metin tipinin metotlarını kaydeder.
+// setupStringMethods Metin tipinin metotlarını kaydeder.
 func setupStringMethods() {
 	addMethod(typeString, codes.Y100, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.ToUpperSpecial(unicode.TurkishCase, inst.(*StringVal).Val)}, nil
@@ -215,7 +215,7 @@ func setupStringMethods() {
 	})
 }
 
-// listeMetotlariniKur Liste tipinin metotlarını kaydeder.
+// setupListMethods Liste tipinin metotlarını kaydeder.
 func setupListMethods() {
 	addMethod(typeList, codes.Y200, signature{1, 1, codes.ReceiverName(codes.A208), []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		var result []Value
@@ -305,7 +305,7 @@ func setupListMethods() {
 	})
 }
 
-// sozlukMetotlariniKur Sözlük tipinin metotlarını kaydeder.
+// setupDictMethods Sözlük tipinin metotlarını kaydeder.
 func setupDictMethods() {
 	addMethod(typeDict, codes.Y300, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		d := inst.(*DictVal)
@@ -381,7 +381,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği veya metodu bulunamadı%s", line, obj.Type(), prop, removedMemberHint(prop))
 }
 
-// listeIndirge liste.indirge([başlangıç], fonksiyon) metodunun gövdesidir. Fonksiyon son
+// listReduce liste.indirge([başlangıç], fonksiyon) metodunun gövdesidir. Fonksiyon son
 // argümandır (sondaki blokla da yazılabilsin diye: liste.indirge(0) { birikim + o }) ve
 // (birikim, eleman) ile çağrılır; kullanıcı fonksiyonu iki parametreli olmalıdır.
 // Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (verilmemişse yok)

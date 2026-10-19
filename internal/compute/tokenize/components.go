@@ -22,26 +22,26 @@ import (
 // Tabloda olmayan bir türle karşılaşılırsa hangi bileşenin hangi türünün
 // desteklenmediğini söyleyen bir hata döner.
 
-// Normallestirici ön bölmeden önce metni dönüştürür (ör. NFC, küçük harf).
+// Normalizer ön bölmeden önce metni dönüştürür (ör. NFC, küçük harf).
 type Normalizer interface {
 	Normalize(text string) string
 }
 
-// Parca ön bölme sırasında bir metin parçasıdır.
+// Piece ön bölme sırasında bir metin parçasıdır.
 type Piece struct {
-	// Metin parçanın içeriği. baytDuzeyi doğruysa ham baytlardır ve bayt
+	// Text parçanın içeriği. baytDuzeyi doğruysa ham baytlardır ve bayt
 	// düzeyi karakterlere çevrilmesi (verim için) modele bırakılmıştır.
 	Text string
-	// Ilk parça özgün metnin en başından (0. konumdan) başlıyorsa doğrudur.
+	// Start parça özgün metnin en başından (0. konumdan) başlıyorsa doğrudur.
 	Start bool
 
 	byteLevel bool
-	// butce, parçanın ait olduğu kodlama çağrısının düzenli ifade adım
+	// budget, parçanın ait olduğu kodlama çağrısının düzenli ifade adım
 	// bütçesidir (nil: her arama kendi bütçesini açar).
 	budget *reBudget
 }
 
-// Icerik parçanın asıl metnini verir (gerekirse bayt düzeyi gösterime çevirir).
+// Content parçanın asıl metnini verir (gerekirse bayt düzeyi gösterime çevirir).
 func (p Piece) Content() string {
 	if p.byteLevel {
 		return bytesToChars([]byte(p.Text))
@@ -49,7 +49,7 @@ func (p Piece) Content() string {
 	return p.Text
 }
 
-// OnBolucu parçaları daha küçük parçalara ayırır ya da dönüştürür. Sonuçlar
+// PreTokenizer parçaları daha küçük parçalara ayırır ya da dönüştürür. Sonuçlar
 // dst'nin sonuna eklenir. Boş parçalar üretilmemelidir.
 type PreTokenizer interface {
 	PreTokenize(dst, pieces []Piece) []Piece
@@ -57,26 +57,26 @@ type PreTokenizer interface {
 
 // Model bir ön bölme parçasını token kimliklerine çevirir.
 type Model interface {
-	// Kodla parçanın kimliklerini dst'ye ekler.
+	// Encode parçanın kimliklerini dst'ye ekler.
 	Encode(dst []int32, p Piece) []int32
-	// Sozluk token -> kimlik eşlemesini verir (salt okunur).
+	// Vocab token -> kimlik eşlemesini verir (salt okunur).
 	Vocab() map[string]int32
 }
 
-// Kodlama bir kodlama sonucudur.
+// Encoding bir kodlama sonucudur.
 type Encoding struct {
 	IDs         []int32 // token kimlikleri
 	TypeIDs     []int32 // dizi türü kimlikleri (çift girdide 0/1)
 	SpecialMask []bool  // son işleyicinin eklediği özel tokenlar
 }
 
-// SonIsleyici modelin çıktısına özel tokenlar (ör. BOS/EOS) ekler.
+// PostProcessor modelin çıktısına özel tokenlar (ör. BOS/EOS) ekler.
 type PostProcessor interface {
-	// Isle tek (b == nil) ya da çift girdinin kodlamasını birleştirir.
+	// Process tek (b == nil) ya da çift girdinin kodlamasını birleştirir.
 	Process(a, b *Encoding, addSpecial bool) *Encoding
 }
 
-// Cozucu tokenların metin gösterimlerini son metne çevirir. Zincirdeki her
+// Decoder tokenların metin gösterimlerini son metne çevirir. Zincirdeki her
 // adım token listesini dönüştürür; sonuç parçaları bitiştirilerek birleştirilir.
 type Decoder interface {
 	DecodeChain(tokenList []string) []string
@@ -100,35 +100,35 @@ var (
 	decoders       = map[string]DecoderFactory{}
 )
 
-// NormallestiriciKaydet bir normalleştirici türünü kayıt tablosuna ekler.
+// RegisterNormalizer bir normalleştirici türünü kayıt tablosuna ekler.
 func RegisterNormalizer(kind string, k NormalizerFactory) {
 	registryLock.Lock()
 	normalizers[kind] = k
 	registryLock.Unlock()
 }
 
-// OnBolucuKaydet bir ön bölücü türünü kayıt tablosuna ekler.
+// RegisterPreTokenizer bir ön bölücü türünü kayıt tablosuna ekler.
 func RegisterPreTokenizer(kind string, k PreTokenizerFactory) {
 	registryLock.Lock()
 	preTokenizers[kind] = k
 	registryLock.Unlock()
 }
 
-// ModelKaydet bir model türünü kayıt tablosuna ekler.
+// RegisterModel bir model türünü kayıt tablosuna ekler.
 func RegisterModel(kind string, k ModelFactory) {
 	registryLock.Lock()
 	models[kind] = k
 	registryLock.Unlock()
 }
 
-// SonIsleyiciKaydet bir son işleyici türünü kayıt tablosuna ekler.
+// RegisterPostProcessor bir son işleyici türünü kayıt tablosuna ekler.
 func RegisterPostProcessor(kind string, k PostProcessorFactory) {
 	registryLock.Lock()
 	postProcessors[kind] = k
 	registryLock.Unlock()
 }
 
-// CozucuKaydet bir çözücü türünü kayıt tablosuna ekler.
+// RegisterDecoder bir çözücü türünü kayıt tablosuna ekler.
 func RegisterDecoder(kind string, k DecoderFactory) {
 	registryLock.Lock()
 	decoders[kind] = k
@@ -144,7 +144,7 @@ func kinds[T any](m map[string]T) string {
 	return strings.Join(ad, ", ")
 }
 
-// turOku bileşen tanımının "type" alanını okur.
+// readKind bileşen tanımının "type" alanını okur.
 func readKind(raw json.RawMessage, component string) (string, error) {
 	var t struct {
 		Type *string `json:"type"`
@@ -162,7 +162,7 @@ func unsupported(component, kind, supported string) error {
 	return fmt.Errorf("desteklenmeyen %s türü %q (desteklenenler: %s)", component, kind, supported)
 }
 
-// NormallestiriciKur JSON tanımından normalleştirici kurar (null için nil).
+// NewNormalizer JSON tanımından normalleştirici kurar (null için nil).
 func NewNormalizer(raw json.RawMessage) (Normalizer, error) {
 	if isEmpty(raw) {
 		return nil, nil
@@ -185,7 +185,7 @@ func NewNormalizer(raw json.RawMessage) (Normalizer, error) {
 	return n, nil
 }
 
-// OnBolucuKur JSON tanımından ön bölücü kurar (null için nil).
+// NewPreTokenizer JSON tanımından ön bölücü kurar (null için nil).
 func NewPreTokenizer(raw json.RawMessage) (PreTokenizer, error) {
 	if isEmpty(raw) {
 		return nil, nil
@@ -208,7 +208,7 @@ func NewPreTokenizer(raw json.RawMessage) (PreTokenizer, error) {
 	return o, nil
 }
 
-// ModelKur JSON tanımından model kurar. "type" alanı yoksa tür alanlardan
+// NewModel JSON tanımından model kurar. "type" alanı yoksa tür alanlardan
 // çıkarılır (eski dosya biçimleri).
 func NewModel(raw json.RawMessage) (Model, error) {
 	if isEmpty(raw) {
@@ -252,7 +252,7 @@ func NewModel(raw json.RawMessage) (Model, error) {
 	return m, nil
 }
 
-// SonIsleyiciKur JSON tanımından son işleyici kurar (null için nil).
+// NewPostProcessor JSON tanımından son işleyici kurar (null için nil).
 func NewPostProcessor(raw json.RawMessage, vocab func(string) (int32, bool)) (PostProcessor, error) {
 	if isEmpty(raw) {
 		return nil, nil
@@ -275,7 +275,7 @@ func NewPostProcessor(raw json.RawMessage, vocab func(string) (int32, bool)) (Po
 	return s, nil
 }
 
-// CozucuKur JSON tanımından çözücü kurar (null için nil).
+// NewDecoder JSON tanımından çözücü kurar (null için nil).
 func NewDecoder(raw json.RawMessage) (Decoder, error) {
 	if isEmpty(raw) {
 		return nil, nil
@@ -298,7 +298,7 @@ func NewDecoder(raw json.RawMessage) (Decoder, error) {
 	return c, nil
 }
 
-// katiCoz JSON'u yapıya çözer; bilinmeyen alanlara izin verir.
+// strictDecode JSON'u yapıya çözer; bilinmeyen alanlara izin verir.
 func strictDecode(raw json.RawMessage, target any) error {
 	if err := json.Unmarshal(raw, target); err != nil {
 		return fmt.Errorf("tanım çözümlenemedi: %w", err)
@@ -306,7 +306,7 @@ func strictDecode(raw json.RawMessage, target any) error {
 	return nil
 }
 
-// desenBicimi Split/Replace desenidir: {"String": ...} ya da {"Regex": ...}.
+// patternForm Split/Replace desenidir: {"String": ...} ya da {"Regex": ...}.
 type patternForm struct {
 	String *string `json:"String"`
 	Regex  *string `json:"Regex"`

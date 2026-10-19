@@ -9,7 +9,7 @@ import (
 
 // Arka uç: eleman bazlı işlemler, gradyan biriktirme ve genel indirgeme planı.
 
-// indirgeIs genel indirgemenin bir çağrısı: ortak gezinme şekli üzerinde A, O (ve Y = A
+// reduceJob genel indirgemenin bir çağrısı: ortak gezinme şekli üzerinde A, O (ve Y = A
 // adımlı) okunur; çıktı adımı 0 olan eksenler indirgenir.
 type reduceJob struct {
 	a, o, y        *storage
@@ -23,7 +23,7 @@ type reduceJob struct {
 	scaleF         float32
 }
 
-// ikiKuvvet n'den küçük olmayan en küçük ikinin kuvveti (sınırlı).
+// powerOfTwo n'den küçük olmayan en küçük ikinin kuvveti (sınırlı).
 func powerOfTwo(n, minN, maxN int) int {
 	if n <= minN {
 		return minN
@@ -92,7 +92,7 @@ func (g *backend) reduce(is reduceJob) {
 	g.launch(c, iz, bl, p)
 }
 
-// indirgeParcaSayisi indirgenen aralığın kaç parçaya bölüneceği: çıktı az, indirgenen eksen
+// reducePartCount indirgenen aralığın kaç parçaya bölüneceği: çıktı az, indirgenen eksen
 // uzunken (ör. sapma gradyanı K = 512, R = 8192; hepsinin toplamı K = 1) tek aşamada çok az
 // iş parçacığı çalışırdı. Parça sayısı yalnızca K ve R'ye bağlıdır (belirlenimci).
 func reducePartCount(K, R, block int) int {
@@ -107,7 +107,7 @@ func reducePartCount(K, R, block int) int {
 	return min((target+is-1)/is, R/512, 512)
 }
 
-// indirgeIkiAsama belirlenimci iki aşamalı indirgeme: her parça kısmi toplamını yazar,
+// reduceTwoStage belirlenimci iki aşamalı indirgeme: her parça kısmi toplamını yazar,
 // ikinci aşama kısmi toplamları parça sırasıyla toplayıp çıktıya (ölçek, ekleme ve çıktı
 // adımlarıyla) yazar.
 func (g *backend) reduceTwoStage(is reduceJob, config reduceConfig, meta, kSh, kSt []int, K, R, S int) {
@@ -133,7 +133,7 @@ func (g *backend) reduceTwoStage(is reduceJob, config reduceConfig, meta, kSh, k
 		stA2: append([]int{K}, contiguous(kSh)...), st: append([]int{0}, kSt...), term: tA, add: is.add, scaleF: is.scaleF})
 }
 
-// duzV depolamanın tamamına bitişik görünüm.
+// plainV depolamanın tamamına bitişik görünüm.
 func plainV(d *storage) tensor.View { return tensor.View{S: d, Shape: []int{d.n}, Strides: []int{1}} }
 
 func (g *backend) AddTo(dst, src tensor.Storage, scale float32) {
@@ -216,7 +216,7 @@ func (g *backend) Binary(op tensor.BinOp, out tensor.Storage, outShape []int, a,
 	last()
 }
 
-// okuAdimli float32 görünümü olduğu gibi (adımlarıyla) bırakır; 16 bitlik görünümü
+// readStrided float32 görünümü olduğu gibi (adımlarıyla) bırakır; 16 bitlik görünümü
 // float32 bitişiğe açar.
 func (t *temp) readStrided(v tensor.View) tensor.View {
 	if t.g.storageOf(v.S).dtype == tensor.Float32 {

@@ -9,7 +9,7 @@ import (
 // Matris çarpımı çekirdeğinin (derlemeye göre AVX2/FMA ya da taşınabilir Go)
 // rastgele ve kenar boyutlarla doğruluk testleri.
 
-// gemmBasvuru float64 birikimli C += op(A)·op(B) ve hata sınırı için Σ|a·b|.
+// gemmRef float64 birikimli C += op(A)·op(B) ve hata sınırı için Σ|a·b|.
 func gemmRef(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool, c []float32) ([]float64, []float64) {
 	out := make([]float64, batch*M*N)
 	abs := make([]float64, batch*M*N)

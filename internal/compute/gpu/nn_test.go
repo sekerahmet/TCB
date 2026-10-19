@@ -120,7 +120,7 @@ func TestEmbedding(t *testing.T) {
 	})
 }
 
-// TestDikkat16Bit bfloat16 ve float16 q, k, v ile dikkatin ileri ve geri yönünü denetler
+// TestAttention16Bit bfloat16 ve float16 q, k, v ile dikkatin ileri ve geri yönünü denetler
 // (geri yön 16 bitlik çıktıyı float32'ye açarken bir kopya çekirdeği başlatır).
 func TestAttention16Bit(t *testing.T) {
 	rng := rand.New(rand.NewSource(18))

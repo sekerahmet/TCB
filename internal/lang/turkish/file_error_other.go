@@ -4,5 +4,5 @@ package turkish
 
 import "syscall"
 
-// sistemHatasiNedeni bu platformda hata kodlarını tanımaz; bilinmeyen durum mesajı kullanılır.
+// systemErrorReason bu platformda hata kodlarını tanımaz; bilinmeyen durum mesajı kullanılır.
 func systemErrorReason(syscall.Errno) string { return "" }

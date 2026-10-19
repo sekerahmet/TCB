@@ -10,13 +10,13 @@ import (
 // Adımlı kopya, tür dönüşümü, yayınlamalı ekleme ve doldurma çekirdekleri
 // ============================================================================
 
-// enCokEksen adımlı çekirdeklerin desteklediği en çok eksen (birleştirmeden sonra).
+// maxAxis adımlı çekirdeklerin desteklediği en çok eksen (birleştirmeden sonra).
 const maxAxis = 8
 
-// esBlok eleman bazlı çekirdeklerin blok boyu.
+// sameBlock eleman bazlı çekirdeklerin blok boyu.
 const sameBlock = 256
 
-// eksenBirlestir, bütün işlenenler için bitişik olan komşu eksenleri birleştirir ve
+// mergeAxes, bütün işlenenler için bitişik olan komşu eksenleri birleştirir ve
 // uzunluğu 1 olan eksenleri atar (CPU coalesce ile aynı kural). Boş şekil tek eksene
 // ([1], adım 0) döner.
 func mergeAxes(shape []int, steps ...[]int) ([]int, [][]int) {
@@ -56,14 +56,14 @@ func mergeAxes(shape []int, steps ...[]int) ([]int, [][]int) {
 	return ns, nst
 }
 
-// ayristir i doğrusal indeksini (satır öncelikli) şekle göre ayrıştırıp her işlenenin
+// parse i doğrusal indeksini (satır öncelikli) şekle göre ayrıştırıp her işlenenin
 // ofsetini verir. sekil ve adımlar "meta" dizisinden okunur: sekil[d] = meta[d],
 // adim[k][d] = meta[(k+1)·nd + d]. Ofsetler işaretli 32 bittir.
 func (k *emitter) parse(i reg, nd, nOperand int, meta string) []reg {
 	return k.parseBase(i, nd, nOperand, 0, meta)
 }
 
-// kopyaCekirdegi hedef (td, adımlı) ← kaynak (ts, adımlı); ekle doğruysa hedef += ölçek·kaynak
+// copyKernel hedef (td, adımlı) ← kaynak (ts, adımlı); ekle doğruysa hedef += ölçek·kaynak
 // (yalnızca float32 hedef).
 func copyKernel(nd int, ts, td tensor.DType, add bool) func() *emitter {
 	return func() *emitter {
@@ -91,7 +91,7 @@ func copyKernel(nd int, ts, td tensor.DType, add bool) func() *emitter {
 	}
 }
 
-// doldurCekirdegi hedefin n elemanını v yapar (dt türüne yuvarlanmış).
+// fillKernel hedefin n elemanını v yapar (dt türüne yuvarlanmış).
 func fillKernel(dt tensor.DType) func() *emitter {
 	return func() *emitter {
 		k := newEmitter("doldur_" + dt.String())
@@ -109,7 +109,7 @@ func fillKernel(dt tensor.DType) func() *emitter {
 	}
 }
 
-// kopyaAdimli hedef görünümüne kaynak görünümünü yazar (ekle: hedef += ölçek·kaynak).
+// copyStrided hedef görünümüne kaynak görünümünü yazar (ekle: hedef += ölçek·kaynak).
 // Şekiller aynıdır; kaynak yayınlanmış olabilir (adım 0).
 func (g *backend) copyStrided(target, source tensor.View, add bool, scaleF float32) {
 	n := numel(target.Shape)
@@ -136,7 +136,7 @@ func (g *backend) copyStrided(target, source tensor.View, add bool, scaleF float
 	g.launch(c, iz, bl, g.param().read(kd, source.Offset).write(hd, target.Offset).u32(n).f32(scaleF).arr(3*len(sh), meta...))
 }
 
-// doldur depolamanın bütün elemanlarını v yapar.
+// fill depolamanın bütün elemanlarını v yapar.
 func (g *backend) fill(d *storage, v float32) {
 	if d.n == 0 {
 		return
@@ -151,7 +151,7 @@ func (g *backend) fill(d *storage, v float32) {
 	g.launch(c, iz, bl, g.param().write(d, 0).u32(d.n).f32(v))
 }
 
-// bitisik görünümün satır öncelikli adımları.
+// contiguous görünümün satır öncelikli adımları.
 func contiguous(shape []int) []int {
 	st := make([]int, len(shape))
 	s := 1
@@ -170,7 +170,7 @@ func numel(shape []int) int {
 	return n
 }
 
-// yayinAdim, şekli shape ve adımları st olan görünümün hedef şekle yayınlanmış adımları
+// broadcastStride, şekli shape ve adımları st olan görünümün hedef şekle yayınlanmış adımları
 // (eksik ve 1 uzunluklu eksenlerde 0).
 func broadcastStride(st, shape, target []int) []int {
 	out := make([]int, len(target))

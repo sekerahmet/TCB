@@ -183,21 +183,21 @@ func loadDefinitions() {
 }
 
 type rawSignature struct {
-	Param []string            `json:"param"`
-	Adli  [][]json.RawMessage `json:"adlı"`
-	Donus string              `json:"dönüş"`
+	Param  []string            `json:"param"`
+	Named  [][]json.RawMessage `json:"adlı"`
+	Return string              `json:"dönüş"`
 }
 
 type rawDefinition struct {
-	Tur      string                  `json:"tür"`
-	Tipler   []string                `json:"tipler"`
-	Param    []string                `json:"param"`
-	Adli     [][]json.RawMessage     `json:"adlı"`
-	Donus    string                  `json:"dönüş"`
-	Imzalar  map[string]rawSignature `json:"imzalar"`
-	Iliskili []string                `json:"ilişkili"`
-	Tasindi  string                  `json:"taşındı"`
-	Kaldir   bool                    `json:"kaldırıldı"`
+	Kind       string                  `json:"tür"`
+	Types      []string                `json:"tipler"`
+	Param      []string                `json:"param"`
+	Named      [][]json.RawMessage     `json:"adlı"`
+	Return     string                  `json:"dönüş"`
+	Signatures map[string]rawSignature `json:"imzalar"`
+	Related    []string                `json:"ilişkili"`
+	MovedTo    string                  `json:"taşındı"`
+	Removed    bool                    `json:"kaldırıldı"`
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
@@ -223,7 +223,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			errorf("%s: %v", k, err)
 			continue
 		}
-		t := Definition{Code: k, Kind: Kind(h.Tur)}
+		t := Definition{Code: k, Kind: Kind(h.Kind)}
 		codeList := func(field string, ss []string) []Code {
 			var ks []Code
 			for _, s := range ss {
@@ -262,31 +262,31 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			}
 			return im
 		}
-		t.Signature = sig(h.Param, h.Adli, h.Donus)
-		for _, typ := range codeList("tipler", h.Tipler) {
+		t.Signature = sig(h.Param, h.Named, h.Return)
+		for _, typ := range codeList("tipler", h.Types) {
 			t.Members = append(t.Members, TypeSignature{Type: typ, Signature: t.Signature})
 		}
-		if len(h.Imzalar) > 0 {
-			if len(h.Tipler) > 0 || len(h.Param) > 0 || len(h.Adli) > 0 || h.Donus != "" {
+		if len(h.Signatures) > 0 {
+			if len(h.Types) > 0 || len(h.Param) > 0 || len(h.Named) > 0 || h.Return != "" {
 				errorf("%s: \"imzalar\" varken \"tipler\", \"param\", \"adlı\" ve \"dönüş\" yazılmaz", k)
 			}
-			for s, hi := range h.Imzalar {
+			for s, hi := range h.Signatures {
 				typ, err := Parse(s)
 				if err != nil {
 					errorf("%s imzalar: %v", k, err)
 					continue
 				}
-				t.Members = append(t.Members, TypeSignature{Type: typ, Signature: sig(hi.Param, hi.Adli, hi.Donus)})
+				t.Members = append(t.Members, TypeSignature{Type: typ, Signature: sig(hi.Param, hi.Named, hi.Return)})
 			}
 			sort.Slice(t.Members, func(i, j int) bool { return t.Members[i].Type < t.Members[j].Type })
 		}
-		t.Related = codeList("ilişkili", h.Iliskili)
-		if h.Tasindi != "" {
-			if y := codeList("taşındı", []string{h.Tasindi}); len(y) == 1 {
+		t.Related = codeList("ilişkili", h.Related)
+		if h.MovedTo != "" {
+			if y := codeList("taşındı", []string{h.MovedTo}); len(y) == 1 {
 				t.MovedTo = y[0]
 			}
 		}
-		t.Removed = h.Kaldir
+		t.Removed = h.Removed
 		out[k] = t
 		order = append(order, k)
 	}

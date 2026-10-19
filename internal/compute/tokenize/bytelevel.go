@@ -15,7 +15,7 @@ import "unicode/utf8"
 // baytKarakter[b], b baytını temsil eden karakterdir.
 var byteChar [256]rune
 
-// karakterBayt, temsil karakterinden bayta ters eşlemedir.
+// charByte, temsil karakterinden bayta ters eşlemedir.
 var charByte map[rune]byte
 
 func init() {
@@ -44,7 +44,7 @@ func init() {
 	}
 }
 
-// baytlariKarakterle bayt dizisini temsil karakterlerinden oluşan metne çevirir.
+// bytesToChars bayt dizisini temsil karakterlerinden oluşan metne çevirir.
 func bytesToChars(b []byte) string {
 	r := make([]rune, len(b))
 	for i, c := range b {
@@ -53,7 +53,7 @@ func bytesToChars(b []byte) string {
 	return string(r)
 }
 
-// tokenBaytlari bir token metnini çözme sırasında üreteceği baytlara çevirir.
+// tokenBytes bir token metnini çözme sırasında üreteceği baytlara çevirir.
 // Tokenın bütün karakterleri bayt eşlemesinde varsa karşılık gelen baytlar,
 // en az bir karakter eşlemede yoksa (ör. bayt düzeyi dışı bir ek token)
 // tokenın kendi UTF-8 baytları kullanılır.
@@ -69,7 +69,7 @@ func tokenBytes(tok string) []byte {
 	return out
 }
 
-// kayipliUTF8 bayt dizisini metne çevirir; geçersiz UTF-8 dizilerini U+FFFD
+// lossyUTF8 bayt dizisini metne çevirir; geçersiz UTF-8 dizilerini U+FFFD
 // ile değiştirir. Unicode'un önerdiği "en uzun geçerli önek" kuralı
 // uygulanır: yarım kalmış çok baytlı bir dizinin geçerli öneki TEK bir U+FFFD
 // olur, kurala uymayan bayt ise yeni bir dizinin başı sayılır. (Standart
@@ -139,7 +139,7 @@ func lossyUTF8(b []byte) string {
 	return string(out)
 }
 
-// gecerliMetin geçersiz UTF-8 içeren girdiyi kayıplı çözmeyle onarır.
+// validText geçersiz UTF-8 içeren girdiyi kayıplı çözmeyle onarır.
 func validText(s string) string {
 	if utf8.ValidString(s) {
 		return s

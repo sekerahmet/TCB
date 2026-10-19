@@ -12,7 +12,7 @@ import (
 // birkaç ulp içinde uyuşur (sınamalar: genis_test.go). Tanjantın aralık indirgemesi π/2'nin
 // üç parçalı yazımıyladır; |x| ≲ 1e5 için doğrudur.
 
-// ucParca v'yi float32 toplamı v'ye 72 bit kadar yaklaşan üç parçaya böler.
+// endPart v'yi float32 toplamı v'ye 72 bit kadar yaklaşan üç parçaya böler.
 func endPart(v *big.Float) [3]float32 {
 	var p [3]float32
 	rest := new(big.Float).SetPrec(200).Set(v)
@@ -25,7 +25,7 @@ func endPart(v *big.Float) [3]float32 {
 }
 
 var (
-	// piYarimParca π/2'nin üç parçası (Cody-Waite indirgemesi için).
+	// piHalfPart π/2'nin üç parçası (Cody-Waite indirgemesi için).
 	piHalfPart = func() [3]float32 {
 		pi, _, _ := big.ParseFloat("3.14159265358979323846264338327950288419716939937510582097494459", 10, 200, big.ToNearestEven)
 		return endPart(pi.Quo(pi, big.NewFloat(2)))
@@ -50,11 +50,11 @@ var (
 
 // taylor katsayıları (kesin formüllerle): sin, cos, atan, asin, sinh, log (atanh), expm1.
 var (
-	// sinKat: sin r = r + r·z·P(z), P'nin katsayıları z^0'dan (z = r²).
+	// sinCoef: sin r = r + r·z·P(z), P'nin katsayıları z^0'dan (z = r²).
 	sinCoef = []float64{-1.0 / 6, 1.0 / 120, -1.0 / 5040, 1.0 / 362880}
-	// cosKat: cos r = 1 + z·Q(z).
+	// cosCoef: cos r = 1 + z·Q(z).
 	cosCoef = []float64{-0.5, 1.0 / 24, -1.0 / 720, 1.0 / 40320, -1.0 / 3628800}
-	// atanKat: atan u = u + u·z·R(z): (−1)^n/(2n+1), n = 1..8.
+	// atanCoef: atan u = u + u·z·R(z): (−1)^n/(2n+1), n = 1..8.
 	atanCoef = func() []float64 {
 		var c []float64
 		for n := 1; n <= 8; n++ {
@@ -62,7 +62,7 @@ var (
 		}
 		return c
 	}()
-	// asinKat: asin s = s + s·z·S(z): (2n)!/(4^n·(n!)²·(2n+1)), n = 1..11.
+	// asinCoef: asin s = s + s·z·S(z): (2n)!/(4^n·(n!)²·(2n+1)), n = 1..11.
 	asinCoef = func() []float64 {
 		var c []float64
 		middle := 1.0 // (2n)!/(4^n (n!)^2) = Π (2i−1)/(2i)
@@ -72,11 +72,11 @@ var (
 		}
 		return c
 	}()
-	// sinhKat: sinh x = x + x·z·H(z): 1/(2n+1)!, n = 1..5.
+	// sinhCoef: sinh x = x + x·z·H(z): 1/(2n+1)!, n = 1..5.
 	sinhCoef = []float64{1.0 / 6, 1.0 / 120, 1.0 / 5040, 1.0 / 362880, 1.0 / 39916800}
-	// logKat: log m = 2s + 2s·z·L(z), s = f/(2+f): 1/(2n+1), n = 1..5.
+	// logCoef: log m = 2s + 2s·z·L(z), s = f/(2+f): 1/(2n+1), n = 1..5.
 	logCoef = []float64{1.0 / 3, 1.0 / 5, 1.0 / 7, 1.0 / 9, 1.0 / 11}
-	// expm1Kat: e^r − 1 = r + r²·E(r): 1/n!, n = 2..9.
+	// expm1Coef: e^r − 1 = r + r²·E(r): 1/n!, n = 2..9.
 	expm1Coef = func() []float64 {
 		var c []float64
 		f := 1.0
@@ -97,7 +97,7 @@ func (k *emitter) horner(z reg, c []float64) reg {
 	return s
 }
 
-// tekPolinom x + x·z·P(z), z = x².
+// oddPoly x + x·z·P(z), z = x².
 func (k *emitter) oddPoly(x reg, c []float64) reg {
 	z := k.f()
 	k.e("mul.rn.f32", z, x, x)
@@ -109,7 +109,7 @@ func (k *emitter) oddPoly(x reg, c []float64) reg {
 	return r
 }
 
-// isaretKopyala |r|'ye x'in işaretini verir (r ≥ 0 varsayılır).
+// copySign |r|'ye x'in işaretini verir (r ≥ 0 varsayılır).
 func (k *emitter) copySign(r, x reg) reg {
 	rb, xb := k.r(), k.r()
 	k.e("mov.b32", rb, r)
@@ -121,7 +121,7 @@ func (k *emitter) copySign(r, x reg) reg {
 	return o
 }
 
-// isaretBiti x'in işaret biti 1 mi (−0 dahil).
+// signBit x'in işaret biti 1 mi (−0 dahil).
 func (k *emitter) signBit(x reg) reg {
 	b := k.r()
 	k.e("mov.b32", b, x)
@@ -130,14 +130,14 @@ func (k *emitter) signBit(x reg) reg {
 	return p
 }
 
-// sec p ? a : b.
+// pick p ? a : b.
 func (k *emitter) pick(p reg, a, b any) reg {
 	r := k.f()
 	k.e("selp.f32", r, a, b, p)
 	return r
 }
 
-// tanjant tan x: j = yuvarla(x·2/π), r = x − j·π/2 (üç parça), j çiftse sin r / cos r,
+// tangent tan x: j = yuvarla(x·2/π), r = x − j·π/2 (üç parça), j çiftse sin r / cos r,
 // tekse −cos r / sin r.
 func (k *emitter) tangent(x reg) reg {
 	j := k.f()
@@ -168,7 +168,7 @@ func (k *emitter) tangent(x reg) reg {
 	return o
 }
 
-// atanBirim atan a, a ∈ [0, 1]: a > tan(π/8) ise π/4 + atan((a−1)/(a+1)).
+// atanUnit atan a, a ∈ [0, 1]: a > tan(π/8) ise π/4 + atan((a−1)/(a+1)).
 func (k *emitter) atanUnit(a reg) reg {
 	middle := k.p()
 	k.e("setp.gt.f32", middle, a, tanPiEighth)
@@ -185,7 +185,7 @@ func (k *emitter) atanUnit(a reg) reg {
 	return r
 }
 
-// arktanjant atan x = işaret(x)·(|x| > 1 ise π/2 − atan(1/|x|), değilse atan|x|).
+// arctan atan x = işaret(x)·(|x| > 1 ise π/2 − atan(1/|x|), değilse atan|x|).
 func (k *emitter) arctan(x reg) reg {
 	a := k.f()
 	k.e("abs.f32", a, x)
@@ -201,7 +201,7 @@ func (k *emitter) arctan(x reg) reg {
 	return k.copySign(r, x)
 }
 
-// arktanjant2 atan2(y, x): a = min/max(|x|, |y|) ∈ [0, 1] üzerinden; bölge düzeltmeleri
+// arctan2 atan2(y, x): a = min/max(|x|, |y|) ∈ [0, 1] üzerinden; bölge düzeltmeleri
 // işaret bitleriyle (işaretli sıfırlar ve sonsuzlar IEEE kuralıyla), NaN yayılır.
 func (k *emitter) arctan2(y, x reg) reg {
 	ax, ay := k.f(), k.f()
@@ -232,7 +232,7 @@ func (k *emitter) arctan2(y, x reg) reg {
 	return k.pick(nan, float32(math.NaN()), r)
 }
 
-// asinParca |x|'ten asin ve acos'un ortak parçası: büyük (|x| > 0,5) ise p = asin(√((1−|x|)/2)),
+// asinPart |x|'ten asin ve acos'un ortak parçası: büyük (|x| > 0,5) ise p = asin(√((1−|x|)/2)),
 // değilse p = asin|x|.
 func (k *emitter) asinPart(x reg) (p, large reg) {
 	a := k.f()
@@ -256,7 +256,7 @@ func (k *emitter) asinPart(x reg) (p, large reg) {
 	return p, large
 }
 
-// arksinus asin x = işaret(x)·(büyükse π/2 − 2p, değilse p).
+// arcsin asin x = işaret(x)·(büyükse π/2 − 2p, değilse p).
 func (k *emitter) arcsin(x reg) reg {
 	p, large := k.asinPart(x)
 	q := k.f()
@@ -264,7 +264,7 @@ func (k *emitter) arcsin(x reg) reg {
 	return k.copySign(k.pick(large, q, p), x)
 }
 
-// arkkosinus acos x: büyükse (x > 0: 2p, x < 0: π − 2p), değilse π/2 − işaret(x)·p.
+// arccos acos x: büyükse (x > 0: 2p, x < 0: π − 2p), değilse π/2 − işaret(x)·p.
 func (k *emitter) arccos(x reg) reg {
 	p, large := k.asinPart(x)
 	two := k.f()
@@ -280,7 +280,7 @@ func (k *emitter) arccos(x reg) reg {
 	return k.pick(large, b, kc)
 }
 
-// yarimUstel q = e^|x|/2: |x| < 88'de 0,5·e^|x|, üstünde (e^{|x|/2}·0,5)·e^{|x|/2}
+// halfExp q = e^|x|/2: |x| < 88'de 0,5·e^|x|, üstünde (e^{|x|/2}·0,5)·e^{|x|/2}
 // (e^|x| float32'de taşsa da q taşmadan gösterilebilir).
 func (k *emitter) halfExp(x reg) reg {
 	a := k.f()
@@ -298,7 +298,7 @@ func (k *emitter) halfExp(x reg) reg {
 	return k.pick(small, e, hy)
 }
 
-// hipSinus sinh x: |x| < 1'de Taylor, değilse işaret(x)·(q − 1/(4q)).
+// hypSin sinh x: |x| < 1'de Taylor, değilse işaret(x)·(q − 1/(4q)).
 func (k *emitter) hypSin(x reg) reg {
 	q := k.halfExp(x)
 	t := k.f()
@@ -314,7 +314,7 @@ func (k *emitter) hypSin(x reg) reg {
 	return k.pick(small, kp, b)
 }
 
-// hipKosinus cosh x = q + 1/(4q).
+// hypCos cosh x = q + 1/(4q).
 func (k *emitter) hypCos(x reg) reg {
 	q := k.halfExp(x)
 	t := k.f()
@@ -324,7 +324,7 @@ func (k *emitter) hypCos(x reg) reg {
 	return r
 }
 
-// logParca u = 2^e·m (m ∈ [√½, √2)) ayrıştırması: e (float32 tam sayı) ve log m
+// logPart u = 2^e·m (m ∈ [√½, √2)) ayrıştırması: e (float32 tam sayı) ve log m
 // (s = (m−1)/(m+1) ile 2s + 2s·s²·L(s²)). Normal altı u önce 2^23 ile ölçeklenir. Özel
 // değerleri (0, negatif, sonsuz, NaN) çağıran ayrıca ele alır.
 func (k *emitter) logPart(u reg) (e, lm reg) {
@@ -375,7 +375,7 @@ func (k *emitter) logPart(u reg) (e, lm reg) {
 	return e, lm
 }
 
-// logOzel u'nun özel değerlerinde sonucu düzeltir: 0 → −sonsuz, +sonsuz → +sonsuz,
+// logSpecial u'nun özel değerlerinde sonucu düzeltir: 0 → −sonsuz, +sonsuz → +sonsuz,
 // negatif ya da NaN → NaN.
 func (k *emitter) logSpecial(u, r reg) reg {
 	zero, inf2, bad := k.p(), k.p(), k.p()
@@ -387,7 +387,7 @@ func (k *emitter) logSpecial(u, r reg) reg {
 	return k.pick(bad, float32(math.NaN()), r)
 }
 
-// lnBirlestir e·ln2 + lm + c (iki parçalı ln 2).
+// lnMerge e·ln2 + lm + c (iki parçalı ln 2).
 func (k *emitter) lnMerge(e, lm, c reg) reg {
 	t := k.f()
 	k.e("add.rn.f32", t, lm, c)
@@ -397,7 +397,7 @@ func (k *emitter) lnMerge(e, lm, c reg) reg {
 	return r
 }
 
-// log1Arti log(1 + x): u = 1 + x; u = 1 ise x; değilse log u + (x − (u − 1))/u (u'nun
+// log1Plus log(1 + x): u = 1 + x; u = 1 ise x; değilse log u + (x − (u − 1))/u (u'nun
 // yuvarlama hatasının birinci derece düzeltmesi).
 func (k *emitter) log1Plus(x reg) reg {
 	u := k.f()
@@ -414,7 +414,7 @@ func (k *emitter) log1Plus(x reg) reg {
 	return k.pick(one, x, r)
 }
 
-// log2Hassas log2 u = e + lm/ln 2 (ikinin kuvvetlerinde tam).
+// log2Precise log2 u = e + lm/ln 2 (ikinin kuvvetlerinde tam).
 func (k *emitter) log2Precise(u reg) reg {
 	e, lm := k.logPart(u)
 	t := k.f()
@@ -424,7 +424,7 @@ func (k *emitter) log2Precise(u reg) reg {
 	return k.logSpecial(u, r)
 }
 
-// log10Hassas log10 u = e·log10(2) + lm·log10(e) (iki parçalı sabitler).
+// log10Precise log10 u = e·log10(2) + lm·log10(e) (iki parçalı sabitler).
 func (k *emitter) log10Precise(u reg) reg {
 	e, lm := k.logPart(u)
 	t := k.f()
@@ -436,7 +436,7 @@ func (k *emitter) log10Precise(u reg) reg {
 	return k.logSpecial(u, r)
 }
 
-// ustelEksiBir e^x − 1: |x| ≤ ln2/2'de r + r²·E(r); x > 80'de e^x; x < −17'de −1; arada
+// expMinusOne e^x − 1: |x| ≤ ln2/2'de r + r²·E(r); x > 80'de e^x; x < −17'de −1; arada
 // x = n·ln2 + r ile 2^n·(e^r − 1) + (2^n − 1).
 func (k *emitter) expMinusOne(x reg) reg {
 	em := func(r reg) reg {
@@ -483,7 +483,7 @@ func (k *emitter) expMinusOne(x reg) reg {
 	return k.pick(nan, x, o)
 }
 
-// siluSigma σ(x) = e^{-|x|} ile sayısal kararlı biçimde (x ≥ 0: 1/(1+e), değilse e/(1+e)).
+// siluSig σ(x) = e^{-|x|} ile sayısal kararlı biçimde (x ≥ 0: 1/(1+e), değilse e/(1+e)).
 func (k *emitter) siluSig(x reg) reg {
 	a := k.f()
 	k.e("abs.f32", a, x)
@@ -509,7 +509,7 @@ func (k *emitter) silu(x reg) reg {
 	return k.pick(zero, float32(0), r)
 }
 
-// siluTurev s + x·s(1−s); s(1−s) = 0 iken s.
+// siluGrad s + x·s(1−s); s(1−s) = 0 iken s.
 func (k *emitter) siluGrad(x reg) reg {
 	s := k.siluSig(x)
 	q := k.f()
@@ -523,7 +523,7 @@ func (k *emitter) siluGrad(x reg) reg {
 	return k.pick(zero, s, d)
 }
 
-// isaretF işaret: x > 0 → 1, x < 0 → −1, sıfır ve NaN olduğu gibi.
+// signF işaret: x > 0 → 1, x < 0 → −1, sıfır ve NaN olduğu gibi.
 func (k *emitter) signF(x reg) reg {
 	posN, neg := k.p(), k.p()
 	k.e("setp.gt.f32", posN, x, float32(0))

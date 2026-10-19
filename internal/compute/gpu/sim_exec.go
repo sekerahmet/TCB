@@ -17,13 +17,13 @@ import (
 // engel) donanımda tanımsızdır; benzetim bunu hata sayar. Genel bellek erişimleri
 // ayrılmış bölgelerle ve hizayla denetlenir.
 
-// bzAyirma benzetimde ayrılmış bir cihaz belleği bölgesi.
+// simAlloc benzetimde ayrılmış bir cihaz belleği bölgesi.
 type simAlloc struct {
 	base2 uint64
 	data  []byte
 }
 
-// bzBellek benzetimin cihaz belleği.
+// simMemory benzetimin cihaz belleği.
 type simMemory struct {
 	regions []*simAlloc // tabana göre sıralı
 	next    uint64
@@ -48,7 +48,7 @@ func (m *simMemory) release(base2 uint64) bool {
 	return true
 }
 
-// dilim adresteki n baytı verir; bölge dışıysa hata.
+// slice adresteki n baytı verir; bölge dışıysa hata.
 func (m *simMemory) slice(addr uint64, n int) ([]byte, error) {
 	i := sort.Search(len(m.regions), func(i int) bool { return m.regions[i].base2 > addr }) - 1
 	if i >= 0 {
@@ -96,7 +96,7 @@ type simBlock struct {
 	epoch      uint32
 }
 
-// yaris paylaşımlı bellek erişimini yarış dedektörüne bildirir.
+// race paylaşımlı bellek erişimini yarış dedektörüne bildirir.
 func (b *simBlock) race(t *simJob, addr, n int, writing bool) error {
 	for w := addr / 4; w <= (addr+n-1)/4; w++ {
 		if b.raceEpoch[w] != b.epoch {
@@ -124,7 +124,7 @@ func (b *simBlock) race(t *simJob, addr, n int, writing bool) error {
 	return nil
 }
 
-// bzBaslat bir çekirdeği bütün ızgarada yürütür.
+// simLaunch bir çekirdeği bütün ızgarada yürütür.
 func simLaunch(is *simFunc, mem *simMemory, grid, block [3]uint32, dynamic int, param [][]byte) error {
 	if len(param) != len(is.param) {
 		return fmt.Errorf("%s: %d parametre bekleniyordu, %d verildi", is.ad, len(is.param), len(param))
@@ -220,7 +220,7 @@ func (b *simBlock) read(t *simJob, o *simTerm) uint64 {
 	return uint64(b.special[o.y])
 }
 
-// calistir iş parçacığını bir engele ya da sona kadar yürütür.
+// run iş parçacığını bir engele ya da sona kadar yürütür.
 func (b *simBlock) run(t *simJob) error {
 	inst := b.is.instructions
 	for {
@@ -267,7 +267,7 @@ func (b *simBlock) run(t *simJob) error {
 	}
 }
 
-// turBayt bir türün bellekteki baytı.
+// dtypeBytes bir türün bellekteki baytı.
 func dtypeBytes(t simType) int {
 	switch t {
 	case simU16, simF16:
@@ -306,7 +306,7 @@ func (b *simBlock) addressSlice(t *simJob, k *simInst, n int, writing bool) ([]b
 	return b.mem.slice(addr, n)
 }
 
-// bitir iş parçacığını bitirir; bekleyen eşzamansız kopyası kalmışsa hatadır.
+// finish iş parçacığını bitirir; bekleyen eşzamansız kopyası kalmışsa hatadır.
 func (b *simBlock) finish(t *simJob) error {
 	if len(t.cp) > 0 {
 		return fmt.Errorf("iş parçacığı %d cp.async kopyası beklenmeden bitti", len(t.cp))
@@ -369,7 +369,7 @@ func f32b(f float32) uint64 { return uint64(math.Float32bits(f)) }
 func f64(v uint64) float64  { return math.Float64frombits(v) }
 func f64b(f float64) uint64 { return math.Float64bits(f) }
 
-// genislik sonucu türün genişliğine kırpar.
+// width sonucu türün genişliğine kırpar.
 func width(t simType, v uint64) uint64 {
 	switch t {
 	case simU16, simF16:
@@ -474,7 +474,7 @@ func computeInt(k *simInst, a, b, c uint64) (uint64, error) {
 	return computeBits(k, a, b, c, sa, signed)
 }
 
-// hesaplaBit tam sayı türlerinde işaret, kaydırma, mantık, seçme ve karşılaştırma.
+// computeBits tam sayı türlerinde işaret, kaydırma, mantık, seçme ve karşılaştırma.
 func computeBits(k *simInst, a, b, c uint64, sa int64, signed bool) (uint64, error) {
 	switch k.op {
 	case simNeg:

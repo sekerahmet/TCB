@@ -80,13 +80,13 @@ type vmShared struct {
 	wg         sync.WaitGroup
 	SourceFile string
 	SourceCode string
-	// KomutAdi programı başlatan komuttur (ör. "tr egit.tr", derlenmiş uygulamada
+	// CommandName programı başlatan komuttur (ör. "tr egit.tr", derlenmiş uygulamada
 	// "uygulama.exe"); komut satırı seçeneklerinin yardımında ve hatalarında gösterilir.
 	// Boşsa "tr <SourceFile>" kullanılır.
 	CommandName string
 	isImported  sync.Mutex
 	Imported    map[string]*DictVal
-	// yuklenen yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
+	// loaded yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
 	// modülü isterse yüklemenin bitmesini bekler.
 	loaded map[string]*moduleLoading
 	// Err programı durdurmayan hataların (eşzamanlı görev hataları) yazıldığı yerdir;
@@ -94,7 +94,7 @@ type vmShared struct {
 	Err         io.Writer
 	isInput     sync.Mutex
 	inputReader *bufio.Reader
-	// yerlesikSabitler genel kapsama kaydedilen yerleşik sabitlerdir (ad → değer; ör. pi);
+	// builtinConstants genel kapsama kaydedilen yerleşik sabitlerdir (ad → değer; ör. pi);
 	// hata ayıklayıcı onları kullanıcı değişkenlerinden ayırır (YerlesikSabitMi).
 	builtinConstants map[string]Value
 
@@ -103,30 +103,30 @@ type vmShared struct {
 	// işlemler bölünmez. Kilit; bekle(), bekle_hepsi(), ağ/disk/süreç beklemeleri gibi
 	// engelleyici işlemlerde bırakılır (bkz. Blocking), böylece görevler yine iç içe ilerler.
 	gil sync.Mutex
-	// bekleyen, kilidi almak için bekleyen görev sayısıdır. Kilidi tutan görev döngü
+	// pending, kilidi almak için bekleyen görev sayısıdır. Kilidi tutan görev döngü
 	// turlarında ve fonksiyon çağrılarında bu sayaca bakar; bekleyen varsa kilidi devreder
 	// (bkz. devret). Böylece CPU-yoğun bir döngü eşzamanlı görevleri sonuna kadar
 	// bekletmez.
 	pending atomic.Int32
-	// gorevKancalari, bir görev kilidi her aldığında çağrılan motor kancalarıdır (bkz.
+	// taskHooks, bir görev kilidi her aldığında çağrılan motor kancalarıdır (bkz.
 	// GorevKancasiEkle). Yalnızca kayıt sırasında (program başlamadan) yazılır.
 	taskHooks []func(*VM)
 
-	// argumanlar betiğe komut satırında verilen argümanlardır; argumanlarOkundu program
+	// arguments betiğe komut satırında verilen argümanlardır; argumanlarOkundu program
 	// onları okuduysa açıktır (bkz. program_args.go).
 	arguments []string
 	argsRead  atomic.Bool
 
-	// kesildi programın nazikçe durdurulması istendiyse açıktır; kesilmeKanali o anda
+	// interrupted programın nazikçe durdurulması istendiyse açıktır; kesilmeKanali o anda
 	// kapanır (bkz. interrupt.go).
 	interrupted   atomic.Bool
 	interruptChan chan struct{}
-	// kesmeErteleyen kesme isteğini adım sınırına erteleyen kontrol noktası sayısıdır;
+	// interruptDeferrers kesme isteğini adım sınırına erteleyen kontrol noktası sayısıdır;
 	// durdurmaIstendi ertelenen bir istek geldiyse açıktır (bkz. KesmeIste).
 	interruptDeferrers atomic.Int32
 	stopRequested      atomic.Bool
 
-	// ciktiMu çıktı noktalarını (CiktiYaz) etkin canlı satırla sıralar; canliVar canlı satır
+	// isOutput çıktı noktalarını (CiktiYaz) etkin canlı satırla sıralar; canliVar canlı satır
 	// varken açıktır (yoksa kilit alınmaz). Bkz. output.go.
 	isOutput sync.Mutex
 	live     LiveLine
@@ -138,7 +138,7 @@ type vmShared struct {
 	secrets  []string
 	mask     atomic.Pointer[strings.Replacer]
 
-	// metinOnbellegi son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
+	// stringCache son indekslenen metnin karakter bilgisidir (bkz. metinKarakterleri).
 	stringCache struct {
 		text  *StringVal
 		ascii bool
@@ -163,23 +163,23 @@ type VM struct {
 	holdsGIL  bool // bu görünüm şu an yorumlayıcı kilidini tutuyor mu (yalnızca kendi goroutine'i okur/yazar)
 	asyncTask bool // 'eşzamanlı' bloğu içinde mi çalışıyor
 
-	// kaynak şu an çalışan kodun dosyasıdır (nil: ana program; bkz. Kaynak). Paylaşılan
+	// source şu an çalışan kodun dosyasıdır (nil: ana program; bkz. Kaynak). Paylaşılan
 	// durumda değil görevde tutulur: bir modül yüklenirken kilidi bırakınca başka bir görev
 	// kendi dosyasının bağlamında kalır. Başka dosyada tanımlı bir fonksiyon çağrılınca o
 	// fonksiyonun dosyasına geçilir (kaynaktaCagir).
 	source *Source
-	// yukleme bu görevin yüklemekte olduğu modüllerin (mutlak yol) zinciridir; döngüsel
+	// loading bu görevin yüklemekte olduğu modüllerin (mutlak yol) zinciridir; döngüsel
 	// aktarımı, başka bir görevin yüklemesini beklemekten ayırır.
 	loading []string
-	// etkinBlok hata ayıklayıcıya danışılan son deyimin bloğudur (bkz. ZiplamaHedefi).
+	// activeBlock hata ayıklayıcıya danışılan son deyimin bloğudur (bkz. ZiplamaHedefi).
 	activeBlock *blockCode
 
-	// gorevDegerleri motorların göreve özel durumudur (ör. tensör motorunun
+	// taskValues motorların göreve özel durumudur (ör. tensör motorunun
 	// karışık_hassasiyet bloğu); bkz. GorevDegeri. Çağrı yığını gibi yalnızca görevin
 	// kendi goroutine'i okur ve yazar; yeni görevler (NewTaskVM) boş başlar.
 	taskValues map[any]any
 
-	// kesmeAtildi bu görevin kesilme paniğini attığını söyler: yığın çözülürken çalışan
+	// interruptThrown bu görevin kesilme paniğini attığını söyler: yığın çözülürken çalışan
 	// 'ertele' blokları yeniden kesilmez (bkz. kesilmeyiDenetle).
 	interruptThrown bool
 }
@@ -246,7 +246,7 @@ func (v *VM) acquireGIL() {
 	}
 }
 
-// devret, kilidi bekleyen bir görev varsa kilidi bırakıp yeniden alır. Yalnızca deyimler
+// handOff, kilidi bekleyen bir görev varsa kilidi bırakıp yeniden alır. Yalnızca deyimler
 // arasında (döngü turu başında, fonksiyon çağrısı girişinde) çağrılır; bir deyimin
 // okuma-yazma adımları ('s += 1') bu yüzden bölünmez. Sayaç denetimi tek görevli
 // programlarda yalnızca bir bellek okumasıdır.
@@ -286,7 +286,7 @@ func (v *VM) Blocking(fn func()) {
 	fn()
 }
 
-// yiginiKirp çağrı yığınını n çerçeveye indirir. Derlenmiş çağrılar çerçevelerini Go
+// trimStack çağrı yığınını n çerçeveye indirir. Derlenmiş çağrılar çerçevelerini Go
 // 'defer' olmadan kaldırır; bir çöküş (panic) yakalandığında yarıda kalan çerçeveler
 // burada atılır.
 func (v *VM) trimStack(n int) {

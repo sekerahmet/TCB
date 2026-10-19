@@ -88,7 +88,7 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	}
 }
 
-// TestNewTaskVMYigini: eşzamanlı görevler başlatıldıkları yerin çağrı yığınını devralır;
+// TestNewTaskVMStack: eşzamanlı görevler başlatıldıkları yerin çağrı yığınını devralır;
 // kopya bağımsızdır.
 func TestNewTaskVMStack(t *testing.T) {
 	mainSrc := New()

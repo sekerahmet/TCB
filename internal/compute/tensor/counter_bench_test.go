@@ -17,7 +17,7 @@ func BenchmarkCounterSmallAdd(b *testing.B) {
 	}
 }
 
-// BenchmarkSayacBaslaBitir bir işlemin sayaç yükünün kendisidir (sayma, etkin işlem, 1/32
+// BenchmarkCounterStartStop bir işlemin sayaç yükünün kendisidir (sayma, etkin işlem, 1/32
 // olasılıkla saat okuması); yalnızca sayaçlı sürümde derlenir.
 func BenchmarkCounterStartStop(b *testing.B) {
 	be := Backend(cpuBackend{})

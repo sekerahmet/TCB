@@ -26,14 +26,14 @@ func (p *Parser) ParseModule() *ast.Program {
 	return p.ParseProgram()
 }
 
-// donguGovdesi bir döngünün gövdesini ayrıştırır.
+// loopBody bir döngünün gövdesini ayrıştırır.
 func (p *Parser) loopBody() *ast.BlockStatement {
 	p.ctx.loops++
 	defer func() { p.ctx.loops-- }()
 	return p.parseBlockStatement()
 }
 
-// sinirIcinde fn'i yeni bir sınırda (döngüsüz bağlamda) ayrıştırır. fonksiyon, sınırın bir
+// withinLimit fn'i yeni bir sınırda (döngüsüz bağlamda) ayrıştırır. fonksiyon, sınırın bir
 // fonksiyon gövdesi olduğunu söyler; test, bir test gövdesi olduğunu.
 func (p *Parser) withinLimit(fnExpr, test bool, fn func()) {
 	prev := p.ctx
@@ -49,19 +49,19 @@ func (p *Parser) withinLimit(fnExpr, test bool, fn func()) {
 	fn()
 }
 
-// fonksiyonGovdesi bir fonksiyon (ok fonksiyonu, sondaki blok) gövdesini ayrıştırır.
+// functionBody bir fonksiyon (ok fonksiyonu, sondaki blok) gövdesini ayrıştırır.
 func (p *Parser) functionBody() (b *ast.BlockStatement) {
 	p.withinLimit(true, false, func() { b = p.parseBlockStatement() })
 	return b
 }
 
-// fonksiyonIfadesi tek ifadeli ok fonksiyonunun gövdesini fonksiyon bağlamında ayrıştırır.
+// functionExpr tek ifadeli ok fonksiyonunun gövdesini fonksiyon bağlamında ayrıştırır.
 func (p *Parser) functionExpr() (e ast.Expression) {
 	p.withinLimit(true, false, func() { e = p.parseExpression(LOWEST) })
 	return e
 }
 
-// sinyalDenetle 'çık'/'devam' deyiminin bir döngü içinde olduğunu denetler.
+// checkSignal 'çık'/'devam' deyiminin bir döngü içinde olduğunu denetler.
 func (p *Parser) checkSignal(tok lexer.Token) {
 	if p.ctx.loops > 0 {
 		return
@@ -73,7 +73,7 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 	p.recordError(tok, "Sözdizimi hatası — '"+tok.Literal+"' yalnızca bir döngünün içinde kullanılabilir"+extra)
 }
 
-// sonucDenetle 'sonuç' deyiminin bulunduğu yerde geçerli olduğunu denetler.
+// checkReturn 'sonuç' deyiminin bulunduğu yerde geçerli olduğunu denetler.
 func (p *Parser) checkReturn(tok lexer.Token) {
 	if p.ctx.funcs > 0 {
 		return
@@ -86,12 +86,12 @@ func (p *Parser) checkReturn(tok lexer.Token) {
 	}
 }
 
-// enFazlaDerinlik ifade ve blokların en fazla iç içelik düzeyidir. Sınırsız iç içelik Go
+// maxDepth ifade ve blokların en fazla iç içelik düzeyidir. Sınırsız iç içelik Go
 // yığınını taşırıp süreci yakalanamaz biçimde çökertirdi; sınırda Türkçe bir sözdizimi
 // hatası verilir ve dosyanın geri kalanı hata üretmeden geçilir.
 const maxDepth = 1000
 
-// derinlikGir bir iç içelik düzeyine girer; sınır aşıldıysa hatayı kaydeder ve yanlış döner
+// enterDepth bir iç içelik düzeyine girer; sınır aşıldıysa hatayı kaydeder ve yanlış döner
 // (çağıran hiçbir şey okumadan döner). Her doğru dönüşün ardından derinlikCik çağrılmalıdır.
 func (p *Parser) enterDepth() bool {
 	if p.depthExceeded {

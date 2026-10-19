@@ -4,7 +4,7 @@ import "fmt"
 
 // Eksen boyunca birikimli toplam ve sıralama (cihazdan bağımsız katman).
 
-// EnCokSiralamaBoyu sıralanan bir eksenin en çok uzunluğudur: indeksler float32 tensörde
+// MaxSortLen sıralanan bir eksenin en çok uzunluğudur: indeksler float32 tensörde
 // tutulur ve 2^24'e kadar tam gösterilir.
 const MaxSortLen = 1 << 24
 
@@ -23,7 +23,7 @@ func (t *Tensor) CumSum(axis int) *Tensor {
 	return r
 }
 
-// siralamaDenetle eksenin sıralanabilirliğini ve k'yı denetler.
+// checkSort eksenin sıralanabilirliğini ve k'yı denetler.
 func (t *Tensor) checkSort(ad string, axis, k int) {
 	L := t.shape[axis]
 	if L > MaxSortLen {

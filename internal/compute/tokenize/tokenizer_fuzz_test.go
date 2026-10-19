@@ -8,10 +8,10 @@ import (
 	"testing"
 )
 
-// kucukBPE bulanıklaştırma tohumlarında bileşenlerin yanına konan küçük bir BPE modelidir.
+// smallBPE bulanıklaştırma tohumlarında bileşenlerin yanına konan küçük bir BPE modelidir.
 const smallBPE = `{"type":"BPE","vocab":{"a":0,"b":1,"ab":2,"<unk>":3,"Ġ":4},"merges":["a b"],"unk_token":"<unk>","byte_fallback":false}`
 
-// FuzzParcalayici: tokenizer.json güvenilmeyen girdidir (indirilen model). Yükleyici
+// FuzzTokenizer: tokenizer.json güvenilmeyen girdidir (indirilen model). Yükleyici
 // hiçbir dosyada çökmemeli; yüklenen parçalayıcı her metni ya kodlamalı ya da
 // *AdimSiniriHatasi döndürmeli; kodlamanın verdiği her kimlik sözlükte olmalı ve kimlikler
 // (geçersizleri de) hata vermeden çözülebilmeli. Derin arama:

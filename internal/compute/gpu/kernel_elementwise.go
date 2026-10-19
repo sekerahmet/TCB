@@ -14,7 +14,7 @@ import (
 // seçilir (yüzlerce el yazısı çekirdek yerine). Bütün aileler float32 bitişik çalışır;
 // 16 bitlik ve adımlı girdileri arka uç önce açar (gecici).
 
-// usKipi OpPow'un çekirdek biçimi: p = 0, 1, 2 özel, diğerleri genel.
+// powMode OpPow'un çekirdek biçimi: p = 0, 1, 2 özel, diğerleri genel.
 func powMode(p float32) string {
 	switch p {
 	case 0, 1, 2:
@@ -23,7 +23,7 @@ func powMode(p float32) string {
 	return "genel"
 }
 
-// tekliIfade y = f(x, p).
+// unaryExpr y = f(x, p).
 func (k *emitter) unaryExpr(op tensor.UnOp, mode2 string, x, p reg) reg {
 	y := k.f()
 	switch op {
@@ -72,7 +72,7 @@ func (k *emitter) unaryExpr(op tensor.UnOp, mode2 string, x, p reg) reg {
 	return y
 }
 
-// tekliTurev gx'e eklenecek terim: g·f'(x, y, p).
+// unaryGrad gx'e eklenecek terim: g·f'(x, y, p).
 func (k *emitter) unaryGrad(op tensor.UnOp, mode2 string, g, x, y, p reg) reg {
 	t := k.f()
 	switch op {
@@ -135,7 +135,7 @@ func (k *emitter) unaryGrad(op tensor.UnOp, mode2 string, g, x, y, p reg) reg {
 	return t
 }
 
-// sinirli i ≥ n ise sona atlar; atlanacak etiketi verir.
+// bounded i ≥ n ise sona atlar; atlanacak etiketi verir.
 func (k *emitter) bounded(i, n reg) string {
 	last := k.label()
 	p := k.p()
@@ -187,7 +187,7 @@ func unaryGradKernel(op tensor.UnOp, mode2 string) func() *emitter {
 var binaryInst = map[tensor.BinOp]string{tensor.OpAdd: "add.rn.f32", tensor.OpSub: "sub.rn.f32",
 	tensor.OpMul: "mul.rn.f32", tensor.OpDiv: "div.rn.f32"}
 
-// ikiliCekirdegi out[i] = a[ofsA] op b[ofsB]; nd = 0 ise üç taraf da düz bitişiktir,
+// binaryKernel out[i] = a[ofsA] op b[ofsB]; nd = 0 ise üç taraf da düz bitişiktir,
 // değilse a ve b'nin ofsetleri meta'dan (şekil, adımA, adımB) ayrıştırılır.
 func binaryKernel(op tensor.BinOp, nd int) func() *emitter {
 	return func() *emitter {

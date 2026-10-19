@@ -40,7 +40,7 @@ func NumberSuffix(n int64, grammarCase Case) string {
 	return Suffix(itoa(n), grammarCase)
 }
 
-// okunus ekin seçimine esas olan sözcüğü döndürür. Sayılar okunuşlarıyla değerlendirilir
+// pronounce ekin seçimine esas olan sözcüğü döndürür. Sayılar okunuşlarıyla değerlendirilir
 // (6 = "altı"); diğer sözcükler kendileridir.
 func pronounce(s string) string {
 	if n, ok := parseInt(s); ok {
@@ -49,7 +49,7 @@ func pronounce(s string) string {
 	return s
 }
 
-// ekBul sözcüğün son ünlüsüne ve son sesine göre eki üretir.
+// findSuffix sözcüğün son ünlüsüne ve son sesine göre eki üretir.
 func findSuffix(word string, grammarCase Case) string {
 	w := []rune(strings.ToLower(word))
 	if len(w) == 0 {
@@ -115,7 +115,7 @@ func findSuffix(word string, grammarCase Case) string {
 var ones = []string{"sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"}
 var tens = []string{"", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"}
 
-// sayiSonSozcuk bir sayının okunuşundaki son sözcüğü verir: 46 → "altı", 40 → "kırk", 2000 → "bin".
+// lastNumberWord bir sayının okunuşundaki son sözcüğü verir: 46 → "altı", 40 → "kırk", 2000 → "bin".
 func lastNumberWord(n int64) string {
 	if n < 0 {
 		n = -n

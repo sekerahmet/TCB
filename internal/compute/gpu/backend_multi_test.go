@@ -8,7 +8,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// TestCokTensorluIyilestirici birden çok parametreyi (biri bir bloğun parçasından uzun, biri
+// TestMultiTensorOptimizer birden çok parametreyi (biri bir bloğun parçasından uzun, biri
 // bfloat16 ana kopyalı, biri gradyansız) tek başlatmada güncelleyen yolu ve gradyan kırpmanın
 // toplu ölçeklemesini CPU ile karşılaştırır. Öğrenme oranı adımlar arasında değiştirilir: yeni
 // oran sonraki adımda kullanılmalıdır (öğrenme_oranı ataması, Y504).
@@ -76,7 +76,7 @@ func TestMultiTensorOptimizer(t *testing.T) {
 	}
 }
 
-// TestKirpmaCihazda gradyan kırpmanın cihazdaki yolunu (kareler toplamı, kirp_norm,
+// TestClipOnDevice gradyan kırpmanın cihazdaki yolunu (kareler toplamı, kirp_norm,
 // cok_olcek_bellek; konak beklemez) CPU ile karşılaştırır: norm 0 boyutlu GPU tensörüdür,
 // kırpılan ve kırpılmayan (ölçek 1: gradyanlar bit bit aynı kalır) durumlar, birden çok
 // bloklu ve gradyansız parametre.
@@ -137,7 +137,7 @@ func TestClipOnDevice(t *testing.T) {
 	}
 }
 
-// TestIyilestiriciTekrarliParametre aynı parametre listede iki kez: CPU'daki gibi iki ardışık
+// TestOptimizerRepeatedParam aynı parametre listede iki kez: CPU'daki gibi iki ardışık
 // güncelleme (tek başlatmada yarış olmaz); gradyan kırpma da aynı gradyanı iki kez ölçekler.
 func TestOptimizerRepeatedParam(t *testing.T) {
 	rng := rand.New(rand.NewSource(9))
@@ -163,7 +163,7 @@ func TestOptimizerRepeatedParam(t *testing.T) {
 	}
 }
 
-// TestCokTensorluParcali geçici kopya sınırı aşılınca çok tensörlü işin parçalara bölündüğü
+// TestMultiTensorChunked geçici kopya sınırı aşılınca çok tensörlü işin parçalara bölündüğü
 // yolu (16 bitlik gradyanlar açılır) CPU ile karşılaştırır.
 func TestMultiTensorChunked(t *testing.T) {
 	oldLimit, oldType := multiTempLimit, tensor.GradDType()

@@ -4,10 +4,10 @@ package dataload
 
 import "os"
 
-// eslemeDestekli, bu platformda bellek eşlemenin denenip denenmeyeceğidir.
+// mmapSupported, bu platformda bellek eşlemenin denenip denenmeyeceğidir.
 const mmapSupported = false
 
-// dosyaEsle bu platformda desteklenmez; çağıran ReadAt yoluna döner.
+// mmapFile bu platformda desteklenmez; çağıran ReadAt yoluna döner.
 func mmapFile(f *os.File, dim int64) ([]byte, func() error, error) {
 	return nil, nil, errNoMmap
 }

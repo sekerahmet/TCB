@@ -25,12 +25,12 @@ import (
 //     yakala'nın 'hata'sı, döngü ve üreteç değişkenleri, parametreler ve yapı metotlarındaki
 //     'kendi' kendi kapsamlarında tanımlıdır.
 
-// adKapsami tanımsız ad denetiminin sözcüksel kapsamıdır.
+// nameScope tanımsız ad denetiminin sözcüksel kapsamıdır.
 type nameScope struct {
 	parent  *nameScope
 	names   map[string]bool
 	dynamic bool // takma adsız 'aktar': adlar çalışma anında belli olur
-	// yapilar kapsamda tanımlanan yapılardır (kurucuya verilen adlı argümanlar alan adıdır);
+	// structs kapsamda tanımlanan yapılardır (kurucuya verilen adlı argümanlar alan adıdır);
 	// ortuk, kapsamın örtük adlarının bağlamsal kodlarıdır (sondaki bloğun 'o'su ve
 	// 'birikim'i, adı yazılmamış yakala'nın 'hata'sı). İkisi de ad bağlarında kullanılır
 	// (bindings.go).
@@ -50,7 +50,7 @@ func (k *nameScope) define(name string) {
 	k.names[name] = true
 }
 
-// bilinir ad bu kapsamdan görünüyor mu (ya da adları belirsiz bir kapsamın altında mı)?
+// isKnown ad bu kapsamdan görünüyor mu (ya da adları belirsiz bir kapsamın altında mı)?
 func (k *nameScope) isKnown(name string) bool {
 	for c := k; c != nil; c = c.parent {
 		if c.names[name] || c.dynamic {
@@ -60,7 +60,7 @@ func (k *nameScope) isKnown(name string) bool {
 	return builtinNames()[name]
 }
 
-// gorunenler öneri için bu kapsamdan görünen adlardır (yerleşikler dahil).
+// visible öneri için bu kapsamdan görünen adlardır (yerleşikler dahil).
 func (k *nameScope) visible() []string {
 	var out []string
 	for c := k; c != nil; c = c.parent {
@@ -75,15 +75,15 @@ func (k *nameScope) visible() []string {
 	return out
 }
 
-// adDenetleyici bir programın tanımsız ad denetimidir; bulunan hatalar Checker'a eklenir.
+// nameChecker bir programın tanımsız ad denetimidir; bulunan hatalar Checker'a eklenir.
 type nameChecker struct {
 	c    *Checker
 	decl map[string]bool // aynı ad için tek hata (ilk geçtiği yer)
-	// baglar nil değilse gezinti hata aramaz, her adın neye bağlandığını dil'in adlarıyla
+	// bindings nil değilse gezinti hata aramaz, her adın neye bağlandığını dil'in adlarıyla
 	// kaydeder (NameBindings, bindings.go).
 	bindings *[]NameBinding
 	lang     *codes.Language
-	// cakisanlar kodla yazılmış bir sözcüğün dil'deki adını kendi yerinde yakalayan kullanıcı
+	// conflicts kodla yazılmış bir sözcüğün dil'deki adını kendi yerinde yakalayan kullanıcı
 	// adlarıdır (AdBaglari).
 	conflicts map[string]bool
 }
@@ -115,7 +115,7 @@ func TopLevelNames(prog *ast.Program) (names []string, dynamic bool) {
 	return names, k.dynamic
 }
 
-// adlariDenetle programı tanımsız adlar için denetler. Genel kapsam Checker'da kalıcıdır:
+// checkNames programı tanımsız adlar için denetler. Genel kapsam Checker'da kalıcıdır:
 // etkileşimli kabukta önceki satırların tanımları sonraki satırlarda görünür.
 func (c *Checker) checkNames(prog *ast.Program) {
 	if c.globalNames == nil {
@@ -128,7 +128,7 @@ func (c *Checker) checkNames(prog *ast.Program) {
 	}
 }
 
-// tanimlar deyimlerin, çalıştıkları kapsama doğrudan tanımladığı adları kapsama ekler
+// declare deyimlerin, çalıştıkları kapsama doğrudan tanımladığı adları kapsama ekler
 // (çalışma anının kapsam kuralıyla aynı: değişken, sabit, yapı, takma adlı aktar ve
 // ifadelerin içindeki adlı fonksiyonlar; iç bloklar ve fonksiyon gövdeleri kendi kapsamıdır).
 func (d *nameChecker) declare(stmts []ast.Statement, k *nameScope) {
@@ -182,7 +182,7 @@ func (d *nameChecker) declare(stmts []ast.Statement, k *nameScope) {
 	}
 }
 
-// ifadeTanimlari ifadenin, değerlendirildiği kapsama tanımladığı adları (fonksiyon f() { }
+// exprDefinitions ifadenin, değerlendirildiği kapsama tanımladığı adları (fonksiyon f() { }
 // biçimindeki adlı fonksiyonlar) ekler; fonksiyon gövdelerine ve bloklara inmez.
 func (d *nameChecker) exprDefinitions(e ast.Expression, k *nameScope) {
 	walkTree(e, func(x ast.Expression) bool {
@@ -198,7 +198,7 @@ func (d *nameChecker) exprDefinitions(e ast.Expression, k *nameScope) {
 	})
 }
 
-// agacGez ifade ağacını ön sırayla gezer; ziyaret false dönerse düğümün çocuklarına inmez.
+// walkTree ifade ağacını ön sırayla gezer; ziyaret false dönerse düğümün çocuklarına inmez.
 // Blok içeren düğümlerin (eğer, eşle, fonksiyon) yalnızca ifade çocukları gezilir.
 func walkTree(e ast.Expression, visit func(ast.Expression) bool) {
 	if e == nil || !visit(e) {
@@ -244,7 +244,7 @@ func walkTree(e ast.Expression, visit func(ast.Expression) bool) {
 	}
 }
 
-// blok deyimleri yeni bir alt kapsamda denetler; once alt kapsama önceden tanımlanacak
+// block deyimleri yeni bir alt kapsamda denetler; once alt kapsama önceden tanımlanacak
 // adları (döngü değişkeni, parametreler ...) ekler.
 func (d *nameChecker) block(b *ast.BlockStatement, parent *nameScope, preset ...string) {
 	if b == nil {
@@ -257,7 +257,7 @@ func (d *nameChecker) block(b *ast.BlockStatement, parent *nameScope, preset ...
 	d.blockInScope(b, k)
 }
 
-// blokKapsamda bloğun deyimlerini hazırlanmış k kapsamında denetler.
+// blockInScope bloğun deyimlerini hazırlanmış k kapsamında denetler.
 func (d *nameChecker) blockInScope(b *ast.BlockStatement, k *nameScope) {
 	if b == nil {
 		return
@@ -337,7 +337,7 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 	}
 }
 
-// fonksiyon gövdeyi parametrelerin (ve metotta 'kendi'nin) tanımlı olduğu kapsamda denetler.
+// function gövdeyi parametrelerin (ve metotta 'kendi'nin) tanımlı olduğu kapsamda denetler.
 func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...string) {
 	if f == nil {
 		return
@@ -359,7 +359,7 @@ func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...st
 	d.block(f.Body, pk)
 }
 
-// hedef atamanın sol tarafını denetler: ad tanımlı olmalı (çalışma anında tanımsız ada
+// target atamanın sol tarafını denetler: ad tanımlı olmalı (çalışma anında tanımsız ada
 // atama hatadır, bkz. 5.4); indeks ve alan hedeflerinde nesne okunur.
 func (d *nameChecker) target(e ast.Expression, k *nameScope) {
 	d.expression(e, k)
@@ -412,7 +412,7 @@ func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
 	})
 }
 
-// ad, okunan ya da atanan bir adın görünür olduğunu denetler.
+// name, okunan ya da atanan bir adın görünür olduğunu denetler.
 func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
 	if k.isKnown(id.Value) || d.decl[id.Value] {
 		return
@@ -422,7 +422,7 @@ func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
 		id.Line(), id.Token.Column, hint.UndefinedNameMessage(id.Value, k.visible())))
 }
 
-// satiraGoreSirala hata metinlerini baştaki "Satır N" numarasına göre (eşitlikte ilk
+// sortByLine hata metinlerini baştaki "Satır N" numarasına göre (eşitlikte ilk
 // sırayı koruyarak) sıralar.
 func sortByLine(errList []string) {
 	line := func(h string) int {

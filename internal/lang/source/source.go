@@ -19,7 +19,7 @@ import (
 // not stored in the file; each person picks their own writing language.
 const Header = lexer.CodedHeader
 
-// baslikOneki kodlu biçim başlıklarının ortak başıdır; bu önekle başlayıp Baslik olmayan
+// headerPrefix kodlu biçim başlıklarının ortak başıdır; bu önekle başlayıp Baslik olmayan
 // bir ilk satır, bu sürümün okuyamadığı bir biçimdir (sessizce Türkçe kaynak sayılmaz).
 const headerPrefix = "//! tr kodlu"
 
@@ -72,7 +72,7 @@ func Split(text string) (Parts, error) {
 	return b, nil
 }
 
-// ilkSatir metnin ilk satırını, ondan sonrasını ve aradaki satır sonunu verir.
+// firstLine metnin ilk satırını, ondan sonrasını ve aradaki satır sonunu verir.
 func firstLine(text string) (first, rest, eol string) {
 	i := strings.IndexByte(text, '\n')
 	if i < 0 {
@@ -104,7 +104,7 @@ func (b Parts) Lexer() *lexer.Lexer {
 	return lexer.NewBody(b.Body, b.Coded)
 }
 
-// satirSonuBul bir gövdenin satır sonu biçimidir: ilk satır sonu CRLF ise "\r\n", yoksa "\n".
+// findEOL bir gövdenin satır sonu biçimidir: ilk satır sonu CRLF ise "\r\n", yoksa "\n".
 // Kodla başlığı gövdenin biçimiyle yazar.
 func findEOL(body string) string {
 	if i := strings.IndexByte(body, '\n'); i > 0 && body[i-1] == '\r' {

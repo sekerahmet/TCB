@@ -90,7 +90,7 @@ func ReadError(fn, filePath, operation string, err error, searched []string) err
 // not run from a file.
 func (v *VM) CodeDirs() []string { return v.searchDirs() }
 
-// aramaKlasorleri göreli yolların çalışma klasöründen sonra arandığı klasörlerdir: kod bir
+// searchDirs göreli yolların çalışma klasöründen sonra arandığı klasörlerdir: kod bir
 // modülde çalışıyorsa önce o modülün klasörü, sonra programın klasörü. Program bir
 // dosyadan çalışmıyorsa (etkileşimli kabuk, derlenmiş uygulama: "<...>") onun klasörü yoktur;
 // dilin gömülü kitaplığındaki bir modülün (11.6) diskte klasörü yoktur.

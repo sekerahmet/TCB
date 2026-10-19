@@ -32,7 +32,7 @@ func (p *Parser) RecordRoles() {
 // interpolations are included (with their positions in the file).
 func (p *Parser) Roles() map[[2]int]NameRole { return p.roles }
 
-// rol kayıt açıksa bir ad sözcüğünün görevini kaydeder.
+// role kayıt açıksa bir ad sözcüğünün görevini kaydeder.
 func (p *Parser) role(tok lexer.Token, r NameRole) {
 	if p.roles != nil && tok.Type == lexer.TOKEN_IDENT {
 		p.roles[[2]int{tok.Line, tok.Column}] = r

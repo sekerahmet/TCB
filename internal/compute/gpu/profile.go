@@ -26,7 +26,7 @@ import (
 // edilmez, havuzda yeniden kullanılır (en çok ~32 bin olay).
 // Bellek için başlatılan çöp toplamalar adım başına sayılır (copKaydet).
 
-// profilAcik süreç genelinde ölçüm bayrağı.
+// profileOn süreç genelinde ölçüm bayrağı.
 var profileOn atomic.Bool
 
 func init() {
@@ -35,33 +35,33 @@ func init() {
 	}
 }
 
-// profKayit çözülmeyi bekleyen bir ölçüm.
+// profRecord çözülmeyi bekleyen bir ölçüm.
 type profRecord struct {
 	ad          string
 	begin, last uintptr
 	step        int32
 }
 
-// cekIstat bir çekirdeğin toplamları.
+// pullStats bir çekirdeğin toplamları.
 type pullStats struct {
 	num int64
 	ms  float64
 }
 
-// adimIstat bir adımın toplamları.
+// stepStats bir adımın toplamları.
 type stepStats struct {
 	wall, host, equal time.Duration
 	gpuMS, idleMs     float64
 	launching         int64
 	gc                int64         // bellek için başlatılan çöp toplama
 	gcTime            time.Duration // çöp toplamada beklenen süre
-	// bitti adım bir sonraki işaretle kapandı (duvar ölçüldü). Tamamlanmış adım süreye göre
+	// done adım bir sonraki işaretle kapandı (duvar ölçüldü). Tamamlanmış adım süreye göre
 	// değil buna göre seçilir: Windows'ta konak saati kabadır (0,5-15,6 ms), kısa bir adımın
 	// duvar süresi 0 ölçülebilir.
 	done bool
 }
 
-// profil bir arka ucun ölçüm durumu. Olay işleri arka ucun kilidi altında yapılır;
+// profile bir arka ucun ölçüm durumu. Olay işleri arka ucun kilidi altında yapılır;
 // toplamlar kendi kilidiyle (mu) korunur, böylece anlık görüntü arka ucu beklemez.
 type profile struct {
 	support      int8 // 0 denenmedi, 1 var, -1 yok (sürücü olayları vermiyor)
@@ -80,10 +80,10 @@ type profile struct {
 	written   int64 // son özet yazıldığındaki cagri
 }
 
-// adimNo şimdiki adımın sırası (işaretlenmemişse 0).
+// stepNo şimdiki adımın sırası (işaretlenmemişse 0).
 func (p *profile) stepNo() int32 { return int32(len(p.steps)) }
 
-// olcBasla ölçüm açıksa başlangıç olayını sıraya koyar; kapalıysa 0 döner.
+// measureStart ölçüm açıksa başlangıç olayını sıraya koyar; kapalıysa 0 döner.
 func (g *backend) measureStart() uintptr {
 	if !profileOn.Load() {
 		return 0
@@ -109,7 +109,7 @@ func (g *backend) measureStart() uintptr {
 	return ev
 }
 
-// olcBitir bitiş olayını koyar ve ölçümü bekleyenlere ekler.
+// measureEnd bitiş olayını koyar ve ölçümü bekleyenlere ekler.
 func (g *backend) measureEnd(ad string, begin uintptr) {
 	if begin == 0 {
 		return
@@ -143,7 +143,7 @@ func (g *backend) takeEvent() uintptr {
 	return ev
 }
 
-// olcCoz geçilmiş ölçümleri (sırayla, ilk geçilmemişe kadar) toplamlara ekler.
+// measureParse geçilmiş ölçümleri (sırayla, ilk geçilmemişe kadar) toplamlara ekler.
 func (g *backend) measureParse() {
 	p := &g.profiler
 	p.lastResolved = time.Now()
@@ -179,7 +179,7 @@ func (g *backend) measureParse() {
 	p.pending = append(p.pending[:0], p.pending[n:]...)
 }
 
-// adimAl i. adımın toplamlarını verir (0: ilk işaretten önce).
+// takeStep i. adımın toplamlarını verir (0: ilk işaretten önce).
 func (p *profile) takeStep(i int32) *stepStats {
 	if i == 0 || int(i) > len(p.steps) {
 		return &stepStats{} // işaretsiz bölge: yalnızca çekirdek toplamlarına girer
@@ -187,7 +187,7 @@ func (p *profile) takeStep(i int32) *stepStats {
 	return &p.steps[i-1]
 }
 
-// adimIsaretle yeni bir eğitim adımını başlatır (iyileştiricinin adımı çağırır).
+// markStep yeni bir eğitim adımını başlatır (iyileştiricinin adımı çağırır).
 func (g *backend) markStep() {
 	if !profileOn.Load() || g.profiler.support < 0 {
 		return
@@ -204,7 +204,7 @@ func (g *backend) markStep() {
 	p.mu.Unlock()
 }
 
-// copKaydet bellek için başlatılan bir çöp toplamayı şimdiki adıma yazar.
+// recordGC bellek için başlatılan bir çöp toplamayı şimdiki adıma yazar.
 func (p *profile) recordGC(d time.Duration) {
 	if !profileOn.Load() {
 		return
@@ -262,7 +262,7 @@ func (g *backend) equalFinish() {
 	}
 }
 
-// cekirdekAilesi çekirdek adının ailesi: ilk "_<rakam>" ya da "_true/_false" ekinden önceki
+// kernelFamily çekirdek adının ailesi: ilk "_<rakam>" ya da "_true/_false" ekinden önceki
 // kısım (ör. "carpim_128_128_8" → "carpim", "tekli_turev_3_" → "tekli_turev"). Kitaplığın
 // matris çarpımları da "carpim" ailesindedir (çekirdek tablosunda adlarıyla ayrılırlar).
 func kernelFamily(ad string) string {
@@ -278,7 +278,7 @@ func kernelFamily(ad string) string {
 	return ad
 }
 
-// sirali çekirdek toplamlarını GPU süresine göre azalan sırada verir.
+// sorted çekirdek toplamlarını GPU süresine göre azalan sırada verir.
 func (p *profile) sorted() []KernelSample {
 	p.mu.Lock()
 	defer p.mu.Unlock()

@@ -23,7 +23,7 @@ import (
 // dS = P·(dP − Σ dO·O)·ölçek, dQ += dS·k, dK += dSᵀ·q. Hiçbir anahtara bakamayan satırda
 // P = 0 ve lse = +sonsuz'dur (çıktı ve gradyan 0). Bellek Tq·Tk ile büyür.
 
-// dikkatSinirlari sorgu satırı i için bakılabilen anahtar aralığı [lo, hi) (CPU
+// attnLimits sorgu satırı i için bakılabilen anahtar aralığı [lo, hi) (CPU
 // AttentionParams.Limits ile aynı kural); nedensel ve pencere çalışma anı parametresidir.
 func (k *emitter) attnLimits(i, Tq, Tk, causal, window reg) (lo, hi reg) {
 	c := k.r()
@@ -55,7 +55,7 @@ func (k *emitter) attnLimits(i, Tq, Tk, causal, window reg) (lo, hi reg) {
 	return lo, hi
 }
 
-// dikkatGorunur anahtar jj'nin görünürlüğü (sınırlar ve ek maske).
+// attnVisible anahtar jj'nin görünürlüğü (sınırlar ve ek maske).
 func (k *emitter) attnVisible(jj, lo, hi, maskBase reg, md, msK reg, mask2 bool) reg {
 	p1, p2 := k.p(), k.p()
 	k.e("setp.ge.s32", p1, jj, lo)
@@ -74,7 +74,7 @@ func (k *emitter) attnVisible(jj, lo, hi, maskBase reg, md, msK reg, mask2 bool)
 	return p1
 }
 
-// dikkatSatir puan satırı çekirdeğinin ortak yazmaçları.
+// attnRow puan satırı çekirdeğinin ortak yazmaçları.
 type attnRow struct {
 	k                  *emitter
 	s, lse, md         reg
@@ -85,7 +85,7 @@ type attnRow struct {
 	mask2              bool
 }
 
-// puan S·ölçek.
+// score S·ölçek.
 func (d *attnRow) score(ofs reg) reg {
 	v := d.k.load(tensor.Float32, d.k.rowAddress(d.s, ofs))
 	d.k.e("mul.rn.f32", v, v, d.scaleF)
@@ -96,7 +96,7 @@ func (d *attnRow) visible(jj reg) reg {
 	return d.k.attnVisible(jj, d.lo, d.hi, d.mt, d.md, d.msK, d.mask2)
 }
 
-// dikkatSatirCekirdegi puan satırları üzerinde yerinde çalışır. ileri: P = softmax ve
+// attnRowKernel puan satırları üzerinde yerinde çalışır. ileri: P = softmax ve
 // lse yazılır; değilse (geri) P = görünür ? e^{S·ölçek − lse} : 0.
 func attnRowKernel(B int, mask2, forward bool) func() *emitter {
 	return func() *emitter {
@@ -141,7 +141,7 @@ func attnRowKernel(B int, mask2, forward bool) func() *emitter {
 	}
 }
 
-// geri P = görünür ? e^{S·ölçek − lse} : 0.
+// backward P = görünür ? e^{S·ölçek − lse} : 0.
 func (d *attnRow) backward(Tk reg) {
 	k := d.k
 	l := k.load(tensor.Float32, k.address(d.lse, d.R, 4))
@@ -154,7 +154,7 @@ func (d *attnRow) backward(Tk reg) {
 	})
 }
 
-// ileri maskeli softmax ve lse (boş satırda P = 0, lse = +sonsuz).
+// forward maskeli softmax ve lse (boş satırda P = 0, lse = +sonsuz).
 func (d *attnRow) forward(Tk, sm reg) {
 	k := d.k
 	minus := float32(math.Inf(-1))
@@ -197,7 +197,7 @@ func (d *attnRow) forward(Tk, sm reg) {
 	k.put(last)
 }
 
-// dikkatGeriCekirdegi dS = P·(dP − Σ_d dO·O)·ölçek; dS, dP tamponuna yerinde yazılır.
+// attnBackwardKernel dS = P·(dP − Σ_d dO·O)·ölçek; dS, dP tamponuna yerinde yazılır.
 func attnBackwardKernel(B int) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("dikkat_geri_%d", B))
@@ -234,7 +234,7 @@ func attnBackwardKernel(B int) func() *emitter {
 	}
 }
 
-// dikkatSatirlari puan satırı çekirdeğini başlatır.
+// attnRows puan satırı çekirdeğini başlatır.
 func (g *backend) attnRows(s, lse *storage, mask2 *storage, mo *storage, p tensor.AttentionParams, forward bool) {
 	R := p.Batch * p.H * p.Tq
 	B := powerOfTwo(p.Tk, 32, 256)
@@ -253,7 +253,7 @@ func (g *backend) attnRows(s, lse *storage, mask2 *storage, mo *storage, p tenso
 	g.launch(c, [3]uint32{uint32(R), 1, 1}, [3]uint32{uint32(B), 1, 1}, pr)
 }
 
-// dikkatHazirla ortak denetimler ve maske ofsetlerinin yüklenmesi.
+// prepareAttn ortak denetimler ve maske ofsetlerinin yüklenmesi.
 func (g *backend) prepareAttn(gt *temp, mask tensor.Storage, p tensor.AttentionParams) (md, mo *storage) {
 	if p.H%max(p.Hkv, 1) != 0 {
 		panic(fmt.Sprintf("tensor: GPU: dikkat baş sayıları uyumsuz (%d, %d)", p.H, p.Hkv))
@@ -266,7 +266,7 @@ func (g *backend) prepareAttn(gt *temp, mask tensor.Storage, p tensor.AttentionP
 	return md, mo
 }
 
-// dikkatMatris dikkatin matris çarpımı yolu (ileri); lse'yi doldurur.
+// attnMatrix dikkatin matris çarpımı yolu (ileri); lse'yi doldurur.
 func (g *backend) attnMatrix(gt *temp, od, lse *storage, q, k, v tensor.View, md, mo *storage, p tensor.AttentionParams) {
 	checkAttnSize(p, false)
 	R := p.Batch * p.H * p.Tq
@@ -279,7 +279,7 @@ func (g *backend) attnMatrix(gt *temp, od, lse *storage, q, k, v tensor.View, md
 	g.gemm(Z, G*p.Tq, p.Dv, p.Tk, sv, false, vv, false, od, 0, true)
 }
 
-// dikkatMatrisGeri dikkatin matris çarpımı yolu (geri); gradyanlar eklenir.
+// attnMatrixBackward dikkatin matris çarpımı yolu (geri); gradyanlar eklenir.
 func (g *backend) attnMatrixBackward(gt *temp, gq, gk, gv, gs tensor.Storage, q, k, v tensor.View, md, mo *storage, o, lse tensor.Storage, p tensor.AttentionParams) {
 	checkAttnSize(p, false)
 	R := p.Batch * p.H * p.Tq

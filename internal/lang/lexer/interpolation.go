@@ -15,14 +15,14 @@ import (
 // hata mesajları doğru yeri gösterir, kodlu biçime çevirici (internal/lang/source) yalnızca o
 // sözcüğün aralığını değiştirir.
 
-// metinYaz metnin değerine bir karakter yazar ve karakterin kaynaktaki konumunu biriktirir
+// appendString metnin değerine bir karakter yazar ve karakterin kaynaktaki konumunu biriktirir
 // (kaynak, bu çözümleyicinin girdisindeki indekstir).
 func (l *Lexer) appendString(sb *strings.Builder, r rune, source int) {
 	sb.WriteRune(r)
 	l.strBuf = append(l.strBuf, l.sourcePos(source))
 }
 
-// metinBilgisi yerleştirme içeren bir metin sabitinin bilgisidir: değerdeki her karakterin
+// stringInfo yerleştirme içeren bir metin sabitinin bilgisidir: değerdeki her karakterin
 // kökün girdisindeki konumu ve yerleştirmelerin değerdeki aralıkları ('{' ve onu kapatan '}'
 // indeksleri; kapanmayanda son -1). Aralıkları sözcük çözümleyici metni okurken çıkarır;
 // ayrıştırıcı ve kodlu biçimin ön taraması aynı aralıkları kullanır.
@@ -31,7 +31,7 @@ type stringInfo struct {
 	positions [][2]int
 }
 
-// metinKonumlariniSakla okunan metnin bilgisini kökte, metnin satır ve sütunuyla saklar.
+// saveStringPositions okunan metnin bilgisini kökte, metnin satır ve sütunuyla saklar.
 func (l *Lexer) saveStringPositions(lineNo, colNo int) {
 	k := l.root
 	if k.stringInfos == nil {
@@ -43,7 +43,7 @@ func (l *Lexer) saveStringPositions(lineNo, colNo int) {
 	}
 }
 
-// metinHaritasi metin sabitinin karakter konumlarıdır (yoksa nil).
+// stringMap metin sabitinin karakter konumlarıdır (yoksa nil).
 func (l *Lexer) stringMap(text Token) []int32 {
 	if b := l.root.stringInfos[[2]int{text.Line, text.Column}]; b != nil {
 		return b.srcPos
@@ -69,7 +69,7 @@ func (l *Lexer) Interpolations(text Token) [][2]int {
 	return out
 }
 
-// kaynakKonumu girdideki i. karakterin kökün girdisindeki indeksidir.
+// sourcePos girdideki i. karakterin kökün girdisindeki indeksidir.
 func (l *Lexer) sourcePos(i int) int32 {
 	if l.posMap == nil {
 		return int32(i)
@@ -83,7 +83,7 @@ func (l *Lexer) sourcePos(i int) int32 {
 	return l.posMap[len(l.posMap)-1] + 1
 }
 
-// satirSutun kökün girdisindeki bir indeksin satır ve sütunudur (1'den başlar; sütun karakter
+// lineCol kökün girdisindeki bir indeksin satır ve sütunudur (1'den başlar; sütun karakter
 // sayar). Satır başları ilk istendiğinde bir kez çıkarılır.
 func (l *Lexer) lineCol(i int) (int, int) {
 	if l.lineStarts == nil {

@@ -65,7 +65,7 @@ type reProgram struct {
 	k []reInst
 }
 
-// dfIlkKume bir dalın tüketebileceği ilk karakterlerin üst kümesidir.
+// reFirstSet bir dalın tüketebileceği ilk karakterlerin üst kümesidir.
 type reFirstSet struct {
 	ascii [2]uint64
 	runes []rune
@@ -89,7 +89,7 @@ func (k *reFirstSet) inside(r rune) bool {
 	return false
 }
 
-// dfIlkKumeKur düğüm en az bir karakter tüketiyorsa ilk karakter kümesini,
+// reBuildFirstSet düğüm en az bir karakter tüketiyorsa ilk karakter kümesini,
 // değilse nil verir.
 func reBuildFirstSet(d reNode) *reFirstSet {
 	if reMinLen(d) == 0 {
@@ -118,7 +118,7 @@ func reBuildFirstSet(d reNode) *reFirstSet {
 	return k
 }
 
-// dfDerleyici desen ağacını programa çevirir; döngü yuvaları bütün alt
+// reCompiler desen ağacını programa çevirir; döngü yuvaları bütün alt
 // programlarda ortak numaralanır.
 type reCompiler struct{ slot int }
 
@@ -259,7 +259,7 @@ func (m *reMatcher) next(pos int) (rune, int) {
 	return utf8.DecodeRuneInString(m.s[pos:])
 }
 
-// tekEsle tek karakterlik komutu pos'ta sınar.
+// matchSingle tek karakterlik komutu pos'ta sınar.
 func (m *reMatcher) matchSingle(k *reInst, pos int) (int, bool) {
 	r, w := m.next(pos)
 	if w == 0 {
@@ -304,7 +304,7 @@ func (m *reMatcher) anchor(kind byte, pos int) bool {
 	return false
 }
 
-// calistir programı pos'tan yürütür ve ilk başarılı bitişi (yoksa -1) verir.
+// run programı pos'tan yürütür ve ilk başarılı bitişi (yoksa -1) verir.
 // hedef >= 0 ise yalnızca hedef konumunda biten eşleşme kabul edilir
 // (geriye bakma). Dönüşte yığın, girişteki hâline indirilmiştir: başarılı
 // bir alt programın seçim noktaları atılır (atomik anlam).
@@ -480,7 +480,7 @@ func (m *reMatcher) run(p *reProgram, pos, target int) int {
 // Arama
 // ---------------------------------------------------------------------------
 
-// dfButce bir çağrının (ör. bir metnin kodlanması) bütün düzenli ifade
+// reBudget bir çağrının (ör. bir metnin kodlanması) bütün düzenli ifade
 // aramalarının paylaştığı adım bütçesidir.
 type reBudget struct {
 	rest int64
@@ -494,7 +494,7 @@ func reSatAdd(a, b int64) int64 {
 	return a + b
 }
 
-// yeniButce bayt uzunluğundaki bir girdi için bütçe açar:
+// newBudget bayt uzunluğundaki bir girdi için bütçe açar:
 // AdimTabani + AdimCarpani * bayt.
 func newBudget(byteVal int) *reBudget {
 	b := &reBudget{}
@@ -504,7 +504,7 @@ func newBudget(byteVal int) *reBudget {
 	return b
 }
 
-// ekle bütçeyi bayt uzunluğunda ek girdi için büyütür (AdimCarpani * bayt).
+// add bütçeyi bayt uzunluğunda ek girdi için büyütür (AdimCarpani * bayt).
 func (b *reBudget) add(byteVal int) {
 	if byteVal <= 0 {
 		return
@@ -526,7 +526,7 @@ func (d *Regex) matcher(s string, b *reBudget) *reMatcher {
 	return m
 }
 
-// Bul s içinde bas konumundan itibaren en soldaki eşleşmeyi verir. Arama
+// Find s içinde bas konumundan itibaren en soldaki eşleşmeyi verir. Arama
 // AdimTabani + AdimCarpani * (kalan bayt) adımlık bir bütçe kullanır; aşılırsa
 // *AdimSiniriHatasi döner.
 func (d *Regex) Find(s string, begin int) (b, e int, ok bool, err error) {
@@ -537,13 +537,13 @@ func (d *Regex) Find(s string, begin int) (b, e int, ok bool, err error) {
 	return
 }
 
-// TumEslesmelerHata, TumEslesmeler'in hata döndüren biçimidir: adım bütçesi
+// FindAllErr, TumEslesmeler'in hata döndüren biçimidir: adım bütçesi
 // aşılırsa arama durur ve *AdimSiniriHatasi döner.
 func (d *Regex) FindAllErr(s string, f func(begin, last int)) error {
 	return catchStepError(func() { d.allMatches(s, f, nil) })
 }
 
-// TumEslesmeler çakışmayan bütün eşleşmeleri sırayla verir. Bir önceki
+// FindAll çakışmayan bütün eşleşmeleri sırayla verir. Bir önceki
 // eşleşmenin hemen ardından gelen boş eşleşme kabul edilmez (sonsuz
 // döngüyü önler); bu durumda arama bir karakter ileriden sürer. Bütün
 // aramalar tek bir AdimTabani + AdimCarpani * len(s) adımlık bütçeyi paylaşır;
@@ -553,7 +553,7 @@ func (d *Regex) FindAll(s string, f func(begin, last int)) {
 	d.allMatches(s, f, nil)
 }
 
-// tumEslesmeler eşleşmeleri verir ve atılan adım sayısını döndürür. b nil
+// allMatches eşleşmeleri verir ve atılan adım sayısını döndürür. b nil
 // değilse adımlar o bütçeden düşülür (bir kodlama çağrısının bütün
 // aramaları aynı bütçeyi paylaşır); nil ise s için yeni bir bütçe açılır.
 func (d *Regex) allMatches(s string, f func(begin, last int), b *reBudget) int64 {
@@ -584,7 +584,7 @@ func (d *Regex) allMatches(s string, f func(begin, last int), b *reBudget) int64
 	return m.step
 }
 
-// bulM bas'tan itibaren ilk eşleşmeyi arar.
+// findM bas'tan itibaren ilk eşleşmeyi arar.
 func (d *Regex) findM(m *reMatcher, begin int) (int, int, bool) {
 	m.begin = begin
 	for p := begin; p <= len(m.s); {

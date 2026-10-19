@@ -63,7 +63,7 @@ func Encode(text string) (string, error) {
 	return result, nil
 }
 
-// yenidenKodlanir kodlu metnin çözülmüş hâli kodlanınca aynı kodlu metni veriyor mu?
+// reencodes kodlu metnin çözülmüş hâli kodlanınca aynı kodlu metni veriyor mu?
 func reencodes(decoded, coded string) bool {
 	b, err := Split(decoded)
 	if err != nil || b.Coded {
@@ -78,7 +78,7 @@ func reencodes(decoded, coded string) bool {
 	return fresh.Join() == coded
 }
 
-// kodluGovde Türkçe gövdenin kodlu biçimidir: anahtar kelimeler ve dilin öğesi olan adlar
+// codedBody Türkçe gövdenin kodlu biçimidir: anahtar kelimeler ve dilin öğesi olan adlar
 // kodlarıyla yazılır, '$ad' kaçışlarının '$'ı atılır; başka hiçbir şey değişmez.
 func (c *analysis) codedBody() string {
 	var d []change
@@ -104,10 +104,23 @@ func Decode(text string, lang *codes.Language) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return Parts{BOM: b.BOM, Body: c.viewBody()}.Join(), nil
+	view := c.viewBody()
+	// The view must read back as the same program. The lexer reads only the active language,
+	// so the check runs when lang is the active one ('tr göster --dil' re-executes itself with
+	// the view language for this reason).
+	if lang == codes.Active() && !reencodesBody(view, b.Body) {
+		return "", ErrLossy
+	}
+	return Parts{BOM: b.BOM, Body: view}.Join(), nil
 }
 
-// gosterimGovdesi kodlu gövdenin c.dil'deki yazımıdır.
+// reencodesBody reports whether the view body, encoded again, gives the coded body back.
+func reencodesBody(view, codedBody string) bool {
+	c, err := analyze(Parts{Body: view}, codes.Active())
+	return err == nil && c.codedBody() == codedBody
+}
+
+// viewBody kodlu gövdenin c.dil'deki yazımıdır.
 func (c *analysis) viewBody() string {
 	var d []change
 	for _, r := range c.records {
@@ -121,7 +134,7 @@ func (c *analysis) viewBody() string {
 	return apply(c.input, d)
 }
 
-// gosterim kodlu bir gövdenin etkin dildeki yazımıdır: hata çerçeveleri ve hata ayıklayıcı
+// view kodlu bir gövdenin etkin dildeki yazımıdır: hata çerçeveleri ve hata ayıklayıcı
 // bu metni gösterir (konumlar ona göredir, 17.5). Gövde ayrıştırılamıyorsa yalnızca dosya
 // düzeyindeki kodlar adlarına çevrilir (yerleştirmelerdekiler kod kalır).
 func view(b Parts) string {
@@ -141,7 +154,7 @@ func view(b Parts) string {
 	return apply(l.Input(), d)
 }
 
-// dilAdi kodun dil'deki adıdır; dil kodu tanımıyorsa (başka dillerde ölü kodlar isteğe
+// langName kodun dil'deki adıdır; dil kodu tanımıyorsa (başka dillerde ölü kodlar isteğe
 // bağlıdır, 17.6) kod olduğu gibi kalır.
 func langName(lang *codes.Language, k codes.Code) string {
 	if g, ok := lang.Entry(k); ok {
@@ -150,7 +163,7 @@ func langName(lang *codes.Language, k codes.Code) string {
 	return k.String()
 }
 
-// cozumleme bir gövdenin çeviri için çıkarılmış bilgisidir: bütün sözcükler (yerleştirmelerdekiler
+// analysis bir gövdenin çeviri için çıkarılmış bilgisidir: bütün sözcükler (yerleştirmelerdekiler
 // dahil) kaynak aralıklarıyla, ad sözcüklerinin görevleri ve adların bağları (dil'in adlarıyla).
 type analysis struct {
 	lang     *codes.Language
@@ -158,7 +171,7 @@ type analysis struct {
 	records  []lexer.Record
 	roles    map[[2]int]parser.NameRole
 	bindings map[[2]int]checker.NameBinding
-	// cakisanlar gösterimde kodlu bir sözcüğü yakalayacak kullanıcı adlarıdır; her yerde
+	// conflicts gösterimde kodlu bir sözcüğü yakalayacak kullanıcı adlarıdır; her yerde
 	// kaçışla yazılırlar (denetci.AdBaglari).
 	conflicts map[string]bool
 	prog      *ast.Program
@@ -186,7 +199,7 @@ func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 	return c, nil
 }
 
-// ayniAnlam kodlu gövdenin ağacının özgün ağaçla aynı olduğunu denetler (sözcük birimleri
+// sameMeaning kodlu gövdenin ağacının özgün ağaçla aynı olduğunu denetler (sözcük birimleri
 // konumlarıyla atlanır; kodlu sözcükler etkin dilin adlarıyla okunduğu için ağaçlar birebir
 // aynı olmalıdır).
 func (c *analysis) sameMeaning(coded Parts) error {
@@ -198,12 +211,12 @@ func (c *analysis) sameMeaning(coded Parts) error {
 	return nil
 }
 
-// kacisli sözcük kaynakta '$ad' kaçışıyla mı yazılmış?
+// escaped sözcük kaynakta '$ad' kaçışıyla mı yazılmış?
 func (c *analysis) escaped(r lexer.Record) bool {
 	return r.Start < len(c.input) && c.input[r.Start] == '$'
 }
 
-// sozcukKodu bir sözcüğün kodlu biçimdeki kodudur: anahtar kelime, kodla yazılmış sözcük ya da
+// tokenCode bir sözcüğün kodlu biçimdeki kodudur: anahtar kelime, kodla yazılmış sözcük ya da
 // dilin öğesi olan ad; kullanıcının adında kod.Yok.
 func (c *analysis) tokenCode(r lexer.Record) codes.Code {
 	if r.Code != codes.None {
@@ -215,7 +228,7 @@ func (c *analysis) tokenCode(r lexer.Record) codes.Code {
 	return lexer.KeywordCode(r.Type)
 }
 
-// kacisGerekir kodlu kaynaktaki bir kullanıcı adı dil'de yazılınca dilin bir sözcüğü olarak
+// needsEscape kodlu kaynaktaki bir kullanıcı adı dil'de yazılınca dilin bir sözcüğü olarak
 // okunur mu? Öyleyse gösterimde '$ad' yazılır.
 func (c *analysis) needsEscape(r lexer.Record) bool {
 	if k, ok := c.lang.Find(codes.NamespaceGlobal, r.Literal); ok && k.IsKeyword() {
@@ -224,13 +237,13 @@ func (c *analysis) needsEscape(r lexer.Record) bool {
 	return c.conflicts[r.Literal] || c.langElement(r) != codes.None
 }
 
-// degisim kaynakta [bas, son) karakter aralığının yerine yazılacak metindir.
+// change kaynakta [bas, son) karakter aralığının yerine yazılacak metindir.
 type change struct {
 	start, end int
 	text       string
 }
 
-// uygula değişimleri girdiye uygular; aynı aralık iki kez kaydedilmişse (bir yerleştirme iki
+// apply değişimleri girdiye uygular; aynı aralık iki kez kaydedilmişse (bir yerleştirme iki
 // kez ayrıştırıldıysa) bir kez uygulanır.
 func apply(input []rune, d []change) string {
 	sort.SliceStable(d, func(i, j int) bool { return d[i].start < d[j].start })

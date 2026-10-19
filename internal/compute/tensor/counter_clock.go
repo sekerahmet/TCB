@@ -14,10 +14,10 @@ var (
 	clockStartTick = clock()
 )
 
-// monotonNs süreç başından beri geçen nanosaniyedir (+1: 0 "ölçülmüyor" demektir).
+// monotonicNs süreç başından beri geçen nanosaniyedir (+1: 0 "ölçülmüyor" demektir).
 func monotonicNs() int64 { return int64(time.Since(clockStart)) + 1 }
 
-// tikSureOrani bir tıkın nanosaniye karşılığıdır.
+// tickDurationRatio bir tıkın nanosaniye karşılığıdır.
 func tickDurationRatio() float64 {
 	if !hasTSC {
 		return 1

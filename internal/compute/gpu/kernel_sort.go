@@ -27,11 +27,11 @@ import (
 // bellekte, her bitonik adım için bir başlatmayla sıralanır (log2(P)·(log2(P)+1)/2
 // başlatma; yavaş ama doğru).
 
-// ortakSiralamaSiniri paylaşımlı bellekte sıralanan en uzun (dolgulu) satır: 8 bayt × 4096 =
+// sharedSortLimit paylaşımlı bellekte sıralanan en uzun (dolgulu) satır: 8 bayt × 4096 =
 // 32 KB paylaşımlı bellek. Sınamalar genel bellek yolunu denemek için küçültebilir.
 var sharedSortLimit = 4096
 
-// birikimCekirdegi satır başına B iş parçacıklı blokla birikimli toplam. ters: sondan;
+// accumKernel satır başına B iş parçacıklı blokla birikimli toplam. ters: sondan;
 // ekle: y'ye eklenir.
 func accumKernel(B int, inverse, add bool) func() *emitter {
 	return func() *emitter {
@@ -92,7 +92,7 @@ func accumKernel(B int, inverse, add bool) func() *emitter {
 	}
 }
 
-// oncekiToplam bloktaki iş parçacıklarının s değerlerinin dışlayıcı önek toplamını (bu iş
+// prevTotal bloktaki iş parçacıklarının s değerlerinin dışlayıcı önek toplamını (bu iş
 // parçacığından öncekilerin toplamı) sabit sıralı kapsayıcı taramayla (Hillis-Steele;
 // paylaşımlı bellek sm, 4·B bayt) verir.
 func (k *emitter) prevTotal(s, tid, sm reg, B int) reg {
@@ -125,7 +125,7 @@ func (k *emitter) prevTotal(s, tid, sm reg, B int) reg {
 	return run
 }
 
-// siraAnahtariPTX v'nin 64 bitlik sıralama anahtarı (değer anahtarı << 32 | d).
+// orderKeyPTX v'nin 64 bitlik sıralama anahtarı (değer anahtarı << 32 | d).
 func (k *emitter) orderKeyPTX(v, d reg, descending bool) reg {
 	b := k.r()
 	k.e("mov.b32", b, v)
@@ -147,7 +147,7 @@ func (k *emitter) orderKeyPTX(v, d reg, descending bool) reg {
 	return k.pack(a, d)
 }
 
-// paketle a << 32 | d (64 bit).
+// pack a << 32 | d (64 bit).
 func (k *emitter) pack(a, d reg) reg {
 	u, w := k.rd(), k.rd()
 	k.e("cvt.u64.u32", u, a)
@@ -157,7 +157,7 @@ func (k *emitter) pack(a, d reg) reg {
 	return u
 }
 
-// satirTabani satır numarasından (o, i) ve satırın ilk elemanının konumunu (o·L·iç + i) verir.
+// rowBase satır numarasından (o, i) ve satırın ilk elemanının konumunu (o·L·iç + i) verir.
 func (k *emitter) rowBase(row, L, ic reg) (o, i, base2 reg) {
 	o = k.r()
 	k.e("div.u32", o, row, ic)
@@ -170,7 +170,7 @@ func (k *emitter) rowBase(row, L, ic reg) (o, i, base2 reg) {
 	return o, i, base2
 }
 
-// anahtarYukle satırın t. elemanının anahtarı; t ≥ L ise dolgu (0xFFFFFFFF << 32 | t).
+// loadKey satırın t. elemanının anahtarı; t ≥ L ise dolgu (0xFFFFFFFF << 32 | t).
 func (k *emitter) loadKey(x, t, L, ic, base2 reg, descending bool) reg {
 	r := k.rd()
 	padding := k.p()
@@ -190,7 +190,7 @@ func (k *emitter) loadKey(x, t, L, ic, base2 reg, descending bool) reg {
 	return r
 }
 
-// bitonikCift t. karşılaştırma çiftinin küçük indeksi i1 = ((t >> lj) << (lj+1)) |
+// bitonicPair t. karşılaştırma çiftinin küçük indeksi i1 = ((t >> lj) << (lj+1)) |
 // (t & (j−1)); büyüğü i1 + j (j = 2^lj). lj ve j sabit (int) ya da yazmaç olabilir.
 func (k *emitter) bitonicPair(t reg, lj, j any) (i1, i2 reg) {
 	var lj1, m any
@@ -213,7 +213,7 @@ func (k *emitter) bitonicPair(t reg, lj, j any) (i1, i2 reg) {
 	return i1, i2
 }
 
-// karsilastirDegistir a = [ai], b = [bi] çifti için (i1 & kk) = 0 ise artan, değilse azalan
+// compareSwap a = [ai], b = [bi] çifti için (i1 & kk) = 0 ise artan, değilse azalan
 // düzene göre gerekirse yer değiştirir. adr: 64 bitlik elemanların adresi (paylaşımlı ya
 // da genel).
 func (k *emitter) compareSwap(i1, kk reg, addrA, addrB func(st bool) string, loadOp, storeOp string) {
@@ -240,7 +240,7 @@ func (k *emitter) compareSwap(i1, kk reg, addrA, addrB func(st bool) string, loa
 	k.put(skip)
 }
 
-// ciktiYaz sıralanmış satırın t. anahtarından indeksi (ve değerli ise değeri) yazar.
+// writeOutput sıralanmış satırın t. anahtarından indeksi (ve değerli ise değeri) yazar.
 func (k *emitter) writeOutput(key, t, o, i, kCount, ic, base2 reg, x, idx, vals reg, valued bool) {
 	d := k.r()
 	k.e("cvt.u32.u64", d, key)
@@ -257,7 +257,7 @@ func (k *emitter) writeOutput(key, t, o, i, kCount, ic, base2 reg, x, idx, vals 
 	}
 }
 
-// siralaOrtakCekirdegi satır başına bir blokla paylaşımlı bellekte bitonik sıralama (P
+// sortSharedKernel satır başına bir blokla paylaşımlı bellekte bitonik sıralama (P
 // ikinin kuvveti, T iş parçacığı); ilk k anahtarın indeksini (ve değerini) yazar.
 func sortSharedKernel(P int, descending, valued bool) func() *emitter {
 	return func() *emitter {
@@ -325,7 +325,7 @@ func sortSharedKernel(P int, descending, valued bool) func() *emitter {
 	}
 }
 
-// siralaBaslatCekirdegi genel bellekteki anahtar tamponunu (satır × P) doldurur: iş
+// sortInitKernel genel bellekteki anahtar tamponunu (satır × P) doldurur: iş
 // parçacığı başına bir eleman.
 func sortInitKernel(descending bool) func() *emitter {
 	return func() *emitter {
@@ -352,7 +352,7 @@ func sortInitKernel(descending bool) func() *emitter {
 	}
 }
 
-// siralaAdimCekirdegi genel bellekte bir bitonik adım (kk, j): iş parçacığı başına bir çift.
+// sortStepKernel genel bellekte bir bitonik adım (kk, j): iş parçacığı başına bir çift.
 func sortStepKernel() *emitter {
 	k := newEmitter("sirala_adim")
 	buf := k.written("anahtar")
@@ -386,7 +386,7 @@ func sortStepKernel() *emitter {
 	return k
 }
 
-// siralaCiktiCekirdegi genel bellekte sıralanmış satırların ilk k anahtarını yazar.
+// sortOutputKernel genel bellekte sıralanmış satırların ilk k anahtarını yazar.
 func sortOutputKernel(valued bool) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("sirala_cikti_%v", valued))
@@ -421,7 +421,7 @@ func sortOutputKernel(valued bool) func() *emitter {
 	}
 }
 
-// toplaGeriCekirdegi gx[(o·L + idx)·iç + i] += g[(o·k + j)·iç + i] (iş parçacığı başına bir
+// sumBackwardKernel gx[(o·L + idx)·iç + i] += g[(o·k + j)·iç + i] (iş parçacığı başına bir
 // g elemanı; bir satırdaki indeksler tekil olduğundan yazmalar çakışmaz).
 func sumBackwardKernel() *emitter {
 	k := newEmitter("topla_geri")

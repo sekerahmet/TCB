@@ -81,7 +81,7 @@ func (v *VM) Builtin(kd codes.Code) *BuiltinVal {
 	return b
 }
 
-// kaldirilanUyeIpucu Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
+// removedMemberHint Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
 // kaldırılmış adı için ipucunu döndürür.
 func removedMemberHint(name string) string {
 	k, ok := codes.Suggest(codes.NamespaceMember, name, coreMember)
@@ -91,7 +91,7 @@ func removedMemberHint(name string) string {
 	return hint.NotInTRHint(name, codes.Name(k))
 }
 
-// uyeOneriHatasi motor tiplerinde (Tensör, Parçalayıcı, VeriKümesi ...) bulunamayan bir üye
+// memberSuggestionError motor tiplerinde (Tensör, Parçalayıcı, VeriKümesi ...) bulunamayan bir üye
 // adı bu tipin bir üyesinin ASCII biçimi ya da kaldırılmış adıysa, hatayı asıl adı öneren
 // bir hatayla değiştirir; değilse hatayı olduğu gibi döndürür. Önerinin bu tipte gerçekten
 // geçerli olduğu asıl adla yeniden okunarak doğrulanır (üye okumak yan etkisizdir:

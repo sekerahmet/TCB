@@ -16,7 +16,7 @@ const (
 	qwenPattern   = `(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+`
 )
 
-// ayarlaGeriAl sınama süresince motor ayarlarını değiştirir.
+// setAndRestore sınama süresince motor ayarlarını değiştirir.
 func setAndRestore(t *testing.T, a RegexSettings) {
 	prevVal := CurrentRegexSettings()
 	SetRegexSettings(a)

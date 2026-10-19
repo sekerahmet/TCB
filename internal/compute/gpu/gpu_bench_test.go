@@ -11,7 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// TestMikroKiyas GPU mikro kıyasları (yalnızca gerçek GPU'da ve TR_GPU_MIKRO=1 iken): kıyas
+// TestMicroBench GPU mikro kıyasları (yalnızca gerçek GPU'da ve TR_GPU_MIKRO=1 iken): kıyas
 // modelinin (B32 T256 D512 H8 FF2048 V40000) işlemleri tek tek ölçülür. Her satır
 //
 //	MIKRO|işlem|yol|ms|değer|birim
@@ -41,7 +41,7 @@ func TestMicroBench(t *testing.T) {
 	}
 }
 
-// TestMikroKiyasKucuk kıyas kodunun kendisini benzetimde küçük boylarla koşturur.
+// TestMicroBenchSmall kıyas kodunun kendisini benzetimde küçük boylarla koşturur.
 func TestMicroBenchSmall(t *testing.T) {
 	if !inSim() || testing.Short() {
 		t.Skip("benzetim sınaması")
@@ -49,7 +49,7 @@ func TestMicroBenchSmall(t *testing.T) {
 	microAll(gpuBackend(), 0, 1800, 64)
 }
 
-// mikroHepsi bütün mikro kıyasları boylar bol'e bölünmüş olarak koşturur (1: gerçek boylar).
+// microAll bütün mikro kıyasları boylar bol'e bölünmüş olarak koşturur (1: gerçek boylar).
 func microAll(g *backend, peak, band float64, divide int) {
 	microGemms(g, peak, divide)
 	microAttn(g, divide)
@@ -58,7 +58,7 @@ func microAll(g *backend, peak, band float64, divide int) {
 	microElem(g, band, divide)
 }
 
-// mikroOlc f'yi bir kez ısındırıp n kez çalıştırır; tekrar başına GPU süresini (ms) verir.
+// microMeasure f'yi bir kez ısındırıp n kez çalıştırır; tekrar başına GPU süresini (ms) verir.
 func microMeasure(g *backend, n int, f func()) float64 {
 	f()
 	g.enter()
@@ -82,7 +82,7 @@ func microWrite(op, path string, ms, value float64, unit string) {
 	fmt.Printf("MIKRO|%s|%s|%.4f|%.1f|%s\n", op, path, ms, value, unit)
 }
 
-// rastgeleDepo n elemanlı rastgele float32 GPU depolaması.
+// randomStorage n elemanlı rastgele float32 GPU depolaması.
 func randomStorage(g *backend, rng *rand.Rand, n int, scaleF float64) tensor.Storage {
 	return g.FromHost(random(rng, n, scaleF), tensor.Float32)
 }

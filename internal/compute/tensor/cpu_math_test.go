@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// ulpFark iki float32 arasındaki ulp uzaklığı (aynı işaretli sonlu değerler).
+// ulpDiff iki float32 arasındaki ulp uzaklığı (aynı işaretli sonlu değerler).
 func ulpDiff(a, b float32) int64 {
 	if a == b {
 		return 0

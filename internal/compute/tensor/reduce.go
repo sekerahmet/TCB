@@ -134,7 +134,7 @@ func (t *Tensor) softmaxImpl(axis int, logMode bool) *Tensor {
 	return r
 }
 
-// indirgemeIslemi toplamın ya da ortalamanın sayaç işlem türüdür.
+// reduceOp toplamın ya da ortalamanın sayaç işlem türüdür.
 func reduceOp(meanVal bool) OpKind {
 	if meanVal {
 		return OpKindMean

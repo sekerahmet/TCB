@@ -21,7 +21,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// arkaUc bir GPU'nun tensor.Backend uygulaması.
+// backend bir GPU'nun tensor.Backend uygulaması.
 type backend struct {
 	dev tensor.Device
 	sr  driver
@@ -33,25 +33,25 @@ type backend struct {
 	setup      setup
 	prm        paramWriter
 	lastKernel string
-	// eszamanli her başlatmadan sonra eşitler (teşhis: hatalı çekirdeği tam yerinde
+	// concurrent her başlatmadan sonra eşitler (teşhis: hatalı çekirdeği tam yerinde
 	// yakalar; TR_GPU_ESZAMANLI=1).
 	concurrent bool
 	gemm2      gemmConfig
-	// carpimSabit doluysa matris çarpımı döşemesi otomatik seçilmez (sınama).
+	// gemmConst doluysa matris çarpımı döşemesi otomatik seçilmez (sınama).
 	gemmConst *gemmConfig
-	// prof çekirdek ölçümleri (bkz. profil.go).
+	// profiler çekirdek ölçümleri (bkz. profil.go).
 	profiler profile
-	// hacim son çöp toplamadan bu yana verilen depolama baytı (havuzdan gelenler dahil).
+	// volume son çöp toplamadan bu yana verilen depolama baytı (havuzdan gelenler dahil).
 	volume uint64
 	// lt matris çarpımı kitaplığı (yüklenemediyse nil: kendi çekirdeğimiz).
 	lt       *ltGemm
 	ltReason string // lt nil ise nedeni (teşhis)
-	// ltNotlar kurulumda atlanan kitaplık adayları; ltSonHata kitaplığın son reddettiği çağrı.
+	// ltNotes kurulumda atlanan kitaplık adayları; ltSonHata kitaplığın son reddettiği çağrı.
 	ltNotes     []string
 	ltLastError string
-	// dikkatYolu TR_GPU_DIKKAT: "birlesik" (varsayılan) ya da "carpim" (ölçüm ve karşılaştırma).
+	// attnPath TR_GPU_DIKKAT: "birlesik" (varsayılan) ya da "carpim" (ölçüm ve karşılaştırma).
 	attnPath string
-	// copEsigi son çöp toplamadan bu yana bu kadar depolama verilince çöp toplama başlatılır
+	// gcThreshold son çöp toplamadan bu yana bu kadar depolama verilince çöp toplama başlatılır
 	// (bkz. copEsigiSec; TR_GPU_COP_ESIGI ile MB olarak değiştirilir).
 	gcThreshold uint64
 }
@@ -60,7 +60,7 @@ func init() {
 	tensor.RegisterLazyBackend(tensor.KindGPU, tensor.LazyBackend{Count: deviceCount, New: setupFn})
 }
 
-// kurulumHatasi son başarısız kurulumun nedeni (teşhis için; farklı gorutinlerden
+// setupError son başarısız kurulumun nedeni (teşhis için; farklı gorutinlerden
 // yazılıp okunabildiği için kilitli).
 var setupError struct {
 	mu  sync.Mutex
@@ -79,7 +79,7 @@ func readSetupError() error {
 	return setupError.err
 }
 
-// cihazSayisi sürücünün gördüğü GPU sayısı (sürücü yoksa 0; geliştirme için
+// deviceCount sürücünün gördüğü GPU sayısı (sürücü yoksa 0; geliştirme için
 // TR_GPU_BENZETIM=1 ile benzetim tek GPU sayılır).
 func deviceCount() int {
 	c := loadCUDA()
@@ -93,7 +93,7 @@ func deviceCount() int {
 	return c.num
 }
 
-// benzetimIstendi gerçek GPU yokken PTX benzetiminin "gpu" cihazı olarak kurulmasının
+// simRequested gerçek GPU yokken PTX benzetiminin "gpu" cihazı olarak kurulmasının
 // istenip istenmediği (geliştirme ve sınama aracı: GPU kodunu donanımsız, dil düzeyinde
 // uçtan uca çalıştırır; çok yavaştır).
 func simRequested() bool { return os.Getenv("TR_GPU_BENZETIM") == "1" }
@@ -112,7 +112,7 @@ func setupFn(order int) tensor.Backend {
 	return g
 }
 
-// Durum sürücünün yüklenme durumunu açıklar (teşhis: GPU neden görünmüyor).
+// Status sürücünün yüklenme durumunu açıklar (teşhis: GPU neden görünmüyor).
 func Status() string {
 	n := deviceCount()
 	if n == 0 {
@@ -138,7 +138,7 @@ func newBackend(dev tensor.Device, sr driver) *backend {
 	return g
 }
 
-// copEsigiSec çöp toplama eşiği: kart belleğinin 1/64'ü, 256 MB ile 2 GB arasında (95 GB'ta
+// pickGCThreshold çöp toplama eşiği: kart belleğinin 1/64'ü, 256 MB ile 2 GB arasında (95 GB'ta
 // ~1,5 GB, 24 GB'ta 384 MB). Ara tensörlerin cihaz belleği ancak Go çöp toplayıcısı
 // çalışınca havuza döner; eşik tepe belleği bir adımın canlı tensörlerine yakın tutar.
 // Ölçüm (RTX PRO 6000, gpt30m): eşiksiz 38,9 GB, 2 GB'ta 23,5 GB, 512 MB'ta 21,1 GB tepe;
@@ -150,7 +150,7 @@ func pickGCThreshold(total uint64, env string) uint64 {
 	return min(max(total/64, 256<<20), 2<<30)
 }
 
-// BenzetimiKaydet, gerçek bir GPU yoksa PTX benzetimini "gpu" cihazı olarak kaydeder
+// RegisterSimulator, gerçek bir GPU yoksa PTX benzetimini "gpu" cihazı olarak kaydeder
 // (yalnızca sınamalar için: GPU kodunun dil düzeyinde uçtan uca sınanması). Benzetim
 // yavaştır; küçük şekiller kullanın. Kaydedildiyse doğru döner.
 func RegisterSimulator() bool {
@@ -169,7 +169,7 @@ func (g *backend) MemoryLimit() int64 { return int64(g.sr.totalMemory()) }
 // MemoryPlace hata mesajlarında anılan yer.
 func (g *backend) MemoryPlace() string { return "bu GPU'da" }
 
-// gir kilidi alır, gorutini iş parçacığına kilitler ve bağlamı bağlar.
+// enter kilidi alır, gorutini iş parçacığına kilitler ve bağlamı bağlar.
 func (g *backend) enter() {
 	g.mu.Lock()
 	if gpuClosed.Load() {
@@ -192,7 +192,7 @@ func (g *backend) exit() {
 	g.mu.Unlock()
 }
 
-// hataMetni sürücü hatasının Türkçe açıklaması: kodun adı, son çekirdek, ayrıntı.
+// errText sürücü hatasının Türkçe açıklaması: kodun adı, son çekirdek, ayrıntı.
 func (g *backend) errText(op string, s result) string {
 	m := fmt.Sprintf("tensor: GPU: %s başarısız: %s (%d)", op, g.sr.errName(s), int32(s))
 	if g.lastKernel != "" {
@@ -207,7 +207,7 @@ func (g *backend) errText(op string, s result) string {
 	return m
 }
 
-// dene sürücü dönüşünü denetler; hata Türkçe paniğe çevrilir (dil 'dene/yakala' ile
+// try_ sürücü dönüşünü denetler; hata Türkçe paniğe çevrilir (dil 'dene/yakala' ile
 // yakalayabilir).
 func (g *backend) try_(op string, s result) {
 	if s != succeeded {
@@ -215,7 +215,7 @@ func (g *backend) try_(op string, s result) {
 	}
 }
 
-// esitle sıradaki bütün işlerin bitmesini bekler.
+// equalize sıradaki bütün işlerin bitmesini bekler.
 func (g *backend) equalize() {
 	g.equalBegin()
 	g.try_("cuCtxSynchronize", g.sr.equalize())
@@ -223,17 +223,17 @@ func (g *backend) equalize() {
 	g.equalFinish()
 }
 
-// enCok tek bir çekirdeğin eleman sayısı sınırı (32 bitlik indeksler).
+// maxN tek bir çekirdeğin eleman sayısı sınırı (32 bitlik indeksler).
 const maxN = 1<<31 - 1
 
-// boyDenetle n elemanın tek çekirdekte işlenebildiğini denetler.
+// checkSize n elemanın tek çekirdekte işlenebildiğini denetler.
 func checkSize(n int) {
 	if n > maxN {
 		panic(fmt.Sprintf("tensor: GPU: tek işlemde %d eleman var; bu sürümde GPU işlemleri en çok 2^31 eleman işler", n))
 	}
 }
 
-// yok GPU'da henüz olmayan bir işlem için açık hata verir (sessizce CPU'ya düşülmez).
+// none GPU'da henüz olmayan bir işlem için açık hata verir (sessizce CPU'ya düşülmez).
 func none(op string) {
 	panic("tensor: bu işlem GPU'da henüz yok: " + op)
 }

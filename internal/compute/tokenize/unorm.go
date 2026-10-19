@@ -105,7 +105,7 @@ func loadUnorm() *unormData {
 	return unormTable
 }
 
-// unicodeNormallestir metni verilen biçime çevirir. uyum: K biçimleri,
+// unicodeNormalize metni verilen biçime çevirir. uyum: K biçimleri,
 // birlestir: C biçimleri.
 func unicodeNormalize(s string, compat, joinFn bool) string {
 	// Hızlı yol: yalnızca ASCII içeren metin her biçimde değişmez.

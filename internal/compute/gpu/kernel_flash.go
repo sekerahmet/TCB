@@ -29,20 +29,20 @@ import (
 
 const flashJob = 256
 
-// flashAyar birleşik dikkat çekirdeklerinin üretim ayarları.
+// flashConfig birleşik dikkat çekirdeklerinin üretim ayarları.
 type flashConfig struct {
 	Br, Bc, Dh, Dv int
 	mask2          bool
 }
 
-// yuvarla16 d'yi 16'nın katına yuvarlar.
+// round16 d'yi 16'nın katına yuvarlar.
 func round16(d int) int { return (d + 15) / 16 * 16 }
 
 func (a flashConfig) key(ad string) string {
 	return fmt.Sprintf("%s_%d_%d_%d_%d_%v", ad, a.Br, a.Bc, a.Dh, a.Dv, a.mask2)
 }
 
-// smBayt ileri (geri yanlış) ya da geri çekirdeğin paylaşımlı belleği.
+// smBytes ileri (geri yanlış) ya da geri çekirdeğin paylaşımlı belleği.
 func (a flashConfig) smBytes(backward bool) int {
 	dh, dv := round16(a.Dh)+1, round16(a.Dv)+1
 	if !backward {
@@ -53,7 +53,7 @@ func (a flashConfig) smBytes(backward bool) int {
 	return 4 * (a.Bc*(dh+dv) + a.Br*(dh+dv) + a.Br*(a.Bc+1))
 }
 
-// flashSec boylara uyan en büyük döşemeyi seçer; uyan yoksa tamam yanlış (dikkat matris
+// pickFlash boylara uyan en büyük döşemeyi seçer; uyan yoksa tamam yanlış (dikkat matris
 // çarpımı yoluyla yapılır). İleri yön statik paylaşımlı belleğe (48 KB) sığar; geri yön
 // kartın blok başına açtığı paylaşımlı belleği (sinir, ör. 99 KB) kullanabilir: 64×64
 // döşemede iş parçacığı başına 4×4 çıktı (32×32'de 2×2) paylaşımlı bellek okumalarını
@@ -74,7 +74,7 @@ func pickFlash(Dh, Dv int, mask2, backward bool, limit int) (flashConfig, bool) 
 	return flashConfig{}, false
 }
 
-// smYuvarli paylaşımlı dizilerin 16'ya hizalı gerçek toplamı (yazici.ortak'taki gibi; geri
+// smRounded paylaşımlı dizilerin 16'ya hizalı gerçek toplamı (yazici.ortak'taki gibi; geri
 // çekirdeğin beş döşemesi); devingen paylaşımlı bellek bu kadar açılır.
 func (a flashConfig) smRounded(backward bool) int {
 	dh, dv := round16(a.Dh)+1, round16(a.Dv)+1
@@ -85,19 +85,19 @@ func (a flashConfig) smRounded(backward bool) int {
 	return t
 }
 
-// dinamikMi çekirdeğin paylaşımlı belleği statik sınırı aşıyor mu (devingen diziyle
+// isDynamic çekirdeğin paylaşımlı belleği statik sınırı aşıyor mu (devingen diziyle
 // üretilir ve başlatmada açılır).
 func (a flashConfig) isDynamic(backward bool) bool {
 	return backward && a.smRounded(backward) > staticSharedMemLimit
 }
 
-// smDoseme paylaşımlı bellekte satır öncelikli bir döşeme.
+// smTile paylaşımlı bellekte satır öncelikli bir döşeme.
 type smTile struct {
 	base2     reg
 	row, step int // satır sayısı ve satır adımı (eleman)
 }
 
-// dosemeYukle genel bellekteki satır öncelikli [T][D] matrisin r0'dan başlayan satırlarını
+// loadTile genel bellekteki satır öncelikli [T][D] matrisin r0'dan başlayan satırlarını
 // döşemeye yükler; lim'den sonraki satırlar ve D'den sonraki sütunlar (Dp'ye kadar) 0 olur.
 func (k *emitter) loadTile(d smTile, D, Dp int, ptr, r0, lim, tid reg) {
 	total := d.row * Dp
@@ -131,7 +131,7 @@ func (k *emitter) loadTile(d smTile, D, Dp int, ptr, r0, lim, tid reg) {
 	}
 }
 
-// mikroCarp acc[i][j] += Σ_{kk<K} A[i·aIdx + kk·aK]·B[j·bIdx + kk·bK]; aT ve bT iş
+// microMul acc[i][j] += Σ_{kk<K} A[i·aIdx + kk·aK]·B[j·bIdx + kk·bK]; aT ve bT iş
 // parçacığının ilk satır/sütununun paylaşımlı bellek adresi (bayt), adımlar eleman.
 func (k *emitter) microMul(acc [][]reg, aT reg, aIdx, aK int, bT reg, bIdx, bK, K int) {
 	av, bv := make([]reg, len(acc)), make([]reg, len(acc[0]))
@@ -156,7 +156,7 @@ func (k *emitter) microMul(acc [][]reg, aT reg, aIdx, aK int, bT reg, bIdx, bK, 
 	}
 }
 
-// sifirMatris r×c sıfır kayıt matrisi.
+// zeroMatrix r×c sıfır kayıt matrisi.
 func (k *emitter) zeroMatrix(r, c int) [][]reg {
 	m := make([][]reg, r)
 	for i := range m {
@@ -168,14 +168,14 @@ func (k *emitter) zeroMatrix(r, c int) [][]reg {
 	return m
 }
 
-// thAdres sm + (ilk·adim)·4: iş parçacığının ilk satırının/sütununun adresi.
+// thAddr sm + (ilk·adim)·4: iş parçacığının ilk satırının/sütununun adresi.
 func (k *emitter) thAddr(sm, first reg, step int) reg {
 	r := k.r()
 	k.e("mad.lo.s32", r, first, 4*step, sm)
 	return r
 }
 
-// satirIndirge iş parçacığının satırlarındaki değerleri (her satırda cpt değer) birleştirir,
+// rowReduce iş parçacığının satırlarındaki değerleri (her satırda cpt değer) birleştirir,
 // 16 tx'in kısmi sonuçlarını red [Br][17] tamponuyla toplar; her satırın sonucu (aynı
 // sırayla, bütün tx'lerde aynı) döner. İçinde engel vardır.
 func (k *emitter) rowReduce(v [][]reg, red, row0, tx reg, join func(a, b reg) reg) []reg {
@@ -208,7 +208,7 @@ func (k *emitter) rowReduce(v [][]reg, red, row0, tx reg, join func(a, b reg) re
 	return r
 }
 
-// flashOrtak ileri ve geri çekirdeklerin ortak parametreleri ve indeksleri.
+// flashShared ileri ve geri çekirdeklerin ortak parametreleri ve indeksleri.
 type flashShared struct {
 	k                           *emitter
 	a                           flashConfig
@@ -220,7 +220,7 @@ type flashShared struct {
 	b, h, bh, kvh, bhkv         reg
 }
 
-// ortakParametreler maske, boylar ve dikkat seçeneklerinin parametrelerini bildirir.
+// sharedParams maske, boylar ve dikkat seçeneklerinin parametrelerini bildirir.
 func (f *flashShared) sharedParams() {
 	k := f.k
 	f.md = k.pointer("maske")
@@ -235,7 +235,7 @@ func (f *flashShared) sharedParams() {
 	k.e("shr.u32", f.ty, f.tid, 4)
 }
 
-// basIndeksleri b, h (ızgaranın z ve y'si; geri dK/dV çekirdeğinde y anahtar başıdır).
+// headIndexes b, h (ızgaranın z ve y'si; geri dK/dV çekirdeğinde y anahtar başıdır).
 func (f *flashShared) headIndexes(yKV bool) {
 	k := f.k
 	f.b = k.special("%ctaid.z")
@@ -256,7 +256,7 @@ func (f *flashShared) headIndexes(yKV bool) {
 	k.e("mad.lo.s32", f.bhkv, f.b, Hkv, f.kvh)
 }
 
-// matrisTabani ptr + (sira·T·D)·4 (bir başın [T][D] matrisinin başı).
+// matrixBase ptr + (sira·T·D)·4 (bir başın [T][D] matrisinin başı).
 func (k *emitter) matrixBase(ptr, order, T reg, D int) reg {
 	e := k.r()
 	k.e("mul.lo.s32", e, order, T)
@@ -266,7 +266,7 @@ func (k *emitter) matrixBase(ptr, order, T reg, D int) reg {
 	return r
 }
 
-// gorunurluk sorgu satırı i için sınırlar ve maske tabanı (bh: maske ofsetinin başı).
+// visibility sorgu satırı i için sınırlar ve maske tabanı (bh: maske ofsetinin başı).
 func (f *flashShared) visibility(i, bh reg) (lo, hi, mt reg) {
 	k := f.k
 	lo, hi = k.attnLimits(i, f.Tq, f.Tk, f.reason2, f.pending2)
@@ -282,7 +282,7 @@ func (f *flashShared) visibility(i, bh reg) (lo, hi, mt reg) {
 	return lo, hi, mt
 }
 
-// puanlar S·ölçek'i maskeler: görünmeyen (ya da satırı Tq dışı) puan −sonsuz olur.
+// scores S·ölçek'i maskeler: görünmeyen (ya da satırı Tq dışı) puan −sonsuz olur.
 func (f *flashShared) scores(S [][]reg, rows []reg, j0 reg, limit [][3]reg) {
 	k := f.k
 	for i := range S {
@@ -301,7 +301,7 @@ func (f *flashShared) scores(S [][]reg, rows []reg, j0 reg, limit [][3]reg) {
 	}
 }
 
-// flashIleriCekirdegi birleşik dikkatin ileri yönü; ızgara (sorgu döşemeleri, H, Batch).
+// flashForwardKernel birleşik dikkatin ileri yönü; ızgara (sorgu döşemeleri, H, Batch).
 func flashForwardKernel(a flashConfig) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(a.key("dikkat_ileri"))
@@ -374,7 +374,7 @@ func flashForwardKernel(a flashConfig) func() *emitter {
 	}
 }
 
-// cevrimiciSoftmax çevrimiçi softmax adımı: yeni en büyükle (m) ölçek α = e^{m_eski−m},
+// onlineSoftmax çevrimiçi softmax adımı: yeni en büyükle (m) ölçek α = e^{m_eski−m},
 // P = e^{S−m} (S yerinde P olur), l = l·α + Σ P, O = O·α; P paylaşımlı belleğe ([sorgu]
 // [anahtar]) yazılır. İçinde satır indirgemesinin engeli vardır.
 func (f *flashShared) onlineSoftmax(S [][]reg, newM, m, l []reg, O [][]reg, red, row0 reg, ps smTile) {
@@ -407,7 +407,7 @@ func (f *flashShared) onlineSoftmax(S [][]reg, newM, m, l []reg, O [][]reg, red,
 	f.writeTile(S, row0, ps)
 }
 
-// dosemeyeYaz iş parçacığının kayıt döşemesini (satırlar satir0+i, sütunlar tx·cpt+j)
+// writeTile iş parçacığının kayıt döşemesini (satırlar satir0+i, sütunlar tx·cpt+j)
 // paylaşımlı bellek döşemesine yazar.
 func (f *flashShared) writeTile(M [][]reg, row0 reg, d smTile) {
 	k := f.k
@@ -423,14 +423,14 @@ func (f *flashShared) writeTile(M [][]reg, row0 reg, d smTile) {
 	}
 }
 
-// carp r·c (c sabit).
+// mul r·c (c sabit).
 func (k *emitter) mul(r reg, c int) reg {
 	t := k.r()
 	k.e("mul.lo.s32", t, r, c)
 	return t
 }
 
-// ileriYaz bir satırın O/l'sini ve (tx = 0) lse'sini yazar; boş satırda O = 0, lse = +∞.
+// writeForward bir satırın O/l'sini ve (tx = 0) lse'sini yazar; boş satırda O = 0, lse = +∞.
 func (f *flashShared) writeForward(O []reg, m, l, row, ob, plse, lb reg) {
 	k := f.k
 	last := k.label()
@@ -465,14 +465,14 @@ func (f *flashShared) writeForward(O []reg, m, l, row, ob, plse, lb reg) {
 	k.put(last)
 }
 
-// tidSifirDegilTx tx ≠ 0 yüklemi.
+// tidNonZeroTx tx ≠ 0 yüklemi.
 func (k *emitter) tidNonZeroTx(tx reg) reg {
 	p := k.p()
 	k.e("setp.ne.u32", p, tx, 0)
 	return p
 }
 
-// anahtarAraligi sorgu döşemesinin [q0, q0+Br) bakabileceği anahtarları kapsayan döşeme
+// keyRange sorgu döşemesinin [q0, q0+Br) bakabileceği anahtarları kapsayan döşeme
 // aralığı [jBas, jSon) (Bc'nin katlarına yuvarlı): ilk satırın alt ve son satırın üst sınırı
 // (sınırlar satırla azalmaz).
 func (f *flashShared) keyRange(q0 reg) (jStart, jEnd reg) {

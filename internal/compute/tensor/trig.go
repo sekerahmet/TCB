@@ -24,7 +24,7 @@ const (
 	round64     = 6755399441055744.0         // 1.5·2^52
 )
 
-// sinCosIndirge x'i çeyreğe (0-3) ve [-π/4, π/4] aralığındaki r'ye indirger.
+// sinCosReduce x'i çeyreğe (0-3) ve [-π/4, π/4] aralığındaki r'ye indirger.
 // ok yanlışsa x indirgeme bölgesinin dışındadır (ya da NaN'dır).
 func sinCosReduce(x float32) (r float64, quarter int, ok bool) {
 	xd := float64(x)
@@ -36,7 +36,7 @@ func sinCosReduce(x float32) (r float64, quarter int, ok bool) {
 	return r, int(int64(fn)) & 3, true
 }
 
-// sinPoli ve cosPoli |r| ≤ π/4 için sin r ve cos r.
+// sinPoly ve cosPoli |r| ≤ π/4 için sin r ve cos r.
 func sinPoly(r float64) float64 {
 	z := r * r
 	return r + r*z*(-1.0/6+z*(1.0/120+z*(-1.0/5040+z*(1.0/362880))))

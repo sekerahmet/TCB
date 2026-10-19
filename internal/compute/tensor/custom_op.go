@@ -26,7 +26,7 @@ import "fmt"
 // kipte çalışır.
 type CustomBackward func(ctx any, grads []*Tensor) []*Tensor
 
-// disDugum bir dış işlemin geri yayılım durumudur.
+// outerNode bir dış işlemin geri yayılım durumudur.
 type outerNode struct {
 	op       string
 	inputs   []*Tensor
@@ -103,7 +103,7 @@ func CustomOp(op string, inputs, outputs, saved []*Tensor, bw CustomBackward) []
 	return outs
 }
 
-// geriCalistir düğümün geri hesabını yapar; dış düğümlerde ctx geri çağrıya iletilir.
+// runBackward düğümün geri hesabını yapar; dış düğümlerde ctx geri çağrıya iletilir.
 func (t *Tensor) runBackward(ctx any) {
 	if t.outer != nil {
 		t.outer.back(ctx)
@@ -112,7 +112,7 @@ func (t *Tensor) runBackward(ctx any) {
 	t.backward()
 }
 
-// geri dış düğümün geri hesabıdır: çıktı gradyanlarını toplar, geri çağrıyı türevsiz
+// back dış düğümün geri hesabıdır: çıktı gradyanlarını toplar, geri çağrıyı türevsiz
 // kipte çalıştırır ve dönen gradyanları girdilere ekler.
 func (d *outerNode) back(ctx any) {
 	grads := make([]*Tensor, len(d.outputs))

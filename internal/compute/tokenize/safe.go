@@ -10,7 +10,7 @@ package tokenize
 // işleyen sunucular aşağıdaki Guvenli... işlevlerini kullanmalıdır: bu
 // durumda yarım ya da yanlış bir sonuç yerine açık bir hata döner.
 
-// GuvenliKodla Kodla'nın hata döndüren biçimidir.
+// SafeEncode Kodla'nın hata döndüren biçimidir.
 func (p *Tokenizer) SafeEncode(text string, s Options) (ids []int, err error) {
 	err = catchStepError(func() { ids = p.EncodeWithOptions(text, s) })
 	if err != nil {
@@ -19,7 +19,7 @@ func (p *Tokenizer) SafeEncode(text string, s Options) (ids []int, err error) {
 	return
 }
 
-// GuvenliKodla32 Kodla32'nin hata döndüren biçimidir; hata olursa dst değişmeden döner.
+// SafeEncode32 Kodla32'nin hata döndüren biçimidir; hata olursa dst değişmeden döner.
 func (p *Tokenizer) SafeEncode32(dst []int32, text string, s Options) ([]int32, error) {
 	n := len(dst)
 	err := catchStepError(func() { dst = p.Encode32(dst, text, s) })
@@ -29,7 +29,7 @@ func (p *Tokenizer) SafeEncode32(dst []int32, text string, s Options) ([]int32, 
 	return dst, nil
 }
 
-// GuvenliKodlaCift KodlaCift'in hata döndüren biçimidir.
+// SafeEncodePair KodlaCift'in hata döndüren biçimidir.
 func (p *Tokenizer) SafeEncodePair(firstArg string, second *string, s Options) (k *Encoding, err error) {
 	err = catchStepError(func() { k = p.EncodePair(firstArg, second, s) })
 	if err != nil {
@@ -38,13 +38,13 @@ func (p *Tokenizer) SafeEncodePair(firstArg string, second *string, s Options) (
 	return
 }
 
-// GuvenliCoz Coz'un hata döndüren biçimidir (çözücüde düzenli ifade varsa).
+// SafeDecode Coz'un hata döndüren biçimidir (çözücüde düzenli ifade varsa).
 func (p *Tokenizer) SafeDecode(idList []int, skipSpecial bool) (m string, err error) {
 	err = catchStepError(func() { m = p.Decode(idList, skipSpecial) })
 	return
 }
 
-// GuvenliTopluKodla TopluKodla'nın hata döndüren biçimidir. Hatalı metinlerin
+// SafeEncodeBatch TopluKodla'nın hata döndüren biçimidir. Hatalı metinlerin
 // sonucu nil'dir; hatalar[i] i. metnin hatasıdır (hiç hata yoksa dilim nil).
 func (p *Tokenizer) SafeEncodeBatch(texts []string, s Options, worker int) ([][]int, []error) {
 	out := make([][]int, len(texts))
@@ -60,7 +60,7 @@ func (p *Tokenizer) SafeEncodeBatch(texts []string, s Options, worker int) ([][]
 	return out, nil
 }
 
-// Uyarilar parçalayıcının düzenli ifadelerinde derleme sırasında bulunan
+// Warnings parçalayıcının düzenli ifadelerinde derleme sırasında bulunan
 // risk uyarılarını verir (ör. sınırsız yineleme içinde çakışan seçenekler).
 func (p *Tokenizer) Warnings() []string {
 	var out []string
@@ -75,7 +75,7 @@ func (p *Tokenizer) Warnings() []string {
 	return out
 }
 
-// ifadeleriGez bir bileşen (zinciri) içindeki düzenli ifadeleri gezer.
+// walkExprs bir bileşen (zinciri) içindeki düzenli ifadeleri gezer.
 func walkExprs(b any, f func(*Regex)) {
 	switch x := b.(type) {
 	case NormalizerSequence:

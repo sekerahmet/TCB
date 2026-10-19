@@ -36,7 +36,7 @@ type Tensor struct {
 	shape   []int   // her eksenin uzunluğu
 	strides []int   // her eksende bir adım ilerlemenin depodaki karşılığı
 	dtyp    DType   // eleman türü (depolamanın türü)
-	// islem, düğümü üreten işlemin profil sayacı türüdür (geri yayılım bu adla sayılır).
+	// opKind, düğümü üreten işlemin profil sayacı türüdür (geri yayılım bu adla sayılır).
 	opKind OpKind
 
 	grad         Storage // bitişik gradyan (şekil = shape), gerekince ayrılır
@@ -47,16 +47,16 @@ type Tensor struct {
 	parents  []*Tensor
 	backward func()
 	op       string // hata ayıklama için işlem adı
-	// kayitli, geri yayılımın okuyacağı girdilerin ileri hesap anındaki
+	// registered, geri yayılımın okuyacağı girdilerin ileri hesap anındaki
 	// depolama sürümleri (yerinde değişiklik denetimi).
 	registered []savedVersion
-	// serbest, geri yayılımdan sonra çizge bağları bırakılmış bir ara tensörü
+	// free, geri yayılımdan sonra çizge bağları bırakılmış bir ara tensörü
 	// işaretler; böyle bir tensör üzerinden ikinci kez geri yayılım yapılamaz.
 	free bool
-	// dis, dış (çekirdek dışında yazılmış) bir işlemin düğümünde geri hesabı taşır
+	// outer, dış (çekirdek dışında yazılmış) bir işlemin düğümünde geri hesabı taşır
 	// (bkz. ozel_turev.go).
 	outer *outerNode
-	// geride, düğümün şu an süren bir geri yayılımın çizgesinde olduğunu işaretler; aynı
+	// behind, düğümün şu an süren bir geri yayılımın çizgesinde olduğunu işaretler; aynı
 	// düğümden ikinci bir geri yayılım (ör. dış düğümün geri hesabı kilidi bıraktığında
 	// başka görevin başlattığı) açık hata verir.
 	behind atomic.Bool
@@ -146,7 +146,7 @@ func zerosOf(is opKind, be Backend, shape []int, dt DType) *Tensor {
 	return fromStorage(be, be.Alloc(allocSizeOn(be, is, shape, dt), dt), shape)
 }
 
-// bosAyirici, içeriği belirsiz (sıfırlanmamış) depolama verebilen arka
+// emptyAllocator, içeriği belirsiz (sıfırlanmamış) depolama verebilen arka
 // uçların iç arayüzüdür. Backend.Alloc sözleşmesi (sıfırlanmış depolama)
 // değişmez; bu yol yalnızca çekirdeğin çıktının her elemanını yazdığı
 // işlemlerde (emptyOf) kullanılır ve havuzdan gelen depolamayı yeniden
@@ -166,7 +166,7 @@ func emptyOf(is opKind, be Backend, shape []int, dt DType) *Tensor {
 	return fromStorage(be, allocUninit(be, allocSizeOn(be, is, shape, dt), dt), shape)
 }
 
-// allocBos be destekliyorsa sıfırlanmamış, değilse sıfırlanmış depolama verir.
+// allocUninit be destekliyorsa sıfırlanmamış, değilse sıfırlanmış depolama verir.
 func allocUninit(be Backend, n int, dt DType) Storage {
 	switch b := be.(type) {
 	case emptyAllocator:

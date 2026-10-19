@@ -142,7 +142,7 @@ func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
 	return r
 }
 
-// normBoyutDenetle normalleştirilecek girdinin en az 1 boyutlu olduğunu denetler.
+// checkNormDims normalleştirilecek girdinin en az 1 boyutlu olduğunu denetler.
 func checkNormDims(op string, x *Tensor) {
 	if len(x.shape) == 0 {
 		panic(fmt.Sprintf("tensor: %s en az 1 boyutlu girdi ister (son eksen normalleştirilir), 0 boyutlu tensör verildi", op))

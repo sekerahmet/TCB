@@ -11,7 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// modulluCalistir klasör altına dosyaları yazar, çalışma klasörünü kok yapar ve ana.tr'yi çalıştırır.
+// runWithModules klasör altına dosyaları yazar, çalışma klasörünü kok yapar ve ana.tr'yi çalıştırır.
 func runWithModules(t *testing.T, root string, files map[string]string) (string, error) {
 	t.Helper()
 	for name, content := range files {

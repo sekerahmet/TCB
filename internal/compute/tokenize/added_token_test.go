@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// ekliParcalayici testdata'daki bir parçalayıcıya verilen içeriklerle
+// withAddedTokenizer testdata'daki bir parçalayıcıya verilen içeriklerle
 // normalized=true ek tokenlar ekler (kimlikler sözlüğün sonundan).
 func withAddedTokenizer(t *testing.T, file string, contents ...string) *Tokenizer {
 	t.Helper()

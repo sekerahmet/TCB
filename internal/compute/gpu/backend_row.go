@@ -8,7 +8,7 @@ import (
 
 // Arka uç: softmax, çapraz entropi, normlar ve gömme.
 
-// eksenDuzeni şekli eksen etrafında (dış, eksen, iç) üçlüsüne ayırır.
+// axisOrder şekli eksen etrafında (dış, eksen, iç) üçlüsüne ayırır.
 func axisOrder(shape []int, axis int) (outer, L, ic int) {
 	outer, ic = 1, 1
 	for i := 0; i < axis; i++ {
@@ -58,7 +58,7 @@ func (g *backend) SoftmaxGrad(gx, gs, y tensor.Storage, shape []int, axis int, l
 	last()
 }
 
-// tamlar []int'i 32 bitlik tam sayılara çevirir (indeksler, hedefler).
+// ints []int'i 32 bitlik tam sayılara çevirir (indeksler, hedefler).
 func ints(v []int) []int32 {
 	r := make([]int32, len(v))
 	for i, x := range v {
@@ -113,7 +113,7 @@ func (g *backend) CrossEntropy(x tensor.View, targets []int, C int) (tensor.Stor
 	return loss, lse
 }
 
-// ceVektorel satırların 4'lü vektörlerle okunup yazılabildiği (C % 4 = 0, hizalı görünüm).
+// ceVectorized satırların 4'lü vektörlerle okunup yazılabildiği (C % 4 = 0, hizalı görünüm).
 func ceVectorized(xv tensor.View, C int) bool { return C%4 == 0 && xv.Offset%4 == 0 }
 
 func (g *backend) CrossEntropyGrad(gx, gs tensor.Storage, x tensor.View, lse tensor.Storage, targets []int, C int) {
@@ -195,7 +195,7 @@ func (g *backend) EmbeddingGrad(gw, gs tensor.Storage, idx []int, D int) {
 	last()
 }
 
-// normIleri katman ya da RMS normunun ileri yönü.
+// normForward katman ya da RMS normunun ileri yönü.
 func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *tensor.View, D int, eps float32, layer bool) (*storage, *storage) {
 	gt := g.temp()
 	defer gt.finish()
@@ -231,7 +231,7 @@ func (g *backend) normForward(out tensor.Storage, x tensor.View, gamma, beta *te
 	return avg, rstd
 }
 
-// satirlarToplami hedef (D) += Σ_satır kaynak (R×D).
+// rowSums hedef (D) += Σ_satır kaynak (R×D).
 func (g *backend) rowSums(target tensor.Storage, source *storage, R, D int) {
 	gt := g.temp()
 	defer gt.finish()
@@ -240,7 +240,7 @@ func (g *backend) rowSums(target tensor.Storage, source *storage, R, D int) {
 	last()
 }
 
-// normGeri katman ya da RMS normunun geri yönü.
+// normBackward katman ya da RMS normunun geri yönü.
 func (g *backend) normBackward(gx, ggamma, gbeta, gs tensor.Storage, x tensor.View, gamma *tensor.View, avg, rstd tensor.Storage, D int, layer bool) {
 	gt := g.temp()
 	defer gt.finish()

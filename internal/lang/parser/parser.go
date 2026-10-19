@@ -82,30 +82,30 @@ type Parser struct {
 	// l sözcük birimlerini üreten çözümleyicidir; metin içi yerleştirmeler onun alt
 	// çözümleyicisiyle okunur (konumlar, kodlu kip ve kayıt paylaşılır).
 	l *lexer.Lexer
-	// roller açıksa (RecordRoles) ad sözcüklerinin görevleri kaydedilir (roles.go).
+	// roles açıksa (RecordRoles) ad sözcüklerinin görevleri kaydedilir (roles.go).
 	roles map[[2]int]NameRole
 
 	// noBlock: 'eğer', 'iken', 'döngü' ve 'eşle' başlıklarında '{' gövdenin başlangıcıdır,
 	// sondaki blok (o-lambda) olarak okunmamalıdır. Parantez/köşeli parantez içinde yeniden açılır.
 	noBlock bool
 
-	// hataModu bir deyimde sözdizimi hatası kaydedildikten sonra açıktır: deyim
+	// errorMode bir deyimde sözdizimi hatası kaydedildikten sonra açıktır: deyim
 	// senkronizeOl ile atlanana dek yeni hata kaydedilmez (art arda gelen hatalar
 	// çoğunlukla ilkinin sonucudur). hataSatiri ilk hatanın satırıdır.
 	errorMode bool
 	errorLine int
 
-	// desenKipi bir eşle kolunun deseni okunurken açıktır: desenin hemen ardından gelen
+	// patternMode bir eşle kolunun deseni okunurken açıktır: desenin hemen ardından gelen
 	// '=>' kolun okudur, ok fonksiyonu değildir (durum => ..., (a + 1) => ...). Yalnızca
 	// desenin en dıştaki ifadesini etkiler; parseExpression girişte kapatır.
 	patternMode bool
 
-	// baglam 'çık'/'devam'/'sonuç' deyimlerinin geçerliliği için izlenen bağlamdır
+	// ctx 'çık'/'devam'/'sonuç' deyimlerinin geçerliliği için izlenen bağlamdır
 	// (context.go); modul, kodun bir modül olarak ayrıştırıldığını söyler (ParseModule).
 	ctx    stmtContext
 	module bool
 
-	// derinlik içinde bulunulan ifade/blok iç içelik düzeyidir; derinlikAsildi sınır
+	// nesting içinde bulunulan ifade/blok iç içelik düzeyidir; derinlikAsildi sınır
 	// aşıldıktan sonra açıktır (bkz. derinlikGir).
 	nesting       int
 	depthExceeded bool
@@ -287,7 +287,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	return program
 }
 
-// kaldirilanYazimIpuclari sözdizimi hatası olan satırlarda kaldırılmış bir anahtar kelime
+// removedSpellingHints sözdizimi hatası olan satırlarda kaldırılmış bir anahtar kelime
 // (ör. 'döndür', 'kır') ad olarak geçiyorsa, eski alışkanlığa yol gösteren bir ipucu ekler.
 func (p *Parser) removedSpellingHints() {
 	if len(p.errors) == 0 {

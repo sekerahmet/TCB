@@ -2,7 +2,7 @@
 
 package tensor
 
-// islemciBekle dönerek beklemede çağrılır. Satır içine alınmayan ve başka bir
+// cpuPause dönerek beklemede çağrılır. Satır içine alınmayan ve başka bir
 // işlevi çağıran (yaprak olmayan) bir işlev olduğundan girişindeki yığın
 // denetimi çöp toplayıcı için işbirlikçi kesme noktasıdır (bkz. bekle_amd64.go).
 //

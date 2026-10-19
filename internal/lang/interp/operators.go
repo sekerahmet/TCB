@@ -30,7 +30,7 @@ const (
 	opAssign // = (düz atama)
 )
 
-// islecKodu bir işleç metninin kodunu döndürür. Bileşik atamalar (+=, ...) temel
+// opCode bir işleç metninin kodunu döndürür. Bileşik atamalar (+=, ...) temel
 // işlecin koduna, düz atama opAta'ya çevrilir.
 func opCode(op string) uint8 {
 	switch op {
@@ -74,7 +74,7 @@ func opCode(op string) uint8 {
 	return opUnknown
 }
 
-// atamaIslecMetni bileşik atamanın kullandığı ikili işlecin metnini döndürür (hata mesajları için).
+// assignOpText bileşik atamanın kullandığı ikili işlecin metnini döndürür (hata mesajları için).
 func assignOpText(codeVal uint8) string {
 	switch codeVal {
 	case opAdd:
@@ -160,7 +160,7 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 	return nil, fmt.Errorf("Satır %d: %s ve %s tipleri arasında %q işlemi desteklenmiyor", line, left.Type(), right.Type(), op)
 }
 
-// tamIslem iki Tam sayı arasındaki işlemi yapar; işleç burada ele alınmıyorsa ok=false döner.
+// intOp iki Tam sayı arasındaki işlemi yapar; işleç burada ele alınmıyorsa ok=false döner.
 func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) {
 	switch codeVal {
 	case opAdd:
@@ -222,7 +222,7 @@ func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) 
 	return nil, false, nil
 }
 
-// ondalikIslem Ondalık (veya Tam + Ondalık) sayı işlemlerini yapar; işleç burada ele
+// floatOp Ondalık (veya Tam + Ondalık) sayı işlemlerini yapar; işleç burada ele
 // alınmıyorsa ok=false döner.
 func floatOp(codeVal uint8, lf, rf float64, line int) (Value, bool, error) {
 	switch codeVal {
@@ -260,7 +260,7 @@ func floatOp(codeVal uint8, lf, rf float64, line int) (Value, bool, error) {
 	return nil, false, nil
 }
 
-// tasmaHatasi int64 sınırını aşan tam sayı işlemleri için hata üretir (sessizce sarmak yerine).
+// overflowError int64 sınırını aşan tam sayı işlemleri için hata üretir (sessizce sarmak yerine).
 func overflowError(line int, a int64, op string, b int64) error {
 	return fmt.Errorf("Satır %d: %s sayı taşması (%d %s %d); ondalık sonuç için örn. %d.0 %s %d yazın", line, VAL_INT, a, op, b, a, op, b)
 }
@@ -283,7 +283,7 @@ func BoolToVal(b bool) Value {
 	return FALSE
 }
 
-// esitlikSonucu == (esit) ya da != işleminin sonucudur. Tip değeri metinle
+// equalityResult == (esit) ya da != işleminin sonucudur. Tip değeri metinle
 // karşılaştırılamaz (3.11): sessizce yanlış dönmek yerine hata verir.
 func equalityResult(equal bool, op string, left, right Value, line int) (Value, error) {
 	if err := typeTextError(op, left, right); err != nil {
@@ -296,7 +296,7 @@ func ValuesEqual(a, b Value) bool {
 	return valuesEqual(a, b, 0)
 }
 
-// esitlikDerinligi iç içe kap karşılaştırmasının en fazla derinliğidir; kendini içeren
+// equalityDepth iç içe kap karşılaştırmasının en fazla derinliğidir; kendini içeren
 // kaplarda (l == l dışında) sonsuz özyinelemeyi önler, aşılırsa eşit sayılmaz.
 const equalityDepth = 10000
 
@@ -391,7 +391,7 @@ func valuesEqual(a, b Value, nestDepth int) bool {
 	return a == b
 }
 
-// ayniDeger iki değerin (nil olabilir) aynı nesne olup olmadığını söyler.
+// sameValue iki değerin (nil olabilir) aynı nesne olup olmadığını söyler.
 func sameValue(a, b Value) bool {
 	if a == nil || b == nil {
 		return a == nil && b == nil

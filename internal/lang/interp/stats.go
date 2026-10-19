@@ -8,7 +8,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// registerIstatistik ortalama, standart_sapma ve ortanca yerleşiklerini kaydeder. Tensör
+// registerStats ortalama, standart_sapma ve ortanca yerleşiklerini kaydeder. Tensör
 // yolu (ortalama(t, eksen: ...)) internal/stdlib/ml'dadır; o, bu yerleşiği sarar. Üçü
 // de aynı kuralla girdi alır (13.1): tek bir liste ya da birden çok sayı; boş girdi ve sayı
 // olmayan eleman hatadır (toplam gibi).
@@ -56,7 +56,7 @@ func (v *VM) registerStats() {
 	})
 }
 
-// istatistikGirdisi istatistik yerleşiğinin elemanlarını verir: tek bir liste argümanının
+// statsInput istatistik yerleşiğinin elemanlarını verir: tek bir liste argümanının
 // elemanları ya da argümanların kendileri. Argümansız çağrı hatadır.
 func statsInput(kd codes.Code, args []Value) ([]Value, error) {
 	if len(args) == 0 {
@@ -68,7 +68,7 @@ func statsInput(kd codes.Code, args []Value) ([]Value, error) {
 	return args, nil
 }
 
-// istatistikSayilari elemanları sayıya çevirir (yeni bir dilime): boş girdi ve sayı olmayan
+// statsNumbers elemanları sayıya çevirir (yeni bir dilime): boş girdi ve sayı olmayan
 // eleman ortalama() ile aynı biçimde hatadır. ne hata mesajındaki sonucun adıdır.
 func statsNumbers(kd codes.Code, ne string, args []Value) ([]float64, error) {
 	elems, err := statsInput(kd, args)

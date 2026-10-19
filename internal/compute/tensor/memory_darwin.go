@@ -2,7 +2,7 @@ package tensor
 
 import "syscall"
 
-// fizikselBellek makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
+// physicalMemory makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
 // Değer 8 baytlık küçük sonlu bir tam sayıdır; sistem çağrısı sarmalayıcısı sondaki
 // sıfır baytı kırpabildiğinden eksik baytlar sıfır sayılır.
 func physicalMemory() (uint64, bool) {

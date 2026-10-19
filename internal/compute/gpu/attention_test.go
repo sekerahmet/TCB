@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// TestDikkatTakmaAd q, k, v'nin (ya da ikisinin) aynı tensör olduğu dikkat: gradyanlar aynı
+// TestAttentionAlias q, k, v'nin (ya da ikisinin) aynı tensör olduğu dikkat: gradyanlar aynı
 // depolamada birikir; float32 ve 16 bitlik gradyan türleri.
 func TestAttentionAlias(t *testing.T) {
 	rng := rand.New(rand.NewSource(3))
@@ -43,7 +43,7 @@ func TestAttentionAlias(t *testing.T) {
 	}
 }
 
-// TestDikkatGercekBoylar LLM'e özgü baş boyu (Dh = 64: ileri 64×32; geri 48 KB'ta 32×32,
+// TestAttentionRealSizes LLM'e özgü baş boyu (Dh = 64: ileri 64×32; geri 48 KB'ta 32×32,
 // açılabilen paylaşımlı bellekte 64×64 devingen döşeme), GQA, çok döşeme, Tq > Tk nedensel,
 // pencere ve dolgu maskesi. Benzetimde iki geri döşeme de sınanır.
 func TestAttentionRealSizes(t *testing.T) {
@@ -107,7 +107,7 @@ func attnRealSizes(t *testing.T) {
 	}
 }
 
-// TestDikkatUzunBaglamSiniri birleşik yolda puan matrisinin (B·H·Tq·Tk) boyutunun sınırlamadığını,
+// TestAttentionLongContextLimit birleşik yolda puan matrisinin (B·H·Tq·Tk) boyutunun sınırlamadığını,
 // gerçek 32 bitlik dizin sınırlarının (q/çıktı ve k/v) ise denetlendiğini sınar; matris yolu
 // puan matrisini de denetler.
 func TestAttentionLongContextLimit(t *testing.T) {
@@ -132,7 +132,7 @@ func TestAttentionLongContextLimit(t *testing.T) {
 	})
 }
 
-// TestDikkatYoluZorlanir TR_GPU_DIKKAT=carpim'in matris yolunu seçtiğini (sonuç aynı) sınar.
+// TestAttentionPathForced TR_GPU_DIKKAT=carpim'in matris yolunu seçtiğini (sonuç aynı) sınar.
 func TestAttentionPathForced(t *testing.T) {
 	g := gpuBackend()
 	old := g.attnPath

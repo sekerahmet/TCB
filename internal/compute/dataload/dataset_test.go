@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TestGercekVeriDuman, gerçek veri köküne karşı küçük bir duman testidir.
+// TestRealDataSmoke, gerçek veri köküne karşı küçük bir duman testidir.
 // Yalnızca TR_VERI_YOLU ortam değişkeni veri kökünü (meta.json, train/,
 // _valid/ içeren dizin) gösteriyorsa çalışır. Yalnızca meta.json'u, birkaç
 // parçanın başlığını ve birkaç küçük pencereyi okur; dosyaları kopyalamaz,

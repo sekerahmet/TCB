@@ -21,7 +21,7 @@ import (
 // (sessizce sıkıştırılmamış okumaya düşülmez). Bütün dosya okuyan ve yazan yerleşikler
 // dosyayı buradaki yardımcılarla açar; aynı kural iki yerde yazılmaz.
 
-// gzipIcerikSiniri dosya_oku'nun bir .gz dosyadan açacağı en büyük içeriktir (1 GB); daha
+// gzipContentLimit dosya_oku'nun bir .gz dosyadan açacağı en büyük içeriktir (1 GB); daha
 // büyük dosyalar dosya_satırları ile satır satır okunur.
 var gzipContentLimit = 1 << 30
 
@@ -56,7 +56,7 @@ func OpenFileReader(filePath string) (io.ReadCloser, error) {
 	return &gzipReader{gz: gz, f: f}, nil
 }
 
-// gzipOkuyucu açılmış içeriği okur; gzip hatalarını Türkçe nedenlere çevirir.
+// gzipReader açılmış içeriği okur; gzip hatalarını Türkçe nedenlere çevirir.
 type gzipReader struct {
 	gz *gzip.Reader
 	f  *os.File
@@ -75,7 +75,7 @@ func (g *gzipReader) Close() error {
 	return g.f.Close()
 }
 
-// gzipHatasi gzip okuyucusunun hatasını Türkçe bir nedene çevirir; işletim sistemi hatalarını
+// gzipError gzip okuyucusunun hatasını Türkçe bir nedene çevirir; işletim sistemi hatalarını
 // olduğu gibi bırakır.
 func gzipError(err error) error {
 	switch {

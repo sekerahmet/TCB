@@ -119,7 +119,7 @@ func TestGradCheck(t *testing.T) {
 	}
 }
 
-// ayrik birbirinden en az 0.1 uzak değerlerle tensör (Max eşitliklerinden kaçınmak için).
+// disjoint birbirinden en az 0.1 uzak değerlerle tensör (Max eşitliklerinden kaçınmak için).
 func disjoint(rng *rand.Rand, shape ...int) *Tensor {
 	n := numelOf(shape)
 	p := rng.Perm(n)
@@ -235,7 +235,7 @@ func TestDeviceAPI(t *testing.T) {
 	}
 }
 
-// ikinciCPU, cihazlar arası taşıma yolunu sınamak için CPU arka ucunu farklı
+// secondCPU, cihazlar arası taşıma yolunu sınamak için CPU arka ucunu farklı
 // bir cihaz kimliğiyle sarar.
 type secondCPU struct{ cpuBackend }
 

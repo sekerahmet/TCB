@@ -29,7 +29,7 @@ type Source struct {
 	Embedded bool
 }
 
-// gosterilenYol bir dosya yolunu hata mesajında gösterilecek biçime çevirir: çalışma
+// shownPath bir dosya yolunu hata mesajında gösterilecek biçime çevirir: çalışma
 // klasörünün altındaysa ona göre, değilse mutlak; ayırıcı '/'.
 func shownPath(filePath string) string {
 	if filePath == "" || strings.HasPrefix(filePath, "<") {
@@ -47,7 +47,7 @@ func shownPath(filePath string) string {
 	return filepath.ToSlash(absolute)
 }
 
-// anaKaynak ana programın kaynağıdır (SourceFile ve SourceCode'dan).
+// mainSource ana programın kaynağıdır (SourceFile ve SourceCode'dan).
 func (v *VM) mainSource() *Source {
 	return &Source{Path: v.SourceFile, Name: shownPath(v.SourceFile), Code: v.SourceCode}
 }
@@ -82,7 +82,7 @@ func (e *ModuleError) Error() string {
 
 func (e *ModuleError) Unwrap() error { return e.Err }
 
-// baslik denetim hatasının 'aktar' satırını gösteren ilk bölümüdür.
+// header denetim hatasının 'aktar' satırını gösteren ilk bölümüdür.
 func (e *ModuleError) header() string {
 	prefix := ""
 	if e.Importer != nil {
@@ -122,7 +122,7 @@ func ErrorItems(err error, mainCode string) []ErrorItem {
 	return entries
 }
 
-// kaynakHatasi k dosyasında çalışan koddan çıkan konumlu bir hatayı o dosyaya bağlar
+// sourceError k dosyasında çalışan koddan çıkan konumlu bir hatayı o dosyaya bağlar
 // (k nil ise ana program). Zaten bir dosyaya bağlı hata ve konumsuz hatalar ('fırlat' ile
 // atılan değerler: yakalayan onları olduğu gibi görür) değişmez.
 func (v *VM) sourceError(k *Source, err error) error {
@@ -136,7 +136,7 @@ func (v *VM) sourceError(k *Source, err error) error {
 	return &ModuleError{Source: k, Err: err}
 }
 
-// kaynaktaCagir başka bir dosyada tanımlanmış fonksiyonu kendi dosyasının bağlamında
+// callInSource başka bir dosyada tanımlanmış fonksiyonu kendi dosyasının bağlamında
 // çağırır; hatası o dosyaya bağlanır. Aynı dosyadaki çağrılar buraya uğramaz.
 func (v *VM) callInSource(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Value, args []Value, nargs int, named map[string]Value, line int) (Value, error) {
 	prev := v.source
@@ -161,7 +161,7 @@ func CheckModule(text string, globalNames []string, dynamic bool) *source.Result
 		InGlobalScope: true, GlobalNames: globalNames, GlobalDynamic: dynamic})
 }
 
-// modulYukleme yüklenmekte olan bir modüldür; aynı modülü isteyen başka görevler yüklemenin
+// moduleLoading yüklenmekte olan bir modüldür; aynı modülü isteyen başka görevler yüklemenin
 // bitmesini bekler.
 type moduleLoading struct {
 	finished chan struct{}
@@ -169,7 +169,7 @@ type moduleLoading struct {
 	err      error
 }
 
-// aktar 'aktar' deyimini çalıştırır. Modül, genel kapsamın altında kendi ortamında çalışır
+// imp 'aktar' deyimini çalıştırır. Modül, genel kapsamın altında kendi ortamında çalışır
 // ve ortamının tüm adları dışa aktarılır. takma, 'aktar ... olarak ad' biçiminde takma adı
 // çağıranın kapsamına tanımlar; takma adsız aktarımda adlar çağıranın ortamına adla
 // tanımlanır.
@@ -192,7 +192,7 @@ func (v *VM) imp(s *ast.ImportStatement, env *Environment, alias func(*Environme
 	return mod, signalNone, nil
 }
 
-// modulYukle modülü (gerekirse) yükler. Bir modül program boyunca bir kez çalışır.
+// loadModule modülü (gerekirse) yükler. Bir modül program boyunca bir kez çalışır.
 // Başka bir görev aynı modülü yüklüyorsa bitmesi beklenir; yükleyen görevin kendi aktarım
 // zinciri modülü içeriyorsa bu döngüsel bir aktarımdır.
 func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
@@ -243,7 +243,7 @@ func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
 	return y.mod, y.err
 }
 
-// modulHedefi 'aktar' yolunun gösterdiği modülü bulur (yolu ve gösterilen adı; kaynak yalnızca
+// moduleTarget 'aktar' yolunun gösterdiği modülü bulur (yolu ve gösterilen adı; kaynak yalnızca
 // yüklenirken okunur, bakilanlar okuma hatası içindir). "tr/" önekli yol dilin gömülü
 // kitaplığındandır (11.6); kitaplık modülünün içindeki göreli yol da
 // kitaplıkta çözülür. Öbür göreli yollar önce aktaran dosyanın, sonra programın klasörüne
@@ -260,7 +260,7 @@ func (v *VM) moduleTarget(s *ast.ImportStatement, path string) (dest *Source, se
 	return &Source{Path: resolved, Name: shownPath(resolved)}, searched, nil
 }
 
-// modulCalistir modülü (diskten ya da kitaplıktan) okur, denetler ve kendi kaynağının bağlamında çalıştırır.
+// runModule modülü (diskten ya da kitaplıktan) okur, denetler ve kendi kaynağının bağlamında çalıştırır.
 func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr string, searched []string) (*DictVal, error) {
 	if dest.Embedded {
 		payload, err := ReadLibrary(strings.TrimPrefix(dest.Path, LibraryPrefix))

@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	// ErrKapali, kapatılmış bir kaynağın kullanılmaya çalışıldığını bildirir.
+	// ErrClosed, kapatılmış bir kaynağın kullanılmaya çalışıldığını bildirir.
 	ErrClosed = errors.New("veri: kaynak kapatılmış")
 
 	errNoMmap       = errors.New("veri: bu platformda bellek eşleme yok")
@@ -20,17 +20,17 @@ var (
 	errMmapTooLarge = errors.New("veri: dosya adres alanına sığmıyor")
 )
 
-// acikParcaSayisi, açık (kapatılmamış) Parca sayısıdır; sızıntı testleri için.
+// openShardCount, açık (kapatılmamış) Parca sayısıdır; sızıntı testleri için.
 var openShardCount atomic.Int64
 
-// ParcaSecenekleri, bir parçanın nasıl açılacağını belirler.
+// ShardOptions, bir parçanın nasıl açılacağını belirler.
 type ShardOptions struct {
-	// EslemeKapali true ise bellek eşleme hiç denenmez, her okuma ReadAt
+	// NoMmap true ise bellek eşleme hiç denenmez, her okuma ReadAt
 	// ile yapılır (ör. ağ sürücülerinde eşleme sorun çıkarıyorsa).
 	NoMmap bool
 }
 
-// Parca, tek boyutlu tek bir .npy dosyasıdır. Veri belleğe kopyalanmaz:
+// Shard, tek boyutlu tek bir .npy dosyasıdır. Veri belleğe kopyalanmaz:
 // mümkünse dosya belleğe eşlenir, değilse her okuma ReadAt ile yapılır.
 //
 // Oku yöntemleri birden çok gorutinden aynı anda çağrılabilir. Kapat,
@@ -50,7 +50,7 @@ type Shard struct {
 	buffer   *sync.Pool   // ReadAt yolu için bayt tamponları
 }
 
-// ParcaAc, yol'daki .npy dosyasını açar ve başlığını doğrular.
+// OpenShard, yol'daki .npy dosyasını açar ve başlığını doğrular.
 func OpenShard(path string, s ShardOptions) (*Shard, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -102,22 +102,22 @@ func buildShard(path string, f *os.File, s ShardOptions) (*Shard, error) {
 	return p, nil
 }
 
-// Yol, parçanın dosya yoludur.
+// Path, parçanın dosya yoludur.
 func (p *Shard) Path() string { return p.path }
 
-// Baslik, çözümlenmiş .npy başlığıdır.
+// Header, çözümlenmiş .npy başlığıdır.
 func (p *Shard) Header() Header { return p.header }
 
-// Uzunluk, parçadaki token sayısıdır.
+// Length, parçadaki token sayısıdır.
 func (p *Shard) Length() int64 { return p.header.Length }
 
-// Tur, eleman türüdür.
+// DType, eleman türüdür.
 func (p *Shard) DType() DType { return p.header.DType }
 
-// Eslemeli, parçanın belleğe eşlenerek okunup okunmadığıdır.
+// Mmapped, parçanın belleğe eşlenerek okunup okunmadığıdır.
 func (p *Shard) Mmapped() bool { return p.data != nil }
 
-// EslemeHatasi, eşleme denenip başarısız olduysa nedenidir (yoksa nil).
+// MmapError, eşleme denenip başarısız olduysa nedenidir (yoksa nil).
 func (p *Shard) MmapError() error { return p.mmapErr }
 
 func (p *Shard) checkRange(n int, begin int64) error {
@@ -128,7 +128,7 @@ func (p *Shard) checkRange(n int, begin int64) error {
 	return nil
 }
 
-// Oku, bas konumundan başlayarak len(dst) tokenı dst'ye int32 olarak okur.
+// Read, bas konumundan başlayarak len(dst) tokenı dst'ye int32 olarak okur.
 // Aralık parça dışına taşarsa hata döner. '<u4' değerleri 2^31'i aşarsa
 // int32'ye taşar; sözlük boyutları bunun çok altındadır.
 func (p *Shard) Read(dst []int32, begin int64) error {
@@ -150,7 +150,7 @@ func (p *Shard) Read(dst []int32, begin int64) error {
 	return p.readAtRead(len(dst), begin, func(i int, b []byte, k int) { decodeI32(dst[i:i+k], b, p.header.DType) })
 }
 
-// OkuU16, bas konumundan başlayarak len(dst) tokenı dst'ye uint16 olarak
+// ReadU16, bas konumundan başlayarak len(dst) tokenı dst'ye uint16 olarak
 // okur. Yalnızca '<u2' parçalarda kayıpsızdır; diğer türlerde değerler
 // 16 bite kırpılmaz, hata döner.
 func (p *Shard) ReadU16(dst []uint16, begin int64) error {
@@ -174,7 +174,7 @@ func (p *Shard) ReadU16(dst []uint16, begin int64) error {
 	return p.readAtRead(len(dst), begin, func(i int, b []byte, k int) { decodeU16(dst[i:i+k], b) })
 }
 
-// esleOku, eşlenmiş bellekten okuyan f'yi korumalı çalıştırır. Eşlenmiş
+// mmapRead, eşlenmiş bellekten okuyan f'yi korumalı çalıştırır. Eşlenmiş
 // dosya dışarıdan kısaltılırsa okunan sayfa artık dosyada yoktur ve Unix'te
 // erişim SIGBUS ile sonuçlanır; normalde bu süreci kurtarılamaz biçimde
 // çökertir (okuma çoğunlukla önden yükleme gorutininde yapıldığından daha
@@ -198,7 +198,7 @@ func (p *Shard) mmapRead(f func()) (err error) {
 	return nil
 }
 
-// readAtOku, n elemanı parçalar hâlinde ReadAt ile okur ve her parçayı cevir'e
+// readAtRead, n elemanı parçalar hâlinde ReadAt ile okur ve her parçayı cevir'e
 // verir. Kilit çağıran tarafından tutulur.
 func (p *Shard) readAtRead(n int, begin int64, convert func(i int, b []byte, k int)) error {
 	es := p.header.DType.Size()
@@ -221,7 +221,7 @@ func (p *Shard) readAtRead(n int, begin int64, convert func(i int, b []byte, k i
 	return nil
 }
 
-// Kapat, eşlemeyi ve dosyayı serbest bırakır. Birden çok kez çağrılabilir.
+// Close, eşlemeyi ve dosyayı serbest bırakır. Birden çok kez çağrılabilir.
 func (p *Shard) Close() error {
 	p.mu.Lock()
 	if p.closed {

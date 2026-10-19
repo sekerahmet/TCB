@@ -19,7 +19,7 @@ import (
 // beklemez, saniyede birkaç kez okunabilir) ve BellekOlcumleri ile GPU belleğinin durumunu
 // alır. TR_GPU_PROFIL=1 ile çalışan bir program sonunda (Kapat) özet standart hataya yazılır.
 
-// CekirdekOlcumu bir çekirdeğin (ya da sürücü bellek işinin) toplamları.
+// KernelSample bir çekirdeğin (ya da sürücü bellek işinin) toplamları.
 type KernelSample struct {
 	Ad      string // üretilen çekirdeğin adı (ör. "carpim_128_128_8_...")
 	Family  string // adın ailesi (ör. "carpim")
@@ -27,7 +27,7 @@ type KernelSample struct {
 	GPUTime time.Duration
 }
 
-// BellekOlcumu bir GPU'nun bellek havuzunun durumu (bayt).
+// MemorySample bir GPU'nun bellek havuzunun durumu (bayt).
 type MemorySample struct {
 	Device       int
 	Reserved     uint64 // sürücüden ayrılmış toplam
@@ -44,7 +44,7 @@ var registered struct {
 	uc []*backend
 }
 
-// kaydet arka ucu profil ve bellek ölçümlerine ekler (cihaz olarak kaydedilenler).
+// save arka ucu profil ve bellek ölçümlerine ekler (cihaz olarak kaydedilenler).
 func save(g *backend) *backend {
 	registered.mu.Lock()
 	registered.uc = append(registered.uc, g)
@@ -58,14 +58,14 @@ func registeredAll() []*backend {
 	return append([]*backend(nil), registered.uc...)
 }
 
-// ProfilAc GPU çekirdek ölçümünü açar ya da kapatır (TR_GPU_PROFIL=1 ile başlangıçta
+// EnableProfile GPU çekirdek ölçümünü açar ya da kapatır (TR_GPU_PROFIL=1 ile başlangıçta
 // açıktır). Kapalıyken maliyet başlatma başına tek bir atomik okumadır.
 func EnableProfile(open bool) { profileOn.Store(open) }
 
-// ProfilAcik ölçümün açık olup olmadığı.
+// ProfileEnabled ölçümün açık olup olmadığı.
 func ProfileEnabled() bool { return profileOn.Load() }
 
-// CekirdekOlcumleri bütün GPU'larda şimdiye kadar çözülmüş ölçümlerin çekirdek başına
+// KernelSamples bütün GPU'larda şimdiye kadar çözülmüş ölçümlerin çekirdek başına
 // toplamlarını GPU süresine göre azalan sırada verir. Son ~250 ms'nin ölçümleri bir sonraki
 // görüntüde görünür.
 func KernelSamples() []KernelSample {
@@ -89,7 +89,7 @@ func KernelSamples() []KernelSample {
 	return r
 }
 
-// BellekOlcumleri her GPU'nun bellek havuzunun durumunu verir.
+// MemorySamples her GPU'nun bellek havuzunun durumunu verir.
 func MemorySamples() []MemorySample {
 	var r []MemorySample
 	for _, g := range registeredAll() {
@@ -100,13 +100,13 @@ func MemorySamples() []MemorySample {
 	return r
 }
 
-// gpuKapandi dış profilleyici için C çıkış işleyicileri çalıştırıldıktan sonra doğrudur: o
+// gpuClosed dış profilleyici için C çıkış işleyicileri çalıştırıldıktan sonra doğrudur: o
 // andan sonra sürücüye hiçbir çağrı yapılmaz (gir açık hata verir).
 var gpuClosed atomic.Bool
 
 var exitOnce sync.Once
 
-// Kapat program sonunda çağrılır: ölçüm açıksa özeti standart hataya yazar, matris çarpımı
+// Close program sonunda çağrılır: ölçüm açıksa özeti standart hataya yazar, matris çarpımı
 // kitaplığının tanımlarını yok eder ve bağlı dış profilleyicilere topladıkları veriyi
 // yazdırır. Birden çok kez çağrılabilir; özet yalnızca son yazımdan sonra yeni ölçüm varsa
 // yeniden yazılır.
@@ -138,7 +138,7 @@ func Close() {
 	}
 }
 
-// kapat bir GPU'nun program sonu işleri; sürücü hatası (ör. yapışkan bağlam hatası) programın
+// closeFn bir GPU'nun program sonu işleri; sürücü hatası (ör. yapışkan bağlam hatası) programın
 // çıkışını bozmasın diye yutulur (hata zaten bildirilmiştir).
 func (g *backend) closeFn() {
 	defer func() { _ = recover() }()
@@ -156,7 +156,7 @@ func (g *backend) closeFn() {
 	g.sr.flushTools()
 }
 
-// ProfilOzetiYaz bütün GPU'ların ölçüm özetini w'ye yazar (sürücü hatası yutulur).
+// WriteProfileSummary bütün GPU'ların ölçüm özetini w'ye yazar (sürücü hatası yutulur).
 func WriteProfileSummary(w io.Writer) {
 	for _, g := range registeredAll() {
 		func() {
@@ -169,7 +169,7 @@ func WriteProfileSummary(w io.Writer) {
 	}
 }
 
-// ozetYaz bu GPU'nun özetini yazar (kilit tutulurken).
+// writeSummary bu GPU'nun özetini yazar (kilit tutulurken).
 func (g *backend) writeSummary(w io.Writer) {
 	p := &g.profiler
 	fmt.Fprintf(w, "== GPU profili (%s: %s; matris çarpımı: %s) ==\n", g.dev, g.sr.cardName(), g.gemmPath())

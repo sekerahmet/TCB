@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// dosyaBoyutlu, verilen boyutta (bayt) sahte .npy dosyası yazar.
+// sizedFile, verilen boyutta (bayt) sahte .npy dosyası yazar.
 func sizedFile(t *testing.T, dir, ad string, token int, seed uint64) (string, int64) {
 	t.Helper()
 	path := writeU16(t, dir, ad, fakeU16(token, seed))
@@ -345,7 +345,7 @@ func TestCacheCopyValidation(t *testing.T) {
 	}
 }
 
-// calisanIsciSayisi cekirdekAc'ın başlattığı işçi gorutinlerini sayar ("created by" satırı
+// runningWorkers cekirdekAc'ın başlattığı işçi gorutinlerini sayar ("created by" satırı
 // gorutin henüz çalışmaya başlamamışken de vardır; giriş fonksiyonunun adı o sırada farklı
 // görünür). Toplam gorutin sayısıyla karşılaştırmak kararsızdı: önceki testlerden kalan
 // gorutinler bu arada bitince sayı düşüyor, işçiler başlamış olsa da test kalıyordu.

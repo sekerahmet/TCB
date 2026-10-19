@@ -10,7 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// klasordeCalis testi geçici bir çalışma klasöründe çalıştırır (pakette paralel test yok).
+// runInDir testi geçici bir çalışma klasöründe çalıştırır (pakette paralel test yok).
 func runInDir(t *testing.T, folder string) {
 	t.Helper()
 	prevVal, err := os.Getwd()

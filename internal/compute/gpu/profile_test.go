@@ -11,7 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
 
-// TestProfilOlcer ölçüm açıkken çekirdeklerin ve sürücü bellek işlerinin sayılıp sürelerinin
+// TestProfileMeasures ölçüm açıkken çekirdeklerin ve sürücü bellek işlerinin sayılıp sürelerinin
 // toplandığını, adım özetinin ve bellek durumunun yazıldığını denetler.
 func TestProfileMeasures(t *testing.T) {
 	EnableProfile(true)
@@ -69,7 +69,7 @@ func TestProfileMeasures(t *testing.T) {
 	}
 }
 
-// TestProfilAdimSatiri adım satırının adımların süresine değil tamamlanmasına baktığını ve
+// TestProfileStepLine adım satırının adımların süresine değil tamamlanmasına baktığını ve
 // tamamlanmış adım yoksa bunu söylediğini denetler. Profilin adım kayıtları test boyunca
 // değiştirilip sonra geri konur (paylaşılan durum).
 func TestProfileStepLine(t *testing.T) {
@@ -115,7 +115,7 @@ func TestKernelFamily(t *testing.T) {
 	}
 }
 
-// TestSinifBoyu boyut sınıflarının istenen boydan küçük olmadığını ve 1 MB üstünde boşluğun
+// TestClassSize boyut sınıflarının istenen boydan küçük olmadığını ve 1 MB üstünde boşluğun
 // %25'i aşmadığını denetler.
 func TestClassSize(t *testing.T) {
 	for _, b := range []uint64{1, 256, 257, 1000, 1 << 20, 1<<20 + 1, 3 << 20, 5<<20 + 7, 63 << 20, 64 << 20, 64<<20 + 1, 1 << 30} {

@@ -27,15 +27,15 @@ import (
 const (
 	kcBlock = 256     // K ekseni blok derinliği
 	rowB    = 16 * mr // bir iş parçasındaki en fazla satır sayısı (mr katı)
-	// enAzPanel sütun yönünde bölünürken bir iş parçasına düşen en az B paneli
+	// minPanel sütun yönünde bölünürken bir iş parçasına düşen en az B paneli
 	// (en az 32 sütun).
 	minPanel = (32 + nr - 1) / nr
-	// tekCekirdekEsik bu kadar çarpma-toplamadan küçük işler tek çekirdekte yapılır.
+	// singleCoreThreshold bu kadar çarpma-toplamadan küçük işler tek çekirdekte yapılır.
 	singleCoreThreshold = 1 << 18
-	// isciBasinaEnAz bir işçiye düşen en az çarpma-toplama; işçi sayısı buna
+	// minPerWorker bir işçiye düşen en az çarpma-toplama; işçi sayısı buna
 	// göre sınırlanır (eşiğin hemen üstündeki işlerde gereksiz işçi olmasın).
 	minPerWorker = 1 << 17
-	// gemmBuyukIs bu kadar çarpma-toplamadan büyük çarpımlar bütün işçileri
+	// gemmBigJob bu kadar çarpma-toplamadan büyük çarpımlar bütün işçileri
 	// kullanabilir; daha küçükleri en çok donenIsci+1 katılımcıyla yürütülür
 	// (bkz. paralel.go). 2^25 çarpma-toplama tek çekirdekte ~0,5 ms sürer.
 	// Ölçüm (i7-13700H, 20 iş parçacığı): modeldeki 1024×64×64 ve 1024×64×256
@@ -61,19 +61,19 @@ var (
 )
 
 const (
-	// tamponEnBuyuk bundan büyük tamponlar saklanmaz (büyük çarpımlarda
+	// bufMax bundan büyük tamponlar saklanmaz (büyük çarpımlarda
 	// ayırma maliyeti önemsizdir): 1M eleman, 4 MB.
 	bufMax = 1 << 20
-	// tamponEnBuyukB paketlenmiş B tamponunun en büyük boyu (4M eleman, 16 MB): toplu
+	// bufMaxB paketlenmiş B tamponunun en büyük boyu (4M eleman, 16 MB): toplu
 	// çarpımda B bütün toplu için birlikte paketlenir (ör. 64×(1024×64)·(64×1024) ileri
 	// yönde tam 4M eleman); daha büyüğü gerektiğinde toplu parçalara bölünür.
 	bufMaxB = 1 << 22
-	// tamponToplamEnCok bir yığında tutulan tamponların toplam kapasitesi
+	// bufTotalMax bir yığında tutulan tamponların toplam kapasitesi
 	// (eleman): 8M eleman, 32 MB. Karakter modelinde gereken toplam ~2 MB'tır.
 	bufTotalMax = 1 << 23
 )
 
-// tamponYigini paketleme tamponlarının kilitli, sınırlı bir yığını.
+// bufStack paketleme tamponlarının kilitli, sınırlı bir yığını.
 type bufStack struct {
 	largest int // bundan büyük tamponlar saklanmaz
 	mu      sync.Mutex
@@ -81,7 +81,7 @@ type bufStack struct {
 	total   int // t'deki tamponların toplam kapasitesi
 }
 
-// paketAl yığından en az n elemanlı en küçük tamponu alır (yoksa yenisini
+// takePack yığından en az n elemanlı en küçük tamponu alır (yoksa yenisini
 // ayırır). Yeni tamponun kapasitesi ikinin kuvvetine yuvarlanır: yakın
 // boyutlar aynı tamponu paylaşır.
 func takePack(y *bufStack, n int) *[]float32 {

@@ -65,7 +65,7 @@ func NameBindings(prog *ast.Program, lang *codes.Language, globalNames []string,
 	return bindings, d.conflicts
 }
 
-// cozum adın görünen kapsamlardaki bağıdır; yapı, ad bir kullanıcı yapısıysa onun tanımıdır.
+// resolve adın görünen kapsamlardaki bağıdır; yapı, ad bir kullanıcı yapısıysa onun tanımıdır.
 func (d *nameChecker) resolve(name string, k *nameScope) (BindingKind, codes.Code, *ast.StructStatement) {
 	ambiguous := false
 	for c := k; c != nil; c = c.parent {
@@ -91,7 +91,7 @@ func (d *nameChecker) resolve(name string, k *nameScope) (BindingKind, codes.Cod
 	return BindUndefined, codes.None, nil
 }
 
-// sozcukCozumu bir ad sözcüğünün bağıdır: kodlu kaynakta kodla yazılmış sözcük (Token.Kod)
+// tokenResolution bir ad sözcüğünün bağıdır: kodlu kaynakta kodla yazılmış sözcük (Token.Kod)
 // kodun kendisine bağlıdır, başka her ad cozum ile kapsamlarda aranır.
 func (d *nameChecker) tokenResolution(tok lexer.Token, name string, k *nameScope) (BindingKind, codes.Code, *ast.StructStatement) {
 	switch code := tok.Code; {
@@ -104,7 +104,7 @@ func (d *nameChecker) tokenResolution(tok lexer.Token, name string, k *nameScope
 	}
 }
 
-// bagla değer olarak okunan (ya da atanan) bir adın bağını kaydeder.
+// bind değer olarak okunan (ya da atanan) bir adın bağını kaydeder.
 func (d *nameChecker) bind(id *ast.Identifier, k *nameScope) {
 	kind, code, _ := d.tokenResolution(id.Token, id.Value, k)
 	*d.bindings = append(*d.bindings, NameBinding{Token: id.Token, Kind: kind, Code: code})
@@ -117,7 +117,7 @@ func (d *nameChecker) bind(id *ast.Identifier, k *nameScope) {
 	}
 }
 
-// adliBaglar bir çağrının adlı argümanlarının bağlarını kaydeder. Adlı argüman adı yalnızca
+// namedArgBindings bir çağrının adlı argümanlarının bağlarını kaydeder. Adlı argüman adı yalnızca
 // çağrılan dilin bir öğesiyse dilin adıdır: yerleşik bir fonksiyon (gölgelenmemiş) ya da
 // dilin bir üyesi (x.ad, 17.3); kullanıcının fonksiyonlarına verilen adlı argümanlar
 // parametre adlarıdır, kullanıcının adıdır. Kurucusu olmayan bir yapının oluşturulmasında
@@ -151,7 +151,7 @@ func (d *nameChecker) namedArgBindings(c *ast.CallExpression, k *nameScope) {
 	}
 }
 
-// sondakiBlokOrtukleri sondaki bloğun (liste.filtrele { o > 2 }) örtük parametrelerinin
+// trailingBlockImplicits sondaki bloğun (liste.filtrele { o > 2 }) örtük parametrelerinin
 // bağlamsal kodlarıdır: 'o' (A104) ve indirge bloğunda 'birikim' (A105).
 func trailingBlockImplicits(f *ast.FunctionLiteral) [2]codes.Code {
 	var o [2]codes.Code

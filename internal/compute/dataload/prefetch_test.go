@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// sayacKaynak, sırayla 0,1,2,... değerli toplu işler üretir; sinir'e
+// countingSource, sırayla 0,1,2,... değerli toplu işler üretir; sinir'e
 // ulaşınca io.EOF döner. gecikme verilirse her Doldur o kadar bekler;
 // durSonra verilirse o kadar çağrıdan sonraki Doldur'lar bağlam iptal
 // edilene kadar takılır. basladi verilirse her Doldur başlarken ona (doluysa
@@ -208,7 +208,7 @@ func TestPrefetcherDoesNotBlock(t *testing.T) {
 	}
 }
 
-// izliKaynak, Doldur sürerken Kapat çağrılırsa bunu kaydeder.
+// trackedSource, Doldur sürerken Kapat çağrılırsa bunu kaydeder.
 type trackedSource struct {
 	countingSource
 	running atomic.Bool
@@ -249,7 +249,7 @@ func TestPrefetcherClosesSourceAfterProducer(t *testing.T) {
 	waitGoroutine(t, baseOff)
 }
 
-// takilanKaynak, bağlamı dinlemeyen ve birak kapanana kadar takılan bir
+// stuckSource, bağlamı dinlemeyen ve birak kapanana kadar takılan bir
 // okumayı taklit eder; okumaya girince basladi kapanır.
 type stuckSource struct {
 	release  chan struct{}

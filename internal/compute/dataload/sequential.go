@@ -11,20 +11,20 @@ import (
 // Sıralı okuma (doğrulama)
 // ---------------------------------------------------------------------------
 
-// SiraliSecenekleri, sıralı okumanın ayarlarıdır.
+// SequentialOptions, sıralı okumanın ayarlarıdır.
 type SequentialOptions struct {
 	B, T int
-	// Adim, ardışık pencere başlangıçları arasındaki token sayısıdır.
+	// Stride, ardışık pencere başlangıçları arasındaki token sayısıdır.
 	// Varsayılan T: her token en çok bir kez hedef olur; parçanın ilk tokenı
 	// ve son pencereye sığmayan kuyruğu (en çok T-1 token) hedef olmaz.
 	Stride int
-	// Baslangic verilirse okuma bu konumdan sürer (bir toplu işin Durum'u: Sira parça
+	// Start verilirse okuma bu konumdan sürer (bir toplu işin Durum'u: Sira parça
 	// sırası, Pencere o parçadaki sonraki pencerenin token konumu). Sira parça sayısına
 	// eşitse okuyucu baştan bitmiştir.
 	Start *State
 }
 
-// SiraliOkuyucu, parçaları ad sırasıyla, karıştırmadan ve pencereleri
+// SequentialReader, parçaları ad sırasıyla, karıştırmadan ve pencereleri
 // sırayla okur. Pencereler parça sınırını aşmaz. Son toplu iş B'den az
 // satırlı olabilir (ti.B buna göre ayarlanır); ardından io.EOF döner.
 // Yöntemler kilitle korunur; Kapat süren bir Doldur'un bitmesini bekler.
@@ -40,7 +40,7 @@ type SequentialReader struct {
 	closed     bool
 }
 
-// Sirali, kümeden sıralı okuyan bir okuyucu kurar.
+// Sequential, kümeden sıralı okuyan bir okuyucu kurar.
 func (k *Dataset) Sequential(s SequentialOptions) (*SequentialReader, error) {
 	if s.B <= 0 || s.T <= 0 {
 		return nil, fmt.Errorf("veri: B ve T pozitif olmalı (B=%d, T=%d)", s.B, s.T)
@@ -64,7 +64,7 @@ func (k *Dataset) Sequential(s SequentialOptions) (*SequentialReader, error) {
 	return so, nil
 }
 
-// PencereSayisi, okuyucunun baştan sona üreteceği pencere sayısıdır.
+// WindowCount, okuyucunun baştan sona üreteceği pencere sayısıdır.
 func (so *SequentialReader) WindowCount() int64 {
 	var t int64
 	for _, p := range so.k.shards {
@@ -75,7 +75,7 @@ func (so *SequentialReader) WindowCount() int64 {
 	return t
 }
 
-// Doldur, ti'yi sonraki en çok B pencereyle doldurur; bitince io.EOF döner.
+// Fill, ti'yi sonraki en çok B pencereyle doldurur; bitince io.EOF döner.
 func (so *SequentialReader) Fill(ctx context.Context, ti *Batch) error {
 	so.mu.Lock()
 	defer so.mu.Unlock()
@@ -129,7 +129,7 @@ func (so *SequentialReader) Fill(ctx context.Context, ti *Batch) error {
 	return nil
 }
 
-// Basa, okuyucuyu başa sarar.
+// Rewind, okuyucuyu başa sarar.
 func (so *SequentialReader) Rewind() error {
 	so.mu.Lock()
 	defer so.mu.Unlock()
@@ -146,7 +146,7 @@ func (so *SequentialReader) toStart() error {
 	return err
 }
 
-// Kapat, açık parçayı kapatır.
+// Close, açık parçayı kapatır.
 func (so *SequentialReader) Close() error {
 	so.mu.Lock()
 	defer so.mu.Unlock()

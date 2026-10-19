@@ -16,14 +16,14 @@ import (
 // Satır (dış, iç) çiftidir: eleman (o, l, i) bitişik düzende (o·L + l)·I + i'dedir; son
 // eksen için I = 1.
 
-// enBuyuk birlestir işlevi: max.f32 (NaN'ı yok sayar; satır en büyükleri NaN olmaz).
+// largest birlestir işlevi: max.f32 (NaN'ı yok sayar; satır en büyükleri NaN olmaz).
 func (k *emitter) largest(a, b reg) reg {
 	r := k.f()
 	k.e("max.f32", r, a, b)
 	return r
 }
 
-// satirDongu l = tid; l < L; l += B döngüsünü kurar; govde, elemanın bayt ofsetini
+// rowLoop l = tid; l < L; l += B döngüsünü kurar; govde, elemanın bayt ofsetini
 // ((taban + l·I)·4) alır ve kendi göstericisine ekler (satirAdresi).
 func (k *emitter) rowLoop(tid, L, I, base2 reg, B int, body func(addr reg, l reg)) {
 	l := k.r()
@@ -43,14 +43,14 @@ func (k *emitter) rowLoop(tid, L, I, base2 reg, B int, body func(addr reg, l reg
 	k.put(last)
 }
 
-// satirAdresi göstericiye satirDongu'nun verdiği bayt ofsetini ekler.
+// rowAddress göstericiye satirDongu'nun verdiği bayt ofsetini ekler.
 func (k *emitter) rowAddress(ptr, ofs reg) reg {
 	r := k.rd()
 	k.e("add.s64", r, ptr, ofs)
 	return r
 }
 
-// satirBasi blok başına satırın taban eleman ofsetini verir: o·L·I + i.
+// rowStart blok başına satırın taban eleman ofsetini verir: o·L·I + i.
 func (k *emitter) rowStart(L, I reg) reg {
 	row := k.special("%ctaid.x")
 	o, i := k.r(), k.r()
@@ -182,7 +182,7 @@ func softmaxGradKernel(B int, logMode bool) func() *emitter {
 	}
 }
 
-// tidSifirDegil tid ≠ 0 yüklemi.
+// tidNonZero tid ≠ 0 yüklemi.
 func (k *emitter) tidNonZero(tid reg) reg {
 	p := k.p()
 	k.e("setp.ne.u32", p, tid, 0)

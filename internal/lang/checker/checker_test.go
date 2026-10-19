@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// denetle kaynağı ayrıştırır (sözdizimi hatası testi düşürür) ve tip denetimi hatalarını döndürür.
+// check kaynağı ayrıştırır (sözdizimi hatası testi düşürür) ve tip denetimi hatalarını döndürür.
 func check(t *testing.T, source string) []string {
 	t.Helper()
 	p := parser.New(lexer.New(source))
@@ -35,7 +35,7 @@ func noErrors(t *testing.T, source string) {
 	}
 }
 
-// tekHata kaynağın tam olarak bir hata üretmesini ve hatanın tüm parçaları içermesini bekler.
+// singleError kaynağın tam olarak bir hata üretmesini ve hatanın tüm parçaları içermesini bekler.
 func singleError(t *testing.T, source string, parts ...string) {
 	t.Helper()
 	errs := check(t, source)
