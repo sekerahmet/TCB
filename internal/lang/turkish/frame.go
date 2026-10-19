@@ -23,11 +23,10 @@ func CodeFrame(source, message string) string {
 		return ""
 	}
 	lineNo, _ := strconv.Atoi(m[1])
-	lines := strings.Split(strings.ReplaceAll(source, "\r\n", "\n"), "\n")
-	if lineNo < 1 || lineNo > len(lines) {
+	line, ok := lineAt(source, lineNo)
+	if !ok {
 		return ""
 	}
-	line := strings.TrimRight(lines[lineNo-1], "\r")
 	if strings.TrimSpace(line) == "" {
 		return ""
 	}
@@ -62,4 +61,23 @@ func CodeFrame(source, message string) string {
 	}
 	fmt.Fprintf(&sb, " %s | %s%s\n", pad, prefix.String(), strings.Repeat("^", length))
 	return sb.String()
+}
+
+// lineAt returns line n (1-based) of source without its line ending. It scans only up to that
+// line and copies nothing, so framing many errors of a large file stays cheap.
+func lineAt(source string, n int) (string, bool) {
+	if n < 1 {
+		return "", false
+	}
+	for i := 1; i < n; i++ {
+		j := strings.IndexByte(source, '\n')
+		if j < 0 {
+			return "", false
+		}
+		source = source[j+1:]
+	}
+	if j := strings.IndexByte(source, '\n'); j >= 0 {
+		source = source[:j]
+	}
+	return strings.TrimRight(source, "\r"), true
 }

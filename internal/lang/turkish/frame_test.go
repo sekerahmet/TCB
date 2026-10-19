@@ -28,3 +28,17 @@ func TestCodeFrame(t *testing.T) {
 		t.Error("boş kaynakta çerçeve beklenmiyordu")
 	}
 }
+
+func TestLineAt(t *testing.T) {
+	src := "bir\r\niki\nüç"
+	for n, want := range map[int]string{1: "bir", 2: "iki", 3: "üç"} {
+		if got, ok := lineAt(src, n); !ok || got != want {
+			t.Errorf("lineAt(%d) = %q, %v; %q expected", n, got, ok, want)
+		}
+	}
+	for _, n := range []int{0, 4} {
+		if _, ok := lineAt(src, n); ok {
+			t.Errorf("lineAt(%d) should not exist", n)
+		}
+	}
+}

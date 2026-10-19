@@ -49,3 +49,15 @@ func TestCodedFileErrors(t *testing.T) {
 		t.Errorf("sözdizimi hatası bekleniyordu: %v", err)
 	}
 }
+
+// A file with thousands of errors (often not a TR file at all) reports the first MaxErrors and
+// how many more there are; reporting every error with a code frame took minutes.
+func TestPrepareLimitsErrors(t *testing.T) {
+	r := Prepare(strings.Repeat("# yorum değil\n", 500), Options{})
+	if len(r.Errors) != MaxErrors+1 {
+		t.Fatalf("%d errors; %d expected", len(r.Errors), MaxErrors+1)
+	}
+	if last := r.Errors[MaxErrors]; !strings.Contains(last, "hata daha") || strings.Contains(last, "Satır") {
+		t.Errorf("summary line: %q", last)
+	}
+}

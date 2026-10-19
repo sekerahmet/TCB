@@ -1,6 +1,8 @@
 package source
 
 import (
+	"fmt"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
@@ -64,7 +66,7 @@ func Prepare(text string, s Options) *Result {
 		r.Program = p.ParseProgram()
 	}
 	if errs := p.Errors(); len(errs) > 0 {
-		r.Stage, r.Errors = StageSyntax, errs
+		r.Stage, r.Errors = StageSyntax, limitErrors(errs)
 		return r
 	}
 	if !s.TypeCheck {
@@ -78,9 +80,24 @@ func Prepare(text string, s Options) *Result {
 		chk.SetGlobalScope(s.GlobalNames, s.GlobalDynamic)
 	}
 	errs := chk.CheckProgram(r.Program)
-	r.Warnings = chk.Warnings()
+	r.Warnings = limitErrors(chk.Warnings())
 	if len(errs) > 0 {
-		r.Stage, r.Errors = StageType, errs
+		r.Stage, r.Errors = StageType, limitErrors(errs)
 	}
 	return r
+}
+
+// MaxErrors is the number of errors (and warnings) a Result reports at most. A file with many
+// thousands of errors (often not a TR file at all) would otherwise take minutes to report:
+// every error is shown with a code frame.
+const MaxErrors = 100
+
+// limitErrors keeps the first MaxErrors messages and says how many were left out. The summary
+// line has no position, so no code frame is drawn for it.
+func limitErrors(errs []string) []string {
+	if len(errs) <= MaxErrors {
+		return errs
+	}
+	out := append([]string(nil), errs[:MaxErrors]...)
+	return append(out, fmt.Sprintf("… ve %d hata daha (ilk %d hata gösterildi)", len(errs)-MaxErrors, MaxErrors))
 }
