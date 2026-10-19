@@ -291,8 +291,7 @@ func (f *flashShared) mmaSoftmax(S, O [][4]reg, rows, lo, hi, m, sum [2]reg, j0,
 		}
 		mx = k.largest(mx, k.shflXor(mx, 1))
 		mx = k.largest(mx, k.shflXor(mx, 2))
-		mn := k.f()
-		k.e("max.f32", mn, m[r], mx)
+		mn := k.largest(m[r], mx)
 		empty := k.p()
 		k.e("setp.eq.f32", empty, mn, float32(math.Inf(-1)))
 		base := k.f()

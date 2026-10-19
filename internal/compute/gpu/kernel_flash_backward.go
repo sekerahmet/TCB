@@ -111,9 +111,14 @@ func (f *flashBackwardState) probs(row0 reg, rows []reg, j0 reg, limit [][3]reg,
 	f.scores(S, rows, j0, limit)
 	for i := range S {
 		for j := range S[i] {
+			// Görünmeyen konum (puanı -sonsuz) 0'dır; lse NaN olsa da (NaN puanlı satır)
+			// e^{-sonsuz - NaN} = NaN maskeli anahtarlara sızmaz.
+			hidden := k.p()
+			k.e("setp.eq.f32", hidden, S[i][j], float32(math.Inf(-1)))
 			x := k.f()
 			k.e("sub.rn.f32", x, S[i][j], lse[i])
 			k.e("mov.f32", S[i][j], k.exponential(x))
+			k.e("selp.f32", S[i][j], float32(0), S[i][j], hidden)
 			t := k.f()
 			k.e("sub.rn.f32", t, dP[i][j], dd[i])
 			k.e("mul.rn.f32", t, t, S[i][j])

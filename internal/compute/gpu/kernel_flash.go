@@ -381,8 +381,7 @@ func (f *flashShared) onlineSoftmax(S [][]reg, newM, m, l []reg, O [][]reg, red,
 	k := f.k
 	alpha := make([]reg, len(S))
 	for i := range S {
-		mn := k.f()
-		k.e("max.f32", mn, m[i], newM[i])
+		mn := k.largest(m[i], newM[i])
 		empty := k.p()
 		k.e("setp.eq.f32", empty, mn, float32(math.Inf(-1)))
 		d := k.f()

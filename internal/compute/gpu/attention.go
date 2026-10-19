@@ -162,9 +162,7 @@ func (d *attnRow) forward(Tk, sm reg) {
 	k.rowLoop(d.tid, Tk, d.one, d.base2, d.B, func(ofs, jj reg) {
 		v := d.score(ofs)
 		k.e("selp.f32", v, v, minus, d.visible(jj))
-		b := k.p()
-		k.e("setp.gt.f32", b, v, m)
-		k.e("selp.f32", m, v, m, b)
+		k.e("mov.f32", m, k.largest(m, v))
 	})
 	m = k.blockReduce(m, sm, d.tid, d.B, k.largest)
 	total2 := k.constant(0)

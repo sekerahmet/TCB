@@ -401,6 +401,9 @@ func (a *simParser) parseInstruction(s string) error {
 	return nil
 }
 
+// simNaNProp min/max'ın .NaN eki (mode2): girdilerden biri NaN ise sonuç kanonik NaN.
+const simNaNProp = 6
+
 // extras komutun nokta eklerini (tür, kip, alan) çözer.
 func (a *simParser) extras(k *simInst, ek []string) error {
 	var dtypes []simType
@@ -418,6 +421,8 @@ func (a *simParser) extras(k *simInst, ek []string) error {
 			} else {
 				k.op = simMadWide
 			}
+		case "NaN":
+			k.mode2 = simNaNProp // min/max: NaN'ı korur
 		case "rn", "approx", "uni", "sync", "to", "async", "ca", "cg":
 		case "v2":
 			k.vec = 2

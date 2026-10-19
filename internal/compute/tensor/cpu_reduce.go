@@ -218,9 +218,11 @@ func (cpuBackend) f32Softmax(out Storage, x View, axis int, logMode bool) {
 // softmaxRow bitişik bir satırın (log) softmax'ı; toplam float64'tedir.
 func softmaxRow(y, x []float32, logMode bool) {
 	y = y[:len(x)]
+	// En büyük NaN'ı korur: NaN içeren satır (tamamı NaN olan da) NaN verir, tamamen
+	// maskeli (-sonsuz) satırla karışmaz.
 	m := float32(math.Inf(-1))
 	for _, v := range x {
-		if v > m {
+		if v > m || v != v {
 			m = v
 		}
 	}

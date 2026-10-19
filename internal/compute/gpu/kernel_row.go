@@ -16,12 +16,23 @@ import (
 // Satır (dış, iç) çiftidir: eleman (o, l, i) bitişik düzende (o·L + l)·I + i'dedir; son
 // eksen için I = 1.
 
-// largest birlestir işlevi: max.f32 (NaN'ı yok sayar; satır en büyükleri NaN olmaz).
+// largest birleştirme işlevi: NaN'ı koruyan en büyük (max.NaN; sm_80 altında max ve
+// NaN denetimi). NaN içeren satır NaN verir, tamamen maskeli (-sonsuz) satırla karışmaz.
 func (k *emitter) largest(a, b reg) reg {
 	r := k.f()
+	if k.target >= 80 {
+		k.e("max.NaN.f32", r, a, b)
+		return r
+	}
 	k.e("max.f32", r, a, b)
+	p := k.p()
+	k.e("setp.nan.f32", p, a, b)
+	k.e("selp.f32", r, canonicalNaN, r, p)
 	return r
 }
+
+// canonicalNaN PTX'in kanonik NaN'ı (max.NaN'ın verdiği).
+var canonicalNaN = math.Float32frombits(0x7FFFFFFF)
 
 // rowLoop l = tid; l < L; l += B döngüsünü kurar; govde, float32 elemanın bayt ofsetini
 // ((taban + l·I)·4) alır ve kendi göstericisine ekler (rowAddress).
@@ -86,15 +97,12 @@ func softmaxKernel(B int, logMode bool, xt, yt tensor.DType) func() *emitter {
 		base2 := k.rowStart(L, I)
 		m := k.constant(float32(math.Inf(-1)))
 		k.rowLoopE(tid, L, I, base2, B, func(o, _ reg) {
-			v := k.load(xt, k.rowAt(x, o, xt))
-			b := k.p()
-			k.e("setp.gt.f32", b, v, m)
-			k.e("selp.f32", m, v, m, b)
+			k.e("mov.f32", m, k.largest(m, k.load(xt, k.rowAt(x, o, xt))))
 		})
 		m = k.blockReduce(m, sm, tid, B, k.largest)
 		last, full := k.label(), k.label()
 		empty := k.p()
-		k.e("setp.ne.f32", empty, m, float32(math.Inf(-1)))
+		k.e("setp.neu.f32", empty, m, float32(math.Inf(-1)))
 		k.jumpIf(empty, full)
 		// Tamamen −sonsuz satır: softmax 0, log_softmax −sonsuz.
 		padding := float32(0)
@@ -155,7 +163,7 @@ func softmaxGradKernel(B int, logMode bool, dt [3]tensor.DType) func() *emitter 
 			k.rowLoopE(tid, L, I, base2, B, func(o, _ reg) {
 				v := k.load(dt[2], k.rowAt(y, o, dt[2]))
 				b := k.p()
-				k.e("setp.ne.f32", b, v, float32(math.Inf(-1)))
+				k.e("setp.neu.f32", b, v, float32(math.Inf(-1)))
 				k.e("selp.f32", full, float32(1), full, b)
 			})
 			full = k.blockReduce(full, sm, tid, B, k.largest)

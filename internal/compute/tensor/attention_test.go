@@ -418,3 +418,24 @@ func TestAttentionAliasGrad(t *testing.T) {
 		SetGradDType(old)
 	}
 }
+
+// Puanları NaN olan sorgu satırı NaN verir (bakılacak anahtarı olmayan satırın 0'ıyla
+// karışmaz); geri yönde de gradyanı NaN'dır. Öbür satırlar etkilenmez.
+func TestAttentionNaNRow(t *testing.T) {
+	nan := float32(math.NaN())
+	q := New([]float32{nan, nan, 1, 0}, 2, 2).SetRequiresGrad(true)
+	k := New([]float32{1, 0, 0, 1, 1, 1}, 3, 2)
+	v := New([]float32{1, 2, 3, 4, 5, 6}, 3, 2)
+	y := Attention(q, k, v, AttentionOptions{})
+	d := y.Data()
+	if d[0] == d[0] || d[1] == d[1] {
+		t.Fatalf("NaN satırı NaN vermeli: %v", d)
+	}
+	if d[2] != d[2] || d[3] != d[3] {
+		t.Fatalf("öbür satır etkilenmemeli: %v", d)
+	}
+	y.SumAll().Backward()
+	if g := q.Grad().Data(); g[0] == g[0] || g[2] != g[2] {
+		t.Fatalf("gradyan: NaN satırda NaN, öbüründe sayı olmalı: %v", g)
+	}
+}

@@ -139,6 +139,41 @@ func TestSoftmaxExtremeValues(t *testing.T) {
 	}
 }
 
+// Tamamı NaN olan satır NaN verir (NaN gizlenmez); tamamen maskeli (-sonsuz) satır softmax'ta
+// 0, log_softmax'ta -sonsuz verir. İkisi karışmaz; geri yönde NaN satırın gradyanı da NaN'dır.
+func TestSoftmaxNaNAndMaskedRows(t *testing.T) {
+	nan, inf := float32(math.NaN()), float32(math.Inf(-1))
+	x := New([]float32{nan, nan, nan, inf, inf, inf, 1, nan, 2}, 3, 3).SetRequiresGrad(true)
+	for _, logMode := range []bool{false, true} {
+		var y *Tensor
+		if logMode {
+			y = x.LogSoftmax(1)
+		} else {
+			y = x.Softmax(1)
+		}
+		d := y.Data()
+		masked := float32(0)
+		if logMode {
+			masked = inf
+		}
+		for j := 0; j < 3; j++ {
+			if !isNaN32(d[j]) || !isNaN32(d[6+j]) {
+				t.Fatalf("log=%v: NaN içeren satırlar NaN olmalı: %v", logMode, d)
+			}
+			if d[3+j] != masked {
+				t.Fatalf("log=%v: maskeli satır %v olmalı: %v", logMode, masked, d)
+			}
+		}
+	}
+	x.ZeroGrad()
+	x.Softmax(1).SumAll().Backward()
+	if g := x.Grad().Data(); !isNaN32(g[0]) || g[3] != 0 {
+		t.Fatalf("gradyan: NaN satırda NaN, maskeli satırda 0 olmalı: %v", g)
+	}
+}
+
+func isNaN32(v float32) bool { return v != v }
+
 func BenchmarkExp(b *testing.B) {
 	xs := make([]float32, 4096)
 	for i := range xs {

@@ -29,6 +29,9 @@ func computeF32(k *simInst, ab, bb, cb uint64) (uint64, error) {
 	case simAbs:
 		return ab &^ (1 << 31), nil
 	case simMin, simMax:
+		if k.mode2 == simNaNProp && (a != a || b != b) {
+			return 0x7FFFFFFF, nil // kanonik NaN
+		}
 		return f32b(minMaxF32(a, b, k.op == simMin)), nil
 	case simSqrt:
 		return f32b(float32(math.Sqrt(float64(a)))), nil

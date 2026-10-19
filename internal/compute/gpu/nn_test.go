@@ -2,6 +2,7 @@ package gpu
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"testing"
 
@@ -195,4 +196,46 @@ func TestAttention(t *testing.T) {
 		y := tensor.Add(tensor.Attention(q, k, v, tensor.AttentionOptions{Causal: true}), tensor.Attention(q, k, v, tensor.AttentionOptions{}))
 		return y, []*tensor.Tensor{q, k, v}
 	})
+}
+
+// TestNaNRowsMatchCPU tamamı NaN olan satırların softmax, log_softmax ve dikkatte (bütün dikkat
+// yollarında: birleşik, matris çarpımı, tensör çekirdekli bf16) CPU'daki gibi NaN verdiğini,
+// tamamen maskeli satırların ise 0 / -sonsuz kaldığını denetler; geri yön de karşılaştırılır.
+func TestNaNRowsMatchCPU(t *testing.T) {
+	nan, inf := float32(math.NaN()), float32(math.Inf(-1))
+	rows := []float32{nan, nan, nan, inf, inf, inf, 1, nan, 2, 0.5, -1, 2}
+	for _, lg := range []bool{false, true} {
+		compare(t, fmt.Sprintf("NaN satırı softmax log=%v", lg), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x := twin(rows, true, 4, 3)[c]
+			if lg {
+				return x.LogSoftmax(1), []*tensor.Tensor{x}
+			}
+			return x.Softmax(1), []*tensor.Tensor{x}
+		})
+	}
+	g := gpuBackend()
+	old := g.attnPath
+	defer func() { g.attnPath = old }()
+	rng := rand.New(rand.NewSource(24))
+	for _, d := range []struct {
+		path string
+		dt   tensor.DType
+		Dh   int
+	}{{"birlesik", tensor.Float32, 8}, {"carpim", tensor.Float32, 8}, {"tensor", tensor.BFloat16, 16}} {
+		g.attnPath = d.path
+		T := 5
+		qv, kv, vv := random(rng, T*d.Dh, 1), random(rng, T*d.Dh, 1), random(rng, T*d.Dh, 1)
+		for j := 0; j < d.Dh; j++ {
+			qv[2*d.Dh+j] = nan // 2. sorgu satırının bütün puanları NaN
+		}
+		tol := 5e-5
+		if d.dt != tensor.Float32 {
+			tol = 2e-2
+		}
+		compare(t, "NaN satırı dikkat "+d.path, tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			q, k, v := twin(qv, true, 1, 1, T, d.Dh)[c], twin(kv, true, 1, 1, T, d.Dh)[c], twin(vv, true, 1, 1, T, d.Dh)[c]
+			return tensor.Attention(q.Cast(d.dt), k.Cast(d.dt), v.Cast(d.dt), tensor.AttentionOptions{Causal: true}).Cast(tensor.Float32),
+				[]*tensor.Tensor{q, k, v}
+		})
+	}
 }

@@ -286,6 +286,8 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 					a, c = p.blockRange(i0+r, j0, n)
 				}
 				seg := row[a:c]
+				// en NaN'ı korur: NaN puanlı satır NaN verir, bakılacak anahtarı olmayan
+				// (tamamen maskeli) satırla karışmaz.
 				en := negInf
 				if md != nil {
 					for jj, x := range seg {
@@ -295,7 +297,7 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 						}
 						x *= scale
 						seg[jj] = x
-						if x > en {
+						if x > en || x != x {
 							en = x
 						}
 					}
@@ -303,7 +305,7 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 					for jj, x := range seg {
 						x *= scale
 						seg[jj] = x
-						if x > en {
+						if x > en || x != x {
 							en = x
 						}
 					}
