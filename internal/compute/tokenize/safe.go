@@ -103,8 +103,8 @@ func walkExprs(b any, f func(*Regex)) {
 			f(x.expr)
 		}
 	case *bytePreTok:
-		if x.withPattern && byteLevelRegex != nil {
-			f(byteLevelRegex)
+		if re, err := byteLevelExpr(); x.withPattern && err == nil {
+			f(re)
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
@@ -423,7 +424,19 @@ func (splitWhitespace) PreTokenize(dst, pieces []Piece) []Piece {
 // ByteLevelPattern bayt düzeyi ön bölücünün use_regex=true iken kullandığı desendir.
 const ByteLevelPattern = `'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+`
 
-var byteLevelRegex *Regex
+// byteLevelRegex ByteLevelPattern'in derlenmiş hâlidir; ilk bayt düzeyi ön bölücü kurulurken
+// bir kez derlenir (parçalayıcılar eşzamanlı görevlerde aynı anda yüklenebilir).
+var (
+	byteLevelOnce  sync.Once
+	byteLevelRegex *Regex
+	byteLevelErr   error
+)
+
+// byteLevelExpr derlenmiş deseni verir (gerekirse derler).
+func byteLevelExpr() (*Regex, error) {
+	byteLevelOnce.Do(func() { byteLevelRegex, byteLevelErr = CompileRegex(ByteLevelPattern) })
+	return byteLevelRegex, byteLevelErr
+}
 
 type bytePreTok struct {
 	prefixSpace bool
@@ -448,12 +461,10 @@ func newBytePreTok(raw json.RawMessage) (PreTokenizer, error) {
 	if t.UseRegex != nil {
 		b.withPattern = *t.UseRegex
 	}
-	if b.withPattern && byteLevelRegex == nil {
-		expr, err := CompileRegex(ByteLevelPattern)
-		if err != nil {
+	if b.withPattern {
+		if _, err := byteLevelExpr(); err != nil {
 			return nil, err
 		}
-		byteLevelRegex = expr
 	}
 	return b, nil
 }
@@ -485,7 +496,8 @@ func (b *bytePreTok) stream(p Piece, f func(Piece)) {
 		return
 	}
 	prev := 0
-	byteLevelRegex.allMatches(m, func(begin, last int) {
+	re, _ := byteLevelExpr() // kurulumda derlendi (newBytePreTok)
+	re.allMatches(m, func(begin, last int) {
 		if prev < begin {
 			f(b.convert(m[prev:begin], p.Start && prev == 0, p.budget))
 		}

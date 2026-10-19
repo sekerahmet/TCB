@@ -30,11 +30,24 @@ func (p *Tokenizer) tokID(id int) *idInfo {
 	return &p.idValues[id]
 }
 
-// buildIDTable kimlik -> token tablosunu kurar.
-func (p *Tokenizer) buildIDTable(vocab map[string]int32, nrmContent map[int]string, specialContent map[string]bool) {
+// idListModel kimliklerini dosyadaki sırayla bir liste olarak tutan modeldir (Unigram):
+// aynı metin iki kimlikte geçse de her kimliğin metni bilinir (sözlük haritası birini
+// kaybeder).
+type idListModel interface {
+	idTokens() []string
+}
+
+// buildIDTable kimlik -> token tablosunu kurar. Model kimlik listesi veriyorsa (ids) tablo
+// ondan kurulur; değilse sözlük haritasından, aynı kimliği paylaşan tokenlardan sözlükte
+// (bayt sırasıyla) en küçüğü seçilir: harita sırası her yüklemede değiştiğinden sonuç
+// belirlenimci olur.
+func (p *Tokenizer) buildIDTable(vocab map[string]int32, ids idListModel, nrmContent map[int]string, specialContent map[string]bool) {
 	largest := -1
 	for _, id := range vocab {
 		largest = max(largest, int(id))
+	}
+	if ids != nil {
+		largest = max(largest, len(ids.idTokens())-1)
 	}
 	for _, e := range p.extras {
 		largest = max(largest, e.ID)
@@ -57,9 +70,18 @@ func (p *Tokenizer) buildIDTable(vocab map[string]int32, nrmContent map[int]stri
 	} else {
 		p.idValues = make([]idInfo, largest+1)
 	}
-	for tok, id := range vocab {
-		k := put(int(id))
-		k.token, k.var_ = tok, true
+	if ids != nil {
+		for id, tok := range ids.idTokens() {
+			k := put(id)
+			k.token, k.var_ = tok, true
+		}
+	} else {
+		for tok, id := range vocab {
+			k := put(int(id))
+			if !k.var_ || tok < k.token {
+				k.token, k.var_ = tok, true
+			}
+		}
 	}
 	for _, e := range p.extras {
 		k := put(e.ID)

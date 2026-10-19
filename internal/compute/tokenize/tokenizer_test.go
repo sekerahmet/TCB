@@ -747,3 +747,32 @@ func BenchmarkDecode(b *testing.B) {
 		p.Decode(ids, false)
 	}
 }
+
+// Bayt düzeyi ön bölücünün deseni bir kez derlenir; parçalayıcılar eşzamanlı yüklenebilir
+// (eşzamanlı görevler; yarış dedektörüyle otomatik sınamada denetlenir).
+func TestParallelByteLevelLoad(t *testing.T) {
+	js := `{"version":"1.0","truncation":null,"padding":null,"added_tokens":[],
+"normalizer":null,"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false,"trim_offsets":true,"use_regex":true},
+"post_processor":null,"decoder":null,
+"model":{"type":"WordLevel","unk_token":"<unk>","vocab":{"<unk>":0}}}`
+	var wg sync.WaitGroup
+	errs := make(chan error, 8)
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			p, err := Parse([]byte(js))
+			if err == nil {
+				p.Encode("merhaba dünya")
+			}
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}

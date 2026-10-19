@@ -226,6 +226,16 @@ func Parse(data []byte) (*Tokenizer, error) {
 	// içeriği normalleştirmeden sonra aynıysa dosyadaki ilki kazanır (başvuru
 	// uygulamasında bu durumda sonuç çalıştırmadan çalıştırmaya değişiyor).
 	nrmContent := make(map[int]string)
+	// Ek tokenların normalleştirilmesi tek bir adım bütçesini paylaşır (bütün içeriklerin
+	// uzunluğuyla orantılı): her biri ayrı bir taban bütçe alsaydı çok sayıda ek token içeren
+	// kötü niyetli bir dosya yüklemeyi token sayısı kadar uzatabilirdi.
+	var extraBytes int
+	for _, e := range p.extras {
+		if e.Normalize {
+			extraBytes += len(e.Content)
+		}
+	}
+	extraBudget := newBudget(extraBytes)
 	for _, e := range p.extras {
 		if e.Special {
 			specialContent[e.Content] = true
@@ -233,7 +243,7 @@ func Parse(data []byte) (*Tokenizer, error) {
 		if e.Normalize {
 			if p.normalizer != nil {
 				var content string
-				if err := catchStepError(func() { content = p.normalizer.Normalize(e.Content) }); err != nil {
+				if err := catchStepError(func() { content = normalizeBudgeted(p.normalizer, e.Content, extraBudget) }); err != nil {
 					return nil, fmt.Errorf("ek parça %q normalleştirilemedi: %w", e.Content, err)
 				}
 				nrmContent[e.ID] = content
@@ -260,8 +270,12 @@ func Parse(data []byte) (*Tokenizer, error) {
 		p.postProcessor = nil
 	}
 
-	p.buildIDTable(vocab, nrmContent, specialContent)
+	ids, _ := p.model.(idListModel)
+	p.buildIDTable(vocab, ids, nrmContent, specialContent)
 	p.vocabSize = len(vocab)
+	if ids != nil {
+		p.vocabSize = len(ids.idTokens())
+	}
 	for _, e := range p.extras {
 		if _, ok := vocab[e.Content]; !ok {
 			p.vocabSize++

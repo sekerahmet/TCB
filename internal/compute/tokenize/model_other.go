@@ -230,6 +230,9 @@ func newUnigram(raw json.RawMessage) (Model, error) {
 
 func (u *unigram) Vocab() map[string]int32 { return u.vocab }
 
+// idTokens (idListModel) kimliklerin metinleri, dosyadaki sırayla.
+func (u *unigram) idTokens() []string { return u.tokenList }
+
 func (u *unigram) Encode(dst []int32, p Piece) []int32 {
 	m := p.Content()
 	o := u.cache
