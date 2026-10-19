@@ -30,9 +30,12 @@ const (
 	cokSGDMomentum
 	cokOlcek
 	cokKare
+	// cokOlcekBellek ölçeği bellekteki bir float32'den okur (konak beklemeden kırpma); ölçek
+	// 1 ise blok hiçbir şey yazmaz.
+	cokOlcekBellek
 )
 
-var cokAdlari = [...]string{"cok_adamw", "cok_sgd", "cok_sgd_momentum", "cok_olcek", "cok_kare"}
+var cokAdlari = [...]string{"cok_adamw", "cok_sgd", "cok_sgd_momentum", "cok_olcek", "cok_kare", "cok_olcek_bellek"}
 
 // cokOrtakAdlari kiplerin ortak (bütün tensörler için aynı) sayı parametreleri.
 var cokOrtakAdlari = [...][]string{
@@ -41,6 +44,7 @@ var cokOrtakAdlari = [...][]string{
 	cokSGDMomentum: {"lr", "momentum", "wd"},
 	cokOlcek:       {"k"},
 	cokKare:        nil,
+	cokOlcekBellek: nil,
 }
 
 // cokCekirdegi kipe göre çok tensörlü çekirdeği üretir. Parametreler: tensör tablosu, blok
@@ -50,12 +54,22 @@ func cokCekirdegi(kip int) func() *yazici {
 		k := yeniYazici(cokAdlari[kip])
 		tablo, bloklarT := k.gosterici("tablo"), k.gosterici("bloklar")
 		var kismi yazmac
-		if kip == cokKare {
+		switch kip {
+		case cokKare:
 			kismi = k.yazilan("kismi")
+		case cokOlcekBellek:
+			kismi = k.gosterici("olcek")
 		}
 		var s []yazmac
 		for _, ad := range cokOrtakAdlari[kip] {
 			s = append(s, k.f32p(ad))
+		}
+		bitti := k.etiket()
+		if kip == cokOlcekBellek {
+			s = append(s, k.yukle(tensor.Float32, kismi))
+			bir := k.p()
+			k.e("setp.eq.f32", bir, s[0], float32(1))
+			k.gitEger(bir, bitti)
 		}
 		b := k.ozel("%ctaid.x")
 		tid := k.ozel("%tid.x")
@@ -82,7 +96,7 @@ func cokCekirdegi(kip int) func() *yazici {
 		k.e("mov.f64", acc, float64(0))
 		i := k.r()
 		k.e("add.s32", i, bas, tid)
-		dongu, bitti := k.etiket(), k.etiket()
+		dongu := k.etiket()
 		k.koy(dongu)
 		p := k.p()
 		k.e("setp.ge.u32", p, i, son)
@@ -93,7 +107,7 @@ func cokCekirdegi(kip int) func() *yazici {
 			k.adamWAdim(a(0), a(1), a(2), a(3), f1, f2, s)
 		case cokSGD, cokSGDMomentum:
 			k.sgdAdim(a(0), a(1), a(2), s[0], s[1], s[2], kip == cokSGDMomentum)
-		case cokOlcek:
+		case cokOlcek, cokOlcekBellek:
 			ad := a(0)
 			v := k.yukle(tensor.Float32, ad)
 			k.e("mul.rn.f32", v, v, s[0])
@@ -158,6 +172,77 @@ func (k *yazici) sgdAdim(pa, ga, va, lr, mom, wd yazmac, momentum bool) {
 	k.e("mul.rn.f32", t, lr, gi)
 	k.e("sub.rn.f32", pv, pv, t)
 	k.sakla(tensor.Float32, pa, pv)
+}
+
+// kirpNormCekirdegi kareler toplamının blok kısmi toplamlarından (float64, kismi[0..n))
+// normu ve kırpma ölçeğini hesaplar (tek blok): norm = √Σ, ölçek = norm > en_fazla ise
+// en_fazla / norm, değilse 1. İş parçacıkları kısmi toplamları sabit adımla, sonra ağaçla
+// toplar (belirlenimci). Konak beklemez: ölçeği cok_olcek_bellek okur.
+func kirpNormCekirdegi() *yazici {
+	k := yeniYazici("kirp_norm")
+	kismi := k.gosterici("kismi")
+	n := k.u32p("n")
+	enFazla := k.f32p("en_fazla")
+	norm, olcek := k.yazilan("norm"), k.yazilan("olcek")
+	tid := k.ozel("%tid.x")
+	acc := k.fd()
+	k.e("mov.f64", acc, float64(0))
+	i := k.r()
+	k.e("mov.u32", i, tid)
+	dongu, son := k.etiket(), k.etiket()
+	k.koy(dongu)
+	p := k.p()
+	k.e("setp.ge.u32", p, i, n)
+	k.gitEger(p, son)
+	v := k.fd()
+	k.e("ld.global.f64", v, bel(k.adres(kismi, i, 8), 0))
+	k.e("add.f64", acc, acc, v)
+	k.e("add.s32", i, i, kareBlok)
+	k.git(dongu)
+	k.koy(son)
+	sm := k.ortak("sm", 8*kareBlok)
+	adr := k.r()
+	k.e("mad.lo.s32", adr, tid, 8, sm)
+	k.e("st.shared.f64", bel(adr, 0), acc)
+	k.engel()
+	for s := kareBlok / 2; s > 0; s /= 2 {
+		atla := k.etiket()
+		q := k.p()
+		k.e("setp.ge.u32", q, tid, s)
+		k.gitEger(q, atla)
+		a, c := k.fd(), k.fd()
+		k.e("ld.shared.f64", a, bel(adr, 0))
+		k.e("ld.shared.f64", c, bel(adr, 8*s))
+		k.e("add.f64", a, a, c)
+		k.e("st.shared.f64", bel(adr, 0), a)
+		k.koy(atla)
+		k.engel()
+	}
+	bitis := k.etiket()
+	k.gitEger(k.tidSifirDegil(tid), bitis)
+	t, nd, ef := k.fd(), k.fd(), k.fd()
+	k.e("ld.shared.f64", t, bel(sm, 0))
+	k.e("sqrt.rn.f64", nd, t)
+	k.e("cvt.f64.f32", ef, enFazla)
+	nf := k.f()
+	k.e("cvt.rn.f32.f64", nf, nd)
+	k.sakla(tensor.Float32, norm, nf)
+	// ölçek = (norm > en_fazla && norm > 0) ? en_fazla / norm : 1 (NaN norm: 1, kırpılmaz;
+	// CPU yolundaki karşılaştırmayla aynı).
+	o := k.f()
+	k.e("mov.f32", o, float32(1))
+	b1, b2 := k.p(), k.p()
+	k.e("setp.gt.f64", b1, nd, ef)
+	k.e("setp.gt.f64", b2, nd, float64(0))
+	k.e("and.pred", b1, b1, b2)
+	od := k.fd()
+	k.e("div.rn.f64", od, ef, nd)
+	of := k.f()
+	k.e("cvt.rn.f32.f64", of, od)
+	k.e("selp.f32", o, of, o, b1)
+	k.sakla(tensor.Float32, olcek, o)
+	k.koy(bitis)
+	return k
 }
 
 // kareBlokYaz bloğun float64 kısmi toplamlarını ağaç biçiminde indirger ve kismi[b]'ye yazar.

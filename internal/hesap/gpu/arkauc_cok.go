@@ -55,8 +55,11 @@ func (g *arkaUc) cokBaslat(gt *gecici, kip int, ogeler []cokOge, yaz []int, orta
 	g.yukleKonak(bd, unsafe.Pointer(&bloklarT[0]), len(bloklarT))
 	c := g.cekirdekAl(cokAdlari[kip], cokCekirdegi(kip))
 	p := g.param().oku(td, 0).oku(bd, 0)
-	if kip == cokKare {
+	switch kip {
+	case cokKare:
 		p.yaz(kismi, 0)
+	case cokOlcekBellek:
+		p.oku(kismi, 0) // ölçek (tek float32)
 	}
 	for _, v := range ortak {
 		p.f32(v)
@@ -248,6 +251,40 @@ func (g *arkaUc) SumSquaresAll(ss []tensor.Storage) float64 {
 		o += n
 	}
 	return s
+}
+
+// ClipGradAll (tensor.GradClipper) gradyanların toplam normunu ve kırpmayı konak beklemeden
+// yapar: kareler toplamı (cok_kare), norm ve ölçek (kirp_norm, tek blok), ölçekleme
+// (cok_olcek_bellek; ölçek 1 ise yazılmaz). Yalnızca float32 gradyanlar.
+func (g *arkaUc) ClipGradAll(ss []tensor.Storage, enFazla float32) (tensor.Storage, bool) {
+	for _, s := range ss {
+		if s.DType() != tensor.Float32 {
+			return nil, false
+		}
+	}
+	g.gir()
+	defer g.cik()
+	gt := g.gecici()
+	defer gt.bitir()
+	norm := g.ayir(1, tensor.Float32, false)
+	var ogeler []cokOge
+	toplamB := 0
+	for _, s := range ss {
+		d := g.depoOf(s)
+		ogeler = append(ogeler, cokOge{d: [4]*depo{d}, n: d.n})
+		toplamB += cokBlokSayisi(d.n)
+	}
+	if toplamB == 0 {
+		g.doldur(norm, 0)
+		return norm, true
+	}
+	kismi := gt.tampon(2*toplamB, false) // float64: iki float32 yeri
+	g.cokBaslat(gt, cokKare, ogeler, nil, nil, kismi)
+	olcek := gt.tampon(1, false)
+	c := g.cekirdekAl("kirp_norm", kirpNormCekirdegi)
+	g.baslat(c, [3]uint32{1, 1, 1}, [3]uint32{kareBlok, 1, 1}, g.param().oku(kismi, 0).u32(toplamB).f32(enFazla).yaz(norm, 0).yaz(olcek, 0))
+	g.cokBaslat(gt, cokOlcekBellek, ogeler, []int{0}, nil, olcek)
+	return norm, true
 }
 
 func (g *arkaUc) SumSquares(s tensor.Storage) float64 {

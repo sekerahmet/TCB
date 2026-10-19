@@ -409,7 +409,11 @@ test "15.9 maks_indeks ve gradyan_kırp" {
     eşit_mi("b", harfler[maks_indeks(x).değer[0]])
     değişken w = tensör([1.0, 1.0], türev_izle: doğru)
     geri_yayılım(toplam(w * tensör([3.0, 4.0])))
-    eşit_mi(5.0, gradyan_kırp([w], en_fazla: 1.0))
+    // Kırpma öncesi norm 0 boyutlu tensördür (kayıp gibi; GPU'da program okununca bekler).
+    değişken norm = gradyan_kırp([w], en_fazla: 1.0)
+    eşit_mi(Tensör, tip(norm))
+    eşit_mi([], norm.şekil)
+    eşit_mi(5.0, norm.değer)
     eşit_mi([0.6, 0.8], w.gradyan.değer)
 }
 

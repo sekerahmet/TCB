@@ -177,7 +177,7 @@ func adliOran(fn string, named map[string]yurut.Value, varsayilan float64, enAz 
 }
 
 // gradyanKirp parametre gradyanlarının toplam L2 normunu en_fazla değerine indirir ve
-// kırpma öncesi normu Ondalık olarak döndürür: gradyan_kırp(parametreler, en_fazla: 1.0).
+// kırpma öncesi normu 0 boyutlu tensör olarak döndürür: gradyan_kırp(parametreler, en_fazla: 1.0).
 func gradyanKirp(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) (yurut.Value, error) {
 	fn := kod.Ad(kod.T402)
 	if len(args) != 1 {
@@ -198,12 +198,13 @@ func gradyanKirp(_ *yurut.VM, args []yurut.Value, named map[string]yurut.Value) 
 		}
 		enFazla = f
 	}
-	norm, err := guvenli(func() float64 { return tensor.ClipGradNorm(params, enFazla) })
+	// Norm 0 boyutlu tensördür (kayıp gibi): GPU'da norm ve kırpma cihazda yapılır, program
+	// ancak norm okununca (.değer, yazdırma) bekler.
+	norm, err := guvenli(func() *tensor.Tensor { return tensor.ClipGradNormTensor(params, enFazla) })
 	if err != nil {
 		return nil, err
 	}
-	// Gradyanlar float32 olduğundan norm da float32 duyarlığında, en kısa gösterimle verilir.
-	return &yurut.FloatVal{Val: kisaFloat64(float32(norm))}, nil
+	return Yeni(norm), nil
 }
 
 // anaKopyaArg ana_kopya: doğru adlı argümanını okur (varsayılan doğru). Açıkken 16 bitlik

@@ -9,10 +9,11 @@ func TestGradyanKirp(t *testing.T) {
 	out := mustCalistir(t, `değişken w = tensör([1.0, 1.0], türev_izle: doğru)
 değişken b = tensör([1.0], türev_izle: doğru)
 geri_yayılım(toplam(w * tensör([3.0, 0.0])) + toplam(b * 4))
-yazdır(gradyan_kırp([w, b], en_fazla: 1.0))
+yazdır(gradyan_kırp([w, b], en_fazla: 1.0).değer)
 yazdır(w.gradyan.değer, b.gradyan.değer)
 yazdır(gradyan_kırp([w, b]))`)
-	want := "5.0\n[0.6, 0.0] [0.8]\n1.0\n"
+	// Kırpma öncesi norm 0 boyutlu tensördür; sayısı .değer ile okunur.
+	want := "5.0\n[0.6, 0.0] [0.8]\nTensör(1.0000)\n"
 	if out != want {
 		t.Fatalf("gradyan_kırp:\n%q\nbeklenen:\n%q", out, want)
 	}

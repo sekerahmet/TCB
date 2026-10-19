@@ -309,6 +309,47 @@ func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
 	return norm
 }
 
+// GradClipper gradyanların toplam L2 normunu ve kırpmayı cihazda yapan arka uçların isteğe
+// bağlı arayüzüdür: konak beklemez (GPU'da norm ve ölçek de sıradaki çekirdeklerce
+// hesaplanır). Dönen tek elemanlı float32 depolama kırpma öncesi normdur; ok yanlışsa
+// (ör. 16 bitlik gradyan) arka uç işi yapmamıştır.
+type GradClipper interface {
+	ClipGradAll(grads []Storage, maxNorm float32) (norm Storage, ok bool)
+}
+
+// ClipGradNormTensor ClipGradNorm'dur, kırpma öncesi normu 0 boyutlu tensör olarak verir.
+// Bütün gradyanlar GradClipper olan tek arka uçtaysa norm ve kırpma cihazda yapılır ve
+// konak beklemez; norm ancak okunduğunda (.değer, yazdırma) beklenir. Değilse norm konakta
+// hesaplanır (ClipGradNorm) ve CPU tensörü olarak döner.
+func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
+	var be Backend
+	var grads []Storage
+	tek := true
+	for _, p := range params {
+		if p.grad == nil {
+			continue
+		}
+		if be == nil {
+			be = p.be
+		} else if p.be != be {
+			tek = false
+		}
+		grads = append(grads, p.grad)
+	}
+	if gc, ok := be.(GradClipper); ok && tek {
+		sy := sayacBasla(be, IslemGradyanKirpma).baslat()
+		norm, ok := gc.ClipGradAll(grads, float32(maxNorm))
+		sy.bitir()
+		if ok {
+			for _, g := range grads {
+				g.BumpVersion()
+			}
+			return fromStorage(be, norm, nil)
+		}
+	}
+	return NewOn(CPU, []float32{float32(ClipGradNorm(params, maxNorm))})
+}
+
 // gradKareToplami gradyanların kareler toplamını verir. Toplu kareler toplamı veren
 // (SquareSummer) arka uçlarda aynı arka uçtaki ardışık gradyanlar tek çağrıda
 // toplanır (GPU'da tek eşzamanlama); toplama sırası parametre sırasıdır.

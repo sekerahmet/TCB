@@ -1622,9 +1622,9 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], ö
 
 #### T402 `gradyan_kırp`
 
-    gradyan_kırp(Liste | Tensör, en_fazla: Tam | Ondalık = 1) → Ondalık
+    gradyan_kırp(Liste | Tensör, en_fazla: Tam | Ondalık = 1) → Tensör
 
-Parametre gradyanlarının toplam L2 normu en_fazla değerini (varsayılan 1.0) aşıyorsa hepsini aynı oranda küçültür. Kırpma öncesi normu Ondalık olarak döndürür.
+Parametre gradyanlarının toplam L2 normu en_fazla değerini (varsayılan 1.0) aşıyorsa hepsini aynı oranda küçültür. Kırpma öncesi normu 0 boyutlu tensör olarak döndürür (kayıp gibi): GPU'da norm ve kırpma cihazda yapılır, program norm okununca (.değer, yazdırma) bekler.
 
 ```tr
 değişken w = tensör([3.0, 4.0], türev_izle: doğru); geri_yayılım(toplam(w * w)); yazdır(gradyan_kırp([w], en_fazla: 1.0))
