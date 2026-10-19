@@ -1,0 +1,314 @@
+package ml
+
+import (
+	"fmt"
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/turkish"
+	"math"
+	"slices"
+	"strconv"
+)
+
+// ----------------------------------------------------------------------------
+// Özellikler ve metotlar
+// ----------------------------------------------------------------------------
+
+// Tensör üyeleri (adları kod listesinde, internal/lang/codes Y4xx).
+const (
+	memberShape     = codes.Y400
+	memberDevice    = codes.Y401
+	memberDType     = codes.Y402
+	memberGrad      = codes.Y403
+	memberValue     = codes.Y404
+	memberReshape   = codes.Y410
+	memberTranspose = codes.Y411
+	memberPermute   = codes.Y412
+	memberSlice     = codes.Y413
+	memberToDevice  = codes.Y414
+	memberToDType   = codes.Y415
+)
+
+// tensorMemberCodes öneri listesinin sırasıdır.
+var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberSplit}
+
+var tensorMembers = codes.Names(tensorMemberCodes...)
+
+func isTensorMember(k codes.Code) bool { return slices.Contains(tensorMemberCodes, k) }
+
+func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
+	t := d.t
+	switch kd {
+	case memberShape:
+		return intList(t.Shape()), nil
+	case memberDevice:
+		return &interp.StringVal{Val: t.Device().String()}, nil
+	case memberDType:
+		return &interp.StringVal{Val: dtypeName(t.DType())}, nil
+	case memberToDType:
+		return d.namedMethod(memberToDType, d.toDType), nil
+	case memberGrad:
+		if d.intermediate {
+			return nil, fmt.Errorf("bu tensör (%s) bir işlemin sonucu; gradyan yalnızca %s: %s ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici (%s, %s) kullanın ya da yeni değeri %s { } içinde hesaplayıp %s ile yeniden oluşturun",
+				shapeText(t.Shape()), nameRequiresGrad.TR, codes.Name(codes.A040), codes.Name(codes.T400), codes.Name(codes.T401), codes.Name(codes.T301), gradExample("..."))
+		}
+		g := t.Grad()
+		if g == nil {
+			return interp.NULL, nil
+		}
+		return New(g), nil
+	case memberValue:
+		return d.valueList(), nil
+	case memberReshape:
+		return d.method(memberReshape, d.reshape), nil
+	case memberTranspose:
+		return d.method(memberTranspose, func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			if len(args) != 0 {
+				return nil, fmt.Errorf("%s() argüman almaz", codes.Name(memberTranspose))
+			}
+			return transposed(t)
+		}), nil
+	case memberPermute:
+		return d.method(memberPermute, d.permute), nil
+	case memberSlice:
+		return d.method(memberSlice, d.slice), nil
+	case memberToDevice:
+		return d.method(memberToDevice, d.toDevice), nil
+	case memberSplit:
+		return d.namedMethod(memberSplit, d.split), nil
+	}
+	suggestion := ""
+	if k, _, old := codes.FindOld(codes.NamespaceMember, prop, isTensorMember); old {
+		o := codes.Name(k)
+		if k == memberTranspose {
+			o += "()" // metot
+		}
+		suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+	} else if o := turkish.Closest(prop, tensorMembers); o != "" {
+		suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+	}
+	return nil, fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", interp.VAL_TENSOR, prop, suggestion)
+}
+
+// method adlı argüman almayan bir tensör metodunun bağlı değeridir; namedMethod adlı
+// argümanlarını kendisi denetleyen bir metodunkidir.
+func (d *TensorValue) method(kd codes.Code, fn interp.BuiltinFunc) *interp.BuiltinVal {
+	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: fn, NoNamedArgs: true}
+}
+
+func (d *TensorValue) namedMethod(kd codes.Code, fn interp.BuiltinFunc) *interp.BuiltinVal {
+	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: fn}
+}
+
+func intList(sh []int) *interp.ListVal {
+	el := make([]interp.Value, len(sh))
+	for i, x := range sh {
+		el[i] = interp.NewInt(int64(x))
+	}
+	return &interp.ListVal{Elements: el}
+}
+
+// shortFloat64 float32 değeri, onu yazan en kısa ondalık gösterime karşılık gelen
+// float64'e çevirir: 0.1 (float32) → 0.1, 0.10000000149011612 değil. Böylece
+// a.değer[0] == 0.1 doğru olur.
+func shortFloat64(x float32) float64 {
+	f := float64(x)
+	if f == math.Trunc(f) || math.IsInf(f, 0) || math.IsNaN(f) {
+		return f
+	}
+	var buffer [32]byte
+	s := strconv.AppendFloat(buffer[:0], f, 'g', -1, 32)
+	if g, err := strconv.ParseFloat(string(s), 64); err == nil {
+		return g
+	}
+	return f
+}
+
+// valueList tensörün değerlerini Ondalık (0 boyutlu) ya da iç içe liste olarak verir.
+// Büyük tensörlerde her liste ve sayı için ayrı ayırma yapmamak için tüm listeler,
+// eleman dilimleri ve sayılar önceden ayrılmış üç dilimden dağıtılır. Eleman dilimleri
+// kapasiteyle sınırlıdır (a[i:j:j]); listeye eleman eklemek komşu listeyi bozmaz.
+func (d *TensorValue) valueList() interp.Value {
+	data := d.t.Data()
+	sh := d.t.Shape()
+	if len(sh) == 0 {
+		if d.hasInts {
+			return interp.NewInt(int64(data[0]))
+		}
+		return &interp.FloatVal{Val: shortFloat64(data[0])}
+	}
+	nd := len(sh)
+	countList, countValues, p := 0, 0, 1
+	for k := 0; k < nd; k++ {
+		countList += p
+		p *= sh[k]
+		countValues += p
+	}
+	lists := make([]interp.ListVal, countList)
+	values := make([]interp.Value, countValues)
+	var numbers []interp.FloatVal
+	if !d.hasInts {
+		numbers = make([]interp.FloatVal, len(data))
+		for i, x := range data {
+			numbers[i].Val = shortFloat64(x)
+		}
+	}
+	li, di := 0, 0 // bu seviyenin ilk listesi ve ilk eleman yeri
+	p = 1          // bu seviyedeki liste sayısı
+	for k := 0; k < nd; k++ {
+		n := sh[k]
+		nextList := li + p
+		for j := 0; j < p; j++ {
+			head := di + j*n
+			el := values[head : head+n : head+n]
+			for i := range el {
+				m := j*n + i // bu seviyedeki elemanın sırası
+				if k == nd-1 && d.hasInts {
+					el[i] = interp.NewInt(int64(data[m]))
+				} else if k == nd-1 {
+					el[i] = &numbers[m]
+				} else {
+					el[i] = &lists[nextList+m]
+				}
+			}
+			lists[li+j].Elements = el
+		}
+		li = nextList
+		di += p * n
+		p *= n
+	}
+	return &lists[0]
+}
+
+func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	var target []interp.Value
+	if len(args) == 1 {
+		if l, ok := args[0].(*interp.ListVal); ok {
+			target = l.Elements
+		}
+	}
+	if target == nil {
+		target = args
+	}
+	if len(target) == 0 {
+		return nil, fmt.Errorf("%s([4, 6]) yeni şekli liste olarak bekler", codes.Name(memberReshape))
+	}
+	sh := make([]int, len(target))
+	unknown := 0
+	for i, v := range target {
+		n, ok := intNumber(v)
+		if !ok || n < -1 {
+			return nil, fmt.Errorf("%s: şeklin %d. elemanı negatif olmayan bir tam sayı (ya da çıkarsanacak eksen için -1) olmalıdır, %s verildi", codes.Name(memberReshape), i+1, v.Inspect())
+		}
+		if n == -1 {
+			unknown++
+		}
+		sh[i] = n
+	}
+	if unknown > 1 {
+		return nil, fmt.Errorf("%s: yalnızca bir eksen -1 olabilir, %s verildi", codes.Name(memberReshape), shapeText(sh))
+	}
+	n := d.t.Numel()
+	product := 1
+	for _, x := range sh {
+		if x != -1 {
+			product *= x
+		}
+	}
+	if (unknown == 0 && product != n) || (unknown == 1 && (product == 0 || n%product != 0)) {
+		return nil, fmt.Errorf("%s şeklindeki tensör (%d eleman) %s şekline sokulamaz", shapeText(d.t.Shape()), n, shapeText(sh))
+	}
+	r, err := safe(func() *tensor.Tensor { return d.t.Reshape(sh...) })
+	if err != nil {
+		return nil, err
+	}
+	return New(r), nil
+}
+
+func transposed(t *tensor.Tensor) (interp.Value, error) {
+	sh := t.Shape()
+	if len(sh) < 2 {
+		return nil, fmt.Errorf("%s() en az 2 boyutlu tensör ister, %s verildi", codes.Name(memberTranspose), shapeText(sh))
+	}
+	r, err := safe(func() *tensor.Tensor { return t.T() })
+	if err != nil {
+		return nil, err
+	}
+	return New(r), nil
+}
+
+func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	var list []interp.Value
+	if len(args) == 1 {
+		if l, ok := args[0].(*interp.ListVal); ok {
+			list = l.Elements
+		}
+	}
+	if list == nil {
+		list = args
+	}
+	fn := codes.Name(memberPermute)
+	sh := d.t.Shape()
+	if len(list) != len(sh) {
+		return nil, fmt.Errorf("%s: %s şeklindeki %d boyutlu tensör için %d eksen verilmeli, %d verildi", fn, shapeText(sh), len(sh), len(sh), len(list))
+	}
+	dims := make([]int, len(list))
+	seen := make([]bool, len(sh))
+	for i, v := range list {
+		n, ok := intNumber(v)
+		if !ok {
+			return nil, fmt.Errorf("%s: eksenler tam sayı olmalıdır, %s verildi", fn, v.Inspect())
+		}
+		e, err := parseAxis(fn, n, sh)
+		if err != nil {
+			return nil, err
+		}
+		if seen[e] {
+			return nil, fmt.Errorf("%s: %d. eksen birden çok kez verildi; her eksen bir kez yer almalı", fn, e)
+		}
+		seen[e] = true
+		dims[i] = e
+	}
+	r, err := safe(func() *tensor.Tensor { return d.t.Permute(dims...) })
+	if err != nil {
+		return nil, err
+	}
+	return New(r), nil
+}
+
+func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+	fn := codes.Name(memberSlice)
+	if len(args) != 3 {
+		return nil, fmt.Errorf("%s(eksen, baş, son) 3 parametre bekler, %d verildi", fn, len(args))
+	}
+	var n [3]int
+	for i, a := range args {
+		x, ok := intNumber(a)
+		if !ok {
+			return nil, fmt.Errorf("%s(eksen, baş, son) tam sayılar bekler, %s verildi", fn, a.Inspect())
+		}
+		n[i] = x
+	}
+	sh := d.t.Shape()
+	e, err := parseAxis(fn, n[0], sh)
+	if err != nil {
+		return nil, err
+	}
+	head, last := n[1], n[2]
+	uz := sh[e]
+	if head < 0 {
+		head += uz
+	}
+	if last < 0 {
+		last += uz
+	}
+	if head < 0 || head > uz || last < head || last > uz {
+		return nil, fmt.Errorf("%s: %d. eksenin uzunluğu %d (%s); [%d, %d) aralığı geçersiz (0 ≤ baş ≤ son ≤ %d olmalı)", fn, e, uz, shapeText(sh), n[1], n[2], uz)
+	}
+	r, err := safe(func() *tensor.Tensor { return d.t.Slice(e, head, last) })
+	if err != nil {
+		return nil, err
+	}
+	return New(r), nil
+}

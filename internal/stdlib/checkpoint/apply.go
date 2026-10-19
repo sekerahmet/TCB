@@ -32,7 +32,7 @@ func (kn *Checkpoint) apply(m *interp.VM, fn string, o *loadedCkpt) error {
 	for _, n := range kn.objects {
 		switch n.kind {
 		case kindOptimizer:
-			if err := n.op.DurumuYukle(fmt.Sprintf("%s: %q", fn, n.name), states[n.name]); err != nil {
+			if err := n.op.LoadState(fmt.Sprintf("%s: %q", fn, n.name), states[n.name]); err != nil {
 				return err
 			}
 		case kindPlain:
@@ -50,12 +50,12 @@ func (kn *Checkpoint) apply(m *interp.VM, fn string, o *loadedCkpt) error {
 // yerinde yazar (parametrenin cihazına taşıyarak), iyileştirici durumlarını nesneye göre
 // toplar. Çekirdek panikleri (cihaz belleği) hataya çevrilir.
 func (kn *Checkpoint) loadTensors(o *loadedCkpt) (map[string]map[string]*tensor.Tensor, error) {
-	models := map[string]map[string]*ml.Deger{}
+	models := map[string]map[string]*ml.TensorValue{}
 	states := map[string]map[string]*tensor.Tensor{}
 	for _, n := range kn.objects {
 		switch n.kind {
 		case kindModel:
-			p := make(map[string]*ml.Deger, len(n.names))
+			p := make(map[string]*ml.TensorValue, len(n.names))
 			for i, name := range n.names {
 				p[name] = n.params[i]
 			}
@@ -66,10 +66,10 @@ func (kn *Checkpoint) loadTensors(o *loadedCkpt) (map[string]map[string]*tensor.
 	}
 	var walkErr error
 	_, err := bind.Recover(func() bool {
-		walkErr = o.walkTensors(func(objectName, tensorName string, g ml.TensorGirdisi) error {
+		walkErr = o.walkTensors(func(objectName, tensorName string, g ml.TensorEntry) error {
 			src := tensor.NewOn(tensor.CPU, g.Veri, g.Sekil...)
 			if p, ok := models[objectName][tensorName]; ok {
-				ml.TensoreYaz(p.Tensor(), src)
+				ml.CopyInto(p.Tensor(), src)
 			} else if d, ok := states[objectName]; ok {
 				d[tensorName] = src
 			}

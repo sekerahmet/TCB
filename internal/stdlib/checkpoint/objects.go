@@ -34,9 +34,9 @@ type object struct {
 	kind  objectKind
 	value interp.Value
 
-	names    []string    // model: tensörlerin yol adları
-	params   []*ml.Deger // model: tensörler (parametreler ve türev izlemeyen durum tensörleri)
-	op       *ml.Iyilestirici
+	names    []string          // model: tensörlerin yol adları
+	params   []*ml.TensorValue // model: tensörler (parametreler ve türev izlemeyen durum tensörleri)
+	op       *ml.Optimizer
 	stateful Stateful
 	log      *logging.Log
 }
@@ -76,7 +76,7 @@ func newObject(fn, name string, v interp.Value) (*object, error) {
 		n.kind, n.log = kindLog, g
 		return n, nil
 	}
-	if op, ok := ml.IyilestiriciMi(v); ok {
+	if op, ok := ml.IsOptimizer(v); ok {
 		n.kind, n.op = kindOptimizer, op
 		return n, nil
 	}
@@ -86,7 +86,7 @@ func newObject(fn, name string, v interp.Value) (*object, error) {
 	}
 	// Model: bütün tensörleri, türev izleyenler (parametreler) ve izlemeyenler (durum: TR ile
 	// yazılmış iyileştiricilerin momentleri, sabit tablolar) birlikte saklanır.
-	names, params, err := ml.TensorleriTopla(fn, v)
+	names, params, err := ml.CollectTensors(fn, v)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func newObject(fn, name string, v interp.Value) (*object, error) {
 	case *interp.IntVal, *interp.FloatVal, *interp.StringVal, *interp.BoolVal:
 		return nil, fmt.Errorf("%s: %q bir %s; düz bir değer doğrudan verilemez (geri yüklenirken yerine yazılamaz). Bir sözlüğe koyun: {%s: {değer: ...}}",
 			fn, name, x.Type(), name)
-	case *ml.Deger:
+	case *ml.TensorValue:
 		return nil, fmt.Errorf("%s: %q bir işlemin sonucu (ara tensör, %s); kaydedilecek tensörler yaprak olmalıdır: parametreler ve türevsiz güncellenen durum tensörleri", fn, name, interp.TypeAndSummary(v))
 	}
 	return nil, fmt.Errorf("%s: %q kaydedilemez (%s); modeller, iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listeler verilebilir",
@@ -127,7 +127,7 @@ func (n *object) tensors() []tensorPlan {
 			out = append(out, tensorPlan{name: n.name + "/" + name, t: n.params[i].Tensor()})
 		}
 	case kindOptimizer:
-		names, tensors := n.op.DurumGorunumu()
+		names, tensors := n.op.StateView()
 		for i, name := range names {
 			out = append(out, tensorPlan{name: n.name + "/" + name, t: tensors[i]})
 		}
@@ -141,7 +141,7 @@ func (n *object) record(m *interp.VM) (objectRecord, error) {
 	var err error
 	switch n.kind {
 	case kindOptimizer:
-		k.Optimizer, k.ParamCount = n.op.Ad(), n.op.ParametreSayisi()
+		k.Optimizer, k.ParamCount = n.op.Name(), n.op.ParamCount()
 	case kindLog:
 		k.Length, err = n.log.Len()
 	case kindStateful:
@@ -177,15 +177,15 @@ func (n *object) checkMatch(fn string, y *pending, version int) error {
 	case kindModel:
 		return n.modelMatch(fmt.Sprintf("%s: %q", fn, n.name), y, version)
 	case kindOptimizer:
-		if y.record.Optimizer != n.op.Ad() || y.record.ParamCount != n.op.ParametreSayisi() {
+		if y.record.Optimizer != n.op.Name() || y.record.ParamCount != n.op.ParamCount() {
 			return fmt.Errorf("%s: %q kayıtta %d parametreli bir %s, şimdi %d parametreli bir %s; aynı iyileştiriciyle sürdürün",
-				fn, n.name, y.record.ParamCount, y.record.Optimizer, n.op.ParametreSayisi(), n.op.Ad())
+				fn, n.name, y.record.ParamCount, y.record.Optimizer, n.op.ParamCount(), n.op.Name())
 		}
 		shapes := make([][]int, len(y.order))
 		for i, name := range y.order {
 			shapes[i] = y.shapes[name]
 		}
-		return n.op.DurumuDenetle(fmt.Sprintf("%s: %q", fn, n.name), y.order, shapes)
+		return n.op.CheckState(fmt.Sprintf("%s: %q", fn, n.name), y.order, shapes)
 	case kindStateful, kindPlain:
 		if len(y.shapes) > 0 {
 			return fmt.Errorf("%s: %q için kayıtta beklenmeyen tensörler var", fn, n.name)

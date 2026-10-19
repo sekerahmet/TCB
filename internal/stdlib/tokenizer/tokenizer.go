@@ -495,7 +495,7 @@ func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
 			return nil, false, err
 		}
 		return [][]int{d}, true, nil
-	case *ml.Deger:
+	case *ml.TensorValue:
 		t := x.Tensor()
 		sh := t.Shape()
 		data := t.Data()

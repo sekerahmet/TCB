@@ -151,13 +151,13 @@ func (kn *Checkpoint) writeCkpt(name string, state []byte, plan []tensorPlan) (e
 
 // writeTensors planı tensör dosyası biçiminde yazar; her tensör yazılırken konağa iner.
 func writeTensors(w io.Writer, plan []tensorPlan) error {
-	y := ml.YeniTensorYazici(w, len(plan))
+	y := ml.NewTensorWriter(w, len(plan))
 	for _, p := range plan {
-		if err := y.Yaz(p.name, p.t.Shape(), p.t.DType(), p.t.Data()); err != nil {
+		if err := y.Write(p.name, p.t.Shape(), p.t.DType(), p.t.Data()); err != nil {
 			return err
 		}
 	}
-	return y.Bitir()
+	return y.Finish()
 }
 
 // writeFile yeni bir dosya yazar, diske işler ve boyunu ve SHA-256 özetini verir.

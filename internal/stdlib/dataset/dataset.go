@@ -533,8 +533,8 @@ func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]inte
 	if last {
 		return interp.NULL, nil
 	}
-	gt := ml.YeniTam(tensor.New(input, b, t))
-	ht := ml.YeniTam(tensor.New(target, b, t))
+	gt := ml.NewInt(tensor.New(input, b, t))
+	ht := ml.NewInt(tensor.New(target, b, t))
 	return &interp.ListVal{Elements: []interp.Value{gt, ht}}, nil
 }
 

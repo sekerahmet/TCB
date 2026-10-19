@@ -18,7 +18,7 @@ func metricValue(fn, name string, v interp.Value) (interp.Value, error) {
 	switch x := v.(type) {
 	case *interp.IntVal, *interp.FloatVal, *interp.StringVal, *interp.BoolVal, *interp.NullVal, *interp.ListVal, *interp.DictVal:
 		return v, nil
-	case *ml.Deger:
+	case *ml.TensorValue:
 		if t := x.Tensor(); t.Numel() == 1 {
 			return &interp.FloatVal{Val: shortDecimal(t.Item())}, nil
 		}

@@ -86,7 +86,7 @@ func variable(t *testing.T, m *interp.VM, name string) interp.Value {
 
 func tensorData(t *testing.T, v interp.Value) ([]float32, []int) {
 	t.Helper()
-	d, ok := v.(*ml.Deger)
+	d, ok := v.(*ml.TensorValue)
 	if !ok {
 		t.Fatalf("tensör bekleniyordu, %T", v)
 	}

@@ -189,7 +189,7 @@ func options(fn string, named map[string]interp.Value) (time.Duration, int, erro
 // kesintisizle aynı olmayacaktır (paylaşılan üretecin durumu kaydedilemez).
 func setupUnseededWarning(m *interp.VM) {
 	var one sync.Once
-	ml.TohumsuzKancasiAyarla(func() {
+	ml.SetUnseededHook(func() {
 		one.Do(func() {
 			m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s kurulduktan sonra tohumsuz rastgelelik kullanıldı (%s ya da %s, %s: verilmeden); sürdürülen eğitim kesintisizle aynı olmayacak. Rastgeleliği %s: ile verin.\n",
 				codes.Name(codes.T702), codes.Name(codes.T103), codes.Name(codes.T611), nameSeed.TR, nameSeed.TR))

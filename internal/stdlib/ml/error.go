@@ -1,0 +1,130 @@
+package ml
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
+)
+
+// Çekirdek tensör paketi (github.com/sekerahmet/TCB/internal/compute/tensor) hataları panik ile bildirir. Bu dosyadaki
+// yardımcılar her çekirdek çağrısını sarar ve paniği, TR'nin 'dene/yakala' ile
+// yakalanabilen sıradan bir hataya çevirir. Yerleşik çağrılarında VM mesajın başına
+// "Satır N:" ekler. Adlı argüman denetimi ve paniği yakalama internal/stdlib/common/bind'nın
+// ortak yardımcılarıyla yapılır.
+
+// Adlı argümanlar. Adları kod listesindedir (internal/lang/codes, T9xx). Başka dillerden alışılmış
+// adlar (lr, axis...) kabul edilmez; bind.CheckNamed hata mesajında Türkçesini önerir.
+var (
+	nameRequiresGrad = bind.NamedArg(codes.T900)
+	nameAxis         = bind.NamedArg(codes.T902)
+	nameSeed         = bind.NamedArg(codes.T903)
+	nameMax          = bind.NamedArg(codes.T904)
+	nameMin          = bind.NamedArg(codes.T907)
+	nameEpsilon      = bind.NamedArg(codes.T905)
+	nameLR           = bind.NamedArg(codes.T910)
+	nameWeightDecay  = bind.NamedArg(codes.T911)
+	nameBeta1        = bind.NamedArg(codes.T912)
+	nameBeta2        = bind.NamedArg(codes.T913)
+	nameMomentum     = bind.NamedArg(codes.T914)
+	nameWeight       = bind.NamedArg(codes.T920)
+	nameBias         = bind.NamedArg(codes.T921)
+	nameDType        = bind.NamedArg(codes.T901)
+	nameMasterCopy   = bind.NamedArg(codes.T915)
+)
+
+// gradExample hata mesajlarındaki türev izleyen tensör örneğidir:
+// gradExample("...") → "tensör(..., türev_izle: doğru)"; adlar koddan kurulur.
+func gradExample(data string) string {
+	return codes.Name(codes.T100) + "(" + data + ", " + nameRequiresGrad.TR + ": " + codes.Name(codes.A040) + ")"
+}
+
+// safe fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.
+func safe[T any](fn func() T) (T, error) { return bind.Recover(fn, panicError) }
+
+// panicError çekirdeğin panik değerini kullanıcıya gösterilecek hataya çevirir.
+func panicError(r any) error {
+	if e, ok := r.(error); ok {
+		return fmt.Errorf("tensör işlemi başarısız: %v", e)
+	}
+	msg := fmt.Sprint(r)
+	msg = strings.TrimPrefix(msg, "tensor: ")
+	return fmt.Errorf("tensör işlemi başarısız: %s", msg)
+}
+
+// intNumber bir TR değerini tam sayıya çevirir (tam değerli ondalıklar da kabul edilir).
+func intNumber(v interp.Value) (int, bool) {
+	n, ok := bind.Int(v)
+	return int(n), ok
+}
+
+// shapeText bir şekli "[2, 3]" biçiminde yazar.
+func shapeText(sh []int) string {
+	parts := make([]string, len(sh))
+	for i, d := range sh {
+		parts[i] = strconv.Itoa(d)
+	}
+	return "[" + strings.Join(parts, ", ") + "]"
+}
+
+// shapeProduct bir şekli "2×3" biçiminde yazar (izleme masası ve yazdırma başlığı için).
+func shapeProduct(sh []int) string {
+	parts := make([]string, len(sh))
+	for i, d := range sh {
+		parts[i] = strconv.Itoa(d)
+	}
+	return strings.Join(parts, "×")
+}
+
+// parseAxis negatif ekseni (sondan sayma) pozitife çevirir ve sınırı denetler.
+func parseAxis(fn string, axis int, sh []int) (int, error) {
+	nd := len(sh)
+	if nd == 0 {
+		return 0, fmt.Errorf("%s: skaler (0 boyutlu) tensörde eksen seçilemez", fn)
+	}
+	e := axis
+	if e < 0 {
+		e += nd
+	}
+	if e < 0 || e >= nd {
+		return 0, fmt.Errorf("%s: eksen %d, %s şeklindeki %d boyutlu tensör için geçersiz; %d ile %d arasında olmalı", fn, axis, shapeText(sh), nd, -nd, nd-1)
+	}
+	return e, nil
+}
+
+// typeName hata mesajlarında değerin tipini adlandırır.
+func typeName(v interp.Value) string { return string(v.Type()) }
+
+// argText argümanları virgülle ayrılmış biçimde yazar.
+func argText(args []interp.Value) string {
+	p := make([]string, len(args))
+	for i, a := range args {
+		p[i] = a.Inspect()
+	}
+	return strings.Join(p, ", ")
+}
+
+// shapeList [2, 3] gibi bir TR listesini şekle çevirir.
+func shapeList(fn string, v interp.Value) ([]int, error) {
+	l, ok := v.(*interp.ListVal)
+	if !ok {
+		return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", fn, typeName(v))
+	}
+	sh := make([]int, len(l.Elements))
+	totalElems := 1
+	for i, el := range l.Elements {
+		d, ok := intNumber(el)
+		if !ok || d < 0 {
+			return nil, fmt.Errorf("%s: şeklin %d. elemanı negatif olmayan bir tam sayı olmalıdır, %s verildi", fn, i+1, el.Inspect())
+		}
+		sh[i] = d
+		if d > 0 && totalElems > interp.MaxCollectionSize/d {
+			return nil, fmt.Errorf("%s: %s şekli çok büyük (en fazla %d eleman)", fn, shapeText(sh[:i+1]), interp.MaxCollectionSize)
+		}
+		totalElems *= d
+	}
+	return sh, nil
+}

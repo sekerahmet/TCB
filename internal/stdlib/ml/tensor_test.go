@@ -14,13 +14,13 @@ import (
 
 // Testlerdeki VM'ler tensör motorunu içersin.
 func init() {
-	interp.AddEngine(Kaydet)
+	interp.AddEngine(Register)
 }
 
-// calistir TR kodunu çalıştırır; çıktıyı ve hatayı döndürür.
-func calistir(t *testing.T, kod string) (string, error) {
+// run TR kodunu çalıştırır; çıktıyı ve hatayı döndürür.
+func run(t *testing.T, code string) (string, error) {
 	t.Helper()
-	p := parser.New(lexer.New(kod))
+	p := parser.New(lexer.New(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())
@@ -33,26 +33,26 @@ func calistir(t *testing.T, kod string) (string, error) {
 	return out.String(), err
 }
 
-// mustCalistir kodu hatasız çalıştırır. Önce, tr komutunun yaptığı gibi tip denetiminden
+// mustRun kodu hatasız çalıştırır. Önce, tr komutunun yaptığı gibi tip denetiminden
 // geçirir: tanımsız ya da kaldırılmış bir ad (ör. 'çık'ın eski adı) yalnızca zamanlamaya bağlı
 // olarak çalışan bir satırda olsa da test her makinede kalır.
-func mustCalistir(t *testing.T, kod string) string {
+func mustRun(t *testing.T, code string) string {
 	t.Helper()
-	p := parser.New(lexer.New(kod))
+	p := parser.New(lexer.New(code))
 	if errs := checker.New().CheckProgram(p.ParseProgram()); len(errs) > 0 {
-		t.Fatalf("tip denetimi hatası: %v\nkod:\n%s", errs, kod)
+		t.Fatalf("tip denetimi hatası: %v\nkod:\n%s", errs, code)
 	}
-	out, err := calistir(t, kod)
+	out, err := run(t, code)
 	if err != nil {
-		t.Fatalf("beklenmeyen hata: %v\nkod:\n%s", err, kod)
+		t.Fatalf("beklenmeyen hata: %v\nkod:\n%s", err, code)
 	}
 	return out
 }
 
-// deger kodu çalıştırır ve son satırdaki 'cikti' değişkeninin değerini döndürür.
-func deger(t *testing.T, kod string) interp.Value {
+// value kodu çalıştırır ve son satırdaki 'cikti' değişkeninin değerini döndürür.
+func value(t *testing.T, code string) interp.Value {
 	t.Helper()
-	p := parser.New(lexer.New(kod))
+	p := parser.New(lexer.New(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())
@@ -69,16 +69,16 @@ func deger(t *testing.T, kod string) interp.Value {
 	return v
 }
 
-func tensorVeri(t *testing.T, v interp.Value) ([]float32, []int) {
+func tensorData(t *testing.T, v interp.Value) ([]float32, []int) {
 	t.Helper()
-	d, ok := v.(*Deger)
+	d, ok := v.(*TensorValue)
 	if !ok {
 		t.Fatalf("tensör beklendi, %s (%s) geldi", v.Inspect(), v.Type())
 	}
 	return d.t.Data(), d.t.Shape()
 }
 
-func yakin(t *testing.T, ad string, got, want []float32, tol float64) {
+func near(t *testing.T, ad string, got, want []float32, tol float64) {
 	t.Helper()
 	if len(got) != len(want) {
 		t.Fatalf("%s: %d eleman, %d bekleniyordu (%v)", ad, len(got), len(want), got)
@@ -90,21 +90,21 @@ func yakin(t *testing.T, ad string, got, want []float32, tol float64) {
 	}
 }
 
-func sekilEsit(t *testing.T, ad string, got, want []int) {
+func shapeEqual(t *testing.T, ad string, got, want []int) {
 	t.Helper()
-	if sekilMetni(got) != sekilMetni(want) {
+	if shapeText(got) != shapeText(want) {
 		t.Fatalf("%s: şekil %v, %v bekleniyordu", ad, got, want)
 	}
 }
 
-func TestIleriIslemler(t *testing.T) {
-	kod := `değişken a = tensör([[1, 2, 3], [4, 5, 6]])
+func TestForwardOps(t *testing.T) {
+	code := `değişken a = tensör([[1, 2, 3], [4, 5, 6]])
 değişken b = tensör([[1, 0], [0, 1], [1, 1]])
 `
-	durumlar := []struct {
-		ifade string
-		veri  []float32
-		sekil []int
+	cases := []struct {
+		expr  string
+		data  []float32
+		shape []int
 	}{
 		{"a @ b", []float32{4, 5, 10, 11}, []int{2, 2}},
 		{"a + [10, 20, 30]", []float32{11, 22, 33, 14, 25, 36}, []int{2, 3}},
@@ -137,31 +137,31 @@ değişken b = tensör([[1, 0], [0, 1], [1, 1]])
 		{"katman_normu(tensör([[1, 2, 3]]), birler([3]), sıfırlar([3]))", []float32{-1.2247, 0, 1.2247}, []int{1, 3}},
 		{"rms_normu(tensör([[3, 4]]), yok)", []float32{0.8485, 1.1314}, []int{1, 2}},
 	}
-	for _, d := range durumlar {
-		if d.veri == nil {
+	for _, d := range cases {
+		if d.data == nil {
 			continue
 		}
-		v := deger(t, kod+"değişken cikti = "+d.ifade)
-		veri, sh := tensorVeri(t, v)
-		sekilEsit(t, d.ifade, sh, d.sekil)
-		yakin(t, d.ifade, veri, d.veri, 1e-3)
+		v := value(t, code+"değişken cikti = "+d.expr)
+		data, sh := tensorData(t, v)
+		shapeEqual(t, d.expr, sh, d.shape)
+		near(t, d.expr, data, d.data, 1e-3)
 	}
 
 	// softmax satırları 1'e toplanır; log_softmax'ın üsteli softmax'tır.
-	v := deger(t, kod+"değişken cikti = toplam(softmax(a, eksen: -1), eksen: 1)")
-	veri, _ := tensorVeri(t, v)
-	yakin(t, "softmax toplamı", veri, []float32{1, 1}, 1e-5)
-	v = deger(t, kod+"değişken cikti = üstel(log_softmax(a)) - softmax(a)")
-	veri, _ = tensorVeri(t, v)
-	yakin(t, "log_softmax", veri, make([]float32, 6), 1e-5)
+	v := value(t, code+"değişken cikti = toplam(softmax(a, eksen: -1), eksen: 1)")
+	data, _ := tensorData(t, v)
+	near(t, "softmax toplamı", data, []float32{1, 1}, 1e-5)
+	v = value(t, code+"değişken cikti = üstel(log_softmax(a)) - softmax(a)")
+	data, _ = tensorData(t, v)
+	near(t, "log_softmax", data, make([]float32, 6), 1e-5)
 
 	// çapraz entropi = -log(softmax[hedef])
-	v = deger(t, "değişken cikti = çapraz_entropi(tensör([[2.0, 1.0, 0.1]]), [0])")
-	veri, _ = tensorVeri(t, v)
-	yakin(t, "çapraz_entropi", veri, []float32{0.4170}, 1e-3)
+	v = value(t, "değişken cikti = çapraz_entropi(tensör([[2.0, 1.0, 0.1]]), [0])")
+	data, _ = tensorData(t, v)
+	near(t, "çapraz_entropi", data, []float32{0.4170}, 1e-3)
 
 	// Özellikler.
-	out := mustCalistir(t, kod+`yazdır(a.şekil, a.cihaz, tip(a))
+	out := mustRun(t, code+`yazdır(a.şekil, a.cihaz, tip(a))
 yazdır(a.değer)
 yazdır(toplam(a).değer)
 yazdır(rastgele_normal([2, 3], tohum: 7).şekil)`)
@@ -171,8 +171,8 @@ yazdır(rastgele_normal([2, 3], tohum: 7).şekil)`)
 	}
 }
 
-func TestYazdirmaBicimi(t *testing.T) {
-	out := mustCalistir(t, `yazdır(tensör([[1, 2], [3, 4]]))
+func TestPrintFormat(t *testing.T) {
+	out := mustRun(t, `yazdır(tensör([[1, 2], [3, 4]]))
 yazdır(tensör([1.5, -2]))
 yazdır(toplam(tensör([1, 2], türev_izle: doğru)))`)
 	want := "Tensör[2×2] [\n  [1.0000, 2.0000],\n  [3.0000, 4.0000]\n]\n" +
@@ -182,17 +182,17 @@ yazdır(toplam(tensör([1, 2], türev_izle: doğru)))`)
 		t.Fatalf("yazdırma:\n%s\nbeklenen:\n%s", out, want)
 	}
 	// Büyük tensörlerde eksenler kısaltılır.
-	out = mustCalistir(t, `yazdır(sıfırlar([100, 100]))`)
+	out = mustRun(t, `yazdır(sıfırlar([100, 100]))`)
 	if !strings.Contains(out, "…") || strings.Count(out, "\n") > 12 {
 		t.Fatalf("büyük tensör kısaltılmadı:\n%s", out)
 	}
 }
 
-func TestEskiDavranisKorunur(t *testing.T) {
+func TestOldBehaviourKept(t *testing.T) {
 	// Tek sayıdan tensör 0 boyutludur; eski tek sayılık otomatik türev kullanımı aynı
 	// sonuçları verir (gradyan da 0 boyutlu tensördür). Matris adlı oluşturucular 2 boyutlu
 	// tensör verir; eleman bazlı fonksiyonlar sayıda Ondalık verir.
-	out := mustCalistir(t, `değişken x = tensör(3.0, türev_izle: doğru)
+	out := mustRun(t, `değişken x = tensör(3.0, türev_izle: doğru)
 değişken y = x * x + 2 * x + 1
 geri_yayılım(y)
 yazdır(x.değer, y.değer, x.gradyan, tip(x))
@@ -205,20 +205,20 @@ yazdır(softmax(tensör([1.0, 1.0])).değer, relu(-2), tip(tensör([[1, 2]]).dev
 	}
 }
 
-func TestGeriYayilimGradyan(t *testing.T) {
+func TestBackwardGradient(t *testing.T) {
 	// k = ortalama((x @ w)^2), dk/dw = 2/N · xᵀ (x @ w)
-	v := deger(t, `değişken w = tensör([[0.5], [-0.5]], türev_izle: doğru)
+	v := value(t, `değişken w = tensör([[0.5], [-0.5]], türev_izle: doğru)
 değişken x = tensör([[1, 2], [3, 4]])
 değişken y = x @ w
 geri_yayılım(ortalama(y * y))
 değişken cikti = w.gradyan`)
-	veri, sh := tensorVeri(t, v)
-	sekilEsit(t, "gradyan", sh, []int{2, 1})
+	data, sh := tensorData(t, v)
+	shapeEqual(t, "gradyan", sh, []int{2, 1})
 	// y = [-0.5, -0.5]; dk/dy = y; dk/dw = xᵀ y = [[-2], [-3]]
-	yakin(t, "gradyan", veri, []float32{-2, -3}, 1e-5)
+	near(t, "gradyan", data, []float32{-2, -3}, 1e-5)
 
 	// Gradyanlar birikir; iyileştiricinin .sıfırla() metodu sıfırlar.
-	out := mustCalistir(t, `değişken w = tensör([1.0, 2.0], türev_izle: doğru)
+	out := mustRun(t, `değişken w = tensör([1.0, 2.0], türev_izle: doğru)
 geri_yayılım(toplam(w * 3))
 geri_yayılım(toplam(w * 3))
 yazdır(w.gradyan.değer)
@@ -234,8 +234,8 @@ yazdır(w.değer)`)
 	}
 }
 
-func TestTurevsiz(t *testing.T) {
-	out := mustCalistir(t, `değişken w = tensör([1.0, 2.0], türev_izle: doğru)
+func TestNoGrad(t *testing.T) {
+	out := mustRun(t, `değişken w = tensör([1.0, 2.0], türev_izle: doğru)
 değişken a = türevsiz { sonuç w * 2 }
 değişken b = türevsiz(w * 2)
 değişken c = w * 2
@@ -247,9 +247,9 @@ dene { geri_yayılım(toplam(a)) } yakala h { yazdır("hata") }`)
 	}
 }
 
-func TestDogrusalRegresyonAdamW(t *testing.T) {
+func TestLinearRegressionAdamW(t *testing.T) {
 	// y = 2·x1 - 3·x2 + 0.5 verisinden ağırlıklar AdamW ile öğrenilir.
-	out := mustCalistir(t, `değişken X = tensör([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])
+	out := mustRun(t, `değişken X = tensör([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])
 değişken Y = tensör([[0.5], [2.5], [-2.5], [-0.5], [1.5], [-3.5]])
 değişken w = tensör([[0.0], [0.0]], türev_izle: doğru)
 değişken b = tensör([0.0], türev_izle: doğru)
@@ -267,8 +267,8 @@ yazdır(yuvarla(w.değer[0][0], 2), yuvarla(w.değer[1][0], 2), yuvarla(b.değer
 	}
 }
 
-func TestHatalar(t *testing.T) {
-	durumlar := []struct{ kod, beklenen string }{
+func TestErrors(t *testing.T) {
+	cases := []struct{ code, expected string }{
 		{"sıfırlar([32, 1024]) @ sıfırlar([512, 10])", "[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512"},
 		{"sıfırlar([2, 3, 4]) @ sıfırlar([5, 4, 6])", "toplu matris çarpımı yapılamaz; öndeki eksenler eşit olmalı ([2] ≠ [5])"},
 		{"sıfırlar([2, 3]) + sıfırlar([4])", "[2, 3] ile [4] şekilleri toplama için yayınlanamaz; sondan 1. eksende 3 ≠ 4"},
@@ -294,38 +294,38 @@ func TestHatalar(t *testing.T) {
 		{"SGD([tensör([1.0], türev_izle: doğru)], öğrenme_oran: 0.1)", "SGD 'öğrenme_oran' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?"},
 		{"sıfırlar([2, -1])", "şeklin 2. elemanı negatif olmayan bir tam sayı olmalıdır"},
 	}
-	for _, d := range durumlar {
-		_, err := calistir(t, d.kod)
+	for _, d := range cases {
+		_, err := run(t, d.code)
 		if err == nil {
-			t.Errorf("%s: hata bekleniyordu", d.kod)
+			t.Errorf("%s: hata bekleniyordu", d.code)
 			continue
 		}
-		if !strings.Contains(err.Error(), d.beklenen) {
-			t.Errorf("%s:\n  hata  : %v\n  içermeli: %s", d.kod, err, d.beklenen)
+		if !strings.Contains(err.Error(), d.expected) {
+			t.Errorf("%s:\n  hata  : %v\n  içermeli: %s", d.code, err, d.expected)
 		}
 		if strings.Contains(err.Error(), "İç hata") || strings.Contains(err.Error(), "tensor:") {
-			t.Errorf("%s: panik sızdı: %v", d.kod, err)
+			t.Errorf("%s: panik sızdı: %v", d.code, err)
 		}
 	}
 	// Hatalar dene/yakala ile yakalanabilir.
-	out := mustCalistir(t, `dene { değişken k = sıfırlar([2, 3]) @ sıfırlar([2, 3]) } yakala h { yazdır("yakalandı") }
+	out := mustRun(t, `dene { değişken k = sıfırlar([2, 3]) @ sıfırlar([2, 3]) } yakala h { yazdır("yakalandı") }
 dene { yazdır(sıfırlar([1]).cihaza("gpu:9")) } yakala h { yazdır("yakalandı") }`)
 	if out != "yakalandı\nyakalandı\n" {
 		t.Fatalf("dene/yakala: %q", out)
 	}
 }
 
-func TestPanikHataya(t *testing.T) {
+func TestPanicToError(t *testing.T) {
 	// Çekirdeğin panikleri sıradan hataya çevrilir.
-	_, err := guvenli(func() int { panic("tensor: deneme") })
+	_, err := safe(func() int { panic("tensor: deneme") })
 	if err == nil || err.Error() != "tensör işlemi başarısız: deneme" {
 		t.Fatalf("panik çevirisi: %v", err)
 	}
 }
 
-func TestIzlemeMasasi(t *testing.T) {
-	v := deger(t, "değişken cikti = tensör([[1, 2, 3], [4, 5, 6]])")
-	d := v.(*Deger)
+func TestWatchPanel(t *testing.T) {
+	v := value(t, "değişken cikti = tensör([[1, 2, 3], [4, 5, 6]])")
+	d := v.(*TensorValue)
 	if d.IzlemeEtiketi() != "Tensör [2×3]" || d.IzlemeTuru() != "tensor" {
 		t.Fatalf("etiket/tür: %q %q", d.IzlemeEtiketi(), d.IzlemeTuru())
 	}
@@ -333,8 +333,8 @@ func TestIzlemeMasasi(t *testing.T) {
 	if err != nil || len(cols) != 3 || len(rows) != 2 || rows[1][2] != "6" {
 		t.Fatalf("tablo: %v %v %v", cols, rows, err)
 	}
-	v = deger(t, "değişken cikti = sıfırlar([2, 2, 2])")
-	if _, _, err := v.(*Deger).TabloVerisi(); err == nil {
+	v = value(t, "değişken cikti = sıfırlar([2, 2, 2])")
+	if _, _, err := v.(*TensorValue).TabloVerisi(); err == nil {
 		t.Fatal("3 boyutlu tensör tablo olmamalı")
 	}
 }

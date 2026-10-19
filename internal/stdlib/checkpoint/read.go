@@ -129,7 +129,7 @@ func verifyCkpt(dir string, n ckptEntry) (*loadedCkpt, error) {
 	for _, k := range o.state.Objects {
 		o.objects[k.Name] = &pending{record: k, shapes: map[string][]int{}, kinds: map[string]tensor.DType{}}
 	}
-	err = o.walkTensors(func(objectName, tensorName string, g ml.TensorGirdisi) error {
+	err = o.walkTensors(func(objectName, tensorName string, g ml.TensorEntry) error {
 		y := o.objects[objectName]
 		y.shapes[tensorName], y.kinds[tensorName] = g.Sekil, g.Tur
 		y.order = append(y.order, tensorName)
@@ -144,7 +144,7 @@ func verifyCkpt(dir string, n ckptEntry) (*loadedCkpt, error) {
 // walkTensors tensör dosyasını girdi girdi okur; her girdinin adı "<nesne>/<tensör>"
 // olmalı ve nesne tensör tutan bir türden olmalıdır. Dosyanın boyu ve SHA-256 özeti
 // ozet.json'la, sağlaması kendi biçimiyle denetlenir (gez yalnızca bunlar tutarsa güvenilir).
-func (o *loadedCkpt) walkTensors(walk func(objectName, tensorName string, g ml.TensorGirdisi) error) error {
+func (o *loadedCkpt) walkTensors(walk func(objectName, tensorName string, g ml.TensorEntry) error) error {
 	fpath := filepath.Join(o.dir, tensorFile)
 	f, err := os.Open(fpath)
 	if err != nil {
@@ -160,7 +160,7 @@ func (o *loadedCkpt) walkTensors(walk func(objectName, tensorName string, g ml.T
 		return fmt.Errorf("%s %d bayt, %s %d bayt diyor (dosya yarım kopyalanmış ya da değişmiş)", tensorFile, info.Size(), digestFile, want.Bytes)
 	}
 	h := sha256.New()
-	err = ml.TensorDosyasiGez(io.TeeReader(f, h), info.Size(), func(g ml.TensorGirdisi) error {
+	err = ml.WalkTensorFile(io.TeeReader(f, h), info.Size(), func(g ml.TensorEntry) error {
 		objectName, tensorName, ok := strings.Cut(g.Ad, "/")
 		y := o.objects[objectName]
 		if !ok || y == nil || (y.record.Kind != kindModel.String() && y.record.Kind != kindOptimizer.String()) {

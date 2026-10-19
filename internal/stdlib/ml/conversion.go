@@ -1,0 +1,143 @@
+package ml
+
+import (
+	"fmt"
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
+)
+
+// ----------------------------------------------------------------------------
+// TR değerinden tensöre dönüşüm
+// ----------------------------------------------------------------------------
+
+// toTensor sayı, iç içe liste ya da tensörü çekirdek tensörüne çevirir.
+// Tensör verilirse kendisi döner (kopyalanmaz, hesap çizgesi korunur).
+func toTensor(fn string, v interp.Value) (*tensor.Tensor, error) {
+	switch x := v.(type) {
+	case *TensorValue:
+		return x.t, nil
+	case *interp.IntVal:
+		return tensor.Scalar(float32(x.Val)), nil
+	case *interp.FloatVal:
+		return tensor.Scalar(float32(x.Val)), nil
+	case *interp.ListVal:
+		data, sh, err := listData(fn, x)
+		if err != nil {
+			return nil, err
+		}
+		return tensor.New(data, sh...), nil
+	}
+	hintMsg := ""
+	if b, ok := v.(*interp.BuiltinVal); ok {
+		hintMsg = fmt.Sprintf("; metodu çağırmak için parantez ekleyin: %s()", b.Name)
+	}
+	return nil, fmt.Errorf("%s: %s tipi tensöre dönüştürülemez (sayı, iç içe liste ya da tensör bekleniyor)%s", fn, typeName(v), hintMsg)
+}
+
+// toTensorOn toTensor gibidir; ancak sayı ve listeden oluşan tensör, işlemin
+// diğer tarafı olan tensörün cihazında kurulur (ör. GPU'daki t için t + [1, 2]). Tensör
+// verilirse kendisi döner; cihazı farklıysa işlem açık hata verir (15.29).
+func toTensorOn(fn string, v interp.Value, otherVal *tensor.Tensor) (*tensor.Tensor, error) {
+	t, err := toTensor(fn, v)
+	if err != nil {
+		return nil, err
+	}
+	if _, isTensor := v.(*TensorValue); isTensor || t.Device() == otherVal.Device() {
+		return t, nil
+	}
+	return safe(func() *tensor.Tensor {
+		var r *tensor.Tensor
+		tensor.NoGrad(func() { r = t.To(otherVal.Device()) })
+		return r
+	})
+}
+
+// listData iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
+func listData(fn string, l *interp.ListVal) ([]float32, []int, error) {
+	var data []float32
+	sh, err := walkList(fn, l, func(n int) { data = make([]float32, 0, n) }, func(v interp.Value) error {
+		f, ok := interp.ToFloat(v)
+		if !ok {
+			return fmt.Errorf("%s: tensör elemanları sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), typeName(v))
+		}
+		data = append(data, float32(f))
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return data, sh, nil
+}
+
+// listInts iç içe tam sayı listesini düz dizi ve şekle çevirir. Değerler doğrudan
+// tam sayı olarak okunur (float32'den geçirilmez; 2^24 üstü indeksler yuvarlanmaz).
+func listInts(fn string, l *interp.ListVal) ([]int, []int, error) {
+	var data []int
+	sh, err := walkList(fn, l, func(n int) { data = make([]int, 0, n) }, func(v interp.Value) error {
+		n, ok := intNumber(v)
+		if !ok {
+			if _, number := interp.ToFloat(v); number {
+				return fmt.Errorf("%s: indeksler tam sayı olmalıdır, %s verildi", fn, v.Inspect())
+			}
+			return fmt.Errorf("%s: indeksler tam sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), typeName(v))
+		}
+		data = append(data, n)
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return data, sh, nil
+}
+
+// walkList iç içe listenin şeklini bulur (ilk elemanlar boyunca inilerek), düzensizliği
+// reddeder ve yaprakları sırayla yaprak'a verir; hazirla eleman sayısıyla bir kez çağrılır.
+func walkList(fn string, l *interp.ListVal, prepare func(n int), leaf func(v interp.Value) error) ([]int, error) {
+	var sh []int
+	var cur interp.Value = l
+	for {
+		ll, ok := cur.(*interp.ListVal)
+		if !ok {
+			break
+		}
+		sh = append(sh, len(ll.Elements))
+		if len(ll.Elements) == 0 {
+			break
+		}
+		cur = ll.Elements[0]
+	}
+	n := 1
+	for _, d := range sh {
+		n *= d
+		if n > interp.MaxCollectionSize {
+			return nil, fmt.Errorf("%s: liste çok büyük (en fazla %d eleman)", fn, interp.MaxCollectionSize)
+		}
+	}
+	prepare(n)
+	var walk func(v interp.Value, axis int) error
+	walk = func(v interp.Value, axis int) error {
+		if axis == len(sh) {
+			if _, list := v.(*interp.ListVal); list {
+				return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte sayı yerine liste var", fn, axis+1)
+			}
+			return leaf(v)
+		}
+		ll, ok := v.(*interp.ListVal)
+		if !ok {
+			return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte liste yerine %s var (beklenen şekil %s)", fn, axis+1, v.Inspect(), shapeText(sh))
+		}
+		if len(ll.Elements) != sh[axis] {
+			return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte %d ve %d uzunlukta listeler var (tüm satırlar eşit uzunlukta olmalı)", fn, axis+1, sh[axis], len(ll.Elements))
+		}
+		for _, el := range ll.Elements {
+			if err := walk(el, axis+1); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := walk(l, 0); err != nil {
+		return nil, err
+	}
+	return sh, nil
+}

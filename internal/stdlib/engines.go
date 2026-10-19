@@ -30,7 +30,7 @@ func init() {
 	interp.AddEngine(files.Register)
 	// Tensör motoru (tensör, otomatik türev, katmanlar) çekirdek yerleşiklerini (toplam,
 	// ortalama, min, maks, karekök) sarar; bu yüzden onlardan SONRA kaydedilmelidir.
-	interp.AddEngine(ml.Kaydet)
+	interp.AddEngine(ml.Register)
 	// Parçalayıcı ve veri motorları tensör değerleri üretir; yeni adlar tanımlar.
 	interp.AddEngine(tokenizer.Register)
 	interp.AddEngine(dataset.Register)
@@ -52,5 +52,5 @@ func Close() {
 	logging.CloseAll()
 	dataset.CloseAll(3 * time.Second)
 	files.CloseAll()
-	ml.Kapat()
+	ml.Close()
 }
