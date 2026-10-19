@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"runtime/debug"
 	"sync"
@@ -129,8 +130,9 @@ func (p *Shard) checkRange(n int, begin int64) error {
 }
 
 // Read, bas konumundan başlayarak len(dst) tokenı dst'ye int32 olarak okur.
-// Aralık parça dışına taşarsa hata döner. '<u4' değerleri 2^31'i aşarsa
-// int32'ye taşar; sözlük boyutları bunun çok altındadır.
+// Aralık parça dışına taşarsa hata döner. '<u4' değerleri int32'ye sığmazsa
+// (2^31 ve üstü) da hata döner: eksiye dönen bir token çapraz entropide yok
+// sayılan hedef olur ve bozuk veri sessizce eğitimden düşerdi.
 func (p *Shard) Read(dst []int32, begin int64) error {
 	if err := p.checkRange(len(dst), begin); err != nil {
 		return err
@@ -144,10 +146,20 @@ func (p *Shard) Read(dst []int32, begin int64) error {
 		return nil
 	}
 	es := p.header.DType.Size()
+	fits := true
+	var err error
 	if p.data != nil {
-		return p.mmapRead(func() { decodeI32(dst, p.data[begin*int64(es):(begin+int64(len(dst)))*int64(es)], p.header.DType) })
+		err = p.mmapRead(func() {
+			fits = decodeI32(dst, p.data[begin*int64(es):(begin+int64(len(dst)))*int64(es)], p.header.DType)
+		})
+	} else {
+		err = p.readAtRead(len(dst), begin, func(i int, b []byte, k int) { fits = decodeI32(dst[i:i+k], b, p.header.DType) && fits })
 	}
-	return p.readAtRead(len(dst), begin, func(i int, b []byte, k int) { decodeI32(dst[i:i+k], b, p.header.DType) })
+	if err == nil && !fits {
+		err = fmt.Errorf("veri: %s: [%d, %d) aralığında int32'ye sığmayan '<u4' token değeri var (2^31 ve üstü); sözlük boyutu bunun çok altında olmalı, dosya bozuk olabilir",
+			p.path, begin, begin+int64(len(dst)))
+	}
+	return err
 }
 
 // ReadU16, bas konumundan başlayarak len(dst) tokenı dst'ye uint16 olarak
@@ -255,19 +267,31 @@ func (p *Shard) Close() error {
 // Küçük uçlu çözme döngüleri
 // ---------------------------------------------------------------------------
 
-func decodeI32(dst []int32, b []byte, t DType) {
+// decodeI32 b'yi dst'ye çözer; '<u4' değerlerinin hepsi int32'ye sığıyorsa doğru verir
+// (öbür türlerde her zaman doğru).
+func decodeI32(dst []int32, b []byte, t DType) bool {
 	switch t {
 	case DTypeU16:
 		b = b[:2*len(dst)]
 		for i := range dst {
 			dst[i] = int32(binary.LittleEndian.Uint16(b[2*i:]))
 		}
-	case DTypeU32, DTypeI32:
+	case DTypeU32:
+		b = b[:4*len(dst)]
+		var all uint32
+		for i := range dst {
+			v := binary.LittleEndian.Uint32(b[4*i:])
+			all |= v
+			dst[i] = int32(v)
+		}
+		return all <= math.MaxInt32
+	case DTypeI32:
 		b = b[:4*len(dst)]
 		for i := range dst {
 			dst[i] = int32(binary.LittleEndian.Uint32(b[4*i:]))
 		}
 	}
+	return true
 }
 
 func decodeU16(dst []uint16, b []byte) {

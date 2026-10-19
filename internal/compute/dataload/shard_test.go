@@ -2,7 +2,9 @@ package dataload
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -148,6 +150,37 @@ func TestShardEmptyFile(t *testing.T) {
 	}
 	if err := p.Read(nil, 0); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestShardU32Overflow int32'ye sığmayan bir '<u4' değerinin (eksiye dönüp çapraz entropide
+// yok sayılacak hedef) hata verdiğini, öbür aralıkların okunduğunu denetler.
+func TestShardU32Overflow(t *testing.T) {
+	checkShardLeak(t)
+	var b bytes.Buffer
+	if err := WriteHeader(&b, DTypeU32, 4, 1); err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range []uint32{7, math.MaxInt32, 1 << 31, 9} {
+		b.Write(binary.LittleEndian.AppendUint32(nil, v))
+	}
+	path := filepath.Join(t.TempDir(), "u4.npy")
+	if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, noMmap := range []bool{false, true} {
+		p, err := OpenShard(path, ShardOptions{NoMmap: noMmap})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ok := make([]int32, 2)
+		if err := p.Read(ok, 0); err != nil || ok[1] != math.MaxInt32 {
+			t.Fatalf("eşlemesiz=%v: sığan aralık okunamadı: %v %v", noMmap, ok, err)
+		}
+		if err := p.Read(make([]int32, 2), 1); err == nil || !strings.Contains(err.Error(), "sığmayan") {
+			t.Fatalf("eşlemesiz=%v: 2^31 hata vermedi: %v", noMmap, err)
+		}
+		p.Close()
 	}
 }
 
