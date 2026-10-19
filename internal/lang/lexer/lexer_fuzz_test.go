@@ -24,12 +24,12 @@ func trSeeds(f *testing.F) {
 	}
 }
 
-// FuzzSozcukCozumleyici: kaynak kod güvenilmeyen girdidir ('tr kontrol', biçimlendirici ve
+// FuzzLexer: kaynak kod güvenilmeyen girdidir ('tr kontrol', biçimlendirici ve
 // düzenleyici bir dosyayı çalıştırmadan okur). Sözcük çözümleyici hiçbir girdide çökmemeli,
 // sonsuz döngüye girmemeli (girdi uzunluğundan fazla sözcük birimi üretmemeli) ve her
 // sözcük biriminin aralığı girdinin içinde kalmalıdır. Derin arama:
 //
-//	go test ./internal/lang/lexer -run '^$' -fuzz FuzzSozcukCozumleyici -fuzztime 5m
+//	go test ./internal/lang/lexer -run '^$' -fuzz FuzzLexer -fuzztime 5m
 func FuzzLexer(f *testing.F) {
 	trSeeds(f)
 	for _, s := range []string{"\ufeff", `"{'{"{}"}'}"`, "\"\\", "'''", "1e999999", "0x", "/*", "#", "\x00", "\xff\xfe"} {

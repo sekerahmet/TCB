@@ -13,13 +13,13 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// FuzzKaynakDerle: kaynak kod güvenilmeyen girdidir ('tr kontrol' ve düzenleyici bir dosyayı
+// FuzzCompileSource: kaynak kod güvenilmeyen girdidir ('tr kontrol' ve düzenleyici bir dosyayı
 // çalıştırmadan denetler; 'aktar' başka dosyaları okur). Ayrıştırıcı (program ve modül
 // biçimi), tip denetleyicisi ve derleyici hiçbir girdide çökmemelidir. Program
 // ÇALIŞTIRILMAZ: yalnızca derlenir (hata ayıklama kipi tip denetimini atladığı için
 // derleyici denetimden geçmeyen programları da görür). Derin arama:
 //
-//	go test ./internal/lang/interp -run '^$' -fuzz FuzzKaynakDerle -fuzztime 5m
+//	go test ./internal/lang/interp -run '^$' -fuzz FuzzCompileSource -fuzztime 5m
 func FuzzCompileSource(f *testing.F) {
 	for _, folder := range []string{"tests", "examples", "lib"} {
 		_ = filepath.WalkDir(filepath.Join(reporoot.Kok(), folder), func(filePath string, g fs.DirEntry, err error) error {

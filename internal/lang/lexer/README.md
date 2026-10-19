@@ -1,0 +1,24 @@
+# lexer
+
+Kaynak metni satır ve sütun bilgisiyle sözcük birimlerine (anahtar kelime, ad, sayı, metin,
+işleç, yorum) ayırır. Hem Türkçe yazılmış kaynağı hem kodlu biçimi (`A001`, `G100` ...) okur.
+
+## Standartlar
+
+**Anahtar kelimeler sözlükten gelir.** Hangi sözcüğün anahtar kelime olduğu elle yazılmaz; kod
+listesinden alınır. Burada yalnızca hangi kodun hangi sözcük birimi türünü ürettiği durur.
+
+**Kodlu kaynakta yalnızca kodlar dilin sözcüğüdür.** Kodlu bir dosyada kod olmayan her ad
+kullanıcının adıdır; başka bir dilde yazılmış bir kullanıcı adı TR'nin bir anahtar kelimesiyle aynı
+olsa bile anahtar kelime sayılmaz. Kod biçimindeki adlar (büyük harf ve üç rakam) dilin kodlarına
+ayrılmıştır; kullanıcı adı olamaz.
+
+**Konumlar kişinin gördüğü metne göredir.** Satır ve sütun karakter sayar, bayt değil. Kodlu
+dosyada konumlar Türkçe gösterime göre hesaplanır; metin içi yerleştirmelerdeki sözcükler de
+dosyadaki gerçek yerleriyle gelir. Hata mesajı, hata ayıklayıcı ve düzenleyici aynı yeri gösterir.
+
+**Her işin tek yazımı vardır.** Satır yorumu yalnızca `//`'dir; `#` yorum değildir ve açık bir hata
+verir. Bilinmeyen kaçış dizisi hatadır, sessizce kabul edilmez.
+
+**Hiçbir girdide çökmez.** Kaynak güvenilmeyen girdidir. Sözcük çözümleyici panik yapmaz, sonsuz
+döngüye girmez; hataları toplar ve okumaya devam eder (bulanıklaştırma testiyle sınanır).

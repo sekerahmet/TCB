@@ -10,12 +10,12 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// FuzzKodlaCoz: rastgele Türkçe kaynakta kodlu biçim kayıpsızdır (17.4). Ayrıştırılabilen her
+// FuzzEncodeDecode: rastgele Türkçe kaynakta kodlu biçim kayıpsızdır (17.4). Ayrıştırılabilen her
 // kaynak kodlanır (çevirici kendi sonucunu denetler; ErrKayip bir çevirici hatasıdır) ve
 // kodlu biçim çözülünce özgün kaynak bayt bayt geri gelir. Gereksiz '$' kaçışı çözümde
 // düşebileceği için '$' içeren kaynakta kod → TR → kod kimliği sınanır. Derin arama:
 //
-//	go test ./internal/lang/source -run '^$' -fuzz FuzzKodlaCoz -fuzztime 5m
+//	go test ./internal/lang/source -run '^$' -fuzz FuzzEncodeDecode -fuzztime 5m
 func FuzzEncodeDecode(f *testing.F) {
 	for _, path := range []string{"examples/02_dil_turu.tr", "examples/03_testler_test.tr", "tests/yapilar_test.tr", "tests/sozcuk_yapisi_test.tr"} {
 		if data, err := os.ReadFile(reporoot.Yol(path)); err == nil {
