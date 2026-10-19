@@ -10,7 +10,7 @@ yapı Nokta {
 }
 ```
 
-**7.2** Yapı adı çağrılarak nesne oluşturulur; argümanlar alan sırasıyla ya da adla verilir, verilmeyen alan varsayılanını (yoksa `yok`) alır: `Nokta(3, 4)`, `Nokta(y: 4)`. Alan sayısından fazla konumlu argüman ya da alan olmayan bir adla verilen argüman hatadır (`'Nokta' yapısının 'yy' adında bir alanı yok. Bunu mu demek istediniz: 'y'?`); yapının `kurucu`su varsa argümanlar kurucunun imzasına göre denetlenir (6.3). Varsayılanlar her nesne oluşturulurken, yapının tanımlandığı kapsamda hesaplanır (modüldeki bir yapı modülün adlarını, fonksiyon içindeki bir yapı o fonksiyonun yerel adlarını görür).
+**7.2** Yapı adı çağrılarak nesne oluşturulur; argümanlar alan sırasıyla ya da adla verilir, verilmeyen alan varsayılanını (yoksa `yok`) alır: `Nokta(3, 4)`, `Nokta(y: 4)`. Alan sayısından fazla konumlu argüman, alan olmayan bir adla verilen argüman (`'Nokta' yapısının 'yy' adında bir alanı yok. Bunu mu demek istediniz: 'y'?`) ve konumlu argümanın doldurduğu bir alanın adıyla da verilmesi (`Nokta(1, x: 2)` → `'Nokta' yapısının 'x' alanı hem sırayla (1. argüman) hem adıyla verildi`) hatadır; yapının `kurucu`su varsa argümanlar kurucunun imzasına göre denetlenir (6.3). Varsayılanlar her nesne oluşturulurken, yapının tanımlandığı kapsamda hesaplanır (modüldeki bir yapı modülün adlarını, fonksiyon içindeki bir yapı o fonksiyonun yerel adlarını görür).
 
 **7.3** Metotlar `kendi` ile nesnenin alanlarına erişir ve onları değiştirebilir: `p.uzaklık_kare()`.
 

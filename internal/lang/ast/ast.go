@@ -104,9 +104,6 @@ func (es *ExpressionStatement) Line() int            { return es.Token.Line }
 type BlockStatement struct {
 	Token      lexer.Token // {
 	Statements []Statement
-	// Flags is scope information the interpreter computes once for the block (does it
-	// define names, can it capture the environment; 0: not computed yet).
-	Flags uint8
 }
 
 func (bs *BlockStatement) statementNode()       {}

@@ -496,11 +496,9 @@ func TestKnownLimitations(t *testing.T) {
 		{"çoklu atamada tip denetimi yok", "değişken x: Tam = 1\ndeğişken y = 2\nx, y = \"a\", 2"},
 		{"çoklu tanımda değişkenler tipsizdir", "değişken a, b = 1, 2\na = \"x\""},
 		{"yapı alan tipleri", "yapı Nokta {\n  x: Tam\n}\ndeğişken p = Nokta(\"a\")"},
-		{"yapı metot gövdeleri", "fonksiyon kare(x: Tam) { }\nyapı A {\n  fonksiyon m() { kare(\"a\") }\n}"},
 		{"döngü değişkenleri tipsizdir", "döngü x içinde [1, 2] { değişken s: Metin = x }"},
 		{"uyumsuz işlenenler", "değişken a = \"x\" - 1\ndeğişken b = doğru + 1"},
 		{"koşul tipi", "eğer 5 { }\niken \"x\" { }"},
-		{"liste üreteci değişkeni", "fonksiyon kare(x: Tam) { }\ndeğişken l = [kare(\"a\") döngü x içinde 1..3]"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

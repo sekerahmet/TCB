@@ -194,3 +194,53 @@ func TestConcurrentImportCycle(t *testing.T) {
 		t.Fatal("iki görev arasındaki döngüsel aktarım sonsuza kadar bekliyor")
 	}
 }
+
+// Fonksiyon gövdesindeki 'aktar' ve ortam havuzu: biten çağrının ortamı havuza konup
+// sonraki çağrıda yeniden kullanılır. Aktarılan ad (takma adlı ya da takma adsız) bir
+// çağrıdan sonrakine sızmamalı: her çağrıda 'aktar'dan önce okunan ad tanımsızdır.
+func TestImportInFunctionDoesNotLeakBetweenCalls(t *testing.T) {
+	root := t.TempDir()
+	runInDir(t, root)
+	out, err := runWithModules(t, root, map[string]string{
+		"m.tr": "değişken ad = \"m\"\n",
+		"ana.tr": `
+fonksiyon takma(i) {
+    değişken önce = "yok"
+    dene { önce = mod.ad } yakala { }
+    aktar "m" olarak mod
+    sonuç önce + "/" + mod.ad
+}
+fonksiyon takmasız(i) {
+    değişken önce = "yok"
+    dene { önce = ad } yakala { }
+    aktar "m"
+    sonuç önce + "/" + ad
+}
+fonksiyon özyinelemeli(n) {
+    değişken önce = "yok"
+    dene { önce = mod.ad } yakala { }
+    aktar "m" olarak mod
+    eğer n > 0 { sonuç önce + "," + özyinelemeli(n - 1) }
+    sonuç önce
+}
+değişken farklı = []
+döngü i içinde 1..=200 {
+    döngü s içinde [takma(i), takmasız(i)] {
+        eğer s != "yok/m" { farklı.ekle("{i}: {s}") }
+    }
+}
+yazdır("farklı: {farklı}")
+yazdır(özyinelemeli(5))
+yazdır(özyinelemeli(3))
+dene { yazdır(mod) } yakala h { yazdır("dışarıda mod yok") }
+dene { yazdır(ad) } yakala h { yazdır("dışarıda ad yok") }
+`,
+	})
+	if err != nil {
+		t.Fatalf("beklenmeyen hata: %v\n%s", err, out)
+	}
+	want := "farklı: []\nyok,yok,yok,yok,yok,yok\nyok,yok,yok,yok\ndışarıda mod yok\ndışarıda ad yok\n"
+	if out != want {
+		t.Fatalf("aktarılan ad çağrılar arasında sızmamalı:\n%q bekleniyordu\n%q alındı", want, out)
+	}
+}

@@ -111,11 +111,18 @@ type compiler struct {
 	root *compilerScope
 	// source derlenen kodun dosyasıdır (nil: ana program); fonksiyonlar onu taşır.
 	source *Source
+	// blocks blokların kapsam bayraklarının önbelleğidir (scope_analysis.go).
+	blocks blockFlagCache
+}
+
+// blockFlags bloğun kapsam bayraklarıdır (blockDefines, blockCaptures).
+func (c *compiler) blockFlags(b *ast.BlockStatement) uint8 {
+	return c.blocks.flags(b)
 }
 
 // newCompiler görevin o an çalıştığı dosya için bir derleyici açar.
 func (v *VM) newCompiler() *compiler {
-	return &compiler{root: &compilerScope{info: v.GlobalEnv.scope, global: v.GlobalEnv}, source: v.source}
+	return &compiler{root: &compilerScope{info: v.GlobalEnv.scope, global: v.GlobalEnv}, source: v.source, blocks: blockFlagCache{}}
 }
 
 // subScope ust içinde yeni bir ortama karşılık gelen kapsam açar.
@@ -244,7 +251,7 @@ func (c *compiler) blockStatement(k *compilerScope, b *ast.BlockStatement) state
 	if b == nil {
 		return emptyStatement
 	}
-	if blockFlags(b)&blockDefines == 0 {
+	if c.blockFlags(b)&blockDefines == 0 {
 		return c.statements(k, b.Statements).run
 	}
 	sub := subScope(k)

@@ -77,6 +77,18 @@ test "6.4 adlı argümanlar" {
     eşit_mi(10, böl(10))
 }
 
+test "6.4 aynı parametre hem sırayla hem adıyla verilemez" {
+    fonksiyon f(a, b = 10) { sonuç [a, b] }
+    eşit_mi([1, 20], f(1, b: 20))
+    değişken iki_kez = ""
+    dene { f(1, a: 2) } yakala hata { iki_kez = hata }
+    doğrula(iki_kez.içerir("'f' fonksiyonu 'a' parametresi hem sırayla (1. argüman) hem adıyla verildi"), iki_kez)
+    // adlı argümanlar varken eksik zorunlu parametre adıyla söylenir (6.3)
+    değişken eksik = ""
+    dene { f(b: 20) } yakala hata { eksik = hata }
+    doğrula(eksik.içerir("'f' fonksiyonu için zorunlu 'a' argümanı verilmedi"), eksik)
+}
+
 test "6.5 kapanışlar tanımlandıkları ortamı yakalar" {
     fonksiyon sayaç_yap() {
         değişken n = 0

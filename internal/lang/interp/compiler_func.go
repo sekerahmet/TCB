@@ -111,7 +111,7 @@ func (c *compiler) function(k *compilerScope, params []ast.Param, body *ast.Bloc
 	fk.hasDefer = bodyHasDefer(stmts)
 	fk.pooled = true
 	for _, st := range stmts {
-		if statementCaptures(st) {
+		if c.blocks.statementCaptures(st) {
 			fk.pooled = false
 			break
 		}

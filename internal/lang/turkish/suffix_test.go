@@ -1,6 +1,9 @@
 package turkish
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestNumberSuffix(t *testing.T) {
 	cases := []struct {
@@ -17,6 +20,11 @@ func TestNumberSuffix(t *testing.T) {
 		{6, Accusative, "6'yı"}, {3, Accusative, "3'ü"}, {4, Accusative, "4'ü"}, {10, Accusative, "10'u"}, {1, Accusative, "1'i"},
 		{6, Genitive, "6'nın"}, {3, Genitive, "3'ün"}, {10, Genitive, "10'un"}, {2, Genitive, "2'nin"},
 		{-6, Dative, "-6'ya"},
+		{1_000_000, Dative, "1000000'a"}, {3_000_000_000, Locative, "3000000000'da"}, {20_000, Ablative, "20000'den"},
+		{2_000_000_000_000, Dative, "2000000000000'a"}, {1200, Locative, "1200'de"},
+		// en küçük int64: eskiden n = -n negatif kalıp ones[-8] ile çöküyordu (…808 → sekiz)
+		{math.MinInt64, Dative, "-9223372036854775808'e"},
+		{math.MaxInt64, Dative, "9223372036854775807'ye"},
 	}
 	for _, c := range cases {
 		if got := NumberSuffix(c.n, c.grammarCase); got != c.want {
@@ -39,6 +47,27 @@ func TestSuffixWord(t *testing.T) {
 		Suffix("KAPI", Dative):    "KAPI'ya",
 		Suffix("ADI", Genitive):   "ADI'nın",
 		Suffix("SİNİR", Locative): "SİNİR'de",
+	}
+	for got, want := range cases {
+		if got != want {
+			t.Errorf("%q bekleniyordu, %q alındı", want, got)
+		}
+	}
+}
+
+// Sayı rakam dizisi olarak sondan okunur: int64'e sığmayan sayılar taşmaz ve son sözcük
+// doğru bulunur; yalnızca ASCII rakamlar sayıdır.
+func TestSuffixLongAndNonASCIINumbers(t *testing.T) {
+	cases := map[string]string{
+		Suffix("123456789012345678901234567896", Dative):    "123456789012345678901234567896'ya",   // ...altı
+		Suffix("-99999999999999999999999999999993", Dative): "-99999999999999999999999999999993'e", // ...üç
+		Suffix("100000000000000000000", Dative):             "100000000000000000000'a",             // eskiden taşıp 'ye
+		Suffix("-9223372036854775808", Dative):              "-9223372036854775808'e",              // eskiden çöküyordu
+		Suffix("0000", Locative):                            "0000'da",
+		Suffix("007", Dative):                               "007'ye",
+		// Arapça-Hint rakamı ٦ (altı) sayı değildir; ek sözcük kuralıyla seçilir ('ya değil)
+		Suffix("٦", Dative): "٦'e",
+		Suffix("-", Dative): "-'e",
 	}
 	for got, want := range cases {
 		if got != want {
