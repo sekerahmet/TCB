@@ -149,3 +149,19 @@ func TestCasts(t *testing.T) {
 		})
 	}
 }
+
+// TestConcatKeepsSignedZero GPU'da da birleştirmenin -0'ı koruduğunu (indirgeme birikimi -0'dan
+// başlar) ve 16 bitlik çıktıda da aynı bitleri verdiğini denetler.
+func TestConcatKeepsSignedZero(t *testing.T) {
+	neg := float32(math.Copysign(0, -1))
+	for _, dt := range []tensor.DType{tensor.Float32, tensor.BFloat16} {
+		a := tensor.NewOn(gpuDevice, []float32{neg, 1}, 2).Cast(dt)
+		b := tensor.NewOn(gpuDevice, []float32{neg, 0}, 2).Cast(dt)
+		d := tensor.Concat([]*tensor.Tensor{a, b}, 0).Data()
+		for i, want := range []bool{true, false, true, false} {
+			if math.Signbit(float64(d[i])) != want {
+				t.Fatalf("%s: %v elemanlarının işaretleri yanlış (%d. eleman)", dt, d, i)
+			}
+		}
+	}
+}

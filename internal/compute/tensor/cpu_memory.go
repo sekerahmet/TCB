@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"fmt"
+	"math"
 	"sync"
 )
 
@@ -206,7 +207,7 @@ func (cpuBackend) Fill(dst Storage, v float32) {
 	d := c.d
 	parallelFor(len(d), 1, func(lo, hi int) {
 		p := d[lo:hi]
-		if v == 0 {
+		if math.Float32bits(v) == 0 { // yalnızca +0: -0'ın işaret biti korunur
 			clear(p)
 			return
 		}

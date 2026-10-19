@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"testing"
 )
@@ -137,5 +138,21 @@ func BenchmarkCopyFromView(b *testing.B) {
 	b.SetBytes(4 * 1000 * 1000)
 	for i := 0; i < b.N; i++ {
 		d.CopyFrom(k)
+	}
+}
+
+// Eksenin dışından başlayan dilim boş bir görünümdür (ofseti depolamanın dışına taşmaz,
+// üzerindeki işlemler panik vermez); çok büyük adım eleman sayısını taşırmaz.
+func TestSliceStepBounds(t *testing.T) {
+	x := Zeros(5).SetRequiresGrad(true)
+	s := x.Slice(0, 10, 12)
+	if !sameShape(s.Shape(), []int{0}) || len(s.Data()) != 0 || len(s.Clone().Data()) != 0 {
+		t.Fatalf("boş dilim: şekil %v", s.Shape())
+	}
+	s.SumAll().Backward()
+	for _, step := range []int{math.MaxInt, math.MaxInt - 1} {
+		if sh := Zeros(5).SliceStep(0, 1, 5, step).Shape(); !sameShape(sh, []int{1}) {
+			t.Fatalf("adım %d: şekil %v, [1] olmalı", step, sh)
+		}
 	}
 }

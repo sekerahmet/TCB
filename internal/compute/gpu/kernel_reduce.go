@@ -191,7 +191,9 @@ func reduceKernel(a reduceConfig) func() *emitter {
 			begin, step = tid, k.whole(a.block)
 		}
 		kofs := k.parseBase(j, a.nk, 3, 0, "meta")
-		acc := k.constant(0)
+		// Birikim -0'dan başlar: -0 toplamanın etkisiz elemanıdır (-0 + x = x, -0 dahil);
+		// +0'dan başlasa tek terimli çıktılar (dağıtma, birleştirme) -0'ı +0'a çevirirdi.
+		acc := k.constant(float32(math.Copysign(0, -1)))
 		r := k.r()
 		k.e("mov.u32", r, begin)
 		rEnd = R

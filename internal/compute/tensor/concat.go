@@ -50,8 +50,10 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 	outShape[axis] = total
 	ost := contiguousStrides(outShape)
 
-	// Girdiler float32 bir tampona eklenir; 16 bitlik çıktıda tek kez yuvarlanır.
-	buffer := be.Alloc(allocSizeOn(be, isConcat, outShape, Float32), Float32)
+	// Girdiler float32 bir tampona eklenir; 16 bitlik çıktıda tek kez yuvarlanır. Tampon -0
+	// ile başlar: -0 + x her x için (-0 dahil) x'tir, girdilerin işaretli sıfırları korunur.
+	buffer := allocUninit(be, allocSizeOn(be, isConcat, outShape, Float32), Float32)
+	be.Fill(buffer, float32(math.Copysign(0, -1)))
 	offset := 0
 	for _, t := range ts {
 		if t.Numel() > 0 {
@@ -65,6 +67,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 	} else {
 		out = emptyOf(isConcat, be, outShape, dt)
 		be.Copy(out.storage, 0, View{S: buffer, Shape: outShape, Strides: ost})
+		giveBack(be, buffer)
 	}
 	r := track(out, "concat", ts, func() {
 		offset := 0

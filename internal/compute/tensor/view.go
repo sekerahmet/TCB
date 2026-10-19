@@ -256,16 +256,17 @@ func (t *Tensor) SliceStep(axis, start, end, step int) *Tensor {
 	if end < 0 {
 		end += n
 	}
-	if start < 0 {
-		start = 0
-	}
-	if end > n {
-		end = n
-	}
+	start = min(max(start, 0), n)
+	end = min(end, n)
 	if end < start {
 		end = start
 	}
-	m := (end - start + step - 1) / step
+	// Eksen dışındaki başlangıç boş dilimdir (ofseti depolamanın dışına taşmaz); eleman sayısı
+	// büyük adımda taşmadan hesaplanır.
+	m := 0
+	if end > start {
+		m = 1 + (end-start-1)/step
+	}
 	sh := copyInts(t.shape)
 	sh[axis] = m
 	st := copyInts(t.strides)
