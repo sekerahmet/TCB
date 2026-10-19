@@ -1,5 +1,5 @@
 # GPU kıyası, karşılaştırma tarafı: kiyas_gpu.tr ile aynı model ve ayarlar (CUDA).
-# Kullanım: python kiyas_gpu.py --boyut kucuk|buyuk [--veri KLASOR] [--derleme yok|var|ikisi]
+# Kullanım: python kiyas_gpu.py --boyut kucuk|buyuk|gpt [--veri KLASOR] [--derleme yok|var|ikisi]
 #           [--hassasiyet float32|bf16]  (bf16: ileri yön ve kayıp autocast ile, ağırlıklar float32)
 # --veri bir klasördür (içindeki ilk .npy dosyası okunur); verilmezse sabit sentetik toplu
 # işler kullanılır. Derlemeli ölçümde derleme süresi ısınma adımlarında kalır.
@@ -10,6 +10,7 @@ import numpy as np, torch, torch.nn as nn, torch.nn.functional as F
 BOYUTLAR = {
     "kucuk": dict(B=8, T=64, D=128, H=4, FF=256, L=2, ADIM=220, ISINMA=20),
     "buyuk": dict(B=32, T=256, D=512, H=8, FF=2048, L=6, ADIM=220, ISINMA=20),
+    "gpt": dict(B=16, T=1024, D=768, H=12, FF=2048, L=12, ADIM=60, ISINMA=10),
 }
 V = 40000
 

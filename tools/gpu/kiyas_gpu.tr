@@ -1,8 +1,9 @@
 // GPU kıyası: CPU kıyasının (tools/bench) modeli GPU'da. Aynı model ve ayarlar
 // kiyas_gpu.py'de. Ayarlar aynı klasördeki kiyas_ayar.json'dan okunur:
-//   {"boyut": "kucuk" | "buyuk" | "buyuk_kisa" | "deneme", "veri": "/content/veri" ya da "", "cihaz": "gpu",
+//   {"boyut": "kucuk" | "buyuk" | "buyuk_kisa" | "gpt" | "gpt_kisa" | "deneme", "veri": "/content/veri" ya da "", "cihaz": "gpu",
 //    "hassasiyet": "float32" (varsayılan) ya da "bf16" (karışık hassasiyet)}
-// "buyuk_kisa" büyük modelin kısa koşusudur (profil ve dış profilleyici için).
+// "buyuk_kisa" büyük modelin kısa koşusudur (profil ve dış profilleyici için). "gpt" GPT-2 küçük
+// boyunda (~116 M parametre: D768, 12 katman, bağlam 1024) bir modeldir.
 // "veri" boşsa sabit sentetik toplu işler kullanılır (kayıp anlamsız, süre geçerli).
 // Çıktı: ısınma hariç ms/adım ve son kayıp.
 
@@ -13,6 +14,8 @@ değişken boyutlar = {
     "kucuk": {"B": 8, "T": 64, "D": 128, "H": 4, "FF": 256, "KATMAN": 2, "ADIM": 220, "ISINMA": 20},
     "buyuk": {"B": 32, "T": 256, "D": 512, "H": 8, "FF": 2048, "KATMAN": 6, "ADIM": 220, "ISINMA": 20},
     "buyuk_kisa": {"B": 32, "T": 256, "D": 512, "H": 8, "FF": 2048, "KATMAN": 6, "ADIM": 40, "ISINMA": 10},
+    "gpt": {"B": 16, "T": 1024, "D": 768, "H": 12, "FF": 2048, "KATMAN": 12, "ADIM": 60, "ISINMA": 10},
+    "gpt_kisa": {"B": 16, "T": 1024, "D": 768, "H": 12, "FF": 2048, "KATMAN": 12, "ADIM": 20, "ISINMA": 5},
     "deneme": {"B": 2, "T": 8, "D": 16, "H": 2, "FF": 32, "KATMAN": 1, "ADIM": 4, "ISINMA": 1}
 }
 değişken b = boyutlar[ayar["boyut"]]
