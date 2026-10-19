@@ -68,7 +68,7 @@ var longFuncs = map[string]exception{
 	"internal/stdlib/ml/yazdirma.go:Deger.Inspect":           {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
 	"internal/stdlib/ml/model_araclari.go:orneklemeYerlesik": {118, reasonBuiltin},
 	"internal/stdlib/ml/yerlesik_indirgeme.go:indirgeme":     {85, reasonBuiltin},
-	"internal/stdlib/tokenizer/parcalayici.go:Nesne.kodla":   {88, reasonBuiltin},
+	"internal/stdlib/tokenizer/tokenizer.go:Object.encode":   {88, reasonBuiltin},
 
 	// Hesap çekirdekleri
 	"internal/compute/tensor/cpu_attention.go:cpuBackend.f32Attention": {146, reasonKernel},
