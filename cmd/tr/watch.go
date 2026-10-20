@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
-// izleKomutu 'tr izle [--çıktı dosya] program.tr [argümanlar]': programı çalıştırır ve hızını
+// watchCommand 'tr izle [--çıktı dosya] program.tr [argümanlar]': programı çalıştırır ve hızını
 // canlı gösterir.
 //
 // Standart hata bir terminalse tablo ekranın üstünde saniyede bir yeniden çizilir;
@@ -21,50 +21,50 @@ import (
 // yazılır. Terminal değilse program çıktısı olduğu gibi akar, 10 saniyede bir düz özet
 // satırı eklenir. Her iki durumda program bitince (hata ya da kesmeyle bitse de) son rapor
 // standart hataya yazılır.
-func izleKomutu(args []string) {
+func watchCommand(args []string) {
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") && !strings.EqualFold(filepath.Ext(args[0]), ".tr") {
 		if _, err := os.Stat(args[0]); err != nil {
-			hataylaCik(messages.Text(messages.H8670, args[0]))
+			exitWithError(messages.Text(messages.H8670, args[0]))
 		}
 	}
-	s, path, argumanlar := profilArgumanlari("izle", args, "--çıktı")
-	machine, prog, code := programiHazirla(path, argumanlar)
-	gercekCikis, gercekHata := os.Stdout, os.Stderr
-	canli := profiler.NewLive(gercekHata, logging.IsTerminal(gercekHata), nil)
-	var yak *profiler.Capture
-	if canli.Terminal() {
-		yol := s.cikti
-		if yol == "" {
-			ad := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-			yol = filepath.Join(os.TempDir(), "tr-izle-"+ad+"-"+strconv.Itoa(os.Getpid())+".txt")
+	s, path, arguments := profileArguments("izle", args, "--çıktı")
+	machine, prog, code := prepareProgram(path, arguments)
+	realExit, realError := os.Stdout, os.Stderr
+	live := profiler.NewLive(realError, logging.IsTerminal(realError), nil)
+	var catch *profiler.Capture
+	if live.Terminal() {
+		filePath := s.output
+		if filePath == "" {
+			name := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+			filePath = filepath.Join(os.TempDir(), "tr-izle-"+name+"-"+strconv.Itoa(os.Getpid())+".txt")
 		}
 		var err error
-		if yak, err = profiler.StartCapture(yol); err != nil {
-			canli.Close()
-			hataylaCik(messages.Text(messages.H8671, err))
+		if catch, err = profiler.StartCapture(filePath); err != nil {
+			live.Close()
+			exitWithError(messages.Text(messages.H8671, err))
 		}
-		canli.Capture(yak)
-		os.Stdout, os.Stderr = yak.Writer(), yak.Writer()
-		machine.Out, machine.Err = yak.Writer(), yak.Writer()
+		live.Capture(catch)
+		os.Stdout, os.Stderr = catch.Writer(), catch.Writer()
+		machine.Out, machine.Err = catch.Writer(), catch.Writer()
 	}
-	p := olcumluProfilBaslat(machine, path, code, prog)
-	p.Listen(canli.Show)
-	cikisTemizligi = append(cikisTemizligi, func() {
-		son := p.Finish(cikisKodu)
-		canli.Close()
-		if yak != nil {
-			os.Stdout, os.Stderr = gercekCikis, gercekHata
-			yak.Close()
-			fmt.Fprintln(gercekHata, "\n"+messages.Text(messages.H8672, yak.Path()))
-			if err := yak.WriteError(); err != nil {
-				fmt.Fprintln(gercekHata, "  ⚠️ "+messages.Text(messages.H8673, err))
+	p := startMeasuredProfile(machine, path, code, prog)
+	p.Listen(live.Show)
+	exitCleanup = append(exitCleanup, func() {
+		end := p.Finish(exitCode)
+		live.Close()
+		if catch != nil {
+			os.Stdout, os.Stderr = realExit, realError
+			catch.Close()
+			fmt.Fprintln(realError, "\n"+messages.Text(messages.H8672, catch.Path()))
+			if err := catch.WriteError(); err != nil {
+				fmt.Fprintln(realError, "  ⚠️ "+messages.Text(messages.H8673, err))
 			}
-			for _, l := range yak.LastLines(15) {
-				fmt.Fprintln(gercekHata, "  │ "+l)
+			for _, l := range catch.LastLines(15) {
+				fmt.Fprintln(realError, "  │ "+l)
 			}
 		}
-		fmt.Fprint(gercekHata, "\n"+profiler.ReportText(son))
+		fmt.Fprint(realError, "\n"+profiler.ReportText(end))
 	})
-	programCalistir(machine, prog, code)
-	temizle()
+	runProgram(machine, prog, code)
+	cleanup()
 }

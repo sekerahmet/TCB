@@ -27,17 +27,17 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// trIkilisi TestMain'in derlediği 'tr' yorumlayıcısının yoludur. Komut satırı testleri
+// trBinary TestMain'in derlediği 'tr' yorumlayıcısının yoludur. Komut satırı testleri
 // gerçek ikiliyi os/exec ile çalıştırır; böylece çıkış kodları ve standart çıktı/hata
 // ayrımı da sınanır.
-var trIkilisi string
+var trBinary string
 
-// cikisSozdizimi 'tr kodla -' komutunun metin ayrıştırılamadığında verdiği çıkış kodudur
-// (cmd/tr/kodlu.go'daki aynı adlı sabit; değişirse oradaki belgeyle birlikte değişir).
-const cikisSozdizimi = 2
+// exitSyntax 'tr kodla -' komutunun metin ayrıştırılamadığında verdiği çıkış kodudur
+// (cmd/tr/coded.go'daki aynı adlı sabit; değişirse oradaki belgeyle birlikte değişir).
+const exitSyntax = 2
 
 func TestMain(m *testing.M) {
-	klasor, err := os.MkdirTemp("", "tr-uctan-uca-*")
+	dir, err := os.MkdirTemp("", "tr-uctan-uca-*")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "geçici klasör açılamadı:", err)
 		os.Exit(1)
@@ -46,90 +46,90 @@ func TestMain(m *testing.M) {
 	if runtime.GOOS == "windows" {
 		ad += ".exe"
 	}
-	trIkilisi = filepath.Join(klasor, ad)
-	derle := exec.Command("go", "build", "-o", trIkilisi, "github.com/sekerahmet/TCB/cmd/tr")
-	derle.Stdout, derle.Stderr = os.Stderr, os.Stderr
-	if err := derle.Run(); err != nil {
+	trBinary = filepath.Join(dir, ad)
+	build := exec.Command("go", "build", "-o", trBinary, "github.com/sekerahmet/TCB/cmd/tr")
+	build.Stdout, build.Stderr = os.Stderr, os.Stderr
+	if err := build.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "tr derlenemedi:", err)
-		os.RemoveAll(klasor)
+		os.RemoveAll(dir)
 		os.Exit(1)
 	}
-	kod := m.Run()
-	os.RemoveAll(klasor)
-	os.Exit(kod)
+	code := m.Run()
+	os.RemoveAll(dir)
+	os.Exit(code)
 }
 
-// sonuc bir komutun çalıştırılmasının sonucudur.
-type sonuc struct {
-	cikti, hata string
-	kod         int
+// result bir komutun çalıştırılmasının sonucudur.
+type result struct {
+	stdout, stderr string
+	code           int
 }
 
-// calistir ikiliyi verilen klasörde (boşsa bulunulan klasörde) ve standart girişle çalıştırır.
-func calistir(t *testing.T, ikili, klasor, girdi string, ortam []string, args ...string) sonuc {
+// run ikiliyi verilen klasörde (boşsa bulunulan klasörde) ve standart girişle çalıştırır.
+func run(t *testing.T, exe, dir, input string, env []string, args ...string) result {
 	t.Helper()
-	ctx, iptal := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer iptal()
-	cmd := exec.CommandContext(ctx, ikili, args...)
-	cmd.Dir = klasor
-	cmd.Stdin = strings.NewReader(girdi)
-	if ortam != nil {
-		cmd.Env = append(os.Environ(), ortam...)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, exe, args...)
+	cmd.Dir = dir
+	cmd.Stdin = strings.NewReader(input)
+	if env != nil {
+		cmd.Env = append(os.Environ(), env...)
 	}
-	var cikti, hata bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &cikti, &hata
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	err := cmd.Run()
-	kod := 0
+	code := 0
 	if err != nil {
-		var cikisHatasi *exec.ExitError
-		if !errors.As(err, &cikisHatasi) {
+		var exitError *exec.ExitError
+		if !errors.As(err, &exitError) {
 			t.Fatalf("%v çalıştırılamadı: %v", args, err)
 		}
-		kod = cikisHatasi.ExitCode()
+		code = exitError.ExitCode()
 	}
-	return sonuc{cikti: cikti.String(), hata: hata.String(), kod: kod}
+	return result{stdout: stdout.String(), stderr: stderr.String(), code: code}
 }
 
 // tr yorumlayıcıyı çalıştırır.
-func tr(t *testing.T, klasor string, args ...string) sonuc {
+func tr(t *testing.T, dir string, args ...string) result {
 	t.Helper()
-	return calistir(t, trIkilisi, klasor, "", nil, args...)
+	return run(t, trBinary, dir, "", nil, args...)
 }
 
-// dosyaYaz klasör altına (ara klasörleri açarak) bir dosya yazar.
-func dosyaYaz(t *testing.T, klasor, ad, icerik string) string {
+// writeFile klasör altına (ara klasörleri açarak) bir dosya yazar.
+func writeFile(t *testing.T, dir, ad, content string) string {
 	t.Helper()
-	yol := filepath.Join(klasor, filepath.FromSlash(ad))
-	if err := os.MkdirAll(filepath.Dir(yol), 0o755); err != nil {
+	filePath := filepath.Join(dir, filepath.FromSlash(ad))
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(yol, []byte(icerik), 0o644); err != nil {
+	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	return yol
+	return filePath
 }
 
-// bekle sonucun çıkış kodunu ve çıktılarda geçmesi gereken parçaları denetler.
-func bekle(t *testing.T, s sonuc, kod int, ciktida, hatada []string) {
+// wait sonucun çıkış kodunu ve çıktılarda geçmesi gereken parçaları denetler.
+func wait(t *testing.T, s result, code int, inOutput, inStderr []string) {
 	t.Helper()
-	if s.kod != kod {
-		t.Errorf("çıkış kodu %d, beklenen %d\nçıktı:\n%s\nhata:\n%s", s.kod, kod, s.cikti, s.hata)
+	if s.code != code {
+		t.Errorf("çıkış kodu %d, beklenen %d\nçıktı:\n%s\nhata:\n%s", s.code, code, s.stdout, s.stderr)
 	}
-	for _, p := range ciktida {
-		if !strings.Contains(s.cikti, p) {
-			t.Errorf("standart çıktıda %q yok:\n%s", p, s.cikti)
+	for _, p := range inOutput {
+		if !strings.Contains(s.stdout, p) {
+			t.Errorf("standart çıktıda %q yok:\n%s", p, s.stdout)
 		}
 	}
-	for _, p := range hatada {
-		if !strings.Contains(s.hata, p) {
-			t.Errorf("standart hatada %q yok:\n%s", p, s.hata)
+	for _, p := range inStderr {
+		if !strings.Contains(s.stderr, p) {
+			t.Errorf("standart hatada %q yok:\n%s", p, s.stderr)
 		}
 	}
 }
 
-// trSurumu yorumlayıcının sürümünü kaynaktan (cmd/tr/main.go'daki VERSION sabiti) okur:
+// trVersion yorumlayıcının sürümünü kaynaktan (cmd/tr/main.go'daki VERSION sabiti) okur:
 // 'tr sürüm' çıktısı kaynaktaki sürümle karşılaştırılır.
-func trSurumu(t *testing.T) string {
+func trVersion(t *testing.T) string {
 	t.Helper()
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, reporoot.Path("cmd/tr/main.go"), nil, 0)
@@ -148,9 +148,9 @@ func trSurumu(t *testing.T) string {
 					continue
 				}
 				if lit, ok := v.Values[i].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-					surum, err := strconv.Unquote(lit.Value)
+					version, err := strconv.Unquote(lit.Value)
 					if err == nil {
-						return surum
+						return version
 					}
 				}
 			}

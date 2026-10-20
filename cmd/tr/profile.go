@@ -16,41 +16,41 @@ import (
 // 'tr profil' ve 'tr izle' komutlarının ortak parçaları ve 'tr profil'. Profilin çekirdeği
 // internal/devtools/profiler'dedir; burada yalnızca argümanlar, çıktı yerleri ve çıkış vardır.
 
-// profilSecenekleri komutların program dosyasından önce yazılan seçenekleridir.
-type profilSecenekleri struct {
-	json     string // --json: raporun JSON yolu (klasörse içine speed.json)
-	goProfil string // --go-profili: yorumlayıcının Go CPU profili (geliştiriciler için)
-	cikti    string // --çıktı: tr izle'de programın çıktısının dosyası
+// profileOptions komutların program dosyasından önce yazılan seçenekleridir.
+type profileOptions struct {
+	json      string // --json: raporun JSON yolu (klasörse içine speed.json)
+	goProfile string // --go-profili: yorumlayıcının Go CPU profili (geliştiriciler için)
+	output    string // --çıktı: tr izle'de programın çıktısının dosyası
 }
 
-// profilArgumanlari seçenekleri, program dosyasını ve programın argümanlarını ayırır.
-// izinli, komutun kabul ettiği seçeneklerdir. Hata varsa yazıp 1 ile çıkar.
-func profilArgumanlari(komut string, args []string, izinli ...string) (profilSecenekleri, string, []string) {
-	var s profilSecenekleri
-	hedef := map[string]*string{"--json": &s.json, "--go-profili": &s.goProfil, "--çıktı": &s.cikti}
+// profileArguments seçenekleri, program dosyasını ve programın argümanlarını ayırır.
+// allowed, komutun kabul ettiği seçeneklerdir. Hata varsa yazıp 1 ile çıkar.
+func profileArguments(command string, args []string, allowed ...string) (profileOptions, string, []string) {
+	var s profileOptions
+	target := map[string]*string{"--json": &s.json, "--go-profili": &s.goProfile, "--çıktı": &s.output}
 	for len(args) > 0 && strings.HasPrefix(args[0], "--") {
-		ad, deger, esitli := strings.Cut(args[0], "=")
-		p, ok := hedef[ad]
-		if !ok || !icinde(izinli, ad) {
-			hataylaCik(messages.Text(messages.H8674, komut, ad, strings.Join(izinli, ", ")))
+		name, value, equal := strings.Cut(args[0], "=")
+		p, ok := target[name]
+		if !ok || !within(allowed, name) {
+			exitWithError(messages.Text(messages.H8674, command, name, strings.Join(allowed, ", ")))
 		}
 		args = args[1:]
-		if !esitli {
+		if !equal {
 			if len(args) == 0 {
-				hataylaCik(messages.Text(messages.H8675, ad, komut))
+				exitWithError(messages.Text(messages.H8675, name, command))
 			}
-			deger, args = args[0], args[1:]
+			value, args = args[0], args[1:]
 		}
-		*p = deger
+		*p = value
 	}
 	if len(args) == 0 {
-		hataylaCik(messages.Text(messages.H8605, komut, "egit.tr"))
+		exitWithError(messages.Text(messages.H8605, command, "egit.tr"))
 	}
 	return s, args[0], args[1:]
 }
 
-func icinde(liste []string, s string) bool {
-	for _, x := range liste {
+func within(list []string, s string) bool {
+	for _, x := range list {
 		if x == s {
 			return true
 		}
@@ -58,98 +58,98 @@ func icinde(liste []string, s string) bool {
 	return false
 }
 
-// programiHazirla dosyayı hazırlar ve bir VM kurar (runFile ile aynı adımlar).
-func programiHazirla(path string, argumanlar []string) (*interp.VM, *ast.Program, string) {
-	_, s := dosyaHazirla(path, calistirmaHazirligi)
+// prepareProgram dosyayı hazırlar ve bir VM kurar (runFile ile aynı adımlar).
+func prepareProgram(path string, arguments []string) (*interp.VM, *ast.Program, string) {
+	_, s := prepareFile(path, runPreparation)
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Text
-	machine.SetArgs(argumanlar)
+	machine.SetArgs(arguments)
 	return machine, s.Program, s.Text
 }
 
-// uyariYazici profil uyarılarını programın çıktı noktasından (canlı satırla eşgüdümlü)
+// warningWriter profil uyarılarını programın çıktı noktasından (canlı satırla eşgüdümlü)
 // standart hataya yazar.
-func uyariYazici(machine *interp.VM) func(string) {
+func warningWriter(machine *interp.VM) func(string) {
 	return func(m string) { machine.WriteOutput(os.Stderr, m+"\n") }
 }
 
-// olcumluProfilBaslat tr izle ve tr profil'in profilini başlatır: satır örneklemesi ve GPU
+// startMeasuredProfile tr izle ve tr profil'in profilini başlatır: satır örneklemesi ve GPU
 // çekirdek ölçümü açık; arka plan işiyse durum dosyası da yazılır. GPU'nun son ölçümleri
-// motorlar kapanmadan alınır (kapanmadanOnce).
-func olcumluProfilBaslat(machine *interp.VM, path, code string, prog *ast.Program) *profiler.Profile {
+// motorlar kapanmadan alınır (beforeClose).
+func startMeasuredProfile(machine *interp.VM, path, code string, prog *ast.Program) *profiler.Profile {
 	p := profiler.Start(machine, profiler.Options{
 		Program: path, Source: code, SampleLines: true, GPUMeasure: true,
-		StatusFile: profiler.JobStatusFile(), Warning: uyariYazici(machine),
+		StatusFile: profiler.JobStatusFile(), Warning: warningWriter(machine),
 	})
-	kapanmadanOnce = append(kapanmadanOnce, p.BeforeClose)
+	beforeClose = append(beforeClose, p.BeforeClose)
 	return p
 }
 
-// profilKomutu 'tr profil [--json yol] [--go-profili dosya] program.tr [argümanlar]':
+// profileCommand 'tr profil [--json yol] [--go-profili dosya] program.tr [argümanlar]':
 // programı satır örneklemesiyle çalıştırır, bitince (hata ya da kesmeyle bitse de) metin
 // raporu standart çıktıya, istenmişse JSON raporu dosyaya yazar.
-func profilKomutu(args []string) {
-	s, path, argumanlar := profilArgumanlari("profil", args, "--json", "--go-profili")
-	machine, prog, code := programiHazirla(path, argumanlar)
-	if s.goProfil != "" {
-		goProfiliniBaslat(s.goProfil)
+func profileCommand(args []string) {
+	s, path, arguments := profileArguments("profil", args, "--json", "--go-profili")
+	machine, prog, code := prepareProgram(path, arguments)
+	if s.goProfile != "" {
+		startGoProfile(s.goProfile)
 	}
-	p := olcumluProfilBaslat(machine, path, code, prog)
-	cikisTemizligi = append(cikisTemizligi, func() {
-		son := p.Finish(cikisKodu)
-		fmt.Print("\n" + profiler.ReportText(son))
+	p := startMeasuredProfile(machine, path, code, prog)
+	exitCleanup = append(exitCleanup, func() {
+		end := p.Finish(exitCode)
+		fmt.Print("\n" + profiler.ReportText(end))
 		if s.json != "" {
-			jsonRaporuYaz(s.json, son)
+			writeJSONReport(s.json, end)
 		}
 	})
-	programCalistir(machine, prog, code)
-	temizle()
+	runProgram(machine, prog, code)
+	cleanup()
 }
 
-// jsonRaporuYaz raporu yola (klasörse içine speed.json) yazar; yazılamazsa bildirir.
-func jsonRaporuYaz(yol string, g *profiler.Snapshot) {
-	if b, err := os.Stat(yol); (err == nil && b.IsDir()) || strings.HasSuffix(yol, "/") || strings.HasSuffix(yol, string(os.PathSeparator)) {
-		if err := os.MkdirAll(yol, 0o755); err != nil {
-			fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8219, messages.Text(messages.H8676, yol, err)))
+// writeJSONReport raporu yola (klasörse içine speed.json) yazar; yazılamazsa bildirir.
+func writeJSONReport(filePath string, g *profiler.Snapshot) {
+	if b, err := os.Stat(filePath); (err == nil && b.IsDir()) || strings.HasSuffix(filePath, "/") || strings.HasSuffix(filePath, string(os.PathSeparator)) {
+		if err := os.MkdirAll(filePath, 0o755); err != nil {
+			fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8219, messages.Text(messages.H8676, filePath, err)))
 			return
 		}
-		yol = filepath.Join(yol, profiler.ReportFileName)
+		filePath = filepath.Join(filePath, profiler.ReportFileName)
 	}
-	if err := profiler.WriteFile(yol, g, func(m string) { fmt.Fprintln(os.Stderr, m) }); err != nil {
+	if err := profiler.WriteFile(filePath, g, func(m string) { fmt.Fprintln(os.Stderr, m) }); err != nil {
 		fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8219, messages.Text(messages.H8677, err)))
 		return
 	}
-	fmt.Fprintln(os.Stderr, messages.Text(messages.H8678, yol))
+	fmt.Fprintln(os.Stderr, messages.Text(messages.H8678, filePath))
 }
 
-// goProfiliniBaslat yorumlayıcının kendi Go CPU profilini yazmaya başlar (geliştiriciler
+// startGoProfile yorumlayıcının kendi Go CPU profilini yazmaya başlar (geliştiriciler
 // için; 'go tool pprof' ile okunur).
-func goProfiliniBaslat(yol string) {
-	f, err := os.Create(yol)
+func startGoProfile(filePath string) {
+	f, err := os.Create(filePath)
 	if err != nil {
-		hataylaCik(messages.Text(messages.H8679, err))
+		exitWithError(messages.Text(messages.H8679, err))
 	}
 	if err := pprof.StartCPUProfile(f); err != nil {
 		f.Close()
-		hataylaCik(messages.Text(messages.H8680, err))
+		exitWithError(messages.Text(messages.H8680, err))
 	}
-	cikisTemizligi = append(cikisTemizligi, func() {
+	exitCleanup = append(exitCleanup, func() {
 		pprof.StopCPUProfile()
 		f.Close()
 	})
 }
 
-// isProfiliniBaslat program bir arka plan işi olarak çalışıyorsa (TR_IS_KLASORU) iş klasörüne
+// startJobProfile program bir arka plan işi olarak çalışıyorsa (TR_IS_KLASORU) iş klasörüne
 // saniyede bir profil.json yazar (yalnızca her zaman açık sayaçlar; satır örneklemesi
 // yok: ek maliyet saniyede bir dosya yazmasıdır). İş değilse hiçbir şey yapmaz.
-func isProfiliniBaslat(machine *interp.VM, path, code string, prog *ast.Program) {
-	yol := profiler.JobStatusFile()
-	if yol == "" {
+func startJobProfile(machine *interp.VM, path, code string, prog *ast.Program) {
+	filePath := profiler.JobStatusFile()
+	if filePath == "" {
 		return
 	}
 	p := profiler.Start(machine, profiler.Options{
-		Program: path, Source: code, StatusFile: yol, Warning: uyariYazici(machine),
+		Program: path, Source: code, StatusFile: filePath, Warning: warningWriter(machine),
 	})
-	cikisTemizligi = append(cikisTemizligi, func() { p.Finish(cikisKodu) })
+	exitCleanup = append(exitCleanup, func() { p.Finish(exitCode) })
 }

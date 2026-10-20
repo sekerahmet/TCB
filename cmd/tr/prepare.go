@@ -13,49 +13,49 @@ import (
 	"strings"
 )
 
-// hazirlik bir kaynağın çalıştırılmadan önce hangi aşamalardan geçeceğini ve hata
+// preparation bir kaynağın çalıştırılmadan önce hangi aşamalardan geçeceğini ve hata
 // başlıklarını belirler. Komutlar arasındaki tek fark bu başlıklar ve tip denetiminin
 // yapılıp yapılmamasıdır.
-type hazirlik struct {
-	// sozdizimiBasligi sözdizimi hatalarının üstüne yazılır. Boşsa hatalar başlıksız ve
-	// kod çerçevesi olmadan, her biri tek satır olarak yazılır.
-	sozdizimiBasligi string
-	// tipBasligi boş değilse tip denetimi yapılır ve hataları bu başlıkla yazılır.
-	tipBasligi string
+type preparation struct {
+	// syntaxHeader sözdizimi hatalarının üstüne yazılır. Boşsa hatalar başlıksız ve
+	// code çerçevesi olmadan, her biri tek satır olarak yazılır.
+	syntaxHeader string
+	// typeHeader boş değilse tip denetimi yapılır ve hataları bu başlıkla yazılır.
+	typeHeader string
 }
 
 // Dosya çalıştırmada ve etkileşimli kabukta (REPL) ortak kullanılan hata başlıkları. Metinler
 // süreç başında etkin dilde kurulur (dil süreç boyunca değişmez).
 var (
-	sozdizimiBasligi = "❌ " + messages.Text(messages.H8650)
-	tipBasligi       = "❌ " + messages.Text(messages.H8651)
-	calismaBasligi   = "❌ " + messages.Text(messages.H8126)
-	// uyariBasligi denetleyicinin uyarılarının (ör. yerleşik ad gölgeleme) başlığıdır.
+	syntaxHeader = "❌ " + messages.Text(messages.H8650)
+	typeHeader   = "❌ " + messages.Text(messages.H8651)
+	runHeader    = "❌ " + messages.Text(messages.H8126)
+	// warningHeader denetleyicinin uyarılarının (ör. yerleşik ad gölgeleme) başlığıdır.
 	// Uyarılar programı durdurmaz ve çıkış kodunu etkilemez.
-	uyariBasligi = "⚠️ " + messages.Text(messages.H8122)
+	warningHeader = "⚠️ " + messages.Text(messages.H8122)
 )
 
 // Komutların kullandığı hazırlık biçimleri.
 var (
-	calistirmaHazirligi = hazirlik{
-		sozdizimiBasligi: sozdizimiBasligi,
-		tipBasligi:       tipBasligi,
+	runPreparation = preparation{
+		syntaxHeader: syntaxHeader,
+		typeHeader:   typeHeader,
 	}
-	hataAyiklamaHazirligi = hazirlik{
-		sozdizimiBasligi: sozdizimiBasligi,
+	debugPreparation = preparation{
+		syntaxHeader: syntaxHeader,
 	}
-	derlemeHazirligi = hazirlik{
-		sozdizimiBasligi: "❌ " + messages.Text(messages.H8654),
-		tipBasligi:       "❌ " + messages.Text(messages.H8655),
+	buildPreparation = preparation{
+		syntaxHeader: "❌ " + messages.Text(messages.H8654),
+		typeHeader:   "❌ " + messages.Text(messages.H8655),
 	}
-	gomuluHazirlik = hazirlik{
-		sozdizimiBasligi: "❌ " + messages.Text(messages.H8656),
+	embeddedPreparation = preparation{
+		syntaxHeader: "❌ " + messages.Text(messages.H8656),
 	}
 )
 
-// kaynakOku dosyanın metnini okur; okunamazsa hatayı yazıp çıkar. BOM ve kodlu biçim
+// readSource dosyanın metnini okur; okunamazsa hatayı yazıp çıkar. BOM ve kodlu biçim
 // başlığı internal/lang/source'ta çözülür.
-func kaynakOku(path string) string {
+func readSource(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8657, turkish.FileError("", path, messages.H2100, err)))
@@ -64,108 +64,108 @@ func kaynakOku(path string) string {
 	return string(data)
 }
 
-// dosyaHazirla dosyayı okuyup kaynakHazirla'dan geçirir; dosyanın metnini (paket ve modül
+// prepareFile dosyayı okuyup prepareSource'dan geçirir; dosyanın metnini (paket ve modül
 // denetimi için) ve hazırlığın sonucunu verir.
-func dosyaHazirla(path string, h hazirlik) (string, *source.Result) {
-	metin := kaynakOku(path)
-	return metin, kaynakHazirla(metin, h)
+func prepareFile(path string, h preparation) (string, *source.Result) {
+	text := readSource(path)
+	return text, prepareSource(text, h)
 }
 
-// kaynakHazirla kodu ayrıştırır ve istenmişse tip denetiminden geçirir (kaynak.Hazirla). Hata
+// prepareSource kodu ayrıştırır ve istenmişse tip denetiminden geçirir (kaynak.Hazirla). Hata
 // varsa hepsini yazıp 1 koduyla çıkar. Hata çerçeveleri ve yorumlayıcının kaynak metni
 // sonucun gövdesidir (kodlu dosyada başlıktan sonrası).
-func kaynakHazirla(metin string, h hazirlik) *source.Result {
-	s := source.Prepare(metin, source.Options{TypeCheck: h.tipBasligi != ""})
-	uyarilariYaz(s.Warnings, s.Text)
+func prepareSource(text string, h preparation) *source.Result {
+	s := source.Prepare(text, source.Options{TypeCheck: h.typeHeader != ""})
+	writeWarnings(s.Warnings, s.Text)
 	switch s.Stage {
 	case source.StageSyntax:
-		if h.sozdizimiBasligi == "" {
+		if h.syntaxHeader == "" {
 			for _, e := range s.Errors {
 				fmt.Fprintln(os.Stderr, e)
 			}
 			os.Exit(1)
 		}
-		hatalarlaCik(h.sozdizimiBasligi, s.Errors, s.Text)
+		exitWithDiags(h.syntaxHeader, s.Errors, s.Text)
 	case source.StageType:
-		hatalarlaCik(h.tipBasligi, s.Errors, s.Text)
+		exitWithDiags(h.typeHeader, s.Errors, s.Text)
 	}
 	return s
 }
 
-// uyarilariYaz denetleyicinin uyarılarını (varsa) hatalardan ayrı bir başlıkla standart
+// writeWarnings denetleyicinin uyarılarını (varsa) hatalardan ayrı bir başlıkla standart
 // hataya yazar; çıkış kodunu etkilemez.
-func uyarilariYaz(uyarilar []error, code string) {
-	if len(uyarilar) > 0 {
-		hatalariYaz(uyariBasligi, uyarilar, code)
+func writeWarnings(warnings []error, code string) {
+	if len(warnings) > 0 {
+		writeDiags(warningHeader, warnings, code)
 	}
 }
 
-// hatalariYaz başlığı ve her hatayı kod çerçevesiyle standart hataya yazar.
-func hatalariYaz(baslik string, errs []error, code string) {
-	fmt.Fprintln(os.Stderr, baslik)
+// writeDiags başlığı ve her hatayı kod çerçevesiyle standart hataya yazar.
+func writeDiags(header string, errs []error, code string) {
+	fmt.Fprintln(os.Stderr, header)
 	for _, e := range errs {
 		printError(e, code)
 	}
 }
 
-// hatalarlaCik hataları hatalariYaz ile yazıp (temizlik işlerinden sonra) 1 koduyla çıkar.
-func hatalarlaCik(baslik string, errs []error, code string) {
-	hatalariYaz(baslik, errs, code)
-	cik(1)
+// exitWithDiags hataları writeDiags ile yazıp (temizlik işlerinden sonra) 1 koduyla çıkar.
+func exitWithDiags(header string, errs []error, code string) {
+	writeDiags(header, errs, code)
+	exit(1)
 }
 
-// programCalistir programı çalıştırır, çalışma zamanı hatasını yazıp çıkar; başarılıysa
+// runProgram programı çalıştırır, çalışma zamanı hatasını yazıp çıkar; başarılıysa
 // eşzamansız işlerin bitmesini bekler. Her iki durumda da motorların açık kaynakları
 // (veri okuyucuları, önbellekler) çıkmadan önce kapatılır.
 //
-// Ctrl+C ve sonlandırma istekleri yakalanır (kesme.go): program nazikçe durur, ertelenen
+// Ctrl+C ve sonlandırma istekleri yakalanır (interrupt.go): program nazikçe durur, ertelenen
 // işler çalışır ve 3 koduyla çıkılır.
-func programCalistir(machine *interp.VM, prog *ast.Program, code string) {
-	kesmeyiYakala(machine)
+func runProgram(machine *interp.VM, prog *ast.Program, code string) {
+	catchInterrupt(machine)
 	if _, err := machine.Run(prog); err != nil {
 		if c, ok := interp.IsExitRequest(err); ok {
 			machine.WaitAsync()
-			motoruKapat()
-			programCikisi(machine, c)
+			closeEngine()
+			programExit(machine, c)
 		}
 		if errors.Is(err, interp.ErrInterrupted) {
 			machine.WaitAsync() // eşzamanlı görevler de kesildi; ertelenen işleri bitsin
-			motoruKapat()
-			kesilmeyiBildir(machine, err, code)
+			closeEngine()
+			reportInterrupt(machine, err, code)
 		}
-		motoruKapat()
-		calismaHatasiYaz(machine, err, code)
-		cik(1)
+		closeEngine()
+		writeRunError(machine, err, code)
+		exit(1)
 	}
 	machine.WaitAsync()
-	motoruKapat()
+	closeEngine()
 	if machine.Interrupted() {
 		// Kesme isteği programın son beklemesinde (ör. bekle) geldi; program yine de durduruldu.
-		kesilmeyiBildir(machine, nil, code)
+		reportInterrupt(machine, nil, code)
 	}
 	if u := machine.UnusedArgsWarning(); u != "" {
 		machine.WriteOutput(os.Stderr, u+"\n")
 	}
 }
 
-// kapanmadanOnce program bittiğinde, motorlar kapanmadan önce çalışacak işlerdir (ör. tr izle
+// beforeClose program bittiğinde, motorlar kapanmadan önce çalışacak işlerdir (ör. tr izle
 // ve tr profil GPU'nun son ölçümlerini arka uç kapanmadan alır).
-var kapanmadanOnce []func()
+var beforeClose []func()
 
-// motoruKapat kapanmadanOnce işlerini (bir kez) çalıştırır ve motorları kapatır.
-func motoruKapat() {
-	isler := kapanmadanOnce
-	kapanmadanOnce = nil
-	for _, f := range isler {
+// closeEngine beforeClose işlerini (bir kez) çalıştırır ve motorları kapatır.
+func closeEngine() {
+	jobs := beforeClose
+	beforeClose = nil
+	for _, f := range jobs {
 		f()
 	}
 	stdlib.Close()
 }
 
-// programCikisi bir yerleşiğin istediği program çıkışını yapar (ör. komut satırı
+// programExit bir yerleşiğin istediği program çıkışını yapar (ör. komut satırı
 // seçeneklerinde --yardım: 0, hatalı argüman: 2): mesaj 0 kodunda standart çıktıya, öbür
 // kodlarda standart hataya yazılır.
-func programCikisi(machine *interp.VM, c *interp.ExitRequest) {
+func programExit(machine *interp.VM, c *interp.ExitRequest) {
 	if c.Message != "" {
 		w := os.Stderr
 		if c.Code == 0 {
@@ -173,15 +173,15 @@ func programCikisi(machine *interp.VM, c *interp.ExitRequest) {
 		}
 		machine.WriteOutput(w, c.Message+"\n")
 	}
-	cik(c.Code)
+	exit(c.Code)
 }
 
-// calismaHatasiYaz bir çalışma zamanı hatasını başlığıyla standart hataya yazar. Bir modüle
+// writeRunError bir çalışma zamanı hatasını başlığıyla standart hataya yazar. Bir modüle
 // ait hatanın (ya da modülün denetim hatalarının) çerçevesi o modülün kaynağından çizilir.
 // Metin VM'nin çıktı noktasından geçer (canlı satır, gizli değerler).
-func calismaHatasiYaz(machine *interp.VM, err error, code string) {
+func writeRunError(machine *interp.VM, err error, code string) {
 	var sb strings.Builder
-	sb.WriteString(calismaBasligi + "\n")
+	sb.WriteString(runHeader + "\n")
 	for _, m := range interp.ErrorItems(err, code) {
 		fmt.Fprintf(&sb, "  • %s\n", m.Message)
 		sb.WriteString(indentFrame(m.Frame))
@@ -189,28 +189,28 @@ func calismaHatasiYaz(machine *interp.VM, err error, code string) {
 	machine.WriteOutput(os.Stderr, sb.String())
 }
 
-// modulBasligi bir hata başlığına modülün yolunu ekler: "❌ X:" → "❌ X (yol modülünde):".
-func modulBasligi(baslik, yol string) string {
-	return messages.Text(messages.H8658, strings.TrimSuffix(baslik, ":"), yol)
+// moduleHeader bir hata başlığına modülün yolunu ekler: "❌ X:" → "❌ X (yol modülünde):".
+func moduleHeader(header, filePath string) string {
+	return messages.Text(messages.H8658, strings.TrimSuffix(header, ":"), filePath)
 }
 
-// modulleriDenetle programın 'aktar' ile aldığı bütün modülleri (özyinelemeli) bulur ve
+// checkModules programın 'aktar' ile aldığı bütün modülleri (özyinelemeli) bulur ve
 // çalıştırmadan denetler; 'tr kontrol' ve 'tr derle' kullanır. Hata varsa yazıp 1 koduyla
-// çıkar. genelBaslik bulunamayan/okunamayan modül hatalarının başlığıdır.
-func modulleriDenetle(path, code string, h hazirlik, genelBaslik string) *paket {
-	pk, err := paketHazirla(path, code)
+// çıkar. globalHeader bulunamayan/okunamayan modül hatalarının başlığıdır.
+func checkModules(path, code string, h preparation, globalHeader string) *pkg {
+	pk, err := preparePackage(path, code)
 	if err == nil {
 		return pk
 	}
-	var mh *modulDenetimHatasi
-	if errors.As(err, &mh) {
-		baslik := h.tipBasligi
-		if mh.tur == "sözdizimi" {
-			baslik = h.sozdizimiBasligi
+	var moduleErr *moduleCheckError
+	if errors.As(err, &moduleErr) {
+		header := h.typeHeader
+		if moduleErr.kind == "sözdizimi" {
+			header = h.syntaxHeader
 		}
-		hatalarlaCik(modulBasligi(baslik, mh.yol), mh.hatalar, mh.kod)
+		exitWithDiags(moduleHeader(header, moduleErr.filePath), moduleErr.diags, moduleErr.code)
 	}
-	fmt.Fprintf(os.Stderr, "%s %v\n", genelBaslik, err)
-	cik(1)
+	fmt.Fprintf(os.Stderr, "%s %v\n", globalHeader, err)
+	exit(1)
 	return nil
 }

@@ -12,7 +12,7 @@ const BASLIK = '//! tr kodlu 1';
 const BASLIK_BAYTLARI = Buffer.from(BASLIK, 'utf8');
 
 // CIKIS_SOZDIZIMI 'tr kodla -' ve 'tr göster -' komutlarının "metin ayrıştırılamadı, çevrilmedi"
-// çıkış kodudur (cmd/tr/kodlu.go, cikisSozdizimi).
+// çıkış kodudur (cmd/tr/coded.go, exitSyntax).
 const CIKIS_SOZDIZIMI = 2;
 
 // ZAMAN_ASIMI bir çevirinin en uzun süresidir (milisaniye); aşılırsa süreç durdurulur.

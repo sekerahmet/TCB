@@ -27,17 +27,17 @@ func init() { interp.SetLibrary(lib.Dosyalar) }
 
 const VERSION = "1.0.0"
 
-// gcHedefi çöp toplayıcının varsayılan hedefi (yığın, canlı belleğin bu yüzdesi kadar
+// gcTarget çöp toplayıcının varsayılan hedefi (yığın, canlı belleğin bu yüzdesi kadar
 // büyüyünce toplama başlar; Go'nun varsayılanı 100). Eğitimde her adım çok sayıda
 // büyük ara tensör ayırır; 100'de karakter modeli adım başına ~0,8 toplama yapıyordu.
 // Ölçüm (examples/07, GOMAXPROCS=2, eşli dönüşümlü 26 tur): 200 ile 20/26 turda
 // hızlı, ortanca −0,9…−1,5 ms/adım (~%6); tepe bellek 71 → 105 MB. Kullanıcının GOGC
-// ortam değişkeni her zaman önceliklidir.
-const gcHedefi = 200
+// env değişkeni her zaman önceliklidir.
+const gcTarget = 200
 
-func gcHedefiniAyarla() {
-	if _, verildi := os.LookupEnv("GOGC"); !verildi {
-		debug.SetGCPercent(gcHedefi)
+func setGCTarget() {
+	if _, given := os.LookupEnv("GOGC"); !given {
+		debug.SetGCPercent(gcTarget)
 	}
 }
 
@@ -47,14 +47,14 @@ func main() {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
 		os.Exit(2)
 	}
-	gcHedefiniAyarla()
+	setGCTarget()
 	// Bu .exe 'tr derle' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
-	if pk, bulundu, err := gomuluPaketiBul(); bulundu {
+	if pk, found, err := findEmbeddedPackage(); found {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8601, err))
 			os.Exit(1)
 		}
-		gomuluUygulamayiCalistir(pk)
+		runEmbeddedApp(pk)
 		return
 	}
 
@@ -64,12 +64,12 @@ func main() {
 		startREPL()
 		return
 	}
-	if asil, ok := kaldirilanKomutlar[args[0]]; ok {
-		hataylaCik(messages.Text(messages.H8602, args[0], asil))
+	if replacement, ok := removedCommands[args[0]]; ok {
+		exitWithError(messages.Text(messages.H8602, args[0], replacement))
 	}
 
-	if komut, ok := argumanliKomutlar[args[0]]; ok {
-		komut(args[1:])
+	if command, ok := commandsWithArguments[args[0]]; ok {
+		command(args[1:])
 		return
 	}
 	switch args[0] {
@@ -78,15 +78,15 @@ func main() {
 	case "sürüm", "-v":
 		fmt.Println(messages.Text(messages.H8603, VERSION))
 	case "bytecode", "baytkod":
-		hataylaCik(messages.Text(messages.H8604))
+		exitWithError(messages.Text(messages.H8604))
 	case "kontrol":
 		if len(args) < 2 {
-			hataylaCik(messages.Text(messages.H8605, "kontrol", "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, "kontrol", "ornek.tr"))
 		}
 		checkFile(args[1])
 	case "derle":
 		if len(args) < 2 {
-			hataylaCik(messages.Text(messages.H8606))
+			exitWithError(messages.Text(messages.H8606))
 		}
 		outPath := ""
 		if len(args) >= 3 {
@@ -104,7 +104,7 @@ func main() {
 		}
 	case "çalıştır":
 		if len(args) < 2 {
-			hataylaCik(messages.Text(messages.H8605, "çalıştır", "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, "çalıştır", "ornek.tr"))
 		}
 		runFile(args[1], args[2:])
 	default:
@@ -112,25 +112,25 @@ func main() {
 	}
 }
 
-// argumanliKomutlar argümanlarını kendisi ayrıştıran alt komutlardır (komut adından
+// commandsWithArguments argümanlarını kendisi ayrıştıran alt komutlardır (komut adından
 // sonrakiler verilir).
-var argumanliKomutlar = map[string]func([]string){
-	"hata_ayıkla": hataAyiklaKomutu, "test": testKomutu, "biçimle": bicimleKomutu, "kodla": kodlaKomutu,
-	"çöz": cozKomutu, "göster": gosterKomutu, "izle": izleKomutu, "profil": profilKomutu,
+var commandsWithArguments = map[string]func([]string){
+	"hata_ayıkla": debugCommand, "test": testCommand, "biçimle": formatCommand, "kodla": encodeCommand,
+	"çöz": decodeCommand, "göster": showCommand, "izle": watchCommand, "profil": profileCommand,
 }
 
-// kaldirilanKomutlar kaldırılan komut adlarının (Türkçe karaktersiz ve İngilizce yazımlar)
+// removedCommands kaldırılan komut adlarının (Türkçe karaktersiz ve İngilizce yazımlar)
 // asıl adlarıdır. Her komutun tek Türkçe adı vardır; kısa bayraklar -h ve -v simgedir, kalır.
 // Bu adlar KABUL EDİLMEZ: dosya adı sanılıp çalıştırılmaya çalışılmaz, asıl komut önerilir.
-var kaldirilanKomutlar = map[string]string{
+var removedCommands = map[string]string{
 	"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla", "debug": "hata_ayıkla",
 	"yardim": "yardım", "--help": "yardım", "help": "yardım", "surum": "sürüm", "--version": "sürüm",
 	"version": "sürüm", "coz": "çöz", "goster": "göster", "watch": "izle", "profile": "profil",
 }
 
-// hataylaCik iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
-func hataylaCik(ileti any) {
-	fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, ileti))
+// exitWithError iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
+func exitWithError(message any) {
+	fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, message))
 	os.Exit(1)
 }
 
@@ -177,48 +177,48 @@ func printHelp() {
 
 // runFile programı çalıştırır; argumanlar dosya adından sonra yazılanlardır ve programa
 // iletilir (tr betik.tr --adım 5).
-func runFile(path string, argumanlar []string) {
-	_, s := dosyaHazirla(path, calistirmaHazirligi)
+func runFile(path string, arguments []string) {
+	_, s := prepareFile(path, runPreparation)
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Text
-	machine.SetArgs(argumanlar)
-	isProfiliniBaslat(machine, path, s.Text, s.Program)
-	programCalistir(machine, s.Program, s.Text)
-	temizle()
+	machine.SetArgs(arguments)
+	startJobProfile(machine, path, s.Text, s.Program)
+	runProgram(machine, s.Program, s.Text)
+	cleanup()
 }
 
-// hataAyiklaKomutu 'tr hata_ayıkla dosya.tr [argümanlar]' komutudur. Kaldırılan tarayıcı
-// hata ayıklayıcısının bayrağı dosyadan önce ya da hemen sonra yazılırsa ipucu verilir;
+// debugCommand 'tr hata_ayıkla dosya.tr [argümanlar]' komutudur. Kaldırılan tarayıcı
+// failure ayıklayıcısının bayrağı dosyadan önce ya da hemen sonra yazılırsa ipucu verilir;
 // sonraki argümanlar programındır.
-func hataAyiklaKomutu(args []string) {
+func debugCommand(args []string) {
 	if len(args) < 1 {
-		hataylaCik(messages.Text(messages.H8608))
+		exitWithError(messages.Text(messages.H8608))
 	}
 	for _, a := range args[:min(2, len(args))] {
 		if a == "--web" || a == "-w" {
-			hataylaCik(messages.Text(messages.H8609))
+			exitWithError(messages.Text(messages.H8609))
 		}
 	}
 	debugFile(args[0], args[1:])
 }
 
-func debugFile(path string, argumanlar []string) {
-	_, s := dosyaHazirla(path, hataAyiklamaHazirligi)
+func debugFile(path string, arguments []string) {
+	_, s := prepareFile(path, debugPreparation)
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = s.Text
-	machine.SetArgs(argumanlar)
+	machine.SetArgs(arguments)
 	dbg := debugger.NewDebugger(path, s.Text, true)
 	machine.Debugger = dbg
 
-	programCalistir(machine, s.Program, s.Text)
+	runProgram(machine, s.Program, s.Text)
 }
 
 func checkFile(path string) {
-	metin, _ := dosyaHazirla(path, calistirmaHazirligi)
+	text, _ := prepareFile(path, runPreparation)
 	// Programın aktardığı modüller de (çalıştırılmadan) aynı denetimden geçer.
-	modulleriDenetle(path, metin, calistirmaHazirligi, "❌ "+messages.Text(messages.H8632))
+	checkModules(path, text, runPreparation, "❌ "+messages.Text(messages.H8632))
 	fmt.Println("✅ " + messages.Text(messages.H8631, path))
 }
 
@@ -229,17 +229,17 @@ func startREPL() {
 	machine := interp.New()
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
-	okuyucu := machine.InputReader()
+	reader := machine.InputReader()
 	chk := checker.New()
-	oncekiTipHatalari, oncekiUyarilar := 0, 0
+	previousTypeErrors, previousWarnings := 0, 0
 
 	for {
 		fmt.Print("tr> ")
-		satir, okumaHatasi := okuyucu.ReadString('\n')
-		if satir == "" && okumaHatasi != nil {
+		ln, readError := reader.ReadString('\n')
+		if ln == "" && readError != nil {
 			break
 		}
-		line := strings.TrimSpace(satir)
+		line := strings.TrimSpace(ln)
 		if line == "" {
 			continue
 		}
@@ -267,38 +267,38 @@ func startREPL() {
 		// satırın getirdiği yeni hatalar gösterilir.
 		s := source.Prepare(line, source.Options{TypeCheck: true, Checker: chk})
 		if s.Stage == source.StageSyntax {
-			hatalariYaz(sozdizimiBasligi, s.Errors, s.Text)
+			writeDiags(syntaxHeader, s.Errors, s.Text)
 			continue
 		}
-		if u := s.Warnings; len(u) > oncekiUyarilar {
-			uyarilariYaz(u[oncekiUyarilar:], s.Text)
-			oncekiUyarilar = len(u)
+		if u := s.Warnings; len(u) > previousWarnings {
+			writeWarnings(u[previousWarnings:], s.Text)
+			previousWarnings = len(u)
 		}
-		if errs := s.Errors; len(errs) > oncekiTipHatalari {
-			yeni := errs[oncekiTipHatalari:]
-			oncekiTipHatalari = len(errs)
-			hatalariYaz(tipBasligi, yeni, s.Text)
+		if errs := s.Errors; len(errs) > previousTypeErrors {
+			updated := errs[previousTypeErrors:]
+			previousTypeErrors = len(errs)
+			writeDiags(typeHeader, updated, s.Text)
 			continue
 		}
 
 		val, err := machine.Run(s.Program)
 		if err != nil {
-			calismaHatasiYaz(machine, err, line)
+			writeRunError(machine, err, line)
 			continue
 		}
 		machine.WaitAsync()
 		if val != nil && val.Type() != interp.VAL_NULL {
-			if !yazdirIleBaslar(line) {
+			if !startsWithPrint(line) {
 				fmt.Println("=>", val.Inspect())
 			}
 		}
 	}
 }
 
-// yazdirIleBaslar satır yazdır yerleşiğinin (G100) bir yazımıyla mı başlıyor?
-func yazdirIleBaslar(satir string) bool {
+// startsWithPrint satır yazdır yerleşiğinin (G100) bir yazımıyla mı başlıyor?
+func startsWithPrint(ln string) bool {
 	for _, y := range codes.Spellings(codes.G100) {
-		if strings.HasPrefix(satir, y) {
+		if strings.HasPrefix(ln, y) {
 			return true
 		}
 	}

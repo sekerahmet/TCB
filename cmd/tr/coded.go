@@ -27,205 +27,205 @@ import (
 //
 // Standart giriş kipi ('-') düzenleyiciler içindir (VS Code eklentisi kodlu dosyayı bununla
 // gösterir ve kaydeder): standart çıktıya yalnızca çevrilmiş metin yazılır, hatalar standart
-// hataya. Çıkış kodları: 0 çevrildi; cikisSozdizimi metin ayrıştırılamadı (çevrilmedi,
+// hataya. Çıkış kodları: 0 çevrildi; exitSyntax metin ayrıştırılamadı (çevrilmedi,
 // düzenleyici metni olduğu gibi saklar); 1 başka bir hata.
 
-// cikisSozdizimi standart giriş kipinde metnin ayrıştırılamadığını (sözdizimi hatası; çeviri
+// exitSyntax standart giriş kipinde metnin ayrıştırılamadığını (sözdizimi hatası; çeviri
 // yapılmadı) bildiren çıkış kodudur.
-const cikisSozdizimi = 2
+const exitSyntax = 2
 
-// kodlaKomutu 'tr kodla' komutudur; zaten kodlu dosyalara dokunulmaz.
-func kodlaKomutu(args []string) {
+// encodeCommand 'tr kodla' komutudur; zaten kodlu dosyalara dokunulmaz.
+func encodeCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
 		// Kodlanacak metin yazım dilinde yazılmıştır. Dilin sözcük tabloları süreç başında etkin
 		// dilden kurulduğu için başka bir dil, süreci o dille yeniden çalıştırarak okunur.
-		if dil := dilArgumani(args[1:], "kodla"); dil.Code != codes.Active().Code {
-			dilleYenidenCalistir(dil.Code)
+		if language := languageArgument(args[1:], "kodla"); language.Code != codes.Active().Code {
+			rerunWithLanguage(language.Code)
 		}
-		girdidenCevir(source.Encode)
+		convertFromInput(source.Encode)
 		return
 	}
-	cevirKomutu(args, "kodla", messages.Text(messages.H8704), source.Encode)
+	convertCommand(args, "kodla", messages.Text(messages.H8704), source.Encode)
 }
 
-// dilArgumani standart giriş kipinin '--dil <kod>' argümanını okur (yoksa etkin dil) ve yazım
+// languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa etkin dil) ve yazım
 // dilini doğrular; başka bir argüman ya da bilinmeyen dil hatadır.
-func dilArgumani(args []string, komut string) *codes.Language {
-	dilKodu := codes.Active().Code
+func languageArgument(args []string, command string) *codes.Language {
+	languageCode := codes.Active().Code
 	for i := 0; i < len(args); i++ {
 		switch {
 		case args[i] == "--dil" && i+1 < len(args):
-			dilKodu = args[i+1]
+			languageCode = args[i+1]
 			i++
 		case args[i] == "--dil":
-			hataylaCik(messages.Text(messages.H8700, komut))
+			exitWithError(messages.Text(messages.H8700, command))
 		default:
-			hataylaCik(messages.Text(messages.H8701, komut, args[i]))
+			exitWithError(messages.Text(messages.H8701, command, args[i]))
 		}
 	}
-	dil, err := yazimDili(dilKodu)
+	language, err := writingLanguage(languageCode)
 	if err != nil {
-		hataylaCik(err)
+		exitWithError(err)
 	}
-	return dil
+	return language
 }
 
-// girdidenCevir standart girişin tamamını cevir ile çevirip standart çıktıya yazar. Metin
-// ayrıştırılamıyorsa hataları kod çerçeveleriyle standart hataya yazıp cikisSozdizimi ile çıkar.
-func girdidenCevir(cevir func(string) (string, error)) {
-	veri, err := io.ReadAll(os.Stdin)
+// convertFromInput standart girişin tamamını cevir ile çevirip standart çıktıya yazar. Metin
+// ayrıştırılamıyorsa hataları kod çerçeveleriyle standart hataya yazıp exitSyntax ile çıkar.
+func convertFromInput(convert func(string) (string, error)) {
+	content, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		hataylaCik(messages.Text(messages.H8702, err))
+		exitWithError(messages.Text(messages.H8702, err))
 	}
-	metin, err := cevir(string(veri))
+	text, err := convert(string(content))
 	if err != nil {
 		var sh *source.SyntaxError
 		if errors.As(err, &sh) {
-			b, _ := source.Split(string(veri))
-			hatalariYaz(sozdizimiBasligi, sh.Errors, b.Body)
-			os.Exit(cikisSozdizimi)
+			b, _ := source.Split(string(content))
+			writeDiags(syntaxHeader, sh.Errors, b.Body)
+			os.Exit(exitSyntax)
 		}
 		fmt.Fprintf(os.Stderr, "✗ %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Print(metin)
+	fmt.Print(text)
 }
 
-// cozKomutu 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz.
-func cozKomutu(args []string) {
-	cevirKomutu(args, "çöz", messages.Text(messages.H8705), func(metin string) (string, error) {
-		return source.Decode(metin, codes.Active())
+// decodeCommand 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz.
+func decodeCommand(args []string) {
+	convertCommand(args, "çöz", messages.Text(messages.H8705), func(text string) (string, error) {
+		return source.Decode(text, codes.Active())
 	})
 }
 
-// cevirKomutu hedeflerdeki (klasörlerde alt klasörler dahil) bütün .tr dosyalarını cevir ile
+// convertCommand hedeflerdeki (klasörlerde alt klasörler dahil) bütün .tr dosyalarını cevir ile
 // dönüştürüp değişenleri yerine yazar. Hatalı dosyalar atlanır; biri bile varsa 1 koduyla çıkar.
-func cevirKomutu(args []string, komut, fiil string, cevir func(string) (string, error)) {
+func convertCommand(args []string, command, verb string, convert func(string) (string, error)) {
 	if len(args) == 0 {
-		hataylaCik(messages.Text(messages.H8703, komut))
+		exitWithError(messages.Text(messages.H8703, command))
 	}
-	var dosyalar []string
+	var files []string
 	for _, h := range args {
-		d, err := trDosyalari(h)
+		d, err := trFiles(h)
 		if err != nil {
-			hataylaCik(err)
+			exitWithError(err)
 		}
-		dosyalar = append(dosyalar, d...)
+		files = append(files, d...)
 	}
-	degisen, hatali := 0, 0
-	for _, yol := range dosyalar {
-		veri, err := os.ReadFile(yol)
+	changed, faulty := 0, 0
+	for _, filePath := range files {
+		content, err := os.ReadFile(filePath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.FileError("", yol, messages.H2100, err))
-			hatali++
+			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.FileError("", filePath, messages.H2100, err))
+			faulty++
 			continue
 		}
-		yeni, err := cevir(string(veri))
+		updated, err := convert(string(content))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %s: %v\n", yol, err)
-			hatali++
+			fmt.Fprintf(os.Stderr, "✗ %s: %v\n", filePath, err)
+			faulty++
 			continue
 		}
-		if yeni == string(veri) {
+		if updated == string(content) {
 			continue
 		}
-		if err := yerineYaz(yol, yeni); err != nil {
+		if err := writeInPlace(filePath, updated); err != nil {
 			fmt.Fprintf(os.Stderr, "✗ %v\n", err)
-			hatali++
+			faulty++
 			continue
 		}
-		degisen++
-		fmt.Printf("%s: %s\n", fiil, yol)
+		changed++
+		fmt.Printf("%s: %s\n", verb, filePath)
 	}
-	fmt.Println(messages.Text(messages.H8706, len(dosyalar), degisen, fiil))
-	if hatali > 0 {
-		fmt.Println(messages.Text(messages.H8707, hatali))
+	fmt.Println(messages.Text(messages.H8706, len(files), changed, verb))
+	if faulty > 0 {
+		fmt.Println(messages.Text(messages.H8707, faulty))
 		os.Exit(1)
 	}
 }
 
-// yerineYaz dosyayı izinlerini koruyarak yeniden yazar.
-func yerineYaz(yol, metin string) error {
-	izin := fs.FileMode(0644)
-	if bilgi, err := os.Stat(yol); err == nil {
-		izin = bilgi.Mode().Perm()
+// writeInPlace dosyayı izinlerini koruyarak yeniden yazar.
+func writeInPlace(filePath, text string) error {
+	perm := fs.FileMode(0644)
+	if info, err := os.Stat(filePath); err == nil {
+		perm = info.Mode().Perm()
 	}
-	if err := os.WriteFile(yol, []byte(metin), izin); err != nil {
-		return turkish.FileError("", yol, messages.H2101, err)
+	if err := os.WriteFile(filePath, []byte(text), perm); err != nil {
+		return turkish.FileError("", filePath, messages.H2101, err)
 	}
 	return nil
 }
 
-// gosterKomutu 'tr göster <dosya.tr> [--dil tr]' komutudur: dosya kodluysa verilen yazım
+// showCommand 'tr göster <dosya.tr> [--dil tr]' komutudur: dosya kodluysa verilen yazım
 // dilinde (varsayılan tr), değilse olduğu gibi standart çıktıya yazılır. Dosya yerine '-'
 // verilirse metin standart girişten okunur (düzenleyiciler için; çıkış kodları yukarıda).
-func gosterKomutu(args []string) {
+func showCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
-		dil := dilArgumani(args[1:], "göster")
-		girdidenCevir(func(metin string) (string, error) { return source.Decode(metin, dil) })
+		language := languageArgument(args[1:], "göster")
+		convertFromInput(func(text string) (string, error) { return source.Decode(text, language) })
 		return
 	}
-	var dosya, dilKodu string
-	dilKodu = codes.Active().Code
+	var file, languageCode string
+	languageCode = codes.Active().Code
 	for i := 0; i < len(args); i++ {
 		switch {
 		case args[i] == "--dil" && i+1 < len(args):
-			dilKodu = args[i+1]
+			languageCode = args[i+1]
 			i++
 		case args[i] == "--dil":
-			hataylaCik(messages.Text(messages.H8708))
-		case dosya == "":
-			dosya = args[i]
+			exitWithError(messages.Text(messages.H8708))
+		case file == "":
+			file = args[i]
 		default:
-			hataylaCik(messages.Text(messages.H8709, args[i]))
+			exitWithError(messages.Text(messages.H8709, args[i]))
 		}
 	}
-	if dosya == "" {
-		hataylaCik(messages.Text(messages.H8710))
+	if file == "" {
+		exitWithError(messages.Text(messages.H8710))
 	}
-	dil, err := yazimDili(dilKodu)
+	language, err := writingLanguage(languageCode)
 	if err != nil {
-		hataylaCik(err)
+		exitWithError(err)
 	}
-	veri, err := os.ReadFile(dosya)
+	content, err := os.ReadFile(file)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, messages.Text(messages.H8657, turkish.FileError("", dosya, messages.H2100, err)))
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8657, turkish.FileError("", file, messages.H2100, err)))
 		os.Exit(1)
 	}
-	metin, err := source.Decode(string(veri), dil)
+	text, err := source.Decode(string(content), language)
 	if err != nil {
 		var sh *source.SyntaxError
 		if errors.As(err, &sh) {
-			b, _ := source.Split(string(veri))
-			hatalarlaCik(sozdizimiBasligi, sh.Errors, b.Body)
+			b, _ := source.Split(string(content))
+			exitWithDiags(syntaxHeader, sh.Errors, b.Body)
 		}
-		fmt.Fprintf(os.Stderr, "✗ %s: %v\n", dosya, err)
+		fmt.Fprintf(os.Stderr, "✗ %s: %v\n", file, err)
 		os.Exit(1)
 	}
-	fmt.Print(metin)
+	fmt.Print(text)
 }
 
-// yazimDili bir yazım dili kodunun (ISO 639-1) kod listesidir.
-func yazimDili(kodu string) (*codes.Language, error) {
-	return codes.LoadLanguage(kodu)
+// writingLanguage bir yazım dili kodunun (ISO 639-1) kod listesidir.
+func writingLanguage(langCode string) (*codes.Language, error) {
+	return codes.LoadLanguage(langCode)
 }
 
-// dilleYenidenCalistir aynı komutu etkin dil olarak dilKodu ile yeniden çalıştırır (standart
+// rerunWithLanguage aynı komutu etkin dil olarak languageCode ile yeniden çalıştırır (standart
 // giriş, çıkış ve hata aynen geçer) ve onun çıkış koduyla çıkar.
-func dilleYenidenCalistir(dilKodu string) {
-	ben, err := os.Executable()
+func rerunWithLanguage(languageCode string) {
+	self, err := os.Executable()
 	if err != nil {
-		hataylaCik(messages.Text(messages.H8711, dilKodu, err))
+		exitWithError(messages.Text(messages.H8711, languageCode, err))
 	}
-	c := exec.Command(ben, os.Args[1:]...)
-	c.Env = append(os.Environ(), codes.LanguageEnvVar+"="+dilKodu)
+	c := exec.Command(self, os.Args[1:]...)
+	c.Env = append(os.Environ(), codes.LanguageEnvVar+"="+languageCode)
 	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := c.Run(); err != nil {
-		var ce *exec.ExitError
-		if errors.As(err, &ce) {
-			os.Exit(ce.ExitCode())
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			os.Exit(exitErr.ExitCode())
 		}
-		hataylaCik(messages.Text(messages.H8711, dilKodu, err))
+		exitWithError(messages.Text(messages.H8711, languageCode, err))
 	}
 	os.Exit(0)
 }
