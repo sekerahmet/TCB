@@ -2,7 +2,9 @@ package formats
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -103,38 +105,57 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	}
 }
 
-// csv_oku var olan dosyayı okur, metin içeriğini ayrıştırır; yol gibi görünen ama var
-// olmayan bir argümanda eskiden [["yok.csv"]] döndürürken artık açık hata verir.
-func TestCSVReadFileTextAndMissingPath(t *testing.T) {
+// csv_oku yalnızca dosya okur; CSV metni csv_çöz ile ayrıştırılır (json_çöz gibi). Eskiden
+// csv_oku metni de alıyordu ve bir metnin var olan dosyanın adı olup olmadığı belirsizdi.
+func TestCSVReadFileAndParseText(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.ToSlash(filepath.Join(dir, "veri.csv"))
 	if err := os.WriteFile(file, []byte("ad, yaş\nAli, 30\nAyşe, 27.5\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-
-	_, val, err := run(t, fmt.Sprintf(`sonuç [csv_oku(%q), csv_oku("x,1\ny,2"), csv_oku("tek"), csv_oku("tarih,1/2/2024")]`, file))
+	_, val, err := run(t, fmt.Sprintf(`sonuç [csv_oku(%q), csv_çöz("x,1\ny,2"), csv_çöz("tek"), csv_çöz("tarih,1/2/2024"), csv_çöz("")]`, file))
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	want := `[[["ad", "yaş"], ["Ali", 30], ["Ayşe", 27.5]], [["x", 1], ["y", 2]], [["tek"]], [["tarih", "1/2/2024"]]]`
+	want := `[[["ad", "yaş"], ["Ali", 30], ["Ayşe", 27.5]], [["x", 1], ["y", 2]], [["tek"]], [["tarih", "1/2/2024"]], []]`
 	if val.Inspect() != want {
 		t.Fatalf("%s bekleniyordu, %s alındı", want, val.Inspect())
 	}
+	// csv_çöz dosya okumaz: var olan dosyanın yolu da tek hücreli bir tablodur.
+	_, val, err = run(t, fmt.Sprintf(`sonuç csv_çöz(%q)`, file))
+	if err != nil || val.Inspect() != fmt.Sprintf(`[[%q]]`, file) {
+		t.Fatalf("csv_çöz yolu metin saymalı: %v %v", val, err)
+	}
+}
 
-	for _, arg := range []string{
-		"yok.csv",
-		"VERI.CSV",
-		filepath.ToSlash(filepath.Join(dir, "yok", "veri.txt")),
-		`klasor\yok`,
+// csv_oku'ya verilen CSV metni sessizce ayrıştırılmaz: satır sonlu metinde ve virgüllü ama
+// var olmayan "yolda" hata csv_çöz'ü önerir; öteki yoksa "dosya yok" hatasıdır (kod 0).
+func TestCSVReadRejectsText(t *testing.T) {
+	dir := t.TempDir()
+	for _, d := range []struct {
+		arg  string
+		want messages.Code
+	}{
+		{"x,1\ny,2", messages.H7006},
+		{"a\r\nb", messages.H7006},
+		{"tarih,1/2/2024", messages.H7007},
+		{"yok.csv", 0},
+		{"VERI.CSV", 0},
+		{"tek", 0},
+		{filepath.ToSlash(filepath.Join(dir, "yok", "veri.txt")), 0},
+		{"a\tb.csv", messages.H2489},
 	} {
-		_, val, err := run(t, fmt.Sprintf(`sonuç csv_oku(%q)`, arg))
-		if err == nil || !strings.Contains(err.Error(), "okunamadı: ") || !strings.Contains(err.Error(), " yok") {
-			t.Errorf("csv_oku(%q): 'dosya yok' hatası bekleniyordu, alınan: %v, %v", arg, val, err)
+		_, val, err := run(t, fmt.Sprintf(`sonuç csv_oku(%q)`, d.arg))
+		ok := messages.Has(err, d.want)
+		if d.want == 0 {
+			ok = errors.Is(err, fs.ErrNotExist) && !messages.Has(err, messages.H7007)
+		}
+		if !ok {
+			t.Errorf("csv_oku(%q): %s bekleniyordu, alınan: %v, %v", d.arg, d.want, val, err)
 		}
 	}
-
 	// Klasör yolu da sessizce metin sayılmamalı.
-	_, _, err = run(t, fmt.Sprintf(`sonuç csv_oku(%q)`, filepath.ToSlash(dir)))
+	_, _, err := run(t, fmt.Sprintf(`sonuç csv_oku(%q)`, filepath.ToSlash(dir)))
 	if !messages.Has(err, messages.H7003) {
 		t.Fatalf("klasör hatası (H7003) bekleniyordu, alınan: %v", err)
 	}
@@ -159,23 +180,6 @@ func TestCSVResolvesRelativeToProgram(t *testing.T) {
 	}
 }
 
-func TestLooksLikePath(t *testing.T) {
-	for s, want := range map[string]bool{
-		"yok.csv":          true,
-		"a/b":              true,
-		`a\b`:              true,
-		"a,b":              false,
-		"tarih,1/2/2024":   false,
-		"a,b\nc,d.csv":     false,
-		"":                 false,
-		"sadece_bir_metin": false,
-	} {
-		if got := looksLikePath(s); got != want {
-			t.Errorf("looksLikePath(%q) = %v, %v bekleniyordu", s, got, want)
-		}
-	}
-}
-
 // Hakem bulgusu 15: CSV'de BOM soyulmuyor, "NaN"/"Inf" sayıya çevriliyor, baştaki sıfırlar
 // ve Tam aralığını aşan sayılar sessizce bozuluyordu. Artık yalnızca katı sayı biçimi sayıdır;
 // öteki hücreler olduğu gibi metin kalır.
@@ -185,12 +189,12 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 	if err := os.WriteFile(file, []byte("\ufeffad,deger\nx,1\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	_, val, err := run(t, fmt.Sprintf(`sonuç [csv_oku(%q)[0][0] == "ad", csv_oku("%sa,b")[0][0]]`, file, "\ufeff"))
+	_, val, err := run(t, fmt.Sprintf(`sonuç [csv_oku(%q)[0][0] == "ad", csv_çöz("%sa,b")[0][0]]`, file, "\ufeff"))
 	if err != nil || val.Inspect() != `[doğru, "a"]` {
 		t.Fatalf("BOM soyulmalı: %v %v", val, err)
 	}
 	_, val, err = run(t, `
-		değişken s = csv_oku("a,b,c,d,e,f,g,h,i,j,k,l\nNaN,Inf,-Inf,infinity,007,12345678901234567890,0x10,1_000,1e400,+5,00.5,.5\n-0,0,1.0,2.5e3,-7,9223372036854775807,1E-3,0.0,,  42 ,1.,1e")
+		değişken s = csv_çöz("a,b,c,d,e,f,g,h,i,j,k,l\nNaN,Inf,-Inf,infinity,007,12345678901234567890,0x10,1_000,1e400,+5,00.5,.5\n-0,0,1.0,2.5e3,-7,9223372036854775807,1E-3,0.0,,  42 ,1.,1e")
 		sonuç [s[1], [tip(h) döngü h içinde s[1]], s[2], [tip(h) döngü h içinde s[2]]]`)
 	if err != nil {
 		t.Fatal(err)
@@ -236,18 +240,18 @@ func TestJSONTextOrderNaNAndCycle(t *testing.T) {
 	}
 }
 
-// json_çöz ve csv_oku metin olmayan argümanı görünüşüyle ayrıştırmaz, açık hata verir
+// json_çöz, csv_çöz ve csv_oku metin olmayan argümanı görünüşüyle ayrıştırmaz, açık hata verir
 // (json_çöz(5) eskiden 5'i, json_çöz([1]) listenin TR yazımını çözüyordu).
 func TestDecodersRequireText(t *testing.T) {
 	for _, d := range []struct {
 		code string
 		want messages.Code
-	}{{`json_çöz(5)`, messages.H7000}, {`json_çöz([1, 2])`, messages.H7000}, {`csv_oku(5)`, messages.H7002}, {`csv_oku([1])`, messages.H7002}} {
+	}{{`json_çöz(5)`, messages.H7000}, {`json_çöz([1, 2])`, messages.H7000}, {`csv_oku(5)`, messages.H2423}, {`csv_oku([1])`, messages.H2423}, {`csv_çöz(5)`, messages.H2423}} {
 		if _, _, err := run(t, d.code); !messages.Has(err, d.want) {
 			t.Fatalf("%s: %s beklenirdi: %v", d.code, d.want, err)
 		}
 	}
-	out, _, err := run(t, `yazdır(json_çöz("[1, 2]"), csv_oku("a,b\n1,2"))`)
+	out, _, err := run(t, `yazdır(json_çöz("[1, 2]"), csv_çöz("a,b\n1,2"))`)
 	if err != nil || out != "[1, 2] [[\"a\", \"b\"], [1, 2]]\n" {
 		t.Fatalf("metin argümanı: %q, %v", out, err)
 	}

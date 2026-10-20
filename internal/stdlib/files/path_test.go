@@ -110,8 +110,15 @@ func TestPathTakingBuiltins(t *testing.T) {
 	if got != `["1,2\n3,4", [[1, 2], [3, 4]], [1.0, 2.0]]` {
 		t.Fatalf("%s", got)
 	}
-	// Yol verilen csv_oku içeriği metin sanmaz: dosya yoksa hata verir.
+	// Yol verilen csv_oku içeriği metin sanmaz: dosya yoksa hata verir, csv_çöz önermez.
 	errContains(t, `csv_oku(yol("ad,yaş"))`, "csv_oku", "okunamadı")
+	if s := runTR(t, "", `csv_oku(yol("ad,yaş"))`); messages.Has(s.failure, messages.H7007) {
+		t.Errorf("Yol ile csv_çöz önerilmemeli: %v", s.failure)
+	}
+	// csv_çöz yalnızca metin alır; Yol bir tip hatasıdır.
+	if s := runTR(t, "", `csv_çöz(yol("a.csv"))`); !messages.Has(s.failure, messages.H2423) {
+		t.Errorf("csv_çöz(Yol): tip hatası bekleniyordu: %v", s.failure)
+	}
 	errContains(t, `dosya_oku(5)`, "dosya_oku() 1. argüman olarak Metin ya da Yol bekler")
 }
 

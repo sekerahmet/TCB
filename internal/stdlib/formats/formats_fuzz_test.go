@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 )
 
-// FuzzCSVDecode: csv_oku'ya verilen içerik güvenilmeyen girdidir (indirilen veri kümesi).
+// FuzzCSVDecode: csv_çöz'e ve csv_oku'ya verilen içerik güvenilmeyen girdidir (indirilen veri kümesi).
 // Çözücü hiçbir girdide çökmemeli; her hücre ya sayı ya metin olmalı ve metin hücreler
 // girdideki baytları değiştirmeden taşımalıdır (hiçbir hücre sessizce bozulmaz). Derin arama:
 //
@@ -16,7 +16,6 @@ func FuzzCSVDecode(f *testing.F) {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, text string) {
-		_ = looksLikePath(text)
 		value, err := decodeCSV(text)
 		if err != nil {
 			return

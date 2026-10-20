@@ -234,3 +234,17 @@ test "13.4 sözlük metotları" {
     eşit_mi([1, 2], d.değerler())
     doğrula(d.içerir("a"))
 }
+
+test "13.8 csv_oku dosya okur, csv_çöz metni ayrıştırır" {
+    değişken k = geçici_klasör()
+    dosya_yaz(yol(k, "t.csv"), "ad,yaş\nAli,30")
+    eşit_mi([["ad", "yaş"], ["Ali", 30]], csv_oku(yol(k, "t.csv")))
+    eşit_mi([["ad", "yaş"], ["Ali", 30]], csv_çöz("ad,yaş\nAli,30"))
+    eşit_mi([["007", 7]], csv_çöz("007,7"))
+    değişken m = ""
+    dene { csv_oku("ad,yaş\nAli,30") } yakala h { m = h }
+    doğrula(m.içerir("csv_çöz()"), m)
+    m = ""
+    dene { csv_çöz(5) } yakala h { m = h }
+    doğrula(m.içerir("csv_çöz() 1. argüman olarak Metin bekler"), m)
+}

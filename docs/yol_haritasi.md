@@ -29,7 +29,7 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
      - Yapılı hata: ayrıştırıcı ve denetleyici hataları komut satırına, hata ayıklayıcıya, biçimlendiriciye ve test koşucusuna konumlu hata olarak gider. Konumu metinden okuyan son yedek kalkar.
      - En son `compute`.
 2. **Açık işler ve bekleyen dil kararları.**
-   - `csv_çöz(metin)`: `csv_oku` yalnızca dosya okur, CSV metni `csv_çöz` ile ayrıştırılır (`json_çöz` gibi). Metin var olan bir dosyanın adıysa dosyanın okunması belirsizliği kalkar.
+   - Tamamlandı: `csv_çöz(metin)`; `csv_oku` yalnızca dosya okur (13.8).
    - Dil çekirdeği incelemesinden kalan konular: kullanıcı metnindeki terminal kaçış dizileri, `VAL_INT` gibi adlar.
    - Testler: eşzamanlı görevdeki başarısız doğrulamanın testi kaldırması; testlerin üst düzey ortamı paylaşması.
    - Yeni satır başındaki `-x` ifadesinin önceki satıra ikili eksi olarak bağlanması.

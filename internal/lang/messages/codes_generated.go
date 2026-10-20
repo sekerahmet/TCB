@@ -161,7 +161,6 @@ const (
 	H2318 Code = 2318 // klasör
 	H2319 Code = 2319 // klasör, kalıp
 	H2320 Code = 2320 // parça, ...
-	H2321 Code = 2321 // dosya ya da metin
 	H2322 Code = 2322 // toplam_adım
 	H2323 Code = 2323 // {{ölçü: değer, ...}}
 	H2324 Code = 2324 // {{ad: değer, ...}}
@@ -655,10 +654,11 @@ const (
 	H6819 Code = 6819 // Sütun {n}
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
-	H7002 Code = 7002 // {fn}: dosya yolu ya da CSV metni ({text} ya da {path}) bekler, {given} verildi
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin
 	H7004 Code = 7004 // CSV okuma hatası: {error}
 	H7005 Code = 7005 // {fn}: tablo çok büyük (en fazla {limit} hücre)
+	H7006 Code = 7006 // {fn}: dosya yolu bekler, satır sonu içeren metin bir yol olamaz; CSV metninin kendisi {parse} ile ayrıştırılır
+	H7007 Code = 7007 // {error} (CSV metninin kendisi {parse} ile ayrıştırılır)
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

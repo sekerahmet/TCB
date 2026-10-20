@@ -20,7 +20,7 @@ TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları 
 | Kontrol noktaları (`<koşu>/kontrol_noktalari/`) | `kontrol_noktası` | JSON dosyalarında boy sınırı (64 KB / 64 MB) ve katı çözüm, biçim sürümü, adımın klasör adı ve dosyalar arasında tutması, her dosyanın SHA-256 özeti, tensör dosyasının bütün `tensör_yükle` sınırları; biçimde yalnızca veri var (kod, nesne kurma, yol çözme yok); bozuk nokta açık hata, önceki nokta önerilir ([dil tanımı §20](docs/spec/20_kontrol_noktasi.md)); bulanıklaştırma: `FuzzNoktaDosyalari` |
 | `.npy` veri dosyaları | `veri_kümesi` | başlık boyu sınırı, tür ve şekil denetimi |
 | `tokenizer.json` parçalayıcı dosyaları | `parçalayıcı_yükle` | düzenli ifadeler adım bütçesiyle çalışır, üstel geri izlemeye açık ve çok derin iç içe desenler yüklenmez ([kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md)) |
-| CSV ve JSON metinleri | `csv_oku`, `json_çöz` | biçim hataları açık hata verir |
+| CSV ve JSON metinleri | `csv_oku`, `csv_çöz`, `json_çöz` | biçim hataları açık hata verir |
 | `tr derle` ile üretilmiş uygulamanın gömülü paketi | uygulamanın kendisi | bozuk (yarım indirilmiş, kırpılmış) paket açık hata verir, modüller geçici klasörün dışına yazılmaz |
 | Hata ayıklama iletileri | `tr dap` | iletiler standart giriş/çıkıştan gelir; ağ portu açılmaz |
 

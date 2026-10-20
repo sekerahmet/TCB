@@ -95,6 +95,7 @@
   "G600": { "ad": "json_parse" },
   "G601": { "ad": "json_string" },
   "G602": { "ad": "read_csv" },
+  "G603": { "ad": "parse_csv" },
   "G700": { "ad": "assert" },
   "G701": { "ad": "assert_equal" },
   "G800": { "ad": "env" },

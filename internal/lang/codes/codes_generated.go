@@ -103,6 +103,7 @@ const (
 	G600 Code = G + 600 // json_parse · json_çöz
 	G601 Code = G + 601 // json_string · json_metin
 	G602 Code = G + 602 // read_csv · csv_oku
+	G603 Code = G + 603 // parse_csv · csv_çöz
 	G700 Code = G + 700 // assert · doğrula
 	G701 Code = G + 701 // assert_equal · eşit_mi
 	G800 Code = G + 800 // env · ortam_değişkeni
