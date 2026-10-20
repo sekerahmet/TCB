@@ -18,9 +18,9 @@
 package formatter
 
 import (
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"reflect"
@@ -52,7 +52,7 @@ type MeaningChangedError struct {
 }
 
 func (e *MeaningChangedError) Error() string {
-	return "biçimlendirme programın anlamını değiştirecekti, dosyaya dokunulmadı (" + e.Detail + ")"
+	return messages.Text(messages.H8400, e.Detail)
 }
 
 // SyntaxError kaynak ayrıştırılamadığında döner; hatalı kod biçimlenmez.
@@ -61,7 +61,7 @@ type SyntaxError struct {
 }
 
 func (e *SyntaxError) Error() string {
-	return "sözdizimi hatası olan kod biçimlenmez: " + e.Errors[0]
+	return messages.Text(messages.H8401, e.Errors[0])
 }
 
 // Format kaynağı standart biçime getirir. Kaynak ayrıştırılamıyorsa *SyntaxError,
@@ -99,26 +99,26 @@ func SameMeaning(before, after string) error {
 	b1, err1 := source.Split(before)
 	b2, err2 := source.Split(after)
 	if err1 != nil || err2 != nil || b1.Coded != b2.Coded {
-		return &MeaningChangedError{Detail: "dosyanın biçimi (kodlu ya da Türkçe yazım) değişti"}
+		return &MeaningChangedError{Detail: messages.Text(messages.H8402)}
 	}
 	p1 := parser.New(b1.Lexer())
 	prog1 := p1.ParseProgram()
 	p2 := parser.New(b2.Lexer())
 	prog2 := p2.ParseProgram()
 	if len(p2.Errors()) > 0 {
-		return &MeaningChangedError{Detail: "biçimlenmiş kod ayrıştırılamadı: " + p2.Errors()[0]}
+		return &MeaningChangedError{Detail: messages.Text(messages.H8403, p2.Errors()[0])}
 	}
 	t1, t2 := tokens(b1.Body, b1.Coded), tokens(b2.Body, b2.Coded)
 	if len(t1) != len(t2) {
-		return &MeaningChangedError{Detail: "sözcük birimi sayısı değişti"}
+		return &MeaningChangedError{Detail: messages.Text(messages.H8404)}
 	}
 	for i := range t1 {
 		if t1[i].Type != t2[i].Type || t1[i].Code != t2[i].Code || t1[i].Literal != t2[i].Literal {
-			return &MeaningChangedError{Detail: fmt.Sprintf("satır %d: %q sözcüğü değişti", t2[i].Line, t1[i].Literal)}
+			return &MeaningChangedError{Detail: messages.Text(messages.H8405, t2[i].Line, t1[i].Literal)}
 		}
 	}
 	if prog1.String() != prog2.String() {
-		return &MeaningChangedError{Detail: "AST farklı"}
+		return &MeaningChangedError{Detail: messages.Text(messages.H8406)}
 	}
 	return nil
 }

@@ -3,6 +3,8 @@ package profiler
 import (
 	"fmt"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Görüntünün metin biçimleri: canlı ekran (terminal), düz özet satırı (terminal değilken
@@ -22,15 +24,15 @@ func ScreenLines(g *Snapshot, e Screen) []string {
 		w = 80
 	}
 	var s []string
-	add := func(f string, a ...any) { s = append(s, trim(fmt.Sprintf(f, a...), w)) }
-	add("⏱ izleniyor: %s · %s · durdurmak için Ctrl+C", g.Program, durationText(g.Seconds))
+	add := func(line string) { s = append(s, trim(line, w)) }
+	add("⏱ " + messages.Text(messages.H8260, g.Program, durationText(g.Seconds)))
 	p := g.Window
 	if p == nil {
 		p = &WindowInfo{}
 	}
 	switch {
 	case g.Step == nil:
-		add("Adım       %s", noStep())
+		add(messages.Text(messages.H8261, noStep()))
 	default:
 		a := g.Step
 		ad := full(a.Count)
@@ -43,31 +45,31 @@ func ScreenLines(g *Snapshot, e Screen) []string {
 		}
 		remaining := ""
 		if a.Total > a.Count && rate > 0 {
-			remaining = " · kalan ~" + durationText(float64(a.Total-a.Count)/rate)
+			remaining = " · " + messages.Text(messages.H8262, durationText(float64(a.Total-a.Count)/rate))
 		}
-		add("Adım       %s · %s ms/adım · %s adım/sn%s", ad, count(ms), count(rate), remaining)
+		add(messages.Text(messages.H8263, ad, count(ms), count(rate), remaining))
 	}
-	add("Zaman      tensör işlemleri %s · geri kalanı (TR kodu, bekleme) %s   (son %s)",
-		percent(p.TensorShare), percent(max(0, 1-p.TensorShare)), durationText(p.Seconds))
+	add(messages.Text(messages.H8264,
+		percent(p.TensorShare), percent(max(0, 1-p.TensorShare)), durationText(p.Seconds)))
 	s = append(s, "")
 	s = append(s, opTable(p.Ops, p.Step, p.Seconds, w, 10)...)
 	if g.GPU.Used {
-		add("GPU        %s", gpuWindowText(g.GPU, p))
+		add(messages.Text(messages.H8265, gpuWindowText(g.GPU, p)))
 	}
 	if g.Sampling != nil {
 		s = append(s, "")
 		s = append(s, lineTable(p.Lines, w, 5)...)
 	}
 	s = append(s, "")
-	add("Bellek     Go yığını %s · CPU tensör ayırması %s%s", nBytes(int64(g.Memory.GoHeap)),
-		allocRate(p.CPUTensorAlloc, p.Step, p.Seconds), gpuMemory(g.GPU))
-	add("Çöp top.   %d kez, toplam duraklama %s (son %s: %d kez, %s)", g.GC.Count, durationText(g.GC.PauseSec),
-		durationText(p.Seconds), p.GCCount, durationText(p.PauseSec))
+	add(messages.Text(messages.H8266, nBytes(int64(g.Memory.GoHeap)),
+		allocRate(p.CPUTensorAlloc, p.Step, p.Seconds), gpuMemory(g.GPU)))
+	add(messages.Text(messages.H8267, g.GC.Count, durationText(g.GC.PauseSec),
+		durationText(p.Seconds), p.GCCount, durationText(p.PauseSec)))
 	if e.OutputFile != "" || len(e.LastOutput) > 0 {
 		s = append(s, "")
-		add("Programın çıktısı (tamamı: %s)", e.OutputFile)
+		add(messages.Text(messages.H8268, e.OutputFile))
 		for _, c := range e.LastOutput {
-			add("  │ %s", c)
+			add("  │ " + c)
 		}
 	}
 	return s
@@ -76,15 +78,15 @@ func ScreenLines(g *Snapshot, e Screen) []string {
 // opTable en pahalı n işlemin tablosudur (pencere): adım varsa adım başına.
 func opTable(is []OpInfo, step int64, dur float64, w, n int) []string {
 	if len(is) == 0 {
-		return []string{tensorOps() + ": yok"}
+		return []string{messages.Text(messages.H8238, tensorOps())}
 	}
 	nameW := max(20, min(36, w-40))
-	header := tensorOps() + " (en pahalı)"
-	unit, callUnit := "ms", "çağrı/sn"
+	header := messages.Text(messages.H8269, tensorOps())
+	unit, callUnit := "ms", messages.Text(messages.H8270)
 	if step > 0 {
-		unit, callUnit = "ms/adım", "çağrı/adım"
+		unit, callUnit = messages.Text(messages.H8242), messages.Text(messages.H8271)
 	}
-	s := []string{trim(left(header, nameW+2)+right("pay", 6)+right(unit, 10)+right(callUnit, 12)+right("cihaz", 7), w)}
+	s := []string{trim(left(header, nameW+2)+right(messages.Text(messages.H8240), 6)+right(unit, 10)+right(callUnit, 12)+right(messages.Text(messages.H8244), 7), w)}
 	for i, b := range is {
 		if i == n {
 			break
@@ -103,9 +105,9 @@ func opTable(is []OpInfo, step int64, dur float64, w, n int) []string {
 // lineTable en sıcak n satırdır.
 func lineTable(ss []LineInfo, w, n int) []string {
 	if len(ss) == 0 {
-		return []string{"Sıcak satırlar: henüz örnek yok"}
+		return []string{messages.Text(messages.H8272)}
 	}
-	s := []string{trim(left("Sıcak satırlar (öz süre)", 34)+right("pay", 6)+right("tensörde", 9), w)}
+	s := []string{trim(left(messages.Text(messages.H8273), 34)+right(messages.Text(messages.H8240), 6)+right(messages.Text(messages.H8274), 9), w)}
 	for i, b := range ss {
 		if i == n {
 			break
@@ -123,11 +125,11 @@ func gpuWindowText(g GPUInfo, p *WindowInfo) string {
 		return g.Note
 	}
 	if p.GPUSec <= 0 {
-		return "çekirdekler: bu pencerede ölçüm yok"
+		return messages.Text(messages.H8275)
 	}
-	m := "çekirdekler " + percent(p.GPUShare) + " meşgul"
+	m := messages.Text(messages.H8276, percent(p.GPUShare))
 	if p.Step > 0 {
-		m += " · " + msText(p.GPUSec*1000/float64(p.Step)) + " ms/adım"
+		m += " · " + messages.Text(messages.H8251, msText(p.GPUSec*1000/float64(p.Step)))
 	}
 	return m + " · " + familySummary(p.GPUFamilies, 3)
 }
@@ -147,10 +149,10 @@ func familySummary(families []KernelInfo, n int) string {
 // allocRate ayrılan baytı adım başına (adım varsa) ya da saniye başına yazar.
 func allocRate(n, step int64, dur float64) string {
 	if step > 0 {
-		return nBytes(n/step) + "/adım"
+		return messages.Text(messages.H8277, nBytes(n/step))
 	}
 	if dur > 0 {
-		return nBytes(int64(float64(n)/dur)) + "/sn"
+		return messages.Text(messages.H8278, nBytes(int64(float64(n)/dur)))
 	}
 	return nBytes(n)
 }
@@ -163,7 +165,7 @@ func gpuMemory(g GPUInfo) string {
 		if len(g.Memory) > 1 {
 			ad = fmt.Sprintf("GPU %d", b.Device)
 		}
-		p = append(p, fmt.Sprintf("%s canlı %s (ayrılmış %s, tepe %s)", ad, nBytes(int64(b.Live)),
+		p = append(p, messages.Text(messages.H8279, ad, nBytes(int64(b.Live)),
 			nBytes(int64(b.Allocated)), nBytes(int64(b.PeakLive))))
 	}
 	if len(p) == 0 {
@@ -177,7 +179,7 @@ func SummaryLine(g *Snapshot) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "⏱ %s", durationText(g.Seconds))
 	if g.Step != nil {
-		fmt.Fprintf(&b, " · adım %s", full(g.Step.Count))
+		b.WriteString(" · " + messages.Text(messages.H8280, full(g.Step.Count)))
 		if g.Step.Total > 0 {
 			fmt.Fprintf(&b, "/%s", full(g.Step.Total))
 		}
@@ -185,13 +187,13 @@ func SummaryLine(g *Snapshot) string {
 		if g.Window != nil && g.Window.Step > 0 {
 			ms = g.Window.MsPerStep
 		}
-		fmt.Fprintf(&b, " · %s ms/adım", count(ms))
+		b.WriteString(" · " + messages.Text(messages.H8251, count(ms)))
 	}
 	share, is := g.Tensor.Share, g.Tensor.Ops
 	if g.Window != nil {
 		share, is = g.Window.TensorShare, g.Window.Ops
 	}
-	fmt.Fprintf(&b, " · tensör %s", percent(share))
+	b.WriteString(" · " + messages.Text(messages.H8247, percent(share)))
 	var p []string
 	for i, x := range is {
 		if i == 3 {
@@ -203,8 +205,8 @@ func SummaryLine(g *Snapshot) string {
 		fmt.Fprintf(&b, " (%s)", strings.Join(p, ", "))
 	}
 	if g.Window != nil && len(g.Window.Lines) > 0 {
-		fmt.Fprintf(&b, " · satır %s %s", linePos(g.Window.Lines[0]), percent(g.Window.Lines[0].Share))
+		b.WriteString(" · " + messages.Text(messages.H8281, linePos(g.Window.Lines[0]), percent(g.Window.Lines[0].Share)))
 	}
-	fmt.Fprintf(&b, " · Go yığını %s · çöp toplama %d (%s)", nBytes(int64(g.Memory.GoHeap)), g.GC.Count, durationText(g.GC.PauseSec))
+	b.WriteString(" · " + messages.Text(messages.H8282, nBytes(int64(g.Memory.GoHeap)), g.GC.Count, durationText(g.GC.PauseSec)))
 	return b.String()
 }

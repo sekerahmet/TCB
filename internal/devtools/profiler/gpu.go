@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // GPU bağlantısı: çekirdek süreleri ve GPU belleği GPU arka ucunun kendi profilinden okunur
@@ -97,7 +98,7 @@ func gpuDelta(a, before map[string]gpu.KernelSample) (kernels, families []Kernel
 // gpuInfo profil başından (taban) a anına kadarki GPU ölçümleridir.
 func (p *Profile) gpuInfo(a gpuSnap) GPUInfo {
 	if len(a.memory) == 0 {
-		return GPUInfo{Note: "GPU kullanılmadı"}
+		return GPUInfo{Note: messages.Text(messages.H8203)}
 	}
 	p.mu.Lock()
 	measured, summary := p.gpuMeasured, p.gpuSummary
@@ -109,9 +110,9 @@ func (p *Profile) gpuInfo(a gpuSnap) GPUInfo {
 	g.Kernels = g.Kernels[:min(len(g.Kernels), maxKernels)]
 	switch {
 	case !g.Measured:
-		g.Note = "çekirdek süreleri ölçülmüyor (tr izle ve tr profil ölçer; ya da TR_GPU_PROFIL=1)"
+		g.Note = messages.Text(messages.H8204)
 	case len(g.Kernels) == 0:
-		g.Note = "henüz çekirdek ölçümü yok"
+		g.Note = messages.Text(messages.H8205)
 	}
 	for _, b := range a.memory {
 		g.Memory = append(g.Memory, GPUMemory{

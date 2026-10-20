@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Terminal hata ayıklayıcısının komut tabloları ve yardım metni. Her komutun tek yazımı
 // vardır (F tuşları dışında); eski kısaltmalar ve eşler yalnızca ipucu verir.
 
 // keyGuide komut isteminde gösterilen kısa tuş listesidir.
-const keyGuide = "F5:devam | F10:geç | F11:adım | Shift+F11:dön | değiştir | zıpla | tablo | izle"
+func keyGuide() string { return messages.Text(messages.H8000) }
 
 // oldKeys önceki sürümün terminal tuşlarıdır (f5 adım, f6 geç, f7 dön, f8 devam). Bu
 // tuşlar artık düzenleyicinin hata ayıklama tuşlarıyla aynı anlamda kullanılır; eski
@@ -37,18 +38,18 @@ var oldCommands = map[string]string{
 }
 
 func (d *Debugger) printDebugHelp() {
-	fmt.Println("\n  🛠️  TR HATA AYIKLAYICI KOMUT REHBERİ:")
-	fmt.Println("  (Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır; tuş adını yazıp Enter'a basın.)")
-	fmt.Println("  • f11 / adım / Enter      : Tek adım ilerle (Fonksiyonların içine girer)")
-	fmt.Println("  • f10 / geç               : Üstten geç (Fonksiyonu tek adımda çalıştırır)")
-	fmt.Println("  • shift+f11 / dön         : Mevcut fonksiyondan çıkana kadar çalıştır")
-	fmt.Println("  • f5 / devam              : Sonraki kesme veya izleme noktasına kadar devam et")
-	fmt.Println("  • değiştir x = 100        : ✏️ Çalışma anında 'x' değişkeninin değerini canlı değiştir!")
-	fmt.Println("  • zıpla 15                : ⏭️ Çalışma sırasını 15. satıra geri/ileri taşı!")
-	fmt.Println("  • izle bakiye < 0         : 👁️ (Watchpoint) Koşul sağlandığında veya değişken değiştiğinde dur!")
-	fmt.Println("  • kesme 20                : 🔴 20. satıra kesme noktası (Breakpoint) ekle/kaldır")
-	fmt.Printf("  • tablo liste_adı         : 📋 %s, %s ya da %s değerini tablo görünümünde aç\n", interp.VAL_LIST, interp.VAL_TENSOR, interp.VAL_DICT)
-	fmt.Println("  • yığın                   : 📚 Çağrı yığınını (Call Stack) göster")
-	fmt.Println("  • hesapla x * 2           : 💡 Bir TR ifadesini anında hesapla")
-	fmt.Println("  • çıkış                   : Hata ayıklayıcıyı sonlandır")
+	fmt.Println("\n  🛠️  " + messages.Text(messages.H8010))
+	fmt.Println("  " + messages.Text(messages.H8011))
+	fmt.Println("  • " + messages.Text(messages.H8012))
+	fmt.Println("  • " + messages.Text(messages.H8013))
+	fmt.Println("  • " + messages.Text(messages.H8014))
+	fmt.Println("  • " + messages.Text(messages.H8015))
+	fmt.Println("  • " + messages.Text(messages.H8016))
+	fmt.Println("  • " + messages.Text(messages.H8017))
+	fmt.Println("  • " + messages.Text(messages.H8018))
+	fmt.Println("  • " + messages.Text(messages.H8019))
+	fmt.Println("  • " + messages.Text(messages.H8020, interp.VAL_LIST, interp.VAL_TENSOR, interp.VAL_DICT))
+	fmt.Println("  • " + messages.Text(messages.H8021))
+	fmt.Println("  • " + messages.Text(messages.H8022))
+	fmt.Println("  • " + messages.Text(messages.H8023))
 }

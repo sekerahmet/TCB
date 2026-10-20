@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"sort"
 	"strconv"
 	"strings"
@@ -93,7 +94,7 @@ func children(val interp.Value, expr string) []dapChild {
 			out = append(out, dapChild{name: fmt.Sprintf("[%d]", i), expr: fmt.Sprintf("%s[%d]", expr, i), val: el})
 		}
 		if n > repeatLimit {
-			out = append(out, dapChild{name: "…", note: fmt.Sprintf("ilk %d öğe gösteriliyor (toplam %d)", repeatLimit, n)})
+			out = append(out, dapChild{name: "…", note: messages.Text(messages.H8150, repeatLimit, n)})
 		}
 	case *interp.ListVal:
 		for i, el := range v.Elements {
@@ -223,19 +224,19 @@ func (s *dapServer) setVariable(msg *dapMessage) {
 	_ = json.Unmarshal(msg.Arguments, &a)
 	h := s.handles[a.VariablesReference]
 	if h == nil {
-		s.respondErr(msg, "Değişken bulunamadı")
+		s.respondErr(msg, messages.Text(messages.H8151))
 		return
 	}
 	val, err := s.evalQuiet(s.curVM, s.curEnv, a.Value)
 	if err != nil {
-		s.respondErr(msg, "Değer hesaplanamadı: %v", err)
+		s.respondErr(msg, messages.Text(messages.H8152, err))
 		return
 	}
 	expr := a.Name
 	switch {
 	case h.value == nil:
 		if err := h.scope.Assign(a.Name, val); err != nil {
-			s.respondErr(msg, "%v", err)
+			s.respondErr(msg, err.Error())
 			return
 		}
 	default:
@@ -261,16 +262,16 @@ func (s *dapServer) setVariable(msg *dapMessage) {
 				// Dış değerler (ör. tensör satırı ya da elemanı): değer[i] = yeni değer
 				idx, _ := strconv.Atoi(strings.Trim(a.Name, "[]"))
 				if err := container.SetIndex(interp.NewInt(int64(idx)), val); err != nil {
-					s.respondErr(msg, "%v", err)
+					s.respondErr(msg, err.Error())
 					return
 				}
 			default:
-				s.respondErr(msg, "Bu değerin elemanları değiştirilemez")
+				s.respondErr(msg, messages.Text(messages.H8153))
 				return
 			}
 		}
 		if !found {
-			s.respondErr(msg, "Eleman bulunamadı: %s", a.Name)
+			s.respondErr(msg, messages.Text(messages.H8154, a.Name))
 			return
 		}
 	}

@@ -62,7 +62,6 @@ var ciplakAdIzinleri = map[string]map[string]string{
 		"Fonksiyon": "hata türü başlığı: Fonksiyon çağrısı tip hatası",
 		"Tip":       "hata türü başlığı: Tip uyuşmazlığı",
 	},
-	"cmd/tr/hazirlik.go": {"Tip": "başlık: Tip ve Güvenlik Denetimi Hataları"},
 	// Sözdizimi yardımındaki yer tutucu: "ad: Tip" herhangi bir tip adı demektir.
 	"internal/lang/parser/struct.go": {"Tip": "yer tutucu: ad: Tip (herhangi bir tip adı)"},
 }

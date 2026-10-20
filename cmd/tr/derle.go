@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"os"
 	"path/filepath"
@@ -78,22 +78,22 @@ func paketiAyikla(ikili []byte) (pk *paket, sablonBoyu int, bulundu bool, err er
 		uzunluk := binary.LittleEndian.Uint64(ikili[n-20 : n-12])
 		surum := binary.LittleEndian.Uint32(ikili[n-12 : n-8])
 		if uzunluk > uint64(n-altbilgiBoyu) {
-			return nil, 0, true, errors.New("gömülü paketin uzunluk alanı bozuk")
+			return nil, 0, true, messages.New(messages.H8750)
 		}
 		bas := n - altbilgiBoyu - int(uzunluk)
 		if surum < 2 || surum > paketSurumu {
-			return nil, bas, true, fmt.Errorf("gömülü paket sürümü %d desteklenmiyor (bu yorumlayıcı en çok %d sürümünü okur; uygulamayı daha yeni bir 'tr' ile derlenmiş olabilir)", surum, paketSurumu)
+			return nil, bas, true, messages.New(messages.H8751, surum, paketSurumu)
 		}
 		pk = &paket{}
 		if err := json.Unmarshal(ikili[bas:n-altbilgiBoyu], pk); err != nil {
-			return nil, bas, true, fmt.Errorf("gömülü paket çözülemedi: %v", err)
+			return nil, bas, true, messages.New(messages.H8752, err)
 		}
 		return pk, bas, true, nil
 	case n >= eskiAltbilgiBoyu && string(ikili[n-8:]) == eskiPaketImzasi:
 		// Sürüm 1: modülsüz, yalnızca ana programın kaynağı.
 		uzunluk := binary.LittleEndian.Uint64(ikili[n-16 : n-8])
 		if uzunluk == 0 || uzunluk > uint64(n-eskiAltbilgiBoyu) {
-			return nil, 0, true, errors.New("gömülü kodun uzunluk alanı bozuk")
+			return nil, 0, true, messages.New(messages.H8753)
 		}
 		bas := n - eskiAltbilgiBoyu - int(uzunluk)
 		kod := string(ikili[bas : n-eskiAltbilgiBoyu])
@@ -137,7 +137,7 @@ func gomuluPaketiBul() (*paket, bool, error) {
 		return nil, false, nil
 	}
 	if boy < altbilgi {
-		return nil, true, errors.New("gömülü paketin altbilgisi eksik")
+		return nil, true, messages.New(messages.H8754)
 	}
 	uzunlukBaytlari := make([]byte, 8)
 	if _, err := f.ReadAt(uzunlukBaytlari, boy-altbilgi); err != nil {
@@ -145,7 +145,7 @@ func gomuluPaketiBul() (*paket, bool, error) {
 	}
 	uzunluk := binary.LittleEndian.Uint64(uzunlukBaytlari)
 	if uzunluk > uint64(boy-altbilgi) {
-		return nil, true, errors.New("gömülü paketin uzunluk alanı bozuk")
+		return nil, true, messages.New(messages.H8750)
 	}
 	kuyruk := make([]byte, int64(uzunluk)+altbilgi)
 	if _, err := f.ReadAt(kuyruk, boy-int64(len(kuyruk))); err != nil {
@@ -225,14 +225,14 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 	for _, y := range yerler {
 		if ad, ok := interp.LibraryModule(y.yol); ok {
 			if _, err := interp.ReadLibrary(ad); err != nil {
-				return fmt.Errorf("%s, satır %d: %v", kaynakYolu, y.satir, err)
+				return messages.New(messages.H8755, kaynakYolu, y.satir, err)
 			}
 			dosya.Aktarimlar = append(dosya.Aktarimlar, kitaplikAktarimi)
 			continue
 		}
 		cozulen, aranan, ok := modulYolunuCoz(y.yol, kaynakYolu, t.ana)
 		if !ok {
-			return fmt.Errorf("%s, satır %d: %q modülü bulunamadı (aranan: %s)", kaynakYolu, y.satir, y.yol, strings.Join(aranan, ", "))
+			return messages.New(messages.H8756, kaynakYolu, y.satir, y.yol, strings.Join(aranan, ", "))
 		}
 		mutlak, err := filepath.Abs(cozulen)
 		if err != nil {
@@ -244,7 +244,7 @@ func (t *modulToplayici) topla(dosya *paketDosyasi, kaynakYolu string) error {
 		}
 		veri, err := os.ReadFile(cozulen)
 		if err != nil {
-			return fmt.Errorf("%s, satır %d: %q modülü okunamadı: %v", kaynakYolu, y.satir, y.yol, err)
+			return messages.New(messages.H8757, kaynakYolu, y.satir, y.yol, err)
 		}
 		modul := paketDosyasi{Ad: filepath.ToSlash(cozulen), Kod: string(veri)}
 		// Modül yorumlayıcıdaki 'aktar' ile aynı denetimden geçer (sözdizimi, üst düzey
@@ -275,7 +275,7 @@ type modulDenetimHatasi struct {
 }
 
 func (e *modulDenetimHatasi) Error() string {
-	return fmt.Sprintf("%s modülünde %s hatası: %s", e.yol, e.tur, e.hatalar[0])
+	return messages.Text(messages.H8758, e.yol, e.tur, e.hatalar[0])
 }
 
 // paketHazirla ana programı ve aktardığı tüm modülleri içeren paketi kurar.
@@ -316,9 +316,9 @@ func islemciNotuMetni(mimari, duzey string) string {
 	}
 	switch duzey {
 	case "v3":
-		return "⚠️  Not: Yorumlayıcı GOAMD64=v3 ile derlendiği için bu uygulama AVX2 destekli (x86-64-v3) bir işlemci ister."
+		return "⚠️  " + messages.Text(messages.H8759)
 	case "v4":
-		return "⚠️  Not: Yorumlayıcı GOAMD64=v4 ile derlendiği için bu uygulama AVX-512 destekli (x86-64-v4) bir işlemci ister."
+		return "⚠️  " + messages.Text(messages.H8760)
 	}
 	return ""
 }
@@ -327,25 +327,25 @@ func islemciNotuMetni(mimari, duzey string) string {
 // yorumlayıcının bir kopyasının sonuna paket olarak ekler.
 func compileToExe(srcPath string, outPath string) {
 	code, _ := dosyaHazirla(srcPath, derlemeHazirligi)
-	pk := modulleriDenetle(srcPath, code, derlemeHazirligi, "❌ Derleme hatası:")
+	pk := modulleriDenetle(srcPath, code, derlemeHazirligi, "❌ "+messages.Text(messages.H8761))
 
 	if outPath == "" {
 		base := strings.TrimSuffix(srcPath, filepath.Ext(srcPath))
 		outPath = base + ".exe"
 	}
 	if err := ciktiYoluDenetle(srcPath, outPath); err != nil {
-		fmt.Fprintf(os.Stderr, "❌ Derleme hatası: %v\n", err)
+		fmt.Fprintf(os.Stderr, "❌ %s %v\n", messages.Text(messages.H8761), err)
 		os.Exit(1)
 	}
 
 	exePath, err := os.Executable()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Derleyici ikili dosyası okunamadı: %v\n", err)
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8762, err))
 		os.Exit(1)
 	}
 	baseExeBytes, err := os.ReadFile(exePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Derleyici şablonu okunamadı: %v\n", err)
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8763, err))
 		os.Exit(1)
 	}
 	// Şablonun sonunda zaten bir paket varsa (her iki biçim) atılır.
@@ -355,7 +355,7 @@ func compileToExe(srcPath string, outPath string) {
 
 	paketBaytlari, err := paketiKodla(pk)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "❌ Paket oluşturma hatası: %v\n", err)
+		fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8764, err))
 		os.Exit(1)
 	}
 	outBuf := make([]byte, 0, len(baseExeBytes)+len(paketBaytlari))
@@ -367,22 +367,22 @@ func compileToExe(srcPath string, outPath string) {
 	gecici := outPath + ".yaziliyor"
 	if err := os.WriteFile(gecici, outBuf, 0755); err != nil {
 		os.Remove(gecici)
-		fmt.Fprintf(os.Stderr, "❌ .exe oluşturma hatası: %v\n", err)
+		fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8765, err))
 		os.Exit(1)
 	}
 	if err := os.Rename(gecici, outPath); err != nil {
 		os.Remove(gecici)
-		fmt.Fprintf(os.Stderr, "❌ .exe oluşturma hatası: %v\n", err)
+		fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8765, err))
 		os.Exit(1)
 	}
 
-	fmt.Printf("🚀 Başarıyla derlendi! Bağımsız ve taşınabilir .exe hazır: %s\n", outPath)
+	fmt.Println("🚀 " + messages.Text(messages.H8766, outPath))
 	if len(pk.Moduller) > 0 {
 		adlar := make([]string, len(pk.Moduller))
 		for i, m := range pk.Moduller {
 			adlar[i] = m.Ad
 		}
-		fmt.Printf("📦 Gömülen modüller (%d): %s\n", len(adlar), strings.Join(adlar, ", "))
+		fmt.Println("📦 " + messages.Text(messages.H8767, len(adlar), strings.Join(adlar, ", ")))
 	}
 	if not := islemciNotu(); not != "" {
 		fmt.Println(not)
@@ -393,7 +393,7 @@ func compileToExe(srcPath string, outPath string) {
 // çıktı kaynağın kendisi (aynı dosya) ya da .tr uzantılı bir dosya olamaz.
 func ciktiYoluDenetle(srcPath, outPath string) error {
 	if strings.EqualFold(filepath.Ext(outPath), ".tr") {
-		return fmt.Errorf("çıktı yolu %q bir .tr kaynak dosyası; uygulama .tr dosyasının üzerine yazılmaz (ör. %s yazın)", outPath, strings.TrimSuffix(outPath, filepath.Ext(outPath))+".exe")
+		return messages.New(messages.H8768, outPath, strings.TrimSuffix(outPath, filepath.Ext(outPath))+".exe")
 	}
 	ayni := false
 	if a, err := filepath.Abs(srcPath); err == nil {
@@ -407,7 +407,7 @@ func ciktiYoluDenetle(srcPath, outPath string) error {
 		}
 	}
 	if ayni {
-		return fmt.Errorf("çıktı yolu %q kaynak dosyanın kendisi; uygulama kaynağın üzerine yazılmaz", outPath)
+		return messages.New(messages.H8769, outPath)
 	}
 	return nil
 }
@@ -426,7 +426,7 @@ func metinSabiti(s string) string {
 func aktarlariYonlendir(d paketDosyasi, yollar []string) (string, error) {
 	yerler := aktarYerleri(d.Kod)
 	if len(yerler) != len(d.Aktarimlar) {
-		return "", fmt.Errorf("gömülü paket bozuk: %q dosyasında %d aktarım var, pakette %d kayıtlı", d.Ad, len(yerler), len(d.Aktarimlar))
+		return "", messages.New(messages.H8770, d.Ad, len(yerler), len(d.Aktarimlar))
 	}
 	if len(yerler) == 0 {
 		return d.Kod, nil
@@ -441,7 +441,7 @@ func aktarlariYonlendir(d paketDosyasi, yollar []string) (string, error) {
 			continue // dilin kitaplığı: yol olduğu gibi kalır
 		}
 		if hedef < 0 || hedef >= len(yollar) {
-			return "", fmt.Errorf("gömülü paket bozuk: %q dosyasında geçersiz modül sırası %d", d.Ad, hedef)
+			return "", messages.New(messages.H8771, d.Ad, hedef)
 		}
 		sb.WriteString(string(girdi[onceki:y.bas]))
 		sb.WriteString(metinSabiti(filepath.ToSlash(yollar[hedef])))
@@ -485,7 +485,7 @@ func gomuluUygulamayiCalistir(pk *paket) {
 	if len(pk.Moduller) > 0 {
 		klasor, err := os.MkdirTemp("", "tr-uygulama-*")
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ Gömülü modüller açılamadı: %v\n", err)
+			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8772, err))
 			os.Exit(1)
 		}
 		cikisTemizligi = append(cikisTemizligi, func() { os.RemoveAll(klasor) })
@@ -494,11 +494,11 @@ func gomuluUygulamayiCalistir(pk *paket) {
 			kod, err = aktarlariYonlendir(pk.Ana, yollar)
 		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ Gömülü modüller açılamadı: %v\n", err)
+			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8772, err))
 			cik(1)
 		}
 	} else if slices.ContainsFunc(pk.Ana.Aktarimlar, func(i int) bool { return i != kitaplikAktarimi }) {
-		fmt.Fprintln(os.Stderr, "❌ Gömülü paket bozuk: aktarılan modüller pakette yok")
+		fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8773))
 		os.Exit(1)
 	}
 

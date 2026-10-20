@@ -18,6 +18,11 @@ import (
 // kullanılmaz (her ileti bir koddur). Geçiş ilerledikçe liste büyür; bkz.
 // internal/lang/messages/README.md.
 var migrated = []string{
+	"cmd/tr",
+	"internal/devtools/debugger",
+	"internal/devtools/formatter",
+	"internal/devtools/profiler",
+	"internal/devtools/testrunner",
 	"internal/lang/turkish",
 	"internal/stdlib/common/bind",
 	"internal/stdlib/formats",

@@ -12,6 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"os"
@@ -91,7 +92,7 @@ func NewDebugger(sourceFile string, sourceCode string, startPaused bool) *Debugg
 		Watchpoints: []*Watchpoint{},
 		Reader:      interp.StdinReader(),
 		Active:      true,
-		PauseReason: "Başlangıç (/h Hata Ayıklama Modu)",
+		PauseReason: messages.Text(messages.H8030),
 	}
 }
 
@@ -146,7 +147,7 @@ func (d *Debugger) BeforeStatement(v *interp.VM, stmt ast.Statement, env *interp
 	// 2. Satır kesme noktası (Breakpoint) kontrolü
 	if !shouldPause && (bpHit || (d.dap == nil && own && d.Breakpoints[line])) {
 		shouldPause = true
-		d.PauseReason = fmt.Sprintf("Kesme Noktası (Satır %d)", line)
+		d.PauseReason = messages.Text(messages.H8031, line)
 		d.pauseKind = "breakpoint"
 	}
 
@@ -173,7 +174,7 @@ func (d *Debugger) stepPause(depth int) bool {
 	switch d.Mode {
 	case StepInto:
 		if d.PauseReason == "" {
-			d.PauseReason = stateStep
+			d.PauseReason = stateStep()
 		}
 		if d.pauseKind == "" {
 			d.pauseKind = "step"
@@ -181,12 +182,12 @@ func (d *Debugger) stepPause(depth int) bool {
 		return true
 	case StepOver:
 		if depth <= d.TargetDepth {
-			d.PauseReason, d.pauseKind = stateStepOver, "step"
+			d.PauseReason, d.pauseKind = stateStepOver(), "step"
 			return true
 		}
 	case StepOut:
 		if depth < d.TargetDepth {
-			d.PauseReason, d.pauseKind = stateStepOut, "step"
+			d.PauseReason, d.pauseKind = stateStepOut(), "step"
 			return true
 		}
 	}
@@ -224,7 +225,7 @@ func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) strin
 						curStr := interp.TRUE.Inspect()
 						if wp.LastVal != curStr {
 							wp.LastVal = curStr
-							return fmt.Sprintf("⚡ İZLEME NOKTASI (Watchpoint #%d): '%s' koşulu sağlandı!", wp.ID, wp.Expression)
+							return "⚡ " + messages.Text(messages.H8032, wp.ID, wp.Expression)
 						}
 					} else {
 						wp.LastVal = interp.FALSE.Inspect()
@@ -234,7 +235,7 @@ func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) strin
 		} else {
 			if val, ok := env.Get(wp.Expression); ok {
 				if old, changed := wp.observe(val); changed {
-					return fmt.Sprintf("⚡ İZLEME NOKTASI (Watchpoint #%d): %q değişti (%s -> %s)", wp.ID, wp.Expression, v.Mask(old), v.Mask(wp.LastVal))
+					return "⚡ " + messages.Text(messages.H8033, wp.ID, wp.Expression, v.Mask(old), v.Mask(wp.LastVal))
 				}
 			}
 		}
@@ -243,18 +244,16 @@ func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) strin
 }
 
 // Adımlama sonrası durum metinleri; terminalde ve düzenleyicide aynıdır.
-const (
-	stateStep     = "Adım (F11)"
-	stateStepOver = "Üstten geçildi (F10)"
-	stateStepOut  = "Fonksiyondan çıkıldı (Shift+F11)"
-)
+func stateStep() string     { return messages.Text(messages.H8034) }
+func stateStepOver() string { return messages.Text(messages.H8035) }
+func stateStepOut() string  { return messages.Text(messages.H8036) }
 
 func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) int {
 	d.renderDebugScreen(v, line, env)
 	d.PauseReason = ""
 
 	for {
-		fmt.Print("\n[TR Hata Ayıklayıcı] (" + keyGuide + ") > ")
+		fmt.Print("\n" + messages.Text(messages.H8001, keyGuide()))
 		input, err := d.Reader.ReadString('\n')
 		if err != nil {
 			d.Mode = StepContinue
@@ -273,11 +272,11 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 		cmd := strings.ToLower(parts[0])
 
 		if fresh, ok := oldKeys[cmd]; ok {
-			fmt.Printf("  ⚠️ Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '%s' yerine %s yazın.\n", cmd, fresh)
+			fmt.Println("  ⚠️ " + messages.Text(messages.H8040, cmd, fresh))
 			continue
 		}
 		if actual, ok := oldCommands[cmd]; ok {
-			fmt.Printf("  ⚠️ '%s' hata ayıklayıcıda bir komut değil; '%s' yazın.\n", cmd, actual)
+			fmt.Println("  ⚠️ " + messages.Text(messages.H8041, cmd, actual))
 			continue
 		}
 
@@ -304,7 +303,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			// değiştir bakiye = 5000
 			rest := strings.TrimSpace(cmdLine[len(parts[0]):])
 			if !strings.Contains(rest, "=") {
-				fmt.Println("  ⚠️ Kullanım: değiştir <değişken> = <yeni_değer>  (Örn: değiştir x = 99)")
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8042))
 				continue
 			}
 			eqParts := strings.SplitN(rest, "=", 2)
@@ -314,13 +313,13 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			p := parser.New(l)
 			prog := p.ParseProgram()
 			if len(p.Errors()) > 0 || len(prog.Statements) == 0 {
-				fmt.Println("  ❌ Geçersiz değer ifadesi.")
+				fmt.Println("  ❌ " + messages.Text(messages.H8043))
 				continue
 			}
 			if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
 				newVal, err := d.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
 				if err != nil {
-					fmt.Printf("  ❌ Hesaplama hatası: %v\n", err)
+					fmt.Println("  ❌ " + messages.Text(messages.H8044, err))
 					continue
 				}
 				if _, exists := env.Get(varName); exists {
@@ -328,17 +327,17 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				} else {
 					env.Define(varName, newVal, false)
 				}
-				fmt.Printf("  ✏️ [CANLI DEĞİŞTİRİLDİ] %s = %s (%s)\n", varName, v.Mask(newVal.Inspect()), newVal.Type())
+				fmt.Println("  ✏️ " + messages.Text(messages.H8045, varName, v.Mask(newVal.Inspect()), newVal.Type()))
 			}
 
 		case "zıpla":
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ Kullanım: zıpla <satır_no>  (Örn: zıpla 15)")
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8046))
 				continue
 			}
 			targetLine, err := strconv.Atoi(parts[1])
 			if err != nil || targetLine < 1 {
-				fmt.Println("  ❌ Geçersiz satır numarası.")
+				fmt.Println("  ❌ " + messages.Text(messages.H8047))
 				continue
 			}
 			// Düzenleyicideki gibi yalnızca duraklanan bloğun satırlarına zıplanabilir;
@@ -349,30 +348,30 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				continue
 			}
 			targetLine = target
-			fmt.Printf("  ⏭️ [SATIRA ZIPLANDI] Akış %d. satıra taşınıyor...\n", targetLine)
+			fmt.Println("  ⏭️ " + messages.Text(messages.H8048, targetLine))
 			d.Mode = StepInto
-			d.PauseReason = fmt.Sprintf("Satır %s zıplandı", turkish.NumberSuffix(int64(targetLine), turkish.Dative))
+			d.PauseReason = messages.Text(messages.H8049, turkish.NumberSuffix(int64(targetLine), turkish.Dative))
 			return targetLine
 
 		case "kesme":
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ Kullanım: kesme <satır_no>  (Örn: kesme 20)")
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8050))
 				continue
 			}
 			bpLine, err := strconv.Atoi(parts[1])
 			if err != nil || bpLine < 1 || bpLine > len(d.SourceLines) {
-				fmt.Println("  ❌ Geçersiz satır numarası.")
+				fmt.Println("  ❌ " + messages.Text(messages.H8047))
 				continue
 			}
 			if !d.toggleBreakpoint(bpLine) {
-				fmt.Printf("  ⚪ %d. satırdaki kesme noktası kaldırıldı.\n", bpLine)
+				fmt.Println("  ⚪ " + messages.Text(messages.H8051, bpLine))
 			} else {
-				fmt.Printf("  🔴 %d. satıra kesme noktası (Breakpoint) eklendi.\n", bpLine)
+				fmt.Println("  🔴 " + messages.Text(messages.H8052, bpLine))
 			}
 
 		case "izle":
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ Kullanım: izle <değişken_veya_koşul>  (Örn: izle toplam  veya  izle bakiye < 0)")
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8053))
 				continue
 			}
 			expr := strings.TrimSpace(cmdLine[len(parts[0]):])
@@ -388,27 +387,27 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				}
 			}
 			d.Watchpoints = append(d.Watchpoints, wp)
-			fmt.Printf("  👁️ İzleme Noktası (Watchpoint #%d) eklendi: %q\n", wp.ID, expr)
+			fmt.Println("  👁️ " + messages.Text(messages.H8054, wp.ID, expr))
 
 		case "tablo":
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ Kullanım: tablo <değişken_adı>")
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8055))
 				continue
 			}
 			d.inspectTable(v, parts[1], env)
 
 		case "yığın":
-			fmt.Println("  📚 ÇAĞRI YIĞINI:")
-			fmt.Printf("    #0 [Aktif] Satır %d\n", line)
+			fmt.Println("  📚 " + messages.Text(messages.H8056))
+			fmt.Println("    " + messages.Text(messages.H8057, line))
 			stack := v.StackSnapshot()
 			for i := len(stack) - 1; i >= 0; i-- {
 				f := stack[i]
-				fmt.Printf("    #%d %s (Çağrıldığı Satır: %d)\n", len(stack)-i, f.FuncName, f.Line)
+				fmt.Println("    " + messages.Text(messages.H8058, len(stack)-i, f.FuncName, f.Line))
 			}
 
 		case "hesapla":
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ Kullanım: hesapla <ifade>  (Örn: hesapla x * 2 + 1)")
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8059))
 				continue
 			}
 			exprStr := strings.TrimSpace(cmdLine[len(parts[0]):])
@@ -419,9 +418,9 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
 					val, err := d.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
 					if err != nil {
-						fmt.Printf("  ❌ Hata: %v\n", err)
+						fmt.Println("  ❌ " + messages.Text(messages.H8060, err))
 					} else {
-						fmt.Printf("  💡 Sonuç (%s): %s\n", val.Type(), v.Mask(val.Inspect()))
+						fmt.Println("  💡 " + messages.Text(messages.H8061, val.Type(), v.Mask(val.Inspect())))
 					}
 				}
 			}
@@ -433,7 +432,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			d.printDebugHelp()
 
 		case "çıkış":
-			fmt.Println("Hata ayıklayıcıdan çıkılıyor...")
+			fmt.Println(messages.Text(messages.H8062))
 			os.Exit(0)
 
 		default:
@@ -441,7 +440,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			if val, ok := env.Get(cmdLine); ok {
 				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, val.Type(), v.Mask(val.Inspect()))
 			} else {
-				fmt.Println("  ❓ Bilinmeyen komut. Yardım için 'yardım' yazın.")
+				fmt.Println("  ❓ " + messages.Text(messages.H8063))
 			}
 		}
 	}
@@ -451,9 +450,9 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 	// Satırlar çalışan deyimin dosyasından gösterilir ('aktar' ile yüklenen modül de olabilir).
 	file := d.fileOf(v, v.CurrentSource())
 	fmt.Println("\n╔══════════════════════════════════════════════════════════════════════════════╗")
-	fmt.Printf("║ 🛠️  TR HATA AYIKLAYICI  | Dosya: %-35s ║\n", file.path)
+	fmt.Println("║ 🛠️  " + messages.Text(messages.H8070, fmt.Sprintf("%-35s", file.path)) + " ║")
 	if d.PauseReason != "" {
-		fmt.Printf("║ 📌 Durum: %-66s ║\n", d.PauseReason)
+		fmt.Println("║ 📌 " + messages.Text(messages.H8071, fmt.Sprintf("%-66s", d.PauseReason)) + " ║")
 	}
 	fmt.Println("╠══════════════════════════════════════════════════════════════════════════════╣")
 
@@ -483,11 +482,11 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 	fmt.Println("╟──────────────────────────────────────────────────────────────────────────────╢")
 	// Yerel ve genel değişkenlerin özeti
 	vars := collectVisibleVariables(v, env)
-	fmt.Printf("  📊 SİSTEM: SY-LINNO=%d | SY-STEP=%d | YIĞIN_DERİNLİĞİ=%d\n", currentLine, d.StepCount, v.StackDepth())
+	fmt.Println("  📊 " + messages.Text(messages.H8072, currentLine, d.StepCount, v.StackDepth()))
 	if len(vars) == 0 {
-		fmt.Println("  📦 DEĞİŞKENLER: (Henüz kullanıcı değişkeni tanımlanmadı)")
+		fmt.Println("  📦 " + messages.Text(messages.H8073))
 	} else {
-		fmt.Println("  📦 DEĞİŞKENLER (Canlı değiştirmek için: 'değiştir ad = değer'):")
+		fmt.Println("  📦 " + messages.Text(messages.H8074))
 		for _, kv := range vars {
 			valPreview := v.Mask(kv.Val.Inspect())
 			if _, engine := kv.Val.(WatchValue); engine && strings.Contains(valPreview, "\n") {
@@ -517,15 +516,15 @@ func singleLine(text string) string {
 func (d *Debugger) inspectTable(v *interp.VM, name string, env *interp.Environment) {
 	val, ok := env.Get(name)
 	if !ok {
-		fmt.Printf("  ❌ %q adında bir değişken bulunamadı.\n", name)
+		fmt.Println("  ❌ " + messages.Text(messages.H8075, name))
 		return
 	}
-	fmt.Printf("\n  📋 TABLO / NESNE İNCELEYİCİ: %s (%s)\n", name, val.Type())
+	fmt.Println("\n  📋 " + messages.Text(messages.H8076, name, val.Type()))
 	fmt.Println("  " + strings.Repeat("─", 56))
 	switch t := val.(type) {
 	case *interp.ListVal:
-		fmt.Printf("  Toplam Satır Sayısı: %d\n", len(t.Elements))
-		fmt.Printf("  %-8s | %-12s | %s\n", "İNDEKS", "TİP", "DEĞER")
+		fmt.Println("  " + messages.Text(messages.H8077, len(t.Elements)))
+		fmt.Printf("  %-8s | %-12s | %s\n", messages.Text(messages.H8078), messages.Text(messages.H8079), messages.Text(messages.H8080))
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for i, el := range t.Elements {
 			fmt.Printf("  [%-6d] | %-12s | %s\n", i, el.Type(), v.Mask(el.Inspect()))
@@ -534,29 +533,29 @@ func (d *Debugger) inspectTable(v *interp.VM, name string, env *interp.Environme
 		// Motor değerleri (ör. tensör): tablo verisi satır satır yazılır.
 		cols, rows, err := t.TableData()
 		if err != nil {
-			fmt.Printf("  %s\n  Değer: %s\n", t.WatchLabel(), v.Mask(val.Inspect()))
+			fmt.Printf("  %s\n  %s\n", t.WatchLabel(), messages.Text(messages.H8081, v.Mask(val.Inspect())))
 			break
 		}
 		fmt.Printf("  %s\n", t.WatchLabel())
-		fmt.Printf("  %-9s | %s\n", "SATIR", strings.Join(cols, " | "))
+		fmt.Printf("  %-9s | %s\n", messages.Text(messages.H8082), strings.Join(cols, " | "))
 		for i, r := range rows {
 			fmt.Printf("  %-9d | %s\n", i, v.Mask(strings.Join(r, " | ")))
 		}
 	case *interp.DictVal:
-		fmt.Printf("  Toplam Alan Sayısı: %d\n", len(t.Order))
-		fmt.Printf("  %-18s | %-12s | %s\n", "ANAHTAR", "TİP", "DEĞER")
+		fmt.Println("  " + messages.Text(messages.H8083, len(t.Order)))
+		fmt.Printf("  %-18s | %-12s | %s\n", messages.Text(messages.H8084), messages.Text(messages.H8079), messages.Text(messages.H8080))
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for _, k := range t.Order {
 			e := t.Pairs[k]
 			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), e.Type(), v.Mask(e.Inspect()))
 		}
 	case *interp.StructInstanceVal:
-		fmt.Printf("  Yapı Türü: %s\n", t.Def.Name)
+		fmt.Println("  " + messages.Text(messages.H8085, t.Def.Name))
 		for k, e := range t.Fields {
 			fmt.Printf("  • %-16s (%s) = %s\n", k, e.Type(), v.Mask(e.Inspect()))
 		}
 	default:
-		fmt.Printf("  Değer: %s\n", v.Mask(val.Inspect()))
+		fmt.Println("  " + messages.Text(messages.H8081, v.Mask(val.Inspect())))
 	}
 }
 

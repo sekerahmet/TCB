@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Nazik çıkış kodları: 3 "durduruldu" (ertelenen işler çalıştı; kontrol noktası kullanan
@@ -29,12 +30,12 @@ func kesmeyiYakala(machine *interp.VM) {
 	go func() {
 		<-kanal
 		if machine.RequestInterrupt() {
-			machine.WriteOutput(os.Stderr, "\n⏹️ Durduruluyor: adım bitince kontrol noktası kaydedilip çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
+			machine.WriteOutput(os.Stderr, "\n⏹️ "+messages.Text(messages.H8660)+"\n")
 		} else {
-			machine.WriteOutput(os.Stderr, "\n⏹️ Durduruluyor: ertelenen işler çalıştırılıp çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)\n")
+			machine.WriteOutput(os.Stderr, "\n⏹️ "+messages.Text(messages.H8661)+"\n")
 		}
 		<-kanal
-		fmt.Fprintln(os.Stderr, "⏹️ Hemen çıkıldı.")
+		fmt.Fprintln(os.Stderr, "⏹️ "+messages.Text(messages.H8662))
 		os.Exit(hemenCikisKodu)
 	}()
 }
@@ -45,6 +46,6 @@ func kesilmeyiBildir(machine *interp.VM, err error, code string) {
 	if err != nil && err != interp.ErrInterrupted {
 		calismaHatasiYaz(machine, err, code) // ertelenen işlerin hataları
 	}
-	machine.WriteOutput(os.Stderr, "⏹️ Program durduruldu (kesme isteği); ertelenen işler çalıştı. Çıkış kodu 3.\n")
+	machine.WriteOutput(os.Stderr, "⏹️ "+messages.Text(messages.H8663, kesilmeCikisKodu)+"\n")
 	cik(kesilmeCikisKodu)
 }

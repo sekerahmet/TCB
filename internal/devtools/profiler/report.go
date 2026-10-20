@@ -3,27 +3,29 @@ package profiler
 import (
 	"fmt"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ReportText son raporun metin tablosudur (tr profil, tr izle'nin sonu).
 func ReportText(g *Snapshot) string {
 	var b strings.Builder
-	write := func(f string, a ...any) { fmt.Fprintf(&b, f+"\n", a...) }
+	write := func(s string) { b.WriteString(s + "\n") }
 	exit := ""
 	if g.ExitCode != nil {
-		exit = fmt.Sprintf(" · çıkış kodu %d", *g.ExitCode)
+		exit = " · " + messages.Text(messages.H8230, *g.ExitCode)
 	}
-	write("⏱ Profil: %s — %s%s", g.Program, durationText(g.Seconds), exit)
+	write("⏱ " + messages.Text(messages.H8231, g.Program, durationText(g.Seconds), exit))
 	if g.Step == nil {
-		write("Adımlar: %s", noStep())
+		write(messages.Text(messages.H8232, noStep()))
 	} else {
-		write("Adımlar: %s adım · %s ms/adım · %s adım/sn", full(g.Step.Count), count(g.Step.MsPerStep), count(g.Step.StepsPerSec))
+		write(messages.Text(messages.H8233, full(g.Step.Count), count(g.Step.MsPerStep), count(g.Step.StepsPerSec)))
 	}
 	t := g.Tensor
-	write("Zaman: tensör işlemleri %s (%s, %s çağrı, %s ayrıldı) · geri kalanı %s (TR kodu, bekleme, çöp toplama)",
-		percent(t.Share), durationText(t.Seconds), full(t.Calls), nBytes(t.Bytes), percent(max(0, 1-t.Share)))
+	write(messages.Text(messages.H8234,
+		percent(t.Share), durationText(t.Seconds), full(t.Calls), nBytes(t.Bytes), percent(max(0, 1-t.Share))))
 	if o := g.Sampling; o != nil {
-		write("Örnekleme: %s aralıkla %s örnek; tensör işlemindeki payı %s", durationText(o.IntervalMs/1000), full(o.Samples), percent(o.TensorShare))
+		write(messages.Text(messages.H8235, durationText(o.IntervalMs/1000), full(o.Samples), percent(o.TensorShare)))
 	}
 	b.WriteString("\n")
 	reportOps(&b, t)
@@ -33,27 +35,27 @@ func ReportText(g *Snapshot) string {
 		reportLines(&b, o)
 	}
 	b.WriteString("\n")
-	write("Bellek: Go yığını %s (Go'nun sistemden aldığı %s) · CPU tensör ayırması %s toplam%s",
-		nBytes(int64(g.Memory.GoHeap)), nBytes(int64(g.Memory.GoSys)), nBytes(g.Memory.CPUTensorAlloc), gpuMemory(g.GPU))
-	write("Çöp toplama: %d kez, toplam duraklama %s", g.GC.Count, durationText(g.GC.PauseSec))
+	write(messages.Text(messages.H8236,
+		nBytes(int64(g.Memory.GoHeap)), nBytes(int64(g.Memory.GoSys)), nBytes(g.Memory.CPUTensorAlloc), gpuMemory(g.GPU)))
+	write(messages.Text(messages.H8237, g.GC.Count, durationText(g.GC.PauseSec)))
 	return b.String()
 }
 
 // reportOps tensör işlemleri tablosudur (en pahalı 15).
 func reportOps(b *strings.Builder, t TensorInfo) {
 	if len(t.Ops) == 0 {
-		b.WriteString(tensorOps() + ": yok\n")
+		b.WriteString(messages.Text(messages.H8238, tensorOps()) + "\n")
 		return
 	}
 	hasStep := t.Ops[0].MsPerStep != nil
-	header := left(tensorOps(), 30) + right("süre", 10) + right("pay", 6) + right("çağrı", 12)
+	header := left(tensorOps(), 30) + right(messages.Text(messages.H8239), 10) + right(messages.Text(messages.H8240), 6) + right(messages.Text(messages.H8241), 12)
 	if hasStep {
-		header += right("ms/adım", 10)
+		header += right(messages.Text(messages.H8242), 10)
 	}
-	b.WriteString(header + right("ayrılan", 10) + right("cihaz", 7) + "\n")
+	b.WriteString(header + right(messages.Text(messages.H8243), 10) + right(messages.Text(messages.H8244), 7) + "\n")
 	for i, x := range t.Ops {
 		if i == 15 {
-			fmt.Fprintf(b, "  … %d işlem daha\n", len(t.Ops)-i)
+			b.WriteString("  " + messages.Text(messages.H8245, len(t.Ops)-i) + "\n")
 			break
 		}
 		line := "  " + left(x.Name, 28) + right(durationText(x.Seconds), 10) + right(percent(x.Share), 6) + right(full(x.Calls), 12)
@@ -66,14 +68,14 @@ func reportOps(b *strings.Builder, t TensorInfo) {
 
 // reportLines en sıcak satırlar ve fonksiyonlardır.
 func reportLines(b *strings.Builder, o *SamplingInfo) {
-	b.WriteString("En çok zaman alan satırlar (öz süre; tensör: satırın tensör işleminde geçen payı):\n")
+	b.WriteString(messages.Text(messages.H8246) + "\n")
 	for i, s := range o.Lines {
 		if i == 10 {
 			break
 		}
-		fmt.Fprintf(b, "  %s  %s  %s  %s\n", right(percent(s.Share), 5), left(linePos(s), 30), right("tensör "+percent(s.TensorShare), 11), trim(lineText(s), 70))
+		fmt.Fprintf(b, "  %s  %s  %s  %s\n", right(percent(s.Share), 5), left(linePos(s), 30), right(messages.Text(messages.H8247, percent(s.TensorShare)), 11), trim(lineText(s), 70))
 	}
-	b.WriteString("Fonksiyonlar (öz süre):\n")
+	b.WriteString(messages.Text(messages.H8248) + "\n")
 	for i, f := range o.Functions {
 		if i == 8 {
 			break
@@ -90,12 +92,12 @@ func reportGPU(b *strings.Builder, g *Snapshot) {
 		return
 	}
 	if !gp.Measured || len(gp.Families) == 0 {
-		fmt.Fprintf(b, "GPU çekirdekleri: %s\n", gp.Note)
+		b.WriteString(messages.Text(messages.H8249, gp.Note) + "\n")
 		return
 	}
-	fmt.Fprintf(b, "GPU çekirdekleri: cihazda %s (program süresine oranı %s)", durationText(gp.Seconds), percent(ratio(gp.Seconds, g.Seconds)))
+	b.WriteString(messages.Text(messages.H8250, durationText(gp.Seconds), percent(ratio(gp.Seconds, g.Seconds))))
 	if g.Step != nil && g.Step.All > 0 {
-		fmt.Fprintf(b, " · %s ms/adım", msText(gp.Seconds*1000/float64(g.Step.All)))
+		b.WriteString(" · " + messages.Text(messages.H8251, msText(gp.Seconds*1000/float64(g.Step.All))))
 	}
 	fmt.Fprintf(b, " · %s\n", familySummary(gp.Families, 5))
 	if gp.summary != "" {

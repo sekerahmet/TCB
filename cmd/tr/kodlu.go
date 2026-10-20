@@ -45,7 +45,7 @@ func kodlaKomutu(args []string) {
 		girdidenCevir(source.Encode)
 		return
 	}
-	cevirKomutu(args, "kodla", "kodlandı", source.Encode)
+	cevirKomutu(args, "kodla", messages.Text(messages.H8704), source.Encode)
 }
 
 // dilArgumani standart giriş kipinin '--dil <kod>' argümanını okur (yoksa etkin dil) ve yazım
@@ -58,17 +58,14 @@ func dilArgumani(args []string, komut string) *codes.Language {
 			dilKodu = args[i+1]
 			i++
 		case args[i] == "--dil":
-			fmt.Fprintf(os.Stderr, "Hata: '--dil' bir yazım dili bekler. Örn: tr %s - --dil tr\n", komut)
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8700, komut))
 		default:
-			fmt.Fprintf(os.Stderr, "Hata: 'tr %s -' metni standart girişten okur; fazladan argüman: %s\n", komut, args[i])
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8701, komut, args[i]))
 		}
 	}
 	dil, err := yazimDili(dilKodu)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
-		os.Exit(1)
+		hataylaCik(err)
 	}
 	return dil
 }
@@ -78,8 +75,7 @@ func dilArgumani(args []string, komut string) *codes.Language {
 func girdidenCevir(cevir func(string) (string, error)) {
 	veri, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: standart giriş okunamadı: %v\n", err)
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8702, err))
 	}
 	metin, err := cevir(string(veri))
 	if err != nil {
@@ -97,7 +93,7 @@ func girdidenCevir(cevir func(string) (string, error)) {
 
 // cozKomutu 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz.
 func cozKomutu(args []string) {
-	cevirKomutu(args, "çöz", "çözüldü", func(metin string) (string, error) {
+	cevirKomutu(args, "çöz", messages.Text(messages.H8705), func(metin string) (string, error) {
 		return source.Decode(metin, codes.Active())
 	})
 }
@@ -106,15 +102,13 @@ func cozKomutu(args []string) {
 // dönüştürüp değişenleri yerine yazar. Hatalı dosyalar atlanır; biri bile varsa 1 koduyla çıkar.
 func cevirKomutu(args []string, komut, fiil string, cevir func(string) (string, error)) {
 	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Hata: Lütfen bir .tr dosyası ya da klasör belirtin. Örn: tr %s ornek.tr veya tr %s .\n", komut, komut)
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8703, komut))
 	}
 	var dosyalar []string
 	for _, h := range args {
 		d, err := trDosyalari(h)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
-			os.Exit(1)
+			hataylaCik(err)
 		}
 		dosyalar = append(dosyalar, d...)
 	}
@@ -143,9 +137,9 @@ func cevirKomutu(args []string, komut, fiil string, cevir func(string) (string, 
 		degisen++
 		fmt.Printf("%s: %s\n", fiil, yol)
 	}
-	fmt.Printf("%d dosya incelendi, %d dosya %s.\n", len(dosyalar), degisen, fiil)
+	fmt.Println(messages.Text(messages.H8706, len(dosyalar), degisen, fiil))
 	if hatali > 0 {
-		fmt.Printf("%d dosya çevrilemedi (yukarıdaki hatalara bakın).\n", hatali)
+		fmt.Println(messages.Text(messages.H8707, hatali))
 		os.Exit(1)
 	}
 }
@@ -179,27 +173,23 @@ func gosterKomutu(args []string) {
 			dilKodu = args[i+1]
 			i++
 		case args[i] == "--dil":
-			fmt.Fprintln(os.Stderr, "Hata: '--dil' bir yazım dili bekler. Örn: tr göster ornek.tr --dil tr")
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8708))
 		case dosya == "":
 			dosya = args[i]
 		default:
-			fmt.Fprintf(os.Stderr, "Hata: 'tr göster' tek bir dosya alır; fazladan argüman: %s\n", args[i])
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8709, args[i]))
 		}
 	}
 	if dosya == "" {
-		fmt.Fprintln(os.Stderr, "Hata: Lütfen gösterilecek .tr dosyasını belirtin. Örn: tr göster ornek.tr --dil tr")
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8710))
 	}
 	dil, err := yazimDili(dilKodu)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
-		os.Exit(1)
+		hataylaCik(err)
 	}
 	veri, err := os.ReadFile(dosya)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.FileError("", dosya, messages.H2100, err))
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8657, turkish.FileError("", dosya, messages.H2100, err)))
 		os.Exit(1)
 	}
 	metin, err := source.Decode(string(veri), dil)
@@ -225,8 +215,7 @@ func yazimDili(kodu string) (*codes.Language, error) {
 func dilleYenidenCalistir(dilKodu string) {
 	ben, err := os.Executable()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: '%s' yazım dili için tr yeniden çalıştırılamadı: %v\n", dilKodu, err)
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8711, dilKodu, err))
 	}
 	c := exec.Command(ben, os.Args[1:]...)
 	c.Env = append(os.Environ(), codes.LanguageEnvVar+"="+dilKodu)
@@ -236,8 +225,7 @@ func dilleYenidenCalistir(dilKodu string) {
 		if errors.As(err, &ce) {
 			os.Exit(ce.ExitCode())
 		}
-		fmt.Fprintf(os.Stderr, "Hata: '%s' yazım dili için tr yeniden çalıştırılamadı: %v\n", dilKodu, err)
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8711, dilKodu, err))
 	}
 	os.Exit(0)
 }

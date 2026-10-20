@@ -11,6 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib"
@@ -43,14 +44,14 @@ func gcHedefiniAyarla() {
 func main() {
 	// Geçersiz TR_DIL: codes paketi Türkçeye düştü; komut yanlış dille çalışmasın.
 	if err := codes.LanguageError(); err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8600, err))
 		os.Exit(2)
 	}
 	gcHedefiniAyarla()
 	// Bu .exe 'tr derle' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
 	if pk, bulundu, err := gomuluPaketiBul(); bulundu {
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ Gömülü uygulama okunamadı: %v\n", err)
+			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8601, err))
 			os.Exit(1)
 		}
 		gomuluUygulamayiCalistir(pk)
@@ -64,8 +65,7 @@ func main() {
 		return
 	}
 	if asil, ok := kaldirilanKomutlar[args[0]]; ok {
-		fmt.Fprintf(os.Stderr, "Hata: '%s' TR'de bir komut değil; 'tr %s' yazmak mı istediniz?\n", args[0], asil)
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8602, args[0], asil))
 	}
 
 	if komut, ok := argumanliKomutlar[args[0]]; ok {
@@ -76,20 +76,17 @@ func main() {
 	case "yardım", "-h":
 		printHelp()
 	case "sürüm", "-v":
-		fmt.Printf("TR Programlama ve Yapay Zeka Dili v%s\n", VERSION)
+		fmt.Println(messages.Text(messages.H8603, VERSION))
 	case "bytecode", "baytkod":
-		fmt.Fprintln(os.Stderr, "Hata: 'tr bytecode' komutu kaldırıldı.")
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8604))
 	case "kontrol":
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr kontrol ornek.tr")
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8605, "kontrol", "ornek.tr"))
 		}
 		checkFile(args[1])
 	case "derle":
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Hata: Lütfen derlenecek .tr dosyasını belirtin. Örn: tr derle uygulama.tr")
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8606))
 		}
 		outPath := ""
 		if len(args) >= 3 {
@@ -102,13 +99,12 @@ func main() {
 		err := debugger.ServeDAP(os.Stdin, os.Stdout)
 		stdlib.Close()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ Hata ayıklama sunucusu: %v\n", err)
+			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8607, err))
 			os.Exit(1)
 		}
 	case "çalıştır":
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr çalıştır ornek.tr")
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8605, "çalıştır", "ornek.tr"))
 		}
 		runFile(args[1], args[2:])
 	default:
@@ -132,6 +128,12 @@ var kaldirilanKomutlar = map[string]string{
 	"version": "sürüm", "coz": "çöz", "goster": "göster", "watch": "izle", "profile": "profil",
 }
 
+// hataylaCik iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
+func hataylaCik(ileti any) {
+	fmt.Fprintln(os.Stderr, messages.Text(messages.H8600, ileti))
+	os.Exit(1)
+}
+
 // printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
 func printError(msg, source string) {
 	fmt.Fprintf(os.Stderr, "  • %s\n", msg)
@@ -151,26 +153,26 @@ func indentFrame(frame string) string {
 }
 
 func printHelp() {
-	fmt.Println("🇹🇷 TR (.tr) Programlama ve Yapay Zeka Dili v" + VERSION)
-	fmt.Println("Kullanım:")
-	fmt.Println("  tr                          Etkileşimli TR kabuğunu (REPL) başlatır")
-	fmt.Println("  tr <dosya.tr> [argümanlar]  .tr kaynak dosyasını derler ve çalıştırır (argümanlar programa iletilir)")
-	fmt.Println("  tr çalıştır <dosya.tr>      Aynısı (komut adıyla)")
-	fmt.Println("  tr hata_ayıkla <dosya.tr>   Etkileşimli TR Hata Ayıklayıcısını başlatır")
-	fmt.Println("  tr kontrol <dosya.tr>       Sözdizimi ve akıllı tip kontrolü yapar")
-	fmt.Println("  tr derle <dosya.tr>         .tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür")
-	fmt.Println("  tr test [dosya.tr|klasör]   Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)")
-	fmt.Println("  tr biçimle [--kontrol] <dosya.tr|klasör>  Kodu standart biçime getirir (--kontrol: yalnızca denetler)")
-	fmt.Println("  tr kodla <dosya.tr|klasör>  Dosyaları yerinde kodlu biçime çevirir (dilin sözcükleri kodlarla saklanır)")
-	fmt.Println("  tr çöz <dosya.tr|klasör>    Kodlu dosyaları yerinde Türkçe yazıma geri çevirir")
-	fmt.Println("  tr göster <dosya.tr> [--dil tr]  Dosyayı bir yazım dilinde gösterir (kodlu dosya da)")
-	fmt.Println("  tr göster - [--dil tr]      Metni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)")
-	fmt.Println("  tr kodla - [--dil tr]       Metni standart girişten okur, kodlu biçimini çıkışa yazar (düzenleyiciler için)")
-	fmt.Println("  tr izle <dosya.tr> [argümanlar]    Programı çalıştırır, hızını canlı gösterir (ms/adım, tensör işlemleri, sıcak satırlar, bellek)")
-	fmt.Println("  tr profil [--json yol] <dosya.tr>  Programı çalıştırır, bitince hız raporu verir (--json: rapor dosyası ya da koşu klasörü)")
-	fmt.Println("  tr dap                      düzenleyicinin hata ayıklama sunucusu (eklenti kendisi başlatır)")
-	fmt.Println("  tr yardım | -h              Bu yardımı gösterir")
-	fmt.Println("  tr sürüm | -v               Sürümü gösterir")
+	fmt.Println("🇹🇷 " + messages.Text(messages.H8610, VERSION))
+	fmt.Println(messages.Text(messages.H8611))
+	fmt.Println("  " + messages.Text(messages.H8612))
+	fmt.Println("  " + messages.Text(messages.H8613))
+	fmt.Println("  " + messages.Text(messages.H8614))
+	fmt.Println("  " + messages.Text(messages.H8615))
+	fmt.Println("  " + messages.Text(messages.H8616))
+	fmt.Println("  " + messages.Text(messages.H8617))
+	fmt.Println("  " + messages.Text(messages.H8618))
+	fmt.Println("  " + messages.Text(messages.H8619))
+	fmt.Println("  " + messages.Text(messages.H8620))
+	fmt.Println("  " + messages.Text(messages.H8621))
+	fmt.Println("  " + messages.Text(messages.H8622))
+	fmt.Println("  " + messages.Text(messages.H8623))
+	fmt.Println("  " + messages.Text(messages.H8624))
+	fmt.Println("  " + messages.Text(messages.H8625))
+	fmt.Println("  " + messages.Text(messages.H8626))
+	fmt.Println("  " + messages.Text(messages.H8627))
+	fmt.Println("  " + messages.Text(messages.H8628))
+	fmt.Println("  " + messages.Text(messages.H8629))
 }
 
 // runFile programı çalıştırır; argumanlar dosya adından sonra yazılanlardır ve programa
@@ -191,13 +193,11 @@ func runFile(path string, argumanlar []string) {
 // sonraki argümanlar programındır.
 func hataAyiklaKomutu(args []string) {
 	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Hata: Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr hata_ayıkla ornek.tr")
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8608))
 	}
 	for _, a := range args[:min(2, len(args))] {
 		if a == "--web" || a == "-w" {
-			fmt.Fprintln(os.Stderr, "Hata: Tarayıcıdaki hata ayıklayıcı kaldırıldı. Düzenleyicide F5 ile hata ayıklayın (İzleme Masası) ya da terminalde: tr hata_ayıkla ornek.tr")
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8609))
 		}
 	}
 	debugFile(args[0], args[1:])
@@ -218,14 +218,14 @@ func debugFile(path string, argumanlar []string) {
 func checkFile(path string) {
 	metin, _ := dosyaHazirla(path, calistirmaHazirligi)
 	// Programın aktardığı modüller de (çalıştırılmadan) aynı denetimden geçer.
-	modulleriDenetle(path, metin, calistirmaHazirligi, "❌ Modül hatası:")
-	fmt.Printf("✅ %s başarıyla denetlendi: Sözdizimi ve tip güvenliği hatasız!\n", path)
+	modulleriDenetle(path, metin, calistirmaHazirligi, "❌ "+messages.Text(messages.H8632))
+	fmt.Println("✅ " + messages.Text(messages.H8631, path))
 }
 
 func startREPL() {
 	defer stdlib.Close() // açık dosyalar kapanır, geçici klasörler silinir
-	fmt.Printf("🇹🇷 TR Programlama ve Yapay Zeka Dili (v%s) — Etkileşimli Kabuk\n", VERSION)
-	fmt.Println("Çıkmak için 'çıkış', hata ayıklayıcıyı açmak için '/h' yazın.")
+	fmt.Println("🇹🇷 " + messages.Text(messages.H8633, VERSION))
+	fmt.Println(messages.Text(messages.H8634))
 	machine := interp.New()
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
@@ -244,16 +244,16 @@ func startREPL() {
 			continue
 		}
 		if line == "çıkış" {
-			fmt.Println("Görüşmek üzere!")
+			fmt.Println(messages.Text(messages.H8635))
 			break
 		}
 		if line == "cikis" || line == "exit" || line == "quit" {
-			fmt.Fprintf(os.Stderr, "'%s' TR'de bir komut değil; çıkmak için 'çıkış' yazın.\n", line)
+			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line))
 			continue
 		}
 		if line == "/h" || line == "/H" {
 			machine.Debugger = debugger.NewDebugger("<etkileşimli-kabuk>", "", true)
-			fmt.Println("🐞 [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım çalışacak (F11 adım, F10 üstten geç, Shift+F11 dön, F5 devam).")
+			fmt.Println("🐞 " + messages.Text(messages.H8637))
 			continue
 		}
 
