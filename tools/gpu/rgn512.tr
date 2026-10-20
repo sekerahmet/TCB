@@ -9,9 +9,13 @@
 //
 // Kullanım: ./tr rgn512.tr --veri KLASÖR [--adım 120] [--çıktı sonuç.json]
 //   veri: uint16 .npy parça dosyalarının klasörü (belge sonu 0), hedefle aynı biçim.
+// Doğruluk karşılaştırması (tools/gpu/rgn_reference.py ile): --ağırlık init.trt PyTorch'un başlangıç
+// ağırlıklarını yükler, --sıralı doğru toplu işleri sırayla okur (PyTorch tarafı aynı pencereleri
+// kurar), --hassasiyet fp32 bf16'yı kapatır, --kayıplar adım başına kaybı ve gradyan normunu yazar.
 
 değişken arg = komut_satırı({veri: "", adım: 120, toplu: 64, mikro: 32, bağlam: 1024, oran: 0.002,
-        cihaz: "gpu", tohum: 0, günlük: 50, çıktı: ""},
+        cihaz: "gpu", tohum: 0, günlük: 50, çıktı: "", ağırlık: "", sıralı: yanlış, hassasiyet: "bf16",
+        kayıplar: "", dağarcık: 40000, boyut: 512, katman: 8, baş: 8, kv_baş: 4, ara: 672},
     açıklama: "Hedef modelin TR karşılığı (PyTorch: rgn512.py)")
 doğrula(arg.veri != "", "--veri ile .npy klasörü verilmeli")
 varsayılan_cihaz(arg.cihaz)
@@ -19,18 +23,25 @@ varsayılan_cihaz(arg.cihaz)
 aktar "tr/katman" olarak katman
 aktar "tr/iyilestirici" olarak iyileştirici
 
-değişken model = katman.GPT(40000, bağlam: arg.bağlam, boyut: 512, katman: 8, baş: 8, kv_baş: 4,
-    ara_boyut: 672, paylaşımlı: doğru, pencereler: katman.katman_pencereleri("YYGYGYYG", [32, 64]),
-    qk_normu: doğru, birleşik_kv: doğru, birleşik_kapı: doğru, ileri_sapmalı: doğru,
-    epsilon: 0.000001, ple_boyutu: 512, tohum: arg.tohum + 1)
+// Boyutlar hedefin varsayılanlarıdır; küçük boyutlar yalnızca hızlı doğruluk testi içindir (8 katman ve
+// düzen sabittir, PLE boyutu = boyut).
+değişken model = katman.GPT(arg.dağarcık, bağlam: arg.bağlam, boyut: arg.boyut, katman: arg.katman, baş: arg.baş,
+    kv_baş: arg.kv_baş, ara_boyut: arg.ara, paylaşımlı: doğru,
+    pencereler: katman.katman_pencereleri("YYGYGYYG", [32, 64]), qk_normu: doğru, birleşik_kv: doğru,
+    birleşik_kapı: doğru, ileri_sapmalı: doğru, epsilon: 0.000001, ple_boyutu: arg.boyut, tohum: arg.tohum + 1)
 
 değişken op = iyileştirici.MuonVeAdamW(model, muon_oranı: arg.oran, adamw_oranı: arg.oran,
     ağırlık_çürümesi: 0.1, adamw_çürümesi: 0.1, muon_ölçeği: "rms",
     ayrı: ["gömme", "ple_bağlamı"], seyrek: ["ple.tablo"])
+eğer arg.ağırlık != "" {
+    parametreleri_yükle(model, tensör_yükle(arg.ağırlık))
+}
 değişken ağırlıklar = parametreler(model)
 
 değişken birikim = arg.toplu / arg.mikro
-değişken örnekler = veri_kümesi(arg.veri).örnekleyici(toplu: arg.mikro, bağlam: arg.bağlam, tohum: arg.tohum)
+değişken küme = veri_kümesi(arg.veri)
+değişken örnekler = eğer arg.sıralı { küme.sıralı(toplu: arg.mikro, bağlam: arg.bağlam) } değilse {
+    küme.örnekleyici(toplu: arg.mikro, bağlam: arg.bağlam, tohum: arg.tohum) }
 değişken adım_başına = arg.toplu * arg.bağlam
 değişken ısınma = maks(1, tam(arg.adım * 0.01))
 
@@ -44,6 +55,7 @@ yazdır("hedef model (TR) | YYGYGYYG | {yuvarla(parametre_sayısı / 1000000.0, 
 
 değişken süreler = []
 değişken pencere = []
+değişken kayıt = []
 döngü adım içinde 0..arg.adım {
     op.çarpan_ayarla(maks(0.000001, iyileştirici.oran_planı(adım, arg.adım, ısınma: ısınma, azalma: 0.2)))
     değişken t0 = zaman_ms()
@@ -51,8 +63,12 @@ döngü adım içinde 0..arg.adım {
     döngü m içinde 0..birikim {
         değişken xy = örnekler.sonraki()
         değişken kayıp = yok
-        karışık_hassasiyet("bf16") {
+        eğer arg.hassasiyet == "fp32" {
             kayıp = model.kayıp(xy[0], xy[1]) / birikim
+        } değilse {
+            karışık_hassasiyet(arg.hassasiyet) {
+                kayıp = model.kayıp(xy[0], xy[1]) / birikim
+            }
         }
         geri_yayılım(kayıp)
         toplam_kayıp += kayıp.değer
@@ -63,6 +79,7 @@ döngü adım içinde 0..arg.adım {
     değişken ms = zaman_ms() - t0
     süreler.ekle(ms)
     pencere.ekle(ms)
+    kayıt.ekle({loss: toplam_kayıp, grad_norm: norm.değer})
     eğer (adım + 1) % arg.günlük == 0 veya adım + 1 == arg.adım {
         değişken ort = ortalama(pencere)
         yazdır("adım {adım + 1} / {arg.adım}  kayıp {yuvarla(toplam_kayıp, 4)}  grad {yuvarla(norm.değer, 3)} | {yuvarla(ort, 0)} ms/adım  {yuvarla(adım_başına / ort * 1000, 0)} parça/sn")
@@ -74,4 +91,8 @@ eğer arg.çıktı != "" {
     değişken ölçülen = süreler[maks(0, süreler.uzunluk / 2)..süreler.uzunluk]
     dosya_yaz(arg.çıktı, json_metin({tool: "tr", model: "target", steps: arg.adım, tokens_per_step: adım_başına,
         first_step_ms: süreler[0], measured: {median_ms: ortanca(ölçülen), mean_ms: ortalama(ölçülen)}}))
+}
+
+eğer arg.kayıplar != "" {
+    dosya_yaz(arg.kayıplar, json_metin({steps: kayıt}))
 }
