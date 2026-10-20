@@ -1,11 +1,12 @@
 package files
 
 import (
-	"errors"
 	"runtime"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // klasörü_listele kalıbı: / ile ayrılmış bileşenler. Bir bileşenin içinde * (sıfır ya da çok
@@ -33,12 +34,12 @@ type pattern struct {
 
 // Kalıp hataları (mesajlar yerleşiğin adıyla sarılır).
 var (
-	errPatternEmpty    = errors.New("kalıp boş olamaz")
-	errPatternAbsolute = errors.New("kalıp göreli olmalı; taban klasörü birinci argümanla verin")
-	errPatternParent   = errors.New("kalıpta .. olamaz; üst klasörü taban klasör olarak verin")
-	errPatternDouble   = errors.New("** yalnızca tam bir bileşen olabilir (ör. \"**/*.npy\"; \"a**\" yazılamaz)")
-	errPatternSet      = errors.New("[ ile açılan karakter kümesi ] ile kapanmıyor")
-	errPatternEmptySet = errors.New("boş karakter kümesi []")
+	errPatternEmpty    = messages.New(messages.H7141)
+	errPatternAbsolute = messages.New(messages.H7142)
+	errPatternParent   = messages.New(messages.H7143)
+	errPatternDouble   = messages.New(messages.H7144)
+	errPatternSet      = messages.New(messages.H7145)
+	errPatternEmptySet = messages.New(messages.H7146)
 )
 
 // compilePattern kalıbı bileşenlerine ayırır ve denetler.

@@ -70,8 +70,8 @@ func deleteTempDirs() []error {
 			errs = append(errs, turkish.FileError(fn, raw, messages.H2104, err))
 			continue
 		}
-		if reason := deleteProtection(g.m, realPath(g.fpath)); reason != "" {
-			errs = append(errs, fmt.Errorf("%s: %q %s; TR bunu silmez", fn, raw, reason))
+		if reason := deleteProtection(g.m, realPath(g.fpath)); reason != nil {
+			errs = append(errs, messages.New(messages.H7153, fn, raw, reason))
 			continue
 		}
 		if _, err := deleteTree(g.fpath, info); err != nil {

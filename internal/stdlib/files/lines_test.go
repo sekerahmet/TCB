@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestFileLines(t *testing.T) {
@@ -41,8 +43,8 @@ func TestFileLines(t *testing.T) {
 	}
 	errContains(t, `dosya_satırları("yok.txt")`, `dosya_satırları(): "yok.txt" okunamadı: böyle bir dosya ya da klasör yok`, "bakılan yer")
 	os.Mkdir(filepath.Join(k, "kl"), 0o755)
-	errContains(t, `dosya_satırları("kl")`, "bir klasör")
-	errContains(t, `dosya_satırları("s.txt").sonraki(1)`, "parametre almaz")
+	errHas(t, `dosya_satırları("kl")`, messages.H7129)
+	errHas(t, `dosya_satırları("s.txt").sonraki(1)`, messages.H7133)
 	errContains(t, `dosya_satırları("s.txt").ilk`, "SatırOkuyucu üzerinde")
 }
 
@@ -66,7 +68,7 @@ func TestFileLinesGzipAndLongLine(t *testing.T) {
 	lineLimit = 100 << 10
 	t.Cleanup(func() { lineLimit = old })
 	write(t, filepath.Join(k, "uzun.txt"), "kısa\n"+strings.Repeat("x", 300<<10)+"\nson\n")
-	errContains(t, `[s döngü s içinde dosya_satırları("uzun.txt")]`, "2. satır 64 MB'tan uzun")
+	errHas(t, `[s döngü s içinde dosya_satırları("uzun.txt")]`, messages.H7105)
 	write(t, filepath.Join(k, "orta.txt"), strings.Repeat("y", 90<<10)+"\nson")
 	if got := mustRunTR(t, `[s.uzunluk döngü s içinde dosya_satırları("orta.txt")]`); got != fmt.Sprintf("[%d, 3]", 90<<10) {
 		t.Fatalf("tampondan uzun satır: %s", got)
@@ -109,7 +111,7 @@ func TestLineReaderClose(t *testing.T) {
 	write(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
 	errContains(t, `değişken o = dosya_satırları("s.txt"); o.kapat(); o.sonraki()`,
 		`SatırOkuyucu: "s.txt" okuyucusu kapat() ile kapatıldı; yeniden okumak için dosya_satırları(...) ile yeni bir okuyucu açın`)
-	errContains(t, `değişken o = dosya_satırları("s.txt"); o.kapat(); [s döngü s içinde o]`, "kapat() ile kapatıldı")
+	errHas(t, `değişken o = dosya_satırları("s.txt"); o.kapat(); [s döngü s içinde o]`, messages.H7134)
 	errContains(t, `dosya_satırları("s.txt").kapat(1)`, "kapat() parametre almaz")
 	// Sonuna kadar okunan okuyucunun dosyası zaten kapalıdır: close() yanlış verir; close()
 	// çağrıldıktan sonra satır istemek yine hatadır.
@@ -118,9 +120,9 @@ func TestLineReaderClose(t *testing.T) {
 		[l, o.sonraki(), o.kapat()]`); got != `[["1", "2", "3"], yok, yanlış]` {
 		t.Fatal(got)
 	}
-	errContains(t, `değişken o = dosya_satırları("s.txt"); [s döngü s içinde o]; o.kapat(); o.sonraki()`, "kapat() ile kapatıldı")
+	errHas(t, `değişken o = dosya_satırları("s.txt"); [s döngü s içinde o]; o.kapat(); o.sonraki()`, messages.H7134)
 	// Açık okuyucu varken sil yol gösterir: kapat() önerilir.
-	errContains(t, `değişken o = dosya_satırları("s.txt"); o.sonraki(); sil("s.txt")`, "önce okuyucuyu kapatın (x.kapat())")
+	errHas(t, `değişken o = dosya_satırları("s.txt"); o.sonraki(); sil("s.txt")`, messages.H7125)
 }
 
 // Son satırı satır sonusuz biten dosyada okuyucu son satırla birlikte kapanır: dosya hemen

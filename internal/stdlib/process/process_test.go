@@ -2,7 +2,10 @@ package process
 
 import (
 	"slices"
+	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Gizli ad kuralı: ad sözcüklere bölünür ve sözcükler tam eşlenir; TOKENIZER, MAX_TOKENS
@@ -87,7 +90,55 @@ func TestNumberParsing(t *testing.T) {
 			t.Errorf("parseFloat(%q) hata vermeliydi", s)
 		}
 	}
-	if _, err := parseFloat("0,001"); err == nil || err.Error() != "; ondalık ayırıcı nokta olmalı (0.001), binlik ayırıcı için _ yazın (5_000)" {
+	if _, err := parseFloat("0,001"); !messages.Has(err, messages.H7215) {
 		t.Errorf("virgüllü ondalık yol göstermeli: %v", err)
+	}
+	if _, err := parseInt("3.0"); !messages.Has(err, messages.H7216) {
+		t.Errorf("noktalı tam sayı yol göstermeli: %v", err)
+	}
+	if _, err := parseInt("99999999999999999999"); !messages.Has(err, messages.H7217) {
+		t.Errorf("aralık dışı tam sayı: %v", err)
+	}
+	if _, err := parseFloat("1e400"); !messages.Has(err, messages.H7217) {
+		t.Errorf("aralık dışı ondalık: %v", err)
+	}
+}
+
+// Argüman hatalarının kodları (çıkış isteği yalnızca metni taşıdığından parse doğrudan sınanır;
+// son biçim TestCommandLineUsageErrors'tadır).
+func TestParseErrorCodes(t *testing.T) {
+	opts := []*option{
+		{name: "adım", optKind: kindInt},
+		{name: "öğrenme_oranı", optKind: kindFloat},
+		{name: "veri", optKind: kindText},
+		{name: "katmanlar", optKind: kindList, itemKind: kindInt},
+		{name: "hızlı", optKind: kindBool},
+	}
+	for _, d := range []struct {
+		arg  []string
+		want []messages.Code
+	}{
+		{[]string{"--ogrenme_orani", "0.01"}, []messages.Code{messages.H7209}},
+		{[]string{"--bambaşka"}, []messages.Code{messages.H7208}},
+		{[]string{"-adım", "5"}, []messages.Code{messages.H7206, messages.H7209}},
+		{[]string{"--adım", "5", "--adım", "6"}, []messages.Code{messages.H7202}},
+		{[]string{"--adım", "beş"}, []messages.Code{messages.H7211}},
+		{[]string{"--adım", "3.0"}, []messages.Code{messages.H7211, messages.H7216}},
+		{[]string{"--öğrenme_oranı", "0,001"}, []messages.Code{messages.H7211, messages.H7215}},
+		{[]string{"--katmanlar", "1,x"}, []messages.Code{messages.H7212}},
+		{[]string{"--hızlı=evet"}, []messages.Code{messages.H7210}},
+		{[]string{"--adım"}, []messages.Code{messages.H7203}},
+		{[]string{"--veri", "--adım", "5"}, []messages.Code{messages.H7203}},
+		{[]string{"veri/"}, []messages.Code{messages.H7207}},
+		{[]string{"--"}, []messages.Code{messages.H7205}},
+		{[]string{strings.Repeat("a", 1<<20+1)}, []messages.Code{messages.H7201}},
+		{[]string{"--veri", strings.Repeat("a", 1<<20+1)}, []messages.Code{messages.H7204}},
+	} {
+		_, err := parse(nil, d.arg, opts)
+		for _, c := range d.want {
+			if !messages.Has(err, c) {
+				t.Errorf("%.40v: %s bekleniyordu: %v", d.arg, c, err)
+			}
+		}
 	}
 }

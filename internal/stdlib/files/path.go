@@ -1,7 +1,6 @@
 package files
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -78,10 +77,10 @@ func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 			return nil, err
 		}
 		if p == "" {
-			return nil, fmt.Errorf("%s %d. parça boş metin; bulunulan klasör için \".\" yazın", fn, i+1)
+			return nil, messages.New(messages.H7138, fn, i+1)
 		}
 		if i > 0 && isAbsPart(p) {
-			return nil, fmt.Errorf("%s %d. parça %q mutlak bir yol; yalnızca ilk parça mutlak olabilir (dışarıdan gelen bir ad taban klasörü değiştiremesin). Göreli bir ad verin", fn, i+1, p)
+			return nil, messages.New(messages.H7139, fn, i+1, p)
 		}
 		parts[i] = filepath.FromSlash(p)
 	}
@@ -173,7 +172,7 @@ func (y *Path) size(m *interp.VM) (interp.Value, error) {
 		return nil, interp.ReadError(fn, y.fpath, messages.H2100, err, tried)
 	}
 	if b.IsDir() {
-		return nil, fmt.Errorf("%s: %q bir klasör; klasörün boyutu yoktur (içindeki dosyaların boyutunu toplayın: %s(...))", fn, y.fpath, codes.Name(codes.G121))
+		return nil, messages.New(messages.H7140, fn, y.fpath, codes.Name(codes.G121))
 	}
 	return interp.NewInt(b.Size()), nil
 }

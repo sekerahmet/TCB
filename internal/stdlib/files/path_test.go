@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestPathCleaned(t *testing.T) {
@@ -59,15 +61,15 @@ func TestPathMembers(t *testing.T) {
 
 func TestPathErrors(t *testing.T) {
 	errContains(t, `yol("a", "/etc")`, `yol() 2. parça "/etc" mutlak bir yol`)
-	errContains(t, `yol("a", "")`, "2. parça boş metin")
+	errHas(t, `yol("a", "")`, messages.H7138)
 	errContains(t, `yol("")`, "1. parça boş metin")
 	errContains(t, `yol()`, "yol()")
 	errContains(t, `yol(5)`, "1. argüman olarak Metin ya da Yol bekler, Tam (5) verildi")
 	errContains(t, `yol("C:\tokenizer.json")`, "sekme karakteri var", "ham metin")
 	if runtime.GOOS == "windows" {
-		errContains(t, `yol("a", "C:\\x")`, "mutlak bir yol")
-		errContains(t, `yol("a", "C:x")`, "mutlak bir yol")
-		errContains(t, `yol("a", "\\\\sunucu\\pay")`, "mutlak bir yol")
+		errHas(t, `yol("a", "C:\\x")`, messages.H7139)
+		errHas(t, `yol("a", "C:x")`, messages.H7139)
+		errHas(t, `yol("a", "\\\\sunucu\\pay")`, messages.H7139)
 	}
 }
 

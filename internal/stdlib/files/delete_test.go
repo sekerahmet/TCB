@@ -5,8 +5,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestDeleteBasic(t *testing.T) {
@@ -26,8 +27,8 @@ func TestDeleteBasic(t *testing.T) {
 	}
 	errContains(t, `sil("yok.txt")`, `sil(): "yok.txt" silinemedi: böyle bir dosya ya da klasör yok`, "bakılan yer")
 	errContains(t, `sil("*.txt")`, "silinemedi")
-	errContains(t, `sil("a", içindekilerle: 1)`, "doğru ya da yanlış olmalıdır")
-	errContains(t, `sil("a", recursive: doğru)`, "Bunu mu demek istediniz: 'içindekilerle'?")
+	errHas(t, `sil("a", içindekilerle: 1)`, messages.H7905)
+	errHas(t, `sil("a", recursive: doğru)`, messages.H7900)
 }
 
 // Salt okunur dosya zorla silinmez; klasörde böyle bir dosya varsa hiçbir şey silinmez.
@@ -38,8 +39,9 @@ func TestDeleteReadOnly(t *testing.T) {
 	locked := filepath.Join(k, "k", "z", "kilitli.txt")
 	os.Chmod(locked, 0o444)
 	t.Cleanup(func() { os.Chmod(locked, 0o644) })
-	errContains(t, `sil("k/z/kilitli.txt")`, "salt okunur bir dosya; TR salt okunur dosyaları zorla silmez")
-	errContains(t, `sil("k", içindekilerle: doğru)`, `içinde salt okunur bir dosya var ("z/kilitli.txt")`, "hiçbir şey silinmedi")
+	errHas(t, `sil("k/z/kilitli.txt")`, messages.H7103)
+	errContains(t, `sil("k", içindekilerle: doğru)`, `içinde salt okunur bir dosya var ("z/kilitli.txt")`)
+	errHas(t, `sil("k", içindekilerle: doğru)`, messages.H7104)
 	if !exists(filepath.Join(k, "k", "a.txt")) || !exists(locked) {
 		t.Fatal("salt okunur dosya varken bir şey silindi")
 	}
@@ -96,22 +98,22 @@ func TestDeleteProtections(t *testing.T) {
 	os.MkdirAll(program, 0o755)
 	write(t, filepath.Join(program, "x.txt"), "x")
 	home, _ := os.UserHomeDir()
-	cases := map[string]string{
-		`sil(".")`:                            "çalışma klasörü ya da onun bir üst klasörü",
-		`sil("..")`:                           "çalışma klasörü ya da onun bir üst klasörü",
-		`sil("` + forwardPath(k) + `")`:       "çalışma klasörü",
-		`sil("` + forwardPath(program) + `")`: "programın (ya da modülün) klasörü",
-		`sil("` + forwardPath(filepath.Dir(program)) + `")`:                             "programın (ya da modülün) klasörü ya da onun bir üst klasörü",
-		`sil("` + forwardPath(filepath.VolumeName(k)+string(filepath.Separator)) + `")`: "bir kök klasör",
+	cases := map[string]messages.Code{
+		`sil(".")`:                            messages.H7151, // çalışma klasörü ya da üstü
+		`sil("..")`:                           messages.H7151,
+		`sil("` + forwardPath(k) + `")`:       messages.H7151,
+		`sil("` + forwardPath(program) + `")`: messages.H7152, // programın klasörü ya da üstü
+		`sil("` + forwardPath(filepath.Dir(program)) + `")`:                             messages.H7152,
+		`sil("` + forwardPath(filepath.VolumeName(k)+string(filepath.Separator)) + `")`: messages.H7147, // kök
 	}
 	if home != "" {
-		cases[`sil("`+forwardPath(home)+`")`] = "ev klasörünüzün kendisi"
-		cases[`sil("`+forwardPath(filepath.Dir(home))+`")`] = "ev klasörünüzün bir üst klasörü"
+		cases[`sil("`+forwardPath(home)+`")`] = messages.H7148               // ev klasörü
+		cases[`sil("`+forwardPath(filepath.Dir(home))+`")`] = messages.H7149 // ev klasörünün üstü
 	}
 	for code, wants := range cases {
 		s := runTR(t, program, code)
-		if s.failure == nil || !strings.Contains(s.failure.Error(), wants) || !strings.Contains(s.failure.Error(), "TR bunu silmez") {
-			t.Errorf("%s: %q bekleniyordu: %v", code, wants, s.failure)
+		if !messages.Has(s.failure, wants) || !messages.Has(s.failure, messages.H7121) {
+			t.Errorf("%s: %s bekleniyordu: %v", code, wants, s.failure)
 		}
 	}
 	if !exists(filepath.Join(program, "x.txt")) {
@@ -127,16 +129,16 @@ func TestSystemDirProtection(t *testing.T) {
 	}
 	for _, s := range dirs {
 		g := resolvedDir(s)
-		if n := deleteProtection(nil, g); n == "" {
+		if n := deleteProtection(nil, g); n == nil {
 			t.Errorf("%s korunmuyor", g)
 		}
 		if parent := filepath.Dir(g); parent != g {
-			if n := deleteProtection(nil, parent); n == "" {
+			if n := deleteProtection(nil, parent); n == nil {
 				t.Errorf("%s (üst) korunmuyor", parent)
 			}
 		}
 	}
-	if n := deleteProtection(nil, resolvedDir(t.TempDir())); n != "" {
+	if n := deleteProtection(nil, resolvedDir(t.TempDir())); n != nil {
 		t.Errorf("geçici klasör korunmamalı: %s", n)
 	}
 }
@@ -146,7 +148,7 @@ func TestDeleteOpenReader(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "k", "s.txt"), "a\nb\nc\n")
 	s := runTR(t, "", `değişken o = dosya_satırları("k/s.txt"); o.sonraki(); sil("k", içindekilerle: doğru)`)
-	if s.failure == nil || !strings.Contains(s.failure.Error(), "SatırOkuyucu ile okunuyor") {
+	if !messages.Has(s.failure, messages.H7125) {
 		t.Fatalf("açık dosya: %v", s.failure)
 	}
 	CloseAll()

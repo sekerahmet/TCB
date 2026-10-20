@@ -91,12 +91,11 @@ func openFileError(fn, raw, real string) error {
 	if open == "" {
 		return nil
 	}
-	what := fmt.Sprintf("içindeki %q", filepath.ToSlash(open))
+	what := messages.Text(messages.H7126, filepath.ToSlash(open))
 	if samePath(open, real) {
-		what = "dosya"
+		what = messages.Text(messages.H7127)
 	}
-	return fmt.Errorf("%s: %q: %s bu programda bir %s ile okunuyor; önce okuyucuyu kapatın (x.%s()) ya da dosyayı sonuna kadar okuyun",
-		fn, raw, what, LineReaderType, codes.Name(codes.Y012))
+	return messages.New(messages.H7125, fn, raw, what, LineReaderType, codes.Name(codes.Y012))
 }
 
 // CloseAll açık kalmış satır okuyucularının dosyalarını kapatır, ardından geçici_klasör()
@@ -105,7 +104,7 @@ func openFileError(fn, raw, real string) error {
 func CloseAll() {
 	closeReaders()
 	for _, err := range deleteTempDirs() {
-		fmt.Fprintf(os.Stderr, "Uyarı: %v\n", err)
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H7128, err))
 	}
 }
 
@@ -135,7 +134,7 @@ func linesBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	}
 	resolved, tried := m.ResolvePath(filepath.FromSlash(raw))
 	if b, err := os.Stat(resolved); err == nil && b.IsDir() {
-		return nil, fmt.Errorf("%s: %q bir klasör; satırları okunacak dosyanın yolunu verin", fn, raw)
+		return nil, messages.New(messages.H7129, fn, raw)
 	}
 	var r io.ReadCloser
 	m.Blocking(func() { r, err = interp.OpenFileReader(resolved) })
@@ -154,14 +153,14 @@ func (o *LineReader) IsTruthy() bool         { return true }
 func (o *LineReader) Inspect() string {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	state := fmt.Sprintf("%d satır okundu", o.counter)
+	state := messages.H7130 // n satır okundu
 	switch {
 	case o.closed:
-		state += ", kapatıldı"
+		state = messages.H7131 // ..., kapatıldı
 	case o.done:
-		state += ", bitti"
+		state = messages.H7132 // ..., bitti
 	}
-	return fmt.Sprintf("%s(%s, %s)", LineReaderType, o.fpath, state)
+	return messages.Text(state, LineReaderType, o.fpath, o.counter)
 }
 
 func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
@@ -171,7 +170,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 	if kd == codes.Y602 {
 		b := &interp.BuiltinVal{Name: codes.Name(codes.Y602), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("%s() parametre almaz, %d verildi", codes.Name(codes.Y602), len(args))
+				return nil, messages.New(messages.H7133, codes.Name(codes.Y602), len(args))
 			}
 			d, cont, err := o.Next(m)
 			if err != nil || !cont {
@@ -191,7 +190,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 func (o *LineReader) closeMethod() *interp.BuiltinVal {
 	b := &interp.BuiltinVal{Name: codes.Name(codes.Y012), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 0 {
-			return nil, fmt.Errorf("%s() parametre almaz, %d verildi", codes.Name(codes.Y012), len(args))
+			return nil, messages.New(messages.H7133, codes.Name(codes.Y012), len(args))
 		}
 		var didClose bool
 		m.Blocking(func() {
@@ -209,8 +208,7 @@ func (o *LineReader) closeMethod() *interp.BuiltinVal {
 
 // closedError kapatılmış okuyucudan satır istenince verilen hatadır.
 func (o *LineReader) closedError() error {
-	return fmt.Errorf("%s: %q okuyucusu %s() ile kapatıldı; yeniden okumak için %s(...) ile yeni bir okuyucu açın",
-		LineReaderType, o.fpath, codes.Name(codes.Y012), codes.Name(codes.G112))
+	return messages.New(messages.H7134, LineReaderType, o.fpath, codes.Name(codes.Y012), codes.Name(codes.G112))
 }
 
 // Next sıradaki satırı verir; dosya bitince devam=false. Satır tamponda hazırsa yorumlayıcı

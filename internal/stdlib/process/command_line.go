@@ -1,13 +1,13 @@
 package process
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
@@ -84,7 +84,7 @@ func (d *State) commandLine(m *interp.VM, args []interp.Value, named map[string]
 	called := d.called
 	d.mu.Unlock()
 	if called {
-		return nil, fmt.Errorf("%s programda bir kez çağrılır; ilk çağrının döndürdüğü sözlüğü bir değişkende tutup kullanın", fn)
+		return nil, messages.New(messages.H7218, fn)
 	}
 	result, err := applyArguments(m, options, description)
 	if err != nil {
@@ -106,7 +106,7 @@ func buildOptions(m *interp.VM, fn string, dict *interp.DictVal) ([]*option, err
 		}
 		if key := dict.KeyValue(k); key != nil {
 			if _, text := key.(*interp.StringVal); !text {
-				return nil, fmt.Errorf("%s: seçenek adları %s olmalıdır, %s verildi", fn, codes.Name(codes.A202), interp.TypeAndSummary(key))
+				return nil, messages.New(messages.H7219, fn, codes.Name(codes.A202), interp.TypeAndSummary(key))
 			}
 		}
 		if err := checkOptionName(fn, k); err != nil {
@@ -130,15 +130,14 @@ func buildOptions(m *interp.VM, fn string, dict *interp.DictVal) ([]*option, err
 // olamaz: ayar.uzunluk anahtarı değil eleman sayısını verirdi.
 func checkOptionName(fn, name string) error {
 	if name == "" || strings.HasPrefix(name, "-") || strings.ContainsFunc(name, func(r rune) bool { return r == '=' || unicode.IsSpace(r) }) {
-		return fmt.Errorf("%s: %q seçenek adı olamaz (boş olamaz, - ile başlayamaz, boşluk ya da = içeremez)", fn, name)
+		return messages.New(messages.H7220, fn, name)
 	}
 	if slices.Contains(reservedOptionNames, name) {
-		return fmt.Errorf("%s: %q seçenek adı olamaz: --yardım ve -h seçenekleri listeler", fn, name)
+		return messages.New(messages.H7221, fn, name)
 	}
 	if k, ok := codes.Find(codes.NamespaceMember, name); ok {
 		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.A206) {
-			return fmt.Errorf("%s: %q seçenek adı olamaz: %s tipinin bir üyesidir, ayar.%s seçeneğin değerini değil üyeyi verirdi; başka bir ad seçin",
-				fn, name, codes.Name(codes.A206), name)
+			return messages.New(messages.H7222, fn, name, codes.Name(codes.A206))
 		}
 	}
 	return nil
@@ -157,7 +156,7 @@ func defaultKind(fn, name string, v interp.Value) (optKind, optKind, error) {
 		for i, e := range x.Elements {
 			t, ok := plainKind(e)
 			if !ok {
-				return 0, 0, fmt.Errorf("%s: '%s' seçeneğinin liste varsayılanı yalnızca aynı tipte %s öğeler içerebilir; %d. öğe %s",
+				return 0, 0, messages.New(messages.H7223,
 					fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), i+1, interp.TypeAndSummary(e))
 			}
 			switch {
@@ -167,12 +166,12 @@ func defaultKind(fn, name string, v interp.Value) (optKind, optKind, error) {
 			case (item == kindInt && t == kindFloat) || (item == kindFloat && t == kindInt):
 				item = kindFloat
 			default:
-				return 0, 0, fmt.Errorf("%s: '%s' seçeneğinin liste varsayılanındaki öğeler aynı tipte olmalı (%d. öğe %s)", fn, name, i+1, interp.TypeAndSummary(e))
+				return 0, 0, messages.New(messages.H7224, fn, name, i+1, interp.TypeAndSummary(e))
 			}
 		}
 		return kindList, item, nil
 	}
-	return 0, 0, fmt.Errorf("%s: '%s' seçeneğinin varsayılanı %s, %s ya da %s olmalı; %s verildi",
+	return 0, 0, messages.New(messages.H7225,
 		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.Name(codes.A205), codes.Name(codes.A042), interp.TypeAndSummary(v))
 }
 
@@ -198,7 +197,7 @@ func readDescriptions(fn string, named map[string]interp.Value, options []*optio
 	if v, ok := bind.GetNamed(named, nameDesc); ok {
 		s, ok := v.(*interp.StringVal)
 		if !ok {
-			return "", fmt.Errorf("%s: %s: %s olmalıdır, %s verildi", fn, nameDesc.TR, codes.Name(codes.A202), interp.TypeAndSummary(v))
+			return "", messages.New(messages.H7226, fn, nameDesc.TR, codes.Name(codes.A202), interp.TypeAndSummary(v))
 		}
 		description = s.Val
 	}
@@ -208,7 +207,7 @@ func readDescriptions(fn string, named map[string]interp.Value, options []*optio
 	}
 	dict, ok := v.(*interp.DictVal)
 	if !ok {
-		return "", fmt.Errorf("%s: %s: %s olmalıdır (seçenek adı → açıklama), %s verildi", fn, nameDescs.TR, codes.Name(codes.A206), interp.TypeAndSummary(v))
+		return "", messages.New(messages.H7227, fn, nameDescs.TR, codes.Name(codes.A206), interp.TypeAndSummary(v))
 	}
 	names := make([]string, len(options))
 	for i, s := range options {
@@ -221,15 +220,14 @@ func readDescriptions(fn string, named map[string]interp.Value, options []*optio
 		}
 		i := slices.Index(names, k)
 		if i < 0 {
-			suggestion := ""
 			if o := turkish.Closest(k, names); o != "" {
-				suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+				return "", messages.New(messages.H7229, fn, nameDescs.TR, dict.DisplayKey(k), o)
 			}
-			return "", fmt.Errorf("%s: %s içindeki '%s' bir seçenek değil%s", fn, nameDescs.TR, dict.DisplayKey(k), suggestion)
+			return "", messages.New(messages.H7228, fn, nameDescs.TR, dict.DisplayKey(k))
 		}
 		s, ok := value.(*interp.StringVal)
 		if !ok {
-			return "", fmt.Errorf("%s: %s içinde '%s' seçeneğinin açıklaması %s olmalıdır, %s verildi", fn, nameDescs.TR, k, codes.Name(codes.A202), interp.TypeAndSummary(value))
+			return "", messages.New(messages.H7230, fn, nameDescs.TR, k, codes.Name(codes.A202), interp.TypeAndSummary(value))
 		}
 		options[i].description = s.Val
 	}
