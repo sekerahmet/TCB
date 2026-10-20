@@ -23,7 +23,7 @@ func TestSimpleStrings(t *testing.T) {
 		{`"a}b"`, "a}b"}, // eşi olmayan '}' düz karakterdir
 	}
 	for _, tt := range tests {
-		checkTokens(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TokString, tt.lit}, {TokEOF, ""}})
 	}
 }
 func TestStringEscapes(t *testing.T) {
@@ -42,7 +42,7 @@ func TestStringEscapes(t *testing.T) {
 		{`"\\{x}"`, `\{x}`},
 	}
 	for _, tt := range tests {
-		checkTokens(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TokString, tt.lit}, {TokEOF, ""}})
 	}
 }
 
@@ -64,14 +64,14 @@ func TestStringInterpolation(t *testing.T) {
 		{`"\{{x}\}"`, string(EscapedLBrace) + "{x}" + string(EscapedRBrace)},
 	}
 	for _, tt := range tests {
-		checkTokens(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TokString, tt.lit}, {TokEOF, ""}})
 	}
 }
 
 // Metin birden fazla satıra yayılabilir; sonraki token'ın satırı doğru olmalı.
 func TestMultilineString(t *testing.T) {
 	toks := tokensNoErrors(t, "\"bir\niki\nüç\" x")
-	if toks[0].Type != TOKEN_STRING || toks[0].Literal != "bir\niki\nüç" {
+	if toks[0].Type != TokString || toks[0].Literal != "bir\niki\nüç" {
 		t.Fatalf("çok satırlı metin yanlış okundu: %v", toks[0])
 	}
 	if toks[0].Line != 1 || toks[0].Column != 1 {
@@ -101,7 +101,7 @@ func TestUnterminatedString(t *testing.T) {
 			if !hasErr(errs, tt.line, tt.col, messages.H0010) {
 				t.Errorf("H0010 (satır %d, sütun %d) bekleniyordu, gelen: %q", tt.line, tt.col, errs[0])
 			}
-			if toks[len(toks)-1].Type != TOKEN_EOF {
+			if toks[len(toks)-1].Type != TokEOF {
 				t.Errorf("son token DOSYA_SONU olmalı: %v", toks)
 			}
 		})

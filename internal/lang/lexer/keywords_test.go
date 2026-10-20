@@ -38,5 +38,5 @@ func TestKeywordMapCatchesClash(t *testing.T) {
 			t.Fatal("çakışan tablo için panik bekleniyordu")
 		}
 	}()
-	keywordMap([]Keyword{{codes.A001, TOKEN_IF}, {codes.A002, TOKEN_IF}})
+	keywordMap([]Keyword{{codes.A001, TokIf}, {codes.A002, TokIf}})
 }

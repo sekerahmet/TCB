@@ -20,46 +20,46 @@ type Keyword struct {
 // keywordTable sözcük çözümleyicide ayrılmış bütün anahtar kelimelerdir.
 var keywordTable = []Keyword{
 	// Koşul ve eşleştirme
-	{codes.A001, TOKEN_IF},
-	{codes.A002, TOKEN_ELSE},
-	{codes.A003, TOKEN_MATCH},
-	{codes.A004, TOKEN_DEFAULT},
+	{codes.A001, TokIf},
+	{codes.A002, TokElse},
+	{codes.A003, TokMatch},
+	{codes.A004, TokDefault},
 
 	// Döngüler ve akış kontrolü
-	{codes.A010, TOKEN_FOR},
-	{codes.A011, TOKEN_IN},
-	{codes.A012, TOKEN_WHILE},
-	{codes.A013, TOKEN_BREAK},
-	{codes.A014, TOKEN_CONTINUE},
+	{codes.A010, TokFor},
+	{codes.A011, TokIn},
+	{codes.A012, TokWhile},
+	{codes.A013, TokBreak},
+	{codes.A014, TokContinue},
 
 	// Fonksiyon ve dönüş
-	{codes.A020, TOKEN_FUNCTION},
-	{codes.A021, TOKEN_RETURN},
+	{codes.A020, TokFunction},
+	{codes.A021, TokReturn},
 
 	// Değişken ve sabit
-	{codes.A030, TOKEN_VAR},
-	{codes.A031, TOKEN_CONST},
+	{codes.A030, TokVar},
+	{codes.A031, TokConst},
 
 	// Mantıksal ve boş değerler
-	{codes.A040, TOKEN_TRUE},
-	{codes.A041, TOKEN_FALSE},
-	{codes.A042, TOKEN_NIL},
-	{codes.A043, TOKEN_KW_AND},
-	{codes.A044, TOKEN_KW_OR},
-	{codes.A045, TOKEN_KW_NOT},
+	{codes.A040, TokTrue},
+	{codes.A041, TokFalse},
+	{codes.A042, TokNil},
+	{codes.A043, TokKwAnd},
+	{codes.A044, TokKwOr},
+	{codes.A045, TokKwNot},
 
 	// Yapı ve kendi
-	{codes.A050, TOKEN_STRUCT},
-	{codes.A051, TOKEN_SELF},
+	{codes.A050, TokStruct},
+	{codes.A051, TokSelf},
 
 	// Hata yönetimi, modül, eşzamanlılık, ertele, kesme noktası
-	{codes.A060, TOKEN_TRY},
-	{codes.A061, TOKEN_CATCH},
-	{codes.A062, TOKEN_THROW},
-	{codes.A070, TOKEN_IMPORT},
-	{codes.A080, TOKEN_CONCURRENT},
-	{codes.A081, TOKEN_DEFER},
-	{codes.A090, TOKEN_BREAKPOINT},
+	{codes.A060, TokTry},
+	{codes.A061, TokCatch},
+	{codes.A062, TokThrow},
+	{codes.A070, TokImport},
+	{codes.A080, TokConcurrent},
+	{codes.A081, TokDefer},
+	{codes.A090, TokBreakpoint},
 }
 
 // keywords yazım → token türü, turKodlari token türü → sözlük kodu haritasıdır.
@@ -103,5 +103,5 @@ func LookupIdent(ident string) TokenType {
 	if tok, ok := keywords[ident]; ok {
 		return tok
 	}
-	return TOKEN_IDENT
+	return TokIdent
 }

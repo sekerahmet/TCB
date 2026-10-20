@@ -33,7 +33,7 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 			switch rv := right.(type) {
 			case *IntVal:
 				if rv.Val == math.MinInt64 {
-					return nil, messages.At(line, 0, messages.New(messages.H2444, VAL_INT, rv.Val))
+					return nil, messages.At(line, 0, messages.New(messages.H2444, ValInt, rv.Val))
 				}
 				return NewInt(-rv.Val), nil
 			case *FloatVal:
@@ -159,7 +159,7 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			if left.Type() != VAL_NULL {
+			if left.Type() != ValNull {
 				return left, nil
 			}
 			return rightFn(v, env)

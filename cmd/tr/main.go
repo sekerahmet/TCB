@@ -289,7 +289,7 @@ func startREPL() {
 			continue
 		}
 		machine.WaitAsync()
-		if val != nil && val.Type() != interp.VAL_NULL {
+		if val != nil && val.Type() != interp.ValNull {
 			if !startsWithPrint(line) {
 				fmt.Println("=>", val.Inspect())
 			}

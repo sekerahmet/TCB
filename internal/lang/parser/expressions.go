@@ -21,40 +21,40 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	p.patternMode = false
 
 	switch p.curToken().Type {
-	case lexer.TOKEN_IDENT:
+	case lexer.TokIdent:
 		// Tek parametreli ok fonksiyonu: x => x * 2 (eşle deseninde ad, değeriyle karşılaştırılır)
-		if !pattern && p.peekTokenIs(lexer.TOKEN_ARROW) {
+		if !pattern && p.peekTokenIs(lexer.TokArrow) {
 			leftExp = p.parseSingleParamLambda()
 		} else {
 			leftExp = &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal}
 		}
-	case lexer.TOKEN_SELF:
+	case lexer.TokSelf:
 		leftExp = &ast.Identifier{Token: p.curToken(), Value: selfName}
-	case lexer.TOKEN_INT:
+	case lexer.TokInt:
 		leftExp = p.parseIntegerLiteral()
-	case lexer.TOKEN_FLOAT:
+	case lexer.TokFloat:
 		leftExp = p.parseFloatLiteral()
-	case lexer.TOKEN_STRING:
+	case lexer.TokString:
 		leftExp = p.parseStringOrInterpolation()
-	case lexer.TOKEN_TRUE:
+	case lexer.TokTrue:
 		leftExp = &ast.BooleanLiteral{Token: p.curToken(), Value: true}
-	case lexer.TOKEN_FALSE:
+	case lexer.TokFalse:
 		leftExp = &ast.BooleanLiteral{Token: p.curToken(), Value: false}
-	case lexer.TOKEN_NIL:
+	case lexer.TokNil:
 		leftExp = &ast.NullLiteral{Token: p.curToken()}
-	case lexer.TOKEN_BANG, lexer.TOKEN_MINUS, lexer.TOKEN_KW_NOT:
+	case lexer.TokBang, lexer.TokMinus, lexer.TokKwNot:
 		leftExp = p.parsePrefixExpression()
-	case lexer.TOKEN_LPAREN:
+	case lexer.TokLParen:
 		leftExp = p.parseGroupedOrLambdaExpression(pattern)
-	case lexer.TOKEN_IF:
+	case lexer.TokIf:
 		leftExp = p.parseIfExpression()
-	case lexer.TOKEN_MATCH:
+	case lexer.TokMatch:
 		leftExp = p.parseMatchExpression()
-	case lexer.TOKEN_FUNCTION:
+	case lexer.TokFunction:
 		leftExp = p.parseFunctionLiteral()
-	case lexer.TOKEN_LBRACKET:
+	case lexer.TokLBracket:
 		leftExp = p.parseListLiteral()
-	case lexer.TOKEN_LBRACE:
+	case lexer.TokLBrace:
 		leftExp = p.parseDictLiteral()
 	default:
 		if p.leadingBinaryOperator() {
@@ -89,15 +89,15 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	tok := p.curToken()
 	op := tok.Literal
-	if tok.Type == lexer.TOKEN_KW_NOT {
+	if tok.Type == lexer.TokKwNot {
 		op = "!"
 	}
 	p.nextToken()
-	prec := PREFIX_PREC
-	if tok.Type == lexer.TOKEN_KW_NOT {
+	prec := precPrefix
+	if tok.Type == lexer.TokKwNot {
 		// 'değil' karşılaştırmadan zayıf bağlar: 'değil 1 == 2' -> değil (1 == 2), ancak
 		// 'değil a ve b' -> (değil a) ve b
-		prec = AND_PREC
+		prec = precAnd
 	}
 	right := p.parseExpression(prec)
 	return &ast.PrefixExpression{Token: tok, Operator: op, Right: right}
@@ -105,13 +105,13 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	tok := p.curToken()
 	op := tok.Literal
-	if tok.Type == lexer.TOKEN_KW_AND {
+	if tok.Type == lexer.TokKwAnd {
 		op = "&&"
-	} else if tok.Type == lexer.TOKEN_KW_OR {
+	} else if tok.Type == lexer.TokKwOr {
 		op = "||"
 	}
 	prec := p.curPrecedence()
-	if tok.Type == lexer.TOKEN_POWER {
+	if tok.Type == lexer.TokPower {
 		// '**' sağdan birleşir: 2 ** 3 ** 2 = 2 ** (3 ** 2)
 		prec--
 	}
@@ -121,7 +121,7 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 }
 func (p *Parser) parseRangeExpression(left ast.Expression) ast.Expression {
 	tok := p.curToken()
-	inclusive := tok.Type == lexer.TOKEN_RANGE_INCL
+	inclusive := tok.Type == lexer.TokRangeIncl
 	prec := p.curPrecedence()
 	p.nextToken()
 	right := p.parseExpression(prec)
@@ -136,29 +136,29 @@ func (p *Parser) parseRangeExpression(left ast.Expression) ast.Expression {
 // parseInfixChain sol ifadeye ikili işleçleri, çağrıları, indeksleri ve üyeleri öncelik
 // sırasıyla bağlar.
 func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Expression {
-	for !p.peekTokenIs(lexer.TOKEN_SEMICOLON) && precedence < p.peekPrecedence() {
+	for !p.peekTokenIs(lexer.TokSemicolon) && precedence < p.peekPrecedence() {
 		switch p.peekToken().Type {
-		case lexer.TOKEN_PLUS, lexer.TOKEN_MINUS, lexer.TOKEN_SLASH, lexer.TOKEN_ASTERISK,
-			lexer.TOKEN_PERCENT, lexer.TOKEN_POWER, lexer.TOKEN_MATMUL,
-			lexer.TOKEN_EQ, lexer.TOKEN_NOT_EQ, lexer.TOKEN_LT, lexer.TOKEN_GT,
-			lexer.TOKEN_LTE, lexer.TOKEN_GTE, lexer.TOKEN_AND, lexer.TOKEN_OR,
-			lexer.TOKEN_KW_AND, lexer.TOKEN_KW_OR, lexer.TOKEN_PIPE, lexer.TOKEN_NULL_COALESC:
+		case lexer.TokPlus, lexer.TokMinus, lexer.TokSlash, lexer.TokAsterisk,
+			lexer.TokPercent, lexer.TokPower, lexer.TokMatmul,
+			lexer.TokEq, lexer.TokNotEq, lexer.TokLt, lexer.TokGt,
+			lexer.TokLte, lexer.TokGte, lexer.TokAnd, lexer.TokOr,
+			lexer.TokKwAnd, lexer.TokKwOr, lexer.TokPipe, lexer.TokNullCoalesc:
 			// Yeni satırın başındaki ikili işleç önceki ifadeyi sürdürmez (2.8): 'a = 1'
 			// ardından gelen '-x' satırı 'a = 1 - x' okunmaz (Go, Python, Kotlin gibi). İfadeyi
 			// bölmek için işleç satır sonuna yazılır ya da parantez kullanılır. Zincir işleci
 			// '|>' tekli biçimi olmadığı için satır başında da sürer ('.' gibi; Elixir, F#).
-			if p.peekToken().Type != lexer.TOKEN_PIPE && p.lineBreakEnds() {
+			if p.peekToken().Type != lexer.TokPipe && p.lineBreakEnds() {
 				return leftExp
 			}
 			p.nextToken()
 			leftExp = p.parseInfixExpression(leftExp)
-		case lexer.TOKEN_RANGE, lexer.TOKEN_RANGE_INCL:
+		case lexer.TokRange, lexer.TokRangeIncl:
 			if p.lineBreakEnds() {
 				return leftExp
 			}
 			p.nextToken()
 			leftExp = p.parseRangeExpression(leftExp)
-		case lexer.TOKEN_LPAREN, lexer.TOKEN_LBRACKET:
+		case lexer.TokLParen, lexer.TokLBracket:
 			// Yeni satırda başlayan '(' veya '[' önceki ifadeyi sürdürmez; yeni bir
 			// deyim başlatır. Aksi hâlde 'değişken f = 5' ardından gelen
 			// '(1 + 2) |> yazdır' satırı '5(1 + 2)' çağrısı olarak okunurdu.
@@ -166,15 +166,15 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Exp
 				return leftExp
 			}
 			p.nextToken()
-			if p.curTokenIs(lexer.TOKEN_LPAREN) {
+			if p.curTokenIs(lexer.TokLParen) {
 				leftExp = p.parseCallExpression(leftExp)
 			} else {
 				leftExp = p.parseIndexExpression(leftExp)
 			}
-		case lexer.TOKEN_DOT, lexer.TOKEN_SAFE_DOT:
+		case lexer.TokDot, lexer.TokSafeDot:
 			p.nextToken()
 			leftExp = p.parseMemberExpression(leftExp)
-		case lexer.TOKEN_LBRACE:
+		case lexer.TokLBrace:
 			// Sondaki blok yalnızca aynı satırda ve kontrol yapısı başlığı dışında geçerlidir
 			if p.noBlock || p.peekToken().Line != p.curToken().Line || !isTrailingBlockTarget(leftExp) {
 				return leftExp
@@ -193,11 +193,11 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Exp
 // satırı sürdürmek için yazılmış olabilir (2.8), hata nedenini söyler.
 func (p *Parser) leadingBinaryOperator() bool {
 	switch p.curToken().Type {
-	case lexer.TOKEN_PLUS, lexer.TOKEN_SLASH, lexer.TOKEN_ASTERISK, lexer.TOKEN_PERCENT,
-		lexer.TOKEN_POWER, lexer.TOKEN_MATMUL, lexer.TOKEN_EQ, lexer.TOKEN_NOT_EQ, lexer.TOKEN_LT,
-		lexer.TOKEN_GT, lexer.TOKEN_LTE, lexer.TOKEN_GTE, lexer.TOKEN_AND, lexer.TOKEN_OR,
-		lexer.TOKEN_KW_AND, lexer.TOKEN_KW_OR, lexer.TOKEN_NULL_COALESC, lexer.TOKEN_RANGE,
-		lexer.TOKEN_RANGE_INCL:
+	case lexer.TokPlus, lexer.TokSlash, lexer.TokAsterisk, lexer.TokPercent,
+		lexer.TokPower, lexer.TokMatmul, lexer.TokEq, lexer.TokNotEq, lexer.TokLt,
+		lexer.TokGt, lexer.TokLte, lexer.TokGte, lexer.TokAnd, lexer.TokOr,
+		lexer.TokKwAnd, lexer.TokKwOr, lexer.TokNullCoalesc, lexer.TokRange,
+		lexer.TokRangeIncl:
 	default:
 		return false
 	}

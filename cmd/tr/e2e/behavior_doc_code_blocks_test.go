@@ -128,7 +128,7 @@ func definePlaceholders(body, code string) string {
 	seen := map[string]bool{}
 	for _, m := range templateDefaultRe.FindAllStringSubmatch(body, -1) {
 		ad := m[1]
-		if !namePlaceholderRe.MatchString(ad) || seen[ad] || slices.Contains(defined, ad) || lexer.LookupIdent(ad) != lexer.TOKEN_IDENT {
+		if !namePlaceholderRe.MatchString(ad) || seen[ad] || slices.Contains(defined, ad) || lexer.LookupIdent(ad) != lexer.TokIdent {
 			continue
 		}
 		seen[ad] = true

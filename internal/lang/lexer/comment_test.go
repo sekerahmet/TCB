@@ -16,22 +16,22 @@ func TestComments(t *testing.T) {
 		name, src string
 		want      []expected
 	}{
-		{"çift bölü", "a // yorum {\nb", []expected{{TOKEN_IDENT, "a"}, {TOKEN_IDENT, "b"}}},
-		{"blok", "a /* çok\nsatırlı ' yorum */ b", []expected{{TOKEN_IDENT, "a"}, {TOKEN_IDENT, "b"}}},
-		{"dosya sonunda", "a // son", []expected{{TOKEN_IDENT, "a"}}},
-		{"art arda", "// bir\n// iki\n/* üç */\nx", []expected{{TOKEN_IDENT, "x"}}},
-		{"blok içinde yıldız", "/* a * b ** c */x", []expected{{TOKEN_IDENT, "x"}}},
-		{"bölme yorum değildir", "a / b", []expected{{TOKEN_IDENT, "a"}, {TOKEN_SLASH, "/"}, {TOKEN_IDENT, "b"}}},
-		{"metin içindeki # yorum değildir", `"# değil" x`, []expected{{TOKEN_STRING, "# değil"}, {TOKEN_IDENT, "x"}}},
-		{"metin içindeki // yorum değildir", `"http://a" x`, []expected{{TOKEN_STRING, "http://a"}, {TOKEN_IDENT, "x"}}},
+		{"çift bölü", "a // yorum {\nb", []expected{{TokIdent, "a"}, {TokIdent, "b"}}},
+		{"blok", "a /* çok\nsatırlı ' yorum */ b", []expected{{TokIdent, "a"}, {TokIdent, "b"}}},
+		{"dosya sonunda", "a // son", []expected{{TokIdent, "a"}}},
+		{"art arda", "// bir\n// iki\n/* üç */\nx", []expected{{TokIdent, "x"}}},
+		{"blok içinde yıldız", "/* a * b ** c */x", []expected{{TokIdent, "x"}}},
+		{"bölme yorum değildir", "a / b", []expected{{TokIdent, "a"}, {TokSlash, "/"}, {TokIdent, "b"}}},
+		{"metin içindeki # yorum değildir", `"# değil" x`, []expected{{TokString, "# değil"}, {TokIdent, "x"}}},
+		{"metin içindeki // yorum değildir", `"http://a" x`, []expected{{TokString, "http://a"}, {TokIdent, "x"}}},
 		// Mevcut davranış: blok yorumlar iç içe geçmez; ilk '*/' yorumu bitirir
 		{"iç içe blok yok", "/* a /* b */ c */", []expected{
-			{TOKEN_IDENT, "c"}, {TOKEN_ASTERISK, "*"}, {TOKEN_SLASH, "/"},
+			{TokIdent, "c"}, {TokAsterisk, "*"}, {TokSlash, "/"},
 		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			checkTokens(t, tt.src, append(tt.want, expected{TOKEN_EOF, ""}))
+			checkTokens(t, tt.src, append(tt.want, expected{TokEOF, ""}))
 		})
 	}
 }
@@ -56,7 +56,7 @@ func TestHashIsNotComment(t *testing.T) {
 		}
 		var names []string
 		for _, tk := range toks {
-			if tk.Type == TOKEN_IDENT {
+			if tk.Type == TokIdent {
 				names = append(names, tk.Literal)
 			}
 		}
@@ -76,7 +76,7 @@ func TestLineNumberAfterComment(t *testing.T) {
 }
 func TestUnterminatedBlockComment(t *testing.T) {
 	toks, errs := allTokens(t, "a = 1\n  /* yorum\nb = 2\n")
-	if len(toks) != 4 || toks[3].Type != TOKEN_EOF {
+	if len(toks) != 4 || toks[3].Type != TokEOF {
 		t.Errorf("yorum dosya sonuna kadar sürmeli, gelen: %v", toks)
 	}
 	if len(errs) != 1 || !hasErr(errs, 2, 3, messages.H0006) {
@@ -91,5 +91,5 @@ func TestUnterminatedBlockComment(t *testing.T) {
 		}
 	}
 	// '/**/' boş ama kapalı bir yorumdur
-	checkTokens(t, "/**/x", []expected{{TOKEN_IDENT, "x"}, {TOKEN_EOF, ""}})
+	checkTokens(t, "/**/x", []expected{{TokIdent, "x"}, {TokEOF, ""}})
 }

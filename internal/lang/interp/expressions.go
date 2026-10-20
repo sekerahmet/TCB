@@ -66,7 +66,7 @@ func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 			items = append(items, item)
 		}
 	default:
-		return nil, messages.At(line, 0, messages.New(messages.H2464, VAL_LIST, iterVal.Type()))
+		return nil, messages.At(line, 0, messages.New(messages.H2464, ValList, iterVal.Type()))
 	}
 	return items, nil
 }
@@ -81,7 +81,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 				pos = len(container.Elements) + pos
 			}
 			if pos < 0 || pos >= len(container.Elements) {
-				return nil, indexRangeError(line, VAL_LIST, iv.Val, len(container.Elements))
+				return nil, indexRangeError(line, ValList, iv.Val, len(container.Elements))
 			}
 			return container.Elements[pos], nil
 		}
@@ -92,7 +92,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 			copy(sliced, container.Elements[start:end])
 			return &ListVal{Elements: sliced}, nil
 		}
-		return nil, messages.At(line, 0, messages.New(messages.H2400, VAL_LIST, VAL_INT))
+		return nil, messages.At(line, 0, messages.New(messages.H2400, ValList, ValInt))
 
 	case *DictVal:
 		if err := DictKeyError(idx); err != nil {
@@ -114,7 +114,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 				pos = n + pos
 			}
 			if pos < 0 || pos >= n {
-				return nil, indexRangeError(line, VAL_STRING, iv.Val, n)
+				return nil, indexRangeError(line, ValString, iv.Val, n)
 			}
 			return asciiChars[container.Val[pos]], nil
 		}
@@ -127,14 +127,14 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		}
 		iv, ok := idx.(*IntVal)
 		if !ok {
-			return nil, messages.At(line, 0, messages.New(messages.H2400, VAL_STRING, VAL_INT))
+			return nil, messages.At(line, 0, messages.New(messages.H2400, ValString, ValInt))
 		}
 		pos := int(iv.Val)
 		if pos < 0 {
 			pos = len(runes) + pos
 		}
 		if pos < 0 || pos >= len(runes) {
-			return nil, indexRangeError(line, VAL_STRING, iv.Val, len(runes))
+			return nil, indexRangeError(line, ValString, iv.Val, len(runes))
 		}
 		return &StringVal{Val: string(runes[pos])}, nil
 
@@ -153,14 +153,14 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 	// değildir; adı "Yok" olan bir yapı eski yoldan geçer).
 	switch inst := obj.(type) {
 	case *StructInstanceVal:
-		if ValueType(inst.Def.Name) != VAL_NULL {
+		if ValueType(inst.Def.Name) != ValNull {
 			return structMember(inst, e)
 		}
 	case *DictVal, *ListVal, *StringVal:
 		return v.evalBuiltinMember(obj, e.Property, u, e.Safe, e.Line())
 	}
 
-	if obj.Type() == VAL_NULL {
+	if obj.Type() == ValNull {
 		if e.Safe {
 			return NULL, nil
 		}

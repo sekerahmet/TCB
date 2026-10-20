@@ -56,7 +56,7 @@ func (p *Parser) functionBody() (b *ast.BlockStatement) {
 
 // functionExpr tek ifadeli ok fonksiyonunun gövdesini fonksiyon bağlamında ayrıştırır.
 func (p *Parser) functionExpr() (e ast.Expression) {
-	p.withinLimit(true, false, func() { e = p.parseExpression(LOWEST) })
+	p.withinLimit(true, false, func() { e = p.parseExpression(precLowest) })
 	return e
 }
 

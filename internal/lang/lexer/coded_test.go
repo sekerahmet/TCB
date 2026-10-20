@@ -11,7 +11,7 @@ import (
 // allOf bir çözümleyicinin bütün sözcük birimlerini (dosya sonu hariç) okur.
 func allOf(l *Lexer) []Token {
 	var t []Token
-	for tok := l.NextToken(); tok.Type != TOKEN_EOF; tok = l.NextToken() {
+	for tok := l.NextToken(); tok.Type != TokEOF; tok = l.NextToken() {
 		t = append(t, tok)
 	}
 	return t
@@ -29,9 +29,9 @@ func TestCodedTokens(t *testing.T) {
 		lit  string
 		kd   codes.Code
 	}{
-		{TOKEN_VAR, "değişken", codes.A030}, {TOKEN_IDENT, "eğer", codes.None}, {TOKEN_ASSIGN, "=", codes.None},
-		{TOKEN_IDENT, "yazdır", codes.G100}, {TOKEN_IDENT, "x", codes.None}, {TOKEN_DOT, ".", codes.None},
-		{TOKEN_IDENT, "ekle", codes.Y004}, {TOKEN_TRUE, "doğru", codes.A040},
+		{TokVar, "değişken", codes.A030}, {TokIdent, "eğer", codes.None}, {TokAssign, "=", codes.None},
+		{TokIdent, "yazdır", codes.G100}, {TokIdent, "x", codes.None}, {TokDot, ".", codes.None},
+		{TokIdent, "ekle", codes.Y004}, {TokTrue, "doğru", codes.A040},
 	}
 	if len(toks) != len(expected) {
 		t.Fatalf("%d sözcük, beklenen %d: %v", len(toks), len(expected), toks)
@@ -58,7 +58,7 @@ func TestCodedTokens(t *testing.T) {
 func TestEscapedName(t *testing.T) {
 	l := New("$eğer + $yazdır")
 	toks := allOf(l)
-	if len(l.Errors()) > 0 || len(toks) != 3 || toks[0].Type != TOKEN_IDENT || toks[0].Literal != "eğer" || toks[2].Literal != "yazdır" {
+	if len(l.Errors()) > 0 || len(toks) != 3 || toks[0].Type != TokIdent || toks[0].Literal != "eğer" || toks[2].Literal != "yazdır" {
 		t.Fatalf("kaçışlı adlar: %v %v", toks, l.Errors())
 	}
 	for _, k := range []string{"a$b", "1$x", "$G100"} {
@@ -114,7 +114,7 @@ func TestCodedPreScanDepthLimited(t *testing.T) {
 	}
 	begin := time.Now()
 	l := NewBody("A030 s = "+body+"\n", true)
-	for l.NextToken().Type != TOKEN_EOF {
+	for l.NextToken().Type != TokEOF {
 	}
 	if d := time.Since(begin); d > 5*time.Second { // linear: about 0.2 s on an idle machine
 		t.Errorf("20000 nested interpolations took %v", d)

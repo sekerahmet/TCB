@@ -11,52 +11,52 @@ import (
 
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken().Type {
-	case lexer.TOKEN_VAR:
+	case lexer.TokVar:
 		return p.parseVarStatement(false)
-	case lexer.TOKEN_CONST:
+	case lexer.TokConst:
 		return p.parseVarStatement(true)
-	case lexer.TOKEN_RETURN:
+	case lexer.TokReturn:
 		return p.parseReturnStatement()
-	case lexer.TOKEN_BREAK:
+	case lexer.TokBreak:
 		p.checkSignal(p.curToken())
 		stmt := &ast.BreakStatement{Token: p.curToken()}
-		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+		if p.peekTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 		}
 		return stmt
-	case lexer.TOKEN_CONTINUE:
+	case lexer.TokContinue:
 		p.checkSignal(p.curToken())
 		stmt := &ast.ContinueStatement{Token: p.curToken()}
-		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+		if p.peekTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 		}
 		return stmt
-	case lexer.TOKEN_FOR:
+	case lexer.TokFor:
 		return p.parseForStatement()
-	case lexer.TOKEN_WHILE:
+	case lexer.TokWhile:
 		return p.parseWhileStatement()
-	case lexer.TOKEN_STRUCT:
+	case lexer.TokStruct:
 		return p.parseStructStatement()
-	case lexer.TOKEN_TRY:
+	case lexer.TokTry:
 		return p.parseTryCatchStatement()
-	case lexer.TOKEN_THROW:
+	case lexer.TokThrow:
 		return p.parseThrowStatement()
-	case lexer.TOKEN_IMPORT:
+	case lexer.TokImport:
 		return p.parseImportStatement()
-	case lexer.TOKEN_CONCURRENT:
+	case lexer.TokConcurrent:
 		return p.parseAsyncStatement()
-	case lexer.TOKEN_DEFER:
+	case lexer.TokDefer:
 		return p.parseDeferStatement()
-	case lexer.TOKEN_BREAKPOINT:
+	case lexer.TokBreakpoint:
 		return p.parseBreakpointStatement()
-	case lexer.TOKEN_IDENT:
+	case lexer.TokIdent:
 		// test "ad" { ... } — 'test' yalnızca deyim başında ve ardından metin geldiğinde
 		// anahtar kelimedir; başka her yerde sıradan bir addır (değişken test = 5).
-		if slices.Contains(testSpellings, p.curToken().Literal) && p.peekTokenIs(lexer.TOKEN_STRING) {
+		if slices.Contains(testSpellings, p.curToken().Literal) && p.peekTokenIs(lexer.TokString) {
 			return p.parseTestStatement()
 		}
 		// x := 5 kısa değişken tanımı kontrolü
-		if p.peekTokenIs(lexer.TOKEN_WALRUS) {
+		if p.peekTokenIs(lexer.TokWalrus) {
 			return p.parseShortVarStatement()
 		}
 		return p.parseExpressionOrAssignmentStatement()
@@ -69,7 +69,7 @@ func (p *Parser) parseTestStatement() ast.Statement {
 	p.role(tok, RoleTest)
 	p.nextToken() // test adı (metin)
 	name := unescapeBraces(p.curToken().Literal)
-	if !p.expectPeek(lexer.TOKEN_LBRACE) {
+	if !p.expectPeek(lexer.TokLBrace) {
 		return nil
 	}
 	var body *ast.BlockStatement
@@ -79,36 +79,36 @@ func (p *Parser) parseTestStatement() ast.Statement {
 func (p *Parser) parseBreakpointStatement() *ast.BreakpointStatement {
 	tok := p.curToken()
 	stmt := &ast.BreakpointStatement{Token: tok}
-	if p.peekTokenIs(lexer.TOKEN_IF) {
+	if p.peekTokenIs(lexer.TokIf) {
 		p.nextToken() // 'eğer'
 		p.nextToken()
-		stmt.Condition = p.parseExpression(LOWEST)
-	} else if p.peekTokenIs(lexer.TOKEN_LPAREN) {
+		stmt.Condition = p.parseExpression(precLowest)
+	} else if p.peekTokenIs(lexer.TokLParen) {
 		p.nextToken() // '('
-		if !p.peekTokenIs(lexer.TOKEN_RPAREN) {
+		if !p.peekTokenIs(lexer.TokRParen) {
 			p.nextToken()
-			stmt.Condition = p.parseExpression(LOWEST)
+			stmt.Condition = p.parseExpression(precLowest)
 		}
-		if p.peekTokenIs(lexer.TOKEN_RPAREN) {
+		if p.peekTokenIs(lexer.TokRParen) {
 			p.nextToken() // ')'
 		}
 	}
-	if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+	if p.peekTokenIs(lexer.TokSemicolon) {
 		p.nextToken()
 	}
 	return stmt
 }
 func (p *Parser) parseDeferStatement() *ast.DeferStatement {
 	tok := p.curToken()
-	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
+	if p.peekTokenIs(lexer.TokLBrace) {
 		p.nextToken()
 		var body *ast.BlockStatement
 		p.withinLimit(false, false, func() { body = p.parseBlockStatement() })
 		return &ast.DeferStatement{Token: tok, Body: body}
 	}
 	p.nextToken()
-	call := p.parseExpression(LOWEST)
-	if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+	call := p.parseExpression(precLowest)
+	if p.peekTokenIs(lexer.TokSemicolon) {
 		p.nextToken()
 	}
 	return &ast.DeferStatement{Token: tok, Call: call}
@@ -116,35 +116,35 @@ func (p *Parser) parseDeferStatement() *ast.DeferStatement {
 func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 	tok := p.curToken()
 
-	if !p.expectPeek(lexer.TOKEN_IDENT) {
+	if !p.expectPeek(lexer.TokIdent) {
 		return nil
 	}
 	firstIdent := &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal}
 
 	// Çoklu değişken tanımı: değişken a, b = [10, 20] veya değişken a, b = 10, 20
-	if p.peekTokenIs(lexer.TOKEN_COMMA) {
+	if p.peekTokenIs(lexer.TokComma) {
 		names := []*ast.Identifier{firstIdent}
-		for p.peekTokenIs(lexer.TOKEN_COMMA) {
+		for p.peekTokenIs(lexer.TokComma) {
 			p.nextToken() // ','
-			if !p.expectPeek(lexer.TOKEN_IDENT) {
+			if !p.expectPeek(lexer.TokIdent) {
 				return nil
 			}
 			names = append(names, &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal})
 		}
-		if !p.peekTokenIs(lexer.TOKEN_ASSIGN) && !p.peekTokenIs(lexer.TOKEN_WALRUS) {
+		if !p.peekTokenIs(lexer.TokAssign) && !p.peekTokenIs(lexer.TokWalrus) {
 			tok := p.peekToken()
 			p.syntaxError(tok, messages.H0142, tokenDescription(tok))
 			return nil
 		}
 		p.nextToken() // '='
 		p.nextToken()
-		values := []ast.Expression{p.parseExpression(LOWEST)}
-		for p.peekTokenIs(lexer.TOKEN_COMMA) {
+		values := []ast.Expression{p.parseExpression(precLowest)}
+		for p.peekTokenIs(lexer.TokComma) {
 			p.nextToken() // ','
 			p.nextToken()
-			values = append(values, p.parseExpression(LOWEST))
+			values = append(values, p.parseExpression(precLowest))
 		}
-		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+		if p.peekTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 		}
 		return &ast.MultiVarStatement{
@@ -158,24 +158,24 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 	stmt := &ast.VarStatement{Token: tok, Name: firstIdent, IsConst: isConst}
 
 	// İsteğe bağlı tip belirtimi: değişken yaş: Tam = 25
-	if p.peekTokenIs(lexer.TOKEN_COLON) {
+	if p.peekTokenIs(lexer.TokColon) {
 		p.nextToken() // ':'
-		if !p.expectPeek(lexer.TOKEN_IDENT) {
+		if !p.expectPeek(lexer.TokIdent) {
 			return nil
 		}
 		stmt.TypeName = p.curToken().Literal
 		p.role(p.curToken(), RoleType)
 	}
 
-	if p.peekTokenIs(lexer.TOKEN_ASSIGN) || p.peekTokenIs(lexer.TOKEN_WALRUS) {
+	if p.peekTokenIs(lexer.TokAssign) || p.peekTokenIs(lexer.TokWalrus) {
 		p.nextToken() // '=' veya ':='
 		p.nextToken()
-		stmt.Value = p.parseExpression(LOWEST)
+		stmt.Value = p.parseExpression(precLowest)
 	} else {
 		stmt.Value = &ast.NullLiteral{Token: p.curToken()}
 	}
 
-	if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+	if p.peekTokenIs(lexer.TokSemicolon) {
 		p.nextToken()
 	}
 	return stmt
@@ -189,10 +189,10 @@ func (p *Parser) parseShortVarStatement() *ast.VarStatement {
 	stmt := &ast.VarStatement{
 		Token:   walrusTok,
 		Name:    &ast.Identifier{Token: identTok, Value: identTok.Literal},
-		Value:   p.parseExpression(LOWEST),
+		Value:   p.parseExpression(precLowest),
 		IsConst: false,
 	}
-	if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+	if p.peekTokenIs(lexer.TokSemicolon) {
 		p.nextToken()
 	}
 	return stmt
@@ -202,46 +202,46 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	stmt := &ast.ReturnStatement{Token: p.curToken()}
 
 	// Eğer hemen ardından '}' veya ';' veya EOF geliyorsa boş dönüş
-	if p.peekTokenIs(lexer.TOKEN_RBRACE) || p.peekTokenIs(lexer.TOKEN_SEMICOLON) || p.peekTokenIs(lexer.TOKEN_EOF) {
+	if p.peekTokenIs(lexer.TokRBrace) || p.peekTokenIs(lexer.TokSemicolon) || p.peekTokenIs(lexer.TokEOF) {
 		stmt.ReturnValue = &ast.NullLiteral{Token: p.curToken()}
-		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+		if p.peekTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 		}
 		return stmt
 	}
 
 	p.nextToken()
-	stmt.ReturnValue = p.parseExpression(LOWEST)
+	stmt.ReturnValue = p.parseExpression(precLowest)
 
-	if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+	if p.peekTokenIs(lexer.TokSemicolon) {
 		p.nextToken()
 	}
 	return stmt
 }
 func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 	tok := p.curToken()
-	expr := p.parseExpression(LOWEST)
+	expr := p.parseExpression(precLowest)
 
 	// Çoklu atama / değişken takası: a, b = b, a veya a, b = [10, 20]
-	if p.peekTokenIs(lexer.TOKEN_COMMA) {
+	if p.peekTokenIs(lexer.TokComma) {
 		targets := []ast.Expression{expr}
-		for p.peekTokenIs(lexer.TOKEN_COMMA) {
+		for p.peekTokenIs(lexer.TokComma) {
 			p.nextToken() // ','
 			p.nextToken()
-			targets = append(targets, p.parseExpression(LOWEST))
+			targets = append(targets, p.parseExpression(precLowest))
 		}
-		if !p.expectPeek(lexer.TOKEN_ASSIGN) {
+		if !p.expectPeek(lexer.TokAssign) {
 			return nil
 		}
 		opTok := p.curToken()
 		p.nextToken()
-		values := []ast.Expression{p.parseExpression(LOWEST)}
-		for p.peekTokenIs(lexer.TOKEN_COMMA) {
+		values := []ast.Expression{p.parseExpression(precLowest)}
+		for p.peekTokenIs(lexer.TokComma) {
 			p.nextToken() // ','
 			p.nextToken()
-			values = append(values, p.parseExpression(LOWEST))
+			values = append(values, p.parseExpression(precLowest))
 		}
-		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+		if p.peekTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 		}
 		return &ast.MultiAssignStatement{
@@ -253,12 +253,12 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 
 	// Atama operatörü kontrolü (=, +=, -=, *=, /=)
 	switch p.peekToken().Type {
-	case lexer.TOKEN_ASSIGN, lexer.TOKEN_PLUS_ASSIGN, lexer.TOKEN_MINUS_ASSIGN, lexer.TOKEN_MUL_ASSIGN, lexer.TOKEN_DIV_ASSIGN:
+	case lexer.TokAssign, lexer.TokPlusAssign, lexer.TokMinusAssign, lexer.TokMulAssign, lexer.TokDivAssign:
 		p.nextToken()
 		opTok := p.curToken()
 		p.nextToken()
-		val := p.parseExpression(LOWEST)
-		if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+		val := p.parseExpression(precLowest)
+		if p.peekTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 		}
 		return &ast.AssignStatement{
@@ -269,7 +269,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		}
 	}
 
-	if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+	if p.peekTokenIs(lexer.TokSemicolon) {
 		p.nextToken()
 	}
 	return &ast.ExpressionStatement{Token: tok, Expression: expr}
@@ -287,8 +287,8 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 
 	p.nextToken()
 
-	for !p.curTokenIs(lexer.TOKEN_RBRACE) && !p.curTokenIs(lexer.TOKEN_EOF) {
-		if p.curTokenIs(lexer.TOKEN_SEMICOLON) {
+	for !p.curTokenIs(lexer.TokRBrace) && !p.curTokenIs(lexer.TokEOF) {
+		if p.curTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 			continue
 		}
@@ -308,17 +308,17 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 // requireClosingBrace, '{' ile açılan bir gövde dosya sonuna kadar kapatılmadıysa hata kaydeder.
 // Aksi hâlde sonraki tüm kod sessizce bloğun içine girerdi (test raporu Y1).
 func (p *Parser) requireClosingBrace(open lexer.Token) {
-	if p.curTokenIs(lexer.TOKEN_EOF) {
+	if p.curTokenIs(lexer.TokEOF) {
 		p.recordError(open, messages.New(messages.H0156))
 	}
 }
 func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	tok := p.curToken()
 	// Modül yolu bir metin olarak yazılır: aktar "yol" (§11). Tırnaksız ad yol sayılmaz.
-	if !p.peekTokenIs(lexer.TOKEN_STRING) {
+	if !p.peekTokenIs(lexer.TokString) {
 		next := p.peekToken()
 		example := "yardımcı"
-		if next.Type == lexer.TOKEN_IDENT {
+		if next.Type == lexer.TokIdent {
 			example = next.Literal
 		}
 		imp := codes.Name(codes.A070)
@@ -328,14 +328,14 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	p.nextToken()
 	path := p.curToken().Literal
 	stmt := &ast.ImportStatement{Token: tok, Path: path}
-	if p.peekTokenIs(lexer.TOKEN_IDENT) && slices.Contains(asSpellings, p.peekToken().Literal) {
+	if p.peekTokenIs(lexer.TokIdent) && slices.Contains(asSpellings, p.peekToken().Literal) {
 		p.nextToken() // 'olarak'
 		p.role(p.curToken(), RoleAs)
-		if p.expectPeek(lexer.TOKEN_IDENT) {
+		if p.expectPeek(lexer.TokIdent) {
 			stmt.Alias = p.curToken().Literal
 		}
 	}
-	if p.peekTokenIs(lexer.TOKEN_SEMICOLON) {
+	if p.peekTokenIs(lexer.TokSemicolon) {
 		p.nextToken()
 	}
 	return stmt

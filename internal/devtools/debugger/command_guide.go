@@ -48,7 +48,7 @@ func (d *Debugger) printDebugHelp() {
 	fmt.Println("  • " + messages.Text(messages.H8017))
 	fmt.Println("  • " + messages.Text(messages.H8018))
 	fmt.Println("  • " + messages.Text(messages.H8019))
-	fmt.Println("  • " + messages.Text(messages.H8020, interp.VAL_LIST, interp.VAL_TENSOR, interp.VAL_DICT))
+	fmt.Println("  • " + messages.Text(messages.H8020, interp.ValList, interp.ValTensor, interp.ValDict))
 	fmt.Println("  • " + messages.Text(messages.H8021))
 	fmt.Println("  • " + messages.Text(messages.H8022))
 	fmt.Println("  • " + messages.Text(messages.H8023))

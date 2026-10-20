@@ -173,14 +173,14 @@ func importSites(code string) []importSite {
 	var sites []importSite
 	for {
 		tok := l.NextToken()
-		if tok.Type == lexer.TOKEN_EOF {
+		if tok.Type == lexer.TokEOF {
 			return sites
 		}
-		if tok.Type != lexer.TOKEN_IMPORT {
+		if tok.Type != lexer.TokImport {
 			continue
 		}
 		pathToken := l.NextToken()
-		if pathToken.Type == lexer.TOKEN_EOF {
+		if pathToken.Type == lexer.TokEOF {
 			return sites
 		}
 		start, end := l.LastRange()

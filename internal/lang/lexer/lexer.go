@@ -169,148 +169,148 @@ func (l *Lexer) NextToken() (result Token) {
 	case '=':
 		if l.peekChar() == '=' {
 			l.readChar()
-			tok = Token{Type: TOKEN_EQ, Literal: "==", Line: line, Column: col}
+			tok = Token{Type: TokEq, Literal: "==", Line: line, Column: col}
 		} else if l.peekChar() == '>' {
 			l.readChar()
-			tok = Token{Type: TOKEN_ARROW, Literal: "=>", Line: line, Column: col}
+			tok = Token{Type: TokArrow, Literal: "=>", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_ASSIGN, Literal: "=", Line: line, Column: col}
+			tok = Token{Type: TokAssign, Literal: "=", Line: line, Column: col}
 		}
 	case ':':
 		if l.peekChar() == '=' {
 			l.readChar()
-			tok = Token{Type: TOKEN_WALRUS, Literal: ":=", Line: line, Column: col}
+			tok = Token{Type: TokWalrus, Literal: ":=", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_COLON, Literal: ":", Line: line, Column: col}
+			tok = Token{Type: TokColon, Literal: ":", Line: line, Column: col}
 		}
 	case '+':
 		if l.peekChar() == '=' {
 			l.readChar()
-			tok = Token{Type: TOKEN_PLUS_ASSIGN, Literal: "+=", Line: line, Column: col}
+			tok = Token{Type: TokPlusAssign, Literal: "+=", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_PLUS, Literal: "+", Line: line, Column: col}
+			tok = Token{Type: TokPlus, Literal: "+", Line: line, Column: col}
 		}
 	case '-':
 		if l.peekChar() == '=' {
 			l.readChar()
-			tok = Token{Type: TOKEN_MINUS_ASSIGN, Literal: "-=", Line: line, Column: col}
+			tok = Token{Type: TokMinusAssign, Literal: "-=", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_MINUS, Literal: "-", Line: line, Column: col}
+			tok = Token{Type: TokMinus, Literal: "-", Line: line, Column: col}
 		}
 	case '*':
 		if l.peekChar() == '*' {
 			l.readChar()
-			tok = Token{Type: TOKEN_POWER, Literal: "**", Line: line, Column: col}
+			tok = Token{Type: TokPower, Literal: "**", Line: line, Column: col}
 		} else if l.peekChar() == '=' {
 			l.readChar()
-			tok = Token{Type: TOKEN_MUL_ASSIGN, Literal: "*=", Line: line, Column: col}
+			tok = Token{Type: TokMulAssign, Literal: "*=", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_ASTERISK, Literal: "*", Line: line, Column: col}
+			tok = Token{Type: TokAsterisk, Literal: "*", Line: line, Column: col}
 		}
 	case '/':
 		if l.peekChar() == '=' {
 			l.readChar()
-			tok = Token{Type: TOKEN_DIV_ASSIGN, Literal: "/=", Line: line, Column: col}
+			tok = Token{Type: TokDivAssign, Literal: "/=", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_SLASH, Literal: "/", Line: line, Column: col}
+			tok = Token{Type: TokSlash, Literal: "/", Line: line, Column: col}
 		}
 	case '%':
-		tok = Token{Type: TOKEN_PERCENT, Literal: "%", Line: line, Column: col}
+		tok = Token{Type: TokPercent, Literal: "%", Line: line, Column: col}
 	case '@':
-		tok = Token{Type: TOKEN_MATMUL, Literal: "@", Line: line, Column: col}
+		tok = Token{Type: TokMatmul, Literal: "@", Line: line, Column: col}
 	case '!':
 		if l.peekChar() == '=' {
 			l.readChar()
-			tok = Token{Type: TOKEN_NOT_EQ, Literal: "!=", Line: line, Column: col}
+			tok = Token{Type: TokNotEq, Literal: "!=", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_BANG, Literal: "!", Line: line, Column: col}
+			tok = Token{Type: TokBang, Literal: "!", Line: line, Column: col}
 		}
 	case '<':
 		if l.peekChar() == '=' {
 			l.readChar()
-			tok = Token{Type: TOKEN_LTE, Literal: "<=", Line: line, Column: col}
+			tok = Token{Type: TokLte, Literal: "<=", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_LT, Literal: "<", Line: line, Column: col}
+			tok = Token{Type: TokLt, Literal: "<", Line: line, Column: col}
 		}
 	case '>':
 		if l.peekChar() == '=' {
 			l.readChar()
-			tok = Token{Type: TOKEN_GTE, Literal: ">=", Line: line, Column: col}
+			tok = Token{Type: TokGte, Literal: ">=", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_GT, Literal: ">", Line: line, Column: col}
+			tok = Token{Type: TokGt, Literal: ">", Line: line, Column: col}
 		}
 	case '&':
 		if l.peekChar() == '&' {
 			l.readChar()
-			tok = Token{Type: TOKEN_AND, Literal: "&&", Line: line, Column: col}
+			tok = Token{Type: TokAnd, Literal: "&&", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_ILLEGAL, Literal: string(l.ch), Line: line, Column: col}
+			tok = Token{Type: TokIllegal, Literal: string(l.ch), Line: line, Column: col}
 		}
 	case '|':
 		if l.peekChar() == '|' {
 			l.readChar()
-			tok = Token{Type: TOKEN_OR, Literal: "||", Line: line, Column: col}
+			tok = Token{Type: TokOr, Literal: "||", Line: line, Column: col}
 		} else if l.peekChar() == '>' {
 			l.readChar()
-			tok = Token{Type: TOKEN_PIPE, Literal: "|>", Line: line, Column: col}
+			tok = Token{Type: TokPipe, Literal: "|>", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_ILLEGAL, Literal: string(l.ch), Line: line, Column: col}
+			tok = Token{Type: TokIllegal, Literal: string(l.ch), Line: line, Column: col}
 		}
 	case '?':
 		if l.peekChar() == '?' {
 			l.readChar()
-			tok = Token{Type: TOKEN_NULL_COALESC, Literal: "??", Line: line, Column: col}
+			tok = Token{Type: TokNullCoalesc, Literal: "??", Line: line, Column: col}
 		} else if l.peekChar() == '.' {
 			l.readChar()
-			tok = Token{Type: TOKEN_SAFE_DOT, Literal: "?.", Line: line, Column: col}
+			tok = Token{Type: TokSafeDot, Literal: "?.", Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_QUESTION, Literal: "?", Line: line, Column: col}
+			tok = Token{Type: TokQuestion, Literal: "?", Line: line, Column: col}
 		}
 	case '.':
 		if l.peekChar() == '.' {
 			l.readChar()
 			if l.peekChar() == '=' {
 				l.readChar()
-				tok = Token{Type: TOKEN_RANGE_INCL, Literal: "..=", Line: line, Column: col}
+				tok = Token{Type: TokRangeIncl, Literal: "..=", Line: line, Column: col}
 			} else {
-				tok = Token{Type: TOKEN_RANGE, Literal: "..", Line: line, Column: col}
+				tok = Token{Type: TokRange, Literal: "..", Line: line, Column: col}
 			}
 		} else {
-			tok = Token{Type: TOKEN_DOT, Literal: ".", Line: line, Column: col}
+			tok = Token{Type: TokDot, Literal: ".", Line: line, Column: col}
 		}
 	case ',':
-		tok = Token{Type: TOKEN_COMMA, Literal: ",", Line: line, Column: col}
+		tok = Token{Type: TokComma, Literal: ",", Line: line, Column: col}
 	case ';':
-		tok = Token{Type: TOKEN_SEMICOLON, Literal: ";", Line: line, Column: col}
+		tok = Token{Type: TokSemicolon, Literal: ";", Line: line, Column: col}
 	case '(':
-		tok = Token{Type: TOKEN_LPAREN, Literal: "(", Line: line, Column: col}
+		tok = Token{Type: TokLParen, Literal: "(", Line: line, Column: col}
 	case ')':
-		tok = Token{Type: TOKEN_RPAREN, Literal: ")", Line: line, Column: col}
+		tok = Token{Type: TokRParen, Literal: ")", Line: line, Column: col}
 	case '{':
-		tok = Token{Type: TOKEN_LBRACE, Literal: "{", Line: line, Column: col}
+		tok = Token{Type: TokLBrace, Literal: "{", Line: line, Column: col}
 	case '}':
-		tok = Token{Type: TOKEN_RBRACE, Literal: "}", Line: line, Column: col}
+		tok = Token{Type: TokRBrace, Literal: "}", Line: line, Column: col}
 	case '[':
-		tok = Token{Type: TOKEN_LBRACKET, Literal: "[", Line: line, Column: col}
+		tok = Token{Type: TokLBracket, Literal: "[", Line: line, Column: col}
 	case ']':
-		tok = Token{Type: TOKEN_RBRACKET, Literal: "]", Line: line, Column: col}
+		tok = Token{Type: TokRBracket, Literal: "]", Line: line, Column: col}
 	case '"', '\'':
 		quote := l.ch
 		str := l.readString(quote, line, col)
-		tok = Token{Type: TOKEN_STRING, Literal: str, Line: line, Column: col}
+		tok = Token{Type: TokString, Literal: str, Line: line, Column: col}
 		return tok
 	case '`':
-		return Token{Type: TOKEN_STRING, Literal: l.readRawString(line, col), Line: line, Column: col}
+		return Token{Type: TokString, Literal: l.readRawString(line, col), Line: line, Column: col}
 	case 0:
 		if l.position < len(l.input) {
 			return l.nulChar(line, col)
 		}
-		return Token{Type: TOKEN_EOF, Literal: "", Line: line, Column: col}
+		return Token{Type: TokEOF, Literal: "", Line: line, Column: col}
 	case '$':
 		if isLetter(l.peekChar()) {
 			return l.escapedName(line, col)
 		}
-		tok = Token{Type: TOKEN_ILLEGAL, Literal: string(l.ch), Line: line, Column: col}
+		tok = Token{Type: TokIllegal, Literal: string(l.ch), Line: line, Column: col}
 	default:
 		if isLetter(l.ch) {
 			name := l.readIdentifier()
@@ -319,11 +319,11 @@ func (l *Lexer) NextToken() (result Token) {
 		} else if isDigit(l.ch) {
 			lit, isFloat := l.readNumber()
 			if isFloat {
-				return Token{Type: TOKEN_FLOAT, Literal: lit, Line: line, Column: col}
+				return Token{Type: TokFloat, Literal: lit, Line: line, Column: col}
 			}
-			return Token{Type: TOKEN_INT, Literal: lit, Line: line, Column: col}
+			return Token{Type: TokInt, Literal: lit, Line: line, Column: col}
 		} else {
-			tok = Token{Type: TOKEN_ILLEGAL, Literal: string(l.ch), Line: line, Column: col}
+			tok = Token{Type: TokIllegal, Literal: string(l.ch), Line: line, Column: col}
 		}
 	}
 

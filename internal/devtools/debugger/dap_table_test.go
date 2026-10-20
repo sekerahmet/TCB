@@ -22,7 +22,7 @@ var (
 // fakeTensor, WatchValue arayüzünü uygulayan bir motor değerini taklit eder.
 type fakeTensor struct{}
 
-func (fakeTensor) Type() interp.ValueType { return interp.VAL_TENSOR }
+func (fakeTensor) Type() interp.ValueType { return interp.ValTensor }
 func (fakeTensor) Inspect() string        { return "Tensör[2×2] [\n  [1, 2],\n  [3, 4]\n]" }
 func (fakeTensor) IsTruthy() bool         { return true }
 func (fakeTensor) WatchKind() string      { return "tensor" }

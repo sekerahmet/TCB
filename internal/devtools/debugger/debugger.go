@@ -574,7 +574,7 @@ func collectVisibleVariables(vm *interp.VM, env *interp.Environment) []varEntry 
 			}
 			seen[k] = true
 			// Yerleşik fonksiyonları ve yapı tanımlarını kalabalık yapmaması için gizle
-			if v.Type() == interp.VAL_BUILTIN || v.Type() == interp.VAL_STRUCT || v.Type() == interp.VAL_FUNC || v.Type() == interp.VAL_TYPE || vm.IsBuiltinConstant(k, v) {
+			if v.Type() == interp.ValBuiltin || v.Type() == interp.ValStruct || v.Type() == interp.ValFunc || v.Type() == interp.ValType || vm.IsBuiltinConstant(k, v) {
 				return
 			}
 			list = append(list, varEntry{Name: k, Val: v})

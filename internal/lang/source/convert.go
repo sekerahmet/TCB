@@ -85,7 +85,7 @@ func reencodes(decoded, coded string) bool {
 func (c *analysis) codedBody() string {
 	var d []change
 	for _, r := range c.records {
-		if r.Type == lexer.TOKEN_IDENT && c.escaped(r) {
+		if r.Type == lexer.TokIdent && c.escaped(r) {
 			d = append(d, change{r.Start, r.End, r.Literal})
 		} else if k := c.tokenCode(r); k != codes.None {
 			d = append(d, change{r.Start, r.End, k.String()})
@@ -129,7 +129,7 @@ func (c *analysis) viewBody() string {
 		switch {
 		case r.Code != codes.None:
 			d = append(d, change{r.Start, r.End, langName(c.lang, r.Code)})
-		case r.Type == lexer.TOKEN_IDENT && !c.escaped(r) && c.needsEscape(r):
+		case r.Type == lexer.TokIdent && !c.escaped(r) && c.needsEscape(r):
 			d = append(d, change{r.Start, r.End, "$" + r.Literal})
 		}
 	}
@@ -145,7 +145,7 @@ func view(b Parts) string {
 	}
 	l := b.Lexer()
 	l.StartRecording()
-	for l.NextToken().Type != lexer.TOKEN_EOF {
+	for l.NextToken().Type != lexer.TokEOF {
 	}
 	var d []change
 	for _, r := range l.Records() {
@@ -224,7 +224,7 @@ func (c *analysis) tokenCode(r lexer.Record) codes.Code {
 	if r.Code != codes.None {
 		return r.Code
 	}
-	if r.Type == lexer.TOKEN_IDENT {
+	if r.Type == lexer.TokIdent {
 		return c.langElement(r)
 	}
 	return lexer.KeywordCode(r.Type)

@@ -48,7 +48,7 @@ func (s *dapServer) scopeVariables(h *dapHandle) []varEntry {
 				return
 			}
 			seen[k] = true
-			if v.Type() == interp.VAL_BUILTIN || v.Type() == interp.VAL_STRUCT || v.Type() == interp.VAL_FUNC || v.Type() == interp.VAL_TYPE ||
+			if v.Type() == interp.ValBuiltin || v.Type() == interp.ValStruct || v.Type() == interp.ValFunc || v.Type() == interp.ValType ||
 				s.curVM.IsBuiltinConstant(k, v) {
 				return
 			}

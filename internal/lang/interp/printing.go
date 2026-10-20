@@ -29,7 +29,7 @@ func writeContainer(v Value, filePath []Value) string {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
-			if el.Type() == VAL_STRING {
+			if el.Type() == ValString {
 				fmt.Fprintf(&sb, "%q", el.Inspect())
 			} else {
 				sb.WriteString(writeItem(el, filePath))
@@ -49,7 +49,7 @@ func writeContainer(v Value, filePath []Value) string {
 			}
 			sb.WriteString(": ")
 			val := x.Pairs[k]
-			if val.Type() == VAL_STRING {
+			if val.Type() == ValString {
 				fmt.Fprintf(&sb, "%q", val.Inspect())
 			} else {
 				sb.WriteString(writeItem(val, filePath))
