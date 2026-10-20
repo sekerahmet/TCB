@@ -11,6 +11,9 @@ go run ./tools/codegraph query messages.New     # a node and its neighbours
 go run ./tools/codegraph path interp.VM H2100   # shortest path between two nodes
 go run ./tools/codegraph who-uses H2100         # what uses a message code, name code or function
 go run ./tools/codegraph tests-for interp.VM.Run
+go run ./tools/codegraph history messages.New       # commits that touched it (computed from git)
+go run ./tools/codegraph changed claude/some-branch # graph nodes a branch touches, their tests, overlapping branches
+go run ./tools/codegraph deleted                  # message/name codes that existed once and are gone
 ```
 
 Flags: `build --root DIR --out FILE --warnings`; queries take `--graph FILE`, `--limit N` (lines per
@@ -86,6 +89,33 @@ Markdown link. They are real findings; `build` prints the first five.
 Limits: only files built for the current OS are read (like `tools/impact`); calls through an
 interface point at the interface method, not at implementers (use `implements`); `implements`
 looks at non-test types only.
+
+## History commands (from git, never stored)
+
+These three ask git when you run them; `graph.json` stays small and `build` fast. They need a git
+repository (a failing git is an error, exit 1).
+
+- `history <name>`: commits (short hash, date, subject; no diffs), newest first, `--limit N`
+  (`--all` for every one). A function, method or type uses `git log -L` (by name when the
+  declaration is a plain `func`/`type` line, else by its current line range); a message or name
+  code uses a pickaxe over the dictionary files and marks the commits that **added** and
+  **removed** it; a file or doc uses `git log --follow`.
+- `changed <branch|range>`: maps the hunks of `git diff -U0 <base>...<branch>` (`--base`, default
+  `main`; or a literal `a..b` / `a...b`) onto function, type and doc-section line ranges, and onto
+  the codes named in changed dictionary lines. Then it lists the tests that exercise the changed
+  code (direct first, then indirect with their distance, first `--limit`), and the other local
+  `claude/` branches that touch the same nodes or files, with the result of a
+  `git merge-tree --write-tree` trial merge (`clean` or the conflicting files). The graph is of
+  the checked-out tree: when the ref is the checked-out HEAD the new-side lines are mapped (new
+  functions included), otherwise the old-side lines, which is exact only while the tree equals the
+  merge base. Added code with no old-side counterpart shows as "mapped to no node" (by file).
+- `deleted [--retired-json] [--family messages|names]`: message and name codes that were in the
+  dictionary files in the past and are gone today, with the commit that removed them and the one
+  that added them, and codes that were defined again after a deletion (a bug: numbers are never
+  reused). `--retired-json` prints the `retired.json` content (`internal/lang/messages/retired.json`
+  was produced by it). Name codes are never really deleted: a removed or moved name stays in the
+  dictionary with its `kaldırıldı` / `taşındı` field, so the list for `names` is empty. History
+  before a file was renamed is not visible to it.
 
 ## Why this design (comparison)
 

@@ -45,6 +45,7 @@ const usage = `usage: codegraph <command> [flags] [args]
   who-uses <name>            what uses a function, type, message code or name code
   tests-for <name>           tests that exercise a function, type or package
   history <name>             commits that touched a function, type, file, message code or name code (computed from git)
+  deleted [--retired-json]   message and name codes that existed in the git history and are gone today, with the commit that removed them
   changed <branch|range>     graph nodes touched by a branch (git diff main...branch), their tests, other claude/ branches on the same code
 
 query flags: --graph FILE (default .codegraph/graph.json), --limit N (default 12), --all, --root DIR (default .), --no-rebuild
@@ -66,6 +67,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runBuild(args[1:], stdout, stderr)
 	case "query", "explain", "path", "who-uses", "tests-for", "history", "changed":
 		return runQuery(args[0], args[1:], stdout, stderr)
+	case "deleted":
+		return runDeleted(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)
 		return exitOK

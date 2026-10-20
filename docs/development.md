@@ -74,6 +74,9 @@ go run ./tools/codegraph build                   # .codegraph/graph.json (git'e 
 go run ./tools/codegraph query messages.New      # düğüm + komşuları
 go run ./tools/codegraph who-uses H2100          # ileti/ad kodunu ya da işlevi kullananlar
 go run ./tools/codegraph tests-for interp.VM.Run # sınayan testler ve koruduğu kurallar
+go run ./tools/codegraph history H2100          # kodun/işlevin/dosyanın commit geçmişi (git'ten, graph.json'a yazılmaz)
+go run ./tools/codegraph changed claude/dal      # dalın dokunduğu düğümler, testleri, aynı yere dokunan öbür claude/ dalları
+go run ./tools/codegraph deleted                 # geçmişte olup silinmiş ileti/ad kodları
 go run ./tools/codegraph path interp.VM H2100    # iki düğüm arası en kısa yol
 ```
 

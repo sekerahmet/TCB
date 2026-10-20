@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"os/exec"
 	"sort"
 	"strings"
 )
@@ -219,15 +221,16 @@ func trimIDs(list []string, n int) []string {
 // mergePreview `git merge-tree --write-tree` ile iki ucu birleştirmeyi dener (çalışma ağacına
 // dokunmaz) ve "clean" ya da çakışan dosyaları verir.
 func mergePreview(root, a, b string) string {
-	_, err := gitOut(root, "merge-tree", "--write-tree", "--name-only", a, b)
+	root = strings.TrimSpace(root)
+	out, err := gitStdout(root, "merge-tree", "--write-tree", "--name-only", a, b)
 	if err == nil {
 		return "clean"
 	}
-	if !strings.Contains(err.Error(), "exit status 1") {
+	// Çakışmada git 1 koduyla çıkar ve çakışan dosyaları stdout'a yazar; başka hata önizleme yok demektir.
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) || exit.ExitCode() != 1 {
 		return "unknown (git merge-tree unavailable)"
 	}
-	// Çakışmada çıktı hata metninde değil stdout'ta; gitOut onu atar, bu yüzden yeniden oku.
-	out, _ := gitStdout(root, "merge-tree", "--write-tree", "--name-only", a, b)
 	var names []string
 	for i, l := range strings.Split(string(out), "\n") {
 		if i == 0 {
