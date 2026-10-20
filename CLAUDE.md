@@ -12,6 +12,7 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için Türkçe bir programlama d
 | Sıradaki işler, evreler ve bitiş ölçütleri | [`docs/roadmap.md`](docs/roadmap.md) |
 | Dilin davranışı | [`docs/spec/`](docs/spec/README.md) |
 | Bir paketin kendi standartları ve davranış testleri | o paketin `README.md`'si |
+| Bir şeyi bulmak: çağıranlar, kullanım yerleri, ileti/ad kodları, kuralı koruyan test, bir fonksiyonun testleri | önce `go run ./tools/codegraph build`, sonra `query <ad>`, `who-uses H2100`, `tests-for <fonksiyon>`, `path A B` ([`tools/codegraph/README.md`](tools/codegraph/README.md)); dosya okumadan önce buna sor |
 
 ## İlkeler
 
