@@ -8,7 +8,10 @@
 #                     çekirdekleri çalışma anında seçilir. Durağan denetimler, ARM derlemesi,
 #                     Go testleri, tr testleri (tests/, lib/, examples/) ve örneklerin hepsi.
 #   --kip=go-esleri   AVX2 çekirdekleri kapalı (TR_CPU_AVX2=0): assembly'siz Go eşleri. Derleme,
-#                     Go testleri ve dil tanımı testleri (tr test tests).
+#                     assembly'nin bulunduğu paketin ve onun çekirdeklerini en yoğun kullanan
+#                     paketin Go testleri (esleri_paketleri) ve dil tanımı testleri (tr test tests).
+#                     Assembly yalnızca internal/compute/tensor'dadır; öbür paketlerin Go kodu iki
+#                     kipte aynıdır, bütün modülü ikinci kez koşmak denetimi ~3 dk uzatıyordu.
 #   --kip=v3          isteğe bağlı: GOAMD64=v3 derleme ile dagitim'in testleri (kullanıcıya
 #                     önerilmez; derleyicinin v3 kod üretimini denemek için)
 #   --kip=yaris       yarış dedektörü (go test -race -short) eşzamanlı kod taşıyan paketlerde;
@@ -177,12 +180,19 @@ static_checks() {
 	fi
 }
 
-# go_tests kipin ortamıyla Go testlerini koşar; ek bayraklar (ör. -short) argümandır.
+# esleri_paketleri go-esleri kipinde Go testleri koşan paketlerdir: assembly çekirdeklerinin
+# paketi (Go eşleri burada sınanır) ve çekirdekleri en çok kullanan dil paketi (ml). Assembly
+# başka pakete eklenirse buraya da eklenir (TestGoEquivalentPackagesListed korur).
+esleri_paketleri=(./internal/compute/tensor ./internal/stdlib/ml)
+
+# go_tests kipin ortamıyla Go testlerini koşar; ek bayraklar (ör. -short) argümandır. Paketler
+# test_paketleri dizisindedir (varsayılan bütün modül).
+test_paketleri=(./...)
 go_tests() {
 	local name=$1
 	shift
 	step "Go testleri ($name: GOAMD64=$GOAMD64, TR_CPU_AVX2=${TR_CPU_AVX2:-otomatik})"
-	go test "${p_flag[@]}" "$@" ./... 2>&1 | grep -v '^ok\|no test files'
+	go test "${p_flag[@]}" "$@" "${test_paketleri[@]}" 2>&1 | grep -v '^ok\|no test files'
 	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test ($name)"
 }
 
@@ -281,7 +291,9 @@ for mode in $modes; do
 	go-esleri)
 		step "Derleme (go build, GOAMD64=$GOAMD64)"
 		go build ./... || fail "go build"
+		test_paketleri=("${esleri_paketleri[@]}")
 		go_tests go-esleri -short
+		test_paketleri=(./...)
 		step "Dil tanımı testleri (go-esleri)"
 		if build_tr; then summarize "tr test tests (go-esleri)" "$TR" test tests; else fail "tr derlemesi"; fi
 		;;
