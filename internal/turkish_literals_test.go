@@ -67,11 +67,6 @@ var turkishLiteralAllowed = map[string]string{
 	"internal/stdlib/common/jsonwrite/jsonwrite.go": "geçici (B: compute/stdlib/profiler)",
 	"internal/stdlib/dataset/state.go":              "geçici (B: compute/stdlib/profiler)",
 	"internal/stdlib/logging/log.go":                "geçici (B: compute/stdlib/profiler)",
-	"tools/checkstatic/main.go":                     "geçici (A: tools İngilizceye)",
-	"tools/gen/codeconsts/main.go":                  "geçici (A: tools İngilizceye)",
-	"tools/gen/codesdoc/main.go":                    "geçici (A: tools İngilizceye)",
-	"tools/gen/grammar/main.go":                     "geçici (A: tools İngilizceye)",
-	"tools/gen/msgconsts/main.go":                   "geçici (A: tools İngilizceye)",
 }
 
 // turkishLiteralSkipDirs taranmayan klasörlerdir: Türkçenin dilbilgisi paketi (ek ve harf

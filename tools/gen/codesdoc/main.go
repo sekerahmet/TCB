@@ -7,7 +7,7 @@
 // Kullanım (depo kökünden):
 //
 //	go run ./tools/gen/codesdoc           // dosyayı yeniden yazar
-//	go run ./tools/gen/codesdoc -denetle  // güncel değilse 1 koduyla çıkar
+//	go run ./tools/gen/codesdoc -check    // güncel değilse 1 koduyla çıkar
 //
 // Aynı denetim `go test ./tools/gen/...` ile de yapılır.
 //
@@ -16,6 +16,8 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -31,108 +33,79 @@ import (
 var docPath = filepath.Join("docs", "codes.md")
 
 func main() {
-	check := flag.Bool("denetle", false, "dosyayı yazma; güncel değilse 1 koduyla çık")
-	root := flag.String("kok", ".", "depo kökü")
+	check := flag.Bool("check", false, "do not write the file; exit 1 if it is out of date")
+	root := flag.String("root", ".", "repository root")
 	flag.Parse()
 
 	path := filepath.Join(*root, docPath)
 	fresh, err := Generate()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 	if *check {
 		old, err := os.ReadFile(path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 		if !bytes.Equal(bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n")), fresh) {
-			fmt.Fprintf(os.Stderr, "%s güncel değil; go run ./tools/gen/codesdoc ile yeniden üretin\n", path)
+			fmt.Fprintf(os.Stderr, "%s is out of date; regenerate it with go run ./tools/gen/codesdoc\n", path)
 			os.Exit(1)
 		}
-		fmt.Printf("%s güncel\n", path)
+		fmt.Printf("%s is up to date\n", path)
 		return
 	}
 	if err := os.WriteFile(path, fresh, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("%s yazıldı\n", path)
+	fmt.Printf("%s written\n", path)
 }
 
-// section bir ailenin bir grubudur (group < 0: bütün aile).
+// section bir ailenin bir grubudur (ailenin harfini family taşır) (group < 0: bütün aile).
 type section struct {
-	letter byte
-	group  int
-	title  string
+	Group int    `json:"group"`
+	Title string `json:"title"`
 }
 
-// families belgenin bölümleridir; sıra kod sırasıdır.
-var families = []struct {
-	letter   byte
-	title    string
-	sections []section
-}{
-	{'A', "A — Dilin çekirdeği", []section{
-		{'A', 0, "Anahtar kelimeler (A0xx)"},
-		{'A', 1, "Bağlamsal sözcükler (A1xx)"},
-		{'A', 2, "Tip adları (A2xx)"},
-	}},
-	{'G', "G — Genel yerleşikler", []section{
-		{'G', 1, "Giriş, çıkış ve dosya (G1xx)"},
-		{'G', 2, "Değer, tip ve dönüşüm (G2xx)"},
-		{'G', 3, "Liste (G3xx)"},
-		{'G', 4, "Matematik ve istatistik (G4xx)"},
-		{'G', 5, "Zaman ve eşzamanlılık (G5xx)"},
-		{'G', 6, "Veri biçimleri (G6xx)"},
-		{'G', 7, "Test (G7xx)"},
-	}},
-	{'K', "K — Komutlar (tr, kabuk, hata ayıklayıcı)", []section{
-		{'K', 0, "tr alt komutları (K0xx)"},
-		{'K', 1, "Komut satırı seçenekleri (K1xx)"},
-		{'K', 2, "Kabuk komutları (K2xx)"},
-		{'K', 3, "Hata ayıklayıcı komutları (K3xx)"},
-	}},
-	{'T', "T — Tensör ve yapay zekâ", []section{
-		{'T', 1, "Tensör oluşturma ve görünüm (T1xx)"},
-		{'T', 2, "Etkinleştirme ve eleman bazlı matematik (T2xx)"},
-		{'T', 3, "Türev (T3xx)"},
-		{'T', 4, "İyileştiriciler (T4xx)"},
-		{'T', 5, "Katmanlar, kayıplar, hazır model (T5xx)"},
-		{'T', 6, "Vektör yardımcıları ve dil modeli (T6xx)"},
-		{'T', 7, "Kaydetme, yükleme, veri türleri (T7xx)"},
-		{'T', 9, "Adlı argümanlar (T9xx)"},
-	}},
-	{'V', "V — Veri ve parçalayıcı", []section{
-		{'V', 1, "Veri kümesi (V1xx)"},
-		{'V', 2, "Parçalayıcı (V2xx)"},
-		{'V', 9, "Adlı argümanlar (V9xx)"},
-	}},
-	{'W', "W — Web, veritabanı, arayüz (kaldırıldı)", []section{
-		{'W', 1, "Web istemcisi ve sunucusu (W1xx)"},
-		{'W', 2, "Veritabanı (W2xx)"},
-		{'W', 3, "Görsel arayüz (W3xx)"},
-		{'W', 9, "Adlı argümanlar (W9xx)"},
-	}},
-	{'Y', "Y — Metot ve özellikler (x.ad)", []section{
-		{'Y', 0, "Birden çok tipte ortak (Y0xx)"},
-		{'Y', 1, "Metin (Y1xx)"},
-		{'Y', 2, "Liste (Y2xx)"},
-		{'Y', 3, "Sözlük (Y3xx)"},
-		{'Y', 4, "Tensör (Y4xx)"},
-		{'Y', 5, "İyileştirici (Y5xx)"},
-		{'Y', 6, "Veri kümesi, okuyucu, parçalayıcı (Y6xx)"},
-		{'Y', 7, "Veritabanı (Y7xx)"},
-		{'Y', 8, "Web sunucusu (Y8xx)"},
-		{'Y', 9, "Görsel arayüz (Y9xx)"},
-	}},
+// family belgenin bir bölümüdür; aileler kod sırasındadır.
+type family struct {
+	Letter   string    `json:"letter"`
+	Title    string    `json:"title"`
+	Sections []section `json:"sections"`
 }
+
+// docText belgenin Türkçe metnidir (text.json): başlıklar, giriş, etiketler. Go metninde
+// Türkçe bulunmaz; üreteç yalnızca yer tutucuları doldurur.
+type docText struct {
+	Title         string            `json:"title"`
+	GeneratedNote string            `json:"generatedNote"`
+	Intro         []string          `json:"intro"`
+	CountsFormat  string            `json:"countsFormat"`
+	Contents      string            `json:"contents"`
+	PipelineTitle string            `json:"pipelineTitle"`
+	PipelineIntro []string          `json:"pipelineIntro"`
+	Labels        map[string]string `json:"labels"`
+	Families      []family          `json:"families"`
+}
+
+//go:embed text.json
+var textJSON []byte
+
+// text belgenin metnidir; text.json bozuksa üreteç çalışamaz.
+var text = func() docText {
+	var t docText
+	if err := json.Unmarshal(textJSON, &t); err != nil {
+		panic("text.json: " + err.Error())
+	}
+	return t
+}()
 
 // typeName bir tip ifadesini adlarla yazar: "Tam | Ondalık".
 func typeName(t codes.TypeExpr) string {
 	if t.Empty() {
-		return "Herhangi"
+		return text.Labels["anyType"]
 	}
 	parts := make([]string, len(t.Types))
 	for i, k := range t.Types {
@@ -226,8 +199,8 @@ func movedForm(y codes.Code) string {
 
 // Generate belgenin içeriğini üretir.
 func Generate() ([]byte, error) {
-	if hatalar := codes.CheckDefinitions(codes.Active()); len(hatalar) > 0 {
-		return nil, fmt.Errorf("tanımlar tutarsız: %v", hatalar[0])
+	if errs := codes.CheckDefinitions(codes.Active()); len(errs) > 0 {
+		return nil, fmt.Errorf("definitions are inconsistent: %v", errs[0])
 	}
 	d := codes.Active()
 	allCodes := append(d.Codes(), d.DeadCodes()...)
@@ -262,57 +235,53 @@ func Generate() ([]byte, error) {
 	}
 
 	var b bytes.Buffer
-	b.WriteString("# TR kod listesi\n\n")
-	b.WriteString("<!-- Bu dosya internal/lang/codes/definitions.json ve internal/lang/codes/tr.json'dan üretilir; elle düzenlemeyin: go run ./tools/gen/codesdoc -->\n\n")
-	b.WriteString("Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/spec/17_kodlar.md` §17). ")
-	b.WriteString("Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; \"hangi kod ne işe yarar\" sorusunun tek başvurusudur. ")
-	b.WriteString("Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.\n\n")
-	b.WriteString("İmzalarda parametrelerin yalnızca tipleri yazılır: `[Tip]` isteğe bağlı, `[Tip...]` sıfır ya da çok, `Tip...` bir ya da çok argümandır; ")
-	b.WriteString("`ad: Tip = varsayılan` adlı argümandır, `→` dönüş tipidir. Metot ve özellikler `Tip.ad` biçiminde, geçerli oldukları her tip için ayrı satırda yazılır.\n\n")
-	b.WriteString("**Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). ")
-	b.WriteString("Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.\n\n")
+	b.WriteString("# " + text.Title + "\n\n")
+	b.WriteString("<!-- " + text.GeneratedNote + " -->\n\n")
+	for _, para := range text.Intro {
+		b.WriteString(para + "\n\n")
+	}
 	counts := map[codes.Kind]int{}
 	for _, k := range d.Codes() {
 		t, _ := codes.DefinitionOf(k)
 		counts[t.Kind]++
 	}
-	fmt.Fprintf(&b, "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d tip, %d fonksiyon, %d sabit, %d metot, %d özellik, %d adlı argüman; ayrıca %d taşınmış ve %d kaldırılmış kod (numaraları bir daha kullanılmaz).\n\n",
+	fmt.Fprintf(&b, text.CountsFormat+"\n\n",
 		len(d.Codes()), counts[codes.KindKeyword], counts[codes.KindContextual], counts[codes.KindType], counts[codes.KindFunction],
 		counts[codes.KindConstant], counts[codes.KindMethod], counts[codes.KindProperty], counts[codes.KindNamedArg], len(d.MovedCodes()), len(d.RemovedCodes()))
-	b.WriteString("## İçindekiler\n\n")
-	for _, a := range families {
-		fmt.Fprintf(&b, "- %s: ", a.title)
+	b.WriteString("## " + text.Contents + "\n\n")
+	for _, a := range text.Families {
+		fmt.Fprintf(&b, "- %s: ", a.Title)
 		var parts []string
-		for _, sec := range a.sections {
-			parts = append(parts, sec.title)
+		for _, sec := range a.Sections {
+			parts = append(parts, sec.Title)
 		}
 		b.WriteString(strings.Join(parts, " · ") + "\n")
 	}
-	b.WriteString("- Boru hattıyla kullanılabilen fonksiyonlar\n\n")
+	b.WriteString("- " + text.PipelineTitle + "\n\n")
 
-	for _, a := range families {
-		fmt.Fprintf(&b, "## %s\n\n", a.title)
-		for _, sec := range a.sections {
+	for _, a := range text.Families {
+		fmt.Fprintf(&b, "## %s\n\n", a.Title)
+		for _, sec := range a.Sections {
 			var ks []codes.Code
 			for _, k := range allCodes {
-				if k.Letter() == sec.letter && k.Group() == sec.group {
+				if string(rune(k.Letter())) == a.Letter && k.Group() == sec.Group {
 					ks = append(ks, k)
 				}
 			}
 			if len(ks) == 0 {
 				continue
 			}
-			fmt.Fprintf(&b, "### %s\n\n", sec.title)
+			fmt.Fprintf(&b, "### %s\n\n", sec.Title)
 			for _, k := range ks {
 				g, _ := d.Entry(k)
 				t, _ := codes.DefinitionOf(k)
 				if g.Removed {
-					fmt.Fprintf(&b, "#### %s `%s` — kaldırıldı\n\n%s\n\n", k, g.Name, g.Description)
+					fmt.Fprintf(&b, "#### %s `%s` — %s\n\n%s\n\n", k, g.Name, text.Labels["removed"], g.Description)
 					continue
 				}
 				if g.MovedTo != codes.None {
-					fmt.Fprintf(&b, "#### %s `%s` — kaldırıldı\n\n", k, g.Name)
-					fmt.Fprintf(&b, "Taşındı: %s → `%s`. %s\n\n", codeLabel(g.MovedTo), movedForm(g.MovedTo), g.Description)
+					fmt.Fprintf(&b, "#### %s `%s` — %s\n\n", k, g.Name, text.Labels["removed"])
+					fmt.Fprintf(&b, "%s: %s → `%s`. %s\n\n", text.Labels["moved"], codeLabel(g.MovedTo), movedForm(g.MovedTo), g.Description)
 					continue
 				}
 				fmt.Fprintf(&b, "#### %s `%s`\n\n", k, g.Name)
@@ -328,13 +297,13 @@ func Generate() ([]byte, error) {
 				}
 				var extras []string
 				if t.Kind == codes.KindNamedArg && len(usedBy[k]) > 0 {
-					extras = append(extras, "Kullananlar: "+list(usedBy[k]))
+					extras = append(extras, text.Labels["usedBy"]+": "+list(usedBy[k]))
 				}
 				if t.Kind == codes.KindType && len(typeMembers[k]) > 0 {
-					extras = append(extras, "Üyeleri: "+list(typeMembers[k]))
+					extras = append(extras, text.Labels["members"]+": "+list(typeMembers[k]))
 				}
 				if len(t.Related) > 0 {
-					extras = append(extras, "İlişkili: "+list(t.Related))
+					extras = append(extras, text.Labels["related"]+": "+list(t.Related))
 				}
 				var oldNames, previous []string
 				for _, e := range g.Old {
@@ -346,14 +315,14 @@ func Generate() ([]byte, error) {
 						if tk.Namespace() == codes.NamespaceMember {
 							form = "x." + tg.Name + "()"
 						}
-						previous = append(previous, fmt.Sprintf("`%s` (%s, kaldırıldı)", form, tk))
+						previous = append(previous, fmt.Sprintf("`%s` (%s, %s)", form, tk, text.Labels["previousRemoved"]))
 					}
 				}
 				if len(oldNames) > 0 {
-					extras = append(extras, "Eski adlar: "+strings.Join(oldNames, ", "))
+					extras = append(extras, text.Labels["oldNames"]+": "+strings.Join(oldNames, ", "))
 				}
 				if len(previous) > 0 {
-					extras = append(extras, "Önceki biçim: "+strings.Join(previous, ", "))
+					extras = append(extras, text.Labels["previousForm"]+": "+strings.Join(previous, ", "))
 				}
 				if len(extras) > 0 {
 					b.WriteString(strings.Join(extras, " · ") + "\n\n")
@@ -363,9 +332,10 @@ func Generate() ([]byte, error) {
 	}
 	// Boru hattı (x |> f, docs/spec/04_operatorler.md 4.9): ilk konumlu parametresi borudaki değeri alan
 	// fonksiyonlar. Metotlar boruyla değil '.' ile zincirlenir.
-	b.WriteString("## Boru hattıyla kullanılabilen fonksiyonlar\n\n")
-	b.WriteString("`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). ")
-	b.WriteString("Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):\n\n")
+	b.WriteString("## " + text.PipelineTitle + "\n\n")
+	for _, para := range text.PipelineIntro {
+		b.WriteString(para + "\n\n")
+	}
 	var pipeable []string
 	for _, k := range d.Codes() {
 		t, _ := codes.DefinitionOf(k)

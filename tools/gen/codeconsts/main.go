@@ -11,7 +11,7 @@
 // Kullanım (depo kökünden):
 //
 //	go run ./tools/gen/codeconsts           // dosyayı yeniden yazar
-//	go run ./tools/gen/codeconsts -denetle  // güncel değilse 1 koduyla çıkar
+//	go run ./tools/gen/codeconsts -check    // güncel değilse 1 koduyla çıkar
 //	go generate ./internal/lang/codes                 // aynısı
 //
 // Aynı denetim `go test ./tools/gen/...` ile de yapılır.
@@ -40,8 +40,8 @@ var (
 )
 
 func main() {
-	check := flag.Bool("denetle", false, "dosyayı yazma; güncel değilse 1 koduyla çık")
-	root := flag.String("kok", "", "depo kökü (boşsa çalışma klasöründen yukarı doğru go.mod aranır)")
+	check := flag.Bool("check", false, "do not write the file; exit 1 if it is out of date")
+	root := flag.String("root", "", "repository root (if empty, go.mod is searched upwards from the working directory)")
 	flag.Parse()
 
 	if *root == "" {
@@ -49,28 +49,28 @@ func main() {
 	}
 	fresh, err := Generate(*root)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 	path := filepath.Join(*root, outputPath)
 	if *check {
 		old, err := os.ReadFile(path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 		if !bytes.Equal(bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n")), fresh) {
-			fmt.Fprintf(os.Stderr, "%s güncel değil; go run ./tools/gen/codeconsts ile yeniden üretin\n", path)
+			fmt.Fprintf(os.Stderr, "%s is out of date; regenerate it with go run ./tools/gen/codeconsts\n", path)
 			os.Exit(1)
 		}
-		fmt.Printf("%s güncel\n", path)
+		fmt.Printf("%s is up to date\n", path)
 		return
 	}
 	if err := os.WriteFile(path, fresh, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("%s yazıldı\n", path)
+	fmt.Printf("%s written\n", path)
 }
 
 // repoRoot çalışma klasöründen yukarı doğru go.mod'un bulunduğu klasörü arar (go generate
@@ -103,11 +103,11 @@ type codeEntry struct {
 
 func parseCode(s string) (codeEntry, error) {
 	if len(s) != 4 || bytes.IndexByte([]byte(familyLetters), s[0]) < 0 {
-		return codeEntry{}, fmt.Errorf("kod %q geçersiz", s)
+		return codeEntry{}, fmt.Errorf("code %q is invalid", s)
 	}
 	n, err := strconv.Atoi(s[1:])
 	if err != nil || n <= 0 {
-		return codeEntry{}, fmt.Errorf("kod %q geçersiz", s)
+		return codeEntry{}, fmt.Errorf("code %q is invalid", s)
 	}
 	return codeEntry{letter: s[0], number: n, text: s}, nil
 }
@@ -198,22 +198,22 @@ func Generate(root string) ([]byte, error) {
 	}
 	b.WriteString(")\n\n")
 
-	b.WriteString("// movedMap kaldırılıp işi başka bir koda (başka bir biçime: fonksiyondan metoda ya da\n")
-	b.WriteString("// metottan fonksiyona) taşınan kodlardır: eski kod → yeni kod (definitions.json'daki\n")
-	b.WriteString("// \"taşındı\" alanı). Eski kodun numarası bir daha kullanılmaz; adı yalnızca hata\n")
-	b.WriteString("// mesajında yeni biçimi önermek için dil dosyasında kalır.\n")
+	b.WriteString("// movedMap holds codes that were removed and whose job moved to another code (another form:\n")
+	b.WriteString("// function to method or method to function): old code → new code (its moved-to field in\n")
+	b.WriteString("// definitions.json). The old code's number is never reused; its name stays in the language file\n")
+	b.WriteString("// only to suggest the new form in an error message.\n")
 	b.WriteString("var movedMap = map[Code]Code{\n")
 	for _, k := range movedEntries {
 		target, err := parseCode(definitions[k.text].Moved)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %s taşındı: %v", definitionsPath, k.text, err)
+			return nil, fmt.Errorf("%s: %s moved: %v", definitionsPath, k.text, err)
 		}
 		fmt.Fprintf(&b, "\t%c + %d: %c + %d, // %s → %s\n", k.letter, k.number, target.letter, target.number, k.text, target.text)
 	}
 	b.WriteString("}\n\n")
-	b.WriteString("// removedSet yerine geçen olmadan dilden kaldırılan kodlardır (definitions.json'daki\n")
-	b.WriteString("// \"kaldırıldı\" alanı). Numaraları bir daha kullanılmaz; adları yalnızca \"TR'den\n")
-	b.WriteString("// kaldırıldı\" hatası için dil dosyasında kalır.\n")
+	b.WriteString("// removedSet holds codes removed from the language without a replacement (its removed flag\n")
+	b.WriteString("// in definitions.json). Their numbers are never reused; their names stay in the language\n")
+	b.WriteString("// file only for the \"removed from TR\" error.\n")
 	b.WriteString("var removedSet = map[Code]bool{\n")
 	for _, k := range removedEntries {
 		fmt.Fprintf(&b, "\t%c + %d: true, // %s %s\n", k.letter, k.number, k.text, tr[k.text].Name)

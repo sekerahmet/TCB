@@ -1,8 +1,8 @@
 package codes
 
 //go:generate go run ../../../tools/gen/codeconsts
-//go:generate go run ../../../tools/gen/codesdoc -kok ../../..
-//go:generate go run ../../../tools/gen/grammar -kok ../../..
+//go:generate go run ../../../tools/gen/codesdoc -root ../../..
+//go:generate go run ../../../tools/gen/grammar -root ../../..
 
 import (
 	"fmt"

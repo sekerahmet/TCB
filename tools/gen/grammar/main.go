@@ -8,7 +8,7 @@
 // Kullanım (depo kökünden):
 //
 //	go run ./tools/gen/grammar           // dosyayı yeniden yazar
-//	go run ./tools/gen/grammar -denetle  // güncel değilse 1 koduyla çıkar
+//	go run ./tools/gen/grammar -check    // güncel değilse 1 koduyla çıkar
 //
 // Aynı denetim `go test ./tools/gen/...` ile de yapılır.
 //
@@ -33,34 +33,34 @@ import (
 var grammarPath = filepath.Join("editors", "vscode", "syntaxes", "tr.tmLanguage.json")
 
 func main() {
-	check := flag.Bool("denetle", false, "dosyayı yazma; güncel değilse 1 koduyla çık")
-	root := flag.String("kok", ".", "depo kökü")
+	check := flag.Bool("check", false, "do not write the file; exit 1 if it is out of date")
+	root := flag.String("root", ".", "repository root")
 	flag.Parse()
 
 	path := filepath.Join(*root, grammarPath)
 	fresh, err := Generate()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 	if *check {
 		old, err := os.ReadFile(path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 		if !bytes.Equal(old, fresh) {
-			fmt.Fprintf(os.Stderr, "%s güncel değil; go run ./tools/gen/grammar ile yeniden üretin\n", path)
+			fmt.Fprintf(os.Stderr, "%s is out of date; regenerate it with go run ./tools/gen/grammar\n", path)
 			os.Exit(1)
 		}
-		fmt.Printf("%s güncel\n", path)
+		fmt.Printf("%s is up to date\n", path)
 		return
 	}
 	if err := os.WriteFile(path, fresh, 0o644); err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("%s yazıldı\n", path)
+	fmt.Printf("%s written\n", path)
 }
 
 // --- sözlükten listeler ---
@@ -207,11 +207,11 @@ func Generate() ([]byte, error) {
 	general := namesInGroup('G', -1, isBuiltin)
 	ai := append(namesInGroup('T', -1, isBuiltin), namesInGroup('V', -1, isBuiltin)...)
 
-	inner := func(secenek string) string { return secenek } // adlar düzenli ifade karakteri içermez
+	inner := func(option string) string { return option } // adlar düzenli ifade karakteri içermez
 
 	grammar := jsonObject{
 		{"$schema", "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json"},
-		{"comment", "Bu dosya kod listesinden (internal/lang/codes/tr.json) üretilir; elle düzenlemeyin: go run ./tools/gen/grammar"},
+		{"comment", "This file is generated from the code list (internal/lang/codes/tr.json); do not edit it by hand: go run ./tools/gen/grammar"},
 		{"name", "TR Dili"},
 		{"scopeName", "source.tr"},
 		{"patterns", includes("#comments", "#strings", "#import", "#declarations", "#keywords", "#pronoun", "#types", "#builtins", "#numbers", "#operators")},
@@ -273,7 +273,7 @@ func Generate() ([]byte, error) {
 				rule("keyword.operator.logical.tr", wordsPattern(names(codes.A043, codes.A044, codes.A045))),
 			}}}},
 			{"pronoun", jsonObject{
-				{"comment", "Sondaki blok (o-lambda) parametresi: liste.filtrele { o > 2 }"},
+				{"comment", "Trailing-block (o-lambda) parameter: liste.filtrele { o > 2 }"},
 				{"patterns", []jsonObject{rule("variable.language.pronoun.tr", `(?<![\w.])o(?!\w)`)}},
 			}},
 			{"types", jsonObject{{"patterns", []jsonObject{rule("entity.name.type.tr", wordsPattern(types))}}}},

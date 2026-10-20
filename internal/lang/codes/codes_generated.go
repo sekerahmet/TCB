@@ -301,10 +301,10 @@ const (
 	Y613 Code = Y + 613 // token_id · parça_kimliği
 )
 
-// movedMap kaldırılıp işi başka bir koda (başka bir biçime: fonksiyondan metoda ya da
-// metottan fonksiyona) taşınan kodlardır: eski kod → yeni kod (definitions.json'daki
-// "taşındı" alanı). Eski kodun numarası bir daha kullanılmaz; adı yalnızca hata
-// mesajında yeni biçimi önermek için dil dosyasında kalır.
+// movedMap holds codes that were removed and whose job moved to another code (another form:
+// function to method or method to function): old code → new code (its moved-to field in
+// definitions.json). The old code's number is never reused; its name stays in the language file
+// only to suggest the new form in an error message.
 var movedMap = map[Code]Code{
 	G + 200: Y + 1,   // G200 → Y001
 	G + 300: Y + 200, // G300 → Y200
@@ -317,9 +317,9 @@ var movedMap = map[Code]Code{
 	Y + 206: G + 410, // Y206 → G410
 }
 
-// removedSet yerine geçen olmadan dilden kaldırılan kodlardır (definitions.json'daki
-// "kaldırıldı" alanı). Numaraları bir daha kullanılmaz; adları yalnızca "TR'den
-// kaldırıldı" hatası için dil dosyasında kalır.
+// removedSet holds codes removed from the language without a replacement (its removed flag
+// in definitions.json). Their numbers are never reused; their names stay in the language
+// file only for the "removed from TR" error.
 var removedSet = map[Code]bool{
 	A + 230: true, // A230 SinirAğı
 	A + 240: true, // A240 Veritabanı
