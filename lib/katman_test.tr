@@ -21,6 +21,22 @@ test "Doğrusal: şekil, sapma ve türev" {
     doğrula(türev_denetle(f, [rastgele_girdi([2, 3], 3), rastgele_girdi([3, 5], 4), rastgele_girdi([5], 5)]))
 }
 
+test "Doğrusal: karışık hassasiyette sapma çarpımın türünde eklenir; çıktı bf16, sapmanın gradyanı float32" {
+    değişken d = Doğrusal(8, 6, sapmalı: doğru, tohum: 3)
+    türevsiz { d.sapma[0..6] = tensör([0.5, -1.0, 2.0, 0.25, -0.75, 1.5]) }
+    değişken x = rastgele_normal([4, 8], tohum: 4)
+    değişken tam_y = d.ileri(x)
+    eşit_mi("float32", tam_y.tür)
+    değişken y = yok
+    karışık_hassasiyet("bf16") { y = d.ileri(x) }
+    eşit_mi("bf16", y.tür)
+    değişken fark = maks(mutlak(y.türe("float32") - tam_y)).değer
+    doğrula(fark < 0.05, "bf16 çıktı float32'dekinden uzak: {fark}")
+    geri_yayılım(toplam(y.türe("float32")))
+    eşit_mi("float32", d.sapma.gradyan.tür)
+    eşit_mi(tensör([4.0, 4.0, 4.0, 4.0, 4.0, 4.0]), d.sapma.gradyan)
+}
+
 test "Doğrusal: başlatma ölçeği std'dir, aynı tohum aynı ağırlığı verir" {
     değişken d = Doğrusal(64, 64, std: 0.02, tohum: 9)
     değişken s = karekök(ortalama(d.ağırlık * d.ağırlık)).değer

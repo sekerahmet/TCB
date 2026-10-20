@@ -31,7 +31,7 @@ Her katman sıradan bir `yapı`dır: ağırlıklar alanlarındadır, ileri hesap
 
 | Ad | Ne yapar | Kurulum |
 | :-- | :-- | :-- |
-| `Doğrusal` | `x @ ağırlık (+ sapma)` | `Doğrusal(giriş, çıkış, sapmalı: yanlış, std: 0.02, tohum: 1)` |
+| `Doğrusal` | `x @ ağırlık (+ sapma)`; sapma çarpımın türünde eklenir (karışık hassasiyette çıktı bf16, PyTorch autocast gibi) | `Doğrusal(giriş, çıkış, sapmalı: yanlış, std: 0.02, tohum: 1)` |
 | `GömmeKatmanı` | kimlik → tablo satırı (`gömme` yerleşiği) | `GömmeKatmanı(dağarcık, boyut, std: 0.02, tohum: 1)` |
 | `RMSNormKatmanı` | RMS normu, öğrenilen ağırlıkla (`rms_normu` yerleşiği) | `RMSNormKatmanı(boyut, epsilon: 0.00001)` |
 | `döner_konum_tablosu`, `döner_konum_uygula` | döner konum gömmesi (RoPE): kosinüs/sinüs tabloları ve uygulanması | `döner_konum_tablosu(bağlam, baş_boyutu, taban: 10000.0)` |

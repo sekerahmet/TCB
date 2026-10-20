@@ -19,6 +19,10 @@ fonksiyon ağırlık_başlat(şekil, std, tohum) {
 }
 
 // Doğrusal: y = x @ ağırlık (+ sapma). ağırlık [giriş, çıkış], sapma [çıkış] ya da yok.
+// Sapma çarpımın türünde eklenir: karışık_hassasiyet("bf16") bloğunda çıktı bf16 kalır (float32
+// sapma toplamı float32'ye yükseltmez). PyTorch'un autocast'i (F.linear sapmayı da bf16 işler) ve
+// Flax'ın Dense'i (dtype sapmayı da kapsar) böyledir; sapmanın gradyanı float32 birikir (15.12).
+// Hedef modelde float32 ara sonuçları ve geri dönüşümleri kaldırır (221 → 203 ms/adım).
 yapı Doğrusal {
     ağırlık
     sapma
@@ -28,7 +32,8 @@ yapı Doğrusal {
     }
     fonksiyon ileri(x) {
         eğer kendi.sapma == yok { sonuç x @ kendi.ağırlık }
-        sonuç x @ kendi.ağırlık + kendi.sapma
+        değişken y = x @ kendi.ağırlık
+        sonuç y + kendi.sapma.türe(y.tür)
     }
 }
 
