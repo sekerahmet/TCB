@@ -75,7 +75,7 @@ func TestCompilerDynamicEval(t *testing.T) {
 	if strings.Join(nameList, ",") != "a,b" {
 		t.Fatalf("yerel adlar: %v", nameList)
 	}
-	if _, err := machine.EvalExpression(expr, machine.GlobalEnv); !messages.Has(err, messages.H2442) {
+	if _, err := machine.EvalExpression(expr, machine.GlobalEnv); !messages.Has(err, messages.H1106) {
 		t.Fatalf("genel kapsamda 'a' bulunmamalı: %v", err)
 	}
 }

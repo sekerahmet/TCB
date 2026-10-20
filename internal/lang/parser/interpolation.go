@@ -6,6 +6,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func (p *Parser) parseStringOrInterpolation() ast.Expression {
@@ -75,7 +76,7 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 func (p *Parser) interpolation(text lexer.Token, curValue []rune, begin, end int) (ast.Expression, string) {
 	exprCode, exprStart := lexer.InterpolationExpr(curValue, begin, end)
 	if exprCode == "" {
-		return nil, "boş"
+		return nil, messages.Text(messages.H0158)
 	}
 	// İfadenin sözcükleri dosyadaki gerçek konumlarını taşır (sozcuk.Lexer.Yerlestirme):
 	// önündeki kaçış dizileri ve boşluklar konumu kaydırmaz.
@@ -88,17 +89,17 @@ func (p *Parser) interpolation(text lexer.Token, curValue []rune, begin, end int
 			p.errors = append(p.errors, subParser.errors[len(subParser.errors)-1])
 			p.depthExceeded = true
 		}
-		return nil, "iç içelik sınırı aşıldı"
+		return nil, messages.Text(messages.H0159)
 	}
-	if errList := subParser.Errors(); len(errList) != 0 {
-		return nil, "bir ifade değil (" + stripPosPrefix(errList[0]) + ")"
+	if errList := subParser.Errs(); len(errList) != 0 {
+		return nil, messages.Text(messages.H0160, plainError(errList[0]))
 	}
 	if len(subProg.Statements) != 1 {
-		return nil, "tek bir ifade olmalı"
+		return nil, messages.Text(messages.H0161)
 	}
 	es, ok := subProg.Statements[0].(*ast.ExpressionStatement)
 	if !ok || es.Expression == nil {
-		return nil, "bir ifade değil, bir deyim"
+		return nil, messages.Text(messages.H0162)
 	}
 	return es.Expression, ""
 }
@@ -107,20 +108,20 @@ func (p *Parser) interpolation(text lexer.Token, curValue []rune, begin, end int
 // ayrıştırılamadığında orada sözdizimi hatası kaydeder ve düz süslü parantezin iki yazımını
 // önerir.
 func (p *Parser) interpolationError(lineNo, colNo int, rawExpr, problem string) {
-	p.recordError(lexer.Token{Line: lineNo, Column: colNo}, fmt.Sprintf(
-		"Sözdizimi hatası — metindeki her '{' bir yerleştirme başlatır, ama '{%s' %s. Düz süslü parantez için '\\{' yazın ya da ham metin kullanın: `...{...}...`",
-		shortText(unescapeBraces(rawExpr))+"}", problem))
+	p.syntaxError(lexer.Token{Line: lineNo, Column: colNo}, messages.H0157,
+		shortText(unescapeBraces(rawExpr)), problem)
 }
 
-// stripPosPrefix bir alt hata mesajının başındaki "Satır N, Sütun M: " ve "Sözdizimi
-// hatası — " öneklerini atar (mesaj yerleştirme hatasının içinde gösterilir).
-func stripPosPrefix(m string) string {
-	if strings.HasPrefix(m, "Satır ") {
-		if i := strings.Index(m, ": "); i >= 0 {
-			m = m[i+2:]
-		}
+// plainError bir alt hatanın konum ve "Sözdizimi hatası — " öneki olmadan metnini verir (ileti
+// yerleştirme hatasının içinde gösterilir).
+func plainError(err error) string {
+	if pe, ok := err.(*messages.PosError); ok {
+		err = pe.Err
 	}
-	return strings.TrimPrefix(m, "Sözdizimi hatası — ")
+	if m, ok := err.(*messages.Error); ok && m.Code == messages.H0100 && len(m.Args) == 1 {
+		return fmt.Sprint(m.Args[0])
+	}
+	return err.Error()
 }
 
 // writeUnescaped bir karakteri, sözcük çözümleyicinin '\{' ve '\}' işaretçilerini düz süslü

@@ -1,8 +1,9 @@
 package lexer
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ---------------------------------------------------------------------------
@@ -80,30 +81,16 @@ func TestMultilineString(t *testing.T) {
 		t.Errorf("'x' konumu 3:5 bekleniyordu, %d:%d geldi", toks[1].Line, toks[1].Column)
 	}
 }
-func containsError(errs []string, parts ...string) bool {
-	for _, e := range errs {
-		all := true
-		for _, p := range parts {
-			if !strings.Contains(e, p) {
-				all = false
-				break
-			}
-		}
-		if all {
-			return true
-		}
-	}
-	return false
-}
 func TestUnterminatedString(t *testing.T) {
 	tests := []struct {
-		name, src, srcPos string
+		name, src string
+		line, col int
 	}{
-		{"tek satır", `"merhaba`, "Satır 1, Sütun 1:"},
-		{"tek tırnak", `'merhaba`, "Satır 1, Sütun 1:"},
-		{"sonraki satırlarda", "değişken a = 1\n  yazdır(\"merhaba)\nb = 2\n", "Satır 2, Sütun 10:"},
-		{"ters bölü ile biten", `"abc\`, "Satır 1, Sütun 1:"},
-		{"kaçışlı tırnak ile biten", `x = "abc\"`, "Satır 1, Sütun 5:"},
+		{"tek satır", `"merhaba`, 1, 1},
+		{"tek tırnak", `'merhaba`, 1, 1},
+		{"sonraki satırlarda", "değişken a = 1\n  yazdır(\"merhaba)\nb = 2\n", 2, 10},
+		{"ters bölü ile biten", `"abc\`, 1, 1},
+		{"kaçışlı tırnak ile biten", `x = "abc\"`, 1, 5},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -111,8 +98,8 @@ func TestUnterminatedString(t *testing.T) {
 			if len(errs) != 1 {
 				t.Fatalf("tek bir hata bekleniyordu, gelen: %v", errs)
 			}
-			if !containsError(errs, tt.srcPos, "kapatılmamış metin") {
-				t.Errorf("hata %q ve 'kapatılmamış metin' içermeli, gelen: %q", tt.srcPos, errs[0])
+			if !hasErr(errs, tt.line, tt.col, messages.H0010) {
+				t.Errorf("H0010 (satır %d, sütun %d) bekleniyordu, gelen: %q", tt.line, tt.col, errs[0])
 			}
 			if toks[len(toks)-1].Type != TOKEN_EOF {
 				t.Errorf("son token DOSYA_SONU olmalı: %v", toks)
@@ -122,12 +109,13 @@ func TestUnterminatedString(t *testing.T) {
 }
 func TestUnterminatedInterpolation(t *testing.T) {
 	tests := []struct {
-		name, src, srcPos string
+		name, src string
+		line, col int
 	}{
-		{"dosya sonu", `"merhaba {ad"`, "Satır 1, Sütun 10:"},
-		{"satır sonu", "yazdır(\"x {a\")\nb = 1", "Satır 1, Sütun 11:"},
-		{"ikinci satırda", "a = 1\n\"ok\" + \"{ {b}\"", "Satır 2, Sütun 9:"},
-		{"CRLF satır sonu", "a = 1\r\n\"x {a\r\nb\"", "Satır 2, Sütun 4:"},
+		{"dosya sonu", `"merhaba {ad"`, 1, 10},
+		{"satır sonu", "yazdır(\"x {a\")\nb = 1", 1, 11},
+		{"ikinci satırda", "a = 1\n\"ok\" + \"{ {b}\"", 2, 9},
+		{"CRLF satır sonu", "a = 1\r\n\"x {a\r\nb\"", 2, 4},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -135,8 +123,8 @@ func TestUnterminatedInterpolation(t *testing.T) {
 			if len(errs) == 0 {
 				t.Fatalf("hata bekleniyordu")
 			}
-			if !containsError(errs, tt.srcPos, "'{' kapatılmamış") {
-				t.Errorf("hata %q ve \"'{' kapatılmamış\" içermeli, gelen: %v", tt.srcPos, errs)
+			if !hasErr(errs, tt.line, tt.col, messages.H0009) {
+				t.Errorf("H0009 (satır %d, sütun %d) bekleniyordu, gelen: %v", tt.line, tt.col, errs)
 			}
 		})
 	}
@@ -148,10 +136,10 @@ func TestMultipleLexerErrors(t *testing.T) {
 	if len(errs) != 2 {
 		t.Fatalf("iki hata bekleniyordu, gelen: %v", errs)
 	}
-	if !containsError(errs[:1], "Satır 1, Sütun 2:", "'{' kapatılmamış") {
+	if !hasErr(errs[:1], 1, 2, messages.H0009) {
 		t.Errorf("ilk hata yanlış: %q", errs[0])
 	}
-	if !containsError(errs[1:], "Satır 3, Sütun 1:", "kapatılmamış metin") {
+	if !hasErr(errs[1:], 3, 1, messages.H0010) {
 		t.Errorf("ikinci hata yanlış: %q", errs[1])
 	}
 }

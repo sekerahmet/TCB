@@ -1,12 +1,12 @@
 package parser
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func (p *Parser) parseStatement() ast.Statement {
@@ -133,7 +133,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 		}
 		if !p.peekTokenIs(lexer.TOKEN_ASSIGN) && !p.peekTokenIs(lexer.TOKEN_WALRUS) {
 			tok := p.peekToken()
-			p.recordError(tok, fmt.Sprintf("Sözdizimi hatası — çoklu değişken tanımında '=' bekleniyordu, ancak %s bulundu", tokenDescription(tok)))
+			p.syntaxError(tok, messages.H0142, tokenDescription(tok))
 			return nil
 		}
 		p.nextToken() // '='
@@ -308,7 +308,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 // Aksi hâlde sonraki tüm kod sessizce bloğun içine girerdi (test raporu Y1).
 func (p *Parser) requireClosingBrace(open lexer.Token) {
 	if p.curTokenIs(lexer.TOKEN_EOF) {
-		p.recordError(open, "'{' kapatılmadı; dosya bitti ama bu bloğu kapatan '}' bulunamadı")
+		p.recordError(open, messages.New(messages.H0156))
 	}
 }
 func (p *Parser) parseImportStatement() *ast.ImportStatement {
@@ -321,7 +321,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 			example = next.Literal
 		}
 		imp := codes.Name(codes.A070)
-		p.recordError(next, fmt.Sprintf("Sözdizimi hatası — '%s' modül yolunu metin olarak bekler, ancak %s bulundu: %s \"%s\" yazın", imp, tokenDescription(next), imp, example))
+		p.syntaxError(next, messages.H0143, imp, tokenDescription(next), example)
 		return nil
 	}
 	p.nextToken()

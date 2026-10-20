@@ -1,5 +1,7 @@
 package lexer
 
+import "github.com/sekerahmet/TCB/internal/lang/messages"
+
 func (l *Lexer) skipWhitespaceAndComments() {
 	for {
 		// Boşluk karakterlerini atla
@@ -10,7 +12,7 @@ func (l *Lexer) skipWhitespaceAndComments() {
 		// dillerden alışkanlıkla yazılmış olabileceği için açık bir hata verilir; satırın
 		// geri kalanı atlanır ki ardından gelen sözcükler ikinci bir hata üretmesin.
 		if l.ch == '#' {
-			l.addError(l.line, l.column, "'#' TR'de yorum değil; yorum için '//' yazın")
+			l.addError(l.line, l.column, messages.New(messages.H0005))
 			for l.ch != '\n' && l.ch != 0 {
 				l.readChar()
 			}
@@ -35,7 +37,7 @@ func (l *Lexer) skipWhitespaceAndComments() {
 				l.readChar()
 				l.readChar()
 			} else {
-				l.addError(startLine, startCol, "kapatılmamış yorum: '/*' ile başlayan yorum dosya sonuna kadar '*/' ile kapanmadı")
+				l.addError(startLine, startCol, messages.New(messages.H0006))
 			}
 			continue
 		}

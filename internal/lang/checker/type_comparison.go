@@ -1,8 +1,6 @@
 package checker
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
@@ -28,8 +26,7 @@ func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 	if !ok || !c.isTypeCall(call) {
 		return
 	}
-	c.errors = append(c.errors, fmt.Sprintf("Satır %d: %s", e.Line(),
-		hint.TypeTextComparison(e.Operator, text.Value, codes.Name(codes.A200))))
+	c.addError(e.Line(), 0, hint.TypeTextComparisonError(e.Operator, text.Value, codes.Name(codes.A200)))
 }
 
 // isTypeCall ifade, kullanıcının gölgelemediği yerleşik tip()'in bir çağrısı mı?

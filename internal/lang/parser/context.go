@@ -1,11 +1,10 @@
 package parser
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Deyim bağlamı: 'çık'/'devam' yalnızca bir döngünün, 'sonuç' (test gövdesinde ve modülün
@@ -68,9 +67,9 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 	}
 	extra := ""
 	if p.ctx.funcs > 0 {
-		extra = "; fonksiyondan çıkmak için '" + codes.Name(codes.A021) + "' yazın"
+		extra = messages.Text(messages.H0152, codes.Name(codes.A021))
 	}
-	p.recordError(tok, "Sözdizimi hatası — '"+tok.Literal+"' yalnızca bir döngünün içinde kullanılabilir"+extra)
+	p.syntaxError(tok, messages.H0151, tok.Literal, extra)
 }
 
 // checkReturn 'sonuç' deyiminin bulunduğu yerde geçerli olduğunu denetler.
@@ -80,9 +79,9 @@ func (p *Parser) checkReturn(tok lexer.Token) {
 	}
 	switch {
 	case p.ctx.test:
-		p.recordError(tok, "Sözdizimi hatası — '"+tok.Literal+"' test gövdesinde kullanılamaz; test kendi sonuna kadar çalışır (erken bitirmek istediğiniz kısmı bir '"+codes.Name(codes.A001)+"' bloğuna alın)")
+		p.syntaxError(tok, messages.H0153, tok.Literal, codes.Name(codes.A001))
 	case p.module:
-		p.recordError(tok, "Sözdizimi hatası — '"+tok.Literal+"' modülün üst düzeyinde kullanılamaz; modül bir fonksiyon değildir, aktaran programı bitiremez")
+		p.syntaxError(tok, messages.H0154, tok.Literal)
 	}
 }
 
@@ -99,7 +98,7 @@ func (p *Parser) enterDepth() bool {
 	}
 	if p.nesting >= maxDepth {
 		p.errorMode = false
-		p.recordError(p.curToken(), fmt.Sprintf("Sözdizimi hatası — ifade ya da blok çok derin iç içe (en fazla %d düzey); kodu ara değişkenlere ya da fonksiyonlara bölün", maxDepth))
+		p.syntaxError(p.curToken(), messages.H0155, maxDepth)
 		p.depthExceeded = true
 		return false
 	}

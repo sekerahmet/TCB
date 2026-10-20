@@ -1,13 +1,13 @@
 package checker
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Tanımsız ad denetimi (docs/spec/05_deyimler.md §5.14): bir ad, okunduğu ya da atandığı yerde
@@ -418,16 +418,16 @@ func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
 		return
 	}
 	d.decl[id.Value] = true
-	d.c.nameErrors = append(d.c.nameErrors, fmt.Sprintf("Satır %d, Sütun %d: Tanımsız ad — %s",
-		id.Line(), id.Token.Column, hint.UndefinedNameMessage(id.Value, k.visible())))
+	d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column,
+		messages.New(messages.H1010, hint.UndefinedNameMessage(id.Value, k.visible()))))
 }
 
-// sortByLine hata metinlerini baştaki "Satır N" numarasına göre (eşitlikte ilk
-// sırayı koruyarak) sıralar.
-func sortByLine(errList []string) {
-	line := func(h string) int {
-		var n int
-		if _, err := fmt.Sscanf(h, "Satır %d", &n); err != nil {
+// sortByLine hataları konumlarının satırına göre (eşitlikte ilk sırayı koruyarak) sıralar;
+// konumsuz hatalar sona gider.
+func sortByLine(errList []error) {
+	line := func(h error) int {
+		n, _, ok := messages.Pos(h)
+		if !ok {
 			return 1 << 30
 		}
 		return n

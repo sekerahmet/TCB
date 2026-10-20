@@ -7,9 +7,10 @@
 package lexer
 
 import (
-	"fmt"
 	"strings"
 	"unicode"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Braces escaped as '\{' and '\}' inside a string are carried in the token as these
@@ -27,7 +28,7 @@ type Lexer struct {
 	ch           rune // incelenen mevcut karakter
 	line         int
 	column       int
-	errors       []string
+	errors       []error
 	tokenStart   int // son okunan sözcük biriminin başladığı karakter (rune) indeksi
 
 	// coded, kaynağın kodlu biçimde (17.10) yazıldığını söyler: kodlar (A001, G100) dilin
@@ -71,14 +72,23 @@ func (l *Lexer) Input() []rune {
 	return l.input
 }
 
-// Errors returns the errors found while lexing (e.g. an unterminated string).
-func (l *Lexer) Errors() []string {
+// Errs returns the errors found while lexing (e.g. an unterminated string), each at its
+// position (messages.Pos).
+func (l *Lexer) Errs() []error {
 	return l.errors
 }
 
-func (l *Lexer) addError(line, col int, format string, args ...interface{}) {
-	prefix := fmt.Sprintf("Satır %d, Sütun %d: ", line, col)
-	l.errors = append(l.errors, prefix+fmt.Sprintf(format, args...))
+// Errors returns the texts of Errs ("Satır N, Sütun M: ...").
+func (l *Lexer) Errors() []string {
+	out := make([]string, len(l.errors))
+	for i, e := range l.errors {
+		out[i] = e.Error()
+	}
+	return out
+}
+
+func (l *Lexer) addError(line, col int, err error) {
+	l.errors = append(l.errors, messages.At(line, col, err))
 }
 
 // New returns a lexer for source text written in Turkish (a REPL line, an expression typed

@@ -5,24 +5,38 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // 5.14: tanımsız ad çalışmadan önce hatadır; ipucu çalışma anındakiyle aynıdır.
 func TestUndefinedNameIsError(t *testing.T) {
-	singleError(t, "yazdir(1)", "Satır 1, Sütun 1: Tanımsız ad", "'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?")
-	singleError(t, "değişken öğrenci_sayısı = 1\nyazdır(öğrenci_sayis)", "Satır 2, Sütun 8", "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
-	singleError(t, "tanımsız = 3", "Satır 1, Sütun 1: Tanımsız ad — 'tanımsız'")
-	singleError(t, "değişken l = [1]\nfiltrele(l, (x) => x > 0)", "'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın")
-	singleError(t, "matris([[1]])", "'matris' TR'de yok; 'tensör' yazmak mı istediniz?")
-	singleError(t, "eğer doğru { değişken iç = 1 }\nyazdır(iç)", "Satır 2", "'iç'")
-	singleError(t, "fonksiyon f() { sonuç g() }", "'g'")
-	singleError(t, "test \"a\" { değişken yerel = 1 }\ntest \"b\" { yazdır(yerel) }", "Satır 2", "'yerel'")
-	singleError(t, "yazdır(\"{bilinmeyen}\")", "'bilinmeyen'")
-	singleError(t, "değişken l = [1, 2]\nyazdır([x * 2 döngü x içinde l eğer y > 0])", "'y'")
-	singleError(t, "kendi.n = 1", "'kendi'")
+	singleErrorAt(t, "yazdir(1)", 1, 1, "'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?")
+	singleErrorAt(t, "değişken öğrenci_sayısı = 1\nyazdır(öğrenci_sayis)", 2, 8, "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
+	singleErrorAt(t, "tanımsız = 3", 1, 1, "'tanımsız'")
+	singleError(t, "değişken l = [1]\nfiltrele(l, (x) => x > 0)", messages.H1010, 2, "'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın")
+	singleError(t, "matris([[1]])", messages.H1010, 1, "'matris' TR'de yok; 'tensör' yazmak mı istediniz?")
+	singleError(t, "eğer doğru { değişken iç = 1 }\nyazdır(iç)", messages.H1010, 2, "'iç'")
+	singleError(t, "fonksiyon f() { sonuç g() }", messages.H1010, 1, "'g'")
+	singleError(t, "test \"a\" { değişken yerel = 1 }\ntest \"b\" { yazdır(yerel) }", messages.H1010, 2, "'yerel'")
+	singleError(t, "yazdır(\"{bilinmeyen}\")", messages.H1010, 1, "'bilinmeyen'")
+	singleError(t, "değişken l = [1, 2]\nyazdır([x * 2 döngü x içinde l eğer y > 0])", messages.H1010, 2, "'y'")
+	singleError(t, "kendi.n = 1", messages.H1010, 1, "'kendi'")
 	// Aynı ad tek kez bildirilir.
-	singleError(t, "yazdır(a)\nyazdır(a + 1)", "Satır 1", "'a'")
+	singleError(t, "yazdır(a)\nyazdır(a + 1)", messages.H1010, 1, "'a'")
+}
+
+// singleErrorAt tek bir tanımsız ad hatası (H1010) bekler ve konumunu (satır, sütun) sınar.
+// parts, hint paketinden gelen iç metindeki ad ve önerilerdir (o paket hâlâ metin döndürür).
+func singleErrorAt(t *testing.T, source string, line, col int, parts ...string) {
+	t.Helper()
+	singleError(t, source, messages.H1010, line, parts...)
+	_, coded := checkErrs(t, source)
+	if len(coded) == 1 {
+		if _, c, _ := messages.Pos(coded[0]); c != col {
+			t.Errorf("sütun %d bekleniyordu, gelen %d: %v", col, c, coded[0])
+		}
+	}
 }
 
 // Dinamik dilde yanlış alarm yok: aşağıdakilerin hepsi tanımlıdır.
@@ -63,8 +77,19 @@ func TestTypeErrorUndefinedNameAndWarningTogether(t *testing.T) {
 	prog := p.ParseProgram()
 	c := New()
 	errs := c.CheckProgram(prog)
-	if len(errs) != 2 || !strings.HasPrefix(errs[0], "Satır 2, Sütun 1: Tanımsız ad — 'yazdir'") || !strings.HasPrefix(errs[1], "Satır 3: Tip uyuşmazlığı") {
+	coded := c.Errs()
+	if len(errs) != 2 || !messages.Has(coded[0], messages.H1010) || !messages.Has(coded[1], messages.H1001) {
 		t.Fatalf("tanımsız ad ve tip hatası satır sırasıyla gelmeli: %q", errs)
+	}
+	if l, col, _ := messages.Pos(coded[0]); l != 2 || col != 1 {
+		t.Errorf("tanımsız ad konumu 2:1 olmalı, gelen %d:%d", l, col)
+	}
+	if l, _, _ := messages.Pos(coded[1]); l != 3 {
+		t.Errorf("tip hatası 3. satırda olmalı, gelen %d", l)
+	}
+	// Metin biçimi: "Satır N: ..." (tanımsız adda sütun da var).
+	if !strings.HasPrefix(errs[0], "Satır 2, Sütun 1: ") || !strings.HasPrefix(errs[1], "Satır 3: ") {
+		t.Errorf("hata metni 'Satır N: ...' biçiminde olmalı: %q", errs)
 	}
 	if u := c.Warnings(); len(u) != 1 || !strings.Contains(u[0], "'toplam' yerleşik bir ad") {
 		t.Fatalf("gölgeleme uyarısı da verilmeli: %q", u)
@@ -99,7 +124,7 @@ func TestUndefinedNameModuleGlobalScope(t *testing.T) {
 		return c.CheckProgram(parser.New(lexer.New(module)).ParseModule())
 	}
 	errs := checkModule([]string{"yükleme_kaydı"}, false)
-	if len(errs) != 1 || !strings.Contains(errs[0], "'bilinmeyen'") {
+	if len(errs) != 1 || !strings.Contains(errs[0], "'bilinmeyen'") { // ad, ileti parametresidir
 		t.Fatalf("yalnızca bilinmeyen ad bildirilmeli: %v", errs)
 	}
 	if errs := checkModule(nil, true); len(errs) != 0 {

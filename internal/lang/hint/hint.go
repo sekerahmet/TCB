@@ -8,20 +8,19 @@
 package hint
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 // RemovedError is the error text for a name removed with no replacement.
 func RemovedError(name string) string {
-	return fmt.Sprintf("'%s' TR'den kaldırıldı", name)
+	return messages.Text(messages.H1100, name)
 }
 
 // NotInTRHint is the hint that suggests the real (Turkish) name in place of a name.
 func NotInTRHint(name, canonical string) string {
-	return fmt.Sprintf(" ('%s' TR'de yok; '%s' yazmak mı istediniz?)", name, canonical)
+	return messages.Text(messages.H1101, name, canonical)
 }
 
 // MovedGlobalNameError returns an error text showing the new form when ad is (among global
@@ -39,7 +38,7 @@ func MovedGlobalNameError(name string) string {
 	if newCode.Namespace() != codes.NamespaceMember {
 		return ""
 	}
-	return fmt.Sprintf("'%s(...)' TR'de bir fonksiyon değil; '%s' yazın", name, codes.MemberSpelling(newCode))
+	return messages.Text(messages.H1102, name, codes.MemberSpelling(newCode))
 }
 
 // KeywordSpellingHint returns the hint to append to an error message when ad is the ASCII
@@ -52,7 +51,7 @@ func KeywordSpellingHint(name string) string {
 	if !ok {
 		return ""
 	}
-	return fmt.Sprintf(" ('%s' TR'de anahtar kelime değil; '%s' yazmak mı istediniz?)", name, codes.Name(k))
+	return messages.Text(messages.H1103, name, codes.Name(k))
 }
 
 // BuiltinSpellingHint returns the hint to append to an error message when ad is the ASCII
@@ -79,7 +78,7 @@ func NameSuggestion(name string, visible []string) string {
 		return i
 	}
 	if o := turkish.Closest(name, visible); o != "" {
-		return fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+		return messages.Text(messages.H1104, o)
 	}
 	return ""
 }
@@ -89,14 +88,18 @@ func NameSuggestion(name string, visible []string) string {
 // or ASCII spelling) that type's name is shown, otherwise ornek (the name of the value's own
 // type). The checker and the interpreter use the same text.
 func TypeTextComparison(op, text, example string) string {
+	return TypeTextComparisonError(op, text, example).Error()
+}
+
+// TypeTextComparisonError is TypeTextComparison as a coded error (H1105).
+func TypeTextComparisonError(op, text, example string) *messages.Error {
 	if k, ok := codes.Find(codes.NamespaceType, text); ok {
 		example = codes.Name(k)
 	} else if k, ok := codes.Suggest(codes.NamespaceType, text, nil); ok {
 		example = codes.Name(k)
 	}
 	g := codes.Name(codes.G201)
-	return fmt.Sprintf("tip değeri metinle karşılaştırılamaz: %s(x) %s %q yerine %s(x) %s %s yazın (tip adları tırnaksız yazılır)",
-		g, op, text, g, op, example)
+	return messages.New(messages.H1105, g, op, text, example)
 }
 
 // UndefinedNameMessage returns the same message for an undefined name at run time and in the
@@ -105,5 +108,5 @@ func UndefinedNameMessage(name string, visible []string) string {
 	if h := MovedGlobalNameError(name); h != "" {
 		return h
 	}
-	return fmt.Sprintf("'%s' adında bir değişken ya da fonksiyon yok%s", name, NameSuggestion(name, visible))
+	return messages.Text(messages.H1106, name, NameSuggestion(name, visible))
 }

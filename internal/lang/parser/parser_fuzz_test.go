@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -40,8 +41,8 @@ func FuzzParser(f *testing.F) {
 		begin := time.Now()
 		p := New(lexer.New(source))
 		p.ParseProgram()
-		for _, e := range p.Errors() {
-			if !strings.HasPrefix(e, "Satır ") {
+		for _, e := range p.Errs() {
+			if _, _, ok := messages.Pos(e); !ok {
 				t.Fatalf("konumsuz hata: %q", e)
 			}
 		}

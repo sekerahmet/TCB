@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Kodlu biçim (docs/spec/17_kodlar.md, 17.1-17.2): dosya diskte dilden bağımsız kodlarla
@@ -162,8 +163,7 @@ func (l *Lexer) codedToken(lit string, line, col int) Token {
 	k, err := codes.Parse(lit)
 	g, var_ := codes.Active().Entry(k)
 	if err != nil || !var_ {
-		l.addError(line, col, "'%s' bilinen bir kod değil; kodlu dosyada dilin sözcükleri kod listesindeki kodlarıyla (ör. %s), kullanıcının adları adlarıyla yazılır",
-			lit, codes.G100)
+		l.addError(line, col, messages.New(messages.H0001, lit, codes.G100))
 		return Token{Type: TOKEN_IDENT, Literal: lit, Line: line, Column: col}
 	}
 	if t, ok := codeTypes[k]; ok && !g.Dead() {
@@ -179,7 +179,7 @@ func (l *Lexer) codedToken(lit string, line, col int) Token {
 // bitişik yazılamaz: '$' atılınca iki sözcük birleşirdi (a$b → ab, 1$e5 → 1e5).
 func (l *Lexer) escapedName(line, col int) Token {
 	if l.position > 0 && (isLetter(l.input[l.position-1]) || isDigit(l.input[l.position-1])) {
-		l.addError(line, col, "'$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun")
+		l.addError(line, col, messages.New(messages.H0002))
 	}
 	l.readChar() // '$'
 	lit := l.readIdentifier()
@@ -191,7 +191,7 @@ func (l *Lexer) escapedName(line, col int) Token {
 // çözümleyici girdinin sonunu 0 karakteriyle tanır; NUL eskiden dosyanın sonu sayılır, ardından
 // gelen kod sessizce yok sayılırdı.
 func (l *Lexer) nulChar(line, col int) Token {
-	l.addError(line, col, "kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir")
+	l.addError(line, col, messages.New(messages.H0003))
 	l.readChar()
 	return Token{Type: TOKEN_ILLEGAL, Literal: "\x00", Line: line, Column: col}
 }
@@ -201,8 +201,7 @@ func (l *Lexer) checkCodeForm(lit string, line, col int) {
 	if !codes.IsCodeForm(lit) {
 		return
 	}
-	l.addError(line, col, "'%s' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır, başka bir ad seçin (ör. %s_ ya da %s). Kodlu dosyalar ilk satırdaki '%s' başlığıyla başlar",
-		lit, lit, strings.ToLower(lit), CodedHeader)
+	l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit), CodedHeader))
 }
 
 // CodedHeader is the first line of a coded file (format version 1). The header's rules live

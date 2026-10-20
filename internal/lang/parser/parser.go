@@ -7,12 +7,11 @@
 package parser
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki bloğun
@@ -78,7 +77,7 @@ var precedences = map[lexer.TokenType]int{
 type Parser struct {
 	tokens []lexer.Token
 	pos    int
-	errors []string
+	errors []error
 	// l sözcük birimlerini üreten çözümleyicidir; metin içi yerleştirmeler onun alt
 	// çözümleyicisiyle okunur (konumlar, kodlu kip ve kayıt paylaşılır).
 	l *lexer.Lexer
@@ -182,7 +181,7 @@ func New(l *lexer.Lexer) *Parser {
 	}
 	// Sözcük çözümleme hataları (kapatılmamış metin vb.) önce gelir; ardından
 	// gelen sözdizimi hataları çoğunlukla bunların sonucudur.
-	errs := append([]string{}, l.Errors()...)
+	errs := append([]error{}, l.Errs()...)
 	return &Parser{
 		tokens: tokens,
 		pos:    0,
@@ -191,9 +190,18 @@ func New(l *lexer.Lexer) *Parser {
 	}
 }
 
-// Errors returns the lexer and parser errors, each with its line and column.
-func (p *Parser) Errors() []string {
+// Errs returns the lexer and parser errors, each at its line and column (messages.Pos).
+func (p *Parser) Errs() []error {
 	return p.errors
+}
+
+// Errors returns the texts of Errs ("Satır N, Sütun M: ...").
+func (p *Parser) Errors() []string {
+	out := make([]string, len(p.errors))
+	for i, e := range p.errors {
+		out[i] = e.Error()
+	}
+	return out
 }
 
 func (p *Parser) curToken() lexer.Token {
@@ -242,13 +250,7 @@ func (p *Parser) expectPeek(t lexer.TokenType) bool {
 
 func (p *Parser) peekError(t lexer.TokenType) {
 	tok := p.peekToken()
-	p.recordError(tok, fmt.Sprintf("Sözdizimi hatası — %s bekleniyordu, ancak %s bulundu%s",
-		typeDescription(t), tokenDescription(tok), unexpectedHint(t, tok)))
-}
-
-// addError geçerli token'ın konumunda bir sözdizimi hatası kaydeder.
-func (p *Parser) addError(format string, args ...interface{}) {
-	p.recordError(p.curToken(), fmt.Sprintf(format, args...))
+	p.syntaxError(tok, messages.H0140, typeDescription(t), tokenDescription(tok), unexpectedHint(t, tok))
 }
 
 func (p *Parser) curPrecedence() int {
@@ -295,9 +297,8 @@ func (p *Parser) removedSpellingHints() {
 	}
 	badLine := map[int]bool{}
 	for _, e := range p.errors {
-		var lineNo int
-		if _, err := fmt.Sscanf(e, "Satır %d", &lineNo); err == nil {
-			badLine[lineNo] = true
+		if line, _, ok := messages.Pos(e); ok {
+			badLine[line] = true
 		}
 	}
 	for _, t := range p.tokens {
@@ -305,7 +306,7 @@ func (p *Parser) removedSpellingHints() {
 			continue
 		}
 		if i := hint.KeywordSpellingHint(t.Literal); i != "" {
-			p.errors = append(p.errors, fmt.Sprintf("Satır %d, Sütun %d: ipucu%s", t.Line, t.Column, i))
+			p.errors = append(p.errors, messages.At(t.Line, t.Column, messages.New(messages.H0164, i)))
 		}
 	}
 }

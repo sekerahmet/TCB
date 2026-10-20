@@ -292,7 +292,7 @@ func readByName(env *Environment, e *ast.Identifier) (Value, error) {
 		if h := hint.MovedGlobalNameError(e.Value); h != "" {
 			return nil, messages.At(e.Line(), e.Token.Column, messages.New(messages.H2441, h))
 		}
-		return nil, messages.At(e.Line(), e.Token.Column, messages.New(messages.H2442, e.Value, suggestName(e.Value, env)))
+		return nil, messages.At(e.Line(), e.Token.Column, messages.New(messages.H1106, e.Value, suggestName(e.Value, env)))
 	}
 	return val, nil
 }

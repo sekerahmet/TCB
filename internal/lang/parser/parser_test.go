@@ -2,11 +2,11 @@ package parser
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // shape ifade ağacını parantezli biçimde yazar (yalnızca testlerde kullanılan düğümler).
@@ -78,17 +78,46 @@ func parseErrors(code string) []string {
 	return p.Errors()
 }
 
+// parseErrs, parseErrors gibi ama hataları ileti kodu ve konumuyla denetlenebilsin diye error olarak verir.
+func parseErrs(code string) []error {
+	p := New(lexer.New(code))
+	p.ParseProgram()
+	return p.Errs()
+}
+
+// hasCode, hatalar arasında verilen ileti koduna sahip olan var mı diye bakar (konuma bakmaz).
+func hasCode(errs []error, code messages.Code) bool {
+	for _, e := range errs {
+		if messages.Has(e, code) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasErrAt, verilen ileti koduna sahip bir hatanın satır ve sütununu denetler; 0 verilen
+// alan (satır ya da sütun) denetlenmez.
+func hasErrAt(errs []error, line, col int, code messages.Code) bool {
+	for _, e := range errs {
+		l, c, ok := messages.Pos(e)
+		if ok && (line == 0 || l == line) && (col == 0 || c == col) && messages.Has(e, code) {
+			return true
+		}
+	}
+	return false
+}
+
 // Metin içindeki tek bir '{' eskiden dosyanın geri kalanını yutuyordu.
 func TestUnbalancedInterpolationIsReportedWithLine(t *testing.T) {
-	errs := parseErrors("yazdır(\"a\")\nyazdır(\"{\")\nyazdır(\"b\")")
-	if len(errs) == 0 || !strings.Contains(errs[0], "Satır 2") || !strings.Contains(errs[0], "'{' kapatılmamış") {
+	errs := parseErrs("yazdır(\"a\")\nyazdır(\"{\")\nyazdır(\"b\")")
+	if len(errs) == 0 || !hasErrAt(errs[:1], 2, 0, messages.H0009) {
 		t.Fatalf("2. satırda kapatılmamış '{' hatası bekleniyordu, alınan: %v", errs)
 	}
 }
 
 func TestUnterminatedStringIsReported(t *testing.T) {
-	errs := parseErrors("değişken a = 1\nyazdır(\"merhaba)\n")
-	if len(errs) == 0 || !strings.Contains(errs[0], "Satır 2") || !strings.Contains(errs[0], "kapatılmamış metin") {
+	errs := parseErrs("değişken a = 1\nyazdır(\"merhaba)\n")
+	if len(errs) == 0 || !hasErrAt(errs[:1], 2, 0, messages.H0010) {
 		t.Fatalf("2. satırda kapatılmamış metin hatası bekleniyordu, alınan: %v", errs)
 	}
 }
@@ -177,16 +206,17 @@ func TestInterpolationKeepsSourcePosition(t *testing.T) {
 
 // Test raporu Y1: kapatılmamış '{' hatasız kabul ediliyor, sonraki kod sessizce bloğa giriyordu.
 func TestUnclosedBlockBraceIsReported(t *testing.T) {
-	for code, want := range map[string]string{
-		"eğer yanlış {\n    yazdır(\"gizli\")\nyazdır(\"son\")":    "Satır 1, Sütun 13: '{' kapatılmadı",
-		"fonksiyon f() {\n    sonuç 1\nyazdır(f())":                "Satır 1, Sütun 15: '{' kapatılmadı",
-		"yapı Kişi {\n    ad: Metin\n":                             "Satır 1, Sütun 11: '{' kapatılmadı",
-		"değişken x = eşle 1 {\n    1 => \"bir\"\n":                "'{' kapatılmadı",
-		"döngü i içinde 1..3 {\n    eğer i == 2 {\n        çık\n}": "Satır 1, Sütun 21: '{' kapatılmadı",
+	// sütun 0: konuma bakılmaz
+	for code, want := range map[string][2]int{
+		"eğer yanlış {\n    yazdır(\"gizli\")\nyazdır(\"son\")":    {1, 13},
+		"fonksiyon f() {\n    sonuç 1\nyazdır(f())":                {1, 15},
+		"yapı Kişi {\n    ad: Metin\n":                             {1, 11},
+		"değişken x = eşle 1 {\n    1 => \"bir\"\n":                {0, 0},
+		"döngü i içinde 1..3 {\n    eğer i == 2 {\n        çık\n}": {1, 21},
 	} {
-		errs := parseErrors(code)
-		if len(errs) == 0 || !strings.Contains(strings.Join(errs, "\n"), want) {
-			t.Errorf("%q için %q bekleniyordu, alınan: %v", code, want, errs)
+		errs := parseErrs(code)
+		if !hasErrAt(errs, want[0], want[1], messages.H0156) {
+			t.Errorf("%q için H0156 (satır %d, sütun %d) bekleniyordu, alınan: %v", code, want[0], want[1], errs)
 		}
 	}
 	if errs := parseErrors("eğer doğru {\n    yazdır(1)\n}\n"); len(errs) != 0 {
@@ -198,17 +228,16 @@ func TestUnclosedBlockBraceIsReported(t *testing.T) {
 // parantezler (JSON, başka dillerde kod) sessizce düz metin kalmaz, '{'nin konumunda
 // sözdizimi hatası verir. Düz süslü parantezin iki yazımı (\{ ve ham metin) hata vermez.
 func TestNonExpressionInterpolationIsError(t *testing.T) {
-	for code, colNo := range map[string]string{
-		`yazdır("{\"kod\": 5}")`:      "Sütun 9:",
-		`yazdır("Nokta{x: 1, y: 2}")`: "Sütun 14:",
-		`yazdır("şablon: {'a': 1}")`:  "Sütun 17:",
-		`yazdır("{değil}")`:           "Sütun 9:",
-		`yazdır("boş {}")`:            "Sütun 13:",
+	for code, col := range map[string]int{
+		`yazdır("{\"kod\": 5}")`:      9,
+		`yazdır("Nokta{x: 1, y: 2}")`: 14,
+		`yazdır("şablon: {'a': 1}")`:  17,
+		`yazdır("{değil}")`:           9,
+		`yazdır("boş {}")`:            13,
 	} {
-		errs := strings.Join(parseErrors(code), "\n")
-		if !strings.Contains(errs, colNo+" Sözdizimi hatası — metindeki her '{' bir yerleştirme başlatır") ||
-			!strings.Contains(errs, "ham metin") {
-			t.Errorf("%s: %s konumunda yerleştirme hatası bekleniyordu: %s", code, colNo, errs)
+		errs := parseErrs(code)
+		if !hasErrAt(errs, 1, col, messages.H0157) || !hasErrAt(errs, 1, col, messages.H0100) {
+			t.Errorf("%s: sütun %d konumunda H0157 (H0100 içinde) bekleniyordu: %v", code, col, errs)
 		}
 	}
 	for _, code := range []string{"yazdır(\"\\{\\\"kod\\\": 5\\}\")", "yazdır(`{\"kod\": 5}`)", `yazdır("a {1 + 2} b")`} {
