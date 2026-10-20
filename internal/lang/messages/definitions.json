@@ -276,6 +276,7 @@
 "H2512": { "param": ["line", "header", "prefix"] },
 "H2513": { "param": ["count", "max"] },
 "H2514": { "param": ["error"] },
+"H2515": { "param": ["container", "index", "length", "get"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

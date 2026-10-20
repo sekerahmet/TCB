@@ -212,6 +212,7 @@ const (
 	Y010 Code = Y + 10  // update · güncelle
 	Y011 Code = Y + 11  // stop · durdur
 	Y012 Code = Y + 12  // close · kapat
+	Y013 Code = Y + 13  // get · varsa_al
 	Y100 Code = Y + 100 // upper · büyük_harf
 	Y101 Code = Y + 101 // lower · küçük_harf
 	Y102 Code = Y + 102 // strip · kırp

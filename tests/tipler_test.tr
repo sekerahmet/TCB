@@ -38,7 +38,12 @@ test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {
     eşit_mi("ş", "şeker"[0])
     eşit_mi("r", "şeker"[-1])
     eşit_mi("ek", "şeker"[1..3])
-    eşit_mi(yok, "abc"[10])
+    // Sınır dışı okuma hatadır; öğenin olmayabileceği bilinçli durum varsa_al ile yazılır
+    değişken m = ""
+    dene { "abc"[10] } yakala h { m = h }
+    doğrula(m.içerir("sınır dışı") ve m.içerir("varsa_al"), m)
+    eşit_mi(yok, "abc".varsa_al(10))
+    eşit_mi("c", "abc".varsa_al(-1))
 }
 
 test "3.3 dilimde negatif uç indeksteki gibi sondan sayar" {
@@ -60,12 +65,20 @@ test "3.5 yok: boş değer" {
     eşit_mi(yok, hicbir_sey())
 }
 
-test "3.6 Liste: sıralı, karışık tipli, sınır dışı indeks yok döner" {
+test "3.6 Liste: sıralı, karışık tipli; sınır dışı okuma hatadır, varsa_al yok verir" {
     değişken l = [1, "iki", 3.0]
     eşit_mi(3, l.uzunluk)
     eşit_mi(1, l[0])
     eşit_mi(3.0, l[-1])
-    eşit_mi(yok, l[5])
+    değişken m = ""
+    dene { l[5] } yakala h { m = h }
+    doğrula(m.içerir("sınır dışı: 5 (uzunluk 3)"), m)
+    m = ""
+    dene { l[-4] } yakala h { m = h }
+    doğrula(m.içerir("sınır dışı: -4"), m)
+    eşit_mi(yok, l.varsa_al(5))
+    eşit_mi(0, l.varsa_al(5) ?? 0)
+    eşit_mi(3.0, l.varsa_al(-1))
     eşit_mi([1, "iki"], l[0..2])
     // Dilimde negatif uç sondan sayar; uçlar listenin sınırına kırpılır
     eşit_mi([3, 4], [1, 2, 3, 4][-2..4])

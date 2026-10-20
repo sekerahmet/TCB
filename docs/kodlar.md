@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 256 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 99 fonksiyon, 1 sabit, 37 metot, 21 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 257 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 99 fonksiyon, 1 sabit, 38 metot, 21 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -176,10 +176,10 @@ yazdır(yanlış veya doğru, değil yanlış)
 
 #### A042 `yok`
 
-Değerin yokluğudur; değer döndürmeyen fonksiyonlar ve sınır dışı indeksler yok verir.
+Değerin yokluğudur; değer döndürmeyen fonksiyonlar, sözlükte olmayan anahtar ve varsa_al ile istenen olmayan öğe yok verir.
 
 ```tr
-değişken l = [1, 2]; yazdır(l[5] == yok, l[5] ?? "boş")
+değişken l = [1, 2]; yazdır(l.varsa_al(5) == yok, l.varsa_al(5) ?? "boş", {"a": 1}["b"])
 ```
 
 İlişkili: A204 `Yok`
@@ -394,7 +394,7 @@ Değiştirilemez Unicode metin tipidir; uzunluk ve indeks karakter bazındadır.
 değişken ad: Metin = "şeker"; yazdır(tip(ad), ad[-1])
 ```
 
-Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y100 `büyük_harf`, Y101 `küçük_harf`, Y102 `kırp`, Y103 `böl`, Y104 `değiştir`, Y105 `başlar`, Y106 `biter` · İlişkili: G212 `metin` · Eski adlar: `yazı`, `str`, `string`
+Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y013 `varsa_al`, Y100 `büyük_harf`, Y101 `küçük_harf`, Y102 `kırp`, Y103 `böl`, Y104 `değiştir`, Y105 `başlar`, Y106 `biter` · İlişkili: G212 `metin` · Eski adlar: `yazı`, `str`, `string`
 
 #### A203 `Mantık`
 
@@ -424,7 +424,7 @@ Sıralı, karışık tipli, değiştirilebilir dizi tipidir; listeler başvuruyl
 değişken l: Liste = [1, "iki", 3.0]; yazdır(tip(l), l[-1])
 ```
 
-Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y004 `ekle`, Y200 `filtrele`, Y201 `haritala`, Y202 `sırala`, Y203 `birleştir`, Y204 `benzersiz`, Y207 `indirge`, Y210 `ilk`, Y211 `son` · Eski adlar: `dizi`, `list`
+Üyeleri: Y001 `uzunluk`, Y002 `içerir`, Y003 `ters_çevir`, Y004 `ekle`, Y013 `varsa_al`, Y200 `filtrele`, Y201 `haritala`, Y202 `sırala`, Y203 `birleştir`, Y204 `benzersiz`, Y207 `indirge`, Y210 `ilk`, Y211 `son` · Eski adlar: `dizi`, `list`
 
 #### A206 `Sözlük`
 
@@ -2436,6 +2436,19 @@ dosya_yaz("kapat.txt", "a\nb"); değişken o = dosya_satırları("kapat.txt"); y
 ```
 
 İlişkili: Y602 `sonraki`, G112 `dosya_satırları`
+
+#### Y013 `varsa_al`
+
+    Metin.varsa_al(Tam) → Metin | Yok
+    Liste.varsa_al(Tam) → Herhangi
+
+i. öğeyi (negatif indeks sondan sayar) verir; öyle bir öğe yoksa yok döner. Köşeli parantezle okuma (l[i]) sınır dışında hata verir; öğenin olmayabileceği bilinçli durumda varsa_al ile ?? birlikte kullanılır.
+
+```tr
+değişken l = [10, 20, 30]; yazdır(l.varsa_al(1), l.varsa_al(5) ?? 0, "ab".varsa_al(-1))
+```
+
+İlişkili: Y210 `ilk`, Y211 `son`
 
 ### Metin (Y1xx)
 

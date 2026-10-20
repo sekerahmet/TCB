@@ -204,6 +204,7 @@
   "Y010": { "ad": "update" },
   "Y011": { "ad": "stop" },
   "Y012": { "ad": "close" },
+  "Y013": { "ad": "get" },
   "Y100": { "ad": "upper" },
   "Y101": { "ad": "lower" },
   "Y102": { "ad": "strip" },

@@ -81,7 +81,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 				pos = len(container.Elements) + pos
 			}
 			if pos < 0 || pos >= len(container.Elements) {
-				return NULL, nil
+				return nil, indexRangeError(line, VAL_LIST, iv.Val, len(container.Elements))
 			}
 			return container.Elements[pos], nil
 		}
@@ -114,7 +114,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 				pos = n + pos
 			}
 			if pos < 0 || pos >= n {
-				return NULL, nil
+				return nil, indexRangeError(line, VAL_STRING, iv.Val, n)
 			}
 			return asciiChars[container.Val[pos]], nil
 		}
@@ -134,7 +134,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 			pos = len(runes) + pos
 		}
 		if pos < 0 || pos >= len(runes) {
-			return NULL, nil
+			return nil, indexRangeError(line, VAL_STRING, iv.Val, len(runes))
 		}
 		return &StringVal{Val: string(runes[pos])}, nil
 
@@ -255,4 +255,10 @@ func rangeCount(first, last, step int64) int64 {
 		return math.MaxInt64
 	}
 	return int64(n)
+}
+
+// indexRangeError köşeli parantezle sınır dışı okumanın hatasıdır (3.6): sessizce yok vermek
+// program yanlışını saklardı. Öğenin olmayabileceği bilinçli durum için varsa_al'ı önerir.
+func indexRangeError(line int, container ValueType, index int64, length int) error {
+	return messages.At(line, 0, messages.New(messages.H2515, container, index, length, "."+codes.Name(codes.Y013)))
 }

@@ -250,6 +250,7 @@
   "Y010": { "tür": "metot", "imzalar": { "A255": { "param": ["A206?"], "adlı": [["T982", "A200", null]], "dönüş": "A203" }, "A258": { "param": ["A200"], "dönüş": "A203" } }, "ilişkili": ["Y011", "Y521"] },
   "Y011": { "tür": "metot", "tipler": ["A255"], "dönüş": "A203", "ilişkili": ["Y010"] },
   "Y012": { "tür": "metot", "tipler": ["A257"], "dönüş": "A203", "ilişkili": ["Y602", "G112"] },
+  "Y013": { "tür": "metot", "imzalar": { "A202": { "param": ["A200"], "dönüş": "A202|A204" }, "A205": { "param": ["A200"], "dönüş": "A213" } }, "ilişkili": ["Y210", "Y211"] },
   "Y100": { "tür": "metot", "tipler": ["A202"], "dönüş": "A202", "ilişkili": ["Y101"] },
   "Y101": { "tür": "metot", "tipler": ["A202"], "dönüş": "A202", "ilişkili": ["Y100"] },
   "Y102": { "tür": "metot", "tipler": ["A202"], "dönüş": "A202" },

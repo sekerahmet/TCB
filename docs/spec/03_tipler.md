@@ -8,7 +8,7 @@ TR dinamik tiplidir; değerler tiplerini taşır. İsteğe bağlı tip açıklam
 
 **3.2** `Ondalık`: 64 bit kayan noktalı sayı; en kısa gösterimiyle yazdırılır, tam sayılı ondalıklar `1.0` biçimindedir (`123456.0`). Büyüklüğü 1e6 ve üstü ya da 1e-4'ten küçük olanlar bilimsel gösterimle yazdırılır (`1e+06`, `1.6777216e+07`, `1e-05`; `0.0001` ise olduğu gibi). Sonsuz ve tanımsız değerler `+Sonsuz`, `-Sonsuz`, `NaN` olarak yazdırılır (tensör yazdırması bunları `Sonsuz`, `-Sonsuz`, `Tanımsız` olarak gösterir).
 
-**3.3** `Metin`: değiştirilemez Unicode metni; uzunluk ve indeks karakter (rune) bazındadır, negatif indeks sondan sayar, sınır dışı indeks `yok` verir, `m[a..b]` alt metin verir. Dilimde de negatif uç indeksteki gibi sondan sayar (`"şeker"[-3..5]` → `"ker"`, `"şeker"[1..=-1]` → `"eker"`); uçlar metnin sınırlarına kırpılır, başlangıç bitişten büyükse sonuç boştur.
+**3.3** `Metin`: değiştirilemez Unicode metni; uzunluk ve indeks karakter (rune) bazındadır, negatif indeks sondan sayar, sınır dışı indeksle okuma hatadır (öğenin olmayabileceği bilinçli durumda `m.varsa_al(i)` öğe yoksa `yok` verir, 3.6), `m[a..b]` alt metin verir. Dilimde de negatif uç indeksteki gibi sondan sayar (`"şeker"[-3..5]` → `"ker"`, `"şeker"[1..=-1]` → `"eker"`); uçlar metnin sınırlarına kırpılır, başlangıç bitişten büyükse sonuç boştur.
 
 ```tr
 "şeker".uzunluk   // 5
@@ -18,9 +18,9 @@ TR dinamik tiplidir; değerler tiplerini taşır. İsteğe bağlı tip açıklam
 
 **3.4** `Mantık`: `doğru` ve `yanlış`.
 
-**3.5** `yok`: değerin yokluğu; değer döndürmeyen fonksiyonlar ve bulunamayan indeksler `yok` verir.
+**3.5** `yok`: değerin yokluğu; değer döndürmeyen fonksiyonlar, sözlükte olmayan anahtar ve `varsa_al` ile istenen olmayan öğe `yok` verir. Liste ve metinde köşeli parantezle sınır dışı okuma `yok` vermez, hatadır (3.3, 3.6).
 
-**3.6** `Liste`: sıralı, karışık tipli, değiştirilebilir dizi: `[1, "iki", 3.0]`. Negatif indeks sondan sayar, okuma sırasında sınır dışı indeks `yok` verir (yazmada hatadır), `l[a..b]` dilim verir (dilim uçları Metin'deki gibidir, 3.3: `[1, 2, 3, 4][-2..4]` → `[3, 4]`). Listeler, sözlükler ve nesneler **başvuruyla** paylaşılır: `b = a` aynı listeyi gösterir.
+**3.6** `Liste`: sıralı, karışık tipli, değiştirilebilir dizi: `[1, "iki", 3.0]`. Negatif indeks sondan sayar; sınır dışı indeks okumada da yazmada da hatadır: hata indeksi ve uzunluğu söyler. Öğenin olmayabileceği bilinçli durumda `l.varsa_al(i)` öğe yoksa `yok` verir, varsayılan `??` ile yazılır (`l.varsa_al(5) ?? 0`). Gerekçe: sessiz `yok` program yanlışını saklar ve hata çok sonra, başka bir yerde çıkar; tensör indeksi (15.3) de sınır dışında hatadır. Sözlükte olmayan anahtar ise `yok` verir (bir anahtarın olup olmadığını sormak olağan bir sorudur), `l[a..b]` dilim verir (dilim uçları Metin'deki gibidir, 3.3: `[1, 2, 3, 4][-2..4]` → `[3, 4]`). Listeler, sözlükler ve nesneler **başvuruyla** paylaşılır: `b = a` aynı listeyi gösterir.
 
 **3.7** `Sözlük`: eklenme sırasını koruyan anahtar–değer tablosu. Çıplak ad anahtarı metindir (`{ad: "Ali"}` ≡ `{"ad": "Ali"}`); metin olmayan anahtarlar da geçerlidir (`{1: "bir"}`). Sayı anahtarları sayı eşitliğine uyar (4.5): `d[1]` ile `d[1.0]` aynı girdidir, anahtar ilk eklendiği biçimiyle saklanır; `d["1"]` ise ayrı bir anahtardır. Anahtarlar genel olarak eşitliğe (4.5) uyar: fonksiyonlar, yerleşikler ve yapı tanımları kimlikle anahtardır (görünüşü aynı iki fonksiyon iki ayrı anahtardır); her metin, içeriğinden bağımsız olarak, yalnızca kendisine eşit metin anahtarıdır. İçeriği sonradan değişebilen değerler (liste, sözlük, yapı nesnesi, tensör gibi motor nesneleri) anahtar olamaz: bunlarla anahtar yazmak, okumak ya da `.içerir()` sormak hatadır (değiştirilen bir anahtar sözlükte bir daha bulunamazdı). Olmayan anahtar `yok` verir; `d.ad` biçimi `d["ad"]` ile aynıdır (okuma ve atama). Tek istisna sözlüğün kendi üyeleridir (`.uzunluk`, `.anahtarlar()`, `.değerler()`, `.içerir()`): ad bir üye adıysa üye önceliklidir; `d.anahtarlar` aynı adlı anahtarı değil metodu verir, `d.uzunluk` eleman sayısıdır. Böyle bir anahtar `d["anahtarlar"]` ile okunur ve yazılır; `d.anahtarlar = 5` ataması hatadır.
 

@@ -276,6 +276,7 @@
 "H2512": "'{line}' bu yorumlayıcının tanımadığı bir kodlu biçim başlığı; yalnızca '{header}' okunur (dosya daha yeni bir TR sürümüyle yazılmış olabilir; '{prefix}' ile başlayan ilk satır kodlu biçim için ayrılmıştır)",
 "H2513": "… ve {count} hata daha (ilk {max} hata gösterildi)",
 "H2514": "sözdizimi hatası olan kaynak çevrilmez: {error}",
+"H2515": "{container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse {get}({index}) ?? varsayılan yazın",
 "H3001": "{dev} arka ucunun dikkat blok boyutları ayarlanamaz",
 "H3002": "Attention maskesi farklı cihazda ({mask}, {q})",
 "H3003": "Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}",

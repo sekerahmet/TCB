@@ -236,7 +236,7 @@ func TestFastPathSemantics(t *testing.T) {
 		değişken p = P()
 		p.f = () => "alan"
 		değişken bagli = p.m
-		sonuç [s[2], s[-1], s[5], a[0], a[-1], a[3], a[0..2], s[1..3], a[-4],
+		sonuç [s[2], s[-1], s.varsa_al(5), a[0], a[-1], a.varsa_al(3), a[0..2], s[1..3], a.varsa_al(-4),
 			d[1], d["1"], d[1.5], d[2], d.anahtarlar(), d.içerir(2), d.içerir(3),
 			p.m(), p.m(2), p.f(), bagli(10)]
 	`)

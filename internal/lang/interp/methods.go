@@ -50,6 +50,7 @@ type argKind struct {
 
 var (
 	textArg = &argKind{codes.A202, func(v Value) bool { _, ok := v.(*StringVal); return ok }}
+	intArg  = &argKind{codes.A200, func(v Value) bool { _, ok := v.(*IntVal); return ok }}
 	funcArg = &argKind{codes.A208, callable}
 )
 
@@ -208,6 +209,13 @@ func setupStringMethods() {
 	addMethod(typeString, codes.Y106, signature{1, 1, "sonek", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.HasSuffix(inst.(*StringVal).Val, args[0].Inspect())), nil
 	})
+	addMethod(typeString, codes.Y013, signature{1, 1, "indeks", []*argKind{intArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+		runes := []rune(inst.(*StringVal).Val)
+		if pos, ok := optionalIndex(args[0], len(runes)); ok {
+			return &StringVal{Val: string(runes[pos])}, nil
+		}
+		return NULL, nil
+	})
 	addMethod(typeString, codes.Y003, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		runes := []rune(inst.(*StringVal).Val)
 		for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
@@ -252,6 +260,13 @@ func setupListMethods() {
 			return nil, err
 		}
 		return &ListVal{Elements: copied}, nil
+	})
+	addMethod(typeList, codes.Y013, signature{1, 1, "indeks", []*argKind{intArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+		elems := inst.(*ListVal).Elements
+		if pos, ok := optionalIndex(args[0], len(elems)); ok {
+			return elems[pos], nil
+		}
+		return NULL, nil
 	})
 	addMethod(typeList, codes.Y003, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
@@ -439,4 +454,17 @@ func NumberMean(name string, elems []Value) (Value, error) {
 		s += f
 	}
 	return &FloatVal{Val: s / float64(len(elems))}, nil
+}
+
+// optionalIndex varsa_al'ın indeksini çözer (negatif indeks sondan sayar); öğe yoksa ok=false.
+func optionalIndex(arg Value, length int) (pos int, ok bool) {
+	iv, isInt := arg.(*IntVal)
+	if !isInt {
+		return 0, false
+	}
+	pos = int(iv.Val)
+	if pos < 0 {
+		pos += length
+	}
+	return pos, pos >= 0 && pos < length
 }
