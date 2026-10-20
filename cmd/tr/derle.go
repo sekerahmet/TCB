@@ -271,7 +271,7 @@ type modulDenetimHatasi struct {
 	yol     string
 	kod     string
 	tur     string // "sözdizimi" ya da "tip denetimi"
-	hatalar []string
+	hatalar []error
 }
 
 func (e *modulDenetimHatasi) Error() string {

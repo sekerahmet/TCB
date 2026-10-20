@@ -196,8 +196,8 @@ func (s *dapServer) evaluate(msg *dapMessage) {
 	_ = json.Unmarshal(msg.Arguments, &a)
 	p := parser.New(lexer.New(a.Expression))
 	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		s.respondErr(msg, p.Errors()[0])
+	if errs := p.Errs(); len(errs) > 0 {
+		s.respondErr(msg, errs[0].Error())
 		return
 	}
 	var val interp.Value

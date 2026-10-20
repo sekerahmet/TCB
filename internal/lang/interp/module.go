@@ -62,11 +62,11 @@ type ModuleError struct {
 	Source *Source
 	Err    error
 
-	Kind       string   // "sözdizimi" ya da "tip denetimi" (denetim hatalarında)
-	Errors     []string // denetim hataları, modülün satırlarıyla
-	ModulePath string   // 'aktar'da yazılan yol
-	ImportLine int      // 'aktar' deyiminin satırı
-	Importer   *Source  // 'aktar' deyiminin bulunduğu dosya (nil: ana program)
+	Kind       string  // "sözdizimi" ya da "tip denetimi" (denetim hatalarında)
+	Errors     []error // denetim hataları, modülün satırlarıyla
+	ModulePath string  // 'aktar'da yazılan yol
+	ImportLine int     // 'aktar' deyiminin satırı
+	Importer   *Source // 'aktar' deyiminin bulunduğu dosya (nil: ana program)
 }
 
 func (e *ModuleError) Error() string {
@@ -75,7 +75,7 @@ func (e *ModuleError) Error() string {
 	}
 	pieces := make([]string, len(e.Errors))
 	for i, h := range e.Errors {
-		pieces[i] = e.Source.Name + ", " + h
+		pieces[i] = e.Source.Name + ", " + h.Error()
 	}
 	return e.header() + ": " + strings.Join(pieces, "; ")
 }
@@ -116,7 +116,7 @@ func ErrorItems(err error, mainCode string) []ErrorItem {
 	b := mh.header()
 	entries := []ErrorItem{{b, turkish.LineFrame(importerCode, mh.ImportLine)}}
 	for _, h := range mh.Errors {
-		entries = append(entries, ErrorItem{mh.Source.Name + ", " + h, turkish.CodeFrame(mh.Source.Code, h)})
+		entries = append(entries, ErrorItem{mh.Source.Name + ", " + h.Error(), turkish.ErrorFrame(mh.Source.Code, h)})
 	}
 	return entries
 }

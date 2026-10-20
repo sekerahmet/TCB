@@ -135,9 +135,9 @@ func hataylaCik(ileti any) {
 }
 
 // printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
-func printError(msg, source string) {
-	fmt.Fprintf(os.Stderr, "  • %s\n", msg)
-	fmt.Fprint(os.Stderr, indentFrame(turkish.CodeFrame(source, msg)))
+func printError(err error, source string) {
+	fmt.Fprintf(os.Stderr, "  • %s\n", err)
+	fmt.Fprint(os.Stderr, indentFrame(turkish.ErrorFrame(source, err)))
 }
 
 // indentFrame kod çerçevesini madde işaretinin altına hizalar.

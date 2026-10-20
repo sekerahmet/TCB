@@ -48,13 +48,13 @@ func (s *dapServer) launch(msg *dapMessage) {
 	if u := ready.Warnings; len(u) > 0 {
 		s.output("stderr", "⚠️ "+messages.Text(messages.H8122)+"\n")
 		for _, e := range u {
-			s.output("stderr", "  • "+e+"\n"+indentLines(turkish.CodeFrame(code, e), "    "))
+			s.output("stderr", "  • "+e.Error()+"\n"+indentLines(turkish.ErrorFrame(code, e), "    "))
 		}
 	}
 	if len(errs) > 0 {
 		s.output("stderr", "❌ "+messages.Text(messages.H8123)+"\n")
 		for _, e := range errs {
-			s.output("stderr", "  • "+e+"\n"+indentLines(turkish.CodeFrame(code, e), "    "))
+			s.output("stderr", "  • "+e.Error()+"\n"+indentLines(turkish.ErrorFrame(code, e), "    "))
 		}
 		s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
 		s.event("terminated", nil)

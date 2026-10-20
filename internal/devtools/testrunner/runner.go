@@ -199,9 +199,9 @@ func located(err error) bool {
 	return ok || errors.As(err, &me)
 }
 
-func writeError(out io.Writer, message, source string) {
-	fmt.Fprintf(out, "    • %s\n", message)
-	fmt.Fprint(out, indent(turkish.CodeFrame(source, message), "      "))
+func writeError(out io.Writer, err error, source string) {
+	fmt.Fprintf(out, "    • %s\n", err)
+	fmt.Fprint(out, indent(turkish.ErrorFrame(source, err), "      "))
 }
 
 func indent(text, prefix string) string {

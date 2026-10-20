@@ -94,14 +94,14 @@ func kaynakHazirla(metin string, h hazirlik) *source.Result {
 
 // uyarilariYaz denetleyicinin uyarılarını (varsa) hatalardan ayrı bir başlıkla standart
 // hataya yazar; çıkış kodunu etkilemez.
-func uyarilariYaz(uyarilar []string, code string) {
+func uyarilariYaz(uyarilar []error, code string) {
 	if len(uyarilar) > 0 {
 		hatalariYaz(uyariBasligi, uyarilar, code)
 	}
 }
 
 // hatalariYaz başlığı ve her hatayı kod çerçevesiyle standart hataya yazar.
-func hatalariYaz(baslik string, errs []string, code string) {
+func hatalariYaz(baslik string, errs []error, code string) {
 	fmt.Fprintln(os.Stderr, baslik)
 	for _, e := range errs {
 		printError(e, code)
@@ -109,7 +109,7 @@ func hatalariYaz(baslik string, errs []string, code string) {
 }
 
 // hatalarlaCik hataları hatalariYaz ile yazıp (temizlik işlerinden sonra) 1 koduyla çıkar.
-func hatalarlaCik(baslik string, errs []string, code string) {
+func hatalarlaCik(baslik string, errs []error, code string) {
 	hatalariYaz(baslik, errs, code)
 	cik(1)
 }

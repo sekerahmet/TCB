@@ -24,11 +24,11 @@ import (
 // SyntaxError is returned when the source to convert cannot be parsed: the language's words
 // cannot be told apart without scope information, so the source is left untouched.
 type SyntaxError struct {
-	Errors []string
+	Errors []error
 }
 
 func (e *SyntaxError) Error() string {
-	return "sözdizimi hatası olan kaynak çevrilmez: " + e.Errors[0]
+	return "sözdizimi hatası olan kaynak çevrilmez: " + e.Errors[0].Error()
 }
 
 // ErrUTF8 is returned when the body to convert is not valid UTF-8.
@@ -186,7 +186,7 @@ func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 	p := parser.New(l)
 	p.RecordRoles()
 	prog := p.ParseProgram()
-	if errs := p.Errors(); len(errs) > 0 {
+	if errs := p.Errs(); len(errs) > 0 {
 		return nil, &SyntaxError{Errors: errs}
 	}
 	c := &analysis{lang: lang, input: l.Input(), records: l.Records(), roles: p.Roles(),

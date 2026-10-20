@@ -38,11 +38,14 @@ type Result struct {
 	// Text is the source text for error frames, the debugger and the interpreter: the body
 	// for a file written in Turkish, the Turkish view of the body for a coded file. Lines and
 	// columns in error messages refer to this text (17.5).
-	Text     string
-	Program  *ast.Program
-	Stage    string
-	Errors   []string
-	Warnings []string
+	Text    string
+	Program *ast.Program
+	Stage   string
+	// Errors and Warnings carry their position as a field (messages.PosError): frames and
+	// tools read it with messages.Pos, never from the text. A summary line (limitErrors) and
+	// a header error have no position of their own.
+	Errors   []error
+	Warnings []error
 }
 
 // Prepare turns source text (the whole file, BOM included) into a program: header parsing,
@@ -55,7 +58,7 @@ func Prepare(text string, s Options) *Result {
 	}
 	if err != nil {
 		r.Program = &ast.Program{}
-		r.Stage, r.Errors = StageSyntax, []string{err.Error()}
+		r.Stage, r.Errors = StageSyntax, []error{err}
 		return r
 	}
 	p := parser.New(b.Lexer())
@@ -64,7 +67,7 @@ func Prepare(text string, s Options) *Result {
 	} else {
 		r.Program = p.ParseProgram()
 	}
-	if errs := p.Errors(); len(errs) > 0 {
+	if errs := p.Errs(); len(errs) > 0 {
 		r.Stage, r.Errors = StageSyntax, limitErrors(errs)
 		return r
 	}
@@ -78,9 +81,9 @@ func Prepare(text string, s Options) *Result {
 	if s.InGlobalScope {
 		chk.SetGlobalScope(s.GlobalNames, s.GlobalDynamic)
 	}
-	errs := chk.CheckProgram(r.Program)
+	chk.CheckProgram(r.Program)
 	r.Warnings = limitErrors(chk.Warnings())
-	if len(errs) > 0 {
+	if errs := chk.Errs(); len(errs) > 0 {
 		r.Stage, r.Errors = StageType, limitErrors(errs)
 	}
 	return r
@@ -93,10 +96,10 @@ const MaxErrors = 100
 
 // limitErrors keeps the first MaxErrors messages and says how many were left out. The summary
 // line has no position, so no code frame is drawn for it.
-func limitErrors(errs []string) []string {
+func limitErrors(errs []error) []error {
 	if len(errs) <= MaxErrors {
 		return errs
 	}
-	out := append([]string(nil), errs[:MaxErrors]...)
-	return append(out, messages.Text(messages.H2513, len(errs)-MaxErrors, MaxErrors))
+	out := append([]error(nil), errs[:MaxErrors]...)
+	return append(out, messages.New(messages.H2513, len(errs)-MaxErrors, MaxErrors))
 }
