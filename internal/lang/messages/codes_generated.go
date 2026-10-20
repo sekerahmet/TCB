@@ -386,6 +386,7 @@ const (
 	H3102 Code = 3102 // dikkat
 	H3103 Code = 3103 // gradyan
 	H3104 Code = 3104 // arka uç
+	H3105 Code = 3105 // bu makinede
 	H4000 Code = 4000 // LoadLibraryExW bulunamadı: {error}
 	H4001 Code = 4001 // NVIDIA sürücüsü ({library}) yüklenemedi: {error}
 	H4002 Code = 4002 // bu TR derlemesinde GPU desteği yok (işletim sistemi desteklenmiyor ya da ikili GPU'suz derlendi)
@@ -563,7 +564,7 @@ const (
 	H5084 Code = 5084 // dosya kesik: başlık {length} parça ({needed} bayt) bildiriyor, dosya {size} bayt
 	H5085 Code = 5085 // veri: {path}: [{begin}, {end}) aralığı veri dosyası sınırını ({length}) aşıyor
 	H5086 Code = 5086 // veri: {path}: [{begin}, {end}) aralığında int32'ye sığmayan '<u4' token değeri var (2^31 ve üstü); sözlük boyutu bunun çok altında olmalı, dosya bozuk olabilir
-	H5087 Code = 5087 // veri: {path}: OkuU16 yalnızca '<u2' veri dosyalarında kullanılabilir (tür {dtype})
+	H5087 Code = 5087 // veri: {path}: yalnızca '<u2' veri dosyaları 16 bit olarak okunabilir (tür {dtype})
 	H5088 Code = 5088 // veri: {path}: eşlenmiş dosya okunurken bellek hatası (dosya okunurken dışarıdan kısaltılmış ya da değiştirilmiş olabilir): {fault}
 	H5089 Code = 5089 // veri: {path}: okuma hatası: {error}
 	H5090 Code = 5090 // veri: {path}: geçersiz .npy dosyası: {reason}
@@ -617,7 +618,7 @@ const (
 	H5245 Code = 5245 // düzenli ifade {pattern|q}: {error}
 	H5246 Code = 5246 // düzenli ifade {pattern|q}: {pos}. konumda beklenmeyen ')'
 	H5247 Code = 5247 // düzenli ifade {pattern|q}: iç içe derinlik sınırı ({max}) aşıldı
-	H5248 Code = 5248 // düzenli ifade {pattern|q} reddedildi: {reason} (izin için DuzIfadeAyarlari.RiskliDesenIzni)
+	H5248 Code = 5248 // düzenli ifade {pattern|q} reddedildi: {reason}
 	H5249 Code = 5249 // iç içe derinlik sınırı ({max}) aşıldı
 	H5250 Code = 5250 // üst üste niceleyici sınırı ({max}) aşıldı
 	H5251 Code = 5251 // çapa nicelenemez

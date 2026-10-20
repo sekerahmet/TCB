@@ -177,7 +177,7 @@ func checkElem(n int, dt DType) int {
 		panic(messages.Internal(fmt.Sprintf("backend: negative element count %d", n)))
 	}
 	if !sigar(n, dt) {
-		panic(SizeError(n, dt, allocLimit(), "bu makinede"))
+		panic(SizeError(n, dt, allocLimit(), messages.Text(messages.H3105)))
 	}
 	return n
 }

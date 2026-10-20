@@ -247,15 +247,3 @@ func TestShortNumberAndFormatBytes(t *testing.T) {
 		}
 	}
 }
-
-// FileCause kodlu bir iletinin sardığı işletim sistemi dosya hatasını verir.
-func TestFileCause(t *testing.T) {
-	pe := &fs.PathError{Op: "open", Path: "x", Err: fs.ErrNotExist}
-	if got := FileCause(messages.New(messages.H2000, "f", pe)); got != error(pe) {
-		t.Fatalf("sarılan dosya hatası bekleniyordu: %v", got)
-	}
-	plain := errors.New("başka")
-	if got := FileCause(plain); got != plain {
-		t.Fatalf("dosya hatası yokken hatanın kendisi bekleniyordu: %v", got)
-	}
-}

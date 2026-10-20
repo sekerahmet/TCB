@@ -162,21 +162,33 @@ func TestOutOfMemory(t *testing.T) {
 	}
 	// Cihaz belleğinden büyük tek ayırma, ayırmadan önce reddedilir.
 	place := messages.Text(messages.H4062)
-	m := panicText(func() { g.Alloc(1<<20, tensor.Float32) })
-	if !strings.Contains(m, place) {
-		t.Fatalf("cihaz sınırı mesajı: %q", m)
+	err = panicError(func() { g.Alloc(1<<20, tensor.Float32) })
+	if !messages.Has(err, messages.H3083) || limitPlace(err) != place {
+		t.Fatalf("cihaz sınırı mesajı: %v", err)
 	}
 	// Cihazdan bağımsız katman şekli GPU belleğiyle denetler (ayırmadan önce). Satır sayısı
 	// GPU belleğini az farkla aşar; konağın belleği GPU'nunkinden küçükse önce konak sınırı
 	// devreye girer (gerçek GPU'da), o da aynı biçimde Türkçe ve yakalanabilirdir.
 	row := int(gpuBackend().MemoryLimit()/16) + 1
-	m = panicText(func() { tensor.ZerosOn(gpuDevice, row, 4) })
-	if !strings.Contains(m, fmt.Sprintf("[%d, 4]", row)) || !(strings.Contains(m, place) || strings.Contains(m, "bu makinede")) {
-		t.Fatalf("tensör katmanının GPU sınırı mesajı: %q", m)
+	err = panicError(func() { tensor.ZerosOn(gpuDevice, row, 4) })
+	me, _ := messages.As(err)
+	if !messages.Has(err, messages.H3084) || me.Args[1] != fmt.Sprintf("[%d, 4]", row) ||
+		!(limitPlace(err) == place || limitPlace(err) == messages.Text(messages.H3105)) {
+		t.Fatalf("tensör katmanının GPU sınırı mesajı: %v", err)
 	}
-	if inSim() && !strings.Contains(m, place) {
-		t.Fatalf("benzetimde GPU sınırı devreye girmeliydi: %q", m)
+	if inSim() && limitPlace(err) != place {
+		t.Fatalf("benzetimde GPU sınırı devreye girmeliydi: %v", err)
 	}
+}
+
+// limitPlace bellek sınırı iletisinin yer parametresidir (H3083, H3084...: dördüncü parametre).
+func limitPlace(err error) string {
+	m, ok := messages.As(err)
+	if !ok || len(m.Args) < 4 {
+		return ""
+	}
+	p, _ := m.Args[3].(string)
+	return p
 }
 
 func TestUnsupported(t *testing.T) {
@@ -186,8 +198,8 @@ func TestUnsupported(t *testing.T) {
 	}
 	a := tensor.NewOn(tensor.CPU, []float32{1, 2}, 2)
 	b := tensor.NewOn(gpuDevice, []float32{1, 2}, 2)
-	if m := panicText(func() { tensor.Add(a, b) }); !strings.Contains(m, "farklı cihazlarda") {
-		t.Fatalf("farklı cihaz mesajı: %q", m)
+	if err := panicError(func() { tensor.Add(a, b) }); !messages.Has(err, messages.H3072) {
+		t.Fatalf("farklı cihaz mesajı: %v", err)
 	}
 }
 
