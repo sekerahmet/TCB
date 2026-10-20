@@ -34,7 +34,9 @@ document.querySelectorAll('#yonlendirme button').forEach((b) => {
   b.addEventListener('pointerdown', (e) => { if (e.button === 0) buttonPressed(b); });
   b.addEventListener('click', (e) => { if (e.detail === 0) buttonPressed(b); });
 });
-const tabs = [];          // { ad, tur, veri, hata, arama, sirala }
+// Sekme anahtarı 'kapsam:ad'dır: aynı adlı Yerel ve Genel tablolar ayrı sekmelerdir.
+const tabs = [];          // { key, kapsam, ad, tur, veri, hata, arama, sirala }
+function tabKey(scope, name) { return scope + ':' + name; }
 let activeTab = null;
 
 window.addEventListener('message', (event) => {
@@ -47,13 +49,13 @@ window.addEventListener('message', (event) => {
     header.classList.remove('yeni'); void header.offsetWidth; header.classList.add('yeni');
     renderVariables(); updateButtons();
     // Açık sekmelerin içeriğini yeni adımın değerleriyle yenile
-    tabs.forEach((s) => vscode.postMessage({ tur: 'tablo', ifade: s.ad }));
+    tabs.forEach((s) => vscode.postMessage({ tur: 'tablo', kapsam: s.kapsam, ifade: s.ad }));
   } else if (m.tur === 'tablo') {
-    const s = tabs.find((x) => x.ad === m.veri.baslik);
-    if (s) { s.veri = m.veri; s.error = ''; if (s.ad === activeTab) renderPane(); }
+    const s = tabs.find((x) => x.key === tabKey(m.veri.kapsam, m.veri.baslik));
+    if (s) { s.veri = m.veri; s.error = ''; if (s.key === activeTab) renderPane(); }
   } else if (m.tur === 'tabloHata') {
-    const s = tabs.find((x) => x.ad === m.ifade);
-    if (s) { s.error = m.mesaj; if (s.ad === activeTab) renderPane(); }
+    const s = tabs.find((x) => x.key === tabKey(m.kapsam, m.ifade));
+    if (s) { s.error = m.mesaj; if (s.key === activeTab) renderPane(); }
   } else if (m.tur === 'hata') {
     document.getElementById('neden').textContent = m.mesaj;
   } else if (m.tur === 'bitti') {
@@ -65,22 +67,22 @@ window.addEventListener('message', (event) => {
 
 // openTable: tabloyu alt penceredeki sekmesinde açar (yoksa yeni sekme ekler) ve etkin yapar.
 function openTable(d) {
-  let s = tabs.find((x) => x.ad === d.ad);
+  let s = tabs.find((x) => x.key === tabKey(d.kapsam, d.ad));
   if (!s) {
-    s = { ad: d.ad, tur: d.tur || 'tablo', veri: null, error: '', search: '', sortState: { column: -1, descending: false } };
+    s = { key: tabKey(d.kapsam, d.ad), kapsam: d.kapsam, ad: d.ad, tur: d.tur || 'tablo', veri: null, error: '', search: '', sortState: { column: -1, descending: false } };
     tabs.push(s);
     if (sessionEnded) s.error = 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).';
-    else vscode.postMessage({ tur: 'tablo', ifade: d.ad });
+    else vscode.postMessage({ tur: 'tablo', kapsam: d.kapsam, ifade: d.ad });
   }
-  activeTab = s.ad;
+  activeTab = s.key;
   renderPane(); renderVariables();
 }
 
-function closeTab(name) {
-  const i = tabs.findIndex((x) => x.ad === name);
+function closeTab(key) {
+  const i = tabs.findIndex((x) => x.key === key);
   if (i < 0) return;
   tabs.splice(i, 1);
-  if (activeTab === name) activeTab = tabs.length ? tabs[Math.min(i, tabs.length - 1)].ad : null;
+  if (activeTab === key) activeTab = tabs.length ? tabs[Math.min(i, tabs.length - 1)].key : null;
   renderPane(); renderVariables();
 }
 
@@ -107,7 +109,7 @@ function renderVariables() {
   visible.forEach((d) => {
     const key = d.kapsam + ':' + d.ad;
     const kind = d.tur || 'diger';
-    const isOpen = tabs.some((s) => s.ad === d.ad);
+    const isOpen = tabs.some((s) => s.key === tabKey(d.kapsam, d.ad));
     const tr = el('tr');
     if (isOpen) tr.classList.add('acik');
     if (key in previousValues && previousValues[key] !== d.deger) tr.classList.add('degisti');
@@ -156,14 +158,14 @@ function renderPane() {
   const strip = document.getElementById('sekmeler');
   strip.replaceChildren();
   tabs.forEach((s) => {
-    const tabEl = el('div', undefined, 'sekme' + (s.ad === activeTab ? ' etkin' : ''));
-    tabEl.title = s.ad;
-    tabEl.append(el('span', ICONS[s.tur] || '▦', 'ikon ' + s.tur), el('span', s.ad));
+    const tabEl = el('div', undefined, 'sekme' + (s.key === activeTab ? ' etkin' : ''));
+    tabEl.title = s.kapsam + ': ' + s.ad;
+    tabEl.append(el('span', ICONS[s.tur] || '▦', 'ikon ' + s.tur), el('span', s.ad + (tabs.some((x) => x !== s && x.ad === s.ad) ? ' (' + s.kapsam + ')' : '')));
     const closeBtn = el('button', '✕', 'kapat'); closeBtn.title = 'Sekmeyi kapat';
-    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeTab(s.ad); });
+    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeTab(s.key); });
     tabEl.appendChild(closeBtn);
-    tabEl.addEventListener('click', () => { activeTab = s.ad; renderPane(); });
-    tabEl.addEventListener('auxclick', (e) => { if (e.button === 1) closeTab(s.ad); });
+    tabEl.addEventListener('click', () => { activeTab = s.key; renderPane(); });
+    tabEl.addEventListener('auxclick', (e) => { if (e.button === 1) closeTab(s.key); });
     strip.appendChild(tabEl);
   });
   strip.appendChild(el('span', undefined, 'bosluk'));
@@ -171,7 +173,7 @@ function renderPane() {
   closeAll.addEventListener('click', () => { tabs.splice(0); activeTab = null; renderPane(); renderVariables(); });
   strip.appendChild(closeAll);
 
-  const s = tabs.find((x) => x.ad === activeTab);
+  const s = tabs.find((x) => x.key === activeTab);
   const search = document.getElementById('tabloAra');
   search.value = s ? s.search : '';
   const box = document.getElementById('izgaraKutu');
@@ -223,7 +225,7 @@ document.getElementById('izgaraKutu').addEventListener('keydown', (e) => {
 document.getElementById('izgaraKutu').addEventListener('click', (e) => { const td = e.target.closest('td'); if (td) td.focus(); });
 
 document.getElementById('tabloAra').addEventListener('input', (e) => {
-  const s = tabs.find((x) => x.ad === activeTab);
+  const s = tabs.find((x) => x.key === activeTab);
   if (s) { s.search = e.target.value; renderPane(); document.getElementById('tabloAra').focus(); }
 });
 document.getElementById('degiskenAra').addEventListener('input', renderVariables);

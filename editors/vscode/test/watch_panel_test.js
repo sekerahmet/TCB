@@ -64,6 +64,17 @@ test('✏️ bilinmeyen kapsam: istek gitmez, hata gösterilir', async () => {
     assert.strictEqual(o.log.errors.length, 1);
 });
 
+test('tablo isteği kapsamla gider; yanıt ve hata kapsamıyla panele döner (aynı adlı Yerel/Genel sekmeler çakışmaz)', async () => {
+    const o = await openPanel({ trTablo: (args) => (args.kapsam === 'Yok' ? Promise.reject(new Error('yok')) : { baslik: args.ifade, sutunlar: [args.kapsam] }) });
+    await o.panel.receive({ tur: 'tablo', kapsam: 'Genel', ifade: 'liste' });
+    await o.panel.receive({ tur: 'tablo', kapsam: 'Yerel', ifade: 'liste' });
+    await o.panel.receive({ tur: 'tablo', kapsam: 'Yok', ifade: 'liste' });
+    assert.deepStrictEqual(o.requests.filter((r) => r.command === 'trTablo').map((r) => r.args), [
+        { ifade: 'liste', kapsam: 'Genel' }, { ifade: 'liste', kapsam: 'Yerel' }, { ifade: 'liste', kapsam: 'Yok' }]);
+    const replies = o.panel.messages.filter((m) => m.tur === 'tablo' || m.tur === 'tabloHata').map((m) => [m.tur, (m.veri || m).kapsam]);
+    assert.deepStrictEqual(replies, [['tablo', 'Genel'], ['tablo', 'Yerel'], ['tabloHata', 'Yok']]);
+});
+
 (async () => {
     let passed = 0;
     for (const { name, fn } of tests) {

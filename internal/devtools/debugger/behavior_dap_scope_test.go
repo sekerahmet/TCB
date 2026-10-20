@@ -1,6 +1,9 @@
 package debugger
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 const dapScopeProgram = `değişken sayi = 1
 değişken liste = [{"a": 1}]
@@ -36,5 +39,31 @@ func TestDAPSetVariableTargetsScope(t *testing.T) {
 	}
 	if got := c.varsOf(c.scopeRef("Genel"))["sayi"]; got != "10" {
 		t.Fatalf("genel sayi yerel değişince değişti: %q", got)
+	}
+}
+
+// Tablo isteği kapsam alır: aynı adlı genel ve yerel tablo ayrı ayrı açılabilir. Kapsamsız
+// istek (Variables panelinden "Tablo Görünümü") yerel kapsamdan başlar.
+func TestDAPTableTargetsScope(t *testing.T) {
+	c := startDAP(t)
+	c.launch(writeProgram(t, dapScopeProgram), false, map[string]interface{}{"line": 6})
+	c.event("stopped")
+
+	columns := func(args map[string]interface{}) []string {
+		t.Helper()
+		var out []string
+		for _, s := range c.request("trTablo", args)["sutunlar"].([]interface{}) {
+			out = append(out, s.(string))
+		}
+		return out
+	}
+	if got := columns(map[string]interface{}{"ifade": "liste", "kapsam": "Genel"}); !reflect.DeepEqual(got, []string{"a"}) {
+		t.Fatalf("genel tablo sütunları: %v", got)
+	}
+	if got := columns(map[string]interface{}{"ifade": "liste", "kapsam": "Yerel"}); !reflect.DeepEqual(got, []string{"b"}) {
+		t.Fatalf("yerel tablo sütunları: %v", got)
+	}
+	if got := columns(map[string]interface{}{"ifade": "liste"}); !reflect.DeepEqual(got, []string{"b"}) {
+		t.Fatalf("kapsamsız tablo yerelden başlamalı: %v", got)
 	}
 }

@@ -415,7 +415,7 @@ async function onWatchPanelMessage(m) {
     if (!session) {
         // Hata ayıklama oturumu bittiyse istek göndermek "No debugger available" hatası verir.
         if (m.tur === 'tablo') {
-            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj: 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).' });
+            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', kapsam: m.kapsam, ifade: m.ifade, mesaj: 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).' });
         } else {
             vscode.window.showWarningMessage('Hata ayıklama oturumu bitti; değer değiştirilemez.');
         }
@@ -423,8 +423,8 @@ async function onWatchPanelMessage(m) {
     }
     try {
         if (m.tur === 'tablo') {
-            const data = await session.customRequest('trTablo', { ifade: m.ifade });
-            watchPanelState.panel.webview.postMessage({ tur: 'tablo', veri: data });
+            const data = await session.customRequest('trTablo', { ifade: m.ifade, kapsam: m.kapsam });
+            watchPanelState.panel.webview.postMessage({ tur: 'tablo', veri: Object.assign({ kapsam: m.kapsam }, data) });
         } else if (m.tur === 'komut') {
             await runWatchCommand(session, m.komut);
         } else if (m.tur === 'degistir') {
@@ -434,7 +434,7 @@ async function onWatchPanelMessage(m) {
     } catch (e) {
         const message = String(e && e.message ? e.message : e);
         if (m.tur === 'tablo') {
-            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj: message });
+            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', kapsam: m.kapsam, ifade: m.ifade, mesaj: message });
         } else {
             vscode.window.showErrorMessage('Değer değiştirilemedi: ' + message);
         }
