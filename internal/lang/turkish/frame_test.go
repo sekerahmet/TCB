@@ -1,36 +1,47 @@
 package turkish
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-func TestCodeFrame(t *testing.T) {
+func TestErrorFrame(t *testing.T) {
 	source := "değişken toplam = 1\n\tyazdır(toplm + 1)\nson"
-	got := CodeFrame(source, "Satır 2, Sütun 9: 'toplm' adında bir değişken yok")
+	at := func(line, col int, text string) error { return messages.At(line, col, errors.New(text)) }
+	got := ErrorFrame(source, at(2, 9, "'toplm' adında bir değişken yok"))
 	want := " 2 | \tyazdır(toplm + 1)\n   | \t       ^^^^^\n"
 	if got != want {
 		t.Fatalf("çerçeve beklenenden farklı:\n%q\n%q", got, want)
 	}
 
 	// Sütunsuz konum: yalnızca satır gösterilir
-	if got := CodeFrame(source, "Satır 3: hata"); got != " 3 | son\n" {
+	if got := ErrorFrame(source, at(3, 0, "hata")); got != " 3 | son\n" {
 		t.Fatalf("sütunsuz çerçeve hatalı: %q", got)
 	}
 	// Tırnaklı ad o konumda değilse tek işaretçi
-	if got := CodeFrame(source, "Satır 1, Sütun 10: 'başka' sorunu"); got != " 1 | değişken toplam = 1\n   |          ^\n" {
+	if got := ErrorFrame(source, at(1, 10, "'başka' sorunu")); got != " 1 | değişken toplam = 1\n   |          ^\n" {
 		t.Fatalf("tek işaretçili çerçeve hatalı: %q", got)
 	}
-	// Konum yok, kaynak boş ya da satır aralık dışında: çerçeve yok
-	for _, msg := range []string{"konumsuz hata", "Satır 99, Sütun 1: x"} {
-		if got := CodeFrame(source, msg); got != "" {
-			t.Errorf("%q için çerçeve beklenmiyordu: %q", msg, got)
-		}
+	// Satır aralık dışında ya da kaynak boş: çerçeve yok
+	if got := ErrorFrame(source, at(99, 1, "x")); got != "" {
+		t.Errorf("aralık dışı satır için çerçeve beklenmiyordu: %q", got)
 	}
-	if CodeFrame("", "Satır 1: x") != "" {
+	if ErrorFrame("", at(1, 0, "x")) != "" {
 		t.Error("boş kaynakta çerçeve beklenmiyordu")
+	}
+}
+
+// Konum hatanın alanından gelir, metinden okunmaz: "Satır 3" içeren konumsuz bir kullanıcı
+// metni (ör. fırlat "Satır 3 yanlış") o satırı çerçeveletmez.
+func TestErrorFrameIgnoresText(t *testing.T) {
+	source := "bir\niki\nüç\n"
+	for _, text := range []string{"Satır 3 yanlış", "Satır 2, Sütun 1: konum gibi görünen metin"} {
+		if got := ErrorFrame(source, errors.New(text)); got != "" {
+			t.Errorf("konumsuz hata %q çerçevesiz olmalı: %q", text, got)
+		}
 	}
 }
 

@@ -9,40 +9,27 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-var posRe = regexp.MustCompile(`Satır (\d+)(?:, Sütun (\d+))?`)
 var quotedNameRe = regexp.MustCompile(`'([^'\s]+)'`)
 
-// CodeFrame shows the "Satır N, Sütun M" (line, column) position of an error message in
-// the source. When the column is known it underlines the faulty part with ^^^, as long as
-// the quoted name in the message if that name is at the position. Returns "" when no
-// position is found.
+// ErrorFrame shows the source line of an error and, when the column is known, underlines the
+// faulty part with ^^^ (as long as the quoted name in the message if that name is at the
+// position):
 //
 //	12 | yazdır(toplm + 1)
 //	   |        ^^^^^
-func CodeFrame(source, message string) string {
-	m := posRe.FindStringSubmatch(message)
-	if m == nil {
-		return ""
-	}
-	lineNo, _ := strconv.Atoi(m[1])
-	col := 0
-	if m[2] != "" {
-		col, _ = strconv.Atoi(m[2])
-	}
-	return codeFrameAt(source, lineNo, col, message)
-}
-
-// ErrorFrame is CodeFrame for an error: the position is read from the error
-// (messages.PosError), not from its text, so it works in every writing language. Errors without
-// a position (not yet migrated) fall back to the text.
+//
+// The position is read from the error (messages.PosError), never from its text, so it works in
+// every writing language and a user text such as "Satır 3 yanlış" is not taken for a position.
+// Returns "" when the error has no position.
 func ErrorFrame(source string, err error) string {
 	if err == nil {
 		return ""
 	}
-	if line, col, ok := messages.Pos(err); ok {
-		return codeFrameAt(source, line, col, err.Error())
+	line, col, ok := messages.Pos(err)
+	if !ok {
+		return ""
 	}
-	return CodeFrame(source, err.Error())
+	return codeFrameAt(source, line, col, err.Error())
 }
 
 // LineFrame shows line n of source without a marker (for a position known only as a line,
