@@ -280,6 +280,193 @@ göredir (bellek kopyaları sayılmaz); `nsys stats --report cuda_gpu_kern_sum` 
 çekirdek toplamlarını verir ve çapraz denetim için çalıştırılabilir. Rapor boşsa
 (`pencerede çekirdek yok`) 8. hücredeki notu uygulayıp çıktıyı aynen gönderin.
 
+## 11. Hedef model defteri (hücre 1–10)
+
+Hedef modelin (`tools/gpu/rgn512.py` ↔ `tools/gpu/rgn512.tr`) hız, bellek, eşleşme ve gerçek veride
+kalite ölçümleri için kullanılan defter. Colab defteri kalıcı olmadığından hücreler buradadır; defter
+değişince bu bölüm de güncellenir.
+
+Kurallar:
+
+- Her hücre `# N · NE YAPAR · GPU|CPU` başlığıyla başlar (büyük harf; GPU'yu kullanıp kullanmadığı).
+  Kabuk hücreleri Colab'da `%%bash` satırıyla başlar (aşağıdaki bloklarda yazılmamıştır).
+- İzleme ve durum hücreleri anında biter (`grep`, `tail`); `sleep` döngüsüyle bekleyen hücre tek
+  çekirdeği kilitler.
+- Uzun koşular `setsid nohup bash betik.sh > /dev/null 2>&1 < /dev/null &` ile başlar: hücreyi
+  kesmek (durdurma düğmesi, `Ctrl+M I`) aynı süreç grubundaki `nohup`'lu eğitimi de durdurur.
+- Çalışan bir hücrenin metni değiştirilmez (ekran yeni metni, çekirdek eskisini çalıştırır).
+- Tepe bellek nvidia-smi'den MiB/1024 = GiB olarak yazılır (hücre 2 ve 4 aynı ölçü).
+- İş bitince hücre 10 ile çalışma zamanı kapatılır.
+
+### Hücre 1 · KURULUM: KODU ÇEK VE TR'Yİ DERLE · CPU
+
+```bash
+# 1 · KURULUM: KODU ÇEK VE TR'Yİ DERLE · CPU
+# DAL: main (GPU işi sınanırken gpu-dogrulama)
+DAL=main
+[ -x /usr/local/go/bin/go ] || { wget -q https://go.dev/dl/go1.25.13.linux-amd64.tar.gz -O /tmp/go.tgz && tar -C /usr/local -xzf /tmp/go.tgz; }
+export PATH=/usr/local/go/bin:$PATH
+rm -rf /content/TCB && git clone -q --depth 1 -b $DAL https://github.com/sekerahmet/TCB /content/TCB
+cd /content/TCB && git log -1 --format='commit: %h %s'
+mkdir -p /content/tr
+CGO_ENABLED=0 go build -trimpath -o /content/tr/tr ./cmd/tr && echo "derleme tamam"
+```
+
+### Hücre 2 · PYTORCH TEMEL ÇİZGİSİ: HIZ VE BELLEK · GPU
+
+```bash
+# 2 · PYTORCH TEMEL ÇİZGİSİ: HIZ VE BELLEK (COMPILE + EAGER, SENTETİK VERİ, 120 ADIM) · GPU
+# Kayıp anlamsızdır (rastgele veri); hız ve tepe bellek (nvidia-smi, GiB) karşılaştırma içindir.
+mkdir -p /content/rgn && cd /content/rgn
+[ -f train.npy ] || python -c "
+import numpy as np
+r = np.random.default_rng(0)
+np.save('train.npy', r.integers(1, 40000, size=40_000_000, dtype=np.uint16))
+np.save('valid.npy', r.integers(1, 40000, size=2_000_000, dtype=np.uint16))"
+for kip in compile eager; do
+  ek=""; [ $kip = eager ] && ek="--no_compile"
+  nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > mem_$kip.log & P=$!
+  python /content/TCB/tools/gpu/rgn512.py train --data train.npy --valid valid.npy --out kosu_$kip --steps 120 $ek > rgn_$kip.out 2>&1
+  kill $P; sleep 1
+  printf "%-8s %s | tepe %.2f GiB\n" $kip "$(grep -o '[0-9]* ms/adım' rgn_$kip.out | tail -1)" $(echo "$(sort -n mem_$kip.log | tail -1)/1024" | bc -l)
+done
+```
+
+### Hücre 3 · TR PROFİLİ · GPU
+
+```bash
+# 3 · TR PROFİLİ: GPU ÇEKİRDEK AİLELERİ VE TEPE BELLEK DÖKÜMÜ (tr profil, 20 ADIM) · GPU
+mkdir -p /content/rgn/trveri && cd /content/rgn
+[ -f trveri/train.npy ] || python -c "import numpy as np; np.save('trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
+/content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 20 --günlük 20 > profil.txt 2>&1
+grep -A12 "^aile" profil.txt | head -14; grep -A14 "ayıran satıra göre" profil.txt
+```
+
+### Hücre 4 · TR HIZ VE BELLEK ÖLÇÜMÜ · GPU
+
+```bash
+# 4 · TR HIZ VE BELLEK ÖLÇÜMÜ (SENTETİK VERİ, 120 ADIM) · GPU
+# Tepe bellek nvidia-smi (GiB = MiB/1024, hücre 2 ile aynı ölçü); tepe canlı/ayrılmış TR_GPU_PROFIL'den.
+mkdir -p /content/rgn/trveri
+[ -f /content/rgn/trveri/train.npy ] || python -c "import numpy as np; np.save('/content/rgn/trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
+cd /content/rgn
+nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > mem.log & P=$!
+/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı hiz.json 2>&1 | tail -1
+kill $P; sleep 1
+printf "tepe (nvidia-smi): %.2f GiB\n" $(echo "$(sort -n mem.log | tail -1)/1024" | bc -l); cat hiz.json; echo
+TR_GPU_PROFIL=1 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 6 --günlük 6 2>&1 | grep "^bellek"
+```
+
+### Hücre 5 · GERÇEK VERİ: DRIVE'I BAĞLA VE KOPYALA · CPU
+
+Python hücresi. Drive salt okunur kullanılır; bağlarken Google izin penceresi açılır.
+
+```python
+# 5 · GERÇEK VERİ: DRIVE'I BAĞLA, EĞİTİM PARÇASI VE DOĞRULAMAYI YEREL DİSKE KOPYALA · CPU
+from google.colab import drive
+drive.mount('/content/drive')
+import os, shutil
+src = '/content/drive/MyDrive/v2/fineweb2_tr/tok40k'
+os.makedirs('/content/fw/train', exist_ok=True)
+for a, b in [(f'{src}/train/fw2_28_01.npy', '/content/fw/train/fw2_28_01.npy'), (f'{src}/valid.npy', '/content/fw/valid.npy')]:
+    if not os.path.exists(b):
+        shutil.copy(a, b)
+import numpy as np
+for f in ['/content/fw/train/fw2_28_01.npy', '/content/fw/valid.npy']:
+    a = np.load(f, mmap_mode='r')
+    print(f, a.dtype, len(a), 'parça; en büyük kimlik', int(a[:5_000_000].max()))
+```
+
+### Hücre 6 · KALİTE KOŞUSU BAŞLAT · GPU
+
+```bash
+# 6 · KALİTE KOŞUSU BAŞLAT: PYTORCH SONRA TR, GERÇEK VERİ, ARKA PLANDA · GPU
+# Hücre hemen döner; koşu ayrı oturumda (setsid: hücre kesmeleri eğitime ulaşmaz). Durum: hücre 7.
+# Önce hücre 1 ve 5. ADIM değiştirilebilir (2000 adım ≈ PyTorch 5 dk + TR 7 dk).
+ADIM=2000
+cd /content && rm -rf kalite && mkdir -p kalite && cd kalite
+cat > kos.sh <<EOF
+python /content/TCB/tools/gpu/rgn512.py train --data /content/fw/train --valid /content/fw/valid.npy --out k_pt --steps $ADIM > pt.log 2>&1
+/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri /content/fw/train --doğrulama /content/fw/valid.npy --adım $ADIM --günlük 50 --değerlendirme 1000 --kayıplar tr_kayip.json > tr.log 2>&1
+echo bitti > bitti
+EOF
+setsid nohup bash kos.sh > /dev/null 2>&1 < /dev/null &
+echo "başladı: $ADIM adım (durum için hücre 7)"
+```
+
+### Hücre 7 · KALİTE KOŞUSU DURUMU · CPU
+
+```bash
+# 7 · KALİTE KOŞUSU DURUMU (ANINDA BİTER, BEKLEMEZ) · CPU
+cd /content/kalite 2>/dev/null || { echo "koşu yok (hücre 6)"; exit 0; }
+echo "== PyTorch"; grep -E "parametre|^adım (50|250|500|750|1000|1250|1500|1750|2000) /|DEĞERLENDİRME|BİTTİ" pt.log | sed 's/ | kalan.*//'
+echo "== TR"; [ -f tr.log ] && grep -E "parametre|^adım (50|250|500|750|1000|1250|1500|1750|2000) /|DEĞERLENDİRME" tr.log
+echo "-- son satır: $(tail -1 tr.log 2>/dev/null || tail -1 pt.log)"
+[ -f bitti ] && echo "BİTTİ (karşılaştırma: hücre 8)" || echo "sürüyor"
+```
+
+### Hücre 8 · KALİTE KARŞILAŞTIRMASI · CPU
+
+Python hücresi. Tek adımın kaybı gürültülüdür (farklı rastgele toplu işler); karşılaştırma 500 adımlık
+dilimlerin ortalaması ve aynı doğrulama penceresindeki kayıpladır.
+
+```python
+# 8 · KALİTE KARŞILAŞTIRMASI: EĞİTİM (500 ADIMLIK ORTALAMA) VE DOĞRULAMA KAYBI (ANINDA BİTER) · CPU
+import re
+def oku(yol):
+    egitim, dogr = {}, {}
+    for s in open(yol, encoding='utf-8'):
+        m = re.match(r'adım (\d+) / \d+ .*?kayıp ([\d.]+)', s)
+        if m: egitim[int(m[1])] = float(m[2])
+        m = re.search(r'DEĞERLENDİRME adım (\d+): kayıp ([\d.]+)', s)
+        if m: dogr[int(m[1])] = float(m[2])
+    return egitim, dogr
+pe, pd = oku('/content/kalite/pt.log'); te, td = oku('/content/kalite/tr.log')
+son = max(pe) if pe else 0
+print('| adımlar | PyTorch eğitim (ort.) | TR eğitim (ort.) | fark |')
+print('|---|---|---|---|')
+for a in range(0, son, 500):
+    p = [v for k, v in pe.items() if a < k <= a + 500 and k % 50 == 0]
+    t = [v for k, v in te.items() if a < k <= a + 500 and k % 50 == 0]
+    if p and t:
+        print(f'| {a+1}–{a+500} | {sum(p)/len(p):.4f} | {sum(t)/len(t):.4f} | {sum(t)/len(t)-sum(p)/len(p):+.4f} |')
+print('\n| adım | PyTorch doğrulama | TR doğrulama | fark |\n|---|---|---|---|')
+for k in sorted(pd):
+    if k in td: print(f'| {k} | {pd[k]:.4f} | {td[k]:.4f} | {td[k]-pd[k]:+.4f} |')
+```
+
+### Hücre 9 · EŞLEŞME TESTİ · GPU
+
+```bash
+# 9 · EŞLEŞME TESTİ: PYTORCH ↔ TR AYNI BAŞLANGIÇ VE AYNI TOPLU İŞLER, BF16, 100 ADIM · GPU
+cd /content && rm -rf par && mkdir par
+cd /content/TCB/tools/gpu
+SECONDS=0
+python rgn_reference.py --out /content/par --steps 100 --micro 32 --accum 2 --seq 1024 --device cuda --bf16 --ns-bf16 > /content/par/py.log 2>&1 || tail -5 /content/par/py.log
+echo "PyTorch: ${SECONDS} sn"; SECONDS=0
+cd /content/par
+/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --ağırlık init.trt --sıralı --adım 100 --kayıplar tr.json --günlük 100 2>&1 | tail -2
+echo "TR: ${SECONDS} sn"
+python - <<'PY'
+import json
+r = json.load(open("reference.json"))["steps"]; t = json.load(open("tr.json"))["steps"]
+print("| adım | PyTorch kayıp | TR kayıp | fark | PyTorch grad | TR grad |")
+print("|---|---|---|---|---|---|")
+for i in [0, 1, 2, 4, 9, 19, 29, 49, 74, 99]:
+    a, b = r[i], t[i]
+    print(f"| {i+1} | {a['loss']:.4f} | {b['loss']:.4f} | {b['loss']-a['loss']:+.4f} | {a['grad_norm']:.3f} | {b['grad_norm']:.3f} |")
+PY
+```
+
+### Hücre 10 · ÇALIŞMA ZAMANINI KAPAT
+
+Python hücresi. GPU serbest bırakılır; arka plan koşuları da biter.
+
+```python
+# 10 · ÇALIŞMA ZAMANINI KAPAT (GPU SERBEST BIRAKILIR; ARKA PLAN KOŞULARI DA BİTER)
+from google.colab import runtime; runtime.unassign()
+```
+
 ## Geri bildirilecekler
 
 1. 1. hücrenin son iki satırı (kart, matris çarpımı yolu).
@@ -289,6 +476,7 @@ göredir (bellek kopyaları sayılmaz); `nsys stats --report cuda_gpu_kern_sum` 
 5. 7. hücrenin özeti; 8. hücre çalıştırıldıysa çıktısı.
 6. 10. hücre (Evre 3 ölçümü): 10.2'nin tablosu, 10.3'ün tablosu, 10.4'ün iki tablosu.
 7. 9. hücre çalıştırıldıysa: speed.json, son doğrulama kaybı ve samples.json'daki son örnek.
+8. 11. bölüm (hedef model defteri): hücre 2 ve 4'ün satırları, hücre 8'in iki tablosu, hücre 9'un tablosu.
 
 ## Ortam değişkenleri
 
