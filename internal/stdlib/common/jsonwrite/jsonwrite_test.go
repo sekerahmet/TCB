@@ -127,3 +127,17 @@ func goValue(v interp.Value) any {
 	}
 	return v.Inspect()
 }
+
+// Sayı dışı değerler yalnızca çağıran açıkça isterse (NonFiniteAsText) TR yazımıyla metin olarak
+// yazılır; varsayılan yazım hatadır (TestNaNAndInfError), böylece geçersiz JSON çıkmaz.
+func TestNonFiniteAsTextOnlyWhenAsked(t *testing.T) {
+	d := dict("a", &interp.FloatVal{Val: math.NaN()}, "b", &interp.FloatVal{Val: math.Inf(1)},
+		"c", &interp.FloatVal{Val: math.Inf(-1)}, "d", &interp.FloatVal{Val: 1.5})
+	b, err := WriteOptions(d, Options{NonFiniteAsText: true})
+	if err != nil || string(b) != `{"a":"NaN","b":"+Sonsuz","c":"-Sonsuz","d":1.5}` {
+		t.Fatalf("%s %v", b, err)
+	}
+	if _, err := WriteOptions(d, Options{}); err == nil {
+		t.Fatal("seçenek verilmeyince NaN ve sonsuz hata olmalı")
+	}
+}

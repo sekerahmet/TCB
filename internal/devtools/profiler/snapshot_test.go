@@ -1,0 +1,176 @@
+package profiler
+
+import (
+	"reflect"
+	"sort"
+	"strings"
+	"testing"
+)
+
+// jsonKeys bir tipin JSON anahtarlarını yol olarak sıralı verir ("tensör.işlemler.kod");
+// etiketsiz dışa açık alan ya da "-" olmayan her alan etiketli olmalıdır (eksikse errs'e yazılır).
+func jsonKeys(typ reflect.Type, prefix string, keys *[]string, errs *[]string) {
+	for typ.Kind() == reflect.Ptr || typ.Kind() == reflect.Slice || typ.Kind() == reflect.Array {
+		typ = typ.Elem()
+	}
+	if typ.Kind() != reflect.Struct {
+		return
+	}
+	for i := 0; i < typ.NumField(); i++ {
+		f := typ.Field(i)
+		if !f.IsExported() {
+			continue
+		}
+		name, _, _ := strings.Cut(f.Tag.Get("json"), ",")
+		if name == "" {
+			*errs = append(*errs, prefix+f.Name)
+			continue
+		}
+		if name == "-" {
+			continue
+		}
+		path := prefix + name
+		*keys = append(*keys, path)
+		jsonKeys(f.Type, path+".", keys, errs)
+	}
+}
+
+// Profil dosyasının JSON anahtarları okuyan araçların (VS Code eklentisi, tr izle)
+// sözleşmesidir: her alan açık bir anahtar taşır ve anahtar kümesi biçim sürümüne bağlıdır.
+// Anahtar eklemek, çıkarmak ya da değiştirmek FormatVersion'ı artırmayı gerektirir: yeni
+// sürümün anahtar kümesi frozenKeys'e eklenir, eskisi silinmez.
+func TestSnapshotKeysFrozenPerVersion(t *testing.T) {
+	var keys, errs []string
+	jsonKeys(reflect.TypeOf(Snapshot{}), "", &keys, &errs)
+	for _, e := range errs {
+		t.Errorf("Snapshot.%s için json anahtarı yok; dosya biçimi Go adına bağlı kalır", e)
+	}
+	sort.Strings(keys)
+	want, ok := frozenKeys[FormatVersion]
+	if !ok {
+		t.Fatalf("FormatVersion %d için frozenKeys kaydı yok; yeni sürümün anahtarlarını ekleyin", FormatVersion)
+	}
+	if got := strings.Join(keys, "\n"); got != strings.Join(want, "\n") {
+		t.Errorf("sürüm %d anahtar kümesi değişti; biçim değiştiyse FormatVersion'ı artırıp yeni kümeyi ekleyin.\nşimdiki:\n%s", FormatVersion, got)
+	}
+}
+
+// frozenKeys her biçim sürümünün JSON anahtar kümesidir (sıralı yollar). Yeni sürüm eklenir,
+// eskisi silinmez.
+var frozenKeys = map[int][]string{
+	1: {
+		"adım",
+		"adım.adım_sn",
+		"adım.ms_adım",
+		"adım.sayı",
+		"adım.toplam",
+		"adım.tüm_adım",
+		"başlangıç",
+		"bellek",
+		"bellek.cpu_tensör_ayrılan_bayt",
+		"bellek.go_sistem_bayt",
+		"bellek.go_yığını_bayt",
+		"bitti",
+		"biçim",
+		"gpu",
+		"gpu.aileler",
+		"gpu.aileler.ad",
+		"gpu.aileler.pay",
+		"gpu.aileler.süre_sn",
+		"gpu.aileler.çağrı",
+		"gpu.bellek",
+		"gpu.bellek.ayrılmış_bayt",
+		"gpu.bellek.canlı_bayt",
+		"gpu.bellek.cihaz",
+		"gpu.bellek.havuzda_bayt",
+		"gpu.bellek.tepe_ayrılmış_bayt",
+		"gpu.bellek.tepe_canlı_bayt",
+		"gpu.bellek.çöp_toplama",
+		"gpu.kullanıldı",
+		"gpu.not",
+		"gpu.süre_sn",
+		"gpu.çekirdekler",
+		"gpu.çekirdekler.ad",
+		"gpu.çekirdekler.pay",
+		"gpu.çekirdekler.süre_sn",
+		"gpu.çekirdekler.çağrı",
+		"gpu.ölçüm",
+		"program",
+		"son_pencere",
+		"son_pencere.adım",
+		"son_pencere.adım_sn",
+		"son_pencere.cpu_tensör_ayrılan_bayt",
+		"son_pencere.duraklama_sn",
+		"son_pencere.gpu_aileler",
+		"son_pencere.gpu_aileler.ad",
+		"son_pencere.gpu_aileler.pay",
+		"son_pencere.gpu_aileler.süre_sn",
+		"son_pencere.gpu_aileler.çağrı",
+		"son_pencere.gpu_payı",
+		"son_pencere.gpu_süre_sn",
+		"son_pencere.işlemler",
+		"son_pencere.işlemler.ad",
+		"son_pencere.işlemler.bayt",
+		"son_pencere.işlemler.cihaz",
+		"son_pencere.işlemler.kod",
+		"son_pencere.işlemler.ms_adım",
+		"son_pencere.işlemler.pay",
+		"son_pencere.işlemler.süre_sn",
+		"son_pencere.işlemler.yön",
+		"son_pencere.işlemler.çağrı",
+		"son_pencere.işlemler.ölçüm",
+		"son_pencere.ms_adım",
+		"son_pencere.satırlar",
+		"son_pencere.satırlar.dosya",
+		"son_pencere.satırlar.fonksiyon",
+		"son_pencere.satırlar.metin",
+		"son_pencere.satırlar.pay",
+		"son_pencere.satırlar.satır",
+		"son_pencere.satırlar.süre_sn",
+		"son_pencere.satırlar.tensör_payı",
+		"son_pencere.süre_sn",
+		"son_pencere.tensör_payı",
+		"son_pencere.çöp_toplama_sayı",
+		"süre_sn",
+		"sürüm",
+		"tensör",
+		"tensör.bayt",
+		"tensör.işlemler",
+		"tensör.işlemler.ad",
+		"tensör.işlemler.bayt",
+		"tensör.işlemler.cihaz",
+		"tensör.işlemler.kod",
+		"tensör.işlemler.ms_adım",
+		"tensör.işlemler.pay",
+		"tensör.işlemler.süre_sn",
+		"tensör.işlemler.yön",
+		"tensör.işlemler.çağrı",
+		"tensör.işlemler.ölçüm",
+		"tensör.pay",
+		"tensör.süre_sn",
+		"tensör.çağrı",
+		"tür",
+		"zaman",
+		"çöp_toplama",
+		"çöp_toplama.duraklama_sn",
+		"çöp_toplama.sayı",
+		"çıkış_kodu",
+		"örnekleme",
+		"örnekleme.aralık_ms",
+		"örnekleme.fonksiyonlar",
+		"örnekleme.fonksiyonlar.ad",
+		"örnekleme.fonksiyonlar.pay",
+		"örnekleme.fonksiyonlar.süre_sn",
+		"örnekleme.satırlar",
+		"örnekleme.satırlar.dosya",
+		"örnekleme.satırlar.fonksiyon",
+		"örnekleme.satırlar.metin",
+		"örnekleme.satırlar.pay",
+		"örnekleme.satırlar.satır",
+		"örnekleme.satırlar.süre_sn",
+		"örnekleme.satırlar.tensör_payı",
+		"örnekleme.süre_sn",
+		"örnekleme.tensör_payı",
+		"örnekleme.örnek",
+	},
+}

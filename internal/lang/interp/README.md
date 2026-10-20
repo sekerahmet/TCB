@@ -11,21 +11,21 @@ kilidi bu pakettedir.
 
 **Motorlar kancayla bağlanır.** Tensör, veri, parçalayıcı motorları ve hata ayıklayıcı bu paketi
 içe aktarıp kendilerini kancalarla bağlar; yorumlayıcı onları bilmez. Yeni bir yetenek önce bir
-kanca arayüzü olarak burada tanımlanır, uygulaması motorda yazılır.
+kanca arayüzü olarak burada tanımlanır, uygulaması motorda yazılır. Denetim: `TestLangOrder` (internal), `TestHooksHaveCompileTimeChecks`.
 
 **TR kodu yalnızca kilidi tutan görevde çalışır.** Eşzamanlı her görev yorumlayıcı kilidini alarak
 çalışır. Uzun bekleyen işler (uyku, disk, ağ, dış süreç) kilidi bırakarak bekler; kilidi tutmayan
-kod ortamlara ve değerlere dokunmaz.
+kod ortamlara ve değerlere dokunmaz. Denetim: `TestAsyncConcurrentDictAndListWrites`, `TestAsyncTasksStillOverlapDuringSleep`, `TestLockHandoffConcurrentTask`, `TestConcurrentCallStackSafety`.
 
 **Hatalar satırıyla ve bir kez sarılır.** Çalışma hatası oluştuğu satırı taşır; zaten satır taşıyan
 bir hata yeniden sarılmaz. Kullanıcı hataları `dene`/`yakala` ile yakalanır; kesme isteği (Ctrl+C)
-yakalanmaz. Bir yerleşiğin içindeki beklenmedik panik süreci çökertmez, iç hata olarak bildirilir.
+yakalanmaz. Bir yerleşiğin içindeki beklenmedik panik süreci çökertmez, iç hata olarak bildirilir. Denetim: `TestInternalErrorLineOnce`, `TestInterrupt`, `TestRunRecoversFromBuiltinPanic`, `TestPanicInsideAsyncDoesNotCrashProcess`.
 
 **Tek kural.** Göreli dosya yolları için tek kural, modül yolları için tek kural vardır; her
-yerleşik yolu aynı yerden çözer.
+yerleşik yolu aynı yerden çözer. Denetim: `TestResolvePathSingleRule`, `TestFileBuiltinsUseSingleRule`, `TestImportIgnoresWorkingDir`.
 
 **Sıra belirlenimlidir.** Sözlükler ekleme sırasını korur, yapı alanları sabit bir sırayla gezilir;
-çıktı harita gezinme sırasına bağlı olmaz.
+çıktı harita gezinme sırasına bağlı olmaz. Denetim: `TestOutputOrderIsDeterministic`.
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.
@@ -36,3 +36,6 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_semantics_test.go`: uçtan uca dil anlamı: TR programları bütün yorumlayıcıdan geçerek çalışır
 - `behavior_robustness_test.go`: bütün yorumlayıcının çökme, kilitlenme ve eşzamanlılık güvenliği
+- `behavior_hooks_test.go`: kanca arayüzlerini uygulayan her tipin derleme anı denetimi (`var _ interp.X = (*T)(nil)`) taşıdığı (depo genelinde)
+- `behavior_determinism_test.go`: sözlük, yapı ve döngü çıktısının her çalıştırmada aynı sırada olduğu
+- `behavior_checker_parity_test.go`: denetçinin ve çalışma anının tanımsız ad hatasını aynı sözlerle anlattığı

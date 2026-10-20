@@ -318,3 +318,23 @@ func TestDecodeRefusesLossyView(t *testing.T) {
 		t.Fatalf("Decode gave %q, %v; ErrLossy expected", out, err)
 	}
 }
+
+// Satırlar her gösterimde aynıdır (17.5): kodlu dosyanın 1. satırı başlığın altındaki satırdır,
+// Türkçe gösterimin 1. satırıyla aynıdır; çeviri satır eklemez, silmez, birleştirmez.
+func TestEncodeKeepsLineStructure(t *testing.T) {
+	tr := "// başlık yorumu\n\nfonksiyon f(a) {\n    sonuç a + 1\n}\n\n/* iki\nsatırlık */\nyazdır(f(1))\ndeğişken s = \"çok\nsatırlı {f(2)}\"\n"
+	coded := encodeDecode(t, tr)
+	body := strings.TrimPrefix(coded, Header+"\n")
+	if body == coded {
+		t.Fatalf("kodlu çıktı başlıkla başlamalı: %q", coded)
+	}
+	trLines, codedLines := strings.Split(tr, "\n"), strings.Split(body, "\n")
+	if len(trLines) != len(codedLines) {
+		t.Fatalf("satır sayısı değişti: %d → %d\n%q", len(trLines), len(codedLines), body)
+	}
+	for i := range trLines {
+		if (strings.TrimSpace(trLines[i]) == "") != (strings.TrimSpace(codedLines[i]) == "") {
+			t.Errorf("%d. satırın boşluk durumu değişti: %q → %q", i+1, trLines[i], codedLines[i])
+		}
+	}
+}

@@ -12,17 +12,21 @@ Aynı işlemin CPU ve GPU sonuçları aynıdır (aynı çekirdek sözleşmesi).
 
 **Adlar sözlükten gelir.** Yerleşiklerin, üyelerin ve adlı argümanların adları sabit kodlara
 bağlıdır; ad değişikliği yalnızca çeviri dosyasını değiştirir.
+Denetim: `TestBuiltinsMatchDictionary`, `TestMembersMatchDictionary` (`internal/stdlib`), `TestCiplakAdYok` (`tools/gen/codeconsts`).
 
 **Karışık hassasiyet bloğa bağlıdır.** `karışık_hassasiyet(tür) { ... }` görevin durumudur:
 başka görevlere sızmaz, blok bitince (hata ile de) önceki tür geri gelir. Ağırlıkların türü
 değişmez; dönüşümler türevlenebilir kopyalardır. Kurallar dil tanımının 15.13 maddesindedir.
+Denetim: `TestMixedPrecisionBlock`, `TestMixedPrecisionTaskIsolation`, `TestMixedPrecisionGradient`, `TestOptimizerMasterCopy`.
 
 **Tensör dosyası doğrulanır.** Başlık, sürüm, tür, boyutlar, eleman sınırı, uzunluk ve sağlama
 toplamı denetlenir; bozuk ya da eksik dosya açık bir hatayla reddedilir. Biçim değişirse sürüm
 artar, eski sürümler okunmaya devam eder.
+Denetim: `TestTensorSaveLoad`, `TestTensorSaveVersion2`, `TestSaveZeroAxisLimit`, `FuzzTensorFileDecode`.
 
 **Hata panik değildir.** Çekirdeğin panikleri (şekil, cihaz belleği) TR hatasına çevrilir;
 ileti hangi işlemin neden yapılamadığını ve ne yapılacağını söyler.
+Denetim: `TestPanicToError`, `TestWrappedBuiltinPanicIsCatchable`.
 
 ## Testler
 

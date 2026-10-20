@@ -6,14 +6,14 @@ birini yalıtılmış bir kapsamda çalıştırır ve sonucu Türkçe raporlar.
 ## Standartlar
 
 **Testler birbirinden yalıtılmıştır.** Her test kendi kapsamında çalışır; birinin tanımladığı
-ad ya da yarıda kalan bir görev ötekini etkilemez.
+ad ya da yarıda kalan bir görev ötekini etkilemez. Denetim: `TestRunFile`, `TestDeferRunsAfterTasks`.
 
 **Yüklenemeyen dosya kaybolmaz.** Sözdizimi, tip ya da üst düzey hata yüzünden testleri
-çalıştırılamayan dosya ayrıca sayılır ve raporlanır; başarılı sayılmaz.
+çalıştırılamayan dosya ayrıca sayılır ve raporlanır; başarılı sayılmaz. Denetim: `TestUnloadableFile`.
 
 **Dil tanımının her kuralının bir testi vardır.** Kapı testleri, dil tanımındaki (docs/spec)
 her kuralın kendi bölümündeki bir testte anıldığını ve olumsuz örneklerin kullanıldığını
-denetler; testi olmayan kural eklenemez.
+denetler; testi olmayan kural eklenemez. Denetim: `TestRuleInItsOwnSection`, `TestEveryRuleHasATest`, `TestNegativeFixturesUsed`.
 
 ## Testler
 

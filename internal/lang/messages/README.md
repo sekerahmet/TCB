@@ -10,18 +10,18 @@ iletiler için bu pakettir.
 `H0` sözdizimi · `H1` tip denetimi · `H2` yorumlayıcı (ortak `H2000` = `{fn}: {error}`) · `H3`
 tensör ve CPU · `H4` GPU · `H5` veri ve parçalayıcı · `H6` stdlib/ml · `H7` standart kitaplığın
 geri kalanı · `H8` araçlar ve `tr` komutu · `H9` iç hatalar. Silinen bir kodun numarası bir daha
-kullanılmaz.
+kullanılmaz. Denetim: `TestParseCode`, `TestCatalogErrors`, `TestMessageUsage` (tools/gen/msgconsts: kullanılmayan kod).
 
 **Go kodu metin yazmaz, kod yazar.** `messages.New(messages.H7003, fn, path)` bir hata,
 `messages.Text(...)` hata olmayan çıktı (uyarı, not) verir. Değerler tanımdaki parametre sırasıyla
 verilir; metin hata yazılırken etkin dilde kurulur. Sabitler üretilir
-(`go run ./tools/gen/msgconsts`); katalogda olmayan kod derlemeyi düşürür.
+(`go run ./tools/gen/msgconsts`); katalogda olmayan kod derlemeyi düşürür. Denetim: `TestMessageUsage`, `TestGeneratedUpToDate` (tools/gen/msgconsts).
 
 **Dosyalar.** `definitions.json` dilden bağımsızdır: her kodun parametre adları
 (`"H7003": { "param": ["fn", "path"] }`; adlar İngilizce tanımlayıcıdır). `tr.json` kaynak dildir
 ve her kodun metnini tutar; başka bir dil dosyası (`en.json` ...) çevirisi olmayan kodu Türkçe
 gösterir. Etkin dil `TR_DIL` ortam değişkenidir (adlarla aynı: `--dil en`); dosyadan tahmin edilmez.
-Her kod bir satırdır, kodlar artan sıradadır.
+Her kod bir satırdır, kodlar artan sıradadır. Denetim: `TestEmbeddedCatalogValid`, `TestFilesOneCodePerLine`, `TestDefinitionParamsAreASCIIIdentifiers`, `TestUnknownLanguageFallsBack`.
 
 **Şablon** (ICU MessageFormat'ın alt kümesi; çevirmen araçları tanır):
 
@@ -35,13 +35,13 @@ Her kod bir satırdır, kodlar artan sıradadır.
 | `{{`, `}}` | düz süslü parantez (dal içinde `}` dalı kapatır) |
 
 Her dilin metni kodun **bütün** parametrelerini kullanır (çeviride düşen değer kullanıcıya ulaşmazdı);
-sözcük sırası dilden dile değişebilir, parametreler adla anıldığı için serbesttir.
+sözcük sırası dilden dile değişebilir, parametreler adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSelect`, `TestCaseSuffix`, `TestTemplateErrors`, `TestCatalogErrors`.
 
 **Dilbilgisi şablondadır, Go'da değil.**
-- Go kodu sayıya bakıp sözcük seçmez (`argümanı`/`argümanları`): şablonda `plural`.
+- Go kodu sayıya bakıp sözcük seçmez (`argümanı`/`argümanları`): şablonda `plural`. Denetim: `TestPlural`.
 - Go kodu ada ek eklemez: şablonda `{ad|dat}`. `turkish.Suffix` yalnızca `internal/lang/turkish`'te çağrılır (denetim: `TestMessageUsage`); Türkçe çekimciyi o paket kaydeder (`messages.RegisterInflector`), `messages` başka bir TR paketini bilmez.
-- Seçenek listesi Go'da birleştirilmez: `messages.OrList(a, b, c)` → "a, b ya da c" (CLDR liste kalıbı: ikili H2010, ayırıcı H2005, son H2006).
-- Cümle parçalardan kurulmaz: bir iletinin anlamı tek şablondadır. Kendi başına anlamlı bir ad öbeği (tür adı, "bir tam sayı", sona eklenen ipucu) değer olabilir; Go kodu bir iletinin metnini düzenlemez (`strings.Replace`, `TrimPrefix`); ayrıntı gerekiyorsa parametresinden okunur (`messages.As(err).Args`).
+- Seçenek listesi Go'da birleştirilmez: `messages.OrList(a, b, c)` → "a, b ya da c" (CLDR liste kalıbı: ikili H2010, ayırıcı H2005, son H2006). Denetim: `TestOrList`.
+- Cümle parçalardan kurulmaz: bir iletinin anlamı tek şablondadır. Kendi başına anlamlı bir ad öbeği (tür adı, "bir tam sayı", sona eklenen ipucu) değer olabilir; Go kodu bir iletinin metnini düzenlemez (`strings.Replace`, `TrimPrefix`); ayrıntı gerekiyorsa parametresinden okunur (`messages.As(err).Args`). Denetim: `TestGoCodeDoesNotEditMessageText`.
 - Aynı anlam tek koddur: parametre adları farklı olsa da aynı metin iki kodda olamaz (`TestNoDuplicateTexts`; bağlamı farklı etiketler gerekçeyle `sameTextAllowed`'a yazılır).
 
 **Yeni bir dil eklemek.**
@@ -57,7 +57,7 @@ arar; metin değişince test kırılmaz.
 
 **İç hata.** Yalnızca TR'nin kendi hatasıyla oluşabilen durum `messages.Internal("ayrıntı")` ile
 bildirilir: kullanıcı tek ortak iletiyi (`H9000`, "lütfen bildirin") görür, ayrıntı geliştirici
-içindir ve İngilizce yazılır.
+içindir ve İngilizce yazılır. Denetim: `TestInternal`, `TestInternalfAndHasAny`.
 
 **Denetim.** `go test ./tools/gen/msgconsts` her çağrının değer sayısını tanımla karşılaştırır,
 kullanılmayan kodu bildirir ve ileti kodlarına geçirilmiş paketlerde (`migrated` listesi)
@@ -75,3 +75,9 @@ metinden bakan denetim (`interp.hasLine`, test koşucusunun `located`ı) kalktı
 (`messages.Pos`) okunur. Ayrıştırıcı ve denetleyici hataları da yapıyla taşınır (`source.Result.Errors`,
 `interp.ModuleError.Errors`, `formatter.SyntaxError` `[]error` tutar; konum `messages.PosError`'dadır);
 `turkish.ErrorFrame` konumu yalnızca yapıdan okur, metin yedeği yoktur.
+
+## Testler
+
+Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
+
+- `behavior_message_text_test.go`: Go kodunun bir iletinin metnini düzenlemediği (`strings.Replace`, `TrimPrefix` ... doğrudan ileti metniyle çağrılmaz)

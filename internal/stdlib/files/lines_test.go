@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -136,5 +138,32 @@ sil("son.txt")
 [x, o.sonraki()]`)
 	if got != `[["a", "b"], yok]` {
 		t.Fatalf("sonuç: %s", got)
+	}
+}
+
+// Erken bırakılan okuyucunun dosyası, okuyucuya erişilemez olunca çöp toplayıcıyla kapanır:
+// kaynak program bitmesini beklemeden serbest kalır.
+func TestLineReaderClosedWhenUnreachable(t *testing.T) {
+	k := tmpWork(t)
+	write(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
+	closeReaders()
+	if got := mustRunTR(t, `fonksiyon bırak() { değişken o = dosya_satırları("s.txt"); o.sonraki() }
+bırak()
+bırak()`); got != `1` {
+		t.Fatalf("sonuç: %s", got)
+	}
+	last := time.Now().Add(10 * time.Second)
+	for {
+		openReaders.Lock()
+		n := len(openReaders.m)
+		openReaders.Unlock()
+		if n == 0 {
+			return
+		}
+		if time.Now().After(last) {
+			t.Fatalf("erişilemez okuyucular kapanmadı: %d açık", n)
+		}
+		runtime.GC()
+		time.Sleep(10 * time.Millisecond)
 	}
 }
