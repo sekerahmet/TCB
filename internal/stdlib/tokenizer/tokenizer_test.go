@@ -125,7 +125,7 @@ değişken yok_token = p.parça_kimliği("böyle-bir-token-yok")
 	if got := al(t, m, "eot").(*interp.IntVal).Val; int(got) != id {
 		t.Fatalf("token_kimliği %d", got)
 	}
-	if al(t, m, "yok_token") != interp.NULL {
+	if al(t, m, "yok_token") != interp.Null {
 		t.Fatal("olmayan token yok dönmeli")
 	}
 }

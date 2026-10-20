@@ -173,7 +173,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 			}
 			d, cont, err := o.Next(m)
 			if err != nil || !cont {
-				return interp.NULL, err
+				return interp.Null, err
 			}
 			return d, nil
 		}}

@@ -26,7 +26,7 @@ import (
 // test koşucusu ve hata ayıklama sunucusu da bu ikilinin içinde çalıştığından onu görür.
 func init() { interp.SetLibrary(lib.Files) }
 
-const VERSION = "1.0.0"
+const Version = "1.0.0"
 
 // gcTarget çöp toplayıcının varsayılan hedefi (yığın, canlı belleğin bu yüzdesi kadar
 // büyüyünce toplama başlar; Go'nun varsayılanı 100). Eğitimde her adım çok sayıda
@@ -79,7 +79,7 @@ func main() {
 	case codes.K001:
 		printHelp()
 	case codes.K002:
-		fmt.Println(messages.Text(messages.H8603, VERSION))
+		fmt.Println(messages.Text(messages.H8603, Version))
 	case codes.K004:
 		if len(args) < 2 {
 			exitWithError(messages.Text(messages.H8605, codes.Name(codes.K004), "ornek.tr"))
@@ -180,7 +180,7 @@ func indentFrame(frame string) string {
 }
 
 func printHelp() {
-	fmt.Println("🇹🇷 " + messages.Text(messages.H8610, VERSION))
+	fmt.Println("🇹🇷 " + messages.Text(messages.H8610, Version))
 	fmt.Println(messages.Text(messages.H8611))
 	// Her satır tek iletidir: kullanım ve açıklama arasında sekme; komut ve seçenek adları
 	// koddan, etkin dilde gelir. Sütunu tabwriter hizalar (adların uzunluğu dile göre değişir).
@@ -260,7 +260,7 @@ func checkFile(path string) {
 
 func startREPL() {
 	defer stdlib.Close() // açık dosyalar kapanır, geçici klasörler silinir
-	fmt.Println("🇹🇷 " + messages.Text(messages.H8633, VERSION))
+	fmt.Println("🇹🇷 " + messages.Text(messages.H8633, Version))
 	fmt.Println(messages.Text(messages.H8634, codes.Name(codes.K200)))
 	machine := interp.New()
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın

@@ -99,7 +99,7 @@ func (o *Reader) loadStateTR(m *interp.VM, args []interp.Value, named map[string
 	if err := o.LoadState(m, s); err != nil {
 		return nil, err
 	}
-	return interp.TRUE, nil
+	return interp.True, nil
 }
 
 // LoadState durumu (StateDict biçiminde) yükler: tür, toplu, bağlam, tohum ve küme

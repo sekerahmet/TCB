@@ -166,7 +166,7 @@ func toPlain(raw any, depth int) (interp.Value, error) {
 	}
 	switch x := raw.(type) {
 	case nil:
-		return interp.NULL, nil
+		return interp.Null, nil
 	case bool:
 		return interp.BoolToVal(x), nil
 	case string:

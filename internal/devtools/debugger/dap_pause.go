@@ -215,7 +215,7 @@ func (s *dapServer) evaluate(msg *dapMessage) {
 		return
 	}
 	if val == nil {
-		val = interp.NULL
+		val = interp.Null
 	}
 	s.respond(msg, map[string]interface{}{
 		"result": display(val), "type": string(val.Type()), "variablesReference": s.refFor(val, a.Expression),

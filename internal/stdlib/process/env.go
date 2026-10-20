@@ -27,7 +27,7 @@ func envVar(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (inter
 	}
 	value, found := os.LookupEnv(name)
 	if !found {
-		return interp.NULL, nil
+		return interp.Null, nil
 	}
 	if IsSecretName(name) && m != nil {
 		addSecret(m, value)

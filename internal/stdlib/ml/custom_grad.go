@@ -201,7 +201,7 @@ func forwardResult(v interp.Value) (outputs []*tensor.Tensor, many bool, savedVa
 // shortForm hata mesajı için değerin tipini ve (kısaysa) kendisini yazar.
 func shortForm(v interp.Value) string {
 	if v == nil {
-		return interp.NULL.Inspect()
+		return interp.Null.Inspect()
 	}
 	s := v.Inspect()
 	if len(s) > 60 || strings.Contains(s, "\n") {
@@ -491,7 +491,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, messages.New(messages.H6432, fn, bad.input+1, shapeText(bad.index), fmt.Sprintf("%.6g", bad.an),
 			fmt.Sprintf("%.6g", bad.count), fmt.Sprintf("%.3g", bad.diff), fmt.Sprintf("%g", tol))
 	}
-	return interp.TRUE, nil
+	return interp.True, nil
 }
 
 // checkOutputs f'nin dönüşünü tensör listesine çevirir (tek tensör ya da tensör listesi).

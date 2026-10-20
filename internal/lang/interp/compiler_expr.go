@@ -13,7 +13,7 @@ func constCode(d Value) exprCode {
 	return func(v *VM, env *Environment) (Value, error) { return d, nil }
 }
 
-var nullCode = constCode(NULL)
+var nullCode = constCode(Null)
 
 func (c *compiler) expressions(k *compilerScope, exprs []ast.Expression) []exprCode {
 	codeList := make([]exprCode, len(exprs))
@@ -62,9 +62,9 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		return constCode(&StringVal{Val: e.Value})
 	case *ast.BooleanLiteral:
 		if e.Value {
-			return constCode(TRUE)
+			return constCode(True)
 		}
-		return constCode(FALSE)
+		return constCode(False)
 	case *ast.NullLiteral:
 		return nullCode
 

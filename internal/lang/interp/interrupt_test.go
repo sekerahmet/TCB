@@ -45,7 +45,7 @@ izler.ekle("sürdü")
 	ready := make(chan struct{})
 	vmx.RegisterBuiltin("hazır", func(*VM, []Value, map[string]Value) (Value, error) {
 		close(ready)
-		return NULL, nil
+		return Null, nil
 	})
 	go func() {
 		<-ready
@@ -91,7 +91,7 @@ func TestInterruptDeferred(t *testing.T) {
 	}
 	v.GlobalEnv.Define("dur", &BuiltinVal{Name: "dur", Fn: func(m *VM, _ []Value, _ map[string]Value) (Value, error) {
 		m.InterruptNow()
-		return NULL, nil
+		return Null, nil
 	}}, true)
 	var out bytes.Buffer
 	v.Out = &out

@@ -100,7 +100,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		}
 		val, exists := container.GetValue(idx)
 		if !exists {
-			return NULL, nil
+			return Null, nil
 		}
 		return val, nil
 
@@ -162,7 +162,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 
 	if obj.Type() == ValNull {
 		if e.Safe {
-			return NULL, nil
+			return Null, nil
 		}
 		return nil, messages.At(e.Line(), 0, messages.New(messages.H2466, codes.Name(codes.A042), e.Property))
 	}
@@ -208,7 +208,7 @@ func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, erro
 		}, nil
 	}
 	if e.Safe {
-		return NULL, nil
+		return Null, nil
 	}
 	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, inst.Def.Name, e.Property))
 }

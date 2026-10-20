@@ -285,9 +285,9 @@ func ToFloat(v Value) (float64, bool) {
 
 func BoolToVal(b bool) Value {
 	if b {
-		return TRUE
+		return True
 	}
-	return FALSE
+	return False
 }
 
 // equalityResult == (esit) ya da != işleminin sonucudur. Tip değeri metinle

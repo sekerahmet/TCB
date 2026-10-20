@@ -18,7 +18,7 @@ func (v *VM) registerTestBuiltins() {
 			return nil, ArgCountError(codes.G700, Counts(1, 2), len(args), messages.Text(messages.H2311))
 		}
 		if args[0].IsTruthy() {
-			return TRUE, nil
+			return True, nil
 		}
 		if len(args) == 2 {
 			return nil, messages.New(messages.H2456, args[1].Inspect())
@@ -35,7 +35,7 @@ func (v *VM) registerTestBuiltins() {
 			return nil, err
 		}
 		if ValuesEqual(args[0], args[1]) {
-			return TRUE, nil
+			return True, nil
 		}
 		if len(args) == 3 {
 			return nil, messages.New(messages.H2517, args[2].Inspect(), testShow(args[0]), testShow(args[1]))

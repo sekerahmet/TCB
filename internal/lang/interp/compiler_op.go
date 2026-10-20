@@ -20,9 +20,9 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 				return nil, err
 			}
 			if right.IsTruthy() {
-				return FALSE, nil
+				return False, nil
 			}
-			return TRUE, nil
+			return True, nil
 		}
 	case "-":
 		return func(v *VM, env *Environment) (Value, error) {
@@ -49,7 +49,7 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 		if _, err := rightFn(v, env); err != nil {
 			return nil, err
 		}
-		return NULL, nil
+		return Null, nil
 	}
 }
 
@@ -130,7 +130,7 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 				return nil, err
 			}
 			if !isTrue(left) {
-				return FALSE, nil
+				return False, nil
 			}
 			right, err := rightFn(v, env)
 			if err != nil {
@@ -145,7 +145,7 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 				return nil, err
 			}
 			if isTrue(left) {
-				return TRUE, nil
+				return True, nil
 			}
 			right, err := rightFn(v, env)
 			if err != nil {

@@ -182,13 +182,13 @@ func unknownOption(given string, options []*option) error {
 func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 	if s.optKind == kindBool {
 		if !valued {
-			return interp.TRUE, nil
+			return interp.True, nil
 		}
 		switch value {
 		case codes.Name(codes.A040):
-			return interp.TRUE, nil
+			return interp.True, nil
 		case codes.Name(codes.A041):
-			return interp.FALSE, nil
+			return interp.False, nil
 		}
 		return nil, messages.New(messages.H7210, s.name, codes.Name(codes.A203), codes.Name(codes.A040), codes.Name(codes.A041), shorten(value))
 	}
@@ -232,9 +232,9 @@ func parsePlainValue(t optKind, s string) (interp.Value, error) {
 	case kindBool:
 		switch s {
 		case codes.Name(codes.A040):
-			return interp.TRUE, nil
+			return interp.True, nil
 		case codes.Name(codes.A041):
-			return interp.FALSE, nil
+			return interp.False, nil
 		}
 		return nil, messages.New(messages.H7213, codes.Name(codes.A040), codes.Name(codes.A041))
 	}

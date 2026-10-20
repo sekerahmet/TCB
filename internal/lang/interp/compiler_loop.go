@@ -53,7 +53,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			return nil, signalNone, err
 		}
 		kind := loopScope{outerEnv: env, info: info, again: again}
-		var lastVal Value = NULL
+		var lastVal Value = Null
 		var handoff uint32
 		switch it := iterVal.(type) {
 		case *RangeVal:
@@ -205,7 +205,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 // streamLoop tembel bir kaynağı (Akis) biter, 'çık' ya da 'sonuç' gelene kadar gezer.
 // Öğe sayısı önceden bilinmediğinden her tur Sonraki ile istenir.
 func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyBlock *blockCode, line int) (Value, flowSignal, error) {
-	var lastVal Value = NULL
+	var lastVal Value = Null
 	var handoff uint32
 	for idx := int64(0); ; idx++ {
 		if handoff++; handoff&255 == 0 {
@@ -247,7 +247,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 	if s.Body == nil || c.blockFlags(s.Body)&blockDefines == 0 {
 		bodyBlock := c.statements(k, bodyStatements)
 		return func(v *VM, env *Environment) (Value, flowSignal, error) {
-			var lastVal Value = NULL
+			var lastVal Value = Null
 			var handoff uint32
 			for {
 				if handoff++; handoff&255 == 0 {
@@ -281,7 +281,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 	info := sub.info
 	again := c.blockFlags(s.Body)&blockCaptures == 0
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		var lastVal Value = NULL
+		var lastVal Value = Null
 		kind := loopScope{outerEnv: env, info: info, again: again}
 		var handoff uint32
 		for {

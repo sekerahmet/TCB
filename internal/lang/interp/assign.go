@@ -49,7 +49,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		}
 		cur, _ := container.GetValue(idx)
 		if cur == nil {
-			cur = NULL
+			cur = Null
 		}
 		finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
 		if err != nil {
@@ -92,7 +92,7 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 			return messages.At(line, 0, messages.New(messages.H2405, inst.Def.Name, prop))
 		}
 		if cur == nil {
-			cur = NULL
+			cur = Null
 		}
 		finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
 		if err != nil {
@@ -108,7 +108,7 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 		}
 		cur := inst.Pairs[prop]
 		if cur == nil {
-			cur = NULL
+			cur = Null
 		}
 		finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
 		if err != nil {

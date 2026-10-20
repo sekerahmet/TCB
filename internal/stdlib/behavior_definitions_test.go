@@ -281,7 +281,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		var real []codes.Code
 		for i, o := range examples {
 			v, err := runSame(t, m, "u_"+string(rune('a'+i))+"."+codes.Name(k))
-			if err == nil && !(o.typ == codes.A206 && v == interp.NULL) {
+			if err == nil && !(o.typ == codes.A206 && v == interp.Null) {
 				real = append(real, o.typ)
 			}
 		}

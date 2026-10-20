@@ -283,7 +283,7 @@ func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) 
 		return nil, messages.New(messages.H2432, CallPrefix(codes.G501), codes.Name(codes.A080))
 	}
 	y.WaitAsync()
-	return TRUE, nil
+	return True, nil
 }
 
 // timeMsBuiltin zaman_ms() yerleşiğidir.
@@ -330,7 +330,7 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 	if err != nil {
 		return nil, turkish.FileError(CallPrefix(codes.G111), filePath, messages.H2101, err)
 	}
-	return TRUE, nil
+	return True, nil
 }
 
 // sleepBuiltin bekle() yerleşiğidir.
@@ -355,7 +355,7 @@ func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	}
 	// Kesme istenirse (Ctrl+C) bekleme hemen biter; program sonraki güvenli noktada durur.
 	y.Blocking(func() { y.interruptibleSleep(time.Duration(pick * float64(time.Second))) })
-	return TRUE, nil
+	return True, nil
 }
 
 // sayiTipleri sayı bekleyen yerleşiklerin kabul ettiği tiplerdir; sayiTipi hata

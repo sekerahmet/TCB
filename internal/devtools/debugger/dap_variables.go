@@ -164,7 +164,7 @@ func (s *dapServer) refFor(val interp.Value, expr string) int {
 // display değişkenin yanında gösterilecek kısa metindir.
 func display(val interp.Value) string {
 	if val == nil {
-		return interp.NULL.Inspect()
+		return interp.Null.Inspect()
 	}
 	if iz, ok := val.(WatchValue); ok {
 		// Çok satırlı yazdırma biçimi yerine kısa özet gösterilir.

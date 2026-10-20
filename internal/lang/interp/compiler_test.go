@@ -148,7 +148,7 @@ func TestSortValuesStable(t *testing.T) {
 	for _, mixed := range [][]Value{
 		{&StringVal{Val: "b"}, NewInt(1), &StringVal{Val: "a"}},
 		{NewInt(2), &StringVal{Val: "10"}, NewInt(10)},
-		{TRUE, FALSE},
+		{True, False},
 	} {
 		if err := sortValues("sırala()", mixed); err == nil || !strings.Contains(err.Error(), "yalnızca sayılardan ya da yalnızca metinlerden") {
 			t.Fatalf("karışık liste hata vermeli: %v", err)

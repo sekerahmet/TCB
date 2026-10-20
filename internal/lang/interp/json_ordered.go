@@ -89,7 +89,7 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 	case bool:
 		return BoolToVal(t), nil
 	case nil:
-		return NULL, nil
+		return Null, nil
 	}
 	return nil, messages.New(messages.H2504, tok)
 }

@@ -54,7 +54,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		}
 		g := t.Grad()
 		if g == nil {
-			return interp.NULL, nil
+			return interp.Null, nil
 		}
 		return New(g), nil
 	case memberValue:

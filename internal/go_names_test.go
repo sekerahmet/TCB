@@ -28,17 +28,10 @@ var (
 // goNameAcronyms tek başına büyük harfle yazılabilen kısaltmalardır.
 var goNameAcronyms = set("JSON HTTP HTML YAML UTF ASCII CUDA")
 
-// goNameExceptions "dosya:Ad" anahtarlı istisnalardır. Ad bir dış API'den (CUDA, Windows, cgo/purego
-// bağı) geliyorsa kalıcıdır; bugün böyle bir ad yoktur (CUDA sabitleri zaten CuXxx biçimindedir).
-// Aşağıdaki kayıtlar GEÇİCİDİR: ana oturum o dosyalar üzerinde çalıştığı için çevrilmeleri
-// birleştirmeden sonraya bırakıldı (TRUE→True, FALSE→False, NULL→Null, VERSION→Version);
-// çevrilince kayıt silinir. Yeni kayıt gerekçesiz eklenmez.
-var goNameExceptions = map[string]string{
-	"internal/lang/interp/values.go:TRUE":  "geçici: çağıranlar devtools/debugger'da (başka oturum)",
-	"internal/lang/interp/values.go:FALSE": "geçici: çağıranlar devtools/debugger'da (başka oturum)",
-	"internal/lang/interp/values.go:NULL":  "geçici: çağıranlar devtools/debugger'da (başka oturum)",
-	"cmd/tr/main.go:VERSION":               "geçici: cmd/tr üzerinde başka oturum çalışıyor; e2e yardımcısı adı kaynaktan okur",
-}
+// goNameExceptions "dosya:Ad" anahtarlı istisnalardır; yalnızca bir dış API'den (CUDA, Windows,
+// cgo/purego bağı) gelen ad yazılır, gerekçesiyle. Bugün boştur (CUDA sabitleri CuXxx
+// biçimindedir). Liste yalnızca küçülür.
+var goNameExceptions = map[string]string{}
 
 // goNameSkipDirs taranmayan klasörlerdir.
 var goNameSkipDirs = set(".git .claude .codegraph node_modules")

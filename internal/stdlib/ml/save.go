@@ -134,7 +134,7 @@ func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	if writeErr != nil {
 		return nil, turkish.FileError(fn, fpath, messages.H2101, writeErr)
 	}
-	return interp.NULL, nil
+	return interp.Null, nil
 }
 
 // writeToFile girdileri yol'a atomik olarak yazar (bkz. interp.WriteAtomic): yazma yarıda kalırsa

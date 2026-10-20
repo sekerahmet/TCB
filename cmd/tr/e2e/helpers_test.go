@@ -127,7 +127,7 @@ func wait(t *testing.T, s result, code int, inOutput, inStderr []string) {
 	}
 }
 
-// trVersion yorumlayıcının sürümünü kaynaktan (cmd/tr/main.go'daki VERSION sabiti) okur:
+// trVersion yorumlayıcının sürümünü kaynaktan (cmd/tr/main.go'daki Version sabiti) okur:
 // 'tr sürüm' çıktısı kaynaktaki sürümle karşılaştırılır.
 func trVersion(t *testing.T) string {
 	t.Helper()
@@ -144,7 +144,7 @@ func trVersion(t *testing.T) string {
 		for _, s := range g.Specs {
 			v := s.(*ast.ValueSpec)
 			for i, ad := range v.Names {
-				if ad.Name != "VERSION" || i >= len(v.Values) {
+				if ad.Name != "Version" || i >= len(v.Values) {
 					continue
 				}
 				if lit, ok := v.Values[i].(*ast.BasicLit); ok && lit.Kind == token.STRING {
@@ -156,6 +156,6 @@ func trVersion(t *testing.T) string {
 			}
 		}
 	}
-	t.Fatal("cmd/tr/main.go'da VERSION sabiti bulunamadı")
+	t.Fatal("cmd/tr/main.go'da Version sabiti bulunamadı")
 	return ""
 }

@@ -214,7 +214,7 @@ func setupStringMethods() {
 		if pos, ok := optionalIndex(args[0], len(runes)); ok {
 			return &StringVal{Val: string(runes[pos])}, nil
 		}
-		return NULL, nil
+		return Null, nil
 	})
 	addMethod(typeString, codes.Y003, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		runes := []rune(inst.(*StringVal).Val)
@@ -266,7 +266,7 @@ func setupListMethods() {
 		if pos, ok := optionalIndex(args[0], len(elems)); ok {
 			return elems[pos], nil
 		}
-		return NULL, nil
+		return Null, nil
 	})
 	addMethod(typeList, codes.Y003, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
@@ -291,10 +291,10 @@ func setupListMethods() {
 	addMethod(typeList, codes.Y002, signature{1, 1, "değer", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		for _, el := range inst.(*ListVal).Elements {
 			if ValuesEqual(el, args[0]) {
-				return TRUE, nil
+				return True, nil
 			}
 		}
-		return FALSE, nil
+		return False, nil
 	})
 	addMethod(typeList, codes.Y204, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		var unique []Value
@@ -367,12 +367,12 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 			return NewInt(int64(len(inst.Elements))), nil
 		case memberFirst:
 			if len(inst.Elements) == 0 {
-				return NULL, nil
+				return Null, nil
 			}
 			return inst.Elements[0], nil
 		case memberLast:
 			if len(inst.Elements) == 0 {
-				return NULL, nil
+				return Null, nil
 			}
 			return inst.Elements[len(inst.Elements)-1], nil
 		}
@@ -389,11 +389,11 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 		if val, ok := d.Pairs[prop]; ok {
 			return val, nil
 		}
-		return NULL, nil
+		return Null, nil
 	}
 
 	if safe {
-		return NULL, nil
+		return Null, nil
 	}
 	if h := movedMemberError(obj, prop); h != "" {
 		return nil, messages.At(line, 0, messages.New(messages.H2441, h))
@@ -425,7 +425,7 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	case len(args) == 2:
 		acc = args[0]
 	case len(elems) == 0:
-		return NULL, nil
+		return Null, nil
 	default:
 		acc, begin = elems[0], 1
 	}

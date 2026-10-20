@@ -49,7 +49,7 @@ func TestRunRecoversFromBuiltinPanic(t *testing.T) {
 	machine.RegisterBuiltin("patla", func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		var m map[string]int
 		m["x"] = 1 // nil map paniği
-		return NULL, nil
+		return Null, nil
 	})
 	prog := parser.New(lexer.New(`
 		değişken çalıştı = yanlış

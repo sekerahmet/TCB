@@ -39,7 +39,7 @@ func (c *compiler) ifExpr(k *compilerScope, e *ast.IfExpression) statementCode {
 		if coalesce != nil {
 			return coalesce(v, env)
 		}
-		return NULL, signalNone, nil
+		return Null, signalNone, nil
 	}
 }
 func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statementCode {
@@ -88,10 +88,10 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 					val, err := d.value(v, env)
 					return val, signalNone, err
 				}
-				return NULL, signalNone, nil
+				return Null, signalNone, nil
 			}
 		}
-		return NULL, signalNone, nil
+		return Null, signalNone, nil
 	}
 }
 

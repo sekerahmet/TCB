@@ -222,13 +222,13 @@ func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) strin
 				if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
 					val, err := d.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
 					if err == nil && val.IsTruthy() {
-						curStr := interp.TRUE.Inspect()
+						curStr := interp.True.Inspect()
 						if wp.LastVal != curStr {
 							wp.LastVal = curStr
 							return "⚡ " + messages.Text(messages.H8032, wp.ID, wp.Expression)
 						}
 					} else {
-						wp.LastVal = interp.FALSE.Inspect()
+						wp.LastVal = interp.False.Inspect()
 					}
 				}
 			}

@@ -12,7 +12,7 @@ func TestArgErrorsFormat(t *testing.T) {
 	if got := ArgTypeError(codes.T101, 1, &StringVal{Val: "a"}, codes.A200).Error(); got != `sıfırlar() 1. argüman olarak Tam bekler, Metin ("a") verildi` {
 		t.Errorf("tip hatası: %s", got)
 	}
-	if got := ArgTypeError(codes.G210, 1, NULL, codes.A200, codes.A201, codes.A202).Error(); got != `tam() 1. argüman olarak Tam, Ondalık ya da Metin bekler, Yok (yok) verildi` {
+	if got := ArgTypeError(codes.G210, 1, Null, codes.A200, codes.A201, codes.A202).Error(); got != `tam() 1. argüman olarak Tam, Ondalık ya da Metin bekler, Yok (yok) verildi` {
 		t.Errorf("çok tipli tip hatası: %s", got)
 	}
 	if got := ArgCountError(codes.G305, "1 ya da 2", 3, "bitiş", "başlangıç, bitiş").Error(); got != "aralık() 1 ya da 2 argüman bekler, 3 verildi (kullanım: aralık(bitiş) ya da aralık(başlangıç, bitiş))" {

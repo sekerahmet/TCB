@@ -95,7 +95,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 			if _, err := safe(func() bool { o.opt.Step(); return true }); err != nil {
 				return nil, err
 			}
-			return interp.NULL, nil
+			return interp.Null, nil
 		}}, nil
 	case memberZeroGrad:
 		return &interp.BuiltinVal{Name: codes.Name(memberZeroGrad), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
@@ -103,7 +103,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 				return nil, messages.New(messages.H6506, codes.Name(memberZeroGrad))
 			}
 			o.opt.ZeroGrad()
-			return interp.NULL, nil
+			return interp.Null, nil
 		}}, nil
 	case memberLR:
 		// Oran 32 bit saklanır; en kısa gösterimiyle verilir (0.003 → 0.003).

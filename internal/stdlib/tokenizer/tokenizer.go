@@ -553,7 +553,7 @@ func (n *Object) tokenID(_ *interp.VM, args []interp.Value, named map[string]int
 	}
 	id, ok := n.p.TokenToID(s.Val)
 	if !ok {
-		return interp.NULL, nil
+		return interp.Null, nil
 	}
 	return interp.NewInt(int64(id)), nil
 }

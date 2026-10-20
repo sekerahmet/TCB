@@ -50,7 +50,7 @@ func TestNextReleasesLockWhileWaiting(t *testing.T) {
 	m.GlobalEnv.Define("s", o, false)
 	testBuiltin(m, "başladı", func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
 		started <- struct{}{}
-		return interp.NULL, nil
+		return interp.Null, nil
 	})
 	testBuiltin(m, "görevi_bekle", func(m *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 		m.Blocking(func() {
@@ -60,11 +60,11 @@ func TestNextReleasesLockWhileWaiting(t *testing.T) {
 			// geçerdi.
 			nextWaiting(t)
 		})
-		return interp.NULL, nil
+		return interp.Null, nil
 	})
 	testBuiltin(m, "kapıyı_aç", func(*interp.VM, []interp.Value, map[string]interp.Value) (interp.Value, error) {
 		close(resource.gate)
-		return interp.NULL, nil
+		return interp.Null, nil
 	})
 	p := parser.New(lexer.New(`
 değişken alınan = yok

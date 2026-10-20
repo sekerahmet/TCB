@@ -188,7 +188,7 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 		return nil, err
 	}
 	if result == nil {
-		result = interp.NULL
+		result = interp.Null
 	}
 	return result, nil
 }

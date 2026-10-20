@@ -178,7 +178,7 @@ func TestRecoverKeepsInterrupt(t *testing.T) {
 			y.Blocking(func() {}) // kilit geri alınınca kesilme paniği atılır
 			return 1
 		}, func(any) error { converted = true; return errors.New("yutuldu") })
-		return interp.NULL, nil
+		return interp.Null, nil
 	}}, true)
 	_, err := m.Run(parser.New(lexer.New("dene_kurtar()")).ParseProgram())
 	if converted {

@@ -175,7 +175,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 				}
 				inst.Fields[f.Name] = defVal
 			} else {
-				inst.Fields[f.Name] = NULL
+				inst.Fields[f.Name] = Null
 			}
 		}
 		if withCtor {
@@ -276,7 +276,7 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 			}
 			fnEnv.vals[slot] = defVal
 		} else {
-			fnEnv.vals[slot] = NULL
+			fnEnv.vals[slot] = Null
 		}
 	}
 	val, _, err := fk.bodyBlock.run(v, fnEnv)

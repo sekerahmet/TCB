@@ -95,7 +95,7 @@ func axisArg(fn string, args []interp.Value, named map[string]interp.Value) (int
 		}
 		ev = v
 	}
-	if ev == nil || ev == interp.NULL {
+	if ev == nil || ev == interp.Null {
 		return 0, false, nil
 	}
 	e, ok := intNumber(ev)

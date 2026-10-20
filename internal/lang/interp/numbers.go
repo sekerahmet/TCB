@@ -145,7 +145,7 @@ func ListElementError(name string, i int, expected string, given Value) error {
 // tek bir liste argümanının elemanları olduğunu söyler (hata mesajı için).
 func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, error) {
 	if len(elems) == 0 {
-		return NULL, nil
+		return Null, nil
 	}
 	var picked Value
 	for i, el := range elems {

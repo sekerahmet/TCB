@@ -105,7 +105,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 		return nil, interp.ArgCountError(codes.G811, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2322))
 	}
 	var total int64
-	if len(args) == 1 && args[0] != interp.NULL {
+	if len(args) == 1 && args[0] != interp.Null {
 		n, ok := bind.Int(args[0])
 		if !ok {
 			return nil, interp.ArgTypeError(codes.G811, 1, args[0], codes.A200, codes.A204)
@@ -116,7 +116,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 		total = n
 	}
 	c := &Progress{m: m, d: d, total: total, start: clock(), order: barOrder.Add(1)}
-	if v, ok := bind.GetNamed(named, nameLog); ok && v != interp.NULL {
+	if v, ok := bind.GetNamed(named, nameLog); ok && v != interp.Null {
 		g, ok := v.(*Log)
 		if !ok {
 			return nil, messages.New(messages.H7314, fn, nameLog.TR, LogType, codes.Name(codes.G810), interp.TypeAndSummary(v))
@@ -168,7 +168,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 		return nil, interp.ArgCountError(codes.Y010, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2323))
 	}
 	var metrics []metric
-	if len(args) == 1 && args[0] != interp.NULL {
+	if len(args) == 1 && args[0] != interp.Null {
 		s, ok := args[0].(*interp.DictVal)
 		if !ok {
 			return nil, interp.ArgTypeError(codes.Y010, 1, args[0], codes.A206)
@@ -200,7 +200,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 	if done {
 		c.finish(now)
 	}
-	return interp.TRUE, nil
+	return interp.True, nil
 }
 
 // advance sayacı ilerletir, hızı ölçer, günlüğe yazar ve çubuğu (sıklık sınırıyla) çizer.

@@ -107,9 +107,9 @@ func (n *NullVal) Inspect() string { return codes.Name(codes.A042) }
 func (n *NullVal) IsTruthy() bool  { return false }
 
 var (
-	TRUE  = &BoolVal{Val: true}
-	FALSE = &BoolVal{Val: false}
-	NULL  = &NullVal{}
+	True  = &BoolVal{Val: true}
+	False = &BoolVal{Val: false}
+	Null  = &NullVal{}
 )
 
 type ListVal struct {

@@ -32,7 +32,7 @@ func TestKeyOrderKept(t *testing.T) {
 // Biçim, alfabetik sıralı sözlükte encoding/json ile bayt bayt aynıdır (girintili ve girintisiz).
 func TestSameFormatAsEncodingJSON(t *testing.T) {
 	d := dict("a", list(interp.NewInt(1), &interp.FloatVal{Val: 0.5}, &interp.FloatVal{Val: 1e-7}, &interp.FloatVal{Val: 1e21}, &interp.FloatVal{Val: 2}),
-		"b", dict(), "c", list(), "d", interp.NULL, "e", interp.TRUE, "f", &interp.StringVal{Val: "<ş\"\n>"},
+		"b", dict(), "c", list(), "d", interp.Null, "e", interp.True, "f", &interp.StringVal{Val: "<ş\"\n>"},
 		"g", dict("x", list(dict("y", interp.NewInt(-3)))))
 	goVal := goValue(d)
 	for _, indent := range []string{"", "  "} {

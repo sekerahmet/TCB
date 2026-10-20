@@ -141,7 +141,7 @@ func isZeroOne(x []int) bool {
 
 // normParam ağırlık/sapma argümanını okur (yok verilebilir) ve şeklini denetler.
 func normParam(fn, ad string, v interp.Value, D int) (*tensor.Tensor, error) {
-	if v == nil || v == interp.NULL {
+	if v == nil || v == interp.Null {
 		return nil, nil
 	}
 	t, err := toTensor(fn, v)

@@ -34,12 +34,12 @@ func (c *compiler) statement(k *compilerScope, stmt ast.Statement) statementCode
 
 	case *ast.BreakStatement:
 		return func(v *VM, env *Environment) (Value, flowSignal, error) {
-			return NULL, signalBreak, nil
+			return Null, signalBreak, nil
 		}
 
 	case *ast.ContinueStatement:
 		return func(v *VM, env *Environment) (Value, flowSignal, error) {
-			return NULL, signalContinue, nil
+			return Null, signalContinue, nil
 		}
 
 	case *ast.BlockStatement:
@@ -107,9 +107,9 @@ func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement)
 		if err != nil {
 			return nil, signalNone, err
 		}
-		var lastVal Value = NULL
+		var lastVal Value = Null
 		for i, definition := range definitions {
-			var val Value = NULL
+			var val Value = Null
 			if i < len(evalVals) {
 				val = evalVals[i]
 			}
@@ -149,9 +149,9 @@ func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStat
 		if err != nil {
 			return nil, signalNone, err
 		}
-		var lastVal Value = NULL
+		var lastVal Value = Null
 		for i, dest := range dests {
-			var val Value = NULL
+			var val Value = Null
 			if i < len(evalVals) {
 				val = evalVals[i]
 			}
@@ -190,7 +190,7 @@ func (c *compiler) deferStatement(k *compilerScope, s *ast.DeferStatement) state
 			}
 			return nil
 		})
-		return NULL, signalNone, nil
+		return Null, signalNone, nil
 	}
 }
 
@@ -271,7 +271,7 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 				return nil, signalNone, err
 			}
 			if !condVal.IsTruthy() {
-				return NULL, signalNone, nil
+				return Null, signalNone, nil
 			}
 		}
 		if v.Debugger == nil && NewDebugger != nil {
@@ -288,7 +288,7 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 				v.Debugger.Breakpoint("Koddaki kesme noktası (" + codes.Name(codes.A090) + ")")
 			}
 		}
-		return NULL, signalNone, nil
+		return Null, signalNone, nil
 	}
 }
 
@@ -402,6 +402,6 @@ func (c *compiler) concurrent(k *compilerScope, s *ast.AsyncStatement) statement
 				_, err = call(task, e)
 			}
 		}(asyncEnv)
-		return TRUE, signalNone, nil
+		return True, signalNone, nil
 	}
 }

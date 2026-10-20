@@ -171,7 +171,7 @@ func (g *Log) add(args []interp.Value) (interp.Value, error) {
 	if err := g.write(record); err != nil {
 		return nil, err
 	}
-	return interp.TRUE, nil
+	return interp.True, nil
 }
 
 // addMetrics kullanıcının sözlüğündeki ölçüleri kayda ekler: anahtarlar Metin olmalı,

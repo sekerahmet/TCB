@@ -162,7 +162,7 @@ func (c *compiler) statements(k *compilerScope, stmts []ast.Statement) *blockCod
 }
 
 func (b *blockCode) run(v *VM, env *Environment) (Value, flowSignal, error) {
-	var lastVal Value = NULL
+	var lastVal Value = Null
 	codeList := b.codeList
 	for i := 0; i < len(codeList); i++ {
 		if v.Debugger != nil {
@@ -264,7 +264,7 @@ func (c *compiler) blockStatement(k *compilerScope, b *ast.BlockStatement) state
 }
 
 func emptyStatement(v *VM, env *Environment) (Value, flowSignal, error) {
-	return NULL, signalNone, nil
+	return Null, signalNone, nil
 }
 
 // --- GİRİŞ NOKTALARI ---

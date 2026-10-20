@@ -530,7 +530,7 @@ func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, dataError(fn, o.ds.path, err)
 	}
 	if last {
-		return interp.NULL, nil
+		return interp.Null, nil
 	}
 	gt := ml.NewInt(tensor.New(input, b, t))
 	ht := ml.NewInt(tensor.New(target, b, t))
@@ -547,7 +547,7 @@ func (o *Reader) Next(m *interp.VM) (interp.Value, bool, error) {
 		return nil, false, messages.New(messages.H5535, codes.Name(memberNext), codes.Name(memberSequential))
 	}
 	d, err := o.nextTR(m, nil, nil)
-	if err != nil || d == interp.NULL {
+	if err != nil || d == interp.Null {
 		return nil, false, err
 	}
 	return d, true, nil

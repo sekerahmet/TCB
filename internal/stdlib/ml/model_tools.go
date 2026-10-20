@@ -185,7 +185,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	if err := checkAttentionShapes(fn, q, k, v); err != nil {
 		return nil, err
 	}
-	if mv, ok := bind.GetNamed(named, nameMask); ok && mv != interp.NULL {
+	if mv, ok := bind.GetNamed(named, nameMask); ok && mv != interp.Null {
 		mt, err := toTensor(fn+": maske", mv)
 		if err != nil {
 			return nil, err
@@ -312,7 +312,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		k = C
 	}
 	var rng *rand.Rand
-	if tv, ok := bind.GetNamed(named, nameSeed); ok && tv != interp.NULL {
+	if tv, ok := bind.GetNamed(named, nameSeed); ok && tv != interp.Null {
 		t, integer := tv.(*interp.IntVal)
 		if !integer {
 			return nil, messages.New(messages.H6342, fn, typeName(tv))

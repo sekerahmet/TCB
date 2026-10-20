@@ -9,7 +9,7 @@ import (
 func GoToTRValue(raw interface{}) Value {
 	switch v := raw.(type) {
 	case nil:
-		return NULL
+		return Null
 	case bool:
 		return BoolToVal(v)
 	case int:

@@ -57,7 +57,7 @@ değişken ç = ilerleme(100, günlük: g)`); err != nil {
 	if _, err := run(t, m, `ç.güncelle()`); !messages.Has(err, messages.H7316) {
 		t.Errorf("bitmiş çubukta hata bekleniyordu: %v", err)
 	}
-	if v, _ := run(t, m, `ç.durdur()`); v != interp.FALSE {
+	if v, _ := run(t, m, `ç.durdur()`); v != interp.False {
 		t.Errorf("ikinci durdur yanlış dönmeli: %v", v)
 	}
 }

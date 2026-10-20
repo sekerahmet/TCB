@@ -155,13 +155,13 @@ func (y *Path) query(m *interp.VM, kd codes.Code) interp.Value {
 	b, err := os.Stat(c)
 	switch {
 	case err != nil:
-		return interp.FALSE
+		return interp.False
 	case kd == codes.Y316:
 		return interp.BoolToVal(b.Mode().IsRegular())
 	case kd == codes.Y317:
 		return interp.BoolToVal(b.IsDir())
 	}
-	return interp.TRUE
+	return interp.True
 }
 
 func (y *Path) size(m *interp.VM) (interp.Value, error) {

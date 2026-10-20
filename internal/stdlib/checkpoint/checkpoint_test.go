@@ -302,8 +302,8 @@ func runHooked(t *testing.T, code string, broken *atomicBool) (string, error) {
 	w := &teeWriter{}
 	m.Out, m.Err = w, w
 	m.GlobalEnv.Define("bozuk_yap", &interp.BuiltinVal{Name: "bozuk_yap", Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		broken.store(args[0] == interp.TRUE)
-		return interp.NULL, nil
+		broken.store(args[0] == interp.True)
+		return interp.Null, nil
 	}}, true)
 	_, err := runVM(t, m, code)
 	return w.String(), err

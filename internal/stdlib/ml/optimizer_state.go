@@ -70,7 +70,7 @@ func (o *Optimizer) loadStateTR(args []interp.Value) (interp.Value, error) {
 	if err := o.LoadState(fn, st); err != nil {
 		return nil, err
 	}
-	return interp.TRUE, nil
+	return interp.True, nil
 }
 
 // IsOptimizer değer bir iyileştirici (AdamW, SGD) mi?

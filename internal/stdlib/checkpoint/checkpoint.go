@@ -221,7 +221,7 @@ func (kn *Checkpoint) update(m *interp.VM, args []interp.Value) (interp.Value, e
 		kn.halt(m)
 	}
 	if clock().Sub(kn.lastSave) < kn.interval {
-		return interp.FALSE, nil
+		return interp.False, nil
 	}
 	return kn.saveOnInterval(m)
 }
@@ -233,7 +233,7 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 	kn.lastSave = clock()
 	if err == nil {
 		kn.failures = 0
-		return interp.TRUE, nil
+		return interp.True, nil
 	}
 	if _, collecting := err.(collectError); collecting {
 		return nil, err
@@ -249,7 +249,7 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 		warning = messages.Text(messages.H7413, err, kn.failures, maxFailures, durationText(kn.interval), kn.lastValidText())
 	}
 	m.WriteOutput(m.Err, warning+"\n")
-	return interp.FALSE, nil
+	return interp.False, nil
 }
 
 // saveTR kn.kaydet() metodudur: hemen kaydeder; hata açık hatadır.

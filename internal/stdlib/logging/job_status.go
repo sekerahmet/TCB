@@ -49,7 +49,7 @@ func (c *Progress) writeJobStatus(now time.Time, last bool) {
 	if c.total > 0 {
 		k.Set(keyTotal, interp.NewInt(c.total))
 	} else {
-		k.Set(keyTotal, interp.NULL)
+		k.Set(keyTotal, interp.Null)
 	}
 	metrics := interp.NewDictVal()
 	for _, o := range c.metrics {
