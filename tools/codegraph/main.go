@@ -122,6 +122,7 @@ func buildGraph(root string) (*Graph, error) {
 	idx := extractGo(m, b)
 	extractCodes(root, b)
 	addTestEdges(b, idx)
+	extractTR(root, b)
 	extractMarkdown(root, b, idx)
 	g := b.graph()
 	g.Stamp = stamp

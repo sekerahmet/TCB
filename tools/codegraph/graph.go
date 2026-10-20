@@ -13,8 +13,8 @@ const schemaVersion = 1
 
 // extractorRevision çıkarıcıların ürettiği içerik değişince artar (yeni alan, yeni kenar, farklı
 // eşleme). Eski bir sürümün kurduğu grafik, imzası aynı olsa da bir sorguda yeniden kurulur.
-// 2: düğümlere son satır (end) eklendi. 3: paket düzeyi const/var düğümleri ve `uses`, `denotes` kenarları. 4: ad kodu düğümlerinde dildeki adlar (aliases).
-const extractorRevision = 4
+// 2: düğümlere son satır (end) eklendi. 3: paket düzeyi const/var düğümleri ve `uses`, `denotes` kenarları. 4: ad kodu düğümlerinde dildeki adlar (aliases). 5: .tr kaynakları (tr_* düğümleri, TR çağrı, kullanım ve ad kodu kenarları).
+const extractorRevision = 5
 
 // Düğüm türleri.
 const (

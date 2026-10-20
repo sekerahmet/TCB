@@ -136,6 +136,9 @@ func resolveTarget(root string, b *builder, set *docSet, from, target string) (t
 	if _, found := b.nodes[fileID(p)]; found {
 		return fileID(p), extracted, true
 	}
+	if _, found := b.nodes[trFileID(p)]; found {
+		return trFileID(p), extracted, true
+	}
 	pkg := b.module
 	if q := strings.Trim(p, "/"); q != "." && q != "" {
 		pkg += "/" + q

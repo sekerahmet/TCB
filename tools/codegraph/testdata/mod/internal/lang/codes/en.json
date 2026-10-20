@@ -1,3 +1,4 @@
 {
-  "A001": { "ad": "if", "aile": "keyword" }
+  "A001": { "ad": "if", "aile": "keyword" },
+  "G100": { "ad": "print", "aile": "output" }
 }

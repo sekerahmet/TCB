@@ -1,0 +1,5 @@
+//! tr kodlu 1
+A020 kodlu_işlev(x) {
+    G100(x)
+    A021 x
+}

@@ -1,0 +1,22 @@
+// geo: a fixture module for the TR extractor.
+sabit PI2 = 6.28
+değişken sayaç = 0
+
+yapı Kare {
+    kenar = 1
+    fonksiyon kurucu(kenar = 1) {
+        kendi.kenar = kenar
+    }
+    fonksiyon alan() {
+        sonuç kendi.kenar * kendi.kenar
+    }
+}
+
+fonksiyon çevre_hesapla(k) {
+    sonuç 4 * k.kenar
+}
+
+fonksiyon yaz_alan(k) {
+    yazdır(k.alan())
+    sonuç çevre_hesapla(k)
+}

@@ -40,8 +40,9 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		return []*Node{n}
 	}
 	tiers := []func(n *Node) bool{
-		// Ad kodunun dildeki adı (zaman_ms, print): kodun düğümü, aynı adlı belge başlığından önce gelir.
-		func(n *Node) bool { return n.Kind == kindName && contains(n.Aliases, q) },
+		// Takma ad: ad kodunun dildeki adı (zaman_ms, print) ya da bir .tr dosyasının modül adı
+		// (katman, tr/katman); düğümü, aynı adlı belge başlığından önce gelir.
+		func(n *Node) bool { return contains(n.Aliases, q) },
 		func(n *Node) bool {
 			return idTailEquals(n.ID, q) || idTailEquals(strings.ReplaceAll(n.ID, ix.g.Module+"/", ""), q)
 		},

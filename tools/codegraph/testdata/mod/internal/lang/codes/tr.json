@@ -1,3 +1,4 @@
 {
-  "A001": { "ad": "eger", "aile": "keyword" }
+  "A001": { "ad": "eger", "aile": "keyword" },
+  "G100": { "ad": "yazdır", "aile": "output" }
 }
