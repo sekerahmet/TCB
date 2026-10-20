@@ -17,6 +17,7 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	limit := fs.Int("limit", 12, "lines per group")
 	all := fs.Bool("all", false, "no line limit")
 	root := fs.String("root", ".", "repository root, used to check whether the graph is stale")
+	base := fs.String("base", "main", "changed: the branch a branch name is compared with (git diff base...branch)")
 	noRebuild := fs.Bool("no-rebuild", false, "use the graph as it is, even when the sources changed")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return exitUsage
@@ -28,6 +29,9 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	if fs.NArg() != want {
 		fmt.Fprintf(stderr, "codegraph %s: expected %d name(s)\n%s", cmd, want, usage)
 		return exitUsage
+	}
+	if abs, err := filepath.Abs(*root); err == nil {
+		*root = abs // load ve git yolları mutlak ister
 	}
 	if *all {
 		*limit = 0
@@ -46,12 +50,19 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	}
 	ix := newIndex(g)
 	nodes := make([]*Node, 0, want)
-	for _, q := range fs.Args() {
+	names := fs.Args()
+	if cmd == "changed" {
+		names = nil // changed takes a git revision, not a node name
+	}
+	for _, q := range names {
 		n, code := ix.resolve(q, stdout, stderr, *limit)
 		if code != exitOK {
 			return code
 		}
 		nodes = append(nodes, n)
+	}
+	if cmd == "changed" {
+		return ix.runChanged(changeOpts{root: *root, base: *base, limit: *limit}, fs.Arg(0), stdout, stderr)
 	}
 	if cmd == "history" {
 		return ix.runHistory(*root, nodes[0], *limit, stdout, stderr)
@@ -100,7 +111,7 @@ func (ix *index) resolve(q string, stdout, stderr io.Writer, limit int) (*Node, 
 // reorderFlags bayrakları adların önüne alır (flag paketi ilk addan sonrasını bayrak saymaz):
 // "query New --limit 5" ile "query --limit 5 New" aynıdır.
 func reorderFlags(args []string) []string {
-	valued := map[string]bool{"graph": true, "limit": true, "root": true}
+	valued := map[string]bool{"graph": true, "limit": true, "root": true, "base": true}
 	var flags, names []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]

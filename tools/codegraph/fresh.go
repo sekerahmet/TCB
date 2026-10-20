@@ -127,3 +127,13 @@ func firstLine(err error) string {
 	}
 	return s
 }
+
+// gitStdout git çıkış kodu sıfır olmasa da stdout'u verir (merge-tree çakışmada 1 döner).
+func gitStdout(root string, args ...string) ([]byte, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = root
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	return out.Bytes(), err
+}

@@ -36,7 +36,7 @@ func gitFixture(t *testing.T) string {
 		t.Fatal(err)
 	}
 	for _, args := range [][]string{
-		{"init", "-q"}, {"add", "-A"},
+		{"init", "-q", "-b", "main"}, {"add", "-A"},
 		{"-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "fixture"},
 	} {
 		if _, err := gitOut(dst, args...); err != nil {
