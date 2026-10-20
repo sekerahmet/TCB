@@ -76,6 +76,8 @@
 "H2002": "{importer}, Satır {line}: {module|q} modülü {kind} hataları nedeniyle yüklenemedi",
 "H2003": "Satır {line}: {module|q} modülü {kind} hataları nedeniyle yüklenemedi",
 "H2004": "Satır {line}, Sütun {col}: {error}",
+"H2005": "{a}, {b}",
+"H2006": "{a} ya da {b}",
 "H2010": "{a} ya da {b}",
 "H2011": "{fn}() {expected} argüman bekler, {given} verildi (kullanım: {usage})",
 "H2012": "{fn}() {expected} argüman bekler, {given} verildi",

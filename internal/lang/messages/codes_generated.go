@@ -81,6 +81,8 @@ const (
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind} hataları nedeniyle yüklenemedi
 	H2003 Code = 2003 // Satır {line}: {module|q} modülü {kind} hataları nedeniyle yüklenemedi
 	H2004 Code = 2004 // Satır {line}, Sütun {col}: {error}
+	H2005 Code = 2005 // {a}, {b}
+	H2006 Code = 2006 // {a} ya da {b}
 	H2010 Code = 2010 // {a} ya da {b}
 	H2011 Code = 2011 // {fn}() {expected} argüman bekler, {given} verildi (kullanım: {usage})
 	H2012 Code = 2012 // {fn}() {expected} argüman bekler, {given} verildi

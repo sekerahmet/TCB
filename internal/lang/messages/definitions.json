@@ -76,6 +76,8 @@
 "H2002": { "param": ["importer", "line", "module", "kind"] },
 "H2003": { "param": ["line", "module", "kind"] },
 "H2004": { "param": ["line", "col", "error"] },
+"H2005": { "param": ["a", "b"] },
+"H2006": { "param": ["a", "b"] },
 "H2010": { "param": ["a", "b"] },
 "H2011": { "param": ["fn", "expected", "given", "usage"] },
 "H2012": { "param": ["fn", "expected", "given"] },

@@ -98,6 +98,7 @@ var sameTextAllowed = map[string]string{
 	"H6818 H8142":       "tensör izleme sütunu ve hata ayıklayıcı sütunu",
 	"H2301 H7214 H7484": "kullanım tarifindeki parametre adı, komut satırı tipi ve kontrol noktası türü",
 	"H2307 H7127":       "kullanım tarifindeki parametre adı ve okuyucu iletisindeki nesne adı",
+	"H2006 H2010":       "seçenek listesinin son ve ikili kalıbı (İngilizcede 'a, b, or c' ve 'a or b' ayrıdır)",
 }
 
 func TestNoDuplicateTexts(t *testing.T) {

@@ -35,29 +35,17 @@ func Usage(kd codes.Code, forms ...string) string {
 }
 
 func usageByName(name string, forms []string) string {
-	s := ""
+	pieces := make([]string, len(forms))
 	for i, b := range forms {
-		piece := name + "(" + b + ")"
-		if i == 0 {
-			s = piece
-			continue
-		}
-		s = messages.Text(messages.H2010, s, piece) // "a ya da b"
+		pieces[i] = name + "(" + b + ")"
 	}
-	return s
+	return messages.OrList(pieces...)
 }
 
 // TypeNames writes the names of type codes as a list of alternatives:
 // TypeNames(codes.A200, codes.A201, codes.A202) → "Tam, Ondalık ya da Metin".
 func TypeNames(typesOf ...codes.Code) string {
-	switch len(typesOf) {
-	case 0:
-		return ""
-	case 1:
-		return codes.Name(typesOf[0])
-	}
-	nameList := codes.Names(typesOf...)
-	return strings.Join(nameList[:len(nameList)-1], ", ") + " ya da " + nameList[len(nameList)-1]
+	return messages.OrList(codes.Names(typesOf...)...)
 }
 
 // ArgTypeError reports that argument number sira of builtin kd (or its member) is not one of
@@ -96,10 +84,7 @@ func Counts(ns ...int) string {
 	for i, n := range ns {
 		parts[i] = strconv.Itoa(n)
 	}
-	if len(parts) < 2 {
-		return strings.Join(parts, "")
-	}
-	return messages.Text(messages.H2010, strings.Join(parts[:len(parts)-1], ", "), parts[len(parts)-1])
+	return messages.OrList(parts...)
 }
 
 // AtLeast writes "en az n" for ArgCountError in the active language.
