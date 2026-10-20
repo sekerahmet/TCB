@@ -10,7 +10,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -171,7 +170,7 @@ func (o *customOp) call(m *interp.VM, args []interp.Value, named map[string]inte
 // forwardResult ileri'nin [çıktı, saklananlar] dönüşünü çözer.
 func forwardResult(v interp.Value) (outputs []*tensor.Tensor, many bool, savedVals *interp.ListVal, err error) {
 	fn, result := codes.Name(codes.T310), codes.Name(codes.A021)
-	forwards := turkish.Suffix(nameForward.TR, turkish.Genitive)
+	forwards := nameForward.TR
 	l, ok := v.(*interp.ListVal)
 	if !ok || len(l.Elements) != 2 {
 		return nil, false, nil, messages.New(messages.H6409, fn, nameForward.TR, result, shortForm(v))
@@ -277,7 +276,7 @@ func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, erro
 		}
 		d, ok := e.(*TensorValue)
 		if !ok {
-			return nil, messages.New(messages.H6416, fn, turkish.Suffix(backward, turkish.Genitive), i+1, none, typeName(e))
+			return nil, messages.New(messages.H6416, fn, backward, i+1, none, typeName(e))
 		}
 		input, ok := args[i].(*TensorValue)
 		if !ok {

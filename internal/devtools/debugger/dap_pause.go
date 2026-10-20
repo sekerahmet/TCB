@@ -8,7 +8,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"path/filepath"
 )
 
@@ -96,7 +95,7 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 			s.respondErr(msg, jumpOutsideBlock(a.TargetID))
 			return 0, false
 		}
-		s.resume(StepInto, 0, messages.Text(messages.H8049, turkish.NumberSuffix(int64(target), turkish.Dative)), "goto")
+		s.resume(StepInto, 0, messages.Text(messages.H8049, target), "goto")
 		s.respond(msg, nil)
 		return target, true
 	case "gotoTargets":

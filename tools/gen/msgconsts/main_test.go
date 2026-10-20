@@ -67,7 +67,7 @@ type call struct {
 }
 
 // Depodaki her ileti çağrısı tanımdaki kadar değer verir; tanımlı her kod kullanılır;
-// geçirilmiş paketlerde fmt.Errorf ve errors.New yoktur.
+// geçirilmiş paketlerde fmt.Errorf ve errors.New yoktur; ileti sözcüğü Go'da çekimlenmez.
 func TestMessageUsage(t *testing.T) {
 	root := repoRoot()
 	data, err := os.ReadFile(filepath.Join(root, "internal", "lang", "messages", "definitions.json"))
@@ -102,6 +102,10 @@ func TestMessageUsage(t *testing.T) {
 		t.Errorf("kullanılmayan ileti kodları (silin ya da numarayı boş bırakın): %v", unused)
 	}
 	for _, b := range banned {
+		if strings.HasPrefix(b.code, "turkish.") {
+			t.Errorf("%s: %s ile ileti sözcüğü çekimleniyor; eki şablona yazın ({ad|dat}, {ad|gen} ...)", b.pos, b.code)
+			continue
+		}
 		t.Errorf("%s: ileti kodlarına geçirilmiş pakette %s; messages.New(messages.Hxxxx, ...) yazın", b.pos, b.code)
 	}
 }
@@ -153,6 +157,10 @@ func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool
 			pos := fset.Position(c.Pos()).String()
 			pkg, fn := callee(c)
 			if isMigrated && (pkg == "fmt" && fn == "Errorf" || pkg == "errors" && fn == "New") {
+				banned = append(banned, call{code: pkg + "." + fn, pos: pos})
+			}
+			// İleti sözcüğünü Go çekimlemez: hâl eki şablondadır ({ad|dat}), dilin çekimcisi ekler.
+			if pkg == "turkish" && (fn == "Suffix" || fn == "NumberSuffix") && rel != "internal/lang/turkish" {
 				banned = append(banned, call{code: pkg + "." + fn, pos: pos})
 			}
 			if (pkg == "messages" || inMessages && pkg == "") && (fn == "New" || fn == "Text") && len(c.Args) > 0 {

@@ -14,7 +14,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"os"
 	"sort"
 	"strconv"
@@ -350,7 +349,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			targetLine = target
 			fmt.Println("  ⏭️ " + messages.Text(messages.H8048, targetLine))
 			d.Mode = StepInto
-			d.PauseReason = messages.Text(messages.H8049, turkish.NumberSuffix(int64(targetLine), turkish.Dative))
+			d.PauseReason = messages.Text(messages.H8049, targetLine)
 			return targetLine
 
 		case "kesme":

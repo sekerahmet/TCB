@@ -21,7 +21,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
 type flowSignal int
@@ -363,5 +362,5 @@ func (v *VM) reportAsyncError(line int, err error) {
 	if w == nil {
 		w = os.Stderr
 	}
-	v.WriteOutput(w, messages.Text(messages.H2454, messages.Text(messages.H2455, turkish.NumberSuffix(int64(line), turkish.Locative)), err))
+	v.WriteOutput(w, messages.Text(messages.H2454, line, err))
 }
