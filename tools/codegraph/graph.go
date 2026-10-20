@@ -1,0 +1,172 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+)
+
+// schemaVersion graph.json biçimi değişince artar; okuyucular bilmedikleri sürümü reddeder.
+const schemaVersion = 1
+
+// Düğüm türleri.
+const (
+	kindPackage = "package"
+	kindFile    = "file"
+	kindFunc    = "func"
+	kindMethod  = "method"
+	kindType    = "type"
+	kindMessage = "message"
+	kindName    = "name"
+	kindRule    = "rule"
+	kindDoc     = "doc"
+	kindHeading = "heading"
+)
+
+// Kenar türleri.
+const (
+	edgeContains    = "contains"
+	edgeImports     = "imports"
+	edgeCalls       = "calls"
+	edgeImplements  = "implements"
+	edgeTests       = "tests"
+	edgeUsesMessage = "uses_message"
+	edgeUsesName    = "uses_name"
+	edgeGuardedBy   = "guarded_by"
+	edgeLinksTo     = "links_to"
+)
+
+// Güven etiketleri: EXTRACTED kaynaktan ya da tip bilgisinden kesin okunan, INFERRED addan ya da
+// değer kullanımından çıkarılan bağdır.
+const (
+	extracted = "EXTRACTED"
+	inferred  = "INFERRED"
+)
+
+// Node grafiğin bir düğümüdür. Name sorguda yazılan kısa addır (messages.New, H2100); ID tektir.
+type Node struct {
+	ID     string   `json:"id"`
+	Kind   string   `json:"kind"`
+	Name   string   `json:"name"`
+	File   string   `json:"file,omitempty"`
+	Line   int      `json:"line,omitempty"`
+	Detail string   `json:"detail,omitempty"`
+	Params []string `json:"params,omitempty"`
+}
+
+// Edge yönlü bir bağdır; File ve Line bağın ilk görüldüğü yerdir, Count aynı bağın kaç kez
+// görüldüğü.
+type Edge struct {
+	From       string `json:"from"`
+	To         string `json:"to"`
+	Kind       string `json:"kind"`
+	Confidence string `json:"confidence"`
+	File       string `json:"file,omitempty"`
+	Line       int    `json:"line,omitempty"`
+	Count      int    `json:"count,omitempty"`
+}
+
+// Graph graph.json'ın içeriğidir. Sıralıdır ve zaman damgası taşımaz: aynı depo aynı dosyayı verir.
+type Graph struct {
+	SchemaVersion int      `json:"schema_version"`
+	Module        string   `json:"module"`
+	Nodes         []Node   `json:"nodes"`
+	Edges         []Edge   `json:"edges"`
+	Warnings      []string `json:"warnings,omitempty"`
+}
+
+type edgeKey struct{ from, to, kind string }
+
+// builder grafiği çıkarıcılardan toplar; uç düğümü olmayan kenarlar kurulurken atılır.
+type builder struct {
+	module   string
+	nodes    map[string]*Node
+	edges    map[edgeKey]*Edge
+	warnings []string
+}
+
+func newBuilder(module string) *builder {
+	return &builder{module: module, nodes: map[string]*Node{}, edges: map[edgeKey]*Edge{}}
+}
+
+// addNode düğümü ekler; aynı kimlik varsa ilki kalır.
+func (b *builder) addNode(n Node) {
+	if _, ok := b.nodes[n.ID]; !ok {
+		b.nodes[n.ID] = &n
+	}
+}
+
+// addEdge kenarı ekler. Aynı (from, to, kind) tekrar gelirse sayaç artar ve güven EXTRACTED'a
+// yükselir (bir yerde kesin okunan bağ, başka yerdeki çıkarımdan güçlüdür).
+func (b *builder) addEdge(from, to, kind, conf, file string, line int) {
+	k := edgeKey{from, to, kind}
+	if e, ok := b.edges[k]; ok {
+		e.Count++
+		if conf == extracted {
+			e.Confidence = extracted
+		}
+		return
+	}
+	b.edges[k] = &Edge{From: from, To: to, Kind: kind, Confidence: conf, File: file, Line: line, Count: 1}
+}
+
+func (b *builder) warn(msg string) { b.warnings = append(b.warnings, msg) }
+
+// graph sıralı ve tutarlı Graph'ı kurar: uç düğümü bulunmayan kenarlar atılır (örneğin
+// standart kitaplığa giden çağrılar).
+func (b *builder) graph() *Graph {
+	g := &Graph{SchemaVersion: schemaVersion, Module: b.module, Nodes: []Node{}, Edges: []Edge{}}
+	for _, n := range b.nodes {
+		g.Nodes = append(g.Nodes, *n)
+	}
+	sort.Slice(g.Nodes, func(i, j int) bool { return g.Nodes[i].ID < g.Nodes[j].ID })
+	for k, e := range b.edges {
+		if b.nodes[k.from] == nil || b.nodes[k.to] == nil {
+			continue
+		}
+		g.Edges = append(g.Edges, *e)
+	}
+	sort.Slice(g.Edges, func(i, j int) bool {
+		a, c := g.Edges[i], g.Edges[j]
+		if a.From != c.From {
+			return a.From < c.From
+		}
+		if a.To != c.To {
+			return a.To < c.To
+		}
+		return a.Kind < c.Kind
+	})
+	g.Warnings = append(g.Warnings, b.warnings...)
+	sort.Strings(g.Warnings)
+	return g
+}
+
+// writeGraph grafiği girintili JSON olarak yazar (klasör yoksa açılır).
+func writeGraph(path string, g *Graph) error {
+	data, err := json.MarshalIndent(g, "", " ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(data, '\n'), 0o644)
+}
+
+// readGraph graph.json'ı okur ve sürümünü denetler.
+func readGraph(path string) (*Graph, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	g := new(Graph)
+	if err := json.Unmarshal(data, g); err != nil {
+		return nil, err
+	}
+	if g.SchemaVersion != schemaVersion {
+		return nil, fmt.Errorf("graph.json schema_version %d is not supported (this tool reads %d); run build again", g.SchemaVersion, schemaVersion)
+	}
+	return g, nil
+}

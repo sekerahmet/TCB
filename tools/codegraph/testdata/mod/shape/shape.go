@@ -1,0 +1,35 @@
+// Package shape is a fixture.
+package shape
+
+import (
+	"example.com/mini/internal/lang/codes"
+	"example.com/mini/internal/lang/messages"
+)
+
+// Shape has an area.
+type Shape interface {
+	Area() float64
+}
+
+// Square is a Shape.
+type Square struct{ Side float64 }
+
+// Area implements Shape.
+func (s Square) Area() float64 { return s.Side * s.Side }
+
+// Describe reports a shape; it fails for an empty one.
+func Describe(s Shape) error {
+	if s.Area() == 0 {
+		return messages.New(messages.H0001)
+	}
+	_ = codes.A001
+	return nil
+}
+
+// Twice calls Describe twice.
+func Twice(s Shape) error {
+	if err := Describe(s); err != nil {
+		return err
+	}
+	return Describe(s)
+}

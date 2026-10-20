@@ -65,6 +65,20 @@ Ana dal herkese açıktır; ona yalnızca bütün kapılardan geçmiş iş gider
 - **GPU sınaması tam denetimin yerini tutmaz, ona eklenir.** Tam denetim gerçek GPU'yu sınamaz. GPU sınaması da CPU yollarını, ARM derlemesini ve Go eşlerini sınamaz.
 - Colab işi bitince çalışma zamanı kapatılır (`runtime.unassign()`).
 
+## Kod grafiği
+
+Bir şeyi bulmak için çok dosya okumadan önce yerel kod grafiğine sorun ([`tools/codegraph`](../tools/codegraph/README.md)): işlev çağrıları, arayüz uyumları, ileti ve ad kodlarının kullanım yerleri, kuralı koruyan testler, belge başlıkları ve bağlantıları. Dış ağ ve model yoktur; çıktı belirlidir.
+
+```sh
+go run ./tools/codegraph build                   # .codegraph/graph.json (git'e girmez; ılık önbellekle ~3 sn)
+go run ./tools/codegraph query messages.New      # düğüm + komşuları
+go run ./tools/codegraph who-uses H2100          # ileti/ad kodunu ya da işlevi kullananlar
+go run ./tools/codegraph tests-for interp.VM.Run # sınayan testler ve koruduğu kurallar
+go run ./tools/codegraph path interp.VM H2100    # iki düğüm arası en kısa yol
+```
+
+Belirsiz ad çıkış kodu 3 ve aday listesi, bulunamayan ad 4 verir. `[INFERRED]` etiketli kenar tahmindir, etiketsiz kenar koddan okunmuştur. Kod değişince grafiği yeniden kurun; `build` çözülemeyen `Denetim:` testlerini ve kırık belge bağlantılarını uyarı olarak yazar. Bir adın her kullanımı için değişiklik öncesi sorgu hâlâ [`tools/impact`](../tools/impact/main.go)'tır.
+
 ## Ölçüm disiplini
 
 Yorumlayıcı Python'la en az başa baş olmalıdır; sıcak yola dokunan her değişiklik önce ve sonra ölçülür:
