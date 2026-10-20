@@ -1,75 +1,88 @@
-"""TR hız kıyas seti: aynı programları TR, Python ve Go ile çalıştırıp süreleri karşılaştırır.
+"""TR speed comparison: runs the same programs in TR, Python and Go and compares the times.
 
-Kullanım (proje kökünden):  python tools/bench/run.py [--tekrar 3] [--yalniz tr] [test ...]
+Usage (from the repository root):  python tools/bench/run.py [--repeat 3] [--only tr] [--list] [test ...]
 
-Her program kendi ölçtüğü süreyi (ms) ve bir sonuç değeri yazar; sonuç değerlerinin üç dilde
-aynı olması beklenir. Yorumlayıcı ve Go programı her çalıştırmada geçici bir klasöre yeniden
-derlenir (ortamdaki GOAMD64 ve TR_CPU_AVX2 geçerlidir; AVX2 çekirdekleri çalışma anında seçilir).
-matris_yerlesik testinin Python sürümü numpy ister; yoksa atlanır.
+Each program prints its own measured time (ms) and a result value; the result values are expected to
+be the same in all three languages. The interpreter and the Go program are rebuilt into a temporary
+folder on every run (GOAMD64 and TR_CPU_AVX2 from the environment apply; AVX2 kernels are chosen at
+run time). The Python version of matris_yerlesik needs numpy; without it the test is skipped.
 """
 import argparse, json, os, subprocess, sys, tempfile
 
-KOK = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-KIYAS = os.path.join(KOK, "tools", "kiyas")
-TESTLER = ["dongu", "fib", "sirala", "metin", "sozluk", "matris_dongu", "matris_yerlesik"]
-UZANTI = ".exe" if os.name == "nt" else ""
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BENCH = os.path.join(ROOT, "tools", "bench")
+TESTS = ["dongu", "fib", "sirala", "metin", "sozluk", "matris_dongu", "matris_yerlesik"]
+EXE = ".exe" if os.name == "nt" else ""
 
 
-def derle(gecici):
-    tr = os.path.join(gecici, "tr" + UZANTI)
-    go = os.path.join(gecici, "compare" + UZANTI)
-    ortam = dict(os.environ)
-    subprocess.run(["go", "build", "-o", tr, "./cmd/tr"], cwd=KOK, check=True, env=ortam)
-    subprocess.run(["go", "build", "-o", go, "./tools/bench/go"], cwd=KOK, check=True, env=ortam)
+def build(tmp):
+    tr = os.path.join(tmp, "tr" + EXE)
+    go = os.path.join(tmp, "compare" + EXE)
+    env = dict(os.environ)
+    subprocess.run(["go", "build", "-o", tr, "./cmd/tr"], cwd=ROOT, check=True, env=env)
+    subprocess.run(["go", "build", "-o", go, "./tools/bench/go"], cwd=ROOT, check=True, env=env)
     return tr, go
 
 
-def kos(komut, tekrar):
-    en_iyi, deger = None, None
-    for _ in range(tekrar):
-        r = subprocess.run(komut, capture_output=True, text=True, encoding="utf-8", timeout=600, cwd=KOK)
-        satirlar = r.stdout.strip().splitlines()
-        if r.returncode != 0 or not satirlar:
-            return None, (r.stderr.strip().splitlines() or ["hata"])[-1]
-        parca = satirlar[-1].split()
-        ms = int(parca[-1])
-        en_iyi = ms if en_iyi is None else min(en_iyi, ms)
-        deger = parca[1]
-    return en_iyi, deger
+def run(command, repeat):
+    """Returns (best time in ms, result value), or (None, last error line)."""
+    best, value = None, None
+    for _ in range(repeat):
+        r = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", timeout=600, cwd=ROOT)
+        lines = r.stdout.strip().splitlines()
+        if r.returncode != 0 or not lines:
+            return None, (r.stderr.strip().splitlines() or ["error"])[-1]
+        parts = lines[-1].split()
+        ms = int(parts[-1])
+        best = ms if best is None else min(best, ms)
+        value = parts[1]
+    return best, value
+
+
+def parser():
+    ap = argparse.ArgumentParser(description="TR / Python / Go speed comparison")
+    ap.add_argument("tests", nargs="*", choices=TESTS, metavar="test",
+                    help="tests to run (default: all): " + " ".join(TESTS))
+    ap.add_argument("--repeat", type=int, default=3, help="runs per test; the best time counts (default 3)")
+    ap.add_argument("--only", choices=["tr", "py", "go"], help="run only this language")
+    ap.add_argument("--json", help="write the results to this file")
+    ap.add_argument("--list", action="store_true", help="print the test names and exit")
+    return ap
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("tests", nargs="*", default=TESTLER)
-    ap.add_argument("--tekrar", type=int, default=3)
-    ap.add_argument("--yalniz", choices=["tr", "py", "go"], help="yalnızca bu dili çalıştır")
-    ap.add_argument("--json", help="sonuçları bu dosyaya yaz")
-    a = ap.parse_args()
-    diller = [a.yalniz] if a.yalniz else ["tr", "py", "go"]
-    sonuc = {}
-    with tempfile.TemporaryDirectory() as gecici:
-        tr, go = derle(gecici)
-        for t in a.testler:
-            komutlar = {
-                "tr": [tr, os.path.join(KIYAS, "tr", t + ".tr")],
-                "py": [sys.executable, os.path.join(KIYAS, "py", "compare.py"), t],
+    a = parser().parse_args()
+    if a.list:
+        print("\n".join(TESTS))
+        return
+    if a.repeat < 1:
+        parser().error("--repeat must be at least 1")
+    tests = a.tests or TESTS
+    langs = [a.only] if a.only else ["tr", "py", "go"]
+    results = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        tr, go = build(tmp)
+        for t in tests:
+            commands = {
+                "tr": [tr, os.path.join(BENCH, "tr", t + ".tr")],
+                "py": [sys.executable, os.path.join(BENCH, "py", "compare.py"), t],
                 "go": [go, t],
             }
-            sonuc[t] = {d: kos(komutlar[d], a.tekrar) for d in diller}
-            parcalar = []
-            for d in diller:
-                ms, deger = sonuc[t][d]
-                parcalar.append(f"{d.upper():>2} {'-' if ms is None else ms:>7} ms")
-            degerler = {v for _, v in sonuc[t].values()}
-            satir = f"{t:16} " + " | ".join(parcalar)
-            if "tr" in diller and "py" in diller and sonuc[t]["tr"][0] and sonuc[t]["py"][0]:
-                satir += f" | TR/Python {sonuc[t]['tr'][0] / max(sonuc[t]['py'][0], 1):5.1f}x"
-            if len(diller) > 1:
-                satir += " | sonuç aynı" if len(degerler) == 1 else f" | SONUÇ FARKLI {degerler}"
-            print(satir, flush=True)
+            results[t] = {lang: run(commands[lang], a.repeat) for lang in langs}
+            cells = []
+            for lang in langs:
+                ms, _ = results[t][lang]
+                cells.append(f"{lang.upper():>2} {'-' if ms is None else ms:>7} ms")
+            values = {v for _, v in results[t].values()}
+            line = f"{t:16} " + " | ".join(cells)
+            if "tr" in langs and "py" in langs and results[t]["tr"][0] and results[t]["py"][0]:
+                line += f" | TR/Python {results[t]['tr'][0] / max(results[t]['py'][0], 1):5.1f}x"
+            if len(langs) > 1:
+                line += " | same result" if len(values) == 1 else f" | RESULT DIFFERS {values}"
+            print(line, flush=True)
     if a.json:
         with open(a.json, "w", encoding="utf-8") as f:
-            json.dump(sonuc, f, ensure_ascii=False, indent=1)
+            json.dump(results, f, ensure_ascii=False, indent=1)
 
 
 if __name__ == "__main__":

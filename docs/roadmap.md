@@ -51,10 +51,10 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
    - Go adları Go biçimine geçti (MixedCaps): belirteç türleri `Tok` önekli (`TokIdent`, `TokEOF`), değer tipleri `Val` önekli (`ValInt`), öncelikler `prec` önekli (`precAnd`).
 6. **Test düzeni (tamamlandı).** Test dosyası adlandırma kuralı (`x_test.go` yalnızca `x.go`'yu sınar; süreçleri sınayan testler `behavior_` önekli dosyalarda) ve her paket README'sinde bir "Testler" bölümü; ikisi de testle denetlenir.
 7. **Kalan adlar (tamamlandı).** `cmd/tr` ve `tools` dosya ve Go adları İngilizce. `tr` komutları, seçenekleri, etkileşimli kabuk ve hata ayıklayıcının komutları `K` ad ailesinde (17.8): girdide her yazım dilinin adı kabul edilir (`tr çalıştır` = `tr run`, `--dil` = `--lang`), yardım ve iletiler adları etkin dilde yazar; programın `--yardım`'ı da koddur.
-8. **Kurallar testle korunur (büyük ölçüde tamamlandı).** README kurallarına ~30 test eklendi; `docs/architecture.md`'de adı geçen Go adlarının ve README'lerde anılan her denetim testinin var olduğu testle denetlenir (`TestRuleTestsExist`; ilk koşuda iki yanlış ad buldu). Kalan: C tarzı BÜYÜK_HARFLİ yeni Go adını yakalayan test.
+8. **Kurallar testle korunur (tamamlandı).** README kurallarına ~30 test eklendi; `docs/architecture.md`'de adı geçen Go adlarının ve README'lerde anılan her denetim testinin var olduğu testle denetlenir (`TestRuleTestsExist`; ilk koşuda iki yanlış ad buldu); C tarzı BÜYÜK_HARFLİ Go adını `TestGoNamesMixedCaps` yakalar.
 9. **Belgeler yeni düzeni anlatır (tamamlandı).** Kurallar (`internal/README.md`), ekleme tarifleri (`docs/recipes.md`), mimari ve katkı rehberi yeni düzene göre yazıldı.
 
-**Sıradaki:** madde 1'in bitiş testi (Türkçe harfli metin sabiti yalnızca izinli yerde). Küçükler: `tools/bench/run.py` onarımı, `topluad` göreli yolu reddetsin.
+**Sıradaki:** madde 1'in bitiş testi (Türkçe harfli metin sabiti yalnızca izinli yerde).
 
 **Bitiş ölçütü:** kodda Türkçe ileti metni kalmaz (testle); ileti kataloğu çoğul ve liste kalıplarını taşır, Go'da ileti sözcüğü çekimlenmez ve İngilizce pilot geçer; her türevli işlemin gradyan testi vardır; anlam kuralları yazılı ve testlidir; her kural bir testle korunur; bekleyen dil kararı kalmaz.
 
