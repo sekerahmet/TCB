@@ -71,6 +71,7 @@ computed when you ask, not stored in `graph.json`.
 | `message` | `msg:H2100` | `internal/lang/messages/tr.json` (text) and `definitions.json` (params) |
 | `name` | `name:A001` | `internal/lang/codes/tr.json` (name and family) |
 | `rule` | `rule:<readme>:<line>` | a list item or paragraph with `Denetim:`, or a row of a `Kural` / `Test` table |
+| `tr_func`, `tr_method`, `tr_struct`, `tr_field`, `tr_const`, `tr_var`, `tr_test` | `tr:func:<file>:<name>`, `tr:method:<file>:<Struct>.<name>`, ... | `.tr` sources, see "TR sources" |
 | `doc`, `heading` | `doc:<path>`, `heading:<path>#<slug>` | every `.md` file; headings use GitHub slugs |
 
 | Edge | Meaning | Label |
@@ -94,6 +95,31 @@ Markdown link. They are real findings; `build` prints the first five.
 Limits: only files built for the current OS are read (like `tools/impact`); calls through an
 interface point at the interface method, not at implementers (use `implements`); `implements`
 looks at non-test types only.
+
+## TR sources
+
+`.tr` files under `lib/`, `tools/` and `examples/` are read with TR's own parser
+(`internal/lang/source`, so coded files with a header are read too, lines counted as everywhere
+else). Node kinds: `tr_func`, `tr_struct`, `tr_method`, `tr_field`, `tr_const`, `tr_var` (top level)
+and `tr_test` (a `test` block), all with file:line:end; the file is a `file` node `tr:file:<path>`
+with the module name (`katman`) and the import path (`tr/katman`) as aliases.
+
+- `imports`: file → file for `aktar` (`"tr/x"` is `lib/x.tr`, other paths are relative to the
+  importing file, `.tr` optional).
+- `calls`: a call (or use as a value, INFERRED) of a top-level function or struct in the file or in
+  a module imported without alias; `alias.Name` through `olarak`. `x.method()` on a receiver of
+  unknown type is an INFERRED edge to the TR methods of that name that are visible (at most 4).
+- `uses`: a top-level constant or variable.
+- `uses_name`: a built-in global name (`yazdır`), a built-in member name (`x.şekil`) and a named
+  argument, resolved with the language dictionary to the name code node (a local variable, a
+  parameter, a loop or catch variable of the same name shadows the built-in).
+- `tests`: a call made inside a `test` block also is a `tests` edge, so `tests-for NedenselDikkat`
+  lists the TR tests.
+- A file that does not parse is a warning (`tr syntax error, definitions skipped: ...`) and keeps
+  its file node. Scoping is approximate (the names bound anywhere in a declaration shadow for all
+  of it), calls through values are not followed.
+
+`query Muon`, `query katman`, `who-uses dikkat` (the code T503 with its TR call sites) work on TR.
 
 ## Call and usage questions
 

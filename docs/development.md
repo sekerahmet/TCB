@@ -84,7 +84,7 @@ go run ./tools/codegraph deleted                 # geçmişte olup silinmiş ile
 go run ./tools/codegraph path interp.VM H2100    # iki düğüm arası en kısa yol
 ```
 
-Belirsiz ad çıkış kodu 3 ve aday listesi, bulunamayan ad 4 verir. `[INFERRED]` etiketli kenar tahmindir, etiketsiz kenar koddan okunmuştur. Sorgular grafik eskiyse (git HEAD'i ya da değişen `.go`/`.json`/`.md` dosyaları kurulduğundan farklıysa) önce kendisi kurar ve stderr'e `graph rebuilt (N s)` yazar; `--no-rebuild` bunu kapatır, `build`'i elle çalıştırmak gerekmez. `build` çözülemeyen `Denetim:` testlerini ve kırık belge bağlantılarını uyarı olarak yazar. Bir adın her kullanımı için değişiklik öncesi sorgu hâlâ [`tools/impact`](../tools/impact/main.go)'tır.
+Belirsiz ad çıkış kodu 3 ve aday listesi, bulunamayan ad 4 verir. `[INFERRED]` etiketli kenar tahmindir, etiketsiz kenar koddan okunmuştur. Sorgular grafik eskiyse (git HEAD'i ya da değişen `.go`/`.json`/`.md` dosyaları kurulduğundan farklıysa) önce kendisi kurar ve stderr'e `graph rebuilt (N s)` yazar; `--no-rebuild` bunu kapatır, `build`'i elle çalıştırmak gerekmez. `build` çözülemeyen `Denetim:` testlerini ve kırık belge bağlantılarını uyarı olarak yazar. Grafik `lib/`, `tools/` ve `examples/` altındaki `.tr` dosyalarını da (yapı, fonksiyon, metot, alan, sabit, test; çağrılar ve yerleşik kullanımları) TR'nin kendi ayrıştırıcısıyla okur: `query NedenselDikkat`, `who-uses dikkat`. Bir adın her kullanımı için değişiklik öncesi sorgu hâlâ [`tools/impact`](../tools/impact/main.go)'tır.
 
 ## Ölçüm disiplini
 
