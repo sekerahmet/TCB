@@ -5,13 +5,13 @@ import (
 	"compress/flate"
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -46,7 +46,7 @@ func OpenFileReader(filePath string) (io.ReadCloser, error) {
 		if err != nil && !errors.Is(err, io.EOF) {
 			return nil, err
 		}
-		return nil, turkish.Reason("uzantısı .gz ama içerik gzip değil (dosya sıkıştırılmamışsa adını .gz olmadan verin)")
+		return nil, turkish.NewReason(messages.H2040)
 	}
 	gz, err := gzip.NewReader(buffer)
 	if err != nil {
@@ -80,15 +80,15 @@ func (g *gzipReader) Close() error {
 func gzipError(err error) error {
 	switch {
 	case errors.Is(err, gzip.ErrChecksum):
-		return turkish.Reason("gzip içeriği bozuk (sağlama toplamı tutmuyor)")
+		return turkish.NewReason(messages.H2041)
 	case errors.Is(err, gzip.ErrHeader):
-		return turkish.Reason("gzip başlığı bozuk")
+		return turkish.NewReason(messages.H2042)
 	case errors.Is(err, io.ErrUnexpectedEOF):
-		return turkish.Reason("gzip içeriği yarıda kesilmiş (dosya eksik indirilmiş olabilir)")
+		return turkish.NewReason(messages.H2043)
 	}
 	var broken flate.CorruptInputError
 	if errors.As(err, &broken) {
-		return turkish.Reason("gzip içeriği bozuk (sıkıştırılmış veri çözülemedi)")
+		return turkish.NewReason(messages.H2044)
 	}
 	return err
 }
@@ -109,7 +109,7 @@ func ReadFileContent(filePath string) ([]byte, error) {
 		return nil, err
 	}
 	if len(payload) > gzipContentLimit {
-		return nil, turkish.Reason(fmt.Sprintf("açılmış içerik 1 GB'tan büyük; büyük dosyaları satır satır okumak için %s(...) kullanın", codes.Name(codes.G112)))
+		return nil, turkish.NewReason(messages.H2045, codes.Name(codes.G112))
 	}
 	return payload, nil
 }

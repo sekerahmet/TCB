@@ -1,8 +1,9 @@
 package interp
 
 import (
-	"errors"
 	"fmt"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func GoToTRValue(raw interface{}) Value {
@@ -41,7 +42,7 @@ func GoToTRValue(raw interface{}) Value {
 
 // ErrCyclic reports an attempt to write a list/dict that contains itself (directly or
 // indirectly) to an external format (JSON, Go values): l = [1]; l.ekle(l); json_metin(l).
-var ErrCyclic = errors.New("değer kendini içeriyor (döngüsel liste ya da sözlük); JSON'a yazılamaz")
+var ErrCyclic error = messages.New(messages.H2020)
 
 // MaxExternalDepth is the deepest list/dict nesting that can be written to an external
 // format; it equals the JSON reading limit (maxJSONDepth), so every written value can be read
@@ -50,7 +51,7 @@ const MaxExternalDepth = maxJSONDepth
 
 // DepthError is the error returned when MaxExternalDepth is exceeded.
 func DepthError() error {
-	return fmt.Errorf("değer çok derin iç içe (en fazla %d seviye)", MaxExternalDepth)
+	return messages.New(messages.H2021, MaxExternalDepth)
 }
 
 // ContainerWalker checks for cycles and depth while a TR value is written to an external

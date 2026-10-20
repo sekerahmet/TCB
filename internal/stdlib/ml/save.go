@@ -13,6 +13,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
@@ -132,7 +133,7 @@ func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	var writeErr error
 	m.Blocking(func() { writeErr = writeToFile(decoded, inputs) })
 	if writeErr != nil {
-		return nil, turkish.FileError(fn, fpath, "yazılamadı", writeErr)
+		return nil, turkish.FileError(fn, fpath, messages.H2101, writeErr)
 	}
 	return interp.NULL, nil
 }
@@ -257,7 +258,7 @@ func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	var readErr, osErr error
 	m.Blocking(func() { inputs, readErr, osErr = readFromFile(decoded) })
 	if osErr != nil {
-		return nil, interp.ReadError(fn, fpath, "yüklenemedi", osErr, tried)
+		return nil, interp.ReadError(fn, fpath, messages.H2107, osErr, tried)
 	}
 	if readErr != nil {
 		return nil, fmt.Errorf("%s: %q: %v", fn, fpath, readErr)

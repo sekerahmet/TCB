@@ -12,6 +12,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
@@ -49,9 +50,9 @@ func doMove(m *interp.VM, kd codes.Code, args []interp.Value, named map[string]i
 		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %d bağlantı ya da özel dosya kopyalanmadı (ilki: %q); TR bağlantıları izlemez\n", job.fn, len(job.skipped), job.skipped[0]))
 	}
 	if err != nil {
-		op := "kopyalanamadı"
+		op := messages.H2110 // kopyalanamadı
 		if move {
-			op = "taşınamadı"
+			op = messages.H2111 // taşınamadı
 		}
 		return nil, turkish.FileError(job.fn, job.srcRaw, op, err)
 	}
@@ -105,7 +106,7 @@ func (job *moveJob) findSource(m *interp.VM) error {
 	resolved, tried := m.ResolvePath(filepath.FromSlash(job.srcRaw))
 	b, err := os.Lstat(resolved)
 	if err != nil {
-		return interp.ReadError(job.fn, job.srcRaw, "bulunamadı", err, tried)
+		return interp.ReadError(job.fn, job.srcRaw, messages.H2113, err, tried)
 	}
 	switch {
 	case isLink(b.Mode()) && !job.move:
@@ -139,7 +140,7 @@ func (job *moveJob) findTarget(m *interp.VM, targetRaw string, wantDir bool) err
 	case err == nil && wantDir:
 		return fmt.Errorf("%s: hedef %q bir dosya, klasör değil", job.fn, targetRaw)
 	case err != nil && !bind.IsNotExist(err):
-		return turkish.FileError(job.fn, targetRaw, "açılamadı", err)
+		return turkish.FileError(job.fn, targetRaw, messages.H2103, err)
 	case err != nil && wantDir:
 		return fmt.Errorf("%s: hedef klasör %q yok; önce %s(%q) ile oluşturun", job.fn, targetRaw, codes.Name(codes.G122), strings.TrimRight(targetRaw, `/\`))
 	}
@@ -148,7 +149,7 @@ func (job *moveJob) findTarget(m *interp.VM, targetRaw string, wantDir bool) err
 		if errors.As(err, &pe) {
 			err = &fs.PathError{Op: pe.Op, Path: target, Err: pe.Err}
 		}
-		return turkish.FileError(job.fn, targetRaw, "yazılamadı", err)
+		return turkish.FileError(job.fn, targetRaw, messages.H2101, err)
 	}
 	job.last, job.lastRaw = target, targetRaw
 	return nil

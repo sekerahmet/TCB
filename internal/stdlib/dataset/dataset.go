@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"io"
 	"io/fs"
 	"math"
@@ -266,13 +267,13 @@ func dataError(fn, path string, err error, extras ...string) error {
 	case errors.Is(err, dataload.ErrCacheLocked):
 		return fmt.Errorf("%s: %s", fn, clean(strings.TrimPrefix(err.Error(), dataload.ErrCacheLocked.Error()+": ")))
 	case bind.IsNotExist(err) && strings.Contains(err.Error(), "küme açılamadı"):
-		return turkish.FileError(fn, path, "açılamadı", err,
+		return turkish.FileError(fn, path, messages.H2103, err,
 			append([]string{".npy veri dosyalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin"}, extras...)...)
 	}
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
-		return turkish.FileError(fn, filepath.ToSlash(pe.Path), "okunamadı", err)
+		return turkish.FileError(fn, filepath.ToSlash(pe.Path), messages.H2100, err)
 	}
 	msg := clean(err.Error())
 	if strings.Contains(msg, "desenine uyan veri dosyası yok") {

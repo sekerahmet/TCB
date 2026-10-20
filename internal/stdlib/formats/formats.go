@@ -96,12 +96,12 @@ func csvInput(p csvPath) (string, error) {
 		}
 		data, err := interp.ReadFileContent(p.path)
 		if err != nil {
-			return "", turkish.FileError(fn, p.arg, "okunamadı", err)
+			return "", turkish.FileError(fn, p.arg, messages.H2100, err)
 		}
 		return string(data), nil
 	}
 	if p.isPath || looksLikePath(p.arg) {
-		return "", interp.ReadError(fn, p.arg, "okunamadı", statErr, p.tried)
+		return "", interp.ReadError(fn, p.arg, messages.H2100, statErr, p.tried)
 	}
 	return p.arg, nil
 }

@@ -18,6 +18,8 @@ import (
 // kullanılmaz (her ileti bir koddur). Geçiş ilerledikçe liste büyür; bkz.
 // internal/lang/messages/README.md.
 var migrated = []string{
+	"internal/lang/turkish",
+	"internal/stdlib/common/bind",
 	"internal/stdlib/formats",
 }
 
@@ -55,15 +57,13 @@ func TestMessageUsage(t *testing.T) {
 	if err := json.Unmarshal(data, &defs); err != nil {
 		t.Fatal(err)
 	}
-	calls, banned := scan(t, root)
-	used := map[string]bool{}
+	calls, banned, used := scan(t, root)
 	for _, c := range calls {
 		d, ok := defs[c.code]
 		if !ok {
 			t.Errorf("%s: %s tanımlı değil", c.pos, c.code)
 			continue
 		}
-		used[c.code] = true
 		if c.args != len(d.Param) {
 			t.Errorf("%s: %s %d değer bekler (%v), %d verildi", c.pos, c.code, len(d.Param), d.Param, c.args)
 		}
@@ -83,9 +83,13 @@ func TestMessageUsage(t *testing.T) {
 	}
 }
 
-// scan depodaki test dışı Go dosyalarını gezer.
-func scan(t *testing.T, root string) (calls, banned []call) {
+// scan depodaki test dışı Go dosyalarını gezer: ileti çağrıları, geçirilmiş paketlerdeki yasak
+// çağrılar ve anılan (kullanılan) kodlar. Bir kod New/Text'in ilk argümanı olmadan da
+// kullanılabilir: dosya işlemi (turkish.FileError'a verilen messages.H2100) ya da platforma
+// özgü neden tablosu.
+func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool) {
 	t.Helper()
+	used = map[string]bool{}
 	fset := token.NewFileSet()
 	err := filepath.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
 		if err != nil {
@@ -98,7 +102,8 @@ func scan(t *testing.T, root string) (calls, banned []call) {
 			}
 			return nil
 		}
-		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+		// Üretilmiş sabit dosyası kodları bildirir, kullanmaz.
+		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") || name == "codes_generated.go" {
 			return nil
 		}
 		f, err := parser.ParseFile(fset, path, nil, 0)
@@ -113,6 +118,11 @@ func scan(t *testing.T, root string) (calls, banned []call) {
 			isMigrated = isMigrated || rel == m
 		}
 		ast.Inspect(f, func(n ast.Node) bool {
+			if e, ok := n.(ast.Expr); ok {
+				if code := codeArg(e); code != "" && (inMessages || isSelector(e)) {
+					used[code] = true
+				}
+			}
 			c, ok := n.(*ast.CallExpr)
 			if !ok {
 				return true
@@ -134,8 +144,10 @@ func scan(t *testing.T, root string) (calls, banned []call) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return calls, banned
+	return calls, banned, used
 }
+
+func isSelector(e ast.Expr) bool { _, ok := e.(*ast.SelectorExpr); return ok }
 
 // callee çağrılan fonksiyonun paket seçicisini ve adını verir (pkg.Fn ya da Fn).
 func callee(c *ast.CallExpr) (pkg, fn string) {

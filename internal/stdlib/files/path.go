@@ -9,6 +9,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -169,7 +170,7 @@ func (y *Path) size(m *interp.VM) (interp.Value, error) {
 	c, tried := y.resolve(m)
 	b, err := os.Stat(c)
 	if err != nil {
-		return nil, interp.ReadError(fn, y.fpath, "okunamadı", err, tried)
+		return nil, interp.ReadError(fn, y.fpath, messages.H2100, err, tried)
 	}
 	if b.IsDir() {
 		return nil, fmt.Errorf("%s: %q bir klasör; klasörün boyutu yoktur (içindeki dosyaların boyutunu toplayın: %s(...))", fn, y.fpath, codes.Name(codes.G121))

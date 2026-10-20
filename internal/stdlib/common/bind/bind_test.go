@@ -12,6 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -161,7 +162,7 @@ func TestPanicBecomesError(t *testing.T) {
 		_ = s[3]
 		return nil, nil
 	})
-	if err == nil || !strings.HasPrefix(err.Error(), "fn: beklenmeyen iç hata: ") {
+	if !messages.Has(err, messages.H9000) || !strings.HasPrefix(err.Error(), "fn: ") {
 		t.Errorf("Guvenli paniği iç hataya çevirmeli: %v", err)
 	}
 }

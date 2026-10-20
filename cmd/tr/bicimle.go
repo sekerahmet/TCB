@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/devtools/formatter"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"io/fs"
 	"os"
@@ -49,7 +50,7 @@ func bicimleKomutu(args []string) {
 	for _, yol := range dosyalar {
 		veri, err := os.ReadFile(yol)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.FileError("", yol, "okunamadı", err))
+			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.FileError("", yol, messages.H2100, err))
 			hatali++
 			continue
 		}
@@ -78,7 +79,7 @@ func bicimleKomutu(args []string) {
 			izin = bilgi.Mode().Perm()
 		}
 		if err := os.WriteFile(yol, []byte(yeni), izin); err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.FileError("", yol, "yazılamadı", err))
+			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.FileError("", yol, messages.H2101, err))
 			hatali++
 			continue
 		}
@@ -105,7 +106,7 @@ func bicimleKomutu(args []string) {
 func trDosyalari(hedef string) ([]string, error) {
 	bilgi, err := os.Stat(hedef)
 	if err != nil {
-		return nil, turkish.FileError("", hedef, "biçimlenemedi", err)
+		return nil, turkish.FileError("", hedef, messages.H2108, err)
 	}
 	if !bilgi.IsDir() {
 		return []string{hedef}, nil
@@ -113,7 +114,7 @@ func trDosyalari(hedef string) ([]string, error) {
 	var dosyalar []string
 	err = filepath.WalkDir(hedef, func(yol string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return turkish.FileError("", yol, "taranamadı", err)
+			return turkish.FileError("", yol, messages.H2109, err)
 		}
 		if d.IsDir() {
 			if yol != hedef && (strings.HasPrefix(d.Name(), ".") || d.Name() == "node_modules") {

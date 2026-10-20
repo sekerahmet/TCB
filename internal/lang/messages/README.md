@@ -39,7 +39,9 @@ kullanılmayan kodu bildirir ve ileti kodlarına geçirilmiş paketlerde (`migra
 
 ## Geçiş
 
-Paket paket yapılır: `formats` (tamam) → standart kitaplığın geri kalanı → `lang` → `devtools` →
-`compute`. Geçirilen paket `tools/gen/msgconsts/main_test.go`'daki `migrated` listesine eklenir.
-Dil çekirdeğinin yardımcılarına (`turkish.FileError`, `interp.ReadError` ...) verilen Türkçe
-sözcükler (`"okunamadı"`) o yardımcılar geçirilince kalkar.
+Paket paket yapılır; geçirilen paket `tools/gen/msgconsts/main_test.go`'daki `migrated` listesine
+eklenir. Önce ortak yardımcılar geçirildi (tamam): dosya hataları (`turkish.FileError` işlemi bir
+kod olarak alır: `messages.H2100` "okunamadı"; nedenler kodludur, `turkish.NewReason`), argüman
+sayısı, satır öneki (`interp.LineError`, `H2001`), adlı argüman ve üye hataları (`bind`). Sonra:
+`formats` (tamam) → standart kitaplığın geri kalanı → `lang` → `devtools` → `compute`. Satır önekine
+metinden bakan yedek denetim (`interp.hasLine`, `turkish.CodeFrame`) `lang` geçişiyle kalkar.

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
@@ -307,7 +308,7 @@ func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error)
 	var data []byte
 	y.Blocking(func() { data, err = ReadFileContent(resolved) })
 	if err != nil {
-		return nil, ReadError(CallPrefix(codes.G110), filePath, "okunamadı", err, searched)
+		return nil, ReadError(CallPrefix(codes.G110), filePath, messages.H2100, err, searched)
 	}
 	return &StringVal{Val: string(data)}, nil
 }
@@ -328,7 +329,7 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 	content := []byte(args[1].Inspect())
 	y.Blocking(func() { err = WriteFileContent(resolved, content) })
 	if err != nil {
-		return nil, turkish.FileError(CallPrefix(codes.G111), filePath, "yazılamadı", err)
+		return nil, turkish.FileError(CallPrefix(codes.G111), filePath, messages.H2101, err)
 	}
 	return TRUE, nil
 }

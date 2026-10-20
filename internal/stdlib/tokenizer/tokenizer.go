@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -160,7 +161,7 @@ func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (int
 func loadError(path string, err error, tried []string) error {
 	fn := codes.Name(codes.V200)
 	if bind.IsNotExist(err) {
-		return turkish.FileError(fn, path, "yüklenemedi", err,
+		return turkish.FileError(fn, path, messages.H2107, err,
 			"tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin", interp.SearchedPlaces(tried))
 	}
 	msg := err.Error()
@@ -185,7 +186,7 @@ func loadError(path string, err error, tried []string) error {
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
-		return turkish.FileError(fn, path, "yüklenemedi", err)
+		return turkish.FileError(fn, path, messages.H2107, err)
 	}
 	return fmt.Errorf("%s: %q yüklenemedi: %s", fn, path, msg)
 }

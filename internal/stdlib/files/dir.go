@@ -7,6 +7,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -26,7 +27,7 @@ func makeDirBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.V
 		return nil, fmt.Errorf("%s: %q oluşturulamadı: aynı adda bir dosya var", fn, raw)
 	}
 	if err := os.MkdirAll(resolved, 0o755); err != nil {
-		return nil, turkish.FileError(fn, raw, "oluşturulamadı", err)
+		return nil, turkish.FileError(fn, raw, messages.H2105, err)
 	}
 	return NewPath(raw), nil
 }

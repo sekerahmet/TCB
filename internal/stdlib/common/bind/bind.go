@@ -16,6 +16,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -32,7 +33,7 @@ type Named struct {
 // kez çağrılır; kod bir adlı argüman kodu değilse panikler.
 func NamedArg(k codes.Code) Named {
 	if k.Namespace() != codes.NamespaceParam {
-		panic(fmt.Sprintf("bind.NamedArg: %s bir adlı argüman kodu (x9xx) değil", k))
+		panic(messages.Internal(fmt.Sprintf("bind.NamedArg: %s is not a named-argument code (x9xx)", k)))
 	}
 	return Named{Code: k, TR: codes.Name(k), spellings: codes.Spellings(k)}
 }
@@ -74,15 +75,13 @@ func CheckNamed(fn string, named map[string]interp.Value, names ...Named) error 
 		if o == "" {
 			o = turkish.Closest(given, candidates)
 		}
-		suggestion := ""
-		if o != "" {
-			suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
-		} else if len(candidates) > 0 {
-			suggestion = fmt.Sprintf(" (geçerli adlar: %s)", strings.Join(candidates, ", "))
-		} else {
-			suggestion = " (adlı argüman almaz)"
+		switch {
+		case o != "":
+			return messages.New(messages.H7900, fn, given, o)
+		case len(candidates) > 0:
+			return messages.New(messages.H7901, fn, given, strings.Join(candidates, ", "))
 		}
-		return fmt.Errorf("%s '%s' adında bir parametre almaz%s", fn, given, suggestion)
+		return messages.New(messages.H7902, fn, given)
 	}
 	return nil
 }
@@ -90,13 +89,10 @@ func CheckNamed(fn string, named map[string]interp.Value, names ...Named) error 
 // MemberError motor tiplerinde bulunamayan bir üye için hatadır: yazıma en yakın üyeyi, yakın
 // bir üye yoksa tipin üyelerini önerir. ne tipin (ya da nesnenin) kullanıcıya görünen adıdır.
 func MemberError(what, prop string, members []string) error {
-	suggestion := ""
 	if o := turkish.Closest(prop, members); o != "" {
-		suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
-	} else {
-		suggestion = fmt.Sprintf(" (üyeler: %s)", strings.Join(members, ", "))
+		return messages.New(messages.H7903, what, prop, o)
 	}
-	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", what, prop, suggestion)
+	return messages.New(messages.H7904, what, prop, strings.Join(members, ", "))
 }
 
 // GetNamed adlı argümanı kabul edilen yazımlarıyla (önce adın kendisiyle) arar.
@@ -126,7 +122,7 @@ func Int(v interp.Value) (int64, bool) {
 func Bool(fn, name string, v interp.Value) (bool, error) {
 	b, ok := v.(*interp.BoolVal)
 	if !ok {
-		return false, fmt.Errorf("%s: %s doğru ya da yanlış olmalıdır, %s verildi", fn, name, v.Type())
+		return false, messages.New(messages.H7905, fn, name, v.Type())
 	}
 	return b.Val, nil
 }
@@ -146,14 +142,15 @@ func Recover[T any](fn func() T, convert func(r any) error) (result T, err error
 	return fn(), nil
 }
 
-// Safe f'yi çalıştırır; Go paniğini "beklenmeyen iç hata" olarak bildirir.
+// Safe f'yi çalıştırır; Go paniğini iç hata olarak (messages.Internal: "lütfen bildirin")
+// bildirir.
 func Safe(fn string, f func() (interp.Value, error)) (interp.Value, error) {
 	var ferr error
 	result, err := Recover(func() interp.Value {
 		v, e := f()
 		ferr = e
 		return v
-	}, func(r any) error { return fmt.Errorf("%s: beklenmeyen iç hata: %v", fn, r) })
+	}, func(r any) error { return messages.New(messages.H2000, fn, messages.Internal(fmt.Sprint(r))) })
 	if err != nil {
 		return nil, err
 	}

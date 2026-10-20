@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Yerleşik fonksiyonların argüman hataları tek biçimdedir; motor paketlerindeki
@@ -35,11 +36,16 @@ func Usage(kd codes.Code, forms ...string) string {
 }
 
 func usageByName(name string, forms []string) string {
-	pieces := make([]string, len(forms))
+	s := ""
 	for i, b := range forms {
-		pieces[i] = name + "(" + b + ")"
+		piece := name + "(" + b + ")"
+		if i == 0 {
+			s = piece
+			continue
+		}
+		s = messages.Text(messages.H2010, s, piece) // "a ya da b"
 	}
-	return strings.Join(pieces, " ya da ")
+	return s
 }
 
 // TypeNames writes the names of type codes as a list of alternatives:
@@ -79,15 +85,15 @@ func ArgCountError(kd codes.Code, expected string, given int, usage ...string) e
 
 func argCountErrorByName(name, expected string, given int, usage string) error {
 	if usage != "" {
-		return fmt.Errorf("%s() %s argüman bekler, %d verildi (kullanım: %s)", name, expected, given, usage)
+		return messages.New(messages.H2011, name, expected, given, usage)
 	}
-	return fmt.Errorf("%s() %s argüman bekler, %d verildi", name, expected, given)
+	return messages.New(messages.H2012, name, expected, given)
 }
 
 // TypeAndSummary writes a value for an error message as "Metin ("a")".
 func TypeAndSummary(v Value) string {
 	if v == nil {
-		return "hiçbir değer"
+		return messages.Text(messages.H2013)
 	}
 	return fmt.Sprintf("%s (%s)", v.Type(), ValueSummary(v))
 }

@@ -2,7 +2,11 @@
 
 package turkish
 
-import "syscall"
+import (
+	"syscall"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // systemErrorReason bu platformda hata kodlarını tanımaz; bilinmeyen durum mesajı kullanılır.
-func systemErrorReason(syscall.Errno) string { return "" }
+func systemErrorReason(syscall.Errno) messages.Code { return 0 }

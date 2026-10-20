@@ -2,10 +2,10 @@ package interp
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Bu dosyadaki arayüzler, VM dışında tanımlanan değerlerin (ör. internal/stdlib/ml'daki
@@ -99,7 +99,7 @@ type LineError struct {
 	Err  error
 }
 
-func (h *LineError) Error() string { return fmt.Sprintf("Satır %d: %v", h.Line, h.Err) }
+func (h *LineError) Error() string { return messages.Text(messages.H2001, h.Line, h.Err) }
 func (h *LineError) Unwrap() error { return h.Err }
 
 // hasLine hata zaten satır bilgisi taşıyor mu? Tipli hata önceliklidir; VM'nin metinle

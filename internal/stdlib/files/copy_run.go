@@ -2,7 +2,6 @@ package files
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -105,7 +105,7 @@ func (job *moveJob) copyFile() error {
 		return nil
 	}
 	if b, err := os.Stat(job.last); err != nil || b.Size() != job.srcInfo.Size() {
-		return turkish.Reason(fmt.Sprintf("kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi (%q)", filepath.ToSlash(job.last)))
+		return turkish.NewReason(messages.H7100, filepath.ToSlash(job.last))
 	}
 	_, err = deleteTree(job.src, job.srcInfo)
 	return err
@@ -137,10 +137,10 @@ func (job *moveJob) copyDir() (err error) {
 	}
 	if job.move {
 		if len(digest.skipped) > 0 {
-			return turkish.Reason(fmt.Sprintf("kaynakta %d bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)", len(digest.skipped)))
+			return turkish.NewReason(messages.H7101, len(digest.skipped))
 		}
 		if targetDigest, err := treeDigest(tmp); err != nil || targetDigest != digest.tally {
-			return turkish.Reason("kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi")
+			return turkish.NewReason(messages.H7102)
 		}
 	}
 	if err = job.replace(tmp); err != nil {

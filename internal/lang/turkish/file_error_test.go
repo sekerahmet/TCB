@@ -8,6 +8,8 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestFileErrorTurkishAndHelpful(t *testing.T) {
@@ -20,16 +22,17 @@ func TestFileErrorTurkishAndHelpful(t *testing.T) {
 	errWriteToDir := os.WriteFile(d, nil, 0o644)
 
 	states := []struct {
-		name, op string
-		err      error
-		wantSub  string
+		name    string
+		op      messages.Code
+		err     error
+		wantSub string
 	}{
-		{"yok", "okunamadı", errNotExist, "böyle bir dosya ya da klasör yok"},
-		{"klasör yok", "okunamadı", errDirMissing, filepath.ToSlash(filepath.Join(d, "a")) + `" klasörü yok`},
-		{"yazmada klasör yok", "yazılamadı", errWriteDirMissing, `klasörü yok`},
-		{"klasörü okuma", "okunamadı", errDir, "bu bir klasör, dosya değil"},
-		{"klasöre yazma", "yazılamadı", errWriteToDir, "bu bir klasör, dosya değil"},
-		{"izin", "yazılamadı", &fs.PathError{Op: "open", Path: missing, Err: fs.ErrPermission}, "erişim izni yok"},
+		{"yok", messages.H2100, errNotExist, "böyle bir dosya ya da klasör yok"},
+		{"klasör yok", messages.H2100, errDirMissing, filepath.ToSlash(filepath.Join(d, "a")) + `" klasörü yok`},
+		{"yazmada klasör yok", messages.H2101, errWriteDirMissing, `klasörü yok`},
+		{"klasörü okuma", messages.H2100, errDir, "bu bir klasör, dosya değil"},
+		{"klasöre yazma", messages.H2101, errWriteToDir, "bu bir klasör, dosya değil"},
+		{"izin", messages.H2101, &fs.PathError{Op: "open", Path: missing, Err: fs.ErrPermission}, "erişim izni yok"},
 	}
 	for _, d := range states {
 		if d.err == nil {
@@ -37,7 +40,7 @@ func TestFileErrorTurkishAndHelpful(t *testing.T) {
 		}
 		e := FileError("dosya_oku()", "x.txt", d.op, d.err, "ek bilgi")
 		m := e.Error()
-		if !strings.HasPrefix(m, `dosya_oku(): "x.txt" `+d.op+": ") || !strings.Contains(m, d.wantSub) || !strings.HasSuffix(m, "; ek bilgi") {
+		if !strings.HasPrefix(m, `dosya_oku(): "x.txt" `+messages.Text(d.op)+": ") || !strings.Contains(m, d.wantSub) || !strings.HasSuffix(m, "; ek bilgi") {
 			t.Errorf("%s: beklenmeyen mesaj: %s", d.name, m)
 		}
 		if strings.Contains(m, "cannot") || strings.Contains(m, "system") || strings.Contains(m, "Incorrect") {
@@ -47,21 +50,29 @@ func TestFileErrorTurkishAndHelpful(t *testing.T) {
 			t.Errorf("%s: özgün hata Unwrap ile korunmadı", d.name)
 		}
 	}
-	if !errors.Is(FileError("", "x", "okunamadı", errNotExist), os.ErrNotExist) {
+	if !errors.Is(FileError("", "x", messages.H2100, errNotExist), os.ErrNotExist) {
 		t.Error("errors.Is(..., os.ErrNotExist) çalışmalı")
 	}
-	if FileError("f", "x", "okunamadı", nil) != nil {
+	if FileError("f", "x", messages.H2100, nil) != nil {
 		t.Error("nil hata nil kalmalı")
+	}
+	// İletinin, işlemin ve nedenin kodları hata zincirinde bulunur.
+	e := FileError("f", "x", messages.H2100, errNotExist)
+	if !messages.Has(e, messages.H2120) || !messages.Has(e, messages.H2132) {
+		t.Errorf("kodlar zincirde bulunmalı: %v", e)
+	}
+	if r := FileError("", "x", messages.H2100, NewReason(messages.H2042)); !messages.Has(r, messages.H2042) || !strings.HasSuffix(r.Error(), "gzip başlığı bozuk") {
+		t.Errorf("Reason nedeni: %v", r)
 	}
 }
 
 func TestFileErrorUnknownStatusCode(t *testing.T) {
 	err := &fs.PathError{Op: "open", Path: "x", Err: syscall.Errno(7777)}
-	m := FileError("", "x", "okunamadı", err).Error()
+	m := FileError("", "x", messages.H2100, err).Error()
 	if !strings.HasPrefix(m, `"x" okunamadı: işletim sistemi beklenmeyen bir hata bildirdi (hata kodu 7777`) {
 		t.Errorf("beklenmeyen mesaj: %s", m)
 	}
-	m = FileError("", "x", "okunamadı", errors.New("tuhaf")).Error()
+	m = FileError("", "x", messages.H2100, errors.New("tuhaf")).Error()
 	if m != `"x" okunamadı: beklenmeyen bir hata oluştu (özgün hata: tuhaf)` {
 		t.Errorf("beklenmeyen mesaj: %s", m)
 	}

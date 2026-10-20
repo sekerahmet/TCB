@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib"
@@ -56,7 +57,7 @@ var (
 func kaynakOku(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.FileError("", path, "okunamadı", err))
+		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.FileError("", path, messages.H2100, err))
 		os.Exit(1)
 	}
 	return string(data)

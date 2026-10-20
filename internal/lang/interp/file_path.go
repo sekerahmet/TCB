@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -68,15 +69,15 @@ func SearchedPlaces(searched []string) string {
 	case 0:
 		return ""
 	case 1:
-		return "bakılan yer: " + searched[0]
+		return messages.Text(messages.H2030, searched[0])
 	}
-	return "bakılan yerler: " + strings.Join(searched, ", ")
+	return messages.Text(messages.H2031, strings.Join(searched, ", "))
 }
 
 // ReadError explains a read error with turkish.FileError; when the file was not found it adds
 // the places ResolvePath tried. fn is the builtin reporting the error, yol the path the user
-// wrote, islem an outcome such as "okunamadı".
-func ReadError(fn, filePath, operation string, err error, searched []string) error {
+// wrote, operation an outcome message code such as messages.H2100 ("okunamadı").
+func ReadError(fn, filePath string, operation messages.Code, err error, searched []string) error {
 	extra := ""
 	if errors.Is(err, fs.ErrNotExist) {
 		extra = SearchedPlaces(searched)

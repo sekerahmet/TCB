@@ -2,39 +2,53 @@ package turkish
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// fileError işletim sisteminin dosya hatasını Türkçe anlatır. Özgün hata Unwrap ile
-// korunur: errors.Is(err, os.ErrNotExist) gibi denetimler çalışmaya devam eder.
+// fileError işletim sisteminin dosya hatasını kullanıcının dilinde anlatır. İleti kodludur
+// (messages.Has ile bulunur); özgün hata da Unwrap ile korunur: errors.Is(err,
+// os.ErrNotExist) gibi denetimler çalışmaya devam eder.
 type fileError struct {
-	message string
+	message *messages.Error
+	extras  []string
 	orig    error
 }
 
-func (h *fileError) Error() string { return h.message }
-func (h *fileError) Unwrap() error { return h.orig }
+func (h *fileError) Error() string {
+	s := h.message.Error()
+	for _, e := range h.extras {
+		s += "; " + e
+	}
+	return s
+}
 
-// Reason is a file error carrying its own Turkish reason sentence (cases that do not come
+func (h *fileError) Unwrap() []error { return []error{h.message, h.orig} }
+
+// Reason is a file error carrying its own reason as a coded message (cases that do not come
 // from the operating system: "uzantısı .gz ama içerik gzip değil", "salt okunur dosya" ...).
-// FileError writes it as is.
-type Reason string
+// FileError writes it as the reason.
+type Reason struct{ Message *messages.Error }
 
-func (n Reason) Error() string { return string(n) }
+// NewReason returns the reason message c with its parameter values.
+func NewReason(c messages.Code, args ...any) Reason { return Reason{messages.New(c, args...)} }
 
-// FileError turns the error of a file operation into a Turkish message for the user; the
-// operating system's English text ("The system cannot find the file specified") never
-// reaches the user. The message is a single line:
+func (n Reason) Error() string { return n.Message.Error() }
+func (n Reason) Unwrap() error { return n.Message }
+
+// FileError turns the error of a file operation into a message for the user in the active
+// language; the operating system's English text ("The system cannot find the file
+// specified") never reaches the user. The message is a single line:
 //
 //	<fn>: "<yol>" <islem>: <neden>[; <ek>...]
 //
 // fn is the builtin that failed (e.g. "dosya_oku()"; no prefix when empty), yol is the
-// path as the user wrote it, islem is the outcome such as "okunamadı" or "yazılamadı".
+// path as the user wrote it, op is the outcome as a message code without parameters
+// (messages.H2100 "okunamadı", messages.H2101 "yazılamadı" ...).
 // ekler are appended after the reason with "; " (e.g. "bakılan yerler: ..."). Known cases:
 // file or folder missing, permission denied, path is a folder, disk full, file in use,
 // invalid name, path too long, write-protected disk. Unknown cases get a Turkish lead
@@ -43,34 +57,39 @@ func (n Reason) Error() string { return string(n) }
 //
 // Returns nil when err is nil. Standard library packages (tensör_kaydet/yükle,
 // parçalayıcı_yükle, veri_kümesi) must report file errors through it as well.
-func FileError(fn, path, op string, err error, suffixes ...string) error {
+func FileError(fn, path string, op messages.Code, err error, suffixes ...string) error {
 	if err == nil {
 		return nil
 	}
-	var sb strings.Builder
+	reason, opText := fileErrorReason(path, err), messages.Text(op)
+	m := messages.New(messages.H2121, path, opText, reason)
 	if fn != "" {
-		sb.WriteString(fn)
-		sb.WriteString(": ")
+		m = messages.New(messages.H2120, fn, path, opText, reason)
 	}
-	fmt.Fprintf(&sb, "%q %s: %s", path, op, FileErrorReason(path, err))
+	var extras []string
 	for _, suffix := range suffixes {
 		if suffix != "" {
-			sb.WriteString("; ")
-			sb.WriteString(suffix)
+			extras = append(extras, suffix)
 		}
 	}
-	return &fileError{message: sb.String(), orig: err}
+	return &fileError{message: m, extras: extras, orig: err}
 }
 
-// FileErrorReason returns only the Turkish reason sentence of the error (e.g. "böyle bir
-// dosya ya da klasör yok"). For callers that build their own message.
+// FileErrorReason returns only the reason sentence of the error in the active language (e.g.
+// "böyle bir dosya ya da klasör yok"). For callers that build their own message.
 func FileErrorReason(path string, err error) string {
 	if err == nil {
 		return ""
 	}
+	return fileErrorReason(path, err).Error()
+}
+
+// fileErrorReason nedenin kodlu iletisidir; FileError onu iletinin içinde taşır (messages.Has
+// nedenin kodunu da bulur).
+func fileErrorReason(path string, err error) *messages.Error {
 	var n Reason
 	if errors.As(err, &n) {
-		return string(n)
+		return n.Message
 	}
 	// Denetimler işletim sisteminin gerçekten denediği yolla yapılır (göreli yol programın
 	// klasörüne göre çözülmüş olabilir).
@@ -82,34 +101,34 @@ func FileErrorReason(path string, err error) string {
 	// (Windows'ta "Incorrect function", Unix'te EISDIR); hepsi aynı cümleye iner.
 	if path != "" {
 		if info, e := os.Stat(path); e == nil && info.IsDir() {
-			return "bu bir klasör, dosya değil (klasörün içindeki bir dosyanın yolunu verin)"
+			return messages.New(messages.H2130)
 		}
 	}
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		if dir := missingDir(path); dir != "" {
-			return fmt.Sprintf("%q klasörü yok", dir)
+			return messages.New(messages.H2131, dir)
 		}
-		return "böyle bir dosya ya da klasör yok (yolun yazımını denetleyin)"
+		return messages.New(messages.H2132)
 	case errors.Is(err, fs.ErrPermission):
-		return "erişim izni yok (dosya salt okunur, korumalı bir klasörde ya da başka bir kullanıcıya ait olabilir)"
+		return messages.New(messages.H2133)
 	case errors.Is(err, fs.ErrExist):
-		return "bu adda bir dosya zaten var"
+		return messages.New(messages.H2134)
 	case errors.Is(err, syscall.EISDIR):
-		return "bu bir klasör, dosya değil (klasörün içindeki bir dosyanın yolunu verin)"
+		return messages.New(messages.H2130)
 	}
 	var code syscall.Errno
 	if errors.As(err, &code) {
-		if reason := systemErrorReason(code); reason != "" {
-			return reason
+		if reason := systemErrorReason(code); reason != 0 {
+			return messages.New(reason)
 		}
-		return fmt.Sprintf("işletim sistemi beklenmeyen bir hata bildirdi (hata kodu %d: %s)", uintptr(code), code.Error())
+		return messages.New(messages.H2135, uintptr(code), code.Error())
 	}
 	orig := err.Error()
 	if pe != nil {
 		orig = pe.Err.Error()
 	}
-	return fmt.Sprintf("beklenmeyen bir hata oluştu (özgün hata: %s)", orig)
+	return messages.New(messages.H2136, orig)
 }
 
 // missingDir yolun klasör kısımlarından ilk olmayanını kullanıcının yazdığı biçimde

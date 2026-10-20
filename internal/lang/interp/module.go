@@ -11,6 +11,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
@@ -84,11 +85,10 @@ func (e *ModuleError) Unwrap() error { return e.Err }
 
 // header denetim hatasının 'aktar' satırını gösteren ilk bölümüdür.
 func (e *ModuleError) header() string {
-	prefix := ""
 	if e.Importer != nil {
-		prefix = e.Importer.Name + ", "
+		return messages.Text(messages.H2002, e.Importer.Name, e.ImportLine, e.ModulePath, e.Kind)
 	}
-	return fmt.Sprintf("%sSatır %d: %q modülü %s hataları nedeniyle yüklenemedi", prefix, e.ImportLine, e.ModulePath, e.Kind)
+	return messages.Text(messages.H2003, e.ImportLine, e.ModulePath, e.Kind)
 }
 
 // ErrorItem is one error line to show the user and the code frame drawn from the file it
@@ -300,7 +300,7 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	} else {
 		data, err := os.ReadFile(dest.Path)
 		if err != nil {
-			return nil, fmt.Errorf("Satır %d: %w", s.Line(), ReadError(codes.Name(codes.A070), path, "modülü okunamadı", err, searched))
+			return nil, fmt.Errorf("Satır %d: %w", s.Line(), ReadError(codes.Name(codes.A070), path, messages.H2112, err, searched))
 		}
 		dest.Code = string(data)
 	}

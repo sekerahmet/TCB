@@ -10,6 +10,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -37,7 +38,7 @@ func tempDirBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.V
 	parent := os.TempDir()
 	fpath, err := os.MkdirTemp(parent, fmt.Sprintf("tr_%d_*", os.Getpid()))
 	if err != nil {
-		return nil, turkish.FileError(fn, filepath.ToSlash(parent), "içinde geçici klasör oluşturulamadı", err)
+		return nil, turkish.FileError(fn, filepath.ToSlash(parent), messages.H2106, err)
 	}
 	if absPath, err := filepath.Abs(fpath); err == nil {
 		fpath = absPath
@@ -66,7 +67,7 @@ func deleteTempDirs() []error {
 		}
 		raw := filepath.ToSlash(g.fpath)
 		if err != nil {
-			errs = append(errs, turkish.FileError(fn, raw, "silinemedi", err))
+			errs = append(errs, turkish.FileError(fn, raw, messages.H2104, err))
 			continue
 		}
 		if reason := deleteProtection(g.m, realPath(g.fpath)); reason != "" {
@@ -74,7 +75,7 @@ func deleteTempDirs() []error {
 			continue
 		}
 		if _, err := deleteTree(g.fpath, info); err != nil {
-			errs = append(errs, turkish.FileError(fn, raw, "silinemedi", err))
+			errs = append(errs, turkish.FileError(fn, raw, messages.H2104, err))
 		}
 	}
 	return errs

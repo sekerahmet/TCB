@@ -19,6 +19,7 @@ import (
 	_ "github.com/sekerahmet/TCB/internal/devtools/debugger" // koddaki kesme_noktası hata ayıklayıcıyı açar
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	_ "github.com/sekerahmet/TCB/internal/stdlib" // testler dilin tamamıyla (motor yerleşikleri dahil) çalışır
@@ -117,7 +118,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 
 	data, err := os.ReadFile(fpath)
 	if err != nil {
-		fmt.Fprintf(out, "  ✗ %v\n", turkish.FileError("", fpath, "okunamadı", err))
+		fmt.Fprintf(out, "  ✗ %v\n", turkish.FileError("", fpath, messages.H2100, err))
 		summary.Unloadable++
 		return summary
 	}

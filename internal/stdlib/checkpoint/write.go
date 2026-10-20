@@ -19,6 +19,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
@@ -59,7 +60,7 @@ func (kn *Checkpoint) save(m *interp.VM) (string, error) {
 		if errors.As(err, &le) {
 			extras = append(extras, "ağ ve bulut sürücülerinde (ör. bağlanmış Drive) yeniden adlandırma başarısız olabilir: noktaları yerel diske kaydedip koşu klasörünü ara ara oraya kopyalayın")
 		}
-		return "", turkish.FileError(fn, shown, "kaydedilemedi", err, extras...)
+		return "", turkish.FileError(fn, shown, messages.H2102, err, extras...)
 	}
 	kn.lastValid = kn.step
 	if err := interp.WriteAtomic(filepath.Join(kn.dir, latestFile), func(w io.Writer) error {
@@ -107,7 +108,7 @@ func trVersion() string {
 // writeCkpt noktayı geçici klasöre yazar, diske işler ve yerine koyar.
 func (kn *Checkpoint) writeCkpt(name string, state []byte, plan []tensorPlan) (err error) {
 	if b, err := os.Stat(kn.dir); err == nil && !b.IsDir() {
-		return turkish.Reason(dirName + " bir dosya; noktaların klasörü olmalı")
+		return turkish.NewReason(messages.H7400, dirName)
 	}
 	if err := os.MkdirAll(kn.dir, 0o755); err != nil {
 		return err

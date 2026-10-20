@@ -11,6 +11,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
@@ -82,13 +83,13 @@ func (d *state) openLog(m *interp.VM, args []interp.Value) (interp.Value, error)
 	}
 	g := &Log{m: m, d: d, path: path, fullPath: bind.ResolvePath(m, path), program: filepath.Base(m.SourceFile), opening: clock()}
 	if err := os.MkdirAll(filepath.Dir(g.fullPath), 0o755); err != nil {
-		return nil, turkish.FileError(fn, path, "oluşturulamadı", err)
+		return nil, turkish.FileError(fn, path, messages.H2105, err)
 	}
 	g.mu.Lock()
 	err = g.open()
 	g.mu.Unlock()
 	if err != nil {
-		return nil, turkish.FileError(fn, path, "açılamadı", err)
+		return nil, turkish.FileError(fn, path, messages.H2103, err)
 	}
 	return g, nil
 }
@@ -232,11 +233,11 @@ func (g *Log) write(record *interp.DictVal) error {
 	}
 	if g.file == nil {
 		if err := g.open(); err != nil {
-			return turkish.FileError(interp.CallPrefix(codes.G810), g.path, "açılamadı", err)
+			return turkish.FileError(interp.CallPrefix(codes.G810), g.path, messages.H2103, err)
 		}
 	}
 	if _, err := g.file.Write(line); err != nil {
-		return turkish.FileError(interp.CallPrefix(codes.G810), g.path, "yazılamadı", err)
+		return turkish.FileError(interp.CallPrefix(codes.G810), g.path, messages.H2101, err)
 	}
 	g.start = true
 	g.records++

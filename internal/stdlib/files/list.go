@@ -10,6 +10,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -42,7 +43,7 @@ func listBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	resolved, tried := m.ResolvePath(filepath.FromSlash(base))
 	info, err := os.Stat(resolved)
 	if err != nil {
-		return nil, interp.ReadError(fn, base, "listelenemedi", err, tried)
+		return nil, interp.ReadError(fn, base, messages.H2114, err, tried)
 	}
 	if !info.IsDir() {
 		return nil, fmt.Errorf("%s: %q bir dosya, klasör değil; listelenecek klasörü verin", fn, base)

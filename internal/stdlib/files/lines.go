@@ -13,6 +13,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
@@ -139,7 +140,7 @@ func linesBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	var r io.ReadCloser
 	m.Blocking(func() { r, err = interp.OpenFileReader(resolved) })
 	if err != nil {
-		return nil, interp.ReadError(fn, raw, "okunamadı", err, tried)
+		return nil, interp.ReadError(fn, raw, messages.H2100, err, tried)
 	}
 	o := &LineReader{fpath: raw, r: r, br: bufio.NewReaderSize(r, readBuffer)}
 	addEntry(r, realPath(resolved))
@@ -244,7 +245,7 @@ func (o *LineReader) Next(m *interp.VM) (interp.Value, bool, error) {
 		return nil, false, o.closedError()
 	}
 	if err != nil {
-		return nil, false, turkish.FileError(interp.CallPrefix(codes.G112), o.fpath, "okunamadı", err)
+		return nil, false, turkish.FileError(interp.CallPrefix(codes.G112), o.fpath, messages.H2100, err)
 	}
 	if last {
 		return nil, false, nil
@@ -280,7 +281,7 @@ func (o *LineReader) read() (line string, last bool, err error) {
 		if errors.Is(err, bufio.ErrBufferFull) {
 			if len(long)+len(part) > lineLimit {
 				o.close()
-				return "", false, turkish.Reason(fmt.Sprintf("%d. satır 64 MB'tan uzun; dosya satırlara bölünmemiş olabilir (bütün dosya için %s(...))", o.counter+1, codes.Name(codes.G110)))
+				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.Name(codes.G110))
 			}
 			long = append(long, part...)
 			continue

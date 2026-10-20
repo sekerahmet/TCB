@@ -9,6 +9,7 @@ import (
 	"os/exec"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
@@ -121,7 +122,7 @@ func cevirKomutu(args []string, komut, fiil string, cevir func(string) (string, 
 	for _, yol := range dosyalar {
 		veri, err := os.ReadFile(yol)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.FileError("", yol, "okunamadı", err))
+			fmt.Fprintf(os.Stderr, "✗ %v\n", turkish.FileError("", yol, messages.H2100, err))
 			hatali++
 			continue
 		}
@@ -156,7 +157,7 @@ func yerineYaz(yol, metin string) error {
 		izin = bilgi.Mode().Perm()
 	}
 	if err := os.WriteFile(yol, []byte(metin), izin); err != nil {
-		return turkish.FileError("", yol, "yazılamadı", err)
+		return turkish.FileError("", yol, messages.H2101, err)
 	}
 	return nil
 }
@@ -198,7 +199,7 @@ func gosterKomutu(args []string) {
 	}
 	veri, err := os.ReadFile(dosya)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.FileError("", dosya, "okunamadı", err))
+		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.FileError("", dosya, messages.H2100, err))
 		os.Exit(1)
 	}
 	metin, err := source.Decode(string(veri), dil)

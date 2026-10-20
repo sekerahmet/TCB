@@ -2,33 +2,37 @@
 
 package turkish
 
-import "syscall"
+import (
+	"syscall"
 
-// systemErrorReason POSIX hata kodlarından bilinenleri Türkçe anlatır; bilinmeyende "" döner.
-func systemErrorReason(code syscall.Errno) string {
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
+
+// systemErrorReason POSIX hata kodlarından bilinenleri ileti koduyla anlatır; bilinmeyende 0 döner.
+func systemErrorReason(code syscall.Errno) messages.Code {
 	switch code {
 	case syscall.ENOSPC:
-		return "diskte yer kalmadı (yer açıp yeniden deneyin)"
+		return messages.H2143
 	case syscall.EDQUOT:
-		return "disk kotanız doldu (yer açıp yeniden deneyin)"
+		return messages.H2154
 	case syscall.EROFS:
-		return "dosya sistemi salt okunur"
+		return messages.H2155
 	case syscall.ENOTDIR:
-		return "yolun bir parçası klasör değil, dosya"
+		return messages.H2156
 	case syscall.ENAMETOOLONG:
-		return "yol çok uzun (daha kısa bir klasör ya da dosya adı kullanın)"
+		return messages.H2145
 	case syscall.EMFILE, syscall.ENFILE:
-		return "aynı anda çok fazla dosya açık (açık dosyaları kapatıp yeniden deneyin)"
+		return messages.H2140
 	case syscall.EBUSY, syscall.ETXTBSY:
-		return "dosya başka bir program tarafından kullanılıyor (o programı kapatıp yeniden deneyin)"
+		return messages.H2142
 	case syscall.ENOTEMPTY:
-		return "klasör boş değil"
+		return messages.H2144
 	case syscall.EIO:
-		return "disk okunurken ya da yazılırken donanım hatası oluştu"
+		return messages.H2141
 	case syscall.ELOOP:
-		return "yolda sonsuz döngüye giren bir sembolik bağ var"
+		return messages.H2157
 	case syscall.EFBIG:
-		return "dosya bu dosya sistemi için çok büyük"
+		return messages.H2158
 	}
-	return ""
+	return 0
 }

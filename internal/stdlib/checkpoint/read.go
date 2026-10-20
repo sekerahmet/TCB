@@ -14,6 +14,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
@@ -42,7 +43,7 @@ func (kn *Checkpoint) load(m *interp.VM, fn string) error {
 	cleanLeftovers(kn.dir)
 	ckpts, err := listCkpts(kn.dir)
 	if err != nil {
-		return turkish.FileError(fn, kn.shown, "okunamadı", err)
+		return turkish.FileError(fn, kn.shown, messages.H2100, err)
 	}
 	if len(ckpts) == 0 {
 		return nil
