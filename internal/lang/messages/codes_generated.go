@@ -1419,7 +1419,7 @@ const (
 	H8502 Code = 8502 // {target} bulunamadı
 	H8503 Code = 8503 // {target} içinde *_test.tr dosyası bulunamadı
 	H8504 Code = 8504 // uyarılar:
-	H8505 Code = 8505 // {stage} hataları nedeniyle testler çalıştırılamadı:
+	H8505 Code = 8505 // {stage, select, syntax {Sözdizimi} other {Tip denetimi}} hataları nedeniyle testler çalıştırılamadı:
 	H8506 Code = 8506 // (bu dosyada test bloğu yok)
 	H8507 Code = 8507 // dosyanın üst düzey kodu hata verdi, testler çalıştırılamadı:
 	H8601 Code = 8601 // Gömülü uygulama okunamadı: {error}

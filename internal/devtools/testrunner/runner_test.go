@@ -161,6 +161,10 @@ func TestUnloadableFile(t *testing.T) {
 	if !strings.Contains(out.String(), "2 dosya yüklenemedi") {
 		t.Errorf("yükleme hatası özetlenmedi:\n%s", out.String())
 	}
+	// Aşama adı (source.StageSyntax) iletiye ham girmez; etkin dilde yazılır.
+	if !strings.Contains(out.String(), "Sözdizimi hataları nedeniyle testler çalıştırılamadı") {
+		t.Errorf("aşama adı Türkçe yazılmadı:\n%s", out.String())
+	}
 }
 
 // Test içindeki 'ertele' test bitince çalışmalı; testin kendisi kalsa bile.
