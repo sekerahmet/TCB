@@ -79,6 +79,12 @@ async function targetDocument(uri) {
     return editor ? editor.document : undefined;
 }
 
+// languageEnvironment, yorumlayıcıya başlattığımız her süreçte yazım dilini (TR_DIL) ayara göre
+// verir; böylece çalışan program ve hata ayıklayıcı iletileri ayarla aynı dilde gösterir.
+function languageEnvironment() {
+    return { TR_DIL: vscode.workspace.getConfiguration('tr').get('yazimDili', 'tr') };
+}
+
 function createTask(def, documentUri, interpreter, extra) {
     const file = documentUri.fsPath;
     const folder = vscode.workspace.getWorkspaceFolder(documentUri);
@@ -89,7 +95,7 @@ function createTask(def, documentUri, interpreter, extra) {
         folder || vscode.TaskScope.Workspace,
         `${def.title}: ${path.basename(file)}`,
         'TR',
-        new vscode.ProcessExecution(interpreter, def.args(file, extra), { cwd }),
+        new vscode.ProcessExecution(interpreter, def.args(file, extra), { cwd, env: languageEnvironment() }),
         []
     );
     // Görev terminali odaklanır; hata ayıklayıcının komutları buradan yazılır.
@@ -161,6 +167,7 @@ function runInTerminal(def, documentUri, interpreter, extra) {
         shellPath: interpreter,
         shellArgs: def.args(file, extra),
         cwd: path.dirname(file),
+        env: languageEnvironment(),
         isTransient: true
     });
     terminal.show(false);
@@ -172,6 +179,10 @@ const taskProvider = {
         return [];
     },
     resolveTask(task) {
+        // Görev yorumlayıcıyı çalıştırır: güvenilmeyen çalışma alanında çözülmez (run() ile aynı kural).
+        if (!vscode.workspace.isTrusted) {
+            return undefined;
+        }
         const d = task.definition || {};
         const def = Object.values(COMMANDS).find((t) => t.id === d.komut);
         if (!def) {
@@ -270,7 +281,7 @@ const debugAdapterFactory = {
             interpreterNotFound(message);
             throw new Error(message);
         }
-        return new vscode.DebugAdapterExecutable(found.filePath, ['dap'], { cwd: config.cwd || path.dirname(program) });
+        return new vscode.DebugAdapterExecutable(found.filePath, ['dap'], { cwd: config.cwd || path.dirname(program), env: languageEnvironment() });
     }
 };
 
@@ -280,8 +291,13 @@ async function startDebugSession(uri) {
         vscode.window.showErrorMessage('Hata ayıklamak için bir .tr dosyası açın.');
         return;
     }
-    if (document.isDirty) {
-        await document.save();
+    if (!vscode.workspace.isTrusted) {
+        vscode.window.showWarningMessage('TR dosyalarında hata ayıklamak için bu çalışma alanına güvenmeniz gerekir (Çalışma Alanı Güveni).');
+        return;
+    }
+    if (document.isDirty && !(await document.save())) {
+        vscode.window.showErrorMessage('Dosya kaydedilemedi; hata ayıklama iptal edildi.');
+        return;
     }
     await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(localUri(document.uri) || document.uri), debugConfigurationFor(document));
 }
@@ -399,7 +415,7 @@ async function onWatchPanelMessage(m) {
     if (!session) {
         // Hata ayıklama oturumu bittiyse istek göndermek "No debugger available" hatası verir.
         if (m.tur === 'tablo') {
-            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj: 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).' });
+            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', kapsam: m.kapsam, ifade: m.ifade, mesaj: 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).' });
         } else {
             vscode.window.showWarningMessage('Hata ayıklama oturumu bitti; değer değiştirilemez.');
         }
@@ -407,22 +423,34 @@ async function onWatchPanelMessage(m) {
     }
     try {
         if (m.tur === 'tablo') {
-            const data = await session.customRequest('trTablo', { ifade: m.ifade });
-            watchPanelState.panel.webview.postMessage({ tur: 'tablo', veri: data });
+            const data = await session.customRequest('trTablo', { ifade: m.ifade, kapsam: m.kapsam });
+            watchPanelState.panel.webview.postMessage({ tur: 'tablo', veri: Object.assign({ kapsam: m.kapsam }, data) });
         } else if (m.tur === 'komut') {
             await runWatchCommand(session, m.komut);
         } else if (m.tur === 'degistir') {
-            await session.customRequest('evaluate', { expression: m.ad + ' = ' + m.ifade, context: 'repl', frameId: 1 });
+            await setWatchValue(session, m.kapsam, m.ad, m.ifade);
             await updateWatchPanel(session);
         }
     } catch (e) {
         const message = String(e && e.message ? e.message : e);
         if (m.tur === 'tablo') {
-            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj: message });
+            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', kapsam: m.kapsam, ifade: m.ifade, mesaj: message });
         } else {
             vscode.window.showErrorMessage('Değer değiştirilemedi: ' + message);
         }
     }
+}
+
+// setWatchValue ✏️ ile değeri değiştirir: DAP setVariable, değişkenin kapsamının
+// variablesReference'ıyla gönderilir (aynı adlı genel/yerel değişkenden doğrusu değişir);
+// hata ayıklayıcı yeni değeri yalnızca TEK ifade olarak hesaplar, deyim çalıştırılmaz.
+async function setWatchValue(session, scope, name, expression) {
+    const { scopes } = await session.customRequest('scopes', { frameId: 1 });
+    const found = (scopes || []).find((k) => k.name === scope);
+    if (!found) {
+        throw new Error(`'${scope}' kapsamı bulunamadı (program başka bir çerçevede durmuş olabilir).`);
+    }
+    await session.customRequest('setVariable', { variablesReference: found.variablesReference, name, value: expression });
 }
 
 // Yönlendirme düğmeleri: oturum etkin oturumsa VS Code'un kendi komutları kullanılır (araç

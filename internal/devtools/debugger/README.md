@@ -30,6 +30,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_dap_coded_files_test.go`: kodlu dosyanın düzenleyicide Türkçe görünümüyle açılması: kesme noktaları, çağrı yığını ve kaynak yolları
 - `behavior_dap_modules_test.go`: modül satırları, protokol alanlarıyla çakışan gizli değer ve göreli program yolu (DAP)
+- `behavior_dap_scope_test.go`: aynı adlı genel/yerel değişkenin değer değiştirme ve tablo isteğinde kapsama göre seçilmesi
 - `behavior_dap_secrets_test.go`: gizli değerlerin düzenleyiciye giden hiçbir iletide görünmemesi
 - `behavior_dap_tensor_variables_test.go`: tensörlerin değişkenler panelinde açılması ve okunamayan program dosyası hatası
 - `behavior_dap_watch_panel_test.go`: İzleme Masası düğmelerinin gönderdiği DAP isteklerinin işlenmesi

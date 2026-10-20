@@ -107,9 +107,17 @@ func typeLabel(val interp.Value) string {
 func (s *dapServer) table(msg *dapMessage) {
 	var a struct {
 		Expression string `json:"ifade"`
+		Scope      string `json:"kapsam"`
 	}
 	_ = json.Unmarshal(msg.Arguments, &a)
-	val, err := s.evalQuiet(s.curVM, s.curEnv, a.Expression)
+	// İzleme Masası aynı adlı Yerel/Genel tabloları ayırır: kapsam "Genel" ise ifade genel
+	// ortamda hesaplanır; boş ya da "Yerel" ise geçerli ortamda (Variables panelinden gelen
+	// kapsamsız istek de buraya düşer).
+	env := s.curEnv
+	if a.Scope == "Genel" {
+		env = s.curVM.GlobalEnv
+	}
+	val, err := s.evalQuiet(s.curVM, env, a.Expression)
 	if err != nil {
 		s.respondErr(msg, err.Error())
 		return

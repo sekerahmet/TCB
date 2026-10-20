@@ -226,6 +226,32 @@ test('yazım dili ayarı tr göster ve tr kodla komutlarına --dil ile geçer', 
     assert.deepStrictEqual(calls, [['göster', 'tr'], ['kodla', 'tr']]);
 });
 
+test('yazım dili değişince kirli olmayan açık görünüm yeni dille yenilenir', async () => {
+    const settings = { yazimDili: 'tr' };
+    const o = makeEnv({ settings });
+    const b = (await open(o, o.uri)).document;
+    assert.ok(b.getText().includes('değişken sayaç'), b.getText());
+    settings.yazimDili = 'en';
+    o.events.setting.fire({ affectsConfiguration: (k) => k === 'tr.yazimDili' });
+    await waitUntil(() => b.getText().includes('var sayaç'), 'İngilizce görünüm');
+    assert.ok(!b.isDirty);
+});
+
+test('yazım dili değişince kirli görünüm eski dille kodlanır (kodlar bozulmaz), kişi uyarılır', async () => {
+    const settings = { yazimDili: 'tr' };
+    const o = makeEnv({ settings });
+    const b = (await open(o, o.uri)).document;
+    const edited = b.getText() + 'yazdır("son")\r\n';
+    b.edit(edited);
+    settings.yazimDili = 'en';
+    o.events.setting.fire({ affectsConfiguration: (k) => k === 'tr.yazimDili' });
+    await waitUntil(() => o.log.warnings.length > 0, 'kirli belge uyarısı');
+    assert.strictEqual(b.getText(), edited, 'kirli belgenin metnine dokunulmaz');
+    await b.save();
+    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), encode(edited), 'eski dille kodlanmalı');
+    assert.strictEqual(showText(o.file), edited);
+});
+
 test('dosya dışarıda değişince görünümün adresiyle bildirilir; tarih diskteki dosyanınki', async () => {
     const o = makeEnv();
     const view = o.filesystems['tr-kodlu'].p;

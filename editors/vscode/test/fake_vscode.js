@@ -84,12 +84,27 @@ class FakeDocument {
     lineAt(i) { return { text: this.text.split(/\r?\n/)[i] }; }
     edit(fresh) { this.history.push(this.text); this.text = fresh; this.isDirty = true; }
     undo() { this.text = this.history.pop(); this.isDirty = true; }
+    // reload dosyanın tarihi (etag) değiştiyse metni sağlayıcıdan yeniden okur.
+    async reload() {
+        const etag = (await this.provider.p.stat(this.uri)).mtime;
+        if (etag === this.etag) {
+            return;
+        }
+        this.etag = etag;
+        const text = Buffer.from(await this.provider.p.readFile(this.uri)).toString('utf8');
+        this.bom = text.charCodeAt(0) === 0xfeff;
+        this.text = this.bom ? text.slice(1) : text;
+        this.history = [];
+    }
     async save() {
         if (this.provider.readOnly) {
             return false;
         }
         const bytes = Buffer.from((this.bom ? '﻿' : '') + this.text, 'utf8');
         await this.provider.p.writeFile(this.uri, bytes, { create: true, overwrite: true });
+        if (this.provider.p.stat) {
+            this.etag = (await this.provider.p.stat(this.uri)).mtime;
+        }
         this.isDirty = false;
         return true;
     }
@@ -120,7 +135,7 @@ class FakeState {
 //   s.state       kalıcı durum (FakeState; yoksa yenisi)
 // Döner: { vscode, log, provider, adapterFactory, commands, filesystems, state, events }
 function setup(s) {
-    const log = { tasks: [], terminals: [], errors: [], warnings: [], infos: [], commands: [], watchers: [], debugSessions: [] };
+    const log = { tasks: [], terminals: [], errors: [], warnings: [], infos: [], commands: [], watchers: [], debugSessions: [], panels: [] };
     const makeDocument = (p) => ({ uri: Uri.file(p), fileName: p, languageId: 'tr', isUntitled: false, isDirty: false, save: async () => true });
     const folder = s.folder ? { uri: Uri.file(s.folder), name: path.basename(s.folder), index: 0 } : undefined;
     const registries = { providers: {}, commands: {}, filesystems: {} };
@@ -151,6 +166,7 @@ function setup(s) {
             return makeDocument(uri.fsPath);
         }
         const b = new FakeDocument(uri, await provider.p.readFile(uri), provider);
+        b.etag = provider.p.stat ? (await provider.p.stat(uri)).mtime : undefined;
         vscode.workspace.textDocuments.push(b);
         return b;
     }
@@ -198,6 +214,18 @@ function setup(s) {
             openTextDocument: openDocument,
             registerFileSystemProvider: (scheme, p, options) => {
                 registries.filesystems[scheme] = { p, options };
+                // VS Code gibi: sağlayıcı "değişti" bildirince kirli olmayan açık belge, dosyanın
+                // tarihi (etag) değiştiyse yeniden okunur; kirli belgeye dokunulmaz.
+                if (p.onDidChangeFile) {
+                    p.onDidChangeFile((changes) => {
+                        for (const c of changes) {
+                            const doc = vscode.workspace.textDocuments.find((b) => b.uri.toString() === c.uri.toString());
+                            if (doc && !doc.isDirty) {
+                                doc.reload();
+                            }
+                        }
+                    });
+                }
                 return { dispose() {} };
             },
             createFileSystemWatcher: (pattern) => {
@@ -216,6 +244,21 @@ function setup(s) {
         window: Object.assign(window, {
             activeTextEditor: s.activeFile ? { document: makeDocument(s.activeFile) } : undefined,
             visibleTextEditors: [],
+            // createWebviewPanel web görünümünü taklit eder: panele giden iletiler (messages) ve
+            // sayfadan gelen iletileri işleyen yöntem (receive) kaydedilir.
+            createWebviewPanel: (type, title, column, options) => {
+                const panel = { type, title, options, messages: [], disposed: false, reveal() {} };
+                panel.webview = {
+                    html: '',
+                    cspSource: 'csp',
+                    asWebviewUri: (u) => u,
+                    postMessage: async (m) => { panel.messages.push(m); return true; },
+                    onDidReceiveMessage: (f) => { panel.receive = f; return { dispose() {} }; }
+                };
+                panel.onDidDispose = () => ({ dispose() {} });
+                log.panels.push(panel);
+                return panel;
+            },
             showErrorMessage: async (m) => { log.errors.push(m); },
             showWarningMessage: async (m) => { log.warnings.push(m); },
             showInformationMessage: async (m) => { log.infos.push(m); },
@@ -278,7 +321,7 @@ function setup(s) {
         }),
         tasks: {
             executeTask: async (task) => { log.tasks.push(task); },
-            registerTaskProvider: () => ({ dispose() {} })
+            registerTaskProvider: (type, p) => { registries.providers.taskProvider = p; return { dispose() {} }; }
         },
         commands: {
             registerCommand: (name, fn) => { registries.commands[name] = fn; return { dispose() {} }; },
@@ -289,7 +332,8 @@ function setup(s) {
             registerDebugAdapterDescriptorFactory: (type, f) => { registries.providers.adapterFactory = f; return { dispose() {} }; },
             registerDebugAdapterTrackerFactory: () => ({ dispose() {} }),
             startDebugging: async (k, y) => { log.debugSessions.push(y); return true; },
-            activeDebugSession: undefined
+            activeDebugSession: undefined,
+            stopDebugging: async () => {}
         }
     };
 
@@ -313,7 +357,7 @@ function setup(s) {
     extension.activate(context);
     return {
         vscode, log, state, events,
-        provider: registries.providers.configProvider, adapterFactory: registries.providers.adapterFactory,
+        provider: registries.providers.configProvider, taskProvider: registries.providers.taskProvider, adapterFactory: registries.providers.adapterFactory,
         commands: registries.commands, filesystems: registries.filesystems
     };
 }

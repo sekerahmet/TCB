@@ -95,7 +95,7 @@ Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (
 
 Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen (kısıtlı kipteki) klasörlerde renklendirme, şablonlar ve dosya okuma yine kullanılabilir; çalıştırma, denetleme ve hata ayıklama kapalıdır ve bu düğmeler görünmez. Kodlu dosyalar bu kipte Türkçeye çevrilmez, salt okunur ham hâliyle açılır.
 
-`tr.yazimDili`: kodlu dosyaların gösterildiği yazım dili (varsayılan ve bugün tek seçenek: `tr`, Türkçe). Yalnızca kullanıcı ayarlarından okunur; her kişi kendisi seçer, dosyada saklanmaz. Değişiklik, açık kodlu dosyalar yeniden açılınca geçerli olur.
+`tr.yazimDili`: kodlu dosyaların gösterildiği yazım dili (varsayılan ve bugün tek seçenek: `tr`, Türkçe). Yalnızca kullanıcı ayarlarından okunur; her kişi kendisi seçer, dosyada saklanmaz. Değişiklik açık kodlu dosyaları yeniler (kaydedilmemiş değişikliği olan belge eski dilde kalır ve o dille kaydedilir). Ayar çalıştırma, terminal ve hata ayıklama süreçlerine `TR_DIL` olarak da geçer.
 
 Unicode işaretleme: VS Code kısıtlı kipte ASCII dışındaki her harfi sarı kutuyla işaretler. Eklenti `.tr` dosyalarında yalnızca Türk alfabesinin harflerini (ç, ğ, ı, İ, ö, ş, ü ve büyükleri) serbest bırakır (`editor.unicodeHighlight.nonBasicASCII: false` ve `allowedCharacters`); Latin harflerine benzeyen yabancı harfler (ör. Kiril `а`, `е`, Yunan `ο`) ve görünmez karakterler (ör. sıfır genişlikli boşluk) güvenilen ve güvenilmeyen klasörde yine kutuyla işaretlenir (`ambiguousCharacters` ve `invisibleCharacters` açık). Türkçe harfler hâlâ kutulu görünüyorsa eklentinin eski bir kopyası (1.7.0'dan önceki) çalışıyordur: Uzantılar görünümünden eski kopyayı kaldırıp güncelini kurun.
 
