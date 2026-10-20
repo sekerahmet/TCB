@@ -87,3 +87,22 @@ func TestTemplateInflector(t *testing.T) {
 		t.Errorf("bilinmeyen hâl: %q", got)
 	}
 }
+
+// Ünlüsü olmayan ad (k, fn, tbmm) kısaltma gibi son harfinin okunuşuyla çekimlenir (TDK: k'ye,
+// TBMM'ye, x'e). Milyar ve üstü sayılar da okunuşlarıyla: 1000000000'ı (milyarı).
+func TestSuffixWithoutVowel(t *testing.T) {
+	for _, d := range []struct {
+		word string
+		c    Case
+		want string
+	}{
+		{"k", Accusative, "k'yi"}, {"k", Dative, "k'ye"}, {"k", Locative, "k'de"},
+		{"fn", Dative, "fn'ye"}, {"TBMM", Dative, "TBMM'ye"}, {"x", Dative, "x'e"},
+		{"x", Locative, "x'te"}, {"q", Accusative, "q'yu"}, {"st", Ablative, "st'den"},
+		{"1000000000", Accusative, "1000000000'ı"}, {"1000000", Accusative, "1000000'u"},
+	} {
+		if got := Suffix(d.word, d.c); got != d.want {
+			t.Errorf("Suffix(%q, %d) = %q, %q bekleniyordu", d.word, d.c, got, d.want)
+		}
+	}
+}

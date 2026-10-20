@@ -59,12 +59,27 @@ func NumberSuffix(n int64, grammarCase Case) string {
 }
 
 // pronounce ekin seçimine esas olan sözcüğü döndürür. Sayılar okunuşlarıyla değerlendirilir
-// (6 = "altı"); diğer sözcükler kendileridir.
+// (6 = "altı"); ünlüsü olmayan ad kısaltma gibi son harfinin adıyla okunur (TDK: k'ye,
+// TBMM'ye, x'e); diğer sözcükler kendileridir.
 func pronounce(s string) string {
 	if w, ok := lastNumberWord(s); ok {
 		return w
 	}
+	w := []rune(Lower(s))
+	if len(w) == 0 || strings.ContainsAny(string(w), backVowels+frontVowels) {
+		return s
+	}
+	if name, ok := letterNames[w[len(w)-1]]; ok {
+		return name
+	}
 	return s
+}
+
+// letterNames ünsüz harflerin okunuşudur (Türk alfabesi ve q, w, x).
+var letterNames = map[rune]string{
+	'b': "be", 'c': "ce", 'ç': "çe", 'd': "de", 'f': "fe", 'g': "ge", 'ğ': "yumuşak ge", 'h': "he",
+	'j': "je", 'k': "ke", 'l': "le", 'm': "me", 'n': "ne", 'p': "pe", 'r': "re", 's': "se",
+	'ş': "şe", 't': "te", 'v': "ve", 'y': "ye", 'z': "ze", 'q': "ku", 'w': "ve", 'x': "iks",
 }
 
 // findSuffix sözcüğün son ünlüsüne ve son sesine göre eki üretir.
