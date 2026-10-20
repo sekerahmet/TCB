@@ -70,18 +70,18 @@ değişken rgn = GPT(40000, bağlam: 1024, boyut: 512, katman: 8, baş: 8, kv_ba
 
 | Ad | Ne yapar |
 | :-- | :-- |
-| `dikleştir(G, adım_sayısı: 5)` | Newton–Schulz ile G'nin yaklaşık dik eşi (≈ U Vᵀ); katsayılar (3.4445, −4.7750, 2.0315); tekil değerler ≈ [0.7, 1.2] |
-| `Muon(ağırlıklar, öğrenme_oranı: 0.02, momentum: 0.95, nesterov: doğru, ağırlık_çürümesi: 0.0, ns_adımı: 5, ölçek: "oran")` | Nesterov momentumu + dikleştirme; ölçek `"oran"`: √max(1, çıkış/giriş), `"rms"`: 0.2·√max(giriş, çıkış); yalnızca 2B ağırlıklar |
-| `NorMuon(ağırlıklar, öğrenme_oranı: 0.003, beta1: 0.95, beta2: 0.95, epsilon: 1e-8, ağırlık_çürümesi: 0.0, ns_adımı: 5)` | Muon + nöron başına ikinci moment normalleştirmesi; güncellemenin RMS'i 0.2·η |
+| `dikleştir(G, adım_sayısı: 5, tür: "float32")` | Newton–Schulz ile G'nin yaklaşık dik eşi (≈ U Vᵀ); katsayılar (3.4445, −4.7750, 2.0315); tekil değerler ≈ [0.7, 1.2]; G bir matris ya da aynı şekilli matrislerin yığını `[k, satır, sütun]` (her matris ayrı, toplu çarpımla); `tür` hesap türü, sonuç G'nin türünde |
+| `Muon(ağırlıklar, öğrenme_oranı: 0.02, momentum: 0.95, nesterov: doğru, ağırlık_çürümesi: 0.0, ns_adımı: 5, ölçek: "oran", ns_türü: "float32")` | Nesterov momentumu + dikleştirme; ölçek `"oran"`: √max(1, çıkış/giriş), `"rms"`: 0.2·√max(giriş, çıkış); aynı şekilli ağırlıklar tek yığında dikleştirilir; `ns_türü` dikleştirmenin hesap türü (`"bf16"`); yalnızca 2B ağırlıklar |
+| `NorMuon(ağırlıklar, öğrenme_oranı: 0.003, beta1: 0.95, beta2: 0.95, epsilon: 1e-8, ağırlık_çürümesi: 0.0, ns_adımı: 5, ns_türü: "float32")` | Muon + nöron başına ikinci moment normalleştirmesi; güncellemenin RMS'i 0.2·η |
 | `parametre_grupları(model, ayrı: ["gömme", "çıkış"])` | `{gizli: [...], diğer: [...]}`: 2B gizli ağırlıklar ile gömme, çıkış, norm ve sapmalar |
 | `parametre_kümeleri(model, ayrı:, seyrek: [])` | `{gizli, sönümlü, sönümsüz, seyrek, diğer}`: ada göre dört grup (aşağıda) |
 | `ad_uyar_mı(ad, desen)`, `bir_desen_uyar_mı(ad, desenler)` | yol parçası eşleşmesi: tam (`gömme.tablo`), önek (`gömme`), sonek (`ple.tablo`) |
 | `SatırRMS(ağırlıklar, öğrenme_oranı: 0.003, beta2: 0.95, epsilon: 1e-8)` | satır seyrek RMS (yoğun maskeli): yalnızca gradyanı sıfırdan farklı satırlar güncellenir; satır başına ikinci moment ve sayaç |
-| `MuonVeAdamW(model, muon_oranı: yok, adamw_oranı: 0.003, ağırlık_çürümesi: 0.0, normuon: yanlış, ayrı:, beta2: 0.95, adamw_çürümesi: 0.0, muon_ölçeği: "oran", seyrek: [], seyrek_oranı: yok)` | gruplar tek iyileştiricide: `adım()`, `sıfırla()`, `çarpan_ayarla(c)`; alanlar `muon`, `adamw`, `adamw_sönümsüz`, `satır_rms` |
+| `MuonVeAdamW(model, muon_oranı: yok, adamw_oranı: 0.003, ağırlık_çürümesi: 0.0, normuon: yanlış, ayrı:, beta2: 0.95, adamw_çürümesi: 0.0, muon_ölçeği: "oran", seyrek: [], seyrek_oranı: yok, ns_türü: "float32")` | gruplar tek iyileştiricide: `adım()`, `sıfırla()`, `çarpan_ayarla(c)`; alanlar `muon`, `adamw`, `adamw_sönümsüz`, `satır_rms` |
 | `oran_planı(adım, toplam, ısınma: 0, azalma: 0.2, en_az: 0.0)` | ısınma–sabit–azalma (WSD) öğrenme oranı çarpanı |
 | `gradyanları_sıfırla(ağırlıklar)` | gradyanları yerinde sıfırlar |
 
-**Muon.** Kaynak: K. Jordan ve diğ., *Muon: An optimizer for hidden layers in neural networks* (2024, kellerjordan.github.io/posts/muon). Her W için `m ← β·m + (1−β)·g`, Nesterov'la `u ← β·m + (1−β)·g`, `W ← W·(1 − η·λ) − η·√max(1, çıkış/giriş)·dikleştir(u)`. Ölçek, ağırlığı `[çıkış, giriş]` tutan düzendeki √max(1, satır/sütun)'un bu düzendeki karşılığıdır.
+**Muon.** Kaynak: K. Jordan ve diğ., *Muon: An optimizer for hidden layers in neural networks* (2024, kellerjordan.github.io/posts/muon). Her W için `m ← β·m + (1−β)·g`, Nesterov'la `u ← β·m + (1−β)·g`, `W ← W·(1 − η·λ) − η·√max(1, çıkış/giriş)·dikleştir(u)`. Ölçek, ağırlığı `[çıkış, giriş]` tutan düzendeki √max(1, satır/sütun)'un bu düzendeki karşılığıdır. Aynı şekilli ağırlıklar (`şekil_grupları`) tek yığında dikleştirilir: hedef modelde 56 ayrı dikleştirme yerine 3 toplu dikleştirme (PyTorch'taki yaygın uygulamalar ve `tools/gpu/rgn512.py` de `torch.stack` ile böyle yapar); sonuç tek tek dikleştirmeyle aynıdır (test korur).
 
 **NorMuon.** Kaynak: Z. Li, L. Liu, C. Liang, W. Chen, T. Zhao, *NorMuon: Making Muon more efficient and scalable* (2025, arXiv:2510.05491, Algoritma 1). `M ← β1·M + (1−β1)·g`, `O ← dikleştir(M)`, `v ← β2·v + (1−β2)·ortalama(O², nöron başına)`, `Ô ← O / (√v + ε)`, `η̂ ← 0.2·η·√(m·n) / ‖Ô‖_F`, `W ← W − η·λ·W − η̂·Ô`. Bu düzende bir nöron W'nin bir **sütunudur** (`v` `[1, çıkış]`). Makaledeki gibi Nesterov'suz ve sapma düzeltmesizdir. **Varsayımlar:** ε = 1e-8 (makalede sayı yok); varsayılan öğrenme oranı 0.003 bu kitaplığın seçimidir (oran AdamW ölçeğindedir; makalede 124M'lik modelde 3.6e-4, 1.1B'de 4e-4).
 

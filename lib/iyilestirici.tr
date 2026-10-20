@@ -22,19 +22,53 @@ sabit NS_A = 3.4445
 sabit NS_B = -4.7750
 sabit NS_C = 2.0315
 
-// dikleştir: G'nin (2 boyutlu) yaklaşık dik eşini verir: G = U S Vᵀ ise ≈ U Vᵀ. Önce Frobenius
-// normuna bölünür (tekil değerler ≤ 1), sonra X ← a·X + (b·A + c·A²)·X, A = X·Xᵀ yinelenir.
-// Uzun matris (satır > sütun) devrik alınarak işlenir: A küçük kare matris olur.
-fonksiyon dikleştir(G, adım_sayısı = 5) {
-    değişken devrik = G.şekil[0] > G.şekil[1]
-    değişken X = eğer devrik { G.devrik() } değilse { G }
-    X = X / (karekök(toplam(X * X)) + 0.0000001)
+// dikleştir: G'nin yaklaşık dik eşini verir: G = U S Vᵀ ise ≈ U Vᵀ. Önce Frobenius normuna bölünür
+// (tekil değerler ≤ 1), sonra X ← a·X + (b·A + c·A²)·X, A = X·Xᵀ yinelenir. Uzun matris (satır > sütun)
+// devrik alınarak işlenir: A küçük kare matris olur.
+// G [satır, sütun] ya da aynı şekilli matrislerin yığını [k, satır, sütun] olabilir: yığında her matris
+// kendi normuyla ayrı dikleştirilir, çarpımlar toplu çarpımdır (k matris tek çağrıda). tür, yinelemenin
+// hesap türüdür ("bf16" hedef modelin ve yaygın Muon uygulamalarının tercihi); sonuç G'nin türündedir.
+fonksiyon dikleştir(G, adım_sayısı = 5, tür = "float32") {
+    değişken n = G.şekil.uzunluk
+    değişken devrik = G.şekil[n - 2] > G.şekil[n - 1]
+    değişken X = G.türe(tür)
+    eğer devrik { X = X.devrik() }
+    değişken kare = toplam(toplam(X * X, eksen: -1, boyutu_koru: doğru), eksen: -2, boyutu_koru: doğru)
+    X = X / (karekök(kare) + 0.0000001)
     döngü i içinde 0..adım_sayısı {
         değişken A = X @ X.devrik()
         X = NS_A * X + (NS_B * A + NS_C * (A @ A)) @ X
     }
-    eğer devrik { sonuç X.devrik() }
-    sonuç X
+    eğer devrik { X = X.devrik() }
+    sonuç X.türe(G.tür)
+}
+
+// şekil_grupları ağırlıkları şekillerine göre gruplar: her grup aynı şekilli ağırlıkların indeks
+// listesidir, gruplar ilk görülme sırasıyladır. Muon ve NorMuon bir gruptaki matrisleri tek yığında
+// dikleştirir (PyTorch'taki yaygın uygulamalar da böyledir: torch.stack + toplu Newton–Schulz).
+fonksiyon şekil_grupları(ağırlıklar) {
+    değişken şekiller = []
+    değişken gruplar = []
+    döngü i, p içinde ağırlıklar {
+        değişken j = -1
+        döngü k, ş içinde şekiller {
+            eğer ş == p.şekil { j = k }
+        }
+        eğer j < 0 {
+            şekiller.ekle(p.şekil)
+            gruplar.ekle([i])
+        } değilse {
+            gruplar[j].ekle(i)
+        }
+    }
+    sonuç gruplar
+}
+
+// yığ_dikleştir gruptaki güncellemeleri (aynı şekilli matrisler) tek yığında dikleştirir ve
+// yığını verir: sonucun j. elemanı güncellemeler[j]'nin dikleştirilmişidir.
+fonksiyon yığ_dikleştir(güncellemeler, adım_sayısı, tür) {
+    değişken yığın = birleştir([u.şekillendir([1, u.şekil[0], u.şekil[1]]) döngü u içinde güncellemeler], eksen: 0)
+    sonuç dikleştir(yığın, adım_sayısı, tür: tür)
 }
 
 // durum_tensörü p ile aynı şekilde ve cihazda, sıfırla başlayan bir durum tensörü kurar
@@ -71,6 +105,8 @@ fonksiyon yalnızca_2b(ad, ağırlıklar) {
 // oranı 0.02'dir (güncellemenin büyüklüğü AdamW'ninkinden farklıdır, oranlar ayrı ayarlanır).
 // ölçek: "oran" (varsayılan) yukarıdaki √max(1, çıkış/giriş); "rms" güncellemenin RMS'ini AdamW'ninki
 // kadar tutan 0.2·√max(giriş, çıkış) (RGN-512 tarifi; oran AdamW ölçeğindedir, ör. 0.002).
+// Aynı şekilli ağırlıklar tek yığında dikleştirilir (şekil_grupları); ns_türü dikleştirmenin hesap
+// türüdür ("float32" varsayılan, "bf16" hedef modelin tarifi).
 yapı Muon {
     ağırlıklar
     öğrenme_oranı = 0.02
@@ -78,9 +114,11 @@ yapı Muon {
     nesterov = doğru
     ağırlık_çürümesi = 0.0
     ns_adımı = 5
+    ns_türü = "float32"
     ölçekler
+    gruplar
     durum
-    fonksiyon kurucu(ağırlıklar, öğrenme_oranı = 0.02, momentum = 0.95, nesterov = doğru, ağırlık_çürümesi = 0.0, ns_adımı = 5, ölçek = "oran") {
+    fonksiyon kurucu(ağırlıklar, öğrenme_oranı = 0.02, momentum = 0.95, nesterov = doğru, ağırlık_çürümesi = 0.0, ns_adımı = 5, ölçek = "oran", ns_türü = "float32") {
         yalnızca_2b("Muon", ağırlıklar)
         doğrula(ölçek == "oran" veya ölçek == "rms", "Muon: ölçek \"oran\" ya da \"rms\" olmalı, {ölçek} verildi")
         kendi.ağırlıklar = ağırlıklar
@@ -89,20 +127,32 @@ yapı Muon {
         kendi.nesterov = nesterov
         kendi.ağırlık_çürümesi = ağırlık_çürümesi
         kendi.ns_adımı = ns_adımı
+        kendi.ns_türü = ns_türü
+        kendi.gruplar = şekil_grupları(ağırlıklar)
         kendi.ölçekler = [eğer ölçek == "rms" { 0.2 * karekök(maks(p.şekil[0], p.şekil[1])) } değilse { karekök(maks(1.0, p.şekil[1] / p.şekil[0])) } döngü p içinde ağırlıklar]
         kendi.durum = {momentum: [durum_tensörü(p.şekil, p.cihaz) döngü p içinde ağırlıklar]}
     }
     fonksiyon adım() {
         değişken b = kendi.momentum
         türevsiz {
-            döngü i, p içinde kendi.ağırlıklar {
-                değişken g = p.gradyan
-                eğer g == yok { devam }
-                değişken m = kendi.durum.momentum[i]
-                m[0..m.şekil[0]] = b * m + (1 - b) * g
-                değişken u = eğer kendi.nesterov { b * m + (1 - b) * g } değilse { m }
-                eğer kendi.ağırlık_çürümesi > 0 { p[0..p.şekil[0]] = p * (1 - kendi.öğrenme_oranı * kendi.ağırlık_çürümesi) }
-                p[0..p.şekil[0]] -= (kendi.öğrenme_oranı * kendi.ölçekler[i]) * dikleştir(u, kendi.ns_adımı)
+            döngü grup içinde kendi.gruplar {
+                değişken sıra = []
+                değişken güncellemeler = []
+                döngü i içinde grup {
+                    değişken g = kendi.ağırlıklar[i].gradyan
+                    eğer g == yok { devam }
+                    değişken m = kendi.durum.momentum[i]
+                    m[0..m.şekil[0]] = b * m + (1 - b) * g
+                    güncellemeler.ekle(eğer kendi.nesterov { b * m + (1 - b) * g } değilse { m })
+                    sıra.ekle(i)
+                }
+                eğer sıra.uzunluk == 0 { devam }
+                değişken O = yığ_dikleştir(güncellemeler, kendi.ns_adımı, kendi.ns_türü)
+                döngü j, i içinde sıra {
+                    değişken p = kendi.ağırlıklar[i]
+                    eğer kendi.ağırlık_çürümesi > 0 { p[0..p.şekil[0]] = p * (1 - kendi.öğrenme_oranı * kendi.ağırlık_çürümesi) }
+                    p[0..p.şekil[0]] -= (kendi.öğrenme_oranı * kendi.ölçekler[i]) * O[j]
+                }
             }
         }
     }
@@ -120,7 +170,8 @@ yapı Muon {
 //   W ← W − η·λ·W − η̂·Ô
 // Makaledeki gibi momentum Nesterov'suzdur ve sapma düzeltmesi yoktur. Varsayımlar (makalede
 // sayı verilmeyenler): ε = 1e-8; varsayılan öğrenme oranı 0.003 bu kitaplığın seçimidir (oran
-// AdamW ölçeğindedir: makalede 124M'lik modelde 3.6e-4, 1.1B'de 4e-4 kullanılmış).
+// AdamW ölçeğindedir: makalede 124M'lik modelde 3.6e-4, 1.1B'de 4e-4 kullanılmış). Muon gibi aynı
+// şekilli ağırlıklar tek yığında dikleştirilir; ns_türü dikleştirmenin hesap türüdür.
 yapı NorMuon {
     ağırlıklar
     öğrenme_oranı = 0.003
@@ -129,8 +180,10 @@ yapı NorMuon {
     epsilon = 0.00000001
     ağırlık_çürümesi = 0.0
     ns_adımı = 5
+    ns_türü = "float32"
+    gruplar
     durum
-    fonksiyon kurucu(ağırlıklar, öğrenme_oranı = 0.003, beta1 = 0.95, beta2 = 0.95, epsilon = 0.00000001, ağırlık_çürümesi = 0.0, ns_adımı = 5) {
+    fonksiyon kurucu(ağırlıklar, öğrenme_oranı = 0.003, beta1 = 0.95, beta2 = 0.95, epsilon = 0.00000001, ağırlık_çürümesi = 0.0, ns_adımı = 5, ns_türü = "float32") {
         yalnızca_2b("NorMuon", ağırlıklar)
         kendi.ağırlıklar = ağırlıklar
         kendi.öğrenme_oranı = öğrenme_oranı
@@ -139,6 +192,8 @@ yapı NorMuon {
         kendi.epsilon = epsilon
         kendi.ağırlık_çürümesi = ağırlık_çürümesi
         kendi.ns_adımı = ns_adımı
+        kendi.ns_türü = ns_türü
+        kendi.gruplar = şekil_grupları(ağırlıklar)
         kendi.durum = {
             momentum: [durum_tensörü(p.şekil, p.cihaz) döngü p içinde ağırlıklar],
             ikinci_moment: [durum_tensörü([1, p.şekil[1]], p.cihaz) döngü p içinde ağırlıklar]
@@ -147,18 +202,27 @@ yapı NorMuon {
     fonksiyon adım() {
         değişken oran = kendi.öğrenme_oranı
         türevsiz {
-            döngü i, p içinde kendi.ağırlıklar {
-                değişken g = p.gradyan
-                eğer g == yok { devam }
-                değişken M = kendi.durum.momentum[i]
-                değişken v = kendi.durum.ikinci_moment[i]
-                M[0..M.şekil[0]] = kendi.beta1 * M + (1 - kendi.beta1) * g
-                değişken O = dikleştir(M, kendi.ns_adımı)
-                v[0..1] = kendi.beta2 * v + (1 - kendi.beta2) * ortalama(O * O, eksen: 0, boyutu_koru: doğru)
-                değişken N = O / (karekök(v) + kendi.epsilon)
-                değişken adım_oranı = 0.2 * oran * karekök(p.şekil[0] * p.şekil[1]) / karekök(toplam(N * N))
-                eğer kendi.ağırlık_çürümesi > 0 { p[0..p.şekil[0]] = p * (1 - oran * kendi.ağırlık_çürümesi) }
-                p[0..p.şekil[0]] -= adım_oranı * N
+            döngü grup içinde kendi.gruplar {
+                değişken sıra = []
+                döngü i içinde grup {
+                    değişken g = kendi.ağırlıklar[i].gradyan
+                    eğer g == yok { devam }
+                    değişken M = kendi.durum.momentum[i]
+                    M[0..M.şekil[0]] = kendi.beta1 * M + (1 - kendi.beta1) * g
+                    sıra.ekle(i)
+                }
+                eğer sıra.uzunluk == 0 { devam }
+                değişken yığın = yığ_dikleştir([kendi.durum.momentum[i] döngü i içinde sıra], kendi.ns_adımı, kendi.ns_türü)
+                döngü j, i içinde sıra {
+                    değişken p = kendi.ağırlıklar[i]
+                    değişken v = kendi.durum.ikinci_moment[i]
+                    değişken O = yığın[j]
+                    v[0..1] = kendi.beta2 * v + (1 - kendi.beta2) * ortalama(O * O, eksen: 0, boyutu_koru: doğru)
+                    değişken N = O / (karekök(v) + kendi.epsilon)
+                    değişken adım_oranı = 0.2 * oran * karekök(p.şekil[0] * p.şekil[1]) / karekök(toplam(N * N))
+                    eğer kendi.ağırlık_çürümesi > 0 { p[0..p.şekil[0]] = p * (1 - oran * kendi.ağırlık_çürümesi) }
+                    p[0..p.şekil[0]] -= adım_oranı * N
+                }
             }
         }
     }
@@ -288,6 +352,7 @@ yapı SatırRMS {
 //   adamw_çürümesi: > 0 ise AdamW iki gruba ayrılır: `adamw` ayrı'ya uyan 2B ağırlıkları (gömme,
 //                   ple_ctx) bu çürümeyle, `adamw_sönümsüz` normları ve sapmaları çürümesiz günceller.
 //   muon_ölçeği: Muon'un ölçeği, "oran" ya da "rms" (Muon'a bakın); ağırlık_çürümesi Muon'undur.
+//   ns_türü: Muon/NorMuon dikleştirmesinin hesap türü ("float32" ya da "bf16").
 //   seyrek: SatırRMS'e verilecek parametre adı desenleri (ör. ["ple_tablo"]); öğrenme oranı
 //           seyrek_oranı (yok: adamw_oranı). Desenler ad_uyar_mı'daki yol parçalarıdır.
 // Kontrol noktasına op.adamw, (varsa) op.adamw_sönümsüz, op.muon.durum ve (varsa) op.satır_rms.durum verilir.
@@ -301,7 +366,7 @@ yapı MuonVeAdamW {
     adamw_oranı
     seyrek_oranı
     oran_çarpanı = 1.0
-    fonksiyon kurucu(model, muon_oranı = yok, adamw_oranı = 0.003, ağırlık_çürümesi = 0.0, normuon = yanlış, ayrı = ["gömme", "çıkış"], beta2 = 0.95, adamw_çürümesi = 0.0, muon_ölçeği = "oran", seyrek = [], seyrek_oranı = yok) {
+    fonksiyon kurucu(model, muon_oranı = yok, adamw_oranı = 0.003, ağırlık_çürümesi = 0.0, normuon = yanlış, ayrı = ["gömme", "çıkış"], beta2 = 0.95, adamw_çürümesi = 0.0, muon_ölçeği = "oran", seyrek = [], seyrek_oranı = yok, ns_türü = "float32") {
         değişken gruplar = parametre_kümeleri(model, ayrı: ayrı, seyrek: seyrek)
         eğer muon_oranı == yok { muon_oranı = eğer normuon { 0.003 } değilse { 0.02 } }
         eğer seyrek_oranı == yok { seyrek_oranı = adamw_oranı }
@@ -309,9 +374,9 @@ yapı MuonVeAdamW {
         kendi.adamw_oranı = adamw_oranı
         kendi.seyrek_oranı = seyrek_oranı
         kendi.muon = eğer normuon {
-            NorMuon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi)
+            NorMuon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi, ns_türü: ns_türü)
         } değilse {
-            Muon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi, ölçek: muon_ölçeği)
+            Muon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi, ölçek: muon_ölçeği, ns_türü: ns_türü)
         }
         kendi.diğer = gruplar.diğer
         eğer adamw_çürümesi > 0 {

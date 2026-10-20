@@ -347,3 +347,69 @@ test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeyen k
     // seyrek verilmezse SatırRMS yok ve tablolar Muon'a girer
     doğrula(MuonVeAdamW(ple_modeli()).satır_rms == yok)
 }
+
+test "dikleştir: yığındaki her matris tek başına dikleştirilmiş eşidir (uzun ve geniş yığın)" {
+    döngü şekil içinde [[8, 4], [4, 8]] {
+        değişken G = [rastgele_normal(şekil, tohum: 10 + k) * (k + 1) döngü k içinde 0..3]
+        değişken yığın = birleştir([g.şekillendir([1, şekil[0], şekil[1]]) döngü g içinde G], eksen: 0)
+        değişken X = dikleştir(yığın)
+        eşit_mi([3, şekil[0], şekil[1]], X.şekil)
+        döngü k içinde 0..3 {
+            değişken fark = maks(mutlak(X[k] - dikleştir(G[k]))).değer
+            doğrula(fark < 0.00001, "{şekil} yığınının {k}. matrisi: {fark}")
+        }
+    }
+}
+
+test "dikleştir: bf16 hesap türünde sonuç float32'dekine yakındır, tür girdininkidir" {
+    değişken G = rastgele_normal([16, 32], tohum: 3)
+    değişken X = dikleştir(G, tür: "bf16")
+    eşit_mi("float32", X.tür)
+    değişken fark = maks(mutlak(X - dikleştir(G))).değer
+    doğrula(fark > 0 ve fark < 0.05, "bf16 ile float32 farkı: {fark}")
+    eşit_mi("bf16", dikleştir(G.türe("bf16")).tür)
+}
+
+// tek_tek_mi: aynı ağırlıkları bir iyileştiricide birlikte (toplu dikleştirme) ve her birini ayrı bir
+// iyileştiricide güncelleyip sonuçların aynı olduğunu denetler.
+fonksiyon tek_tek_mi(kur) {
+    değişken şekiller = [[4, 8], [6, 3], [4, 8], [4, 8]]
+    değişken birlikte = [tensör(rastgele_normal(şekiller[i], tohum: 20 + i), türev_izle: doğru) döngü i içinde 0..şekiller.uzunluk]
+    değişken ayrı = [tensör(w, türev_izle: doğru) döngü w içinde birlikte]
+    değişken op = kur(birlikte)
+    değişken ops = [kur([w]) döngü w içinde ayrı]
+    döngü adım içinde 0..3 {
+        döngü i, ş içinde şekiller {
+            değişken G = rastgele_normal(ş, tohum: 100 * adım + i)
+            geri_yayılım(toplam(birlikte[i] * G))
+            geri_yayılım(toplam(ayrı[i] * G))
+        }
+        op.adım()
+        op.sıfırla()
+        döngü o içinde ops {
+            o.adım()
+            o.sıfırla()
+        }
+    }
+    döngü i içinde 0..şekiller.uzunluk {
+        değişken fark = maks(mutlak(birlikte[i] - ayrı[i])).değer
+        doğrula(fark < 0.000001, "{i}. ağırlık: birlikte ile ayrı güncelleme farkı {fark}")
+    }
+    sonuç op
+}
+
+test "Muon ve NorMuon: aynı şekilli ağırlıklar tek yığında dikleştirilir; sonuç tek tek güncellemeyle aynıdır" {
+    değişken op = tek_tek_mi(fonksiyon(w) { sonuç Muon(w, öğrenme_oranı: 0.05, ağırlık_çürümesi: 0.1) })
+    eşit_mi([[0, 2, 3], [1]], op.gruplar)
+    tek_tek_mi(fonksiyon(w) { sonuç Muon(w, öğrenme_oranı: 0.05, ölçek: "rms", nesterov: yanlış) })
+    değişken n = tek_tek_mi(fonksiyon(w) { sonuç NorMuon(w, öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.1) })
+    eşit_mi([[0, 2, 3], [1]], n.gruplar)
+    // Gradyan almayan ağırlık gruptan düşer, öbürleri güncellenir.
+    değişken A = tensör(birler([4, 8]), türev_izle: doğru)
+    değişken B = tensör(birler([4, 8]), türev_izle: doğru)
+    değişken m = Muon([A, B], öğrenme_oranı: 0.1)
+    geri_yayılım(toplam(B * rastgele_normal([4, 8], tohum: 7)))
+    m.adım()
+    eşit_mi(birler([4, 8]), türevsiz(A))
+    doğrula(türevsiz(B) != birler([4, 8]), "gradyanı olan ağırlık güncellenmeli")
+}

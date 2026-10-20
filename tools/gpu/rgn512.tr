@@ -32,7 +32,8 @@ değişken model = katman.GPT(arg.dağarcık, bağlam: arg.bağlam, boyut: arg.b
 
 değişken op = iyileştirici.MuonVeAdamW(model, muon_oranı: arg.oran, adamw_oranı: arg.oran,
     ağırlık_çürümesi: 0.1, adamw_çürümesi: 0.1, muon_ölçeği: "rms",
-    ayrı: ["gömme", "ple_bağlamı"], seyrek: ["ple.tablo"])
+    ayrı: ["gömme", "ple_bağlamı"], seyrek: ["ple.tablo"],
+    ns_türü: eğer arg.hassasiyet == "fp32" { "float32" } değilse { "bf16" })
 eğer arg.ağırlık != "" {
     parametreleri_yükle(model, tensör_yükle(arg.ağırlık))
 }
