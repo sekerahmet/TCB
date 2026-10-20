@@ -213,7 +213,7 @@ func (p *Profile) Finish(code int) *Snapshot {
 	g := p.setup(a, &before, true)
 	g.ExitCode = &code
 	if p.writer != nil {
-		p.writer.write(g)
+		p.writer.writeFinal(g)
 	}
 	return g
 }

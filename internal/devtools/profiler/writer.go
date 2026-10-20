@@ -16,10 +16,12 @@ import (
 //   - Yerine koyma geçici olarak başarısız olabilir: Windows'ta dosyayı o an okuyan biri
 //     varken yeniden adlandırma "erişim reddedildi" verir. Bu yüzden kısa aralıklarla birkaç
 //     kez yeniden denenir (en çok ~250 ms; yalnızca profilin goroutine'i bekler).
-//   - Yine olmazsa o aralıkta dosya doğrudan yazılır (okuyan nadiren yarım dosya görebilir;
-//     okuyucu bir sonraki saniyede yeniden okur) ve bir kez uyarılır. Bulut sürücüleri (ör. not
-//     defterinin bağladığı sürücü) yeniden adlandırmayı hiç desteklemeyebilir: art arda
-//     maxReplaceErrors aralıkta olmazsa yerine koyma bırakılır, hep doğrudan yazılır.
+//   - Yine olmazsa o aralık atlanır: önceki tam dosya yerinde kalır, okuyan yarım dosya
+//     görmez; bir sonraki aralık yeniden dener. Son rapor (Finish, WriteFile) atlanmaz,
+//     doğrudan yazılır. Bulut sürücüleri (ör. not defterinin bağladığı sürücü) yeniden
+//     adlandırmayı hiç desteklemeyebilir: art arda maxReplaceErrors aralıkta olmazsa yerine
+//     koyma bırakılır, bir kez uyarılır ve hep doğrudan yazılır (okuyan nadiren yarım dosya
+//     görebilir; bir sonraki saniyede yeniden okur).
 //   - Doğrudan yazma da başarısızsa bir kez uyarılır (başarılı bir yazmaya kadar), sonraki
 //     aralıkta yeniden denenir.
 //
@@ -42,7 +44,7 @@ var replaceWaits = []time.Duration{time.Millisecond, 2 * time.Millisecond, 4 * t
 // Uyarılar uyari'ye gider; doğrudan yazma da başarısızsa hatayı döndürür.
 func WriteFile(fpath string, g *Snapshot, warning func(string)) error {
 	y := &statusWriter{fpath: fpath, warning: warning}
-	return y.write(g)
+	return y.writeFinal(g)
 }
 
 // replace geçici dosyayı hedefin yerine koyar (testler başarısız bir sürücüyü benzetir).
@@ -59,9 +61,15 @@ type statusWriter struct {
 	replaceWarned, writeWarned bool
 }
 
-// write görüntüyü JSON olarak yazar. Hatayı bildirir ve döndürür; çağıran (profilin
-// saniyelik döngüsü) yok sayar: program sürer (bkz. dosya başı).
-func (y *statusWriter) write(g *Snapshot) error {
+// write saniyelik görüntüyü JSON olarak yazar; yerine koyma geçici olarak olmazsa aralığı
+// atlar. Hatayı bildirir ve döndürür; çağıran (profilin saniyelik döngüsü) yok sayar:
+// program sürer (bkz. dosya başı).
+func (y *statusWriter) write(g *Snapshot) error { return y.put(g, false) }
+
+// writeFinal son raporu yazar: yerine koyma olmazsa atlamaz, doğrudan yazar.
+func (y *statusWriter) writeFinal(g *Snapshot) error { return y.put(g, true) }
+
+func (y *statusWriter) put(g *Snapshot, final bool) error {
 	data, err := json.MarshalIndent(g, "", "  ")
 	if err != nil {
 		y.report(&y.writeWarned, messages.Text(messages.H8220, err))
@@ -76,6 +84,9 @@ func (y *statusWriter) write(g *Snapshot) error {
 		}
 		y.faulty++
 		y.direct = y.faulty >= maxReplaceErrors
+		if !y.direct && !final {
+			return nil // geçici: önceki tam dosya kalır, sonraki aralık yeniden dener
+		}
 		y.report(&y.replaceWarned, messages.Text(messages.H8221, y.fpath, err))
 	}
 	if err := os.WriteFile(y.fpath, data, 0o644); err != nil {

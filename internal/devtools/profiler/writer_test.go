@@ -91,3 +91,40 @@ func TestStatusFileReaderSeesNoPartialFile(t *testing.T) {
 		t.Error("yerine koyma bu sürücüde çalışmalıydı")
 	}
 }
+
+// Yerine koyma bir aralıkta bütün denemelerde olmazsa (Windows'ta okuyan dosyayı tutuyor) o
+// aralık atlanır: önceki tam dosya kalır, uyarı yok. Son rapor atlanmaz, doğrudan yazılır.
+func TestReplaceFailureSkipsInterval(t *testing.T) {
+	dir := t.TempDir()
+	y := &statusWriter{fpath: filepath.Join(dir, StatusFileName), warning: func(m string) { t.Errorf("beklenmeyen uyarı: %s", m) }}
+	if err := y.write(&Snapshot{Format: FormatName, Seconds: 1}); err != nil {
+		t.Fatal(err)
+	}
+	old := replace
+	replace = func(string, string) error { return os.ErrPermission }
+	defer func() { replace = old }()
+	if err := y.write(&Snapshot{Format: FormatName, Seconds: 2}); err != nil {
+		t.Fatal(err)
+	}
+	read := func() float64 {
+		var g Snapshot
+		data, _ := os.ReadFile(y.fpath)
+		if err := json.Unmarshal(data, &g); err != nil {
+			t.Fatalf("dosya bozuk: %v", err)
+		}
+		return g.Seconds
+	}
+	if s := read(); s != 1 {
+		t.Errorf("atlanan aralıkta dosya değişti: %v", s)
+	}
+	if inputs, _ := os.ReadDir(dir); len(inputs) != 1 {
+		t.Errorf("geçici dosya kaldı: %v", inputs)
+	}
+	y.warning = func(string) {} // son rapor doğrudan yazılır ve bir kez uyarılır
+	if err := y.writeFinal(&Snapshot{Format: FormatName, Seconds: 3}); err != nil {
+		t.Fatal(err)
+	}
+	if s := read(); s != 3 {
+		t.Errorf("son rapor yazılmadı: %v", s)
+	}
+}
