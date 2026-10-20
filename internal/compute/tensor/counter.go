@@ -120,7 +120,8 @@ const (
 )
 
 // opCodes dosya biçimlerinde (profil.json) kullanılan, yazım dilinden bağımsız
-// değişmez anahtarlardır; islemAdlariTR insana gösterilen açıklamalardır.
+// değişmez anahtarlardır. İnsana gösterilen ad profiler paketindedir (opName): tensör paketi
+// kullanıcıya görünen işlem adı tutmaz.
 var opCodes = [OpKindCount]string{
 	"diger", "toplama", "cikarma", "carpma", "bolme", "atan2", "kucuk", "buyuk", "kucuk_esit",
 	"buyuk_esit", "ustel", "log", "karekok", "us", "tanh", "relu", "gelu", "sigmoid",
@@ -134,19 +135,6 @@ var opCodes = [OpKindCount]string{
 	"gradyan_kirpma", "ozel",
 }
 
-var opNamesTR = [OpKindCount]string{
-	"diğer", "toplama", "çıkarma", "çarpma", "bölme", "atan2", "küçüktür", "büyüktür", "küçük eşit",
-	"büyük eşit", "üstel", "logaritma", "karekök", "üs alma", "tanh", "relu", "gelu", "sigmoid",
-	"skaler toplama", "skaler çarpma", "skalerden çıkarma", "skaler bölme", "sinüs", "kosinüs",
-	"silu", "tanjant", "arksinüs", "arkkosinüs", "arktanjant", "sinh", "cosh", "log1p", "log2",
-	"log10", "üstel eksi bir", "taban", "tavan", "işaret", "mutlak değer", "matris çarpımı", "toplam",
-	"ortalama", "en büyük", "en büyüğün indeksi", "softmax", "log softmax", "gömme", "çapraz entropi",
-	"katman normu", "rms normu", "dikkat", "sınırlama", "koşullu seçim", "birikimli toplam",
-	"en büyük k", "sıralama indeksi", "birleştirme", "görünüm", "kopya", "tür dönüşümü",
-	"cihaza taşıma", "konağa okuma", "tensör oluşturma", "gradyan sıfırlama", "SGD adımı",
-	"AdamW adımı", "gradyan kırpma", "özel işlem",
-}
-
 // Code işlemin dosya biçimlerindeki değişmez anahtarıdır (ör. "matris_carpimi").
 func (i OpKind) Code() string {
 	if i < OpKindCount {
@@ -155,13 +143,9 @@ func (i OpKind) Code() string {
 	return opCodes[OpKindOther]
 }
 
-// String işlemin Türkçe açıklamasıdır (ör. "matris çarpımı").
-func (i OpKind) String() string {
-	if i < OpKindCount {
-		return opNamesTR[i]
-	}
-	return opNamesTR[OpKindOther]
-}
+// String işlemin değişmez anahtarıdır (Code ile aynı); hata ayıklama çıktısı içindir, kullanıcıya
+// görünen ad değildir.
+func (i OpKind) String() string { return i.Code() }
 
 // longOpTicks, son ölçümü bundan uzun süren işlemin her çağrısının ölçüldüğü sınırdır (saat
 // tıkı; 3 GHz'lik sayaçta ~10 µs, monoton saatte 30 µs). Bu uzunluktaki bir işlemde iki saat

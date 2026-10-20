@@ -24,7 +24,7 @@ func Root() string {
 	rootOnce.Do(func() {
 		d, err := os.Getwd()
 		if err != nil {
-			panic("depo: çalışma klasörü okunamadı: " + err.Error())
+			panic("reporoot: cannot read the working directory: " + err.Error())
 		}
 		for {
 			if _, err := os.Stat(filepath.Join(d, "go.mod")); err == nil {
@@ -33,7 +33,7 @@ func Root() string {
 			}
 			parent := filepath.Dir(d)
 			if parent == d {
-				panic("depo: çalışma klasöründen yukarı doğru go.mod bulunamadı")
+				panic("reporoot: no go.mod found above the working directory")
 			}
 			d = parent
 		}

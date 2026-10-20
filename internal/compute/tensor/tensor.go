@@ -444,15 +444,15 @@ func (t *Tensor) To(dev Device) *Tensor {
 	return r
 }
 
-// String kısa bir metin gösterimi verir.
+// String hata ayıklama için kısa bir metin gösterimi verir (İngilizce; dilin yazdırma biçimi ayrıdır).
 func (t *Tensor) String() string {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "Tensor(şekil=%v, cihaz=%s", t.shape, t.Device())
+	fmt.Fprintf(&sb, "Tensor(shape=%v, device=%s", t.shape, t.Device())
 	if t.dtyp != Float32 {
-		fmt.Fprintf(&sb, ", tür=%s", t.dtyp)
+		fmt.Fprintf(&sb, ", dtype=%s", t.dtyp)
 	}
 	if t.requiresGrad {
-		sb.WriteString(", gradyan")
+		sb.WriteString(", grad")
 	}
 	sb.WriteString(") ")
 	d := t.Data()
@@ -460,7 +460,7 @@ func (t *Tensor) String() string {
 	sb.WriteString("[")
 	for i, v := range d {
 		if i == limit {
-			fmt.Fprintf(&sb, " ... (%d eleman)", len(d))
+			fmt.Fprintf(&sb, " ... (%d elements)", len(d))
 			break
 		}
 		if i > 0 {

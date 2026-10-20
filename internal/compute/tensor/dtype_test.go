@@ -426,3 +426,16 @@ func init() {
 }
 
 func TestGradCast(t *testing.T) { runGradGroup(t, "dtype") }
+
+// TestTensorStringIsDeveloperText: Tensor.String geliştirici gösterimidir ve İngilizcedir;
+// bilinmeyen tür numarası da İngilizce yedek adla yazılır.
+func TestTensorStringIsDeveloperText(t *testing.T) {
+	x := NewOf(BFloat16, []float32{1, 2, 3, 4}, 2, 2)
+	s := x.String()
+	if !strings.HasPrefix(s, "Tensor(shape=[2 2], device=") || !strings.Contains(s, "dtype=bfloat16") {
+		t.Errorf("beklenmeyen gösterim: %q", s)
+	}
+	if got := DType(200).String(); got != "dtype(200)" {
+		t.Errorf("bilinmeyen tür adı = %q", got)
+	}
+}
