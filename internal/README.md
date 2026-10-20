@@ -69,7 +69,7 @@ Birim testleri sınadıkları dosyanın adını taşır. Birden çok dosyayı ke
 
 ## Adlar ve diller
 
-- **Kod tabanı İngilizcedir:** klasör, dosya, paket, Go adları (dışa açık ve iç), test ve kıyas adları.
+- **Kod tabanı İngilizcedir:** klasör, dosya, paket, Go adları (dışa açık ve iç), test ve kıyas adları. Geliştirici belgeleri, betikler, test verisi ve eklenti dosyaları da dahildir; kullanıcı katmanı (`docs/spec`, `docs/guide`, `examples`, `*.tr` programları, `tr.json`) Türkçe kalır. Denetim: `TestLayoutEnglishFileNames`.
 - **Go yorumları Türkçedir.** Başka ürün, şirket ya da kitaplık adı yoruma yazılmaz.
 - **Kullanıcıya görünen adlar Go metnine yazılmaz.** Anahtar kelime, yerleşik, tip, üye ve adlı argüman adları sabit kodlara bağlıdır (`lang/codes`, `tr.json`). Go kodu kodu yazar, ad dil dosyasından gelir:
 
