@@ -175,17 +175,19 @@ func (g *backend) ltSetup() {
 // gemmPath matris çarpımının hangi yoldan yapıldığı (teşhis ve profil).
 func (g *backend) gemmPath() string {
 	if g.lt != nil {
-		y := messages.Text(messages.H4032, versionText(g.lt.kitLib.version), g.lt.kitLib.path)
+		// Her madde kendi başına tam bir iletidir; başka iletiye parça olmaz, yalnızca liste olarak
+		// yan yana durur.
+		items := []string{messages.Text(messages.H4032, versionText(g.lt.kitLib.version), g.lt.kitLib.path)}
 		if n := g.lt.fallthroughCase; n > 0 {
-			y = messages.Text(messages.H4033, y, n)
+			items = append(items, messages.Text(messages.H4033, n))
 			if g.ltLastError != "" {
-				y = messages.Text(messages.H4034, y, g.ltLastError)
+				items = append(items, messages.Text(messages.H4034, g.ltLastError))
 			}
 		}
 		if len(g.ltNotes) > 0 {
-			y = messages.Text(messages.H4035, y, strings.Join(g.ltNotes, "; "))
+			items = append(items, messages.Text(messages.H4035, strings.Join(g.ltNotes, "; ")))
 		}
-		return y
+		return strings.Join(items, "; ")
 	}
 	if g.ltReason != "" {
 		return g.ltReason

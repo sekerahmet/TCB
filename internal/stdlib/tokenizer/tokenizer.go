@@ -175,15 +175,15 @@ func loadError(path string, err error, tried []string) error {
 	case messages.Has(err, messages.H5248):
 		return messages.New(messages.H5615, fn, path, err)
 	case messages.Has(err, messages.H5274):
-		detail := messages.Text(messages.H5616)
 		var se *json.SyntaxError
 		var te *json.UnmarshalTypeError
-		if errors.As(err, &se) {
-			detail = messages.Text(messages.H5617, se.Offset)
-		} else if errors.As(err, &te) {
-			detail = messages.Text(messages.H5618, te.Field)
+		switch {
+		case errors.As(err, &se):
+			return messages.New(messages.H5617, fn, path, se.Offset)
+		case errors.As(err, &te):
+			return messages.New(messages.H5618, fn, path, te.Field)
 		}
-		return messages.New(messages.H5619, fn, path, detail)
+		return messages.New(messages.H5619, fn, path)
 	}
 	var pe *fs.PathError
 	if errors.As(err, &pe) {

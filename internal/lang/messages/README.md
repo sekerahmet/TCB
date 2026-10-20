@@ -31,7 +31,7 @@ Her kod bir satırdır, kodlar artan sıradadır. Denetim: `TestEmbeddedCatalogV
 | `{ad\|q}` | Go tırnağıyla, denetim karakterleri kaçırılarak (kullanıcı verisi için) |
 | `{ad\|acc}`, `{ad\|dat}`, `{ad\|loc}`, `{ad\|abl}`, `{ad\|gen}` | hâl eki: dilin çekimcisi ekler (`Satır {line\|dat}` → "Satır 12'ye"); çekimcisi olmayan dilde ad olduğu gibi kalır |
 | `{n, plural, one {..} other {..}}` | sayıya göre biçim, dilin CLDR çoğul kuralıyla; dalda (içindeki `select` dallarında da) `#` sayıdır, `=0` gibi tam eşleşme önce gelir (N sayının tek yazımı: `=0.0` reddedilir); `other` zorunlu |
-| `{x, select, a {..} other {..}}` | metin değerine göre dal |
+| `{x, select, a {..} other {..}}` | metin değerine göre dal; boş değer `empty` dalını seçer |
 | `{{`, `}}` | düz süslü parantez (dal içinde `}` dalı kapatır) |
 
 Her dilin metni kodun **bütün** parametrelerini kullanır (çeviride düşen değer kullanıcıya ulaşmazdı);
@@ -43,7 +43,12 @@ adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSe
 - Go kodu sayıya bakıp sözcük seçmez (`argümanı`/`argümanları`): şablonda `plural`. Denetim: `TestPlural`.
 - Go kodu ada ek eklemez: şablonda `{ad|dat}`. `turkish.Suffix` yalnızca `internal/lang/turkish`'te çağrılır (denetim: `TestMessageUsage`); Türkçe çekimciyi o paket kaydeder (`messages.RegisterInflector`), `messages` başka bir TR paketini bilmez.
 - Seçenek listesi Go'da birleştirilmez: `messages.OrList(a, b, c)` → "a, b ya da c" (CLDR liste kalıbı: ikili H2010, ayırıcı H2005, son H2006). Denetim: `TestOrList`.
-- Cümle parçalardan kurulmaz: bir iletinin anlamı tek şablondadır. Kendi başına anlamlı bir ad öbeği (tür adı, "bir tam sayı", sona eklenen ipucu) değer olabilir; Go kodu bir iletinin metnini düzenlemez (`strings.Replace`, `TrimPrefix`); ayrıntı gerekiyorsa parametresinden okunur (`messages.As(err).Args`). Bir ileti çağrısına başka bir `messages.Text(...)` argüman olmaz; değişen sözcük şablonda `select` ile seçilir (`{place, select, gpu {..} other {..}}`, Go yalnızca anahtarı verir). Denetim: `TestGoCodeDoesNotEditMessageText`, `TestMessageArgsAreNotMessageFragments`.
+- Cümle parçalardan kurulmaz: bir iletinin anlamı tek şablondadır. Go kodu bir iletinin metnini düzenlemez (`strings.Replace`, `TrimPrefix`; ayrıntı gerekiyorsa `messages.As(err).Args`), `+` ile birleştirmez ve bir ileti çağrısına başka bir `messages.Text(...)` ya da ondan türeyen değişken argüman vermez; değişen sözcük şablonda `select` ile seçilir (`{place, select, gpu {..} other {..}}`, Go yalnızca anahtarı verir). Üç istisna açık ölçüte bağlıdır:
+  - **Ad öbeği:** kendi başına anlamlı, cümlede yalın duran (kendisi hâl/iyelik eki almayan) etiket (tür adı, "bir tam sayı", "3. girdi") değer olabilir. Yüklem, ek alan öbek, sözcük sırasını belirleyen parça olamaz. Kayıtlar testteki `nounPhraseUses`'ta gerekçesiyle durur ve yalnızca küçülür.
+  - **İpucu yuvası:** ana iletinin sonuna eklenen, kendi başına tam cümle olan ipucu/öneri ("Bunu mu demek istediniz ..." H1104/H2479, tek kaynak `internal/lang/hint`) ana iletinin `hint` ya da `suggestion` adlı parametresine ileti olarak verilir. Öneri eki için tek desen budur; başka adlı parametreye ileti verilemez.
+  - **Sunum:** `+`nın öbür tarafı yalnızca boşluk, simge (`❌`, `✗`), alan ayıracı (`·`, `•`) ya da satır sonu ise birleştirme sunumdur (bağımsız alanları dizer).
+
+  İsteğe bağlı parça Go'da kurulmaz, şablonda yazılır: boş değer `select`'in `empty` dalını seçer (`{exit, select, empty {} other {; çıkmak için '{exit}' yazın}}`; sayı için `{n, plural, =0 {} other {..#..}}`). Yan yana duran bağımsız maddeler (her biri kendi başına tam bir ileti) liste olarak birleştirilebilir (`gemmPath`). Denetim: `TestGoCodeDoesNotEditMessageText`, `TestMessageArgsAreNotMessageFragments` (doğrudan argüman, değişkene alınıp geçirilen metin ve `+` birleştirmesi; `TestFragmentDetector` dedektörün kendisini sınar), `TestSelectEmpty`.
 - Aynı anlam tek koddur: parametre adları farklı olsa da aynı metin iki kodda olamaz (`TestNoDuplicateTexts`; bağlamı farklı etiketler gerekçeyle `sameTextAllowed`'a yazılır).
 
 **Yeni bir dil eklemek.**

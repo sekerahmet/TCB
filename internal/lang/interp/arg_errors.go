@@ -116,8 +116,7 @@ func ValueSummary(v Value) string {
 			for _, e := range x.Elements[:3] {
 				pieces = append(pieces, ValueSummary(e))
 			}
-			return shorten("["+strings.Join(pieces, ", ")+", …]", summaryLimit) +
-				messages.Text(messages.H2425, len(x.Elements))
+			return messages.Text(messages.H2425, shorten("["+strings.Join(pieces, ", ")+", …]", summaryLimit), len(x.Elements))
 		}
 		s = x.Inspect()
 	case *DictVal:
