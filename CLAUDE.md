@@ -26,7 +26,7 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için Türkçe bir programlama d
 - Kullanıcıyla iletişim **Türkçe** ve kısadır.
 - Go adları, dosya ve klasör adları **İngilizce**; Go yorumları **Türkçe**.
 - Kullanıcıya görünen her ad bir **ad kodudur** (`internal/lang/codes`, yeni ad kodunu baş geliştirici verir). Her ileti bir **ileti kodudur** (`internal/lang/messages`). Go metnine kullanıcıya görünen Türkçe ad ya da ileti yazılmaz.
-- Bir iş `bash tools/tam_denetim.sh` geçince biter. Göndermeden (push) önce tam denetim çalışır, sonra otomatik sınama (CI) izlenir. **Tam denetim sürerken depoda dosya düzenlenmez.**
+- Bir iş `bash tools/tam_denetim.sh` geçince biter. Göndermeden (push) önce tam denetim çalışır, sonra otomatik sınama (CI) izlenir. GPU'ya dokunan iş önce yan dalda Colab'da sınanır, sonra ana dala gider ([`docs/katki.md`](docs/katki.md#gönderim-sırası-cpu-ve-gpu)). **Tam denetim sürerken depoda dosya düzenlenmez.**
 - Commit mesajları İngilizcedir (`paket: ne değişti`); taşıma ile davranış değişikliği ayrı commit'lerdir.
 - **Depo herkese açıktır:** kullanıcı verisi, veri kümeleri, parçalayıcı ve model dosyaları, kişisel yollar commit'lenmez. Depo kökündeki izlenmeyen dosyalar kullanıcınındır; onlara dokunulmaz, eklenmez.
 - Testlerde dış ağ yoktur; sunucular yalnızca `127.0.0.1`'e bağlanır; açılan her süreç kapatılır.

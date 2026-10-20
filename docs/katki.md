@@ -49,6 +49,22 @@ bash tools/tam_denetim.sh --hizli  # yalnızca iş sırasında: yalnızca dagiti
 
 "Bitti"nin tek tanımı bu betiktir: otomatik sınama (`.github/workflows/ci.yml`) da onu çağırır, Windows ve Linux'ta iki kiple: `dagitim` (kullanıcıya giden düz `go build`; AVX2 çekirdekleri çalışma anında seçilir) ve `go-esleri` (`TR_CPU_AVX2=0`: assembly'siz Go eşleri). Linux'ta ayrıca yarış dedektörü (`--kip=yaris`: yorumlayıcı, motorlar, veri hattı, tensör, parçalayıcı, GPU benzeticisi) ve `-short` olmadan uzun testler (`--kip=uzun`) koşar; bu iki kip yerelde de çalıştırılabilir (yarış dedektörü cgo ve bir C derleyicisi ister). Go testleri `-short` ile koşar; dil tanımı testleri (`tests/`) Go testinde yinelenmez, betikte `tr test tests` ile koşar. Örnekler geçici bir klasörde çalışır, depoda iz bırakmaz; denetim sonunda `git status` başlangıçtakiyle aynı olmalıdır. Kod düzeni testi (`go test ./internal`) tam denetimin içindedir. Bulanıklaştırma testleri haftada bir uzun koşar (`tools/bulaniklastir.sh`; yerelde tek hedef: `bash tools/bulaniklastir.sh 2s '^FuzzNpyHeader$'`); düşüren girdiler yapıt olarak saklanır. Zayıf makinede `TAM_DENETIM_P=2` go test'in aynı anda koşturduğu paket sayısını sınırlar. Belgeler (`docs/spec/`, `docs/guide/`) işle birlikte güncellenir; her dil kuralının bir testi olur.
 
+## Gönderim sırası: CPU ve GPU
+
+Ana dal herkese açıktır; ona yalnızca bütün kapılardan geçmiş iş gider. Kapılar ve sıraları işin dokunduğu yere göre değişir:
+
+| İş neye dokunuyor | Sıra |
+| :-- | :-- |
+| Yalnızca belge | Sonraki kod gönderimine eklenir; ayrı tam denetim koşulmaz. |
+| CPU tarafı (dil, standart kitaplık, araçlar, iletiler) | İş sırasında değişen paketlerin testleri → tam denetim → ana dala gönderim → otomatik sınama (CI) izlenir. |
+| GPU arka ucu ya da onu kullanan hesap yolu (`internal/compute/gpu`, tensörün GPU'ya giden yolları) | Tam denetim (GPU kodu burada benzeticide koşar) → **yan dala** gönderim (`git push origin main:refs/heads/gpu-dogrulama`) → Colab'da o dalla GPU sınaması ([`tools/gpu/COLAB.md`](../tools/gpu/COLAB.md): `git clone -b gpu-dogrulama`) → geçerse ana dala gönderim, yan dal silinir → CI izlenir. |
+| Hıza dokunan iş | Yukarıdaki sıraya ek olarak önce ve sonra ölçüm (aşağıda); GPU hızı Colab'da aynı kartta ölçülür. |
+
+- **Neden yan dal:** Colab kodu GitHub'dan çeker. Doğrudan ana dala gönderilen bir GPU değişikliği, gerçek kartta sınanmadan herkese açık olur. Yan dal, GPU sınamasını ana daldan önceye alır.
+- **Tam denetim her gönderimden önce bir kez koşar.** Birden çok dal birleşecekse hepsi birleştikten sonra tek bir denetim yeterlidir. Denetim sürerken depoda dosya düzenlenmez.
+- **GPU sınaması tam denetimin yerini tutmaz, ona eklenir.** Tam denetim gerçek GPU'yu sınamaz. GPU sınaması da CPU yollarını, ARM derlemesini ve Go eşlerini sınamaz.
+- Colab işi bitince çalışma zamanı kapatılır (`runtime.unassign()`).
+
 ## Ölçüm disiplini
 
 Yorumlayıcı Python'la en az başa baş olmalıdır; sıcak yola dokunan her değişiklik önce ve sonra ölçülür:

@@ -24,7 +24,7 @@ nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv
 cd /content/tr && ./gpu_sinama -test.run '^$' 2>&1 | head -1
 ```
 
-Belirli bir commit'i sınamak için `git clone` satırından sonra `git fetch -q --depth 1 origin
+GPU'ya dokunan bir iş ana dala gitmeden önce yan dalda sınanır (bkz. [`docs/katki.md`](../../docs/katki.md#gönderim-sırası-cpu-ve-gpu)): `git clone` satırına `-b gpu-dogrulama` ekleyin. Belirli bir commit'i sınamak için `git clone` satırından sonra `git fetch -q --depth 1 origin
 COMMIT && git checkout -q COMMIT` ekleyin.
 
 İlk satır `matris çarpımı: cuBLASLt 12.8.x (/usr/local/cuda/lib64/libcublasLt.so.12)` gibi
