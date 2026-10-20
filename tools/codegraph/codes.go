@@ -50,17 +50,32 @@ func extractCodes(root string, b *builder) {
 				Line: lines[code], End: lines[code], Detail: text, Params: defs[code].Param})
 		}
 	}
-	names := map[string]struct {
+	type nameEntry struct {
 		Ad   string `json:"ad"`
 		Aile string `json:"aile"`
-	}{}
+	}
+	names := map[string]nameEntry{}
+	english := map[string]nameEntry{}
 	cdir := filepath.Join(root, filepath.FromSlash(codesDir))
+	readJSON(filepath.Join(cdir, "en.json"), &english)
 	if readJSON(filepath.Join(cdir, "tr.json"), &names) {
 		rel := codesDir + "/tr.json"
 		lines := jsonKeyLines(filepath.Join(cdir, "tr.json"))
 		for code, n := range names {
 			b.addNode(Node{ID: "name:" + code, Kind: kindName, Name: code, File: rel,
-				Line: lines[code], End: lines[code], Detail: n.Ad + " (" + n.Aile + ")"})
+				Line: lines[code], End: lines[code], Detail: n.Ad + " (" + n.Aile + ")",
+				Aliases: nameAliases(n.Ad, english[code].Ad)})
 		}
 	}
+}
+
+// nameAliases bir ad kodunun dildeki adlarıdır (Türkçe, İngilizce), boşlar ve yinelenenler atılır.
+func nameAliases(tr, en string) []string {
+	var out []string
+	for _, a := range []string{tr, en} {
+		if a != "" && (len(out) == 0 || out[0] != a) {
+			out = append(out, a)
+		}
+	}
+	return out
 }

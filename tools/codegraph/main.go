@@ -45,10 +45,12 @@ const usage = `usage: codegraph <command> [flags] [args]
   who-uses <name>            what uses a function, type, message code or name code
   tests-for <name>           tests that exercise a function, type or package
   history <name>             commits that touched a function, type, file, message code or name code (computed from git)
+  callees <func> [--in PKG]  the functions it calls, by package
+  calls-into <pkg> [--min N] [--in SRC] [--tests]  functions that call at least N distinct functions of a package
   deleted [--retired-json]   message and name codes that existed in the git history and are gone today, with the commit that removed them
   changed <branch|range>     graph nodes touched by a branch (git diff main...branch), their tests, other claude/ branches on the same code
 
-query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --root DIR (default: the repository root above the current directory), --no-rebuild
+query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --by-package, --min N, --in X, --tests, --base B, --root DIR (default: the repository root above the current directory), --no-rebuild
 A query rebuilds the graph first when the sources changed since it was built (see README).
 exit codes: 0 ok, 1 failure, 2 usage, 3 ambiguous (candidates listed), 4 not found
 `
@@ -65,7 +67,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "build":
 		return runBuild(args[1:], stdout, stderr)
-	case "query", "explain", "path", "who-uses", "tests-for", "history", "changed":
+	case "query", "explain", "path", "who-uses", "tests-for", "history", "changed", "callees", "calls-into":
 		return runQuery(args[0], args[1:], stdout, stderr)
 	case "deleted":
 		return runDeleted(args[1:], stdout, stderr)

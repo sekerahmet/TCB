@@ -219,3 +219,65 @@ func TestWhoUsesGoConstants(t *testing.T) {
 		t.Errorf("var: exit %d\n%s", code, out)
 	}
 }
+
+func TestCalleesAndCallsInto(t *testing.T) {
+	code, out, _ := cli(t, "callees", "shape.Both")
+	if code != exitOK {
+		t.Fatalf("exit %d", code)
+	}
+	mustContain(t, out, "calls 2 distinct functions in 1 packages", "internal/lang/messages (2):", "messages.New [func]", "messages.Text [func]")
+	_, out, _ = cli(t, "callees", "shape.Describe", "--in", "messages")
+	mustContain(t, out, "(in messages)", "messages.New")
+	if strings.Contains(out, "Shape.Area") {
+		t.Errorf("--in must restrict the packages:\n%s", out)
+	}
+	if code, _, errOut := cli(t, "callees", "shape.Square"); code != exitUsage || !strings.Contains(errOut, "needs a function") {
+		t.Errorf("a type has no callees: exit %d: %s", code, errOut)
+	}
+
+	_, out, _ = cli(t, "calls-into", "messages", "--min", "2")
+	mustContain(t, out, "at least 2 distinct functions of internal/lang/messages: 1", "shape.Both [func]", "messages.New, messages.Text")
+	if strings.Contains(out, "shape.Describe") {
+		t.Errorf("Describe calls only one function of messages:\n%s", out)
+	}
+	_, out, _ = cli(t, "calls-into", "messages", "--min", "1", "--in", "shape")
+	mustContain(t, out, "shape.Describe [func]", "shape.Both [func]")
+	_, out, _ = cli(t, "calls-into", "messages", "--min", "1", "--in", "internal/lang/codes")
+	mustContain(t, out, ": 0")
+	if code, _, _ := cli(t, "calls-into", "shape.Describe"); code != exitNotFound {
+		t.Errorf("calls-into needs a package: exit %d", code)
+	}
+}
+
+func TestDidYouMean(t *testing.T) {
+	code, out, errOut := cli(t, "query", "shape.Descrbe")
+	if code != exitNotFound || out != "" {
+		t.Fatalf("exit %d, stdout %q", code, out)
+	}
+	mustContain(t, errOut, "not found", "did you mean:", "shape.Describe [func]")
+	// Çok uzak bir ad öneri vermez.
+	_, _, errOut = cli(t, "query", "qqqqzzzz")
+	if strings.Contains(errOut, "did you mean") {
+		t.Errorf("no close name:\n%s", errOut)
+	}
+}
+
+func TestNameCodeChain(t *testing.T) {
+	// Dildeki ad (Türkçe de İngilizce de) kodun düğümüne çözülür ve zincir yazılır.
+	for _, q := range []string{"eger", "if"} {
+		code, out, _ := cli(t, "query", q)
+		if code != exitOK {
+			t.Fatalf("%s: exit %d\n%s", q, code, out)
+		}
+		mustContain(t, out, "A001 [name]", "names: eger · if", "Go constant: codes.A001 [const]",
+			"registered or used in Go", "shape at shape/shape.go:", "shape.runIf [shape/shape.go:")
+	}
+}
+
+func TestWhoUsesByPackage(t *testing.T) {
+	code, out, _ := cli(t, "who-uses", "messages.H0001", "--by-package")
+	if code != exitOK {
+		t.Fatalf("exit %d", code)
+	}
+	mustContain(t, out, "users by package (1 packages):", "shape: 2 functions, 3 use sites")
+}

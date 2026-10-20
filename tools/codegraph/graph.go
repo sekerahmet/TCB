@@ -13,8 +13,8 @@ const schemaVersion = 1
 
 // extractorRevision çıkarıcıların ürettiği içerik değişince artar (yeni alan, yeni kenar, farklı
 // eşleme). Eski bir sürümün kurduğu grafik, imzası aynı olsa da bir sorguda yeniden kurulur.
-// 2: düğümlere son satır (end) eklendi. 3: paket düzeyi const/var düğümleri ve `uses`, `denotes` kenarları.
-const extractorRevision = 3
+// 2: düğümlere son satır (end) eklendi. 3: paket düzeyi const/var düğümleri ve `uses`, `denotes` kenarları. 4: ad kodu düğümlerinde dildeki adlar (aliases).
+const extractorRevision = 4
 
 // Düğüm türleri.
 const (
@@ -64,6 +64,8 @@ type Node struct {
 	End    int      `json:"end,omitempty"` // son satır (işlev/tip/başlık bölümü): hunk'ları düğüme eşlemek için
 	Detail string   `json:"detail,omitempty"`
 	Params []string `json:"params,omitempty"`
+	// Aliases düğümün başka adlarıdır (ad kodunun dildeki adları: sorguda ad gibi çözülür).
+	Aliases []string `json:"aliases,omitempty"`
 }
 
 // Edge yönlü bir bağdır; File ve Line bağın ilk görüldüğü yerdir, Count aynı bağın kaç kez

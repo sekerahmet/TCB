@@ -31,15 +31,17 @@ func newIndex(g *Graph) *index {
 // minTextQuery metin aramasının en kısa sorgusudur (kısa parçalar her şeye uyar).
 const minTextQuery = 3
 
-// lookup bir sorgu metnini düğümlere çözer; ilk eşleşme veren basamaktaki bütün düğümleri döner
+// lookup bir sorgu metnini düğümlere çözer (kinds doluysa yalnızca o türlerde arar); ilk eşleşme veren basamaktaki bütün düğümleri döner
 // (birden çoksa belirsizdir): kimlik, kimliğin "tür:" önekleri atılmış hali, tam ad, sınırda
 // biten ad ("New" → "messages.New", yalnızca '.' ve '/' sınırında), büyük-küçük harfsiz tam ad; hiçbiri tutmazsa metin aramaları: adın başı, adın alt dizesi, açıklama
 // metninin alt dizesi (en az minTextQuery karakter).
-func (ix *index) lookup(q string) []*Node {
-	if n := ix.byID[q]; n != nil {
+func (ix *index) lookup(q string, kinds ...string) []*Node {
+	if n := ix.byID[q]; n != nil && (len(kinds) == 0 || contains(kinds, n.Kind)) {
 		return []*Node{n}
 	}
 	tiers := []func(n *Node) bool{
+		// Ad kodunun dildeki adı (zaman_ms, print): kodun düğümü, aynı adlı belge başlığından önce gelir.
+		func(n *Node) bool { return n.Kind == kindName && contains(n.Aliases, q) },
 		func(n *Node) bool {
 			return idTailEquals(n.ID, q) || idTailEquals(strings.ReplaceAll(n.ID, ix.g.Module+"/", ""), q)
 		},
@@ -60,7 +62,7 @@ func (ix *index) lookup(q string) []*Node {
 	for _, match := range tiers {
 		var found []*Node
 		for i := range ix.g.Nodes {
-			if n := &ix.g.Nodes[i]; match(n) {
+			if n := &ix.g.Nodes[i]; (len(kinds) == 0 || contains(kinds, n.Kind)) && match(n) {
 				found = append(found, n)
 			}
 		}
@@ -79,22 +81,6 @@ func idTailEquals(id, q string) bool {
 		}
 	}
 	return false
-}
-
-// suggest bulunamayan bir ada benzeyen düğümleri (büyük-küçük harfsiz, içerir) sıralı verir.
-func (ix *index) suggest(q string, limit int) []*Node {
-	var out []*Node
-	lq := strings.ToLower(q)
-	for i := range ix.g.Nodes {
-		if n := &ix.g.Nodes[i]; strings.Contains(strings.ToLower(n.Name), lq) {
-			out = append(out, n)
-		}
-	}
-	sort.SliceStable(out, func(i, j int) bool { return len(out[i].Name) < len(out[j].Name) })
-	if len(out) > limit {
-		out = out[:limit]
-	}
-	return out
 }
 
 func where(file string, line int) string {
@@ -198,10 +184,23 @@ func (ix *index) printQuery(w io.Writer, n *Node, limit int) {
 	}
 	ix.printGroups(w, "  ->", ix.out[n.ID], toOf, limit, false)
 	ix.printGroups(w, "  <-", ix.in[n.ID], fromOf, limit, true)
+	if n.Kind == kindName {
+		ix.printNameChain(w, n, limit)
+	}
 }
 
 // printWhoUses bir düğümü kullananları yazar: gelen kenarlar (contains hariç), kullanım yeriyle.
 func (ix *index) printWhoUses(w io.Writer, n *Node, limit int) {
+	uses := ix.whoUsesHeader(w, n)
+	if len(uses) == 0 {
+		fmt.Fprintln(w, "  no uses")
+		return
+	}
+	ix.printGroups(w, "  <-", uses, fromOf, limit, true)
+}
+
+// whoUsesHeader düğümü ve (kod ise) Go sabitini yazar, kullanım kenarlarını verir.
+func (ix *index) whoUsesHeader(w io.Writer, n *Node) []*Edge {
 	fmt.Fprintln(w, describe(n))
 	if n.Detail != "" {
 		fmt.Fprintf(w, "  %s\n", n.Detail)
@@ -216,9 +215,5 @@ func (ix *index) printWhoUses(w io.Writer, n *Node, limit int) {
 			uses = append(uses, e)
 		}
 	}
-	if len(uses) == 0 {
-		fmt.Fprintln(w, "  no uses")
-		return
-	}
-	ix.printGroups(w, "  <-", uses, fromOf, limit, true)
+	return uses
 }
