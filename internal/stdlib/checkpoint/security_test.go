@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/checkpoint"
 )
 
@@ -47,17 +48,18 @@ func TestTamperedCheckpointRejected(t *testing.T) {
 	states := []struct {
 		name, file string
 		corrupt    func([]byte) []byte
-		want       string
+		want       messages.Code
+		detail     string // kodu olmayan iç neden (ml, encoding/json)
 	}{
-		{"tensör baytı", "tensorler.trt", func(b []byte) []byte { b[len(b)/2] ^= 1; return b }, "tensorler.trt: dosya bozuk: sağlama toplamı tutmuyor"},
-		{"yarım tensör", "tensorler.trt", func(b []byte) []byte { return b[:len(b)-7] }, "tensorler.trt 6"},
-		{"yeni sürüm", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 3`, 1)) }, "daha yeni bir TR sürümüyle yazılmış"},
-		{"sürüm 0", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 0`, 1)) }, "biçim sürümü 0 geçersiz"},
-		{"özet ile durumun sürümü farklı", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 1`, 1)) }, "durum.json biçim sürümü 2, ozet.json 1 diyor"},
-		{"bilinmeyen alan", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `{`, `{"yol": "../../x", `, 1)) }, "unknown field"},
-		{"başka adım", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"adım": 2`, `"adım": 3`, 1)) }, "adım 3 diyor, klasör adı 2"},
-		{"büyük özet", "ozet.json", func(b []byte) []byte { return append(b, make([]byte, 70<<10)...) }, "çok büyük"},
-		{"eksik özet", "ozet.json", func([]byte) []byte { return nil }, "ozet.json çözülemedi"},
+		{"tensör baytı", "tensorler.trt", func(b []byte) []byte { b[len(b)/2] ^= 1; return b }, messages.H2000, "tensorler.trt: dosya bozuk: sağlama toplamı tutmuyor"},
+		{"yarım tensör", "tensorler.trt", func(b []byte) []byte { return b[:len(b)-7] }, messages.H7474, ""},
+		{"yeni sürüm", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 3`, 1)) }, messages.H7421, ""},
+		{"sürüm 0", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 0`, 1)) }, messages.H7422, ""},
+		{"özet ile durumun sürümü farklı", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 1`, 1)) }, messages.H7473, ""},
+		{"bilinmeyen alan", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `{`, `{"yol": "../../x", `, 1)) }, messages.H7423, "unknown field"},
+		{"başka adım", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"adım": 2`, `"adım": 3`, 1)) }, messages.H7424, ""},
+		{"büyük özet", "ozet.json", func(b []byte) []byte { return append(b, make([]byte, 70<<10)...) }, messages.H7477, "ozet.json çok büyük"},
+		{"eksik özet", "ozet.json", func([]byte) []byte { return nil }, messages.H7423, ""},
 	}
 	for _, d := range states {
 		t.Run(d.name, func(t *testing.T) {
@@ -71,8 +73,9 @@ func TestTamperedCheckpointRejected(t *testing.T) {
 				t.Fatal(err)
 			}
 			_, err = load(t, runDir)
-			if err == nil || !strings.Contains(err.Error(), d.want) || !strings.Contains(err.Error(), "Bir önceki geçerli nokta: adim_0000000001 (adım 1)") {
-				t.Fatalf("%q ve bir önceki nokta önerisi bekleniyordu: %v", d.want, err)
+			if !messages.Has(err, messages.H7472) || !messages.Has(err, d.want) || !strings.Contains(err.Error(), d.detail) ||
+				!strings.Contains(err.Error(), messages.Text(messages.H7471, "adim_0000000001", 1)) {
+				t.Fatalf("%s ve bir önceki nokta önerisi bekleniyordu: %v", d.want, err)
 			}
 		})
 	}

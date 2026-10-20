@@ -81,22 +81,21 @@ func (k *Dataset) Type() interp.ValueType { return interp.ValueType(DatasetType)
 func (k *Dataset) IsTruthy() bool         { return true }
 
 func (k *Dataset) summary() string {
-	return fmt.Sprintf("%d veri dosyası, %s parça", k.k.ShardCount(), bind.ShortNumber(k.k.TotalTokens()))
+	return messages.Text(messages.H5500, k.k.ShardCount(), bind.ShortNumber(k.k.TotalTokens()))
 }
 
 func (k *Dataset) Inspect() string {
-	extra := ""
 	if k.cache != nil {
-		extra = fmt.Sprintf(", önbellek %s", bind.FormatBytes(k.cache.Quota()))
+		return messages.Text(messages.H5501, DatasetType, k.summary(), bind.FormatBytes(k.cache.Quota()))
 	}
-	return fmt.Sprintf("%s(%s%s)", DatasetType, k.summary(), extra)
+	return fmt.Sprintf("%s(%s)", DatasetType, k.summary())
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
 func (k *Dataset) WatchKind() string { return "diger" }
 
 // WatchLabel tip sütununda gösterilen özettir.
-func (k *Dataset) WatchLabel() string { return "Veri kümesi (" + k.summary() + ")" }
+func (k *Dataset) WatchLabel() string { return messages.Text(messages.H5503, k.summary()) }
 
 // TableData parçaları (ad, token, boyut) tablo olarak verir.
 func (k *Dataset) TableData() ([]string, [][]string, error) {
@@ -108,7 +107,7 @@ func (k *Dataset) TableData() ([]string, [][]string, error) {
 		}
 		lines = append(lines, []string{p.Name, fmt.Sprint(p.Token), bind.FormatBytes(p.Bytes)})
 	}
-	return []string{"Veri dosyası", "Parça", "Boyut"}, lines, nil
+	return []string{messages.Text(messages.H5504), messages.Text(messages.H5505), messages.Text(messages.H5506)}, lines, nil
 }
 
 // Veri kümesi ve okuyucu üyeleri (adları kod listesinde, internal/lang/codes Y60x).
@@ -127,7 +126,7 @@ func (k *Dataset) GetProperty(kd codes.Code, prop string) (interp.Value, error) 
 	case memberSequential:
 		return method(codes.Name(memberSequential), k.sequentialTR), nil
 	}
-	return nil, bind.MemberError("Veri kümesi", prop, datasetMembers)
+	return nil, bind.MemberError(messages.Text(messages.H5502), prop, datasetMembers)
 }
 
 func method(name string, fn interp.BuiltinFunc) *interp.BuiltinVal {
@@ -144,7 +143,7 @@ func resolveCacheDir(m *interp.VM, fn string, named map[string]interp.Value) (st
 	}
 	d, ok, err := interp.PathArg(fn, v)
 	if !ok || d == "" {
-		return "", fmt.Errorf("%s: %s yerel bir klasör yolu (metin) olmalıdır, ör. %s: \"onbellek/veri\"", fn, nameCache.TR, nameCache.TR)
+		return "", messages.New(messages.H5507, fn, nameCache.TR)
 	}
 	if err != nil {
 		return "", err
@@ -160,11 +159,11 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(dizin) 1 parametre bekler (.npy veri dosyalarının klasörü ya da tek bir .npy dosyası), %d verildi", fn, len(args))
+		return nil, messages.New(messages.H5508, fn, len(args))
 	}
 	raw, ok, pathErr := interp.PathArg(fn, args[0])
 	if !ok {
-		return nil, fmt.Errorf("%s: dizin bir metin olmalıdır, %s verildi", fn, args[0].Type())
+		return nil, messages.New(messages.H5509, fn, args[0].Type())
 	}
 	if pathErr != nil {
 		return nil, pathErr
@@ -179,15 +178,15 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	quotaV, hasQuota := bind.GetNamed(named, nameQuota)
 	if hasQuota {
 		if cacheDir == "" {
-			return nil, fmt.Errorf("%s: %s yalnızca %s: ile birlikte kullanılır (önbellek klasörünün en çok kaç GB kullanacağı)", fn, nameQuota.TR, nameCache.TR)
+			return nil, messages.New(messages.H5510, fn, nameQuota.TR, nameCache.TR)
 		}
 		gb, ok := number(quotaV)
 		if !ok || gb <= 0 || math.IsInf(gb, 0) || math.IsNaN(gb) {
-			return nil, fmt.Errorf("%s: %s pozitif bir sayı olmalıdır (ör. %s: 20), %s verildi", fn, nameQuota.TR, nameQuota.TR, quotaV.Inspect())
+			return nil, messages.New(messages.H5511, fn, nameQuota.TR, quotaV.Inspect())
 		}
 		// int64 bayt sayısına sığmayan kota (≈ 8,6 milyar GB) taşıp negatif olmasın.
 		if gb >= float64(math.MaxInt64)/(1<<30) {
-			return nil, fmt.Errorf("%s: %s çok büyük (%s); en çok %d GB verilebilir", fn, nameQuota.TR, quotaV.Inspect(), int64(math.MaxInt64>>30))
+			return nil, messages.New(messages.H5512, fn, nameQuota.TR, quotaV.Inspect(), int64(math.MaxInt64>>30))
 		}
 		quota = max(int64(gb*(1<<30)), 1)
 	}
@@ -219,9 +218,8 @@ func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	}
 	if cacheDir != "" && !hasQuota {
 		needed := largestShard(k) * int64(dataload.DefaultGroupSize+dataload.DefaultLookahead)
-		return nil, fmt.Errorf("%s: %s: verildiğinde %s: de verilmelidir (önbellek klasörünün kullanabileceği en çok disk alanı, GB). "+
-			"Bu kümenin örnekleyicisi aynı anda %d veri dosyasını yerelde tutar; en büyük veri dosyası %s olduğundan en az %s: %d gerekir",
-			fn, nameCache.TR, nameQuota.TR, dataload.DefaultGroupSize+dataload.DefaultLookahead, bind.FormatBytes(largestShard(k)), nameQuota.TR, int64(math.Ceil(float64(needed)/(1<<30))))
+		return nil, messages.New(messages.H5513,
+			fn, nameCache.TR, nameQuota.TR, dataload.DefaultGroupSize+dataload.DefaultLookahead, bind.FormatBytes(largestShard(k)), int64(math.Ceil(float64(needed)/(1<<30))))
 	}
 	tk := &Dataset{k: k, path: raw, cache: cache}
 	if cache != nil {
@@ -258,17 +256,17 @@ func dataError(fn, path string, err error, extras ...string) error {
 		if file == "" {
 			file = path
 		}
-		return fmt.Errorf("%s: %q geçerli bir .npy veri dosyası değil: %s. Veri dosyaları standart .npy biçiminde tek boyutlu, küçük uçlu uint16, uint32 ya da int32 dizileri olmalıdır",
+		return messages.New(messages.H5514,
 			fn, filepath.ToSlash(file), bh.Reason)
 	case errors.Is(err, dataload.ErrCacheInsufficient):
-		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, clean(strings.TrimPrefix(err.Error(), dataload.ErrCacheInsufficient.Error()+": ")))
+		return messages.New(messages.H5515, fn, clean(strings.TrimPrefix(err.Error(), dataload.ErrCacheInsufficient.Error()+": ")))
 	case errors.Is(err, dataload.ErrClosed):
-		return fmt.Errorf("%s: okuyucu kapatılmış (program sonlanıyor); yeni bir okuyucu oluşturun", fn)
+		return messages.New(messages.H5516, fn)
 	case errors.Is(err, dataload.ErrCacheLocked):
-		return fmt.Errorf("%s: %s", fn, clean(strings.TrimPrefix(err.Error(), dataload.ErrCacheLocked.Error()+": ")))
+		return messages.New(messages.H2000, fn, clean(strings.TrimPrefix(err.Error(), dataload.ErrCacheLocked.Error()+": ")))
 	case bind.IsNotExist(err) && strings.Contains(err.Error(), "küme açılamadı"):
 		return turkish.FileError(fn, path, messages.H2103, err,
-			append([]string{".npy veri dosyalarının bulunduğu klasörün (ya da tek bir .npy dosyasının) yolunu verin"}, extras...)...)
+			append([]string{messages.Text(messages.H5517)}, extras...)...)
 	}
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
@@ -277,9 +275,9 @@ func dataError(fn, path string, err error, extras ...string) error {
 	}
 	msg := clean(err.Error())
 	if strings.Contains(msg, "desenine uyan veri dosyası yok") {
-		return fmt.Errorf("%s: %q klasöründe .npy veri dosyası yok; klasör .npy uzantılı veri dosyaları içermelidir", fn, path)
+		return messages.New(messages.H5518, fn, path)
 	}
-	return fmt.Errorf("%s: %s", fn, msg)
+	return messages.New(messages.H2000, fn, msg)
 }
 
 // clean Go paketinin "veri: " öneklerini kaldırır.
@@ -320,13 +318,13 @@ func (o *Reader) Inspect() string {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if o.sequential {
-		state := fmt.Sprintf("%d toplu iş", o.counter)
+		state := messages.Text(messages.H5519, o.counter)
 		if o.done {
-			state += ", bitti"
+			state = messages.Text(messages.H5520, o.counter)
 		}
 		return fmt.Sprintf("%s(%s: %d, %s: %d, %s)", SequentialType, nameBatch.TR, o.b, nameContext.TR, o.t, state)
 	}
-	return fmt.Sprintf("%s(%s: %d, %s: %d, %s: %d, dönem: %d, %d toplu iş)", SamplerType, nameBatch.TR, o.b, nameContext.TR, o.t, nameSeed.TR, o.seed, o.epoch, o.counter)
+	return messages.Text(messages.H5521, SamplerType, nameBatch.TR, o.b, nameContext.TR, o.t, nameSeed.TR, o.seed, o.epoch, o.counter)
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
@@ -338,16 +336,16 @@ func (o *Reader) WatchLabel() string {
 	defer o.mu.Unlock()
 	if o.sequential {
 		if o.done {
-			return fmt.Sprintf("Sıralı okuyucu (%d×%d, bitti)", o.b, o.t)
+			return messages.Text(messages.H5522, o.b, o.t)
 		}
-		return fmt.Sprintf("Sıralı okuyucu (%d×%d, %d toplu iş okundu)", o.b, o.t, o.counter)
+		return messages.Text(messages.H5523, o.b, o.t, o.counter)
 	}
-	return fmt.Sprintf("%s (%d×%d, dönem %d, %d toplu iş)", SamplerType, o.b, o.t, o.epoch, o.counter)
+	return messages.Text(messages.H5524, SamplerType, o.b, o.t, o.epoch, o.counter)
 }
 
 // TableData okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.
 func (o *Reader) TableData() ([]string, [][]string, error) {
-	return nil, nil, fmt.Errorf("okuyucu tablo olarak açılamaz; .%s() ile alınan girdi ve hedef tensörlerini inceleyin", codes.Name(memberNext))
+	return nil, nil, messages.New(messages.H5525, codes.Name(memberNext))
 }
 
 func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
@@ -361,7 +359,7 @@ func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	}
 	what := SamplerType
 	if o.sequential {
-		what = "Sıralı okuyucu"
+		what = messages.Text(messages.H5526)
 	}
 	return nil, bind.MemberError(what, prop, codes.Names(memberNext, memberState, memberLoadState))
 }
@@ -377,7 +375,7 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 		return
 	}
 	if len(args) > len(names) {
-		err = fmt.Errorf("%s() en çok %d parametre alır, %d verildi", fn, len(names), len(args))
+		err = messages.New(messages.H5527, fn, len(names), len(args))
 		return
 	}
 	values := make([]interp.Value, len(names))
@@ -385,7 +383,7 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 		v, given := bind.GetNamed(named, a)
 		if i < len(args) {
 			if given {
-				err = fmt.Errorf("%s: %s hem konumlu hem adlı verildi", fn, a.TR)
+				err = messages.New(messages.H5528, fn, a.TR)
 				return
 			}
 			v = args[i]
@@ -398,11 +396,11 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 	}
 	positive := func(name string, v interp.Value) (int, error) {
 		if v == nil {
-			return 0, fmt.Errorf("%s: %s: verilmedi; ör. %s", fn, name, sample)
+			return 0, messages.New(messages.H5529, fn, name, sample)
 		}
 		n, ok := bind.Int(v)
 		if !ok || n <= 0 || n > 1<<24 {
-			return 0, fmt.Errorf("%s: %s pozitif bir tam sayı olmalıdır, %s verildi", fn, name, v.Inspect())
+			return 0, messages.New(messages.H5530, fn, name, v.Inspect())
 		}
 		return int(n), nil
 	}
@@ -413,13 +411,13 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 		return
 	}
 	if int64(b)*int64(t+1) > int64(interp.MaxCollectionSize) {
-		err = fmt.Errorf("%s: %s × %s (%d × %d) çok büyük; en fazla %d parça", fn, nameBatch.TR, nameContext.TR, b, t, interp.MaxCollectionSize)
+		err = messages.New(messages.H5531, fn, nameBatch.TR, nameContext.TR, b, t, interp.MaxCollectionSize)
 		return
 	}
 	if seeded && values[2] != nil {
 		n, ok := bind.Int(values[2])
 		if !ok || n < 0 {
-			err = fmt.Errorf("%s: %s negatif olmayan bir tam sayı olmalıdır, %s verildi", fn, nameSeed.TR, values[2].Inspect())
+			err = messages.New(messages.H5532, fn, nameSeed.TR, values[2].Inspect())
 			return
 		}
 		seed = uint64(n)
@@ -465,10 +463,10 @@ func readerError(fn string, k *Dataset, t int, err error) error {
 		for _, p := range k.k.Shards() {
 			longest = max(longest, p.Token)
 		}
-		return fmt.Errorf("%s: %s: %d için her pencere %d parça ister, ama en uzun veri dosyası %d parça; %s değerini küçültün", fn, nameContext.TR, t, t+1, longest, nameContext.TR)
+		return messages.New(messages.H5533, fn, nameContext.TR, t, t+1, longest)
 	}
 	if errors.Is(err, dataload.ErrCacheInsufficient) {
-		return fmt.Errorf("%s: önbellek kotası yetersiz: %s", fn, clean(strings.TrimPrefix(err.Error(), dataload.ErrCacheInsufficient.Error()+": ")))
+		return messages.New(messages.H5515, fn, clean(strings.TrimPrefix(err.Error(), dataload.ErrCacheInsufficient.Error()+": ")))
 	}
 	return dataError(fn, k.path, err)
 }
@@ -498,7 +496,7 @@ func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, fmt.Errorf("%s() parametre almaz, %d verildi", fn, len(args))
+		return nil, messages.New(messages.H5534, fn, len(args))
 	}
 	var input, target []float32
 	var b, t int
@@ -546,7 +544,7 @@ var _ interp.Stream = (*Reader)(nil)
 // Örnekleyici sonsuz ürettiği için döngüyle gezilmez.
 func (o *Reader) Next(m *interp.VM) (interp.Value, bool, error) {
 	if !o.sequential {
-		return nil, false, fmt.Errorf("örnekleyici sonsuz toplu iş üretir, döngüyle gezilemez; adım sayısıyla döngü kurup .%s() kullanın (ya da .%s(...) ile sonlu bir okuyucu açın)", codes.Name(memberNext), codes.Name(memberSequential))
+		return nil, false, messages.New(messages.H5535, codes.Name(memberNext), codes.Name(memberSequential))
 	}
 	d, err := o.nextTR(m, nil, nil)
 	if err != nil || d == interp.NULL {
@@ -570,7 +568,7 @@ func split(ti *dataload.Batch) ([]float32, []float32, error) {
 				if a >= 0 && a < maxExactFloat32 {
 					x = h
 				}
-				return nil, nil, fmt.Errorf("parça kimliği %d tensörde tam olarak gösterilemez (kimlikler 0 ile %d arasında olmalı)", x, maxExactFloat32-1)
+				return nil, nil, messages.New(messages.H5536, x, maxExactFloat32-1)
 			}
 			input[i*ti.T+j] = float32(a)
 			target[i*ti.T+j] = float32(h)

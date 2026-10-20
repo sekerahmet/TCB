@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Çubuğun görünümü (Türkçe sayı yazımı):
@@ -24,11 +26,10 @@ var partialCell = []rune(" ▏▎▍▌▋▊▉")
 
 // stepText "adım 1200/5000" ya da "adım 1200". c.mu tutulur.
 func (c *Progress) stepText() string {
-	s := keyStep + " " + strconv.FormatInt(c.step, 10)
 	if c.total > 0 {
-		s += "/" + strconv.FormatInt(c.total, 10)
+		return messages.Text(messages.H7311, c.step, c.total)
 	}
-	return s
+	return messages.Text(messages.H7310, c.step)
 }
 
 // bar dolu oranı (0–1) hücrelerle çizer.
@@ -71,9 +72,9 @@ func (c *Progress) barLine(now time.Time) string {
 	}
 	switch {
 	case c.total > 0 && c.rate > 0:
-		parts = append(parts, "kalan "+remainingText(float64(c.total-c.step)/c.rate))
+		parts = append(parts, messages.Text(messages.H7307, remainingText(float64(c.total-c.step)/c.rate)))
 	case c.total == 0:
-		parts = append(parts, "geçen "+formatDuration(now.Sub(c.start).Seconds()))
+		parts = append(parts, messages.Text(messages.H7308, formatDuration(now.Sub(c.start).Seconds())))
 	}
 	return strings.Join(parts, " · ")
 }
@@ -81,16 +82,16 @@ func (c *Progress) barLine(now time.Time) string {
 // lastLine çubuk bitince yazılan özet satırdır. c.mu tutulur.
 func (c *Progress) lastLine(now time.Time) string {
 	parts := append([]string{c.stepText()}, c.metricParts()...)
-	parts = append(parts, formatDuration(now.Sub(c.start).Seconds())+" sürdü")
+	parts = append(parts, messages.Text(messages.H7309, formatDuration(now.Sub(c.start).Seconds())))
 	return strings.Join(parts, " · ")
 }
 
 // rateText "85,2 adım/sn"; saniyede birden yavaşsa "12,3 sn/adım".
 func rateText(h float64) string {
 	if h < 1 {
-		return formatNumber(1/h) + " sn/" + keyStep
+		return messages.Text(messages.H7305, formatNumber(1/h))
 	}
-	return formatNumber(h) + " " + keyStep + "/sn"
+	return messages.Text(messages.H7306, formatNumber(h))
 }
 
 // show çubuğu sıklık sınırıyla gösterir: terminalde canlı satırı yeniden çizer, değilse

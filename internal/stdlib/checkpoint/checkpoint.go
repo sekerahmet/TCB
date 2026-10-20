@@ -30,7 +30,6 @@
 package checkpoint
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"path"
@@ -43,6 +42,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/files"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
@@ -99,7 +99,7 @@ type Checkpoint struct {
 func (kn *Checkpoint) Type() interp.ValueType { return CheckpointType }
 func (kn *Checkpoint) IsTruthy() bool         { return true }
 func (kn *Checkpoint) Inspect() string {
-	return fmt.Sprintf("%s(%s, adım %d, %d nesne)", CheckpointType, kn.shown, kn.step, len(kn.objects))
+	return messages.Text(messages.H7406, CheckpointType, kn.shown, kn.step, len(kn.objects))
 }
 
 // Dir noktaların çözülmüş klasörüdür (<koşu>/kontrol_noktalari).
@@ -151,7 +151,7 @@ func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string
 	}
 	runDir := bind.ResolvePath(m, fpath)
 	if b, err := os.Stat(runDir); err == nil && !b.IsDir() {
-		return nil, fmt.Errorf("%s: %q bir dosya; koşu klasörü olmalı (noktalar %s/ altına yazılır)", fn, fpath, dirName)
+		return nil, messages.New(messages.H7407, fn, fpath, dirName)
 	}
 	kn := &Checkpoint{shown: path.Join(filepath.ToSlash(fpath), dirName), dir: filepath.Join(runDir, dirName),
 		objects: objects, interval: interval, keep: keep, process: s, lastValid: -1}
@@ -170,7 +170,7 @@ func options(fn string, named map[string]interp.Value) (time.Duration, int, erro
 	if v, ok := bind.GetNamed(named, nameEveryMinutes); ok {
 		f, number := interp.ToFloat(v)
 		if !number || math.IsNaN(f) || f < 0 || f > maxMinutes {
-			return 0, 0, fmt.Errorf("%s: %s 0 ile %g arasında bir sayı (dakika) olmalı, %s verildi", fn, nameEveryMinutes.TR, float64(maxMinutes), interp.TypeAndSummary(v))
+			return 0, 0, messages.New(messages.H7408, fn, nameEveryMinutes.TR, float64(maxMinutes), interp.TypeAndSummary(v))
 		}
 		minutes = f
 	}
@@ -178,7 +178,7 @@ func options(fn string, named map[string]interp.Value) (time.Duration, int, erro
 	if v, ok := bind.GetNamed(named, nameKeep); ok {
 		n, integer := v.(*interp.IntVal)
 		if !integer || n.Val < 1 || n.Val > 1000 {
-			return 0, 0, fmt.Errorf("%s: %s 1 ile 1000 arasında bir %s olmalı (saklanacak nokta sayısı), %s verildi", fn, nameKeep.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))
+			return 0, 0, messages.New(messages.H7409, fn, nameKeep.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))
 		}
 		keep = int(n.Val)
 	}
@@ -191,8 +191,8 @@ func setupUnseededWarning(m *interp.VM) {
 	var one sync.Once
 	ml.SetUnseededHook(func() {
 		one.Do(func() {
-			m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s kurulduktan sonra tohumsuz rastgelelik kullanıldı (%s ya da %s, %s: verilmeden); sürdürülen eğitim kesintisizle aynı olmayacak. Rastgeleliği %s: ile verin.\n",
-				codes.Name(codes.T702), codes.Name(codes.T103), codes.Name(codes.T611), nameSeed.TR, nameSeed.TR))
+			m.WriteOutput(m.Err, messages.Text(messages.H7410,
+				codes.Name(codes.T702), codes.Name(codes.T103), codes.Name(codes.T611), nameSeed.TR)+"\n")
 		})
 	})
 }
@@ -204,7 +204,7 @@ func stepArg(kd codes.Code, args []interp.Value) (int64, error) {
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		return 0, fmt.Errorf("%s: tamamlanan adım sayısı 0 ya da pozitif bir %s olmalı, %s verildi", interp.CallPrefix(kd), codes.Name(codes.A200), interp.TypeAndSummary(args[0]))
+		return 0, messages.New(messages.H7411, interp.CallPrefix(kd), codes.Name(codes.A200), interp.TypeAndSummary(args[0]))
 	}
 	return n.Val, nil
 }
@@ -240,14 +240,14 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 	}
 	kn.failures++
 	if kn.failures >= maxFailures {
-		return nil, fmt.Errorf("%v; kontrol noktası art arda %d kez kaydedilemedi, eğitim durduruldu. %s", err, kn.failures, kn.lastValidText())
+		return nil, messages.New(messages.H7412, err, kn.failures, kn.lastValidText())
 	}
-	what := "sonraki " + codes.Name(codes.Y010) + "'de"
+	what := messages.Text(messages.H7414, codes.Name(codes.Y010))
 	if kn.interval > 0 {
-		what = durationText(kn.interval) + " sonra"
+		what = messages.Text(messages.H7415, durationText(kn.interval))
 	}
-	m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %v (%d/%d; eğitim sürüyor, %s yeniden denenecek). %s\n",
-		err, kn.failures, maxFailures, what, kn.lastValidText()))
+	m.WriteOutput(m.Err, messages.Text(messages.H7413,
+		err, kn.failures, maxFailures, what, kn.lastValidText())+"\n")
 	return interp.FALSE, nil
 }
 
@@ -272,9 +272,9 @@ func (kn *Checkpoint) saveTR(m *interp.VM, args []interp.Value) (interp.Value, e
 // nazikçe durdurur (dönmez).
 func (kn *Checkpoint) halt(m *interp.VM) {
 	if fpath, err := kn.save(m); err != nil {
-		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: program durdurulurken kontrol noktası kaydedilemedi (%v). %s\n", err, kn.lastValidText()))
+		m.WriteOutput(m.Err, messages.Text(messages.H7416, err, kn.lastValidText())+"\n")
 	} else {
-		m.WriteOutput(m.Err, fmt.Sprintf("Kontrol noktası kaydedildi: adım %d (%s). Sürdürmek için programı aynı komutla yeniden çalıştırın.\n", kn.step, fpath))
+		m.WriteOutput(m.Err, messages.Text(messages.H7417, kn.step, fpath)+"\n")
 	}
 	m.InterruptNow()
 }
@@ -282,17 +282,17 @@ func (kn *Checkpoint) halt(m *interp.VM) {
 // lastValidText son geçerli noktayı söyler (uyarı ve hata mesajları için).
 func (kn *Checkpoint) lastValidText() string {
 	if kn.lastValid < 0 {
-		return "Henüz geçerli bir kontrol noktası yok"
+		return messages.Text(messages.H7418)
 	}
-	return fmt.Sprintf("Son geçerli nokta: adım %d (%s/%s)", kn.lastValid, kn.shown, ckptName(kn.lastValid))
+	return messages.Text(messages.H7419, kn.lastValid, kn.shown, ckptName(kn.lastValid))
 }
 
 // durationText bir aralığı kısaca yazar: 15 dk, 30 sn.
 func durationText(d time.Duration) string {
 	if d >= time.Minute {
-		return strings.Replace(strconv.FormatFloat(d.Minutes(), 'g', 3, 64), ".", ",", 1) + " dk"
+		return messages.Text(messages.H7302, strings.Replace(strconv.FormatFloat(d.Minutes(), 'g', 3, 64), ".", ",", 1))
 	}
-	return strings.Replace(strconv.FormatFloat(d.Seconds(), 'g', 3, 64), ".", ",", 1) + " sn"
+	return messages.Text(messages.H7301, strings.Replace(strconv.FormatFloat(d.Seconds(), 'g', 3, 64), ".", ",", 1))
 }
 
 // Compile-time checks: the interpreter finds these hooks with type assertions, so a

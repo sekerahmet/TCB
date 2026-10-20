@@ -5,12 +5,12 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/dataload"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Okuyucu durumu: ö.durum (Y502) okuyucunun kaldığı yeri düz değerli bir sözlük olarak verir,
@@ -88,7 +88,7 @@ func (o *Reader) StateDict(*interp.VM) (*interp.DictVal, error) {
 func (o *Reader) loadStateTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(named) > 0 || len(args) != 1 {
 		if len(named) > 0 {
-			return nil, fmt.Errorf("%s adlı argüman almaz", interp.CallPrefix(memberLoadState))
+			return nil, messages.New(messages.H5537, interp.CallPrefix(memberLoadState))
 		}
 		return nil, interp.ArgCountError(memberLoadState, "1", len(args), "ö."+codes.Name(memberState))
 	}
@@ -110,7 +110,7 @@ func (o *Reader) LoadState(m *interp.VM, s *interp.DictVal) error {
 	d := stateReader{fn: fn, s: s}
 	kind := d.text(sKind)
 	if d.failure == nil && kind != o.kindName() {
-		d.failure = fmt.Errorf("%s: kayıt bir %s okuyucusunun durumu, bu okuyucu %s", fn, kind, o.kindName())
+		d.failure = messages.New(messages.H5538, fn, kind, o.kindName())
 	}
 	d.same(sBatch, nameBatch.TR, int64(o.b))
 	d.same(sContext, nameContext.TR, int64(o.t))
@@ -118,7 +118,7 @@ func (o *Reader) LoadState(m *interp.VM, s *interp.DictVal) error {
 		d.same(sSeed, nameSeed.TR, int64(o.seed))
 	}
 	if k := d.text(sDataset); d.failure == nil && k != datasetDigest(o.ds.k) {
-		d.failure = fmt.Errorf("%s: kayıt başka bir veri kümesine ait (veri dosyalarının adları ya da boyları farklı: %q); aynı veriyle sürdürün ya da yeni bir koşu klasörü verin", fn, o.ds.path)
+		d.failure = messages.New(messages.H5539, fn, o.ds.path)
 	}
 	var pos dataload.State
 	if !o.sequential {
@@ -145,7 +145,7 @@ func (o *Reader) seekTo(m *interp.VM, fn string, pos dataload.State, counter int
 		}
 	})
 	if err != nil {
-		return fmt.Errorf("%s: kayıttaki konum bu veri kümesinde geçersiz (%s); kayıt bozuk ya da başka bir veriye ait: %v", fn, o.ds.path, clean(err.Error()))
+		return messages.New(messages.H5540, fn, o.ds.path, clean(err.Error()))
 	}
 	o.mu.Lock()
 	pf := dataload.Prefetch(context.Background(), goSource, prefetchDepth)
@@ -179,7 +179,7 @@ func (d *stateReader) get(name string) (interp.Value, bool) {
 	}
 	v, ok := d.s.Pairs[name]
 	if !ok {
-		d.failure = fmt.Errorf("%s: durumda %q alanı yok; sözlük okuyucunun %s'u olmalı", d.fn, name, codes.Name(memberState))
+		d.failure = messages.New(messages.H5541, d.fn, name, codes.Name(memberState))
 	}
 	return v, ok
 }
@@ -191,7 +191,7 @@ func (d *stateReader) text(name string) string {
 	}
 	m, ok := v.(*interp.StringVal)
 	if !ok {
-		d.failure = fmt.Errorf("%s: durumun %q alanı %s olmalı, %s verildi", d.fn, name, codes.Name(codes.A202), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5542, d.fn, name, codes.Name(codes.A202), interp.TypeAndSummary(v))
 		return ""
 	}
 	return m.Val
@@ -204,7 +204,7 @@ func (d *stateReader) integer(name string) int64 {
 	}
 	n, ok := v.(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		d.failure = fmt.Errorf("%s: durumun %q alanı 0 ya da pozitif bir %s olmalı, %s verildi", d.fn, name, codes.Name(codes.A200), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5543, d.fn, name, codes.Name(codes.A200), interp.TypeAndSummary(v))
 		return 0
 	}
 	return n.Val
@@ -217,7 +217,7 @@ func (d *stateReader) boolean(name string) bool {
 	}
 	b, ok := v.(*interp.BoolVal)
 	if !ok {
-		d.failure = fmt.Errorf("%s: durumun %q alanı %s olmalı, %s verildi", d.fn, name, codes.Name(codes.A203), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5542, d.fn, name, codes.Name(codes.A203), interp.TypeAndSummary(v))
 		return false
 	}
 	return b.Val
@@ -226,6 +226,6 @@ func (d *stateReader) boolean(name string) bool {
 // same durumdaki bir ayarın okuyucununkiyle aynı olmasını ister.
 func (d *stateReader) same(name, shown string, now int64) {
 	if n := d.integer(name); d.failure == nil && n != now {
-		d.failure = fmt.Errorf("%s: kayıttaki okuyucunun %s değeri %d, bu okuyucununki %d; aynı ayarla sürdürün ya da yeni bir koşu klasörü verin", d.fn, shown, n, now)
+		d.failure = messages.New(messages.H5544, d.fn, shown, n, now)
 	}
 }

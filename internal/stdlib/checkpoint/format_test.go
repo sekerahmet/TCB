@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Biçim sürümü 2: modelin türev izlemeyen tensörleri (durum) de kaydedilir. Sürüm 1
@@ -71,14 +73,17 @@ yazdır(kn.kaldığı_adım, w.değer, m.değer, model.durum.m.değer, model.dur
 		t.Fatalf("durum tensörleri yerinde yüklenmedi: %v\n%s", err, output)
 	}
 	// Kayıtta olan bir durum tensörü modelde yoksa ya da şekli farklıysa açık hata.
-	for _, d := range []struct{ model, want string }{
-		{`{w: tensör([0.0, 0.0], türev_izle: doğru), durum: {m: tensör([0.0, 0.0])}}`, `kayıttaki "durum.adım" tensörü modelde yok`},
-		{`{w: tensör([0.0, 0.0], türev_izle: doğru), durum: {m: tensör([0.0]), adım: tensör(0.0)}}`, `"durum.m" tensörünün şekli modelde [1], kayıtta [2]`},
-		{`{w: tensör([0.0, 0.0], türev_izle: doğru), durum: {m: tensör([0.0, 0.0]), adım: tensör(0.0), yeni: tensör([1.0])}}`, `modelin "durum.yeni" durum tensörü (türev izlemeyen) kayıtta yok`},
+	for _, d := range []struct {
+		model string
+		want  messages.Code
+	}{
+		{`{w: tensör([0.0, 0.0], türev_izle: doğru), durum: {m: tensör([0.0, 0.0])}}`, messages.H7453},
+		{`{w: tensör([0.0, 0.0], türev_izle: doğru), durum: {m: tensör([0.0]), adım: tensör(0.0)}}`, messages.H7450},
+		{`{w: tensör([0.0, 0.0], türev_izle: doğru), durum: {m: tensör([0.0, 0.0]), adım: tensör(0.0), yeni: tensör([1.0])}}`, messages.H7449},
 	} {
 		output, err := run(t, fmt.Sprintf(`kontrol_noktası(%q, {model: %s, tek: tensör([[0.0], [0.0]], tür: "bf16")})`, runDir, d.model))
-		if err == nil || !strings.Contains(err.Error(), d.want) {
-			t.Errorf("%q bekleniyordu: %v\n%s", d.want, err, output)
+		if !messages.Has(err, d.want) {
+			t.Errorf("%s bekleniyordu: %v\n%s", d.want, err, output)
 		}
 	}
 	// Ara sonuç (türev izleyen bir işlemin sonucu) tek başına verilemez; modelin içindeyse atlanır.
@@ -86,7 +91,7 @@ yazdır(kn.kaldığı_adım, w.değer, m.değer, model.durum.m.değer, model.dur
 değişken w = tensör([1.0], türev_izle: doğru)
 kontrol_noktası(%q, {ara: w * 2})
 `, trPath(t.TempDir())))
-	if err == nil || !strings.Contains(err.Error(), "ara tensör") {
+	if !messages.Has(err, messages.H7437) {
 		t.Errorf("ara tensör hatası bekleniyordu: %v\n%s", err, output)
 	}
 }
@@ -116,7 +121,7 @@ yazdır(kn.kaldığı_adım, model.w.değer, model.m.değer, model.kos.değer)
 	}
 	// Sürüm 1'de de modelin her parametresi kayıtta olmalıdır.
 	_, err = run(t, fmt.Sprintf(`kontrol_noktası(%q, {model: {w: tensör([0.0, 0.0], türev_izle: doğru), m: tensör([0.0, 0.0]), b: tensör([0.0], türev_izle: doğru)}})`, runDir))
-	if err == nil || !strings.Contains(err.Error(), `modelin "b" parametresi kayıtta yok`) {
+	if !messages.Has(err, messages.H7449) {
 		t.Errorf("eksik parametre hatası bekleniyordu: %v", err)
 	}
 }

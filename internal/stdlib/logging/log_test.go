@@ -12,6 +12,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
@@ -132,15 +133,21 @@ func mustRead(t *testing.T, path string) []byte {
 func TestLogErrors(t *testing.T) {
 	k := t.TempDir()
 	m, _ := newVM(t, k)
-	for _, d := range []struct{ code, want string }{
-		{`günlük("` + pathText(filepath.Join(k, "a.csv")) + `")`, "uzantılı olmalı"},
-		{`günlük("` + pathText(filepath.Join(k, "a.jsonl")) + `").ekle({tür: "x"})`, "'tür' adı günlük biçimine ayrılmış"},
-		{`günlük("` + pathText(filepath.Join(k, "b.jsonl")) + `").ekle({f: yazdır})`, "ölçüsünün değeri"},
-		{`günlük("` + pathText(filepath.Join(k, "c.jsonl")) + `").ekle(5)`, "1. argüman olarak Sözlük ya da Metin bekler"},
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{`günlük("` + pathText(filepath.Join(k, "a.csv")) + `")`, messages.H7319},
+		{`günlük("` + pathText(filepath.Join(k, "a.jsonl")) + `").ekle({tür: "x"})`, messages.H7321},
+		{`günlük("` + pathText(filepath.Join(k, "b.jsonl")) + `").ekle({f: yazdır})`, messages.H7300},
 	} {
-		if _, err := run(t, m, d.code); err == nil || !strings.Contains(err.Error(), d.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.code, d.want, err)
+		if _, err := run(t, m, d.code); !messages.Has(err, d.want) {
+			t.Errorf("%s: %s hatası bekleniyordu: %v", d.code, d.want, err)
 		}
+	}
+	// Argüman tipi hatası henüz kodlu değil (interp).
+	if _, err := run(t, m, `günlük("`+pathText(filepath.Join(k, "c.jsonl"))+`").ekle(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak Sözlük ya da Metin bekler") {
+		t.Errorf("argüman tipi hatası bekleniyordu: %v", err)
 	}
 }
 

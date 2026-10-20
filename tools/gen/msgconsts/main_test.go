@@ -19,10 +19,14 @@ import (
 // internal/lang/messages/README.md.
 var migrated = []string{
 	"internal/lang/turkish",
+	"internal/stdlib/checkpoint",
 	"internal/stdlib/common/bind",
+	"internal/stdlib/dataset",
 	"internal/stdlib/files",
 	"internal/stdlib/formats",
+	"internal/stdlib/logging",
 	"internal/stdlib/process",
+	"internal/stdlib/tokenizer",
 }
 
 // Üretilmiş sabitler katalogla aynıdır.

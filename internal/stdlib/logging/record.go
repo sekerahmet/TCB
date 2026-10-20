@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -43,7 +42,7 @@ func (g *Log) IsTruthy() bool         { return true }
 func (g *Log) Inspect() string {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	return fmt.Sprintf("%s(%s, %d kayıt)", LogType, g.path, g.records)
+	return messages.Text(messages.H7318, LogType, g.path, g.records)
 }
 
 // Path günlük dosyasının çözülmüş yoludur.
@@ -61,7 +60,7 @@ func (g *Log) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 			return bind.Safe(interp.CallName(codes.Y004), func() (interp.Value, error) { return g.add(args) })
 		}}, nil
 	}
-	return nil, memberError(string(LogType), prop, codes.Y004)
+	return nil, bind.MemberError(string(LogType), prop, codes.Names(codes.Y004))
 }
 
 // openLog günlük(yol) yerleşiğidir.
@@ -78,7 +77,7 @@ func (d *state) openLog(m *interp.VM, args []interp.Value) (interp.Value, error)
 		return nil, interp.ArgTypeError(codes.G810, 1, args[0], codes.A202)
 	}
 	if !strings.EqualFold(filepath.Ext(path), logExt) {
-		return nil, fmt.Errorf("%s: %q bir günlük dosyası adı değil; günlük %s uzantılı olmalı (her satırı bir JSON kaydı), ör. %q",
+		return nil, messages.New(messages.H7319,
 			fn, path, logExt, strings.TrimSuffix(path, filepath.Ext(path))+logExt)
 	}
 	g := &Log{m: m, d: d, path: path, fullPath: bind.ResolvePath(m, path), program: filepath.Base(m.SourceFile), opening: clock()}
@@ -186,12 +185,12 @@ func addMetrics(fn string, record, dict *interp.DictVal, reserved ...string) err
 		}
 		if a := dict.KeyValue(k); a != nil {
 			if _, text := a.(*interp.StringVal); !text {
-				return fmt.Errorf("%s: ölçü adları %s olmalıdır, %s verildi", fn, codes.Name(codes.A202), interp.TypeAndSummary(a))
+				return messages.New(messages.H7320, fn, codes.Name(codes.A202), interp.TypeAndSummary(a))
 			}
 		}
 		for _, r := range reserved {
 			if k == r {
-				return fmt.Errorf("%s: '%s' adı günlük biçimine ayrılmış (%s); ölçüye başka bir ad verin", fn, k, reservedReason(k))
+				return messages.New(messages.H7321, fn, k, reservedReason(k))
 			}
 		}
 		d, err := metricValue(fn, k, v)
@@ -207,13 +206,13 @@ func addMetrics(fn string, record, dict *interp.DictVal, reserved ...string) err
 func reservedReason(k string) string {
 	switch k {
 	case keyKind:
-		return "kaydın türünü söyler: başlangıç, bitiş, devam"
+		return messages.Text(messages.H7322)
 	case keyTime:
-		return "kaydın zamanını çubuk kendisi yazar"
+		return messages.Text(messages.H7323)
 	case keyStep:
-		return "tamamlanan adımı çubuk kendisi yazar"
+		return messages.Text(messages.H7324)
 	}
-	return "adım hızını çubuk kendisi yazar"
+	return messages.Text(messages.H7325)
 }
 
 // write bir kaydı (gerekirse önce başlangıç kaydını) tek bir yazma çağrısıyla ekler.
@@ -248,7 +247,7 @@ func (g *Log) write(record *interp.DictVal) error {
 func (g *Log) line(record *interp.DictVal) ([]byte, error) {
 	b, err := jsonwrite.WriteOptions(record, jsonwrite.Options{NonFiniteAsText: true, TextFilter: g.m.Mask})
 	if err != nil {
-		return nil, fmt.Errorf("%s: kayıt JSON'a yazılamadı: %v", interp.CallPrefix(codes.Y004), err)
+		return nil, messages.New(messages.H7326, interp.CallPrefix(codes.Y004), err)
 	}
 	return append(b, '\n'), nil
 }
@@ -309,16 +308,6 @@ func (g *Log) WriteResume(step int64) error {
 // timeValue kayıt zamanının metnidir.
 func timeValue(t time.Time) *interp.StringVal {
 	return &interp.StringVal{Val: t.Format(timeFormat)}
-}
-
-// memberError tipin bilinmeyen bir üyesini, en yakın üyeyi önererek bildirir.
-func memberError(typ, prop string, members ...codes.Code) error {
-	names := codes.Names(members...)
-	hint := fmt.Sprintf(" (üyeler: %s)", strings.Join(names, ", "))
-	if o := turkish.Closest(prop, names); o != "" {
-		hint = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
-	}
-	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", typ, prop, hint)
 }
 
 // Compile-time checks: the interpreter finds these hooks with type assertions, so a

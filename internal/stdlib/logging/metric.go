@@ -8,6 +8,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
 
@@ -24,7 +25,7 @@ func metricValue(fn, name string, v interp.Value) (interp.Value, error) {
 		}
 		return x.PlainValue(), nil
 	}
-	return nil, fmt.Errorf("%s: '%s' ölçüsünün değeri %s ya da %s olmalı; %s verildi",
+	return nil, messages.New(messages.H7300,
 		fn, name, interp.TypeNames(codes.A200, codes.A201, codes.A202, codes.A203), codes.Name(codes.A212), interp.TypeAndSummary(v))
 }
 
@@ -91,14 +92,14 @@ func formatDuration(sec float64) string {
 	t := int64(math.Round(sec))
 	switch {
 	case t < 60:
-		return fmt.Sprintf("%d sn", t)
+		return messages.Text(messages.H7301, t)
 	case t < 2*3600:
 		if t%60 == 0 {
-			return fmt.Sprintf("%d dk", t/60)
+			return messages.Text(messages.H7302, t/60)
 		}
-		return fmt.Sprintf("%d dk %d sn", t/60, t%60)
+		return messages.Text(messages.H7303, t/60, t%60)
 	}
-	return fmt.Sprintf("%d sa %d dk", t/3600, t%3600/60)
+	return messages.Text(messages.H7304, t/3600, t%3600/60)
 }
 
 // remainingText kalan süre tahminini kaba yazar: "45 sn", "14 dk", "2 sa 5 dk".
@@ -106,9 +107,9 @@ func remainingText(sec float64) string {
 	t := int64(math.Round(sec))
 	switch {
 	case t < 60:
-		return fmt.Sprintf("%d sn", max(t, 1))
+		return messages.Text(messages.H7301, max(t, 1))
 	case t < 3600:
-		return fmt.Sprintf("%d dk", (t+30)/60)
+		return messages.Text(messages.H7302, (t+30)/60)
 	}
-	return fmt.Sprintf("%d sa %d dk", t/3600, t%3600/60)
+	return messages.Text(messages.H7304, t/3600, t%3600/60)
 }

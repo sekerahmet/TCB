@@ -11,6 +11,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Düz değerlerin (sayaçlar, en iyi kayıp, okuyucu durumu) kayıpsız JSON yazımı. json_metin
@@ -56,17 +57,17 @@ type plainWriter struct {
 func (y *plainWriter) write(v interp.Value, fpath string, depth int) error {
 	b := &y.b
 	if depth > maxPlainDepth {
-		return fmt.Errorf("%s: değer çok derin iç içe (en çok %d düzey)", pathName(fpath), maxPlainDepth)
+		return messages.New(messages.H7454, pathName(fpath), maxPlainDepth)
 	}
 	// Aynı alt listeyi birçok kez içeren değer (l = [l, l] 60 kez) kısa olsa da yazılırken
 	// üstel büyür: yazılan değer sayısı sınırlıdır.
 	if y.nodes++; y.nodes > plainNodeLimit {
-		return fmt.Errorf("%s: değer çok büyük (en çok %d öğe; aynı alt liste her kullanımda ayrıca yazılır)", pathName(fpath), plainNodeLimit)
+		return messages.New(messages.H7455, pathName(fpath), plainNodeLimit)
 	}
 	switch v.(type) {
 	case *interp.ListVal, *interp.DictVal:
 		if err := y.walker.Enter(v, depth); err != nil && errors.Is(err, interp.ErrCyclic) {
-			return fmt.Errorf("%s: değer kendini içeriyor (döngüsel liste ya da sözlük); kaydedilemez", pathName(fpath))
+			return messages.New(messages.H7456, pathName(fpath))
 		}
 		defer y.walker.Leave(v)
 	}
@@ -121,7 +122,7 @@ func (y *plainWriter) write(v interp.Value, fpath string, depth int) error {
 		}
 		b.WriteString("]}")
 	default:
-		return fmt.Errorf("%s: %s kaydedilemez; kontrol noktasındaki sözlük ve listeler yalnızca %s, %s, %s, %s, %s, %s ve %s içerebilir (tensörü .%s ile sayıya çevirin)",
+		return messages.New(messages.H7457,
 			pathName(fpath), interp.TypeAndSummary(v), codes.Name(codes.A200), codes.Name(codes.A201), codes.Name(codes.A202), codes.Name(codes.A203), codes.Name(codes.A042),
 			codes.Name(codes.A205), codes.Name(codes.A206), codes.Name(codes.Y404))
 	}
@@ -130,7 +131,7 @@ func (y *plainWriter) write(v interp.Value, fpath string, depth int) error {
 
 func pathName(fpath string) string {
 	if fpath == "" {
-		return "değer"
+		return messages.Text(messages.H7484)
 	}
 	return strings.TrimPrefix(fpath, ".")
 }
@@ -161,7 +162,7 @@ func readPlain(b []byte) (interp.Value, error) {
 
 func toPlain(raw any, depth int) (interp.Value, error) {
 	if depth > maxPlainDepth {
-		return nil, fmt.Errorf("değer çok derin iç içe (en çok %d düzey)", maxPlainDepth)
+		return nil, messages.New(messages.H7458, maxPlainDepth)
 	}
 	switch x := raw.(type) {
 	case nil:
@@ -173,7 +174,7 @@ func toPlain(raw any, depth int) (interp.Value, error) {
 	case json.Number:
 		n, err := strconv.ParseInt(string(x), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%q bir tam sayı değil", string(x))
+			return nil, messages.New(messages.H7459, string(x))
 		}
 		return interp.NewInt(n), nil
 	case []any:
@@ -189,34 +190,34 @@ func toPlain(raw any, depth int) (interp.Value, error) {
 	case map[string]any:
 		return toTagged(x, depth)
 	}
-	return nil, fmt.Errorf("beklenmeyen değer %v", raw)
+	return nil, messages.New(messages.H7460, raw)
 }
 
 // toTagged {"ondalık": ...} ve {"sözlük": ...} biçimlerini çevirir.
 func toTagged(x map[string]any, depth int) (interp.Value, error) {
 	if len(x) != 1 {
-		return nil, fmt.Errorf("etiketli değer tek alanlı olmalı, %d alan var", len(x))
+		return nil, messages.New(messages.H7461, len(x))
 	}
 	if s, ok := x[tagFloat]; ok {
 		m, ok := s.(string)
 		if !ok {
-			return nil, fmt.Errorf("%s değeri metin olmalı", tagFloat)
+			return nil, messages.New(messages.H7462, tagFloat)
 		}
 		f, err := strconv.ParseFloat(m, 64)
 		if err != nil && !strings.Contains(err.Error(), "out of range") {
-			return nil, fmt.Errorf("%q bir ondalık sayı değil", m)
+			return nil, messages.New(messages.H7463, m)
 		}
 		return &interp.FloatVal{Val: f}, nil
 	}
 	pairs, ok := x[tagDict].([]any)
 	if !ok {
-		return nil, fmt.Errorf("bilinmeyen etiketli değer")
+		return nil, messages.New(messages.H7464)
 	}
 	s := interp.NewDictVal()
 	for _, c := range pairs {
 		kv, ok := c.([]any)
 		if !ok || len(kv) != 2 {
-			return nil, fmt.Errorf("sözlük girdisi [anahtar, değer] olmalı")
+			return nil, messages.New(messages.H7465)
 		}
 		k, err := toPlain(kv[0], depth+1)
 		if err != nil {
@@ -224,7 +225,7 @@ func toTagged(x map[string]any, depth int) (interp.Value, error) {
 		}
 		switch k.(type) {
 		case *interp.ListVal, *interp.DictVal:
-			return nil, fmt.Errorf("sözlük anahtarı liste ya da sözlük olamaz")
+			return nil, messages.New(messages.H7466)
 		}
 		v, err := toPlain(kv[1], depth+1)
 		if err != nil {
@@ -242,17 +243,17 @@ func refreshInPlace(name string, target, record interp.Value) error {
 	case *interp.DictVal:
 		k, ok := record.(*interp.DictVal)
 		if !ok {
-			return fmt.Errorf("%q kayıtta %s, şimdi %s", name, interp.TypeAndSummary(record), codes.Name(codes.A206))
+			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.Name(codes.A206))
 		}
 		*h = *k
 	case *interp.ListVal:
 		k, ok := record.(*interp.ListVal)
 		if !ok {
-			return fmt.Errorf("%q kayıtta %s, şimdi %s", name, interp.TypeAndSummary(record), codes.Name(codes.A205))
+			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.Name(codes.A205))
 		}
 		h.Elements = k.Elements
 	default:
-		return fmt.Errorf("%q yerinde yenilenemez (%s)", name, interp.TypeAndSummary(target))
+		return messages.New(messages.H7468, name, interp.TypeAndSummary(target))
 	}
 	return nil
 }
