@@ -33,21 +33,28 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
    - Tamamlandı: altyapı ve denetim testi; ortak hata yardımcıları; standart kitaplık, `devtools`, `tr` komutu; dil çekirdeği; yapılı hata (hata konumu her yerde yapıdan okunur, metinden okunmaz); GPU arka ucu.
    - Sürüyor: tensör çekirdeği, veri hattı ve parçalayıcı.
    - Sonra: geçirilmiş paketlerde Türkçe harfli metin sabitinin yalnızca izinli yerlerde (veri biçimi anahtarları, Türkçe ek tabloları) bulunduğunu denetleyen test. Bitiş ölçütünü bu test kanıtlar.
-2. **Gradyan doğruluğu kapısı.** Her türevli işlemin (tensör çekirdeğinin işlem listesindeki her işlem) float64 sonlu fark testi ve bf16 tolerans testi vardır. İşlem listesini gezen bir test, türev testi olmayan işlemi yakalar. GPU'da aynı testler her GPU değişikliğinde koşar. Temeli: `türev_denetle` ve tensör testlerindeki sayısal türev denetimi.
-3. **Anlam kuralları yazılı ve testli.** Yayınlama (15.3), tür yükseltme (15.12), dilim ve indeksin sınır dışı davranışı, tam sayılı ve mantık değerli işlenenler tek yerde, eksiksiz yazılır; her kural bir `tests/` testiyle korunur. Sessiz kırpma ya da sessiz tür değişimi yoktur; belirsiz durum hatadır.
-4. **Açık işler ve bekleyen dil kararları.**
+2. **İletiler her dile hazır.** İleti geçişi bitti, ama Türkçenin dilbilgisi yer yer hâlâ Go kodunda; başka bir dil gelince bunu çevirmen değil kod çözebilir. Kod büyüdükçe pahalılaşacağı için altyapı şimdi kurulur, asıl çeviri Evre 7'de yapılır:
+   - Çoğul biçimleri katalogda: "argümanı / argümanları" (H2416/H2417) seçimi bugün Go'da ve Türkçe kuralla yapılıyor. Dile göre çoğul kuralı (CLDR çoğul kuralları, ICU MessageFormat emsali).
+   - Liste kalıbı katalogda: "a, b ya da c" (H2010) bugün Go'da kuruluyor. Dile göre liste kalıbı (CLDR liste kalıpları).
+   - Türkçe hâl ekleri Go'dan çıkar: `turkish.Suffix` ile ek ekleyen 5 yer (yorumlayıcı, hata ayıklayıcı, `ml`) dile özgü bir katmana taşınır.
+   - Cümle parçaları bütün cümle olur: parça kodlardan birleştirilen iletiler ("'f' fonksiyonu" + geri kalanı) tek şablona; sözcük sırası adlı parametrelerle serbesttir.
+   - Test: her dil kataloğu aynı kodları ve aynı parametreleri taşır; Go'da ileti sözcüğü çekimlenmez.
+   - Pilot: çeşitli türden 30 kadar ileti İngilizceye çevrilir (`internal/lang/messages/en.json`) ve `TR_DIL=en` ile koşturulur; çıkan her sorun bu maddeye eklenir.
+3. **Gradyan doğruluğu kapısı.** Her türevli işlemin (tensör çekirdeğinin işlem listesindeki her işlem) float64 sonlu fark testi ve bf16 tolerans testi vardır. İşlem listesini gezen bir test, türev testi olmayan işlemi yakalar. GPU'da aynı testler her GPU değişikliğinde koşar. Temeli: `türev_denetle` ve tensör testlerindeki sayısal türev denetimi.
+4. **Anlam kuralları yazılı ve testli.** Yayınlama (15.3), tür yükseltme (15.12), dilim ve indeksin sınır dışı davranışı, tam sayılı ve mantık değerli işlenenler tek yerde, eksiksiz yazılır; her kural bir `tests/` testiyle korunur. Sessiz kırpma ya da sessiz tür değişimi yoktur; belirsiz durum hatadır.
+5. **Açık işler ve bekleyen dil kararları.**
    - Tamamlandı: `csv_çöz(metin)`; `csv_oku` yalnızca dosya okur (13.8). Ortam değişkeni adları ASCII (`TR_IS_KLASORU`).
    - Dil çekirdeği incelemesinden kalan konular: kullanıcı metnindeki terminal kaçış dizileri, `VAL_INT` gibi adlar.
    - Testler: eşzamanlı görevdeki başarısız doğrulamanın testi kaldırması; testlerin üst düzey ortamı paylaşması.
    - Yeni satır başındaki `-x` ifadesinin önceki satıra ikili eksi olarak bağlanması.
-5. **Test düzeni (tamamlandı).** Test dosyası adlandırma kuralı (`x_test.go` yalnızca `x.go`'yu sınar; süreçleri sınayan testler `behavior_` önekli dosyalarda) ve her paket README'sinde bir "Testler" bölümü; ikisi de testle denetlenir.
-6. **Kalan adlar.**
+6. **Test düzeni (tamamlandı).** Test dosyası adlandırma kuralı (`x_test.go` yalnızca `x.go`'yu sınar; süreçleri sınayan testler `behavior_` önekli dosyalarda) ve her paket README'sinde bir "Testler" bölümü; ikisi de testle denetlenir.
+7. **Kalan adlar.**
    - `cmd/tr` dosya ve Go adları ile `tools` betik adları İngilizceye geçer.
    - `tr` komutunun alt komutları (`çalıştır`, `biçimle` ...), seçenekleri (`--yardım`) ve hata ayıklayıcının komutları bir ad ailesine bağlanır; adlar değişmez, Go metninden çıkar.
-7. **Kurallar testle korunur.** Her paket README'sindeki "nasıl eklenir" kuralları gözden geçirilir; testi olmayan kurala test eklenir. Belgede (`docs/mimari.md`) adı geçen Go adlarının var olduğu da testle denetlenir.
-8. **Belgeler yeni düzeni anlatır (tamamlandı).** Kurallar (`internal/README.md`), ekleme tarifleri (`docs/tarifler.md`), mimari ve katkı rehberi yeni düzene göre yazıldı.
+8. **Kurallar testle korunur.** Her paket README'sindeki "nasıl eklenir" kuralları gözden geçirilir; testi olmayan kurala test eklenir. Belgede (`docs/mimari.md`) adı geçen Go adlarının var olduğu da testle denetlenir.
+9. **Belgeler yeni düzeni anlatır (tamamlandı).** Kurallar (`internal/README.md`), ekleme tarifleri (`docs/tarifler.md`), mimari ve katkı rehberi yeni düzene göre yazıldı.
 
-**Bitiş ölçütü:** kodda Türkçe ileti metni kalmaz (testle); her türevli işlemin gradyan testi vardır; anlam kuralları yazılı ve testlidir; her kural bir testle korunur; bekleyen dil kararı kalmaz.
+**Bitiş ölçütü:** kodda Türkçe ileti metni kalmaz (testle); ileti kataloğu çoğul ve liste kalıplarını taşır, Go'da ileti sözcüğü çekimlenmez ve İngilizce pilot geçer; her türevli işlemin gradyan testi vardır; anlam kuralları yazılı ve testlidir; her kural bir testle korunur; bekleyen dil kararı kalmaz.
 
 ## Evre 3: Tek GPU'da gerçek model
 
@@ -182,7 +189,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
   - TR kitaplıkları için paket yöneticisi (kitaplık ekosistemi oluşunca);
   - deney takibi aktarımı (TensorBoard, MLflow; `.jsonl` günlük taban olarak yeterli);
   - değerlendirme kitaplığı (OpenAI uyumlu sunucuyla lm-evaluation-harness bunu büyük ölçüde karşılar).
-- **Yazım dilleri:** adların İngilizcesi var (`en.json`, `tr göster --dil en`); iletilerin İngilizcesi (`internal/lang/messages/en.json`) eklenir.
+- **Yazım dilleri:** adların İngilizcesi var (`en.json`, `tr göster --dil en`). Altyapı Evre 2'de kurulduğu için burada iş çeviridir: bütün iletilerin İngilizcesi (`internal/lang/messages/en.json`), dil tanımının, kılavuzun ve kod başvurusunun İngilizcesi.
 - **Platformlar:** Mac otomatik sınaması, Apple M ve ARM için vektör çekirdekleri, Metal arka ucu, AMD (ROCm).
 
 ## Sonra
