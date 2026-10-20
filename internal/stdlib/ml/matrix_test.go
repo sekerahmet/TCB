@@ -139,7 +139,7 @@ func TestMatrixShapeCheck(t *testing.T) {
 		_, err := run(t, code)
 		if err == nil {
 			t.Errorf("%s: hata bekleniyordu", code)
-		} else if strings.Contains(err.Error(), "çökme önlendi") {
+		} else if messages.Has(err, messages.H9000) {
 			t.Errorf("%s: panik yerine düzgün hata bekleniyordu: %v", code, err)
 		}
 	}
