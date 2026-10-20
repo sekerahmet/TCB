@@ -714,7 +714,6 @@ const (
 	H5610 Code = 5610 // {fn}: {path|q} bir klasör; tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin
 	H5611 Code = 5611 // {fn}: {path|q} bir klasör; tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin; bu klasörde tokenizer.json var: {fn}({candidate|q}) deneyin
 	H5612 Code = 5612 // tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin
-	H5613 Code = 5613 // parçalayıcı türü desteklenmiyor:
 	H5614 Code = 5614 // {fn}: {path|q} yüklenemedi, {detail}
 	H5615 Code = 5615 // {fn}: {path|q} yüklenemedi: {detail}; bu desen kötü niyetli bir metinde üstel süre harcayabileceği için güvenlik gereği kabul edilmiyor (desenin iç içe sınırsız niceleyici içermeyen bir biçimini kullanın)
 	H5616 Code = 5616 // dosya JSON olarak okunamadı

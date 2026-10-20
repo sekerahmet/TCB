@@ -19,7 +19,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/sekerahmet/TCB/internal/compute/tokenize"
@@ -169,13 +168,12 @@ func loadError(path string, err error, tried []string) error {
 		return turkish.FileError(fn, path, messages.H2107, err,
 			messages.Text(messages.H5612), interp.SearchedPlaces(tried))
 	}
-	msg := err.Error()
 	switch {
 	case isUnsupported(err):
-		msg = strings.Replace(msg, "desteklenmeyen", messages.Text(messages.H5613), 1)
-		return messages.New(messages.H5614, fn, path, msg)
+		// Çekirdeğin iletisi kendi başına tamdır ("desteklenmeyen ... türü"); metni değiştirilmez.
+		return messages.New(messages.H5614, fn, path, err)
 	case messages.Has(err, messages.H5248):
-		return messages.New(messages.H5615, fn, path, msg)
+		return messages.New(messages.H5615, fn, path, err)
 	case messages.Has(err, messages.H5274):
 		detail := messages.Text(messages.H5616)
 		var se *json.SyntaxError
@@ -192,7 +190,7 @@ func loadError(path string, err error, tried []string) error {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
 		return turkish.FileError(fn, path, messages.H2107, pe)
 	}
-	return messages.New(messages.H5620, fn, path, msg)
+	return messages.New(messages.H5620, fn, path, err)
 }
 
 func writeWarnings(path string, p *tokenize.Tokenizer) {
