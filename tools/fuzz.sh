@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Bulanıklaştırma: depodaki her Go bulanıklaştırma hedefini (func FuzzX) verilen süre boyunca
-# rastgele girdiyle koşar. Haftalık otomatik sınama işi (.github/workflows/bulaniklastirma.yml)
+# rastgele girdiyle koşar. Haftalık otomatik sınama işi (.github/workflows/fuzz.yml)
 # bunu çağırır. Yerelde zayıf makinede tek bir hedefi kısa süre denemek için süzgeç verilir.
 #
-# Kullanım (depo kökünden): bash tools/bulaniklastir.sh [süre] [süzgeç]
+# Kullanım (depo kökünden): bash tools/fuzz.sh [süre] [süzgeç]
 #   süre    her hedefin süresi, Go süre biçimiyle (varsayılan 30s)
 #   süzgeç  yalnızca adı bu düzenli ifadeye uyan hedefler (varsayılan: hepsi)
 # Bir hedef düşerse düşüren girdi testdata/fuzz/<Hedef>/ altına yazılır; betik onu günlüğe
@@ -12,57 +12,57 @@ set -u
 set -o pipefail
 cd "$(dirname "$0")/.."
 
-sure="${1:-30s}"
-suzgec="${2:-.}"
-if ! [[ "$sure" =~ ^[0-9]+(\.[0-9]+)?(ns|us|ms|s|m|h)$ ]]; then
-	echo "geçersiz süre: $sure (ör. 30s, 2m)" >&2
+duration="${1:-30s}"
+filter="${2:-.}"
+if ! [[ "$duration" =~ ^[0-9]+(\.[0-9]+)?(ns|us|ms|s|m|h)$ ]]; then
+	echo "geçersiz süre: $duration (ör. 30s, 2m)" >&2
 	exit 2
 fi
 
-# hedef_kos bir hedefi koşar. Go'nun bulanıklaştırma motoru süre dolarken yanıt vermeyen bir
+# run_target bir hedefi koşar. Go'nun bulanıklaştırma motoru süre dolarken yanıt vermeyen bir
 # işçiyi "context deadline exceeded" ile düşmüş sayabilir (girdi yazılmaz, çökme değildir):
 # öyleyse hedef bir kez yeniden koşulur, ikincisi de düşerse düşmüş sayılır.
-hedef_kos() {
-	local ad=$1 klasor=$2 cikti
-	cikti=$(go test -run='^$' -fuzz="^${ad}\$" -fuzztime="$sure" "./$klasor" 2>&1)
-	local kod=$?
-	echo "$cikti"
-	[ $kod -eq 0 ] && return 0
-	if echo "$cikti" | grep -q 'context deadline exceeded' &&
-		[ -z "$(git ls-files -o --exclude-standard -- "$klasor/testdata/fuzz/$ad")" ]; then
-		echo "-- $ad girdi yazmadan süre aşımıyla düştü (motorun zaman aşımı); bir kez yeniden koşuluyor"
-		if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::warning title=Bulanıklaştırma::$ad süre aşımıyla düştü, yeniden koşuldu"; fi
-		go test -run='^$' -fuzz="^${ad}\$" -fuzztime="$sure" "./$klasor"
+run_target() {
+	local name=$1 dir=$2 output
+	output=$(go test -run='^$' -fuzz="^${name}\$" -fuzztime="$duration" "./$dir" 2>&1)
+	local code=$?
+	echo "$output"
+	[ $code -eq 0 ] && return 0
+	if echo "$output" | grep -q 'context deadline exceeded' &&
+		[ -z "$(git ls-files -o --exclude-standard -- "$dir/testdata/fuzz/$name")" ]; then
+		echo "-- $name girdi yazmadan süre aşımıyla düştü (motorun zaman aşımı); bir kez yeniden koşuluyor"
+		if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::warning title=Bulanıklaştırma::$name süre aşımıyla düştü, yeniden koşuldu"; fi
+		go test -run='^$' -fuzz="^${name}\$" -fuzztime="$duration" "./$dir"
 		return
 	fi
-	return $kod
+	return $code
 }
 
-hata=0
-sayi=0
+failed=0
+count=0
 # Hedefler: izlenen test dosyalarındaki "func FuzzX(" bildirimleri; klasör paket yoludur.
-while IFS=: read -r dosya _ satir; do
-	ad=$(echo "$satir" | sed -E 's/^func (Fuzz[A-Za-z0-9_]*)\(.*/\1/')
-	echo "$ad" | grep -Eq -- "$suzgec" || continue
-	klasor=$(dirname "$dosya")
-	sayi=$((sayi + 1))
-	printf '\n== %s (./%s, %s)\n' "$ad" "$klasor" "$sure"
-	if ! hedef_kos "$ad" "$klasor"; then
-		echo "!! KALDI: $ad"
-		if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::error title=Bulanıklaştırma::$ad düştü"; fi
-		hata=1
+while IFS=: read -r file _ decl; do
+	name=$(echo "$decl" | sed -E 's/^func (Fuzz[A-Za-z0-9_]*)\(.*/\1/')
+	echo "$name" | grep -Eq -- "$filter" || continue
+	dir=$(dirname "$file")
+	count=$((count + 1))
+	printf '\n== %s (./%s, %s)\n' "$name" "$dir" "$duration"
+	if ! run_target "$name" "$dir"; then
+		echo "!! KALDI: $name"
+		if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::error title=Bulanıklaştırma::$name düştü"; fi
+		failed=1
 		# Yeni yazılan düşüren girdileri göster.
-		for girdi in $(git ls-files -o --exclude-standard -- "$klasor/testdata/fuzz/$ad"); do
-			echo "-- düşüren girdi: $girdi"
-			cat "$girdi"
+		for input in $(git ls-files -o --exclude-standard -- "$dir/testdata/fuzz/$name"); do
+			echo "-- düşüren girdi: $input"
+			cat "$input"
 		done
 	fi
 done < <(git grep -n -E '^func Fuzz[A-Za-z0-9_]*\(' -- '*_test.go')
 
-if [ $sayi -eq 0 ]; then
-	echo "hiç bulanıklaştırma hedefi bulunamadı (süzgeç: $suzgec)" >&2
+if [ $count -eq 0 ]; then
+	echo "hiç bulanıklaştırma hedefi bulunamadı (süzgeç: $filter)" >&2
 	exit 1
 fi
 echo
-if [ $hata -eq 0 ]; then echo "✅ $sayi hedef düşmedi"; else echo "❌ düşen hedef var"; fi
-exit $hata
+if [ $failed -eq 0 ]; then echo "✅ $count hedef düşmedi"; else echo "❌ düşen hedef var"; fi
+exit $failed

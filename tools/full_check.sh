@@ -2,7 +2,7 @@
 # Tam denetim: bir işin "bitti" sayılması için gereken bütün sınamalar, tek komutla. Otomatik
 # sınama (.github/workflows/ci.yml) da bu betiği çağırır; "bitti"nin tek tanımı burasıdır.
 #
-# Kullanım (depo kökünden): bash tools/tam_denetim.sh [--hizli] [--kip=KİP]
+# Kullanım (depo kökünden): bash tools/full_check.sh [--hizli] [--kip=KİP]
 #   (bayraksız)       dagitim ve go-esleri kipleri art arda (yerelde birleştirmeden önce)
 #   --kip=dagitim     kullanıcıya giden yapılandırma: düz `go build` (GOAMD64=v1), AVX2
 #                     çekirdekleri çalışma anında seçilir. Durağan denetimler, ARM derlemesi,
@@ -37,62 +37,62 @@ set -u
 set -o pipefail
 cd "$(dirname "$0")/.."
 
-kipler="dagitim go-esleri"
-for arguman in "$@"; do
-	case "$arguman" in
-	--hizli | --kip=dagitim) kipler=dagitim ;;
-	--kip=go-esleri | --kip=v1) kipler=go-esleri ;;
-	--kip=v3) kipler=v3 ;;
-	--kip=yaris) kipler=yaris ;;
-	--kip=uzun) kipler=uzun ;;
+modes="dagitim go-esleri"
+for arg in "$@"; do
+	case "$arg" in
+	--hizli | --kip=dagitim) modes=dagitim ;;
+	--kip=go-esleri | --kip=v1) modes=go-esleri ;;
+	--kip=v3) modes=v3 ;;
+	--kip=yaris) modes=yaris ;;
+	--kip=uzun) modes=uzun ;;
 	*)
-		echo "bilinmeyen argüman: $arguman (kullanım: bash tools/tam_denetim.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun])" >&2
+		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun])" >&2
 		exit 2
 		;;
 	esac
 done
 
-hata=0
-kalanlar=()
-sureler=()
-adim_adi=""
-adim_basi=$SECONDS
-# adim yeni bir adım başlatır; bir öncekinin süresi sondaki özete yazılır.
-adim() {
-	adim_bitir
-	adim_adi=$1
-	adim_basi=$SECONDS
+failed=0
+failures=()
+durations=()
+step_name=""
+step_start=$SECONDS
+# step yeni bir adım başlatır; bir öncekinin süresi sondaki özete yazılır.
+step() {
+	step_end
+	step_name=$1
+	step_start=$SECONDS
 	printf '\n== %s\n' "$1"
 }
-adim_bitir() {
-	if [ -n "$adim_adi" ]; then sureler+=("$(printf '%4d sn  %s' $((SECONDS - adim_basi)) "$adim_adi")"); fi
-	adim_adi=""
+step_end() {
+	if [ -n "$step_name" ]; then durations+=("$(printf '%4d sn  %s' $((SECONDS - step_start)) "$step_name")"); fi
+	step_name=""
 }
-kalir() {
+fail() {
 	echo "!! KALDI: $1"
 	# Otomatik sınamada kalan adım özet sayfasında da görünsün.
 	if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::error title=Tam denetim::$1"; fi
-	kalanlar+=("$1")
-	hata=1
+	failures+=("$1")
+	failed=1
 }
 
-# ozetle komutu çalıştırır: geçerse çıktısının son satırını, kalırsa tamamını gösterir.
-ozetle() {
-	local ad=$1 cikti
+# summarize komutu çalıştırır: geçerse çıktısının son satırını, kalırsa tamamını gösterir.
+summarize() {
+	local name=$1 output
 	shift
-	if cikti=$("$@" 2>&1); then
-		echo "$cikti" | tail -1
+	if output=$("$@" 2>&1); then
+		echo "$output" | tail -1
 	else
-		echo "$cikti"
-		kalir "$ad"
+		echo "$output"
+		fail "$name"
 	fi
 }
 
-uzanti=""
-case "$(uname -s)" in MINGW* | MSYS* | CYGWIN*) uzanti=".exe" ;; esac
-TR="$PWD/bin/tr${uzanti}"
-p_bayragi=()
-if [ -n "${TAM_DENETIM_P:-}" ]; then p_bayragi=(-p "$TAM_DENETIM_P"); fi
+ext=""
+case "$(uname -s)" in MINGW* | MSYS* | CYGWIN*) ext=".exe" ;; esac
+TR="$PWD/bin/tr${ext}"
+p_flag=()
+if [ -n "${TAM_DENETIM_P:-}" ]; then p_flag=(-p "$TAM_DENETIM_P"); fi
 
 # Kip başına ortam: GOAMD64 (derleyicinin kod üretimi) ve TR_CPU_AVX2 (çalışma anındaki
 # assembly çekirdekleri). Kullanıcıya giden ikili düz `go build`'dir: GOAMD64=v1, AVX2 açık.
@@ -102,7 +102,7 @@ fi
 if [ -n "${GOAMD64+x}" ]; then
 	echo "not: ortamdaki GOAMD64=${GOAMD64} yok sayıldı; değeri kip belirler"
 fi
-kip_ortami() {
+mode_env() {
 	case "$1" in
 	v3) export GOAMD64=v3 TR_CPU_AVX2="" ;;
 	go-esleri) export GOAMD64=v1 TR_CPU_AVX2=0 ;;
@@ -111,188 +111,188 @@ kip_ortami() {
 }
 
 # Örneklerin bıraktığı izi yakalamak için depodaki değişikliklerin başlangıçtaki hali.
-depo_durumu() { git status --porcelain=v1 --untracked-files=all 2>/dev/null; }
-bas_durum=$(depo_durumu)
+repo_state() { git status --porcelain=v1 --untracked-files=all 2>/dev/null; }
+initial_state=$(repo_state)
 
-durgan_denetimler() {
-	adim "Üretilmiş dosyalar güncel mi"
-	for arac in tools/gen/*/; do
-		if grep -q -- '-denetle' "$arac"*.go 2>/dev/null; then
-			go run "./$arac" -denetle >/dev/null || kalir "$arac güncel değil (go run ./$arac ile üretin)"
+static_checks() {
+	step "Üretilmiş dosyalar güncel mi"
+	for tool in tools/gen/*/; do
+		if grep -q -- '-denetle' "$tool"*.go 2>/dev/null; then
+			go run "./$tool" -denetle >/dev/null || fail "$tool güncel değil (go run ./$tool ile üretin)"
 		else
-			kalir "$arac -denetle bayrağı yok: üretilmiş dosyalarının güncelliği denetlenemiyor"
+			fail "$tool -denetle bayrağı yok: üretilmiş dosyalarının güncelliği denetlenemiyor"
 		fi
 	done
 
-	adim "Biçim (gofmt), go vet, go.mod"
+	step "Biçim (gofmt), go vet, go.mod"
 	# Depodaki (izlenen ve henüz eklenmemiş) bütün Go dosyaları; .claude/ altındaki çalışma
 	# ağaçları başka depolardır. Silinmiş ama henüz commitlenmemiş dosyalar atlanır.
 	if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-		bicimsiz=$(git ls-files -co --exclude-standard -- '*.go' ':!:.claude/**' |
+		unformatted=$(git ls-files -co --exclude-standard -- '*.go' ':!:.claude/**' |
 			while IFS= read -r f; do if [ -f "$f" ]; then printf '%s\n' "$f"; fi; done | xargs -r -d '\n' gofmt -l)
 	else
-		bicimsiz=$(gofmt -l ./cmd ./internal ./lib ./tools)
+		unformatted=$(gofmt -l ./cmd ./internal ./lib ./tools)
 	fi
-	[ $? -eq 0 ] || kalir "gofmt çalışmadı"
-	[ -z "$bicimsiz" ] || kalir "gofmt ile biçimlenmesi gereken dosyalar: $bicimsiz"
-	go vet ./... || kalir "go vet"
-	go mod verify >/dev/null || kalir "go mod verify (modül önbelleği go.sum ile uyuşmuyor)"
-	go mod tidy -diff >/dev/null || kalir "go.mod/go.sum düzenli değil (go mod tidy ile düzeltin)"
+	[ $? -eq 0 ] || fail "gofmt çalışmadı"
+	[ -z "$unformatted" ] || fail "gofmt ile biçimlenmesi gereken dosyalar: $unformatted"
+	go vet ./... || fail "go vet"
+	go mod verify >/dev/null || fail "go mod verify (modül önbelleği go.sum ile uyuşmuyor)"
+	go mod tidy -diff >/dev/null || fail "go.mod/go.sum düzenli değil (go mod tidy ile düzeltin)"
 
-	adim "ARM (arm64) derlemesi ve vet"
+	step "ARM (arm64) derlemesi ve vet"
 	for os in linux darwin windows; do
-		GOOS=$os GOARCH=arm64 go build ./... || kalir "$os/arm64 derlemesi"
+		GOOS=$os GOARCH=arm64 go build ./... || fail "$os/arm64 derlemesi"
 	done
 	for os in linux darwin; do
-		GOOS=$os GOARCH=arm64 go vet ./... || kalir "$os/arm64 go vet"
+		GOOS=$os GOARCH=arm64 go vet ./... || fail "$os/arm64 go vet"
 	done
 
 	# Varsayılan Linux program dosyası GPU sürücüsünü yükleyebilmek için glibc'ye dinamik bağlıdır;
 	# "gpusuz" etiketli derleme statik kalmalıdır (bkz. docs/mimari.md, GPU arka ucu).
-	adim "GPU'suz Linux program dosyası statik mi (-tags gpusuz)"
-	statik_klasor=$(mktemp -d)
-	if GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags gpusuz -o "$statik_klasor/tr" ./cmd/tr; then
-		go run ./tools/checkstatic "$statik_klasor/tr" || kalir "gpusuz Linux program dosyası statik değil"
+	step "GPU'suz Linux program dosyası statik mi (-tags gpusuz)"
+	static_dir=$(mktemp -d)
+	if GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags gpusuz -o "$static_dir/tr" ./cmd/tr; then
+		go run ./tools/checkstatic "$static_dir/tr" || fail "gpusuz Linux program dosyası statik değil"
 	else
-		kalir "gpusuz Linux derlemesi"
+		fail "gpusuz Linux derlemesi"
 	fi
-	rm -rf "$statik_klasor"
+	rm -rf "$static_dir"
 
-	adim "VS Code eklentisi (JavaScript ve package.json)"
+	step "VS Code eklentisi (JavaScript ve package.json)"
 	if command -v node >/dev/null 2>&1; then
 		shopt -s nullglob
 		for js in editors/vscode/*.js editors/vscode/media/*.js editors/vscode/test/*.js; do
-			node --check "$js" || kalir "node --check $js"
+			node --check "$js" || fail "node --check $js"
 		done
 		shopt -u nullglob
 		for json in editors/vscode/package.json editors/vscode/package.nls.json; do
 			[ -f "$json" ] || continue
-			node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$json" || kalir "$json geçerli JSON değil"
+			node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$json" || fail "$json geçerli JSON değil"
 		done
 		echo "eklenti dosyaları geçerli"
 	elif [ "${GITHUB_ACTIONS:-}" = "true" ]; then
-		kalir "node bulunamadı; eklenti denetlenemedi"
+		fail "node bulunamadı; eklenti denetlenemedi"
 	else
 		echo "node bulunamadı; eklenti denetimi atlandı (otomatik sınamada zorunlu)"
 	fi
 }
 
-# go_testleri kipin ortamıyla Go testlerini koşar; ek bayraklar (ör. -short) argümandır.
-go_testleri() {
-	local ad=$1
+# go_tests kipin ortamıyla Go testlerini koşar; ek bayraklar (ör. -short) argümandır.
+go_tests() {
+	local name=$1
 	shift
-	adim "Go testleri ($ad: GOAMD64=$GOAMD64, TR_CPU_AVX2=${TR_CPU_AVX2:-otomatik})"
-	go test "${p_bayragi[@]}" "$@" ./... 2>&1 | grep -v '^ok\|no test files'
-	[ "${PIPESTATUS[0]}" -eq 0 ] || kalir "go test ($ad)"
+	step "Go testleri ($name: GOAMD64=$GOAMD64, TR_CPU_AVX2=${TR_CPU_AVX2:-otomatik})"
+	go test "${p_flag[@]}" "$@" ./... 2>&1 | grep -v '^ok\|no test files'
+	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test ($name)"
 }
 
-tr_derle() {
+build_tr() {
 	mkdir -p bin && go build -o "$TR" ./cmd/tr
 }
 
-# ornekler örnekleri geçici bir klasörde, depodaki düzenle (examples/, tests/data/, docs/) çalıştırır.
-ornekler() {
-	local calisma f ad bas cikti kod sure
-	calisma=$(mktemp -d)
+# run_examples örnekleri geçici bir klasörde, depodaki düzenle (examples/, tests/data/, docs/) çalıştırır.
+run_examples() {
+	local workdir f name started output code limit
+	workdir=$(mktemp -d)
 	git ls-files -z -- examples tests/data docs | while IFS= read -r -d '' f; do
-		mkdir -p "$calisma/$(dirname "$f")" && cp "$f" "$calisma/$f"
+		mkdir -p "$workdir/$(dirname "$f")" && cp "$f" "$workdir/$f"
 	done
-	sure="${ORNEK_ZAMAN_ASIMI:-300}"
+	limit="${ORNEK_ZAMAN_ASIMI:-300}"
 	(
-		cd "$calisma" || exit 1
+		cd "$workdir" || exit 1
 		# Uyarılar Türkçe aranır (aşağıdaki 'Uyar'); ortamın dil ayarı bunu körleştirmesin.
 		export TR_DIL=tr
-		if cikti=$("$TR" test examples 2>&1); then
-			echo "$cikti" | tail -1
+		if output=$("$TR" test examples 2>&1); then
+			echo "$output" | tail -1
 		else
-			echo "$cikti"
+			echo "$output"
 			echo "!! KALDI: tr test examples"
 		fi
 		for f in examples/*.tr; do
-			ad=$(basename "$f")
-			case " ${ATLANACAK_ORNEKLER:-} " in *" $ad "*)
-				echo "↷ $ad atlandı"
+			name=$(basename "$f")
+			case " ${ATLANACAK_ORNEKLER:-} " in *" $name "*)
+				echo "↷ $name atlandı"
 				continue
 				;;
 			esac
-			bas=$SECONDS
+			started=$SECONDS
 			# Standart çıktı atılır; standart hata (uyarılar, hata mesajları) denetlenir.
-			cikti=$(timeout "$sure" "$TR" "$f" </dev/null 2>&1 >/dev/null)
-			kod=$?
-			if [ $kod -eq 124 ]; then
-				echo "!! KALDI: $f $sure saniyede bitmedi"
-			elif [ $kod -ne 0 ]; then
-				echo "!! KALDI: $f çıkış kodu $kod: $(echo "$cikti" | head -20)"
-			elif echo "$cikti" | grep -q 'Uyar'; then
-				echo "!! KALDI: $f uyarı verdi: $(echo "$cikti" | grep 'Uyar' | head -3)"
+			output=$(timeout "$limit" "$TR" "$f" </dev/null 2>&1 >/dev/null)
+			code=$?
+			if [ $code -eq 124 ]; then
+				echo "!! KALDI: $f $limit saniyede bitmedi"
+			elif [ $code -ne 0 ]; then
+				echo "!! KALDI: $f çıkış kodu $code: $(echo "$output" | head -20)"
+			elif echo "$output" | grep -q 'Uyar'; then
+				echo "!! KALDI: $f uyarı verdi: $(echo "$output" | grep 'Uyar' | head -3)"
 			else
-				echo "✓ $ad ($((SECONDS - bas)) sn)"
+				echo "✓ $name ($((SECONDS - started)) sn)"
 			fi
 		done
-	) | while IFS= read -r satir; do
-		case "$satir" in "!! KALDI: "*) echo "${satir#!! KALDI: }" >>"$calisma.kalan" ;; esac
-		echo "$satir"
+	) | while IFS= read -r line; do
+		case "$line" in "!! KALDI: "*) echo "${line#!! KALDI: }" >>"$workdir.failures" ;; esac
+		echo "$line"
 	done
-	if [ -f "$calisma.kalan" ]; then
-		while IFS= read -r satir; do kalanlar+=("$satir"); done <"$calisma.kalan"
-		[ "${GITHUB_ACTIONS:-}" != "true" ] || while IFS= read -r satir; do echo "::error title=Tam denetim::$satir"; done <"$calisma.kalan"
-		hata=1
+	if [ -f "$workdir.failures" ]; then
+		while IFS= read -r line; do failures+=("$line"); done <"$workdir.failures"
+		[ "${GITHUB_ACTIONS:-}" != "true" ] || while IFS= read -r line; do echo "::error title=Tam denetim::$line"; done <"$workdir.failures"
+		failed=1
 	fi
-	rm -rf "$calisma" "$calisma.kalan"
+	rm -rf "$workdir" "$workdir.failures"
 }
 
-for kip in $kipler; do
-	kip_ortami "$kip"
-	case "$kip" in
+for mode in $modes; do
+	mode_env "$mode"
+	case "$mode" in
 	dagitim | v3)
-		[ "$kip" = v3 ] || durgan_denetimler
-		adim "Derleme (go build, GOAMD64=$GOAMD64)"
-		go build ./... || kalir "go build"
-		go_testleri "$kip" -short
-		adim "TR testleri ve örnekler ($kip)"
-		if tr_derle; then
-			ozetle "tr test tests" "$TR" test tests
-			ozetle "tr test lib" "$TR" test lib
-			ornekler
+		[ "$mode" = v3 ] || static_checks
+		step "Derleme (go build, GOAMD64=$GOAMD64)"
+		go build ./... || fail "go build"
+		go_tests "$mode" -short
+		step "TR testleri ve örnekler ($mode)"
+		if build_tr; then
+			summarize "tr test tests" "$TR" test tests
+			summarize "tr test lib" "$TR" test lib
+			run_examples
 		else
-			kalir "tr derlemesi"
+			fail "tr derlemesi"
 		fi
 		;;
 	go-esleri)
-		adim "Derleme (go build, GOAMD64=$GOAMD64)"
-		go build ./... || kalir "go build"
-		go_testleri go-esleri -short
-		adim "Dil tanımı testleri (go-esleri)"
-		if tr_derle; then ozetle "tr test tests (go-esleri)" "$TR" test tests; else kalir "tr derlemesi"; fi
+		step "Derleme (go build, GOAMD64=$GOAMD64)"
+		go build ./... || fail "go build"
+		go_tests go-esleri -short
+		step "Dil tanımı testleri (go-esleri)"
+		if build_tr; then summarize "tr test tests (go-esleri)" "$TR" test tests; else fail "tr derlemesi"; fi
 		;;
 	yaris)
 		# Eşzamanlı kod: yorumlayıcı (görevler), motorlar, veri hattı (önden yükleme), tensör
 		# (işçi havuzu, atomik sayaçlar), parçalayıcı (paralel toplu kodlama), GPU (eşzamansız
 		# benzetici).
-		adim "Yarış dedektörü (go test -race -short)"
-		CGO_ENABLED=1 go test "${p_bayragi[@]}" -race -short ./internal/lang/interp ./internal/stdlib/... \
+		step "Yarış dedektörü (go test -race -short)"
+		CGO_ENABLED=1 go test "${p_flag[@]}" -race -short ./internal/lang/interp ./internal/stdlib/... \
 			./internal/compute/dataload ./internal/compute/tensor ./internal/compute/tokenize \
 			./internal/compute/gpu 2>&1 | grep -v '^ok\|no test files'
-		[ "${PIPESTATUS[0]}" -eq 0 ] || kalir "go test -race"
+		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test -race"
 		;;
 	uzun)
-		go_testleri uzun
+		go_tests uzun
 		;;
 	esac
 done
-adim_bitir
+step_end
 
-if [ "$(depo_durumu)" != "$bas_durum" ]; then
-	kalir "denetim depoda iz bıraktı (git status değişti): $(diff <(echo "$bas_durum") <(depo_durumu) | head -10)"
+if [ "$(repo_state)" != "$initial_state" ]; then
+	fail "denetim depoda iz bıraktı (git status değişti): $(diff <(echo "$initial_state") <(repo_state) | head -10)"
 fi
 
 echo
 echo "Adım süreleri:"
-printf '%s\n' "${sureler[@]}"
-if [ $hata -eq 0 ]; then
+printf '%s\n' "${durations[@]}"
+if [ $failed -eq 0 ]; then
 	echo "✅ Tam denetim geçti"
 else
 	echo "❌ Tam denetimde kalan var:"
-	printf '  - %s\n' "${kalanlar[@]}"
+	printf '  - %s\n' "${failures[@]}"
 fi
-exit $hata
+exit $failed

@@ -132,7 +132,7 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 | `editors/vscode/` | VS Code eklentisi |
 | `docs/` | Belgeler ([dizin](docs/README.md)); kod kuralları [`internal/README.md`](internal/README.md), ekleme tarifleri [`docs/tarifler.md`](docs/tarifler.md) |
 | `examples/`, `tests/` | Örnek programlar ve dil tanımının kural testleri |
-| `tools/` | Depo bakımı: `tam_denetim.sh`, `bulaniklastir.sh`, üreteçler (`gen/`), hız kıyas seti (`bench/`), GPU ölçümleri (`gpu/`), etki sorgusu (`impact/`) |
+| `tools/` | Depo bakımı: `full_check.sh`, `fuzz.sh`, üreteçler (`gen/`), hız kıyas seti (`bench/`), GPU ölçümleri (`gpu/`), etki sorgusu (`impact/`) |
 
 Katmanlar, aralarındaki bağımlılık kuralı ve her paketin görevi: [`docs/mimari.md`](docs/mimari.md).
 

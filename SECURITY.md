@@ -34,8 +34,8 @@ TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları 
 
 ## Bulanıklaştırma testleri
 
-Yukarıdaki her girdinin bir bulanıklaştırma testi vardır (`go test` içinde `Fuzz` ile başlayan testler: tensör dosyası, `.npy` başlığı, parçalayıcı ve düzenli ifadeler, CSV, JSON, gömülü paket, hata ayıklama iletileri, sözcük çözümleyici, derleyici, biçimlendirici). Sıradan `go test` yalnızca kayıtlı girdileri koşar; otomatik sınama her hafta her hedefi rastgele girdiyle ayrıca koşar (`.github/workflows/bulaniklastirma.yml`). Yerelde tek bir hedef:
+Yukarıdaki her girdinin bir bulanıklaştırma testi vardır (`go test` içinde `Fuzz` ile başlayan testler: tensör dosyası, `.npy` başlığı, parçalayıcı ve düzenli ifadeler, CSV, JSON, gömülü paket, hata ayıklama iletileri, sözcük çözümleyici, derleyici, biçimlendirici). Sıradan `go test` yalnızca kayıtlı girdileri koşar; otomatik sınama her hafta her hedefi rastgele girdiyle ayrıca koşar (`.github/workflows/fuzz.yml`). Yerelde tek bir hedef:
 
 ```sh
-bash tools/bulaniklastir.sh 30s '^FuzzTensorKaydiCoz$'
+bash tools/fuzz.sh 30s '^FuzzTensorKaydiCoz$'
 ```

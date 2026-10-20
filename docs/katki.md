@@ -28,7 +28,7 @@ Go test dosyalarının düzeni (birim testi `x_test.go`, davranış testi `behav
 | `cmd/tr/e2e/` | Uçtan uca: derlenmiş `tr` ikilisi alt süreç olarak; komutlar, çıkış kodları, kesme ve kontrol noktasından devam, `derle`, kodlu dosyalar, belgelerdeki kod blokları ve bağlantılar | `go test ./cmd/tr/e2e -run Ad` |
 | `internal/compute/gpu`, `internal/stdlib/gpuprobe` | GPU arka ucu ve GPU'da eğitim; kartsız makinede benzetimle koşar | `go test -short ./internal/compute/gpu`; gerçek kartta `gpu_sinama` ikilisiyle (`go test -c -o gpu_sinama ./internal/compute/gpu`, [`tools/gpu/COLAB.md`](../tools/gpu/COLAB.md)) |
 | `editors/vscode/test/*_test.js` | VS Code eklentisi: çalıştırma, hata ayıklama yolları, kodlu görünüm, İzleme Masası komutları (sahte `vscode` modülüyle) | `node editors/vscode/test/<ad>_test.js`; hepsi gerçek yorumlayıcıyla: `go test ./cmd/tr/e2e -run EklentiJSTestleri` |
-| `Fuzz*` testleri | Dış girdi okuyan kod (dosya biçimleri, gömülü paket) | `bash tools/bulaniklastir.sh 2s '^FuzzAd$'` |
+| `Fuzz*` testleri | Dış girdi okuyan kod (dosya biçimleri, gömülü paket) | `bash tools/fuzz.sh 2s '^FuzzAd$'` |
 
 ## Yeni kod (ad) isteği
 
@@ -43,11 +43,11 @@ Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** 
 İş sırasında yalnızca değiştirdiğiniz paketlerin testlerini çalıştırın. İşin sonunda bir kez tam denetim:
 
 ```sh
-bash tools/tam_denetim.sh          # dagitim + go-esleri: durağan denetimler, ARM derlemesi, go test, tr test, örnekler
-bash tools/tam_denetim.sh --hizli  # yalnızca iş sırasında: yalnızca dagitim kipi (Go eşleri atlanır)
+bash tools/full_check.sh          # dagitim + go-esleri: durağan denetimler, ARM derlemesi, go test, tr test, örnekler
+bash tools/full_check.sh --hizli  # yalnızca iş sırasında: yalnızca dagitim kipi (Go eşleri atlanır)
 ```
 
-"Bitti"nin tek tanımı bu betiktir: otomatik sınama (`.github/workflows/ci.yml`) da onu çağırır, Windows ve Linux'ta iki kiple: `dagitim` (kullanıcıya giden düz `go build`; AVX2 çekirdekleri çalışma anında seçilir) ve `go-esleri` (`TR_CPU_AVX2=0`: assembly'siz Go eşleri). Linux'ta ayrıca yarış dedektörü (`--kip=yaris`: yorumlayıcı, motorlar, veri hattı, tensör, parçalayıcı, GPU benzeticisi) ve `-short` olmadan uzun testler (`--kip=uzun`) koşar; bu iki kip yerelde de çalıştırılabilir (yarış dedektörü cgo ve bir C derleyicisi ister). Go testleri `-short` ile koşar; dil tanımı testleri (`tests/`) Go testinde yinelenmez, betikte `tr test tests` ile koşar. Örnekler geçici bir klasörde çalışır, depoda iz bırakmaz; denetim sonunda `git status` başlangıçtakiyle aynı olmalıdır. Kod düzeni testi (`go test ./internal`) tam denetimin içindedir. Bulanıklaştırma testleri haftada bir uzun koşar (`tools/bulaniklastir.sh`; yerelde tek hedef: `bash tools/bulaniklastir.sh 2s '^FuzzNpyHeader$'`); düşüren girdiler yapıt olarak saklanır. Zayıf makinede `TAM_DENETIM_P=2` go test'in aynı anda koşturduğu paket sayısını sınırlar. Belgeler (`docs/spec/`, `docs/guide/`) işle birlikte güncellenir; her dil kuralının bir testi olur.
+"Bitti"nin tek tanımı bu betiktir: otomatik sınama (`.github/workflows/ci.yml`) da onu çağırır, Windows ve Linux'ta iki kiple: `dagitim` (kullanıcıya giden düz `go build`; AVX2 çekirdekleri çalışma anında seçilir) ve `go-esleri` (`TR_CPU_AVX2=0`: assembly'siz Go eşleri). Linux'ta ayrıca yarış dedektörü (`--kip=yaris`: yorumlayıcı, motorlar, veri hattı, tensör, parçalayıcı, GPU benzeticisi) ve `-short` olmadan uzun testler (`--kip=uzun`) koşar; bu iki kip yerelde de çalıştırılabilir (yarış dedektörü cgo ve bir C derleyicisi ister). Go testleri `-short` ile koşar; dil tanımı testleri (`tests/`) Go testinde yinelenmez, betikte `tr test tests` ile koşar. Örnekler geçici bir klasörde çalışır, depoda iz bırakmaz; denetim sonunda `git status` başlangıçtakiyle aynı olmalıdır. Kod düzeni testi (`go test ./internal`) tam denetimin içindedir. Bulanıklaştırma testleri haftada bir uzun koşar (`tools/fuzz.sh`; yerelde tek hedef: `bash tools/fuzz.sh 2s '^FuzzNpyHeader$'`); düşüren girdiler yapıt olarak saklanır. Zayıf makinede `TAM_DENETIM_P=2` go test'in aynı anda koşturduğu paket sayısını sınırlar. Belgeler (`docs/spec/`, `docs/guide/`) işle birlikte güncellenir; her dil kuralının bir testi olur.
 
 ## Gönderim sırası: CPU ve GPU
 
