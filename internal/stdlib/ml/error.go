@@ -7,6 +7,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -48,11 +49,11 @@ func safe[T any](fn func() T) (T, error) { return bind.Recover(fn, panicError) }
 // panicError çekirdeğin panik değerini kullanıcıya gösterilecek hataya çevirir.
 func panicError(r any) error {
 	if e, ok := r.(error); ok {
-		return fmt.Errorf("tensör işlemi başarısız: %v", e)
+		return messages.New(messages.H6006, e)
 	}
 	msg := fmt.Sprint(r)
 	msg = strings.TrimPrefix(msg, "tensor: ")
-	return fmt.Errorf("tensör işlemi başarısız: %s", msg)
+	return messages.New(messages.H6006, msg)
 }
 
 // intNumber bir TR değerini tam sayıya çevirir (tam değerli ondalıklar da kabul edilir).
@@ -83,14 +84,14 @@ func shapeProduct(sh []int) string {
 func parseAxis(fn string, axis int, sh []int) (int, error) {
 	nd := len(sh)
 	if nd == 0 {
-		return 0, fmt.Errorf("%s: skaler (0 boyutlu) tensörde eksen seçilemez", fn)
+		return 0, messages.New(messages.H6015, fn)
 	}
 	e := axis
 	if e < 0 {
 		e += nd
 	}
 	if e < 0 || e >= nd {
-		return 0, fmt.Errorf("%s: eksen %d, %s şeklindeki %d boyutlu tensör için geçersiz; %d ile %d arasında olmalı", fn, axis, shapeText(sh), nd, -nd, nd-1)
+		return 0, messages.New(messages.H6016, fn, axis, shapeText(sh), nd, -nd, nd-1)
 	}
 	return e, nil
 }
@@ -111,13 +112,13 @@ func argText(args []interp.Value) string {
 func shapeList(fn string, v interp.Value) ([]int, error) {
 	l, ok := v.(*interp.ListVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", fn, typeName(v))
+		return nil, messages.New(messages.H6021, fn, typeName(v))
 	}
 	sh := make([]int, len(l.Elements))
 	for i, el := range l.Elements {
 		d, ok := intNumber(el)
 		if !ok || d < 0 {
-			return nil, fmt.Errorf("%s: şeklin %d. elemanı negatif olmayan bir tam sayı olmalıdır, %s verildi", fn, i+1, el.Inspect())
+			return nil, messages.New(messages.H6024, fn, i+1, el.Inspect())
 		}
 		sh[i] = d
 	}
@@ -136,7 +137,7 @@ func checkShapeLimit(fn string, sh []int) error {
 	for i, d := range sh {
 		d = max(d, 1)
 		if limit > interp.MaxCollectionSize/d {
-			return fmt.Errorf("%s: %s şekli çok büyük (en fazla %d eleman; sıfır uzunluklu eksenler 1 sayılır)", fn, shapeText(sh[:i+1]), interp.MaxCollectionSize)
+			return messages.New(messages.H6028, fn, shapeText(sh[:i+1]), interp.MaxCollectionSize)
 		}
 		limit *= d
 	}

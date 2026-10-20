@@ -7,6 +7,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ----------------------------------------------------------------------------
@@ -61,7 +62,7 @@ func (d *TensorValue) TableData() ([]string, [][]string, error) {
 		}
 		return cols, rows, nil
 	}
-	return nil, nil, fmt.Errorf("tablo görünümü yalnızca 1 ve 2 boyutlu tensörler için kullanılabilir (bu tensör: %s)", shapeText(sh))
+	return nil, nil, messages.New(messages.H6701, shapeText(sh))
 }
 
 // watchInlineLimit, değerleri İzleme Masası'nda ve Değişkenler panelinde satır içinde

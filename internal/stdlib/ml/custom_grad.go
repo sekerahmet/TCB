@@ -9,6 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
@@ -94,7 +95,7 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, fmt.Errorf("%s yalnızca adlı argüman alır (%s: ve %s:), %d konumlu parametre verildi; örnek: %s", fn, nameForward.TR, nameBackward.TR, len(args), customGradExample)
+		return nil, messages.New(messages.H6405, fn, nameForward.TR, nameBackward.TR, len(args), customGradExample)
 	}
 	forward, ok1 := bind.GetNamed(named, nameForward)
 	backward, ok2 := bind.GetNamed(named, nameBackward)
@@ -108,10 +109,10 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 		return nil, fmt.Errorf("%s: %s eksik; örnek: %s", fn, missing, customGradExample)
 	}
 	if !isCallable(forward) {
-		return nil, fmt.Errorf("%s: %s bir fonksiyon olmalıdır, %s verildi", fn, nameForward.TR, typeName(forward))
+		return nil, messages.New(messages.H6406, fn, nameForward.TR, typeName(forward))
 	}
 	if !isCallable(backward) {
-		return nil, fmt.Errorf("%s: %s bir fonksiyon olmalıdır, %s verildi", fn, nameBackward.TR, typeName(backward))
+		return nil, messages.New(messages.H6407, fn, nameBackward.TR, typeName(backward))
 	}
 	if f, ok := backward.(*interp.FuncVal); ok {
 		required := 0
@@ -121,7 +122,7 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 			}
 		}
 		if len(f.Parameters) < 2 || required > 2 {
-			return nil, fmt.Errorf("%s: %s iki parametre almalıdır: %s(saklananlar, g), %d parametreli fonksiyon verildi", fn, nameBackward.TR, codes.Name(codes.A020), len(f.Parameters))
+			return nil, messages.New(messages.H6408, fn, nameBackward.TR, codes.Name(codes.A020), len(f.Parameters))
 		}
 	}
 	o := &customOp{forward: forward, backward: backward}
@@ -172,29 +173,29 @@ func forwardResult(v interp.Value) (outputs []*tensor.Tensor, many bool, savedVa
 	forwards := turkish.Suffix(nameForward.TR, turkish.Genitive)
 	l, ok := v.(*interp.ListVal)
 	if !ok || len(l.Elements) != 2 {
-		return nil, false, nil, fmt.Errorf("%s: %s [çıktı, saklananlar] döndürmeli (ör. %s [x * x, [x]]; saklanacak bir şey yoksa %s [y, []]), %s verildi", fn, nameForward.TR, result, result, shortForm(v))
+		return nil, false, nil, messages.New(messages.H6409, fn, nameForward.TR, result, shortForm(v))
 	}
 	savedVals, ok = l.Elements[1].(*interp.ListVal)
 	if !ok {
-		return nil, false, nil, fmt.Errorf("%s: %s döndürdüğü [çıktı, saklananlar] içinde saklananlar bir liste olmalıdır (ör. [x] ya da []), %s verildi", fn, forwards, typeName(l.Elements[1]))
+		return nil, false, nil, messages.New(messages.H6410, fn, forwards, typeName(l.Elements[1]))
 	}
 	switch c := l.Elements[0].(type) {
 	case *TensorValue:
 		return []*tensor.Tensor{c.t}, false, savedVals, nil
 	case *interp.ListVal:
 		if len(c.Elements) == 0 {
-			return nil, false, nil, fmt.Errorf("%s: %s çıktı listesi boş; en az bir tensör döndürün", fn, forwards)
+			return nil, false, nil, messages.New(messages.H6411, fn, forwards)
 		}
 		for i, e := range c.Elements {
 			d, ok := e.(*TensorValue)
 			if !ok {
-				return nil, false, nil, fmt.Errorf("%s: %s çıktı listesinin %d. öğesi tensör olmalıdır, %s verildi", fn, forwards, i+1, typeName(e))
+				return nil, false, nil, messages.New(messages.H6412, fn, forwards, i+1, typeName(e))
 			}
 			outputs = append(outputs, d.t)
 		}
 		return outputs, true, savedVals, nil
 	}
-	return nil, false, nil, fmt.Errorf("%s: %s çıktısı bir tensör ya da tensör listesi olmalıdır, %s verildi", fn, forwards, typeName(l.Elements[0]))
+	return nil, false, nil, messages.New(messages.H6413, fn, forwards, typeName(l.Elements[0]))
 }
 
 // shortForm hata mesajı için değerin tipini ve (kısaysa) kendisini yazar.
@@ -263,10 +264,10 @@ func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, erro
 	fn, backward, none := codes.Name(codes.T310), nameBackward.TR, codes.Name(codes.A042)
 	l, ok := v.(*interp.ListVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: %s her girdi için bir gradyan (ya da %s) içeren bir liste döndürmeli (ör. %s [g * 2 * x]), %s verildi", fn, backward, none, codes.Name(codes.A021), shortForm(v))
+		return nil, messages.New(messages.H6414, fn, backward, none, codes.Name(codes.A021), shortForm(v))
 	}
 	if len(l.Elements) != len(args) {
-		return nil, fmt.Errorf("%s: %s %d öğeli liste döndürdü ama işlemin %d konumlu girdisi var; her girdi için sırasıyla bir gradyan ya da %s verin", fn, backward, len(l.Elements), len(args), none)
+		return nil, messages.New(messages.H6415, fn, backward, len(l.Elements), len(args), none)
 	}
 	out := make([]*tensor.Tensor, len(args))
 	for i, e := range l.Elements {
@@ -275,14 +276,14 @@ func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, erro
 		}
 		d, ok := e.(*TensorValue)
 		if !ok {
-			return nil, fmt.Errorf("%s: %s %d. öğesi (%d. girdinin gradyanı) tensör ya da %s olmalıdır, %s verildi", fn, turkish.Suffix(backward, turkish.Genitive), i+1, i+1, none, typeName(e))
+			return nil, messages.New(messages.H6416, fn, turkish.Suffix(backward, turkish.Genitive), i+1, none, typeName(e))
 		}
 		input, ok := args[i].(*TensorValue)
 		if !ok {
-			return nil, fmt.Errorf("%s: %d. girdi tensör değil (%s); %s bu girdi için %s döndürmeli", fn, i+1, typeName(args[i]), backward, none)
+			return nil, messages.New(messages.H6417, fn, i+1, typeName(args[i]), backward, none)
 		}
 		if gs, is := d.t.Shape(), input.t.Shape(); !isShapeEqual(gs, is) {
-			return nil, fmt.Errorf("%s: %s %d. girdi için %s şeklinde gradyan döndürdü, beklenen %s (girdinin şekli); gradyan girdiyle aynı şekilde olmalı, yayınlama yapılmaz", fn, backward, i+1, shapeText(gs), shapeText(is))
+			return nil, messages.New(messages.H6418, fn, backward, i+1, shapeText(gs), shapeText(is))
 		}
 		out[i] = d.t
 	}
@@ -317,15 +318,15 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, fmt.Errorf("%s(f, girdiler, %s: 0.001, %s: 0.01) 2 konumlu parametre bekler, %d verildi", fn, nameStep.TR, nameTolerance.TR, len(args))
+		return nil, messages.New(messages.H6419, fn, nameStep.TR, nameTolerance.TR, len(args))
 	}
 	f := args[0]
 	if !isCallable(f) {
-		return nil, fmt.Errorf("%s: ilk parametre bir fonksiyon olmalıdır, %s verildi", fn, typeName(f))
+		return nil, messages.New(messages.H6420, fn, typeName(f))
 	}
 	list, ok := args[1].(*interp.ListVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: girdiler bir liste olmalıdır (ör. [%s([[0.3, -1.2]], %s: %s)]), %s verildi", fn, codes.Name(codes.T100), codes.Name(codes.T900), codes.Name(codes.A040), typeName(args[1]))
+		return nil, messages.New(messages.H6421, fn, codes.Name(codes.T100), codes.Name(codes.T900), codes.Name(codes.A040), typeName(args[1]))
 	}
 	step, err := positiveInt(fn, named, nameStep, 1e-3)
 	if err != nil {
@@ -336,7 +337,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, err
 	}
 	if !tensor.GradEnabled() {
-		return nil, fmt.Errorf("%s %s { ... } bloğu içinde çalışamaz", fn, codes.Name(codes.T301))
+		return nil, messages.New(messages.H6422, fn, codes.Name(codes.T301))
 	}
 
 	// Türev izleyen girdilerin float32 yaprak kopyaları.
@@ -353,7 +354,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		}
 	}
 	if checked == 0 {
-		return nil, fmt.Errorf("%s: girdilerden hiçbiri türev izlemiyor; denetlenecek tensörleri %s(..., %s: %s) ile oluşturun", fn, codes.Name(codes.T100), codes.Name(codes.T900), codes.Name(codes.A040))
+		return nil, messages.New(messages.H6423, fn, codes.Name(codes.T100), codes.Name(codes.T900), codes.Name(codes.A040))
 	}
 
 	// Analitik gradyan: L = Σ_k <v_k, y_k> üzerinden geri yayılım.
@@ -425,12 +426,12 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 			return 0, err
 		}
 		if len(ys) != len(dirs) {
-			return 0, fmt.Errorf("%s: f her çağrıda aynı sayıda çıktı vermeli", fn)
+			return 0, messages.New(messages.H6424, fn)
 		}
 		var top float64
 		for k, y := range ys {
 			if y.Numel() != len(dirs[k]) {
-				return 0, fmt.Errorf("%s: f her çağrıda aynı şekilde çıktı vermeli", fn)
+				return 0, messages.New(messages.H6425, fn)
 			}
 			for j, x := range y.Data() {
 				top += float64(x) * dirs[k][j]
@@ -500,19 +501,19 @@ func checkOutputs(fn string, v interp.Value) ([]*tensor.Tensor, error) {
 		return []*tensor.Tensor{x.t}, nil
 	case *interp.ListVal:
 		if len(x.Elements) == 0 {
-			return nil, fmt.Errorf("%s: f boş liste döndürdü; bir tensör ya da tensör listesi döndürmeli", fn)
+			return nil, messages.New(messages.H6426, fn)
 		}
 		out := make([]*tensor.Tensor, len(x.Elements))
 		for i, e := range x.Elements {
 			d, ok := e.(*TensorValue)
 			if !ok {
-				return nil, fmt.Errorf("%s: f'nin döndürdüğü listenin %d. öğesi tensör olmalıdır, %s verildi", fn, i+1, typeName(e))
+				return nil, messages.New(messages.H6427, fn, i+1, typeName(e))
 			}
 			out[i] = d.t
 		}
 		return out, nil
 	}
-	return nil, fmt.Errorf("%s: f bir tensör ya da tensör listesi döndürmeli, %s verildi", fn, shortForm(v))
+	return nil, messages.New(messages.H6428, fn, shortForm(v))
 }
 
 // positiveInt adlı pozitif sayısal argümanı okur.
@@ -523,7 +524,7 @@ func positiveInt(fn string, named map[string]interp.Value, ad bind.Named, defaul
 	}
 	f, ok := interp.ToFloat(v)
 	if !ok || !(f > 0) || math.IsInf(f, 0) {
-		return 0, fmt.Errorf("%s: %s pozitif bir sayı olmalıdır, %s verildi", fn, ad.TR, v.Inspect())
+		return 0, messages.New(messages.H6429, fn, ad.TR, v.Inspect())
 	}
 	return f, nil
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -33,11 +34,10 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 			if maxMin && len(args) >= 2 {
 				// maks(x, 0) eksen mi, eleman bazlı sınır mı belirsiz; sessizce eksen saymak yerine yol göster.
 				limit := map[bool]string{true: nameMin.TR, false: nameMax.TR}[kd == codes.G402]
-				return nil, fmt.Errorf("%s(x, %s): eksen için %s(x, %s: %s) yazın; eleman bazlı sınır için %s(x, %s: %s) kullanın",
-					ad, args[1].Inspect(), ad, nameAxis.TR, args[1].Inspect(), codes.Name(codes.G409), limit, args[1].Inspect())
+				return nil, messages.New(messages.H6205, ad, args[1].Inspect(), nameAxis.TR, codes.Name(codes.G409), limit)
 			}
 			if len(args) > 2 {
-				return nil, fmt.Errorf("%s(x, %s: ...) en fazla 2 parametre alır, %d verildi", ad, nameAxis.TR, len(args))
+				return nil, messages.New(messages.H6206, ad, nameAxis.TR, len(args))
 			}
 			if err := bind.CheckNamed(ad+"()", named, nameAxis, nameKeepDim); err != nil {
 				return nil, err
@@ -63,14 +63,14 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 					return nil, err
 				}
 				if maxMin && sh[e] == 0 {
-					return nil, fmt.Errorf("%s: %s şeklinde %d. eksen boş", ad, shapeText(sh), e)
+					return nil, messages.New(messages.H6209, ad, shapeText(sh), e)
 				}
 			} else if maxMin && t.Numel() == 0 {
-				return nil, fmt.Errorf("%s: boş tensörün (%s) en büyük/küçük elemanı yoktur", ad, shapeText(sh))
+				return nil, messages.New(messages.H6211, ad, shapeText(sh))
 			}
 			if kd == codes.G410 { // ortalama: boş kümenin ortalaması tanımsızdır
 				if !given && t.Numel() == 0 {
-					return nil, fmt.Errorf("%s: boş tensörün ortalaması tanımsız (şekil %s)", ad, shapeText(sh))
+					return nil, messages.New(messages.H6212, ad, shapeText(sh))
 				}
 				if given && sh[e] == 0 {
 					exit := 1
@@ -80,7 +80,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 						}
 					}
 					if exit > 0 {
-						return nil, fmt.Errorf("%s: %s şeklinde %d. eksen boş; boş kümenin ortalaması tanımsız", ad, shapeText(sh), e)
+						return nil, messages.New(messages.H6213, ad, shapeText(sh), e)
 					}
 				}
 			}
@@ -113,16 +113,16 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 	ad := codes.Name(codes.T230)
 	if len(args) != 1 {
 		if len(args) == 2 {
-			return nil, fmt.Errorf("%s(x, %s: %s): eksen adlı verilir", ad, nameAxis.TR, args[1].Inspect())
+			return nil, messages.New(messages.H6215, ad, nameAxis.TR, args[1].Inspect())
 		}
-		return nil, fmt.Errorf("%s(x, %s: -1) 1 konumlu parametre bekler, %d verildi", ad, nameAxis.TR, len(args))
+		return nil, messages.New(messages.H6216, ad, nameAxis.TR, len(args))
 	}
 	if err := bind.CheckNamed(ad+"()", named, nameAxis); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, fmt.Errorf("%s: bir tensör bekler, %s verildi; liste için %s(%s(liste)) yazın", ad, typeName(args[0]), ad, codes.Name(codes.T100))
+		return nil, messages.New(messages.H6217, ad, typeName(args[0]), codes.Name(codes.T100))
 	}
 	t := d.t
 	e, given, err := axisArg(ad, args, named)
@@ -137,7 +137,7 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 		return nil, err
 	}
 	if sh[e] == 0 {
-		return nil, fmt.Errorf("%s: %s şeklinde %d. eksen boş", ad, shapeText(sh), e)
+		return nil, messages.New(messages.H6209, ad, shapeText(sh), e)
 	}
 	r, err := safe(func() *tensor.Tensor {
 		idx := t.ArgMax(e)
@@ -166,11 +166,10 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 		return nil, err
 	}
 	if _, ok := bind.GetNamed(named, nameKeepDim); ok {
-		return nil, fmt.Errorf("%s: %s: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(%s(...), %s: 0, %s: %s)",
-			ad, nameKeepDim.TR, typeName(args[0]), ad, codes.Name(codes.T100), nameAxis.TR, nameKeepDim.TR, codes.Name(codes.A040))
+		return nil, messages.New(messages.H6218, ad, nameKeepDim.TR, typeName(args[0]), codes.Name(codes.T100), nameAxis.TR, codes.Name(codes.A040))
 	}
 	if _, ok := bind.GetNamed(named, nameAxis); ok {
-		return nil, fmt.Errorf("%s: %s: yalnızca tensörlerde kullanılır, %s verildi; önce tensöre çevirin: %s(%s(...), %s: 0)", ad, nameAxis.TR, typeName(args[0]), ad, codes.Name(codes.T100), nameAxis.TR)
+		return nil, messages.New(messages.H6219, ad, nameAxis.TR, typeName(args[0]), codes.Name(codes.T100))
 	}
 	if l, ok := args[0].(*interp.ListVal); ok && len(args) == 1 {
 		var hasTensor bool
@@ -178,7 +177,7 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 			switch el.(type) {
 			case *interp.ListVal:
 				t := codes.Name(codes.T100)
-				return nil, fmt.Errorf("%s: iç içe liste indirgenemez (eski liste davranışı yalnızca düz sayı listesi alır); tensöre çevirin: %s(%s(liste)) ya da eksen için %s(%s(liste), %s: 0)", ad, ad, t, ad, t, nameAxis.TR)
+				return nil, messages.New(messages.H6220, ad, t, nameAxis.TR)
 			case *TensorValue:
 				hasTensor = true
 			}
@@ -192,7 +191,7 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 	}
 	for _, a := range args[1:] {
 		if _, ok := a.(*TensorValue); ok {
-			return nil, fmt.Errorf("%s(x, %s: ...) ilk parametre olarak tensör bekler, %s verildi", ad, nameAxis.TR, typeName(args[0]))
+			return nil, messages.New(messages.H6221, ad, nameAxis.TR, typeName(args[0]))
 		}
 	}
 	return oldCall(ad, old, m, args, named)
@@ -211,7 +210,7 @@ func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error
 				continue
 			}
 			if err := checkBroadcast("+", acc, x.t); err != nil {
-				return nil, fmt.Errorf("%s: %d. eleman eklenemiyor: %v", ad, i+1, err)
+				return nil, messages.New(messages.H6222, ad, i+1, err)
 			}
 			a := acc
 			r, err := safe(func() *tensor.Tensor { return tensor.Add(a, x.t) })
@@ -222,7 +221,7 @@ func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error
 		default:
 			f, ok := interp.ToFloat(e)
 			if !ok {
-				return nil, fmt.Errorf("%s: listenin %d. elemanı sayı ya da tensör olmalıdır, %s verildi", ad, i+1, typeName(e))
+				return nil, messages.New(messages.H6223, ad, i+1, typeName(e))
 			}
 			fixed += f
 		}

@@ -14,6 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Tensör dosyasının (biçim: kayit.go) çözücüsü. Dosya güvenilmeyen girdidir (indirilen
@@ -58,9 +59,9 @@ func (k *fileReader) integer(p []byte) bool {
 // missing ne okunurken oluşan okuma hatasını anlatır.
 func (k *fileReader) missing(ne string) error {
 	if k.failure != nil && !errors.Is(k.failure, io.EOF) && !errors.Is(k.failure, io.ErrUnexpectedEOF) {
-		return fmt.Errorf("%s okunamadı: %v", ne, k.failure)
+		return messages.New(messages.H6600, ne, k.failure)
 	}
-	return fmt.Errorf("dosya bozuk ya da eksik: %s okunurken dosya bitti", ne)
+	return messages.New(messages.H6601, ne)
 }
 
 // decodeFile boyut bayt uzunluğundaki bir tensör dosyasının içeriğini f'den çözer.
@@ -122,14 +123,14 @@ func WalkTensorFile(r io.Reader, dim int64, each func(TensorEntry) error) error 
 // header sihirli baytları ve sürümü denetler, girdi sayısını verir.
 func (k *fileReader) header() (uint32, error) {
 	if string(k.read(8)) != fileMagic || k.failure != nil {
-		return 0, fmt.Errorf("bir TR tensör dosyası değil (başlık %q bulunamadı; dosya %s ile yazılmalı)", fileMagic, codes.Name(codes.T700))
+		return 0, messages.New(messages.H6610, fileMagic, codes.Name(codes.T700))
 	}
 	version := binary.LittleEndian.Uint16(k.read(2))
 	if k.failure != nil {
 		return 0, k.missing("sürüm")
 	}
 	if version != fileVersion {
-		return 0, fmt.Errorf("dosya biçimi sürümü %d; bu TR sürümü yalnızca sürüm %d okur (dosyayı %s ile yeniden yazın)", version, fileVersion, codes.Name(codes.T700))
+		return 0, messages.New(messages.H6611, version, fileVersion, codes.Name(codes.T700))
 	}
 	number := binary.LittleEndian.Uint32(k.read(4))
 	if k.failure != nil {
@@ -137,7 +138,7 @@ func (k *fileReader) header() (uint32, error) {
 	}
 	// Her girdi en az 4+1+1 bayt tutar; bozuk sayının dev ayırmaya yol açmasını önler.
 	if int64(number)*6 > k.remaining {
-		return 0, fmt.Errorf("dosya bozuk: %d girdi bildiriliyor ama dosyada yalnızca %d bayt kaldı", number, k.remaining)
+		return 0, messages.New(messages.H6612, number, k.remaining)
 	}
 	return number, nil
 }
@@ -150,7 +151,7 @@ func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
 		return fileEntry{}, k.missing(order + " adı")
 	}
 	if nameLen > maxNameLen || int64(nameLen) > k.remaining {
-		return fileEntry{}, fmt.Errorf("dosya bozuk: %s adının uzunluğu %d geçersiz", order, nameLen)
+		return fileEntry{}, messages.New(messages.H6613, order, nameLen)
 	}
 	nameB := make([]byte, nameLen)
 	if !k.integer(nameB) {
@@ -158,10 +159,10 @@ func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
 	}
 	ad := string(nameB)
 	if !utf8.ValidString(ad) {
-		return fileEntry{}, fmt.Errorf("dosya bozuk: %s adı geçerli UTF-8 değil", order)
+		return fileEntry{}, messages.New(messages.H6614, order)
 	}
 	if names[ad] {
-		return fileEntry{}, fmt.Errorf("dosya bozuk: %q adı iki kez geçiyor", ad)
+		return fileEntry{}, messages.New(messages.H6615, ad)
 	}
 	names[ad] = true
 	order = fmt.Sprintf("%d. girdi (%q)", gi+1, ad)
@@ -172,10 +173,10 @@ func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
 	code, dim := tb[0], int(tb[1])
 	dtype, known := dtypeFromCode(code)
 	if !known {
-		return fileEntry{}, fmt.Errorf("%s: desteklenmeyen veri türü kodu %d (bu TR sürümü float32 = %d, bf16 = %d, fp16 = %d okuyabilir)", order, code, dtypeFloat32, dtypeBF16, dtypeFP16)
+		return fileEntry{}, messages.New(messages.H6616, order, code, dtypeFloat32, dtypeBF16, dtypeFP16)
 	}
 	if dim > maxDims {
-		return fileEntry{}, fmt.Errorf("dosya bozuk: %s %d eksenli bildiriliyor (en fazla %d)", order, dim, maxDims)
+		return fileEntry{}, messages.New(messages.H6617, order, dim, maxDims)
 	}
 	shape, n, err := k.shape(order, dim)
 	if err != nil {
@@ -202,7 +203,7 @@ func (k *fileReader) shape(order string, dim int) ([]int, int64, error) {
 			return nil, 0, k.missing(order + " şekli")
 		}
 		if d > uint64(interp.MaxCollectionSize) || (d > 0 && limit > int64(interp.MaxCollectionSize)/int64(d)) {
-			return nil, 0, fmt.Errorf("dosya bozuk ya da tensör çok büyük: %s ekseni %d (en fazla %d eleman; sıfır uzunluklu eksenler 1 sayılır)", order, d, interp.MaxCollectionSize)
+			return nil, 0, messages.New(messages.H6621, order, d, interp.MaxCollectionSize)
 		}
 		shape[i] = int(d)
 		n *= int64(d)
@@ -215,7 +216,7 @@ func (k *fileReader) shape(order string, dim int) ([]int, int64, error) {
 func (k *fileReader) data(order string, dtype tensor.DType, shape []int, n int64) ([]float32, error) {
 	size := int64(dtype.Bits() / 8) // eleman başına bayt
 	if n*size > k.remaining-4 {
-		return nil, fmt.Errorf("dosya bozuk ya da eksik: %s %s şeklinde %d bayt veri bekliyor, dosyada %d bayt kaldı", order, shapeText(shape), n*size, max(k.remaining-4, 0))
+		return nil, messages.New(messages.H6623, order, shapeText(shape), n*size, max(k.remaining-4, 0))
 	}
 	data := make([]float32, n)
 	buffer := make([]byte, 1<<16)
@@ -241,13 +242,13 @@ func (k *fileReader) data(order string, dtype tensor.DType, shape []int, n int64
 func (k *fileReader) checksum() error {
 	expected := k.crc.Sum32()
 	if _, err := io.ReadFull(k.br, k.b[:4]); err != nil {
-		return fmt.Errorf("dosya bozuk ya da eksik: sağlama toplamı okunurken dosya bitti")
+		return messages.New(messages.H6625)
 	}
 	if binary.LittleEndian.Uint32(k.b[:4]) != expected {
-		return fmt.Errorf("dosya bozuk: sağlama toplamı tutmuyor (dosya değiştirilmiş ya da yarım yazılmış olabilir)")
+		return messages.New(messages.H6627)
 	}
 	if _, err := k.br.ReadByte(); err != io.EOF {
-		return fmt.Errorf("dosya bozuk: sağlama toplamından sonra fazladan veri var")
+		return messages.New(messages.H6628)
 	}
 	return nil
 }

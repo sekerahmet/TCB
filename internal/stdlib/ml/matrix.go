@@ -1,11 +1,10 @@
 package ml
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -27,7 +26,7 @@ func toMatrix(v interp.Value) (*tensor.Tensor, error) {
 		case 1:
 			return safe(func() *tensor.Tensor { return x.t.Unsqueeze(0) })
 		}
-		return nil, fmt.Errorf("matris 2 boyutlu olmalıdır, %s şeklinde tensör verildi", shapeText(x.t.Shape()))
+		return nil, messages.New(messages.H6000, shapeText(x.t.Shape()))
 	case *interp.ListVal:
 		if len(x.Elements) == 0 {
 			break
@@ -41,29 +40,29 @@ func toMatrix(v interp.Value) (*tensor.Tensor, error) {
 		for _, s := range lines {
 			line, ok := s.(*interp.ListVal)
 			if !ok || len(line.Elements) != column {
-				return nil, fmt.Errorf("Matrisin tüm satırları eşit uzunlukta olmalıdır")
+				return nil, messages.New(messages.H6003)
 			}
 			for _, e := range line.Elements {
 				f, ok := interp.ToFloat(e)
 				if !ok {
-					return nil, fmt.Errorf("Matris elemanları sayısal olmalıdır")
+					return nil, messages.New(messages.H6004)
 				}
 				data = append(data, float32(f))
 			}
 		}
 		return tensor.New(data, len(lines), column), nil
 	}
-	return nil, fmt.Errorf("matris oluşturmak için boş olmayan bir %s gereklidir", interp.VAL_LIST)
+	return nil, messages.New(messages.H6005, interp.VAL_LIST)
 }
 
 // checkMatrixShape negatif / sıfır ya da aşırı büyük matris boyutlarını panik yerine
 // hata olarak bildirir.
 func checkMatrixShape(fn string, line, column int64) error {
 	if line <= 0 || column <= 0 {
-		return fmt.Errorf("%s: satır ve sütun sayısı pozitif olmalıdır (%d x %d verildi)", fn, line, column)
+		return messages.New(messages.H6009, fn, line, column)
 	}
 	if line > interp.MaxCollectionSize || column > interp.MaxCollectionSize || line*column > interp.MaxCollectionSize {
-		return fmt.Errorf("%s: matris çok büyük (%d x %d), en fazla %d eleman", fn, line, column, interp.MaxCollectionSize)
+		return messages.New(messages.H6010, fn, line, column, interp.MaxCollectionSize)
 	}
 	return nil
 }
@@ -72,7 +71,7 @@ func checkMatrixShape(fn string, line, column int64) error {
 func intArg(args []interp.Value, i int, signature string) (int64, error) {
 	n, ok := args[i].(*interp.IntVal)
 	if !ok {
-		return 0, fmt.Errorf("%s %s sayı bekler, %s verildi", signature, interp.VAL_INT, typeName(args[i]))
+		return 0, messages.New(messages.H6011, signature, interp.VAL_INT, typeName(args[i]))
 	}
 	return n.Val, nil
 }
@@ -81,7 +80,7 @@ func intArg(args []interp.Value, i int, signature string) (int64, error) {
 func identity(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T111)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(n) 1 parametre bekler", fn)
+		return nil, messages.New(messages.H6014, fn)
 	}
 	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err

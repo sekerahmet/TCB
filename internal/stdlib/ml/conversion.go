@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ----------------------------------------------------------------------------
@@ -59,7 +60,7 @@ func listData(fn string, l *interp.ListVal) ([]float32, []int, error) {
 	sh, err := walkList(fn, l, func(n int) { data = make([]float32, 0, n) }, func(v interp.Value) error {
 		f, ok := interp.ToFloat(v)
 		if !ok {
-			return fmt.Errorf("%s: tensör elemanları sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), typeName(v))
+			return messages.New(messages.H6007, fn, v.Inspect(), typeName(v))
 		}
 		data = append(data, float32(f))
 		return nil
@@ -78,9 +79,9 @@ func listInts(fn string, l *interp.ListVal) ([]int, []int, error) {
 		n, ok := intNumber(v)
 		if !ok {
 			if _, number := interp.ToFloat(v); number {
-				return fmt.Errorf("%s: indeksler tam sayı olmalıdır, %s verildi", fn, v.Inspect())
+				return messages.New(messages.H6012, fn, v.Inspect())
 			}
-			return fmt.Errorf("%s: indeksler tam sayı olmalıdır, %s (%s) verildi", fn, v.Inspect(), typeName(v))
+			return messages.New(messages.H6013, fn, v.Inspect(), typeName(v))
 		}
 		data = append(data, n)
 		return nil
@@ -104,9 +105,9 @@ func walkList(fn string, l *interp.ListVal, prepare func(n int), leaf func(v int
 		}
 		if err := walker.Enter(ll, len(sh)); err != nil {
 			if errors.Is(err, interp.ErrCyclic) {
-				return nil, fmt.Errorf("%s: liste kendini içeriyor (döngüsel liste); tensöre çevrilemez", fn)
+				return nil, messages.New(messages.H6018, fn)
 			}
-			return nil, fmt.Errorf("%s: liste çok derin iç içe (en fazla %d seviye)", fn, interp.MaxExternalDepth)
+			return nil, messages.New(messages.H6019, fn, interp.MaxExternalDepth)
 		}
 		sh = append(sh, len(ll.Elements))
 		if len(ll.Elements) == 0 {
@@ -118,7 +119,7 @@ func walkList(fn string, l *interp.ListVal, prepare func(n int), leaf func(v int
 	for _, d := range sh {
 		n *= d
 		if n > interp.MaxCollectionSize {
-			return nil, fmt.Errorf("%s: liste çok büyük (en fazla %d eleman)", fn, interp.MaxCollectionSize)
+			return nil, messages.New(messages.H6022, fn, interp.MaxCollectionSize)
 		}
 	}
 	prepare(n)
@@ -126,16 +127,16 @@ func walkList(fn string, l *interp.ListVal, prepare func(n int), leaf func(v int
 	walk = func(v interp.Value, axis int) error {
 		if axis == len(sh) {
 			if _, list := v.(*interp.ListVal); list {
-				return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte sayı yerine liste var", fn, axis+1)
+				return messages.New(messages.H6025, fn, axis+1)
 			}
 			return leaf(v)
 		}
 		ll, ok := v.(*interp.ListVal)
 		if !ok {
-			return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte liste yerine %s var (beklenen şekil %s)", fn, axis+1, v.Inspect(), shapeText(sh))
+			return messages.New(messages.H6026, fn, axis+1, v.Inspect(), shapeText(sh))
 		}
 		if len(ll.Elements) != sh[axis] {
-			return fmt.Errorf("%s: iç içe liste düzensiz; %d. derinlikte %d ve %d uzunlukta listeler var (tüm satırlar eşit uzunlukta olmalı)", fn, axis+1, sh[axis], len(ll.Elements))
+			return messages.New(messages.H6027, fn, axis+1, sh[axis], len(ll.Elements))
 		}
 		for _, el := range ll.Elements {
 			if err := walk(el, axis+1); err != nil {

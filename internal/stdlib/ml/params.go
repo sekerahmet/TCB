@@ -9,6 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
@@ -25,7 +26,7 @@ import (
 func paramsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T530)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(model, %s: %s) 1 konumlu parametre bekler, %d verildi", fn, nameWithNames.TR, codes.Name(codes.A041), len(args))
+		return nil, messages.New(messages.H6500, fn, nameWithNames.TR, codes.Name(codes.A041), len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameWithNames); err != nil {
 		return nil, err
@@ -90,7 +91,7 @@ func collectLeaves(fn string, model interp.Value, all bool) (names []string, fou
 				return
 			}
 			if o, ok := nameOwner[fpath]; ok && o != x.t {
-				failure = fmt.Errorf("%s: iki farklı tensör aynı yol adına düşüyor (%q); sözlük anahtarlarında '.' kullanmayın", fn, fpath)
+				failure = messages.New(messages.H6505, fn, fpath)
 				return
 			}
 			seen[x.t] = true
@@ -138,11 +139,10 @@ func CheckParamShapes(fn string, names []string, found []*TensorValue, src map[s
 	for i, ad := range names {
 		sk, ok := src[ad]
 		if !ok {
-			return fmt.Errorf("%s: modelin %q parametresi %s yok (model %d, %s %d parametre); model ile kayıt aynı yapıda olmalı",
-				fn, ad, srcName, len(names), srcName, len(src))
+			return messages.New(messages.H6508, fn, ad, srcName, len(names), len(src))
 		}
 		if sm := found[i].t.Shape(); !slices.Equal(sm, sk) {
-			return fmt.Errorf("%s: %q parametresinin şekli modelde %s, %s %s", fn, ad, shapeText(sm), srcName, shapeText(sk))
+			return messages.New(messages.H6511, fn, ad, shapeText(sm), srcName, shapeText(sk))
 		}
 	}
 	if len(src) == len(names) {
@@ -190,7 +190,7 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		return nil, err
 	}
 	if len(names) == 0 {
-		return nil, fmt.Errorf("%s: modelde türev izleyen parametre yok (%s); parametreler %s ile oluşturulmalı", fn, interp.TypeAndSummary(args[0]), gradExample("..."))
+		return nil, messages.New(messages.H6520, fn, interp.TypeAndSummary(args[0]), gradExample("..."))
 	}
 	s, ok := args[1].(*interp.DictVal)
 	if !ok {
@@ -204,11 +204,11 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, fmt.Errorf("%s: sözlük anahtarları parametre adları (%s) olmalıdır, %s verildi", fn, codes.Name(codes.A202), s.DisplayKey(k))
+			return nil, messages.New(messages.H6522, fn, codes.Name(codes.A202), s.DisplayKey(k))
 		}
 		d, ok := v.(*TensorValue)
 		if !ok {
-			return nil, fmt.Errorf("%s: %q değeri bir %s olmalıdır, %s verildi", fn, k, codes.Name(codes.A212), typeName(v))
+			return nil, messages.New(messages.H6524, fn, k, codes.Name(codes.A212), typeName(v))
 		}
 		src[k], shapes[k] = d.t, d.t.Shape()
 	}

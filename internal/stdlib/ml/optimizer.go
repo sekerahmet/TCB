@@ -8,6 +8,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
@@ -61,7 +62,7 @@ func (o *Optimizer) rateField() *float32 {
 // ve 32 bite sığan bir Tam ya da Ondalık kabul edilir.
 func (o *Optimizer) SetMember(kd codes.Code, ad string, value interp.Value) error {
 	if kd != memberLR {
-		return fmt.Errorf("%s üzerinde %q üyesine atama yapılamaz; atanabilen üye: %s", o.ad, ad, codes.Name(memberLR))
+		return messages.New(messages.H6502, o.ad, ad, codes.Name(memberLR))
 	}
 	var f float64
 	switch x := value.(type) {
@@ -70,12 +71,12 @@ func (o *Optimizer) SetMember(kd codes.Code, ad string, value interp.Value) erro
 	case *interp.FloatVal:
 		f = x.Val
 	default:
-		return fmt.Errorf("%s.%s bir %s ya da %s olmalıdır, %s verildi", o.ad, codes.Name(memberLR), codes.Name(codes.A200), codes.Name(codes.A201), typeName(value))
+		return messages.New(messages.H6503, o.ad, codes.Name(memberLR), codes.Name(codes.A200), codes.Name(codes.A201), typeName(value))
 	}
 	// 0 geçerlidir (kurucudaki gibi): oran planları eğitimin sonunda orana 0'a iner. Sıfır olmayan
 	// ama 32 bitte 0'a yuvarlanan değer reddedilir (sessizce dondurmasın).
 	if !(f >= 0) || math.IsInf(float64(float32(f)), 0) || (f != 0 && float32(f) == 0) {
-		return fmt.Errorf("%s.%s sonlu ve negatif olmayan bir sayı olmalıdır, %s verildi", o.ad, codes.Name(memberLR), value.Inspect())
+		return messages.New(messages.H6504, o.ad, codes.Name(memberLR), value.Inspect())
 	}
 	*o.rateField() = float32(f)
 	return nil
@@ -89,7 +90,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 	case memberStep:
 		return &interp.BuiltinVal{Name: codes.Name(memberStep), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("%s() argüman almaz", codes.Name(memberStep))
+				return nil, messages.New(messages.H6506, codes.Name(memberStep))
 			}
 			if _, err := safe(func() bool { o.opt.Step(); return true }); err != nil {
 				return nil, err
@@ -99,7 +100,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 	case memberZeroGrad:
 		return &interp.BuiltinVal{Name: codes.Name(memberZeroGrad), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("%s() argüman almaz", codes.Name(memberZeroGrad))
+				return nil, messages.New(messages.H6506, codes.Name(memberZeroGrad))
 			}
 			o.opt.ZeroGrad()
 			return interp.NULL, nil
@@ -127,27 +128,27 @@ func parameters(fn string, v interp.Value) ([]*tensor.Tensor, error) {
 	case *interp.ListVal:
 		list = x.Elements
 	default:
-		return nil, fmt.Errorf("%s: parametreler bir tensör listesi olmalıdır, %s verildi", fn, typeName(v))
+		return nil, messages.New(messages.H6509, fn, typeName(v))
 	}
 	if len(list) == 0 {
-		return nil, fmt.Errorf("%s: parametre listesi boş", fn)
+		return nil, messages.New(messages.H6510, fn)
 	}
 	out := make([]*tensor.Tensor, 0, len(list))
 	seen := map[*tensor.Tensor]bool{}
 	for i, el := range list {
 		d, ok := el.(*TensorValue)
 		if !ok {
-			return nil, fmt.Errorf("%s: %d. parametre bir tensör olmalıdır, %s verildi", fn, i+1, typeName(el))
+			return nil, messages.New(messages.H6512, fn, i+1, typeName(el))
 		}
 		t := d.t
 		if !t.RequiresGrad() {
-			return nil, fmt.Errorf("%s: %d. parametre (%s) türev izlemiyor; %s ile oluşturun", fn, i+1, shapeText(t.Shape()), gradExample("..."))
+			return nil, messages.New(messages.H6513, fn, i+1, shapeText(t.Shape()), gradExample("..."))
 		}
 		if d.intermediate || !t.IsLeaf() {
-			return nil, fmt.Errorf("%s: %d. parametre (%s) bir işlemin sonucu (yaprak değil); parametreleri doğrudan %s ile oluşturun", fn, i+1, shapeText(t.Shape()), gradExample("..."))
+			return nil, messages.New(messages.H6514, fn, i+1, shapeText(t.Shape()), gradExample("..."))
 		}
 		if seen[t] {
-			return nil, fmt.Errorf("%s: %d. parametre listede birden çok kez var", fn, i+1)
+			return nil, messages.New(messages.H6515, fn, i+1)
 		}
 		seen[t] = true
 		out = append(out, t)
@@ -163,12 +164,12 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 	}
 	f, ok := interp.ToFloat(v)
 	if !ok {
-		return 0, fmt.Errorf("%s: %s sayı olmalıdır, %s verildi", fn, ad.TR, typeName(v))
+		return 0, messages.New(messages.H6517, fn, ad.TR, typeName(v))
 	}
 	// NaN ve sonsuz (float32'ye sığmayan) değerler reddedilir: tek adımda bütün
 	// parametreleri NaN yapardı (f < minVal denetimi NaN için yanlıştır).
 	if math.IsNaN(f) || math.IsInf(float64(float32(f)), 0) {
-		return 0, fmt.Errorf("%s: %s sonlu bir sayı olmalıdır, %s verildi", fn, ad.TR, v.Inspect())
+		return 0, messages.New(messages.H6519, fn, ad.TR, v.Inspect())
 	}
 	if f < minVal {
 		return 0, fmt.Errorf("%s: %s en az %g olmalıdır, %g verildi", fn, ad.TR, minVal, f)
@@ -181,7 +182,7 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T402)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(parametreler, %s: 1.0) 1 konumlu parametre bekler, %d verildi", fn, nameMax.TR, len(args))
+		return nil, messages.New(messages.H6521, fn, nameMax.TR, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameMax); err != nil {
 		return nil, err
@@ -194,7 +195,7 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	if v, ok := bind.GetNamed(named, nameMax); ok {
 		f, ok := interp.ToFloat(v)
 		if !ok || !(f > 0) || math.IsInf(f, 0) {
-			return nil, fmt.Errorf("%s: %s pozitif bir sayı olmalıdır, %s verildi", fn, nameMax.TR, v.Inspect())
+			return nil, messages.New(messages.H6523, fn, nameMax.TR, v.Inspect())
 		}
 		maxVal = f
 	}
@@ -221,7 +222,7 @@ func masterCopyArg(fn string, named map[string]interp.Value) (bool, error) {
 
 func optimizerParams(fn string, args []interp.Value) ([]*tensor.Tensor, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(parametreler, %s: ...) 1 konumlu parametre bekler, %d verildi", fn, nameLR.TR, len(args))
+		return nil, messages.New(messages.H6525, fn, nameLR.TR, len(args))
 	}
 	return parameters(fn, args[0])
 }
@@ -252,7 +253,7 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 		return nil, err
 	}
 	if b1 >= 1 || b2 >= 1 {
-		return nil, fmt.Errorf("%s: beta1 ve beta2 [0, 1) aralığında olmalıdır", fn)
+		return nil, messages.New(messages.H6526, fn)
 	}
 	eps, err := namedRate(fn, named, 1e-8, 0, nameEpsilon)
 	if err != nil {
@@ -261,7 +262,7 @@ func setupAdamW(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 	if eps <= 0 {
 		// Sıfır gradyanlı ilk adımda 0 / (√0 + 0) = NaN olurdu (float32'de 0'a düşen değer de).
 		v, _ := bind.GetNamed(named, nameEpsilon)
-		return nil, fmt.Errorf("%s: %s pozitif olmalıdır (float32'de 0'dan büyük), %s verildi", fn, nameEpsilon.TR, v.Inspect())
+		return nil, messages.New(messages.H6527, fn, nameEpsilon.TR, v.Inspect())
 	}
 	masterCopy, err := masterCopyArg(fn, named)
 	if err != nil {

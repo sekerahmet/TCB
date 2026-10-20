@@ -9,6 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -62,8 +63,7 @@ func (o *Optimizer) loadStateTR(args []interp.Value) (interp.Value, error) {
 		}
 		d, ok := v.(*TensorValue)
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text || !ok {
-			return nil, fmt.Errorf("%s: sözlük %s ile alınmış olmalı (anahtarları %s, değerleri %s); %q girdisi %s", fn,
-				codes.Name(memberState), codes.Name(codes.A202), codes.Name(codes.A212), s.DisplayKey(k), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H6501, fn, codes.Name(memberState), codes.Name(codes.A202), codes.Name(codes.A212), s.DisplayKey(k), interp.TypeAndSummary(v))
 		}
 		st[k] = d.t
 	}
@@ -141,7 +141,7 @@ func (o *Optimizer) LoadState(fn string, st map[string]*tensor.Tensor) error {
 		}
 		return true
 	}, func(r any) error {
-		return fmt.Errorf("%s: %s (%s, %d parametre)", fn, strings.TrimPrefix(fmt.Sprint(r), "tensor: "), o.ad, len(o.params))
+		return messages.New(messages.H6507, fn, strings.TrimPrefix(fmt.Sprint(r), "tensor: "), o.ad, len(o.params))
 	})
 	return err
 }
@@ -183,15 +183,14 @@ func (o *Optimizer) checkStateEntry(fn, ad string, shape []int) error {
 	case ad == "adim" && o.adamw != nil:
 		k = -1
 	case !sorted || !slices.Contains(valid, prefix):
-		return fmt.Errorf("%s: %q bu iyileştiricinin (%s, %d parametre) durum anahtarı değil; durum aynı tipte ve aynı parametre listesiyle kurulmuş bir iyileştiricinin %s'u olmalı",
-			fn, ad, o.ad, len(o.params), codes.Name(memberState))
+		return messages.New(messages.H6516, fn, ad, o.ad, len(o.params), codes.Name(memberState))
 	}
 	expected := []int{2} // adım sayaçları
 	if k >= 0 && prefix != "adim" {
 		expected = o.params[k].Shape()
 	}
 	if !slices.Equal(shape, expected) {
-		return fmt.Errorf("%s: %q girdisinin şekli %s, beklenen %s (parametre listesi kayıttakiyle aynı olmalı)", fn, ad, shapeText(shape), shapeText(expected))
+		return messages.New(messages.H6518, fn, ad, shapeText(shape), shapeText(expected))
 	}
 	return nil
 }

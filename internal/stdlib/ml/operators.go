@@ -5,6 +5,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"io"
 	"os"
 	"sync"
@@ -38,8 +39,7 @@ func checkBroadcast(op string, a, b *tensor.Tensor) error {
 			if !ok {
 				ad = op
 			}
-			return fmt.Errorf("%s ile %s şekilleri %s için yayınlanamaz; sondan %d. eksende %d ≠ %d (eksenler sağdan hizalanır, eşit ya da 1 olmalı)",
-				shapeText(a.Shape()), shapeText(b.Shape()), ad, i, da, db)
+			return messages.New(messages.H6100, shapeText(a.Shape()), shapeText(b.Shape()), ad, i, da, db)
 		}
 	}
 	return nil
@@ -47,7 +47,7 @@ func checkBroadcast(op string, a, b *tensor.Tensor) error {
 
 func checkDevice(operation string, a, b *tensor.Tensor) error {
 	if a.Device() != b.Device() {
-		return fmt.Errorf("%s: tensörler farklı cihazlarda (%s ve %s); önce .%s(...) ile aynı cihaza taşıyın", operation, a.Device(), b.Device(), codes.Name(memberToDevice))
+		return messages.New(messages.H6102, operation, a.Device(), b.Device(), codes.Name(memberToDevice))
 	}
 	return nil
 }
@@ -181,7 +181,7 @@ func (d *TensorValue) binary(op string, other interp.Value) (interp.Value, error
 func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error) {
 	as, bs := a.Shape(), b.Shape()
 	if len(as) == 0 || len(bs) == 0 {
-		return nil, fmt.Errorf("%s ile %s matris çarpımı yapılamaz; skaler için '*' kullanın", shapeText(as), shapeText(bs))
+		return nil, messages.New(messages.H6114, shapeText(as), shapeText(bs))
 	}
 	if err := checkDevice("matris çarpımı (@)", a, b); err != nil {
 		return nil, err
@@ -200,12 +200,11 @@ func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error
 	if len(as) >= 2 && len(bs) > 2 {
 		onA, onB := as[:len(as)-2], bs[:len(bs)-2]
 		if len(onA) != len(onB) || shapeText(onA) != shapeText(onB) {
-			return nil, fmt.Errorf("%s ile %s toplu matris çarpımı yapılamaz; öndeki eksenler eşit olmalı (%s ≠ %s)",
-				shapeText(as), shapeText(bs), shapeText(onA), shapeText(onB))
+			return nil, messages.New(messages.H6115, shapeText(as), shapeText(bs), shapeText(onA), shapeText(onB))
 		}
 	}
 	if len(as) == 1 && len(bs) > 2 {
-		return nil, fmt.Errorf("%s ile %s matris çarpımı yapılamaz; vektör toplu matrisle çarpılamaz", shapeText(as), shapeText(bs))
+		return nil, messages.New(messages.H6117, shapeText(as), shapeText(bs))
 	}
 	return safe(func() *tensor.Tensor {
 		x, y := a, b
