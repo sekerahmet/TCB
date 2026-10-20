@@ -1,0 +1,129 @@
+// Evre 3 ölçümü, TR tarafı: phase3_torch.py ile aynı model, veri ve iyileştirici.
+// Ayarlar aynı klasördeki phase3_config.json'dan (iki taraf aynı dosyayı okur); cihaz ve çıktı
+// komut satırından. Her adım sonunda kayıp okunur (GPU eşzamanlanır): PyTorch tarafı da öyle.
+// Kullanım: ./tr phase3_tr.tr [--cihaz gpu] [--ayar phase3_config.json] [--çıktı phase3_tr.json]
+// Tepe bellek bu dosyadan değil, `tr profil --json` raporundan (gpu.bellek[].tepe_canlı_bayt) okunur.
+// Çıktı (JSON): ilk adım, ısınma adımları, ölçülen adımların medyan ve p90 süresi, kayıp eğrisi.
+
+değişken arg = komut_satırı({cihaz: "gpu", ayar: "phase3_config.json", çıktı: ""},
+    açıklama: "Evre 3 ölçümü, TR tarafı (PyTorch karşılığı: phase3_torch.py)")
+varsayılan_cihaz(arg.cihaz)
+değişken c = json_çöz(dosya_oku(arg.ayar))
+değişken B = c["B"]
+değişken T = c["T"]
+değişken D = c["D"]
+değişken H = c["H"]
+değişken Dh = D / H
+değişken FF = c["FF"]
+değişken KATMAN = c["KATMAN"]
+değişken V = c["V"]
+değişken HASSASIYET = c["hassasiyet"]
+değişken ISINMA = c["isinma"]
+değişken ÖLÇÜLEN = c["olculen"]
+değişken KAYIP_ADIM = c["kayip_adim"]
+
+// Sabit sentetik toplu işler (phase3_torch.py ile aynı formül).
+değişken sentetik = []
+döngü s içinde aralık(8) {
+    değişken satırlar = [[(s * 7919 + i * 104729 + t * 31) % V döngü t içinde aralık(T + 1)] döngü i içinde aralık(B)]
+    değişken tümü = tensör(satırlar)
+    sentetik.ekle([tümü.dilim(1, 0, T), tümü.dilim(1, 1, T + 1)])
+}
+
+değişken tohum_sayacı = 0
+fonksiyon ağırlık(şekil, ölçek) {
+    tohum_sayacı += 1
+    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: tohum_sayacı) * ölçek), türev_izle: doğru)
+}
+
+yapı Blok {
+    g1
+    g2
+    Wq
+    Wk
+    Wv
+    Wo
+    Wg
+    Wu
+    W2
+    fonksiyon kurucu() {
+        kendi.g1 = tensör(birler([D]), türev_izle: doğru)
+        kendi.g2 = tensör(birler([D]), türev_izle: doğru)
+        kendi.Wq = ağırlık([D, D], 0.02)
+        kendi.Wk = ağırlık([D, D], 0.02)
+        kendi.Wv = ağırlık([D, D], 0.02)
+        kendi.Wo = ağırlık([D, D], 0.01)
+        kendi.Wg = ağırlık([D, FF], 0.02)
+        kendi.Wu = ağırlık([D, FF], 0.02)
+        kendi.W2 = ağırlık([FF, D], 0.01)
+    }
+    fonksiyon başlar(x) { sonuç x.şekillendir([B, T, H, Dh]).eksenleri_sırala([0, 2, 1, 3]) }
+    fonksiyon ileri(x) {
+        değişken h = rms_normu(x, kendi.g1)
+        değişken y = dikkat(kendi.başlar(h @ kendi.Wq), kendi.başlar(h @ kendi.Wk), kendi.başlar(h @ kendi.Wv), nedensel: doğru)
+        değişken s = x + y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, D]) @ kendi.Wo
+        değişken m = rms_normu(s, kendi.g2)
+        sonuç s + (silu(m @ kendi.Wg) * (m @ kendi.Wu)) @ kendi.W2
+    }
+}
+
+yapı Model {
+    E
+    bloklar
+    gs
+    fonksiyon kurucu() {
+        kendi.E = ağırlık([V, D], 0.02)
+        kendi.bloklar = aralık(KATMAN).haritala { Blok() }
+        kendi.gs = tensör(birler([D]), türev_izle: doğru)
+    }
+    fonksiyon ileri(kimlikler) {
+        değişken x = gömme(kendi.E, kimlikler)
+        döngü bl içinde kendi.bloklar { x = bl.ileri(x) }
+        sonuç rms_normu(x, kendi.gs) @ kendi.E.devrik() // paylaşımlı çıkış
+    }
+}
+
+değişken model = Model()
+değişken ağırlıklar = parametreler(model)
+değişken iyileştirici = AdamW(ağırlıklar, öğrenme_oranı: c["lr"], ağırlık_çürümesi: 0.0)
+
+// adım_at: bir eğitim adımı; kaybın değerini döndürür (okumak GPU'yu bekler).
+fonksiyon adım_at(adım) {
+    değişken xy = sentetik[adım % 8]
+    iyileştirici.sıfırla()
+    değişken kayıp = yok
+    karışık_hassasiyet(HASSASIYET) {
+        kayıp = çapraz_entropi(model.ileri(xy[0]), xy[1])
+    }
+    geri_yayılım(kayıp)
+    gradyan_kırp(ağırlıklar, en_fazla: 1.0)
+    iyileştirici.adım()
+    sonuç kayıp.değer
+}
+
+// yüzdelik: p. yüzdelik (en yakın sıra yöntemi).
+fonksiyon yüzdelik(değerler, p) {
+    değişken s = değerler.sırala()
+    sonuç s[maks(0, tam(tavan(p / 100 * s.uzunluk)) - 1)]
+}
+
+değişken kayıplar = []
+değişken ısınma_ms = []
+değişken ölçülen_ms = []
+döngü adım içinde 0..(ISINMA + ÖLÇÜLEN) {
+    değişken t0 = zaman_ms()
+    değişken v = adım_at(adım)
+    değişken ms = zaman_ms() - t0
+    eğer adım < ISINMA { ısınma_ms.ekle(ms) } değilse { ölçülen_ms.ekle(ms) }
+    eğer adım < KAYIP_ADIM { kayıplar.ekle(v) }
+}
+
+değişken sonuç_ = {araç: "tr", kip: "tr", hassasiyet: HASSASIYET, cihaz: varsayılan_cihaz(),
+    ayar: {B: B, T: T, D: D, H: H, FF: FF, KATMAN: KATMAN, V: V},
+    ilk_adim_ms: ısınma_ms[0], isinma_ms: ısınma_ms,
+    olculen: {medyan_ms: ortanca(ölçülen_ms), p90_ms: yüzdelik(ölçülen_ms, 90), ortalama_ms: ortalama(ölçülen_ms),
+        en_az_ms: min(ölçülen_ms), en_cok_ms: maks(ölçülen_ms)},
+    kayip_egrisi: kayıplar}
+değişken çıktı_metni = json_metin(sonuç_)
+eğer arg.çıktı != "" { dosya_yaz(arg.çıktı, çıktı_metni) }
+yazdır(çıktı_metni)
