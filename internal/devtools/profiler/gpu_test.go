@@ -138,3 +138,21 @@ varsayılan_cihaz("cpu")
 		t.Errorf("örnekleme kapalıyken tepe bellek bölümü olmamalı")
 	}
 }
+
+// Bir fonksiyondan dönüldükten sonra aynı satırda ayrılan bellek çağıran satırda sayılır
+// (çağrılan fonksiyonun son satırında değil).
+func TestProfileGPUPeakAfterCallReturn(t *testing.T) {
+	setupGPU(t)
+	const code = `varsayılan_cihaz("gpu")
+fonksiyon küçük() { sonuç rastgele_normal([4, 4], tohum: 1) }
+değişken büyük = toplam(küçük()) + rastgele_normal([512, 512], tohum: 2)
+varsayılan_cihaz("cpu")
+`
+	g, _ := runWithClose(t, code, Options{SampleLines: true})
+	if len(g.gpuPeak) == 0 {
+		t.Fatal("tepe bellek satırları yok")
+	}
+	if top := g.gpuPeak[0]; top.Line.Line != 3 {
+		t.Errorf("büyük tensör çağıran satırda (3) sayılmalı: %+v", top)
+	}
+}

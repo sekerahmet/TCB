@@ -205,10 +205,20 @@ type posSample struct {
 	dur, tensor time.Duration
 }
 
-// site son deyimin konumudur (fonksiyon<<32 | satır); GPU belleğini ayıran konum olarak
-// okunur (gpu.SetAllocSite). Geri yayılım sırasında ayrılan bellek geri yayılımı başlatan
+// site o an çalışan deyimin konumudur (fonksiyon<<32 | satır); GPU belleğini ayıran konum
+// olarak okunur (gpu.SetAllocSite). Son deyimin konumu (pos) değil, görevin şu anki çağrı
+// derinliğindeki son deyimdir: bir fonksiyondan dönülünce ayrılan bellek çağrılanın son
+// satırında değil çağıran satırda sayılır. Ayırma görevin kendi goroutine'inde olduğundan
+// derinlik eskimiş olmaz. Geri yayılım sırasında ayrılan bellek geri yayılımı başlatan
 // satırdadır.
-func (o *sampler) site() uint64 { return loadPos(&o.pos) }
+func (o *sampler) site() uint64 {
+	if v := (*interp.VM)(loadTask(&o.task)); v != nil {
+		if d := readDepth(v); d < stackLimit {
+			return loadPos(&o.stack[d])
+		}
+	}
+	return loadPos(&o.pos)
+}
 
 // resolve bir konumu fonksiyonu, dosyası ve satırıyla verir.
 func (o *sampler) resolve(k uint64) posSample {
