@@ -18,3 +18,5 @@ func TestSquare_Area(t *testing.T) {
 }
 
 func TestTwiceName(t *testing.T) {}
+
+func TestReport(t *testing.T) { _ = Report(Square{1}) }

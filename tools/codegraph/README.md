@@ -23,7 +23,15 @@ on stderr; for `path`: no path).
 
 A name is resolved in this order, first tier with a match wins: node id (with or without its
 `kind:` prefix), exact name (`messages.New`, `H2100`, `interp.VM.Interrupt`), name ending at a `.`
-or `/` boundary (`New`, `lang/messages.New`), same case-insensitively.
+or `/` boundary (`New`, `lang/messages.New`), same case-insensitively. When none matches and the
+query has at least 3 characters, text search: a name that starts with it, a name that contains it,
+a `detail` (message text, rule text, heading) that contains it, all case-insensitive. One match is
+answered (`query "Cümle parçalardan"` finds the rule); several are listed (exit 3).
+
+`tests-for` lists the direct tests (`tests` edges), then the indirect ones: callers are followed
+backwards over EXTRACTED `calls` edges, at most 4 steps, up to the first test on each chain. They
+are shown nearest first as `N steps via <caller next to the target>`, always `[INFERRED]`. This is
+computed when you ask, not stored in `graph.json`.
 
 ## Graph
 
@@ -103,4 +111,5 @@ dictionaries, a README with rules, a doc with links, a broken link).
   `uses_name`, the three kinds of `tests` edge, `guarded_by` with its labels, headings, links, the
   broken-link and missing-test warnings, label and endpoint invariants, determinism, schema version.
 - `query_test.go`: `query`, ambiguity (exit 3), not found (exit 4), `path`, `who-uses`,
-  `tests-for`, flags after names, usage errors, missing graph, `build`.
+  `tests-for` (direct and indirect, depth limit), text search, flags after names, usage errors,
+  missing graph, `build`.

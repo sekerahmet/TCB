@@ -33,3 +33,9 @@ func Twice(s Shape) error {
 	}
 	return Describe(s)
 }
+
+// Report is called by a test and calls Twice: Describe is tested only indirectly.
+func Report(s Shape) error { return Twice(s) }
+
+// Orphan has no test.
+func Orphan() {}

@@ -12,7 +12,7 @@ Aynı işlemin CPU ve GPU sonuçları aynıdır (aynı çekirdek sözleşmesi).
 
 **Adlar sözlükten gelir.** Yerleşiklerin, üyelerin ve adlı argümanların adları sabit kodlara
 bağlıdır; ad değişikliği yalnızca çeviri dosyasını değiştirir.
-Denetim: `TestBuiltinsMatchDictionary`, `TestMembersMatchDictionary` (`internal/stdlib`), `TestCiplakAdYok` (`tools/gen/codeconsts`).
+Denetim: `TestBuiltinsMatchDictionary`, `TestMembersMatchDictionary` (`internal/stdlib`), `TestCiplakKodYok` (`tools/gen/codeconsts`).
 
 **Karışık hassasiyet bloğa bağlıdır.** `karışık_hassasiyet(tür) { ... }` görevin durumudur:
 başka görevlere sızmaz, blok bitince (hata ile de) önceki tür geri gelir. Ağırlıkların türü

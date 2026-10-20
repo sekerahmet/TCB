@@ -17,7 +17,7 @@ da söyler (`'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?`). Denetim: `Te
 hiçbir zaman önerilmez. Denetim: `TestAsciiSpellingSuggestsRealName`.
 
 **Adlar koddan gelir.** İpuçlarındaki dil adları elle yazılmaz, kod listesinden alınır; dil ya da
-ad değişince ipuçları da kendiliğinden değişir. Denetim: `TestCiplakAdYok` (tools/gen/codeconsts).
+ad değişince ipuçları da kendiliğinden değişir. Denetim: `TestCiplakKodYok` (tools/gen/codeconsts).
 
 **Yalnızca hata yolunda çalışır.** Buradaki işlevler program doğru çalışırken hiç çağrılmaz;
 hızdan çok anlaşılırlık önemlidir.

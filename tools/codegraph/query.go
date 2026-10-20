@@ -28,9 +28,13 @@ func newIndex(g *Graph) *index {
 	return ix
 }
 
+// minTextQuery metin aramasının en kısa sorgusudur (kısa parçalar her şeye uyar).
+const minTextQuery = 3
+
 // lookup bir sorgu metnini düğümlere çözer; ilk eşleşme veren basamaktaki bütün düğümleri döner
 // (birden çoksa belirsizdir): kimlik, kimliğin "tür:" önekleri atılmış hali, tam ad, sınırda
-// biten ad ("New" → "messages.New", yalnızca '.' ve '/' sınırında), büyük-küçük harfsiz tam ad.
+// biten ad ("New" → "messages.New", yalnızca '.' ve '/' sınırında), büyük-küçük harfsiz tam ad; hiçbiri tutmazsa metin aramaları: adın başı, adın alt dizesi, açıklama
+// metninin alt dizesi (en az minTextQuery karakter).
 func (ix *index) lookup(q string) []*Node {
 	if n := ix.byID[q]; n != nil {
 		return []*Node{n}
@@ -43,6 +47,15 @@ func (ix *index) lookup(q string) []*Node {
 		func(n *Node) bool { return strings.HasSuffix(n.Name, "."+q) || strings.HasSuffix(n.Name, "/"+q) },
 		func(n *Node) bool { return strings.HasSuffix(n.ID, "/"+q) }, // yolla nitelenmiş: internal/lang/messages.New
 		func(n *Node) bool { return strings.EqualFold(n.Name, q) },
+	}
+	// Metin aramaları: ad ya da (ileti, kural, başlık) açıklama metninin başı/alt dizesi.
+	if len([]rune(q)) >= minTextQuery {
+		lq := strings.ToLower(q)
+		tiers = append(tiers,
+			func(n *Node) bool { return strings.HasPrefix(strings.ToLower(n.Name), lq) },
+			func(n *Node) bool { return strings.Contains(strings.ToLower(n.Name), lq) },
+			func(n *Node) bool { return strings.Contains(strings.ToLower(n.Detail), lq) },
+		)
 	}
 	for _, match := range tiers {
 		var found []*Node
@@ -204,44 +217,4 @@ func (ix *index) printWhoUses(w io.Writer, n *Node, limit int) {
 		return
 	}
 	ix.printGroups(w, "  <-", uses, fromOf, limit, true)
-}
-
-// printTestsFor n'yi sınayan testleri yazar: EXTRACTED (çağrıdan ya da paketten) önce, addan
-// çıkarılanlar sonra; her testin koruduğu kurallar altında.
-func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
-	fmt.Fprintln(w, describe(n))
-	var tests []*Edge
-	for _, e := range ix.in[n.ID] {
-		if e.Kind == edgeTests {
-			tests = append(tests, e)
-		}
-	}
-	if len(tests) == 0 {
-		fmt.Fprintln(w, "  no tests found")
-		return
-	}
-	ix.printGroups(w, "  <-", tests, fromOf, limit, true)
-	rules := map[string]*Edge{}
-	var ids []string
-	for _, e := range tests {
-		for _, g := range ix.in[e.From] {
-			if g.Kind == edgeGuardedBy {
-				if _, ok := rules[g.From]; !ok {
-					ids = append(ids, g.From)
-				}
-				rules[g.From] = g
-			}
-		}
-	}
-	sort.Strings(ids)
-	if len(ids) > 0 {
-		fmt.Fprintf(w, "  rules guarded by these tests (%d):\n", len(ids))
-		for i, id := range ids {
-			if limit > 0 && i >= limit {
-				fmt.Fprintf(w, "    ... %d more (--all lists them)\n", len(ids)-limit)
-				break
-			}
-			fmt.Fprintf(w, "    %s\n", describe(ix.byID[id]))
-		}
-	}
 }

@@ -195,8 +195,9 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Ortam değişkeni adları | `internal/layout_test.go` (`TestLayoutEnvVarNames`) |
 | Dosya ve fonksiyon boyu | `internal/layout_test.go`, istisnalar `internal/layout_exceptions_test.go` |
 | Test dosyası düzeni | `internal/layout_test.go` (`TestTestFileMatchesSource`) |
+| README'lerdeki `Denetim:` ve `Kural`/`Test` tablosu satırlarının andığı test işlevleri ve dosyaları depoda var | `internal/rule_tests_test.go` (`TestRuleTestsExist`) |
 | Kullanıcıya görünen adlar koddan | `tools/gen/codeconsts` (`TestNoBareNames`) |
 | İleti kodları | `tools/gen/msgconsts` (`TestMessageUsage`) |
 | Üretilmiş dosyalar güncel | `tools/gen/*` `-denetle` (tam denetim) |
-| Kod listesindeki her örnek çalışır | `internal/lang/codes`, `internal/stdlib` (`codes_test.go`, `definitions_test.go`) |
+| Kod listesindeki her örnek çalışır | `internal/lang/codes`, `internal/stdlib` (`definition_test.go`, `behavior_definitions_test.go`) |
 | Dil kuralları | `tests/*_test.tr` (`tr test tests`) |
