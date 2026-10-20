@@ -1,11 +1,11 @@
 package lexer
 
 import (
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // allOf bir çözümleyicinin bütün sözcük birimlerini (dosya sonu hariç) okur.
@@ -46,10 +46,10 @@ func TestCodedTokens(t *testing.T) {
 		t.Errorf("gösterim sütunları: '=' %d, 'yazdır' %d (beklenen 15, 17)", toks[2].Column, toks[3].Column)
 	}
 	// Bilinmeyen kod hatadır; Türkçe yazılmış gövdede kodlar kod biçimli addır (2.3a).
-	if l := NewBody("G999", true); len(allOf(l)) != 1 || !strings.Contains(strings.Join(l.Errors(), ""), "'G999' bilinen bir kod değil") {
+	if l := NewBody("G999", true); len(allOf(l)) != 1 || !hasCode(l.Errs(), messages.H0001) {
 		t.Errorf("bilinmeyen kod hatası yok: %v", l.Errors())
 	}
-	if l := NewBody("G100", false); allOf(l) == nil || !strings.Contains(strings.Join(l.Errors(), ""), "kod biçiminde bir ad") {
+	if l := NewBody("G100", false); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
 		t.Errorf("Türkçe gövdede kod biçimli ad hatası yok: %v", l.Errors())
 	}
 }
@@ -72,7 +72,7 @@ func TestEscapedName(t *testing.T) {
 func TestNulCharacter(t *testing.T) {
 	l := New("a\x00b")
 	toks := allOf(l)
-	if len(toks) != 3 || toks[2].Literal != "b" || len(l.Errors()) != 1 || !strings.Contains(l.Errors()[0], "NUL") {
+	if len(toks) != 3 || toks[2].Literal != "b" || len(l.Errs()) != 1 || !hasCode(l.Errs(), messages.H0003) {
 		t.Errorf("NUL: %v %v", toks, l.Errors())
 	}
 }

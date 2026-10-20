@@ -158,7 +158,7 @@ func (s *dapServer) evalQuiet(v *interp.VM, env *interp.Environment, expr string
 	p := parser.New(lexer.New(expr))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		return nil, messages.New(messages.H8190, p.Errors()[0])
+		return nil, p.Errs()[0]
 	}
 	if len(prog.Statements) != 1 {
 		return nil, messages.New(messages.H8112, expr)

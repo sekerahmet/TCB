@@ -1,9 +1,8 @@
 package checker
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -91,13 +90,11 @@ func (c *Checker) checkTypeName(name string, line int) {
 		return
 	}
 	if canonical, ok := typeCaseSpellings[turkish.Lower(name)]; ok {
-		c.errors = append(c.errors, fmt.Sprintf(
-			"Satır %d: '%s' TR'de bir tip adı değil; tip adının tek yazımı vardır: '%s' yazın", line, name, canonical))
+		c.addError(line, 0, messages.New(messages.H1006, name, canonical))
 		return
 	}
 	if suggestion, ok := typeSuggestions[turkish.Lower(name)]; ok {
-		c.errors = append(c.errors, fmt.Sprintf(
-			"Satır %d: '%s' TR'de bir tip adı değil; '%s' yazmak mı istediniz?", line, name, suggestion))
+		c.addError(line, 0, messages.New(messages.H1007, name, suggestion))
 	}
 }
 
@@ -135,8 +132,7 @@ func typesCompatible(expected, actual string) bool {
 // numberHint Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir.
 func numberHint(expected, given string) string {
 	if normalizeTypeName(expected) == typeInt && given == typeNumber {
-		return fmt.Sprintf("; '/' bölüm tam çıkmazsa, '**' üs negatifse %s verir: %s için %s(...) kullanın ya da tipi %s yapın",
-			typeFloat, typeInt, codes.Name(codes.G210), typeFloat)
+		return messages.Text(messages.H1008, typeFloat, typeInt, codes.Name(codes.G210))
 	}
 	return ""
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // --- İFADE ÇÖZÜMLEME (PRATT PARSER) ---
@@ -56,7 +57,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	case lexer.TOKEN_LBRACE:
 		leftExp = p.parseDictLiteral()
 	default:
-		p.addError("Sözdizimi hatası — burada bir değer ya da ifade bekleniyordu, ancak %s bulundu", tokenDescription(p.curToken()))
+		p.syntaxError(p.curToken(), messages.H0141, tokenDescription(p.curToken()))
 		return nil
 	}
 
@@ -106,7 +107,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	tok := p.curToken()
 	val, err := strconv.ParseInt(tok.Literal, 10, 64)
 	if err != nil {
-		p.addError("%s tam sayı olarak çok büyük (en fazla %d olabilir; ondalık sayı için sonuna .0 ekleyin)", tok.Literal, int64(math.MaxInt64))
+		p.recordError(p.curToken(), messages.New(messages.H0165, tok.Literal, int64(math.MaxInt64)))
 		return nil
 	}
 	return &ast.IntegerLiteral{Token: tok, Value: val}
@@ -115,7 +116,7 @@ func (p *Parser) parseFloatLiteral() ast.Expression {
 	tok := p.curToken()
 	val, err := strconv.ParseFloat(tok.Literal, 64)
 	if err != nil {
-		p.addError("%s ondalık sayı olarak çok büyük ya da geçersiz", tok.Literal)
+		p.recordError(p.curToken(), messages.New(messages.H0166, tok.Literal))
 		return nil
 	}
 	return &ast.FloatLiteral{Token: tok, Value: val}

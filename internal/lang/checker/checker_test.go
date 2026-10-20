@@ -8,48 +8,11 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
-
-// check kaynağı ayrıştırır (sözdizimi hatası testi düşürür) ve tip denetimi hatalarını döndürür.
-func check(t *testing.T, source string) []string {
-	t.Helper()
-	p := parser.New(lexer.New(source))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatalf("beklenmeyen sözdizimi hataları: %v\nkaynak:\n%s", p.Errors(), source)
-	}
-	c := New()
-	errs := c.CheckProgram(prog)
-	if len(errs) != len(c.Errors()) {
-		t.Errorf("CheckProgram ve Errors() farklı sayıda hata döndürdü: %v / %v", errs, c.Errors())
-	}
-	return errs
-}
-
-func noErrors(t *testing.T, source string) {
-	t.Helper()
-	if errs := check(t, source); len(errs) > 0 {
-		t.Errorf("hata beklenmiyordu, gelen: %v\nkaynak:\n%s", errs, source)
-	}
-}
-
-// singleError kaynağın tam olarak bir hata üretmesini ve hatanın tüm parçaları içermesini bekler.
-func singleError(t *testing.T, source string, parts ...string) {
-	t.Helper()
-	errs := check(t, source)
-	if len(errs) != 1 {
-		t.Errorf("tek bir hata bekleniyordu, gelen %d: %v\nkaynak:\n%s", len(errs), errs, source)
-		return
-	}
-	for _, p := range parts {
-		if !strings.Contains(errs[0], p) {
-			t.Errorf("hata %q parçasını içermeli, gelen: %q\nkaynak:\n%s", p, errs[0], source)
-		}
-	}
-}
 
 // ---------------------------------------------------------------------------
 // Tip adları ve uyumluluk kuralları
@@ -78,17 +41,17 @@ func TestTypeNameNormalization(t *testing.T) {
 // Tip adlarının yalnızca Türkçe yazımı geçerlidir; ASCII yazım hata verir ve asıl adı
 // önerir (tek hata: aynı satırda ayrıca tip uyuşmazlığı bildirilmez).
 func TestTypeNameASCIISuggestion(t *testing.T) {
-	singleError(t, `değişken a: ondalik = 1.5`, "Satır 1: 'ondalik' TR'de bir tip adı değil; 'Ondalık' yazmak mı istediniz?")
+	singleError(t, `değişken a: ondalik = 1.5`, messages.H1007, 1, "'ondalik'", "'Ondalık'")
 	singleError(t, `değişken a: Mantık = doğru
-değişken b: tensor = yok`, "Satır 2: 'tensor' TR'de bir tip adı değil; 'Tensör' yazmak mı istediniz?")
-	singleError(t, `fonksiyon f(x: sozluk) { sonuç x }`, "'sozluk' TR'de bir tip adı değil; 'Sözlük'")
-	singleError(t, `fonksiyon f(x) -> mantik { sonuç doğru }`, "'mantik' TR'de bir tip adı değil; 'Mantık'")
+değişken b: tensor = yok`, messages.H1007, 2, "'tensor'", "'Tensör'")
+	singleError(t, `fonksiyon f(x: sozluk) { sonuç x }`, messages.H1007, 1, "'sozluk'", "'Sözlük'")
+	singleError(t, `fonksiyon f(x) -> mantik { sonuç doğru }`, messages.H1007, 1, "'mantik'", "'Mantık'")
 	// Kaldırılan eş yazımlar da hata verir ve asıl adı önerir.
 	for name, canonical := range map[string]string{"tamsayı": "Tam", "int": "Tam", "sayı": "Ondalık", "float": "Ondalık",
 		"yazı": "Metin", "str": "Metin", "string": "Metin", "mantıksal": "Mantık", "bool": "Mantık", "boş": "Yok",
 		"null": "Yok", "dizi": "Liste", "list": "Liste", "harita": "Sözlük", "dict": "Sözlük", "map": "Sözlük",
 		"Matris": "Tensör", "matrix": "Tensör", "TAMSAYI": "Tam"} {
-		singleError(t, "değişken a: "+name, "'"+name+"' TR'de bir tip adı değil; '"+canonical+"' yazmak mı istediniz?")
+		singleError(t, "değişken a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 }
 
@@ -98,11 +61,11 @@ func TestTypeNameCaseSpelling(t *testing.T) {
 	for name, canonical := range map[string]string{"tam": "Tam", "TAM": "Tam", "ondalık": "Ondalık", "ONDALIK": "Ondalık",
 		"METİN": "Metin", "mantık": "Mantık", "aralık": "Aralık", "tensör": "Tensör", "YOK": "Yok",
 		"yerleşikFonksiyon": "YerleşikFonksiyon", "tip": "Tip"} {
-		singleError(t, "değişken a: "+name, "Satır 1: '"+name+"' TR'de bir tip adı değil; tip adının tek yazımı vardır: '"+canonical+"' yazın")
+		singleError(t, "değişken a: "+name, messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
 	}
-	singleError(t, `fonksiyon f(x: liste) { sonuç x }`, "'liste' TR'de bir tip adı değil", "'Liste' yazın")
-	singleError(t, `fonksiyon f(x) -> sözlük { sonuç {} }`, "'sözlük' TR'de bir tip adı değil", "'Sözlük' yazın")
-	singleError(t, "değişken a: tam = 1\ndeğişken b: Tam = a", "Satır 1: 'tam'")
+	singleError(t, `fonksiyon f(x: liste) { sonuç x }`, messages.H1006, 1, "'liste'", "'Liste'")
+	singleError(t, `fonksiyon f(x) -> sözlük { sonuç {} }`, messages.H1006, 1, "'sözlük'", "'Sözlük'")
+	singleError(t, "değişken a: tam = 1\ndeğişken b: Tam = a", messages.H1006, 1, "'tam'")
 }
 
 func TestTypeCompatibility(t *testing.T) {
@@ -199,13 +162,13 @@ func TestTypedVarIncompatible(t *testing.T) {
 		{`değişken a: Metin = 5 ?? "x"`, "Metin", "Tam"},
 	}
 	for _, tt := range tests {
-		singleError(t, tt.source, "Satır 1:", "Tip uyuşmazlığı", `"`+tt.expected+`"`, `"`+tt.actual+`"`)
+		singleError(t, tt.source, messages.H1001, 1, `"`+tt.expected+`"`, `"`+tt.actual+`"`)
 	}
 }
 
 func TestTypeErrorLineAndVarName(t *testing.T) {
 	singleError(t, "değişken a = 1\n\ndeğişken öğrenci_sayısı: Tam = \"çok\"",
-		"Satır 3:", `"öğrenci_sayısı" değişkeni`)
+		messages.H1001, 3, `"öğrenci_sayısı" değişkeni`)
 }
 
 // ---------------------------------------------------------------------------
@@ -214,7 +177,7 @@ func TestTypeErrorLineAndVarName(t *testing.T) {
 
 func TestAssignmentTypeCheck(t *testing.T) {
 	// Belirtilen tip korunur
-	singleError(t, "değişken a: Tam = 1\na = \"x\"", "Satır 2:", "Tip uyuşmazlığı", `"a" değişkeni (Tam)`, `"Metin"`)
+	singleError(t, "değişken a: Tam = 1\na = \"x\"", messages.H1005, 2, `"a" değişkeni (Tam)`, `"Metin"`)
 	noErrors(t, "değişken a: Ondalık = 1\na = 2.5\na = 3")
 
 	// Dil dinamiktir: tip açıklaması olmayan değişkenin ilk değerden çıkarılan tipi kalıcı
@@ -222,7 +185,7 @@ func TestAssignmentTypeCheck(t *testing.T) {
 	noErrors(t, "değişken a = 5\na = \"beş\"")
 	noErrors(t, "x := doğru\nx = 1")
 	noErrors(t, "değişken kayıp = 0\ndöngü i içinde 1..3 { kayıp += 0.5 }")
-	singleError(t, "sabit S = 5\ndeğişken m: Metin = S", "Satır 2:", `"Metin"`, `"Tam"`)
+	singleError(t, "sabit S = 5\ndeğişken m: Metin = S", messages.H1001, 2, `"Metin"`, `"Tam"`)
 
 	// 'yok' veya bilinmeyen tipte başlayan değişkenler serbestçe atanabilir
 	noErrors(t, "değişken a = yok\na = 5\na = \"x\"")
@@ -230,7 +193,7 @@ func TestAssignmentTypeCheck(t *testing.T) {
 	noErrors(t, "değişken a\na = [1]")
 
 	// Tanımlanmamış bir hedefe atama tanımsız ad hatasıdır (5.4, 5.14)
-	singleError(t, "tanımsız = 5", "Tanımsız ad — 'tanımsız'")
+	singleError(t, "tanımsız = 5", messages.H1010, 1, "'tanımsız'")
 }
 
 func TestCompoundAssignment(t *testing.T) {
@@ -243,33 +206,33 @@ func TestCompoundAssignment(t *testing.T) {
 
 	// 'x = x + 0.5' gibi, Tam açıklamalı bir değişkene Ondalık sonuç atanamaz; açıklamasız
 	// değişken (biriktirici) serbesttir.
-	singleError(t, "değişken x: Tam = 1\nx += 0.5", "Satır 2:", `"x" değişkeni (Tam)`, `"Ondalık"`)
-	singleError(t, "değişken x: Tam = 1\nx = x + 0.5", "Satır 2:", `"x" değişkeni (Tam)`, `"Ondalık"`)
+	singleError(t, "değişken x: Tam = 1\nx += 0.5", messages.H1005, 2, `"x" değişkeni (Tam)`, `"Ondalık"`)
+	singleError(t, "değişken x: Tam = 1\nx = x + 0.5", messages.H1005, 2, `"x" değişkeni (Tam)`, `"Ondalık"`)
 	noErrors(t, "değişken x = 1\nx += 0.5")
 
 	// '/' Tam/Tam'da tam bölünmezse Ondalık verir (10 / 4 = 2.5): sonuç "Tam ya da Ondalık"tır.
 	noErrors(t, "değişken x = 10\nx /= 4")
-	singleError(t, "değişken y: Tam = 10 / 4", "Satır 1:", `"Tam ya da Ondalık"`, "tam(...)")
-	singleError(t, "değişken y: Tam = 10\ny /= 4", "Satır 2:", `"Tam ya da Ondalık"`)
+	singleError(t, "değişken y: Tam = 10 / 4", messages.H1001, 1, `"Tam ya da Ondalık"`, "tam(...)")
+	singleError(t, "değişken y: Tam = 10\ny /= 4", messages.H1005, 2, `"Tam ya da Ondalık"`)
 }
 
 func TestConstCannotChange(t *testing.T) {
-	singleError(t, "sabit PI = 3.14\nPI = 3.0", "Satır 2:", "Sabit hatası", `"PI"`)
-	singleError(t, "sabit SAYAÇ = 1\nSAYAÇ += 1", "Satır 2:", "Sabit hatası", `"SAYAÇ"`)
-	singleError(t, "sabit a: Metin = \"x\"\na = \"y\"", "Satır 2:", "Sabit hatası")
+	singleError(t, "sabit PI = 3.14\nPI = 3.0", messages.H1002, 2, `"PI"`)
+	singleError(t, "sabit SAYAÇ = 1\nSAYAÇ += 1", messages.H1002, 2, `"SAYAÇ"`)
+	singleError(t, "sabit a: Metin = \"x\"\na = \"y\"", messages.H1002, 2)
 
 	// Çoklu tanım ve çoklu atama
-	singleError(t, "sabit a, b = 1, 2\nb = 3", "Satır 2:", "Sabit hatası", `"b"`)
-	singleError(t, "sabit a = 1\ndeğişken b = 2\nb, a = a, b", "Satır 3:", "Sabit hatası", `"a"`)
+	singleError(t, "sabit a, b = 1, 2\nb = 3", messages.H1002, 2, `"b"`)
+	singleError(t, "sabit a = 1\ndeğişken b = 2\nb, a = a, b", messages.H1002, 3, `"a"`)
 
 	// İç kapsamlardan dış sabite atama da yakalanır
-	singleError(t, "sabit a = 1\neğer doğru {\n  a = 2\n}", "Satır 3:", "Sabit hatası")
-	singleError(t, "sabit a = 1\nfonksiyon f() {\n  a = 2\n}", "Satır 3:", "Sabit hatası")
-	singleError(t, "sabit a = 1\ndöngü i içinde 1..3 {\n  a = i\n}", "Satır 3:", "Sabit hatası")
+	singleError(t, "sabit a = 1\neğer doğru {\n  a = 2\n}", messages.H1002, 3)
+	singleError(t, "sabit a = 1\nfonksiyon f() {\n  a = 2\n}", messages.H1002, 3)
+	singleError(t, "sabit a = 1\ndöngü i içinde 1..3 {\n  a = i\n}", messages.H1002, 3)
 
 	// Hem sabit hem tip hatası aynı anda bildirilir
-	errs := check(t, "sabit a = 1\na = \"x\"")
-	if len(errs) != 2 || !strings.Contains(errs[0], "Sabit hatası") || !strings.Contains(errs[1], "Tip uyuşmazlığı") {
+	errs, coded := checkErrs(t, "sabit a = 1\na = \"x\"")
+	if len(errs) != 2 || !messages.Has(coded[0], messages.H1002) || !messages.Has(coded[1], messages.H1005) {
 		t.Errorf("önce sabit, sonra tip hatası bekleniyordu, gelen: %v", errs)
 	}
 }
@@ -282,7 +245,7 @@ func TestConstShadowing(t *testing.T) {
 	noErrors(t, "sabit i = 1\ndöngü i, x içinde [1, 2] {\n  i = 5\n}")
 	noErrors(t, "sabit e = 1\ndene {\n} yakala e {\n  e = \"x\"\n}")
 	// Blok bitince dış sabit yeniden geçerlidir
-	singleError(t, "sabit x = 1\neğer doğru {\n  değişken x = 2\n}\nx = 3", "Satır 5:", "Sabit hatası")
+	singleError(t, "sabit x = 1\neğer doğru {\n  değişken x = 2\n}\nx = 3", messages.H1002, 5)
 }
 
 // ---------------------------------------------------------------------------
@@ -291,40 +254,40 @@ func TestConstShadowing(t *testing.T) {
 
 func TestFunctionParamTypes(t *testing.T) {
 	def := "fonksiyon kare(x: Tam) { sonuç x * x }\n"
-	singleError(t, def+`kare("üç")`, "Satır 2:", "Fonksiyon çağrısı tip hatası", `"kare"`, "1. parametresi", `"Tam"`, `"Metin"`)
+	singleError(t, def+`kare("üç")`, messages.H1004, 2, `"kare"`, "1. parametresi", `"Tam"`, `"Metin"`)
 	noErrors(t, def+"kare(3)")
 	noErrors(t, def+"kare(girdi())")
 	noErrors(t, def+"kare(yok)")
 
 	two := "fonksiyon böl(a: Ondalık, b: Ondalık) -> Ondalık { sonuç a / b }\n"
 	noErrors(t, two+"böl(1, 2)")
-	singleError(t, two+`böl(1, "iki")`, "2. parametresi", `"Ondalık"`, `"Metin"`)
+	singleError(t, two+`böl(1, "iki")`, messages.H1004, 0, "2. parametresi", `"Ondalık"`, `"Metin"`)
 
 	// Tipsiz parametreler her değeri kabul eder
 	noErrors(t, "fonksiyon f(a, b: Tam) { }\nf(\"x\", 2)")
-	singleError(t, "fonksiyon f(a, b: Tam) { }\nf(\"x\", \"y\")", "2. parametresi")
+	singleError(t, "fonksiyon f(a, b: Tam) { }\nf(\"x\", \"y\")", messages.H1004, 0, "2. parametresi")
 
 	// Parametreler fonksiyon gövdesinde bildirilen tipleriyle bilinir
-	singleError(t, "fonksiyon f(a: Metin) {\n  değişken b: Tam = a\n}", "Satır 2:", `"b"`, `"Metin"`)
+	singleError(t, "fonksiyon f(a: Metin) {\n  değişken b: Tam = a\n}", messages.H1001, 2, `"b"`, `"Metin"`)
 
 	// Özyinelemeli çağrılar da denetlenir (ad, gövdeden önce tanımlanır)
-	singleError(t, "fonksiyon f(n: Tam) {\n  sonuç f(\"x\")\n}", "Satır 2:", "Fonksiyon çağrısı tip hatası")
+	singleError(t, "fonksiyon f(n: Tam) {\n  sonuç f(\"x\")\n}", messages.H1004, 2)
 
 	// İç içe çağrılar denetlenir
-	singleError(t, def+"yazdır(kare(\"a\"))", "Satır 2:", "Fonksiyon çağrısı tip hatası")
-	singleError(t, def+"kare(kare(\"a\"))", "Satır 2:", "Fonksiyon çağrısı tip hatası")
+	singleError(t, def+"yazdır(kare(\"a\"))", messages.H1004, 2)
+	singleError(t, def+"kare(kare(\"a\"))", messages.H1004, 2)
 	// Fazladan argümanlar ve isimli argümanlar içindeki çağrılar da denetlenir
-	singleError(t, def+"kare(1, kare(\"a\"))", "Satır 2:", "Fonksiyon çağrısı tip hatası")
-	singleError(t, def+"yazdır(1, ayraç: kare(\"a\"))", "Satır 2:", "Fonksiyon çağrısı tip hatası")
+	singleError(t, def+"kare(1, kare(\"a\"))", messages.H1004, 2)
+	singleError(t, def+"yazdır(1, ayraç: kare(\"a\"))", messages.H1004, 2)
 }
 
 func TestFunctionReturnTypeInference(t *testing.T) {
 	def := "fonksiyon topla(a: Tam, b: Tam) -> Tam { sonuç a + b }\n"
-	singleError(t, def+"değişken s: Metin = topla(1, 2)", "Satır 2:", `"Metin"`, `"Tam"`)
+	singleError(t, def+"değişken s: Metin = topla(1, 2)", messages.H1001, 2, `"Metin"`, `"Tam"`)
 	noErrors(t, def+"değişken s: Ondalık = topla(1, 2)")
 
 	// Parametresiz fonksiyonların dönüş tipi de kullanılır
-	singleError(t, "fonksiyon ad(): Metin { sonuç \"Ali\" }\ndeğişken n: Tam = ad()", "Satır 2:", `"Tam"`, `"Metin"`)
+	singleError(t, "fonksiyon ad(): Metin { sonuç \"Ali\" }\ndeğişken n: Tam = ad()", messages.H1001, 2, `"Tam"`, `"Metin"`)
 
 	// Dönüş tipi belirtilmemişse sonuç bilinmez (Herhangi)
 	noErrors(t, "fonksiyon f(a: Tam) { sonuç a }\ndeğişken s: Metin = f(1)")
@@ -332,16 +295,16 @@ func TestFunctionReturnTypeInference(t *testing.T) {
 }
 
 func TestReturnTypeCheck(t *testing.T) {
-	singleError(t, "fonksiyon f(): Tam {\n  sonuç \"x\"\n}", "Satır 2:", "Dönüş tipi uyuşmazlığı", `"Tam"`, `"Metin"`)
-	singleError(t, "fonksiyon f() -> Metin {\n  sonuç 1\n}", "Satır 2:", "Dönüş tipi uyuşmazlığı")
-	singleError(t, "fonksiyon f(): Tam { sonuç 2.5 }", "Dönüş tipi uyuşmazlığı", `"Ondalık"`)
+	singleError(t, "fonksiyon f(): Tam {\n  sonuç \"x\"\n}", messages.H1003, 2, `"Tam"`, `"Metin"`)
+	singleError(t, "fonksiyon f() -> Metin {\n  sonuç 1\n}", messages.H1003, 2)
+	singleError(t, "fonksiyon f(): Tam { sonuç 2.5 }", messages.H1003, 0, `"Ondalık"`)
 	// Tam / Tam Tam olmayabilir (7 / 2 = 3.5): ': Tam' bildiren fonksiyon bunu döndüremez
-	singleError(t, "fonksiyon ort(a: Tam, b: Tam): Tam { sonuç a / b }", "Dönüş tipi uyuşmazlığı", `"Tam ya da Ondalık"`)
+	singleError(t, "fonksiyon ort(a: Tam, b: Tam): Tam { sonuç a / b }", messages.H1003, 0, `"Tam ya da Ondalık"`)
 	noErrors(t, "fonksiyon ort(a: Tam, b: Tam): Ondalık { sonuç a / b }")
 
 	// İç bloklardaki dönüşler de denetlenir
-	singleError(t, "fonksiyon f(x): Tam {\n  eğer x {\n    sonuç \"a\"\n  }\n  sonuç 1\n}", "Satır 3:", "Dönüş tipi uyuşmazlığı")
-	singleError(t, "fonksiyon f(x): Tam {\n  döngü i içinde x {\n    sonuç doğru\n  }\n}", "Satır 3:", "Dönüş tipi uyuşmazlığı")
+	singleError(t, "fonksiyon f(x): Tam {\n  eğer x {\n    sonuç \"a\"\n  }\n  sonuç 1\n}", messages.H1003, 3)
+	singleError(t, "fonksiyon f(x): Tam {\n  döngü i içinde x {\n    sonuç doğru\n  }\n}", messages.H1003, 3)
 
 	for _, source := range []string{
 		"fonksiyon f(): Ondalık { sonuç 1 }",       // Tam -> Ondalık
@@ -361,8 +324,9 @@ func TestReturnTypeCheck(t *testing.T) {
 	noErrors(t, "fonksiyon f(): Tam {\n  değişken g = (x) => \"metin\"\n  sonuç 1\n}")
 	noErrors(t, "fonksiyon f(): Tam {\n  fonksiyon g() { sonuç \"metin\" }\n  sonuç 1\n}")
 	// İç fonksiyonun kendi dönüş tipi denetlenir; dış fonksiyonunki geri yüklenir
-	errs := check(t, "fonksiyon f(): Tam {\n  fonksiyon g(): Metin { sonuç 1 }\n  sonuç \"x\"\n}")
-	if len(errs) != 2 || !strings.Contains(errs[0], `"Metin"`) || !strings.Contains(errs[1], `fonksiyon "Tam"`) {
+	errs, coded := checkErrs(t, "fonksiyon f(): Tam {\n  fonksiyon g(): Metin { sonuç 1 }\n  sonuç \"x\"\n}")
+	if len(errs) != 2 || !messages.Has(coded[0], messages.H1003) || !messages.Has(coded[1], messages.H1003) ||
+		!strings.Contains(errs[0], `"Metin"`) || !strings.Contains(errs[1], `"Tam"`) {
 		t.Errorf("iç ve dış fonksiyon için birer dönüş hatası bekleniyordu, gelen: %v", errs)
 	}
 }
@@ -403,24 +367,29 @@ func TestNestedStatementsAreChecked(t *testing.T) {
 	}
 	for name, body := range tests {
 		t.Run(name, func(t *testing.T) {
-			singleError(t, def+body, "Fonksiyon çağrısı tip hatası")
+			singleError(t, def+body, messages.H1004, 0)
 		})
 	}
 }
 
 func TestMultipleErrorsInOrder(t *testing.T) {
-	errs := check(t, `değişken a: Tam = "x"
+	errs, coded := checkErrs(t, `değişken a: Tam = "x"
 sabit b = 1
 b = 2
 fonksiyon f(x: Metin): Tam { sonuç x }
 f(5)`)
-	expected := []string{"Satır 1: Tip uyuşmazlığı", "Satır 3: Sabit hatası", "Satır 4: Dönüş tipi", "Satır 5: Fonksiyon çağrısı"}
+	expected := []struct {
+		line int
+		code messages.Code
+	}{{1, messages.H1001}, {3, messages.H1002}, {4, messages.H1003}, {5, messages.H1004}}
 	if len(errs) != len(expected) {
 		t.Fatalf("%d hata bekleniyordu, gelen: %v", len(expected), errs)
 	}
 	for i, b := range expected {
-		if !strings.HasPrefix(errs[i], b) {
-			t.Errorf("hata[%d] %q ile başlamalı, gelen: %q", i, b, errs[i])
+		expectCode(t, coded[i], b.code, b.line)
+		// Metin biçimi: "Satır N: ..." ile başlar.
+		if prefix := fmt.Sprintf("Satır %d: ", b.line); !strings.HasPrefix(errs[i], prefix) {
+			t.Errorf("hata[%d] %q ile başlamalı, gelen: %q", i, prefix, errs[i])
 		}
 	}
 }

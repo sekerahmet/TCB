@@ -3,6 +3,8 @@ package lexer
 import (
 	"fmt"
 	"unicode"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Source text that reads differently from what it shows is rejected (2.1a):
@@ -39,7 +41,7 @@ func (l *Lexer) checkBidi() {
 			continue
 		}
 		if isBidiControl(r) {
-			l.addError(line, col, "yazı yönünü değiştiren görünmez bir karakter var (U+%04X); kodun göründüğünden farklı okunmasına yol açabileceği için kaynakta kullanılamaz, karakteri silin", r)
+			l.addError(line, col, messages.New(messages.H0011, fmt.Sprintf("%04X", r)))
 		}
 	}
 }
@@ -60,13 +62,13 @@ func (l *Lexer) checkName(name string, line, col int) {
 	used := ""
 	for _, r := range name {
 		if isInvisibleLetter(r) {
-			l.addError(line, col, "'%s' adında görünmez bir harf var (U+%04X); adı yeniden yazın", name, r)
+			l.addError(line, col, messages.New(messages.H0012, name, fmt.Sprintf("%04X", r)))
 			return
 		}
 		for _, s := range scripts {
 			if unicode.Is(s.table, r) {
 				if used != "" && used != s.name {
-					l.addError(line, col, "%s", fmt.Sprintf("'%s' adında farklı yazı sistemlerinin harfleri karışık (%s ve %s): benzer görünen başka bir adla karışabilir, adı tek bir yazı sistemiyle yazın", name, used, s.name))
+					l.addError(line, col, messages.New(messages.H0013, name, used, s.name))
 					return
 				}
 				used = s.name

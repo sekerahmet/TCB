@@ -1,8 +1,9 @@
 package lexer
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // readRawString ters tırnaklı ham metni (`...`) okur: içinde kaçış dizisi ve '{ifade}'
@@ -19,7 +20,7 @@ func (l *Lexer) readRawString(startLine, startCol int) string {
 	for l.ch != '`' {
 		switch l.ch {
 		case 0:
-			l.addError(startLine, startCol, "kapatılmamış ham metin: ` ile başlayan metin dosya sonuna kadar kapanmadı")
+			l.addError(startLine, startCol, messages.New(messages.H0007))
 			return sb.String()
 		case '{':
 			sb.WriteRune(EscapedLBrace)
@@ -68,7 +69,7 @@ func (l *Lexer) readEscape(sb *strings.Builder) {
 	default:
 		// Bilinmeyen kaçış hatadır: ters bölüyü sessizce atmak düzenli ifadeleri
 		// ("\d") ve Windows yollarını ("C:\veri") fark edilmeden bozardı.
-		l.addError(escLine, escCol, "%s", unknownEscape(l.ch))
+		l.addError(escLine, escCol, messages.New(messages.H0008, unknownEscape(l.ch)))
 		l.appendString(sb, '\\', begin)
 		if l.ch == '\r' && l.peekChar() == '\n' {
 			l.readChar()
@@ -79,7 +80,7 @@ func (l *Lexer) readEscape(sb *strings.Builder) {
 	l.readChar()
 }
 
-// unknownEscape tırnaklı metindeki tanınmayan '\c' kaçış dizisinin hata mesajıdır.
+// unknownEscape tırnaklı metindeki tanınmayan '\c' kaçış dizisini hata iletisi için anlatır.
 func unknownEscape(c rune) string {
 	arr := "'\\" + string(c) + "'"
 	switch c {
@@ -88,6 +89,5 @@ func unknownEscape(c rune) string {
 	case '\t':
 		arr = "'\\' ve sekme"
 	}
-	return fmt.Sprintf("bilinmeyen kaçış dizisi %s (bilinenler: \\n \\t \\r \\\" \\' \\\\ \\{ \\}); "+
-		"ters bölüyü olduğu gibi yazmak için ham metin (`C:\\veri`, `\\d+`) kullanın ya da ters bölüyü ikileyin (\"\\\\\")", arr)
+	return arr
 }

@@ -4,6 +4,78 @@ package messages
 
 // İleti kodları (tr.json); her sabitin yorumu Türkçe metnidir.
 const (
+	H0001 Code = 1    // '{name}' bilinen bir kod değil; kodlu dosyada dilin sözcükleri kod listesindeki kodlarıyla (ör. {example}), kullanıcının adları adlarıyla yazılır
+	H0002 Code = 2    // '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun
+	H0003 Code = 3    // kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir
+	H0004 Code = 4    // '{name}' kod biçiminde bir ad (büyük harf ve üç rakam); bu biçimdeki adlar dilin kodları için ayrılmıştır, başka bir ad seçin (ör. {name}_ ya da {lower}). Kodlu dosyalar ilk satırdaki '{header}' başlığıyla başlar
+	H0005 Code = 5    // '#' TR'de yorum değil; yorum için '//' yazın
+	H0006 Code = 6    // kapatılmamış yorum: '/*' ile başlayan yorum dosya sonuna kadar '*/' ile kapanmadı
+	H0007 Code = 7    // kapatılmamış ham metin: ` ile başlayan metin dosya sonuna kadar kapanmadı
+	H0008 Code = 8    // bilinmeyen kaçış dizisi {escape} (bilinenler: \n \t \r \" \' \\ \{{ \}}); ters bölüyü olduğu gibi yazmak için ham metin (`C:\veri`, `\d+`) kullanın ya da ters bölüyü ikileyin ("\\")
+	H0009 Code = 9    // metin içindeki '{{' kapatılmamış (interpolasyon aynı satırda '}}' ile bitmeli; düz süslü parantez için '\{{' yazın)
+	H0010 Code = 10   // kapatılmamış metin: {quote} ile başlayan metin dosya sonuna kadar kapanmadı
+	H0011 Code = 11   // yazı yönünü değiştiren görünmez bir karakter var (U+{hex}); kodun göründüğünden farklı okunmasına yol açabileceği için kaynakta kullanılamaz, karakteri silin
+	H0012 Code = 12   // '{name}' adında görünmez bir harf var (U+{hex}); adı yeniden yazın
+	H0013 Code = 13   // '{name}' adında farklı yazı sistemlerinin harfleri karışık ({first} ve {second}): benzer görünen başka bir adla karışabilir, adı tek bir yazı sistemiyle yazın
+	H0100 Code = 100  // Sözdizimi hatası — {error}
+	H0110 Code = 110  // dosya sonu
+	H0111 Code = 111  // bir ad
+	H0112 Code = 112  // bir tam sayı
+	H0113 Code = 113  // bir ondalık sayı
+	H0114 Code = 114  // bir metin
+	H0115 Code = 115  // geçersiz bir karakter
+	H0116 Code = 116  // '{spelling}' anahtar kelimesi
+	H0117 Code = 117  // '{token}'
+	H0118 Code = 118  // '{name}' adı
+	H0119 Code = 119  // {number} sayısı
+	H0120 Code = 120  // {text|q} metni
+	H0121 Code = 121  // geçersiz '{char}' karakteri
+	H0130 Code = 130  //  (karşılaştırma için '==' yazın; '=' yalnızca atamadır)
+	H0131 Code = 131  //  (açılan bir parantez kapatılmamış olabilir; '{closer}' ekleyin)
+	H0140 Code = 140  // {expected} bekleniyordu, ancak {found} bulundu{hint}
+	H0141 Code = 141  // burada bir değer ya da ifade bekleniyordu, ancak {found} bulundu
+	H0142 Code = 142  // çoklu değişken tanımında '=' bekleniyordu, ancak {found} bulundu
+	H0143 Code = 143  // '{keyword}' modül yolunu metin olarak bekler, ancak {found} bulundu: {keyword} "{example}" yazın
+	H0144 Code = 144  // '{name}' {kind} '{struct}' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)
+	H0145 Code = 145  // metodu
+	H0146 Code = 146  // alanı
+	H0147 Code = 147  // yapı gövdesinde yalnızca alanlar (ad, ad: Tip, ad = değer) ve fonksiyon tanımları bulunabilir; {what}
+	H0148 Code = 148  // {found} bir alan tanımı değil
+	H0149 Code = 149  // '{name}' ardından gelen {found} bir alan tanımı değil (alanlar virgül ya da satır sonuyla ayrılır)
+	H0150 Code = 150  // yapı metodunun bir adı olmalı: fonksiyon ad(...) {{ ... }}
+	H0151 Code = 151  // '{keyword}' yalnızca bir döngünün içinde kullanılabilir{extra}
+	H0152 Code = 152  // ; fonksiyondan çıkmak için '{keyword}' yazın
+	H0153 Code = 153  // '{keyword}' test gövdesinde kullanılamaz; test kendi sonuna kadar çalışır (erken bitirmek istediğiniz kısmı bir '{block}' bloğuna alın)
+	H0154 Code = 154  // '{keyword}' modülün üst düzeyinde kullanılamaz; modül bir fonksiyon değildir, aktaran programı bitiremez
+	H0155 Code = 155  // ifade ya da blok çok derin iç içe (en fazla {max} düzey); kodu ara değişkenlere ya da fonksiyonlara bölün
+	H0156 Code = 156  // '{{' kapatılmadı; dosya bitti ama bu bloğu kapatan '}}' bulunamadı
+	H0157 Code = 157  // metindeki her '{{' bir yerleştirme başlatır, ama '{{{expr}}}' {problem}. Düz süslü parantez için '\{{' yazın ya da ham metin kullanın: `...{{...}}...`
+	H0158 Code = 158  // boş
+	H0159 Code = 159  // iç içelik sınırı aşıldı
+	H0160 Code = 160  // bir ifade değil ({detail})
+	H0161 Code = 161  // tek bir ifade olmalı
+	H0162 Code = 162  // bir ifade değil, bir deyim
+	H0163 Code = 163  // {reduce} metodunun sondaki bloğunda {acc} önceki sonuç, {it} sıradaki elemandır; {it}[0] ve {it}[1] yerine {acc} ve {it} yazın: {reduce}(0) {{ {acc} + {it} }}
+	H0164 Code = 164  // ipucu{hint}
+	H0165 Code = 165  // {literal} tam sayı olarak çok büyük (en fazla {max} olabilir; ondalık sayı için sonuna .0 ekleyin)
+	H0166 Code = 166  // {literal} ondalık sayı olarak çok büyük ya da geçersiz
+	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
+	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
+	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
+	H1004 Code = 1004 // Fonksiyon çağrısı tip hatası — {fn|q} fonksiyonunun {index}. parametresi {expected|q} bekliyor ancak {given|q} verildi
+	H1005 Code = 1005 // Tip uyuşmazlığı — {name|q} değişkeni ({declared}) içine {given|q} tipinde değer atanamaz{hint}
+	H1006 Code = 1006 // '{name}' TR'de bir tip adı değil; tip adının tek yazımı vardır: '{canonical}' yazın
+	H1007 Code = 1007 // '{name}' TR'de bir tip adı değil; '{suggestion}' yazmak mı istediniz?
+	H1008 Code = 1008 // ; '/' bölüm tam çıkmazsa, '**' üs negatifse {float} verir: {int} için {fn}(...) kullanın ya da tipi {float} yapın
+	H1009 Code = 1009 // '{name}' yerleşik bir ad; bu kapsamda yerleşik '{name}' artık kullanılamaz
+	H1010 Code = 1010 // Tanımsız ad — {detail}
+	H1100 Code = 1100 // '{name}' TR'den kaldırıldı
+	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
+	H1102 Code = 1102 // '{name}(...)' TR'de bir fonksiyon değil; '{spelling}' yazın
+	H1103 Code = 1103 //  ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)
+	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?
+	H1105 Code = 1105 // tip değeri metinle karşılaştırılamaz: {fn}(x) {op} {text|q} yerine {fn}(x) {op} {example} yazın (tip adları tırnaksız yazılır)
+	H1106 Code = 1106 // '{name}' adında bir değişken ya da fonksiyon yok{suggestion}
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind} hataları nedeniyle yüklenemedi
@@ -781,7 +853,6 @@ const (
 	H8152 Code = 8152 // Değer hesaplanamadı: {error}
 	H8153 Code = 8153 // Bu değerin elemanları değiştirilemez
 	H8154 Code = 8154 // Eleman bulunamadı: {name}
-	H8190 Code = 8190 // {error}
 	H8200 Code = 8200 // adım bilgisi yok: eğitim döngüsünde {progress}(...) ve .{update}(...) kullanın
 	H8201 Code = 8201 // (aktarılan modülde)
 	H8202 Code = 8202 // (üst düzey)

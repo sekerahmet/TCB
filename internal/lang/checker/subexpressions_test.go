@@ -1,6 +1,10 @@
 package checker
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // Denetim her ifadenin ve deyimin içine iner (undefined_names.go'daki gezintiyle aynı
 // düğümler): eskiden liste, sözlük, aralık, metin içi ifade, liste üreteci, indeks, üye,
@@ -8,7 +12,7 @@ import "testing"
 // varsayılanı içindeki hatalar sessizce geçerdi.
 func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
 	const kare = "fonksiyon kare(x: Tam): Tam { sonuç x * x }\n"
-	const want = `fonksiyonunun 1. parametresi "Tam" bekliyor ancak "Metin" verildi`
+	const want = `1. parametresi "Tam" bekliyor ancak "Metin" verildi`
 	cases := []struct{ name, source string }{
 		{"liste", `değişken l = [1, kare("a")]`},
 		{"sözlük değeri", `değişken s = {"k": kare("a")}`},
@@ -31,15 +35,15 @@ func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			singleError(t, kare+c.source, want)
+			singleError(t, kare+c.source, messages.H1004, 0, want)
 		})
 	}
 	// Metodun dönüş tipi kendi gövdesinde denetlenir.
-	singleError(t, "yapı A {\n  fonksiyon m(): Tam { sonuç \"a\" }\n}", "Dönüş tipi uyuşmazlığı")
+	singleError(t, "yapı A {\n  fonksiyon m(): Tam { sonuç \"a\" }\n}", messages.H1003, 2)
 	// Sabite iç içe bir fonksiyonda atama da yakalanır.
-	singleError(t, "sabit k = 1\ndeğişken l = [fonksiyon() { k = 2 }]", "Sabit hatası")
+	singleError(t, "sabit k = 1\ndeğişken l = [fonksiyon() { k = 2 }]", messages.H1002, 2)
 	// Metodun adı yapının dışındaki kapsama tanımlanmaz: dıştaki 'm'nin imzası kalır.
-	singleError(t, "fonksiyon m(x: Tam) { }\nyapı A {\n  fonksiyon m() { }\n}\nm(\"a\")", want)
+	singleError(t, "fonksiyon m(x: Tam) { }\nyapı A {\n  fonksiyon m() { }\n}\nm(\"a\")", messages.H1004, 0, want)
 	// Üreteç değişkeni kendi kapsamındadır: dıştaki aynı adlı açıklamalı değişkeni gizler.
 	noErrors(t, "fonksiyon f(x: Tam) { }\ndeğişken x: Metin = \"a\"\ndeğişken l = [f(x) döngü x içinde 1..3]")
 }

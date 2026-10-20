@@ -3,6 +3,8 @@ package lexer
 import (
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ---------------------------------------------------------------------------
@@ -38,14 +40,19 @@ func TestComments(t *testing.T) {
 func TestHashIsNotComment(t *testing.T) {
 	for _, c := range []struct {
 		src, failed string
+		col         int
 		name        []string
 	}{
-		{"a # yorum ** \"\n b", "Satır 1, Sütun 3: '#' TR'de yorum değil; yorum için '//' yazın", []string{"a", "b"}},
-		{"# bir\nx", "Satır 1, Sütun 1: '#' TR'de yorum değil; yorum için '//' yazın", []string{"x"}},
+		{"a # yorum ** \"\n b", "Satır 1, Sütun 3: '#' TR'de yorum değil; yorum için '//' yazın", 3, []string{"a", "b"}},
+		{"# bir\nx", "Satır 1, Sütun 1: '#' TR'de yorum değil; yorum için '//' yazın", 1, []string{"x"}},
 	} {
 		toks, errList := allTokens(t, c.src)
-		if len(errList) != 1 || errList[0] != c.failed {
-			t.Errorf("%q: tek hata %q bekleniyordu, gelen: %v", c.src, c.failed, errList)
+		if len(errList) != 1 || !hasErr(errList, 1, c.col, messages.H0005) {
+			t.Errorf("%q: tek hata (H0005, satır 1, sütun %d) bekleniyordu, gelen: %v", c.src, c.col, errList)
+		}
+		// Tam metin biçimi (Errors çıktısı) de sınanır.
+		if got := errorTexts(errList); len(got) != 1 || got[0] != c.failed {
+			t.Errorf("%q: tam metin %q bekleniyordu, gelen: %v", c.src, c.failed, got)
 		}
 		var names []string
 		for _, tk := range toks {
@@ -72,8 +79,8 @@ func TestUnterminatedBlockComment(t *testing.T) {
 	if len(toks) != 4 || toks[3].Type != TOKEN_EOF {
 		t.Errorf("yorum dosya sonuna kadar sürmeli, gelen: %v", toks)
 	}
-	if len(errs) != 1 || !containsError(errs, "Satır 2, Sütun 3:", "kapatılmamış") {
-		t.Errorf("'Satır 2, Sütun 3' konumlu kapatılmamış yorum hatası bekleniyordu, gelen: %v", errs)
+	if len(errs) != 1 || !hasErr(errs, 2, 3, messages.H0006) {
+		t.Errorf("H0006 kapatılmamış yorum hatası (satır 2, sütun 3) bekleniyordu, gelen: %v", errs)
 	}
 
 	// Yalnızca '/*' ve tek '*' ile biten girdiler de hata vermeli, çökmemeli

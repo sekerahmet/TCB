@@ -7,11 +7,11 @@
 package checker
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // TypeInfo is what the checker knows about a name's type.
@@ -55,7 +55,7 @@ func (s *Scope) Resolve(name string) (TypeInfo, bool) {
 // Checker checks programs; in the REPL one checker keeps its scope between lines.
 type Checker struct {
 	scope  *Scope
-	errors []string
+	errors []error
 	// warnings programın çalışmasını engellemeyen bulgulardır (ör. yerleşik ad gölgeleme).
 	warnings []string
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
@@ -63,20 +63,34 @@ type Checker struct {
 	// globalNames tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
 	// adHatalari son CheckProgram çağrısının tanımsız ad hatalarıdır (undefined_names.go).
 	globalNames *nameScope
-	nameErrors  []string
+	nameErrors  []error
 }
 
 // New returns a checker with an empty global scope.
 func New() *Checker {
 	return &Checker{
 		scope:  NewScope(nil),
-		errors: []string{},
+		errors: []error{},
 	}
 }
 
-// Errors returns every error found so far.
-func (c *Checker) Errors() []string {
+// Errs returns every error found so far, each at its line (messages.Pos).
+func (c *Checker) Errs() []error {
 	return c.errors
+}
+
+// Errors returns the texts of Errs ("Satır N: ...").
+func (c *Checker) Errors() []string {
+	out := make([]string, len(c.errors))
+	for i, e := range c.errors {
+		out[i] = e.Error()
+	}
+	return out
+}
+
+// addError records err at the given position (col 0 when unknown).
+func (c *Checker) addError(line, col int, err error) {
+	c.errors = append(c.errors, messages.At(line, col, err))
 }
 
 // Warnings returns the checker's warnings. Warnings are not errors: the program runs and
@@ -89,13 +103,18 @@ func (c *Checker) Warnings() []string {
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
 func (c *Checker) checkShadowing(name string, line int) {
 	if k, ok := codes.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
-		c.warnings = append(c.warnings, fmt.Sprintf(
-			"Satır %d: '%s' yerleşik bir ad; bu kapsamda yerleşik '%s' artık kullanılamaz", line, name, name))
+		c.warnings = append(c.warnings, messages.At(line, 0, messages.New(messages.H1009, name)).Error())
 	}
 }
 
 // CheckProgram checks prog and returns the errors it found.
 func (c *Checker) CheckProgram(prog *ast.Program) []string {
+	c.check(prog)
+	return c.Errors()
+}
+
+// check checks prog and records the errors it found.
+func (c *Checker) check(prog *ast.Program) {
 	start := len(c.errors)
 	for _, stmt := range prog.Statements {
 		c.checkStatement(stmt)
@@ -105,7 +124,6 @@ func (c *Checker) CheckProgram(prog *ast.Program) []string {
 	c.checkNames(prog)
 	c.errors = append(c.errors, c.nameErrors...)
 	sortByLine(c.errors[start:])
-	return c.errors
 }
 
 func (c *Checker) checkStatement(stmt ast.Statement) {
@@ -119,10 +137,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		inferred := c.inferExpression(s.Value)
 		declared := normalizeTypeName(s.TypeName)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
-			c.errors = append(c.errors, fmt.Sprintf(
-				"Satır %d: Tip uyuşmazlığı — %q değişkeni %q tipinde tanımlandı ancak %q tipinde değer atandı%s",
-				s.Line(), s.Name.Value, declared, inferred, numberHint(declared, inferred),
-			))
+			c.addError(s.Line(), 0, messages.New(messages.H1001,
+				s.Name.Value, declared, inferred, numberHint(declared, inferred)))
 		}
 		// Dil dinamiktir: açıklamasız bir değişkenin ilk değerden çıkarılan tipi kalıcı bir
 		// bildirim değildir (değişken sonra başka tipte değer alabilir), bu yüzden tipsiz
@@ -210,10 +226,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 				continue
 			}
 			if info, found := c.scope.Resolve(ident.Value); found && info.IsConst {
-				c.errors = append(c.errors, fmt.Sprintf(
-					"Satır %d: Sabit hatası — %q bir sabittir ('%s') ve değeri değiştirilemez",
-					s.Line(), ident.Value, codes.Name(codes.A031),
-				))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.Name(codes.A031)))
 			}
 		}
 
@@ -228,10 +241,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	case *ast.ReturnStatement:
 		valType := c.inferExpression(s.ReturnValue)
 		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
-			c.errors = append(c.errors, fmt.Sprintf(
-				"Satır %d: Dönüş tipi uyuşmazlığı — fonksiyon %q döndürmeli ancak %q tipinde değer döndürülüyor%s",
-				s.Line(), c.returnType, valType, numberHint(c.returnType, valType),
-			))
+			c.addError(s.Line(), 0, messages.New(messages.H1003,
+				c.returnType, valType, numberHint(c.returnType, valType)))
 		}
 
 	case *ast.ThrowStatement:
@@ -330,10 +341,8 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		for i, arg := range e.Arguments {
 			argType := c.inferExpression(arg)
 			if found && i < len(info.ParamTypes) && !typesCompatible(info.ParamTypes[i], argType) {
-				c.errors = append(c.errors, fmt.Sprintf(
-					"Satır %d: Fonksiyon çağrısı tip hatası — %q fonksiyonunun %d. parametresi %q bekliyor ancak %q verildi",
-					e.Line(), ident.Value, i+1, info.ParamTypes[i], argType,
-				))
+				c.addError(e.Line(), 0, messages.New(messages.H1004,
+					ident.Value, i+1, info.ParamTypes[i], argType))
 			}
 		}
 		for _, na := range e.NamedArgs {
@@ -383,16 +392,11 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 				valType = arithmeticType(op, info.TypeName, valType, false)
 			}
 			if info.IsConst {
-				c.errors = append(c.errors, fmt.Sprintf(
-					"Satır %d: Sabit hatası — %q bir sabittir ('%s') ve değeri değiştirilemez",
-					s.Line(), ident.Value, codes.Name(codes.A031),
-				))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.Name(codes.A031)))
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
-				c.errors = append(c.errors, fmt.Sprintf(
-					"Satır %d: Tip uyuşmazlığı — %q değişkeni (%s) içine %q tipinde değer atanamaz%s",
-					s.Line(), ident.Value, info.TypeName, valType, numberHint(info.TypeName, valType),
-				))
+				c.addError(s.Line(), 0, messages.New(messages.H1005,
+					ident.Value, info.TypeName, valType, numberHint(info.TypeName, valType)))
 			}
 		}
 	} else {

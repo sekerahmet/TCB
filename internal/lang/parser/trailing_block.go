@@ -6,6 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // isReduceTarget sondaki bloğun bağlandığı ifade bir liste.indirge çağrısı mı
@@ -38,7 +39,6 @@ func (p *Parser) oldReduceBlock(tok lexer.Token, begin int) {
 	}
 	if o0 && o1 {
 		reduce := codes.MemberName(codes.Y207)
-		p.recordError(tok, reduce+" metodunun sondaki bloğunda "+accName+" önceki sonuç, "+itName+" sıradaki elemandır; "+
-			itName+"[0] ve "+itName+"[1] yerine "+accName+" ve "+itName+" yazın: "+reduce+"(0) { "+accName+" + "+itName+" }")
+		p.recordError(tok, messages.New(messages.H0163, reduce, accName, itName))
 	}
 }

@@ -5,31 +5,37 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Döngü dışındaki 'çık'/'devam' çalışma anında sessizce yok sayılıyor (fonksiyon 'yok'
 // dönüyor, testler yanlışlıkla geçiyordu). Derleme hatasıdır: fonksiyon, ok fonksiyonu,
 // sondaki blok, test, ertele ve eşzamanlı gövdesi döngünün içini kesmez, sınır sayılır.
 func TestBreakContinueOutsideLoopIsError(t *testing.T) {
-	bad := map[string]string{
-		"çık":                             "'çık' yalnızca bir döngünün içinde kullanılabilir",
-		"devam":                           "'devam' yalnızca bir döngünün içinde kullanılabilir",
-		"fonksiyon f() { çık }":           "fonksiyondan çıkmak için 'sonuç' yazın",
-		"döngü { fonksiyon f() { çık } }": "'çık' yalnızca",
-		"[1, 2].haritala { eğer o > 1 { devam } }": "'devam' yalnızca",
-		"değişken f = x => { devam }":              "'devam' yalnızca",
-		"değişken g = (a, b) => { çık }":           "'çık' yalnızca",
-		"test \"t\" { çık }":                       "'çık' yalnızca",
-		"döngü { ertele { çık } }":                 "'çık' yalnızca",
-		"döngü { eşzamanlı { devam } }":            "'devam' yalnızca",
-		"eğer doğru { çık }":                       "'çık' yalnızca",
+	bad := []string{
+		"çık",
+		"devam",
+		"fonksiyon f() { çık }",
+		"döngü { fonksiyon f() { çık } }",
+		"[1, 2].haritala { eğer o > 1 { devam } }",
+		"değişken f = x => { devam }",
+		"değişken g = (a, b) => { çık }",
+		"test \"t\" { çık }",
+		"döngü { ertele { çık } }",
+		"döngü { eşzamanlı { devam } }",
+		"eğer doğru { çık }",
 	}
-	for codeVal, wantSub := range bad {
-		h := parseErrors(codeVal)
-		if len(h) == 0 || !strings.Contains(h[0], wantSub) {
-			t.Errorf("%q: %q içeren hata bekleniyordu, alınan: %v", codeVal, wantSub, h)
+	for _, codeVal := range bad {
+		h := parseErrs(codeVal)
+		if len(h) == 0 || !messages.Has(h[0], messages.H0151) {
+			t.Errorf("%q: H0151 bekleniyordu, alınan: %v", codeVal, h)
 		}
+	}
+	// Fonksiyonda 'çık' yazılırsa hata çıkış için 'sonuç'u önerir (H0152, ad koddan).
+	if h := parseErrors("fonksiyon f() { çık }"); len(h) == 0 || !strings.Contains(h[0], messages.Text(messages.H0152, codes.Name(codes.A021))) {
+		t.Errorf("'sonuç' önerisi (H0152) bekleniyordu, alınan: %v", h)
 	}
 	valid := []string{
 		"döngü { çık }",
@@ -57,9 +63,9 @@ func TestReturnInTestBodyIsError(t *testing.T) {
 		"test \"t\" { dene { yazdır(1) } yakala h { sonuç yok } }",
 		"test \"t\" { eşle 1 { 1 => sonuç 2 } }",
 	} {
-		h := parseErrors(codeVal)
-		if len(h) == 0 || !strings.Contains(h[0], "'sonuç' test gövdesinde kullanılamaz") {
-			t.Errorf("%q: test gövdesi hatası bekleniyordu, alınan: %v", codeVal, h)
+		h := parseErrs(codeVal)
+		if len(h) == 0 || !messages.Has(h[0], messages.H0153) {
+			t.Errorf("%q: test gövdesi hatası (H0153) bekleniyordu, alınan: %v", codeVal, h)
 		}
 	}
 	for _, codeVal := range []string{
@@ -75,15 +81,15 @@ func TestReturnInTestBodyIsError(t *testing.T) {
 
 // Modülün üst düzeyindeki 'sonuç' (ParseModule) derleme hatasıdır; fonksiyon içinde geçerlidir.
 func TestModuleTopLevelReturnIsError(t *testing.T) {
-	moduleErrors := func(codeVal string) []string {
+	moduleErrors := func(codeVal string) []error {
 		p := New(lexer.New(codeVal))
 		p.ParseModule()
-		return p.Errors()
+		return p.Errs()
 	}
 	for _, codeVal := range []string{"değişken a = 1\nsonuç 5", "eğer doğru { sonuç }", "döngü { sonuç 1 }"} {
 		h := moduleErrors(codeVal)
-		if len(h) == 0 || !strings.Contains(h[0], "'sonuç' modülün üst düzeyinde kullanılamaz") {
-			t.Errorf("%q: modül hatası bekleniyordu, alınan: %v", codeVal, h)
+		if len(h) == 0 || !messages.Has(h[0], messages.H0154) {
+			t.Errorf("%q: modül hatası (H0154) bekleniyordu, alınan: %v", codeVal, h)
 		}
 	}
 	if h := moduleErrors("fonksiyon f() { sonuç 1 }\ndeğişken g = x => x"); len(h) > 0 {
@@ -100,9 +106,9 @@ func TestNestingDepthLimit(t *testing.T) {
 		strings.Repeat("eğer doğru { ", 3000) + strings.Repeat("}", 3000),
 		strings.Repeat("-", 100000) + "1",
 	} {
-		h := parseErrors(codeVal)
-		if len(h) == 0 || !strings.Contains(h[0], "çok derin iç içe") {
-			t.Errorf("derinlik hatası bekleniyordu (%d karakter): %.200v", len(codeVal), h)
+		h := parseErrs(codeVal)
+		if len(h) == 0 || !messages.Has(h[0], messages.H0155) {
+			t.Errorf("derinlik hatası (H0155) bekleniyordu (%d karakter): %.200v", len(codeVal), h)
 		}
 	}
 	// Sınırın altındaki iç içelik geçerlidir
@@ -117,8 +123,8 @@ func TestInterpolationDepthLimited(t *testing.T) {
 	codeVal := strings.Repeat("eğer doğru {\n", 480) +
 		`değişken s = "{` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + "}\"\n" +
 		strings.Repeat("}\n", 480)
-	h := parseErrors(codeVal)
-	if len(h) != 1 || !strings.Contains(h[0], "çok derin iç içe") || !strings.HasPrefix(h[0], "Satır 481,") {
+	h := parseErrs(codeVal)
+	if len(h) != 1 || !hasErrAt(h, 481, 0, messages.H0155) {
 		t.Errorf("yerleştirmede derinlik hatası (satır 481) bekleniyordu: %.300v", h)
 	}
 	// Aynı ifade üst düzeyde sınırın altındadır
@@ -143,8 +149,8 @@ func TestManyInterpolationsLinear(t *testing.T) {
 // aktar yalnızca metin olarak yazılmış bir yol alır (§11): tırnaksız yazım sözdizimi hatasıdır.
 func TestImportUnquotedPathIsError(t *testing.T) {
 	for _, codeVal := range []string{"aktar yardımcı", "aktar 5", "aktar"} {
-		h := parseErrors(codeVal)
-		if len(h) == 0 || !strings.Contains(h[0], "modül yolunu metin olarak bekler") {
+		h := parseErrs(codeVal)
+		if len(h) == 0 || !messages.Has(h[0], messages.H0143) {
 			t.Errorf("%q: tırnaksız aktar hatası bekleniyordu: %v", codeVal, h)
 		}
 	}

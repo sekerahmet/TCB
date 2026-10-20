@@ -4,28 +4,40 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // İç token adları (DOSYA_SONU, TANIMLAYICI, SONUÇ...) kullanıcıya sızmamalı.
 var innerNameRe = regexp.MustCompile(`DOSYA_SONU|TANIMLAYICI|TAM_SAYI|ONDALIK_SAYI|METİN|SONUÇ|DEĞİŞKEN|DEĞİLSE|EĞER|FONKSİYON|GEÇERSİZ`)
 
 func TestErrorMessagesUseTurkishDescriptions(t *testing.T) {
-	caseList := map[string]string{
-		"yazdır(1":                    "')' bekleniyordu, ancak dosya sonu bulundu",
-		"değişken = 4":                "bir ad bekleniyordu, ancak '=' bulundu",
-		"eğer x = 5 { }":              "'{' bekleniyordu, ancak '=' bulundu (karşılaştırma için '==' yazın",
-		"değişken d = [1, 2\nsonuç 3": "']' bekleniyordu, ancak 'sonuç' anahtar kelimesi bulundu",
-		"fonksiyon f(a b) { }":        "')' bekleniyordu, ancak 'b' adı bulundu",
-		"eşle 1 { 1 \"bir\" }":        "'=>' bekleniyordu, ancak \"bir\" metni bulundu",
-		")":                           "burada bir değer ya da ifade bekleniyordu, ancak ')' bulundu",
-		"değişken a, b 5":             "çoklu değişken tanımında '=' bekleniyordu, ancak 5 sayısı bulundu",
-		"döngü i içinde [1] değilse":  "'{' bekleniyordu, ancak 'değilse' anahtar kelimesi bulundu",
-		"x = 99999999999999999999":    "99999999999999999999 tam sayı olarak çok büyük",
+	// Her durumun ileti kodu ve (bu testin asıl konusu olan) Türkçe anlatım metni.
+	type want struct {
+		code messages.Code
+		text string
 	}
-	for codeVal, wantSub := range caseList {
+	caseList := map[string]want{
+		"yazdır(1":                    {messages.H0140, "')' bekleniyordu, ancak dosya sonu bulundu"},
+		"değişken = 4":                {messages.H0140, "bir ad bekleniyordu, ancak '=' bulundu"},
+		"eğer x = 5 { }":              {messages.H0140, "'{' bekleniyordu, ancak '=' bulundu (karşılaştırma için '==' yazın"},
+		"değişken d = [1, 2\nsonuç 3": {messages.H0140, "']' bekleniyordu, ancak 'sonuç' anahtar kelimesi bulundu"},
+		"fonksiyon f(a b) { }":        {messages.H0140, "')' bekleniyordu, ancak 'b' adı bulundu"},
+		"eşle 1 { 1 \"bir\" }":        {messages.H0140, "'=>' bekleniyordu, ancak \"bir\" metni bulundu"},
+		")":                           {messages.H0141, "burada bir değer ya da ifade bekleniyordu, ancak ')' bulundu"},
+		"değişken a, b 5":             {messages.H0142, "çoklu değişken tanımında '=' bekleniyordu, ancak 5 sayısı bulundu"},
+		"döngü i içinde [1] değilse":  {messages.H0140, "'{' bekleniyordu, ancak 'değilse' anahtar kelimesi bulundu"},
+		"x = 99999999999999999999":    {messages.H0165, "99999999999999999999 tam sayı olarak çok büyük"},
+	}
+	for codeVal, w := range caseList {
+		errs := parseErrs(codeVal)
+		if len(errs) == 0 || !messages.Has(errs[0], w.code) {
+			t.Errorf("%q: %v bekleniyordu, alınan: %v", codeVal, w.code, errs)
+		}
 		errList := parseErrors(codeVal)
-		if len(errList) == 0 || !strings.Contains(errList[0], wantSub) {
-			t.Errorf("%q: %q içeren hata bekleniyordu, alınan: %v", codeVal, wantSub, errList)
+		if len(errList) == 0 || !strings.Contains(errList[0], w.text) {
+			t.Errorf("%q: %q içeren hata bekleniyordu, alınan: %v", codeVal, w.text, errList)
 		}
 		for _, h := range errList {
 			if innerNameRe.MatchString(h) {
@@ -58,11 +70,16 @@ func TestSingleErrorNoCascade(t *testing.T) {
 
 // Kaldırılmış yazımların ipucu (sozcuk.KaldirilanYazimIpucu) hatalı satırda korunur.
 func TestRemovedSpellingHintKept(t *testing.T) {
-	errList := parseErrors("işlev topla(a, b) -> Tam { döndür a + b }")
-	compound := strings.Join(errList, "\n")
-	for _, wantSub := range []string{"'işlev' TR'de anahtar kelime değil; 'fonksiyon'", "'döndür' TR'de anahtar kelime değil; 'sonuç'"} {
-		if !strings.Contains(compound, wantSub) {
-			t.Errorf("%q ipucu bekleniyordu, alınan:\n%s", wantSub, compound)
+	const src = "işlev topla(a, b) -> Tam { döndür a + b }"
+	errs := parseErrs(src)
+	compound := strings.Join(parseErrors(src), "\n")
+	for _, name := range []string{"işlev", "döndür"} {
+		// İpucu metni tek kaynaktan (hint) gelir; hata satırına eklenmiş olmalı.
+		if want := hint.KeywordSpellingHint(name); want == "" || !strings.Contains(compound, want) {
+			t.Errorf("%q için ipucu %q bekleniyordu, alınan:\n%s", name, want, compound)
 		}
+	}
+	if !hasCode(errs, messages.H0164) {
+		t.Errorf("ipucu iletisi (H0164) bekleniyordu, alınan: %v", errs)
 	}
 }

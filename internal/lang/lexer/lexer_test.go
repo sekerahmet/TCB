@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // allTokens girdinin tüm sözcük birimlerini (DOSYA_SONU dahil) ve sözcük çözümleyici hatalarını döndürür.
-func allTokens(t *testing.T, input string) ([]Token, []string) {
+func allTokens(t *testing.T, input string) ([]Token, []error) {
 	t.Helper()
 	l := New(input)
 	var toks []Token
@@ -22,7 +23,37 @@ func allTokens(t *testing.T, input string) ([]Token, []string) {
 			break
 		}
 	}
-	return toks, l.Errors()
+	return toks, l.Errs()
+}
+
+// hasCode, hatalar arasında verilen ileti koduna sahip olan var mı diye bakar (konuma bakmaz).
+func hasCode(errs []error, code messages.Code) bool {
+	for _, e := range errs {
+		if messages.Has(e, code) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasErr, hatalar arasında verilen ileti kodunu verilen satır ve sütunda taşıyan var mı diye bakar.
+func hasErr(errs []error, line, col int, code messages.Code) bool {
+	for _, e := range errs {
+		l, c, ok := messages.Pos(e)
+		if ok && l == line && c == col && messages.Has(e, code) {
+			return true
+		}
+	}
+	return false
+}
+
+// errorTexts hataların metinlerini ("Satır N, Sütun M: ...") döndürür; tam metin denetimi içindir.
+func errorTexts(errs []error) []string {
+	out := make([]string, len(errs))
+	for i, e := range errs {
+		out[i] = e.Error()
+	}
+	return out
 }
 
 // tokensNoErrors hata beklenmeyen girdiler içindir.

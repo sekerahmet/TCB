@@ -1,11 +1,10 @@
 package parser
 
 import (
-	"fmt"
-	"strconv"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Ayrıştırıcının hata mesajları kullanıcıya iç token adlarını (DOSYA_SONU, SONUÇ,
@@ -17,22 +16,22 @@ import (
 func typeDescription(t lexer.TokenType) string {
 	switch t {
 	case lexer.TOKEN_EOF:
-		return "dosya sonu"
+		return messages.Text(messages.H0110)
 	case lexer.TOKEN_IDENT:
-		return "bir ad"
+		return messages.Text(messages.H0111)
 	case lexer.TOKEN_INT:
-		return "bir tam sayı"
+		return messages.Text(messages.H0112)
 	case lexer.TOKEN_FLOAT:
-		return "bir ondalık sayı"
+		return messages.Text(messages.H0113)
 	case lexer.TOKEN_STRING:
-		return "bir metin"
+		return messages.Text(messages.H0114)
 	case lexer.TOKEN_ILLEGAL:
-		return "geçersiz bir karakter"
+		return messages.Text(messages.H0115)
 	}
 	if spelling := keywordSpelling(t); spelling != "" {
-		return fmt.Sprintf("'%s' anahtar kelimesi", spelling)
+		return messages.Text(messages.H0116, spelling)
 	}
-	return fmt.Sprintf("'%s'", string(t))
+	return messages.Text(messages.H0117, string(t))
 }
 
 // tokenDescription kaynakta bulunan bir token'ı yazıldığı biçimiyle anlatır
@@ -40,20 +39,20 @@ func typeDescription(t lexer.TokenType) string {
 func tokenDescription(tok lexer.Token) string {
 	switch tok.Type {
 	case lexer.TOKEN_EOF:
-		return "dosya sonu"
+		return messages.Text(messages.H0110)
 	case lexer.TOKEN_IDENT:
-		return fmt.Sprintf("'%s' adı", tok.Literal)
+		return messages.Text(messages.H0118, tok.Literal)
 	case lexer.TOKEN_INT, lexer.TOKEN_FLOAT:
-		return fmt.Sprintf("%s sayısı", tok.Literal)
+		return messages.Text(messages.H0119, tok.Literal)
 	case lexer.TOKEN_STRING:
-		return fmt.Sprintf("%s metni", strconv.Quote(shortText(unescapeBraces(tok.Literal))))
+		return messages.Text(messages.H0120, shortText(unescapeBraces(tok.Literal)))
 	case lexer.TOKEN_ILLEGAL:
-		return fmt.Sprintf("geçersiz '%s' karakteri", tok.Literal)
+		return messages.Text(messages.H0121, tok.Literal)
 	}
 	if keywordSpelling(tok.Type) != "" {
-		return fmt.Sprintf("'%s' anahtar kelimesi", tok.Literal)
+		return messages.Text(messages.H0116, tok.Literal)
 	}
-	return fmt.Sprintf("'%s'", tok.Literal)
+	return messages.Text(messages.H0117, tok.Literal)
 }
 
 // keywordSpelling anahtar kelime türünün sözlükteki adını bulur; tür bir anahtar
@@ -75,11 +74,11 @@ func shortText(s string) string {
 func unexpectedHint(expected lexer.TokenType, found lexer.Token) string {
 	switch {
 	case expected == lexer.TOKEN_LBRACE && found.Type == lexer.TOKEN_ASSIGN:
-		return " (karşılaştırma için '==' yazın; '=' yalnızca atamadır)"
+		return messages.Text(messages.H0130)
 	case expected == lexer.TOKEN_RPAREN && found.Type == lexer.TOKEN_EOF,
 		expected == lexer.TOKEN_RBRACKET && found.Type == lexer.TOKEN_EOF,
 		expected == lexer.TOKEN_RBRACE && found.Type == lexer.TOKEN_EOF:
-		return fmt.Sprintf(" (açılan bir parantez kapatılmamış olabilir; '%s' ekleyin)", string(expected))
+		return messages.Text(messages.H0131, string(expected))
 	}
 	return ""
 }
@@ -87,13 +86,18 @@ func unexpectedHint(expected lexer.TokenType, found lexer.Token) string {
 // recordError bir sözdizimi hatası kaydeder. Bir deyimde yalnızca ilk hata kaydedilir:
 // ardından gelenler çoğunlukla ilkinin sonucudur ve kullanıcıyı yanıltır. Deyim
 // döngüleri senkronizeOl ile hatalı deyimin geri kalanını atlayıp kaydı yeniden açar.
-func (p *Parser) recordError(tok lexer.Token, message string) {
+func (p *Parser) recordError(tok lexer.Token, err error) {
 	if p.errorMode || p.depthExceeded {
 		return
 	}
 	p.errorMode = true
 	p.errorLine = tok.Line
-	p.errors = append(p.errors, fmt.Sprintf("Satır %d, Sütun %d: %s", tok.Line, tok.Column, message))
+	p.errors = append(p.errors, messages.At(tok.Line, tok.Column, err))
+}
+
+// syntaxError, "Sözdizimi hatası — ..." önekli (H0100) bir sözdizimi hatası kaydeder.
+func (p *Parser) syntaxError(tok lexer.Token, code messages.Code, args ...any) {
+	p.recordError(tok, messages.New(messages.H0100, messages.New(code, args...)))
 }
 
 // skipToBlockEnd, içinde bulunulan '{ ... }' bloğunu kapatan '}' işaretine kadar

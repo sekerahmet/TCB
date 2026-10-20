@@ -1,6 +1,10 @@
 package lexer
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // readString bir metin sabitini okur. Metin içindeki '{ifade}' bölümleri
 // (interpolasyon) ayrıştırıcıya olduğu gibi aktarılır; bu bölümlerin içinde
@@ -26,9 +30,9 @@ func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 	for {
 		if l.ch == 0 || (braceDepth > 0 && l.ch == '\n') {
 			if braceDepth > 0 {
-				l.addError(braceLine, braceCol, "metin içindeki '{' kapatılmamış (interpolasyon aynı satırda '}' ile bitmeli; düz süslü parantez için '\\{' yazın)")
+				l.addError(braceLine, braceCol, messages.New(messages.H0009))
 			} else {
-				l.addError(startLine, startCol, "kapatılmamış metin: %c ile başlayan metin dosya sonuna kadar kapanmadı", quote)
+				l.addError(startLine, startCol, messages.New(messages.H0010, string(quote)))
 			}
 			return sb.String()
 		}
