@@ -38,13 +38,18 @@ function create(vscode, g) {
         }
     }
 
+    // stat diskteki dosyanın durumudur. Görünümde mtime'a dosyanın "sürüm"ü eklenir
+    // (g.revision): VS Code açık belgeyi yeniden okuyup okumayacağına tarih+boyuta bakar;
+    // yazım dili değişince metin değişir ama disk aynı kalır, sürüm artınca belge yeniden okunur.
     function stat(uri) {
         return wrap(uri, async () => {
-            const s = await fs.promises.stat(g.localPath(uri));
+            const filePath = g.localPath(uri);
+            const s = await fs.promises.stat(filePath);
+            const revision = uri.scheme === g.VIEW_SCHEME && g.revision ? g.revision(filePath) : 0;
             return {
                 type: s.isDirectory() ? vscode.FileType.Directory : vscode.FileType.File,
                 ctime: Math.trunc(s.ctimeMs),
-                mtime: Math.trunc(s.mtimeMs),
+                mtime: Math.trunc(s.mtimeMs) + revision,
                 size: s.size
             };
         });
@@ -132,7 +137,12 @@ function create(vscode, g) {
         rename: readOnly
     };
 
-    return { view, raw };
+    // notifyChanged görünümün adresini "değişti" diye bildirir (belge yeniden okunur).
+    function notifyChanged(uri) {
+        viewEmitter.fire([{ type: vscode.FileChangeType.Changed, uri }]);
+    }
+
+    return { view, raw, notifyChanged };
 }
 
 // globEscape bir dosya adını izleme deseninde kendisiyle eşleşecek biçime getirir: desen

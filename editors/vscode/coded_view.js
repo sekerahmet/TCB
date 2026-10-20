@@ -75,6 +75,14 @@ function create(vscode, g) {
     function forget(kind, filePath) {
         reported.delete(kind + '\n' + key(filePath));
     }
+    // Yazım dili her değiştiğinde kirli belge uyarısı yeniden gösterilebilir.
+    function forgetDirtyNotices() {
+        for (const k of [...reported]) {
+            if (k.startsWith('dil\n')) {
+                reported.delete(k);
+            }
+        }
+    }
 
     function viewUri(fileUri) {
         return fileUri.with({ scheme: VIEW_SCHEME });
@@ -132,7 +140,17 @@ function create(vscode, g) {
         return g.findInterpreter(vscode.Uri.file(filePath)) || { error: 'TR yorumlayıcısı bulunamadı.' };
     }
 
-    const filesystems = codedFilesystem.create(vscode, { VIEW_SCHEME, RAW_SCHEME, localPath, readView, saveText });
+    // Her açık görünümün Türkçesinin hangi yazım diliyle üretildiği: kayıtta metin AYNI dille
+    // kodlanır. Ayar sonradan değişse de (kirli belge yeni dille yenilenemez) metin, yazıldığı
+    // dille kodlanınca yerleşik kodlar bozulmaz.
+    const resolvedLanguage = new Map();
+    // Yazım dili değişince yenilenen belgelerin sürümü (coded_filesystem.js stat).
+    const revisions = new Map();
+    function revision(filePath) {
+        return revisions.get(key(filePath)) || 0;
+    }
+
+    const filesystems = codedFilesystem.create(vscode, { VIEW_SCHEME, RAW_SCHEME, localPath, readView, saveText, revision });
 
     // readView kodlu dosyanın görünümde gösterilecek metnidir. Türkçesi üretilemezse (dosya
     // ayrıştırılamıyor, ör. birleştirme çakışması işaretleri; ya da yorumlayıcı yok) ham baytlar
@@ -142,8 +160,10 @@ function create(vscode, g) {
             return data;
         }
         const y = interpreter(filePath);
-        const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'göster', g.writingLanguage(), data);
+        const lang = g.writingLanguage();
+        const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'göster', lang, data);
         if (s.code === 0) {
+            resolvedLanguage.set(key(filePath), lang);
             forget('ham', filePath);
             return s.output;
         }
@@ -165,7 +185,8 @@ function create(vscode, g) {
             return content;
         }
         const y = interpreter(filePath);
-        const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'kodla', g.writingLanguage(), content);
+        const lang = resolvedLanguage.get(key(filePath)) || g.writingLanguage();
+        const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'kodla', lang, content);
         if (s.code === 0) {
             await setPending(filePath, false);
             forget('bozuk', filePath);
@@ -373,8 +394,34 @@ function create(vscode, g) {
         return y;
     }
 
+    // reloadForLanguage yazım dili değişince açık görünümleri yeni dille yeniler. Kirli belge
+    // yenilenmez (yazılanlar kaybolmasın): eski dille kodlanarak kaydedilir ve kişi uyarılır.
+    function reloadForLanguage() {
+        for (const document of vscode.workspace.textDocuments) {
+            if (document.uri.scheme !== VIEW_SCHEME) {
+                continue;
+            }
+            const filePath = localPath(document.uri);
+            if (document.isDirty) {
+                once('dil', filePath, () => vscode.window.showWarningMessage(
+                    `${path.basename(filePath)} kaydedilmemiş değişiklikler içeriyor; yazım dili değişti ama belge ` +
+                    `"${resolvedLanguage.get(key(filePath))}" diliyle gösterilmeye devam ediyor ve o dille kaydedilecek. ` +
+                    'Yeni dilde görmek için kaydedip dosyayı yeniden açın.'));
+                continue;
+            }
+            revisions.set(key(filePath), revision(filePath) + 1);
+            filesystems.notifyChanged(document.uri);
+        }
+    }
+
     function setup(context) {
         context.subscriptions.push(
+            vscode.workspace.onDidChangeConfiguration((e) => {
+                if (e.affectsConfiguration('tr.yazimDili')) {
+                    forgetDirtyNotices();
+                    reloadForLanguage();
+                }
+            }),
             vscode.workspace.registerFileSystemProvider(VIEW_SCHEME, filesystems.view, { isCaseSensitive: !CASE_INSENSITIVE }),
             vscode.workspace.registerFileSystemProvider(RAW_SCHEME, filesystems.raw, { isCaseSensitive: !CASE_INSENSITIVE, isReadonly: true }),
             // Görünen düzenleyiciler hemen (seçimleriyle). Yeni sekmeler kısa bir süre sonra:
