@@ -142,7 +142,7 @@ type PeakLine struct {
 	Line   LineInfo
 	DType  string // dildeki tür adı
 	Bytes  uint64
-	Blocks uint64 // canlı tensör deposu sayısı
+	Blocks uint64  // canlı tensör deposu sayısı
 	Share  float64 // tepenin payı
 }
 
