@@ -23,7 +23,7 @@ adları ipucu için Türkçe dosyada kalır, öbür dillerde isteğe bağlıdır
 
 **Go kodu kodu yazar, adı yazmaz.** Go kodu kodları üretilmiş sabitlerle yazar (`codes.G100`);
 sözlükte olmayan bir kod derlemeyi düşürür. Sabitin yanındaki yorum, okuyana yardım için kodun
-İngilizce ve Türkçe adını gösterir (`// print · yazdır`); başka diller yoruma girmez. Denetim: `TestCiplakAdYok`, `TestCiplakKodYok`, `TestSabitlerGuncel` (tools/gen/codeconsts).
+İngilizce ve Türkçe adını gösterir (`// print · yazdır`); başka diller yoruma girmez. Denetim: `TestCiplakKodYok`, `TestCiplakKodYok`, `TestSabitlerGuncel` (tools/gen/codeconsts).
 
 **Kod listesi değişince yeniden üretilir.** Kod listesinden üretilen dosyalar (Go sabitleri, kod
 belgesi, düzenleyicinin renklendirme listesi) şu durumlarda yeniden üretilir: bir kod eklendiğinde,

@@ -41,3 +41,4 @@ Desktop.ini
 
 # Claude oturum kopyaları (git worktree)
 .claude/
+/.codegraph/
