@@ -57,51 +57,15 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	case lexer.TOKEN_LBRACE:
 		leftExp = p.parseDictLiteral()
 	default:
+		if p.leadingBinaryOperator() {
+			p.syntaxError(p.curToken(), messages.H0167, tokenDescription(p.curToken()))
+			return nil
+		}
 		p.syntaxError(p.curToken(), messages.H0141, tokenDescription(p.curToken()))
 		return nil
 	}
 
-	for !p.peekTokenIs(lexer.TOKEN_SEMICOLON) && precedence < p.peekPrecedence() {
-		switch p.peekToken().Type {
-		case lexer.TOKEN_PLUS, lexer.TOKEN_MINUS, lexer.TOKEN_SLASH, lexer.TOKEN_ASTERISK,
-			lexer.TOKEN_PERCENT, lexer.TOKEN_POWER, lexer.TOKEN_MATMUL,
-			lexer.TOKEN_EQ, lexer.TOKEN_NOT_EQ, lexer.TOKEN_LT, lexer.TOKEN_GT,
-			lexer.TOKEN_LTE, lexer.TOKEN_GTE, lexer.TOKEN_AND, lexer.TOKEN_OR,
-			lexer.TOKEN_KW_AND, lexer.TOKEN_KW_OR, lexer.TOKEN_PIPE, lexer.TOKEN_NULL_COALESC:
-			p.nextToken()
-			leftExp = p.parseInfixExpression(leftExp)
-		case lexer.TOKEN_RANGE, lexer.TOKEN_RANGE_INCL:
-			p.nextToken()
-			leftExp = p.parseRangeExpression(leftExp)
-		case lexer.TOKEN_LPAREN, lexer.TOKEN_LBRACKET:
-			// Yeni satırda başlayan '(' veya '[' önceki ifadeyi sürdürmez; yeni bir
-			// deyim başlatır. Aksi hâlde 'değişken f = 5' ardından gelen
-			// '(1 + 2) |> yazdır' satırı '5(1 + 2)' çağrısı olarak okunurdu.
-			if p.peekToken().Line > p.curToken().Line {
-				return leftExp
-			}
-			p.nextToken()
-			if p.curTokenIs(lexer.TOKEN_LPAREN) {
-				leftExp = p.parseCallExpression(leftExp)
-			} else {
-				leftExp = p.parseIndexExpression(leftExp)
-			}
-		case lexer.TOKEN_DOT, lexer.TOKEN_SAFE_DOT:
-			p.nextToken()
-			leftExp = p.parseMemberExpression(leftExp)
-		case lexer.TOKEN_LBRACE:
-			// Sondaki blok yalnızca aynı satırda ve kontrol yapısı başlığı dışında geçerlidir
-			if p.noBlock || p.peekToken().Line != p.curToken().Line || !isTrailingBlockTarget(leftExp) {
-				return leftExp
-			}
-			p.nextToken()
-			leftExp = p.parseTrailingBlock(leftExp)
-		default:
-			return leftExp
-		}
-	}
-
-	return leftExp
+	return p.parseInfixChain(leftExp, precedence)
 }
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	tok := p.curToken()
@@ -167,4 +131,75 @@ func (p *Parser) parseRangeExpression(left ast.Expression) ast.Expression {
 		End:       right,
 		Inclusive: inclusive,
 	}
+}
+
+// parseInfixChain sol ifadeye ikili işleçleri, çağrıları, indeksleri ve üyeleri öncelik
+// sırasıyla bağlar.
+func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Expression {
+	for !p.peekTokenIs(lexer.TOKEN_SEMICOLON) && precedence < p.peekPrecedence() {
+		switch p.peekToken().Type {
+		case lexer.TOKEN_PLUS, lexer.TOKEN_MINUS, lexer.TOKEN_SLASH, lexer.TOKEN_ASTERISK,
+			lexer.TOKEN_PERCENT, lexer.TOKEN_POWER, lexer.TOKEN_MATMUL,
+			lexer.TOKEN_EQ, lexer.TOKEN_NOT_EQ, lexer.TOKEN_LT, lexer.TOKEN_GT,
+			lexer.TOKEN_LTE, lexer.TOKEN_GTE, lexer.TOKEN_AND, lexer.TOKEN_OR,
+			lexer.TOKEN_KW_AND, lexer.TOKEN_KW_OR, lexer.TOKEN_PIPE, lexer.TOKEN_NULL_COALESC:
+			// Yeni satırın başındaki ikili işleç önceki ifadeyi sürdürmez (2.8): 'a = 1'
+			// ardından gelen '-x' satırı 'a = 1 - x' okunmaz (Go, Python, Kotlin gibi). İfadeyi
+			// bölmek için işleç satır sonuna yazılır ya da parantez kullanılır. Zincir işleci
+			// '|>' tekli biçimi olmadığı için satır başında da sürer ('.' gibi; Elixir, F#).
+			if p.peekToken().Type != lexer.TOKEN_PIPE && p.lineBreakEnds() {
+				return leftExp
+			}
+			p.nextToken()
+			leftExp = p.parseInfixExpression(leftExp)
+		case lexer.TOKEN_RANGE, lexer.TOKEN_RANGE_INCL:
+			if p.lineBreakEnds() {
+				return leftExp
+			}
+			p.nextToken()
+			leftExp = p.parseRangeExpression(leftExp)
+		case lexer.TOKEN_LPAREN, lexer.TOKEN_LBRACKET:
+			// Yeni satırda başlayan '(' veya '[' önceki ifadeyi sürdürmez; yeni bir
+			// deyim başlatır. Aksi hâlde 'değişken f = 5' ardından gelen
+			// '(1 + 2) |> yazdır' satırı '5(1 + 2)' çağrısı olarak okunurdu.
+			if p.peekToken().Line > p.curToken().Line {
+				return leftExp
+			}
+			p.nextToken()
+			if p.curTokenIs(lexer.TOKEN_LPAREN) {
+				leftExp = p.parseCallExpression(leftExp)
+			} else {
+				leftExp = p.parseIndexExpression(leftExp)
+			}
+		case lexer.TOKEN_DOT, lexer.TOKEN_SAFE_DOT:
+			p.nextToken()
+			leftExp = p.parseMemberExpression(leftExp)
+		case lexer.TOKEN_LBRACE:
+			// Sondaki blok yalnızca aynı satırda ve kontrol yapısı başlığı dışında geçerlidir
+			if p.noBlock || p.peekToken().Line != p.curToken().Line || !isTrailingBlockTarget(leftExp) {
+				return leftExp
+			}
+			p.nextToken()
+			leftExp = p.parseTrailingBlock(leftExp)
+		default:
+			return leftExp
+		}
+	}
+
+	return leftExp
+}
+
+// leadingBinaryOperator şimdiki belirteç satırın ilk belirteci olan bir ikili işleç mi: önceki
+// satırı sürdürmek için yazılmış olabilir (2.8), hata nedenini söyler.
+func (p *Parser) leadingBinaryOperator() bool {
+	switch p.curToken().Type {
+	case lexer.TOKEN_PLUS, lexer.TOKEN_SLASH, lexer.TOKEN_ASTERISK, lexer.TOKEN_PERCENT,
+		lexer.TOKEN_POWER, lexer.TOKEN_MATMUL, lexer.TOKEN_EQ, lexer.TOKEN_NOT_EQ, lexer.TOKEN_LT,
+		lexer.TOKEN_GT, lexer.TOKEN_LTE, lexer.TOKEN_GTE, lexer.TOKEN_AND, lexer.TOKEN_OR,
+		lexer.TOKEN_KW_AND, lexer.TOKEN_KW_OR, lexer.TOKEN_NULL_COALESC, lexer.TOKEN_RANGE,
+		lexer.TOKEN_RANGE_INCL:
+	default:
+		return false
+	}
+	return p.pos == 0 || p.tokens[p.pos-1].Line < p.curToken().Line
 }

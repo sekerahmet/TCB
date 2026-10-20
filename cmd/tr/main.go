@@ -231,6 +231,7 @@ func startREPL() {
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
 	reader := machine.InputReader()
 	chk := checker.New()
+	chk.SetInteractive()
 	previousTypeErrors, previousWarnings := 0, 0
 
 	for {

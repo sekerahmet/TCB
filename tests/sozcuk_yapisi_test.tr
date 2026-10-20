@@ -120,6 +120,21 @@ test "2.8 satır sonundaki operatörden sonra ifade sürer" {
     eşit_mi(3, t)
 }
 
+test "2.8 parantez içinde satır sonu ifadeyi bitirmez; zincir işleçleri satır başında sürer" {
+    değişken c = (10
+        - 3)
+    eşit_mi(7, c)
+    değişken l = [3,
+        1, 2]
+    eşit_mi(3, l.uzunluk)
+    değişken s = [3, 1, 2]
+        .sırala()
+    eşit_mi([1, 2, 3], s)
+    değişken m = [1, 2]
+        |> metin
+    eşit_mi("[1, 2]", m)
+}
+
 test "2.9 dilin kelimelerinin yalnızca Türkçe yazımı geçerlidir" {
     değişken degisken = 1 // ASCII biçim sıradan bir addır
     eşit_mi(1, degisken)

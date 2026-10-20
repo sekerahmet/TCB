@@ -154,6 +154,36 @@ func TestCallOnNextLineStartsNewStatement(t *testing.T) {
 	}
 }
 
+// Yeni satırın başındaki ikili işleç önceki ifadeyi sürdürmez (2.8; Go, Python, Kotlin, Swift
+// gibi; JavaScript'in tuzağı değil): 'a = 1' ardından gelen '-x' satırı 'a = 1 - x' okunmaz.
+// İşleç satır sonundaysa ya da ifade parantez içindeyse sürer; '.' ve '|>' ile zincir sürer.
+func TestBinaryOperatorOnNextLineDoesNotContinue(t *testing.T) {
+	for _, d := range []struct {
+		code  string
+		stmts int
+	}{
+		{"değişken a = 1\n-x", 2},
+		{"değişken a = 1 -\nx", 1},
+		{"değişken a = (1\n- x)", 1},
+		{"değişken a = x\n.uzunluk", 1},
+		{"değişken a = x\n?.uzunluk", 1},
+		{"değişken a = x ve\ny", 1},
+		{"değişken a = x\n|> yazdır", 1},
+	} {
+		p := New(lexer.New(d.code))
+		prog := p.ParseProgram()
+		if len(p.Errors()) != 0 || len(prog.Statements) != d.stmts {
+			t.Errorf("%q: %d deyim bekleniyordu, %d alındı (hatalar %v)", d.code, d.stmts, len(prog.Statements), p.Errors())
+		}
+	}
+	// Satır başında tekli biçimi olmayan işleç sözdizimi hatasıdır: sessizce yeni anlam kazanmaz.
+	for _, code := range []string{"değişken b = 10\n+ 2", "değişken c = x\nve y", "değişken d = x\n?? 0"} {
+		if errs := parseErrs(code); !hasCode(errs, messages.H0167) {
+			t.Errorf("%q: nedenini söyleyen sözdizimi hatası (H0167) bekleniyordu: %v", code, errs)
+		}
+	}
+}
+
 // 'test' yalnızca deyim başında ve ardından metin geldiğinde anahtar kelimedir.
 func TestTestIsContextualKeyword(t *testing.T) {
 	p := New(lexer.New("test \"toplama\" { doğrula(1 + 1 == 2) }"))

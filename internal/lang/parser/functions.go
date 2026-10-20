@@ -7,6 +7,7 @@ import (
 
 func (p *Parser) parseGroupedOrLambdaExpression(pattern bool) ast.Expression {
 	defer p.allowBlocks()()
+	defer p.enterBrackets()()
 	// Önce bunun '(a, b) => ...' bir ok fonksiyonu (lambda) olup olmadığını kontrol et; eşle
 	// deseninde '(a + 1) => ...' parantezli bir desendir.
 	if !pattern && p.isLambdaAhead() {
@@ -179,6 +180,7 @@ func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 }
 func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 	defer p.allowBlocks()()
+	defer p.enterBrackets()()
 	args := []ast.Expression{}
 	named := []ast.NamedArg{}
 

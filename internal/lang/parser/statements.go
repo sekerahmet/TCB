@@ -276,6 +276,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 }
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	defer p.allowBlocks()()
+	defer p.enterBlockBody()()
 	block := &ast.BlockStatement{Token: p.curToken()}
 	block.Statements = []ast.Statement{}
 	if !p.enterDepth() {

@@ -58,6 +58,8 @@ type Checker struct {
 	errors []error
 	// warnings programın çalışmasını engellemeyen bulgulardır (ör. yerleşik ad gölgeleme).
 	warnings []error
+	// interactive kabukta açıktır: ifade deyiminin değeri gösterildiği için etkisiz sayılmaz.
+	interactive bool
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
 	returnType string
 	// globalNames tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
@@ -264,6 +266,22 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.ExpressionStatement:
 		c.inferExpression(s.Expression)
+		c.warnUnusedNegation(s)
+	}
+}
+
+// SetInteractive marks the checker as the shell's: an expression statement's value is shown
+// there, so it is not unused.
+func (c *Checker) SetInteractive() { c.interactive = true }
+
+// warnUnusedNegation değeri kullanılmayan '-x' deyimini bildirir (2.8): satır başındaki '-'
+// önceki satırı sürdürmediği için 'a = 1' ardından gelen '- b' sessizce etkisiz kalırdı.
+func (c *Checker) warnUnusedNegation(s *ast.ExpressionStatement) {
+	if c.interactive {
+		return
+	}
+	if p, ok := s.Expression.(*ast.PrefixExpression); ok && p.Operator == "-" {
+		c.warnings = append(c.warnings, messages.At(p.Token.Line, 0, messages.New(messages.H1011)))
 	}
 }
 

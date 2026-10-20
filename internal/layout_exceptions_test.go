@@ -35,7 +35,7 @@ var bigFiles = map[string]exception{
 	"internal/compute/dataload/cache.go":          {795, "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir"},
 }
 
-const maxLongFuncs = 41
+const maxLongFuncs = 40
 
 // longFuncs funcLimit'i aşan test dışı fonksiyonlardır ("dosya:Alici.Ad").
 var longFuncs = map[string]exception{
@@ -50,7 +50,6 @@ var longFuncs = map[string]exception{
 	"internal/lang/checker/checker.go:Checker.checkStatement":    {147, reasonDispatch},
 	"internal/lang/checker/checker.go:Checker.inferExpression":   {115, reasonDispatch},
 	"internal/lang/parser/struct.go:Parser.parseStructStatement": {97, "yapı tanımı: alanlar, varsayılanlar, metotlar ve hata kurtarma tek akışta; alan ve metot çözümlemesi ayrılabilir"},
-	"internal/lang/parser/expressions.go:Parser.parseExpression": {92, reasonDispatch + " (Pratt döngüsü: önek ve ara işleç dağıtımı)"},
 	"internal/lang/codes/language.go:Load":                       {160, reasonRead + " (dil dosyası)"},
 	"internal/lang/codes/definition.go:CheckDefinitions":         {113, reasonRead + " (tanım dosyasının tutarlılık denetimleri)"},
 	"internal/lang/codes/definition.go:ParseDefinitions":         {96, reasonRead + " (tanım dosyası)"},

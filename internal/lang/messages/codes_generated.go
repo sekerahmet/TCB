@@ -59,6 +59,7 @@ const (
 	H0164 Code = 164  // ipucu{hint}
 	H0165 Code = 165  // {literal} tam sayı olarak çok büyük (en fazla {max} olabilir; ondalık sayı için sonuna .0 ekleyin)
 	H0166 Code = 166  // {literal} ondalık sayı olarak çok büyük ya da geçersiz
+	H0167 Code = 167  // satır başındaki {op} önceki satırı sürdürmez; ifadeyi bölmek için işleci önceki satırın sonuna yazın ya da ifadeyi parantez içine alın
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -69,6 +70,7 @@ const (
 	H1008 Code = 1008 // ; '/' bölüm tam çıkmazsa, '**' üs negatifse {float} verir: {int} için {fn}(...) kullanın ya da tipi {float} yapın
 	H1009 Code = 1009 // '{name}' yerleşik bir ad; bu kapsamda yerleşik '{name}' artık kullanılamaz
 	H1010 Code = 1010 // Tanımsız ad — {detail}
+	H1011 Code = 1011 // Etkisiz ifade — satır başındaki '-' önceki satırı sürdürmez; bu satır yalnızca bir değer hesaplar ve kullanmaz. Önceki ifadeye eklemek için işleci önceki satırın sonuna yazın ya da ifadeyi parantez içine alın
 	H1100 Code = 1100 // '{name}' TR'den kaldırıldı
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
 	H1102 Code = 1102 // '{name}(...)' TR'de bir fonksiyon değil; '{spelling}' yazın

@@ -37,7 +37,7 @@ değişken p = {"ad": "Ayşe"}
 yazdır("Merhaba {ad}, 1 + 2 = {1 + 2}, kişi: {p['ad']}, düz: \{x\}")
 ```
 
-**2.8** Deyimler satır sonuyla ya da isteğe bağlı `;` ile ayrılır. Satır sonu iki yerde anlam taşır: yeni satırda başlayan `(` ya da `[` önceki ifadeyi sürdürmez, yeni bir deyim başlatır; sondaki blok `{` (bkz. 6.7) önceki ifadeyle aynı satırda olmalıdır. Satır sonunda kalan ikili operatörden sonra ifade alt satırda sürer.
+**2.8** Deyimler satır sonuyla ya da isteğe bağlı `;` ile ayrılır. Satır sonu ifadeyi bitirir, parantez içinde (`(`, `[` ve sözlük `{`) bitirmez. Yeni satırda başlayan `(` ya da `[` önceki ifadeyi sürdürmez, yeni bir deyim başlatır; sondaki blok `{` (bkz. 6.7) önceki ifadeyle aynı satırda olmalıdır. Yeni satırın başındaki ikili işleç de önceki ifadeyi sürdürmez: `değişken a = 1` ardından gelen `-x` satırı `a = 1 - x` okunmaz, ayrı bir deyimdir ve değeri kullanılmadığı için uyarı verir; tekli biçimi olmayan işleç (`+`, `*`, `ve`, `??` ...) satır başında sözdizimi hatasıdır ve hata nedenini söyler. İfadeyi bölmek için işleç satır sonuna yazılır (`1 +` ↵ `2`) ya da ifade parantez içine alınır. Zincir işleçleri satır başında da sürer: üye erişimi `.` ve `?.`, boru `|>`. Gerekçe: Go, Python, Kotlin ve Swift'te satır sonu ifadeyi bitirir; satır başındaki `-`'nin önceki satıra bağlandığı JavaScript davranışı bilinen bir tuzaktır.
 
 ```tr
 değişken f = 5

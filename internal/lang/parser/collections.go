@@ -7,6 +7,7 @@ import (
 
 func (p *Parser) parseListLiteral() ast.Expression {
 	defer p.allowBlocks()()
+	defer p.enterBrackets()()
 	tok := p.curToken()
 	if p.peekTokenIs(lexer.TOKEN_RBRACKET) {
 		p.nextToken()
@@ -67,6 +68,7 @@ func (p *Parser) parseListLiteral() ast.Expression {
 }
 func (p *Parser) parseDictLiteral() ast.Expression {
 	defer p.allowBlocks()()
+	defer p.enterBrackets()()
 	dict := &ast.DictLiteral{Token: p.curToken(), Pairs: []ast.DictPair{}}
 
 	for !p.peekTokenIs(lexer.TOKEN_RBRACE) && !p.peekTokenIs(lexer.TOKEN_EOF) {
@@ -100,6 +102,7 @@ func (p *Parser) parseDictLiteral() ast.Expression {
 }
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 	defer p.allowBlocks()()
+	defer p.enterBrackets()()
 	exp := &ast.IndexExpression{Token: p.curToken(), Left: left}
 	p.nextToken()
 	exp.Index = p.parseExpression(LOWEST)

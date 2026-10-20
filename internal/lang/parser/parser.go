@@ -88,6 +88,11 @@ type Parser struct {
 	// sondaki blok (o-lambda) olarak okunmamalıdır. Parantez/köşeli parantez içinde yeniden açılır.
 	noBlock bool
 
+	// brackets açık '(' '[' ya da sözlük '{' sayısıdır: içlerinde satır sonu ifadeyi bitirmez
+	// (2.8; Python, Go gibi). Bir blok gövdesi sayımı sıfırlar: gövdede satır sonu yine deyim
+	// ayırır.
+	brackets int
+
 	// errorMode bir deyimde sözdizimi hatası kaydedildikten sonra açıktır: deyim
 	// senkronizeOl ile atlanana dek yeni hata kaydedilmez (art arda gelen hatalar
 	// çoğunlukla ilkinin sonucudur). hataSatiri ilk hatanın satırıdır.
@@ -131,6 +136,25 @@ func (p *Parser) allowBlocks() func() {
 	saved := p.noBlock
 	p.noBlock = false
 	return func() { p.noBlock = saved }
+}
+
+// enterBrackets parantez içine girer; dönen fonksiyon çıkar.
+func (p *Parser) enterBrackets() func() {
+	p.brackets++
+	return func() { p.brackets-- }
+}
+
+// enterBlockBody blok gövdesinde parantez sayımını sıfırlar; dönen fonksiyon geri yükler.
+func (p *Parser) enterBlockBody() func() {
+	saved := p.brackets
+	p.brackets = 0
+	return func() { p.brackets = saved }
+}
+
+// lineBreakEnds sıradaki belirteç yeni satırdaysa ve parantez içinde değilsek ifadenin orada
+// bittiğini söyler.
+func (p *Parser) lineBreakEnds() bool {
+	return p.brackets == 0 && p.peekToken().Line > p.curToken().Line
 }
 
 // isTrailingBlockTarget sondaki bloğun bağlanabileceği ifadeleri seçer:
