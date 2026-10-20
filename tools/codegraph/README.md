@@ -29,8 +29,11 @@ plus a digest of the changed files (`git status --porcelain -uall`, tracked or u
 the query rebuilds the graph, rewrites `graph.json` (through a temporary file, so two parallel
 queries never read half a file) and prints one line on stderr: `graph rebuilt (N s)`.
 
-- `--no-rebuild` uses the graph as it is. `--root DIR` (default `.`) is the repository whose
-  stamp is checked; run from the repository root.
+- `--no-rebuild` uses the graph as it is.
+- `--root DIR` is the repository root; `.codegraph/` always lives there. Without it the root is
+  searched upwards from the current directory, so you can ask from any subfolder: the first folder
+  whose `go.mod` says `module github.com/sekerahmet/TCB`, else `git rev-parse --show-toplevel`,
+  else an error that asks for `--root`. `--graph FILE` still overrides the graph path.
 - git missing or failing: the old graph is used and stderr says
   `warning: cannot check whether the graph is stale`. A graph without a stamp (built without git)
   is never checked.

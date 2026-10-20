@@ -13,10 +13,10 @@ import (
 func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	graphPath := fs.String("graph", filepath.Join(".codegraph", "graph.json"), "graph file")
+	graphPath := fs.String("graph", "", "graph file (default <root>/.codegraph/graph.json)")
 	limit := fs.Int("limit", 12, "lines per group")
 	all := fs.Bool("all", false, "no line limit")
-	root := fs.String("root", ".", "repository root, used to check whether the graph is stale")
+	root := fs.String("root", "", "repository root (default: found from the current directory, see README)")
 	base := fs.String("base", "main", "changed: the branch a branch name is compared with (git diff base...branch)")
 	noRebuild := fs.Bool("no-rebuild", false, "use the graph as it is, even when the sources changed")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
@@ -30,8 +30,14 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "codegraph %s: expected %d name(s)\n%s", cmd, want, usage)
 		return exitUsage
 	}
-	if abs, err := filepath.Abs(*root); err == nil {
-		*root = abs // load ve git yolları mutlak ister
+	abs, err := resolveRoot(*root)
+	if err != nil {
+		fmt.Fprintln(stderr, "codegraph:", err)
+		return exitFail
+	}
+	*root = abs // load ve git yolları mutlak ister
+	if *graphPath == "" {
+		*graphPath = filepath.Join(abs, ".codegraph", "graph.json")
 	}
 	if *all {
 		*limit = 0

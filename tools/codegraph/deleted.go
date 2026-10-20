@@ -29,14 +29,14 @@ var families = []codeFamily{{"messages", messageFiles}, {"names", nameFiles}}
 func runDeleted(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("deleted", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	root := fs.String("root", ".", "repository root")
+	root := fs.String("root", "", "repository root (default: found from the current directory)")
 	retired := fs.Bool("retired-json", false, "print the deleted codes of --family as retired.json content")
 	family := fs.String("family", "messages", "family for --retired-json: messages or names")
 	if err := fs.Parse(args); err != nil || fs.NArg() != 0 {
 		fmt.Fprint(stderr, usage)
 		return exitUsage
 	}
-	abs, err := filepath.Abs(*root)
+	abs, err := resolveRoot(*root)
 	if err != nil {
 		fmt.Fprintln(stderr, "codegraph:", err)
 		return exitFail

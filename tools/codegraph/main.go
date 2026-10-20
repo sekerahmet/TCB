@@ -48,7 +48,7 @@ const usage = `usage: codegraph <command> [flags] [args]
   deleted [--retired-json]   message and name codes that existed in the git history and are gone today, with the commit that removed them
   changed <branch|range>     graph nodes touched by a branch (git diff main...branch), their tests, other claude/ branches on the same code
 
-query flags: --graph FILE (default .codegraph/graph.json), --limit N (default 12), --all, --root DIR (default .), --no-rebuild
+query flags: --graph FILE (default <root>/.codegraph/graph.json), --limit N (default 12), --all, --root DIR (default: the repository root above the current directory), --no-rebuild
 A query rebuilds the graph first when the sources changed since it was built (see README).
 exit codes: 0 ok, 1 failure, 2 usage, 3 ambiguous (candidates listed), 4 not found
 `
@@ -80,13 +80,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 func runBuild(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("build", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	root := fs.String("root", ".", "repository root (the directory with go.mod)")
+	root := fs.String("root", "", "repository root (default: found from the current directory, see README)")
 	out := fs.String("out", "", "output file (default <root>/.codegraph/graph.json)")
 	warnings := fs.Bool("warnings", false, "print every warning")
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
 	}
-	abs, err := filepath.Abs(*root)
+	abs, err := resolveRoot(*root)
 	if err != nil {
 		fmt.Fprintln(stderr, "codegraph:", err)
 		return exitFail
