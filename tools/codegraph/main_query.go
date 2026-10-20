@@ -53,6 +53,9 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 		}
 		nodes = append(nodes, n)
 	}
+	if cmd == "history" {
+		return ix.runHistory(*root, nodes[0], *limit, stdout, stderr)
+	}
 	return ix.answer(cmd, nodes, stdout, stderr, *limit)
 }
 

@@ -44,6 +44,7 @@ const usage = `usage: codegraph <command> [flags] [args]
   path <from> <to>           shortest path between two nodes
   who-uses <name>            what uses a function, type, message code or name code
   tests-for <name>           tests that exercise a function, type or package
+  history <name>             commits that touched a function, type, file, message code or name code (computed from git)
 
 query flags: --graph FILE (default .codegraph/graph.json), --limit N (default 12), --all, --root DIR (default .), --no-rebuild
 A query rebuilds the graph first when the sources changed since it was built (see README).
@@ -62,7 +63,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "build":
 		return runBuild(args[1:], stdout, stderr)
-	case "query", "explain", "path", "who-uses", "tests-for":
+	case "query", "explain", "path", "who-uses", "tests-for", "history":
 		return runQuery(args[0], args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)

@@ -52,6 +52,7 @@ type Node struct {
 	Name   string   `json:"name"`
 	File   string   `json:"file,omitempty"`
 	Line   int      `json:"line,omitempty"`
+	End    int      `json:"end,omitempty"` // son satır (işlev/tip/başlık bölümü): hunk'ları düğüme eşlemek için
 	Detail string   `json:"detail,omitempty"`
 	Params []string `json:"params,omitempty"`
 }
