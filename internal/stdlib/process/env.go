@@ -1,12 +1,12 @@
 package process
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // envVar ortam_değişkeni(ad) yerleşiğidir: değişkenin değeri (Metin) ya da
@@ -23,7 +23,7 @@ func envVar(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (inter
 	}
 	name := s.Val
 	if name == "" || strings.ContainsAny(name, "=\x00") {
-		return nil, fmt.Errorf("%s: %q geçerli bir ortam değişkeni adı değil (boş olamaz, '=' içeremez)", interp.CallPrefix(codes.G800), name)
+		return nil, messages.New(messages.H7231, interp.CallPrefix(codes.G800), name)
 	}
 	value, found := os.LookupEnv(name)
 	if !found {

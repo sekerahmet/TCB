@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // buildTree testlerin ortak klasör ağacını kurar.
@@ -47,8 +49,9 @@ func TestListDir(t *testing.T) {
 		t.Errorf("mutlak taban: %s", got)
 	}
 	errContains(t, `klasörü_listele("yok")`, `klasörü_listele(): "yok" listelenemedi: böyle bir dosya ya da klasör yok`)
-	errContains(t, `klasörü_listele("v/a.npy")`, "bir dosya, klasör değil")
+	errHas(t, `klasörü_listele("v/a.npy")`, messages.H7136)
 	errContains(t, `klasörü_listele("v", "../*")`, `kalıp "../*" geçersiz: kalıpta .. olamaz`)
+	errHas(t, `klasörü_listele("v", "../*")`, messages.H7135, messages.H7143)
 	errContains(t, `klasörü_listele("v", 5)`, "2. argüman olarak Metin bekler")
 }
 

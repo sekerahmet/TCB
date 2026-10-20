@@ -20,7 +20,9 @@ import (
 var migrated = []string{
 	"internal/lang/turkish",
 	"internal/stdlib/common/bind",
+	"internal/stdlib/files",
 	"internal/stdlib/formats",
+	"internal/stdlib/process",
 }
 
 // Üretilmiş sabitler katalogla aynıdır.

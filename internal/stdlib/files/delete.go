@@ -2,7 +2,6 @@ package files
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -39,8 +38,8 @@ func deleteBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, interp.ReadError(fn, raw, messages.H2104, err, tried)
 	}
 	real := realPath(resolved)
-	if reason := deleteProtection(m, real); reason != "" {
-		return nil, fmt.Errorf("%s: %q (%s) %s; TR bunu silmez", fn, raw, filepath.ToSlash(real), reason)
+	if reason := deleteProtection(m, real); reason != nil {
+		return nil, messages.New(messages.H7121, fn, raw, filepath.ToSlash(real), reason)
 	}
 	if err := openFileError(fn, raw, real); err != nil {
 		return nil, err
@@ -51,7 +50,7 @@ func deleteBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 			return nil, turkish.FileError(fn, raw, messages.H2104, err)
 		}
 		if !empty {
-			return nil, fmt.Errorf("%s: %q klasörü boş değil; içindekilerle birlikte silmek için %s doğru verin", fn, raw, nameWithContents.TR+":")
+			return nil, messages.New(messages.H7122, fn, raw, nameWithContents.TR+":")
 		}
 	}
 	var number int

@@ -1,11 +1,11 @@
 package process
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -46,7 +46,7 @@ func applyArguments(m *interp.VM, options []*option, description string) (*inter
 			msg += "."
 		}
 		return nil, &interp.ExitRequest{Code: usageErrorCode,
-			Message: fmt.Sprintf("Hata: %s Seçenekler için: %s %s", msg, command, helpOptions[0])}
+			Message: messages.Text(messages.H7200, msg, command, helpOptions[0])}
 	}
 	result := interp.NewDictVal()
 	for _, s := range options {
@@ -65,7 +65,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 	for i := 0; i < len(argv); i++ {
 		a := argv[i]
 		if len(a) > argLimit {
-			return nil, fmt.Errorf("%d. argüman çok uzun (%d bayt; en çok 1 MB)", i+1, len(a))
+			return nil, messages.New(messages.H7201, i+1, len(a))
 		}
 		name, value, valued, err := optionName(a, options)
 		if err != nil {
@@ -79,16 +79,16 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 			return nil, unknownOption("--"+name, options)
 		}
 		if _, before := given[s.name]; before {
-			return nil, fmt.Errorf("'--%s' iki kez verildi", s.name)
+			return nil, messages.New(messages.H7202, s.name)
 		}
 		if !valued && s.optKind != kindBool {
 			if i+1 >= len(argv) || strings.HasPrefix(argv[i+1], "--") {
-				return nil, fmt.Errorf("'--%s' bir değer bekler (ör. --%s %s ya da --%s=%s)", s.name, s.name, exampleValue(s), s.name, exampleValue(s))
+				return nil, messages.New(messages.H7203, s.name, exampleValue(s))
 			}
 			i++
 			value, valued = argv[i], true
 			if len(value) > argLimit {
-				return nil, fmt.Errorf("'--%s' değeri çok uzun (%d bayt; en çok 1 MB)", s.name, len(value))
+				return nil, messages.New(messages.H7204, s.name, len(value))
 			}
 			if s.secret && m != nil {
 				addSecretItems(m, value)
@@ -108,7 +108,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 func optionName(a string, options []*option) (name, value string, valued bool, err error) {
 	switch {
 	case a == "--":
-		return "", "", false, fmt.Errorf("'--' tek başına kullanılmaz; seçenekler --ad değer biçiminde yazılır")
+		return "", "", false, messages.New(messages.H7205)
 	case strings.HasPrefix(a, "--"):
 		name = a[2:]
 		if i := strings.IndexByte(name, '='); i >= 0 {
@@ -117,9 +117,9 @@ func optionName(a string, options []*option) (name, value string, valued bool, e
 		return name, value, valued, nil
 	case strings.HasPrefix(a, "-") && len(a) > 1:
 		e := unknownOption(a, options)
-		return "", "", false, fmt.Errorf("%v; seçenekler iki tireyle yazılır (--ad değer)", e)
+		return "", "", false, messages.New(messages.H7206, e)
 	}
-	return "", "", false, fmt.Errorf("'%s' bir seçenek değil: argümanlar --ad değer biçiminde verilir (konumlu argüman yoktur)", shorten(a))
+	return "", "", false, messages.New(messages.H7207, shorten(a))
 }
 
 func find(options []*option, name string) *option {
@@ -155,9 +155,9 @@ func unknownOption(given string, options []*option) error {
 		o = "yardım"
 	}
 	if o == "" {
-		return fmt.Errorf("bilinmeyen seçenek '%s'", shorten(given))
+		return messages.New(messages.H7208, shorten(given))
 	}
-	return fmt.Errorf("bilinmeyen seçenek '%s'. Bunu mu demek istediniz: '--%s'?", shorten(given), o)
+	return messages.New(messages.H7209, shorten(given), o)
 }
 
 // parseValue bir argüman değerini seçeneğin tipine çevirir.
@@ -172,13 +172,12 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 		case codes.Name(codes.A041):
 			return interp.FALSE, nil
 		}
-		return nil, fmt.Errorf("'--%s' %s bir seçenek; %s ya da %s verin (yalnız --%s yazmak %s demektir), %q verildi",
-			s.name, codes.Name(codes.A203), codes.Name(codes.A040), codes.Name(codes.A041), s.name, codes.Name(codes.A040), shorten(value))
+		return nil, messages.New(messages.H7210, s.name, codes.Name(codes.A203), codes.Name(codes.A040), codes.Name(codes.A041), shorten(value))
 	}
 	if s.optKind != kindList {
 		v, err := parsePlainValue(s.optKind, value)
 		if err != nil {
-			return nil, fmt.Errorf("'--%s' %s bekler, %q verildi%s", s.name, codes.Name(s.optKind.typeCode()), shorten(value), err.Error())
+			return nil, messages.New(messages.H7211, s.name, codes.Name(s.optKind.typeCode()), shorten(value), err)
 		}
 		return v, nil
 	}
@@ -189,7 +188,7 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 	for i, p := range strings.Split(value, ",") {
 		v, err := parsePlainValue(s.itemKind, strings.TrimSpace(p))
 		if err != nil {
-			return nil, fmt.Errorf("'--%s' virgülle ayrılmış %s listesi bekler; %d. öğe %q%s", s.name, codes.Name(s.itemKind.typeCode()), i+1, shorten(p), err.Error())
+			return nil, messages.New(messages.H7212, s.name, codes.Name(s.itemKind.typeCode()), i+1, shorten(p), err)
 		}
 		list.Elements = append(list.Elements, v)
 	}
@@ -219,7 +218,7 @@ func parsePlainValue(t optKind, s string) (interp.Value, error) {
 		case codes.Name(codes.A041):
 			return interp.FALSE, nil
 		}
-		return nil, fmt.Errorf(" (%s ya da %s)", codes.Name(codes.A040), codes.Name(codes.A041))
+		return nil, messages.New(messages.H7213, codes.Name(codes.A040), codes.Name(codes.A041))
 	}
 	return &interp.StringVal{Val: s}, nil
 }
@@ -242,7 +241,7 @@ func plainExample(t optKind) string {
 	case kindBool:
 		return codes.Name(codes.A040)
 	}
-	return "değer"
+	return messages.Text(messages.H7214) // değer
 }
 
 // shorten hata mesajlarındaki argümanı (uzunsa) kısaltır.

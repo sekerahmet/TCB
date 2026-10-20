@@ -11,6 +11,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/stdlib/formats"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
@@ -70,6 +71,20 @@ func errContains(t *testing.T, code string, parts ...string) {
 	for _, p := range parts {
 		if !strings.Contains(s.failure.Error(), p) {
 			t.Errorf("%s\n  hata %q içermeli: %v", code, p, s.failure)
+		}
+	}
+}
+
+// errHas programın, verilen ileti kodlarının hepsini taşıyan bir hatayla durmasını bekler.
+func errHas(t *testing.T, code string, want ...messages.Code) {
+	t.Helper()
+	s := runTR(t, "", code)
+	if s.failure == nil {
+		t.Fatalf("hata bekleniyordu: %s", code)
+	}
+	for _, c := range want {
+		if !messages.Has(s.failure, c) {
+			t.Errorf("%s\n  hata %s olmalı: %v", code, c, s.failure)
 		}
 	}
 }

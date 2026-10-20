@@ -1,7 +1,6 @@
 package files
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -24,7 +23,7 @@ func makeDirBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.V
 	}
 	resolved, _ := m.ResolvePath(filepath.FromSlash(raw))
 	if b, err := os.Stat(resolved); err == nil && !b.IsDir() {
-		return nil, fmt.Errorf("%s: %q oluşturulamadı: aynı adda bir dosya var", fn, raw)
+		return nil, messages.New(messages.H7123, fn, raw)
 	}
 	if err := os.MkdirAll(resolved, 0o755); err != nil {
 		return nil, turkish.FileError(fn, raw, messages.H2105, err)

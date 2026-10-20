@@ -6,6 +6,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // helpText --yardım çıktısıdır: kullanım satırı, programın açıklaması ve her seçeneğin
@@ -21,11 +22,11 @@ import (
 //	  --yardım, -h                bu yardımı gösterir
 func helpText(command, description string, options []*option) string {
 	var b strings.Builder
-	b.WriteString("Kullanım: " + command + " [seçenekler]\n")
+	b.WriteString(messages.Text(messages.H7232, command) + "\n")
 	if description != "" {
 		b.WriteString("\n" + description + "\n")
 	}
-	b.WriteString("\nSeçenekler:\n")
+	b.WriteString("\n" + messages.Text(messages.H7233) + "\n")
 	leftText := make([]string, len(options)+1)
 	width := 0
 	for i, s := range options {
@@ -42,13 +43,13 @@ func helpText(command, description string, options []*option) string {
 		b.WriteString("  " + left + strings.Repeat(" ", width-utf8.RuneCountInString(left)+3) + right + "\n")
 	}
 	for i, s := range options {
-		right := "(varsayılan: " + defaultText(s.defaultVal) + ")"
+		right := messages.Text(messages.H7234, defaultText(s.defaultVal))
 		if s.description != "" {
 			right = s.description + " " + right
 		}
 		line(leftText[i], right)
 	}
-	line(helpLeft, "bu yardımı gösterir")
+	line(helpLeft, messages.Text(messages.H7235))
 	return strings.TrimSuffix(b.String(), "\n")
 }
 
@@ -75,7 +76,7 @@ func defaultText(v interp.Value) string {
 			parts[i] = defaultText(e)
 		}
 		if len(parts) == 0 {
-			return "boş liste"
+			return messages.Text(messages.H7236)
 		}
 		return strings.Join(parts, ",")
 	}

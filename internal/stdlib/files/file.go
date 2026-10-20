@@ -19,10 +19,9 @@
 package files
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -63,7 +62,7 @@ func readPath(kd codes.Code, order int, d interp.Value) (string, error) {
 		return "", err
 	}
 	if raw == "" {
-		return "", fmt.Errorf("%s: yol boş olamaz", interp.CallPrefix(kd))
+		return "", messages.New(messages.H7124, interp.CallPrefix(kd))
 	}
 	return raw, nil
 }

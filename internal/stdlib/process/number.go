@@ -1,12 +1,11 @@
 package process
 
 import (
-	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Komut satırı sayıları TR'nin sayı yazımıyla okunur: isteğe bağlı işaret, rakamlar (rakam
@@ -14,13 +13,18 @@ import (
 // ayırıcı değildir (0,001 yol gösteren hata), NaN ve sonsuz kabul edilmez. Hatalar, mesajın
 // sonuna eklenecek açıklamadır.
 
-var errNotNumber = errors.New("")
+// errNotNumber sayı olmayan yazımın hatasıdır; mesaja açıklama eklemez (boş metin).
+var errNotNumber error = notNumber{}
+
+type notNumber struct{}
+
+func (notNumber) Error() string { return "" }
 
 // numberFormat s'nin katı sayı yazımı olup olmadığını denetler ve alt çizgileri atılmış
 // biçimini verir; ondalik, nokta ya da üs içerip içermediğidir.
 func numberFormat(s string) (clean string, float bool, err error) {
 	if strings.Contains(s, ",") {
-		return "", false, errors.New("; ondalık ayırıcı nokta olmalı (0.001), binlik ayırıcı için _ yazın (5_000)")
+		return "", false, messages.New(messages.H7215)
 	}
 	var b strings.Builder
 	i := 0
@@ -82,11 +86,11 @@ func parseInt(s string) (int64, error) {
 		return 0, err
 	}
 	if float {
-		return 0, errors.New("; tam sayı nokta ya da üs içermez")
+		return 0, messages.New(messages.H7216)
 	}
 	n, err := strconv.ParseInt(clean, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("; sayı %s aralığının dışında", codes.Name(codes.A200))
+		return 0, messages.New(messages.H7217, codes.Name(codes.A200))
 	}
 	return n, nil
 }
@@ -99,7 +103,7 @@ func parseFloat(s string) (float64, error) {
 	}
 	f, err := strconv.ParseFloat(clean, 64)
 	if err != nil {
-		return 0, fmt.Errorf("; sayı %s aralığının dışında", codes.Name(codes.A201))
+		return 0, messages.New(messages.H7217, codes.Name(codes.A201))
 	}
 	return f, nil
 }

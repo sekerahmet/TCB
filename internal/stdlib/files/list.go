@@ -1,7 +1,6 @@
 package files
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -38,7 +37,7 @@ func listBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	}
 	k, err := compilePattern(glob)
 	if err != nil {
-		return nil, fmt.Errorf("%s: kalıp %q geçersiz: %v", fn, glob, err)
+		return nil, messages.New(messages.H7135, fn, glob, err)
 	}
 	resolved, tried := m.ResolvePath(filepath.FromSlash(base))
 	info, err := os.Stat(resolved)
@@ -46,13 +45,13 @@ func listBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 		return nil, interp.ReadError(fn, base, messages.H2114, err, tried)
 	}
 	if !info.IsDir() {
-		return nil, fmt.Errorf("%s: %q bir dosya, klasör değil; listelenecek klasörü verin", fn, base)
+		return nil, messages.New(messages.H7136, fn, base)
 	}
 	g := &walker{k: k, seen: map[string]bool{}}
 	m.Blocking(func() { g.walk(resolved, "", 0) })
 	if g.unreadableCount > 0 {
-		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %d alt klasör okunamadı ve atlandı (ilki: %q: %s)\n",
-			fn, g.unreadableCount, g.firstUnreadable, turkish.FileErrorReason(g.firstUnreadable, g.firstErr)))
+		m.WriteOutput(m.Err, messages.Text(messages.H7137,
+			fn, g.unreadableCount, g.firstUnreadable, turkish.FileErrorReason(g.firstUnreadable, g.firstErr))+"\n")
 	}
 	basePath := clean(base)
 	paths := make([]string, len(g.found))

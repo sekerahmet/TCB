@@ -7,6 +7,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 )
@@ -54,6 +55,8 @@ func TestCommandLineValues(t *testing.T) {
 }
 
 // Kullanıcının argüman hataları programı 2 koduyla bitirme isteğidir; mesaj yol gösterir.
+// Çıkış isteği yalnızca metni taşır: burada iletinin son biçimi (Hata: öneki, sondaki nokta,
+// öneri) sınanır; hangi iletinin verildiği paketin içinden kodla sınanır (TestParseErrorCodes).
 func TestCommandLineUsageErrors(t *testing.T) {
 	code := "komut_satırı(" + options + ")"
 	for _, d := range []struct {
@@ -64,17 +67,11 @@ func TestCommandLineUsageErrors(t *testing.T) {
 		{[]string{"--öğrenme-oranı", "0.01"}, "Bunu mu demek istediniz: '--öğrenme_oranı'?"},
 		{[]string{"--help"}, "Bunu mu demek istediniz: '--yardım'?"},
 		{[]string{"-adım", "5"}, "bilinmeyen seçenek '-adım'. Bunu mu demek istediniz: '--adım'?; seçenekler iki tireyle yazılır"},
-		{[]string{"--adım", "5", "--adım", "6"}, "'--adım' iki kez verildi"},
-		{[]string{"--adım", "beş"}, `'--adım' Tam bekler, "beş" verildi.`},
-		{[]string{"--adım", "3.0"}, "tam sayı nokta ya da üs içermez"},
-		{[]string{"--öğrenme_oranı", "0,001"}, "ondalık ayırıcı nokta olmalı (0.001)"},
-		{[]string{"--katmanlar", "1,x"}, `virgülle ayrılmış Tam listesi bekler; 2. öğe "x"`},
-		{[]string{"--hızlı=evet"}, "doğru ya da yanlış verin"},
+		{[]string{"--adım", "beş"}, `'--adım' Tam bekler, "beş" verildi. Seçenekler için`},
+		{[]string{"--adım", "3.0"}, `'--adım' Tam bekler, "3.0" verildi; tam sayı nokta ya da üs içermez.`},
+		{[]string{"--katmanlar", "1,x"}, `'--katmanlar' virgülle ayrılmış Tam listesi bekler; 2. öğe "x".`},
+		{[]string{"--hızlı=evet"}, `'--hızlı' Mantık bir seçenek; doğru ya da yanlış verin (yalnız --hızlı yazmak doğru demektir), "evet" verildi.`},
 		{[]string{"--adım"}, "'--adım' bir değer bekler (ör. --adım 5000 ya da --adım=5000)"},
-		{[]string{"--veri", "--adım", "5"}, "'--veri' bir değer bekler"},
-		{[]string{"veri/"}, "'veri/' bir seçenek değil: argümanlar --ad değer biçiminde verilir (konumlu argüman yoktur)"},
-		{[]string{"--"}, "'--' tek başına kullanılmaz"},
-		{[]string{"--veri", strings.Repeat("a", 1<<20+1)}, "değeri çok uzun"},
 	} {
 		_, err, _ := commandLine(t, code, d.arg...)
 		c, ok := interp.IsExitRequest(err)
@@ -113,23 +110,39 @@ Seçenekler:
 func TestCommandLineSetupErrors(t *testing.T) {
 	for _, d := range []struct{ code, want string }{
 		{`komut_satırı({uzunluk: 3})`, `"uzunluk" seçenek adı olamaz: Sözlük tipinin bir üyesidir`},
-		{`komut_satırı({anahtarlar: 3})`, `"anahtarlar" seçenek adı olamaz`},
-		{`komut_satırı({yardım: doğru})`, `"yardım" seçenek adı olamaz`},
-		{`komut_satırı({"a b": 1})`, `"a b" seçenek adı olamaz`},
-		{`komut_satırı({1: 1})`, "seçenek adları Metin olmalıdır"},
 		{`komut_satırı({a: {b: 1}})`, "'a' seçeneğinin varsayılanı Tam, Ondalık, Metin ya da Mantık, Liste ya da yok olmalı"},
-		{`komut_satırı({a: [1, "x"]})`, "öğeler aynı tipte olmalı"},
-		{`komut_satırı({a: [[1]]})`, "yalnızca aynı tipte"},
-		{`komut_satırı({a: 1}, açıklamalar: {b: "x"})`, "açıklamalar içindeki 'b' bir seçenek değil"},
-		{`komut_satırı({adım: 1}, açıklamalar: {adim: "x"})`, "Bunu mu demek istediniz: 'adım'?"},
-		{`komut_satırı({a: 1}, açıklama: 5)`, "açıklama: Metin olmalıdır"},
-		{`komut_satırı({a: 1}, açklama: "x")`, "Bunu mu demek istediniz: 'açıklama'?"},
+		{`komut_satırı({adım: 1}, açıklamalar: {adim: "x"})`, "açıklamalar içindeki 'adim' bir seçenek değil. Bunu mu demek istediniz: 'adım'?"},
 		{`komut_satırı([1])`, "1. argüman olarak Sözlük bekler"},
-		{`komut_satırı({a: 1}); komut_satırı({a: 1})`, "programda bir kez çağrılır"},
 	} {
 		_, err, _ := commandLine(t, d.code)
 		if _, exit := interp.IsExitRequest(err); err == nil || exit || !strings.Contains(err.Error(), d.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.code, d.want, err)
+		}
+	}
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{`komut_satırı({uzunluk: 3})`, messages.H7222},
+		{`komut_satırı({anahtarlar: 3})`, messages.H7222},
+		{`komut_satırı({yardım: doğru})`, messages.H7221},
+		{`komut_satırı({"a b": 1})`, messages.H7220},
+		{`komut_satırı({"-a": 1})`, messages.H7220},
+		{`komut_satırı({1: 1})`, messages.H7219},
+		{`komut_satırı({a: {b: 1}})`, messages.H7225},
+		{`komut_satırı({a: [1, "x"]})`, messages.H7224},
+		{`komut_satırı({a: [[1]]})`, messages.H7223},
+		{`komut_satırı({öğrenme_oranı: 1}, açıklamalar: {b: "x"})`, messages.H7228},
+		{`komut_satırı({adım: 1}, açıklamalar: {adim: "x"})`, messages.H7229},
+		{`komut_satırı({a: 1}, açıklamalar: {a: 5})`, messages.H7230},
+		{`komut_satırı({a: 1}, açıklamalar: 5)`, messages.H7227},
+		{`komut_satırı({a: 1}, açıklama: 5)`, messages.H7226},
+		{`komut_satırı({a: 1}, açklama: "x")`, messages.H7900},
+		{`komut_satırı({a: 1}); komut_satırı({a: 1})`, messages.H7218},
+	} {
+		_, err, _ := commandLine(t, d.code)
+		if _, exit := interp.IsExitRequest(err); exit || !messages.Has(err, d.want) {
+			t.Errorf("%s: %s bekleniyordu: %v", d.code, d.want, err)
 		}
 	}
 	// Kurulum hatası çağrıyı tüketmez; dene/yakala yakalar.

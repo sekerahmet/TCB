@@ -2,7 +2,6 @@ package files
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -47,7 +46,7 @@ func doMove(m *interp.VM, kd codes.Code, args []interp.Value, named map[string]i
 	}
 	m.Blocking(func() { err = job.run() })
 	if len(job.skipped) > 0 {
-		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %d bağlantı ya da özel dosya kopyalanmadı (ilki: %q); TR bağlantıları izlemez\n", job.fn, len(job.skipped), job.skipped[0]))
+		m.WriteOutput(m.Err, messages.Text(messages.H7106, job.fn, len(job.skipped), job.skipped[0])+"\n")
 	}
 	if err != nil {
 		op := messages.H2110 // kopyalanamadı
@@ -110,16 +109,16 @@ func (job *moveJob) findSource(m *interp.VM) error {
 	}
 	switch {
 	case isLink(b.Mode()) && !job.move:
-		return fmt.Errorf("%s: %q bir bağlantı; TR bağlantıları izlemez ve kopyalamaz (bağlantının gösterdiği yolu verin)", job.fn, job.srcRaw)
+		return messages.New(messages.H7107, job.fn, job.srcRaw)
 	case !b.IsDir() && !b.Mode().IsRegular() && !isLink(b.Mode()):
-		return fmt.Errorf("%s: %q sıradan bir dosya ya da klasör değil (aygıt, boru ...); kopyalanmaz", job.fn, job.srcRaw)
+		return messages.New(messages.H7108, job.fn, job.srcRaw)
 	}
 	if job.move {
 		if err := openFileError(job.fn, job.srcRaw, realPath(resolved)); err != nil {
 			return err
 		}
-		if reason := deleteProtection(m, realPath(resolved)); reason != "" {
-			return fmt.Errorf("%s: %q (%s) %s; TR bunu yerinden kaldırmaz", job.fn, job.srcRaw, filepath.ToSlash(realPath(resolved)), reason)
+		if reason := deleteProtection(m, realPath(resolved)); reason != nil {
+			return messages.New(messages.H7109, job.fn, job.srcRaw, filepath.ToSlash(realPath(resolved)), reason)
 		}
 	}
 	job.src, job.srcInfo = resolved, b
@@ -136,13 +135,13 @@ func (job *moveJob) findTarget(m *interp.VM, targetRaw string, wantDir bool) err
 		job.last, job.lastRaw = filepath.Join(target, name), path.Join(clean(targetRaw), name)
 		return nil
 	case err == nil && isLink(b.Mode()):
-		return fmt.Errorf("%s: hedef %q bir bağlantı; TR bağlantıların gösterdiği yere yazmaz (önce %s(...) ile kaldırın)", job.fn, targetRaw, codes.Name(codes.G123))
+		return messages.New(messages.H7110, job.fn, targetRaw, codes.Name(codes.G123))
 	case err == nil && wantDir:
-		return fmt.Errorf("%s: hedef %q bir dosya, klasör değil", job.fn, targetRaw)
+		return messages.New(messages.H7111, job.fn, targetRaw)
 	case err != nil && !bind.IsNotExist(err):
 		return turkish.FileError(job.fn, targetRaw, messages.H2103, err)
 	case err != nil && wantDir:
-		return fmt.Errorf("%s: hedef klasör %q yok; önce %s(%q) ile oluşturun", job.fn, targetRaw, codes.Name(codes.G122), strings.TrimRight(targetRaw, `/\`))
+		return messages.New(messages.H7112, job.fn, targetRaw, codes.Name(codes.G122), strings.TrimRight(targetRaw, `/\`))
 	}
 	if _, err := os.Stat(filepath.Dir(target)); err != nil {
 		var pe *fs.PathError
@@ -160,10 +159,10 @@ func (job *moveJob) findTarget(m *interp.VM, targetRaw string, wantDir bool) err
 func (job *moveJob) checkConflict(m *interp.VM, overwrite bool) error {
 	gk, gs := realPath(job.src), realPath(job.last)
 	if samePath(gk, gs) {
-		return fmt.Errorf("%s: kaynak ile hedef aynı (%q)", job.fn, job.lastRaw)
+		return messages.New(messages.H7113, job.fn, job.lastRaw)
 	}
 	if job.srcInfo.IsDir() && isInside(gs, gk) {
-		return fmt.Errorf("%s: %q klasörü kendi içine (%q) konamaz", job.fn, job.srcRaw, job.lastRaw)
+		return messages.New(messages.H7114, job.fn, job.srcRaw, job.lastRaw)
 	}
 	v, err := os.Lstat(job.last)
 	if err != nil {
@@ -174,19 +173,19 @@ func (job *moveJob) checkConflict(m *interp.VM, overwrite bool) error {
 	}
 	switch {
 	case !overwrite:
-		return fmt.Errorf("%s: hedef %q zaten var; yerine koymak için %s doğru verin", job.fn, job.lastRaw, nameOverwrite.TR+":")
+		return messages.New(messages.H7115, job.fn, job.lastRaw, nameOverwrite.TR+":")
 	case isLink(v.Mode()):
-		return fmt.Errorf("%s: hedef %q bir bağlantı; TR bağlantıların yerine yazmaz (önce %s(...) ile kaldırın)", job.fn, job.lastRaw, codes.Name(codes.G123))
+		return messages.New(messages.H7116, job.fn, job.lastRaw, codes.Name(codes.G123))
 	case v.IsDir() && !job.srcInfo.IsDir():
-		return fmt.Errorf("%s: hedef %q bir klasör, kaynak bir dosya; dosya bir klasörün yerine konmaz", job.fn, job.lastRaw)
+		return messages.New(messages.H7117, job.fn, job.lastRaw)
 	case !v.IsDir() && job.srcInfo.IsDir():
-		return fmt.Errorf("%s: hedef %q bir dosya, kaynak bir klasör; klasör bir dosyanın yerine konmaz", job.fn, job.lastRaw)
+		return messages.New(messages.H7118, job.fn, job.lastRaw)
 	case v.IsDir():
 		if isInside(gk, gs) {
-			return fmt.Errorf("%s: hedef %q kaynağı içeriyor; yerine konamaz", job.fn, job.lastRaw)
+			return messages.New(messages.H7119, job.fn, job.lastRaw)
 		}
-		if reason := deleteProtection(m, gs); reason != "" {
-			return fmt.Errorf("%s: hedef %q (%s) %s; TR onun yerine bir şey koymaz", job.fn, job.lastRaw, filepath.ToSlash(gs), reason)
+		if reason := deleteProtection(m, gs); reason != nil {
+			return messages.New(messages.H7120, job.fn, job.lastRaw, filepath.ToSlash(gs), reason)
 		}
 		job.existingDir = true
 	}

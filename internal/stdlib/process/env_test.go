@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ortam_değişkeni değeri ya da yok verir; gizli adlı değişkenin (sayı olmayan) değeri süzgece girer.
@@ -26,12 +27,15 @@ func TestEnvVar(t *testing.T) {
 	}
 	for _, d := range []struct{ code, want string }{
 		{`ortam_değişkeni(5)`, "1. argüman olarak Metin bekler"},
-		{`ortam_değişkeni("")`, "geçerli bir ortam değişkeni adı değil"},
-		{`ortam_değişkeni("A=B")`, "'=' içeremez"},
 		{`ortam_değişkeni()`, "1 argüman bekler"},
 	} {
 		if _, err, _ := commandLine(t, d.code); err == nil || !strings.Contains(err.Error(), d.want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.code, d.want, err)
+		}
+	}
+	for _, code := range []string{`ortam_değişkeni("")`, `ortam_değişkeni("A=B")`} {
+		if _, err, _ := commandLine(t, code); !messages.Has(err, messages.H7231) {
+			t.Errorf("%s: %s bekleniyordu: %v", code, messages.H7231, err)
 		}
 	}
 }

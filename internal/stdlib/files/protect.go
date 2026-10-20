@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Silme korumaları (sil, taşı'nın kaynağı ve üzerine_yaz ile yerine konan klasör): kök ve
@@ -89,29 +90,29 @@ func systemDirs() []string {
 }
 
 // deleteProtection mutlak (realPath ile bulunmuş) yol silinmemesi gereken bir yerse nedenini
-// verir; silinebilirse boş döner.
-func deleteProtection(m *interp.VM, fpath string) string {
+// verir; silinebilirse nil döner.
+func deleteProtection(m *interp.VM, fpath string) *messages.Error {
 	if filepath.Dir(fpath) == fpath {
-		return "bir kök klasör (sürücünün ya da dosya sisteminin kökü)"
+		return messages.New(messages.H7147)
 	}
 	if home, err := os.UserHomeDir(); err == nil && home != "" && isInside(resolvedDir(home), fpath) {
 		if samePath(fpath, resolvedDir(home)) {
-			return "ev klasörünüzün kendisi"
+			return messages.New(messages.H7148)
 		}
-		return "ev klasörünüzün bir üst klasörü (başka kullanıcıların ev klasörlerini de içerebilir)"
+		return messages.New(messages.H7149)
 	}
 	for _, k := range systemDirs() {
 		if isInside(resolvedDir(k), fpath) {
-			return "işletim sisteminin bir klasörü ya da onun bir üst klasörü"
+			return messages.New(messages.H7150)
 		}
 	}
 	if cw, err := os.Getwd(); err == nil && isInside(resolvedDir(cw), fpath) {
-		return "çalışma klasörü ya da onun bir üst klasörü"
+		return messages.New(messages.H7151)
 	}
 	for _, k := range m.CodeDirs() {
 		if isInside(resolvedDir(k), fpath) {
-			return "programın (ya da modülün) klasörü ya da onun bir üst klasörü"
+			return messages.New(messages.H7152)
 		}
 	}
-	return ""
+	return nil
 }

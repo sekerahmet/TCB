@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func content(t *testing.T, fpath string) string {
@@ -42,14 +44,14 @@ func TestCopyFile(t *testing.T) {
 	if content(t, filepath.Join(k, "b.txt")) != "iki" {
 		t.Fatal("üzerine yazılmadı")
 	}
-	errContains(t, `kopyala("a.txt", "a.txt", üzerine_yaz: doğru)`, "kaynak ile hedef aynı")
+	errHas(t, `kopyala("a.txt", "a.txt", üzerine_yaz: doğru)`, messages.H7113)
 	errContains(t, `kopyala("a.txt", "olmayan/")`, `hedef klasör "olmayan/" yok; önce klasör_oluştur("olmayan")`)
-	errContains(t, `kopyala("a.txt", "olmayan/b.txt")`, `"olmayan" klasörü yok`)
+	errHas(t, `kopyala("a.txt", "olmayan/b.txt")`, messages.H2131)
 	errContains(t, `kopyala("yok.txt", "c.txt")`, `"yok.txt" bulunamadı`)
-	errContains(t, `kopyala("a.txt", "b.txt", overwrite: doğru)`, "Bunu mu demek istediniz: 'üzerine_yaz'?")
+	errHas(t, `kopyala("a.txt", "b.txt", overwrite: doğru)`, messages.H7900)
 	// Dosya klasörün, klasör dosyanın yerine konmaz.
 	os.MkdirAll(filepath.Join(k, "h", "a.txt"), 0o755)
-	errContains(t, `kopyala("a.txt", "h", üzerine_yaz: doğru)`, "bir klasör, kaynak bir dosya")
+	errHas(t, `kopyala("a.txt", "h", üzerine_yaz: doğru)`, messages.H7117)
 	if entries, _ := os.ReadDir(k); len(entries) != 4 {
 		t.Errorf("geçici dosya kaldı: %v", entries)
 	}
@@ -70,8 +72,8 @@ func TestCopyDir(t *testing.T) {
 	if content(t, filepath.Join(k, "v2", "alt", "derin", "d.npy")) != "x" || !exists(filepath.Join(k, "v2", ".gizli", "e.npy")) || exists(filepath.Join(k, "v2", "bag")) {
 		t.Fatal("ağaç eksik kopyalandı ya da bağlantı kopyalandı")
 	}
-	errContains(t, `kopyala("v", "v/alt")`, "kendi içine")
-	errContains(t, `kopyala("v/bag", "x")`, "bir bağlantı; TR bağlantıları izlemez ve kopyalamaz")
+	errHas(t, `kopyala("v", "v/alt")`, messages.H7114)
+	errHas(t, `kopyala("v/bag", "x")`, messages.H7107)
 	// Var olan klasörün yerine konma: eski içerik gider, yenisi gelir.
 	write(t, filepath.Join(k, "hedef", "v", "eski.txt"), "e")
 	mustRunTR(t, `kopyala("v", "hedef", üzerine_yaz: doğru)`)
@@ -84,7 +86,7 @@ func TestCopyDir(t *testing.T) {
 	// Çalışma klasörünün yerine bir şey konmaz.
 	name := filepath.Base(k)
 	write(t, filepath.Join(k, "alt", name, "x.txt"), "x")
-	errContains(t, `kopyala("alt/`+name+`", "`+forwardPath(filepath.Dir(k))+`", üzerine_yaz: doğru)`, "kaynağı içeriyor")
+	errHas(t, `kopyala("alt/`+name+`", "`+forwardPath(filepath.Dir(k))+`", üzerine_yaz: doğru)`, messages.H7119)
 }
 
 func TestMove(t *testing.T) {
@@ -98,12 +100,12 @@ func TestMove(t *testing.T) {
 		t.Fatalf("klasör: %s", got)
 	}
 	write(t, filepath.Join(k, "c.txt"), "c")
-	errContains(t, `taşı("c.txt", "b.txt")`, "zaten var")
+	errHas(t, `taşı("c.txt", "b.txt")`, messages.H7115)
 	mustRunTR(t, `taşı("c.txt", "b.txt", üzerine_yaz: doğru)`)
 	if content(t, filepath.Join(k, "b.txt")) != "c" {
 		t.Fatal("üzerine taşınmadı")
 	}
-	errContains(t, `taşı(".", "x")`, "çalışma klasörü", "yerinden kaldırmaz")
+	errHas(t, `taşı(".", "x")`, messages.H7109, messages.H7151)
 }
 
 // Başka bir diske taşıma: yeniden adlandırma "farklı aygıt" hatası verince kopyalanır,
@@ -135,7 +137,7 @@ func TestMoveToOtherDisk(t *testing.T) {
 	write(t, filepath.Join(k, "dis", "x.txt"), "x")
 	write(t, filepath.Join(k, "b", "y.txt"), "y")
 	dirLink(t, filepath.Join(k, "dis"), filepath.Join(k, "b", "bag"))
-	errContains(t, `taşı("b", "c")`, "başka bir diske taşınamaz")
+	errHas(t, `taşı("b", "c")`, messages.H7101)
 	if !exists(filepath.Join(k, "b", "y.txt")) || exists(filepath.Join(k, "c")) {
 		t.Fatal("başarısız taşıma kaynağı ya da hedefi değiştirdi")
 	}
@@ -145,7 +147,7 @@ func TestMoveToOtherDisk(t *testing.T) {
 	locked := filepath.Join(k, "ro", "kilitli.txt")
 	os.Chmod(locked, 0o444)
 	t.Cleanup(func() { os.Chmod(locked, 0o644) })
-	errContains(t, `taşı("ro", "ro2")`, "salt okunur")
+	errHas(t, `taşı("ro", "ro2")`, messages.H7104)
 	if !exists(locked) || exists(filepath.Join(k, "ro2")) {
 		t.Fatal("silinemeyecek kaynak başka diske kopyalandı")
 	}
@@ -160,7 +162,7 @@ func TestOverwriteDirWithReadOnlyFile(t *testing.T) {
 	locked := filepath.Join(k, "hedef", "yeni", "kilitli.txt")
 	os.Chmod(locked, 0o444)
 	t.Cleanup(func() { os.Chmod(locked, 0o644) })
-	errContains(t, `kopyala("yeni", "hedef", üzerine_yaz: doğru)`, "salt okunur")
+	errHas(t, `kopyala("yeni", "hedef", üzerine_yaz: doğru)`, messages.H7104)
 	if content(t, locked) != "eski" || exists(filepath.Join(k, "hedef", "yeni", "a.txt")) {
 		t.Fatal("hedef değişti")
 	}
