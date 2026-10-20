@@ -69,17 +69,26 @@ func pronounce(s string) string {
 	if len(w) == 0 || strings.ContainsAny(string(w), backVowels+frontVowels) {
 		return s
 	}
-	if name, ok := letterNames[w[len(w)-1]]; ok {
-		return name
+	if last := w[len(w)-1]; strings.ContainsRune(consonants, last) {
+		return letterEnding(last)
 	}
 	return s
 }
 
-// letterNames ünsüz harflerin okunuşudur (Türk alfabesi ve q, w, x).
-var letterNames = map[rune]string{
-	'b': "be", 'c': "ce", 'ç': "çe", 'd': "de", 'f': "fe", 'g': "ge", 'ğ': "yumuşak ge", 'h': "he",
-	'j': "je", 'k': "ke", 'l': "le", 'm': "me", 'n': "ne", 'p': "pe", 'r': "re", 's': "se",
-	'ş': "şe", 't': "te", 'v': "ve", 'y': "ye", 'z': "ze", 'q': "ku", 'w': "ve", 'x': "iks",
+// consonants ünsüz harflerdir (Türk alfabesi ve q, w, x).
+const consonants = "bcçdfgğhjklmnprsştvyzqwx"
+
+// letterEnding bir ünsüz harfin okunuşunun eki belirleyen sonudur: Türk alfabesinin ünsüzleri
+// ve w "e" ile biter (be, ce, ke, yumuşak ge, çift ve), q "ku", x "iks" okunur. Ek yalnızca son
+// ünlüye ve son sese bakar; sözcüğün tamamı gerekmez.
+func letterEnding(r rune) string {
+	switch r {
+	case 'q':
+		return "ku"
+	case 'x':
+		return "iks"
+	}
+	return "e"
 }
 
 // findSuffix sözcüğün son ünlüsüne ve son sesine göre eki üretir.
