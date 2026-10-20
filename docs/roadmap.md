@@ -56,7 +56,7 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
 8. **Kurallar testle korunur (büyük ölçüde tamamlandı).** README kurallarına ~30 test eklendi; `docs/architecture.md`'de adı geçen Go adlarının ve README'lerde anılan her denetim testinin var olduğu testle denetlenir (`TestRuleTestsExist`; ilk koşuda iki yanlış ad buldu). Kalan: C tarzı BÜYÜK_HARFLİ yeni Go adını yakalayan test.
 9. **Belgeler yeni düzeni anlatır (tamamlandı).** Kurallar (`internal/README.md`), ekleme tarifleri (`docs/recipes.md`), mimari ve katkı rehberi yeni düzene göre yazıldı.
 
-**Sıradaki:** madde 7'nin kalanı (CLI adları), ardından madde 1'in bitiş testi (Türkçe harfli metin sabiti yalnızca izinli yerde). Küçükler: `tools/bench/run.py` onarımı, `topluad` göreli yolu reddetsin.
+**Sıradaki:** madde 7'nin kalanı (CLI adları), ardından madde 1'in bitiş testi (Türkçe harfli metin sabiti yalnızca izinli yerde).
 
 **Bitiş ölçütü:** kodda Türkçe ileti metni kalmaz (testle); ileti kataloğu çoğul ve liste kalıplarını taşır, Go'da ileti sözcüğü çekimlenmez ve İngilizce pilot geçer; her türevli işlemin gradyan testi vardır; anlam kuralları yazılı ve testlidir; her kural bir testle korunur; bekleyen dil kararı kalmaz.
 
