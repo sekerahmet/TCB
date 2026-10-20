@@ -5,9 +5,10 @@ sürümüyle (`go/compare.go`) yazılmıştır. Her program kendi ölçtüğü s
 yazar; sonuç değerlerinin üç sürümde aynı olması gerekir. Yorumlayıcıda yapılan her hız değişikliğinden sonra yeniden ölçün.
 
 ```
-python tools/bench/run.py                 # tüm testler, üç sürüm, üçer tekrar (en iyi süre)
-python tools/bench/run.py --yalniz tr fib # yalnızca TR, yalnızca fib
-python tools/bench/run.py --json sonuc.json
+python tools/bench/run.py                 # tüm testler, üç sürüm, üçer tekrar (--repeat; en iyi süre)
+python tools/bench/run.py --list          # test adları
+python tools/bench/run.py --only tr fib   # yalnızca TR, yalnızca fib
+python tools/bench/run.py --json sonuc.json         # sonuçları dosyaya yaz
 ```
 
 | Test | Ne ölçer |

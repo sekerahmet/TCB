@@ -84,7 +84,7 @@ Belirsiz ad çıkış kodu 3 ve aday listesi, bulunamayan ad 4 verir. `[INFERRED
 Yorumlayıcı Python'la en az başa baş olmalıdır; sıcak yola dokunan her değişiklik önce ve sonra ölçülür:
 
 ```sh
-python tools/bench/run.py --yalniz tr --tekrar 5           # TR programları (tools/bench/)
+python tools/bench/run.py --only tr --repeat 5           # TR programları (tools/bench/)
 go test -run XXX -bench . -count 6 ./internal/stdlib/ml/ # Go kıyasları
 ```
 
