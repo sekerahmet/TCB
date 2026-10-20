@@ -69,3 +69,15 @@ test "2.11 '$ad' kaçışı: ad dilin bir sözcüğüyle aynı olsa da kullanıc
     dene { aktar "negative/kacis_bitisik" } yakala h { mesaj = h }
     doğrula(mesaj.içerir("Satır 3, Sütun 15: '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz"), mesaj)
 }
+
+test "17.8 komut satırı adları kodludur: programın yardım seçeneğinin her dildeki adı ayrılmıştır" {
+    // tr komutlarının, seçeneklerin, kabuğun ve hata ayıklayıcının adları Go testleriyle
+    // sınanır (dil tanımı 17.8, Sınamalar); programın --yardım'ı (K106) her dilde ayrılmıştır.
+    fonksiyon hata(f) {
+        dene { f() } yakala h { sonuç h }
+        sonuç ""
+    }
+    doğrula(hata(() => komut_satırı({yardım: doğru})).içerir("seçenek adı olamaz"))
+    doğrula(hata(() => komut_satırı({help: doğru})).içerir("seçenek adı olamaz"))
+    doğrula(hata(() => komut_satırı({h: doğru})).içerir("seçenek adı olamaz"))
+}
