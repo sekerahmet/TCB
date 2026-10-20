@@ -19,7 +19,7 @@ func TestIsSecretName(t *testing.T) {
 	}
 	negated := []string{
 		"TOKENIZER_PATH", "tokenizer", "max_tokens", "KEYBOARD_LAYOUT",
-		"PASSAGE_DIR", "BYPASS", "XAUTHORITY", "MONKEY", "öğrenme_oranı", "adım", "TR_VERİ_KLASÖRÜ",
+		"PASSAGE_DIR", "BYPASS", "XAUTHORITY", "MONKEY", "öğrenme_oranı", "adım", "VERİ_KLASÖRÜ",
 		"tokens", "keys", "", "_",
 	}
 	for _, name := range secret {

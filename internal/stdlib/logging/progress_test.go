@@ -158,10 +158,10 @@ döngü i içinde 0..3 { ç.güncelle() }`); err != nil {
 	}
 }
 
-// Arka plan işinde (TR_İŞ) çubuk iş klasörüne ilerleme.json yazar.
+// Arka plan işinde (TR_IS_KLASORU) çubuk iş klasörüne ilerleme.json yazar.
 func TestJobStatus(t *testing.T) {
 	job := t.TempDir()
-	t.Setenv("TR_İŞ", job)
+	t.Setenv("TR_IS_KLASORU", job)
 	t.Cleanup(logging.FakeTerminal(60)) // iş kipinde terminal kullanılmaz
 	m, w := newVM(t, t.TempDir())
 	if _, err := run(t, m, `değişken ç = ilerleme(2)

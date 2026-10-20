@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
 )
 
-// Arka plan işi: program bir iş olarak çalışırken (tr başlat) TR_İŞ ortam değişkeni iş
+// Arka plan işi: program bir iş olarak çalışırken (tr başlat) TR_IS_KLASORU ortam değişkeni iş
 // klasörünü gösterir. Çubuk o zaman terminal kipine geçmez (çıktı dosyaya gider, düz satırlar
 // yazılır) ve iş klasörüne saniyede en çok bir kez ilerleme.json anlık görüntüsünü yazar;
 // tr izle ve düzenleyici çubuğun aynı satırını bu dosyadan çizer:
@@ -19,7 +19,7 @@ import (
 // Dosya geçici bir dosyaya yazılıp yerine konur: okuyan hiçbir zaman yarım dosya görmez.
 
 // jobEnvVar arka plan işinin klasörünü gösteren ortam değişkenidir.
-const jobEnvVar = "TR_İŞ"
+const jobEnvVar = "TR_IS_KLASORU"
 
 // jobFile iş klasöründeki ilerleme anlık görüntüsünün adıdır.
 const jobFile = "ilerleme.json"

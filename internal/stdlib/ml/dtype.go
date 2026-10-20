@@ -37,7 +37,7 @@ var dtypeNames = []string{"float32", "bf16", "fp16"}
 // adlar KABUL EDİLMEZ; yalnızca hata mesajında doğru ad önerilir.
 var dtypeSuggestions = map[string]string{
 	"bfloat16": "bf16", "bfloat": "bf16", "bf": "bf16",
-	"float16": "fp16", "half": "fp16", "f16": "fp16", "yarım": "fp16",
+	"float16": "fp16", "half": "fp16", "f16": "fp16",
 	"fp32": "float32", "f32": "float32", "float": "float32", "single": "float32",
 }
 

@@ -17,5 +17,5 @@ func IsTerminal(f *os.File) bool { return isTerminal(f) }
 func TerminalWidth(f *os.File) int { return terminalWidth(f) }
 
 // JobDir program bir arka plan işi olarak çalışıyorsa (tr başlat) iş klasörüdür
-// (TR_İŞ ortam değişkeni); değilse boş.
+// (TR_IS_KLASORU ortam değişkeni); değilse boş.
 func JobDir() string { return os.Getenv(jobEnvVar) }

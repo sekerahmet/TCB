@@ -21,7 +21,7 @@
 // İlerleme çubuğu standart hataya (VM.Err) yazar: terminalde tek satırda en çok saniyede 10
 // kez yenilenir (yorumlayıcının canlı satır kancasıyla: yazdır ve hata çıktısı çubuğa
 // karışmaz), terminal değilse 10 saniyede bir düz satır ve sonda özet satırı yazılır. Arka
-// plan işinde (TR_İŞ ortam değişkeni) ayrıca iş klasörüne ilerleme.json anlık görüntüsü
+// plan işinde (TR_IS_KLASORU ortam değişkeni) ayrıca iş klasörüne ilerleme.json anlık görüntüsü
 // yazılır. Her İlerleme.güncelle çağrısı eğitimin bir adım sınırıdır (SetStepHook).
 //
 // Gizli değerler (interp.VM.AddSecret) günlükte, çubukta ve ilerleme.json'da ***

@@ -136,7 +136,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | Kanca | Görevi |
 | :-- | :-- |
 | `logging.SetStepHook`, `logging.StepBoundary` | Eğitimin adım sınırı: `İlerleme.güncelle`'nin her çağrısında (yorumlayıcı kilidi altında) adım ve zamanla çağrılır. Canlı profil ms/adım'ı ve adım başına işlem dağılımını buradan ölçer; kanca yokken maliyet tek atomik okumadır |
-| `logging.JobDir` | Arka plan işinin klasörü (`TR_İŞ`); canlı profil durumunu oraya yazar |
+| `logging.JobDir` | Arka plan işinin klasörü (`TR_IS_KLASORU`); canlı profil durumunu oraya yazar |
 | `logging.CloseAll`, `dataset.CloseAll`, `files.CloseAll`, `ml.Close` | Program bitince kaynakların kapanışı (`stdlib.Close` hepsini çağırır) |
 | `process.State.Settings` | Programın `komut_satırı` sonucu; günlüğün başlangıç kaydı yazar, kontrol noktası saklayabilir |
 | `checkpoint.Stateful` | Kontrol noktasına katılan motor değerleri: `StateDict` ve `LoadState` (TR'de `.durum`, `.durumu_yükle`); bugün veri okuyucuları (`dataset`). Arayüzü uygulayan bir motor `checkpoint` paketini içe aktarmaz |
@@ -213,7 +213,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 
 ### Canlı profil (`internal/devtools/profiler`)
 
-`tr izle` (canlı tablo) ve `tr profil` (son rapor) aynı çekirdeği kullanır; arka plan işi olarak çalışan program (`TR_İŞ` iş klasörünü verir) da canlı durumunu buradan `profil.json`'a yazar. Ağ portu açılmaz: dışarıya yalnızca dosya yazılır. Dört kaynaktan okur:
+`tr izle` (canlı tablo) ve `tr profil` (son rapor) aynı çekirdeği kullanır; arka plan işi olarak çalışan program (`TR_IS_KLASORU` iş klasörünü verir) da canlı durumunu buradan `profil.json`'a yazar. Ağ portu açılmaz: dışarıya yalnızca dosya yazılır. Dört kaynaktan okur:
 
 - **Tensör sayaçları** (`internal/compute/tensor/counter*.go`): her zaman açık. Her işlem türü (`tensor.OpKind`), yön (ileri / geri yayılım) ve cihaz (CPU / GPU) için çağrı sayısı (kesin), ayrılan bayt (kesin) ve süre. CPU'da süre uyarlamalı örneklenir: kısa işlemlerde her çağrı p = 1/32 olasılıkla ölçülür ve ölçülen süre 1/p ile ağırlıklanır (Horvitz–Thompson; p yalnızca geçmiş ölçümlere bağlı olduğundan yansız); uzun işlemde (`longOpTicks`) her çağrı ölçülür. GPU işlemlerinin her çağrısı ölçülür. Saat amd64'te değişmez zaman damgası sayacıdır (`counter_clock_amd64.go`), başka yerde monoton saat. Sayaçlar kilitsizdir (yarış denetimli derlemede atomik: `counter_race.go`). Okuma: `tensor.CounterSnapshot`, `tensor.ActiveOp`.
 - **Yorumlayıcı örneklemesi** (`sampler.go`): yalnızca `tr izle` ve `tr profil` altında. Yorumlayıcının hata ayıklayıcı yuvasına (`VM.Debugger`) bağlanır; yuva boşken yorumlayıcının her deyimdeki maliyeti bir nil denetimidir. Açıkken her deyim konumunu (fonksiyon, satır) çağrı derinliğinin yuvasına yazar; ayrı bir gorutin 1 ms'de bir o anki konuma geçen süreyi ve o an bir tensör işlemi çalışıyorsa tensör payını ekler. `kesme_noktası` profil altında yok sayılır.

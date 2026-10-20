@@ -222,6 +222,39 @@ func TestLayoutGeneratedHeader(t *testing.T) {
 	}
 }
 
+// envVarName TR'nin ortam değişkeni adının biçimidir: TR_ öneki, büyük ASCII harf, rakam ve
+// alt çizgi (POSIX'in taşınabilir ad kümesi). Türkçe harfli ad bazı kabuklarda ve Windows'ta
+// yazılamaz ya da kodlamaya göre bozulur; sözcükler Türkçe harfsiz yazılır (TR_GPU_KENDI_CARPIM).
+var envVarName = regexp.MustCompile(`^TR_[A-Z0-9_]+$`)
+
+// Go kodundaki her "TR_..." metin sabiti (ortam değişkeni adı; "TR_X=değer" biçiminde de) ASCII
+// biçimindedir.
+func TestLayoutEnvVarNames(t *testing.T) {
+	count := 0
+	for _, d := range goFiles(t) {
+		ast.Inspect(d.file, func(n ast.Node) bool {
+			lit, ok := n.(*ast.BasicLit)
+			if !ok || lit.Kind != token.STRING || len(lit.Value) < 6 || lit.Value[1:4] != "TR_" {
+				return true
+			}
+			name := strings.Trim(lit.Value, "\"`")
+			if strings.ContainsAny(name, " ,;:") {
+				return true // ad değil, düz metin
+			}
+			name, _, _ = strings.Cut(name, "=")
+			count++
+			if !envVarName.MatchString(name) {
+				t.Errorf("%s:%d: %q ortam değişkeni adı TR_[A-Z0-9_]+ biçiminde olmalı (Türkçe harf yok)",
+					d.path, d.fset.Position(lit.Pos()).Line, name)
+			}
+			return true
+		})
+	}
+	if count < 5 {
+		t.Errorf("yalnızca %d ortam değişkeni adı bulundu; denetim adları kaçırıyor olabilir", count)
+	}
+}
+
 // El yazımı dosyalar en fazla fileLimit satırdır; mevcut istisnalar listededir ve büyüyemez.
 func TestLayoutFileSize(t *testing.T) {
 	visited := map[string]bool{}

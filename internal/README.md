@@ -102,6 +102,7 @@ return nil, messages.Internal("vector width must be 2 or 4") // iç hata: ayrın
 
 - Metin dil dosyasındadır; parametreler adlıdır (`{fn}`), kullanıcı verisi tırnakla yazılır (`{path|q}`: denetim karakterleri kaçırılır).
 - Ortak kalıplar yeniden yazılmaz: `H2000` (`{fn}: {error}`), dosya hataları `turkish.FileError(fn, yol, messages.H2100, err)` (işlem bir koddur: "okunamadı"), özel neden `turkish.NewReason(kod, ...)`, adlı argüman `bind.CheckNamed`.
+- **Ortam değişkeni adları ASCII'dir:** `TR_` öneki, büyük harf, rakam ve `_` (`TR_DIL`, `TR_GPU_KENDI_CARPIM`, `TR_IS_KLASORU`); Türkçe harfli ad bazı kabuklarda yazılamaz. `TR_` öneki TR'nin kendi değişkenlerine ayrılmıştır, örneklerde kullanıcı değişkeni olarak kullanılmaz. Denetim: `TestLayoutEnvVarNames`.
 - **İleti olmayan metin** koda bağlanmaz: veri biçimlerinin anahtarları (günlükteki `"kayıp"`, `durum.json` alanları), dosya adları, protokol alanları.
 - Geçirilmiş pakette `fmt.Errorf` ve `errors.New` yoktur. Denetim: `tools/gen/msgconsts` (her çağrıda değer sayısı tanımla aynı, kullanılmayan kod yok, `migrated` listesindeki paketlerde yasak çağrı yok). Geçiş sürüyor; sırası [`docs/yol_haritasi.md`](../docs/yol_haritasi.md)'de.
 
@@ -186,6 +187,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | :-- | :-- |
 | Katmanlar, dil içi sıra, dış bağımlılıklar | `internal/layers_test.go` |
 | Dosya ve klasör adı, paket belgesi, üretilmiş dosya başlığı | `internal/layout_test.go` |
+| Ortam değişkeni adları | `internal/layout_test.go` (`TestLayoutEnvVarNames`) |
 | Dosya ve fonksiyon boyu | `internal/layout_test.go`, istisnalar `internal/layout_exceptions_test.go` |
 | Test dosyası düzeni | `internal/layout_test.go` (`TestTestFileMatchesSource`) |
 | Kullanıcıya görünen adlar koddan | `tools/gen/codeconsts` (`TestCiplakAdYok`) |

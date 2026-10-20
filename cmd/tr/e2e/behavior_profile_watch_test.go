@@ -142,7 +142,7 @@ func TestIzleIsAdiHenuzYok(t *testing.T) {
 	bekle(t, s, 1, nil, []string{"bilinmeyen seçenek"})
 }
 
-// Arka plan işi (TR_İŞ) olarak çalışan program iş klasörüne profil.json yazar.
+// Arka plan işi (TR_IS_KLASORU) olarak çalışan program iş klasörüne profil.json yazar.
 func TestIsProfilDosyasi(t *testing.T) {
 	klasor := t.TempDir()
 	dosyaYaz(t, klasor, "egit.tr", izleEgitimi)
@@ -150,7 +150,7 @@ func TestIsProfilDosyasi(t *testing.T) {
 	if err := os.MkdirAll(is, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	s := calistir(t, trIkilisi, klasor, "", []string{"TR_İŞ=" + is}, "egit.tr")
+	s := calistir(t, trIkilisi, klasor, "", []string{"TR_IS_KLASORU=" + is}, "egit.tr")
 	bekle(t, s, 0, []string{"eğitim bitti"}, nil)
 	d := raporOku(t, filepath.Join(is, "profil.json"))
 	if d["bitti"] != true || d["örnekleme"] != nil {

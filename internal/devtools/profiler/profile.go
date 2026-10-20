@@ -81,7 +81,7 @@ type Profile struct {
 // StatusFileName arka plan işinin klasöründeki canlı profil dosyasının adıdır.
 const StatusFileName = "profil.json"
 
-// JobStatusFile program bir arka plan işi olarak çalışıyorsa (TR_İŞ) iş klasöründeki
+// JobStatusFile program bir arka plan işi olarak çalışıyorsa (TR_IS_KLASORU) iş klasöründeki
 // profil.json'un yoludur; değilse boş (durum dosyası yazılmaz).
 func JobStatusFile() string {
 	if k := logging.JobDir(); k != "" {

@@ -140,7 +140,7 @@ func goProfiliniBaslat(yol string) {
 	})
 }
 
-// isProfiliniBaslat program bir arka plan işi olarak çalışıyorsa (TR_İŞ) iş klasörüne
+// isProfiliniBaslat program bir arka plan işi olarak çalışıyorsa (TR_IS_KLASORU) iş klasörüne
 // saniyede bir profil.json yazar (yalnızca her zaman açık sayaçlar; satır örneklemesi
 // yok: ek maliyet saniyede bir dosya yazmasıdır). İş değilse hiçbir şey yapmaz.
 func isProfiliniBaslat(machine *interp.VM, path, code string, prog *ast.Program) {
