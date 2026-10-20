@@ -128,6 +128,33 @@ test "15.42 gelu: varsayılan tanh yaklaşımı, yaklaşık: yanlış tam (erf) 
     doğrula(hata_metni(() => gelu(t, yaklasik: yanlış)).içerir("yaklaşık"))
 }
 
+test "15.43 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile aynı kayıp ve gradyanlar" {
+    değişken x = tensör(rastgele_normal([6, 4], tohum: 1), türev_izle: doğru)
+    değişken w = tensör(rastgele_normal([4, 5], tohum: 2), türev_izle: doğru)
+    değişken hedef = [0, 4, -1, 2, 2, 1]
+    değişken k1 = doğrusal_çapraz_entropi(x, w, hedef)
+    geri_yayılım(k1 / 2)
+    değişken x2 = tensör(x, türev_izle: doğru)
+    değişken w2 = tensör(w, türev_izle: doğru)
+    değişken k2 = çapraz_entropi(x2 @ w2, hedef)
+    geri_yayılım(k2 / 2)
+    doğrula(mutlak(k1.değer - k2.değer) < 0.00001, "kayıp {k1.değer} / {k2.değer}")
+    doğrula(maks(mutlak(x.gradyan - x2.gradyan)).değer < 0.00001, "girdi gradyanı farklı")
+    doğrula(maks(mutlak(w.gradyan - w2.gradyan)).değer < 0.00001, "ağırlık gradyanı farklı")
+    // Paylaşımlı gömme düzeni: ağırlık tablonun devriği (görünüm).
+    değişken tablo = rastgele_normal([5, 4], tohum: 3)
+    doğrula(mutlak(doğrusal_çapraz_entropi(x, tablo.devrik(), hedef).değer - çapraz_entropi(x @ tablo.devrik(), hedef).değer) < 0.00001)
+    // Karışık hassasiyette logitler blok türünde, kayıp float32.
+    değişken kb = yok
+    karışık_hassasiyet("bf16") { kb = doğrusal_çapraz_entropi(x, w, hedef) }
+    eşit_mi("float32", kb.tür)
+    doğrula(mutlak(kb.değer - k2.değer) < 0.05, "bf16 kayıp {kb.değer}")
+    // Hatalar çapraz_entropi'ninkilerdir; ağırlığın şekli uyumsuzsa şekiller söylenir.
+    doğrula(hata_metni(() => doğrusal_çapraz_entropi(x, tensör(birler([3, 5])), hedef)).içerir("[6, 4]"))
+    doğrula(hata_metni(() => doğrusal_çapraz_entropi(x, w, [-1, -1, -1, -1, -1, -1])).içerir("yok sayıldı"))
+    doğrula(hata_metni(() => doğrusal_çapraz_entropi(x, w, [0, 9, 0, 0, 0, 0])).içerir("9"))
+}
+
 test "15.4 matematik fonksiyonları ve indirgemeler" {
     değişken a = tensör([[1, 2, 3], [4, 5, 6]])
     eşit_mi([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], relu(a - 3).değer)

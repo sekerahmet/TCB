@@ -388,6 +388,7 @@ const (
 	H3102 Code = 3102 // dikkat
 	H3103 Code = 3103 // gradyan
 	H3104 Code = 3104 // arka uç
+	H3106 Code = 3106 // LinearCrossEntropy: girdi {x} ile ağırlık {w} uyumsuz; ağırlık [girdinin son ekseni, sınıf sayısı] şeklinde olmalı
 	H4000 Code = 4000 // LoadLibraryExW bulunamadı: {error}
 	H4001 Code = 4001 // NVIDIA sürücüsü ({library}) yüklenemedi: {error}
 	H4002 Code = 4002 // bu TR derlemesinde GPU desteği yok (işletim sistemi desteklenmiyor ya da ikili GPU'suz derlendi)
@@ -880,6 +881,8 @@ const (
 	H6342 Code = 6342 // {fn}: tohum tam sayı olmalıdır, {given} verildi
 	H6343 Code = 6343 // {fn}: {row}. satırın logitlerinden dağılım kurulamıyor (NaN, sonsuz ya da hepsi -∞ değer var)
 	H6344 Code = 6344 // {fn}: {order}. eleman
+	H6345 Code = 6345 // {fn}(girdi, ağırlık, hedef) 3 parametre bekler, {given} verildi
+	H6346 Code = 6346 // {fn}: ağırlık [girdinin son ekseni, sınıf sayısı] şeklinde olmalı (logitler girdi @ ağırlık); girdi {x}, ağırlık {w}
 	H6400 Code = 6400 // {fn}(kayıp) 1 parametre bekler, {given} verildi
 	H6401 Code = 6401 // {fn} tek elemanlı (skaler) bir kayıp ister, {shape} şeklinde tensör verildi; önce {sumFn}(...) ya da {meanFn}(...) ile indirgeyin
 	H6402 Code = 6402 // {fn}: kayıp türev izlenen hiçbir tensöre bağlı değil; parametreleri {example} ile oluşturun ({noGradFn} bloğu içinde hesaplanan değerler izlenmez)

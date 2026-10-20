@@ -187,6 +187,7 @@
   "T502": { "ad": "rms_norm" },
   "T503": { "ad": "attention" },
   "T510": { "ad": "cross_entropy" },
+  "T512": { "ad": "linear_cross_entropy" },
   "T530": { "ad": "parameters" },
   "T611": { "ad": "sample" },
   "T700": { "ad": "save_tensors" },

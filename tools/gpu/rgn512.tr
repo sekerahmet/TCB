@@ -4,8 +4,9 @@
 //   gömmesi (PLE, P = d), paylaşımlı gömme; Muon (gövde matrisleri) + AdamW (gömme, ple_bağlamı;
 //   normlar ve sapmalar çürümesiz) + satır seyrek RMS (PLE tabloları), WSD, gradyan kırpma 1,0, bf16.
 // Eksikler (yol haritası Evre 3, "Hedef"): satır seyrek RMS yoğun maskelidir (anlam aynı, maliyet
-// O(V·P)); çapraz entropi logitleri tutar (hedef parçalı ve geri geçişte yeniden hesaplar);
-// derleme (torch.compile) karşılığı kaynaştırma yoktur.
+// O(V·P)); derleme (torch.compile) karşılığı kaynaştırma yoktur. Kayıp logitleri bütün olarak
+// tutmaz (model.kayıp → doğrusal_çapraz_entropi, 8192'lik dilimler; hedef de dilimler ama geri
+// geçişte yeniden hesaplar).
 //
 // Kullanım: ./tr rgn512.tr --veri KLASÖR [--adım 120] [--çıktı sonuç.json]
 //   veri: uint16 .npy parça dosyalarının klasörü (belge sonu 0), hedefle aynı biçim.

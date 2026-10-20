@@ -239,3 +239,29 @@ func TestNaNRowsMatchCPU(t *testing.T) {
 		})
 	}
 }
+
+// TestLinearCrossEntropy parçalı doğrusal + çapraz entropinin GPU'da CPU ile aynı kaybı ve x, w
+// gradyanlarını verdiğini sınar: birden çok dilim (satır ofsetli çarpım), yok sayılan hedefler,
+// gelen gradyanla ölçekleme (skalerle yayınlamalı çarpım); float32 ve bf16.
+func TestLinearCrossEntropy(t *testing.T) {
+	rng := rand.New(rand.NewSource(13))
+	R, D, C := tensor.LinearCrossEntropyChunk+5, 8, 6
+	xv, wv := random(rng, R*D, 1), random(rng, D*C, 1)
+	target := make([]int, R)
+	for i := range target {
+		target[i] = rng.Intn(C)
+		if i%7 == 3 {
+			target[i] = -1
+		}
+	}
+	for _, dt := range []tensor.DType{tensor.Float32, tensor.BFloat16} {
+		tol := 2e-5
+		if dt != tensor.Float32 {
+			tol = 2e-2
+		}
+		compare(t, fmt.Sprintf("doğrusal çapraz entropi %s", dt), tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x, w := twin(xv, true, R, D)[c], twin(wv, true, D, C)[c]
+			return tensor.LinearCrossEntropy(x.Cast(dt), w.Cast(dt), target), []*tensor.Tensor{x, w}
+		})
+	}
+}

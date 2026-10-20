@@ -72,6 +72,7 @@ var bf16Tolerances = map[string]float64{
 	"limits/layer_norm γβ":                    0.009,
 	"limits/rms_norm yalın":                   0.006,
 	"limits/rms_norm γ":                       0.012,
+	"linear_ce/linear_cross_entropy":          0.006,
 	"matmul/matmul 2B":                        0.008,
 	"matmul/matmul ND@2B":                     0.006,
 	"matmul/matmul devrik a":                  0.006,

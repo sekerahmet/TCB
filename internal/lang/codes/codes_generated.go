@@ -195,6 +195,7 @@ const (
 	T502 Code = T + 502 // rms_norm · rms_normu
 	T503 Code = T + 503 // attention · dikkat
 	T510 Code = T + 510 // cross_entropy · çapraz_entropi
+	T512 Code = T + 512 // linear_cross_entropy · doğrusal_çapraz_entropi
 	T530 Code = T + 530 // parameters · parametreler
 	T611 Code = T + 611 // sample · örnekle
 	T700 Code = T + 700 // save_tensors · tensör_kaydet

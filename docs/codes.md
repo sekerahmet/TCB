@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 293 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 99 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 294 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 100 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -2015,6 +2015,18 @@ yazdır(çapraz_entropi(tensör([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), [0, 1]).de�
 
 Kaldırıldı: 'kayıp_mse' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
+#### T512 `doğrusal_çapraz_entropi`
+
+    doğrusal_çapraz_entropi(Tensör, Tensör, Tam | Liste | Tensör) → Tensör
+
+çapraz_entropi(girdi @ ağırlık, hedef) ile aynı kaybı ve gradyanları verir, ama bütün logitleri bellekte tutmaz: satırları dilim dilim işler (büyük sözlüklü dil modellerinin çıkış katmanı için). Ağırlık [girdinin son ekseni, sınıf sayısı] şeklindedir; paylaşımlı gömmede tablo.devrik() verilir.
+
+```tr
+yazdır(doğrusal_çapraz_entropi(tensör([[1.0, 2.0]]), tensör([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), [2]).değer)
+```
+
+İlişkili: T510 `çapraz_entropi`
+
 #### T520 `sinir_ağı` — kaldırıldı
 
 Kaldırıldı: 'sinir_ağı' TR'den kaldırıldı; yerine geçen bir kod yoktur.
@@ -3502,4 +3514,4 @@ Kaldırıldı: 'html_üret' TR'den kaldırıldı; yerine geçen bir kod yoktur.
 
 `x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):
 
-`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`
+`yazdır`, `girdi`, `dosya_oku`, `dosya_yaz`, `dosya_satırları`, `yol`, `klasörü_listele`, `klasör_oluştur`, `sil`, `kopyala`, `taşı`, `tip`, `tam`, `ondalık`, `metin`, `aralık`, `toplam`, `min`, `maks`, `mutlak`, `karekök`, `yuvarla`, `taban`, `tavan`, `işaret`, `sınırla`, `ortalama`, `standart_sapma`, `ortanca`, `bekle`, `json_çöz`, `json_metin`, `csv_oku`, `csv_çöz`, `doğrula`, `eşit_mi`, `ortam_değişkeni`, `komut_satırı`, `günlük`, `ilerleme`, `tensör`, `sıfırlar`, `birler`, `rastgele_normal`, `birim_matris`, `birleştir`, `relu`, `sigmoid`, `tanh`, `gelu`, `silu`, `softmax`, `log_softmax`, `üstel`, `log`, `sinüs`, `kosinüs`, `tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`, `maks_indeks`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu`, `sinh`, `cosh`, `log1p`, `log2`, `log10`, `üstel_eksi_bir`, `geri_yayılım`, `türevsiz`, `türev_denetle`, `AdamW`, `SGD`, `gradyan_kırp`, `gömme`, `katman_normu`, `rms_normu`, `dikkat`, `çapraz_entropi`, `doğrusal_çapraz_entropi`, `parametreler`, `örnekle`, `tensör_kaydet`, `tensör_yükle`, `kontrol_noktası`, `parametreleri_yükle`, `karışık_hassasiyet`, `varsayılan_cihaz`, `veri_kümesi`, `parçalayıcı_yükle`

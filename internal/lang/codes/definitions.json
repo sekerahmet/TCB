@@ -200,6 +200,7 @@
   "T503": { "tür": "fonksiyon", "param": ["A212", "A212", "A212"], "adlı": [["T950", "A203", true], ["T951", "A200", 0], ["T952", "A212|A205|A204", null]], "dönüş": "A212", "ilişkili": ["T210"] },
   "T510": { "tür": "fonksiyon", "param": ["A212|A205", "A200|A205|A212"], "dönüş": "A212", "ilişkili": ["T211"] },
   "T511": { "tür": "fonksiyon", "kaldırıldı": true },
+  "T512": { "tür": "fonksiyon", "param": ["A212", "A212", "A200|A205|A212"], "dönüş": "A212", "ilişkili": ["T510"] },
   "T520": { "tür": "fonksiyon", "kaldırıldı": true },
   "T521": { "tür": "fonksiyon", "kaldırıldı": true },
   "T530": { "tür": "fonksiyon", "param": ["A211|A205|A206|A212"], "adlı": [["T970", "A203", false]], "dönüş": "A205|A206", "ilişkili": ["T400", "T700"] },

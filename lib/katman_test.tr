@@ -178,6 +178,24 @@ test "GPT: aynı tohum aynı modeli verir, kayıp başta ln(dağarcık) civarın
     doğrula(k > 2.6 ve k < 2.95, "başlangıç kaybı ln(16) ≈ 2.77 civarında olmalı: {k}")
 }
 
+test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullanır; kayıp ve gradyanlar logitlerle aynıdır" {
+    döngü paylaşımlı içinde [doğru, yanlış] {
+        değişken m = GPT(12, bağlam: 4, boyut: 8, katman: 1, baş: 2, paylaşımlı: paylaşımlı, tohum: 3)
+        değişken x = [[1, 2, 3, 4], [5, 6, 7, 8]]
+        değişken hedef = [[2, 3, -1, 5], [6, 7, 8, 9]]
+        değişken k1 = m.kayıp(x, hedef)
+        geri_yayılım(k1)
+        değişken g1 = [tensör(p.gradyan) döngü p içinde parametreler(m)]
+        döngü p içinde parametreler(m) { türevsiz { p.gradyan[0..p.gradyan.şekil[0]] = 0.0 } }
+        değişken k2 = çapraz_entropi(m.ileri(x), hedef)
+        geri_yayılım(k2)
+        doğrula(mutlak(k1.değer - k2.değer) < 0.00001, "paylaşımlı {paylaşımlı}: kayıp {k1.değer} / {k2.değer}")
+        döngü i, p içinde parametreler(m) {
+            doğrula(maks(mutlak(g1[i] - p.gradyan)).değer < 0.00001, "paylaşımlı {paylaşımlı}: {i}. parametrenin gradyanı farklı")
+        }
+    }
+}
+
 test "GPT: üret istenen kadar parça ekler; tohumla tekrarlanır, bağlamdan uzun dizide çalışır" {
     değişken m = GPT(12, bağlam: 4, boyut: 8, katman: 1, baş: 2)
     değişken a = m.üret([1, 2], 6, tohum: 3)

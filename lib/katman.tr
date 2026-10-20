@@ -353,19 +353,33 @@ yapı GPT {
         kendi.kos = tablolar[0]
         kendi.sin = tablolar[1]
     }
-    // kimlikler [B, T] (T ≤ bağlam) → logit [B, T, dağarcık]
-    fonksiyon ileri(kimlikler) {
+    // gizli_durum: kimlikler [B, T] → son normdan geçmiş gizli durum [B, T, boyut].
+    fonksiyon gizli_durum(kimlikler) {
         değişken x = kendi.gömme.ileri(kimlikler)
         değişken bağlamlar = eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }
         döngü i, blok içinde kendi.bloklar {
             x = blok.ileri(x, kendi.kos, kendi.sin, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] })
         }
-        x = kendi.son_norm.ileri(x)
+        sonuç kendi.son_norm.ileri(x)
+    }
+    // kimlikler [B, T] (T ≤ bağlam) → logit [B, T, dağarcık]
+    fonksiyon ileri(kimlikler) {
+        değişken x = kendi.gizli_durum(kimlikler)
         eğer kendi.çıkış == yok { sonuç x @ kendi.gömme.tablo.devrik() }
         sonuç kendi.çıkış.ileri(x)
     }
-    // kayıp: bir sonraki parçayı tahmin etmenin ortalama çapraz entropisi.
-    fonksiyon kayıp(girdi, hedef) { sonuç çapraz_entropi(kendi.ileri(girdi), hedef) }
+    // kayıp: bir sonraki parçayı tahmin etmenin ortalama çapraz entropisi. Çıkış sapmasızsa
+    // (paylaşımlı gömme ya da sapmasız Doğrusal) logitler bütün olarak tutulmaz:
+    // doğrusal_çapraz_entropi aynı kaybı dilim dilim hesaplar (dil tanımı 15.43).
+    fonksiyon kayıp(girdi, hedef) {
+        eğer kendi.çıkış == yok {
+            sonuç doğrusal_çapraz_entropi(kendi.gizli_durum(girdi), kendi.gömme.tablo.devrik(), hedef)
+        }
+        eğer kendi.çıkış.sapma == yok {
+            sonuç doğrusal_çapraz_entropi(kendi.gizli_durum(girdi), kendi.çıkış.ağırlık, hedef)
+        }
+        sonuç çapraz_entropi(kendi.ileri(girdi), hedef)
+    }
     // üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi
     // verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos verilirse (bir
     // parça kimliği) o parça örneklenince eklenir ve üretim durur (adetten önce). Model

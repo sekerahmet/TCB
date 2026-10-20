@@ -96,16 +96,35 @@ func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if len(sh) == 0 {
 		return nil, messages.New(messages.H6310, fn)
 	}
-	target, _, err := intIndices(fn, args[1])
+	target, err := lossTargets(fn, sh, args[1])
+	if err != nil {
+		return nil, err
+	}
+	r, err := safe(func() *tensor.Tensor { return tensor.CrossEntropy(output, target) })
+	if err != nil {
+		return nil, err
+	}
+	return New(r), nil
+}
+
+// lossTargets çapraz entropinin hedeflerini okur ve sh şekilli logitlere göre denetler: satır
+// başına bir sınıf indeksi (one-hot değil), sınıf sayısının altında, en az biri geçerli
+// (negatifler yok sayılır).
+func lossTargets(fn string, sh []int, v interp.Value) ([]int, error) {
+	target, _, err := intIndices(fn, v)
 	if err != nil {
 		return nil, err
 	}
 	C := sh[len(sh)-1]
+	n := 1
+	for _, d := range sh {
+		n *= d
+	}
 	line := 0
 	if C > 0 {
-		line = output.Numel() / C
+		line = n / C
 	}
-	if len(target) != line && C > 1 && len(target) == output.Numel() && isZeroOne(target) {
+	if len(target) != line && C > 1 && len(target) == n && isZeroOne(target) {
 		return nil, messages.New(messages.H6312, fn, shapeText(sh))
 	}
 	if len(target) != line {
@@ -123,7 +142,44 @@ func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if valid == 0 {
 		return nil, messages.New(messages.H6316, fn, len(target))
 	}
-	r, err := safe(func() *tensor.Tensor { return tensor.CrossEntropy(output, target) })
+	return target, nil
+}
+
+// linearCrossEntropy doğrusal_çapraz_entropi(x, ağırlık, hedef): çapraz_entropi(x @ ağırlık,
+// hedef) ile aynı kayıp ve gradyanlar, ama bütün logitler hiç tutulmaz (tensor.LinearCrossEntropy,
+// dil tanımı 15.43). Karışık hassasiyet bloğunda x ve ağırlık `@` gibi blok türüne çevrilir.
+func linearCrossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	fn := codes.Name(codes.T512)
+	if len(args) != 3 {
+		return nil, messages.New(messages.H6345, fn, len(args))
+	}
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
+		return nil, err
+	}
+	x, err := toTensor(fn, args[0])
+	if err != nil {
+		return nil, err
+	}
+	w, err := toTensorOn(fn, args[1], x)
+	if err != nil {
+		return nil, err
+	}
+	xs, ws := x.Shape(), w.Shape()
+	if len(xs) == 0 || len(ws) != 2 || xs[len(xs)-1] != ws[0] {
+		return nil, messages.New(messages.H6346, fn, shapeText(xs), shapeText(ws))
+	}
+	logits := append(append([]int(nil), xs[:len(xs)-1]...), ws[1])
+	target, err := lossTargets(fn, logits, args[2])
+	if err != nil {
+		return nil, err
+	}
+	mixed := mixedDType(m)
+	r, err := safe(func() *tensor.Tensor {
+		if mixed != tensor.Float32 {
+			return tensor.LinearCrossEntropy(x.CastShared(mixed), w.CastShared(mixed), target)
+		}
+		return tensor.LinearCrossEntropy(x, w, target)
+	})
 	if err != nil {
 		return nil, err
 	}

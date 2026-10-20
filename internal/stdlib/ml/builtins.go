@@ -25,6 +25,7 @@ func Register(v *interp.VM) {
 	// --- Sinir ağı ---
 	wrap(v, codes.T500, newBuiltin(embedding))
 	wrap(v, codes.T510, newBuiltin(crossEntropy))
+	wrap(v, codes.T512, newBuiltin(linearCrossEntropy))
 	wrap(v, codes.T501, newBuiltin(layerNorm))
 	wrap(v, codes.T502, newBuiltin(rmsNorm))
 	wrap(v, codes.T503, newBuiltin(attentionBuiltin)) // model_araclari.go
