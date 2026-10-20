@@ -190,6 +190,25 @@ build_tr() {
 	mkdir -p bin && go build -o "$TR" ./cmd/tr
 }
 
+# extension_tests VS Code eklentisinin davranış testlerini (editors/vscode/test/*_test.js) derlenen
+# yorumlayıcıyla koşar. Yorumlayıcı mutlak yolla verilir; bir test "atlandı" derse denetim kalır
+# (koşulmayan test hiçbir şeyi korumaz).
+extension_tests() {
+	local js output
+	command -v node >/dev/null 2>&1 || { [ "${GITHUB_ACTIONS:-}" = "true" ] && fail "node bulunamadı; eklenti testleri koşulamadı"; return; }
+	for js in editors/vscode/test/*_test.js; do
+		if ! output=$(TR_YORUMLAYICI="$TR" node "$js" 2>&1); then
+			echo "$output"
+			fail "eklenti testi: $js"
+			continue
+		fi
+		echo "$output" | tail -1
+		if echo "$output" | grep -q "atlandı"; then
+			fail "eklenti testi atlandı: $js"
+		fi
+	done
+}
+
 # run_examples örnekleri geçici bir klasörde, depodaki düzenle (examples/, tests/data/, docs/) çalıştırır.
 run_examples() {
 	local workdir f name started output code limit
@@ -254,6 +273,7 @@ for mode in $modes; do
 			summarize "tr test tests" "$TR" test tests
 			summarize "tr test lib" "$TR" test lib
 			run_examples
+			[ "$mode" = v3 ] || extension_tests
 		else
 			fail "tr derlemesi"
 		fi
