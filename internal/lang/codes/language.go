@@ -3,7 +3,6 @@ package codes
 import (
 	_ "embed"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"unicode"
@@ -404,10 +403,7 @@ func (d *Language) Suggest(ns Namespace, spelling string, accept func(Code) bool
 // gömen bir program da kapanırdı): Türkçeye düşülür ve hata LanguageError ile okunur; tr
 // komutu başlarken onu bildirip çıkar.
 var active = func() *Language {
-	langCode := os.Getenv(LanguageEnvVar)
-	if langCode == "" {
-		langCode = "tr"
-	}
+	langCode := messages.ActiveLanguage()
 	d, err := buildLanguage(langCode)
 	if err != nil {
 		activeErr = messages.New(messages.H2509, LanguageEnvVar, langCode, err)

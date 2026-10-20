@@ -16,10 +16,19 @@ type Error struct {
 func New(c Code, args ...any) *Error { return &Error{Code: c, Args: args} }
 
 // Text returns the message text of code c with its parameter values, for output that is not
-// an error (warnings, notes).
-func Text(c Code, args ...any) string { return activeCatalog().render(c, args) }
+// an error (warnings, notes). The whole text is in one language: if the active language lacks
+// the code or any coded error among the values, it is all in the source language.
+func Text(c Code, args ...any) string { return catalogFor(c, args).render(c, args) }
 
 func (e *Error) Error() string { return Text(e.Code, e.Args...) }
+
+// errorText hatanın metnidir (nil için boş).
+func errorText(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
 
 // Unwrap returns the errors among the parameter values, so errors.Is and errors.As see the
 // wrapped cause as they did with fmt.Errorf's %w.

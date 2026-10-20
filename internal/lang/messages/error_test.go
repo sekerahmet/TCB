@@ -37,7 +37,7 @@ func TestInternal(t *testing.T) {
 
 // Metni olmayan bir dil seçilirse ileti Türkçe gösterilir.
 func TestUnknownLanguageFallsBack(t *testing.T) {
-	t.Setenv(LanguageEnvVar, "xx")
+	useLanguage(t, "xx")
 	if got := Text(H7004, "x"); got != "CSV okuma hatası: x" {
 		t.Fatalf("metin: %s", got)
 	}
@@ -62,5 +62,41 @@ func TestInternalfAndHasAny(t *testing.T) {
 	wrapped := New(H2000, "f", New(H2010, "a", "b"))
 	if !HasAny(wrapped, H9000, H2010) || HasAny(wrapped, H9000, H2001) || HasAny(nil, H2000) {
 		t.Fatal("HasAny zinciri yanlış okuyor")
+	}
+}
+
+// useLanguage etkin dili test süresince değiştirir (süreç dili LanguageEnvVar'dan bir kez okunur).
+func useLanguage(t *testing.T, lang string) {
+	t.Helper()
+	old := activeLanguage
+	activeLanguage = func() string { return lang }
+	t.Cleanup(func() { activeLanguage = old })
+}
+
+// Bir ileti bütünüyle tek dilde gösterilir: içindeki kodlu hatalardan biri etkin dilde
+// çevrilmemişse çerçeve de kaynak dilde (Türkçe) kalır; yarı İngilizce yarı Türkçe satır olmaz.
+func TestFallbackKeepsOneLanguage(t *testing.T) {
+	useLanguage(t, "en")
+	if got := At(1, 2, New(H7004, "x")).Error(); got != "Satır 1, Sütun 2: CSV okuma hatası: x" {
+		t.Errorf("çevrilmemiş iç ileti: %q", got)
+	}
+	if got := At(1, 2, New(H2000, "f", "x")).Error(); got != "Line 1, column 2: f: x" {
+		t.Errorf("çevrilmiş iç ileti: %q", got)
+	}
+	if got := Text(H2000, "f", New(H7004, "x")); got != "f: CSV okuma hatası: x" {
+		t.Errorf("Text: %q", got)
+	}
+	if got := Text(H7004, At(1, 0, New(H2000, "f", "x"))); got != "CSV okuma hatası: Satır 1: f: x" {
+		t.Errorf("çerçeve Türkçeyken iç ileti de Türkçe olmalı: %q", got)
+	}
+}
+
+// Süreç dili bir kez okunur (codes paketi de öyle): ortam sonradan değişse de iletiler ve adlar
+// aynı dilde kalır.
+func TestLanguageReadOnce(t *testing.T) {
+	first := ActiveLanguage()
+	t.Setenv(LanguageEnvVar, "en")
+	if ActiveLanguage() != first {
+		t.Fatalf("dil ortamdan yeniden okundu: %s → %s", first, ActiveLanguage())
 	}
 }

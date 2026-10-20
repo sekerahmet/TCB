@@ -64,13 +64,65 @@ func load() {
 	})
 }
 
-// activeCatalog etkin dilin kataloğudur (LanguageEnvVar; bilinmeyen dilde Türkçe).
+// activeLanguage süreç dilidir: LanguageEnvVar ilk okunuşta sabitlenir (codes paketi de bu
+// değeri kullanır). Bir süreç tek dil konuşur; erken kurulup geç gösterilen bir ileti ile adlar
+// iki dile bölünmez. Testler değişkeni bu paketin içinden değiştirir.
+var activeLanguage = sync.OnceValue(func() string {
+	if lang := os.Getenv(LanguageEnvVar); lang != "" {
+		return lang
+	}
+	return "tr"
+})
+
+// ActiveLanguage returns the process's language code, read once from LanguageEnvVar (empty: tr).
+// codes uses the same value, so names and messages are always in one language.
+func ActiveLanguage() string { return activeLanguage() }
+
+// activeCatalog etkin dilin kataloğudur (bilinmeyen dilde Türkçe).
 func activeCatalog() *Catalog {
 	load()
-	if c, ok := catalogs[os.Getenv(LanguageEnvVar)]; ok {
+	if c, ok := catalogs[activeLanguage()]; ok {
 		return c
 	}
 	return catalogs["tr"]
+}
+
+// catalogFor iletiyi gösterecek kataloğudur: etkin dil iletiyi ve içindeki bütün kodlu hataları
+// çeviriyorsa o, değilse kaynak dil. Eksik çeviri iletinin bütününü Türkçeye düşürür; çerçevesi
+// İngilizce içi Türkçe bir satır okunmazdı.
+func catalogFor(code Code, args []any) *Catalog {
+	c := activeCatalog()
+	if c.Language != "tr" && !c.translates(code, args) {
+		return catalogs["tr"]
+	}
+	return c
+}
+
+// translates kodun ve değerlerindeki kodlu hataların hepsinin bu dilde metni olduğudur.
+func (c *Catalog) translates(code Code, args []any) bool {
+	if _, ok := c.templates[code]; !ok {
+		return false
+	}
+	for _, a := range args {
+		if !c.translatesValue(a) {
+			return false
+		}
+	}
+	return true
+}
+
+// translatesValue bir değerin bu dilde gösterilebildiğidir: kodlu hata ise metni vardır.
+func (c *Catalog) translatesValue(a any) bool {
+	switch e := a.(type) {
+	case *Error:
+		return c.translates(e.Code, e.Args)
+	case *PosError:
+		if code, args, ok := e.message(); ok {
+			return c.translates(code, args)
+		}
+		return c.translatesValue(e.Err)
+	}
+	return true
 }
 
 // ParseDefinitions reads definitions.json: {"H7003": {"param": ["fn", "path"]}, ...}, codes

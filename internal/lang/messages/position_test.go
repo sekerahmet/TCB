@@ -21,3 +21,17 @@ func TestPosError(t *testing.T) {
 		t.Fatal("konumsuz hata konum vermemeli; kod zincirde bulunmalı")
 	}
 }
+
+// Konumu bilinmeyen (satır 0) hata konumlu sayılmaz: "Satır 0" yazılmaz, Pos zincirde aramayı sürdürür.
+func TestPosErrorWithoutLine(t *testing.T) {
+	err := At(0, 0, New(H2000, "f", "x"))
+	if got := err.Error(); got != Text(H2000, "f", "x") {
+		t.Errorf("metin: %q", got)
+	}
+	if _, _, ok := Pos(err); ok {
+		t.Error("satırı 0 olan hata konumlu sayıldı")
+	}
+	if l, _, ok := Pos(At(0, 0, At(3, 0, New(H2000, "f", "x")))); !ok || l != 3 {
+		t.Errorf("içteki konum bulunmadı: %d %v", l, ok)
+	}
+}

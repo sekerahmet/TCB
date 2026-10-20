@@ -52,6 +52,8 @@ adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSe
 3. Hâl eki olan bir dilse çekimcisini kendi dilbilgisi paketinden `messages.RegisterInflector` ile kaydet.
 4. `go test ./internal/lang/messages` her şablonu ve parametreyi denetler; çevrilmemiş kod Türkçeye düşer.
 
+**Bir ileti tek dildedir.** Süreç dili `TR_DIL`'den bir kez okunur (`messages.ActiveLanguage`; `codes` da bunu kullanır, adlar ve iletiler aynı dildedir). Bir iletinin ya da içindeki kodlu hatalardan (`*Error`, `*PosError`) birinin etkin dilde metni yoksa iletinin bütünü kaynak dilde (Türkçe) gösterilir; iç ileti dıştakinin dilinde yazılır. Bu yüzden ileti değerine metin (`messages.Text`) değil kodlu hata (`messages.New`) geçirilir. Denetim: `TestFallbackKeepsOneLanguage`, `TestLanguageReadOnce`.
+
 Pilot: `en.json` 38 farklı türden iletiyi (konum, çoğul, liste, hâl eki, dosya hatası, başlıklar, iç hata) taşır; `TR_DIL=en` ile gösterilir.
 
 **Testler metni değil kodu denetler.** `messages.Has(err, messages.H7003)` hata zincirinde kodu

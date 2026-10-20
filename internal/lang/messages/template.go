@@ -350,13 +350,20 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 		case segNumber:
 			fmt.Fprint(b, number)
 		case segArg:
+			a := args[s.arg]
+			text, coded := c.codedText(a)
+			if !coded && s.mod != "q" {
+				text = fmt.Sprint(a)
+			}
 			switch {
+			case s.mod == "q" && coded:
+				fmt.Fprintf(b, "%q", text)
 			case s.mod == "q":
-				fmt.Fprintf(b, "%q", args[s.arg])
+				fmt.Fprintf(b, "%q", a)
 			case s.mod != "":
-				b.WriteString(inflect(c.Language, fmt.Sprint(args[s.arg]), s.mod))
+				b.WriteString(inflect(c.Language, text, s.mod))
 			default:
-				fmt.Fprint(b, args[s.arg])
+				b.WriteString(text)
 			}
 		case segPlural:
 			c.write(b, code, s.branches[c.pluralKey(s.branches, args[s.arg])], args, args[s.arg])
@@ -368,6 +375,33 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 			c.write(b, code, branch, args, number)
 		}
 	}
+}
+
+// codedText değer bir kodlu hataysa onun bu katalogdaki metnidir: iç ileti dıştakiyle aynı
+// dilde yazılır (catalogFor ikisinin de bu dilde metni olduğunu denetlemiştir).
+func (c *Catalog) codedText(a any) (string, bool) {
+	switch e := a.(type) {
+	case *Error:
+		if e == nil {
+			return "", false
+		}
+		return c.render(e.Code, e.Args), true
+	case *PosError:
+		if e == nil {
+			return "", false
+		}
+		if code, args, ok := e.message(); ok {
+			return c.render(code, args), true
+		}
+		if e.Err == nil {
+			return "", true
+		}
+		if text, ok := c.codedText(e.Err); ok {
+			return text, true
+		}
+		return e.Err.Error(), true
+	}
+	return "", false
 }
 
 // pluralKey değerin dalını seçer: önce "=N" tam eşleşme, sonra dilin CLDR kategorisi, yoksa
