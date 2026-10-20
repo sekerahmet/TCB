@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
