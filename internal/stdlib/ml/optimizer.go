@@ -194,7 +194,7 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 	if v, ok := bind.GetNamed(named, nameMax); ok {
 		f, ok := interp.ToFloat(v)
 		if !ok || !(f > 0) || math.IsInf(f, 0) {
-			return nil, messages.New(messages.H6523, fn, nameMax.TR, v.Inspect())
+			return nil, messages.New(messages.H6429, fn, nameMax.TR, v.Inspect())
 		}
 		maxVal = f
 	}

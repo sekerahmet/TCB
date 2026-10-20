@@ -176,7 +176,7 @@ func normArgs(fn string, args []interp.Value, named map[string]interp.Value, nam
 		}
 		if v, ok := bind.GetNamed(named, a); ok {
 			if values[i] != nil {
-				return nil, nil, 0, messages.New(messages.H6323, fn, a.TR)
+				return nil, nil, 0, messages.New(messages.H5528, fn, a.TR)
 			}
 			values[i] = v
 		}

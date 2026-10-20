@@ -17,9 +17,12 @@ var definitionsFile []byte
 //go:embed tr.json
 var trFile []byte
 
+//go:embed en.json
+var enFile []byte
+
 // languageFiles gömülü dil dosyalarıdır; tr kaynak dildir ve her kodun metni oradadır. Başka
 // bir dilde metni olmayan kod Türkçe gösterilir.
-var languageFiles = map[string][]byte{"tr": trFile}
+var languageFiles = map[string][]byte{"tr": trFile, "en": enFile}
 
 // Catalog is one language's message templates, checked against the definitions.
 type Catalog struct {
@@ -128,11 +131,11 @@ func ParseCatalog(lang string, data []byte, d *Definitions) (*Catalog, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %v", k, err)
 		}
-		if lang == "tr" {
-			for i, p := range params {
-				if !used[i] {
-					return nil, fmt.Errorf("%s: %q parametresi metinde kullanılmıyor", k, p)
-				}
+		// Her dilin metni kodun bütün parametrelerini kullanır: çeviride düşen bir değer
+		// (dosya yolu, sayı) kullanıcıya hiç ulaşmazdı.
+		for i, p := range params {
+			if !used[i] {
+				return nil, fmt.Errorf("%s: %q parametresi metinde kullanılmıyor", k, p)
 			}
 		}
 		c.templates[code] = segs

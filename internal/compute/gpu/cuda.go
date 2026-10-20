@@ -237,20 +237,20 @@ func openCUDA(order int) (*cudaDriver, error) {
 	s := &cudaDriver{c: c, output: &cudaOutput{}, paramBuf: make([]byte, 0, 8192), jit: &jitSpace{}}
 	o := s.output
 	if r := c.call(fDeviceGet, uintptr(unsafe.Pointer(&o.i32)), uintptr(order)); r != succeeded {
-		return nil, messages.New(messages.H4006, fmt.Sprintf("cuDeviceGet(%d)", order), c.errName(r))
+		return nil, messages.New(messages.H2000, fmt.Sprintf("cuDeviceGet(%d)", order), c.errName(r))
 	}
 	s.device = o.i32
 	if r := c.call(fDeviceGetName, uintptr(unsafe.Pointer(&o.ad[0])), uintptr(len(o.ad)), uintptr(s.device)); r != succeeded {
-		return nil, messages.New(messages.H4006, "cuDeviceGetName", c.errName(r))
+		return nil, messages.New(messages.H2000, "cuDeviceGetName", c.errName(r))
 	}
 	s.ad = cText(unsafe.Pointer(&o.ad[0]), len(o.ad))
 	if r := c.call(fDeviceTotalMem, uintptr(unsafe.Pointer(&o.u64)), uintptr(s.device)); r != succeeded {
-		return nil, messages.New(messages.H4006, "cuDeviceTotalMem", c.errName(r))
+		return nil, messages.New(messages.H2000, "cuDeviceTotalMem", c.errName(r))
 	}
 	s.memory = o.u64
 	for i, oz := range []int{75, 76, 16} { // yetenek büyük/küçük, SM sayısı
 		if r := c.call(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), uintptr(oz), uintptr(s.device)); r != succeeded {
-			return nil, messages.New(messages.H4006, fmt.Sprintf("cuDeviceGetAttribute(%d)", oz), c.errName(r))
+			return nil, messages.New(messages.H2000, fmt.Sprintf("cuDeviceGetAttribute(%d)", oz), c.errName(r))
 		}
 		if i < 2 {
 			s.capability_[i] = o.i32
@@ -266,12 +266,12 @@ func openCUDA(order int) (*cudaDriver, error) {
 		s.sharedMem = o.i32 // CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
 	}
 	if r := c.call(fPrimaryCtxRetain, uintptr(unsafe.Pointer(&o.handle)), uintptr(s.device)); r != succeeded {
-		return nil, messages.New(messages.H4006, "cuDevicePrimaryCtxRetain", c.errName(r))
+		return nil, messages.New(messages.H2000, "cuDevicePrimaryCtxRetain", c.errName(r))
 	}
 	s.context = o.handle
 	if r := s.bind(); r != succeeded {
 		c.call(fPrimaryCtxRelease, uintptr(s.device)) // tutulan bağlam bırakılır
-		return nil, messages.New(messages.H4006, "cuCtxSetCurrent", c.errName(r))
+		return nil, messages.New(messages.H2000, "cuCtxSetCurrent", c.errName(r))
 	}
 	return s, nil
 }

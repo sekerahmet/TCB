@@ -58,7 +58,7 @@ func TestTamperedCheckpointRejected(t *testing.T) {
 		{"özet ile durumun sürümü farklı", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"sürüm": 2`, `"sürüm": 1`, 1)) }, messages.H7473, ""},
 		{"bilinmeyen alan", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `{`, `{"yol": "../../x", `, 1)) }, messages.H7423, "unknown field"},
 		{"başka adım", "ozet.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"adım": 2`, `"adım": 3`, 1)) }, messages.H7424, ""},
-		{"büyük özet", "ozet.json", func(b []byte) []byte { return append(b, make([]byte, 70<<10)...) }, messages.H7477, "ozet.json çok büyük"},
+		{"büyük özet", "ozet.json", func(b []byte) []byte { return append(b, make([]byte, 70<<10)...) }, messages.H6600, "ozet.json çok büyük"},
 		{"eksik özet", "ozet.json", func([]byte) []byte { return nil }, messages.H7423, ""},
 	}
 	for _, d := range states {

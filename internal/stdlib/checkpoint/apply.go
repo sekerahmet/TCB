@@ -22,13 +22,13 @@ func (kn *Checkpoint) apply(m *interp.VM, fn string, o *loadedCkpt) error {
 	for _, n := range kn.objects {
 		if n.kind == kindStateful {
 			if err := n.stateful.LoadState(m, o.objects[n.name].value.(*interp.DictVal)); err != nil {
-				return messages.New(messages.H7401, fn, n.name, err)
+				return messages.New(messages.H6626, fn, n.name, err)
 			}
 		}
 	}
 	states, err := kn.loadTensors(o)
 	if err != nil {
-		return messages.New(messages.H7402, fn, kn.shown+"/"+o.name, err)
+		return messages.New(messages.H5620, fn, kn.shown+"/"+o.name, err)
 	}
 	for _, n := range kn.objects {
 		switch n.kind {

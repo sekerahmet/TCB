@@ -98,7 +98,7 @@ func newObject(fn, name string, v interp.Value) (*object, error) {
 	switch x := v.(type) {
 	case *interp.DictVal, *interp.ListVal:
 		if _, err := writePlain(x); err != nil {
-			return nil, messages.New(messages.H7401, fn, name, err)
+			return nil, messages.New(messages.H6626, fn, name, err)
 		}
 		n.kind = kindPlain
 		return n, nil

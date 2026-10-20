@@ -183,7 +183,6 @@ const (
 	H2408 Code = 2408 // '{name}' fonksiyonu
 	H2409 Code = 2409 // İsimsiz fonksiyon
 	H2410 Code = 2410 // {fn} '{param}' adında bir parametre almaz{suggestion}
-	H2411 Code = 2411 // . Bunu mu demek istediniz: '{name}'?
 	H2412 Code = 2412 // {fn} en fazla {max} argüman alır, {given} verildi
 	H2413 Code = 2413 // {fn} '{param}' parametresi hem sırayla ({order}. argüman) hem adıyla verildi
 	H2414 Code = 2414 // {fn} {expected} argüman bekler, {given} verildi (eksik: {missing})
@@ -393,7 +392,6 @@ const (
 	H4003 Code = 4003 // bu derlemede dış kitaplık yüklenmez
 	H4004 Code = 4004 // sürücüde {function} işlevi yok (sürücü çok eski olabilir): {error}
 	H4005 Code = 4005 // {call} başarısız: {name}
-	H4006 Code = 4006 // {call}: {name}
 	H4007 Code = 4007 // {call} başarısız: {name} ({status})
 	H4008 Code = 4008 // {call} başarısız: {name} ({status}); son başlatılan çekirdek: {kernel}
 	H4009 Code = 4009 // {call} başarısız: {name} ({status}); son başlatılan çekirdek: {kernel} (hata daha önceki bir çekirdekten de olabilir; yerini bulmak için TR_GPU_ESZAMANLI=1 ile çalıştırın)
@@ -862,7 +860,6 @@ const (
 	H6320 Code = 6320 // {fn} 1 ile {high} arasında konumlu parametre alır, {given} verildi
 	H6321 Code = 6321 // {fn}(q, k, v, {causalArg}: {trueValue}, {windowArg}: 0, {maskArg}: {noneValue}) 3 konumlu parametre bekler, {given} verildi
 	H6322 Code = 6322 // {fn}: x en az 1 boyutlu olmalıdır
-	H6323 Code = 6323 // {fn}: {argName} hem konumlu hem adlı verildi
 	H6324 Code = 6324 // {fn}: {argName} bir tensör olmalıdır, {given} verildi
 	H6325 Code = 6325 // {fn}: {epsilonArg} pozitif ve sonlu bir sayı olmalıdır, {value} verildi
 	H6326 Code = 6326 // {fn}: pencere negatif olmayan bir tam sayı olmalıdır (0: pencere yok), {value} verildi
@@ -891,7 +888,6 @@ const (
 	H6404 Code = 6404 // {fn} {{ ... }} bir blok ya da {fn}(x) bir tensör bekler, {given} verildi
 	H6405 Code = 6405 // {fn} yalnızca adlı argüman alır ({forwardArg}: ve {backwardArg}:), {given} konumlu parametre verildi; örnek: {customGradExample}
 	H6406 Code = 6406 // {fn}: {forwardArg} bir fonksiyon olmalıdır, {given} verildi
-	H6407 Code = 6407 // {fn}: {backwardArg} bir fonksiyon olmalıdır, {given} verildi
 	H6408 Code = 6408 // {fn}: {backwardArg} iki parametre almalıdır: {funcKeyword}(saklananlar, g), {given} parametreli fonksiyon verildi
 	H6409 Code = 6409 // {fn}: {forwardArg} [çıktı, saklananlar] döndürmeli (ör. {returnKeyword} [x * x, [x]]; saklanacak bir şey yoksa {returnKeyword} [y, []]), {given} verildi
 	H6410 Code = 6410 // {fn}: {forward|gen} döndürdüğü [çıktı, saklananlar] içinde saklananlar bir liste olmalıdır (ör. [x] ya da []), {given} verildi
@@ -940,7 +936,6 @@ const (
 	H6520 Code = 6520 // {fn}: modelde türev izleyen parametre yok ({model}); parametreler {example} ile oluşturulmalı
 	H6521 Code = 6521 // {fn}(parametreler, {maxArg}: 1.0) 1 konumlu parametre bekler, {given} verildi
 	H6522 Code = 6522 // {fn}: sözlük anahtarları parametre adları ({stringType}) olmalıdır, {key} verildi
-	H6523 Code = 6523 // {fn}: {maxArg} pozitif bir sayı olmalıdır, {value} verildi
 	H6524 Code = 6524 // {fn}: {key|q} değeri bir {tensorType} olmalıdır, {given} verildi
 	H6525 Code = 6525 // {fn}(parametreler, {lrArg}: ...) 1 konumlu parametre bekler, {given} verildi
 	H6526 Code = 6526 // {fn}: beta1 ve beta2 [0, 1) aralığında olmalıdır
@@ -1154,8 +1149,6 @@ const (
 	H7325 Code = 7325 // adım hızını çubuk kendisi yazar
 	H7326 Code = 7326 // {fn}: kayıt JSON'a yazılamadı: {error}
 	H7400 Code = 7400 // {dir} bir dosya; noktaların klasörü olmalı
-	H7401 Code = 7401 // {fn}: {name|q}: {error}
-	H7402 Code = 7402 // {fn}: {path|q} yüklenemedi: {error}
 	H7403 Code = 7403 // Uyarı: {fn}: {name|q} günlüğü kayıttakinden kısa ({size} bayt, kayıtta {recorded}); günlük silinmiş ya da kesilmiş olabilir
 	H7404 Code = 7404 // Uyarı: {fn}: {name|q} günlüğüne devam kaydı yazılamadı: {error}
 	H7405 Code = 7405 // Not: {fn}: komut satırı ayarları kayıttakinden farklı ({diffs}); bilerek değiştirdiyseniz sorun yok
@@ -1230,7 +1223,6 @@ const (
 	H7474 Code = 7474 // {file} {size} bayt, {digest} {recorded} bayt diyor (dosya yarım kopyalanmış ya da değişmiş)
 	H7475 Code = 7475 // {name|q} girdisi kayıttaki bir modele ya da iyileştiriciye ait değil
 	H7476 Code = 7476 // {file} özeti tutmuyor (dosya değişmiş, bozulmuş ya da yarım kopyalanmış)
-	H7477 Code = 7477 // {file} okunamadı: {reason}
 	H7478 Code = 7478 // {fn}: {name|q} kayıtta yok (kayıttaki nesneler: {names}); aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin
 	H7479 Code = 7479 // {fn}: kayıttaki {name|q} ({kind}) verilmedi; aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin
 	H7480 Code = 7480 // ağ ve bulut sürücülerinde (ör. bağlanmış Drive) yeniden adlandırma başarısız olabilir: noktaları yerel diske kaydedip koşu klasörünü ara ara oraya kopyalayın

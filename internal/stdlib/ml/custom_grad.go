@@ -112,7 +112,7 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 		return nil, messages.New(messages.H6406, fn, nameForward.TR, typeName(forward))
 	}
 	if !isCallable(backward) {
-		return nil, messages.New(messages.H6407, fn, nameBackward.TR, typeName(backward))
+		return nil, messages.New(messages.H6406, fn, nameBackward.TR, typeName(backward))
 	}
 	if f, ok := backward.(*interp.FuncVal); ok {
 		required := 0

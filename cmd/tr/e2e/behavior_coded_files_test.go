@@ -241,7 +241,8 @@ func TestIngilizceYazimDili(t *testing.T) {
 	if s := calistir(t, trIkilisi, "", geri.cikti, nil, "göster", "-"); s.kod != 0 || s.cikti != turkce {
 		t.Errorf("İngilizceden kodlanan metnin Türkçesi özgün değil: %q", s.cikti)
 	}
-	bekle(t, calistir(t, trIkilisi, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Sözdizimi Hataları"})
+	// İletiler de yazım dilindedir: İngilizce yazımda başlık İngilizce kataloğundan gelir.
+	bekle(t, calistir(t, trIkilisi, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
 }
 
 // Depodaki .tr dosyalarının İngilizce gidiş dönüşü: kodlu → İngilizce → kodlu bayt bayt aynıdır

@@ -95,7 +95,7 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 		if !slices.Contains(nameList, k) {
 			suggestion := ""
 			if o := turkish.Closest(k, nameList); o != "" {
-				suggestion = messages.Text(messages.H2411, o)
+				suggestion = messages.Text(messages.H1104, o)
 			}
 			return messages.At(line, 0, messages.New(messages.H2418, def.Name, k, suggestion))
 		}
@@ -117,7 +117,7 @@ func suggestParam(name string, params []ast.Param) string {
 		names = append(names, p.Name)
 	}
 	if o := turkish.Closest(name, names); o != "" {
-		return messages.Text(messages.H2411, o)
+		return messages.Text(messages.H1104, o)
 	}
 	return ""
 }

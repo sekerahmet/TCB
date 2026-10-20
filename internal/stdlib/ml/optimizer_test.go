@@ -22,7 +22,7 @@ yazdır(gradyan_kırp([w, b]))`)
 		code string
 		want messages.Code
 	}{
-		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], en_fazla: 0)", messages.H6523},
+		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], en_fazla: 0)", messages.H6429},
 		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], max_norm: 1)", messages.H7901},
 		{"gradyan_kırp([sıfırlar([1])])", messages.H6513},
 	} {
