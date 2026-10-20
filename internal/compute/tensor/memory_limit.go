@@ -198,7 +198,7 @@ func allocSizeOn(be Backend, is opKind, shape []int, dt DType) int {
 
 // limitError sınırı aşan ayırmanın hatasını kurar (soğuk yol).
 func limitError(is opKind, shape []int, dt DType, overflow bool) *messages.Error {
-	return limitErrorAt(is, shape, dt, overflow, allocLimit(), "bu makinede")
+	return limitErrorAt(is, shape, dt, overflow, allocLimit(), messages.Text(messages.H3105))
 }
 
 // SizeError, arka uçların şekli bilinmeyen bir ayırmayı reddederken verdiği hatadır
