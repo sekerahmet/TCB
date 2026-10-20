@@ -323,54 +323,109 @@ func fixMargin(ceiling int) int {
 	return 5
 }
 
-// testFileRuleRoots are the trees where every X_test.go must sit next to the X.go it tests.
-// X_fuzz_test.go and X_bench_test.go also belong to X.go, and X may be split by platform
-// (X_linux.go, X_avx2.go ...). The list grows as each layer is cleaned up; a test that covers
-// a whole package rather than one file goes in packageWideTests with its reason.
+// testFileRuleRoots are the trees where the test file layout below is enforced. The list grows
+// as each layer is cleaned up.
 var testFileRuleRoots = []string{"internal/lang/", "internal/compute/"}
 
-var packageWideTests = map[string]string{
-	"internal/lang/interp/semantics_test.go":      "end-to-end language semantics: TR programs run through the whole interpreter",
-	"internal/lang/interp/robustness_test.go":     "crash, deadlock and concurrency safety of the whole interpreter",
-	"internal/compute/dataload/helpers_test.go":   "test helpers shared by the package's tests",
-	"internal/compute/tensor/helpers_test.go":     "test helpers shared by the package's tests",
-	"internal/compute/tensor/forward_test.go":     "forward values of every op against hand-computed results",
-	"internal/compute/tensor/end_to_end_test.go":  "small models trained end to end on the CPU backend",
-	"internal/compute/gpu/helpers_test.go":        "TestMain and test helpers shared by the package's tests",
-	"internal/compute/gpu/nn_test.go":             "neural network ops on the GPU against the CPU backend",
-	"internal/compute/gpu/half_precision_test.go": "16-bit types processed without widening, across kernel families",
+// Test dosyası düzeni (docs/katki.md, "Testler"): üç tür test dosyası vardır.
+//   - Birim testi: X_test.go yalnızca X.go'yu sınar ve yanında durur. X_fuzz_test.go ve
+//     X_bench_test.go da X.go'ya aittir; X platforma göre bölünmüş olabilir (X_linux.go,
+//     X_avx2.go ...).
+//   - Davranış testi: behavior_<konu>_test.go birden çok dosyayı kesen bir davranışı sınar
+//     (uçtan uca dil anlamı, bütün işlem aileleri boyunca 16 bit ...). Paketin README'sindeki
+//     "## Testler" bölümünde "- `behavior_<konu>_test.go`: ne sınadığı" satırıyla anılır.
+//   - Ortak yardımcılar: helpers_test.go (TestMain ve paketin testlerinin paylaştığı işlevler).
+const (
+	behaviorPrefix = "behavior_"
+	helpersFile    = "helpers_test.go"
+)
+
+// A test file is either a unit test named after the file it tests, a behavior test listed in
+// the package README, or the package's shared helpers; a reader finds what a test file covers
+// from its name alone.
+func TestTestFileMatchesSource(t *testing.T) {
+	behaviors := map[string]map[string]bool{} // klasör → davranış dosyaları
+	for _, d := range goFiles(t) {
+		if !d.test || !inTestRuleScope(d.path) {
+			continue
+		}
+		name := filepath.Base(d.path)
+		switch {
+		case name == helpersFile:
+		case strings.HasPrefix(name, behaviorPrefix):
+			dir := filepath.ToSlash(filepath.Dir(d.path))
+			if behaviors[dir] == nil {
+				behaviors[dir] = map[string]bool{}
+			}
+			behaviors[dir][name] = true
+		default:
+			base := strings.TrimSuffix(d.path, "_test.go")
+			base = strings.TrimSuffix(strings.TrimSuffix(base, "_fuzz"), "_bench")
+			if !hasSource(base) {
+				t.Errorf("%s: no %s.go next to it; name the test after the file it tests, move its tests there, "+
+					"or (for a behavior across files) name it %s<topic>_test.go and list it in the package README",
+					d.path, filepath.Base(base), behaviorPrefix)
+			}
+		}
+	}
+	for _, dir := range testPackageDirs(t) {
+		listed := readmeBehaviorTests(t, dir)
+		for name := range behaviors[dir] {
+			if !listed[name] {
+				t.Errorf("%s/%s: behavior test not listed in %s/README.md (## Testler: \"- `%s`: what it tests\")", dir, name, dir, name)
+			}
+		}
+		for name := range listed {
+			if !behaviors[dir][name] {
+				t.Errorf("%s/README.md lists %s, which does not exist", dir, name)
+			}
+		}
+	}
 }
 
-// A test file is named after the file it tests, so a reader can find the tests of a file (and
-// the file a test covers) from the name alone.
-func TestTestFileMatchesSource(t *testing.T) {
+func inTestRuleScope(path string) bool {
+	for _, r := range testFileRuleRoots {
+		if strings.HasPrefix(path, r) {
+			return true
+		}
+	}
+	return false
+}
+
+// testPackageDirs kurala bağlı ağaçlardaki, test dosyası olan klasörlerdir.
+func testPackageDirs(t *testing.T) []string {
 	seen := map[string]bool{}
+	var dirs []string
 	for _, d := range goFiles(t) {
-		if !d.test {
-			continue
-		}
-		inScope := false
-		for _, r := range testFileRuleRoots {
-			inScope = inScope || strings.HasPrefix(d.path, r)
-		}
-		if !inScope {
-			continue
-		}
-		if _, ok := packageWideTests[d.path]; ok {
-			seen[d.path] = true
-			continue
-		}
-		base := strings.TrimSuffix(d.path, "_test.go")
-		base = strings.TrimSuffix(strings.TrimSuffix(base, "_fuzz"), "_bench")
-		if !hasSource(base) {
-			t.Errorf("%s: no %s.go next to it; name the test after the file it tests or move its tests there", d.path, filepath.Base(base))
+		if dir := filepath.ToSlash(filepath.Dir(d.path)); d.test && inTestRuleScope(d.path) && !seen[dir] {
+			seen[dir] = true
+			dirs = append(dirs, dir)
 		}
 	}
-	for f := range packageWideTests {
-		if !seen[f] {
-			t.Errorf("packageWideTests: %s not found; remove it from the list", f)
+	return dirs
+}
+
+// behaviorEntry README'nin "## Testler" bölümündeki bir davranış testi satırıdır.
+var behaviorEntry = regexp.MustCompile("^- `(" + behaviorPrefix + "[a-z0-9_]+_test\\.go)`: \\S")
+
+// readmeBehaviorTests klasörün README'sindeki "## Testler" bölümünde anılan davranış testleridir.
+func readmeBehaviorTests(t *testing.T, dir string) map[string]bool {
+	data, err := os.ReadFile(filepath.Join(reporoot.Root(), filepath.FromSlash(dir), "README.md"))
+	if err != nil {
+		return nil
+	}
+	listed := map[string]bool{}
+	inSection := false
+	for _, line := range strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n") {
+		if strings.HasPrefix(line, "## ") {
+			inSection = strings.TrimSpace(line) == "## Testler"
+			continue
+		}
+		if m := behaviorEntry.FindStringSubmatch(line); inSection && m != nil {
+			listed[m[1]] = true
 		}
 	}
+	return listed
 }
 
 // hasSource reports whether base.go, or a platform variant base_*.go, exists (base is a path

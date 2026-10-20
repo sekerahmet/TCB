@@ -12,12 +12,13 @@ yerleşik, tip, üye, adlı argüman) hiçbir zaman Go metnine yazılmaz: kendi 
 dosyayı değiştirir.
 
 **Kullanıcı mesajları.** Kullanıcıya giden mesajlar kullanıcının dilindedir, satırla başlar
-(`Satır 3: ...`) ve ne yapılacağını söyler. Kaldırılmış, taşınmış ya da yanlış yazılmış adların
+(`Satır 3: ...`) ve ne yapılacağını söyler; metinleri ileti kodlarıyla `messages`'tadır. Kaldırılmış, taşınmış ya da yanlış yazılmış adların
 ipuçları tek yerden (`hint`) gelir; böylece her aşama aynı sözlerle anlatır.
 
 **Testler.** `X_test.go`, `X.go`'yu sınar ve onun yanında durur (`X_fuzz_test.go` da öyle).
-Tek bir dosyayı değil bütün paketi sınayan test, gerekçesiyle düzen denetiminin istisna
-listesine yazılır. Dilin kendi davranışı `tests/` altındaki `.tr` programlarıyla sınanır.
+Birden çok dosyayı kesen davranış testi `behavior_<konu>_test.go` adını taşır ve paketin
+README'sinde anılır (bkz. [`internal/README.md`](../README.md#testler)). Dilin kendi davranışı
+`tests/` altındaki `.tr` programlarıyla sınanır.
 
 **Kancalar.** Yorumlayıcıya bir arayüzle bağlanan her tip (indeksleme, işleçler, yineleme,
 üyeler ...) derleme anı denetimi taşır: `var _ interp.X = (*T)(nil)`. Yorumlayıcı kancaları tip

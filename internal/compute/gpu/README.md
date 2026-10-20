@@ -24,3 +24,10 @@ düzenini sınayan test hem benzeticide hem gerçek kartta koşar; ikisinin sonu
 
 **Profil adları kararlıdır.** Çekirdek aileleri (ör. `carpim`) profil çıktısında ve araçlarda
 kullanılan metinlerdir; kodun Go adlarına bağlı değildir.
+
+## Testler
+
+Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
+
+- `behavior_half_precision_test.go`: 16 bitlik türlerin bütün çekirdek ailelerinde açılmadan işlenmesi
+- `behavior_nn_test.go`: sinir ağı işlemlerinin GPU'da CPU arka ucuna karşı sonuçları

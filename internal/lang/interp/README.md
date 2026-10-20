@@ -29,3 +29,10 @@ yerleşik yolu aynı yerden çözer.
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.
+
+## Testler
+
+Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
+
+- `behavior_semantics_test.go`: uçtan uca dil anlamı: TR programları bütün yorumlayıcıdan geçerek çalışır
+- `behavior_robustness_test.go`: bütün yorumlayıcının çökme, kilitlenme ve eşzamanlılık güvenliği

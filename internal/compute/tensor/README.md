@@ -18,3 +18,10 @@ aynı sonucu verir; bir arka uç bir işlemi desteklemiyorsa bunu açıkça söy
 
 **Veri türleri tanımlı kurallarla dönüşür.** 16 bitlik türler (bf16, f16) yuvarlama ve özel
 değerler (NaN, sonsuz) için belirli kurallara uyar.
+
+## Testler
+
+Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
+
+- `behavior_forward_test.go`: her işlemin ileri değerleri elle hesaplanmış sonuçlara karşı
+- `behavior_end_to_end_test.go`: küçük modellerin CPU arka ucunda uçtan uca eğitimi
