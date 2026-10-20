@@ -75,3 +75,15 @@ func TestSuffixLongAndNonASCIINumbers(t *testing.T) {
 		}
 	}
 }
+
+// Türkçe ileti şablonundaki hâl biçimi ({ad|dat}) bu paketin ekini kullanır.
+func TestTemplateInflector(t *testing.T) {
+	for c, want := range map[string]string{"acc": "ileri'yi", "dat": "ileri'ye", "loc": "ileri'de", "abl": "ileri'den", "gen": "ileri'nin"} {
+		if got := inflect("ileri", c); got != want {
+			t.Errorf("%s: %q, %q bekleniyordu", c, got, want)
+		}
+	}
+	if got := inflect("ileri", "xyz"); got != "ileri" {
+		t.Errorf("bilinmeyen hâl: %q", got)
+	}
+}

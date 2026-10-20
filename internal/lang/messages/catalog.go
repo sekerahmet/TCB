@@ -25,6 +25,7 @@ var languageFiles = map[string][]byte{"tr": trFile}
 type Catalog struct {
 	Language  string
 	templates map[Code][]segment
+	params    map[Code][]string // tanımdaki parametre adları (eksik değerin {ad?} gösterimi için)
 }
 
 // Definitions is the language-independent part: the parameter names of every code, in the
@@ -113,7 +114,7 @@ func ParseCatalog(lang string, data []byte, d *Definitions) (*Catalog, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Catalog{Language: lang, templates: make(map[Code][]segment, len(raw))}
+	c := &Catalog{Language: lang, templates: make(map[Code][]segment, len(raw)), params: d.Params}
 	for _, k := range keys {
 		code, err := Parse(k)
 		if err != nil {

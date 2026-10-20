@@ -8,7 +8,25 @@ package turkish
 import (
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
+
+// Türkçe ileti şablonlarındaki hâl biçimleri ({ad|dat} ...) bu paketin ekleriyle çekimlenir;
+// messages başka bir TR paketini bilmediği için çekimci buradan kaydedilir.
+func init() { messages.RegisterInflector("tr", inflect) }
+
+// templateCases şablondaki hâl adlarının karşılığıdır.
+var templateCases = map[string]Case{"acc": Accusative, "dat": Dative, "loc": Locative, "abl": Ablative, "gen": Genitive}
+
+// inflect şablondaki {ad|hâl} biçimini uygular: Suffix(ad, hâl).
+func inflect(word, grammarCase string) string {
+	c, ok := templateCases[grammarCase]
+	if !ok {
+		return word
+	}
+	return Suffix(word, c)
+}
 
 // Case is the grammatical case suffix a noun takes.
 type Case int
