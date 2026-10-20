@@ -247,7 +247,7 @@ function editValue(cell, d) {
   const input = el('input'); input.value = d.tablo ? '' : d.deger; input.placeholder = 'Yeni değer, ör. 0.20 veya [1, 2]'; input.style.width = '95%';
   cell.replaceChildren(input); input.focus(); input.select();
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && input.value.trim() !== '') vscode.postMessage({ tur: 'degistir', ad: d.ad, ifade: input.value });
+    if (e.key === 'Enter' && input.value.trim() !== '') vscode.postMessage({ tur: 'degistir', kapsam: d.kapsam, ad: d.ad, ifade: input.value });
     if (e.key === 'Escape') renderVariables();
   });
 }

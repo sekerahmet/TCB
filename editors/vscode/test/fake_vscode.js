@@ -135,7 +135,7 @@ class FakeState {
 //   s.state       kalıcı durum (FakeState; yoksa yenisi)
 // Döner: { vscode, log, provider, adapterFactory, commands, filesystems, state, events }
 function setup(s) {
-    const log = { tasks: [], terminals: [], errors: [], warnings: [], infos: [], commands: [], watchers: [], debugSessions: [] };
+    const log = { tasks: [], terminals: [], errors: [], warnings: [], infos: [], commands: [], watchers: [], debugSessions: [], panels: [] };
     const makeDocument = (p) => ({ uri: Uri.file(p), fileName: p, languageId: 'tr', isUntitled: false, isDirty: false, save: async () => true });
     const folder = s.folder ? { uri: Uri.file(s.folder), name: path.basename(s.folder), index: 0 } : undefined;
     const registries = { providers: {}, commands: {}, filesystems: {} };
@@ -244,6 +244,21 @@ function setup(s) {
         window: Object.assign(window, {
             activeTextEditor: s.activeFile ? { document: makeDocument(s.activeFile) } : undefined,
             visibleTextEditors: [],
+            // createWebviewPanel web görünümünü taklit eder: panele giden iletiler (messages) ve
+            // sayfadan gelen iletileri işleyen yöntem (receive) kaydedilir.
+            createWebviewPanel: (type, title, column, options) => {
+                const panel = { type, title, options, messages: [], disposed: false, reveal() {} };
+                panel.webview = {
+                    html: '',
+                    cspSource: 'csp',
+                    asWebviewUri: (u) => u,
+                    postMessage: async (m) => { panel.messages.push(m); return true; },
+                    onDidReceiveMessage: (f) => { panel.receive = f; return { dispose() {} }; }
+                };
+                panel.onDidDispose = () => ({ dispose() {} });
+                log.panels.push(panel);
+                return panel;
+            },
             showErrorMessage: async (m) => { log.errors.push(m); },
             showWarningMessage: async (m) => { log.warnings.push(m); },
             showInformationMessage: async (m) => { log.infos.push(m); },
@@ -317,7 +332,8 @@ function setup(s) {
             registerDebugAdapterDescriptorFactory: (type, f) => { registries.providers.adapterFactory = f; return { dispose() {} }; },
             registerDebugAdapterTrackerFactory: () => ({ dispose() {} }),
             startDebugging: async (k, y) => { log.debugSessions.push(y); return true; },
-            activeDebugSession: undefined
+            activeDebugSession: undefined,
+            stopDebugging: async () => {}
         }
     };
 

@@ -412,7 +412,7 @@ async function onWatchPanelMessage(m) {
         } else if (m.tur === 'komut') {
             await runWatchCommand(session, m.komut);
         } else if (m.tur === 'degistir') {
-            await session.customRequest('evaluate', { expression: m.ad + ' = ' + m.ifade, context: 'repl', frameId: 1 });
+            await setWatchValue(session, m.kapsam, m.ad, m.ifade);
             await updateWatchPanel(session);
         }
     } catch (e) {
@@ -423,6 +423,18 @@ async function onWatchPanelMessage(m) {
             vscode.window.showErrorMessage('Değer değiştirilemedi: ' + message);
         }
     }
+}
+
+// setWatchValue ✏️ ile değeri değiştirir: DAP setVariable, değişkenin kapsamının
+// variablesReference'ıyla gönderilir (aynı adlı genel/yerel değişkenden doğrusu değişir);
+// hata ayıklayıcı yeni değeri yalnızca TEK ifade olarak hesaplar, deyim çalıştırılmaz.
+async function setWatchValue(session, scope, name, expression) {
+    const { scopes } = await session.customRequest('scopes', { frameId: 1 });
+    const found = (scopes || []).find((k) => k.name === scope);
+    if (!found) {
+        throw new Error(`'${scope}' kapsamı bulunamadı (program başka bir çerçevede durmuş olabilir).`);
+    }
+    await session.customRequest('setVariable', { variablesReference: found.variablesReference, name, value: expression });
 }
 
 // Yönlendirme düğmeleri: oturum etkin oturumsa VS Code'un kendi komutları kullanılır (araç
