@@ -9,20 +9,20 @@ Buradaki kod onları bilmez; onlar dile kancalarla bağlanır.
 **Adlar.** Buradaki Go kodu İngilizcedir. Kullanıcının gördüğü bir ad (anahtar kelime,
 yerleşik, tip, üye, adlı argüman) hiçbir zaman Go metnine yazılmaz: kendi koduyla yazılır
 (`codes.G100`), ad dil dosyasından gelir. Kullanıcıya görünen bir adı değiştirmek yalnızca o
-dosyayı değiştirir.
+dosyayı değiştirir. Denetim: `TestCiplakAdYok` (tools/gen/codeconsts).
 
 **Kullanıcı mesajları.** Kullanıcıya giden mesajlar kullanıcının dilindedir, satırla başlar
 (`Satır 3: ...`) ve ne yapılacağını söyler; metinleri ileti kodlarıyla `messages`'tadır. Kaldırılmış, taşınmış ya da yanlış yazılmış adların
-ipuçları tek yerden (`hint`) gelir; böylece her aşama aynı sözlerle anlatır.
+ipuçları tek yerden (`hint`) gelir; böylece her aşama aynı sözlerle anlatır. Denetim: `TestMessageUsage` (tools/gen/msgconsts), `TestHintMessagesBuiltOnlyHere` (hint), `TestCheckerAndRuntimeShareWording` (interp).
 
 **Testler.** `X_test.go`, `X.go`'yu sınar ve onun yanında durur (`X_fuzz_test.go` da öyle).
 Birden çok dosyayı kesen davranış testi `behavior_<konu>_test.go` adını taşır ve paketin
 README'sinde anılır (bkz. [`internal/README.md`](../README.md#testler)). Dilin kendi davranışı
-`tests/` altındaki `.tr` programlarıyla sınanır.
+`tests/` altındaki `.tr` programlarıyla sınanır. Denetim: `TestTestFileMatchesSource` (internal).
 
 **Kancalar.** Yorumlayıcıya bir arayüzle bağlanan her tip (indeksleme, işleçler, yineleme,
 üyeler ...) derleme anı denetimi taşır: `var _ interp.X = (*T)(nil)`. Yorumlayıcı kancaları tip
-denetimiyle bulur; adı değişen bir metot, bu denetim olmadan kancayı sessizce koparır.
+denetimiyle bulur; adı değişen bir metot, bu denetim olmadan kancayı sessizce koparır. Denetim: `TestHooksHaveCompileTimeChecks` (interp).
 
 **Değişiklikler.** Ad değişikliği ya da taşıma, davranış değişikliğiyle aynı commit'e girmez;
 taşınan kod olduğu gibi taşınır.

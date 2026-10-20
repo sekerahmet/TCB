@@ -143,3 +143,45 @@ func TestNoDuplicateTexts(t *testing.T) {
 		}
 	}
 }
+
+// Dosyalar insanlar tarafından düzenlenir: her kod tek bir satırdır ({ ve } ayrı satırlarda,
+// ara satırlar virgülle biter); kodların artan sırası dosya yüklenirken denetlenir
+// (TestEmbeddedCatalogValid, TestCatalogErrors).
+func TestFilesOneCodePerLine(t *testing.T) {
+	files := map[string][]byte{"definitions.json": definitionsFile}
+	for lang, data := range languageFiles {
+		files[lang+".json"] = data
+	}
+	for name, data := range files {
+		lines := strings.Split(strings.TrimRight(string(data), "\r\n"), "\n")
+		if len(lines) < 3 || strings.TrimSpace(lines[0]) != "{" || strings.TrimSpace(lines[len(lines)-1]) != "}" {
+			t.Errorf("%s: dosya { ve } satırlarıyla çevrili olmalı", name)
+			continue
+		}
+		body := lines[1 : len(lines)-1]
+		for i, l := range body {
+			l = strings.TrimRight(l, "\r")
+			last := i == len(body)-1
+			if !regexp.MustCompile(`^"H\d{4}": .+$`).MatchString(l) || strings.HasSuffix(l, ",") == last {
+				t.Errorf("%s:%d: her kod tek satır olmalı (ve sonuncu dışında virgülle bitmeli): %.60s", name, i+2, l)
+			}
+		}
+	}
+}
+
+// Parametre adları İngilizce tanımlayıcıdır: ASCII, küçük harfle başlar, harf, rakam ve `_` içerir
+// (`fn`, `path`, `closest`). Ad şablonda `{ad}` olarak geçer; Türkçe harf ya da ayraç taşımaz.
+func TestDefinitionParamsAreASCIIIdentifiers(t *testing.T) {
+	d, err := ParseDefinitions(definitionsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ident := regexp.MustCompile(`^[a-z][A-Za-z0-9_]*$`)
+	for _, c := range d.Codes {
+		for _, p := range d.Params[c] {
+			if !ident.MatchString(p) {
+				t.Errorf("%s: parametre adı %q ASCII bir tanımlayıcı olmalı", c, p)
+			}
+		}
+	}
+}
