@@ -71,12 +71,12 @@ func TestTREdges(t *testing.T) {
 
 func TestTRSyntaxErrorIsAWarning(t *testing.T) {
 	g := fixture(t)
-	if !hasNode(g, "tr:file:examples/bozuk.tr") {
+	if !hasNode(g, "tr:file:examples/broken.tr") {
 		t.Error("a file with a syntax error still has a file node")
 	}
 	found := false
 	for _, w := range g.Warnings {
-		found = found || strings.HasPrefix(w, "tr syntax error, definitions skipped: examples/bozuk.tr")
+		found = found || strings.HasPrefix(w, "tr syntax error, definitions skipped: examples/broken.tr")
 	}
 	if !found {
 		t.Errorf("warnings: %v", g.Warnings)
@@ -106,13 +106,13 @@ func TestTRQueries(t *testing.T) {
 // Kodlu biçimli (başlıklı) dosya gösterim metniyle okunur: satırlar başlıktan sonra sayılır.
 func TestTRCodedFile(t *testing.T) {
 	g := fixture(t)
-	const fn = "tr:func:examples/kodlu.tr:kodlu_işlev"
+	const fn = "tr:func:examples/coded.tr:kodlu_işlev"
 	found := false
 	for _, n := range g.Nodes {
 		if n.ID == fn && n.Line == 1 && n.End == 4 && strings.Contains(n.Detail, "kodlu_işlev(x)") {
 			found = true
 		}
-		if n.ID == "tr:file:examples/kodlu.tr" && n.Detail != "tr, coded" {
+		if n.ID == "tr:file:examples/coded.tr" && n.Detail != "tr, coded" {
 			t.Errorf("coded file detail: %q", n.Detail)
 		}
 	}

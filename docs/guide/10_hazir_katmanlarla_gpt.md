@@ -17,6 +17,21 @@ yazdır(parametreler(model, adlarıyla: doğru).anahtarlar()[0..3])
 
 Modeli değiştirmek isterseniz `lib/katman.tr`'yi kendi klasörünüze kopyalayıp `aktar "katman"` yazın: kopyanız sizindir, kitaplık değişmez. Tek bir katmanı da kullanabilirsiniz: `Doğrusal(giriş, çıkış)`, `GömmeKatmanı`, `RMSNormKatmanı`, `NedenselDikkat`, `SwiGLU`, `TransformerBloğu`; hepsinin ileri hesabı `ileri` metodudur.
 
+## Yerel dikkat, PLE ve hedef model seçenekleri
+
+`GPT` ve `TransformerBloğu` daha büyük tariflere seçeneklerle uyar; hepsinin varsayılanı yukarıdaki sade modeldir. Katman başına yerel pencere (`pencereler: katman_pencereleri("YYGYGYYG", [32, 64])`: G katmanı tam nedensel, Y katmanları son 32/64 konuma bakar), q/k normu (`qk_normu: doğru`), Muon'un K ve V'yi (`birleşik_kv`) ile SwiGLU'nun kapı ve yukarı matrislerini (`birleşik_kapı`) birlikte dikleştirmesi için birleşik matrisler, `epsilon`, sapmalar ve katman başına kelime gömmesi (`ple_boyutu`, Gemma 3n'deki PLE) vardır:
+
+```tr
+aktar "tr/katman"
+
+değişken model = GPT(4096, bağlam: 64, boyut: 64, katman: 4, baş: 4, kv_baş: 2, ara_boyut: 96, paylaşımlı: doğru,
+    pencereler: katman_pencereleri("YGYG", [8, 16]), qk_normu: doğru, birleşik_kv: doğru, birleşik_kapı: doğru,
+    ileri_sapmalı: doğru, epsilon: 0.000001, ple_boyutu: 32)
+yazdır(model.üret([1, 2, 3], 10, sıcaklık: 0, eos: 0)) // eos örneklenirse üretim durur
+```
+
+Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir. İyileştirici tarafında aynı tarif için `MuonVeAdamW(model, muon_ölçeği: "rms", adamw_çürümesi: 0.1, ayrı: ["gömme", "ple_bağlamı.ctx_katmanı"], seyrek: ["ple.tablo"])` yazılır: parametreler ada göre (önek, sonek ya da tam yol) gruplanır, PLE tabloları satır seyrek RMS iyileştiricisine (`SatırRMS`, yalnızca o adımda gradyanı olan satırları günceller) gider.
+
 ## İyileştirici: Muon + AdamW
 
 ```tr

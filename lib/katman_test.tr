@@ -207,3 +207,221 @@ test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin düşer
     doğrula(ilk > 1.9, "başlangıç kaybı ln(8) ≈ 2.08 civarında olmalı: {ilk}")
     doğrula(son < ilk / 2, "kopyalama öğrenilmeli: ilk {ilk}, son {son}")
 }
+
+// ---- Hedef model (RGN) için seçenekler: pencere, qk normu, birleşik KV/[G|U], epsilon, PLE, düzen, eos ----
+
+fonksiyon en_büyük_fark(a, b) { sonuç maks(mutlak(a - b)).değer }
+
+test "NedenselDikkat: varsayılan seçenekler eski yapıyı verir (kv_katmanı, q_norm, k_norm yok)" {
+    değişken d = NedenselDikkat(8, 4, kv_baş: 2, tohum: 1)
+    eşit_mi(0, d.pencere)
+    eşit_mi(yok, d.kv_katmanı)
+    eşit_mi(yok, d.q_norm)
+    eşit_mi(yok, d.k_norm)
+    eşit_mi(4, parametreler(d).uzunluk) // sorgu, anahtar, değer, çıkış
+}
+
+test "NedenselDikkat: pencere yalnızca son w konuma bakar" {
+    değişken tablolar = döner_konum_tablosu(6, 4)
+    değişken x = rastgele_normal([1, 6, 8], tohum: 1)
+    değişken x2 = tensör(x)
+    türevsiz { x2[0][0] = rastgele_normal([8], tohum: 99) } // yalnızca 0. konum değişir
+    değişken yerel = NedenselDikkat(8, 2, tohum: 4, pencere: 2)
+    değişken genel = NedenselDikkat(8, 2, tohum: 4)
+    değişken y1 = yerel.ileri(x, tablolar[0], tablolar[1])
+    değişken y2 = yerel.ileri(x2, tablolar[0], tablolar[1])
+    // pencere 2: t. konum yalnızca t ve t-1'e bakar; 0. konumun değişimi 0 ve 1'i etkiler, 2.'den sonrasını etkilemez.
+    doğrula(y1[0][0] != y2[0][0] ve y1[0][1] != y2[0][1], "0. ve 1. konum değişmeli")
+    doğrula(en_büyük_fark(y1[0][2..6], y2[0][2..6]) < 0.0000001, "2. konumdan sonrası değişmemeli")
+    // aynı ağırlıkla pencerenin dışındaki konum tam dikkatte değişir
+    değişken t1 = genel.ileri(x, tablolar[0], tablolar[1])
+    değişken t2 = genel.ileri(x2, tablolar[0], tablolar[1])
+    doğrula(en_büyük_fark(t1[0][5], t2[0][5]) > 0.000001, "tam dikkatte son konum 0. konumdan etkilenir")
+    // pencere uzunluğa eşit ya da büyükse tam nedensel dikkatle aynıdır
+    değişken geniş = NedenselDikkat(8, 2, tohum: 4, pencere: 6)
+    doğrula(en_büyük_fark(geniş.ileri(x, tablolar[0], tablolar[1]), t1) < 0.0000001, "pencere ≥ T tam dikkattir")
+    değişken mesaj = ""
+    dene { NedenselDikkat(8, 2, pencere: -1) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("pencere negatif olamaz"), mesaj)
+}
+
+test "NedenselDikkat: qk_normu q ve k'yı baş boyutunda normlar (sorgu ölçeğinden bağımsız), türevlidir" {
+    değişken tablolar = döner_konum_tablosu(4, 4)
+    değişken x = rastgele_normal([1, 4, 8], tohum: 2)
+    değişken d = NedenselDikkat(8, 2, tohum: 3, qk_normu: doğru)
+    eşit_mi([4], d.q_norm.ağırlık.şekil) // baş boyutu = 8 / 2
+    eşit_mi(6, parametreler(d).uzunluk)
+    değişken y = d.ileri(x, tablolar[0], tablolar[1])
+    eşit_mi([1, 4, 8], y.şekil)
+    // q normlu olduğundan sorgu ağırlığını 1000 ile çarpmak çıktıyı değiştirmez; normsuzda değiştirir.
+    d.sorgu_katmanı.ağırlık = d.sorgu_katmanı.ağırlık * 1000
+    doğrula(en_büyük_fark(y, d.ileri(x, tablolar[0], tablolar[1])) < 0.0001, "qk normu ölçeği silmeli")
+    değişken n = NedenselDikkat(8, 2, tohum: 3)
+    değişken y0 = n.ileri(x, tablolar[0], tablolar[1])
+    n.sorgu_katmanı.ağırlık = n.sorgu_katmanı.ağırlık * 1000
+    doğrula(en_büyük_fark(y0, n.ileri(x, tablolar[0], tablolar[1])) > 0.001, "normsuzda ölçek çıktıyı değiştirir")
+    değişken e = NedenselDikkat(8, 2, qk_normu: doğru, epsilon: 0.000001)
+    eşit_mi(0.000001, e.q_norm.epsilon)
+    fonksiyon f(x, wq, wq_n) {
+        d.sorgu_katmanı.ağırlık = wq
+        d.q_norm.ağırlık = wq_n
+        sonuç d.ileri(x, tablolar[0], tablolar[1])
+    }
+    doğrula(türev_denetle(f, [rastgele_girdi([1, 4, 8], 2), rastgele_girdi([8, 8], 3) * 0.5, rastgele_girdi([4], 4)]))
+}
+
+test "NedenselDikkat: birleşik KV, ayrı K ve V ile aynı sonucu verir ([K | V])" {
+    değişken tablolar = döner_konum_tablosu(4, 4)
+    değişken x = rastgele_normal([2, 4, 8], tohum: 5)
+    değişken a = NedenselDikkat(8, 2, kv_baş: 1, tohum: 1)
+    değişken b = NedenselDikkat(8, 2, kv_baş: 1, tohum: 1, birleşik_kv: doğru)
+    eşit_mi([8, 8], b.kv_katmanı.ağırlık.şekil) // 2 · (1 kv başı · 4 baş boyutu)
+    eşit_mi(yok, b.anahtar_katmanı)
+    eşit_mi(yok, b.değer_katmanı)
+    eşit_mi(3, parametreler(b).uzunluk) // sorgu, kv, çıkış
+    b.sorgu_katmanı.ağırlık = a.sorgu_katmanı.ağırlık
+    b.çıkış_katmanı.ağırlık = a.çıkış_katmanı.ağırlık
+    b.kv_katmanı.ağırlık = birleştir([a.anahtar_katmanı.ağırlık, a.değer_katmanı.ağırlık], eksen: 1)
+    doğrula(en_büyük_fark(a.ileri(x, tablolar[0], tablolar[1]), b.ileri(x, tablolar[0], tablolar[1])) < 0.000001, "birleşik KV ayrıyla aynı olmalı")
+    fonksiyon f(x, w) {
+        b.kv_katmanı.ağırlık = w
+        sonuç b.ileri(x, tablolar[0], tablolar[1])
+    }
+    doğrula(türev_denetle(f, [rastgele_girdi([1, 4, 8], 6), rastgele_girdi([8, 8], 7) * 0.5]))
+}
+
+test "SwiGLU: birleşik [G | U] ayrı kapı ve yukarı ile aynıdır; sapmalı sapma ekler" {
+    değişken a = SwiGLU(4, ara_boyut: 6, tohum: 1)
+    değişken b = SwiGLU(4, ara_boyut: 6, tohum: 1, birleşik: doğru)
+    eşit_mi([4, 12], b.kapı_yukarı.ağırlık.şekil)
+    eşit_mi(yok, b.kapı)
+    eşit_mi(yok, a.kapı_yukarı)
+    eşit_mi(2, parametreler(b).uzunluk)
+    b.kapı_yukarı.ağırlık = birleştir([a.kapı.ağırlık, a.yukarı.ağırlık], eksen: 1)
+    b.aşağı.ağırlık = a.aşağı.ağırlık
+    değişken x = rastgele_normal([2, 3, 4], tohum: 2)
+    doğrula(en_büyük_fark(a.ileri(x), b.ileri(x)) < 0.000001, "birleşik [G | U] ayrıyla aynı olmalı")
+    değişken s = SwiGLU(4, ara_boyut: 6, sapmalı: doğru, birleşik: doğru, tohum: 1)
+    eşit_mi([12], s.kapı_yukarı.sapma.şekil)
+    eşit_mi([4], s.aşağı.sapma.şekil)
+    eşit_mi(4, parametreler(s).uzunluk)
+    fonksiyon f(x, w, b1, b2) {
+        s.kapı_yukarı.ağırlık = w
+        s.kapı_yukarı.sapma = b1
+        s.aşağı.sapma = b2
+        sonuç s.ileri(x)
+    }
+    doğrula(türev_denetle(f, [rastgele_girdi([2, 4], 3), rastgele_girdi([4, 12], 4), rastgele_girdi([12], 5), rastgele_girdi([4], 6)]))
+}
+
+test "PLEBağlamı: x @ W_ctx / √D, katman başına parçalara bölünüp ortak RMS normundan geçer" {
+    değişken c = PLEBağlamı(2, 2, 2)
+    eşit_mi([2, 4], c.ctx_katmanı.ağırlık.şekil)
+    c.ctx_katmanı.ağırlık = tensör([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]])
+    değişken b = c.ileri(tensör([[[1.0, 2.0]]])) // x @ W = [11, 14, 17, 20]
+    eşit_mi(2, b.uzunluk)
+    eşit_mi([1, 1, 2], b[0].şekil)
+    // RMS normu ölçekten bağımsızdır: √D bölümü silinir; parça i, [11, 14] ve [17, 20]'nin normlusudur.
+    değişken r0 = karekök((11.0 * 11.0 + 14.0 * 14.0) / 2)
+    değişken r1 = karekök((17.0 * 17.0 + 20.0 * 20.0) / 2)
+    doğrula(en_büyük_fark(b[0], tensör([[[11.0 / r0, 14.0 / r0]]])) < 0.0001, "parça 0")
+    doğrula(en_büyük_fark(b[1], tensör([[[17.0 / r1, 20.0 / r1]]])) < 0.0001, "parça 1")
+}
+
+test "PLEBloğu: H + RMSNorm(W_p · (GELU(W_g · H) ⊙ (bağlam + √P · tablo[kelime]) / √2)) elle hesaplanan değeri verir" {
+    // D = 2, P = 2; kapı ve izdüşüm birim matris, normun ağırlığı 1.
+    değişken p = PLEBloğu(2, 3, 2)
+    p.kapı.ağırlık = birim_matris(2)
+    p.izdüşüm.ağırlık = birim_matris(2)
+    p.tablo = tensör([[0.0, 0.0], [1.0, 3.0], [9.0, 9.0]])
+    değişken h = tensör([[[1.0, 2.0]]])
+    değişken bağlam = tensör([[[1.0, -1.0]]])
+    değişken çıktı = p.ileri(h, [[1]], bağlam) // kelime 1: tablo satırı [1, 3]
+    // elle: e = (bağlam + √2 · [1, 3]) / √2
+    değişken e0 = (1.0 + karekök(2.0) * 1.0) / karekök(2.0)
+    değişken e1 = (-1.0 + karekök(2.0) * 3.0) / karekök(2.0)
+    değişken g = ple_gelu(tensör([1.0, 2.0])).değer
+    değişken k0 = g[0] * e0
+    değişken k1 = g[1] * e1
+    değişken r = karekök((k0 * k0 + k1 * k1) / 2 + 0.00001)
+    değişken beklenen = tensör([[[1.0 + k0 / r, 2.0 + k1 / r]]])
+    doğrula(en_büyük_fark(çıktı, beklenen) < 0.0001, "PLE formülü: {çıktı.değer} ≠ {beklenen.değer}")
+    // gelu'nun kendisi: tek çağrı yeri ple_gelu
+    doğrula(en_büyük_fark(ple_gelu(tensör([0.5, -1.0])), gelu(tensör([0.5, -1.0]), yaklaşık: yanlış)) < 0.0000001)
+}
+
+test "TransformerBloğu: PLE'siz varsayılan değişmez; PLE, epsilon, pencere ve birleşik seçenekleri bağlanır" {
+    değişken tablolar = döner_konum_tablosu(4, 4)
+    değişken düz = TransformerBloğu(8, 2, ara_boyut: 8, tohum: 1)
+    eşit_mi(yok, düz.ple)
+    eşit_mi(0.00001, düz.norm1.epsilon)
+    eşit_mi(0, düz.dikkat.pencere)
+    değişken x = rastgele_normal([2, 4, 8], tohum: 1)
+    eşit_mi([2, 4, 8], düz.ileri(x, tablolar[0], tablolar[1]).şekil)
+    değişken b = TransformerBloğu(8, 2, kv_baş: 1, ara_boyut: 8, tohum: 1, epsilon: 0.000001, pencere: 2, qk_normu: doğru,
+        birleşik_kv: doğru, birleşik_kapı: doğru, sapmalı: yanlış, ileri_sapmalı: doğru, ple_boyutu: 4, dağarcık: 10)
+    eşit_mi(0.000001, b.norm2.epsilon)
+    eşit_mi(0.000001, b.dikkat.q_norm.epsilon)
+    eşit_mi(0.000001, b.ple.norm.epsilon)
+    eşit_mi(2, b.dikkat.pencere)
+    eşit_mi([10, 4], b.ple.tablo.şekil)
+    eşit_mi([8], b.ileri_besleme.aşağı.sapma.şekil)
+    değişken bağlam = rastgele_normal([2, 4, 4], tohum: 3)
+    eşit_mi([2, 4, 8], b.ileri(x, tablolar[0], tablolar[1], [[1, 2, 3, 4], [5, 6, 7, 8]], bağlam).şekil)
+    fonksiyon f(x, w, t, bağlam) {
+        b.ple.kapı.ağırlık = w
+        b.ple.tablo = t
+        sonuç b.ileri(x, tablolar[0], tablolar[1], [[1, 2, 3, 4]], bağlam)
+    }
+    doğrula(türev_denetle(f, [rastgele_girdi([1, 4, 8], 2), rastgele_girdi([8, 4], 3), rastgele_girdi([10, 4], 4), rastgele_girdi([1, 4, 4], 5)]))
+    değişken mesaj = ""
+    dene { TransformerBloğu(8, 2, ple_boyutu: 4) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("ple_boyutu için dağarcık da verilmeli"), mesaj)
+}
+
+test "katman_pencereleri: G katmanı 0, Y katmanları pencereleri sırayla alır" {
+    eşit_mi([32, 64, 0, 32, 0, 64, 32, 0], katman_pencereleri("YYGYGYYG", [32, 64]))
+    eşit_mi([0, 0], katman_pencereleri("GG", [8]))
+    değişken mesaj = ""
+    dene { katman_pencereleri("YXG", [8]) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("yalnızca Y ve G"), mesaj)
+}
+
+test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/genel model kurulur" {
+    değişken x = [[1, 2, 3, 4, 5]]
+    değişken a = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, tohum: 3)
+    değişken b = GPT(12, bağlam: 6, boyut: 8, katman: 2, baş: 2, tohum: 3, pencereler: [0, 0])
+    doğrula(a.ileri(x) == b.ileri(x), "pencereler: 0 varsayılanla aynı")
+    eşit_mi(yok, a.ple_bağlamı)
+    değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 4, baş: 2, kv_baş: 1, ara_boyut: 12, paylaşımlı: doğru, tohum: 3,
+        pencereler: katman_pencereleri("YGYG", [2, 3]), qk_normu: doğru, birleşik_kv: doğru, birleşik_kapı: doğru,
+        ileri_sapmalı: doğru, epsilon: 0.000001, ple_boyutu: 4)
+    eşit_mi([2, 5, 12], m.ileri([[1, 2, 3, 4, 5], [5, 4, 3, 2, 1]]).şekil)
+    eşit_mi([2, 0, 3, 0], [m.bloklar[0].dikkat.pencere, m.bloklar[1].dikkat.pencere, m.bloklar[2].dikkat.pencere, m.bloklar[3].dikkat.pencere])
+    değişken adlar = parametreler(m, adlarıyla: doğru).anahtarlar()
+    doğrula(adlar.içerir("bloklar.0.ple.tablo") ve adlar.içerir("bloklar.3.ple.tablo"))
+    doğrula(adlar.içerir("ple_bağlamı.ctx_katmanı.ağırlık") ve adlar.içerir("ple_bağlamı.norm.ağırlık"))
+    doğrula(adlar.içerir("bloklar.1.dikkat.kv_katmanı.ağırlık") ve adlar.içerir("bloklar.2.ileri_besleme.kapı_yukarı.ağırlık"))
+    doğrula(adlar.içerir("bloklar.0.dikkat.q_norm.ağırlık"))
+    // nedensellik: 4. konumdaki kelimeyi değiştirmek ilk dört konumun logit'ini değiştirmez
+    değişken l1 = m.ileri([[1, 2, 3, 4, 5]])
+    değişken l2 = m.ileri([[1, 2, 3, 4, 6]])
+    doğrula(en_büyük_fark(l1[0][0..4], l2[0][0..4]) < 0.000001, "PLE ve pencere nedenselliği bozmamalı")
+    doğrula(en_büyük_fark(l1[0][4], l2[0][4]) > 0.000001, "son konum değişmeli")
+    değişken mesaj = ""
+    dene { GPT(12, katman: 2, pencereler: [1, 2, 3]) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("katman sayısına (2) eşit olmalı"), mesaj)
+    doğrula(m.kayıp([[1, 2, 3]], [[2, 3, 4]]).değer > 0)
+}
+
+test "GPT.üret: eos örneklenince durur (eos dizide kalır), eos'suz adet kadar üretir" {
+    değişken m = GPT(6, bağlam: 8, boyut: 8, katman: 1, baş: 2, tohum: 2)
+    değişken dizi = m.üret([1], 6, sıcaklık: 0)
+    eşit_mi(7, dizi.uzunluk)
+    değişken eos = dizi[3]
+    // beklenen: eos'un ilk üretildiği konuma kadar (ikisi dahil)
+    değişken j = 1
+    iken dizi[j] != eos { j += 1 }
+    eşit_mi(dizi[0..j + 1], m.üret([1], 6, sıcaklık: 0, eos: eos))
+    eşit_mi(dizi, m.üret([1], 6, sıcaklık: 0, eos: -5)) // hiç örneklenmeyen kimlik: durmaz
+}
