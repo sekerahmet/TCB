@@ -1441,9 +1441,9 @@ const (
 	H8631 Code = 8631 // {path} başarıyla denetlendi: Sözdizimi ve tip güvenliği hatasız!
 	H8632 Code = 8632 // Modül hatası:
 	H8633 Code = 8633 // TR Programlama ve Yapay Zeka Dili (v{version}) — Etkileşimli Kabuk
-	H8634 Code = 8634 // Çıkmak için 'çıkış', hata ayıklayıcıyı açmak için '/h' yazın.
+	H8634 Code = 8634 // Çıkmak için '{exit}', hata ayıklayıcıyı açmak için '/h' yazın.
 	H8635 Code = 8635 // Görüşmek üzere!
-	H8636 Code = 8636 // '{given}' TR'de bir komut değil; çıkmak için 'çıkış' yazın.
+	H8636 Code = 8636 // '{given}' TR'de bir komut değil; çıkmak için '{exit}' yazın.
 	H8637 Code = 8637 // [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım çalışacak (F11 adım, F10 üstten geç, Shift+F11 dön, F5 devam).
 	H8650 Code = 8650 // Sözdizimi Hataları:
 	H8651 Code = 8651 // Tip ve Güvenlik Denetimi Hataları:
@@ -1475,7 +1475,7 @@ const (
 	H8696 Code = 8696 // {total} dosyadan {count} tanesi biçimlenemedi (yukarıdaki hatalara bakın).
 	H8697 Code = 8697 // {total} dosyanın hepsi standart biçimde.
 	H8698 Code = 8698 // {total} dosya incelendi, {count} dosya biçimlendi.
-	H8700 Code = 8700 // {option|q} bir yazım dili bekler. Örn: tr {command} - {option} tr
+	H8700 Code = 8700 // '{option}' bir yazım dili bekler. Örn: tr {command} - {option} tr
 	H8701 Code = 8701 // 'tr {command} -' metni standart girişten okur; fazladan argüman: {arg}
 	H8702 Code = 8702 // standart giriş okunamadı: {error}
 	H8703 Code = 8703 // Lütfen bir .tr dosyası ya da klasör belirtin. Örn: tr {command} ornek.tr veya tr {command} .
@@ -1483,7 +1483,7 @@ const (
 	H8705 Code = 8705 // çözüldü
 	H8706 Code = 8706 // {total} dosya incelendi, {count} dosya {verb}.
 	H8707 Code = 8707 // {count} dosya çevrilemedi (yukarıdaki hatalara bakın).
-	H8708 Code = 8708 // {option|q} bir yazım dili bekler. Örn: tr {command} ornek.tr {option} tr
+	H8708 Code = 8708 // '{option}' bir yazım dili bekler. Örn: tr {command} ornek.tr {option} tr
 	H8709 Code = 8709 // 'tr {command}' tek bir dosya alır; fazladan argüman: {arg}
 	H8710 Code = 8710 // Lütfen gösterilecek .tr dosyasını belirtin. Örn: tr {command} ornek.tr {option} tr
 	H8711 Code = 8711 // '{language}' yazım dili için tr yeniden çalıştırılamadı: {error}

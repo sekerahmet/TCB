@@ -188,12 +188,12 @@ func TestREPL(t *testing.T) {
 		`değişken x: Tam = "a"`,
 		`1 / 0`,
 		`2 + 3`,
-		`exit`,
+		`cikis`,
 		`çıkış`,
 	}, "\n") + "\n"
 	s := run(t, trBinary, "", input, nil)
 	wait(t, s, 0, []string{"merhaba", "=> 5", "Görüşmek üzere!"}, []string{
-		"'exit' TR'de bir komut değil; çıkmak için 'çıkış' yazın.",
+		"'cikis' TR'de bir komut değil; çıkmak için 'çıkış' yazın.",
 		"❌ Sözdizimi Hataları:\n  • Satır 1, Sütun 4",
 		"❌ Tip ve Güvenlik Denetimi Hataları:\n  • Satır 1: Tip uyuşmazlığı",
 		"❌ Çalışma Zamanı Hatası:\n  • Satır 1: Sıfıra bölme hatası",
@@ -207,6 +207,12 @@ func TestREPL(t *testing.T) {
 	// Denetleyici durumunu korur; eski tip hatası sonraki satırlarda yinelenmemeli.
 	if n := strings.Count(s.stderr, "Tip uyuşmazlığı"); n != 1 {
 		t.Errorf("tip hatası %d kez yazıldı, beklenen 1:\n%s", n, s.stderr)
+	}
+	// Kabuğun çıkış komutu bir ad kodudur (K200): her yazım dilinin adı kabul edilir.
+	s = run(t, trBinary, "", "exit\nyazdır(\"sürdü\")\n", nil)
+	wait(t, s, 0, []string{"Görüşmek üzere!"}, nil)
+	if strings.Contains(s.stdout, "sürdü") {
+		t.Error("exit kabuğu kapatmalıydı")
 	}
 }
 

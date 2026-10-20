@@ -261,7 +261,7 @@ func checkFile(path string) {
 func startREPL() {
 	defer stdlib.Close() // açık dosyalar kapanır, geçici klasörler silinir
 	fmt.Println("🇹🇷 " + messages.Text(messages.H8633, VERSION))
-	fmt.Println(messages.Text(messages.H8634))
+	fmt.Println(messages.Text(messages.H8634, codes.Name(codes.K200)))
 	machine := interp.New()
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
@@ -280,12 +280,12 @@ func startREPL() {
 		if line == "" {
 			continue
 		}
-		if line == "çıkış" {
+		if k, ok := codes.FindCommand(line); ok && k == codes.K200 {
 			fmt.Println(messages.Text(messages.H8635))
 			break
 		}
-		if line == "cikis" || line == "exit" || line == "quit" {
-			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line))
+		if exitHint(line) {
+			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line, codes.Name(codes.K200)))
 			continue
 		}
 		if line == "/h" || line == "/H" {
@@ -340,4 +340,15 @@ func startsWithPrint(ln string) bool {
 		}
 	}
 	return false
+}
+
+// exitHint kabukta çıkmak isteyen ama kabuğun çıkış komutunu (K200) yazmayan bir satırı tanır:
+// adın Türkçe harfsiz biçimi (cikis) ya da hata ayıklayıcının çıkış komutu (K313, quit).
+// Böyle bir satır program sanılıp çalıştırılmaz; asıl komut önerilir.
+func exitHint(line string) bool {
+	if k, ok := codes.Active().Suggest(codes.NamespaceCommand, line, nil); ok && k == codes.K200 {
+		return true
+	}
+	k, ok := codes.FindDebuggerCommand(line)
+	return ok && k == codes.K313
 }
