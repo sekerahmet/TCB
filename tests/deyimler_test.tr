@@ -41,7 +41,7 @@ test "5.4 tanımsız bir ada atama hatadır" {
     // Hata çalışmadan önce bulunur (5.14): modülün hiçbir satırı çalışmaz.
     değişken mesaj = ""
     dene { aktar "negative/tanimsiz_adlar" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("tanimsiz_adlar.tr, Satır 5, Sütun 1: Tanımsız ad — 'tanımsız_değişken' adında bir değişken ya da fonksiyon yok"), mesaj)
+    doğrula(mesaj.içerir("tanimsiz_adlar.tr, Satır 5, Sütun 1: Tanımsız ad — tanımsız değişken: 'tanımsız_değişken' (önce 'değişken' ile tanımlayın)"), mesaj)
 }
 
 test "5.5 eğer / değilse eğer / değilse bir ifadedir" {

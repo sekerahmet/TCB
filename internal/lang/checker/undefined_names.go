@@ -362,6 +362,16 @@ func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...st
 // target atamanın sol tarafını denetler: ad tanımlı olmalı (çalışma anında tanımsız ada
 // atama hatadır, bkz. 5.4); indeks ve alan hedeflerinde nesne okunur.
 func (d *nameChecker) target(e ast.Expression, k *nameScope) {
+	// Düz ada atama okumadan ayrı bir hatadır: çalışma anı gibi (H2448) 'değişken' ile tanımlamayı
+	// söyler. İndeks ya da üye hedefi (l[0] = 1) adı okur.
+	if id, ok := e.(*ast.Identifier); ok && d.bindings == nil {
+		if !k.isKnown(id.Value) && !d.decl[id.Value] {
+			d.decl[id.Value] = true
+			d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column,
+				messages.New(messages.H1010, messages.New(messages.H2448, id.Value, codes.Name(codes.A030)))))
+		}
+		return
+	}
 	d.expression(e, k)
 }
 

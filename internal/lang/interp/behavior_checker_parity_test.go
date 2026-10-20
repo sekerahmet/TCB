@@ -12,9 +12,8 @@ import (
 // Denetçi çalışma anıyla aynı sözleri kullanır: aynı hata denetimde ve çalışırken aynı metinle
 // anlatılır (ortak metin hint paketinden gelir). Her program önce denetçiden, sonra yorumlayıcıdan
 // geçer; denetçinin hata ayrıntısı (konum öneki ve "Tanımsız ad — " başlığı dışında) çalışma
-// anı iletisinin içinde aynen bulunmalıdır. Bilinen ayrışma: tanımsız bir adı değere atamak
-// (`tanımsız = 3`) denetçide "Tanımsız ad" (H1010), çalışırken "tanımsız değişken" (H2448)
-// olarak anlatılır; bu yüzden aşağıdaki programlar yalnızca ad okumalarıdır.
+// anı iletisinin içinde aynen bulunmalıdır. Tanımsız ada atama (`tanımsız = 3`) iki yerde de
+// "tanımsız değişken" (H2448) olarak anlatılır.
 func TestCheckerAndRuntimeShareWording(t *testing.T) {
 	programs := []string{
 		"yazdir(1)",
@@ -22,6 +21,7 @@ func TestCheckerAndRuntimeShareWording(t *testing.T) {
 		"değişken l = [1]\nfiltrele(l, (x) => x > 0)",
 		"matris([[1]])",
 		"yazdır(zzz)",
+		"tanımsız = 3",
 	}
 	const header = "Tanımsız ad — "
 	for _, src := range programs {
