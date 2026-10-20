@@ -43,7 +43,7 @@ adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSe
 - Go kodu sayıya bakıp sözcük seçmez (`argümanı`/`argümanları`): şablonda `plural`. Denetim: `TestPlural`.
 - Go kodu ada ek eklemez: şablonda `{ad|dat}`. `turkish.Suffix` yalnızca `internal/lang/turkish`'te çağrılır (denetim: `TestMessageUsage`); Türkçe çekimciyi o paket kaydeder (`messages.RegisterInflector`), `messages` başka bir TR paketini bilmez.
 - Seçenek listesi Go'da birleştirilmez: `messages.OrList(a, b, c)` → "a, b ya da c" (CLDR liste kalıbı: ikili H2010, ayırıcı H2005, son H2006). Denetim: `TestOrList`.
-- Cümle parçalardan kurulmaz: bir iletinin anlamı tek şablondadır. Kendi başına anlamlı bir ad öbeği (tür adı, "bir tam sayı", sona eklenen ipucu) değer olabilir; Go kodu bir iletinin metnini düzenlemez (`strings.Replace`, `TrimPrefix`); ayrıntı gerekiyorsa parametresinden okunur (`messages.As(err).Args`). Denetim: `TestGoCodeDoesNotEditMessageText`.
+- Cümle parçalardan kurulmaz: bir iletinin anlamı tek şablondadır. Kendi başına anlamlı bir ad öbeği (tür adı, "bir tam sayı", sona eklenen ipucu) değer olabilir; Go kodu bir iletinin metnini düzenlemez (`strings.Replace`, `TrimPrefix`); ayrıntı gerekiyorsa parametresinden okunur (`messages.As(err).Args`). Bir ileti çağrısına başka bir `messages.Text(...)` argüman olmaz; değişen sözcük şablonda `select` ile seçilir (`{place, select, gpu {..} other {..}}`, Go yalnızca anahtarı verir). Denetim: `TestGoCodeDoesNotEditMessageText`, `TestMessageArgsAreNotMessageFragments`.
 - Aynı anlam tek koddur: parametre adları farklı olsa da aynı metin iki kodda olamaz (`TestNoDuplicateTexts`; bağlamı farklı etiketler gerekçeyle `sameTextAllowed`'a yazılır).
 
 **Yeni bir dil eklemek.**
@@ -85,3 +85,4 @@ metinden bakan denetim (`interp.hasLine`, test koşucusunun `located`ı) kalktı
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
 - `behavior_message_text_test.go`: Go kodunun bir iletinin metnini düzenlemediği (`strings.Replace`, `TrimPrefix` ... doğrudan ileti metniyle çağrılmaz)
+- `behavior_message_fragments_test.go`: bir ileti çağrısına başka bir `messages.Text(...)` parça olarak verilmez (cümle tek şablondur)

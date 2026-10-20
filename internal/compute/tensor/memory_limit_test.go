@@ -3,6 +3,7 @@ package tensor
 import (
 	"fmt"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -61,7 +62,7 @@ func TestBroadcastLimit(t *testing.T) {
 	setLimit(t, 16<<30)
 	a, b := Zeros(185000, 1, 1), Zeros(4, 46000)
 	expectedPanic(t, "toplama", func() { Add(a, b) }, messages.H3085,
-		isAdd, "[185000, 4, 46000]", "126,8 GB", "bu makinede", "16,0 GB", messages.Text(messages.H3088))
+		isAdd, "[185000, 4, 46000]", "126,8 GB", PlaceHost, "16,0 GB", messages.Text(messages.H3088))
 	expectedPanic(t, "çarpma", func() { Mul(b, a) }, messages.H3085, isMul, "[185000, 4, 46000]")
 	// Yayınlamasız işlemlerin hatasında yayınlama ipucu boştur.
 	m, _ := messages.As(panicError(func() { MatMul(Zeros(100000, 1), Zeros(1, 100000)) }))
@@ -95,7 +96,7 @@ func TestBothSidesOfLimit(t *testing.T) {
 	if Zeros(1024).Numel() != 1024 || ZerosOf(BFloat16, 2048).Numel() != 2048 || Full(2, 32, 32).Numel() != 1024 {
 		t.Fatal("sınırdaki tensörler oluşturulmalı")
 	}
-	expectedPanic(t, "float32 üstü", func() { Zeros(1025) }, messages.H3084, "[1025]", "4,0 KB", "bu makinede")
+	expectedPanic(t, "float32 üstü", func() { Zeros(1025) }, messages.H3084, "[1025]", "4,0 KB", PlaceHost)
 	expectedPanic(t, "bf16 üstü", func() { ZerosOf(BFloat16, 2049) }, messages.H3084, "[2049]")
 	expectedPanic(t, "birler", func() { Ones(33, 32) }, messages.H3084, "[33, 32]")
 	expectedPanic(t, "rastgele", func() { Randn(nil, 1025) }, messages.H3084, "[1025]")
@@ -164,5 +165,15 @@ func TestWithinLimitUnchanged(t *testing.T) {
 	}
 	if s := Zeros(0, 5).Reshape(5, 0, 7).Shape(); s[2] != 7 {
 		t.Fatalf("boş yeniden şekil: %v", s)
+	}
+}
+
+// Sınırın yeri ileti şablonunda seçilir: konak "bu makinede", GPU "bu GPU'da" der (Go sözcük
+// seçmez, yalnızca PlaceHost/PlaceGPU anahtarını verir).
+func TestSizeErrorPlaceIsChosenByTemplate(t *testing.T) {
+	host := SizeError(1<<20, Float32, 1<<10, PlaceHost).Error()
+	gpu := SizeError(1<<20, Float32, 1<<10, PlaceGPU).Error()
+	if !strings.Contains(host, "makinede") || !strings.Contains(gpu, "GPU'da") || host == gpu {
+		t.Errorf("yer şablonda seçilmeli:\n%s\n%s", host, gpu)
 	}
 }

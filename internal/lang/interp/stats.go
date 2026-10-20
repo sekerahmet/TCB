@@ -69,14 +69,14 @@ func statsInput(kd codes.Code, args []Value) ([]Value, error) {
 }
 
 // statsNumbers elemanları sayıya çevirir (yeni bir dilime): boş girdi ve sayı olmayan
-// eleman ortalama() ile aynı biçimde hatadır. ne hata mesajındaki sonucun adıdır.
-func statsNumbers(kd codes.Code, ne messages.Code, args []Value) ([]float64, error) {
+// eleman ortalama() ile aynı biçimde hatadır. emptyMessage boş girdide verilen, sonucun adını da anlatan tam cümlelik iletidir.
+func statsNumbers(kd codes.Code, emptyMessage messages.Code, args []Value) ([]float64, error) {
 	elems, err := statsInput(kd, args)
 	if err != nil {
 		return nil, err
 	}
 	if len(elems) == 0 {
-		return nil, messages.New(messages.H2494, CallPrefix(kd), messages.Text(ne))
+		return nil, messages.New(emptyMessage, CallPrefix(kd))
 	}
 	nums := make([]float64, len(elems))
 	for i, el := range elems {

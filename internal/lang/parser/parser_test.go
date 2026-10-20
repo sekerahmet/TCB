@@ -266,8 +266,12 @@ func TestNonExpressionInterpolationIsError(t *testing.T) {
 		`yazdır("boş {}")`:            13,
 	} {
 		errs := parseErrs(code)
-		if !hasErrAt(errs, 1, col, messages.H0157) || !hasErrAt(errs, 1, col, messages.H0100) {
-			t.Errorf("%s: sütun %d konumunda H0157 (H0100 içinde) bekleniyordu: %v", code, col, errs)
+		found := false
+		for _, c := range []messages.Code{messages.H0158, messages.H0159, messages.H0160, messages.H0161, messages.H0162} {
+			found = found || hasErrAt(errs, 1, col, c)
+		}
+		if !found || !hasErrAt(errs, 1, col, messages.H0100) {
+			t.Errorf("%s: sütun %d konumunda H0158-H0162 (H0100 içinde) bekleniyordu: %v", code, col, errs)
 		}
 	}
 	for _, code := range []string{"yazdır(\"\\{\\\"kod\\\": 5\\}\")", "yazdır(`{\"kod\": 5}`)", `yazdır("a {1 + 2} b")`} {

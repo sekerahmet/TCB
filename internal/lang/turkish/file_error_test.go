@@ -40,7 +40,7 @@ func TestFileErrorTurkishAndHelpful(t *testing.T) {
 		}
 		e := FileError("dosya_oku()", "x.txt", d.op, d.err, "ek bilgi")
 		m := e.Error()
-		if !strings.HasPrefix(m, `dosya_oku(): "x.txt" `+messages.Text(d.op)+": ") || !strings.Contains(m, d.wantSub) || !strings.HasSuffix(m, "; ek bilgi") {
+		if !strings.HasPrefix(m, "dosya_oku(): ") || !strings.Contains(m, `"x.txt" `) || !messages.Has(e, d.op) || !strings.Contains(m, d.wantSub) || !strings.HasSuffix(m, "; ek bilgi") {
 			t.Errorf("%s: beklenmeyen mesaj: %s", d.name, m)
 		}
 		if strings.Contains(m, "cannot") || strings.Contains(m, "system") || strings.Contains(m, "Incorrect") {
@@ -58,7 +58,7 @@ func TestFileErrorTurkishAndHelpful(t *testing.T) {
 	}
 	// İletinin, işlemin ve nedenin kodları hata zincirinde bulunur.
 	e := FileError("f", "x", messages.H2100, errNotExist)
-	if !messages.Has(e, messages.H2120) || !messages.Has(e, messages.H2132) {
+	if !messages.Has(e, messages.H2000) || !messages.Has(e, messages.H2100) || !messages.Has(e, messages.H2132) {
 		t.Errorf("kodlar zincirde bulunmalı: %v", e)
 	}
 	if r := FileError("", "x", messages.H2100, NewReason(messages.H2042)); !messages.Has(r, messages.H2042) || !strings.HasSuffix(r.Error(), "gzip başlığı bozuk") {

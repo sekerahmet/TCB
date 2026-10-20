@@ -91,11 +91,10 @@ func openFileError(fn, raw, real string) error {
 	if open == "" {
 		return nil
 	}
-	what := messages.Text(messages.H7126, filepath.ToSlash(open))
 	if samePath(open, real) {
-		what = messages.Text(messages.H7127)
+		return messages.New(messages.H7125, fn, raw, LineReaderType, codes.Name(codes.Y012))
 	}
-	return messages.New(messages.H7125, fn, raw, what, LineReaderType, codes.Name(codes.Y012))
+	return messages.New(messages.H7154, fn, raw, filepath.ToSlash(open), LineReaderType, codes.Name(codes.Y012))
 }
 
 // CloseAll açık kalmış satır okuyucularının dosyalarını kapatır, ardından geçici_klasör()

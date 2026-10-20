@@ -101,8 +101,9 @@ m.WriteOutput(m.Err, messages.Text(kod, değerler...))     // hata olmayan çık
 return nil, messages.Internal("vector width must be 2 or 4") // iç hata: ayrıntı İngilizce
 ```
 
+- **Cümle parçalardan kurulmaz:** bir ileti koduna başka bir ileti kodunun metni (yüklem, nesne, "bir değişkene") argüman geçirilmez; her anlam kendi tam şablonudur, değişen yer şablonda `select` ile seçilir (Go yalnızca anahtar verir). Denetim: `TestMessageArgsAreNotMessageFragments`.
 - Metin dil dosyasındadır; parametreler adlıdır (`{fn}`), kullanıcı verisi tırnakla yazılır (`{path|q}`: denetim karakterleri kaçırılır).
-- Ortak kalıplar yeniden yazılmaz: `H2000` (`{fn}: {error}`), dosya hataları `turkish.FileError(fn, yol, messages.H2100, err)` (işlem bir koddur: "okunamadı"), özel neden `turkish.NewReason(kod, ...)`, adlı argüman `bind.CheckNamed`.
+- Ortak kalıplar yeniden yazılmaz: `H2000` (`{fn}: {error}`), dosya hataları `turkish.FileError(fn, yol, messages.H2100, err)` (işlem bir koddur ve kendi tam cümlesidir: `{path|q} okunamadı: {reason}`; `fn` varsa `H2000` sarar), özel neden `turkish.NewReason(kod, ...)`, adlı argüman `bind.CheckNamed`.
 - **Ortam değişkeni adları ASCII'dir:** `TR_` öneki, büyük harf, rakam ve `_` (`TR_DIL`, `TR_GPU_KENDI_CARPIM`, `TR_IS_KLASORU`); Türkçe harfli ad bazı kabuklarda yazılamaz. `TR_` öneki TR'nin kendi değişkenlerine ayrılmıştır, örneklerde kullanıcı değişkeni olarak kullanılmaz. Denetim: `TestLayoutEnvVarNames`.
 - **İleti olmayan metin** koda bağlanmaz: veri biçimlerinin anahtarları (günlükteki `"kayıp"`, `durum.json` alanları), dosya adları, protokol alanları.
 - Geçirilmiş pakette `fmt.Errorf` ve `errors.New` yoktur. Denetim: `tools/gen/msgconsts` (her çağrıda değer sayısı tanımla aynı, kullanılmayan kod yok, `migrated` listesindeki paketlerde yasak çağrı yok). Geçiş sürüyor; sırası [`docs/roadmap.md`](../docs/roadmap.md)'de.

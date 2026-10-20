@@ -221,11 +221,11 @@ func (n *object) modelMatch(fn string, y *pending, version int) error {
 			if version == 1 && !t.RequiresGrad() {
 				continue
 			}
-			what := messages.Text(messages.H7447)
+			kind := "parameter"
 			if !t.RequiresGrad() {
-				what = messages.Text(messages.H7448)
+				kind = "state"
 			}
-			return messages.New(messages.H7449, fn, name, what, len(n.names), len(y.shapes))
+			return messages.New(messages.H7449, fn, name, kind, len(n.names), len(y.shapes))
 		}
 		found++
 		if sm := t.Shape(); !slices.Equal(sm, sk) {

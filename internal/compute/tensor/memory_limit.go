@@ -177,7 +177,7 @@ func checkElem(n int, dt DType) int {
 		panic(messages.Internal(fmt.Sprintf("backend: negative element count %d", n)))
 	}
 	if !sigar(n, dt) {
-		panic(SizeError(n, dt, allocLimit(), messages.Text(messages.H3105)))
+		panic(SizeError(n, dt, allocLimit(), PlaceHost))
 	}
 	return n
 }
@@ -198,19 +198,26 @@ func allocSizeOn(be Backend, is opKind, shape []int, dt DType) int {
 
 // limitError sınırı aşan ayırmanın hatasını kurar (soğuk yol).
 func limitError(is opKind, shape []int, dt DType, overflow bool) *messages.Error {
-	return limitErrorAt(is, shape, dt, overflow, allocLimit(), messages.Text(messages.H3105))
+	return limitErrorAt(is, shape, dt, overflow, allocLimit(), PlaceHost)
 }
 
+// Bellek sınırının hangi yerde aşıldığını söyleyen anahtarlar (iletilerin {place, select, ...}
+// dalları); metin değil, yalnızca anahtardır.
+const (
+	PlaceHost = "host"
+	PlaceGPU  = "gpu"
+)
+
 // SizeError, arka uçların şekli bilinmeyen bir ayırmayı reddederken verdiği hatadır
-// (n eleman, dt türü; sınır ve yer: "bu GPU'da"). Hata cihazdan bağımsız katmanın
+// (n eleman, dt türü; sınır ve yer: PlaceGPU). Hata cihazdan bağımsız katmanın
 // hatalarıyla aynı biçimdedir.
 func SizeError(n int, dt DType, limit int64, place string) *messages.Error {
 	return messages.New(messages.H3083,
 		numberText(float64(n)), dt, bytesText(float64(n)*float64(max(dt.Bits(), 1))/8), place, bytesText(float64(limit)))
 }
 
-// limitErrorAt sınırı aşan ayırmanın hatasını, sınır ve yer ("bu makinede", "bu
-// GPU'da") verilerek kurar.
+// limitErrorAt sınırı aşan ayırmanın hatasını, sınır ve yer (PlaceHost, PlaceGPU) verilerek
+// kurar. Yerin sözcüğü iletinin şablonundadır ({place, select, ...}), Go'da değil.
 func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, place string) *messages.Error {
 	elemFn := 1.0
 	for _, d := range shape {

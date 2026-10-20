@@ -67,8 +67,8 @@ func TestFileOpsTurkishError(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{`tensör_yükle("yok_12345.trt")`, messages.H2120},
-		{`tensör_kaydet("olmayan_klasör_12345/t.trt", {"w": tensör([1])})`, messages.H2120},
+		{`tensör_yükle("yok_12345.trt")`, messages.H2107},
+		{`tensör_kaydet("olmayan_klasör_12345/t.trt", {"w": tensör([1])})`, messages.H2101},
 	} {
 		_, err := fromProgram(t, dir, d.code)
 		if err == nil || !messages.Has(err, d.want) {

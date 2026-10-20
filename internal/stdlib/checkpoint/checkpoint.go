@@ -242,12 +242,13 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 	if kn.failures >= maxFailures {
 		return nil, messages.New(messages.H7412, err, kn.failures, kn.lastValidText())
 	}
-	what := messages.Text(messages.H7414, codes.Name(codes.Y010))
+	// Süreli kayıtta yeniden deneme bir süre sonradır, yoksa sonraki kaydet çağrısında: iki
+	// ayrı cümle, iki kod.
+	warning := messages.Text(messages.H7485, err, kn.failures, maxFailures, codes.Name(codes.Y010), kn.lastValidText())
 	if kn.interval > 0 {
-		what = messages.Text(messages.H7415, durationText(kn.interval))
+		warning = messages.Text(messages.H7413, err, kn.failures, maxFailures, durationText(kn.interval), kn.lastValidText())
 	}
-	m.WriteOutput(m.Err, messages.Text(messages.H7413,
-		err, kn.failures, maxFailures, what, kn.lastValidText())+"\n")
+	m.WriteOutput(m.Err, warning+"\n")
 	return interp.FALSE, nil
 }
 

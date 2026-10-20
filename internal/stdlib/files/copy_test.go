@@ -180,7 +180,7 @@ func TestMoveOpenReader(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "k", "s.txt"), "a\nb\nc\n")
 	s := runTR(t, "", `değişken o = dosya_satırları("k/s.txt"); o.sonraki(); taşı("k", "w")`)
-	if !messages.Has(s.failure, messages.H7125) {
+	if !messages.Has(s.failure, messages.H7154) {
 		t.Fatalf("açık dosya: %v", s.failure)
 	}
 	CloseAll()
