@@ -6,7 +6,7 @@
 //
 // Kullanıcı kodunda bir modül `aktar "tr/katman"` ile alınır (dil tanımı 11.6): "tr/" öneki
 // dilin kendi kitaplığına ayrılmıştır, diskteki dosyalar onu gölgeleyemez. Komut satırı
-// (cmd/tr) Dosyalar'ı yorumlayıcıya yurut.KitaplikBagla ile bağlar; `tr derle` çıktısı
+// (cmd/tr) Dosyalar'ı yorumlayıcıya interp.SetLibrary ile bağlar; `tr derle` çıktısı
 // yorumlayıcının kopyası olduğundan kitaplık ona da girer. Testler (*_test.tr) de gömülür ama
 // modül olarak aktarılamaz; `tr test lib` ile koşar.
 //

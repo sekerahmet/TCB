@@ -15,7 +15,7 @@
 //
 // Profil saniyede bir anlık görüntü alır; isteyene (canlı tablo) verir ve istenmişse durum
 // dosyasına (profil.json, arka plan işinde) atomik yazar. Program bitince son raporu kurar.
-// Biçim: goruntu.go; mimari: docs/mimari.md, "Canlı profil".
+// Biçim: snapshot.go; mimari: docs/mimari.md, "Canlı profil".
 //
 // Layer: developer tools (internal/devtools); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
 package profiler

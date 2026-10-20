@@ -63,7 +63,7 @@ type Debugger interface {
 }
 
 // NewDebugger creates a debugger when a kesme_noktası statement runs and none is attached
-// yet. It is set by github.com/sekerahmet/TCB/internal/stdlib; when nil, kesme_noktası is
+// yet. It is set by github.com/sekerahmet/TCB/internal/devtools/debugger; when nil, kesme_noktası is
 // ignored.
 var NewDebugger func(sourceFile, sourceCode string) Debugger
 
