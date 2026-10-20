@@ -1,2 +1,2 @@
-{"B": 32, "T": 512, "D": 768, "H": 12, "FF": 2048, "KATMAN": 12, "V": 40000,
- "hassasiyet": "bf16", "isinma": 20, "olculen": 100, "kayip_adim": 50, "lr": 0.003}
+{"B": 32, "T": 512, "D": 768, "H": 12, "FF": 2048, "LAYERS": 12, "V": 40000,
+ "precision": "bf16", "warmup": 20, "measured": 100, "loss_steps": 50, "lr": 0.003}
