@@ -292,7 +292,10 @@ for mode in $modes; do
 		step "Derleme (go build, GOAMD64=$GOAMD64)"
 		go build ./... || fail "go build"
 		test_paketleri=("${esleri_paketleri[@]}")
-		go_tests go-esleri -short
+		# -count=1: TR_CPU_AVX2 paket başlatılırken okunur ve Go test önbelleğinin anahtarına
+		# girmez; derleme de dagitim'le aynı olduğundan önbellek dagitim'in sonucunu verirdi
+		# (Go eşleri hiç koşmazdı).
+		go_tests go-esleri -short -count=1
 		test_paketleri=(./...)
 		step "Dil tanımı testleri (go-esleri)"
 		if build_tr; then summarize "tr test tests (go-esleri)" "$TR" test tests; else fail "tr derlemesi"; fi

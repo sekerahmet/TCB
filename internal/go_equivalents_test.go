@@ -52,4 +52,9 @@ func TestGoEquivalentPackagesListed(t *testing.T) {
 	if len(missing) > 0 {
 		t.Errorf("assembly taşıyan paketler esleri_paketleri'nde yok (tools/full_check.sh): %v", missing)
 	}
+	// TR_CPU_AVX2 paket başlatılırken okunur, Go test önbelleğinin anahtarına girmez: go-esleri
+	// turu önbelleksiz koşmazsa dagitim turunun sonucunu yeniden kullanır.
+	if !regexp.MustCompile(`(?m)^\s*go_tests go-esleri .*-count=1`).Match(script) {
+		t.Error("tools/full_check.sh: go-esleri turu -count=1 ile koşmalı (önbellek dagitim'in sonucunu verir)")
+	}
 }
