@@ -1,11 +1,10 @@
 package ml
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -20,10 +19,10 @@ func whereBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, err
 	}
 	if len(args) != 3 {
-		return nil, fmt.Errorf("%s(koşul, a, b) 3 parametre bekler, %d verildi", ad, len(args))
+		return nil, messages.New(messages.H6201, ad, len(args))
 	}
 	for _, a := range args {
-		if err := listError(ad, a, "tensörde, sayıda ve "+codes.Name(codes.A203)+" değerinde", ad+"("+codes.Name(codes.T100)+"(...), a, b)"); err != nil {
+		if err := listError(ad, a, messages.Text(messages.H6133, codes.Name(codes.A203)), ad+"("+codes.Name(codes.T100)+"(...), a, b)"); err != nil {
 			return nil, err
 		}
 	}
@@ -34,7 +33,7 @@ func whereBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		}
 		for _, a := range args[1:] {
 			if _, ok := interp.ToFloat(a); !ok {
-				return nil, fmt.Errorf("%s: a ve b sayı ya da tensör olmalıdır, %s verildi", ad, typeName(a))
+				return nil, messages.New(messages.H6204, ad, typeName(a))
 			}
 		}
 		if d {
@@ -66,7 +65,7 @@ func condValue(ad string, v interp.Value) (bool, error) {
 	if f, ok := interp.ToFloat(v); ok {
 		return f != 0, nil
 	}
-	return false, fmt.Errorf("%s: koşul %s, sayı ya da tensör olmalıdır, %s verildi", ad, codes.Name(codes.A203), typeName(v))
+	return false, messages.New(messages.H6207, ad, codes.Name(codes.A203), typeName(v))
 }
 
 // isIntValued değer tam sayılı bir tensör ya da Tam mı (sonucun tam sayılı kalması için).
@@ -91,7 +90,7 @@ func condTensors(ad string, args []interp.Value) ([]*tensor.Tensor, error) {
 		}
 	} else if _, ok := cond.(*TensorValue); !ok {
 		if _, number := interp.ToFloat(cond); !number {
-			return nil, fmt.Errorf("%s: koşul %s, sayı ya da tensör olmalıdır, %s verildi", ad, codes.Name(codes.A203), typeName(cond))
+			return nil, messages.New(messages.H6207, ad, codes.Name(codes.A203), typeName(cond))
 		}
 	}
 	for _, a := range args[1:] {
@@ -99,7 +98,7 @@ func condTensors(ad string, args []interp.Value) ([]*tensor.Tensor, error) {
 			continue
 		}
 		if _, ok := interp.ToFloat(a); !ok {
-			return nil, fmt.Errorf("%s: a ve b sayı ya da tensör olmalıdır, %s verildi", ad, typeName(a))
+			return nil, messages.New(messages.H6204, ad, typeName(a))
 		}
 	}
 	values := []interp.Value{args[1], args[2], cond}
@@ -134,8 +133,7 @@ func checkBroadcast3(ad string, ts []*tensor.Tensor) error {
 		for _, t := range ts {
 			d := axisFromEnd(t, i)
 			if d != 1 && size != 1 && d != size {
-				return fmt.Errorf("%s: koşul %s, a %s ve b %s şekilleri yayınlanamaz; sondan %d. eksende uzunluklar uyuşmuyor (eksenler sağdan hizalanır, eşit ya da 1 olmalı)",
-					ad, shapeText(ts[0].Shape()), shapeText(ts[1].Shape()), shapeText(ts[2].Shape()), i)
+				return messages.New(messages.H6214, ad, shapeText(ts[0].Shape()), shapeText(ts[1].Shape()), shapeText(ts[2].Shape()), i)
 			}
 			if d != 1 {
 				size = d

@@ -1,13 +1,14 @@
 package ml
 
 import (
-	"fmt"
 	"math"
 
 	_ "github.com/sekerahmet/TCB/internal/compute/gpu" // GPU arka ucunu kaydeder (sürücü ilk kullanımda yüklenir)
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Register tensör yerleşiklerini VM'ye kaydeder. Adlar kod listesindedir (internal/lang/codes); burada
@@ -153,9 +154,9 @@ func oldCall(ad string, old interp.BuiltinFunc, m *interp.VM, args []interp.Valu
 		return old(m, args, named)
 	}
 	if len(args) == 0 {
-		return nil, fmt.Errorf("%s() en az 1 parametre bekler", ad)
+		return nil, messages.New(messages.H6029, ad)
 	}
-	return nil, fmt.Errorf("%s() bir tensör bekler, %s verildi", ad, typeName(args[0]))
+	return nil, messages.New(messages.H6030, ad, typeName(args[0]))
 }
 
 // newBuiltin eski karşılığı olmayan bir yerleşik kurar.

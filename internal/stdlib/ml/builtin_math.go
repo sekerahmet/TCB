@@ -7,6 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -59,7 +60,7 @@ func registerRounding(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tens
 				return nil, err
 			}
 			if len(args) == 1 {
-				if err := listError(ad, args[0], "tensörde ve sayıda", ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+				if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 					return nil, err
 				}
 			}
@@ -91,7 +92,7 @@ func singleTensor(args []interp.Value) (*TensorValue, bool) {
 func limitCount(ad string, isNamed bind.Named, v interp.Value) (float64, bool, error) {
 	f, ok := interp.ToFloat(v)
 	if !ok || f != f {
-		return 0, false, fmt.Errorf("%s: %s bir sayı olmalıdır, %s verildi", ad, isNamed.TR, v.Inspect())
+		return 0, false, messages.New(messages.H6107, ad, isNamed.TR, v.Inspect())
 	}
 	_, integer := v.(*interp.IntVal)
 	return f, integer, nil
@@ -102,7 +103,7 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	ad := codes.Name(codes.G409)
 	usage := fmt.Sprintf("%s(x, %s: ..., %s: ...)", ad, nameMin.TR, nameMax.TR)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s 1 konumlu parametre bekler, %d verildi", usage, len(args))
+		return nil, messages.New(messages.H6108, usage, len(args))
 	}
 	if err := bind.CheckNamed(ad+"()", named, nameMin, nameMax); err != nil {
 		return nil, err
@@ -132,13 +133,13 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		}
 	}
 	if !given {
-		return nil, fmt.Errorf("%s: %s ya da %s verilmelidir (ikisi de verilebilir): %s", ad, nameMin.TR, nameMax.TR, usage)
+		return nil, messages.New(messages.H6112, ad, nameMin.TR, nameMax.TR, usage)
 	}
 	if intLimit && ilo > ihi {
-		return nil, fmt.Errorf("%s: %s (%d) %s'dan (%d) büyük olamaz", ad, nameMin.TR, ilo, nameMax.TR, ihi)
+		return nil, messages.New(messages.H6113, ad, nameMin.TR, ilo, nameMax.TR, ihi)
 	}
 	if lo > hi {
-		return nil, fmt.Errorf("%s: %s (%v) %s'dan (%v) büyük olamaz", ad, nameMin.TR, lo, nameMax.TR, hi)
+		return nil, messages.New(messages.H6113, ad, nameMin.TR, lo, nameMax.TR, hi)
 	}
 	switch x := args[0].(type) {
 	case *TensorValue:
@@ -157,10 +158,10 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	case *interp.FloatVal:
 		return &interp.FloatVal{Val: clamp64(x.Val, lo, hi)}, nil
 	}
-	if err := listError(ad, args[0], "tensörde ve sayıda", ad+"("+codes.Name(codes.T100)+"(...), "+nameMin.TR+": 0)"); err != nil {
+	if err := listError(ad, args[0], messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...), "+nameMin.TR+": 0)"); err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("%s: sayı ya da tensör bekleniyor, %s verildi", ad, typeName(args[0]))
+	return nil, messages.New(messages.H6103, ad, typeName(args[0]))
 }
 
 // intValued f sonsuz ya da tam sayı değerli mi (sınırla sonucunun tam sayılı kalması için).
@@ -185,10 +186,10 @@ func atan2Builtin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, fmt.Errorf("%s(y, x) 2 parametre bekler, %d verildi", ad, len(args))
+		return nil, messages.New(messages.H6116, ad, len(args))
 	}
 	for _, a := range args {
-		if err := listError(ad, a, "tensörde ve sayıda", ad+"("+codes.Name(codes.T100)+"(...), x)"); err != nil {
+		if err := listError(ad, a, messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...), x)"); err != nil {
 			return nil, err
 		}
 	}
@@ -196,7 +197,7 @@ func atan2Builtin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		y, ok1 := interp.ToFloat(args[0])
 		x, ok2 := interp.ToFloat(args[1])
 		if !ok1 || !ok2 {
-			return nil, fmt.Errorf("%s: sayı ya da tensör bekleniyor, %s ve %s verildi", ad, typeName(args[0]), typeName(args[1]))
+			return nil, messages.New(messages.H6118, ad, typeName(args[0]), typeName(args[1]))
 		}
 		return &interp.FloatVal{Val: math.Atan2(y, x)}, nil
 	}

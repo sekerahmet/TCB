@@ -1,8 +1,9 @@
 package ml
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Norm epsilon'u float32'de pozitif ve sonlu olmalıdır: NaN ve sonsuz (f <= 0 denetimini
@@ -14,7 +15,7 @@ func TestNormEpsilonMustBeFinite(t *testing.T) {
 			code = "değişken nan = log(tensör([-1.0])).değer[0]\nrms_normu(tensör([[1.0, 2.0]]), epsilon: nan)"
 		}
 		_, err := run(t, code)
-		if err == nil || !strings.Contains(err.Error(), "pozitif ve sonlu") {
+		if err == nil || !messages.Has(err, messages.H6325) {
 			t.Fatalf("epsilon %s: hata beklenirdi: %v", eps, err)
 		}
 	}
@@ -29,7 +30,7 @@ func TestRequiresGradMustBeBool(t *testing.T) {
 		`sıfırlar([2], türev_izle: "doğru")`,
 	} {
 		_, err := run(t, code)
-		if err == nil || !strings.Contains(err.Error(), "doğru ya da yanlış olmalıdır") {
+		if err == nil || !messages.Has(err, messages.H7905) {
 			t.Fatalf("%s: hata beklenirdi: %v", code, err)
 		}
 	}

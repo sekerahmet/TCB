@@ -6,6 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -18,25 +19,25 @@ import (
 func axisTensor(ad, usage string, args []interp.Value, n int, named map[string]interp.Value) (*TensorValue, int, error) {
 	if len(args) != n {
 		if len(args) == n+1 {
-			return nil, 0, fmt.Errorf("%s: eksen adlı verilir (%s: %s)", usage, nameAxis.TR, args[n].Inspect())
+			return nil, 0, messages.New(messages.H6200, usage, nameAxis.TR, args[n].Inspect())
 		}
-		return nil, 0, fmt.Errorf("%s %d konumlu parametre bekler, %d verildi", usage, n, len(args))
+		return nil, 0, messages.New(messages.H6202, usage, n, len(args))
 	}
 	if err := bind.CheckNamed(ad+"()", named, nameAxis); err != nil {
 		return nil, 0, err
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		if err := listError(ad, args[0], "tensörde", ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+		if err := listError(ad, args[0], messages.Text(messages.H6132), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 			return nil, 0, err
 		}
-		return nil, 0, fmt.Errorf("%s: bir tensör bekler, %s verildi", ad, typeName(args[0]))
+		return nil, 0, messages.New(messages.H6203, ad, typeName(args[0]))
 	}
 	e := -1
 	if v, ok := bind.GetNamed(named, nameAxis); ok {
 		var integer bool
 		if e, integer = intNumber(v); !integer {
-			return nil, 0, fmt.Errorf("%s: eksen tam sayı olmalıdır, %s verildi", ad, v.Inspect())
+			return nil, 0, messages.New(messages.H6106, ad, v.Inspect())
 		}
 	}
 	e, err := parseAxis(ad, e, d.t.Shape())
@@ -73,11 +74,10 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	k, ok := args[1].(*interp.IntVal)
 	L := d.t.Shape()[e]
 	if !ok {
-		return nil, fmt.Errorf("%s: k bir %s olmalıdır, %s verildi", ad, codes.Name(codes.A200), typeName(args[1]))
+		return nil, messages.New(messages.H6208, ad, codes.Name(codes.A200), typeName(args[1]))
 	}
 	if k.Val < 0 || k.Val > int64(L) {
-		return nil, fmt.Errorf("%s: k = %d, ama %s şeklinde %d. eksenin uzunluğu %d; k 0 ile %d arasında olmalı",
-			ad, k.Val, shapeText(d.t.Shape()), e, L, L)
+		return nil, messages.New(messages.H6210, ad, k.Val, shapeText(d.t.Shape()), e, L)
 	}
 	var vals, idx *tensor.Tensor
 	if _, err := safe(func() *tensor.Tensor { vals, idx = d.t.TopK(int(k.Val), e); return vals }); err != nil {

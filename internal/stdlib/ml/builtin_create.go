@@ -1,10 +1,10 @@
 package ml
 
 import (
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"math/rand"
 	"sync"
@@ -38,10 +38,10 @@ func requiresGrad(fn string, named map[string]interp.Value, positional interp.Va
 func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T100)
 	if len(args) < 1 {
-		return nil, fmt.Errorf("%s en az 1 parametre bekler", gradExample("veri"))
+		return nil, messages.New(messages.H6001, gradExample("veri"))
 	}
 	if len(args) > 2 {
-		return nil, fmt.Errorf("%s en fazla 2 parametre alır, %d verildi", gradExample("veri"), len(args))
+		return nil, messages.New(messages.H6002, gradExample("veri"), len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameRequiresGrad, nameDType); err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		// Türü değiştirmenin tek yazımı t.türe(...)'dir; tür: yalnızca listeden ya da
 		// sayıdan oluştururken verilir (karar 14).
 		if _, given := bind.GetNamed(named, nameDType); given {
-			return nil, fmt.Errorf("%s: girdi zaten bir tensör; türünü değiştirmek için t.%s(...) yazın (%s: yalnızca listeden ya da sayıdan oluştururken verilir)", fn, codes.Name(codes.Y415), nameDType.TR)
+			return nil, messages.New(messages.H6008, fn, codes.Name(codes.Y415), nameDType.TR)
 		}
 		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak (aynı tür).
 		dt := d.t.DType()
@@ -97,7 +97,7 @@ func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]int
 	ad := codes.Name(kd)
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) == 0 {
-			return nil, fmt.Errorf("%s([2, 3]) şekli liste olarak bekler", ad)
+			return nil, messages.New(messages.H6017, ad)
 		}
 		allowed := []bind.Named{nameRequiresGrad, nameDType}
 		if kd == codes.T103 { // rastgele_normal
@@ -105,12 +105,12 @@ func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]int
 		}
 		if _, list := args[0].(*interp.ListVal); !list {
 			if _, integer := args[0].(*interp.IntVal); integer {
-				return nil, fmt.Errorf("%s(%s): şekil liste olarak verilir; %s([%s]) yazın", ad, argText(args), ad, argText(args))
+				return nil, messages.New(messages.H6020, ad, argText(args))
 			}
-			return nil, fmt.Errorf("%s: şekil [2, 3] gibi bir tam sayı listesi olmalıdır, %s verildi", ad, typeName(args[0]))
+			return nil, messages.New(messages.H6021, ad, typeName(args[0]))
 		}
 		if len(args) != 1 {
-			return nil, fmt.Errorf("%s([2, 3]) tek parametre (şekil listesi) bekler, %d verildi", ad, len(args))
+			return nil, messages.New(messages.H6023, ad, len(args))
 		}
 		if err := bind.CheckNamed(ad+"()", named, allowed...); err != nil {
 			return nil, err
@@ -171,7 +171,7 @@ func randomNormal(sh []int, named map[string]interp.Value) (*tensor.Tensor, erro
 	if s, ok := bind.GetNamed(named, nameSeed); ok {
 		seed, ok := s.(*interp.IntVal)
 		if !ok {
-			return nil, fmt.Errorf("%s: %s tam sayı olmalıdır, %s verildi", codes.Name(codes.T103), nameSeed.TR, typeName(s))
+			return nil, messages.New(messages.H6031, codes.Name(codes.T103), nameSeed.TR, typeName(s))
 		}
 		return tensor.Randn(rand.New(rand.NewSource(seed.Val)), sh...), nil
 	}

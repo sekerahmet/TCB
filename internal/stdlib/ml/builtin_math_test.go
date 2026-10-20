@@ -3,6 +3,8 @@ package ml
 import (
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Genişletilmiş matematik yerleşikleri: sayıda ve tensörde dönüş tipleri, tam sayılı işaretin
@@ -50,33 +52,36 @@ yazdır((tensör([1, 2, 3]) >= tensör([[2], [1]])).değer, (2 < tensör([1, 2, 
 }
 
 func TestWideMathErrors(t *testing.T) {
-	for _, d := range []struct{ code, expected string }{
-		{"silu([1, 2])", "silu listede çalışmaz, yalnızca tensörde ve sayıda; listeyi tensör(...) ile çevirin"},
-		{"taban([1.5])", "taban listede çalışmaz"},
-		{"arktanjant2([1], 2)", "arktanjant2 listede çalışmaz"},
-		{"arktanjant2(1)", "arktanjant2(y, x) 2 parametre bekler, 1 verildi"},
-		{"arktanjant2(tensör([1, 2]), tensör([1, 2, 3]))", "[2] ile [3] şekilleri arktanjant2 için yayınlanamaz"},
-		{"sınırla(3)", "sınırla: en_az ya da en_fazla verilmelidir"},
-		{"sınırla(3, en_az: 2, en_fazla: 1)", "en_az (2) en_fazla'dan (1) büyük olamaz"},
-		{"sınırla(3, min: 1)", "Bunu mu demek istediniz: 'en_az'?"},
-		{"sınırla(3, en_az: \"a\")", "en_az bir sayı olmalıdır"},
-		{"sınırla([1], en_az: 0)", "sınırla listede çalışmaz"},
-		{"koşullu(1, 2)", "koşullu(koşul, a, b) 3 parametre bekler, 2 verildi"},
-		{"koşullu(\"a\", 1, 2)", "koşul Mantık, sayı ya da tensör olmalıdır"},
-		{"koşullu(tensör([1, 0]), tensör([1, 2, 3]), 0)", "koşullu: koşul [2], a [3] ve b [] şekilleri yayınlanamaz"},
-		{"koşullu([1], 1, 2)", "koşullu listede çalışmaz"},
-		{"birikimli_toplam([1, 2])", "birikimli_toplam listede çalışmaz, yalnızca tensörde"},
-		{"birikimli_toplam(tensör([1, 2]), 0)", "eksen adlı verilir"},
-		{"birikimli_toplam(tensör(3.0))", "skaler (0 boyutlu) tensörde eksen seçilemez"},
-		{"en_büyük_k(tensör([1, 2]), 3)", "k = 3, ama [2] şeklinde 0. eksenin uzunluğu 2"},
-		{"en_büyük_k(tensör([1, 2]), 1.5)", "k bir Tam olmalıdır"},
-		{"sıralama_indeksi(tensör([[1, 2]]), eksen: 2)", "eksen 2, [1, 2] şeklindeki 2 boyutlu tensör için geçersiz"},
-		{"tensör([1, 2]) < tensör([1, 2, 3])", "şekilleri tensör karşılaştırması (<) için yayınlanamaz"},
-		{"maks(tensör([1, 2]), 0)", "eleman bazlı sınır için sınırla(x, en_az: 0) kullanın"},
-		{"min(tensör([1, 2]), 0)", "eleman bazlı sınır için sınırla(x, en_fazla: 0) kullanın"},
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"silu([1, 2])", messages.H6104},
+		{"taban([1.5])", messages.H6104},
+		{"arktanjant2([1], 2)", messages.H6104},
+		{"arktanjant2(1)", messages.H6116},
+		{"arktanjant2(tensör([1, 2]), tensör([1, 2, 3]))", messages.H6100},
+		{"sınırla(3)", messages.H6112},
+		{"sınırla(3, en_az: 2, en_fazla: 1)", messages.H6113},
+		{"sınırla(3, min: 1)", messages.H7900},
+		{"sınırla(3, en_az: \"a\")", messages.H6107},
+		{"sınırla([1], en_az: 0)", messages.H6104},
+		{"koşullu(1, 2)", messages.H6201},
+		{"koşullu(\"a\", 1, 2)", messages.H6207},
+		{"koşullu(tensör([1, 0]), tensör([1, 2, 3]), 0)", messages.H6214},
+		{"koşullu([1], 1, 2)", messages.H6104},
+		{"birikimli_toplam([1, 2])", messages.H6104},
+		{"birikimli_toplam(tensör([1, 2]), 0)", messages.H6200},
+		{"birikimli_toplam(tensör(3.0))", messages.H6015},
+		{"en_büyük_k(tensör([1, 2]), 3)", messages.H6210},
+		{"en_büyük_k(tensör([1, 2]), 1.5)", messages.H6208},
+		{"sıralama_indeksi(tensör([[1, 2]]), eksen: 2)", messages.H6016},
+		{"tensör([1, 2]) < tensör([1, 2, 3])", messages.H6100},
+		{"maks(tensör([1, 2]), 0)", messages.H6205},
+		{"min(tensör([1, 2]), 0)", messages.H6205},
 	} {
-		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.expected)
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
 		}
 	}
 }

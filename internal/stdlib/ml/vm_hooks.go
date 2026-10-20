@@ -1,11 +1,10 @@
 package ml
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Bu dosya tensör değerinin VM kancalarını (bkz. internal/lang/interp/hooks.go) uygular: eşitlik,
@@ -78,7 +77,7 @@ func (d *TensorValue) TaskOperator(m *interp.VM, op string, otherVal interp.Valu
 	if op != "@" {
 		return d.Operator(op, otherVal, onRight)
 	}
-	o, err := toTensorOn("matris çarpımı (@)", otherVal, d.t)
+	o, err := toTensorOn(messages.Text(messages.H6124), otherVal, d.t)
 	if err != nil {
 		return nil, true, err
 	}
@@ -121,14 +120,14 @@ func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (
 			}
 			return New(r), true, nil
 		}
-		o, err := toTensorOn("tensör "+opName[op], otherVal, d.t)
+		o, err := toTensorOn(tensorOperation(op), otherVal, d.t)
 		if err != nil {
 			return nil, true, err
 		}
 		if err := checkBroadcast(op, o, d.t); err != nil {
 			return nil, true, err
 		}
-		if err := checkDevice("tensör "+opName[op], o, d.t); err != nil {
+		if err := checkDevice(tensorOperation(op), o, d.t); err != nil {
 			return nil, true, err
 		}
 		r, err := safe(func() *tensor.Tensor {
@@ -143,7 +142,7 @@ func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (
 		return New(r), true, nil
 
 	case "@":
-		o, err := toTensorOn("matris çarpımı (@)", otherVal, d.t)
+		o, err := toTensorOn(messages.Text(messages.H6124), otherVal, d.t)
 		if err != nil {
 			return nil, true, err
 		}
@@ -160,7 +159,7 @@ func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (
 	case "**":
 		s, ok := interp.ToFloat(otherVal)
 		if onRight || !ok {
-			return nil, true, fmt.Errorf("tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için %s(%s(t) * u) kullanın", codes.Name(codes.T220), codes.Name(codes.T221))
+			return nil, true, messages.New(messages.H6702, codes.Name(codes.T220), codes.Name(codes.T221))
 		}
 		f := float32(s)
 		r, err := safe(func() *tensor.Tensor { return d.t.Pow(f) })
@@ -173,7 +172,7 @@ func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (
 		v, err := d.compare(op, otherVal, onRight)
 		return v, true, err
 	}
-	return nil, true, fmt.Errorf("%s ile %q işlemi desteklenmiyor (desteklenen işleçler: %s)", interp.VAL_TENSOR, op, supportedOps)
+	return nil, true, messages.New(messages.H6703, interp.VAL_TENSOR, op, supportedOps)
 }
 
 // comparisonOp karşılaştırma işleçlerinin çekirdek işlemi.
@@ -191,7 +190,7 @@ func (d *TensorValue) compare(op string, otherVal interp.Value, onRight bool) (i
 		}
 		return New(r), nil
 	}
-	ad := "tensör karşılaştırması (" + op + ")"
+	ad := messages.Text(messages.H6129, op)
 	o, err := toTensorOn(ad, otherVal, d.t)
 	if err != nil {
 		return nil, err
@@ -218,7 +217,7 @@ func (d *TensorValue) compare(op string, otherVal interp.Value, onRight bool) (i
 func (d *TensorValue) Index(idx interp.Value) (interp.Value, error) {
 	sh := d.t.Shape()
 	if len(sh) == 0 {
-		return nil, fmt.Errorf("skaler (0 boyutlu) tensör indekslenemez")
+		return nil, messages.New(messages.H6704)
 	}
 	n := sh[0]
 	if rng, ok := idx.(*interp.RangeVal); ok {
@@ -244,14 +243,14 @@ func (d *TensorValue) Index(idx interp.Value) (interp.Value, error) {
 	}
 	i, ok := intNumber(idx)
 	if !ok {
-		return nil, fmt.Errorf("tensör indeksi %s sayı ya da aralık olmalıdır, %s verildi", interp.VAL_INT, idx.Type())
+		return nil, messages.New(messages.H6707, interp.VAL_INT, idx.Type())
 	}
 	j := i
 	if j < 0 {
 		j += n
 	}
 	if j < 0 || j >= n {
-		return nil, fmt.Errorf("tensör indeksi sınır dışı: %d (ilk eksenin uzunluğu %d, şekil %s)", i, n, shapeText(sh))
+		return nil, messages.New(messages.H6709, i, n, shapeText(sh))
 	}
 	r, err := safe(func() *tensor.Tensor { return d.t.Slice(0, j, j+1).Squeeze(0) })
 	if err != nil {
@@ -274,7 +273,7 @@ func (d *TensorValue) view(r *tensor.Tensor) *TensorValue {
 func (d *TensorValue) IterLen() (int, error) {
 	sh := d.t.Shape()
 	if len(sh) == 0 {
-		return 0, fmt.Errorf("skaler (0 boyutlu) tensör üzerinde döngü kurulamaz; değerini .%s ile okuyun", codes.Name(memberValue))
+		return 0, messages.New(messages.H6711, codes.Name(memberValue))
 	}
 	return sh[0], nil
 }
@@ -303,7 +302,7 @@ func (d *TensorValue) IterItem(i int) (interp.Value, error) {
 // tensöre yalnızca türevsiz { ... } içinde atanabilir.
 func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	if d.t.RequiresGrad() && tensor.GradEnabled() {
-		return fmt.Errorf("türev izlenen tensöre indeksle atama yapılamaz; değeri türevsiz { ... } içinde değiştirin")
+		return messages.New(messages.H6716)
 	}
 	var target *tensor.Tensor
 	var err error
@@ -321,11 +320,11 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	if f, ok := interp.ToFloat(value); ok {
 		src = tensor.Scalar(float32(f)) // hedefin tüm elemanlarına yayınlanır
 	} else {
-		if src, err = toTensor("tensör ataması", value); err != nil {
+		if src, err = toTensor(messages.Text(messages.H6130), value); err != nil {
 			return err
 		}
 		if ks := src.Shape(); shapeText(ks) != shapeText(sh) {
-			return fmt.Errorf("tensör ataması: %s şeklindeki yere %s şeklinde veri atanamaz (şekiller aynı olmalı)", shapeText(sh), shapeText(ks))
+			return messages.New(messages.H6719, shapeText(sh), shapeText(ks))
 		}
 	}
 	// Tek arka uç kopyası, tek sürüm artışı; hedef bitişik olmayan bir görünüm olabilir.

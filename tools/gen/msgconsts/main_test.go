@@ -25,6 +25,7 @@ var migrated = []string{
 	"internal/stdlib/files",
 	"internal/stdlib/formats",
 	"internal/stdlib/logging",
+	"internal/stdlib/ml",
 	"internal/stdlib/process",
 	"internal/stdlib/tokenizer",
 }

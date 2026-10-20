@@ -8,6 +8,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -38,7 +39,7 @@ func parseDevice(ad string) (tensor.Device, error) {
 			return tensor.GPU(i), nil
 		}
 	}
-	return tensor.Device{}, fmt.Errorf("bilinmeyen cihaz %q; \"cpu\", \"gpu\" ya da \"gpu:1\" gibi bir ad verin", ad)
+	return tensor.Device{}, messages.New(messages.H6800, ad)
 }
 
 // deviceNames kullanılabilir cihazların adları.
@@ -55,19 +56,18 @@ func deviceNames() []string {
 func availableDevice(fn string, v interp.Value) (tensor.Device, error) {
 	s, ok := v.(*interp.StringVal)
 	if !ok {
-		return tensor.Device{}, fmt.Errorf("%s() cihaz adını metin olarak bekler (\"cpu\" ya da \"gpu\"), %s verildi", fn, typeName(v))
+		return tensor.Device{}, messages.New(messages.H6801, fn, typeName(v))
 	}
 	dev, err := parseDevice(s.Val)
 	if err != nil {
 		return dev, err
 	}
 	if !tensor.HasDevice(dev) {
-		m := fmt.Sprintf("%s cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: %s (%s())",
-			dev, strings.Join(deviceNames(), ", "), codes.Name(codes.T721))
+		names := strings.Join(deviceNames(), ", ")
 		if dev.Kind == tensor.KindGPU {
-			m += ". " + gpu.Status()
+			return dev, messages.New(messages.H6813, dev, names, codes.Name(codes.T721), gpu.Status())
 		}
-		return dev, fmt.Errorf("%s", m)
+		return dev, messages.New(messages.H6812, dev, names, codes.Name(codes.T721))
 	}
 	return dev, nil
 }
@@ -75,7 +75,7 @@ func availableDevice(fn string, v interp.Value) (tensor.Device, error) {
 func (d *TensorValue) toDevice(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(memberToDevice)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(\"cpu\") 1 parametre bekler", fn)
+		return nil, messages.New(messages.H6802, fn)
 	}
 	dev, err := availableDevice(fn, args[0])
 	if err != nil {
@@ -106,7 +106,7 @@ func defaultDeviceBuiltin(_ *interp.VM, args []interp.Value, named map[string]in
 		return nil, err
 	}
 	if len(args) > 1 {
-		return nil, fmt.Errorf("%s(\"gpu\") en çok 1 parametre bekler, %d verildi", fn, len(args))
+		return nil, messages.New(messages.H6804, fn, len(args))
 	}
 	if len(args) == 1 {
 		dev, err := availableDevice(fn, args[0])
@@ -127,7 +127,7 @@ func devicesBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.V
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, fmt.Errorf("%s() parametre almaz, %d verildi", fn, len(args))
+		return nil, messages.New(messages.H6805, fn, len(args))
 	}
 	ad := deviceNames()
 	el := make([]interp.Value, len(ad))

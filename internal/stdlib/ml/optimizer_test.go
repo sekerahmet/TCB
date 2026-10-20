@@ -1,8 +1,9 @@
 package ml
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestGradClip(t *testing.T) {
@@ -17,13 +18,16 @@ yazdır(gradyan_kırp([w, b]))`)
 	if out != want {
 		t.Fatalf("gradyan_kırp:\n%q\nbeklenen:\n%q", out, want)
 	}
-	for _, d := range []struct{ code, expected string }{
-		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], en_fazla: 0)", "en_fazla pozitif bir sayı olmalıdır"},
-		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], max_norm: 1)", "'max_norm' adında bir parametre almaz"},
-		{"gradyan_kırp([sıfırlar([1])])", "türev izlemiyor"},
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], en_fazla: 0)", messages.H6523},
+		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], max_norm: 1)", messages.H7901},
+		{"gradyan_kırp([sıfırlar([1])])", messages.H6513},
 	} {
-		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.expected)
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
 		}
 	}
 }
@@ -33,7 +37,7 @@ yazdır(gradyan_kırp([w, b]))`)
 func TestAdamWEpsilonPositive(t *testing.T) {
 	for _, eps := range []string{"0", "1e-50"} {
 		_, err := run(t, "değişken w = tensör([0.0], türev_izle: doğru)\nAdamW([w], epsilon: "+eps+")")
-		if err == nil || !strings.Contains(err.Error(), "pozitif olmalıdır") {
+		if err == nil || !messages.Has(err, messages.H6527) {
 			t.Fatalf("epsilon %s: hata beklenirdi: %v", eps, err)
 		}
 	}

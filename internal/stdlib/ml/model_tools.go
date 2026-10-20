@@ -1,7 +1,6 @@
 package ml
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -9,6 +8,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -49,22 +49,22 @@ func namedBool(fn string, named map[string]interp.Value, a bind.Named, defaultVa
 func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T121)
 	if len(args) < 1 || len(args) > 2 {
-		return nil, fmt.Errorf("%s([a, b, ...], %s: -1) bir tensör listesi bekler, %d parametre verildi", fn, nameAxis.TR, len(args))
+		return nil, messages.New(messages.H6304, fn, nameAxis.TR, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameAxis); err != nil {
 		return nil, err
 	}
 	l, ok := args[0].(*interp.ListVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: ilk parametre tensörlerin listesi olmalıdır ([a, b]), %s verildi", fn, typeName(args[0]))
+		return nil, messages.New(messages.H6306, fn, typeName(args[0]))
 	}
 	if len(l.Elements) == 0 {
-		return nil, fmt.Errorf("%s: liste boş; en az bir tensör verin", fn)
+		return nil, messages.New(messages.H6307, fn)
 	}
 	ts := make([]*tensor.Tensor, len(l.Elements))
 	ints := true // hepsi tam sayılı tensörse (ör. token kimlikleri) sonuç da tam sayılıdır
 	for i, el := range l.Elements {
-		t, err := toTensor(fmt.Sprintf("%s: %d. eleman", fn, i+1), el)
+		t, err := toTensor(messages.Text(messages.H6344, fn, i+1), el)
 		if err != nil {
 			return nil, err
 		}
@@ -86,11 +86,11 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	for i, t := range ts[1:] {
 		sh := t.Shape()
 		if len(sh) != len(first) {
-			return nil, fmt.Errorf("%s: %d. tensör %d boyutlu (%s), 1. tensör %d boyutlu (%s); hepsi aynı sayıda eksenli olmalı", fn, i+2, len(sh), shapeText(sh), len(first), shapeText(first))
+			return nil, messages.New(messages.H6309, fn, i+2, len(sh), shapeText(sh), len(first), shapeText(first))
 		}
 		for d := range sh {
 			if d != e && sh[d] != first[d] {
-				return nil, fmt.Errorf("%s: %d. tensörün şekli %s, 1. tensörünki %s; %d. eksen dışındaki eksenler eşit olmalı (%d. eksende %d ≠ %d)", fn, i+2, shapeText(sh), shapeText(first), e, d, sh[d], first[d])
+				return nil, messages.New(messages.H6311, fn, i+2, shapeText(sh), shapeText(first), e, d, sh[d], first[d])
 			}
 		}
 		if err := checkDevice(fn, ts[0], t); err != nil {
@@ -111,14 +111,14 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.Y103)
 	if len(args) < 1 || len(args) > 2 {
-		return nil, fmt.Errorf("%s(parça_sayısı, %s: -1) parça sayısını bekler, %d parametre verildi", fn, nameAxis.TR, len(args))
+		return nil, messages.New(messages.H6315, fn, nameAxis.TR, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameAxis); err != nil {
 		return nil, err
 	}
 	n, ok := intNumber(args[0])
 	if !ok || n <= 0 {
-		return nil, fmt.Errorf("%s: parça sayısı pozitif bir tam sayı olmalıdır, %s verildi", fn, args[0].Inspect())
+		return nil, messages.New(messages.H6317, fn, args[0].Inspect())
 	}
 	e, given, err := axisArg(fn, args, named)
 	if err != nil {
@@ -132,7 +132,7 @@ func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]
 		return nil, err
 	}
 	if sh[e]%n != 0 {
-		return nil, fmt.Errorf("%s: %s şeklinde %d. eksenin uzunluğu %d, %d eşit parçaya bölünemez", fn, shapeText(sh), e, sh[e], n)
+		return nil, messages.New(messages.H6318, fn, shapeText(sh), e, sh[e], n)
 	}
 	parts, err := safe(func() []*tensor.Tensor { return d.t.Split(n, e) })
 	if err != nil {
@@ -156,8 +156,7 @@ func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]
 func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T503)
 	if len(args) != 3 {
-		return nil, fmt.Errorf("%s(q, k, v, %s: %s, %s: 0, %s: %s) 3 konumlu parametre bekler, %d verildi",
-			fn, nameCausal.TR, codes.Name(codes.A040), nameWindow.TR, nameMask.TR, codes.Name(codes.A042), len(args))
+		return nil, messages.New(messages.H6321, fn, nameCausal.TR, codes.Name(codes.A040), nameWindow.TR, nameMask.TR, codes.Name(codes.A042), len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameCausal, nameWindow, nameMask); err != nil {
 		return nil, err
@@ -166,7 +165,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	for i, ad := range []string{"q", "k", "v"} {
 		d, ok := args[i].(*TensorValue)
 		if !ok {
-			return nil, fmt.Errorf("%s: %s bir tensör olmalıdır, %s verildi", fn, ad, typeName(args[i]))
+			return nil, messages.New(messages.H6324, fn, ad, typeName(args[i]))
 		}
 		qkv[i] = d.t
 	}
@@ -179,7 +178,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	if pv, ok := bind.GetNamed(named, nameWindow); ok {
 		w, integer := intNumber(pv)
 		if !integer || w < 0 {
-			return nil, fmt.Errorf("%s: pencere negatif olmayan bir tam sayı olmalıdır (0: pencere yok), %s verildi", fn, pv.Inspect())
+			return nil, messages.New(messages.H6326, fn, pv.Inspect())
 		}
 		opt.Window = w
 	}
@@ -222,28 +221,28 @@ func checkAttentionShapes(fn string, q, k, v *tensor.Tensor) error {
 	qs, ks, vs := q.Shape(), k.Shape(), v.Shape()
 	n := len(qs)
 	if n < 2 {
-		return fmt.Errorf("%s: q en az 2 boyutlu olmalıdır ([..., baş, T, dh]), %s verildi", fn, shapeText(qs))
+		return messages.New(messages.H6327, fn, shapeText(qs))
 	}
 	if len(ks) != n || len(vs) != n {
-		return fmt.Errorf("%s: q, k ve v aynı sayıda eksenli olmalıdır; %s, %s, %s verildi", fn, shapeText(qs), shapeText(ks), shapeText(vs))
+		return messages.New(messages.H6328, fn, shapeText(qs), shapeText(ks), shapeText(vs))
 	}
 	on := max(n-3, 0)
 	if shapeText(qs[:on]) != shapeText(ks[:on]) || shapeText(qs[:on]) != shapeText(vs[:on]) {
-		return fmt.Errorf("%s: öndeki (toplu) eksenler eşit olmalıdır; q %s, k %s, v %s", fn, shapeText(qs), shapeText(ks), shapeText(vs))
+		return messages.New(messages.H6329, fn, shapeText(qs), shapeText(ks), shapeText(vs))
 	}
 	if ks[n-1] != qs[n-1] {
-		return fmt.Errorf("%s: q ve k'nin son ekseni (dh) eşit olmalıdır; q %s, k %s", fn, shapeText(qs), shapeText(ks))
+		return messages.New(messages.H6330, fn, shapeText(qs), shapeText(ks))
 	}
 	if vs[n-2] != ks[n-2] {
-		return fmt.Errorf("%s: k ve v'nin anahtar sayısı (sondan 2. eksen) eşit olmalıdır; k %s, v %s", fn, shapeText(ks), shapeText(vs))
+		return messages.New(messages.H6331, fn, shapeText(ks), shapeText(vs))
 	}
 	if n >= 3 {
 		H, Hkv := qs[n-3], ks[n-3]
 		if vs[n-3] != Hkv {
-			return fmt.Errorf("%s: k ve v'nin baş sayısı eşit olmalıdır; k %s, v %s", fn, shapeText(ks), shapeText(vs))
+			return messages.New(messages.H6332, fn, shapeText(ks), shapeText(vs))
 		}
 		if Hkv == 0 || H%Hkv != 0 {
-			return fmt.Errorf("%s: q'nun baş sayısı (%d), k/v baş sayısının (%d) katı olmalıdır (gruplu sorgu dikkati)", fn, H, Hkv)
+			return messages.New(messages.H6333, fn, H, Hkv)
 		}
 	}
 	return nil
@@ -254,11 +253,11 @@ func checkMask(fn string, mt, q, k *tensor.Tensor) error {
 	qs, ms := q.Shape(), mt.Shape()
 	target := append(qs[:len(qs)-1:len(qs)-1], k.Shape()[k.Dim()-2])
 	if len(ms) > len(target) {
-		return fmt.Errorf("%s: maske %s, puan şekline %s yayınlanamaz", fn, shapeText(ms), shapeText(target))
+		return messages.New(messages.H6334, fn, shapeText(ms), shapeText(target))
 	}
 	for i := 1; i <= len(ms); i++ {
 		if d := ms[len(ms)-i]; d != 1 && d != target[len(target)-i] {
-			return fmt.Errorf("%s: maske %s, puan şekline %s yayınlanamaz; sondan %d. eksende %d ≠ %d (eksenler sağdan hizalanır, eşit ya da 1 olmalı)", fn, shapeText(ms), shapeText(target), i, d, target[len(target)-i])
+			return messages.New(messages.H6335, fn, shapeText(ms), shapeText(target), i, d, target[len(target)-i])
 		}
 	}
 	return nil
@@ -276,29 +275,28 @@ func checkMask(fn string, mt, q, k *tensor.Tensor) error {
 func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T611)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(logit, %s: 1.0, %s: 0, %s: %s) 1 konumlu parametre bekler, %d verildi",
-			fn, nameTemperature.TR, nameTopK.TR, nameSeed.TR, codes.Name(codes.A042), len(args))
+		return nil, messages.New(messages.H6336, fn, nameTemperature.TR, nameTopK.TR, nameSeed.TR, codes.Name(codes.A042), len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameTemperature, nameTopK, nameSeed); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, fmt.Errorf("%s: logit bir tensör olmalıdır, %s verildi; liste için %s(%s(liste)) yazın", fn, typeName(args[0]), fn, codes.Name(codes.T100))
+		return nil, messages.New(messages.H6337, fn, typeName(args[0]), codes.Name(codes.T100))
 	}
 	sh := d.t.Shape()
 	if len(sh) == 0 {
-		return nil, fmt.Errorf("%s: logit en az 1 boyutlu olmalıdır (son eksen sınıflar)", fn)
+		return nil, messages.New(messages.H6338, fn)
 	}
 	C := sh[len(sh)-1]
 	if C == 0 {
-		return nil, fmt.Errorf("%s: %s şeklinde son eksen boş", fn, shapeText(sh))
+		return nil, messages.New(messages.H6339, fn, shapeText(sh))
 	}
 	temperature := 1.0
 	if sv, ok := bind.GetNamed(named, nameTemperature); ok {
 		f, number := interp.ToFloat(sv)
 		if !number || f < 0 || math.IsNaN(f) {
-			return nil, fmt.Errorf("%s: %s negatif olmayan bir sayı olmalıdır (0: en olası), %s verildi", fn, nameTemperature.TR, sv.Inspect())
+			return nil, messages.New(messages.H6340, fn, nameTemperature.TR, sv.Inspect())
 		}
 		temperature = f
 	}
@@ -306,7 +304,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if kv, ok := bind.GetNamed(named, nameTopK); ok {
 		n, integer := intNumber(kv)
 		if !integer || n < 0 {
-			return nil, fmt.Errorf("%s: %s negatif olmayan bir tam sayı olmalıdır (0: hepsi), %s verildi", fn, nameTopK.TR, kv.Inspect())
+			return nil, messages.New(messages.H6341, fn, nameTopK.TR, kv.Inspect())
 		}
 		k = n
 	}
@@ -317,7 +315,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if tv, ok := bind.GetNamed(named, nameSeed); ok && tv != interp.NULL {
 		t, integer := tv.(*interp.IntVal)
 		if !integer {
-			return nil, fmt.Errorf("%s: tohum tam sayı olmalıdır, %s verildi", fn, typeName(tv))
+			return nil, messages.New(messages.H6342, fn, typeName(tv))
 		}
 		rng = rand.New(rand.NewSource(t.Val))
 	}
@@ -376,7 +374,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		}
 		if !(top > 0) || math.IsInf(top, 0) {
 			// NaN logit, hepsi -∞ ya da +∞: dağılım tanımsız; sessizce son aday seçilmesin.
-			return nil, fmt.Errorf("%s: %d. satırın logitlerinden dağılım kurulamıyor (NaN, sonsuz ya da hepsi -∞ değer var)", fn, r+1)
+			return nil, messages.New(messages.H6343, fn, r+1)
 		}
 		target := u[r] * top
 		picked := candidates[len(candidates)-1]

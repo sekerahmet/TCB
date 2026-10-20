@@ -6,6 +6,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestTruthValue(t *testing.T) {
@@ -59,7 +60,7 @@ func TestIntermediateTensorGrad(t *testing.T) {
 geri_yayılım(toplam(w * w))
 w = w - w.gradyan * 0.1
 yazdır(w.gradyan)`)
-	if err == nil || !strings.Contains(err.Error(), "bir işlemin sonucu; gradyan yalnızca türev_izle: doğru ile oluşturulan tensörlerde tutulur") {
+	if err == nil || !messages.Has(err, messages.H6700) {
 		t.Fatalf("ara tensör gradyanı: %v", err)
 	}
 	// Geri yayılımdan sonra da ara tensör ara sayılır ve iyileştiriciye verilemez.
@@ -67,7 +68,7 @@ yazdır(w.gradyan)`)
 değişken y = w * 2
 geri_yayılım(toplam(y))
 AdamW([y])`)
-	if err == nil || !strings.Contains(err.Error(), "yaprak değil") {
+	if err == nil || !messages.Has(err, messages.H6514) {
 		t.Fatalf("ara tensör parametre: %v", err)
 	}
 	// Henüz geri yayılım yapılmamış yaprakta gradyan yoktur.

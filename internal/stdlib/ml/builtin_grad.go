@@ -1,10 +1,10 @@
 package ml
 
 import (
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -17,23 +17,21 @@ import (
 func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T300)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(kayıp) 1 parametre bekler, %d verildi", fn, len(args))
+		return nil, messages.New(messages.H6400, fn, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, fmt.Errorf("%s() bir tensör bekler, %s verildi", fn, typeName(args[0]))
+		return nil, messages.New(messages.H6030, fn, typeName(args[0]))
 	}
 	t := d.t
 	if t.Numel() != 1 {
-		return nil, fmt.Errorf("%s tek elemanlı (skaler) bir kayıp ister, %s şeklinde tensör verildi; önce %s(...) ya da %s(...) ile indirgeyin",
-			fn, shapeText(t.Shape()), codes.Name(codes.G400), codes.Name(codes.G410))
+		return nil, messages.New(messages.H6401, fn, shapeText(t.Shape()), codes.Name(codes.G400), codes.Name(codes.G410))
 	}
 	if !t.RequiresGrad() {
-		return nil, fmt.Errorf("%s: kayıp türev izlenen hiçbir tensöre bağlı değil; parametreleri %s ile oluşturun (%s bloğu içinde hesaplanan değerler izlenmez)",
-			fn, gradExample("..."), codes.Name(codes.T301))
+		return nil, messages.New(messages.H6402, fn, gradExample("..."), codes.Name(codes.T301))
 	}
 	// Dış düğümlerin (özel_türev) geri hesapları bu görevle çalışır.
 	if err := backprop(m, t, nil); err != nil {
@@ -47,7 +45,7 @@ func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.
 func noGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T301)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s { ... } bir blok ya da %s(x) bir tensör bekler, %d parametre verildi", fn, fn, len(args))
+		return nil, messages.New(messages.H6403, fn, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
@@ -69,5 +67,5 @@ func noGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 		}
 		return result, nil
 	}
-	return nil, fmt.Errorf("%s { ... } bir blok ya da %s(x) bir tensör bekler, %s verildi", fn, fn, typeName(args[0]))
+	return nil, messages.New(messages.H6404, fn, typeName(args[0]))
 }

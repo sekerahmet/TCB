@@ -1,10 +1,10 @@
 package ml
 
 import (
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"math"
 )
@@ -42,7 +42,7 @@ func unit(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor, n
 					return old(m, args, named)
 				}
 				if len(args) != 1 {
-					return nil, fmt.Errorf("%s(x) 1 parametre bekler, %d verildi", ad, len(args))
+					return nil, messages.New(messages.H6101, ad, len(args))
 				}
 				return applyToNumber(ad, args[0], number64)
 			}
@@ -68,10 +68,10 @@ func applyToNumber(ad string, v interp.Value, f func(float64) float64) (interp.V
 	if s, ok := interp.ToFloat(v); ok {
 		return &interp.FloatVal{Val: f(s)}, nil
 	}
-	if err := listError(ad, v, "tensörde ve sayıda", ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+	if err := listError(ad, v, messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("%s: sayı ya da tensör bekleniyor, %s verildi", ad, typeName(v))
+	return nil, messages.New(messages.H6103, ad, typeName(v))
 }
 
 // listError değer bir liste ise eleman bazlı fonksiyonların listede çalışmadığını söyleyen,
@@ -80,7 +80,7 @@ func listError(ad string, v interp.Value, accept, suggestion string) error {
 	if _, ok := v.(*interp.ListVal); !ok {
 		return nil
 	}
-	return fmt.Errorf("%s listede çalışmaz, yalnızca %s; listeyi %s(...) ile çevirin: %s", ad, accept, codes.Name(codes.T100), suggestion)
+	return messages.New(messages.H6104, ad, accept, codes.Name(codes.T100), suggestion)
 }
 
 // axisArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.
@@ -91,7 +91,7 @@ func axisArg(fn string, args []interp.Value, named map[string]interp.Value) (int
 	}
 	if v, ok := bind.GetNamed(named, nameAxis); ok {
 		if ev != nil {
-			return 0, false, fmt.Errorf("%s: eksen hem konumlu hem adlı verildi", fn)
+			return 0, false, messages.New(messages.H6105, fn)
 		}
 		ev = v
 	}
@@ -100,7 +100,7 @@ func axisArg(fn string, args []interp.Value, named map[string]interp.Value) (int
 	}
 	e, ok := intNumber(ev)
 	if !ok {
-		return 0, false, fmt.Errorf("%s: eksen tam sayı olmalıdır, %s verildi", fn, ev.Inspect())
+		return 0, false, messages.New(messages.H6106, fn, ev.Inspect())
 	}
 	return e, true, nil
 }
@@ -113,15 +113,15 @@ func registerSoftmax(v *interp.VM, kd codes.Code, logMode bool) {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) == 0 || !isTensor(args[:1]) {
 				if len(args) == 0 {
-					return nil, fmt.Errorf("%s(x, %s: -1) en az 1 parametre bekler", ad, nameAxis.TR)
+					return nil, messages.New(messages.H6109, ad, nameAxis.TR)
 				}
-				if err := listError(ad, args[0], "tensörde", ad+"("+codes.Name(codes.T100)+"(...), "+nameAxis.TR+": -1)"); err != nil {
+				if err := listError(ad, args[0], messages.Text(messages.H6132), ad+"("+codes.Name(codes.T100)+"(...), "+nameAxis.TR+": -1)"); err != nil {
 					return nil, err
 				}
-				return nil, fmt.Errorf("%s: tensör bekleniyor, %s verildi", ad, typeName(args[0]))
+				return nil, messages.New(messages.H6110, ad, typeName(args[0]))
 			}
 			if len(args) > 2 {
-				return nil, fmt.Errorf("%s(x, %s: -1) en fazla 2 parametre alır, %d verildi", ad, nameAxis.TR, len(args))
+				return nil, messages.New(messages.H6111, ad, nameAxis.TR, len(args))
 			}
 			if err := bind.CheckNamed(ad+"()", named, nameAxis); err != nil {
 				return nil, err

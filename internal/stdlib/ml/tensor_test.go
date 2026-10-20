@@ -9,6 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -268,31 +269,30 @@ yazdır(yuvarla(w.değer[0][0], 2), yuvarla(w.değer[1][0], 2), yuvarla(b.değer
 }
 
 func TestErrors(t *testing.T) {
-	cases := []struct{ code, expected string }{
-		{"sıfırlar([32, 1024]) @ sıfırlar([512, 10])", "[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512"},
-		{"sıfırlar([2, 3, 4]) @ sıfırlar([5, 4, 6])", "toplu matris çarpımı yapılamaz; öndeki eksenler eşit olmalı ([2] ≠ [5])"},
-		{"sıfırlar([2, 3]) + sıfırlar([4])", "[2, 3] ile [4] şekilleri toplama için yayınlanamaz; sondan 1. eksende 3 ≠ 4"},
-		{"sıfırlar([2, 3]) * sıfırlar([3, 2])", "[2, 3] ile [3, 2] şekilleri çarpma için yayınlanamaz"},
-		{"yazdır(toplam(sıfırlar([2, 3]), eksen: 2))", "Satır 1: toplam: eksen 2, [2, 3] şeklindeki 2 boyutlu tensör için geçersiz"},
-		{"yazdır(softmax(sıfırlar([2]), eksen: -3))", "Satır 1: softmax: eksen -3"},
-		{"yazdır(sıfırlar([2, 3]).cihaza(\"gpu:9\"))", "Satır 1: gpu:9 cihazı kullanılamıyor"},
-		{"yazdır(sıfırlar([2, 3]).cihaza(\"tpu\"))", "bilinmeyen cihaz \"tpu\""},
-		{"yazdır(sıfırlar([2, 3]).şekillendir([4, 2]))", "Satır 1: [2, 3] şeklindeki tensör (6 eleman) [4, 2] şekline sokulamaz"},
-		{"yazdır(sıfırlar([2, 3]).dilim(1, 2, 5))", "dilim: 1. eksenin uzunluğu 3"},
-		{"yazdır(sıfırlar([2, 3]).eksenleri_sırala([0, 0]))", "birden çok kez"},
-		{"yazdır(sıfırlar([2, 3]).boyut)", "Tensör üzerinde \"boyut\" özelliği ya da metodu bulunamadı"},
-		{"yazdır(tensör([[1, 2], [3]]))", "iç içe liste düzensiz"},
-		{"yazdır(tensör([1, \"a\"]))", "tensör elemanları sayı olmalıdır"},
-		{"geri_yayılım(sıfırlar([2], türev_izle: doğru) * 2)", "geri_yayılım tek elemanlı (skaler) bir kayıp ister, [2] şeklinde"},
-		{"geri_yayılım(toplam(sıfırlar([2])))", "türev izlenen hiçbir tensöre bağlı değil"},
-		{"yazdır(gömme(sıfırlar([3, 2]), [5]))", "gömme: indeks 5, [3, 2] şeklindeki tablonun dışında"},
-		{"yazdır(çapraz_entropi(sıfırlar([2, 4]), [1]))", "[2, 4] şeklindeki çıktı için 2 hedef bekleniyor, 1 verildi"},
-		{"yazdır(çapraz_entropi(sıfırlar([1, 4]), [4]))", "hedef sınıf 4, 4 sınıflı çıktının dışında"},
-		{"yazdır(katman_normu(sıfırlar([2, 3]), birler([4])))", "katman_normu: ağırlık [3] şeklinde olmalı"},
-		{"AdamW([sıfırlar([2])])", "AdamW: 1. parametre ([2]) türev izlemiyor"},
-		{"AdamW([sıfırlar([2], türev_izle: doğru) * 2])", "yaprak değil"},
-		{"SGD([tensör([1.0], türev_izle: doğru)], öğrenme_oran: 0.1)", "SGD 'öğrenme_oran' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?"},
-		{"sıfırlar([2, -1])", "şeklin 2. elemanı negatif olmayan bir tam sayı olmalıdır"},
+	cases := []struct {
+		code string
+		want messages.Code
+	}{
+		{"sıfırlar([32, 1024]) @ sıfırlar([512, 10])", messages.H6126},
+		{"sıfırlar([2, 3, 4]) @ sıfırlar([5, 4, 6])", messages.H6115},
+		{"sıfırlar([2, 3]) + sıfırlar([4])", messages.H6100},
+		{"sıfırlar([2, 3]) * sıfırlar([3, 2])", messages.H6100},
+		{"yazdır(sıfırlar([2, 3]).cihaza(\"tpu\"))", messages.H6800},
+		{"yazdır(sıfırlar([2, 3]).dilim(1, 2, 5))", messages.H6720},
+		{"yazdır(sıfırlar([2, 3]).eksenleri_sırala([0, 0]))", messages.H6715},
+		{"yazdır(sıfırlar([2, 3]).boyut)", messages.H7903},
+		{"yazdır(tensör([[1, 2], [3]]))", messages.H6027},
+		{"yazdır(tensör([1, \"a\"]))", messages.H6007},
+		{"geri_yayılım(sıfırlar([2], türev_izle: doğru) * 2)", messages.H6401},
+		{"geri_yayılım(toplam(sıfırlar([2])))", messages.H6402},
+		{"yazdır(gömme(sıfırlar([3, 2]), [5]))", messages.H6305},
+		{"yazdır(çapraz_entropi(sıfırlar([2, 4]), [1]))", messages.H6313},
+		{"yazdır(çapraz_entropi(sıfırlar([1, 4]), [4]))", messages.H6314},
+		{"yazdır(katman_normu(sıfırlar([2, 3]), birler([4])))", messages.H6319},
+		{"AdamW([sıfırlar([2])])", messages.H6513},
+		{"AdamW([sıfırlar([2], türev_izle: doğru) * 2])", messages.H6514},
+		{"SGD([tensör([1.0], türev_izle: doğru)], öğrenme_oran: 0.1)", messages.H7900},
+		{"sıfırlar([2, -1])", messages.H6024},
 	}
 	for _, d := range cases {
 		_, err := run(t, d.code)
@@ -300,11 +300,22 @@ func TestErrors(t *testing.T) {
 			t.Errorf("%s: hata bekleniyordu", d.code)
 			continue
 		}
-		if !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s:\n  hata  : %v\n  içermeli: %s", d.code, err, d.expected)
+		if !messages.Has(err, d.want) {
+			t.Errorf("%s:\n  hata  : %v\n  beklenen: %s", d.code, err, d.want)
 		}
 		if strings.Contains(err.Error(), "İç hata") || strings.Contains(err.Error(), "tensor:") {
 			t.Errorf("%s: panik sızdı: %v", d.code, err)
+		}
+	}
+	// Satır öneki iletinin başındadır (biçim denetimi).
+	for _, d := range []struct{ code, expected string }{
+		{"yazdır(toplam(sıfırlar([2, 3]), eksen: 2))", "Satır 1: toplam: eksen 2, [2, 3] şeklindeki 2 boyutlu tensör için geçersiz"},
+		{"yazdır(softmax(sıfırlar([2]), eksen: -3))", "Satır 1: softmax: eksen -3"},
+		{"yazdır(sıfırlar([2, 3]).cihaza(\"gpu:9\"))", "Satır 1: gpu:9 cihazı kullanılamıyor"},
+		{"yazdır(sıfırlar([2, 3]).şekillendir([4, 2]))", "Satır 1: [2, 3] şeklindeki tensör (6 eleman) [4, 2] şekline sokulamaz"},
+	} {
+		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.expected)
 		}
 	}
 	// Hatalar dene/yakala ile yakalanabilir.

@@ -1,10 +1,10 @@
 package ml
 
 import (
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"math"
 	"slices"
@@ -50,8 +50,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return d.namedMethod(memberToDType, d.toDType), nil
 	case memberGrad:
 		if d.intermediate {
-			return nil, fmt.Errorf("bu tensör (%s) bir işlemin sonucu; gradyan yalnızca %s: %s ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici (%s, %s) kullanın ya da yeni değeri %s { } içinde hesaplayıp %s ile yeniden oluşturun",
-				shapeText(t.Shape()), nameRequiresGrad.TR, codes.Name(codes.A040), codes.Name(codes.T400), codes.Name(codes.T401), codes.Name(codes.T301), gradExample("..."))
+			return nil, messages.New(messages.H6700, shapeText(t.Shape()), nameRequiresGrad.TR, codes.Name(codes.A040), codes.Name(codes.T400), codes.Name(codes.T401), codes.Name(codes.T301), gradExample("..."))
 		}
 		g := t.Grad()
 		if g == nil {
@@ -65,7 +64,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	case memberTranspose:
 		return d.method(memberTranspose, func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, fmt.Errorf("%s() argüman almaz", codes.Name(memberTranspose))
+				return nil, messages.New(messages.H6506, codes.Name(memberTranspose))
 			}
 			return transposed(d)
 		}), nil
@@ -78,17 +77,16 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	case memberSplit:
 		return d.namedMethod(memberSplit, d.split), nil
 	}
-	suggestion := ""
 	if k, _, old := codes.FindOld(codes.NamespaceMember, prop, isTensorMember); old {
 		o := codes.Name(k)
 		if k == memberTranspose {
 			o += "()" // metot
 		}
-		suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+		return nil, messages.New(messages.H7903, interp.VAL_TENSOR, prop, o)
 	} else if o := turkish.Closest(prop, tensorMembers); o != "" {
-		suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+		return nil, messages.New(messages.H7903, interp.VAL_TENSOR, prop, o)
 	}
-	return nil, fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", interp.VAL_TENSOR, prop, suggestion)
+	return nil, messages.New(messages.H6721, interp.VAL_TENSOR, prop)
 }
 
 // method adlı argüman almayan bir tensör metodunun bağlı değeridir; namedMethod adlı
@@ -204,14 +202,14 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 		target = args
 	}
 	if len(target) == 0 {
-		return nil, fmt.Errorf("%s([4, 6]) yeni şekli liste olarak bekler", codes.Name(memberReshape))
+		return nil, messages.New(messages.H6705, codes.Name(memberReshape))
 	}
 	sh := make([]int, len(target))
 	unknown := 0
 	for i, v := range target {
 		n, ok := intNumber(v)
 		if !ok || n < -1 {
-			return nil, fmt.Errorf("%s: şeklin %d. elemanı negatif olmayan bir tam sayı (ya da çıkarsanacak eksen için -1) olmalıdır, %s verildi", codes.Name(memberReshape), i+1, v.Inspect())
+			return nil, messages.New(messages.H6706, codes.Name(memberReshape), i+1, v.Inspect())
 		}
 		if n == -1 {
 			unknown++
@@ -219,7 +217,7 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 		sh[i] = n
 	}
 	if unknown > 1 {
-		return nil, fmt.Errorf("%s: yalnızca bir eksen -1 olabilir, %s verildi", codes.Name(memberReshape), shapeText(sh))
+		return nil, messages.New(messages.H6708, codes.Name(memberReshape), shapeText(sh))
 	}
 	if d.t.Numel() == 0 {
 		// Veri yokken eksenler serbesttir ([0] → [10¹², 0]); sınır sıfır eksenler 1 sayılarak
@@ -236,7 +234,7 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 		}
 	}
 	if (unknown == 0 && product != n) || (unknown == 1 && (product == 0 || n%product != 0)) {
-		return nil, fmt.Errorf("%s şeklindeki tensör (%d eleman) %s şekline sokulamaz", shapeText(d.t.Shape()), n, shapeText(sh))
+		return nil, messages.New(messages.H6710, shapeText(d.t.Shape()), n, shapeText(sh))
 	}
 	r, err := safe(func() *tensor.Tensor { return d.t.Reshape(sh...) })
 	if err != nil {
@@ -249,7 +247,7 @@ func transposed(d *TensorValue) (interp.Value, error) {
 	t := d.t
 	sh := t.Shape()
 	if len(sh) < 2 {
-		return nil, fmt.Errorf("%s() en az 2 boyutlu tensör ister, %s verildi", codes.Name(memberTranspose), shapeText(sh))
+		return nil, messages.New(messages.H6712, codes.Name(memberTranspose), shapeText(sh))
 	}
 	r, err := safe(func() *tensor.Tensor { return t.T() })
 	if err != nil {
@@ -271,21 +269,21 @@ func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]in
 	fn := codes.Name(memberPermute)
 	sh := d.t.Shape()
 	if len(list) != len(sh) {
-		return nil, fmt.Errorf("%s: %s şeklindeki %d boyutlu tensör için %d eksen verilmeli, %d verildi", fn, shapeText(sh), len(sh), len(sh), len(list))
+		return nil, messages.New(messages.H6713, fn, shapeText(sh), len(sh), len(list))
 	}
 	dims := make([]int, len(list))
 	seen := make([]bool, len(sh))
 	for i, v := range list {
 		n, ok := intNumber(v)
 		if !ok {
-			return nil, fmt.Errorf("%s: eksenler tam sayı olmalıdır, %s verildi", fn, v.Inspect())
+			return nil, messages.New(messages.H6714, fn, v.Inspect())
 		}
 		e, err := parseAxis(fn, n, sh)
 		if err != nil {
 			return nil, err
 		}
 		if seen[e] {
-			return nil, fmt.Errorf("%s: %d. eksen birden çok kez verildi; her eksen bir kez yer almalı", fn, e)
+			return nil, messages.New(messages.H6715, fn, e)
 		}
 		seen[e] = true
 		dims[i] = e
@@ -300,13 +298,13 @@ func (d *TensorValue) permute(_ *interp.VM, args []interp.Value, _ map[string]in
 func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(memberSlice)
 	if len(args) != 3 {
-		return nil, fmt.Errorf("%s(eksen, baş, son) 3 parametre bekler, %d verildi", fn, len(args))
+		return nil, messages.New(messages.H6717, fn, len(args))
 	}
 	var n [3]int
 	for i, a := range args {
 		x, ok := intNumber(a)
 		if !ok {
-			return nil, fmt.Errorf("%s(eksen, baş, son) tam sayılar bekler, %s verildi", fn, a.Inspect())
+			return nil, messages.New(messages.H6718, fn, a.Inspect())
 		}
 		n[i] = x
 	}
@@ -324,7 +322,7 @@ func (d *TensorValue) slice(_ *interp.VM, args []interp.Value, _ map[string]inte
 		last += uz
 	}
 	if head < 0 || head > uz || last < head || last > uz {
-		return nil, fmt.Errorf("%s: %d. eksenin uzunluğu %d (%s); [%d, %d) aralığı geçersiz (0 ≤ baş ≤ son ≤ %d olmalı)", fn, e, uz, shapeText(sh), n[1], n[2], uz)
+		return nil, messages.New(messages.H6720, fn, e, uz, shapeText(sh), n[1], n[2])
 	}
 	r, err := safe(func() *tensor.Tensor { return d.t.Slice(e, head, last) })
 	if err != nil {

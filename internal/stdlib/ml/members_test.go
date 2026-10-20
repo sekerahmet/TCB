@@ -1,8 +1,9 @@
 package ml
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Görünüm metotları (şekillendir, devrik, eksenleri_sırala, dilim) ve birleştir tam sayılı
@@ -27,7 +28,7 @@ func TestShapeLimitZeroAxis(t *testing.T) {
 		"sıfırlar([0]).şekillendir([1000000000000, 0])",
 	} {
 		_, err := run(t, code)
-		if err == nil || !strings.Contains(err.Error(), "sıfır uzunluklu eksenler 1 sayılır") {
+		if err == nil || !messages.Has(err, messages.H6028) {
 			t.Fatalf("%s: sınır hatası beklenirdi: %v", code, err)
 		}
 	}

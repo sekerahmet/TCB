@@ -3,7 +3,6 @@ package ml
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"hash"
 	"hash/crc32"
 	"io"
@@ -81,13 +80,13 @@ type fileEntry struct {
 func yolArg(fn string, v interp.Value) (string, error) {
 	fpath, ok, err := interp.PathArg(fn, v)
 	if !ok {
-		return "", fmt.Errorf("%s: dosya yolu metin olmalıdır, %s verildi", fn, typeName(v))
+		return "", messages.New(messages.H6602, fn, typeName(v))
 	}
 	if err != nil {
 		return "", err
 	}
 	if fpath == "" {
-		return "", fmt.Errorf("%s: dosya yolu boş", fn)
+		return "", messages.New(messages.H6603, fn)
 	}
 	return fpath, nil
 }
@@ -96,7 +95,7 @@ func yolArg(fn string, v interp.Value) (string, error) {
 func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T700)
 	if len(args) != 2 {
-		return nil, fmt.Errorf("%s(yol, sözlük) 2 parametre bekler, %d verildi", fn, len(args))
+		return nil, messages.New(messages.H6604, fn, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
@@ -107,24 +106,24 @@ func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	}
 	dict, ok := args[1].(*interp.DictVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: ikinci parametre adları tensör olan bir sözlük olmalıdır ({\"w\": w}), %s verildi", fn, typeName(args[1]))
+		return nil, messages.New(messages.H6605, fn, typeName(args[1]))
 	}
 	// Veri yorumlayıcı kilidi altında kopyalanır; yazma kilit bırakılarak yapılır.
 	inputs := make([]fileEntry, 0, len(dict.Order))
 	for _, k := range dict.Order {
 		if _, text := dict.KeyValue(k).(*interp.StringVal); !text {
-			return nil, fmt.Errorf("%s: sözlük anahtarları metin olmalıdır, %s verildi", fn, dict.DisplayKey(k))
+			return nil, messages.New(messages.H6606, fn, dict.DisplayKey(k))
 		}
 		if len(k) > maxNameLen {
-			return nil, fmt.Errorf("%s: bir ad çok uzun (%d bayt; en fazla %d)", fn, len(k), maxNameLen)
+			return nil, messages.New(messages.H6607, fn, len(k), maxNameLen)
 		}
 		d, ok := dict.Pairs[k].(*TensorValue)
 		if !ok {
-			return nil, fmt.Errorf("%s: %q değeri bir tensör olmalıdır, %s verildi", fn, k, typeName(dict.Pairs[k]))
+			return nil, messages.New(messages.H6608, fn, k, typeName(dict.Pairs[k]))
 		}
 		sh := d.t.Shape()
 		if len(sh) > maxDims {
-			return nil, fmt.Errorf("%s: %q en fazla %d eksenli olabilir, %s verildi", fn, k, maxDims, shapeText(sh))
+			return nil, messages.New(messages.H6609, fn, k, maxDims, shapeText(sh))
 		}
 		inputs = append(inputs, fileEntry{ad: k, shape: sh, dtype: d.t.DType(), data: d.t.Data()})
 	}
@@ -193,11 +192,11 @@ func (y *TensorWriter) Write(ad string, shape []int, dtype tensor.DType, data []
 	case y.failure != nil:
 		return y.failure
 	case y.remaining <= 0:
-		return fmt.Errorf("tensör dosyasına bildirilenden fazla girdi yazılıyor (%q)", ad)
+		return messages.New(messages.H6618, ad)
 	case len(ad) > maxNameLen:
-		return fmt.Errorf("%q adı çok uzun (%d bayt; en fazla %d)", ad[:64], len(ad), maxNameLen)
+		return messages.New(messages.H6619, ad[:64], len(ad), maxNameLen)
 	case len(shape) > maxDims:
-		return fmt.Errorf("%q en fazla %d eksenli olabilir, %s verildi", ad, maxDims, shapeText(shape))
+		return messages.New(messages.H6620, ad, maxDims, shapeText(shape))
 	}
 	y.remaining--
 	y.u32(uint32(len(ad)))
@@ -227,7 +226,7 @@ func (y *TensorWriter) Finish() error {
 		return y.failure
 	}
 	if y.remaining != 0 {
-		return fmt.Errorf("tensör dosyasına %d girdi eksik yazıldı", y.remaining)
+		return messages.New(messages.H6622, y.remaining)
 	}
 	binary.LittleEndian.PutUint32(y.b[:4], y.crc.Sum32())
 	if _, err := y.bw.Write(y.b[:4]); err != nil {
@@ -240,7 +239,7 @@ func (y *TensorWriter) Finish() error {
 func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T701)
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(yol) 1 parametre bekler, %d verildi", fn, len(args))
+		return nil, messages.New(messages.H6624, fn, len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameRequiresGrad); err != nil {
 		return nil, err
@@ -261,7 +260,7 @@ func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		return nil, interp.ReadError(fn, fpath, messages.H2107, osErr, tried)
 	}
 	if readErr != nil {
-		return nil, fmt.Errorf("%s: %q: %v", fn, fpath, readErr)
+		return nil, messages.New(messages.H6626, fn, fpath, readErr)
 	}
 	result := interp.NewDictVal()
 	for _, g := range inputs {
@@ -290,7 +289,7 @@ func readFromFile(fpath string) ([]fileEntry, error, error) {
 		return nil, nil, err
 	}
 	if info.IsDir() {
-		return nil, fmt.Errorf("bir klasör, tensör dosyası değil"), nil
+		return nil, messages.New(messages.H6629), nil
 	}
 	inputs, err := decodeFile(f, info.Size())
 	return inputs, err, nil

@@ -1,12 +1,12 @@
 package ml
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
@@ -80,18 +80,17 @@ func parseDTypeName(fn, ad string) (tensor.DType, error) {
 			suggestion = "float32"
 		}
 	}
-	ek := ""
 	if suggestion != "" {
-		ek = fmt.Sprintf(". Bunu mu demek istediniz: \"%s\"?", suggestion)
+		return 0, messages.New(messages.H6811, fn, ad, suggestion)
 	}
-	return 0, fmt.Errorf("%s: bilinmeyen veri türü %q; geçerli türler: \"float32\", \"bf16\", \"fp16\"%s", fn, ad, ek)
+	return 0, messages.New(messages.H6810, fn, ad)
 }
 
 // parseDTypeValue metin olması gereken tür argümanını çözer.
 func parseDTypeValue(fn string, v interp.Value) (tensor.DType, error) {
 	s, ok := v.(*interp.StringVal)
 	if !ok {
-		return 0, fmt.Errorf("%s: tür metin olmalıdır (\"float32\", \"bf16\" ya da \"fp16\"), %s verildi", fn, typeName(v))
+		return 0, messages.New(messages.H6803, fn, typeName(v))
 	}
 	return parseDTypeName(fn, s.Val)
 }
@@ -118,7 +117,7 @@ func castTo(t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 // gradyan kaynak tensöre (kendi türünde) geri akar. Tür zaten aynıysa tensörün kendisi döner.
 func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(\"bf16\") 1 parametre (tür adı) bekler, %d verildi", codes.Name(memberToDType), len(args))
+		return nil, messages.New(messages.H6806, codes.Name(memberToDType), len(args))
 	}
 	if err := bind.CheckNamed(codes.Name(memberToDType)+"()", named); err != nil {
 		return nil, err
@@ -167,10 +166,10 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 	if len(args) != 2 {
 		if len(args) == 1 {
 			if s, text := args[0].(*interp.StringVal); text {
-				return nil, fmt.Errorf("%s(%q) bir blok bekler: %s(%q) { ... }", fn, s.Val, fn, s.Val)
+				return nil, messages.New(messages.H6807, fn, s.Val)
 			}
 		}
-		return nil, fmt.Errorf("%s(\"bf16\") { ... } bir tür adı ve bir blok bekler, %d parametre verildi", fn, len(args))
+		return nil, messages.New(messages.H6808, fn, len(args))
 	}
 	dt, err := parseDTypeValue(fn, args[0])
 	if err != nil {
@@ -179,7 +178,7 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 	switch args[1].(type) {
 	case *interp.FuncVal, *interp.BuiltinVal:
 	default:
-		return nil, fmt.Errorf("%s(\"bf16\") { ... }: ikinci parametre bir blok olmalıdır, %s verildi", fn, typeName(args[1]))
+		return nil, messages.New(messages.H6809, fn, typeName(args[1]))
 	}
 	prev := m.TaskValue(mixedKey{})
 	m.SetTaskValue(mixedKey{}, dt)

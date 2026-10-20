@@ -3,6 +3,8 @@ package ml
 import (
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // VM kancaları: eşitlik, sağ işlenen, '**', karşılaştırma, tekli eksi ve indeksleme.
@@ -46,11 +48,11 @@ func TestVMHooks(t *testing.T) {
 // Kanca hataları satır bilgisi taşımalı ve yol göstermeli; türev sağ işlenen yolunda da akmalı.
 func TestVMHookErrorsAndGrad(t *testing.T) {
 	_, err := run(t, "değişken t = tensör([1.0])\n\ndeğişken y = t % 2\n")
-	if err == nil || !strings.HasPrefix(err.Error(), "Satır 3:") || !strings.Contains(err.Error(), "desteklenen işleçler") {
+	if err == nil || !strings.HasPrefix(err.Error(), "Satır 3:") || !messages.Has(err, messages.H6703) {
 		t.Fatalf("satır bilgili, yol gösteren hata bekleniyordu: %v", err)
 	}
 	_, err = run(t, "değişken t = tensör([1.0, 2.0])\nyazdır(t[5])\n")
-	if err == nil || !strings.HasPrefix(err.Error(), "Satır 2:") || !strings.Contains(err.Error(), "sınır dışı") {
+	if err == nil || !strings.HasPrefix(err.Error(), "Satır 2:") || !messages.Has(err, messages.H6709) {
 		t.Fatalf("indeks hatası bekleniyordu: %v", err)
 	}
 	_, err = run(t, "değişken t = tensör([[1.0, 2.0]])\nyazdır(t @ tensör([[1.0, 2.0]]))\n")
@@ -109,7 +111,7 @@ func TestLoopOverTensor(t *testing.T) {
 		"değişken a = tensör(3.0)\n\nyazdır([x döngü x içinde a])\n",
 	} {
 		_, err := run(t, code)
-		if err == nil || !strings.HasPrefix(err.Error(), "Satır 3:") || !strings.Contains(err.Error(), "0 boyutlu) tensör üzerinde döngü kurulamaz") {
+		if err == nil || !strings.HasPrefix(err.Error(), "Satır 3:") || !messages.Has(err, messages.H6711) {
 			t.Errorf("0 boyutlu tensörde satır bilgili döngü hatası bekleniyordu: %v", err)
 		}
 	}
