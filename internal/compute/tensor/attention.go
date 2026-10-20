@@ -125,28 +125,30 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 	}
 	qv, kv, vv := q.contigView(), k.contigView(), v.contigView()
 	// Bitişik kopyalar geri yönde de okunur; geri yön bitince (türev izlenmiyorsa hemen) iade edilir.
-	release := func() { giveBackCopy(q, qv); giveBackCopy(k, kv); giveBackCopy(v, vv) }
+	rq, rk, rv := copyRelease(q, qv), copyRelease(k, kv), copyRelease(v, vv)
+	release := func() { rq(); rk(); rv() }
 	out := emptyOf(isAttention, be, outShape, outType)
 	lse := be.Attention(out.storage, qv, kv, vv, maskVal, p)
-	r := track(out, "attention", []*Tensor{q, k, v}, func() {
+	os := out.storage
+	r := track(out, "attention", []*Tensor{q, k, v}, func(o *node) {
 		defer release()
 		as, writer := be.(AttentionGradSetter)
 		var g [3]Storage
 		var fresh [3]bool
-		for i, t := range []*Tensor{q, k, v} {
-			if t.requiresGrad {
-				g[i], fresh[i] = t.freshGrad(writer)
+		for i, n := range o.parents {
+			if n.wants() {
+				g[i], fresh[i] = n.freshGrad(writer)
 			}
 		}
 		if writer {
-			as.AttentionGradSet(g[0], g[1], g[2], out.grad, qv, kv, vv, maskVal, out.storage, lse, p, fresh)
+			as.AttentionGradSet(g[0], g[1], g[2], o.grad, qv, kv, vv, maskVal, os, lse, p, fresh)
 			return
 		}
-		be.AttentionGrad(g[0], g[1], g[2], out.grad, qv, kv, vv, maskVal, out.storage, lse, p)
+		be.AttentionGrad(g[0], g[1], g[2], o.grad, qv, kv, vv, maskVal, os, lse, p)
 		// Geri yön ileri çıktıyı da okur (D = Σ dO·O): çıktı yerinde değişirse sürüm
 		// denetimi yakalar.
 	}, q, k, v, out)
-	if r.backward == nil {
+	if r.IsLeaf() {
 		release()
 	}
 	sy.finish()

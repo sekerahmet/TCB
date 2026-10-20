@@ -19,7 +19,7 @@ type Optimizer interface {
 
 func checkParams(params []*Tensor) {
 	for _, p := range params {
-		if !p.requiresGrad {
+		if !p.RequiresGrad() {
 			panic(messages.New(messages.H3054))
 		}
 		if !p.IsContiguous() || p.offset != 0 || p.storage.Len() != p.Numel() {
@@ -106,7 +106,7 @@ func (o *SGD) Step() {
 	sorted := repeated(o.Params)
 	var steps []goodStep
 	for k, p := range o.Params {
-		if p.grad == nil {
+		if p.gradStorage() == nil {
 			continue
 		}
 		if o.Momentum != 0 && o.speed[k] == nil {
@@ -114,7 +114,7 @@ func (o *SGD) Step() {
 		}
 		if sorted {
 			h := o.master.target(k, p)
-			p.be.SGDStep(h, p.grad, o.speed[k], o.LR, o.Momentum, o.WeightDecay)
+			p.be.SGDStep(h, p.gradStorage(), o.speed[k], o.LR, o.Momentum, o.WeightDecay)
 			o.master.write(k, p, h)
 			continue
 		}
@@ -124,7 +124,7 @@ func (o *SGD) Step() {
 		h, g, v := a[0].cols(a)
 		be.SGDStepAll(h, g, v, o.LR, o.Momentum, o.WeightDecay)
 	}, func(a goodStep) {
-		a.p.be.SGDStep(a.h, a.p.grad, a.m, o.LR, o.Momentum, o.WeightDecay)
+		a.p.be.SGDStep(a.h, a.p.gradStorage(), a.m, o.LR, o.Momentum, o.WeightDecay)
 	})
 	for _, a := range steps {
 		o.master.write(a.k, a.p, a.h)
@@ -153,7 +153,7 @@ type goodStep struct {
 // cols adımların h, gradyan ve m depolamaları.
 func (goodStep) cols(a []goodStep) (h, g, m []Storage) {
 	for _, x := range a {
-		h, g, m = append(h, x.h), append(g, x.p.grad), append(m, x.m)
+		h, g, m = append(h, x.h), append(g, x.p.gradStorage()), append(m, x.m)
 	}
 	return h, g, m
 }
@@ -172,10 +172,10 @@ func multiApply(steps []goodStep, multi func(MultiTensorOps, []goodStep), unaryA
 			i++
 			continue
 		}
-		wasSeen := map[Storage]bool{steps[i].p.grad: true}
+		wasSeen := map[Storage]bool{steps[i].p.gradStorage(): true}
 		j := i + 1
-		for j < len(steps) && steps[j].p.be == steps[i].p.be && !wasSeen[steps[j].p.grad] {
-			wasSeen[steps[j].p.grad] = true
+		for j < len(steps) && steps[j].p.be == steps[i].p.be && !wasSeen[steps[j].p.gradStorage()] {
+			wasSeen[steps[j].p.gradStorage()] = true
 			j++
 		}
 		multi(mt, steps[i:j])
@@ -246,7 +246,7 @@ func (o *AdamW) Step() {
 	sorted := repeated(o.Params)
 	var steps []goodStep
 	for k, p := range o.Params {
-		if p.grad == nil {
+		if p.gradStorage() == nil {
 			continue
 		}
 		o.steps[k]++
@@ -259,7 +259,7 @@ func (o *AdamW) Step() {
 			bc1: float32(1 - math.Pow(float64(o.Beta1), t)), bc2: float32(1 - math.Pow(float64(o.Beta2), t))}
 		a.h = o.master.target(k, p)
 		if sorted {
-			p.be.AdamWStep(a.h, p.grad, a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
+			p.be.AdamWStep(a.h, p.gradStorage(), a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
 			o.master.write(k, p, a.h)
 			continue
 		}
@@ -273,7 +273,7 @@ func (o *AdamW) Step() {
 		}
 		be.AdamWStepAll(h, g, m, v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, bc1, bc2)
 	}, func(a goodStep) {
-		a.p.be.AdamWStep(a.h, a.p.grad, a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
+		a.p.be.AdamWStep(a.h, a.p.gradStorage(), a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
 	})
 	for _, a := range steps {
 		o.master.write(a.k, a.p, a.h)
@@ -297,16 +297,16 @@ func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
 		k := float32(maxNorm / norm)
 		var steps []goodStep
 		for _, p := range params {
-			if p.grad != nil {
+			if p.gradStorage() != nil {
 				steps = append(steps, goodStep{p: p})
 			}
 		}
 		multiApply(steps, func(be MultiTensorOps, a []goodStep) {
 			_, g, _ := a[0].cols(a)
 			be.ScaleAll(g, k)
-		}, func(a goodStep) { a.p.be.Scale(a.p.grad, k) })
+		}, func(a goodStep) { a.p.be.Scale(a.p.gradStorage(), k) })
 		for _, a := range steps {
-			a.p.grad.BumpVersion()
+			a.p.gradStorage().BumpVersion()
 		}
 	}
 	return norm
@@ -330,7 +330,7 @@ func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
 	var grads []Storage
 	single := true
 	for _, p := range params {
-		if p.grad == nil {
+		if p.gradStorage() == nil {
 			continue
 		}
 		if be == nil {
@@ -338,7 +338,7 @@ func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
 		} else if p.be != be {
 			single = false
 		}
-		grads = append(grads, p.grad)
+		grads = append(grads, p.gradStorage())
 	}
 	if gc, ok := be.(GradClipper); ok && single {
 		sy := counterStart(be, OpKindClipGrad).start()
@@ -362,10 +362,10 @@ func distinctGrads(params []*Tensor) []*Tensor {
 	seen := make(map[Storage]bool, len(params))
 	out := make([]*Tensor, 0, len(params))
 	for _, p := range params {
-		if p.grad == nil || seen[p.grad] {
+		if p.gradStorage() == nil || seen[p.gradStorage()] {
 			continue
 		}
-		seen[p.grad] = true
+		seen[p.gradStorage()] = true
 		out = append(out, p)
 	}
 	return out
@@ -378,20 +378,20 @@ func gradSquareSum(params []*Tensor) float64 {
 	var s float64
 	for i := 0; i < len(params); {
 		p := params[i]
-		if p.grad == nil {
+		if p.gradStorage() == nil {
 			i++
 			continue
 		}
 		ss, ok := p.be.(SquareSummer)
 		if !ok {
-			s += p.be.SumSquares(p.grad)
+			s += p.be.SumSquares(p.gradStorage())
 			i++
 			continue
 		}
 		var group []Storage
-		for ; i < len(params) && (params[i].grad == nil || params[i].be == p.be); i++ {
-			if params[i].grad != nil {
-				group = append(group, params[i].grad)
+		for ; i < len(params) && (params[i].gradStorage() == nil || params[i].be == p.be); i++ {
+			if params[i].gradStorage() != nil {
+				group = append(group, params[i].gradStorage())
 			}
 		}
 		s += ss.SumSquaresAll(group)

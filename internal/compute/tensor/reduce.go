@@ -49,8 +49,9 @@ func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
 	out := zerosOf(isReduce, t.be, reducedShape(t.shape, axis, keepdim), t.dtyp)
 	t.be.Sum(out.storage, t.view(), axis, scale)
 	kd := reducedShape(t.shape, axis, true)
-	r := track(out, op, []*Tensor{t}, func() {
-		t.be.ExpandAdd(t.accGrad(), t.shape, out.grad, kd, scale)
+	r := track(out, op, []*Tensor{t}, func(o *node) {
+		in := o.parents[0]
+		in.be.ExpandAdd(in.accGrad(), in.shape, o.grad, kd, scale)
 	})
 	sy.finish()
 	return r
@@ -76,8 +77,9 @@ func (t *Tensor) allScaled(mean bool) *Tensor {
 	}
 	out := zerosOf(isReduce, t.be, nil, t.dtyp)
 	t.be.SumAll(out.storage, t.view(), scale)
-	r := track(out, op, []*Tensor{t}, func() {
-		t.be.ExpandAdd(t.accGrad(), t.shape, out.grad, nil, scale)
+	r := track(out, op, []*Tensor{t}, func(o *node) {
+		in := o.parents[0]
+		in.be.ExpandAdd(in.accGrad(), in.shape, o.grad, nil, scale)
 	})
 	sy.finish()
 	return r
@@ -93,8 +95,10 @@ func (t *Tensor) Max(axis int, keepdim bool) *Tensor {
 	}
 	out := zerosOf(isReduce, t.be, reducedShape(t.shape, axis, keepdim), t.dtyp)
 	t.be.Max(out.storage, t.view(), axis)
-	r := track(out, "max", []*Tensor{t}, func() {
-		t.be.MaxGrad(t.accGrad(), out.grad, t.view(), axis)
+	tv := t.view()
+	r := track(out, "max", []*Tensor{t}, func(o *node) {
+		in := o.parents[0]
+		in.be.MaxGrad(in.accGrad(), o.grad, tv, axis)
 	}, t)
 	sy.finish()
 	return r
@@ -129,8 +133,10 @@ func (t *Tensor) softmaxImpl(axis int, logMode bool) *Tensor {
 	if logMode {
 		op = "log_softmax"
 	}
-	r := track(out, op, []*Tensor{t}, func() {
-		t.be.SoftmaxGrad(t.accGrad(), out.grad, out.storage, t.shape, axis, logMode)
+	os := out.storage
+	r := track(out, op, []*Tensor{t}, func(o *node) {
+		in := o.parents[0]
+		in.be.SoftmaxGrad(in.accGrad(), o.grad, os, in.shape, axis, logMode)
 	}, out)
 	sy.finish()
 	return r

@@ -89,45 +89,54 @@ func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	sy := counterStart(be, OpKindAdd+OpKind(op)).start()
 	out := emptyOf(binopOp[op], be, outShape, dt)
 	be.Binary(op, out.storage, outShape, a.view(), b.view())
-	var save []*Tensor // geri yayılımın okuduğu girdiler
+	// Geri yayılımın okuduğu girdiler (verileri çizgede yalnızca bunlar için tutulur):
+	// toplama/çıkarma hiçbirini, çarpma ikisini, bölme paydayı (ve paydanın gradyanı
+	// için çıktıyı) okur.
+	var save []*Tensor
+	var av, bv View
+	var os Storage
 	switch op {
 	case OpMul:
 		save = []*Tensor{a, b}
+		av, bv = a.view(), b.view()
 	case OpDiv:
 		save = []*Tensor{b}
-		if b.requiresGrad {
+		bv = b.view()
+		if b.RequiresGrad() {
 			save = append(save, out) // paydanın gradyanı çıktıyı okur
+			os = out.storage
 		}
 	}
-	r := track(out, binopName[op], []*Tensor{a, b}, func() {
-		g := out.grad
-		sh := out.shape
+	r := track(out, binopName[op], []*Tensor{a, b}, func(o *node) {
+		an, bn := o.parents[0], o.parents[1]
+		g := o.grad
+		sh := o.shape
 		switch op {
 		case OpAdd, OpSub:
 			// b önce: a, b ile aynı tensör olsa da gradyanı sonra devralabilsin.
-			if b.requiresGrad {
+			if bn.wants() {
 				m := GradPlus
 				if op == OpSub {
 					m = GradMinus
 				}
-				passBinaryGrad(b, out, m, false)
+				passBinaryGrad(bn, o, m, false)
 			}
-			if a.requiresGrad {
-				passBinaryGrad(a, out, GradPlus, true)
+			if an.wants() {
+				passBinaryGrad(an, o, GradPlus, true)
 			}
 		case OpMul:
-			if a.requiresGrad && !writeBinaryGrad(a, out, OpMul, b) {
-				be.BinaryGrad(GradMul, a.accGrad(), a.shape, sh, g, b.view(), nil)
+			if an.wants() && !writeBinaryGrad(an, o, OpMul, bv) {
+				be.BinaryGrad(GradMul, an.accGrad(), an.shape, sh, g, bv, nil)
 			}
-			if b.requiresGrad && !writeBinaryGrad(b, out, OpMul, a) {
-				be.BinaryGrad(GradMul, b.accGrad(), b.shape, sh, g, a.view(), nil)
+			if bn.wants() && !writeBinaryGrad(bn, o, OpMul, av) {
+				be.BinaryGrad(GradMul, bn.accGrad(), bn.shape, sh, g, av, nil)
 			}
 		case OpDiv:
-			if a.requiresGrad && !writeBinaryGrad(a, out, OpDiv, b) {
-				be.BinaryGrad(GradDiv, a.accGrad(), a.shape, sh, g, b.view(), nil)
+			if an.wants() && !writeBinaryGrad(an, o, OpDiv, bv) {
+				be.BinaryGrad(GradDiv, an.accGrad(), an.shape, sh, g, bv, nil)
 			}
-			if b.requiresGrad {
-				be.BinaryGrad(GradDivB, b.accGrad(), b.shape, sh, g, b.view(), out.storage)
+			if bn.wants() {
+				be.BinaryGrad(GradDivB, bn.accGrad(), bn.shape, sh, g, bv, os)
 			}
 		}
 	}, save...)
@@ -139,7 +148,7 @@ func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 // GradPlus ya da GradMinus). t yayınlanmışsa indirgenir. Aynı şekilli t'de gradyan
 // henüz yoksa sıfırlanmadan yazılır; take doğruysa ve tür uyuyorsa depolama kopyasız
 // devredilir (out'tan alınır, handOffGrad gibi). Gradyan varsa üzerine eklenir.
-func passBinaryGrad(t, out *Tensor, m GradMode, take bool) {
+func passBinaryGrad(t, out *node, m GradMode, take bool) {
 	be, g := t.be, out.grad
 	switch {
 	case !sameShape(t.shape, out.shape):
@@ -161,12 +170,12 @@ func passBinaryGrad(t, out *Tensor, m GradMode, take bool) {
 // herhangi biri) gradyanı henüz yoksa ve t yayınlanmamışsa gradyanı tek ikili işlemle
 // sıfırlamadan yazar: dt = g op o (hesap float32, gradyan türüne bir kez yuvarlanır).
 // Yazamazsa yanlış döner; çağıran genel yolla (indirgeme ile) ekler.
-func writeBinaryGrad(t, out *Tensor, op BinOp, o *Tensor) bool {
+func writeBinaryGrad(t, out *node, op BinOp, o View) bool {
 	if t.grad != nil || !sameShape(t.shape, out.shape) {
 		return false
 	}
 	c, _ := t.freshGrad(true)
-	t.be.Binary(op, c, out.shape, out.gradView(), o.view())
+	t.be.Binary(op, c, out.shape, out.gradView(), o)
 	return true
 }
 
@@ -223,23 +232,26 @@ func unary(t *Tensor, op UnOp, p float32) *Tensor {
 	out := emptyOf(isElementwise, t.be, t.shape, t.dtyp)
 	t.be.Unary(op, p, out.storage, t.view())
 	var save []*Tensor
+	tv, os := t.shapeView(), Storage(nil)
 	switch {
 	case op == OpAddScalar || op == OpMulScalar || op == OpRSubScalar || unaryNoGrad(op):
-		// Doğrusal ya da parçalı sabit: geri yayılım girdiyi okumaz.
+		// Doğrusal ya da parçalı sabit: geri yayılım girdiyi okumaz (verisi tutulmaz).
 	default:
 		save = []*Tensor{t, out}
+		tv, os = t.view(), out.storage
 	}
-	r := track(out, unopName[op], []*Tensor{t}, func() {
+	r := track(out, unopName[op], []*Tensor{t}, func(o *node) {
+		in := o.parents[0]
 		if unaryNoGrad(op) {
-			t.accGrad() // gradyan 0'dır; yaprakta sıfır gradyan görünür
+			in.accGrad() // gradyan 0'dır; yaprakta sıfır gradyan görünür
 			return
 		}
-		us, writer := t.be.(UnaryGradSetter)
-		if gx, fresh := t.freshGrad(writer); fresh {
-			us.UnaryGradSet(op, p, gx, out.grad, t.view(), out.storage)
+		us, writer := in.be.(UnaryGradSetter)
+		if gx, fresh := in.freshGrad(writer); fresh {
+			us.UnaryGradSet(op, p, gx, o.grad, tv, os)
 			return
 		}
-		t.be.UnaryGrad(op, p, t.accGrad(), out.grad, t.view(), out.storage)
+		in.be.UnaryGrad(op, p, in.accGrad(), o.grad, tv, os)
 	}, save...)
 	sy.finish()
 	return r

@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"sync/atomic"
+	"weak"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -78,14 +79,16 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	sy := counterStart(t.be, OpKindCast).start()
 	out := emptyOf(isCast, t.be, t.shape, dt)
 	t.be.Copy(out.storage, 0, t.view())
-	r := trackPass(out, "cast", t, func() { handOffGrad(t, out) })
+	r := trackPass(out, "cast", t, func(o *node) { handOffGrad(o.parents[0], o) })
 	sy.finish()
 	return r
 }
 
-// castMemo bir ara sonucun saklanan dönüşümü ve o andaki depolama sürümleri.
+// castMemo bir ara sonucun saklanan dönüşümü ve o andaki depolama sürümleri. Dönüşüm zayıf
+// göstericiyle tutulur: önbellek onu canlı tutmaz (kimse kullanmıyorsa verisi serbest kalır,
+// sonraki çağrı yeniden dönüştürür).
 type castMemo struct {
-	out      *Tensor
+	out      weak.Pointer[Tensor]
 	src, dst uint64 // kaynağın ve sonucun depolama sürümü
 }
 
@@ -99,12 +102,14 @@ func (t *Tensor) CastShared(dt DType) *Tensor {
 	if t.dtyp == dt || t.IsLeaf() || !GradEnabled() {
 		return t.Cast(dt)
 	}
-	if c := t.castMemo.Load(); c != nil && c.out.dtyp == dt && !c.out.free &&
-		c.src == t.storage.Version() && c.dst == c.out.storage.Version() {
-		return c.out
+	if c := t.n.castMemo.Load(); c != nil {
+		if o := c.out.Value(); o != nil && o.dtyp == dt && o.n != nil && !o.n.free &&
+			c.src == t.storage.Version() && c.dst == o.storage.Version() {
+			return o
+		}
 	}
 	out := t.Cast(dt)
-	t.castMemo.Store(&castMemo{out: out, src: t.storage.Version(), dst: out.storage.Version()})
+	t.n.castMemo.Store(&castMemo{out: weak.Make(out), src: t.storage.Version(), dst: out.storage.Version()})
 	return out
 }
 

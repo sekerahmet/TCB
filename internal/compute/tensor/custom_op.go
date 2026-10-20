@@ -30,11 +30,15 @@ import (
 // kipte çalışır.
 type CustomBackward func(ctx any, grads []*Tensor) []*Tensor
 
-// outerNode bir dış işlemin geri yayılım durumudur.
+// outerNode bir dış işlemin geri yayılım durumudur. Girdileri ve çıktıları düğümleriyle
+// tutar (veri tutmaz; geri hesabın okuyacakları saved ile ayrıca kaydedilir). inputs'ta
+// gradyan istemeyen ya da tensör olmayan girdinin öğesi nil'dir; inShapes girdilerin
+// şeklidir (dönen gradyanın şekli denetlenir).
 type outerNode struct {
 	op       string
-	inputs   []*Tensor
-	outputs  []*Tensor
+	inputs   []*node
+	inShapes [][]int
+	outputs  []*node
 	incoming []Storage // çok çıktıda her çıktının devrettiği gradyan (nil: gelmedi)
 	bw       CustomBackward
 }
@@ -65,7 +69,7 @@ func CustomOp(op string, inputs, outputs, saved []*Tensor, bw CustomBackward) []
 	}
 	need := false
 	for _, p := range inputs {
-		if p != nil && p.requiresGrad {
+		if p != nil && p.RequiresGrad() {
 			need = true
 			break
 		}
@@ -78,12 +82,20 @@ func CustomOp(op string, inputs, outputs, saved []*Tensor, bw CustomBackward) []
 		outs[i] = o.Detach()
 	}
 	parents := append([]*Tensor(nil), inputs...)
-	d := &outerNode{op: op, inputs: parents, outputs: outs, bw: bw}
+	d := &outerNode{op: op, bw: bw, inputs: make([]*node, len(parents)), inShapes: make([][]int, len(parents))}
+	for i, p := range parents {
+		if p != nil {
+			d.inputs[i], d.inShapes[i] = p.n, p.shape
+		}
+	}
+	// Geri hesap dış düğümün kendisidir (backwardCounted outer'ı çağırır).
+	outerBack := func(*node) { d.back(nil) }
 
 	if len(outs) == 1 {
 		o := outs[0]
-		track(o, op, parents, func() { d.back(nil) }, saved...)
-		o.outer = d
+		track(o, op, parents, outerBack, saved...)
+		o.n.outer = d
+		d.outputs = []*node{o.n}
 		return outs
 	}
 
@@ -91,29 +103,23 @@ func CustomOp(op string, inputs, outputs, saved []*Tensor, bw CustomBackward) []
 	// birinin gradyanı geldi" işaretidir).
 	be := outs[0].be
 	h := fromStorage(be, be.Alloc(1, Float32), nil)
-	track(h, op, parents, func() { d.back(nil) }, saved...)
-	h.outer = d
+	track(h, op, parents, outerBack, saved...)
+	hn := h.n
+	hn.outer = d
 	d.incoming = make([]Storage, len(outs))
+	d.outputs = make([]*node, len(outs))
 	for i, o := range outs {
-		i, o := i, o
-		track(o, fmt.Sprintf("%s[%d]", op, i), []*Tensor{h}, func() {
-			d.incoming[i] = o.grad
-			o.grad = nil // gradyanın sahipliği dış düğüme geçer
-			if h.grad == nil {
-				h.grad = h.be.Alloc(1, Float32)
+		i := i
+		track(o, fmt.Sprintf("%s[%d]", op, i), []*Tensor{h}, func(on *node) {
+			d.incoming[i] = on.grad
+			on.grad = nil // gradyanın sahipliği dış düğüme geçer
+			if hn.grad == nil {
+				hn.grad = hn.be.Alloc(1, Float32)
 			}
 		})
+		d.outputs[i] = o.n
 	}
 	return outs
-}
-
-// runBackward düğümün geri hesabını yapar; dış düğümlerde ctx geri çağrıya iletilir.
-func (t *Tensor) runBackward(ctx any) {
-	if t.outer != nil {
-		t.outer.back(ctx)
-		return
-	}
-	t.backward()
 }
 
 // back dış düğümün geri hesabıdır: çıktı gradyanlarını toplar, geri çağrıyı türevsiz
@@ -143,52 +149,52 @@ func (d *outerNode) back(ctx any) {
 	}
 	for i, in := range d.inputs {
 		g := result[i]
-		if g == nil || in == nil || !in.requiresGrad {
+		if g == nil || !in.wants() {
 			continue
 		}
-		if !sameShape(g.shape, in.shape) {
-			panic(messages.New(messages.H3032, d.op, i+1, g.shape, in.shape))
+		if !sameShape(g.shape, d.inShapes[i]) {
+			panic(messages.New(messages.H3032, d.op, i+1, g.shape, d.inShapes[i]))
 		}
-		sameDevice(d.op, in, g)
+		if g.be.Device() != in.be.Device() {
+			panic(messages.New(messages.H3072, d.op, in.be.Device(), g.Device()))
+		}
 		in.be.AddTo(in.accGrad(), g.denseStorage(), 1)
 	}
 }
 
 // GraphStats t'den ulaşılabilen hesap çizgesinin düğüm sayısını (yapraklar hariç) ve
-// çizgenin geri yayılıma dek bellekte tuttuğu ara tensörlerin bayt toplamını verir: düğüm
-// sonuçları ile geri hesap için kaydedilmiş tensörler; çizgenin girdisi olan yaprakların
+// çizgenin geri yayılıma dek bellekte tuttuğu ara tensörlerin bayt toplamını verir. Çizge
+// veriyi yalnızca geri hesabın okuyacağı (kaydedilmiş) tensörler için tutar; düğüm sonuçları
+// kaydedilmedikçe sayılmaz (onları tutan, varsa kullanıcının kendisidir). Yaprakların
 // (parametreler, veri) depolaması sayılmaz. Görünümler depolamayı paylaştığından her
 // depolama bir kez sayılır. Tanılama ve ölçüm içindir; geri yayılımı yapılmış bir çizgede
 // panikler.
 func GraphStats(t *Tensor) (nodes int, bytes int64) {
-	if !t.requiresGrad {
+	if !t.RequiresGrad() {
 		return 0, 0
 	}
-	order := topoOrder(t)
+	order := topoOrder(t.n)
 	leaf := map[Storage]bool{}
 	for _, n := range order {
-		for _, p := range n.parents {
-			if p != nil && p.backward == nil {
-				leaf[p.storage] = true
+		for _, k := range n.registered {
+			if k.t.IsLeaf() {
+				leaf[k.t.storage] = true
 			}
 		}
 	}
 	counted := map[Storage]bool{}
-	add := func(s Storage) {
-		if s == nil || leaf[s] || counted[s] {
-			return
-		}
-		counted[s] = true
-		bytes += int64(s.DType().StorageBytes(s.Len()))
-	}
 	for _, n := range order {
 		if n.backward == nil {
 			continue
 		}
 		nodes++
-		add(n.storage)
 		for _, k := range n.registered {
-			add(k.t.storage)
+			s := k.t.storage
+			if s == nil || leaf[s] || counted[s] {
+				continue
+			}
+			counted[s] = true
+			bytes += int64(s.DType().StorageBytes(s.Len()))
 		}
 	}
 	return nodes, bytes

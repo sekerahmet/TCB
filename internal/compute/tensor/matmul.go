@@ -46,7 +46,9 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	sy := counterStart(be, OpKindMatMul).start()
 	av, bv := a.contigView(), b.contigView()
 	// Bitişik kopyalar geri yönde de okunur; geri yön bitince (türev izlenmiyorsa hemen) iade edilir.
-	release := func() { giveBackCopy(a, av); giveBackCopy(b, bv) }
+	ra, rb := copyRelease(a, av), copyRelease(b, bv)
+	release := func() { ra(); rb() }
+	ad, bd := a.dtyp, b.dtyp
 	gs, writer := be.(GemmSetter)
 	var out *Tensor
 	if writer {
@@ -58,35 +60,36 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	}
 
 	// carp gradyanın ilkiyse (taze) üzerine yazar, değilse ekler.
-	mulFn := func(t *Tensor, M, N, K int, a View, ta bool, b View, tb bool) {
+	mulFn := func(t *node, M, N, K int, a View, ta bool, b View, tb bool) {
 		if c, fresh := t.freshGrad(writer); fresh {
 			gs.GemmSet(batch, M, N, K, a, ta, b, tb, c)
 		} else {
 			be.Gemm(batch, M, N, K, a, ta, b, tb, c)
 		}
 	}
-	r := track(out, "matmul", []*Tensor{a, b}, func() {
+	r := track(out, "matmul", []*Tensor{a, b}, func(o *node) {
 		defer release()
-		g := out.gradView()
+		an, bn := o.parents[0], o.parents[1]
+		g := o.gradView()
 		// Karışık hassasiyet: girdiler aynı 16 bitlik türdeyse (bf16 ya da f16) gelen
 		// gradyan da o türe yuvarlanır; böylece geri yöndeki iki çarpım da 16 bitlik girdiyle
 		// (GPU'da tensör çekirdekleri) yapılır. Biriktirme yine en az float32'dedir.
-		if a.dtyp == b.dtyp && a.dtyp != Float32 && g.DType() != a.dtyp {
-			s := allocUninit(be, numelOf(g.Shape), a.dtyp)
+		if ad == bd && ad != Float32 && g.DType() != ad {
+			s := allocUninit(be, numelOf(g.Shape), ad)
 			be.Copy(s, 0, g)
 			defer giveBack(be, s)
 			g = View{S: s, Shape: g.Shape, Strides: g.Strides}
 		}
-		if a.requiresGrad {
+		if an.wants() {
 			// dA (M×K) += dC (M×N) · Bᵀ
-			mulFn(a, M, K, N, g, false, bv, true)
+			mulFn(an, M, K, N, g, false, bv, true)
 		}
-		if b.requiresGrad {
+		if bn.wants() {
 			// dB (K×N) += Aᵀ · dC
-			mulFn(b, K, N, M, av, true, g, false)
+			mulFn(bn, K, N, M, av, true, g, false)
 		}
 	}, a, b)
-	if r.backward == nil {
+	if r.IsLeaf() {
 		release()
 	}
 	sy.finish()

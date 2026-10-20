@@ -30,8 +30,9 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 	ix := append([]int(nil), idx...)
 	out := emptyOf(isEmbedding, w.be, append(copyInts(shape), D), w.dtyp)
 	w.be.Embedding(out.storage, w.view(), ix, D)
-	r := track(out, "embedding", []*Tensor{w}, func() {
-		w.be.EmbeddingGrad(w.accGrad(), out.grad, ix, D)
+	r := track(out, "embedding", []*Tensor{w}, func(o *node) {
+		wn := o.parents[0]
+		wn.be.EmbeddingGrad(wn.accGrad(), o.grad, ix, D)
 	})
 	sy.finish()
 	return r
@@ -68,13 +69,15 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	be := logits.be
 	loss, lse := be.CrossEntropy(logits.view(), tg, C)
 	out := fromStorage(be, loss, nil)
-	r := track(out, "cross_entropy", []*Tensor{logits}, func() {
+	lv := logits.view()
+	r := track(out, "cross_entropy", []*Tensor{logits}, func(o *node) {
+		ln := o.parents[0]
 		cs, writer := be.(CrossEntropyGradSetter)
-		if gx, fresh := logits.freshGrad(writer); fresh {
-			cs.CrossEntropyGradSet(gx, out.grad, logits.view(), lse, tg, C)
+		if gx, fresh := ln.freshGrad(writer); fresh {
+			cs.CrossEntropyGradSet(gx, o.grad, lv, lse, tg, C)
 			return
 		}
-		be.CrossEntropyGrad(logits.accGrad(), out.grad, logits.view(), lse, tg, C)
+		be.CrossEntropyGrad(ln.accGrad(), o.grad, lv, lse, tg, C)
 	}, logits)
 	sy.finish()
 	return r
@@ -88,12 +91,12 @@ func optView(t *Tensor) *View {
 	return &v
 }
 
-// optGrad gradyan istiyorsa tensörün gradyan depolamasını, aksi halde nil verir.
-func optGrad(t *Tensor) Storage {
-	if t == nil || !t.requiresGrad {
+// optGrad düğüm gradyan istiyorsa gradyan depolamasını, aksi halde nil verir.
+func optGrad(n *node) Storage {
+	if !n.wants() {
 		return nil
 	}
-	return t.accGrad()
+	return n.accGrad()
 }
 
 // LayerNorm son eksen boyunca katman normalleştirmesi: (x-μ)/√(σ²+eps)·γ + β.
@@ -108,15 +111,11 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 	out := emptyOf(isNormalize, be, x.shape, x.dtyp)
 	gv := optView(gamma)
 	mean, rstd := be.LayerNorm(out.storage, x.view(), gv, optView(beta), D, eps)
-	parents := []*Tensor{x}
-	if gamma != nil {
-		parents = append(parents, gamma)
-	}
-	if beta != nil {
-		parents = append(parents, beta)
-	}
-	r := track(out, "layer_norm", parents, func() {
-		be.LayerNormGrad(optGrad(x), optGrad(gamma), optGrad(beta), out.grad, x.view(), gv, mean, rstd, D)
+	// Girdiler hep aynı konumdadır (x, gamma, beta; olmayan nil): geri hesap düğümlerini
+	// konumla bulur.
+	xv := x.view()
+	r := track(out, "layer_norm", []*Tensor{x, gamma, beta}, func(o *node) {
+		be.LayerNormGrad(optGrad(o.parents[0]), optGrad(o.parents[1]), optGrad(o.parents[2]), o.grad, xv, gv, mean, rstd, D)
 	}, x, gamma)
 	sy.finish()
 	return r
@@ -133,12 +132,9 @@ func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
 	out := emptyOf(isNormalize, be, x.shape, x.dtyp)
 	gv := optView(gamma)
 	rinv := be.RMSNorm(out.storage, x.view(), gv, D, eps)
-	parents := []*Tensor{x}
-	if gamma != nil {
-		parents = append(parents, gamma)
-	}
-	r := track(out, "rms_norm", parents, func() {
-		be.RMSNormGrad(optGrad(x), optGrad(gamma), out.grad, x.view(), gv, rinv, D)
+	xv := x.view()
+	r := track(out, "rms_norm", []*Tensor{x, gamma}, func(o *node) {
+		be.RMSNormGrad(optGrad(o.parents[0]), optGrad(o.parents[1]), o.grad, xv, gv, rinv, D)
 	}, x, gamma)
 	sy.finish()
 	return r

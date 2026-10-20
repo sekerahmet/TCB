@@ -295,6 +295,12 @@ func (g *backend) unaryGrad(op tensor.UnOp, p float32, gx, gs tensor.Storage, x 
 	if y != nil {
 		yd = g.storageOf(y)
 	}
+	if x.S == nil {
+		// Doğrusal işlemlerin (x + s, x · s, s − x) geri yönü x'i okumaz; verisi çizgede
+		// tutulmaz (yalnızca şekli gelir). Çekirdeğe aynı boyda okunabilir bir yer tutucu
+		// (gelen gradyan) verilir.
+		x = tensor.DenseView(gs, x.Shape)
+	}
 	xv := gt.readNative(x)
 	n := xv.Numel()
 	if n == 0 {

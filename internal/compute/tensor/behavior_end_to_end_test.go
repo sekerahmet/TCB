@@ -79,7 +79,7 @@ func TestAdamWWeightDecay(t *testing.T) {
 	// Gradyan sıfırken yalnızca ayrık ağırlık çürümesi etki etmeli:
 	// p ← p·(1 - lr·wd).
 	p := New([]float32{2, -4}, 2).SetRequiresGrad(true)
-	p.accGrad()
+	p.n.accGrad()
 	opt := NewAdamW([]*Tensor{p}, 0.1, 0.5)
 	opt.Step()
 	near(t, "çürüme", p.Data(), []float32{2 * 0.95, -4 * 0.95}, 1e-6)

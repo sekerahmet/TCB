@@ -28,7 +28,7 @@ func BenchmarkAttention(b *testing.B) {
 					b.Run(fmt.Sprintf("T=%d/Hkv=%d/%s/%s", T, Hkv, modeName.ad, path.ad), func(b *testing.B) {
 						b.ReportAllocs()
 						for i := 0; i < b.N; i++ {
-							q.grad, k.grad, v.grad = nil, nil, nil
+							q.n.grad, k.n.grad, v.n.grad = nil, nil, nil
 							path.f(q, k, v, modeName.opt).SumAll().Backward()
 						}
 					})
@@ -51,7 +51,7 @@ func BenchmarkAttentionCharModel(b *testing.B) {
 		b.Run(path.ad, func(b *testing.B) {
 			b.ReportAllocs()
 			for i := 0; i < b.N; i++ {
-				q.grad, k.grad, v.grad = nil, nil, nil
+				q.n.grad, k.n.grad, v.n.grad = nil, nil, nil
 				path.f(q, k, v, AttentionOptions{Causal: true}).SumAll().Backward()
 			}
 		})
@@ -94,7 +94,7 @@ func BenchmarkAttentionBlock(b *testing.B) {
 				b.Run(fmt.Sprintf("T=%d/q=%d/k=%d", T, bq, bk), func(b *testing.B) {
 					SetAttentionBlocks(CPU, bq, bk)
 					for i := 0; i < b.N; i++ {
-						q.grad, k.grad, v.grad = nil, nil, nil
+						q.n.grad, k.n.grad, v.n.grad = nil, nil, nil
 						Attention(q, k, v, AttentionOptions{Causal: true}).SumAll().Backward()
 					}
 				})

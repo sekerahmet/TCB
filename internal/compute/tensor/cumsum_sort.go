@@ -18,8 +18,9 @@ func (t *Tensor) CumSum(axis int) *Tensor {
 	sy := counterStart(t.be, OpKindCumSum).start()
 	out := emptyOf(isReduce, t.be, t.shape, t.dtyp)
 	t.be.CumSum(out.storage, t.view(), axis)
-	r := track(out, "cumsum", []*Tensor{t}, func() {
-		t.be.CumSumGrad(t.accGrad(), out.grad, t.shape, axis)
+	r := track(out, "cumsum", []*Tensor{t}, func(o *node) {
+		in := o.parents[0]
+		in.be.CumSumGrad(in.accGrad(), o.grad, in.shape, axis)
 	})
 	sy.finish()
 	return r
@@ -49,8 +50,10 @@ func (t *Tensor) TopK(k, axis int) (vals, idx *Tensor) {
 	vals = emptyOf(isReduce, t.be, sh, t.dtyp)
 	idx = emptyOf(isReduce, t.be, sh, Float32)
 	t.be.Sort(vals.storage, idx.storage, t.view(), axis, k, true)
-	vals = track(vals, "topk", []*Tensor{t}, func() {
-		t.be.GatherGrad(t.accGrad(), vals.grad, idx.storage, t.shape, axis, k)
+	is := idx.storage
+	vals = track(vals, "topk", []*Tensor{t}, func(o *node) {
+		in := o.parents[0]
+		in.be.GatherGrad(in.accGrad(), o.grad, is, in.shape, axis, k)
 	}, idx)
 	sy.finish()
 	return vals, idx

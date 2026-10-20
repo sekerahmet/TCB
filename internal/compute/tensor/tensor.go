@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"sync/atomic"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -38,35 +37,13 @@ type Tensor struct {
 	shape   []int   // her eksenin uzunluğu
 	strides []int   // her eksende bir adım ilerlemenin depodaki karşılığı
 	dtyp    DType   // eleman türü (depolamanın türü)
-	// opKind, düğümü üreten işlemin profil sayacı türüdür (geri yayılım bu adla sayılır).
-	opKind OpKind
-
-	grad         Storage // bitişik gradyan (şekil = shape), gerekince ayrılır
-	requiresGrad bool
-	// passGrad, gradyanı girdisine olduğu gibi aktaran işlemin (dönüşüm, görünüm, kopya,
-	// cihaz değiştirme) çıktısını işaretler: gradyanının türü girdininkidir (bkz. gradDType).
-	passGrad bool
-	// castMemo, bu ara sonucun son paylaşılan dönüşümü (bkz. CastShared).
-	castMemo atomic.Pointer[castMemo]
-
-	// Hesap çizgesi: bu tensörü üreten işlemin girdileri ve geri yayılım işlevi.
-	// Yaprak tensörlerde (kullanıcının oluşturdukları) ikisi de boştur.
-	parents  []*Tensor
-	backward func()
-	op       string // hata ayıklama için işlem adı
-	// registered, geri yayılımın okuyacağı girdilerin ileri hesap anındaki
-	// depolama sürümleri (yerinde değişiklik denetimi).
-	registered []savedVersion
-	// free, geri yayılımdan sonra çizge bağları bırakılmış bir ara tensörü
-	// işaretler; böyle bir tensör üzerinden ikinci kez geri yayılım yapılamaz.
-	free bool
-	// outer, dış (çekirdek dışında yazılmış) bir işlemin düğümünde geri hesabı taşır
-	// (bkz. ozel_turev.go).
-	outer *outerNode
-	// behind, düğümün şu an süren bir geri yayılımın çizgesinde olduğunu işaretler; aynı
-	// düğümden ikinci bir geri yayılım (ör. dış düğümün geri hesabı kilidi bıraktığında
-	// başka görevin başlattığı) açık hata verir.
-	behind atomic.Bool
+	// n, tensörün otomatik türev düğümüdür (gradyan, geri hesap, girdiler; autograd.go).
+	// Gradyan istemeyen tensörde nil'dir. Düğüm verinin kendisini tutmaz: çizge yalnızca
+	// düğümleri birbirine bağlar, veri yalnızca geri hesabın okuyacağı tensörler için
+	// (kaydedilenler) saklanır. Kullanıcının bıraktığı ve kimsenin kaydetmediği bir ara
+	// sonucun verisi böylece geri yayılımı beklemeden serbest kalır (PyTorch'un grad_fn
+	// ile saved tensors ayrımı).
+	n *node
 }
 
 // ----------------------------------------------------------------------------
@@ -268,6 +245,12 @@ func (t *Tensor) view() View {
 	return View{S: t.storage, Offset: t.offset, Shape: t.shape, Strides: t.strides}
 }
 
+// shapeView verisiz görünümdür (depolama nil): geri hesabın yalnızca şeklini ve adımlarını
+// okuduğu, verisini kaydetmediği bir girdi için (verisi çizgede tutulmaz).
+func (t *Tensor) shapeView() View {
+	return View{Offset: t.offset, Shape: t.shape, Strides: t.strides}
+}
+
 // Device tensörün bulunduğu cihaz.
 func (t *Tensor) Device() Device { return t.be.Device() }
 
@@ -290,20 +273,26 @@ func (t *Tensor) Numel() int { return numelOf(t.shape) }
 func (t *Tensor) IsContiguous() bool { return isContiguous(t.shape, t.strides) }
 
 // RequiresGrad gradyan izlenip izlenmediği.
-func (t *Tensor) RequiresGrad() bool { return t.requiresGrad }
+func (t *Tensor) RequiresGrad() bool { return t.n.wants() }
 
 // SetRequiresGrad yaprak tensör için gradyan izlemeyi açar/kapatır; zincirleme
 // kullanım için tensörün kendisini döndürür.
 func (t *Tensor) SetRequiresGrad(b bool) *Tensor {
-	if t.backward != nil && !b {
+	if !t.IsLeaf() && !b {
 		panic(messages.New(messages.H3067))
 	}
-	t.requiresGrad = b
+	if t.n == nil {
+		if !b {
+			return t
+		}
+		t.n = newNode(t)
+	}
+	t.n.requiresGrad = b
 	return t
 }
 
 // IsLeaf tensörün bir işlem sonucu değil, doğrudan oluşturulmuş olup olmadığı.
-func (t *Tensor) IsLeaf() bool { return t.backward == nil }
+func (t *Tensor) IsLeaf() bool { return t.n == nil || t.n.backward == nil }
 
 // Detach aynı veriyi paylaşan, çizgeden kopuk ve gradyansız bir görünüm verir.
 func (t *Tensor) Detach() *Tensor {
@@ -409,20 +398,28 @@ func (t *Tensor) index(idx []int) int {
 // sürümünü artırdığından, dönen tensörü kaydetmiş bir çizge gradyan değiştikten
 // sonra geri yayılırsa açık hata verir; saklamak için Clone kullanın.
 func (t *Tensor) Grad() *Tensor {
-	if t.grad == nil {
+	if t.n == nil || t.n.grad == nil {
 		return nil
 	}
-	return fromStorage(t.be, t.grad, t.shape)
+	return fromStorage(t.be, t.n.grad, t.shape)
+}
+
+// gradStorage gradyan depolamasıdır (gradyan yoksa ya da tensör gradyan izlemiyorsa nil).
+func (t *Tensor) gradStorage() Storage {
+	if t.n == nil {
+		return nil
+	}
+	return t.n.grad
 }
 
 // ZeroGrad gradyanı sıfırlar. Gradyan deposunun sürümü artar: Grad ile alınmış (deponun
 // takma adı olan) bir gradyanı kaydetmiş çizgenin geri yayılımı hata verir.
 func (t *Tensor) ZeroGrad() {
-	if t.grad != nil {
+	if t.n != nil && t.n.grad != nil {
 		sy := counterStart(t.be, OpKindZeroGrad).start()
-		t.be.Fill(t.grad, 0)
+		t.be.Fill(t.n.grad, 0)
 		sy.finish()
-		t.grad.BumpVersion()
+		t.n.grad.BumpVersion()
 	}
 }
 
@@ -436,9 +433,11 @@ func (t *Tensor) To(dev Device) *Tensor {
 	target := BackendFor(dev)
 	sy := counterStart(target, OpKindToDevice).start()
 	out := fromStorage(target, target.FromHost(t.be.ToHost(t.view()), t.dtyp), t.shape)
-	r := trackPass(out, "to", t, func() {
-		g := t.be.FromHost(target.ToHost(View{S: out.grad, Shape: out.shape, Strides: contiguousStrides(out.shape)}), t.gradDType())
-		t.be.AddTo(t.accGrad(), g, 1)
+	src := t.be
+	r := trackPass(out, "to", t, func(o *node) {
+		in := o.parents[0]
+		g := src.FromHost(target.ToHost(o.gradView()), in.gradDType())
+		src.AddTo(in.accGrad(), g, 1)
 	})
 	sy.finish()
 	return r
@@ -451,7 +450,7 @@ func (t *Tensor) String() string {
 	if t.dtyp != Float32 {
 		fmt.Fprintf(&sb, ", dtype=%s", t.dtyp)
 	}
-	if t.requiresGrad {
+	if t.RequiresGrad() {
 		sb.WriteString(", grad")
 	}
 	sb.WriteString(") ")
@@ -502,6 +501,17 @@ func giveBackCopy(t *Tensor, v View) {
 	}
 }
 
+// copyRelease giveBackCopy'nin ertelenmiş biçimidir: v, t'nin bitişik kopyasıysa onu iade
+// eden işlevi verir. t'yi yakalamaz (geri hesap kapanışlarında kullanılır: kapanış verisini
+// kaydetmediği bir tensörü tutmamalıdır).
+func copyRelease(t *Tensor, v View) func() {
+	if v.S == t.storage {
+		return func() {}
+	}
+	be, s := t.be, v.S
+	return func() { giveBack(be, s) }
+}
+
 // denseStorage ofseti 0 olan bitişik bir depolama verir (gerekirse kopyalar).
 func (t *Tensor) denseStorage() Storage {
 	if t.IsContiguous() && t.offset == 0 {
@@ -510,9 +520,4 @@ func (t *Tensor) denseStorage() Storage {
 	s := allocUninit(t.be, t.Numel(), t.dtyp)
 	t.be.Copy(s, 0, t.view())
 	return s
-}
-
-// gradView gradyan depolamasını bitişik görünüm olarak verir.
-func (t *Tensor) gradView() View {
-	return View{S: t.grad, Shape: t.shape, Strides: contiguousStrides(t.shape)}
 }

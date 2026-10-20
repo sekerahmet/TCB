@@ -69,29 +69,39 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 		be.Copy(out.storage, 0, View{S: buffer, Shape: outShape, Strides: ost})
 		giveBack(be, buffer)
 	}
-	r := track(out, "concat", ts, func() {
+	lens := make([]int, len(ts)) // girdilerin eksendeki uzunlukları (girdiler tutulmaz)
+	for i, t := range ts {
+		lens[i] = t.shape[axis]
+	}
+	r := track(out, "concat", ts, concatBackward(be, lens, ost, axis))
+	sy.finish()
+	return r
+}
+
+// concatBackward Concat'in geri hesabıdır: çıktının gradyanının her girdiye düşen dilimi
+// (ost adımlı, eksende lens uzunluğunda) girdinin gradyanına yazılır ya da eklenir.
+func concatBackward(be Backend, lens, ost []int, axis int) func(o *node) {
+	return func(o *node) {
 		offset := 0
-		for _, t := range ts {
+		for i, t := range o.parents {
 			begin := offset * ost[axis]
-			offset += t.shape[axis]
-			if !t.requiresGrad || t.Numel() == 0 {
+			offset += lens[i]
+			if !t.wants() || t.Numel() == 0 {
 				continue
 			}
-			g := View{S: out.grad, Offset: begin, Shape: t.shape, Strides: ost}
+			g := View{S: o.grad, Offset: begin, Shape: t.shape, Strides: ost}
 			if t.grad == nil {
 				s := allocUninit(be, t.Numel(), t.gradDType())
 				be.Copy(s, 0, g)
 				t.grad = s
 				continue
 			}
-			s := allocUninit(be, t.Numel(), out.grad.DType())
+			s := allocUninit(be, t.Numel(), o.grad.DType())
 			be.Copy(s, 0, g)
 			be.AddTo(t.grad, s, 1)
 			giveBack(be, s)
 		}
-	})
-	sy.finish()
-	return r
+	}
 }
 
 // Split tensörü verilen eksen boyunca n eşit parçaya böler; parçalar veriyi

@@ -68,8 +68,10 @@ func (t *Tensor) Clamp(lo, hi float32) *Tensor {
 	sy := counterStart(t.be, OpKindClamp).start()
 	out := emptyOf(isElementwise, t.be, t.shape, t.dtyp)
 	t.be.Clamp(out.storage, t.view(), lo, hi)
-	r := track(out, "clamp", []*Tensor{t}, func() {
-		t.be.ClampGrad(t.accGrad(), out.grad, t.view(), lo, hi)
+	tv := t.view()
+	r := track(out, "clamp", []*Tensor{t}, func(o *node) {
+		in := o.parents[0]
+		in.be.ClampGrad(in.accGrad(), o.grad, tv, lo, hi)
 	}, t)
 	sy.finish()
 	return r
@@ -90,15 +92,17 @@ func Atan2(y, x *Tensor) *Tensor {
 	outShape := broadcastShapes(y.shape, x.shape)
 	out := emptyOf(isBroadcastElem, be, outShape, resultDType(y.dtyp, x.dtyp))
 	be.Binary(OpAtan2, out.storage, outShape, y.view(), x.view())
-	r := track(out, "atan2", []*Tensor{y, x}, func() {
+	yv, xv := y.view(), x.view()
+	r := track(out, "atan2", []*Tensor{y, x}, func(o *node) {
+		yn, xn := o.parents[0], o.parents[1]
 		var gy, gx Storage
-		if y.requiresGrad {
-			gy = y.accGrad()
+		if yn.wants() {
+			gy = yn.accGrad()
 		}
-		if x.requiresGrad {
-			gx = x.accGrad()
+		if xn.wants() {
+			gx = xn.accGrad()
 		}
-		be.Atan2Grad(gy, gx, y.shape, x.shape, out.shape, out.grad, y.view(), x.view())
+		be.Atan2Grad(gy, gx, yv.Shape, xv.Shape, o.shape, o.grad, yv, xv)
 	}, y, x)
 	sy.finish()
 	return r
@@ -139,12 +143,14 @@ func Where(c, a, b *Tensor) *Tensor {
 	outShape := broadcastShapes(broadcastShapes(c.shape, a.shape), b.shape)
 	out := emptyOf(isSelect, be, outShape, resultDType(a.dtyp, b.dtyp))
 	be.Where(out.storage, outShape, c.view(), a.view(), b.view())
-	r := track(out, "where", []*Tensor{a, b}, func() {
-		if a.requiresGrad {
-			be.WhereGrad(a.accGrad(), a.shape, out.shape, out.grad, c.view(), true)
+	cv := c.view()
+	r := track(out, "where", []*Tensor{a, b}, func(o *node) {
+		an, bn := o.parents[0], o.parents[1]
+		if an.wants() {
+			be.WhereGrad(an.accGrad(), an.shape, o.shape, o.grad, cv, true)
 		}
-		if b.requiresGrad {
-			be.WhereGrad(b.accGrad(), b.shape, out.shape, out.grad, c.view(), false)
+		if bn.wants() {
+			be.WhereGrad(bn.accGrad(), bn.shape, o.shape, o.grad, cv, false)
 		}
 	}, c)
 	sy.finish()

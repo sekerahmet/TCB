@@ -14,7 +14,7 @@ func TestPoolReuse(t *testing.T) {
 	W := Randn(rng, 128, 96).SetRequiresGrad(true)
 	b := Randn(rng, 96).SetRequiresGrad(true)
 	step := func() ([]float32, []float32) {
-		W.grad, b.grad = nil, nil
+		W.n.grad, b.n.grad = nil, nil
 		h := Add(MatMul(x, W), b).Gelu()
 		h.Reshape(32, -1).Square().Mean(1, false).SumAll().Backward()
 		return W.Grad().Data(), b.Grad().Data()

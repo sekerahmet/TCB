@@ -121,7 +121,7 @@ func compareAttention(t *testing.T, d attnState, tol float64) {
 
 	execute := func(f func(q, k, v *Tensor, opt AttentionOptions) *Tensor) (out []float32, gq, gk, gv []float32) {
 		qq, kk, vv := q.Detach().SetRequiresGrad(true), k.Detach().SetRequiresGrad(true), v.Detach().SetRequiresGrad(true)
-		qq.grad, kk.grad, vv.grad = nil, nil, nil
+		qq.n.grad, kk.n.grad, vv.n.grad = nil, nil, nil
 		o := f(qq, kk, vv, opt)
 		o.BackwardWith(g)
 		return o.Data(), qq.Grad().Data(), kk.Grad().Data(), vv.Grad().Data()

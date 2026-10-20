@@ -117,7 +117,7 @@ func TestParallelKernelsMatchSerial(t *testing.T) {
 	grads := func(f func() *Tensor, ps ...*Tensor) []float32 {
 		for _, p := range ps {
 			p.SetRequiresGrad(true)
-			p.grad = nil
+			p.n.grad = nil
 		}
 		out := f()
 		out.BackwardWith(Ones(out.shape...))
@@ -126,7 +126,7 @@ func TestParallelKernelsMatchSerial(t *testing.T) {
 		for _, p := range ps {
 			r = append(r, p.Grad().Data()...)
 			p.SetRequiresGrad(false)
-			p.grad = nil
+			p.n.grad = nil
 		}
 		return r
 	}
@@ -148,8 +148,8 @@ func TestParallelKernelsMatchSerial(t *testing.T) {
 		}},
 		{"kare toplamı", func() []float32 {
 			p := x.Detach().SetRequiresGrad(true)
-			p.grad = p.be.Alloc(p.Numel(), Float32)
-			p.be.Copy(p.grad, 0, x.view())
+			p.n.grad = p.be.Alloc(p.Numel(), Float32)
+			p.be.Copy(p.n.grad, 0, x.view())
 			n := ClipGradNorm([]*Tensor{p}, 1)
 			return append([]float32{float32(n)}, p.Grad().Data()...)
 		}},
@@ -191,7 +191,7 @@ func TestNormGradDeterministic(t *testing.T) {
 			x.SetRequiresGrad(true)
 			gamma.SetRequiresGrad(true)
 			beta.SetRequiresGrad(true)
-			x.grad, gamma.grad, beta.grad = nil, nil, nil
+			x.n.grad, gamma.n.grad, beta.n.grad = nil, nil, nil
 			var y *Tensor
 			if ad == "layer_norm" {
 				y = LayerNorm(x, gamma, beta, 1e-5)
@@ -200,7 +200,7 @@ func TestNormGradDeterministic(t *testing.T) {
 			}
 			Mul(y, w).SumAll().Backward()
 			r := append(gamma.Grad().Data(), x.Grad().Data()...)
-			if beta.grad != nil {
+			if beta.n.grad != nil {
 				r = append(r, beta.Grad().Data()...)
 			}
 			return r

@@ -180,17 +180,17 @@ func TestCastGrad(t *testing.T) {
 
 	w := NewOf(BFloat16, []float32{1, 2, 3, 4}, 2, 2).SetRequiresGrad(true)
 	MatMul(w, w).Cast(Float32).SumAll().Backward()
-	if w.grad.DType() != Float32 {
-		t.Fatalf("bf16 parametrenin gradyanı float32 olmalı, %s", w.grad.DType())
+	if w.n.grad.DType() != Float32 {
+		t.Fatalf("bf16 parametrenin gradyanı float32 olmalı, %s", w.n.grad.DType())
 	}
 	near(t, "bf16 matmul gradyanı", w.Grad().Data(), []float32{7, 11, 9, 13}, 1e-2)
 
 	SetGradDType(BFloat16)
 	defer SetGradDType(Float32)
-	w.grad = nil
+	w.n.grad = nil
 	MatMul(w, w).Cast(Float32).SumAll().Backward()
-	if w.grad.DType() != BFloat16 {
-		t.Fatalf("SetGradDType(BFloat16) sonrası gradyan bf16 olmalı, %s", w.grad.DType())
+	if w.n.grad.DType() != BFloat16 {
+		t.Fatalf("SetGradDType(BFloat16) sonrası gradyan bf16 olmalı, %s", w.n.grad.DType())
 	}
 	near(t, "bf16 gradyan", w.Grad().Data(), []float32{7, 11, 9, 13}, 1e-2)
 }
@@ -218,7 +218,7 @@ func TestIntermediateGradDType(t *testing.T) {
 		{"bf16 ara sonucun float32 dönüşümü", y.Cast(Float32), Float32},
 	}
 	for _, c := range cases {
-		if got := c.t.gradDType(); got != c.want {
+		if got := c.t.n.gradDType(); got != c.want {
 			t.Errorf("%s: gradyan türü %s, %s bekleniyordu", c.name, got, c.want)
 		}
 	}
@@ -275,7 +275,7 @@ func TestCastShared(t *testing.T) {
 	p, q := y.CastShared(BFloat16), y.CastShared(BFloat16)
 	p.Cast(Float32).SumAll().Add(q.Cast(Float32).SumAll()).Backward()
 	near(t, "paylaşılan dönüşümün gradyanı", x.Grad().Data(), []float32{4, 8, 12}, 0)
-	if y.castMemo.Load() != nil {
+	if y.n.castMemo.Load() != nil {
 		t.Fatal("geri yayılımdan sonra saklanan dönüşüm bırakılmalı")
 	}
 }
@@ -384,7 +384,7 @@ func TestVersionCheck(t *testing.T) {
 	p := NewOf(BFloat16, []float32{1, 2}, 2).SetRequiresGrad(true)
 	q := Mul(p, p)
 	opt2 := NewAdamW([]*Tensor{p}, 0.1, 0)
-	p.accGrad()
+	p.n.accGrad()
 	opt2.Step()
 	expectPanic(t, "AdamW sonrası geri yayılım", func() { q.Cast(Float32).SumAll().Backward() })
 }

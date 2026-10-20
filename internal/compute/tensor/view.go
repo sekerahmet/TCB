@@ -15,29 +15,31 @@ func viewOf(t *Tensor, offset int, shape, strides []int) *Tensor {
 
 // scatterBackward, görünümün bitişik gradyanını ebeveynin gradyan tamponuna
 // gOff ofseti ve gStrides adımlarıyla ekleyen geri yayılım işlevini üretir.
-func scatterBackward(parent, out *Tensor, gOff int, gStrides []int) func() {
-	return func() {
-		parent.be.ScatterAdd(parent.accGrad(), gOff, gStrides, out.grad, out.shape)
+func scatterBackward(gOff int, gStrides []int) func(o *node) {
+	return func(o *node) {
+		parent := o.parents[0]
+		parent.be.ScatterAdd(parent.accGrad(), gOff, gStrides, o.grad, o.shape)
 	}
 }
 
 // permuteBackward Permute'un geri yönüdür: ebeveynin gradyanı henüz yoksa çıktının
 // gradyanı ebeveynin eksen sırasına tek kopyayla yazılır (sıfırlayıp dağıtmak yerine);
 // varsa üzerine eklenir. ax[i], çıktının i. ekseninin ebeveyndeki eksenidir.
-func permuteBackward(parent, out *Tensor, ax, gst []int) func() {
-	scatter := scatterBackward(parent, out, 0, gst)
-	return func() {
+func permuteBackward(ax, gst []int) func(o *node) {
+	scatter := scatterBackward(0, gst)
+	return func(o *node) {
+		parent := o.parents[0]
 		if parent.grad != nil {
-			scatter()
+			scatter(o)
 			return
 		}
-		oc := contiguousStrides(out.shape)
+		oc := contiguousStrides(o.shape)
 		st := make([]int, len(ax))
 		for i, d := range ax {
 			st[d] = oc[i]
 		}
 		c, _ := parent.freshGrad(true)
-		parent.be.Copy(c, 0, View{S: out.grad, Shape: parent.shape, Strides: st})
+		parent.be.Copy(c, 0, View{S: o.grad, Shape: parent.shape, Strides: st})
 	}
 }
 
@@ -46,7 +48,10 @@ func permuteBackward(parent, out *Tensor, ax, gst []int) func() {
 // gradyanı yoksa depolama kopyalanmadan devredilir ve çıktıdan alınır; böylece
 // her gradyan depolamasının tek bir sahibi olur (geri yayılım, sahibi kalmayan
 // ara gradyanı ayrıca bırakmaz/iade etmez). Aksi halde üzerine eklenir.
-func handOffGrad(t, out *Tensor) {
+// handOff, handOffGrad'ı geri hesap olarak kullanır (çıktının gradyanı tek girdiye).
+func handOff(o *node) { handOffGrad(o.parents[0], o) }
+
+func handOffGrad(t, out *node) {
 	g := out.grad
 	if t.grad == nil && g.Len() == t.Numel() && g.DType() == t.gradDType() {
 		t.grad = g
@@ -109,7 +114,7 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 func reshaped(t *Tensor, sh, st []int) *Tensor {
 	sy := counterStart(t.be, OpKindView).start()
 	out := viewOf(t, t.offset, sh, st)
-	r := trackPass(out, "reshape", t, func() { handOffGrad(t, out) })
+	r := trackPass(out, "reshape", t, handOff)
 	sy.finish()
 	return r
 }
@@ -233,7 +238,7 @@ func (t *Tensor) Permute(dims ...int) *Tensor {
 		gst[i] = cst[d]
 	}
 	out := viewOf(t, t.offset, sh, st)
-	r := trackPass(out, "permute", t, permuteBackward(t, out, ax, gst))
+	r := trackPass(out, "permute", t, permuteBackward(ax, gst))
 	sy.finish()
 	return r
 }
@@ -299,7 +304,7 @@ func (t *Tensor) SliceStep(axis, start, end, step int) *Tensor {
 	gOff := start * gst[axis]
 	gst[axis] *= step
 	out := viewOf(t, t.offset+start*t.strides[axis], sh, st)
-	r := trackPass(out, "slice", t, scatterBackward(t, out, gOff, gst))
+	r := trackPass(out, "slice", t, scatterBackward(gOff, gst))
 	sy.finish()
 	return r
 }
@@ -312,7 +317,7 @@ func (t *Tensor) Contiguous() *Tensor {
 	sy := counterStart(t.be, OpKindCopy).start()
 	out := emptyOf(isCopy, t.be, t.shape, t.dtyp)
 	t.be.Copy(out.storage, 0, t.view())
-	r := trackPass(out, "contiguous", t, func() { handOffGrad(t, out) })
+	r := trackPass(out, "contiguous", t, handOff)
 	sy.finish()
 	return r
 }
@@ -322,7 +327,7 @@ func (t *Tensor) Clone() *Tensor {
 	sy := counterStart(t.be, OpKindCopy).start()
 	out := emptyOf(isCopy, t.be, t.shape, t.dtyp)
 	t.be.Copy(out.storage, 0, t.view())
-	r := trackPass(out, "clone", t, func() { handOffGrad(t, out) })
+	r := trackPass(out, "clone", t, handOff)
 	sy.finish()
 	return r
 }

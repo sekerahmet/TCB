@@ -114,8 +114,8 @@ func BenchmarkSpeedEmbeddingGrad(b *testing.B) {
 
 func BenchmarkSpeedClipGradNorm(b *testing.B) {
 	p := speedRand(4*speedR, speedD).SetRequiresGrad(true)
-	p.accGrad()
-	p.be.Fill(p.grad, 1)
+	p.n.accGrad()
+	p.be.Fill(p.n.grad, 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ClipGradNorm([]*Tensor{p}, 1)

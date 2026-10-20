@@ -326,14 +326,14 @@ func activeKind() OpKind {
 // backwardCounted düğümün geri hesabını geri yayılım sayacıyla çalıştırır. Dış (özel) işlemin
 // geri hesabı TR kodu çalıştırır ve içindeki tensör işlemleri kendi satırlarında sayılır;
 // süresi iki kez sayılmasın diye yalnızca çağrısı sayılır.
-func (t *Tensor) backwardCounted(ctx any) {
-	c := deviceNo(t.be) & 1
-	if t.outer != nil {
+func (n *node) backwardCounted(ctx any) {
+	c := deviceNo(n.be) & 1
+	if n.outer != nil {
 		add64(&counters[c][1][OpKindCustom].call, 1)
-		t.runBackward(ctx)
+		n.outer.back(ctx)
 		return
 	}
-	k := &counters[c][1][t.opKind]
+	k := &counters[c][1][n.opKind]
 	add64(&k.call, 1)
 	write32i(&activeNo, k.no)
 	var s counterMeasure
@@ -343,7 +343,7 @@ func (t *Tensor) backwardCounted(ctx any) {
 	}
 	// Ertelemesiz (ileri işlemlerdeki gibi): geri hesap panikle biterse etkin işlem bir
 	// sonraki işleme kadar kalır.
-	t.backward()
+	n.backward(n)
 	s.finish()
 }
 

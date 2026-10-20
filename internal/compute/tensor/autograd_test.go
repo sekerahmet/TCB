@@ -392,7 +392,7 @@ func TestGradHandoff(t *testing.T) {
 	near(t, "zincir", x.Grad().Data(), []float32{3, 5, 7, 9, 11, 13}, 0)
 
 	// Devredilen depolama yaprakta kalır; ara düğümler bırakılır.
-	if c.grad != nil || d.grad != nil {
+	if c.n.grad != nil || d.n.grad != nil {
 		t.Fatal("ara gradyanlar bırakılmalıydı")
 	}
 	// Yaprak gradyanı sonraki bir işlemle bozulmamalı.

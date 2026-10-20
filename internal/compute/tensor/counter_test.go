@@ -55,8 +55,8 @@ func TestCounterBackwardNodeName(t *testing.T) {
 	if forward != 1 {
 		t.Fatalf("ileri matris çarpımı %d, beklenen 1", forward)
 	}
-	if y.opKind != OpKindMatMul {
-		t.Fatalf("düğümün işlemi %v, beklenen matris çarpımı", y.opKind)
+	if y.n.opKind != OpKindMatMul {
+		t.Fatalf("düğümün işlemi %v, beklenen matris çarpımı", y.n.opKind)
 	}
 	lossVal := y.Reshape(-1).SumAll()
 	back, _, byteN, _ := counterDiff(true, OpKindMatMul, func() { lossVal.Backward() })

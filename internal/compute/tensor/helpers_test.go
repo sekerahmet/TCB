@@ -97,10 +97,10 @@ func checkGrad(t *testing.T, ad string, f func(xs []*Tensor) *Tensor, xs ...*Ten
 	rng := rand.New(rand.NewSource(7))
 	for _, x := range xs {
 		x.SetRequiresGrad(true)
-		x.grad = nil
+		x.n.grad = nil
 	}
 	out := f(xs)
-	if !out.requiresGrad {
+	if !out.RequiresGrad() {
 		t.Fatalf("%s: çıktı gradyan istemiyor", ad)
 	}
 	w := Randn(rng, out.shape...)
@@ -109,8 +109,8 @@ func checkGrad(t *testing.T, ad string, f func(xs []*Tensor) *Tensor, xs ...*Ten
 	analytic := make([][]float32, len(xs))
 	for k, x := range xs {
 		analytic[k] = make([]float32, x.Numel())
-		if x.grad != nil {
-			copy(analytic[k], cd(x.grad))
+		if x.n.grad != nil {
+			copy(analytic[k], cd(x.n.grad))
 		}
 	}
 	lossVal := func() float64 {
@@ -323,7 +323,7 @@ func checkGradFloat64(t *testing.T, s gradSpec) {
 	checkFwd(t, out.Data(), s.ref(in), orDefault(s.fwdTol, gradFwdTol))
 	switch s.mode {
 	case gradNone:
-		if out.requiresGrad {
+		if out.RequiresGrad() {
 			t.Fatal("türevsiz işlemin çıktısı çizgeye girdi")
 		}
 		return
@@ -338,7 +338,7 @@ func checkGradFloat64(t *testing.T, s gradSpec) {
 		}
 		return
 	}
-	if !out.requiresGrad {
+	if !out.RequiresGrad() {
 		t.Fatal("çıktı gradyan istemiyor")
 	}
 	w := Randn(rng, out.shape...)
@@ -375,13 +375,13 @@ func gradRun(dt DType, s gradSpec, rounded [][]float32, shapes [][]int) (out []f
 	}
 	res = s.build(xs).Cast(Float32)
 	out = res.Data()
-	if res.requiresGrad {
+	if res.RequiresGrad() {
 		res.BackwardWith(Randn(rand.New(rand.NewSource(99)), res.shape...))
 	}
 	grads = make([][]float32, len(xs))
 	for i, x := range xs {
 		grads[i] = make([]float32, x.Numel())
-		if x.grad != nil {
+		if x.n.grad != nil {
 			copy(grads[i], x.Grad().Data())
 		}
 	}
@@ -418,7 +418,7 @@ func bf16Deviation(t *testing.T, s gradSpec, k int) (worst float64, where string
 	}
 	out32, g32, _ := gradRun(Float32, s, rounded, shapes)
 	out16, g16, res := gradRun(BFloat16, s, rounded, shapes)
-	if s.mode == gradNone && res.requiresGrad {
+	if s.mode == gradNone && res.RequiresGrad() {
 		t.Fatal("türevsiz işlemin bf16 çıktısı çizgeye girdi")
 	}
 	cmp := func(ad string, got, want []float32) {

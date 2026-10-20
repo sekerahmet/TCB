@@ -32,7 +32,7 @@ func TestCustomOpSingleNode(t *testing.T) {
 	if y.IsLeaf() || !y.RequiresGrad() {
 		t.Fatal("dış işlemin sonucu çizgeye bağlanmalı")
 	}
-	if n := len(topoOrder(y)); n != 2 { // x ve y
+	if n := len(topoOrder(y.n)); n != 2 { // x ve y
 		t.Fatalf("çizgede %d düğüm, 2 bekleniyordu", n)
 	}
 	// ileri hesap girdiyi olduğu gibi döndürse bile girdi yaprak kalır.

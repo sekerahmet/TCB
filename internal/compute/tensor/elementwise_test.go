@@ -52,7 +52,7 @@ func TestBinaryGradSameShape(t *testing.T) {
 		{"(x+w)*x", func() *Tensor { return x.Add(w).Mul(x) }, []float32{4, 0, 5}, []float32{1, -2, 3}},
 	}
 	for _, c := range cases {
-		x.grad, w.grad = nil, nil
+		x.n.grad, w.n.grad = nil, nil
 		c.f().SumAll().Backward()
 		near(t, c.name+" dx", x.Grad().Data(), c.gx, 1e-6)
 		if c.gw != nil {
@@ -60,14 +60,14 @@ func TestBinaryGradSameShape(t *testing.T) {
 		}
 	}
 	// Yaprakta birikim: ikinci geri yayılım üzerine ekler.
-	x.grad = nil
+	x.n.grad = nil
 	x.Mul(w).SumAll().Backward()
 	x.Mul(w).SumAll().Backward()
 	near(t, "birikim", x.Grad().Data(), []float32{4, 8, -2}, 0)
 
 	// Karışık tür: bf16 + float32 sonucu float32; bf16 ara sonuca gradyan kendi türünde gelir.
 	h := x.Cast(BFloat16).Mul(x.Cast(BFloat16))
-	x.grad = nil
+	x.n.grad = nil
 	h.Add(w).SumAll().Backward()
 	near(t, "karışık tür", x.Grad().Data(), []float32{2, -4, 6}, 0)
 
