@@ -1,0 +1,77 @@
+// Hedef modelin (tools/gpu/rgn512.py) TR karşılığı: aynı mimari ve eğitim tarifi.
+//   8 katman YYGYGYYG (Y: son 32 / 64 parçaya bakan yerel katman, G: tam nedensel), GQA ½, QK-norm,
+//   RoPE, ön-norm RMSNorm (ε 1e-6), ½ SwiGLU (672, birleşik [G|U], sapmalı), katman başına kelime
+//   gömmesi (PLE, P = d), paylaşımlı gömme; Muon (gövde matrisleri) + AdamW (gömme, ple_bağlamı;
+//   normlar ve sapmalar çürümesiz) + satır seyrek RMS (PLE tabloları), WSD, gradyan kırpma 1,0, bf16.
+// Eksikler (yol haritası Evre 3, "Hedef"): satır seyrek RMS yoğun maskelidir (anlam aynı, maliyet
+// O(V·P)); çapraz entropi logitleri tutar (hedef parçalı ve geri geçişte yeniden hesaplar);
+// derleme (torch.compile) karşılığı kaynaştırma yoktur.
+//
+// Kullanım: ./tr rgn512.tr --veri KLASÖR [--adım 120] [--çıktı sonuç.json]
+//   veri: uint16 .npy parça dosyalarının klasörü (belge sonu 0), hedefle aynı biçim.
+
+değişken arg = komut_satırı({veri: "", adım: 120, toplu: 64, mikro: 32, bağlam: 1024, oran: 0.002,
+        cihaz: "gpu", tohum: 0, günlük: 50, çıktı: ""},
+    açıklama: "Hedef modelin TR karşılığı (PyTorch: rgn512.py)")
+doğrula(arg.veri != "", "--veri ile .npy klasörü verilmeli")
+varsayılan_cihaz(arg.cihaz)
+
+aktar "tr/katman" olarak katman
+aktar "tr/iyilestirici" olarak iyileştirici
+
+değişken model = katman.GPT(40000, bağlam: arg.bağlam, boyut: 512, katman: 8, baş: 8, kv_baş: 4,
+    ara_boyut: 672, paylaşımlı: doğru, pencereler: katman.katman_pencereleri("YYGYGYYG", [32, 64]),
+    qk_normu: doğru, birleşik_kv: doğru, birleşik_kapı: doğru, ileri_sapmalı: doğru,
+    epsilon: 0.000001, ple_boyutu: 512, tohum: arg.tohum + 1)
+
+değişken op = iyileştirici.MuonVeAdamW(model, muon_oranı: arg.oran, adamw_oranı: arg.oran,
+    ağırlık_çürümesi: 0.1, adamw_çürümesi: 0.1, muon_ölçeği: "rms",
+    ayrı: ["gömme", "ple_bağlamı"], seyrek: ["ple.tablo"])
+değişken ağırlıklar = parametreler(model)
+
+değişken birikim = arg.toplu / arg.mikro
+değişken örnekler = veri_kümesi(arg.veri).örnekleyici(toplu: arg.mikro, bağlam: arg.bağlam, tohum: arg.tohum)
+değişken adım_başına = arg.toplu * arg.bağlam
+değişken ısınma = maks(1, tam(arg.adım * 0.01))
+
+değişken parametre_sayısı = 0
+döngü p içinde ağırlıklar {
+    değişken n = 1
+    döngü k içinde p.şekil { n *= k }
+    parametre_sayısı += n
+}
+yazdır("hedef model (TR) | YYGYGYYG | {yuvarla(parametre_sayısı / 1000000.0, 1)}M parametre | {arg.adım} adım × {adım_başına} parça | cihaz {varsayılan_cihaz()}")
+
+değişken süreler = []
+değişken pencere = []
+döngü adım içinde 0..arg.adım {
+    op.çarpan_ayarla(maks(0.000001, iyileştirici.oran_planı(adım, arg.adım, ısınma: ısınma, azalma: 0.2)))
+    değişken t0 = zaman_ms()
+    değişken toplam_kayıp = 0.0
+    döngü m içinde 0..birikim {
+        değişken xy = örnekler.sonraki()
+        değişken kayıp = yok
+        karışık_hassasiyet("bf16") {
+            kayıp = model.kayıp(xy[0], xy[1]) / birikim
+        }
+        geri_yayılım(kayıp)
+        toplam_kayıp += kayıp.değer
+    }
+    değişken norm = gradyan_kırp(ağırlıklar, en_fazla: 1.0)
+    op.adım()
+    op.sıfırla()
+    değişken ms = zaman_ms() - t0
+    süreler.ekle(ms)
+    pencere.ekle(ms)
+    eğer (adım + 1) % arg.günlük == 0 veya adım + 1 == arg.adım {
+        değişken ort = ortalama(pencere)
+        yazdır("adım {adım + 1} / {arg.adım}  kayıp {yuvarla(toplam_kayıp, 4)}  grad {yuvarla(norm.değer, 3)} | {yuvarla(ort, 0)} ms/adım  {yuvarla(adım_başına / ort * 1000, 0)} parça/sn")
+        pencere = []
+    }
+}
+
+eğer arg.çıktı != "" {
+    değişken ölçülen = süreler[maks(0, süreler.uzunluk / 2)..süreler.uzunluk]
+    dosya_yaz(arg.çıktı, json_metin({tool: "tr", model: "target", steps: arg.adım, tokens_per_step: adım_başına,
+        first_step_ms: süreler[0], measured: {median_ms: ortanca(ölçülen), mean_ms: ortalama(ölçülen)}}))
+}
