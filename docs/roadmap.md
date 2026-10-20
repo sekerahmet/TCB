@@ -62,7 +62,16 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
 
 Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için optimize edilmiş, yalnızca kod çözücülü (decoder-only) bir Transformer ve küçük sürümleridir (hedef model). Tek GPU'da sınır hız değil, bellek ve baş boyu uyumudur; sıra buna göredir. Eksik parçalar Evre 2'nin kurallarına uyarak eklenir.
 
-1. **Önce ölçüm.** Aynı kartta ve aynı yapılandırmada `torch.compile` (varsayılan ve `max-autotune`) ile TR karşılaştırılır; TR adımının Nsight Systems zaman çizelgesi çıkarılır (çekirdek sayısı, çekirdekler arası boşluk, en pahalı 10 çekirdek). Fark kaynaştırmada mı, matris çarpımı seçiminde mi, başlatma boşluklarında mı, bu ölçüm söyler. Tahmini fark 1,1–1,4 kattır; ölçülmeden hız işi seçilmez.
+1. **Önce ölçüm (yapıldı, 2026-10-21).** RTX PRO 6000 (Blackwell, 95 GB), torch 2.11, 12 katman D768, bağlam 512, toplu 32, bf16, AdamW (`tools/gpu/COLAB.md` §10):
+
+   | | ms/adım (medyan) | tepe bellek | ilk adım |
+   | :-- | --: | --: | --: |
+   | TR | 82,0 | 13,4 GB | 0,7 sn |
+   | PyTorch eager | 81,1 | 14,4 GB | 1,4 sn |
+   | `torch.compile` | 71,1 | 12,8 GB | 9,7 sn |
+   | `max-autotune` | 71,6 | 12,7 GB | 56 sn |
+
+   TR eager PyTorch'la başa baş, `torch.compile`'dan 1,15 kat yavaştır. Nsight: fark başlatma boşluğunda değil (TR'de GPU %4,3 boşta, compile'da %5,2), **çekirdek süresindedir**: adım başına TR ~78,5 ms, compile ~68 ms çekirdek çalıştırır (TR 920 çekirdek/adım, compile ~675). Farkın çoğu kaynaşmamış küçük işlerdedir: float32→bf16 dönüşüm kopyaları (adımda ~1850 çağrı, ~4,7 ms), bf16 bitişik kopyalar (~3,8 ms), eleman bazlı ikili işlemler (~5,2 ms) ve norm geri yönü (~4 ms); compile bunları Triton çekirdeklerinde kaynaştırır. Matris çarpımları iki tarafta da aynı cuBLASLt/CUTLASS çekirdekleridir. Kayıp eğrileri aynı eğilimdedir (TR'nin başlangıcı farklı üreteçten).
 2. **Bellek:**
    - parçalı ya da birleşik doğrusal katman + çapraz entropi: logitler bütünüyle bellekte tutulmaz (büyük sözlükte en büyük tek tampon logitlerdir);
    - blok düzeyinde, isteğe bağlı aktivasyon yeniden hesaplama (yaklaşık %33 süreye etkinleşme belleğinde 10 kattan fazla azalma);
@@ -73,10 +82,12 @@ Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için op
    - gizli boyuttan bağımsız baş boyu (`tr/katman`'da bugün `baş_boyutu = boyut / baş`).
 
    Bu bir hız değil uyumluluk konusudur: açık modellerin neredeyse hepsi 128 kullanır ve hazır ağırlık yüklemenin önkoşuludur.
-5. **Hız (ölçümden sonra, ölçümün gösterdiği sırayla):**
-   - birleşik RMSNorm, RoPE ve SwiGLU çekirdekleri;
-   - cuBLASLt epilogları (bias, GELU, bias gradyanı);
-   - eleman bazlı zincirleri ve tekli indirgemeleri tek GPU çekirdeğine kaynaştıran küçük, kural tabanlı bir birleştirici; her kaynaşmanın kaynaşmamış yola karşı sayısal testi vardır. Genel derleyici değildir.
+5. **Hız (ölçümün gösterdiği sırayla; her adım önce ve sonra ölçülür):**
+   - karışık hassasiyette ağırlıkların float32→bf16 dönüşümü adımda bir kez yapılsın ve dönüşüm kopyaları azaltılsın (en büyük tek kalem);
+   - görünümden doğan bitişik kopyalar (devrik, başlara ayırma) adımlı okumayla kalksın (madde 2'deki dikkat girdisiyle ortak);
+   - birleşik RMSNorm (ileri ve geri), RoPE ve SwiGLU çekirdekleri;
+   - eleman bazlı zincirleri tek GPU çekirdeğine kaynaştıran küçük, kural tabanlı birleştirici; her kaynaşmanın kaynaşmamış yola karşı sayısal testi vardır. Genel derleyici değildir;
+   - cuBLASLt epilogları (bias, GELU, bias gradyanı).
 6. **Eğitim gözlemlenebilirliği.**
    - Günlüğe yazılanlar: kırpma öncesi ve sonrası gradyan normu, parametre normu, katman başına etkinleşme RMS, en büyük logit ya da log Z, fp16'da kayıp ölçeği, saniyede token, MFU.
    - NaN/Inf'te ya da kayıp hareketli ortalamasının k katını aşınca durma ya da son kontrol noktasına dönme.
