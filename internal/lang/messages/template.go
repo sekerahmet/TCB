@@ -2,6 +2,8 @@ package messages
 
 import (
 	"fmt"
+	"math"
+	"math/big"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,12 +15,15 @@ import (
 //	{ad|q}                       Go'nun %q biçimiyle tırnaklı (denetim karakterleri kaçırılır)
 //	{ad|acc} {ad|dat} {ad|loc}   hâl eki: dilin çekimcisi ekler (tr: 'f'yi, 'f'ye, 'f'de ...);
 //	{ad|abl} {ad|gen}            çekimcisi olmayan dilde ad olduğu gibi kalır
-//	{ad, plural, one {..} other {..}}  sayıya göre biçim (CLDR çoğul kuralı); dalda # sayıdır,
-//	                                   "=N" tam eşleşme kategoriden önce gelir
+//	{ad, plural, one {..} other {..}}  sayıya göre biçim (CLDR çoğul kuralı); dalda (içindeki
+//	                                   seçim dallarında da) # sayıdır, "=N" tam eşleşme (N
+//	                                   sayının tek yazımı: =0, =1.5) kategoriden önce gelir
 //	{ad, select, x {..} other {..}}    metin değerine göre dal
 //	{{ }}                        düz süslü parantez (dal içinde '}' her zaman dalı kapatır)
 //
 // Go kodu sözcük çekimlemez ve sayıya bakıp sözcük seçmez: bunlar dilin işidir, şablondadır.
+// Her parametre ya dalların dışında ya her dalda geçer: bir dalda unutulan değer o dal
+// seçildiğinde kullanıcıya ulaşmazdı.
 
 // segKind şablon parçasının türüdür.
 type segKind uint8
@@ -46,19 +51,32 @@ var caseMods = map[string]bool{"acc": true, "dat": true, "loc": true, "abl": tru
 // pluralCategories CLDR çoğul kategorileridir.
 var pluralCategories = map[string]bool{"zero": true, "one": true, "two": true, "few": true, "many": true, "other": true}
 
-// pluralRules dilin CLDR çoğul kuralıdır: tam sayı n için kategori. Kuralı olmayan dilde
-// (yeni bir dil eklenirken) her sayı "other"dır.
-var pluralRules = map[string]func(n float64, integer bool) string{
-	"tr": func(n float64, integer bool) string { return oneIfOne(n, integer) },
-	"en": func(n float64, integer bool) string { return oneIfOne(n, integer) },
+// pluralOperands CLDR çoğul kurallarının işlenenleridir (UTS #35, "Plural Operand Meanings"):
+// n mutlak değer, i tam kısım, v görünen ondalık basamak sayısı, f o basamakların değeri.
+// i tam sayı türünden kayıpsız gelir: 2^53 üstünde de son basamaklar (n%10 kuralları) doğrudur.
+type pluralOperands struct {
+	n    float64
+	i, f uint64
+	v    int
 }
 
-// oneIfOne Türkçe ve İngilizcenin kuralıdır: tam sayı 1 "one", gerisi "other".
-func oneIfOne(n float64, integer bool) string {
-	if integer && n == 1 {
-		return "one"
-	}
-	return "other"
+// pluralRules dilin CLDR çoğul kuralıdır (CLDR plurals.xml). Kuralı olmayan dilde (yeni bir dil
+// eklenirken) her sayı "other"dır; yeni dilin kuralı buraya eklenir.
+var pluralRules = map[string]func(o pluralOperands) string{
+	// tr: one → n = 1 (1.0 da)
+	"tr": func(o pluralOperands) string {
+		if o.n == 1 {
+			return "one"
+		}
+		return "other"
+	},
+	// en: one → i = 1 and v = 0 (1.0 değil)
+	"en": func(o pluralOperands) string {
+		if o.i == 1 && o.v == 0 {
+			return "one"
+		}
+		return "other"
+	},
 }
 
 var (
@@ -99,7 +117,41 @@ func compile(text string, params []string) ([]segment, []bool, error) {
 	if p.i < len(p.text) {
 		return nil, nil, fmt.Errorf("eşi olmayan '}' (düz parantez için }} yazın)")
 	}
+	for i, name := range params {
+		if p.used[i] && !covers(segs, i) {
+			return nil, nil, fmt.Errorf("{%s} bazı dallarda yok (her dalda ya da dalların dışında geçmeli)", name)
+		}
+	}
 	return segs, p.used, nil
+}
+
+// covers parametrenin seçilebilecek her dal yolunda görünüp görünmediğidir: dal dışında bir
+// {ad}, bir çoğul ya da seçim yapısının kendi değeri (değer dalı seçer) ya da yapının bütün
+// dalları.
+func covers(segs []segment, arg int) bool {
+	for _, s := range segs {
+		switch s.kind {
+		case segArg:
+			if s.arg == arg {
+				return true
+			}
+		case segPlural, segSelect:
+			if s.arg == arg {
+				return true
+			}
+			all := true
+			for _, b := range s.branches {
+				if !covers(b, arg) {
+					all = false
+					break
+				}
+			}
+			if all {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // parser şablonu soldan sağa okur; çoğul ve seçim dalları iç içe şablonlardır.
@@ -132,7 +184,7 @@ func (p *parser) sequence(inBranch, inPlural bool) ([]segment, error) {
 			p.i += 2
 		case ch == '{':
 			flush()
-			s, err := p.placeholder()
+			s, err := p.placeholder(inPlural)
 			if err != nil {
 				return nil, err
 			}
@@ -159,8 +211,8 @@ func (p *parser) sequence(inBranch, inPlural bool) ([]segment, error) {
 	return segs, nil
 }
 
-// placeholder '{' ile başlayan bir parametreyi okur.
-func (p *parser) placeholder() (segment, error) {
+// placeholder '{' ile başlayan bir parametreyi okur; inPlural bir çoğul dalının içinde olunduğudur.
+func (p *parser) placeholder(inPlural bool) (segment, error) {
 	start := p.i
 	p.i++ // {
 	end := strings.IndexAny(p.text[p.i:], ",}")
@@ -181,11 +233,12 @@ func (p *parser) placeholder() (segment, error) {
 		}
 		return segment{kind: segArg, arg: n, mod: mod}, nil
 	}
-	return p.choice(strings.TrimSpace(head))
+	return p.choice(strings.TrimSpace(head), inPlural)
 }
 
-// choice "{ad, plural|select, anahtar {dal} ...}" biçimini virgülden sonrasından okur.
-func (p *parser) choice(name string) (segment, error) {
+// choice "{ad, plural|select, anahtar {dal} ...}" biçimini virgülden sonrasından okur. Bir
+// çoğulun içindeki seçim dallarında # dıştaki çoğulun sayısıdır (ICU'daki gibi).
+func (p *parser) choice(name string, inPlural bool) (segment, error) {
 	n, err := p.param(name)
 	if err != nil {
 		return segment{}, err
@@ -227,10 +280,10 @@ func (p *parser) choice(name string) (segment, error) {
 			return segment{}, fmt.Errorf("{%s, %s}: %q anahtarının dalı yok", name, kindName, key)
 		}
 		if s.kind == segPlural && !pluralCategories[key] && !isExact(key) {
-			return segment{}, fmt.Errorf("{%s, plural}: %q bir CLDR kategorisi ya da =N değil", name, key)
+			return segment{}, fmt.Errorf("{%s, plural}: %q bir CLDR kategorisi ya da =N değil (N sayının tek yazımı: =0, =1.5)", name, key)
 		}
 		p.i++ // {
-		branch, err := p.sequence(true, s.kind == segPlural)
+		branch, err := p.sequence(true, inPlural || s.kind == segPlural)
 		if err != nil {
 			return segment{}, err
 		}
@@ -259,12 +312,14 @@ func (p *parser) skipSpace() {
 	}
 }
 
+// isExact "=N" anahtarıdır; N sayının tek (kanonik) yazımıdır: =0.0 ya da =+1 hiçbir değerle
+// eşleşmezdi.
 func isExact(key string) bool {
 	if len(key) < 2 || key[0] != '=' {
 		return false
 	}
-	_, err := strconv.ParseFloat(key[1:], 64)
-	return err == nil
+	f, err := strconv.ParseFloat(key[1:], 64)
+	return err == nil && strconv.FormatFloat(f, 'f', -1, 64) == key[1:]
 }
 
 // render şablonu değerlerle doldurur. Eksik değer {ad?} olarak görünür (denetim testi çağrı
@@ -318,40 +373,89 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 // pluralKey değerin dalını seçer: önce "=N" tam eşleşme, sonra dilin CLDR kategorisi, yoksa
 // "other". Sayı olmayan değer "other"dır.
 func (c *Catalog) pluralKey(branches map[string][]segment, v any) string {
-	n, integer, ok := number(v)
+	text, ok := exactText(v)
 	if !ok {
 		return "other"
 	}
-	if _, exact := branches["="+strconv.FormatFloat(n, 'f', -1, 64)]; exact {
-		return "=" + strconv.FormatFloat(n, 'f', -1, 64)
+	if _, exact := branches["="+text]; exact {
+		return "=" + text
 	}
 	rule := pluralRules[c.Language]
 	if rule == nil {
 		return "other"
 	}
-	if k := rule(n, integer); branches[k] != nil {
+	o, _ := operands(v)
+	if k := rule(o); branches[k] != nil {
 		return k
 	}
 	return "other"
 }
 
-// number değeri sayıya çevirir; integer tam sayı türünden gelip gelmediğidir.
-func number(v any) (n float64, integer, ok bool) {
+// exactText sayının "=N" anahtarındaki yazımıdır; değer sayı değilse ok false'tur.
+func exactText(v any) (string, bool) {
+	if x, ok := integerValue(v); ok {
+		return x.String(), true
+	}
+	switch x := v.(type) {
+	case float64:
+		return strconv.FormatFloat(x, 'f', -1, 64), true
+	case float32:
+		return strconv.FormatFloat(float64(x), 'f', -1, 32), true
+	}
+	return "", false
+}
+
+// operands değerin CLDR işlenenleridir. Tam sayı türünde v = 0'dır; ondalık türü (float) en
+// az bir ondalık basamaklı sayılır: CLDR'de 1.0 yazılan sayı İngilizcede "one" değildir.
+func operands(v any) (pluralOperands, bool) {
+	if x, ok := integerValue(v); ok {
+		x.Abs(x)
+		n, _ := new(big.Float).SetInt(x).Float64()
+		return pluralOperands{n: n, i: x.Uint64()}, true
+	}
+	var text string
+	switch x := v.(type) {
+	case float64:
+		text = strconv.FormatFloat(math.Abs(x), 'f', -1, 64)
+	case float32:
+		text = strconv.FormatFloat(math.Abs(float64(x)), 'f', -1, 32)
+	default:
+		return pluralOperands{}, false
+	}
+	whole, frac, _ := strings.Cut(text, ".")
+	if frac == "" {
+		frac = "0"
+	}
+	o := pluralOperands{v: len(frac)}
+	o.n, _ = strconv.ParseFloat(text, 64)
+	o.i, _ = strconv.ParseUint(whole, 10, 64)
+	o.f, _ = strconv.ParseUint(frac, 10, 64)
+	return o, true
+}
+
+// integerValue Go'nun bütün tam sayı türlerini kayıpsız okur.
+func integerValue(v any) (*big.Int, bool) {
 	switch x := v.(type) {
 	case int:
-		return float64(x), true, true
-	case int64:
-		return float64(x), true, true
+		return big.NewInt(int64(x)), true
+	case int8:
+		return big.NewInt(int64(x)), true
+	case int16:
+		return big.NewInt(int64(x)), true
 	case int32:
-		return float64(x), true, true
+		return big.NewInt(int64(x)), true
+	case int64:
+		return big.NewInt(x), true
 	case uint:
-		return float64(x), true, true
+		return new(big.Int).SetUint64(uint64(x)), true
+	case uint8:
+		return new(big.Int).SetUint64(uint64(x)), true
+	case uint16:
+		return new(big.Int).SetUint64(uint64(x)), true
+	case uint32:
+		return new(big.Int).SetUint64(uint64(x)), true
 	case uint64:
-		return float64(x), true, true
-	case float64:
-		return x, false, true // CLDR: ondalık yazılan sayı (1.0) "one" değildir
-	case float32:
-		return float64(x), false, true
+		return new(big.Int).SetUint64(x), true
 	}
-	return 0, false, false
+	return nil, false
 }

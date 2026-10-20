@@ -88,3 +88,80 @@ func TestTemplateErrors(t *testing.T) {
 		t.Errorf("çoğul dışında # düz metindir: %v", err)
 	}
 }
+
+// Çoğul dalının içindeki seçim dalında da '#' çoğul sayısıdır (ICU: # en yakın çoğulun sayısı).
+func TestNumberSignInNestedSelect(t *testing.T) {
+	c := mustCatalog(t, "tr", `"n", "kind"`, "{n, plural, one {{kind, select, a {# öğe} other {# nesne}}} other {{kind, select, a {# öğe} other {# nesne}}}}")
+	if got := c.render(1, []any{3, "a"}); got != "3 öğe" {
+		t.Errorf("%q, %q bekleniyordu", got, "3 öğe")
+	}
+}
+
+// Bir parametre bir dalda kullanılıp başka bir dalda unutulursa o dal seçildiğinde değer
+// kullanıcıya ulaşmaz: her parametre ya dal dışında ya her dalda geçer.
+func TestParamUsedInEveryBranch(t *testing.T) {
+	d, _ := ParseDefinitions([]byte(`{"H0001": { "param": ["fn", "n"] }}`))
+	for _, text := range []string{
+		"{n, plural, one {{fn}: 1 hata} other {# hata}}",
+		"{n, plural, one {1 hata} other {{n, select, x {{fn}} other {# hata}}}}",
+	} {
+		if _, err := ParseCatalog("tr", []byte(`{"H0001": `+quoteJSON(text)+`}`), d); err == nil {
+			t.Errorf("%q: fn bir dalda yok, hata bekleniyordu", text)
+		}
+	}
+	for _, text := range []string{
+		"{fn}: {n, plural, one {1 hata} other {# hata}}",
+		"{n, plural, one {{fn}: 1 hata} other {{fn}: # hata}}",
+	} {
+		if _, err := ParseCatalog("tr", []byte(`{"H0001": `+quoteJSON(text)+`}`), d); err != nil {
+			t.Errorf("%q: %v", text, err)
+		}
+	}
+}
+
+// Her Go tam sayı türü tam sayıdır; "=N" anahtarı sayının tek (kanonik) yazımıdır, yoksa dal
+// hiç seçilmezdi.
+func TestPluralNumberTypes(t *testing.T) {
+	c := mustCatalog(t, "en", `"n"`, "{n, plural, =0 {none} one {# item} other {# items}}")
+	for _, d := range []struct {
+		n    any
+		want string
+	}{
+		{uint32(1), "1 item"}, {uint8(0), "none"}, {int8(1), "1 item"}, {int16(2), "2 items"},
+		{uint16(1), "1 item"}, {uint64(1), "1 item"}, {int64(9007199254740993), "9007199254740993 items"},
+	} {
+		if got := c.render(1, []any{d.n}); got != d.want {
+			t.Errorf("%T(%v): %q, %q bekleniyordu", d.n, d.n, got, d.want)
+		}
+	}
+	d, _ := ParseDefinitions([]byte(`{"H0001": { "param": ["n"] }}`))
+	for _, key := range []string{"=0.0", "=+0", "=01", "=1e0"} {
+		text := "{n, plural, " + key + " {a} other {b}}"
+		if _, err := ParseCatalog("en", []byte(`{"H0001": `+quoteJSON(text)+`}`), d); err == nil {
+			t.Errorf("%q: kanonik olmayan anahtar, hata bekleniyordu", key)
+		}
+	}
+}
+
+// Çoğul kuralı CLDR işlenenleriyle (i, v, f) çalışır: 2^53 üstü tam sayının son basamakları
+// kaybolmaz (Rusça gibi n%10 kurallı diller için).
+func TestPluralOperands(t *testing.T) {
+	for _, d := range []struct {
+		v    any
+		want pluralOperands
+	}{
+		{int64(9007199254740993), pluralOperands{i: 9007199254740993}},
+		{-3, pluralOperands{n: 3, i: 3}},
+		{1.5, pluralOperands{n: 1.5, i: 1, v: 1, f: 5}},
+		{1.0, pluralOperands{n: 1, i: 1, v: 1}},
+		{2.25, pluralOperands{n: 2.25, i: 2, v: 2, f: 25}},
+	} {
+		got, ok := operands(d.v)
+		if d.want.n == 0 {
+			d.want.n = float64(d.want.i)
+		}
+		if !ok || got != d.want {
+			t.Errorf("%v: %+v, %+v bekleniyordu", d.v, got, d.want)
+		}
+	}
+}

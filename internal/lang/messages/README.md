@@ -30,12 +30,14 @@ Her kod bir satırdır, kodlar artan sıradadır. Denetim: `TestEmbeddedCatalogV
 | `{ad}` | değer olduğu gibi |
 | `{ad\|q}` | Go tırnağıyla, denetim karakterleri kaçırılarak (kullanıcı verisi için) |
 | `{ad\|acc}`, `{ad\|dat}`, `{ad\|loc}`, `{ad\|abl}`, `{ad\|gen}` | hâl eki: dilin çekimcisi ekler (`Satır {line\|dat}` → "Satır 12'ye"); çekimcisi olmayan dilde ad olduğu gibi kalır |
-| `{n, plural, one {..} other {..}}` | sayıya göre biçim, dilin CLDR çoğul kuralıyla; dalda `#` sayıdır, `=0` gibi tam eşleşme önce gelir; `other` zorunlu |
+| `{n, plural, one {..} other {..}}` | sayıya göre biçim, dilin CLDR çoğul kuralıyla; dalda (içindeki `select` dallarında da) `#` sayıdır, `=0` gibi tam eşleşme önce gelir (N sayının tek yazımı: `=0.0` reddedilir); `other` zorunlu |
 | `{x, select, a {..} other {..}}` | metin değerine göre dal |
 | `{{`, `}}` | düz süslü parantez (dal içinde `}` dalı kapatır) |
 
 Her dilin metni kodun **bütün** parametrelerini kullanır (çeviride düşen değer kullanıcıya ulaşmazdı);
-sözcük sırası dilden dile değişebilir, parametreler adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSelect`, `TestCaseSuffix`, `TestTemplateErrors`, `TestCatalogErrors`.
+bir parametre ya dalların dışında ya `plural`/`select`'in her dalında geçer (yalnız bir dalda
+geçen değer öbür dal seçilince kaybolurdu). Sözcük sırası dilden dile değişebilir, parametreler
+adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSelect`, `TestCaseSuffix`, `TestTemplateErrors`, `TestCatalogErrors`, `TestParamUsedInEveryBranch`, `TestNumberSignInNestedSelect`, `TestPluralNumberTypes`.
 
 **Dilbilgisi şablondadır, Go'da değil.**
 - Go kodu sayıya bakıp sözcük seçmez (`argümanı`/`argümanları`): şablonda `plural`. Denetim: `TestPlural`.
@@ -46,7 +48,7 @@ sözcük sırası dilden dile değişebilir, parametreler adla anıldığı içi
 
 **Yeni bir dil eklemek.**
 1. `internal/lang/messages/<dil>.json` (ISO 639-1); `catalog.go`'da `//go:embed` ve `languageFiles`'a satır.
-2. Dilin CLDR çoğul kuralı `template.go`'daki `pluralRules`'a (Türkçe ve İngilizcede: tam sayı 1 "one", gerisi "other"; Rusça, Arapça gibi dillerde daha çok kategori vardır).
+2. Dilin CLDR çoğul kuralı `template.go`'daki `pluralRules`'a. Kural CLDR işlenenlerini alır (`pluralOperands`: n, i, v, f; tam sayıda i kayıpsızdır, 2^53 üstünde de `i%10` doğru): Türkçe `n = 1`, İngilizce `i = 1 and v = 0` "one"; Rusça, Arapça gibi dillerde daha çok kategori vardır. Denetim: `TestPluralOperands`.
 3. Hâl eki olan bir dilse çekimcisini kendi dilbilgisi paketinden `messages.RegisterInflector` ile kaydet.
 4. `go test ./internal/lang/messages` her şablonu ve parametreyi denetler; çevrilmemiş kod Türkçeye düşer.
 
