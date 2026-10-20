@@ -325,10 +325,7 @@ func init() {
 				return MatMul(a, b)
 			},
 			inputs: genInputs(gen(-1, 1, 0, stA...), gen(-1, 1, 0, stB...)),
-			ref:    matmul64(ash, bsh, transA, transB),
-			// K·(girdi + çıktı) yuvarlaması: bf16 girdiler tam (yuvarlanmış değerler aynı), yalnızca
-			// çıktı ve geri yönün bf16 çıktıları yuvarlanır; toplamlar float32 birikir.
-			bf16Tol: 3e-2}
+			ref:    matmul64(ash, bsh, transA, transB)}
 	}
 	registerGrad("matmul",
 		mm("matmul 2B", []int{3, 5}, []int{5, 4}, false, false),
