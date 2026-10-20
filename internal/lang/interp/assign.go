@@ -23,14 +23,14 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 	case *ListVal:
 		iv, ok := idx.(*IntVal)
 		if !ok {
-			return messages.At(line, 0, messages.New(messages.H2400, VAL_LIST, VAL_INT))
+			return messages.At(line, 0, messages.New(messages.H2400, ValList, ValInt))
 		}
 		pos := int(iv.Val)
 		if pos < 0 {
 			pos = len(container.Elements) + pos
 		}
 		if pos < 0 || pos >= len(container.Elements) {
-			return messages.At(line, 0, messages.New(messages.H2401, VAL_LIST, iv.Val))
+			return messages.At(line, 0, messages.New(messages.H2401, ValList, iv.Val))
 		}
 		finalVal, err := v.assignOp(codeVal, container.Elements[pos], rightVal, line)
 		if err != nil {

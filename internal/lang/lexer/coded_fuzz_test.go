@@ -31,7 +31,7 @@ func FuzzCodedLexer(f *testing.F) {
 			if tok.Line < 1 {
 				t.Fatalf("geçersiz satır %d", tok.Line)
 			}
-			if tok.Type == TOKEN_EOF {
+			if tok.Type == TokEOF {
 				break
 			}
 		}

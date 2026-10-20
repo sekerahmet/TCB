@@ -350,7 +350,7 @@ func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...st
 	for _, a := range names {
 		pk.define(a)
 	}
-	if f.Token.Type == lexer.TOKEN_LBRACE {
+	if f.Token.Type == lexer.TokLBrace {
 		pk.implicit = trailingBlockImplicits(f)
 	}
 	for _, p := range f.Parameters {

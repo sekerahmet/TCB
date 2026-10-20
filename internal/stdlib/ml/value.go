@@ -46,7 +46,7 @@ func NewInt(t *tensor.Tensor) *TensorValue {
 // Tensor sarılı çekirdek tensörünü verir.
 func (d *TensorValue) Tensor() *tensor.Tensor { return d.t }
 
-func (d *TensorValue) Type() interp.ValueType { return interp.VAL_TENSOR }
+func (d *TensorValue) Type() interp.ValueType { return interp.ValTensor }
 
 // IsTruthy tek elemanlı tensörde elemanın 0'dan farklı olup olmadığıdır; boş tensör
 // yanlıştır. Çok elemanlı tensörün doğruluk değeri belirsizdir; yorumlayıcı bu arayüzden

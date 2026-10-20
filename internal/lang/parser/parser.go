@@ -29,49 +29,49 @@ var (
 
 const (
 	_ int = iota
-	LOWEST
-	PIPE_PREC         // |>
-	NULL_COALESC_PREC // ??
-	OR_PREC           // || veya
-	AND_PREC          // && ve
-	EQUALS_PREC       // == !=
-	LESSGREATER_PREC  // > < >= <=
-	RANGE_PREC        // .. ..=
-	SUM_PREC          // + -
-	PRODUCT_PREC      // * / % @
-	PREFIX_PREC       // -X !X  ('değil X' ise karşılaştırmalardan gevşek bağlanır, bkz. parsePrefixExpression)
-	POWER_PREC        // **  (sağdan birleşir ve tekli eksiden sıkı bağlanır: -2 ** 2 = -4)
-	CALL_PREC         // fn(X) dizi[i] nesne.alan nesne?.alan
+	precLowest
+	precPipe        // |>
+	precNullCoalesc // ??
+	precOr          // || veya
+	precAnd         // && ve
+	precEquals      // == !=
+	precLessgreater // > < >= <=
+	precRange       // .. ..=
+	precSum         // + -
+	precProduct     // * / % @
+	precPrefix      // -X !X  ('değil X' ise karşılaştırmalardan gevşek bağlanır, bkz. parsePrefixExpression)
+	precPower       // **  (sağdan birleşir ve tekli eksiden sıkı bağlanır: -2 ** 2 = -4)
+	precCall        // fn(X) dizi[i] nesne.alan nesne?.alan
 )
 
 var precedences = map[lexer.TokenType]int{
-	lexer.TOKEN_PIPE:         PIPE_PREC,
-	lexer.TOKEN_NULL_COALESC: NULL_COALESC_PREC,
-	lexer.TOKEN_OR:           OR_PREC,
-	lexer.TOKEN_KW_OR:        OR_PREC,
-	lexer.TOKEN_AND:          AND_PREC,
-	lexer.TOKEN_KW_AND:       AND_PREC,
-	lexer.TOKEN_EQ:           EQUALS_PREC,
-	lexer.TOKEN_NOT_EQ:       EQUALS_PREC,
-	lexer.TOKEN_LT:           LESSGREATER_PREC,
-	lexer.TOKEN_GT:           LESSGREATER_PREC,
-	lexer.TOKEN_LTE:          LESSGREATER_PREC,
-	lexer.TOKEN_GTE:          LESSGREATER_PREC,
-	lexer.TOKEN_RANGE:        RANGE_PREC,
-	lexer.TOKEN_RANGE_INCL:   RANGE_PREC,
-	lexer.TOKEN_PLUS:         SUM_PREC,
-	lexer.TOKEN_MINUS:        SUM_PREC,
-	lexer.TOKEN_SLASH:        PRODUCT_PREC,
-	lexer.TOKEN_ASTERISK:     PRODUCT_PREC,
-	lexer.TOKEN_PERCENT:      PRODUCT_PREC,
-	lexer.TOKEN_MATMUL:       PRODUCT_PREC,
-	lexer.TOKEN_POWER:        POWER_PREC,
-	lexer.TOKEN_LPAREN:       CALL_PREC,
-	lexer.TOKEN_LBRACKET:     CALL_PREC,
-	lexer.TOKEN_DOT:          CALL_PREC,
-	lexer.TOKEN_SAFE_DOT:     CALL_PREC,
-	lexer.TOKEN_ARROW:        PIPE_PREC,
-	lexer.TOKEN_LBRACE:       CALL_PREC, // sondaki blok: liste.filtrele { o > 2 }
+	lexer.TokPipe:        precPipe,
+	lexer.TokNullCoalesc: precNullCoalesc,
+	lexer.TokOr:          precOr,
+	lexer.TokKwOr:        precOr,
+	lexer.TokAnd:         precAnd,
+	lexer.TokKwAnd:       precAnd,
+	lexer.TokEq:          precEquals,
+	lexer.TokNotEq:       precEquals,
+	lexer.TokLt:          precLessgreater,
+	lexer.TokGt:          precLessgreater,
+	lexer.TokLte:         precLessgreater,
+	lexer.TokGte:         precLessgreater,
+	lexer.TokRange:       precRange,
+	lexer.TokRangeIncl:   precRange,
+	lexer.TokPlus:        precSum,
+	lexer.TokMinus:       precSum,
+	lexer.TokSlash:       precProduct,
+	lexer.TokAsterisk:    precProduct,
+	lexer.TokPercent:     precProduct,
+	lexer.TokMatmul:      precProduct,
+	lexer.TokPower:       precPower,
+	lexer.TokLParen:      precCall,
+	lexer.TokLBracket:    precCall,
+	lexer.TokDot:         precCall,
+	lexer.TokSafeDot:     precCall,
+	lexer.TokArrow:       precPipe,
+	lexer.TokLBrace:      precCall, // sondaki blok: liste.filtrele { o > 2 }
 }
 
 type Parser struct {
@@ -119,7 +119,7 @@ type Parser struct {
 func (p *Parser) parseMatchPattern() ast.Expression {
 	p.patternMode = true
 	defer func() { p.patternMode = false }()
-	return p.parseExpression(LOWEST)
+	return p.parseExpression(precLowest)
 }
 
 // parseHeaderExpression bir kontrol yapısının başlık ifadesini (koşul, döngü kaynağı,
@@ -128,7 +128,7 @@ func (p *Parser) parseHeaderExpression() ast.Expression {
 	saved := p.noBlock
 	p.noBlock = true
 	defer func() { p.noBlock = saved }()
-	return p.parseExpression(LOWEST)
+	return p.parseExpression(precLowest)
 }
 
 // allowBlocks parantez, köşeli parantez ve blok içlerinde sondaki blokları yeniden etkinleştirir.
@@ -199,7 +199,7 @@ func New(l *lexer.Lexer) *Parser {
 	for {
 		tok := l.NextToken()
 		tokens = append(tokens, tok)
-		if tok.Type == lexer.TOKEN_EOF {
+		if tok.Type == lexer.TokEOF {
 			break
 		}
 	}
@@ -281,14 +281,14 @@ func (p *Parser) curPrecedence() int {
 	if p, ok := precedences[p.curToken().Type]; ok {
 		return p
 	}
-	return LOWEST
+	return precLowest
 }
 
 func (p *Parser) peekPrecedence() int {
 	if p, ok := precedences[p.peekToken().Type]; ok {
 		return p
 	}
-	return LOWEST
+	return precLowest
 }
 
 // ParseProgram parses the whole input as a program.
@@ -296,8 +296,8 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
 	program.Statements = []ast.Statement{}
 
-	for !p.curTokenIs(lexer.TOKEN_EOF) {
-		if p.curTokenIs(lexer.TOKEN_SEMICOLON) {
+	for !p.curTokenIs(lexer.TokEOF) {
+		if p.curTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 			continue
 		}
@@ -326,7 +326,7 @@ func (p *Parser) removedSpellingHints() {
 		}
 	}
 	for _, t := range p.tokens {
-		if t.Type != lexer.TOKEN_IDENT || !badLine[t.Line] {
+		if t.Type != lexer.TokIdent || !badLine[t.Line] {
 			continue
 		}
 		if i := hint.KeywordSpellingHint(t.Literal); i != "" {

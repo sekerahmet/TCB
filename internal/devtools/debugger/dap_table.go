@@ -91,9 +91,9 @@ func typeLabel(val interp.Value) string {
 			cols, rows, _ := TableData(v)
 			return messages.Text(messages.H8140, len(rows), len(cols))
 		}
-		return fmt.Sprintf("%s [%d]", interp.VAL_LIST, len(v.Elements))
+		return fmt.Sprintf("%s [%d]", interp.ValList, len(v.Elements))
 	case *interp.DictVal:
-		return fmt.Sprintf("%s [%d]", interp.VAL_DICT, len(v.Pairs))
+		return fmt.Sprintf("%s [%d]", interp.ValDict, len(v.Pairs))
 	case *interp.StructInstanceVal:
 		return messages.Text(messages.H8141, v.Def.Name)
 	}

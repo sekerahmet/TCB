@@ -27,12 +27,12 @@ func (p *Parser) oldReduceBlock(tok lexer.Token, begin int) {
 	var o0, o1 bool
 	for i := begin; i < end; i++ {
 		t := p.tokens[i]
-		if t.Type == lexer.TOKEN_IDENT && t.Literal == accName {
+		if t.Type == lexer.TokIdent && t.Literal == accName {
 			return
 		}
-		if t.Type == lexer.TOKEN_IDENT && t.Literal == itName && i+3 < end &&
-			p.tokens[i+1].Type == lexer.TOKEN_LBRACKET && p.tokens[i+2].Type == lexer.TOKEN_INT &&
-			p.tokens[i+3].Type == lexer.TOKEN_RBRACKET {
+		if t.Type == lexer.TokIdent && t.Literal == itName && i+3 < end &&
+			p.tokens[i+1].Type == lexer.TokLBracket && p.tokens[i+2].Type == lexer.TokInt &&
+			p.tokens[i+3].Type == lexer.TokRBracket {
 			o0 = o0 || p.tokens[i+2].Literal == "0"
 			o1 = o1 || p.tokens[i+2].Literal == "1"
 		}

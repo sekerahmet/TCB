@@ -224,7 +224,7 @@ func roundTrip(t *testing.T, name, text string) bool {
 // hasDeadCode kodlu gövdede ölü (taşınmış ya da kaldırılmış) bir kod var mı?
 func hasDeadCode(b Parts) bool {
 	l := b.Lexer()
-	for tok := l.NextToken(); tok.Type != lexer.TOKEN_EOF; tok = l.NextToken() {
+	for tok := l.NextToken(); tok.Type != lexer.TokEOF; tok = l.NextToken() {
 		if g, ok := codes.Active().Entry(tok.Code); ok && g.Dead() {
 			return true
 		}

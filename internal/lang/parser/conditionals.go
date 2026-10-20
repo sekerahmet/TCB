@@ -11,18 +11,18 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	p.nextToken()
 	expr.Condition = p.parseHeaderExpression()
 
-	if !p.expectPeek(lexer.TOKEN_LBRACE) {
+	if !p.expectPeek(lexer.TokLBrace) {
 		return nil
 	}
 	expr.Consequence = p.parseBlockStatement()
 
-	for p.peekTokenIs(lexer.TOKEN_ELSE) {
+	for p.peekTokenIs(lexer.TokElse) {
 		p.nextToken() // 'değilse'
-		if p.peekTokenIs(lexer.TOKEN_IF) {
+		if p.peekTokenIs(lexer.TokIf) {
 			p.nextToken() // 'eğer'
 			p.nextToken()
-			cond := p.parseExpression(LOWEST)
-			if !p.expectPeek(lexer.TOKEN_LBRACE) {
+			cond := p.parseExpression(precLowest)
+			if !p.expectPeek(lexer.TokLBrace) {
 				return nil
 			}
 			block := p.parseBlockStatement()
@@ -31,7 +31,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 				Consequence: block,
 			})
 		} else {
-			if !p.expectPeek(lexer.TOKEN_LBRACE) {
+			if !p.expectPeek(lexer.TokLBrace) {
 				return nil
 			}
 			expr.Alternative = p.parseBlockStatement()
@@ -46,7 +46,7 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 	p.nextToken()
 	subject := p.parseHeaderExpression()
 
-	if !p.expectPeek(lexer.TOKEN_LBRACE) {
+	if !p.expectPeek(lexer.TokLBrace) {
 		return nil
 	}
 	matchOpen := p.curToken()
@@ -54,35 +54,35 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 	p.nextToken()
 
 	var cases []ast.MatchCase
-	for !p.curTokenIs(lexer.TOKEN_RBRACE) && !p.curTokenIs(lexer.TOKEN_EOF) {
-		if p.curTokenIs(lexer.TOKEN_COMMA) || p.curTokenIs(lexer.TOKEN_SEMICOLON) {
+	for !p.curTokenIs(lexer.TokRBrace) && !p.curTokenIs(lexer.TokEOF) {
+		if p.curTokenIs(lexer.TokComma) || p.curTokenIs(lexer.TokSemicolon) {
 			p.nextToken()
 			continue
 		}
 
 		mc := ast.MatchCase{}
-		if p.curTokenIs(lexer.TOKEN_DEFAULT) || (p.curTokenIs(lexer.TOKEN_IDENT) && p.curToken().Literal == "_") {
+		if p.curTokenIs(lexer.TokDefault) || (p.curTokenIs(lexer.TokIdent) && p.curToken().Literal == "_") {
 			mc.IsDefault = true
 		} else {
 			pat := p.parseMatchPattern()
 			mc.Patterns = append(mc.Patterns, pat)
-			for p.peekTokenIs(lexer.TOKEN_COMMA) {
+			for p.peekTokenIs(lexer.TokComma) {
 				p.nextToken() // ','
 				p.nextToken()
 				mc.Patterns = append(mc.Patterns, p.parseMatchPattern())
 			}
 		}
 
-		if !p.expectPeek(lexer.TOKEN_ARROW) {
+		if !p.expectPeek(lexer.TokArrow) {
 			// Kalan durumlar da hatalı okunup art arda hata vermesin diye eşle bloğu atlanır
 			p.skipToBlockEnd()
 			return nil
 		}
 
-		if p.peekTokenIs(lexer.TOKEN_LBRACE) {
+		if p.peekTokenIs(lexer.TokLBrace) {
 			p.nextToken()
 			mc.Body = p.parseBlockStatement()
-		} else if p.peekTokenIs(lexer.TOKEN_RETURN) {
+		} else if p.peekTokenIs(lexer.TokReturn) {
 			p.nextToken()
 			retStmt := p.parseReturnStatement()
 			mc.Body = &ast.BlockStatement{
@@ -91,7 +91,7 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 			}
 		} else {
 			p.nextToken()
-			mc.ValueExpr = p.parseExpression(LOWEST)
+			mc.ValueExpr = p.parseExpression(precLowest)
 		}
 
 		cases = append(cases, mc)

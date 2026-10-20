@@ -67,14 +67,14 @@ func (l *Lexer) scanCodes(k *[]shift, depth int, budget *int) {
 	for {
 		tok := l.NextToken()
 		switch {
-		case tok.Type == TOKEN_EOF:
+		case tok.Type == TokEOF:
 			return
 		case tok.Code != codes.None:
 			begin, end := l.LastRange()
 			if d := utf8.RuneCountInString(tok.Literal) - (end - begin); d != 0 {
 				*k = append(*k, shift{off: l.sourcePos(end), d: int32(d)})
 			}
-		case tok.Type == TOKEN_STRING && depth < maxInterpolationNesting:
+		case tok.Type == TokString && depth < maxInterpolationNesting:
 			if positions := l.Interpolations(tok); positions != nil {
 				value := []rune(tok.Literal)
 				for _, y := range positions {
@@ -146,7 +146,7 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 		return l.codedToken(lit, line, col)
 	}
 	kind := LookupIdent(lit)
-	if kind == TOKEN_IDENT {
+	if kind == TokIdent {
 		l.checkCodeForm(lit, line, col)
 	}
 	return Token{Type: kind, Literal: lit, Line: line, Column: col}
@@ -158,18 +158,18 @@ func (l *Lexer) nameToken(lit string, line, col int) Token {
 // kendiliğinden çalışır (uyumluluk sözü, 17.6).
 func (l *Lexer) codedToken(lit string, line, col int) Token {
 	if !codes.IsCodeForm(lit) {
-		return Token{Type: TOKEN_IDENT, Literal: lit, Line: line, Column: col}
+		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 	}
 	k, err := codes.Parse(lit)
 	g, var_ := codes.Active().Entry(k)
 	if err != nil || !var_ {
 		l.addError(line, col, messages.New(messages.H0001, lit, codes.G100))
-		return Token{Type: TOKEN_IDENT, Literal: lit, Line: line, Column: col}
+		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 	}
 	if t, ok := codeTypes[k]; ok && !g.Dead() {
 		return Token{Type: t, Literal: g.Name, Line: line, Column: col, Code: k}
 	}
-	return Token{Type: TOKEN_IDENT, Literal: g.Name, Line: line, Column: col, Code: k}
+	return Token{Type: TokIdent, Literal: g.Name, Line: line, Column: col, Code: k}
 }
 
 // escapedName '$ad' kaçışını okur (2.11): '$' ardından gelen ad her zaman kullanıcının adıdır,
@@ -184,7 +184,7 @@ func (l *Lexer) escapedName(line, col int) Token {
 	l.readChar() // '$'
 	lit := l.readIdentifier()
 	l.checkCodeForm(lit, line, col+1)
-	return Token{Type: TOKEN_IDENT, Literal: lit, Line: line, Column: col}
+	return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 }
 
 // nulChar kaynağın ortasındaki NUL (U+0000) karakterini hata olarak bildirir. Sözcük
@@ -193,7 +193,7 @@ func (l *Lexer) escapedName(line, col int) Token {
 func (l *Lexer) nulChar(line, col int) Token {
 	l.addError(line, col, messages.New(messages.H0003))
 	l.readChar()
-	return Token{Type: TOKEN_ILLEGAL, Literal: "\x00", Line: line, Column: col}
+	return Token{Type: TokIllegal, Literal: "\x00", Line: line, Column: col}
 }
 
 // checkCodeForm Türkçe yazılmış kaynakta kod biçimli bir adı (2.3a) hata olarak bildirir.

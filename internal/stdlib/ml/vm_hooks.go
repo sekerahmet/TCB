@@ -172,7 +172,7 @@ func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (
 		v, err := d.compare(op, otherVal, onRight)
 		return v, true, err
 	}
-	return nil, true, messages.New(messages.H6703, interp.VAL_TENSOR, op, supportedOps)
+	return nil, true, messages.New(messages.H6703, interp.ValTensor, op, supportedOps)
 }
 
 // comparisonOp karşılaştırma işleçlerinin çekirdek işlemi.
@@ -243,7 +243,7 @@ func (d *TensorValue) Index(idx interp.Value) (interp.Value, error) {
 	}
 	i, ok := intNumber(idx)
 	if !ok {
-		return nil, messages.New(messages.H6707, interp.VAL_INT, idx.Type())
+		return nil, messages.New(messages.H6707, interp.ValInt, idx.Type())
 	}
 	j := i
 	if j < 0 {

@@ -26,9 +26,9 @@ func (d *TensorValue) WatchLabel() string {
 		dtypeSuffix = " " + dtypeName(dt)
 	}
 	if len(sh) == 0 {
-		return string(interp.VAL_TENSOR) + " (skaler)" + dtypeSuffix
+		return string(interp.ValTensor) + " (skaler)" + dtypeSuffix
 	}
-	return string(interp.VAL_TENSOR) + " [" + shapeProduct(sh) + "]" + dtypeSuffix
+	return string(interp.ValTensor) + " [" + shapeProduct(sh) + "]" + dtypeSuffix
 }
 
 // TableData 1-2 boyutlu tensörü tabloya (sütunlar + satırlar) çevirir.
@@ -91,7 +91,7 @@ func (d *TensorValue) WatchSummary() string {
 		}
 		return numberText(x, scientific)
 	}
-	ek := []string{string(interp.VAL_TENSOR)}
+	ek := []string{string(interp.ValTensor)}
 	var sb strings.Builder
 	if len(sh) == 0 {
 		sb.WriteString(number(data[0]))

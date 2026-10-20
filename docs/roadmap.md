@@ -47,7 +47,7 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
      - Yeni satırın başındaki ikili işleç önceki ifadeyi sürdürmez; `-x` tuzağı kalktı, zincir işleçleri (`.`, `|>`) sürer (2.8).
      - Testin başlattığı görevdeki hata testi kaldırır (10.1); testler dosyanın üst düzeyini paylaşmaya devam eder (Go ve pytest gibi, bilinçli).
      - Hata ve uyarı çıktısında denetim karakterleri görünür yazılır (8.4).
-   - Kalan: `VAL_INT`, `TOKEN_EQ` gibi Go adları Go biçimine (`ValInt`, `TokenEq`); mekanik, toplu yeniden adlandırma.
+   - Go adları Go biçimine geçti (MixedCaps): belirteç türleri `Tok` önekli (`TokIdent`, `TokEOF`), değer tipleri `Val` önekli (`ValInt`), öncelikler `prec` önekli (`precAnd`).
 6. **Test düzeni (tamamlandı).** Test dosyası adlandırma kuralı (`x_test.go` yalnızca `x.go`'yu sınar; süreçleri sınayan testler `behavior_` önekli dosyalarda) ve her paket README'sinde bir "Testler" bölümü; ikisi de testle denetlenir.
 7. **Kalan adlar.**
    - `cmd/tr` dosya ve Go adları ile `tools` betik adları İngilizceye geçer.

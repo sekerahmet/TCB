@@ -15,17 +15,17 @@ import (
 // "'içinde' anahtar kelimesi").
 func typeDescription(t lexer.TokenType) string {
 	switch t {
-	case lexer.TOKEN_EOF:
+	case lexer.TokEOF:
 		return messages.Text(messages.H0110)
-	case lexer.TOKEN_IDENT:
+	case lexer.TokIdent:
 		return messages.Text(messages.H0111)
-	case lexer.TOKEN_INT:
+	case lexer.TokInt:
 		return messages.Text(messages.H0112)
-	case lexer.TOKEN_FLOAT:
+	case lexer.TokFloat:
 		return messages.Text(messages.H0113)
-	case lexer.TOKEN_STRING:
+	case lexer.TokString:
 		return messages.Text(messages.H0114)
-	case lexer.TOKEN_ILLEGAL:
+	case lexer.TokIllegal:
 		return messages.Text(messages.H0115)
 	}
 	if spelling := keywordSpelling(t); spelling != "" {
@@ -38,15 +38,15 @@ func typeDescription(t lexer.TokenType) string {
 // (ör. "'x' adı", "42 sayısı", "'sonuç' anahtar kelimesi", "dosya sonu").
 func tokenDescription(tok lexer.Token) string {
 	switch tok.Type {
-	case lexer.TOKEN_EOF:
+	case lexer.TokEOF:
 		return messages.Text(messages.H0110)
-	case lexer.TOKEN_IDENT:
+	case lexer.TokIdent:
 		return messages.Text(messages.H0118, tok.Literal)
-	case lexer.TOKEN_INT, lexer.TOKEN_FLOAT:
+	case lexer.TokInt, lexer.TokFloat:
 		return messages.Text(messages.H0119, tok.Literal)
-	case lexer.TOKEN_STRING:
+	case lexer.TokString:
 		return messages.Text(messages.H0120, shortText(unescapeBraces(tok.Literal)))
-	case lexer.TOKEN_ILLEGAL:
+	case lexer.TokIllegal:
 		return messages.Text(messages.H0121, tok.Literal)
 	}
 	if keywordSpelling(tok.Type) != "" {
@@ -73,11 +73,11 @@ func shortText(s string) string {
 // unexpectedHint sık yapılan yanlışlar için hata mesajına eklenecek ipucunu verir.
 func unexpectedHint(expected lexer.TokenType, found lexer.Token) string {
 	switch {
-	case expected == lexer.TOKEN_LBRACE && found.Type == lexer.TOKEN_ASSIGN:
+	case expected == lexer.TokLBrace && found.Type == lexer.TokAssign:
 		return messages.Text(messages.H0130)
-	case expected == lexer.TOKEN_RPAREN && found.Type == lexer.TOKEN_EOF,
-		expected == lexer.TOKEN_RBRACKET && found.Type == lexer.TOKEN_EOF,
-		expected == lexer.TOKEN_RBRACE && found.Type == lexer.TOKEN_EOF:
+	case expected == lexer.TokRParen && found.Type == lexer.TokEOF,
+		expected == lexer.TokRBracket && found.Type == lexer.TokEOF,
+		expected == lexer.TokRBrace && found.Type == lexer.TokEOF:
 		return messages.Text(messages.H0131, string(expected))
 	}
 	return ""
@@ -104,10 +104,10 @@ func (p *Parser) syntaxError(tok lexer.Token, code messages.Code, args ...any) {
 // (iç içe blokları sayarak) ilerler; dosya biterse dosya sonunda durur.
 func (p *Parser) skipToBlockEnd() {
 	nesting := 0
-	for !p.curTokenIs(lexer.TOKEN_EOF) {
-		if p.curTokenIs(lexer.TOKEN_LBRACE) {
+	for !p.curTokenIs(lexer.TokEOF) {
+		if p.curTokenIs(lexer.TokLBrace) {
 			nesting++
-		} else if p.curTokenIs(lexer.TOKEN_RBRACE) {
+		} else if p.curTokenIs(lexer.TokRBrace) {
 			if nesting == 0 {
 				return
 			}
@@ -119,11 +119,11 @@ func (p *Parser) skipToBlockEnd() {
 
 // isOpener ve kapayanMi parantez, köşeli parantez ve süslü parantezleri tanır.
 func isOpener(t lexer.TokenType) bool {
-	return t == lexer.TOKEN_LBRACE || t == lexer.TOKEN_LPAREN || t == lexer.TOKEN_LBRACKET
+	return t == lexer.TokLBrace || t == lexer.TokLParen || t == lexer.TokLBracket
 }
 
 func isCloser(t lexer.TokenType) bool {
-	return t == lexer.TOKEN_RBRACE || t == lexer.TOKEN_RPAREN || t == lexer.TOKEN_RBRACKET
+	return t == lexer.TokRBrace || t == lexer.TokRParen || t == lexer.TokRBracket
 }
 
 // synchronize, hatalı bir deyimden sonra (deyim deyimBas konumundaki token'da
@@ -140,13 +140,13 @@ func (p *Parser) synchronize(stmtStart int, topLevel bool) {
 
 	// Hatalı deyim, içinde bulunduğu bloğu kapatan '}' işaretine kadar okuduysa
 	// (ör. 'eğer x { yazdır( }'), o '}' bloğa geri bırakılır.
-	if !topLevel && p.curTokenIs(lexer.TOKEN_RBRACE) && p.pos > stmtStart {
+	if !topLevel && p.curTokenIs(lexer.TokRBrace) && p.pos > stmtStart {
 		brace := 0
 		for i := stmtStart; i <= p.pos && i < len(p.tokens); i++ {
 			switch p.tokens[i].Type {
-			case lexer.TOKEN_LBRACE:
+			case lexer.TokLBrace:
 				brace++
-			case lexer.TOKEN_RBRACE:
+			case lexer.TokRBrace:
 				brace--
 			}
 		}
@@ -157,14 +157,14 @@ func (p *Parser) synchronize(stmtStart int, topLevel bool) {
 	}
 	// Sayım hatanın ardından başlar: kapatılmamış bir '(' dosyanın geri kalanını yutmasın.
 	nesting := 0
-	for !p.peekTokenIs(lexer.TOKEN_EOF) {
+	for !p.peekTokenIs(lexer.TokEOF) {
 		pk := p.peekToken()
 		if nesting == 0 {
-			if pk.Type == lexer.TOKEN_SEMICOLON || (pk.Type == lexer.TOKEN_RBRACE && !topLevel) {
+			if pk.Type == lexer.TokSemicolon || (pk.Type == lexer.TokRBrace && !topLevel) {
 				return
 			}
 			newline := pk.Line > p.errorLine && pk.Line > p.curToken().Line
-			if newline && pk.Type != lexer.TOKEN_ELSE && pk.Type != lexer.TOKEN_CATCH {
+			if newline && pk.Type != lexer.TokElse && pk.Type != lexer.TokCatch {
 				return
 			}
 		}

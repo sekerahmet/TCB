@@ -34,7 +34,7 @@ func (p *Parser) Roles() map[[2]int]NameRole { return p.roles }
 
 // role kayıt açıksa bir ad sözcüğünün görevini kaydeder.
 func (p *Parser) role(tok lexer.Token, r NameRole) {
-	if p.roles != nil && tok.Type == lexer.TOKEN_IDENT {
+	if p.roles != nil && tok.Type == lexer.TokIdent {
 		p.roles[[2]int{tok.Line, tok.Column}] = r
 	}
 }

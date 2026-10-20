@@ -82,11 +82,11 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		if k == memberTranspose {
 			o += "()" // metot
 		}
-		return nil, messages.New(messages.H7903, interp.VAL_TENSOR, prop, o)
+		return nil, messages.New(messages.H7903, interp.ValTensor, prop, o)
 	} else if o := turkish.Closest(prop, tensorMembers); o != "" {
-		return nil, messages.New(messages.H7903, interp.VAL_TENSOR, prop, o)
+		return nil, messages.New(messages.H7903, interp.ValTensor, prop, o)
 	}
-	return nil, messages.New(messages.H6721, interp.VAL_TENSOR, prop)
+	return nil, messages.New(messages.H6721, interp.ValTensor, prop)
 }
 
 // method adlı argüman almayan bir tensör metodunun bağlı değeridir; namedMethod adlı

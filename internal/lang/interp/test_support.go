@@ -49,7 +49,7 @@ func (v *VM) registerTestBuiltins() {
 // "5" ile 5 ayırt edilebilsin.
 func testShow(d Value) string {
 	if s, ok := d.(*StringVal); ok {
-		return messages.Text(messages.H2459, s.Val, VAL_STRING)
+		return messages.Text(messages.H2459, s.Val, ValString)
 	}
 	return messages.Text(messages.H2424, d.Inspect(), d.Type())
 }

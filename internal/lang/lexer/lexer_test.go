@@ -19,7 +19,7 @@ func allTokens(t *testing.T, input string) ([]Token, []error) {
 		}
 		tok := l.NextToken()
 		toks = append(toks, tok)
-		if tok.Type == TOKEN_EOF {
+		if tok.Type == TokEOF {
 			break
 		}
 	}
@@ -113,28 +113,28 @@ func TestKeywordTurkishSpellingOnly(t *testing.T) {
 		turkishSpelling, ascii string
 		kind                   TokenType
 	}{
-		{"değişken", "degisken", TOKEN_VAR},
-		{"sonuç", "sonuc", TOKEN_RETURN},
-		{"eğer", "eger", TOKEN_IF},
-		{"değilse", "degilse", TOKEN_ELSE},
-		{"eşle", "esle", TOKEN_MATCH},
-		{"varsayılan", "varsayilan", TOKEN_DEFAULT},
-		{"döngü", "dongu", TOKEN_FOR},
-		{"içinde", "icinde", TOKEN_IN},
-		{"çık", "cik", TOKEN_BREAK},
-		{"doğru", "dogru", TOKEN_TRUE},
-		{"yanlış", "yanlis", TOKEN_FALSE},
-		{"değil", "degil", TOKEN_KW_NOT},
-		{"yapı", "yapi", TOKEN_STRUCT},
-		{"fırlat", "firlat", TOKEN_THROW},
-		{"eşzamanlı", "eszamanli", TOKEN_CONCURRENT},
-		{"kesme_noktası", "kesme_noktasi", TOKEN_BREAKPOINT},
+		{"değişken", "degisken", TokVar},
+		{"sonuç", "sonuc", TokReturn},
+		{"eğer", "eger", TokIf},
+		{"değilse", "degilse", TokElse},
+		{"eşle", "esle", TokMatch},
+		{"varsayılan", "varsayilan", TokDefault},
+		{"döngü", "dongu", TokFor},
+		{"içinde", "icinde", TokIn},
+		{"çık", "cik", TokBreak},
+		{"doğru", "dogru", TokTrue},
+		{"yanlış", "yanlis", TokFalse},
+		{"değil", "degil", TokKwNot},
+		{"yapı", "yapi", TokStruct},
+		{"fırlat", "firlat", TokThrow},
+		{"eşzamanlı", "eszamanli", TokConcurrent},
+		{"kesme_noktası", "kesme_noktasi", TokBreakpoint},
 	}
 	for _, c := range pairs {
 		if got := LookupIdent(c.turkishSpelling); got != c.kind {
 			t.Errorf("LookupIdent(%q) = %s, beklenen %s", c.turkishSpelling, got, c.kind)
 		}
-		if got := LookupIdent(c.ascii); got != TOKEN_IDENT {
+		if got := LookupIdent(c.ascii); got != TokIdent {
 			t.Errorf("LookupIdent(%q) = %s; ASCII yazım sıradan bir ad olmalı", c.ascii, got)
 		}
 		want := " ('" + c.ascii + "' TR'de anahtar kelime değil; '" + c.turkishSpelling + "' yazmak mı istediniz?)"
@@ -145,10 +145,10 @@ func TestKeywordTurkishSpellingOnly(t *testing.T) {
 
 	// Tek yazımı olan anahtar kelimeler
 	singles := map[string]TokenType{
-		"sabit": TOKEN_CONST, "fonksiyon": TOKEN_FUNCTION, "iken": TOKEN_WHILE,
-		"devam": TOKEN_CONTINUE, "yok": TOKEN_NIL, "ve": TOKEN_KW_AND, "veya": TOKEN_KW_OR,
-		"kendi": TOKEN_SELF, "dene": TOKEN_TRY, "yakala": TOKEN_CATCH,
-		"aktar": TOKEN_IMPORT, "ertele": TOKEN_DEFER,
+		"sabit": TokConst, "fonksiyon": TokFunction, "iken": TokWhile,
+		"devam": TokContinue, "yok": TokNil, "ve": TokKwAnd, "veya": TokKwOr,
+		"kendi": TokSelf, "dene": TokTry, "yakala": TokCatch,
+		"aktar": TokImport, "ertele": TokDefer,
 	}
 	for word, kind := range singles {
 		if got := LookupIdent(word); got != kind {
@@ -166,7 +166,7 @@ func TestNonKeywords(t *testing.T) {
 		"break_point", // eski İngilizce yazım kaldırıldı; artık sıradan bir ad
 	} {
 		toks := tokensNoErrors(t, s)
-		if len(toks) != 2 || toks[0].Type != TOKEN_IDENT || toks[0].Literal != s {
+		if len(toks) != 2 || toks[0].Type != TokIdent || toks[0].Literal != s {
 			t.Errorf("%q: tek bir TANIMLAYICI bekleniyordu, gelen: %v", s, toks)
 		}
 	}
@@ -182,7 +182,7 @@ func TestTurkishIdentifiers(t *testing.T) {
 		"IĞDIR", "öğrenci_sayısı", "_gizli", "x1", "değer2", "ÇÖĞŞÜİı",
 	} {
 		toks := tokensNoErrors(t, s)
-		if len(toks) != 2 || toks[0].Type != TOKEN_IDENT || toks[0].Literal != s {
+		if len(toks) != 2 || toks[0].Type != TokIdent || toks[0].Literal != s {
 			t.Errorf("%q: tek bir TANIMLAYICI bekleniyordu, gelen: %v", s, toks)
 		}
 	}
@@ -190,12 +190,12 @@ func TestTurkishIdentifiers(t *testing.T) {
 
 func TestIdentifierAndOperatorBoundaries(t *testing.T) {
 	checkTokens(t, "öğrenci.yaş+çarpan", []expected{
-		{TOKEN_IDENT, "öğrenci"},
-		{TOKEN_DOT, "."},
-		{TOKEN_IDENT, "yaş"},
-		{TOKEN_PLUS, "+"},
-		{TOKEN_IDENT, "çarpan"},
-		{TOKEN_EOF, ""},
+		{TokIdent, "öğrenci"},
+		{TokDot, "."},
+		{TokIdent, "yaş"},
+		{TokPlus, "+"},
+		{TokIdent, "çarpan"},
+		{TokEOF, ""},
 	})
 }
 
@@ -209,37 +209,37 @@ func TestNumbers(t *testing.T) {
 		kind TokenType
 		lit  string
 	}{
-		{"0", TOKEN_INT, "0"},
-		{"42", TOKEN_INT, "42"},
-		{"007", TOKEN_INT, "007"},
-		{"1_000_000", TOKEN_INT, "1000000"},
-		{"3.14", TOKEN_FLOAT, "3.14"},
-		{"0.5", TOKEN_FLOAT, "0.5"},
-		{"1_000.25", TOKEN_FLOAT, "1000.25"},
-		{"3.141_592", TOKEN_FLOAT, "3.141592"},
+		{"0", TokInt, "0"},
+		{"42", TokInt, "42"},
+		{"007", TokInt, "007"},
+		{"1_000_000", TokInt, "1000000"},
+		{"3.14", TokFloat, "3.14"},
+		{"0.5", TokFloat, "0.5"},
+		{"1_000.25", TokFloat, "1000.25"},
+		{"3.141_592", TokFloat, "3.141592"},
 		// Mevcut davranış: alt çizgiler konumdan bağımsız atılır (sonda veya art arda olsa da).
-		{"1_", TOKEN_INT, "1"},
-		{"1__0", TOKEN_INT, "10"},
+		{"1_", TokInt, "1"},
+		{"1__0", TokInt, "10"},
 	}
 	for _, tt := range tests {
-		checkTokens(t, tt.src, []expected{{tt.kind, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{tt.kind, tt.lit}, {TokEOF, ""}})
 	}
 }
 
 func TestNumberAndRangeSplit(t *testing.T) {
 	// '1..10' ondalık sayı değil, aralıktır
 	checkTokens(t, "1..10", []expected{
-		{TOKEN_INT, "1"}, {TOKEN_RANGE, ".."}, {TOKEN_INT, "10"}, {TOKEN_EOF, ""},
+		{TokInt, "1"}, {TokRange, ".."}, {TokInt, "10"}, {TokEOF, ""},
 	})
 	checkTokens(t, "0..=5", []expected{
-		{TOKEN_INT, "0"}, {TOKEN_RANGE_INCL, "..="}, {TOKEN_INT, "5"}, {TOKEN_EOF, ""},
+		{TokInt, "0"}, {TokRangeIncl, "..="}, {TokInt, "5"}, {TokEOF, ""},
 	})
 	// Noktadan sonra rakam yoksa sayı tam sayı olarak biter (üye erişimi için)
 	checkTokens(t, "5.kare", []expected{
-		{TOKEN_INT, "5"}, {TOKEN_DOT, "."}, {TOKEN_IDENT, "kare"}, {TOKEN_EOF, ""},
+		{TokInt, "5"}, {TokDot, "."}, {TokIdent, "kare"}, {TokEOF, ""},
 	})
 	checkTokens(t, "1.5..2.5", []expected{
-		{TOKEN_FLOAT, "1.5"}, {TOKEN_RANGE, ".."}, {TOKEN_FLOAT, "2.5"}, {TOKEN_EOF, ""},
+		{TokFloat, "1.5"}, {TokRange, ".."}, {TokFloat, "2.5"}, {TokEOF, ""},
 	})
 }
 
@@ -252,15 +252,15 @@ func TestScientificNumbers(t *testing.T) {
 		{"6.02e2_3", "6.02e23"},
 	}
 	for _, tt := range tests {
-		checkTokens(t, tt.src, []expected{{TOKEN_FLOAT, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TokFloat, tt.lit}, {TokEOF, ""}})
 	}
 	// Üsten sonra rakam yoksa 'e' sayıya ait değildir
-	checkTokens(t, "2e", []expected{{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_EOF, ""}})
+	checkTokens(t, "2e", []expected{{TokInt, "2"}, {TokIdent, "e"}, {TokEOF, ""}})
 	checkTokens(t, "2e+x", []expected{
-		{TOKEN_INT, "2"}, {TOKEN_IDENT, "e"}, {TOKEN_PLUS, "+"}, {TOKEN_IDENT, "x"}, {TOKEN_EOF, ""},
+		{TokInt, "2"}, {TokIdent, "e"}, {TokPlus, "+"}, {TokIdent, "x"}, {TokEOF, ""},
 	})
 	checkTokens(t, "1e3..5", []expected{
-		{TOKEN_FLOAT, "1e3"}, {TOKEN_RANGE, ".."}, {TOKEN_INT, "5"}, {TOKEN_EOF, ""},
+		{TokFloat, "1e3"}, {TokRange, ".."}, {TokInt, "5"}, {TokEOF, ""},
 	})
 }
 
@@ -268,7 +268,7 @@ func TestScientificNumbers(t *testing.T) {
 // (ayrıştırıcı ardışık ifadeyi ayrıca değerlendirir).
 func TestLetterAfterNumber(t *testing.T) {
 	checkTokens(t, "12abc", []expected{
-		{TOKEN_INT, "12"}, {TOKEN_IDENT, "abc"}, {TOKEN_EOF, ""},
+		{TokInt, "12"}, {TokIdent, "abc"}, {TokEOF, ""},
 	})
 }
 
@@ -281,23 +281,23 @@ func TestAllOperators(t *testing.T) {
 		src  string
 		kind TokenType
 	}{
-		{"=", TOKEN_ASSIGN}, {":=", TOKEN_WALRUS}, {"+", TOKEN_PLUS}, {"-", TOKEN_MINUS},
-		{"*", TOKEN_ASTERISK}, {"/", TOKEN_SLASH}, {"%", TOKEN_PERCENT}, {"**", TOKEN_POWER},
-		{"@", TOKEN_MATMUL}, {"!", TOKEN_BANG}, {"==", TOKEN_EQ}, {"!=", TOKEN_NOT_EQ},
-		{"<", TOKEN_LT}, {">", TOKEN_GT}, {"<=", TOKEN_LTE}, {">=", TOKEN_GTE},
-		{"&&", TOKEN_AND}, {"||", TOKEN_OR}, {"|>", TOKEN_PIPE}, {"??", TOKEN_NULL_COALESC},
-		{"?.", TOKEN_SAFE_DOT}, {"=>", TOKEN_ARROW}, {"..", TOKEN_RANGE}, {"..=", TOKEN_RANGE_INCL},
-		{"+=", TOKEN_PLUS_ASSIGN}, {"-=", TOKEN_MINUS_ASSIGN}, {"*=", TOKEN_MUL_ASSIGN},
-		{"/=", TOKEN_DIV_ASSIGN},
-		{",", TOKEN_COMMA}, {";", TOKEN_SEMICOLON}, {":", TOKEN_COLON}, {".", TOKEN_DOT},
-		{"?", TOKEN_QUESTION}, {"(", TOKEN_LPAREN}, {")", TOKEN_RPAREN}, {"{", TOKEN_LBRACE},
-		{"}", TOKEN_RBRACE}, {"[", TOKEN_LBRACKET}, {"]", TOKEN_RBRACKET},
+		{"=", TokAssign}, {":=", TokWalrus}, {"+", TokPlus}, {"-", TokMinus},
+		{"*", TokAsterisk}, {"/", TokSlash}, {"%", TokPercent}, {"**", TokPower},
+		{"@", TokMatmul}, {"!", TokBang}, {"==", TokEq}, {"!=", TokNotEq},
+		{"<", TokLt}, {">", TokGt}, {"<=", TokLte}, {">=", TokGte},
+		{"&&", TokAnd}, {"||", TokOr}, {"|>", TokPipe}, {"??", TokNullCoalesc},
+		{"?.", TokSafeDot}, {"=>", TokArrow}, {"..", TokRange}, {"..=", TokRangeIncl},
+		{"+=", TokPlusAssign}, {"-=", TokMinusAssign}, {"*=", TokMulAssign},
+		{"/=", TokDivAssign},
+		{",", TokComma}, {";", TokSemicolon}, {":", TokColon}, {".", TokDot},
+		{"?", TokQuestion}, {"(", TokLParen}, {")", TokRParen}, {"{", TokLBrace},
+		{"}", TokRBrace}, {"[", TokLBracket}, {"]", TokRBracket},
 	}
 	for _, tt := range tests {
 		// Hem tek başına hem de iki tanımlayıcı arasında doğru okunmalı
-		checkTokens(t, tt.src, []expected{{tt.kind, tt.src}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{tt.kind, tt.src}, {TokEOF, ""}})
 		checkTokens(t, "a"+tt.src+"b", []expected{
-			{TOKEN_IDENT, "a"}, {tt.kind, tt.src}, {TOKEN_IDENT, "b"}, {TOKEN_EOF, ""},
+			{TokIdent, "a"}, {tt.kind, tt.src}, {TokIdent, "b"}, {TokEOF, ""},
 		})
 	}
 }
@@ -309,29 +309,29 @@ func TestOperatorCombinations(t *testing.T) {
 		want []expected
 	}{
 		// '->' tek token değildir; ayrıştırıcı '-' ve '>' çiftini dönüş tipi oku olarak tanır
-		{"->", []expected{{TOKEN_MINUS, "-"}, {TOKEN_GT, ">"}}},
-		{"**=", []expected{{TOKEN_POWER, "**"}, {TOKEN_ASSIGN, "="}}},
-		{"===", []expected{{TOKEN_EQ, "=="}, {TOKEN_ASSIGN, "="}}},
-		{"==>", []expected{{TOKEN_EQ, "=="}, {TOKEN_GT, ">"}}},
-		{"...", []expected{{TOKEN_RANGE, ".."}, {TOKEN_DOT, "."}}},
-		{"???", []expected{{TOKEN_NULL_COALESC, "??"}, {TOKEN_QUESTION, "?"}}},
-		{"!!", []expected{{TOKEN_BANG, "!"}, {TOKEN_BANG, "!"}}},
-		{"<<", []expected{{TOKEN_LT, "<"}, {TOKEN_LT, "<"}}},
-		{"|||", []expected{{TOKEN_OR, "||"}, {TOKEN_ILLEGAL, "|"}}},
+		{"->", []expected{{TokMinus, "-"}, {TokGt, ">"}}},
+		{"**=", []expected{{TokPower, "**"}, {TokAssign, "="}}},
+		{"===", []expected{{TokEq, "=="}, {TokAssign, "="}}},
+		{"==>", []expected{{TokEq, "=="}, {TokGt, ">"}}},
+		{"...", []expected{{TokRange, ".."}, {TokDot, "."}}},
+		{"???", []expected{{TokNullCoalesc, "??"}, {TokQuestion, "?"}}},
+		{"!!", []expected{{TokBang, "!"}, {TokBang, "!"}}},
+		{"<<", []expected{{TokLt, "<"}, {TokLt, "<"}}},
+		{"|||", []expected{{TokOr, "||"}, {TokIllegal, "|"}}},
 		{"x?.y??z", []expected{
-			{TOKEN_IDENT, "x"}, {TOKEN_SAFE_DOT, "?."}, {TOKEN_IDENT, "y"},
-			{TOKEN_NULL_COALESC, "??"}, {TOKEN_IDENT, "z"},
+			{TokIdent, "x"}, {TokSafeDot, "?."}, {TokIdent, "y"},
+			{TokNullCoalesc, "??"}, {TokIdent, "z"},
 		}},
 		{"liste |> filtrele", []expected{
-			{TOKEN_IDENT, "liste"}, {TOKEN_PIPE, "|>"}, {TOKEN_IDENT, "filtrele"},
+			{TokIdent, "liste"}, {TokPipe, "|>"}, {TokIdent, "filtrele"},
 		}},
 		{"(x) => x ** 2", []expected{
-			{TOKEN_LPAREN, "("}, {TOKEN_IDENT, "x"}, {TOKEN_RPAREN, ")"}, {TOKEN_ARROW, "=>"},
-			{TOKEN_IDENT, "x"}, {TOKEN_POWER, "**"}, {TOKEN_INT, "2"},
+			{TokLParen, "("}, {TokIdent, "x"}, {TokRParen, ")"}, {TokArrow, "=>"},
+			{TokIdent, "x"}, {TokPower, "**"}, {TokInt, "2"},
 		}},
 	}
 	for _, tt := range tests {
-		checkTokens(t, tt.src, append(tt.want, expected{TOKEN_EOF, ""}))
+		checkTokens(t, tt.src, append(tt.want, expected{TokEOF, ""}))
 	}
 }
 
@@ -339,13 +339,13 @@ func TestIllegalCharacters(t *testing.T) {
 	// '`' ham metin başlatır (2.6a); geçersiz karakter değildir.
 	for _, s := range []string{"&", "|", "$", "^", "~", "\\", "😀"} {
 		toks := tokensNoErrors(t, s)
-		if len(toks) != 2 || toks[0].Type != TOKEN_ILLEGAL || toks[0].Literal != s {
+		if len(toks) != 2 || toks[0].Type != TokIllegal || toks[0].Literal != s {
 			t.Errorf("%q: tek bir GEÇERSİZ token bekleniyordu, gelen: %v", s, toks)
 		}
 	}
 	// Geçersiz karakterden sonra okumaya devam edilmeli
 	checkTokens(t, "a $ b", []expected{
-		{TOKEN_IDENT, "a"}, {TOKEN_ILLEGAL, "$"}, {TOKEN_IDENT, "b"}, {TOKEN_EOF, ""},
+		{TokIdent, "a"}, {TokIllegal, "$"}, {TokIdent, "b"}, {TokEOF, ""},
 	})
 }
 
@@ -361,21 +361,21 @@ sabit liste = [1, 2.5, "üç"]
 döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 `
 	checkTokens(t, src, []expected{
-		{TOKEN_FUNCTION, "fonksiyon"}, {TOKEN_IDENT, "topla"}, {TOKEN_LPAREN, "("},
-		{TOKEN_IDENT, "a"}, {TOKEN_COLON, ":"}, {TOKEN_IDENT, "Tam"}, {TOKEN_COMMA, ","},
-		{TOKEN_IDENT, "b"}, {TOKEN_COLON, ":"}, {TOKEN_IDENT, "Tam"}, {TOKEN_RPAREN, ")"},
-		{TOKEN_MINUS, "-"}, {TOKEN_GT, ">"}, {TOKEN_IDENT, "Tam"}, {TOKEN_LBRACE, "{"},
-		{TOKEN_RETURN, "sonuç"}, {TOKEN_IDENT, "a"}, {TOKEN_PLUS, "+"}, {TOKEN_IDENT, "b"},
-		{TOKEN_RBRACE, "}"},
-		{TOKEN_CONST, "sabit"}, {TOKEN_IDENT, "liste"}, {TOKEN_ASSIGN, "="},
-		{TOKEN_LBRACKET, "["}, {TOKEN_INT, "1"}, {TOKEN_COMMA, ","}, {TOKEN_FLOAT, "2.5"},
-		{TOKEN_COMMA, ","}, {TOKEN_STRING, "üç"}, {TOKEN_RBRACKET, "]"},
-		{TOKEN_FOR, "döngü"}, {TOKEN_IDENT, "i"}, {TOKEN_COMMA, ","}, {TOKEN_IDENT, "x"},
-		{TOKEN_IN, "içinde"}, {TOKEN_IDENT, "liste"}, {TOKEN_LBRACE, "{"},
-		{TOKEN_IF, "eğer"}, {TOKEN_IDENT, "x"}, {TOKEN_EQ, "=="}, {TOKEN_NIL, "yok"},
-		{TOKEN_KW_AND, "ve"}, {TOKEN_KW_NOT, "değil"}, {TOKEN_TRUE, "doğru"},
-		{TOKEN_LBRACE, "{"}, {TOKEN_BREAK, "çık"}, {TOKEN_RBRACE, "}"}, {TOKEN_RBRACE, "}"},
-		{TOKEN_EOF, ""},
+		{TokFunction, "fonksiyon"}, {TokIdent, "topla"}, {TokLParen, "("},
+		{TokIdent, "a"}, {TokColon, ":"}, {TokIdent, "Tam"}, {TokComma, ","},
+		{TokIdent, "b"}, {TokColon, ":"}, {TokIdent, "Tam"}, {TokRParen, ")"},
+		{TokMinus, "-"}, {TokGt, ">"}, {TokIdent, "Tam"}, {TokLBrace, "{"},
+		{TokReturn, "sonuç"}, {TokIdent, "a"}, {TokPlus, "+"}, {TokIdent, "b"},
+		{TokRBrace, "}"},
+		{TokConst, "sabit"}, {TokIdent, "liste"}, {TokAssign, "="},
+		{TokLBracket, "["}, {TokInt, "1"}, {TokComma, ","}, {TokFloat, "2.5"},
+		{TokComma, ","}, {TokString, "üç"}, {TokRBracket, "]"},
+		{TokFor, "döngü"}, {TokIdent, "i"}, {TokComma, ","}, {TokIdent, "x"},
+		{TokIn, "içinde"}, {TokIdent, "liste"}, {TokLBrace, "{"},
+		{TokIf, "eğer"}, {TokIdent, "x"}, {TokEq, "=="}, {TokNil, "yok"},
+		{TokKwAnd, "ve"}, {TokKwNot, "değil"}, {TokTrue, "doğru"},
+		{TokLBrace, "{"}, {TokBreak, "çık"}, {TokRBrace, "}"}, {TokRBrace, "}"},
+		{TokEOF, ""},
 	})
 }
 
@@ -383,7 +383,7 @@ döngü i, x içinde liste { eğer x == yok ve değil doğru { çık } }
 func TestRemovedSynonymsAreNames(t *testing.T) {
 	for _, name := range []string{"işlev", "islev", "döndür", "dondur", "kır", "kir", "sınıf", "sinif",
 		"dur_noktası", "dur_noktasi", "durdurma_noktası", "durdurma_noktasi"} {
-		if kind := LookupIdent(name); kind != TOKEN_IDENT {
+		if kind := LookupIdent(name); kind != TokIdent {
 			t.Errorf("%q artık ad olmalı, %s", name, kind)
 		}
 		if hint.KeywordSpellingHint(name) == "" {
@@ -453,7 +453,7 @@ func TestCRLFLineEndings(t *testing.T) {
 
 	// '\r' hiçbir yerde GEÇERSİZ token üretmemeli
 	for _, tok := range tokensNoErrors(t, "a\r\nb\rc") {
-		if tok.Type == TOKEN_ILLEGAL {
+		if tok.Type == TokIllegal {
 			t.Errorf("'\\r' için GEÇERSİZ token üretildi: %v", tok)
 		}
 	}

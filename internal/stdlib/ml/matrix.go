@@ -52,7 +52,7 @@ func toMatrix(v interp.Value) (*tensor.Tensor, error) {
 		}
 		return tensor.New(data, len(lines), column), nil
 	}
-	return nil, messages.New(messages.H6005, interp.VAL_LIST)
+	return nil, messages.New(messages.H6005, interp.ValList)
 }
 
 // checkMatrixShape negatif / sıfır ya da aşırı büyük matris boyutlarını panik yerine
@@ -71,7 +71,7 @@ func checkMatrixShape(fn string, line, column int64) error {
 func intArg(args []interp.Value, i int, signature string) (int64, error) {
 	n, ok := args[i].(*interp.IntVal)
 	if !ok {
-		return 0, messages.New(messages.H6011, signature, interp.VAL_INT, typeName(args[i]))
+		return 0, messages.New(messages.H6011, signature, interp.ValInt, typeName(args[i]))
 	}
 	return n.Val, nil
 }

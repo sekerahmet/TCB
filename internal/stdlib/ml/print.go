@@ -44,9 +44,9 @@ func (d *TensorValue) Inspect() string {
 		if len(ek) > 0 {
 			s += ", " + strings.Join(ek, ", ")
 		}
-		return string(interp.VAL_TENSOR) + "(" + s + ")" + dtypeSuffix
+		return string(interp.ValTensor) + "(" + s + ")" + dtypeSuffix
 	}
-	header := string(interp.VAL_TENSOR) + "[" + shapeProduct(sh) + "]" + dtypeSuffix
+	header := string(interp.ValTensor) + "[" + shapeProduct(sh) + "]" + dtypeSuffix
 	if len(ek) > 0 {
 		header += " (" + strings.Join(ek, ", ") + ")"
 	}

@@ -23,7 +23,7 @@ func TestUnknownEscapeIsError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		l := New(tt.src)
-		for l.NextToken().Type != TOKEN_EOF {
+		for l.NextToken().Type != TokEOF {
 		}
 		h := l.Errs()
 		if len(h) != 1 || !hasErr(h, 1, tt.col, messages.H0008) {
@@ -54,12 +54,12 @@ func TestRawString(t *testing.T) {
 		{"`\\`", `\`},
 	}
 	for _, tt := range tests {
-		checkTokens(t, tt.src, []expected{{TOKEN_STRING, tt.lit}, {TOKEN_EOF, ""}})
+		checkTokens(t, tt.src, []expected{{TokString, tt.lit}, {TokEOF, ""}})
 	}
 	// Ham metinden sonra sözcük birimleri ve konumlar sürer
 	l := New("x = `a\nb` + 1")
 	var end Token
-	for tok := l.NextToken(); tok.Type != TOKEN_EOF; tok = l.NextToken() {
+	for tok := l.NextToken(); tok.Type != TokEOF; tok = l.NextToken() {
 		end = tok
 	}
 	if end.Literal != "1" || end.Line != 2 || end.Column != 6 {
@@ -69,7 +69,7 @@ func TestRawString(t *testing.T) {
 
 func TestUnterminatedRawString(t *testing.T) {
 	l := New("x = `açık\nmetin")
-	for l.NextToken().Type != TOKEN_EOF {
+	for l.NextToken().Type != TokEOF {
 	}
 	h := l.Errs()
 	if len(h) != 1 || !hasErr(h, 1, 5, messages.H0007) {

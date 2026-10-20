@@ -14,8 +14,8 @@ import (
 // karşılaştırma değerle yapılır (tip(x) == Tam, tip(p) == Nokta). Böylece kodlu saklanan bir
 // program hangi dilde gösterilirse gösterilsin aynı sonucu verir.
 
-// VAL_TYPE is the type of type values (A215 Tip).
-var VAL_TYPE = TypeName(codes.A215)
+// ValType is the type of type values (A215 Tip).
+var ValType = TypeName(codes.A215)
 
 // TypeVal is a type value.
 type TypeVal struct {
@@ -26,7 +26,7 @@ type TypeVal struct {
 	Struct *StructDefVal
 }
 
-func (t *TypeVal) Type() ValueType { return VAL_TYPE }
+func (t *TypeVal) Type() ValueType { return ValType }
 func (t *TypeVal) IsTruthy() bool  { return true }
 func (t *TypeVal) Inspect() string {
 	if t.Struct != nil {

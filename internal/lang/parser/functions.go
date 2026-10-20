@@ -15,8 +15,8 @@ func (p *Parser) parseGroupedOrLambdaExpression(pattern bool) ast.Expression {
 	}
 
 	p.nextToken()
-	exp := p.parseExpression(LOWEST)
-	if !p.expectPeek(lexer.TOKEN_RPAREN) {
+	exp := p.parseExpression(precLowest)
+	if !p.expectPeek(lexer.TokRParen) {
 		return nil
 	}
 	return exp
@@ -26,14 +26,14 @@ func (p *Parser) isLambdaAhead() bool {
 	idx := p.pos + 1
 	depth := 1
 	for idx < len(p.tokens) && depth > 0 {
-		if p.tokens[idx].Type == lexer.TOKEN_LPAREN {
+		if p.tokens[idx].Type == lexer.TokLParen {
 			depth++
-		} else if p.tokens[idx].Type == lexer.TOKEN_RPAREN {
+		} else if p.tokens[idx].Type == lexer.TokRParen {
 			depth--
 		}
 		idx++
 	}
-	if idx < len(p.tokens) && p.tokens[idx].Type == lexer.TOKEN_ARROW {
+	if idx < len(p.tokens) && p.tokens[idx].Type == lexer.TokArrow {
 		return true
 	}
 	return false
@@ -45,7 +45,7 @@ func (p *Parser) parseSingleParamLambda() ast.Expression {
 	arrowTok := p.curToken()
 
 	var body *ast.BlockStatement
-	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
+	if p.peekTokenIs(lexer.TokLBrace) {
 		p.nextToken()
 		body = p.functionBody()
 	} else {
@@ -68,13 +68,13 @@ func (p *Parser) parseSingleParamLambda() ast.Expression {
 func (p *Parser) parseLambdaExpression() ast.Expression {
 	tok := p.curToken() // '('
 	params := p.parseFunctionParameters()
-	if !p.expectPeek(lexer.TOKEN_ARROW) {
+	if !p.expectPeek(lexer.TokArrow) {
 		return nil
 	}
 	arrowTok := p.curToken()
 
 	var body *ast.BlockStatement
-	if p.peekTokenIs(lexer.TOKEN_LBRACE) {
+	if p.peekTokenIs(lexer.TokLBrace) {
 		p.nextToken()
 		body = p.functionBody()
 	} else {
@@ -98,36 +98,36 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	lit := &ast.FunctionLiteral{Token: p.curToken()}
 
 	// İsimli fonksiyon: fonksiyon topla(a, b) { ... }
-	if p.peekTokenIs(lexer.TOKEN_IDENT) {
+	if p.peekTokenIs(lexer.TokIdent) {
 		p.nextToken()
 		lit.Name = p.curToken().Literal
 	}
 
-	if !p.expectPeek(lexer.TOKEN_LPAREN) {
+	if !p.expectPeek(lexer.TokLParen) {
 		return nil
 	}
 
 	lit.Parameters = p.parseFunctionParameters()
 
 	// İsteğe bağlı dönüş tipi: fonksiyon topla(a: Tam, b: Tam): Tam { ... } veya -> Tam { ... }
-	if p.peekTokenIs(lexer.TOKEN_COLON) || p.peekTokenIs(lexer.TOKEN_ARROW) {
+	if p.peekTokenIs(lexer.TokColon) || p.peekTokenIs(lexer.TokArrow) {
 		p.nextToken()
-		if p.expectPeek(lexer.TOKEN_IDENT) {
+		if p.expectPeek(lexer.TokIdent) {
 			lit.ReturnType = p.curToken().Literal
 			p.role(p.curToken(), RoleType)
 		}
-	} else if p.peekTokenIs(lexer.TOKEN_MINUS) {
+	} else if p.peekTokenIs(lexer.TokMinus) {
 		p.nextToken() // '-'
-		if p.peekTokenIs(lexer.TOKEN_GT) {
+		if p.peekTokenIs(lexer.TokGt) {
 			p.nextToken() // '>'
-			if p.expectPeek(lexer.TOKEN_IDENT) {
+			if p.expectPeek(lexer.TokIdent) {
 				lit.ReturnType = p.curToken().Literal
 				p.role(p.curToken(), RoleType)
 			}
 		}
 	}
 
-	if !p.expectPeek(lexer.TOKEN_LBRACE) {
+	if !p.expectPeek(lexer.TokLBrace) {
 		return nil
 	}
 
@@ -137,7 +137,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 func (p *Parser) parseFunctionParameters() []ast.Param {
 	params := []ast.Param{}
 
-	if p.peekTokenIs(lexer.TOKEN_RPAREN) {
+	if p.peekTokenIs(lexer.TokRParen) {
 		p.nextToken()
 		return params
 	}
@@ -146,28 +146,28 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 
 	for {
 		param := ast.Param{Name: p.curToken().Literal}
-		if p.peekTokenIs(lexer.TOKEN_COLON) {
+		if p.peekTokenIs(lexer.TokColon) {
 			p.nextToken() // ':'
-			if p.expectPeek(lexer.TOKEN_IDENT) {
+			if p.expectPeek(lexer.TokIdent) {
 				param.TypeName = p.curToken().Literal
 				p.role(p.curToken(), RoleType)
 			}
 		}
-		if p.peekTokenIs(lexer.TOKEN_ASSIGN) {
+		if p.peekTokenIs(lexer.TokAssign) {
 			p.nextToken() // '='
 			p.nextToken()
-			param.DefaultValue = p.parseExpression(LOWEST)
+			param.DefaultValue = p.parseExpression(precLowest)
 		}
 		params = append(params, param)
 
-		if !p.peekTokenIs(lexer.TOKEN_COMMA) {
+		if !p.peekTokenIs(lexer.TokComma) {
 			break
 		}
 		p.nextToken() // ','
 		p.nextToken()
 	}
 
-	if !p.expectPeek(lexer.TOKEN_RPAREN) {
+	if !p.expectPeek(lexer.TokRParen) {
 		return nil
 	}
 
@@ -184,34 +184,34 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 	args := []ast.Expression{}
 	named := []ast.NamedArg{}
 
-	if p.peekTokenIs(lexer.TOKEN_RPAREN) {
+	if p.peekTokenIs(lexer.TokRParen) {
 		p.nextToken()
 		return args, named
 	}
 
 	p.nextToken()
 	for {
-		if p.curTokenIs(lexer.TOKEN_IDENT) && p.peekTokenIs(lexer.TOKEN_COLON) {
+		if p.curTokenIs(lexer.TokIdent) && p.peekTokenIs(lexer.TokColon) {
 			nameTok := p.curToken()
 			p.nextToken() // ':'
 			p.nextToken()
-			val := p.parseExpression(LOWEST)
+			val := p.parseExpression(precLowest)
 			named = append(named, ast.NamedArg{Token: nameTok, Name: nameTok.Literal, Value: val})
 		} else {
-			args = append(args, p.parseExpression(LOWEST))
+			args = append(args, p.parseExpression(precLowest))
 		}
 
-		if !p.peekTokenIs(lexer.TOKEN_COMMA) {
+		if !p.peekTokenIs(lexer.TokComma) {
 			break
 		}
 		p.nextToken() // ','
-		if p.peekTokenIs(lexer.TOKEN_RPAREN) {
+		if p.peekTokenIs(lexer.TokRParen) {
 			break
 		}
 		p.nextToken()
 	}
 
-	if !p.expectPeek(lexer.TOKEN_RPAREN) {
+	if !p.expectPeek(lexer.TokRParen) {
 		return nil, nil
 	}
 

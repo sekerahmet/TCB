@@ -9,7 +9,7 @@ import (
 
 // at verilen konumda bir sözcük birimi kurar (döküm bu konumu görmemeli).
 func at(line, col int, lit string) lexer.Token {
-	return lexer.Token{Type: lexer.TOKEN_IDENT, Literal: lit, Line: line, Column: col}
+	return lexer.Token{Type: lexer.TokIdent, Literal: lit, Line: line, Column: col}
 }
 
 // sample `f(a + 1)` ağacını verilen konum kaydırmasıyla kurar; işleç ve sayı parametredir.

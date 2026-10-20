@@ -134,7 +134,7 @@ func tokens(body string, coded bool) []lexer.Token {
 	for {
 		tok := l.NextToken()
 		t = append(t, tok)
-		if tok.Type == lexer.TOKEN_EOF {
+		if tok.Type == lexer.TokEOF {
 			return t
 		}
 	}
@@ -169,7 +169,7 @@ func braceKinds(prog *ast.Program) map[pos]int {
 			case *ast.DictLiteral:
 				result[pos{n.Token.Line, n.Token.Column}] = braceDict
 			case *ast.FunctionLiteral:
-				if n.Token.Type == lexer.TOKEN_LBRACE {
+				if n.Token.Type == lexer.TokLBrace {
 					result[pos{n.Token.Line, n.Token.Column}] = braceBlock
 				}
 			}
@@ -205,9 +205,9 @@ func items(src string, coded bool) []item {
 			head = len(input)
 		}
 		result = append(result, commentsInRange(input[prev:head])...)
-		if tok.Type == lexer.TOKEN_EOF {
+		if tok.Type == lexer.TokEOF {
 			// Dosya sonundaki boşluk satır sayısı için işaretçi öğe
-			result = append(result, item{kind: lexer.TOKEN_EOF, lineA: lineCount(input[prev:head])})
+			result = append(result, item{kind: lexer.TokEOF, lineA: lineCount(input[prev:head])})
 			return result
 		}
 		o := item{
@@ -298,38 +298,38 @@ func lineCount(r []rune) int {
 
 // Operatör sınıfları
 var binaryOps = map[lexer.TokenType]bool{
-	lexer.TOKEN_PLUS: true, lexer.TOKEN_MINUS: true, lexer.TOKEN_ASTERISK: true, lexer.TOKEN_SLASH: true,
-	lexer.TOKEN_PERCENT: true, lexer.TOKEN_POWER: true, lexer.TOKEN_MATMUL: true,
-	lexer.TOKEN_EQ: true, lexer.TOKEN_NOT_EQ: true, lexer.TOKEN_LT: true, lexer.TOKEN_GT: true,
-	lexer.TOKEN_LTE: true, lexer.TOKEN_GTE: true, lexer.TOKEN_AND: true, lexer.TOKEN_OR: true,
-	lexer.TOKEN_PIPE: true, lexer.TOKEN_NULL_COALESC: true, lexer.TOKEN_ARROW: true,
-	lexer.TOKEN_ASSIGN: true, lexer.TOKEN_WALRUS: true, lexer.TOKEN_PLUS_ASSIGN: true,
-	lexer.TOKEN_MINUS_ASSIGN: true, lexer.TOKEN_MUL_ASSIGN: true, lexer.TOKEN_DIV_ASSIGN: true,
+	lexer.TokPlus: true, lexer.TokMinus: true, lexer.TokAsterisk: true, lexer.TokSlash: true,
+	lexer.TokPercent: true, lexer.TokPower: true, lexer.TokMatmul: true,
+	lexer.TokEq: true, lexer.TokNotEq: true, lexer.TokLt: true, lexer.TokGt: true,
+	lexer.TokLte: true, lexer.TokGte: true, lexer.TokAnd: true, lexer.TokOr: true,
+	lexer.TokPipe: true, lexer.TokNullCoalesc: true, lexer.TokArrow: true,
+	lexer.TokAssign: true, lexer.TokWalrus: true, lexer.TokPlusAssign: true,
+	lexer.TokMinusAssign: true, lexer.TokMulAssign: true, lexer.TokDivAssign: true,
 }
 
 // Satır sonunda kalırsa sonraki satırı devam satırı yapan sözcükler
 var continuingEnd = map[lexer.TokenType]bool{
-	lexer.TOKEN_KW_AND: true, lexer.TOKEN_KW_OR: true, lexer.TOKEN_DOT: true, lexer.TOKEN_SAFE_DOT: true,
-	lexer.TOKEN_COLON: true, lexer.TOKEN_RANGE: true, lexer.TOKEN_RANGE_INCL: true,
+	lexer.TokKwAnd: true, lexer.TokKwOr: true, lexer.TokDot: true, lexer.TokSafeDot: true,
+	lexer.TokColon: true, lexer.TokRange: true, lexer.TokRangeIncl: true,
 }
 
 // Satır başında gelirse o satırı devam satırı yapan sözcükler ('-' bilerek yok: satır başında
 // tekli eksi gibi görünür)
 var continuingStart = map[lexer.TokenType]bool{
-	lexer.TOKEN_PIPE: true, lexer.TOKEN_DOT: true, lexer.TOKEN_SAFE_DOT: true, lexer.TOKEN_NULL_COALESC: true,
-	lexer.TOKEN_AND: true, lexer.TOKEN_OR: true, lexer.TOKEN_KW_AND: true, lexer.TOKEN_KW_OR: true,
-	lexer.TOKEN_PLUS: true, lexer.TOKEN_ASTERISK: true, lexer.TOKEN_SLASH: true, lexer.TOKEN_PERCENT: true,
-	lexer.TOKEN_POWER: true, lexer.TOKEN_MATMUL: true, lexer.TOKEN_EQ: true, lexer.TOKEN_NOT_EQ: true,
-	lexer.TOKEN_LT: true, lexer.TOKEN_GT: true, lexer.TOKEN_LTE: true, lexer.TOKEN_GTE: true,
-	lexer.TOKEN_RANGE: true, lexer.TOKEN_RANGE_INCL: true,
+	lexer.TokPipe: true, lexer.TokDot: true, lexer.TokSafeDot: true, lexer.TokNullCoalesc: true,
+	lexer.TokAnd: true, lexer.TokOr: true, lexer.TokKwAnd: true, lexer.TokKwOr: true,
+	lexer.TokPlus: true, lexer.TokAsterisk: true, lexer.TokSlash: true, lexer.TokPercent: true,
+	lexer.TokPower: true, lexer.TokMatmul: true, lexer.TokEq: true, lexer.TokNotEq: true,
+	lexer.TokLt: true, lexer.TokGt: true, lexer.TokLte: true, lexer.TokGte: true,
+	lexer.TokRange: true, lexer.TokRangeIncl: true,
 }
 
 func opening(t lexer.TokenType) bool {
-	return t == lexer.TOKEN_LBRACE || t == lexer.TOKEN_LPAREN || t == lexer.TOKEN_LBRACKET
+	return t == lexer.TokLBrace || t == lexer.TokLParen || t == lexer.TokLBracket
 }
 
 func closing(t lexer.TokenType) bool {
-	return t == lexer.TOKEN_RBRACE || t == lexer.TOKEN_RPAREN || t == lexer.TOKEN_RBRACKET
+	return t == lexer.TokRBrace || t == lexer.TokRParen || t == lexer.TokRBracket
 }
 
 // isUnary '-' işaretinin önceki sözcüğe bakarak önek (tekli) olup olmadığını belirler.
@@ -339,11 +339,11 @@ func isUnary(prev *item) bool {
 	}
 	t := prev.kind
 	switch {
-	case t == lexer.TOKEN_RPAREN || t == lexer.TOKEN_RBRACKET || t == lexer.TOKEN_RBRACE:
+	case t == lexer.TokRParen || t == lexer.TokRBracket || t == lexer.TokRBrace:
 		return false
-	case t == lexer.TOKEN_IDENT || t == lexer.TOKEN_INT || t == lexer.TOKEN_FLOAT || t == lexer.TOKEN_STRING:
+	case t == lexer.TokIdent || t == lexer.TokInt || t == lexer.TokFloat || t == lexer.TokString:
 		return false
-	case t == lexer.TOKEN_TRUE || t == lexer.TOKEN_FALSE || t == lexer.TOKEN_NIL || t == lexer.TOKEN_SELF:
+	case t == lexer.TokTrue || t == lexer.TokFalse || t == lexer.TokNil || t == lexer.TokSelf:
 		return false
 	}
 	return true
@@ -355,31 +355,31 @@ func spaceBetween(p, c *item) bool {
 	switch {
 	case pt == tokComment || ct == tokComment:
 		return true
-	case ct == lexer.TOKEN_COMMA || ct == lexer.TOKEN_SEMICOLON || ct == lexer.TOKEN_RPAREN || ct == lexer.TOKEN_RBRACKET:
+	case ct == lexer.TokComma || ct == lexer.TokSemicolon || ct == lexer.TokRParen || ct == lexer.TokRBracket:
 		return false
-	case pt == lexer.TOKEN_LPAREN || pt == lexer.TOKEN_LBRACKET:
+	case pt == lexer.TokLParen || pt == lexer.TokLBracket:
 		return false
-	case pt == lexer.TOKEN_DOT || pt == lexer.TOKEN_SAFE_DOT || ct == lexer.TOKEN_DOT || ct == lexer.TOKEN_SAFE_DOT:
+	case pt == lexer.TokDot || pt == lexer.TokSafeDot || ct == lexer.TokDot || ct == lexer.TokSafeDot:
 		return false
-	case pt == lexer.TOKEN_LBRACE:
-		return ct != lexer.TOKEN_RBRACE && !p.dict
-	case ct == lexer.TOKEN_RBRACE:
+	case pt == lexer.TokLBrace:
+		return ct != lexer.TokRBrace && !p.dict
+	case ct == lexer.TokRBrace:
 		return !c.dict
 	case p.unary:
 		return false
 	// Dönüş tipi oku: fonksiyon f() -> Tam
-	case pt == lexer.TOKEN_MINUS && ct == lexer.TOKEN_GT && c.adjacent:
+	case pt == lexer.TokMinus && ct == lexer.TokGt && c.adjacent:
 		return false
-	case ct == lexer.TOKEN_LPAREN || ct == lexer.TOKEN_LBRACKET:
+	case ct == lexer.TokLParen || ct == lexer.TokLBracket:
 		switch pt {
-		case lexer.TOKEN_IDENT, lexer.TOKEN_RPAREN, lexer.TOKEN_RBRACKET, lexer.TOKEN_RBRACE,
-			lexer.TOKEN_STRING, lexer.TOKEN_SELF, lexer.TOKEN_FUNCTION, lexer.TOKEN_BREAKPOINT:
+		case lexer.TokIdent, lexer.TokRParen, lexer.TokRBracket, lexer.TokRBrace,
+			lexer.TokString, lexer.TokSelf, lexer.TokFunction, lexer.TokBreakpoint:
 			return false
 		}
 		return true
-	case pt == lexer.TOKEN_RANGE || pt == lexer.TOKEN_RANGE_INCL || ct == lexer.TOKEN_RANGE || ct == lexer.TOKEN_RANGE_INCL:
+	case pt == lexer.TokRange || pt == lexer.TokRangeIncl || ct == lexer.TokRange || ct == lexer.TokRangeIncl:
 		return false
-	case ct == lexer.TOKEN_COLON:
+	case ct == lexer.TokColon:
 		return false
 	}
 	return true
@@ -396,22 +396,22 @@ func mark(og []item, braces map[pos]int) {
 	var braceStack []*item // açık '{' öğeleri (sözlük kapanışını eşlemek için)
 	for i := range og {
 		o := &og[i]
-		if o.kind == tokComment || o.kind == lexer.TOKEN_EOF {
+		if o.kind == tokComment || o.kind == lexer.TokEOF {
 			continue
 		}
-		if o.kind == lexer.TOKEN_BANG {
+		if o.kind == lexer.TokBang {
 			o.unary = true
-		} else if o.kind == lexer.TOKEN_MINUS {
-			read := i+1 < len(og) && og[i+1].kind == lexer.TOKEN_GT && og[i+1].adjacent &&
-				prevTok != nil && (prevTok.kind == lexer.TOKEN_RPAREN)
+		} else if o.kind == lexer.TokMinus {
+			read := i+1 < len(og) && og[i+1].kind == lexer.TokGt && og[i+1].adjacent &&
+				prevTok != nil && (prevTok.kind == lexer.TokRParen)
 			o.unary = !read && isUnary(prevTok)
 		}
 		switch o.kind {
-		case lexer.TOKEN_LBRACE:
+		case lexer.TokLBrace:
 			kind := braces[pos{o.line, o.col}]
 			o.dict, o.body = kind == braceDict, kind == 0
 			braceStack = append(braceStack, o)
-		case lexer.TOKEN_RBRACE:
+		case lexer.TokRBrace:
 			if len(braceStack) > 0 {
 				o.dict = braceStack[len(braceStack)-1].dict
 				braceStack = braceStack[:len(braceStack)-1]
@@ -422,7 +422,7 @@ func mark(og []item, braces map[pos]int) {
 			switch {
 			case o.body:
 				o.lineA = 0
-			case (o.kind == lexer.TOKEN_ELSE || o.kind == lexer.TOKEN_CATCH) && prev == lexer.TOKEN_RBRACE:
+			case (o.kind == lexer.TokElse || o.kind == lexer.TokCatch) && prev == lexer.TokRBrace:
 				o.lineA = 0
 			}
 		}
@@ -444,7 +444,7 @@ func format(src string, coded bool, braces map[pos]int) string {
 	var lines []line
 	for i := range og {
 		o := &og[i]
-		if o.kind == lexer.TOKEN_EOF {
+		if o.kind == lexer.TokEOF {
 			break
 		}
 		if len(lines) == 0 || o.lineA > 0 {

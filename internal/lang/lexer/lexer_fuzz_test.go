@@ -47,7 +47,7 @@ func FuzzLexer(f *testing.F) {
 			if begin < 0 || begin > end || end > length {
 				t.Fatalf("geçersiz aralık [%d, %d) (girdi %d karakter)", begin, end, length)
 			}
-			if tok.Type == TOKEN_EOF {
+			if tok.Type == TokEOF {
 				return
 			}
 		}

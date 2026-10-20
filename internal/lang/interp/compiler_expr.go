@@ -145,7 +145,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 			sInt, ok1 := startVal.(*IntVal)
 			eInt, ok2 := endVal.(*IntVal)
 			if !ok1 || !ok2 {
-				return nil, messages.At(line, 0, messages.New(messages.H2439, VAL_RANGE, VAL_INT))
+				return nil, messages.At(line, 0, messages.New(messages.H2439, ValRange, ValInt))
 			}
 			return &RangeVal{Start: sInt.Val, End: eInt.Val, Inclusive: inclusive}, nil
 		}

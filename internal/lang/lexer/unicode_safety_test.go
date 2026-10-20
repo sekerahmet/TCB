@@ -8,7 +8,7 @@ import (
 
 func lexErrors(src string) []error {
 	l := New(src)
-	for l.NextToken().Type != TOKEN_EOF {
+	for l.NextToken().Type != TokEOF {
 	}
 	return l.Errs()
 }

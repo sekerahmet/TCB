@@ -16,19 +16,19 @@ import (
 type ValueType string
 
 var (
-	VAL_INT      = TypeName(codes.A200) // Tam
-	VAL_FLOAT    = TypeName(codes.A201) // Ondalık
-	VAL_STRING   = TypeName(codes.A202) // Metin
-	VAL_BOOL     = TypeName(codes.A203) // Mantık
-	VAL_NULL     = TypeName(codes.A204) // Yok
-	VAL_LIST     = TypeName(codes.A205) // Liste
-	VAL_DICT     = TypeName(codes.A206) // Sözlük
-	VAL_RANGE    = TypeName(codes.A207) // Aralık
-	VAL_FUNC     = TypeName(codes.A208) // Fonksiyon
-	VAL_BUILTIN  = TypeName(codes.A209) // YerleşikFonksiyon
-	VAL_STRUCT   = TypeName(codes.A210) // YapıTanımı
-	VAL_INSTANCE = TypeName(codes.A211) // Nesne
-	VAL_TENSOR   = TypeName(codes.A212) // Tensör
+	ValInt      = TypeName(codes.A200) // Tam
+	ValFloat    = TypeName(codes.A201) // Ondalık
+	ValString   = TypeName(codes.A202) // Metin
+	ValBool     = TypeName(codes.A203) // Mantık
+	ValNull     = TypeName(codes.A204) // Yok
+	ValList     = TypeName(codes.A205) // Liste
+	ValDict     = TypeName(codes.A206) // Sözlük
+	ValRange    = TypeName(codes.A207) // Aralık
+	ValFunc     = TypeName(codes.A208) // Fonksiyon
+	ValBuiltin  = TypeName(codes.A209) // YerleşikFonksiyon
+	ValStruct   = TypeName(codes.A210) // YapıTanımı
+	ValInstance = TypeName(codes.A211) // Nesne
+	ValTensor   = TypeName(codes.A212) // Tensör
 )
 
 // TypeName is the ValueType of a type-name code from the dictionary (A2xx); engines get the
@@ -52,7 +52,7 @@ type IntVal struct {
 	Val int64
 }
 
-func (i *IntVal) Type() ValueType { return VAL_INT }
+func (i *IntVal) Type() ValueType { return ValInt }
 func (i *IntVal) Inspect() string { return strconv.FormatInt(i.Val, 10) }
 func (i *IntVal) IsTruthy() bool  { return i.Val != 0 }
 
@@ -60,7 +60,7 @@ type FloatVal struct {
 	Val float64
 }
 
-func (f *FloatVal) Type() ValueType { return VAL_FLOAT }
+func (f *FloatVal) Type() ValueType { return ValFloat }
 func (f *FloatVal) Inspect() string {
 	// Sonsuz ve tanımsız değerler tensör yazdırmasıyla aynı biçimde yazılır
 	switch {
@@ -83,7 +83,7 @@ type StringVal struct {
 	Val string
 }
 
-func (s *StringVal) Type() ValueType { return VAL_STRING }
+func (s *StringVal) Type() ValueType { return ValString }
 func (s *StringVal) Inspect() string { return s.Val }
 func (s *StringVal) IsTruthy() bool  { return len(s.Val) > 0 }
 
@@ -91,7 +91,7 @@ type BoolVal struct {
 	Val bool
 }
 
-func (b *BoolVal) Type() ValueType { return VAL_BOOL }
+func (b *BoolVal) Type() ValueType { return ValBool }
 func (b *BoolVal) Inspect() string {
 	if b.Val {
 		return codes.Name(codes.A040)
@@ -102,7 +102,7 @@ func (b *BoolVal) IsTruthy() bool { return b.Val }
 
 type NullVal struct{}
 
-func (n *NullVal) Type() ValueType { return VAL_NULL }
+func (n *NullVal) Type() ValueType { return ValNull }
 func (n *NullVal) Inspect() string { return codes.Name(codes.A042) }
 func (n *NullVal) IsTruthy() bool  { return false }
 
@@ -116,7 +116,7 @@ type ListVal struct {
 	Elements []Value
 }
 
-func (l *ListVal) Type() ValueType { return VAL_LIST }
+func (l *ListVal) Type() ValueType { return ValList }
 func (l *ListVal) Inspect() string { return writeContainer(l, nil) }
 func (l *ListVal) IsTruthy() bool  { return len(l.Elements) > 0 }
 
@@ -150,7 +150,7 @@ func DictKey(v Value) string {
 	switch x := v.(type) {
 	case *StringVal:
 		if strings.HasPrefix(x.Val, nonStringKeyPrefix) {
-			return nonStringKeyPrefix + string(VAL_STRING) + ":" + x.Val
+			return nonStringKeyPrefix + string(ValString) + ":" + x.Val
 		}
 		return x.Val
 	case *FuncVal:
@@ -238,7 +238,7 @@ func (d *DictVal) setRaw(key string, val Value) {
 // intKey bir Tam anahtarın iç kodlamasını (DictKey ile aynı) buf'a yazar; böylece
 // aramada ara metin ayrılmaz.
 func intKey(buf []byte, n int64) []byte {
-	buf = append(buf, nonStringKeyPrefix+string(VAL_INT)+":"...)
+	buf = append(buf, nonStringKeyPrefix+string(ValInt)+":"...)
 	return strconv.AppendInt(buf, n, 10)
 }
 
@@ -301,7 +301,7 @@ func (d *DictVal) DisplayKey(k string) string {
 	return k
 }
 
-func (d *DictVal) Type() ValueType { return VAL_DICT }
+func (d *DictVal) Type() ValueType { return ValDict }
 func (d *DictVal) Inspect() string { return writeContainer(d, nil) }
 func (d *DictVal) IsTruthy() bool  { return len(d.Pairs) > 0 }
 
@@ -311,7 +311,7 @@ type RangeVal struct {
 	Inclusive bool
 }
 
-func (r *RangeVal) Type() ValueType { return VAL_RANGE }
+func (r *RangeVal) Type() ValueType { return ValRange }
 func (r *RangeVal) Inspect() string {
 	if r.Inclusive {
 		return fmt.Sprintf("%d..=%d", r.Start, r.End)
@@ -330,7 +330,7 @@ type FuncVal struct {
 	codeVal *funcCode
 }
 
-func (f *FuncVal) Type() ValueType { return VAL_FUNC }
+func (f *FuncVal) Type() ValueType { return ValFunc }
 func (f *FuncVal) Inspect() string {
 	if f.Name != "" {
 		return messages.Text(messages.H2496, f.Name)
@@ -354,7 +354,7 @@ type BuiltinVal struct {
 	NoNamedArgs bool
 }
 
-func (b *BuiltinVal) Type() ValueType { return VAL_BUILTIN }
+func (b *BuiltinVal) Type() ValueType { return ValBuiltin }
 func (b *BuiltinVal) Inspect() string { return messages.Text(messages.H2497, b.Name) }
 func (b *BuiltinVal) IsTruthy() bool  { return true }
 
@@ -371,7 +371,7 @@ type StructDefVal struct {
 	typ *TypeVal
 }
 
-func (s *StructDefVal) Type() ValueType { return VAL_STRUCT }
+func (s *StructDefVal) Type() ValueType { return ValStruct }
 func (s *StructDefVal) Inspect() string { return messages.Text(messages.H2498, s.Name) }
 func (s *StructDefVal) IsTruthy() bool  { return true }
 

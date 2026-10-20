@@ -79,7 +79,7 @@ func TestOperatorPrecedence(t *testing.T) {
 	}
 
 	val, _ := runTR(t, "sonuç 3 ** 2")
-	if val.Type() != VAL_INT {
+	if val.Type() != ValInt {
 		t.Fatalf("Tam ** Tam sonucu Tam olmalı, %s alındı", val.Type())
 	}
 	if _, err := runTR(t, "sonuç 10 ** 40"); !messages.Has(err, messages.H2472) {

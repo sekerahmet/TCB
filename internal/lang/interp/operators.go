@@ -209,7 +209,7 @@ func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) 
 		}
 		res, ok := intPow(a, b)
 		if !ok {
-			return nil, true, messages.At(line, 0, messages.New(messages.H2472, VAL_INT, a, b))
+			return nil, true, messages.At(line, 0, messages.New(messages.H2472, ValInt, a, b))
 		}
 		return NewInt(res), true, nil
 	case opLt:
@@ -269,7 +269,7 @@ func floatOp(codeVal uint8, lf, rf float64, line int) (Value, bool, error) {
 
 // overflowError int64 sınırını aşan tam sayı işlemleri için hata üretir (sessizce sarmak yerine).
 func overflowError(line int, a int64, op string, b int64) error {
-	return messages.At(line, 0, messages.New(messages.H2473, VAL_INT, a, op, b))
+	return messages.At(line, 0, messages.New(messages.H2473, ValInt, a, op, b))
 }
 
 func ToFloat(v Value) (float64, bool) {
@@ -308,7 +308,7 @@ func ValuesEqual(a, b Value) bool {
 const equalityDepth = 10000
 
 func valuesEqual(a, b Value, nestDepth int) bool {
-	if a.Type() == VAL_NULL && b.Type() == VAL_NULL {
+	if a.Type() == ValNull && b.Type() == ValNull {
 		return true
 	}
 	if ai, ok := a.(*IntVal); ok {
