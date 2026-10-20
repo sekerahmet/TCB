@@ -277,6 +277,7 @@
 "H2511": { "param": [] },
 "H2512": { "param": ["line", "header", "prefix"] },
 "H2513": { "param": ["count", "max"] },
+"H2514": { "param": ["error"] },
 "H5500": { "param": ["shards", "tokens"] },
 "H5501": { "param": ["type", "summary", "quota"] },
 "H5502": { "param": [] },

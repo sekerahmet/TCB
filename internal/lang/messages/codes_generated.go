@@ -282,6 +282,7 @@ const (
 	H2511 Code = 2511 // çeviri kayıpsız olmadı (programın anlamı ya da metni değişecekti), dosyaya dokunulmadı; lütfen bu dosyayı bir hata kaydıyla bildirin
 	H2512 Code = 2512 // '{line}' bu yorumlayıcının tanımadığı bir kodlu biçim başlığı; yalnızca '{header}' okunur (dosya daha yeni bir TR sürümüyle yazılmış olabilir; '{prefix}' ile başlayan ilk satır kodlu biçim için ayrılmıştır)
 	H2513 Code = 2513 // … ve {count} hata daha (ilk {max} hata gösterildi)
+	H2514 Code = 2514 // sözdizimi hatası olan kaynak çevrilmez: {error}
 	H5500 Code = 5500 // {shards} veri dosyası, {tokens} parça
 	H5501 Code = 5501 // {type}({summary}, önbellek {quota})
 	H5502 Code = 5502 // Veri kümesi

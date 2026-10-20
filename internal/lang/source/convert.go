@@ -27,9 +27,11 @@ type SyntaxError struct {
 	Errors []error
 }
 
-func (e *SyntaxError) Error() string {
-	return "sözdizimi hatası olan kaynak çevrilmez: " + e.Errors[0].Error()
-}
+// Unwrap returns the coded message around the first error, so its position stays readable
+// (messages.Pos).
+func (e *SyntaxError) Unwrap() error { return messages.New(messages.H2514, e.Errors[0]) }
+
+func (e *SyntaxError) Error() string { return e.Unwrap().Error() }
 
 // ErrUTF8 is returned when the body to convert is not valid UTF-8.
 var ErrUTF8 error = messages.New(messages.H2510)
