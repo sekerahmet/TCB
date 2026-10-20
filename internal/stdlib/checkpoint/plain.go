@@ -204,7 +204,7 @@ func toTagged(x map[string]any, depth int) (interp.Value, error) {
 			return nil, messages.New(messages.H7462, tagFloat)
 		}
 		f, err := strconv.ParseFloat(m, 64)
-		if err != nil && !strings.Contains(err.Error(), "out of range") {
+		if err != nil && !errors.Is(err, strconv.ErrRange) {
 			return nil, messages.New(messages.H7463, m)
 		}
 		return &interp.FloatVal{Val: f}, nil
