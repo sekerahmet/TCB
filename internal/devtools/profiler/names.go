@@ -3,10 +3,11 @@ package profiler
 import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // tensorOps tablo başlığıdır ("Tensör işlemleri"; tip adı kod listesinden).
-func tensorOps() string { return codes.Name(codes.A212) + " işlemleri" }
+func tensorOps() string { return messages.Text(messages.H8206, codes.Name(codes.A212)) }
 
 // opName tensör işleminin raporda görünen adıdır. Dildeki bir yerleşiğe ya da metoda
 // karşılık gelen işlemler o adla (kod listesinden) yazılır: kullanıcı kendi kodunda gördüğü
@@ -18,23 +19,23 @@ func opName(is tensor.OpKind) string {
 	}
 	switch is {
 	case tensor.OpKindAdd:
-		return "toplama (+)"
+		return messages.Text(messages.H8207)
 	case tensor.OpKindSub:
-		return "çıkarma (-)"
+		return messages.Text(messages.H8208)
 	case tensor.OpKindMul:
-		return "çarpma (*)"
+		return messages.Text(messages.H8209)
 	case tensor.OpKindDiv:
-		return "bölme (/)"
+		return messages.Text(messages.H8210)
 	case tensor.OpKindLess:
-		return "karşılaştırma (<)"
+		return messages.Text(messages.H8211)
 	case tensor.OpKindGreater:
-		return "karşılaştırma (>)"
+		return messages.Text(messages.H8212)
 	case tensor.OpKindLessEq:
-		return "karşılaştırma (<=)"
+		return messages.Text(messages.H8213)
 	case tensor.OpKindGreaterEq:
-		return "karşılaştırma (>=)"
+		return messages.Text(messages.H8214)
 	case tensor.OpKindMatMul:
-		return "matris çarpımı (@)"
+		return messages.Text(messages.H8215)
 	case tensor.OpKindToDevice:
 		return "." + codes.Name(codes.Y414)
 	case tensor.OpKindCast:
@@ -99,10 +100,10 @@ var opCode = map[tensor.OpKind]codes.Code{
 // kaydı yalnızca işlem dışında yapılan ayırmalardır (oluşturucular).
 func fullName(is tensor.OpKind, restore bool, calls int64) string {
 	if is == tensor.OpKindOther && calls == 0 {
-		return "işlem dışı ayırmalar"
+		return messages.Text(messages.H8216)
 	}
 	if restore {
-		return "geri · " + opName(is)
+		return messages.Text(messages.H8217, opName(is))
 	}
 	return opName(is)
 }

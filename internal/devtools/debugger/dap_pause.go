@@ -2,15 +2,14 @@ package debugger
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"path/filepath"
-	"strconv"
 )
 
 // ---------------------------------------------------------------------------
@@ -27,7 +26,7 @@ func (s *dapServer) waitForCommand(v *interp.VM, line int, env *interp.Environme
 	}
 	// Durum metinleri terminal ve düzenleyicide aynıdır (tuşlar da aynı anlamdadır).
 	if reason == "" && kind == "step" {
-		reason = stateStep
+		reason = stateStep()
 	}
 
 	s.mu.Lock()
@@ -89,15 +88,15 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 		}
 		_ = json.Unmarshal(msg.Arguments, &a)
 		if a.TargetID < 1 {
-			s.respondErr(msg, "Geçersiz hedef satır")
+			s.respondErr(msg, messages.Text(messages.H8130))
 			return 0, false
 		}
 		target, ok := s.curVM.JumpTarget(a.TargetID)
 		if !ok {
-			s.respondErr(msg, "%s", jumpOutsideBlock(a.TargetID))
+			s.respondErr(msg, jumpOutsideBlock(a.TargetID))
 			return 0, false
 		}
-		s.resume(StepInto, 0, "Satır "+turkish.NumberSuffix(int64(target), turkish.Dative)+" zıplandı", "goto")
+		s.resume(StepInto, 0, messages.Text(messages.H8049, turkish.NumberSuffix(int64(target), turkish.Dative)), "goto")
 		s.respond(msg, nil)
 		return target, true
 	case "gotoTargets":
@@ -107,7 +106,7 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 		_ = json.Unmarshal(msg.Arguments, &a)
 		targets := []interface{}{}
 		if target, ok := s.curVM.JumpTarget(a.Line); ok {
-			targets = append(targets, map[string]interface{}{"id": target, "label": "Satır " + strconv.Itoa(target), "line": target})
+			targets = append(targets, map[string]interface{}{"id": target, "label": messages.Text(messages.H8131, target), "line": target})
 		}
 		s.respond(msg, map[string]interface{}{"targets": targets})
 	case "stackTrace":
@@ -129,14 +128,14 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 	case "trDegiskenler":
 		s.variablesTable(msg)
 	default:
-		s.respondErr(msg, "Desteklenmeyen istek: %s", msg.Command)
+		s.respondErr(msg, messages.Text(messages.H8107, msg.Command))
 	}
 	return 0, false
 }
 
 // jumpOutsideBlock zıplanamayan satırın iletisidir (terminalde ve düzenleyicide aynı).
 func jumpOutsideBlock(line int) string {
-	return fmt.Sprintf("Satır %d şu an çalışan bloğun dışında; yalnızca bulunulan bloğun (%s, %s ya da %s gövdesinin) satırlarına zıplanabilir", line, codes.Name(codes.A020), codes.Name(codes.A010), codes.Name(codes.A001))
+	return messages.Text(messages.H8132, line, codes.Name(codes.A020), codes.Name(codes.A010), codes.Name(codes.A001))
 }
 
 // sourceOf çağrı yığınındaki bir dosyanın kaynak bilgisidir; nil hata ayıklanan programdır.
@@ -198,7 +197,7 @@ func (s *dapServer) evaluate(msg *dapMessage) {
 	p := parser.New(lexer.New(a.Expression))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		s.respondErr(msg, "%s", p.Errors()[0])
+		s.respondErr(msg, p.Errors()[0])
 		return
 	}
 	var val interp.Value
@@ -210,10 +209,10 @@ func (s *dapServer) evaluate(msg *dapMessage) {
 			return s.curVM.ExecStatements(prog.Statements, s.curEnv)
 		})
 	} else {
-		err = fmt.Errorf("yalnızca ifade değerlendirilebilir")
+		err = messages.New(messages.H8133)
 	}
 	if err != nil {
-		s.respondErr(msg, "%v", err)
+		s.respondErr(msg, err.Error())
 		return
 	}
 	if val == nil {

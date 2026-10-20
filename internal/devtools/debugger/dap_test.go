@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"io"
 	"os"
 	"path/filepath"
@@ -412,7 +413,7 @@ func TestDAPGotoOutsideBlockRejected(t *testing.T) {
 // Çok büyük Content-Length bellek tüketmeden reddedilir.
 func TestDAPContentLengthLimit(t *testing.T) {
 	s := newDAPServer(strings.NewReader("Content-Length: 99999999999\r\n\r\n{}"), io.Discard)
-	if _, err := s.readMessage(); err == nil || !strings.Contains(err.Error(), "çok büyük") {
+	if _, err := s.readMessage(); !messages.Has(err, messages.H8101) {
 		t.Fatalf("büyük ileti reddedilmeli: %v", err)
 	}
 }

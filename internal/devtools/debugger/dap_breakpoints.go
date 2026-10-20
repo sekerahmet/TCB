@@ -2,11 +2,10 @@ package debugger
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"net/url"
 	"path/filepath"
@@ -45,7 +44,7 @@ func (s *dapServer) setBreakpoints(msg *dapMessage) {
 		points[bp.Line] = dapBreakpoint{Line: bp.Line, Condition: bp.Condition, LogMessage: bp.LogMessage}
 		entry := map[string]interface{}{"line": bp.Line, "verified": sameFile}
 		if !sameFile {
-			entry["message"] = "Yalnızca hata ayıklanan dosyada kesme noktası konabilir"
+			entry["message"] = messages.Text(messages.H8110)
 		}
 		result = append(result, entry)
 	}
@@ -112,7 +111,7 @@ func (s *dapServer) breakpointHit(v *interp.VM, line int, env *interp.Environmen
 	if bp.Condition != "" {
 		val, err := s.evalQuiet(v, env, bp.Condition)
 		if err != nil {
-			s.output("console", fmt.Sprintf("Kesme noktası koşulu hatalı (satır %d): %v\n", line, err))
+			s.output("console", messages.Text(messages.H8111, line, err)+"\n")
 			return true
 		}
 		if !val.IsTruthy() {
@@ -159,14 +158,14 @@ func (s *dapServer) evalQuiet(v *interp.VM, env *interp.Environment, expr string
 	p := parser.New(lexer.New(expr))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		return nil, errors.New(p.Errors()[0])
+		return nil, messages.New(messages.H8190, p.Errors()[0])
 	}
 	if len(prog.Statements) != 1 {
-		return nil, fmt.Errorf("tek bir ifade bekleniyordu: %s", expr)
+		return nil, messages.New(messages.H8112, expr)
 	}
 	es, ok := prog.Statements[0].(*ast.ExpressionStatement)
 	if !ok {
-		return nil, fmt.Errorf("tek bir ifade bekleniyordu: %s", expr)
+		return nil, messages.New(messages.H8112, expr)
 	}
 	return s.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
 }
@@ -186,11 +185,11 @@ func (s *dapServer) dataBreakpointInfo(msg *dapMessage) {
 	_ = json.Unmarshal(msg.Arguments, &a)
 	h := s.handles[a.VariablesReference]
 	if h == nil || h.value != nil {
-		s.respond(msg, map[string]interface{}{"dataId": nil, "description": "İzleme noktası yalnızca değişkenlere konabilir"})
+		s.respond(msg, map[string]interface{}{"dataId": nil, "description": messages.Text(messages.H8113)})
 		return
 	}
 	s.respond(msg, map[string]interface{}{
-		"dataId": a.Name, "description": "'" + a.Name + "' değiştiğinde dur",
+		"dataId": a.Name, "description": messages.Text(messages.H8114, a.Name),
 		"accessTypes": []string{"write"}, "canPersist": true,
 	})
 }

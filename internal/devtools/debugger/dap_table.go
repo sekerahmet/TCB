@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"path/filepath"
 	"strings"
 )
@@ -88,13 +89,13 @@ func typeLabel(val interp.Value) string {
 	case *interp.ListVal:
 		if recordList(v) {
 			cols, rows, _ := TableData(v)
-			return fmt.Sprintf("Tablo [%d×%d]", len(rows), len(cols))
+			return messages.Text(messages.H8140, len(rows), len(cols))
 		}
 		return fmt.Sprintf("%s [%d]", interp.VAL_LIST, len(v.Elements))
 	case *interp.DictVal:
 		return fmt.Sprintf("%s [%d]", interp.VAL_DICT, len(v.Pairs))
 	case *interp.StructInstanceVal:
-		return "Yapı " + v.Def.Name
+		return messages.Text(messages.H8141, v.Def.Name)
 	}
 	return string(val.Type())
 }
@@ -110,12 +111,12 @@ func (s *dapServer) table(msg *dapMessage) {
 	_ = json.Unmarshal(msg.Arguments, &a)
 	val, err := s.evalQuiet(s.curVM, s.curEnv, a.Expression)
 	if err != nil {
-		s.respondErr(msg, "%v", err)
+		s.respondErr(msg, err.Error())
 		return
 	}
 	cols, rows, err := TableData(val)
 	if err != nil {
-		s.respondErr(msg, "%v", err)
+		s.respondErr(msg, err.Error())
 		return
 	}
 	s.respond(msg, map[string]interface{}{"baslik": a.Expression, "sutunlar": cols, "satirlar": rows, "tip": string(val.Type())})
@@ -166,21 +167,21 @@ func TableData(val interp.Value) ([]string, [][]string, error) {
 			}
 			rows = append(rows, []string{plainText(el)})
 		}
-		return []string{"Değer"}, rows, nil
+		return []string{messages.Text(messages.H8142)}, rows, nil
 	case *interp.DictVal:
 		var rows [][]string
 		for _, k := range v.Order {
 			rows = append(rows, []string{v.DisplayKey(k), plainText(v.Pairs[k])})
 		}
-		return []string{"Anahtar", "Değer"}, rows, nil
+		return []string{messages.Text(messages.H8143), messages.Text(messages.H8142)}, rows, nil
 	case *interp.StructInstanceVal:
 		var rows [][]string
 		for _, c := range children(v, "") {
 			rows = append(rows, []string{c.name, plainText(c.val)})
 		}
-		return []string{"Alan", "Değer"}, rows, nil
+		return []string{messages.Text(messages.H8144), messages.Text(messages.H8142)}, rows, nil
 	}
-	return nil, nil, fmt.Errorf("tablo görünümü yalnızca liste, sözlük, yapı ve tensörler için kullanılabilir (bu değer: %s)", val.Type())
+	return nil, nil, messages.New(messages.H8145, val.Type())
 }
 
 // recordList liste, elemanlarının hepsi sözlük ya da yapı olan (her eleman bir satır, her

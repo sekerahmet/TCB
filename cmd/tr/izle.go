@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/devtools/profiler"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
@@ -23,8 +24,7 @@ import (
 func izleKomutu(args []string) {
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") && !strings.EqualFold(filepath.Ext(args[0]), ".tr") {
 		if _, err := os.Stat(args[0]); err != nil {
-			fmt.Fprintf(os.Stderr, "Hata: %q bir .tr dosyası değil. Çalışan bir arka plan işini izlemek (tr izle <iş_adı>) henüz yok; programı izleyerek çalıştırmak için: tr izle egit.tr\n", args[0])
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8670, args[0]))
 		}
 	}
 	s, path, argumanlar := profilArgumanlari("izle", args, "--çıktı")
@@ -41,8 +41,7 @@ func izleKomutu(args []string) {
 		var err error
 		if yak, err = profiler.StartCapture(yol); err != nil {
 			canli.Close()
-			fmt.Fprintf(os.Stderr, "Hata: programın çıktı dosyası açılamadı: %v\n", err)
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8671, err))
 		}
 		canli.Capture(yak)
 		os.Stdout, os.Stderr = yak.Writer(), yak.Writer()
@@ -56,9 +55,9 @@ func izleKomutu(args []string) {
 		if yak != nil {
 			os.Stdout, os.Stderr = gercekCikis, gercekHata
 			yak.Close()
-			fmt.Fprintf(gercekHata, "\nProgramın son çıktısı (tamamı: %s):\n", yak.Path())
+			fmt.Fprintln(gercekHata, "\n"+messages.Text(messages.H8672, yak.Path()))
 			if err := yak.WriteError(); err != nil {
-				fmt.Fprintf(gercekHata, "  ⚠️ Çıktı dosyasına yazma yarıda kaldı, dosya eksik: %v\n", err)
+				fmt.Fprintln(gercekHata, "  ⚠️ "+messages.Text(messages.H8673, err))
 			}
 			for _, l := range yak.LastLines(15) {
 				fmt.Fprintln(gercekHata, "  │ "+l)

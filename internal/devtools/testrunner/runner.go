@@ -47,9 +47,9 @@ func (o *Summary) add(b Summary) {
 
 // String özet satırını üretir: "12 test, 11 geçti, 1 kaldı".
 func (o Summary) String() string {
-	s := fmt.Sprintf("%d test, %d geçti, %d kaldı", o.Total, o.Passed, o.Failed)
+	s := messages.Text(messages.H8500, o.Total, o.Passed, o.Failed)
 	if o.Unloadable > 0 {
-		s += fmt.Sprintf(", %d dosya yüklenemedi", o.Unloadable)
+		s += ", " + messages.Text(messages.H8501, o.Unloadable)
 	}
 	return s
 }
@@ -59,7 +59,7 @@ func (o Summary) String() string {
 func TestFiles(target string) ([]string, error) {
 	info, err := os.Stat(target)
 	if err != nil {
-		return nil, fmt.Errorf("%s bulunamadı", target)
+		return nil, messages.New(messages.H8502, target)
 	}
 	if !info.IsDir() {
 		return []string{target}, nil
@@ -93,7 +93,7 @@ func Run(target string, out io.Writer) (Summary, error) {
 		return Summary{}, err
 	}
 	if len(files) == 0 {
-		return Summary{}, fmt.Errorf("%s içinde *_test.tr dosyası bulunamadı", target)
+		return Summary{}, messages.New(messages.H8503, target)
 	}
 	var total Summary
 	for _, d := range files {
@@ -126,13 +126,13 @@ func RunFile(fpath string, out io.Writer) Summary {
 	text, prog := ready.Text, ready.Program
 	if len(ready.Warnings) > 0 {
 		// Uyarılar testleri durdurmaz ve sonucu etkilemez.
-		fmt.Fprintln(out, "  ⚠️ uyarılar:")
+		fmt.Fprintln(out, "  ⚠️ "+messages.Text(messages.H8504))
 		for _, u := range ready.Warnings {
 			writeError(out, u, text)
 		}
 	}
 	if ready.Stage != "" {
-		fmt.Fprintf(out, "  ✗ %s hataları nedeniyle testler çalıştırılamadı:\n", ready.Stage)
+		fmt.Fprintf(out, "  ✗ %s\n", messages.Text(messages.H8505, ready.Stage))
 		for _, e := range ready.Errors {
 			writeError(out, e, text)
 		}
@@ -147,7 +147,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 		}
 	}
 	if len(tests) == 0 {
-		fmt.Fprintln(out, "  (bu dosyada test bloğu yok)")
+		fmt.Fprintln(out, "  "+messages.Text(messages.H8506))
 		return summary
 	}
 
@@ -157,7 +157,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 	machine.SourceFile = fpath
 	machine.SourceCode = text
 	if _, err := machine.Run(prog); err != nil {
-		fmt.Fprintln(out, "  ✗ dosyanın üst düzey kodu hata verdi, testler çalıştırılamadı:")
+		fmt.Fprintln(out, "  ✗ "+messages.Text(messages.H8507))
 		for _, m := range interp.ErrorItems(err, text) {
 			fmt.Fprintf(out, "    • %s\n", m.Message)
 			fmt.Fprint(out, indent(m.Frame, "      "))

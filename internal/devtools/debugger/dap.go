@@ -19,11 +19,11 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"io"
 	"os"
 	"strconv"
@@ -134,10 +134,10 @@ func (s *dapServer) readMessage() (*dapMessage, error) {
 		if k, v, ok := strings.Cut(line, ":"); ok && strings.EqualFold(strings.TrimSpace(k), "Content-Length") {
 			n, err := strconv.Atoi(strings.TrimSpace(v))
 			if err != nil || n < 0 {
-				return nil, fmt.Errorf("geçersiz Content-Length: %q", v)
+				return nil, messages.New(messages.H8100, v)
 			}
 			if n > dapMaxMessage {
-				return nil, fmt.Errorf("ileti çok büyük (Content-Length %d, en fazla %d bayt)", n, dapMaxMessage)
+				return nil, messages.New(messages.H8101, n, dapMaxMessage)
 			}
 			length = n
 		}
@@ -227,8 +227,7 @@ func (s *dapServer) respond(req *dapMessage, body interface{}) {
 	s.send(m)
 }
 
-func (s *dapServer) respondErr(req *dapMessage, format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
+func (s *dapServer) respondErr(req *dapMessage, msg string) {
 	s.send(map[string]interface{}{
 		"type": "response", "request_seq": req.Seq, "success": false, "command": req.Command,
 		"message": msg,
@@ -264,7 +263,7 @@ func (o dapOutput) Write(p []byte) (int, error) {
 type dapNoStdin struct{}
 
 func (dapNoStdin) Read([]byte) (int, error) {
-	return 0, errors.New("düzenleyicinin hata ayıklama oturumunda " + interp.CallPrefix(codes.G101) + " kullanılamaz; programı terminalde çalıştırın (▶ veya Ctrl+F5)")
+	return 0, messages.New(messages.H8102, interp.CallPrefix(codes.G101))
 }
 
 // ---------------------------------------------------------------------------
@@ -323,12 +322,12 @@ func (s *dapServer) dispatch(msg *dapMessage) {
 		s.respond(msg, nil)
 		s.start()
 	case "threads":
-		s.respond(msg, map[string]interface{}{"threads": []interface{}{map[string]interface{}{"id": 1, "name": "TR programı"}}})
+		s.respond(msg, map[string]interface{}{"threads": []interface{}{map[string]interface{}{"id": 1, "name": messages.Text(messages.H8103)}}})
 	case "pause":
 		if s.dbg != nil {
 			s.dbg.mu.Lock()
 			s.dbg.Mode = StepInto
-			s.dbg.PauseReason = "Duraklatıldı"
+			s.dbg.PauseReason = messages.Text(messages.H8104)
 			s.dbg.pauseKind = "pause"
 			s.dbg.mu.Unlock()
 		}
@@ -347,7 +346,7 @@ func (s *dapServer) dispatch(msg *dapMessage) {
 		case !s.started:
 			s.setDataBreakpoints(msg)
 		default:
-			s.respondErr(msg, "İzleme noktalarını değiştirmek için önce programı duraklatın")
+			s.respondErr(msg, messages.Text(messages.H8105))
 		}
 	case "disconnect", "terminate":
 		s.respond(msg, nil)
@@ -365,9 +364,9 @@ func (s *dapServer) dispatch(msg *dapMessage) {
 		case "stackTrace":
 			s.respond(msg, map[string]interface{}{"stackFrames": []interface{}{}, "totalFrames": 0})
 		default:
-			s.respondErr(msg, "Program şu an çalışıyor; değerleri görmek için duraklatın")
+			s.respondErr(msg, messages.Text(messages.H8106))
 		}
 	default:
-		s.respondErr(msg, "Desteklenmeyen istek: %s", msg.Command)
+		s.respondErr(msg, messages.Text(messages.H8107, msg.Command))
 	}
 }

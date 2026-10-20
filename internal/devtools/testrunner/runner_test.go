@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func writeFile(t *testing.T, dir, ad, content string) string {
@@ -107,8 +109,11 @@ func TestDirScan(t *testing.T) {
 }
 
 func TestEmptyDirErrors(t *testing.T) {
-	if _, err := Run(t.TempDir(), &bytes.Buffer{}); err == nil {
-		t.Fatal("test dosyası olmayan klasör hata vermedi")
+	if _, err := Run(t.TempDir(), &bytes.Buffer{}); !messages.Has(err, messages.H8503) {
+		t.Fatalf("test dosyası olmayan klasör H8503 vermeli: %v", err)
+	}
+	if _, err := Run(filepath.Join(t.TempDir(), "yok"), &bytes.Buffer{}); !messages.Has(err, messages.H8502) {
+		t.Fatalf("olmayan hedef H8502 vermeli: %v", err)
 	}
 }
 

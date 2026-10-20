@@ -24,14 +24,15 @@ type hazirlik struct {
 	tipBasligi string
 }
 
-// Dosya çalıştırmada ve etkileşimli kabukta (REPL) ortak kullanılan hata başlıkları.
-const (
-	sozdizimiBasligi = "❌ Sözdizimi Hataları:"
-	tipBasligi       = "❌ Tip ve Güvenlik Denetimi Hataları:"
-	calismaBasligi   = "❌ Çalışma Zamanı Hatası:"
+// Dosya çalıştırmada ve etkileşimli kabukta (REPL) ortak kullanılan hata başlıkları. Metinler
+// süreç başında etkin dilde kurulur (dil süreç boyunca değişmez).
+var (
+	sozdizimiBasligi = "❌ " + messages.Text(messages.H8650)
+	tipBasligi       = "❌ " + messages.Text(messages.H8651)
+	calismaBasligi   = "❌ " + messages.Text(messages.H8652)
 	// uyariBasligi denetleyicinin uyarılarının (ör. yerleşik ad gölgeleme) başlığıdır.
 	// Uyarılar programı durdurmaz ve çıkış kodunu etkilemez.
-	uyariBasligi = "⚠️ Uyarılar:"
+	uyariBasligi = "⚠️ " + messages.Text(messages.H8653)
 )
 
 // Komutların kullandığı hazırlık biçimleri.
@@ -44,11 +45,11 @@ var (
 		sozdizimiBasligi: sozdizimiBasligi,
 	}
 	derlemeHazirligi = hazirlik{
-		sozdizimiBasligi: "❌ Derleme Öncesi Sözdizimi Hataları:",
-		tipBasligi:       "❌ Derleme Öncesi Tip Güvenliği Hataları:",
+		sozdizimiBasligi: "❌ " + messages.Text(messages.H8654),
+		tipBasligi:       "❌ " + messages.Text(messages.H8655),
 	}
 	gomuluHazirlik = hazirlik{
-		sozdizimiBasligi: "❌ Gömülü Uygulama Sözdizimi Hataları:",
+		sozdizimiBasligi: "❌ " + messages.Text(messages.H8656),
 	}
 )
 
@@ -57,7 +58,7 @@ var (
 func kaynakOku(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Dosya okuma hatası: %v\n", turkish.FileError("", path, messages.H2100, err))
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8657, turkish.FileError("", path, messages.H2100, err)))
 		os.Exit(1)
 	}
 	return string(data)
@@ -190,7 +191,7 @@ func calismaHatasiYaz(machine *interp.VM, err error, code string) {
 
 // modulBasligi bir hata başlığına modülün yolunu ekler: "❌ X:" → "❌ X (yol modülünde):".
 func modulBasligi(baslik, yol string) string {
-	return strings.TrimSuffix(baslik, ":") + " (" + yol + " modülünde):"
+	return messages.Text(messages.H8658, strings.TrimSuffix(baslik, ":"), yol)
 }
 
 // modulleriDenetle programın 'aktar' ile aldığı bütün modülleri (özyinelemeli) bulur ve

@@ -25,23 +25,20 @@ func bicimleKomutu(args []string) {
 		case "--kontrol", "-k":
 			kontrol = true
 		case "--check":
-			fmt.Fprintln(os.Stderr, "Hata: '--check' TR'de bir bayrak değil; '--kontrol' yazmak mı istediniz?")
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8690))
 		default:
 			hedefler = append(hedefler, a)
 		}
 	}
 	if len(hedefler) == 0 {
-		fmt.Fprintln(os.Stderr, "Hata: Lütfen bir .tr dosyası ya da klasör belirtin. Örn: tr biçimle ornek.tr veya tr biçimle --kontrol .")
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8691))
 	}
 
 	var dosyalar []string
 	for _, h := range hedefler {
 		d, err := trDosyalari(h)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
-			os.Exit(1)
+			hataylaCik(err)
 		}
 		dosyalar = append(dosyalar, d...)
 	}
@@ -58,7 +55,7 @@ func bicimleKomutu(args []string) {
 		if err != nil {
 			var anlam *formatter.MeaningChangedError
 			if errors.As(err, &anlam) {
-				fmt.Fprintf(os.Stderr, "✗ %s: %v — lütfen bu dosyayı bir hata kaydıyla bildirin\n", yol, err)
+				fmt.Fprintln(os.Stderr, "✗ "+messages.Text(messages.H8692, yol, err))
 			} else {
 				fmt.Fprintf(os.Stderr, "✗ %s: %v\n", yol, err)
 			}
@@ -70,7 +67,7 @@ func bicimleKomutu(args []string) {
 		}
 		degisen++
 		if kontrol {
-			fmt.Printf("biçimlenmeli: %s\n", yol)
+			fmt.Println(messages.Text(messages.H8693, yol))
 			continue
 		}
 		bilgi, _ := os.Stat(yol)
@@ -83,18 +80,18 @@ func bicimleKomutu(args []string) {
 			hatali++
 			continue
 		}
-		fmt.Printf("biçimlendi: %s\n", yol)
+		fmt.Println(messages.Text(messages.H8694, yol))
 	}
 
 	switch {
 	case kontrol && degisen > 0:
-		fmt.Printf("%d dosyadan %d tanesi biçimlenmeli. Düzeltmek için: tr biçimle <dosya|klasör>\n", len(dosyalar), degisen)
+		fmt.Println(messages.Text(messages.H8695, len(dosyalar), degisen))
 	case hatali > 0:
-		fmt.Printf("%d dosyadan %d tanesi biçimlenemedi (yukarıdaki hatalara bakın).\n", len(dosyalar), hatali)
+		fmt.Println(messages.Text(messages.H8696, len(dosyalar), hatali))
 	case kontrol:
-		fmt.Printf("✅ %d dosyanın hepsi standart biçimde.\n", len(dosyalar))
+		fmt.Println("✅ " + messages.Text(messages.H8697, len(dosyalar)))
 	default:
-		fmt.Printf("%d dosya incelendi, %d dosya biçimlendi.\n", len(dosyalar), degisen)
+		fmt.Println(messages.Text(messages.H8698, len(dosyalar), degisen))
 	}
 	if hatali > 0 || (kontrol && degisen > 0) {
 		os.Exit(1)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/devtools/testrunner"
 	"github.com/sekerahmet/TCB/internal/stdlib"
 	"os"
@@ -18,8 +17,7 @@ func testKomutu(args []string) {
 	ozet, err := testrunner.Run(hedef, os.Stdout)
 	stdlib.Close()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
-		os.Exit(1)
+		hataylaCik(err)
 	}
 	if !ozet.OK() {
 		os.Exit(1)

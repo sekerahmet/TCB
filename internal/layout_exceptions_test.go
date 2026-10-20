@@ -58,7 +58,6 @@ var longFuncs = map[string]exception{
 	// Araçlar
 	"internal/devtools/debugger/debugger.go:Debugger.promptCLI": {187, reasonDispatch + " (terminal hata ayıklayıcısının komutları)"},
 	"internal/devtools/formatter/format.go:format":              {119, "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde"},
-	"cmd/tr/bicimle.go:bicimleKomutu":                           {83, "komut satırı bayrakları ve dosya/klasör dolaşımı tek akışta"},
 	"tools/gen/codesdoc/main.go:Uret":                           {151, reasonGenerator},
 	"tools/gen/grammar/main.go:Uret":                            {107, reasonGenerator},
 	"tools/bench/go/kiyas.go:main":                              {92, reasonGenerator + " (kıyas programları sırayla)"},

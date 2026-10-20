@@ -3,6 +3,7 @@ package debugger
 import (
 	"encoding/json"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
@@ -28,7 +29,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 		ViewURI string `json:"viewURI"`
 	}
 	if err := json.Unmarshal(msg.Arguments, &a); err != nil || a.Program == "" {
-		s.respondErr(msg, "Hata ayıklanacak .tr dosyası belirtilmedi ('program')")
+		s.respondErr(msg, messages.Text(messages.H8120))
 		return
 	}
 	// Çalışma klasörü önce: göreli program yolu onun içinde çözülür (düzenleyicinin 'cwd'si).
@@ -38,24 +39,24 @@ func (s *dapServer) launch(msg *dapMessage) {
 	path, _ := filepath.Abs(a.Program)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		s.respondErr(msg, "Hata ayıklanacak program okunamadı (%s): %s", path, turkish.FileErrorReason(path, err))
+		s.respondErr(msg, messages.Text(messages.H8121, path, turkish.FileErrorReason(path, err)))
 		return
 	}
 	ready := source.Prepare(string(data), source.Options{TypeCheck: true})
 	code, prog, errs := ready.Text, ready.Program, ready.Errors
 	// Uyarılar (ör. yerleşik ad gölgeleme) programı durdurmaz; hata ayıklama konsoluna yazılır.
 	if u := ready.Warnings; len(u) > 0 {
-		s.output("stderr", "⚠️ Uyarılar:\n")
+		s.output("stderr", "⚠️ "+messages.Text(messages.H8122)+"\n")
 		for _, e := range u {
 			s.output("stderr", "  • "+e+"\n"+indentLines(turkish.CodeFrame(code, e), "    "))
 		}
 	}
 	if len(errs) > 0 {
-		s.output("stderr", "❌ Program başlatılamadı:\n")
+		s.output("stderr", "❌ "+messages.Text(messages.H8123)+"\n")
 		for _, e := range errs {
 			s.output("stderr", "  • "+e+"\n"+indentLines(turkish.CodeFrame(code, e), "    "))
 		}
-		s.respondErr(msg, "%s içinde hata var; ayrıntılar hata ayıklama konsolunda", filepath.Base(path))
+		s.respondErr(msg, messages.Text(messages.H8124, filepath.Base(path)))
 		s.event("terminated", nil)
 		return
 	}
@@ -74,7 +75,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 		dbg.dap = s
 		dbg.PauseReason = ""
 		if a.StopOnEntry {
-			dbg.PauseReason = "Programın başında durdu"
+			dbg.PauseReason = messages.Text(messages.H8125)
 			dbg.pauseKind = "entry"
 		}
 		machine.Debugger = dbg
@@ -114,7 +115,7 @@ func (s *dapServer) start() {
 			}
 		} else if err != nil {
 			exitCode = 1
-			text := "❌ Çalışma Zamanı Hatası:\n"
+			text := "❌ " + messages.Text(messages.H8126) + "\n"
 			for _, m := range interp.ErrorItems(err, s.machine.SourceCode) {
 				text += "  • " + m.Message + "\n" + indentLines(m.Frame, "    ")
 			}

@@ -2,10 +2,11 @@ package profiler
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Durum dosyasının (profil.json) yazıcısı. Dosya önce aynı klasörde geçici bir dosyaya
@@ -63,7 +64,7 @@ type statusWriter struct {
 func (y *statusWriter) write(g *Snapshot) error {
 	data, err := json.MarshalIndent(g, "", "  ")
 	if err != nil {
-		y.report(&y.writeWarned, fmt.Sprintf("profil durumu kodlanamadı: %v", err))
+		y.report(&y.writeWarned, messages.Text(messages.H8220, err))
 		return err
 	}
 	data = append(data, '\n')
@@ -75,10 +76,10 @@ func (y *statusWriter) write(g *Snapshot) error {
 		}
 		y.faulty++
 		y.direct = y.faulty >= maxReplaceErrors
-		y.report(&y.replaceWarned, fmt.Sprintf("%s yerine konamadı (%v); dosya doğrudan yazılacak (okuyan nadiren yarım dosya görebilir)", y.fpath, err))
+		y.report(&y.replaceWarned, messages.Text(messages.H8221, y.fpath, err))
 	}
 	if err := os.WriteFile(y.fpath, data, 0o644); err != nil {
-		y.report(&y.writeWarned, fmt.Sprintf("%s yazılamadı (%v); program sürüyor, sonraki aralıkta yeniden denenecek", y.fpath, err))
+		y.report(&y.writeWarned, messages.Text(messages.H8222, y.fpath, err))
 		return err
 	}
 	y.writeWarned = false
@@ -92,7 +93,7 @@ func (y *statusWriter) report(warned *bool, m string) {
 		return
 	}
 	*warned = true
-	y.warning("⚠️ profil: " + m)
+	y.warning("⚠️ " + messages.Text(messages.H8219, m))
 }
 
 // atomicWrite veriyi aynı klasörde geçici bir dosyaya yazar ve hedefin yerine koyar; yerine

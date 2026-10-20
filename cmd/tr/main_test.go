@@ -14,6 +14,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Bu paketteki testler 'main' paketinin iç işlevlerini (gömülü paket biçimi, aktar
@@ -183,7 +185,7 @@ func TestPaketGidisDonus(t *testing.T) {
 	}
 	bozuk := append([]byte{}, kodlu...)
 	binary.LittleEndian.PutUint64(bozuk[len(bozuk)-20:], 1<<40)
-	if _, _, bulundu, err := paketiAyikla(bozuk); !bulundu || err == nil {
+	if _, _, bulundu, err := paketiAyikla(bozuk); !bulundu || !messages.Has(err, messages.H8750) {
 		t.Error("bozuk uzunluk alanı hata vermeli")
 	}
 }
@@ -206,7 +208,7 @@ func TestAktarYerleriVeYonlendirme(t *testing.T) {
 	if strings.Count(yeni, "\n") != strings.Count(kod, "\n") {
 		t.Error("satır sayısı değişmemeli")
 	}
-	if _, err := aktarlariYonlendir(paketDosyasi{Kod: kod, Aktarimlar: []int{0}}, []string{"x"}); err == nil {
+	if _, err := aktarlariYonlendir(paketDosyasi{Kod: kod, Aktarimlar: []int{0}}, []string{"x"}); !messages.Has(err, messages.H8770) {
 		t.Error("aktarım sayısı uyuşmazlığı hata vermeli")
 	}
 }

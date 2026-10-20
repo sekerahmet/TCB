@@ -10,6 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/devtools/profiler"
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // 'tr profil' ve 'tr izle' komutlarının ortak parçaları ve 'tr profil'. Profilin çekirdeği
@@ -31,22 +32,19 @@ func profilArgumanlari(komut string, args []string, izinli ...string) (profilSec
 		ad, deger, esitli := strings.Cut(args[0], "=")
 		p, ok := hedef[ad]
 		if !ok || !icinde(izinli, ad) {
-			fmt.Fprintf(os.Stderr, "Hata: 'tr %s' için bilinmeyen seçenek %q (seçenekler: %s)\n", komut, ad, strings.Join(izinli, ", "))
-			os.Exit(1)
+			hataylaCik(messages.Text(messages.H8674, komut, ad, strings.Join(izinli, ", ")))
 		}
 		args = args[1:]
 		if !esitli {
 			if len(args) == 0 {
-				fmt.Fprintf(os.Stderr, "Hata: %s bir değer ister. Örn: tr %s %s yol program.tr\n", ad, komut, ad)
-				os.Exit(1)
+				hataylaCik(messages.Text(messages.H8675, ad, komut))
 			}
 			deger, args = args[0], args[1:]
 		}
 		*p = deger
 	}
 	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Hata: Lütfen bir .tr dosyası belirtin. Örn: tr %s egit.tr\n", komut)
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8605, komut, "egit.tr"))
 	}
 	return s, args[0], args[1:]
 }
@@ -113,16 +111,16 @@ func profilKomutu(args []string) {
 func jsonRaporuYaz(yol string, g *profiler.Snapshot) {
 	if b, err := os.Stat(yol); (err == nil && b.IsDir()) || strings.HasSuffix(yol, "/") || strings.HasSuffix(yol, string(os.PathSeparator)) {
 		if err := os.MkdirAll(yol, 0o755); err != nil {
-			fmt.Fprintf(os.Stderr, "⚠️ profil: %s klasörü açılamadı: %v\n", yol, err)
+			fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8219, messages.Text(messages.H8676, yol, err)))
 			return
 		}
 		yol = filepath.Join(yol, profiler.ReportFileName)
 	}
 	if err := profiler.WriteFile(yol, g, func(m string) { fmt.Fprintln(os.Stderr, m) }); err != nil {
-		fmt.Fprintf(os.Stderr, "⚠️ profil: JSON raporu yazılamadı: %v\n", err)
+		fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8219, messages.Text(messages.H8677, err)))
 		return
 	}
-	fmt.Fprintf(os.Stderr, "Profil raporu (JSON): %s\n", yol)
+	fmt.Fprintln(os.Stderr, messages.Text(messages.H8678, yol))
 }
 
 // goProfiliniBaslat yorumlayıcının kendi Go CPU profilini yazmaya başlar (geliştiriciler
@@ -130,13 +128,11 @@ func jsonRaporuYaz(yol string, g *profiler.Snapshot) {
 func goProfiliniBaslat(yol string) {
 	f, err := os.Create(yol)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: Go profili dosyası açılamadı: %v\n", err)
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8679, err))
 	}
 	if err := pprof.StartCPUProfile(f); err != nil {
 		f.Close()
-		fmt.Fprintf(os.Stderr, "Hata: Go profili başlatılamadı: %v\n", err)
-		os.Exit(1)
+		hataylaCik(messages.Text(messages.H8680, err))
 	}
 	cikisTemizligi = append(cikisTemizligi, func() {
 		pprof.StopCPUProfile()

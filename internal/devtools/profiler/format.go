@@ -1,7 +1,6 @@
 package profiler
 
 import (
-	"fmt"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
@@ -68,7 +68,7 @@ func durationText(s float64) string {
 	case s < 1:
 		return count(s*1000) + " ms"
 	case s < 60:
-		return count(s) + " sn"
+		return messages.Text(messages.H8218, count(s))
 	}
 	return logging.FormatDuration(s)
 }
@@ -101,7 +101,7 @@ func right(s string, n int) string {
 
 // noStep program adım bildirmiyorsa gösterilen nottur (adlar kod listesinden).
 func noStep() string {
-	return fmt.Sprintf("adım bilgisi yok: eğitim döngüsünde %s(...) ve .%s(...) kullanın", codes.Name(codes.G811), codes.Name(codes.Y010))
+	return messages.Text(messages.H8200, codes.Name(codes.G811), codes.Name(codes.Y010))
 }
 
 // linePos bir satırın "dosya:satır" yazımıdır ('aktar' ile yüklenen modülde modülün dosyası);
@@ -116,7 +116,7 @@ func linePos(s LineInfo) string {
 // lineText satırın metnidir; dosyası bilinmiyorsa bunu söyler.
 func lineText(s LineInfo) string {
 	if s.File == "" {
-		return "(aktarılan modülde)"
+		return messages.Text(messages.H8201)
 	}
 	return s.Text
 }
@@ -124,7 +124,7 @@ func lineText(s LineInfo) string {
 // functionName üst düzey kodu adlandırır.
 func functionName(ad string) string {
 	if ad == "" {
-		return "(üst düzey)"
+		return messages.Text(messages.H8202)
 	}
 	return ad
 }
