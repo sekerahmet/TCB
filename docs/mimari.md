@@ -18,14 +18,14 @@ Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (
 | Katman | Görevi | İçe aktarabileceği iç paketler |
 | :-- | :-- | :-- |
 | `internal/lang/**` | Kaynak metinden çalışan programa; kod listesi, iletiler | yalnızca `internal/lang/**`, iç sırasına göre (aşağıda) |
-| `internal/compute/**` | Tensör, otomatik türev, CPU ve GPU, veri hattı, parçalayıcı | yalnızca `internal/compute/**` |
+| `internal/compute/**` | Tensör, otomatik türev, CPU ve GPU, veri hattı, parçalayıcı | `internal/compute/**` ve ileti kataloğu `internal/lang/messages` |
 | `internal/stdlib/**` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler | `internal/lang`, `internal/compute`, `internal/stdlib` |
 | `internal/devtools/**` | Hata ayıklayıcı, profilci, biçimlendirici, test koşucusu | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/devtools` |
 | `cmd/tr` | `tr` komutu | hepsi (`internal/reporoot` dışında) |
 | `internal/reporoot`, `lib` | Testlerin depo kökü yardımcısı; kitaplığın gömme dosyası | hiçbiri |
 | `tools/**` | Depo bakım araçları | `internal/**`, `lib` |
 
-**Neden böyle?** İki çekirdek birbirini bilmez: hesap çekirdeği dili bilmediği için tek başına sınanır ve ölçülür (tensör ya da GPU değişikliği dil testlerini beklemez); dil çekirdeği tensörü bilmediği için yeni bir motor dilin içine dokunmadan eklenir. İkisini `internal/stdlib` birleştirir. Araçlar en üsttedir, çünkü hepsinin hepsini görmesi gerekir; ama alttakiler araçları bilmez, böylece hata ayıklayıcı ya da profilci çıkarılsa ikili derlenir.
+**Neden böyle?** İki çekirdek birbirini bilmez: hesap çekirdeği dili bilmediği için tek başına sınanır ve ölçülür (tensör ya da GPU değişikliği dil testlerini beklemez); dil çekirdeği tensörü bilmediği için yeni bir motor dilin içine dokunmadan eklenir. İkisini `internal/stdlib` birleştirir. Tek ortak paket ileti kataloğudur (`internal/lang/messages`): yalnızca Go standart kitaplığına dayanır, hesap çekirdeğinin iletileri de onun kodlarıdır. Araçlar en üsttedir, çünkü hepsinin hepsini görmesi gerekir; ama alttakiler araçları bilmez, böylece hata ayıklayıcı ya da profilci çıkarılsa ikili derlenir.
 
 Dış bağımlılık izne bağlıdır: bugün yalnızca `purego` (GPU sürücüsünü cgo'suz yüklemek için, `internal/compute/gpu`). Denetim: `TestExternalDependencies`.
 

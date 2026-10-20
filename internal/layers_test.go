@@ -18,7 +18,9 @@ import (
 //	                                        └──────▶ hesap çekirdekleri (internal/compute)
 //
 // Hesap çekirdekleri dili bilmez (tek başına sınanır ve ölçülür), dil çekirdeği motorları ve
-// araçları bilmez, motorlar araçları bilmez. Kural yalnızca paketlerin kendi (test dışı)
+// araçları bilmez, motorlar araçları bilmez. Tek istisna ileti kataloğudur
+// (internal/lang/messages): yalnızca Go standart kitaplığını içe aktaran en alt pakettir, bu
+// yüzden hesap çekirdekleri de iletilerini onun kodlarıyla verir ve yine tek başına sınanır. Kural yalnızca paketlerin kendi (test dışı)
 // içe aktarmalarına uygulanır: testler, sınamak için daha üst katmanları da içe aktarabilir
 // (ör. motor testleri hata ayıklayıcıyla çalışır). Her paket tablodaki bir satıra düşmelidir;
 // yeni bir klasör açılınca tablo da güncellenir. Ayrıntı: docs/mimari.md.
@@ -26,7 +28,7 @@ var layers = []struct {
 	prefix  string   // paket yolu bu önekle başlar (modül yoluna göre)
 	allowed []string // içe aktarabileceği iç paketlerin önekleri
 }{
-	{"internal/compute/", []string{"internal/compute/"}},
+	{"internal/compute/", []string{"internal/compute/", "internal/lang/messages"}},
 	{"internal/lang/", []string{"internal/lang/"}},
 	{"internal/stdlib/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/"}},
 	{"internal/devtools/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/"}},
