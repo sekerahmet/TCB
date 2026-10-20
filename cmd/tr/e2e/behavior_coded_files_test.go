@@ -114,10 +114,14 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	// Kitaplığın testleri: kodlanan test dosyalarıdır (aktarılan kitaplık ikiliye gömülüdür).
 	// Kontrol noktasının "Kaldığı yerden devam: ..." satırı geçici klasörün yolunu içerir.
 	resumeLine := regexp.MustCompile(`(?m)^Kaldığı yerden devam: .*$`)
+	// geçici_klasör() her süreçte başka bir klasör verir (tr_<süreç>_<sayı>, 18.14); yolu
+	// karşılaştırmadan çıkarılır.
+	tempDir := regexp.MustCompile(`[^\s"']*tr_\d+_\d+`)
 	for _, dir := range []string{"tests", "examples", "lib"} {
 		s1, s2 := stripRoot(tr(t, tr1, "test", dir), tr1), stripRoot(tr(t, tr2, "test", dir), tr2)
 		for _, s := range []*result{&s1, &s2} {
 			s.stdout, s.stderr = resumeLine.ReplaceAllString(s.stdout, ""), resumeLine.ReplaceAllString(s.stderr, "")
+			s.stdout, s.stderr = tempDir.ReplaceAllString(s.stdout, "<geçici>"), tempDir.ReplaceAllString(s.stderr, "<geçici>")
 		}
 		if s1.code != 0 || s1.code != s2.code || s1.stdout != s2.stdout || s1.stderr != s2.stderr {
 			t.Errorf("tr test %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", dir, s1.code, s2.code, lineDiff(s1.stdout+s1.stderr, s2.stdout+s2.stderr))
