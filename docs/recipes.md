@@ -1,10 +1,10 @@
 # Ekleme tarifleri
 
-TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bitti"nin nasıl anlaşıldığı. Kuralların kendisi (adlar, iletiler, katmanlar, test düzeni) ve onları koruyan testler [`internal/README.md`](../internal/README.md)'dedir; süreç (yeni ad isteği, tam denetim, ölçüm) [`katki.md`](katki.md)'dedir. Bu belge ikisini adım adım bir araya getirir. Her tarif, depoda o yoldan eklenmiş gerçek bir örneğe dayanır.
+TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bitti"nin nasıl anlaşıldığı. Kuralların kendisi (adlar, iletiler, katmanlar, test düzeni) ve onları koruyan testler [`internal/README.md`](../internal/README.md)'dedir; süreç (yeni ad isteği, tam denetim, ölçüm) [`development.md`](development.md)'dedir. Bu belge ikisini adım adım bir araya getirir. Her tarif, depoda o yoldan eklenmiş gerçek bir örneğe dayanır.
 
 ## Her eklemede ortak
 
-1. **Önce var olana bak.** Aynı işi yapan bir ad ([`kodlar.md`](kodlar.md)), bir yardımcı (`bind`, `turkish.FileError`, `interp.ArgCountError`) ya da bir ileti (`internal/lang/messages/tr.json`) varsa onu kullan. Aynı işi yapan iki kod olmaz.
+1. **Önce var olana bak.** Aynı işi yapan bir ad ([`codes.md`](codes.md)), bir yardımcı (`bind`, `turkish.FileError`, `interp.ArgCountError`) ya da bir ileti (`internal/lang/messages/tr.json`) varsa onu kullan. Aynı işi yapan iki kod olmaz.
 2. **Ad koddur, ileti koddur.** Kullanıcının yazacağı her ad kod listesinden bir kod alır (yeni ad kodunu baş geliştirici verir). Kullanıcının göreceği her ileti paketin aralığından bir ileti kodu alır (ileti kodunu işi yapan ekler).
 3. **Testsiz ekleme yoktur.** Her davranışın bir testi olur. Bir düzeltmenin testi düzeltmeden önce kalır, sonra geçer.
 4. **Belge işle birlikte değişir.** Dil davranışı değiştiyse dil tanımında (`docs/spec/`) bir madde, kullanıcı için anlatmak gerekiyorsa kılavuzda (`docs/guide/`) bir satır.
@@ -20,7 +20,7 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 | :-- | :-- | :-- |
 | Ad | `internal/lang/codes/tr.json` | `"T204": { "ad": "silu", "aile": ..., "açıklama": ..., "örnek": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` |
 | İmza | `internal/lang/codes/definitions.json` | `"T204": { "tür": "fonksiyon", "param": ["A212\|A200\|A201"], "dönüş": "A212\|A201" }` |
-| Üret | — | `go generate ./internal/lang/codes`: Go sabitleri, `docs/kodlar.md`, düzenleyici renklendirmesi |
+| Üret | — | `go generate ./internal/lang/codes`: Go sabitleri, `docs/codes.md`, düzenleyici renklendirmesi |
 | İşlem | `internal/compute/tensor/device.go` | `UnOp` listesinin sonuna, `numUnOps` sayacının **önüne** `OpSilu` (sayaç her zaman son kalır; kapsam testi işlemleri onunla sayar) |
 | Türev testi | `internal/compute/tensor/elementwise_wide_test.go` | `registerGrad` ile bir `gradSpec` kaydı: float64 başvuru işlevi ve türevi |
 | Ad | `internal/compute/tensor/elementwise.go` | `unopName` tablosuna `OpSilu: "silu"` |
@@ -110,7 +110,7 @@ Denetimler: aynı metin iki kodda olamaz (bağlamı farklı etiketler gerekçeli
 3. **Kayıt.** `func Register(v *interp.VM)`; `internal/stdlib/engines.go`'da `interp.AddEngine(<ad>.Register)`. Kapatılması gereken kaynak varsa `Close`/`CloseAll` ve `engines.go`'daki `Close`.
 4. **README.** `internal/stdlib/<ad>/README.md`: görev, `## Standartlar` (yalnızca kalıcı kurallar), davranış testi varsa `## Testler`.
 5. **İletiler.** Paket için bir ileti aralığı (`H7xyy`) seçilir ve paket README'sine yazılır. Paket `tools/gen/msgconsts/main_test.go`'daki `migrated` listesine eklenir: `fmt.Errorf` baştan yasak.
-6. **Belgeler.** `docs/mimari.md`'deki katman ve paket haritası.
+6. **Belgeler.** `docs/architecture.md`'deki katman ve paket haritası.
 
 Testler: `x_test.go` her kaynak dosyanın yanında; birden çok dosyayı kesen davranış `behavior_<konu>_test.go` ve README'de bir satır; paylaşılan yardımcılar `helpers_test.go`.
 

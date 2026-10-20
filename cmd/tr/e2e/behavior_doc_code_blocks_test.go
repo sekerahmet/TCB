@@ -25,7 +25,7 @@ import (
 
 // generatedDoc kod listesinden üretilen başvuru belgesidir; içindeki örnekler kod
 // listesinin testlerinde (internal/stdlib) çalıştırılır, burada yalnızca bağlantıları denetlenir.
-const generatedDoc = "docs/kodlar.md"
+const generatedDoc = "docs/codes.md"
 
 // belgeListesi depodaki belgelerdir (depo köküne göre, bölü çizgisiyle): kökteki README,
 // SECURITY ve CONTRIBUTING, docs/ altındaki bütün .md dosyaları, kitaplığın, eklentinin ve
@@ -34,7 +34,7 @@ const generatedDoc = "docs/kodlar.md"
 func belgeListesi(t *testing.T) []string {
 	t.Helper()
 	list := []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "lib/README.md",
-		"editors/vscode/README.md", "tools/bench/README.md", ".github/ISSUE_TEMPLATE/sozluk_istegi.md"}
+		"editors/vscode/README.md", "tools/bench/README.md", ".github/ISSUE_TEMPLATE/name_request.md"}
 	for _, pattern := range []string{"docs/*.md", "docs/*/*.md"} {
 		d, err := filepath.Glob(reporoot.Path(pattern))
 		if err != nil {
@@ -244,7 +244,7 @@ func TestRemovedNamesAbsentFromDocs(t *testing.T) {
 		t.Skip("kaldırılmış kod yok")
 	}
 	for _, b := range belgeListesi(t) {
-		if b == generatedDoc { // kodlar.md kaldırılan kodları bilerek listeler
+		if b == generatedDoc { // codes.md kaldırılan kodları bilerek listeler
 			continue
 		}
 		data, err := os.ReadFile(reporoot.Path(b))

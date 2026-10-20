@@ -23,7 +23,7 @@ import (
 
 // Dilin TR ile yazılı kitaplığı ikiliye gömülüdür ve 'aktar "tr/..."' ile yüklenir (11.6);
 // test koşucusu ve hata ayıklama sunucusu da bu ikilinin içinde çalıştığından onu görür.
-func init() { interp.SetLibrary(lib.Dosyalar) }
+func init() { interp.SetLibrary(lib.Files) }
 
 const VERSION = "1.0.0"
 

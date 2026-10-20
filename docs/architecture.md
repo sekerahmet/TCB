@@ -2,7 +2,7 @@
 
 TR tek bir ikilidir (`tr`). Bütün Go kodu `internal/` altındadır; başka bir Go modülü bu paketleri içe aktaramaz. Kullanıcı Go paketi değil `.tr` dosyası yazar.
 
-Bu belge **nasıl çalıştığını ve neden böyle kurulduğunu** anlatır. Kod yazarken uyulacak kurallar [`internal/README.md`](../internal/README.md)'de, ekleme adımları [`tarifler.md`](tarifler.md)'de, süreç (yeni ad isteği, tam denetim, ölçüm) [`katki.md`](katki.md)'dedir; burada tekrarlanmaz. Bir paketin kendi standartları o paketin `README.md`'sindedir.
+Bu belge **nasıl çalıştığını ve neden böyle kurulduğunu** anlatır. Kod yazarken uyulacak kurallar [`internal/README.md`](../internal/README.md)'de, ekleme adımları [`recipes.md`](recipes.md)'de, süreç (yeni ad isteği, tam denetim, ölçüm) [`development.md`](development.md)'dedir; burada tekrarlanmaz. Bir paketin kendi standartları o paketin `README.md`'sindedir.
 
 ## Katmanlar
 
@@ -78,14 +78,14 @@ Kullanıcıya görünen her ad ve her ileti sabit bir koda bağlıdır; Go kodu 
 | Go'dan kullanım | `codes.Name(codes.G100)`, `codes.Find`, `codes.Active` | `messages.New(messages.H7003, ...)`, `messages.Text`, `messages.Has`, `messages.Internal` |
 | Etkin dil | `TR_DIL` ortam değişkeni (`codes.LoadLanguage`) | aynı değişken (`messages.LanguageEnvVar`) |
 
-Yazım kuralları (kod değişmez, ad değişebilir; her işin tek adı; parametreler adlıdır; iç hata `H9000`) paketlerin README'lerindedir: [`codes`](../internal/lang/codes/README.md), [`messages`](../internal/lang/messages/README.md). Yeni ad için [`katki.md`](katki.md#yeni-kod-ad-isteği), yeni ileti için [`tarifler.md`](tarifler.md).
+Yazım kuralları (kod değişmez, ad değişebilir; her işin tek adı; parametreler adlıdır; iç hata `H9000`) paketlerin README'lerindedir: [`codes`](../internal/lang/codes/README.md), [`messages`](../internal/lang/messages/README.md). Yeni ad için [`development.md`](development.md#yeni-kod-ad-isteği), yeni ileti için [`recipes.md`](recipes.md).
 
 **Üretilmiş dosyalar.** Kod listesinden ve ileti kataloğundan üretilen dosyalar elle düzenlenmez; üreteçler `tools/gen/` altındadır ve `-denetle` bayrağıyla güncelliği sınanır (tam denetim hepsini koşar). Üretmek için: `go generate ./internal/lang/codes ./internal/lang/messages`.
 
 | Üreteç | Ürettiği |
 | :-- | :-- |
 | `tools/gen/codeconsts` | `internal/lang/codes/codes_generated.go` (kod sabitleri); Go metnindeki çıplak ad denetimi |
-| `tools/gen/codesdoc` | [`docs/kodlar.md`](kodlar.md) (kod listesi belgesi) |
+| `tools/gen/codesdoc` | [`docs/codes.md`](codes.md) (kod listesi belgesi) |
 | `tools/gen/grammar` | VS Code eklentisinin renklendirme listeleri (`editors/vscode/syntaxes/tr.tmLanguage.json`) |
 | `tools/gen/msgconsts` | `internal/lang/messages/codes_generated.go` (ileti sabitleri); ileti kullanım denetimi |
 
@@ -286,7 +286,7 @@ Bir iş `bash tools/full_check.sh` geçince biter; otomatik sınama (`.github/wo
 | `internal/` | Bütün Go kodu (yukarıdaki katmanlar); `reporoot` testlerin depo kökünü bulur |
 | `lib/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`aktar "tr/katman"`, `aktar "tr/iyilestirici"`; testleri `tr test lib`) |
 | `editors/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
-| `docs/` | Belgeler: [`guide/`](guide/README.md) (kullanıcı kılavuzu), [`spec/`](spec/README.md) (dil tanımı), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md), [`tarifler.md`](tarifler.md), bu dosya |
+| `docs/` | Belgeler: [`guide/`](guide/README.md) (kullanıcı kılavuzu), [`spec/`](spec/README.md) (dil tanımı), [`codes.md`](codes.md) (üretilir), [`roadmap.md`](roadmap.md), [`development.md`](development.md), [`recipes.md`](recipes.md), bu dosya |
 | `examples/` | Öğrenme sırasıyla örnek programlar |
 | `tests/` | Dil tanımının kural testleri (`tr test tests`); `negative/`, `coded/`, `data/` |
 | `tools/` | Depo bakım araçları, kullanıcıya gitmez: `full_check.sh` ("bitti" tanımı), `fuzz.sh`, `gen/` (üreteçler), `impact/` (bir adın etkisini koddan hesaplar), `checkstatic/` (statik ikili denetimi), `bench/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas betikleri, `COLAB.md`) |

@@ -6,11 +6,11 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { izlemeKomutuCoz } = require('./izleme_komutlari');
-const { yorumlayiciyiBul: yorumlayiciyiBulKurali, yorumlayiciAdi, BIN_KLASORU } = require('./yorumlayici_bul');
-const { programArgumanlari } = require('./program_argumanlari');
-const kodluBicim = require('./kodlu_bicim');
-const kodluGorunum = require('./kodlu_gorunum');
+const { izlemeKomutuCoz } = require('./watch_commands');
+const { yorumlayiciyiBul: yorumlayiciyiBulKurali, yorumlayiciAdi, BIN_KLASORU } = require('./find_interpreter');
+const { programArgumanlari } = require('./program_arguments');
+const kodluBicim = require('./coded_format');
+const kodluGorunum = require('./coded_view');
 
 const GOREV_TURU = 'tr';
 const AYAR = 'yorumlayiciYolu';
@@ -33,7 +33,7 @@ function dosyaVarMi(yol) {
 }
 
 // Yorumlayıcıyı bulur: ayar -> (yalnızca güvenilen çalışma alanında) çalışma alanı kökü -> PATH.
-// Üst klasörler taranmaz. Kural ve gerekçesi yorumlayici_bul.js'tedir.
+// Üst klasörler taranmaz. Kural ve gerekçesi find_interpreter.js'tedir.
 // Bulunamazsa undefined döner; ayar geçersizse { hata } döner.
 function yorumlayiciyiBul(dosyaUri) {
     const klasor = vscode.workspace.getWorkspaceFolder(dosyaUri);
@@ -59,7 +59,7 @@ async function yorumlayiciBulunamadi(mesaj) {
     }
 }
 
-// kodlu, kodlu dosyaların Türkçe görünümüdür (kodlu_gorunum.js); activate kurar.
+// kodlu, kodlu dosyaların Türkçe görünümüdür (coded_view.js); activate kurar.
 let kodlu;
 
 // yerelUri bir belgenin diskteki dosyasıdır (kodlu dosyanın Türkçe görünümünde de dosyanın
@@ -202,7 +202,7 @@ const gorevSaglayici = {
 // ---------------------------------------------------------------------------
 
 // hataAyiklamaYapilandirmasi açık belgenin hata ayıklama ayarıdır. Kodlu dosyanın Türkçe
-// görünümünde program diskteki dosyadır, "gorunumAdresi" görünümün adresidir (kodlu_gorunum.js).
+// görünümünde program diskteki dosyadır, "gorunumAdresi" görünümün adresidir (coded_view.js).
 function hataAyiklamaYapilandirmasi(belge) {
     const yerel = yerelUri(belge.uri) || belge.uri;
     const klasor = vscode.workspace.getWorkspaceFolder(yerel);
@@ -340,7 +340,7 @@ async function tabloGoster(arg) {
 function tabloHtml(webview, veri) {
     // Veri betiğe JSON olarak gömülür; '<' kaçışlanır ki </script> enjeksiyonu olmasın.
     const json = JSON.stringify(veri).replace(/</g, '\\u003c');
-    return webviewHtml(webview, 'tablo', { veri: json });
+    return webviewHtml(webview, 'table', { veri: json });
 }
 
 // ---------------------------------------------------------------------------
@@ -427,7 +427,7 @@ async function izlemeMasasiMesaj(m) {
 
 // Yönlendirme düğmeleri: oturum etkin oturumsa VS Code'un kendi komutları kullanılır (araç
 // çubuğu ve editördeki sarı satır da güncellenir); değilse istek doğrudan oturuma gönderilir.
-// Eşleme izleme_komutlari.js'tedir (Node ile ayrıca sınanır).
+// Eşleme watch_commands.js'tedir (Node ile ayrıca sınanır).
 async function izlemeMasasiKomut(oturum, komut) {
     const etkin = !!vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.id === oturum.id;
     const is = izlemeKomutuCoz(komut, etkin);
@@ -473,7 +473,7 @@ const izlemeMasasiIzleyici = {
 };
 
 function izlemeMasasiHtml(webview) {
-    return webviewHtml(webview, 'izleme_masasi');
+    return webviewHtml(webview, 'watch_panel');
 }
 
 function activate(context) {

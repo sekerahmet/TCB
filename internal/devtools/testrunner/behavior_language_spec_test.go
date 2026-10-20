@@ -151,7 +151,7 @@ func TestLanguageSpecTestsPass(t *testing.T) {
 		t.Skip("-short: dil tanımı testleri tam denetimde `tr test tests` ile koşar")
 	}
 	// Komut satırındaki gibi dilin kitaplığı bağlanır (11.6: aktar "tr/...").
-	interp.SetLibrary(lib.Dosyalar)
+	interp.SetLibrary(lib.Files)
 	defer interp.SetLibrary(nil)
 	var out bytes.Buffer
 	summary, err := Run(reporoot.Path("tests"), &out)

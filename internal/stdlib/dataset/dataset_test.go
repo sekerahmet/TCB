@@ -299,7 +299,7 @@ yazdır(x[0].şekil)
 func TestErrorMessages(t *testing.T) {
 	d := buildDataset(t)
 	empty := t.TempDir()
-	broken := filepath.Join(empty, "bozuk.npy")
+	broken := filepath.Join(empty, "corrupt.npy")
 	if err := os.WriteFile(broken, []byte("merhaba"), 0o644); err != nil {
 		t.Fatal(err)
 	}

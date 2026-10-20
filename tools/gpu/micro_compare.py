@@ -2,7 +2,7 @@
 # TestMicroBench ile aynı işlemler ve aynı satır biçimi:
 #     MIKRO|işlem|pytorch|ms|değer|birim
 # float32, TF32 kapalı. Süreler iki CUDA olayı arasında, bir ısınmadan sonra 10 tekrarın
-# ortalamasıdır. Kullanım: python mikro_kiyas.py > mikro_py.txt
+# ortalamasıdır. Kullanım: python micro_compare.py > mikro_py.txt
 import math
 import torch
 import torch.nn.functional as F

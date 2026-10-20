@@ -51,9 +51,9 @@ func sampleFiles(t *testing.T) map[string][]byte {
 	d := map[string][]byte{}
 	// Parçalayıcılar: bayt düzeyi BPE (özel tokenlı, <|endoftext|> içerir) ve BERT
 	// tarzı WordPiece (son işleyicisi [CLS]/[SEP] ekler; çift kodlama için).
-	bpe := read(reporoot.Path("internal/compute/tokenize/testdata/p_bayt_bpe.json"))
-	d["parcalayici.json"] = bpe
-	d["parcalayici_bert.json"] = read(reporoot.Path("internal/compute/tokenize/testdata/p_wordpiece.json"))
+	bpe := read(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json"))
+	d["tokenizer.json"] = bpe
+	d["tokenizer_bert.json"] = read(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_wordpiece.json"))
 
 	// sayilar/: değerleri konumunu söyleyen iki parça (uint16 ve int32).
 	a := make([]uint16, 100)
@@ -78,7 +78,7 @@ func sampleFiles(t *testing.T) map[string][]byte {
 		t.Fatal("<|endoftext|> yok")
 	}
 	var docs []string
-	for _, s := range strings.Split(string(read(reporoot.Path("internal/compute/tokenize/testdata/ornek_metin.txt"))), "\n") {
+	for _, s := range strings.Split(string(read(reporoot.Path("internal/compute/tokenize/testdata/sample_text.txt"))), "\n") {
 		if strings.TrimSpace(s) != "" {
 			docs = append(docs, s)
 		}
@@ -86,13 +86,13 @@ func sampleFiles(t *testing.T) map[string][]byte {
 	tokens := p.JoinDocuments(docs, sep, 1)
 	half := len(tokens) / 2
 	parts := [][]int32{tokens[:half], tokens[half:]}
-	meta := map[string]any{"tokenizer": "../parcalayici.json", "parts": map[string]any{}}
+	meta := map[string]any{"tokenizer": "../tokenizer.json", "parts": map[string]any{}}
 	for i, pt := range parts {
 		u := make([]uint16, len(pt))
 		for j, x := range pt {
 			u[j] = uint16(x)
 		}
-		name := fmt.Sprintf("metin_%03d.npy", i)
+		name := fmt.Sprintf("text_%03d.npy", i)
 		d["text/"+name] = npyU16(u)
 		meta["parts"].(map[string]any)[name] = map[string]any{"tokens": len(pt)}
 	}
@@ -103,7 +103,7 @@ func sampleFiles(t *testing.T) map[string][]byte {
 	d["text/meta.json"] = append(mj, '\n')
 
 	// Hata testleri için .npy olmayan bir dosya.
-	d["bozuk.npy"] = []byte("bu bir .npy dosyası değil\n")
+	d["corrupt.npy"] = []byte("bu bir .npy dosyası değil\n")
 	return d
 }
 

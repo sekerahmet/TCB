@@ -1,14 +1,14 @@
-// Eklentinin çalıştırma ve hata ayıklama yolları, sahte vscode modülüyle (sahte_vscode.js):
+// Eklentinin çalıştırma ve hata ayıklama yolları, sahte vscode modülüyle (fake_vscode.js):
 // F5 / Ctrl+F5 yapılandırmasından yorumlayıcıya giden süreç ve argümanlar. Bağımlılıksız; depo
 // kökünden:
-//   node editors/vscode/test/calistirma_test.js
+//   node editors/vscode/test/execution_test.js
 // (go test ./cmd/tr/e2e bunu TestEklentiJSTestleri ile çalıştırır.)
 'use strict';
 
 const assert = require('assert');
 const path = require('path');
-const { kur, bekle } = require('./sahte_vscode');
-const { programArgumanlari } = require('../program_argumanlari');
+const { kur, bekle } = require('./fake_vscode');
+const { programArgumanlari } = require('../program_arguments');
 
 const testler = [];
 function test(ad, fn) {
@@ -70,7 +70,7 @@ test('F5: yapılandırma olduğu gibi kalır, yorumlayıcı "dap" ile başlar', 
     const { kayit, saglayici, surec } = kur({ ayar: YORUMLAYICI, klasor: KLASOR });
     const y = { type: 'tr', request: 'launch', name: 'TR', program: DOSYA, args: ['--adım', '5'], cwd: KLASOR };
     const cozulen = await saglayici.resolveDebugConfiguration(undefined, y);
-    // Kodlu olmayan dosyada görünüm adresi eklenmez (kodlu dosyada: kodlu_gorunum_test.js).
+    // Kodlu olmayan dosyada görünüm adresi eklenmez (kodlu dosyada: coded_view_test.js).
     assert.strictEqual(await saglayici.resolveDebugConfigurationWithSubstitutedVariables(undefined, cozulen), y);
     assert.strictEqual(y.gorunumAdresi, undefined);
     // "args" başlatma isteğiyle (launch) 'tr dap'a gider; süreç argümanı yalnızca 'dap'.
@@ -109,5 +109,5 @@ test('güvenilmeyen çalışma alanında Ctrl+F5 yorumlayıcıyı çalıştırma
             process.exitCode = 1;
         }
     }
-    console.log(`calistirma_test: ${gecen}/${testler.length} geçti`);
+    console.log(`execution_test: ${gecen}/${testler.length} geçti`);
 })();

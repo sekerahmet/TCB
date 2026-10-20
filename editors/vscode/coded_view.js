@@ -23,8 +23,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const kodluBicim = require('./kodlu_bicim');
-const kodluDosyaSistemi = require('./kodlu_dosya_sistemi');
+const kodluBicim = require('./coded_format');
+const kodluDosyaSistemi = require('./coded_filesystem');
 
 const GORUNUM_SEMASI = 'tr-kodlu';
 const HAM_SEMASI = 'tr-ham';
@@ -34,7 +34,7 @@ const BEKLEYEN_ANAHTARI = 'tr.kodlanmayiBekleyenDosyalar';
 const BUYUK_KUCUK_DUYARSIZ = process.platform === 'win32' || process.platform === 'darwin';
 
 // olustur görünümün parçalarını kurar.
-//   g.yorumlayiciyiBul  (dosyaUri) -> { yol } | { hata } | undefined   (yorumlayici_bul.js kuralı)
+//   g.yorumlayiciyiBul  (dosyaUri) -> { yol } | { hata } | undefined   (find_interpreter.js kuralı)
 //   g.cevir             kodluBicim.cevir ile aynı imza
 //   g.durum             kalıcı durum (ExtensionContext.globalState)
 //   g.yazimDili         () -> yazım dili kodu ('tr.yazimDili' ayarı)

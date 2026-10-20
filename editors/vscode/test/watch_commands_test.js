@@ -7,7 +7,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { IZLEME_KOMUTLARI, izlemeKomutuCoz } = require('../izleme_komutlari');
+const { IZLEME_KOMUTLARI, izlemeKomutuCoz } = require('../watch_commands');
 
 const MEDIA = path.join(__dirname, '..', 'media');
 let gecen = 0;
@@ -45,14 +45,14 @@ test('bilinmeyen komut yok sayılır', () => {
 });
 
 test('webview düğmeleri ile eşleme birebir', () => {
-    const html = fs.readFileSync(path.join(MEDIA, 'izleme_masasi.html'), 'utf8');
+    const html = fs.readFileSync(path.join(MEDIA, 'watch_panel.html'), 'utf8');
     const dugmeler = [...html.matchAll(/data-komut="([^"]+)"/g)].map((m) => m[1]).sort();
     assert.deepStrictEqual(dugmeler, Object.keys(IZLEME_KOMUTLARI).sort());
     assert.ok(dugmeler.includes('continue'), 'Devam düğmesi continue göndermeli');
 });
 
 // --- Webview tarafı: düğmeye basış → postMessage ---
-// Küçük bir sahte DOM ile media/izleme_masasi.js çalıştırılır.
+// Küçük bir sahte DOM ile media/watch_panel.js çalıştırılır.
 
 class SahteOge {
     constructor(etiket, nitelikler) {
@@ -84,7 +84,7 @@ class SahteOge {
 }
 
 function masaYukle() {
-    const html = fs.readFileSync(path.join(MEDIA, 'izleme_masasi.html'), 'utf8');
+    const html = fs.readFileSync(path.join(MEDIA, 'watch_panel.html'), 'utf8');
     const dugmeler = [...html.matchAll(/data-komut="([^"]+)"/g)].map((m) => new SahteOge('button', { dataset: { komut: m[1] } }));
     const ogeler = {};
     const oge = (id) => (ogeler[id] = ogeler[id] || new SahteOge('div', { id }));
@@ -107,7 +107,7 @@ function masaYukle() {
     };
     pencere.innerHeight = 800;
     vm.createContext(baglam);
-    vm.runInContext(fs.readFileSync(path.join(MEDIA, 'izleme_masasi.js'), 'utf8'), baglam, { filename: 'izleme_masasi.js' });
+    vm.runInContext(fs.readFileSync(path.join(MEDIA, 'watch_panel.js'), 'utf8'), baglam, { filename: 'watch_panel.js' });
     const dugme = (k) => dugmeler.find((d) => d.dataset.komut === k);
     const durum = (satir, neden) => pencere.gonder('message', {
         data: { tur: 'durum', veri: { dosya: 'a.tr', satir, cerceve: 'ana program', neden, degiskenler: [] } }

@@ -1,6 +1,6 @@
 # 🇹🇷 TR (`.tr`) Programlama ve Yapay Zeka Dili — Kullanım Kılavuzu
 
-Kılavuz dili kullanmayı anlatır; dilin kuralları [`docs/spec/`](../spec/README.md) altındadır, her adın imzası ve örneği [`docs/kodlar.md`](../kodlar.md)'dedir.
+Kılavuz dili kullanmayı anlatır; dilin kuralları [`docs/spec/`](../spec/README.md) altındadır, her adın imzası ve örneği [`docs/codes.md`](../codes.md)'dedir.
 
 ## Bölümler
 

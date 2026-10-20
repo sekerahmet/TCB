@@ -563,7 +563,7 @@ değişken s = veri_kümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4)
 parçalayıcı_yükle(...) ile yüklenen, metni parçalara ayırıp parça kimliklerine çeviren nesnenin tipidir.
 
 ```tr
-değişken p = parçalayıcı_yükle("tests/data/parcalayici.json"); yazdır(tip(p) == Parçalayıcı)
+değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(tip(p) == Parçalayıcı)
 ```
 
 Üyeleri: Y610 `kodla`, Y611 `çöz`, Y612 `dağarcık_boyutu`, Y613 `parça_kimliği` · İlişkili: V200 `parçalayıcı_yükle`
@@ -2173,7 +2173,7 @@ değişken küme = veri_kümesi("tests/data/numbers"); yazdır(küme)
 tokenizer.json biçimindeki bir parçalayıcı dosyasını yükler ve Parçalayıcı nesnesi döndürür. Adlı argüman almaz; klasör yolu verilirse hata verir.
 
 ```tr
-değişken p = parçalayıcı_yükle("tests/data/parcalayici.json"); yazdır(p)
+değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p)
 ```
 
 İlişkili: Y610 `kodla`, Y611 `çöz`, Y612 `dağarcık_boyutu`, Y613 `parça_kimliği`
@@ -2225,7 +2225,7 @@ Kullananlar: Y600 `örnekleyici`, Y601 `sıralı` · İlişkili: V902 `toplu`
 Özel parçaların kodlamaya eklenip eklenmeyeceğini (kodla, varsayılan doğru) ya da çözülen metne yazılıp yazılmayacağını (çöz, varsayılan yanlış) belirler. Yalnızca doğru ya da yanlış olabilir.
 
 ```tr
-yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").kodla("merhaba dünya", özel_parçalar: yanlış))
+yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("merhaba dünya", özel_parçalar: yanlış))
 ```
 
 Kullananlar: Y610 `kodla`, Y611 `çöz` · Eski adlar: `özel_tokenlar`
@@ -2235,7 +2235,7 @@ Kullananlar: Y610 `kodla`, Y611 `çöz` · Eski adlar: `özel_tokenlar`
 kodla'ya ikinci bir metin vererek çift kodlama yapar. Liste kodlanırken aynı uzunlukta bir metin listesi olmalıdır.
 
 ```tr
-yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").kodla("soru", ikinci: "cevap"))
+yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("soru", ikinci: "cevap"))
 ```
 
 Kullananlar: Y610 `kodla`
@@ -3035,7 +3035,7 @@ değişken girdi, hedef = veri_kümesi("tests/data/numbers").sıralı(toplu: 2, 
 Metni parça kimliklerinin listesine çevirir; metin listesi verilirse her metni ayrı kodlar. özel_parçalar: yanlış verilmezse parçalayıcının özel parçaları eklenir; ikinci: ile metin çifti kodlanır.
 
 ```tr
-yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").kodla("Merhaba dünya!"))
+yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("Merhaba dünya!"))
 ```
 
 İlişkili: Y611 `çöz`
@@ -3047,7 +3047,7 @@ yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").kodla("Merhaba dün
 Parça kimliklerini (liste, listelerin listesi ya da tensör) metne geri çevirir. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar.
 
 ```tr
-değişken p = parçalayıcı_yükle("tests/data/parcalayici.json"); yazdır(p.çöz(p.kodla("Merhaba dünya!")))
+değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p.çöz(p.kodla("Merhaba dünya!")))
 ```
 
 İlişkili: Y610 `kodla`
@@ -3059,7 +3059,7 @@ değişken p = parçalayıcı_yükle("tests/data/parcalayici.json"); yazdır(p.�
 Parçalayıcının dağarcığındaki parça sayısını (eklenmiş özel parçalar dahil) Tam olarak verir. Parantezsiz yazılan bir özelliktir.
 
 ```tr
-yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").dağarcık_boyutu)
+yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu)
 ```
 
 İlişkili: Y613 `parça_kimliği` · Eski adlar: `sözlük_boyutu`
@@ -3071,7 +3071,7 @@ yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").dağarcık_boyutu)
 Verilen parçanın dağarcıktaki kimliğini verir; parça dağarcıkta yoksa yok döner. Argüman Metin olmalıdır.
 
 ```tr
-yazdır(parçalayıcı_yükle("tests/data/parcalayici.json").parça_kimliği("<|endoftext|>"))
+yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").parça_kimliği("<|endoftext|>"))
 ```
 
 İlişkili: Y612 `dağarcık_boyutu` · Eski adlar: `token_kimliği`

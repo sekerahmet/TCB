@@ -158,7 +158,7 @@ func TestExtensionTextsInTranslationFile(t *testing.T) {
 
 // launch.json'daki "args" metin dizisi olarak tanımlıdır (VS Code tamamlar ve denetler);
 // F5'te 'tr dap' başlatma isteğinden (internal/devtools/debugger), Ctrl+F5'te komut satırından
-// programa gider (test/calistirma_test.js).
+// programa gider (test/execution_test.js).
 func TestExtensionDebugArguments(t *testing.T) {
 	p := readExtensionPackage(t)
 	if len(p.Contributes.Debuggers) != 1 {
@@ -239,9 +239,9 @@ func TestExtensionInterpreterSettingMachineScoped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Yorumlayıcı arama kuralı tek yerde: yorumlayici_bul.js (üst klasör taraması yok).
-	if !strings.Contains(string(js), "require('./yorumlayici_bul')") || strings.Contains(string(js), "path.dirname(dizin)") {
-		t.Error("extension.js yorumlayıcıyı yorumlayici_bul.js ile bulmalı ve üst klasörleri taramamalı")
+	// Yorumlayıcı arama kuralı tek yerde: find_interpreter.js (üst klasör taraması yok).
+	if !strings.Contains(string(js), "require('./find_interpreter')") || strings.Contains(string(js), "path.dirname(dizin)") {
+		t.Error("extension.js yorumlayıcıyı find_interpreter.js ile bulmalı ve üst klasörleri taramamalı")
 	}
 }
 
@@ -284,13 +284,13 @@ func TestExtensionRestrictedMode(t *testing.T) {
 		t.Errorf("extension.js çalıştırmadan ve hata ayıklamadan önce çalışma alanı güvenini denetlemeli (%d denetim bulundu)", n)
 	}
 	// Kodlu dosyaların Türkçe görünümü 'tr göster -' ve 'tr kodla -' çalıştırır: yalnızca
-	// güvenilen çalışma alanında (kısıtlı kipte salt okunur ham gösterim; kodlu_gorunum_test.js).
-	view, err := os.ReadFile(reporoot.Path("editors/vscode/kodlu_gorunum.js"))
+	// güvenilen çalışma alanında (kısıtlı kipte salt okunur ham gösterim; coded_view_test.js).
+	view, err := os.ReadFile(reporoot.Path("editors/vscode/coded_view.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(view), "if (!vscode.workspace.isTrusted)") {
-		t.Error("kodlu_gorunum.js yorumlayıcıyı çalıştırmadan önce çalışma alanı güvenini denetlemeli")
+		t.Error("coded_view.js yorumlayıcıyı çalıştırmadan önce çalışma alanı güvenini denetlemeli")
 	}
 }
 

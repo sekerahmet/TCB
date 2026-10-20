@@ -84,7 +84,7 @@ func TestMembersMatchDictionary(t *testing.T) {
 		`değişken u_sozluk = {"a": 1}`,
 		`değişken u_tensor = tensör([[1.0, 2.0]], türev_izle: doğru)`,
 		`değişken u_iyilestirici = SGD([u_tensor])`,
-		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/p_bayt_bpe.json")) + `")`,
+		`değişken u_parcalayici = parçalayıcı_yükle("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
 		`değişken u_yol = yol("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
 		`değişken u_ilerleme = ilerleme(3)`,
 	}, "\n")

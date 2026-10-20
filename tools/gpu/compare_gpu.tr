@@ -1,5 +1,5 @@
 // GPU kıyası: CPU kıyasının (tools/bench) modeli GPU'da. Aynı model ve ayarlar
-// kiyas_gpu.py'de. Ayarlar aynı klasördeki kiyas_ayar.json'dan okunur:
+// compare_gpu.py'de. Ayarlar aynı klasördeki compare_config.json'dan okunur:
 //   {"boyut": "kucuk" | "buyuk" | "buyuk_kisa" | "gpt" | "gpt_kisa" | "deneme", "veri": "/content/veri" ya da "", "cihaz": "gpu",
 //    "hassasiyet": "float32" (varsayılan) ya da "bf16" (karışık hassasiyet)}
 // "buyuk_kisa" büyük modelin kısa koşusudur (profil ve dış profilleyici için). "gpt" GPT-2 küçük
@@ -7,7 +7,7 @@
 // "veri" boşsa sabit sentetik toplu işler kullanılır (kayıp anlamsız, süre geçerli).
 // Çıktı: ısınma hariç ms/adım ve son kayıp.
 
-değişken ayar = json_çöz(dosya_oku("kiyas_ayar.json"))
+değişken ayar = json_çöz(dosya_oku("compare_config.json"))
 değişken HASSASIYET = "float32"
 eğer ayar.içerir("hassasiyet") { HASSASIYET = ayar["hassasiyet"] }
 değişken boyutlar = {

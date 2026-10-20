@@ -1,6 +1,6 @@
-// kiyas, hız kıyas setinin (tools/bench) derlenmiş başvuru sürümüdür: TR ve Python
+// compare, hız kıyas setinin (tools/bench) derlenmiş başvuru sürümüdür: TR ve Python
 // programlarının yaptığı işleri aynı sonuç değerleriyle yapar ve sürelerini yazar.
-// tools/bench/kos.py derleyip çalıştırır.
+// tools/bench/run.py derleyip çalıştırır.
 //
 // Layer: tools (tools); kullanıcıya gitmez.
 package main

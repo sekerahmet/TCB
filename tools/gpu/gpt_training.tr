@@ -11,9 +11,9 @@
 // Kesilirse aynı komut kaldığı yerden sürer (her_dakika'da bir kayıt).
 //
 // Kullanım:
-//   ./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/runs/gpt1
-//   ./tr gpt_egitim.tr --veri /content/ss4096 --toplu 64 --birikim 2      (bellek yetmezse)
-//   ./tr gpt_egitim.tr --yardım
+//   ./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1
+//   ./tr gpt_training.tr --veri /content/ss4096 --toplu 64 --birikim 2      (bellek yetmezse)
+//   ./tr gpt_training.tr --yardım
 // Model ayarları varsayılan olarak d512, 8 katman, 8 baş, bağlam 512, toplu 128'dir.
 
 aktar "tr/katman"

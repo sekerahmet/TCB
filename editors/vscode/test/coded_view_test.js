@@ -1,8 +1,8 @@
-// Kodlu dosyaların Türkçe görünümü (kodlu_gorunum.js, docs/spec/17_kodlar.md "Düzenleyicide"), sahte vscode
+// Kodlu dosyaların Türkçe görünümü (coded_view.js, docs/spec/17_kodlar.md "Düzenleyicide"), sahte vscode
 // modülüyle ve GERÇEK 'tr' yorumlayıcısıyla: kodlu dosyayı aç → Türkçe görünüm (başlık gizli),
 // düzenle → kaydet → diskte kodlu ve 'tr göster' ile aynı; geri al; bozuk dosyanın kayıpsız
 // kaydı; satır eşlemesi (hata mesajı ve hata ayıklayıcı); kısıtlı kip. Depo kökünden:
-//   TR_YORUMLAYICI=bin/tr.exe node editors/vscode/test/kodlu_gorunum_test.js
+//   TR_YORUMLAYICI=bin/tr.exe node editors/vscode/test/coded_view_test.js
 // (go test ./cmd/tr/e2e bunu TestEklentiJSTestleri ile, derlediği yorumlayıcıyla çalıştırır.
 // Yorumlayıcı yoksa yorumlayıcı gerektiren testler atlanır.)
 'use strict';
@@ -12,10 +12,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { kur, olana, Uri, SahteDurum } = require('./sahte_vscode');
-const kodluBicim = require('../kodlu_bicim');
-const { globKacis } = require('../kodlu_dosya_sistemi');
-const { BEKLEYEN_ANAHTARI } = require('../kodlu_gorunum');
+const { kur, olana, Uri, SahteDurum } = require('./fake_vscode');
+const kodluBicim = require('../coded_format');
+const { globKacis } = require('../coded_filesystem');
+const { BEKLEYEN_ANAHTARI } = require('../coded_view');
 
 const depoKoku = path.resolve(__dirname, '..', '..', '..');
 const TR = [process.env.TR_YORUMLAYICI, path.join(depoKoku, 'bin', process.platform === 'win32' ? 'tr.exe' : 'tr')]
@@ -358,7 +358,7 @@ test('Kodlu Hâlini Göster komutu ham hâli yanda salt okunur açar', async () 
     // Eklentinin yedek zamanlayıcıları (sekme yönlendirmesi) bitsin; sonra geçici klasör silinir.
     await new Promise((coz) => setTimeout(coz, 300));
     fs.rmSync(kok, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
-    console.log(`kodlu_gorunum_test: ${gecen}/${testler.length} geçti` + (atlanan ? ` (${atlanan} test atlandı: TR yorumlayıcısı yok; TR_YORUMLAYICI ile verin)` : ''));
+    console.log(`coded_view_test: ${gecen}/${testler.length} geçti` + (atlanan ? ` (${atlanan} test atlandı: TR yorumlayıcısı yok; TR_YORUMLAYICI ile verin)` : ''));
     // Eklentinin yedek zamanlayıcıları sınamayı bekletmesin.
     process.exit(process.exitCode || 0);
 })();

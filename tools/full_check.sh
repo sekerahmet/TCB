@@ -30,7 +30,7 @@
 # gerektiren bir örnek eklenirse), ORNEK_ZAMAN_ASIMI (bir örneğin en uzun süresi, saniye; 300),
 # TAM_DENETIM_P (go test'in aynı anda derleyip koşacağı paket sayısı, -p; zayıf makinede 1–2).
 # TR_CPU_AVX2'yi kip belirler; ortamda başka bir değer varsa yok sayıldığı yazılır.
-# Hız ölçümü bu betikte YOK: kesin ölçüm boş makinede ayrı yapılır (tools/bench/kos.py).
+# Hız ölçümü bu betikte YOK: kesin ölçüm boş makinede ayrı yapılır (tools/bench/run.py).
 set -u
 # Borunun çıkış kodu, düşen ilk komutun kodudur; kodu bilerek ele alınan borular aşağıda
 # PIPESTATUS ile okunur.
@@ -148,7 +148,7 @@ static_checks() {
 	done
 
 	# Varsayılan Linux program dosyası GPU sürücüsünü yükleyebilmek için glibc'ye dinamik bağlıdır;
-	# "gpusuz" etiketli derleme statik kalmalıdır (bkz. docs/mimari.md, GPU arka ucu).
+	# "gpusuz" etiketli derleme statik kalmalıdır (bkz. docs/architecture.md, GPU arka ucu).
 	step "GPU'suz Linux program dosyası statik mi (-tags gpusuz)"
 	static_dir=$(mktemp -d)
 	if GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags gpusuz -o "$static_dir/tr" ./cmd/tr; then

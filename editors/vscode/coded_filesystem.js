@@ -1,4 +1,4 @@
-// Kodlu görünümün dosya sistemi sağlayıcıları (kodlu_gorunum.js). İki şema vardır:
+// Kodlu görünümün dosya sistemi sağlayıcıları (coded_view.js). İki şema vardır:
 //   görünüm  (g.GORUNUM_SEMASI)  okuma g.gorunumOku'dan (kodluysa Türkçe yazım), yazma
 //                                g.kayitMetni'nden (kodlu biçim) geçer;
 //   ham      (g.HAM_SEMASI)      dosyanın baytları, salt okunur (kısıtlı kip ve "kodlu hâlini

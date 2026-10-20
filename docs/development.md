@@ -4,12 +4,12 @@
 
 ## Klasörler ve katmanlar
 
-Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekirdeği (`internal/lang`), hesap çekirdekleri (`internal/compute`), motorlar (`internal/stdlib`), araçlar (`internal/devtools`, `cmd/tr`). Kim kimi içe aktarabilir, her paketin görevi ve klasör haritası: [`mimari.md`](mimari.md#katmanlar). Kuralı `internal/layers_test.go` denetler; yeni bir klasör açılınca oradaki tablo da güncellenir.
+Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekirdeği (`internal/lang`), hesap çekirdekleri (`internal/compute`), motorlar (`internal/stdlib`), araçlar (`internal/devtools`, `cmd/tr`). Kim kimi içe aktarabilir, her paketin görevi ve klasör haritası: [`architecture.md`](architecture.md#katmanlar). Kuralı `internal/layers_test.go` denetler; yeni bir klasör açılınca oradaki tablo da güncellenir.
 
 ## Adlar
 
 - **Kök klasörler: küresel standart + TR standardı.** Araçların ya da her geliştiricinin beklediği yerlerde dünyada yaygın ad kullanılır: `bin/` (derleme çıktısı, depoya girmez), `docs/`, `tools/` (bakım betikleri, üreteçler, kıyas), `editors/` (düzenleyici eklentileri), `cmd/`, `internal/`, `.github/`, `README.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`. Dilin kendi içeriğini tutan klasörler de İngilizce adlıdır (`examples/`, `tests/`, `lib/`); içlerindeki `.tr` dosyaları ve kullanıcı belgeleri Türkçedir.
-- **Go kodunun kuralları** (İngilizce adlar, Türkçe yorumlar, kullanıcıya görünen adların ve iletilerin kodlara bağlanması, dosya ve fonksiyon boyu, paket belgesi, hatalar, yorumlayıcı kilidi, sınırlar, test dosyası düzeni) ve her kuralı koruyan test: [`internal/README.md`](../internal/README.md). Her kodun ne işe yaradığı ve imzası: [`kodlar.md`](kodlar.md).
+- **Go kodunun kuralları** (İngilizce adlar, Türkçe yorumlar, kullanıcıya görünen adların ve iletilerin kodlara bağlanması, dosya ve fonksiyon boyu, paket belgesi, hatalar, yorumlayıcı kilidi, sınırlar, test dosyası düzeni) ve her kuralı koruyan test: [`internal/README.md`](../internal/README.md). Her kodun ne işe yaradığı ve imzası: [`codes.md`](codes.md).
 
 ## Testler
 
@@ -34,8 +34,8 @@ Go test dosyalarının düzeni (birim testi `x_test.go`, davranış testi `behav
 
 Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** ister. Kodu yalnızca baş geliştirici verir:
 
-1. Önce [`kodlar.md`](kodlar.md)'ye bakın: aynı işi yapan bir kod (fonksiyon ya da metot biçiminde) varsa onu kullanın. Aynı işi yapan iki kod olamaz.
-2. Yoksa kodu kendiniz eklemeyin. O parçayı bırakın, işin geri kalanına devam edin ve raporunuza **sözlük isteği** başlığıyla yazın: ne işe yarayacak, imzası, neden var olan kodlar yetmiyor, baktığınız yakın kodlar. Depoya dışarıdan katkıda bulunuyorsanız aynı bilgilerle **Sözlük isteği** konu şablonunu açın ([`.github/ISSUE_TEMPLATE/sozluk_istegi.md`](../.github/ISSUE_TEMPLATE/sozluk_istegi.md)).
+1. Önce [`codes.md`](codes.md)'ye bakın: aynı işi yapan bir kod (fonksiyon ya da metot biçiminde) varsa onu kullanın. Aynı işi yapan iki kod olamaz.
+2. Yoksa kodu kendiniz eklemeyin. O parçayı bırakın, işin geri kalanına devam edin ve raporunuza **sözlük isteği** başlığıyla yazın: ne işe yarayacak, imzası, neden var olan kodlar yetmiyor, baktığınız yakın kodlar. Depoya dışarıdan katkıda bulunuyorsanız aynı bilgilerle **Sözlük isteği** konu şablonunu açın ([`.github/ISSUE_TEMPLATE/name_request.md`](../.github/ISSUE_TEMPLATE/name_request.md)).
 3. Baş geliştirici ya var olan bir kodu gösterir ya da kodu ve adı verir. `tr.json`'a yalnızca size verilen kodlar girer; Go sabitleri `go generate ./internal/lang/codes` ile üretilir. Kullanıcıya giden iletiler de kodludur (`H` ailesi, `internal/lang/messages`); ileti kodları adlardan farklı olarak işi yapan geliştirici tarafından kendi alanının aralığında eklenir.
 
 ## Bitti tanımı ve tam denetim
@@ -70,7 +70,7 @@ Ana dal herkese açıktır; ona yalnızca bütün kapılardan geçmiş iş gider
 Yorumlayıcı Python'la en az başa baş olmalıdır; sıcak yola dokunan her değişiklik önce ve sonra ölçülür:
 
 ```sh
-python tools/bench/kos.py --yalniz tr --tekrar 5           # TR programları (tools/bench/)
+python tools/bench/run.py --yalniz tr --tekrar 5           # TR programları (tools/bench/)
 go test -run XXX -bench . -count 6 ./internal/stdlib/ml/ # Go kıyasları
 ```
 

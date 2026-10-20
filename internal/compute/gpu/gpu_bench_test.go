@@ -16,7 +16,7 @@ import (
 //
 //	MIKRO|işlem|yol|ms|değer|birim
 //
-// biçimindedir; tools/gpu/mikro_kiyas.py aynı biçimi verir, tools/gpu/mikro_tablo.py ikisini
+// biçimindedir; tools/gpu/micro_compare.py aynı biçimi verir, tools/gpu/micro_table.py ikisini
 // karşılaştırma tablosuna çevirir. Süreler çekirdek süresidir (iki olay arası, ısınmadan
 // sonra n tekrarın ortalaması). Matris çarpımı iki yolla ölçülür: kitaplık (varsa) ve kendi
 // çekirdeğimiz.

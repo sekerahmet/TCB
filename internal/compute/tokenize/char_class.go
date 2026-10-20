@@ -4,7 +4,7 @@ import "sort"
 
 // charTable sıralı, çakışmayan [ilk, son] kod noktası aralıklarıdır.
 // Tablolar karaktertablo.go'da başvuru uygulamasından çıkarılarak üretilir
-// (bkz. testdata/karakter_tablolari_uret.py).
+// (bkz. testdata/generate_char_tables.py).
 type charTable [][2]rune
 
 func (t charTable) inside(r rune) bool {

@@ -1,5 +1,5 @@
-# GPU kıyası, karşılaştırma tarafı: kiyas_gpu.tr ile aynı model ve ayarlar (CUDA).
-# Kullanım: python kiyas_gpu.py --boyut kucuk|buyuk|gpt [--veri KLASOR] [--derleme yok|var|ikisi]
+# GPU kıyası, karşılaştırma tarafı: compare_gpu.tr ile aynı model ve ayarlar (CUDA).
+# Kullanım: python compare_gpu.py --boyut kucuk|buyuk|gpt [--veri KLASOR] [--derleme yok|var|ikisi]
 #           [--hassasiyet float32|bf16]  (bf16: ileri yön ve kayıp autocast ile, ağırlıklar float32)
 # --veri bir klasördür (içindeki ilk .npy dosyası okunur); verilmezse sabit sentetik toplu
 # işler kullanılır. Derlemeli ölçümde derleme süresi ısınma adımlarında kalır.

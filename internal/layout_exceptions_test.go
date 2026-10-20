@@ -1,6 +1,6 @@
 package internal_test
 
-// Kod düzeni standardının bugünkü istisnaları (kurallar: layout_test.go, docs/katki.md).
+// Kod düzeni standardının bugünkü istisnaları (kurallar: layout_test.go, docs/development.md).
 //
 // Listeler YALNIZCA KÜÇÜLEBİLİR: bir dosya ya da fonksiyon sınırın altına inince kaydı
 // silinir ve en fazla sayısı (max...) aynı miktarda azaltılır. Yeni kayıt eklenmez;
@@ -60,7 +60,7 @@ var longFuncs = map[string]exception{
 	"internal/devtools/formatter/format.go:format":              {119, "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde"},
 	"tools/gen/codesdoc/main.go:Uret":                           {151, reasonGenerator},
 	"tools/gen/grammar/main.go:Uret":                            {107, reasonGenerator},
-	"tools/bench/go/kiyas.go:main":                              {92, reasonGenerator + " (kıyas programları sırayla)"},
+	"tools/bench/go/compare.go:main":                            {92, reasonGenerator + " (kıyas programları sırayla)"},
 
 	// Motorlar
 	"internal/stdlib/ml/custom_grad.go:checkGrad":          {181, reasonBuiltin + " (sayısal türev denetimi)"},

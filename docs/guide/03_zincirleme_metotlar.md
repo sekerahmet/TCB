@@ -4,7 +4,7 @@
 - **Liste (`Liste`):** `.uzunluk`, `.ilk`, `.son`, `.filtrele(fn)`, `.haritala(fn)`, `.indirge([başlangıç], fn)`, `.sırala()`, `.ters_çevir()`, `.birleştir([ayırıcı])`, `.benzersiz()`, `.içerir(el)`, `.ekle(el, ...)` (listeyi yerinde değiştirir)
 - **Sözlük (`Sözlük`):** `.uzunluk`, `.anahtarlar()`, `.değerler()`, `.içerir(anahtar)`
 
-Her metodun ve yerleşiğin imzası ve örneği [`docs/kodlar.md`](../kodlar.md)'dedir. `.uzunluk`, `.ilk`, `.son` özelliktir, parantezsiz yazılır.
+Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'dedir. `.uzunluk`, `.ilk`, `.son` özelliktir, parantezsiz yazılır.
 
 **Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.uzunluk`, `l.filtrele {...}`, `l.sırala()`, `l.ekle(x)`, `t.devrik()`); matematik ve tensör işi fonksiyondur (`toplam(l)`, `ortalama(l)`, `min(l)`, `maks(l)`, `relu(t)`). Hedef tipin adını taşıyan dönüştürücüler (`tam(x)`, `ondalık(x)`, `metin(x)`) kurucudur, `tip(x)` de genel bir sorudur; ikisi de fonksiyondur. Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
 
@@ -35,7 +35,7 @@ sayılar.filtrele { o % 2 == 0 } |> toplam      // boru yalnızca fonksiyonlarla
 - İç içe bloklarda `o` en içteki elemanı gösterir: `[[1, 2]].haritala { o.haritala { o * 10 } }`.
 - `eğer`, `iken`, `döngü` ve `eşle` başlıklarında `{` her zaman gövdeyi başlatır. Başlıkta sondaki blok kullanmak için ifadeyi paranteze alın: `eğer (liste.filtrele { o > 2 }).uzunluk > 0 { ... }`.
 - Uzun yazım (`(x) => x > 2`) aynen çalışmaya devam eder.
-- Boru hattı `x |> f(a)` ≡ `f(x, a)` yalnızca fonksiyonlarla çalışır (kullanıcı fonksiyonları ve `toplam`, `ortalama`, `relu`, `metin` gibi yerleşikler; tam liste `docs/kodlar.md` sonunda). Metotlar `.` ile zincirlenir; `l |> filtrele { ... }` yazılırsa hata `l.filtrele { ... }` yazmanızı söyler.
+- Boru hattı `x |> f(a)` ≡ `f(x, a)` yalnızca fonksiyonlarla çalışır (kullanıcı fonksiyonları ve `toplam`, `ortalama`, `relu`, `metin` gibi yerleşikler; tam liste `docs/codes.md` sonunda). Metotlar `.` ile zincirlenir; `l |> filtrele { ... }` yazılırsa hata `l.filtrele { ... }` yazmanızı söyler.
 
 ## Hata mesajları
 

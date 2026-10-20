@@ -26,7 +26,7 @@ func FuzzTokenizer(f *testing.F) {
 	f.Add([]byte(`{"model":{"type":"WordLevel","unk_token":"?","vocab":{"?":0,"a":1}}}`), text)
 
 	// Bileşen kayıtları (normalleştirici, ön bölücü, çözücü) küçük modelle birleştirilir.
-	if data, err := os.ReadFile("testdata/bilesenler.json"); err == nil {
+	if data, err := os.ReadFile("testdata/components.json"); err == nil {
 		var records [][]json.RawMessage
 		if json.Unmarshal(data, &records) == nil {
 			for _, k := range records {
@@ -39,7 +39,7 @@ func FuzzTokenizer(f *testing.F) {
 		}
 	}
 	// Gerçek biçimdeki küçük parçalayıcılar.
-	if paths, err := filepath.Glob("testdata/p_*.json"); err == nil {
+	if paths, err := filepath.Glob("testdata/tokenizer_*.json"); err == nil {
 		for _, y := range paths {
 			if data, err := os.ReadFile(y); err == nil {
 				f.Add(data, text)

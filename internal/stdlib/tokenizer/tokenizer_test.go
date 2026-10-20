@@ -22,8 +22,8 @@ import (
 
 // Test parçalayıcıları; yollar TR kaynağına da yazıldığı için bölü çizgisiyle.
 var (
-	bpePath  = filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/p_bayt_bpe.json"))
-	bertPath = filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/p_wordpiece.json"))
+	bpePath  = filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json"))
+	bertPath = filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_wordpiece.json"))
 )
 
 func run(t *testing.T, code string) (*interp.VM, error) {

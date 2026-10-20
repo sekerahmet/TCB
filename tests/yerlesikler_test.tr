@@ -48,7 +48,7 @@ test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
 
 test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çalışma klasöründe, sonra programın klasöründe aranır" {
     // Programın klasöründeki dosya, program başka bir klasörden çalıştırılsa da bulunur
-    doğrula(dosya_oku("data/parcalayici.json").içerir("model"))
+    doğrula(dosya_oku("data/tokenizer.json").içerir("model"))
     değişken m = ""
     dene { dosya_oku("data/olmayan_dosya.txt") } yakala h { m = h }
     doğrula(m.içerir("dosya_oku(): \"data/olmayan_dosya.txt\" okunamadı: böyle bir dosya ya da klasör yok"), m)

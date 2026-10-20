@@ -1,7 +1,7 @@
 // statik_denetim, verilen Linux (ELF) program dosyasının statik olduğunu denetler: yorumlayıcı
 // (PT_INTERP) ve dinamik kitaplık bağımlılığı (DT_NEEDED) olmamalıdır. GPU desteği olmadan
 // ("gpusuz" yapı etiketiyle) derlenen tr program dosyasının glibc gerektirmediğini tam denetim bu
-// araçla doğrular (bkz. docs/mimari.md, GPU arka ucu).
+// araçla doğrular (bkz. docs/architecture.md, GPU arka ucu).
 //
 // Kullanım (depo kökünden):
 //

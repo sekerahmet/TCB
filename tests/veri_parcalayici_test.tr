@@ -13,7 +13,7 @@ fonksiyon hata_metni(f) {
 }
 
 test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
-    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    değişken p = parçalayıcı_yükle("data/tokenizer.json")
     eşit_mi(Parçalayıcı, tip(p))
     eşit_mi(1005, p.dağarcık_boyutu)
     eşit_mi(0, p.parça_kimliği("<|endoftext|>"))
@@ -21,7 +21,7 @@ test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
 }
 
 test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
-    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    değişken p = parçalayıcı_yükle("data/tokenizer.json")
     değişken k = p.kodla("Merhaba dünya!")
     eşit_mi(Liste, tip(k))
     eşit_mi(Tam, tip(k[0]))
@@ -34,7 +34,7 @@ test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
     eşit_mi(k, toplu[0])
     eşit_mi([], toplu[1])
     // Son işleyici özel parça ekleyen bir parçalayıcı ([CLS] ... [SEP]).
-    değişken b = parçalayıcı_yükle("data/parcalayici_bert.json")
+    değişken b = parçalayıcı_yükle("data/tokenizer_bert.json")
     değişken cls = b.parça_kimliği("[CLS]")
     değişken sep = b.parça_kimliği("[SEP]")
     değişken ozelli = b.kodla("merhaba dünya")
@@ -54,7 +54,7 @@ test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
 }
 
 test "16.3 çöz: varsayılan özel parçaları atlar; listeler ve tensörler" {
-    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    değişken p = parçalayıcı_yükle("data/tokenizer.json")
     değişken cümle = "İstanbul'da hava güzel."
     eşit_mi(cümle, p.çöz(p.kodla(cümle)))
     değişken eot = p.kodla(cümle + "<|endoftext|>")
@@ -131,7 +131,7 @@ test "16.6 sıralı: pencereler sırayla, bitince yok" {
     eşit_mi([[1144.0, 1145.0, 1146.0, 1147.0]], son[0].değer)
     eşit_mi(yok, s.sonraki())
     // Metin kümesi: ilk pencere metnin başıdır.
-    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    değişken p = parçalayıcı_yükle("data/tokenizer.json")
     değişken m = veri_kümesi("data/text").sıralı(toplu: 1, bağlam: 16)
     değişken mg, mh = m.sonraki()
     doğrula(p.çöz(mg)[0].başlar("Bugün hava"))
@@ -159,15 +159,15 @@ test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
 
 test "16.7 hatalar Türkçe ve yakalanabilir" {
     doğrula(hata_metni(() => parçalayıcı_yükle("data/yok.json")).içerir("yüklenemedi: böyle bir dosya ya da klasör yok"))
-    doğrula(hata_metni(() => parçalayıcı_yükle("data/bozuk.npy")).içerir("geçerli bir tokenizer.json dosyası değil"))
+    doğrula(hata_metni(() => parçalayıcı_yükle("data/corrupt.npy")).içerir("geçerli bir tokenizer.json dosyası değil"))
     doğrula(hata_metni(() => veri_kümesi("data/yok_klasor")).içerir("açılamadı: böyle bir dosya ya da klasör yok"))
-    doğrula(hata_metni(() => veri_kümesi("data/bozuk.npy")).içerir("geçerli bir .npy veri dosyası değil"))
+    doğrula(hata_metni(() => veri_kümesi("data/corrupt.npy")).içerir("geçerli bir .npy veri dosyası değil"))
     doğrula(hata_metni(() => veri_kümesi("data/numbers", önbellek: "onb")).içerir("kota_gb: de verilmelidir"))
     değişken küme = veri_kümesi("data/numbers")
     doğrula(hata_metni(() => küme.örnekleyici(toplu: 2)).içerir("bağlam: verilmedi"))
     doğrula(hata_metni(() => küme.örnekleyici(toplu: 2, bağlam: 500)).içerir("bağlam değerini küçültün"))
     doğrula(hata_metni(() => küme.sıralı(toplu: 2, bağlm: 4)).içerir("Bunu mu demek istediniz: 'bağlam'"))
-    değişken p = parçalayıcı_yükle("data/parcalayici.json")
+    değişken p = parçalayıcı_yükle("data/tokenizer.json")
     doğrula(hata_metni(() => p.kodla(5)).içerir("metin ya da metin listesi"))
     doğrula(hata_metni(() => p.çöz(["a"])).içerir("tam sayı olmalıdır"))
     doğrula(hata_metni(() => p.kodla("a", özel_parçalar: 1)).içerir("doğru ya da yanlış"))
@@ -176,5 +176,5 @@ test "16.7 hatalar Türkçe ve yakalanabilir" {
 test "16.8 göreli yollar programın klasörüne göre de çözülür" {
     // Bu dosya proje kökünden (tr test tests) ya da başka bir klasörden çalıştırılsa da
     // "veri/..." yolları tests/data'yi bulur.
-    eşit_mi(1005, parçalayıcı_yükle("data/parcalayici.json").dağarcık_boyutu)
+    eşit_mi(1005, parçalayıcı_yükle("data/tokenizer.json").dağarcık_boyutu)
 }

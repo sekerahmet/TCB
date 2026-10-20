@@ -2,7 +2,7 @@
 // parçaları: kodlu biçim başlığını tanıma ve 'tr' ile çeviri. Eklentide ikinci bir çevirici
 // yoktur: Türkçe görünüm 'tr göster -', kodlu kayıt 'tr kodla -' ile üretilir (metin standart
 // girişten okunur, sonuç standart çıktıya yazılır). Node ile ayrıca sınanır
-// (test/kodlu_gorunum_test.js).
+// (test/coded_view_test.js).
 'use strict';
 
 const { spawn } = require('child_process');

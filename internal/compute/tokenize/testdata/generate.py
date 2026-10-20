@@ -2,18 +2,18 @@
 """Parçalayıcı paketinin sınama verisini üretir.
 
 Hugging Face `tokenizers` kütüphanesiyle (0.23.x, yerel, ağ bağlantısız)
-ornek_metin.txt üzerinde KÜÇÜK, sentetik parçalayıcılar eğitir ve aynı
+sample_text.txt üzerinde KÜÇÜK, sentetik parçalayıcılar eğitir ve aynı
 kütüphanenin ürettiği "altın" çıktıları yazar. Go sınamaları bunlarla birebir
 eşleşmek zorundadır.
 
 Kullanım (depo kökünden):
-    python -X utf8 internal/compute/tokenize/testdata/uret.py
+    python -X utf8 internal/compute/tokenize/testdata/generate.py
 
 Üretilen dosyalar:
-    girdiler.json            - bütün sınamaların ortak girdi metinleri
+    inputs.json            - bütün sınamaların ortak girdi metinleri
     p_<ad>.json              - eğitilmiş parçalayıcılar (tokenizer.json biçimi)
-    altin_<ad>.json          - her parçalayıcı için kodlama/çözme altın çıktıları
-    bilesenler.json          - tek tek bileşenlerin (normalleştirici, ön bölücü,
+    golden_<name>.json          - her parçalayıcı için kodlama/çözme altın çıktıları
+    components.json          - tek tek bileşenlerin (normalleştirici, ön bölücü,
                                çözücü) altın çıktıları
 """
 
@@ -58,7 +58,7 @@ def liste_yaz(ad, nesne_alanlari):
 
 
 def ornek_satirlar():
-    with open(os.path.join(BURASI, "ornek_metin.txt"), encoding="utf-8") as f:
+    with open(os.path.join(BURASI, "sample_text.txt"), encoding="utf-8") as f:
         metin = f.read()
     return metin, metin.split("\n")
 
@@ -379,26 +379,26 @@ def main():
         if g not in gorulen:
             gorulen.add(g)
             girdiler.append(g)
-    liste_yaz("girdiler.json", {"girdiler": girdiler})
+    liste_yaz("inputs.json", {"girdiler": girdiler})
 
     ms = metaspace_bpe(satirlar)
     g2 = gpt2_tarzi(satirlar)
     parcalayicilar = {
-        "bayt_bpe": bayt_bpe(satirlar),
+        "byte_bpe": bayt_bpe(satirlar),
         "metaspace_bpe": ms,
-        "llama_tarzi": llama_tarzi(ms),
-        "kelime_bpe": kelime_bpe(satirlar),
-        "onekli_bpe": onekli_bpe(satirlar),
+        "llama_style": llama_tarzi(ms),
+        "word_bpe": kelime_bpe(satirlar),
+        "prefixed_bpe": onekli_bpe(satirlar),
         "wordpiece": wordpiece(satirlar),
         "unigram": unigram(satirlar),
-        "gpt2_tarzi": g2,
-        "llama3_tarzi": llama3_tarzi(g2),
+        "gpt2_style": g2,
+        "llama3_style": llama3_tarzi(g2),
     }
     for ad, tok in parcalayicilar.items():
-        yol = os.path.join(BURASI, "p_%s.json" % ad)
+        yol = os.path.join(BURASI, "tokenizer_%s.json" % ad)
         tok.save(yol, pretty=True)
         tok = Tokenizer.from_file(yol)  # altın çıktılar kaydedilen dosyadan üretilsin
-        liste_yaz("altin_%s.json" % ad, altin_uret(tok, girdiler, random.Random(777)))
+        liste_yaz("golden_%s.json" % ad, altin_uret(tok, girdiler, random.Random(777)))
         print(ad, tok.get_vocab_size(with_added_tokens=True))
 
     kayit = bilesen_altin(girdiler[1:140])  # tam metin hariç, dosya küçük kalsın
@@ -406,7 +406,7 @@ def main():
     for tur, liste in kayit.items():
         for x in liste:
             satirlar_.append(satir([tur] + x))
-    dosya_yaz("bilesenler.json", "[\n" + ",\n".join(satirlar_) + "\n]\n")
+    dosya_yaz("components.json", "[\n" + ",\n".join(satirlar_) + "\n]\n")
 
 
 if __name__ == "__main__":

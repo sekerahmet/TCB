@@ -23,7 +23,7 @@ import (
 // yüzden hesap çekirdekleri de iletilerini onun kodlarıyla verir ve yine tek başına sınanır. Kural yalnızca paketlerin kendi (test dışı)
 // içe aktarmalarına uygulanır: testler, sınamak için daha üst katmanları da içe aktarabilir
 // (ör. motor testleri hata ayıklayıcıyla çalışır). Her paket tablodaki bir satıra düşmelidir;
-// yeni bir klasör açılınca tablo da güncellenir. Ayrıntı: docs/mimari.md.
+// yeni bir klasör açılınca tablo da güncellenir. Ayrıntı: docs/architecture.md.
 var layers = []struct {
 	prefix  string   // paket yolu bu önekle başlar (modül yoluna göre)
 	allowed []string // içe aktarabileceği iç paketlerin önekleri
@@ -41,7 +41,7 @@ var layers = []struct {
 // langOrder dil çekirdeğinin iç sırasıdır: bir dil paketi yalnızca bu listede kendisinden
 // önce gelen dil paketlerini içe aktarabilir (sözcük çözümleyici yorumlayıcıyı, denetleyici
 // yorumlayıcıyı bilmez). Döngüye en yakın katman burasıdır; yeni bir dil paketi listeye
-// yerine göre eklenir. Ayrıntı: docs/mimari.md.
+// yerine göre eklenir. Ayrıntı: docs/architecture.md.
 var langOrder = []string{
 	"internal/lang/messages", // ileti kodları ve metinleri (en alt: yalnızca standart kitaplık)
 	"internal/lang/turkish",  // Türkçe ek, harf ve hata çerçevesi yardımcıları

@@ -15,7 +15,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Kod düzeni standardı (docs/katki.md): küçük dosyalar, kısa fonksiyonlar, Türkçe adlar,
+// Kod düzeni standardı (docs/development.md): küçük dosyalar, kısa fonksiyonlar, Türkçe adlar,
 // her pakette görev ve katman belgesi, üretilmiş dosyalarda standart başlık. Bu dosya
 // kuralları, layout_exceptions_test.go bugünkü istisnaları tutar. İstisna listeleri
 // yalnızca küçülebilir: listedeki bir dosya ya da fonksiyon sınırın altına inince
@@ -266,7 +266,7 @@ func TestLayoutFileSize(t *testing.T) {
 		visited[d.path] = listed
 		switch {
 		case !listed && d.line > fileLimit:
-			t.Errorf("%s: %d satır (sınır %d); dosyayı konularına göre bölün (docs/katki.md)", d.path, d.line, fileLimit)
+			t.Errorf("%s: %d satır (sınır %d); dosyayı konularına göre bölün (docs/development.md)", d.path, d.line, fileLimit)
 		case listed && d.line <= fileLimit:
 			t.Errorf("%s: artık %d satır; bigFiles listesinden çıkarın (liste yalnızca küçülür)", d.path, d.line)
 		case listed && d.line > exc.ceiling+fixMargin(exc.ceiling):
@@ -296,7 +296,7 @@ func TestLayoutFuncSize(t *testing.T) {
 			}
 			switch {
 			case !listed && n > funcLimit:
-				t.Errorf("%s: %d satır (sınır %d); fonksiyonu bölün (docs/katki.md)", key, n, funcLimit)
+				t.Errorf("%s: %d satır (sınır %d); fonksiyonu bölün (docs/development.md)", key, n, funcLimit)
 			case listed && n <= funcLimit:
 				t.Errorf("%s: artık %d satır; longFuncs listesinden çıkarın (liste yalnızca küçülür)", key, n)
 			case listed && n > exc.ceiling+fixMargin(exc.ceiling):
@@ -360,7 +360,7 @@ func fixMargin(ceiling int) int {
 // as each layer is cleaned up.
 var testFileRuleRoots = []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "cmd/"}
 
-// Test dosyası düzeni (docs/katki.md, "Testler"): üç tür test dosyası vardır.
+// Test dosyası düzeni (docs/development.md, "Testler"): üç tür test dosyası vardır.
 //   - Birim testi: X_test.go yalnızca X.go'yu sınar ve yanında durur. X_fuzz_test.go ve
 //     X_bench_test.go da X.go'ya aittir; X platforma göre bölünmüş olabilir (X_linux.go,
 //     X_avx2.go ...).

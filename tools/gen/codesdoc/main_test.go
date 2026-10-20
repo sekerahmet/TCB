@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// docs/kodlar.md kod listesinden üretilenle aynı olmalı: bir kod, açıklama ya da tanım
+// docs/codes.md kod listesinden üretilenle aynı olmalı: bir kod, açıklama ya da tanım
 // değiştiğinde `go run ./tools/gen/codesdoc` çalıştırılmadıysa bu test düşer.
 func TestBelgeGuncel(t *testing.T) {
 	yeni, err := Uret()

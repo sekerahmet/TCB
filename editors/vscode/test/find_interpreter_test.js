@@ -4,7 +4,7 @@
 'use strict';
 
 const assert = require('assert');
-const { yorumlayiciyiBul } = require('../yorumlayici_bul');
+const { yorumlayiciyiBul } = require('../find_interpreter');
 
 let gecen = 0;
 function test(ad, fn) {

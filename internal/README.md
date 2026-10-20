@@ -1,6 +1,6 @@
 # internal
 
-TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya da ajan) uyduğu kuralların tek kaynağıdır. Her kuralın yanında onu koruyan test yazılıdır: kural çiğnenirse `go test ./...` kalır. Paketlerin kendi kuralları kendi `README.md`'lerindedir; depo düzeyindeki süreç (yeni ad isteği, tam denetim, ölçüm) [`docs/katki.md`](../docs/katki.md)'dedir. Yeni bir fonksiyon, yerleşik, metot, ileti, paket ya da dil kuralı eklerken adım adım tarifler: [`docs/tarifler.md`](../docs/tarifler.md).
+TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya da ajan) uyduğu kuralların tek kaynağıdır. Her kuralın yanında onu koruyan test yazılıdır: kural çiğnenirse `go test ./...` kalır. Paketlerin kendi kuralları kendi `README.md`'lerindedir; depo düzeyindeki süreç (yeni ad isteği, tam denetim, ölçüm) [`docs/development.md`](../docs/development.md)'dedir. Yeni bir fonksiyon, yerleşik, metot, ileti, paket ya da dil kuralı eklerken adım adım tarifler: [`docs/recipes.md`](../docs/recipes.md).
 
 İlke: **küçük küçük yönetmek her zaman daha kolaydır.** Bir paket tek görevi, bir dosya tek konuyu, bir fonksiyon tek işi anlatır; okuyan aradığını adından bulur. Yeni bir kural yazıya geçince ona bir test bağlanır; yalnızca yazılı kalan kural zamanla aşınır.
 
@@ -24,7 +24,7 @@ messages → turkish → codes → hint → lexer → ast → parser → checker
 
 Dış bağımlılık izne bağlıdır: bugün yalnızca `purego` (GPU sürücüsünü cgo'suz yüklemek için, `compute/gpu`).
 
-Denetim: `layers_test.go` (`TestLayerRule`, `TestLangOrder`, `TestExternalDependencies`). Yeni bir klasör açılınca oradaki tablolar ve [`docs/mimari.md`](../docs/mimari.md) güncellenir.
+Denetim: `layers_test.go` (`TestLayerRule`, `TestLangOrder`, `TestExternalDependencies`). Yeni bir klasör açılınca oradaki tablolar ve [`docs/architecture.md`](../docs/architecture.md) güncellenir.
 
 ## Klasörler, dosyalar, fonksiyonlar
 
@@ -78,7 +78,7 @@ Birim testleri sınadıkları dosyanın adını taşır. Birden çok dosyayı ke
   return interp.ArgCountError(codes.G602, "1", len(args))
   ```
 
-  Adı değiştirmek yalnızca dil dosyasının satırını değiştirir. Yeni bir ad (yeni kod) gerekiyorsa kendiniz eklemeyin: [`docs/katki.md`](../docs/katki.md#yeni-kod-ad-isteği). Denetim: `tools/gen/codeconsts` (`TestCiplakAdYok`: Go metnindeki çıplak ad).
+  Adı değiştirmek yalnızca dil dosyasının satırını değiştirir. Yeni bir ad (yeni kod) gerekiyorsa kendiniz eklemeyin: [`docs/development.md`](../docs/development.md#yeni-kod-ad-isteği). Denetim: `tools/gen/codeconsts` (`TestNoBareNames`: Go metnindeki çıplak ad).
 
 ## Kullanıcı iletileri
 
@@ -104,7 +104,7 @@ return nil, messages.Internal("vector width must be 2 or 4") // iç hata: ayrın
 - Ortak kalıplar yeniden yazılmaz: `H2000` (`{fn}: {error}`), dosya hataları `turkish.FileError(fn, yol, messages.H2100, err)` (işlem bir koddur: "okunamadı"), özel neden `turkish.NewReason(kod, ...)`, adlı argüman `bind.CheckNamed`.
 - **Ortam değişkeni adları ASCII'dir:** `TR_` öneki, büyük harf, rakam ve `_` (`TR_DIL`, `TR_GPU_KENDI_CARPIM`, `TR_IS_KLASORU`); Türkçe harfli ad bazı kabuklarda yazılamaz. `TR_` öneki TR'nin kendi değişkenlerine ayrılmıştır, örneklerde kullanıcı değişkeni olarak kullanılmaz. Denetim: `TestLayoutEnvVarNames`.
 - **İleti olmayan metin** koda bağlanmaz: veri biçimlerinin anahtarları (günlükteki `"kayıp"`, `durum.json` alanları), dosya adları, protokol alanları.
-- Geçirilmiş pakette `fmt.Errorf` ve `errors.New` yoktur. Denetim: `tools/gen/msgconsts` (her çağrıda değer sayısı tanımla aynı, kullanılmayan kod yok, `migrated` listesindeki paketlerde yasak çağrı yok). Geçiş sürüyor; sırası [`docs/yol_haritasi.md`](../docs/yol_haritasi.md)'de.
+- Geçirilmiş pakette `fmt.Errorf` ve `errors.New` yoktur. Denetim: `tools/gen/msgconsts` (her çağrıda değer sayısı tanımla aynı, kullanılmayan kod yok, `migrated` listesindeki paketlerde yasak çağrı yok). Geçiş sürüyor; sırası [`docs/roadmap.md`](../docs/roadmap.md)'de.
 
 ## Hatalar ve panikler
 
@@ -178,7 +178,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 
 - Bir değişiklik `bash tools/full_check.sh` geçince biter; otomatik sınama da aynı betiği çalıştırır. İş sırasında yalnızca değişen paketlerin testleri koşulur.
 - Commit mesajları İngilizcedir: ilk satır `paket: ne değişti`, gövdede neden.
-- Sıcak yola dokunan değişiklik önce ve sonra ölçülür; kazandırmayan "iyileştirme" geri alınır ([`docs/katki.md`](../docs/katki.md#ölçüm-disiplini)).
+- Sıcak yola dokunan değişiklik önce ve sonra ölçülür; kazandırmayan "iyileştirme" geri alınır ([`docs/development.md`](../docs/development.md#ölçüm-disiplini)).
 - Bir adı ya da kancayı değiştirmeden önce nerede kullanıldığını koddan sorun: `go run ./tools/impact codes.Name`.
 
 ## Kural → test
@@ -190,7 +190,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Ortam değişkeni adları | `internal/layout_test.go` (`TestLayoutEnvVarNames`) |
 | Dosya ve fonksiyon boyu | `internal/layout_test.go`, istisnalar `internal/layout_exceptions_test.go` |
 | Test dosyası düzeni | `internal/layout_test.go` (`TestTestFileMatchesSource`) |
-| Kullanıcıya görünen adlar koddan | `tools/gen/codeconsts` (`TestCiplakAdYok`) |
+| Kullanıcıya görünen adlar koddan | `tools/gen/codeconsts` (`TestNoBareNames`) |
 | İleti kodları | `tools/gen/msgconsts` (`TestMessageUsage`) |
 | Üretilmiş dosyalar güncel | `tools/gen/*` `-denetle` (tam denetim) |
 | Kod listesindeki her örnek çalışır | `internal/lang/codes`, `internal/stdlib` (`codes_test.go`, `definitions_test.go`) |

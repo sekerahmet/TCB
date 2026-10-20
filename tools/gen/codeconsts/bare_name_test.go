@@ -36,8 +36,8 @@ import (
 // İzin listesi küçük tutulur ve her kaydın gerekçesi yazılır. Yeni kod bu testi izin
 // listesine kayıt eklemeden geçmelidir.
 
-// ciplakAdIzinleri: dosya (depo köküne göre) ve o dosyada izin verilen ad → gerekçe.
-var ciplakAdIzinleri = map[string]map[string]string{
+// bareNameAllowances: dosya (depo köküne göre) ve o dosyada izin verilen ad → gerekçe.
+var bareNameAllowances = map[string]map[string]string{
 	// Komut arayüzü: komut satırının alt komutları ve hata ayıklayıcının komutları dilin
 	// adları değil, aracın komutlarıdır. Kod listesine (K ailesi) çevirici işinde girecekler.
 	"cmd/tr/main.go":                              {"test": "komut satırı alt komutu (tr test)"},
@@ -58,51 +58,51 @@ var ciplakAdIzinleri = map[string]map[string]string{
 	},
 }
 
-// taranacakKokler adları koddan üretmesi gereken katmanlardır.
-var taranacakKokler = []string{"internal/lang", "internal/stdlib", "internal/devtools", "cmd/tr"}
+// scanRoots adları koddan üretmesi gereken katmanlardır.
+var scanRoots = []string{"internal/lang", "internal/stdlib", "internal/devtools", "cmd/tr"}
 
-// atlananDosyalar kodların kendisini tanımlayan (adları dil dosyasından okuyan) dosyalardır.
-var atlananDosyalar = map[string]bool{
+// skippedFiles kodların kendisini tanımlayan (adları dil dosyasından okuyan) dosyalardır.
+var skippedFiles = map[string]bool{
 	"internal/lang/codes/codes_generated.go": true, // üretilmiş: yorumlarda adlar
 }
 
-type canliAd struct {
+type liveName struct {
 	kod dk.Code
 	al  dk.Namespace
 }
 
-// canliAdlar etkin dilin canlı adlarıdır (ad → kodlar; aynı ad farklı ad alanlarında olabilir).
-func canliAdlar() map[string][]canliAd {
-	m := map[string][]canliAd{}
+// liveNames etkin dilin canlı adlarıdır (ad → kodlar; aynı ad farklı ad alanlarında olabilir).
+func liveNames() map[string][]liveName {
+	m := map[string][]liveName{}
 	for _, k := range dk.Codes() {
 		for _, y := range dk.Spellings(k) {
-			m[y] = append(m[y], canliAd{k, k.Namespace()})
+			m[y] = append(m[y], liveName{k, k.Namespace()})
 		}
 	}
 	return m
 }
 
-func harfMi(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' }
+func isWordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' }
 
-// ciplakAdlar bir metindeki kod gibi yazılmış dil adlarını verir.
-func ciplakAdlar(s string, adlar map[string][]canliAd) []string {
+// bareNames bir metindeki kod gibi yazılmış dil adlarını verir.
+func bareNames(s string, adlar map[string][]liveName) []string {
 	var bulunan []string
 	for i := 0; i < len(s); {
 		r, n := utf8.DecodeRuneInString(s[i:])
-		if !harfMi(r) {
+		if !isWordRune(r) {
 			i += n
 			continue
 		}
 		j := i
 		for j < len(s) {
 			r2, n2 := utf8.DecodeRuneInString(s[j:])
-			if !harfMi(r2) {
+			if !isWordRune(r2) {
 				break
 			}
 			j += n2
 		}
 		w := s[i:j]
-		if kayitlar, ok := adlar[w]; ok && kodGibi(s, i, j, kayitlar) {
+		if kayitlar, ok := adlar[w]; ok && looksLikeCode(s, i, j, kayitlar) {
 			bulunan = append(bulunan, w)
 		}
 		i = j
@@ -110,8 +110,8 @@ func ciplakAdlar(s string, adlar map[string][]canliAd) []string {
 	return bulunan
 }
 
-// kodGibi s[i:j]'deki ad kod gibi mi yazılmış (bkz. dosya başı)?
-func kodGibi(s string, i, j int, kayitlar []canliAd) bool {
+// looksLikeCode s[i:j]'deki ad kod gibi mi yazılmış (bkz. dosya başı)?
+func looksLikeCode(s string, i, j int, kayitlar []liveName) bool {
 	w := s[i:j]
 	once, _ := utf8.DecodeLastRuneInString(s[:i])
 	sonra, _ := utf8.DecodeRuneInString(s[j:])
@@ -147,12 +147,12 @@ func kodGibi(s string, i, j int, kayitlar []canliAd) bool {
 	return false
 }
 
-func TestCiplakAdYok(t *testing.T) {
+func TestNoBareNames(t *testing.T) {
 	kok := reporoot.Root()
-	adlar := canliAdlar()
+	adlar := liveNames()
 	kullanilanIzin := map[string]map[string]bool{}
 	var bulgular []string
-	for _, k := range taranacakKokler {
+	for _, k := range scanRoots {
 		err := filepath.WalkDir(filepath.Join(kok, k), func(yol string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -168,10 +168,10 @@ func TestCiplakAdYok(t *testing.T) {
 			}
 			goreli, _ := filepath.Rel(kok, yol)
 			goreli = filepath.ToSlash(goreli)
-			if atlananDosyalar[goreli] {
+			if skippedFiles[goreli] {
 				return nil
 			}
-			bulgular = append(bulgular, dosyaTara(t, yol, goreli, adlar, kullanilanIzin)...)
+			bulgular = append(bulgular, scanFile(t, yol, goreli, adlar, kullanilanIzin)...)
 			return nil
 		})
 		if err != nil {
@@ -183,9 +183,9 @@ func TestCiplakAdYok(t *testing.T) {
 		t.Error(b)
 	}
 	if len(bulgular) > 0 {
-		t.Logf("%d çıplak ad: adı koddan üretin (kod.Ad(kod.Xnnn)); gerçekten gerekiyorsa gerekçesiyle ciplakAdIzinleri'ne yazın", len(bulgular))
+		t.Logf("%d çıplak ad: adı koddan üretin (kod.Ad(kod.Xnnn)); gerçekten gerekiyorsa gerekçesiyle bareNameAllowances'ne yazın", len(bulgular))
 	}
-	for dosya, izinler := range ciplakAdIzinleri {
+	for dosya, izinler := range bareNameAllowances {
 		for ad := range izinler {
 			if !kullanilanIzin[dosya][ad] {
 				t.Errorf("izin listesinde kullanılmayan kayıt: %s %q; silin (liste yalnızca küçülür)", dosya, ad)
@@ -194,7 +194,7 @@ func TestCiplakAdYok(t *testing.T) {
 	}
 }
 
-func dosyaTara(t *testing.T, yol, goreli string, adlar map[string][]canliAd, kullanilan map[string]map[string]bool) []string {
+func scanFile(t *testing.T, yol, goreli string, adlar map[string][]liveName, kullanilan map[string]map[string]bool) []string {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, yol, nil, parser.SkipObjectResolution)
 	if err != nil {
@@ -221,22 +221,22 @@ func dosyaTara(t *testing.T, yol, goreli string, adlar map[string][]canliAd, kul
 		if err != nil {
 			return true
 		}
-		for _, ad := range ciplakAdlar(s, adlar) {
-			if _, izinli := ciplakAdIzinleri[goreli][ad]; izinli {
+		for _, ad := range bareNames(s, adlar) {
+			if _, izinli := bareNameAllowances[goreli][ad]; izinli {
 				if kullanilan[goreli] == nil {
 					kullanilan[goreli] = map[string]bool{}
 				}
 				kullanilan[goreli][ad] = true
 				continue
 			}
-			out = append(out, goreli+":"+strconv.Itoa(fset.Position(lit.Pos()).Line)+": "+strconv.Quote(ad)+" :: "+kisalt(s))
+			out = append(out, goreli+":"+strconv.Itoa(fset.Position(lit.Pos()).Line)+": "+strconv.Quote(ad)+" :: "+shorten(s))
 		}
 		return true
 	})
 	return out
 }
 
-func kisalt(s string) string {
+func shorten(s string) string {
 	if r := []rune(s); len(r) > 100 {
 		return string(r[:100]) + "…"
 	}
@@ -244,8 +244,8 @@ func kisalt(s string) string {
 }
 
 // Tarayıcının kendisi: kod gibi yazılmış adları yakalar, düz yazıdaki sözcüklere dokunmaz.
-func TestCiplakAdTarayicisi(t *testing.T) {
-	adlar := canliAdlar()
+func TestBareNameScanner(t *testing.T) {
+	adlar := liveNames()
 	for metin, want := range map[string]string{
 		"girdi() ya da girdi(istem)":            "girdi girdi",
 		"%q bir sabittir ('sabit')":             "sabit",
@@ -259,7 +259,7 @@ func TestCiplakAdTarayicisi(t *testing.T) {
 		"önce toplam alın, sonra yok sayın":     "",
 		"o":                                     "",
 	} {
-		if got := strings.Join(ciplakAdlar(metin, adlar), " "); got != want {
+		if got := strings.Join(bareNames(metin, adlar), " "); got != want {
 			t.Errorf("%q: %q bekleniyordu, %q bulundu", metin, want, got)
 		}
 	}

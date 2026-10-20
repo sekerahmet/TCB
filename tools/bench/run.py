@@ -1,6 +1,6 @@
 """TR hız kıyas seti: aynı programları TR, Python ve Go ile çalıştırıp süreleri karşılaştırır.
 
-Kullanım (proje kökünden):  python tools/bench/kos.py [--tekrar 3] [--yalniz tr] [test ...]
+Kullanım (proje kökünden):  python tools/bench/run.py [--tekrar 3] [--yalniz tr] [test ...]
 
 Her program kendi ölçtüğü süreyi (ms) ve bir sonuç değeri yazar; sonuç değerlerinin üç dilde
 aynı olması beklenir. Yorumlayıcı ve Go programı her çalıştırmada geçici bir klasöre yeniden
@@ -17,7 +17,7 @@ UZANTI = ".exe" if os.name == "nt" else ""
 
 def derle(gecici):
     tr = os.path.join(gecici, "tr" + UZANTI)
-    go = os.path.join(gecici, "kiyas" + UZANTI)
+    go = os.path.join(gecici, "compare" + UZANTI)
     ortam = dict(os.environ)
     subprocess.run(["go", "build", "-o", tr, "./cmd/tr"], cwd=KOK, check=True, env=ortam)
     subprocess.run(["go", "build", "-o", go, "./tools/bench/go"], cwd=KOK, check=True, env=ortam)
@@ -52,7 +52,7 @@ def main():
         for t in a.testler:
             komutlar = {
                 "tr": [tr, os.path.join(KIYAS, "tr", t + ".tr")],
-                "py": [sys.executable, os.path.join(KIYAS, "py", "kiyas.py"), t],
+                "py": [sys.executable, os.path.join(KIYAS, "py", "compare.py"), t],
                 "go": [go, t],
             }
             sonuc[t] = {d: kos(komutlar[d], a.tekrar) for d in diller}

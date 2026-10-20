@@ -8,7 +8,7 @@ labels: sözlük isteği
 <!--
 Dilin kullanıcıya görünen her adı sabit bir koda bağlıdır (internal/lang/codes/tr.json). Kodu ve
 son adı YALNIZCA baş geliştirici verir; bu şablon bir istektir, kodu kendiniz eklemeyin.
-Önce docs/kodlar.md'ye bakın: aynı işi (fonksiyon ya da metot biçiminde) yapan bir kod varsa
+Önce docs/codes.md'ye bakın: aynı işi (fonksiyon ya da metot biçiminde) yapan bir kod varsa
 onu kullanın. Aynı işi yapan iki kod olamaz.
 -->
 
@@ -26,11 +26,11 @@ Ne işe yarayacak? Hangi programda, hangi adımda gerekiyor?
 
 ## Önerilen ad
 
-Önerilen Türkçe ad ve neden bu ad. Fonksiyon mu, metot mu (`docs/kodlar.md`'nin başındaki kural: değer dönüştüren ya da değere soru soran iş metottur, matematik ve tensör işi fonksiyondur)?
+Önerilen Türkçe ad ve neden bu ad. Fonksiyon mu, metot mu (`docs/codes.md`'nin başındaki kural: değer dönüştüren ya da değere soru soran iş metottur, matematik ve tensör işi fonksiyondur)?
 
 ## Aynı işi yapan mevcut kod var mı?
 
-`docs/kodlar.md`'de baktığınız yakın kodlar (ör. `T401 SGD`, `Y202 sırala`) ve neden yetmedikleri.
+`docs/codes.md`'de baktığınız yakın kodlar (ör. `T401 SGD`, `Y202 sırala`) ve neden yetmedikleri.
 
 ## Aile önerisi
 

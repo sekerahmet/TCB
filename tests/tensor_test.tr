@@ -427,23 +427,23 @@ test "15.10 tensör_kaydet ve tensör_yükle hataları" {
 
 test "15.10 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosyaları reddedilir" {
     // Fikstürler tests/data altındadır; yazma gidiş-dönüşü Go testlerinde denetlenir.
-    // tensor_surum2.trt: bf16, fp16 ve float32 girdili sürüm 2 dosyası.
-    değişken y = tensör_yükle("data/tensor_surum2.trt")
+    // tensor_version2.trt: bf16, fp16 ve float32 girdili sürüm 2 dosyası.
+    değişken y = tensör_yükle("data/tensor_version2.trt")
     eşit_mi(["a", "b", "c"], y.anahtarlar())
     eşit_mi(["bf16", "fp16", "float32"], [y["a"].tür, y["b"].tür, y["c"].tür])
     doğrula(y["a"] == tensör([[1.5, -2.25], [3.0, 0.1]], tür: "bf16"))
     doğrula(y["b"] == tensör([0.1, 65504.0], tür: "fp16"))
     eşit_mi([0.1], y["c"].değer)
-    // tensor_surum1.trt: eski TR'nin yazdığı sürüm 1 dosyası artık okunmaz.
-    değişken h = hata_metni(() => tensör_yükle("data/tensor_surum1.trt"))
+    // tensor_version1.trt: eski TR'nin yazdığı sürüm 1 dosyası artık okunmaz.
+    değişken h = hata_metni(() => tensör_yükle("data/tensor_version1.trt"))
     doğrula(h.içerir("dosya biçimi sürümü 1; bu TR sürümü yalnızca sürüm 2 okur"), h)
 }
 
 test "15.10 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {
-    // tensor_sifir_eksen.trt (74 bayt): [2, 0] ve [1048576, 0, 8192] şekilli, verisiz iki
+    // tensor_zero_axis.trt (74 bayt): [2, 0] ve [1048576, 0, 8192] şekilli, verisiz iki
     // tensör. Sıfır eksen 1 sayılınca ikincisi 8,6 milyar eleman eder; kabul edilseydi
     // [4, 2] @ W1 @ W2 gibi bir ileri geçiş belleği tüketip süreci çökertirdi.
-    değişken h = hata_metni(() => tensör_yükle("data/tensor_sifir_eksen.trt"))
+    değişken h = hata_metni(() => tensör_yükle("data/tensor_zero_axis.trt"))
     doğrula(h.içerir("tensör çok büyük") && h.içerir("sıfır uzunluklu eksenler 1 sayılır"), h)
     // Sınır içindeki boş tensörler kaydedilip yüklenebilir (Go testlerinde gidiş-dönüş).
     eşit_mi([0, 3], sıfırlar([0, 3]).şekil)
