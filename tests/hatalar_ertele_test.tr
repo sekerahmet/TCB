@@ -114,3 +114,11 @@ test "9.5 ertele çağrısının argümanları fonksiyon biterken hesaplanır" {
     f()
     eşit_mi([2], görülen)
 }
+
+test "8.4 yakalanan hata metni değişmez; denetim karakterleri yalnızca terminale yazılırken görünür olur" {
+    değişken m = ""
+    dene { fırlat "kötü\rveri" } yakala h { m = h }
+    doğrula(m.içerir("\r"), "yakalanan metin kaçırılmamalı")
+    eşit_mi("kötü\rveri", m)
+}
+

@@ -186,7 +186,7 @@ func writeRunError(machine *interp.VM, err error, code string) {
 		fmt.Fprintf(&sb, "  • %s\n", m.Message)
 		sb.WriteString(indentFrame(m.Frame))
 	}
-	machine.WriteOutput(os.Stderr, sb.String())
+	machine.WriteOutput(os.Stderr, turkish.Printable(sb.String()))
 }
 
 // moduleHeader bir hata başlığına modülün yolunu ekler: "❌ X:" → "❌ X (yol modülünde):".

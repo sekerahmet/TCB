@@ -176,7 +176,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 			// Modüle ait hatanın çerçevesi modülün kaynağından çizilir.
 			for i, m := range interp.ErrorItems(err, text) {
 				if i == 0 {
-					fmt.Fprintf(out, "  ✗ %s — %s\n", t.Name, m.Message)
+					fmt.Fprintf(out, "  ✗ %s — %s\n", turkish.Printable(t.Name), turkish.Printable(m.Message))
 				} else {
 					fmt.Fprintf(out, "      • %s\n", m.Message)
 				}
@@ -200,8 +200,8 @@ func located(err error) bool {
 }
 
 func writeError(out io.Writer, err error, source string) {
-	fmt.Fprintf(out, "    • %s\n", err)
-	fmt.Fprint(out, indent(turkish.ErrorFrame(source, err), "      "))
+	fmt.Fprintf(out, "    • %s\n", turkish.Printable(err.Error()))
+	fmt.Fprint(out, turkish.Printable(indent(turkish.ErrorFrame(source, err), "      ")))
 }
 
 func indent(text, prefix string) string {

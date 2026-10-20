@@ -130,14 +130,15 @@ var removedCommands = map[string]string{
 
 // exitWithError iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
 func exitWithError(message any) {
-	fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, message))
+	fmt.Fprintln(os.Stderr, turkish.Printable(messages.Text(messages.H8060, message)))
 	os.Exit(1)
 }
 
 // printError hatayı madde olarak yazar; konumu biliniyorsa kaynak satırını işaretçiyle gösterir.
 func printError(err error, source string) {
-	fmt.Fprintf(os.Stderr, "  • %s\n", err)
-	fmt.Fprint(os.Stderr, indentFrame(turkish.ErrorFrame(source, err)))
+	// Denetim karakterleri görünür yazılır: iletideki dış veri terminali bozamaz (8.4).
+	fmt.Fprintf(os.Stderr, "  • %s\n", turkish.Printable(err.Error()))
+	fmt.Fprint(os.Stderr, turkish.Printable(indentFrame(turkish.ErrorFrame(source, err))))
 }
 
 // indentFrame kod çerçevesini madde işaretinin altına hizalar.
