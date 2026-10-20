@@ -57,6 +57,7 @@ var bf16Tolerances = map[string]float64{
 	"elementwise_wide/cosh":                   0.006,
 	"elementwise_wide/expm1":                  0.007,
 	"elementwise_wide/floor":                  0.004,
+	"elementwise_wide/gelu_exact":             0.008,
 	"elementwise_wide/log10":                  0.006,
 	"elementwise_wide/log1p":                  0.008,
 	"elementwise_wide/log2":                   0.007,

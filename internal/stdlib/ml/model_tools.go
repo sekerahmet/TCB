@@ -25,6 +25,7 @@ var (
 	nameTemperature = bind.NamedArg(codes.T960)
 	nameTopK        = bind.NamedArg(codes.T961)
 	nameWithNames   = bind.NamedArg(codes.T970)
+	nameApproximate = bind.NamedArg(codes.T990)
 )
 
 // memberSplit tensörün .böl(parça_sayısı, eksen: -1) metodudur. Üye adları tipten bağımsız

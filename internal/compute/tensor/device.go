@@ -222,6 +222,7 @@ const (
 	OpCeil            // tavan (türevi 0)
 	OpSign            // işaret: −1, 0, 1 (NaN korunur; türevi 0)
 	OpAbs             // mutlak değer |x| (işaret biti silinir, NaN korunur; türevi işaret(x), 0'da 0)
+	OpGeluExact       // tam (erf tabanlı) GELU: x·Φ(x), Φ standart normal dağılım işlevi; türevi Φ(x) + x·φ(x)
 
 	numUnOps // işlem sayısı; işlem değildir (testler üyeleri sayar)
 )

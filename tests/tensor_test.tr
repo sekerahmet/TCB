@@ -106,6 +106,28 @@ test "15.3 bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir gör
     eşit_mi([[1.0, 7.0], [100.0, 4.0]], u.değer)
 }
 
+test "15.42 gelu: varsayılan tanh yaklaşımı, yaklaşık: yanlış tam (erf) biçimi" {
+    // Tam GELU: x · Φ(x); gelu(1) = 0.8413447, tanh yaklaşımı 0.8411920.
+    eşit_mi(0.841192, yuvarla(gelu(1.0), 6))
+    eşit_mi(0.841192, yuvarla(gelu(1.0, yaklaşık: doğru), 6))
+    eşit_mi(0.841345, yuvarla(gelu(1.0, yaklaşık: yanlış), 6))
+    eşit_mi(-0.158655, yuvarla(gelu(-1.0, yaklaşık: yanlış), 6))
+    değişken t = tensör([-1.0, 0.0, 1.0])
+    eşit_mi([-0.158655, 0.0, 0.841345], gelu(t, yaklaşık: yanlış).değer.haritala((x) => yuvarla(x, 6)))
+    eşit_mi([-0.158808, 0.0, 0.841192], gelu(t).değer.haritala((x) => yuvarla(x, 6)))
+    // Türev: Φ(x) + x · φ(x); gelu(0)' = 0.5.
+    değişken x = tensör([0.0, 1.0], türev_izle: doğru)
+    geri_yayılım(toplam(gelu(x, yaklaşık: yanlış)))
+    eşit_mi([0.5, 1.08332], x.gradyan.değer.haritala((d) => yuvarla(d, 5)))
+    // Uçlar: gelu(-sonsuz) = 0, gelu(sonsuz) = sonsuz.
+    değişken sn = 1e308 * 10
+    eşit_mi(0.0, gelu(-sn, yaklaşık: yanlış))
+    doğrula(gelu(sn, yaklaşık: yanlış) > 1e308, "gelu(sonsuz) sonsuz")
+    // Mantık olmayan değer ve bilinmeyen ad hatadır.
+    doğrula(hata_metni(() => gelu(t, yaklaşık: "yanlış")).içerir("yaklaşık"))
+    doğrula(hata_metni(() => gelu(t, yaklasik: yanlış)).içerir("yaklaşık"))
+}
+
 test "15.4 matematik fonksiyonları ve indirgemeler" {
     değişken a = tensör([[1, 2, 3], [4, 5, 6]])
     eşit_mi([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], relu(a - 3).değer)

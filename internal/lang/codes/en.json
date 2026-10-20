@@ -224,6 +224,7 @@
   "T983": { "ad": "tol" },
   "T984": { "ad": "every_minutes" },
   "T985": { "ad": "keep" },
+  "T990": { "ad": "approximate" },
   "V100": { "ad": "dataset" },
   "V200": { "ad": "load_tokenizer" },
   "V900": { "ad": "cache" },

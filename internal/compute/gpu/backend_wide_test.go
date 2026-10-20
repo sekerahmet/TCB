@@ -29,6 +29,7 @@ func span(lo, hi float64) func(*rand.Rand) float32 {
 
 var wideUnaries = []wideUnary{
 	{"silu", (*tensor.Tensor).Silu, normal(4)},
+	{"gelu_tam", (*tensor.Tensor).GeluExact, normal(4)},
 	{"tan", (*tensor.Tensor).Tan, normal(3)},
 	{"asin", (*tensor.Tensor).Asin, span(-0.99, 0.99)},
 	{"acos", (*tensor.Tensor).Acos, span(-0.99, 0.99)},
@@ -264,4 +265,33 @@ func TestWide16BitDeterministic(t *testing.T) {
 	_, i1 := x.TopK(10, 1)
 	_, i2 := x.TopK(10, 1)
 	checkDiff(t, "en büyük belirlenimci", i1.Data(), i2.Data(), 0)
+}
+
+// TestGeluExactAccuracy tam GELU'nun PTX erf/erfc yaklaşımı float64 başvuruya karşı:
+// ileri değerin göreli hatası ve türevin mutlak hatası, kuyruklar (x → −∞, Φ'nin göreli
+// doğruluğu) dahil. Ölçülen en kötü değerler (benzetim): göreli ileri 2.7e-7, mutlak türev 9e-8.
+func TestGeluExactAccuracy(t *testing.T) {
+	var xs []float32
+	for v := -14.0; v <= 14.0; v += 1.0 / 128 {
+		xs = append(xs, float32(v))
+	}
+	x := tensor.NewOn(gpuDevice, xs, len(xs)).SetRequiresGrad(true)
+	y := x.GeluExact()
+	y.SumAll().Backward()
+	got, grad := y.Data(), x.Grad().Data()
+	var worstRel, worstSlope float64
+	for i, v := range xs {
+		xv := float64(v)
+		phi := 0.5 * math.Erfc(-xv/math.Sqrt2)
+		want := xv * phi
+		slope := phi + xv*math.Exp(-xv*xv/2)/math.Sqrt(2*math.Pi)
+		if want != 0 && math.Abs(want) > 1e-30 {
+			worstRel = math.Max(worstRel, math.Abs(float64(got[i])-want)/math.Abs(want))
+		}
+		worstSlope = math.Max(worstSlope, math.Abs(float64(grad[i])-slope))
+	}
+	t.Logf("gelu_tam: en büyük göreli ileri hata %.3g, en büyük mutlak türev hatası %.3g", worstRel, worstSlope)
+	if worstRel > 5e-7 || worstSlope > 2e-7 {
+		t.Errorf("gelu_tam doğruluğu: göreli ileri %.3g (sınır 5e-7), mutlak türev %.3g (sınır 2e-7)", worstRel, worstSlope)
+	}
 }
