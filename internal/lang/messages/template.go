@@ -18,7 +18,8 @@ import (
 //	{ad, plural, one {..} other {..}}  sayıya göre biçim (CLDR çoğul kuralı); dalda (içindeki
 //	                                   seçim dallarında da) # sayıdır, "=N" tam eşleşme (N
 //	                                   sayının tek yazımı: =0, =1.5) kategoriden önce gelir
-//	{ad, select, x {..} other {..}}    metin değerine göre dal
+//	{ad, select, x {..} other {..}}    metin değerine göre dal; boş değer `empty` dalını seçer
+//	                                   ({ad, select, empty {} other {.. {ad} ..}}: isteğe bağlı parça)
 //	{{ }}                        düz süslü parantez (dal içinde '}' her zaman dalı kapatır)
 //
 // Go kodu sözcük çekimlemez ve sayıya bakıp sözcük seçmez: bunlar dilin işidir, şablondadır.
@@ -368,7 +369,11 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 		case segPlural:
 			c.write(b, code, s.branches[c.pluralKey(s.branches, args[s.arg])], args, args[s.arg])
 		case segSelect:
-			branch, ok := s.branches[fmt.Sprint(args[s.arg])]
+			key := fmt.Sprint(args[s.arg])
+			if key == "" {
+				key = "empty" // boş değer `empty` dalını seçer (isteğe bağlı parça)
+			}
+			branch, ok := s.branches[key]
 			if !ok {
 				branch = s.branches["other"]
 			}
