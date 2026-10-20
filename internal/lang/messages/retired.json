@@ -1,0 +1,146 @@
+{
+ "H0144": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H0157": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H2120": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H2121": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H2321": {
+  "commit": "e5a76ed",
+  "reason": "deleted: formats: csv_çöz parses CSV text, csv_oku reads only files"
+ },
+ "H2411": {
+  "commit": "2fa8417",
+  "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
+ },
+ "H2416": {
+  "commit": "cbb7f97",
+  "reason": "deleted: interp: missing-argument message picks its plural in the template"
+ },
+ "H2417": {
+  "commit": "cbb7f97",
+  "reason": "deleted: interp: missing-argument message picks its plural in the template"
+ },
+ "H2449": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H2455": {
+  "commit": "2eab12b",
+  "reason": "deleted: messages: case suffixes move from Go into templates"
+ },
+ "H2494": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H3105": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H4006": {
+  "commit": "2fa8417",
+  "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
+ },
+ "H4062": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H5534": {
+  "commit": "ab7f634",
+  "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
+ },
+ "H5613": {
+  "commit": "b3a5b22",
+  "reason": "deleted: tokenizer: load errors keep the core's message instead of editing its text"
+ },
+ "H6323": {
+  "commit": "2fa8417",
+  "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
+ },
+ "H6407": {
+  "commit": "2fa8417",
+  "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
+ },
+ "H6523": {
+  "commit": "2fa8417",
+  "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
+ },
+ "H6624": {
+  "commit": "ab7f634",
+  "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
+ },
+ "H6805": {
+  "commit": "ab7f634",
+  "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
+ },
+ "H7002": {
+  "commit": "e5a76ed",
+  "reason": "deleted: formats: csv_çöz parses CSV text, csv_oku reads only files"
+ },
+ "H7126": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H7127": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H7133": {
+  "commit": "ab7f634",
+  "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
+ },
+ "H7401": {
+  "commit": "2fa8417",
+  "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
+ },
+ "H7402": {
+  "commit": "2fa8417",
+  "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
+ },
+ "H7414": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H7415": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H7447": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H7448": {
+  "commit": "0d6949c",
+  "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H7477": {
+  "commit": "2fa8417",
+  "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
+ },
+ "H8190": {
+  "commit": "3080380",
+  "reason": "deleted: messages: lexer, parser, checker and hint use message codes (H0001-H1106)"
+ },
+ "H8600": {
+  "commit": "ab7f634",
+  "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
+ },
+ "H8652": {
+  "commit": "ab7f634",
+  "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
+ },
+ "H8653": {
+  "commit": "ab7f634",
+  "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
+ }
+}

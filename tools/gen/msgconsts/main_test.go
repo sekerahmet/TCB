@@ -209,3 +209,71 @@ func codeArg(e ast.Expr) string {
 	}
 	return ""
 }
+
+// retired.json silinmiş kodları tutar; hiçbiri katalogda ya da tanımlarda yeniden yok, her kaydın
+// commit'i ve gerekçesi dolu.
+func TestRetiredCodesStayRetired(t *testing.T) {
+	root := repoRoot()
+	data, err := os.ReadFile(filepath.Join(root, retiredPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var retired map[string]struct {
+		Commit string `json:"commit"`
+		Reason string `json:"reason"`
+	}
+	if err := json.Unmarshal(data, &retired); err != nil {
+		t.Fatalf("%s: %v", retiredPath, err)
+	}
+	for code, r := range retired {
+		if len(code) != 5 || code[0] != 'H' {
+			t.Errorf("%s: %q ileti kodu biçiminde değil", retiredPath, code)
+		}
+		if r.Commit == "" || r.Reason == "" {
+			t.Errorf("%s: %s için commit ve gerekçe yazılmalı", retiredPath, code)
+		}
+	}
+	trData, err := os.ReadFile(filepath.Join(root, trPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys, _, err := orderedTexts(trData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := checkRetired(root, keys); err != nil {
+		t.Error(err)
+	}
+}
+
+// Üretici, silinmiş bir kodu katalogda ya da tanımlarda görürse çalışmaz.
+func TestGenerateRejectsRetiredCode(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "internal", "lang", "messages")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write := func(name, body string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("tr.json", `{"H0001": "bir", "H0002": "iki"}`)
+	write("definitions.json", `{"H0001": {"param": []}, "H0002": {"param": []}}`)
+	if _, err := Generate(root); err != nil {
+		t.Fatalf("retired.json olmadan üretilmeli: %v", err)
+	}
+	write("retired.json", `{"H0003": {"commit": "abc1234", "reason": "x"}}`)
+	if _, err := Generate(root); err != nil {
+		t.Fatalf("başka bir kod silinmişken üretilmeli: %v", err)
+	}
+	write("retired.json", `{"H0002": {"commit": "abc1234", "reason": "x"}}`)
+	if _, err := Generate(root); err == nil || !strings.Contains(err.Error(), "H0002") {
+		t.Errorf("silinmiş H0002 yeniden tanımlıyken üretici hata vermeli: %v", err)
+	}
+	// Yalnızca tanımlarda yeniden bulunan da yakalanır.
+	write("tr.json", `{"H0001": "bir"}`)
+	if _, err := Generate(root); err == nil || !strings.Contains(err.Error(), "definitions.json") {
+		t.Errorf("tanımlarda kalan silinmiş kod yakalanmalı: %v", err)
+	}
+}
