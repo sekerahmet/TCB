@@ -2,7 +2,6 @@ package interp
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	pathpkg "path"
 	"path/filepath"
@@ -105,17 +104,17 @@ func ErrorItems(err error, mainCode string) []ErrorItem {
 	message := err.Error()
 	var mh *ModuleError
 	if !errors.As(err, &mh) {
-		return []ErrorItem{{message, turkish.CodeFrame(mainCode, message)}}
+		return []ErrorItem{{message, turkish.ErrorFrame(mainCode, err)}}
 	}
 	if len(mh.Errors) == 0 {
-		return []ErrorItem{{message, turkish.CodeFrame(mh.Source.Code, mh.Err.Error())}}
+		return []ErrorItem{{message, turkish.ErrorFrame(mh.Source.Code, mh.Err)}}
 	}
 	importerCode := mainCode
 	if mh.Importer != nil {
 		importerCode = mh.Importer.Code
 	}
 	b := mh.header()
-	entries := []ErrorItem{{b, turkish.CodeFrame(importerCode, b)}}
+	entries := []ErrorItem{{b, turkish.LineFrame(importerCode, mh.ImportLine)}}
 	for _, h := range mh.Errors {
 		entries = append(entries, ErrorItem{mh.Source.Name + ", " + h, turkish.CodeFrame(mh.Source.Code, h)})
 	}
@@ -198,7 +197,7 @@ func (v *VM) imp(s *ast.ImportStatement, env *Environment, alias func(*Environme
 // zinciri modülü içeriyorsa bu döngüsel bir aktarımdır.
 func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
 	if err := CheckPath(codes.Name(codes.A070), path); err != nil {
-		return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
+		return nil, messages.At(s.Line(), 0, err)
 	}
 	dest, searched, err := v.moduleTarget(s, path)
 	if err != nil {
@@ -219,7 +218,7 @@ func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
 	if y := v.loaded[keyStr]; y != nil {
 		if slices.Contains(v.loading, keyStr) {
 			v.isImported.Unlock()
-			return nil, fmt.Errorf("Satır %d: %q modülünde döngüsel aktarım tespit edildi (modül, yüklenirken kendini dolaylı olarak yeniden aktarıyor)", s.Line(), path)
+			return nil, messages.At(s.Line(), 0, messages.New(messages.H2481, path))
 		}
 		return v.waitForModule(s, path, keyStr, y)
 	}
@@ -238,7 +237,7 @@ func (v *VM) loadModule(s *ast.ImportStatement, path string) (*DictVal, error) {
 	}()
 	y.mod, y.err = v.runModule(s, path, dest, keyStr, searched)
 	if y.err == nil && y.mod == nil {
-		y.err = fmt.Errorf("Satır %d: %q modülü yüklenemedi", s.Line(), path)
+		y.err = messages.At(s.Line(), 0, messages.New(messages.H2482, path))
 	}
 	return y.mod, y.err
 }
@@ -255,7 +254,7 @@ func (v *VM) waitForModule(s *ast.ImportStatement, path, keyStr string, y *modul
 		}
 		if l.owner == v {
 			v.isImported.Unlock()
-			return nil, fmt.Errorf("Satır %d: %q modülünde döngüsel aktarım tespit edildi (modül, başka bir görevde yüklenirken bu görevin yüklediği bir modülü bekliyor)", s.Line(), path)
+			return nil, messages.At(s.Line(), 0, messages.New(messages.H2483, path))
 		}
 		next, waiting := v.waiting[l.owner]
 		if !waiting {
@@ -294,13 +293,13 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	if dest.Embedded {
 		payload, err := ReadLibrary(strings.TrimPrefix(dest.Path, LibraryPrefix))
 		if err != nil {
-			return nil, fmt.Errorf("Satır %d: %w", s.Line(), err)
+			return nil, messages.At(s.Line(), 0, err)
 		}
 		dest.Code = string(payload)
 	} else {
 		data, err := os.ReadFile(dest.Path)
 		if err != nil {
-			return nil, fmt.Errorf("Satır %d: %w", s.Line(), ReadError(codes.Name(codes.A070), path, messages.H2112, err, searched))
+			return nil, messages.At(s.Line(), 0, ReadError(codes.Name(codes.A070), path, messages.H2112, err, searched))
 		}
 		dest.Code = string(data)
 	}

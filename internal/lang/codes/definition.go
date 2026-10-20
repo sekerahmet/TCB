@@ -205,7 +205,7 @@ type rawDefinition struct {
 func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, nil, fmt.Errorf("definitions.json: %v", err)
+		return nil, nil, internalf("definitions.json: %v", err)
 	}
 	var errs []string
 	errorf := func(form string, a ...any) { errs = append(errs, fmt.Sprintf(form, a...)) }
@@ -269,7 +269,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 		}
 		if len(h.Signatures) > 0 {
 			if len(h.Types) > 0 || len(h.Param) > 0 || len(h.Named) > 0 || h.Return != "" {
-				errorf("%s: \"imzalar\" varken \"tipler\", \"param\", \"adlı\" ve \"dönüş\" yazılmaz", k)
+				errorf("%s: \"tipler\", \"param\", \"adlı\" and \"dönüş\" must not be written when \"imzalar\" is present", k)
 			}
 			for s, hi := range h.Signatures {
 				typ, err := Parse(s)
@@ -294,7 +294,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 	sort.Slice(order, func(i, j int) bool { return order[i] < order[j] })
 	if len(errs) > 0 {
 		sort.Strings(errs)
-		return out, order, fmt.Errorf("definitions.json:\n  %s", strings.Join(errs, "\n  "))
+		return out, order, internalf("definitions.json:\n  %s", strings.Join(errs, "\n  "))
 	}
 	return out, order, nil
 }
@@ -316,7 +316,7 @@ func ParseType(s string, isParam bool) (TypeExpr, error) {
 	for _, p := range strings.Split(s, "|") {
 		k, err := Parse(p)
 		if err != nil {
-			return t, fmt.Errorf("tip ifadesi %q: %v", s, err)
+			return t, internalf("type expression %q: %v", s, err)
 		}
 		t.Types = append(t.Types, k)
 	}
@@ -326,7 +326,7 @@ func ParseType(s string, isParam bool) (TypeExpr, error) {
 func parseNamed(a []json.RawMessage) (NamedArg, error) {
 	var name NamedArg
 	if len(a) < 2 || len(a) > 3 {
-		return name, fmt.Errorf("adlı argüman [kod, tip] ya da [kod, tip, varsayılan] olmalı")
+		return name, internalf("a named argument must be [code, type] or [code, type, default]")
 	}
 	var ks, ts string
 	if err := json.Unmarshal(a[0], &ks); err != nil {
@@ -399,7 +399,7 @@ const SourceLanguage = "tr"
 // in the language file matches the definition.
 func CheckDefinitions(d *Language) []error {
 	var errs []error
-	errorf := func(form string, a ...any) { errs = append(errs, fmt.Errorf(form, a...)) }
+	errorf := func(form string, a ...any) { errs = append(errs, internalf(form, a...)) }
 	if err := DefinitionError(); err != nil {
 		errorf("%v", err)
 	}
@@ -407,7 +407,7 @@ func CheckDefinitions(d *Language) []error {
 	all := append(d.Codes(), d.DeadCodes()...)
 	for _, k := range all {
 		if _, ok := DefinitionOf(k); !ok {
-			errorf("%s (%s) dil dosyasında var, definitions.json'da tanımı yok", k, d.Name(k))
+			errorf("%s (%s) is in the language file but has no definition in definitions.json", k, d.Name(k))
 		}
 	}
 	typeCode := func(k Code) bool {
@@ -417,7 +417,7 @@ func CheckDefinitions(d *Language) []error {
 	checkType := func(k Code, pos string, t TypeExpr) {
 		for _, x := range t.Types {
 			if !typeCode(x) {
-				errorf("%s %s: %s bir tip kodu değil", k, pos, x)
+				errorf("%s %s: %s is not a type code", k, pos, x)
 			}
 		}
 	}
@@ -425,12 +425,12 @@ func CheckDefinitions(d *Language) []error {
 		for i, p := range im.Params {
 			checkType(k, fmt.Sprintf("%s%d. parametre", pos, i+1), p)
 			if (p.Many || p.AtLeastOne) && i != len(im.Params)-1 {
-				errorf("%s %s: '*' ya da '+' yalnızca son parametrede olabilir", k, pos)
+				errorf("%s %s: '*' or '+' is only allowed on the last parameter", k, pos)
 			}
 		}
 		for _, a := range im.Named {
 			if a.Code.Namespace() != NamespaceParam || !live(a.Code) {
-				errorf("%s %sadlı argüman %s bir adlı argüman kodu (x9xx) değil", k, pos, a.Code)
+				errorf("%s %snamed argument %s is not a named-argument code (x9xx)", k, pos, a.Code)
 			}
 			checkType(k, pos+"adlı argüman", a.Type)
 		}
@@ -447,73 +447,73 @@ func CheckDefinitions(d *Language) []error {
 			if d.Code != SourceLanguage && (t.Removed || t.MovedTo != None) {
 				continue
 			}
-			errorf("%s definitions.json'da var, dil dosyasında yok", k)
+			errorf("%s is in definitions.json but not in the language file", k)
 			continue
 		}
 		exp := k.ExpectedKind()
 		switch {
 		case exp == KindMethod && t.Kind != KindMethod && t.Kind != KindProperty:
-			errorf("%s: tür %q olamaz; üyeler (Y) metot ya da özelliktir", k, t.Kind)
+			errorf("%s: kind %q is not allowed; members (Y) are methods or properties", k, t.Kind)
 		case exp == KindFunction && t.Kind == KindConstant:
 			// Yerleşik bir sabit (G/T/V/W ailesinde fonksiyonun yerinde).
 		case exp != KindMethod && t.Kind != exp:
-			errorf("%s: tür %q, ama kodun ailesi %q gerektirir", k, t.Kind, exp)
+			errorf("%s: kind %q, but the code's family requires %q", k, t.Kind, exp)
 		}
 		if g.MovedTo != t.MovedTo {
-			errorf("%s: dil dosyasının taşınma bilgisi (%s) tanımla (%s) aynı değil; go run ./tools/gen/codeconsts", k, g.MovedTo, t.MovedTo)
+			errorf("%s: the language file's moved-to (%s) differs from the definition's (%s); run go run ./tools/gen/codeconsts", k, g.MovedTo, t.MovedTo)
 		}
 		if g.Removed != t.Removed {
-			errorf("%s: dil dosyasının kaldırılma bilgisi tanımla aynı değil; go run ./tools/gen/codeconsts", k)
+			errorf("%s: the language file's removal info differs from the definition; run go run ./tools/gen/codeconsts", k)
 		}
 		if t.Removed {
 			if t.MovedTo != None || len(t.Members) > 0 || len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() || len(t.Related) > 0 {
-				errorf("%s kaldırıldı; yalnızca tür yazılır", k)
+				errorf("%s was removed; write only the kind", k)
 			}
 			continue
 		}
 		if t.MovedTo != None {
 			if len(t.Members) > 0 || len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() {
-				errorf("%s taşındı; imza yazılmaz (imza yeni kodda, %s)", k, t.MovedTo)
+				errorf("%s was moved; write no signature (the signature is on the new code, %s)", k, t.MovedTo)
 			}
 			y, ok := d.entries[t.MovedTo]
 			if !ok || y.Dead() {
-				errorf("%s %s'e taşındı, ama %s canlı bir kod değil", k, t.MovedTo, t.MovedTo)
+				errorf("%s moved to %s, but %s is not a live code", k, t.MovedTo, t.MovedTo)
 			} else if t.MovedTo.Namespace() == k.Namespace() {
-				errorf("%s %s'e taşındı, ama ikisi aynı ad alanında (%s); taşıma biçim değiştirir (fonksiyon ↔ üye)", k, t.MovedTo, k.Namespace())
+				errorf("%s moved to %s, but both are in the same namespace (%s); a move changes the form (function ↔ member)", k, t.MovedTo, k.Namespace())
 			}
 			continue
 		}
 		switch t.Kind {
 		case KindMethod, KindProperty:
 			if len(t.Members) == 0 {
-				errorf("%s: üyenin geçerli olduğu tipler (tipler ya da imzalar) yazılmalı", k)
+				errorf("%s: the types a member applies to (tipler or imzalar) must be written", k)
 			}
 			for _, u := range t.Members {
 				if !typeCode(u.Type) {
-					errorf("%s: %s bir tip kodu değil", k, u.Type)
+					errorf("%s: %s is not a type code", k, u.Type)
 				}
 				checkSig(k, u.Type.String()+" ", u.Signature)
 				if t.Kind == KindProperty && (len(u.Signature.Params) > 0 || len(u.Signature.Named) > 0) {
-					errorf("%s: özellik parametre almaz", k)
+					errorf("%s: a property takes no parameters", k)
 				}
 			}
 		case KindFunction:
 			checkSig(k, "", t.Signature)
 		case KindConstant:
 			if len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || len(t.Members) > 0 || t.Signature.Return.Empty() {
-				errorf("%s: sabit parametre almaz; yalnızca dönüş (değerin tipi) yazılır", k)
+				errorf("%s: a constant takes no parameters; only the return (the value's type) is written", k)
 			}
 			checkSig(k, "", t.Signature)
 		default:
 			if len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || !t.Signature.Return.Empty() || len(t.Members) > 0 {
-				errorf("%s: %s imza almaz", k, t.Kind)
+				errorf("%s: %s takes no signature", k, t.Kind)
 			}
 		}
 		for _, x := range t.Related {
 			if !live(x) {
-				errorf("%s: ilişkili kod %s dil dosyasında canlı bir kod değil", k, x)
+				errorf("%s: related code %s is not a live code in the language file", k, x)
 			} else if x == k {
-				errorf("%s kendisiyle ilişkili yazılmış", k)
+				errorf("%s is listed as related to itself", k)
 			}
 		}
 	}

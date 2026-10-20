@@ -1,11 +1,11 @@
 package interp
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // --- ÇALIŞMA ORTAMI (ENVIRONMENT) ---
@@ -204,7 +204,7 @@ func (e *Environment) Assign(name string, val Value) error {
 	for cur := e; cur != nil; cur = cur.outer {
 		if i, old := cur.local(name); old != nil {
 			if cur.isConstant(i) {
-				return fmt.Errorf("%q bir sabittir ('%s') ve değeri değiştirilemez", name, codes.Name(codes.A031))
+				return messages.New(messages.H2447, name, codes.Name(codes.A031))
 			}
 			cur.vals[i] = val
 			return nil
@@ -219,8 +219,11 @@ func (e *Environment) Assign(name string, val Value) error {
 // this type and adds a "Bunu mu demek istediniz?" suggestion to the message.
 type UndefinedVarError struct{ Name string }
 
-func (e *UndefinedVarError) Error() string {
-	return fmt.Sprintf("tanımsız değişken: '%s' (önce '%s' ile tanımlayın)", e.Name, codes.Name(codes.A030))
+func (e *UndefinedVarError) Error() string { return e.Unwrap().Error() }
+
+// Unwrap returns the coded message, so messages.Has finds it in the chain.
+func (e *UndefinedVarError) Unwrap() error {
+	return messages.New(messages.H2448, e.Name, codes.Name(codes.A030))
 }
 
 // Names returns every name visible from this scope and the outer scopes (for suggestions).

@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 // WriteAtomic writes the content produced by yaz to yol atomically: the content first goes
@@ -68,7 +69,7 @@ func atomicTarget(filePath string) (string, fs.FileMode, error) {
 	mod := fs.FileMode(0o644)
 	if b, e := os.Stat(dest); e == nil {
 		if b.IsDir() {
-			return "", 0, &fs.PathError{Op: "open", Path: filePath, Err: errors.New("bir klasör")}
+			return "", 0, &fs.PathError{Op: "open", Path: filePath, Err: syscall.EISDIR}
 		}
 		mod = b.Mode().Perm()
 	}

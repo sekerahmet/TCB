@@ -1,12 +1,12 @@
 package interp
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -35,9 +35,9 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	if len(named) == 0 && nargs <= len(fn.Parameters) && defaultsSuffice(fn, nargs) {
 		return nil
 	}
-	name := "'" + fn.Name + "' fonksiyonu"
+	name := messages.Text(messages.H2408, fn.Name)
 	if fn.Name == "" {
-		name = "İsimsiz fonksiyon"
+		name = messages.Text(messages.H2409)
 	}
 	known := make(map[string]bool, len(fn.Parameters))
 	for _, p := range fn.Parameters {
@@ -45,17 +45,17 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 	}
 	for k := range named {
 		if !known[k] {
-			return fmt.Errorf("Satır %d: %s '%s' adında bir parametre almaz%s", line, name, k, suggestParam(k, fn.Parameters))
+			return messages.At(line, 0, messages.New(messages.H2410, name, k, suggestParam(k, fn.Parameters)))
 		}
 	}
 	if nargs > len(fn.Parameters) {
-		return fmt.Errorf("Satır %d: %s en fazla %d argüman alır, %d verildi", line, name, len(fn.Parameters), nargs)
+		return messages.At(line, 0, messages.New(messages.H2412, name, len(fn.Parameters), nargs))
 	}
 	// Konumlu argümanın doldurduğu bir parametre adıyla da verilirse adlı değer sessizce
 	// yok sayılırdı; hangisinin kastedildiği belli olmadığından hatadır.
 	for i, p := range fn.Parameters[:nargs] {
 		if _, ok := named[p.Name]; ok {
-			return fmt.Errorf("Satır %d: %s '%s' parametresi hem sırayla (%d. argüman) hem adıyla verildi", line, name, p.Name, i+1)
+			return messages.At(line, 0, messages.New(messages.H2413, name, p.Name, i+1))
 		}
 	}
 	var missing []string
@@ -73,13 +73,13 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 		// zorunlu olandan önce gelen varsayılanlı parametreler işin içindeyse ("1 argüman
 		// bekler, 1 verildi") kendisiyle çelişirdi; o zaman eksikler adlarıyla söylenir.
 		if len(named) == 0 && nargs < required {
-			return fmt.Errorf("Satır %d: %s %d argüman bekler, %d verildi (eksik: %s)", line, name, required, nargs, strings.Join(missing, ", "))
+			return messages.At(line, 0, messages.New(messages.H2414, name, required, nargs, strings.Join(missing, ", ")))
 		}
-		what := "argümanı"
+		what := messages.Text(messages.H2416)
 		if len(missing) > 1 {
-			what = "argümanları"
+			what = messages.Text(messages.H2417)
 		}
-		return fmt.Errorf("Satır %d: %s için zorunlu %s %s verilmedi", line, name, strings.Join(missing, ", "), what)
+		return messages.At(line, 0, messages.New(messages.H2415, name, strings.Join(missing, ", "), what))
 	}
 	return nil
 }
@@ -99,17 +99,17 @@ func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line 
 		if !slices.Contains(nameList, k) {
 			suggestion := ""
 			if o := turkish.Closest(k, nameList); o != "" {
-				suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+				suggestion = messages.Text(messages.H2411, o)
 			}
-			return fmt.Errorf("Satır %d: '%s' yapısının '%s' adında bir alanı yok%s", line, def.Name, k, suggestion)
+			return messages.At(line, 0, messages.New(messages.H2418, def.Name, k, suggestion))
 		}
 	}
 	if nargs > len(def.Fields) {
-		return fmt.Errorf("Satır %d: '%s' yapısı en fazla %d argüman alır (alanlar: %s), %d verildi", line, def.Name, len(def.Fields), strings.Join(nameList, ", "), nargs)
+		return messages.At(line, 0, messages.New(messages.H2419, def.Name, len(def.Fields), strings.Join(nameList, ", "), nargs))
 	}
 	for i, f := range nameList[:nargs] {
 		if _, ok := named[f]; ok {
-			return fmt.Errorf("Satır %d: '%s' yapısının '%s' alanı hem sırayla (%d. argüman) hem adıyla verildi", line, def.Name, f, i+1)
+			return messages.At(line, 0, messages.New(messages.H2420, def.Name, f, i+1))
 		}
 	}
 	return nil
@@ -121,7 +121,7 @@ func suggestParam(name string, params []ast.Param) string {
 		names = append(names, p.Name)
 	}
 	if o := turkish.Closest(name, names); o != "" {
-		return fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+		return messages.Text(messages.H2411, o)
 	}
 	return ""
 }
@@ -203,7 +203,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 		return inst, nil
 	}
 
-	return nil, fmt.Errorf("Satır %d: %s tipi bir fonksiyon olarak çağrılamaz", line, fnVal.Type())
+	return nil, messages.At(line, 0, messages.New(messages.H2421, fnVal.Type()))
 }
 
 // callPrepared bir kullanıcı fonksiyonunu fnEnv ortamında çalıştırır. args nil değilse
@@ -227,7 +227,7 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 		}()
 	}
 	if len(v.CallStack) >= maxCallDepth {
-		return nil, fmt.Errorf("Satır %d: Özyineleme derinliği sınırı aşıldı (en fazla %d iç içe çağrı); fonksiyon kendini durmadan çağırıyor olabilir", line, maxCallDepth)
+		return nil, messages.At(line, 0, messages.New(messages.H2422, maxCallDepth))
 	}
 	fnName := fn.Name
 	if fnName == "" {

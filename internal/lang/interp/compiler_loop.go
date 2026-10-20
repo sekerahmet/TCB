@@ -1,9 +1,8 @@
 package interp
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // loopScope bir döngünün her turunda gövdenin çalışacağı ortamı sağlar. Gövde ortamı
@@ -33,10 +32,10 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 	keySlot := -1
 	if s.KeyVar != "" {
 		keySlot = sub.info.slot(s.KeyVar)
-		sub.recordShadow(s.KeyVar, s.Line(), "bir döngü değişkenine")
+		sub.recordShadow(s.KeyVar, s.Line(), messages.H2452)
 	}
 	valueSlot := sub.info.slot(s.ValueVar)
-	sub.recordShadow(s.ValueVar, s.Line(), "bir döngü değişkenine")
+	sub.recordShadow(s.ValueVar, s.Line(), messages.H2452)
 	var bodyStatements []ast.Statement
 	again := true
 	if s.Body != nil {
@@ -197,7 +196,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			return streamLoop(v, it, &kind, keySlot, valueSlot, bodyBlock, line)
 
 		default:
-			return nil, signalNone, fmt.Errorf("Satır %d: %s tipi üzerinde döngü kurulamaz", line, iterVal.Type())
+			return nil, signalNone, messages.At(line, 0, messages.New(messages.H2443, iterVal.Type()))
 		}
 		return lastVal, signalNone, nil
 	}

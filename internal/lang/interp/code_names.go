@@ -7,6 +7,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Yorumlayıcının kaydettiği adlar kod listesinden gelir (internal/lang/codes). Adlar kayıt sırasında
@@ -36,7 +37,7 @@ func NoNamedArgsError(name string, named map[string]Value) error {
 		nameList = append(nameList, a)
 	}
 	slices.Sort(nameList)
-	return fmt.Errorf("%s() '%s' adında bir parametre almaz (adlı argüman almaz)", name, nameList[0])
+	return messages.New(messages.H2427, name, nameList[0])
 }
 
 // DefineBuiltin binds a ready builtin value (its name must be the code's name) in the global
@@ -107,5 +108,5 @@ func memberSuggestionError(pg PropertyGetter, obj Value, prop string, err error)
 	if _, e := pg.GetProperty(k, codes.Name(k)); e != nil {
 		return err
 	}
-	return fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", obj.Type(), prop, hint.NotInTRHint(prop, codes.Name(k)))
+	return messages.New(messages.H2428, obj.Type(), prop, hint.NotInTRHint(prop, codes.Name(k)))
 }

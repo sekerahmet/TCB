@@ -2,10 +2,12 @@ package interp
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -79,12 +81,12 @@ func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 	bodyBlock := f
 	f = func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		if len(args) < im.minN || (im.maxN >= 0 && len(args) > im.maxN) {
-			expected := fmt.Sprint(im.minN)
+			expected := strconv.Itoa(im.minN)
 			switch {
 			case im.maxN < 0:
-				expected = "en az " + expected
+				expected = AtLeast(im.minN)
 			case im.maxN != im.minN:
-				expected = fmt.Sprintf("%d ya da %d", im.minN, im.maxN)
+				expected = Counts(im.minN, im.maxN)
 			}
 			return nil, argCountErrorByName(fullName, expected, len(args), fullName+"("+im.parameters+")")
 		}
@@ -325,7 +327,7 @@ func setupDictMethods() {
 	})
 	addMethod(typeDict, codes.Y002, signature{1, 1, "anahtar", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		if err := DictKeyError(args[0]); err != nil {
-			return nil, fmt.Errorf("Satır %d: %w", line, err)
+			return nil, messages.At(line, 0, err)
 		}
 		_, ok := inst.(*DictVal).GetValue(args[0])
 		return BoolToVal(ok), nil
@@ -379,9 +381,9 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 		return NULL, nil
 	}
 	if h := movedMemberError(obj, prop); h != "" {
-		return nil, fmt.Errorf("Satır %d: %s", line, h)
+		return nil, messages.At(line, 0, messages.New(messages.H2441, h))
 	}
-	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği veya metodu bulunamadı%s", line, obj.Type(), prop, removedMemberHint(prop))
+	return nil, messages.At(line, 0, messages.New(messages.H2474, obj.Type(), prop, removedMemberHint(prop)))
 }
 
 // listReduce liste.indirge([başlangıç], fonksiyon) metodunun gövdesidir. Fonksiyon son
@@ -394,14 +396,13 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	f := args[len(args)-1]
 	if !callable(f) {
 		if len(args) == 2 && callable(args[0]) {
-			return nil, fmt.Errorf("%s(): %s son argüman olmalı; %s(başlangıç, %s) ya da %s(başlangıç) { ... } yazın", name, fun, name, fun, name)
+			return nil, messages.New(messages.H2475, name, fun)
 		}
 		return nil, ArgTypeError(codes.Y207, len(args), f, codes.A208)
 	}
 	if fn, ok := f.(*FuncVal); ok && len(fn.Parameters) != 2 {
 		b := codes.Name(codes.A105)
-		return nil, fmt.Errorf("%s(): %s iki parametre almalı (%s, eleman), %d parametreli verildi; ör. %s(0, (%s, x) => %s + x) ya da %s(0) { %s + %s }",
-			name, fun, b, len(fn.Parameters), name, b, b, name, b, codes.Name(codes.A104))
+		return nil, messages.New(messages.H2476, name, fun, b, len(fn.Parameters), codes.Name(codes.A104))
 	}
 	var acc Value
 	begin := 0
@@ -427,7 +428,7 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 // elements are errors (used by the ortalama(liste) builtin).
 func NumberMean(name string, elems []Value) (Value, error) {
 	if len(elems) == 0 {
-		return nil, fmt.Errorf("%s: boş listenin ortalaması yoktur", name)
+		return nil, messages.New(messages.H2477, name)
 	}
 	s := 0.0
 	for i, el := range elems {

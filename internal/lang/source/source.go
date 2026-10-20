@@ -9,10 +9,10 @@
 package source
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Header is the first line of a coded file (17.1): format version 1. The display language is
@@ -45,9 +45,14 @@ type HeaderError struct {
 	Line string
 }
 
+// Unwrap returns the message at its position (line 1, column 1), so frames and tools read the
+// position from the error (messages.Pos), not from its text.
+func (e *HeaderError) Unwrap() error {
+	return messages.At(1, 1, messages.New(messages.H2512, e.Line, Header, headerPrefix))
+}
+
 func (e *HeaderError) Error() string {
-	return fmt.Sprintf("Satır 1, Sütun 1: '%s' bu yorumlayıcının tanımadığı bir kodlu biçim başlığı; yalnızca '%s' okunur (dosya daha yeni bir TR sürümüyle yazılmış olabilir; '%s' ile başlayan ilk satır kodlu biçim için ayrılmıştır)",
-		e.Line, Header, headerPrefix)
+	return e.Unwrap().Error()
 }
 
 // Split splits text into its parts. If the first line (after the BOM) is exactly Header the

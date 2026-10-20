@@ -8,6 +8,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ValueType is the type name of a value (tip() result, error messages). The names are in the
@@ -196,7 +197,7 @@ func DictKeyError(v Value) error {
 	if !mutable {
 		return nil
 	}
-	return fmt.Errorf("%s sözlük anahtarı olamaz: içeriği sonradan değişebilen değerler anahtar olarak kullanılamaz", v.Type())
+	return messages.New(messages.H2495, v.Type())
 }
 
 // intKeyValue bir sayının Tam anahtar olarak değerini verir: Tam'ın kendisi ya da tam
@@ -332,7 +333,7 @@ type FuncVal struct {
 func (f *FuncVal) Type() ValueType { return VAL_FUNC }
 func (f *FuncVal) Inspect() string {
 	if f.Name != "" {
-		return fmt.Sprintf("<fonksiyon %s>", f.Name)
+		return messages.Text(messages.H2496, f.Name)
 	}
 	return "<ok fonksiyonu>"
 }
@@ -354,7 +355,7 @@ type BuiltinVal struct {
 }
 
 func (b *BuiltinVal) Type() ValueType { return VAL_BUILTIN }
-func (b *BuiltinVal) Inspect() string { return fmt.Sprintf("<yerleşik %s>", b.Name) }
+func (b *BuiltinVal) Inspect() string { return messages.Text(messages.H2497, b.Name) }
 func (b *BuiltinVal) IsTruthy() bool  { return true }
 
 type StructDefVal struct {
@@ -371,7 +372,7 @@ type StructDefVal struct {
 }
 
 func (s *StructDefVal) Type() ValueType { return VAL_STRUCT }
-func (s *StructDefVal) Inspect() string { return fmt.Sprintf("<yapı %s>", s.Name) }
+func (s *StructDefVal) Inspect() string { return messages.Text(messages.H2498, s.Name) }
 func (s *StructDefVal) IsTruthy() bool  { return true }
 
 type StructInstanceVal struct {

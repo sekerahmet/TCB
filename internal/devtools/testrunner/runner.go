@@ -12,7 +12,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -191,15 +190,13 @@ func RunFile(fpath string, out io.Writer) Summary {
 	return summary
 }
 
-// lineStart konumlu bir hata iletisinin başıdır ("Satır 12: ..."). İletinin içinde geçen
-// "Satır " sözcüğü (ör. fırlat "Satır sayısı yanlış") konum sayılmaz.
-var lineStart = regexp.MustCompile(`^Satır [0-9]+:`)
-
-// located hatanın konumu var mı: satırlı ya da bir dosyaya (modül) bağlı hata.
+// located hatanın konumu var mı: satırlı (messages.Pos) ya da bir dosyaya (modül) bağlı hata.
+// Konum yapıdan okunur; iletinin içinde geçen "Satır " sözcüğü (ör. fırlat "Satır sayısı
+// yanlış") konum sayılmaz.
 func located(err error) bool {
-	var le *interp.LineError
 	var me *interp.ModuleError
-	return errors.As(err, &le) || errors.As(err, &me) || lineStart.MatchString(err.Error())
+	_, _, ok := messages.Pos(err)
+	return ok || errors.As(err, &me)
 }
 
 func writeError(out io.Writer, message, source string) {

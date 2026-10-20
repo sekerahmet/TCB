@@ -2,7 +2,6 @@ package interp
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -96,12 +95,12 @@ type PlainValuer interface {
 // the line of the original error.
 type LineError = messages.PosError
 
-// hasLine hata zaten satır bilgisi taşıyor mu? Tipli hata önceliklidir; VM'nin metinle
-// ürettiği "Satır N: ..." hataları için metin öneki yedek olarak denetlenir.
+// hasLine hata zaten konum taşıyor mu: satırlı (messages.PosError) ya da bir dosyaya bağlı
+// (ModuleError) hata. Konum yalnızca yapıdan okunur, iletinin metninden değil.
 func hasLine(err error) bool {
-	var sh *LineError
 	var mh *ModuleError
-	return errors.As(err, &sh) || errors.As(err, &mh) || strings.HasPrefix(err.Error(), "Satır ")
+	_, _, located := messages.Pos(err)
+	return located || errors.As(err, &mh)
 }
 
 // lineSuffix hatayı (satır bilgisi yoksa) "Satır N: " önekli bir SatirliHata'ya çevirir.

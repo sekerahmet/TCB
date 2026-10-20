@@ -4,18 +4,28 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestUnknownNameErrorHasColumnAndSuggestion(t *testing.T) {
-	for _, tc := range []struct{ code, want string }{
-		{"değişken toplam = 1\nyazdır(toplm + 1)", "Satır 2, Sütun 8: 'toplm' adında bir değişken ya da fonksiyon yok. Bunu mu demek istediniz: 'toplam'?"},
-		{"değişken değişken_adı = 1\ndegisken_adi = 2", "Bunu mu demek istediniz: 'değişken_adı'?"},
-		{"değişken sayaç = 1\nsayac += 1", "Satır 2, Sütun 1: 'sayac' adında bir değişken yok. Bunu mu demek istediniz: 'sayaç'?"},
-		{"yazdırr(1)", "Bunu mu demek istediniz: 'yazdır'?"},
+	for _, tc := range []struct {
+		code      string
+		line, col int    // 0: konum denetlenmez
+		want      string // öneri ipucunun metni (biçimi)
+	}{
+		{"değişken toplam = 1\nyazdır(toplm + 1)", 2, 8, "Bunu mu demek istediniz: 'toplam'?"},
+		{"değişken değişken_adı = 1\ndegisken_adi = 2", 0, 0, "Bunu mu demek istediniz: 'değişken_adı'?"},
+		{"değişken sayaç = 1\nsayac += 1", 2, 1, "Bunu mu demek istediniz: 'sayaç'?"},
+		{"yazdırr(1)", 0, 0, "Bunu mu demek istediniz: 'yazdır'?"},
 	} {
 		_, _, err := runTRWithin(t, 5*time.Second, tc.code)
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%q içeren hata bekleniyordu, alınan: %v", tc.want, err)
+			continue
+		}
+		if line, col, ok := messages.Pos(err); tc.line != 0 && (!ok || line != tc.line || col != tc.col) {
+			t.Errorf("konum %d:%d bekleniyordu, alınan %d:%d (%v)", tc.line, tc.col, line, col, ok)
 		}
 	}
 }

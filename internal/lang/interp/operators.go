@@ -1,8 +1,9 @@
 package interp
 
 import (
-	"fmt"
 	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // İşleç kodları: ayrıştırılmış işleç metinleri derleme anında bu tamsayılara çevrilir; böylece
@@ -163,7 +164,7 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 		}
 	}
 
-	return nil, fmt.Errorf("Satır %d: %s ve %s tipleri arasında %q işlemi desteklenmiyor", line, left.Type(), right.Type(), op)
+	return nil, messages.At(line, 0, messages.New(messages.H2469, left.Type(), right.Type(), op))
 }
 
 // intOp iki Tam sayı arasındaki işlemi yapar; işleç burada ele alınmıyorsa ok=false döner.
@@ -188,7 +189,7 @@ func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) 
 		return NewInt(a * b), true, nil
 	case opDiv:
 		if b == 0 {
-			return nil, true, fmt.Errorf("Satır %d: Sıfıra bölme hatası", line)
+			return nil, true, messages.At(line, 0, messages.New(messages.H2470))
 		}
 		if a == math.MinInt64 && b == -1 {
 			return nil, true, overflowError(line, a, op, b)
@@ -199,7 +200,7 @@ func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) 
 		return &FloatVal{Val: float64(a) / float64(b)}, true, nil
 	case opMod:
 		if b == 0 {
-			return nil, true, fmt.Errorf("Satır %d: Sıfıra göre mod alma hatası", line)
+			return nil, true, messages.At(line, 0, messages.New(messages.H2471))
 		}
 		return NewInt(a % b), true, nil
 	case opPow:
@@ -208,7 +209,7 @@ func intOp(codeVal uint8, op string, a, b int64, line int) (Value, bool, error) 
 		}
 		res, ok := intPow(a, b)
 		if !ok {
-			return nil, true, fmt.Errorf("Satır %d: %s sayı taşması (%d ** %d); ondalık sonuç için örn. %d.0 ** %d yazın", line, VAL_INT, a, b, a, b)
+			return nil, true, messages.At(line, 0, messages.New(messages.H2472, VAL_INT, a, b))
 		}
 		return NewInt(res), true, nil
 	case opLt:
@@ -240,12 +241,12 @@ func floatOp(codeVal uint8, lf, rf float64, line int) (Value, bool, error) {
 		return &FloatVal{Val: lf * rf}, true, nil
 	case opDiv:
 		if rf == 0 {
-			return nil, true, fmt.Errorf("Satır %d: Sıfıra bölme hatası", line)
+			return nil, true, messages.At(line, 0, messages.New(messages.H2470))
 		}
 		return &FloatVal{Val: lf / rf}, true, nil
 	case opMod:
 		if rf == 0 {
-			return nil, true, fmt.Errorf("Satır %d: Sıfıra göre mod alma hatası", line)
+			return nil, true, messages.At(line, 0, messages.New(messages.H2471))
 		}
 		return &FloatVal{Val: math.Mod(lf, rf)}, true, nil
 	case opPow:
@@ -268,7 +269,7 @@ func floatOp(codeVal uint8, lf, rf float64, line int) (Value, bool, error) {
 
 // overflowError int64 sınırını aşan tam sayı işlemleri için hata üretir (sessizce sarmak yerine).
 func overflowError(line int, a int64, op string, b int64) error {
-	return fmt.Errorf("Satır %d: %s sayı taşması (%d %s %d); ondalık sonuç için örn. %d.0 %s %d yazın", line, VAL_INT, a, op, b, a, op, b)
+	return messages.At(line, 0, messages.New(messages.H2473, VAL_INT, a, op, b))
 }
 
 func ToFloat(v Value) (float64, bool) {
@@ -293,7 +294,7 @@ func BoolToVal(b bool) Value {
 // karşılaştırılamaz (3.11): sessizce yanlış dönmek yerine hata verir.
 func equalityResult(equal bool, op string, left, right Value, line int) (Value, error) {
 	if err := typeTextError(op, left, right); err != nil {
-		return nil, fmt.Errorf("Satır %d: %w", line, err)
+		return nil, messages.At(line, 0, err)
 	}
 	return BoolToVal(ValuesEqual(left, right) == equal), nil
 }

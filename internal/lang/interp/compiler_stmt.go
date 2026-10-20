@@ -5,6 +5,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // --- DEYİMLER ---
@@ -211,7 +212,7 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 	sub := subScope(k)
 	errSlot := sub.info.slot(s.ErrorVar)
 	if s.CatchBody != nil {
-		sub.recordShadow(s.ErrorVar, s.CatchBody.Line(), "yakalanan hataya")
+		sub.recordShadow(s.ErrorVar, s.CatchBody.Line(), messages.H2453)
 	}
 	var catchStatements []ast.Statement
 	if s.CatchBody != nil {
@@ -242,7 +243,7 @@ func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) state
 		if err != nil {
 			return nil, signalNone, err
 		}
-		return nil, signalNone, fmt.Errorf("%s", val.Inspect())
+		return nil, signalNone, messages.New(messages.H2441, val.Inspect())
 	}
 }
 
@@ -282,7 +283,7 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 		}
 		if v.Debugger != nil {
 			if s.Condition != nil {
-				v.Debugger.Breakpoint(fmt.Sprintf("Koşullu kesme noktası (Satır %d)", s.Line()))
+				v.Debugger.Breakpoint(messages.Text(messages.H2446, s.Line()))
 			} else {
 				v.Debugger.Breakpoint("Koddaki kesme noktası (" + codes.Name(codes.A090) + ")")
 			}
@@ -385,7 +386,7 @@ func (c *compiler) concurrent(k *compilerScope, s *ast.AsyncStatement) statement
 			defer task.releaseGIL()
 			defer func() {
 				if r := recover(); r != nil && !IsInterrupt(r) {
-					task.reportAsyncError(line, fmt.Errorf("İç hata (çökme önlendi): %v", r))
+					task.reportAsyncError(line, messages.Internal(fmt.Sprint(r)))
 				}
 			}()
 			var err error

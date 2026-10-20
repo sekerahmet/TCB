@@ -1,9 +1,10 @@
 package interp
 
 import (
-	"errors"
 	"fmt"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Kesilme (nazik çıkış): kullanıcı Ctrl+C'ye bastığında ya da süreç sonlandırma isteği
@@ -18,7 +19,7 @@ import (
 
 // ErrInterrupted reports that the program was stopped by an interrupt signal; dene/yakala does
 // not catch it.
-var ErrInterrupted = errors.New("program durduruldu (kesme isteği: Ctrl+C ya da sonlandırma sinyali)")
+var ErrInterrupted error = messages.New(messages.H2461)
 
 // interruptPanic yığını çözmek için atılan paniğin değeridir. Bir motorun panik kurtarıcısı
 // bunu yakalarsa KesilmeMi ile tanıyıp yeniden atmalıdır (hataya çevirmemelidir).
@@ -100,7 +101,7 @@ func panicError(r any) error {
 	if IsInterrupt(r) {
 		return ErrInterrupted
 	}
-	return fmt.Errorf("İç hata (çökme önlendi): %v", r)
+	return messages.Internal(fmt.Sprint(r))
 }
 
 // interruptibleSleep süre boyunca ya da kesme istenene kadar bekler.

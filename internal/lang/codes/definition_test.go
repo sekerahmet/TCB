@@ -42,7 +42,7 @@ func TestMovedCodes(t *testing.T) {
 	}
 	// Taşınan bir ad aynı ad alanında canlı bir adla çakışırsa dil dosyası reddedilir.
 	_, err := Load("dene", []byte(`{"G100": {"ad": "yazdır"}, "G200": {"ad": "yazdır"}, "Y001": {"ad": "uzunluk"}}`))
-	if err == nil || !strings.Contains(err.Error(), "taşınmış G200'in adı \"yazdır\"") {
+	if err == nil || !strings.Contains(err.Error(), "the name \"yazdır\" of taşınmış G200") {
 		t.Errorf("çakışma yakalanmalı: %v", err)
 	}
 }
@@ -79,11 +79,11 @@ func TestDeadCodesOptionalOutsideTR(t *testing.T) {
 	if _, err := Load("dene", []byte(`{"G100": {"ad": "boy"}, "G200": {"ad": "G200"}, "Y001": {"ad": "uzunluk"}}`)); err != nil {
 		t.Errorf("adı yeniden kullanılan ölü kod yüklenmeli: %v", err)
 	}
-	if _, err := Load("dene", []byte(`{"G100": {"ad": "G100"}}`)); err == nil || !strings.Contains(err.Error(), "kod biçiminde") {
+	if _, err := Load("dene", []byte(`{"G100": {"ad": "G100"}}`)); err == nil || !strings.Contains(err.Error(), "has the code form") {
 		t.Errorf("canlı bir kodun adı kod biçiminde olamaz: %v", err)
 	}
 	delete(raw, "G100")
-	if errs := build("en", raw); len(errs) == 0 || !strings.Contains(fmt.Sprint(errs), "G100 definitions.json'da var, dil dosyasında yok") {
+	if errs := build("en", raw); len(errs) == 0 || !strings.Contains(fmt.Sprint(errs), "G100 is in definitions.json but not in the language file") {
 		t.Errorf("canlı kodun eksikliği her dilde hata olmalı: %v", errs)
 	}
 }

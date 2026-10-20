@@ -1,7 +1,6 @@
 package interp
 
 import (
-	"fmt"
 	"io"
 	"math"
 	"strconv"
@@ -70,7 +69,7 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	}
 	line, readErr := y.readLine()
 	if readErr != nil && readErr != io.EOF && line == "" {
-		return nil, fmt.Errorf("%s: standart girdi okunamadı: %s", CallPrefix(codes.G101), turkish.FileErrorReason("", readErr))
+		return nil, messages.New(messages.H2507, CallPrefix(codes.G101), turkish.FileErrorReason("", readErr))
 	}
 	line = strings.TrimRight(line, "\r\n")
 	return &StringVal{Val: line}, nil
@@ -103,7 +102,7 @@ func intBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	case *StringVal:
 		n, err := strconv.ParseInt(strings.TrimSpace(val.Val), 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %q tam sayıya çevrilemedi (yalnızca rakamlardan oluşan bir metin verin, ör. \"42\")", CallPrefix(codes.G210), val.Val)
+			return nil, messages.New(messages.H2429, CallPrefix(codes.G210), val.Val)
 		}
 		return NewInt(n), nil
 	case *BoolVal:
@@ -129,7 +128,7 @@ func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	case *StringVal:
 		n, err := strconv.ParseFloat(strings.TrimSpace(val.Val), 64)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %q ondalık sayıya çevrilemedi (ondalık ayırıcı nokta olmalı, ör. \"3.14\")", CallPrefix(codes.G211), val.Val)
+			return nil, messages.New(messages.H2430, CallPrefix(codes.G211), val.Val)
 		}
 		return &FloatVal{Val: n}, nil
 	default:
@@ -215,7 +214,7 @@ func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if iv, ok := args[0].(*IntVal); ok {
 		if iv.Val == math.MinInt64 {
 			m, o := codes.Name(codes.G403), codes.Name(codes.G211)
-			return nil, fmt.Errorf("%s(): %s sayı taşması (%s(%d)); ondalık sonuç için %s(%s(x)) yazın", m, codes.Name(codes.A200), m, iv.Val, m, o)
+			return nil, messages.New(messages.H2431, m, codes.Name(codes.A200), iv.Val, o)
 		}
 		if iv.Val < 0 {
 			return NewInt(-iv.Val), nil
@@ -281,7 +280,7 @@ func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
 	if y.asyncTask {
-		return nil, fmt.Errorf("%s '%s' bloğu içinden çağrılamaz; ana programda kullanın", CallPrefix(codes.G501), codes.Name(codes.A080))
+		return nil, messages.New(messages.H2432, CallPrefix(codes.G501), codes.Name(codes.A080))
 	}
 	y.WaitAsync()
 	return TRUE, nil
@@ -349,10 +348,10 @@ func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	// A negative, NaN or huge duration used to return at once without an error (the
 	// conversion to time.Duration overflows).
 	if math.IsNaN(pick) || pick < 0 {
-		return nil, fmt.Errorf("%s: süre negatif ya da sayı değil (%v); 0 ya da daha büyük bir saniye verin", CallPrefix(codes.G500), args[0].Inspect())
+		return nil, messages.New(messages.H2433, CallPrefix(codes.G500), args[0].Inspect())
 	}
 	if pick > maxSleepSeconds {
-		return nil, fmt.Errorf("%s: süre çok uzun (%v saniye); en fazla %.0f saniye beklenebilir", CallPrefix(codes.G500), args[0].Inspect(), maxSleepSeconds)
+		return nil, messages.New(messages.H2434, CallPrefix(codes.G500), args[0].Inspect(), strconv.FormatFloat(maxSleepSeconds, 'f', 0, 64))
 	}
 	// Kesme istenirse (Ctrl+C) bekleme hemen biter; program sonraki güvenli noktada durur.
 	y.Blocking(func() { y.interruptibleSleep(time.Duration(pick * float64(time.Second))) })
@@ -397,7 +396,7 @@ func (v *VM) singleArg(kd codes.Code, single func(*VM, Value) (Value, error)) {
 // checkRangeSize aralık(başlangıç, bitiş) için boyut denetimi yapar; boş aralık (bitiş <= başlangıç) geçerlidir.
 func checkRangeSize(start, end int64) error {
 	if end > start && (end-start > MaxCollectionSize || end-start < 0) {
-		return fmt.Errorf("%s çok büyük: en fazla %d eleman üretilebilir", CallPrefix(codes.G305), MaxCollectionSize)
+		return messages.New(messages.H2435, CallPrefix(codes.G305), MaxCollectionSize)
 	}
 	return nil
 }

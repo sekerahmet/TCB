@@ -1,7 +1,7 @@
 package interp
 
 import (
-	"fmt"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Bu dosyada derlenmiş atamaların değer düzeyindeki yardımcıları vardır. kod opAta ise düz
@@ -23,14 +23,14 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 	case *ListVal:
 		iv, ok := idx.(*IntVal)
 		if !ok {
-			return fmt.Errorf("Satır %d: %s indeksi %s sayı olmalıdır", line, VAL_LIST, VAL_INT)
+			return messages.At(line, 0, messages.New(messages.H2400, VAL_LIST, VAL_INT))
 		}
 		pos := int(iv.Val)
 		if pos < 0 {
 			pos = len(container.Elements) + pos
 		}
 		if pos < 0 || pos >= len(container.Elements) {
-			return fmt.Errorf("Satır %d: %s indeksi sınır dışı (%d)", line, VAL_LIST, iv.Val)
+			return messages.At(line, 0, messages.New(messages.H2401, VAL_LIST, iv.Val))
 		}
 		finalVal, err := v.assignOp(codeVal, container.Elements[pos], rightVal, line)
 		if err != nil {
@@ -40,7 +40,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		return nil
 	case *DictVal:
 		if err := DictKeyError(idx); err != nil {
-			return fmt.Errorf("Satır %d: %w", line, err)
+			return messages.At(line, 0, err)
 		}
 		if codeVal == opAssign {
 			// Düz atamada mevcut değer gerekmez (atamaIslemi sağ tarafı olduğu gibi verir)
@@ -63,7 +63,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		if codeVal != opAssign {
 			readCount, ok := left.(Indexable)
 			if !ok {
-				return fmt.Errorf("Satır %d: %s tipinde indeksli bileşik atama yapılamaz", line, left.Type())
+				return messages.At(line, 0, messages.New(messages.H2402, left.Type()))
 			}
 			cur, err := readCount.Index(idx)
 			if err != nil {
@@ -75,7 +75,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		}
 		return lineSuffix(line, container.SetIndex(idx, finalVal))
 	}
-	return fmt.Errorf("Satır %d: Bu tipe indeks ile atama yapılamaz (%s)", line, left.Type())
+	return messages.At(line, 0, messages.New(messages.H2403, left.Type()))
 }
 
 // setMember nesne.alan = değer atamasını yapar; u adın derleme anında çözülmüş kodudur.
@@ -87,9 +87,9 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 		cur, field := inst.Fields[prop]
 		if !field {
 			if _, meth := inst.Def.Methods[prop]; meth {
-				return fmt.Errorf("Satır %d: '%s' %s yapısının bir metodu; metoda değer atanamaz", line, prop, inst.Def.Name)
+				return messages.At(line, 0, messages.New(messages.H2404, prop, inst.Def.Name))
 			}
-			return fmt.Errorf("Satır %d: %s yapısında '%s' alanı yok; yapı tanımına '%s' alanını ekleyin", line, inst.Def.Name, prop, prop)
+			return messages.At(line, 0, messages.New(messages.H2405, inst.Def.Name, prop))
 		}
 		if cur == nil {
 			cur = NULL
@@ -104,7 +104,7 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 		// d.ad = ..., d["ad"] = ... ile aynıdır; ancak sözlük üyelerinin adları (d.anahtarlar,
 		// d.uzunluk) okumada üyeyi verdiği için atamada da anahtar sayılmaz (3.7).
 		if isDictMember(prop) {
-			return fmt.Errorf("Satır %d: '%s' sözlüğün bir üyesi; anahtar için d[%q] yazın", line, prop, prop)
+			return messages.At(line, 0, messages.New(messages.H2406, prop))
 		}
 		cur := inst.Pairs[prop]
 		if cur == nil {
@@ -130,5 +130,5 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 		}
 		return lineSuffix(line, inst.SetMember(u.codeVal, prop, finalVal))
 	}
-	return fmt.Errorf("Satır %d: %s tipinin %q alanına atama yapılamaz", line, obj.Type(), prop)
+	return messages.At(line, 0, messages.New(messages.H2407, obj.Type(), prop))
 }

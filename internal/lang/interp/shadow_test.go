@@ -4,19 +4,25 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Gölgelenmiş bir yerleşik çağrılırsa hata, değerin bir fonksiyon olmadığını ve yerleşiğin
 // hangi satırdaki tanımla gölgelendiğini söyler.
 func TestShadowedBuiltinCall(t *testing.T) {
-	for _, c := range []struct{ codeVal, want string }{
-		{"değişken tip = 5\ntip([1, 2])", "Satır 2: 'tip' bir fonksiyon değil (Tam); 1. satırda bir değişkene verildi, yerleşik 'tip' bu kapsamda gölgelendi"},
-		{"fonksiyon f(toplam) {\n    sonuç toplam([1])\n}\nf(\"a\")", "Satır 2: 'toplam' bir fonksiyon değil (Metin); 1. satırda bir parametreye verildi, yerleşik 'toplam' bu kapsamda gölgelendi"},
-		{"döngü metin içinde [1] {\n    metin(1)\n}", "'metin' bir fonksiyon değil (Tam); 1. satırda bir döngü değişkenine verildi"},
+	for _, c := range []struct {
+		codeVal string
+		line    int
+		what    string // gölgeleyen tanımın türü (iletinin parçası)
+	}{
+		{"değişken tip = 5\ntip([1, 2])", 2, "bir değişkene"},
+		{"fonksiyon f(toplam) {\n    sonuç toplam([1])\n}\nf(\"a\")", 2, "bir parametreye"},
+		{"döngü metin içinde [1] {\n    metin(1)\n}", 2, "bir döngü değişkenine"},
 	} {
 		_, _, err := runTRWithin(t, 5*time.Second, c.codeVal)
-		if err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu, alınan: %v", c.codeVal, c.want, err)
+		if !codeAt(err, messages.H2449, c.line) || !strings.Contains(err.Error(), c.what) {
+			t.Errorf("%s: %s (satır %d, %q) bekleniyordu, alınan: %v", c.codeVal, messages.H2449, c.line, c.what, err)
 		}
 	}
 	// Gölgelemeyen kapsamda yerleşik çalışır; fonksiyonla gölgelemek de çalışır.

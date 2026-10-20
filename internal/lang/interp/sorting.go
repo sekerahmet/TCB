@@ -2,9 +2,10 @@ package interp
 
 import (
 	"cmp"
-	"fmt"
 	"math"
 	"slices"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // sortValues değerleri sırala() kuralıyla kararlı (eşitlerin sırası korunarak) sıralar.
@@ -87,7 +88,7 @@ func isNaN(v Value) bool {
 // (b nil) ya da iki elemanın tipleri birbiriyle karşılaştırılamıyorsa.
 func sortTypeError(name string, a, b Value) error {
 	if b == nil {
-		return fmt.Errorf("%s: %s sıralanamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır", name, TypeAndSummary(a))
+		return messages.New(messages.H2492, name, TypeAndSummary(a))
 	}
-	return fmt.Errorf("%s: %s ile %s karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır", name, TypeAndSummary(a), TypeAndSummary(b))
+	return messages.New(messages.H2493, name, TypeAndSummary(a), TypeAndSummary(b))
 }

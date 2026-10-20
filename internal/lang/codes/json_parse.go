@@ -49,7 +49,7 @@ func (c *jsonParser) errorf(form string, a ...any) error {
 			col++
 		}
 	}
-	return fmt.Errorf("satır %d, sütun %d: %s", line, col, fmt.Sprintf(form, a...))
+	return internalf("line %d, column %d: %s", line, col, fmt.Sprintf(form, a...))
 }
 
 func (c *jsonParser) skipSpace() {
@@ -67,7 +67,7 @@ func (c *jsonParser) skipSpace() {
 func (c *jsonParser) expect(b byte) error {
 	c.skipSpace()
 	if c.i >= len(c.data) || c.data[c.i] != b {
-		return c.errorf("'%c' bekleniyordu", b)
+		return c.errorf("'%c' expected", b)
 	}
 	c.i++
 	return nil
@@ -96,25 +96,25 @@ func (c *jsonParser) str() (string, error) {
 			c.i++
 			if !escaped {
 				if !utf8.Valid(raw) {
-					return "", c.errorf("metin geçerli UTF-8 değil")
+					return "", c.errorf("string is not valid UTF-8")
 				}
 				return string(raw), nil
 			}
 			s, err := strconv.Unquote(`"` + string(raw) + `"`)
 			if err != nil {
-				return "", c.errorf("metindeki kaçış dizisi geçersiz")
+				return "", c.errorf("invalid escape sequence in string")
 			}
 			return s, nil
 		case b == '\\':
 			escaped = true
 			c.i += 2
 		case b < 0x20:
-			return "", c.errorf("metin içinde denetim karakteri")
+			return "", c.errorf("control character in string")
 		default:
 			c.i++
 		}
 	}
-	return "", c.errorf("metin kapanmadı")
+	return "", c.errorf("unterminated string")
 }
 
 func (c *jsonParser) strList() ([]string, error) {
@@ -139,7 +139,7 @@ func (c *jsonParser) strList() ([]string, error) {
 			c.i++
 			return out, nil
 		default:
-			return nil, c.errorf("',' ya da ']' bekleniyordu")
+			return nil, c.errorf("',' or ']' expected")
 		}
 	}
 }
@@ -161,7 +161,7 @@ func (c *jsonParser) entry(g *rawEntry) error {
 			return err
 		}
 		if slices.Contains(seen, field) {
-			return c.errorf("%s girdisinde %q alanı iki kez var", g.key, field)
+			return c.errorf("%s entry has field %q twice", g.key, field)
 		}
 		seen = append(seen, field)
 		if err := c.expect(':'); err != nil {
@@ -181,7 +181,7 @@ func (c *jsonParser) entry(g *rawEntry) error {
 		case "örnek":
 			g.example, err = c.str()
 		default:
-			return c.errorf("%s girdisinde bilinmeyen alan %q (geçerli alanlar: ad, eski, yabancı, aile, açıklama, örnek)", g.key, field)
+			return c.errorf("%s entry has unknown field %q (valid fields: ad, eski, yabancı, aile, açıklama, örnek)", g.key, field)
 		}
 		if err != nil {
 			return err
@@ -193,7 +193,7 @@ func (c *jsonParser) entry(g *rawEntry) error {
 			c.i++
 			return nil
 		default:
-			return c.errorf("',' ya da '}' bekleniyordu")
+			return c.errorf("',' or '}' expected")
 		}
 	}
 }
@@ -234,11 +234,11 @@ func parseFile(data []byte) ([]rawEntry, error) {
 				c.i++
 				break
 			}
-			return nil, c.errorf("',' ya da '}' bekleniyordu")
+			return nil, c.errorf("',' or '}' expected")
 		}
 	}
 	if c.next() != 0 {
-		return nil, c.errorf("kapanan '}' sonrasında fazladan içerik var")
+		return nil, c.errorf("extra content after the closing '}'")
 	}
 	return out, nil
 }

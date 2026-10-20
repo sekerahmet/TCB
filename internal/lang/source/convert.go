@@ -1,7 +1,6 @@
 package source
 
 import (
-	"errors"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -10,6 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -32,11 +32,11 @@ func (e *SyntaxError) Error() string {
 }
 
 // ErrUTF8 is returned when the body to convert is not valid UTF-8.
-var ErrUTF8 = errors.New("dosya geçerli bir UTF-8 metni değil (2.1); bozuk baytlar çeviride korunamaz, dosyaya dokunulmadı: dosyayı UTF-8 olarak kaydedin")
+var ErrUTF8 error = messages.New(messages.H2510)
 
 // ErrLossy is returned when the converted result would not mean the same as the original
 // program. It is a converter bug; the file must not be written.
-var ErrLossy = errors.New("çeviri kayıpsız olmadı (programın anlamı ya da metni değişecekti), dosyaya dokunulmadı; lütfen bu dosyayı bir hata kaydıyla bildirin")
+var ErrLossy error = messages.New(messages.H2511)
 
 // Encode converts source written in Turkish (the whole file) to coded form. Source that is
 // already coded is returned as is. The '$' of '$name' escapes is dropped (2.11). The result is

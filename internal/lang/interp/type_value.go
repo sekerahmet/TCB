@@ -1,11 +1,11 @@
 package interp
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Tip değerleri (3.11): tip(x) değerin tipini bir tip değeri olarak verir; tip adları (Tam,
@@ -131,7 +131,7 @@ func typeTextError(op string, a, b Value) error {
 			return nil
 		}
 	}
-	return errors.New(hint.TypeTextComparison(op, m.Val, t.Inspect()))
+	return messages.New(messages.H2441, hint.TypeTextComparison(op, m.Val, t.Inspect()))
 }
 
 // Compile-time check: the interpreter finds Equaler by type assertion, so a renamed or changed

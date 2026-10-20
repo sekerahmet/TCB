@@ -44,4 +44,6 @@ eklenir. Önce ortak yardımcılar geçirildi (tamam): dosya hataları (`turkish
 kod olarak alır: `messages.H2100` "okunamadı"; nedenler kodludur, `turkish.NewReason`), argüman
 sayısı, satır öneki (`interp.LineError`, `H2001`), adlı argüman ve üye hataları (`bind`). Sonra:
 `formats` (tamam) → standart kitaplığın geri kalanı → `lang` → `devtools` → `compute`. Satır önekine
-metinden bakan yedek denetim (`interp.hasLine`, `turkish.CodeFrame`) `lang` geçişiyle kalkar.
+metinden bakan denetim (`interp.hasLine`, test koşucusunun `located`ı) kalktı: konum yalnızca yapıdan
+(`messages.Pos`) okunur. `turkish.CodeFrame`'in metin yedeği, ayrıştırıcı ve denetleyici hataları (`H0`, `H1`)
+yapıya geçene kadar kalır.

@@ -1,8 +1,9 @@
 package interp
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Betiğe komut satırında verilen argümanlar ('tr betik.tr --adım 5 veri' → ["--adım", "5",
@@ -41,6 +42,5 @@ func (v *VM) UnusedArgsWarning() string {
 	if len(v.arguments) == 0 || v.argsRead.Load() {
 		return ""
 	}
-	return fmt.Sprintf("⚠️ Uyarı: programa verilen %d argüman kullanılmadı (%s); program komut satırı argümanlarını okumuyor",
-		len(v.arguments), v.Mask(strings.Join(v.arguments, " ")))
+	return messages.Text(messages.H2490, len(v.arguments), v.Mask(strings.Join(v.arguments, " ")))
 }

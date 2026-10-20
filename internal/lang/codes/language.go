@@ -2,7 +2,6 @@ package codes
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -104,7 +103,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 
 	raw, err := parseFile(data)
 	if err != nil {
-		return nil, fmt.Errorf("kod listesi %s: dosya okunamadı (bir JSON nesnesi { \"G100\": { \"ad\": ... }, ... } olmalı): %v", langCode, err)
+		return nil, internalf("language list %s: the file could not be read (it must be a JSON object { \"G100\": { \"ad\": ... }, ... }): %v", langCode, err)
 	}
 
 	d := &Language{Code: langCode, entries: make(map[Code]*Entry, len(raw)), spellings: make(map[Code][]string, len(raw))}
@@ -117,25 +116,25 @@ func Load(langCode string, data []byte) (*Language, error) {
 			continue
 		}
 		if _, var_ := d.entries[k]; var_ {
-			errorf("%s iki kez tanımlı", k)
+			errorf("%s is defined twice", k)
 			continue
 		}
 		if k.Namespace() == NamespaceNone {
-			errorf("%s: %c ailesi henüz kullanılmıyor", k, k.Letter())
+			errorf("%s: family %c is not used yet", k, k.Letter())
 			continue
 		}
 		if g.name == "" || strings.IndexFunc(g.name, unicode.IsSpace) >= 0 {
-			errorf("%s: ad boş olamaz ve boşluk içeremez (%q)", k, g.name)
+			errorf("%s: the name must not be empty or contain spaces (%q)", k, g.name)
 			continue
 		}
 		gr := &Entry{Code: k, Name: g.name, Old: g.old, Foreign: g.foreign, Family: g.family,
 			Description: g.description, Example: g.example, MovedTo: movedMap[k], Removed: removedSet[k]}
 		for _, e := range append(append([]string(nil), g.old...), g.foreign...) {
 			if e == "" || strings.IndexFunc(e, unicode.IsSpace) >= 0 {
-				errorf("%s: eski ya da yabancı ad boş olamaz ve boşluk içeremez (%q)", k, e)
+				errorf("%s: an old or foreign name must not be empty or contain spaces (%q)", k, e)
 			}
 			if e == g.name || asciiForm(e) == asciiForm(g.name) {
-				errorf("%s: eski ya da yabancı ad %q adın kendisi (ya da ASCII biçimi) olamaz", k, e)
+				errorf("%s: the old or foreign name %q must not be the name itself (or its ASCII form)", k, e)
 			}
 		}
 		d.entries[k] = gr
@@ -147,7 +146,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 		if IsCodeForm(g.name) {
 			// Kod biçimli adlar ayrılmıştır (2.3a); yalnızca adı yeniden kullanılmış ölü bir kodun
 			// ipucusuz adı olabilir (bkz. docs/spec/17_kodlar.md, Ölü kodlar).
-			errorf("%s: ad %q kod biçiminde (büyük harf ve üç rakam); bu biçim ayrılmıştır", k, g.name)
+			errorf("%s: the name %q has the code form (a capital letter and three digits); this form is reserved", k, g.name)
 			continue
 		}
 		d.codeList = append(d.codeList, k)
@@ -182,7 +181,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 		name := g.Name
 		ascii := asciiForm(name)
 		if o, ok := owners[ns][ascii]; ok {
-			errorf("%s %q ile %s %q aynı ad alanında (%s) çakışıyor (ASCII biçimleri: %q)", o.code, o.name, k, name, ns, ascii)
+			errorf("%s %q and %s %q clash in the same namespace (%s) (ASCII forms: %q)", o.code, o.name, k, name, ns, ascii)
 			continue
 		}
 		owners[ns][ascii] = owner{k, name}
@@ -208,12 +207,12 @@ func Load(langCode string, data []byte) (*Language, error) {
 			}
 			for i, name := range spellings {
 				if o, ok := owners[ns][asciiForm(name)]; ok && (name == o.name || name == asciiForm(o.name)) {
-					errorf("%s'in eski adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", k, name, o.code, o.name)
+					errorf("the old name %q of %s clashes with %s %q (or its ASCII form)", name, k, o.code, o.name)
 					continue
 				}
 				for _, o := range d.oldNames[ns][name] {
 					if o.code != k {
-						errorf("eski ad %q hem %s hem %s için kayıtlı; ipucu belirsiz olur", name, o.code, k)
+						errorf("the old name %q is registered for both %s and %s; the hint would be ambiguous", name, o.code, k)
 					}
 				}
 				d.oldNames[ns][name] = append(d.oldNames[ns][name], oldMatch{code: k, ascii: i == 1})
@@ -235,7 +234,7 @@ func Load(langCode string, data []byte) (*Language, error) {
 			kind = "taşınmış"
 		}
 		if h, ok := d.entries[g.MovedTo]; g.MovedTo != None && (!ok || h.Dead()) {
-			errorf("%s %s'e taşındı, ama %s dil dosyasında canlı bir kod değil", k, g.MovedTo, g.MovedTo)
+			errorf("%s moved to %s, but %s is not a live code in the language file", k, g.MovedTo, g.MovedTo)
 		}
 		names := []string{}
 		for _, name := range append([]string{g.Name}, g.Old...) {
@@ -246,22 +245,22 @@ func Load(langCode string, data []byte) (*Language, error) {
 		}
 		for _, name := range names {
 			if o, ok := owners[ns][asciiForm(name)]; ok && (name == o.name || name == asciiForm(o.name)) {
-				errorf("%s %s'in adı %q, %s %q adıyla (ya da ASCII biçimiyle) çakışıyor", kind, k, name, o.code, o.name)
+				errorf("the name %q of %s %s clashes with %s %q (or its ASCII form)", name, kind, k, o.code, o.name)
 				continue
 			}
 			if e := d.oldNames[ns][name]; len(e) > 0 {
-				errorf("%s %s'in adı %q, %s'in eski adıyla çakışıyor; ipucu belirsiz olur", kind, k, name, e[0].code)
+				errorf("the name %q of %s %s clashes with the old name of %s; the hint would be ambiguous", name, kind, k, e[0].code)
 				continue
 			}
 			if o, ok := d.deadNames[ns][name]; ok && o != k {
-				errorf("%q hem %s hem %s kodlarının (taşınmış ya da kaldırılmış) adı; ipucu belirsiz olur", name, o, k)
+				errorf("%q is the (moved or removed) name of both %s and %s; the hint would be ambiguous", name, o, k)
 				continue
 			}
 			d.deadNames[ns][name] = k
 		}
 	}
 	if len(errs) > 0 {
-		return nil, errors.New("kod listesi " + langCode + ":\n  " + strings.Join(errs, "\n  "))
+		return nil, internalf("code list %s:\n  %s", langCode, strings.Join(errs, "\n  "))
 	}
 	return d, nil
 }
@@ -411,7 +410,7 @@ var active = func() *Language {
 	}
 	d, err := buildLanguage(langCode)
 	if err != nil {
-		activeErr = fmt.Errorf("%s=%s: %v", LanguageEnvVar, langCode, err)
+		activeErr = messages.New(messages.H2509, LanguageEnvVar, langCode, err)
 		if d, err = buildLanguage("tr"); err != nil {
 			panic(fmt.Sprintf("codes: gömülü Türkçe kod listesi kurulamadı: %v", err))
 		}
@@ -438,7 +437,7 @@ func LoadLanguage(langCode string) (*Language, error) {
 func buildLanguage(langCode string) (*Language, error) {
 	data, ok := languages[langCode]
 	if !ok {
-		return nil, fmt.Errorf("'%s' yazım dili yok; var olanlar: %s", langCode, strings.Join(Languages(), ", "))
+		return nil, messages.New(messages.H2508, langCode, strings.Join(Languages(), ", "))
 	}
 	return Load(langCode, data)
 }
