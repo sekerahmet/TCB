@@ -35,3 +35,6 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_file_paths_test.go`: tensör dosya işlemlerinde yol çözümü ve Türkçe hata iletileri
 - `behavior_scalar_tensor_test.go`: 0 boyutlu tensörün sıradan tensör gibi işlemlere ve türeve girmesi
 - `behavior_tensor_test.go`: tensör işlemlerinin uçtan uca davranışı: ileri/geri işlemler, yazdırma, türev, doğrusal bağlanım ve İzleme Masası
+- `behavior_grad_composite_specs_test.go`: bileşik gradyan kayıtları (kayıt başına girdi şekli, float64 başvuru, bf16 tolerans)
+- `behavior_grad_composite_test.go`: bileşik türevlerin gradyan kapısı (yerleşiğin karışık hassasiyet dönüşümü + tensör işlemi zinciri): float64 sonlu fark ve bf16 tolerans (ölçmek için `TR_MEASURE_BF16=1 go test ./internal/stdlib/ml -run TestMeasureCompositeBF16 -v`)
+- `behavior_grad_composite_coverage_test.go`: türevli tensör işlemlerinden ikisini ya da fazlasını birleştiren her fonksiyonun bileşik gradyan kaydı vardır; testsiz yeni bileşik testi düşürür (istisnalar gerekçeleriyle dosyada)
