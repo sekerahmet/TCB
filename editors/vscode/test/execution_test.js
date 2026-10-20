@@ -101,6 +101,34 @@ test('yazım dili ayarı çalıştırma, terminal ve hata ayıklama süreçlerin
     }
 });
 
+test('güvenilmeyen çalışma alanında "Hata Ayıkla" komutu ve görev sağlayıcısı yorumlayıcıyı çalıştırmaz', async () => {
+    const o = setup({ setting: INTERPRETER, folder: FOLDER, trusted: false, activeFile: FILE });
+    await o.commands['tr.hataAyiklaBaslat']();
+    assert.strictEqual(o.log.debugSessions.length, 0);
+    assert.strictEqual(o.log.warnings.length, 1);
+    const task = o.taskProvider.resolveTask({ definition: { type: 'tr', komut: 'tr.calistir', dosya: FILE }, name: 'TR' });
+    assert.strictEqual(task, undefined);
+});
+
+test('güvenilen çalışma alanında görev sağlayıcısı çözer', async () => {
+    const o = setup({ setting: INTERPRETER, folder: FOLDER });
+    const task = o.taskProvider.resolveTask({ definition: { type: 'tr', komut: 'tr.calistir', dosya: FILE }, name: 'TR' });
+    assert.ok(task && task.execution.process === INTERPRETER);
+});
+
+test('"Hata Ayıkla" komutu kaydedilemeyen dosyada oturum başlatmaz', async () => {
+    const o = setup({ setting: INTERPRETER, folder: FOLDER, activeFile: FILE });
+    const document = o.vscode.window.activeTextEditor.document;
+    document.isDirty = true;
+    document.save = async () => false;
+    await o.commands['tr.hataAyiklaBaslat']();
+    assert.strictEqual(o.log.debugSessions.length, 0);
+    assert.strictEqual(o.log.errors.length, 1);
+    document.save = async () => true;
+    await o.commands['tr.hataAyiklaBaslat']();
+    assert.strictEqual(o.log.debugSessions.length, 1);
+});
+
 test('yanlış "args" Türkçe bir mesajla durdurulur', async () => {
     const { log, provider } = setup({ setting: INTERPRETER, folder: FOLDER });
     const y = { type: 'tr', request: 'launch', name: 'TR', program: FILE, args: '--adım 5' };

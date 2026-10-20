@@ -321,7 +321,7 @@ function setup(s) {
         }),
         tasks: {
             executeTask: async (task) => { log.tasks.push(task); },
-            registerTaskProvider: () => ({ dispose() {} })
+            registerTaskProvider: (type, p) => { registries.providers.taskProvider = p; return { dispose() {} }; }
         },
         commands: {
             registerCommand: (name, fn) => { registries.commands[name] = fn; return { dispose() {} }; },
@@ -357,7 +357,7 @@ function setup(s) {
     extension.activate(context);
     return {
         vscode, log, state, events,
-        provider: registries.providers.configProvider, adapterFactory: registries.providers.adapterFactory,
+        provider: registries.providers.configProvider, taskProvider: registries.providers.taskProvider, adapterFactory: registries.providers.adapterFactory,
         commands: registries.commands, filesystems: registries.filesystems
     };
 }

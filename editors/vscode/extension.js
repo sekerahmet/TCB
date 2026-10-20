@@ -179,6 +179,10 @@ const taskProvider = {
         return [];
     },
     resolveTask(task) {
+        // Görev yorumlayıcıyı çalıştırır: güvenilmeyen çalışma alanında çözülmez (run() ile aynı kural).
+        if (!vscode.workspace.isTrusted) {
+            return undefined;
+        }
         const d = task.definition || {};
         const def = Object.values(COMMANDS).find((t) => t.id === d.komut);
         if (!def) {
@@ -287,8 +291,13 @@ async function startDebugSession(uri) {
         vscode.window.showErrorMessage('Hata ayıklamak için bir .tr dosyası açın.');
         return;
     }
-    if (document.isDirty) {
-        await document.save();
+    if (!vscode.workspace.isTrusted) {
+        vscode.window.showWarningMessage('TR dosyalarında hata ayıklamak için bu çalışma alanına güvenmeniz gerekir (Çalışma Alanı Güveni).');
+        return;
+    }
+    if (document.isDirty && !(await document.save())) {
+        vscode.window.showErrorMessage('Dosya kaydedilemedi; hata ayıklama iptal edildi.');
+        return;
     }
     await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(localUri(document.uri) || document.uri), debugConfigurationFor(document));
 }
