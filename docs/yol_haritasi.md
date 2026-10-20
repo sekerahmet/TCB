@@ -40,11 +40,14 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
    - Kalan küçükler: ad öbeği olarak değer geçen parametresiz kodlar (ör. "İsimsiz fonksiyon", "bakılan yer") çeviride ad öbeği olarak kalır; Evre 7'de cümle içinde doğal durmayanı tek şablona çevrilir.
 3. **Gradyan doğruluğu kapısı (tamamlandı).** Her türevli tensör işleminin float64 sonlu fark testi ve bf16 tolerans testi var (`gradSpec`); `behavior_grad_coverage_test.go` testi olmayan işlemi yakalar; GPU'da her türevli işlemin gradyanı CPU ile karşılaştırılır (gerçek kartta doğrulandı). Bulunan tek yanlış: `üstel_eksi_bir`'in türevi çok negatif girdide 0 çıkıyordu, düzeltildi. Kalan: `stdlib/ml`'deki bileşik türevler kapsam testine girmedi; bf16 toleransları (3e-2, 6e-2) ölçülerek sıkılaştırılabilir.
 4. **Anlam kuralları yazılı ve testli (tamamlandı).** Yayınlama, tür yükseltme, tensör indeksi ve dilimi, `.dilim`, liste ve metin indeksi, sayı olmayan işlenen ve NaN kuralları dil tanımının 15.41 maddesinde tek tabloda; her biri PyTorch/NumPy ile karşılaştırıldı ve `tests/tensor_test.tr`'de testli. Tek davranış değişikliği: liste ve metinde sınır dışı okuma artık hatadır, bilinçli durum için `varsa_al` (3.6).
-5. **Açık işler ve bekleyen dil kararları.**
-   - Tamamlandı: `csv_çöz(metin)`; `csv_oku` yalnızca dosya okur (13.8). Ortam değişkeni adları ASCII (`TR_IS_KLASORU`).
-   - Dil çekirdeği incelemesinden kalan konular: kullanıcı metnindeki terminal kaçış dizileri, `VAL_INT` gibi adlar.
-   - Testler: eşzamanlı görevdeki başarısız doğrulamanın testi kaldırması; testlerin üst düzey ortamı paylaşması.
-   - Yeni satır başındaki `-x` ifadesinin önceki satıra ikili eksi olarak bağlanması.
+5. **Açık işler ve bekleyen dil kararları.** Her karar başka dillerle karşılaştırılarak verildi; gerekçeleri dil tanımında.
+   - Tamamlandı:
+     - `csv_çöz(metin)`; `csv_oku` yalnızca dosya okur (13.8). Ortam değişkeni adları ASCII (`TR_IS_KLASORU`).
+     - Liste ve metinde sınır dışı okuma hatadır, `varsa_al` açık yoldur (3.6).
+     - Yeni satırın başındaki ikili işleç önceki ifadeyi sürdürmez; `-x` tuzağı kalktı, zincir işleçleri (`.`, `|>`) sürer (2.8).
+     - Testin başlattığı görevdeki hata testi kaldırır (10.1); testler dosyanın üst düzeyini paylaşmaya devam eder (Go ve pytest gibi, bilinçli).
+     - Hata ve uyarı çıktısında denetim karakterleri görünür yazılır (8.4).
+   - Kalan: `VAL_INT`, `TOKEN_EQ` gibi Go adları Go biçimine (`ValInt`, `TokenEq`); mekanik, toplu yeniden adlandırma.
 6. **Test düzeni (tamamlandı).** Test dosyası adlandırma kuralı (`x_test.go` yalnızca `x.go`'yu sınar; süreçleri sınayan testler `behavior_` önekli dosyalarda) ve her paket README'sinde bir "Testler" bölümü; ikisi de testle denetlenir.
 7. **Kalan adlar.**
    - `cmd/tr` dosya ve Go adları ile `tools` betik adları İngilizceye geçer.
