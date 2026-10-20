@@ -264,17 +264,17 @@ func dataError(fn, path string, err error, extras ...string) error {
 		return messages.New(messages.H5516, fn)
 	case errors.Is(err, dataload.ErrCacheLocked):
 		return messages.New(messages.H2000, fn, clean(strings.TrimPrefix(err.Error(), dataload.ErrCacheLocked.Error()+": ")))
-	case bind.IsNotExist(err) && strings.Contains(err.Error(), "küme açılamadı"):
-		return turkish.FileError(fn, path, messages.H2103, err,
+	case bind.IsNotExist(err) && messages.Has(err, messages.H5019):
+		return turkish.FileError(fn, path, messages.H2103, bind.FileCause(err),
 			append([]string{messages.Text(messages.H5517)}, extras...)...)
 	}
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
-		return turkish.FileError(fn, filepath.ToSlash(pe.Path), messages.H2100, err)
+		return turkish.FileError(fn, filepath.ToSlash(pe.Path), messages.H2100, pe)
 	}
 	msg := clean(err.Error())
-	if strings.Contains(msg, "desenine uyan veri dosyası yok") {
+	if messages.Has(err, messages.H5023) {
 		return messages.New(messages.H5518, fn, path)
 	}
 	return messages.New(messages.H2000, fn, msg)
@@ -458,7 +458,7 @@ func (k *Dataset) sequentialTR(m *interp.VM, args []interp.Value, named map[stri
 }
 
 func readerError(fn string, k *Dataset, t int, err error) error {
-	if strings.Contains(err.Error(), "parçadan uzun değil") {
+	if messages.Has(err, messages.H5076) {
 		var longest int64
 		for _, p := range k.k.Shards() {
 			longest = max(longest, p.Token)

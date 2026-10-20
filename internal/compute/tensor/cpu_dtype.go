@@ -3,6 +3,8 @@ package tensor
 import (
 	"fmt"
 	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -37,7 +39,7 @@ func (s *cpuStorage) Len() int {
 func cpuStore(s Storage) *cpuStorage {
 	c, ok := s.(*cpuStorage)
 	if !ok {
-		panic(fmt.Sprintf("tensor: CPU arka ucuna %s cihazından depolama verildi", s.Device()))
+		panic(messages.Internal(fmt.Sprintf("CPU backend was given storage from device %s", s.Device())))
 	}
 	return c
 }
@@ -49,7 +51,7 @@ func cd(s Storage) []float32 {
 	}
 	c := cpuStore(s)
 	if c.dtyp != Float32 {
-		panic(fmt.Sprintf("tensor: CPU çekirdeği float32 depolama bekliyordu, %s verildi (iç hata)", c.dtyp))
+		panic(messages.Internal(fmt.Sprintf("CPU kernel expected float32 storage, got %s", c.dtyp)))
 	}
 	return c.d
 }

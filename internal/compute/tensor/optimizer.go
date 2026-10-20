@@ -3,6 +3,8 @@ package tensor
 import (
 	"fmt"
 	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // İyileştiriciler (cihazdan bağımsız katman). Durum tamponları (momentum,
@@ -18,10 +20,10 @@ type Optimizer interface {
 func checkParams(params []*Tensor) {
 	for _, p := range params {
 		if !p.requiresGrad {
-			panic("tensor: iyileştirici parametreleri gradyan istemeli (SetRequiresGrad(true))")
+			panic(messages.New(messages.H3054))
 		}
 		if !p.IsContiguous() || p.offset != 0 || p.storage.Len() != p.Numel() {
-			panic(fmt.Sprintf("tensor: iyileştirici parametresi kendi depolamasına sahip bitişik bir tensör olmalı (şekil %v)", p.shape))
+			panic(messages.New(messages.H3055, p.shape))
 		}
 	}
 }
@@ -419,12 +421,12 @@ func counterTensor(n int) *Tensor {
 // düzeltmesini sıfıra böldürüp ağırlıkları NaN yapardı.
 func readCounter(ad string, t *Tensor) int {
 	if t == nil || !sameShape(t.shape, []int{2}) {
-		panic(fmt.Sprintf("tensor: iyileştirici durumu uyumsuz: %q adım sayacı [2] şeklinde olmalı", ad))
+		panic(messages.New(messages.H3056, ad))
 	}
 	d := t.Data()
 	for _, x := range d {
 		if !(x >= 0 && x < 1<<24) || x != float32(math.Trunc(float64(x))) {
-			panic(fmt.Sprintf("tensor: iyileştirici durumu bozuk: %q adım sayacı geçersiz (%v); kayıt bozuk ya da başka bir iyileştiriciye ait", ad, d))
+			panic(messages.New(messages.H3057, ad, d))
 		}
 	}
 	return int(d[0])<<24 | int(d[1])
@@ -454,7 +456,7 @@ func loadState(st map[string]*Tensor, ad string, p *Tensor) Storage {
 		return nil
 	}
 	if !sameShape(t.shape, p.shape) {
-		panic(fmt.Sprintf("tensor: iyileştirici durumu uyumsuz: %q şekli %v, parametre şekli %v", ad, t.shape, p.shape))
+		panic(messages.New(messages.H3058, ad, t.shape, p.shape))
 	}
 	sameDevice("LoadState", p, t)
 	c := p.be.Alloc(p.Numel(), Float32)
@@ -474,13 +476,13 @@ func checkStateKeys(st map[string]*Tensor, n int, prefixes ...string) {
 			var k int
 			if c, err := fmt.Sscanf(ad, on+".%d", &k); err == nil && c == 1 && fmt.Sprintf("%s.%d", on, k) == ad {
 				if k < 0 || k >= n {
-					panic(fmt.Sprintf("tensor: iyileştirici durumu uyumsuz: %q anahtarı %d parametreli iyileştiriciye uymuyor", ad, n))
+					panic(messages.New(messages.H3059, ad, n))
 				}
 				valid = true
 			}
 		}
 		if !valid {
-			panic(fmt.Sprintf("tensor: iyileştirici durumu uyumsuz: bilinmeyen anahtar %q", ad))
+			panic(messages.New(messages.H3060, ad))
 		}
 	}
 }
@@ -541,7 +543,7 @@ func (o *AdamW) LoadState(st map[string]*Tensor) {
 		o.m[k] = loadState(st, fmt.Sprintf("m.%d", k), p)
 		o.v[k] = loadState(st, fmt.Sprintf("v.%d", k), p)
 		if (o.m[k] == nil) != (o.v[k] == nil) {
-			panic(fmt.Sprintf("tensor: iyileştirici durumu uyumsuz: %d. parametrenin m ve v momentlerinden biri eksik", k))
+			panic(messages.New(messages.H3061, k))
 		}
 		o.steps[k] = 0
 		if t, ok := st[fmt.Sprintf("adim.%d", k)]; ok {
@@ -550,7 +552,7 @@ func (o *AdamW) LoadState(st map[string]*Tensor) {
 		// Momentler sapma düzeltmesini adım sayısıyla birlikte anlamlıdır: momentli ama
 		// sayaçsız durum tutarsızdır (momentler ilk adımın momentleri sanılırdı).
 		if o.m[k] != nil && o.steps[k] == 0 {
-			panic(fmt.Sprintf("tensor: iyileştirici durumu bozuk: %d. parametrenin momentleri var ama adım sayacı (adim.%d) yok ya da 0", k, k))
+			panic(messages.New(messages.H3062, k))
 		}
 	}
 	o.master.loadFn(st, o.Params)

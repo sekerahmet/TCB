@@ -6,8 +6,9 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Eşlenmiş bir parça dışarıdan kısaltılırsa okuma SIGBUS ile süreci
@@ -41,7 +42,7 @@ func TestMmapTruncatedDoesNotCrash(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = p.Read(dst, 90_000)
-	if err == nil || !strings.Contains(err.Error(), "bellek hatası") {
+	if !messages.Has(err, messages.H5088) {
 		t.Fatalf("kısaltılmış eşlemede açık hata bekleniyordu: %v", err)
 	}
 }

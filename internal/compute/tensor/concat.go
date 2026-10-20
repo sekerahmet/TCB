@@ -1,8 +1,9 @@
 package tensor
 
 import (
-	"fmt"
 	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Concat tensörleri verilen eksen boyunca birleştirir (negatif eksen sondan
@@ -16,32 +17,31 @@ import (
 // uç çağrısı).
 func Concat(ts []*Tensor, axis int) *Tensor {
 	if len(ts) == 0 {
-		panic("tensor: Concat en az bir tensör ister")
+		panic(messages.New(messages.H3018))
 	}
 	be := sameDevice("concat", ts...)
 	sy := counterStart(be, OpKindConcat).start()
 	first := ts[0]
 	nd := len(first.shape)
 	if nd == 0 {
-		panic("tensor: Concat 0 boyutlu tensörleri birleştiremez")
+		panic(messages.New(messages.H3019))
 	}
 	axis = normAxis(axis, nd)
 	dt := first.dtyp
 	total := 0
 	for i, t := range ts {
 		if len(t.shape) != nd {
-			panic(fmt.Sprintf("tensor: Concat: %d. girdi %d boyutlu (%v), ilki %d boyutlu (%v)", i, len(t.shape), t.shape, nd, first.shape))
+			panic(messages.New(messages.H3020, i, len(t.shape), t.shape, nd, first.shape))
 		}
 		for d := 0; d < nd; d++ {
 			if d != axis && t.shape[d] != first.shape[d] {
-				panic(fmt.Sprintf("tensor: Concat: %d. girdinin şekli %v, ilkininki %v; %d. eksen dışındaki eksenler eşit olmalı", i, t.shape, first.shape, axis))
+				panic(messages.New(messages.H3021, i, t.shape, first.shape, axis))
 			}
 		}
 		if total > math.MaxInt-t.shape[axis] {
 			// Verisiz (sıfır eksenli) girdilerin dev eksenleri toplanırken taşma sessizce
 			// küçük bir şekle sarmasın.
-			panic(fmt.Sprintf("tensor: birleştirme: %d. eksenin toplam uzunluğu tam sayı sınırını aşıyor (%d. girdi %v); "+
-				"şekilleri denetleyin", axis, i, t.shape))
+			panic(messages.New(messages.H3022, axis, i, t.shape))
 		}
 		total += t.shape[axis]
 		dt = resultDType(dt, t.dtyp)
@@ -100,7 +100,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 func (t *Tensor) Split(n, axis int) []*Tensor {
 	axis = normAxis(axis, len(t.shape))
 	if n <= 0 || t.shape[axis]%n != 0 {
-		panic(fmt.Sprintf("tensor: Split: %d. eksen (%d) %d eşit parçaya bölünemez", axis, t.shape[axis], n))
+		panic(messages.New(messages.H3023, axis, t.shape[axis], n))
 	}
 	m := t.shape[axis] / n
 	out := make([]*Tensor, n)

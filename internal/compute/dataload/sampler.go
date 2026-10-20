@@ -8,6 +8,8 @@ import (
 	"math/rand/v2"
 	"sort"
 	"sync"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // State, bir örnekleyicinin konumudur; eğitimi kaldığı yerden sürdürmek
@@ -95,10 +97,10 @@ type groupShard struct {
 // Sampler, kümeden rastgele toplu iş üreten bir örnekleyici kurar.
 func (k *Dataset) Sampler(s SamplerOptions) (*Sampler, error) {
 	if s.B <= 0 || s.T <= 0 {
-		return nil, fmt.Errorf("veri: B ve T pozitif olmalı (B=%d, T=%d)", s.B, s.T)
+		return nil, messages.New(messages.H5074, s.B, s.T)
 	}
 	if s.GroupSize < 0 {
-		return nil, fmt.Errorf("veri: grup boyu negatif olamaz")
+		return nil, messages.New(messages.H5075)
 	}
 	if s.GroupSize == 0 {
 		s.GroupSize = DefaultGroupSize
@@ -115,7 +117,7 @@ func (k *Dataset) Sampler(s SamplerOptions) (*Sampler, error) {
 		}
 	}
 	if !fits {
-		return nil, fmt.Errorf("veri: hiçbir veri dosyası T+1=%d parçadan uzun değil", row)
+		return nil, messages.New(messages.H5076, row)
 	}
 	if err := k.checkCacheQuota(s.GroupSize+max(s.Lookahead, 0), row); err != nil {
 		return nil, err
@@ -124,7 +126,7 @@ func (k *Dataset) Sampler(s SamplerOptions) (*Sampler, error) {
 	o.groupN = (len(k.shards) + s.GroupSize - 1) / s.GroupSize
 	if b := s.Start; b != nil {
 		if b.Epoch < 0 || b.Pos < 0 || b.Pos >= o.groupN || b.Window < 0 {
-			return nil, fmt.Errorf("veri: geçersiz başlangıç durumu %+v (grup sayısı %d)", *b, o.groupN)
+			return nil, messages.New(messages.H5077, fmt.Sprintf("%+v", *b), o.groupN)
 		}
 		o.epoch, o.order, o.window = b.Epoch, b.Pos, b.Window
 	}

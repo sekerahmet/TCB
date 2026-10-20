@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -57,7 +59,7 @@ func newBPE(raw json.RawMessage) (Model, error) {
 		return nil, err
 	}
 	if m.Dropout != nil && *m.Dropout != 0 {
-		return nil, fmt.Errorf("dropout=%v desteklenmiyor (rastgele birleştirme kodlamayı belirsiz yapar)", *m.Dropout)
+		return nil, messages.New(messages.H5216, *m.Dropout)
 	}
 	vocab, err := convertVocab(m.Vocab)
 	if err != nil {
@@ -82,7 +84,7 @@ func newBPE(raw json.RawMessage) (Model, error) {
 	if m.UnkToken != nil {
 		id, ok := vocab[*m.UnkToken]
 		if !ok {
-			return nil, fmt.Errorf("bilinmeyen parça %q dağarcıkta yok", *m.UnkToken)
+			return nil, messages.New(messages.H5217, *m.UnkToken)
 		}
 		b.unknown = id
 	}
@@ -122,16 +124,16 @@ func newBPE(raw json.RawMessage) (Model, error) {
 	for i, r := range m.Merges {
 		x, y, err := parseMergePair(r)
 		if err != nil {
-			return nil, fmt.Errorf("%d. birleştirme: %w", i, err)
+			return nil, messages.New(messages.H5218, i, err)
 		}
 		ia, ok1 := vocab[x]
 		ib, ok2 := vocab[y]
 		if !ok1 || !ok2 || len(y) < len(b.prefix) {
-			return nil, fmt.Errorf("%d. birleştirme (%q, %q) dağarcıkta olmayan bir parça içeriyor", i, x, y)
+			return nil, messages.New(messages.H5219, i, x, y)
 		}
 		fresh, ok3 := vocab[x+y[len(b.prefix):]]
 		if !ok3 {
-			return nil, fmt.Errorf("%d. birleştirmenin sonucu %q dağarcıkta yok", i, x+y[len(b.prefix):])
+			return nil, messages.New(messages.H5220, i, x+y[len(b.prefix):])
 		}
 		// Aynı çift birden çok kez geçerse sonuncusu geçerlidir.
 		mergeList[pairKey(ia, ib)] = mergeRule{order: int32(i), fresh: fresh}
@@ -145,7 +147,7 @@ func convertVocab(v map[string]int64) (map[string]int32, error) {
 	s := make(map[string]int32, len(v))
 	for tok, id := range v {
 		if id < 0 || id > 1<<30 {
-			return nil, fmt.Errorf("dağarcıkta geçersiz kimlik: %q -> %d", tok, id)
+			return nil, messages.New(messages.H5221, tok, id)
 		}
 		s[tok] = int32(id)
 	}
@@ -161,11 +163,11 @@ func parseMergePair(r json.RawMessage) (string, string, error) {
 				return s[:i], s[i+1:], nil
 			}
 		}
-		return "", "", fmt.Errorf("birleştirme %q iki parçaya ayrılamadı", s)
+		return "", "", messages.New(messages.H5222, s)
 	}
 	var c []string
 	if err := json.Unmarshal(r, &c); err != nil || len(c) != 2 {
-		return "", "", fmt.Errorf("birleştirme girdisi çözümlenemedi: %s", string(r))
+		return "", "", messages.New(messages.H5223, string(r))
 	}
 	return c[0], c[1], nil
 }

@@ -1,9 +1,10 @@
 package tensor
 
 import (
-	"fmt"
 	"sort"
 	"sync"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -90,7 +91,7 @@ func findBackend(d Device) (Backend, bool) {
 func BackendFor(d Device) Backend {
 	b, ok := findBackend(d)
 	if !ok {
-		panic(fmt.Sprintf("tensor: %s cihazı için arka uç kayıtlı değil", d))
+		panic(messages.New(messages.H3033, d))
 	}
 	return b
 }

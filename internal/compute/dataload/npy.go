@@ -23,6 +23,8 @@ import (
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // DType, .npy dosyasındaki elemanların türüdür.
@@ -60,7 +62,7 @@ func (t DType) String() string {
 	case DTypeI32:
 		return "<i4"
 	}
-	return "geçersiz"
+	return messages.Text(messages.H5092)
 }
 
 func parseDType(descr string) (DType, error) {
@@ -73,9 +75,9 @@ func parseDType(descr string) (DType, error) {
 		return DTypeI32, nil
 	}
 	if len(descr) == 3 && descr[0] == '>' {
-		return DTypeInvalid, fmt.Errorf("büyük uçlu tür %q desteklenmiyor (yalnızca küçük uçlu '<u2', '<u4', '<i4')", descr)
+		return DTypeInvalid, messages.New(messages.H5028, descr)
 	}
-	return DTypeInvalid, fmt.Errorf("desteklenmeyen eleman türü %q (yalnızca '<u2', '<u4', '<i4')", descr)
+	return DTypeInvalid, messages.New(messages.H5029, descr)
 }
 
 // Header, çözümlenmiş bir .npy başlığıdır.
@@ -93,18 +95,22 @@ func (b Header) DataSize() int64 { return b.Length * int64(b.DType.Size()) }
 // FormatError, geçersiz ya da desteklenmeyen bir .npy başlığını bildirir.
 type FormatError struct {
 	Path   string // biliniyorsa dosya yolu
-	Reason string
+	Reason error  // ileti kodlu neden
 }
 
 func (h *FormatError) Error() string {
 	if h.Path != "" {
-		return fmt.Sprintf("veri: %s: geçersiz .npy dosyası: %s", h.Path, h.Reason)
+		return messages.Text(messages.H5090, h.Path, h.Reason)
 	}
-	return "veri: geçersiz .npy dosyası: " + h.Reason
+	return messages.Text(messages.H5091, h.Reason)
 }
 
-func formatError(format string, a ...any) error {
-	return &FormatError{Reason: fmt.Sprintf(format, a...)}
+// Unwrap nedeni verir; böylece nedenin ileti kodu hata zincirinde aranabilir.
+func (h *FormatError) Unwrap() error { return h.Reason }
+
+// formatError code iletisiyle bir .npy biçim hatası kurar.
+func formatError(code messages.Code, a ...any) error {
+	return &FormatError{Reason: messages.New(code, a...)}
 }
 
 const (
@@ -123,9 +129,9 @@ func ReadHeader(r io.ReaderAt) (Header, error) {
 	n, err := r.ReadAt(on[:], 0)
 	if n < minFileStart {
 		if err == nil || errors.Is(err, io.EOF) {
-			return Header{}, formatError("dosya çok kısa (%d bayt), .npy başlığı yok", n)
+			return Header{}, formatError(messages.H5051, n)
 		}
-		return Header{}, fmt.Errorf("veri: başlık okunamadı: %w", err)
+		return Header{}, messages.New(messages.H5030, err)
 	}
 	base := on[6]
 	var bl, prefix int
@@ -134,18 +140,18 @@ func ReadHeader(r io.ReaderAt) (Header, error) {
 		bl, prefix = int(binary.LittleEndian.Uint16(on[8:10])), headerPrefixV1
 	case 2, 3:
 		if n < headerPrefixV2 {
-			return Header{}, formatError("dosya çok kısa, sürüm %d başlığı eksik", base)
+			return Header{}, formatError(messages.H5052, base)
 		}
 		bl, prefix = int(binary.LittleEndian.Uint32(on[8:12])), headerPrefixV2
 	default:
 		// Önce büyü baytlarını denetle ki yanlış dosyada daha anlamlı hata verelim.
 		if string(on[:6]) != npyMagic {
-			return Header{}, formatError("büyü baytları eksik (dosya .npy değil)")
+			return Header{}, formatError(messages.H5053)
 		}
-		return Header{}, formatError("desteklenmeyen sürüm %d.%d (yalnızca 1.x, 2.x, 3.x)", base, on[7])
+		return Header{}, formatError(messages.H5054, base, on[7])
 	}
 	if bl > maxHeader {
-		return Header{}, formatError("başlık uzunluğu çok büyük (%d bayt)", bl)
+		return Header{}, formatError(messages.H5055, bl)
 	}
 	exact := make([]byte, prefix+bl)
 	copy(exact, on[:n])
@@ -153,9 +159,9 @@ func ReadHeader(r io.ReaderAt) (Header, error) {
 		m, err := r.ReadAt(exact[n:], int64(n))
 		if m < len(exact)-n {
 			if err == nil || errors.Is(err, io.EOF) {
-				return Header{}, formatError("başlık kesik: %d bayt beklendi", prefix+bl)
+				return Header{}, formatError(messages.H5056, prefix+bl)
 			}
-			return Header{}, fmt.Errorf("veri: başlık okunamadı: %w", err)
+			return Header{}, messages.New(messages.H5030, err)
 		}
 	}
 	return ParseHeader(exact)
@@ -164,10 +170,10 @@ func ReadHeader(r io.ReaderAt) (Header, error) {
 // ParseHeader, bellekteki baytlardan (en az tüm başlık) .npy başlığını çözümler.
 func ParseHeader(b []byte) (Header, error) {
 	if len(b) < minFileStart {
-		return Header{}, formatError("başlık çok kısa (%d bayt)", len(b))
+		return Header{}, formatError(messages.H5057, len(b))
 	}
 	if string(b[:6]) != npyMagic {
-		return Header{}, formatError("büyü baytları eksik (dosya .npy değil)")
+		return Header{}, formatError(messages.H5053)
 	}
 	var bs Header
 	bs.Version, bs.MinorVersion = b[6], b[7]
@@ -177,29 +183,29 @@ func ParseHeader(b []byte) (Header, error) {
 		bl, prefix = int(binary.LittleEndian.Uint16(b[8:10])), headerPrefixV1
 	case 2, 3:
 		if len(b) < headerPrefixV2 {
-			return Header{}, formatError("sürüm %d başlığı eksik", bs.Version)
+			return Header{}, formatError(messages.H5058, bs.Version)
 		}
 		bl, prefix = int(binary.LittleEndian.Uint32(b[8:12])), headerPrefixV2
 	default:
-		return Header{}, formatError("desteklenmeyen sürüm %d.%d (yalnızca 1.x, 2.x, 3.x)", bs.Version, bs.MinorVersion)
+		return Header{}, formatError(messages.H5054, bs.Version, bs.MinorVersion)
 	}
 	if bl > maxHeader {
-		return Header{}, formatError("başlık uzunluğu çok büyük (%d bayt)", bl)
+		return Header{}, formatError(messages.H5055, bl)
 	}
 	if len(b) < prefix+bl {
-		return Header{}, formatError("başlık kesik: %d bayt beklendi, %d var", prefix+bl, len(b))
+		return Header{}, formatError(messages.H5059, prefix+bl, len(b))
 	}
 	text := b[prefix : prefix+bl]
 	if bs.Version < 3 {
 		for _, c := range text {
 			if c >= 0x80 {
-				return Header{}, formatError("sürüm %d başlığında ASCII dışı bayt", bs.Version)
+				return Header{}, formatError(messages.H5060, bs.Version)
 			}
 		}
 	}
 	dict, err := parseDict(string(text))
 	if err != nil {
-		return Header{}, formatError("başlık sözlüğü çözümlenemedi: %v", err)
+		return Header{}, formatError(messages.H5061, err)
 	}
 	if err := fillHeader(&bs, dict); err != nil {
 		return Header{}, err
@@ -213,51 +219,51 @@ func fillHeader(bs *Header, s map[string]any) error {
 		switch k {
 		case "descr", "fortran_order", "shape":
 		default:
-			return formatError("başlıkta beklenmeyen anahtar %q", k)
+			return formatError(messages.H5062, k)
 		}
 	}
 	d, ok := s["descr"]
 	if !ok {
-		return formatError("başlıkta 'descr' anahtarı yok")
+		return formatError(messages.H5063)
 	}
 	ds, ok := d.(string)
 	if !ok {
-		return formatError("'descr' bir metin değil (yapılandırılmış türler desteklenmiyor)")
+		return formatError(messages.H5064)
 	}
 	dtype, err := parseDType(ds)
 	if err != nil {
-		return formatError("%v", err)
+		return &FormatError{Reason: err}
 	}
 	bs.DType = dtype
 
 	f, ok := s["fortran_order"]
 	if !ok {
-		return formatError("başlıkta 'fortran_order' anahtarı yok")
+		return formatError(messages.H5065)
 	}
 	fb, ok := f.(bool)
 	if !ok {
-		return formatError("'fortran_order' True/False değil")
+		return formatError(messages.H5066)
 	}
 	if fb {
-		return formatError("sütun öncelikli diziler desteklenmiyor (yalnızca satır öncelikli)")
+		return formatError(messages.H5067)
 	}
 
 	sh, ok := s["shape"]
 	if !ok {
-		return formatError("başlıkta 'shape' anahtarı yok")
+		return formatError(messages.H5068)
 	}
 	dims, ok := sh.([]int64)
 	if !ok {
-		return formatError("'shape' bir tamsayı demeti değil")
+		return formatError(messages.H5069)
 	}
 	if len(dims) != 1 {
-		return formatError("yalnızca tek boyutlu diziler destekleniyor, şekil %d boyutlu", len(dims))
+		return formatError(messages.H5070, len(dims))
 	}
 	if dims[0] < 0 {
-		return formatError("negatif uzunluk %d", dims[0])
+		return formatError(messages.H5071, dims[0])
 	}
 	if dims[0] > (1<<62)/int64(dtype.Size()) {
-		return formatError("uzunluk çok büyük (%d)", dims[0])
+		return formatError(messages.H5072, dims[0])
 	}
 	bs.Length = dims[0]
 	return nil
@@ -278,7 +284,7 @@ func parseDict(s string) (map[string]any, error) {
 	a := &dictParser{s: s}
 	a.pad()
 	if !a.al('{') {
-		return nil, fmt.Errorf("'{' bekleniyordu")
+		return nil, messages.New(messages.H5031)
 	}
 	result := map[string]any{}
 	for {
@@ -289,19 +295,19 @@ func parseDict(s string) (map[string]any, error) {
 		a.pad()
 		key, err := a.text()
 		if err != nil {
-			return nil, fmt.Errorf("anahtar: %w", err)
+			return nil, messages.New(messages.H5032, err)
 		}
 		a.pad()
 		if !a.al(':') {
-			return nil, fmt.Errorf("%q anahtarından sonra ':' bekleniyordu", key)
+			return nil, messages.New(messages.H5033, key)
 		}
 		a.pad()
 		d, err := a.value()
 		if err != nil {
-			return nil, fmt.Errorf("%q değeri: %w", key, err)
+			return nil, messages.New(messages.H5034, key, err)
 		}
 		if _, var_ := result[key]; var_ {
-			return nil, fmt.Errorf("%q anahtarı iki kez geçiyor", key)
+			return nil, messages.New(messages.H5035, key)
 		}
 		result[key] = d
 		a.pad()
@@ -312,11 +318,11 @@ func parseDict(s string) (map[string]any, error) {
 		if a.al('}') {
 			break
 		}
-		return nil, fmt.Errorf("konum %d: ',' ya da '}' bekleniyordu", a.i)
+		return nil, messages.New(messages.H5036, a.i)
 	}
 	a.pad()
 	if a.i != len(a.s) {
-		return nil, fmt.Errorf("sözlükten sonra fazladan karakter")
+		return nil, messages.New(messages.H5037)
 	}
 	return result, nil
 }
@@ -342,19 +348,19 @@ func (a *dictParser) al(c byte) bool {
 
 func (a *dictParser) text() (string, error) {
 	if a.i >= len(a.s) {
-		return "", fmt.Errorf("metin bekleniyordu, başlık bitti")
+		return "", messages.New(messages.H5038)
 	}
 	quote := a.s[a.i]
 	if quote != '\'' && quote != '"' {
-		return "", fmt.Errorf("konum %d: tırnaklı metin bekleniyordu", a.i)
+		return "", messages.New(messages.H5039, a.i)
 	}
 	j := strings.IndexByte(a.s[a.i+1:], quote)
 	if j < 0 {
-		return "", fmt.Errorf("kapanmayan tırnak")
+		return "", messages.New(messages.H5040)
 	}
 	m := a.s[a.i+1 : a.i+1+j]
 	if strings.IndexByte(m, '\\') >= 0 {
-		return "", fmt.Errorf("kaçış dizili metin desteklenmiyor")
+		return "", messages.New(messages.H5041)
 	}
 	a.i += j + 2
 	return m, nil
@@ -362,7 +368,7 @@ func (a *dictParser) text() (string, error) {
 
 func (a *dictParser) value() (any, error) {
 	if a.i >= len(a.s) {
-		return nil, fmt.Errorf("değer bekleniyordu, başlık bitti")
+		return nil, messages.New(messages.H5042)
 	}
 	switch c := a.s[a.i]; {
 	case c == '\'' || c == '"':
@@ -387,10 +393,10 @@ func (a *dictParser) value() (any, error) {
 			if a.al(')') {
 				return bundle, nil
 			}
-			return nil, fmt.Errorf("demette ',' ya da ')' bekleniyordu")
+			return nil, messages.New(messages.H5043)
 		}
 	case c == '[' || c == '{':
-		return nil, fmt.Errorf("iç içe liste/sözlük desteklenmiyor")
+		return nil, messages.New(messages.H5044)
 	case c >= '0' && c <= '9' || c == '-':
 		return a.integer()
 	default:
@@ -408,7 +414,7 @@ func (a *dictParser) value() (any, error) {
 		case "None":
 			return nil, nil
 		}
-		return nil, fmt.Errorf("tanınmayan değer %q", ad)
+		return nil, messages.New(messages.H5045, ad)
 	}
 }
 
@@ -422,7 +428,7 @@ func (a *dictParser) integer() (int64, error) {
 	}
 	n, err := strconv.ParseInt(a.s[a.i:j], 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("geçersiz tamsayı %q", a.s[a.i:j])
+		return 0, messages.New(messages.H5046, a.s[a.i:j])
 	}
 	a.i = j
 	// Eski yazıcıların uzun tamsayı soneki.
@@ -440,10 +446,10 @@ func (a *dictParser) integer() (int64, error) {
 // yazar. surum 1 ya da 2 olmalıdır. Başlık toplamı 64 bayta hizalanır.
 func WriteHeader(w io.Writer, dtype DType, length int64, version int) error {
 	if dtype.Size() == 0 {
-		return fmt.Errorf("veri: geçersiz tür")
+		return messages.New(messages.H5047)
 	}
 	if length < 0 {
-		return fmt.Errorf("veri: negatif uzunluk")
+		return messages.New(messages.H5048)
 	}
 	dict := fmt.Sprintf("{'descr': '%s', 'fortran_order': False, 'shape': (%d,), }", dtype, length)
 	var prefix int
@@ -453,13 +459,13 @@ func WriteHeader(w io.Writer, dtype DType, length int64, version int) error {
 	case 2:
 		prefix = headerPrefixV2
 	default:
-		return fmt.Errorf("veri: yazma için desteklenmeyen sürüm %d", version)
+		return messages.New(messages.H5049, version)
 	}
 	total := prefix + len(dict) + 1
 	padding := (npyAlign - total%npyAlign) % npyAlign
 	bl := len(dict) + padding + 1
 	if version == 1 && bl > 0xFFFF {
-		return fmt.Errorf("veri: başlık sürüm 1 için çok uzun")
+		return messages.New(messages.H5050)
 	}
 	var buf bytes.Buffer
 	buf.WriteString(npyMagic)

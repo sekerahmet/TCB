@@ -1,6 +1,8 @@
 package tensor
 
-import "fmt"
+import (
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // Eleman bazlı işlemler (cihazdan bağımsız katman). Hesap arka uçta yapılır.
 
@@ -32,7 +34,7 @@ func broadcastShapes(a, b []int) []int {
 		case db == 1:
 			out[i] = da
 		default:
-			panic(fmt.Sprintf("tensor: %v ve %v şekilleri yayınlanamaz", a, b))
+			panic(messages.New(messages.H3039, a, b))
 		}
 	}
 	return out

@@ -2,8 +2,9 @@ package tensor
 
 import (
 	"fmt"
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // fakeGPU kayıt sınaması için yalnızca cihazı GPU olan bir arka uç.
@@ -61,13 +62,5 @@ func TestDeviceNames(t *testing.T) {
 			t.Fatalf("%v adı %q, %q bekleniyordu", d.c, d.c.String(), d.ad)
 		}
 	}
-	if m := registerPanic(func() { BackendFor(GPU(5)) }); !strings.Contains(m, "gpu:5 cihazı için arka uç kayıtlı değil") {
-		t.Fatalf("kayıtsız cihaz mesajı: %q", m)
-	}
-}
-
-func registerPanic(fn func()) (m string) {
-	defer func() { m = fmt.Sprint(recover()) }()
-	fn()
-	return ""
+	panicCode(t, "kayıtsız cihaz", messages.H3033, func() { BackendFor(GPU(5)) })
 }

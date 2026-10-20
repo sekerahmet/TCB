@@ -2,10 +2,11 @@ package tokenize
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -150,16 +151,16 @@ func readKind(raw json.RawMessage, component string) (string, error) {
 		Type *string `json:"type"`
 	}
 	if err := exactUnmarshal(raw, &t); err != nil {
-		return "", fmt.Errorf("%s tanımı çözümlenemedi: %w", component, err)
+		return "", messages.New(messages.H5200, component, err)
 	}
 	if t.Type == nil {
-		return "", fmt.Errorf("%s tanımında \"type\" alanı yok", component)
+		return "", messages.New(messages.H5201, component)
 	}
 	return *t.Type, nil
 }
 
 func unsupported(component, kind, supported string) error {
-	return fmt.Errorf("desteklenmeyen %s türü %q (desteklenenler: %s)", component, kind, supported)
+	return messages.New(messages.H5202, component, kind, supported)
 }
 
 // NewNormalizer JSON tanımından normalleştirici kurar (null için nil).
@@ -167,7 +168,7 @@ func NewNormalizer(raw json.RawMessage) (Normalizer, error) {
 	if isEmpty(raw) {
 		return nil, nil
 	}
-	kind, err := readKind(raw, "normalleştirici")
+	kind, err := readKind(raw, messages.Text(messages.H5280))
 	if err != nil {
 		return nil, err
 	}
@@ -176,11 +177,11 @@ func NewNormalizer(raw json.RawMessage) (Normalizer, error) {
 	list := kinds(normalizers)
 	registryLock.RUnlock()
 	if !ok {
-		return nil, unsupported("normalleştirici (normalizer)", kind, list)
+		return nil, unsupported(messages.Text(messages.H5281), kind, list)
 	}
 	n, err := k(raw)
 	if err != nil {
-		return nil, fmt.Errorf("normalleştirici %s: %w", kind, err)
+		return nil, messages.New(messages.H5203, kind, err)
 	}
 	return n, nil
 }
@@ -190,7 +191,7 @@ func NewPreTokenizer(raw json.RawMessage) (PreTokenizer, error) {
 	if isEmpty(raw) {
 		return nil, nil
 	}
-	kind, err := readKind(raw, "ön bölücü")
+	kind, err := readKind(raw, messages.Text(messages.H5282))
 	if err != nil {
 		return nil, err
 	}
@@ -199,11 +200,11 @@ func NewPreTokenizer(raw json.RawMessage) (PreTokenizer, error) {
 	list := kinds(preTokenizers)
 	registryLock.RUnlock()
 	if !ok {
-		return nil, unsupported("ön bölücü (pre_tokenizer)", kind, list)
+		return nil, unsupported(messages.Text(messages.H5283), kind, list)
 	}
 	o, err := k(raw)
 	if err != nil {
-		return nil, fmt.Errorf("ön bölücü %s: %w", kind, err)
+		return nil, messages.New(messages.H5204, kind, err)
 	}
 	return o, nil
 }
@@ -212,16 +213,16 @@ func NewPreTokenizer(raw json.RawMessage) (PreTokenizer, error) {
 // çıkarılır (eski dosya biçimleri).
 func NewModel(raw json.RawMessage) (Model, error) {
 	if isEmpty(raw) {
-		return nil, fmt.Errorf("parçalayıcı dosyasında model yok")
+		return nil, messages.New(messages.H5205)
 	}
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &fields); err != nil {
-		return nil, fmt.Errorf("model tanımı çözümlenemedi: %w", err)
+		return nil, messages.New(messages.H5206, err)
 	}
 	var kind string
 	if t, ok := fields["type"]; ok {
 		if err := json.Unmarshal(t, &kind); err != nil {
-			return nil, fmt.Errorf("model türü okunamadı: %w", err)
+			return nil, messages.New(messages.H5207, err)
 		}
 	} else {
 		_, merges := fields["merges"]
@@ -247,7 +248,7 @@ func NewModel(raw json.RawMessage) (Model, error) {
 	}
 	m, err := k(raw)
 	if err != nil {
-		return nil, fmt.Errorf("model %s: %w", kind, err)
+		return nil, messages.New(messages.H5208, kind, err)
 	}
 	return m, nil
 }
@@ -257,7 +258,7 @@ func NewPostProcessor(raw json.RawMessage, vocab func(string) (int32, bool)) (Po
 	if isEmpty(raw) {
 		return nil, nil
 	}
-	kind, err := readKind(raw, "son işleyici")
+	kind, err := readKind(raw, messages.Text(messages.H5284))
 	if err != nil {
 		return nil, err
 	}
@@ -266,11 +267,11 @@ func NewPostProcessor(raw json.RawMessage, vocab func(string) (int32, bool)) (Po
 	list := kinds(postProcessors)
 	registryLock.RUnlock()
 	if !ok {
-		return nil, unsupported("son işleyici (post_processor)", kind, list)
+		return nil, unsupported(messages.Text(messages.H5285), kind, list)
 	}
 	s, err := k(raw, vocab)
 	if err != nil {
-		return nil, fmt.Errorf("son işleyici %s: %w", kind, err)
+		return nil, messages.New(messages.H5209, kind, err)
 	}
 	return s, nil
 }
@@ -280,7 +281,7 @@ func NewDecoder(raw json.RawMessage) (Decoder, error) {
 	if isEmpty(raw) {
 		return nil, nil
 	}
-	kind, err := readKind(raw, "çözücü")
+	kind, err := readKind(raw, messages.Text(messages.H5286))
 	if err != nil {
 		return nil, err
 	}
@@ -289,11 +290,11 @@ func NewDecoder(raw json.RawMessage) (Decoder, error) {
 	list := kinds(decoders)
 	registryLock.RUnlock()
 	if !ok {
-		return nil, unsupported("çözücü (decoder)", kind, list)
+		return nil, unsupported(messages.Text(messages.H5287), kind, list)
 	}
 	c, err := k(raw)
 	if err != nil {
-		return nil, fmt.Errorf("çözücü %s: %w", kind, err)
+		return nil, messages.New(messages.H5210, kind, err)
 	}
 	return c, nil
 }
@@ -302,7 +303,7 @@ func NewDecoder(raw json.RawMessage) (Decoder, error) {
 // yinelenen anahtarı reddeder (bkz. exactUnmarshal).
 func strictDecode(raw json.RawMessage, target any) error {
 	if err := exactUnmarshal(raw, target); err != nil {
-		return fmt.Errorf("tanım çözümlenemedi: %w", err)
+		return messages.New(messages.H5211, err)
 	}
 	return nil
 }

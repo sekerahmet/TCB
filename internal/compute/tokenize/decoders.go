@@ -2,10 +2,11 @@ package tokenize
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -63,7 +64,7 @@ func init() {
 			return nil, err
 		}
 		if utf8.RuneCountInString(t.Content) != 1 {
-			return nil, fmt.Errorf("content tek karakter olmalı: %q", t.Content)
+			return nil, messages.New(messages.H5212, t.Content)
 		}
 		return stripDecoder{[]rune(t.Content)[0], t.Start, t.Stop}, nil
 	})
@@ -85,7 +86,7 @@ func init() {
 		for i, h := range t.Decoders {
 			c, err := NewDecoder(h)
 			if err != nil {
-				return nil, fmt.Errorf("%d. adım: %w", i, err)
+				return nil, messages.New(messages.H5213, i, err)
 			}
 			if c != nil {
 				s = append(s, c)

@@ -4,9 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -41,19 +42,19 @@ func newPrecompiled(raw json.RawMessage) (Normalizer, error) {
 		return nil, err
 	}
 	if t.Charsmap == nil {
-		return nil, fmt.Errorf("precompiled_charsmap yok")
+		return nil, messages.New(messages.H5236)
 	}
 	data, err := base64.StdEncoding.DecodeString(*t.Charsmap)
 	if err != nil {
-		return nil, fmt.Errorf("precompiled_charsmap base64 çözülemedi: %w", err)
+		return nil, messages.New(messages.H5237, err)
 	}
 	if len(data) < 4 {
-		return nil, fmt.Errorf("precompiled_charsmap çok kısa")
+		return nil, messages.New(messages.H5238)
 	}
 	size := int(binary.LittleEndian.Uint32(data))
 	data = data[4:]
 	if size%4 != 0 || size > len(data) {
-		return nil, fmt.Errorf("precompiled_charsmap ağaç boyutu geçersiz")
+		return nil, messages.New(messages.H5239)
 	}
 	p := &precompiled{arr: make([]uint32, size/4)}
 	for i := range p.arr {
@@ -61,7 +62,7 @@ func newPrecompiled(raw json.RawMessage) (Normalizer, error) {
 	}
 	p.text = data[size:]
 	if len(p.arr) == 0 {
-		return nil, fmt.Errorf("precompiled_charsmap ağacı boş")
+		return nil, messages.New(messages.H5240)
 	}
 	return p, nil
 }

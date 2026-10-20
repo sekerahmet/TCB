@@ -1,6 +1,8 @@
 package tensor
 
-import "fmt"
+import (
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // Eksen boyunca birikimli toplam ve sıralama (cihazdan bağımsız katman).
 
@@ -27,11 +29,10 @@ func (t *Tensor) CumSum(axis int) *Tensor {
 func (t *Tensor) checkSort(ad string, axis, k int) {
 	L := t.shape[axis]
 	if L > MaxSortLen {
-		panic(fmt.Sprintf("tensor: %s: %v şeklinde %d. eksen %d uzunlukta; en çok %d (2^24) uzunluklu eksen sıralanır",
-			ad, t.shape, axis, L, MaxSortLen))
+		panic(messages.New(messages.H3026, ad, t.shape, axis, L, MaxSortLen))
 	}
 	if k < 0 || k > L {
-		panic(fmt.Sprintf("tensor: %s: k = %d, %v şeklinde %d. eksenin uzunluğu %d; k 0 ile %d arasında olmalı", ad, k, t.shape, axis, L, L))
+		panic(messages.New(messages.H3027, ad, k, t.shape, axis, L))
 	}
 }
 

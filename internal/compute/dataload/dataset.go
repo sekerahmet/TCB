@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Meta, veri kökündeki meta.json dosyasıdır. Yalnızca yükleyicinin
@@ -43,11 +44,11 @@ func (m *Meta) TokenizerPath() string {
 func ReadMeta(path string) (*Meta, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("veri: meta okunamadı: %w", err)
+		return nil, messages.New(messages.H5017, err)
 	}
 	var m Meta
 	if err := json.Unmarshal(b, &m); err != nil {
-		return nil, fmt.Errorf("veri: %s: meta.json çözümlenemedi: %w", path, err)
+		return nil, messages.New(messages.H5018, path, err)
 	}
 	return &m, nil
 }
@@ -97,19 +98,19 @@ func OpenDataset(dir string, s DatasetOptions) (*Dataset, error) {
 	}
 	st, err := os.Stat(dir)
 	if err != nil {
-		return nil, fmt.Errorf("veri: küme açılamadı: %w", err)
+		return nil, messages.New(messages.H5019, err)
 	}
 	var paths []string
 	byteBuf := map[string]int64{}
 	metaDirs := []string{dir, filepath.Dir(dir)}
 	if st.IsDir() {
 		if _, err := filepath.Match(s.Pattern, ""); err != nil {
-			return nil, fmt.Errorf("veri: geçersiz desen %q: %w", s.Pattern, err)
+			return nil, messages.New(messages.H5020, s.Pattern, err)
 		}
 		// Dizin listesi boyutları da verir; parça başına ayrı sorgu gerekmez.
 		inputs, err := os.ReadDir(dir)
 		if err != nil {
-			return nil, fmt.Errorf("veri: küme dizini okunamadı: %w", err)
+			return nil, messages.New(messages.H5021, err)
 		}
 		for _, g := range inputs {
 			if g.IsDir() {
@@ -120,7 +121,7 @@ func OpenDataset(dir string, s DatasetOptions) (*Dataset, error) {
 			}
 			info, err := g.Info()
 			if err != nil {
-				return nil, fmt.Errorf("veri: %s: %w", g.Name(), err)
+				return nil, messages.New(messages.H5022, g.Name(), err)
 			}
 			y := filepath.Join(dir, g.Name())
 			paths = append(paths, y)
@@ -133,7 +134,7 @@ func OpenDataset(dir string, s DatasetOptions) (*Dataset, error) {
 	}
 	sort.Strings(paths)
 	if len(paths) == 0 {
-		return nil, fmt.Errorf("veri: %s içinde %q desenine uyan veri dosyası yok", dir, s.Pattern)
+		return nil, messages.New(messages.H5023, dir, s.Pattern)
 	}
 
 	k := &Dataset{dir: dir, pick: s}
@@ -174,7 +175,7 @@ func OpenDataset(dir string, s DatasetOptions) (*Dataset, error) {
 func headerLen(path string) (int64, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return 0, fmt.Errorf("veri: veri dosyası açılamadı: %w", err)
+		return 0, messages.New(messages.H5024, err)
 	}
 	defer f.Close()
 	bs, err := ReadHeader(f)
@@ -208,7 +209,7 @@ func (k *Dataset) TotalTokens() int64 { return k.total }
 // önbellekten silinmez.
 func (k *Dataset) OpenShard(ctx context.Context, i int) (*Shard, error) {
 	if i < 0 || i >= len(k.shards) {
-		return nil, fmt.Errorf("veri: veri dosyası sırası %d geçersiz (0..%d)", i, len(k.shards)-1)
+		return nil, messages.New(messages.H5025, i, len(k.shards)-1)
 	}
 	pb := k.shards[i]
 	path, release := pb.Path, func() {}
@@ -227,7 +228,7 @@ func (k *Dataset) OpenShard(ctx context.Context, i int) (*Shard, error) {
 	p.release = release
 	if p.Length() != pb.Token {
 		_ = p.Close()
-		return nil, fmt.Errorf("veri: %s: başlık %d token bildiriyor, meta.json %d diyor", pb.Path, p.Length(), pb.Token)
+		return nil, messages.New(messages.H5026, pb.Path, p.Length(), pb.Token)
 	}
 	return p, nil
 }
@@ -251,9 +252,7 @@ func (k *Dataset) checkCacheQuota(count int, shortest int64) error {
 	count = min(count, fits)
 	needed := int64(count) * largest
 	if ob.Quota() < needed {
-		return fmt.Errorf("%w: kota %d bayt, en az %d veri dosyası × en büyük veri dosyası %d bayt = %d bayt gerekli "+
-			"(kotayı büyütün ya da ileri bakışı/grup boyunu küçültün)",
-			ErrCacheInsufficient, ob.Quota(), count, largest, needed)
+		return messages.New(messages.H5027, ErrCacheInsufficient, ob.Quota(), count, largest, needed)
 	}
 	// Klasörü paylaşan diğer kümelerin ayırdığı yerle birlikte de sığmalı.
 	return ob.Reserve(needed)

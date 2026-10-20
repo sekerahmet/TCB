@@ -1,9 +1,10 @@
 package tensor
 
 import (
-	"fmt"
 	"math"
 	"sync"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ----------------------------------------------------------------------------
@@ -54,7 +55,7 @@ func poolFor(k poolKey, create bool) *sync.Pool {
 
 func cpuCheckDType(dt DType) {
 	if dt != Float32 && dt != BFloat16 && dt != Float16 {
-		panic(fmt.Sprintf("tensor: CPU arka ucu %s türünde depolama desteklemiyor", dt))
+		panic(messages.New(messages.H3025, dt))
 	}
 }
 
@@ -102,7 +103,7 @@ func (cpuBackend) Release(s Storage) {
 		return
 	}
 	if c.release {
-		panic("tensor: depolama havuza iki kez iade edildi")
+		panic(messages.Internal("storage returned to the pool twice"))
 	}
 	c.release = true
 	poolFor(poolKey{c.dtyp, c.Len()}, true).Put(c)

@@ -19,7 +19,10 @@ import (
 // internal/lang/messages/README.md.
 var migrated = []string{
 	"cmd/tr",
+	"internal/compute/dataload",
 	"internal/compute/gpu",
+	"internal/compute/tensor",
+	"internal/compute/tokenize",
 	"internal/devtools/debugger",
 	"internal/devtools/formatter",
 	"internal/devtools/profiler",

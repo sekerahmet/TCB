@@ -3,9 +3,10 @@ package tokenize
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // encoding/json nesne anahtarlarını alan adlarıyla büyük/küçük harf duyarsız eşler ("post_proCessor"
@@ -47,13 +48,13 @@ func checkKeys(raw []byte, t reflect.Type) error {
 			if !ok {
 				for name := range fields {
 					if strings.EqualFold(name, key) {
-						return fmt.Errorf("%q anahtarı tanınmıyor: büyük/küçük harfiyle %q yazılmalı", key, name)
+						return messages.New(messages.H5214, key, name)
 					}
 				}
 				return nil // bilinmeyen alanlara izin verilir
 			}
 			if seen[key] {
-				return fmt.Errorf("%q anahtarı iki kez yazılmış", key)
+				return messages.New(messages.H5215, key)
 			}
 			seen[key] = true
 			return checkKeys(value, f)

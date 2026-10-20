@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"runtime"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // fusedAttention başvuru sürümüdür: softmax(q·kᵀ·ölçek + toplamsal maske)·v,
@@ -448,5 +450,5 @@ func TestAttentionOutputChangedInPlace(t *testing.T) {
 	v := New([]float32{1, 2, 3, 4, 5, 6}, 3, 2)
 	y := Attention(q, k, v, AttentionOptions{})
 	y.Set(100, 0, 0)
-	panicContains(t, "dikkat çıktısı", "yerinde değiştirildi", func() { y.SumAll().Backward() })
+	panicCode(t, "dikkat çıktısı", messages.H3012, func() { y.SumAll().Backward() })
 }

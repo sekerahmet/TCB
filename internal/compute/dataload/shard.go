@@ -3,22 +3,23 @@ package dataload
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"os"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 var (
 	// ErrClosed, kapatılmış bir kaynağın kullanılmaya çalışıldığını bildirir.
-	ErrClosed = errors.New("veri: kaynak kapatılmış")
+	ErrClosed error = messages.New(messages.H5080)
 
-	errNoMmap       = errors.New("veri: bu platformda bellek eşleme yok")
-	errMmapEmpty    = errors.New("veri: boş veri eşlenemez")
-	errMmapTooLarge = errors.New("veri: dosya adres alanına sığmıyor")
+	errNoMmap       error = messages.New(messages.H5081)
+	errMmapEmpty    error = messages.New(messages.H5082)
+	errMmapTooLarge error = messages.New(messages.H5083)
 )
 
 // openShardCount, açık (kapatılmamış) Parca sayısıdır; sızıntı testleri için.
@@ -55,7 +56,7 @@ type Shard struct {
 func OpenShard(path string, s ShardOptions) (*Shard, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("veri: veri dosyası açılamadı: %w", err)
+		return nil, messages.New(messages.H5024, err)
 	}
 	p, err := buildShard(path, f, s)
 	if err != nil {
@@ -77,12 +78,11 @@ func buildShard(path string, f *os.File, s ShardOptions) (*Shard, error) {
 	}
 	st, err := f.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("veri: %s: %w", path, err)
+		return nil, messages.New(messages.H5022, path, err)
 	}
 	needed := bs.DataOffset + bs.DataSize()
 	if st.Size() < needed {
-		return nil, &FormatError{Path: path, Reason: fmt.Sprintf(
-			"dosya kesik: başlık %d parça (%d bayt) bildiriyor, dosya %d bayt", bs.Length, needed, st.Size())}
+		return nil, &FormatError{Path: path, Reason: messages.New(messages.H5084, bs.Length, needed, st.Size())}
 	}
 	p := &Shard{path: path, header: bs, f: f}
 	if !s.NoMmap && mmapSupported && bs.Length > 0 {
@@ -123,8 +123,7 @@ func (p *Shard) MmapError() error { return p.mmapErr }
 
 func (p *Shard) checkRange(n int, begin int64) error {
 	if begin < 0 || int64(n) > p.header.Length-begin {
-		return fmt.Errorf("veri: %s: [%d, %d) aralığı veri dosyası sınırını (%d) aşıyor",
-			p.path, begin, begin+int64(n), p.header.Length)
+		return messages.New(messages.H5085, p.path, begin, begin+int64(n), p.header.Length)
 	}
 	return nil
 }
@@ -156,8 +155,7 @@ func (p *Shard) Read(dst []int32, begin int64) error {
 		err = p.readAtRead(len(dst), begin, func(i int, b []byte, k int) { fits = decodeI32(dst[i:i+k], b, p.header.DType) && fits })
 	}
 	if err == nil && !fits {
-		err = fmt.Errorf("veri: %s: [%d, %d) aralığında int32'ye sığmayan '<u4' token değeri var (2^31 ve üstü); sözlük boyutu bunun çok altında olmalı, dosya bozuk olabilir",
-			p.path, begin, begin+int64(len(dst)))
+		err = messages.New(messages.H5086, p.path, begin, begin+int64(len(dst)))
 	}
 	return err
 }
@@ -167,7 +165,7 @@ func (p *Shard) Read(dst []int32, begin int64) error {
 // 16 bite kırpılmaz, hata döner.
 func (p *Shard) ReadU16(dst []uint16, begin int64) error {
 	if p.header.DType != DTypeU16 {
-		return fmt.Errorf("veri: %s: OkuU16 yalnızca '<u2' veri dosyalarında kullanılabilir (tür %s)", p.path, p.header.DType)
+		return messages.New(messages.H5087, p.path, p.header.DType)
 	}
 	if err := p.checkRange(len(dst), begin); err != nil {
 		return err
@@ -200,7 +198,7 @@ func (p *Shard) mmapRead(f func()) (err error) {
 		debug.SetPanicOnFault(old)
 		if r := recover(); r != nil {
 			if _, ok := r.(interface{ Addr() uintptr }); ok {
-				err = fmt.Errorf("veri: %s: eşlenmiş dosya okunurken bellek hatası (dosya okunurken dışarıdan kısaltılmış ya da değiştirilmiş olabilir): %v", p.path, r)
+				err = messages.New(messages.H5088, p.path, r)
 				return
 			}
 			panic(r)
@@ -226,7 +224,7 @@ func (p *Shard) readAtRead(n int, begin int64, convert func(i int, b []byte, k i
 			if err == nil || errors.Is(err, io.EOF) {
 				err = io.ErrUnexpectedEOF
 			}
-			return fmt.Errorf("veri: %s: okuma hatası: %w", p.path, err)
+			return messages.New(messages.H5089, p.path, err)
 		}
 		convert(i, b, k)
 	}

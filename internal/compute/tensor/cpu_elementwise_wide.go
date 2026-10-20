@@ -3,6 +3,8 @@ package tensor
 import (
 	"fmt"
 	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // CPU arka ucu: genişletilmiş eleman bazlı işlemler. SiLU sigmoid gibi vektörel üstelle
@@ -53,7 +55,7 @@ func unaryLoopWide(op UnOp, y, x []float32) {
 			y[i] = abs32(v)
 		}
 	default:
-		panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))
+		panic(messages.Internal(fmt.Sprintf("unknown unary op %d", op)))
 	}
 }
 
@@ -161,7 +163,7 @@ func unaryGradLoopWide(op UnOp, gx, g, x, y []float32) {
 	case OpFloor, OpCeil, OpSign:
 		// Türev 0 (tensör katmanı bu işlemlerin geri yayılımını arka uca göndermez).
 	default:
-		panic(fmt.Sprintf("tensor: bilinmeyen tekli işlem %d", op))
+		panic(messages.Internal(fmt.Sprintf("unknown unary op %d", op)))
 	}
 }
 
@@ -184,7 +186,7 @@ func binValue(op BinOp, a, b float32) float32 {
 	case OpGe:
 		d = a >= b
 	default:
-		panic(fmt.Sprintf("tensor: bilinmeyen ikili işlem %d", op))
+		panic(messages.Internal(fmt.Sprintf("unknown binary op %d", op)))
 	}
 	if d {
 		return 1

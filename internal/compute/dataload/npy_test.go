@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // manualHeader, verilen sözlük metniyle ham bir başlık üretir (dolgu ve
@@ -84,22 +86,22 @@ func TestWriteHeaderRoundTrip(t *testing.T) {
 
 func TestHeaderErrors(t *testing.T) {
 	cases := []struct {
-		ad       string
-		raw      []byte
-		contains string
+		ad   string
+		raw  []byte
+		code messages.Code
 	}{
-		{"büyü", append([]byte("XNUMPY\x01\x00\x10\x00"), make([]byte, 16)...), "büyü"},
-		{"boş", nil, "kısa"},
-		{"büyük uçlu", manualHeader(1, "{'descr': '>u2', 'fortran_order': False, 'shape': (5,), }"), "büyük uçlu"},
-		{"tür", manualHeader(1, "{'descr': '<f4', 'fortran_order': False, 'shape': (5,), }"), "desteklenmeyen eleman türü"},
-		{"iki boyut", manualHeader(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (5, 3), }"), "tek boyutlu"},
-		{"skaler", manualHeader(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (), }"), "tek boyutlu"},
-		{"fortran", manualHeader(1, "{'descr': '<u2', 'fortran_order': True, 'shape': (5,), }"), "sütun öncelikli"},
-		{"eksik anahtar", manualHeader(1, "{'descr': '<u2', 'shape': (5,), }"), "fortran_order"},
-		{"fazla anahtar", manualHeader(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (5,), 'x': 1}"), "beklenmeyen anahtar"},
-		{"yapılı tür", manualHeader(1, "{'descr': [('a', '<u2')], 'fortran_order': False, 'shape': (5,), }"), "iç içe"},
-		{"bozuk sözlük", manualHeader(1, "{'descr' '<u2'}"), "':'"},
-		{"kesik", manualHeader(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (5,), }")[:30], "kesik"},
+		{"büyü", append([]byte("XNUMPY\x01\x00\x10\x00"), make([]byte, 16)...), messages.H5053},
+		{"boş", nil, messages.H5057},
+		{"büyük uçlu", manualHeader(1, "{'descr': '>u2', 'fortran_order': False, 'shape': (5,), }"), messages.H5028},
+		{"tür", manualHeader(1, "{'descr': '<f4', 'fortran_order': False, 'shape': (5,), }"), messages.H5029},
+		{"iki boyut", manualHeader(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (5, 3), }"), messages.H5070},
+		{"skaler", manualHeader(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (), }"), messages.H5070},
+		{"fortran", manualHeader(1, "{'descr': '<u2', 'fortran_order': True, 'shape': (5,), }"), messages.H5067},
+		{"eksik anahtar", manualHeader(1, "{'descr': '<u2', 'shape': (5,), }"), messages.H5065},
+		{"fazla anahtar", manualHeader(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (5,), 'x': 1}"), messages.H5062},
+		{"yapılı tür", manualHeader(1, "{'descr': [('a', '<u2')], 'fortran_order': False, 'shape': (5,), }"), messages.H5044},
+		{"bozuk sözlük", manualHeader(1, "{'descr' '<u2'}"), messages.H5033},
+		{"kesik", manualHeader(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (5,), }")[:30], messages.H5059},
 	}
 	for _, d := range cases {
 		_, err := ParseHeader(d.raw)
@@ -110,17 +112,17 @@ func TestHeaderErrors(t *testing.T) {
 		if !errors.As(err, &bh) {
 			t.Fatalf("%s: BicimHatasi bekleniyordu: %T %v", d.ad, err, err)
 		}
-		if !strings.Contains(err.Error(), d.contains) {
-			t.Fatalf("%s: hata %q, %q içermeli", d.ad, err, d.contains)
+		if !messages.Has(err, d.code) {
+			t.Fatalf("%s: hata %q, %s kodunu içermeli", d.ad, err, d.code)
 		}
 	}
 	// Desteklenmeyen sürüm.
 	raw := manualHeader(1, "{'descr': '<u2', 'fortran_order': False, 'shape': (5,), }")
 	raw[6] = 9
-	if _, err := ParseHeader(raw); err == nil || !strings.Contains(err.Error(), "sürüm 9") {
+	if _, err := ParseHeader(raw); !messages.Has(err, messages.H5054) {
 		t.Fatalf("sürüm hatası bekleniyordu: %v", err)
 	}
-	if _, err := ReadHeader(bytes.NewReader(raw)); err == nil || !strings.Contains(err.Error(), "sürüm 9") {
+	if _, err := ReadHeader(bytes.NewReader(raw)); !messages.Has(err, messages.H5054) {
 		t.Fatalf("BaslikOku sürüm hatası bekleniyordu: %v", err)
 	}
 }

@@ -26,10 +26,11 @@ package tokenize
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"sort"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // AddedToken sözlüğe sonradan eklenmiş (özel ya da sıradan) bir tokendır.
@@ -94,7 +95,7 @@ const DefaultCacheCapacity = 1 << 17
 func Load(path string) (*Tokenizer, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("parçalayıcı dosyası okunamadı: %w", err)
+		return nil, messages.New(messages.H5272, err)
 	}
 	return Parse(data)
 }
@@ -103,7 +104,7 @@ func Load(path string) (*Tokenizer, error) {
 func Read(r io.Reader) (*Tokenizer, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
-		return nil, fmt.Errorf("parçalayıcı verisi okunamadı: %w", err)
+		return nil, messages.New(messages.H5273, err)
 	}
 	return Parse(data)
 }
@@ -141,13 +142,13 @@ func setLazyBytes(o PreTokenizer) {
 func Parse(data []byte) (*Tokenizer, error) {
 	var d fileFormat
 	if err := exactUnmarshal(data, &d); err != nil {
-		return nil, fmt.Errorf("parçalayıcı JSON'u çözümlenemedi: %w", err)
+		return nil, messages.New(messages.H5274, err)
 	}
 	if !isEmpty(d.Truncation) {
-		return nil, fmt.Errorf("desteklenmeyen yapılandırma: truncation (kırpma) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor")
+		return nil, messages.New(messages.H5275)
 	}
 	if !isEmpty(d.Padding) {
-		return nil, fmt.Errorf("desteklenmeyen yapılandırma: padding (dolgu) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor")
+		return nil, messages.New(messages.H5276)
 	}
 	p := &Tokenizer{addedID: make(map[string]int32)}
 	var err error
@@ -198,7 +199,7 @@ func Parse(data []byte) (*Tokenizer, error) {
 			id = largestAdded + 1
 		}
 		if id != int64(e.ID) {
-			return nil, fmt.Errorf("ek parça %q dosyada %d kimliğiyle tanımlı, ancak hesaplanan kimlik %d; tutarsız dosya", e.Content, e.ID, id)
+			return nil, messages.New(messages.H5277, e.Content, e.ID, id)
 		}
 		if id > largestAdded {
 			largestAdded = id
@@ -245,7 +246,7 @@ func Parse(data []byte) (*Tokenizer, error) {
 	if l, ok := p.postProcessor.(specialIDLister); ok {
 		for _, id := range l.specialIDs() {
 			if _, ok := p.IDToToken(int(id)); !ok {
-				return nil, fmt.Errorf("son işleyicinin eklediği özel token kimliği %d sözlükte yok", id)
+				return nil, messages.New(messages.H5278, id)
 			}
 		}
 	}
@@ -284,7 +285,7 @@ func (p *Tokenizer) setupAddedMatchers() (map[int]string, map[string]bool, error
 			if p.normalizer != nil {
 				var content string
 				if err := catchStepError(func() { content = normalizeBudgeted(p.normalizer, e.Content, extraBudget) }); err != nil {
-					return nil, nil, fmt.Errorf("ek parça %q normalleştirilemedi: %w", e.Content, err)
+					return nil, nil, messages.New(messages.H5279, e.Content, err)
 				}
 				nrmContent[e.ID] = content
 				e.Content = content

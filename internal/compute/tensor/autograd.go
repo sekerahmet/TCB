@@ -1,8 +1,9 @@
 package tensor
 
 import (
-	"fmt"
 	"sync/atomic"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // GradContext bir yürütme bağlamının (ör. bir yorumlayıcı görevinin) türevsiz kip
@@ -138,10 +139,7 @@ func checkVersion(order []*Tensor) {
 	for _, n := range order {
 		for _, k := range n.registered {
 			if v := k.t.storage.Version(); v != k.v {
-				panic(fmt.Sprintf("tensor: %q işleminin ileri hesapta kaydettiği bir girdi (şekil %v) ileri hesaptan "+
-					"sonra yerinde değiştirildi; geri yayılım yanlış sonuç verirdi (sürüm %d → %d; ör. iyileştirici "+
-					"adımı, Set ya da gradyanın değişmesi: yeni bir geri yayılımın birikimi, gradyanların sıfırlanması ya da kırpılması). Yerinde değişikliği geri yayılımdan sonraya alın ya da girdinin kopyasını "+
-					"(Clone) kullanın", n.op, k.t.shape, k.v, v))
+				panic(messages.New(messages.H3012, n.op, k.t.shape, k.v, v))
 			}
 		}
 	}
@@ -175,7 +173,7 @@ func (t *Tensor) accGrad() Storage {
 // gradyanı 1'dir.
 func (t *Tensor) Backward() {
 	if t.Numel() != 1 {
-		panic(fmt.Sprintf("tensor: Backward skaler sonuç ister, şekil %v; BackwardWith kullanın", t.shape))
+		panic(messages.New(messages.H3013, t.shape))
 	}
 	t.BackwardWith(nil)
 }
@@ -193,7 +191,7 @@ func (t *Tensor) BackwardWith(seed *Tensor) { t.BackwardCtx(seed, nil) }
 // (CustomOp) iletilir.
 func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 	if !t.requiresGrad {
-		panic("tensor: gradyan istemeyen bir tensörden geri yayılım yapılamaz")
+		panic(messages.New(messages.H3014))
 	}
 	// Önce çizgeyi kur: bırakılmış bir ara tensöre rastlanırsa gradyan
 	// biriktirmeden hata ver (aksi halde yaprakların gradyanı sessizce eksik kalırdı).
@@ -237,8 +235,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 			continue
 		}
 		if !n.behind.CompareAndSwap(false, true) {
-			panic(fmt.Sprintf("tensor: %q işleminin sonucu başka bir geri yayılımın çizgesinde ve o geri yayılım "+
-				"sürüyor (ör. başka bir görevden); aynı çizgeden aynı anda iki geri yayılım yapılamaz", n.op))
+			panic(messages.New(messages.H3015, n.op))
 		}
 		allocated++
 	}
@@ -250,7 +247,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 		giveBack(t.be, one)
 	} else {
 		if !sameShape(seed.shape, t.shape) {
-			panic(fmt.Sprintf("tensor: tohum gradyan şekli %v, sonuç şekli %v", seed.shape, t.shape))
+			panic(messages.New(messages.H3016, seed.shape, t.shape))
 		}
 		sameDevice("BackwardWith", t, seed)
 		t.be.AddTo(g, seed.denseStorage(), 1)
@@ -300,9 +297,7 @@ func topoOrder(root *Tensor) []*Tensor {
 		i int
 	}
 	secondBackward := func(n *Tensor) {
-		panic(fmt.Sprintf("tensor: %q işleminin sonucu üzerinden geri yayılım zaten yapıldı ve ara sonuçlar "+
-			"bellek için bırakıldı; aynı çizgeden ikinci kez geri yayılım yapılamaz. Birden çok kayıp "+
-			"varsa önce toplayıp tek seferde geri yayın", n.op))
+		panic(messages.New(messages.H3017, n.op))
 	}
 	if root.free {
 		secondBackward(root)

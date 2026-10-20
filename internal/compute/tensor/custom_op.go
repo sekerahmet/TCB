@@ -1,6 +1,10 @@
 package tensor
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // Dış düğümler: ileri ve geri hesabı çekirdeğin dışında (ör. TR dilinde, kullanıcı
 // tarafından) yazılmış işlemler.
@@ -46,14 +50,14 @@ type outerNode struct {
 // çizge bilgisini bozmaz.
 func CustomOp(op string, inputs, outputs, saved []*Tensor, bw CustomBackward) []*Tensor {
 	if len(outputs) == 0 {
-		panic(fmt.Sprintf("tensor: %q dış işlemi en az bir çıktı vermeli", op))
+		panic(messages.New(messages.H3028, op))
 	}
 	if bw == nil {
-		panic(fmt.Sprintf("tensor: %q dış işleminin geri hesabı yok", op))
+		panic(messages.New(messages.H3029, op))
 	}
 	for i, o := range outputs {
 		if o == nil {
-			panic(fmt.Sprintf("tensor: %q dış işleminin %d. çıktısı boş", op, i+1))
+			panic(messages.New(messages.H3030, op, i+1))
 		}
 	}
 	if !GradEnabled() {
@@ -135,8 +139,7 @@ func (d *outerNode) back(ctx any) {
 	var result []*Tensor
 	NoGrad(func() { result = d.bw(ctx, grads) })
 	if len(result) != len(d.inputs) {
-		panic(fmt.Sprintf("tensor: %q dış işleminin geri hesabı %d girdi için %d gradyan döndürdü; her girdi için "+
-			"bir gradyan (ya da nil) gerekir", d.op, len(d.inputs), len(result)))
+		panic(messages.New(messages.H3031, d.op, len(d.inputs), len(result)))
 	}
 	for i, in := range d.inputs {
 		g := result[i]
@@ -144,8 +147,7 @@ func (d *outerNode) back(ctx any) {
 			continue
 		}
 		if !sameShape(g.shape, in.shape) {
-			panic(fmt.Sprintf("tensor: %q dış işleminin geri hesabı %d. girdi için %v şeklinde gradyan döndürdü; "+
-				"girdinin şekli %v (gradyan girdiyle aynı şekilde olmalı, yayınlama yapılmaz)", d.op, i+1, g.shape, in.shape))
+			panic(messages.New(messages.H3032, d.op, i+1, g.shape, in.shape))
 		}
 		sameDevice(d.op, in, g)
 		in.be.AddTo(in.accGrad(), g.denseStorage(), 1)

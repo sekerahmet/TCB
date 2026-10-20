@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -425,39 +427,39 @@ func TestUnsupportedConfig(t *testing.T) {
 	}
 	// Her durum: değişiklik ve hata iletisinde geçmesi gereken bileşen/tür adı.
 	cases := map[string]struct {
-		f          func(m map[string]any)
-		containing string
+		f    func(m map[string]any)
+		code messages.Code
 	}{
-		"normalizer": {func(m map[string]any) { m["normalizer"] = map[string]any{"type": "Benzersiz"} }, "normalleştirici (normalizer) türü \"Benzersiz\""},
+		"normalizer": {func(m map[string]any) { m["normalizer"] = map[string]any{"type": "Benzersiz"} }, messages.H5202},
 		"ön bölücü": {func(m map[string]any) {
 			pt := m["pre_tokenizer"].(map[string]any)["pretokenizers"].([]any)
 			pt[0] = map[string]any{"type": "UnicodeScripts"}
-		}, "ön bölücü (pre_tokenizer) türü \"UnicodeScripts\""},
+		}, messages.H5202},
 		"desen": {func(m map[string]any) {
 			pt := m["pre_tokenizer"].(map[string]any)["pretokenizers"].([]any)
 			pt[0].(map[string]any)["pattern"] = map[string]any{"Regex": `(a)\1`}
-		}, "geri başvuru"},
-		"model türü":     {func(m map[string]any) { m["model"].(map[string]any)["type"] = "Benzersiz" }, "model türü \"Benzersiz\""},
-		"dropout":        {func(m map[string]any) { m["model"].(map[string]any)["dropout"] = 0.1 }, "dropout"},
-		"çözücü":         {func(m map[string]any) { m["decoder"] = map[string]any{"type": "CTC"} }, "çözücü (decoder) türü \"CTC\""},
-		"son işlem":      {func(m map[string]any) { m["post_processor"] = map[string]any{"type": "Yok"} }, "son işleyici (post_processor) türü \"Yok\""},
-		"dolgu":          {func(m map[string]any) { m["padding"] = map[string]any{"length": 8} }, "padding"},
-		"şablon kimliği": {func(m map[string]any) { m["post_processor"] = template(1 << 30) }, "sözlükte yok"},
-		"taşan kimlik":   {func(m map[string]any) { m["post_processor"] = template(1<<32 + 1) }, "kimliği geçersiz"},
+		}, messages.H5264},
+		"model türü":     {func(m map[string]any) { m["model"].(map[string]any)["type"] = "Benzersiz" }, messages.H5202},
+		"dropout":        {func(m map[string]any) { m["model"].(map[string]any)["dropout"] = 0.1 }, messages.H5216},
+		"çözücü":         {func(m map[string]any) { m["decoder"] = map[string]any{"type": "CTC"} }, messages.H5202},
+		"son işlem":      {func(m map[string]any) { m["post_processor"] = map[string]any{"type": "Yok"} }, messages.H5202},
+		"dolgu":          {func(m map[string]any) { m["padding"] = map[string]any{"length": 8} }, messages.H5276},
+		"şablon kimliği": {func(m map[string]any) { m["post_processor"] = template(1 << 30) }, messages.H5278},
+		"taşan kimlik":   {func(m map[string]any) { m["post_processor"] = template(1<<32 + 1) }, messages.H5231},
 		"cls kimliği": {func(m map[string]any) {
 			m["post_processor"] = map[string]any{"type": "BertProcessing", "sep": []any{"[SEP]", 1 << 30}, "cls": []any{"[CLS]", 0}}
-		}, "sözlükte yok"},
+		}, messages.H5278},
 		"birleştirme": {func(m map[string]any) {
 			mm := m["model"].(map[string]any)
 			mm["merges"] = append(mm["merges"].([]any), []any{"yokyok", "zzz"})
-		}, "dağarcıkta olmayan"},
+		}, messages.H5219},
 	}
 	for ad, d := range cases {
 		_, err := Parse(replace(d.f))
 		if err == nil {
 			t.Errorf("%s: hata bekleniyordu", ad)
-		} else if !strings.Contains(err.Error(), d.containing) || !utf8.ValidString(err.Error()) {
-			t.Errorf("%s: hata iletisi %q, %q içermeli", ad, err.Error(), d.containing)
+		} else if !messages.Has(err, d.code) || !utf8.ValidString(err.Error()) {
+			t.Errorf("%s: hata %q, %s kodunu içermeli", ad, err.Error(), d.code)
 		}
 	}
 	if _, err := Parse(replace(func(map[string]any) {})); err != nil {

@@ -3,11 +3,12 @@ package tokenize
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Gerçek parçalayıcılarda görülen desenler.
@@ -23,11 +24,17 @@ func setAndRestore(t *testing.T, a RegexSettings) {
 	t.Cleanup(func() { SetRegexSettings(prevVal) })
 }
 
+// riskRejected err'in, pattern için iç içe niceleyici nedeniyle reddedilmiş olduğunu söyler.
+func riskRejected(err error, pattern string) bool {
+	m, ok := messages.As(err)
+	return ok && m.Code == messages.H5248 && m.Args[0] == pattern && m.Args[1] == messages.Text(messages.H5288)
+}
+
 func TestRiskyPatternsRejected(t *testing.T) {
 	risky := []string{`(a+)+$`, `(a*)*b`, `(\w+\s*)+$`, `(a+|b)+c`, `((ab)*)*x`, `(?:x?y*)+z`, `(a{1,})+`, `(x+x+)+y`, `(\d+\.?\d*)+$`}
 	for _, d := range risky {
 		_, err := CompileRegex(d)
-		if err == nil || !strings.Contains(err.Error(), "iç içe sınırsız niceleyici") || !strings.Contains(err.Error(), fmt.Sprintf("%q", d)) {
+		if !riskRejected(err, d) {
 			t.Errorf("%q reddedilmeliydi, hata: %v", d, err)
 		}
 	}
@@ -72,7 +79,7 @@ func TestStepLimitTriggers(t *testing.T) {
 			t.Errorf("%q: adım sınırı hatası bekleniyordu, alınan %v", d.pattern, err)
 			continue
 		}
-		if h.Pattern != d.pattern || !strings.Contains(err.Error(), "bayt konumundan") {
+		if h.Pattern != d.pattern || err.Error() != messages.Text(messages.H5270, reShorten(d.pattern), h.Pos, h.Budget) {
 			t.Errorf("%q: hata iletisi deseni/konumu içermiyor: %v", d.pattern, err)
 		}
 		if duration > 5*time.Second {
@@ -133,7 +140,7 @@ func TestTokenizerStepLimit(t *testing.T) {
 	// Riskli (iç içe) desenli dosya varsayılan ayarla yüklenmez.
 	pt[0].(map[string]any)["pattern"] = map[string]any{"Regex": `(\w+\s*)+$`}
 	fresh, _ = json.Marshal(raw)
-	if _, err := Parse(fresh); err == nil || !strings.Contains(err.Error(), "reddedildi") {
+	if _, err := Parse(fresh); !messages.Has(err, messages.H5248) {
 		t.Fatalf("riskli desenli dosya reddedilmeliydi: %v", err)
 	}
 }

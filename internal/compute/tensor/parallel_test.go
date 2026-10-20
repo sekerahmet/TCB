@@ -341,7 +341,7 @@ func TestWorkerPanicReachesCaller(t *testing.T) {
 			fn()
 		}
 		var executed atomic.Int64
-		m := panicMessage(func() {
+		err := panicError(func() {
 			execute(func() {
 				distribute(4, 64, func(_, c int) {
 					executed.Add(1)
@@ -351,8 +351,8 @@ func TestWorkerPanicReachesCaller(t *testing.T) {
 				})
 			})
 		})
-		if m != "tensor: işçide hata" {
-			t.Fatalf("iç içe=%v: panik çağırana taşınmadı: %q", nested, m)
+		if err == nil || err.Error() != "tensor: işçide hata" {
+			t.Fatalf("iç içe=%v: panik çağırana taşınmadı: %v", nested, err)
 		}
 		// Havuz hâlâ çalışır ve bütün parçaları yürütür.
 		var n atomic.Int64

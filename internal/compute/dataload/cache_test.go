@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // sizedFile, verilen boyutta (bayt) sahte .npy dosyası yazar.
@@ -77,8 +79,7 @@ func TestCacheQuotaAndLRU(t *testing.T) {
 	// açık hata (kaynağa sessizce geri dönülmez).
 	_, ba = al(a)
 	_, bc = al(c)
-	if y, _, err := o.Fetch(ctx, b); !errors.Is(err, ErrCacheInsufficient) || y != "" ||
-		!strings.Contains(err.Error(), "kota") {
+	if y, _, err := o.Fetch(ctx, b); !errors.Is(err, ErrCacheInsufficient) || y != "" {
 		t.Fatalf("yer yokken ErrOnbellekYetersiz bekleniyordu: %q %v", y, err)
 	}
 	ba()
@@ -298,7 +299,7 @@ func TestCacheCopyValidation(t *testing.T) {
 	// Beklenenden kısa kopya (kaynak kopya sırasında kısalmış gibi) reddedilir
 	// ve geride ne hedef ne geçici dosya kalır.
 	err := copyFile(context.Background(), a, target, size+10, st.ModTime())
-	if err == nil || !strings.Contains(err.Error(), "eksik") {
+	if !messages.Has(err, messages.H5014) {
 		t.Fatalf("kısa kopya hatası bekleniyordu: %v", err)
 	}
 	if _, err := os.Stat(target); !os.IsNotExist(err) {

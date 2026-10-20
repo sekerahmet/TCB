@@ -1,8 +1,9 @@
 package tensor
 
 import (
-	"fmt"
 	"sync/atomic"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Veri türleri ve karışık hassasiyet (cihazdan bağımsız katman).
@@ -32,7 +33,7 @@ var gradDTypeSetting atomic.Uint32 // DType; sıfır değer Float32
 // Süreç geneli bir ayardır.
 func SetGradDType(dt DType) {
 	if !dt.IsFloat() {
-		panic(fmt.Sprintf("tensor: gradyan türü kayan noktalı olmalı, %s verildi", dt))
+		panic(messages.New(messages.H3034, dt))
 	}
 	gradDTypeSetting.Store(uint32(dt))
 }
@@ -54,7 +55,7 @@ func resultDType(a, b DType) DType {
 func NewOf(dt DType, data []float32, shape ...int) *Tensor {
 	be := defaultBackend()
 	if len(data) != allocSizeOn(be, isCreate, shape, dt) {
-		panic(fmt.Sprintf("tensor: %d eleman %v şekline uymuyor", len(data), shape))
+		panic(messages.New(messages.H3035, len(data), shape))
 	}
 	return fromStorage(be, be.FromHost(data, dt), shape)
 }
@@ -72,7 +73,7 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 		return t
 	}
 	if !dt.IsFloat() {
-		panic(fmt.Sprintf("tensor: Cast yalnızca kayan noktalı türlere yapılabilir, %s verildi", dt))
+		panic(messages.New(messages.H3036, dt))
 	}
 	sy := counterStart(t.be, OpKindCast).start()
 	out := emptyOf(isCast, t.be, t.shape, dt)
@@ -112,7 +113,7 @@ func (t *Tensor) CastShared(dt DType) *Tensor {
 // o türden bir tensörün Data() değerleri kayıpsız geri çevrilir.
 func Bits16(dt DType, v float32) uint16 {
 	if dt != BFloat16 && dt != Float16 {
-		panic(fmt.Sprintf("tensor: Bits16 yalnızca bfloat16/float16 içindir, %s verildi", dt))
+		panic(messages.New(messages.H3037, dt))
 	}
 	return narrowOne(v, dt)
 }
@@ -126,5 +127,5 @@ func FromBits16(dt DType, h uint16) float32 {
 	case Float16:
 		return f16ToF32(h)
 	}
-	panic(fmt.Sprintf("tensor: FromBits16 yalnızca bfloat16/float16 içindir, %s verildi", dt))
+	panic(messages.New(messages.H3038, dt))
 }

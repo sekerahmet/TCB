@@ -2,6 +2,8 @@
 
 package tensor
 
+import "github.com/sekerahmet/TCB/internal/lang/messages"
+
 // Taşınabilir mikro çekirdek (amd64 dışındaki mimariler).
 const (
 	mr = 4 // mikro çekirdek satır sayısı
@@ -75,7 +77,7 @@ const directB = false
 // başka adım vermez.
 func microAB(kb int, a []float32, rs, ks int, bp []float32, ldb int, c []float32, ldc, mm, nn int) {
 	if ldb != nr {
-		panic("tensor: microAB paketlenmemiş B ile çağrıldı (iç hata)")
+		panic(messages.Internal("microAB called with unpacked B"))
 	}
 	microAGo(kb, a, rs, ks, bp, c, ldc, mm, nn)
 }

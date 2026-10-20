@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -55,7 +57,7 @@ func newWordPiece(raw json.RawMessage) (Model, error) {
 	}
 	id, ok := s[unk]
 	if !ok {
-		return nil, fmt.Errorf("bilinmeyen parça %q dağarcıkta yok", unk)
+		return nil, messages.New(messages.H5217, unk)
 	}
 	w.unknown = id
 	return w, nil
@@ -183,15 +185,15 @@ func newUnigram(raw json.RawMessage) (Model, error) {
 	for i, h := range m.Vocab {
 		var pair []json.RawMessage
 		if err := json.Unmarshal(h, &pair); err != nil || len(pair) != 2 {
-			return nil, fmt.Errorf("%d. dağarcık girdisi [parça, puan] biçiminde değil", i)
+			return nil, messages.New(messages.H5224, i)
 		}
 		var tok string
 		var score float64
 		if err := json.Unmarshal(pair[0], &tok); err != nil {
-			return nil, fmt.Errorf("%d. dağarcık girdisi: %w", i, err)
+			return nil, messages.New(messages.H5225, i, err)
 		}
 		if err := json.Unmarshal(pair[1], &score); err != nil {
-			return nil, fmt.Errorf("%d. dağarcık girdisi: %w", i, err)
+			return nil, messages.New(messages.H5225, i, err)
 		}
 		u.tokenList = append(u.tokenList, tok)
 		u.score = append(u.score, score)
@@ -215,7 +217,7 @@ func newUnigram(raw json.RawMessage) (Model, error) {
 	}
 	if m.UnkID != nil {
 		if *m.UnkID < 0 || *m.UnkID >= len(u.tokenList) {
-			return nil, fmt.Errorf("unk_id %d dağarcık dışında", *m.UnkID)
+			return nil, messages.New(messages.H5226, *m.UnkID)
 		}
 		u.unknown = int32(*m.UnkID)
 	}

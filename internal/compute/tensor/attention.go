@@ -1,8 +1,9 @@
 package tensor
 
 import (
-	"fmt"
 	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Birleşik ölçekli nokta çarpımı dikkati (cihazdan bağımsız katman).
@@ -82,7 +83,7 @@ type AttentionTiler interface {
 func SetAttentionBlocks(dev Device, q, k int) {
 	t, ok := BackendFor(dev).(AttentionTiler)
 	if !ok {
-		panic(fmt.Sprintf("tensor: %s arka ucunun dikkat blok boyutları ayarlanamaz", dev))
+		panic(messages.New(messages.H3001, dev))
 	}
 	t.SetAttentionBlocks(q, k)
 }
@@ -118,7 +119,7 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 	var maskVal Storage
 	if opt.Mask != nil {
 		if opt.Mask.Device() != q.Device() {
-			panic(fmt.Sprintf("tensor: Attention maskesi farklı cihazda (%s, %s)", opt.Mask.Device(), q.Device()))
+			panic(messages.New(messages.H3002, opt.Mask.Device(), q.Device()))
 		}
 		maskVal = prepareMask(be, opt.Mask, q.shape, &p)
 	}
@@ -156,14 +157,14 @@ func AttentionOut(q, k, v *Tensor, opt AttentionOptions, outType DType) *Tensor 
 func attentionParams(q, k, v *Tensor, opt AttentionOptions) AttentionParams {
 	nd := len(q.shape)
 	if nd < 2 || len(k.shape) != nd || len(v.shape) != nd {
-		panic(fmt.Sprintf("tensor: Attention q, k, v aynı sayıda (en az 2) eksen ister: %v, %v, %v", q.shape, k.shape, v.shape))
+		panic(messages.New(messages.H3003, q.shape, k.shape, v.shape))
 	}
 	lead := 0
 	if nd > 3 {
 		lead = nd - 3
 	}
 	if !sameShape(q.shape[:lead], k.shape[:lead]) || !sameShape(q.shape[:lead], v.shape[:lead]) {
-		panic(fmt.Sprintf("tensor: Attention öndeki eksenler eşit olmalı: %v, %v, %v", q.shape, k.shape, v.shape))
+		panic(messages.New(messages.H3004, q.shape, k.shape, v.shape))
 	}
 	p := AttentionParams{Batch: numelOf(q.shape[:lead]), H: 1, Hkv: 1,
 		Tq: q.shape[nd-2], Dh: q.shape[nd-1], Tk: k.shape[nd-2], Dv: v.shape[nd-1],
@@ -171,20 +172,20 @@ func attentionParams(q, k, v *Tensor, opt AttentionOptions) AttentionParams {
 	if nd >= 3 {
 		p.H, p.Hkv = q.shape[nd-3], k.shape[nd-3]
 		if v.shape[nd-3] != p.Hkv {
-			panic(fmt.Sprintf("tensor: Attention k ve v baş sayıları farklı: %v, %v", k.shape, v.shape))
+			panic(messages.New(messages.H3005, k.shape, v.shape))
 		}
 	}
 	if k.shape[nd-1] != p.Dh {
-		panic(fmt.Sprintf("tensor: Attention q ve k'nin son ekseni eşit olmalı: %v, %v", q.shape, k.shape))
+		panic(messages.New(messages.H3006, q.shape, k.shape))
 	}
 	if v.shape[nd-2] != p.Tk {
-		panic(fmt.Sprintf("tensor: Attention k ve v'nin anahtar sayısı eşit olmalı: %v, %v", k.shape, v.shape))
+		panic(messages.New(messages.H3007, k.shape, v.shape))
 	}
 	if p.Hkv == 0 || p.H%p.Hkv != 0 {
-		panic(fmt.Sprintf("tensor: Attention: sorgu baş sayısı (%d), anahtar/değer baş sayısının (%d) katı olmalı", p.H, p.Hkv))
+		panic(messages.New(messages.H3008, p.H, p.Hkv))
 	}
 	if p.Window < 0 {
-		panic(fmt.Sprintf("tensor: Attention penceresi negatif olamaz (%d)", p.Window))
+		panic(messages.New(messages.H3009, p.Window))
 	}
 	if p.Scale == 0 {
 		p.Scale = float32(1 / math.Sqrt(float64(max(p.Dh, 1))))
@@ -200,12 +201,12 @@ func prepareMask(be Backend, m *Tensor, qShape []int, p *AttentionParams) Storag
 		whole = []int{p.Tq, p.Tk}
 	}
 	if len(m.shape) > len(whole) {
-		panic(fmt.Sprintf("tensor: Attention maskesi %v, %v şekline yayınlanamaz", m.shape, whole))
+		panic(messages.New(messages.H3010, m.shape, whole))
 	}
 	for i := 1; i <= len(m.shape); i++ {
 		d := m.shape[len(m.shape)-i]
 		if d != 1 && d != whole[len(whole)-i] {
-			panic(fmt.Sprintf("tensor: Attention maskesi %v, %v şekline yayınlanamaz", m.shape, whole))
+			panic(messages.New(messages.H3010, m.shape, whole))
 		}
 	}
 	s := allocUninit(be, m.Numel(), Float32)

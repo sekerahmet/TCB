@@ -2,10 +2,11 @@ package dataload
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"sync"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Prefetcher, bir Kaynak'tan sonraki toplu işleri arka plandaki tek bir
@@ -177,7 +178,7 @@ func (o *Prefetcher) closeFn(duration time.Duration) error {
 		select {
 		case <-finished:
 		case <-when.C:
-			return fmt.Errorf("veri: önden yükleyici %v içinde durmadı (takılan okuma?); kaynak kapatılmadı", duration)
+			return messages.New(messages.H5073, duration)
 		}
 	} else {
 		o.wg.Wait()

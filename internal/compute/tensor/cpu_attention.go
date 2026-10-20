@@ -1,11 +1,12 @@
 package tensor
 
 import (
-	"fmt"
 	"math"
 	"sort"
 	"sync"
 	"sync/atomic"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -73,11 +74,10 @@ func attnBlocks(p *AttentionParams) (bq, bk int) {
 	return bq, bk
 }
 
-// SetAttentionBlocks (AttentionTiler) blok boyutlarını ayarlar; 0 varsayılana
-// döner. Süreç genelidir.
+// SetAttentionBlocks (AttentionTiler) blok boyutlarını ayarlar; 0 varsayılana döner. Süreç genelidir.
 func (cpuBackend) SetAttentionBlocks(q, k int) {
 	if q < 0 || k < 0 {
-		panic(fmt.Sprintf("tensor: dikkat blok boyutları negatif olamaz (%d, %d)", q, k))
+		panic(messages.New(messages.H3011, q, k))
 	}
 	cpuAttnBlockQ.Store(int32(q))
 	cpuAttnBlockK.Store(int32(k))

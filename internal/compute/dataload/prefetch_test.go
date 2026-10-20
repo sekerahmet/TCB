@@ -7,10 +7,11 @@ import (
 	"io"
 	"reflect"
 	"runtime"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // countingSource, sırayla 0,1,2,... değerli toplu işler üretir; sinir'e
@@ -274,7 +275,7 @@ func TestPrefetcherCloseTimeout(t *testing.T) {
 	waitSignal(t, k.started, "takılan okumanın başlaması")
 	begin := time.Now()
 	err := o.CloseTimeout(30 * time.Millisecond)
-	if err == nil || !strings.Contains(err.Error(), "durmadı") {
+	if !messages.Has(err, messages.H5073) {
 		t.Fatalf("zaman aşımı hatası bekleniyordu: %v", err)
 	}
 	if elapsed := time.Since(begin); elapsed > time.Second {

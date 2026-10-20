@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Veri türü (bfloat16/float16) ve sürüm denetimi testleri.
@@ -363,18 +365,7 @@ func TestVersionCheck(t *testing.T) {
 	if W.Version() == v {
 		t.Fatal("iyileştirici adımı sürümü artırmalı")
 	}
-	message := ""
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				message = r.(string)
-			}
-		}()
-		l.Backward()
-	}()
-	if !strings.Contains(message, "ileri hesaptan sonra yerinde değiştirildi; geri yayılım yanlış sonuç verirdi") {
-		t.Fatalf("sürüm hatası bekleniyordu, alınan: %q", message)
-	}
+	panicCode(t, "sürüm hatası", messages.H3012, func() { l.Backward() })
 
 	// Set de yerinde değişikliktir; görünümler depolamayı (ve sürümü) paylaşır.
 	a := Randn(rng, 3).SetRequiresGrad(true)

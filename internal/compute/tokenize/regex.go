@@ -1,12 +1,13 @@
 package tokenize
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"sync"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -77,17 +78,17 @@ func CompileRegex(pattern string) (*Regex, error) {
 	a := &reParser{s: []rune(pattern)}
 	root, err := a.option()
 	if err != nil {
-		return nil, fmt.Errorf("düzenli ifade %q: %w", reShorten(pattern), err)
+		return nil, messages.New(messages.H5245, reShorten(pattern), err)
 	}
 	if a.i < len(a.s) {
-		return nil, fmt.Errorf("düzenli ifade %q: %d. konumda beklenmeyen ')'", reShorten(pattern), a.i)
+		return nil, messages.New(messages.H5246, reShorten(pattern), a.i)
 	}
 	if reTreeDepth(root) > 2*reMaxDepth {
-		return nil, fmt.Errorf("düzenli ifade %q: iç içe derinlik sınırı (%d) aşıldı", reShorten(pattern), reMaxDepth)
+		return nil, messages.New(messages.H5247, reShorten(pattern), reMaxDepth)
 	}
 	failure, warnings := reRiskAnalyze(root)
 	if failure != "" && !CurrentRegexSettings().AllowRiskyPatterns {
-		return nil, fmt.Errorf("düzenli ifade %q reddedildi: %s (izin için DuzIfadeAyarlari.RiskliDesenIzni)", reShorten(pattern), failure)
+		return nil, messages.New(messages.H5248, reShorten(pattern), failure)
 	}
 	if failure != "" {
 		warnings = append([]string{failure}, warnings...)
@@ -161,7 +162,7 @@ type reParser struct {
 func (a *reParser) enter() error {
 	a.depth++
 	if a.depth > reMaxDepth {
-		return fmt.Errorf("iç içe derinlik sınırı (%d) aşıldı", reMaxDepth)
+		return messages.New(messages.H5249, reMaxDepth)
 	}
 	return nil
 }
@@ -230,7 +231,7 @@ func (a *reParser) quantified() (reNode, error) {
 	}
 	for accumulated := 0; !a.last(); accumulated++ {
 		if accumulated >= reMaxDepth {
-			return nil, fmt.Errorf("üst üste niceleyici sınırı (%d) aşıldı", reMaxDepth)
+			return nil, messages.New(messages.H5250, reMaxDepth)
 		}
 		en, parent := 0, 0
 		begin := a.i
@@ -262,7 +263,7 @@ func (a *reParser) quantified() (reNode, error) {
 			a.i++
 		}
 		if _, ok := d.(*reAnchor); ok {
-			return nil, fmt.Errorf("çapa nicelenemez")
+			return nil, messages.New(messages.H5251)
 		}
 		d = t
 	}
@@ -372,7 +373,7 @@ func (a *reParser) item() (reNode, error) {
 	case '\\':
 		return a.escape()
 	case '*', '+', '?':
-		return nil, fmt.Errorf("%d. konumda hedefsiz niceleyici %q", a.i, c)
+		return nil, messages.New(messages.H5252, a.i, c)
 	}
 	a.i++
 	return a.charNode(c), nil
@@ -403,7 +404,7 @@ func (a *reParser) group() (reNode, error) {
 			wrap = func(d reNode) reNode {
 				n, bounded := reMaxLen(d)
 				if !bounded {
-					failure = fmt.Errorf("geriye bakma içinde sınırsız uzunluk desteklenmiyor")
+					failure = messages.New(messages.H5253)
 				}
 				return &reLook{sub: d, back: true, negated: negated, length: n}
 			}
@@ -412,7 +413,7 @@ func (a *reParser) group() (reNode, error) {
 				return nil, err
 			}
 			if a.look() != ')' {
-				return nil, fmt.Errorf("kapanmamış grup")
+				return nil, messages.New(messages.H5254)
 			}
 			a.i++
 			s := wrap(d)
@@ -430,7 +431,7 @@ func (a *reParser) group() (reNode, error) {
 				a.i++
 			}
 			if a.last() {
-				return nil, fmt.Errorf("adlı grup adı kapanmamış")
+				return nil, messages.New(messages.H5255)
 			}
 			a.i++
 		case a.ahead("#"):
@@ -438,7 +439,7 @@ func (a *reParser) group() (reNode, error) {
 				a.i++
 			}
 			if a.last() {
-				return nil, fmt.Errorf("yorum kapanmamış")
+				return nil, messages.New(messages.H5256)
 			}
 			a.i++
 			return nil, nil
@@ -454,12 +455,12 @@ func (a *reParser) group() (reNode, error) {
 				case 'm':
 					a.dotNewline = opened
 				default:
-					return nil, fmt.Errorf("desteklenmeyen grup ya da bayrak %q", string(a.look()))
+					return nil, messages.New(messages.H5257, string(a.look()))
 				}
 				a.i++
 			}
 			if a.last() {
-				return nil, fmt.Errorf("kapanmamış grup")
+				return nil, messages.New(messages.H5254)
 			}
 			if a.look() == ')' {
 				// Bayrak grubun geri kalanına uygulanır: eski değere dönülmez.
@@ -476,7 +477,7 @@ func (a *reParser) group() (reNode, error) {
 		return nil, err
 	}
 	if a.look() != ')' {
-		return nil, fmt.Errorf("kapanmamış grup")
+		return nil, messages.New(messages.H5254)
 	}
 	a.i++
 	return wrap(d), nil
@@ -531,7 +532,7 @@ func (a *reParser) readHex(minN, maxN int) (rune, error) {
 		j++
 	}
 	if j-a.i < minN {
-		return 0, fmt.Errorf("geçersiz onaltılık kaçış")
+		return 0, messages.New(messages.H5258)
 	}
 	n, _ := strconv.ParseUint(string(a.s[a.i:j]), 16, 32)
 	a.i = j
@@ -564,7 +565,7 @@ func (a *reParser) escapeChar(c rune) (rune, bool, error) {
 				return 0, false, err
 			}
 			if a.look() != '}' {
-				return 0, false, fmt.Errorf("\\x{...} kapanmamış")
+				return 0, false, messages.New(messages.H5259)
 			}
 			a.i++
 			return r, true, nil
@@ -607,14 +608,14 @@ func (a *reParser) escapeClass(c rune) (func(rune) bool, bool, error) {
 		return reNot(reHex), true, nil
 	case 'p', 'P':
 		if a.look() != '{' {
-			return nil, false, fmt.Errorf("\\%c sonrasında '{' bekleniyordu", c)
+			return nil, false, messages.New(messages.H5260, string(c))
 		}
 		j := a.i + 1
 		for j < len(a.s) && a.s[j] != '}' {
 			j++
 		}
 		if j >= len(a.s) {
-			return nil, false, fmt.Errorf("\\%c{...} kapanmamış", c)
+			return nil, false, messages.New(messages.H5261, string(c))
 		}
 		ad := string(a.s[a.i+1 : j])
 		a.i = j + 1
@@ -651,7 +652,7 @@ func reNot(f func(rune) bool) func(rune) bool { return func(r rune) bool { retur
 func (a *reParser) escape() (reNode, error) {
 	a.i++ // '\'
 	if a.last() {
-		return nil, fmt.Errorf("desen ters bölüyle bitiyor")
+		return nil, messages.New(messages.H5262)
 	}
 	c := a.look()
 	a.i++
@@ -667,10 +668,10 @@ func (a *reParser) escape() (reNode, error) {
 	case 'B':
 		return &reAnchor{'B'}, nil
 	case 'G', 'K', 'X', 'R', 'k', 'g', 'y', 'Y', 'N', 'O':
-		return nil, fmt.Errorf("\\%c kaçışı desteklenmiyor", c)
+		return nil, messages.New(messages.H5263, string(c))
 	}
 	if c >= '1' && c <= '9' {
-		return nil, fmt.Errorf("geri başvuru (\\%c) desteklenmiyor", c)
+		return nil, messages.New(messages.H5264, string(c))
 	}
 	if f, ok, err := a.escapeClass(c); err != nil {
 		return nil, err
@@ -712,7 +713,7 @@ func (a *reParser) classInner() (func(rune) bool, bool, error) {
 	first := true
 	for {
 		if a.last() {
-			return nil, false, fmt.Errorf("karakter sınıfı kapanmamış")
+			return nil, false, messages.New(messages.H5265)
 		}
 		c := a.look()
 		if c == ']' && !first {
@@ -763,7 +764,7 @@ func (a *reParser) classInner() (func(rune) bool, bool, error) {
 				continue
 			}
 			if bit < begin {
-				return nil, false, fmt.Errorf("geçersiz karakter aralığı")
+				return nil, false, messages.New(messages.H5266)
 			}
 			lo, hi := begin, bit
 			pieces = append(pieces, func(r rune) bool { return r >= lo && r <= hi })
@@ -810,7 +811,7 @@ func (a *reParser) classItem() (rune, func(rune) bool, error) {
 		return c, nil, nil
 	}
 	if a.last() {
-		return 0, nil, fmt.Errorf("sınıf ters bölüyle bitiyor")
+		return 0, nil, messages.New(messages.H5267)
 	}
 	c = a.look()
 	a.i++
@@ -867,7 +868,7 @@ func unicodeProperty(ad string) (func(rune) bool, error) {
 	if f, ok := reProps()[n]; ok {
 		return f, nil
 	}
-	return nil, fmt.Errorf("bilinmeyen Unicode özelliği %q", ad)
+	return nil, messages.New(messages.H5268, ad)
 }
 
 var (

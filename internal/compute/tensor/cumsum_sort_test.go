@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"slices"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Birikimli toplam ve sıralama: float64 başvuru, eksenler, gradyanlar, eşitlik ve NaN
@@ -155,8 +157,8 @@ func TestTopKGrad(t *testing.T) {
 
 func TestSortErrors(t *testing.T) {
 	x := New([]float32{1, 2, 3}, 3)
-	panicContains(t, "k büyük", "k 0 ile 3 arasında", func() { x.TopK(4, 0) })
-	panicContains(t, "k negatif", "k 0 ile 3 arasında", func() { x.TopK(-1, 0) })
+	panicCode(t, "k büyük", messages.H3027, func() { x.TopK(4, 0) })
+	panicCode(t, "k negatif", messages.H3027, func() { x.TopK(-1, 0) })
 	bf := NewOf(Float16, []float32{3, 1, 2}, 3)
 	v, idx := bf.TopK(2, 0)
 	if v.DType() != Float16 || idx.DType() != Float32 {
