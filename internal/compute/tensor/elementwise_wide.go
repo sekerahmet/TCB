@@ -110,7 +110,7 @@ func Compare(a, b *Tensor, op BinOp) *Tensor {
 	if op < OpLt || op > OpGe {
 		panic(messages.Internal(fmt.Sprintf("Compare needs a comparison op, got %d", op)))
 	}
-	be := sameDevice("karşılaştırma", a, b)
+	be := sameDevice("compare", a, b)
 	sy := counterStart(be, OpKindAdd+OpKind(op)).start()
 	outShape := broadcastShapes(a.shape, b.shape)
 	out := emptyOf(isCompare, be, outShape, Float32)
@@ -134,7 +134,7 @@ func (t *Tensor) CompareScalar(s float32, op BinOp, onRight bool) *Tensor {
 // koşulun doğru, b'ye yanlış olduğu yerlerden akar (diğer yerlerin terimi tam 0'dır,
 // gradyandaki NaN öbür dala sızmaz); koşul türev almaz.
 func Where(c, a, b *Tensor) *Tensor {
-	be := sameDevice("koşullu seçim", c, a, b)
+	be := sameDevice("where", c, a, b)
 	sy := counterStart(be, OpKindWhere).start()
 	outShape := broadcastShapes(broadcastShapes(c.shape, a.shape), b.shape)
 	out := emptyOf(isSelect, be, outShape, resultDType(a.dtyp, b.dtyp))

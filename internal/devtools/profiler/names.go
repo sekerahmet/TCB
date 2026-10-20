@@ -12,7 +12,7 @@ func tensorOps() string { return messages.Text(messages.H8206, codes.Name(codes.
 // opName tensör işleminin raporda görünen adıdır. Dildeki bir yerleşiğe ya da metoda
 // karşılık gelen işlemler o adla (kod listesinden) yazılır: kullanıcı kendi kodunda gördüğü
 // adı görür, ad çevrilince rapor da çevrilir. Karşılığı tek bir ad olmayanlar (işleçler,
-// görünümler, kopyalar) Türkçe açıklamasıyla yazılır.
+// görünümler, kopyalar) açıklama iletisiyle yazılır.
 func opName(is tensor.OpKind) string {
 	if k, ok := opCode[is]; ok {
 		return codes.Name(k)
@@ -45,7 +45,27 @@ func opName(is tensor.OpKind) string {
 	case tensor.OpKindSGD:
 		return codes.Name(codes.T401) + "." + codes.Name(codes.Y500)
 	}
-	return is.String()
+	if c, ok := opLabel[is]; ok {
+		return messages.Text(c)
+	}
+	return is.Code()
+}
+
+// opLabel, dilde tek bir ad olmayan ve işleç olmayan işlemlerin açıklama iletileridir.
+// Ölçüt: dilin bir yerleşiğinin/metodunun adı olan işlem ad koduyla (opCode), yalnızca
+// açıklaması olan ileti koduyla yazılır; böylece her etiket dile göre çevrilir.
+var opLabel = map[tensor.OpKind]messages.Code{
+	tensor.OpKindOther:      messages.H8223,
+	tensor.OpKindPow:        messages.H8224,
+	tensor.OpKindAddScalar:  messages.H8225,
+	tensor.OpKindMulScalar:  messages.H8226,
+	tensor.OpKindRSubScalar: messages.H8227,
+	tensor.OpKindDivScalar:  messages.H8228,
+	tensor.OpKindView:       messages.H8229,
+	tensor.OpKindToHost:     messages.H8252,
+	tensor.OpKindZeroGrad:   messages.H8253,
+	tensor.OpKindCopy:       messages.H3096,
+	tensor.OpKindCreate:     messages.H3089,
 }
 
 // opCode dildeki bir yerleşiğe birebir karşılık gelen işlemlerdir.

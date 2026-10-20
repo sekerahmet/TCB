@@ -1030,6 +1030,8 @@ const (
 	H7005 Code = 7005 // {fn}: tablo çok büyük (en fazla {limit} hücre)
 	H7006 Code = 7006 // {fn}: dosya yolu bekler, satır sonu içeren metin bir yol olamaz; CSV metninin kendisi {parse} ile ayrıştırılır
 	H7007 Code = 7007 // {error} (CSV metninin kendisi {parse} ile ayrıştırılır)
+	H7008 Code = 7008 // {value} sayısı JSON'a yazılamaz (JSON'da Tanımsız ya da sonsuz sayı yoktur)
+	H7009 Code = 7009 // sözlükte görünüşü aynı iki anahtar var ({key|q}); JSON'da anahtarlar metindir, ikisi aynı anahtar olurdu
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi
@@ -1352,6 +1354,13 @@ const (
 	H8220 Code = 8220 // profil durumu kodlanamadı: {error}
 	H8221 Code = 8221 // {path} yerine konamadı ({error}); dosya doğrudan yazılacak (okuyan nadiren yarım dosya görebilir)
 	H8222 Code = 8222 // {path} yazılamadı ({error}); program sürüyor, sonraki aralıkta yeniden denenecek
+	H8223 Code = 8223 // diğer
+	H8224 Code = 8224 // üs alma
+	H8225 Code = 8225 // skaler toplama
+	H8226 Code = 8226 // skaler çarpma
+	H8227 Code = 8227 // skalerden çıkarma
+	H8228 Code = 8228 // skaler bölme
+	H8229 Code = 8229 // görünüm
 	H8230 Code = 8230 // çıkış kodu {code}
 	H8231 Code = 8231 // Profil: {program} — {duration}{exit}
 	H8232 Code = 8232 // Adımlar: {note}
@@ -1374,6 +1383,8 @@ const (
 	H8249 Code = 8249 // GPU çekirdekleri: {note}
 	H8250 Code = 8250 // GPU çekirdekleri: cihazda {duration} (program süresine oranı {ratio})
 	H8251 Code = 8251 // {ms} ms/adım
+	H8252 Code = 8252 // konağa okuma
+	H8253 Code = 8253 // gradyan sıfırlama
 	H8260 Code = 8260 // izleniyor: {program} · {duration} · durdurmak için Ctrl+C
 	H8261 Code = 8261 // Adım       {note}
 	H8262 Code = 8262 // kalan ~{duration}

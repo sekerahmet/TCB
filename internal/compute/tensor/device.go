@@ -107,7 +107,7 @@ func (d DType) String() string {
 	case Int4:
 		return "int4"
 	}
-	return fmt.Sprintf("tür(%d)", uint8(d))
+	return fmt.Sprintf("dtype(%d)", uint8(d))
 }
 
 // Bits bir elemanın bit sayısı.

@@ -12,11 +12,11 @@ package jsonwrite
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"strconv"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Write değeri boşluksuz JSON olarak yazar.
@@ -82,7 +82,7 @@ func (y *writer) number(f float64) error {
 			y.text((&interp.FloatVal{Val: f}).Inspect())
 			return nil
 		}
-		return fmt.Errorf("%s sayısı JSON'a yazılamaz (JSON'da Tanımsız ya da sonsuz sayı yoktur)", (&interp.FloatVal{Val: f}).Inspect())
+		return messages.New(messages.H7008, (&interp.FloatVal{Val: f}).Inspect())
 	}
 	// encoding/json ile aynı biçim: küçük ve çok büyük sayılarda bilimsel yazım
 	format := byte('f')
@@ -151,7 +151,7 @@ func (y *writer) value(val interp.Value, depth int) error {
 			name := v.DisplayKey(k)
 			if seen != nil {
 				if seen[name] {
-					return fmt.Errorf("sözlükte görünüşü aynı iki anahtar var (%s); JSON'da anahtarlar metindir, ikisi aynı anahtar olurdu", strconv.Quote(name))
+					return messages.New(messages.H7009, name)
 				}
 				seen[name] = true
 			}
