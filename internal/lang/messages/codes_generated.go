@@ -1100,7 +1100,7 @@ const (
 	H7218 Code = 7218 // {fn} programda bir kez çağrılır; ilk çağrının döndürdüğü sözlüğü bir değişkende tutup kullanın
 	H7219 Code = 7219 // {fn}: seçenek adları {type} olmalıdır, {given} verildi
 	H7220 Code = 7220 // {fn}: {name|q} seçenek adı olamaz (boş olamaz, - ile başlayamaz, boşluk ya da = içeremez)
-	H7221 Code = 7221 // {fn}: {name|q} seçenek adı olamaz: --yardım ve -h seçenekleri listeler
+	H7221 Code = 7221 // {fn}: {name|q} seçenek adı olamaz: {help} ve -h seçenekleri listeler
 	H7222 Code = 7222 // {fn}: {name|q} seçenek adı olamaz: {type} tipinin bir üyesidir, ayar.{name} seçeneğin değerini değil üyeyi verirdi; başka bir ad seçin
 	H7223 Code = 7223 // {fn}: '{name}' seçeneğinin liste varsayılanı yalnızca aynı tipte {types} öğeler içerebilir; {index}. öğe {given}
 	H7224 Code = 7224 // {fn}: '{name}' seçeneğinin liste varsayılanındaki öğeler aynı tipte olmalı ({index}. öğe {given})

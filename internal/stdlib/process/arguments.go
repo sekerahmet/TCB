@@ -21,8 +21,26 @@ const argLimit = 1 << 20
 // Kullanıcının yazdığı argümanlardaki hatanın çıkış kodu ("yanlış kullanım").
 const usageErrorCode = 2
 
-// helpOptions seçenek listesini isteyen argümanlardır.
-var helpOptions = []string{"--yardım", "-h"}
+// Yardım seçeneği bir ad kodudur (K106): her yazım dilinin adı kabul edilir (--yardım de
+// --help de), yardımda ve iletilerde etkin dilin adı yazılır; -h simgedir.
+
+// helpOption yardım seçeneğinin etkin dildeki yazımıdır (--yardım).
+func helpOption() string { return "--" + codes.Name(codes.K106) }
+
+// isHelpArgument argümanın yardımı istediğidir: -h ya da herhangi bir dilde --yardım.
+func isHelpArgument(a string) bool {
+	if a == "-h" {
+		return true
+	}
+	name, ok := strings.CutPrefix(a, "--")
+	return ok && isHelpName(name)
+}
+
+// isHelpName adın (tiresiz) yardım seçeneğinin bir dildeki adı olduğudur.
+func isHelpName(name string) bool {
+	k, ok := codes.FindOption(name)
+	return ok && k == codes.K106
+}
 
 // applyArguments programın argümanlarını okur (okunmuş sayılırlar) ve seçeneklerin
 // değerleriyle yeni bir sözlük kurar. --yardım ya da hatalı argüman bir program çıkışı
@@ -35,7 +53,7 @@ func applyArguments(m *interp.VM, options []*option, description string) (*inter
 		command = m.ProgramCommand()
 	}
 	for _, a := range argv {
-		if a == helpOptions[0] || a == helpOptions[1] {
+		if isHelpArgument(a) {
 			return nil, &interp.ExitRequest{Code: 0, Message: helpText(command, description, options)}
 		}
 	}
@@ -46,7 +64,7 @@ func applyArguments(m *interp.VM, options []*option, description string) (*inter
 			msg += "."
 		}
 		return nil, &interp.ExitRequest{Code: usageErrorCode,
-			Message: messages.Text(messages.H7200, msg, command, helpOptions[0])}
+			Message: messages.Text(messages.H7200, msg, command, helpOption())}
 	}
 	result := interp.NewDictVal()
 	for _, s := range options {
@@ -143,7 +161,7 @@ func unknownOption(given string, options []*option) error {
 	if i := strings.IndexByte(given, '='); i >= 0 {
 		given = given[:i] + "=…"
 	}
-	candidates := []string{"yardım"}
+	candidates := []string{codes.Name(codes.K106)}
 	for _, s := range options {
 		candidates = append(candidates, s.name)
 	}
@@ -151,8 +169,8 @@ func unknownOption(given string, options []*option) error {
 	if o == "" && find(options, name) != nil {
 		o = name // -adım → --adım
 	}
-	if o == "" && (name == "help" || name == "h") {
-		o = "yardım"
+	if o == "" && name == "h" {
+		o = codes.Name(codes.K106)
 	}
 	if o == "" {
 		return messages.New(messages.H7208, shorten(given))

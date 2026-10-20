@@ -1095,7 +1095,7 @@
 "H7218": { "param": ["fn"] },
 "H7219": { "param": ["fn", "type", "given"] },
 "H7220": { "param": ["fn", "name"] },
-"H7221": { "param": ["fn", "name"] },
+"H7221": { "param": ["fn", "name", "help"] },
 "H7222": { "param": ["fn", "name", "type"] },
 "H7223": { "param": ["fn", "name", "types", "index", "given"] },
 "H7224": { "param": ["fn", "name", "index", "given"] },

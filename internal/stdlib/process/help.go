@@ -36,7 +36,7 @@ func helpText(command, description string, options []*option) string {
 		}
 		width = max(width, utf8.RuneCountInString(leftText[i]))
 	}
-	helpLeft := strings.Join(helpOptions, ", ")
+	helpLeft := helpOption() + ", -h"
 	leftText[len(options)] = helpLeft
 	width = max(width, utf8.RuneCountInString(helpLeft))
 	line := func(left, right string) {

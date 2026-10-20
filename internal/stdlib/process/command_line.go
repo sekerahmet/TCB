@@ -56,9 +56,6 @@ func (t optKind) typeCode() codes.Code {
 	return codes.A202
 }
 
-// reservedOptionNames --yardım'ın adlarıdır; seçenek adı olamazlar.
-var reservedOptionNames = []string{"yardım", "h"}
-
 func (d *State) commandLine(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.G801)
 	if err := bind.CheckNamed(fn, named, nameDesc, nameDescs); err != nil {
@@ -132,8 +129,8 @@ func checkOptionName(fn, name string) error {
 	if name == "" || strings.HasPrefix(name, "-") || strings.ContainsFunc(name, func(r rune) bool { return r == '=' || unicode.IsSpace(r) }) {
 		return messages.New(messages.H7220, fn, name)
 	}
-	if slices.Contains(reservedOptionNames, name) {
-		return messages.New(messages.H7221, fn, name)
+	if name == "h" || isHelpName(name) { // --yardım'ın bir dildeki adı ya da -h
+		return messages.New(messages.H7221, fn, name, helpOption())
 	}
 	if k, ok := codes.Find(codes.NamespaceMember, name); ok {
 		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.A206) {

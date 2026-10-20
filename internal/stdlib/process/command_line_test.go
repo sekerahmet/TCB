@@ -65,7 +65,7 @@ func TestCommandLineUsageErrors(t *testing.T) {
 	}{
 		{[]string{"--ogrenme_orani", "0.01"}, "Hata: bilinmeyen seçenek '--ogrenme_orani'. Bunu mu demek istediniz: '--öğrenme_oranı'? Seçenekler için: tr egit.tr --yardım"},
 		{[]string{"--öğrenme-oranı", "0.01"}, "Bunu mu demek istediniz: '--öğrenme_oranı'?"},
-		{[]string{"--help"}, "Bunu mu demek istediniz: '--yardım'?"},
+		{[]string{"--yardim"}, "Bunu mu demek istediniz: '--yardım'?"},
 		{[]string{"-adım", "5"}, "bilinmeyen seçenek '-adım'. Bunu mu demek istediniz: '--adım'?; seçenekler iki tireyle yazılır"},
 		{[]string{"--adım", "beş"}, `'--adım' Tam bekler, "beş" verildi. Seçenekler için`},
 		{[]string{"--adım", "3.0"}, `'--adım' Tam bekler, "3.0" verildi; tam sayı nokta ya da üs içermez.`},
@@ -97,7 +97,8 @@ Seçenekler:
   --etiket <Metin>            (varsayılan: yok)
   --hf_token <Metin>          (varsayılan: "")
   --yardım, -h                bu yardımı gösterir`
-	for _, arg := range [][]string{{"--yardım"}, {"-h"}, {"--adım", "x", "-h"}} {
+	// --yardım bir ad kodudur (K106): her yazım dilinin adı (--help) da yardımı verir.
+	for _, arg := range [][]string{{"--yardım"}, {"-h"}, {"--adım", "x", "-h"}, {"--help"}} {
 		_, err, _ := commandLine(t, code, arg...)
 		c, ok := interp.IsExitRequest(err)
 		if !ok || c.Code != 0 || c.Message != want {
@@ -126,6 +127,8 @@ func TestCommandLineSetupErrors(t *testing.T) {
 		{`komut_satırı({uzunluk: 3})`, messages.H7222},
 		{`komut_satırı({anahtarlar: 3})`, messages.H7222},
 		{`komut_satırı({yardım: doğru})`, messages.H7221},
+		{`komut_satırı({help: doğru})`, messages.H7221},
+		{`komut_satırı({h: doğru})`, messages.H7221},
 		{`komut_satırı({"a b": 1})`, messages.H7220},
 		{`komut_satırı({"-a": 1})`, messages.H7220},
 		{`komut_satırı({1: 1})`, messages.H7219},
