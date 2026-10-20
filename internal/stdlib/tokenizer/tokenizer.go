@@ -180,7 +180,6 @@ func loadError(path string, err error, tried []string) error {
 		msg = strings.Replace(msg, "desteklenmeyen", messages.Text(messages.H5613), 1)
 		return messages.New(messages.H5614, fn, path, msg)
 	case messages.Has(err, messages.H5248):
-		msg = strings.Replace(msg, " (izin için DuzIfadeAyarlari.RiskliDesenIzni)", "", 1)
 		return messages.New(messages.H5615, fn, path, msg)
 	case messages.Has(err, messages.H5274):
 		detail := messages.Text(messages.H5616)
