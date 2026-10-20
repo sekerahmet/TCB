@@ -252,6 +252,17 @@ func TestEnglishWritingLanguage(t *testing.T) {
 	}
 	// İletiler de yazım dilindedir: İngilizce yazımda başlık İngilizce kataloğundan gelir.
 	wait(t, run(t, trBinary, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
+	// Gösterim de o dilde yeniden kodlanabilmeli: G200'ün İngilizce adı yok, "G200(l)" diye bir
+	// gösterim geri okunamaz; komut onu vermez (dosyayla da standart girişle de).
+	lossy := source.Header + "\nA030 l = [1]\nG200(l)\n"
+	if s := run(t, trBinary, "", lossy, nil, "göster", "-", "--dil", "en"); s.code == 0 {
+		t.Errorf("geri okunamayan gösterim verildi: %q", s.stdout)
+	}
+	k := t.TempDir()
+	writeFile(t, k, "k.tr", lossy)
+	if s := tr(t, k, "göster", "k.tr", "--dil", "en"); s.code == 0 {
+		t.Errorf("dosyadan geri okunamayan gösterim verildi: %q", s.stdout)
+	}
 }
 
 // Depodaki .tr dosyalarının İngilizce gidiş dönüşü: kodlu → İngilizce → kodlu bayt bayt aynıdır

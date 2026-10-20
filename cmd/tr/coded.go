@@ -81,8 +81,10 @@ func convertFromInput(convert func(string) (string, error)) {
 	if err != nil {
 		var sh *source.SyntaxError
 		if errors.As(err, &sh) {
-			b, _ := source.Split(string(content))
-			writeDiags(syntaxHeader, sh.Errors, b.Body)
+			// Çerçeve kişinin gördüğü metni gösterir: kodlu girdide Türkçe gösterimi, konumlar
+			// da ona göre (17.5).
+			r := source.Prepare(string(content), source.Options{})
+			writeDiags(syntaxHeader, r.Errors, r.Text)
 			os.Exit(exitSyntax)
 		}
 		fmt.Fprintf(os.Stderr, "✗ %v\n", err)
@@ -161,8 +163,12 @@ func writeInPlace(filePath, text string) error {
 // verilirse metin standart girişten okunur (düzenleyiciler için; çıkış kodları yukarıda).
 func showCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
-		language := languageArgument(args[1:], "göster")
-		convertFromInput(func(text string) (string, error) { return source.Decode(text, language) })
+		// Gösterimin geri okunduğu denetim (source.Decode) etkin dilde yapılabilir: başka bir
+		// dil, süreci o dille yeniden çalıştırarak gösterilir ('tr kodla -' gibi).
+		if language := languageArgument(args[1:], "göster"); language.Code != codes.Active().Code {
+			rerunWithLanguage(language.Code)
+		}
+		convertFromInput(func(text string) (string, error) { return source.Decode(text, codes.Active()) })
 		return
 	}
 	var file, languageCode string
@@ -187,17 +193,20 @@ func showCommand(args []string) {
 	if err != nil {
 		exitWithError(err)
 	}
+	if language.Code != codes.Active().Code {
+		rerunWithLanguage(language.Code)
+	}
 	content, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8657, turkish.FileError("", file, messages.H2100, err)))
 		os.Exit(1)
 	}
-	text, err := source.Decode(string(content), language)
+	text, err := source.Decode(string(content), codes.Active())
 	if err != nil {
 		var sh *source.SyntaxError
 		if errors.As(err, &sh) {
-			b, _ := source.Split(string(content))
-			exitWithDiags(syntaxHeader, sh.Errors, b.Body)
+			r := source.Prepare(string(content), source.Options{})
+			exitWithDiags(syntaxHeader, r.Errors, r.Text)
 		}
 		fmt.Fprintf(os.Stderr, "✗ %s: %v\n", file, err)
 		os.Exit(1)
