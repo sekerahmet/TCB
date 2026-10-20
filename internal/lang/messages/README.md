@@ -43,7 +43,8 @@ Paket paket yapılır; geçirilen paket `tools/gen/msgconsts/main_test.go`'daki 
 eklenir. Önce ortak yardımcılar geçirildi (tamam): dosya hataları (`turkish.FileError` işlemi bir
 kod olarak alır: `messages.H2100` "okunamadı"; nedenler kodludur, `turkish.NewReason`), argüman
 sayısı, satır öneki (`interp.LineError`, `H2001`), adlı argüman ve üye hataları (`bind`). Sonra:
-`formats` (tamam) → standart kitaplığın geri kalanı → `lang` → `devtools` → `compute`. Satır önekine
+`formats` → standart kitaplığın geri kalanı → `lang` → `devtools` → `compute` (hepsi tamam; `compute`
+yalnızca bu paketi içe aktarır, bkz. `internal/layers_test.go`). Satır önekine
 metinden bakan denetim (`interp.hasLine`, test koşucusunun `located`ı) kalktı: konum yalnızca yapıdan
 (`messages.Pos`) okunur. Ayrıştırıcı ve denetleyici hataları da yapıyla taşınır (`source.Result.Errors`,
 `interp.ModuleError.Errors`, `formatter.SyntaxError` `[]error` tutar; konum `messages.PosError`'dadır);
