@@ -1,4 +1,4 @@
-// eklenti_listeleri, VS Code eklentisinin söz dizimi renklendirmesini
+// grammar, VS Code eklentisinin söz dizimi renklendirmesini
 // (editors/vscode/syntaxes/tr.tmLanguage.json) dilin kod listesinden (internal/lang/codes, tr.json)
 // üretir. Anahtar kelime, tip adı ve yerleşik fonksiyon listeleri elle yazılmaz; sözlükteki
 // adlardan gelir. Böylece bir ad değiştiğinde ya da kaldırıldığında eklenti kendiliğinden
@@ -29,49 +29,49 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// dilbilgisiYolu depo köküne göre üretilen dosyadır.
-var dilbilgisiYolu = filepath.Join("editors", "vscode", "syntaxes", "tr.tmLanguage.json")
+// grammarPath depo köküne göre üretilen dosyadır.
+var grammarPath = filepath.Join("editors", "vscode", "syntaxes", "tr.tmLanguage.json")
 
 func main() {
-	denetle := flag.Bool("denetle", false, "dosyayı yazma; güncel değilse 1 koduyla çık")
-	kok := flag.String("kok", ".", "depo kökü")
+	check := flag.Bool("denetle", false, "dosyayı yazma; güncel değilse 1 koduyla çık")
+	root := flag.String("kok", ".", "depo kökü")
 	flag.Parse()
 
-	yol := filepath.Join(*kok, dilbilgisiYolu)
-	yeni, err := Uret()
+	path := filepath.Join(*root, grammarPath)
+	fresh, err := Generate()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
 		os.Exit(1)
 	}
-	if *denetle {
-		eski, err := os.ReadFile(yol)
+	if *check {
+		old, err := os.ReadFile(path)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
 			os.Exit(1)
 		}
-		if !bytes.Equal(eski, yeni) {
-			fmt.Fprintf(os.Stderr, "%s güncel değil; go run ./tools/gen/grammar ile yeniden üretin\n", yol)
+		if !bytes.Equal(old, fresh) {
+			fmt.Fprintf(os.Stderr, "%s güncel değil; go run ./tools/gen/grammar ile yeniden üretin\n", path)
 			os.Exit(1)
 		}
-		fmt.Printf("%s güncel\n", yol)
+		fmt.Printf("%s güncel\n", path)
 		return
 	}
-	if err := os.WriteFile(yol, yeni, 0o644); err != nil {
+	if err := os.WriteFile(path, fresh, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("%s yazıldı\n", yol)
+	fmt.Printf("%s yazıldı\n", path)
 }
 
 // --- sözlükten listeler ---
 
-// yazimDilleri gömülü bütün yazım dilleridir (Türkçe önce): kodlu dosya düzenleyicide seçilen
+// spellingLanguages gömülü bütün yazım dilleridir (Türkçe önce): kodlu dosya düzenleyicide seçilen
 // yazım dilinde (tr.yazimDili) gösterilir, renklendirme her dilin adlarını tanır.
-var yazimDilleri = func() []*codes.Language {
+var spellingLanguages = func() []*codes.Language {
 	d := []*codes.Language{codes.Active()}
-	for _, kodu := range codes.Languages() {
-		if kodu != codes.Active().Code {
-			y, err := codes.LoadLanguage(kodu)
+	for _, langCode := range codes.Languages() {
+		if langCode != codes.Active().Code {
+			y, err := codes.LoadLanguage(langCode)
 			if err != nil {
 				panic(err)
 			}
@@ -81,10 +81,10 @@ var yazimDilleri = func() []*codes.Language {
 	return d
 }()
 
-// dillerdekiAdlar kodun bütün yazım dillerindeki adlarıdır (yinelenmeden, Türkçe önce).
-func dillerdekiAdlar(k codes.Code) []string {
+// namesInAllLanguages kodun bütün yazım dillerindeki adlarıdır (yinelenmeden, Türkçe önce).
+func namesInAllLanguages(k codes.Code) []string {
 	var out []string
-	for _, d := range yazimDilleri {
+	for _, d := range spellingLanguages {
 		if g, ok := d.Entry(k); ok && !slices.Contains(out, g.Name) {
 			out = append(out, g.Name)
 		}
@@ -92,12 +92,12 @@ func dillerdekiAdlar(k codes.Code) []string {
 	return out
 }
 
-// adlar kodların bütün yazım dillerindeki adlarıdır (önce Türkçeler sözlük sırasıyla, sonra
+// names kodların bütün yazım dillerindeki adlarıdır (önce Türkçeler sözlük sırasıyla, sonra
 // öbür dillerdekiler).
-func adlar(kodlar ...codes.Code) []string {
+func names(codeList ...codes.Code) []string {
 	var out []string
-	for _, d := range yazimDilleri {
-		for _, k := range kodlar {
+	for _, d := range spellingLanguages {
+		for _, k := range codeList {
 			if g, ok := d.Entry(k); ok && !slices.Contains(out, g.Name) {
 				out = append(out, g.Name)
 			}
@@ -106,53 +106,53 @@ func adlar(kodlar ...codes.Code) []string {
 	return out
 }
 
-// grubundakiler harf ailesinin grup numaralı grubundaki (grup < 0 ise bütün ailedeki) ve
+// namesInGroup harf ailesinin grup numaralı grubundaki (grup < 0 ise bütün ailedeki) ve
 // uygun(kod) doğru olan sözlük kodlarının adlarıdır.
-func grubundakiler(harf byte, grup int, uygun func(codes.Code) bool) []string {
-	var secilen []codes.Code
+func namesInGroup(letter byte, group int, pred func(codes.Code) bool) []string {
+	var selected []codes.Code
 	for _, k := range codes.Codes() {
-		if k.Letter() == harf && (grup < 0 || k.Group() == grup) && (uygun == nil || uygun(k)) {
-			secilen = append(secilen, k)
+		if k.Letter() == letter && (group < 0 || k.Group() == group) && (pred == nil || pred(k)) {
+			selected = append(selected, k)
 		}
 	}
-	return adlar(secilen...)
+	return names(selected...)
 }
 
-// yerlesik kodun genel kapsamdaki bir yerleşik fonksiyon olup olmadığıdır.
-func yerlesik(k codes.Code) bool { return k.IsBuiltin() }
+// isBuiltin kodun genel kapsamdaki bir yerleşik fonksiyon olup olmadığıdır.
+func isBuiltin(k codes.Code) bool { return k.IsBuiltin() }
 
-// kelimeler bir ad listesini \b(a|b|c)\b düzenli ifadesine çevirir. Adlar düzenli ifade
+// wordsPattern bir ad listesini \b(a|b|c)\b düzenli ifadesine çevirir. Adlar düzenli ifade
 // karakterleri içermez; yine de kaçışlanır.
-func kelimeler(adlar []string) string {
-	parca := make([]string, len(adlar))
-	for i, a := range adlar {
-		parca[i] = regexp.QuoteMeta(a)
+func wordsPattern(names []string) string {
+	parts := make([]string, len(names))
+	for i, a := range names {
+		parts[i] = regexp.QuoteMeta(a)
 	}
-	return `\b(` + strings.Join(parca, "|") + `)\b`
+	return `\b(` + strings.Join(parts, "|") + `)\b`
 }
 
 // --- sıralı JSON ---
 
-// alan bir JSON nesnesinin anahtar-değer çiftidir; nesne alanlarını yazıldığı sırayla tutar.
-type alan struct {
-	ad    string
-	deger any
+// jsonField bir JSON nesnesinin anahtar-değer çiftidir; nesne alanlarını yazıldığı sırayla tutar.
+type jsonField struct {
+	name  string
+	value any
 }
 
-type nesne []alan
+type jsonObject []jsonField
 
-func (n nesne) MarshalJSON() ([]byte, error) {
+func (n jsonObject) MarshalJSON() ([]byte, error) {
 	var b bytes.Buffer
 	b.WriteByte('{')
 	for i, a := range n {
 		if i > 0 {
 			b.WriteByte(',')
 		}
-		k, err := jsonYaz(a.ad)
+		k, err := marshalJSON(a.name)
 		if err != nil {
 			return nil, err
 		}
-		v, err := jsonYaz(a.deger)
+		v, err := marshalJSON(a.value)
 		if err != nil {
 			return nil, err
 		}
@@ -165,7 +165,7 @@ func (n nesne) MarshalJSON() ([]byte, error) {
 }
 
 // jsonYaz değeri HTML kaçışı yapmadan (düzenli ifadelerdeki < > & olduğu gibi) yazar.
-func jsonYaz(v any) ([]byte, error) {
+func marshalJSON(v any) ([]byte, error) {
 	var b bytes.Buffer
 	e := json.NewEncoder(&b)
 	e.SetEscapeHTML(false)
@@ -175,129 +175,129 @@ func jsonYaz(v any) ([]byte, error) {
 	return bytes.TrimRight(b.Bytes(), "\n"), nil
 }
 
-// kural adı ve eşleşmesi olan tek satırlık bir kuraldır.
-func kural(ad, eslesme string) nesne {
-	return nesne{{"name", ad}, {"match", eslesme}}
+// rule adı ve eşleşmesi olan tek satırlık bir kuraldır.
+func rule(name, match string) jsonObject {
+	return jsonObject{{"name", name}, {"match", match}}
 }
 
-func yakala(adlar ...string) nesne {
-	var n nesne
-	for i, a := range adlar {
-		n = append(n, alan{fmt.Sprint(i + 1), nesne{{"name", a}}})
+func captures(names ...string) jsonObject {
+	var n jsonObject
+	for i, a := range names {
+		n = append(n, jsonField{fmt.Sprint(i + 1), jsonObject{{"name", a}}})
 	}
 	return n
 }
 
-func ekle(desenler ...string) []nesne {
-	out := make([]nesne, len(desenler))
-	for i, d := range desenler {
-		out[i] = nesne{{"include", d}}
+func includes(patterns ...string) []jsonObject {
+	out := make([]jsonObject, len(patterns))
+	for i, d := range patterns {
+		out[i] = jsonObject{{"include", d}}
 	}
 	return out
 }
 
-// Uret dil bilgisi dosyasının içeriğini sözlükten üretir.
-func Uret() ([]byte, error) {
+// Generate dil bilgisi dosyasının içeriğini sözlükten üretir.
+func Generate() ([]byte, error) {
 	// ad kodun bütün dillerdeki adlarının düzenli ifade seçeneğidir (değişken|var).
-	ad := func(k codes.Code) string { return strings.Join(dillerdekiAdlar(k), "|") }
+	name := func(k codes.Code) string { return strings.Join(namesInAllLanguages(k), "|") }
 
-	kontrol := adlar(codes.A001, codes.A002, codes.A003, codes.A004, codes.A010, codes.A011, codes.A012, codes.A013, codes.A014, codes.A021, codes.A060, codes.A061, codes.A062, codes.A080, codes.A081)
-	bildirim := adlar(codes.A030, codes.A031, codes.A020, codes.A050)
-	tipler := grubundakiler('A', 2, nil)
-	genel := grubundakiler('G', -1, yerlesik)
-	yz := append(grubundakiler('T', -1, yerlesik), grubundakiler('V', -1, yerlesik)...)
+	control := names(codes.A001, codes.A002, codes.A003, codes.A004, codes.A010, codes.A011, codes.A012, codes.A013, codes.A014, codes.A021, codes.A060, codes.A061, codes.A062, codes.A080, codes.A081)
+	declaration := names(codes.A030, codes.A031, codes.A020, codes.A050)
+	types := namesInGroup('A', 2, nil)
+	general := namesInGroup('G', -1, isBuiltin)
+	ai := append(namesInGroup('T', -1, isBuiltin), namesInGroup('V', -1, isBuiltin)...)
 
-	ic := func(secenek string) string { return secenek } // adlar düzenli ifade karakteri içermez
+	inner := func(secenek string) string { return secenek } // adlar düzenli ifade karakteri içermez
 
-	dilbilgisi := nesne{
+	grammar := jsonObject{
 		{"$schema", "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json"},
 		{"comment", "Bu dosya kod listesinden (internal/lang/codes/tr.json) üretilir; elle düzenlemeyin: go run ./tools/gen/grammar"},
 		{"name", "TR Dili"},
 		{"scopeName", "source.tr"},
-		{"patterns", ekle("#comments", "#strings", "#import", "#declarations", "#keywords", "#pronoun", "#types", "#builtins", "#numbers", "#operators")},
-		{"repository", nesne{
-			{"comments", nesne{{"patterns", []nesne{
-				kural("comment.line.double-slash.tr", "//.*$"),
+		{"patterns", includes("#comments", "#strings", "#import", "#declarations", "#keywords", "#pronoun", "#types", "#builtins", "#numbers", "#operators")},
+		{"repository", jsonObject{
+			{"comments", jsonObject{{"patterns", []jsonObject{
+				rule("comment.line.double-slash.tr", "//.*$"),
 				{{"name", "comment.block.tr"}, {"begin", `/\*`}, {"end", `\*/`}},
 			}}}},
-			{"strings", nesne{{"patterns", []nesne{
+			{"strings", jsonObject{{"patterns", []jsonObject{
 				{{"name", "string.quoted.double.tr"}, {"begin", `"`}, {"end", `"`},
-					{"beginCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.begin.tr"}}}}},
-					{"endCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.end.tr"}}}}},
-					{"patterns", ekle("#string-content")}},
+					{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.begin.tr"}}}}},
+					{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.end.tr"}}}}},
+					{"patterns", includes("#string-content")}},
 				{{"name", "string.quoted.single.tr"}, {"begin", `'`}, {"end", `'`},
-					{"beginCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.begin.tr"}}}}},
-					{"endCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.end.tr"}}}}},
-					{"patterns", ekle("#string-content")}},
+					{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.begin.tr"}}}}},
+					{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.end.tr"}}}}},
+					{"patterns", includes("#string-content")}},
 				// Ham metin (2.6a): kaçış ve yerleştirme yok, çok satırlı olabilir.
 				{{"name", "string.quoted.other.raw.tr"}, {"begin", "`"}, {"end", "`"},
-					{"beginCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.begin.tr"}}}}},
-					{"endCaptures", nesne{{"0", nesne{{"name", "punctuation.definition.string.end.tr"}}}}}},
+					{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.begin.tr"}}}}},
+					{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.end.tr"}}}}}},
 			}}}},
-			{"string-content", nesne{{"patterns", []nesne{
-				kural("constant.character.escape.brace.tr", `\\[{}]`),
-				kural("constant.character.escape.tr", `\\[ntr"'\\]`),
+			{"string-content", jsonObject{{"patterns", []jsonObject{
+				rule("constant.character.escape.brace.tr", `\\[{}]`),
+				rule("constant.character.escape.tr", `\\[ntr"'\\]`),
 				// Bilinmeyen kaçış dizisi sözdizimi hatasıdır (2.6).
-				kural("invalid.illegal.escape.tr", `\\.`),
+				rule("invalid.illegal.escape.tr", `\\.`),
 				{{"include", "#interpolation"}},
 			}}}},
-			{"interpolation", nesne{
+			{"interpolation", jsonObject{
 				{"name", "meta.interpolation.tr"}, {"begin", `\{`}, {"end", `\}`},
-				{"beginCaptures", nesne{{"0", nesne{{"name", "punctuation.section.interpolation.begin.tr"}}}}},
-				{"endCaptures", nesne{{"0", nesne{{"name", "punctuation.section.interpolation.end.tr"}}}}},
+				{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.interpolation.begin.tr"}}}}},
+				{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.interpolation.end.tr"}}}}},
 				{"contentName", "meta.embedded.expression.tr"},
-				{"patterns", ekle("#nested-braces", "$self")},
+				{"patterns", includes("#nested-braces", "$self")},
 			}},
-			{"nested-braces", nesne{
+			{"nested-braces", jsonObject{
 				{"begin", `\{`}, {"end", `\}`},
-				{"beginCaptures", nesne{{"0", nesne{{"name", "punctuation.section.braces.begin.tr"}}}}},
-				{"endCaptures", nesne{{"0", nesne{{"name", "punctuation.section.braces.end.tr"}}}}},
-				{"patterns", ekle("#nested-braces", "$self")},
+				{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.braces.begin.tr"}}}}},
+				{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.braces.end.tr"}}}}},
+				{"patterns", includes("#nested-braces", "$self")},
 			}},
-			{"import", nesne{{"patterns", []nesne{
-				{{"match", `\b(` + ic(ad(codes.A070)) + `)\b\s*("[^"]*"|'[^']*'|[^\W\d][\w.]*)\s+(` + ic(ad(codes.A100)) + `)\b\s*([^\W\d]\w*)?`},
-					{"captures", yakala("keyword.control.import.tr", "string.other.module.tr", "keyword.control.import.as.tr", "entity.name.namespace.tr")}},
-				kural("keyword.control.import.tr", kelimeler(adlar(codes.A070))),
+			{"import", jsonObject{{"patterns", []jsonObject{
+				{{"match", `\b(` + inner(name(codes.A070)) + `)\b\s*("[^"]*"|'[^']*'|[^\W\d][\w.]*)\s+(` + inner(name(codes.A100)) + `)\b\s*([^\W\d]\w*)?`},
+					{"captures", captures("keyword.control.import.tr", "string.other.module.tr", "keyword.control.import.as.tr", "entity.name.namespace.tr")}},
+				rule("keyword.control.import.tr", wordsPattern(names(codes.A070))),
 			}}}},
-			{"declarations", nesne{{"patterns", []nesne{
-				{{"match", `\b(` + ic(ad(codes.A020)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.function.tr", "entity.name.function.tr")}},
-				{{"match", `\b(` + ic(ad(codes.A050)) + `)\s+([^\W\d]\w*)`}, {"captures", yakala("storage.type.struct.tr", "entity.name.type.tr")}},
+			{"declarations", jsonObject{{"patterns", []jsonObject{
+				{{"match", `\b(` + inner(name(codes.A020)) + `)\s+([^\W\d]\w*)`}, {"captures", captures("storage.type.function.tr", "entity.name.function.tr")}},
+				{{"match", `\b(` + inner(name(codes.A050)) + `)\s+([^\W\d]\w*)`}, {"captures", captures("storage.type.struct.tr", "entity.name.type.tr")}},
 			}}}},
-			{"keywords", nesne{{"patterns", []nesne{
-				kural("keyword.control.tr", kelimeler(kontrol)),
-				kural("keyword.other.debugger.tr", kelimeler(adlar(codes.A090))),
-				kural("storage.type.tr", kelimeler(bildirim)),
-				kural("variable.language.self.tr", kelimeler(adlar(codes.A051))),
-				kural("constant.language.boolean.tr", kelimeler(adlar(codes.A040, codes.A041))),
-				kural("constant.language.null.tr", kelimeler(adlar(codes.A042))),
-				kural("keyword.operator.logical.tr", kelimeler(adlar(codes.A043, codes.A044, codes.A045))),
+			{"keywords", jsonObject{{"patterns", []jsonObject{
+				rule("keyword.control.tr", wordsPattern(control)),
+				rule("keyword.other.debugger.tr", wordsPattern(names(codes.A090))),
+				rule("storage.type.tr", wordsPattern(declaration)),
+				rule("variable.language.self.tr", wordsPattern(names(codes.A051))),
+				rule("constant.language.boolean.tr", wordsPattern(names(codes.A040, codes.A041))),
+				rule("constant.language.null.tr", wordsPattern(names(codes.A042))),
+				rule("keyword.operator.logical.tr", wordsPattern(names(codes.A043, codes.A044, codes.A045))),
 			}}}},
-			{"pronoun", nesne{
+			{"pronoun", jsonObject{
 				{"comment", "Sondaki blok (o-lambda) parametresi: liste.filtrele { o > 2 }"},
-				{"patterns", []nesne{kural("variable.language.pronoun.tr", `(?<![\w.])o(?!\w)`)}},
+				{"patterns", []jsonObject{rule("variable.language.pronoun.tr", `(?<![\w.])o(?!\w)`)}},
 			}},
-			{"types", nesne{{"patterns", []nesne{kural("entity.name.type.tr", kelimeler(tipler))}}}},
-			{"builtins", nesne{{"patterns", []nesne{
-				kural("support.function.builtin.tr", kelimeler(genel)),
-				kural("support.function.ai.tr", kelimeler(yz)),
+			{"types", jsonObject{{"patterns", []jsonObject{rule("entity.name.type.tr", wordsPattern(types))}}}},
+			{"builtins", jsonObject{{"patterns", []jsonObject{
+				rule("support.function.builtin.tr", wordsPattern(general)),
+				rule("support.function.ai.tr", wordsPattern(ai)),
 			}}}},
-			{"numbers", nesne{{"patterns", []nesne{
-				kural("constant.numeric.float.tr", `\b\d[\d_]*(?:\.\d[\d_]*)?[eE][+-]?\d+\b`),
-				kural("constant.numeric.float.tr", `\b\d[\d_]*\.\d[\d_]*\b`),
-				kural("constant.numeric.integer.tr", `\b\d[\d_]*\b`),
+			{"numbers", jsonObject{{"patterns", []jsonObject{
+				rule("constant.numeric.float.tr", `\b\d[\d_]*(?:\.\d[\d_]*)?[eE][+-]?\d+\b`),
+				rule("constant.numeric.float.tr", `\b\d[\d_]*\.\d[\d_]*\b`),
+				rule("constant.numeric.integer.tr", `\b\d[\d_]*\b`),
 			}}}},
-			{"operators", nesne{{"patterns", []nesne{
-				kural("keyword.operator.range.tr", `\.\.=?`),
-				kural("keyword.operator.pipe.tr", `\|>`),
-				kural("keyword.operator.null-coalescing.tr", `\?\?`),
-				kural("punctuation.accessor.optional.tr", `\?\.`),
-				kural("keyword.operator.arrow.tr", `=>`),
-				kural("keyword.operator.comparison.tr", `==|!=|<=|>=|<|>`),
-				kural("keyword.operator.logical.tr", `&&|\|\||!`),
-				kural("keyword.operator.assignment.compound.tr", `\+=|-=|\*=|/=`),
-				kural("keyword.operator.assignment.tr", `:=|=`),
-				kural("keyword.operator.arithmetic.tr", `\*\*|@|[+\-*/%]`),
-				kural("keyword.operator.ternary.tr", `\?`),
+			{"operators", jsonObject{{"patterns", []jsonObject{
+				rule("keyword.operator.range.tr", `\.\.=?`),
+				rule("keyword.operator.pipe.tr", `\|>`),
+				rule("keyword.operator.null-coalescing.tr", `\?\?`),
+				rule("punctuation.accessor.optional.tr", `\?\.`),
+				rule("keyword.operator.arrow.tr", `=>`),
+				rule("keyword.operator.comparison.tr", `==|!=|<=|>=|<|>`),
+				rule("keyword.operator.logical.tr", `&&|\|\||!`),
+				rule("keyword.operator.assignment.compound.tr", `\+=|-=|\*=|/=`),
+				rule("keyword.operator.assignment.tr", `:=|=`),
+				rule("keyword.operator.arithmetic.tr", `\*\*|@|[+\-*/%]`),
+				rule("keyword.operator.ternary.tr", `\?`),
 			}}}},
 		}},
 	}
@@ -306,7 +306,7 @@ func Uret() ([]byte, error) {
 	e := json.NewEncoder(&b)
 	e.SetEscapeHTML(false)
 	e.SetIndent("", "  ")
-	if err := e.Encode(dilbilgisi); err != nil {
+	if err := e.Encode(grammar); err != nil {
 		return nil, err
 	}
 	return b.Bytes(), nil

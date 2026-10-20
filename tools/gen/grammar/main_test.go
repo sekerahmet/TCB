@@ -16,61 +16,61 @@ import (
 
 // Eklentinin dil bilgisi dosyası sözlükten üretilenle aynı olmalı: bir ad değiştiğinde
 // `go run ./tools/gen/grammar` çalıştırılmadıysa bu test düşer.
-func TestDilbilgisiGuncel(t *testing.T) {
-	yeni, err := Uret()
+func TestGrammarUpToDate(t *testing.T) {
+	fresh, err := Generate()
 	if err != nil {
 		t.Fatal(err)
 	}
-	eski, err := os.ReadFile(filepath.Join(reporoot.Root(), dilbilgisiYolu))
+	old, err := os.ReadFile(filepath.Join(reporoot.Root(), grammarPath))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(bytes.ReplaceAll(eski, []byte("\r\n"), []byte("\n")), yeni) {
-		t.Fatalf("%s güncel değil; depo kökünde `go run ./tools/gen/grammar` çalıştırın", dilbilgisiYolu)
+	if !bytes.Equal(bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n")), fresh) {
+		t.Fatalf("%s güncel değil; depo kökünde `go run ./tools/gen/grammar` çalıştırın", grammarPath)
 	}
 }
 
 // Üretilen listeler yalnızca yazım dillerinin bugünkü adlarını içerir: Türkçe adların ASCII
 // yazımları ve kaldırılmış (eski) adlar renklendirilmez; başka bir yazım dilinde geçerli bir ad
 // olanlar (en: int, tensor) o dilin görünümü için renklendirilir.
-func TestDilbilgisiTekYazim(t *testing.T) {
-	veri, err := Uret()
+func TestGrammarSingleSpelling(t *testing.T) {
+	data, err := Generate()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !json.Valid(veri) {
+	if !json.Valid(data) {
 		t.Fatal("üretilen dosya geçerli JSON değil")
 	}
-	var kelimeler = map[string]bool{}
-	grup := regexp.MustCompile(`\\\\b\(([^()]*)\)\\\\b`)
-	for _, m := range grup.FindAllStringSubmatch(string(veri), -1) {
+	var words = map[string]bool{}
+	group := regexp.MustCompile(`\\\\b\(([^()]*)\)\\\\b`)
+	for _, m := range group.FindAllStringSubmatch(string(data), -1) {
 		for _, k := range strings.Split(m[1], "|") {
-			kelimeler[k] = true
+			words[k] = true
 		}
 	}
-	baskaDilde := map[string]bool{}
-	for _, d := range yazimDilleri[1:] {
+	inOtherLanguage := map[string]bool{}
+	for _, d := range spellingLanguages[1:] {
 		for _, k := range d.Codes() {
-			baskaDilde[d.Name(k)] = true
+			inOtherLanguage[d.Name(k)] = true
 		}
 	}
-	for _, ad := range []string{"eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veri_kümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık", "if", "var", "print", "Tensor"} {
-		if !kelimeler[ad] {
-			t.Errorf("%q listelerde olmalı", ad)
+	for _, name := range []string{"eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veri_kümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık", "if", "var", "print", "Tensor"} {
+		if !words[name] {
+			t.Errorf("%q listelerde olmalı", name)
 		}
 	}
 	for _, k := range codes.Codes() {
 		g, _ := codes.Active().Entry(k)
-		if a := turkish.ASCII(g.Name); a != g.Name && kelimeler[a] && !baskaDilde[a] {
+		if a := turkish.ASCII(g.Name); a != g.Name && words[a] && !inOtherLanguage[a] {
 			t.Errorf("%s'in ASCII yazımı %q listelerde olmamalı", k, a)
 		}
 		for _, e := range g.Old {
-			if kelimeler[e] && !baskaDilde[e] {
+			if words[e] && !inOtherLanguage[e] {
 				t.Errorf("%s'in eski adı %q listelerde olmamalı", k, e)
 			}
 		}
 	}
-	if strings.Contains(string(veri), "number-sign") {
+	if strings.Contains(string(data), "number-sign") {
 		t.Error("'#' yorum değildir; renklendirilmemeli")
 	}
 }
