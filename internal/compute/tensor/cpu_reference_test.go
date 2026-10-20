@@ -341,7 +341,7 @@ func TestAssemblyKernelsMatchGo(t *testing.T) {
 // Bulanıklaştırma: rastgele baytlar float32 değerleri olarak (her bit deseni: NaN yükleri,
 // alt-normaller, sonsuzlar) bütün çekirdeklerden geçer. Assembly yalnızca AVX2'li işlemcide
 // seçildiği için hedef öyle bir makinede koşulmalıdır; kısa koşu:
-// bash tools/bulaniklastir.sh 10s '^FuzzAssemblyKernelsMatchGo$'.
+// bash tools/fuzz.sh 10s '^FuzzAssemblyKernelsMatchGo$'.
 func FuzzAssemblyKernelsMatchGo(f *testing.F) {
 	f.Add([]byte{0, 0, 0x80, 0x7f, 0, 0, 0xc0, 0x7f, 1, 0, 0, 0, 0, 0, 0x80, 0x3f}, uint8(1), uint8(3))
 	f.Add(make([]byte, 4*33), uint8(0), uint8(16))

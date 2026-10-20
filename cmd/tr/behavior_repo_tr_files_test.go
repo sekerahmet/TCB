@@ -17,10 +17,10 @@ import (
 // depodaki bütün .tr dosyaları (testler, örnekler, kıyas programları, kitaplık) hatasız
 // denetlenir. Bilerek hatalı fikstürler (tests/negative/) hariçtir. Başka dosyaların
 // aktardığı modüller, yorumlayıcıdaki gibi aktaranın genel adlarıyla denetlenir (11.1).
-func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
-	kok := reporoot.Root()
-	kodlar := map[string]string{}
-	err := filepath.WalkDir(kok, func(yol string, d fs.DirEntry, err error) error {
+func TestRepoTRFilesPassCheck(t *testing.T) {
+	root := reporoot.Root()
+	sources := map[string]string{}
+	err := filepath.WalkDir(root, func(filePath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -31,63 +31,63 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 			}
 			return nil
 		}
-		if strings.HasSuffix(yol, ".tr") {
-			veri, err := os.ReadFile(yol)
+		if strings.HasSuffix(filePath, ".tr") {
+			content, err := os.ReadFile(filePath)
 			if err != nil {
 				return err
 			}
-			kodlar[yol] = string(veri)
+			sources[filePath] = string(content)
 		}
 		return nil
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(kodlar) < 20 {
-		t.Fatalf("yalnızca %d .tr dosyası bulundu", len(kodlar))
+	if len(sources) < 20 {
+		t.Fatalf("yalnızca %d .tr dosyası bulundu", len(sources))
 	}
 
 	// Modül → aktaranların genel adları (birleşimi); aktaranlardan biri dinamikse dinamik.
-	type genel struct {
-		adlar   map[string]bool
-		dinamik bool
+	type global struct {
+		names   map[string]bool
+		dynamic bool
 	}
-	moduller := map[string]*genel{}
-	for yol, kod := range kodlar {
-		adlar, dinamik := checker.TopLevelNames(source.Prepare(kod, source.Options{}).Program)
-		for _, y := range aktarYerleri(kod) {
-			cozulen, _, ok := modulYolunuCoz(y.yol, yol, yol)
+	modules := map[string]*global{}
+	for filePath, code := range sources {
+		names, dynamic := checker.TopLevelNames(source.Prepare(code, source.Options{}).Program)
+		for _, y := range importSites(code) {
+			resolved, _, ok := resolveModulePath(y.filePath, filePath, filePath)
 			if !ok {
 				continue
 			}
-			mutlak, _ := filepath.Abs(cozulen)
-			g := moduller[mutlak]
+			absolute, _ := filepath.Abs(resolved)
+			g := modules[absolute]
 			if g == nil {
-				g = &genel{adlar: map[string]bool{}}
-				moduller[mutlak] = g
+				g = &global{names: map[string]bool{}}
+				modules[absolute] = g
 			}
-			for _, a := range adlar {
-				g.adlar[a] = true
+			for _, a := range names {
+				g.names[a] = true
 			}
-			g.dinamik = g.dinamik || dinamik
+			g.dynamic = g.dynamic || dynamic
 		}
 	}
 
-	for yol, kod := range kodlar {
-		goreli, _ := filepath.Rel(kok, yol)
-		mutlak, _ := filepath.Abs(yol)
-		var hatalar []error
-		if g := moduller[mutlak]; g != nil {
-			var adlar []string
-			for a := range g.adlar {
-				adlar = append(adlar, a)
+	for filePath, code := range sources {
+		relative, _ := filepath.Rel(root, filePath)
+		absolute, _ := filepath.Abs(filePath)
+		var diags []error
+		if g := modules[absolute]; g != nil {
+			var names []string
+			for a := range g.names {
+				names = append(names, a)
 			}
-			hatalar = interp.CheckModule(kod, adlar, g.dinamik).Errors
+			diags = interp.CheckModule(code, names, g.dynamic).Errors
 		} else {
-			hatalar = source.Prepare(kod, source.Options{TypeCheck: true}).Errors
+			diags = source.Prepare(code, source.Options{TypeCheck: true}).Errors
 		}
-		for _, h := range hatalar {
-			t.Errorf("%s: %s", filepath.ToSlash(goreli), h)
+		for _, h := range diags {
+			t.Errorf("%s: %s", filepath.ToSlash(relative), h)
 		}
 	}
 }

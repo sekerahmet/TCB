@@ -144,7 +144,7 @@ func TestNegativeFixturesUsed(t *testing.T) {
 }
 
 // Dil tanımının bütün testleri (tests/) yorumlayıcının içinden koşar. Tam denetim
-// (tools/tam_denetim.sh) Go testlerini -short ile koşar ve aynı takımı bir kez
+// (tools/full_check.sh) Go testlerini -short ile koşar ve aynı takımı bir kez
 // `tr test tests` ile koşar; takım iki derleme ayarında üç kez koşmasın diye burada atlanır.
 func TestLanguageSpecTestsPass(t *testing.T) {
 	if testing.Short() {

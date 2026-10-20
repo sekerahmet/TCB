@@ -40,7 +40,7 @@ type backend struct {
 	gemm2      gemmConfig
 	// gemmConst doluysa matris çarpımı döşemesi otomatik seçilmez (sınama).
 	gemmConst *gemmConfig
-	// profiler çekirdek ölçümleri (bkz. profil.go).
+	// profiler çekirdek ölçümleri (bkz. profile.go).
 	profiler profile
 	// volume son çöp toplamadan bu yana verilen depolama baytı (havuzdan gelenler dahil).
 	volume uint64

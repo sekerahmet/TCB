@@ -12,78 +12,78 @@ import (
 	"time"
 )
 
-// kilitliTampon eşzamanlı yazılıp okunabilen bir çıktı tamponudur.
-type kilitliTampon struct {
+// lockedBuffer eşzamanlı yazılıp okunabilen bir çıktı tamponudur.
+type lockedBuffer struct {
 	mu sync.Mutex
 	b  bytes.Buffer
 }
 
-func (k *kilitliTampon) Write(p []byte) (int, error) {
+func (k *lockedBuffer) Write(p []byte) (int, error) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	return k.b.Write(p)
 }
 
-func (k *kilitliTampon) String() string {
+func (k *lockedBuffer) String() string {
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	return k.b.String()
 }
 
-// kesilecekSurec programı ayrı bir süreçte başlatır ve kosul doğru olana kadar (en çok 30
+// interruptibleProcess programı ayrı bir süreçte başlatır ve kosul doğru olana kadar (en çok 30
 // sn) bekler; ardından kesme isteğini (Ctrl+C eşdeğeri) gönderir.
-type kesilecekSurec struct {
+type interruptibleProcess struct {
 	t      *testing.T
 	cmd    *exec.Cmd
-	hata   *kilitliTampon
-	klasor string
-	bitti  chan error
+	stderr *lockedBuffer
+	dir    string
+	done   chan error
 }
 
-func kesilecekBaslat(t *testing.T, kod string) *kesilecekSurec {
+func startInterruptible(t *testing.T, code string) *interruptibleProcess {
 	t.Helper()
-	klasor := t.TempDir()
-	dosyaYaz(t, klasor, "program.tr", kod)
-	cmd := exec.Command(trIkilisi, "program.tr")
-	cmd.Dir = klasor
-	hata := &kilitliTampon{}
-	cmd.Stdout, cmd.Stderr = &kilitliTampon{}, hata
-	sureciHazirla(cmd)
+	dir := t.TempDir()
+	writeFile(t, dir, "program.tr", code)
+	cmd := exec.Command(trBinary, "program.tr")
+	cmd.Dir = dir
+	stderr := &lockedBuffer{}
+	cmd.Stdout, cmd.Stderr = &lockedBuffer{}, stderr
+	prepareProcess(cmd)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
-	s := &kesilecekSurec{t: t, cmd: cmd, hata: hata, klasor: klasor, bitti: make(chan error, 1)}
-	go func() { s.bitti <- cmd.Wait() }()
+	s := &interruptibleProcess{t: t, cmd: cmd, stderr: stderr, dir: dir, done: make(chan error, 1)}
+	go func() { s.done <- cmd.Wait() }()
 	t.Cleanup(func() {
 		_ = cmd.Process.Kill()
-		<-s.bitti
+		<-s.done
 	})
 	return s
 }
 
-// bekleKosul kosul doğru olana kadar bekler.
-func (s *kesilecekSurec) bekleKosul(ne string, kosul func() bool) {
+// waitCond kosul doğru olana kadar bekler.
+func (s *interruptibleProcess) waitCond(ne string, cond func() bool) {
 	s.t.Helper()
-	son := time.Now().Add(30 * time.Second)
-	for !kosul() {
-		if time.Now().After(son) {
-			s.t.Fatalf("%s 30 sn içinde olmadı; standart hata: %s", ne, s.hata.String())
+	last := time.Now().Add(30 * time.Second)
+	for !cond() {
+		if time.Now().After(last) {
+			s.t.Fatalf("%s 30 sn içinde olmadı; standart hata: %s", ne, s.stderr.String())
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
 }
 
-func (s *kesilecekSurec) dosyaVar(ad string) bool {
-	_, err := os.Stat(filepath.Join(s.klasor, ad))
+func (s *interruptibleProcess) fileExists(ad string) bool {
+	_, err := os.Stat(filepath.Join(s.dir, ad))
 	return err == nil
 }
 
-// cikisKodu sürecin bitmesini (en çok 30 sn) bekler ve çıkış kodunu verir.
-func (s *kesilecekSurec) cikisKodu() int {
+// exitCode sürecin bitmesini (en çok 30 sn) bekler ve çıkış kodunu verir.
+func (s *interruptibleProcess) exitCode() int {
 	s.t.Helper()
 	select {
-	case err := <-s.bitti:
-		s.bitti <- err // Cleanup için geri koy
+	case err := <-s.done:
+		s.done <- err // Cleanup için geri koy
 		var ch *exec.ExitError
 		if errors.As(err, &ch) {
 			return ch.ExitCode()
@@ -93,7 +93,7 @@ func (s *kesilecekSurec) cikisKodu() int {
 		}
 		return 0
 	case <-time.After(30 * time.Second):
-		s.t.Fatalf("süreç kesme isteğinden sonra 30 sn içinde bitmedi; standart hata: %s", s.hata.String())
+		s.t.Fatalf("süreç kesme isteğinden sonra 30 sn içinde bitmedi; standart hata: %s", s.stderr.String())
 		return -1
 	}
 }
@@ -101,8 +101,8 @@ func (s *kesilecekSurec) cikisKodu() int {
 // Ctrl+C (Windows'ta Ctrl+Break olayı, Unix'te SIGINT) programı nazikçe durdurur: döngü
 // kesilir, dene/yakala kesilmeyi yakalamaz, fonksiyonun ve programın ertelenen işleri
 // çalışır, çıkış kodu 3'tür.
-func TestKesmeNazikCikis(t *testing.T) {
-	s := kesilecekBaslat(t, strings.Join([]string{
+func TestInterruptGracefulExit(t *testing.T) {
+	s := startInterruptible(t, strings.Join([]string{
 		`ertele { dosya_yaz("ust_ertele.txt", "çalıştı") }`,
 		`fonksiyon iş() {`,
 		`    ertele { dosya_yaz("ertele.txt", "çalıştı") }`,
@@ -116,51 +116,51 @@ func TestKesmeNazikCikis(t *testing.T) {
 		`iş()`,
 		`dosya_yaz("devam_etti.txt", "1")`,
 	}, "\n")+"\n")
-	s.bekleKosul("program hazır", func() bool { return s.dosyaVar("hazir.txt") })
-	kesmeGonder(t, s.cmd)
-	if kod := s.cikisKodu(); kod != 3 {
-		t.Fatalf("çıkış kodu %d, 3 bekleniyordu; standart hata: %s", kod, s.hata.String())
+	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
+	sendInterrupt(t, s.cmd)
+	if code := s.exitCode(); code != 3 {
+		t.Fatalf("çıkış kodu %d, 3 bekleniyordu; standart hata: %s", code, s.stderr.String())
 	}
 	for _, ad := range []string{"ertele.txt", "ust_ertele.txt"} {
-		if !s.dosyaVar(ad) {
+		if !s.fileExists(ad) {
 			t.Errorf("%s yok: ertelenen iş çalışmadı", ad)
 		}
 	}
 	for _, ad := range []string{"yakalandi.txt", "devam_etti.txt"} {
-		if s.dosyaVar(ad) {
+		if s.fileExists(ad) {
 			t.Errorf("%s oluştu: kesilme yakalanmamalı ve program sürmemeli", ad)
 		}
 	}
-	if h := s.hata.String(); !strings.Contains(h, "Durduruluyor") || !strings.Contains(h, "Program durduruldu") {
+	if h := s.stderr.String(); !strings.Contains(h, "Durduruluyor") || !strings.Contains(h, "Program durduruldu") {
 		t.Errorf("durdurma bildirimleri bekleniyordu: %s", h)
 	}
 }
 
 // Kesme isteği bekleme sırasında gelirse bekleme hemen biter.
-func TestKesmeBeklemeyiUyandirir(t *testing.T) {
-	s := kesilecekBaslat(t, "dosya_yaz(\"hazir.txt\", \"1\")\nbekle(120)\ndosya_yaz(\"devam_etti.txt\", \"1\")\n")
-	s.bekleKosul("program hazır", func() bool { return s.dosyaVar("hazir.txt") })
-	bas := time.Now()
-	kesmeGonder(t, s.cmd)
-	if kod := s.cikisKodu(); kod != 3 {
-		t.Fatalf("çıkış kodu %d, 3 bekleniyordu; standart hata: %s", kod, s.hata.String())
+func TestInterruptWakesWait(t *testing.T) {
+	s := startInterruptible(t, "dosya_yaz(\"hazir.txt\", \"1\")\nbekle(120)\ndosya_yaz(\"devam_etti.txt\", \"1\")\n")
+	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
+	start := time.Now()
+	sendInterrupt(t, s.cmd)
+	if code := s.exitCode(); code != 3 {
+		t.Fatalf("çıkış kodu %d, 3 bekleniyordu; standart hata: %s", code, s.stderr.String())
 	}
-	if sure := time.Since(bas); sure > 20*time.Second {
-		t.Errorf("bekleme %v sonra bitti; hemen uyanmalıydı", sure)
+	if duration := time.Since(start); duration > 20*time.Second {
+		t.Errorf("bekleme %v sonra bitti; hemen uyanmalıydı", duration)
 	}
-	if s.dosyaVar("devam_etti.txt") {
+	if s.fileExists("devam_etti.txt") {
 		t.Error("program bekledikten sonra sürmemeli")
 	}
 }
 
 // Ertelenen iş bitmezse ikinci kesme isteği süreci hemen bitirir (çıkış kodu 130).
-func TestIkinciKesmeHemenCikar(t *testing.T) {
-	s := kesilecekBaslat(t, "ertele { döngü { } }\ndosya_yaz(\"hazir.txt\", \"1\")\ndöngü { }\n")
-	s.bekleKosul("program hazır", func() bool { return s.dosyaVar("hazir.txt") })
-	kesmeGonder(t, s.cmd)
-	s.bekleKosul("ilk istek işlendi", func() bool { return strings.Contains(s.hata.String(), "Durduruluyor") })
-	kesmeGonder(t, s.cmd)
-	if kod := s.cikisKodu(); kod != 130 {
-		t.Fatalf("çıkış kodu %d, 130 bekleniyordu; standart hata: %s", kod, s.hata.String())
+func TestSecondInterruptExitsImmediately(t *testing.T) {
+	s := startInterruptible(t, "ertele { döngü { } }\ndosya_yaz(\"hazir.txt\", \"1\")\ndöngü { }\n")
+	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
+	sendInterrupt(t, s.cmd)
+	s.waitCond("ilk istek işlendi", func() bool { return strings.Contains(s.stderr.String(), "Durduruluyor") })
+	sendInterrupt(t, s.cmd)
+	if code := s.exitCode(); code != 130 {
+		t.Fatalf("çıkış kodu %d, 130 bekleniyordu; standart hata: %s", code, s.stderr.String())
 	}
 }

@@ -1,5 +1,5 @@
 # Sürekli tümleştirme: her gönderimde ve çekme isteğinde Windows ve Linux üzerinde tam denetim
-# (tools/tam_denetim.sh) çalışır. "Bitti"nin tek tanımı o betiktir; burada yalnızca kurulum ve
+# (tools/full_check.sh) çalışır. "Bitti"nin tek tanımı o betiktir; burada yalnızca kurulum ve
 # kip seçimi vardır (betiğin --kip argümanı; kiplerin ne yaptığı betiğin başında yazar).
 #
 # Matris iki yapılandırmayı kapsar: dagitim (kullanıcıya giden düz `go build`, GOAMD64=v1,
@@ -7,7 +7,7 @@
 # testleri ve örnekler) ve go-esleri (AVX2 kapalı: assembly'siz Go eşleri).
 #
 # Ayrıca Linux'ta yarış dedektörü (--kip=yaris) ve -short olmadan uzun Go testleri (--kip=uzun)
-# koşar. Bulanıklaştırma testleri haftalık ayrı bir işte uzun koşar (bulaniklastirma.yml).
+# koşar. Bulanıklaştırma testleri haftalık ayrı bir işte uzun koşar (fuzz.yml).
 name: CI
 
 on:
@@ -54,7 +54,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Tam denetim
-        run: bash tools/tam_denetim.sh --kip=${{ matrix.kip }}
+        run: bash tools/full_check.sh --kip=${{ matrix.kip }}
 
   yaris:
     name: Yarış dedektörü (Linux)
@@ -74,7 +74,7 @@ jobs:
       # Hangi paketlerin sınandığı betiktedir (--kip=yaris). Yarış dedektörü cgo ister
       # (Linux koşucusunda hazır).
       - name: Yarış dedektörüyle Go testleri
-        run: bash tools/tam_denetim.sh --kip=yaris
+        run: bash tools/full_check.sh --kip=yaris
 
   uzun:
     name: Uzun testler (Linux)
@@ -93,4 +93,4 @@ jobs:
 
       # -short olmadan: her .tr dosyasının İngilizce gidiş-dönüşü gibi uzun sınamalar.
       - name: Uzun Go testleri
-        run: bash tools/tam_denetim.sh --kip=uzun
+        run: bash tools/full_check.sh --kip=uzun

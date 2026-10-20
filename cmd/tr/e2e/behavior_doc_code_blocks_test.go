@@ -23,9 +23,9 @@ import (
 // Bilerek hatalı yazılmış örnekler ```tr hata ile işaretlenir; onların kontrolden
 // GEÇMEMESİ beklenir (belge hatayı gösteriyorsa hata gerçekten oluşmalı).
 
-// uretilmisBelge kod listesinden üretilen başvuru belgesidir; içindeki örnekler kod
+// generatedDoc kod listesinden üretilen başvuru belgesidir; içindeki örnekler kod
 // listesinin testlerinde (internal/stdlib) çalıştırılır, burada yalnızca bağlantıları denetlenir.
-const uretilmisBelge = "docs/kodlar.md"
+const generatedDoc = "docs/kodlar.md"
 
 // belgeListesi depodaki belgelerdir (depo köküne göre, bölü çizgisiyle): kökteki README,
 // SECURITY ve CONTRIBUTING, docs/ altındaki bütün .md dosyaları, kitaplığın, eklentinin ve
@@ -33,137 +33,137 @@ const uretilmisBelge = "docs/kodlar.md"
 // belge docs/ altına eklendiğinde kendiliğinden denetime girer.
 func belgeListesi(t *testing.T) []string {
 	t.Helper()
-	liste := []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "lib/README.md",
+	list := []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "lib/README.md",
 		"editors/vscode/README.md", "tools/bench/README.md", ".github/ISSUE_TEMPLATE/sozluk_istegi.md"}
-	for _, desen := range []string{"docs/*.md", "docs/*/*.md"} {
-		d, err := filepath.Glob(reporoot.Path(desen))
+	for _, pattern := range []string{"docs/*.md", "docs/*/*.md"} {
+		d, err := filepath.Glob(reporoot.Path(pattern))
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, yol := range d {
-			goreli, err := filepath.Rel(reporoot.Root(), yol)
+		for _, filePath := range d {
+			relative, err := filepath.Rel(reporoot.Root(), filePath)
 			if err != nil {
 				t.Fatal(err)
 			}
-			liste = append(liste, filepath.ToSlash(goreli))
+			list = append(list, filepath.ToSlash(relative))
 		}
 	}
-	if len(liste) < 20 {
-		t.Fatalf("yalnızca %d belge bulundu; docs/ yapısı değişmiş olabilir", len(liste))
+	if len(list) < 20 {
+		t.Fatalf("yalnızca %d belge bulundu; docs/ yapısı değişmiş olabilir", len(list))
 	}
-	return liste
+	return list
 }
 
-var trBlokRe = regexp.MustCompile("(?ms)^```tr( hata)?[ \t]*\r?\n(.*?)^```")
+var trBlockRe = regexp.MustCompile("(?ms)^```tr( hata)?[ \t]*\r?\n(.*?)^```")
 
-// trKontrol kodu geçici bir dosyaya yazıp `tr kontrol` ile denetler.
-func trKontrol(t *testing.T, ad, kod string) (bool, string) {
+// trCheck kodu geçici bir dosyaya yazıp `tr kontrol` ile denetler.
+func trCheck(t *testing.T, ad, code string) (bool, string) {
 	t.Helper()
-	dosya := filepath.Join(t.TempDir(), ad+".tr")
-	if err := os.WriteFile(dosya, []byte(kod), 0644); err != nil {
+	file := filepath.Join(t.TempDir(), ad+".tr")
+	if err := os.WriteFile(file, []byte(code), 0644); err != nil {
 		t.Fatal(err)
 	}
-	cikti, err := exec.Command(trIkilisi, "kontrol", dosya).CombinedOutput()
-	return err == nil, string(cikti)
+	stdout, err := exec.Command(trBinary, "kontrol", file).CombinedOutput()
+	return err == nil, string(stdout)
 }
 
-func TestBelgelerdekiTRKodBloklari(t *testing.T) {
-	toplam := 0
+func TestDocTRCodeBlocks(t *testing.T) {
+	total := 0
 	for _, b := range belgeListesi(t) {
-		if b == uretilmisBelge {
+		if b == generatedDoc {
 			continue
 		}
-		veri, err := os.ReadFile(reporoot.Path(b))
+		data, err := os.ReadFile(reporoot.Path(b))
 		if err != nil {
 			t.Fatal(err)
 		}
-		metin := string(veri)
-		for _, m := range trBlokRe.FindAllStringSubmatchIndex(metin, -1) {
-			toplam++
-			satir := strings.Count(metin[:m[0]], "\n") + 1
-			hataBekleniyor := m[2] >= 0
-			kod := metin[m[4]:m[5]]
-			ad := fmt.Sprintf("%s_%d", strings.NewReplacer("/", "_", ".", "_").Replace(b), satir)
-			gecti, cikti := trKontrol(t, ad, kod)
+		text := string(data)
+		for _, m := range trBlockRe.FindAllStringSubmatchIndex(text, -1) {
+			total++
+			line := strings.Count(text[:m[0]], "\n") + 1
+			errorExpected := m[2] >= 0
+			code := text[m[4]:m[5]]
+			ad := fmt.Sprintf("%s_%d", strings.NewReplacer("/", "_", ".", "_").Replace(b), line)
+			passed, stdout := trCheck(t, ad, code)
 			switch {
-			case !hataBekleniyor && !gecti:
-				t.Errorf("%s:%d: kod bloğu `tr kontrol`dan geçmiyor:\n%s", b, satir, cikti)
-			case hataBekleniyor && gecti:
-				t.Errorf("%s:%d: ```tr hata bloğu hata vermeli ama `tr kontrol`dan geçiyor", b, satir)
+			case !errorExpected && !passed:
+				t.Errorf("%s:%d: kod bloğu `tr kontrol`dan geçmiyor:\n%s", b, line, stdout)
+			case errorExpected && passed:
+				t.Errorf("%s:%d: ```tr hata bloğu hata vermeli ama `tr kontrol`dan geçiyor", b, line)
 			}
 		}
 	}
-	if toplam < 20 {
-		t.Fatalf("yalnızca %d kod bloğu bulundu; belge biçimi değişmiş olabilir", toplam)
+	if total < 20 {
+		t.Fatalf("yalnızca %d kod bloğu bulundu; belge biçimi değişmiş olabilir", total)
 	}
 }
 
 var (
-	sablonVarsayilanRe = regexp.MustCompile(`\$\{\d+:([^${}]*)\}`)
-	sablonBosRe        = regexp.MustCompile(`\$\{\d+\}|\$\d+`)
+	templateDefaultRe = regexp.MustCompile(`\$\{\d+:([^${}]*)\}`)
+	templateEmptyRe   = regexp.MustCompile(`\$\{\d+\}|\$\d+`)
 )
 
-// sablonAc bir düzenleyici şablonunu varsayılan değerleriyle açar (Tab'a hiç basılmamış gibi).
-func sablonAc(govde string) string {
+// openTemplate bir düzenleyici şablonunu varsayılan değerleriyle açar (Tab'a hiç basılmamış gibi).
+func openTemplate(body string) string {
 	for {
-		yeni := sablonVarsayilanRe.ReplaceAllString(govde, "$1")
-		if yeni == govde {
+		updated := templateDefaultRe.ReplaceAllString(body, "$1")
+		if updated == body {
 			break
 		}
-		govde = yeni
+		body = updated
 	}
-	return sablonBosRe.ReplaceAllString(govde, "")
+	return templateEmptyRe.ReplaceAllString(body, "")
 }
 
-// adYerTutucuRe yer tutucunun varsayılanı tek bir ad mı (eğer ${1:koşul})?
-var adYerTutucuRe = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
+// namePlaceholderRe yer tutucunun varsayılanı tek bir ad mı (eğer ${1:koşul})?
+var namePlaceholderRe = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
 
-// yerTutuculariTanimla şablonun kullanıcının dolduracağı ad yer tutucularını (eğer
+// definePlaceholders şablonun kullanıcının dolduracağı ad yer tutucularını (eğer
 // ${1:koşul}, eşle ${1:değer}) şablon kendisi tanımlamıyorsa kodun başında tanımlar:
 // tanımsız ad çalışmadan önce hatadır (5.14), şablon ise bu adların kullanıcıda var
 // olduğunu varsayar.
-func yerTutuculariTanimla(govde, kod string) string {
-	tanimli, _ := checker.TopLevelNames(parser.New(lexer.New(kod)).ParseProgram())
+func definePlaceholders(body, code string) string {
+	defined, _ := checker.TopLevelNames(parser.New(lexer.New(code)).ParseProgram())
 	var on strings.Builder
-	goruldu := map[string]bool{}
-	for _, m := range sablonVarsayilanRe.FindAllStringSubmatch(govde, -1) {
+	seen := map[string]bool{}
+	for _, m := range templateDefaultRe.FindAllStringSubmatch(body, -1) {
 		ad := m[1]
-		if !adYerTutucuRe.MatchString(ad) || goruldu[ad] || slices.Contains(tanimli, ad) || lexer.LookupIdent(ad) != lexer.TOKEN_IDENT {
+		if !namePlaceholderRe.MatchString(ad) || seen[ad] || slices.Contains(defined, ad) || lexer.LookupIdent(ad) != lexer.TOKEN_IDENT {
 			continue
 		}
-		goruldu[ad] = true
+		seen[ad] = true
 		fmt.Fprintf(&on, "değişken %s = 1\n", ad)
 	}
-	return on.String() + kod
+	return on.String() + code
 }
 
 // Eklentinin kod şablonları varsayılan değerleriyle açıldığında derlenebilir kod üretmelidir
 // (hakem mimari 3: eşle şablonu derlenmeyen kod üretiyordu).
-func TestEklentiSablonlariDerlenir(t *testing.T) {
-	veri, err := os.ReadFile(reporoot.Path("editors/vscode/snippets/tr.code-snippets"))
+func TestExtensionTemplatesBuild(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path("editors/vscode/snippets/tr.code-snippets"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var sablonlar map[string]struct {
+	var templates map[string]struct {
 		Prefix []string `json:"prefix"`
 		Body   []string `json:"body"`
 	}
-	if err := json.Unmarshal(veri, &sablonlar); err != nil {
+	if err := json.Unmarshal(data, &templates); err != nil {
 		t.Fatalf("şablon dosyası geçerli JSON değil: %v", err)
 	}
-	if len(sablonlar) < 10 {
-		t.Fatalf("yalnızca %d şablon bulundu", len(sablonlar))
+	if len(templates) < 10 {
+		t.Fatalf("yalnızca %d şablon bulundu", len(templates))
 	}
-	for ad, s := range sablonlar {
-		govde := strings.Join(s.Body, "\n")
-		kod := sablonAc(govde)
-		if strings.HasPrefix(kod, ".") {
+	for ad, s := range templates {
+		body := strings.Join(s.Body, "\n")
+		code := openTemplate(body)
+		if strings.HasPrefix(code, ".") {
 			// Metot şablonları (.filtrele { o }) bir listenin ardına yazılır
-			kod = "değişken liste = [1, 2, 3]\nliste" + kod
+			code = "değişken liste = [1, 2, 3]\nliste" + code
 		}
-		kod = yerTutuculariTanimla(govde, kod)
-		if gecti, cikti := trKontrol(t, "sablon", kod); !gecti {
-			t.Errorf("%q şablonu derlenmiyor:\n%s\n---\n%s", ad, kod, cikti)
+		code = definePlaceholders(body, code)
+		if passed, stdout := trCheck(t, "sablon", code); !passed {
+			t.Errorf("%q şablonu derlenmiyor:\n%s\n---\n%s", ad, code, stdout)
 		}
 	}
 }
@@ -176,41 +176,41 @@ func TestEklentiSablonlariDerlenir(t *testing.T) {
 // yazımından anlaşılır: '.ad' üye, 'ad:' adlı argüman, 'ad(' genel; satır içi kodda tek başına
 // yazılmış `ad` genel ya da tip. Canlı bir kodla aynı yazılan ad (ör. 'tip') denetlenmez.
 
-// kaldirilanAdIzinleri meşru tarihçe cümleleridir: belge → izin verilen ad → gerekçe.
-var kaldirilanAdIzinleri = map[string]map[string]string{
-	"docs/spec/02_sozcuk_yapisi.md": adIzni("kaldırılan özelliklerin listesi: bu adlar yazılınca 'kaldırıldı' hatası verilir (kural 2.9a)",
+// removedNameAllowances meşru tarihçe cümleleridir: belge → izin verilen ad → gerekçe.
+var removedNameAllowances = map[string]map[string]string{
+	"docs/spec/02_sozcuk_yapisi.md": nameAllowance("kaldırılan özelliklerin listesi: bu adlar yazılınca 'kaldırıldı' hatası verilir (kural 2.9a)",
 		"veritabanı_aç", "tablo_sorgula", "web_al", "web_gönder", "web_sunucu", "arayüz_oluştur",
 		"sinir_ağı", "model_yükle", "eğit", "tahmin_et", "ağırlıklar", "kayıp_mse", "yz_sor",
 		"normalize_et", "nokta_çarpım", "kosinüs_benzerliği", "öklid_uzaklığı"),
 }
 
-func adIzni(gerekce string, adlar ...string) map[string]string {
+func nameAllowance(reason string, names ...string) map[string]string {
 	m := map[string]string{}
-	for _, a := range adlar {
-		m[a] = gerekce
+	for _, a := range names {
+		m[a] = reason
 	}
 	return m
 }
 
 var (
-	satirIciKodRe = regexp.MustCompile("`([^`\n]+)`")
-	tanimlayiciRe = regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)
-	cagriRe       = regexp.MustCompile(`([\p{L}_][\p{L}\p{N}_]*)\(`)
+	inlineCodeRe = regexp.MustCompile("`([^`\n]+)`")
+	identifierRe = regexp.MustCompile(`[\p{L}_][\p{L}\p{N}_]*`)
+	cagriRe      = regexp.MustCompile(`([\p{L}_][\p{L}\p{N}_]*)\(`)
 )
 
-// kaldirilanAd ad, verilen ad alanında (AlanYok: genel ya da tip) yerine geçen olmadan
+// removedName ad, verilen ad alanında (AlanYok: genel ya da tip) yerine geçen olmadan
 // kaldırılmış bir kodun adı ya da eski adıysa o kodu verir.
-func kaldirilanAd(al codes.Namespace, ad string) (codes.Code, bool) {
-	alanlar := []codes.Namespace{al}
-	if al == codes.NamespaceNone {
-		alanlar = []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType}
+func removedName(take codes.Namespace, ad string) (codes.Code, bool) {
+	fields := []codes.Namespace{take}
+	if take == codes.NamespaceNone {
+		fields = []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType}
 	}
 	for _, a := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember, codes.NamespaceParam} {
-		if _, canli := codes.Find(a, ad); canli && (a == al || al == codes.NamespaceNone) {
+		if _, live := codes.Find(a, ad); live && (a == take || take == codes.NamespaceNone) {
 			return codes.None, false
 		}
 	}
-	for _, a := range alanlar {
+	for _, a := range fields {
 		if k, ok := codes.FindDead(a, ad); ok && codes.Removed(k) {
 			return k, true
 		}
@@ -218,58 +218,58 @@ func kaldirilanAd(al codes.Namespace, ad string) (codes.Code, bool) {
 	return codes.None, false
 }
 
-// satirIciAdlar satır içi kod parçasındaki adları ad alanlarıyla verir.
-func satirIciAdlar(parca string) map[string]codes.Namespace {
-	adlar := map[string]codes.Namespace{}
-	if p := strings.TrimSpace(parca); tanimlayiciRe.FindString(p) == p {
-		adlar[p] = codes.NamespaceNone
-		return adlar
+// inlineNames satır içi kod parçasındaki adları ad alanlarıyla verir.
+func inlineNames(part string) map[string]codes.Namespace {
+	names := map[string]codes.Namespace{}
+	if p := strings.TrimSpace(part); identifierRe.FindString(p) == p {
+		names[p] = codes.NamespaceNone
+		return names
 	}
-	for _, m := range tanimlayiciRe.FindAllStringIndex(parca, -1) {
-		ad, once, sonra := parca[m[0]:m[1]], parca[:m[0]], parca[m[1]:]
+	for _, m := range identifierRe.FindAllStringIndex(part, -1) {
+		ad, before, after := part[m[0]:m[1]], part[:m[0]], part[m[1]:]
 		switch {
-		case strings.HasSuffix(once, "."):
-			adlar[ad] = codes.NamespaceMember
-		case strings.HasPrefix(sonra, ":"):
-			adlar[ad] = codes.NamespaceParam
-		case strings.HasPrefix(sonra, "("):
-			adlar[ad] = codes.NamespaceGlobal
+		case strings.HasSuffix(before, "."):
+			names[ad] = codes.NamespaceMember
+		case strings.HasPrefix(after, ":"):
+			names[ad] = codes.NamespaceParam
+		case strings.HasPrefix(after, "("):
+			names[ad] = codes.NamespaceGlobal
 		}
 	}
-	return adlar
+	return names
 }
 
-func TestBelgelerdeKaldirilanAdYok(t *testing.T) {
+func TestRemovedNamesAbsentFromDocs(t *testing.T) {
 	if len(codes.RemovedCodes()) == 0 {
 		t.Skip("kaldırılmış kod yok")
 	}
 	for _, b := range belgeListesi(t) {
-		if b == uretilmisBelge { // kodlar.md kaldırılan kodları bilerek listeler
+		if b == generatedDoc { // kodlar.md kaldırılan kodları bilerek listeler
 			continue
 		}
-		veri, err := os.ReadFile(reporoot.Path(b))
+		data, err := os.ReadFile(reporoot.Path(b))
 		if err != nil {
 			t.Fatal(err)
 		}
-		for i, satir := range kodsuzSatirlar(string(veri)) {
+		for i, line := range uncodedLines(string(data)) {
 			bulunan := map[string]codes.Namespace{}
-			for _, m := range satirIciKodRe.FindAllStringSubmatch(satir, -1) {
-				for ad, al := range satirIciAdlar(m[1]) {
-					bulunan[ad] = al
+			for _, m := range inlineCodeRe.FindAllStringSubmatch(line, -1) {
+				for ad, take := range inlineNames(m[1]) {
+					bulunan[ad] = take
 				}
 			}
-			duz := satirIciKodRe.ReplaceAllString(satir, "")
-			for _, m := range cagriRe.FindAllStringSubmatchIndex(duz, -1) {
-				if m[0] == 0 || duz[m[0]-1] != '.' {
-					bulunan[duz[m[2]:m[3]]] = codes.NamespaceGlobal
+			flat := inlineCodeRe.ReplaceAllString(line, "")
+			for _, m := range cagriRe.FindAllStringSubmatchIndex(flat, -1) {
+				if m[0] == 0 || flat[m[0]-1] != '.' {
+					bulunan[flat[m[2]:m[3]]] = codes.NamespaceGlobal
 				}
 			}
-			for ad, al := range bulunan {
-				k, ok := kaldirilanAd(al, ad)
+			for ad, take := range bulunan {
+				k, ok := removedName(take, ad)
 				if !ok {
 					continue
 				}
-				if _, izinli := kaldirilanAdIzinleri[b][ad]; izinli {
+				if _, allowed := removedNameAllowances[b][ad]; allowed {
 					continue
 				}
 				t.Errorf("%s:%d: %q kaldırılmış bir kodun adı (%s); belgeyi bugünkü dile göre düzeltin ya da meşru bir tarihçe cümlesiyse gerekçesiyle kaldirilanAdIzinleri'ne ekleyin", b, i+1, ad, k)

@@ -23,205 +23,205 @@ import (
 // 'tr' ikilisini çalıştıran uçtan uca testler cmd/tr/e2e'dadır.
 
 // Gömülü paket biçiminin iki testi, paketi gerçek bir yorumlayıcı ikilisinin sonuna ekleyip
-// çalıştırır. İkili yalnızca gerektiğinde, bir kez derlenir (ikiliKlasoru TestMain'de silinir).
+// çalıştırır. İkili yalnızca gerektiğinde, bir kez derlenir (exeDir TestMain'de silinir).
 var (
-	ikiliBir     sync.Once
-	ikiliKlasoru string
-	trIkilisi    string
-	ikiliHatasi  error
+	exeOnce  sync.Once
+	exeDir   string
+	trBinary string
+	exeError error
 )
 
 func TestMain(m *testing.M) {
-	kod := m.Run()
-	if ikiliKlasoru != "" {
-		os.RemoveAll(ikiliKlasoru)
+	code := m.Run()
+	if exeDir != "" {
+		os.RemoveAll(exeDir)
 	}
-	os.Exit(kod)
+	os.Exit(code)
 }
 
-// trDerle yorumlayıcıyı geçici bir klasöre bir kez derler ve yolunu verir.
-func trDerle(t *testing.T) string {
+// trBuild yorumlayıcıyı geçici bir klasöre bir kez derler ve yolunu verir.
+func trBuild(t *testing.T) string {
 	t.Helper()
-	ikiliBir.Do(func() {
-		ikiliKlasoru, ikiliHatasi = os.MkdirTemp("", "tr-cmd-test-*")
-		if ikiliHatasi != nil {
+	exeOnce.Do(func() {
+		exeDir, exeError = os.MkdirTemp("", "tr-cmd-test-*")
+		if exeError != nil {
 			return
 		}
-		ad := "tr"
+		name := "tr"
 		if runtime.GOOS == "windows" {
-			ad += ".exe"
+			name += ".exe"
 		}
-		trIkilisi = filepath.Join(ikiliKlasoru, ad)
-		var cikti bytes.Buffer
-		derle := exec.Command("go", "build", "-o", trIkilisi, ".")
-		derle.Stdout, derle.Stderr = &cikti, &cikti
-		if err := derle.Run(); err != nil {
-			ikiliHatasi = fmt.Errorf("%v\n%s", err, cikti.String())
+		trBinary = filepath.Join(exeDir, name)
+		var output bytes.Buffer
+		compile := exec.Command("go", "build", "-o", trBinary, ".")
+		compile.Stdout, compile.Stderr = &output, &output
+		if err := compile.Run(); err != nil {
+			exeError = fmt.Errorf("%v\n%s", err, output.String())
 		}
 	})
-	if ikiliHatasi != nil {
-		t.Fatalf("tr derlenemedi: %v", ikiliHatasi)
+	if exeError != nil {
+		t.Fatalf("tr derlenemedi: %v", exeError)
 	}
-	return trIkilisi
+	return trBinary
 }
 
-// sonuc bir komutun çalıştırılmasının sonucudur.
-type sonuc struct {
-	cikti, hata string
-	kod         int
+// result bir komutun çalıştırılmasının sonucudur.
+type result struct {
+	output, failure string
+	code            int
 }
 
-// calistir ikiliyi verilen klasörde ve standart girişle çalıştırır (e2e'deki aynı adlı
+// runBinary ikiliyi verilen klasörde ve standart girişle çalıştırır (e2e'deki aynı adlı
 // yardımcının kısası).
-func calistir(t *testing.T, ikili, klasor, girdi string, ortam []string, args ...string) sonuc {
+func runBinary(t *testing.T, exe, dir, input string, env []string, args ...string) result {
 	t.Helper()
-	ctx, iptal := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer iptal()
-	cmd := exec.CommandContext(ctx, ikili, args...)
-	cmd.Dir = klasor
-	cmd.Stdin = strings.NewReader(girdi)
-	if ortam != nil {
-		cmd.Env = append(os.Environ(), ortam...)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, exe, args...)
+	cmd.Dir = dir
+	cmd.Stdin = strings.NewReader(input)
+	if env != nil {
+		cmd.Env = append(os.Environ(), env...)
 	}
-	var cikti, hata bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &cikti, &hata
+	var output, failure bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &output, &failure
 	err := cmd.Run()
-	kod := 0
+	code := 0
 	if err != nil {
-		var cikisHatasi *exec.ExitError
-		if !errors.As(err, &cikisHatasi) {
+		var exitError *exec.ExitError
+		if !errors.As(err, &exitError) {
 			t.Fatalf("%v çalıştırılamadı: %v", args, err)
 		}
-		kod = cikisHatasi.ExitCode()
+		code = exitError.ExitCode()
 	}
-	return sonuc{cikti: cikti.String(), hata: hata.String(), kod: kod}
+	return result{output: output.String(), failure: failure.String(), code: code}
 }
 
-// bekle sonucun çıkış kodunu ve çıktılarda geçmesi gereken parçaları denetler.
-func bekle(t *testing.T, s sonuc, kod int, ciktida, hatada []string) {
+// wait sonucun çıkış kodunu ve çıktılarda geçmesi gereken parçaları denetler.
+func wait(t *testing.T, s result, code int, inOutput, inError []string) {
 	t.Helper()
-	if s.kod != kod {
-		t.Errorf("çıkış kodu %d, beklenen %d\nçıktı:\n%s\nhata:\n%s", s.kod, kod, s.cikti, s.hata)
+	if s.code != code {
+		t.Errorf("çıkış kodu %d, beklenen %d\nçıktı:\n%s\nhata:\n%s", s.code, code, s.output, s.failure)
 	}
-	for _, p := range ciktida {
-		if !strings.Contains(s.cikti, p) {
-			t.Errorf("standart çıktıda %q yok:\n%s", p, s.cikti)
+	for _, p := range inOutput {
+		if !strings.Contains(s.output, p) {
+			t.Errorf("standart çıktıda %q yok:\n%s", p, s.output)
 		}
 	}
-	for _, p := range hatada {
-		if !strings.Contains(s.hata, p) {
-			t.Errorf("standart hatada %q yok:\n%s", p, s.hata)
+	for _, p := range inError {
+		if !strings.Contains(s.failure, p) {
+			t.Errorf("standart hatada %q yok:\n%s", p, s.failure)
 		}
 	}
 }
 
-// sablon gömülü paketi olmayan yorumlayıcı ikilisinin baytlarıdır.
-func sablon(t *testing.T) []byte {
+// template gömülü paketi olmayan yorumlayıcı ikilisinin baytlarıdır.
+func template(t *testing.T) []byte {
 	t.Helper()
-	veri, err := os.ReadFile(trDerle(t))
+	content, err := os.ReadFile(trBuild(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	return veri
+	return content
 }
 
-func TestEskiPaketBiciminiOkur(t *testing.T) {
-	kod := []byte("yazdır(\"eski biçim çalışıyor\")\n")
-	veri := append(sablon(t), kod...)
-	altbilgi := make([]byte, 16)
-	binary.LittleEndian.PutUint64(altbilgi[0:8], uint64(len(kod)))
-	copy(altbilgi[8:], eskiPaketImzasi)
-	veri = append(veri, altbilgi...)
+func TestReadsOldPackageFormat(t *testing.T) {
+	code := []byte("yazdır(\"eski biçim çalışıyor\")\n")
+	content := append(template(t), code...)
+	footer := make([]byte, 16)
+	binary.LittleEndian.PutUint64(footer[0:8], uint64(len(code)))
+	copy(footer[8:], oldPackageSignature)
+	content = append(content, footer...)
 
-	yol := filepath.Join(t.TempDir(), "eski.exe")
-	if err := os.WriteFile(yol, veri, 0o755); err != nil {
+	filePath := filepath.Join(t.TempDir(), "eski.exe")
+	if err := os.WriteFile(filePath, content, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	bekle(t, calistir(t, yol, t.TempDir(), "", nil), 0, []string{"eski biçim çalışıyor"}, nil)
+	wait(t, runBinary(t, filePath, t.TempDir(), "", nil), 0, []string{"eski biçim çalışıyor"}, nil)
 
 	// Derlemede şablonun sonundaki eski paket de doğru boyda atılır.
-	pk, sablonBoyu, bulundu, err := paketiAyikla(veri)
-	if err != nil || !bulundu || sablonBoyu != len(sablon(t)) || pk.Ana.Kod != string(kod) {
-		t.Fatalf("eski paket ayıklanamadı: bulundu=%v boy=%d hata=%v", bulundu, sablonBoyu, err)
+	pk, templateSize, found, err := extractPackage(content)
+	if err != nil || !found || templateSize != len(template(t)) || pk.Main.Code != string(code) {
+		t.Fatalf("eski paket ayıklanamadı: bulundu=%v boy=%d hata=%v", found, templateSize, err)
 	}
 }
 
-func TestDesteklenmeyenPaketSurumu(t *testing.T) {
-	govde := []byte(`{"ana":{"kod":"yazdır(1)"}}`)
-	veri := append(sablon(t), govde...)
-	altbilgi := make([]byte, altbilgiBoyu)
-	binary.LittleEndian.PutUint64(altbilgi[0:8], uint64(len(govde)))
-	binary.LittleEndian.PutUint32(altbilgi[8:12], 99)
-	copy(altbilgi[12:], paketImzasi)
-	veri = append(veri, altbilgi...)
-	yol := filepath.Join(t.TempDir(), "gelecek.exe")
-	if err := os.WriteFile(yol, veri, 0o755); err != nil {
+func TestUnsupportedPackageVersion(t *testing.T) {
+	body := []byte(`{"ana":{"kod":"yazdır(1)"}}`)
+	content := append(template(t), body...)
+	footer := make([]byte, footerSize)
+	binary.LittleEndian.PutUint64(footer[0:8], uint64(len(body)))
+	binary.LittleEndian.PutUint32(footer[8:12], 99)
+	copy(footer[12:], packageSignature)
+	content = append(content, footer...)
+	filePath := filepath.Join(t.TempDir(), "gelecek.exe")
+	if err := os.WriteFile(filePath, content, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	bekle(t, calistir(t, yol, t.TempDir(), "", nil), 1, nil, []string{"❌ Gömülü uygulama okunamadı:", "sürümü 99 desteklenmiyor"})
+	wait(t, runBinary(t, filePath, t.TempDir(), "", nil), 1, nil, []string{"❌ Gömülü uygulama okunamadı:", "sürümü 99 desteklenmiyor"})
 }
 
 // Birim testleri (süreç içinde).
 
-func TestPaketGidisDonus(t *testing.T) {
-	pk := &paket{
-		Ana:      paketDosyasi{Ad: "ana.tr", Kod: "aktar \"m\"\n", Aktarimlar: []int{0}},
-		Moduller: []paketDosyasi{{Ad: "m.tr", Kod: "değişken a = 1\n"}},
+func TestPackageRoundTrip(t *testing.T) {
+	pk := &pkg{
+		Main:    packageFile{Name: "ana.tr", Code: "aktar \"m\"\n", Imports: []int{0}},
+		Modules: []packageFile{{Name: "m.tr", Code: "değişken a = 1\n"}},
 	}
-	kodlu, err := paketiKodla(pk)
+	coded, err := encodePackage(pk)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ikili := append([]byte("YORUMLAYICI"), kodlu...)
-	geri, sablonBoyu, bulundu, err := paketiAyikla(ikili)
-	if err != nil || !bulundu || sablonBoyu != len("YORUMLAYICI") {
-		t.Fatalf("bulundu=%v boy=%d hata=%v", bulundu, sablonBoyu, err)
+	exe := append([]byte("YORUMLAYICI"), coded...)
+	back, templateSize, found, err := extractPackage(exe)
+	if err != nil || !found || templateSize != len("YORUMLAYICI") {
+		t.Fatalf("bulundu=%v boy=%d hata=%v", found, templateSize, err)
 	}
-	if geri.Ana.Kod != pk.Ana.Kod || len(geri.Moduller) != 1 || geri.Moduller[0].Kod != pk.Moduller[0].Kod || geri.Ana.Aktarimlar[0] != 0 {
-		t.Fatalf("paket bozuldu: %+v", geri)
+	if back.Main.Code != pk.Main.Code || len(back.Modules) != 1 || back.Modules[0].Code != pk.Modules[0].Code || back.Main.Imports[0] != 0 {
+		t.Fatalf("paket bozuldu: %+v", back)
 	}
-	if _, _, bulundu, _ := paketiAyikla([]byte("sıradan bir ikili dosya")); bulundu {
+	if _, _, found, _ := extractPackage([]byte("sıradan bir ikili dosya")); found {
 		t.Error("paketsiz ikilide paket bulunmamalı")
 	}
-	bozuk := append([]byte{}, kodlu...)
-	binary.LittleEndian.PutUint64(bozuk[len(bozuk)-20:], 1<<40)
-	if _, _, bulundu, err := paketiAyikla(bozuk); !bulundu || !messages.Has(err, messages.H8750) {
+	corrupt := append([]byte{}, coded...)
+	binary.LittleEndian.PutUint64(corrupt[len(corrupt)-20:], 1<<40)
+	if _, _, found, err := extractPackage(corrupt); !found || !messages.Has(err, messages.H8750) {
 		t.Error("bozuk uzunluk alanı hata vermeli")
 	}
 }
 
-func TestAktarYerleriVeYonlendirme(t *testing.T) {
-	kod := "// aktar \"yorumdaki\" sayılmaz\naktar \"a\"\nyazdır(\"aktar b\")\neğer doğru {\n    aktar \"alt/ç.tr\" olarak c\n}\n"
-	yerler := aktarYerleri(kod)
-	if len(yerler) != 2 || yerler[0].yol != "a" || yerler[0].satir != 2 || yerler[1].yol != "alt/ç.tr" || yerler[1].satir != 5 {
-		t.Fatalf("aktar yerleri yanlış: %+v", yerler)
+func TestImportSitesAndRedirect(t *testing.T) {
+	code := "// aktar \"yorumdaki\" sayılmaz\naktar \"a\"\nyazdır(\"aktar b\")\neğer doğru {\n    aktar \"alt/ç.tr\" olarak c\n}\n"
+	sites := importSites(code)
+	if len(sites) != 2 || sites[0].filePath != "a" || sites[0].ln != 2 || sites[1].filePath != "alt/ç.tr" || sites[1].ln != 5 {
+		t.Fatalf("aktar yerleri yanlış: %+v", sites)
 	}
-	d := paketDosyasi{Ad: "x.tr", Kod: kod, Aktarimlar: []int{1, 0}}
-	yeni, err := aktarlariYonlendir(d, []string{"/g/0/ç.tr", "/g/1/a.tr"})
+	d := packageFile{Name: "x.tr", Code: code, Imports: []int{1, 0}}
+	updated, err := redirectImports(d, []string{"/g/0/ç.tr", "/g/1/a.tr"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	beklenen := strings.Replace(strings.Replace(kod, `aktar "a"`, `aktar "/g/1/a.tr"`, 1), `aktar "alt/ç.tr"`, `aktar "/g/0/ç.tr"`, 1)
-	if yeni != beklenen {
-		t.Fatalf("yönlendirilmiş kod:\n%s\nbeklenen:\n%s", yeni, beklenen)
+	expected := strings.Replace(strings.Replace(code, `aktar "a"`, `aktar "/g/1/a.tr"`, 1), `aktar "alt/ç.tr"`, `aktar "/g/0/ç.tr"`, 1)
+	if updated != expected {
+		t.Fatalf("yönlendirilmiş kod:\n%s\nbeklenen:\n%s", updated, expected)
 	}
-	if strings.Count(yeni, "\n") != strings.Count(kod, "\n") {
+	if strings.Count(updated, "\n") != strings.Count(code, "\n") {
 		t.Error("satır sayısı değişmemeli")
 	}
-	if _, err := aktarlariYonlendir(paketDosyasi{Kod: kod, Aktarimlar: []int{0}}, []string{"x"}); !messages.Has(err, messages.H8770) {
+	if _, err := redirectImports(packageFile{Code: code, Imports: []int{0}}, []string{"x"}); !messages.Has(err, messages.H8770) {
 		t.Error("aktarım sayısı uyuşmazlığı hata vermeli")
 	}
 }
 
-func TestIslemciNotu(t *testing.T) {
-	if n := islemciNotuMetni("amd64", "v3"); !strings.Contains(n, "AVX2") || strings.Contains(n, "\n") {
+func TestProcessorNote(t *testing.T) {
+	if n := processorNoteText("amd64", "v3"); !strings.Contains(n, "AVX2") || strings.Contains(n, "\n") {
 		t.Errorf("v3 notu tek satır ve AVX2 içermeli: %q", n)
 	}
-	if n := islemciNotuMetni("amd64", "v4"); !strings.Contains(n, "AVX-512") {
+	if n := processorNoteText("amd64", "v4"); !strings.Contains(n, "AVX-512") {
 		t.Errorf("v4 notu AVX-512 içermeli: %q", n)
 	}
 	for _, d := range [][2]string{{"amd64", "v1"}, {"amd64", "v2"}, {"amd64", ""}, {"arm64", "v3"}} {
-		if n := islemciNotuMetni(d[0], d[1]); n != "" {
+		if n := processorNoteText(d[0], d[1]); n != "" {
 			t.Errorf("%v için not beklenmiyordu: %q", d, n)
 		}
 	}

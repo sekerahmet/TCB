@@ -6,20 +6,20 @@ import (
 	"os"
 )
 
-// testKomutu 'tr test [dosya.tr | klasör]' komutudur. Hedef verilmezse bulunulan klasördeki
+// testCommand 'tr test [dosya.tr | klasör]' komutudur. Hedef verilmezse bulunulan klasördeki
 // (alt klasörler dahil) tüm *_test.tr dosyaları çalışır. Bir test bile kalırsa çıkış kodu 1'dir.
 // Çıkmadan önce motorların açık kaynakları kapatılır ve geçici klasörler silinir (motor.Kapat).
-func testKomutu(args []string) {
-	hedef := "."
+func testCommand(args []string) {
+	target := "."
 	if len(args) > 0 {
-		hedef = args[0]
+		target = args[0]
 	}
-	ozet, err := testrunner.Run(hedef, os.Stdout)
+	summary, err := testrunner.Run(target, os.Stdout)
 	stdlib.Close()
 	if err != nil {
-		hataylaCik(err)
+		exitWithError(err)
 	}
-	if !ozet.OK() {
+	if !summary.OK() {
 		os.Exit(1)
 	}
 }

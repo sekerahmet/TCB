@@ -273,10 +273,10 @@ Test türleri ve adlandırma kuralı [`internal/README.md`](../internal/README.m
 | TR ile yazılı kitaplık | `lib/*_test.tr` (`tr test lib`) |
 | `tr` komutunun uçtan uca davranışı, belgelerdeki bağlantılar ve kod blokları, VS Code eklentisi | `cmd/tr/e2e` |
 | GPU'da dil düzeyinde eğitim | `internal/stdlib/gpuprobe` (kartsızsa PTX benzetimi) |
-| Güvenilmeyen girdiler (bulanıklaştırma) | `Fuzz...` testleri; uzun koşu `tools/bulaniklastir.sh` |
+| Güvenilmeyen girdiler (bulanıklaştırma) | `Fuzz...` testleri; uzun koşu `tools/fuzz.sh` |
 | Hız | `tools/bench` kıyas seti ([`README`](../tools/bench/README.md)); sıcak yola dokunan değişiklik önce/sonra ölçülür |
 
-Bir iş `bash tools/tam_denetim.sh` geçince biter; otomatik sınama (`.github/workflows/ci.yml`) aynı betiği çalıştırır.
+Bir iş `bash tools/full_check.sh` geçince biter; otomatik sınama (`.github/workflows/ci.yml`) aynı betiği çalıştırır.
 
 ## Klasörler
 
@@ -289,7 +289,7 @@ Bir iş `bash tools/tam_denetim.sh` geçince biter; otomatik sınama (`.github/w
 | `docs/` | Belgeler: [`guide/`](guide/README.md) (kullanıcı kılavuzu), [`spec/`](spec/README.md) (dil tanımı), [`kodlar.md`](kodlar.md) (üretilir), [`yol_haritasi.md`](yol_haritasi.md), [`katki.md`](katki.md), [`tarifler.md`](tarifler.md), bu dosya |
 | `examples/` | Öğrenme sırasıyla örnek programlar |
 | `tests/` | Dil tanımının kural testleri (`tr test tests`); `negative/`, `coded/`, `data/` |
-| `tools/` | Depo bakım araçları, kullanıcıya gitmez: `tam_denetim.sh` ("bitti" tanımı), `bulaniklastir.sh`, `gen/` (üreteçler), `impact/` (bir adın etkisini koddan hesaplar), `checkstatic/` (statik ikili denetimi), `bench/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas betikleri, `COLAB.md`) |
+| `tools/` | Depo bakım araçları, kullanıcıya gitmez: `full_check.sh` ("bitti" tanımı), `fuzz.sh`, `gen/` (üreteçler), `impact/` (bir adın etkisini koddan hesaplar), `checkstatic/` (statik ikili denetimi), `bench/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas betikleri, `COLAB.md`) |
 | `bin/`, `scratch/` | Derleme çıktısı ve kişisel deneme klasörü; depoya girmez |
 
 ## Sahiplik

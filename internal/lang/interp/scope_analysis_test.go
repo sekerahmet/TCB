@@ -11,7 +11,7 @@ import (
 // Aynı ayrıştırılmış program birçok VM'de aynı anda derlenip çalıştırılabilmelidir: blok
 // kapsam bayrakları eskiden ağaca (ast.BlockStatement.Flags) tembelce yazılıyordu ve iki VM
 // aynı bloğu aynı anda derlerken yarışıyordu. Önbellek artık derleyicinin; ağaca yazılmaz.
-// Yarış 'go test -race' ile görülür (tools/tam_denetim.sh --kip=yaris, Linux); yarış
+// Yarış 'go test -race' ile görülür (tools/full_check.sh --kip=yaris, Linux); yarış
 // dedektörü olmayan yerde de test her VM'in doğru sonucu verdiğini sınar.
 func TestOneProgramCompiledInParallelVMs(t *testing.T) {
 	const code = `

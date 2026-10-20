@@ -8,64 +8,64 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// geciciOrtam işletim sisteminin geçici klasörünü boş bir klasöre çeviren ortam değişkenleridir.
-func geciciOrtam(t *testing.T) (string, []string) {
+// tempEnv işletim sisteminin geçici klasörünü boş bir klasöre çeviren ortam değişkenleridir.
+func tempEnv(t *testing.T) (string, []string) {
 	t.Helper()
-	gecici := t.TempDir()
-	return gecici, []string{"TMP=" + gecici, "TEMP=" + gecici, "TMPDIR=" + gecici}
+	temp := t.TempDir()
+	return temp, []string{"TMP=" + temp, "TEMP=" + temp, "TMPDIR=" + temp}
 }
 
-func geciciBosMu(t *testing.T, gecici, ne string) {
+func tempIsEmpty(t *testing.T, temp, ne string) {
 	t.Helper()
-	girdiler, err := os.ReadDir(gecici)
+	inputs, err := os.ReadDir(temp)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(girdiler) != 0 {
-		var adlar []string
-		for _, g := range girdiler {
-			adlar = append(adlar, g.Name())
+	if len(inputs) != 0 {
+		var names []string
+		for _, g := range inputs {
+			names = append(names, g.Name())
 		}
-		t.Errorf("%s: geçici klasörde bir şey kalmamalı: %v", ne, adlar)
+		t.Errorf("%s: geçici klasörde bir şey kalmamalı: %v", ne, names)
 	}
 }
 
 // Geçici klasör kullanan dil tanımı testleri (18, 19) koşudan sonra geçici klasörde ve
 // depoda bir şey bırakmaz (18.14: tr test de program bitince geçici klasörleri siler).
-func TestTestKomutuGeciciKlasorBirakmaz(t *testing.T) {
-	for _, dosya := range []string{"tests/surec_ve_kayit_test.tr", "tests/dosya_ve_yol_test.tr"} {
-		gecici, ortam := geciciOrtam(t)
-		s := calistir(t, trIkilisi, reporoot.Root(), "", ortam, "test", filepath.FromSlash(dosya))
-		bekle(t, s, 0, []string{"0 kaldı"}, nil)
-		geciciBosMu(t, gecici, dosya)
+func TestTestCommandLeavesNoTempDir(t *testing.T) {
+	for _, file := range []string{"tests/surec_ve_kayit_test.tr", "tests/dosya_ve_yol_test.tr"} {
+		temp, env := tempEnv(t)
+		s := run(t, trBinary, reporoot.Root(), "", env, "test", filepath.FromSlash(file))
+		wait(t, s, 0, []string{"0 kaldı"}, nil)
+		tempIsEmpty(t, temp, file)
 	}
-	if eski, _ := filepath.Glob(reporoot.Path("tests/gecici_*")); len(eski) != 0 {
-		t.Errorf("testler depoda geçici klasör bırakmamalı: %v", eski)
+	if old, _ := filepath.Glob(reporoot.Path("tests/gecici_*")); len(old) != 0 {
+		t.Errorf("testler depoda geçici klasör bırakmamalı: %v", old)
 	}
 }
 
 // Program nasıl biterse bitsin (başarı, çalışma hatası, komut satırı hatasıyla çıkış)
 // geçici_klasör()'ün klasörleri içlerindeki açık satır okuyucusuyla birlikte silinir.
-func TestGeciciKlasorProgramBitinceSilinir(t *testing.T) {
-	klasor := t.TempDir()
-	ortak := "değişken k = geçici_klasör()\ndosya_yaz(yol(k, \"a.txt\"), \"1\\n2\")\ndeğişken o = dosya_satırları(yol(k, \"a.txt\"))\no.sonraki()\nyazdır(k.var_mı)\n"
-	durumlar := []struct {
-		ad, son, arguman string
-		kod              int
+func TestTempDirRemovedWhenProgramEnds(t *testing.T) {
+	dir := t.TempDir()
+	shared := "değişken k = geçici_klasör()\ndosya_yaz(yol(k, \"a.txt\"), \"1\\n2\")\ndeğişken o = dosya_satırları(yol(k, \"a.txt\"))\no.sonraki()\nyazdır(k.var_mı)\n"
+	states := []struct {
+		ad, last, argument string
+		code               int
 	}{
 		{"başarı", "", "", 0},
 		{"çalışma hatası", "yazdır(1 / 0)\n", "", 1},
 		{"komut satırı çıkışı", "komut_satırı({adım: 1})\n", "--bilinmeyen", 2},
 	}
-	for _, d := range durumlar {
-		gecici, ortam := geciciOrtam(t)
-		dosyaYaz(t, klasor, "p.tr", ortak+d.son)
+	for _, d := range states {
+		temp, env := tempEnv(t)
+		writeFile(t, dir, "p.tr", shared+d.last)
 		args := []string{"p.tr"}
-		if d.arguman != "" {
-			args = append(args, d.arguman)
+		if d.argument != "" {
+			args = append(args, d.argument)
 		}
-		s := calistir(t, trIkilisi, klasor, "", ortam, args...)
-		bekle(t, s, d.kod, []string{"doğru"}, nil)
-		geciciBosMu(t, gecici, d.ad)
+		s := run(t, trBinary, dir, "", env, args...)
+		wait(t, s, d.code, []string{"doğru"}, nil)
+		tempIsEmpty(t, temp, d.ad)
 	}
 }

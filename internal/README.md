@@ -176,7 +176,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 
 ## Değişiklikler
 
-- Bir değişiklik `bash tools/tam_denetim.sh` geçince biter; otomatik sınama da aynı betiği çalıştırır. İş sırasında yalnızca değişen paketlerin testleri koşulur.
+- Bir değişiklik `bash tools/full_check.sh` geçince biter; otomatik sınama da aynı betiği çalıştırır. İş sırasında yalnızca değişen paketlerin testleri koşulur.
 - Commit mesajları İngilizcedir: ilk satır `paket: ne değişti`, gövdede neden.
 - Sıcak yola dokunan değişiklik önce ve sonra ölçülür; kazandırmayan "iyileştirme" geri alınır ([`docs/katki.md`](../docs/katki.md#ölçüm-disiplini)).
 - Bir adı ya da kancayı değiştirmeden önce nerede kullanıldığını koddan sorun: `go run ./tools/impact codes.Name`.

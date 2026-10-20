@@ -8,7 +8,7 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 2. **Ad koddur, ileti koddur.** Kullanıcının yazacağı her ad kod listesinden bir kod alır (yeni ad kodunu baş geliştirici verir). Kullanıcının göreceği her ileti paketin aralığından bir ileti kodu alır (ileti kodunu işi yapan ekler).
 3. **Testsiz ekleme yoktur.** Her davranışın bir testi olur. Bir düzeltmenin testi düzeltmeden önce kalır, sonra geçer.
 4. **Belge işle birlikte değişir.** Dil davranışı değiştiyse dil tanımında (`docs/spec/`) bir madde, kullanıcı için anlatmak gerekiyorsa kılavuzda (`docs/guide/`) bir satır.
-5. **Bitti = tam denetim.** `bash tools/tam_denetim.sh` geçer. Sıcak yola dokunulduysa önce ve sonra ölçülür.
+5. **Bitti = tam denetim.** `bash tools/full_check.sh` geçer. Sıcak yola dokunulduysa önce ve sonra ölçülür.
 
 ---
 
@@ -163,4 +163,4 @@ Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz
 - [ ] Dil davranışı değiştiyse dil tanımı ve `tests/*.tr` güncel.
 - [ ] Dış girdi okuyorsa sınırlar, bulanıklaştırma testi, `SECURITY.md`.
 - [ ] Sıcak yola dokunulduysa önce/sonra ölçüm.
-- [ ] `bash tools/tam_denetim.sh` geçti.
+- [ ] `bash tools/full_check.sh` geçti.
