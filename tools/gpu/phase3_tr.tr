@@ -3,7 +3,7 @@
 // komut satırından. Her adım sonunda kayıp okunur (GPU eşzamanlanır): PyTorch tarafı da öyle.
 // Kullanım: ./tr phase3_tr.tr [--cihaz gpu] [--ayar phase3_config.json] [--çıktı phase3_tr.json]
 // Tepe bellek bu dosyadan değil, `tr profil --json` raporundan (gpu.bellek[].tepe_canlı_bayt) okunur.
-// Çıktı (JSON): ilk adım, ısınma adımları, ölçülen adımların medyan ve p90 süresi, kayıp eğrisi.
+// Çıktı (JSON, anahtarlar İngilizce: phase3_torch.py ile aynı): ilk adım, ısınma adımları, ölçülen adımların medyan ve p90 süresi, kayıp eğrisi.
 
 değişken arg = komut_satırı({cihaz: "gpu", ayar: "phase3_config.json", çıktı: ""},
     açıklama: "Evre 3 ölçümü, TR tarafı (PyTorch karşılığı: phase3_torch.py)")
@@ -15,12 +15,12 @@ değişken D = c["D"]
 değişken H = c["H"]
 değişken Dh = D / H
 değişken FF = c["FF"]
-değişken KATMAN = c["KATMAN"]
+değişken KATMAN = c["LAYERS"]
 değişken V = c["V"]
-değişken HASSASIYET = c["hassasiyet"]
-değişken ISINMA = c["isinma"]
-değişken ÖLÇÜLEN = c["olculen"]
-değişken KAYIP_ADIM = c["kayip_adim"]
+değişken HASSASIYET = c["precision"]
+değişken ISINMA = c["warmup"]
+değişken ÖLÇÜLEN = c["measured"]
+değişken KAYIP_ADIM = c["loss_steps"]
 
 // Sabit sentetik toplu işler (phase3_torch.py ile aynı formül).
 değişken sentetik = []
@@ -118,12 +118,12 @@ döngü adım içinde 0..(ISINMA + ÖLÇÜLEN) {
     eğer adım < KAYIP_ADIM { kayıplar.ekle(v) }
 }
 
-değişken sonuç_ = {araç: "tr", kip: "tr", hassasiyet: HASSASIYET, cihaz: varsayılan_cihaz(),
-    ayar: {B: B, T: T, D: D, H: H, FF: FF, KATMAN: KATMAN, V: V},
-    ilk_adim_ms: ısınma_ms[0], isinma_ms: ısınma_ms,
-    olculen: {medyan_ms: ortanca(ölçülen_ms), p90_ms: yüzdelik(ölçülen_ms, 90), ortalama_ms: ortalama(ölçülen_ms),
-        en_az_ms: min(ölçülen_ms), en_cok_ms: maks(ölçülen_ms)},
-    kayip_egrisi: kayıplar}
+değişken sonuç_ = {tool: "tr", mode: "tr", precision: HASSASIYET, device: varsayılan_cihaz(),
+    config: {B: B, T: T, D: D, H: H, FF: FF, LAYERS: KATMAN, V: V},
+    first_step_ms: ısınma_ms[0], warmup_ms: ısınma_ms,
+    measured: {median_ms: ortanca(ölçülen_ms), p90_ms: yüzdelik(ölçülen_ms, 90), mean_ms: ortalama(ölçülen_ms),
+        min_ms: min(ölçülen_ms), max_ms: maks(ölçülen_ms)},
+    loss_curve: kayıplar}
 değişken çıktı_metni = json_metin(sonuç_)
 eğer arg.çıktı != "" { dosya_yaz(arg.çıktı, çıktı_metni) }
 yazdır(çıktı_metni)

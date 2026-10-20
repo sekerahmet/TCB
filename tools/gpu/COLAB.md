@@ -17,7 +17,8 @@ cd /content/TCB && git log -1 --format='commit: %h (%cd)' --date=iso
 mkdir -p /content/tr
 CGO_ENABLED=0 go build -trimpath -o /content/tr/tr ./cmd/tr
 CGO_ENABLED=0 go test -c -trimpath -o /content/tr/gpu_sinama ./internal/compute/gpu
-cp tools/gpu/compare_gpu.tr tools/gpu/gpt_training.tr tools/gpu/compare_gpu.py tools/gpu/micro_compare.py tools/gpu/micro_table.py \n   tools/gpu/phase3_tr.tr tools/gpu/phase3_torch.py tools/gpu/phase3_table.py tools/gpu/phase3_nsys.py tools/gpu/phase3_config.json /content/tr/
+cp tools/gpu/compare_gpu.tr tools/gpu/gpt_training.tr tools/gpu/compare_gpu.py tools/gpu/micro_compare.py tools/gpu/micro_table.py \
+   tools/gpu/phase3_tr.tr tools/gpu/phase3_torch.py tools/gpu/phase3_table.py tools/gpu/phase3_nsys.py tools/gpu/phase3_config.json /content/tr/
 cp -r tests /content/tr/
 nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv,noheader
 # GPU durumu ve matris çarpımının yolu (cuBLASLt bulunduysa yolu yazılır):
@@ -189,11 +190,11 @@ kırpma/iyileştirici ayarını kullanır. Başka bir yapılandırma için dosya
 Her adım sonunda kayıp okunur (GPU eşzamanlanır): iki tarafın da adım süresi budur; sıradaki
 adımın başlatılması ile GPU'nun çalışması üst üste bindirilmediği için bu süre toplu koşudan
 biraz uzundur. TR'nin `zaman_ms`'i milisaniye çözünürlüklüdür; adımlar onlarca ms olduğundan
-yeter. Isınma adımları (`isinma`, ilki derleme dahil) ölçülenlerden (`olculen`) ayrıdır. Tepe
+yeter. Isınma adımları (`warmup`, ilki derleme dahil) ölçülenlerden (`measured`) ayrıdır. Tepe
 bellek PyTorch'ta `max_memory_allocated`, TR'de `tr profil --json` raporundan okunur (ikisi de
 tensörlerin canlı tepesidir; ayrılan havuz değil).
 
-Kayıp eğrisi: ilk `kayip_adim` adımın kaybı yazılır. Eager ve compile aynı tohum ve aynı
+Kayıp eğrisi: ilk `loss_steps` adımın kaybı yazılır. Eager ve compile aynı tohum ve aynı
 başlangıçla koşar, birbirine bf16 yuvarlama düzeyinde yakın olmalıdır (tabloda "eager'dan en
 büyük kayıp farkı"). TR'nin başlangıç ağırlıkları farklı rastgele üreteçten gelir, bu yüzden
 TR eğrisi birebir aynı değil, aynı dağılımdan ve aynı eğilimdedir: [0] ≈ ln(40000) ≈ 10,6 ve
@@ -222,10 +223,10 @@ derlemesi dakikalar sürebilir.
 %%bash
 cd /content/tr
 for kip in eager compile max-autotune; do
-  python phase3_torch.py --kip $kip --cikti p3_$kip.json > /dev/null 2> p3_$kip.err || tail -5 p3_$kip.err
+  python phase3_torch.py --mode $kip --out p3_$kip.json > /dev/null 2> p3_$kip.err || tail -5 p3_$kip.err
 done
 ./tr profil --json p3_tr_profil.json phase3_tr.tr --cikti p3_tr.json > /dev/null 2> p3_tr.err || tail -5 p3_tr.err
-python phase3_table.py p3_tr.json p3_eager.json p3_compile.json p3_max-autotune.json --tr-bellek p3_tr_profil.json
+python phase3_table.py p3_tr.json p3_eager.json p3_compile.json p3_max-autotune.json --tr-memory p3_tr_profil.json
 ```
 
 Geri bildirilecek: bu hücrenin tablosu (kart satırı + dört satır + oran satırı). Bir koşu
@@ -238,9 +239,9 @@ hata verdiyse `.err` dosyasının son satırları.
 cd /content/tr
 python - <<'PY'
 import json
-a = {k: json.load(open(f"p3_{k}.json"))["kayip_egrisi"] for k in ("eager", "compile", "max-autotune", "tr")}
-print("| adım | eager | compile | max-autotune | TR |
-|---|---|---|---|---|")
+a = {k: json.load(open(f"p3_{k}.json"))["loss_curve"] for k in ("eager", "compile", "max-autotune", "tr")}
+print("| adım | eager | compile | max-autotune | TR |")
+print("|---|---|---|---|---|")
 for i in sorted({0, 1, 2, 5, 10, 20, 30, len(a["eager"]) - 1} & set(range(len(a["eager"])))):
     print(f"| {i} | " + " | ".join(f"{a[k][i]:.4f}" for k in ("eager", "compile", "max-autotune", "tr")) + " |")
 PY
@@ -249,7 +250,7 @@ PY
 ### 10.4. Nsight Systems: TR adımının zaman çizelgesi (ve karşılaştırma için PyTorch compile)
 
 Kısa koşu (`phase3_short.json`: 10 ısınma, 12 ölçülen adım) `nsys` altında çalışır. Çözümleme
-penceresi, son çekirdeğin bittiği andan geriye `pencere-ms`'dir: program ölçülen adımların hemen
+penceresi, son çekirdeğin bittiği andan geriye `--window-ms`'dir: program ölçülen adımların hemen
 ardından bittiği için pencere yalnızca ölçülen adımlardır (başlangıç, derleme ve bellek ayırma
 boşlukları dışarıda kalır). Pencere, 10.2'de ölçülen TR medyan adım süresinin 10 katı alınır;
 PyTorch için aynı pencere ve `--adim 10` kullanılır (karşılaştırma aynı süre aralığında).
@@ -259,18 +260,18 @@ PyTorch için aynı pencere ve `--adim 10` kullanılır (karşılaştırma aynı
 cd /content/tr
 python - <<'PY'
 import json
-c = json.load(open("phase3_config.json")); c.update(isinma=10, olculen=12, kayip_adim=4)
+c = json.load(open("phase3_config.json")); c.update(warmup=10, measured=12, loss_steps=4)
 json.dump(c, open("phase3_short.json", "w"))
 PY
-PEN=$(python -c "import json; print(10 * json.load(open('p3_tr.json'))['olculen']['medyan_ms'])")
+PEN=$(python -c "import json; print(10 * json.load(open('p3_tr.json'))['measured']['median_ms'])")
 # TR
 nsys profile -t cuda,nvtx --force-overwrite true -o p3_nsys_tr ./tr phase3_tr.tr --ayar phase3_short.json > /dev/null 2>&1
 nsys export --type sqlite --force-overwrite true -o p3_nsys_tr.sqlite p3_nsys_tr.nsys-rep > /dev/null 2>&1
-python phase3_nsys.py p3_nsys_tr.sqlite --pencere-ms $PEN --adim 10 --ad "TR"
+python phase3_nsys.py p3_nsys_tr.sqlite --window-ms $PEN --steps 10 --name "TR"
 # PyTorch torch.compile (varsayılan kip)
-nsys profile -t cuda,nvtx --force-overwrite true -o p3_nsys_pt python phase3_torch.py --kip compile --ayar phase3_short.json > /dev/null 2>&1
+nsys profile -t cuda,nvtx --force-overwrite true -o p3_nsys_pt python phase3_torch.py --mode compile --config phase3_short.json > /dev/null 2>&1
 nsys export --type sqlite --force-overwrite true -o p3_nsys_pt.sqlite p3_nsys_pt.nsys-rep > /dev/null 2>&1
-python phase3_nsys.py p3_nsys_pt.sqlite --pencere-ms $PEN --adim 10 --ad "PyTorch compile"
+python phase3_nsys.py p3_nsys_pt.sqlite --window-ms $PEN --steps 10 --name "PyTorch compile"
 ```
 
 Geri bildirilecek: iki tablo (çekirdek sayısı, çekirdek/adım, toplam çekirdek süresi, GPU boşta
