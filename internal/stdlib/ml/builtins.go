@@ -140,12 +140,33 @@ func minAll(t *tensor.Tensor) *tensor.Tensor {
 
 // wrap kodun bütün yazımlarına (ad ve sözlüğe göre Türkçe karaktersiz biçimi) aynı yeni
 // yerleşiği bağlar. Eski yerleşik (varsa) bu koddan okunur ve yeni fonksiyona verilir.
+// Yerleşik guarded ile sarılır: hesap çekirdeğinin paniği, yerleşik onu kendisi safe ile
+// sarmayı unutsa da yakalanabilir bir TR hatası olur.
 func wrap(v *interp.VM, kd codes.Code, setup func(old interp.BuiltinFunc) interp.BuiltinFunc) {
 	var old interp.BuiltinFunc
 	if b := v.Builtin(kd); b != nil {
 		old = b.Fn
 	}
-	v.DefineBuiltin(kd, &interp.BuiltinVal{Name: codes.Name(kd), Fn: setup(old)})
+	v.DefineBuiltin(kd, &interp.BuiltinVal{Name: codes.Name(kd), Fn: guarded(setup(old))})
+}
+
+// guarded fn'i safe içinde çağırır: çekirdeğin paniği (ör. GPU belleği yetmedi) dene/yakala ile
+// yakalanabilen bir hata olur ve kodunu korur; yorumlayıcının en üst kurtarmasına çıkıp iç hata
+// sayılmaz. Kesme (Ctrl+C) paniği hata değildir, geçer (bind.Recover).
+// Kapanışsız doğrudan defer: her çağrıda yığına ayırma olmasın (sayıyla çağrılan yerleşikler
+// sıcak döngüde de kullanılır).
+func guarded(fn interp.BuiltinFunc) interp.BuiltinFunc {
+	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (result interp.Value, err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				if interp.IsInterrupt(r) {
+					panic(r) // kesilme (Ctrl+C) hata değildir; yığın çözülmeye devam eder
+				}
+				result, err = nil, panicError(r)
+			}
+		}()
+		return fn(m, args, named)
+	}
 }
 
 // oldCall eski yerleşiği çağırır; yoksa argümanın tensör olmadığını bildirir.
