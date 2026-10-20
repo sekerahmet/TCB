@@ -2,6 +2,7 @@ package interp
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // --- FONKSİYONLAR ---
@@ -81,7 +82,7 @@ func (c *compiler) function(k *compilerScope, params []ast.Param, body *ast.Bloc
 	}
 	for i, p := range params {
 		fk.param[i] = sub.info.slot(p.Name)
-		sub.recordShadow(p.Name, paramLine, "bir parametreye")
+		sub.recordShadow(p.Name, paramLine, messages.H2451)
 		if seenSet[fk.param[i]] {
 			fk.simple = false
 		}

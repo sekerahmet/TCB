@@ -1,10 +1,9 @@
 package source
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/checker"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -99,5 +98,5 @@ func limitErrors(errs []string) []string {
 		return errs
 	}
 	out := append([]string(nil), errs[:MaxErrors]...)
-	return append(out, fmt.Sprintf("… ve %d hata daha (ilk %d hata gösterildi)", len(errs)-MaxErrors, MaxErrors))
+	return append(out, messages.Text(messages.H2513, len(errs)-MaxErrors, MaxErrors))
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -139,7 +140,7 @@ func TestConcurrentSameModule(t *testing.T) {
 		"b.tr":   "aktar \"a\"\n",
 		"ana.tr": "aktar \"a\"\n",
 	})
-	if err == nil || !strings.Contains(err.Error(), "döngüsel aktarım") {
+	if !messages.Has(err, messages.H2481) && !messages.Has(err, messages.H2483) {
 		t.Fatalf("döngüsel aktarım hatası bekleniyordu: %v", err)
 	}
 }

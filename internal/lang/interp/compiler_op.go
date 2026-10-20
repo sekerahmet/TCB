@@ -1,10 +1,10 @@
 package interp
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // --- İŞLEÇLER ---
@@ -33,7 +33,7 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 			switch rv := right.(type) {
 			case *IntVal:
 				if rv.Val == math.MinInt64 {
-					return nil, fmt.Errorf("Satır %d: %s sayı taşması (-(%d)); ondalık sonuç için örn. -(%d.0) yazın", line, VAL_INT, rv.Val, rv.Val)
+					return nil, messages.At(line, 0, messages.New(messages.H2444, VAL_INT, rv.Val))
 				}
 				return NewInt(-rv.Val), nil
 			case *FloatVal:
@@ -42,7 +42,7 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 				val, err := rv.Negate()
 				return val, lineSuffix(line, err)
 			}
-			return nil, fmt.Errorf("Satır %d: '-' operatörü %s tipine uygulanamaz", line, right.Type())
+			return nil, messages.At(line, 0, messages.New(messages.H2445, right.Type()))
 		}
 	}
 	return func(v *VM, env *Environment) (Value, error) {

@@ -1,8 +1,9 @@
 package interp
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // PathValuer is an external value carrying a file path (later the standard library's Yol
@@ -36,11 +37,10 @@ func CheckPath(fn, filePath string) error {
 	if !strings.ContainsAny(filePath, "\t\n\r") {
 		return nil
 	}
-	ne := "satır sonu"
+	ne := messages.Text(messages.H2487)
 	if strings.Contains(filePath, "\t") {
-		ne = "sekme"
+		ne = messages.Text(messages.H2488)
 	}
 	visible := strings.NewReplacer("\t", `\t`, "\n", `\n`, "\r", `\r`).Replace(filePath)
-	return fmt.Errorf("%s: dosya yolunda %s karakteri var; metindeki ters bölü bir kaçış dizisi sayıldı (\"\\t\" sekme, \"\\n\" satır sonudur). "+
-		"Windows yolu için ham metin kullanın: `%s` (ya da ters bölüleri ikileyin veya / yazın)", fn, ne, visible)
+	return messages.New(messages.H2489, fn, ne, visible)
 }

@@ -4,7 +4,9 @@ package codes
 //go:generate go run ../../../tools/gen/codesdoc -kok ../../..
 //go:generate go run ../../../tools/gen/grammar -kok ../../..
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Code is the language-independent, unchanging identity of a name. Its value is
 // family*1000 + number: A001 = A+1, Y400 = Y+400.
@@ -57,7 +59,7 @@ func (k Code) String() string {
 // Parse converts text such as "A001" to a code.
 func Parse(s string) (Code, error) {
 	if len(s) != 4 {
-		return None, fmt.Errorf("kod %q geçersiz: bir harf ve üç basamak olmalı (ör. G100)", s)
+		return None, internalf("invalid code %q: want one letter and three digits (e.g. G100)", s)
 	}
 	family := -1
 	for i := 0; i < len(familyLetters); i++ {
@@ -66,17 +68,17 @@ func Parse(s string) (Code, error) {
 		}
 	}
 	if family < 0 {
-		return None, fmt.Errorf("kod %q geçersiz: aile harfi %s harflerinden biri olmalı", s, familyLetters)
+		return None, internalf("invalid code %q: family letter must be one of %s", s, familyLetters)
 	}
 	n := 0
 	for _, c := range s[1:] {
 		if c < '0' || c > '9' {
-			return None, fmt.Errorf("kod %q geçersiz: harften sonra üç basamak gelmeli", s)
+			return None, internalf("invalid code %q: three digits must follow the letter", s)
 		}
 		n = n*10 + int(c-'0')
 	}
 	if n == 0 {
-		return None, fmt.Errorf("kod %q geçersiz: 000 kullanılmaz", s)
+		return None, internalf("invalid code %q: 000 is not used", s)
 	}
 	return Code(1000*(family+1) + n), nil
 }

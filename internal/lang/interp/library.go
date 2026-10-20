@@ -1,8 +1,6 @@
 package interp
 
 import (
-	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	pathpkg "path"
@@ -11,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
@@ -48,7 +47,7 @@ func LibraryModule(filePath string) (name string, ok bool) {
 // modules.
 func ReadLibrary(name string) ([]byte, error) {
 	if libraryFiles == nil {
-		return nil, errors.New("dilin kitaplığı bu programa bağlı değil")
+		return nil, messages.New(messages.H2480)
 	}
 	valid := fs.ValidPath(name) && pathpkg.Clean(name) == name && !strings.HasSuffix(name, "_test.tr")
 	if valid {
@@ -58,11 +57,11 @@ func ReadLibrary(name string) ([]byte, error) {
 	}
 	modules := LibraryModules()
 	wanted := LibraryPrefix + strings.TrimSuffix(name, ".tr")
-	message := fmt.Sprintf("%q dilin kitaplığında yok; kitaplıktaki modüller: %s", wanted, strings.Join(modules, ", "))
-	if suggestion := turkish.Closest(wanted, modules); suggestion != "" {
-		message += fmt.Sprintf(". Bunu mu demek istediniz: %q?", suggestion)
+	suggestion := ""
+	if closest := turkish.Closest(wanted, modules); closest != "" {
+		suggestion = messages.Text(messages.H2479, closest)
 	}
-	return nil, errors.New(message)
+	return nil, messages.New(messages.H2478, wanted, strings.Join(modules, ", "), suggestion)
 }
 
 // LibraryModules returns the 'aktar' paths of the library's modules ("tr/katman", ...),

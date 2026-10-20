@@ -1,7 +1,6 @@
 package interp
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -68,7 +67,7 @@ func ArgTypeError(kd codes.Code, order int, given Value, expected ...codes.Code)
 }
 
 func argTypeErrorByName(name string, order int, expected string, given Value) error {
-	return fmt.Errorf("%s() %d. argüman olarak %s bekler, %s verildi", name, order, expected, TypeAndSummary(given))
+	return messages.New(messages.H2423, name, order, expected, TypeAndSummary(given))
 }
 
 // ArgCountError reports that builtin kd (or its member) was called with the wrong number of
@@ -111,7 +110,7 @@ func TypeAndSummary(v Value) string {
 	if v == nil {
 		return messages.Text(messages.H2013)
 	}
-	return fmt.Sprintf("%s (%s)", v.Type(), ValueSummary(v))
+	return messages.Text(messages.H2424, v.Type(), ValueSummary(v))
 }
 
 // summaryLimit hata mesajlarındaki değer özetinin en fazla karakter sayısıdır.
@@ -133,12 +132,12 @@ func ValueSummary(v Value) string {
 				pieces = append(pieces, ValueSummary(e))
 			}
 			return shorten("["+strings.Join(pieces, ", ")+", …]", summaryLimit) +
-				fmt.Sprintf(", %d eleman", len(x.Elements))
+				messages.Text(messages.H2425, len(x.Elements))
 		}
 		s = x.Inspect()
 	case *DictVal:
 		if len(x.Pairs) > 5 {
-			return fmt.Sprintf("%d anahtarlı sözlük", len(x.Pairs))
+			return messages.Text(messages.H2426, len(x.Pairs))
 		}
 		s = x.Inspect()
 	default:

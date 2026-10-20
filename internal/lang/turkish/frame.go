@@ -45,6 +45,10 @@ func ErrorFrame(source string, err error) string {
 	return CodeFrame(source, err.Error())
 }
 
+// LineFrame shows line n of source without a marker (for a position known only as a line,
+// such as the 'aktar' line of a module error). Returns "" when the line is blank or missing.
+func LineFrame(source string, n int) string { return codeFrameAt(source, n, 0, "") }
+
 // codeFrameAt satırı ve (sütun biliniyorsa) işaretçiyi çizer; message yalnızca altı çizilecek
 // tırnaklı adı bulmak için kullanılır.
 func codeFrameAt(source string, lineNo, col int, message string) string {

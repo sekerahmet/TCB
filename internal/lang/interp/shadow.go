@@ -1,10 +1,9 @@
 package interp
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Yerleşik ad gölgeleme: kullanıcı bir yerleşiğin adını (uzunluk, toplam, girdi ...)
@@ -17,7 +16,7 @@ import (
 // shadowDef bir kapsamda yerleşik adını gölgeleyen tanımdır.
 type shadowDef struct {
 	lineNo int
-	ne     string // "bir değişkene", "bir parametreye" ...
+	ne     messages.Code // messages.H2450, "bir parametreye" ...
 }
 
 // builtinName ad sözlükteki bir yerleşik fonksiyonun (G/T/V/W) adı mı?
@@ -28,7 +27,7 @@ func builtinName(name string) bool {
 
 // recordShadow ad bir yerleşik adıysa bu kapsamdaki tanımını kaydeder (kapsamdaki ilk
 // tanım tutulur).
-func (k *compilerScope) recordShadow(name string, lineNo int, ne string) {
+func (k *compilerScope) recordShadow(name string, lineNo int, ne messages.Code) {
 	if !builtinName(name) {
 		return
 	}
@@ -55,10 +54,10 @@ func (k *compilerScope) findShadow(name string) (shadowDef, bool) {
 func (k *compilerScope) statementShadows(st ast.Statement) {
 	switch s := st.(type) {
 	case *ast.VarStatement:
-		k.recordShadow(s.Name.Value, s.Line(), "bir değişkene")
+		k.recordShadow(s.Name.Value, s.Line(), messages.H2450)
 	case *ast.MultiVarStatement:
 		for _, n := range s.Names {
-			k.recordShadow(n.Value, s.Line(), "bir değişkene")
+			k.recordShadow(n.Value, s.Line(), messages.H2450)
 		}
 	}
 }
@@ -73,8 +72,7 @@ func shadowedCall(kd exprCode, fun exprCode, name string, g shadowDef, line int)
 			return val, nil
 		}
 		if fv, e := fun(v, env); e == nil && !callable(fv) {
-			return nil, fmt.Errorf("Satır %d: '%s' bir fonksiyon değil (%s); %d. satırda %s verildi, yerleşik '%s' bu kapsamda gölgelendi",
-				line, name, fv.Type(), g.lineNo, g.ne, name)
+			return nil, messages.At(line, 0, messages.New(messages.H2449, name, fv.Type(), g.lineNo, messages.Text(g.ne)))
 		}
 		return nil, err
 	}

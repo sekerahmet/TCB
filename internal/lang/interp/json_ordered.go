@@ -3,9 +3,9 @@ package interp
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // maxJSONDepth iç içe JSON nesne/dizi derinliğinin üst sınırıdır. JSON dışarıdan (dosyadan,
@@ -22,14 +22,14 @@ func JSONToTR(data []byte) (Value, error) {
 		return nil, err
 	}
 	if _, err := dec.Token(); err != io.EOF {
-		return nil, errors.New("JSON değerinden sonra beklenmeyen veri var")
+		return nil, messages.New(messages.H2499)
 	}
 	return val, nil
 }
 
 func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 	if depth > maxJSONDepth {
-		return nil, fmt.Errorf("JSON çok derin iç içe (en fazla %d seviye)", maxJSONDepth)
+		return nil, messages.New(messages.H2500, maxJSONDepth)
 	}
 	tok, err := dec.Token()
 	if err != nil {
@@ -47,7 +47,7 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 				}
 				key, ok := kt.(string)
 				if !ok {
-					return nil, errors.New("JSON nesne anahtarı metin olmalı")
+					return nil, messages.New(messages.H2501)
 				}
 				val, err := jsonValue(dec, depth+1)
 				if err != nil {
@@ -73,7 +73,7 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 			}
 			return l, nil
 		}
-		return nil, fmt.Errorf("beklenmeyen JSON işareti %q", t)
+		return nil, messages.New(messages.H2502, t)
 	case string:
 		return &StringVal{Val: t}, nil
 	case json.Number:
@@ -82,7 +82,7 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 		}
 		f, err := t.Float64()
 		if err != nil {
-			return nil, fmt.Errorf("geçersiz JSON sayısı %q", t)
+			return nil, messages.New(messages.H2503, t)
 		}
 		// Önceki davranışla uyumlu: tam sayı değerli ondalıklar Tam olur (GoToTRValue gibi)
 		return GoToTRValue(f), nil
@@ -91,5 +91,5 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 	case nil:
 		return NULL, nil
 	}
-	return nil, fmt.Errorf("beklenmeyen JSON değeri %v", tok)
+	return nil, messages.New(messages.H2504, tok)
 }

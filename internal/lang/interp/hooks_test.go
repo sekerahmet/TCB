@@ -8,6 +8,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -63,7 +64,7 @@ func TestValueHooks(t *testing.T) {
 			t.Errorf("%s: beklenen %s, alınan %s (%v)", codeVal, want, got, err)
 		}
 	}
-	if _, err := expression("a % 2"); err == nil || err.Error() != "Satır 1: kalan desteklenmiyor" {
+	if _, err := expression("a % 2"); !atLine(err, 1, "kalan desteklenmiyor") {
 		t.Errorf("kanca hatası satır önekli olmalı: %v", err)
 	}
 	if _, err := expression("a * 2"); err == nil || !strings.Contains(err.Error(), "işlemi desteklenmiyor") {
@@ -207,7 +208,7 @@ func TestIndexAssignAndPlainValueHooks(t *testing.T) {
 		t.Fatal(p.Errors())
 	}
 	_, err := vmx.Run(prog)
-	if err == nil || err.Error() != "Satır 5: negatif indeks" {
+	if !atLine(err, 5, "negatif indeks") {
 		t.Fatalf("kanca hatası satır önekli olmalı: %v", err)
 	}
 	if got := a.PlainValue().Inspect(); got != "[4, 8]" {
@@ -264,10 +265,10 @@ değişken üretilen = [x + 1 döngü x içinde y eğer x > 0]
 			t.Errorf("%s: beklenen %s, alınan %v", name, want, got)
 		}
 	}
-	if _, err := runCode("\ndöngü x içinde bozuk { }"); err == nil || err.Error() != "Satır 2: üzerinde gezilemez" {
+	if _, err := runCode("\ndöngü x içinde bozuk { }"); !atLine(err, 2, "üzerinde gezilemez") {
 		t.Errorf("döngü kanca hatası satır önekli olmalı: %v", err)
 	}
-	if _, err := runCode("\n\nyazdır([x döngü x içinde bozuk])"); err == nil || err.Error() != "Satır 3: üzerinde gezilemez" {
+	if _, err := runCode("\n\nyazdır([x döngü x içinde bozuk])"); !atLine(err, 3, "üzerinde gezilemez") {
 		t.Errorf("üreteç kanca hatası satır önekli olmalı: %v", err)
 	}
 }
@@ -331,10 +332,29 @@ döngü x içinde a { boş += 1 }
 	if a.howMany != 5 {
 		t.Errorf("akıştan %d öğe istendi, 5 bekleniyordu", a.howMany)
 	}
-	if _, err := runCode("\ndöngü x içinde bozuk { }"); err == nil || err.Error() != "Satır 2: akış okunamadı" {
+	if _, err := runCode("\ndöngü x içinde bozuk { }"); !atLine(err, 2, "akış okunamadı") {
 		t.Errorf("döngü kanca hatası satır önekli olmalı: %v", err)
 	}
-	if _, err := runCode("\n\nyazdır([x döngü x içinde bozuk])"); err == nil || err.Error() != "Satır 3: akış okunamadı" {
+	if _, err := runCode("\n\nyazdır([x döngü x içinde bozuk])"); !atLine(err, 3, "akış okunamadı") {
 		t.Errorf("üreteç kanca hatası satır önekli olmalı: %v", err)
 	}
+}
+
+// codeAt reports whether err carries message code c at source line line (0: any line). Tests
+// check the code and the structural position, not the message text.
+func codeAt(err error, c messages.Code, line int) bool {
+	if !messages.Has(err, c) {
+		return false
+	}
+	if line == 0 {
+		return true
+	}
+	l, _, ok := messages.Pos(err)
+	return ok && l == line
+}
+
+// atLine reports whether err is a positioned error at line whose own message is text.
+func atLine(err error, line int, text string) bool {
+	var pe *messages.PosError
+	return errors.As(err, &pe) && pe.Line == line && pe.Err.Error() == text
 }

@@ -2,7 +2,8 @@ package interp
 
 import (
 	"errors"
-	"fmt"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Program çıkışı: bir yerleşik programın hemen, belirli bir çıkış koduyla bitmesini
@@ -21,7 +22,7 @@ type ExitRequest struct {
 
 func (c *ExitRequest) Error() string {
 	if c.Message == "" {
-		return fmt.Sprintf("program %d koduyla bitirildi", c.Code)
+		return messages.Text(messages.H2491, c.Code)
 	}
 	return c.Message
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -74,7 +75,7 @@ func TestCompilerDynamicEval(t *testing.T) {
 	if strings.Join(nameList, ",") != "a,b" {
 		t.Fatalf("yerel adlar: %v", nameList)
 	}
-	if _, err := machine.EvalExpression(expr, machine.GlobalEnv); err == nil || !strings.Contains(err.Error(), "'a' adında") {
+	if _, err := machine.EvalExpression(expr, machine.GlobalEnv); !messages.Has(err, messages.H2442) {
 		t.Fatalf("genel kapsamda 'a' bulunmamalı: %v", err)
 	}
 }
@@ -244,7 +245,7 @@ func TestFastPathSemantics(t *testing.T) {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
 	}
 	_, _, err = runTROut(t, "yapı Q { fonksiyon m(a) { sonuç a } }\ndeğişken q = Q()\nq.m()\n")
-	if err == nil || !strings.Contains(err.Error(), "'m' fonksiyonu 1 argüman bekler") {
+	if !messages.Has(err, messages.H2414) {
 		t.Fatalf("metot argüman denetimi: %v", err)
 	}
 }

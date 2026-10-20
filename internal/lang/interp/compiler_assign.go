@@ -2,9 +2,9 @@ package interp
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // --- ATAMA ---
@@ -81,7 +81,7 @@ func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal
 		}
 	}
 	return func(v *VM, env *Environment, rhs Value) error {
-		return fmt.Errorf("Satır %d: Geçersiz atama hedefi", line)
+		return messages.At(line, 0, messages.New(messages.H2436))
 	}
 }
 
@@ -91,8 +91,7 @@ func (v *VM) assignByName(env *Environment, t *ast.Identifier, codeVal uint8, ri
 	if codeVal != opAssign {
 		cur, ok := env.Get(t.Value)
 		if !ok {
-			return fmt.Errorf("Satır %d, Sütun %d: '%s' adında bir değişken yok%s",
-				line, t.Token.Column, t.Value, suggestName(t.Value, env))
+			return messages.At(line, t.Token.Column, messages.New(messages.H2437, t.Value, suggestName(t.Value, env)))
 		}
 		var err error
 		finalVal, err = v.assignOp(codeVal, cur, rightVal, line)
@@ -103,9 +102,9 @@ func (v *VM) assignByName(env *Environment, t *ast.Identifier, codeVal uint8, ri
 	if err := env.Assign(t.Value, finalVal); err != nil {
 		var undefined *UndefinedVarError
 		if errors.As(err, &undefined) {
-			return fmt.Errorf("Satır %d, Sütun %d: %v%s", line, t.Token.Column, err, suggestName(t.Value, env))
+			return messages.At(line, t.Token.Column, messages.New(messages.H2438, err, suggestName(t.Value, env)))
 		}
-		return fmt.Errorf("Satır %d: %v", line, err)
+		return messages.At(line, 0, err)
 	}
 	return nil
 }

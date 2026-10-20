@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -83,7 +84,7 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	m2 := New()
 	m2.SourceFile = circA
 	_, err = m2.Run(prog2)
-	if err == nil || !strings.Contains(err.Error(), "döngüsel aktarım") {
+	if !messages.Has(err, messages.H2481) && !messages.Has(err, messages.H2483) {
 		t.Fatalf("Döngüsel aktarım hatası bekleniyordu, alınan: %v", err)
 	}
 }

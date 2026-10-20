@@ -20,9 +20,9 @@ func (v *VM) registerTestBuiltins() {
 			return TRUE, nil
 		}
 		if len(args) == 2 {
-			return nil, fmt.Errorf("doğrulama başarısız: %s", args[1].Inspect())
+			return nil, messages.New(messages.H2456, args[1].Inspect())
 		}
-		return nil, fmt.Errorf("doğrulama başarısız: koşul yanlış (%s)", testShow(args[0]))
+		return nil, messages.New(messages.H2457, testShow(args[0]))
 	})
 
 	// eşit_mi(beklenen, gerçek, [mesaj]): iki değer '==' ile eşit değilse ikisini de gösteren hata fırlatır.
@@ -40,7 +40,7 @@ func (v *VM) registerTestBuiltins() {
 		if len(args) == 3 {
 			extra = args[2].Inspect() + " — "
 		}
-		return nil, fmt.Errorf("eşitlik başarısız: %sbeklenen %s, gerçek %s", extra, testShow(args[0]), testShow(args[1]))
+		return nil, messages.New(messages.H2458, extra, testShow(args[0]), testShow(args[1]))
 	})
 }
 
@@ -48,9 +48,9 @@ func (v *VM) registerTestBuiltins() {
 // "5" ile 5 ayırt edilebilsin.
 func testShow(d Value) string {
 	if s, ok := d.(*StringVal); ok {
-		return fmt.Sprintf("%q (%s)", s.Val, VAL_STRING)
+		return messages.Text(messages.H2459, s.Val, VAL_STRING)
 	}
-	return fmt.Sprintf("%s (%s)", d.Inspect(), d.Type())
+	return messages.Text(messages.H2424, d.Inspect(), d.Type())
 }
 
 // RunTest runs a single test block in a new scope opened over the file's top-level definitions
@@ -71,7 +71,7 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 				err = ErrInterrupted
 				return
 			}
-			err = fmt.Errorf("Satır %d: İç hata (çökme önlendi): %v", t.Line(), r)
+			err = messages.At(t.Line(), 0, messages.Internal(fmt.Sprint(r)))
 		}
 	}()
 	var stmts []ast.Statement

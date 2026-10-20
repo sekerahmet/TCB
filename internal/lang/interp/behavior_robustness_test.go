@@ -2,11 +2,11 @@ package interp
 
 import (
 	"io"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -56,7 +56,7 @@ func TestRunRecoversFromBuiltinPanic(t *testing.T) {
 		ertele { çalıştı = doğru }
 		patla()`)).ParseProgram()
 	_, err := machine.Run(prog)
-	if err == nil || !strings.Contains(err.Error(), "çökme önlendi") {
+	if !messages.Has(err, messages.H9000) {
 		t.Fatalf("panik hataya dönüştürülmeliydi, alınan: %v", err)
 	}
 	if v, _ := machine.GlobalEnv.Get("çalıştı"); v.Inspect() != "doğru" {
@@ -213,7 +213,7 @@ func TestPanicInsideAsyncDoesNotCrashProcess(t *testing.T) {
 // çökertiyordu. Artık sınırda 'dene/yakala' ile yakalanabilen bir hata döner.
 func TestDeepRecursionIsCatchableError(t *testing.T) {
 	_, _, err := runTRWithin(t, 30*time.Second, "fonksiyon f(n) { sonuç f(n + 1) }\nf(0)")
-	if err == nil || !strings.Contains(err.Error(), "Özyineleme derinliği sınırı aşıldı") {
+	if !messages.Has(err, messages.H2422) {
 		t.Fatalf("özyineleme sınırı hatası bekleniyordu, alınan: %v", err)
 	}
 	_, val, err := runTRWithin(t, 30*time.Second, `
@@ -233,27 +233,31 @@ func TestDeepRecursionIsCatchableError(t *testing.T) {
 
 // Test raporu Y4: eksik argüman sessizce 'yok' oluyor, fazlası yok sayılıyordu.
 func TestUserFunctionArityIsChecked(t *testing.T) {
-	cases := []struct{ code, want string }{
-		{"fonksiyon topla(a, b) { sonuç a + b }\ntopla(1)", "Satır 2: 'topla' fonksiyonu 2 argüman bekler, 1 verildi (eksik: 'b')"},
-		{"fonksiyon topla(a, b) { sonuç a + b }\ntopla(1, 2, 3)", "Satır 2: 'topla' fonksiyonu en fazla 2 argüman alır, 3 verildi"},
-		{"fonksiyon f(isim) { sonuç isim }\nf(isimm: 1)", "'f' fonksiyonu 'isimm' adında bir parametre almaz. Bunu mu demek istediniz: 'isim'?"},
-		{"değişken g = (x, y) => x + y\ng(1)", "İsimsiz fonksiyon 2 argüman bekler, 1 verildi"},
-		{"fonksiyon iki(a, b) { sonuç a }\n5 |> iki", "'iki' fonksiyonu 2 argüman bekler, 1 verildi"},
+	cases := []struct {
+		code string
+		want messages.Code
+		line int // 0: satır denetlenmez
+	}{
+		{"fonksiyon topla(a, b) { sonuç a + b }\ntopla(1)", messages.H2414, 2},
+		{"fonksiyon topla(a, b) { sonuç a + b }\ntopla(1, 2, 3)", messages.H2412, 2},
+		{"fonksiyon f(isim) { sonuç isim }\nf(isimm: 1)", messages.H2410, 0},
+		{"değişken g = (x, y) => x + y\ng(1)", messages.H2414, 0},
+		{"fonksiyon iki(a, b) { sonuç a }\n5 |> iki", messages.H2414, 0},
 		// aynı parametre hem sırayla hem adıyla: adlı değer eskiden sessizce yok sayılırdı
-		{"fonksiyon f(a, b = 10) { sonuç [a, b] }\nf(1, a: 2)", "Satır 2: 'f' fonksiyonu 'a' parametresi hem sırayla (1. argüman) hem adıyla verildi"},
-		{"fonksiyon f(a, b) { sonuç [a, b] }\nf(1, 2, b: 3)", "'f' fonksiyonu 'b' parametresi hem sırayla (2. argüman) hem adıyla verildi"},
-		{"fonksiyon f(a, b) { sonuç a }\n5 |> f(a: 1)", "'f' fonksiyonu 'a' parametresi hem sırayla (1. argüman) hem adıyla verildi"},
-		{"yapı Nokta { x\n y }\nNokta(1, x: 2).x", "Satır 3: 'Nokta' yapısının 'x' alanı hem sırayla (1. argüman) hem adıyla verildi"},
-		{"yapı H { b\n fonksiyon kurucu(v) { kendi.b = v } }\nH(1, v: 2)", "'kurucu' fonksiyonu 'v' parametresi hem sırayla (1. argüman) hem adıyla verildi"},
+		{"fonksiyon f(a, b = 10) { sonuç [a, b] }\nf(1, a: 2)", messages.H2413, 2},
+		{"fonksiyon f(a, b) { sonuç [a, b] }\nf(1, 2, b: 3)", messages.H2413, 0},
+		{"fonksiyon f(a, b) { sonuç a }\n5 |> f(a: 1)", messages.H2413, 0},
+		{"yapı Nokta { x\n y }\nNokta(1, x: 2).x", messages.H2420, 3},
+		{"yapı H { b\n fonksiyon kurucu(v) { kendi.b = v } }\nH(1, v: 2)", messages.H2413, 0},
 		// eksik zorunlu parametre: sayılar kendisiyle çelişmemeli ("1 bekler, 1 verildi")
-		{"fonksiyon f(a, b = 10) { sonuç a }\nf(b: 20)", "Satır 2: 'f' fonksiyonu için zorunlu 'a' argümanı verilmedi"},
-		{"fonksiyon f(a, b, c = 1) { sonuç a }\nf(c: 2)", "'f' fonksiyonu için zorunlu 'a', 'b' argümanları verilmedi"},
-		{"fonksiyon f(a = 1, b) { sonuç a }\nf(5)", "'f' fonksiyonu için zorunlu 'b' argümanı verilmedi"},
+		{"fonksiyon f(a, b = 10) { sonuç a }\nf(b: 20)", messages.H2415, 2},
+		{"fonksiyon f(a, b, c = 1) { sonuç a }\nf(c: 2)", messages.H2415, 0},
+		{"fonksiyon f(a = 1, b) { sonuç a }\nf(5)", messages.H2415, 0},
 	}
 	for _, c := range cases {
 		_, _, err := runTRWithin(t, 5*time.Second, c.code)
-		if err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%q içeren hata bekleniyordu, alınan: %v", c.want, err)
+		if !codeAt(err, c.want, c.line) {
+			t.Errorf("%s (satır %d) bekleniyordu, alınan: %v", c.want, c.line, err)
 		}
 	}
 	// Varsayılan değerler, adlandırılmış argümanlar ve geri çağrılar (fazladan argüman alabilir) çalışmalı

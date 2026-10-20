@@ -1,11 +1,11 @@
 package interp
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Bu dosyada derlenmiş kodun değer düzeyinde kullandığı yardımcılar vardır (indeksleme,
@@ -19,7 +19,7 @@ func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 		if first, last, step, empty := rangeSteps(it); !empty {
 			// The items are built up front, so the size limit of aralık() applies here too.
 			if n := rangeCount(first, last, step); n > MaxCollectionSize {
-				return nil, fmt.Errorf("Satır %d: liste üreteci çok büyük: aralıkta %d eleman var, en fazla %d eleman üretilebilir", line, n, MaxCollectionSize)
+				return nil, messages.At(line, 0, messages.New(messages.H2462, n, MaxCollectionSize))
 			}
 			for i := first; ; i += step {
 				items = append(items, NewInt(i))
@@ -61,12 +61,12 @@ func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 				break
 			}
 			if len(items) >= MaxCollectionSize {
-				return nil, fmt.Errorf("Satır %d: liste üreteci en fazla %d öğe toplayabilir; akışı döngüyle gezin", line, MaxCollectionSize)
+				return nil, messages.At(line, 0, messages.New(messages.H2463, MaxCollectionSize))
 			}
 			items = append(items, item)
 		}
 	default:
-		return nil, fmt.Errorf("Satır %d: %s üretecinde %s tipi üzerinde döngü kurulamaz", line, VAL_LIST, iterVal.Type())
+		return nil, messages.At(line, 0, messages.New(messages.H2464, VAL_LIST, iterVal.Type()))
 	}
 	return items, nil
 }
@@ -92,11 +92,11 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 			copy(sliced, container.Elements[start:end])
 			return &ListVal{Elements: sliced}, nil
 		}
-		return nil, fmt.Errorf("Satır %d: %s indeksi %s sayı olmalıdır", line, VAL_LIST, VAL_INT)
+		return nil, messages.At(line, 0, messages.New(messages.H2400, VAL_LIST, VAL_INT))
 
 	case *DictVal:
 		if err := DictKeyError(idx); err != nil {
-			return nil, fmt.Errorf("Satır %d: %w", line, err)
+			return nil, messages.At(line, 0, err)
 		}
 		val, exists := container.GetValue(idx)
 		if !exists {
@@ -127,7 +127,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		}
 		iv, ok := idx.(*IntVal)
 		if !ok {
-			return nil, fmt.Errorf("Satır %d: %s indeksi %s sayı olmalıdır", line, VAL_STRING, VAL_INT)
+			return nil, messages.At(line, 0, messages.New(messages.H2400, VAL_STRING, VAL_INT))
 		}
 		pos := int(iv.Val)
 		if pos < 0 {
@@ -143,7 +143,7 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		return val, lineSuffix(line, err)
 	}
 
-	return nil, fmt.Errorf("Satır %d: %s tipi indekslenemez", line, left.Type())
+	return nil, messages.At(line, 0, messages.New(messages.H2465, left.Type()))
 }
 
 // memberValue nesne.özellik (ya da nesne?.özellik) değerini döndürür.
@@ -164,7 +164,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 		if e.Safe {
 			return NULL, nil
 		}
-		return nil, fmt.Errorf("Satır %d: '%s' değerin %q özelliğine erişilemez ('?.' güvenli erişim kullanabilirsiniz)", e.Line(), codes.Name(codes.A042), e.Property)
+		return nil, messages.At(e.Line(), 0, messages.New(messages.H2466, codes.Name(codes.A042), e.Property))
 	}
 
 	// Tensör, iyileştirici, veri kümesi ve parçalayıcı özellikleri
@@ -178,7 +178,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 		}
 		if err != nil && u.codeVal == codes.None {
 			if h := movedMemberError(obj, e.Property); h != "" {
-				err = fmt.Errorf("%s", h)
+				err = messages.New(messages.H2441, h)
 			} else {
 				err = memberSuggestionError(pg, obj, e.Property, err)
 			}
@@ -189,7 +189,7 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 	if inst, ok := obj.(*StructInstanceVal); ok {
 		return structMember(inst, e)
 	}
-	return nil, fmt.Errorf("Satır %d: %s tipinde %q özelliği bulunamadı", e.Line(), obj.Type(), e.Property)
+	return nil, messages.At(e.Line(), 0, messages.New(messages.H2467, obj.Type(), e.Property))
 }
 
 // structMember nesnenin alanını ya da (bağlı fonksiyon olarak) metodunu döndürür.
@@ -210,7 +210,7 @@ func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, erro
 	if e.Safe {
 		return NULL, nil
 	}
-	return nil, fmt.Errorf("Satır %d: %s yapısında %q alanı veya metodu bulunamadı", e.Line(), inst.Def.Name, e.Property)
+	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, inst.Def.Name, e.Property))
 }
 
 // asciiChars tek karakterlik ASCII metinlerdir (indekslemede yeniden kullanılır;

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -28,12 +29,12 @@ func runTROut(t *testing.T, code string) (string, Value, error) {
 // Tanımsız bir isme atama eskiden en dış kapsamda sessizce genel değişken oluşturuyordu.
 func TestAssignToUndeclaredNameIsError(t *testing.T) {
 	_, _, err := runTROut(t, "fonksiyon f() { gizli = 42 }\nf()\nyazdır(gizli)")
-	if err == nil || !strings.Contains(err.Error(), "tanımsız değişken: 'gizli'") {
+	if !messages.Has(err, messages.H2448) {
 		t.Fatalf("tanımsız değişken hatası bekleniyordu, alınan: %v", err)
 	}
 
 	_, _, err = runTROut(t, "toplm = 1")
-	if err == nil || !strings.Contains(err.Error(), "önce 'değişken' ile tanımlayın") {
+	if !messages.Has(err, messages.H2448) {
 		t.Fatalf("en dış kapsamda da hata bekleniyordu, alınan: %v", err)
 	}
 
@@ -81,7 +82,7 @@ func TestOperatorPrecedence(t *testing.T) {
 	if val.Type() != VAL_INT {
 		t.Fatalf("Tam ** Tam sonucu Tam olmalı, %s alındı", val.Type())
 	}
-	if _, err := runTR(t, "sonuç 10 ** 40"); err == nil || !strings.Contains(err.Error(), "taşma") {
+	if _, err := runTR(t, "sonuç 10 ** 40"); !messages.Has(err, messages.H2472) {
 		t.Fatalf("taşma hatası bekleniyordu, alınan: %v", err)
 	}
 }
@@ -136,11 +137,11 @@ yazdır("tamam")`)
 		t.Fatalf("çıktı yanlış: %q", out)
 	}
 	_, _, err = runTROut(t, `eşit_mi("5", 5)`)
-	if err == nil || !strings.Contains(err.Error(), `beklenen "5" (Metin), gerçek 5 (Tam)`) {
+	if !messages.Has(err, messages.H2458) {
 		t.Fatalf("eşit_mi hata mesajı yanlış: %v", err)
 	}
 	_, _, err = runTROut(t, "\n\ndoğrula(yanlış)")
-	if err == nil || !strings.Contains(err.Error(), "Satır 3: doğrulama başarısız") {
+	if !codeAt(err, messages.H2457, 3) {
 		t.Fatalf("doğrula hata mesajı yanlış: %v", err)
 	}
 }
@@ -148,7 +149,7 @@ yazdır("tamam")`)
 // Tam sayı toplama/çıkarma/çarpma taşması sessizce sarmak yerine hata verir ('**' gibi).
 func TestIntegerOverflowIsError(t *testing.T) {
 	for _, codeVal := range []string{"sonuç 9223372036854775807 + 1", "sonuç -9223372036854775807 - 2", "sonuç 4294967296 * 4294967296"} {
-		if _, err := runTR(t, codeVal); err == nil || !strings.Contains(err.Error(), "taşma") {
+		if _, err := runTR(t, codeVal); !messages.Has(err, messages.H2473) {
 			t.Fatalf("%s: taşma hatası bekleniyordu, alınan: %v", codeVal, err)
 		}
 	}
@@ -184,7 +185,7 @@ func TestShadowingBuiltinCreatesMutableVariable(t *testing.T) {
 	if val.Inspect() != "[5, 2]" {
 		t.Fatalf("[5, 2] bekleniyordu, %s alındı", val.Inspect())
 	}
-	if _, err := runTR(t, "sabit PI_DEGERI = 3\nPI_DEGERI = 4"); err == nil || !strings.Contains(err.Error(), "sabit") {
+	if _, err := runTR(t, "sabit PI_DEGERI = 3\nPI_DEGERI = 4"); !messages.Has(err, messages.H2447) {
 		t.Fatalf("kullanıcı sabiti korunmalı, alınan: %v", err)
 	}
 }

@@ -1,7 +1,6 @@
 package interp
 
 import (
-	"fmt"
 	"math"
 	"sort"
 
@@ -24,7 +23,7 @@ func (v *VM) registerStats() {
 
 	// standart_sapma: sayıların popülasyon standart sapması (n'ye bölerek).
 	v.RegisterNoNamed(codes.G411, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		nums, err := statsNumbers(codes.G411, "standart sapması", args)
+		nums, err := statsNumbers(codes.G411, messages.H2505, args)
 		if err != nil {
 			return nil, err
 		}
@@ -44,7 +43,7 @@ func (v *VM) registerStats() {
 
 	// ortanca: çift sayıda elemanda ortadaki ikisinin ortalaması.
 	v.RegisterNoNamed(codes.G412, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		sorted, err := statsNumbers(codes.G412, "ortancası", args)
+		sorted, err := statsNumbers(codes.G412, messages.H2506, args)
 		if err != nil {
 			return nil, err
 		}
@@ -71,13 +70,13 @@ func statsInput(kd codes.Code, args []Value) ([]Value, error) {
 
 // statsNumbers elemanları sayıya çevirir (yeni bir dilime): boş girdi ve sayı olmayan
 // eleman ortalama() ile aynı biçimde hatadır. ne hata mesajındaki sonucun adıdır.
-func statsNumbers(kd codes.Code, ne string, args []Value) ([]float64, error) {
+func statsNumbers(kd codes.Code, ne messages.Code, args []Value) ([]float64, error) {
 	elems, err := statsInput(kd, args)
 	if err != nil {
 		return nil, err
 	}
 	if len(elems) == 0 {
-		return nil, fmt.Errorf("%s: boş listenin %s yoktur", CallPrefix(kd), ne)
+		return nil, messages.New(messages.H2494, CallPrefix(kd), messages.Text(ne))
 	}
 	nums := make([]float64, len(elems))
 	for i, el := range elems {

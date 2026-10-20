@@ -1,10 +1,10 @@
 package interp
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Yerleşiklerin sayı kuralları işleçlerle aynıdır: Tam sayılar tam (int64) olarak
@@ -19,7 +19,7 @@ const intLimit = 9223372036854775808.0
 func floatToInt(name string, f float64) (int64, error) {
 	if math.IsNaN(f) || math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
 		t := codes.Name(codes.A200)
-		return 0, fmt.Errorf("%s: %s %s sayıya çevrilemez (%s sayı taşması; %s en fazla 64 bitlik bir tam sayıdır)", name, (&FloatVal{Val: f}).Inspect(), t, t, t)
+		return 0, messages.New(messages.H2484, name, (&FloatVal{Val: f}).Inspect(), t)
 	}
 	return int64(f), nil
 }
@@ -115,7 +115,7 @@ func sumNumbers(name string, elems []Value) (Value, error) {
 			}
 			s := intNum + x.Val
 			if (s > intNum) != (x.Val > 0) {
-				return nil, fmt.Errorf("%s: %s sayı taşması (%d + %d, listenin %d. elemanında); ondalık toplam için elemanları %s(...) ile çevirin", name, codes.Name(codes.A200), intNum, x.Val, i+1, codes.Name(codes.G211))
+				return nil, messages.New(messages.H2485, name, codes.Name(codes.A200), intNum, x.Val, i+1, codes.Name(codes.G211))
 			}
 			intNum = s
 		case *FloatVal:
@@ -136,7 +136,7 @@ func sumNumbers(name string, elems []Value) (Value, error) {
 
 // ListElementError reports that element i (0-based) of a list has the wrong type.
 func ListElementError(name string, i int, expected string, given Value) error {
-	return fmt.Errorf("%s: listenin %d. elemanı %s olmalıdır, %s verildi", name, i+1, expected, TypeAndSummary(given))
+	return messages.New(messages.H2486, name, i+1, expected, TypeAndSummary(given))
 }
 
 // extreme min/maks'ın (kd) ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en

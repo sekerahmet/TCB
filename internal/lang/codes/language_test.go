@@ -221,17 +221,17 @@ func TestFindOld(t *testing.T) {
 // Yukle kod listesi hatalarını hangi kodların çakıştığını söyleyerek yakalar.
 func TestClashesCaught(t *testing.T) {
 	for _, c := range []struct{ json, want string }{
-		{`{"G100": {"ad": "a"}, "G100": {"ad": "b"}}`, "G100 iki kez"},
-		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "yazdır"}}`, "G100 \"yazdır\" ile G101"},
-		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "yazdir"}}`, "G100 \"yazdır\" ile G101 \"yazdir\""},
-		{`{"A001": {"ad": "eğer"}, "G100": {"ad": "eger"}}`, "A001 \"eğer\" ile G100"},
-		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "girdi", "eski": ["yazdir"]}}`, "G101'in eski adı \"yazdir\", G100"},
-		{`{"G100": {"ad": "a", "eski": ["işlev"]}, "G101": {"ad": "b", "eski": ["islev"]}}`, "\"islev\" hem G100 hem G101"},
-		{`{"G100": {"ad": "a", "eski": ["a"]}}`, "adın kendisi"},
-		{`{"G100": {"ad": "a b"}}`, "boşluk"},
-		{`{"G100": {"ad": "yazdır", "es": ["yaz"]}}`, "bilinmeyen alan \"es\""},
-		{`{"X100": {"ad": "a"}}`, "aile harfi"},
-		{`{"H100": {"ad": "a"}}`, "henüz kullanılmıyor"},
+		{`{"G100": {"ad": "a"}, "G100": {"ad": "b"}}`, "G100 is defined twice"},
+		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "yazdır"}}`, "G100 \"yazdır\" and G101"},
+		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "yazdir"}}`, "G100 \"yazdır\" and G101 \"yazdir\""},
+		{`{"A001": {"ad": "eğer"}, "G100": {"ad": "eger"}}`, "A001 \"eğer\" and G100"},
+		{`{"G100": {"ad": "yazdır"}, "G101": {"ad": "girdi", "eski": ["yazdir"]}}`, "the old name \"yazdir\" of G101 clashes with G100"},
+		{`{"G100": {"ad": "a", "eski": ["işlev"]}, "G101": {"ad": "b", "eski": ["islev"]}}`, "\"islev\" is registered for both G100 and G101"},
+		{`{"G100": {"ad": "a", "eski": ["a"]}}`, "must not be the name itself"},
+		{`{"G100": {"ad": "a b"}}`, "contain spaces"},
+		{`{"G100": {"ad": "yazdır", "es": ["yaz"]}}`, "unknown field \"es\""},
+		{`{"X100": {"ad": "a"}}`, "family letter"},
+		{`{"H100": {"ad": "a"}}`, "is not used yet"},
 		{`{"G100": {"ad": "a", "bilinmeyen": 1}}`, "bilinmeyen"},
 	} {
 		_, err := Load("deneme", []byte(c.json))
@@ -262,7 +262,7 @@ func TestKapatDoesNotClashWithY012(t *testing.T) {
 		t.Errorf("Y008'in adı kodun kendisi olmalı: %q", Name(Y+8))
 	}
 	_, err := Load("deneme", []byte(`{"Y008": {"ad": "Y008", "eski": ["kapat"]}, "Y012": {"ad": "kapat"}}`))
-	if err == nil || !strings.Contains(err.Error(), "Y008'in adı \"kapat\", Y012") {
+	if err == nil || !strings.Contains(err.Error(), "the name \"kapat\" of kaldırılmış Y008 clashes with Y012") {
 		t.Errorf("ölü kodun eski adı canlı adla çakışınca reddedilmeli: %v", err)
 	}
 }

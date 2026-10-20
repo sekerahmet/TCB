@@ -1,11 +1,11 @@
 package interp
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // constCode her zaman aynı (değişmez) değeri veren kod üretir; sabitler bir kez kutulanır.
@@ -121,7 +121,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 					return nil, err
 				}
 				if err := DictKeyError(kVal); err != nil {
-					return nil, fmt.Errorf("Satır %d: %w", e.Line(), err)
+					return nil, messages.At(e.Line(), 0, err)
 				}
 				dict.SetValue(kVal, vVal)
 			}
@@ -145,7 +145,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 			sInt, ok1 := startVal.(*IntVal)
 			eInt, ok2 := endVal.(*IntVal)
 			if !ok1 || !ok2 {
-				return nil, fmt.Errorf("Satır %d: %s ('..') uçları %s sayı olmalıdır", line, VAL_RANGE, VAL_INT)
+				return nil, messages.At(line, 0, messages.New(messages.H2439, VAL_RANGE, VAL_INT))
 			}
 			return &RangeVal{Start: sInt.Val, End: eInt.Val, Inclusive: inclusive}, nil
 		}
@@ -232,7 +232,7 @@ func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
 	switch r.kind {
 	case resolveNotYet:
 		return func(v *VM, env *Environment) (Value, error) {
-			return nil, fmt.Errorf("Satır %d, Sütun %d: '%s' parametresi henüz tanımlanmadı; varsayılan değer yalnızca kendisinden önceki parametreleri görür", e.Line(), e.Token.Column, e.Value)
+			return nil, messages.At(e.Line(), e.Token.Column, messages.New(messages.H2440, e.Value))
 		}
 	case resolveGlobal:
 		g := r.global
@@ -290,10 +290,9 @@ func readByName(env *Environment, e *ast.Identifier) (Value, error) {
 	val, ok := env.Get(e.Value)
 	if !ok {
 		if h := hint.MovedGlobalNameError(e.Value); h != "" {
-			return nil, fmt.Errorf("Satır %d, Sütun %d: %s", e.Line(), e.Token.Column, h)
+			return nil, messages.At(e.Line(), e.Token.Column, messages.New(messages.H2441, h))
 		}
-		return nil, fmt.Errorf("Satır %d, Sütun %d: '%s' adında bir değişken ya da fonksiyon yok%s",
-			e.Line(), e.Token.Column, e.Value, suggestName(e.Value, env))
+		return nil, messages.At(e.Line(), e.Token.Column, messages.New(messages.H2442, e.Value, suggestName(e.Value, env)))
 	}
 	return val, nil
 }
