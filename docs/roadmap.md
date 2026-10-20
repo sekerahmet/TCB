@@ -72,6 +72,8 @@ Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için op
    | `max-autotune` | 71,6 | 12,7 GB | 56 sn |
 
    TR eager PyTorch'la başa baş, `torch.compile`'dan 1,15 kat yavaştır. Nsight: fark başlatma boşluğunda değil (TR'de GPU %4,3 boşta, compile'da %5,2), **çekirdek süresindedir**: adım başına TR ~78,5 ms, compile ~68 ms çekirdek çalıştırır (TR 920 çekirdek/adım, compile ~675). Farkın çoğu kaynaşmamış küçük işlerdedir: float32→bf16 dönüşüm kopyaları (adımda ~1850 çağrı, ~4,7 ms), bf16 bitişik kopyalar (~3,8 ms), eleman bazlı ikili işlemler (~5,2 ms) ve norm geri yönü (~4 ms); compile bunları Triton çekirdeklerinde kaynaştırır. Matris çarpımları iki tarafta da aynı cuBLASLt/CUTLASS çekirdekleridir. Kayıp eğrileri aynı eğilimdedir (TR'nin başlangıcı farklı üreteçten).
+
+   Hedef model (`tools/gpu/rgn512.py`: yerel ve genel katmanlar, GQA, katman başına gömme, Muon; 205M parametre, 64×1024 token/adım, sentetik veri) aynı kartta: `torch.compile` 136 ms/adım (481 bin token/sn), eager 347 ms/adım. Bu modelde derleme eager'a göre 2,55 kat kazandırır (düz GPT'de 1,14): kayan pencereli dikkat, katman başına gömme ve küçük işlerin kaynaştırılması burada belirleyicidir. TR karşılığı yazılınca (madde 10) asıl kıyas bu modelle yapılır ve hız sırası onunla yeniden doğrulanır.
 2. **Bellek:**
    - parçalı ya da birleşik doğrusal katman + çapraz entropi: logitler bütünüyle bellekte tutulmaz (büyük sözlükte en büyük tek tampon logitlerdir);
    - blok düzeyinde, isteğe bağlı aktivasyon yeniden hesaplama (yaklaşık %33 süreye etkinleşme belleğinde 10 kattan fazla azalma);
