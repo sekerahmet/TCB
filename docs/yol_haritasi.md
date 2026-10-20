@@ -32,13 +32,12 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
 1. **İleti kodları.** Kullanıcıya giden her ileti, adlar gibi sabit bir koda bağlanır (`H` ve dört basamak, `internal/lang/messages`). Metinler dil dosyasındadır; parametreler adlıdır (`{fn}: {path|q} bir klasör`). Testler metni değil kodu denetler.
    - Tamamlandı: altyapı ve denetim testi; ortak hata yardımcıları; standart kitaplık, `devtools`, `tr` komutu; dil çekirdeği; yapılı hata (hata konumu her yerde yapıdan okunur, metinden okunmaz); hesap çekirdeği (tensör, GPU, veri hattı, parçalayıcı). Bütün paketler geçti.
    - Sonra: geçirilmiş paketlerde Türkçe harfli metin sabitinin yalnızca izinli yerlerde (veri biçimi anahtarları, Türkçe ek tabloları) bulunduğunu denetleyen test. Bitiş ölçütünü bu test kanıtlar.
-2. **İletiler her dile hazır.** İleti geçişi bitti, ama Türkçenin dilbilgisi yer yer hâlâ Go kodunda; başka bir dil gelince bunu çevirmen değil kod çözebilir. Kod büyüdükçe pahalılaşacağı için altyapı şimdi kurulur, asıl çeviri Evre 7'de yapılır:
-   - Çoğul biçimleri katalogda: "argümanı / argümanları" (H2416/H2417) seçimi bugün Go'da ve Türkçe kuralla yapılıyor. Dile göre çoğul kuralı (CLDR çoğul kuralları, ICU MessageFormat emsali).
-   - Liste kalıbı katalogda: "a, b ya da c" (H2010) bugün Go'da kuruluyor. Dile göre liste kalıbı (CLDR liste kalıpları).
-   - Türkçe hâl ekleri Go'dan çıkar: `turkish.Suffix` ile ek ekleyen 5 yer (yorumlayıcı, hata ayıklayıcı, `ml`) dile özgü bir katmana taşınır.
-   - Cümle parçaları bütün cümle olur: parça kodlardan birleştirilen iletiler ("'f' fonksiyonu" + geri kalanı) tek şablona; sözcük sırası adlı parametrelerle serbesttir.
-   - Test: her dil kataloğu aynı kodları ve aynı parametreleri taşır; Go'da ileti sözcüğü çekimlenmez.
-   - Pilot: çeşitli türden 30 kadar ileti İngilizceye çevrilir (`internal/lang/messages/en.json`) ve `TR_DIL=en` ile koşturulur; çıkan her sorun bu maddeye eklenir.
+2. **İletiler her dile hazır (tamamlandı).** Türkçenin dilbilgisi Go kodundan şablona taşındı; asıl çeviri Evre 7'de yapılır ([`internal/lang/messages/README.md`](../internal/lang/messages/README.md)):
+   - Şablon dili ICU MessageFormat'ın alt kümesi: çoğul (`{n, plural, ...}`, dile göre CLDR kuralı), seçim (`select`), hâl eki (`{ad|dat}`; çekimciyi dilin paketi kaydeder), seçenek listesi (`messages.OrList`, CLDR liste kalıbı).
+   - Go'da sözcük çekimlenmez (`turkish.Suffix` yalnızca kendi paketinde; testle), sayıya bakıp sözcük seçilmez, ileti metni `strings` ile düzenlenmez.
+   - Her dil kodun bütün parametrelerini kullanır; aynı anlam tek koddur, parametre adı farklı olsa da (testle; bu denetim 8 çift kod buldu, birleştirildi).
+   - İngilizce pilot: 38 ileti (`en.json`), `TR_DIL=en` ile gösterilir; çevrilmeyen kod Türkçeye düşer.
+   - Kalan küçükler: ad öbeği olarak değer geçen parametresiz kodlar (ör. "İsimsiz fonksiyon", "bakılan yer") çeviride ad öbeği olarak kalır; Evre 7'de cümle içinde doğal durmayanı tek şablona çevrilir.
 3. **Gradyan doğruluğu kapısı.** Her türevli işlemin (tensör çekirdeğinin işlem listesindeki her işlem) float64 sonlu fark testi ve bf16 tolerans testi vardır. İşlem listesini gezen bir test, türev testi olmayan işlemi yakalar. GPU'da aynı testler her GPU değişikliğinde koşar. Temeli: `türev_denetle` ve tensör testlerindeki sayısal türev denetimi.
 4. **Anlam kuralları yazılı ve testli.** Yayınlama (15.3), tür yükseltme (15.12), dilim ve indeksin sınır dışı davranışı, tam sayılı ve mantık değerli işlenenler tek yerde, eksiksiz yazılır; her kural bir `tests/` testiyle korunur. Sessiz kırpma ya da sessiz tür değişimi yoktur; belirsiz durum hatadır.
 5. **Açık işler ve bekleyen dil kararları.**

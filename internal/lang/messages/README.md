@@ -19,12 +19,38 @@ verilir; metin hata yazılırken etkin dilde kurulur. Sabitler üretilir
 
 **Dosyalar.** `definitions.json` dilden bağımsızdır: her kodun parametre adları
 (`"H7003": { "param": ["fn", "path"] }`; adlar İngilizce tanımlayıcıdır). `tr.json` kaynak dildir
-ve her kodun metnini tutar; başka bir dil dosyası (`en.json` ...) eksik kodu Türkçe gösterir. Her
-kod bir satırdır, kodlar artan sıradadır.
+ve her kodun metnini tutar; başka bir dil dosyası (`en.json` ...) çevirisi olmayan kodu Türkçe
+gösterir. Etkin dil `TR_DIL` ortam değişkenidir (adlarla aynı: `--dil en`); dosyadan tahmin edilmez.
+Her kod bir satırdır, kodlar artan sıradadır.
 
-**Şablon.** `{ad}` değeri olduğu gibi, `{ad|q}` Go tırnağıyla (denetim karakterleri kaçırılarak;
-kullanıcı verisi için) yazar; `{{` ve `}}` düz paranteztir. Türkçe metin her parametreyi kullanır;
-öbür diller kullanmayabilir ve sırayı değiştirebilir.
+**Şablon** (ICU MessageFormat'ın alt kümesi; çevirmen araçları tanır):
+
+| Yazım | Anlamı |
+| :-- | :-- |
+| `{ad}` | değer olduğu gibi |
+| `{ad\|q}` | Go tırnağıyla, denetim karakterleri kaçırılarak (kullanıcı verisi için) |
+| `{ad\|acc}`, `{ad\|dat}`, `{ad\|loc}`, `{ad\|abl}`, `{ad\|gen}` | hâl eki: dilin çekimcisi ekler (`Satır {line\|dat}` → "Satır 12'ye"); çekimcisi olmayan dilde ad olduğu gibi kalır |
+| `{n, plural, one {..} other {..}}` | sayıya göre biçim, dilin CLDR çoğul kuralıyla; dalda `#` sayıdır, `=0` gibi tam eşleşme önce gelir; `other` zorunlu |
+| `{x, select, a {..} other {..}}` | metin değerine göre dal |
+| `{{`, `}}` | düz süslü parantez (dal içinde `}` dalı kapatır) |
+
+Her dilin metni kodun **bütün** parametrelerini kullanır (çeviride düşen değer kullanıcıya ulaşmazdı);
+sözcük sırası dilden dile değişebilir, parametreler adla anıldığı için serbesttir.
+
+**Dilbilgisi şablondadır, Go'da değil.**
+- Go kodu sayıya bakıp sözcük seçmez (`argümanı`/`argümanları`): şablonda `plural`.
+- Go kodu ada ek eklemez: şablonda `{ad|dat}`. `turkish.Suffix` yalnızca `internal/lang/turkish`'te çağrılır (denetim: `TestMessageUsage`); Türkçe çekimciyi o paket kaydeder (`messages.RegisterInflector`), `messages` başka bir TR paketini bilmez.
+- Seçenek listesi Go'da birleştirilmez: `messages.OrList(a, b, c)` → "a, b ya da c" (CLDR liste kalıbı: ikili H2010, ayırıcı H2005, son H2006).
+- Cümle parçalardan kurulmaz: bir iletinin anlamı tek şablondadır. Kendi başına anlamlı bir ad öbeği (tür adı, "bir tam sayı", sona eklenen ipucu) değer olabilir; Go kodu bir iletinin metnini düzenlemez (`strings.Replace`, `TrimPrefix`); ayrıntı gerekiyorsa parametresinden okunur (`messages.As(err).Args`).
+- Aynı anlam tek koddur: parametre adları farklı olsa da aynı metin iki kodda olamaz (`TestNoDuplicateTexts`; bağlamı farklı etiketler gerekçeyle `sameTextAllowed`'a yazılır).
+
+**Yeni bir dil eklemek.**
+1. `internal/lang/messages/<dil>.json` (ISO 639-1); `catalog.go`'da `//go:embed` ve `languageFiles`'a satır.
+2. Dilin CLDR çoğul kuralı `template.go`'daki `pluralRules`'a (Türkçe ve İngilizcede: tam sayı 1 "one", gerisi "other"; Rusça, Arapça gibi dillerde daha çok kategori vardır).
+3. Hâl eki olan bir dilse çekimcisini kendi dilbilgisi paketinden `messages.RegisterInflector` ile kaydet.
+4. `go test ./internal/lang/messages` her şablonu ve parametreyi denetler; çevrilmemiş kod Türkçeye düşer.
+
+Pilot: `en.json` 38 farklı türden iletiyi (konum, çoğul, liste, hâl eki, dosya hatası, başlıklar, iç hata) taşır; `TR_DIL=en` ile gösterilir.
 
 **Testler metni değil kodu denetler.** `messages.Has(err, messages.H7003)` hata zincirinde kodu
 arar; metin değişince test kırılmaz.

@@ -88,7 +88,7 @@ Testler: tipin dosyasının birim testi; metot hem doğru hem yanlış argümanl
 ## 4. Yeni ileti ya da hata
 
 1. **Aralık.** Paketin aralığından sıradaki boş numara (bkz. [`internal/README.md`](../internal/README.md#kullanıcı-iletileri)). Ortak bir kalıp (`H2000` `{fn}: {error}`, dosya hataları, satır öneki) varsa yenisi açılmaz.
-2. **Katalog.** `internal/lang/messages/definitions.json`: `"H7006": { "param": ["fn", "path"] }` (İngilizce tanımlayıcılar); `tr.json`: `"H7006": "{fn}: {path|q} ..."`. Kullanıcı verisi `{ad|q}` ile; düz süslü parantez `{{ }}`. Her kod bir satır, artan sırada.
+2. **Katalog.** `internal/lang/messages/definitions.json`: `"H7006": { "param": ["fn", "path"] }` (İngilizce tanımlayıcılar); `tr.json`: `"H7006": "{fn}: {path|q} ..."`. Kullanıcı verisi `{ad|q}` ile; düz süslü parantez `{{ }}`. Her kod bir satır, artan sırada. Dilbilgisi şablondadır: sayıya göre sözcük `{n, plural, one {..} other {..}}`, hâl eki `{ad|dat}`, seçenek listesi `messages.OrList`; Go kodu sözcük seçmez, ek eklemez, cümleyi parçalardan kurmaz (ayrıntı: [`internal/lang/messages/README.md`](../internal/lang/messages/README.md)).
 3. **Üret.** `go run ./tools/gen/msgconsts`.
 4. **Kullan.** Hata: `messages.New(messages.H7006, fn, path)`. Çıktı: `messages.Text(...)`. Konumlu hata: `messages.At(satır, sütun, ...)`. Yalnızca TR'nin kendi hatasıyla oluşabilen durum: `messages.Internal("English detail")`.
 5. **Test.** `messages.Has(err, messages.H7006)`; metne değil koda bakılır.
