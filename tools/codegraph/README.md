@@ -96,6 +96,27 @@ Limits: only files built for the current OS are read (like `tools/impact`); call
 interface point at the interface method, not at implementers (use `implements`); `implements`
 looks at non-test types only.
 
+## Struct fields and closures
+
+Every field of a struct type of the module is a `field` node (`tensor.Tensor.grad`, file:line, its
+type in `detail`). Each selector `x.f` is resolved with `go/types` to the field it really names
+(promoted fields of embedded structs and fields of generic instances included; same-named fields
+of other types never mix), and keyed composite literals `T{f: v}` too. The access is kept on a
+`reads_field` / `writes_field` edge from the enclosing function, with every site
+(`file`, `line`, `mode`, and the func literal node it sits in). Modes: `read`, `write`
+(`x.f = v`, `x.f, y.g = ...`), `read+write` (`x.f++`, `x.f += v`), `elem-write` (`x.f[i] = v`,
+`*x.f = v`: the contents change), `addr` (`&x.f`), `literal` (`T{f: v}`). Unkeyed literals
+(`T{1, 2}`) and fields of unnamed struct types are not recorded.
+
+- `who-uses Tensor.grad` or `fields Tensor.grad [--mode read|write]`: the accesses by file:line,
+  mode and accessor; inside a func literal the accessor is `binaryKind > func literal@L102`.
+- `fields <Type>`: a table of the type's fields with read and write counts.
+- Every `func literal` is a `closure` node (`outer > func literal@Lnn`, `contains` from the
+  function or the enclosing literal) carrying `captured`: the local variables and parameters it
+  takes from the enclosing scopes with their types (`out *tensor.Tensor`), `(assigned)` when the
+  literal assigns them. `captures <func> [--type T]` lists them for every literal in a function
+  (nested ones too), `--type Tensor` keeps variables whose type contains the text.
+
 ## TR sources
 
 `.tr` files under `lib/`, `tools/` and `examples/` are read with TR's own parser

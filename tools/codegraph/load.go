@@ -214,8 +214,9 @@ func (m *module) checkTests(p *listed, base *unit, imp types.Importer) error {
 
 func (m *module) check(path, dir string, names []string, imp types.Importer) (*unit, error) {
 	u := &unit{pkgPath: path, info: &types.Info{
-		Defs: map[*ast.Ident]types.Object{},
-		Uses: map[*ast.Ident]types.Object{},
+		Defs:       map[*ast.Ident]types.Object{},
+		Uses:       map[*ast.Ident]types.Object{},
+		Selections: map[*ast.SelectorExpr]*types.Selection{},
 	}}
 	for _, n := range names {
 		f, err := parser.ParseFile(m.fset, filepath.Join(dir, n), nil, parser.ParseComments)

@@ -45,6 +45,8 @@ const usage = `usage: codegraph <command> [flags] [args]
   who-uses <name>            what uses a function, type, message code or name code
   tests-for <name>           tests that exercise a function, type or package
   history <name>             commits that touched a function, type, file, message code or name code (computed from git)
+  fields <Type.field | Type> [--mode read|write]  where a struct field is read and written (typed; closures marked), or the table of a type's fields
+  captures <func> [--type T]  the variables its func literals capture, with types
   callees <func> [--in PKG]  the functions it calls, by package
   calls-into <pkg> [--min N] [--in SRC] [--tests]  functions that call at least N distinct functions of a package
   deleted [--retired-json]   message and name codes that existed in the git history and are gone today, with the commit that removed them
@@ -67,7 +69,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "build":
 		return runBuild(args[1:], stdout, stderr)
-	case "query", "explain", "path", "who-uses", "tests-for", "history", "changed", "callees", "calls-into":
+	case "query", "explain", "path", "who-uses", "tests-for", "history", "changed", "callees", "calls-into", "fields", "captures":
 		return runQuery(args[0], args[1:], stdout, stderr)
 	case "deleted":
 		return runDeleted(args[1:], stdout, stderr)
