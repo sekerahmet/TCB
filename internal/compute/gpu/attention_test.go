@@ -47,6 +47,7 @@ func TestAttentionAlias(t *testing.T) {
 // açılabilen paylaşımlı bellekte 64×64 devingen döşeme), GQA, çok döşeme, Tq > Tk nedensel,
 // pencere ve dolgu maskesi. Benzetimde iki geri döşeme de sınanır.
 func TestAttentionRealSizes(t *testing.T) {
+	skipUnderRace(t)
 	if a, _ := pickFlash(64, 64, false, false, 99<<10); a.Br != 64 || a.Bc != 32 {
 		t.Fatalf("Dh=64 ileri döşemesi %d×%d, 64×32 bekleniyordu", a.Br, a.Bc)
 	}

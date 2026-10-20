@@ -13,6 +13,7 @@ import (
 // çapraz entropi, normlar, gömme ve dikkat; ileri ve gradyanlar CPU ile karşılaştırılır.
 
 func TestMatMul(t *testing.T) {
+	skipUnderRace(t)
 	rng := rand.New(rand.NewSource(7))
 	g := gpuBackend()
 	defer g.gemmTile(nil)
@@ -139,6 +140,7 @@ func TestAttention16Bit(t *testing.T) {
 }
 
 func TestAttention(t *testing.T) {
+	skipUnderRace(t)
 	rng := rand.New(rand.NewSource(12))
 	cases := []struct {
 		ad                        string

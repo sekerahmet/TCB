@@ -13,6 +13,7 @@ import (
 // indeksi; boş eksen, tek eleman, uzun ve kısa eksenler (iki çekirdek biçimi de).
 
 func TestSums(t *testing.T) {
+	skipUnderRace(t)
 	rng := rand.New(rand.NewSource(5))
 	// {3000, 5}, {9000}, {2100, 300}: uzun indirgenen eksen, az çıktı (iki aşamalı indirgeme).
 	shapes := [][]int{{1}, {7}, {3, 5}, {4, 300}, {300, 4}, {2, 3, 70}, {5, 0, 3}, {2, 1031}, {1031, 3}, {600, 260},
@@ -65,6 +66,7 @@ func TestBiasGrad(t *testing.T) {
 // TestDeterministic aynı girdinin her çalıştırmada bit düzeyinde aynı sonucu verdiğini
 // denetler (indirgemeler, matris çarpımı, gradyanlar; atomik toplama yok).
 func TestDeterministic(t *testing.T) {
+	skipUnderRace(t)
 	rng := rand.New(rand.NewSource(17))
 	xv, wv := random(rng, 300*70, 1), random(rng, 70*90, 1)
 	idx := make([]int, 300)

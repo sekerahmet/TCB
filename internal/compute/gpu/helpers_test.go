@@ -162,3 +162,14 @@ func internalDetail(err error) string {
 	}
 	return ""
 }
+
+// skipUnderRace ağır sayısal çekirdek testlerini yarış dedektörü altında atlar: benzetimde
+// çekirdek hesabının doğruluğunu sınarlar (eşzamanlılık değil) ve yarış dedektörüyle 10–20
+// kat yavaşlayıp otomatik sınamanın yarış işini 8 dakikaya çıkarıyorlardı. Aynı testler öbür
+// işlerde (dagitim, go-esleri) koşar.
+func skipUnderRace(t *testing.T) {
+	t.Helper()
+	if raceEnabled {
+		t.Skip("ağır sayısal çekirdek testi; yarış dedektörü altında atlanır (öbür kiplerde koşar)")
+	}
+}

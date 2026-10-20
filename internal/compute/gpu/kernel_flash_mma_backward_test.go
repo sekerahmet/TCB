@@ -13,6 +13,7 @@ import (
 // döşeme kenarları, nedensel, pencere, Tq ≠ Tk, gruplu sorgu. Gradyanlar 16 bitlik dönüşümün
 // önündeki float32 yapraklara akar. P, dS ve dO 16 bite yuvarlandığı için tolerans geniştir.
 func TestFlashMmaBackward(t *testing.T) {
+	skipUnderRace(t)
 	g := gpuBackend()
 	old := g.attnPath
 	defer func() { g.attnPath = old }()
