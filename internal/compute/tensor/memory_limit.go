@@ -226,7 +226,7 @@ func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, 
 	byteN := elemFn * float64(max(dt.Bits(), 1)) / 8
 	hint := ""
 	if is.broadcasted() {
-		hint = messages.Text(messages.H3088)
+		hint = "broadcast" // iletinin `hint` dalını seçer
 	}
 	switch {
 	case overflow && is == isCreate:

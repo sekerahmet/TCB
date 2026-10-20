@@ -42,8 +42,7 @@ const (
 	H0148 Code = 148  // {found} bir alan tanımı değil
 	H0149 Code = 149  // '{name}' ardından gelen {found} bir alan tanımı değil (alanlar virgül ya da satır sonuyla ayrılır)
 	H0150 Code = 150  // yapı metodunun bir adı olmalı: fonksiyon ad(...) {{ ... }}
-	H0151 Code = 151  // '{keyword}' yalnızca bir döngünün içinde kullanılabilir{extra}
-	H0152 Code = 152  // ; fonksiyondan çıkmak için '{keyword}' yazın
+	H0151 Code = 151  // '{keyword}' yalnızca bir döngünün içinde kullanılabilir{exit, select, empty {} other {; fonksiyondan çıkmak için '{exit}' yazın}}
 	H0153 Code = 153  // '{keyword}' test gövdesinde kullanılamaz; test kendi sonuna kadar çalışır (erken bitirmek istediğiniz kısmı bir '{block}' bloğuna alın)
 	H0154 Code = 154  // '{keyword}' modülün üst düzeyinde kullanılamaz; modül bir fonksiyon değildir, aktaran programı bitiremez
 	H0155 Code = 155  // ifade ya da blok çok derin iç içe (en fazla {max} düzey); kodu ara değişkenlere ya da fonksiyonlara bölün
@@ -192,7 +191,7 @@ const (
 	H2422 Code = 2422 // Özyineleme derinliği sınırı aşıldı (en fazla {max} iç içe çağrı); fonksiyon kendini durmadan çağırıyor olabilir
 	H2423 Code = 2423 // {fn}() {order}. argüman olarak {expected} bekler, {given} verildi
 	H2424 Code = 2424 // {type} ({summary})
-	H2425 Code = 2425 // , {count} eleman
+	H2425 Code = 2425 // {preview}, {count} eleman
 	H2426 Code = 2426 // {count} anahtarlı sözlük
 	H2427 Code = 2427 // {fn}() '{param}' adında bir parametre almaz (adlı argüman almaz)
 	H2428 Code = 2428 // {type} üzerinde {prop|q} özelliği ya da metodu bulunamadı{hint}
@@ -250,9 +249,7 @@ const (
 	H2484 Code = 2484 // {fn}: {value} {type} sayıya çevrilemez ({type} sayı taşması; {type} en fazla 64 bitlik bir tam sayıdır)
 	H2485 Code = 2485 // {fn}: {type} sayı taşması ({a} + {b}, listenin {order}. elemanında); ondalık toplam için elemanları {float}(...) ile çevirin
 	H2486 Code = 2486 // {fn}: listenin {order}. elemanı {expected} olmalıdır, {given} verildi
-	H2487 Code = 2487 // satır sonu
-	H2488 Code = 2488 // sekme
-	H2489 Code = 2489 // {fn}: dosya yolunda {what} karakteri var; metindeki ters bölü bir kaçış dizisi sayıldı ("\t" sekme, "\n" satır sonudur). Windows yolu için ham metin kullanın: `{path}` (ya da ters bölüleri ikileyin veya / yazın)
+	H2489 Code = 2489 // {fn}: dosya yolunda {what, select, tab {sekme} other {satır sonu}} karakteri var; metindeki ters bölü bir kaçış dizisi sayıldı ("\t" sekme, "\n" satır sonudur). Windows yolu için ham metin kullanın: `{path}` (ya da ters bölüleri ikileyin veya / yazın)
 	H2490 Code = 2490 // ⚠️ Uyarı: programa verilen {count} argüman kullanılmadı ({arguments}); program komut satırı argümanlarını okumuyor
 	H2491 Code = 2491 // program {code} koduyla bitirildi
 	H2492 Code = 2492 // {fn}: {given} sıralanamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır
@@ -363,11 +360,10 @@ const (
 	H3081 Code = 3081 // T en az 2 boyut ister
 	H3082 Code = 3082 // Slice adımı pozitif olmalıdır
 	H3083 Code = 3083 // arka uç: {count} elemanlık {dtype} tampon {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}
-	H3084 Code = 3084 // {op}: istenen tensör {shape} şeklinde, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint}.
-	H3085 Code = 3085 // {op}: sonuç tensörü {shape} şeklinde, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint}.
-	H3086 Code = 3086 // {op}: istenen tensör {shape} şeklinde; eleman sayısı (yaklaşık {count}) tam sayı sınırını aşıyor, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint}.
-	H3087 Code = 3087 // {op}: sonuç tensörü {shape} şeklinde; eleman sayısı (yaklaşık {count}) tam sayı sınırını aşıyor, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint}.
-	H3088 Code = 3088 //  (yayınlama beklenmedik bir boyut üretmiş olabilir)
+	H3084 Code = 3084 // {op}: istenen tensör {shape} şeklinde, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
+	H3085 Code = 3085 // {op}: sonuç tensörü {shape} şeklinde, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
+	H3086 Code = 3086 // {op}: istenen tensör {shape} şeklinde; eleman sayısı (yaklaşık {count}) tam sayı sınırını aşıyor, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
+	H3087 Code = 3087 // {op}: sonuç tensörü {shape} şeklinde; eleman sayısı (yaklaşık {count}) tam sayı sınırını aşıyor, {size} bellek ister; {place, select, gpu {bu GPU'da {limit} var} other {bu makinede {limit} var}}. Şekilleri denetleyin{hint, select, broadcast { (yayınlama beklenmedik bir boyut üretmiş olabilir)} other {}}.
 	H3089 Code = 3089 // tensör oluşturma
 	H3090 Code = 3090 // eleman bazlı işlem
 	H3091 Code = 3091 // karşılaştırma
@@ -416,9 +412,9 @@ const (
 	H4030 Code = 4030 // {path}: cublasLtCreate durum {status}
 	H4031 Code = 4031 // {name} yok
 	H4032 Code = 4032 // cuBLASLt {version} ({path})
-	H4033 Code = 4033 // {base}; kendi çekirdeğe düşen çağrı {count}
-	H4034 Code = 4034 // {base} (son: {last})
-	H4035 Code = 4035 // {base}; atlanan: {notes}
+	H4033 Code = 4033 // kendi çekirdeğe düşen çağrı {count}
+	H4034 Code = 4034 // son hata: {last}
+	H4035 Code = 4035 // atlanan: {notes}
 	H4036 Code = 4036 // kendi çekirdeği
 	H4037 Code = 4037 // kendi çekirdeği ({reasons})
 	H4038 Code = 4038 // cuBLASLt durum {status} ({m}×{n}×{k}, toplu {batch})
@@ -713,10 +709,9 @@ const (
 	H5612 Code = 5612 // tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin
 	H5614 Code = 5614 // {fn}: {path|q} yüklenemedi, {detail}
 	H5615 Code = 5615 // {fn}: {path|q} yüklenemedi: {detail}; bu desen kötü niyetli bir metinde üstel süre harcayabileceği için güvenlik gereği kabul edilmiyor (desenin iç içe sınırsız niceleyici içermeyen bir biçimini kullanın)
-	H5616 Code = 5616 // dosya JSON olarak okunamadı
-	H5617 Code = 5617 // {offset}. baytta JSON sözdizimi hatası
-	H5618 Code = 5618 // JSON yapısı beklenen biçimde değil ({field|q} alanı)
-	H5619 Code = 5619 // {fn}: {path|q} geçerli bir tokenizer.json dosyası değil: {detail}
+	H5617 Code = 5617 // {fn}: {path|q} geçerli bir tokenizer.json dosyası değil: {offset}. baytta JSON sözdizimi hatası
+	H5618 Code = 5618 // {fn}: {path|q} geçerli bir tokenizer.json dosyası değil: JSON yapısı beklenen biçimde değil ({field|q} alanı)
+	H5619 Code = 5619 // {fn}: {path|q} geçerli bir tokenizer.json dosyası değil: dosya JSON olarak okunamadı
 	H5620 Code = 5620 // {fn}: {path|q} yüklenemedi: {detail}
 	H5621 Code = 5621 // Uyarı: parçalayıcı {file|q} düzenli ifadelerinde riskli desen var (bazı metinlerde yavaşlayabilir; adım sınırı aşılırsa kodlama hata verir):
 	H5622 Code = 5622 // {fn}: parçalayıcının düzenli ifadesi {pattern|q} bu metinde geri izleme belleği sınırını aştı (aramanın başladığı bayt: {pos}); desen çok uzun bir yinelemeyi geri izlenebilir tutuyor ve işlem güvenlik için durduruldu. Metni daha küçük parçalara bölmeyi ya da olağan dışı uzun tekrarları temizlemeyi deneyin
@@ -1401,8 +1396,7 @@ const (
 	H8404 Code = 8404 // sözcük birimi sayısı değişti
 	H8405 Code = 8405 // satır {line}: {word|q} sözcüğü değişti
 	H8406 Code = 8406 // AST farklı
-	H8500 Code = 8500 // {total} test, {passed} geçti, {failed} kaldı
-	H8501 Code = 8501 // {count} dosya yüklenemedi
+	H8500 Code = 8500 // {total} test, {passed} geçti, {failed} kaldı{unloadable, plural, =0 {} other {, # dosya yüklenemedi}}
 	H8502 Code = 8502 // {target} bulunamadı
 	H8503 Code = 8503 // {target} içinde *_test.tr dosyası bulunamadı
 	H8504 Code = 8504 // uyarılar:

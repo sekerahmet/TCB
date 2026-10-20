@@ -37,9 +37,9 @@ func CheckPath(fn, filePath string) error {
 	if !strings.ContainsAny(filePath, "\t\n\r") {
 		return nil
 	}
-	ne := messages.Text(messages.H2487)
+	ne := "newline" // iletinin `what` dalını seçer
 	if strings.Contains(filePath, "\t") {
-		ne = messages.Text(messages.H2488)
+		ne = "tab"
 	}
 	visible := strings.NewReplacer("\t", `\t`, "\n", `\n`, "\r", `\r`).Replace(filePath)
 	return messages.New(messages.H2489, fn, ne, visible)

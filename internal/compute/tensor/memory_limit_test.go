@@ -62,7 +62,7 @@ func TestBroadcastLimit(t *testing.T) {
 	setLimit(t, 16<<30)
 	a, b := Zeros(185000, 1, 1), Zeros(4, 46000)
 	expectedPanic(t, "toplama", func() { Add(a, b) }, messages.H3085,
-		isAdd, "[185000, 4, 46000]", "126,8 GB", PlaceHost, "16,0 GB", messages.Text(messages.H3088))
+		isAdd, "[185000, 4, 46000]", "126,8 GB", PlaceHost, "16,0 GB", "broadcast")
 	expectedPanic(t, "çarpma", func() { Mul(b, a) }, messages.H3085, isMul, "[185000, 4, 46000]")
 	// Yayınlamasız işlemlerin hatasında yayınlama ipucu boştur.
 	m, _ := messages.As(panicError(func() { MatMul(Zeros(100000, 1), Zeros(1, 100000)) }))

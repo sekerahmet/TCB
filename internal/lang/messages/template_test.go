@@ -50,6 +50,17 @@ func TestSelect(t *testing.T) {
 	}
 }
 
+// Boş değer `empty` dalını seçer; isteğe bağlı parça böyle yazılır (Go metin birleştirmez).
+func TestSelectEmpty(t *testing.T) {
+	c := mustCatalog(t, "tr", `"fn", "hint"`, "{fn}{hint, select, empty {} other {. Bunu mu demek istediniz: '{hint}'?}}")
+	if got := c.render(1, []any{"f", ""}); got != "f" {
+		t.Errorf("boş: %q", got)
+	}
+	if got := c.render(1, []any{"f", "g"}); got != "f. Bunu mu demek istediniz: 'g'?" {
+		t.Errorf("dolu: %q", got)
+	}
+}
+
 // Hâl eki şablondadır ({ad|dat}); eki dilin kayıtlı çekimcisi ekler. Çekimcisi olmayan dilde
 // (İngilizce) ad olduğu gibi kalır; Go kodu ada ek eklemez.
 func TestCaseSuffix(t *testing.T) {

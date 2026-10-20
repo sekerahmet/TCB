@@ -46,11 +46,7 @@ func (o *Summary) add(b Summary) {
 
 // String özet satırını üretir: "12 test, 11 geçti, 1 kaldı".
 func (o Summary) String() string {
-	s := messages.Text(messages.H8500, o.Total, o.Passed, o.Failed)
-	if o.Unloadable > 0 {
-		s += ", " + messages.Text(messages.H8501, o.Unloadable)
-	}
-	return s
+	return messages.Text(messages.H8500, o.Total, o.Passed, o.Failed, o.Unloadable)
 }
 
 // TestFiles hedefe göre çalıştırılacak dosyaları bulur. Hedef bir dosyaysa yalnızca

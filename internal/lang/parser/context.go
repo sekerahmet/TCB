@@ -65,11 +65,11 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 	if p.ctx.loops > 0 {
 		return
 	}
-	extra := ""
+	exit := "" // boşsa iletide öneri yer almaz
 	if p.ctx.funcs > 0 {
-		extra = messages.Text(messages.H0152, codes.Name(codes.A021))
+		exit = codes.Name(codes.A021)
 	}
-	p.syntaxError(tok, messages.H0151, tok.Literal, extra)
+	p.syntaxError(tok, messages.H0151, tok.Literal, exit)
 }
 
 // checkReturn 'sonuç' deyiminin bulunduğu yerde geçerli olduğunu denetler.
