@@ -204,3 +204,55 @@ func TestBOMKept(t *testing.T) {
 		t.Fatalf("BOM korunmadı: %q", output)
 	}
 }
+
+// Kodlu dosya kodlu biçimde biçimlenir (17): başlık ve BOM korunur, kodlar olduğu gibi kalır,
+// satır sonları (başlığınki de) LF olur.
+func TestCodedFileFormats(t *testing.T) {
+	src := "\xef\xbb\xbf//! tr kodlu 1\r\nA020   f(a){A021 a+1}\r\nG100( f(1) )\r\n"
+	got, err := Format(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "\xef\xbb\xbf//! tr kodlu 1\nA020 f(a) { A021 a + 1 }\nG100(f(1))\n"; got != want {
+		t.Errorf("kodlu biçimleme:\n%q\nbeklenen:\n%q", got, want)
+	}
+	// Biçimin değişmesi (kodlu ↔ Türkçe) anlam denetiminde reddedilir.
+	var meaning *MeaningChangedError
+	if err := SameMeaning(got, "fonksiyon f(a) { sonuç a + 1 }\nyazdır(f(1))\n"); !errors.As(err, &meaning) {
+		t.Errorf("kodlu ve Türkçe biçim aynı sayıldı: %v", err)
+	}
+	// Kodlu sözcük kodla, kullanıcı adı metinle karşılaştırılır: G100 ile adı 'yazdır' olan
+	// kullanıcı değişkeni aynı değildir.
+	if err := SameMeaning("//! tr kodlu 1\nG100\n", "//! tr kodlu 1\nyazdır\n"); !errors.As(err, &meaning) {
+		t.Errorf("kod ile aynı adlı kullanıcı adı aynı sayıldı: %v", err)
+	}
+}
+
+// Devam satırında açılan gövde deyimin girintisine göredir.
+func TestContinuationBody(t *testing.T) {
+	cases := []struct{ ad, input, expected string }{
+		{"devam satırında gövde", "eğer a ve\nb {\nyazdır(1)\n}\nyazdır(2)\n",
+			"eğer a ve\n    b {\n    yazdır(1)\n}\nyazdır(2)\n"},
+		{"parantezli koşul devamı", "eğer (a ve\nb) {\nyazdır(1)\n}\n",
+			"eğer (a ve\n        b) {\n    yazdır(1)\n}\n"},
+		{"iç blokta devam", "döngü i içinde 0..3 {\neğer i > 0 veya\ni < 2 {\nyazdır(i)\n}\n}\n",
+			"döngü i içinde 0..3 {\n    eğer i > 0 veya\n        i < 2 {\n        yazdır(i)\n    }\n}\n"},
+		// Bir argümanın içindeki gövde (parantez açıkken) eskisi gibi satırın girintisine göredir.
+		{"devam satırında fonksiyon argümanı", "x = 1 +\nf(fonksiyon() {\nyazdır(1)\n})\n",
+			"x = 1 +\n    f(fonksiyon() {\n        yazdır(1)\n    })\n"},
+		// Ayrıştırıcı yeni satırdaki '-x'i önceki ifadeyle (eğer de bir ifadedir) ikili eksi okur;
+		// biçim bu okumayı gösterir.
+		{"bloktan sonra eksi", "eğer a {\nb()\n}\n-x\n", "eğer a {\n    b()\n}\n- x\n"},
+	}
+	for _, d := range cases {
+		t.Run(d.ad, func(t *testing.T) {
+			output := formatT(t, d.input)
+			if output != d.expected {
+				t.Fatalf("beklenen:\n%s\nalınan:\n%s", d.expected, output)
+			}
+			if second := formatT(t, output); second != output {
+				t.Fatalf("idempotent değil:\n%q\n->\n%q", output, second)
+			}
+		})
+	}
+}

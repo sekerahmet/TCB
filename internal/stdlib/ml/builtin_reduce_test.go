@@ -1,8 +1,10 @@
 package ml
 
 import (
+	"math/rand"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -84,4 +86,18 @@ yazdır(toplam([1, 2, 3]), maks(4, 9), min([3, 1]), ortalama([1, 2, 3]))`)
 	v = value(t, "değişken cikti = toplam(tensör([[1, 2], [3, 4]]), 0)")
 	data, _ = tensorData(t, v)
 	near(t, "konumlu eksen", data, []float32{4, 6}, 0)
+}
+
+func BenchmarkMaxAll(b *testing.B) {
+	t := tensor.Randn(rand.New(rand.NewSource(1)), 1000, 1000)
+	for i := 0; i < b.N; i++ {
+		_ = t.Reshape(-1).Max(0, false)
+	}
+}
+
+func BenchmarkMinAll(b *testing.B) {
+	t := tensor.Randn(rand.New(rand.NewSource(1)), 1000, 1000)
+	for i := 0; i < b.N; i++ {
+		_ = minAll(t)
+	}
 }

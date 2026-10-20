@@ -42,3 +42,13 @@ func TestLargeTensorPrintCorrect(t *testing.T) {
 		t.Fatalf("büyük tensör yazdırması %v ayırma yaptı", alloc)
 	}
 }
+
+// Yazdırma ve indirgeme hız ölçümleri: go test -bench . ./internal/stdlib/ml/
+
+func BenchmarkPrintLarge(b *testing.B) {
+	d := New(tensor.Randn(rand.New(rand.NewSource(1)), 1000, 1000))
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = d.Inspect()
+	}
+}

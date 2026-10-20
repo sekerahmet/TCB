@@ -22,3 +22,9 @@ gösterici bir hatayla reddedilir.
 **Durumlu değerler arayüzle bağlanır.** Bir motor değeri durumunu düz değerli bir sözlük
 olarak verip geri yükleyebiliyorsa kontrol noktasına kaydedilir; arayüzün uygulayıcıları
 derleme anında denetlenir.
+
+## Testler
+
+Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
+
+- `behavior_security_test.go`: kurcalanmış, yarım ve daha yeni biçimli kontrol noktası dosyalarının reddi
