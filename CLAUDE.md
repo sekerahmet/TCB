@@ -1,0 +1,38 @@
+# TR — proje kuralları (her oturum ve ajan için)
+
+TR, yapay zekâ modeli geliştirmek ve eğitmek için Türkçe bir programlama dilidir (Go, modül `github.com/sekerahmet/TCB`). Ürün dilin kendisidir; model eğitimi dilin sınavıdır.
+
+## Nereye bakılır
+
+| Soru | Belge |
+| :-- | :-- |
+| Go kodu hangi kurallarla yazılır, her kuralı hangi test korur | [`internal/README.md`](internal/README.md) |
+| Yeni fonksiyon, yerleşik, metot, ileti, paket, dil kuralı nasıl eklenir | [`docs/tarifler.md`](docs/tarifler.md) |
+| Süreç: yeni ad isteği, tam denetim, ölçüm | [`docs/katki.md`](docs/katki.md) |
+| Sıradaki işler, evreler ve bitiş ölçütleri | [`docs/yol_haritasi.md`](docs/yol_haritasi.md) |
+| Dilin davranışı | [`docs/spec/`](docs/spec/README.md) |
+| Bir paketin kendi standartları ve davranış testleri | o paketin `README.md`'si |
+
+## İlkeler
+
+- **Önce sağlam temel, sonra özellik.** Yama gibi ekleme yapılmaz; yeni şey yazılı kurala ve tarife uyar.
+- **Her kural bir testle korunur.** Yeni bir kural yazıya geçince ona bir test bağlanır.
+- **Doğrusu neyse o:** tasarım kararında yerleşik, kanıtlanmış uygulama seçilir; gerekçesi belgeye yazılır.
+- **Önce ölç, sonra değiştir:** hıza dokunan değişiklik önce ve sonra ölçülür; kazandırmayan geri alınır.
+- **Dış inceleme bulguları doğrulanarak düzeltilir:** önce yeniden üretilir; düzeltmenin testi önce kalır, sonra geçer.
+
+## Kesin kurallar
+
+- Kullanıcıyla iletişim **Türkçe** ve kısadır.
+- Go adları, dosya ve klasör adları **İngilizce**; Go yorumları **Türkçe**.
+- Kullanıcıya görünen her ad bir **ad kodudur** (`internal/lang/codes`, yeni ad kodunu baş geliştirici verir). Her ileti bir **ileti kodudur** (`internal/lang/messages`). Go metnine kullanıcıya görünen Türkçe ad ya da ileti yazılmaz.
+- Bir iş `bash tools/tam_denetim.sh` geçince biter. Göndermeden (push) önce tam denetim çalışır, sonra otomatik sınama (CI) izlenir. **Tam denetim sürerken depoda dosya düzenlenmez.**
+- Commit mesajları İngilizcedir (`paket: ne değişti`); taşıma ile davranış değişikliği ayrı commit'lerdir.
+- **Depo herkese açıktır:** kullanıcı verisi, veri kümeleri, parçalayıcı ve model dosyaları, kişisel yollar commit'lenmez. Depo kökündeki izlenmeyen dosyalar kullanıcınındır; onlara dokunulmaz, eklenmez.
+- Testlerde dış ağ yoktur; sunucular yalnızca `127.0.0.1`'e bağlanır; açılan her süreç kapatılır.
+
+## Yan oturumlar ve ajanlar
+
+- Her yan oturum kendi çalışma ağacında (worktree) çalışır; aynı klasörü paylaşan iki oturum birbirinin denetimini bozar.
+- Yan oturum push etmez ve tam denetim çalıştırmaz; birleştirme ve gönderim ana oturumdadır.
+- İşin sonunda yönergedeki devir notunu yazar (durum, birleştirmede dikkat, kararlar, bulgular, öneriler, kalan) ve ana oturuma bulguları bildirir.

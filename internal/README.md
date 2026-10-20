@@ -1,6 +1,6 @@
 # internal
 
-TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya da ajan) uyduğu kuralların tek kaynağıdır. Her kuralın yanında onu koruyan test yazılıdır: kural çiğnenirse `go test ./...` kalır. Paketlerin kendi kuralları kendi `README.md`'lerindedir; depo düzeyindeki süreç (yeni ad isteği, tam denetim, ölçüm) [`docs/katki.md`](../docs/katki.md)'dedir.
+TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya da ajan) uyduğu kuralların tek kaynağıdır. Her kuralın yanında onu koruyan test yazılıdır: kural çiğnenirse `go test ./...` kalır. Paketlerin kendi kuralları kendi `README.md`'lerindedir; depo düzeyindeki süreç (yeni ad isteği, tam denetim, ölçüm) [`docs/katki.md`](../docs/katki.md)'dedir. Yeni bir fonksiyon, yerleşik, metot, ileti, paket ya da dil kuralı eklerken adım adım tarifler: [`docs/tarifler.md`](../docs/tarifler.md).
 
 İlke: **küçük küçük yönetmek her zaman daha kolaydır.** Bir paket tek görevi, bir dosya tek konuyu, bir fonksiyon tek işi anlatır; okuyan aradığını adından bulur. Yeni bir kural yazıya geçince ona bir test bağlanır; yalnızca yazılı kalan kural zamanla aşınır.
 
