@@ -108,14 +108,19 @@ Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için op
 - **H2 sağlandı (2026-10-21):** TR 203 ms/adım (ortanca, 120 adım; GPU bf16 doğruluğu korunur, 100 adımda kayıp farkı ≤ 0,0013). Kazanç iki TR kitaplığı değişikliğinden: Muon aynı şekilli ağırlıkları tek yığında, bf16'da dikleştirir (241 → 221; 56 dikleştirme yerine 3); `Doğrusal` sapmayı çarpımın türünde ekler, karışık hassasiyette SwiGLU ve izdüşümler bf16 kalır (221 → 203; PyTorch autocast gibi). Sapma değişikliğinden önceki profil (iyileştiricisiz ileri+geri 213 ms/adım): çarpım ~51, eleman bazlı ~35, indirgeme ~26, norm ~25, dikkat ~16, fp32→bf16 dönüşüm ~16, düzen kopyası ~13, çapraz entropi ~11 ms. Satır seyrek RMS'in bütün maliyeti ~3 ms çıktı (öncelik düştü); iyileştiricinin tamamı ~10 ms. H3 için yön: kaynaştırma (norm + dönüşüm, eleman bazlı zincirler), düzen kopyalarının kaldırılması.
 - **Hız (aynı kart, 64×1024 token/adım):** H1 eager düzeyi ≤ 347 ms/adım; H2 ≤ 1,5 × compile (≤ 204 ms); H3 ≤ 1,2 × compile (≤ 163 ms); H4 compile ile başa baş (≤ 136 ms). Her adım 300 adımlık kısa koşularla doğrulanır; büyük boyutlar (d1024–d1536) yalnızca kilometre taşlarında ölçülür.
 - **Bellek:** tepe bellek en çok compile'ın 1,1 katı.
+- **Hedef modelin gösterdiği eksikler** (her biri genel çözümü bulununca ele alınır; modele özel kestirme yapılmaz):
+  - Liste üreteci tek değişkenlidir: `[f(i, x) döngü i, x içinde l]` yazılamaz (döngüde yazılır); dil tanımında iki biçim tutarsız.
+  - Satırlara indeksle yazma yoktur (PyTorch `index_add_`/`index_copy_`, JAX `x.at[i].add`): satır seyrek iyileştirici bu yüzden yoğun maskelidir. Hedef modelde bütün maliyeti ~3 ms; büyük sözlükte genel ihtiyaç.
+  - Kaynaştırma yoktur: norm, tür dönüşümü ve eleman bazlı zincirler ayrı çekirdeklerdir; derlenmiş PyTorch'un asıl üstünlüğü budur (H3, H4).
+  - FP8 yoktur; d > 2000 modellerde kazandırır, tür adları metin olduğundan aynı yere eklenir (sonraki evre).
 
 İş sırası:
 1. Kitaplık yapı taşları (`lib/katman.tr`, `lib/iyilestirici.tr`): dikkat katmanına pencere, QK-norm ve birleşik KV matrisi; SwiGLU'ya birleşik [G|U] matrisi; PLE bloğu; ada göre iyileştirici grupları, iki ağırlık sönümlü AdamW, Muon ölçek seçeneği; üretimde eos'ta durma; satır seyrek RMS'nin yoğun maskeli ilk sürümü.
 2. Tam (erf) GELU seçeneği (yerleşik, CPU ve GPU).
-3. Başlangıç ağırlıklarının PyTorch'tan aktarımı ve doğruluk testi; TR karşılığı yazılır, H1 ölçülür.
+3. Başlangıç ağırlıklarının PyTorch'tan aktarımı ve doğruluk testi; TR karşılığı yazılır, H1 ölçülür. **Yapıldı.**
 4. Logitleri tutmayan doğrusal + çapraz entropi (yerleşik, GPU çekirdeği).
-5. Seyrek gömme gradyanı ve yerleşik satır seyrek iyileştirici.
-6. Muon: aynı şekilli matrislerin toplu ve bf16 Newton–Schulz adımı.
+5. Seyrek gömme gradyanı ve yerleşik satır seyrek iyileştirici. *Ölçümle önceliği düştü (~3 ms); indeksle yazma eksiği gelince.*
+6. Muon: aynı şekilli matrislerin toplu ve bf16 Newton–Schulz adımı. **Yapıldı** (TR kitaplığında; `Doğrusal`'ın sapma türüyle birlikte H2).
 7. Kaynaştırma (madde 5'in sırasıyla: dönüşüm kopyaları, RoPE, SwiGLU ve PLE kapısı zincirleri, iyileştirici zincirleri).
 
 **Bitiş ölçütü:**
