@@ -22,7 +22,16 @@ var (
 // `uses_message`, ad kodu sabiti `uses_name` kenarı olur. Kenar owner'dan çıkar.
 func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 	callee := map[*ast.Ident]bool{}
+	modes := map[ast.Expr]string{}
+	closures := map[*ast.FuncLit]string{}
+	var stack []ast.Node
 	ast.Inspect(root, func(n ast.Node) bool {
+		if n == nil {
+			stack = stack[:len(stack)-1]
+			return true
+		}
+		stack = append(stack, n)
+		accessModes(modes, n)
 		switch n := n.(type) {
 		case *ast.CallExpr:
 			if id := calleeIdent(n.Fun); id != nil {
@@ -30,9 +39,56 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			}
 		case *ast.Ident:
 			x.use(fc, owner, n, callee[n])
+		case *ast.FuncLit:
+			closures[n] = x.closureNode(fc, owner, n, stack, closures)
+		case *ast.SelectorExpr:
+			x.fieldAccess(fc, owner, n, modes[n], enclosingClosure(stack, closures))
+		case *ast.CompositeLit:
+			x.literalFields(fc, owner, n, enclosingClosure(stack, closures))
 		}
 		return true
 	})
+}
+
+// enclosingClosure yığındaki en iç func literal'in düğüm kimliğidir (yoksa "").
+func enclosingClosure(stack []ast.Node, closures map[*ast.FuncLit]string) string {
+	for i := len(stack) - 1; i >= 0; i-- {
+		if lit, ok := stack[i].(*ast.FuncLit); ok {
+			return closures[lit]
+		}
+	}
+	return ""
+}
+
+// fieldAccess alan seçicisini (x.f) tip bilgisiyle çözer ve ham erişim olarak biriktirir.
+func (x *goExtractor) fieldAccess(fc *fileCtx, owner string, sel *ast.SelectorExpr, mode, closure string) {
+	s := fc.u.info.Selections[sel]
+	if s == nil || s.Kind() != types.FieldVal {
+		return
+	}
+	if mode == "" {
+		mode = modeRead
+	}
+	x.fieldUses = append(x.fieldUses, rawFieldUse{posKey: x.posKey(s.Obj().Pos()), owner: owner,
+		site: Site{File: fc.rel, Line: x.line(sel.Sel.Pos()), Mode: mode, Closure: closure}})
+}
+
+// literalFields T{f: v} bileşik değerindeki anahtarlı alanları yazma olarak biriktirir.
+func (x *goExtractor) literalFields(fc *fileCtx, owner string, lit *ast.CompositeLit, closure string) {
+	for _, e := range lit.Elts {
+		kv, ok := e.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		if v, ok := fc.u.info.Uses[key].(*types.Var); ok && v.IsField() {
+			x.fieldUses = append(x.fieldUses, rawFieldUse{posKey: x.posKey(v.Pos()), owner: owner,
+				site: Site{File: fc.rel, Line: x.line(key.Pos()), Mode: modeLiteral, Closure: closure}})
+		}
+	}
 }
 
 // calleeIdent çağrılan ifadenin adını verir (parantez ve tip bağımsız değişkenleri atılır).

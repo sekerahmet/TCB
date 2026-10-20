@@ -26,9 +26,11 @@ type testFunc struct {
 }
 
 type goExtractor struct {
-	m   *module
-	b   *builder
-	idx *goIndex
+	m         *module
+	b         *builder
+	idx       *goIndex
+	fieldAt   map[string]string // alanın bildirim konumu -> alan düğümünün kimliği
+	fieldUses []rawFieldUse     // çözülmeyi bekleyen alan erişimleri
 }
 
 func pkgID(p string) string    { return "go:pkg:" + p }
@@ -96,10 +98,11 @@ func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{},
 		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{},
-	}}
+	}, fieldAt: map[string]string{}}
 	for _, u := range m.units {
 		x.unit(u)
 	}
+	x.resolveFieldUses()
 	x.implements()
 	return x.idx
 }
@@ -259,6 +262,7 @@ func (x *goExtractor) typeSpec(fc *fileCtx, ts *ast.TypeSpec, obj *types.TypeNam
 	if !fc.isTest {
 		x.addSym(fc.base, obj.Name(), id)
 	}
+	x.fieldNodes(fc, ts, id, pkg)
 	it, ok := obj.Type().Underlying().(*types.Interface)
 	if !ok || obj.IsAlias() {
 		return

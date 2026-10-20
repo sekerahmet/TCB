@@ -14,7 +14,8 @@ const schemaVersion = 1
 // extractorRevision çıkarıcıların ürettiği içerik değişince artar (yeni alan, yeni kenar, farklı
 // eşleme). Eski bir sürümün kurduğu grafik, imzası aynı olsa da bir sorguda yeniden kurulur.
 // 2: düğümlere son satır (end) eklendi. 3: paket düzeyi const/var düğümleri ve `uses`, `denotes` kenarları. 4: ad kodu düğümlerinde dildeki adlar (aliases). 5: .tr kaynakları (tr_* düğümleri, TR çağrı, kullanım ve ad kodu kenarları).
-const extractorRevision = 5
+// 6: struct alanı düğümleri ve okuma/yazma erişim yerleri, func literal düğümleri ve yakaladıkları değişkenler.
+const extractorRevision = 6
 
 // Düğüm türleri.
 const (
@@ -24,6 +25,8 @@ const (
 	kindMethod  = "method"
 	kindType    = "type"
 	kindConst   = "const"
+	kindField   = "field"
+	kindClosure = "closure"
 	kindVar     = "var"
 	kindMessage = "message"
 	kindName    = "name"
@@ -42,6 +45,8 @@ const (
 	edgeUsesMessage = "uses_message"
 	edgeUsesName    = "uses_name"
 	edgeUses        = "uses"
+	edgeReadsField  = "reads_field"
+	edgeWritesField = "writes_field"
 	edgeDenotes     = "denotes"
 	edgeGuardedBy   = "guarded_by"
 	edgeLinksTo     = "links_to"
@@ -66,6 +71,8 @@ type Node struct {
 	Params []string `json:"params,omitempty"`
 	// Aliases düğümün başka adlarıdır (ad kodunun dildeki adları: sorguda ad gibi çözülür).
 	Aliases []string `json:"aliases,omitempty"`
+	// Captured bir func literal'in dış kapsamdan yakaladığı değişkenlerdir ("ad tip").
+	Captured []string `json:"captured,omitempty"`
 }
 
 // Edge yönlü bir bağdır; File ve Line bağın ilk görüldüğü yerdir, Count aynı bağın kaç kez
@@ -78,6 +85,16 @@ type Edge struct {
 	File       string `json:"file,omitempty"`
 	Line       int    `json:"line,omitempty"`
 	Count      int    `json:"count,omitempty"`
+	Sites      []Site `json:"sites,omitempty"` // alan erişim kenarlarında her erişim yeri
+}
+
+// Site bir alan erişiminin yeridir: dosya, satır, kip (read, write, read+write, elem-write, addr,
+// literal) ve erişimin içinde olduğu en iç func literal'in düğüm kimliği (yoksa "").
+type Site struct {
+	File    string `json:"file"`
+	Line    int    `json:"line"`
+	Mode    string `json:"mode"`
+	Closure string `json:"closure,omitempty"`
 }
 
 // Graph graph.json'ın içeriğidir. Sıralıdır ve zaman damgası taşımaz: aynı depo aynı dosyayı verir.
@@ -124,6 +141,17 @@ func (b *builder) addEdge(from, to, kind, conf, file string, line int) {
 		return
 	}
 	b.edges[k] = &Edge{From: from, To: to, Kind: kind, Confidence: conf, File: file, Line: line, Count: 1}
+}
+
+// maxSites bir kenarda saklanan en çok erişim yeridir.
+const maxSites = 500
+
+// addSite alan erişim kenarını (yoksa) ekler ve erişim yerini kenara yazar.
+func (b *builder) addSite(from, to, kind string, s Site) {
+	b.addEdge(from, to, kind, extracted, s.File, s.Line)
+	if e := b.edges[edgeKey{from, to, kind}]; len(e.Sites) < maxSites {
+		e.Sites = append(e.Sites, s)
+	}
 }
 
 func (b *builder) warn(msg string) { b.warnings = append(b.warnings, msg) }

@@ -18,6 +18,8 @@ type queryOpts struct {
 	min            int    // calls-into: en az kaç ayrı işlev
 	tests          bool   // calls-into: test dosyalarındaki çağıranlar da sayılır
 	byPackage      bool   // who-uses: kullanıcıları pakete göre özetle
+	mode           string // who-uses, fields: yalnızca "read" ya da "write" erişimleri
+	typeFilter     string // captures: yakalanan değişkenin tipinde geçen metin
 }
 
 // runQuery grafiği okuyan komutları çalıştırır: query, explain, path, who-uses, tests-for,
@@ -35,6 +37,8 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	fs.StringVar(&o.in, "in", "", "callees, calls-into: restrict to a package")
 	fs.IntVar(&o.min, "min", 2, "calls-into: at least this many distinct functions")
 	fs.BoolVar(&o.tests, "tests", false, "calls-into: count callers in test files too")
+	fs.StringVar(&o.mode, "mode", "", "fields: only read or write accesses")
+	fs.StringVar(&o.typeFilter, "type", "", "captures: only variables whose type contains this text")
 	fs.BoolVar(&o.byPackage, "by-package", false, "who-uses: summarise the users per package")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return exitUsage
@@ -91,10 +95,9 @@ func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
 	if cmd == "changed" { // adı değil, git revizyonu alır
 		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit}, names[0], o.stdout, o.stderr)
 	}
-	var kinds []string
-	if cmd == "calls-into" {
-		kinds = []string{kindPackage}
-	}
+	kinds := map[string][]string{
+		"calls-into": {kindPackage}, "captures": {kindFunc, kindMethod, kindClosure}, "fields": {kindField, kindType},
+	}[cmd]
 	nodes := make([]*Node, 0, len(names))
 	for _, q := range names {
 		n, code := ix.resolve(q, o, kinds...)
@@ -111,7 +114,9 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 	case "query", "explain":
 		ix.printQuery(o.stdout, nodes[0], o.limit)
 	case "who-uses":
-		if o.byPackage {
+		if nodes[0].Kind == kindField {
+			ix.printFieldUses(nodes[0], o)
+		} else if o.byPackage {
 			ix.printWhoUsesByPackage(o.stdout, nodes[0], o.limit)
 		} else {
 			ix.printWhoUses(o.stdout, nodes[0], o.limit)
@@ -120,6 +125,14 @@ func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 		ix.printTestsFor(o.stdout, nodes[0], o.limit)
 	case "history":
 		return ix.runHistory(o.root, nodes[0], o.limit, o.stdout, o.stderr)
+	case "fields":
+		if nodes[0].Kind == kindField {
+			ix.printFieldUses(nodes[0], o)
+		} else {
+			ix.printFieldTable(nodes[0], o)
+		}
+	case "captures":
+		return ix.printCaptures(nodes[0], o)
 	case "callees":
 		return ix.printCallees(nodes[0], o)
 	case "calls-into":
@@ -152,7 +165,7 @@ func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
 // reorderFlags bayrakları adların önüne alır (flag paketi ilk addan sonrasını bayrak saymaz):
 // "query New --limit 5" ile "query --limit 5 New" aynıdır.
 func reorderFlags(args []string) []string {
-	valued := map[string]bool{"graph": true, "limit": true, "root": true, "base": true, "in": true, "min": true}
+	valued := map[string]bool{"graph": true, "limit": true, "root": true, "base": true, "in": true, "min": true, "mode": true, "type": true}
 	var flags, names []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]

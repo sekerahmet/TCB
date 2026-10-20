@@ -67,3 +67,33 @@ var table = []struct {
 }
 
 func runIf() {}
+
+// Counter has fields that are read and written in several ways.
+type Counter struct {
+	n    int
+	list []int
+	next *Counter
+}
+
+// Other has a field named like Counter's.
+type Other struct{ n int }
+
+// Bump touches Counter.n in every way and returns a closure that captures variables.
+func Bump(c *Counter, o *Other) func() int {
+	c.n++
+	c.n = 5
+	c.list[0] = 1
+	p := &c.n
+	_ = p
+	o.n = 9
+	x := c.n
+	sum := 0
+	return func() int {
+		c.n += x
+		sum++
+		return c.n
+	}
+}
+
+// Make builds a Counter with a keyed literal.
+func Make() Counter { return Counter{n: 1} }

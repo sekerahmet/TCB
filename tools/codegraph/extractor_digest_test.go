@@ -21,7 +21,7 @@ import (
 // kendiliğinden kapsanır, yeni bir komut dosyası buraya yazılır.
 var notExtractor = map[string]bool{
 	"main.go": true, "main_query.go": true, "query.go": true, "query_path.go": true, "query_tests.go": true,
-	"query_calls.go": true, "query_group.go": true, "query_names.go": true, "query_suggest.go": true, "history.go": true, "codehist.go": true, "changed.go": true,
+	"query_calls.go": true, "query_group.go": true, "query_names.go": true, "query_fields.go": true, "query_suggest.go": true, "history.go": true, "codehist.go": true, "changed.go": true,
 	"diffmap.go": true, "branchdecl.go": true, "deleted.go": true, "fresh.go": true, "root.go": true,
 }
 
