@@ -100,6 +100,22 @@ Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için op
 9. **Model parçaları:** katman başına gömme tabloları (PLE) için seyrek satır güncellemesi; Muon'da aynı şekilli matrislerin toplu Newton–Schulz adımı.
 10. **Karşılaştırma ve kartlar.** Hedef model TR'de yazılır; PyTorch sürümüyle hız, bellek ve kayıp eğrisi karşılaştırılır. Ölçümler ve GPU testleri birden çok kartta tekrarlanır (T4, L4, A100). CPU'da küçük bir modelle eğitim denemesi ve işlem başına sabit maliyetin profili.
 
+**Hedef: `tools/gpu/rgn512.py`'nin TR karşılığı, kod ve hız olarak** (2026-10-21). Bileşen eşleştirmesi: ileri hesabın tamamı bugünkü yerleşiklerle yazılabilir; gerçek eksikler satır seyrek iyileştirici, logitleri tutmayan parçalı çapraz entropi ve kaynaştırmadır.
+
+- **Kod:** aynı mimari ve eğitim tarifi, tek dosya (`tools/gpu/rgn512.tr`), PyTorch dosyasıyla aynı mertebede uzunluk. Yerel/genel katmanlar ve pencere, GQA, QK-norm, ½ SwiGLU (672), katman başına kelime gömmesi (PLE), paylaşımlı gömme, Muon + AdamW + satır seyrek RMS, WSD, bf16.
+- **Doğruluk:** PyTorch'un başlangıç ağırlıkları TR'ye yüklenir; aynı toplu işlerle ilk adımların kaybı bf16 düzeyinde aynıdır. Gerçek veride (Türkçe FineWeb-2, TR BPE 40k) uzun eğri aynı eğilimdedir.
+- **Hız (aynı kart, 64×1024 token/adım):** H1 eager düzeyi ≤ 347 ms/adım; H2 ≤ 1,5 × compile (≤ 204 ms); H3 ≤ 1,2 × compile (≤ 163 ms); H4 compile ile başa baş (≤ 136 ms). Her adım 300 adımlık kısa koşularla doğrulanır; büyük boyutlar (d1024–d1536) yalnızca kilometre taşlarında ölçülür.
+- **Bellek:** tepe bellek en çok compile'ın 1,1 katı.
+
+İş sırası:
+1. Kitaplık yapı taşları (`lib/katman.tr`, `lib/iyilestirici.tr`): dikkat katmanına pencere, QK-norm ve birleşik KV matrisi; SwiGLU'ya birleşik [G|U] matrisi; PLE bloğu; ada göre iyileştirici grupları, iki ağırlık sönümlü AdamW, Muon ölçek seçeneği; üretimde eos'ta durma; satır seyrek RMS'nin yoğun maskeli ilk sürümü.
+2. Tam (erf) GELU seçeneği (yerleşik, CPU ve GPU).
+3. Başlangıç ağırlıklarının PyTorch'tan aktarımı ve doğruluk testi; TR karşılığı yazılır, H1 ölçülür.
+4. Logitleri tutmayan doğrusal + çapraz entropi (yerleşik, GPU çekirdeği).
+5. Seyrek gömme gradyanı ve yerleşik satır seyrek iyileştirici.
+6. Muon: aynı şekilli matrislerin toplu ve bf16 Newton–Schulz adımı.
+7. Kaynaştırma (madde 5'in sırasıyla: dönüşüm kopyaları, RoPE, SwiGLU ve PLE kapısı zincirleri, iyileştirici zincirleri).
+
 **Bitiş ölçütü:**
 - Hedef model TR'de PyTorch sürümüyle aynı kalitede eğitilir.
 - Hız ölçütü derlenmiş (`torch.compile`) PyTorch'tur; ilk ölçümden sonra hedef oran buraya yazılır ve sağlanır.
