@@ -28,9 +28,9 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 	// Yapı gövdesinde yalnızca alanlar ve fonksiyon tanımları bulunur; her ad bir kez
 	// tanımlanır. Başka içerik sessizce alan sayılmaz ya da atlanmaz: sözdizimi hatasıdır.
 	defined := map[string]bool{}
-	checkName := func(tok lexer.Token, name string, kind messages.Code) bool {
+	checkName := func(tok lexer.Token, name string, duplicate messages.Code) bool {
 		if defined[name] {
-			p.syntaxError(tok, messages.H0144, name, messages.Text(kind), stmt.Name)
+			p.syntaxError(tok, duplicate, name, stmt.Name)
 			return false
 		}
 		defined[name] = true

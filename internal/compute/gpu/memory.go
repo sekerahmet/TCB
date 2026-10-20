@@ -170,7 +170,7 @@ func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 	}
 	byteN := uint64(n) * uint64(dtypeSize(dt))
 	if byteN > g.sr.totalMemory() {
-		panic(tensor.SizeError(n, dt, int64(g.sr.totalMemory()), messages.Text(messages.H4062)))
+		panic(tensor.SizeError(n, dt, int64(g.sr.totalMemory()), tensor.PlaceGPU))
 	}
 	d := &storage{g: g, n: n, dtype: dt}
 	if n == 0 {

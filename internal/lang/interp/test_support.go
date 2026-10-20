@@ -37,11 +37,10 @@ func (v *VM) registerTestBuiltins() {
 		if ValuesEqual(args[0], args[1]) {
 			return TRUE, nil
 		}
-		extra := ""
 		if len(args) == 3 {
-			extra = args[2].Inspect() + " — "
+			return nil, messages.New(messages.H2517, args[2].Inspect(), testShow(args[0]), testShow(args[1]))
 		}
-		return nil, messages.New(messages.H2458, extra, testShow(args[0]), testShow(args[1]))
+		return nil, messages.New(messages.H2458, testShow(args[0]), testShow(args[1]))
 	})
 }
 

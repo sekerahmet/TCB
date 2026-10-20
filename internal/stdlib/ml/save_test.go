@@ -66,7 +66,7 @@ yazdır(z["sapma"].gradyan.değer)`)
 		{write("surum.trt", version), messages.H6611},
 		{write("tur.trt", dtype), messages.H6616},
 		{write("fazla.trt", append(append([]byte{}, data...), 0)), messages.H6628},
-		{filepath.ToSlash(filepath.Join(dir, "yok.trt")), messages.H2120},
+		{filepath.ToSlash(filepath.Join(dir, "yok.trt")), messages.H2107},
 		{filepath.ToSlash(dir), messages.H6629},
 	}
 	for _, d := range cases {

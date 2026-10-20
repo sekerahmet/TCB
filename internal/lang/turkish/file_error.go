@@ -47,8 +47,8 @@ func (n Reason) Unwrap() error { return n.Message }
 //	<fn>: "<yol>" <islem>: <neden>[; <ek>...]
 //
 // fn is the builtin that failed (e.g. "dosya_oku()"; no prefix when empty), yol is the
-// path as the user wrote it, op is the outcome as a message code without parameters
-// (messages.H2100 "okunamadı", messages.H2101 "yazılamadı" ...).
+// path as the user wrote it, op is the outcome as a whole-sentence message code with the
+// parameters path and reason (messages.H2100 "{path} okunamadı: {reason}", messages.H2101 ...).
 // ekler are appended after the reason with "; " (e.g. "bakılan yerler: ..."). Known cases:
 // file or folder missing, permission denied, path is a folder, disk full, file in use,
 // invalid name, path too long, write-protected disk. Unknown cases get a Turkish lead
@@ -61,10 +61,11 @@ func FileError(fn, path string, op messages.Code, err error, suffixes ...string)
 	if err == nil {
 		return nil
 	}
-	reason, opText := fileErrorReason(path, err), messages.Text(op)
-	m := messages.New(messages.H2121, path, opText, reason)
+	// İşlem kodu kendi tam cümlesidir ({path}, {reason}); fn varsa ortak "{fn}: {error}" iletisi
+	// (H2000) onu sarar. İki kod da zincirde bulunur (messages.Has).
+	var m *messages.Error = messages.New(op, path, fileErrorReason(path, err))
 	if fn != "" {
-		m = messages.New(messages.H2120, fn, path, opText, reason)
+		m = messages.New(messages.H2000, fn, m)
 	}
 	var extras []string
 	for _, suffix := range suffixes {

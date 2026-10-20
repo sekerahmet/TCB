@@ -140,6 +140,10 @@ yazdır("tamam")`)
 	if !messages.Has(err, messages.H2458) {
 		t.Fatalf("eşit_mi hata mesajı yanlış: %v", err)
 	}
+	_, _, err = runTROut(t, `eşit_mi("5", 5, "ek not")`)
+	if !messages.Has(err, messages.H2517) {
+		t.Fatalf("üç argümanlı eşit_mi hata mesajı yanlış: %v", err)
+	}
 	_, _, err = runTROut(t, "\n\ndoğrula(yanlış)")
 	if !codeAt(err, messages.H2457, 3) {
 		t.Fatalf("doğrula hata mesajı yanlış: %v", err)

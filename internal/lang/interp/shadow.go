@@ -15,8 +15,8 @@ import (
 
 // shadowDef bir kapsamda yerleşik adını gölgeleyen tanımdır.
 type shadowDef struct {
-	lineNo int
-	ne     messages.Code // messages.H2450, "bir parametreye" ...
+	lineNo  int
+	message messages.Code // tanımın türünü anlatan tam cümle: messages.H2450 (değişken), H2451 (parametre) ...
 }
 
 // builtinName ad sözlükteki bir yerleşik fonksiyonun (G/T/V/W) adı mı?
@@ -27,7 +27,7 @@ func builtinName(name string) bool {
 
 // recordShadow ad bir yerleşik adıysa bu kapsamdaki tanımını kaydeder (kapsamdaki ilk
 // tanım tutulur).
-func (k *compilerScope) recordShadow(name string, lineNo int, ne messages.Code) {
+func (k *compilerScope) recordShadow(name string, lineNo int, message messages.Code) {
 	if !builtinName(name) {
 		return
 	}
@@ -35,7 +35,7 @@ func (k *compilerScope) recordShadow(name string, lineNo int, ne messages.Code) 
 		k.shadow = map[string]shadowDef{}
 	}
 	if _, var_ := k.shadow[name]; !var_ {
-		k.shadow[name] = shadowDef{lineNo: lineNo, ne: ne}
+		k.shadow[name] = shadowDef{lineNo: lineNo, message: message}
 	}
 }
 
@@ -72,7 +72,7 @@ func shadowedCall(kd exprCode, fun exprCode, name string, g shadowDef, line int)
 			return val, nil
 		}
 		if fv, e := fun(v, env); e == nil && !callable(fv) {
-			return nil, messages.At(line, 0, messages.New(messages.H2449, name, fv.Type(), g.lineNo, messages.Text(g.ne)))
+			return nil, messages.At(line, 0, messages.New(g.message, name, fv.Type(), g.lineNo))
 		}
 		return nil, err
 	}

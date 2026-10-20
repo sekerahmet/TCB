@@ -170,8 +170,8 @@ func (g *backend) Device() tensor.Device { return g.dev }
 // MemoryLimit (tensor.MemoryLimiter) tek ayırmanın sınırı: cihazın toplam belleği.
 func (g *backend) MemoryLimit() int64 { return int64(g.sr.totalMemory()) }
 
-// MemoryPlace hata mesajlarında anılan yer.
-func (g *backend) MemoryPlace() string { return messages.Text(messages.H4062) }
+// MemoryPlace hata mesajlarında anılan yerin anahtarıdır.
+func (g *backend) MemoryPlace() string { return tensor.PlaceGPU }
 
 // enter kilidi alır, gorutini iş parçacığına kilitler ve bağlamı bağlar.
 func (g *backend) enter() {

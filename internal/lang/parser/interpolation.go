@@ -41,7 +41,7 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 			// Kapanmamış '{' sözcük çözümleyicide hatadır (aynı satırda '}' ile bitmeli).
 			return &ast.StringLiteral{Token: tok, Value: ""}
 		}
-		if problem != "" {
+		if problem != nil {
 			p.interpolationError(openLine, openCol, rawExpr, problem)
 			return &ast.StringLiteral{Token: tok, Value: ""}
 		}
@@ -73,10 +73,10 @@ func (p *Parser) parseStringOrInterpolation() ast.Expression {
 // boşsa) sorun bunu anlatan kısa metindir; düz metne dönülmez. Alt ayrıştırıcı üst
 // ayrıştırıcının iç içelik düzeyinden başlar: metin içindeki ifade de dosyanın iç içelik
 // sınırına (2.10) sayılır; sınır alt ayrıştırıcıda aşılırsa hata üst ayrıştırıcıya taşınır.
-func (p *Parser) interpolation(text lexer.Token, curValue []rune, begin, end int) (ast.Expression, string) {
+func (p *Parser) interpolation(text lexer.Token, curValue []rune, begin, end int) (ast.Expression, *interpolationProblem) {
 	exprCode, exprStart := lexer.InterpolationExpr(curValue, begin, end)
 	if exprCode == "" {
-		return nil, messages.Text(messages.H0158)
+		return nil, &interpolationProblem{code: messages.H0158}
 	}
 	// İfadenin sözcükleri dosyadaki gerçek konumlarını taşır (sozcuk.Lexer.Yerlestirme):
 	// önündeki kaçış dizileri ve boşluklar konumu kaydırmaz.
@@ -89,27 +89,37 @@ func (p *Parser) interpolation(text lexer.Token, curValue []rune, begin, end int
 			p.errors = append(p.errors, subParser.errors[len(subParser.errors)-1])
 			p.depthExceeded = true
 		}
-		return nil, messages.Text(messages.H0159)
+		return nil, &interpolationProblem{code: messages.H0159}
 	}
 	if errList := subParser.Errs(); len(errList) != 0 {
-		return nil, messages.Text(messages.H0160, plainError(errList[0]))
+		return nil, &interpolationProblem{code: messages.H0160, detail: plainError(errList[0])}
 	}
 	if len(subProg.Statements) != 1 {
-		return nil, messages.Text(messages.H0161)
+		return nil, &interpolationProblem{code: messages.H0161}
 	}
 	es, ok := subProg.Statements[0].(*ast.ExpressionStatement)
 	if !ok || es.Expression == nil {
-		return nil, messages.Text(messages.H0162)
+		return nil, &interpolationProblem{code: messages.H0162}
 	}
-	return es.Expression, ""
+	return es.Expression, nil
 }
 
 // interpolationError metin içinde satir:sutun'daki '{' ile başlayan yerleştirme
 // ayrıştırılamadığında orada sözdizimi hatası kaydeder ve düz süslü parantezin iki yazımını
 // önerir.
-func (p *Parser) interpolationError(lineNo, colNo int, rawExpr, problem string) {
-	p.syntaxError(lexer.Token{Line: lineNo, Column: colNo}, messages.H0157,
-		shortText(unescapeBraces(rawExpr)), problem)
+func (p *Parser) interpolationError(lineNo, colNo int, rawExpr string, problem *interpolationProblem) {
+	args := []any{shortText(unescapeBraces(rawExpr))}
+	if problem.code == messages.H0160 {
+		args = append(args, problem.detail)
+	}
+	p.syntaxError(lexer.Token{Line: lineNo, Column: colNo}, problem.code, args...)
+}
+
+// interpolationProblem yerleştirmenin neden ayrıştırılamadığıdır: her neden kendi tam
+// cümlesi olan bir ileti kodudur (H0158-H0162); detail yalnızca H0160'ın alt hata metnidir.
+type interpolationProblem struct {
+	code   messages.Code
+	detail string
 }
 
 // plainError bir alt hatanın konum ve "Sözdizimi hatası — " öneki olmadan metnini verir (ileti

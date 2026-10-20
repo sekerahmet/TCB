@@ -104,7 +104,6 @@ var sameTextAllowed = map[string]string{
 	"H6132 H8274":       "ml hata bağlamı ve profil raporu",
 	"H6818 H8142":       "tensör izleme sütunu ve hata ayıklayıcı sütunu",
 	"H2301 H7214 H7484": "kullanım tarifindeki parametre adı, komut satırı tipi ve kontrol noktası türü",
-	"H2307 H7127":       "kullanım tarifindeki parametre adı ve okuyucu iletisindeki nesne adı",
 	"H2006 H2010":       "seçenek listesinin son ve ikili kalıbı (İngilizcede 'a, b, or c' ve 'a or b' ayrıdır)",
 	"H6123 H8247":       "ml hata bağlamındaki tensör etiketi ve profil raporu satırı",
 	"H7301 H8218":       "ilerleme çubuğundaki süre ve profil raporundaki süre sütunu",

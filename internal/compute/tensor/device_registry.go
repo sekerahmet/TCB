@@ -148,7 +148,7 @@ func DefaultDevice() Device {
 
 // MemoryLimiter, belleği konaktan ayrı olan arka uçların (ör. GPU) isteğe bağlı olarak
 // uyguladığı arayüzdür: tek bir ayırmanın en fazla baytı ve hata mesajında anılacak yer
-// (ör. "bu GPU'da"). Cihazdan bağımsız katman, şekli bilinen her ayırmayı fiziksel
+// (PlaceGPU anahtarı; ileti şablonu sözcüğü seçer). Cihazdan bağımsız katman, şekli bilinen her ayırmayı fiziksel
 // belleğe ek olarak bu sınırla da denetler (bkz. bellek_siniri.go).
 type MemoryLimiter interface {
 	MemoryLimit() int64

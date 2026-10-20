@@ -242,12 +242,13 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 	if kn.failures >= maxFailures {
 		return nil, messages.New(messages.H7412, err, kn.failures, kn.lastValidText())
 	}
-	what := messages.Text(messages.H7414, codes.Name(codes.Y010))
+	// Yeniden deneme zamanı şablonda seçilir (mode); Go sözcük seçmez.
+	mode, interval := "next", ""
 	if kn.interval > 0 {
-		what = messages.Text(messages.H7415, durationText(kn.interval))
+		mode, interval = "interval", durationText(kn.interval)
 	}
 	m.WriteOutput(m.Err, messages.Text(messages.H7413,
-		err, kn.failures, maxFailures, what, kn.lastValidText())+"\n")
+		err, kn.failures, maxFailures, mode, interval, codes.Name(codes.Y010), kn.lastValidText())+"\n")
 	return interp.FALSE, nil
 }
 

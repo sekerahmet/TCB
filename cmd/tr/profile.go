@@ -111,13 +111,13 @@ func profileCommand(args []string) {
 func writeJSONReport(filePath string, g *profiler.Snapshot) {
 	if b, err := os.Stat(filePath); (err == nil && b.IsDir()) || strings.HasSuffix(filePath, "/") || strings.HasSuffix(filePath, string(os.PathSeparator)) {
 		if err := os.MkdirAll(filePath, 0o755); err != nil {
-			fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8219, messages.Text(messages.H8676, filePath, err)))
+			fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8219, messages.New(messages.H8676, filePath, err)))
 			return
 		}
 		filePath = filepath.Join(filePath, profiler.ReportFileName)
 	}
 	if err := profiler.WriteFile(filePath, g, func(m string) { fmt.Fprintln(os.Stderr, m) }); err != nil {
-		fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8219, messages.Text(messages.H8677, err)))
+		fmt.Fprintln(os.Stderr, "⚠️ "+messages.Text(messages.H8219, messages.New(messages.H8677, err)))
 		return
 	}
 	fmt.Fprintln(os.Stderr, messages.Text(messages.H8678, filePath))

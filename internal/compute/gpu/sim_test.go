@@ -161,7 +161,7 @@ func TestOutOfMemory(t *testing.T) {
 		t.Fatalf("bellek yetmezliği mesajı: %v", err)
 	}
 	// Cihaz belleğinden büyük tek ayırma, ayırmadan önce reddedilir.
-	place := messages.Text(messages.H4062)
+	place := tensor.PlaceGPU
 	err = panicError(func() { g.Alloc(1<<20, tensor.Float32) })
 	if !messages.Has(err, messages.H3083) || limitPlace(err) != place {
 		t.Fatalf("cihaz sınırı mesajı: %v", err)
@@ -173,7 +173,7 @@ func TestOutOfMemory(t *testing.T) {
 	err = panicError(func() { tensor.ZerosOn(gpuDevice, row, 4) })
 	me, _ := messages.As(err)
 	if !messages.Has(err, messages.H3084) || me.Args[1] != fmt.Sprintf("[%d, 4]", row) ||
-		!(limitPlace(err) == place || limitPlace(err) == messages.Text(messages.H3105)) {
+		!(limitPlace(err) == place || limitPlace(err) == tensor.PlaceHost) {
 		t.Fatalf("tensör katmanının GPU sınırı mesajı: %v", err)
 	}
 	if inSim() && limitPlace(err) != place {
