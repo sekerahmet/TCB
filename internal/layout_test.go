@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -475,4 +476,51 @@ func hasSource(base string) bool {
 		}
 	}
 	return false
+}
+
+// turkishFileRoots are Turkish word roots that must not appear in the name of a developer
+// file or folder (the codebase is English; docs/development.md, "Names and languages"). Each
+// root comes from a name that was translated: add the root when you translate another name.
+var turkishFileRoots = set(`kiyas uret ornek surum gomulu egitim mikro ciplak sozluk istegi katki mimari
+	tarif tarifler harita parcalayici veri olcum gorunum bicim sinama denetim kodlu izleme masasi
+	argumanlari yorumlayici sahte calistirma karakter modeli kos dosya sistemi sifir eksen bozuk metin
+	bilesenler girdiler altin tablo tablolari normtablo ozellik bayt kelime tarzi onekli kodlar`)
+
+// userLayerFile reports whether a tracked file belongs to the user layer, whose names are
+// Turkish by design: the language definition and guide, TR programs, and the code list.
+func userLayerFile(path string) bool {
+	switch {
+	case strings.HasPrefix(path, "docs/spec/"), strings.HasPrefix(path, "docs/guide/"),
+		strings.HasPrefix(path, "examples/"), strings.HasPrefix(path, "tools/bench/tr/"),
+		path == "internal/lang/codes/tr.json", path == "internal/lang/messages/tr.json":
+		return true
+	}
+	return strings.HasSuffix(path, ".tr") && !strings.HasPrefix(path, "tools/")
+}
+
+// Developer files and folders have English names: no path segment of a tracked file contains a
+// known Turkish root. The user layer (userLayerFile) is out of scope.
+func TestLayoutEnglishFileNames(t *testing.T) {
+	root := reporoot.Root()
+	out, err := exec.Command("git", "-C", root, "ls-files").Output()
+	if err != nil {
+		t.Skipf("git ls-files unavailable: %v", err)
+	}
+	words := regexp.MustCompile(`[a-z]+`)
+	checked := 0
+	for _, path := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if path == "" || userLayerFile(path) {
+			continue
+		}
+		checked++
+		for _, w := range words.FindAllString(strings.ToLower(path), -1) {
+			if turkishFileRoots[w] {
+				t.Errorf("%s: %q is a Turkish word; developer files have English names (user layer files are exempt)", path, w)
+				break
+			}
+		}
+	}
+	if checked < 300 {
+		t.Errorf("only %d files checked; repository layout may have changed", checked)
+	}
 }

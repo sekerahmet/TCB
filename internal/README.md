@@ -187,6 +187,8 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | :-- | :-- |
 | Katmanlar, dil içi sıra, dış bağımlılıklar | `internal/layers_test.go` |
 | Dosya ve klasör adı, paket belgesi, üretilmiş dosya başlığı | `internal/layout_test.go` |
+| Geliştirici dosya ve klasör adları İngilizce (kullanıcı katmanı hariç) | `internal/layout_test.go` (`TestLayoutEnglishFileNames`) |
+| Mimari belgesindeki Go adları depoda var | `internal/architecture_names_test.go` (`TestArchitectureGoNamesExist`) |
 | Ortam değişkeni adları | `internal/layout_test.go` (`TestLayoutEnvVarNames`) |
 | Dosya ve fonksiyon boyu | `internal/layout_test.go`, istisnalar `internal/layout_exceptions_test.go` |
 | Test dosyası düzeni | `internal/layout_test.go` (`TestTestFileMatchesSource`) |
