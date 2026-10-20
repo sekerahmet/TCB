@@ -20,7 +20,7 @@ import (
 //     Uzun süren işlemlerde (son ölçüm longOpTicks'ten uzunsa) p = 1: her çağrı ölçülür;
 //     kısa işlemlerde p = 1/sampleRange. Böylece birkaç yüz nanosaniyelik küçük tensör
 //     işlemlerinde ölçülmeyen çağrının yükü bir toplama, bir gösterici yazması ve bir
-//     azaltmadır (ölçüm: counter_bench_test.go ve docs/mimari.md). GPU işlemlerinin her çağrısı
+//     azaltmadır (ölçüm: counter_bench_test.go ve docs/architecture.md). GPU işlemlerinin her çağrısı
 //     ölçülür (counterMeasure.finish).
 //   - Saat amd64'te işlemcinin değişmez zaman damgası sayacıdır (okuması ~7 ns, çözünürlüğü
 //     nanosaniyenin altında); yoksa Go'nun monoton saati. Tıklar görüntü alınırken duvar

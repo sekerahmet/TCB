@@ -56,8 +56,8 @@ test "18.3 diske bakan özellikler yolu tek kuralla çözer" {
     doğrula(değil yol(k, "yok").var_mı)
     eşit_mi(7, yol(k, "a.txt").bayt)
     // Programın klasöründeki veri, program başka bir klasörden çalışsa da bulunur.
-    doğrula(yol("data/parcalayici.json").var_mı)
-    eşit_mi("parcalayici.json", yol("data/parcalayici.json").mutlak.dosya_adı)
+    doğrula(yol("data/tokenizer.json").var_mı)
+    eşit_mi("tokenizer.json", yol("data/tokenizer.json").mutlak.dosya_adı)
     değişken m = hata_metni(() => k.bayt)
     doğrula(m.içerir("bir klasör"), m)
     m = hata_metni(() => yol(k, "yok.txt").bayt)
@@ -144,7 +144,7 @@ test "18.8 sil kökü, çalışma ve program klasörünü ve onların üstlerini
     doğrula(m.içerir("TR bunu silmez"), m)
     m = hata_metni(() => sil("/"))
     doğrula(m.içerir("TR bunu silmez"), m)
-    doğrula(yol("data/parcalayici.json").var_mı)
+    doğrula(yol("data/tokenizer.json").var_mı)
 }
 
 test "18.9 kopyala hedef klasörün içine kopyalar; üzerine yazmak açık onay ister" {

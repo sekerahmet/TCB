@@ -6,94 +6,94 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { izlemeKomutuCoz } = require('./izleme_komutlari');
-const { yorumlayiciyiBul: yorumlayiciyiBulKurali, yorumlayiciAdi, BIN_KLASORU } = require('./yorumlayici_bul');
-const { programArgumanlari } = require('./program_argumanlari');
-const kodluBicim = require('./kodlu_bicim');
-const kodluGorunum = require('./kodlu_gorunum');
+const { resolveWatchCommand } = require('./watch_commands');
+const { findInterpreter: findInterpreterRule, interpreterName, BIN_FOLDER } = require('./find_interpreter');
+const { programArguments } = require('./program_arguments');
+const codedFormat = require('./coded_format');
+const codedViewModule = require('./coded_view');
 
-const GOREV_TURU = 'tr';
-const AYAR = 'yorumlayiciYolu';
-const YORUMLAYICI_ADI = yorumlayiciAdi(process.platform);
+const TASK_TYPE = 'tr';
+const INTERPRETER_SETTING = 'yorumlayiciYolu';
+const INTERPRETER_NAME = interpreterName(process.platform);
 
 // komut kimliği -> yorumlayıcıya verilecek argümanlar ve görev adı. Çalıştırmada dosyadan
 // sonraki argümanlar (ek) programa iletilir: 'tr dosya.tr --adım 5'.
-const KOMUTLAR = {
-    calistir: { komut: 'tr.calistir', ad: 'Çalıştır', argumanlar: (dosya, ek) => [dosya, ...(ek || [])] },
-    denetle: { komut: 'tr.denetle', ad: 'Denetle', argumanlar: (dosya) => ['kontrol', dosya] },
-    hataAyikla: { komut: 'tr.hataAyikla', ad: 'Hata Ayıkla', argumanlar: (dosya) => ['hata_ayıkla', dosya] }
+const COMMANDS = {
+    run: { id: 'tr.calistir', title: 'Çalıştır', args: (file, extra) => [file, ...(extra || [])] },
+    check: { id: 'tr.denetle', title: 'Denetle', args: (file) => ['kontrol', file] },
+    debug: { id: 'tr.hataAyikla', title: 'Hata Ayıkla', args: (file) => ['hata_ayıkla', file] }
 };
 
-function dosyaVarMi(yol) {
+function fileExists(filePath) {
     try {
-        return fs.statSync(yol).isFile();
+        return fs.statSync(filePath).isFile();
     } catch (e) {
         return false;
     }
 }
 
 // Yorumlayıcıyı bulur: ayar -> (yalnızca güvenilen çalışma alanında) çalışma alanı kökü -> PATH.
-// Üst klasörler taranmaz. Kural ve gerekçesi yorumlayici_bul.js'tedir.
+// Üst klasörler taranmaz. Kural ve gerekçesi find_interpreter.js'tedir.
 // Bulunamazsa undefined döner; ayar geçersizse { hata } döner.
-function yorumlayiciyiBul(dosyaUri) {
-    const klasor = vscode.workspace.getWorkspaceFolder(dosyaUri);
-    return yorumlayiciyiBulKurali({
-        ayar: vscode.workspace.getConfiguration('tr').get(AYAR),
-        klasor: klasor ? klasor.uri.fsPath : undefined,
-        guvenilir: vscode.workspace.isTrusted,
-        dosyaVarMi,
-        pathDegeri: process.env.PATH,
+function findInterpreter(fileUri) {
+    const folder = vscode.workspace.getWorkspaceFolder(fileUri);
+    return findInterpreterRule({
+        setting: vscode.workspace.getConfiguration('tr').get(INTERPRETER_SETTING),
+        folder: folder ? folder.uri.fsPath : undefined,
+        trusted: vscode.workspace.isTrusted,
+        fileExists,
+        pathValue: process.env.PATH,
         platform: process.platform
     });
 }
 
-async function yorumlayiciBulunamadi(mesaj) {
-    const ayarAc = 'Ayarı Aç';
-    const secim = await vscode.window.showErrorMessage(
-        `${mesaj} TR yorumlayıcısını proje kökünde 'go build -o ${BIN_KLASORU}/${YORUMLAYICI_ADI} ./cmd/tr' ile derleyin ` +
-        `veya 'tr.${AYAR}' ayarına yorumlayıcının tam yolunu yazın.`,
-        ayarAc
+async function interpreterNotFound(message) {
+    const openSetting = 'Ayarı Aç';
+    const choice = await vscode.window.showErrorMessage(
+        `${message} TR yorumlayıcısını proje kökünde 'go build -o ${BIN_FOLDER}/${INTERPRETER_NAME} ./cmd/tr' ile derleyin ` +
+        `veya 'tr.${INTERPRETER_SETTING}' ayarına yorumlayıcının tam yolunu yazın.`,
+        openSetting
     );
-    if (secim === ayarAc) {
-        vscode.commands.executeCommand('workbench.action.openSettings', `tr.${AYAR}`);
+    if (choice === openSetting) {
+        vscode.commands.executeCommand('workbench.action.openSettings', `tr.${INTERPRETER_SETTING}`);
     }
 }
 
-// kodlu, kodlu dosyaların Türkçe görünümüdür (kodlu_gorunum.js); activate kurar.
-let kodlu;
+// codedView, kodlu dosyaların Türkçe görünümüdür (coded_view.js); activate kurar.
+let codedView;
 
-// yerelUri bir belgenin diskteki dosyasıdır (kodlu dosyanın Türkçe görünümünde de dosyanın
+// localUri bir belgenin diskteki dosyasıdır (kodlu dosyanın Türkçe görünümünde de dosyanın
 // kendisi); yerel olmayan belgede undefined.
-function yerelUri(uri) {
-    return kodlu ? kodlu.yerelUri(uri) : (uri && uri.scheme === 'file' ? uri : undefined);
+function localUri(uri) {
+    return codedView ? codedView.localUri(uri) : (uri && uri.scheme === 'file' ? uri : undefined);
 }
 
 // Komutun hedef belgesini bulur: başlık çubuğu/bağlam menüsünden gelen URI veya etkin düzenleyici.
 // Dosyanın Türkçe görünümü açıksa o seçilir (kaydedilmemiş değişiklikler oradadır).
-async function hedefBelge(uri) {
+async function targetDocument(uri) {
     if (uri instanceof vscode.Uri) {
-        const acik = vscode.workspace.textDocuments.find((b) => b.uri.toString() === uri.toString());
-        return (kodlu && kodlu.acikGorunum(uri)) || acik || vscode.workspace.openTextDocument(uri);
+        const existing = vscode.workspace.textDocuments.find((b) => b.uri.toString() === uri.toString());
+        return (codedView && codedView.openView(uri)) || existing || vscode.workspace.openTextDocument(uri);
     }
     const editor = vscode.window.activeTextEditor;
     return editor ? editor.document : undefined;
 }
 
-function gorevOlustur(tanim, belgeUri, yorumlayici, ek) {
-    const dosya = belgeUri.fsPath;
-    const klasor = vscode.workspace.getWorkspaceFolder(belgeUri);
-    const cwd = klasor ? klasor.uri.fsPath : path.dirname(dosya);
+function createTask(def, documentUri, interpreter, extra) {
+    const file = documentUri.fsPath;
+    const folder = vscode.workspace.getWorkspaceFolder(documentUri);
+    const cwd = folder ? folder.uri.fsPath : path.dirname(file);
 
-    const gorev = new vscode.Task(
-        { type: GOREV_TURU, komut: tanim.komut, dosya },
-        klasor || vscode.TaskScope.Workspace,
-        `${tanim.ad}: ${path.basename(dosya)}`,
+    const task = new vscode.Task(
+        { type: TASK_TYPE, komut: def.id, dosya: file },
+        folder || vscode.TaskScope.Workspace,
+        `${def.title}: ${path.basename(file)}`,
         'TR',
-        new vscode.ProcessExecution(yorumlayici, tanim.argumanlar(dosya, ek), { cwd }),
+        new vscode.ProcessExecution(interpreter, def.args(file, extra), { cwd }),
         []
     );
     // Görev terminali odaklanır; hata ayıklayıcının komutları buradan yazılır.
-    gorev.presentationOptions = {
+    task.presentationOptions = {
         reveal: vscode.TaskRevealKind.Always,
         focus: true,
         panel: vscode.TaskPanelKind.Dedicated,
@@ -101,97 +101,97 @@ function gorevOlustur(tanim, belgeUri, yorumlayici, ek) {
         echo: true,
         showReuseMessage: false
     };
-    return gorev;
+    return task;
 }
 
 // calistir komutu (tanim) dosyada çalıştırır; ek, dosyadan sonra yorumlayıcıya verilen
 // program argümanlarıdır (Ctrl+F5'te launch.json'daki "args").
-async function calistir(tanim, uri, ek) {
+async function run(def, uri, extra) {
     if (!vscode.workspace.isTrusted) {
         vscode.window.showWarningMessage('TR dosyalarını çalıştırmak için bu çalışma alanına güvenmeniz gerekir (Çalışma Alanı Güveni).');
         return;
     }
 
-    const belge = await hedefBelge(uri);
-    if (!belge) {
+    const document = await targetDocument(uri);
+    if (!document) {
         vscode.window.showErrorMessage('Çalıştırılacak bir .tr dosyası açık değil.');
         return;
     }
-    if (belge.languageId !== 'tr' && !belge.fileName.toLowerCase().endsWith('.tr')) {
-        vscode.window.showErrorMessage(`Bu komut yalnızca .tr dosyalarında çalışır: ${path.basename(belge.fileName)}`);
+    if (document.languageId !== 'tr' && !document.fileName.toLowerCase().endsWith('.tr')) {
+        vscode.window.showErrorMessage(`Bu komut yalnızca .tr dosyalarında çalışır: ${path.basename(document.fileName)}`);
         return;
     }
-    if (belge.isUntitled) {
+    if (document.isUntitled) {
         vscode.window.showErrorMessage('Dosyayı çalıştırmadan önce .tr uzantısıyla kaydedin.');
         return;
     }
-    const yerel = yerelUri(belge.uri);
-    if (!yerel) {
+    const local = localUri(document.uri);
+    if (!local) {
         vscode.window.showErrorMessage('Yalnızca yerel diskteki .tr dosyaları çalıştırılabilir.');
         return;
     }
-    if (belge.isDirty && !(await belge.save())) {
+    if (document.isDirty && !(await document.save())) {
         vscode.window.showErrorMessage('Dosya kaydedilemedi; çalıştırma iptal edildi.');
         return;
     }
 
-    const bulunan = yorumlayiciyiBul(yerel);
-    if (!bulunan || bulunan.hata) {
-        await yorumlayiciBulunamadi(bulunan ? bulunan.hata : 'TR yorumlayıcısı (' + YORUMLAYICI_ADI + ') bulunamadı.');
+    const found = findInterpreter(local);
+    if (!found || found.error) {
+        await interpreterNotFound(found ? found.error : 'TR yorumlayıcısı (' + INTERPRETER_NAME + ') bulunamadı.');
         return;
     }
 
     // Klasör açılmadan tek dosya açıldığında VS Code, görevlerin kullanıcı klasörü dışında
     // çalışmasına izin vermez ("Cannot launch a terminal process in an empty workspace").
     // Bu durumda yorumlayıcı doğrudan bir terminalde, dosyanın klasöründe başlatılır.
-    if (!vscode.workspace.getWorkspaceFolder(yerel)) {
-        terminaldeCalistir(tanim, yerel, bulunan.yol, ek);
+    if (!vscode.workspace.getWorkspaceFolder(local)) {
+        runInTerminal(def, local, found.filePath, extra);
         return;
     }
 
-    await vscode.tasks.executeTask(gorevOlustur(tanim, yerel, bulunan.yol, ek));
+    await vscode.tasks.executeTask(createTask(def, local, found.filePath, extra));
 }
 
-// terminaldeCalistir yorumlayıcıyı kabuk kullanmadan doğrudan bir terminal sürecinde başlatır
+// runInTerminal yorumlayıcıyı kabuk kullanmadan doğrudan bir terminal sürecinde başlatır
 // (tırnak/kaçış sorunu olmaz). Program bitince terminal açık kalır, çıktı okunabilir.
-function terminaldeCalistir(tanim, belgeUri, yorumlayici, ek) {
-    const dosya = belgeUri.fsPath;
+function runInTerminal(def, documentUri, interpreter, extra) {
+    const file = documentUri.fsPath;
     const terminal = vscode.window.createTerminal({
-        name: `TR ${tanim.ad}: ${path.basename(dosya)}`,
-        shellPath: yorumlayici,
-        shellArgs: tanim.argumanlar(dosya, ek),
-        cwd: path.dirname(dosya),
+        name: `TR ${def.title}: ${path.basename(file)}`,
+        shellPath: interpreter,
+        shellArgs: def.args(file, extra),
+        cwd: path.dirname(file),
         isTransient: true
     });
     terminal.show(false);
 }
 
 // tasks.json içinde { "type": "tr", "komut": "tr.calistir" } yazılabilmesi için ("dosya" isteğe bağlı).
-const gorevSaglayici = {
+const taskProvider = {
     provideTasks() {
         return [];
     },
-    resolveTask(gorev) {
-        const d = gorev.definition || {};
-        const tanim = Object.values(KOMUTLAR).find((t) => t.komut === d.komut);
-        if (!tanim) {
+    resolveTask(task) {
+        const d = task.definition || {};
+        const def = Object.values(COMMANDS).find((t) => t.id === d.komut);
+        if (!def) {
             return undefined;
         }
         // "dosya" verilmemişse veya çözülmemiş bir değişken içeriyorsa etkin .tr dosyası kullanılır.
         let uri;
         if (d.dosya && !String(d.dosya).includes('${')) {
             uri = vscode.Uri.file(d.dosya);
-        } else if (vscode.window.activeTextEditor && yerelUri(vscode.window.activeTextEditor.document.uri)) {
-            uri = yerelUri(vscode.window.activeTextEditor.document.uri);
+        } else if (vscode.window.activeTextEditor && localUri(vscode.window.activeTextEditor.document.uri)) {
+            uri = localUri(vscode.window.activeTextEditor.document.uri);
         } else {
             return undefined;
         }
-        const bulunan = yorumlayiciyiBul(uri);
-        if (!bulunan || bulunan.hata) {
+        const found = findInterpreter(uri);
+        if (!found || found.error) {
             return undefined;
         }
-        const cozulen = gorevOlustur(tanim, uri, bulunan.yol);
-        return new vscode.Task(d, gorev.scope || vscode.TaskScope.Workspace, gorev.name, 'TR', cozulen.execution, []);
+        const resolved = createTask(def, uri, found.filePath);
+        return new vscode.Task(d, task.scope || vscode.TaskScope.Workspace, task.name, 'TR', resolved.execution, []);
     }
 };
 
@@ -201,27 +201,27 @@ const gorevSaglayici = {
 // Ctrl+F5 ("Run Without Debugging") dosyayı terminalde çalıştırır (girdi() kullanılabilir).
 // ---------------------------------------------------------------------------
 
-// hataAyiklamaYapilandirmasi açık belgenin hata ayıklama ayarıdır. Kodlu dosyanın Türkçe
-// görünümünde program diskteki dosyadır, "gorunumAdresi" görünümün adresidir (kodlu_gorunum.js).
-function hataAyiklamaYapilandirmasi(belge) {
-    const yerel = yerelUri(belge.uri) || belge.uri;
-    const klasor = vscode.workspace.getWorkspaceFolder(yerel);
-    return kodlu.gorunumAdresiyle({
-        type: GOREV_TURU,
+// debugConfigurationFor açık belgenin hata ayıklama ayarıdır. Kodlu dosyanın Türkçe
+// görünümünde program diskteki dosyadır, "viewURI" görünümün adresidir (coded_view.js).
+function debugConfigurationFor(document) {
+    const local = localUri(document.uri) || document.uri;
+    const folder = vscode.workspace.getWorkspaceFolder(local);
+    return codedView.withViewURI({
+        type: TASK_TYPE,
         request: 'launch',
         name: 'TR: Hata Ayıkla',
-        program: yerel.fsPath,
-        cwd: klasor ? klasor.uri.fsPath : path.dirname(yerel.fsPath),
+        program: local.fsPath,
+        cwd: folder ? folder.uri.fsPath : path.dirname(local.fsPath),
         stopOnEntry: false
-    }, belge);
+    }, document);
 }
 
-const hataAyiklamaSaglayici = {
+const debugConfigProvider = {
     provideDebugConfigurations() {
-        return [{ type: GOREV_TURU, request: 'launch', name: 'TR: Hata Ayıkla', program: '${file}', cwd: '${workspaceFolder}', stopOnEntry: false }];
+        return [{ type: TASK_TYPE, request: 'launch', name: 'TR: Hata Ayıkla', program: '${file}', cwd: '${workspaceFolder}', stopOnEntry: false }];
     },
-    async resolveDebugConfiguration(klasor, yapilandirma) {
-        let y = yapilandirma || {};
+    async resolveDebugConfiguration(folder, config) {
+        let y = config || {};
         const editor = vscode.window.activeTextEditor;
         // launch.json yokken F5 (ya da Ctrl+F5): açık .tr dosyası için yapılandırma üret;
         // Ctrl+F5'in "hata ayıklamadan" işareti korunur.
@@ -230,60 +230,60 @@ const hataAyiklamaSaglayici = {
                 vscode.window.showErrorMessage('Hata ayıklamak için bir .tr dosyası açın.');
                 return undefined;
             }
-            y = Object.assign(hataAyiklamaYapilandirmasi(editor.document), y.noDebug ? { noDebug: true } : {});
+            y = Object.assign(debugConfigurationFor(editor.document), y.noDebug ? { noDebug: true } : {});
         } else if (editor) {
-            y = kodlu.dosyaDegiskenleriniCoz(y, editor.document);
+            y = codedView.resolveFileVariables(y, editor.document);
         }
         if (!vscode.workspace.isTrusted) {
             vscode.window.showWarningMessage('TR dosyalarında hata ayıklamak için bu çalışma alanına güvenmeniz gerekir (Çalışma Alanı Güveni).');
             return undefined;
         }
-        const a = programArgumanlari(y);
-        if (a.hata) {
-            vscode.window.showErrorMessage(a.hata);
+        const a = programArguments(y);
+        if (a.error) {
+            vscode.window.showErrorMessage(a.error);
             return undefined;
         }
         return y;
     },
     // Ctrl+F5 ("Run Without Debugging"): hata ayıklamadan terminalde çalıştırır (girdi() için).
     // Burada ${file}, ${workspaceFolder} gibi değişkenler çözülmüştür; "args" programa iletilir.
-    resolveDebugConfigurationWithSubstitutedVariables(klasor, y) {
+    resolveDebugConfigurationWithSubstitutedVariables(folder, y) {
         if (!y || !y.noDebug) {
-            return kodlu.programinGorunumu(y);
+            return codedView.programView(y);
         }
         const uri = y.program ? vscode.Uri.file(String(y.program)) : undefined;
-        calistir(KOMUTLAR.calistir, uri, programArgumanlari(y).argumanlar || []);
+        run(COMMANDS.run, uri, programArguments(y).args || []);
         return undefined;
     }
 };
 
-const hataAyiklamaSureciFabrikasi = {
-    createDebugAdapterDescriptor(oturum) {
-        const yapilandirma = oturum.configuration || {};
-        const program = yapilandirma.program;
+const debugAdapterFactory = {
+    createDebugAdapterDescriptor(session) {
+        const config = session.configuration || {};
+        const program = config.program;
         if (!program) {
             throw new Error("Hata ayıklanacak .tr dosyası belirtilmedi ('program').");
         }
-        const bulunan = yorumlayiciyiBul(vscode.Uri.file(program));
-        if (!bulunan || bulunan.hata) {
-            const mesaj = bulunan ? bulunan.hata : 'TR yorumlayıcısı (' + YORUMLAYICI_ADI + ') bulunamadı.';
-            yorumlayiciBulunamadi(mesaj);
-            throw new Error(mesaj);
+        const found = findInterpreter(vscode.Uri.file(program));
+        if (!found || found.error) {
+            const message = found ? found.error : 'TR yorumlayıcısı (' + INTERPRETER_NAME + ') bulunamadı.';
+            interpreterNotFound(message);
+            throw new Error(message);
         }
-        return new vscode.DebugAdapterExecutable(bulunan.yol, ['dap'], { cwd: yapilandirma.cwd || path.dirname(program) });
+        return new vscode.DebugAdapterExecutable(found.filePath, ['dap'], { cwd: config.cwd || path.dirname(program) });
     }
 };
 
-async function hataAyiklamayiBaslat(uri) {
-    const belge = await hedefBelge(uri);
-    if (!belge || belge.languageId !== 'tr') {
+async function startDebugSession(uri) {
+    const document = await targetDocument(uri);
+    if (!document || document.languageId !== 'tr') {
         vscode.window.showErrorMessage('Hata ayıklamak için bir .tr dosyası açın.');
         return;
     }
-    if (belge.isDirty) {
-        await belge.save();
+    if (document.isDirty) {
+        await document.save();
     }
-    await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(yerelUri(belge.uri) || belge.uri), hataAyiklamaYapilandirmasi(belge));
+    await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(localUri(document.uri) || document.uri), debugConfigurationFor(document));
 }
 
 // ---------------------------------------------------------------------------
@@ -291,56 +291,56 @@ async function hataAyiklamayiBaslat(uri) {
 // tutucuları doldurulur; betikler yalnızca her açılışta üretilen nonce ile çalışır.
 // ---------------------------------------------------------------------------
 
-let eklentiUri;
+let extensionUri;
 
-function webviewSecenekleri(ek) {
-    return Object.assign({ enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(eklentiUri, 'media')] }, ek);
+function webviewOptions(extra) {
+    return Object.assign({ enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')] }, extra);
 }
 
-function webviewHtml(webview, ad, degerler) {
-    const media = vscode.Uri.joinPath(eklentiUri, 'media');
-    const tumu = Object.assign({
+function webviewHtml(webview, name, values) {
+    const media = vscode.Uri.joinPath(extensionUri, 'media');
+    const all = Object.assign({
         nonce: crypto.randomBytes(16).toString('base64'),
         cspSource: webview.cspSource,
-        css: webview.asWebviewUri(vscode.Uri.joinPath(media, ad + '.css')).toString(),
-        js: webview.asWebviewUri(vscode.Uri.joinPath(media, ad + '.js')).toString()
-    }, degerler);
-    const sablon = fs.readFileSync(vscode.Uri.joinPath(media, ad + '.html').fsPath, 'utf8');
-    return sablon.replace(/\{\{(\w+)\}\}/g, (_, anahtar) => tumu[anahtar]);
+        css: webview.asWebviewUri(vscode.Uri.joinPath(media, name + '.css')).toString(),
+        js: webview.asWebviewUri(vscode.Uri.joinPath(media, name + '.js')).toString()
+    }, values);
+    const template = fs.readFileSync(vscode.Uri.joinPath(media, name + '.html').fsPath, 'utf8');
+    return template.replace(/\{\{(\w+)\}\}/g, (_, key) => all[key]);
 }
 
 // ---------------------------------------------------------------------------
 // Tablo görünümü: Variables / Watch panelinde sağ tık → "Tablo Görünümü"
 // ---------------------------------------------------------------------------
 
-async function tabloGoster(arg) {
-    const oturum = vscode.debug.activeDebugSession;
-    if (!oturum || oturum.type !== GOREV_TURU) {
+async function showTable(arg) {
+    const session = vscode.debug.activeDebugSession;
+    if (!session || session.type !== TASK_TYPE) {
         vscode.window.showErrorMessage('Tablo görünümü için duraklatılmış bir TR hata ayıklama oturumu gerekir.');
         return;
     }
-    let ifade = arg && arg.variable ? (arg.variable.evaluateName || arg.variable.name) : undefined;
-    if (!ifade) {
-        ifade = await vscode.window.showInputBox({ prompt: 'Tablo olarak gösterilecek değişken veya ifade', placeHolder: 'örn. siparisler' });
+    let expression = arg && arg.variable ? (arg.variable.evaluateName || arg.variable.name) : undefined;
+    if (!expression) {
+        expression = await vscode.window.showInputBox({ prompt: 'Tablo olarak gösterilecek değişken veya ifade', placeHolder: 'örn. siparisler' });
     }
-    if (!ifade) {
+    if (!expression) {
         return;
     }
-    let veri;
+    let data;
     try {
-        veri = await oturum.customRequest('trTablo', { ifade });
+        data = await session.customRequest('trTablo', { ifade: expression });
     } catch (e) {
         vscode.window.showErrorMessage('Tablo gösterilemedi: ' + (e && e.message ? e.message : e));
         return;
     }
-    const panel = vscode.window.createWebviewPanel('trTablo', 'Tablo: ' + ifade, vscode.ViewColumn.Beside, webviewSecenekleri());
-    panel.webview.html = tabloHtml(panel.webview, veri);
+    const panel = vscode.window.createWebviewPanel('trTablo', 'Tablo: ' + expression, vscode.ViewColumn.Beside, webviewOptions());
+    panel.webview.html = tableHtml(panel.webview, data);
 }
 
-function tabloHtml(webview, veri) {
+function tableHtml(webview, data) {
     // Veri betiğe JSON olarak gömülür; '<' kaçışlanır ki </script> enjeksiyonu olmasın.
-    const json = JSON.stringify(veri).replace(/</g, '\\u003c');
-    return webviewHtml(webview, 'tablo', { veri: json });
+    const json = JSON.stringify(data).replace(/</g, '\\u003c');
+    return webviewHtml(webview, 'table', { veri: json });
 }
 
 // ---------------------------------------------------------------------------
@@ -349,57 +349,57 @@ function tabloHtml(webview, veri) {
 // ızgarası açılır ve adım atıldıkça güncellenir; ✏️ ile değer doğrudan değiştirilir.
 // ---------------------------------------------------------------------------
 
-const izlemeMasasi = { panel: undefined, oturum: undefined };
+const watchPanelState = { panel: undefined, session: undefined };
 
-function izlemeMasasiAyari() {
+function watchPanelEnabled() {
     return vscode.workspace.getConfiguration('tr').get('izlemeMasasi', true);
 }
 
-function izlemeMasasiAc(oturum, odak) {
-    if (!izlemeMasasi.panel) {
-        izlemeMasasi.panel = vscode.window.createWebviewPanel(
+function openWatchPanel(session, focus) {
+    if (!watchPanelState.panel) {
+        watchPanelState.panel = vscode.window.createWebviewPanel(
             'trIzlemeMasasi', 'İzleme Masası',
-            { viewColumn: vscode.ViewColumn.Beside, preserveFocus: !odak },
-            webviewSecenekleri({ retainContextWhenHidden: true })
+            { viewColumn: vscode.ViewColumn.Beside, preserveFocus: !focus },
+            webviewOptions({ retainContextWhenHidden: true })
         );
-        izlemeMasasi.panel.webview.html = izlemeMasasiHtml(izlemeMasasi.panel.webview);
-        izlemeMasasi.panel.onDidDispose(() => { izlemeMasasi.panel = undefined; });
-        izlemeMasasi.panel.webview.onDidReceiveMessage(izlemeMasasiMesaj);
-    } else if (odak) {
-        izlemeMasasi.panel.reveal(undefined, false);
+        watchPanelState.panel.webview.html = watchPanelHtml(watchPanelState.panel.webview);
+        watchPanelState.panel.onDidDispose(() => { watchPanelState.panel = undefined; });
+        watchPanelState.panel.webview.onDidReceiveMessage(onWatchPanelMessage);
+    } else if (focus) {
+        watchPanelState.panel.reveal(undefined, false);
     }
-    izlemeMasasi.oturum = oturum || izlemeMasasi.oturum;
+    watchPanelState.session = session || watchPanelState.session;
 }
 
-async function izlemeMasasiGuncelle(oturum) {
-    izlemeMasasi.oturum = oturum;
-    if (!izlemeMasasi.panel) {
-        if (!izlemeMasasiAyari()) {
+async function updateWatchPanel(session) {
+    watchPanelState.session = session;
+    if (!watchPanelState.panel) {
+        if (!watchPanelEnabled()) {
             return;
         }
-        izlemeMasasiAc(oturum, false);
+        openWatchPanel(session, false);
     }
     try {
-        const veri = await oturum.customRequest('trDegiskenler', {});
-        izlemeMasasi.panel.webview.postMessage({ tur: 'durum', veri });
+        const data = await session.customRequest('trDegiskenler', {});
+        watchPanelState.panel.webview.postMessage({ tur: 'durum', veri: data });
     } catch (e) {
-        izlemeMasasi.panel.webview.postMessage({ tur: 'hata', mesaj: String(e && e.message ? e.message : e) });
+        watchPanelState.panel.webview.postMessage({ tur: 'hata', mesaj: String(e && e.message ? e.message : e) });
     }
 }
 
-async function izlemeMasasiMesaj(m) {
-    const oturum = izlemeMasasi.oturum;
-    if (!izlemeMasasi.panel) {
+async function onWatchPanelMessage(m) {
+    const session = watchPanelState.session;
+    if (!watchPanelState.panel) {
         return;
     }
     if (m.tur === 'panelHatasi') {
         vscode.window.showErrorMessage('İzleme Masası hatası: ' + m.mesaj);
         return;
     }
-    if (!oturum) {
+    if (!session) {
         // Hata ayıklama oturumu bittiyse istek göndermek "No debugger available" hatası verir.
         if (m.tur === 'tablo') {
-            izlemeMasasi.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj: 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).' });
+            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj: 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).' });
         } else {
             vscode.window.showWarningMessage('Hata ayıklama oturumu bitti; değer değiştirilemez.');
         }
@@ -407,101 +407,101 @@ async function izlemeMasasiMesaj(m) {
     }
     try {
         if (m.tur === 'tablo') {
-            const veri = await oturum.customRequest('trTablo', { ifade: m.ifade });
-            izlemeMasasi.panel.webview.postMessage({ tur: 'tablo', veri });
+            const data = await session.customRequest('trTablo', { ifade: m.ifade });
+            watchPanelState.panel.webview.postMessage({ tur: 'tablo', veri: data });
         } else if (m.tur === 'komut') {
-            await izlemeMasasiKomut(oturum, m.komut);
+            await runWatchCommand(session, m.komut);
         } else if (m.tur === 'degistir') {
-            await oturum.customRequest('evaluate', { expression: m.ad + ' = ' + m.ifade, context: 'repl', frameId: 1 });
-            await izlemeMasasiGuncelle(oturum);
+            await session.customRequest('evaluate', { expression: m.ad + ' = ' + m.ifade, context: 'repl', frameId: 1 });
+            await updateWatchPanel(session);
         }
     } catch (e) {
-        const mesaj = String(e && e.message ? e.message : e);
+        const message = String(e && e.message ? e.message : e);
         if (m.tur === 'tablo') {
-            izlemeMasasi.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj });
+            watchPanelState.panel.webview.postMessage({ tur: 'tabloHata', ifade: m.ifade, mesaj: message });
         } else {
-            vscode.window.showErrorMessage('Değer değiştirilemedi: ' + mesaj);
+            vscode.window.showErrorMessage('Değer değiştirilemedi: ' + message);
         }
     }
 }
 
 // Yönlendirme düğmeleri: oturum etkin oturumsa VS Code'un kendi komutları kullanılır (araç
 // çubuğu ve editördeki sarı satır da güncellenir); değilse istek doğrudan oturuma gönderilir.
-// Eşleme izleme_komutlari.js'tedir (Node ile ayrıca sınanır).
-async function izlemeMasasiKomut(oturum, komut) {
-    const etkin = !!vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.id === oturum.id;
-    const is = izlemeKomutuCoz(komut, etkin);
-    if (!is) {
+// Eşleme watch_commands.js'tedir (Node ile ayrıca sınanır).
+async function runWatchCommand(session, command) {
+    const active = !!vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.id === session.id;
+    const action = resolveWatchCommand(command, active);
+    if (!action) {
         return;
     }
-    if (is.tur === 'vscode') {
-        await vscode.commands.executeCommand(is.komut);
-    } else if (is.tur === 'durdur') {
-        await vscode.debug.stopDebugging(oturum);
+    if (action.kind === 'vscode') {
+        await vscode.commands.executeCommand(action.command);
+    } else if (action.kind === 'durdur') {
+        await vscode.debug.stopDebugging(session);
     } else {
-        await oturum.customRequest(is.istek, is.argumanlar);
+        await session.customRequest(action.request, action.args);
     }
 }
 
-function izlemeMasasiOturumBitti(oturum) {
-    if (izlemeMasasi.oturum !== oturum) {
+function watchPanelSessionEnded(session) {
+    if (watchPanelState.session !== session) {
         return;
     }
-    izlemeMasasi.oturum = undefined;
-    if (izlemeMasasi.panel) {
-        izlemeMasasi.panel.webview.postMessage({ tur: 'bitti' });
+    watchPanelState.session = undefined;
+    if (watchPanelState.panel) {
+        watchPanelState.panel.webview.postMessage({ tur: 'bitti' });
     }
 }
 
-const izlemeMasasiIzleyici = {
-    createDebugAdapterTracker(oturum) {
+const watchPanelTracker = {
+    createDebugAdapterTracker(session) {
         return {
             onDidSendMessage(m) {
                 if (!m || m.type !== 'event') {
                     return;
                 }
                 if (m.event === 'stopped') {
-                    izlemeMasasiGuncelle(oturum);
+                    updateWatchPanel(session);
                 } else if (m.event === 'terminated' || m.event === 'exited') {
-                    izlemeMasasiOturumBitti(oturum);
+                    watchPanelSessionEnded(session);
                 }
             },
-            onWillStopSession() { izlemeMasasiOturumBitti(oturum); },
-            onExit() { izlemeMasasiOturumBitti(oturum); }
+            onWillStopSession() { watchPanelSessionEnded(session); },
+            onExit() { watchPanelSessionEnded(session); }
         };
     }
 };
 
-function izlemeMasasiHtml(webview) {
-    return webviewHtml(webview, 'izleme_masasi');
+function watchPanelHtml(webview) {
+    return webviewHtml(webview, 'watch_panel');
 }
 
 function activate(context) {
-    eklentiUri = context.extensionUri;
-    kodlu = kodluGorunum.olustur(vscode, {
-        yorumlayiciyiBul,
-        cevir: (...a) => kodluBicim.cevir(...a),
-        durum: context.globalState,
-        yazimDili: () => vscode.workspace.getConfiguration('tr').get('yazimDili', 'tr'),
-        yorumlayiciBulunamadi
+    extensionUri = context.extensionUri;
+    codedView = codedViewModule.create(vscode, {
+        findInterpreter,
+        translate: (...a) => codedFormat.translate(...a),
+        state: context.globalState,
+        writingLanguage: () => vscode.workspace.getConfiguration('tr').get('yazimDili', 'tr'),
+        interpreterNotFound
     });
-    kodlu.kur(context);
-    context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory(GOREV_TURU, izlemeMasasiIzleyici));
+    codedView.setup(context);
+    context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory(TASK_TYPE, watchPanelTracker));
     context.subscriptions.push(vscode.commands.registerCommand('tr.izlemeMasasi', () => {
-        const oturum = vscode.debug.activeDebugSession;
-        izlemeMasasiAc(oturum && oturum.type === GOREV_TURU ? oturum : undefined, true);
-        if (oturum && oturum.type === GOREV_TURU) {
-            izlemeMasasiGuncelle(oturum);
+        const session = vscode.debug.activeDebugSession;
+        openWatchPanel(session && session.type === TASK_TYPE ? session : undefined, true);
+        if (session && session.type === TASK_TYPE) {
+            updateWatchPanel(session);
         }
     }));
-    for (const tanim of Object.values(KOMUTLAR)) {
-        context.subscriptions.push(vscode.commands.registerCommand(tanim.komut, (uri) => calistir(tanim, uri)));
+    for (const def of Object.values(COMMANDS)) {
+        context.subscriptions.push(vscode.commands.registerCommand(def.id, (uri) => run(def, uri)));
     }
-    context.subscriptions.push(vscode.commands.registerCommand('tr.hataAyiklaBaslat', hataAyiklamayiBaslat));
-    context.subscriptions.push(vscode.commands.registerCommand('tr.tabloGoster', tabloGoster));
-    context.subscriptions.push(vscode.tasks.registerTaskProvider(GOREV_TURU, gorevSaglayici));
-    context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(GOREV_TURU, hataAyiklamaSaglayici));
-    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory(GOREV_TURU, hataAyiklamaSureciFabrikasi));
+    context.subscriptions.push(vscode.commands.registerCommand('tr.hataAyiklaBaslat', startDebugSession));
+    context.subscriptions.push(vscode.commands.registerCommand('tr.tabloGoster', showTable));
+    context.subscriptions.push(vscode.tasks.registerTaskProvider(TASK_TYPE, taskProvider));
+    context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(TASK_TYPE, debugConfigProvider));
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory(TASK_TYPE, debugAdapterFactory));
 }
 
 function deactivate() {}

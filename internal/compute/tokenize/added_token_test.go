@@ -48,13 +48,13 @@ func TestNormalizedAddedTokens(t *testing.T) {
 		parsed string
 	}{
 		// Küçük harfe çeviren normalleştirici: "ÇAY" içeriği "çay" olarak aranır.
-		{"p_kelime_bpe.json", "çay ÇAY", []int{1, 802, 802, 2}, "çayçay"},
-		{"p_kelime_bpe.json", " <|x|> yeni ÇAY ", []int{1, 800, 801, 802, 2}, "<|x|>yeniçay"},
-		{"p_kelime_bpe.json", "Yeni\tYeni</s>x<|x|>ÇAY", []int{1, 801, 801, 2, 145, 800, 802, 2}, "yeniyenix <|x|>çay"},
+		{"tokenizer_word_bpe.json", "çay ÇAY", []int{1, 802, 802, 2}, "çayçay"},
+		{"tokenizer_word_bpe.json", " <|x|> yeni ÇAY ", []int{1, 800, 801, 802, 2}, "<|x|>yeniçay"},
+		{"tokenizer_word_bpe.json", "Yeni\tYeni</s>x<|x|>ÇAY", []int{1, 801, 801, 2, 145, 800, 802, 2}, "yeniyenix <|x|>çay"},
 		// Başa "▁" ekleyen normalleştirici: "yeni" içeriği "▁yeni" olarak aranır.
-		{"p_llama_tarzi.json", "ayeni", []int{1, 214, 77, 42}, "ayeni"},
-		{"p_llama_tarzi.json", "a yeni ÇAY", []int{1, 301, 648, 649}, "a yeni ÇAY"},
-		{"p_llama_tarzi.json", "yeni", []int{1, 648}, "yeni"},
+		{"tokenizer_llama_style.json", "ayeni", []int{1, 214, 77, 42}, "ayeni"},
+		{"tokenizer_llama_style.json", "a yeni ÇAY", []int{1, 301, 648, 649}, "a yeni ÇAY"},
+		{"tokenizer_llama_style.json", "yeni", []int{1, 648}, "yeni"},
 	}
 	for _, d := range cases {
 		p := withAddedTokenizer(t, d.file, "<|x|>", "yeni", "ÇAY")
@@ -70,7 +70,7 @@ func TestNormalizedAddedTokens(t *testing.T) {
 		}
 	}
 	// Kimlik -> token normalleştirilmiş, token -> kimlik özgün içerikle.
-	p := withAddedTokenizer(t, "p_kelime_bpe.json", "<|x|>", "yeni", "ÇAY")
+	p := withAddedTokenizer(t, "tokenizer_word_bpe.json", "<|x|>", "yeni", "ÇAY")
 	if s, _ := p.IDToToken(802); s != "çay" {
 		t.Errorf("KimlikToken(802) = %q, beklenen \"çay\"", s)
 	}

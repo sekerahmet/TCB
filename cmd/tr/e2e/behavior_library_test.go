@@ -58,13 +58,13 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 	wait(t, tr(t, project, "derle", "hatali.tr", exit), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok`})
 }
 
-// Colab eğitim betiğinin (tools/gpu/gpt_egitim.tr) duman testi: depodaki sentetik veri
+// Colab eğitim betiğinin (tools/gpu/gpt_training.tr) duman testi: depodaki sentetik veri
 // SimpleStories klasörü düzenine (tokenizer.json, train.npy, valid.npy) konur, çok küçük ayarla
 // CPU'da koşturulur; koşu klasörüne beş çıktı yazılır, aynı komut kaldığı yerden sürer.
 func TestGPTTrainingScriptSmoke(t *testing.T) {
 	data := t.TempDir()
-	for target, source := range map[string]string{"tokenizer.json": "tests/data/parcalayici.json",
-		"train.npy": "tests/data/text/metin_000.npy", "valid.npy": "tests/data/text/metin_001.npy"} {
+	for target, source := range map[string]string{"tokenizer.json": "tests/data/tokenizer.json",
+		"train.npy": "tests/data/text/text_000.npy", "valid.npy": "tests/data/text/text_001.npy"} {
 		b, err := os.ReadFile(reporoot.Path(source))
 		if err != nil {
 			t.Fatal(err)
@@ -72,7 +72,7 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 		writeFile(t, data, target, string(b))
 	}
 	run := filepath.Join(t.TempDir(), "kosu")
-	args := []string{reporoot.Path("tools/gpu/gpt_egitim.tr"), "--veri", data, "--koşu", run, "--cihaz", "cpu",
+	args := []string{reporoot.Path("tools/gpu/gpt_training.tr"), "--veri", data, "--koşu", run, "--cihaz", "cpu",
 		"--boyut", "16", "--katman", "1", "--baş", "2", "--bağlam", "16", "--toplu", "4", "--birikim", "2",
 		"--adım", "12", "--ısınma", "2", "--değerlendir_her", "6", "--değerlendir_toplu", "2", "--örnek_her", "6",
 		"--örnek_sayısı", "2", "--örnek_uzunluğu", "6", "--ölçüm_ısınması", "2", "--günlük_her", "3"}

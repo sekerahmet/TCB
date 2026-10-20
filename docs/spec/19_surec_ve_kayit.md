@@ -1,6 +1,6 @@
 # 19. Süreç ve kayıt
 
-Bir eğitim betiğinin dış dünyayla dört bağı vardır: ortam değişkenleri, komut satırı seçenekleri, eğitim günlüğü ve ilerleme çubuğu. Kullanım için `docs/guide/04_yapay_zeka_ve_veri.md` §4.F'ye, her adın imzası için [`docs/kodlar.md`](../kodlar.md)'ye bakın. Kural testleri `tests/surec_ve_kayit_test.tr`'dedir; komut satırı yazımı, çıkış kodları ve terminaldeki çubuk `tr test` ile sınanamadığından Go testleriyle sınanır (`internal/stdlib/process`, `internal/stdlib/logging`, `cmd/tr/e2e`).
+Bir eğitim betiğinin dış dünyayla dört bağı vardır: ortam değişkenleri, komut satırı seçenekleri, eğitim günlüğü ve ilerleme çubuğu. Kullanım için `docs/guide/04_yapay_zeka_ve_veri.md` §4.F'ye, her adın imzası için [`docs/codes.md`](../codes.md)'ye bakın. Kural testleri `tests/surec_ve_kayit_test.tr`'dedir; komut satırı yazımı, çıkış kodları ve terminaldeki çubuk `tr test` ile sınanamadığından Go testleriyle sınanır (`internal/stdlib/process`, `internal/stdlib/logging`, `cmd/tr/e2e`).
 
 ## Ortam değişkenleri
 

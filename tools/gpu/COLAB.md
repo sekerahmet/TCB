@@ -17,14 +17,14 @@ cd /content/TCB && git log -1 --format='commit: %h (%cd)' --date=iso
 mkdir -p /content/tr
 CGO_ENABLED=0 go build -trimpath -o /content/tr/tr ./cmd/tr
 CGO_ENABLED=0 go test -c -trimpath -o /content/tr/gpu_sinama ./internal/compute/gpu
-cp tools/gpu/kiyas_gpu.tr tools/gpu/gpt_egitim.tr tools/gpu/kiyas_gpu.py tools/gpu/mikro_kiyas.py tools/gpu/mikro_tablo.py /content/tr/
+cp tools/gpu/compare_gpu.tr tools/gpu/gpt_training.tr tools/gpu/compare_gpu.py tools/gpu/micro_compare.py tools/gpu/micro_table.py /content/tr/
 cp -r tests /content/tr/
 nvidia-smi --query-gpu=name,compute_cap,memory.total,driver_version --format=csv,noheader
 # GPU durumu ve matris çarpımının yolu (cuBLASLt bulunduysa yolu yazılır):
 cd /content/tr && ./gpu_sinama -test.run '^$' 2>&1 | head -1
 ```
 
-GPU'ya dokunan bir iş ana dala gitmeden önce yan dalda sınanır (bkz. [`docs/katki.md`](../../docs/katki.md#gönderim-sırası-cpu-ve-gpu)): `git clone` satırına `-b gpu-dogrulama` ekleyin. Belirli bir commit'i sınamak için `git clone` satırından sonra `git fetch -q --depth 1 origin
+GPU'ya dokunan bir iş ana dala gitmeden önce yan dalda sınanır (bkz. [`docs/development.md`](../../docs/development.md#gönderim-sırası-cpu-ve-gpu)): `git clone` satırına `-b gpu-dogrulama` ekleyin. Belirli bir commit'i sınamak için `git clone` satırından sonra `git fetch -q --depth 1 origin
 COMMIT && git checkout -q COMMIT` ekleyin.
 
 İlk satır `matris çarpımı: cuBLASLt 12.8.x (/usr/local/cuda/lib64/libcublasLt.so.12)` gibi
@@ -65,8 +65,8 @@ GFLOPS/GB/s verir; son sütun TR'nin en iyi süresinin PyTorch'a oranıdır (< 1
 %%bash
 cd /content/tr
 TR_GPU_MIKRO=1 ./gpu_sinama -test.run 'TestMicroBench$' -test.v > mikro_tr.txt 2>&1
-python mikro_kiyas.py > mikro_py.txt 2>&1
-python mikro_tablo.py mikro_tr.txt mikro_py.txt
+python micro_compare.py > mikro_py.txt 2>&1
+python micro_table.py mikro_tr.txt mikro_py.txt
 ```
 
 ## 5. Veri (isteğe bağlı)
@@ -98,9 +98,9 @@ cd /content/tr
 izle() { nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader,nounits -lms 200 > kullanim.csv & echo $!; }
 ozet() { awk -F', ' '{k+=$1; if ($2>m) m=$2; n++} END {printf "  GPU ort %%%.0f, en çok bellek %d MB\n", k/n, m}' kullanim.csv; }
 for boyut in kucuk buyuk; do
-  echo "{\"boyut\": \"$boyut\", \"veri\": \"/content/veri\", \"cihaz\": \"gpu\"}" > kiyas_ayar.json
-  p=$(izle); ./tr kiyas_gpu.tr | tail -1; kill $p; ozet
-  p=$(izle); python kiyas_gpu.py --boyut $boyut --veri /content/veri --derleme yok 2>&1 | tail -1; kill $p; ozet
+  echo "{\"boyut\": \"$boyut\", \"veri\": \"/content/veri\", \"cihaz\": \"gpu\"}" > compare_config.json
+  p=$(izle); ./tr compare_gpu.tr | tail -1; kill $p; ozet
+  p=$(izle); python compare_gpu.py --boyut $boyut --veri /content/veri --derleme yok 2>&1 | tail -1; kill $p; ozet
 done
 ```
 
@@ -116,8 +116,8 @@ ms, ortalama µs, %), bellek (ayrılmış, havuzda, canlı, tepeler).
 ```bash
 %%bash
 cd /content/tr
-echo '{"boyut": "buyuk_kisa", "veri": "/content/veri", "cihaz": "gpu"}' > kiyas_ayar.json
-TR_GPU_PROFIL=1 ./tr kiyas_gpu.tr 2>&1 | tail -70
+echo '{"boyut": "buyuk_kisa", "veri": "/content/veri", "cihaz": "gpu"}' > compare_config.json
+TR_GPU_PROFIL=1 ./tr compare_gpu.tr 2>&1 | tail -70
 ```
 
 ## 8. Dış profilleyiciler (isteğe bağlı)
@@ -129,8 +129,8 @@ bu yüzden boş kalıyordu). Rapor yine boşsa çıktıyı aynen gönderin.
 ```bash
 %%bash
 cd /content/tr
-echo '{"boyut": "buyuk_kisa", "veri": "/content/veri", "cihaz": "gpu"}' > kiyas_ayar.json
-nsys profile -t cuda -o tr_buyuk --force-overwrite true ./tr kiyas_gpu.tr 2>&1 | tail -3
+echo '{"boyut": "buyuk_kisa", "veri": "/content/veri", "cihaz": "gpu"}' > compare_config.json
+nsys profile -t cuda -o tr_buyuk --force-overwrite true ./tr compare_gpu.tr 2>&1 | tail -3
 nsys stats --report cuda_gpu_kern_sum --format csv tr_buyuk.nsys-rep 2>/dev/null | head -25
 ```
 
@@ -145,7 +145,7 @@ TR_GPU_MIKRO=1 TR_GPU_KENDI_CARPIM=1 ncu --target-processes all -k regex:carpim 
 
 ## 9. SimpleStories ile GPT eğitimi (dilin kitaplığıyla)
 
-`gpt_egitim.tr` dilin kitaplığındaki GPT'yi (`aktar "tr/katman"`) gizli ağırlıklarda Muon,
+`gpt_training.tr` dilin kitaplığındaki GPT'yi (`aktar "tr/katman"`) gizli ağırlıklarda Muon,
 gömme/norm ağırlıklarında AdamW ile (`aktar "tr/iyilestirici"`), ısınma–sabit–azalma (WSD)
 öğrenme oranı planıyla eğitir. Veri klasörü: `tokenizer.json`, `train.npy`, `valid.npy`
 (uint16 parça kimlikleri). Varsayılan model d512, 8 katman, 8 baş, bağlam 512, toplu 128.
@@ -157,19 +157,19 @@ mkdir -p /content/ss4096
 cp "/content/drive/MyDrive/VERI/ss4096/"{tokenizer.json,train.npy,valid.npy} /content/ss4096/
 cd /content/tr
 # Önce birkaç dakikalık deneme: bellek ve hız (speed.json)
-./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/runs/deneme --adım 60 --ısınma 10 \
+./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/deneme --adım 60 --ısınma 10 \
   --değerlendir_her 30 --örnek_her 60 2>&1 | tail -4
 cat /content/runs/deneme/speed.json
 ```
 
 Bellek yetmezse toplu işi bölün (adım başına aynı veri): `--toplu 64 --birikim 2` (ya da
 `--toplu 32 --birikim 4`). Karışık hassasiyet: `--hassasiyet bf16`. NorMuon: `--normuon`
-(öğrenme oranı AdamW ölçeğindedir: `--muon_oranı 0.003`). Bütün ayarlar: `./tr gpt_egitim.tr --yardım`.
+(öğrenme oranı AdamW ölçeğindedir: `--muon_oranı 0.003`). Bütün ayarlar: `./tr gpt_training.tr --yardım`.
 
 ```bash
 %%bash
 cd /content/tr
-./tr gpt_egitim.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --adım 5000 2>&1 | tail -8
+./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --adım 5000 2>&1 | tail -8
 cp -r /content/runs/gpt1 "/content/drive/MyDrive/TR_dili/kosular/"
 ```
 

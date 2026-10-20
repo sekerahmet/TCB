@@ -78,7 +78,7 @@
 //
 //	go generate ./internal/lang/codes   (or: go run ./tools/gen/codeconsts)
 //
-// The same command refreshes the other files generated from the code list: docs/kodlar.md
+// The same command refreshes the other files generated from the code list: docs/codes.md
 // (what each code does, its signature and an example) and the editor's highlighting lists
 // (editors/vscode/syntaxes/tr.tmLanguage.json).
 //

@@ -53,7 +53,7 @@ type Entry struct {
 	// Family is a short description for people (the group; for members, the types).
 	Family string
 	// Description is one or two sentences on what the code does; Example is a one-line TR
-	// snippet (docs/kodlar.md is generated from them).
+	// snippet (docs/codes.md is generated from them).
 	Description, Example string
 	// MovedTo is the new code when this code was removed and its job moved to another code
 	// (another form); otherwise None (see MovedTo).

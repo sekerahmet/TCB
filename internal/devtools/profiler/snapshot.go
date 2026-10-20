@@ -11,7 +11,7 @@ import (
 // Anahtarlar dosya biçiminin parçasıdır (yazım dilinden bağımsız, çevrilmez; günlük
 // biçimiyle aynı ilke). İşlemlerin "kod" alanı değişmez anahtardır, "ad" insana gösterilen
 // addır (dil dosyasından; çevrilebilir). Süreler saniye, baytlar bayt, paylar 0..1'dir.
-// Ayrıntı ve örnek: docs/mimari.md, "Canlı profil".
+// Ayrıntı ve örnek: docs/architecture.md, "Canlı profil".
 
 // FormatName ve FormatVersion dosyanın kimliğidir.
 const (

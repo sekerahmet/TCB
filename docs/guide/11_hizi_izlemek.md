@@ -55,7 +55,7 @@ Ctrl+C her zamanki gibi programı nazikçe durdurur (kontrol noktası varsa kayd
 
 | Seçenek | Ne yapar |
 | :-- | :-- |
-| `--json yol.json` | Raporu ayrıca JSON olarak yazar (biçim: `docs/mimari.md`, "Canlı profil"). Yol bir klasörse (ya da `/` ile bitiyorsa) içine `speed.json` yazılır: koşu klasörünüzün `config.json`, `metrics.jsonl` dosyalarının yanına |
+| `--json yol.json` | Raporu ayrıca JSON olarak yazar (biçim: `docs/architecture.md`, "Canlı profil"). Yol bir klasörse (ya da `/` ile bitiyorsa) içine `speed.json` yazılır: koşu klasörünüzün `config.json`, `metrics.jsonl` dosyalarının yanına |
 | `--go-profili cpu.prof` | Yorumlayıcının kendi Go işlemci profilini yazar (TR'nin kendisini hızlandıranlar için; `go tool pprof` ile okunur) |
 
 Rapor dosyası ağ ya da bulut sürücüsündeyse ve yazılamazsa program durmaz: uyarı yazılır, rapor standart çıktıda yine vardır.

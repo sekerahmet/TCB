@@ -1,13 +1,13 @@
 # Hız kıyas seti
 
-Aynı işi yapan küçük programlar TR (`tr/`), Python (`py/kiyas.py`) ve derlenmiş bir başvuru
-sürümüyle (`go/kiyas.go`) yazılmıştır. Her program kendi ölçtüğü süreyi (ms) ve bir sonuç değeri
+Aynı işi yapan küçük programlar TR (`tr/`), Python (`py/compare.py`) ve derlenmiş bir başvuru
+sürümüyle (`go/compare.go`) yazılmıştır. Her program kendi ölçtüğü süreyi (ms) ve bir sonuç değeri
 yazar; sonuç değerlerinin üç sürümde aynı olması gerekir. Yorumlayıcıda yapılan her hız değişikliğinden sonra yeniden ölçün.
 
 ```
-python tools/bench/kos.py                 # tüm testler, üç sürüm, üçer tekrar (en iyi süre)
-python tools/bench/kos.py --yalniz tr fib # yalnızca TR, yalnızca fib
-python tools/bench/kos.py --json sonuc.json
+python tools/bench/run.py                 # tüm testler, üç sürüm, üçer tekrar (en iyi süre)
+python tools/bench/run.py --yalniz tr fib # yalnızca TR, yalnızca fib
+python tools/bench/run.py --json sonuc.json
 ```
 
 | Test | Ne ölçer |
@@ -18,7 +18,7 @@ python tools/bench/kos.py --json sonuc.json
 | `metin` | 200 bin metin oluşturma: metin birleştirme ve dönüştürme |
 | `sozluk` | 200 bin anahtar yazıp okuma: sözlük erişimi |
 | `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme |
-| `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/kiyas.py`) |
+| `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/compare.py`) |
 
 Derlemeler varsayılan ayarla yapılır (ortamdaki `GOAMD64` geçerlidir). AVX2/FMA çekirdekleri çalışma
 anında seçilir; `TR_CPU_AVX2=0` taşınabilir Go eşlerini kullandırır. Matris çarpımı AVX2 çekirdeğiyle
@@ -40,7 +40,7 @@ boştayken yapın.
 
 **Ölçüm çözünürlüğü:** TR programları süreyi `zaman_ms()` ile, Python sürümü tam sayıya kesilen
 milisaniyeyle ölçer; ikisi de 1 ms çözünürlüklüdür. Birkaç milisaniyelik testlerde (ör. `matris_yerlesik`)
-sonuç ±1 ms oynar ve `kos.py` en iyi süreyi aldığı için küçük değerler 1–2 ms'ye iner. Hassas karşılaştırma
+sonuç ±1 ms oynar ve `run.py` en iyi süreyi aldığı için küçük değerler 1–2 ms'ye iner. Hassas karşılaştırma
 için işi bir döngüde 20 kez yapıp toplam süreyi tur sayısına bölün.
 
 **`matris_yerlesik` ölçümü (18.10.2026, 20 mantıksal çekirdekli dizüstü, `GOAMD64=v3`):** 512×512 iki

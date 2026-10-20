@@ -148,7 +148,7 @@ func TestTokenizerStepLimit(t *testing.T) {
 // Gerçek parçalayıcı desenleri bütçeye takılmamalı ve adım sayısı girdi
 // uzunluğuyla doğrusal kalmalı (zararlı biçimde seçilmiş girdiler dahil).
 func TestKnownPatternsLinear(t *testing.T) {
-	sample, err := os.ReadFile("testdata/ornek_metin.txt")
+	sample, err := os.ReadFile("testdata/sample_text.txt")
 	if err != nil {
 		t.Fatal(err)
 	}

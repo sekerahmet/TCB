@@ -8,12 +8,12 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// İzleme Masası düğmelerinin (media/izleme_masasi.html, data-komut) gönderdiği DAP istekleri:
+// İzleme Masası düğmelerinin (media/watch_panel.html, data-komut) gönderdiği DAP istekleri:
 // her biri program duraklatılmışken sunucuda işlenmeli. Devam (continue) döngüdeki kesme
 // noktasında yeniden durmalı ve değerler ilerlemeli; son turdan sonra program bitmeli.
 // Durdur, düzenleyicide terminate isteğine dönüşür.
 func TestDAPWatchPanelButtons(t *testing.T) {
-	html, err := os.ReadFile(reporoot.Path("editors/vscode/media/izleme_masasi.html"))
+	html, err := os.ReadFile(reporoot.Path("editors/vscode/media/watch_panel.html"))
 	if err != nil {
 		t.Fatal(err)
 	}

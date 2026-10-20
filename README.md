@@ -112,10 +112,10 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 
 - [`docs/guide/`](docs/guide/README.md) — komutlar, yerleşikler, tensörler ve yapay zekâ, veri ve parçalayıcı, hata ayıklayıcı.
 - [`docs/spec/`](docs/spec/README.md) — dilin kuralları; her kuralın `tests/` altında bir testi vardır (`tr test tests`).
-- [`docs/kodlar.md`](docs/kodlar.md) — her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği (kod listesinden üretilir).
-- [`docs/yol_haritasi.md`](docs/yol_haritasi.md) — ilkeler ve evreler: sağlam temel, gerçek model, geliştirici deneyimi, yaygınlaşma.
-- [`docs/mimari.md`](docs/mimari.md) — katmanlar, bağımlılık kuralı ve paketlerin görevleri.
-- [`docs/katki.md`](docs/katki.md) — katkı rehberi: dosya ve fonksiyon boyu, adlar, paket belgesi, testler, yeni kod isteği, tam denetim, ölçüm.
+- [`docs/codes.md`](docs/codes.md) — her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği (kod listesinden üretilir).
+- [`docs/roadmap.md`](docs/roadmap.md) — ilkeler ve evreler: sağlam temel, gerçek model, geliştirici deneyimi, yaygınlaşma.
+- [`docs/architecture.md`](docs/architecture.md) — katmanlar, bağımlılık kuralı ve paketlerin görevleri.
+- [`docs/development.md`](docs/development.md) — katkı rehberi: dosya ve fonksiyon boyu, adlar, paket belgesi, testler, yeni kod isteği, tam denetim, ölçüm.
 - [`tools/bench/`](tools/bench/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.
 - [`SECURITY.md`](SECURITY.md) — güvenlik açığı bildirme, güvenilmeyen sayılan girdiler (`.trt`, `.npy`, `tokenizer.json` ...) ve bulanıklaştırma testleri.
 
@@ -124,17 +124,17 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 | Klasör | İçerik |
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `izle`, `profil`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
-| `internal/lang` | Dil çekirdeği: iletiler (`messages`), Türkçe ekler ve dosya hataları (`turkish`), kod listesi (`codes`, [`docs/kodlar.md`](docs/kodlar.md)), ad ipuçları (`hint`), sözcük çözümleyici (`lexer`), sözdizimi ağacı (`ast`), ayrıştırıcı (`parser`), tip denetimi (`checker`), kaynak ve kodlu biçim (`source`), yorumlayıcı (`interp`) |
+| `internal/lang` | Dil çekirdeği: iletiler (`messages`), Türkçe ekler ve dosya hataları (`turkish`), kod listesi (`codes`, [`docs/codes.md`](docs/codes.md)), ad ipuçları (`hint`), sözcük çözümleyici (`lexer`), sözdizimi ağacı (`ast`), ayrıştırıcı (`parser`), tip denetimi (`checker`), kaynak ve kodlu biçim (`source`), yorumlayıcı (`interp`) |
 | `internal/stdlib` | Standart kitaplık: tensör ve öğrenme (`ml`), veri (`dataset`), parçalayıcı (`tokenizer`), dosyalar (`files`), JSON/CSV (`formats`), komut satırı (`process`), günlük ve ilerleme (`logging`), kontrol noktası (`checkpoint`) |
 | `internal/compute` | Dili bilmeyen hesap çekirdekleri: tensör, otomatik türev ve CPU çekirdekleri (`tensor`), GPU arka ucu (`gpu`), parçalayıcı (`tokenize`), veri yükleyici (`dataload`) |
 | `internal/devtools` | Hata ayıklayıcı (`debugger`), biçimlendirici (`formatter`), `tr test` çekirdeği (`testrunner`), canlı profil (`profiler`: `tr izle`, `tr profil`) |
 | `lib/` | TR ile yazılan standart kitaplık, ikiliye gömülü: transformer katmanları ve GPT (`aktar "tr/katman"`), Muon/NorMuon (`aktar "tr/iyilestirici"`) |
 | `editors/vscode/` | VS Code eklentisi |
-| `docs/` | Belgeler ([dizin](docs/README.md)); kod kuralları [`internal/README.md`](internal/README.md), ekleme tarifleri [`docs/tarifler.md`](docs/tarifler.md) |
+| `docs/` | Belgeler ([dizin](docs/README.md)); kod kuralları [`internal/README.md`](internal/README.md), ekleme tarifleri [`docs/recipes.md`](docs/recipes.md) |
 | `examples/`, `tests/` | Örnek programlar ve dil tanımının kural testleri |
 | `tools/` | Depo bakımı: `full_check.sh`, `fuzz.sh`, üreteçler (`gen/`), hız kıyas seti (`bench/`), GPU ölçümleri (`gpu/`), etki sorgusu (`impact/`) |
 
-Katmanlar, aralarındaki bağımlılık kuralı ve her paketin görevi: [`docs/mimari.md`](docs/mimari.md).
+Katmanlar, aralarındaki bağımlılık kuralı ve her paketin görevi: [`docs/architecture.md`](docs/architecture.md).
 
 ## Lisans
 

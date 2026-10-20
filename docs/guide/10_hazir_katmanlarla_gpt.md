@@ -63,7 +63,7 @@ aktar "tr/katman"
 aktar "tr/iyilestirici"
 
 değişken ayar = komut_satırı({adım: 100, koşu: "runs/gpt"})
-değişken p = parçalayıcı_yükle("../tests/data/parcalayici.json")
+değişken p = parçalayıcı_yükle("../tests/data/tokenizer.json")
 değişken ö = veri_kümesi("../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
 değişken model = GPT(p.dağarcık_boyutu, bağlam: 32, boyut: 32, katman: 2, baş: 4, paylaşımlı: doğru)
 değişken op = MuonVeAdamW(model)
@@ -83,4 +83,4 @@ döngü adım içinde kn.kaldığı_adım..ayar.adım {
 yazdır(p.çöz(model.üret(p.kodla("Bugün"), 12, sıcaklık: 0.8, tohum: 1)))
 ```
 
-Kontrol noktasına modelin yanında iki iyileştiricinin durumu da verilir: `op.adamw` ve `op.muon.durum`. GPU'da eğitmek için model kurulmadan önce `varsayılan_cihaz("gpu")` çağrılır; ağırlıklar, Muon'un durumu ve toplu işler GPU'da olur ([15.27](../spec/15_tensorler.md)). Bulut not defterinde büyük bir eğitim için [`tools/gpu/gpt_egitim.tr`](../../tools/gpu/gpt_egitim.tr) hazır betiğine bakın (SimpleStories, d512, 8 katman; [`tools/gpu/COLAB.md`](../../tools/gpu/COLAB.md) 9. hücre).
+Kontrol noktasına modelin yanında iki iyileştiricinin durumu da verilir: `op.adamw` ve `op.muon.durum`. GPU'da eğitmek için model kurulmadan önce `varsayılan_cihaz("gpu")` çağrılır; ağırlıklar, Muon'un durumu ve toplu işler GPU'da olur ([15.27](../spec/15_tensorler.md)). Bulut not defterinde büyük bir eğitim için [`tools/gpu/gpt_training.tr`](../../tools/gpu/gpt_training.tr) hazır betiğine bakın (SimpleStories, d512, 8 katman; [`tools/gpu/COLAB.md`](../../tools/gpu/COLAB.md) 9. hücre).

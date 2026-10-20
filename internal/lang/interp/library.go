@@ -20,7 +20,7 @@ import (
 const LibraryPrefix = "tr/"
 
 // libraryFiles dilin gömülü kitaplığıdır; komut satırı (cmd/tr) KitaplikBagla ile bağlar.
-// Yorumlayıcı kitaplık paketini içe aktarmaz (katman kuralı, docs/mimari.md).
+// Yorumlayıcı kitaplık paketini içe aktarmaz (katman kuralı, docs/architecture.md).
 var libraryFiles fs.FS
 
 // SetLibrary installs the language's library written in TR (the embedded files of the lib

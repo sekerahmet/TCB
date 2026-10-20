@@ -16,7 +16,7 @@ import (
 	_ "github.com/sekerahmet/TCB/internal/stdlib" // bütün motorlar
 )
 
-// GPU'da eğitimin dil düzeyinde uçtan uca sınaması: kıyas modelinin (tools/gpu/kiyas_gpu.tr)
+// GPU'da eğitimin dil düzeyinde uçtan uca sınaması: kıyas modelinin (tools/gpu/compare_gpu.tr)
 // küçültülmüşü aynı veri ve tohumla önce CPU'da, sonra varsayılan_cihaz("gpu") ile GPU'da
 // eğitilir; kayıplar karşılaştırılır. Gerçek GPU yoksa GPU PTX benzetimidir (yavaş; şekiller
 // küçük).

@@ -23,7 +23,7 @@ değişken ayar = komut_satırı({adım: 100, toplu: 8, bağlam: 32, boyut: 32, 
         normuon: "gizli ağırlıklar için Muon yerine NorMuon"})
 
 // --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/08) ---
-değişken p = parçalayıcı_yükle("../tests/data/parcalayici.json")
+değişken p = parçalayıcı_yükle("../tests/data/tokenizer.json")
 değişken ö = veri_kümesi("../tests/data/text").örnekleyici(toplu: ayar.toplu, bağlam: ayar.bağlam, tohum: 1)
 
 // --- Model ve iyileştirici ---

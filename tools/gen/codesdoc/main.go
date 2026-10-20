@@ -1,4 +1,4 @@
-// kod_belgesi, dilin bütün kodlarının açıklamalı başvuru belgesini (docs/kodlar.md) kod
+// kod_belgesi, dilin bütün kodlarının açıklamalı başvuru belgesini (docs/codes.md) kod
 // listesinden üretir: dilden bağımsız tanımlar (internal/lang/codes/definitions.json: tür, tipler, imza,
 // ilişkili kodlar, taşınma) ve Türkçe dil dosyası (internal/lang/codes/tr.json: ad, eski adlar,
 // açıklama, örnek). Belge elle düzenlenmez; bir kod eklendiğinde ya da değiştiğinde
@@ -28,7 +28,7 @@ import (
 )
 
 // belgeYolu depo köküne göre üretilen dosyadır.
-var belgeYolu = filepath.Join("docs", "kodlar.md")
+var belgeYolu = filepath.Join("docs", "codes.md")
 
 func main() {
 	denetle := flag.Bool("denetle", false, "dosyayı yazma; güncel değilse 1 koduyla çık")

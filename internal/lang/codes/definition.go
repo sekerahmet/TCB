@@ -17,7 +17,7 @@ import (
 // (order and type of positional parameters; code, type and default of named arguments), its
 // return type, related codes, and for removed codes the new code the job moved to. No names
 // appear here: signatures are lists of types and codes, and the language file (tr.json) gives
-// the names. docs/kodlar.md is generated from these two files.
+// the names. docs/codes.md is generated from these two files.
 //
 // File format (each entry is one line or a short block, codes in ascending order):
 //

@@ -7,7 +7,7 @@ TR ile yazılmış, `tr` ikilisine gömülü kitaplık. Modüller `aktar "tr/...
 | `tr/katman` | [`katman.tr`](katman.tr) | Transformer katmanları ve yalnızca kod çözücülü `GPT` |
 | `tr/iyilestirici` | [`iyilestirici.tr`](iyilestirici.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
 
-Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/11_gpt.tr`](../examples/11_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_egitim.tr`](../tools/gpu/gpt_egitim.tr).
+Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/11_gpt.tr`](../examples/11_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
 ```tr
 aktar "tr/katman"

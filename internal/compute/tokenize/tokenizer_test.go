@@ -15,18 +15,18 @@ import (
 )
 
 // ============================================================================
-// Altın veriler (testdata/uret.py ile üretilmiş)
+// Altın veriler (testdata/generate.py ile üretilmiş)
 // ============================================================================
 
-const smallPath = "testdata/p_bayt_bpe.json"
+const smallPath = "testdata/tokenizer_byte_bpe.json"
 
 // syntheticTokenizers testdata'daki parçalayıcıların adlarıdır.
 var syntheticTokenizers = []string{
-	"bayt_bpe", "metaspace_bpe", "llama_tarzi", "kelime_bpe", "onekli_bpe",
-	"wordpiece", "unigram", "gpt2_tarzi", "llama3_tarzi",
+	"byte_bpe", "metaspace_bpe", "llama_style", "word_bpe", "prefixed_bpe",
+	"wordpiece", "unigram", "gpt2_style", "llama3_style",
 }
 
-// goldenFile altin_<ad>.json biçimidir. Kodlama: [girdi sırası, kimlikler,
+// goldenFile golden_<name>.json biçimidir. Kodlama: [girdi sırası, kimlikler,
 // özel tanımadan kimlikler, özel eklemeden kimlikler]. Çift: [a, b, kimlikler,
 // tür kimlikleri, özel maske, özelsiz kimlikler, özelsiz tür kimlikleri].
 // Çözme: [kimlikler, metin, özel atlanmış metin].
@@ -64,7 +64,7 @@ func loadInputs(t testing.TB) []string {
 		var d struct {
 			Inputs []string `json:"girdiler"`
 		}
-		data, err := os.ReadFile("testdata/girdiler.json")
+		data, err := os.ReadFile("testdata/inputs.json")
 		if err == nil {
 			err = json.Unmarshal(data, &d)
 		}
@@ -78,17 +78,17 @@ func loadInputs(t testing.TB) []string {
 
 func loadGolden(t testing.TB, ad string) (*Tokenizer, *goldenFile) {
 	t.Helper()
-	p, err := Load("testdata/p_" + ad + ".json")
+	p, err := Load("testdata/tokenizer_" + ad + ".json")
 	if err != nil {
 		t.Fatalf("%s yüklenemedi: %v", ad, err)
 	}
-	data, err := os.ReadFile("testdata/altin_" + ad + ".json")
+	data, err := os.ReadFile("testdata/golden_" + ad + ".json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	var a goldenFile
 	if err := json.Unmarshal(data, &a); err != nil {
-		t.Fatalf("altin_%s.json çözümlenemedi: %v", ad, err)
+		t.Fatalf("golden_%s.json çözümlenemedi: %v", ad, err)
 	}
 	return p, &a
 }
@@ -108,7 +108,7 @@ func loadSmall(t testing.TB) (*Tokenizer, *goldenData) {
 	g := loadInputs(t)
 	smallOne.Do(func() {
 		var a *goldenFile
-		smallP, a = loadGolden(t, "bayt_bpe")
+		smallP, a = loadGolden(t, "byte_bpe")
 		smallGolden.VocabSize = a.VocabSize
 		for _, k := range a.Encoding {
 			smallGolden.Encoding = append(smallGolden.Encoding, goldenEncoding{
@@ -211,7 +211,7 @@ func TestSyntheticTokenizers(t *testing.T) {
 // altın çıktılarla karşılaştırır.
 func TestComponents(t *testing.T) {
 	g := loadInputs(t)[1:140]
-	data, err := os.ReadFile("testdata/bilesenler.json")
+	data, err := os.ReadFile("testdata/components.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestComponents(t *testing.T) {
 
 // TestComponentsWide, TR_PARCALAYICI_BILESEN_ALTIN ile verilen geniş altın
 // veriyle (ör. bütün Unicode kod noktaları) bileşenleri karşılaştırır.
-// Biçim: {"girdiler": [...], "kayitlar": [bilesenler.json kayıtları]}.
+// Biçim: {"girdiler": [...], "kayitlar": [components.json kayıtları]}.
 func TestComponentsWide(t *testing.T) {
 	path := os.Getenv("TR_PARCALAYICI_BILESEN_ALTIN")
 	if path == "" {
@@ -678,7 +678,7 @@ func benchText(tb testing.TB) string {
 		}
 		return string(data)
 	}
-	data, err := os.ReadFile("testdata/ornek_metin.txt")
+	data, err := os.ReadFile("testdata/sample_text.txt")
 	if err != nil {
 		tb.Fatal(err)
 	}

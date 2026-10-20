@@ -19,7 +19,7 @@ değişken ayar = komut_satırı({adım: 200, koşu: "runs/kontrol_noktasi_orneg
 değişken KOŞU = ayar.koşu
 
 // --- Veri ve model (examples/08_veri_ile_egitim.tr'deki küçük model) ---
-değişken p = parçalayıcı_yükle("../tests/data/parcalayici.json")
+değişken p = parçalayıcı_yükle("../tests/data/tokenizer.json")
 değişken V = p.dağarcık_boyutu
 değişken ö = veri_kümesi("../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
 değişken parametre_tohumu = 0

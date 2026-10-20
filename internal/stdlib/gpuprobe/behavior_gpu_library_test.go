@@ -52,7 +52,7 @@ döngü normuon içinde [yanlış, doğru] {
 func TestGPULibraryGPT(t *testing.T) {
 	gpu.RegisterSimulator() // gerçek GPU varsa o kullanılır
 	defer tensor.SetDefaultDevice(tensor.CPU)
-	interp.SetLibrary(lib.Dosyalar)
+	interp.SetLibrary(lib.Files)
 	defer interp.SetLibrary(nil)
 	p := parser.New(lexer.New(gpuLibraryProgram))
 	prog := p.ParseProgram()

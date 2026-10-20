@@ -17,7 +17,7 @@
 //     tr examples/08_veri_ile_egitim.tr --adım 500 --günlük_dosyası kayit/egitim.jsonl
 //     tr examples/08_veri_ile_egitim.tr --yardım
 
-değişken PARÇALAYICI_YOLU = "../tests/data/parcalayici.json"
+değişken PARÇALAYICI_YOLU = "../tests/data/tokenizer.json"
 değişken VERİ_YOLU = "../tests/data/text"
 değişken DOĞRULAMA_YOLU = "../tests/data/text"
 
