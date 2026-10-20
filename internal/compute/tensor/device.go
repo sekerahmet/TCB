@@ -185,6 +185,8 @@ const (
 	OpGt // a > b
 	OpLe // a <= b
 	OpGe // a >= b
+
+	numBinOps // işlem sayısı; işlem değildir (testler üyeleri sayar)
 )
 
 // UnOp tekli eleman bazlı işlem; bazıları bir skaler parametre (p) alır.
@@ -220,6 +222,8 @@ const (
 	OpCeil            // tavan (türevi 0)
 	OpSign            // işaret: −1, 0, 1 (NaN korunur; türevi 0)
 	OpAbs             // mutlak değer |x| (işaret biti silinir, NaN korunur; türevi işaret(x), 0'da 0)
+
+	numUnOps // işlem sayısı; işlem değildir (testler üyeleri sayar)
 )
 
 // GradMode ikili işlemlerin geri yayılımında hedefe eklenecek terim:

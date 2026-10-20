@@ -25,3 +25,4 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_forward_test.go`: her işlemin ileri değerleri elle hesaplanmış sonuçlara karşı
 - `behavior_end_to_end_test.go`: küçük modellerin CPU arka ucunda uçtan uca eğitimi
+- `behavior_grad_coverage_test.go`: gradyan kapısının kapsam denetimi: `BinOp`/`UnOp` üyeleri ve `track` çağrılarından çıkan her türevli işlemin float64 sonlu fark + bf16 tolerans kaydı (`gradSpec`) ve çalıştıran testi var; eksik ya da fazla kayıt testi düşürür
