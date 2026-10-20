@@ -3,6 +3,7 @@ package ml
 import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"math"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ func (d *TensorValue) Inspect() string {
 		ek = append(ek, t.Device().String())
 	}
 	if t.RequiresGrad() {
-		ek = append(ek, "türev izleniyor")
+		ek = append(ek, messages.Text(messages.H6814))
 	}
 	if len(sh) == 0 {
 		x := t.Item()
@@ -182,11 +183,11 @@ func numberText(x float32, scientific bool) string {
 	f := float64(x)
 	switch {
 	case math.IsNaN(f):
-		return "Tanımsız"
+		return messages.Text(messages.H6815)
 	case math.IsInf(f, 1):
-		return "Sonsuz"
+		return messages.Text(messages.H6816)
 	case math.IsInf(f, -1):
-		return "-Sonsuz"
+		return messages.Text(messages.H6817)
 	}
 	if scientific {
 		return strconv.FormatFloat(f, 'e', 4, 64)

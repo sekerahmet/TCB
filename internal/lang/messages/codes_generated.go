@@ -432,6 +432,12 @@ const (
 	H6811 Code = 6811 // {fn}: bilinmeyen veri türü {name|q}; geçerli türler: "float32", "bf16", "fp16". Bunu mu demek istediniz: "{suggestion}"?
 	H6812 Code = 6812 // {device} cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: {devices} ({devicesFn}())
 	H6813 Code = 6813 // {device} cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: {devices} ({devicesFn}()). {status}
+	H6814 Code = 6814 // türev izleniyor
+	H6815 Code = 6815 // Tanımsız
+	H6816 Code = 6816 // Sonsuz
+	H6817 Code = 6817 // -Sonsuz
+	H6818 Code = 6818 // Değer
+	H6819 Code = 6819 // Sütun {n}
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7002 Code = 7002 // {fn}: dosya yolu ya da CSV metni ({text} ya da {path}) bekler, {given} verildi

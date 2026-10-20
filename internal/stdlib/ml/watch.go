@@ -46,11 +46,11 @@ func (d *TensorValue) TableData() ([]string, [][]string, error) {
 			}
 			rows = append(rows, []string{format(x)})
 		}
-		return []string{"Değer"}, rows, nil
+		return []string{messages.Text(messages.H6818)}, rows, nil
 	case 2:
 		cols := make([]string, sh[1])
 		for j := range cols {
-			cols[j] = fmt.Sprintf("Sütun %d", j+1)
+			cols[j] = messages.Text(messages.H6819, j+1)
 		}
 		var rows [][]string
 		for i := 0; i < sh[0] && i < limit; i++ {
