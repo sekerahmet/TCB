@@ -11,6 +11,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/stdlib/dataset"
 )
@@ -20,7 +21,7 @@ func TestQuotaTooLarge(t *testing.T) {
 	d := buildDataset(t)
 	cache := filepath.Join(t.TempDir(), "onb")
 	_, _, err := run(t, `veri_kümesi("`+trPath(d)+`", önbellek: "`+trPath(cache)+`", kota_gb: 1e10)`)
-	if err == nil || !strings.Contains(err.Error(), "kota_gb çok büyük") {
+	if !messages.Has(err, messages.H5512) {
 		t.Fatalf("çok büyük kota hatası bekleniyordu: %v", err)
 	}
 }
@@ -88,7 +89,7 @@ yazdır("bitti")
 	if n := dirSize(cache); n > 6000 {
 		t.Fatalf("paylaşılan önbellek kotayı aştı: %d > 6000 bayt", n)
 	}
-	if err == nil || !strings.Contains(err.Error(), "paylaşan") {
+	if !messages.Has(err, messages.H5515) || !strings.Contains(err.Error(), "paylaşan") {
 		t.Fatalf("paylaşılan kota hatası bekleniyordu: %v", err)
 	}
 	dataset.CloseAll(time.Second)

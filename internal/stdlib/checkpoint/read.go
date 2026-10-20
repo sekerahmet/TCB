@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"hash"
 	"io"
 	"io/fs"
@@ -60,7 +59,7 @@ func (kn *Checkpoint) load(m *interp.VM, fn string) error {
 	}
 	kn.resumed, kn.step, kn.lastValid = o.step, o.step, o.step
 	kn.compareSettings(m, o.state)
-	m.WriteOutput(m.Err, fmt.Sprintf("Kaldığı yerden devam: adım %d (%s/%s)\n", o.step, kn.shown, o.name))
+	m.WriteOutput(m.Err, messages.Text(messages.H7469, o.step, kn.shown, o.name)+"\n")
 	return nil
 }
 
@@ -68,14 +67,14 @@ func (kn *Checkpoint) load(m *interp.VM, fn string) error {
 // önerir (bozuk nokta kendiliğinden atlanmaz: kullanıcı neyi kaybettiğini bilerek seçer).
 func (kn *Checkpoint) brokenCheckpointError(fn string, ckpts []ckptEntry, reason error) error {
 	broken := kn.shown + "/" + ckpts[0].name
-	hint := fmt.Sprintf("Başka geçerli nokta yok; baştan başlamak için %q klasörünü silin ya da başka bir koşu klasörü verin", kn.shown)
+	hint := messages.Text(messages.H7470, kn.shown)
 	for _, n := range ckpts[1:] {
 		if _, err := verifyCkpt(kn.dir, n); err == nil {
-			hint = fmt.Sprintf("Bir önceki geçerli nokta: %s (adım %d); ondan sürdürmek için bozuk klasörü silin ya da koşu klasörünün dışına taşıyın", n.name, n.step)
+			hint = messages.Text(messages.H7471, n.name, n.step)
 			break
 		}
 	}
-	return fmt.Errorf("%s: %q bozuk: %v. %s", fn, broken, reason, hint)
+	return messages.New(messages.H7472, fn, broken, reason, hint)
 }
 
 // cleanLeftovers yarıda kalmış kayıtların klasörlerini siler: geçici klasörler atılır;
@@ -124,7 +123,7 @@ func verifyCkpt(dir string, n ckptEntry) (*loadedCkpt, error) {
 		return nil, err
 	}
 	if o.state.Version != o.digest.Version {
-		return nil, fmt.Errorf("%s biçim sürümü %d, %s %d diyor", stateFile, o.state.Version, digestFile, o.digest.Version)
+		return nil, messages.New(messages.H7473, stateFile, o.state.Version, digestFile, o.digest.Version)
 	}
 	o.objects = map[string]*pending{}
 	for _, k := range o.state.Objects {
@@ -158,19 +157,19 @@ func (o *loadedCkpt) walkTensors(walk func(objectName, tensorName string, g ml.T
 	}
 	want := o.digest.Files[tensorFile]
 	if info.Size() != want.Bytes {
-		return fmt.Errorf("%s %d bayt, %s %d bayt diyor (dosya yarım kopyalanmış ya da değişmiş)", tensorFile, info.Size(), digestFile, want.Bytes)
+		return messages.New(messages.H7474, tensorFile, info.Size(), digestFile, want.Bytes)
 	}
 	h := sha256.New()
 	err = ml.WalkTensorFile(io.TeeReader(f, h), info.Size(), func(g ml.TensorEntry) error {
 		objectName, tensorName, ok := strings.Cut(g.Ad, "/")
 		y := o.objects[objectName]
 		if !ok || y == nil || (y.record.Kind != kindModel.String() && y.record.Kind != kindOptimizer.String()) {
-			return fmt.Errorf("%q girdisi kayıttaki bir modele ya da iyileştiriciye ait değil", g.Ad)
+			return messages.New(messages.H7475, g.Ad)
 		}
 		return walk(objectName, tensorName, g)
 	})
 	if err != nil {
-		return fmt.Errorf("%s: %v", tensorFile, err)
+		return messages.New(messages.H2000, tensorFile, err)
 	}
 	return digestMatches(tensorFile, want, info.Size(), hashText(h))
 }
@@ -185,14 +184,14 @@ func hashText(h hash.Hash) string { return hex.EncodeToString(h.Sum(nil)) }
 // digestMatches dosyanın boyunu ve özetini ozet.json'daki kayıtla karşılaştırır.
 func digestMatches(name string, want fileDigest, nBytes int64, digest string) error {
 	if nBytes != want.Bytes || digest != want.SHA256 {
-		return fmt.Errorf("%s özeti tutmuyor (dosya değişmiş, bozulmuş ya da yarım kopyalanmış)", name)
+		return messages.New(messages.H7476, name)
 	}
 	return nil
 }
 
 // readReason bir dosyanın okunamama nedenini Türkçe söyler.
 func readReason(name string, err error) error {
-	return fmt.Errorf("%s okunamadı: %s", name, turkish.FileErrorReason(name, err))
+	return messages.New(messages.H7477, name, turkish.FileErrorReason(name, err))
 }
 
 // checkMatch şimdiki nesnelerin kayıttakilerle aynı olduğunu ve her birinin kaydına
@@ -201,7 +200,7 @@ func (kn *Checkpoint) checkMatch(fn string, o *loadedCkpt) error {
 	for _, n := range kn.objects {
 		y, ok := o.objects[n.name]
 		if !ok {
-			return fmt.Errorf("%s: %q kayıtta yok (kayıttaki nesneler: %s); aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin", fn, n.name, o.objectNames())
+			return messages.New(messages.H7478, fn, n.name, o.objectNames())
 		}
 		if err := n.checkMatch(fn, y, o.state.Version); err != nil {
 			return err
@@ -210,7 +209,7 @@ func (kn *Checkpoint) checkMatch(fn string, o *loadedCkpt) error {
 	if len(o.objects) != len(kn.objects) {
 		for _, k := range o.state.Objects {
 			if !kn.hasObject(k.Name) {
-				return fmt.Errorf("%s: kayıttaki %q (%s) verilmedi; aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin", fn, k.Name, k.Kind)
+				return messages.New(messages.H7479, fn, k.Name, k.Kind)
 			}
 		}
 	}

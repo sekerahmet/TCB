@@ -9,6 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
@@ -51,10 +52,10 @@ func splitObjects(fn string, s *interp.DictVal) ([]*object, error) {
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, fmt.Errorf("%s: sözlük anahtarları nesne adları (%s) olmalıdır, %s verildi", fn, codes.Name(codes.A202), s.DisplayKey(k))
+			return nil, messages.New(messages.H7434, fn, codes.Name(codes.A202), s.DisplayKey(k))
 		}
 		if err := checkObjectName(k); err != nil {
-			return nil, fmt.Errorf("%s: %v", fn, err)
+			return nil, messages.New(messages.H2000, fn, err)
 		}
 		n, err := newObject(fn, k, v)
 		if err != nil {
@@ -63,7 +64,7 @@ func splitObjects(fn string, s *interp.DictVal) ([]*object, error) {
 		out = append(out, n)
 	}
 	if len(out) == 0 || len(out) > maxObjects {
-		return nil, fmt.Errorf("%s: kaydedilecek nesneler sözlüğü 1 ile %d arası nesne içermeli, ör. %s(\"runs/deneme1\", {model: model, op: op})",
+		return nil, messages.New(messages.H7435,
 			fn, maxObjects, codes.Name(codes.T702))
 	}
 	return out, nil
@@ -97,17 +98,17 @@ func newObject(fn, name string, v interp.Value) (*object, error) {
 	switch x := v.(type) {
 	case *interp.DictVal, *interp.ListVal:
 		if _, err := writePlain(x); err != nil {
-			return nil, fmt.Errorf("%s: %q: %v", fn, name, err)
+			return nil, messages.New(messages.H7401, fn, name, err)
 		}
 		n.kind = kindPlain
 		return n, nil
 	case *interp.IntVal, *interp.FloatVal, *interp.StringVal, *interp.BoolVal:
-		return nil, fmt.Errorf("%s: %q bir %s; düz bir değer doğrudan verilemez (geri yüklenirken yerine yazılamaz). Bir sözlüğe koyun: {%s: {değer: ...}}",
+		return nil, messages.New(messages.H7436,
 			fn, name, x.Type(), name)
 	case *ml.TensorValue:
-		return nil, fmt.Errorf("%s: %q bir işlemin sonucu (ara tensör, %s); kaydedilecek tensörler yaprak olmalıdır: parametreler ve türevsiz güncellenen durum tensörleri", fn, name, interp.TypeAndSummary(v))
+		return nil, messages.New(messages.H7437, fn, name, interp.TypeAndSummary(v))
 	}
-	return nil, fmt.Errorf("%s: %q kaydedilemez (%s); modeller, iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listeler verilebilir",
+	return nil, messages.New(messages.H7438,
 		fn, name, interp.TypeAndSummary(v))
 }
 
@@ -153,7 +154,7 @@ func (n *object) record(m *interp.VM) (objectRecord, error) {
 		k.Value, err = writePlain(n.value)
 	}
 	if err != nil {
-		return k, fmt.Errorf("%q: %v", n.name, err)
+		return k, messages.New(messages.H7439, n.name, err)
 	}
 	return k, nil
 }
@@ -171,36 +172,36 @@ type pending struct {
 // noktanın biçim sürümüdür (modellerin kaydı sürüme bağlıdır, bkz. modelMatch).
 func (n *object) checkMatch(fn string, y *pending, version int) error {
 	if y.record.Kind != n.kind.String() {
-		return fmt.Errorf("%s: %q kayıtta bir %s, şimdi bir %s; aynı nesnelerle sürdürün ya da yeni bir koşu klasörü verin", fn, n.name, y.record.Kind, n.kind)
+		return messages.New(messages.H7440, fn, n.name, y.record.Kind, n.kind)
 	}
 	switch n.kind {
 	case kindModel:
-		return n.modelMatch(fmt.Sprintf("%s: %q", fn, n.name), y, version)
+		return n.modelMatch(messages.Text(messages.H7441, fn, n.name), y, version)
 	case kindOptimizer:
 		if y.record.Optimizer != n.op.Name() || y.record.ParamCount != n.op.ParamCount() {
-			return fmt.Errorf("%s: %q kayıtta %d parametreli bir %s, şimdi %d parametreli bir %s; aynı iyileştiriciyle sürdürün",
+			return messages.New(messages.H7442,
 				fn, n.name, y.record.ParamCount, y.record.Optimizer, n.op.ParamCount(), n.op.Name())
 		}
 		shapes := make([][]int, len(y.order))
 		for i, name := range y.order {
 			shapes[i] = y.shapes[name]
 		}
-		return n.op.CheckState(fmt.Sprintf("%s: %q", fn, n.name), y.order, shapes)
+		return n.op.CheckState(messages.Text(messages.H7441, fn, n.name), y.order, shapes)
 	case kindStateful, kindPlain:
 		if len(y.shapes) > 0 {
-			return fmt.Errorf("%s: %q için kayıtta beklenmeyen tensörler var", fn, n.name)
+			return messages.New(messages.H7443, fn, n.name)
 		}
 		v, err := readPlain(y.record.Value)
 		if err != nil {
-			return fmt.Errorf("%s: %q nesnesinin kaydı bozuk: %v", fn, n.name, err)
+			return messages.New(messages.H7444, fn, n.name, err)
 		}
 		y.value = v
 		if n.kind == kindStateful {
 			if _, ok := v.(*interp.DictVal); !ok {
-				return fmt.Errorf("%s: %q nesnesinin durumu bir sözlük değil", fn, n.name)
+				return messages.New(messages.H7445, fn, n.name)
 			}
 		} else if fmt.Sprint(v.Type()) != fmt.Sprint(n.value.Type()) {
-			return fmt.Errorf("%s: %q kayıtta %s, şimdi %s", fn, n.name, v.Type(), n.value.Type())
+			return messages.New(messages.H7446, fn, n.name, v.Type(), n.value.Type())
 		}
 	}
 	return nil
@@ -220,18 +221,18 @@ func (n *object) modelMatch(fn string, y *pending, version int) error {
 			if version == 1 && !t.RequiresGrad() {
 				continue
 			}
-			what := "parametresi"
+			what := messages.Text(messages.H7447)
 			if !t.RequiresGrad() {
-				what = "durum tensörü (türev izlemeyen)"
+				what = messages.Text(messages.H7448)
 			}
-			return fmt.Errorf("%s: modelin %q %s kayıtta yok (model %d, kayıt %d tensör); model ile kayıt aynı yapıda olmalı", fn, name, what, len(n.names), len(y.shapes))
+			return messages.New(messages.H7449, fn, name, what, len(n.names), len(y.shapes))
 		}
 		found++
 		if sm := t.Shape(); !slices.Equal(sm, sk) {
-			return fmt.Errorf("%s: %q tensörünün şekli modelde %s, kayıtta %s", fn, name, shapeText(sm), shapeText(sk))
+			return messages.New(messages.H7450, fn, name, shapeText(sm), shapeText(sk))
 		}
 		if tm, tk := t.DType(), y.kinds[name]; tm != tk {
-			return fmt.Errorf("%s: %q tensörünün türü modelde %s, kayıtta %s; aynı veri türüyle sürdürün", fn, name, tm, tk)
+			return messages.New(messages.H7451, fn, name, tm, tk)
 		}
 	}
 	if found == len(y.shapes) {
@@ -239,11 +240,10 @@ func (n *object) modelMatch(fn string, y *pending, version int) error {
 	}
 	for _, name := range y.order {
 		if !slices.Contains(n.names, name) {
-			hint := ""
 			if o := turkish.Closest(name, n.names); o != "" {
-				hint = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+				return messages.New(messages.H7453, fn, name, o)
 			}
-			return fmt.Errorf("%s: kayıttaki %q tensörü modelde yok%s", fn, name, hint)
+			return messages.New(messages.H7452, fn, name)
 		}
 	}
 	return nil

@@ -1,10 +1,10 @@
 package checkpoint
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Kendini içeren liste açık bir döngü hatası verir (eskiden 100 düzey derinliğe inip
@@ -13,7 +13,7 @@ import (
 func TestPlainCyclesAndSharedLists(t *testing.T) {
 	a := &interp.ListVal{Elements: []interp.Value{interp.NewInt(1)}}
 	a.Elements = append(a.Elements, a, a)
-	if _, err := writePlain(a); err == nil || !strings.Contains(err.Error(), "kendini içeriyor") {
+	if _, err := writePlain(a); !messages.Has(err, messages.H7456) {
 		t.Fatalf("döngü hatası beklenirdi: %v", err)
 	}
 	old := plainNodeLimit
@@ -23,7 +23,7 @@ func TestPlainCyclesAndSharedLists(t *testing.T) {
 	for range 40 {
 		l = &interp.ListVal{Elements: []interp.Value{l, l}} // 2⁴⁰ yaprak
 	}
-	if _, err := writePlain(l); err == nil || !strings.Contains(err.Error(), "çok büyük") {
+	if _, err := writePlain(l); !messages.Has(err, messages.H7455) {
 		t.Fatalf("öğe sınırı hatası beklenirdi: %v", err)
 	}
 	// Paylaşılan ama küçük alt liste (döngü değil) yazılır.

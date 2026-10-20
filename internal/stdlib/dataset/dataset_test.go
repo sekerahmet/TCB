@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -201,7 +202,7 @@ kalıcı.sonraki()
 	}
 	// Kapatılmış okuyucu açık bir hata verir, çökmez.
 	_, err := m.ApplyFunction(mustMember(t, variable(t, m, "kalıcı"), "sonraki"), nil, nil, 1)
-	if err == nil || !strings.Contains(err.Error(), "kapatılmış") {
+	if !messages.Has(err, messages.H5516) {
 		t.Fatalf("kapatılmış okuyucu hatası bekleniyordu: %v", err)
 	}
 }
@@ -289,7 +290,7 @@ yazdır(x[0].şekil)
 		t.Fatalf("çıktı %q", out)
 	}
 	_, _, err := run(t, `veri_kümesi("`+trPath(d)+`", önbellek: "`+trPath(cache)+`", kota_gb: 0.000000001).örnekleyici(toplu: 2, bağlam: 8)`)
-	if err == nil || !strings.Contains(err.Error(), "önbellek kotası yetersiz") {
+	if !messages.Has(err, messages.H5515) {
 		t.Fatalf("kota hatası bekleniyordu: %v", err)
 	}
 	dataset.CloseAll(time.Second)
@@ -302,24 +303,27 @@ func TestErrorMessages(t *testing.T) {
 	if err := os.WriteFile(broken, []byte("merhaba"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cases := []struct{ code, want string }{
-		{`veri_kümesi("bu_klasor_yok_123")`, "açılamadı: böyle bir dosya ya da klasör yok"},
-		{`veri_kümesi("` + trPath(t.TempDir()) + `")`, ".npy veri dosyası yok"},
-		{`veri_kümesi("` + trPath(broken) + `")`, "geçerli bir .npy veri dosyası değil"},
-		{`veri_kümesi("` + trPath(d) + `", kota_gb: 1)`, "yalnızca önbellek: ile birlikte"},
-		{`veri_kümesi("` + trPath(d) + `", önbellek: "x")`, "kota_gb: de verilmelidir"},
-		{`veri_kümesi("` + trPath(d) + `", onbelek: "x")`, "Bunu mu demek istediniz: 'önbellek'"},
-		{`veri_kümesi("` + trPath(d) + `").örnekleyici(toplu: 2)`, "bağlam: verilmedi"},
-		{`veri_kümesi("` + trPath(d) + `").örnekleyici(toplu: 0, bağlam: 4)`, "toplu pozitif bir tam sayı"},
-		{`veri_kümesi("` + trPath(d) + `").örnekleyici(toplu: 2, bağlam: 4, tohum: -1)`, "tohum negatif olmayan"},
-		{`veri_kümesi("` + trPath(d) + `").sıralı(toplu: 2, bağlam: 4, tohum: 1)`, "'tohum' adında bir parametre almaz"},
-		{`veri_kümesi("` + trPath(d) + `").örnekleyici(toplu: 2, bağlam: 600)`, "en uzun veri dosyası 500 parça"},
-		{`veri_kümesi("` + trPath(d) + `").karıştır()`, "üyeler: örnekleyici, sıralı"},
+	cases := []struct {
+		code string
+		want messages.Code
+	}{
+		{`veri_kümesi("bu_klasor_yok_123")`, messages.H2132},
+		{`veri_kümesi("` + trPath(t.TempDir()) + `")`, messages.H5518},
+		{`veri_kümesi("` + trPath(broken) + `")`, messages.H5514},
+		{`veri_kümesi("` + trPath(d) + `", kota_gb: 1)`, messages.H5510},
+		{`veri_kümesi("` + trPath(d) + `", önbellek: "x")`, messages.H5513},
+		{`veri_kümesi("` + trPath(d) + `", onbelek: "x")`, messages.H7900},
+		{`veri_kümesi("` + trPath(d) + `").örnekleyici(toplu: 2)`, messages.H5529},
+		{`veri_kümesi("` + trPath(d) + `").örnekleyici(toplu: 0, bağlam: 4)`, messages.H5530},
+		{`veri_kümesi("` + trPath(d) + `").örnekleyici(toplu: 2, bağlam: 4, tohum: -1)`, messages.H5532},
+		{`veri_kümesi("` + trPath(d) + `").sıralı(toplu: 2, bağlam: 4, tohum: 1)`, messages.H7901},
+		{`veri_kümesi("` + trPath(d) + `").örnekleyici(toplu: 2, bağlam: 600)`, messages.H5533},
+		{`veri_kümesi("` + trPath(d) + `").karıştır()`, messages.H7904},
 	}
 	for _, dd := range cases {
 		_, _, err := run(t, dd.code)
-		if err == nil || !strings.Contains(err.Error(), dd.want) {
-			t.Errorf("%s\n hata: %v\n beklenen: %q", dd.code, err, dd.want)
+		if !messages.Has(err, dd.want) {
+			t.Errorf("%s\n hata: %v\n beklenen: %s", dd.code, err, dd.want)
 		}
 	}
 	// Hatalar dene/yakala ile yakalanabilir.

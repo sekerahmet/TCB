@@ -14,6 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/devtools/debugger"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
@@ -265,26 +266,29 @@ func TestLoadErrors(t *testing.T) {
 	risky := write("riskli.json", `{"pre_tokenizer": {"type": "Split", "pattern": {"Regex": "(a+)+"}, "behavior": "Isolated", "invert": false},
 		"model": {"type": "WordLevel", "vocab": {"a": 0, "[UNK]": 1}, "unk_token": "[UNK]"}}`)
 	broken := write("bozuk.json", `{"model": `)
-	cases := []struct{ code, want string }{
-		{`parçalayıcı_yükle("yok_boyle_bir_dosya.json")`, "yüklenemedi: böyle bir dosya ya da klasör yok"},
-		{`parçalayıcı_yükle("` + filepath.ToSlash(d) + `")`, "bir klasör"},
-		{`parçalayıcı_yükle("` + unsupported + `")`, "parçalayıcı türü desteklenmiyor"},
-		{`parçalayıcı_yükle("` + risky + `")`, "güvenlik gereği kabul edilmiyor"},
-		{`parçalayıcı_yükle("` + broken + `")`, "geçerli bir tokenizer.json dosyası değil"},
-		{`parçalayıcı_yükle(5)`, "yol bir metin olmalıdır"},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla(5)`, "metin ya da metin listesi"},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla(["a", 1])`, "2. eleman Tam"},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla("a", özel_parçlar: doğru)`, "Bunu mu demek istediniz: 'özel_parçalar'"},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla("a", özel_parçalar: 1)`, "doğru ya da yanlış"},
-		{`parçalayıcı_yükle("` + bpePath + `").kodla(["a"], ikinci: ["b", "c"])`, "eşit uzunlukta"},
-		{`parçalayıcı_yükle("` + bpePath + `").çöz([1, "a"])`, "tam sayı olmalıdır"},
-		{`parçalayıcı_yükle("` + bpePath + `").çöz(tensör([[[1]]]))`, "1 boyutlu"},
-		{`parçalayıcı_yükle("` + bpePath + `").çözz([1])`, "Bunu mu demek istediniz: 'çöz'"},
+	cases := []struct {
+		code string
+		want messages.Code
+	}{
+		{`parçalayıcı_yükle("yok_boyle_bir_dosya.json")`, messages.H2132},
+		{`parçalayıcı_yükle("` + filepath.ToSlash(d) + `")`, messages.H5610},
+		{`parçalayıcı_yükle("` + unsupported + `")`, messages.H5614},
+		{`parçalayıcı_yükle("` + risky + `")`, messages.H5615},
+		{`parçalayıcı_yükle("` + broken + `")`, messages.H5619},
+		{`parçalayıcı_yükle(5)`, messages.H5609},
+		{`parçalayıcı_yükle("` + bpePath + `").kodla(5)`, messages.H5630},
+		{`parçalayıcı_yükle("` + bpePath + `").kodla(["a", 1])`, messages.H5631},
+		{`parçalayıcı_yükle("` + bpePath + `").kodla("a", özel_parçlar: doğru)`, messages.H7900},
+		{`parçalayıcı_yükle("` + bpePath + `").kodla("a", özel_parçalar: 1)`, messages.H7905},
+		{`parçalayıcı_yükle("` + bpePath + `").kodla(["a"], ikinci: ["b", "c"])`, messages.H5628},
+		{`parçalayıcı_yükle("` + bpePath + `").çöz([1, "a"])`, messages.H5639},
+		{`parçalayıcı_yükle("` + bpePath + `").çöz(tensör([[[1]]]))`, messages.H5636},
+		{`parçalayıcı_yükle("` + bpePath + `").çözz([1])`, messages.H7903},
 	}
 	for _, dd := range cases {
 		_, err := run(t, dd.code)
-		if err == nil || !strings.Contains(err.Error(), dd.want) {
-			t.Errorf("%s\n hata: %v\n beklenen: %q", dd.code, err, dd.want)
+		if !messages.Has(err, dd.want) {
+			t.Errorf("%s\n hata: %v\n beklenen: %s", dd.code, err, dd.want)
 		}
 	}
 }

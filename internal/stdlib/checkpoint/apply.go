@@ -9,6 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
@@ -21,23 +22,23 @@ func (kn *Checkpoint) apply(m *interp.VM, fn string, o *loadedCkpt) error {
 	for _, n := range kn.objects {
 		if n.kind == kindStateful {
 			if err := n.stateful.LoadState(m, o.objects[n.name].value.(*interp.DictVal)); err != nil {
-				return fmt.Errorf("%s: %q: %v", fn, n.name, err)
+				return messages.New(messages.H7401, fn, n.name, err)
 			}
 		}
 	}
 	states, err := kn.loadTensors(o)
 	if err != nil {
-		return fmt.Errorf("%s: %q yüklenemedi: %v", fn, kn.shown+"/"+o.name, err)
+		return messages.New(messages.H7402, fn, kn.shown+"/"+o.name, err)
 	}
 	for _, n := range kn.objects {
 		switch n.kind {
 		case kindOptimizer:
-			if err := n.op.LoadState(fmt.Sprintf("%s: %q", fn, n.name), states[n.name]); err != nil {
+			if err := n.op.LoadState(messages.Text(messages.H7441, fn, n.name), states[n.name]); err != nil {
 				return err
 			}
 		case kindPlain:
 			if err := refreshInPlace(n.name, n.value, o.objects[n.name].value); err != nil {
-				return fmt.Errorf("%s: %v", fn, err)
+				return messages.New(messages.H2000, fn, err)
 			}
 		case kindLog:
 			kn.writeLogResume(m, fn, n, o)
@@ -76,7 +77,7 @@ func (kn *Checkpoint) loadTensors(o *loadedCkpt) (map[string]map[string]*tensor.
 			return nil
 		})
 		return true
-	}, func(r any) error { return fmt.Errorf("%v", r) })
+	}, panicError)
 	if err == nil {
 		err = walkErr
 	}
@@ -87,11 +88,11 @@ func (kn *Checkpoint) loadTensors(o *loadedCkpt) (map[string]map[string]*tensor.
 // kesilmiş) uyarır.
 func (kn *Checkpoint) writeLogResume(m *interp.VM, fn string, n *object, o *loadedCkpt) {
 	if u, err := n.log.Len(); err == nil && u < o.objects[n.name].record.Length {
-		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %q günlüğü kayıttakinden kısa (%d bayt, kayıtta %d); günlük silinmiş ya da kesilmiş olabilir\n",
-			fn, n.name, u, o.objects[n.name].record.Length))
+		m.WriteOutput(m.Err, messages.Text(messages.H7403,
+			fn, n.name, u, o.objects[n.name].record.Length)+"\n")
 	}
 	if err := n.log.WriteResume(o.step); err != nil {
-		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %q günlüğüne devam kaydı yazılamadı: %v\n", fn, n.name, err))
+		m.WriteOutput(m.Err, messages.Text(messages.H7404, fn, n.name, err)+"\n")
 	}
 }
 
@@ -132,6 +133,6 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 		return
 	}
 	slices.Sort(diffs)
-	m.WriteOutput(m.Err, fmt.Sprintf("Not: %s: komut satırı ayarları kayıttakinden farklı (%s); bilerek değiştirdiyseniz sorun yok\n",
-		codes.Name(codes.T702), strings.Join(diffs, ", ")))
+	m.WriteOutput(m.Err, messages.Text(messages.H7405,
+		codes.Name(codes.T702), strings.Join(diffs, ", "))+"\n")
 }

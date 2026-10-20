@@ -46,7 +46,7 @@ func (n *Object) Type() interp.ValueType { return interp.ValueType(TypeName) }
 func (n *Object) IsTruthy() bool         { return true }
 
 func (n *Object) Inspect() string {
-	return fmt.Sprintf("%s(dağarcık %d, %s)", TypeName, n.p.VocabSize(), filepath.Base(n.path))
+	return messages.Text(messages.H5600, TypeName, n.p.VocabSize(), filepath.Base(n.path))
 }
 
 // WatchKind İzleme Masası'nda ikon seçimi için türdür.
@@ -54,24 +54,24 @@ func (n *Object) WatchKind() string { return "diger" }
 
 // WatchLabel tip sütununda gösterilen özettir.
 func (n *Object) WatchLabel() string {
-	return fmt.Sprintf("%s (dağarcık %d)", TypeName, n.p.VocabSize())
+	return messages.Text(messages.H5601, TypeName, n.p.VocabSize())
 }
 
 // TableData dağarcığa eklenmiş parçaları (özel parçalar dahil) tablo olarak verir.
 func (n *Object) TableData() ([]string, [][]string, error) {
 	extras := n.p.AddedTokens()
 	if len(extras) == 0 {
-		return nil, nil, fmt.Errorf("bu parçalayıcıda eklenmiş (özel) parça yok; dağarcık boyutu %d", n.p.VocabSize())
+		return nil, nil, messages.New(messages.H5602, n.p.VocabSize())
 	}
 	var satirlar [][]string
 	for _, e := range extras {
-		special := "hayır"
+		special := messages.Text(messages.H5603)
 		if e.Special {
-			special = "evet"
+			special = messages.Text(messages.H5604)
 		}
 		satirlar = append(satirlar, []string{fmt.Sprint(e.ID), e.Content, special})
 	}
-	return []string{"Kimlik", "Parça", "Özel"}, satirlar, nil
+	return []string{messages.Text(messages.H5605), messages.Text(messages.H5606), messages.Text(messages.H5607)}, satirlar, nil
 }
 
 // Parçalayıcı üyeleri (adları kod listesinde, internal/lang/codes Y61x).
@@ -124,11 +124,11 @@ func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (int
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(yol) 1 parametre bekler, %d verildi", fn, len(args))
+		return nil, messages.New(messages.H5608, fn, len(args))
 	}
 	raw, ok, pathErr := interp.PathArg(fn, args[0])
 	if !ok {
-		return nil, fmt.Errorf("%s: yol bir metin olmalıdır (ör. \"tokenizer.json\"), %s verildi", fn, args[0].Type())
+		return nil, messages.New(messages.H5609, fn, args[0].Type())
 	}
 	if pathErr != nil {
 		return nil, pathErr
@@ -148,11 +148,10 @@ func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (int
 	}
 	if info.IsDir() {
 		candidate := filepath.Join(path, "tokenizer.json")
-		extra := ""
 		if _, e := os.Stat(candidate); e == nil {
-			extra = fmt.Sprintf("; bu klasörde tokenizer.json var: %s(%q) deneyin", fn, filepath.ToSlash(filepath.Join(raw, "tokenizer.json")))
+			return nil, messages.New(messages.H5611, fn, raw, filepath.ToSlash(filepath.Join(raw, "tokenizer.json")))
 		}
-		return nil, fmt.Errorf("%s: %q bir klasör; tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin%s", fn, raw, extra)
+		return nil, messages.New(messages.H5610, fn, raw)
 	}
 	writeWarnings(path, p)
 	return &Object{p: p, path: path}, nil
@@ -162,33 +161,33 @@ func loadError(path string, err error, tried []string) error {
 	fn := codes.Name(codes.V200)
 	if bind.IsNotExist(err) {
 		return turkish.FileError(fn, path, messages.H2107, err,
-			"tokenizer.json biçimindeki parçalayıcı dosyasının yolunu verin", interp.SearchedPlaces(tried))
+			messages.Text(messages.H5612), interp.SearchedPlaces(tried))
 	}
 	msg := err.Error()
 	switch {
 	case strings.Contains(msg, "desteklenmeyen"):
-		msg = strings.Replace(msg, "desteklenmeyen", "parçalayıcı türü desteklenmiyor:", 1)
-		return fmt.Errorf("%s: %q yüklenemedi, %s", fn, path, msg)
+		msg = strings.Replace(msg, "desteklenmeyen", messages.Text(messages.H5613), 1)
+		return messages.New(messages.H5614, fn, path, msg)
 	case strings.Contains(msg, "reddedildi"):
 		msg = strings.Replace(msg, " (izin için DuzIfadeAyarlari.RiskliDesenIzni)", "", 1)
-		return fmt.Errorf("%s: %q yüklenemedi: %s; bu desen kötü niyetli bir metinde üstel süre harcayabileceği için güvenlik gereği kabul edilmiyor (desenin iç içe sınırsız niceleyici içermeyen bir biçimini kullanın)", fn, path, msg)
+		return messages.New(messages.H5615, fn, path, msg)
 	case strings.Contains(msg, "JSON"):
-		detail := "dosya JSON olarak okunamadı"
+		detail := messages.Text(messages.H5616)
 		var se *json.SyntaxError
 		var te *json.UnmarshalTypeError
 		if errors.As(err, &se) {
-			detail = fmt.Sprintf("%d. baytta JSON sözdizimi hatası", se.Offset)
+			detail = messages.Text(messages.H5617, se.Offset)
 		} else if errors.As(err, &te) {
-			detail = fmt.Sprintf("JSON yapısı beklenen biçimde değil (%q alanı)", te.Field)
+			detail = messages.Text(messages.H5618, te.Field)
 		}
-		return fmt.Errorf("%s: %q geçerli bir tokenizer.json dosyası değil: %s", fn, path, detail)
+		return messages.New(messages.H5619, fn, path, detail)
 	}
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
 		return turkish.FileError(fn, path, messages.H2107, err)
 	}
-	return fmt.Errorf("%s: %q yüklenemedi: %s", fn, path, msg)
+	return messages.New(messages.H5620, fn, path, msg)
 }
 
 func writeWarnings(path string, p *tokenize.Tokenizer) {
@@ -203,7 +202,7 @@ func writeWarnings(path string, p *tokenize.Tokenizer) {
 	if _, written := warned.LoadOrStore(key, true); written {
 		return
 	}
-	fmt.Fprintf(os.Stderr, "Uyarı: parçalayıcı %q düzenli ifadelerinde riskli desen var (bazı metinlerde yavaşlayabilir; adım sınırı aşılırsa kodlama hata verir):\n", filepath.Base(path))
+	fmt.Fprintln(os.Stderr, messages.Text(messages.H5621, filepath.Base(path)))
 	for _, x := range u {
 		fmt.Fprintf(os.Stderr, "  - %s\n", x)
 	}
@@ -224,14 +223,14 @@ const longText = 1 << 16
 func stepError(fn string, err error) error {
 	var ah *tokenize.StepLimitError
 	if errors.As(err, &ah) && ah.Memory {
-		return fmt.Errorf("%s: parçalayıcının düzenli ifadesi %q bu metinde geri izleme belleği sınırını aştı (aramanın başladığı bayt: %d); desen çok uzun bir yinelemeyi geri izlenebilir tutuyor ve işlem güvenlik için durduruldu. Metni daha küçük parçalara bölmeyi ya da olağan dışı uzun tekrarları temizlemeyi deneyin",
+		return messages.New(messages.H5622,
 			fn, ah.Pattern, ah.Pos)
 	}
 	if ah != nil {
-		return fmt.Errorf("%s: parçalayıcının düzenli ifadesi %q bu metinde adım sınırını (%d adım) aştı (aramanın başladığı bayt: %d); desen bu girdide aşırı geri izleme yapıyor ve işlem güvenlik için durduruldu. Metni daha küçük parçalara bölmeyi ya da olağan dışı uzun tekrarları (ör. binlerce aynı karakter) temizlemeyi deneyin",
+		return messages.New(messages.H5623,
 			fn, ah.Pattern, ah.Budget, ah.Pos)
 	}
-	return fmt.Errorf("%s: %v", fn, err)
+	return messages.New(messages.H2000, fn, err)
 }
 
 func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
@@ -240,7 +239,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(metin) 1 parametre bekler (metin ya da metin listesi), %d verildi", fn, len(args))
+		return nil, messages.New(messages.H5624, fn, len(args))
 	}
 	var pick tokenize.Options
 	if v, ok := bind.GetNamed(named, nameSpecial); ok {
@@ -257,7 +256,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		if hasSecond {
 			ik, ok := secondV.(*interp.StringVal)
 			if !ok {
-				return nil, fmt.Errorf("%s: tek metinle %s: de bir metin olmalıdır, %s verildi", fn, nameSecond.TR, secondV.Type())
+				return nil, messages.New(messages.H5625, fn, nameSecond.TR, secondV.Type())
 			}
 			var k *tokenize.Encoding
 			var err error
@@ -275,7 +274,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		}
 		return idList(ids), nil
 	case *interp.ListVal:
-		texts, err := stringList(fn, "metin listesi", x)
+		texts, err := stringList(fn, messages.Text(messages.H5626), x)
 		if err != nil {
 			return nil, err
 		}
@@ -283,13 +282,13 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		if hasSecond {
 			il, ok := secondV.(*interp.ListVal)
 			if !ok {
-				return nil, fmt.Errorf("%s: metin listesiyle %s: de aynı uzunlukta bir metin listesi olmalıdır, %s verildi", fn, nameSecond.TR, secondV.Type())
+				return nil, messages.New(messages.H5627, fn, nameSecond.TR, secondV.Type())
 			}
 			if seconds, err = stringList(fn, nameSecond.TR, il); err != nil {
 				return nil, err
 			}
 			if len(seconds) != len(texts) {
-				return nil, fmt.Errorf("%s: %s: listesi %d metin içeriyor, birinci liste %d; çiftler eşit uzunlukta olmalı", fn, nameSecond.TR, len(seconds), len(texts))
+				return nil, messages.New(messages.H5628, fn, nameSecond.TR, len(seconds), len(texts))
 			}
 		}
 		var result [][]int
@@ -311,7 +310,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		})
 		for i, h := range errs {
 			if h != nil {
-				return nil, stepError(fmt.Sprintf("kodla (listenin %d. metni)", i+1), h)
+				return nil, stepError(messages.Text(messages.H5629, fn, i+1), h)
 			}
 		}
 		elems := make([]interp.Value, len(result))
@@ -320,7 +319,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		}
 		return &interp.ListVal{Elements: elems}, nil
 	}
-	return nil, fmt.Errorf("kodla: bir metin ya da metin listesi bekler, %s verildi", args[0].Type())
+	return nil, messages.New(messages.H5630, fn, args[0].Type())
 }
 
 // maybeRelease uzun metinlerde işi yorumlayıcı kilidini bırakarak yapar.
@@ -337,7 +336,7 @@ func stringList(fn, what string, l *interp.ListVal) ([]string, error) {
 	for i, e := range l.Elements {
 		s, ok := e.(*interp.StringVal)
 		if !ok {
-			return nil, fmt.Errorf("%s: %s yalnızca metin içermeli; %d. eleman %s", fn, what, i+1, e.Type())
+			return nil, messages.New(messages.H5631, fn, what, i+1, e.Type())
 		}
 		out[i] = s.Val
 	}
@@ -421,7 +420,7 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(kimlikler) 1 parametre bekler (kimlik listesi, listelerin listesi ya da tensör), %d verildi", fn, len(args))
+		return nil, messages.New(messages.H5632, fn, len(args))
 	}
 	// Varsayılan, başvuru kütüphanesininki gibi özel parçaları ATLAMAKTIR;
 	// özel_parçalar: doğru onları da çıktıya yazar.
@@ -456,7 +455,7 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 			if single {
 				return nil, stepError(fn, h)
 			}
-			return nil, stepError(fmt.Sprintf("çöz (%d. dizi)", i+1), h)
+			return nil, stepError(messages.Text(messages.H5633, fn, i+1), h)
 		}
 	}
 	if single {
@@ -483,9 +482,9 @@ func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
 			for i, e := range x.Elements {
 				l, ok := e.(*interp.ListVal)
 				if !ok {
-					return nil, false, fmt.Errorf("%s: listelerin listesinde %d. eleman liste değil (%s)", fn, i+1, e.Type())
+					return nil, false, messages.New(messages.H5634, fn, i+1, e.Type())
 				}
-				if seqs[i], err = intList(fmt.Sprintf("%d. listenin", i+1), l.Elements); err != nil {
+				if seqs[i], err = intList(messages.Text(messages.H5635, i+1), l.Elements); err != nil {
 					return nil, false, err
 				}
 			}
@@ -501,12 +500,12 @@ func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
 		sh := t.Shape()
 		data := t.Data()
 		if len(sh) > 2 {
-			return nil, false, fmt.Errorf("%s: tensör 1 boyutlu (tek dizi) ya da 2 boyutlu (dizi listesi) olmalıdır, %d boyutlu verildi", fn, len(sh))
+			return nil, false, messages.New(messages.H5636, fn, len(sh))
 		}
 		ids := make([]int, len(data))
 		for i, f := range data {
 			if float32(int(f)) != f {
-				return nil, false, fmt.Errorf("%s: tensördeki kimlikler tam sayı olmalıdır, %v bulundu", fn, f)
+				return nil, false, messages.New(messages.H5637, fn, f)
 			}
 			ids[i] = int(f)
 		}
@@ -519,7 +518,7 @@ func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
 		}
 		return seqs, false, nil
 	}
-	return nil, false, fmt.Errorf("%s: kimlik listesi, listelerin listesi ya da tensör bekler, %s verildi", fn, v.Type())
+	return nil, false, messages.New(messages.H5638, fn, v.Type())
 }
 
 func intList(what string, elems []interp.Value) ([]int, error) {
@@ -527,7 +526,7 @@ func intList(what string, elems []interp.Value) ([]int, error) {
 	for i, e := range elems {
 		n, ok := bind.Int(e)
 		if !ok {
-			return nil, fmt.Errorf("çöz: kimlikler tam sayı olmalıdır; %s %d. elemanı %s", what, i+1, e.Inspect())
+			return nil, messages.New(messages.H5639, codes.Name(memberDecode), what, i+1, e.Inspect())
 		}
 		out[i] = int(n)
 	}
@@ -543,11 +542,11 @@ func (n *Object) tokenID(_ *interp.VM, args []interp.Value, named map[string]int
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, fmt.Errorf("%s(parça) 1 parametre bekler, %d verildi", codes.Name(codes.Y613), len(args))
+		return nil, messages.New(messages.H5640, codes.Name(codes.Y613), len(args))
 	}
 	s, ok := args[0].(*interp.StringVal)
 	if !ok {
-		return nil, fmt.Errorf("%s: parça bir metin olmalıdır (ör. \"<|endoftext|>\"), %s verildi", codes.Name(codes.Y613), args[0].Type())
+		return nil, messages.New(messages.H5641, codes.Name(codes.Y613), args[0].Type())
 	}
 	id, ok := n.p.TokenToID(s.Val)
 	if !ok {

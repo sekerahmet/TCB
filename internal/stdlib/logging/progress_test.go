@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
@@ -53,7 +54,7 @@ değişken ç = ilerleme(100, günlük: g)`); err != nil {
 		t.Errorf("bitiş kaydı: %v", b)
 	}
 	// Bitmiş çubuk güncellenemez; durdur yanlış döner.
-	if _, err := run(t, m, `ç.güncelle()`); err == nil || !strings.Contains(err.Error(), "çubuk bitti (adım 100/100)") {
+	if _, err := run(t, m, `ç.güncelle()`); !messages.Has(err, messages.H7316) {
 		t.Errorf("bitmiş çubukta hata bekleniyordu: %v", err)
 	}
 	if v, _ := run(t, m, `ç.durdur()`); v != interp.FALSE {
@@ -72,19 +73,25 @@ func TestProgressStepAndErrors(t *testing.T) {
 	if err != nil || v.Inspect() != "İlerleme(adım 8/10)" {
 		t.Fatalf("adım: ile sürdürme: %v %v", v, err)
 	}
-	for _, d := range []struct{ code, want string }{
-		{`ç.güncelle(adım: 11)`, "11 toplam adım sayısından (10) büyük olamaz"},
-		{`ç.güncelle(adım: -1)`, "0 ya da pozitif"},
-		{`ç.güncelle({adım: 3})`, "'adım' adı günlük biçimine ayrılmış"},
-		{`ç.güncelle({hız: 3})`, "'hız' adı günlük biçimine ayrılmış"},
-		{`ç.güncelle(5)`, "1. argüman olarak Sözlük bekler"},
-		{`ilerleme(0)`, "pozitif olmalı"},
-		{`ilerleme(10, günlük: 5)`, "bir Günlük olmalı"},
-		{`ç.durdur(1)`, "0 argüman bekler"},
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{`ç.güncelle(adım: 11)`, messages.H7317},
+		{`ç.güncelle(adım: -1)`, messages.H7315},
+		{`ç.güncelle({adım: 3})`, messages.H7321},
+		{`ç.güncelle({hız: 3})`, messages.H7321},
+		{`ilerleme(0)`, messages.H7313},
+		{`ilerleme(10, günlük: 5)`, messages.H7314},
+		{`ç.durdur(1)`, messages.H2012},
 	} {
-		if _, err := run(t, m, d.code); err == nil || !strings.Contains(err.Error(), d.want) {
-			t.Errorf("%s: %q içeren hata bekleniyordu: %v", d.code, d.want, err)
+		if _, err := run(t, m, d.code); !messages.Has(err, d.want) {
+			t.Errorf("%s: %s hatası bekleniyordu: %v", d.code, d.want, err)
 		}
+	}
+	// Argüman tipi hatası henüz kodlu değil (interp).
+	if _, err := run(t, m, `ç.güncelle(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak Sözlük bekler") {
+		t.Errorf("argüman tipi hatası bekleniyordu: %v", err)
 	}
 	// Toplamsız sayaç: kalan süre yerine geçen süre.
 	if v, err := run(t, m, `değişken s = ilerleme()

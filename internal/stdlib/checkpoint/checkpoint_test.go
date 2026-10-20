@@ -15,6 +15,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib"
@@ -256,7 +257,7 @@ yazdır("sonuçlar:", sonuçlar)
 	}
 	checkLeftovers(t, runDir)
 	output, err = runHooked(t, hooks(program(12, "8, 9, 10")), &broken)
-	if err == nil || !strings.Contains(err.Error(), "art arda 3 kez kaydedilemedi, eğitim durduruldu") || !strings.Contains(err.Error(), "Son geçerli nokta: adım 7") {
+	if !messages.Has(err, messages.H7412) || !strings.Contains(err.Error(), "Son geçerli nokta: adım 7") {
 		t.Fatalf("üçüncü başarısızlık açık hata vermeliydi: %v\n%s", err, output)
 	}
 	if !strings.Contains(output, "Kaldığı yerden devam: adım 6") {

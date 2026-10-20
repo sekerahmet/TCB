@@ -38,12 +38,20 @@ var rename = os.Rename
 // konmuş): yazma hatası değildir, yeniden denemekle geçmez; hemen bildirilir.
 type collectError struct{ error }
 
+// panicValue çekirdekten gelen bir paniğin (ör. cihaz belleği) hatasıdır; metin paniğin
+// kendi iletisidir (fmt.Errorf("%v", r) ile aynı).
+type panicValue struct{ v any }
+
+func (p panicValue) Error() string { return fmt.Sprint(p.v) }
+
+func panicError(r any) error { return panicValue{r} }
+
 // save noktayı kn.adim adımıyla yazar ve kullanıcıya gösterilecek yolunu verir.
 func (kn *Checkpoint) save(m *interp.VM) (string, error) {
 	fn := codes.Name(codes.T702)
 	state, plan, err := kn.collect(m)
 	if err != nil {
-		return "", collectError{fmt.Errorf("%s: %v", fn, err)}
+		return "", collectError{messages.New(messages.H2000, fn, err)}
 	}
 	name := ckptName(kn.step)
 	shown := kn.shown + "/" + name
@@ -51,14 +59,14 @@ func (kn *Checkpoint) save(m *interp.VM) (string, error) {
 	if _, err = bind.Recover(func() bool {
 		writeErr = kn.writeCkpt(name, state, plan)
 		return true
-	}, func(r any) error { return fmt.Errorf("%v", r) }); err == nil {
+	}, panicError); err == nil {
 		err = writeErr
 	}
 	if err != nil {
 		var extras []string
 		var le *os.LinkError
 		if errors.As(err, &le) {
-			extras = append(extras, "ağ ve bulut sürücülerinde (ör. bağlanmış Drive) yeniden adlandırma başarısız olabilir: noktaları yerel diske kaydedip koşu klasörünü ara ara oraya kopyalayın")
+			extras = append(extras, messages.Text(messages.H7480))
 		}
 		return "", turkish.FileError(fn, shown, messages.H2102, err, extras...)
 	}
@@ -66,10 +74,10 @@ func (kn *Checkpoint) save(m *interp.VM) (string, error) {
 	if err := interp.WriteAtomic(filepath.Join(kn.dir, latestFile), func(w io.Writer) error {
 		return json.NewEncoder(w).Encode(latestRecord{Version: formatVersion, Step: kn.step, Dir: name})
 	}); err != nil {
-		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: %s güncellenemedi (nokta kaydedildi; yükleme klasörlere bakar): %v\n", fn, latestFile, turkish.FileErrorReason(latestFile, err)))
+		m.WriteOutput(m.Err, messages.Text(messages.H7481, fn, latestFile, turkish.FileErrorReason(latestFile, err))+"\n")
 	}
 	if err := kn.deleteOld(name); err != nil {
-		m.WriteOutput(m.Err, fmt.Sprintf("Uyarı: %s: eski noktalar silinemedi: %v\n", fn, turkish.FileErrorReason(kn.shown, err)))
+		m.WriteOutput(m.Err, messages.Text(messages.H7482, fn, turkish.FileErrorReason(kn.shown, err))+"\n")
 	}
 	return shown, nil
 }
@@ -270,7 +278,7 @@ func readLimited(fpath string, limit int64) ([]byte, error) {
 		return nil, err
 	}
 	if n > limit {
-		return nil, fmt.Errorf("%s çok büyük (en çok %d bayt)", filepath.Base(fpath), limit)
+		return nil, messages.New(messages.H7483, filepath.Base(fpath), limit)
 	}
 	return b.Bytes(), nil
 }

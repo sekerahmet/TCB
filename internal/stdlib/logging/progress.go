@@ -11,6 +11,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
@@ -71,11 +72,10 @@ func (c *Progress) IsTruthy() bool         { return true }
 func (c *Progress) Inspect() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	pad := ""
 	if c.stopped {
-		pad = ", bitti"
+		return messages.Text(messages.H7312, ProgressType, c.stepText())
 	}
-	return fmt.Sprintf("%s(%s%s)", ProgressType, c.stepText(), pad)
+	return fmt.Sprintf("%s(%s)", ProgressType, c.stepText())
 }
 
 func (c *Progress) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
@@ -92,7 +92,7 @@ func (c *Progress) GetProperty(kd codes.Code, prop string) (interp.Value, error)
 			return interp.BoolToVal(c.finish(clock())), nil
 		}}, nil
 	}
-	return nil, memberError(string(ProgressType), prop, codes.Y010, codes.Y011)
+	return nil, bind.MemberError(string(ProgressType), prop, codes.Names(codes.Y010, codes.Y011))
 }
 
 // openProgress ilerleme(toplam, günlük: g) yerleşiğidir.
@@ -111,7 +111,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 			return nil, interp.ArgTypeError(codes.G811, 1, args[0], codes.A200, codes.A204)
 		}
 		if n <= 0 {
-			return nil, fmt.Errorf("%s: toplam adım sayısı pozitif olmalı, %d verildi (toplamsız bir sayaç için %s verin ya da argümansız çağırın)", fn, n, codes.Name(codes.A042))
+			return nil, messages.New(messages.H7313, fn, n, codes.Name(codes.A042))
 		}
 		total = n
 	}
@@ -119,7 +119,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 	if v, ok := bind.GetNamed(named, nameLog); ok && v != interp.NULL {
 		g, ok := v.(*Log)
 		if !ok {
-			return nil, fmt.Errorf("%s: %s: bir %s olmalı (%s(...) ile açılır), %s verildi", fn, nameLog.TR, LogType, codes.Name(codes.G810), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H7314, fn, nameLog.TR, LogType, codes.Name(codes.G810), interp.TypeAndSummary(v))
 		}
 		c.log = g
 		g.setTotal(total)
@@ -185,7 +185,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 	if v, ok := bind.GetNamed(named, nameStep); ok {
 		n, ok := bind.Int(v)
 		if !ok || n < 0 {
-			return nil, fmt.Errorf("%s: %s: 0 ya da pozitif bir %s olmalı (tamamlanan adım sayısı), %s verildi", fn, nameStep.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H7315, fn, nameStep.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))
 		}
 		newStep = n
 	}
@@ -210,7 +210,7 @@ func (c *Progress) advance(fn string, now time.Time, newStep int64, metrics []me
 	if c.stopped {
 		text := c.stepText()
 		c.mu.Unlock()
-		return false, fmt.Errorf("%s: çubuk bitti (%s); devam etmek için yeni bir %s(...) açın", fn, text, codes.Name(codes.G811))
+		return false, messages.New(messages.H7316, fn, text, codes.Name(codes.G811))
 	}
 	measure := true
 	switch {
@@ -218,7 +218,7 @@ func (c *Progress) advance(fn string, now time.Time, newStep int64, metrics []me
 		c.step++
 	case c.total > 0 && newStep > c.total:
 		c.mu.Unlock()
-		return false, fmt.Errorf("%s: %s: %d toplam adım sayısından (%d) büyük olamaz", fn, nameStep.TR, newStep, c.total)
+		return false, messages.New(messages.H7317, fn, nameStep.TR, newStep, c.total)
 	case newStep < c.step || (!c.advanced && newStep != c.step+1):
 		// Sıçrama (ilk güncellemede kaldığı yerden sürdürme ya da geri gitme): hız sıçramadan
 		// sonra yeniden ölçülür. İleri atlamalar (her 10 adımda bir güncelleme) sıçrama değildir.
