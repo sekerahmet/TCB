@@ -124,6 +124,8 @@ return nil, messages.Internal("vector width must be 2 or 4") // iç hata: ayrın
   return csvValues(records)                              // değerler kilit altında
   ```
 
+  İstisna: işin kendisi TR değerlerinin tutarlı bir anlık görüntüsünü gerektiriyorsa kilit tutulur ve bu, işin kodunda gerekçesiyle yazılır. Bugünkü tek örnek kontrol noktasının yazılmasıdır (`stdlib/checkpoint/write.go`): tensörler tek tek konağa indirilip yazılır (modelin ikinci bir kopyası bellekte toplanmaz) ve kayıt sürerken başka bir görev modeli değiştiremez.
+
 - Paylaşılan Go durumu kilitle (`sync.Mutex`) ya da atomik alanla korunur. Yarış dedektörü tam denetimin `yaris` kipinde koşar.
 
 ## Sınırlar ve güvenilmeyen girdi
