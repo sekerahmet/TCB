@@ -201,3 +201,12 @@ func TestCustomOpSecondBackwardDuringBackward(t *testing.T) {
 	// olduğu için k2 açıkça "zaten yapıldı" hatası verir.
 	panicCode(t, "ikinci geri yayılım", messages.H3017, func() { k2.Backward() })
 }
+
+// Gradyan kapısı: kullanıcı tanımlı (dış düğümlü) işlem.
+func init() {
+	registerGrad("custom_op", gradSpec{name: "kare (dış işlem)", ops: []string{"custom"},
+		build:  func(xs []*Tensor) *Tensor { return squareCustom(xs[0]) },
+		inputs: genInputs(gen(-1, 1, 0, 2, 3)), ref: map64(func(x float64) float64 { return x * x })})
+}
+
+func TestGradCustomOp(t *testing.T) { runGradGroup(t, "custom_op") }

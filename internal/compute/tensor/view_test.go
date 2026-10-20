@@ -176,3 +176,65 @@ func TestPermuteGradCopyAndAdd(t *testing.T) {
 		return xs[0].Reshape(6, 4).T().Reshape(4, 2, 3).Mul(c).SumAll()
 	}, x)
 }
+
+// ============================================================================
+// Gradyan kapısı: görünümler ve kopyalar (reshape, permute, slice, contiguous, clone)
+// ============================================================================
+
+// permute64 düz veriyi dims sırasına çevirir (çıktı eksen i = girdi eksen dims[i]).
+func permute64(shape, dims []int) refFn {
+	st := strides64(shape)
+	out := make([]int, len(dims))
+	for i, d := range dims {
+		out[i] = shape[d]
+	}
+	ost := strides64(out)
+	return func(in [][]float64) []float64 {
+		res := make([]float64, len(in[0]))
+		for i := range res {
+			src := 0
+			for k, d := range dims {
+				src += i / ost[k] % out[k] * st[d]
+			}
+			res[i] = in[0][src]
+		}
+		return res
+	}
+}
+
+// slice64 axis boyunca [start,end) aralığını step adımıyla alır.
+func slice64(shape []int, axis, start, end, step int) refFn {
+	outer, n, inner := numelOf(shape[:axis]), shape[axis], numelOf(shape[axis+1:])
+	return func(in [][]float64) []float64 {
+		var res []float64
+		for o := 0; o < outer; o++ {
+			for a := start; a < end; a += step {
+				res = append(res, in[0][(o*n+a)*inner:(o*n+a+1)*inner]...)
+			}
+		}
+		return res
+	}
+}
+
+func identity64(in [][]float64) []float64 { return append([]float64(nil), in[0]...) }
+
+func init() {
+	v := func(name, op string, f func(*Tensor) *Tensor, ref refFn, shape ...int) gradSpec {
+		return gradSpec{name: name, ops: []string{op}, build: func(xs []*Tensor) *Tensor { return f(xs[0]) },
+			inputs: genInputs(gen(-1, 1, 0, shape...)), ref: ref}
+	}
+	tr := permute64([]int{3, 2}, []int{1, 0})
+	registerGrad("view",
+		v("reshape", "reshape", func(x *Tensor) *Tensor { return x.Reshape(3, -1) }, identity64, 2, 6),
+		v("squeeze unsqueeze", "reshape", func(x *Tensor) *Tensor { return x.Unsqueeze(0).Squeeze(0) }, identity64, 3),
+		v("devrik reshape", "reshape", func(x *Tensor) *Tensor { return x.T().Reshape(6) }, permute64([]int{2, 3}, []int{1, 0}), 2, 3),
+		v("permute", "permute", func(x *Tensor) *Tensor { return x.Permute(2, 0, 1) }, permute64([]int{2, 3, 4}, []int{2, 0, 1}), 2, 3, 4),
+		v("transpose", "permute", func(x *Tensor) *Tensor { return x.Transpose(0, 1) }, tr, 3, 2),
+		v("slice", "slice", func(x *Tensor) *Tensor { return x.Slice(1, 1, 3) }, slice64([]int{2, 4, 3}, 1, 1, 3, 1), 2, 4, 3),
+		v("slice adımlı", "slice", func(x *Tensor) *Tensor { return x.SliceStep(0, 0, 5, 2) }, slice64([]int{5, 2}, 0, 0, 5, 2), 5, 2),
+		v("split", "slice", func(x *Tensor) *Tensor { return x.Split(3, 1)[1] }, slice64([]int{2, 6}, 1, 2, 4, 1), 2, 6),
+		v("contiguous", "contiguous", func(x *Tensor) *Tensor { return x.T().Contiguous() }, tr, 3, 2),
+		v("clone", "clone", (*Tensor).Clone, identity64, 3, 4))
+}
+
+func TestGradView(t *testing.T) { runGradGroup(t, "view") }

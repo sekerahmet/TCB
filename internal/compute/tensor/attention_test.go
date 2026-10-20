@@ -452,3 +452,104 @@ func TestAttentionOutputChangedInPlace(t *testing.T) {
 	y.Set(100, 0, 0)
 	panicCode(t, "dikkat çıktısı", messages.H3012, func() { y.SumAll().Backward() })
 }
+
+// ============================================================================
+// Gradyan kapısı: birleşik dikkat (float64 başvuru + bf16)
+// ============================================================================
+
+// attention64 q [B,H,Tq,Dh], k [B,Hkv,Tk,Dh], v [B,Hkv,Tk,Dv] için softmax(q·kᵀ·ölçek)·v
+// başvurusudur; bakılabilen aralık belgedeki kurala göre (sondan hizalı nedensellik,
+// pencere, 0/1 maske) bulunur. Hiçbir anahtara bakamayan satırın çıktısı 0'dır.
+func attention64(p AttentionParams, mask []float64) refFn {
+	return func(in [][]float64) []float64 {
+		q, k, v := in[0], in[1], in[2]
+		group := p.H / p.Hkv
+		res := make([]float64, p.Batch*p.H*p.Tq*p.Dv)
+		for b := 0; b < p.Batch; b++ {
+			for h := 0; h < p.H; h++ {
+				kv := b*p.Hkv + h/group
+				for i := 0; i < p.Tq; i++ {
+					pos := p.Tk - p.Tq + i
+					lo, hi := 0, p.Tk
+					if p.Causal {
+						hi = pos + 1
+					} else if p.Window > 0 {
+						hi = min(p.Tk, pos+p.Window)
+					}
+					if p.Window > 0 {
+						lo = max(0, pos-p.Window+1)
+					}
+					var sc []float64
+					for j := lo; j < hi; j++ {
+						if mask != nil && mask[i*p.Tk+j] == 0 {
+							sc = append(sc, math.Inf(-1))
+							continue
+						}
+						var s float64
+						for d := 0; d < p.Dh; d++ {
+							s += q[((b*p.H+h)*p.Tq+i)*p.Dh+d] * k[(kv*p.Tk+j)*p.Dh+d]
+						}
+						sc = append(sc, s*float64(p.Scale))
+					}
+					attendRow64(res[((b*p.H+h)*p.Tq+i)*p.Dv:][:p.Dv], sc, lo, v[kv*p.Tk*p.Dv:], p.Dv)
+				}
+			}
+		}
+		return res
+	}
+}
+
+// attendRow64 puanların softmax'ını alıp değer satırlarının ağırlıklı toplamını out'a yazar.
+func attendRow64(out, sc []float64, lo int, v []float64, dv int) {
+	m := math.Inf(-1)
+	for _, s := range sc {
+		m = math.Max(m, s)
+	}
+	if math.IsInf(m, -1) {
+		return
+	}
+	var z float64
+	for _, s := range sc {
+		z += math.Exp(s - m)
+	}
+	for jj, s := range sc {
+		w := math.Exp(s-m) / z
+		for d := 0; d < dv; d++ {
+			out[d] += w * v[(lo+jj)*dv+d]
+		}
+	}
+}
+
+func init() {
+	att := func(name string, p AttentionParams, opt AttentionOptions, mask []float64) gradSpec {
+		sq := []int{p.Batch, p.H, p.Tq, p.Dh}
+		sk := []int{p.Batch, p.Hkv, p.Tk, p.Dh}
+		sv := []int{p.Batch, p.Hkv, p.Tk, p.Dv}
+		if p.Batch == 1 && p.H == 1 { // tek başlı 2 boyutlu biçim
+			sq, sk, sv = sq[2:], sk[2:], sv[2:]
+		}
+		p.Causal, p.Window = opt.Causal, opt.Window
+		p.Scale = opt.Scale
+		if p.Scale == 0 {
+			p.Scale = float32(1 / math.Sqrt(float64(p.Dh)))
+		}
+		return gradSpec{name: name, ops: []string{"attention"},
+			build:  func(xs []*Tensor) *Tensor { return Attention(xs[0], xs[1], xs[2], opt) },
+			inputs: genInputs(gen(-1, 1, 0, sq...), gen(-1, 1, 0, sk...), gen(-1, 1, 0, sv...)),
+			ref:    attention64(p, mask),
+			// Puanlar, softmax ve çıktı 16 bitte ara sonuç olarak yuvarlanır (~10 yuvarlama);
+			// softmax'ın üstel işlevi puan hatasını büyütür: 6e-2.
+			bf16Tol: 6e-2}
+	}
+	mask := []float64{1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1}
+	maskT := New([]float32{1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1}, 3, 5)
+	maskSpec := att("dikkat maske", AttentionParams{Batch: 1, H: 2, Hkv: 2, Tq: 3, Tk: 5, Dh: 4, Dv: 3}, AttentionOptions{Mask: maskT}, mask)
+	registerGrad("attention",
+		att("dikkat 2B", AttentionParams{Batch: 1, H: 1, Hkv: 1, Tq: 3, Tk: 5, Dh: 4, Dv: 3}, AttentionOptions{}, nil),
+		att("dikkat nedensel GQA", AttentionParams{Batch: 2, H: 2, Hkv: 1, Tq: 3, Tk: 5, Dh: 4, Dv: 3}, AttentionOptions{Causal: true}, nil),
+		att("dikkat pencere", AttentionParams{Batch: 1, H: 2, Hkv: 2, Tq: 4, Tk: 4, Dh: 4, Dv: 3}, AttentionOptions{Window: 2}, nil),
+		att("dikkat nedensel pencere ölçek", AttentionParams{Batch: 1, H: 2, Hkv: 2, Tq: 4, Tk: 4, Dh: 4, Dv: 3}, AttentionOptions{Causal: true, Window: 3, Scale: 0.7}, nil),
+		maskSpec)
+}
+
+func TestGradAttention(t *testing.T) { runGradGroup(t, "attention") }

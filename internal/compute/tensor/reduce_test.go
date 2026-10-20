@@ -3,6 +3,7 @@ package tensor
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"testing"
 )
 
@@ -77,3 +78,87 @@ func TestFullyMaskedSoftmax(t *testing.T) {
 		}
 	}
 }
+
+// ============================================================================
+// Gradyan kapısı: indirgemeler, softmax, log_softmax (float64 başvuru + bf16)
+// ============================================================================
+
+func sum64(l []float64) float64 {
+	var s float64
+	for _, v := range l {
+		s += v
+	}
+	return s
+}
+
+func max64(l []float64) float64 {
+	m := math.Inf(-1)
+	for _, v := range l {
+		m = math.Max(m, v)
+	}
+	return m
+}
+
+func logSumExp64(l []float64) float64 {
+	m := max64(l)
+	var s float64
+	for _, v := range l {
+		s += math.Exp(v - m)
+	}
+	return m + math.Log(s)
+}
+
+func init() {
+	one := func(f func([]float64) float64) func([]float64) []float64 {
+		return func(l []float64) []float64 { return []float64{f(l)} }
+	}
+	lane := func(shape []int, axis int, f func([]float64) []float64) refFn {
+		g := lanes64(shape, axis, f)
+		return func(in [][]float64) []float64 { return g(in[0]) }
+	}
+	softmax := func(l []float64) []float64 {
+		z := logSumExp64(l)
+		r := make([]float64, len(l))
+		for i, v := range l {
+			r[i] = math.Exp(v - z)
+		}
+		return r
+	}
+	logSoftmax := func(l []float64) []float64 {
+		z := logSumExp64(l)
+		r := make([]float64, len(l))
+		for i, v := range l {
+			r[i] = v - z
+		}
+		return r
+	}
+	mean := func(l []float64) float64 { return sum64(l) / float64(len(l)) }
+	spec := func(name, op string, f func(*Tensor) *Tensor, ref refFn, in func(*rand.Rand) *Tensor) gradSpec {
+		return gradSpec{name: name, ops: []string{op}, build: func(xs []*Tensor) *Tensor { return f(xs[0]) },
+			inputs: genInputs(in), ref: ref}
+	}
+	nrm := func(shape ...int) func(*rand.Rand) *Tensor { return gen(-1, 1, 0, shape...) }
+	dis := func(shape ...int) func(*rand.Rand) *Tensor {
+		return func(r *rand.Rand) *Tensor { return disjoint(r, shape...) }
+	}
+	all := func(f func([]float64) float64) refFn {
+		return func(in [][]float64) []float64 { return []float64{f(in[0])} }
+	}
+	registerGrad("reduce",
+		spec("sum eksen 0", "sum", func(x *Tensor) *Tensor { return x.Sum(0, false) }, lane([]int{3, 4}, 0, one(sum64)), nrm(3, 4)),
+		spec("sum orta eksen keepdim", "sum", func(x *Tensor) *Tensor { return x.Sum(1, true) }, lane([]int{2, 3, 4}, 1, one(sum64)), nrm(2, 3, 4)),
+		spec("sum son eksen", "sum", func(x *Tensor) *Tensor { return x.Sum(-1, false) }, lane([]int{2, 3, 4}, 2, one(sum64)), nrm(2, 3, 4)),
+		spec("mean eksen 1", "mean", func(x *Tensor) *Tensor { return x.Mean(1, false) }, lane([]int{2, 3, 4}, 1, one(mean)), nrm(2, 3, 4)),
+		spec("mean eksen 0 keepdim", "mean", func(x *Tensor) *Tensor { return x.Mean(0, true) }, lane([]int{3, 2}, 0, one(mean)), nrm(3, 2)),
+		spec("sum_all", "sum_all", (*Tensor).SumAll, all(sum64), nrm(2, 3)),
+		spec("mean_all", "mean_all", (*Tensor).MeanAll, all(mean), nrm(2, 3)),
+		spec("max son eksen", "max", func(x *Tensor) *Tensor { return x.Max(-1, false) }, lane([]int{3, 4}, 1, one(max64)), dis(3, 4)),
+		spec("max eksen 0 keepdim", "max", func(x *Tensor) *Tensor { return x.Max(0, true) }, lane([]int{3, 4}, 0, one(max64)), dis(3, 4)),
+		spec("max orta eksen", "max", func(x *Tensor) *Tensor { return x.Max(1, false) }, lane([]int{2, 3, 2}, 1, one(max64)), dis(2, 3, 2)),
+		spec("softmax son eksen", "softmax", func(x *Tensor) *Tensor { return x.Softmax(-1) }, lane([]int{3, 5}, 1, softmax), nrm(3, 5)),
+		spec("softmax eksen 0", "softmax", func(x *Tensor) *Tensor { return x.Softmax(0) }, lane([]int{3, 2, 2}, 0, softmax), nrm(3, 2, 2)),
+		spec("log_softmax son eksen", "log_softmax", func(x *Tensor) *Tensor { return x.LogSoftmax(-1) }, lane([]int{3, 5}, 1, logSoftmax), nrm(3, 5)),
+		spec("log_softmax orta eksen", "log_softmax", func(x *Tensor) *Tensor { return x.LogSoftmax(1) }, lane([]int{2, 4, 3}, 1, logSoftmax), nrm(2, 4, 3)))
+}
+
+func TestGradReduce(t *testing.T) { runGradGroup(t, "reduce") }

@@ -32,3 +32,31 @@ func TestFillNegativeZero(t *testing.T) {
 		}
 	}
 }
+
+// ============================================================================
+// Gradyan kapısı: birleştirme
+// ============================================================================
+
+func init() {
+	registerGrad("concat",
+		gradSpec{name: "concat eksen 1", ops: []string{"concat"},
+			build:  func(xs []*Tensor) *Tensor { return Concat(xs, 1) },
+			inputs: genInputs(gen(-1, 1, 0, 2, 3), gen(-1, 1, 0, 2, 2), gen(-1, 1, 0, 2, 1)),
+			ref: func(in [][]float64) []float64 {
+				var res []float64
+				for r := 0; r < 2; r++ {
+					res = append(res, in[0][r*3:r*3+3]...)
+					res = append(res, in[1][r*2:r*2+2]...)
+					res = append(res, in[2][r:r+1]...)
+				}
+				return res
+			}},
+		gradSpec{name: "concat eksen 0", ops: []string{"concat"},
+			build:  func(xs []*Tensor) *Tensor { return Concat(xs, 0) },
+			inputs: genInputs(gen(-1, 1, 0, 1, 3), gen(-1, 1, 0, 2, 3)),
+			ref: func(in [][]float64) []float64 {
+				return append(append([]float64(nil), in[0]...), in[1]...)
+			}})
+}
+
+func TestGradConcat(t *testing.T) { runGradGroup(t, "concat") }

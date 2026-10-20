@@ -1,6 +1,7 @@
 package tensor
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -113,3 +114,87 @@ func TestDivScalarDoesNotSaveOutput(t *testing.T) {
 	z.SumAll().Backward()
 	near(t, "DivScalar gradyanı", x.Grad().Data(), []float32{1.5, 1.5}, 0)
 }
+
+// ============================================================================
+// Gradyan kapısı: ikili ve temel tekli işlemler (float64 başvuru + bf16)
+// ============================================================================
+
+func gelu64(x float64) float64 {
+	return 0.5 * x * (1 + math.Tanh(0.7978845608028654*(x+0.044715*x*x*x)))
+}
+
+func sigmoid64(x float64) float64 { return 1 / (1 + math.Exp(-x)) }
+
+func relu64(x float64) float64 { return math.Max(0, x) }
+
+func binSpec(name string, f func(*Tensor, *Tensor) *Tensor, ref func(a, b float64) float64, a, b []int, bLo, bHi float32) gradSpec {
+	return gradSpec{name: name + " " + fmt.Sprint(a, b), ops: []string{name},
+		build:  func(xs []*Tensor) *Tensor { return f(xs[0], xs[1]) },
+		inputs: genInputs(gen(-1, 1, 0.05, a...), gen(bLo, bHi, 0.05, b...)),
+		ref:    bcast64(a, b, ref)}
+}
+
+func init() {
+	add := func(a, b float64) float64 { return a + b }
+	sub := func(a, b float64) float64 { return a - b }
+	mul := func(a, b float64) float64 { return a * b }
+	div := func(a, b float64) float64 { return a / b }
+	cmp := func(f func(a, b float64) bool) func(a, b float64) float64 {
+		return func(a, b float64) float64 {
+			if f(a, b) {
+				return 1
+			}
+			return 0
+		}
+	}
+	specs := []gradSpec{
+		binSpec("add", Add, add, []int{2, 3}, []int{2, 3}, -1, 1),
+		binSpec("add", Add, add, []int{2, 3, 4}, []int{4}, -1, 1),
+		binSpec("sub", Sub, sub, []int{3, 1}, []int{1, 4}, -1, 1),
+		binSpec("sub", Sub, sub, []int{2, 1, 3}, []int{4, 1}, -1, 1),
+		binSpec("mul", Mul, mul, []int{2, 3}, []int{2, 3}, -1, 1),
+		binSpec("mul", Mul, mul, []int{2, 3, 4}, []int{3, 1}, -1, 1),
+		binSpec("div", Div, div, []int{2, 3}, []int{2, 3}, 0.5, 2),
+		binSpec("div", Div, div, []int{2, 3}, []int{2, 1}, 0.5, 2),
+		{name: "div_scalar", ops: []string{"div"}, build: func(xs []*Tensor) *Tensor { return xs[0].DivScalar(4) },
+			inputs: genInputs(gen(-1, 1, 0, 5)), ref: map64(func(x float64) float64 { return x / 4 })},
+		{name: "sub_scalar", ops: []string{"add_scalar"}, build: func(xs []*Tensor) *Tensor { return xs[0].SubScalar(1.5) },
+			inputs: genInputs(gen(-1, 1, 0, 5)), ref: map64(func(x float64) float64 { return x - 1.5 })},
+		{name: "neg", ops: []string{"mul_scalar"}, build: func(xs []*Tensor) *Tensor { return xs[0].Neg() },
+			inputs: genInputs(gen(-1, 1, 0, 5)), ref: map64(func(x float64) float64 { return -x })},
+		unarySpec("exp", (*Tensor).Exp, math.Exp, -1, 1, 0),
+		unarySpec("log", (*Tensor).Log, math.Log, 0.5, 2, 0),
+		unarySpec("sqrt", (*Tensor).Sqrt, math.Sqrt, 0.5, 2, 0),
+		unarySpec("tanh", (*Tensor).Tanh, math.Tanh, -2, 2, 0),
+		unarySpec("relu", (*Tensor).Relu, relu64, -1, 1, 0.05),
+		unarySpec("gelu", (*Tensor).Gelu, gelu64, -3, 3, 0),
+		unarySpec("sigmoid", (*Tensor).Sigmoid, sigmoid64, -3, 3, 0),
+		{name: "pow", ops: []string{"pow"}, build: func(xs []*Tensor) *Tensor { return xs[0].Pow(3) },
+			inputs: genInputs(gen(-1.5, 1.5, 0, 3, 4)), ref: map64(func(x float64) float64 { return x * x * x })},
+		{name: "pow negatif üs", ops: []string{"pow"}, build: func(xs []*Tensor) *Tensor { return xs[0].Pow(-1.5) },
+			inputs: genInputs(gen(0.5, 2, 0, 3, 4)), ref: map64(func(x float64) float64 { return math.Pow(x, -1.5) })},
+		{name: "add_scalar", ops: []string{"add_scalar"}, build: func(xs []*Tensor) *Tensor { return xs[0].AddScalar(1.5) },
+			inputs: genInputs(gen(-1, 1, 0, 5)), ref: map64(func(x float64) float64 { return x + 1.5 })},
+		{name: "mul_scalar", ops: []string{"mul_scalar"}, build: func(xs []*Tensor) *Tensor { return xs[0].MulScalar(-2.5) },
+			inputs: genInputs(gen(-1, 1, 0, 5)), ref: map64(func(x float64) float64 { return -2.5 * x })},
+		{name: "rsub_scalar", ops: []string{"rsub_scalar"}, build: func(xs []*Tensor) *Tensor { return xs[0].RSubScalar(3) },
+			inputs: genInputs(gen(-1, 1, 0, 5)), ref: map64(func(x float64) float64 { return 3 - x })},
+		{name: "rdiv_scalar", ops: []string{"rdiv_scalar"}, build: func(xs []*Tensor) *Tensor { return xs[0].RDivScalar(2) },
+			inputs: genInputs(gen(0.5, 2, 0, 5)), ref: map64(func(x float64) float64 { return 2 / x })},
+	}
+	for _, c := range []struct {
+		name string
+		op   BinOp
+		f    func(a, b float64) bool
+	}{{"lt", OpLt, func(a, b float64) bool { return a < b }}, {"gt", OpGt, func(a, b float64) bool { return a > b }},
+		{"le", OpLe, func(a, b float64) bool { return a <= b }}, {"ge", OpGe, func(a, b float64) bool { return a >= b }}} {
+		c := c
+		specs = append(specs, gradSpec{name: c.name, ops: []string{c.name}, mode: gradNone,
+			build:  func(xs []*Tensor) *Tensor { return Compare(xs[0], xs[1], c.op) },
+			inputs: genInputs(gen(-1, 1, 0.05, 2, 3), gen(-1, 1, 0.05, 3)),
+			ref:    bcast64([]int{2, 3}, []int{3}, cmp(c.f))})
+	}
+	registerGrad("elementwise", specs...)
+}
+
+func TestGradElementwise(t *testing.T) { runGradGroup(t, "elementwise") }

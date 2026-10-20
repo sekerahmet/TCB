@@ -263,3 +263,82 @@ func TestMatMul16BitBackwardRoundsGrad(t *testing.T) {
 		}
 	}
 }
+
+// ============================================================================
+// Gradyan kapısı: matris çarpımı (float64 başvuru + bf16)
+// ============================================================================
+
+// matmul64 mantıksal şekilleri [..., M, K] ve [K, N] ya da [..., K, N] olan çarpımın
+// başvurusu. transA/transB, o girdinin (2 boyutlu) devriği saklandığını söyler:
+// kurulum onu T() ile çevirir.
+func matmul64(ash, bsh []int, transA, transB bool) refFn {
+	nd := len(ash)
+	M, K, N := ash[nd-2], ash[nd-1], bsh[len(bsh)-1]
+	batch := numelOf(ash[:nd-2])
+	return func(in [][]float64) []float64 {
+		a, b := in[0], in[1]
+		res := make([]float64, batch*M*N)
+		for bt := 0; bt < batch; bt++ {
+			bOff := 0
+			if len(bsh) > 2 {
+				bOff = bt * K * N
+			}
+			for i := 0; i < M; i++ {
+				for j := 0; j < N; j++ {
+					var s float64
+					for k := 0; k < K; k++ {
+						ai, bi := bt*M*K+i*K+k, bOff+k*N+j
+						if transA {
+							ai = k*M + i
+						}
+						if transB {
+							bi = j*K + k
+						}
+						s += a[ai] * b[bi]
+					}
+					res[bt*M*N+i*N+j] = s
+				}
+			}
+		}
+		return res
+	}
+}
+
+func init() {
+	mm := func(name string, ash, bsh []int, transA, transB bool) gradSpec {
+		stA, stB := ash, bsh
+		if transA {
+			stA = []int{ash[1], ash[0]}
+		}
+		if transB {
+			stB = []int{bsh[1], bsh[0]}
+		}
+		return gradSpec{name: name, ops: []string{"matmul"},
+			build: func(xs []*Tensor) *Tensor {
+				a, b := xs[0], xs[1]
+				if transA {
+					a = a.T()
+				}
+				if transB {
+					b = b.T()
+				}
+				return MatMul(a, b)
+			},
+			inputs: genInputs(gen(-1, 1, 0, stA...), gen(-1, 1, 0, stB...)),
+			ref:    matmul64(ash, bsh, transA, transB),
+			// K·(girdi + çıktı) yuvarlaması: bf16 girdiler tam (yuvarlanmış değerler aynı), yalnızca
+			// çıktı ve geri yönün bf16 çıktıları yuvarlanır; toplamlar float32 birikir.
+			bf16Tol: 3e-2}
+	}
+	registerGrad("matmul",
+		mm("matmul 2B", []int{3, 5}, []int{5, 4}, false, false),
+		mm("matmul kenar boyutlar", []int{7, 9}, []int{9, 6}, false, false),
+		mm("matmul ND@2B", []int{2, 3, 4}, []int{4, 5}, false, false),
+		mm("matmul toplu 3B", []int{2, 3, 4}, []int{2, 4, 5}, false, false),
+		mm("matmul toplu 4B", []int{2, 2, 3, 4}, []int{2, 2, 4, 3}, false, false),
+		mm("matmul devrik a", []int{3, 4}, []int{4, 5}, true, false),
+		mm("matmul devrik b", []int{3, 4}, []int{4, 5}, false, true),
+		mm("matmul devrik ikisi", []int{3, 4}, []int{4, 5}, true, true))
+}
+
+func TestGradMatMul(t *testing.T) { runGradGroup(t, "matmul") }
