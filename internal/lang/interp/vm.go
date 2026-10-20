@@ -85,6 +85,10 @@ type vmShared struct {
 	CommandName string
 	isImported  sync.Mutex
 	Imported    map[string]*DictVal
+	// taskErrors, bir test koşarken (RunTest) testin başlattığı görevlerin hatalarını toplar;
+	// test bitince testin hatası olurlar (10.1). nil iken görev hataları Err'e yazılır.
+	taskErrorsMu sync.Mutex
+	taskErrors   *[]error
 	// loaded yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
 	// modülü isterse yüklemenin bitmesini bekler.
 	loaded map[string]*moduleLoading
@@ -358,6 +362,13 @@ func suggestName(name string, env *Environment) string {
 }
 
 func (v *VM) reportAsyncError(line int, err error) {
+	v.taskErrorsMu.Lock()
+	if v.taskErrors != nil {
+		*v.taskErrors = append(*v.taskErrors, messages.New(messages.H2516, line, err))
+		v.taskErrorsMu.Unlock()
+		return
+	}
+	v.taskErrorsMu.Unlock()
 	w := v.Err
 	if w == nil {
 		w = os.Stderr

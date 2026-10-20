@@ -284,6 +284,7 @@ const (
 	H2513 Code = 2513 // … ve {count} hata daha (ilk {max} hata gösterildi)
 	H2514 Code = 2514 // sözdizimi hatası olan kaynak çevrilmez: {error}
 	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse {get}({index}) ?? varsayılan yazın
+	H2516 Code = 2516 // eşzamanlı görev hatası (satır {line|loc} başlatılan): {error}
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

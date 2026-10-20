@@ -81,6 +81,34 @@ func TestRunFile(t *testing.T) {
 	}
 }
 
+// Testin başlattığı eşzamanlı görevdeki hata (başarısız doğrulama dahil) testi kaldırır (10.1);
+// eskiden yalnızca rapora yazılıyor, test geçmiş görünüyordu (Go'da başka goroutine'den t.Error
+// testi kaldırır). Hata, görevi başlatan testte kalır; sonraki teste taşmaz.
+func TestTaskErrorFailsTest(t *testing.T) {
+	fpath := writeFile(t, t.TempDir(), "gorev_test.tr", `test "görevde başarısız doğrulama" {
+    eşzamanlı {
+        doğrula(yanlış, "görevde kaldı")
+    }
+    bekle_hepsi()
+}
+
+test "sonraki test etkilenmez" {
+    doğrula(doğru)
+}
+`)
+	var out bytes.Buffer
+	summary := RunFile(fpath, &out)
+	text := out.String()
+	if summary.Total != 2 || summary.Failed != 1 || summary.Passed != 1 {
+		t.Fatalf("özet yanlış: %+v\n%s", summary, text)
+	}
+	for _, b := range []string{"✗ görevde başarısız doğrulama", "görevde kaldı", "✓ sonraki test etkilenmez"} {
+		if !strings.Contains(text, b) {
+			t.Errorf("çıktıda %q yok:\n%s", b, text)
+		}
+	}
+}
+
 func TestSummaryLine(t *testing.T) {
 	o := Summary{Total: 12, Passed: 11, Failed: 1}
 	if o.String() != "12 test, 11 geçti, 1 kaldı" {
@@ -152,7 +180,8 @@ func TestDeferAndOutput(t *testing.T) {
 	}
 }
 
-// Testin başlattığı eşzamanlı görevin hatası raporda görünür (standart hataya kaçmaz).
+// Testin başlattığı eşzamanlı görevin hatası raporda testin hatası olarak görünür (standart
+// hataya kaçmaz; 10.1).
 func TestTaskErrorShownInReport(t *testing.T) {
 	fpath := writeFile(t, t.TempDir(), "g_test.tr", `test "görev" {
     eşzamanlı { değişken x = 1 / 0 }
@@ -160,8 +189,8 @@ func TestTaskErrorShownInReport(t *testing.T) {
 `)
 	var out bytes.Buffer
 	RunFile(fpath, &out)
-	if !strings.Contains(out.String(), "Eşzamanlı görev hatası") || !strings.Contains(out.String(), "Sıfıra bölme") {
-		t.Fatalf("görev hatası raporda yok:\n%s", out.String())
+	if !strings.Contains(out.String(), "✗ görev") || !strings.Contains(out.String(), "Sıfıra bölme") {
+		t.Fatalf("görev hatası testin hatası olarak raporda yok:\n%s", out.String())
 	}
 }
 

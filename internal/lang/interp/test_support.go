@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
@@ -55,9 +56,22 @@ func testShow(d Value) string {
 
 // RunTest runs a single test block in a new scope opened over the file's top-level definitions
 // (GlobalEnv). The 'eşzamanlı' tasks the test started are awaited, then (as at the program's top
-// level) its 'ertele' blocks run. If it returns an error (assertions included) the test failed.
-// The program must already be loaded with Run.
+// level) its 'ertele' blocks run. If it returns an error (assertions included) the test failed;
+// an uncaught error in a task the test started fails the test too (10.1). The program must
+// already be loaded with Run.
 func (v *VM) RunTest(t *ast.TestStatement) (err error) {
+	var taskErrs []error
+	v.taskErrorsMu.Lock()
+	v.taskErrors = &taskErrs
+	v.taskErrorsMu.Unlock()
+	defer func() {
+		v.taskErrorsMu.Lock()
+		v.taskErrors = nil
+		v.taskErrorsMu.Unlock()
+		if err == nil && len(taskErrs) > 0 {
+			err = errors.Join(taskErrs...)
+		}
+	}()
 	if !v.holdsGIL {
 		v.acquireGIL()
 		defer v.releaseGIL()
