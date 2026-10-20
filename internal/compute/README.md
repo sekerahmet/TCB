@@ -5,7 +5,7 @@ parçalayıcı. Dil bu paketleri motorlar üzerinden kullanır; buradaki kod dil
 
 ## Standartlar
 
-**Dili bilmez.** Hiçbir `internal/lang` paketini içe aktarmaz; tek başına derlenir, sınanır ve
+**Dili bilmez.** `internal/lang` paketlerinden yalnızca ileti kataloğunu (`internal/lang/messages`, yalnızca Go standart kitaplığına dayanan en alt paket) içe aktarır; tek başına derlenir, sınanır ve
 ölçülür. Denetim: `TestLayerRule` (internal/layers_test.go).
 
 **Tek dosya, cgo'suz dağıtım.** Dış bağımlılık yalnızca GPU arka ucunun sürücüyü cgo'suz

@@ -17,7 +17,7 @@ ASCII biçimi kabul edilmez. Denetim: `TestSingleSpelling`, `TestAltSpellingsRem
 **Ad, kendi ad alanında benzersizdir.** Genel adlar, tip adları, üyeler ve adlı argümanlar ayrı
 ad alanlarıdır; çakışma dil dosyası yüklenirken hata verir. Denetim: `TestNamespacesUnique`, `TestClashesCaught`.
 
-**Dil dosyası yalnızca ad içerir.** İmzalar ve türler dilden bağımsızdır ve tanım dosyasında bir
+**Dil dosyası dile bağlı olanı içerir.** Ad, eski ve yabancı adlar, açıklama ve örnek dil dosyasındadır; imzalar ve türler dilden bağımsızdır ve tanım dosyasında bir
 kez yazılır. Her dil dosyası aynı kodlara kendi adlarını verir. Kaynak dil Türkçedir: ölü kodların
 adları ipucu için Türkçe dosyada kalır, öbür dillerde isteğe bağlıdır. Denetim: `TestWritingLanguagesComplete`, `TestDeadCodesOptionalOutsideTR`, `TestParserMatchesJSON`, `TestDefinitionsConsistent`.
 

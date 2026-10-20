@@ -6,7 +6,7 @@ kullanıcıya giden dosya hatası metinleri ve kaynak kod çerçevesi.
 
 ## Standartlar
 
-**En alt katman.** Hiçbir TCB paketini içe aktarmaz; dilin adlarını ve kodlarını bilmez. Yalnızca
+**Alt katman.** TCB paketlerinden yalnızca ileti kataloğunu (`internal/lang/messages`) içe aktarır ve Türkçe çekimciyi ona kaydeder; dilin adlarını ve kodlarını bilmez. Yalnızca
 Türkçe ve metinle ilgilenir; böylece her paket onu kullanabilir.
 
 **Ekler sözcükten çıkarılır.** Hal eki elle yazılmaz (`'i`, `'ı`, `'e`); sözcüğün ünlü uyumundan
