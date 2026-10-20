@@ -44,7 +44,7 @@ func gcHedefiniAyarla() {
 func main() {
 	// Geçersiz TR_DIL: codes paketi Türkçeye düştü; komut yanlış dille çalışmasın.
 	if err := codes.LanguageError(); err != nil {
-		fmt.Fprintln(os.Stderr, messages.Text(messages.H8600, err))
+		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
 		os.Exit(2)
 	}
 	gcHedefiniAyarla()
@@ -130,7 +130,7 @@ var kaldirilanKomutlar = map[string]string{
 
 // hataylaCik iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.
 func hataylaCik(ileti any) {
-	fmt.Fprintln(os.Stderr, messages.Text(messages.H8600, ileti))
+	fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, ileti))
 	os.Exit(1)
 }
 

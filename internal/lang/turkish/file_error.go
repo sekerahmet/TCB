@@ -91,6 +91,11 @@ func fileErrorReason(path string, err error) *messages.Error {
 	if errors.As(err, &n) {
 		return n.Message
 	}
+	// Kodlu bir iletinin kendisi nedendir (ör. "ozet.json çok büyük"); işletim sistemi hatası
+	// sanılıp "beklenmeyen bir hata" diye sarılmaz, kodu da zincirde kalır.
+	if m, ok := messages.As(err); ok {
+		return m
+	}
 	// Denetimler işletim sisteminin gerçekten denediği yolla yapılır (göreli yol programın
 	// klasörüne göre çözülmüş olabilir).
 	var pe *fs.PathError

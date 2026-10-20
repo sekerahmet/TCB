@@ -64,6 +64,10 @@ func TestFileErrorTurkishAndHelpful(t *testing.T) {
 	if r := FileError("", "x", messages.H2100, NewReason(messages.H2042)); !messages.Has(r, messages.H2042) || !strings.HasSuffix(r.Error(), "gzip başlığı bozuk") {
 		t.Errorf("Reason nedeni: %v", r)
 	}
+	// Kodlu bir hata da neden olarak olduğu gibi kullanılır ("beklenmeyen bir hata" değil).
+	if r := FileError("", "x", messages.H2100, messages.New(messages.H7004, "bozuk")); !messages.Has(r, messages.H7004) || !strings.HasSuffix(r.Error(), "okunamadı: CSV okuma hatası: bozuk") {
+		t.Errorf("kodlu neden: %v", r)
+	}
 }
 
 func TestFileErrorUnknownStatusCode(t *testing.T) {

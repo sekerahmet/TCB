@@ -12,6 +12,7 @@ const (
 	H2011 Code = 2011 // {fn}() {expected} argüman bekler, {given} verildi (kullanım: {usage})
 	H2012 Code = 2012 // {fn}() {expected} argüman bekler, {given} verildi
 	H2013 Code = 2013 // hiçbir değer
+	H2014 Code = 2014 // {fn}() parametre almaz, {given} verildi
 	H2020 Code = 2020 // değer kendini içeriyor (döngüsel liste ya da sözlük); JSON'a yazılamaz
 	H2021 Code = 2021 // değer çok derin iç içe (en fazla {limit} seviye)
 	H2030 Code = 2030 // bakılan yer: {place}
@@ -99,7 +100,6 @@ const (
 	H5531 Code = 5531 // {fn}: {batch} × {context} ({b} × {t}) çok büyük; en fazla {max} parça
 	H5532 Code = 5532 // {fn}: {name} negatif olmayan bir tam sayı olmalıdır, {given} verildi
 	H5533 Code = 5533 // {fn}: {name}: {t} için her pencere {window} parça ister, ama en uzun veri dosyası {longest} parça; {name} değerini küçültün
-	H5534 Code = 5534 // {fn}() parametre almaz, {given} verildi
 	H5535 Code = 5535 // örnekleyici sonsuz toplu iş üretir, döngüyle gezilemez; adım sayısıyla döngü kurup .{next}() kullanın (ya da .{sequential}(...) ile sonlu bir okuyucu açın)
 	H5536 Code = 5536 // parça kimliği {id} tensörde tam olarak gösterilemez (kimlikler 0 ile {max} arasında olmalı)
 	H5537 Code = 5537 // {fn} adlı argüman almaz
@@ -382,7 +382,6 @@ const (
 	H6621 Code = 6621 // dosya bozuk ya da tensör çok büyük: {entry} ekseni {dim} (en fazla {limit} eleman; sıfır uzunluklu eksenler 1 sayılır)
 	H6622 Code = 6622 // tensör dosyasına {count} girdi eksik yazıldı
 	H6623 Code = 6623 // dosya bozuk ya da eksik: {entry} {shape} şeklinde {bytes} bayt veri bekliyor, dosyada {remaining} bayt kaldı
-	H6624 Code = 6624 // {fn}(yol) 1 parametre bekler, {given} verildi
 	H6625 Code = 6625 // dosya bozuk ya da eksik: sağlama toplamı okunurken dosya bitti
 	H6626 Code = 6626 // {fn}: {path|q}: {error}
 	H6627 Code = 6627 // dosya bozuk: sağlama toplamı tutmuyor (dosya değiştirilmiş ya da yarım yazılmış olabilir)
@@ -423,7 +422,6 @@ const (
 	H6802 Code = 6802 // {fn}("cpu") 1 parametre bekler
 	H6803 Code = 6803 // {fn}: tür metin olmalıdır ("float32", "bf16" ya da "fp16"), {given} verildi
 	H6804 Code = 6804 // {fn}("gpu") en çok 1 parametre bekler, {given} verildi
-	H6805 Code = 6805 // {fn}() parametre almaz, {given} verildi
 	H6806 Code = 6806 // {toDtypeMethod}("bf16") 1 parametre (tür adı) bekler, {given} verildi
 	H6807 Code = 6807 // {fn}({dtype|q}) bir blok bekler: {fn}({dtype|q}) {{ ... }}
 	H6808 Code = 6808 // {fn}("bf16") {{ ... }} bir tür adı ve bir blok bekler, {given} parametre verildi
@@ -477,7 +475,6 @@ const (
 	H7130 Code = 7130 // {type}({path}, {count} satır okundu)
 	H7131 Code = 7131 // {type}({path}, {count} satır okundu, kapatıldı)
 	H7132 Code = 7132 // {type}({path}, {count} satır okundu, bitti)
-	H7133 Code = 7133 // {fn}() parametre almaz, {given} verildi
 	H7134 Code = 7134 // {type}: {path|q} okuyucusu {close}() ile kapatıldı; yeniden okumak için {open}(...) ile yeni bir okuyucu açın
 	H7135 Code = 7135 // {fn}: kalıp {pattern|q} geçersiz: {error}
 	H7136 Code = 7136 // {fn}: {path|q} bir dosya, klasör değil; listelenecek klasörü verin
@@ -835,7 +832,6 @@ const (
 	H8505 Code = 8505 // {stage} hataları nedeniyle testler çalıştırılamadı:
 	H8506 Code = 8506 // (bu dosyada test bloğu yok)
 	H8507 Code = 8507 // dosyanın üst düzey kodu hata verdi, testler çalıştırılamadı:
-	H8600 Code = 8600 // Hata: {error}
 	H8601 Code = 8601 // Gömülü uygulama okunamadı: {error}
 	H8602 Code = 8602 // '{given}' TR'de bir komut değil; 'tr {command}' yazmak mı istediniz?
 	H8603 Code = 8603 // TR Programlama ve Yapay Zeka Dili v{version}
@@ -874,8 +870,6 @@ const (
 	H8637 Code = 8637 // [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım çalışacak (F11 adım, F10 üstten geç, Shift+F11 dön, F5 devam).
 	H8650 Code = 8650 // Sözdizimi Hataları:
 	H8651 Code = 8651 // Tip ve Güvenlik Denetimi Hataları:
-	H8652 Code = 8652 // Çalışma Zamanı Hatası:
-	H8653 Code = 8653 // Uyarılar:
 	H8654 Code = 8654 // Derleme Öncesi Sözdizimi Hataları:
 	H8655 Code = 8655 // Derleme Öncesi Tip Güvenliği Hataları:
 	H8656 Code = 8656 // Gömülü Uygulama Sözdizimi Hataları:

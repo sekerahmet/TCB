@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // Depo köküne göre yollar.
@@ -79,7 +80,9 @@ func Generate(root string) ([]byte, error) {
 		if len(k) != 5 || k[0] != 'H' || err != nil {
 			return nil, fmt.Errorf("%s: ileti kodu %q geçersiz", trPath, k)
 		}
-		fmt.Fprintf(&b, "\t%s Code = %d // %s\n", k, n, texts[k])
+		// Yorum tek satırdır: metindeki satır sonu kaçırılır.
+		comment := strings.NewReplacer("\r", `\r`, "\n", `\n`).Replace(texts[k])
+		fmt.Fprintf(&b, "\t%s Code = %d // %s\n", k, n, comment)
 	}
 	b.WriteString(")\n")
 	return format.Source(b.Bytes())

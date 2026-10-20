@@ -170,7 +170,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 	if kd == codes.Y602 {
 		b := &interp.BuiltinVal{Name: codes.Name(codes.Y602), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H7133, codes.Name(codes.Y602), len(args))
+				return nil, messages.New(messages.H2014, codes.Name(codes.Y602), len(args))
 			}
 			d, cont, err := o.Next(m)
 			if err != nil || !cont {
@@ -190,7 +190,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 func (o *LineReader) closeMethod() *interp.BuiltinVal {
 	b := &interp.BuiltinVal{Name: codes.Name(codes.Y012), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 0 {
-			return nil, messages.New(messages.H7133, codes.Name(codes.Y012), len(args))
+			return nil, messages.New(messages.H2014, codes.Name(codes.Y012), len(args))
 		}
 		var didClose bool
 		m.Blocking(func() {

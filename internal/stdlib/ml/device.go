@@ -127,7 +127,7 @@ func devicesBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.V
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, messages.New(messages.H6805, fn, len(args))
+		return nil, messages.New(messages.H2014, fn, len(args))
 	}
 	ad := deviceNames()
 	el := make([]interp.Value, len(ad))

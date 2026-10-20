@@ -496,7 +496,7 @@ func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, err
 	}
 	if len(args) != 0 {
-		return nil, messages.New(messages.H5534, fn, len(args))
+		return nil, messages.New(messages.H2014, fn, len(args))
 	}
 	var input, target []float32
 	var b, t int

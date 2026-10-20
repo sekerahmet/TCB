@@ -44,7 +44,7 @@ func TestFileLines(t *testing.T) {
 	errContains(t, `dosya_satırları("yok.txt")`, `dosya_satırları(): "yok.txt" okunamadı: böyle bir dosya ya da klasör yok`, "bakılan yer")
 	os.Mkdir(filepath.Join(k, "kl"), 0o755)
 	errHas(t, `dosya_satırları("kl")`, messages.H7129)
-	errHas(t, `dosya_satırları("s.txt").sonraki(1)`, messages.H7133)
+	errHas(t, `dosya_satırları("s.txt").sonraki(1)`, messages.H2014)
 	errContains(t, `dosya_satırları("s.txt").ilk`, "SatırOkuyucu üzerinde")
 }
 

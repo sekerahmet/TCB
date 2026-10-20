@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"sort"
 	"strings"
 	"testing"
 )
@@ -85,4 +86,43 @@ func TestRender(t *testing.T) {
 func quoteJSON(s string) string {
 	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`)
 	return `"` + r.Replace(s) + `"`
+}
+
+// Aynı Türkçe metin iki koda verilmez (paralel geçişlerde kolayca olur): aynı anlamdaki ileti
+// tek koddur. Yalnızca bağlamı farklı, çeviride ayrı karşılık alabilecek kısa etiketler (bir
+// tablonun sütun başlığı ile bir paneldeki etiket gibi) gerekçesiyle izinlidir.
+var sameTextAllowed = map[string]string{
+	"H5505 H5606": "veri kümesi ve parçalayıcı panellerinin ayrı etiketleri",
+	"H6124 H8215": "ml işlem adı ve profil raporu satırı",
+	"H6132 H8274": "ml hata bağlamı ve profil raporu",
+	"H6818 H8142": "tensör izleme sütunu ve hata ayıklayıcı sütunu",
+	"H7214 H7484": "komut satırı tipi ve kontrol noktası türü",
+}
+
+func TestNoDuplicateTexts(t *testing.T) {
+	var raw map[string]string
+	if err := strictUnmarshal(trFile, &raw); err != nil {
+		t.Fatal(err)
+	}
+	byText := map[string][]string{}
+	for k, v := range raw {
+		byText[v] = append(byText[v], k)
+	}
+	seen := map[string]bool{}
+	for text, ks := range byText {
+		if len(ks) < 2 {
+			continue
+		}
+		sort.Strings(ks)
+		key := strings.Join(ks, " ")
+		seen[key] = true
+		if _, ok := sameTextAllowed[key]; !ok {
+			t.Errorf("%s aynı metni taşıyor (%q): tek koda indirin ya da bağlamı farklıysa gerekçesiyle sameTextAllowed'a yazın", key, text)
+		}
+	}
+	for key := range sameTextAllowed {
+		if !seen[key] {
+			t.Errorf("sameTextAllowed: %s artık yinelenmiyor; kaydı silin", key)
+		}
+	}
 }

@@ -29,10 +29,10 @@ type hazirlik struct {
 var (
 	sozdizimiBasligi = "❌ " + messages.Text(messages.H8650)
 	tipBasligi       = "❌ " + messages.Text(messages.H8651)
-	calismaBasligi   = "❌ " + messages.Text(messages.H8652)
+	calismaBasligi   = "❌ " + messages.Text(messages.H8126)
 	// uyariBasligi denetleyicinin uyarılarının (ör. yerleşik ad gölgeleme) başlığıdır.
 	// Uyarılar programı durdurmaz ve çıkış kodunu etkilemez.
-	uyariBasligi = "⚠️ " + messages.Text(messages.H8653)
+	uyariBasligi = "⚠️ " + messages.Text(messages.H8122)
 )
 
 // Komutların kullandığı hazırlık biçimleri.
