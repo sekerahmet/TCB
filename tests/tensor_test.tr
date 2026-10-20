@@ -896,3 +896,42 @@ test "15.30 GPU'da hesap: CPU ile aynı sonuç, belirlenimci, GPU belleği sın�
         doğrula(m.içerir("bellek ister"))
     }
 }
+
+test "15.41 yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
+    değişken t = tensör([1.0, 2.0, 3.0, 4.0, 5.0])
+    eşit_mi([2, 5], (t + tensör([[1.0], [2.0]])).şekil)
+    eşit_mi([2, 5], (tensör([[1.0], [2.0]]) * t).şekil)
+    değişken m = hata_metni(() => t + tensör([1.0, 2.0]))
+    doğrula(m.içerir("yayınlanamaz") ve m.içerir("5 ≠ 2"), m)
+}
+
+test "15.41 tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
+    değişken a = tensör([1.0, 2.0]).türe("bf16")
+    değişken b = tensör([1.0, 2.0]).türe("fp16")
+    eşit_mi("bf16", (a + a).tür)
+    eşit_mi("float32", (a + b).tür)
+    eşit_mi("float32", (a + tensör([1.0, 2.0])).tür)
+    eşit_mi("bf16", (a * 2.5).tür)
+    eşit_mi("bf16", (2 - a).tür)
+    eşit_mi("float32", (a > 1).tür)
+    eşit_mi([0.0, 1.0], (tensör([1.0, 2.0]) > 1).değer)
+}
+
+test "15.41 tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
+    değişken t = tensör([1.0, 2.0, 3.0, 4.0, 5.0])
+    eşit_mi(5.0, t[-1].değer)
+    doğrula(hata_metni(() => t[5]).içerir("sınır dışı"))
+    doğrula(hata_metni(() => t[-6]).içerir("sınır dışı"))
+    doğrula(hata_metni(() => t[1.5]).içerir("Tam"))
+    eşit_mi([2.0, 3.0, 4.0, 5.0], t[1..10].değer)
+    eşit_mi([0], t[10..20].şekil)
+    eşit_mi([0], t[3..1].şekil)
+    doğrula(hata_metni(() => t.dilim(0, 1, 10)).içerir("geçersiz"))
+}
+
+test "15.41 sayı olmayan işlenen tensörle işleme girmez" {
+    değişken t = tensör([1.0, 2.0])
+    doğrula(hata_metni(() => t + "a").içerir("Metin"))
+    doğrula(hata_metni(() => t + doğru).içerir("Mantık"))
+}
+
