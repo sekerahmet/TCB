@@ -225,7 +225,7 @@ cd /content/tr
 for kip in eager compile max-autotune; do
   python phase3_torch.py --mode $kip --out p3_$kip.json > /dev/null 2> p3_$kip.err || tail -5 p3_$kip.err
 done
-./tr profil --json p3_tr_profil.json phase3_tr.tr --cikti p3_tr.json > /dev/null 2> p3_tr.err || tail -5 p3_tr.err
+./tr profil --json p3_tr_profil.json phase3_tr.tr --çıktı p3_tr.json > /dev/null 2> p3_tr.err || tail -5 p3_tr.err
 python phase3_table.py p3_tr.json p3_eager.json p3_compile.json p3_max-autotune.json --tr-memory p3_tr_profil.json
 ```
 
