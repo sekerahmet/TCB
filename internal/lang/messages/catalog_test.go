@@ -92,11 +92,12 @@ func quoteJSON(s string) string {
 // tek koddur. Yalnızca bağlamı farklı, çeviride ayrı karşılık alabilecek kısa etiketler (bir
 // tablonun sütun başlığı ile bir paneldeki etiket gibi) gerekçesiyle izinlidir.
 var sameTextAllowed = map[string]string{
-	"H5505 H5606": "veri kümesi ve parçalayıcı panellerinin ayrı etiketleri",
-	"H6124 H8215": "ml işlem adı ve profil raporu satırı",
-	"H6132 H8274": "ml hata bağlamı ve profil raporu",
-	"H6818 H8142": "tensör izleme sütunu ve hata ayıklayıcı sütunu",
-	"H7214 H7484": "komut satırı tipi ve kontrol noktası türü",
+	"H5505 H5606":       "veri kümesi ve parçalayıcı panellerinin ayrı etiketleri",
+	"H6124 H8215":       "ml işlem adı ve profil raporu satırı",
+	"H6132 H8274":       "ml hata bağlamı ve profil raporu",
+	"H6818 H8142":       "tensör izleme sütunu ve hata ayıklayıcı sütunu",
+	"H2301 H7214 H7484": "kullanım tarifindeki parametre adı, komut satırı tipi ve kontrol noktası türü",
+	"H2307 H7127":       "kullanım tarifindeki parametre adı ve okuyucu iletisindeki nesne adı",
 }
 
 func TestNoDuplicateTexts(t *testing.T) {

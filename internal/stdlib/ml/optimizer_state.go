@@ -49,7 +49,7 @@ func (o *Optimizer) stateMember(kd codes.Code) (interp.Value, bool, error) {
 func (o *Optimizer) loadStateTR(args []interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(memberLoadState)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(memberLoadState, "1", len(args), "op."+codes.Name(memberState))
+		return nil, interp.ArgCountError(memberLoadState, "1", len(args), messages.Text(messages.H2326, codes.Name(memberState)))
 	}
 	s, ok := args[0].(*interp.DictVal)
 	if !ok {

@@ -94,13 +94,7 @@ type PlainValuer interface {
 // values (e.g. tensors) are wrapped with it; an error that already carries a line (e.g. from a
 // function a builtin called back) is not wrapped twice, so the message and code frame show
 // the line of the original error.
-type LineError struct {
-	Line int
-	Err  error
-}
-
-func (h *LineError) Error() string { return messages.Text(messages.H2001, h.Line, h.Err) }
-func (h *LineError) Unwrap() error { return h.Err }
+type LineError = messages.PosError
 
 // hasLine hata zaten satır bilgisi taşıyor mu? Tipli hata önceliklidir; VM'nin metinle
 // ürettiği "Satır N: ..." hataları için metin öneki yedek olarak denetlenir.

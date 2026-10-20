@@ -1,6 +1,11 @@
 package turkish
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 func TestCodeFrame(t *testing.T) {
 	source := "değişken toplam = 1\n\tyazdır(toplm + 1)\nson"
@@ -40,5 +45,18 @@ func TestLineAt(t *testing.T) {
 		if _, ok := lineAt(src, n); ok {
 			t.Errorf("lineAt(%d) should not exist", n)
 		}
+	}
+}
+
+// ErrorFrame konumu hatanın alanından okur: metni "Satır" ile başlamasa da (başka dil) çizer.
+func TestErrorFrameFromPosition(t *testing.T) {
+	src := "a = 1\nyazdır(toplm + 1)\n"
+	err := messages.At(2, 8, messages.New(messages.H2000, "x", "'toplm'"))
+	got := ErrorFrame(src, err)
+	if !strings.Contains(got, "2 | yazdır(toplm + 1)") || !strings.Contains(got, "^^^^^") {
+		t.Fatalf("çerçeve:\n%s", got)
+	}
+	if ErrorFrame(src, nil) != "" {
+		t.Fatal("nil hata çerçevesiz olmalı")
 	}
 }

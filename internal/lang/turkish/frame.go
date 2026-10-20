@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 var posRe = regexp.MustCompile(`Satır (\d+)(?:, Sütun (\d+))?`)
@@ -19,10 +21,36 @@ var quotedNameRe = regexp.MustCompile(`'([^'\s]+)'`)
 //	   |        ^^^^^
 func CodeFrame(source, message string) string {
 	m := posRe.FindStringSubmatch(message)
-	if m == nil || source == "" {
+	if m == nil {
 		return ""
 	}
 	lineNo, _ := strconv.Atoi(m[1])
+	col := 0
+	if m[2] != "" {
+		col, _ = strconv.Atoi(m[2])
+	}
+	return codeFrameAt(source, lineNo, col, message)
+}
+
+// ErrorFrame is CodeFrame for an error: the position is read from the error
+// (messages.PosError), not from its text, so it works in every writing language. Errors without
+// a position (not yet migrated) fall back to the text.
+func ErrorFrame(source string, err error) string {
+	if err == nil {
+		return ""
+	}
+	if line, col, ok := messages.Pos(err); ok {
+		return codeFrameAt(source, line, col, err.Error())
+	}
+	return CodeFrame(source, err.Error())
+}
+
+// codeFrameAt satırı ve (sütun biliniyorsa) işaretçiyi çizer; message yalnızca altı çizilecek
+// tırnaklı adı bulmak için kullanılır.
+func codeFrameAt(source string, lineNo, col int, message string) string {
+	if source == "" {
+		return ""
+	}
 	line, ok := lineAt(source, lineNo)
 	if !ok {
 		return ""
@@ -35,10 +63,9 @@ func CodeFrame(source, message string) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, " %s | %s\n", number, line)
 
-	if m[2] == "" {
+	if col == 0 {
 		return sb.String()
 	}
-	col, _ := strconv.Atoi(m[2])
 	runes := []rune(line)
 	if col < 1 || col > len(runes)+1 {
 		return sb.String()

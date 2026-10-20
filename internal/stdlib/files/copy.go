@@ -65,7 +65,7 @@ func prepareMove(m *interp.VM, kd codes.Code, args []interp.Value, named map[str
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(kd, "2", len(args), "kaynak, hedef")
+		return nil, interp.ArgCountError(kd, "2", len(args), messages.Text(messages.H2316))
 	}
 	srcRaw, err := readPath(kd, 1, args[0])
 	if err != nil {

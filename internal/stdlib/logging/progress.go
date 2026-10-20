@@ -102,7 +102,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 		return nil, err
 	}
 	if len(args) > 1 {
-		return nil, interp.ArgCountError(codes.G811, "0 ya da 1", len(args), "", "toplam_adım")
+		return nil, interp.ArgCountError(codes.G811, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2322))
 	}
 	var total int64
 	if len(args) == 1 && args[0] != interp.NULL {
@@ -165,7 +165,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 		return nil, err
 	}
 	if len(args) > 1 {
-		return nil, interp.ArgCountError(codes.Y010, "0 ya da 1", len(args), "", "{ölçü: değer, ...}")
+		return nil, interp.ArgCountError(codes.Y010, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2323))
 	}
 	var metrics []metric
 	if len(args) == 1 && args[0] != interp.NULL {

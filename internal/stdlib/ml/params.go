@@ -177,7 +177,7 @@ func CopyInto(p, src *tensor.Tensor) {
 func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T703)
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.T703, "2", len(args), "model", "{ad: tensör, ...}")
+		return nil, interp.ArgCountError(codes.T703, "2", len(args), messages.Text(messages.H2327), messages.Text(messages.H2328))
 	}
 	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err

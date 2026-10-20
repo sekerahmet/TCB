@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // registerStats ortalama, standart_sapma ve ortanca yerleşiklerini kaydeder. Tensör
@@ -60,7 +61,7 @@ func (v *VM) registerStats() {
 // elemanları ya da argümanların kendileri. Argümansız çağrı hatadır.
 func statsInput(kd codes.Code, args []Value) ([]Value, error) {
 	if len(args) == 0 {
-		return nil, ArgCountError(kd, "en az 1", 0, "liste", "a, b, ...")
+		return nil, ArgCountError(kd, AtLeast(1), 0, messages.Text(messages.H2304), messages.Text(messages.H2310))
 	}
 	if l, ok := args[0].(*ListVal); ok && len(args) == 1 {
 		return l.Elements, nil

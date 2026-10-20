@@ -15,7 +15,7 @@ import (
 func makeDirBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.G122)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G122, "1", len(args), "klasör")
+		return nil, interp.ArgCountError(codes.G122, "1", len(args), messages.Text(messages.H2318))
 	}
 	raw, err := readPath(codes.G122, 1, args[0])
 	if err != nil {

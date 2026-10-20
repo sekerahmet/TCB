@@ -64,7 +64,7 @@ func isAbsPart(p string) bool {
 // pathBuiltin yol(...) yerleşiğidir: parçaları birleştirip temizler.
 func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) == 0 {
-		return nil, interp.ArgCountError(codes.G120, "en az 1", 0, "parça, ...")
+		return nil, interp.ArgCountError(codes.G120, interp.AtLeast(1), 0, messages.Text(messages.H2320))
 	}
 	fn := interp.CallPrefix(codes.G120)
 	parts := make([]string, len(args))

@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // registerMath taban, tavan ve işaret yerleşiklerinin sayı yolunu ve pi sabitini
@@ -21,7 +22,7 @@ func (v *VM) registerMath() {
 func roundingBuiltin(kd codes.Code, f func(float64) float64) BuiltinFunc {
 	return func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
-			return nil, ArgCountError(kd, "1", len(args), "sayı")
+			return nil, ArgCountError(kd, "1", len(args), messages.Text(messages.H2305))
 		}
 		switch a := args[0].(type) {
 		case *IntVal:
@@ -37,7 +38,7 @@ func roundingBuiltin(kd codes.Code, f func(float64) float64) BuiltinFunc {
 // girdide Ondalık (NaN ve işaretli sıfır korunur).
 func signBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G408, "1", len(args), "sayı")
+		return nil, ArgCountError(codes.G408, "1", len(args), messages.Text(messages.H2305))
 	}
 	switch a := args[0].(type) {
 	case *IntVal:

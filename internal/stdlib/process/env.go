@@ -15,7 +15,7 @@ import (
 // değişkenin değeri gizli değer süzgecine kaydedilir.
 func envVar(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G800, "1", len(args), "ad")
+		return nil, interp.ArgCountError(codes.G800, "1", len(args), messages.Text(messages.H2330))
 	}
 	s, ok := args[0].(*interp.StringVal)
 	if !ok {

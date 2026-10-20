@@ -90,6 +90,22 @@ func argCountErrorByName(name, expected string, given int, usage string) error {
 	return messages.New(messages.H2012, name, expected, given)
 }
 
+// Counts writes the accepted argument counts for ArgCountError in the active language:
+// Counts(1, 2) → "1 ya da 2", Counts(0, 1, 2) → "0, 1 ya da 2".
+func Counts(ns ...int) string {
+	parts := make([]string, len(ns))
+	for i, n := range ns {
+		parts[i] = strconv.Itoa(n)
+	}
+	if len(parts) < 2 {
+		return strings.Join(parts, "")
+	}
+	return messages.Text(messages.H2010, strings.Join(parts[:len(parts)-1], ", "), parts[len(parts)-1])
+}
+
+// AtLeast writes "en az n" for ArgCountError in the active language.
+func AtLeast(n int) string { return messages.Text(messages.H2016, n) }
+
 // TypeAndSummary writes a value for an error message as "Metin ("a")".
 func TypeAndSummary(v Value) string {
 	if v == nil {

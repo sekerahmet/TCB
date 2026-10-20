@@ -42,7 +42,7 @@ func Register(v *interp.VM) {
 
 	v.RegisterNoNamed(codes.G601, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G601, "1", len(args), "değer")
+			return nil, interp.ArgCountError(codes.G601, "1", len(args), messages.Text(messages.H2301))
 		}
 		b, err := jsonwrite.Write(args[0])
 		if err != nil {
@@ -53,7 +53,7 @@ func Register(v *interp.VM) {
 
 	v.RegisterNoNamed(codes.G602, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.G602, "1", len(args), "dosya ya da metin")
+			return nil, interp.ArgCountError(codes.G602, "1", len(args), messages.Text(messages.H2321))
 		}
 		if _, ok := args[0].(*interp.StringVal); !ok {
 			if _, isPath := args[0].(interp.PathValuer); !isPath {

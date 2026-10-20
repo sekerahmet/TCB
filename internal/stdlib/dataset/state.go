@@ -90,7 +90,7 @@ func (o *Reader) loadStateTR(m *interp.VM, args []interp.Value, named map[string
 		if len(named) > 0 {
 			return nil, messages.New(messages.H5537, interp.CallPrefix(memberLoadState))
 		}
-		return nil, interp.ArgCountError(memberLoadState, "1", len(args), "ö."+codes.Name(memberState))
+		return nil, interp.ArgCountError(memberLoadState, "1", len(args), messages.Text(messages.H2315, codes.Name(memberState)))
 	}
 	s, ok := args[0].(*interp.DictVal)
 	if !ok {

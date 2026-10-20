@@ -5,6 +5,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // registerTestBuiltins test yazmak için doğrulama yerleşiklerini kaydeder.
@@ -13,7 +14,7 @@ func (v *VM) registerTestBuiltins() {
 	// doğrula(koşul, [mesaj]): koşul yanlışsa hata fırlatır.
 	v.RegisterNoNamed(codes.G700, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 || len(args) > 2 {
-			return nil, ArgCountError(codes.G700, "1 ya da 2", len(args), "koşul, [mesaj]")
+			return nil, ArgCountError(codes.G700, Counts(1, 2), len(args), messages.Text(messages.H2311))
 		}
 		if args[0].IsTruthy() {
 			return TRUE, nil
@@ -27,7 +28,7 @@ func (v *VM) registerTestBuiltins() {
 	// eşit_mi(beklenen, gerçek, [mesaj]): iki değer '==' ile eşit değilse ikisini de gösteren hata fırlatır.
 	v.RegisterNoNamed(codes.G701, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 2 || len(args) > 3 {
-			return nil, ArgCountError(codes.G701, "2 ya da 3", len(args), "beklenen, gerçek, [mesaj]")
+			return nil, ArgCountError(codes.G701, Counts(2, 3), len(args), messages.Text(messages.H2312))
 		}
 		if err := typeTextError("==", args[0], args[1]); err != nil {
 			return nil, err

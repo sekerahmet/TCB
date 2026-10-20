@@ -22,7 +22,7 @@ func deleteBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.G123, "1", len(args), "dosya ya da klasör")
+		return nil, interp.ArgCountError(codes.G123, "1", len(args), messages.Text(messages.H2317))
 	}
 	raw, err := readPath(codes.G123, 1, args[0])
 	if err != nil {

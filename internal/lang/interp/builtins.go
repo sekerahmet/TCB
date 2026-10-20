@@ -63,7 +63,7 @@ func printBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // Kullanıcıdan Girdi Alma: girdi("Adınız: ")
 func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) > 1 {
-		return nil, ArgCountError(codes.G101, "0 ya da 1", len(args), "", "istem")
+		return nil, ArgCountError(codes.G101, Counts(0, 1), len(args), "", messages.Text(messages.H2300))
 	}
 	if len(args) > 0 {
 		y.WriteOutput(y.Out, args[0].Inspect())
@@ -80,7 +80,7 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // Tip Sorgulama: tip(x)
 func typeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G201, "1", len(args), "değer")
+		return nil, ArgCountError(codes.G201, "1", len(args), messages.Text(messages.H2301))
 	}
 	return TypeOfValue(args[0]), nil
 }
@@ -89,7 +89,7 @@ func typeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
 func intBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G210, "1", len(args), "değer")
+		return nil, ArgCountError(codes.G210, "1", len(args), messages.Text(messages.H2301))
 	}
 	switch val := args[0].(type) {
 	case *IntVal:
@@ -119,7 +119,7 @@ func intBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // floatBuiltin ondalık() yerleşiğidir.
 func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G211, "1", len(args), "değer")
+		return nil, ArgCountError(codes.G211, "1", len(args), messages.Text(messages.H2301))
 	}
 	switch val := args[0].(type) {
 	case *FloatVal:
@@ -140,7 +140,7 @@ func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // stringBuiltin metin() yerleşiğidir.
 func stringBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G212, "1", len(args), "değer")
+		return nil, ArgCountError(codes.G212, "1", len(args), messages.Text(messages.H2301))
 	}
 	return singleChar(y, args[0])
 }
@@ -180,14 +180,14 @@ func rangeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 		}
 		return &ListVal{Elements: elems}, nil
 	}
-	return nil, ArgCountError(codes.G305, "1 ya da 2", len(args), "bitiş", "başlangıç, bitiş")
+	return nil, ArgCountError(codes.G305, Counts(1, 2), len(args), messages.Text(messages.H2302), messages.Text(messages.H2303))
 }
 
 // sumBuiltin toplam() yerleşiğidir.
 // Temel Matematik Fonksiyonları
 func sumBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G400, "1", len(args), "liste")
+		return nil, ArgCountError(codes.G400, "1", len(args), messages.Text(messages.H2304))
 	}
 	list, ok := args[0].(*ListVal)
 	if !ok {
@@ -210,7 +210,7 @@ func maxBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // absBuiltin mutlak() yerleşiğidir.
 func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G403, "1", len(args), "sayı")
+		return nil, ArgCountError(codes.G403, "1", len(args), messages.Text(messages.H2305))
 	}
 	if iv, ok := args[0].(*IntVal); ok {
 		if iv.Val == math.MinInt64 {
@@ -231,7 +231,7 @@ func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // sqrtBuiltin karekök() yerleşiğidir.
 func sqrtBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G404, "1", len(args), "sayı")
+		return nil, ArgCountError(codes.G404, "1", len(args), messages.Text(messages.H2305))
 	}
 	if fv, ok := ToFloat(args[0]); ok {
 		return &FloatVal{Val: math.Sqrt(fv)}, nil
@@ -242,7 +242,7 @@ func sqrtBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // roundBuiltin yuvarla() yerleşiğidir.
 func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) < 1 || len(args) > 2 {
-		return nil, ArgCountError(codes.G405, "1 ya da 2", len(args), "sayı", "sayı, basamak")
+		return nil, ArgCountError(codes.G405, Counts(1, 2), len(args), messages.Text(messages.H2305), messages.Text(messages.H2306))
 	}
 	fv, ok := ToFloat(args[0])
 	if !ok {
@@ -295,7 +295,7 @@ func timeMsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // readFileBuiltin dosya_oku() yerleşiğidir.
 func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G110, "1", len(args), "dosya")
+		return nil, ArgCountError(codes.G110, "1", len(args), messages.Text(messages.H2307))
 	}
 	filePath, ok, err := PathArg(CallPrefix(codes.G110), args[0])
 	if !ok {
@@ -316,7 +316,7 @@ func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error)
 // writeFileBuiltin dosya_yaz() yerleşiğidir. Yazma atomiktir (bkz. AtomikYaz).
 func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 2 {
-		return nil, ArgCountError(codes.G111, "2", len(args), "yol, içerik")
+		return nil, ArgCountError(codes.G111, "2", len(args), messages.Text(messages.H2308))
 	}
 	filePath, ok, err := PathArg(CallPrefix(codes.G111), args[0])
 	if !ok {
@@ -340,7 +340,7 @@ const maxSleepSeconds = float64(math.MaxInt64) / float64(time.Second)
 
 func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.G500, "1", len(args), "saniye")
+		return nil, ArgCountError(codes.G500, "1", len(args), messages.Text(messages.H2309))
 	}
 	pick, ok := ToFloat(args[0])
 	if !ok {
@@ -406,7 +406,7 @@ func checkRangeSize(start, end int64) error {
 // değilse argümanların kendisi karşılaştırılır.
 func extremeArgs(kd codes.Code, args []Value, upper bool) (Value, error) {
 	if len(args) == 0 {
-		return nil, ArgCountError(kd, "en az 1", 0, "liste", "a, b, ...")
+		return nil, ArgCountError(kd, AtLeast(1), 0, messages.Text(messages.H2304), messages.Text(messages.H2310))
 	}
 	if len(args) == 1 {
 		if list, ok := args[0].(*ListVal); ok {

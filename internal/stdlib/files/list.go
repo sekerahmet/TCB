@@ -18,7 +18,7 @@ import (
 func listBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.G121)
 	if len(args) > 2 {
-		return nil, interp.ArgCountError(codes.G121, "0, 1 ya da 2", len(args), "", "klasör", "klasör, kalıp")
+		return nil, interp.ArgCountError(codes.G121, interp.Counts(0, 1, 2), len(args), "", messages.Text(messages.H2318), messages.Text(messages.H2319))
 	}
 	base, glob := ".", "*"
 	if len(args) > 0 {

@@ -128,7 +128,7 @@ func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.T702, "2", len(args), "koşu_klasörü, {model: model, op: op, ...}")
+		return nil, interp.ArgCountError(codes.T702, "2", len(args), messages.Text(messages.H2313))
 	}
 	fpath, ok, err := interp.PathArg(fn, args[0])
 	if err != nil {
@@ -200,7 +200,7 @@ func setupUnseededWarning(m *interp.VM) {
 // stepArg güncelle'nin tamamlanan adım argümanını okur.
 func stepArg(kd codes.Code, args []interp.Value) (int64, error) {
 	if len(args) != 1 {
-		return 0, interp.ArgCountError(kd, "1", len(args), "tamamlanan_adım")
+		return 0, interp.ArgCountError(kd, "1", len(args), messages.Text(messages.H2314))
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok || n.Val < 0 {
