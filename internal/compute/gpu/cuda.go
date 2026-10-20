@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -132,7 +134,7 @@ func loadCUDA() *cudaLibrary {
 		c.k = k
 		for i, ad := range cudaFuncNames {
 			if c.fn[i], err = k.find(ad); err != nil {
-				c.failure = fmt.Errorf("sürücüde %s işlevi yok (sürücü çok eski olabilir): %v", ad, err)
+				c.failure = messages.New(messages.H4004, ad, err)
 				return
 			}
 		}
@@ -140,13 +142,13 @@ func loadCUDA() *cudaLibrary {
 			c.ifn[i], _ = k.find(ad) // yoksa 0: özellik kapalı
 		}
 		if s := c.call(fInit, 0); s != succeeded {
-			c.failure = fmt.Errorf("cuInit başarısız: %s", c.errName(s))
+			c.failure = messages.New(messages.H4005, "cuInit", c.errName(s))
 			return
 		}
 		c.call(fDriverGetVersion, uintptr(unsafe.Pointer(&c.output.i32)))
 		c.version = c.output.i32
 		if s := c.call(fDeviceGetCount, uintptr(unsafe.Pointer(&c.output.i32))); s != succeeded {
-			c.failure = fmt.Errorf("cuDeviceGetCount başarısız: %s", c.errName(s))
+			c.failure = messages.New(messages.H4005, "cuDeviceGetCount", c.errName(s))
 			return
 		}
 		c.num = int(c.output.i32)
@@ -205,8 +207,7 @@ type cudaDriver struct {
 	jit       *jitSpace
 	// text sürücüye verilen C metinlerinin (PTX, çekirdek adı) kalıcı tamponu: nesnenin
 	// yığın (heap) alanıdır, gorutin yığıtında değildir (yığıt büyürken taşınabilirdi).
-	text       []byte
-	lastDetail string
+	text []byte
 }
 
 // cTextOf s'yi sıfırla biten C metni olarak kalıcı tampona yazar ve adresini verir; adres
@@ -236,20 +237,20 @@ func openCUDA(order int) (*cudaDriver, error) {
 	s := &cudaDriver{c: c, output: &cudaOutput{}, paramBuf: make([]byte, 0, 8192), jit: &jitSpace{}}
 	o := s.output
 	if r := c.call(fDeviceGet, uintptr(unsafe.Pointer(&o.i32)), uintptr(order)); r != succeeded {
-		return nil, fmt.Errorf("cuDeviceGet(%d): %s", order, c.errName(r))
+		return nil, messages.New(messages.H4006, fmt.Sprintf("cuDeviceGet(%d)", order), c.errName(r))
 	}
 	s.device = o.i32
 	if r := c.call(fDeviceGetName, uintptr(unsafe.Pointer(&o.ad[0])), uintptr(len(o.ad)), uintptr(s.device)); r != succeeded {
-		return nil, fmt.Errorf("cuDeviceGetName: %s", c.errName(r))
+		return nil, messages.New(messages.H4006, "cuDeviceGetName", c.errName(r))
 	}
 	s.ad = cText(unsafe.Pointer(&o.ad[0]), len(o.ad))
 	if r := c.call(fDeviceTotalMem, uintptr(unsafe.Pointer(&o.u64)), uintptr(s.device)); r != succeeded {
-		return nil, fmt.Errorf("cuDeviceTotalMem: %s", c.errName(r))
+		return nil, messages.New(messages.H4006, "cuDeviceTotalMem", c.errName(r))
 	}
 	s.memory = o.u64
 	for i, oz := range []int{75, 76, 16} { // yetenek büyük/küçük, SM sayısı
 		if r := c.call(fDeviceGetAttribute, uintptr(unsafe.Pointer(&o.i32)), uintptr(oz), uintptr(s.device)); r != succeeded {
-			return nil, fmt.Errorf("cuDeviceGetAttribute(%d): %s", oz, c.errName(r))
+			return nil, messages.New(messages.H4006, fmt.Sprintf("cuDeviceGetAttribute(%d)", oz), c.errName(r))
 		}
 		if i < 2 {
 			s.capability_[i] = o.i32
@@ -265,12 +266,12 @@ func openCUDA(order int) (*cudaDriver, error) {
 		s.sharedMem = o.i32 // CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK_OPTIN
 	}
 	if r := c.call(fPrimaryCtxRetain, uintptr(unsafe.Pointer(&o.handle)), uintptr(s.device)); r != succeeded {
-		return nil, fmt.Errorf("cuDevicePrimaryCtxRetain: %s", c.errName(r))
+		return nil, messages.New(messages.H4006, "cuDevicePrimaryCtxRetain", c.errName(r))
 	}
 	s.context = o.handle
 	if r := s.bind(); r != succeeded {
 		c.call(fPrimaryCtxRelease, uintptr(s.device)) // tutulan bağlam bırakılır
-		return nil, fmt.Errorf("cuCtxSetCurrent: %s", c.errName(r))
+		return nil, messages.New(messages.H4006, "cuCtxSetCurrent", c.errName(r))
 	}
 	return s, nil
 }
@@ -284,7 +285,7 @@ func (s *cudaDriver) call(f int, args ...uintptr) result {
 func (s *cudaDriver) bind() result { return s.call(fCtxSetCurrent, s.context) }
 
 func (s *cudaDriver) cardName() string {
-	return fmt.Sprintf("%s (sm_%d%d, %d SM, sürücü CUDA %d.%d)", s.ad, s.capability_[0], s.capability_[1], s.smCount,
+	return messages.Text(messages.H4025, s.ad, s.capability_[0], s.capability_[1], s.smCount,
 		s.c.version/1000, s.c.version%1000/10)
 }
 
@@ -402,7 +403,7 @@ func (s *cudaDriver) sharedMemLimit() int { return int(s.sharedMem) }
 
 func (s *cudaDriver) errName(r result) string { return s.c.errName(r) }
 
-func (s *cudaDriver) detail() string { return s.lastDetail }
+func (s *cudaDriver) detail() error { return nil }
 
 // peakGFLOPS kartın kuramsal float32 tepe hızı (GFLOPS; SM başına float32 birimi yetenek
 // düzeyinden tahmin edilir: 6.0, 7.x, 8.0 için 64, diğerleri 128). Yalnızca kıyas raporu.

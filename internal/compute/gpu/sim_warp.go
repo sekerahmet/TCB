@@ -1,11 +1,12 @@
 package gpu
 
 import (
-	"fmt"
 	"math"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -47,7 +48,7 @@ func (a *simParser) parseWarp(k *simInst, op, args string) (ok bool, err error) 
 		}
 		t := splitTerms(args)
 		if len(t) != 3 {
-			return true, fmt.Errorf("%s üç işlenen ister", op)
+			return true, internalf("%s needs three operands", op)
 		}
 		if err := a.targetReg(k, t[0]); err != nil {
 			return true, err
@@ -80,24 +81,24 @@ func (a *simParser) parseMma(k *simInst, op, args string) error {
 	case "mma.sync.aligned.m16n8k16.row.col.f32.f16.f16.f32":
 		m.f16 = true
 	default:
-		return fmt.Errorf("benzetimin bilmediği mma biçimi %s", op)
+		return internalf("mma form %s unknown to the simulator", op)
 	}
 	var groups [][]string
 	for len(groups) < 4 {
 		i, j := strings.IndexByte(args, '{'), strings.IndexByte(args, '}')
 		if i < 0 || j < i {
-			return fmt.Errorf("mma dört süslü parantezli işlenen ister")
+			return internalf("mma needs four braced operands")
 		}
 		groups = append(groups, splitTerms(args[i+1:j]))
 		args = args[j+1:]
 	}
 	if len(groups[0]) != 4 || len(groups[1]) != 4 || len(groups[2]) != 2 || len(groups[3]) != 4 {
-		return fmt.Errorf("mma işlenen sayıları 4, 4, 2, 4 olmalı")
+		return internalf("mma operand counts must be 4, 4, 2, 4")
 	}
 	for i, s := range groups[0] {
 		y, ok := a.reg[s]
 		if !ok {
-			return fmt.Errorf("tanımsız hedef yazmaç %s", s)
+			return internalf("undefined destination register %s", s)
 		}
 		m.d[i] = y
 	}
@@ -123,11 +124,11 @@ func (a *simParser) parseMma(k *simInst, op, args string) error {
 
 func (a *simParser) parseShfl(k *simInst, op, args string) error {
 	if op != "shfl.sync.bfly.b32" {
-		return fmt.Errorf("benzetimin bilmediği shfl biçimi %s", op)
+		return internalf("shfl form %s unknown to the simulator", op)
 	}
 	t := splitTerms(args)
 	if len(t) != 5 || t[3] != "31" || t[4] != "-1" {
-		return fmt.Errorf("shfl.sync.bfly.b32 d, a, maske, 31, -1 biçiminde olmalı")
+		return internalf("shfl must have the form shfl.sync.bfly.b32 d, a, mask, 31, -1")
 	}
 	if err := a.targetReg(k, t[0]); err != nil {
 		return err
@@ -164,7 +165,7 @@ func half16(h uint16, f16 bool) float64 {
 // warpStep bütün şeridi aynı warp komutunda bekleyen warp'ları yürütür.
 func (b *simBlock) warpStep(jobs []simJob) error {
 	if len(jobs)%32 != 0 {
-		return fmt.Errorf("warp komutu 32'nin katı olmayan blokta (%d iş parçacığı)", len(jobs))
+		return messages.New(messages.H4115, len(jobs))
 	}
 	for w := 0; w < len(jobs); w += 32 {
 		lanes := jobs[w : w+32]
@@ -180,8 +181,8 @@ func (b *simBlock) warpStep(jobs []simJob) error {
 		pc := lanes[0].pc
 		for i := range lanes {
 			if lanes[i].state != dAtWarp || lanes[i].pc != pc {
-				b.errJob = fmt.Sprintf("warp %d", w/32)
-				return fmt.Errorf("dağınık warp: şeridin bir kısmı warp komutunda (%s), bir kısmı başka yerde", b.is.instructions[lanes[0].pc].row)
+				b.errJob = messages.Text(messages.H4106, w/32)
+				return messages.New(messages.H4116, b.is.instructions[lanes[0].pc].row)
 			}
 		}
 		k := &b.is.instructions[pc]

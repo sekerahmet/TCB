@@ -5,6 +5,7 @@ import (
 	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Arka uç: eksen indirgemeleri (Sum, SumAll, Max, MaxGrad, ArgMax).
@@ -49,7 +50,7 @@ func (g *backend) argmax(mode2 int, out, gd *storage, x tensor.View, axis int, g
 	}
 	checkSize(K)
 	if len(sh) > maxAxis {
-		none(fmt.Sprintf("%d eksenli en büyük değer araması (en çok %d)", len(sh), maxAxis))
+		none(messages.H4054, len(sh), maxAxis)
 	}
 	sg := 0
 	if gxSt != nil {

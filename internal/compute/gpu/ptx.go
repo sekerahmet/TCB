@@ -98,7 +98,7 @@ func term(a any) string {
 	case float64:
 		return fmt.Sprintf("0d%016X", math.Float64bits(v))
 	}
-	panic(fmt.Sprintf("gpu: PTX yazıcısına bilinmeyen işlenen %T (iç hata)", a))
+	panic(internalf("unknown operand %T given to the PTX writer", a))
 }
 
 func (k *emitter) instruction(on, op string, args []any) {

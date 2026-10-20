@@ -147,7 +147,7 @@ func (g *backend) Release(s tensor.Storage) {
 	g.enter()
 	defer g.exit()
 	if d.release2 {
-		panic("tensor: depolama havuza iki kez iade edildi")
+		panic(internalf("storage returned to the pool twice"))
 	}
 	g.release(d)
 }

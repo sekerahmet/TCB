@@ -1,9 +1,10 @@
 package gpu
 
 import (
-	"fmt"
 	"syscall"
 	"unsafe"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Windows: nvcuda.dll standart syscall paketiyle yüklenir. DLL yoksa (NVIDIA sürücüsü
@@ -19,7 +20,7 @@ const fromSystemDir = 0x00000800
 func openLib() (library, error) {
 	loader := syscall.NewLazyDLL("kernel32.dll").NewProc("LoadLibraryExW")
 	if err := loader.Find(); err != nil {
-		return nil, fmt.Errorf("LoadLibraryExW bulunamadı: %v", err)
+		return nil, messages.New(messages.H4000, err)
 	}
 	ad, err := syscall.UTF16PtrFromString("nvcuda.dll")
 	if err != nil {
@@ -27,7 +28,7 @@ func openLib() (library, error) {
 	}
 	h, _, e := loader.Call(uintptr(unsafe.Pointer(ad)), 0, fromSystemDir)
 	if h == 0 {
-		return nil, fmt.Errorf("NVIDIA sürücüsü (nvcuda.dll) yüklenemedi: %v", e)
+		return nil, messages.New(messages.H4001, "nvcuda.dll", e)
 	}
 	return &windowsLibrary{h: syscall.Handle(h)}, nil
 }

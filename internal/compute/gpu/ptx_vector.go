@@ -28,7 +28,7 @@ func vecSuffix(n int) string {
 	case 4:
 		return ".v4"
 	}
-	panic("gpu: vektör genişliği 2 ya da 4 olmalı (iç hata)")
+	panic(internalf("vector width must be 2 or 4"))
 }
 
 // loadV alan ("global" ya da "shared") belleğinden n float32'yi tek komutla yükler. p
@@ -73,7 +73,7 @@ func (k *emitter) storeV(space string, p reg, addr reg, offset int, v []reg) {
 // sınır dışı döşeme elemanları için). Kopyanın bittiği ancak cpBekle'den sonra bilinir.
 func (k *emitter) cpAsync(sm reg, smOfs int, source reg, sourceSize reg) {
 	if k.target < 80 {
-		panic("gpu: cp.async sm_80 hedefi ister (iç hata)")
+		panic(internalf("cp.async needs an sm_80 target"))
 	}
 	k.e("cp.async.cg.shared.global", mem(sm, smOfs), mem(source, 0), 16, sourceSize)
 }

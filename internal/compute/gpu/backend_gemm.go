@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Arka uç: toplu matris çarpımı.
@@ -37,10 +38,10 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 	}
 	ay := g.pickGemm(batch, M, N)
 	if !ay.valid() {
-		panic(fmt.Sprintf("tensor: GPU: geçersiz matris çarpımı döşeme ayarı %+v (iç hata)", ay))
+		panic(internalf("invalid matrix multiply tile setting %+v", ay))
 	}
 	if blocks(M, ay.BM) > 65535 {
-		none(fmt.Sprintf("%d satırlı matris çarpımı (en çok %d)", M, 65535*ay.BM))
+		none(messages.H4053, M, 65535*ay.BM)
 	}
 	key := fmt.Sprintf("carpim:%+v:%v:%v:%v", ay, transA, transB, over)
 	pull := g.takeKernel(key, gemmKernel(ay, transA, transB, over))

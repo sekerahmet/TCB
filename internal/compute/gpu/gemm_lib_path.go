@@ -1,12 +1,13 @@
 package gpu
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Matris çarpımı kitaplığının (cuBLASLt) arama sırası. Çalışma klasörü ve programın yanındaki
@@ -106,7 +107,7 @@ func gemmLibDirs() []string {
 func gemmLibCandidates() (open string, candidates []string, err error) {
 	if p := os.Getenv("TR_GPU_CUBLASLT"); p != "" {
 		if !filepath.IsAbs(p) {
-			return "", nil, fmt.Errorf("TR_GPU_CUBLASLT tam yol olmalı: %q", p)
+			return "", nil, messages.New(messages.H4026, p)
 		}
 		open = p
 	}

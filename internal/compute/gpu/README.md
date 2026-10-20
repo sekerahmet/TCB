@@ -25,6 +25,13 @@ düzenini sınayan test hem benzeticide hem gerçek kartta koşar; ikisinin sonu
 **Profil adları kararlıdır.** Çekirdek aileleri (ör. `carpim`) profil çıktısında ve araçlarda
 kullanılan metinlerdir; kodun Go adlarına bağlı değildir.
 
+**İletiler kodludur.** Kullanıcıya giden her ileti `H4000`–`H4999` aralığından bir ileti koddur
+(`messages.New`, `messages.Text`); sürücünün döndürdüğü hata adı parametre olarak geçer. Benzetici,
+gerçek GPU'nun da reddedeceği durumları `H41xx` koduyla bildirir (testler kodu denetler); benzeticinin
+kendi ayrıştırma ve üretim hataları (bozuk PTX, desteklenmeyen komut) TR'nin hatasıdır ve
+`messages.Internal` ile İngilizce ayrıntılı bildirilir. Bellek yetmezliği, desteklenmeyen işlem ve
+sınır aşımı kodludur; "bu işlem GPU'da henüz yok" ailesi `H405x`.
+
 ## Testler
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:

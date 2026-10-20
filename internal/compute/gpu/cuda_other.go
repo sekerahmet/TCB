@@ -2,17 +2,17 @@
 
 package gpu
 
-import "errors"
+import "github.com/sekerahmet/TCB/internal/lang/messages"
 
 // Diğer işletim sistemlerinde NVIDIA sürücüsü yoktur; GPU arka ucu kaydolmaz. Linux'ta
 // "gpusuz" yapı etiketiyle derlenen ikili de buradadır: cgo'suz dinamik yükleyici (dış bağımlılık)
 // bağlanmaz, ikili statik kalır (glibc gerekmez) ve GPU kullanılamaz.
 func openLib() (library, error) {
-	return nil, errors.New("bu TR derlemesinde GPU desteği yok (işletim sistemi desteklenmiyor ya da ikili GPU'suz derlendi)")
+	return nil, messages.New(messages.H4002)
 }
 
 func runExitHandlers() {}
 
 func openLibrary(string) (library, error) {
-	return nil, errors.New("bu derlemede dış kitaplık yüklenmez")
+	return nil, messages.New(messages.H4003)
 }

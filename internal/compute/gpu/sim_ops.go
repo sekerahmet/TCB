@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -53,7 +52,7 @@ func computeF32(k *simInst, ab, bb, cb uint64) (uint64, error) {
 	case simSetp:
 		return compareF(k.mode2, float64(a), float64(b)), nil
 	}
-	return 0, fmt.Errorf("benzetimde .f32 için desteklenmeyen işlem")
+	return 0, internalf("operation unsupported by the simulator for .f32")
 }
 
 func computeF64(k *simInst, ab, bb, cb uint64) (uint64, error) {
@@ -81,7 +80,7 @@ func computeF64(k *simInst, ab, bb, cb uint64) (uint64, error) {
 	case simSetp:
 		return compareF(k.mode2, a, b), nil
 	}
-	return 0, fmt.Errorf("benzetimde .f64 için desteklenmeyen işlem")
+	return 0, internalf("operation unsupported by the simulator for .f64")
 }
 
 // minMaxF32 PTX min/max: işlenenlerden biri NaN ise diğeri döner.
@@ -188,7 +187,7 @@ func fromFloating(k *simInst, f float64) (uint64, error) {
 		return uint64(f32ToF16Sim(float32(f))), nil
 	case simS32:
 		if k.mode2 == 0 {
-			return 0, fmt.Errorf("kayan noktadan tam sayıya cvt yuvarlama kipi ister")
+			return 0, internalf("cvt from float to integer needs a rounding mode")
 		}
 		r := round(k.mode2, f)
 		switch {
@@ -201,7 +200,7 @@ func fromFloating(k *simInst, f float64) (uint64, error) {
 		}
 		return uint64(uint32(int32(r))), nil
 	}
-	return 0, fmt.Errorf("benzetimde desteklenmeyen cvt hedefi")
+	return 0, internalf("cvt target unsupported by the simulator")
 }
 
 func fromInt(k *simInst, f float64, s int64) (uint64, error) {
@@ -217,7 +216,7 @@ func fromInt(k *simInst, f float64, s int64) (uint64, error) {
 	case simU64, simS64:
 		return uint64(s), nil
 	}
-	return 0, fmt.Errorf("benzetimde desteklenmeyen cvt hedefi")
+	return 0, internalf("cvt target unsupported by the simulator")
 }
 
 // f32ToF16Sim IEEE yarım hassasiyete en yakına-çifte yuvarlama (donanımın cvt.rn.f16.f32

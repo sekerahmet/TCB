@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -125,7 +126,7 @@ func (g *backend) copyStrided(target, source tensor.View, add bool, scaleF float
 		return
 	}
 	if len(sh) > maxAxis {
-		none(fmt.Sprintf("%d eksenli adımlı kopya (en çok %d)", len(sh), maxAxis))
+		none(messages.H4057, len(sh), maxAxis)
 	}
 	meta := append(append(append([]int{}, sh...), st[0]...), st[1]...)
 	c := g.takeKernel(fmt.Sprintf("kopya:%d:%d:%d:%v", len(sh), kd.dtype, hd.dtype, add), copyKernel(len(sh), kd.dtype, hd.dtype, add))

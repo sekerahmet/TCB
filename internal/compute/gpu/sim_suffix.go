@@ -1,7 +1,5 @@
 package gpu
 
-import "fmt"
-
 // simNaNProp min/max'ın .NaN eki (mode2): girdilerden biri NaN ise sonuç kanonik NaN.
 const simNaNProp = 6
 
@@ -50,7 +48,7 @@ func (a *simParser) extras(k *simInst, ek []string) error {
 		default:
 			kp, ok := simCompare[e]
 			if !ok || k.op != simSetp {
-				return fmt.Errorf("benzetimin bilmediği ek .%s", e)
+				return internalf("unknown suffix .%s in simulator", e)
 			}
 			k.mode2 = kp
 		}
@@ -62,7 +60,7 @@ func (a *simParser) extras(k *simInst, ek []string) error {
 		k.source = dtypes[1]
 	}
 	if (k.op == simMul || k.op == simMad) && k.dtype != simF32 && k.dtype != simF64 && k.mode2 != 1 {
-		return fmt.Errorf("tam sayı çarpımı .lo ya da .wide ister")
+		return internalf("integer multiply needs .lo or .wide")
 	}
 	return nil
 }

@@ -3,10 +3,11 @@
 package gpu
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/ebitengine/purego"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Linux: libcuda.so.1 cgo'suz dinamik yükleyiciyle (go.mod'daki tek dış bağımlılık) yüklenir. Kitaplık yoksa (NVIDIA sürücüsü
@@ -23,7 +24,7 @@ func openLib() (library, error) {
 		}
 		last = err
 	}
-	return nil, fmt.Errorf("NVIDIA sürücüsü (libcuda.so.1) yüklenemedi: %v", last)
+	return nil, messages.New(messages.H4001, "libcuda.so.1", last)
 }
 
 func (l *linuxLibrary) find(ad string) (uintptr, error) { return purego.Dlsym(l.handle, ad) }

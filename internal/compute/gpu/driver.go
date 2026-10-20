@@ -1,8 +1,9 @@
 package gpu
 
 import (
-	"fmt"
 	"unsafe"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -53,7 +54,7 @@ type driver interface {
 	// errName sonuc kodunun adı (CUDA_ERROR_...).
 	errName(s result) string
 	// detail son hatanın sürücüye özgü açıklaması (benzetimde çekirdek ve komut).
-	detail() string
+	detail() error
 	// capability hesaplama yeteneği (ör. 120 = sm_120) ve SM sayısı.
 	capability() (cc, sm int)
 	// Olaylar (profil): olayOlustur zamanlamalı bir olay verir; olayKaydet olayı sıraya
@@ -91,7 +92,7 @@ func nameFromTable(s result) string {
 	if ad, ok := errNames[s]; ok {
 		return ad
 	}
-	return fmt.Sprintf("CUDA hata kodu %d", int32(s))
+	return messages.Text(messages.H4019, int32(s))
 }
 
 // Sık kullanılan kodlar.

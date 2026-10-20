@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math"
 	"sort"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -57,7 +59,7 @@ func (m *simMemory) slice(addr uint64, n int) ([]byte, error) {
 			return b.data[o : o+uint64(n)], nil
 		}
 	}
-	return nil, fmt.Errorf("ayrılmış bölge dışında %d baytlık genel bellek erişimi: 0x%x", n, addr)
+	return nil, messages.New(messages.H4100, n, fmt.Sprintf("%x", addr))
 }
 
 // Yürütme durumları.
@@ -105,12 +107,14 @@ func (b *simBlock) race(t *simJob, addr, n int, writing bool) error {
 		}
 		yz, ok := b.raceWriter[w], b.raceReader[w]
 		if yz >= 0 && yz != t.no {
-			return fmt.Errorf("paylaşımlı bellek yarışı: %d. bayt aynı engel aralığında %d. iş parçacığınca yazıldı, %d. iş parçacığınca da %s",
-				4*w, yz, t.no, map[bool]string{true: "yazılıyor", false: "okunuyor"}[writing])
+			if writing {
+				return messages.New(messages.H4101, 4*w, yz, t.no)
+			}
+			return messages.New(messages.H4102, 4*w, yz, t.no)
 		}
 		if writing {
 			if ok == -2 || (ok >= 0 && ok != t.no) {
-				return fmt.Errorf("paylaşımlı bellek yarışı: %d. bayt aynı engel aralığında başka bir iş parçacığınca okundu, %d. iş parçacığınca yazılıyor", 4*w, t.no)
+				return messages.New(messages.H4103, 4*w, t.no)
 			}
 			b.raceWriter[w] = t.no
 			continue
@@ -128,19 +132,19 @@ func (b *simBlock) race(t *simJob, addr, n int, writing bool) error {
 // simLaunch bir çekirdeği bütün ızgarada yürütür.
 func simLaunch(is *simFunc, mem *simMemory, grid, block [3]uint32, dynamic int, param [][]byte) error {
 	if len(param) != len(is.param) {
-		return fmt.Errorf("%s: %d parametre bekleniyordu, %d verildi", is.ad, len(is.param), len(param))
+		return internalf("%s: expected %d parameters, got %d", is.ad, len(is.param), len(param))
 	}
 	for i, p := range is.param {
 		if len(param[i]) != p.byteN {
-			return fmt.Errorf("%s: %s parametresi %d bayt olmalı, %d verildi", is.ad, p.ad, p.byteN, len(param[i]))
+			return internalf("%s: parameter %s must be %d bytes, got %d", is.ad, p.ad, p.byteN, len(param[i]))
 		}
 	}
 	n := int(block[0] * block[1] * block[2])
 	if n == 0 || n > 1024 {
-		return fmt.Errorf("%s: blok başına %d iş parçacığı (1..1024 olmalı)", is.ad, n)
+		return internalf("%s: %d threads per block (must be 1..1024)", is.ad, n)
 	}
 	if grid[1] > 65535 || grid[2] > 65535 {
-		return fmt.Errorf("%s: ızgaranın y/z boyutu 65535'i aşıyor (%v)", is.ad, grid)
+		return internalf("%s: grid y/z dimension exceeds 65535 (%v)", is.ad, grid)
 	}
 	budget := int64(4e9)
 	sharedBytes := is.sharedBytes + dynamic
@@ -163,7 +167,7 @@ func simLaunch(is *simFunc, mem *simMemory, grid, block [3]uint32, dynamic int, 
 				clear(b.shared)
 				clear(reg)
 				if err := b.execute(jobs); err != nil {
-					return fmt.Errorf("%s, blok (%d,%d,%d), %s: %v", is.ad, x, y, z, b.errJob, err)
+					return messages.New(messages.H4104, is.ad, x, y, z, b.errJob, err)
 				}
 			}
 		}
@@ -183,7 +187,7 @@ func (b *simBlock) execute(jobs []simJob) error {
 			t := &jobs[i]
 			if t.state == dRunning {
 				if err := b.run(t); err != nil {
-					b.errJob = fmt.Sprintf("iş parçacığı %v, komut %d (%s)", t.tid, t.pc, b.is.instructions[t.pc].row)
+					b.errJob = messages.Text(messages.H4105, t.tid, t.pc, b.is.instructions[t.pc].row)
 					return err
 				}
 			}
@@ -206,8 +210,8 @@ func (b *simBlock) execute(jobs []simJob) error {
 			return nil
 		}
 		if finished > 0 {
-			b.errJob = "engel"
-			return fmt.Errorf("dağınık engel: %d iş parçacığı bitmişken %d tanesi bar.sync'te bekliyor", finished, atBarrier)
+			b.errJob = messages.Text(messages.H4107)
+			return messages.New(messages.H4108, finished, atBarrier)
 		}
 		for i := range jobs {
 			jobs[i].state = dRunning
@@ -238,7 +242,7 @@ func (b *simBlock) run(t *simJob) error {
 		}
 		*b.budget--
 		if *b.budget < 0 {
-			return fmt.Errorf("komut bütçesi aşıldı (sonsuz döngü?)")
+			return messages.New(messages.H4109)
 		}
 		k := &inst[t.pc]
 		if k.cond >= 0 && (t.y[k.cond] != 0) == k.condNot {
@@ -295,16 +299,16 @@ func (b *simBlock) addressSlice(t *simJob, k *simInst, n int, writing bool) ([]b
 	case spaceParam:
 		p := b.param[k.param]
 		if k.offset < 0 || int(k.offset)+n > len(p) {
-			return nil, fmt.Errorf("parametre dışı okuma")
+			return nil, internalf("read outside the parameter space")
 		}
 		return p[k.offset : int(k.offset)+n], nil
 	case spaceShared:
 		addr := int64(uint32(b.read(t, &k.base2))) + k.offset
 		if addr%int64(n) != 0 {
-			return nil, fmt.Errorf("hizasız paylaşımlı bellek erişimi %d", addr)
+			return nil, messages.New(messages.H4110, addr)
 		}
 		if addr < 0 || int(addr)+n > len(b.shared) {
-			return nil, fmt.Errorf("paylaşımlı bellek dışı erişim %d (boyut %d)", addr, len(b.shared))
+			return nil, messages.New(messages.H4111, addr, len(b.shared))
 		}
 		if err := b.race(t, int(addr), n, writing); err != nil {
 			return nil, err
@@ -313,7 +317,7 @@ func (b *simBlock) addressSlice(t *simJob, k *simInst, n int, writing bool) ([]b
 	}
 	addr := b.read(t, &k.base2) + uint64(k.offset)
 	if addr%uint64(n) != 0 {
-		return nil, fmt.Errorf("hizasız genel bellek erişimi 0x%x (%d bayt)", addr, n)
+		return nil, messages.New(messages.H4112, fmt.Sprintf("%x", addr), n)
 	}
 	return b.mem.slice(addr, n)
 }
@@ -321,7 +325,7 @@ func (b *simBlock) addressSlice(t *simJob, k *simInst, n int, writing bool) ([]b
 // finish iş parçacığını bitirir; bekleyen eşzamansız kopyası kalmışsa hatadır.
 func (b *simBlock) finish(t *simJob) error {
 	if len(t.cp) > 0 {
-		return fmt.Errorf("iş parçacığı %d cp.async kopyası beklenmeden bitti", len(t.cp))
+		return messages.New(messages.H4113, len(t.cp))
 	}
 	t.state = dDone
 	return nil
@@ -357,7 +361,7 @@ func (b *simBlock) store(t *simJob, k *simInst) error {
 		return b.vecStore(t, k)
 	}
 	if k.space == spaceParam {
-		return fmt.Errorf("parametre alanına yazılamaz")
+		return internalf("cannot write to the parameter space")
 	}
 	n := dtypeBytes(k.dtype)
 	d, err := b.addressSlice(t, k, n, true)
@@ -463,7 +467,7 @@ func computeInt(k *simInst, a, b, c uint64) (uint64, error) {
 		return r, nil
 	case simDiv, simRem:
 		if width(k.dtype, b) == 0 {
-			return 0, fmt.Errorf("tam sayı sıfıra bölme")
+			return 0, messages.New(messages.H4114)
 		}
 		if signed {
 			if k.op == simDiv {
@@ -531,7 +535,7 @@ func computeBits(k *simInst, a, b, c uint64, sa int64, signed bool) (uint64, err
 	case simCvt:
 		return convert(k, a)
 	}
-	return 0, fmt.Errorf("benzetimde tam sayı türü için desteklenmeyen işlem")
+	return 0, internalf("operation unsupported by the simulator for integer type")
 }
 
 func compareInt(k *simInst, a, b uint64, sa, sb int64, signed bool) uint64 {

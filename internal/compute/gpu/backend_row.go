@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Arka uç: softmax, çapraz entropi, normlar ve gömme.
@@ -60,7 +61,7 @@ func ints(v []int) []int32 {
 	r := make([]int32, len(v))
 	for i, x := range v {
 		if x < -1<<31 || x >= 1<<31 {
-			panic(fmt.Sprintf("tensor: GPU: indeks %d 32 bite sığmıyor", x))
+			panic(messages.New(messages.H4018, x))
 		}
 		r[i] = int32(x)
 	}

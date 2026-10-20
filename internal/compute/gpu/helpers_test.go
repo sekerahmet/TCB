@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Sınamalar gerçek bir GPU varsa onda, yoksa PTX benzetiminde koşar; her işlemin
@@ -124,5 +125,40 @@ func panicText(fn func()) (m string) {
 		}
 	}()
 	fn()
+	return ""
+}
+
+// panicError fn'in panik değerini hata olarak verir (panik yoksa nil); hata olmayan değer metne çevrilir.
+func panicError(fn func()) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+				return
+			}
+			err = messages.Internal(fmt.Sprint(r))
+		}
+	}()
+	fn()
+	return nil
+}
+
+// internalDetail hata zincirindeki ilk iç hatanın (H9000) İngilizce ayrıntısını verir (yoksa boş).
+func internalDetail(err error) string {
+	if err == nil {
+		return ""
+	}
+	if m, ok := err.(*messages.Error); ok {
+		if m.Code == messages.H9000 {
+			return fmt.Sprint(m.Args[0])
+		}
+		for _, a := range m.Args {
+			if e, ok := a.(error); ok {
+				if d := internalDetail(e); d != "" {
+					return d
+				}
+			}
+		}
+	}
 	return ""
 }

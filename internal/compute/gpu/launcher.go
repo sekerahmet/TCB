@@ -2,12 +2,11 @@ package gpu
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math"
 	"os"
-	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -52,20 +51,18 @@ func (g *backend) takeKernel(key string, generate func() *emitter) *kernel {
 var ptxDumpDir = ""
 
 // compileError PTX derleme hatasını, derleyici günlüğünü ve PTX'in yazıldığı geçici
-// dosyanın yolunu içeren bir mesaja çevirir.
-func (g *backend) compileError(ad, text, log string, s result) string {
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "tensor: GPU: %s çekirdeği derlenemedi: %s (%d)", ad, g.sr.errName(s), int32(s))
+// dosyanın yolunu içeren bir hataya çevirir.
+func (g *backend) compileError(ad, text, log string, s result) error {
+	var err error = messages.New(messages.H4011, ad, g.sr.errName(s), int32(s))
 	if log != "" {
-		sb.WriteString("\nPTX derleyici günlüğü:\n")
-		sb.WriteString(log)
+		err = messages.New(messages.H4012, err, log)
 	}
-	if f, err := os.CreateTemp(ptxDumpDir, "tr_gpu_"+ad+"_*.ptx"); err == nil {
+	if f, ferr := os.CreateTemp(ptxDumpDir, "tr_gpu_"+ad+"_*.ptx"); ferr == nil {
 		_, _ = f.WriteString(text)
 		_ = f.Close()
-		sb.WriteString("\nPTX metni: " + f.Name())
+		err = messages.New(messages.H4013, err, f.Name())
 	}
-	return sb.String()
+	return err
 }
 
 // Parametre çeşitleri (başlatma yerinin bildirdiği).
@@ -162,7 +159,7 @@ func (p *paramWriter) writeTo(d *storage) *paramWriter {
 
 func (p *paramWriter) u32(v int) *paramWriter {
 	if v < 0 || v > math.MaxUint32 {
-		panic(fmt.Sprintf("tensor: GPU: parametre %d 32 bite sığmıyor (iç hata)", v))
+		panic(internalf("parameter %d does not fit in 32 bits", v))
 	}
 	var b [4]byte
 	binary.LittleEndian.PutUint32(b[:], uint32(v))
@@ -183,7 +180,7 @@ func (p *paramWriter) arr(n int, v ...int) *paramWriter {
 	}
 	for i, x := range v {
 		if x < math.MinInt32 || x > math.MaxUint32 {
-			panic(fmt.Sprintf("tensor: GPU: dizi parametresi %d 32 bite sığmıyor (iç hata)", x))
+			panic(internalf("array parameter %d does not fit in 32 bits", x))
 		}
 		binary.LittleEndian.PutUint32(p.buf[begin+4*i:], uint32(x))
 	}
@@ -205,7 +202,7 @@ func (p *paramWriter) parts() [][]byte {
 // param yeni bir başlatmanın parametre yazıcısını verir.
 func (g *backend) param() *paramWriter {
 	if g.prm.open {
-		panic("tensor: GPU: parametre zinciri açıkken yeni başlatma hazırlandı (iç içe param(); iç hata)")
+		panic(internalf("new launch prepared while a parameter chain is open (nested param())"))
 	}
 	g.prm.open = true
 	return g.prm.reset()
@@ -217,15 +214,15 @@ func (g *backend) launch(c *kernel, grid, block [3]uint32, p *paramWriter) {
 	p.open = false
 	part := p.parts()
 	if len(part) != len(c.signature) {
-		panic(fmt.Sprintf("tensor: GPU: %s çekirdeğine %d parametre verildi, %d bekleniyordu (iç hata)", c.ad, len(part), len(c.signature)))
+		panic(internalf("kernel %s given %d parameters, expected %d", c.ad, len(part), len(c.signature)))
 	}
 	for i, t := range c.signature {
 		if len(part[i]) != t.byteN {
-			panic(fmt.Sprintf("tensor: GPU: %s çekirdeğinin %s parametresi %d bayt olmalı, %d verildi (iç hata)", c.ad, t.ad, t.byteN, len(part[i])))
+			panic(internalf("parameter %s of kernel %s must be %d bytes, got %d", t.ad, c.ad, t.byteN, len(part[i])))
 		}
 		variant := p.variant[i]
 		if t.pointer != (variant != pValue) || (t.writable && variant != pWrite) || (!t.writable && variant == pWrite) {
-			panic(fmt.Sprintf("tensor: GPU: %s çekirdeğinin %s parametresi için okuma/yazma bildirimi imzayla uyuşmuyor (iç hata)", c.ad, t.ad))
+			panic(internalf("read/write declaration of parameter %s of kernel %s does not match the signature", t.ad, c.ad))
 		}
 	}
 	for i := 0; i < 3; i++ {
