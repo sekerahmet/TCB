@@ -1,4 +1,4 @@
-// statik_denetim, verilen Linux (ELF) program dosyasının statik olduğunu denetler: yorumlayıcı
+// checkstatic, verilen Linux (ELF) program dosyasının statik olduğunu denetler: yorumlayıcı
 // (PT_INTERP) ve dinamik kitaplık bağımlılığı (DT_NEEDED) olmamalıdır. GPU desteği olmadan
 // ("gpusuz" yapı etiketiyle) derlenen tr program dosyasının glibc gerektirmediğini tam denetim bu
 // araçla doğrular (bkz. docs/architecture.md, GPU arka ucu).
@@ -27,23 +27,23 @@ func main() {
 		os.Exit(2)
 	}
 	defer f.Close()
-	statik := true
+	static := true
 	for _, p := range f.Progs {
 		if p.Type == elf.PT_INTERP {
 			fmt.Println("yorumlayıcı (PT_INTERP) var: program dosyası dinamik bağlı")
-			statik = false
+			static = false
 		}
 	}
-	kitapliklar, err := f.ImportedLibraries()
+	libs, err := f.ImportedLibraries()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "dinamik bölüm okunamadı:", err)
 		os.Exit(2)
 	}
-	if len(kitapliklar) > 0 {
-		fmt.Println("dinamik kitaplık bağımlılıkları (DT_NEEDED):", kitapliklar)
-		statik = false
+	if len(libs) > 0 {
+		fmt.Println("dinamik kitaplık bağımlılıkları (DT_NEEDED):", libs)
+		static = false
 	}
-	if !statik {
+	if !static {
 		os.Exit(1)
 	}
 	fmt.Println("program dosyası statik (yorumlayıcı ve dinamik kitaplık bağımlılığı yok)")
