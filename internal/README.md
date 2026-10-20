@@ -72,6 +72,7 @@ Birim testleri sınadıkları dosyanın adını taşır. Birden çok dosyayı ke
 - **Kod tabanı İngilizcedir:** klasör, dosya, paket, Go adları (dışa açık ve iç), test ve kıyas adları. Geliştirici belgeleri, betikler, test verisi ve eklenti dosyaları da dahildir; kullanıcı katmanı (`docs/spec`, `docs/guide`, `examples`, `*.tr` programları, `tr.json`) Türkçe kalır. Denetim: `TestLayoutEnglishFileNames`.
 - **Go yorumları Türkçedir.** Başka ürün, şirket ya da kitaplık adı yoruma yazılmaz.
 - **Go adları Go biçimindedir (MixedCaps):** C tarzı BÜYÜK_HARFLİ ad yazılmaz; sabit önekleri `Tok` (belirteç türü), `Val` (değer tipi), `prec` (öncelik). Dış API adları (CUDA, Windows) ve ortam değişkeni adları metin olarak olduğu gibi kalır. Denetim: `TestGoNamesMixedCaps`; istisna listesi `internal/go_names_test.go` içindedir ve yalnızca küçülür.
+- **Go metninde kullanıcıya görünen Türkçe yoktur:** ad ad kodudur, ileti ileti kodudur; geliştiriciye giden iç hata ayrıntısı ve araç çıktısı İngilizcedir. Türkçe harfli metin sabiti yalnızca izinli yerdedir: `internal/lang/turkish` (dilbilgisi tabloları), yapı alanı etiketleri ve gerekçeli `dosya:metin` kayıtları (veri biçimi anahtarları, Türkçe belge üreten aracın içeriği). Denetim: `TestNoTurkishLiterals`; izin listesi `internal/turkish_literals_test.go` içindedir ve yalnızca küçülür.
 - **Kullanıcıya görünen adlar Go metnine yazılmaz.** Anahtar kelime, yerleşik, tip, üye ve adlı argüman adları sabit kodlara bağlıdır (`lang/codes`, `tr.json`). Go kodu kodu yazar, ad dil dosyasından gelir:
 
   ```go
@@ -195,6 +196,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Mimari belgesindeki Go adları depoda var | `internal/architecture_names_test.go` (`TestArchitectureGoNamesExist`) |
 | Ortam değişkeni adları | `internal/layout_test.go` (`TestLayoutEnvVarNames`) |
 | Go adları MixedCaps (C tarzı BÜYÜK_HARFLİ ad yok) | `internal/go_names_test.go` (`TestGoNamesMixedCaps`) |
+| Go metninde kullanıcıya görünen Türkçe metin yok | `internal/turkish_literals_test.go` (`TestNoTurkishLiterals`) |
 | Dosya ve fonksiyon boyu | `internal/layout_test.go`, istisnalar `internal/layout_exceptions_test.go` |
 | Test dosyası düzeni | `internal/layout_test.go` (`TestTestFileMatchesSource`) |
 | README'lerdeki `Denetim:` ve `Kural`/`Test` tablosu satırlarının andığı test işlevleri ve dosyaları depoda var | `internal/rule_tests_test.go` (`TestRuleTestsExist`) |
