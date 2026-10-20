@@ -1228,22 +1228,22 @@ const (
 	H7903 Code = 7903 // {what} üzerinde {member|q} özelliği ya da metodu bulunamadı. Bunu mu demek istediniz: '{suggestion}'?
 	H7904 Code = 7904 // {what} üzerinde {member|q} özelliği ya da metodu bulunamadı (üyeler: {members})
 	H7905 Code = 7905 // {fn}: {name} doğru ya da yanlış olmalıdır, {given} verildi
-	H8000 Code = 8000 // F5:devam | F10:geç | F11:adım | Shift+F11:dön | değiştir | zıpla | tablo | izle
+	H8000 Code = 8000 // F5:{continue} | F10:{next} | F11:{step} | Shift+F11:{out} | {set} | {jump} | {table} | {watch}
 	H8001 Code = 8001 // [TR Hata Ayıklayıcı] ({keys}) >
 	H8010 Code = 8010 // TR HATA AYIKLAYICI KOMUT REHBERİ:
 	H8011 Code = 8011 // (Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır; tuş adını yazıp Enter'a basın.)
-	H8012 Code = 8012 // f11 / adım / Enter      : Tek adım ilerle (Fonksiyonların içine girer)
-	H8013 Code = 8013 // f10 / geç               : Üstten geç (Fonksiyonu tek adımda çalıştırır)
-	H8014 Code = 8014 // shift+f11 / dön         : Mevcut fonksiyondan çıkana kadar çalıştır
-	H8015 Code = 8015 // f5 / devam              : Sonraki kesme veya izleme noktasına kadar devam et
-	H8016 Code = 8016 // değiştir x = 100        : ✏️ Çalışma anında 'x' değişkeninin değerini canlı değiştir!
-	H8017 Code = 8017 // zıpla 15                : ⏭️ Çalışma sırasını 15. satıra geri/ileri taşı!
-	H8018 Code = 8018 // izle bakiye < 0         : 👁️ (Watchpoint) Koşul sağlandığında veya değişken değiştiğinde dur!
-	H8019 Code = 8019 // kesme 20                : 🔴 20. satıra kesme noktası (Breakpoint) ekle/kaldır
-	H8020 Code = 8020 // tablo liste_adı         : 📋 {list}, {tensor} ya da {dict} değerini tablo görünümünde aç
-	H8021 Code = 8021 // yığın                   : 📚 Çağrı yığınını (Call Stack) göster
-	H8022 Code = 8022 // hesapla x * 2           : 💡 Bir TR ifadesini anında hesapla
-	H8023 Code = 8023 // çıkış                   : Hata ayıklayıcıyı sonlandır
+	H8012 Code = 8012 // f11 / {command} / Enter	: Tek adım ilerle (Fonksiyonların içine girer)
+	H8013 Code = 8013 // f10 / {command}	: Üstten geç (Fonksiyonu tek adımda çalıştırır)
+	H8014 Code = 8014 // shift+f11 / {command}	: Mevcut fonksiyondan çıkana kadar çalıştır
+	H8015 Code = 8015 // f5 / {command}	: Sonraki kesme veya izleme noktasına kadar devam et
+	H8016 Code = 8016 // {command} x = 100	: ✏️ Çalışma anında 'x' değişkeninin değerini canlı değiştir!
+	H8017 Code = 8017 // {command} 15	: ⏭️ Çalışma sırasını 15. satıra geri/ileri taşı!
+	H8018 Code = 8018 // {command} bakiye < 0	: 👁️ (Watchpoint) Koşul sağlandığında veya değişken değiştiğinde dur!
+	H8019 Code = 8019 // {command} 20	: 🔴 20. satıra kesme noktası (Breakpoint) ekle/kaldır
+	H8020 Code = 8020 // {command} liste_adı	: 📋 {list}, {tensor} ya da {dict} değerini tablo görünümünde aç
+	H8021 Code = 8021 // {command}	: 📚 Çağrı yığınını (Call Stack) göster
+	H8022 Code = 8022 // {command} x * 2	: 💡 Bir TR ifadesini anında hesapla
+	H8023 Code = 8023 // {command}	: Hata ayıklayıcıyı sonlandır
 	H8030 Code = 8030 // Başlangıç (/h Hata Ayıklama Modu)
 	H8031 Code = 8031 // Kesme Noktası (Satır {line})
 	H8032 Code = 8032 // İZLEME NOKTASI (Watchpoint #{id}): '{expr}' koşulu sağlandı!
@@ -1253,33 +1253,33 @@ const (
 	H8036 Code = 8036 // Fonksiyondan çıkıldı (Shift+F11)
 	H8040 Code = 8040 // Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '{cmd}' yerine {key} yazın.
 	H8041 Code = 8041 // '{cmd}' hata ayıklayıcıda bir komut değil; '{command}' yazın.
-	H8042 Code = 8042 // Kullanım: değiştir <değişken> = <yeni_değer>  (Örn: değiştir x = 99)
+	H8042 Code = 8042 // Kullanım: {command} <değişken> = <yeni_değer>  (Örn: {command} x = 99)
 	H8043 Code = 8043 // Geçersiz değer ifadesi.
 	H8044 Code = 8044 // Hesaplama hatası: {error}
 	H8045 Code = 8045 // [CANLI DEĞİŞTİRİLDİ] {name} = {value} ({type})
-	H8046 Code = 8046 // Kullanım: zıpla <satır_no>  (Örn: zıpla 15)
+	H8046 Code = 8046 // Kullanım: {command} <satır_no>  (Örn: {command} 15)
 	H8047 Code = 8047 // Geçersiz satır numarası.
 	H8048 Code = 8048 // [SATIRA ZIPLANDI] Akış {line}. satıra taşınıyor...
 	H8049 Code = 8049 // Satır {line|dat} zıplandı
-	H8050 Code = 8050 // Kullanım: kesme <satır_no>  (Örn: kesme 20)
+	H8050 Code = 8050 // Kullanım: {command} <satır_no>  (Örn: {command} 20)
 	H8051 Code = 8051 // {line}. satırdaki kesme noktası kaldırıldı.
 	H8052 Code = 8052 // {line}. satıra kesme noktası (Breakpoint) eklendi.
-	H8053 Code = 8053 // Kullanım: izle <değişken_veya_koşul>  (Örn: izle toplam  veya  izle bakiye < 0)
+	H8053 Code = 8053 // Kullanım: {command} <değişken_veya_koşul>  (Örn: {command} toplam  veya  {command} bakiye < 0)
 	H8054 Code = 8054 // İzleme Noktası (Watchpoint #{id}) eklendi: {expr|q}
-	H8055 Code = 8055 // Kullanım: tablo <değişken_adı>
+	H8055 Code = 8055 // Kullanım: {command} <değişken_adı>
 	H8056 Code = 8056 // ÇAĞRI YIĞINI:
 	H8057 Code = 8057 // #0 [Aktif] Satır {line}
 	H8058 Code = 8058 // #{index} {fn} (Çağrıldığı Satır: {line})
-	H8059 Code = 8059 // Kullanım: hesapla <ifade>  (Örn: hesapla x * 2 + 1)
+	H8059 Code = 8059 // Kullanım: {command} <ifade>  (Örn: {command} x * 2 + 1)
 	H8060 Code = 8060 // Hata: {error}
 	H8061 Code = 8061 // Sonuç ({type}): {value}
 	H8062 Code = 8062 // Hata ayıklayıcıdan çıkılıyor...
-	H8063 Code = 8063 // Bilinmeyen komut. Yardım için 'yardım' yazın.
+	H8063 Code = 8063 // Bilinmeyen komut. Yardım için '{help}' yazın.
 	H8070 Code = 8070 // TR HATA AYIKLAYICI  | Dosya: {file}
 	H8071 Code = 8071 // Durum: {reason}
 	H8072 Code = 8072 // Durum: satır {line} · adım {step} · çağrı derinliği {depth}
 	H8073 Code = 8073 // DEĞİŞKENLER: (Henüz kullanıcı değişkeni tanımlanmadı)
-	H8074 Code = 8074 // DEĞİŞKENLER (Canlı değiştirmek için: 'değiştir ad = değer'):
+	H8074 Code = 8074 // DEĞİŞKENLER (Canlı değiştirmek için: '{set} ad = değer'):
 	H8075 Code = 8075 // {name|q} adında bir değişken bulunamadı.
 	H8076 Code = 8076 // TABLO / NESNE İNCELEYİCİ: {name} ({type})
 	H8077 Code = 8077 // Toplam Satır Sayısı: {count}

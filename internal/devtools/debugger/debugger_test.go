@@ -197,6 +197,11 @@ func TestTerminalKeysMatchVSCode(t *testing.T) {
 		"":          StepInto,
 		"shift+f11": StepOut,
 		"dön":       StepOut,
+		// Komutlar ad kodudur (K3xx): her yazım dilinin adı kabul edilir.
+		"continue": StepContinue,
+		"next":     StepOver,
+		"step":     StepInto,
+		"out":      StepOut,
 	} {
 		d := NewDebugger("t.tr", "x\n", false)
 		d.Mode = -1
@@ -225,14 +230,15 @@ func TestTerminalKeysMatchVSCode(t *testing.T) {
 	}
 }
 
-// Her komutun tek yazımı vardır: kısaltmalar, Türkçe karaktersiz ve İngilizce eşler
-// çalışmaz; asıl komutu söyleyen bir ipucu verir ve komut beklemeye devam edilir.
+// Komutlar ad kodudur: her yazım dilinin adı çalışır (yukarıda); kısaltmalar, Türkçe
+// karaktersiz biçimler ve eski adlar çalışmaz, asıl komutu söyleyen bir ipucu verir ve komut
+// beklemeye devam edilir.
 func TestCommandsSingleSpelling(t *testing.T) {
 	oldOutput := os.Stdout
 	defer func() { os.Stdout = oldOutput }()
-	for old, actual := range map[string]string{"step": "adım", "adim": "adım", "next": "geç", "o": "dön",
-		"c": "devam", "set": "değiştir", "kalem": "değiştir", "goto": "zıpla", "break": "kesme",
-		"watch": "izle", "stack": "yığın", "p": "hesapla", "help": "yardım", "quit": "çıkış"} {
+	for old, actual := range map[string]string{"adim": "adım", "s": "adım", "gec": "geç", "o": "dön",
+		"c": "devam", "kalem": "değiştir", "goto": "zıpla", "b": "kesme", "w": "izle",
+		"yigin": "yığın", "bt": "yığın", "p": "hesapla", "h": "yardım", "q": "çıkış", "cikis": "çıkış"} {
 		d := NewDebugger("t.tr", "x\n", false)
 		d.Mode = -1
 		r, w, _ := os.Pipe()

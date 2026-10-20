@@ -38,10 +38,6 @@ import (
 
 // bareNameAllowances: dosya (depo köküne göre) ve o dosyada izin verilen ad → gerekçe.
 var bareNameAllowances = map[string]map[string]string{
-	// Komut arayüzü: komut satırının alt komutları ve hata ayıklayıcının komutları dilin
-	// adları değil, aracın komutlarıdır. Kod listesine (K ailesi) çevirici işinde girecekler.
-	"internal/devtools/debugger/debugger.go":      {"devam": "hata ayıklayıcı komutu (devam); A014 anahtar kelimesi değil"},
-	"internal/devtools/debugger/command_guide.go": {"devam": "hata ayıklayıcı komutu (devam); eski eşlerin ipucu tablosu"},
 	// Eklentiyle konuşulan iletinin alan adları ve değer türleri: protokolün sabit anahtarları
 	// (eklenti bunlara göre ikon ve sütun seçer); kullanıcıya dilin adı olarak görünmez.
 	"internal/devtools/debugger/dap_table.go": {

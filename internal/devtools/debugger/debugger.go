@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -274,35 +275,38 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			fmt.Println("  ⚠️ " + messages.Text(messages.H8040, cmd, fresh))
 			continue
 		}
-		if actual, ok := oldCommands[cmd]; ok {
-			fmt.Println("  ⚠️ " + messages.Text(messages.H8041, cmd, actual))
-			continue
+		command := commandCode(cmd)
+		if command == codes.None {
+			if actual, ok := oldCommand(cmd); ok {
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8041, cmd, codes.Name(actual)))
+				continue
+			}
 		}
 
-		switch cmd {
-		case "f11", "adım":
+		switch command {
+		case codes.K300:
 			d.Mode = StepInto
 			return 0
 
-		case "f10", "geç":
+		case codes.K301:
 			d.Mode = StepOver
 			d.TargetDepth = v.StackDepth()
 			return 0
 
-		case "shift+f11", "dön":
+		case codes.K302:
 			d.Mode = StepOut
 			d.TargetDepth = v.StackDepth()
 			return 0
 
-		case "f5", "devam":
+		case codes.K303:
 			d.Mode = StepContinue
 			return 0
 
-		case "değiştir":
+		case codes.K304:
 			// değiştir bakiye = 5000
 			rest := strings.TrimSpace(cmdLine[len(parts[0]):])
 			if !strings.Contains(rest, "=") {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8042))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8042, codes.Name(codes.K304)))
 				continue
 			}
 			eqParts := strings.SplitN(rest, "=", 2)
@@ -329,9 +333,9 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				fmt.Println("  ✏️ " + messages.Text(messages.H8045, varName, v.Mask(newVal.Inspect()), newVal.Type()))
 			}
 
-		case "zıpla":
+		case codes.K305:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8046))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8046, codes.Name(codes.K305)))
 				continue
 			}
 			targetLine, err := strconv.Atoi(parts[1])
@@ -352,9 +356,9 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			d.PauseReason = messages.Text(messages.H8049, targetLine)
 			return targetLine
 
-		case "kesme":
+		case codes.K306:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8050))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8050, codes.Name(codes.K306)))
 				continue
 			}
 			bpLine, err := strconv.Atoi(parts[1])
@@ -368,9 +372,9 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				fmt.Println("  🔴 " + messages.Text(messages.H8052, bpLine))
 			}
 
-		case "izle":
+		case codes.K307:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8053))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8053, codes.Name(codes.K307)))
 				continue
 			}
 			expr := strings.TrimSpace(cmdLine[len(parts[0]):])
@@ -388,14 +392,14 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			d.Watchpoints = append(d.Watchpoints, wp)
 			fmt.Println("  👁️ " + messages.Text(messages.H8054, wp.ID, expr))
 
-		case "tablo":
+		case codes.K308:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8055))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8055, codes.Name(codes.K308)))
 				continue
 			}
 			d.inspectTable(v, parts[1], env)
 
-		case "yığın":
+		case codes.K309:
 			fmt.Println("  📚 " + messages.Text(messages.H8056))
 			fmt.Println("    " + messages.Text(messages.H8057, line))
 			stack := v.StackSnapshot()
@@ -404,9 +408,9 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				fmt.Println("    " + messages.Text(messages.H8058, len(stack)-i, f.FuncName, f.Line))
 			}
 
-		case "hesapla":
+		case codes.K310:
 			if len(parts) < 2 {
-				fmt.Println("  ⚠️ " + messages.Text(messages.H8059))
+				fmt.Println("  ⚠️ " + messages.Text(messages.H8059, codes.Name(codes.K310)))
 				continue
 			}
 			exprStr := strings.TrimSpace(cmdLine[len(parts[0]):])
@@ -424,13 +428,13 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				}
 			}
 
-		case "ekran":
+		case codes.K311:
 			d.renderDebugScreen(v, line, env)
 
-		case "yardım":
+		case codes.K312:
 			d.printDebugHelp()
 
-		case "çıkış":
+		case codes.K313:
 			fmt.Println(messages.Text(messages.H8062))
 			os.Exit(0)
 
@@ -439,7 +443,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			if val, ok := env.Get(cmdLine); ok {
 				fmt.Printf("  🔍 %s (%s) = %s\n", cmdLine, val.Type(), v.Mask(val.Inspect()))
 			} else {
-				fmt.Println("  ❓ " + messages.Text(messages.H8063))
+				fmt.Println("  ❓ " + messages.Text(messages.H8063, codes.Name(codes.K312)))
 			}
 		}
 	}
@@ -485,7 +489,7 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 	if len(vars) == 0 {
 		fmt.Println("  📦 " + messages.Text(messages.H8073))
 	} else {
-		fmt.Println("  📦 " + messages.Text(messages.H8074))
+		fmt.Println("  📦 " + messages.Text(messages.H8074, codes.Name(codes.K304)))
 		for _, kv := range vars {
 			valPreview := v.Mask(kv.Val.Inspect())
 			if _, engine := kv.Val.(WatchValue); engine && strings.Contains(valPreview, "\n") {
