@@ -1,12 +1,11 @@
 // docs/spec/20_kontrol_noktasi.md §20 — Kontrol noktası ve kaldığı yerden devam
-// Koşu klasörleri bu dosyanın klasöründeki geçici bir klasörde (tests/gecici_kontrol_noktasi/,
-// .gitignore'da) kurulur ve her test bitince silinir; günlük dosyaları (program bitene kadar
-// açık kalır, Windows'ta açık dosya silinemez) sistemin geçici klasöründe tutulur. Ctrl+C ile
+// Koşu klasörleri ve günlük dosyaları sistemin geçici klasöründe kurulur (geçici_klasör(), 18.14):
+// depoya hiçbir şey yazılmaz, böylece depoyu gezen testlerle (internal düzen testleri) yarışmaz. Ctrl+C ile
 // durdurma, süreç öldürülerek kesme, ayrı süreçlerle bit düzeyinde kabul testi, ağ sürücüsü
 // (yeniden adlandırma hatası) benzetimi ve GPU yolu Go testleriyle sınanır (internal/stdlib/checkpoint,
 // cmd/tr/e2e, internal/stdlib/gpuprobe).
 
-sabit TABAN = yol(yol("data").mutlak.üst_klasör, "gecici_kontrol_noktasi")
+sabit TABAN = geçici_klasör()
 // Günlük dosyaları bu koşunun geçici klasöründe (18.14); program bitince silinir.
 değişken GÜNLÜKLER = geçici_klasör()
 
