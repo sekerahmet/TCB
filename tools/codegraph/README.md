@@ -15,7 +15,28 @@ go run ./tools/codegraph tests-for interp.VM.Run
 
 Flags: `build --root DIR --out FILE --warnings`; queries take `--graph FILE`, `--limit N` (lines per
 group, default 12) and `--all`, before or after the names. Output is short plain text; edges tagged
-`[INFERRED]` are guesses, unmarked ones are `EXTRACTED`.
+`[INFERRED]` are guesses, unmarked ones are `EXTRACTED`. `explain` is another name for `query`.
+
+## Staying fresh
+
+Nobody has to remember `build`. `build` writes a `stamp` into `graph.json`: `git rev-parse HEAD`
+plus a digest of the changed files (`git status --porcelain -uall`, tracked or untracked, only
+`.go`, `.json` and `.md`, with their contents; `.codegraph/` itself is ignored). Every query
+(`query`, `explain`, `path`, `who-uses`, `tests-for`) computes the stamp again first. If it differs,
+the query rebuilds the graph, rewrites `graph.json` (through a temporary file, so two parallel
+queries never read half a file) and prints one line on stderr: `graph rebuilt (N s)`.
+
+- `--no-rebuild` uses the graph as it is. `--root DIR` (default `.`) is the repository whose
+  stamp is checked; run from the repository root.
+- git missing or failing: the old graph is used and stderr says
+  `warning: cannot check whether the graph is stale`. A graph without a stamp (built without git)
+  is never checked.
+- The rebuild fails (a half-edited file does not type-check): the old graph is used with
+  `warning: rebuild failed (...)`; the next query tries again.
+
+Cost when the graph is fresh (this repository, Windows, the two git calls): a query takes about
+0.21 s instead of 0.14 s with `--no-rebuild`, so about 80 ms. A stale graph costs one `build`
+(about 3 s with a warm Go build cache).
 
 Exit codes: `0` answered, `1` failure (no graph, load error), `2` usage, `3` ambiguous name (the
 candidates are listed on stdout; repeat with an id or a longer name), `4` not found (similar names

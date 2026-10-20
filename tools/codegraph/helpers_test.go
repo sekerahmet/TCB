@@ -72,7 +72,7 @@ func cli(t *testing.T, args ...string) (code int, out, errOut string) {
 		t.Fatal(err)
 	}
 	var so, se bytes.Buffer
-	args = append([]string{args[0], "--graph", path}, args[1:]...)
+	args = append([]string{args[0], "--graph", path, "--no-rebuild"}, args[1:]...)
 	code = run(args, &so, &se)
 	return code, so.String(), se.String()
 }

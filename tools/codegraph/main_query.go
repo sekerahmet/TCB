@@ -16,6 +16,8 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	graphPath := fs.String("graph", filepath.Join(".codegraph", "graph.json"), "graph file")
 	limit := fs.Int("limit", 12, "lines per group")
 	all := fs.Bool("all", false, "no line limit")
+	root := fs.String("root", ".", "repository root, used to check whether the graph is stale")
+	noRebuild := fs.Bool("no-rebuild", false, "use the graph as it is, even when the sources changed")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return exitUsage
 	}
@@ -39,6 +41,9 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 		}
 		return exitFail
 	}
+	if !*noRebuild {
+		g = refresh(g, *root, *graphPath, stderr)
+	}
 	ix := newIndex(g)
 	nodes := make([]*Node, 0, want)
 	for _, q := range fs.Args() {
@@ -53,7 +58,7 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 
 func (ix *index) answer(cmd string, nodes []*Node, stdout, stderr io.Writer, limit int) int {
 	switch cmd {
-	case "query":
+	case "query", "explain":
 		ix.printQuery(stdout, nodes[0], limit)
 	case "who-uses":
 		ix.printWhoUses(stdout, nodes[0], limit)
@@ -92,7 +97,7 @@ func (ix *index) resolve(q string, stdout, stderr io.Writer, limit int) (*Node, 
 // reorderFlags bayrakları adların önüne alır (flag paketi ilk addan sonrasını bayrak saymaz):
 // "query New --limit 5" ile "query --limit 5 New" aynıdır.
 func reorderFlags(args []string) []string {
-	valued := map[string]bool{"graph": true, "limit": true}
+	valued := map[string]bool{"graph": true, "limit": true, "root": true}
 	var flags, names []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]

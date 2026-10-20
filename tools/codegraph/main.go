@@ -40,12 +40,13 @@ const (
 const usage = `usage: codegraph <command> [flags] [args]
 
   build                      build the graph (flags: --root DIR, --out FILE, --warnings)
-  query <name>               a node and its neighbours
+  query <name>  (or explain)   a node and its neighbours
   path <from> <to>           shortest path between two nodes
   who-uses <name>            what uses a function, type, message code or name code
   tests-for <name>           tests that exercise a function, type or package
 
-query flags (before the names): --graph FILE (default .codegraph/graph.json), --limit N (default 12), --all
+query flags: --graph FILE (default .codegraph/graph.json), --limit N (default 12), --all, --root DIR (default .), --no-rebuild
+A query rebuilds the graph first when the sources changed since it was built (see README).
 exit codes: 0 ok, 1 failure, 2 usage, 3 ambiguous (candidates listed), 4 not found
 `
 
@@ -61,7 +62,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "build":
 		return runBuild(args[1:], stdout, stderr)
-	case "query", "path", "who-uses", "tests-for":
+	case "query", "explain", "path", "who-uses", "tests-for":
 		return runQuery(args[0], args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)
@@ -105,6 +106,7 @@ func runBuild(args []string, stdout, stderr io.Writer) int {
 // buildGraph bütün çıkarıcıları sırayla çalıştırır. Sıra önemlidir: Markdown bağlantıları Go
 // düğümlerine, kurallar test işlevlerine bağlanır.
 func buildGraph(root string) (*Graph, error) {
+	stamp, _ := sourceStamp(root) // build başlamadan alınır: sürerken değişen dosya sonra yeniden kurdurur
 	m, err := load(root)
 	if err != nil {
 		return nil, err
@@ -114,7 +116,9 @@ func buildGraph(root string) (*Graph, error) {
 	extractCodes(root, b)
 	addTestEdges(b, idx)
 	extractMarkdown(root, b, idx)
-	return b.graph(), nil
+	g := b.graph()
+	g.Stamp = stamp
+	return g, nil
 }
 
 func printStats(w io.Writer, g *Graph, out string, took time.Duration, allWarnings bool) {
