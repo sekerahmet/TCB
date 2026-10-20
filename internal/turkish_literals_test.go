@@ -28,10 +28,10 @@ import (
 
 const turkishLetters = "çğıöşüâîûÇĞİÖŞÜÂÎÛ"
 
-// turkishLiteralAllowed "dosya" ya da "dosya:metin" anahtarlı izinlerdir → gerekçe. Kalıcı izin
-// yalnızca "dosya:metin" biçimindedir (veri biçimi anahtarı, Türkçe belge üreten aracın içeriği,
-// Go yorumu üreten aracın yorum metni). "geçici" kayıtlar testin yazıldığı gün (2026-10-20)
-// bulunanlardır; düzeltilince silinir.
+// turkishLiteralAllowed "dosya:metin" anahtarlı kalıcı izinlerdir → gerekçe: veri biçiminin
+// anahtarları (kod listesi, kontrol noktası, günlük, veri kümesi durumu, profil dosyası) ve Türkçe
+// belge üreten aracın içeriği. Yeni kayıt gerekçesiz eklenmez; liste yalnızca küçülür. Bulguları
+// kayıt biçiminde yazdırmak için: TRLIT_LIST=1 go test -run TestNoTurkishLiterals ./internal
 var turkishLiteralAllowed = map[string]string{
 	// Kod listesi dosyalarının (internal/lang/codes) biçim anahtarları.
 	"internal/lang/codes/definition.go:bağlamsal":    "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",

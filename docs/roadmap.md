@@ -27,11 +27,11 @@ Bugün TR, tek GPU'da sıfırdan model eğitmekte derlenmemiş PyTorch kadar hı
 
 Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile bir Transformer eğitilebiliyor. GPU'da (116 M parametreli GPT, bf16) adım süresi derlenmemiş PyTorch'la başa baş (~81 ms), bellek kullanımı ~3 GB daha az.
 
-## Evre 2: Sağlam temel (şu an)
+## Evre 2: Sağlam temel (tamamlandı)
 
 1. **İleti kodları.** Kullanıcıya giden her ileti, adlar gibi sabit bir koda bağlanır (`H` ve dört basamak, `internal/lang/messages`). Metinler dil dosyasındadır; parametreler adlıdır (`{fn}: {path|q} bir klasör`). Testler metni değil kodu denetler.
    - Tamamlandı: altyapı ve denetim testi; ortak hata yardımcıları; standart kitaplık, `devtools`, `tr` komutu; dil çekirdeği; yapılı hata (hata konumu her yerde yapıdan okunur, metinden okunmaz); hesap çekirdeği (tensör, GPU, veri hattı, parçalayıcı). Bütün paketler geçti.
-   - Sonra: geçirilmiş paketlerde Türkçe harfli metin sabitinin yalnızca izinli yerlerde (veri biçimi anahtarları, Türkçe ek tabloları) bulunduğunu denetleyen test. Bitiş ölçütünü bu test kanıtlar.
+   - Bitiş testi (tamamlandı): Go metninde Türkçe harfli metin sabiti yalnızca izinli yerdedir (`TestNoTurkishLiterals`): dilbilgisi paketi, yapı etiketleri ve gerekçeli kayıtlar (veri biçimi anahtarları, Türkçe belge üreten aracın içeriği). İlk taramada 40 dosyada 244 metin bulundu; adlar ad koduna, iletiler ileti koduna taşındı, geliştirici hataları ve araç çıktıları İngilizceye geçti (`tools/` Go adları dahil).
 2. **İletiler her dile hazır (tamamlandı).** Türkçenin dilbilgisi Go kodundan şablona taşındı; asıl çeviri Evre 7'de yapılır ([`internal/lang/messages/README.md`](../internal/lang/messages/README.md)):
    - Şablon dili ICU MessageFormat'ın alt kümesi: çoğul (`{n, plural, ...}`, dile göre CLDR kuralı), seçim (`select`), hâl eki (`{ad|dat}`; çekimciyi dilin paketi kaydeder), seçenek listesi (`messages.OrList`, CLDR liste kalıbı).
    - Go'da sözcük çekimlenmez (`turkish.Suffix` yalnızca kendi paketinde; testle), sayıya bakıp sözcük seçilmez, ileti metni `strings` ile düzenlenmez.
@@ -39,7 +39,7 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
    - İngilizce pilot: 38 ileti (`en.json`), `TR_DIL=en` ile gösterilir. Bir ileti bütünüyle tek dildedir: kendisinin ya da içindeki kodlu hatanın çevirisi yoksa iletinin tamamı Türkçe gösterilir; süreç dili bir kez okunur, adlar ve iletiler aynı dildedir.
    - Dış denetimden sonra (2026-10-20): çoğul kuralı CLDR işlenenlerini alır (2^53 üstünde de doğru, Rusça gibi dillere hazır); bir parametre ya dal dışında ya her dalda geçer (testle; birbirini dışlayan değerli iki ileti ikişer koda ayrıldı); parçadan kurulan iletiler (dosya hataları, yüklem ve iyelik parçaları) tam cümleye çevrildi ve bir ileti metninin başka iletiye değer olarak geçmesini test yakalar.
    - Kalan küçükler: değer olarak geçen ad öbekleri ve sona eklenen ipuçları (ör. GPU tanı zinciri H4033–H4035, `{hint}` eki, "Bunu mu demek istediniz" eki, `testrunner` sayım satırı) çeviride sorun çıkarabilir; Evre 7'de tek şablona çevrilir. Parça testi değişkene alınmış metni ve `+` birleştirmeyi henüz görmüyor.
-3. **Gradyan doğruluğu kapısı (tamamlandı).** Her türevli tensör işleminin float64 sonlu fark testi ve bf16 tolerans testi var (`gradSpec`); `behavior_grad_coverage_test.go` testi olmayan işlemi yakalar; GPU'da her türevli işlemin gradyanı CPU ile karşılaştırılır (gerçek kartta doğrulandı). Bulunan tek yanlış: `üstel_eksi_bir`'in türevi çok negatif girdide 0 çıkıyordu, düzeltildi. Kalan: `stdlib/ml`'deki bileşik türevler kapsam testine girmedi; bf16 toleransları (3e-2, 6e-2) ölçülerek sıkılaştırılabilir.
+3. **Gradyan doğruluğu kapısı (tamamlandı).** Her türevli tensör işleminin float64 sonlu fark testi ve bf16 tolerans testi var (`gradSpec`); `behavior_grad_coverage_test.go` testi olmayan işlemi yakalar; GPU'da her türevli işlemin gradyanı CPU ile karşılaştırılır (gerçek kartta doğrulandı). `stdlib/ml`'deki 14 bileşik türev de (softmax, normlar, çapraz entropi, gömme, dikkat ...) aynı kapıdadır. bf16 toleransları ölçülerek işlem başına seçildi (ölçülenin 2 katı; tablo `internal/compute/tensor/README.md`). Bulunan tek yanlış: `üstel_eksi_bir`'in türevi çok negatif girdide 0 çıkıyordu, düzeltildi. Kalan: GPU'daki bf16 sapma tablosu Colab'da ölçülecek.
 4. **Anlam kuralları yazılı ve testli (tamamlandı).** Yayınlama, tür yükseltme, tensör indeksi ve dilimi, `.dilim`, liste ve metin indeksi, sayı olmayan işlenen ve NaN kuralları dil tanımının 15.41 maddesinde tek tabloda; her biri PyTorch/NumPy ile karşılaştırıldı ve `tests/tensor_test.tr`'de testli. Tek davranış değişikliği: liste ve metinde sınır dışı okuma artık hatadır, bilinçli durum için `varsa_al` (3.6).
 5. **Açık işler ve bekleyen dil kararları.** Her karar başka dillerle karşılaştırılarak verildi; gerekçeleri dil tanımında.
    - Tamamlandı:
@@ -54,11 +54,11 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
 8. **Kurallar testle korunur (tamamlandı).** README kurallarına ~30 test eklendi; `docs/architecture.md`'de adı geçen Go adlarının ve README'lerde anılan her denetim testinin var olduğu testle denetlenir (`TestRuleTestsExist`; ilk koşuda iki yanlış ad buldu); C tarzı BÜYÜK_HARFLİ Go adını `TestGoNamesMixedCaps` yakalar.
 9. **Belgeler yeni düzeni anlatır (tamamlandı).** Kurallar (`internal/README.md`), ekleme tarifleri (`docs/recipes.md`), mimari ve katkı rehberi yeni düzene göre yazıldı.
 
-**Sıradaki:** madde 1'in bitiş testi (Türkçe harfli metin sabiti yalnızca izinli yerde).
+**Durum (2026-10-21):** bitiş ölçütünün bütün maddeleri testle korunuyor; Evre 2 tamamlandı. Sıradaki Evre 3'ün ölçümü (`tools/gpu/COLAB.md` §10).
 
 **Bitiş ölçütü:** kodda Türkçe ileti metni kalmaz (testle); ileti kataloğu çoğul ve liste kalıplarını taşır, Go'da ileti sözcüğü çekimlenmez ve İngilizce pilot geçer; her türevli işlemin gradyan testi vardır; anlam kuralları yazılı ve testlidir; her kural bir testle korunur; bekleyen dil kararı kalmaz.
 
-## Evre 3: Tek GPU'da gerçek model
+## Evre 3: Tek GPU'da gerçek model (şu an)
 
 Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için optimize edilmiş, yalnızca kod çözücülü (decoder-only) bir Transformer ve küçük sürümleridir (hedef model). Tek GPU'da sınır hız değil, bellek ve baş boyu uyumudur; sıra buna göredir. Eksik parçalar Evre 2'nin kurallarına uyarak eklenir.
 
