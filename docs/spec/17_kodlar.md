@@ -8,6 +8,7 @@ Kod bir harf ve üç basamaklı bir sayıdır; harf aileyi, yüzler basamağı a
 | :-- | :-- | :-- |
 | `A` | Dilin çekirdeği | `A0xx` anahtar kelimeler (`A001` eğer, `A010` döngü, `A020` fonksiyon ...), `A1xx` bağlamsal sözcükler (`olarak`, `test`, `kurucu`, `hata`, `o`), `A2xx` tip adları (`A200` Tam ... `A23x` motor tipleri, `A25x` standart kitaplık tipleri: `A250` Yol) |
 | `G` | Genel yerleşikler | `G1xx` giriş, çıkış, dosya (`G100` yazdır, `G101` girdi) · `G2xx` değer, tip, dönüşüm (`G201` tip) · `G3xx` liste · `G4xx` matematik ve istatistik · `G5xx` zaman ve eşzamanlılık · `G6xx` JSON/CSV · `G7xx` test · `G9xx` adlı argümanlar (`G900` üzerine_yaz) |
+| `K` | Komut satırı | `K0xx` `tr` komutları (`K003` çalıştır, `K004` kontrol ...) · `K1xx` komut satırı seçenekleri (`K100` dil, `K106` yardım) · `K2xx` etkileşimli kabuk (`K200` çıkış) · `K3xx` hata ayıklayıcının komutları (`K300` adım ... `K313` çıkış); bkz. **17.8** |
 | `T` | Tensör ve yapay zekâ | `T1xx` oluşturma ve görünüm (`T100` tensör) · `T2xx` etkinleştirme ve eleman bazlı matematik · `T3xx` türev · `T4xx` iyileştiriciler · `T5xx` katmanlar, kayıplar, model parametreleri · `T6xx` dil modeli (örnekleme) · `T7xx` kaydetme, yükleme, veri türleri · `T9xx` adlı argümanlar |
 | `V` | Veri ve parçalayıcı | `V1xx` veri kümesi · `V2xx` parçalayıcı · `V9xx` adlı argümanlar |
 | `W` | Web, veritabanı, arayüz | kaldırıldı; kodları bir daha kullanılmaz |
@@ -91,3 +92,17 @@ Bu bölüm dilin kuralı değil, düzenleyicinin davranışıdır (numarasızdı
 - Kısıtlı kipte (güvenilmeyen çalışma alanı) hiçbir şey çalıştırılmadığından çeviri yapılmaz: kodlu dosya salt okunur, ham hâliyle gösterilir ve nedeni söylenir; çalışma alanına güvenilince Türkçe görünüme geçilir.
 
 Sınamalar: `go test ./cmd/tr/e2e -run 'KodlaGosterStandartGiris|EklentiJSTestleri'` (standart giriş kipi; eklentinin `test/coded_view_test.js` testleri gerçek yorumlayıcıyla: açma, düzenleme, kayıt, geri alma, bozuk kayıt, satır eşlemesi, kısıtlı kip) ve `go test ./internal/devtools/debugger -run Kodlu` (hata ayıklayıcı görünümün adresi ve satırlarıyla).
+
+## Komut satırı adları
+
+**17.8** `tr` komutlarının, komut satırı seçeneklerinin, etkileşimli kabuğun ve hata ayıklayıcının komutlarının adları da kodludur (`K` ailesi) ve kendi ad alanlarındadır (`kontrol` komut olarak `K004`, seçenek olarak `K101`; `izle` komut olarak `K012`, hata ayıklayıcıda `K307`).
+
+- **Girdide her gömülü yazım dilinin adı kabul edilir**, etkin dil önce aranır: `tr çalıştır` ile `tr run`, `--dil` ile `--lang`, hata ayıklayıcıda `devam` ile `continue`, kabukta `çıkış` ile `exit` her makinede aynıdır. Bir betik ya da bir belge `TR_DIL`'e bağlı kalmaz. Komut satırının kodlu biçimi yoktur (kaynak dosyadan farkı budur), bu yüzden adlar tek dile bağlanamaz.
+- **Çıktı etkin dildedir:** yardım metni, kullanım satırları ve iletiler komut ve seçenek adlarını etkin dilde yazar (`TR_DIL=en tr help` → `tr run <dosya.tr>`). Yardım tablosunun sütunları adların uzunluğuna göre hizalanır.
+- **Seçenek yazımı:** seçenek iki tireyle yazılır; adın sözcükleri komut satırında tireyle ayrılır (`go_profili` → `--go-profili`), alt çizgili yazım kabul edilmez. Kısa bayraklar (`-h`, `-v`, `-k`) ve hata ayıklayıcının F tuşları simgedir, kod almaz.
+- **Kabul edilmeyenler ipucu verir, dosya adı sanılmaz:** Türkçe harfsiz biçim (`tr calistir`, hata ayıklayıcıda `adim`), başka araçlardan alışılmış kısaltmalar (`n`, `c`, `bt`), `--help` ve `--version` asıl adı önerir ve 1 koduyla çıkar; kaldırılmış bir seçenek (`K102`, `--web`) yerine geçeni söyler.
+- **Programın seçenekleri** (`komut_satırı`, §19) kullanıcının adlarıdır, kodlanmaz; yalnızca yardım seçeneği `K106`'dır: `--yardım` da `--help` de yardımı verir, bu adlar seçenek adı olamaz.
+
+Başka dillerle karşılaştırma: Go, git ve cargo komut adlarını betikler için tek (İngilizce) yazımda sabit tutar; Excel ve PowerShell'in yerelleştirilmiş adları içte sabit bir kimliğe bağlıdır ama yalnızca etkin dilin adını kabul eder, bu yüzden bir dilde yazılmış betik başka dilde kurulmuş makinede çalışmaz. TR ikisini birleştirir: kimlik koddadır, girdide bütün dillerin adı geçerlidir (betik her makinede çalışır), çıktı kişinin dilindedir.
+
+Sınamalar: `go test ./internal/lang/codes -run CommandLineNamesInEveryLanguage`, `go test ./cmd/tr/e2e -run 'CommandsHaveOneName|REPL$'`, `go test ./internal/devtools/debugger -run 'TerminalKeysMatchVSCode|CommandsSingleSpelling'`, `go test ./internal/stdlib/process -run CommandLine`.
