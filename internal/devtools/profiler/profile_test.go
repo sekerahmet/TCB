@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
@@ -66,7 +65,7 @@ func runThen(t *testing.T, code string, s Options, after func(*Profile)) (*Snaps
 	w := &bufferedWriter{}
 	m.Out, m.Err = w, w
 	m.SourceFile = filepath.Join(t.TempDir(), "egit.tr")
-	s.Program, s.Source, s.Tree = "egit.tr", code, prog
+	s.Program, s.Source = "egit.tr", code
 	pr := Start(m, s)
 	if _, err := m.Run(prog); err != nil {
 		t.Fatalf("program hata verdi: %v", err)
@@ -312,22 +311,5 @@ func TestProfileNonTerminalOutput(t *testing.T) {
 		if strings.Contains(lines[0], p) == (p == "\x1b") {
 			t.Errorf("özet satırında %q: %q", p, lines[0])
 		}
-	}
-}
-
-// Ana programda tanımlı fonksiyon ve metotların adları satır metni için bilinir.
-func TestProfileTopFunctions(t *testing.T) {
-	code := "fonksiyon ileri(x) {\n    sonuç x\n}\nyapı M {\n    a: Tam\n    fonksiyon b() {\n        sonuç 1\n    }\n}\n"
-	p := parser.New(lexer.New(code))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		t.Fatal(p.Errors())
-	}
-	m := topFunctions(prog)
-	if !m["ileri"] || !m["b"] {
-		t.Errorf("ana fonksiyonlar %v", m)
-	}
-	if len(topFunctions((*ast.Program)(nil))) != 0 {
-		t.Error("boş program")
 	}
 }

@@ -265,7 +265,8 @@ başarısızsa sonraki saniyede yeniden denenir; program hiçbir durumda durmaz.
   "program": "egit.tr", "başlangıç": "2026-10-19T08:49:12.511+03:00",
   "zaman": "2026-10-19T08:49:24.511+03:00", "süre_sn": 12.0, "bitti": false,
   "çıkış_kodu": 0,                                          // yalnızca bitince
-  "adım": {"sayı": 715, "toplam": 1500, "ms_adım": 16.7, "adım_sn": 59.7},   // ilerleme yoksa null
+  "adım": {"sayı": 715, "toplam": 1500, "tüm_adım": 715,   // ilerleme yoksa null; sayı ve toplam
+    "ms_adım": 16.7, "adım_sn": 59.7},   // son çubuğun, tüm_adım bütün çubukların (epoch'lar) adımı
   "tensör": {"süre_sn": 11.4, "pay": 0.95, "çağrı": 772761, "bayt": 7642211100,
     "işlemler": [{"kod": "matris_carpimi", "ad": "matris çarpımı (@)", "yön": "ileri",
       "cihaz": "cpu", "çağrı": 160966, "ölçüm": 160529, "süre_sn": 4.99, "pay": 0.44,

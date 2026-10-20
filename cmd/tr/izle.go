@@ -57,6 +57,9 @@ func izleKomutu(args []string) {
 			os.Stdout, os.Stderr = gercekCikis, gercekHata
 			yak.Close()
 			fmt.Fprintf(gercekHata, "\nProgramın son çıktısı (tamamı: %s):\n", yak.Path())
+			if err := yak.WriteError(); err != nil {
+				fmt.Fprintf(gercekHata, "  ⚠️ Çıktı dosyasına yazma yarıda kaldı, dosya eksik: %v\n", err)
+			}
 			for _, l := range yak.LastLines(15) {
 				fmt.Fprintln(gercekHata, "  │ "+l)
 			}

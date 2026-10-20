@@ -31,6 +31,10 @@ func (s *dapServer) launch(msg *dapMessage) {
 		s.respondErr(msg, "Hata ayıklanacak .tr dosyası belirtilmedi ('program')")
 		return
 	}
+	// Çalışma klasörü önce: göreli program yolu onun içinde çözülür (düzenleyicinin 'cwd'si).
+	if a.Cwd != "" {
+		_ = os.Chdir(a.Cwd)
+	}
 	path, _ := filepath.Abs(a.Program)
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -56,9 +60,6 @@ func (s *dapServer) launch(msg *dapMessage) {
 		return
 	}
 
-	if a.Cwd != "" {
-		_ = os.Chdir(a.Cwd)
-	}
 	machine := interp.New()
 	machine.SourceFile = path
 	machine.SourceCode = code

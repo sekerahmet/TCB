@@ -29,16 +29,14 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
-	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
 // Options bir profilin ayarlarıdır.
 type Options struct {
-	Program string       // raporda görünen program adı (betik yolu)
-	Source  string       // ana programın kaynağı (satır metinleri)
-	Tree    *ast.Program // ana programın sözdizimi ağacı (hangi fonksiyonlar bu dosyada)
+	Program string // raporda görünen program adı (betik yolu)
+	Source  string // ana programın kaynağı (satır metinleri)
 	// SampleLines satır/fonksiyon örneklemesini açar (yorumlayıcının hata ayıklayıcı yuvası).
 	SampleLines bool
 	// GPUMeasure GPU çekirdeklerinin cihazdaki süresinin ölçümünü açar (gpu.go; tr izle ve
@@ -52,12 +50,14 @@ type Options struct {
 
 // Profile çalışan bir programın profilidir.
 type Profile struct {
-	pick    Options
-	start   time.Time
-	smp     *sampler
-	writer  *statusWriter
-	topFunc map[string]bool
-	lines   []string
+	pick   Options
+	start  time.Time
+	smp    *sampler
+	writer *statusWriter
+	lines  []string
+	// modLines 'aktar' ile yüklenen modüllerin satırlarıdır (moduleLines).
+	isLines  sync.Mutex
+	modLines map[*interp.Source][]string
 
 	isStep sync.Mutex
 	step   stepState
@@ -95,15 +95,18 @@ const windowTime = 5 * time.Second
 
 // stepState adım sınırı kancasının biriktirdiğidir.
 type stepState struct {
-	var_                bool
-	first, last, total  int64
-	firstTime, lastTime time.Time
+	var_ bool
+	// last ve total son güncellenen çubuğun adımı ve toplamıdır; all profil başından beri
+	// bütün çubuklarda tamamlanan adımlardır (her epoch'ta yeni bir çubuk adımları baştan
+	// sayar), allAtFirst ilk adım sınırındaki all'dır.
+	last, total, all, allAtFirst int64
+	firstTime, lastTime          time.Time
 }
 
 // Start m üzerinde çalışacak programın profilini başlatır; m.Run'dan önce çağrılır.
 // Örnekleme istenmişse m.Debugger'a bağlanır (hata ayıklayıcıyla birlikte kullanılmaz).
 func Start(m *interp.VM, s Options) *Profile {
-	p := &Profile{pick: s, start: time.Now(), stop: make(chan struct{}), topFunc: topFunctions(s.Tree)}
+	p := &Profile{pick: s, start: time.Now(), stop: make(chan struct{})}
 	p.lines = strings.Split(s.Source, "\n")
 	if s.StatusFile != "" {
 		p.writer = &statusWriter{fpath: s.StatusFile, warning: s.Warning}
@@ -139,8 +142,13 @@ func (p *Profile) Listen(f func(*Snapshot)) {
 func (p *Profile) stepBoundary(a logging.StepBoundary) {
 	p.isStep.Lock()
 	d := &p.step
+	if a.Step >= d.last {
+		d.all += a.Step - d.last
+	} else {
+		d.all += a.Step // yeni çubuk (adım geriye düştü): adımları baştan sayıyor
+	}
 	if !d.var_ {
-		d.var_, d.first, d.firstTime = true, a.Step, a.Time
+		d.var_, d.allAtFirst, d.firstTime = true, d.all, a.Time
 	}
 	d.last, d.lastTime, d.total = a.Step, a.Time, a.Total
 	p.isStep.Unlock()
@@ -233,35 +241,4 @@ func (p *Profile) takeSnap() snap {
 	runtime.ReadMemStats(&a.memory)
 	a.gpu = takeGPUSnap()
 	return a
-}
-
-// topFunctions ana programda tanımlı fonksiyon ve metot adlarıdır (satır metni ancak
-// bunlarda ana dosyadan okunur; başka modülün fonksiyonunun satırı başka dosyadadır).
-func topFunctions(prog *ast.Program) map[string]bool {
-	m := map[string]bool{}
-	if prog == nil {
-		return m
-	}
-	add := func(f *ast.FunctionLiteral) {
-		if f != nil && f.Name != "" {
-			m[f.Name] = true
-		}
-	}
-	for _, st := range prog.Statements {
-		switch s := st.(type) {
-		case *ast.ExpressionStatement:
-			if f, ok := s.Expression.(*ast.FunctionLiteral); ok {
-				add(f)
-			}
-		case *ast.VarStatement:
-			if f, ok := s.Value.(*ast.FunctionLiteral); ok {
-				add(f)
-			}
-		case *ast.StructStatement:
-			for ad := range s.Methods { // metotların çağrı yığınındaki adı
-				m[ad] = true
-			}
-		}
-	}
-	return m
 }

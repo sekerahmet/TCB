@@ -94,8 +94,8 @@ func reportGPU(b *strings.Builder, g *Snapshot) {
 		return
 	}
 	fmt.Fprintf(b, "GPU çekirdekleri: cihazda %s (program süresine oranı %s)", durationText(gp.Seconds), percent(ratio(gp.Seconds, g.Seconds)))
-	if g.Step != nil && g.Step.Count > 0 {
-		fmt.Fprintf(b, " · %s ms/adım", msText(gp.Seconds*1000/float64(g.Step.Count)))
+	if g.Step != nil && g.Step.All > 0 {
+		fmt.Fprintf(b, " · %s ms/adım", msText(gp.Seconds*1000/float64(g.Step.All)))
 	}
 	fmt.Fprintf(b, " · %s\n", familySummary(gp.Families, 5))
 	if gp.summary != "" {

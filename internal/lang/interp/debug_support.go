@@ -6,6 +6,11 @@ import "github.com/sekerahmet/TCB/internal/lang/ast"
 // durumunu okuyup ifade değerlendirebilmesi için dışa açılmıştır. Hata ayıklayıcının
 // verdiği ortamın düzeni derleme anında bilinmediği için adlar adla çözülür.
 
+// CurrentSource returns the file of the running statement: a module brought in with 'aktar'
+// (or code of it called from another file), nil for the main program (SourceFile, SourceCode).
+// Statement lines refer to this file.
+func (v *VM) CurrentSource() *Source { return v.source }
+
 // EvalExpression evaluates an expression in the given environment.
 func (v *VM) EvalExpression(expr ast.Expression, env *Environment) (Value, error) {
 	return v.dynamicExpr(expr, env)

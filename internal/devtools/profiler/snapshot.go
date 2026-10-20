@@ -43,8 +43,11 @@ type Snapshot struct {
 
 // StepInfo eğitim adımlarıdır (ilerleme(...).güncelle(...) çağrıları).
 type StepInfo struct {
-	Count       int64   `json:"sayı"`   // tamamlanan adım
-	Total       int64   `json:"toplam"` // çubuğun toplamı (0: toplamsız)
+	Count int64 `json:"sayı"`   // çubuğun tamamlanan adımı
+	Total int64 `json:"toplam"` // çubuğun toplamı (0: toplamsız)
+	// All profil başından beri bütün çubuklarda tamamlanan adımlardır (her epoch'ta yeni bir
+	// çubuk açılınca Count baştan başlar, All birikir); adım başına süreler buna bölünür.
+	All         int64   `json:"tüm_adım"`
 	MsPerStep   float64 `json:"ms_adım"`
 	StepsPerSec float64 `json:"adım_sn"`
 }
@@ -120,7 +123,7 @@ type SamplingInfo struct {
 
 // LineInfo bir TR satırıdır (öz süre: o satırda çalışırken geçen süre).
 type LineInfo struct {
-	File        string  `json:"dosya"` // ana programın dışındaysa boş
+	File        string  `json:"dosya"` // ana program ya da 'aktar' ile yüklenen modül
 	Line        int     `json:"satır"`
 	Function    string  `json:"fonksiyon"` // üst düzeyde boş
 	Text        string  `json:"metin,omitempty"`

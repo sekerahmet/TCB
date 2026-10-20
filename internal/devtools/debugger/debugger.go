@@ -35,7 +35,20 @@ type Watchpoint struct {
 	ID         int
 	Expression string // Değişken adı veya koşul ifadesi (örn: "bakiye" veya "bakiye < 0")
 	IsCond     bool
-	LastVal    string
+	// LastVal son görülen değerin yazılışıdır (koşulda doğru/yanlış).
+	LastVal  string
+	lastType interp.ValueType
+	// seen değişkenin değeri görüldü mü: boş metin de bir değerdir, "henüz yok" anlamına gelmez.
+	seen bool
+}
+
+// observe değişkenin şimdiki değerini kaydeder; önceki değerden farklıysa (yazılışı ya da
+// tipi: Tam 123 ile Metin "123" farklıdır) önceki yazılışı ve doğru döner.
+func (wp *Watchpoint) observe(val interp.Value) (old string, changed bool) {
+	cur, typ := val.Inspect(), val.Type()
+	old, changed = wp.LastVal, wp.seen && (cur != wp.LastVal || typ != wp.lastType)
+	wp.LastVal, wp.lastType, wp.seen = cur, typ, true
+	return old, changed
 }
 
 type Debugger struct {
@@ -55,6 +68,8 @@ type Debugger struct {
 	pauseKind string
 	// dap, düzenleyicinin hata ayıklama oturumu (tr dap) etkinse bağlı sunucudur.
 	dap *dapServer
+	// otherLines başka dosyaların ('aktar' ile yüklenen modüller) satırlarıdır (fileOf).
+	otherLines map[string][]string
 
 	// mu: düzenleyici oturumunun goroutine'i ile VM arasında paylaşılan alanları korur
 	// (Breakpoints, Mode, PauseReason, StepCount).
@@ -82,6 +97,8 @@ func NewDebugger(sourceFile string, sourceCode string, startPaused bool) *Debugg
 
 // Breakpoint koddaki kesme_noktası deyiminde çağrılır: bir sonraki deyimde durur.
 func (d *Debugger) Breakpoint(why string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.Mode = StepInto
 	d.pauseKind = "breakpoint"
 	d.PauseReason = why
@@ -111,8 +128,11 @@ func (d *Debugger) BeforeStatement(v *interp.VM, stmt ast.Statement, env *interp
 
 	// Düzenleyici oturumunda kesme noktaları koşul ve iz mesajı taşıyabilir; ifade
 	// değerlendirmesi kilit dışında yapılır (iç içe deyimler BeforeStatement'ı çağırır).
+	// Kesme noktaları hata ayıklanan dosyanın satırlarındadır; 'aktar' ile yüklenen modüldeki
+	// aynı numaralı satır onları tetiklemez.
+	own := d.inOwnFile(v)
 	bpHit := false
-	if d.dap != nil {
+	if d.dap != nil && own {
 		bpHit = d.dap.breakpointHit(v, line, env)
 	}
 
@@ -124,7 +144,7 @@ func (d *Debugger) BeforeStatement(v *interp.VM, stmt ast.Statement, env *interp
 	}
 
 	// 2. Satır kesme noktası (Breakpoint) kontrolü
-	if !shouldPause && (bpHit || (d.dap == nil && d.Breakpoints[line])) {
+	if !shouldPause && (bpHit || (d.dap == nil && own && d.Breakpoints[line])) {
 		shouldPause = true
 		d.PauseReason = fmt.Sprintf("Kesme Noktası (Satır %d)", line)
 		d.pauseKind = "breakpoint"
@@ -132,28 +152,7 @@ func (d *Debugger) BeforeStatement(v *interp.VM, stmt ast.Statement, env *interp
 
 	// 3. Adım modu (F11 / F10 / Shift+F11) kontrolü
 	if !shouldPause {
-		switch d.Mode {
-		case StepInto:
-			shouldPause = true
-			if d.PauseReason == "" {
-				d.PauseReason = stateStep
-			}
-			if d.pauseKind == "" {
-				d.pauseKind = "step"
-			}
-		case StepOver:
-			if depth <= d.TargetDepth {
-				shouldPause = true
-				d.PauseReason = stateStepOver
-				d.pauseKind = "step"
-			}
-		case StepOut:
-			if depth < d.TargetDepth {
-				shouldPause = true
-				d.PauseReason = stateStepOut
-				d.pauseKind = "step"
-			}
-		}
+		shouldPause = d.stepPause(depth)
 	}
 
 	d.mu.Unlock()
@@ -166,6 +165,32 @@ func (d *Debugger) BeforeStatement(v *interp.VM, stmt ast.Statement, env *interp
 		return d.dap.waitForCommand(v, line, env)
 	}
 	return d.promptCLI(v, line, env)
+}
+
+// stepPause adım kipine (F11 / F10 / Shift+F11) göre bu derinlikteki deyimde durulacak mı;
+// duruluyorsa nedeni yazar. d.mu tutulurken çağrılır.
+func (d *Debugger) stepPause(depth int) bool {
+	switch d.Mode {
+	case StepInto:
+		if d.PauseReason == "" {
+			d.PauseReason = stateStep
+		}
+		if d.pauseKind == "" {
+			d.pauseKind = "step"
+		}
+		return true
+	case StepOver:
+		if depth <= d.TargetDepth {
+			d.PauseReason, d.pauseKind = stateStepOver, "step"
+			return true
+		}
+	case StepOut:
+		if depth < d.TargetDepth {
+			d.PauseReason, d.pauseKind = stateStepOut, "step"
+			return true
+		}
+	}
+	return false
 }
 
 // toggleBreakpoint satırdaki kesme noktasını açar/kapatır; yeni durum açık ise true döner.
@@ -194,7 +219,7 @@ func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) strin
 			prog := p.ParseProgram()
 			if len(p.Errors()) == 0 && len(prog.Statements) > 0 {
 				if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
-					val, err := v.EvalExpression(es.Expression, env)
+					val, err := d.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
 					if err == nil && val.IsTruthy() {
 						curStr := interp.TRUE.Inspect()
 						if wp.LastVal != curStr {
@@ -208,13 +233,9 @@ func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) strin
 			}
 		} else {
 			if val, ok := env.Get(wp.Expression); ok {
-				curStr := val.Inspect()
-				if wp.LastVal != "" && wp.LastVal != curStr {
-					old := wp.LastVal
-					wp.LastVal = curStr
-					return fmt.Sprintf("⚡ İZLEME NOKTASI (Watchpoint #%d): %q değişti (%s -> %s)", wp.ID, wp.Expression, v.Mask(old), v.Mask(curStr))
+				if old, changed := wp.observe(val); changed {
+					return fmt.Sprintf("⚡ İZLEME NOKTASI (Watchpoint #%d): %q değişti (%s -> %s)", wp.ID, wp.Expression, v.Mask(old), v.Mask(wp.LastVal))
 				}
-				wp.LastVal = curStr
 			}
 		}
 	}
@@ -297,7 +318,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				continue
 			}
 			if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
-				newVal, err := v.EvalExpression(es.Expression, env)
+				newVal, err := d.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
 				if err != nil {
 					fmt.Printf("  ❌ Hesaplama hatası: %v\n", err)
 					continue
@@ -316,10 +337,18 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 				continue
 			}
 			targetLine, err := strconv.Atoi(parts[1])
-			if err != nil || targetLine < 1 || targetLine > len(d.SourceLines) {
-				fmt.Printf("  ❌ Geçersiz satır numarası (1-%d arası olmalı)\n", len(d.SourceLines))
+			if err != nil || targetLine < 1 {
+				fmt.Println("  ❌ Geçersiz satır numarası.")
 				continue
 			}
+			// Düzenleyicideki gibi yalnızca duraklanan bloğun satırlarına zıplanabilir;
+			// hedef satırda deyim yoksa sonraki ilk deyime gidilir.
+			target, ok := v.JumpTarget(targetLine)
+			if !ok {
+				fmt.Println("  ❌ " + jumpOutsideBlock(targetLine))
+				continue
+			}
+			targetLine = target
 			fmt.Printf("  ⏭️ [SATIRA ZIPLANDI] Akış %d. satıra taşınıyor...\n", targetLine)
 			d.Mode = StepInto
 			d.PauseReason = fmt.Sprintf("Satır %s zıplandı", turkish.NumberSuffix(int64(targetLine), turkish.Dative))
@@ -348,17 +377,15 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			}
 			expr := strings.TrimSpace(cmdLine[len(parts[0]):])
 			isCond := strings.ContainsAny(expr, "<>=!&|")
-			initVal := ""
-			if !isCond {
-				if val, ok := env.Get(expr); ok {
-					initVal = val.Inspect()
-				}
-			}
 			wp := &Watchpoint{
 				ID:         len(d.Watchpoints) + 1,
 				Expression: expr,
 				IsCond:     isCond,
-				LastVal:    initVal,
+			}
+			if !isCond {
+				if val, ok := env.Get(expr); ok {
+					wp.observe(val)
+				}
 			}
 			d.Watchpoints = append(d.Watchpoints, wp)
 			fmt.Printf("  👁️ İzleme Noktası (Watchpoint #%d) eklendi: %q\n", wp.ID, expr)
@@ -390,7 +417,7 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 			prog := p.ParseProgram()
 			if len(p.Errors()) == 0 && len(prog.Statements) > 0 {
 				if es, ok := prog.Statements[0].(*ast.ExpressionStatement); ok {
-					val, err := v.EvalExpression(es.Expression, env)
+					val, err := d.quietly(func() (interp.Value, error) { return v.EvalExpression(es.Expression, env) })
 					if err != nil {
 						fmt.Printf("  ❌ Hata: %v\n", err)
 					} else {
@@ -421,8 +448,10 @@ func (d *Debugger) promptCLI(v *interp.VM, line int, env *interp.Environment) in
 }
 
 func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.Environment) {
+	// Satırlar çalışan deyimin dosyasından gösterilir ('aktar' ile yüklenen modül de olabilir).
+	file := d.fileOf(v, v.CurrentSource())
 	fmt.Println("\n╔══════════════════════════════════════════════════════════════════════════════╗")
-	fmt.Printf("║ 🛠️  TR HATA AYIKLAYICI  | Dosya: %-35s ║\n", d.SourceFile)
+	fmt.Printf("║ 🛠️  TR HATA AYIKLAYICI  | Dosya: %-35s ║\n", file.path)
 	if d.PauseReason != "" {
 		fmt.Printf("║ 📌 Durum: %-66s ║\n", d.PauseReason)
 	}
@@ -433,20 +462,20 @@ func (d *Debugger) renderDebugScreen(v *interp.VM, currentLine int, env *interp.
 		start = 1
 	}
 	end := currentLine + 3
-	if end > len(d.SourceLines) {
-		end = len(d.SourceLines)
+	if end > len(file.lines) {
+		end = len(file.lines)
 	}
 
 	for l := start; l <= end; l++ {
 		prefix := "     "
 		if l == currentLine {
 			prefix = "===> "
-		} else if d.hasBreakpoint(l) {
+		} else if file.own && d.hasBreakpoint(l) {
 			prefix = " [🔴] "
 		}
 		codeLine := ""
-		if l-1 < len(d.SourceLines) {
-			codeLine = d.SourceLines[l-1]
+		if l-1 < len(file.lines) {
+			codeLine = file.lines[l-1]
 		}
 		fmt.Printf("  %s%3d | %s\n", prefix, l, codeLine)
 	}

@@ -20,8 +20,9 @@ import (
 //
 //   - BeforeStatement (kilidi tutan görevde, her deyimden önce) o anki konumu tek bir 64
 //     bitlik değer olarak, çağrı derinliğinin yuvasına yazar: fonksiyon numarası ve satır.
-//     Fonksiyon numarası çağrı yığınının tepesi değişince bir kez çözülür (değişmeyen
-//     deyimde üç karşılaştırma).
+//     Fonksiyon numarası (fonksiyonun adı ve dosyası: 'aktar' ile yüklenen modülün satırları
+//     kendi dosyasındadır) çağrı yığınının tepesi ya da çalışan dosya değişince bir kez
+//     çözülür (değişmeyen deyimde dört karşılaştırma).
 //   - Ayrı bir goroutine her aralıkta (1 ms) son deyimi çalıştıran görevin çağrı derinliğini
 //     okur ve o derinliğin yuvasındaki konuma geçen süreyi yazar (tensör katmanında bir işlem
 //     çalışıyorsa ayrıca tensör payına). Derinlikten okumak, bir fonksiyon döndükten sonra
@@ -44,6 +45,13 @@ const longestSample = 20 * time.Millisecond
 // konumu kullanılır.
 const stackLimit = 256
 
+// funcKey bir fonksiyonun kimliğidir: adı (üst düzey kodda boş) ve çalıştığı dosya (nil: ana
+// program). Başka dosyada aynı adlı fonksiyon başka bir fonksiyondur.
+type funcKey struct {
+	name string
+	src  *interp.Source
+}
+
 // posInfo bir konumda biriken örnek süreleridir.
 type posInfo struct {
 	dur, tensor time.Duration
@@ -61,11 +69,12 @@ type sampler struct {
 	lastVM    *interp.VM
 	lastDepth int
 	lastName  *byte
+	lastSrc   *interp.Source
 	lastNo    uint64
 
 	mu        sync.Mutex
-	names     []string          // fonksiyon numarası → ad (0: üst düzey)
-	nameNo    map[string]uint64 // ad → numara
+	names     []funcKey          // fonksiyon numarası → ad ve dosya (0: ana programın üst düzeyi)
+	nameNo    map[funcKey]uint64 // ad ve dosya → numara
 	positions map[uint64]*posInfo
 	total     time.Duration // örneklenen toplam süre
 	sample    int64
@@ -76,8 +85,8 @@ type sampler struct {
 
 func newSampler() *sampler {
 	return &sampler{
-		names:     []string{""},
-		nameNo:    map[string]uint64{"": 0},
+		names:     []funcKey{{}},
+		nameNo:    map[funcKey]uint64{{}: 0},
 		positions: map[uint64]*posInfo{},
 		stop:      make(chan struct{}),
 	}
@@ -89,10 +98,14 @@ func (o *sampler) BeforeStatement(v *interp.VM, stmt ast.Statement, _ *interp.En
 		return 0
 	}
 	fno := uint64(0)
-	if n := len(v.CallStack); n > 0 {
-		ad := v.CallStack[n-1].FuncName
-		if p := unsafe.StringData(ad); v != o.lastVM || n != o.lastDepth || p != o.lastName {
-			o.lastVM, o.lastDepth, o.lastName, o.lastNo = v, n, p, o.functionNo(ad)
+	src := v.CurrentSource()
+	if n := len(v.CallStack); n > 0 || src != nil {
+		ad := ""
+		if n > 0 {
+			ad = v.CallStack[n-1].FuncName
+		}
+		if p := unsafe.StringData(ad); v != o.lastVM || n != o.lastDepth || p != o.lastName || src != o.lastSrc {
+			o.lastVM, o.lastDepth, o.lastName, o.lastSrc, o.lastNo = v, n, p, src, o.functionNo(funcKey{ad, src})
 		}
 		fno = o.lastNo
 	}
@@ -108,16 +121,16 @@ func (o *sampler) BeforeStatement(v *interp.VM, stmt ast.Statement, _ *interp.En
 // Breakpoint profil altında koddaki kesme noktası yok sayılır.
 func (o *sampler) Breakpoint(string) {}
 
-// functionNo adın numarasını verir (yoksa ekler).
-func (o *sampler) functionNo(ad string) uint64 {
+// functionNo fonksiyonun numarasını verir (yoksa ekler).
+func (o *sampler) functionNo(f funcKey) uint64 {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	if n, ok := o.nameNo[ad]; ok {
+	if n, ok := o.nameNo[f]; ok {
 		return n
 	}
 	n := uint64(len(o.names))
-	o.names = append(o.names, ad)
-	o.nameNo[ad] = n
+	o.names = append(o.names, f)
+	o.nameNo[f] = n
 	return n
 }
 
@@ -187,6 +200,7 @@ func (o *sampler) sample2(d time.Duration) {
 // posSample bir konumun anlık görüntüsüdür.
 type posSample struct {
 	function    string
+	src         *interp.Source // satırın dosyası; nil ana programdır
 	line        int
 	dur, tensor time.Duration
 }
@@ -197,8 +211,9 @@ func (o *sampler) snapshot() (positions []posSample, total time.Duration, sample
 	defer o.mu.Unlock()
 	positions = make([]posSample, 0, len(o.positions))
 	for k, b := range o.positions {
+		f := o.names[k>>32]
 		positions = append(positions, posSample{
-			function: o.names[k>>32], line: int(uint32(k)), dur: b.dur, tensor: b.tensor,
+			function: f.name, src: f.src, line: int(uint32(k)), dur: b.dur, tensor: b.tensor,
 		})
 	}
 	return positions, o.total, o.sample

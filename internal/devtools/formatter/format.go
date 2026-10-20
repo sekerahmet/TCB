@@ -42,6 +42,7 @@ type item struct {
 	adjacent bool // kaynakta bir önceki öğeye boşluksuz bitişik mi ('->' tanımak için)
 	unary    bool // tekli (önek) operatör mü: -x, !x
 	dict     bool // sözlük sabitinin '{' ya da '}' işareti mi (içine boşluk konmaz: {"a": 1})
+	body     bool // bir gövdenin '{' işareti mi (eğer, döngü, fonksiyon, ...; sözlük ve sondaki blok değil)
 }
 
 // MeaningChangedError biçimlenmiş kodun anlamı özgün koddan farklı çıktığında döner.
@@ -141,7 +142,7 @@ func tokens(body string, coded bool) []lexer.Token {
 
 type pos struct{ line, col int }
 
-// Süslü parantez türleri (bkz. suslular)
+// Süslü parantez türleri (bkz. braceKinds)
 const (
 	braceDict  = 1 // sözlük sabiti: {"a": 1}
 	braceBlock = 2 // sondaki blok (o-lambda): liste.filtrele { o > 2 }
@@ -388,11 +389,9 @@ func spaceBetween(p, c *item) bool {
 // bilerek bozuk bir dönüşümle değiştirir.
 var transform = format
 
-// format asıl biçimlendirme işini yapar (anlam denetimi Format'tadır).
-func format(src string, coded bool, braces map[pos]int) string {
-	og := items(src, coded)
-
-	// 1. Tekli operatörleri işaretle; gövde '{' ve 'değilse'/'yakala' sözcüklerini önceki satıra al.
+// mark tekli operatörleri ve süslü parantezlerin türünü işaretler; gövde '{' ve
+// 'değilse'/'yakala' sözcüklerini önceki satıra alır.
+func mark(og []item, braces map[pos]int) {
 	var prevTok *item
 	var braceStack []*item // açık '{' öğeleri (sözlük kapanışını eşlemek için)
 	for i := range og {
@@ -409,7 +408,8 @@ func format(src string, coded bool, braces map[pos]int) string {
 		}
 		switch o.kind {
 		case lexer.TOKEN_LBRACE:
-			o.dict = braces[pos{o.line, o.col}] == braceDict
+			kind := braces[pos{o.line, o.col}]
+			o.dict, o.body = kind == braceDict, kind == 0
 			braceStack = append(braceStack, o)
 		case lexer.TOKEN_RBRACE:
 			if len(braceStack) > 0 {
@@ -420,7 +420,7 @@ func format(src string, coded bool, braces map[pos]int) string {
 		if o.lineA > 0 && i > 0 && og[i-1].kind != tokComment {
 			prev := og[i-1].kind
 			switch {
-			case o.kind == lexer.TOKEN_LBRACE && braces[pos{o.line, o.col}] == 0:
+			case o.body:
 				o.lineA = 0
 			case (o.kind == lexer.TOKEN_ELSE || o.kind == lexer.TOKEN_CATCH) && prev == lexer.TOKEN_RBRACE:
 				o.lineA = 0
@@ -428,6 +428,13 @@ func format(src string, coded bool, braces map[pos]int) string {
 		}
 		prevTok = o
 	}
+}
+
+// format asıl biçimlendirme işini yapar (anlam denetimi Format'tadır).
+func format(src string, coded bool, braces map[pos]int) string {
+	og := items(src, coded)
+
+	mark(og, braces)
 
 	// 2. Satırlara böl.
 	type line struct {
@@ -447,14 +454,18 @@ func format(src string, coded bool, braces map[pos]int) string {
 		s.items = append(s.items, o)
 	}
 
-	// 3. Girintileri hesapla ve yaz.
+	// 3. Girintileri hesapla ve yaz. Devam satırının fazladan girintisi o satırda açılan
+	// gövdeye geçmez: 'eğer a ve\n    b {' satırının gövdesi ve '}' işareti deyimin ('eğer')
+	// girintisine göredir. stmtIndent ve stmtDepth devam satırı olmayan son satırın girintisi
+	// ve o satırdaki açık parantez derinliğidir.
 	type open struct{ indent int }
 	var stack []open
 	var sb strings.Builder
 	var prevLineEndTok *item // önceki satırın son sözcük birimi (yorumlar hariç)
+	stmtIndent, stmtDepth := 0, 0
 	for si, s := range lines {
 		first := s.items[0]
-		indent := 0
+		indent, continued := 0, false
 		// Satır başındaki kapanışlar
 		startsWithClose := 0
 		for _, o := range s.items {
@@ -478,7 +489,11 @@ func format(src string, coded bool, braces map[pos]int) string {
 			if prevLineEndTok != nil && first.kind != tokComment &&
 				(binaryOps[prevLineEndTok.kind] && !prevLineEndTok.unary || continuingEnd[prevLineEndTok.kind] || continuingStart[first.kind]) {
 				indent++
+				continued = true
 			}
+		}
+		if !continued {
+			stmtIndent, stmtDepth = indent, max(len(stack)-startsWithClose, 0)
 		}
 
 		// Boş satır kuralları: dosya başında, '{' / '(' / '[' ile biten satırdan sonra ve
@@ -495,7 +510,11 @@ func format(src string, coded bool, braces map[pos]int) string {
 			}
 			lineSb.WriteString(o.text)
 			if opening(o.kind) {
-				stack = append(stack, open{indent: indent})
+				push := indent
+				if o.body && len(stack) == stmtDepth {
+					push = stmtIndent
+				}
+				stack = append(stack, open{indent: push})
 			} else if closing(o.kind) && len(stack) > 0 {
 				stack = stack[:len(stack)-1]
 			}

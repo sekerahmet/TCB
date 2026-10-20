@@ -26,6 +26,8 @@ type Capture struct {
 	fpath string
 	file  *os.File
 	r, w  *os.File
+	// toFile dosyaya yazar; okuyan goroutine kullanır, WriteError Close'dan sonra okur.
+	toFile *dropOnError
 
 	mu    sync.Mutex
 	lines []string
@@ -43,7 +45,7 @@ func StartCapture(fpath string) (*Capture, error) {
 		d.Close()
 		return nil, err
 	}
-	y := &Capture{fpath: fpath, file: d, r: r, w: w, done: make(chan struct{})}
+	y := &Capture{fpath: fpath, file: d, r: r, w: w, done: make(chan struct{}), toFile: &dropOnError{w: d}}
 	go y.read()
 	return y, nil
 }
@@ -54,9 +56,10 @@ func (y *Capture) Writer() *os.File { return y.w }
 // Path çıktının yazıldığı dosyadır.
 func (y *Capture) Path() string { return y.fpath }
 
+// read borudaki çıktıyı okur: dosyaya yazar ve son satırları tutar.
 func (y *Capture) read() {
 	defer close(y.done)
-	s := bufio.NewReader(io.TeeReader(y.r, y.file))
+	s := bufio.NewReader(io.TeeReader(y.r, y.toFile))
 	for {
 		line, err := s.ReadString('\n')
 		if line != "" {
@@ -66,6 +69,20 @@ func (y *Capture) read() {
 			return
 		}
 	}
+}
+
+// dropOnError dosyaya yazar; ilk hatadan sonra (ör. disk dolu) yazmayı bırakır ama hata
+// vermez. Okuma sürmelidir: boru boşaltılmazsa programın yazdır'ı tampon dolunca donar.
+type dropOnError struct {
+	w   io.Writer
+	err error // ilk yazma hatası
+}
+
+func (d *dropOnError) Write(p []byte) (int, error) {
+	if d.err == nil {
+		_, d.err = d.w.Write(p)
+	}
+	return len(p), nil
 }
 
 // add bir satırı son satırlara ekler (satır başına dönüşte son parça kalır).
@@ -82,6 +99,10 @@ func (y *Capture) add(line string) {
 	}
 	y.mu.Unlock()
 }
+
+// WriteError dosyaya yazmanın ilk hatasıdır (ör. disk dolu; sonrası dosyada yoktur); nil ise
+// çıktının tamamı dosyadadır. Close'dan sonra çağrılır.
+func (y *Capture) WriteError() error { return y.toFile.err }
 
 // LastLines son n satırı verir.
 func (y *Capture) LastLines(n int) []string {

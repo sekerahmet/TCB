@@ -166,9 +166,12 @@ func (s *dapServer) send(m map[string]interface{}) {
 	fmt.Fprintf(s.out, "Content-Length: %d\r\n\r\n%s", len(data), data)
 }
 
-// maskSecrets iletideki bütün metinlerde (değişken değerleri, izleme ifadeleri, İzleme
-// Masası tablosu, konsol çıktısı) programın gizli değerlerini *** yapar: düzenleyicide
-// görünen her şey insanın göreceği çıktıdır. Gizli değer yoksa ileti olduğu gibi kalır.
+// maskSecrets iletinin gövdesindeki (body) ve hata iletisindeki (message) metinlerde
+// (değişken değerleri, izleme ifadeleri, İzleme Masası tablosu, konsol çıktısı) programın
+// gizli değerlerini *** yapar: düzenleyicide görünen her şey insanın göreceği çıktıdır.
+// Protokolün kendisi maskelenmez: zarf alanları (type, command, event, ...), JSON anahtarları
+// ve sabit değerler (protocolFields). Gizli değer onlardan biriyle aynı ya da onların parçası
+// olsa da ileti bozulmaz. Gizli değer yoksa ileti olduğu gibi kalır.
 func (s *dapServer) maskSecrets(data []byte) []byte {
 	m := s.machine
 	if m == nil || !m.HasSecrets() {
@@ -176,18 +179,28 @@ func (s *dapServer) maskSecrets(data []byte) []byte {
 	}
 	d := json.NewDecoder(bytes.NewReader(data))
 	d.UseNumber()
-	var v any
+	var v map[string]any
 	if d.Decode(&v) != nil {
 		return data
 	}
-	fresh, err := json.Marshal(maskStrings(v, m.Mask))
+	for _, k := range []string{"body", "message"} {
+		if e, ok := v[k]; ok {
+			v[k] = maskStrings(e, m.Mask)
+		}
+	}
+	fresh, err := json.Marshal(v)
 	if err != nil {
 		return data
 	}
 	return fresh
 }
 
-// maskStrings çözülmüş bir JSON değerindeki metinlere (anahtarlar dahil) f'yi uygular.
+// protocolFields gövdedeki sabit değerli protokol alanlarıdır: düzenleyici bunları adıyla
+// tanır (durma nedeni, çıktı kategorisi, ...); kullanıcı verisi taşımazlar.
+var protocolFields = map[string]bool{"reason": true, "category": true, "presentationHint": true, "accessTypes": true}
+
+// maskStrings çözülmüş bir JSON değerindeki metin değerlerine f'yi uygular; anahtarlara ve
+// protokol alanlarına dokunmaz.
 func maskStrings(v any, f func(string) string) any {
 	switch x := v.(type) {
 	case string:
@@ -197,11 +210,11 @@ func maskStrings(v any, f func(string) string) any {
 			x[i] = maskStrings(e, f)
 		}
 	case map[string]any:
-		y := make(map[string]any, len(x))
 		for k, e := range x {
-			y[f(k)] = maskStrings(e, f)
+			if !protocolFields[k] {
+				x[k] = maskStrings(e, f)
+			}
 		}
-		return y
 	}
 	return v
 }

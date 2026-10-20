@@ -81,7 +81,7 @@ func uyariYazici(machine *interp.VM) func(string) {
 // motorlar kapanmadan alınır (kapanmadanOnce).
 func olcumluProfilBaslat(machine *interp.VM, path, code string, prog *ast.Program) *profiler.Profile {
 	p := profiler.Start(machine, profiler.Options{
-		Program: path, Source: code, Tree: prog, SampleLines: true, GPUMeasure: true,
+		Program: path, Source: code, SampleLines: true, GPUMeasure: true,
 		StatusFile: profiler.JobStatusFile(), Warning: uyariYazici(machine),
 	})
 	kapanmadanOnce = append(kapanmadanOnce, p.BeforeClose)
@@ -153,7 +153,7 @@ func isProfiliniBaslat(machine *interp.VM, path, code string, prog *ast.Program)
 		return
 	}
 	p := profiler.Start(machine, profiler.Options{
-		Program: path, Source: code, Tree: prog, StatusFile: yol, Warning: uyariYazici(machine),
+		Program: path, Source: code, StatusFile: yol, Warning: uyariYazici(machine),
 	})
 	cikisTemizligi = append(cikisTemizligi, func() { p.Finish(cikisKodu) })
 }

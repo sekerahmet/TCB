@@ -104,8 +104,8 @@ func noStep() string {
 	return fmt.Sprintf("adım bilgisi yok: eğitim döngüsünde %s(...) ve .%s(...) kullanın", codes.Name(codes.G811), codes.Name(codes.Y010))
 }
 
-// linePos bir satırın "dosya:satır" yazımıdır; ana programın dışındaki (aktarılan
-// modüldeki) satır "fonksiyon():satır" yazılır (satırın dosyası örnekte yoktur).
+// linePos bir satırın "dosya:satır" yazımıdır ('aktar' ile yüklenen modülde modülün dosyası);
+// dosyası bilinmeyen satır (dosya alanı boş eski bir görüntü) "fonksiyon():satır" yazılır.
 func linePos(s LineInfo) string {
 	if s.File != "" {
 		return filepath.Base(s.File) + ":" + strconv.Itoa(s.Line)
@@ -113,7 +113,7 @@ func linePos(s LineInfo) string {
 	return s.Function + "():" + strconv.Itoa(s.Line)
 }
 
-// lineText satırın metnidir; ana programın dışındaysa bunu söyler.
+// lineText satırın metnidir; dosyası bilinmiyorsa bunu söyler.
 func lineText(s LineInfo) string {
 	if s.File == "" {
 		return "(aktarılan modülde)"

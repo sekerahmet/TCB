@@ -174,10 +174,7 @@ func (s *dapServer) quietly(fn func() (interp.Value, error)) (interp.Value, erro
 	if s.dbg == nil {
 		return fn()
 	}
-	was := s.dbg.Active
-	s.dbg.Active = false
-	defer func() { s.dbg.Active = was }()
-	return fn()
+	return s.dbg.quietly(fn)
 }
 
 // dataBreakpointInfo: Variables panelinde "Break on Value Change" (izleme noktası).
@@ -214,7 +211,7 @@ func (s *dapServer) setDataBreakpoints(msg *dapMessage) {
 		wp := &Watchpoint{ID: i + 1, Expression: bp.DataID}
 		if s.curEnv != nil {
 			if v, ok := s.curEnv.Get(bp.DataID); ok {
-				wp.LastVal = v.Inspect()
+				wp.observe(v)
 			}
 		}
 		wps = append(wps, wp)

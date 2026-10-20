@@ -6,11 +6,13 @@
 package testrunner
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -167,10 +169,9 @@ func RunFile(fpath string, out io.Writer) Summary {
 		summary.Total++
 		if err := machine.RunTest(t); err != nil {
 			summary.Failed++
-			message := err.Error()
-			if !strings.Contains(message, "Satır ") {
+			if !located(err) {
 				// Konumsuz hatalarda (ör. fırlat) testin satırını göster
-				err = fmt.Errorf("Satır %d: %s", t.Line(), message)
+				err = &interp.LineError{Line: t.Line(), Err: err}
 			}
 			// Modüle ait hatanın çerçevesi modülün kaynağından çizilir.
 			for i, m := range interp.ErrorItems(err, text) {
@@ -187,6 +188,17 @@ func RunFile(fpath string, out io.Writer) Summary {
 		fmt.Fprintf(out, "  ✓ %s\n", t.Name)
 	}
 	return summary
+}
+
+// lineStart konumlu bir hata iletisinin başıdır ("Satır 12: ..."). İletinin içinde geçen
+// "Satır " sözcüğü (ör. fırlat "Satır sayısı yanlış") konum sayılmaz.
+var lineStart = regexp.MustCompile(`^Satır [0-9]+:`)
+
+// located hatanın konumu var mı: satırlı ya da bir dosyaya (modül) bağlı hata.
+func located(err error) bool {
+	var le *interp.LineError
+	var me *interp.ModuleError
+	return errors.As(err, &le) || errors.As(err, &me) || lineStart.MatchString(err.Error())
 }
 
 func writeError(out io.Writer, message, source string) {

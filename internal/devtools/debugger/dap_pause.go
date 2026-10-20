@@ -94,7 +94,7 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 		}
 		target, ok := s.curVM.JumpTarget(a.TargetID)
 		if !ok {
-			s.respondErr(msg, "Satır %d şu an çalışan bloğun dışında; yalnızca bulunulan bloğun (%s, %s ya da %s gövdesinin) satırlarına zıplanabilir", a.TargetID, codes.Name(codes.A020), codes.Name(codes.A010), codes.Name(codes.A001))
+			s.respondErr(msg, "%s", jumpOutsideBlock(a.TargetID))
 			return 0, false
 		}
 		s.resume(StepInto, 0, "Satır "+turkish.NumberSuffix(int64(target), turkish.Dative)+" zıplandı", "goto")
@@ -133,6 +133,23 @@ func (s *dapServer) handlePaused(msg *dapMessage) (jump int, resume bool) {
 	}
 	return 0, false
 }
+
+// jumpOutsideBlock zıplanamayan satırın iletisidir (terminalde ve düzenleyicide aynı).
+func jumpOutsideBlock(line int) string {
+	return fmt.Sprintf("Satır %d şu an çalışan bloğun dışında; yalnızca bulunulan bloğun (%s, %s ya da %s gövdesinin) satırlarına zıplanabilir", line, codes.Name(codes.A020), codes.Name(codes.A010), codes.Name(codes.A001))
+}
+
+// sourceOf çağrı yığınındaki bir dosyanın kaynak bilgisidir; nil hata ayıklanan programdır.
+// Dilin gömülü kitaplığındaki modülün diskte dosyası yoktur: yalnızca adı bildirilir.
+func (s *dapServer) sourceOf(src *interp.Source) map[string]interface{} {
+	if src == nil || (s.dbg != nil && src.Path == s.dbg.SourceFile) {
+		return s.source()
+	}
+	if src.Embedded {
+		return map[string]interface{}{"name": src.Name, "presentationHint": "deemphasize"}
+	}
+	return map[string]interface{}{"name": filepath.Base(src.Path), "path": src.Path}
+}
 func (s *dapServer) source() map[string]interface{} {
 	fpath := s.programPath
 	if s.viewURI != "" {
@@ -148,8 +165,15 @@ func (s *dapServer) stackTrace(msg *dapMessage) {
 		}
 		return stack[i].FuncName + "()"
 	}
+	// Çerçevenin satırı çağıran fonksiyonun dosyasındadır: bir önceki çerçevenin dosyası.
+	callerSource := func(i int) *interp.Source {
+		if i < 0 {
+			return nil
+		}
+		return stack[i].Source
+	}
 	frames := []interface{}{map[string]interface{}{
-		"id": 1, "name": frameName(len(stack) - 1), "line": s.curLine, "column": 1, "source": s.source(),
+		"id": 1, "name": frameName(len(stack) - 1), "line": s.curLine, "column": 1, "source": s.sourceOf(s.curVM.CurrentSource()),
 	}}
 	for i := len(stack) - 1; i >= 0; i-- {
 		line := stack[i].Line
@@ -157,7 +181,7 @@ func (s *dapServer) stackTrace(msg *dapMessage) {
 			line = 1
 		}
 		frames = append(frames, map[string]interface{}{
-			"id": len(stack) - i + 1, "name": frameName(i - 1), "line": line, "column": 1, "source": s.source(),
+			"id": len(stack) - i + 1, "name": frameName(i - 1), "line": line, "column": 1, "source": s.sourceOf(callerSource(i - 1)),
 		})
 	}
 	s.respond(msg, map[string]interface{}{"stackFrames": frames, "totalFrames": len(frames)})

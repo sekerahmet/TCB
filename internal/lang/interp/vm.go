@@ -151,7 +151,10 @@ type vmShared struct {
 
 type StackFrame struct {
 	FuncName string
-	Line     int
+	Line     int // çağrının satırı (çağıran dosyada)
+	// Source fonksiyon gövdesinin çalıştığı dosyadır; nil ana programdır. Çerçevenin satırı
+	// çağıran dosyadadır: bir önceki çerçevenin Source'u (ilk çerçevede ana program).
+	Source *Source
 }
 
 // VM is the view of one execution task: shared state plus a task-private call stack. Each

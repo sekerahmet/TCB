@@ -53,9 +53,9 @@ func testShow(d Value) string {
 }
 
 // RunTest runs a single test block in a new scope opened over the file's top-level definitions
-// (GlobalEnv). 'ertele' blocks in the body run when the test ends and the 'eşzamanlı' tasks the
-// test started are awaited. If it returns an error (assertions included) the test failed. The
-// program must already be loaded with Run.
+// (GlobalEnv). The 'eşzamanlı' tasks the test started are awaited, then (as at the program's top
+// level) its 'ertele' blocks run. If it returns an error (assertions included) the test failed.
+// The program must already be loaded with Run.
 func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 	if !v.holdsGIL {
 		v.acquireGIL()
@@ -85,6 +85,10 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 		defer func() { err = addDeferError(err, env.RunDefers()) }()
 		if t.Body != nil {
 			_, _, err = kd.run(v, env)
+		}
+		// Programın üst düzeyindeki gibi: 'ertele' blokları görevler bittikten sonra.
+		if err == nil {
+			v.Blocking(v.wg.Wait)
 		}
 	}()
 	v.Blocking(v.wg.Wait)

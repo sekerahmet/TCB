@@ -236,6 +236,7 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	v.CallStack = append(v.CallStack, StackFrame{
 		FuncName: fnName,
 		Line:     line,
+		Source:   v.source,
 	})
 	val, err = v.functionBody(fn, fk, fnEnv, self, args, nargs, named)
 	if len(v.CallStack) > 0 {
