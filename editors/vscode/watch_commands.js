@@ -1,11 +1,11 @@
 // İzleme Masası yönlendirme düğmelerinin eşlemesi: web görünümündeki düğmenin data-komut
 // değeri (DAP isteğinin adı) → VS Code komutu. vscode modülüne bağlı değildir; böylece
-// eşleme Node ile ayrıca sınanır (test/izleme_komutlari_test.js).
+// eşleme Node ile ayrıca sınanır (test/watch_commands_test.js).
 'use strict';
 
 // Düğme → VS Code'un kendi hata ayıklama komutu. Oturum etkin oturumsa bu komutlar kullanılır:
 // araç çubuğu, çağrı yığını ve editördeki sarı satır da güncellenir.
-const IZLEME_KOMUTLARI = Object.freeze({
+const WATCH_COMMANDS = Object.freeze({
     next: 'workbench.action.debug.stepOver',
     stepIn: 'workbench.action.debug.stepInto',
     stepOut: 'workbench.action.debug.stepOut',
@@ -13,22 +13,22 @@ const IZLEME_KOMUTLARI = Object.freeze({
     stop: 'workbench.action.debug.stop'
 });
 
-// izlemeKomutuCoz düğmeden gelen komutun nasıl uygulanacağını söyler:
-//   { tur: 'vscode', komut }  VS Code komutu çalıştırılır (oturum etkin oturumsa)
-//   { tur: 'durdur' }         oturum vscode.debug.stopDebugging ile durdurulur
-//   { tur: 'dap', istek, argumanlar }  istek doğrudan oturuma gönderilir
+// resolveWatchCommand düğmeden gelen komutun nasıl uygulanacağını söyler:
+//   { kind: 'vscode', command }  VS Code komutu çalıştırılır (oturum etkin oturumsa)
+//   { kind: 'durdur' }         oturum vscode.debug.stopDebugging ile durdurulur
+//   { kind: 'dap', request, args }  request doğrudan oturuma gönderilir
 //   undefined                 bilinmeyen komut (yok sayılır)
-function izlemeKomutuCoz(komut, oturumEtkin) {
-    if (!Object.prototype.hasOwnProperty.call(IZLEME_KOMUTLARI, komut)) {
+function resolveWatchCommand(command, sessionActive) {
+    if (!Object.prototype.hasOwnProperty.call(WATCH_COMMANDS, command)) {
         return undefined;
     }
-    if (oturumEtkin) {
-        return { tur: 'vscode', komut: IZLEME_KOMUTLARI[komut] };
+    if (sessionActive) {
+        return { kind: 'vscode', command: WATCH_COMMANDS[command] };
     }
-    if (komut === 'stop') {
-        return { tur: 'durdur' };
+    if (command === 'stop') {
+        return { kind: 'durdur' };
     }
-    return { tur: 'dap', istek: komut, argumanlar: { threadId: 1 } };
+    return { kind: 'dap', request: command, args: { threadId: 1 } };
 }
 
-module.exports = { IZLEME_KOMUTLARI, izlemeKomutuCoz };
+module.exports = { WATCH_COMMANDS, resolveWatchCommand };

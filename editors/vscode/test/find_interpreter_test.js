@@ -1,78 +1,78 @@
 // Yorumlayıcıyı (tr.exe) bulma kuralının testi. Bağımlılıksız; depo kökünden:
-//   node editors/vscode/test/yorumlayici_bul_test.js
-// (go test ./cmd/tr/e2e bunu TestEklentiJSTestleri ile çalıştırır.)
+//   node editors/vscode/test/find_interpreter_test.js
+// (go test ./cmd/tr/e2e bunu TestExtensionJSTests ile çalıştırır.)
 'use strict';
 
 const assert = require('assert');
-const { yorumlayiciyiBul } = require('../find_interpreter');
+const { findInterpreter } = require('../find_interpreter');
 
-let gecen = 0;
-function test(ad, fn) {
+let passed = 0;
+function test(name, fn) {
     try {
         fn();
-        gecen++;
+        passed++;
     } catch (e) {
-        console.error('KALDI: ' + ad + '\n' + (e && e.stack));
+        console.error('KALDI: ' + name + '\n' + (e && e.stack));
         process.exitCode = 1;
     }
 }
 
 // Sahte dosya sistemi: yalnızca listedeki yollar vardır.
-function g(dosyalar, ek) {
-    const kume = new Set(dosyalar);
-    return Object.assign({ platform: 'win32', pathDegeri: '', guvenilir: true, dosyaVarMi: (y) => kume.has(y) }, ek);
+function g(files, extra) {
+    const set = new Set(files);
+    return Object.assign({ platform: 'win32', pathValue: '', trusted: true, fileExists: (y) => set.has(y) }, extra);
 }
 
 // İndirilmiş bir klasör: içinde .tr dosyası ve yanında yabancı bir tr.exe; üst klasörde de bir tr.exe.
-const INDIRILEN = 'C:\\Users\\a\\Downloads\\paket';
-const YABANCI = [INDIRILEN + '\\tr.exe', INDIRILEN + '\\bin\\tr.exe', 'C:\\Users\\a\\Downloads\\tr.exe', 'C:\\Users\\a\\tr.exe'];
+const DOWNLOADED = 'C:\\Users\\a\\Downloads\\paket';
+const FOREIGN = [DOWNLOADED + '\\tr.exe', DOWNLOADED + '\\bin\\tr.exe', 'C:\\Users\\a\\Downloads\\tr.exe', 'C:\\Users\\a\\tr.exe'];
 
 test('klasörsüz pencerede dosyanın yanındaki ve üst klasörlerdeki tr.exe çalıştırılmaz', () => {
-    assert.strictEqual(yorumlayiciyiBul(g(YABANCI, { klasor: undefined })), undefined);
+    assert.strictEqual(findInterpreter(g(FOREIGN, { folder: undefined })), undefined);
 });
 
 test('klasörsüz pencerede PATH kullanılır, yandaki tr.exe değil', () => {
-    const r = yorumlayiciyiBul(g([...YABANCI, 'C:\\araclar\\tr.exe'], { klasor: undefined, pathDegeri: 'C:\\yok;C:\\araclar' }));
-    assert.deepStrictEqual(r, { yol: 'C:\\araclar\\tr.exe' });
+    const r = findInterpreter(g([...FOREIGN, 'C:\\araclar\\tr.exe'], { folder: undefined, pathValue: 'C:\\yok;C:\\araclar' }));
+    assert.deepStrictEqual(r, { filePath: 'C:\\araclar\\tr.exe' });
 });
 
 test('güvenilmeyen çalışma alanının kökündeki tr.exe kullanılmaz', () => {
-    assert.strictEqual(yorumlayiciyiBul(g(YABANCI, { klasor: INDIRILEN, guvenilir: false })), undefined);
+    assert.strictEqual(findInterpreter(g(FOREIGN, { folder: DOWNLOADED, trusted: false })), undefined);
 });
 
 test('güvenilen çalışma alanında önce kökteki bin/tr.exe, sonra kökteki tr.exe', () => {
-    const kok = 'D:\\proje';
-    assert.deepStrictEqual(yorumlayiciyiBul(g([kok + '\\bin\\tr.exe', kok + '\\tr.exe'], { klasor: kok })), { yol: kok + '\\bin\\tr.exe' });
-    assert.deepStrictEqual(yorumlayiciyiBul(g([kok + '\\tr.exe'], { klasor: kok })), { yol: kok + '\\tr.exe' });
+    const root = 'D:\\proje';
+    assert.deepStrictEqual(findInterpreter(g([root + '\\bin\\tr.exe', root + '\\tr.exe'], { folder: root })), { filePath: root + '\\bin\\tr.exe' });
+    assert.deepStrictEqual(findInterpreter(g([root + '\\tr.exe'], { folder: root })), { filePath: root + '\\tr.exe' });
 });
 
 test('güvenilen çalışma alanında da üst klasörler taranmaz', () => {
     // Çalışma alanı C:\Users\a\Downloads\paket\alt; tr.exe yalnızca üst klasörlerde.
-    assert.strictEqual(yorumlayiciyiBul(g(YABANCI, { klasor: INDIRILEN + '\\alt' })), undefined);
+    assert.strictEqual(findInterpreter(g(FOREIGN, { folder: DOWNLOADED + '\\alt' })), undefined);
 });
 
 test('ayar her şeyden önce gelir; mutlak yol', () => {
-    const r = yorumlayiciyiBul(g([...YABANCI, 'C:\\tr\\tr.exe'], { klasor: INDIRILEN, ayar: '  C:\\tr\\tr.exe ' }));
-    assert.deepStrictEqual(r, { yol: 'C:\\tr\\tr.exe' });
+    const r = findInterpreter(g([...FOREIGN, 'C:\\tr\\tr.exe'], { folder: DOWNLOADED, setting: '  C:\\tr\\tr.exe ' }));
+    assert.deepStrictEqual(r, { filePath: 'C:\\tr\\tr.exe' });
 });
 
 test('ayardaki yol yoksa hata; başka yere bakılmaz', () => {
-    const r = yorumlayiciyiBul(g(YABANCI, { klasor: INDIRILEN, ayar: 'C:\\yok\\tr.exe' }));
-    assert.ok(r.hata && r.hata.includes('C:\\yok\\tr.exe'), JSON.stringify(r));
+    const r = findInterpreter(g(FOREIGN, { folder: DOWNLOADED, setting: 'C:\\yok\\tr.exe' }));
+    assert.ok(r.error && r.error.includes('C:\\yok\\tr.exe'), JSON.stringify(r));
 });
 
 test('göreli ayar yalnızca güvenilen çalışma alanı klasörüne göre çözülür', () => {
-    const kok = 'D:\\proje';
-    assert.deepStrictEqual(yorumlayiciyiBul(g([kok + '\\bin\\tr.exe'], { klasor: kok, ayar: 'bin\\tr.exe' })), { yol: kok + '\\bin\\tr.exe' });
-    const klasorsuz = yorumlayiciyiBul(g(YABANCI, { klasor: undefined, ayar: 'tr.exe' }));
-    assert.ok(klasorsuz.hata && klasorsuz.hata.includes('göreli'), JSON.stringify(klasorsuz));
-    const guvensiz = yorumlayiciyiBul(g(YABANCI, { klasor: INDIRILEN, guvenilir: false, ayar: 'tr.exe' }));
-    assert.ok(guvensiz.hata && guvensiz.hata.includes('göreli'), JSON.stringify(guvensiz));
+    const root = 'D:\\proje';
+    assert.deepStrictEqual(findInterpreter(g([root + '\\bin\\tr.exe'], { folder: root, setting: 'bin\\tr.exe' })), { filePath: root + '\\bin\\tr.exe' });
+    const noFolder = findInterpreter(g(FOREIGN, { folder: undefined, setting: 'tr.exe' }));
+    assert.ok(noFolder.error && noFolder.error.includes('göreli'), JSON.stringify(noFolder));
+    const untrusted = findInterpreter(g(FOREIGN, { folder: DOWNLOADED, trusted: false, setting: 'tr.exe' }));
+    assert.ok(untrusted.error && untrusted.error.includes('göreli'), JSON.stringify(untrusted));
 });
 
 test("Unix'te /bin ve /usr/bin'deki 'tr' (karakter çevirme aracı) atlanır", () => {
-    const r = yorumlayiciyiBul(g(['/usr/bin/tr', '/bin/tr', '/home/a/go/bin/tr'], { platform: 'linux', klasor: undefined, pathDegeri: '/usr/bin:/bin:/home/a/go/bin' }));
-    assert.deepStrictEqual(r, { yol: '/home/a/go/bin/tr' });
+    const r = findInterpreter(g(['/usr/bin/tr', '/bin/tr', '/home/a/go/bin/tr'], { platform: 'linux', folder: undefined, pathValue: '/usr/bin:/bin:/home/a/go/bin' }));
+    assert.deepStrictEqual(r, { filePath: '/home/a/go/bin/tr' });
 });
 
-console.log(`yorumlayıcı bulma: ${gecen} test geçti`);
+console.log(`find_interpreter_test: ${passed} test geçti`);

@@ -2,7 +2,7 @@
 // .tr dosyası düzenleyicide kişinin yazım dilinde açılır, düzenlenir ve kaydedilince diske yine
 // kodlu yazılır.
 //
-// Mekanizma: ayrı bir dosya sistemi şeması (GORUNUM_SEMASI). Görünümün adresi dosyanın kendi
+// Mekanizma: ayrı bir dosya sistemi şeması (VIEW_SCHEME). Görünümün adresi dosyanın kendi
 // yoludur, yalnızca şeması farklıdır ("tr-kodlu:/c:/proje/a.tr"). VS Code bu belgeyi sıradan bir
 // metin belgesi olarak yönetir; okuma ve yazma bu sağlayıcıdan geçer:
 //   okuma: dosya kodluysa 'tr göster -' ile Türkçe yazım (başlık satırı görünmez; satırlar
@@ -18,174 +18,174 @@
 // göredir (17.5). Kodlu olmayan dosyalara dokunulmaz; eklenti kendiliğinden kodlamaz.
 //
 // Kısıtlı kipte (güvenilmeyen çalışma alanı) hiçbir şey çalıştırılmaz: kodlu dosya salt okunur
-// ham hâliyle (HAM_SEMASI) gösterilir ve nedeni söylenir; güven verilince görünüme geçilir.
+// ham hâliyle (RAW_SCHEME) gösterilir ve nedeni söylenir; güven verilince görünüme geçilir.
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
-const kodluBicim = require('./coded_format');
-const kodluDosyaSistemi = require('./coded_filesystem');
+const codedFormat = require('./coded_format');
+const codedFilesystem = require('./coded_filesystem');
 
-const GORUNUM_SEMASI = 'tr-kodlu';
-const HAM_SEMASI = 'tr-ham';
-// BEKLEYEN_ANAHTARI kodlanmayı bekleyen (ayrıştırılamadığı için Türkçe kaydedilmiş) dosyaların
+const VIEW_SCHEME = 'tr-kodlu';
+const RAW_SCHEME = 'tr-ham';
+// PENDING_KEY kodlanmayı bekleyen (ayrıştırılamadığı için Türkçe kaydedilmiş) dosyaların
 // kalıcı listesinin anahtarıdır; VS Code yeniden açılınca da bilinir.
-const BEKLEYEN_ANAHTARI = 'tr.kodlanmayiBekleyenDosyalar';
-const BUYUK_KUCUK_DUYARSIZ = process.platform === 'win32' || process.platform === 'darwin';
+const PENDING_KEY = 'tr.kodlanmayiBekleyenDosyalar';
+const CASE_INSENSITIVE = process.platform === 'win32' || process.platform === 'darwin';
 
-// olustur görünümün parçalarını kurar.
-//   g.yorumlayiciyiBul  (dosyaUri) -> { yol } | { hata } | undefined   (find_interpreter.js kuralı)
-//   g.cevir             kodluBicim.cevir ile aynı imza
-//   g.durum             kalıcı durum (ExtensionContext.globalState)
-//   g.yazimDili         () -> yazım dili kodu ('tr.yazimDili' ayarı)
-//   g.yorumlayiciBulunamadi (mesaj) -> ayarı açma düğmeli hata mesajı
-function olustur(vscode, g) {
-    const bildirilen = new Set(); // bu oturumda bir kez söylenen durumlar (anahtar + dosya)
+// create görünümün parçalarını kurar.
+//   g.findInterpreter  (dosyaUri) -> { filePath } | { error } | undefined   (find_interpreter.js kuralı)
+//   g.translate             codedFormat.translate ile aynı imza
+//   g.state             kalıcı durum (ExtensionContext.globalState)
+//   g.writingLanguage         () -> yazım dili kodu ('tr.yazimDili' ayarı)
+//   g.interpreterNotFound (mesaj) -> ayarı açma düğmeli hata mesajı
+function create(vscode, g) {
+    const reported = new Set(); // bu oturumda bir kez söylenen durumlar (anahtar + dosya)
 
-    function anahtar(yol) {
-        const tam = path.resolve(yol);
-        return BUYUK_KUCUK_DUYARSIZ ? tam.toLowerCase() : tam;
+    function key(filePath) {
+        const full = path.resolve(filePath);
+        return CASE_INSENSITIVE ? full.toLowerCase() : full;
     }
-    function bekleyenler() {
-        return new Set(g.durum.get(BEKLEYEN_ANAHTARI, []));
+    function pendingFiles() {
+        return new Set(g.state.get(PENDING_KEY, []));
     }
-    function bekliyor(yol) {
-        return bekleyenler().has(anahtar(yol));
+    function isPending(filePath) {
+        return pendingFiles().has(key(filePath));
     }
-    async function bekleyenYap(yol, bekleyen) {
-        const b = bekleyenler();
-        if (b.has(anahtar(yol)) === bekleyen) {
+    async function setPending(filePath, pending) {
+        const b = pendingFiles();
+        if (b.has(key(filePath)) === pending) {
             return;
         }
-        if (bekleyen) {
-            b.add(anahtar(yol));
+        if (pending) {
+            b.add(key(filePath));
         } else {
-            b.delete(anahtar(yol));
+            b.delete(key(filePath));
         }
-        await g.durum.update(BEKLEYEN_ANAHTARI, [...b]);
+        await g.state.update(PENDING_KEY, [...b]);
     }
-    // birKez mesajı bu oturumda (tur, dosya) için yalnızca bir kez gösterir.
-    function birKez(tur, yol, goster) {
-        const k = tur + '\n' + anahtar(yol);
-        if (!bildirilen.has(k)) {
-            bildirilen.add(k);
-            goster();
+    // once mesajı bu oturumda (kind, file) için yalnızca bir kez gösterir.
+    function once(kind, filePath, show) {
+        const k = kind + '\n' + key(filePath);
+        if (!reported.has(k)) {
+            reported.add(k);
+            show();
         }
     }
-    function unut(tur, yol) {
-        bildirilen.delete(tur + '\n' + anahtar(yol));
+    function forget(kind, filePath) {
+        reported.delete(kind + '\n' + key(filePath));
     }
 
-    function gorunumUri(dosyaUri) {
-        return dosyaUri.with({ scheme: GORUNUM_SEMASI });
+    function viewUri(fileUri) {
+        return fileUri.with({ scheme: VIEW_SCHEME });
     }
-    function hamUri(dosyaUri) {
-        return dosyaUri.with({ scheme: HAM_SEMASI });
+    function rawUri(fileUri) {
+        return fileUri.with({ scheme: RAW_SCHEME });
     }
-    // yerelUri bir belge adresinin diskteki dosyasıdır (görünümde ve ham gösterimde dosyanın
+    // localUri bir belge adresinin diskteki dosyasıdır (görünümde ve ham gösterimde dosyanın
     // kendisi); yerel olmayan adreslerde undefined.
-    function yerelUri(uri) {
+    function localUri(uri) {
         if (!uri) {
             return undefined;
         }
         if (uri.scheme === 'file') {
             return uri;
         }
-        return uri.scheme === GORUNUM_SEMASI || uri.scheme === HAM_SEMASI ? uri.with({ scheme: 'file' }) : undefined;
+        return uri.scheme === VIEW_SCHEME || uri.scheme === RAW_SCHEME ? uri.with({ scheme: 'file' }) : undefined;
     }
-    function yerelYol(uri) {
-        return yerelUri(uri).fsPath;
+    function localPath(uri) {
+        return localUri(uri).fsPath;
     }
 
-    // kodlanacakMi diskteki dosya görünümden kaydedilince kodlu yazılır mı: dosya kodluysa ya
+    // shouldEncode diskteki dosya görünümden kaydedilince kodlu yazılır mı: dosya kodluysa ya
     // da kodlanmayı bekliyorsa (ya da henüz yoksa: görünüm yalnızca kodlu dosyalar için açılır).
-    function kodlanacakMi(yol, disk) {
-        return !disk || kodluBicim.kodluMu(disk) || bekliyor(yol);
+    function shouldEncode(filePath, disk) {
+        return !disk || codedFormat.isCoded(disk) || isPending(filePath);
     }
 
-    // kodluDosyaMi dosya görünümle açılmalı mı (kodlu ya da kodlanmayı bekliyor)?
-    async function kodluDosyaMi(yol) {
-        if (bekliyor(yol)) {
+    // isCodedFile dosya görünümle açılmalı mı (kodlu ya da kodlanmayı bekliyor)?
+    async function isCodedFile(filePath) {
+        if (isPending(filePath)) {
             return true;
         }
-        let tutamak;
+        let handle;
         try {
-            tutamak = await fs.promises.open(yol, 'r');
+            handle = await fs.promises.open(filePath, 'r');
             // Başlık (BOM ve CRLF ile 19 bayt) ilk 64 baytın içindedir.
-            const bas = Buffer.alloc(64);
-            const { bytesRead } = await tutamak.read(bas, 0, bas.length, 0);
-            return kodluBicim.kodluMu(bas.subarray(0, bytesRead));
+            const head = Buffer.alloc(64);
+            const { bytesRead } = await handle.read(head, 0, head.length, 0);
+            return codedFormat.isCoded(head.subarray(0, bytesRead));
         } catch (e) {
             return false;
         } finally {
-            if (tutamak) {
-                await tutamak.close();
+            if (handle) {
+                await handle.close();
             }
         }
     }
 
-    // yorumlayici çeviri için yorumlayıcıyı verir; kısıtlı kipte hiçbir şey çalıştırılmaz.
-    function yorumlayici(yol) {
+    // interpreter çeviri için yorumlayıcıyı verir; kısıtlı kipte hiçbir şey çalıştırılmaz.
+    function interpreter(filePath) {
         if (!vscode.workspace.isTrusted) {
-            return { hata: 'Kısıtlı kipte TR yorumlayıcısı çalıştırılmaz (Çalışma Alanı Güveni).' };
+            return { error: 'Kısıtlı kipte TR yorumlayıcısı çalıştırılmaz (Çalışma Alanı Güveni).' };
         }
-        return g.yorumlayiciyiBul(vscode.Uri.file(yol)) || { hata: 'TR yorumlayıcısı bulunamadı.' };
+        return g.findInterpreter(vscode.Uri.file(filePath)) || { error: 'TR yorumlayıcısı bulunamadı.' };
     }
 
-    const sistem = kodluDosyaSistemi.olustur(vscode, { GORUNUM_SEMASI, HAM_SEMASI, yerelYol, gorunumOku, kayitMetni });
+    const filesystems = codedFilesystem.create(vscode, { VIEW_SCHEME, RAW_SCHEME, localPath, readView, saveText });
 
-    // gorunumOku kodlu dosyanın görünümde gösterilecek metnidir. Türkçesi üretilemezse (dosya
+    // readView kodlu dosyanın görünümde gösterilecek metnidir. Türkçesi üretilemezse (dosya
     // ayrıştırılamıyor, ör. birleştirme çakışması işaretleri; ya da yorumlayıcı yok) ham baytlar
     // gösterilir: kaydedilince olduğu gibi yazılır, hiçbir şey kaybolmaz.
-    async function gorunumOku(yol, veri) {
-        if (!kodluBicim.kodluMu(veri)) {
-            return veri;
+    async function readView(filePath, data) {
+        if (!codedFormat.isCoded(data)) {
+            return data;
         }
-        const y = yorumlayici(yol);
-        const s = y.hata ? { kod: -1, hata: y.hata } : await g.cevir(y.yol, 'göster', g.yazimDili(), veri);
-        if (s.kod === 0) {
-            unut('ham', yol);
-            return s.cikti;
+        const y = interpreter(filePath);
+        const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'göster', g.writingLanguage(), data);
+        if (s.code === 0) {
+            forget('ham', filePath);
+            return s.output;
         }
-        birKez('ham', yol, () => vscode.window.showWarningMessage(
-            `${path.basename(yol)} kodlu biçimde saklanıyor ama Türkçe görünümü açılamadı: ${kodluBicim.hataOzeti(s.hata)} ` +
+        once('ham', filePath, () => vscode.window.showWarningMessage(
+            `${path.basename(filePath)} kodlu biçimde saklanıyor ama Türkçe görünümü açılamadı: ${codedFormat.errorSummary(s.error)} ` +
             'Dosya ham (kodlu) hâliyle gösteriliyor; kaydederseniz olduğu gibi yazılır. Hatayı düzeltip kaydettikten sonra dosyayı yeniden açın.'));
-        return veri;
+        return data;
     }
 
-    // kayitMetni görünümdeki metnin diske yazılacak biçimidir: kodlanabiliyorsa kodlu,
+    // saveText görünümdeki metnin diske yazılacak biçimidir: kodlanabiliyorsa kodlu,
     // değilse metnin kendisi (kayıpsız) ve dosya kodlanmayı bekler.
-    async function kayitMetni(yol, icerik, disk) {
-        if (kodluBicim.kodluMu(icerik)) {
+    async function saveText(filePath, content, disk) {
+        if (codedFormat.isCoded(content)) {
             // Metin zaten kodlu (ham gösterimde düzenlendi): olduğu gibi yazılır.
-            await bekleyenYap(yol, false);
-            return icerik;
+            await setPending(filePath, false);
+            return content;
         }
-        if (!kodlanacakMi(yol, disk)) {
-            return icerik;
+        if (!shouldEncode(filePath, disk)) {
+            return content;
         }
-        const y = yorumlayici(yol);
-        const s = y.hata ? { kod: -1, hata: y.hata } : await g.cevir(y.yol, 'kodla', g.yazimDili(), icerik);
-        if (s.kod === 0) {
-            await bekleyenYap(yol, false);
-            unut('bozuk', yol);
-            return s.cikti;
+        const y = interpreter(filePath);
+        const s = y.error ? { code: -1, error: y.error } : await g.translate(y.filePath, 'kodla', g.writingLanguage(), content);
+        if (s.code === 0) {
+            await setPending(filePath, false);
+            forget('bozuk', filePath);
+            return s.output;
         }
-        await bekleyenYap(yol, true);
-        const ad = path.basename(yol);
-        const neden = kodluBicim.hataOzeti(s.hata);
-        birKez('bozuk', yol, () => {
-            if (s.kod === kodluBicim.CIKIS_SOZDIZIMI) {
+        await setPending(filePath, true);
+        const name = path.basename(filePath);
+        const reason = codedFormat.errorSummary(s.error);
+        once('bozuk', filePath, () => {
+            if (s.code === codedFormat.EXIT_SYNTAX) {
                 vscode.window.showInformationMessage(
-                    `${ad}: kodda sözdizimi hatası var (${neden}). Yazdıklarınız kaybolmadı: dosya şimdilik Türkçe yazımıyla kaydedildi; ` +
+                    `${name}: kodda sözdizimi hatası var (${reason}). Yazdıklarınız kaybolmadı: dosya şimdilik Türkçe yazımıyla kaydedildi; ` +
                     'sözdizimi hatası düzelince ilk kayıtta yeniden kodlu yazılacak.');
             } else {
                 vscode.window.showErrorMessage(
-                    `${ad} kodlu biçimde kaydedilemedi: ${neden} Yazdıklarınız kaybolmadı: dosya Türkçe yazımıyla kaydedildi; ` +
+                    `${name} kodlu biçimde kaydedilemedi: ${reason} Yazdıklarınız kaybolmadı: dosya Türkçe yazımıyla kaydedildi; ` +
                     'sorun giderilince ilk kayıtta yeniden kodlu yazılacak.');
             }
         });
-        return icerik;
+        return content;
     }
 
     // ---------------------------------------------------------------------------
@@ -193,155 +193,155 @@ function olustur(vscode, g) {
     // değiştirilir.
     // ---------------------------------------------------------------------------
 
-    const isleniyor = new Set();
+    const inProgress = new Set();
 
-    function kaynakAdresi(sekme) {
-        const giris = sekme.input;
-        if (!(giris instanceof vscode.TabInputText)) {
+    function sourceUri(tab) {
+        const input = tab.input;
+        if (!(input instanceof vscode.TabInputText)) {
             return undefined;
         }
-        const uri = giris.uri;
-        const uygun = uri.scheme === 'file' || (uri.scheme === HAM_SEMASI && vscode.workspace.isTrusted);
-        return uygun && path.extname(uri.fsPath).toLowerCase() === '.tr' ? uri : undefined;
+        const uri = input.uri;
+        const eligible = uri.scheme === 'file' || (uri.scheme === RAW_SCHEME && vscode.workspace.isTrusted);
+        return eligible && path.extname(uri.fsPath).toLowerCase() === '.tr' ? uri : undefined;
     }
 
-    function sekmeAcik(grup, uri) {
-        return grup.tabs.find((t) => t.input instanceof vscode.TabInputText && t.input.uri.toString() === uri.toString());
+    function findOpenTab(group, uri) {
+        return group.tabs.find((t) => t.input instanceof vscode.TabInputText && t.input.uri.toString() === uri.toString());
     }
 
-    async function sekmeyiYonlendir(sekme) {
-        const uri = kaynakAdresi(sekme);
-        if (!uri || !sekmeAcik(sekme.group, uri)) {
+    async function redirectTab(tab) {
+        const uri = sourceUri(tab);
+        if (!uri || !findOpenTab(tab.group, uri)) {
             return;
         }
-        const k = uri.toString() + '#' + sekme.group.viewColumn;
-        if (isleniyor.has(k)) {
+        const k = uri.toString() + '#' + tab.group.viewColumn;
+        if (inProgress.has(k)) {
             return;
         }
-        isleniyor.add(k);
+        inProgress.add(k);
         try {
-            const belge = vscode.workspace.textDocuments.find((b) => b.uri.toString() === uri.toString());
-            if ((belge && belge.isDirty) || !(await kodluDosyaMi(uri.fsPath))) {
+            const document = vscode.workspace.textDocuments.find((b) => b.uri.toString() === uri.toString());
+            if ((document && document.isDirty) || !(await isCodedFile(uri.fsPath))) {
                 return;
             }
-            const yerel = yerelUri(uri);
-            const guvenilir = vscode.workspace.isTrusted;
-            if (guvenilir) {
-                const y = g.yorumlayiciyiBul(yerel);
-                if (!y || y.hata) {
-                    birKez('yorumlayici', yerel.fsPath, () => g.yorumlayiciBulunamadi(
-                        `${path.basename(yerel.fsPath)} kodlu biçimde saklanıyor; Türkçe görünümü için TR yorumlayıcısı gerekir (${y ? y.hata : 'bulunamadı'}). Dosya ham hâliyle açık kaldı.`));
+            const local = localUri(uri);
+            const trusted = vscode.workspace.isTrusted;
+            if (trusted) {
+                const y = g.findInterpreter(local);
+                if (!y || y.error) {
+                    once('yorumlayici', local.fsPath, () => g.interpreterNotFound(
+                        `${path.basename(local.fsPath)} kodlu biçimde saklanıyor; Türkçe görünümü için TR yorumlayıcısı gerekir (${y ? y.error : 'bulunamadı'}). Dosya ham hâliyle açık kaldı.`));
                     return;
                 }
             }
-            await sekmeyiDegistir(sekme, uri, guvenilir ? gorunumUri(yerel) : hamUri(yerel));
-            if (!guvenilir) {
-                kisitliKipBilgisi(yerel.fsPath);
+            await replaceTab(tab, uri, trusted ? viewUri(local) : rawUri(local));
+            if (!trusted) {
+                restrictedModeNotice(local.fsPath);
             }
         } finally {
-            isleniyor.delete(k);
+            inProgress.delete(k);
         }
     }
 
-    // secimBekle düzenleyicinin açılış seçimini verir. VS Code bir dosyayı seçimle açarken
+    // waitForSelection düzenleyicinin açılış seçimini verir. VS Code bir dosyayı seçimle açarken
     // (hata bağlantısı "dosya.tr:12:5") düzenleyiciyi önce dosyanın başında gösterir, seçimi
     // hemen ardından uygular: seçim başta ise kısa bir süre seçim değişikliği beklenir.
-    function secimBekle(editor) {
+    function waitForSelection(editor) {
         const s = editor.selection;
         if (s.start.line !== 0 || s.start.character !== 0 || !s.isEmpty) {
             return Promise.resolve(s);
         }
-        return new Promise((coz) => {
-            const bitir = () => {
-                clearTimeout(zaman);
-                dinleyici.dispose();
-                coz(editor.selection);
+        return new Promise((resolve) => {
+            const finish = () => {
+                clearTimeout(timer);
+                listener.dispose();
+                resolve(editor.selection);
             };
-            const dinleyici = vscode.window.onDidChangeTextEditorSelection((e) => {
+            const listener = vscode.window.onDidChangeTextEditorSelection((e) => {
                 if (e.textEditor === editor) {
-                    bitir();
+                    finish();
                 }
             });
-            const zaman = setTimeout(bitir, 150);
+            const timer = setTimeout(finish, 150);
         });
     }
 
-    // sekmeyiDegistir hedefi aynı grupta (önizleme durumu ve seçim korunarak) açar, eski sekmeyi
+    // replaceTab hedefi aynı grupta (önizleme durumu ve seçim korunarak) açar, eski sekmeyi
     // kapatır. Eski belge kirli değildir; kapatmak hiçbir şey kaybettirmez.
-    async function sekmeyiDegistir(sekme, uri, hedef) {
-        const grup = sekme.group;
-        const editor = vscode.window.visibleTextEditors.find((e) => e.document.uri.toString() === uri.toString() && e.viewColumn === grup.viewColumn);
-        await vscode.window.showTextDocument(hedef, {
-            viewColumn: grup.viewColumn,
-            preview: sekme.isPreview,
-            preserveFocus: !(sekme.isActive && grup.isActive),
-            selection: editor ? await secimBekle(editor) : undefined
+    async function replaceTab(tab, uri, target) {
+        const group = tab.group;
+        const editor = vscode.window.visibleTextEditors.find((e) => e.document.uri.toString() === uri.toString() && e.viewColumn === group.viewColumn);
+        await vscode.window.showTextDocument(target, {
+            viewColumn: group.viewColumn,
+            preview: tab.isPreview,
+            preserveFocus: !(tab.isActive && group.isActive),
+            selection: editor ? await waitForSelection(editor) : undefined
         });
-        const eski = sekmeAcik(grup, uri);
-        if (eski) {
+        const oldTab = findOpenTab(group, uri);
+        if (oldTab) {
             try {
-                await vscode.window.tabGroups.close(eski, true);
+                await vscode.window.tabGroups.close(oldTab, true);
             } catch (e) {
                 // sekme bu arada kapanmış olabilir
             }
         }
     }
 
-    function kisitliKipBilgisi(yol) {
-        birKez('kisitli', yol, async () => {
-            const guven = 'Çalışma Alanına Güven';
-            const secim = await vscode.window.showInformationMessage(
-                `${path.basename(yol)} kodlu biçimde saklanıyor (dilin sözcükleri kodlarla). Kısıtlı kipte TR yorumlayıcısı çalıştırılmadığı için ` +
-                'Türkçe görünüm açılamıyor; dosya salt okunur, ham hâliyle gösteriliyor. Çalışma alanına güvenirseniz Türkçe açılır.', guven);
-            if (secim === guven) {
+    function restrictedModeNotice(filePath) {
+        once('kisitli', filePath, async () => {
+            const trustLabel = 'Çalışma Alanına Güven';
+            const choice = await vscode.window.showInformationMessage(
+                `${path.basename(filePath)} kodlu biçimde saklanıyor (dilin sözcükleri kodlarla). Kısıtlı kipte TR yorumlayıcısı çalıştırılmadığı için ` +
+                'Türkçe görünüm açılamıyor; dosya salt okunur, ham hâliyle gösteriliyor. Çalışma alanına güvenirseniz Türkçe açılır.', trustLabel);
+            if (choice === trustLabel) {
                 vscode.commands.executeCommand('workbench.trust.manage');
             }
         });
     }
 
-    function tumSekmeler() {
-        return vscode.window.tabGroups.all.flatMap((grup) => grup.tabs);
+    function allTabs() {
+        return vscode.window.tabGroups.all.flatMap((group) => group.tabs);
     }
 
-    function hepsiniYonlendir() {
-        return Promise.all(tumSekmeler().map(sekmeyiYonlendir));
+    function redirectAll() {
+        return Promise.all(allTabs().map(redirectTab));
     }
 
-    // hamAc etkin .tr dosyasını salt okunur ham (kodlu) hâliyle yanda açar.
-    async function hamAc() {
+    // openRaw etkin .tr dosyasını salt okunur ham (kodlu) hâliyle yanda açar.
+    async function openRaw() {
         const editor = vscode.window.activeTextEditor;
-        const yerel = editor ? yerelUri(editor.document.uri) : undefined;
-        if (!yerel || path.extname(yerel.fsPath).toLowerCase() !== '.tr') {
+        const local = editor ? localUri(editor.document.uri) : undefined;
+        if (!local || path.extname(local.fsPath).toLowerCase() !== '.tr') {
             vscode.window.showErrorMessage('Kodlu hâlini göstermek için bir .tr dosyası açın.');
             return;
         }
-        await vscode.window.showTextDocument(hamUri(yerel), { viewColumn: vscode.ViewColumn.Beside, preview: false });
+        await vscode.window.showTextDocument(rawUri(local), { viewColumn: vscode.ViewColumn.Beside, preview: false });
     }
 
     // ---------------------------------------------------------------------------
-    // Hata ayıklama: program diskteki dosyadır; "gorunumAdresi" görünümün adresidir. 'tr dap'
+    // Hata ayıklama: program diskteki dosyadır; "viewURI" görünümün adresidir. 'tr dap'
     // çağrı yığınını bu adresle bildirir, kesme noktaları bu adresle gelir; satırlar görünümün
     // satırlarıdır (başlık sayılmaz, 17.5).
     // ---------------------------------------------------------------------------
 
-    // acikGorunum bir dosyanın açık Türkçe görünüm belgesidir (yoksa undefined).
-    function acikGorunum(uri) {
-        const yerel = yerelUri(uri);
-        return yerel && vscode.workspace.textDocuments.find((b) => b.uri.scheme === GORUNUM_SEMASI && anahtar(b.uri.fsPath) === anahtar(yerel.fsPath));
+    // openView bir dosyanın açık Türkçe görünüm belgesidir (yoksa undefined).
+    function openView(uri) {
+        const local = localUri(uri);
+        return local && vscode.workspace.textDocuments.find((b) => b.uri.scheme === VIEW_SCHEME && key(b.uri.fsPath) === key(local.fsPath));
     }
 
-    // gorunumAdresiyle belge Türkçe görünümse başlatma ayarına görünümün adresini ekler.
-    function gorunumAdresiyle(y, belge) {
-        if (belge.uri.scheme === GORUNUM_SEMASI && !y.gorunumAdresi) {
-            y.gorunumAdresi = belge.uri.toString();
+    // withViewURI belge Türkçe görünümse başlatma ayarına görünümün adresini ekler.
+    function withViewURI(y, document) {
+        if (document.uri.scheme === VIEW_SCHEME && !y.viewURI) {
+            y.viewURI = document.uri.toString();
         }
         return y;
     }
 
-    // DOSYA_DEGISKENLERI VS Code'un etkin dosyadan çözdüğü değişkenlerdir. VS Code bunları
+    // FILE_VARIABLES VS Code'un etkin dosyadan çözdüğü değişkenlerdir. VS Code bunları
     // yalnızca diskteki dosyalarda çözer; görünüm etkinse burada dosyanın kendisinden çözülür
     // (launch.json'daki "program": "${file}" görünümde de çalışsın).
-    const DOSYA_DEGISKENLERI = {
+    const FILE_VARIABLES = {
         file: (p) => p,
         fileDirname: (p) => path.dirname(p),
         fileBasename: (p) => path.basename(p),
@@ -349,62 +349,62 @@ function olustur(vscode, g) {
         fileExtname: (p) => path.extname(p)
     };
 
-    function dosyaDegiskenleriniCoz(y, belge) {
-        if (belge.uri.scheme !== GORUNUM_SEMASI) {
+    function resolveFileVariables(y, document) {
+        if (document.uri.scheme !== VIEW_SCHEME) {
             return y;
         }
-        const dosya = yerelYol(belge.uri);
-        const coz = (d) => (typeof d === 'string'
-            ? d.replace(/\$\{(\w+)\}/g, (tum, ad) => (DOSYA_DEGISKENLERI[ad] ? DOSYA_DEGISKENLERI[ad](dosya) : tum))
+        const file = localPath(document.uri);
+        const resolve = (d) => (typeof d === 'string'
+            ? d.replace(/\$\{(\w+)\}/g, (all, name) => (FILE_VARIABLES[name] ? FILE_VARIABLES[name](file) : all))
             : d);
-        const sonuc = Object.assign({}, y, { program: coz(y.program), cwd: coz(y.cwd) });
+        const result = Object.assign({}, y, { program: resolve(y.program), cwd: resolve(y.cwd) });
         if (Array.isArray(y.args)) {
-            sonuc.args = y.args.map(coz);
+            result.args = y.args.map(resolve);
         }
-        return typeof sonuc.program === 'string' && anahtar(sonuc.program) === anahtar(dosya) ? gorunumAdresiyle(sonuc, belge) : sonuc;
+        return typeof result.program === 'string' && key(result.program) === key(file) ? withViewURI(result, document) : result;
     }
 
-    // programinGorunumu başlatma ayarındaki program kodlu bir dosyaysa (ya da kodlanmayı
+    // programView başlatma ayarındaki program kodlu bir dosyaysa (ya da kodlanmayı
     // bekliyorsa) görünümün adresini ekler: program durunca satır görünümde işaretlenir.
-    async function programinGorunumu(y) {
-        if (y && !y.gorunumAdresi && typeof y.program === 'string' && y.program && await kodluDosyaMi(y.program)) {
-            y.gorunumAdresi = gorunumUri(vscode.Uri.file(y.program)).toString();
+    async function programView(y) {
+        if (y && !y.viewURI && typeof y.program === 'string' && y.program && await isCodedFile(y.program)) {
+            y.viewURI = viewUri(vscode.Uri.file(y.program)).toString();
         }
         return y;
     }
 
-    function kur(context) {
+    function setup(context) {
         context.subscriptions.push(
-            vscode.workspace.registerFileSystemProvider(GORUNUM_SEMASI, sistem.gorunum, { isCaseSensitive: !BUYUK_KUCUK_DUYARSIZ }),
-            vscode.workspace.registerFileSystemProvider(HAM_SEMASI, sistem.ham, { isCaseSensitive: !BUYUK_KUCUK_DUYARSIZ, isReadonly: true }),
+            vscode.workspace.registerFileSystemProvider(VIEW_SCHEME, filesystems.view, { isCaseSensitive: !CASE_INSENSITIVE }),
+            vscode.workspace.registerFileSystemProvider(RAW_SCHEME, filesystems.raw, { isCaseSensitive: !CASE_INSENSITIVE, isReadonly: true }),
             // Görünen düzenleyiciler hemen (seçimleriyle). Yeni sekmeler kısa bir süre sonra:
             // VS Code sekmeyi düzenleyicisinden ve seçiminden önce bildirir; görünen sekmeyi
             // o arada düzenleyiciler olayı yönlendirmiş olur, bu yalnızca arka plandakiler içindir.
             vscode.window.tabGroups.onDidChangeTabs((e) => {
-                for (const sekme of e.opened) {
-                    setTimeout(() => sekmeyiYonlendir(sekme), 150);
+                for (const tab of e.opened) {
+                    setTimeout(() => redirectTab(tab), 150);
                 }
             }),
-            vscode.window.onDidChangeVisibleTextEditors((editorler) => {
-                for (const editor of editorler) {
-                    const grup = vscode.window.tabGroups.all.find((g2) => g2.viewColumn === editor.viewColumn);
-                    const sekme = grup && sekmeAcik(grup, editor.document.uri);
-                    if (sekme) {
-                        sekmeyiYonlendir(sekme);
+            vscode.window.onDidChangeVisibleTextEditors((editors) => {
+                for (const editor of editors) {
+                    const group = vscode.window.tabGroups.all.find((g2) => g2.viewColumn === editor.viewColumn);
+                    const tab = group && findOpenTab(group, editor.document.uri);
+                    if (tab) {
+                        redirectTab(tab);
                     }
                 }
             }),
-            vscode.workspace.onDidGrantWorkspaceTrust(hepsiniYonlendir),
-            vscode.commands.registerCommand('tr.kodluHaliniGoster', hamAc)
+            vscode.workspace.onDidGrantWorkspaceTrust(redirectAll),
+            vscode.commands.registerCommand('tr.kodluHaliniGoster', openRaw)
         );
-        return hepsiniYonlendir();
+        return redirectAll();
     }
 
     return {
-        GORUNUM_SEMASI, HAM_SEMASI, kur, gorunumUri, yerelUri, kodluDosyaMi, acikGorunum,
-        gorunumAdresiyle, dosyaDegiskenleriniCoz, programinGorunumu,
-        gorunum: sistem.gorunum, ham: sistem.ham
+        VIEW_SCHEME, RAW_SCHEME, setup, viewUri, localUri, isCodedFile, openView,
+        withViewURI, resolveFileVariables, programView,
+        view: filesystems.view, raw: filesystems.raw
     };
 }
 
-module.exports = { olustur, GORUNUM_SEMASI, HAM_SEMASI, BEKLEYEN_ANAHTARI };
+module.exports = { create, VIEW_SCHEME, RAW_SCHEME, PENDING_KEY };

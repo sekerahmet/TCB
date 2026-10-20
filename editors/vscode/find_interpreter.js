@@ -1,5 +1,5 @@
 // Yorumlayıcıyı (tr.exe) bulma kuralı. vscode modülüne bağlı değildir; böylece kural Node ile
-// ayrıca sınanır (test/yorumlayici_bul_test.js).
+// ayrıca sınanır (test/find_interpreter_test.js).
 //
 // Sıra:
 //   1. 'tr.yorumlayiciYolu' ayarı (kapsamı "machine": yalnızca kullanıcı ayarından okunur, bir
@@ -14,59 +14,59 @@
 
 const path = require('path');
 
-const BIN_KLASORU = 'bin';
+const BIN_FOLDER = 'bin';
 
-function yorumlayiciAdi(platform) {
+function interpreterName(platform) {
     return platform === 'win32' ? 'tr.exe' : 'tr';
 }
 
-// yorumlayiciyiBul yorumlayıcının yolunu bulur.
-//   g.ayar        'tr.yorumlayiciYolu' ayarının değeri ('' ya da undefined: ayar yok)
-//   g.klasor      dosyanın çalışma alanı klasörünün yolu (klasörsüz pencerede undefined)
-//   g.guvenilir   çalışma alanı güvenilir mi
-//   g.dosyaVarMi  yol -> bool
-//   g.pathDegeri  PATH ortam değişkeni
+// findInterpreter yorumlayıcının yolunu bulur.
+//   g.setting     'tr.yorumlayiciYolu' ayarının değeri ('' ya da undefined: ayar yok)
+//   g.folder      dosyanın çalışma alanı klasörünün yolu (klasörsüz pencerede undefined)
+//   g.trusted     çalışma alanı güvenilir mi
+//   g.fileExists  filePath -> bool
+//   g.pathValue   PATH ortam değişkeni
 //   g.platform    process.platform
-// Döner: { yol } | { hata } | undefined (bulunamadı).
-function yorumlayiciyiBul(g) {
+// Döner: { filePath } | { error } | undefined (bulunamadı).
+function findInterpreter(g) {
     const platform = g.platform || process.platform;
-    const yolMod = platform === 'win32' ? path.win32 : path.posix;
-    const ad = yorumlayiciAdi(platform);
-    const ayar = (g.ayar || '').trim();
+    const pathMod = platform === 'win32' ? path.win32 : path.posix;
+    const name = interpreterName(platform);
+    const setting = (g.setting || '').trim();
 
-    if (ayar) {
-        let yol = ayar;
-        if (!yolMod.isAbsolute(yol)) {
-            if (!g.klasor || !g.guvenilir) {
-                return { hata: `'tr.yorumlayiciYolu' ayarı göreli bir yol (${ayar}); göreli yol yalnızca güvenilen bir çalışma alanı klasöründe kullanılabilir. Yorumlayıcının tam yolunu yazın.` };
+    if (setting) {
+        let filePath = setting;
+        if (!pathMod.isAbsolute(filePath)) {
+            if (!g.folder || !g.trusted) {
+                return { error: `'tr.yorumlayiciYolu' ayarı göreli bir yol (${setting}); göreli yol yalnızca güvenilen bir çalışma alanı klasöründe kullanılabilir. Yorumlayıcının tam yolunu yazın.` };
             }
-            yol = yolMod.resolve(g.klasor, yol);
+            filePath = pathMod.resolve(g.folder, filePath);
         }
-        if (g.dosyaVarMi(yol)) {
-            return { yol };
+        if (g.fileExists(filePath)) {
+            return { filePath };
         }
-        return { hata: `'tr.yorumlayiciYolu' ayarında belirtilen yorumlayıcı bulunamadı: ${yol}` };
+        return { error: `'tr.yorumlayiciYolu' ayarında belirtilen yorumlayıcı bulunamadı: ${filePath}` };
     }
 
-    if (g.klasor && g.guvenilir) {
-        for (const aday of [yolMod.join(g.klasor, BIN_KLASORU, ad), yolMod.join(g.klasor, ad)]) {
-            if (g.dosyaVarMi(aday)) {
-                return { yol: aday };
+    if (g.folder && g.trusted) {
+        for (const candidate of [pathMod.join(g.folder, BIN_FOLDER, name), pathMod.join(g.folder, name)]) {
+            if (g.fileExists(candidate)) {
+                return { filePath: candidate };
             }
         }
     }
 
-    const ayirici = platform === 'win32' ? ';' : ':';
-    for (const dizin of (g.pathDegeri || '').split(ayirici).filter(Boolean)) {
-        if (platform !== 'win32' && (dizin === '/bin' || dizin === '/usr/bin')) {
+    const separator = platform === 'win32' ? ';' : ':';
+    for (const dir of (g.pathValue || '').split(separator).filter(Boolean)) {
+        if (platform !== 'win32' && (dir === '/bin' || dir === '/usr/bin')) {
             continue;
         }
-        const aday = yolMod.join(dizin, ad);
-        if (g.dosyaVarMi(aday)) {
-            return { yol: aday };
+        const candidate = pathMod.join(dir, name);
+        if (g.fileExists(candidate)) {
+            return { filePath: candidate };
         }
     }
     return undefined;
 }
 
-module.exports = { yorumlayiciyiBul, yorumlayiciAdi, BIN_KLASORU };
+module.exports = { findInterpreter, interpreterName, BIN_FOLDER };

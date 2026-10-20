@@ -1,211 +1,211 @@
-// İzleme Masası web görünümü betiği (extension.js içindeki izlemeMasasiHtml tarafından yüklenir).
+// İzleme Masası web görünümü betiği (extension.js içindeki watchPanelHtml tarafından yüklenir).
 const vscode = acquireVsCodeApi();
 // Paneldeki beklenmeyen hatalar sessizce kaybolmasın: eklentiye bildirilir.
 window.addEventListener('error', (e) => vscode.postMessage({ tur: 'panelHatasi', mesaj: String(e.message) + ' (' + e.lineno + ':' + e.colno + ')' }));
-const IKONLAR = { tablo: '▦', liste: '☰', sozluk: '{}', yapi: '◆', tensor: '▣', sayi: '#', metin: 'Aa', mantik: '◐', yok: '∅', diger: '•' };
-const TUR_ADI = { tablo: 'Tablo', liste: 'Liste', sozluk: 'Sözlük', yapi: 'Yapı', tensor: 'Tensör', sayi: 'Sayı', metin: 'Metin', mantik: 'Mantık', yok: 'Yok', diger: 'Değer' };
-const sayiMi = (x) => x !== '' && x !== null && !isNaN(Number(x));
-const el = (tag, metin, sinif) => { const e = document.createElement(tag); if (metin !== undefined) e.textContent = metin; if (sinif) e.className = sinif; return e; };
+const ICONS = { tablo: '▦', liste: '☰', sozluk: '{}', yapi: '◆', tensor: '▣', sayi: '#', metin: 'Aa', mantik: '◐', yok: '∅', diger: '•' };
+const KIND_NAMES = { tablo: 'Tablo', liste: 'Liste', sozluk: 'Sözlük', yapi: 'Yapı', tensor: 'Tensör', sayi: 'Sayı', metin: 'Metin', mantik: 'Mantık', yok: 'Yok', diger: 'Değer' };
+const isNumber = (x) => x !== '' && x !== null && !isNaN(Number(x));
+const el = (tag, text, cssClass) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cssClass) e.className = cssClass; return e; };
 
 // Durum: değişkenler, açık sekmeler (her biri ayrı tablo), etkin sekme ve sekme başına arama/sıralama.
-let durum = null, oncekiDegerler = {}, oturumBitti = false, duraklatildi = false;
-// durusSayisi bu oturumdaki duruşları sayar: Devam aynı kesme noktasında yeniden durduğunda
+let state = null, previousValues = {}, sessionEnded = false, paused = false;
+// stopCount bu oturumdaki duruşları sayar: Devam aynı kesme noktasında yeniden durduğunda
 // (döngü) konum metni aynı kalır; sayaç ve kısa vurgu programın ilerlediğini gösterir.
-let durusSayisi = 0;
-function dugmeleriAyarla() {
+let stopCount = 0;
+function updateButtons() {
   document.querySelectorAll('#yonlendirme button').forEach((b) => {
     // Durdur her zaman (oturum sürdükçe) kullanılabilir; adım düğmeleri yalnızca program duraklatılmışken.
-    b.disabled = oturumBitti || (b.dataset.komut !== 'stop' && !duraklatildi);
+    b.disabled = sessionEnded || (b.dataset.komut !== 'stop' && !paused);
   });
 }
-function dugmeyeBasildi(b) {
+function buttonPressed(b) {
   if (b.disabled) return;
   if (b.dataset.komut !== 'stop') {
-    duraklatildi = false;
+    paused = false;
     document.getElementById('neden').textContent = 'Çalışıyor…';
   }
-  dugmeleriAyarla();
+  updateButtons();
   vscode.postMessage({ tur: 'komut', komut: b.dataset.komut });
 }
 document.querySelectorAll('#yonlendirme button').forEach((b) => {
   // Fare düğmesi basıldığı anda işlenir (click, basma ile bırakma aynı öğede olmazsa hiç
   // gelmez: panel o anda odak alırken ya da düzen kayarken tıklama kaybolurdu). Klavyeyle
   // (Enter/Boşluk) gelen click'in detail'i 0'dır; fareyle gelen click yok sayılır.
-  b.addEventListener('pointerdown', (e) => { if (e.button === 0) dugmeyeBasildi(b); });
-  b.addEventListener('click', (e) => { if (e.detail === 0) dugmeyeBasildi(b); });
+  b.addEventListener('pointerdown', (e) => { if (e.button === 0) buttonPressed(b); });
+  b.addEventListener('click', (e) => { if (e.detail === 0) buttonPressed(b); });
 });
-const sekmeler = [];          // { ad, tur, veri, hata, arama, sirala }
-let etkin = null;
+const tabs = [];          // { ad, tur, veri, hata, arama, sirala }
+let activeTab = null;
 
-window.addEventListener('message', (olay) => {
-  const m = olay.data;
+window.addEventListener('message', (event) => {
+  const m = event.data;
   if (m.tur === 'durum') {
-    if (oturumBitti) durusSayisi = 0;
-    durusSayisi++;
-    durum = m.veri; oturumBitti = false; duraklatildi = true;
-    const baslik = document.querySelector('.baslik');
-    baslik.classList.remove('yeni'); void baslik.offsetWidth; baslik.classList.add('yeni');
-    cizDegiskenler(); dugmeleriAyarla();
+    if (sessionEnded) stopCount = 0;
+    stopCount++;
+    state = m.veri; sessionEnded = false; paused = true;
+    const header = document.querySelector('.baslik');
+    header.classList.remove('yeni'); void header.offsetWidth; header.classList.add('yeni');
+    renderVariables(); updateButtons();
     // Açık sekmelerin içeriğini yeni adımın değerleriyle yenile
-    sekmeler.forEach((s) => vscode.postMessage({ tur: 'tablo', ifade: s.ad }));
+    tabs.forEach((s) => vscode.postMessage({ tur: 'tablo', ifade: s.ad }));
   } else if (m.tur === 'tablo') {
-    const s = sekmeler.find((x) => x.ad === m.veri.baslik);
-    if (s) { s.veri = m.veri; s.hata = ''; if (s.ad === etkin) cizPencere(); }
+    const s = tabs.find((x) => x.ad === m.veri.baslik);
+    if (s) { s.veri = m.veri; s.error = ''; if (s.ad === activeTab) renderPane(); }
   } else if (m.tur === 'tabloHata') {
-    const s = sekmeler.find((x) => x.ad === m.ifade);
-    if (s) { s.hata = m.mesaj; if (s.ad === etkin) cizPencere(); }
+    const s = tabs.find((x) => x.ad === m.ifade);
+    if (s) { s.error = m.mesaj; if (s.ad === activeTab) renderPane(); }
   } else if (m.tur === 'hata') {
     document.getElementById('neden').textContent = m.mesaj;
   } else if (m.tur === 'bitti') {
-    oturumBitti = true; duraklatildi = false; dugmeleriAyarla();
+    sessionEnded = true; paused = false; updateButtons();
     document.getElementById('konum').textContent = 'Program bitti — tablolar son duruştaki değerleri gösteriyor';
     document.getElementById('neden').textContent = '';
   }
 });
 
-// tabloAc: tabloyu alt penceredeki sekmesinde açar (yoksa yeni sekme ekler) ve etkin yapar.
-function tabloAc(d) {
-  let s = sekmeler.find((x) => x.ad === d.ad);
+// openTable: tabloyu alt penceredeki sekmesinde açar (yoksa yeni sekme ekler) ve etkin yapar.
+function openTable(d) {
+  let s = tabs.find((x) => x.ad === d.ad);
   if (!s) {
-    s = { ad: d.ad, tur: d.tur || 'tablo', veri: null, hata: '', arama: '', sirala: { sutun: -1, azalan: false } };
-    sekmeler.push(s);
-    if (oturumBitti) s.hata = 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).';
+    s = { ad: d.ad, tur: d.tur || 'tablo', veri: null, error: '', search: '', sortState: { column: -1, descending: false } };
+    tabs.push(s);
+    if (sessionEnded) s.error = 'Hata ayıklama oturumu bitti; tabloyu görmek için programı yeniden başlatın (F5).';
     else vscode.postMessage({ tur: 'tablo', ifade: d.ad });
   }
-  etkin = s.ad;
-  cizPencere(); cizDegiskenler();
+  activeTab = s.ad;
+  renderPane(); renderVariables();
 }
 
-function sekmeKapat(ad) {
-  const i = sekmeler.findIndex((x) => x.ad === ad);
+function closeTab(name) {
+  const i = tabs.findIndex((x) => x.ad === name);
   if (i < 0) return;
-  sekmeler.splice(i, 1);
-  if (etkin === ad) etkin = sekmeler.length ? sekmeler[Math.min(i, sekmeler.length - 1)].ad : null;
-  cizPencere(); cizDegiskenler();
+  tabs.splice(i, 1);
+  if (activeTab === name) activeTab = tabs.length ? tabs[Math.min(i, tabs.length - 1)].ad : null;
+  renderPane(); renderVariables();
 }
 
-function cizDegiskenler() {
-  if (!durum) return;
-  if (!oturumBitti) {
-    const konum = durum.dosya + ' · Satır ' + durum.satir + ' · ' + durum.cerceve;
-    const neden = durusSayisi + '. duruş' + (durum.neden ? ' · ' + durum.neden : '');
-    document.getElementById('konum').textContent = konum;
-    document.getElementById('konum').title = konum;
-    document.getElementById('neden').textContent = neden;
-    document.getElementById('neden').title = neden;
+function renderVariables() {
+  if (!state) return;
+  if (!sessionEnded) {
+    const location = state.dosya + ' · Satır ' + state.satir + ' · ' + state.cerceve;
+    const reason = stopCount + '. duruş' + (state.neden ? ' · ' + state.neden : '');
+    document.getElementById('konum').textContent = location;
+    document.getElementById('konum').title = location;
+    document.getElementById('neden').textContent = reason;
+    document.getElementById('neden').title = reason;
   }
   const q = document.getElementById('degiskenAra').value.toLocaleLowerCase('tr');
-  const govde = document.getElementById('degiskenler');
-  govde.replaceChildren();
-  const yeniDegerler = {};
-  durum.degiskenler.forEach((d) => { yeniDegerler[d.kapsam + ':' + d.ad] = d.deger; });
-  const gorunen = durum.degiskenler.filter((d) => !q || d.ad.toLocaleLowerCase('tr').includes(q));
-  document.getElementById('degiskenSayac').textContent = gorunen.length + ' / ' + durum.degiskenler.length + ' değişken';
-  if (!gorunen.length) {
-    const tr = el('tr'); const td = el('td', 'Değişken yok', 'bos'); td.colSpan = 5; tr.appendChild(td); govde.appendChild(tr);
+  const body = document.getElementById('degiskenler');
+  body.replaceChildren();
+  const newValues = {};
+  state.degiskenler.forEach((d) => { newValues[d.kapsam + ':' + d.ad] = d.deger; });
+  const visible = state.degiskenler.filter((d) => !q || d.ad.toLocaleLowerCase('tr').includes(q));
+  document.getElementById('degiskenSayac').textContent = visible.length + ' / ' + state.degiskenler.length + ' değişken';
+  if (!visible.length) {
+    const tr = el('tr'); const td = el('td', 'Değişken yok', 'bos'); td.colSpan = 5; tr.appendChild(td); body.appendChild(tr);
   }
-  gorunen.forEach((d) => {
-    const anahtar = d.kapsam + ':' + d.ad;
-    const tur = d.tur || 'diger';
-    const acik = sekmeler.some((s) => s.ad === d.ad);
+  visible.forEach((d) => {
+    const key = d.kapsam + ':' + d.ad;
+    const kind = d.tur || 'diger';
+    const isOpen = tabs.some((s) => s.ad === d.ad);
     const tr = el('tr');
-    if (acik) tr.classList.add('acik');
-    if (anahtar in oncekiDegerler && oncekiDegerler[anahtar] !== d.deger) tr.classList.add('degisti');
-    const adHucre = el('td', undefined, 'ad'); adHucre.title = d.ad + ' (' + d.tip + ')';
-    const ikon = el('span', IKONLAR[tur] || '•', 'ikon ' + tur); ikon.title = TUR_ADI[tur] || '';
-    adHucre.appendChild(ikon);
-    let degerHucre;
+    if (isOpen) tr.classList.add('acik');
+    if (key in previousValues && previousValues[key] !== d.deger) tr.classList.add('degisti');
+    const nameCell = el('td', undefined, 'ad'); nameCell.title = d.ad + ' (' + d.tip + ')';
+    const icon = el('span', ICONS[kind] || '•', 'ikon ' + kind); icon.title = KIND_NAMES[kind] || '';
+    nameCell.appendChild(icon);
+    let valueCell;
     if (d.tablo) {
       // <a href> tıklamalarını VS Code'un web görünümü yakalar; link görünümlü span kullanılır.
-      const adLink = el('span', d.ad, 'link'); adLink.setAttribute('role', 'button'); adLink.tabIndex = 0;
-      adLink.addEventListener('click', (e) => { e.stopPropagation(); tabloAc(d); });
-      adLink.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tabloAc(d); } });
-      adHucre.appendChild(adLink);
-      degerHucre = el('td', undefined, 'deger');
+      const nameLink = el('span', d.ad, 'link'); nameLink.setAttribute('role', 'button'); nameLink.tabIndex = 0;
+      nameLink.addEventListener('click', (e) => { e.stopPropagation(); openTable(d); });
+      nameLink.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTable(d); } });
+      nameCell.appendChild(nameLink);
+      valueCell = el('td', undefined, 'deger');
       // Küçük değerler (ör. 1-8 elemanlı tensör) satır içinde de görünür; tablo bağlantısı yanında kalır.
-      if (d.ozet) { degerHucre.appendChild(el('span', d.ozet + '  ', 'ozet')); degerHucre.title = d.ozet; }
-      const link = el('span', acik ? '● Açık — sekmeye git' : (d.ozet ? '▸ Tablo' : '▸ Tabloyu aç'), 'link'); link.setAttribute('role', 'button'); link.tabIndex = 0;
+      if (d.ozet) { valueCell.appendChild(el('span', d.ozet + '  ', 'ozet')); valueCell.title = d.ozet; }
+      const link = el('span', isOpen ? '● Açık — sekmeye git' : (d.ozet ? '▸ Tablo' : '▸ Tabloyu aç'), 'link'); link.setAttribute('role', 'button'); link.tabIndex = 0;
       link.title = d.tip;
-      link.addEventListener('click', (e) => { e.stopPropagation(); tabloAc(d); });
-      link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tabloAc(d); } });
-      degerHucre.appendChild(link);
+      link.addEventListener('click', (e) => { e.stopPropagation(); openTable(d); });
+      link.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTable(d); } });
+      valueCell.appendChild(link);
       tr.classList.add('tablo-satiri');
       tr.title = 'Çift tıklayın: tabloyu alttaki pencerede aç';
-      tr.addEventListener('dblclick', (e) => { if (e.target.tagName !== 'INPUT') tabloAc(d); });
+      tr.addEventListener('dblclick', (e) => { if (e.target.tagName !== 'INPUT') openTable(d); });
     } else {
-      adHucre.appendChild(document.createTextNode(d.ad));
-      degerHucre = el('td', d.deger, 'deger'); degerHucre.title = d.deger;
+      nameCell.appendChild(document.createTextNode(d.ad));
+      valueCell = el('td', d.deger, 'deger'); valueCell.title = d.deger;
     }
-    const kalem = el('button', '✏️', 'kalem'); kalem.title = 'Değeri değiştir (TR ifadesi)';
-    kalem.addEventListener('click', () => duzenle(degerHucre, d));
-    const islem = el('td'); islem.appendChild(kalem);
-    tr.append(el('td', d.kapsam, 'kapsam'), adHucre, el('td', d.tip, 'tip'), degerHucre, islem);
-    govde.appendChild(tr);
+    const pencil = el('button', '✏️', 'kalem'); pencil.title = 'Değeri değiştir (TR ifadesi)';
+    pencil.addEventListener('click', () => editValue(valueCell, d));
+    const actionCell = el('td'); actionCell.appendChild(pencil);
+    tr.append(el('td', d.kapsam, 'kapsam'), nameCell, el('td', d.tip, 'tip'), valueCell, actionCell);
+    body.appendChild(tr);
   });
-  oncekiDegerler = yeniDegerler;
+  previousValues = newValues;
 }
 
-function cizPencere() {
-  const pencere = document.getElementById('pencere');
-  const ayirici = document.getElementById('ayirici');
-  const goster = sekmeler.length > 0;
-  pencere.style.display = goster ? 'flex' : 'none';
-  ayirici.style.display = goster ? 'block' : 'none';
-  if (!goster) return;
+function renderPane() {
+  const pane = document.getElementById('pencere');
+  const divider = document.getElementById('ayirici');
+  const show = tabs.length > 0;
+  pane.style.display = show ? 'flex' : 'none';
+  divider.style.display = show ? 'block' : 'none';
+  if (!show) return;
 
-  const serit = document.getElementById('sekmeler');
-  serit.replaceChildren();
-  sekmeler.forEach((s) => {
-    const sek = el('div', undefined, 'sekme' + (s.ad === etkin ? ' etkin' : ''));
-    sek.title = s.ad;
-    sek.append(el('span', IKONLAR[s.tur] || '▦', 'ikon ' + s.tur), el('span', s.ad));
-    const kapat = el('button', '✕', 'kapat'); kapat.title = 'Sekmeyi kapat';
-    kapat.addEventListener('click', (e) => { e.stopPropagation(); sekmeKapat(s.ad); });
-    sek.appendChild(kapat);
-    sek.addEventListener('click', () => { etkin = s.ad; cizPencere(); });
-    sek.addEventListener('auxclick', (e) => { if (e.button === 1) sekmeKapat(s.ad); });
-    serit.appendChild(sek);
+  const strip = document.getElementById('sekmeler');
+  strip.replaceChildren();
+  tabs.forEach((s) => {
+    const tabEl = el('div', undefined, 'sekme' + (s.ad === activeTab ? ' etkin' : ''));
+    tabEl.title = s.ad;
+    tabEl.append(el('span', ICONS[s.tur] || '▦', 'ikon ' + s.tur), el('span', s.ad));
+    const closeBtn = el('button', '✕', 'kapat'); closeBtn.title = 'Sekmeyi kapat';
+    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeTab(s.ad); });
+    tabEl.appendChild(closeBtn);
+    tabEl.addEventListener('click', () => { activeTab = s.ad; renderPane(); });
+    tabEl.addEventListener('auxclick', (e) => { if (e.button === 1) closeTab(s.ad); });
+    strip.appendChild(tabEl);
   });
-  serit.appendChild(el('span', undefined, 'bosluk'));
-  const hepsi = el('button', 'Tümünü kapat ✕'); hepsi.id = 'hepsiniKapat';
-  hepsi.addEventListener('click', () => { sekmeler.splice(0); etkin = null; cizPencere(); cizDegiskenler(); });
-  serit.appendChild(hepsi);
+  strip.appendChild(el('span', undefined, 'bosluk'));
+  const closeAll = el('button', 'Tümünü kapat ✕'); closeAll.id = 'hepsiniKapat';
+  closeAll.addEventListener('click', () => { tabs.splice(0); activeTab = null; renderPane(); renderVariables(); });
+  strip.appendChild(closeAll);
 
-  const s = sekmeler.find((x) => x.ad === etkin);
-  const ara = document.getElementById('tabloAra');
-  ara.value = s ? s.arama : '';
-  const kutu = document.getElementById('izgaraKutu');
-  kutu.replaceChildren();
-  const sayac = document.getElementById('tabloSayac');
-  if (!s) { sayac.textContent = ''; return; }
-  if (s.hata) { kutu.appendChild(el('div', 'Tablo gösterilemedi: ' + s.hata, 'bos')); sayac.textContent = ''; return; }
-  if (!s.veri) { kutu.appendChild(el('div', 'Yükleniyor…', 'bos')); sayac.textContent = ''; return; }
+  const s = tabs.find((x) => x.ad === activeTab);
+  const search = document.getElementById('tabloAra');
+  search.value = s ? s.search : '';
+  const box = document.getElementById('izgaraKutu');
+  box.replaceChildren();
+  const counter = document.getElementById('tabloSayac');
+  if (!s) { counter.textContent = ''; return; }
+  if (s.error) { box.appendChild(el('div', 'Tablo gösterilemedi: ' + s.error, 'bos')); counter.textContent = ''; return; }
+  if (!s.veri) { box.appendChild(el('div', 'Yükleniyor…', 'bos')); counter.textContent = ''; return; }
 
-  const sutunlar = ['#'].concat(s.veri.sutunlar || []);
-  const satirlar = (s.veri.satirlar || []).map((r, i) => [String(i)].concat(r));
-  const q = s.arama.toLocaleLowerCase('tr');
-  let liste = satirlar.filter((r) => !q || r.some((h) => String(h).toLocaleLowerCase('tr').includes(q)));
-  if (s.sirala.sutun >= 0) {
-    const k = s.sirala.sutun;
-    liste = liste.slice().sort((a, b) => {
-      const c = sayiMi(a[k]) && sayiMi(b[k]) ? Number(a[k]) - Number(b[k]) : String(a[k]).localeCompare(String(b[k]), 'tr');
-      return s.sirala.azalan ? -c : c;
+  const columns = ['#'].concat(s.veri.sutunlar || []);
+  const rows = (s.veri.satirlar || []).map((r, i) => [String(i)].concat(r));
+  const q = s.search.toLocaleLowerCase('tr');
+  let list = rows.filter((r) => !q || r.some((h) => String(h).toLocaleLowerCase('tr').includes(q)));
+  if (s.sortState.column >= 0) {
+    const k = s.sortState.column;
+    list = list.slice().sort((a, b) => {
+      const c = isNumber(a[k]) && isNumber(b[k]) ? Number(a[k]) - Number(b[k]) : String(a[k]).localeCompare(String(b[k]), 'tr');
+      return s.sortState.descending ? -c : c;
     });
   }
-  const t = el('table'); const thead = el('thead'); const bas = el('tr'); const govde = el('tbody');
-  sutunlar.forEach((ad, i) => {
-    const th = el('th', ad + (s.sirala.sutun === i ? (s.sirala.azalan ? ' ▼' : ' ▲') : ''));
+  const t = el('table'); const thead = el('thead'); const headerRow = el('tr'); const body = el('tbody');
+  columns.forEach((name, i) => {
+    const th = el('th', name + (s.sortState.column === i ? (s.sortState.descending ? ' ▼' : ' ▲') : ''));
     th.title = 'Sıralamak için tıklayın';
-    th.addEventListener('click', () => { s.sirala = { sutun: i, azalan: s.sirala.sutun === i ? !s.sirala.azalan : false }; cizPencere(); });
-    bas.appendChild(th);
+    th.addEventListener('click', () => { s.sortState = { column: i, descending: s.sortState.column === i ? !s.sortState.descending : false }; renderPane(); });
+    headerRow.appendChild(th);
   });
-  liste.forEach((r) => {
-    const satir = el('tr');
-    r.forEach((h) => { const td = el('td', h, sayiMi(h) ? 'sayi' : ''); td.tabIndex = -1; satir.appendChild(td); });
-    govde.appendChild(satir);
+  list.forEach((r) => {
+    const row = el('tr');
+    r.forEach((h) => { const td = el('td', h, isNumber(h) ? 'sayi' : ''); td.tabIndex = -1; row.appendChild(td); });
+    body.appendChild(row);
   });
-  thead.appendChild(bas); t.append(thead, govde); kutu.appendChild(t);
-  sayac.textContent = s.ad + ' — ' + liste.length + ' / ' + satirlar.length + ' satır · ' + (s.veri.sutunlar || []).length + ' sütun';
+  thead.appendChild(headerRow); t.append(thead, body); box.appendChild(t);
+  counter.textContent = s.ad + ' — ' + list.length + ' / ' + rows.length + ' satır · ' + (s.veri.sutunlar || []).length + ' sütun';
 }
 
 // Izgarada ok tuşlarıyla hücreden hücreye gezinme
@@ -213,41 +213,41 @@ document.getElementById('izgaraKutu').addEventListener('keydown', (e) => {
   const td = e.target.closest('td');
   if (!td) return;
   const tr = td.parentElement;
-  let hedef = null;
-  if (e.key === 'ArrowRight') hedef = td.nextElementSibling;
-  else if (e.key === 'ArrowLeft') hedef = td.previousElementSibling;
-  else if (e.key === 'ArrowDown' && tr.nextElementSibling) hedef = tr.nextElementSibling.children[td.cellIndex];
-  else if (e.key === 'ArrowUp' && tr.previousElementSibling) hedef = tr.previousElementSibling.children[td.cellIndex];
-  if (hedef) { e.preventDefault(); hedef.focus(); }
+  let target = null;
+  if (e.key === 'ArrowRight') target = td.nextElementSibling;
+  else if (e.key === 'ArrowLeft') target = td.previousElementSibling;
+  else if (e.key === 'ArrowDown' && tr.nextElementSibling) target = tr.nextElementSibling.children[td.cellIndex];
+  else if (e.key === 'ArrowUp' && tr.previousElementSibling) target = tr.previousElementSibling.children[td.cellIndex];
+  if (target) { e.preventDefault(); target.focus(); }
 });
 document.getElementById('izgaraKutu').addEventListener('click', (e) => { const td = e.target.closest('td'); if (td) td.focus(); });
 
 document.getElementById('tabloAra').addEventListener('input', (e) => {
-  const s = sekmeler.find((x) => x.ad === etkin);
-  if (s) { s.arama = e.target.value; cizPencere(); document.getElementById('tabloAra').focus(); }
+  const s = tabs.find((x) => x.ad === activeTab);
+  if (s) { s.search = e.target.value; renderPane(); document.getElementById('tabloAra').focus(); }
 });
-document.getElementById('degiskenAra').addEventListener('input', cizDegiskenler);
-dugmeleriAyarla();
+document.getElementById('degiskenAra').addEventListener('input', renderVariables);
+updateButtons();
 
 // Ayırıcı çubukla alt pencereyi boyutlandırma
 (() => {
-  const ayirici = document.getElementById('ayirici');
-  const pencere = document.getElementById('pencere');
-  let surukle = null;
-  ayirici.addEventListener('mousedown', (e) => { surukle = { y: e.clientY, h: pencere.getBoundingClientRect().height }; e.preventDefault(); });
+  const divider = document.getElementById('ayirici');
+  const pane = document.getElementById('pencere');
+  let drag = null;
+  divider.addEventListener('mousedown', (e) => { drag = { y: e.clientY, h: pane.getBoundingClientRect().height }; e.preventDefault(); });
   window.addEventListener('mousemove', (e) => {
-    if (!surukle) return;
-    const yeni = Math.max(90, Math.min(window.innerHeight - 120, surukle.h - (e.clientY - surukle.y)));
-    pencere.style.height = yeni + 'px';
+    if (!drag) return;
+    const newHeight = Math.max(90, Math.min(window.innerHeight - 120, drag.h - (e.clientY - drag.y)));
+    pane.style.height = newHeight + 'px';
   });
-  window.addEventListener('mouseup', () => { surukle = null; });
+  window.addEventListener('mouseup', () => { drag = null; });
 })();
 
-function duzenle(hucre, d) {
-  const giris = el('input'); giris.value = d.tablo ? '' : d.deger; giris.placeholder = 'Yeni değer, ör. 0.20 veya [1, 2]'; giris.style.width = '95%';
-  hucre.replaceChildren(giris); giris.focus(); giris.select();
-  giris.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && giris.value.trim() !== '') vscode.postMessage({ tur: 'degistir', ad: d.ad, ifade: giris.value });
-    if (e.key === 'Escape') cizDegiskenler();
+function editValue(cell, d) {
+  const input = el('input'); input.value = d.tablo ? '' : d.deger; input.placeholder = 'Yeni değer, ör. 0.20 veya [1, 2]'; input.style.width = '95%';
+  cell.replaceChildren(input); input.focus(); input.select();
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && input.value.trim() !== '') vscode.postMessage({ tur: 'degistir', ad: d.ad, ifade: input.value });
+    if (e.key === 'Escape') renderVariables();
   });
 }
