@@ -62,8 +62,8 @@ var skippedFiles = map[string]bool{
 }
 
 type liveName struct {
-	kod dk.Code
-	al  dk.Namespace
+	code      dk.Code
+	namespace dk.Namespace
 }
 
 // liveNames etkin dilin canlı adlarıdır (ad → kodlar; aynı ad farklı ad alanlarında olabilir).
@@ -80,8 +80,8 @@ func liveNames() map[string][]liveName {
 func isWordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' }
 
 // bareNames bir metindeki kod gibi yazılmış dil adlarını verir.
-func bareNames(s string, adlar map[string][]liveName) []string {
-	var bulunan []string
+func bareNames(s string, names map[string][]liveName) []string {
+	var found []string
 	for i := 0; i < len(s); {
 		r, n := utf8.DecodeRuneInString(s[i:])
 		if !isWordRune(r) {
@@ -97,45 +97,45 @@ func bareNames(s string, adlar map[string][]liveName) []string {
 			j += n2
 		}
 		w := s[i:j]
-		if kayitlar, ok := adlar[w]; ok && looksLikeCode(s, i, j, kayitlar) {
-			bulunan = append(bulunan, w)
+		if entries, ok := names[w]; ok && looksLikeCode(s, i, j, entries) {
+			found = append(found, w)
 		}
 		i = j
 	}
-	return bulunan
+	return found
 }
 
 // looksLikeCode s[i:j]'deki ad kod gibi mi yazılmış (bkz. dosya başı)?
-func looksLikeCode(s string, i, j int, kayitlar []liveName) bool {
+func looksLikeCode(s string, i, j int, entries []liveName) bool {
 	w := s[i:j]
-	once, _ := utf8.DecodeLastRuneInString(s[:i])
-	sonra, _ := utf8.DecodeRuneInString(s[j:])
+	before, _ := utf8.DecodeLastRuneInString(s[:i])
+	after, _ := utf8.DecodeRuneInString(s[j:])
 	if i == 0 {
-		once = 0
+		before = 0
 	}
 	if j == len(s) {
-		sonra = 0
+		after = 0
 	}
 	if strings.Contains(w, "_") {
 		return true
 	}
-	if (once == '\'' && sonra == '\'') || (once == '"' && sonra == '"') || (once == '`' && sonra == '`') {
+	if (before == '\'' && after == '\'') || (before == '"' && after == '"') || (before == '`' && after == '`') {
 		return true
 	}
-	butun := i == 0 && j == len(s) && utf8.RuneCountInString(w) > 1
-	for _, c := range kayitlar {
+	whole := i == 0 && j == len(s) && utf8.RuneCountInString(w) > 1
+	for _, c := range entries {
 		switch {
-		case butun && (c.al == dk.NamespaceGlobal || c.al == dk.NamespaceType):
+		case whole && (c.namespace == dk.NamespaceGlobal || c.namespace == dk.NamespaceType):
 			return true // metnin tamamı bir anahtar kelime, yerleşik ya da tip adı: "doğru"
-		case c.al == dk.NamespaceType:
+		case c.namespace == dk.NamespaceType:
 			return true
-		case sonra == '(':
+		case after == '(':
 			return true
-		case once == '.' && c.al == dk.NamespaceMember:
+		case before == '.' && c.namespace == dk.NamespaceMember:
 			return true
-		case sonra == ':' && c.al == dk.NamespaceParam:
+		case after == ':' && c.namespace == dk.NamespaceParam:
 			return true
-		case c.kod.IsKeyword() && strings.HasPrefix(s[j:], " {"):
+		case c.code.IsKeyword() && strings.HasPrefix(s[j:], " {"):
 			return true
 		}
 	}
@@ -143,12 +143,12 @@ func looksLikeCode(s string, i, j int, kayitlar []liveName) bool {
 }
 
 func TestNoBareNames(t *testing.T) {
-	kok := reporoot.Root()
-	adlar := liveNames()
-	kullanilanIzin := map[string]map[string]bool{}
-	var bulgular []string
+	root := reporoot.Root()
+	names := liveNames()
+	usedAllowances := map[string]map[string]bool{}
+	var findings []string
 	for _, k := range scanRoots {
-		err := filepath.WalkDir(filepath.Join(kok, k), func(yol string, d fs.DirEntry, err error) error {
+		err := filepath.WalkDir(filepath.Join(root, k), func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -158,73 +158,73 @@ func TestNoBareNames(t *testing.T) {
 				}
 				return nil
 			}
-			if !strings.HasSuffix(yol, ".go") || strings.HasSuffix(yol, "_test.go") {
+			if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 				return nil
 			}
-			goreli, _ := filepath.Rel(kok, yol)
-			goreli = filepath.ToSlash(goreli)
-			if skippedFiles[goreli] {
+			relPath, _ := filepath.Rel(root, path)
+			relPath = filepath.ToSlash(relPath)
+			if skippedFiles[relPath] {
 				return nil
 			}
-			bulgular = append(bulgular, scanFile(t, yol, goreli, adlar, kullanilanIzin)...)
+			findings = append(findings, scanFile(t, path, relPath, names, usedAllowances)...)
 			return nil
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
-	sort.Strings(bulgular)
-	for _, b := range bulgular {
+	sort.Strings(findings)
+	for _, b := range findings {
 		t.Error(b)
 	}
-	if len(bulgular) > 0 {
-		t.Logf("%d çıplak ad: adı koddan üretin (kod.Ad(kod.Xnnn)); gerçekten gerekiyorsa gerekçesiyle bareNameAllowances'ne yazın", len(bulgular))
+	if len(findings) > 0 {
+		t.Logf("%d çıplak ad: adı koddan üretin (kod.Ad(kod.Xnnn)); gerçekten gerekiyorsa gerekçesiyle bareNameAllowances'ne yazın", len(findings))
 	}
-	for dosya, izinler := range bareNameAllowances {
-		for ad := range izinler {
-			if !kullanilanIzin[dosya][ad] {
-				t.Errorf("izin listesinde kullanılmayan kayıt: %s %q; silin (liste yalnızca küçülür)", dosya, ad)
+	for file, allowed := range bareNameAllowances {
+		for name := range allowed {
+			if !usedAllowances[file][name] {
+				t.Errorf("izin listesinde kullanılmayan kayıt: %s %q; silin (liste yalnızca küçülür)", file, name)
 			}
 		}
 	}
 }
 
-func scanFile(t *testing.T, yol, goreli string, adlar map[string][]liveName, kullanilan map[string]map[string]bool) []string {
+func scanFile(t *testing.T, path, relPath string, names map[string][]liveName, used map[string]map[string]bool) []string {
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, yol, nil, parser.SkipObjectResolution)
+	f, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
 	if err != nil {
-		t.Errorf("%s: %v", goreli, err)
+		t.Errorf("%s: %v", relPath, err)
 		return nil
 	}
-	etiketler := map[*ast.BasicLit]bool{}
+	tagLits := map[*ast.BasicLit]bool{}
 	for _, im := range f.Imports {
-		etiketler[im.Path] = true
+		tagLits[im.Path] = true
 	}
 	ast.Inspect(f, func(n ast.Node) bool {
-		if fl, ok := n.(*ast.Field); ok && fl.Tag != nil {
-			etiketler[fl.Tag] = true
+		if field, ok := n.(*ast.Field); ok && field.Tag != nil {
+			tagLits[field.Tag] = true
 		}
 		return true
 	})
 	var out []string
 	ast.Inspect(f, func(n ast.Node) bool {
 		lit, ok := n.(*ast.BasicLit)
-		if !ok || lit.Kind != token.STRING || etiketler[lit] {
+		if !ok || lit.Kind != token.STRING || tagLits[lit] {
 			return true
 		}
 		s, err := strconv.Unquote(lit.Value)
 		if err != nil {
 			return true
 		}
-		for _, ad := range bareNames(s, adlar) {
-			if _, izinli := bareNameAllowances[goreli][ad]; izinli {
-				if kullanilan[goreli] == nil {
-					kullanilan[goreli] = map[string]bool{}
+		for _, name := range bareNames(s, names) {
+			if _, isAllowed := bareNameAllowances[relPath][name]; isAllowed {
+				if used[relPath] == nil {
+					used[relPath] = map[string]bool{}
 				}
-				kullanilan[goreli][ad] = true
+				used[relPath][name] = true
 				continue
 			}
-			out = append(out, goreli+":"+strconv.Itoa(fset.Position(lit.Pos()).Line)+": "+strconv.Quote(ad)+" :: "+shorten(s))
+			out = append(out, relPath+":"+strconv.Itoa(fset.Position(lit.Pos()).Line)+": "+strconv.Quote(name)+" :: "+shorten(s))
 		}
 		return true
 	})
@@ -240,8 +240,8 @@ func shorten(s string) string {
 
 // Tarayıcının kendisi: kod gibi yazılmış adları yakalar, düz yazıdaki sözcüklere dokunmaz.
 func TestBareNameScanner(t *testing.T) {
-	adlar := liveNames()
-	for metin, want := range map[string]string{
+	names := liveNames()
+	for text, want := range map[string]string{
 		"girdi() ya da girdi(istem)":            "girdi girdi",
 		"%q bir sabittir ('sabit')":             "sabit",
 		"eşit_mi başarısız":                     "eşit_mi",
@@ -254,8 +254,8 @@ func TestBareNameScanner(t *testing.T) {
 		"önce toplam alın, sonra yok sayın":     "",
 		"o":                                     "",
 	} {
-		if got := strings.Join(bareNames(metin, adlar), " "); got != want {
-			t.Errorf("%q: %q bekleniyordu, %q bulundu", metin, want, got)
+		if got := strings.Join(bareNames(text, names), " "); got != want {
+			t.Errorf("%q: %q bekleniyordu, %q bulundu", text, want, got)
 		}
 	}
 }

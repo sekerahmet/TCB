@@ -1,4 +1,4 @@
-// kod_sabitleri, sözlükteki her kod için Go'da adlı bir sabit üretir
+// codeconsts, sözlükteki her kod için Go'da adlı bir sabit üretir
 // (internal/lang/codes/codes_generated.go): codes.G100, codes.A001, codes.T503 ... Sabitin adı
 // kodun kendisidir, kullanıcıya görünen ad değildir; ad sonradan değişse de Go kodu
 // değişmez. Go kodu kodları yalnızca bu sabitlerle yazar (codes.G + 100 biçimi
@@ -33,49 +33,49 @@ import (
 
 // Depo köküne göre yollar.
 var (
-	trYolu    = filepath.Join("internal", "lang", "codes", "tr.json")
-	enYolu    = filepath.Join("internal", "lang", "codes", "en.json")
-	tanimYolu = filepath.Join("internal", "lang", "codes", "definitions.json")
-	ciktiYolu = filepath.Join("internal", "lang", "codes", "codes_generated.go")
+	trPath          = filepath.Join("internal", "lang", "codes", "tr.json")
+	enPath          = filepath.Join("internal", "lang", "codes", "en.json")
+	definitionsPath = filepath.Join("internal", "lang", "codes", "definitions.json")
+	outputPath      = filepath.Join("internal", "lang", "codes", "codes_generated.go")
 )
 
 func main() {
-	denetle := flag.Bool("denetle", false, "dosyayı yazma; güncel değilse 1 koduyla çık")
-	kok := flag.String("kok", "", "depo kökü (boşsa çalışma klasöründen yukarı doğru go.mod aranır)")
+	check := flag.Bool("denetle", false, "dosyayı yazma; güncel değilse 1 koduyla çık")
+	root := flag.String("kok", "", "depo kökü (boşsa çalışma klasöründen yukarı doğru go.mod aranır)")
 	flag.Parse()
 
-	if *kok == "" {
-		*kok = depoKoku()
+	if *root == "" {
+		*root = repoRoot()
 	}
-	yeni, err := Uret(*kok)
+	fresh, err := Generate(*root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
 		os.Exit(1)
 	}
-	yol := filepath.Join(*kok, ciktiYolu)
-	if *denetle {
-		eski, err := os.ReadFile(yol)
+	path := filepath.Join(*root, outputPath)
+	if *check {
+		old, err := os.ReadFile(path)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
 			os.Exit(1)
 		}
-		if !bytes.Equal(bytes.ReplaceAll(eski, []byte("\r\n"), []byte("\n")), yeni) {
-			fmt.Fprintf(os.Stderr, "%s güncel değil; go run ./tools/gen/codeconsts ile yeniden üretin\n", yol)
+		if !bytes.Equal(bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n")), fresh) {
+			fmt.Fprintf(os.Stderr, "%s güncel değil; go run ./tools/gen/codeconsts ile yeniden üretin\n", path)
 			os.Exit(1)
 		}
-		fmt.Printf("%s güncel\n", yol)
+		fmt.Printf("%s güncel\n", path)
 		return
 	}
-	if err := os.WriteFile(yol, yeni, 0o644); err != nil {
+	if err := os.WriteFile(path, fresh, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("%s yazıldı\n", yol)
+	fmt.Printf("%s yazıldı\n", path)
 }
 
-// depoKoku çalışma klasöründen yukarı doğru go.mod'un bulunduğu klasörü arar (go generate
+// repoRoot çalışma klasöründen yukarı doğru go.mod'un bulunduğu klasörü arar (go generate
 // internal/lang/codes içinden çalıştırır).
-func depoKoku() string {
+func repoRoot() string {
 	d, err := os.Getwd()
 	if err != nil {
 		return "."
@@ -84,50 +84,50 @@ func depoKoku() string {
 		if _, err := os.Stat(filepath.Join(d, "go.mod")); err == nil {
 			return d
 		}
-		ust := filepath.Dir(d)
-		if ust == d {
+		parent := filepath.Dir(d)
+		if parent == d {
 			return "."
 		}
-		d = ust
+		d = parent
 	}
 }
 
-// aileHarfleri internal/lang/codes'daki sırayla aynıdır (A=1000, G=2000, H=3000 ...).
-const aileHarfleri = "AGHKTVWY"
+// familyLetters internal/lang/codes'daki sırayla aynıdır (A=1000, G=2000, H=3000 ...).
+const familyLetters = "AGHKTVWY"
 
-type kod struct {
-	harf  byte
-	sayi  int
-	metin string
+type codeEntry struct {
+	letter byte
+	number int
+	text   string
 }
 
-func kodCoz(s string) (kod, error) {
-	if len(s) != 4 || bytes.IndexByte([]byte(aileHarfleri), s[0]) < 0 {
-		return kod{}, fmt.Errorf("kod %q geçersiz", s)
+func parseCode(s string) (codeEntry, error) {
+	if len(s) != 4 || bytes.IndexByte([]byte(familyLetters), s[0]) < 0 {
+		return codeEntry{}, fmt.Errorf("kod %q geçersiz", s)
 	}
 	n, err := strconv.Atoi(s[1:])
 	if err != nil || n <= 0 {
-		return kod{}, fmt.Errorf("kod %q geçersiz", s)
+		return codeEntry{}, fmt.Errorf("kod %q geçersiz", s)
 	}
-	return kod{harf: s[0], sayi: n, metin: s}, nil
+	return codeEntry{letter: s[0], number: n, text: s}, nil
 }
 
-// trGirdisi dil dosyasındaki bir satırın üreticinin kullandığı alanlarıdır.
-type trGirdisi struct {
-	Ad string `json:"ad"`
+// trEntry dil dosyasındaki bir satırın üreticinin kullandığı alanlarıdır.
+type trEntry struct {
+	Name string `json:"ad"`
 }
 
-// tanimGirdisi tanım dosyasındaki bir satırın üreticinin kullandığı alanlarıdır.
-type tanimGirdisi struct {
-	Tur     string `json:"tür"`
-	Tasindi string `json:"taşındı"`
-	Kaldir  bool   `json:"kaldırıldı"`
+// definitionEntry tanım dosyasındaki bir satırın üreticinin kullandığı alanlarıdır.
+type definitionEntry struct {
+	Kind    string `json:"tür"`
+	Moved   string `json:"taşındı"`
+	Removed bool   `json:"kaldırıldı"`
 }
 
 // readJSON decodes the JSON file at kok/path into v. A missing file is an error only when
 // required is true; otherwise v is left as it is.
-func readJSON(kok, path string, required bool, v any) error {
-	data, err := os.ReadFile(filepath.Join(kok, path))
+func readJSON(root, path string, required bool, v any) error {
+	data, err := os.ReadFile(filepath.Join(root, path))
 	if err != nil {
 		if !required && os.IsNotExist(err) {
 			return nil
@@ -140,36 +140,36 @@ func readJSON(kok, path string, required bool, v any) error {
 	return nil
 }
 
-// Uret üretilen Go dosyasının içeriğini verir.
-func Uret(kok string) ([]byte, error) {
-	var tr map[string]trGirdisi
-	if err := readJSON(kok, trYolu, true, &tr); err != nil {
+// Generate üretilen Go dosyasının içeriğini verir.
+func Generate(root string) ([]byte, error) {
+	var tr map[string]trEntry
+	if err := readJSON(root, trPath, true, &tr); err != nil {
 		return nil, err
 	}
 	// English names go next to the Turkish ones in the constants' comments, so a reader of the
 	// (English) Go code knows what a code is without opening the language file.
-	var en map[string]trGirdisi
-	if err := readJSON(kok, enYolu, false, &en); err != nil {
+	var en map[string]trEntry
+	if err := readJSON(root, enPath, false, &en); err != nil {
 		return nil, err
 	}
-	tanimlar := map[string]tanimGirdisi{}
-	if err := readJSON(kok, tanimYolu, false, &tanimlar); err != nil {
+	definitions := map[string]definitionEntry{}
+	if err := readJSON(root, definitionsPath, false, &definitions); err != nil {
 		return nil, err
 	}
 
-	var kodlar []kod
+	var entries []codeEntry
 	for s := range tr {
-		k, err := kodCoz(s)
+		k, err := parseCode(s)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %v", trYolu, err)
+			return nil, fmt.Errorf("%s: %v", trPath, err)
 		}
-		kodlar = append(kodlar, k)
+		entries = append(entries, k)
 	}
-	sort.Slice(kodlar, func(i, j int) bool {
-		if kodlar[i].harf != kodlar[j].harf {
-			return bytes.IndexByte([]byte(aileHarfleri), kodlar[i].harf) < bytes.IndexByte([]byte(aileHarfleri), kodlar[j].harf)
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].letter != entries[j].letter {
+			return bytes.IndexByte([]byte(familyLetters), entries[i].letter) < bytes.IndexByte([]byte(familyLetters), entries[j].letter)
 		}
-		return kodlar[i].sayi < kodlar[j].sayi
+		return entries[i].number < entries[j].number
 	})
 
 	var b bytes.Buffer
@@ -180,21 +180,21 @@ func Uret(kok string) ([]byte, error) {
 	b.WriteString("// The name in the comment only helps the reader. Moved and removed codes have no constant;\n")
 	b.WriteString("// see movedMap and removedSet.\n")
 	b.WriteString("const (\n")
-	var tasinan, kaldirilan []kod
-	for _, k := range kodlar {
-		if tanimlar[k.metin].Tasindi != "" {
-			tasinan = append(tasinan, k)
+	var movedEntries, removedEntries []codeEntry
+	for _, k := range entries {
+		if definitions[k.text].Moved != "" {
+			movedEntries = append(movedEntries, k)
 			continue
 		}
-		if tanimlar[k.metin].Kaldir {
-			kaldirilan = append(kaldirilan, k)
+		if definitions[k.text].Removed {
+			removedEntries = append(removedEntries, k)
 			continue
 		}
-		ad := tr[k.metin].Ad
-		if e := en[k.metin].Ad; e != "" && e != ad {
-			ad = e + " · " + ad
+		name := tr[k.text].Name
+		if e := en[k.text].Name; e != "" && e != name {
+			name = e + " · " + name
 		}
-		fmt.Fprintf(&b, "\t%s Code = %c + %d // %s\n", k.metin, k.harf, k.sayi, ad)
+		fmt.Fprintf(&b, "\t%s Code = %c + %d // %s\n", k.text, k.letter, k.number, name)
 	}
 	b.WriteString(")\n\n")
 
@@ -203,20 +203,20 @@ func Uret(kok string) ([]byte, error) {
 	b.WriteString("// \"taşındı\" alanı). Eski kodun numarası bir daha kullanılmaz; adı yalnızca hata\n")
 	b.WriteString("// mesajında yeni biçimi önermek için dil dosyasında kalır.\n")
 	b.WriteString("var movedMap = map[Code]Code{\n")
-	for _, k := range tasinan {
-		hedef, err := kodCoz(tanimlar[k.metin].Tasindi)
+	for _, k := range movedEntries {
+		target, err := parseCode(definitions[k.text].Moved)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %s taşındı: %v", tanimYolu, k.metin, err)
+			return nil, fmt.Errorf("%s: %s taşındı: %v", definitionsPath, k.text, err)
 		}
-		fmt.Fprintf(&b, "\t%c + %d: %c + %d, // %s → %s\n", k.harf, k.sayi, hedef.harf, hedef.sayi, k.metin, hedef.metin)
+		fmt.Fprintf(&b, "\t%c + %d: %c + %d, // %s → %s\n", k.letter, k.number, target.letter, target.number, k.text, target.text)
 	}
 	b.WriteString("}\n\n")
 	b.WriteString("// removedSet yerine geçen olmadan dilden kaldırılan kodlardır (definitions.json'daki\n")
 	b.WriteString("// \"kaldırıldı\" alanı). Numaraları bir daha kullanılmaz; adları yalnızca \"TR'den\n")
 	b.WriteString("// kaldırıldı\" hatası için dil dosyasında kalır.\n")
 	b.WriteString("var removedSet = map[Code]bool{\n")
-	for _, k := range kaldirilan {
-		fmt.Fprintf(&b, "\t%c + %d: true, // %s %s\n", k.harf, k.sayi, k.metin, tr[k.metin].Ad)
+	for _, k := range removedEntries {
+		fmt.Fprintf(&b, "\t%c + %d: true, // %s %s\n", k.letter, k.number, k.text, tr[k.text].Name)
 	}
 	b.WriteString("}\n")
 	return format.Source(b.Bytes())
