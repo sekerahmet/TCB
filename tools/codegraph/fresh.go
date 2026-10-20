@@ -96,15 +96,19 @@ func changedEntries(status []byte) []changedEntry {
 // refresh grafik eskiyse yeniden kurar. İmzası olmayan grafik (git'siz kurulmuş ya da elle
 // yazılmış) denetlenmez. Hata olursa eski grafik kalır ve stderr'e uyarı yazılır.
 func refresh(g *Graph, root, graphPath string, stderr io.Writer) *Graph {
-	if g.Stamp == "" {
+	outdated := g.Extractor != extractorRevision // eski sürümün kurduğu grafik: imza aynı olsa da eksik alanlar olabilir
+	if g.Stamp == "" && !outdated {
 		return g
 	}
 	now, err := sourceStamp(root)
+	if err != nil && outdated {
+		now, err = "", nil // git yok: imza karşılaştırılamaz, ama grafik eski sürümden; yine de kur
+	}
 	if err != nil {
 		fmt.Fprintf(stderr, "codegraph: warning: cannot check whether the graph is stale (%v); using the existing graph\n", err)
 		return g
 	}
-	if now == g.Stamp {
+	if now == g.Stamp && !outdated {
 		return g
 	}
 	start := time.Now()

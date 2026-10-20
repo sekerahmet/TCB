@@ -54,10 +54,11 @@ func TestChangedMapsHunksTestsAndOtherBranches(t *testing.T) {
 	if strings.Contains(out, "claude/c") {
 		t.Errorf("claude/c touches other files only:\n%s", out)
 	}
-	if strings.Contains(out, "shape.Added") {
-		t.Errorf("a function that exists only on the branch has no old-side node:\n%s", out)
+	if strings.Contains(out, "shape.Added [func]") {
+		t.Errorf("a function that exists only on the branch has no graph node:\n%s", out)
 	}
-	mustContain(t, out, "mapped to no node") // Added func: eski tarafta karşılığı yok
+	// ... ama dalın kendi dosyasından adlandırılır.
+	mustContain(t, out, "declarations on the branch that the graph does not have", "shape/shape.go: Added (func)")
 }
 
 func TestChangedOnCheckedOutBranchMapsNewSide(t *testing.T) {
@@ -89,5 +90,32 @@ func TestParseDiff(t *testing.T) {
 	if len(hs) != 2 || hs[0].file != "x.go" || hs[0].oldStart != 3 || hs[0].oldCount != 2 || hs[0].newCount != 1 ||
 		hs[1].oldCount != 0 || hs[1].newStart != 10 || hs[1].newCount != 2 || len(hs[0].changedLines) != 3 {
 		t.Errorf("hunks: %+v", hs)
+	}
+}
+
+// Eski bir sürümün kurduğu grafik (düğümlerde son satır yok) imzası aynı olsa da yeniden
+// kurulur: aksi halde hunk'lar yalnızca bildirim satırına denk gelen düğümlere eşlenirdi.
+func TestChangedRebuildsGraphFromOlderExtractor(t *testing.T) {
+	root := branchFixture(t)
+	graph := buildInto(t, root)
+	g, err := readGraph(graph)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g.Extractor = 0
+	for i := range g.Nodes {
+		g.Nodes[i].End = 0
+	}
+	if err := writeGraph(graph, g); err != nil {
+		t.Fatal(err)
+	}
+	// --no-rebuild: eski grafik kullanılır, uyarı verilir, işlev eşlenmez.
+	code, out, errOut := commandIn("changed", root, graph, "--no-rebuild", "claude/a")
+	if code != exitOK || !strings.Contains(errOut, "older codegraph") || strings.Contains(out, "shape.Describe [func]") {
+		t.Fatalf("stale format with --no-rebuild: exit %d\nout: %s\nerr: %s", code, out, errOut)
+	}
+	code, out, errOut = commandIn("changed", root, graph, "claude/a")
+	if code != exitOK || !strings.HasPrefix(errOut, "graph rebuilt (") || !strings.Contains(out, "shape.Describe [func]") {
+		t.Errorf("an older graph must be rebuilt: exit %d\nout: %s\nerr: %s", code, out, errOut)
 	}
 }

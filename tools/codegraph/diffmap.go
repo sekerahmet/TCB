@@ -56,10 +56,11 @@ func count(s string) int {
 
 // touchSet değişikliklerin dokunduğu düğümlerdir.
 type touchSet struct {
-	nodes    map[string]*Node // kimlik -> düğüm
-	codes    map[string]bool  // grafikte düğümü olmayan (yeni ya da silinmiş) kodların kimlikleri
-	unmapped map[string]int   // düğüme eşlenemeyen değişiklik: dosya -> hunk sayısı
-	files    map[string]bool  // dokunulan dosyalar
+	nodes         map[string]*Node // kimlik -> düğüm
+	codes         map[string]bool  // grafikte düğümü olmayan (yeni ya da silinmiş) kodların kimlikleri
+	unmapped      map[string]int   // düğüme eşlenemeyen değişiklik: dosya -> hunk sayısı
+	unmappedHunks []hunk           // eşlenemeyen Go/belge hunk'ları (dalda yeni bildirimleri adlandırmak için)
+	files         map[string]bool  // dokunulan dosyalar
 }
 
 func newTouchSet() *touchSet {
@@ -109,6 +110,7 @@ func (ix *index) touched(hs []hunk, newSide bool) *touchSet {
 			}
 		}
 		if !hit {
+			ts.unmappedHunks = append(ts.unmappedHunks, h)
 			ts.unmapped[h.file]++
 		}
 	}

@@ -11,6 +11,11 @@ import (
 // schemaVersion graph.json biçimi değişince artar; okuyucular bilmedikleri sürümü reddeder.
 const schemaVersion = 1
 
+// extractorRevision çıkarıcıların ürettiği içerik değişince artar (yeni alan, yeni kenar, farklı
+// eşleme). Eski bir sürümün kurduğu grafik, imzası aynı olsa da bir sorguda yeniden kurulur.
+// 2: düğümlere son satır (end) eklendi.
+const extractorRevision = 2
+
 // Düğüm türleri.
 const (
 	kindPackage = "package"
@@ -72,6 +77,7 @@ type Edge struct {
 // Graph graph.json'ın içeriğidir. Sıralıdır ve zaman damgası taşımaz: aynı depo aynı dosyayı verir.
 type Graph struct {
 	SchemaVersion int      `json:"schema_version"`
+	Extractor     int      `json:"extractor"`
 	Module        string   `json:"module"`
 	Stamp         string   `json:"stamp,omitempty"` // kurulduğu andaki kaynak imzası (fresh.go); yoksa denetlenmez
 	Nodes         []Node   `json:"nodes"`
@@ -119,7 +125,7 @@ func (b *builder) warn(msg string) { b.warnings = append(b.warnings, msg) }
 // graph sıralı ve tutarlı Graph'ı kurar: uç düğümü bulunmayan kenarlar atılır (örneğin
 // standart kitaplığa giden çağrılar).
 func (b *builder) graph() *Graph {
-	g := &Graph{SchemaVersion: schemaVersion, Module: b.module, Nodes: []Node{}, Edges: []Edge{}}
+	g := &Graph{SchemaVersion: schemaVersion, Extractor: extractorRevision, Module: b.module, Nodes: []Node{}, Edges: []Edge{}}
 	for _, n := range b.nodes {
 		g.Nodes = append(g.Nodes, *n)
 	}
