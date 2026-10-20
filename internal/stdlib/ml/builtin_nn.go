@@ -256,9 +256,8 @@ func layerNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	if err != nil {
 		return nil, err
 	}
-	if x, err = highPrecision(m, x); err != nil {
-		return nil, err
-	}
+	// 16 bitlik girdi açılmaz: çekirdek onu float32'de normlar, sonuç girdinin türündedir
+	// (dil tanımı 15.13). Ağırlık ve sapma float32 kalır.
 	sh := x.Shape()
 	D := sh[len(sh)-1]
 	w, err := normParam(fn, nameWeight.TR, p[0], D)
@@ -293,9 +292,7 @@ func rmsNorm(m *interp.VM, args []interp.Value, named map[string]interp.Value) (
 	if err != nil {
 		return nil, err
 	}
-	if x, err = highPrecision(m, x); err != nil {
-		return nil, err
-	}
+	// 16 bitlik girdi açılmaz (katman_normu gibi; dil tanımı 15.13).
 	if w, err = highPrecision(m, w); err != nil {
 		return nil, err
 	}

@@ -639,10 +639,15 @@ test "15.13 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
         doğrula(h.içerir("dur"))
     }
     eşit_mi([[1.001]], (x @ y).değer)
-    // Normalizasyon, softmax, kayıp ve indirgemeler 16 bitlik girdiyi float32'de hesaplar.
+    // Softmax, kayıp ve indirgemeler 16 bitlik girdiyi float32'de hesaplayıp float32 verir;
+    // normlar float32'de hesaplayıp sonucu girdinin türünde verir (sonraki çarpım zaten o
+    // türde okur; değer float32 normun yuvarlanmışıdır).
     karışık_hassasiyet("bf16") {
         değişken b = tensör([[1.0, 2.0, 3.0]], tür: "bf16")
-        eşit_mi(["float32", "float32", "float32", "float32"], [softmax(b).tür, katman_normu(b).tür, toplam(b).tür, çapraz_entropi(b, [2]).tür])
+        eşit_mi(["float32", "float32", "float32"], [softmax(b).tür, toplam(b).tür, çapraz_entropi(b, [2]).tür])
+        eşit_mi(["bf16", "bf16"], [katman_normu(b).tür, rms_normu(b).tür])
+        değişken n32 = rms_normu(b.türe("float32"))
+        eşit_mi(n32.türe("bf16").değer, rms_normu(b).değer)
     }
     // Küçük bir eğitim bf16 blokta float32'ye yakın kayıp verir.
     değişken k0 = küçük_eğitim_başlangıç()
