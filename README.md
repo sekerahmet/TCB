@@ -31,6 +31,8 @@ yazdır([1, 2, 3, 4].haritala { kare(o) })   // [1, 4, 9, 16]
 ./bin/tr.exe                     # etkileşimli kabuk
 ```
 
+> **Güvenlik:** TR programları kum havuzunda (sandbox) çalışmaz; her program gibi onu çalıştıran kişinin yetkileriyle dosya okur, yazar ve siler. Tanımadığınız bir `.tr` programını ya da `tr derle` ile üretilmiş bir uygulamayı çalıştırmayın. Hangi girdilerin güvenilmeyen sayılıp korunduğu: [`SECURITY.md`](SECURITY.md).
+
 ## Testler ve biçimlendirme
 
 ```tr

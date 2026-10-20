@@ -3,6 +3,8 @@ package codes
 import (
 	"bytes"
 	"encoding/json"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -343,5 +345,28 @@ func BenchmarkLoad(b *testing.B) {
 		if _, err := Load("tr", trJSON); err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+// Geçersiz TR_DIL paketi yüklerken süreci kapatmaz: dil Türkçeye düşer, hata LanguageError
+// ile okunur (eskiden init içinde os.Exit(2) vardı; paketi kullanan her program kapanırdı).
+// Kontrol alt süreçte yapılır: etkin dil süreç başında bir kez kurulur.
+func TestInvalidLanguageFallsBack(t *testing.T) {
+	if os.Getenv("TR_CODES_CHILD") == "1" {
+		if err := LanguageError(); err == nil || !strings.Contains(err.Error(), "TR_DIL=xx") {
+			t.Fatalf("dil hatası beklenirdi: %v", err)
+		}
+		if Active().Code != "tr" {
+			t.Fatalf("etkin dil %q, tr bekleniyordu", Active().Code)
+		}
+		return
+	}
+	if err := LanguageError(); err != nil {
+		t.Fatalf("geçerli dilde hata olmamalı: %v", err)
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestInvalidLanguageFallsBack$", "-test.count=1")
+	cmd.Env = append(os.Environ(), "TR_CODES_CHILD=1", LanguageEnvVar+"=xx")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("alt süreç: %v\n%s", err, out)
 	}
 }

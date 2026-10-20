@@ -41,6 +41,11 @@ func gcHedefiniAyarla() {
 }
 
 func main() {
+	// Geçersiz TR_DIL: codes paketi Türkçeye düştü; komut yanlış dille çalışmasın.
+	if err := codes.LanguageError(); err != nil {
+		fmt.Fprintf(os.Stderr, "Hata: %v\n", err)
+		os.Exit(2)
+	}
 	gcHedefiniAyarla()
 	// Bu .exe 'tr derle' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
 	if pk, bulundu, err := gomuluPaketiBul(); bulundu {

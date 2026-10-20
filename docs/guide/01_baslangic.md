@@ -1,5 +1,7 @@
 # 1. Hızlı Başlangıç Komutları
 
+> **Güvenlik:** TR programları kum havuzunda (sandbox) çalışmaz: bir `.tr` programı onu çalıştıran kişinin yetkileriyle dosya okur, yazar ve siler. Tanımadığınız bir programı çalıştırmayın; güvenilmeyen sayılıp korunan girdiler (tensör dosyaları, kontrol noktaları, veri ve parçalayıcı dosyaları) [`SECURITY.md`](../../SECURITY.md)'de.
+
 Yorumlayıcıyı proje kökünde derleyin:
 
 ```bash

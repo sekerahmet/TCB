@@ -398,7 +398,10 @@ func (d *Language) Suggest(ns Namespace, spelling string, accept func(Code) bool
 	return None, false
 }
 
-// active programın kullandığı dildir (LanguageEnvVar; varsayılan Türkçe).
+// active programın kullandığı dildir (LanguageEnvVar; varsayılan Türkçe). Değişken geçersiz
+// bir dil seçiyorsa paket süreci kapatmaz (paketi kullanan dil sunucusu, testler ya da TR'yi
+// gömen bir program da kapanırdı): Türkçeye düşülür ve hata LanguageError ile okunur; tr
+// komutu başlarken onu bildirip çıkar.
 var active = func() *Language {
 	langCode := os.Getenv(LanguageEnvVar)
 	if langCode == "" {
@@ -406,11 +409,20 @@ var active = func() *Language {
 	}
 	d, err := buildLanguage(langCode)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Hata: %s=%s: %v\n", LanguageEnvVar, langCode, err)
-		os.Exit(2)
+		activeErr = fmt.Errorf("%s=%s: %v", LanguageEnvVar, langCode, err)
+		if d, err = buildLanguage("tr"); err != nil {
+			panic(fmt.Sprintf("codes: gömülü Türkçe kod listesi kurulamadı: %v", err))
+		}
 	}
 	return d
 }()
+
+// activeErr LanguageEnvVar'ın seçtiği dil kurulamadıysa hatasıdır (dil Türkçeye düşmüştür).
+var activeErr error
+
+// LanguageError reports why the language selected by LanguageEnvVar could not be built (the
+// active language then fell back to Turkish); nil when the selection is valid.
+func LanguageError() error { return activeErr }
 
 // LoadLanguage builds the code list of an embedded writing language; for the active language
 // it returns the one already built.
