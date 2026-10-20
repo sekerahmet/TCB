@@ -75,11 +75,7 @@ func checkArity(fnVal Value, nargs int, named map[string]Value, line int) error 
 		if len(named) == 0 && nargs < required {
 			return messages.At(line, 0, messages.New(messages.H2414, name, required, nargs, strings.Join(missing, ", ")))
 		}
-		what := messages.Text(messages.H2416)
-		if len(missing) > 1 {
-			what = messages.Text(messages.H2417)
-		}
-		return messages.At(line, 0, messages.New(messages.H2415, name, strings.Join(missing, ", "), what))
+		return messages.At(line, 0, messages.New(messages.H2415, name, strings.Join(missing, ", "), len(missing)))
 	}
 	return nil
 }

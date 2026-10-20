@@ -185,9 +185,7 @@ const (
 	H2412 Code = 2412 // {fn} en fazla {max} argüman alır, {given} verildi
 	H2413 Code = 2413 // {fn} '{param}' parametresi hem sırayla ({order}. argüman) hem adıyla verildi
 	H2414 Code = 2414 // {fn} {expected} argüman bekler, {given} verildi (eksik: {missing})
-	H2415 Code = 2415 // {fn} için zorunlu {missing} {what} verilmedi
-	H2416 Code = 2416 // argümanı
-	H2417 Code = 2417 // argümanları
+	H2415 Code = 2415 // {fn} için zorunlu {missing} {count, plural, one {argümanı} other {argümanları}} verilmedi
 	H2418 Code = 2418 // '{struct}' yapısının '{field}' adında bir alanı yok{suggestion}
 	H2419 Code = 2419 // '{struct}' yapısı en fazla {max} argüman alır (alanlar: {fields}), {given} verildi
 	H2420 Code = 2420 // '{struct}' yapısının '{field}' alanı hem sırayla ({order}. argüman) hem adıyla verildi
