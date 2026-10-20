@@ -245,7 +245,8 @@ func TestNaNRowsMatchCPU(t *testing.T) {
 // gelen gradyanla ölçekleme (skalerle yayınlamalı çarpım); float32 ve bf16.
 func TestLinearCrossEntropy(t *testing.T) {
 	rng := rand.New(rand.NewSource(13))
-	R, D, C := tensor.LinearCrossEntropyChunk+5, 8, 6
+	// 4 satırlık dilimlerle 23 satır: 6 dilim, sonuncusu eksik (yarış dedektörüyle de kısa sürer).
+	R, D, C, chunk := 23, 8, 6, 4
 	xv, wv := random(rng, R*D, 1), random(rng, D*C, 1)
 	target := make([]int, R)
 	for i := range target {
@@ -261,7 +262,7 @@ func TestLinearCrossEntropy(t *testing.T) {
 		}
 		compare(t, fmt.Sprintf("doğrusal çapraz entropi %s", dt), tol, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			x, w := twin(xv, true, R, D)[c], twin(wv, true, D, C)[c]
-			return tensor.LinearCrossEntropy(x.Cast(dt), w.Cast(dt), target), []*tensor.Tensor{x, w}
+			return tensor.LinearCrossEntropyChunked(x.Cast(dt), w.Cast(dt), target, chunk), []*tensor.Tensor{x, w}
 		})
 	}
 }

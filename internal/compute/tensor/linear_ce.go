@@ -26,6 +26,16 @@ const LinearCrossEntropyChunk = 8192
 // türündedir (karışık hassasiyette çağıran ikisini blok türüne çevirir). Geri yayılımda
 // saklanan gradyanlar gelen gradyanla (kaybın ölçeği, ör. birikimde 1/n) çarpılır.
 func LinearCrossEntropy(x, w *Tensor, targets []int) *Tensor {
+	return LinearCrossEntropyChunked(x, w, targets, LinearCrossEntropyChunk)
+}
+
+// LinearCrossEntropyChunked LinearCrossEntropy'dir; dilim boyu (satır) açıkça verilir.
+// Sonuç dilim boyundan bağımsızdır (yuvarlama sırası dışında); küçük dilim, birden çok dilimi
+// az satırla sınamak içindir.
+func LinearCrossEntropyChunked(x, w *Tensor, targets []int, chunk int) *Tensor {
+	if chunk < 1 {
+		panic(messages.Internal("LinearCrossEntropyChunked: chunk must be positive"))
+	}
 	if len(x.shape) < 1 || len(w.shape) != 2 || x.shape[len(x.shape)-1] != w.shape[0] {
 		panic(messages.New(messages.H3106, x.shape, w.shape))
 	}
@@ -52,8 +62,8 @@ func LinearCrossEntropy(x, w *Tensor, targets []int) *Tensor {
 		gw = be.Alloc(D*C, Float32)
 	}
 	gs, writer := be.(GemmSetter)
-	for r0 := 0; r0 < R; r0 += LinearCrossEntropyChunk {
-		n := min(LinearCrossEntropyChunk, R-r0)
+	for r0 := 0; r0 < R; r0 += chunk {
+		n := min(chunk, R-r0)
 		tg := targets[r0 : r0+n]
 		vc := 0
 		for _, t := range tg {
