@@ -51,3 +51,19 @@ func Corners() int {
 	_ = Default
 	return Sides
 }
+
+// Both calls two functions of messages.
+func Both() string {
+	_ = messages.New(messages.H0001)
+	return messages.Text(messages.H0001)
+}
+
+// table registers implementations by name code.
+var table = []struct {
+	code codes.Code
+	fn   func()
+}{
+	{codes.A001, runIf},
+}
+
+func runIf() {}

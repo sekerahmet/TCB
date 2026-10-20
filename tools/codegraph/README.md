@@ -95,6 +95,24 @@ Limits: only files built for the current OS are read (like `tools/impact`); call
 interface point at the interface method, not at implementers (use `implements`); `implements`
 looks at non-test types only.
 
+## Call and usage questions
+
+- `callees <func> [--in PKG]`: the functions a function or method calls, grouped by package
+  (`--in` keeps one package or folder prefix).
+- `calls-into <pkg> [--min N] [--in SRC] [--tests]`: the functions that call at least N (default 2)
+  distinct functions of a package, with the callees: "which Go function calls which tensor
+  functions". Only EXTRACTED calls count; callers inside the package and in test files are left out
+  (`--tests` adds the tests); `--in` narrows the callers to a package or a folder prefix
+  (`--in internal/stdlib`).
+- `who-uses <name> --by-package`: the users of a function, constant, message or name code
+  summarised per package (functions, use sites, users in tests).
+- Not found: stderr lists `did you mean:` names (containing the query or within a small edit
+  distance of it, also checked against the part after the last `.` or `/`).
+- A built-in's name in either language resolves to its name code: `query zaman_ms` (or `time_ms`)
+  prints the code, its Go constant, where the code is used or registered with the implementation
+  named on the same line (`{codes.G502, timeMsBuiltin}`), and the heading in `docs/codes.md`.
+  Name-code nodes carry both language names in `aliases`.
+
 ## History commands (from git, never stored)
 
 These three ask git when you run them; `graph.json` stays small and `build` fast. They need a git

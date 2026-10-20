@@ -11,3 +11,6 @@ const (
 
 // New builds a message.
 func New(c Code) error { return nil }
+
+// Text renders a message.
+func Text(c Code) string { return "" }

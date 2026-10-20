@@ -9,16 +9,33 @@ import (
 	"strings"
 )
 
-// runQuery query, path, who-uses ve tests-for komutlarını çalıştırır.
+// queryOpts bir sorgu komutunun ayarları ve çıktı akışlarıdır.
+type queryOpts struct {
+	stdout, stderr io.Writer
+	limit          int    // gruptaki en çok satır (0: sınırsız)
+	root, base     string // depo kökü; changed için karşılaştırılan dal
+	in             string // callees / calls-into: paket sınırı
+	min            int    // calls-into: en az kaç ayrı işlev
+	tests          bool   // calls-into: test dosyalarındaki çağıranlar da sayılır
+	byPackage      bool   // who-uses: kullanıcıları pakete göre özetle
+}
+
+// runQuery grafiği okuyan komutları çalıştırır: query, explain, path, who-uses, tests-for,
+// history, changed, callees, calls-into.
 func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	graphPath := fs.String("graph", "", "graph file (default <root>/.codegraph/graph.json)")
-	limit := fs.Int("limit", 12, "lines per group")
 	all := fs.Bool("all", false, "no line limit")
-	root := fs.String("root", "", "repository root (default: found from the current directory, see README)")
-	base := fs.String("base", "main", "changed: the branch a branch name is compared with (git diff base...branch)")
 	noRebuild := fs.Bool("no-rebuild", false, "use the graph as it is, even when the sources changed")
+	o := &queryOpts{stdout: stdout, stderr: stderr}
+	fs.IntVar(&o.limit, "limit", 12, "lines per group")
+	fs.StringVar(&o.root, "root", "", "repository root (default: found from the current directory, see README)")
+	fs.StringVar(&o.base, "base", "main", "changed: the branch a branch name is compared with (git diff base...branch)")
+	fs.StringVar(&o.in, "in", "", "callees, calls-into: restrict to a package")
+	fs.IntVar(&o.min, "min", 2, "calls-into: at least this many distinct functions")
+	fs.BoolVar(&o.tests, "tests", false, "calls-into: count callers in test files too")
+	fs.BoolVar(&o.byPackage, "by-package", false, "who-uses: summarise the users per package")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return exitUsage
 	}
@@ -30,65 +47,86 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "codegraph %s: expected %d name(s)\n%s", cmd, want, usage)
 		return exitUsage
 	}
-	abs, err := resolveRoot(*root)
+	abs, err := resolveRoot(o.root)
 	if err != nil {
 		fmt.Fprintln(stderr, "codegraph:", err)
 		return exitFail
 	}
-	*root = abs // load ve git yolları mutlak ister
+	o.root = abs // load ve git yolları mutlak ister
 	if *graphPath == "" {
 		*graphPath = filepath.Join(abs, ".codegraph", "graph.json")
 	}
 	if *all {
-		*limit = 0
+		o.limit = 0
 	}
-	g, err := readGraph(*graphPath)
+	g, code := loadGraph(*graphPath, o, *noRebuild)
+	if g == nil {
+		return code
+	}
+	return newIndex(g).dispatch(cmd, fs.Args(), o)
+}
+
+// loadGraph grafiği okur ve gerekirse tazeler; okunamazsa nil ve çıkış kodunu verir.
+func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
+	g, err := readGraph(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Fprintf(stderr, "codegraph: %s not found; run `go run ./tools/codegraph build` first\n", *graphPath)
+			fmt.Fprintf(o.stderr, "codegraph: %s not found; run `go run ./tools/codegraph build` first\n", path)
 		} else {
-			fmt.Fprintln(stderr, "codegraph:", err)
+			fmt.Fprintln(o.stderr, "codegraph:", err)
 		}
-		return exitFail
+		return nil, exitFail
 	}
-	if !*noRebuild {
-		g = refresh(g, *root, *graphPath, stderr)
-	} else if g.Extractor != extractorRevision {
-		fmt.Fprintf(stderr, "codegraph: warning: the graph was built by an older codegraph (extractor %d, now %d); results may be incomplete; run build\n", g.Extractor, extractorRevision)
+	switch {
+	case !noRebuild:
+		g = refresh(g, o.root, path, o.stderr)
+	case g.Extractor != extractorRevision:
+		fmt.Fprintf(o.stderr, "codegraph: warning: the graph was built by an older codegraph (extractor %d, now %d); results may be incomplete; run build\n", g.Extractor, extractorRevision)
 	}
-	ix := newIndex(g)
-	nodes := make([]*Node, 0, want)
-	names := fs.Args()
-	if cmd == "changed" {
-		names = nil // changed takes a git revision, not a node name
+	return g, exitOK
+}
+
+// dispatch adları düğümlere çözer ve komutu çalıştırır.
+func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
+	if cmd == "changed" { // adı değil, git revizyonu alır
+		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit}, names[0], o.stdout, o.stderr)
 	}
+	var kinds []string
+	if cmd == "calls-into" {
+		kinds = []string{kindPackage}
+	}
+	nodes := make([]*Node, 0, len(names))
 	for _, q := range names {
-		n, code := ix.resolve(q, stdout, stderr, *limit)
+		n, code := ix.resolve(q, o, kinds...)
 		if code != exitOK {
 			return code
 		}
 		nodes = append(nodes, n)
 	}
-	if cmd == "changed" {
-		return ix.runChanged(changeOpts{root: *root, base: *base, limit: *limit}, fs.Arg(0), stdout, stderr)
-	}
-	if cmd == "history" {
-		return ix.runHistory(*root, nodes[0], *limit, stdout, stderr)
-	}
-	return ix.answer(cmd, nodes, stdout, stderr, *limit)
+	return ix.answer(cmd, nodes, o)
 }
 
-func (ix *index) answer(cmd string, nodes []*Node, stdout, stderr io.Writer, limit int) int {
+func (ix *index) answer(cmd string, nodes []*Node, o *queryOpts) int {
 	switch cmd {
 	case "query", "explain":
-		ix.printQuery(stdout, nodes[0], limit)
+		ix.printQuery(o.stdout, nodes[0], o.limit)
 	case "who-uses":
-		ix.printWhoUses(stdout, nodes[0], limit)
+		if o.byPackage {
+			ix.printWhoUsesByPackage(o.stdout, nodes[0], o.limit)
+		} else {
+			ix.printWhoUses(o.stdout, nodes[0], o.limit)
+		}
 	case "tests-for":
-		ix.printTestsFor(stdout, nodes[0], limit)
+		ix.printTestsFor(o.stdout, nodes[0], o.limit)
+	case "history":
+		return ix.runHistory(o.root, nodes[0], o.limit, o.stdout, o.stderr)
+	case "callees":
+		return ix.printCallees(nodes[0], o)
+	case "calls-into":
+		return ix.printCallsInto(nodes[0], o)
 	case "path":
-		if !ix.printPath(stdout, nodes[0], nodes[1]) {
-			fmt.Fprintf(stderr, "no path between %s and %s\n", nodes[0].Name, nodes[1].Name)
+		if !ix.printPath(o.stdout, nodes[0], nodes[1]) {
+			fmt.Fprintf(o.stderr, "no path between %s and %s\n", nodes[0].Name, nodes[1].Name)
 			return exitNotFound
 		}
 	}
@@ -96,30 +134,25 @@ func (ix *index) answer(cmd string, nodes []*Node, stdout, stderr io.Writer, lim
 }
 
 // resolve bir adı tek düğüme çözer; belirsizse adayları stdout'a yazar (3), yoksa stderr'e
-// benzer adlarla birlikte bildirir (4).
-func (ix *index) resolve(q string, stdout, stderr io.Writer, limit int) (*Node, int) {
-	found := ix.lookup(q)
+// yakın adlarla birlikte bildirir (4). kinds doluysa yalnızca o türdeki düğümler sayılır.
+func (ix *index) resolve(q string, o *queryOpts, kinds ...string) (*Node, int) {
+	found := ix.lookup(q, kinds...)
 	switch len(found) {
 	case 1:
 		return found[0], exitOK
 	case 0:
-		fmt.Fprintf(stderr, "%q not found\n", q)
-		if sug := ix.suggest(q, 8); len(sug) > 0 {
-			fmt.Fprintln(stderr, "similar:")
-			for _, n := range sug {
-				fmt.Fprintf(stderr, "  %s\n", describe(n))
-			}
-		}
+		fmt.Fprintf(o.stderr, "%q not found\n", q)
+		ix.printSuggestions(o.stderr, q, kinds)
 		return nil, exitNotFound
 	}
-	ix.printCandidates(stdout, q, found, limit)
+	ix.printCandidates(o.stdout, q, found, o.limit)
 	return nil, exitAmbiguous
 }
 
 // reorderFlags bayrakları adların önüne alır (flag paketi ilk addan sonrasını bayrak saymaz):
 // "query New --limit 5" ile "query --limit 5 New" aynıdır.
 func reorderFlags(args []string) []string {
-	valued := map[string]bool{"graph": true, "limit": true, "root": true, "base": true}
+	valued := map[string]bool{"graph": true, "limit": true, "root": true, "base": true, "in": true, "min": true}
 	var flags, names []string
 	for i := 0; i < len(args); i++ {
 		a := args[i]
@@ -128,7 +161,7 @@ func reorderFlags(args []string) []string {
 			continue
 		}
 		flags = append(flags, a)
-		if name := strings.TrimLeft(a, "-"); valued[name] && i+1 < len(args) {
+		if name := strings.TrimLeft(a, "-"); valued[name] && !strings.Contains(a, "=") && i+1 < len(args) {
 			i++
 			flags = append(flags, args[i])
 		}
