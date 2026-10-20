@@ -5,7 +5,7 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 ## Her eklemede ortak
 
 1. **Önce başka dillere bak.** Eklenecek şeyin başka dillerde ve çerçevelerde (Python, Swift, Kotlin, Rust, Go, PyTorch, JAX ...) nasıl çözüldüğünü kısa bir tabloyla karşılaştır: hangi davranış, hangi ad, hangi hata. Yerleşik olanı TR'ye uyarla; hiçbiri uymuyorsa gerekçesiyle yeni bir yöntem seç. Tabloyu ve kararı dil tanımı maddesine ya da commit mesajına yaz.
-2. **Önce var olana bak.** Aynı işi yapan bir ad ([`codes.md`](codes.md)), bir yardımcı (`bind`, `turkish.FileError`, `interp.ArgCountError`) ya da bir ileti (`internal/lang/messages/tr.json`) varsa onu kullan. Aynı işi yapan iki kod olmaz.
+2. **Önce var olana bak.** Aynı işi yapan bir ad ([`codes.md`](codes.md)), bir yardımcı (`bind`, `turkish.FileError`, `interp.ArgCountError`) ya da bir ileti (`internal/lang/messages/tr.json`) varsa onu kullan. Aynı işi yapan iki kod olmaz. Aramayı kod grafiğiyle yap ([`tools/codegraph`](../tools/codegraph/README.md)): benzer bir örneğin dokunduğu dosyaları `query <ad>`, çağıranlarını ve testlerini `tests-for <fonksiyon>` verir; değiştireceğin şeyin etki alanını da böyle gör.
 3. **Ad koddur, ileti koddur.** Kullanıcının yazacağı her ad kod listesinden bir kod alır (yeni ad kodunu baş geliştirici verir). Kullanıcının göreceği her ileti paketin aralığından bir ileti kodu alır (ileti kodunu işi yapan ekler).
 4. **Testsiz ekleme yoktur.** Her davranışın bir testi olur. Bir düzeltmenin testi düzeltmeden önce kalır, sonra geçer.
 5. **Belge işle birlikte değişir.** Dil davranışı değiştiyse dil tanımında (`docs/spec/`) bir madde, kullanıcı için anlatmak gerekiyorsa kılavuzda (`docs/guide/`) bir satır.
