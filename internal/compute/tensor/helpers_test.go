@@ -212,16 +212,13 @@ const (
 // ve softmax/norm gibi bileşik işlemlerdeki birkaç kat hata birikimine yeter.
 //
 // bf16: yuvarlama başına göreli hata en çok 2⁻⁹ ≈ 2e-3'tür (8 bitlik anlamlı kısım, en
-// yakına yuvarlama). Tekli işlemde girdi ve çıktı birer kez yuvarlanır; bileşik işlemde
-// (norm, dikkat, çapraz entropi) ara sonuçlar da 16 bitte kalır ve ~10 yuvarlama birikir.
-// 3e-2 (≈ 15 yuvarlama) tek işlem için varsayılandır; bileşik işlem kendi bf16Tol alanını
-// gerekçesiyle yazar. Hata, elemanın kendisine göre değil tensörün en büyük mutlak
-// gradyanına göre ölçülür: toplamlardaki iptallerde küçük elemanın göreli hatası büyür
-// ama tensörün ölçeğini aşmaz.
+// yakına yuvarlama). Tolerans kayıt başınadır ve ölçülür: bf16Tolerances (behavior_grad_bf16_tolerances_test.go)
+// en büyük ölçülen sapmanın 2 katıdır; ölçüm TestMeasureBF16'dadır. Hata, elemanın kendisine
+// göre değil tensörün en büyük mutlak gradyanına göre ölçülür: toplamlardaki iptallerde küçük
+// elemanın göreli hatası büyür ama tensörün ölçeğini aşmaz.
 const (
-	gradF64Tol  = 2e-4
-	gradFwdTol  = 1e-4
-	gradBF16Tol = 3e-2
+	gradF64Tol = 2e-4
+	gradFwdTol = 1e-4
 )
 
 // gradSpec bir işlemin (ya da işlem ailesinin) gradyan kapısı kaydıdır.
@@ -234,7 +231,6 @@ type gradSpec struct {
 	ref     refFn
 	fwdTol  float64 // ileri değer toleransı (0: gradFwdTol)
 	gradTol float64 // float64 gradyan toleransı (0: gradF64Tol)
-	bf16Tol float64 // bf16 gradyan toleransı (0: gradBF16Tol)
 	setup   func(t *testing.T)
 }
 
@@ -263,16 +259,19 @@ func runGradGroup(t *testing.T, group string) {
 	for _, s := range specs {
 		s := s
 		t.Run(s.name+"/float64", func(t *testing.T) { checkGradFloat64(t, s) })
-		t.Run(s.name+"/bf16", func(t *testing.T) { checkGradBF16(t, s) })
+		t.Run(s.name+"/bf16", func(t *testing.T) { checkGradBF16(t, group+"/"+s.name, s) })
 	}
 }
 
-func specRng(s gradSpec) *rand.Rand {
+func specRng(s gradSpec) *rand.Rand { return specRngSeed(s, 0) }
+
+// specRngSeed kaydın k'inci tohumlu üreteci: k=0 float64 testinin kullandığıyla aynıdır.
+func specRngSeed(s gradSpec, k int) *rand.Rand {
 	var h int64 = 17
 	for _, c := range s.name {
 		h = h*31 + int64(c)
 	}
-	return rand.New(rand.NewSource(h))
+	return rand.New(rand.NewSource(h + int64(k)*7919))
 }
 
 func toFloat64(xs []*Tensor) [][]float64 {
@@ -399,37 +398,59 @@ func maxAbs32(d []float32) float64 {
 	return m
 }
 
-// checkGradBF16 aynı işlemi bf16 girdiyle koşar ve çıktıyı ile gradyanları, aynı (bf16'ya
-// yuvarlanmış) girdilerle float32 koşunun sonucuna belgelenmiş toleransta karşılaştırır.
-func checkGradBF16(t *testing.T, s gradSpec) {
+// bf16Seeds bf16 kapısının her kayıt için denediği girdi tohumu sayısıdır (ölçüm de bunlarla).
+const bf16Seeds = 4
+
+// bf16Deviation aynı işlemi k'inci tohumlu girdiyle bf16'da ve (bf16'ya yuvarlanmış aynı
+// girdilerle) float32'de koşar; çıktı ile gradyanların, kendi tensörünün en büyük mutlak
+// değerine göre en büyük sapmasını ve nerede olduğunu verir. NaN uyuşmazlığı +Inf sayılır.
+func bf16Deviation(t *testing.T, s gradSpec, k int) (worst float64, where string) {
+	t.Helper()
 	if s.setup != nil {
 		s.setup(t)
 	}
-	xs := s.inputs(specRng(s))
+	xs := s.inputs(specRngSeed(s, k))
 	rounded := make([][]float32, len(xs))
 	shapes := make([][]int, len(xs))
 	for i, x := range xs {
 		rounded[i] = x.Cast(BFloat16).Cast(Float32).Data()
 		shapes[i] = x.Shape()
 	}
-	tol := orDefault(s.bf16Tol, gradBF16Tol)
 	out32, g32, _ := gradRun(Float32, s, rounded, shapes)
 	out16, g16, res := gradRun(BFloat16, s, rounded, shapes)
 	if s.mode == gradNone && res.requiresGrad {
 		t.Fatal("türevsiz işlemin bf16 çıktısı çizgeye girdi")
 	}
 	cmp := func(ad string, got, want []float32) {
-		scale := maxAbs32(want)
+		scale := math.Max(maxAbs32(want), 1e-6)
 		for i := range want {
-			if math.IsNaN(float64(want[i])) != math.IsNaN(float64(got[i])) ||
-				math.Abs(float64(got[i])-float64(want[i])) > tol*math.Max(scale, 1e-6) {
-				t.Fatalf("%s [%d]: bf16 %v, float32 %v (ölçek %g, tolerans %g)", ad, i, got[i], want[i], scale, tol)
+			d := math.Abs(float64(got[i])-float64(want[i])) / scale
+			if math.IsNaN(float64(want[i])) != math.IsNaN(float64(got[i])) {
+				d = math.Inf(1)
+			}
+			if d > worst {
+				worst, where = d, fmt.Sprintf("%s [%d]: bf16 %v, float32 %v (ölçek %g)", ad, i, got[i], want[i], scale)
 			}
 		}
 	}
 	cmp("çıktı", out16, out32)
-	for k := range g32 {
-		cmp(fmt.Sprintf("girdi %d gradyanı", k), g16[k], g32[k])
+	for j := range g32 {
+		cmp(fmt.Sprintf("girdi %d gradyanı", j), g16[j], g32[j])
+	}
+	return worst, where
+}
+
+// checkGradBF16 bf16Seeds girdi tohumunun hepsinde bf16 sonucunun (çıktı ve gradyanlar)
+// bf16'ya yuvarlanmış girdilerle float32 koşudan belgelenmiş toleransı aşmadığını doğrular.
+func checkGradBF16(t *testing.T, key string, s gradSpec) {
+	tol, ok := bf16Tolerances[key]
+	if !ok {
+		t.Fatalf("%q için bf16 toleransı yok: TR_MEASURE_BF16=write ile ölçüp tabloyu yenileyin", key)
+	}
+	for k := 0; k < bf16Seeds; k++ {
+		if worst, where := bf16Deviation(t, s, k); worst > tol {
+			t.Fatalf("tohum %d: %s, sapma %.3g > tolerans %g", k, where, worst, tol)
+		}
 	}
 }
 

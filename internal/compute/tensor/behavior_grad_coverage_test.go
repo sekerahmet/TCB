@@ -149,7 +149,7 @@ func TestGradCoverage(t *testing.T) {
 		}
 	}
 
-	covered, groupsRun, names := map[string]bool{}, gradGroupsRun(t), map[string]bool{}
+	covered, groupsRun, names, seen := map[string]bool{}, gradGroupsRun(t), map[string]bool{}, map[string]bool{}
 	for group, specs := range gradGroups {
 		if !groupsRun[group] {
 			t.Errorf("%q grubunun kayıtları var ama hiçbir testte runGradGroup(t, %q) çağrısı yok", group, group)
@@ -162,12 +162,28 @@ func TestGradCoverage(t *testing.T) {
 			if s.build == nil || s.inputs == nil || s.ref == nil || len(s.ops) == 0 {
 				t.Errorf("%s/%s: build, inputs, ref ve ops alanları dolu olmalı", group, s.name)
 			}
-			if s.bf16Tol > 0.1 || s.gradTol > 1e-3 {
-				t.Errorf("%s/%s: tolerans (bf16 %g, float64 %g) belgelenmiş üst sınırı aşıyor (0.1 / 1e-3)", group, s.name, s.bf16Tol, s.gradTol)
+			key := group + "/" + s.name
+			tol, ok := bf16Tolerances[key]
+			if !ok {
+				t.Errorf("%s: bf16 toleransı yok (TR_MEASURE_BF16=write ile ölçüp tabloyu yenileyin)", key)
 			}
+			if tol > 0.1 || s.gradTol > 1e-3 {
+				t.Errorf("%s: tolerans (bf16 %g, float64 %g) belgelenmiş üst sınırı aşıyor (0.1 / 1e-3)", key, tol, s.gradTol)
+			}
+			seen[key] = true
 			for _, op := range s.ops {
 				covered[op] = true
 			}
+		}
+	}
+	for key := range bf16Tolerances {
+		if !seen[key] {
+			t.Errorf("bf16Tolerances %q kaydını içeriyor ama böyle bir gradyan kaydı yok (tabloyu yenileyin)", key)
+		}
+	}
+	for key := range bf16Tolerances {
+		if !seen[key] {
+			t.Errorf("bf16Tolerances %q kaydını içeriyor ama böyle bir gradyan kaydı yok (tabloyu yenileyin)", key)
 		}
 	}
 	for _, n := range sortedKeys(expected) {

@@ -37,9 +37,6 @@ func TestUndefinedResultsError(t *testing.T) {
 func init() {
 	embIdx := []int{1, 3, 1, 0, 3, 3}
 	ceTargets := []int{2, -1, 0, 3, -1, 1}
-	// Bileşik işlemlerde ara sonuçlar (ortalama, varyans, 1/σ) 16 bitte yuvarlanır ve 1/√
-	// göreli hatayı büyütür; çapraz entropide log-softmax da eklenir: 6e-2.
-	const compositeTol = 6e-2
 	layerNorm := func(hasG bool) refFn {
 		return func(in [][]float64) []float64 {
 			x, res := in[0], make([]float64, len(in[0]))
@@ -93,7 +90,7 @@ func init() {
 				}
 				return res
 			}},
-		gradSpec{name: "cross_entropy yok sayma", ops: []string{"cross_entropy"}, bf16Tol: compositeTol,
+		gradSpec{name: "cross_entropy yok sayma", ops: []string{"cross_entropy"},
 			build:  func(xs []*Tensor) *Tensor { return CrossEntropy(xs[0], ceTargets) },
 			inputs: genInputs(gen(-2, 2, 0, 2, 3, 4)),
 			ref: func(in [][]float64) []float64 {
@@ -109,16 +106,16 @@ func init() {
 				}
 				return []float64{loss / float64(valid)}
 			}},
-		gradSpec{name: "layer_norm γβ", ops: []string{"layer_norm"}, bf16Tol: compositeTol,
+		gradSpec{name: "layer_norm γβ", ops: []string{"layer_norm"},
 			build:  func(xs []*Tensor) *Tensor { return LayerNorm(xs[0], xs[1], xs[2], 1e-5) },
 			inputs: genInputs(gen(-2, 2, 0, 3, 5), gen(-1, 1, 0, 5), gen(-1, 1, 0, 5)), ref: layerNorm(true)},
-		gradSpec{name: "layer_norm yalın", ops: []string{"layer_norm"}, bf16Tol: compositeTol,
+		gradSpec{name: "layer_norm yalın", ops: []string{"layer_norm"},
 			build:  func(xs []*Tensor) *Tensor { return LayerNorm(xs[0], nil, nil, 1e-5) },
 			inputs: genInputs(gen(-2, 2, 0, 3, 5)), ref: layerNorm(false)},
-		gradSpec{name: "rms_norm γ", ops: []string{"rms_norm"}, bf16Tol: compositeTol,
+		gradSpec{name: "rms_norm γ", ops: []string{"rms_norm"},
 			build:  func(xs []*Tensor) *Tensor { return RMSNorm(xs[0], xs[1], 1e-6) },
 			inputs: genInputs(gen(-2, 2, 0.2, 3, 5), gen(-1, 1, 0, 5)), ref: rmsNorm(true)},
-		gradSpec{name: "rms_norm yalın", ops: []string{"rms_norm"}, bf16Tol: compositeTol,
+		gradSpec{name: "rms_norm yalın", ops: []string{"rms_norm"},
 			build:  func(xs []*Tensor) *Tensor { return RMSNorm(xs[0], nil, 1e-6) },
 			inputs: genInputs(gen(-2, 2, 0.2, 3, 5)), ref: rmsNorm(false)})
 }

@@ -536,10 +536,7 @@ func init() {
 		return gradSpec{name: name, ops: []string{"attention"},
 			build:  func(xs []*Tensor) *Tensor { return Attention(xs[0], xs[1], xs[2], opt) },
 			inputs: genInputs(gen(-1, 1, 0, sq...), gen(-1, 1, 0, sk...), gen(-1, 1, 0, sv...)),
-			ref:    attention64(p, mask),
-			// Puanlar, softmax ve çıktı 16 bitte ara sonuç olarak yuvarlanır (~10 yuvarlama);
-			// softmax'ın üstel işlevi puan hatasını büyütür: 6e-2.
-			bf16Tol: 6e-2}
+			ref:    attention64(p, mask)}
 	}
 	mask := []float64{1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1}
 	maskT := New([]float32{1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1}, 3, 5)
