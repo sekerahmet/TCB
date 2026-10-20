@@ -30,8 +30,7 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
 ## Evre 2: Sağlam temel (şu an)
 
 1. **İleti kodları.** Kullanıcıya giden her ileti, adlar gibi sabit bir koda bağlanır (`H` ve dört basamak, `internal/lang/messages`). Metinler dil dosyasındadır; parametreler adlıdır (`{fn}: {path|q} bir klasör`). Testler metni değil kodu denetler.
-   - Tamamlandı: altyapı ve denetim testi; ortak hata yardımcıları; standart kitaplık, `devtools`, `tr` komutu; dil çekirdeği; yapılı hata (hata konumu her yerde yapıdan okunur, metinden okunmaz); GPU arka ucu.
-   - Sürüyor: tensör çekirdeği, veri hattı ve parçalayıcı.
+   - Tamamlandı: altyapı ve denetim testi; ortak hata yardımcıları; standart kitaplık, `devtools`, `tr` komutu; dil çekirdeği; yapılı hata (hata konumu her yerde yapıdan okunur, metinden okunmaz); hesap çekirdeği (tensör, GPU, veri hattı, parçalayıcı). Bütün paketler geçti.
    - Sonra: geçirilmiş paketlerde Türkçe harfli metin sabitinin yalnızca izinli yerlerde (veri biçimi anahtarları, Türkçe ek tabloları) bulunduğunu denetleyen test. Bitiş ölçütünü bu test kanıtlar.
 2. **İletiler her dile hazır.** İleti geçişi bitti, ama Türkçenin dilbilgisi yer yer hâlâ Go kodunda; başka bir dil gelince bunu çevirmen değil kod çözebilir. Kod büyüdükçe pahalılaşacağı için altyapı şimdi kurulur, asıl çeviri Evre 7'de yapılır:
    - Çoğul biçimleri katalogda: "argümanı / argümanları" (H2416/H2417) seçimi bugün Go'da ve Türkçe kuralla yapılıyor. Dile göre çoğul kuralı (CLDR çoğul kuralları, ICU MessageFormat emsali).
