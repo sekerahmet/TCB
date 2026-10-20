@@ -137,7 +137,7 @@ func TestWatchNoStepInfo(t *testing.T) {
 // tr izle .tr olmayan bir adla (arka plan işini izleme henüz yok) açık hata verir.
 func TestWatchJobNameNotYet(t *testing.T) {
 	s := tr(t, t.TempDir(), "izle", "deneme1")
-	wait(t, s, 1, nil, []string{"bir .tr dosyası değil", "tr izle egit.tr"})
+	wait(t, s, 1, nil, []string{"bir .tr dosyası değil", "tr izle <dosya.tr>"})
 	s = tr(t, t.TempDir(), "profil", "--bilinmeyen", "x.tr")
 	wait(t, s, 1, nil, []string{"bilinmeyen seçenek"})
 }

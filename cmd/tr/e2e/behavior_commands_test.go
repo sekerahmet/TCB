@@ -41,7 +41,11 @@ func TestCommandsHaveOneName(t *testing.T) {
 			t.Errorf("%s: program çalışmamalıydı", ad)
 		}
 	}
-	wait(t, tr(t, dir, "biçimle", "--check", "a.tr"), 1, nil, []string{"'--check' TR'de bir bayrak değil; '--kontrol'"})
+	// Seçenekler de ad kodudur (K1xx): her dilin adı kabul edilir, sözcükleri tireyle yazılır.
+	wait(t, tr(t, dir, "biçimle", "--check", "a.tr"), 0, nil, nil)
+	wait(t, tr(t, dir, "format", "--kontrol", "a.tr"), 0, nil, nil)
+	wait(t, tr(t, dir, "profil", "--go_profili", "x.prof", "a.tr"), 1, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profili"})
+	wait(t, tr(t, dir, "hata_ayıkla", "--web"), 1, nil, []string{"Tarayıcıdaki hata ayıklayıcı kaldırıldı"})
 	// İngilizce yazım dilinin adları da her makinede komuttur.
 	wait(t, tr(t, dir, "run", "a.tr"), 0, []string{"çalıştı"}, nil)
 	wait(t, tr(t, dir, "version"), 0, []string{"v" + trVersion(t)}, nil)

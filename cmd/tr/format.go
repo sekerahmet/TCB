@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sekerahmet/TCB/internal/devtools/formatter"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"io/fs"
@@ -21,17 +22,14 @@ func formatCommand(args []string) {
 	check := false
 	var targets []string
 	for _, a := range args {
-		switch a {
-		case "--kontrol", "-k":
+		if a == "-k" || isOption(a, codes.K101) {
 			check = true
-		case "--check":
-			exitWithError(messages.Text(messages.H8690))
-		default:
+		} else {
 			targets = append(targets, a)
 		}
 	}
 	if len(targets) == 0 {
-		exitWithError(messages.Text(messages.H8691))
+		exitWithError(messages.Text(messages.H8691, codes.Name(codes.K008), optionName(codes.K101)))
 	}
 
 	var files []string
@@ -85,7 +83,7 @@ func formatCommand(args []string) {
 
 	switch {
 	case check && changed > 0:
-		fmt.Println(messages.Text(messages.H8695, len(files), changed))
+		fmt.Println(messages.Text(messages.H8695, len(files), changed, codes.Name(codes.K008)))
 	case faulty > 0:
 		fmt.Println(messages.Text(messages.H8696, len(files), faulty))
 	case check:

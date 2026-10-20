@@ -5,10 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/pprof"
+	"slices"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/devtools/profiler"
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -18,26 +20,31 @@ import (
 
 // profileOptions komutların program dosyasından önce yazılan seçenekleridir.
 type profileOptions struct {
-	json      string // --json: raporun JSON yolu (klasörse içine speed.json)
-	goProfile string // --go-profili: yorumlayıcının Go CPU profili (geliştiriciler için)
-	output    string // --çıktı: tr izle'de programın çıktısının dosyası
+	json      string // K103 (--json): raporun JSON yolu (klasörse içine speed.json)
+	goProfile string // K104 (--go-profili): yorumlayıcının Go CPU profili (geliştiriciler için)
+	output    string // K105 (--çıktı): tr izle'de programın çıktısının dosyası
 }
 
 // profileArguments seçenekleri, program dosyasını ve programın argümanlarını ayırır.
 // allowed, komutun kabul ettiği seçeneklerdir. Hata varsa yazıp 1 ile çıkar.
-func profileArguments(command string, args []string, allowed ...string) (profileOptions, string, []string) {
+func profileArguments(command string, args []string, allowed ...codes.Code) (profileOptions, string, []string) {
 	var s profileOptions
-	target := map[string]*string{"--json": &s.json, "--go-profili": &s.goProfile, "--çıktı": &s.output}
+	target := map[codes.Code]*string{codes.K103: &s.json, codes.K104: &s.goProfile, codes.K105: &s.output}
 	for len(args) > 0 && strings.HasPrefix(args[0], "--") {
 		name, value, equal := strings.Cut(args[0], "=")
-		p, ok := target[name]
-		if !ok || !within(allowed, name) {
-			exitWithError(messages.Text(messages.H8674, command, name, strings.Join(allowed, ", ")))
+		k, ok := optionCode(name)
+		if !ok || !slices.Contains(allowed, k) {
+			names := make([]string, len(allowed))
+			for i, a := range allowed {
+				names[i] = optionName(a)
+			}
+			exitWithError(messages.Text(messages.H8674, command, name, strings.Join(names, ", ")))
 		}
+		p := target[k]
 		args = args[1:]
 		if !equal {
 			if len(args) == 0 {
-				exitWithError(messages.Text(messages.H8675, name, command))
+				exitWithError(messages.Text(messages.H8675, optionName(k), command))
 			}
 			value, args = args[0], args[1:]
 		}
@@ -47,15 +54,6 @@ func profileArguments(command string, args []string, allowed ...string) (profile
 		exitWithError(messages.Text(messages.H8605, command, "egit.tr"))
 	}
 	return s, args[0], args[1:]
-}
-
-func within(list []string, s string) bool {
-	for _, x := range list {
-		if x == s {
-			return true
-		}
-	}
-	return false
 }
 
 // prepareProgram dosyayı hazırlar ve bir VM kurar (runFile ile aynı adımlar).
@@ -90,7 +88,7 @@ func startMeasuredProfile(machine *interp.VM, path, code string, prog *ast.Progr
 // programı satır örneklemesiyle çalıştırır, bitince (hata ya da kesmeyle bitse de) metin
 // raporu standart çıktıya, istenmişse JSON raporu dosyaya yazar.
 func profileCommand(args []string) {
-	s, path, arguments := profileArguments("profil", args, "--json", "--go-profili")
+	s, path, arguments := profileArguments(codes.Name(codes.K013), args, codes.K103, codes.K104)
 	machine, prog, code := prepareProgram(path, arguments)
 	if s.goProfile != "" {
 		startGoProfile(s.goProfile)

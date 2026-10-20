@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -110,7 +111,7 @@ func (p *Profile) gpuInfo(a gpuSnap) GPUInfo {
 	g.Kernels = g.Kernels[:min(len(g.Kernels), maxKernels)]
 	switch {
 	case !g.Measured:
-		g.Note = messages.Text(messages.H8204)
+		g.Note = messages.Text(messages.H8204, codes.Name(codes.K012), codes.Name(codes.K013))
 	case len(g.Kernels) == 0:
 		g.Note = messages.Text(messages.H8205)
 	}

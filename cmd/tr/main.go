@@ -19,6 +19,7 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+	"text/tabwriter"
 )
 
 // Dilin TR ile yazılı kitaplığı ikiliye gömülüdür ve 'aktar "tr/..."' ile yüklenir (11.6);
@@ -86,7 +87,7 @@ func main() {
 		checkFile(args[1])
 	case codes.K005:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8606))
+			exitWithError(messages.Text(messages.H8606, codes.Name(codes.K005)))
 		}
 		outPath := ""
 		if len(args) >= 3 {
@@ -181,24 +182,33 @@ func indentFrame(frame string) string {
 func printHelp() {
 	fmt.Println("🇹🇷 " + messages.Text(messages.H8610, VERSION))
 	fmt.Println(messages.Text(messages.H8611))
-	fmt.Println("  " + messages.Text(messages.H8612))
-	fmt.Println("  " + messages.Text(messages.H8613))
-	fmt.Println("  " + messages.Text(messages.H8614))
-	fmt.Println("  " + messages.Text(messages.H8615))
-	fmt.Println("  " + messages.Text(messages.H8616))
-	fmt.Println("  " + messages.Text(messages.H8617))
-	fmt.Println("  " + messages.Text(messages.H8618))
-	fmt.Println("  " + messages.Text(messages.H8619))
-	fmt.Println("  " + messages.Text(messages.H8620))
-	fmt.Println("  " + messages.Text(messages.H8621))
-	fmt.Println("  " + messages.Text(messages.H8622))
-	fmt.Println("  " + messages.Text(messages.H8623))
-	fmt.Println("  " + messages.Text(messages.H8624))
-	fmt.Println("  " + messages.Text(messages.H8625))
-	fmt.Println("  " + messages.Text(messages.H8626))
-	fmt.Println("  " + messages.Text(messages.H8627))
-	fmt.Println("  " + messages.Text(messages.H8628))
-	fmt.Println("  " + messages.Text(messages.H8629))
+	// Her satır tek iletidir: kullanım ve açıklama arasında sekme; komut ve seçenek adları
+	// koddan, etkin dilde gelir. Sütunu tabwriter hizalar (adların uzunluğu dile göre değişir).
+	lang := optionName(codes.K100)
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	for _, row := range []string{
+		messages.Text(messages.H8612),
+		messages.Text(messages.H8613),
+		messages.Text(messages.H8614, codes.Name(codes.K003)),
+		messages.Text(messages.H8615, codes.Name(codes.K006)),
+		messages.Text(messages.H8616, codes.Name(codes.K004)),
+		messages.Text(messages.H8617, codes.Name(codes.K005)),
+		messages.Text(messages.H8618, codes.Name(codes.K007)),
+		messages.Text(messages.H8619, codes.Name(codes.K008), optionName(codes.K101)),
+		messages.Text(messages.H8620, codes.Name(codes.K009)),
+		messages.Text(messages.H8621, codes.Name(codes.K010)),
+		messages.Text(messages.H8622, codes.Name(codes.K011), lang),
+		messages.Text(messages.H8623, codes.Name(codes.K011), lang),
+		messages.Text(messages.H8624, codes.Name(codes.K009), lang),
+		messages.Text(messages.H8625, codes.Name(codes.K012)),
+		messages.Text(messages.H8626, codes.Name(codes.K013), optionName(codes.K103)),
+		messages.Text(messages.H8627, codes.Name(codes.K014)),
+		messages.Text(messages.H8628, codes.Name(codes.K001)),
+		messages.Text(messages.H8629, codes.Name(codes.K002)),
+	} {
+		fmt.Fprintln(w, "  "+row)
+	}
+	w.Flush()
 }
 
 // runFile programı çalıştırır; argumanlar dosya adından sonra yazılanlardır ve programa
@@ -219,11 +229,11 @@ func runFile(path string, arguments []string) {
 // sonraki argümanlar programındır.
 func debugCommand(args []string) {
 	if len(args) < 1 {
-		exitWithError(messages.Text(messages.H8608))
+		exitWithError(messages.Text(messages.H8608, codes.Name(codes.K006)))
 	}
 	for _, a := range args[:min(2, len(args))] {
-		if a == "--web" || a == "-w" {
-			exitWithError(messages.Text(messages.H8609))
+		if a == "-w" || removedOption(a) { // --web (K102, kaldırıldı)
+			exitWithError(messages.Text(messages.H8609, codes.Name(codes.K006)))
 		}
 	}
 	debugFile(args[0], args[1:])

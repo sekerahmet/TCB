@@ -54,11 +54,11 @@ func languageArgument(args []string, command string) *codes.Language {
 	languageCode := codes.Active().Code
 	for i := 0; i < len(args); i++ {
 		switch {
-		case args[i] == "--dil" && i+1 < len(args):
+		case isOption(args[i], codes.K100) && i+1 < len(args):
 			languageCode = args[i+1]
 			i++
-		case args[i] == "--dil":
-			exitWithError(messages.Text(messages.H8700, command))
+		case isOption(args[i], codes.K100):
+			exitWithError(messages.Text(messages.H8700, optionName(codes.K100), command))
 		default:
 			exitWithError(messages.Text(messages.H8701, command, args[i]))
 		}
@@ -175,19 +175,19 @@ func showCommand(args []string) {
 	languageCode = codes.Active().Code
 	for i := 0; i < len(args); i++ {
 		switch {
-		case args[i] == "--dil" && i+1 < len(args):
+		case isOption(args[i], codes.K100) && i+1 < len(args):
 			languageCode = args[i+1]
 			i++
-		case args[i] == "--dil":
-			exitWithError(messages.Text(messages.H8708))
+		case isOption(args[i], codes.K100):
+			exitWithError(messages.Text(messages.H8708, optionName(codes.K100), codes.Name(codes.K011)))
 		case file == "":
 			file = args[i]
 		default:
-			exitWithError(messages.Text(messages.H8709, args[i]))
+			exitWithError(messages.Text(messages.H8709, codes.Name(codes.K011), args[i]))
 		}
 	}
 	if file == "" {
-		exitWithError(messages.Text(messages.H8710))
+		exitWithError(messages.Text(messages.H8710, codes.Name(codes.K011), optionName(codes.K100)))
 	}
 	language, err := writingLanguage(languageCode)
 	if err != nil {
