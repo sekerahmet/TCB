@@ -82,6 +82,9 @@ func codedCopy(t *testing.T, dir string) int {
 // digits örnek çıktılarındaki süreleri (ms/adım) karşılaştırmadan çıkarmak içindir.
 var digits = regexp.MustCompile(`[0-9]+`)
 
+// progressLine ilerleme çubuğunun bir satırıdır ("adım 3/10 ▕██░▏ ...").
+var progressLine = regexp.MustCompile(`(?m)^.*▕.*▏.*\n?`)
+
 func TestCodedFilesGiveSameOutput(t *testing.T) {
 	tr1, tr2 := t.TempDir(), t.TempDir()
 	// docs/ karakter modelinin eğitim verisidir.
@@ -134,8 +137,10 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	for _, o := range examples {
 		ad := filepath.ToSlash(filepath.Join("examples", filepath.Base(o)))
 		s1, s2 := tr(t, tr1, ad), tr(t, tr2, ad)
-		c1 := digits.ReplaceAllString(s1.stdout+s1.stderr, "#")
-		c2 := digits.ReplaceAllString(s2.stdout+s2.stderr, "#")
+		// İlerleme çubuğu terminal dışında zamanla ara satır yazar (19.7); yavaş makinede ara
+		// satır iki koşuda farklı adıma düşer. Çubuk satırları karşılaştırılmaz.
+		c1 := digits.ReplaceAllString(progressLine.ReplaceAllString(s1.stdout+s1.stderr, ""), "#")
+		c2 := digits.ReplaceAllString(progressLine.ReplaceAllString(s2.stdout+s2.stderr, ""), "#")
 		if s1.code != 0 || s1.code != s2.code || c1 != c2 {
 			t.Errorf("tr %s: Türkçe ve kodlu kopyalar farklı (çıkış %d / %d)\n%s", ad, s1.code, s2.code, lineDiff(c1, c2))
 		}
