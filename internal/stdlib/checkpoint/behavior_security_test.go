@@ -101,6 +101,25 @@ func TestLatestJSONAndStrayCheckpoint(t *testing.T) {
 	}
 }
 
+// Yazım atomiktir: süreç yazarken ölürse geride yarım bir geçici klasör (adim_N.tmp-<süreç>)
+// kalır; eski noktalar bozulmaz, sonraki açılışta geçici klasör silinir.
+func TestStrayTempCheckpointCleaned(t *testing.T) {
+	runDir := buildCkpt(t)
+	stray := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000003.tmp-4242")
+	if err := os.MkdirAll(stray, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(stray, "tensorler.trt"), []byte("yarım"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if output, err := load(t, runDir); err != nil || !strings.Contains(output, "adım 2 [1.") {
+		t.Fatalf("yarım yazım son sağlam noktayı bozmamalı: %v\n%s", err, output)
+	}
+	if _, err := os.Stat(stray); !os.IsNotExist(err) {
+		t.Fatalf("geçici klasör açılışta silinmeliydi: %v", err)
+	}
+}
+
 // Kesme isteği kontrol noktası kurulduktan sonra gelirse ertelenir: sıradaki güncelle noktayı
 // kaydeder, program nazikçe durur (ertelenen işler çalışır, Run ErrKesildi verir).
 func TestDeferredInterruptSavesAtStepBoundary(t *testing.T) {

@@ -3,6 +3,9 @@ package tokenizer_test
 import (
 	"bytes"
 	"encoding/json"
+	"go/ast"
+	goparser "go/parser"
+	"go/token"
 	"io"
 	"os"
 	"path/filepath"
@@ -305,5 +308,92 @@ func TestWatchPanel(t *testing.T) {
 	cols, rows, err := iz.TableData()
 	if err != nil || len(cols) != 3 || len(rows) == 0 || rows[0][1] != "<|endoftext|>" {
 		t.Fatalf("tablo %v %v %v", cols, rows, err)
+	}
+}
+
+// Uzun iş yorumlayıcıyı kilitlemez: parçalayıcı dosyasının yüklenmesi ve kodlama/çözme
+// çağrıları (tokenize.Load, Safe*, parallel) Blocking içinde (ya da uzun metinde
+// maybeRelease ile) çalışır; böylece başka görevler bu sırada ilerler. Çağrılar, bu
+// ikisine verilen işlev gövdelerinin (doğrudan ya da bir değişkenle verilen) içinde olmalıdır.
+func TestHeavyWorkReleasesLock(t *testing.T) {
+	file, err := goparser.ParseFile(token.NewFileSet(), reporoot.Path("internal", "stdlib", "tokenizer", "tokenizer.go"), nil, goparser.SkipObjectResolution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	isRelease := func(c *ast.CallExpr) bool {
+		switch f := c.Fun.(type) {
+		case *ast.SelectorExpr:
+			return f.Sel.Name == "Blocking" || f.Sel.Name == "maybeRelease"
+		case *ast.Ident:
+			return f.Name == "maybeRelease"
+		}
+		return false
+	}
+	// 1. geçiş: bırakan çağrılara verilen işlev gövdeleri.
+	released := map[*ast.FuncLit]bool{}
+	releasedNames := map[string]bool{}
+	ast.Inspect(file, func(n ast.Node) bool {
+		if c, ok := n.(*ast.CallExpr); ok && isRelease(c) {
+			for _, a := range c.Args {
+				switch x := a.(type) {
+				case *ast.FuncLit:
+					released[x] = true
+				case *ast.Ident:
+					releasedNames[x.Name] = true
+				}
+			}
+		}
+		return true
+	})
+	ast.Inspect(file, func(n ast.Node) bool {
+		if a, ok := n.(*ast.AssignStmt); ok && len(a.Lhs) == 1 && len(a.Rhs) == 1 {
+			id, isIdent := a.Lhs[0].(*ast.Ident)
+			lit, isLit := a.Rhs[0].(*ast.FuncLit)
+			if isIdent && isLit && releasedNames[id.Name] {
+				released[lit] = true
+			}
+		}
+		return true
+	})
+	// 2. geçiş: ağır çağrıların bir atası bırakan işlev gövdesi olmalı.
+	heavy := func(c *ast.CallExpr) string {
+		switch f := c.Fun.(type) {
+		case *ast.SelectorExpr:
+			if x, ok := f.X.(*ast.Ident); ok && x.Name == "tokenize" && f.Sel.Name == "Load" {
+				return "tokenize.Load"
+			}
+			if strings.HasPrefix(f.Sel.Name, "Safe") && len(f.Sel.Name) > len("Safe") { // bind.Safe panik sarmalayıcıdır, ağır iş değil
+				return f.Sel.Name
+			}
+		case *ast.Ident:
+			if f.Name == "parallel" {
+				return "parallel"
+			}
+		}
+		return ""
+	}
+	var stack []ast.Node
+	found := 0
+	ast.Inspect(file, func(n ast.Node) bool {
+		if n == nil {
+			stack = stack[:len(stack)-1]
+			return true
+		}
+		stack = append(stack, n)
+		c, ok := n.(*ast.CallExpr)
+		if !ok || heavy(c) == "" {
+			return true
+		}
+		found++
+		for _, a := range stack {
+			if lit, ok := a.(*ast.FuncLit); ok && released[lit] {
+				return true
+			}
+		}
+		t.Errorf("tokenizer.go: %s çağrısı Blocking/maybeRelease dışında: yorumlayıcı kilidi tutulurken uzun iş yapılır", heavy(c))
+		return true
+	})
+	if found < 6 {
+		t.Errorf("ağır çağrılar taranamadı (%d bulundu)", found)
 	}
 }

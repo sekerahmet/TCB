@@ -173,3 +173,22 @@ func TestOverwriteDirWithReadOnlyFile(t *testing.T) {
 		}
 	}
 }
+
+// Bu programda bir satır okuyucusuyla açık dosya taşınmaz: işlem başlamadan, ne yapılacağını
+// söyleyen bir hata verilir ve dosya yerinde kalır (Windows'ta taşıma yarıda kalırdı).
+func TestMoveOpenReader(t *testing.T) {
+	k := tmpWork(t)
+	write(t, filepath.Join(k, "k", "s.txt"), "a\nb\nc\n")
+	s := runTR(t, "", `değişken o = dosya_satırları("k/s.txt"); o.sonraki(); taşı("k", "w")`)
+	if !messages.Has(s.failure, messages.H7125) {
+		t.Fatalf("açık dosya: %v", s.failure)
+	}
+	CloseAll()
+	if !exists(filepath.Join(k, "k", "s.txt")) || exists(filepath.Join(k, "w")) {
+		t.Fatal("açık dosyalı klasör taşındı")
+	}
+	// Okuyucu kapanınca aynı taşıma çalışır.
+	if got := mustRunTR(t, `taşı("k", "w")`); got != "w" || !exists(filepath.Join(k, "w", "s.txt")) {
+		t.Fatalf("okuyucu kapandıktan sonra taşıma: %s", got)
+	}
+}

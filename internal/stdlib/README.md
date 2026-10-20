@@ -8,15 +8,19 @@ bağlar. Tam dili çalıştıran her program bu paketi içe aktarır.
 
 **Katman sınırı.** stdlib dil ve hesap çekirdeklerini içe aktarır, araçları (hata ayıklayıcı,
 profil aracı) bilmez.
+Denetim: `TestLayerRule` (`internal/layers_test.go`).
 
 **Sözlük tek kaynaktır.** Her yerleşik ve üye sabit bir koda bağlıdır; kayıtlı adlar, adlı
 argümanlar ve üye tipleri kod sözlüğüyle aynıdır. Testler sözlükte olmayan bir yerleşiğin
 kaydedilmesini ve sözlükteki bir kodun kayıtsız kalmasını engeller.
+Denetim: `TestBuiltinsMatchDictionary`, `TestMembersMatchDictionary`, `TestNamedArgsMatchDefinitions`, `TestMemberTypesMatchDefinitions`, `TestRemovedBuiltinsNotRegistered`.
 
 **Her örnek çalışır.** Sözlükteki her örnek tip denetiminden geçer ve hatasız çalışır.
+Denetim: `TestExamplesRun`.
 
 **Kaynaklar program sonunda kapanır.** Açık okuyucular, günlükler, önden yükleyiciler ve
 geçici klasörler program bitince kapatılır ve temizlenir; çağrı birden çok kez yapılabilir.
+Denetim: `TestCloseCallsEveryPackageCloser` (her paketin kapatma işlevi `Close`'dan çağrılır), `TestCloseCallableRepeatedly`; kaynakların kendisi paketlerin testlerinde (`dataset`: `TestResourcesClose`; `files`: `TestLineReaderClose`, `TestLineReaderClosedWhenUnreachable`, `TestTempDirDeletedByProgram`; `logging`: `TestCloseAllFinishesBar`).
 
 ## Testler
 
@@ -24,3 +28,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_builtin_codes_test.go`: yerleşiklerin ve üyelerin kod sözlüğüyle birebir eşleşmesi
 - `behavior_definitions_test.go`: kod listesindeki örneklerin, adlı argümanların ve üye tiplerinin gerçek davranışla aynı olması
+- `behavior_paths_test.go`: yorumlayıcı alan her işlevin dosya sistemine dokunmadan önce yolu `VM.ResolvePath` ile çözmesi (kaynak taraması)
+- `behavior_resources_close_test.go`: kaynak tutan her paketin kapatma işlevinin `Close`'dan çağrılması ve `Close`'un tekrar çağrılabilmesi
