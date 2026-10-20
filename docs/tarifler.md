@@ -35,6 +35,7 @@ Testler:
 | Dosya | Sınadığı |
 | :-- | :-- |
 | `internal/compute/tensor/elementwise_wide_test.go` | ileri değerler (NaN, ±∞, −0 dahil) ve türevin sayısal türevle uyuşması (`checkGrad`) |
+| `internal/compute/tensor/elementwise_wide_test.go` (`gradSpec` kaydı) | float64 başvuruya karşı sonlu fark gradyanı ve bf16 gradyan toleransı (3e-2); kayıt yoksa `behavior_grad_coverage_test.go` düşer; sınır değerlerde türev `TestUnaryGradEdges` |
 | `internal/compute/gpu/backend_wide_test.go` | GPU'nun CPU ile aynı sonucu vermesi, bf16/fp16 |
 | `internal/stdlib/ml/builtin_math_test.go` | sayıda ve tensörde dönüş tipi, listede açık hata |
 | `tests/matematik_test.tr` | dil kuralı: `test "15.31 ..."` (madde numarasıyla başlar) |

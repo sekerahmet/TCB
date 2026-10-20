@@ -50,7 +50,13 @@ func sign64(x float64) float64 {
 }
 
 var unaryRefs = []unaryRef{
-	{"silu", (*Tensor).Silu, silu64, 3, func(x float64) float64 { s := 1 / (1 + math.Exp(-x)); return s * (1 + x*(1-s)) }},
+	{"silu", (*Tensor).Silu, silu64, 3, func(x float64) float64 {
+		if math.IsInf(x, 0) { // sınırda türev 1 (+∞) ve 0 (−∞); formül ∞·0 verirdi
+			return math.Max(0, math.Copysign(1, x))
+		}
+		s := 1 / (1 + math.Exp(-x))
+		return s * (1 + x*(1-s))
+	}},
 	{"tan", (*Tensor).Tan, math.Tan, 1, func(x float64) float64 { t := math.Tan(x); return 1 + t*t }},
 	{"asin", (*Tensor).Asin, math.Asin, 1, func(x float64) float64 { return 1 / math.Sqrt(1-x*x) }},
 	{"acos", (*Tensor).Acos, math.Acos, 1, func(x float64) float64 { return -1 / math.Sqrt(1-x*x) }},
@@ -305,4 +311,130 @@ func TestWideBits16(t *testing.T) {
 		nanSame(t, "clamp "+dt.String(), x.Clamp(-1, 1).Data(), x32.Clamp(-1, 1).Cast(dt).Data())
 		nanSame(t, "atan2 "+dt.String(), Atan2(x, x.Neg()).Data(), Atan2(x32, x32.Neg()).Cast(dt).Data())
 	}
+}
+
+// ============================================================================
+// Gradyan kapısı: genişletilmiş tekli işlemler, clamp, atan2, where
+// ============================================================================
+
+func init() {
+	zeroSpec := func(name string, f func(*Tensor) *Tensor, ref func(float64) float64) gradSpec {
+		s := unarySpec(name, f, ref, -3, 3, 0.05)
+		s.mode = gradZero
+		return s
+	}
+	w := []gradSpec{
+		unarySpec("silu", (*Tensor).Silu, silu64, -3, 3, 0),
+		unarySpec("tan", (*Tensor).Tan, math.Tan, -1.2, 1.2, 0),
+		unarySpec("asin", (*Tensor).Asin, math.Asin, -0.9, 0.9, 0),
+		unarySpec("acos", (*Tensor).Acos, math.Acos, -0.9, 0.9, 0),
+		unarySpec("atan", (*Tensor).Atan, math.Atan, -3, 3, 0),
+		unarySpec("sinh", (*Tensor).Sinh, math.Sinh, -2, 2, 0),
+		unarySpec("cosh", (*Tensor).Cosh, math.Cosh, -2, 2, 0),
+		unarySpec("log1p", (*Tensor).Log1p, math.Log1p, -0.5, 2, 0),
+		unarySpec("log2", (*Tensor).Log2, math.Log2, 0.5, 3, 0),
+		unarySpec("log10", (*Tensor).Log10, math.Log10, 0.5, 3, 0),
+		unarySpec("expm1", (*Tensor).Expm1, math.Expm1, -2, 2, 0),
+		unarySpec("abs", (*Tensor).Abs, math.Abs, -2, 2, 0.05),
+		zeroSpec("floor", (*Tensor).Floor, math.Floor),
+		zeroSpec("ceil", (*Tensor).Ceil, math.Ceil),
+		zeroSpec("sign", (*Tensor).Sign, sign64),
+		{name: "clamp", ops: []string{"clamp"}, build: func(xs []*Tensor) *Tensor { return xs[0].Clamp(-0.5, 0.5) },
+			inputs: genInputs(gen(-1, 1, 0.03, 4, 5)), ref: map64(func(x float64) float64 { return math.Max(-0.5, math.Min(0.5, x)) })},
+		{name: "atan2 yayın", ops: []string{"atan2"}, build: func(xs []*Tensor) *Tensor { return Atan2(xs[0], xs[1]) },
+			inputs: genInputs(gen(-2, 2, 0.2, 3, 1), gen(-2, 2, 0.2, 1, 4)), ref: bcast64([]int{3, 1}, []int{1, 4}, math.Atan2)},
+		{name: "where yayın", ops: []string{"where"},
+			build:  func(xs []*Tensor) *Tensor { return Where(New([]float32{1, 0, 1, 1, 0, 0}, 2, 3), xs[0], xs[1]) },
+			inputs: genInputs(gen(-1, 1, 0.05, 2, 3), gen(-1, 1, 0.05, 3)),
+			ref: func(in [][]float64) []float64 {
+				cond := []bool{true, false, true, true, false, false}
+				res := make([]float64, 6)
+				for i := range res {
+					if cond[i] {
+						res[i] = in[0][i]
+					} else {
+						res[i] = in[1][i%3]
+					}
+				}
+				return res
+			}},
+	}
+	registerGrad("elementwise_wide", w...)
+}
+
+func TestGradElementwiseWide(t *testing.T) { runGradGroup(t, "elementwise_wide") }
+
+// knownEdgeGradIssues sınır değerlerinde gradyanı beklenenden saptığı bilinen işlemlerdir
+// (gerekçeli; yalnızca küçülür). Kayıttaki girdilerde sapma sürmelidir: düzeltilirse test
+// kaydın silinmesini ister. Düzeltme bu işin kapsamı dışında, bulgu olarak bildirilir.
+var knownEdgeGradIssues = []struct {
+	op     string
+	x      func(float32) bool
+	reason string
+}{
+	{"expm1", func(x float32) bool { return x < -9 },
+		"türev y+1 ile bulunur (y=expm1(x) float32): x<-9'da y+1 iptali göreli hatayı büyütür, x≲-17'de y=-1 olur ve türev 0 çıkar; doğrusu exp(x)"},
+}
+
+// TestUnaryGradEdges türevin sıfırlar, alt-normaller, büyük ve sonsuz girdilerdeki değeri float64
+// başvuruyla uyuşur (silu'nun alt-normal bölgesi hariç mutlak hata 1e-38).
+func TestUnaryGradEdges(t *testing.T) {
+	type edge struct {
+		ad  string
+		f   func(*Tensor) *Tensor
+		d   func(float64) float64
+		atol float64 // ulp tutmasa da kabul edilen mutlak hata
+	}
+	var cases []edge
+	for _, b := range unaryRefs {
+		if b.dtypeV != nil {
+			cases = append(cases, edge{b.ad, b.f, b.dtypeV, 0})
+		}
+	}
+	cases = append(cases,
+		edge{"exp", (*Tensor).Exp, math.Exp, 0},
+		// Tanım dışında (x<0) log'un gradyanı g/x'tir (NaN değil): ileri değer NaN'dır, gradyan
+		// formülü girdiyi okur.
+		edge{"log", (*Tensor).Log, func(x float64) float64 { return 1 / x }, 0},
+		edge{"sqrt", (*Tensor).Sqrt, func(x float64) float64 {
+			if x < 0 {
+				return math.NaN()
+			}
+			return 0.5 / math.Sqrt(x)
+		}, 0},
+		// tanh türevi 1−y² ile bulunur (y float32): |x|>9'da y=1−2⁻²⁴ olur ve türev 1.2e-7 çıkar
+		// (doğrusu ≤ 8e-9); mutlak hata 2⁻²³ ile sınırlıdır, atol bunu kabul eder.
+		edge{"tanh", (*Tensor).Tanh, func(x float64) float64 { y := math.Tanh(x); return 1 - y*y }, 2.5e-7},
+		// sigmoid türevi s(1−s) ile bulunur (s float32): kuyrukta 1−s yuvarlaması göreli hatayı
+		// 5e-4'e çıkarır, mutlak hata ≤ 1e-7 kalır.
+		edge{"sigmoid", (*Tensor).Sigmoid, func(x float64) float64 { s := 1 / (1 + math.Exp(-x)); return s * (1 - s) }, 1e-7},
+		edge{"sin", (*Tensor).Sin, math.Cos, 0},
+		edge{"cos", (*Tensor).Cos, func(x float64) float64 { return -math.Sin(x) }, 0})
+	for _, c := range cases {
+		x := New(append([]float32(nil), customInputs...), len(customInputs)).SetRequiresGrad(true)
+		c.f(x).SumAll().Backward()
+		for i, v := range customInputs {
+			got, want := x.Grad().Data()[i], float32(c.d(float64(v)))
+			if math.Abs(float64(want)) < 1e-36 && math.Abs(float64(got)-float64(want)) < 1e-38 {
+				continue // alt taşma bölgesi
+			}
+			bad := ulpDistance(got, want) > 8 && math.Abs(float64(got)-float64(want)) > c.atol
+			if known := knownEdgeIssue(c.ad, v); known != "" {
+				if !bad {
+					t.Errorf("%s'(%v) artık doğru: knownEdgeGradIssues kaydını silin", c.ad, v)
+				}
+			} else if bad {
+				t.Errorf("%s'(%v) = %v, başvuru %v", c.ad, v, got, want)
+			}
+		}
+	}
+}
+
+func knownEdgeIssue(op string, x float32) string {
+	for _, k := range knownEdgeGradIssues {
+		if k.op == op && k.x(x) {
+			return k.reason
+		}
+	}
+	return ""
 }

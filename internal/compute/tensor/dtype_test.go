@@ -409,3 +409,20 @@ func TestBits16RoundTrip(t *testing.T) {
 	}()
 	Bits16(Float32, 1)
 }
+
+// ============================================================================
+// Gradyan kapısı: tür dönüşümü
+// ============================================================================
+
+func init() {
+	// Dönüşüm gradyanı olduğu gibi geçirir; ileri değer hedef türe yuvarlanır (bf16: 2⁻⁹,
+	// f16: 2⁻¹² göreli), bu yüzden ileri tolerans 1e-2'dir.
+	cast := func(name string, dt DType) gradSpec {
+		return gradSpec{name: name, ops: []string{"cast"}, fwdTol: 1e-2,
+			build:  func(xs []*Tensor) *Tensor { return xs[0].Cast(dt).Cast(Float32) },
+			inputs: genInputs(gen(-1, 1, 0, 3, 4)), ref: identity64}
+	}
+	registerGrad("dtype", cast("cast bf16", BFloat16), cast("cast f16", Float16))
+}
+
+func TestGradCast(t *testing.T) { runGradGroup(t, "dtype") }

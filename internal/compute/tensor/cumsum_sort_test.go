@@ -166,3 +166,47 @@ func TestSortErrors(t *testing.T) {
 	}
 	nanSame(t, "fp16 topk", v.Data(), []float32{3, 2})
 }
+
+// ============================================================================
+// Gradyan kapısı: birikimli toplam ve en büyük k
+// ============================================================================
+
+func init() {
+	cum := func(l []float64) []float64 {
+		r := make([]float64, len(l))
+		var s float64
+		for i, v := range l {
+			s += v
+			r[i] = s
+		}
+		return r
+	}
+	top2 := func(l []float64) []float64 {
+		s := append([]float64(nil), l...)
+		slices.SortFunc(s, func(a, b float64) int {
+			if a > b {
+				return -1
+			}
+			return 1
+		})
+		return s[:2]
+	}
+	lane := func(shape []int, axis int, f func([]float64) []float64) refFn {
+		g := lanes64(shape, axis, f)
+		return func(in [][]float64) []float64 { return g(in[0]) }
+	}
+	dis := func(shape ...int) func(*rand.Rand) *Tensor {
+		return func(r *rand.Rand) *Tensor { return disjoint(r, shape...) }
+	}
+	registerGrad("cumsum_sort",
+		gradSpec{name: "cumsum eksen 0", ops: []string{"cumsum"}, build: func(xs []*Tensor) *Tensor { return xs[0].CumSum(0) },
+			inputs: genInputs(gen(-1, 1, 0, 4, 3)), ref: lane([]int{4, 3}, 0, cum)},
+		gradSpec{name: "cumsum eksen 1", ops: []string{"cumsum"}, build: func(xs []*Tensor) *Tensor { return xs[0].CumSum(1) },
+			inputs: genInputs(gen(-1, 1, 0, 3, 5)), ref: lane([]int{3, 5}, 1, cum)},
+		gradSpec{name: "topk eksen 1", ops: []string{"topk"}, build: func(xs []*Tensor) *Tensor { v, _ := xs[0].TopK(2, 1); return v },
+			inputs: genInputs(dis(3, 5)), ref: lane([]int{3, 5}, 1, top2)},
+		gradSpec{name: "topk eksen 0", ops: []string{"topk"}, build: func(xs []*Tensor) *Tensor { v, _ := xs[0].TopK(2, 0); return v },
+			inputs: genInputs(dis(4, 3)), ref: lane([]int{4, 3}, 0, top2)})
+}
+
+func TestGradCumSumSort(t *testing.T) { runGradGroup(t, "cumsum_sort") }
