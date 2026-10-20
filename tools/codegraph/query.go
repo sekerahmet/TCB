@@ -208,7 +208,11 @@ func (ix *index) printWhoUses(w io.Writer, n *Node, limit int) {
 	}
 	var uses []*Edge
 	for _, e := range ix.in[n.ID] {
-		if e.Kind != edgeContains {
+		switch e.Kind {
+		case edgeContains:
+		case edgeDenotes: // kodun Go sabiti: kullanım değil, ama "kim kullanıyor"un sonraki sorusu
+			fmt.Fprintf(w, "  Go constant: %s (who-uses it for its users)\n", describe(ix.byID[e.From]))
+		default:
 			uses = append(uses, e)
 		}
 	}

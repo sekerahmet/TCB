@@ -39,3 +39,15 @@ func Report(s Shape) error { return Twice(s) }
 
 // Orphan has no test.
 func Orphan() {}
+
+// Sides is a package-level constant.
+const Sides = 4
+
+// Default is a package-level variable.
+var Default = Square{1}
+
+// Corners uses both.
+func Corners() int {
+	_ = Default
+	return Sides
+}

@@ -13,8 +13,8 @@ const schemaVersion = 1
 
 // extractorRevision çıkarıcıların ürettiği içerik değişince artar (yeni alan, yeni kenar, farklı
 // eşleme). Eski bir sürümün kurduğu grafik, imzası aynı olsa da bir sorguda yeniden kurulur.
-// 2: düğümlere son satır (end) eklendi.
-const extractorRevision = 2
+// 2: düğümlere son satır (end) eklendi. 3: paket düzeyi const/var düğümleri ve `uses`, `denotes` kenarları.
+const extractorRevision = 3
 
 // Düğüm türleri.
 const (
@@ -23,6 +23,8 @@ const (
 	kindFunc    = "func"
 	kindMethod  = "method"
 	kindType    = "type"
+	kindConst   = "const"
+	kindVar     = "var"
 	kindMessage = "message"
 	kindName    = "name"
 	kindRule    = "rule"
@@ -39,6 +41,8 @@ const (
 	edgeTests       = "tests"
 	edgeUsesMessage = "uses_message"
 	edgeUsesName    = "uses_name"
+	edgeUses        = "uses"
+	edgeDenotes     = "denotes"
 	edgeGuardedBy   = "guarded_by"
 	edgeLinksTo     = "links_to"
 )
