@@ -17,3 +17,10 @@ kaydedilmesini ve sözlükteki bir kodun kayıtsız kalmasını engeller.
 
 **Kaynaklar program sonunda kapanır.** Açık okuyucular, günlükler, önden yükleyiciler ve
 geçici klasörler program bitince kapatılır ve temizlenir; çağrı birden çok kez yapılabilir.
+
+## Testler
+
+Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
+
+- `behavior_builtin_codes_test.go`: yerleşiklerin ve üyelerin kod sözlüğüyle birebir eşleşmesi
+- `behavior_definitions_test.go`: kod listesindeki örneklerin, adlı argümanların ve üye tiplerinin gerçek davranışla aynı olması

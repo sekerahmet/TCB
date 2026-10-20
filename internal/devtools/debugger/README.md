@@ -23,3 +23,13 @@ argümanlarla bile bir yanıt alır; hata ayıklayıcı asılmaz, program sonuna
 İzleme Masası'nda yapısal arayüzlerle (`WatchValue`, `WatchSummarizer`) gösterilir;
 uygulayıcıları derleme anında denetlenir. Düzenleyiciye giden türler ve JSON alan adları
 eklentiyle sözleşmedir, çevrilmez.
+
+## Testler
+
+Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
+
+- `behavior_dap_coded_files_test.go`: kodlu dosyanın düzenleyicide Türkçe görünümüyle açılması: kesme noktaları, çağrı yığını ve kaynak yolları
+- `behavior_dap_modules_test.go`: modül satırları, protokol alanlarıyla çakışan gizli değer ve göreli program yolu (DAP)
+- `behavior_dap_secrets_test.go`: gizli değerlerin düzenleyiciye giden hiçbir iletide görünmemesi
+- `behavior_dap_tensor_variables_test.go`: tensörlerin değişkenler panelinde açılması ve okunamayan program dosyası hatası
+- `behavior_dap_watch_panel_test.go`: İzleme Masası düğmelerinin gönderdiği DAP isteklerinin işlenmesi

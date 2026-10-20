@@ -325,7 +325,7 @@ func fixMargin(ceiling int) int {
 
 // testFileRuleRoots are the trees where the test file layout below is enforced. The list grows
 // as each layer is cleaned up.
-var testFileRuleRoots = []string{"internal/lang/", "internal/compute/"}
+var testFileRuleRoots = []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "cmd/"}
 
 // Test dosyası düzeni (docs/katki.md, "Testler"): üç tür test dosyası vardır.
 //   - Birim testi: X_test.go yalnızca X.go'yu sınar ve yanında durur. X_fuzz_test.go ve
