@@ -289,7 +289,7 @@ func startREPL() {
 			continue
 		}
 		if line == "/h" || line == "/H" {
-			machine.Debugger = debugger.NewDebugger("<etkileşimli-kabuk>", "", true)
+			machine.Debugger = debugger.NewDebugger(messages.Text(messages.H8639), "", true)
 			fmt.Println("🐞 " + messages.Text(messages.H8637))
 			continue
 		}

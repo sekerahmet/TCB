@@ -147,7 +147,7 @@ func ParseDefinitions(data []byte) (*Definitions, error) {
 		seen := map[string]bool{}
 		for _, p := range raw[k].Param {
 			if p == "" || seen[p] || strings.ContainsAny(p, "{}| ") {
-				return nil, fmt.Errorf("%s: parametre adı %q boş, yinelenmiş ya da geçersiz", k, p)
+				return nil, fmt.Errorf("%s: parameter name %q is empty, repeated or invalid", k, p)
 			}
 			seen[p] = true
 		}
@@ -177,7 +177,7 @@ func ParseCatalog(lang string, data []byte, d *Definitions) (*Catalog, error) {
 		}
 		params, ok := d.Params[code]
 		if !ok {
-			return nil, fmt.Errorf("%s: definitions.json'da tanımlı değil", k)
+			return nil, fmt.Errorf("%s: not defined in definitions.json", k)
 		}
 		segs, used, err := compile(raw[k], params)
 		if err != nil {
@@ -187,7 +187,7 @@ func ParseCatalog(lang string, data []byte, d *Definitions) (*Catalog, error) {
 		// (dosya yolu, sayı) kullanıcıya hiç ulaşmazdı.
 		for i, p := range params {
 			if !used[i] {
-				return nil, fmt.Errorf("%s: %q parametresi metinde kullanılmıyor", k, p)
+				return nil, fmt.Errorf("%s: parameter %q is not used in the text", k, p)
 			}
 		}
 		c.templates[code] = segs
@@ -195,7 +195,7 @@ func ParseCatalog(lang string, data []byte, d *Definitions) (*Catalog, error) {
 	if lang == "tr" {
 		for _, code := range d.Codes {
 			if _, ok := c.templates[code]; !ok {
-				return nil, fmt.Errorf("%s: tanımlı ama Türkçe metni yok", code)
+				return nil, fmt.Errorf("%s: defined but has no Turkish text", code)
 			}
 		}
 	}
@@ -235,11 +235,11 @@ func orderedKeys(data []byte) ([]string, error) {
 		}
 	}
 	if !sort.StringsAreSorted(keys) {
-		return nil, fmt.Errorf("kodlar artan sırada olmalı")
+		return nil, fmt.Errorf("codes must be in ascending order")
 	}
 	for i := 1; i < len(keys); i++ {
 		if keys[i] == keys[i-1] {
-			return nil, fmt.Errorf("%s iki kez tanımlı", keys[i])
+			return nil, fmt.Errorf("%s is defined twice", keys[i])
 		}
 	}
 	return keys, nil

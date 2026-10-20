@@ -25,14 +25,14 @@ func (t Token) String() string {
 }
 
 const (
-	TokIllegal = "GEÇERSİZ"
-	TokEOF     = "DOSYA_SONU"
+	TokIllegal = "ILLEGAL"
+	TokEOF     = "EOF"
 
 	// Identifiers and literals
-	TokIdent  = "TANIMLAYICI"
-	TokInt    = "TAM_SAYI"
-	TokFloat  = "ONDALIK_SAYI"
-	TokString = "METİN"
+	TokIdent  = "IDENT"
+	TokInt    = "INT"
+	TokFloat  = "FLOAT"
+	TokString = "STRING"
 
 	// Operators
 	TokAssign      = "="
@@ -80,32 +80,32 @@ const (
 	// Keywords. The type names are internal and never shown to the user; the names the user
 	// writes are in the dictionary (internal/lang/codes, A0xx), and keywords.go says which
 	// code produces which type.
-	TokVar        = "DEĞİŞKEN"      // A030
-	TokConst      = "SABİT"         // A031
-	TokFunction   = "FONKSİYON"     // A020
-	TokReturn     = "SONUÇ"         // A021
-	TokIf         = "EĞER"          // A001
-	TokElse       = "DEĞİLSE"       // A002
-	TokMatch      = "EŞLE"          // A003
-	TokDefault    = "VARSAYILAN"    // A004
-	TokFor        = "DÖNGÜ"         // A010
-	TokIn         = "İÇİNDE"        // A011
-	TokWhile      = "İKEN"          // A012
-	TokBreak      = "ÇIK"           // A013
-	TokContinue   = "DEVAM"         // A014
-	TokTrue       = "DOĞRU"         // A040
-	TokFalse      = "YANLIŞ"        // A041
-	TokNil        = "YOK"           // A042
-	TokKwAnd      = "VE"            // A043
-	TokKwOr       = "VEYA"          // A044
-	TokKwNot      = "DEĞİL"         // A045
-	TokStruct     = "YAPI"          // A050
-	TokSelf       = "KENDİ"         // A051
-	TokTry        = "DENE"          // A060
-	TokCatch      = "YAKALA"        // A061
-	TokThrow      = "FIRLAT"        // A062
-	TokImport     = "AKTAR"         // A070
-	TokConcurrent = "EŞZAMANLI"     // A080
-	TokDefer      = "ERTELE"        // A081
-	TokBreakpoint = "KESME_NOKTASI" // A090
+	TokVar        = "VAR"        // A030
+	TokConst      = "CONST"      // A031
+	TokFunction   = "FUNCTION"   // A020
+	TokReturn     = "RETURN"     // A021
+	TokIf         = "IF"         // A001
+	TokElse       = "ELSE"       // A002
+	TokMatch      = "MATCH"      // A003
+	TokDefault    = "DEFAULT"    // A004
+	TokFor        = "FOR"        // A010
+	TokIn         = "IN"         // A011
+	TokWhile      = "WHILE"      // A012
+	TokBreak      = "BREAK"      // A013
+	TokContinue   = "CONTINUE"   // A014
+	TokTrue       = "TRUE"       // A040
+	TokFalse      = "FALSE"      // A041
+	TokNil        = "NIL"        // A042
+	TokKwAnd      = "AND"        // A043
+	TokKwOr       = "OR"         // A044
+	TokKwNot      = "NOT"        // A045
+	TokStruct     = "STRUCT"     // A050
+	TokSelf       = "SELF"       // A051
+	TokTry        = "TRY"        // A060
+	TokCatch      = "CATCH"      // A061
+	TokThrow      = "THROW"      // A062
+	TokImport     = "IMPORT"     // A070
+	TokConcurrent = "CONCURRENT" // A080
+	TokDefer      = "DEFER"      // A081
+	TokBreakpoint = "BREAKPOINT" // A090
 )

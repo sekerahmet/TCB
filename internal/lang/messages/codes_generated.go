@@ -35,7 +35,7 @@ const (
 	H0140 Code = 140  // {expected} bekleniyordu, ancak {found} bulundu{hint}
 	H0141 Code = 141  // burada bir değer ya da ifade bekleniyordu, ancak {found} bulundu
 	H0142 Code = 142  // çoklu değişken tanımında '=' bekleniyordu, ancak {found} bulundu
-	H0143 Code = 143  // '{keyword}' modül yolunu metin olarak bekler, ancak {found} bulundu: {keyword} "{example}" yazın
+	H0143 Code = 143  // '{keyword}' modül yolunu metin olarak bekler, ancak {found} bulundu: {keyword} "{example, select, empty {yardımcı} other {{example}}}" yazın
 	H0145 Code = 145  // '{name}' metodu '{struct}' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)
 	H0146 Code = 146  // '{name}' alanı '{struct}' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)
 	H0147 Code = 147  // yapı gövdesinde yalnızca alanlar (ad, ad: Tip, ad = değer) ve fonksiyon tanımları bulunabilir; {what}
@@ -57,6 +57,8 @@ const (
 	H0165 Code = 165  // {literal} tam sayı olarak çok büyük (en fazla {max} olabilir; ondalık sayı için sonuna .0 ekleyin)
 	H0166 Code = 166  // {literal} ondalık sayı olarak çok büyük ya da geçersiz
 	H0167 Code = 167  // satır başındaki {op} önceki satırı sürdürmez; ifadeyi bölmek için işleci önceki satırın sonuna yazın ya da ifadeyi parantez içine alın
+	H0168 Code = 168  // '\' ve satır sonu
+	H0169 Code = 169  // '\' ve sekme
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -77,8 +79,8 @@ const (
 	H1106 Code = 1106 // '{name}' adında bir değişken ya da fonksiyon yok{suggestion}
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
-	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind} hataları nedeniyle yüklenemedi
-	H2003 Code = 2003 // Satır {line}: {module|q} modülü {kind} hataları nedeniyle yüklenemedi
+	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
+	H2003 Code = 2003 // Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
 	H2004 Code = 2004 // Satır {line}, Sütun {col}: {error}
 	H2005 Code = 2005 // {a}, {b}
 	H2006 Code = 2006 // {a} ya da {b}
@@ -169,6 +171,9 @@ const (
 	H2328 Code = 2328 // {{ad: tensör, ...}}
 	H2329 Code = 2329 // {{seçenek: varsayılan, ...}}
 	H2330 Code = 2330 // ad
+	H2331 Code = 2331 // [ayırıcı]
+	H2332 Code = 2332 // önek
+	H2333 Code = 2333 // [başlangıç], {receiver}
 	H2400 Code = 2400 // {container} indeksi {number} sayı olmalıdır
 	H2401 Code = 2401 // {container} indeksi sınır dışı ({index})
 	H2402 Code = 2402 // {type} tipinde indeksli bileşik atama yapılamaz
@@ -277,6 +282,9 @@ const (
 	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse {get}({index}) ?? varsayılan yazın
 	H2516 Code = 2516 // eşzamanlı görev hatası (satır {line|loc} başlatılan): {error}
 	H2517 Code = 2517 // eşitlik başarısız: {message} — beklenen {expected}, gerçek {actual}
+	H2518 Code = 2518 // '{receiver}.{member}()' TR'de yok; '{fn}({receiver})' yazın
+	H2519 Code = 2519 // {error}; {defer} içinde de hata: {deferred}
+	H2520 Code = 2520 // Koddaki kesme noktası ({keyword})
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
@@ -1246,7 +1254,7 @@ const (
 	H8034 Code = 8034 // Adım (F11)
 	H8035 Code = 8035 // Üstten geçildi (F10)
 	H8036 Code = 8036 // Fonksiyondan çıkıldı (Shift+F11)
-	H8040 Code = 8040 // Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '{cmd}' yerine {key} yazın.
+	H8040 Code = 8040 // Tuşlar düzenleyicinin hata ayıklama tuşlarıyla aynıdır: F5 devam, F10 üstten geç, F11 içine gir, Shift+F11 dışarı çık. '{cmd}' yerine {key} ({command}) yazın.
 	H8041 Code = 8041 // '{cmd}' hata ayıklayıcıda bir komut değil; '{command}' yazın.
 	H8042 Code = 8042 // Kullanım: {command} <değişken> = <yeni_değer>  (Örn: {command} x = 99)
 	H8043 Code = 8043 // Geçersiz değer ifadesi.
@@ -1439,6 +1447,8 @@ const (
 	H8635 Code = 8635 // Görüşmek üzere!
 	H8636 Code = 8636 // '{given}' TR'de bir komut değil; çıkmak için '{exit}' yazın.
 	H8637 Code = 8637 // [/h] Hata ayıklama modu etkinleştirildi! Bir sonraki komut adım adım çalışacak (F11 adım, F10 üstten geç, Shift+F11 dön, F5 devam).
+	H8638 Code = 8638 // <derlenmiş-uygulama>
+	H8639 Code = 8639 // <etkileşimli-kabuk>
 	H8650 Code = 8650 // Sözdizimi Hataları:
 	H8651 Code = 8651 // Tip ve Güvenlik Denetimi Hataları:
 	H8654 Code = 8654 // Derleme Öncesi Sözdizimi Hataları:
@@ -1489,7 +1499,7 @@ const (
 	H8755 Code = 8755 // {file}, satır {line}: {error}
 	H8756 Code = 8756 // {file}, satır {line}: {module|q} modülü bulunamadı (aranan: {searched})
 	H8757 Code = 8757 // {file}, satır {line}: {module|q} modülü okunamadı: {error}
-	H8758 Code = 8758 // {path} modülünde {kind} hatası: {error}
+	H8758 Code = 8758 // {path} modülünde {kind, select, syntax {sözdizimi} other {tip denetimi}} hatası: {error}
 	H8759 Code = 8759 // Not: Yorumlayıcı GOAMD64=v3 ile derlendiği için bu uygulama AVX2 destekli (x86-64-v3) bir işlemci ister.
 	H8760 Code = 8760 // Not: Yorumlayıcı GOAMD64=v4 ile derlendiği için bu uygulama AVX-512 destekli (x86-64-v4) bir işlemci ister.
 	H8761 Code = 8761 // Derleme hatası:

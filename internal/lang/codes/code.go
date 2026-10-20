@@ -118,21 +118,21 @@ const (
 func (a Namespace) String() string {
 	switch a {
 	case NamespaceGlobal:
-		return "genel adlar"
+		return "global names"
 	case NamespaceType:
-		return "tip adları"
+		return "type names"
 	case NamespaceMember:
-		return "üyeler"
+		return "members"
 	case NamespaceParam:
-		return "adlı argümanlar"
+		return "named arguments"
 	case NamespaceCommand:
-		return "komutlar"
+		return "commands"
 	case NamespaceOption:
-		return "komut satırı seçenekleri"
+		return "command-line options"
 	case NamespaceDebugger:
-		return "hata ayıklayıcı komutları"
+		return "debugger commands"
 	}
-	return "ad alanı yok"
+	return "no namespace"
 }
 
 // Namespace is the code's namespace.

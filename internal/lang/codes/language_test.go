@@ -262,7 +262,7 @@ func TestKapatDoesNotClashWithY012(t *testing.T) {
 		t.Errorf("Y008'in adı kodun kendisi olmalı: %q", Name(Y+8))
 	}
 	_, err := Load("deneme", []byte(`{"Y008": {"ad": "Y008", "eski": ["kapat"]}, "Y012": {"ad": "kapat"}}`))
-	if err == nil || !strings.Contains(err.Error(), "the name \"kapat\" of kaldırılmış Y008 clashes with Y012") {
+	if err == nil || !strings.Contains(err.Error(), "the name \"kapat\" of removed Y008 clashes with Y012") {
 		t.Errorf("ölü kodun eski adı canlı adla çakışınca reddedilmeli: %v", err)
 	}
 }

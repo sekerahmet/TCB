@@ -34,11 +34,11 @@ func TestCatalogErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, c := range []struct{ text, want string }{
-		{`{a} {c}`, "böyle bir parametre yok"},
-		{`{a} {b`, "kapanmamış"},
-		{`{a|x} {b}`, "bilinmeyen biçim"},
-		{`{a} }`, "eşi olmayan"},
-		{`{a}`, `"b" parametresi metinde kullanılmıyor`},
+		{`{a} {c}`, "no such parameter"},
+		{`{a} {b`, "unclosed"},
+		{`{a|x} {b}`, "unknown format"},
+		{`{a} }`, "unmatched"},
+		{`{a}`, `parameter "b" is not used`},
 	} {
 		_, err := ParseCatalog("tr", []byte(`{"H0001": `+quoteJSON(c.text)+`}`), d)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -47,7 +47,7 @@ func TestCatalogErrors(t *testing.T) {
 	}
 	// Her dil kodun bütün parametrelerini kullanır: çeviride düşen değer kullanıcıya ulaşmazdı.
 	// Kodun çevirisi olmaması ise serbesttir (Türkçeye düşer).
-	if _, err := ParseCatalog("en", []byte(`{"H0001": "{a}"}`), d); err == nil || !strings.Contains(err.Error(), "kullanılmıyor") {
+	if _, err := ParseCatalog("en", []byte(`{"H0001": "{a}"}`), d); err == nil || !strings.Contains(err.Error(), "is not used") {
 		t.Errorf("öbür dilde eksik parametre hata vermeli: %v", err)
 	}
 	if _, err := ParseCatalog("en", []byte(`{}`), d); err != nil {
@@ -56,7 +56,7 @@ func TestCatalogErrors(t *testing.T) {
 	if _, err := ParseCatalog("en", []byte(`{"H0002": "x"}`), d); err == nil {
 		t.Error("tanımsız kod hata vermeli")
 	}
-	if _, err := ParseCatalog("tr", []byte(`{}`), d); err == nil || !strings.Contains(err.Error(), "Türkçe metni yok") {
+	if _, err := ParseCatalog("tr", []byte(`{}`), d); err == nil || !strings.Contains(err.Error(), "no Turkish text") {
 		t.Errorf("Türkçe metni olmayan kod hata vermeli: %v", err)
 	}
 	for _, bad := range []string{

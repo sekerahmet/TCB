@@ -42,7 +42,7 @@ func TestMovedCodes(t *testing.T) {
 	}
 	// Taşınan bir ad aynı ad alanında canlı bir adla çakışırsa dil dosyası reddedilir.
 	_, err := Load("dene", []byte(`{"G100": {"ad": "yazdır"}, "G200": {"ad": "yazdır"}, "Y001": {"ad": "uzunluk"}}`))
-	if err == nil || !strings.Contains(err.Error(), "the name \"yazdır\" of taşınmış G200") {
+	if err == nil || !strings.Contains(err.Error(), "the name \"yazdır\" of moved G200") {
 		t.Errorf("çakışma yakalanmalı: %v", err)
 	}
 }

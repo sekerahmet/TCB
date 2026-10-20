@@ -11,8 +11,8 @@ import (
 // The stages where preparation can stop (Result.Stage). Module errors are reported with
 // these names.
 const (
-	StageSyntax = "sözdizimi"
-	StageType   = "tip denetimi"
+	StageSyntax = "syntax"
+	StageType   = "type"
 )
 
 // Options selects the stages a source goes through.

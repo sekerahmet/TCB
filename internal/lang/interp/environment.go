@@ -153,7 +153,7 @@ func (h *deferError) Error() string {
 	for i, e := range h.extras {
 		pieces[i] = e.Error()
 	}
-	return h.mainSrc.Error() + "; ertele içinde de hata: " + strings.Join(pieces, "; ")
+	return messages.Text(messages.H2519, h.mainSrc, codes.Name(codes.A081), strings.Join(pieces, "; "))
 }
 
 func (h *deferError) Unwrap() error { return h.mainSrc }

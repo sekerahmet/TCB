@@ -116,11 +116,11 @@ func compile(text string, params []string) ([]segment, []bool, error) {
 		return nil, nil, err
 	}
 	if p.i < len(p.text) {
-		return nil, nil, fmt.Errorf("eşi olmayan '}' (düz parantez için }} yazın)")
+		return nil, nil, fmt.Errorf("unmatched '}' (write }} for a literal brace)")
 	}
 	for i, name := range params {
 		if p.used[i] && !covers(segs, i) {
-			return nil, nil, fmt.Errorf("{%s} bazı dallarda yok (her dalda ya da dalların dışında geçmeli)", name)
+			return nil, nil, fmt.Errorf("{%s} is missing from some branches (use it in every branch or outside them)", name)
 		}
 	}
 	return segs, p.used, nil
@@ -192,7 +192,7 @@ func (p *parser) sequence(inBranch, inPlural bool) ([]segment, error) {
 			segs = append(segs, s)
 		case ch == '}':
 			if !inBranch {
-				return nil, fmt.Errorf("eşi olmayan '}' (düz parantez için }} yazın)")
+				return nil, fmt.Errorf("unmatched '}' (write }} for a literal brace)")
 			}
 			flush()
 			return segs, nil
@@ -206,7 +206,7 @@ func (p *parser) sequence(inBranch, inPlural bool) ([]segment, error) {
 		}
 	}
 	if inBranch {
-		return nil, fmt.Errorf("kapanmamış dal: %q", p.text)
+		return nil, fmt.Errorf("unclosed branch: %q", p.text)
 	}
 	flush()
 	return segs, nil
@@ -218,7 +218,7 @@ func (p *parser) placeholder(inPlural bool) (segment, error) {
 	p.i++ // {
 	end := strings.IndexAny(p.text[p.i:], ",}")
 	if end < 0 {
-		return segment{}, fmt.Errorf("kapanmamış parametre: %q", p.text[start:])
+		return segment{}, fmt.Errorf("unclosed parameter: %q", p.text[start:])
 	}
 	head := p.text[p.i : p.i+end]
 	p.i += end
@@ -230,7 +230,7 @@ func (p *parser) placeholder(inPlural bool) (segment, error) {
 			return segment{}, err
 		}
 		if mod != "" && mod != "q" && !caseMods[mod] {
-			return segment{}, fmt.Errorf("{%s|%s}: bilinmeyen biçim (q, acc, dat, loc, abl, gen)", name, mod)
+			return segment{}, fmt.Errorf("{%s|%s}: unknown format (q, acc, dat, loc, abl, gen)", name, mod)
 		}
 		return segment{kind: segArg, arg: n, mod: mod}, nil
 	}
@@ -248,7 +248,7 @@ func (p *parser) choice(name string, inPlural bool) (segment, error) {
 	rest := p.text[p.i:]
 	kindEnd := strings.IndexByte(rest, ',')
 	if kindEnd < 0 {
-		return segment{}, fmt.Errorf("{%s, ...}: tür ve dallar bekleniyordu", name)
+		return segment{}, fmt.Errorf("{%s, ...}: a kind and branches were expected", name)
 	}
 	kindName := strings.TrimSpace(rest[:kindEnd])
 	p.i += kindEnd + 1
@@ -259,12 +259,12 @@ func (p *parser) choice(name string, inPlural bool) (segment, error) {
 	case "select":
 		s.kind = segSelect
 	default:
-		return segment{}, fmt.Errorf("{%s, %s}: bilinmeyen tür (plural ya da select)", name, kindName)
+		return segment{}, fmt.Errorf("{%s, %s}: unknown kind (plural or select)", name, kindName)
 	}
 	for {
 		p.skipSpace()
 		if p.i >= len(p.text) {
-			return segment{}, fmt.Errorf("{%s, %s}: kapanmamış", name, kindName)
+			return segment{}, fmt.Errorf("{%s, %s}: unclosed", name, kindName)
 		}
 		if p.text[p.i] == '}' {
 			p.i++
@@ -272,16 +272,16 @@ func (p *parser) choice(name string, inPlural bool) (segment, error) {
 		}
 		keyEnd := strings.IndexAny(p.text[p.i:], " {}")
 		if keyEnd <= 0 || p.text[p.i+keyEnd] == '}' {
-			return segment{}, fmt.Errorf("{%s, %s}: dalsız anahtar", name, kindName)
+			return segment{}, fmt.Errorf("{%s, %s}: key without a branch", name, kindName)
 		}
 		key := p.text[p.i : p.i+keyEnd]
 		p.i += keyEnd
 		p.skipSpace()
 		if p.i >= len(p.text) || p.text[p.i] != '{' {
-			return segment{}, fmt.Errorf("{%s, %s}: %q anahtarının dalı yok", name, kindName, key)
+			return segment{}, fmt.Errorf("{%s, %s}: key %q has no branch", name, kindName, key)
 		}
 		if s.kind == segPlural && !pluralCategories[key] && !isExact(key) {
-			return segment{}, fmt.Errorf("{%s, plural}: %q bir CLDR kategorisi ya da =N değil (N sayının tek yazımı: =0, =1.5)", name, key)
+			return segment{}, fmt.Errorf("{%s, plural}: %q is not a CLDR category or =N (N in canonical form: =0, =1.5)", name, key)
 		}
 		p.i++ // {
 		branch, err := p.sequence(true, inPlural || s.kind == segPlural)
@@ -292,7 +292,7 @@ func (p *parser) choice(name string, inPlural bool) (segment, error) {
 		s.branches[key] = branch
 	}
 	if _, ok := s.branches["other"]; !ok {
-		return segment{}, fmt.Errorf("{%s, %s}: \"other\" dalı zorunlu", name, kindName)
+		return segment{}, fmt.Errorf("{%s, %s}: the \"other\" branch is required", name, kindName)
 	}
 	return s, nil
 }
@@ -304,7 +304,7 @@ func (p *parser) param(name string) (int, error) {
 			return i, nil
 		}
 	}
-	return 0, fmt.Errorf("{%s}: tanımda böyle bir parametre yok (parametreler: %v)", name, p.params)
+	return 0, fmt.Errorf("{%s}: no such parameter in the definition (parameters: %v)", name, p.params)
 }
 
 func (p *parser) skipSpace() {

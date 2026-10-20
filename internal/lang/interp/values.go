@@ -35,7 +35,7 @@ var (
 // names of their own types with it.
 func TypeName(k codes.Code) ValueType {
 	if k.Namespace() != codes.NamespaceType {
-		panic(fmt.Sprintf("TipAdi: %s bir tip adı kodu (A2xx) değil", k))
+		panic(fmt.Sprintf("TypeName: %s is not a type name code (A2xx)", k))
 	}
 	return ValueType(codes.Name(k))
 }

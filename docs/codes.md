@@ -1373,6 +1373,8 @@ devam
 değiştir x = 100
 ```
 
+Eski adlar: `ata`, `kalem`
+
 #### K305 `zıpla`
 
 Çalışma sırasını verilen satıra taşır.
@@ -1380,6 +1382,8 @@ değiştir x = 100
 ```tr
 zıpla 15
 ```
+
+Eski adlar: `git`
 
 #### K306 `kesme`
 
@@ -1405,6 +1409,8 @@ Değişkenlerin tablosunu gösterir.
 tablo
 ```
 
+Eski adlar: `incele`
+
 #### K309 `yığın`
 
 Çağrı yığınını gösterir.
@@ -1421,6 +1427,8 @@ Bir ifadeyi o anki ortamda hesaplar ve yazar.
 hesapla x * 2
 ```
 
+Eski adlar: `yaz`
+
 #### K311 `ekran`
 
 Kaynak kodun duraklanan satır çevresini gösterir.
@@ -1428,6 +1436,8 @@ Kaynak kodun duraklanan satır çevresini gösterir.
 ```tr
 ekran
 ```
+
+Eski adlar: `göster`
 
 #### K312 `yardım`
 

@@ -95,7 +95,7 @@ func convertFromInput(convert func(string) (string, error)) {
 
 // decodeCommand 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz.
 func decodeCommand(args []string) {
-	convertCommand(args, "çöz", messages.Text(messages.H8705), func(text string) (string, error) {
+	convertCommand(args, codes.Name(codes.K010), messages.Text(messages.H8705), func(text string) (string, error) {
 		return source.Decode(text, codes.Active())
 	})
 }
@@ -165,7 +165,7 @@ func showCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
 		// Gösterimin geri okunduğu denetim (source.Decode) etkin dilde yapılabilir: başka bir
 		// dil, süreci o dille yeniden çalıştırarak gösterilir ('tr kodla -' gibi).
-		if language := languageArgument(args[1:], "göster"); language.Code != codes.Active().Code {
+		if language := languageArgument(args[1:], codes.Name(codes.K011)); language.Code != codes.Active().Code {
 			rerunWithLanguage(language.Code)
 		}
 		convertFromInput(func(text string) (string, error) { return source.Decode(text, codes.Active()) })

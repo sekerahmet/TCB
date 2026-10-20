@@ -62,7 +62,7 @@ type ModuleError struct {
 	Source *Source
 	Err    error
 
-	Kind       string  // "sözdizimi" ya da "tip denetimi" (denetim hatalarında)
+	Kind       string  // source.StageSyntax ya da source.StageType (denetim hatalarında)
 	Errors     []error // denetim hataları, modülün satırlarıyla
 	ModulePath string  // 'aktar'da yazılan yol
 	ImportLine int     // 'aktar' deyiminin satırı

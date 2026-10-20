@@ -437,10 +437,10 @@ func CheckDefinitions(d *Language) []error {
 			if a.Code.Namespace() != NamespaceParam || !live(a.Code) {
 				errorf("%s %snamed argument %s is not a named-argument code (x9xx)", k, pos, a.Code)
 			}
-			checkType(k, pos+"adlı argüman", a.Type)
+			checkType(k, pos+"named argument", a.Type)
 		}
 		if !im.Return.Empty() {
-			checkType(k, pos+"dönüş", im.Return)
+			checkType(k, pos+"return", im.Return)
 		}
 	}
 	for _, k := range DefinitionCodes() {

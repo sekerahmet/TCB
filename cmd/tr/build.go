@@ -37,7 +37,7 @@ const (
 // embeddedSourceName gömülü uygulamanın ana programına verilen addır. VM bu adı görünce
 // modülleri ana programın klasörüne göre aramaz; gömülü uygulamada her 'aktar' zaten
 // gömülü modülün mutlak yoluna yönlendirilir.
-const embeddedSourceName = "<derlenmiş-uygulama>"
+var embeddedSourceName = messages.Text(messages.H8638)
 
 // packageFile pakete gömülü tek bir .tr kaynağıdır.
 type packageFile struct {
@@ -270,7 +270,7 @@ func (t *moduleCollector) collect(file *packageFile, sourcePath string) error {
 type moduleCheckError struct {
 	filePath string
 	code     string
-	kind     string // "sözdizimi" ya da "tip denetimi"
+	kind     string // source.StageSyntax ya da source.StageType
 	diags    []error
 }
 

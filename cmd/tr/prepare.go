@@ -205,7 +205,7 @@ func checkModules(path, code string, h preparation, globalHeader string) *pkg {
 	var moduleErr *moduleCheckError
 	if errors.As(err, &moduleErr) {
 		header := h.typeHeader
-		if moduleErr.kind == "sözdizimi" {
+		if moduleErr.kind == source.StageSyntax {
 			header = h.syntaxHeader
 		}
 		exitWithDiags(moduleHeader(header, moduleErr.filePath), moduleErr.diags, moduleErr.code)

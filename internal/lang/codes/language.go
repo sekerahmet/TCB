@@ -228,9 +228,9 @@ func Load(langCode string, data []byte) (*Language, error) {
 		g := d.entries[k]
 		ns := k.Namespace()
 		d.nameArr[int(k)/1000-1][k.Number()] = g.Name
-		kind := "kaldırılmış"
+		kind := "removed"
 		if g.MovedTo != None {
-			kind = "taşınmış"
+			kind = "moved"
 		}
 		if h, ok := d.entries[g.MovedTo]; g.MovedTo != None && (!ok || h.Dead()) {
 			errorf("%s moved to %s, but %s is not a live code in the language file", k, g.MovedTo, g.MovedTo)
@@ -321,7 +321,7 @@ func (d *Language) Name(k Code) string {
 			return a
 		}
 	}
-	panic(fmt.Sprintf("kod listesi %s: %s kodu dil dosyasında yok", d.Code, k))
+	panic(fmt.Sprintf("code list %s: code %s is not in the language file", d.Code, k))
 }
 
 // Spellings returns every accepted spelling of the code. Since every operation has one
@@ -330,7 +330,7 @@ func (d *Language) Name(k Code) string {
 func (d *Language) Spellings(k Code) []string {
 	y, ok := d.spellings[k]
 	if !ok {
-		panic(fmt.Sprintf("kod listesi %s: %s kodu dil dosyasında yok", d.Code, k))
+		panic(fmt.Sprintf("code list %s: code %s is not in the language file", d.Code, k))
 	}
 	return y
 }
@@ -408,7 +408,7 @@ var active = func() *Language {
 	if err != nil {
 		activeErr = messages.New(messages.H2509, LanguageEnvVar, langCode, err)
 		if d, err = buildLanguage("tr"); err != nil {
-			panic(fmt.Sprintf("codes: gömülü Türkçe kod listesi kurulamadı: %v", err))
+			panic(fmt.Sprintf("codes: the embedded Turkish code list cannot be built: %v", err))
 		}
 	}
 	return d

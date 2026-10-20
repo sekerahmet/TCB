@@ -73,7 +73,7 @@ func keywordMap(table []Keyword) (map[string]TokenType, map[TokenType]codes.Code
 	codeList := make(map[TokenType]codes.Code)
 	for _, kw := range table {
 		if !kw.Code.IsKeyword() {
-			panic(fmt.Sprintf("anahtar kelime tablosu: %s bir anahtar kelime kodu (A0xx) değil", kw.Code))
+			panic(fmt.Sprintf("keyword table: %s is not a keyword code (A0xx)", kw.Code))
 		}
 		if prev, ok := codeList[kw.Type]; ok {
 			panic(fmt.Sprintf("anahtar kelime tablosu: %s hem %s hem %s", kw.Type, prev, kw.Code))
@@ -81,7 +81,7 @@ func keywordMap(table []Keyword) (map[string]TokenType, map[TokenType]codes.Code
 		codeList[kw.Type] = kw.Code
 		for _, spelling := range codes.Spellings(kw.Code) {
 			if prev, ok := posMap[spelling]; ok && prev != kw.Type {
-				panic(fmt.Sprintf("anahtar kelime sözlüğü: %q hem %s hem %s olamaz", spelling, prev, kw.Type))
+				panic(fmt.Sprintf("keyword dictionary: %q cannot be both %s and %s", spelling, prev, kw.Type))
 			}
 			posMap[spelling] = kw.Type
 		}

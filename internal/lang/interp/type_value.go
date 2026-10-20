@@ -68,7 +68,7 @@ func init() {
 // TypeValue returns the type value of a type code (A2xx).
 func TypeValue(k codes.Code) *TypeVal {
 	if k.Namespace() != codes.NamespaceType || typeValues[k.Number()] == nil {
-		panic(fmt.Sprintf("TipDegeri: %s canlı bir tip kodu (A2xx) değil", k))
+		panic(fmt.Sprintf("TypeValue: %s is not a live type code (A2xx)", k))
 	}
 	return typeValues[k.Number()]
 }

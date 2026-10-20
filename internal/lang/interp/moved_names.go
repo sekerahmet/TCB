@@ -1,11 +1,11 @@
 package interp
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Taşınan kodlar: işi başka bir biçime taşınan kodların (fonksiyondan metoda ya da
@@ -35,5 +35,5 @@ func movedMemberError(obj Value, prop string) string {
 		return ""
 	}
 	a := codes.ReceiverName(typ)
-	return fmt.Sprintf("'%s.%s()' TR'de yok; '%s(%s)' yazın", a, prop, codes.Name(fresh), a)
+	return messages.Text(messages.H2518, a, prop, codes.Name(fresh))
 }

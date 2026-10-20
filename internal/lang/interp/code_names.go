@@ -45,7 +45,7 @@ func NoNamedArgsError(name string, named map[string]Value) error {
 // with which the tensor engine wraps an older builtin.
 func (v *VM) DefineBuiltin(kd codes.Code, b *BuiltinVal) *BuiltinVal {
 	if !kd.IsBuiltin() {
-		panic(fmt.Sprintf("yerleşik kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kd))
+		panic(fmt.Sprintf("builtin registry: %s is not a builtin code (G/T/V/W, not x9xx)", kd))
 	}
 	for _, spelling := range codes.Spellings(kd) {
 		v.GlobalEnv.Define(spelling, b, true)
@@ -58,7 +58,7 @@ func (v *VM) DefineBuiltin(kd codes.Code, b *BuiltinVal) *BuiltinVal {
 // reassigned.
 func (v *VM) DefineConstant(kd codes.Code, value Value) {
 	if !kd.IsBuiltin() {
-		panic(fmt.Sprintf("sabit kaydı: %s bir yerleşik kodu (G/T/V/W, x9xx dışı) değil", kd))
+		panic(fmt.Sprintf("constant registry: %s is not a builtin code (G/T/V/W, not x9xx)", kd))
 	}
 	if v.builtinConstants == nil {
 		v.builtinConstants = map[string]Value{}

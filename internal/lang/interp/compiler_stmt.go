@@ -285,7 +285,7 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 			if s.Condition != nil {
 				v.Debugger.Breakpoint(messages.Text(messages.H2446, s.Line()))
 			} else {
-				v.Debugger.Breakpoint("Koddaki kesme noktası (" + codes.Name(codes.A090) + ")")
+				v.Debugger.Breakpoint(messages.Text(messages.H2520, codes.Name(codes.A090)))
 			}
 		}
 		return Null, signalNone, nil

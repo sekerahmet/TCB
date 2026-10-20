@@ -31,11 +31,11 @@ func (c Code) String() string { return fmt.Sprintf("H%04d", uint16(c)) }
 // Parse converts text such as "H7003" to a code.
 func Parse(s string) (Code, error) {
 	if len(s) != 5 || s[0] != 'H' {
-		return 0, fmt.Errorf("ileti kodu %q geçersiz: H ve dört basamak olmalı (ör. H7003)", s)
+		return 0, fmt.Errorf("message code %q is invalid: H and four digits (e.g. H7003)", s)
 	}
 	n, err := strconv.Atoi(s[1:])
 	if err != nil || n < 0 {
-		return 0, fmt.Errorf("ileti kodu %q geçersiz: H ve dört basamak olmalı (ör. H7003)", s)
+		return 0, fmt.Errorf("message code %q is invalid: H and four digits (e.g. H7003)", s)
 	}
 	return Code(n), nil
 }

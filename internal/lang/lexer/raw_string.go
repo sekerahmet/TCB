@@ -85,9 +85,9 @@ func unknownEscape(c rune) string {
 	arr := "'\\" + string(c) + "'"
 	switch c {
 	case '\n', '\r':
-		arr = "'\\' ve satır sonu"
+		arr = messages.Text(messages.H0168)
 	case '\t':
-		arr = "'\\' ve sekme"
+		arr = messages.Text(messages.H0169)
 	}
 	return arr
 }

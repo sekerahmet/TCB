@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -32,35 +33,24 @@ const turkishLetters = "çğıöşüâîûÇĞİÖŞÜÂÎÛ"
 // Go yorumu üreten aracın yorum metni). "geçici" kayıtlar testin yazıldığı gün (2026-10-20)
 // bulunanlardır; düzeltilince silinir.
 var turkishLiteralAllowed = map[string]string{
-	"cmd/tr/build.go":                               "geçici (ana oturum: lang/cmd/debugger)",
-	"cmd/tr/coded.go":                               "geçici (ana oturum: lang/cmd/debugger)",
-	"cmd/tr/main.go":                                "geçici (ana oturum: lang/cmd/debugger)",
-	"cmd/tr/prepare.go":                             "geçici (ana oturum: lang/cmd/debugger)",
+	// Kod listesi dosyalarının (internal/lang/codes) biçim anahtarları.
+	"internal/lang/codes/definition.go:bağlamsal":    "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
+	"internal/lang/codes/definition.go:özellik":      "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
+	"internal/lang/codes/definition.go:adlı_argüman": "definitions.json'daki \"tür\" alanının değeri (dosya biçimi)",
+	"internal/lang/codes/definition.go:%s adlı: %v":  "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",
+	"internal/lang/codes/definition.go:%s dönüş: %v": "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",
+	"internal/lang/codes/definition.go:%s: \"tipler\", \"param\", \"adlı\" and \"dönüş\" must not be written when \"imzalar\" is present": "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",
+	"internal/lang/codes/definition.go:ilişkili": "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",
+	"internal/lang/codes/definition.go:taşındı":  "definitions.json'un alan adı (dosya biçimi); geliştirici hatasında anılır",
+	"internal/lang/codes/json_parse.go:yabancı":  "dil dosyasının (tr.json) alan adı (dosya biçimi)",
+	"internal/lang/codes/json_parse.go:açıklama": "dil dosyasının (tr.json) alan adı (dosya biçimi)",
+	"internal/lang/codes/json_parse.go:örnek":    "dil dosyasının (tr.json) alan adı (dosya biçimi)",
+	"internal/lang/codes/json_parse.go:%s entry has unknown field %q (valid fields: ad, eski, yabancı, aile, açıklama, örnek)": "dil dosyasının (tr.json) alan adı (dosya biçimi)",
 	"internal/compute/tensor/counter.go":            "geçici (B: compute/stdlib/profiler)",
 	"internal/compute/tensor/device.go":             "geçici (B: compute/stdlib/profiler)",
 	"internal/compute/tensor/elementwise_wide.go":   "geçici (B: compute/stdlib/profiler)",
 	"internal/compute/tensor/tensor.go":             "geçici (B: compute/stdlib/profiler)",
-	"internal/devtools/debugger/command_guide.go":   "geçici (ana oturum: lang/cmd/debugger)",
 	"internal/devtools/profiler/setup.go":           "geçici (B: compute/stdlib/profiler)",
-	"internal/lang/codes/code.go":                   "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/codes/definition.go":             "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/codes/json_parse.go":             "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/codes/language.go":               "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/interp/code_names.go":            "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/interp/compiler_stmt.go":         "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/interp/environment.go":           "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/interp/methods.go":               "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/interp/moved_names.go":           "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/interp/type_value.go":            "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/interp/values.go":                "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/lexer/keywords.go":               "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/lexer/raw_string.go":             "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/lexer/token.go":                  "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/messages/catalog.go":             "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/messages/code.go":                "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/messages/template.go":            "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/parser/statements.go":            "geçici (ana oturum: lang/cmd/debugger)",
-	"internal/lang/source/prepare.go":               "geçici (ana oturum: lang/cmd/debugger)",
 	"internal/reporoot/root.go":                     "geçici (B: compute/stdlib/profiler)",
 	"internal/stdlib/checkpoint/format.go":          "geçici (B: compute/stdlib/profiler)",
 	"internal/stdlib/checkpoint/plain.go":           "geçici (B: compute/stdlib/profiler)",
@@ -121,6 +111,14 @@ func TestNoTurkishLiterals(t *testing.T) {
 		total += len(l)
 	}
 	sort.Slice(files, func(i, j int) bool { return len(found[files[i]]) > len(found[files[j]]) })
+	if os.Getenv("TRLIT_LIST") == "1" {
+		// Bulguları izin listesine yapıştırılacak biçimde yazar; gerekçeyi siz yazarsınız.
+		for _, f := range files {
+			for _, lit := range found[f] {
+				fmt.Printf("\t%q: \"\",\n", f+":"+lit)
+			}
+		}
+	}
 	for _, f := range files {
 		t.Errorf("%s: %d metin: %s", f, len(found[f]), strings.Join(quoteAll(found[f], 6), ", "))
 	}

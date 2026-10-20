@@ -71,7 +71,7 @@ var typeCodes = [...]codes.Code{typeString: codes.A202, typeList: codes.A205, ty
 // argümanlar imzaya göre denetlenir (yerleşik fonksiyonlarla aynı hata biçimi).
 func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 	if kd.Namespace() != codes.NamespaceMember {
-		panic(fmt.Sprintf("metot kaydı: %s bir üye kodu (Y) değil", kd))
+		panic(fmt.Sprintf("method registry: %s is not a member code (Y)", kd))
 	}
 	cm := coreMethods[kd]
 	if cm == nil {
@@ -185,7 +185,7 @@ func setupStringMethods() {
 	addMethod(typeString, codes.Y102, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil
 	})
-	addMethod(typeString, codes.Y103, signature{0, 1, "[ayırıcı]", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeString, codes.Y103, signature{0, 1, messages.Text(messages.H2331), []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := " "
 		if len(args) > 0 {
 			sep = args[0].Inspect()
@@ -203,7 +203,7 @@ func setupStringMethods() {
 	addMethod(typeString, codes.Y002, signature{1, 1, "alt", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.Contains(inst.(*StringVal).Val, args[0].Inspect())), nil
 	})
-	addMethod(typeString, codes.Y105, signature{1, 1, "önek", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeString, codes.Y105, signature{1, 1, messages.Text(messages.H2332), []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.HasPrefix(inst.(*StringVal).Val, args[0].Inspect())), nil
 	})
 	addMethod(typeString, codes.Y106, signature{1, 1, "sonek", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
@@ -276,7 +276,7 @@ func setupListMethods() {
 		}
 		return &ListVal{Elements: copied}, nil
 	})
-	addMethod(typeList, codes.Y203, signature{0, 1, "[ayırıcı]", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.Y203, signature{0, 1, messages.Text(messages.H2331), []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := ""
 		if len(args) > 0 {
 			sep = args[0].Inspect()
@@ -288,7 +288,7 @@ func setupListMethods() {
 		}
 		return &StringVal{Val: strings.Join(parts, sep)}, nil
 	})
-	addMethod(typeList, codes.Y002, signature{1, 1, "değer", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.Y002, signature{1, 1, messages.Text(messages.H2301), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		for _, el := range inst.(*ListVal).Elements {
 			if ValuesEqual(el, args[0]) {
 				return True, nil
@@ -317,7 +317,7 @@ func setupListMethods() {
 		l.Elements = append(l.Elements, args...)
 		return l, nil
 	})
-	addMethod(typeList, codes.Y207, signature{1, 2, "[başlangıç], " + codes.ReceiverName(codes.A208), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.Y207, signature{1, 2, messages.Text(messages.H2333, codes.ReceiverName(codes.A208)), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return listReduce(y, inst.(*ListVal).Elements, args, line)
 	})
 }

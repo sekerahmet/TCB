@@ -48,7 +48,17 @@ func oldCommand(word string) (codes.Code, bool) {
 // oldKeys önceki sürümün terminal tuşlarıdır (f5 adım, f6 geç, f7 dön, f8 devam). Bu
 // tuşlar artık düzenleyicinin hata ayıklama tuşlarıyla aynı anlamda kullanılır; eski
 // anlamla yazılanlar başka bir iş yapmaz, yeni tuşu söyler.
-var oldKeys = map[string]string{"f6": "f10 (geç)", "f7": "shift+f11 (dön)", "f8": "f5 (devam)"}
+var oldKeys = map[string]codes.Code{"f6": codes.K301, "f7": codes.K302, "f8": codes.K303}
+
+// keyOf bir komutun F tuşudur (keyCommands'ın tersi).
+func keyOf(k codes.Code) string {
+	for key, c := range keyCommands {
+		if c == k {
+			return key
+		}
+	}
+	return ""
+}
 
 // oldCommands komutların kısaltmaları ve eski adlarıdır (başka hata ayıklayıcılardan gelen
 // alışkanlıklar: gdb'nin n, c, bt; eski TR adları ata, incele). Bunlar çalışmaz, asıl komutu
@@ -58,14 +68,13 @@ var oldCommands = map[string]codes.Code{
 	"g": codes.K301, "n": codes.K301,
 	"o": codes.K302,
 	"d": codes.K303, "c": codes.K303,
-	"ata": codes.K304, "kalem": codes.K304,
-	"git": codes.K305, "goto": codes.K305, "j": codes.K305,
+	"goto": codes.K305, "j": codes.K305,
 	"k": codes.K306, "b": codes.K306,
-	"w":      codes.K307,
-	"incele": codes.K308, "t": codes.K308,
-	"bt":  codes.K309,
-	"yaz": codes.K310, "p": codes.K310, "?": codes.K310,
-	"göster": codes.K311, "goster": codes.K311, "l": codes.K311,
+	"w":  codes.K307,
+	"t":  codes.K308,
+	"bt": codes.K309,
+	"p":  codes.K310, "?": codes.K310,
+	"l": codes.K311,
 	"h": codes.K312,
 	"q": codes.K313,
 }

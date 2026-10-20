@@ -317,7 +317,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	// Modül yolu bir metin olarak yazılır: aktar "yol" (§11). Tırnaksız ad yol sayılmaz.
 	if !p.peekTokenIs(lexer.TokString) {
 		next := p.peekToken()
-		example := "yardımcı"
+		example := "" // boşsa şablon bir örnek ad yazar
 		if next.Type == lexer.TokIdent {
 			example = next.Literal
 		}
