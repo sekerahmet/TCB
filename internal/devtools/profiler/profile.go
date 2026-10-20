@@ -75,7 +75,7 @@ type Profile struct {
 	// Tepe GPU belleğinin ayıran satıra göre dağılımı (satır örneklemesi açıkken; gpu.go):
 	// program bitince bir kez okunur, izleme kapatılır.
 	gpuPeakTaken bool
-	gpuPeakSites map[uint64]uint64
+	gpuPeakSites []gpu.SitePeak
 	gpuPeak      uint64
 
 	stop   chan struct{}

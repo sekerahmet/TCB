@@ -110,6 +110,18 @@ func (d DType) String() string {
 	return fmt.Sprintf("dtype(%d)", uint8(d))
 }
 
+// Name türün dildeki adıdır (`.tür`, `türe(...)`: "float32", "bf16", "fp16"); dilde adı
+// olmayan türlerde String.
+func (d DType) Name() string {
+	switch d {
+	case BFloat16:
+		return "bf16"
+	case Float16:
+		return "fp16"
+	}
+	return d.String()
+}
+
 // Bits bir elemanın bit sayısı.
 func (d DType) Bits() int {
 	switch d {

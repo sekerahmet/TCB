@@ -86,14 +86,15 @@ func reportLines(b *strings.Builder, o *SamplingInfo) {
 }
 
 // reportGPUPeak tepe GPU belleği anında canlı tensörleri ayıran satırlardır (en büyük 15):
-// pay, bayt, konum ve satırın metni. Satır örneklemesi kapalıysa ya da GPU yoksa yazılmaz.
+// pay, bayt, tensör deposu sayısı × tür, konum ve satırın metni. Satır örneklemesi kapalıysa ya da GPU yoksa yazılmaz.
 func reportGPUPeak(b *strings.Builder, g *Snapshot) {
 	if len(g.gpuPeak) == 0 {
 		return
 	}
 	b.WriteString("\n" + messages.Text(messages.H8283, nBytes(int64(g.gpuPeakTotal))) + "\n")
 	for _, s := range g.gpuPeak {
-		fmt.Fprintf(b, "  %s  %s  %s  %s\n", right(percent(s.Share), 5), right(nBytes(int64(s.Bytes)), 9), left(linePos(s.Line), 30), trim(lineText(s.Line), 70))
+		kind := full(int64(s.Blocks)) + " × " + s.DType
+		fmt.Fprintf(b, "  %s  %s  %s  %s  %s\n", right(percent(s.Share), 5), right(nBytes(int64(s.Bytes)), 9), left(kind, 14), left(linePos(s.Line), 22), trim(lineText(s.Line), 64))
 	}
 }
 

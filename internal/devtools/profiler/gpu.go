@@ -144,14 +144,18 @@ func (p *Profile) gpuPeakLines() (lines []PeakLine, peak uint64) {
 	p.mu.Lock()
 	sites, peak := p.gpuPeakSites, p.gpuPeak
 	p.mu.Unlock()
-	for k, n := range sites {
-		lines = append(lines, PeakLine{Line: p.lineInfo(p.smp.resolve(k), 0), Bytes: n, Share: ratio(float64(n), float64(peak))})
+	for _, s := range sites {
+		lines = append(lines, PeakLine{Line: p.lineInfo(p.smp.resolve(s.Site), 0), DType: s.DType.Name(),
+			Bytes: s.Bytes, Blocks: s.Blocks, Share: ratio(float64(s.Bytes), float64(peak))})
 	}
 	sort.Slice(lines, func(i, j int) bool {
 		if lines[i].Bytes != lines[j].Bytes {
 			return lines[i].Bytes > lines[j].Bytes
 		}
-		return linePos(lines[i].Line) < linePos(lines[j].Line)
+		if a, b := linePos(lines[i].Line), linePos(lines[j].Line); a != b {
+			return a < b
+		}
+		return lines[i].DType < lines[j].DType
 	})
 	return lines[:min(len(lines), maxPeakLines)], peak
 }

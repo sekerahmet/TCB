@@ -42,17 +42,7 @@ var dtypeSuggestions = map[string]string{
 }
 
 // dtypeName çekirdek türünün dildeki adı.
-func dtypeName(dt tensor.DType) string {
-	switch dt {
-	case tensor.Float32:
-		return "float32"
-	case tensor.BFloat16:
-		return "bf16"
-	case tensor.Float16:
-		return "fp16"
-	}
-	return dt.String()
-}
+func dtypeName(dt tensor.DType) string { return dt.Name() }
 
 // parseDTypeName dildeki tür adını çekirdek türüne çevirir; bilinmeyen adda en yakın adı önerir.
 func parseDTypeName(fn, ad string) (tensor.DType, error) {

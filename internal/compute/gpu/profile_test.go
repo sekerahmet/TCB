@@ -148,10 +148,14 @@ func TestPeakLiveBySite(t *testing.T) {
 	site = 3
 	c := g.allocate(1<<16, tensor.Float32, false) // 256 KB
 	g.exit()
-	by, peak := PeakLiveBySite()
+	sites, peak := PeakLiveBySite()
+	by := map[uint64]SitePeak{}
+	for _, s := range sites {
+		by[s.Site] = s
+	}
 	ca, cb := classSize(4<<20), classSize(1<<20)
-	if by[1] != ca || by[2] != cb || by[3] != 0 || peak != ca+cb {
-		t.Fatalf("tepe dağılımı %v (tepe %d); beklenen 1:%d 2:%d, tepe %d", by, peak, ca, cb, ca+cb)
+	if by[1].Bytes != ca || by[2].Bytes != cb || by[1].Blocks != 1 || by[1].DType != tensor.Float32 || by[3].Bytes != 0 || peak != ca+cb {
+		t.Fatalf("tepe dağılımı %+v (tepe %d); beklenen 1:%d 2:%d (birer float32 blok), tepe %d", sites, peak, ca, cb, ca+cb)
 	}
 	SetAllocSite(nil)
 	g.enter()
@@ -160,7 +164,7 @@ func TestPeakLiveBySite(t *testing.T) {
 	g.release(c)
 	g.release(d)
 	g.exit()
-	if by, peak := PeakLiveBySite(); len(by) != 0 || peak != 0 {
-		t.Fatalf("izleme kapalıyken dağılım kalmamalı: %v (tepe %d)", by, peak)
+	if sites, peak := PeakLiveBySite(); len(sites) != 0 || peak != 0 {
+		t.Fatalf("izleme kapalıyken dağılım kalmamalı: %v (tepe %d)", sites, peak)
 	}
 }

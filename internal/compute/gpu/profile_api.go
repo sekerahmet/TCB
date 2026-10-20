@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -79,19 +80,31 @@ func SetAllocSite(f func() uint64) {
 	allocSite.Store(&f)
 }
 
-// PeakLiveBySite izlenen GPU belleğinin tepe anındaki konum başına canlı baytlarını ve o
-// tepeyi verir (bütün GPU'ların toplamı; her GPU kendi tepesindeki dağılımıyla).
-func PeakLiveBySite() (bySite map[uint64]uint64, peak uint64) {
-	bySite = map[uint64]uint64{}
+// SitePeak tepe anında bir konumun bir veri türünde ayırdığı canlı bellektir.
+type SitePeak struct {
+	Site   uint64
+	DType  tensor.DType
+	Bytes  uint64 // ayırma sınıfına yuvarlanmış
+	Blocks uint64 // canlı tensör deposu sayısı
+}
+
+// PeakLiveBySite izlenen GPU belleğinin tepe anındaki konum ve tür başına canlı belleğini ve o
+// tepeyi verir (bütün GPU'ların toplamı; her GPU kendi tepesindeki dağılımıyla; sıra yoktur).
+func PeakLiveBySite() (sites []SitePeak, peak uint64) {
+	sum := map[siteKey]siteUse{}
 	for _, g := range registeredAll() {
 		g.pool.mu.Lock()
-		for s, n := range g.pool.peakBy {
-			bySite[s] += n
+		for s, u := range g.pool.peakBy {
+			t := sum[s]
+			sum[s] = siteUse{t.bytes + u.bytes, t.blocks + u.blocks}
 		}
 		peak += g.pool.sitePeak
 		g.pool.mu.Unlock()
 	}
-	return bySite, peak
+	for s, u := range sum {
+		sites = append(sites, SitePeak{Site: s.site, DType: s.dt, Bytes: u.bytes, Blocks: u.blocks})
+	}
+	return sites, peak
 }
 
 // EnableProfile GPU çekirdek ölçümünü açar ya da kapatır (TR_GPU_PROFIL=1 ile başlangıçta

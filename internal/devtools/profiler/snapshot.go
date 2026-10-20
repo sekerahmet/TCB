@@ -139,9 +139,11 @@ type LineInfo struct {
 // PeakLine tepe GPU belleği anında bir satırın ayırdığı canlı bellektir. Yalnızca metin
 // raporundadır (dosya biçimine sürüm 2 ile girer).
 type PeakLine struct {
-	Line  LineInfo
-	Bytes uint64
-	Share float64 // tepenin payı
+	Line   LineInfo
+	DType  string // dildeki tür adı
+	Bytes  uint64
+	Blocks uint64 // canlı tensör deposu sayısı
+	Share  float64 // tepenin payı
 }
 
 // FunctionInfo bir fonksiyonun öz süresidir (kendi satırlarında geçen süre).

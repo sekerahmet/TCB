@@ -91,8 +91,8 @@ type pool struct {
 	gcRuns, driverAllocs   int64
 	// Konuma göre canlı bellek (yalnızca SetAllocSite açıkken; profile_api.go): her canlı
 	// bloğun ayrıldığı konum, konum başına canlı bayt ve izlemenin tepesindeki dağılım.
-	sites              map[uint64]uint64
-	liveBy, peakBy     map[uint64]uint64
+	sites              map[uint64]siteKey
+	liveBy, peakBy     map[siteKey]siteUse
 	siteLive, sitePeak uint64
 }
 
@@ -121,7 +121,8 @@ func (h *pool) release2(addr, class uint64) {
 	h.live -= class
 	if s, ok := h.sites[addr]; ok {
 		delete(h.sites, addr)
-		h.liveBy[s] -= class
+		u := h.liveBy[s]
+		h.liveBy[s] = siteUse{u.bytes - class, u.blocks - 1}
 		h.siteLive -= class
 	}
 	h.mu.Unlock()
@@ -130,30 +131,40 @@ func (h *pool) release2(addr, class uint64) {
 // track tensöre verilen bloğu ayıran konumu kaydeder (izleme kapalıyken yalnızca bir atomik
 // okuma). İzlenen canlı bellek yeni bir tepeye çıkınca konum başına dağılımın kopyası alınır;
 // kopya konum sayısı kadardır (yüzlerce) ve tepe ilk adımdan sonra seyrek yükselir.
-func (h *pool) track(addr, class uint64) {
+func (h *pool) track(addr, class uint64, dt tensor.DType) {
 	f := allocSite.Load()
 	if f == nil {
 		return
 	}
-	site := (*f)()
+	key := siteKey{(*f)(), dt}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.sites == nil {
-		h.sites, h.liveBy, h.peakBy = map[uint64]uint64{}, map[uint64]uint64{}, map[uint64]uint64{}
+		h.sites, h.liveBy, h.peakBy = map[uint64]siteKey{}, map[siteKey]siteUse{}, map[siteKey]siteUse{}
 	}
-	h.sites[addr] = site
-	h.liveBy[site] += class
+	h.sites[addr] = key
+	u := h.liveBy[key]
+	h.liveBy[key] = siteUse{u.bytes + class, u.blocks + 1}
 	h.siteLive += class
 	if h.siteLive > h.sitePeak {
 		h.sitePeak = h.siteLive
 		clear(h.peakBy)
-		for s, n := range h.liveBy {
-			if n > 0 {
-				h.peakBy[s] = n
+		for s, u := range h.liveBy {
+			if u.blocks > 0 {
+				h.peakBy[s] = u
 			}
 		}
 	}
 }
+
+// siteKey canlı belleğin konum ve tür anahtarıdır; siteUse o anahtardaki canlı bayt ve blok
+// sayısıdır.
+type siteKey struct {
+	site uint64
+	dt   tensor.DType
+}
+
+type siteUse struct{ bytes, blocks uint64 }
 
 // resetSites konum izlemesini sıfırlar (izleme yeniden açılınca önceki dağılım silinir).
 func (h *pool) resetSites() {
@@ -232,7 +243,7 @@ func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 		addr = g.driverAlloc(d.class, byteN)
 	}
 	d.addr = addr
-	g.pool.track(addr, d.class)
+	g.pool.track(addr, d.class, dt)
 	d.clean = runtime.AddCleanup(d, func(t cleanupInfo) { t.h.release2(t.addr, t.class) }, cleanupInfo{&g.pool, addr, d.class})
 	if reset {
 		g.reset(d)
