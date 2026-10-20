@@ -1,6 +1,8 @@
 package tensor
 
-import "fmt"
+import (
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // Görünüm (view) işlemleri: veri kopyalanmaz, yalnızca ofset/şekil/adım
 // değişir. Geri yayılımda gradyan, ebeveynin bitişik gradyan tamponuna aynı
@@ -66,14 +68,14 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 	for i, d := range sh {
 		if d == -1 {
 			if unknown >= 0 {
-				panic("tensor: Reshape içinde yalnızca bir eksen -1 olabilir")
+				panic(messages.New(messages.H3073))
 			}
 			unknown = i
 			sh[i] = 1
 			continue
 		}
 		if d < 0 {
-			panic(fmt.Sprintf("tensor: Reshape için geçersiz şekil %v", shape))
+			panic(messages.New(messages.H3074, shape))
 		}
 	}
 	// Çarpım taşma denetimlidir: taşan bir şekil sessizce n'ye eşit görünmesin.
@@ -83,13 +85,13 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 	}
 	if unknown >= 0 {
 		if product == 0 || n%product != 0 {
-			panic(fmt.Sprintf("tensor: %v şekli %d elemana uydurulamaz", shape, n))
+			panic(messages.New(messages.H3075, shape, n))
 		}
 		sh[unknown] = n / product
 		product = n
 	}
 	if product != n {
-		panic(fmt.Sprintf("tensor: %v şeklindeki tensör %v şekline sokulamaz", t.shape, shape))
+		panic(messages.New(messages.H3076, t.shape, shape))
 	}
 	var st []int
 	if t.IsContiguous() {
@@ -170,7 +172,7 @@ func (t *Tensor) Unsqueeze(axis int) *Tensor {
 		axis += nd
 	}
 	if axis < 0 || axis >= nd {
-		panic(fmt.Sprintf("tensor: Unsqueeze ekseni %d geçersiz", axis))
+		panic(messages.New(messages.H3077, axis))
 	}
 	sh := make([]int, 0, nd)
 	sh = append(sh, t.shape[:axis]...)
@@ -193,7 +195,7 @@ func (t *Tensor) Unsqueeze(axis int) *Tensor {
 func (t *Tensor) Squeeze(axis int) *Tensor {
 	axis = normAxis(axis, len(t.shape))
 	if t.shape[axis] != 1 {
-		panic(fmt.Sprintf("tensor: Squeeze ekseni %d uzunluğu 1 değil (%v)", axis, t.shape))
+		panic(messages.New(messages.H3078, axis, t.shape))
 	}
 	sh := make([]int, 0, len(t.shape)-1)
 	sh = append(sh, t.shape[:axis]...)
@@ -211,7 +213,7 @@ func (t *Tensor) Permute(dims ...int) *Tensor {
 	sy := counterStart(t.be, OpKindView).start()
 	nd := len(t.shape)
 	if len(dims) != nd {
-		panic(fmt.Sprintf("tensor: Permute %d eksen bekler, %d verildi", nd, len(dims)))
+		panic(messages.New(messages.H3079, nd, len(dims)))
 	}
 	seen := make([]bool, nd)
 	sh := make([]int, nd)
@@ -223,7 +225,7 @@ func (t *Tensor) Permute(dims ...int) *Tensor {
 		d = normAxis(d, nd)
 		ax[i] = d
 		if seen[d] {
-			panic(fmt.Sprintf("tensor: Permute eksenleri yinelenmiş %v", dims))
+			panic(messages.New(messages.H3080, dims))
 		}
 		seen[d] = true
 		sh[i] = t.shape[d]
@@ -251,7 +253,7 @@ func (t *Tensor) Transpose(a, b int) *Tensor {
 // T 2 boyutlu tensörün devriği (son iki eksenin yer değiştirmesi).
 func (t *Tensor) T() *Tensor {
 	if len(t.shape) < 2 {
-		panic("tensor: T en az 2 boyut ister")
+		panic(messages.New(messages.H3081))
 	}
 	return t.Transpose(-2, -1)
 }
@@ -270,7 +272,7 @@ func (t *Tensor) SliceStep(axis, start, end, step int) *Tensor {
 	axis = normAxis(axis, nd)
 	n := t.shape[axis]
 	if step <= 0 {
-		panic("tensor: Slice adımı pozitif olmalıdır")
+		panic(messages.New(messages.H3082))
 	}
 	if start < 0 {
 		start += n

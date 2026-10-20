@@ -3,6 +3,8 @@ package tokenize
 import (
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Unicode özellik sınıfları ve büyük/küçük harf duyarsız eşleşme başvuru
@@ -57,7 +59,7 @@ func TestPropertyClassesMatchReference(t *testing.T) {
 	}
 	// Başvurunun tanımadığı adlar (ve iç tablo adları) tanınmaz.
 	for _, d := range []string{`\p{Bosluk}`, `\p{Hrkt}`, `\p{Katakana_Or_Hiragana}`} {
-		if _, err := CompileRegex(d); err == nil || !strings.Contains(err.Error(), "bilinmeyen Unicode özelliği") {
+		if _, err := CompileRegex(d); !messages.Has(err, messages.H5268) {
 			t.Errorf("%q reddedilmeliydi: %v", d, err)
 		}
 	}

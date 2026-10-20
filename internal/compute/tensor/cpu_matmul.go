@@ -1,9 +1,10 @@
 package tensor
 
 import (
-	"fmt"
 	"math/bits"
 	"sync"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // CPU arka ucu: bloklu, paketlemeli ve çok çekirdekli matris çarpımı.
@@ -415,7 +416,7 @@ func gemmPart(batch, M, N, K int, a []float32, transA bool, b []float32, transB 
 
 func (cpuBackend) f32Gemm(batch, M, N, K int, a View, transA bool, b View, transB bool, c Storage) {
 	if !a.IsContiguous() || !b.IsContiguous() {
-		panic(fmt.Sprintf("tensor: Gemm bitişik girdiler ister (%v, %v)", a.Shape, b.Shape))
+		panic(messages.New(messages.H3024, a.Shape, b.Shape))
 	}
 	ad := cd(a.S)[a.Offset : a.Offset+batch*M*K]
 	bd := cd(b.S)[b.Offset : b.Offset+batch*K*N]

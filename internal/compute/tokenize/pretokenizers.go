@@ -2,10 +2,11 @@ package tokenize
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -64,7 +65,7 @@ func init() {
 			return nil, err
 		}
 		if utf8.RuneCountInString(t.Delimiter) != 1 {
-			return nil, fmt.Errorf("ayırıcı tek karakter olmalı: %q", t.Delimiter)
+			return nil, messages.New(messages.H5241, t.Delimiter)
 		}
 		c, _ := utf8.DecodeRuneInString(t.Delimiter)
 		return splitChars{cond: func(r rune) bool { return r == c }, behavior: behaviorRemoved}, nil
@@ -128,7 +129,7 @@ func newSeqPreTok(raw json.RawMessage) (PreTokenizer, error) {
 	for i, h := range t.Pretokenizers {
 		o, err := NewPreTokenizer(h)
 		if err != nil {
-			return nil, fmt.Errorf("%d. adım: %w", i, err)
+			return nil, messages.New(messages.H5213, i, err)
 		}
 		if o != nil {
 			s = append(s, o)
@@ -164,7 +165,7 @@ func readBehavior(s string) (splitBehavior, error) {
 	case "Contiguous":
 		return behaviorContiguous, nil
 	}
-	return 0, fmt.Errorf("bilinmeyen bölme davranışı %q", s)
+	return 0, messages.New(messages.H5242, s)
 }
 
 // span parçanın içindeki bir bölümdür; esles bölümün desene uyup uymadığıdır.
@@ -297,7 +298,7 @@ func newSplit(raw json.RawMessage) (PreTokenizer, error) {
 			b.expr = expr
 		}
 	default:
-		return nil, fmt.Errorf("desen (pattern) String ya da Regex olmalı")
+		return nil, messages.New(messages.H5227)
 	}
 	return b, nil
 }
@@ -455,7 +456,7 @@ func readMetaspace(raw json.RawMessage) (*metaspace, error) {
 	m := &metaspace{instead: "▁", rule: prefixAlways, splitFn: true}
 	if t.Replacement != nil {
 		if utf8.RuneCountInString(*t.Replacement) != 1 {
-			return nil, fmt.Errorf("replacement tek karakter olmalı: %q", *t.Replacement)
+			return nil, messages.New(messages.H5243, *t.Replacement)
 		}
 		m.instead = *t.Replacement
 	}
@@ -472,7 +473,7 @@ func readMetaspace(raw json.RawMessage) (*metaspace, error) {
 		case "never":
 			m.rule = prefixNever
 		default:
-			return nil, fmt.Errorf("bilinmeyen prepend_scheme %q", *t.PrependScheme)
+			return nil, messages.New(messages.H5244, *t.PrependScheme)
 		}
 	case t.AddPrefixSpace != nil && !*t.AddPrefixSpace:
 		m.rule = prefixNever

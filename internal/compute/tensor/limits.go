@@ -1,6 +1,8 @@
 package tensor
 
-import "fmt"
+import (
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // Sinir ağı katmanları için birleşik (tek düğümlü) işlemler; cihazdan bağımsız
 // katman. Hesap arka uçta yapılır.
@@ -10,7 +12,7 @@ import "fmt"
 // (len(idx), D).
 func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 	if len(w.shape) != 2 {
-		panic(fmt.Sprintf("tensor: Embedding 2 boyutlu tablo ister, şekil %v", w.shape))
+		panic(messages.New(messages.H3041, w.shape))
 	}
 	V, D := w.shape[0], w.shape[1]
 	sy := counterStart(w.be, OpKindEmbedding).start()
@@ -18,11 +20,11 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 		shape = []int{len(idx)}
 	}
 	if n, overflow := elemCount(shape); overflow || n != len(idx) {
-		panic(fmt.Sprintf("tensor: Embedding: %d indeks %v şekline uymuyor", len(idx), shape))
+		panic(messages.New(messages.H3042, len(idx), shape))
 	}
 	for _, ix := range idx {
 		if ix < 0 || ix >= V {
-			panic(fmt.Sprintf("tensor: Embedding indeksi %d, [0, %d) dışında", ix, V))
+			panic(messages.New(messages.H3043, ix, V))
 		}
 	}
 	ix := append([]int(nil), idx...)
@@ -41,18 +43,18 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 // sayısal kararlıdır; sonuç skalerdir.
 func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	if len(logits.shape) < 1 {
-		panic("tensor: CrossEntropy en az 1 boyutlu logit ister")
+		panic(messages.New(messages.H3044))
 	}
 	sy := counterStart(logits.be, OpKindCrossEntropy).start()
 	C := logits.shape[len(logits.shape)-1]
 	R := logits.Numel() / max(C, 1)
 	if len(targets) != R {
-		panic(fmt.Sprintf("tensor: CrossEntropy: %d satır için %d hedef verildi", R, len(targets)))
+		panic(messages.New(messages.H3045, R, len(targets)))
 	}
 	valid := 0
 	for _, t := range targets {
 		if t >= C {
-			panic(fmt.Sprintf("tensor: CrossEntropy hedefi %d, [0, %d) dışında", t, C))
+			panic(messages.New(messages.H3046, t, C))
 		}
 		if t >= 0 {
 			valid++
@@ -60,7 +62,7 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	}
 	if valid == 0 {
 		// Ortalama boş küme üzerinden alınırdı: tanımsız; sessizce 0 dönmesin.
-		panic(fmt.Sprintf("tensor: CrossEntropy: geçerli hedef yok (%d satırın hepsi yok sayıldı); ortalama kayıp tanımsız", R))
+		panic(messages.New(messages.H3047, R))
 	}
 	tg := append([]int(nil), targets...)
 	be := logits.be
@@ -145,12 +147,12 @@ func RMSNorm(x, gamma *Tensor, eps float32) *Tensor {
 // checkNormDims normalleştirilecek girdinin en az 1 boyutlu olduğunu denetler.
 func checkNormDims(op string, x *Tensor) {
 	if len(x.shape) == 0 {
-		panic(fmt.Sprintf("tensor: %s en az 1 boyutlu girdi ister (son eksen normalleştirilir), 0 boyutlu tensör verildi", op))
+		panic(messages.New(messages.H3048, op))
 	}
 }
 
 func checkNormParam(op string, p *Tensor, D int) {
 	if p != nil && (len(p.shape) != 1 || p.shape[0] != D) {
-		panic(fmt.Sprintf("tensor: %s parametresi (%d) şeklinde olmalı, %v verildi", op, D, p.shape))
+		panic(messages.New(messages.H3049, op, D, p.shape))
 	}
 }

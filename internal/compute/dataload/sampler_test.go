@@ -8,8 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func takeBatches(t *testing.T, o *Sampler, n int) [][]int32 {
@@ -85,7 +86,7 @@ func TestDatasetMeta(t *testing.T) {
 	if k.Shards()[1].Token != 500 { // b.npy meta'da yok → başlıktan
 		t.Fatal("eksik meta kaydı başlıktan okunmadı")
 	}
-	if _, err := k.OpenShard(context.Background(), 0); err == nil || !strings.Contains(err.Error(), "meta.json") {
+	if _, err := k.OpenShard(context.Background(), 0); !messages.Has(err, messages.H5026) {
 		t.Fatalf("uyuşmazlık hatası bekleniyordu: %v", err)
 	}
 	k2, err := OpenDataset(tr, DatasetOptions{NoMeta: true})

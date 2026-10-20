@@ -1,6 +1,8 @@
 package tensor
 
-import "fmt"
+import (
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // İndirgemeler ve softmax (cihazdan bağımsız katman).
 
@@ -38,7 +40,7 @@ func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
 			// Boş kümenin ortalaması tanımsızdır; sessizce 0 dönmesin (çıktı da boşsa
 			// hesaplanacak eleman yoktur).
 			if numelOf(reducedShape(t.shape, axis, false)) > 0 {
-				panic(fmt.Sprintf("tensor: %v şeklinde %d. eksen boş; boş kümenin ortalaması tanımsız", t.shape, axis))
+				panic(messages.New(messages.H3063, t.shape, axis))
 			}
 		} else {
 			scale = 1 / float32(n)
@@ -68,7 +70,7 @@ func (t *Tensor) allScaled(mean bool) *Tensor {
 		op = "mean_all"
 		n := t.Numel()
 		if n == 0 {
-			panic(fmt.Sprintf("tensor: boş tensörün ortalaması tanımsız (şekil %v)", t.shape))
+			panic(messages.New(messages.H3064, t.shape))
 		}
 		scale = 1 / float32(n)
 	}
@@ -87,7 +89,7 @@ func (t *Tensor) Max(axis int, keepdim bool) *Tensor {
 	sy := counterStart(t.be, OpKindMax).start()
 	axis = normAxis(axis, len(t.shape))
 	if t.shape[axis] == 0 {
-		panic("tensor: boş eksende Max alınamaz")
+		panic(messages.New(messages.H3065))
 	}
 	out := zerosOf(isReduce, t.be, reducedShape(t.shape, axis, keepdim), t.dtyp)
 	t.be.Max(out.storage, t.view(), axis)

@@ -2,9 +2,10 @@ package tokenize
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"unicode"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -67,7 +68,7 @@ func newSeqNorm(raw json.RawMessage) (Normalizer, error) {
 	for i, h := range t.Normalizers {
 		n, err := NewNormalizer(h)
 		if err != nil {
-			return nil, fmt.Errorf("%d. adım: %w", i, err)
+			return nil, messages.New(messages.H5213, i, err)
 		}
 		if n != nil {
 			s = append(s, n)
@@ -183,7 +184,7 @@ func newReplacer(raw json.RawMessage) (*replacer, error) {
 		}
 		d.expr = expr
 	default:
-		return nil, fmt.Errorf("desen (pattern) String ya da Regex olmalı")
+		return nil, messages.New(messages.H5227)
 	}
 	return d, nil
 }

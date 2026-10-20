@@ -2,8 +2,9 @@ package tokenize
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -104,7 +105,7 @@ func newTemplate(raw json.RawMessage, _ func(string) (int32, bool)) (PostProcess
 				} `json:"SpecialToken"`
 			}
 			if err := exactUnmarshal(h, &p); err != nil {
-				return nil, fmt.Errorf("şablon öğesi çözümlenemedi: %w", err)
+				return nil, messages.New(messages.H5228, err)
 			}
 			switch {
 			case p.Sequence != nil:
@@ -114,24 +115,24 @@ func newTemplate(raw json.RawMessage, _ func(string) (int32, bool)) (PostProcess
 				case "B":
 					d = 1
 				default:
-					return nil, fmt.Errorf("bilinmeyen dizi kimliği %q", p.Sequence.ID)
+					return nil, messages.New(messages.H5229, p.Sequence.ID)
 				}
 				out = append(out, templatePiece{arr: d, kindID: p.Sequence.TypeID})
 			case p.SpecialToken != nil:
 				o, ok := t.SpecialTokens[p.SpecialToken.ID]
 				if !ok {
-					return nil, fmt.Errorf("şablondaki özel token %q tanımlı değil", p.SpecialToken.ID)
+					return nil, messages.New(messages.H5230, p.SpecialToken.ID)
 				}
 				var ids []int32
 				for _, x := range o.Ids {
 					if x < 0 || x > math.MaxInt32 {
-						return nil, fmt.Errorf("şablondaki özel token %q kimliği geçersiz: %d", p.SpecialToken.ID, x)
+						return nil, messages.New(messages.H5231, p.SpecialToken.ID, x)
 					}
 					ids = append(ids, int32(x))
 				}
 				out = append(out, templatePiece{arr: -1, special: ids, kindID: p.SpecialToken.TypeID})
 			default:
-				return nil, fmt.Errorf("şablon öğesi Sequence ya da SpecialToken olmalı")
+				return nil, messages.New(messages.H5232)
 			}
 		}
 		return out, nil
@@ -195,11 +196,11 @@ func newClsSep(raw json.RawMessage, roberta bool) (PostProcessor, error) {
 	}
 	read := func(c []json.RawMessage, ad string) (int32, error) {
 		if len(c) != 2 {
-			return 0, fmt.Errorf("%s [parça, kimlik] biçiminde olmalı", ad)
+			return 0, messages.New(messages.H5233, ad)
 		}
 		var id int32
 		if err := json.Unmarshal(c[1], &id); err != nil {
-			return 0, fmt.Errorf("%s kimliği okunamadı: %w", ad, err)
+			return 0, messages.New(messages.H5234, ad, err)
 		}
 		return id, nil
 	}
@@ -259,7 +260,7 @@ func newSeqProcessor(raw json.RawMessage, vocab func(string) (int32, bool)) (Pos
 	for i, h := range t.Processors {
 		s, err := NewPostProcessor(h, vocab)
 		if err != nil {
-			return nil, fmt.Errorf("%d. adım: %w", i, err)
+			return nil, messages.New(messages.H5213, i, err)
 		}
 		if _, ok := s.(noopProcessor); ok || s == nil {
 			continue
@@ -268,7 +269,7 @@ func newSeqProcessor(raw json.RawMessage, vocab func(string) (int32, bool)) (Pos
 		num++
 	}
 	if num > 1 {
-		return nil, fmt.Errorf("birden çok özel parça ekleyen son işleyici içeren dizi desteklenmiyor")
+		return nil, messages.New(messages.H5235)
 	}
 	return actual, nil
 }

@@ -157,21 +157,32 @@ func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (int
 	return &Object{p: p, path: path}, nil
 }
 
+// isUnsupported err'in, parçalayıcı dosyasındaki desteklenmeyen bir özelliği bildirip bildirmediğini
+// söyler.
+func isUnsupported(err error) bool {
+	for _, c := range []messages.Code{messages.H5202, messages.H5257, messages.H5275, messages.H5276} {
+		if messages.Has(err, c) {
+			return true
+		}
+	}
+	return false
+}
+
 func loadError(path string, err error, tried []string) error {
 	fn := codes.Name(codes.V200)
 	if bind.IsNotExist(err) {
-		return turkish.FileError(fn, path, messages.H2107, err,
+		return turkish.FileError(fn, path, messages.H2107, bind.FileCause(err),
 			messages.Text(messages.H5612), interp.SearchedPlaces(tried))
 	}
 	msg := err.Error()
 	switch {
-	case strings.Contains(msg, "desteklenmeyen"):
+	case isUnsupported(err):
 		msg = strings.Replace(msg, "desteklenmeyen", messages.Text(messages.H5613), 1)
 		return messages.New(messages.H5614, fn, path, msg)
-	case strings.Contains(msg, "reddedildi"):
+	case messages.Has(err, messages.H5248):
 		msg = strings.Replace(msg, " (izin için DuzIfadeAyarlari.RiskliDesenIzni)", "", 1)
 		return messages.New(messages.H5615, fn, path, msg)
-	case strings.Contains(msg, "JSON"):
+	case messages.Has(err, messages.H5274):
 		detail := messages.Text(messages.H5616)
 		var se *json.SyntaxError
 		var te *json.UnmarshalTypeError
@@ -185,7 +196,7 @@ func loadError(path string, err error, tried []string) error {
 	var pe *fs.PathError
 	if errors.As(err, &pe) {
 		// İzin, kilitli dosya, disk hatası...: işletim sisteminin metni yerine Türkçe neden
-		return turkish.FileError(fn, path, messages.H2107, err)
+		return turkish.FileError(fn, path, messages.H2107, pe)
 	}
 	return messages.New(messages.H5620, fn, path, msg)
 }

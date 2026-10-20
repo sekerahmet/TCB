@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // smallStack sınama süresince goroutine yığınını küçük bir sınıra indirir:
@@ -56,7 +58,7 @@ func TestBacktrackMemoryLimit(t *testing.T) {
 	}
 	_, _, _, err = expr.Find(strings.Repeat("ab", 10_000), 0)
 	var h *StepLimitError
-	if !errors.As(err, &h) || !h.Memory || !strings.Contains(err.Error(), "geri izleme belleği") {
+	if !errors.As(err, &h) || !h.Memory {
 		t.Fatalf("geri izleme belleği hatası bekleniyordu: %v", err)
 	}
 	// Sınırın altında kalan girdi sorunsuz eşleşir.
@@ -106,6 +108,11 @@ func TestBigSearchesQueue(t *testing.T) {
 	}
 }
 
+// hasDepthCode err'in bir derinlik ya da niceleyici sınırı hatası taşıdığını söyler.
+func hasDepthCode(err error) bool {
+	return messages.Has(err, messages.H5247) || messages.Has(err, messages.H5249) || messages.Has(err, messages.H5250)
+}
+
 // Çok derin iç içe desenler derlemede açık hatayla reddedilir (eskiden
 // ayrıştırıcının özyinelemesi yığını taşırıyordu).
 func TestDeepPatternRejected(t *testing.T) {
@@ -119,7 +126,7 @@ func TestDeepPatternRejected(t *testing.T) {
 	}
 	for ad, d := range worst {
 		_, err := CompileRegex(d)
-		if err == nil || !strings.Contains(err.Error(), "sınırı") {
+		if !hasDepthCode(err) {
 			t.Errorf("%s: derinlik hatası bekleniyordu: %v", ad, err)
 		}
 		if err != nil && len(err.Error()) > 1000 {

@@ -3,6 +3,8 @@ package tensor
 import (
 	"math/rand"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Her türevlenebilir işlem için sayısal gradyan denetimi (merkezi sonlu
@@ -276,22 +278,22 @@ func TestGradAliasVersion(t *testing.T) {
 
 	x, _, k := freshT()
 	x.MulScalar(5).SumAll().Backward() // x'in gradyanı yerinde birikir
-	panicContains(t, "birikim", "yerinde değiştirildi", func() { k.Backward() })
+	panicCode(t, "birikim", messages.H3012, func() { k.Backward() })
 
 	x, _, k = freshT()
 	x.ZeroGrad()
-	panicContains(t, "ZeroGrad", "yerinde değiştirildi", func() { k.Backward() })
+	panicCode(t, "ZeroGrad", messages.H3012, func() { k.Backward() })
 
 	x, _, k = freshT()
 	ClipGradNorm([]*Tensor{x}, 0.1)
-	panicContains(t, "ClipGradNorm", "yerinde değiştirildi", func() { k.Backward() })
+	panicCode(t, "ClipGradNorm", messages.H3012, func() { k.Backward() })
 
 	// Aynı geri yayılımda hem gradyanı birikecek x hem de x'in saklanmış gradyanı
 	// kullanılıyorsa da açık hata (sıraya bağlı sessiz yanlış yok).
 	x, w, _ = freshT()
 	g := x.Grad()
 	k = Add(x.MulScalar(2).SumAll(), g.Mul(w).SumAll())
-	panicContains(t, "aynı geri yayılım", "yerinde değiştirildi", func() { k.Backward() })
+	panicCode(t, "aynı geri yayılım", messages.H3012, func() { k.Backward() })
 }
 
 // Türevsiz kip etkin bağlamın durumudur: bir bağlamın NoGrad'ı sürerken başka bir bağlam

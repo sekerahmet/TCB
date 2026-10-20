@@ -1,8 +1,9 @@
 package tensor
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // TestCheckLNEmptyOptional boş ama nil olmayan isteğe bağlı bir dilimin (ör. mean) "yok"
@@ -20,7 +21,7 @@ func TestCheckLNEmptyOptional(t *testing.T) {
 	} {
 		func() {
 			defer func() {
-				if r, _ := recover().(string); !strings.Contains(r, "uyumsuz") {
+				if r, _ := recover().(error); !messages.Has(r, messages.H9000) {
 					t.Errorf("%s: boş dilim reddedilmedi (%v)", ad, r)
 				}
 			}()

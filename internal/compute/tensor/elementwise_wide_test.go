@@ -4,6 +4,8 @@ import (
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Genişletilmiş eleman bazlı işlemler: float64 başvuruya göre doğruluk (kenar değerler
@@ -232,7 +234,7 @@ func TestClamp(t *testing.T) {
 	nanSame(t, "clamp gradyanı", x.Grad().Data(), []float32{0, 1, 1, 1, 1, 0, 0})
 	nanSame(t, "clamp alt", New([]float32{-2, 3}, 2).ClampMin(0).Data(), []float32{0, 3})
 	nanSame(t, "clamp üst", New([]float32{-2, 3}, 2).ClampMax(0).Data(), []float32{-2, 0})
-	panicContains(t, "ters sınırlar", "alt üstten büyük olamaz", func() { x.Clamp(2, 1) })
+	panicCode(t, "ters sınırlar", messages.H3040, func() { x.Clamp(2, 1) })
 	checkGrad(t, "clamp", func(xs []*Tensor) *Tensor { return xs[0].Clamp(-0.5, 0.5) },
 		random(rand.New(rand.NewSource(2)), -1, 1, 0, 4, 5))
 }

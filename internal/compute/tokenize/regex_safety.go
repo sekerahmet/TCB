@@ -1,8 +1,9 @@
 package tokenize
 
 import (
-	"fmt"
 	"sync/atomic"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -80,12 +81,9 @@ type StepLimitError struct {
 
 func (e *StepLimitError) Error() string {
 	if e.Memory {
-		return fmt.Sprintf("düzenli ifade %q, girdinin %d. bayt konumundan başlayan aramada geri izleme belleği sınırını (%d kayıt) aştı: "+
-			"desen bu girdide çok uzun bir yinelemeyi geri izlenebilir tutuyor; parçalama durduruldu",
-			reShorten(e.Pattern), e.Pos, CurrentRegexSettings().BacktrackLimit)
+		return messages.Text(messages.H5269, reShorten(e.Pattern), e.Pos, CurrentRegexSettings().BacktrackLimit)
 	}
-	return fmt.Sprintf("düzenli ifade %q, girdinin %d. bayt konumundan başlayan aramada adım sınırını (%d) aştı: "+
-		"desen bu girdide üstel ya da aşırı geri izleme yapıyor; parçalama durduruldu", reShorten(e.Pattern), e.Pos, e.Budget)
+	return messages.Text(messages.H5270, reShorten(e.Pattern), e.Pos, e.Budget)
 }
 
 // catchStepError f'yi çalıştırır; adım sınırı aşılırsa hatayı döndürür
@@ -298,14 +296,13 @@ func reRiskAnalyze(d reNode) (failure string, warnings []string) {
 		case *reRepeat:
 			if reUnbounded(x) {
 				if failure == "" && reFreeRepeat(x.sub) {
-					failure = "iç içe sınırsız niceleyici (ör. \"(a+)+\" ya da \"(\\w+\\s*)*\") üstel geri izlemeye yol açabilir"
+					failure = messages.Text(messages.H5288)
 				}
 				if s, ok := x.sub.(*reOption); ok {
 					for i := 0; i < len(s.options); i++ {
 						for j := i + 1; j < len(s.options); j++ {
 							if reOverlaps(s.options[i], s.options[j]) {
-								warnings = append(warnings, fmt.Sprintf(
-									"sınırsız yineleme içinde %d. ve %d. seçenek aynı karakterle başlayabiliyor; uzun girdilerde aşırı geri izleme olabilir", i+1, j+1))
+								warnings = append(warnings, messages.Text(messages.H5271, i+1, j+1))
 							}
 						}
 					}

@@ -5,6 +5,8 @@ import (
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Bulgu 15a: AdamW'nin sapma düzeltmesi parametre başına adım sayısını kullanır: ilk
@@ -82,7 +84,7 @@ func TestOptimizerStateResume(t *testing.T) {
 			near(t, fmt.Sprintf("%s param %d", dtyp, k), pc[k].Data(), pa[k].Data(), 0)
 		}
 		// Uyumsuz durum açık hata verir.
-		panicContains(t, dtyp+" uyumsuz", "durum", func() {
+		panicCode(t, dtyp+" uyumsuz", messages.H3059, func() {
 			freshT([]*Tensor{Zeros(2).SetRequiresGrad(true)}).LoadState(state)
 		})
 	}
@@ -102,11 +104,11 @@ func TestAdamWLoadStateRejectsBadCounters(t *testing.T) {
 	for _, bad := range [][]float32{{0, -1}, {-1, 0}, {nan, nan}, {0, 0.5}, {1 << 24, 0}} {
 		fresh, st := mk()
 		st["adim.0"] = New(bad, 2)
-		panicContains(t, fmt.Sprintf("sayaç %v", bad), "adım sayacı geçersiz", func() { fresh.LoadState(st) })
+		panicCode(t, fmt.Sprintf("sayaç %v", bad), messages.H3057, func() { fresh.LoadState(st) })
 	}
 	fresh, st := mk()
 	delete(st, "adim.0")
-	panicContains(t, "sayaçsız moment", "adım sayacı (adim.0) yok", func() { fresh.LoadState(st) })
+	panicCode(t, "sayaçsız moment", messages.H3062, func() { fresh.LoadState(st) })
 	fresh, st = mk()
 	fresh.LoadState(st) // sağlam durum yüklenir
 }

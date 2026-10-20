@@ -3,6 +3,8 @@ package tensor
 import (
 	"fmt"
 	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Genişletilmiş eleman bazlı işlemler (cihazdan bağımsız katman): etkinleştirme (SiLU),
@@ -61,7 +63,7 @@ func (t *Tensor) Abs() *Tensor { return unary(t, OpAbs, 0) }
 // 0'dır. lo > hi ya da NaN sınır hatadır.
 func (t *Tensor) Clamp(lo, hi float32) *Tensor {
 	if lo != lo || hi != hi || lo > hi {
-		panic(fmt.Sprintf("tensor: Clamp sınırları geçersiz: alt %v, üst %v (alt üstten büyük olamaz, NaN olamaz)", lo, hi))
+		panic(messages.New(messages.H3040, lo, hi))
 	}
 	sy := counterStart(t.be, OpKindClamp).start()
 	out := emptyOf(isElementwise, t.be, t.shape, t.dtyp)
@@ -106,7 +108,7 @@ func Atan2(y, x *Tensor) *Tensor {
 // (yayınlamalı; NaN içeren karşılaştırma 0). Sonuç float32'dir ve türev izlemez.
 func Compare(a, b *Tensor, op BinOp) *Tensor {
 	if op < OpLt || op > OpGe {
-		panic(fmt.Sprintf("tensor: Compare bir karşılaştırma işlemi ister, %d verildi", op))
+		panic(messages.Internal(fmt.Sprintf("Compare needs a comparison op, got %d", op)))
 	}
 	be := sameDevice("karşılaştırma", a, b)
 	sy := counterStart(be, OpKindAdd+OpKind(op)).start()

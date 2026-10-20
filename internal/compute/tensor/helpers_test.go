@@ -1,10 +1,12 @@
 package tensor
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Test yardımcıları.
@@ -143,11 +145,31 @@ func checkGrad(t *testing.T, ad string, f func(xs []*Tensor) *Tensor, xs ...*Ten
 	}
 }
 
-// panicContains fn'in, mesajında parca geçen bir panik verdiğini doğrular.
-func panicContains(t *testing.T, ad, part string, fn func()) {
+// panicError fn'in verdiği paniği hata olarak verir (panik yoksa nil); hata olmayan değer
+// metne çevrilir.
+func panicError(fn func()) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+				return
+			}
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+	fn()
+	return nil
+}
+
+// panicCode fn'in, code ileti koduyla panik ettiğini doğrular.
+func panicCode(t *testing.T, ad string, code messages.Code, fn func()) {
 	t.Helper()
-	if m := panicMessage(fn); !strings.Contains(m, part) {
-		t.Fatalf("%s: %q içeren panik bekleniyordu, alınan: %q", ad, part, m)
+	err := panicError(fn)
+	if err == nil {
+		t.Fatalf("%s: %s kodlu panik bekleniyordu, işlem başarılı oldu", ad, code)
+	}
+	if !messages.Has(err, code) {
+		t.Fatalf("%s: %s kodlu panik bekleniyordu, alınan: %v", ad, code, err)
 	}
 }
 

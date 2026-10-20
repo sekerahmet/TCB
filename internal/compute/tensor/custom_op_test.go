@@ -2,8 +2,9 @@ package tensor
 
 import (
 	"math/rand"
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // squareCustom x² işleminin dış düğümle yazılmış biçimi: ileri türevsiz, geri 2·x·g.
@@ -125,9 +126,9 @@ func TestCustomOpSavedChangedIsError(t *testing.T) {
 		return []*Tensor{g[0].Mul(c)}
 	})[0]
 	c.Set(9, 0)
-	message := panicMessage(func() { out.SumAll().Backward() })
-	if !strings.Contains(message, `"ölçekle"`) || !strings.Contains(message, "yerinde değiştirildi") {
-		t.Fatalf("sürüm hatası beklenirdi, alınan: %q", message)
+	err := panicError(func() { out.SumAll().Backward() })
+	if m, ok := messages.As(err); !ok || m.Code != messages.H3012 || m.Args[0] != "ölçekle" {
+		t.Fatalf("sürüm hatası beklenirdi, alınan: %v", err)
 	}
 }
 
@@ -138,12 +139,8 @@ func TestCustomOpWrongGrads(t *testing.T) {
 		NoGrad(func() { y = x.MulScalar(2) })
 		return CustomOp("yanlış", []*Tensor{x}, []*Tensor{y}, nil, func(any, []*Tensor) []*Tensor { return grads })[0]
 	}
-	if m := panicMessage(func() { constant(Ones(3)).SumAll().Backward() }); !strings.Contains(m, "[3] şeklinde gradyan") || !strings.Contains(m, "[2 3]") {
-		t.Fatalf("şekil hatası: %q", m)
-	}
-	if m := panicMessage(func() { constant(Ones(2, 3), nil).SumAll().Backward() }); !strings.Contains(m, "1 girdi için 2 gradyan") {
-		t.Fatalf("uzunluk hatası: %q", m)
-	}
+	panicCode(t, "şekil hatası", messages.H3032, func() { constant(Ones(3)).SumAll().Backward() })
+	panicCode(t, "uzunluk hatası", messages.H3031, func() { constant(Ones(2, 3), nil).SumAll().Backward() })
 }
 
 func TestCustomOpContextPassed(t *testing.T) {
@@ -183,36 +180,24 @@ func TestCustomOpBF16(t *testing.T) {
 	}
 }
 
-func panicMessage(fn func()) (message string) {
-	defer func() {
-		if r := recover(); r != nil {
-			message = r.(string)
-		}
-	}()
-	fn()
-	return ""
-}
-
 // Bir dış düğümün geri hesabı sürerken aynı çizgenin düğümlerinden ikinci bir geri yayılım
 // açık hata verir; ilk geri yayılım bozulmadan biter.
 func TestCustomOpSecondBackwardDuringBackward(t *testing.T) {
 	x := New([]float32{1, 2}, 2).SetRequiresGrad(true)
 	var k2 *Tensor
-	var secondErr string
+	var secondErr error
 	o := CustomOp("özdeş", []*Tensor{x}, []*Tensor{x.Detach()}, nil, func(_ any, g []*Tensor) []*Tensor {
-		secondErr = panicMessage(func() { k2.Backward() })
+		secondErr = panicError(func() { k2.Backward() })
 		return g
 	})[0]
 	k1 := o.MulScalar(3).SumAll()
 	k2 = o.MulScalar(2).SumAll()
 	k1.Backward()
-	if !strings.Contains(secondErr, "başka bir geri yayılım") {
-		t.Fatalf("ikinci geri yayılım hata vermedi: %q", secondErr)
+	if !messages.Has(secondErr, messages.H3015) {
+		t.Fatalf("ikinci geri yayılım hata vermedi: %v", secondErr)
 	}
 	near(t, "ilk geri yayılım", x.Grad().Data(), []float32{3, 3}, 0)
 	// Hata veren geri yayılımın ayırdığı düğümlerin işareti kaldırıldı; o artık serbest
 	// olduğu için k2 açıkça "zaten yapıldı" hatası verir.
-	if h := panicMessage(func() { k2.Backward() }); !strings.Contains(h, "zaten yapıldı") {
-		t.Fatalf("beklenen hata: %q", h)
-	}
+	panicCode(t, "ikinci geri yayılım", messages.H3017, func() { k2.Backward() })
 }

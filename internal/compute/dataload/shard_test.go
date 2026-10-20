@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestShardMmapAndReadAtSameData(t *testing.T) {
@@ -56,7 +58,7 @@ func TestShardMmapAndReadAtSameData(t *testing.T) {
 				t.Fatal("OkuU16 yanlış")
 			}
 		}
-		if err := p.Read(make([]int32, 4), int64(len(u))-3); err == nil || !strings.Contains(err.Error(), "sınır") {
+		if err := p.Read(make([]int32, 4), int64(len(u))-3); !messages.Has(err, messages.H5085) {
 			t.Fatalf("sınır hatası bekleniyordu: %v", err)
 		}
 		if err := p.Read(make([]int32, 1), -1); err == nil {
@@ -177,7 +179,7 @@ func TestShardU32Overflow(t *testing.T) {
 		if err := p.Read(ok, 0); err != nil || ok[1] != math.MaxInt32 {
 			t.Fatalf("eşlemesiz=%v: sığan aralık okunamadı: %v %v", noMmap, ok, err)
 		}
-		if err := p.Read(make([]int32, 2), 1); err == nil || !strings.Contains(err.Error(), "sığmayan") {
+		if err := p.Read(make([]int32, 2), 1); !messages.Has(err, messages.H5086) {
 			t.Fatalf("eşlemesiz=%v: 2^31 hata vermedi: %v", noMmap, err)
 		}
 		p.Close()
@@ -196,19 +198,19 @@ func TestShardTruncatedData(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := OpenShard(path, ShardOptions{})
-	if err == nil || !strings.Contains(err.Error(), "kesik") || !strings.Contains(err.Error(), "kesik.npy") {
+	if !messages.Has(err, messages.H5084) || !strings.Contains(err.Error(), "kesik.npy") {
 		t.Fatalf("kesik dosya hatası bekleniyordu: %v", err)
 	}
 	// Hiç .npy olmayan dosya.
 	path2 := filepath.Join(d, "metin.npy")
 	_ = os.WriteFile(path2, []byte("merhaba dünya, bu bir npy değil"), 0o644)
-	if _, err := OpenShard(path2, ShardOptions{}); err == nil || !strings.Contains(err.Error(), "büyü") {
+	if _, err := OpenShard(path2, ShardOptions{}); !messages.Has(err, messages.H5053) {
 		t.Fatalf("büyü hatası bekleniyordu: %v", err)
 	}
 	// Boş dosya.
 	path3 := filepath.Join(d, "bos.npy")
 	_ = os.WriteFile(path3, nil, 0o644)
-	if _, err := OpenShard(path3, ShardOptions{}); err == nil || !strings.Contains(err.Error(), "kısa") {
+	if _, err := OpenShard(path3, ShardOptions{}); !messages.Has(err, messages.H5051) {
 		t.Fatalf("kısa dosya hatası bekleniyordu: %v", err)
 	}
 }

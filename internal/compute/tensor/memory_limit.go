@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -57,35 +59,35 @@ const (
 	isBackend
 )
 
-var opNames = [...]string{
-	isCreate:        "tensör oluşturma",
-	isAdd:           "toplama",
-	isSub:           "çıkarma",
-	isMul:           "çarpma",
-	isDiv:           "bölme",
-	isBroadcastElem: "eleman bazlı işlem",
-	isCompare:       "karşılaştırma",
-	isSelect:        "koşullu seçim",
-	isMatMul:        "matris çarpımı",
-	isConcat:        "birleştirme",
-	isReshape:       "yeniden şekillendirme",
-	isCopy:          "kopya",
-	isCast:          "tür dönüşümü",
-	isElementwise:   "eleman bazlı işlem",
-	isReduce:        "indirgeme",
-	isSoftmaxOp:     "softmax",
-	isNormalize:     "normalleştirme",
-	isEmbedding:     "gömme",
-	isAttention:     "dikkat",
-	isGrad:          "gradyan",
-	isBackend:       "arka uç",
+var opNames = [...]messages.Code{
+	isCreate:        messages.H3089,
+	isAdd:           messages.H6119,
+	isSub:           messages.H6120,
+	isMul:           messages.H6121,
+	isDiv:           messages.H6122,
+	isBroadcastElem: messages.H3090,
+	isCompare:       messages.H3091,
+	isSelect:        messages.H3092,
+	isMatMul:        messages.H3093,
+	isConcat:        messages.H3094,
+	isReshape:       messages.H3095,
+	isCopy:          messages.H3096,
+	isCast:          messages.H3097,
+	isElementwise:   messages.H3090,
+	isReduce:        messages.H3098,
+	isSoftmaxOp:     messages.H3099,
+	isNormalize:     messages.H3100,
+	isEmbedding:     messages.H3101,
+	isAttention:     messages.H3102,
+	isGrad:          messages.H3103,
+	isBackend:       messages.H3104,
 }
 
 // binopOp ikili işlemlerin (yayınlamalı) hata mesajı adları.
 var binopOp = [...]opKind{OpAdd: isAdd, OpSub: isSub, OpMul: isMul, OpDiv: isDiv,
 	OpAtan2: isBroadcastElem, OpLt: isCompare, OpGt: isCompare, OpLe: isCompare, OpGe: isCompare}
 
-func (i opKind) String() string { return opNames[i] }
+func (i opKind) String() string { return messages.Text(opNames[i]) }
 
 // broadcasted işlemin çıktı şeklinin yayınlamayla üretilip üretilmediği.
 func (i opKind) broadcasted() bool { return i >= isAdd && i <= isSelect }
@@ -124,7 +126,7 @@ func elemCount(shape []int) (n int, overflow bool) {
 	for _, d := range shape {
 		if d <= 0 {
 			if d < 0 {
-				panic(fmt.Sprintf("tensor: negatif boyut %v", shape))
+				panic(messages.New(messages.H3053, shape))
 			}
 			zeroVal = true
 			continue
@@ -172,7 +174,7 @@ func allocSize(is opKind, shape []int, dt DType) int {
 // verir (arka uçların son savunması: gradyanlar, iç tamponlar, iyileştirici durumları).
 func checkElem(n int, dt DType) int {
 	if n < 0 {
-		panic(fmt.Sprintf("tensor: arka uç: negatif eleman sayısı %d", n))
+		panic(messages.Internal(fmt.Sprintf("backend: negative element count %d", n)))
 	}
 	if !sigar(n, dt) {
 		panic(SizeError(n, dt, allocLimit(), "bu makinede"))
@@ -194,46 +196,40 @@ func allocSizeOn(be Backend, is opKind, shape []int, dt DType) int {
 	return n
 }
 
-// limitError sınırı aşan ayırmanın mesajını kurar (soğuk yol).
-func limitError(is opKind, shape []int, dt DType, overflow bool) string {
+// limitError sınırı aşan ayırmanın hatasını kurar (soğuk yol).
+func limitError(is opKind, shape []int, dt DType, overflow bool) *messages.Error {
 	return limitErrorAt(is, shape, dt, overflow, allocLimit(), "bu makinede")
 }
 
-// SizeError, arka uçların şekli bilinmeyen bir ayırmayı reddederken verdiği Türkçe
-// mesajdır (n eleman, dt türü; sınır ve yer: "bu GPU'da"). Mesaj cihazdan bağımsız
-// katmanın mesajlarıyla aynı biçimdedir.
-func SizeError(n int, dt DType, limit int64, place string) string {
-	return fmt.Sprintf("tensor: arka uç: %s elemanlık %s tampon %s bellek ister; %s %s var",
+// SizeError, arka uçların şekli bilinmeyen bir ayırmayı reddederken verdiği hatadır
+// (n eleman, dt türü; sınır ve yer: "bu GPU'da"). Hata cihazdan bağımsız katmanın
+// hatalarıyla aynı biçimdedir.
+func SizeError(n int, dt DType, limit int64, place string) *messages.Error {
+	return messages.New(messages.H3083,
 		numberText(float64(n)), dt, bytesText(float64(n)*float64(max(dt.Bits(), 1))/8), place, bytesText(float64(limit)))
 }
 
-// limitErrorAt sınırı aşan ayırmanın mesajını, sınır ve yer ("bu makinede", "bu
+// limitErrorAt sınırı aşan ayırmanın hatasını, sınır ve yer ("bu makinede", "bu
 // GPU'da") verilerek kurar.
-func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, place string) string {
+func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, place string) *messages.Error {
 	elemFn := 1.0
 	for _, d := range shape {
 		elemFn *= float64(d)
 	}
 	byteN := elemFn * float64(max(dt.Bits(), 1)) / 8
-	var sb strings.Builder
-	sb.WriteString("tensor: ")
-	sb.WriteString(is.String())
-	if is == isCreate {
-		sb.WriteString(": istenen tensör ")
-	} else {
-		sb.WriteString(": sonuç tensörü ")
-	}
-	sb.WriteString(shapeText(shape))
-	sb.WriteString(" şeklinde")
-	if overflow {
-		fmt.Fprintf(&sb, "; eleman sayısı (yaklaşık %s) tam sayı sınırını aşıyor", numberText(elemFn))
-	}
-	fmt.Fprintf(&sb, ", %s bellek ister; %s %s var. Şekilleri denetleyin", bytesText(byteN), place, bytesText(float64(limit)))
+	hint := ""
 	if is.broadcasted() {
-		sb.WriteString(" (yayınlama beklenmedik bir boyut üretmiş olabilir)")
+		hint = messages.Text(messages.H3088)
 	}
-	sb.WriteString(".")
-	return sb.String()
+	switch {
+	case overflow && is == isCreate:
+		return messages.New(messages.H3086, is, shapeText(shape), numberText(elemFn), bytesText(byteN), place, bytesText(float64(limit)), hint)
+	case overflow:
+		return messages.New(messages.H3087, is, shapeText(shape), numberText(elemFn), bytesText(byteN), place, bytesText(float64(limit)), hint)
+	case is == isCreate:
+		return messages.New(messages.H3084, is, shapeText(shape), bytesText(byteN), place, bytesText(float64(limit)), hint)
+	}
+	return messages.New(messages.H3085, is, shapeText(shape), bytesText(byteN), place, bytesText(float64(limit)), hint)
 }
 
 // shapeText bir şekli "[2, 3]" biçiminde yazar.

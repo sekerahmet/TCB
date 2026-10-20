@@ -5,6 +5,8 @@ import (
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Bulgu 3: bitişik olmayan tensörde Squeeze/Unsqueeze ve uygun Reshape'ler veriyi
@@ -123,7 +125,7 @@ func TestCopyFromIntoView(t *testing.T) {
 		near(t, dt.String()+" atama", x.Data(), []float32{0, 1, 4, 0, 0, 2, 5, 0, 0, 3, 6, 0}, 0)
 		x.Slice(0, 2, 3).CopyFrom(Scalar(7)) // sayı ataması: yayın
 		near(t, dt.String()+" sayı", x.Data()[8:], []float32{7, 7, 7, 7}, 0)
-		panicContains(t, "şekil", "şekl", func() { target.CopyFrom(Zeros(3, 2)) })
+		panicCode(t, "şekil", messages.H3069, func() { target.CopyFrom(Zeros(3, 2)) })
 	}
 	// Örtüşme: y[0..2] = y[1..3] kopyalanmış kaynakla aynı sonucu verir.
 	y := New([]float32{1, 2, 3, 4}, 4)

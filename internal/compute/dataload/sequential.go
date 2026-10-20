@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"sync"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ---------------------------------------------------------------------------
@@ -43,13 +45,13 @@ type SequentialReader struct {
 // Sequential, kümeden sıralı okuyan bir okuyucu kurar.
 func (k *Dataset) Sequential(s SequentialOptions) (*SequentialReader, error) {
 	if s.B <= 0 || s.T <= 0 {
-		return nil, fmt.Errorf("veri: B ve T pozitif olmalı (B=%d, T=%d)", s.B, s.T)
+		return nil, messages.New(messages.H5074, s.B, s.T)
 	}
 	if s.Stride == 0 {
 		s.Stride = s.T
 	}
 	if s.Stride < 0 {
-		return nil, fmt.Errorf("veri: adım negatif olamaz")
+		return nil, messages.New(messages.H5078)
 	}
 	if err := k.checkCacheQuota(1, int64(s.T)+1); err != nil {
 		return nil, err
@@ -57,7 +59,7 @@ func (k *Dataset) Sequential(s SequentialOptions) (*SequentialReader, error) {
 	so := &SequentialReader{k: k, s: s, row: int64(s.T) + 1}
 	if b := s.Start; b != nil {
 		if b.Pos < 0 || b.Pos > len(k.shards) || b.Window < 0 || (b.Pos == len(k.shards) && b.Window != 0) {
-			return nil, fmt.Errorf("veri: geçersiz başlangıç durumu %+v (parça sayısı %d)", *b, len(k.shards))
+			return nil, messages.New(messages.H5079, fmt.Sprintf("%+v", *b), len(k.shards))
 		}
 		so.order, so.firstStart = b.Pos, b.Window
 	}

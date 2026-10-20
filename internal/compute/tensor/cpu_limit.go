@@ -1,6 +1,10 @@
 package tensor
 
-import "math"
+import (
+	"math"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // CPU arka ucu: sinir ağı işlemleri ve iyileştirici adımları.
 
@@ -215,7 +219,7 @@ func checkLN(D int, x, a, g, b, mean, rstd, xg []float32, pg, pb []float64) int 
 	R := len(x) / D
 	if R*D != len(x) || len(a) < R*D || short(g, D) || short(b, D) || short(pg, D) ||
 		short(pb, D) || short(mean, R) || len(rstd) < R || short(xg, R*D) {
-		panic("tensor: norm çekirdeğine uyumsuz dilim uzunlukları (iç hata)")
+		panic(messages.Internal("norm kernel got mismatched slice lengths"))
 	}
 	return R
 }

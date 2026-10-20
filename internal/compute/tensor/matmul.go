@@ -1,6 +1,8 @@
 package tensor
 
-import "fmt"
+import (
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // MatMul matris çarpımı (cihazdan bağımsız katman):
 //   - (M,K) @ (K,N) -> (M,N)
@@ -18,11 +20,11 @@ func MatMul(a, b *Tensor) *Tensor { return MatMulOut(a, b, resultDType(a.dtyp, b
 func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	be := sameDevice("matmul", a, b)
 	if len(a.shape) < 2 || len(b.shape) < 2 {
-		panic(fmt.Sprintf("tensor: MatMul en az 2 boyutlu girdiler ister, %v @ %v", a.shape, b.shape))
+		panic(messages.New(messages.H3050, a.shape, b.shape))
 	}
 	K := a.shape[len(a.shape)-1]
 	if b.shape[len(b.shape)-2] != K {
-		panic(fmt.Sprintf("tensor: MatMul iç boyutlar uyuşmuyor: %v @ %v", a.shape, b.shape))
+		panic(messages.New(messages.H3051, a.shape, b.shape))
 	}
 	N := b.shape[len(b.shape)-1]
 
@@ -35,7 +37,7 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 		M = numelOf(a.shape[:len(a.shape)-1])
 	} else {
 		if len(a.shape) != len(b.shape) || !sameShape(a.shape[:len(a.shape)-2], b.shape[:len(b.shape)-2]) {
-			panic(fmt.Sprintf("tensor: toplu MatMul öndeki eksenlerin eşit olmasını ister: %v @ %v", a.shape, b.shape))
+			panic(messages.New(messages.H3052, a.shape, b.shape))
 		}
 		batch = numelOf(a.shape[:len(a.shape)-2])
 		M = a.shape[len(a.shape)-2]

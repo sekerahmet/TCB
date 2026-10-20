@@ -2,7 +2,8 @@ package dataload
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Batch, [B, T+1] boyutlu bir token toplu işidir. Satır i, ardışık T+1
@@ -71,7 +72,7 @@ func (t *Batch) U16(dst []uint16) ([]uint16, error) {
 	dst = dst[:len(t.Data)]
 	for i, v := range t.Data {
 		if uint32(v) > 0xFFFF {
-			return nil, fmt.Errorf("veri: %d konumundaki parça kimliği %d, 16 bite sığmıyor", i, v)
+			return nil, messages.New(messages.H5001, i, v)
 		}
 		dst[i] = uint16(v)
 	}

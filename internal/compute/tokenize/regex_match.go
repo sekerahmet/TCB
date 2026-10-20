@@ -3,6 +3,8 @@ package tokenize
 import (
 	"sync"
 	"unicode/utf8"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -198,7 +200,7 @@ func (c *reCompiler) node(p *reProgram, d reNode) {
 	case *reAnchor:
 		p.k = append(p.k, reInst{op: opAnchor, kind: x.kind})
 	default:
-		panic("bilinmeyen düzenli ifade düğümü")
+		panic(messages.Internal("unknown regex node"))
 	}
 }
 

@@ -26,6 +26,8 @@ import (
 	"math/rand"
 	"strings"
 	"sync/atomic"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Tensor n-boyutlu float32 dizisi ve otomatik türev düğümüdür.
@@ -127,7 +129,7 @@ func normAxis(axis, ndim int) int {
 		axis += ndim
 	}
 	if axis < 0 || axis >= ndim {
-		panic(fmt.Sprintf("tensor: eksen %d, %d boyutlu tensör için geçersiz", axis, ndim))
+		panic(messages.New(messages.H3066, axis, ndim))
 	}
 	return axis
 }
@@ -189,7 +191,7 @@ func NewOn(dev Device, data []float32, shape ...int) *Tensor {
 	be := BackendFor(dev)
 	sy := counterStart(be, OpKindCreate).start()
 	if len(data) != allocSizeOn(be, isCreate, shape, Float32) {
-		panic(fmt.Sprintf("tensor: %d eleman %v şekline uymuyor", len(data), shape))
+		panic(messages.New(messages.H3035, len(data), shape))
 	}
 	t := fromStorage(be, be.FromHost(data, Float32), shape)
 	sy.finish()
@@ -294,7 +296,7 @@ func (t *Tensor) RequiresGrad() bool { return t.requiresGrad }
 // kullanım için tensörün kendisini döndürür.
 func (t *Tensor) SetRequiresGrad(b bool) *Tensor {
 	if t.backward != nil && !b {
-		panic("tensor: ara (yaprak olmayan) tensörde gradyan izleme kapatılamaz; Detach kullanın")
+		panic(messages.New(messages.H3067))
 	}
 	t.requiresGrad = b
 	return t
@@ -336,7 +338,7 @@ func (t *Tensor) Float64s() []float64 {
 // Item tek elemanlı tensörün değerini verir.
 func (t *Tensor) Item() float32 {
 	if t.Numel() != 1 {
-		panic(fmt.Sprintf("tensor: Item yalnızca tek elemanlı tensörde çalışır, şekil %v", t.shape))
+		panic(messages.New(messages.H3068, t.shape))
 	}
 	return t.Data()[0]
 }
@@ -370,8 +372,7 @@ func (t *Tensor) CopyFrom(src *Tensor) {
 		}
 	}
 	if !suitable {
-		panic(fmt.Sprintf("tensor: CopyFrom: %v şeklindeki kaynak %v şeklindeki hedefe yazılamaz (şekiller aynı ya da "+
-			"kaynak hedefe yayınlanabilir olmalı)", src.shape, t.shape))
+		panic(messages.New(messages.H3069, src.shape, t.shape))
 	}
 	sv := src.view()
 	if src.storage == t.storage {
@@ -387,7 +388,7 @@ func (t *Tensor) CopyFrom(src *Tensor) {
 
 func (t *Tensor) index(idx []int) int {
 	if len(idx) != len(t.shape) {
-		panic(fmt.Sprintf("tensor: %d indeks verildi, tensör %d boyutlu", len(idx), len(t.shape)))
+		panic(messages.New(messages.H3070, len(idx), len(t.shape)))
 	}
 	p := t.offset
 	for i, v := range idx {
@@ -395,7 +396,7 @@ func (t *Tensor) index(idx []int) int {
 			v += t.shape[i]
 		}
 		if v < 0 || v >= t.shape[i] {
-			panic(fmt.Sprintf("tensor: indeks %v şekil %v dışında", idx, t.shape))
+			panic(messages.New(messages.H3071, idx, t.shape))
 		}
 		p += v * t.strides[i]
 	}
@@ -476,7 +477,7 @@ func sameDevice(op string, ts ...*Tensor) Backend {
 	be := ts[0].be
 	for _, t := range ts[1:] {
 		if t != nil && t.be.Device() != be.Device() {
-			panic(fmt.Sprintf("tensor: %s girdileri farklı cihazlarda (%s, %s); önce To ile taşıyın", op, be.Device(), t.Device()))
+			panic(messages.New(messages.H3072, op, be.Device(), t.Device()))
 		}
 	}
 	return be

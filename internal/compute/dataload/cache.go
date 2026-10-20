@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // CacheOptions, yerel önbelleğin ayarlarıdır.
@@ -112,11 +114,11 @@ type cacheEntry struct {
 var (
 	// ErrCacheInsufficient, önbellek kotasında dosya için yer açılamadığını
 	// bildirir (kota küçük ya da açık dosyalar yer kaplıyor).
-	ErrCacheInsufficient = errors.New("veri: önbellek kotası yetersiz")
+	ErrCacheInsufficient error = messages.New(messages.H5002)
 
 	// ErrCacheLocked, önbellek dizinini başka bir sürecin kullandığını
 	// bildirir.
-	ErrCacheLocked = errors.New("veri: önbellek dizini kilitli")
+	ErrCacheLocked error = messages.New(messages.H5003)
 
 	// copyHook, testlerde kopyalamayı yavaşlatmak için kopyadan hemen
 	// önce (kilit tutulmadan) çağrılır; üretimde nil'dir.
@@ -159,16 +161,16 @@ func dirKey(dir string) string {
 // geçerlidir); başka bir süreç dizini kullanıyorsa hata döner.
 func OpenCache(s CacheOptions) (*Cache, error) {
 	if s.Dir == "" {
-		return nil, fmt.Errorf("veri: önbellek dizini verilmedi")
+		return nil, messages.New(messages.H5004)
 	}
 	if s.Quota <= 0 {
-		return nil, fmt.Errorf("veri: önbellek kotası pozitif olmalı")
+		return nil, messages.New(messages.H5005)
 	}
 	if s.Workers <= 0 {
 		s.Workers = 2
 	}
 	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
-		return nil, fmt.Errorf("veri: önbellek dizini oluşturulamadı: %w", err)
+		return nil, messages.New(messages.H5006, err)
 	}
 	key := dirKey(s.Dir)
 	cacheRecord.mu.Lock()
@@ -201,17 +203,16 @@ func OpenCache(s CacheOptions) (*Cache, error) {
 func openCore(s CacheOptions) (*cacheCore, error) {
 	lock, err := os.OpenFile(filepath.Join(s.Dir, lockPath), os.O_RDWR|os.O_CREATE, 0o644)
 	if err != nil {
-		return nil, fmt.Errorf("veri: önbellek kilit dosyası açılamadı: %w", err)
+		return nil, messages.New(messages.H5007, err)
 	}
 	if err := lockFile(lock); err != nil {
 		_ = lock.Close()
-		return nil, fmt.Errorf("%w: önbellek dizini %s başka bir program (süreç) tarafından kullanılıyor; "+
-			"iki program aynı önbellek klasörünü aynı anda kullanamaz, her birine ayrı bir klasör verin", ErrCacheLocked, s.Dir)
+		return nil, messages.New(messages.H5008, ErrCacheLocked, s.Dir)
 	}
 	inputs, err := os.ReadDir(s.Dir)
 	if err != nil {
 		_ = lock.Close()
-		return nil, fmt.Errorf("veri: önbellek dizini okunamadı: %w", err)
+		return nil, messages.New(messages.H5009, err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	o := &cacheCore{
@@ -316,7 +317,7 @@ func sameTime(cached, source time.Time) bool {
 func (o *cacheCore) fetch(ctx context.Context, src string, prefetch bool) (string, func(), error) {
 	st, err := os.Stat(src)
 	if err != nil {
-		return "", nil, fmt.Errorf("veri: önbellek kaynağı: %w", err)
+		return "", nil, messages.New(messages.H5010, err)
 	}
 	ad := localName(src)
 	local := filepath.Join(o.dir, ad)
@@ -367,7 +368,7 @@ func (o *cacheCore) fetch(ctx context.Context, src string, prefetch bool) (strin
 				}
 				o.statsNow.Skipped++
 				o.mu.Unlock()
-				return "", nil, fmt.Errorf("veri: %s: kaynak değişmiş ama eski yerel kopya hâlâ kullanımda; yenilenemiyor", src)
+				return "", nil, messages.New(messages.H5011, src)
 			}
 		}
 		if st.Size() > o.quota || !o.makeRoom(st.Size(), prefetch) {
@@ -392,9 +393,7 @@ func (o *cacheCore) fetch(ctx context.Context, src string, prefetch bool) (strin
 				}
 			}
 			o.statsNow.Skipped++
-			failure := fmt.Errorf("%w: %s için %d bayt gerekli; kota %d bayt, kullanımda %d bayt (açık dosyalar %d bayt). "+
-				"Yavaş kaynaktan doğrudan okumamak için kopya alınmadı; kotayı büyütün",
-				ErrCacheInsufficient, filepath.Base(src), st.Size(), o.quota, o.usage, o.pinnedBytes())
+			failure := messages.New(messages.H5012, ErrCacheInsufficient, filepath.Base(src), st.Size(), o.quota, o.usage, o.pinnedBytes())
 			o.mu.Unlock()
 			return "", nil, failure
 		}
@@ -527,13 +526,13 @@ func (o *cacheCore) ongoingPrefetch(required int64) chan struct{} {
 func copyFile(ctx context.Context, src, target string, expected int64, when time.Time) (err error) {
 	k, err := os.Open(src)
 	if err != nil {
-		return fmt.Errorf("veri: önbellek kopyası: %w", err)
+		return messages.New(messages.H5013, err)
 	}
 	defer k.Close()
 	temp := target + tempSuffix
 	h, err := os.Create(temp)
 	if err != nil {
-		return fmt.Errorf("veri: önbellek kopyası: %w", err)
+		return messages.New(messages.H5013, err)
 	}
 	defer func() {
 		if err != nil {
@@ -550,7 +549,7 @@ func copyFile(ctx context.Context, src, target string, expected int64, when time
 		n, rerr := k.Read(buf)
 		if n > 0 {
 			if _, werr := h.Write(buf[:n]); werr != nil {
-				return fmt.Errorf("veri: önbellek kopyası: %w", werr)
+				return messages.New(messages.H5013, werr)
 			}
 			written += int64(n)
 		}
@@ -558,24 +557,23 @@ func copyFile(ctx context.Context, src, target string, expected int64, when time
 			break
 		}
 		if rerr != nil {
-			return fmt.Errorf("veri: önbellek kopyası: %w", rerr)
+			return messages.New(messages.H5013, rerr)
 		}
 	}
 	if written != expected {
-		return fmt.Errorf("veri: %s: önbellek kopyası eksik ya da fazla: %d bayt yazıldı, %d bekleniyordu",
-			filepath.Base(src), written, expected)
+		return messages.New(messages.H5014, filepath.Base(src), written, expected)
 	}
 	if err := h.Sync(); err != nil {
-		return fmt.Errorf("veri: önbellek kopyası diske yazılamadı: %w", err)
+		return messages.New(messages.H5015, err)
 	}
 	if err := h.Close(); err != nil {
-		return fmt.Errorf("veri: önbellek kopyası: %w", err)
+		return messages.New(messages.H5013, err)
 	}
 	if err := os.Chtimes(temp, when, when); err != nil {
-		return fmt.Errorf("veri: önbellek kopyası: %w", err)
+		return messages.New(messages.H5013, err)
 	}
 	if err := os.Rename(temp, target); err != nil {
-		return fmt.Errorf("veri: önbellek kopyası: %w", err)
+		return messages.New(messages.H5013, err)
 	}
 	return nil
 }
@@ -722,9 +720,7 @@ func (h *Cache) Reserve(needed int64) error {
 		}
 	}
 	if other+needed > o.quota {
-		return fmt.Errorf("%w: bu önbellek klasörünü paylaşan diğer kümeler %d bayt ayırdı, bu küme %d bayt daha istiyor; "+
-			"kota %d bayt. Aynı klasörü kullanan kümeler kotayı paylaşır: kotayı en az %d bayt yapın ya da kümelere ayrı klasörler verin",
-			ErrCacheInsufficient, other, needed, o.quota, other+needed)
+		return messages.New(messages.H5016, ErrCacheInsufficient, other, needed, o.quota, other+needed)
 	}
 	o.reserved[h] = needed
 	return nil
