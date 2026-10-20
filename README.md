@@ -113,7 +113,7 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 - [`docs/guide/`](docs/guide/README.md) — komutlar, yerleşikler, tensörler ve yapay zekâ, veri ve parçalayıcı, hata ayıklayıcı.
 - [`docs/spec/`](docs/spec/README.md) — dilin kuralları; her kuralın `tests/` altında bir testi vardır (`tr test tests`).
 - [`docs/kodlar.md`](docs/kodlar.md) — her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği (kod listesinden üretilir).
-- [`docs/yol_haritasi.md`](docs/yol_haritasi.md) — yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar.
+- [`docs/yol_haritasi.md`](docs/yol_haritasi.md) — ilkeler ve evreler: sağlam temel, gerçek model, geliştirici deneyimi, yaygınlaşma.
 - [`docs/mimari.md`](docs/mimari.md) — katmanlar, bağımlılık kuralı ve paketlerin görevleri.
 - [`docs/katki.md`](docs/katki.md) — katkı rehberi: dosya ve fonksiyon boyu, adlar, paket belgesi, testler, yeni kod isteği, tam denetim, ölçüm.
 - [`tools/bench/`](tools/bench/README.md) — hız kıyas seti ve model eğitimi süre ölçümleri.

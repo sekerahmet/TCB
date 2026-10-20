@@ -5,7 +5,7 @@
 | [`kilavuz/`](guide/README.md) | Dili kullanan herkes | Komutlar, anahtar kelimeler, tensörler ve yapay zekâ, veri ve parçalayıcı, hata ayıklayıcı, testler, biçimlendirme (bölüm başına bir dosya) |
 | [`dil/`](spec/README.md) | Dili geliştirenler, kesin kuralı arayanlar | Dilin numaralı kuralları; her kuralın `tests/` altında bir testi vardır (bölüm başına bir dosya: **4.2** → `dil/04_operatorler.md`) |
 | [`kodlar.md`](kodlar.md) | Herkes | Her anahtar kelimenin, tipin, yerleşiğin, metodun ve adlı argümanın ne işe yaradığı, imzası ve örneği. Kod listesinden üretilir, elle düzenlenmez: `go run ./tools/gen/codesdoc` |
-| [`yol_haritasi.md`](yol_haritasi.md) | Herkes | Yapılacak işlerin sırası: GPU, kitaplık, yazım dilleri, platformlar |
+| [`yol_haritasi.md`](yol_haritasi.md) | Herkes | İlkeler ve evreler: sağlam temel, gerçek model, geliştirici deneyimi, yaygınlaşma |
 | [`mimari.md`](mimari.md) | Depoda çalışanlar | Katmanlar, kim kimi içe aktarabilir, her paketin görevi, klasör haritası, sahiplik |
 | [`katki.md`](katki.md) | Depoda çalışanlar | Kod düzeni: dosya başına tek konu, dosya ve fonksiyon sınırları, Türkçe adlar, paket belgesi, testlerin yeri, yeni kod isteği, tam denetim, ölçüm disiplini |
 

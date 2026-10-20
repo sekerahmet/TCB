@@ -1,75 +1,96 @@
 # TR Yol Haritası
 
-TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici için en iyi programlama dili. Model eğitimi dilin sınavıdır; ürün dilin kendisidir. Dilin en önemli yan faydası: biraz teknik bilgisi olan herkesin kendi yapay zekâ modelini eğitebilmesi. Bu belge yapılacak işlerin sırasını tutar; tamamlanan işler kısa bir satırla en altta kalır.
+TR'nin hedefi: yapay zekâ modelini **eğiten** ve **kullanan** geliştirici için en iyi programlama dili. Model eğitimi dilin sınavıdır; ürün dilin kendisidir. Dilin en önemli yan faydası: biraz teknik bilgisi olan herkesin kendi yapay zekâ modelini kurup eğitebilmesi.
 
-## Şu an yapılıyor
+## İlkeler
 
-- **İkinci tur hakem denetimi** — yeni klasör ve kod düzeninin, sabit kodların ve çeviriye hazırlığın denetimi.
-- **Güvenlik denetiminin kalanları** — modül çözümleme sırası (önce içe aktaran dosyanın klasörü), düşük önemli bulgular.
+- **Önce sağlam temel, sonra özellik.** İlk evre, yapılabildiğini görmek için hızlı bir koşuydu. Bundan sonra her özellik, kuralları belli ve testle korunan bir temelin üstüne eklenir. Yama gibi büyüyen kod bir süre sonra yönetilemez.
+- **Evreler bitiş ölçütüyle ilerler.** Bir evrenin ölçütü sağlanmadan sonrakine geçilmez. Temel işi sonu belirsiz bir temizliğe dönüşmez.
+- **Her kural bir testle korunur.** Yalnızca yazılı kalan kural zamanla aşınır. Örnek: dosya ve fonksiyon boyu, katman sırası, kod listesinden üretilen adlar, ileti kodları.
+- **Doğrusu neyse o.** Bir tasarım kararında yerleşik ve kanıtlanmış uygulama (best practice) seçilir; gerekçesi belgeye yazılır.
+- **Önce ölç, sonra değiştir.** Hız işinde her değişiklik önce ve sonra ölçülür. Kazandırmayan "iyileştirme" geri alınır.
+- **Dış incelemeler doğrulanarak düzeltilir.** Her bulgu önce yeniden üretilir. Doğrulananın düzeltmesine, düzeltmeden önce kalan sonra geçen bir test eklenir.
 
-## Sırada
+## Evre 1: Kanıt (tamamlandı)
 
-1. **CPU hızı: profil ve iyileştirme** — küçük modellerde işlem başına sabit maliyet (yorumlayıcı, çizge düğümü, bellek ayırma); hedef bugünkü yaygın Python kitaplıklarını CPU'da da geçmek.
-2. **Standart kitaplık (yapay zekâ iş akışı için)** — Python'un "pil dahil" kitaplığının tamamı değil, model eğiten ve kullanan birinin gerçekten ihtiyaç duyduğu kısmı:
-   - klasör ve dosya yolu işlemleri (listeleme, birleştirme, var mı), ortam değişkenleri, komut satırı argümanları;
-   - sıkıştırma (zip, gzip), özet (hash) ile veri bütünlüğü denetimi;
-   - tarih ve saat, genel rastgele sayı, kullanıcıya açık düzenli ifadeler;
-   - eğitim için günlük kaydı ve ilerleme çubuğu (adım, kayıp, kalan süre), profil çıkarma.
-   Her ad önce tasarlanıp onaylanır; aynı işi yapan iki kod olmaz.
-3. **Kodlu saklama** — dosyalar diskte dilden bağımsız sabit kodlarla saklanır (`A001`, `G100`); kişi kodu VS Code'da ya da başka bir düzenleyicide kendi yazım dilinde (`eğer` / `if`) görür ve düzenler. Böylece her dilde yazılan kod diskte aynıdır; farklı dillerde çalışan kişiler aynı dosyalar üzerinde birlikte çalışabilir.
-   - Tamamlandı (Ç1): kodlu biçim (`//! tr kodlu 1`, 17.1-17.6), kodlu dosya çevrilmeden çalışır; kapsamla kodlayan kayıpsız çevirici, `tr kodla`, `tr çöz`, `tr göster`; `tr biçimle` kodlu biçimi korur; `$ad` kaçışı (2.11); tek kaynak giriş noktası (`internal/lang/source`).
-   - Tamamlandı (Ç2): VS Code izdüşümü (17_kodlar.md, "Düzenleyicide"): kişi Türkçe görür, kayıt kodlu yazar, başlık gizli ve satırlar hata mesajları ve hata ayıklayıcıyla aynı; bozuk dosya kayıpsız, başlıksız Türkçe kaydedilir ve ilk geçerli kayıtta yeniden kodlanır; kısıtlı kipte salt okunur ham gösterim; `tr göster -` ve `tr kodla -` (standart giriş kipi); git farkları için `tr göster` ile "textconv" tarifi.
-   - Kalan: otomatik sınama kodlu biçimi denetler.
-   - Depodaki örnekler ve testler, VS Code izdüşümü hazır olunca kodlu biçime çevrilir.
-4. **Modern VS Code deneyimi** — dil sunucusu `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır; eklenti ince bir istemci olur):
-   - yazarken hata gösterimi ve hızlı düzeltmeler (`yazdir` → `yazdır` gibi ipuçları tek tıkla);
-   - üzerine gelince belge (kod listesinden ve dil tanımından), adlı argüman ipuçları, bağlama göre tamamlama;
-   - tanıma git, bütün kullanımları bul, yeniden adlandır, kaydederken biçimlendirme;
-   - anlamsal renklendirme: dilin kelimeleri ile kullanıcının adları ayrı renkte;
-   - testlerin VS Code test gezgininde koşması, satır üstünde "çalıştır" ve "hata ayıkla" düğmeleri;
-   - yapay zekâya özel: tensör şekillerinin satır içinde gösterimi, eğitimi canlı izleyen panel (kayıp eğrisi, gradyan normu, öğrenme oranı), Model Sihirbazı.
-5. **Transformer kitaplığı (TR ile yazılı)** — katmanlar (Doğrusal, Gömme, RMSNormu, Dikkat, SwiGLU, Blok) ve yalnızca kod çözücülü `GPT`; model sıradan bir `yapı`, her model tek dosyada okunur.
-   - **1. aşama yapıldı:** `aktar "tr/..."` ile ikiliye gömülü kitaplık (11.6); `tr/katman`: `Doğrusal`, `GömmeKatmanı`, `RMSNormKatmanı`, döner konum (RoPE), `NedenselDikkat` (gruplu sorgu), `SwiGLU`, `TransformerBloğu`, `GPT` (paylaşımlı çıkış, `üret`); `tr/iyilestirici`: `Muon`, `NorMuon`, `MuonVeAdamW`, `parametre_grupları`, `oran_planı` (WSD) — hepsi TR kodu; örnek `examples/11_gpt.tr`, Colab betiği `tools/gpu/gpt_egitim.tr`.
-   - Sırada: kitaplık adlarının yazım dillerinde çevirisi (8. madde, Ç3); KV önbellekli `üret` (9. madde); hazır eğitim döngüsü (`egitim/`); iyileştiricinin öğrenme oranının sonradan değiştirilebilmesi (bugün `MuonVeAdamW` AdamW adımını ölçekler); `kontrol_noktası`nın türev izlemeyen durum tensörlerini de saklaması.
-6. **GPU arka ucu** — Go'nun ürettiği GPU kodu (PTX) sürücüye verilir; tek dosya dağıtım korunur, ek derleyici gerekmez.
-   - Önce **G4** ve **L4** (bf16, fp8); **T4** sonra (fp16 yolu).
-   - Programa gömülü birleşik çekirdekler: dikkat, doğrusal katman + çapraz entropi, RMSNorm/RoPE/SwiGLU, AdamW.
-   - Blok boyutları arka ucun ayarı; ilk çalıştırmada ölçülerek seçilir ve saklanır.
-   - Sınama bulut GPU makinelerinde.
-   - **1. aşama (G1) yapıldı:** sürücü bağlama, PTX üreteci ve benzetim, bütün tensör işlemleri ve gradyanları (float32; bf16/fp16 depolama dönüşümle), döşemeli float32 matris çarpımı, dikkat (çarpım + maske + softmax), `varsayılan_cihaz` ve `cihazlar`. Sırada (2. aşama): tensör çekirdekli bf16 matris çarpımı, birleşik dikkat, gradyan kırpmanın cihazda kalması (adım başına eşzamanlama yok), birleşik çekirdekler.
-7. **TR ile çekirdek yazma** — eleman bazlı ve satır işlemleri için küçük, blok düzeyinde bir yazım; aynı kod CPU'da vektör komutlarına, GPU'da GPU koduna derlenir. Ardından tensör çekirdekli matris çarpımı ve dikkat.
-8. **Yazım dilleri** — Tamamlandı (ilk adım): `en.json`, `tr göster --dil en`, `tr kodla - --dil en`, VS Code `tr.yazimDili: en` (17.7); kodlu → İngilizce → kodlu depodaki bütün dosyalarda kayıpsız. Sırada: kitaplık adlarının ve hata mesajlarının çevirisi. EN ilk ikinci dil; yazım dili kişinin seçimidir, dosyada saklanmaz; kodlu biçimden EN gösterim ve EN yazımdan kodlama (çakışan kullanıcı adları `$ad` ile, 2.11); bütün testlerin ve örneklerin iki dilde de koşması. Sonra hata mesajları (H kodları) ve PT gibi başka diller; yalnızca resmî, programa gömülü diller.
-9. **Üretim (modeli kullanan geliştirici için)** — KV önbellekli hızlı üretim, toplu istek işleme, nicemleme (int8/int4), model dosyaları, ağır hesapta yorumlayıcı kilidinin bırakılması.
-10. **Model Sihirbazı** — VS Code eklentisinde, kod bilmeyenin bile model kurmasını sağlayan sihirbaz; okunur TR kodu üretir; hazır eğitim döngüsü bununla gelir.
-11. **Az teknik kullanıcı yolu** — ham metinden modele kadar her adım TR içinde:
-   - ham metin klasöründen veri kümesi hazırlama;
-   - kendi parçalayıcısını eğitme (bugün yalnızca hazır `tokenizer.json` okunuyor);
-   - eğitim sağlığı uyarıları: kayıp patlıyor ya da düşmüyor, öğrenme oranı yüksek görünüyor, bellek yetmeyecek;
-   - çalıştırmadan önce süre, bellek ve maliyet tahmini;
-   - dizüstü bilgisayarda ya da tek bir bulut GPU'sunda çalışan küçük model tarifleri;
-   - eğitilen modeli tek dosya uygulama ya da web hizmeti olarak paylaşma.
-12. **Statik şekil denetimi** — tensör şekil hatalarının çalıştırmadan önce yakalanması.
-13. **Matematik: doğrusal cebir ve Fourier** — doğrusal sistem çözme, ters matris, ayrışımlar (QR, Cholesky, tekil değer), determinant ve normlar; hızlı Fourier dönüşümü. Hepsi türevli, CPU ve GPU çekirdekli.
+Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile bir Transformer eğitilebiliyor. GPU'da (116 M parametreli GPT, bf16) adım süresi PyTorch'la başa baş, bellek kullanımı daha az.
 
-## Platformlar
+## Evre 2: Sağlam temel (şu an)
+
+1. **İleti kodları.** Kullanıcıya giden her ileti, adlar gibi sabit bir koda bağlanır (`H` ve dört basamak, `internal/lang/messages`). Metinler dil dosyasındadır; parametreler adlıdır (`{fn}: {path|q} bir klasör`). Testler metni değil kodu denetler.
+   - Tamamlandı: altyapı ve denetim testi; ortak hata yardımcıları (dosya hataları, satır öneki, argüman sayısı, adlı argüman ve üye hataları); `formats`.
+   - Sürüyor: standart kitaplığın geri kalanı, `devtools`, `tr` komutu.
+   - Sırada: dil çekirdeği (`lang`; iletilerin "Satır " metnine bağımlılığı burada kalkar), en son `compute`.
+2. **Açık işler ve bekleyen dil kararları.**
+   - `csv_çöz(metin)`: `csv_oku` yalnızca dosya okur, CSV metni `csv_çöz` ile ayrıştırılır (`json_çöz` gibi). Metin var olan bir dosyanın adıysa dosyanın okunması belirsizliği kalkar.
+   - Dil çekirdeği incelemesinden kalan konular: kullanıcı metnindeki terminal kaçış dizileri, `VAL_INT` gibi adlar.
+   - Testler: eşzamanlı görevdeki başarısız doğrulamanın testi kaldırması; testlerin üst düzey ortamı paylaşması.
+   - Yeni satır başındaki `-x` ifadesinin önceki satıra ikili eksi olarak bağlanması.
+3. **Test düzeni.** Test dosyası adlandırma kuralı (`x_test.go` yalnızca `x.go`'yu sınar; süreçleri sınayan testler önekli dosyalarda) ve her paket README'sinde bir "Testler" bölümü; ikisi de testle denetlenir.
+4. **Kalan adlar.** `cmd/tr` dosya ve Go adları ile `tools` betik adları İngilizceye geçer. Kullanıcıya görünen komut adları değişmez.
+5. **Kurallar testle korunur.** Her paket README'sindeki "nasıl eklenir" kuralları gözden geçirilir; testi olmayan kurala test eklenir.
+6. **Belgeler yeni düzeni anlatır.** Mimari, katkı rehberi ve kılavuz yeni paket düzenine ve kurallara göre güncellenir.
+
+**Bitiş ölçütü:** kodda Türkçe ileti metni kalmaz, her kural bir testle korunur, bekleyen dil kararı kalmaz.
+
+## Evre 3: Gerçek model
+
+Hız hedefi ve dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için optimize edilmiş, yalnızca kod çözücülü (decoder-only) bir Transformer ve küçük sürümleridir (hedef model). Eksik parçalar Evre 2'nin kurallarına uyarak eklenir:
+
+- **Bellek:** parçalı logit + çapraz entropi (logitler bütünüyle bellekte tutulmaz); dikkatin adımlı girdi okuması (başlara ayırma kopyasız).
+- **Hız:** birleşik RMSNorm, RoPE ve SwiGLU çekirdekleri.
+- **Model parçaları:** katman başına gömme tabloları (PLE) için seyrek satır güncellemesi; Muon'da aynı şekilli matrislerin toplu Newton–Schulz adımı.
+- **Karşılaştırma:** hedef model TR'de yazılır; PyTorch sürümüyle hız, bellek ve kayıp eğrisi karşılaştırılır.
+- **Kartlar:** ölçümler ve GPU testleri birden çok kartta tekrarlanır (tensör çekirdeksiz yol için T4, L4/A100).
+- **CPU:** CPU'da küçük bir modelle eğitim denemesi; işlem başına sabit maliyetin profili.
+
+**Bitiş ölçütü:** hedef model TR'de PyTorch sürümüyle aynı kalitede ve en az aynı hızda eğitilir.
+
+## Evre 4: Geliştirici deneyimi
+
+- **VS Code dil sunucusu** `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır):
+  - yazarken hata gösterimi, tek tıkla düzeltme;
+  - üzerine gelince belge, adlı argüman ipuçları, tamamlama;
+  - tanıma git, kullanımları bul, yeniden adlandır;
+  - anlamsal renklendirme;
+  - test gezgini ve satır üstünde çalıştır ya da hata ayıkla düğmeleri;
+  - tensör şekillerinin satır içinde gösterimi, eğitimi canlı izleyen panel.
+- **Transformer kitaplığı:** kitaplık adlarının yazım dillerinde çevirisi, KV önbellekli `üret`, hazır eğitim döngüsü, iyileştiricide sonradan değiştirilebilen öğrenme oranı.
+- **Üretim:** toplu istek işleme, nicemleme (int8/int4), model dosyaları.
+- **Kodlu saklama:** otomatik sınamanın kodlu biçimi denetlemesi; depodaki örneklerin ve testlerin kodlu biçime çevrilmesi.
+- **Standart kitaplık:** sıkıştırma (zip), özet (hash), tarih ve saat, düzenli ifadeler; her ad önce tasarlanıp onaylanır.
+
+## Evre 5: Yaygınlaşma
+
+- **Model Sihirbazı:** kod bilmeyenin bile model kurmasını sağlayan, okunur TR kodu üreten sihirbaz.
+- **Az teknik kullanıcı yolu:** ham metinden veri kümesi hazırlama; parçalayıcı eğitme; eğitim sağlığı uyarıları; çalıştırmadan önce süre, bellek ve maliyet tahmini; küçük model tarifleri; eğitilen modeli tek dosya uygulama ya da web hizmeti olarak paylaşma.
+- **Yazım dilleri:** adların İngilizcesi var (`en.json`, `tr göster --dil en`); iletilerin İngilizcesi (`internal/lang/messages/en.json`) eklenir.
+- **Platformlar:** Mac otomatik sınaması, Apple M ve ARM için vektör çekirdekleri, Metal arka ucu, AMD (ROCm).
+- **Çoklu GPU:** veri paralelliğiyle eğitim.
+
+## Sonra
+
+- Statik şekil denetimi: tensör şekil hatalarının çalıştırmadan önce yakalanması.
+- Matematik: doğrusal sistem çözme, ters matris, ayrışımlar (QR, Cholesky, tekil değer), hızlı Fourier dönüşümü; türevli, CPU ve GPU çekirdekli.
+- TR ile çekirdek yazma: aynı kodun CPU'da vektör komutlarına, GPU'da GPU koduna derlendiği küçük bir yazım.
+
+## Platform durumu
 
 - **Windows, Linux (Intel/AMD):** tam destek, her değişiklikte otomatik sınama.
-- **Mac:**
-  1. Otomatik sınamaya Mac makinesi eklemek.
-  2. Apple M çipleri (ARM) için vektör komutlu matris çarpımı ve vektör işlemleri (bugün düz Go yoluna düşüyor).
-  3. Mac GPU'su için Metal arka ucu.
-- **Linux (ARM):** ARM vektör komutlu çekirdek Mac ile ortak.
+- **Linux ve Mac (ARM):** derleniyor ve sınanıyor; vektör çekirdekleri yok (düz Go yolu).
+- **GPU:** NVIDIA (sürücü ve isteğe bağlı cuBLASLt çalışma anında yüklenir); ölçümler RTX PRO 6000 Blackwell üzerinde.
 
 ## Tamamlananlar
 
 - Yorumlayıcı: kapanış derlemesi, yuva tabanlı ortamlar; Python ile başa baş hız.
-- Tensör çekirdeği: AVX2/FMA matris çarpımı, ters yönlü otomatik türev, kalıcı işçi havuzu; `matris` tensöre katıldı.
+- Tensör çekirdeği: AVX2/FMA matris çarpımı (çalışma anında seçilir), ters yönlü otomatik türev, kalıcı işçi havuzu.
 - Veri hattı: `.npy` parçaları, önden yükleme, önbellek; genel `tokenizer.json` parçalayıcısı.
-- bf16/fp16 veri türleri ve `karışık_hassasiyet` bloğu.
-- Örnekler 01–09 öğrenme sırasıyla.
-- Kodlar: dilin bütün adları `internal/lang/codes/tr.json`'da sabit kodlara bağlı; açıklamalı başvuru `docs/kodlar.md`.
-- Tek yazım: Türkçe harfsiz biçimler, eş yazımlar, `matris`, `#` yorum ve İngilizce eşler kaldırıldı; komut satırı tek Türkçe ad; yerleşik ad gölgeleme uyarısı; eklenti listeleri kod listesinden üretiliyor.
-- Matematik genişletmesi: `silu`, ters trigonometri (`tanjant`, `arksinüs`, `arkkosinüs`, `arktanjant`, `arktanjant2`), `sinh`/`cosh`, `log1p`/`log2`/`log10`/`üstel_eksi_bir`, `taban`/`tavan`/`işaret`/`sınırla`, `pi`, `birikimli_toplam`, `en_büyük_k`, `sıralama_indeksi`, `koşullu` ve yayınlamalı tensör karşılaştırmaları; hepsi türevli (uygun olanlar), CPU ve GPU çekirdekli, bf16/fp16 depolamada.
-- Model yapı taşları: `sinüs`/`kosinüs`, `birleştir`, `.böl`, `boyutu_koru`, birleşik `dikkat` (nedensel, pencereli, gruplu sorgu; T×T ara matrissiz, uzun bağlamda 2–10 kat hızlı), `örnekle`, `parametreler(model)`.
-- Standart kitaplığın temeli (Aşama 0): ham metin `` `...` `` ve bilinmeyen kaçış hatası, yol ve tembel yineleme kancaları, betik argümanları, Ctrl+C ile nazik çıkış (ertelenen işler çalışır, çıkış kodu 3), canlı satır ve gizli değer süzgeci; `İyileştirici` tipi, `indirge` bloğunda `birikim`.
-- Güvenlik denetimi: tensör dosyası ve tensör ayırmaları bellek sınırıyla denetlenir, metin içi yerleştirmeye derinlik sınırı, güvenilmeyen girdiler için bulanıklaştırma testleri, VS Code eklentisi yalnızca güvenilen yorumlayıcıyı çalıştırır, otomatik sınamada sabitlenmiş eylemler, Go 1.25.
+- bf16/fp16 veri türleri ve `karışık_hassasiyet` bloğu; 16 bitlik ara gradyanlar kendi türünde, float32 ağırlığın gradyanı yuvarlanmadan.
+- GPU arka ucu: Go'nun ürettiği GPU kodu, bütün tensör işlemleri ve gradyanları, tensör çekirdekli dikkat (ileri ve geri), cuBLASLt ile bf16 matris çarpımı, çok tensörlü iyileştirici adımları, kontrol noktası ve gradyan kırpma cihazda.
+- Kodlar: dilin bütün adları sabit kodlara bağlı (`internal/lang/codes`); açıklamalı başvuru `docs/kodlar.md`; kodlu saklama (`tr kodla`, `tr çöz`, `tr göster`) ve VS Code izdüşümü; İngilizce yazım dili.
+- Tek yazım: Türkçe harfsiz biçimler, eş yazımlar ve İngilizce eşler kaldırıldı; yerleşik ad gölgeleme uyarısı.
+- Matematik ve model yapı taşları: genişletilmiş eleman bazlı matematik, birleşik `dikkat`, `örnekle`, `parametreler(model)`; Transformer kitaplığı (`tr/katman`: Doğrusal, RMSNorm, RoPE, gruplu sorgu dikkati, SwiGLU, GPT).
+- Standart kitaplık: dosya ve yol işlemleri, komut satırı, günlük ve ilerleme çubuğu, kontrol noktası, profil ve canlı izleme.
+- Kod tabanı İngilizceye geçti (klasörler, dosyalar, Go adları); her paketin README'si standartlarını yazar.
+- Dış incelemeler: dil çekirdeği, hesap çekirdeği, standart kitaplık ve geliştirici araçları raporları doğrulanarak düzeltildi.
+- Güvenlik: güvenilmeyen girdiler (tensör dosyası, kontrol noktası, `.npy`, `tokenizer.json`) sınırlarla denetlenir ve bulanıklaştırma testleriyle sınanır; VS Code eklentisi yalnızca güvenilen yorumlayıcıyı çalıştırır; otomatik sınamada sabitlenmiş eylemler.
