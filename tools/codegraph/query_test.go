@@ -88,9 +88,16 @@ func TestPath(t *testing.T) {
 		t.Fatalf("exit %d", code)
 	}
 	mustContain(t, out, "path (directed, 2 steps)", "-calls->", "-uses_message->", "H0001")
-	code, _, errOut := cli(t, "path", "H0002", "A001")
-	if code != exitNotFound || !strings.Contains(errOut, "no path") {
-		t.Errorf("exit %d: %s", code, errOut)
+	// İki ayrık düğüm arasında yol yoktur (fikstürde her şey birbirine bağlı, bu yüzden elle kurulmuş grafik).
+	g := &Graph{SchemaVersion: schemaVersion, Extractor: extractorRevision,
+		Nodes: []Node{{ID: "a", Kind: kindFunc, Name: "p.a"}, {ID: "b", Kind: kindFunc, Name: "p.b"}}}
+	file := filepath.Join(t.TempDir(), "g.json")
+	if err := writeGraph(file, g); err != nil {
+		t.Fatal(err)
+	}
+	var so, se bytes.Buffer
+	if code := run([]string{"path", "--graph", file, "--no-rebuild", "p.a", "p.b"}, &so, &se); code != exitNotFound || !strings.Contains(se.String(), "no path") {
+		t.Errorf("exit %d: %s", code, se.String())
 	}
 }
 
@@ -190,5 +197,25 @@ func TestTextQueries(t *testing.T) {
 	// çok kısa sorgu metin araması yapmaz
 	if code, _, _ = cli(t, "query", "fi"); code != exitNotFound {
 		t.Errorf("2-letter query: exit %d", code)
+	}
+}
+
+func TestWhoUsesGoConstants(t *testing.T) {
+	code, out, _ := cli(t, "who-uses", "shape.Sides")
+	if code != exitOK {
+		t.Fatalf("exit %d", code)
+	}
+	mustContain(t, out, "shape.Sides [const] shape/shape.go:", "const shape.Sides untyped int = 4", "<- uses", "shape.Corners [func]")
+	code, out, _ = cli(t, "who-uses", "messages.H0001")
+	if code != exitOK {
+		t.Fatalf("exit %d", code)
+	}
+	mustContain(t, out, "messages.H0001 [const]", "shape.Describe [func]")
+	// Kodun düğümü Go sabitini gösterir; kullanılmayan kod "no uses" der ama sabitini yine bildirir.
+	_, out, _ = cli(t, "who-uses", "H0002")
+	mustContain(t, out, "Go constant: messages.H0002 [const]", "no uses")
+	code, out, _ = cli(t, "who-uses", "shape.Default")
+	if code != exitOK || !strings.Contains(out, "shape.Corners") {
+		t.Errorf("var: exit %d\n%s", code, out)
 	}
 }

@@ -67,7 +67,7 @@ computed when you ask, not stored in `graph.json`.
 
 | Node kind | Id | Source |
 | :-- | :-- | :-- |
-| `package`, `file`, `func`, `method`, `type` | `go:pkg:`, `go:file:`, `go:func:`, `go:type:` + path/name | `go list` + `go/types`, test files included; file:line |
+| `package`, `file`, `func`, `method`, `type`, `const`, `var` | `go:pkg:`, `go:file:`, `go:func:`, `go:type:`, `go:const:`, `go:var:` + path/name | `go list` + `go/types`, test files included; file:line; `const`/`var` are package-level only (`lexer.TokVar`, `messages.H2100`) |
 | `message` | `msg:H2100` | `internal/lang/messages/tr.json` (text) and `definitions.json` (params) |
 | `name` | `name:A001` | `internal/lang/codes/tr.json` (name and family) |
 | `rule` | `rule:<readme>:<line>` | a list item or paragraph with `Denetim:`, or a row of a `Kural` / `Test` table |
@@ -79,6 +79,8 @@ computed when you ask, not stored in `graph.json`.
 | `imports` | package → package (module packages only) | EXTRACTED |
 | `calls` | func → func; a call resolved by `go/types` | EXTRACTED; a function used as a value: INFERRED |
 | `implements` | type → interface of the module, by `types.Implements` | EXTRACTED |
+| `uses` | func (or package, for initialisers) → package-level `const` or `var` it refers to | EXTRACTED |
+| `denotes` | Go constant `messages.H2100` / `codes.K003` → the message / name code node `H2100` / `K003` it stands for | EXTRACTED |
 | `tests` | test → its package; test → function it calls (directly or through helpers in test files); test → function its name says (`TestParse`, `TestVM_Run`) | EXTRACTED / EXTRACTED / INFERRED |
 | `uses_message` | func → `msg:Hnnnn`, from the `messages.Hnnnn` constant | EXTRACTED |
 | `uses_name` | func → `name:Xnnn`, from the `codes.Xnnn` constant | EXTRACTED |

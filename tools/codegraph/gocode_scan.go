@@ -82,6 +82,13 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool)
 		case o.Pkg().Path() == x.m.path+"/"+codesDir && nameConst.MatchString(o.Name()):
 			x.b.addEdge(owner, "name:"+o.Name(), edgeUsesName, extracted, fc.rel, line)
 		}
+		if o.Parent() == o.Pkg().Scope() {
+			x.b.addEdge(owner, valueID(kindConst, o.Pkg().Path(), o.Name()), edgeUses, extracted, fc.rel, line)
+		}
+	case *types.Var:
+		if !o.IsField() && o.Parent() == o.Pkg().Scope() {
+			x.b.addEdge(owner, valueID(kindVar, o.Pkg().Path(), o.Name()), edgeUses, extracted, fc.rel, line)
+		}
 	}
 }
 

@@ -220,6 +220,9 @@ func isTestName(name string) bool {
 
 func (x *goExtractor) genDecl(fc *fileCtx, d *ast.GenDecl) {
 	if d.Tok != token.TYPE {
+		if d.Tok == token.CONST || d.Tok == token.VAR {
+			x.valueDecl(fc, d)
+		}
 		x.scan(fc, pkgID(fc.base), d)
 		return
 	}
@@ -270,5 +273,50 @@ func (x *goExtractor) typeSpec(fc *fileCtx, ts *ast.TypeSpec, obj *types.TypeNam
 		if !fc.isTest {
 			x.addSym(fc.base, obj.Name()+"."+mth.Name(), mid)
 		}
+	}
+}
+
+func valueID(kind, pkg, name string) string { return "go:" + kind + ":" + pkg + "." + name }
+
+// valueDecl paket düzeyindeki const ve var bildirimlerini düğüm yapar. İleti kodu (messages.H2100)
+// ve ad kodu (codes.K003) sabitleri, kodun düğümüne `denotes` kenarıyla bağlanır.
+func (x *goExtractor) valueDecl(fc *fileCtx, d *ast.GenDecl) {
+	kind := kindConst
+	if d.Tok == token.VAR {
+		kind = kindVar
+	}
+	for _, spec := range d.Specs {
+		vs, ok := spec.(*ast.ValueSpec)
+		if !ok {
+			continue
+		}
+		for _, name := range vs.Names {
+			obj := fc.u.info.Defs[name]
+			if obj == nil || name.Name == "_" {
+				continue
+			}
+			pkg := obj.Pkg().Path()
+			id := valueID(kind, pkg, name.Name)
+			detail := types.ObjectString(obj, func(p *types.Package) string { return p.Name() })
+			if c, isConst := obj.(*types.Const); isConst {
+				detail += " = " + truncate(c.Val().String(), 60)
+			}
+			line := x.line(name.Pos())
+			x.b.addNode(Node{ID: id, Kind: kind, Name: path.Base(pkg) + "." + name.Name, File: fc.rel,
+				Line: line, End: x.line(vs.End()), Detail: detail})
+			x.b.addEdge(fileID(fc.rel), id, edgeContains, extracted, fc.rel, line)
+			x.denotes(fc, id, pkg, name.Name, line)
+		}
+	}
+}
+
+// denotes sabitin bir ileti ya da ad kodunun Go adı olduğunu bağlar.
+func (x *goExtractor) denotes(fc *fileCtx, id, pkg, name string, line int) {
+	switch {
+	case fc.isTest:
+	case pkg == x.m.path+"/"+messagesDir && messageConst.MatchString(name):
+		x.b.addEdge(id, "msg:"+name, edgeDenotes, extracted, fc.rel, line)
+	case pkg == x.m.path+"/"+codesDir && nameConst.MatchString(name):
+		x.b.addEdge(id, "name:"+name, edgeDenotes, extracted, fc.rel, line)
 	}
 }

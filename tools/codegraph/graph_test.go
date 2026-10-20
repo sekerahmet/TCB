@@ -184,3 +184,37 @@ func TestReadGraphRejectsOtherSchema(t *testing.T) {
 		t.Errorf("err = %v", err)
 	}
 }
+
+func TestConstAndVarNodes(t *testing.T) {
+	g := fixture(t)
+	const pkg = "example.com/mini/shape."
+	for _, n := range g.Nodes {
+		if n.ID == "go:const:"+pkg+"Sides" && (n.Kind != kindConst || n.File != "shape/shape.go" || !strings.Contains(n.Detail, "= 4")) {
+			t.Errorf("Sides: %+v", n)
+		}
+	}
+	for _, id := range []string{"go:const:" + pkg + "Sides", "go:var:" + pkg + "Default"} {
+		if !hasNode(g, id) {
+			t.Errorf("missing node %s", id)
+		}
+	}
+	mustEdge(t, g, "go:func:"+pkg+"Corners", "go:const:"+pkg+"Sides", edgeUses, extracted)
+	mustEdge(t, g, "go:func:"+pkg+"Corners", "go:var:"+pkg+"Default", edgeUses, extracted)
+	mustEdge(t, g, "go:file:shape/shape.go", "go:const:"+pkg+"Sides", edgeContains, extracted)
+	if hasNode(g, "go:var:"+pkg+"s") || hasNode(g, "go:var:"+pkg+"err") {
+		t.Error("parameters and locals are not package-level variables")
+	}
+}
+
+// Kod sabiti (messages.H0001, codes.A001) kodun düğümüne bağlanır; kullanımları hem
+// uses_message/uses_name hem uses kenarıdır.
+func TestCodeConstantsDenoteCodes(t *testing.T) {
+	g := fixture(t)
+	msgConst := "go:const:example.com/mini/internal/lang/messages.H0001"
+	nameConst := "go:const:example.com/mini/internal/lang/codes.A001"
+	mustEdge(t, g, msgConst, "msg:H0001", edgeDenotes, extracted)
+	mustEdge(t, g, nameConst, "name:A001", edgeDenotes, extracted)
+	mustEdge(t, g, describeID, msgConst, edgeUses, extracted)
+	mustEdge(t, g, describeID, "msg:H0001", edgeUsesMessage, extracted)
+	mustEdge(t, g, describeID, nameConst, edgeUses, extracted)
+}
