@@ -265,7 +265,7 @@ func dataError(fn, path string, err error, extras ...string) error {
 	case errors.Is(err, dataload.ErrCacheLocked):
 		return messages.New(messages.H2000, fn, clean(strings.TrimPrefix(err.Error(), dataload.ErrCacheLocked.Error()+": ")))
 	case bind.IsNotExist(err) && messages.Has(err, messages.H5019):
-		return turkish.FileError(fn, path, messages.H2103, bind.FileCause(err),
+		return turkish.FileError(fn, path, messages.H2103, err,
 			append([]string{messages.Text(messages.H5517)}, extras...)...)
 	}
 	var pe *fs.PathError

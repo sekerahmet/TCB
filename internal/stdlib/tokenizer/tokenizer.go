@@ -171,7 +171,7 @@ func isUnsupported(err error) bool {
 func loadError(path string, err error, tried []string) error {
 	fn := codes.Name(codes.V200)
 	if bind.IsNotExist(err) {
-		return turkish.FileError(fn, path, messages.H2107, bind.FileCause(err),
+		return turkish.FileError(fn, path, messages.H2107, err,
 			messages.Text(messages.H5612), interp.SearchedPlaces(tried))
 	}
 	msg := err.Error()

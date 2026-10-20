@@ -9,7 +9,6 @@ package bind
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"slices"
 	"strconv"
@@ -169,18 +168,6 @@ func ResolvePath(m *interp.VM, path string) string {
 // ResolvePathTried ResolvePath gibidir; ayrıca hata mesajları için bakılan yerleri döndürür.
 func ResolvePathTried(m *interp.VM, path string) (string, []string) {
 	return m.ResolvePath(path) // m nil olabilir: o zaman yalnızca çalışma klasörüne bakılır
-}
-
-// FileCause kodlu bir iletinin (ör. compute paketinin "dosya açılamadı: {error}" iletisi)
-// sardığı işletim sistemi dosya hatasını verir; yoksa hatanın kendisini. turkish.FileError
-// zincirdeki ilk kodlu iletiyi neden sayar; sarmalayıcı değil işletim sistemi hatası
-// sınıflandırılsın diye FileError'a bu değer verilir.
-func FileCause(err error) error {
-	var pe *fs.PathError
-	if errors.As(err, &pe) {
-		return pe
-	}
-	return err
 }
 
 // IsNotExist hatanın "dosya ya da klasör yok" anlamına gelip gelmediğini söyler.

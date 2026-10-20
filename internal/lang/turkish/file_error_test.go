@@ -81,3 +81,21 @@ func TestFileErrorUnknownStatusCode(t *testing.T) {
 		t.Errorf("beklenmeyen mesaj: %s", m)
 	}
 }
+
+// Kodlu bir sarmalayıcı işletim sistemi hatasını taşıyorsa neden sarmalayıcı değil işletim
+// sistemi hatasıdır; işletim sistemi hatası yoksa kodlu ileti nedendir.
+func TestFileErrorReasonThroughCodedWrapper(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "yok.npy")
+	_, osErr := os.ReadFile(missing)
+	wrapped := messages.New(messages.H2000, "x", osErr)
+	if got := FileErrorReason(missing, wrapped); got != FileErrorReason(missing, osErr) {
+		t.Errorf("sarmalayıcı işletim sistemi nedenini gizledi: %q", got)
+	}
+	if err := FileError("f()", missing, messages.H2100, wrapped); !messages.Has(err, messages.H2132) {
+		t.Errorf("neden H2132 olmalı: %v", err)
+	}
+	coded := messages.New(messages.H2000, "ozet.json çok büyük", "")
+	if err := FileError("f()", missing, messages.H2100, coded); !messages.Has(err, messages.H2000) || messages.Has(err, messages.H2132) {
+		t.Errorf("OS hatası olmayan kodlu ileti neden sayılmalı: %v", err)
+	}
+}

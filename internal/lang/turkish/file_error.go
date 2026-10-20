@@ -91,9 +91,11 @@ func fileErrorReason(path string, err error) *messages.Error {
 	if errors.As(err, &n) {
 		return n.Message
 	}
-	// Kodlu bir iletinin kendisi nedendir (ör. "ozet.json çok büyük"); işletim sistemi hatası
-	// sanılıp "beklenmeyen bir hata" diye sarılmaz, kodu da zincirde kalır.
-	if m, ok := messages.As(err); ok {
+	// Kodlu bir ileti işletim sistemi hatası taşımıyorsa kendisi nedendir (ör. "ozet.json çok
+	// büyük"); işletim sistemi hatası sanılıp "beklenmeyen bir hata" diye sarılmaz, kodu da
+	// zincirde kalır. Taşıyorsa (ör. compute'un "dosya açılamadı: {error}" sarmalayıcısı)
+	// işletim sistemi hatası sınıflandırılır.
+	if m, ok := messages.As(err); ok && !hasSystemError(err) {
 		return m
 	}
 	// Denetimler işletim sisteminin gerçekten denediği yolla yapılır (göreli yol programın
@@ -134,6 +136,14 @@ func fileErrorReason(path string, err error) *messages.Error {
 		orig = pe.Err.Error()
 	}
 	return messages.New(messages.H2136, orig)
+}
+
+// hasSystemError zincirde bir dosya sistemi ya da işletim sistemi hatası olup olmadığını söyler.
+func hasSystemError(err error) bool {
+	var pe *fs.PathError
+	var code syscall.Errno
+	return errors.As(err, &pe) || errors.As(err, &code) ||
+		errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrPermission) || errors.Is(err, fs.ErrExist)
 }
 
 // missingDir yolun klasör kısımlarından ilk olmayanını kullanıcının yazdığı biçimde
