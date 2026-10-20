@@ -36,8 +36,9 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
    - Şablon dili ICU MessageFormat'ın alt kümesi: çoğul (`{n, plural, ...}`, dile göre CLDR kuralı), seçim (`select`), hâl eki (`{ad|dat}`; çekimciyi dilin paketi kaydeder), seçenek listesi (`messages.OrList`, CLDR liste kalıbı).
    - Go'da sözcük çekimlenmez (`turkish.Suffix` yalnızca kendi paketinde; testle), sayıya bakıp sözcük seçilmez, ileti metni `strings` ile düzenlenmez.
    - Her dil kodun bütün parametrelerini kullanır; aynı anlam tek koddur, parametre adı farklı olsa da (testle; bu denetim 8 çift kod buldu, birleştirildi).
-   - İngilizce pilot: 38 ileti (`en.json`), `TR_DIL=en` ile gösterilir; çevrilmeyen kod Türkçeye düşer.
-   - Kalan küçükler: ad öbeği olarak değer geçen parametresiz kodlar (ör. "İsimsiz fonksiyon", "bakılan yer") çeviride ad öbeği olarak kalır; Evre 7'de cümle içinde doğal durmayanı tek şablona çevrilir.
+   - İngilizce pilot: 38 ileti (`en.json`), `TR_DIL=en` ile gösterilir. Bir ileti bütünüyle tek dildedir: kendisinin ya da içindeki kodlu hatanın çevirisi yoksa iletinin tamamı Türkçe gösterilir; süreç dili bir kez okunur, adlar ve iletiler aynı dildedir.
+   - Dış denetimden sonra (2026-10-20): çoğul kuralı CLDR işlenenlerini alır (2^53 üstünde de doğru, Rusça gibi dillere hazır); bir parametre ya dal dışında ya her dalda geçer (testle; birbirini dışlayan değerli iki ileti ikişer koda ayrıldı); parçadan kurulan iletiler (dosya hataları, yüklem ve iyelik parçaları) tam cümleye çevrildi ve bir ileti metninin başka iletiye değer olarak geçmesini test yakalar.
+   - Kalan küçükler: değer olarak geçen ad öbekleri ve sona eklenen ipuçları (ör. GPU tanı zinciri H4033–H4035, `{hint}` eki, "Bunu mu demek istediniz" eki, `testrunner` sayım satırı) çeviride sorun çıkarabilir; Evre 7'de tek şablona çevrilir. Parça testi değişkene alınmış metni ve `+` birleştirmeyi henüz görmüyor.
 3. **Gradyan doğruluğu kapısı (tamamlandı).** Her türevli tensör işleminin float64 sonlu fark testi ve bf16 tolerans testi var (`gradSpec`); `behavior_grad_coverage_test.go` testi olmayan işlemi yakalar; GPU'da her türevli işlemin gradyanı CPU ile karşılaştırılır (gerçek kartta doğrulandı). Bulunan tek yanlış: `üstel_eksi_bir`'in türevi çok negatif girdide 0 çıkıyordu, düzeltildi. Kalan: `stdlib/ml`'deki bileşik türevler kapsam testine girmedi; bf16 toleransları (3e-2, 6e-2) ölçülerek sıkılaştırılabilir.
 4. **Anlam kuralları yazılı ve testli (tamamlandı).** Yayınlama, tür yükseltme, tensör indeksi ve dilimi, `.dilim`, liste ve metin indeksi, sayı olmayan işlenen ve NaN kuralları dil tanımının 15.41 maddesinde tek tabloda; her biri PyTorch/NumPy ile karşılaştırıldı ve `tests/tensor_test.tr`'de testli. Tek davranış değişikliği: liste ve metinde sınır dışı okuma artık hatadır, bilinçli durum için `varsa_al` (3.6).
 5. **Açık işler ve bekleyen dil kararları.** Her karar başka dillerle karşılaştırılarak verildi; gerekçeleri dil tanımında.
@@ -50,10 +51,12 @@ Dil, tensörler, otomatik türev, veri hattı ve GPU üst üste kuruldu; TR ile 
    - Go adları Go biçimine geçti (MixedCaps): belirteç türleri `Tok` önekli (`TokIdent`, `TokEOF`), değer tipleri `Val` önekli (`ValInt`), öncelikler `prec` önekli (`precAnd`).
 6. **Test düzeni (tamamlandı).** Test dosyası adlandırma kuralı (`x_test.go` yalnızca `x.go`'yu sınar; süreçleri sınayan testler `behavior_` önekli dosyalarda) ve her paket README'sinde bir "Testler" bölümü; ikisi de testle denetlenir.
 7. **Kalan adlar.**
-   - `cmd/tr` dosya ve Go adları ile `tools` betik adları İngilizceye geçer.
-   - `tr` komutunun alt komutları (`çalıştır`, `biçimle` ...), seçenekleri (`--yardım`) ve hata ayıklayıcının komutları bir ad ailesine bağlanır; adlar değişmez, Go metninden çıkar.
-8. **Kurallar testle korunur.** Her paket README'sindeki "nasıl eklenir" kuralları gözden geçirilir; testi olmayan kurala test eklenir. Belgede (`docs/architecture.md`) adı geçen Go adlarının var olduğu da testle denetlenir.
+   - Tamamlandı: `cmd/tr` ve `tools` dosya ve Go adları İngilizce; `tr` alt komutları K ad ailesinde (K001–K014), her yazım dilinin adı kabul edilir (`tr çalıştır` = `tr run`), çıktı etkin dilde.
+   - Kalan: seçenekler (`--dil`, `--çıktı` ..., K100–K106), etkileşimli kabuğun `çıkış`'ı (K200), hata ayıklayıcının komutları (K300–K313), programın `--yardım`'ı ve yardım metni koddan; kuralın dil tanımına yazılması.
+8. **Kurallar testle korunur (büyük ölçüde tamamlandı).** README kurallarına ~30 test eklendi; `docs/architecture.md`'de adı geçen Go adlarının ve README'lerde anılan her denetim testinin var olduğu testle denetlenir (`TestRuleTestsExist`; ilk koşuda iki yanlış ad buldu). Kalan: C tarzı BÜYÜK_HARFLİ yeni Go adını yakalayan test.
 9. **Belgeler yeni düzeni anlatır (tamamlandı).** Kurallar (`internal/README.md`), ekleme tarifleri (`docs/recipes.md`), mimari ve katkı rehberi yeni düzene göre yazıldı.
+
+**Sıradaki:** madde 7'nin kalanı (CLI adları), ardından madde 1'in bitiş testi (Türkçe harfli metin sabiti yalnızca izinli yerde). Küçükler: `tools/bench/run.py` onarımı, `topluad` göreli yolu reddetsin.
 
 **Bitiş ölçütü:** kodda Türkçe ileti metni kalmaz (testle); ileti kataloğu çoğul ve liste kalıplarını taşır, Go'da ileti sözcüğü çekimlenmez ve İngilizce pilot geçer; her türevli işlemin gradyan testi vardır; anlam kuralları yazılı ve testlidir; her kural bir testle korunur; bekleyen dil kararı kalmaz.
 
@@ -239,5 +242,6 @@ Kararlar bu soruların yanıtıyla gözden geçirilir; ilk ikisi TR'nin kendi ö
 - Matematik ve model yapı taşları: genişletilmiş eleman bazlı matematik, birleşik `dikkat`, `örnekle`, `parametreler(model)`, `türev_denetle`; Transformer kitaplığı (`tr/katman`: Doğrusal, RMSNorm, RoPE, gruplu sorgu dikkati, SwiGLU, GPT).
 - Standart kitaplık: dosya ve yol işlemleri, komut satırı, günlük ve ilerleme çubuğu, kontrol noktası, profil ve canlı izleme.
 - Kod tabanı İngilizceye geçti (klasörler, dosyalar, Go adları); her paketin README'si standartlarını yazar.
-- Dış incelemeler: dil çekirdeği, hesap çekirdeği, standart kitaplık ve geliştirici araçları raporları doğrulanarak düzeltildi.
+- Dış incelemeler: dil çekirdeği, hesap çekirdeği, standart kitaplık, geliştirici araçları, ileti altyapısı ve VS Code eklentisi raporları doğrulanarak düzeltildi.
+- Kod grafiği (`tools/codegraph`): Go çağrıları, ileti ve ad kodları, kural→test bağları ve belge başlıkları yerel, belirlenimci bir grafikte; ajanlar dosya okumadan önce sorgular.
 - Güvenlik: güvenilmeyen girdiler (tensör dosyası, kontrol noktası, `.npy`, `tokenizer.json`) sınırlarla denetlenir ve bulanıklaştırma testleriyle sınanır; VS Code eklentisi yalnızca güvenilen yorumlayıcıyı çalıştırır; otomatik sınamada sabitlenmiş eylemler.
