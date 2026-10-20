@@ -15,9 +15,10 @@ import (
 // Cihaz belleği: depolama, boyut sınıflı havuz, konak hazırlık halkası
 // ============================================================================
 //
-// Havuz: ayırmalar boyut sınıflarına yuvarlanır (bkz. sinifBoyu: 1 MB'ye kadar ikinin
-// kuvvetleri, 64 MB'ye kadar dörtte bir adımlar, üstü 2 MB'nin katları) ve serbest kalan bloklar sürücüye geri verilmeden sınıfın
-// listesinde bekler. Bir depolama iki yoldan havuza döner: otomatik türevin işi biten
+// Havuz: 1 MB'ye kadarki ayırmalar ikinin kuvveti sınıflarına yuvarlanır ve serbest kalan
+// bloklar sürücüye geri verilmeden sınıfın listesinde bekler; daha büyükleri sürücüden
+// alınan parçalardan en uygun boş bloğa bölünerek verilir ve serbest kalınca komşularıyla
+// birleşir (memory_blocks.go). Bir depolama iki yoldan havuza döner: otomatik türevin işi biten
 // ara gradyanları açıkça iade etmesi (Release) ya da Go çöp toplayıcısının ulaşılamaz
 // depolamayı temizlemesi (runtime.AddCleanup). Bütün işler tek akışta sırayla
 // yürüdüğünden, havuza dönen bir bloğu kullanan eski çekirdekler, bloğu yeniden kullanan
@@ -94,29 +95,28 @@ type pool struct {
 	sites              map[uint64]siteKey
 	liveBy, peakBy     map[siteKey]siteUse
 	siteLive, sitePeak uint64
+	// large 1 MB'den büyük blokların parçaları (memory_blocks.go).
+	large largePool
 }
 
-// classSize ayırmanın yuvarlandığı boy: 256 bayta kadar 256; 1 MB'ye kadar ikinin
-// kuvvetleri; 1 MB–64 MB arası her ikinin kuvveti aralığı dört eşit sınıfa bölünür (en çok
-// %25 boşluk); üstü 2 MB'nin katları.
+// classSize küçük (≤ 1 MB) ayırmanın yuvarlandığı boy: 256 bayta kadar 256, üstü ikinin
+// kuvvetleri. Daha büyükleri largeSize'a (512 bayt) yuvarlanır.
 func classSize(byteN uint64) uint64 {
-	switch {
-	case byteN <= 256:
+	if byteN <= 256 {
 		return 256
-	case byteN <= 1<<20:
-		return 1 << bits.Len64(byteN-1)
-	case byteN <= 64<<20:
-		step := uint64(1) << (bits.Len64(byteN-1) - 3) // aralığın dörtte biri
-		return (byteN + step - 1) &^ (step - 1)
 	}
-	return (byteN + (2<<20 - 1)) &^ (2<<20 - 1)
+	return 1 << bits.Len64(byteN-1)
 }
 
 // release2 bloğu sınıfının listesine koyar (çöp toplayıcının temizlik iş parçacığından da
 // çağrılır; yalnızca havuzun kilidini alır).
 func (h *pool) release2(addr, class uint64) {
 	h.mu.Lock()
-	h.empty[class] = append(h.empty[class], addr)
+	if class > smallLimit {
+		h.large.give(addr)
+	} else {
+		h.empty[class] = append(h.empty[class], addr)
+	}
 	h.pooled += class
 	h.live -= class
 	if s, ok := h.sites[addr]; ok {
@@ -233,15 +233,20 @@ func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 	if n == 0 {
 		return d
 	}
-	d.class = classSize(byteN)
 	if g.gcThreshold > 0 && g.volume > g.gcThreshold {
 		g.collectGarbage(0)
 	}
-	g.volume += d.class
-	addr, ok := g.pool.al(d.class)
-	if !ok {
-		addr = g.driverAlloc(d.class, byteN)
+	var addr uint64
+	if byteN > smallLimit {
+		addr, d.class = g.allocLarge(largeSize(byteN), byteN)
+	} else {
+		d.class = classSize(byteN)
+		var ok bool
+		if addr, ok = g.pool.al(d.class); !ok {
+			addr = g.driverAlloc(d.class, byteN)
+		}
 	}
+	g.volume += d.class
 	d.addr = addr
 	g.pool.track(addr, d.class, dt)
 	d.clean = runtime.AddCleanup(d, func(t cleanupInfo) { t.h.release2(t.addr, t.class) }, cleanupInfo{&g.pool, addr, d.class})
@@ -359,6 +364,13 @@ func (g *backend) reclaimMemory(class uint64) (uint64, result) {
 		runtime.Gosched()
 	}
 	g.equalize()
+	g.releaseSmall()
+	g.releaseEmptySegments()
+	return g.sr.allocate(class)
+}
+
+// releaseSmall havuzdaki boş küçük blokları sürücüye geri verir (cihaz eşzamanlanmış olmalı).
+func (g *backend) releaseSmall() {
 	g.pool.mu.Lock()
 	empty := g.pool.empty
 	g.pool.empty = map[uint64][]uint64{}
@@ -372,7 +384,6 @@ func (g *backend) reclaimMemory(class uint64) (uint64, result) {
 			g.pool.mu.Unlock()
 		}
 	}
-	return g.sr.allocate(class)
 }
 
 // release depolamayı havuza iade eder (Release).

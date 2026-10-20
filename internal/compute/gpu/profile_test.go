@@ -115,16 +115,13 @@ func TestKernelFamily(t *testing.T) {
 	}
 }
 
-// TestClassSize boyut sınıflarının istenen boydan küçük olmadığını ve 1 MB üstünde boşluğun
-// %25'i aşmadığını denetler.
+// TestClassSize küçük (≤ 1 MB) boyut sınıflarının istenen boydan küçük olmadığını ve kendi
+// sınıfları olduğunu denetler (büyük istekler parçalardan verilir: memory_blocks_test.go).
 func TestClassSize(t *testing.T) {
-	for _, b := range []uint64{1, 256, 257, 1000, 1 << 20, 1<<20 + 1, 3 << 20, 5<<20 + 7, 63 << 20, 64 << 20, 64<<20 + 1, 1 << 30} {
+	for _, b := range []uint64{1, 256, 257, 1000, 4097, 1<<20 - 1, 1 << 20} {
 		s := classSize(b)
-		if s < b {
-			t.Fatalf("%d baytın sınıfı %d küçük", b, s)
-		}
-		if b > 1<<20 && float64(s) > 1.25*float64(b)+float64(2<<20) {
-			t.Fatalf("%d baytın sınıfı %d: boşluk çok", b, s)
+		if s < b || s > 2*b+256 {
+			t.Fatalf("%d baytın sınıfı %d", b, s)
 		}
 		if classSize(s) != s {
 			t.Fatalf("sınıf %d kendi sınıfı değil", s)
@@ -153,7 +150,7 @@ func TestPeakLiveBySite(t *testing.T) {
 	for _, s := range sites {
 		by[s.Site] = s
 	}
-	ca, cb := classSize(4<<20), classSize(1<<20)
+	ca, cb := largeSize(4<<20), classSize(1<<20)
 	if by[1].Bytes != ca || by[2].Bytes != cb || by[1].Blocks != 1 || by[1].DType != tensor.Float32 || by[3].Bytes != 0 || peak != ca+cb {
 		t.Fatalf("tepe dağılımı %+v (tepe %d); beklenen 1:%d 2:%d (birer float32 blok), tepe %d", sites, peak, ca, cb, ca+cb)
 	}
