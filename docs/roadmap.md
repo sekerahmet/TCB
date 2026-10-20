@@ -109,7 +109,8 @@ Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için op
 - **Hız (aynı kart, 64×1024 token/adım):** H1 eager düzeyi ≤ 347 ms/adım; H2 ≤ 1,5 × compile (≤ 204 ms); H3 ≤ 1,2 × compile (≤ 163 ms); H4 compile ile başa baş (≤ 136 ms). Her adım 300 adımlık kısa koşularla doğrulanır; büyük boyutlar (d1024–d1536) yalnızca kilometre taşlarında ölçülür.
 - **Bellek:** tepe bellek en çok compile'ın 1,1 katı.
   - Ölçüm (2026-10-21, nvidia-smi tepesi, 120 adım): PyTorch compile 10,8 GB, eager 17,0 GB; TR 30,8 GB (tepe canlı 25,2 GB). `tr profil`'in yeni tepe bellek dökümü (satır, tür, tensör sayısı) kök nedeni gösterdi: otomatik türev çizgesi düğümleri tensörlerin kendisiyle bağlıyordu, kaydedilmeyen her ara sonucun verisi geri yayılıma kadar canlı kalıyordu. Çizge artık düğümlerden oluşur, veri yalnızca kaydedilen tensörler için tutulur (PyTorch'un grad_fn / saved tensors ayrımı): TR tepe canlı 15,3 GB, nvidia-smi 21,8 GB; hız ve kayıp eğrisi değişmedi.
-  - Kalan büyük kalemler (döküm): norm girdileri/çıktıları float32 (3 GB), logitler ve gradyanları (~5 GB; parçalı doğrusal + çapraz entropi), havuzun ayırdığı ile canlı arasındaki fark (~6 GB; boyut sınıfları ve çöp toplama gecikmesi).
+  - Logitler: `doğrusal_çapraz_entropi` (dil tanımı 15.43; `GPT.kayıp` kendiliğinden kullanır) logitleri 8192'lik dilimlerle hesaplar, gradyanı dilimde çıkarıp bırakır: tepe canlı 15,3 → 12,6 GB, nvidia-smi 21,8 → 17,9 GB; hız ve GPU eşleşmesi değişmedi.
+  - Kalan büyük kalemler (döküm): havuzun ayırdığı ile canlı arasındaki fark (~5,3 GB; boyut sınıfları ve çöp toplama gecikmesi) en büyüğü; norm girdileri/çıktıları float32 (~3,8 GB).
 - **Hedef modelin gösterdiği eksikler** (her biri genel çözümü bulununca ele alınır; modele özel kestirme yapılmaz):
   - Liste üreteci tek değişkenlidir: `[f(i, x) döngü i, x içinde l]` yazılamaz (döngüde yazılır); dil tanımında iki biçim tutarsız.
   - Satırlara indeksle yazma yoktur (PyTorch `index_add_`/`index_copy_`, JAX `x.at[i].add`): satır seyrek iyileştirici bu yüzden yoğun maskelidir. Hedef modelde bütün maliyeti ~3 ms; büyük sözlükte genel ihtiyaç.
@@ -120,7 +121,7 @@ Dilin asıl sınavı, Python/PyTorch ile yazılmış, hız ve doğruluk için op
 1. Kitaplık yapı taşları (`lib/katman.tr`, `lib/iyilestirici.tr`): dikkat katmanına pencere, QK-norm ve birleşik KV matrisi; SwiGLU'ya birleşik [G|U] matrisi; PLE bloğu; ada göre iyileştirici grupları, iki ağırlık sönümlü AdamW, Muon ölçek seçeneği; üretimde eos'ta durma; satır seyrek RMS'nin yoğun maskeli ilk sürümü.
 2. Tam (erf) GELU seçeneği (yerleşik, CPU ve GPU).
 3. Başlangıç ağırlıklarının PyTorch'tan aktarımı ve doğruluk testi; TR karşılığı yazılır, H1 ölçülür. **Yapıldı.**
-4. Logitleri tutmayan doğrusal + çapraz entropi (yerleşik, GPU çekirdeği).
+4. Logitleri tutmayan doğrusal + çapraz entropi (yerleşik, GPU çekirdeği). **Yapıldı** (`doğrusal_çapraz_entropi`, var olan çekirdeklerle).
 5. Seyrek gömme gradyanı ve yerleşik satır seyrek iyileştirici. *Ölçümle önceliği düştü (~3 ms); indeksle yazma eksiği gelince.*
 6. Muon: aynı şekilli matrislerin toplu ve bf16 Newton–Schulz adımı. **Yapıldı** (TR kitaplığında; `Doğrusal`'ın sapma türüyle birlikte H2).
 7. Kaynaştırma (madde 5'in sırasıyla: dönüşüm kopyaları, RoPE, SwiGLU ve PLE kapısı zincirleri, iyileştirici zincirleri).
