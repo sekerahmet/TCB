@@ -397,9 +397,6 @@ f(5)`)
 // Yerleşik bir adı kullanıcı adı olarak tanımlamak hata değil uyarıdır: program çalışır,
 // ama o kapsamda yerleşik artık kullanılamaz.
 func TestBuiltinShadowingWarning(t *testing.T) {
-	warning := func(line int, name string) string {
-		return fmt.Sprintf("Satır %d: '%s' yerleşik bir ad; bu kapsamda yerleşik '%s' artık kullanılamaz", line, name, name)
-	}
 	source := `değişken uzunluk = 5
 fonksiyon f(toplam, x) {
     sonuç toplam + x
@@ -423,9 +420,17 @@ değişken sayaç = uzunluk + sırala`
 		t.Fatalf("gölgeleme hata değildir: %v", errs)
 	}
 	// uzunluk, ekle ve sırala artık yerleşik değil (metotlar): gölgeleme sayılmaz.
-	expected := []string{warning(2, "toplam"), warning(5, "girdi"), warning(6, "metin")}
-	if got := c.Warnings(); strings.Join(got, "\n") != strings.Join(expected, "\n") {
-		t.Errorf("uyarılar:\n%s\nbeklenen:\n%s", strings.Join(got, "\n"), strings.Join(expected, "\n"))
+	// Uyarı konumuyla (yapı) ve koduyla (H1009) sınanır; metne bakılmaz.
+	expected := map[int]string{2: "toplam", 5: "girdi", 6: "metin"}
+	got := c.Warnings()
+	if len(got) != len(expected) {
+		t.Fatalf("%d uyarı bekleniyordu: %v", len(expected), got)
+	}
+	for _, w := range got {
+		line, col, ok := messages.Pos(w)
+		if !ok || col != 0 || !messages.Has(w, messages.H1009) || !strings.Contains(w.Error(), "'"+expected[line]+"'") {
+			t.Errorf("uyarı H1009 olmalı, satır %d (%v) için '%s' adını taşımalı: %v", line, ok, expected[line], w)
+		}
 	}
 	// Yapı metotları ve alanları yerleşikleri gölgelemez (x.uzunluk() ile erişilir).
 	if u := New().Warnings(); len(u) != 0 {

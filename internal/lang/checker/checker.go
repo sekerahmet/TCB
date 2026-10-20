@@ -57,7 +57,7 @@ type Checker struct {
 	scope  *Scope
 	errors []error
 	// warnings programın çalışmasını engellemeyen bulgulardır (ör. yerleşik ad gölgeleme).
-	warnings []string
+	warnings []error
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
 	returnType string
 	// globalNames tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
@@ -93,9 +93,9 @@ func (c *Checker) addError(line, col int, err error) {
 	c.errors = append(c.errors, messages.At(line, col, err))
 }
 
-// Warnings returns the checker's warnings. Warnings are not errors: the program runs and
+// Warnings returns the checker's warnings, each at its line (messages.Pos). Warnings are not errors: the program runs and
 // the exit code is unaffected; the command line prints them under a separate heading.
-func (c *Checker) Warnings() []string {
+func (c *Checker) Warnings() []error {
 	return c.warnings
 }
 
@@ -103,7 +103,7 @@ func (c *Checker) Warnings() []string {
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
 func (c *Checker) checkShadowing(name string, line int) {
 	if k, ok := codes.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
-		c.warnings = append(c.warnings, messages.At(line, 0, messages.New(messages.H1009, name)).Error())
+		c.warnings = append(c.warnings, messages.At(line, 0, messages.New(messages.H1009, name)))
 	}
 }
 

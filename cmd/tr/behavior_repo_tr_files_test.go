@@ -76,7 +76,7 @@ func TestDepodakiTRDosyalariDenetimdenGecer(t *testing.T) {
 	for yol, kod := range kodlar {
 		goreli, _ := filepath.Rel(kok, yol)
 		mutlak, _ := filepath.Abs(yol)
-		var hatalar []string
+		var hatalar []error
 		if g := moduller[mutlak]; g != nil {
 			var adlar []string
 			for a := range g.adlar {

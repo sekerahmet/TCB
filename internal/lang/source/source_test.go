@@ -2,8 +2,9 @@ package source
 
 import (
 	"errors"
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestHeaderRules(t *testing.T) {
@@ -17,7 +18,7 @@ func TestHeaderRules(t *testing.T) {
 		if _, err := Split(m); !errors.As(err, &bh) {
 			t.Errorf("%q: tanınmayan başlık hatası bekleniyordu, alınan %v", m, err)
 		}
-		if s := Prepare(m, Options{}); s.Stage != StageSyntax || !strings.Contains(s.Errors[0], "Satır 1, Sütun 1:") {
+		if s := Prepare(m, Options{}); s.Stage != StageSyntax || !hasPos(s.Errors[0], 1, 1) {
 			t.Errorf("%q: hazırlık başlık hatasını sözdizimi hatası olarak bildirmeli: %+v", m, s.Errors)
 		}
 	}
@@ -27,4 +28,9 @@ func TestHeaderRules(t *testing.T) {
 			t.Errorf("%q: Türkçe kaynak sayılmalı (%+v, %v)", m, b, err)
 		}
 	}
+}
+
+func hasPos(err error, line, col int) bool {
+	l, c, ok := messages.Pos(err)
+	return ok && l == line && c == col
 }

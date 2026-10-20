@@ -57,7 +57,7 @@ func (e *MeaningChangedError) Error() string {
 
 // SyntaxError kaynak ayrıştırılamadığında döner; hatalı kod biçimlenmez.
 type SyntaxError struct {
-	Errors []string
+	Errors []error
 }
 
 func (e *SyntaxError) Error() string {
@@ -71,7 +71,7 @@ func Format(text string) (string, error) {
 	// dosyanın gövdesi kodlu biçimde biçimlenir (kodlar olduğu gibi kalır).
 	b, err := source.Split(text)
 	if err != nil {
-		return "", &SyntaxError{Errors: []string{err.Error()}}
+		return "", &SyntaxError{Errors: []error{err}}
 	}
 	// Satır sonları LF yazılır; metinlerin içindekiler de (sözcük çözümleyici çok satırlı
 	// metindeki CRLF'yi zaten '\n' okur, anlam değişmez): karışık satır sonu kalmaz.
@@ -81,8 +81,8 @@ func Format(text string) (string, error) {
 	}
 	p := parser.New(b.Lexer())
 	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		return "", &SyntaxError{Errors: p.Errors()}
+	if errs := p.Errs(); len(errs) > 0 {
+		return "", &SyntaxError{Errors: errs}
 	}
 	fresh := b
 	fresh.Body = transform(b.Body, b.Coded, braceKinds(prog))
@@ -105,8 +105,8 @@ func SameMeaning(before, after string) error {
 	prog1 := p1.ParseProgram()
 	p2 := parser.New(b2.Lexer())
 	prog2 := p2.ParseProgram()
-	if len(p2.Errors()) > 0 {
-		return &MeaningChangedError{Detail: messages.Text(messages.H8403, p2.Errors()[0])}
+	if errs := p2.Errs(); len(errs) > 0 {
+		return &MeaningChangedError{Detail: messages.Text(messages.H8403, errs[0])}
 	}
 	t1, t2 := tokens(b1.Body, b1.Coded), tokens(b2.Body, b2.Coded)
 	if len(t1) != len(t2) {

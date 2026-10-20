@@ -91,7 +91,7 @@ func TestTypeErrorUndefinedNameAndWarningTogether(t *testing.T) {
 	if !strings.HasPrefix(errs[0], "Satır 2, Sütun 1: ") || !strings.HasPrefix(errs[1], "Satır 3: ") {
 		t.Errorf("hata metni 'Satır N: ...' biçiminde olmalı: %q", errs)
 	}
-	if u := c.Warnings(); len(u) != 1 || !strings.Contains(u[0], "'toplam' yerleşik bir ad") {
+	if u := c.Warnings(); len(u) != 1 || !messages.Has(u[0], messages.H1009) || !strings.Contains(u[0].Error(), "'toplam' yerleşik bir ad") {
 		t.Fatalf("gölgeleme uyarısı da verilmeli: %q", u)
 	}
 }
