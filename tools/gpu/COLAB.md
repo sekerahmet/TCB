@@ -35,14 +35,16 @@ verilebilir (PyTorch'un kurduğu kopya da olur):
 ## 2. GPU arka ucunun sınamaları (her çekirdek CPU ile karşılaştırılır)
 
 İlk koşu her çekirdekten sonra eşzamanlar (`TR_GPU_ESZAMANLI=1`): bir çekirdek hata
-verirse hata tam olarak o çekirdekte bildirilir. Ardından normal (eşzamansız) koşu.
+verirse hata tam olarak o çekirdekte bildirilir. Ardından normal (eşzamansız) koşu. Sınama
+ikilisi paketin klasöründen çalıştırılır: bazı sınamalar paketin kaynak dosyalarını okur
+(ör. `TestEveryEmittedInstructionIsSimulated`), başka klasörde "0 komut adı" diye kalır.
 
 ```bash
 %%bash
-cd /content/tr
-TR_GPU_ESZAMANLI=1 ./gpu_sinama -test.count=1 2>&1 | tail -5
-./gpu_sinama -test.v -test.count=1 2>&1 | grep -E '^(--- FAIL|FAIL|ok|PASS)|panic' | head -20
-./gpu_sinama -test.v -test.count=1 -test.run 'GemmLibrary' 2>&1 | tail -3
+cd /content/TCB/internal/compute/gpu
+TR_GPU_ESZAMANLI=1 /content/tr/gpu_sinama -test.count=1 2>&1 | tail -5
+/content/tr/gpu_sinama -test.v -test.count=1 2>&1 | grep -E '^(--- FAIL|FAIL|ok|PASS)|panic' | head -20
+/content/tr/gpu_sinama -test.v -test.count=1 -test.run 'GemmLibrary' 2>&1 | tail -3
 ```
 
 PTX derleme hatasında mesaj PTX metninin yazıldığı geçici dosyanın yolunu verir; o dosyayı da
