@@ -80,7 +80,7 @@ Kullanıcıya görünen her ad ve her ileti sabit bir koda bağlıdır; Go kodu 
 
 Yazım kuralları (kod değişmez, ad değişebilir; her işin tek adı; parametreler adlıdır; iç hata `H9000`) paketlerin README'lerindedir: [`codes`](../internal/lang/codes/README.md), [`messages`](../internal/lang/messages/README.md). Yeni ad için [`development.md`](development.md#yeni-kod-ad-isteği), yeni ileti için [`recipes.md`](recipes.md).
 
-**Üretilmiş dosyalar.** Kod listesinden ve ileti kataloğundan üretilen dosyalar elle düzenlenmez; üreteçler `tools/gen/` altındadır ve `-denetle` bayrağıyla güncelliği sınanır (tam denetim hepsini koşar). Üretmek için: `go generate ./internal/lang/codes ./internal/lang/messages`.
+**Üretilmiş dosyalar.** Kod listesinden ve ileti kataloğundan üretilen dosyalar elle düzenlenmez; üreteçler `tools/gen/` altındadır ve `-check` bayrağıyla güncelliği sınanır (tam denetim hepsini koşar). Üretmek için: `go generate ./internal/lang/codes ./internal/lang/messages`.
 
 | Üreteç | Ürettiği |
 | :-- | :-- |
@@ -268,7 +268,7 @@ Test türleri ve adlandırma kuralı [`internal/README.md`](../internal/README.m
 | :-- | :-- |
 | Paketin kendi davranışı | paketin birim testleri; birden çok dosyayı kesen davranışlar `behavior_*_test.go` ve paketin README'sinin `## Testler` bölümünde anılır |
 | Katmanlar, dil içi sıra, dış bağımlılık; dosya düzeni | `internal/layers_test.go`, `internal/layout_test.go` |
-| Çıplak ad, ileti kodu kullanımı, üretilmiş dosyaların güncelliği | `tools/gen/*` testleri ve `-denetle` bayrağı |
+| Çıplak ad, ileti kodu kullanımı, üretilmiş dosyaların güncelliği | `tools/gen/*` testleri ve `-check` bayrağı |
 | Dilin kuralları | `tests/*_test.tr` (`tr test tests`); her test bir dil kuralı numarasıyla başlar, kapı testi `internal/devtools/testrunner` içindedir |
 | TR ile yazılı kitaplık | `lib/*_test.tr` (`tr test lib`) |
 | `tr` komutunun uçtan uca davranışı, belgelerdeki bağlantılar ve kod blokları, VS Code eklentisi | `cmd/tr/e2e` |

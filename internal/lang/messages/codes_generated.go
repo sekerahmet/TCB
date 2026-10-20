@@ -2,7 +2,7 @@
 
 package messages
 
-// İleti kodları (tr.json); her sabitin yorumu Türkçe metnidir.
+// Message codes (tr.json); each constant's comment is its Turkish text.
 const (
 	H0001 Code = 1    // '{name}' bilinen bir kod değil; kodlu dosyada dilin sözcükleri kod listesindeki kodlarıyla (ör. {example}), kullanıcının adları adlarıyla yazılır
 	H0002 Code = 2    // '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun

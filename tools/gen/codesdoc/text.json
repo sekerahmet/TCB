@@ -1,0 +1,226 @@
+{
+ "title": "TR kod listesi",
+ "generatedNote": "Bu dosya internal/lang/codes/definitions.json ve internal/lang/codes/tr.json'dan üretilir; elle düzenlemeyin: go run ./tools/gen/codesdoc",
+ "intro": [
+  "Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `docs/spec/17_kodlar.md` §17). Bu belge her kodun ne işe yaradığını, imzasını ve örneğini verir; \"hangi kod ne işe yarar\" sorusunun tek başvurusudur. Yeni bir ad gerekmeden önce burada aynı işi yapan bir kod olup olmadığına bakın.",
+  "İmzalarda parametrelerin yalnızca tipleri yazılır: `[Tip]` isteğe bağlı, `[Tip...]` sıfır ya da çok, `Tip...` bir ya da çok argümandır; `ad: Tip = varsayılan` adlı argümandır, `→` dönüş tipidir. Metot ve özellikler `Tip.ad` biçiminde, geçerli oldukları her tip için ayrı satırda yazılır.",
+  "**Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir."
+ ],
+ "countsFormat": "Toplam %d kod: %d anahtar kelime, %d bağlamsal sözcük, %d tip, %d fonksiyon, %d sabit, %d metot, %d özellik, %d adlı argüman; ayrıca %d taşınmış ve %d kaldırılmış kod (numaraları bir daha kullanılmaz).",
+ "contents": "İçindekiler",
+ "pipelineTitle": "Boru hattıyla kullanılabilen fonksiyonlar",
+ "pipelineIntro": [
+  "`x |> f(a)` ≡ `f(x, a)` (bkz. `docs/spec/04_operatorler.md` 4.9). Boru yalnızca fonksiyonlarla çalışır; metotlar `.` ile zincirlenir (`l.filtrele { o > 1 }.haritala { o * 2 } |> toplam`). Borudaki değeri ilk konumlu argüman olarak alabilen yerleşik fonksiyonlar (kullanıcı fonksiyonları da kullanılabilir):"
+ ],
+ "labels": {
+  "anyType": "Herhangi",
+  "removed": "kaldırıldı",
+  "moved": "Taşındı",
+  "usedBy": "Kullananlar",
+  "members": "Üyeleri",
+  "related": "İlişkili",
+  "oldNames": "Eski adlar",
+  "previousForm": "Önceki biçim",
+  "previousRemoved": "kaldırıldı"
+ },
+ "families": [
+  {
+   "letter": "A",
+   "title": "A — Dilin çekirdeği",
+   "sections": [
+    {
+     "group": 0,
+     "title": "Anahtar kelimeler (A0xx)"
+    },
+    {
+     "group": 1,
+     "title": "Bağlamsal sözcükler (A1xx)"
+    },
+    {
+     "group": 2,
+     "title": "Tip adları (A2xx)"
+    }
+   ]
+  },
+  {
+   "letter": "G",
+   "title": "G — Genel yerleşikler",
+   "sections": [
+    {
+     "group": 1,
+     "title": "Giriş, çıkış ve dosya (G1xx)"
+    },
+    {
+     "group": 2,
+     "title": "Değer, tip ve dönüşüm (G2xx)"
+    },
+    {
+     "group": 3,
+     "title": "Liste (G3xx)"
+    },
+    {
+     "group": 4,
+     "title": "Matematik ve istatistik (G4xx)"
+    },
+    {
+     "group": 5,
+     "title": "Zaman ve eşzamanlılık (G5xx)"
+    },
+    {
+     "group": 6,
+     "title": "Veri biçimleri (G6xx)"
+    },
+    {
+     "group": 7,
+     "title": "Test (G7xx)"
+    }
+   ]
+  },
+  {
+   "letter": "K",
+   "title": "K — Komutlar (tr, kabuk, hata ayıklayıcı)",
+   "sections": [
+    {
+     "group": 0,
+     "title": "tr alt komutları (K0xx)"
+    },
+    {
+     "group": 1,
+     "title": "Komut satırı seçenekleri (K1xx)"
+    },
+    {
+     "group": 2,
+     "title": "Kabuk komutları (K2xx)"
+    },
+    {
+     "group": 3,
+     "title": "Hata ayıklayıcı komutları (K3xx)"
+    }
+   ]
+  },
+  {
+   "letter": "T",
+   "title": "T — Tensör ve yapay zekâ",
+   "sections": [
+    {
+     "group": 1,
+     "title": "Tensör oluşturma ve görünüm (T1xx)"
+    },
+    {
+     "group": 2,
+     "title": "Etkinleştirme ve eleman bazlı matematik (T2xx)"
+    },
+    {
+     "group": 3,
+     "title": "Türev (T3xx)"
+    },
+    {
+     "group": 4,
+     "title": "İyileştiriciler (T4xx)"
+    },
+    {
+     "group": 5,
+     "title": "Katmanlar, kayıplar, hazır model (T5xx)"
+    },
+    {
+     "group": 6,
+     "title": "Vektör yardımcıları ve dil modeli (T6xx)"
+    },
+    {
+     "group": 7,
+     "title": "Kaydetme, yükleme, veri türleri (T7xx)"
+    },
+    {
+     "group": 9,
+     "title": "Adlı argümanlar (T9xx)"
+    }
+   ]
+  },
+  {
+   "letter": "V",
+   "title": "V — Veri ve parçalayıcı",
+   "sections": [
+    {
+     "group": 1,
+     "title": "Veri kümesi (V1xx)"
+    },
+    {
+     "group": 2,
+     "title": "Parçalayıcı (V2xx)"
+    },
+    {
+     "group": 9,
+     "title": "Adlı argümanlar (V9xx)"
+    }
+   ]
+  },
+  {
+   "letter": "W",
+   "title": "W — Web, veritabanı, arayüz (kaldırıldı)",
+   "sections": [
+    {
+     "group": 1,
+     "title": "Web istemcisi ve sunucusu (W1xx)"
+    },
+    {
+     "group": 2,
+     "title": "Veritabanı (W2xx)"
+    },
+    {
+     "group": 3,
+     "title": "Görsel arayüz (W3xx)"
+    },
+    {
+     "group": 9,
+     "title": "Adlı argümanlar (W9xx)"
+    }
+   ]
+  },
+  {
+   "letter": "Y",
+   "title": "Y — Metot ve özellikler (x.ad)",
+   "sections": [
+    {
+     "group": 0,
+     "title": "Birden çok tipte ortak (Y0xx)"
+    },
+    {
+     "group": 1,
+     "title": "Metin (Y1xx)"
+    },
+    {
+     "group": 2,
+     "title": "Liste (Y2xx)"
+    },
+    {
+     "group": 3,
+     "title": "Sözlük (Y3xx)"
+    },
+    {
+     "group": 4,
+     "title": "Tensör (Y4xx)"
+    },
+    {
+     "group": 5,
+     "title": "İyileştirici (Y5xx)"
+    },
+    {
+     "group": 6,
+     "title": "Veri kümesi, okuyucu, parçalayıcı (Y6xx)"
+    },
+    {
+     "group": 7,
+     "title": "Veritabanı (Y7xx)"
+    },
+    {
+     "group": 8,
+     "title": "Web sunucusu (Y8xx)"
+    },
+    {
+     "group": 9,
+     "title": "Görsel arayüz (Y9xx)"
+    }
+   ]
+  }
+ ]
+}

@@ -23,13 +23,13 @@ adları ipucu için Türkçe dosyada kalır, öbür dillerde isteğe bağlıdır
 
 **Go kodu kodu yazar, adı yazmaz.** Go kodu kodları üretilmiş sabitlerle yazar (`codes.G100`);
 sözlükte olmayan bir kod derlemeyi düşürür. Sabitin yanındaki yorum, okuyana yardım için kodun
-İngilizce ve Türkçe adını gösterir (`// print · yazdır`); başka diller yoruma girmez. Denetim: `TestCiplakKodYok`, `TestCiplakKodYok`, `TestSabitlerGuncel` (tools/gen/codeconsts).
+İngilizce ve Türkçe adını gösterir (`// print · yazdır`); başka diller yoruma girmez. Denetim: `TestNoBareCodes`, `TestNoBareCodes`, `TestConstantsUpToDate` (tools/gen/codeconsts).
 
 **Kod listesi değişince yeniden üretilir.** Kod listesinden üretilen dosyalar (Go sabitleri, kod
 belgesi, düzenleyicinin renklendirme listesi) şu durumlarda yeniden üretilir: bir kod eklendiğinde,
 kaldırıldığında ya da taşındığında, bir ad değiştiğinde ve yeni bir dil eklendiğinde
 (`go generate ./internal/lang/codes`). Üretilmiş bir dosya güncel değilse denetim düşer; unutulan
-üretim sessizce eskimez. Denetim: `TestSabitlerGuncel` (tools/gen/codeconsts), `TestBelgeGuncel` (tools/gen/codesdoc), `TestDilbilgisiGuncel` (tools/gen/grammar).
+üretim sessizce eskimez. Denetim: `TestConstantsUpToDate` (tools/gen/codeconsts), `TestDocUpToDate` (tools/gen/codesdoc), `TestGrammarUpToDate` (tools/gen/grammar).
 
 **Dosyalar düzenlidir.** Her girdi tek satırdır, kodlar artan sıradadır; her kodun açıklaması ve
 örneği vardır. Denetim: `TestDefinitionsSortedOnePerLine`, `TestTRSortedOnePerLine`, `TestEveryCodeHasDescription`.

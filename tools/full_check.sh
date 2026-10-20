@@ -17,7 +17,7 @@
 #                     gibi uzun sınamalar dahil)
 #   --hizli           --kip=dagitim ile aynı (iş sırasında; birleştirmeden önce bayraksız koşulur)
 #
-# Durağan denetimler: üretilmiş dosyalar güncel mi (her üreticinin -denetle bayrağı olmalı),
+# Durağan denetimler: üretilmiş dosyalar güncel mi (her üreticinin -check bayrağı olmalı),
 # gofmt, go vet, go.mod/go.sum (go mod verify, go mod tidy -diff), ARM (arm64) derlemesi ve
 # vet'i, GPU'suz (-tags gpusuz) Linux program dosyasının statik olması, VS Code eklentisinin
 # JavaScript dosyaları ve package.json. Go testleri -short ile koşar (uzun kipi hariç): dil
@@ -117,10 +117,10 @@ initial_state=$(repo_state)
 static_checks() {
 	step "Üretilmiş dosyalar güncel mi"
 	for tool in tools/gen/*/; do
-		if grep -q -- '-denetle' "$tool"*.go 2>/dev/null; then
-			go run "./$tool" -denetle >/dev/null || fail "$tool güncel değil (go run ./$tool ile üretin)"
+		if grep -q -- '"check"' "$tool"*.go 2>/dev/null; then
+			go run "./$tool" -check >/dev/null || fail "$tool güncel değil (go run ./$tool ile üretin)"
 		else
-			fail "$tool -denetle bayrağı yok: üretilmiş dosyalarının güncelliği denetlenemiyor"
+			fail "$tool -check bayrağı yok: üretilmiş dosyalarının güncelliği denetlenemiyor"
 		fi
 	done
 

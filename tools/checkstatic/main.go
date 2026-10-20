@@ -1,11 +1,11 @@
-// statik_denetim, verilen Linux (ELF) program dosyasının statik olduğunu denetler: yorumlayıcı
+// checkstatic, verilen Linux (ELF) program dosyasının statik olduğunu denetler: yorumlayıcı
 // (PT_INTERP) ve dinamik kitaplık bağımlılığı (DT_NEEDED) olmamalıdır. GPU desteği olmadan
 // ("gpusuz" yapı etiketiyle) derlenen tr program dosyasının glibc gerektirmediğini tam denetim bu
 // araçla doğrular (bkz. docs/architecture.md, GPU arka ucu).
 //
 // Kullanım (depo kökünden):
 //
-//	go run ./tools/checkstatic PROGRAM_DOSYASI   // statikse 0, değilse bağımlılıkları yazıp 1
+//	go run ./tools/checkstatic BINARY   // statikse 0, değilse bağımlılıkları yazıp 1
 //
 // Layer: tools (tools); kullanıcıya gitmez.
 package main
@@ -18,33 +18,33 @@ import (
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "kullanım: go run ./tools/checkstatic PROGRAM_DOSYASI")
+		fmt.Fprintln(os.Stderr, "usage: go run ./tools/checkstatic BINARY")
 		os.Exit(2)
 	}
 	f, err := elf.Open(os.Args[1])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "ELF dosyası açılamadı:", err)
+		fmt.Fprintln(os.Stderr, "cannot open ELF file:", err)
 		os.Exit(2)
 	}
 	defer f.Close()
-	statik := true
+	static := true
 	for _, p := range f.Progs {
 		if p.Type == elf.PT_INTERP {
-			fmt.Println("yorumlayıcı (PT_INTERP) var: program dosyası dinamik bağlı")
-			statik = false
+			fmt.Println("interpreter (PT_INTERP) present: the binary is dynamically linked")
+			static = false
 		}
 	}
-	kitapliklar, err := f.ImportedLibraries()
+	libs, err := f.ImportedLibraries()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "dinamik bölüm okunamadı:", err)
+		fmt.Fprintln(os.Stderr, "cannot read the dynamic section:", err)
 		os.Exit(2)
 	}
-	if len(kitapliklar) > 0 {
-		fmt.Println("dinamik kitaplık bağımlılıkları (DT_NEEDED):", kitapliklar)
-		statik = false
+	if len(libs) > 0 {
+		fmt.Println("dynamic library dependencies (DT_NEEDED):", libs)
+		static = false
 	}
-	if !statik {
+	if !static {
 		os.Exit(1)
 	}
-	fmt.Println("program dosyası statik (yorumlayıcı ve dinamik kitaplık bağımlılığı yok)")
+	fmt.Println("binary is static (no interpreter, no dynamic library dependencies)")
 }

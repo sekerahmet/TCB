@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "comment": "Bu dosya kod listesinden (internal/lang/codes/tr.json) üretilir; elle düzenlemeyin: go run ./tools/gen/grammar",
+  "comment": "This file is generated from the code list (internal/lang/codes/tr.json); do not edit it by hand: go run ./tools/gen/grammar",
   "name": "TR Dili",
   "scopeName": "source.tr",
   "patterns": [
@@ -257,7 +257,7 @@
       ]
     },
     "pronoun": {
-      "comment": "Sondaki blok (o-lambda) parametresi: liste.filtrele { o > 2 }",
+      "comment": "Trailing-block (o-lambda) parameter: liste.filtrele { o > 2 }",
       "patterns": [
         {
           "name": "variable.language.pronoun.tr",
