@@ -163,7 +163,7 @@ Kod listesinden ve ileti kataloğundan üretilen dosyalar elle düzenlenmez ve G
 | Davranış testi | `behavior_<konu>_test.go` | birden çok dosyayı kesen bir davranışı sınar; paket README'sinin `## Testler` bölümünde "- \`behavior_<konu>_test.go\`: ne sınadığı" satırıyla anılır |
 | Ortak yardımcılar | `helpers_test.go` | `TestMain` ve paketin testlerinin paylaştığı işlevler |
 
-Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranış testi README'de anılmış, README'de anılan her dosya diskte). Kural bugün `lang/` ve `compute/`'ta uygulanıyor; geçişle `stdlib/` ve `devtools/`'a genişler.
+Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranış testi README'de anılmış, README'de anılan her dosya diskte). Kural `lang/`, `compute/`, `stdlib/`, `devtools/` ve `cmd/`'de uygulanır.
 
 - **Test konusuyla adlandırılır, onu doğuran işle değil:** `review_fixes_test.go` kalıcı bir konu değildir; düzeltmenin testi düzeltilen dosyanın testine gider.
 - **Bir düzeltmenin testi önce kalır, sonra geçer:** hata yeniden üretilmeden düzeltilmez.
