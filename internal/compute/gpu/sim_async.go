@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -31,21 +33,21 @@ type simCpJob struct {
 func (a *simParser) vector(k *simInst, t, list []string) error {
 	if list == nil {
 		if k.vec != 0 {
-			return fmt.Errorf("vektörel komutta vektör işleneni yok")
+			return internalf("vector instruction has no vector operand")
 		}
 		return nil
 	}
 	if int(k.vec) != len(list) || (k.op != simLd && k.op != simSt) {
-		return fmt.Errorf("vektör işleneni (%d eleman) komutla uyuşmuyor", len(list))
+		return internalf("vector operand (%d elements) does not match the instruction", len(list))
 	}
 	if k.dtype != simF32 && k.dtype != simU32 {
-		return fmt.Errorf("vektörel erişim yalnızca 32 bitlik türlerle")
+		return internalf("vector access only works with 32-bit types")
 	}
 	for i, s := range list {
 		if k.op == simLd {
 			y, ok := a.reg[s]
 			if !ok {
-				return fmt.Errorf("tanımsız hedef yazmaç %s", s)
+				return internalf("undefined destination register %s", s)
 			}
 			k.vy[i] = y
 			continue
@@ -61,7 +63,7 @@ func (a *simParser) vector(k *simInst, t, list []string) error {
 		place = 1
 	}
 	if len(t) != 2 || t[place] != "@V" {
-		return fmt.Errorf("vektör işleneninin yeri yanlış")
+		return internalf("vector operand is misplaced")
 	}
 	return nil
 }
@@ -69,7 +71,7 @@ func (a *simParser) vector(k *simInst, t, list []string) error {
 // cpTerms cp.async.cg.shared.global [hedef], [kaynak], boy[, kaynak_boyu].
 func (a *simParser) cpTerms(k *simInst, t []string) error {
 	if len(t) != 3 && len(t) != 4 {
-		return fmt.Errorf("cp.async 3 ya da 4 işlenen ister")
+		return internalf("cp.async needs 3 or 4 operands")
 	}
 	k.space = spaceShared
 	if err := a.memory(k, t[0]); err != nil {
@@ -77,7 +79,7 @@ func (a *simParser) cpTerms(k *simInst, t []string) error {
 	}
 	source := strings.TrimSuffix(strings.TrimPrefix(t[1], "["), "]")
 	if source == t[1] {
-		return fmt.Errorf("cp.async kaynağı bellek işleneni olmalı")
+		return internalf("cp.async source must be a memory operand")
 	}
 	if i := strings.IndexByte(source, '+'); i >= 0 {
 		var n int64
@@ -94,7 +96,7 @@ func (a *simParser) cpTerms(k *simInst, t []string) error {
 		return err
 	}
 	if k.o[0].variant != tmConst || (k.o[0].s != 4 && k.o[0].s != 8 && k.o[0].s != 16) {
-		return fmt.Errorf("cp.async boyu 4, 8 ya da 16 sabiti olmalı")
+		return internalf("cp.async size must be a constant 4, 8 or 16")
 	}
 	k.o[1] = k.o[0]
 	if len(t) == 4 {
@@ -119,7 +121,7 @@ func (b *simBlock) vecLoad(t *simJob, k *simInst) error {
 // vecStore vektörel st.
 func (b *simBlock) vecStore(t *simJob, k *simInst) error {
 	if k.space == spaceParam {
-		return fmt.Errorf("parametre alanına yazılamaz")
+		return internalf("cannot write to the parameter space")
 	}
 	n := int(k.vec)
 	d, err := b.addressSlice(t, k, 4*n, true)
@@ -137,15 +139,15 @@ func (b *simBlock) cpAdd(t *simJob, k *simInst) error {
 	size := int(k.o[0].s)
 	read := int(uint32(b.read(t, &k.o[1])))
 	if read > size {
-		return fmt.Errorf("cp.async kaynak boyu %d kopya boyundan (%d) büyük", read, size)
+		return messages.New(messages.H4117, read, size)
 	}
 	sm := int64(uint32(b.read(t, &k.base2))) + k.offset
 	if sm < 0 || int(sm)+size > len(b.shared) || sm%int64(size) != 0 {
-		return fmt.Errorf("cp.async hedefi geçersiz ya da hizasız: %d", sm)
+		return messages.New(messages.H4118, sm)
 	}
 	source := b.read(t, &k.baseB) + uint64(k.offset2)
 	if read > 0 && source%uint64(size) != 0 {
-		return fmt.Errorf("cp.async kaynağı hizasız: 0x%x", source)
+		return messages.New(messages.H4119, fmt.Sprintf("%x", source))
 	}
 	t.cp = append(t.cp, simCpJob{group: t.cpGroup, smAddr: int(sm), source: source, size: size, read: read})
 	return nil
@@ -167,7 +169,7 @@ func (b *simBlock) cpWait(t *simJob, n int32) error {
 		if c.read > 0 {
 			d, err := b.mem.slice(c.source, c.read)
 			if err != nil {
-				return fmt.Errorf("cp.async kaynağı: %v", err)
+				return messages.New(messages.H4120, err)
 			}
 			copy(target, d)
 		}

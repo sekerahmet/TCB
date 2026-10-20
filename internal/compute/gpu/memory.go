@@ -1,7 +1,6 @@
 package gpu
 
 import (
-	"fmt"
 	"math/bits"
 	"runtime"
 	"sync"
@@ -9,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -66,10 +66,10 @@ const shadowLimit = 1 << 20
 func (g *backend) storageOf(s tensor.Storage) *storage {
 	d, ok := s.(*storage)
 	if !ok || d.g != g {
-		panic(fmt.Sprintf("tensor: %s arka ucuna %s cihazından depolama verildi; işlemden önce tensörleri aynı cihaza taşıyın", g.dev, s.Device()))
+		panic(messages.New(messages.H4015, g.dev, s.Device()))
 	}
 	if d.release2 {
-		panic("tensor: GPU: havuza iade edilmiş bir depolama kullanıldı (iç hata)")
+		panic(internalf("storage already returned to the pool was used"))
 	}
 	return d
 }
@@ -163,14 +163,14 @@ type cleanupInfo struct {
 // allocate n elemanlı dt türünde depolama verir; sifirla doğruysa içerik sıfırdır.
 func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 	if dt != tensor.Float32 && dt != tensor.BFloat16 && dt != tensor.Float16 {
-		none(dt.String() + " türünde depolama")
+		none(messages.H4050, dt.String())
 	}
 	if n < 0 {
-		panic(fmt.Sprintf("tensor: GPU: negatif eleman sayısı %d", n))
+		panic(internalf("negative element count %d", n))
 	}
 	byteN := uint64(n) * uint64(dtypeSize(dt))
 	if byteN > g.sr.totalMemory() {
-		panic(tensor.SizeError(n, dt, int64(g.sr.totalMemory()), "bu GPU'da"))
+		panic(tensor.SizeError(n, dt, int64(g.sr.totalMemory()), messages.Text(messages.H4062)))
 	}
 	d := &storage{g: g, n: n, dtype: dt}
 	if n == 0 {
@@ -246,8 +246,7 @@ func (g *backend) driverAlloc(class, requested uint64) uint64 {
 	}
 	if s == errNoMemory {
 		empty, total, _ := g.sr.freeMemory()
-		panic(fmt.Sprintf("tensor: GPU belleği yetmedi: %s istendi; GPU'da %s boş, %s toplam (%s). Toplu iş boyutunu, "+
-			"bağlam uzunluğunu ya da modeli küçültün", bytesText(requested), bytesText(empty), bytesText(total), g.sr.errName(s)))
+		panic(messages.New(messages.H4014, bytesText(requested), bytesText(empty), bytesText(total), g.sr.errName(s)))
 	}
 	g.try_("cuMemAlloc", s)
 	g.pool.fresh2 += class

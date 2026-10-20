@@ -1,9 +1,10 @@
 package gpu
 
 import (
-	"fmt"
 	"runtime"
 	"unsafe"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -235,7 +236,7 @@ func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool
 		// çekirdeğimiz yapar.
 		p.valid = false
 		l.fallthroughCase++
-		g.ltLastError = fmt.Sprintf("cuBLASLt durum %d (%d×%d×%d, toplu %d)", s, M, N, K, batch)
+		g.ltLastError = messages.Text(messages.H4038, s, M, N, K, batch)
 		return false
 	}
 	g.lastKernel = l.names[ad]

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -172,7 +174,7 @@ func WriteProfileSummary(w io.Writer) {
 // writeSummary bu GPU'nun özetini yazar (kilit tutulurken).
 func (g *backend) writeSummary(w io.Writer) {
 	p := &g.profiler
-	fmt.Fprintf(w, "== GPU profili (%s: %s; matris çarpımı: %s) ==\n", g.dev, g.sr.cardName(), g.gemmPath())
+	fmt.Fprintln(w, messages.Text(messages.H4039, g.dev, g.sr.cardName(), g.gemmPath()))
 	p.mu.Lock()
 	var total2 stepStats
 	num := 0
@@ -196,12 +198,11 @@ func (g *backend) writeSummary(w io.Writer) {
 	if num > 0 {
 		n := float64(num)
 		ms := func(d time.Duration) float64 { return d.Seconds() * 1e3 / n }
-		fmt.Fprintf(w, "adım başına (%d adım): duvar %.2f ms · GPU çekirdek %.2f ms · GPU boşluğu %.2f ms · başlatma %.0f · "+
-			"konakta arka uç %.2f ms · eşzamanlama beklemesi %.2f ms · çöp toplama %.2f kez, %.2f ms\n",
-			num, ms(total2.wall), total2.gpuMS/n, total2.idleMs/n, float64(total2.launching)/n, ms(total2.host), ms(total2.equal),
-			float64(total2.gc)/n, ms(total2.gcTime))
+		fmt.Fprintln(w, messages.Text(messages.H4040, num, fmt.Sprintf("%.2f", ms(total2.wall)), fmt.Sprintf("%.2f", total2.gpuMS/n),
+			fmt.Sprintf("%.2f", total2.idleMs/n), fmt.Sprintf("%.0f", float64(total2.launching)/n), fmt.Sprintf("%.2f", ms(total2.host)),
+			fmt.Sprintf("%.2f", ms(total2.equal)), fmt.Sprintf("%.2f", float64(total2.gc)/n), fmt.Sprintf("%.2f", ms(total2.gcTime))))
 	} else {
-		fmt.Fprintf(w, "adım başına: adım bilgisi yok (%d adım işaretlendi; ilk iki adım ısınmadır, en az üç tamamlanmış adım gerekir; adımlar iyileştiricinin adımıyla işaretlenir)\n", signed)
+		fmt.Fprintln(w, messages.Text(messages.H4041, signed))
 	}
 	measurements := p.sorted()
 	var total time.Duration
@@ -222,7 +223,7 @@ func (g *backend) writeSummary(w io.Writer) {
 	}
 	sort.Slice(families, func(i, j int) bool { return families[i].GPUTime > families[j].GPUTime })
 	table := func(header string, r []KernelSample, maxN int) {
-		fmt.Fprintf(w, "%-44s %9s %12s %10s %6s\n", header, "çağrı", "toplam ms", "ort µs", "%")
+		fmt.Fprintf(w, "%-44s %9s %12s %10s %6s\n", header, messages.Text(messages.H8241), messages.Text(messages.H4043), messages.Text(messages.H4044), "%")
 		for i, o := range r {
 			if i >= maxN {
 				break
@@ -235,12 +236,11 @@ func (g *backend) writeSummary(w io.Writer) {
 				o.GPUTime.Seconds()*1e6/float64(max(o.Calls, 1)), percent)
 		}
 	}
-	table("aile", families, 30)
-	table("çekirdek (ilk 25)", measurements, 25)
+	table(messages.Text(messages.H4045), families, 30)
+	table(messages.Text(messages.H4046), measurements, 25)
 	b := g.pool.measurement()
-	fmt.Fprintf(w, "bellek: ayrılmış %s · havuzda %s · canlı %s · tepe canlı %s · tepe ayrılmış %s · sürücü ayırma %d · çöp toplama %d\n",
-		bytesText(b.Reserved), bytesText(b.Pooled), bytesText(b.Live), bytesText(b.PeakLive), bytesText(b.PeakReserved),
-		b.DriverAllocs, b.GCRuns)
+	fmt.Fprintln(w, messages.Text(messages.H4047, bytesText(b.Reserved), bytesText(b.Pooled), bytesText(b.Live), bytesText(b.PeakLive),
+		bytesText(b.PeakReserved), b.DriverAllocs, b.GCRuns))
 }
 
 func shorten(s string, n int) string {

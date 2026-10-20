@@ -1,10 +1,11 @@
 package gpu
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -209,22 +210,22 @@ func simParse(text string) (*simFunc, error) {
 			continue
 		}
 		if err := a.row(s, &body); err != nil {
-			return nil, fmt.Errorf("benzetim: PTX satır %d (%q): %v", no+1, s, err)
+			return nil, messages.New(messages.H4127, no+1, s, err)
 		}
 	}
 	for _, b := range a.pending {
 		h, ok := a.label[b.ad]
 		if !ok {
-			return nil, fmt.Errorf("benzetim: tanımsız etiket %s", b.ad)
+			return nil, internalf("simulator: undefined label %s", b.ad)
 		}
 		a.is.instructions[b.instruction].target = h
 	}
 	if a.is.ad == "" {
-		return nil, fmt.Errorf("benzetim: giriş noktası (.entry) yok")
+		return nil, internalf("simulator: no entry point (.entry)")
 	}
 	a.is.regCount = len(a.reg)
 	if a.is.sharedBytes > staticSharedMemLimit {
-		return nil, fmt.Errorf("benzetim: %d bayt statik paylaşımlı bellek (sınır %d; üstü devingen diziyle)", a.is.sharedBytes, staticSharedMemLimit)
+		return nil, messages.New(messages.H4128, a.is.sharedBytes, staticSharedMemLimit)
 	}
 	return a.is, nil
 }
@@ -253,7 +254,7 @@ func (a *simParser) row(s string, body *bool) error {
 		return a.declareShared(strings.TrimSuffix(s, ";"))
 	case strings.HasPrefix(s, ".extern .shared "):
 		if *body {
-			return fmt.Errorf(".extern .shared modül düzeyinde bildirilmeli (ptxas gövdede kabul etmez)")
+			return internalf(".extern .shared must be declared at module level (ptxas rejects it in a body)")
 		}
 		return a.declareDynamic(strings.TrimSuffix(s, ";"))
 	case strings.HasSuffix(s, ":"):
@@ -261,7 +262,7 @@ func (a *simParser) row(s string, body *bool) error {
 		return nil
 	}
 	if !*body {
-		return fmt.Errorf("gövde dışında komut")
+		return internalf("instruction outside a function body")
 	}
 	return a.parseInstruction(strings.TrimSuffix(s, ";"))
 }
@@ -283,7 +284,7 @@ func (a *simParser) declareParam(s string) error {
 	case f[1] == ".u32", f[1] == ".f32", f[1] == ".s32":
 		byteN = 4
 	default:
-		return fmt.Errorf("bilinmeyen parametre türü %s", f[1])
+		return internalf("unknown parameter type %s", f[1])
 	}
 	a.paramIndex[ad] = int32(len(a.is.param))
 	a.is.param = append(a.is.param, paramType{ad: ad, byteN: byteN})
@@ -293,7 +294,7 @@ func (a *simParser) declareParam(s string) error {
 func (a *simParser) declareReg(s string) error {
 	f := strings.Fields(s) // .reg .f32 %f<12>
 	if len(f) != 3 {
-		return fmt.Errorf("yazmaç bildirimi")
+		return internalf("malformed register declaration")
 	}
 	i := strings.Index(f[2], "<")
 	n, err := strconv.Atoi(strings.TrimSuffix(f[2][i+1:], ">"))
@@ -312,7 +313,7 @@ func (a *simParser) declareDynamic(s string) error {
 	f := strings.Fields(s)
 	last := f[len(f)-1]
 	if !strings.HasSuffix(last, "[]") || a.is.dynamic {
-		return fmt.Errorf("devingen paylaşımlı dizi bildirimi")
+		return internalf("malformed dynamic shared array declaration")
 	}
 	a.is.dynamic = true
 	a.is.sharedBytes = (a.is.sharedBytes + 15) &^ 15
@@ -322,7 +323,7 @@ func (a *simParser) declareDynamic(s string) error {
 
 func (a *simParser) declareShared(s string) error {
 	if a.is.dynamic {
-		return fmt.Errorf("devingen paylaşımlı diziden sonra statik dizi")
+		return internalf("static shared array after the dynamic one")
 	}
 	f := strings.Fields(s) // .shared .align 16 .b8 ad[4096]
 	last := f[len(f)-1]
@@ -348,7 +349,7 @@ func (a *simParser) parseInstruction(s string) error {
 		}
 		y, ok := a.reg[p]
 		if !ok {
-			return fmt.Errorf("tanımsız yüklem %s", p)
+			return internalf("undefined predicate %s", p)
 		}
 		k.cond = y
 		s = strings.TrimSpace(s[sp+1:])
@@ -368,7 +369,7 @@ func (a *simParser) parseInstruction(s string) error {
 	if i := strings.IndexByte(args, '{'); i >= 0 {
 		j := strings.IndexByte(args, '}')
 		if j < i {
-			return fmt.Errorf("kapanmamış vektör işleneni")
+			return internalf("unclosed vector operand")
 		}
 		for _, v := range strings.Split(args[i+1:j], ",") {
 			vecList = append(vecList, strings.TrimSpace(v))
@@ -378,7 +379,7 @@ func (a *simParser) parseInstruction(s string) error {
 	part := strings.Split(op, ".")
 	op2, ok := simOpNames[part[0]]
 	if !ok {
-		return fmt.Errorf("benzetimin bilmediği komut %s", part[0])
+		return internalf("instruction %s unknown to the simulator", part[0])
 	}
 	k.op = op2
 	if err := a.extras(&k, part[1:]); err != nil {
@@ -405,7 +406,7 @@ func (a *simParser) terms(k *simInst, t []string) error {
 	switch k.op {
 	case simBra:
 		if len(t) != 1 {
-			return fmt.Errorf("bra tek etiket ister")
+			return internalf("bra needs a single label")
 		}
 		a.pending = append(a.pending, struct {
 			instruction int
@@ -416,7 +417,7 @@ func (a *simParser) terms(k *simInst, t []string) error {
 		return nil
 	case simCpWait:
 		if len(t) != 1 {
-			return fmt.Errorf("cp.async.wait_group tek sayı ister")
+			return internalf("cp.async.wait_group needs a single number")
 		}
 		v, err := a.term(t[0], simU32)
 		k.o[0] = v
@@ -425,7 +426,7 @@ func (a *simParser) terms(k *simInst, t []string) error {
 		return a.cpTerms(k, t)
 	case simSt:
 		if len(t) != 2 {
-			return fmt.Errorf("st iki işlenen ister")
+			return internalf("st needs two operands")
 		}
 		if err := a.memory(k, t[0]); err != nil {
 			return err
@@ -438,7 +439,7 @@ func (a *simParser) terms(k *simInst, t []string) error {
 		return err
 	case simLd:
 		if len(t) != 2 {
-			return fmt.Errorf("ld iki işlenen ister")
+			return internalf("ld needs two operands")
 		}
 		if k.vec == 0 {
 			if err := a.targetReg(k, t[0]); err != nil {
@@ -448,7 +449,7 @@ func (a *simParser) terms(k *simInst, t []string) error {
 		return a.memory(k, t[1])
 	}
 	if len(t) < 2 || len(t) > 4 {
-		return fmt.Errorf("işlenen sayısı %d", len(t))
+		return internalf("wrong operand count %d", len(t))
 	}
 	if err := a.targetReg(k, t[0]); err != nil {
 		return err
@@ -470,7 +471,7 @@ func (a *simParser) terms(k *simInst, t []string) error {
 func (a *simParser) targetReg(k *simInst, s string) error {
 	y, ok := a.reg[s]
 	if !ok {
-		return fmt.Errorf("tanımsız hedef yazmaç %s", s)
+		return internalf("undefined destination register %s", s)
 	}
 	k.d = y
 	return nil
@@ -501,10 +502,10 @@ func (a *simParser) term(s string, dtype simType) (simTerm, error) {
 	}
 	n, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		return simTerm{}, fmt.Errorf("çözülemeyen işlenen %q", s)
+		return simTerm{}, internalf("unresolvable operand %q", s)
 	}
 	if dtype == simF32 || dtype == simF64 {
-		return simTerm{}, fmt.Errorf("kayan noktalı komutta tam sayı sabiti %q (0f biçimi gerekir)", s)
+		return simTerm{}, internalf("integer constant %q in a floating-point instruction (0f form required)", s)
 	}
 	return simTerm{variant: tmConst, s: uint64(n)}, nil
 }
@@ -512,7 +513,7 @@ func (a *simParser) term(s string, dtype simType) (simTerm, error) {
 // memory [taban+ofset] işlenenini çözer.
 func (a *simParser) memory(k *simInst, s string) error {
 	if !strings.HasPrefix(s, "[") || !strings.HasSuffix(s, "]") {
-		return fmt.Errorf("bellek işleneni bekleniyordu: %s", s)
+		return internalf("memory operand expected: %s", s)
 	}
 	s = s[1 : len(s)-1]
 	base2 := s
@@ -527,7 +528,7 @@ func (a *simParser) memory(k *simInst, s string) error {
 	if k.space == spaceParam {
 		p, ok := a.paramIndex[base2]
 		if !ok {
-			return fmt.Errorf("tanımsız parametre %s", base2)
+			return internalf("undefined parameter %s", base2)
 		}
 		k.param = p
 		return nil

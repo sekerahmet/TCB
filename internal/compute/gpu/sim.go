@@ -1,9 +1,10 @@
 package gpu
 
 import (
-	"fmt"
 	"time"
 	"unsafe"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -21,7 +22,7 @@ type simDriver struct {
 	fns       []*simFunc
 	order     []func() error
 	failure   result
-	detail2   string
+	detail2   error
 	memory    uint64 // bildirilen toplam bellek
 	allocated uint64
 	dim       map[uint64]uint64
@@ -70,7 +71,7 @@ func (b *simDriver) eventTime(begin, last uintptr) (float32, result) {
 func (b *simDriver) flushTools() {}
 
 func (b *simDriver) bind() result        { return b.failure }
-func (b *simDriver) cardName() string    { return "benzetim (PTX yorumlayıcısı)" }
+func (b *simDriver) cardName() string    { return messages.Text(messages.H4064) }
 func (b *simDriver) totalMemory() uint64 { return b.memory }
 
 func (b *simDriver) freeMemory() (uint64, uint64, result) {
@@ -123,7 +124,7 @@ func (b *simDriver) flush() result {
 	b.order = nil
 	for _, f := range order {
 		if err := f(); err != nil {
-			b.failure, b.detail2 = errInvalidAddress, err.Error()
+			b.failure, b.detail2 = errInvalidAddress, err
 			return b.failure
 		}
 	}
@@ -134,7 +135,7 @@ func (b *simDriver) load(target uint64, source unsafe.Pointer, byteN uint64, con
 	dup := func() error {
 		d, err := b.mem.slice(target, int(byteN))
 		if err != nil {
-			return fmt.Errorf("yükleme: %v", err)
+			return messages.New(messages.H4121, err)
 		}
 		copy(d, unsafe.Slice((*byte)(source), byteN))
 		return nil
@@ -149,7 +150,7 @@ func (b *simDriver) load(target uint64, source unsafe.Pointer, byteN uint64, con
 		return s
 	}
 	if err := dup(); err != nil {
-		b.failure, b.detail2 = errInvalidAddress, err.Error()
+		b.failure, b.detail2 = errInvalidAddress, err
 	}
 	return b.failure
 }
@@ -160,7 +161,7 @@ func (b *simDriver) download(target unsafe.Pointer, source uint64, byteN uint64)
 	}
 	d, err := b.mem.slice(source, int(byteN))
 	if err != nil {
-		b.failure, b.detail2 = errInvalidAddress, "indirme: "+err.Error()
+		b.failure, b.detail2 = errInvalidAddress, messages.New(messages.H4122, err)
 		return b.failure
 	}
 	copy(unsafe.Slice((*byte)(target), byteN), d)
@@ -171,11 +172,11 @@ func (b *simDriver) copyFn(target, source, byteN uint64) result {
 	return b.add(func() error {
 		d, err := b.mem.slice(target, int(byteN))
 		if err != nil {
-			return fmt.Errorf("cihaz içi kopya hedefi: %v", err)
+			return messages.New(messages.H4123, err)
 		}
 		k, err := b.mem.slice(source, int(byteN))
 		if err != nil {
-			return fmt.Errorf("cihaz içi kopya kaynağı: %v", err)
+			return messages.New(messages.H4124, err)
 		}
 		copy(d, k)
 		return nil
@@ -186,7 +187,7 @@ func (b *simDriver) fill32(target uint64, value uint32, n uint64) result {
 	return b.add(func() error {
 		d, err := b.mem.slice(target, int(4*n))
 		if err != nil {
-			return fmt.Errorf("doldurma: %v", err)
+			return messages.New(messages.H4125, err)
 		}
 		for i := uint64(0); i < n; i++ {
 			d[4*i], d[4*i+1], d[4*i+2], d[4*i+3] = byte(value), byte(value>>8), byte(value>>16), byte(value>>24)
@@ -199,7 +200,7 @@ func (b *simDriver) fill16(target uint64, value uint16, n uint64) result {
 	return b.add(func() error {
 		d, err := b.mem.slice(target, int(2*n))
 		if err != nil {
-			return fmt.Errorf("doldurma: %v", err)
+			return messages.New(messages.H4125, err)
 		}
 		for i := uint64(0); i < n; i++ {
 			d[2*i], d[2*i+1] = byte(value), byte(value>>8)
@@ -230,7 +231,7 @@ func (b *simDriver) launch(fn uintptr, grid, block [3]uint32, sharedMem uint32, 
 	}
 	is := b.fns[fn-1]
 	if (sharedMem > 0) != is.dynamic || is.sharedBytes+int(sharedMem) > max(b.allow[fn]+is.sharedBytes, staticSharedMemLimit) {
-		b.detail2 = fmt.Sprintf("%s: %d bayt devingen paylaşımlı bellek (izin %d, .extern %v)", is.ad, sharedMem, b.allow[fn], is.dynamic)
+		b.detail2 = messages.New(messages.H4126, is.ad, sharedMem, b.allow[fn], is.dynamic)
 		return errInvalidValue
 	}
 	dup := make([][]byte, len(param))
@@ -257,4 +258,4 @@ func (b *simDriver) sharedMemLimit() int { return b.sharedMem }
 
 func (b *simDriver) errName(s result) string { return nameFromTable(s) }
 
-func (b *simDriver) detail() string { return b.detail2 }
+func (b *simDriver) detail() error { return b.detail2 }

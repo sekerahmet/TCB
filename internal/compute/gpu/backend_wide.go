@@ -5,6 +5,7 @@ import (
 	"math/bits"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Arka uç: genişletilmiş eleman bazlı işlemler (sınırlama, koşullu seçim, atan2
@@ -49,7 +50,7 @@ func (g *backend) ClampGrad(gx, gs tensor.Storage, x tensor.View, lo, hi float32
 
 // broadcastMeta görünümlerin çıktı şekline yayınlanmış adımlarını birleştirir: nd = 0 ise
 // hepsi düz bitişiktir (meta boş).
-func broadcastMeta(op string, outShape []int, vs ...tensor.View) (int, []int) {
+func broadcastMeta(op messages.Code, outShape []int, vs ...tensor.View) (int, []int) {
 	steps := make([][]int, 0, len(vs)+1)
 	for _, v := range vs {
 		steps = append(steps, broadcastStride(v.Strides, v.Shape, outShape))
@@ -65,7 +66,7 @@ func broadcastMeta(op string, outShape []int, vs ...tensor.View) (int, []int) {
 		return 0, nil
 	}
 	if nd > maxAxis {
-		none(fmt.Sprintf("%d eksenli yayınlamalı %s (en çok %d)", nd, op, maxAxis))
+		none(op, nd, maxAxis)
 	}
 	meta := append([]int{}, sh...)
 	for _, s := range st[:len(vs)] {
@@ -86,7 +87,7 @@ func (g *backend) Where(out tensor.Storage, outShape []int, c, a, b tensor.View)
 		return
 	}
 	checkSize(n)
-	nd, meta := broadcastMeta("koşullu seçim", outShape, c, a, b)
+	nd, meta := broadcastMeta(messages.H4055, outShape, c, a, b)
 	k := g.takeKernel(fmt.Sprintf("secim:%d", nd), selectKernel(nd))
 	iz, bl := plain(n, sameBlock)
 	g.launch(k, iz, bl, g.param().readV(c).readV(a).readV(b).write(o, 0).u32(n).arr(4*nd, meta...))
@@ -140,7 +141,7 @@ func (g *backend) Atan2Grad(ga, gb tensor.Storage, aShape, bShape, outShape []in
 	gd := gt.readD(gs)
 	a, b = gt.readStrided(a), gt.readStrided(b)
 	ta, tb := gt.buffer(n, false), gt.buffer(n, false)
-	nd, meta := broadcastMeta("atan2 gradyanı", outShape, a, b)
+	nd, meta := broadcastMeta(messages.H4056, outShape, a, b)
 	k := g.takeKernel(fmt.Sprintf("atan2_turev:%d", nd), atan2GradKernel(nd))
 	iz, bl := plain(n, sameBlock)
 	g.launch(k, iz, bl, g.param().readV(a).readV(b).read(gd, 0).write(ta, 0).write(tb, 0).u32(n).arr(3*nd, meta...))

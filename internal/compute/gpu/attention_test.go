@@ -3,10 +3,10 @@ package gpu
 import (
 	"fmt"
 	"math/rand"
-	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // TestAttentionAlias q, k, v'nin (ya da ikisinin) aynı tensör olduğu dikkat: gradyanlar aynı
@@ -112,15 +112,15 @@ func attnRealSizes(t *testing.T) {
 // puan matrisini de denetler.
 func TestAttentionLongContextLimit(t *testing.T) {
 	long := tensor.AttentionParams{Batch: 16, H: 16, Hkv: 16, Tq: 4096, Tk: 4096, Dh: 64, Dv: 64}
-	if m := panicText(func() { checkAttnSize(long, true) }); m != "" {
-		t.Fatalf("birleşik yol uzun bağlamı reddetti: %s", m)
+	if err := panicError(func() { checkAttnSize(long, true) }); err != nil {
+		t.Fatalf("birleşik yol uzun bağlamı reddetti: %v", err)
 	}
-	if m := panicText(func() { checkAttnSize(long, false) }); !strings.Contains(m, "2^31") {
-		t.Fatalf("matris yolu puan matrisi sınırını denetlemedi: %q", m)
+	if err := panicError(func() { checkAttnSize(long, false) }); !messages.Has(err, messages.H4016) {
+		t.Fatalf("matris yolu puan matrisi sınırını denetlemedi: %v", err)
 	}
 	tooLarge := tensor.AttentionParams{Batch: 64, H: 32, Hkv: 8, Tq: 16384, Tk: 16384, Dh: 128, Dv: 128}
-	if m := panicText(func() { checkAttnSize(tooLarge, true) }); !strings.Contains(m, "2^31") {
-		t.Fatalf("q dizin sınırı denetlenmedi: %q", m)
+	if err := panicError(func() { checkAttnSize(tooLarge, true) }); !messages.Has(err, messages.H4016) {
+		t.Fatalf("q dizin sınırı denetlenmedi: %v", err)
 	}
 	// Benzetimde küçük bir uzun bağlam: birden çok sorgu ve anahtar döşemesi, nedensel.
 	rng := rand.New(rand.NewSource(7))

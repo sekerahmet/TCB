@@ -6,6 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Benzetimin vektörel erişimleri ve cp.async'i: doğru kullanım doğru sonuç verir; beklemeden
@@ -61,7 +62,7 @@ func vecKernel(mode2 string) func() *emitter {
 	}
 }
 
-func vecRun(t *testing.T, mode2 string) ([]float32, string) {
+func vecRun(t *testing.T, mode2 string) ([]float32, error) {
 	t.Helper()
 	g := newSimBackend(1 << 20)
 	g.enter()
@@ -74,18 +75,18 @@ func vecRun(t *testing.T, mode2 string) ([]float32, string) {
 	y := g.allocate(16, tensor.Float32, true)
 	c := g.takeKernel("vek:"+mode2, vecKernel(mode2))
 	g.launch(c, [3]uint32{1, 1, 1}, [3]uint32{4, 1, 1}, g.param().read(x, 0).write(y, 0))
-	m := panicText(g.equalize)
-	if m != "" {
-		return nil, m
+	err := panicError(g.equalize)
+	if err != nil {
+		return nil, err
 	}
-	return lockedDownload(g, y), ""
+	return lockedDownload(g, y), nil
 }
 
 func TestSimVectorAndCpAsync(t *testing.T) {
 	for _, mode2 := range []string{"vek", "cp"} {
-		r, m := vecRun(t, mode2)
-		if m != "" {
-			t.Fatalf("%s: %s", mode2, m)
+		r, err := vecRun(t, mode2)
+		if err != nil {
+			t.Fatalf("%s: %v", mode2, err)
 		}
 		for i, v := range r {
 			if expected := float32((i+4)%16 + 1); v != expected {
@@ -93,14 +94,14 @@ func TestSimVectorAndCpAsync(t *testing.T) {
 			}
 		}
 	}
-	errs := map[string]string{
-		"cp_beklemesiz": "beklenmeden bitti",
-		"cp_engelsiz":   "yarış",
-		"hizasiz":       "hizasız",
+	errs := map[string]messages.Code{
+		"cp_beklemesiz": messages.H4113,
+		"cp_engelsiz":   messages.H4103,
+		"hizasiz":       messages.H4112,
 	}
-	for mode2, part := range errs {
-		if _, m := vecRun(t, mode2); !strings.Contains(m, part) {
-			t.Fatalf("%s: %q hatası bekleniyordu, %q", mode2, part, m)
+	for mode2, code := range errs {
+		if _, err := vecRun(t, mode2); !messages.Has(err, code) {
+			t.Fatalf("%s: %v hatası bekleniyordu, %v", mode2, code, err)
 		}
 	}
 }

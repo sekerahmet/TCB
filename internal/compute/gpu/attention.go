@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -254,7 +255,7 @@ func (g *backend) attnRows(s, lse *storage, mask2 *storage, mo *storage, p tenso
 // prepareAttn ortak denetimler ve maske ofsetlerinin yüklenmesi.
 func (g *backend) prepareAttn(gt *temp, mask tensor.Storage, p tensor.AttentionParams) (md, mo *storage) {
 	if p.H%max(p.Hkv, 1) != 0 {
-		panic(fmt.Sprintf("tensor: GPU: dikkat baş sayıları uyumsuz (%d, %d)", p.H, p.Hkv))
+		panic(messages.New(messages.H4061, p.H, p.Hkv))
 	}
 	if mask != nil {
 		md = gt.readD(mask)

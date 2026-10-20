@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // backend bir GPU'nun tensor.Backend uygulaması.
@@ -120,15 +121,15 @@ func Status() string {
 	n := deviceCount()
 	if n == 0 {
 		if err := readSetupError(); err != nil {
-			return "GPU yok: " + err.Error()
+			return messages.Text(messages.H4021, err)
 		}
-		return "GPU yok: sürücü cihaz bulamadı"
+		return messages.Text(messages.H4022)
 	}
 	if !tensor.HasDevice(tensor.GPU(0)) {
-		return fmt.Sprintf("%d GPU görünüyor ama arka uç kurulamadı: %v", n, readSetupError())
+		return messages.Text(messages.H4023, n, readSetupError())
 	}
 	be := tensor.BackendFor(tensor.GPU(0)).(*backend)
-	return fmt.Sprintf("%d GPU; gpu: %s, %s bellek; matris çarpımı: %s", n, be.sr.cardName(), bytesText(be.sr.totalMemory()), be.gemmPath())
+	return messages.Text(messages.H4024, n, be.sr.cardName(), bytesText(be.sr.totalMemory()), be.gemmPath())
 }
 
 func newBackend(dev tensor.Device, sr driver) *backend {
@@ -170,21 +171,21 @@ func (g *backend) Device() tensor.Device { return g.dev }
 func (g *backend) MemoryLimit() int64 { return int64(g.sr.totalMemory()) }
 
 // MemoryPlace hata mesajlarında anılan yer.
-func (g *backend) MemoryPlace() string { return "bu GPU'da" }
+func (g *backend) MemoryPlace() string { return messages.Text(messages.H4062) }
 
 // enter kilidi alır, gorutini iş parçacığına kilitler ve bağlamı bağlar.
 func (g *backend) enter() {
 	g.mu.Lock()
 	if gpuClosed.Load() {
 		g.mu.Unlock()
-		panic("tensor: GPU: program sonunda dış profilleyici için GPU kapatıldı; GPU artık kullanılamaz")
+		panic(messages.New(messages.H4017))
 	}
 	g.prm.open = false // panikle yarıda kalmış bir önceki zincir
 	runtime.LockOSThread()
 	if s := g.sr.bind(); s != succeeded {
-		m := g.errText("cuCtxSetCurrent", s)
+		err := g.driverError("cuCtxSetCurrent", s)
 		g.exit()
-		panic(m)
+		panic(err)
 	}
 	g.hostStart()
 }
@@ -195,26 +196,29 @@ func (g *backend) exit() {
 	g.mu.Unlock()
 }
 
-// errText sürücü hatasının Türkçe açıklaması: kodun adı, son çekirdek, ayrıntı.
-func (g *backend) errText(op string, s result) string {
-	m := fmt.Sprintf("tensor: GPU: %s başarısız: %s (%d)", op, g.sr.errName(s), int32(s))
-	if g.lastKernel != "" {
-		m += "; son başlatılan çekirdek: " + g.lastKernel
-		if !g.concurrent {
-			m += " (hata daha önceki bir çekirdekten de olabilir; yerini bulmak için TR_GPU_ESZAMANLI=1 ile çalıştırın)"
-		}
+// driverError sürücü hatasının açıklaması: kodun adı, son çekirdek, ayrıntı.
+func (g *backend) driverError(op string, s result) error {
+	name, code := g.sr.errName(s), int32(s)
+	var err error
+	switch {
+	case g.lastKernel == "":
+		err = messages.New(messages.H4007, op, name, code)
+	case g.concurrent:
+		err = messages.New(messages.H4008, op, name, code, g.lastKernel)
+	default:
+		err = messages.New(messages.H4009, op, name, code, g.lastKernel)
 	}
-	if d := g.sr.detail(); d != "" {
-		m += "\n" + d
+	if d := g.sr.detail(); d != nil {
+		err = messages.New(messages.H4010, err, d)
 	}
-	return m
+	return err
 }
 
-// try_ sürücü dönüşünü denetler; hata Türkçe paniğe çevrilir (dil 'dene/yakala' ile
+// try_ sürücü dönüşünü denetler; hata paniğe çevrilir (dil 'dene/yakala' ile
 // yakalayabilir).
 func (g *backend) try_(op string, s result) {
 	if s != succeeded {
-		panic(g.errText(op, s))
+		panic(g.driverError(op, s))
 	}
 }
 
@@ -232,13 +236,14 @@ const maxN = 1<<31 - 1
 // checkSize n elemanın tek çekirdekte işlenebildiğini denetler.
 func checkSize(n int) {
 	if n > maxN {
-		panic(fmt.Sprintf("tensor: GPU: tek işlemde %d eleman var; bu sürümde GPU işlemleri en çok 2^31 eleman işler", n))
+		panic(messages.New(messages.H4016, n))
 	}
 }
 
-// none GPU'da henüz olmayan bir işlem için açık hata verir (sessizce CPU'ya düşülmez).
-func none(op string) {
-	panic("tensor: bu işlem GPU'da henüz yok: " + op)
+// none GPU'da henüz olmayan bir işlem için açık hata verir (sessizce CPU'ya düşülmez); kod
+// işlemi anlatan H40xx iletisidir.
+func none(code messages.Code, args ...any) {
+	panic(messages.New(code, args...))
 }
 
 func bytesText(b uint64) string {
@@ -248,7 +253,7 @@ func bytesText(b uint64) string {
 	case b >= 1<<20:
 		return fmt.Sprintf("%.1f MB", float64(b)/(1<<20))
 	}
-	return fmt.Sprintf("%d bayt", b)
+	return messages.Text(messages.H4020, b)
 }
 
 // Compile-time checks: the tensor package finds the optional fast paths of a backend by type

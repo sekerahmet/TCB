@@ -7,6 +7,7 @@ import (
 	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Benzetimin hata yakalama yetenekleri ve arka ucun hata mesajları. Her sınama kendi
@@ -22,7 +23,7 @@ func newSimBackend(memory uint64) *backend {
 
 // runErr, govde'nin yazdığı tek bloklu (4 iş parçacığı) çekirdeği 16 baytlık bir
 // tamponla başlatır ve eşzamanlama hatasının mesajını verir.
-func runErr(t *testing.T, ad string, body func(k *emitter, x reg)) string {
+func runErr(t *testing.T, ad string, body func(k *emitter, x reg)) error {
 	t.Helper()
 	g := newSimBackend(1 << 20)
 	g.enter()
@@ -34,22 +35,22 @@ func runErr(t *testing.T, ad string, body func(k *emitter, x reg)) string {
 		return k
 	})
 	g.launch(c, [3]uint32{1, 1, 1}, [3]uint32{4, 1, 1}, g.param().write(d, 0))
-	return panicText(g.equalize)
+	return panicError(g.equalize)
 }
 
 func TestSimCatchesRace(t *testing.T) {
-	m := runErr(t, "yaris", func(k *emitter, x reg) {
+	err := runErr(t, "yaris", func(k *emitter, x reg) {
 		sm := k.shared("sm", 16)
 		tid := k.special("%tid.x")
 		v := k.f()
 		k.e("cvt.rn.f32.u32", v, tid)
 		k.e("st.shared.f32", mem(sm, 0), v) // dört iş parçacığı aynı sözcüğe yazar
 	})
-	if !strings.Contains(m, "yarış") || !strings.Contains(m, "CUDA_ERROR_ILLEGAL_ADDRESS") {
-		t.Fatalf("paylaşımlı bellek yarışı yakalanmadı: %q", m)
+	if !messages.Has(err, messages.H4101) || !strings.Contains(err.Error(), "CUDA_ERROR_ILLEGAL_ADDRESS") {
+		t.Fatalf("paylaşımlı bellek yarışı yakalanmadı: %v", err)
 	}
 	// Engelle ayrılmış yazma ve okuma yarış değildir.
-	m = runErr(t, "engelli", func(k *emitter, x reg) {
+	err = runErr(t, "engelli", func(k *emitter, x reg) {
 		sm := k.shared("sm", 16)
 		tid := k.special("%tid.x")
 		addr := k.r()
@@ -62,13 +63,13 @@ func TestSimCatchesRace(t *testing.T) {
 		k.e("ld.shared.f32", r, mem(sm, 4))
 		k.store(tensor.Float32, k.address(x, tid, 4), r)
 	})
-	if m != "" {
-		t.Fatalf("engelli erişim hata verdi: %s", m)
+	if err != nil {
+		t.Fatalf("engelli erişim hata verdi: %v", err)
 	}
 }
 
 func TestSimDivergentBarrier(t *testing.T) {
-	m := runErr(t, "daginik", func(k *emitter, x reg) {
+	err := runErr(t, "daginik", func(k *emitter, x reg) {
 		tid := k.special("%tid.x")
 		last := k.label()
 		p := k.p()
@@ -77,13 +78,13 @@ func TestSimDivergentBarrier(t *testing.T) {
 		k.barrier()
 		k.put(last)
 	})
-	if !strings.Contains(m, "dağınık engel") {
-		t.Fatalf("dağınık engel yakalanmadı: %q", m)
+	if !messages.Has(err, messages.H4108) {
+		t.Fatalf("dağınık engel yakalanmadı: %v", err)
 	}
 }
 
 func TestSimOutOfBounds(t *testing.T) {
-	m := runErr(t, "sinir_disi", func(k *emitter, x reg) {
+	err := runErr(t, "sinir_disi", func(k *emitter, x reg) {
 		tid := k.special("%tid.x")
 		i := k.r()
 		// 1000..1003: tamponun boyut sınıfının (256 bayt) da dışı; benzetim yalnızca ayrılmış
@@ -91,8 +92,8 @@ func TestSimOutOfBounds(t *testing.T) {
 		k.e("add.s32", i, tid, 1000)
 		k.store(tensor.Float32, k.address(x, i, 4), k.constant(1))
 	})
-	if !strings.Contains(m, "ayrılmış bölge dışında") || !strings.Contains(m, "son başlatılan çekirdek: sinir_disi") {
-		t.Fatalf("sınır dışı yazma yakalanmadı: %q", m)
+	if !messages.Has(err, messages.H4100) || !messages.Has(err, messages.H4009) && !messages.Has(err, messages.H4008) || !strings.Contains(err.Error(), "sinir_disi") {
+		t.Fatalf("sınır dışı yazma yakalanmadı: %v", err)
 	}
 }
 
@@ -103,15 +104,15 @@ func TestPTXCompileErrorLog(t *testing.T) {
 	g := newSimBackend(1 << 20)
 	g.enter()
 	defer g.exit()
-	m := panicText(func() {
+	err := panicError(func() {
 		g.takeKernel("bozuk", func() *emitter {
 			k := newEmitter("bozuk")
 			k.e("bilinmeyen.f32", k.f(), k.f())
 			return k
 		})
 	})
-	if !strings.Contains(m, "CUDA_ERROR_INVALID_PTX") || !strings.Contains(m, "PTX derleyici günlüğü") || !strings.Contains(m, "PTX metni:") {
-		t.Fatalf("derleme hatası mesajı eksik: %q", m)
+	if !messages.Has(err, messages.H4011) || !messages.Has(err, messages.H4012) || !messages.Has(err, messages.H4013) || !strings.Contains(err.Error(), "CUDA_ERROR_INVALID_PTX") {
+		t.Fatalf("derleme hatası mesajı eksik: %v", err)
 	}
 }
 
@@ -123,9 +124,9 @@ func TestParamDeclChecked(t *testing.T) {
 	defer g.exit()
 	d := g.allocate(4, tensor.Float32, true)
 	c := g.takeKernel("doldur:float32x", fillKernel(tensor.Float32))
-	m := panicText(func() { g.launch(c, [3]uint32{1, 1, 1}, [3]uint32{4, 1, 1}, g.param().read(d, 0).u32(4).f32(1)) })
-	if !strings.Contains(m, "okuma/yazma bildirimi imzayla uyuşmuyor") {
-		t.Fatalf("yanlış bildirim yakalanmadı: %q", m)
+	err := panicError(func() { g.launch(c, [3]uint32{1, 1, 1}, [3]uint32{4, 1, 1}, g.param().read(d, 0).u32(4).f32(1)) })
+	if !messages.Has(err, messages.H9000) || !strings.Contains(internalDetail(err), "does not match the signature") {
+		t.Fatalf("yanlış bildirim yakalanmadı: %v", err)
 	}
 }
 
@@ -135,10 +136,10 @@ func TestParamDeclChecked(t *testing.T) {
 func TestNestedParamChain(t *testing.T) {
 	g := newSimBackend(1 << 20)
 	g.enter()
-	m := panicText(func() { g.param().u32(1); g.param() })
+	err := panicError(func() { g.param().u32(1); g.param() })
 	g.exit()
-	if !strings.Contains(m, "iç içe param()") {
-		t.Fatalf("iç içe zincir yakalanmadı: %q", m)
+	if !messages.Has(err, messages.H9000) || !strings.Contains(internalDetail(err), "nested param()") {
+		t.Fatalf("iç içe zincir yakalanmadı: %v", err)
 	}
 	g.enter()
 	defer g.exit()
@@ -149,19 +150,20 @@ func TestNestedParamChain(t *testing.T) {
 
 func TestOutOfMemory(t *testing.T) {
 	g := newSimBackend(1 << 20)
-	m := panicText(func() {
+	err := panicError(func() {
 		var hold []tensor.Storage
 		for i := 0; i < 8; i++ {
 			hold = append(hold, g.Alloc(64<<10, tensor.Float32)) // 256 KB
 		}
 		_ = hold
 	})
-	if !strings.Contains(m, "GPU belleği yetmedi") || !strings.Contains(m, "CUDA_ERROR_OUT_OF_MEMORY") {
-		t.Fatalf("bellek yetmezliği mesajı: %q", m)
+	if !messages.Has(err, messages.H4014) || !strings.Contains(err.Error(), "CUDA_ERROR_OUT_OF_MEMORY") {
+		t.Fatalf("bellek yetmezliği mesajı: %v", err)
 	}
 	// Cihaz belleğinden büyük tek ayırma, ayırmadan önce reddedilir.
-	m = panicText(func() { g.Alloc(1<<20, tensor.Float32) })
-	if !strings.Contains(m, "bu GPU'da") {
+	place := messages.Text(messages.H4062)
+	m := panicText(func() { g.Alloc(1<<20, tensor.Float32) })
+	if !strings.Contains(m, place) {
 		t.Fatalf("cihaz sınırı mesajı: %q", m)
 	}
 	// Cihazdan bağımsız katman şekli GPU belleğiyle denetler (ayırmadan önce). Satır sayısı
@@ -169,18 +171,18 @@ func TestOutOfMemory(t *testing.T) {
 	// devreye girer (gerçek GPU'da), o da aynı biçimde Türkçe ve yakalanabilirdir.
 	row := int(gpuBackend().MemoryLimit()/16) + 1
 	m = panicText(func() { tensor.ZerosOn(gpuDevice, row, 4) })
-	if !strings.Contains(m, fmt.Sprintf("[%d, 4]", row)) || !(strings.Contains(m, "bu GPU'da") || strings.Contains(m, "bu makinede")) {
+	if !strings.Contains(m, fmt.Sprintf("[%d, 4]", row)) || !(strings.Contains(m, place) || strings.Contains(m, "bu makinede")) {
 		t.Fatalf("tensör katmanının GPU sınırı mesajı: %q", m)
 	}
-	if inSim() && !strings.Contains(m, "bu GPU'da") {
+	if inSim() && !strings.Contains(m, place) {
 		t.Fatalf("benzetimde GPU sınırı devreye girmeliydi: %q", m)
 	}
 }
 
 func TestUnsupported(t *testing.T) {
 	g := gpuBackend()
-	if m := panicText(func() { g.Alloc(4, tensor.Int8) }); !strings.Contains(m, "bu işlem GPU'da henüz yok") {
-		t.Fatalf("int8 mesajı: %q", m)
+	if err := panicError(func() { g.Alloc(4, tensor.Int8) }); !messages.Has(err, messages.H4050) {
+		t.Fatalf("int8 mesajı: %v", err)
 	}
 	a := tensor.NewOn(tensor.CPU, []float32{1, 2}, 2)
 	b := tensor.NewOn(gpuDevice, []float32{1, 2}, 2)

@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -81,7 +82,7 @@ func ltOpen(path string) (*ltLibrary, error) {
 	l := &ltLibrary{k: k, path: path}
 	for i, ad := range ltFuncNames {
 		if l.fn[i], err = k.find(ad); err != nil {
-			return nil, fmt.Errorf("%s yok", ad)
+			return nil, messages.New(messages.H4031, ad)
 		}
 	}
 	l.version = int(k.call(l.fn[ltVersion]))
@@ -100,7 +101,7 @@ func ltOpenCandidates() ([]*ltLibrary, []string) {
 			if l, err := ltOpen(open); err == nil {
 				a.candidates = append(a.candidates, l)
 			} else {
-				a.notes = append(a.notes, fmt.Sprintf("TR_GPU_CUBLASLT (%s) açılamadı: %v", open, err))
+				a.notes = append(a.notes, messages.Text(messages.H4027, open, err))
 			}
 		}
 		var others []*ltLibrary
@@ -112,7 +113,7 @@ func ltOpenCandidates() ([]*ltLibrary, []string) {
 		sort.SliceStable(others, func(i, j int) bool { return others[i].version > others[j].version })
 		a.candidates = append(a.candidates, others...)
 		if len(a.candidates) == 0 {
-			a.notes = append(a.notes, "cuBLASLt bulunamadı")
+			a.notes = append(a.notes, messages.Text(messages.H4028))
 		}
 	})
 	return a.candidates, a.notes
@@ -140,7 +141,7 @@ func versionText(v int) string { return fmt.Sprintf("%d.%d.%d", v/10000, v/100%1
 // kalır ve kendi çekirdeğimiz kullanılır; nedeni carpimYolu'nda görünür.
 func (g *backend) ltSetup() {
 	if os.Getenv("TR_GPU_KENDI_CARPIM") == "1" {
-		g.ltReason = "kendi çekirdeği (TR_GPU_KENDI_CARPIM=1)"
+		g.ltReason = messages.Text(messages.H4037, "TR_GPU_KENDI_CARPIM=1")
 		return
 	}
 	candidates, shared := ltOpenCandidates()
@@ -151,13 +152,13 @@ func (g *backend) ltSetup() {
 	defer g.exit()
 	for _, kitLib := range candidates {
 		if kitLib.version < minN {
-			notes = append(notes, fmt.Sprintf("%s sürüm %s bu kart (sm_%d) için eski (en az %s)", kitLib.path,
+			notes = append(notes, messages.Text(messages.H4029, kitLib.path,
 				versionText(kitLib.version), cc, versionText(minN)))
 			continue
 		}
 		l := &ltGemm{kitLib: kitLib, o: &ltOutput{}, plan: map[ltKey]*ltPlanFor{}}
 		if s := l.call(ltCreate, uintptr(unsafe.Pointer(&l.o.handle))); s != 0 {
-			notes = append(notes, fmt.Sprintf("%s: cublasLtCreate durum %d", kitLib.path, s))
+			notes = append(notes, messages.Text(messages.H4030, kitLib.path, s))
 			continue
 		}
 		l.h = l.o.handle
@@ -168,28 +169,28 @@ func (g *backend) ltSetup() {
 		g.lt, g.ltNotes = l, notes
 		return
 	}
-	g.ltReason = "kendi çekirdeği (" + strings.Join(notes, "; ") + ")"
+	g.ltReason = messages.Text(messages.H4037, strings.Join(notes, "; "))
 }
 
 // gemmPath matris çarpımının hangi yoldan yapıldığı (teşhis ve profil).
 func (g *backend) gemmPath() string {
 	if g.lt != nil {
-		y := fmt.Sprintf("cuBLASLt %s (%s)", versionText(g.lt.kitLib.version), g.lt.kitLib.path)
+		y := messages.Text(messages.H4032, versionText(g.lt.kitLib.version), g.lt.kitLib.path)
 		if n := g.lt.fallthroughCase; n > 0 {
-			y += fmt.Sprintf("; kendi çekirdeğe düşen çağrı %d", n)
+			y = messages.Text(messages.H4033, y, n)
 			if g.ltLastError != "" {
-				y += " (son: " + g.ltLastError + ")"
+				y = messages.Text(messages.H4034, y, g.ltLastError)
 			}
 		}
 		if len(g.ltNotes) > 0 {
-			y += "; atlanan: " + strings.Join(g.ltNotes, "; ")
+			y = messages.Text(messages.H4035, y, strings.Join(g.ltNotes, "; "))
 		}
 		return y
 	}
 	if g.ltReason != "" {
 		return g.ltReason
 	}
-	return "kendi çekirdeği"
+	return messages.Text(messages.H4036)
 }
 
 // ltClose plan tanımlarını ve kitaplık tutamacını yok eder (program sonu).
@@ -205,7 +206,7 @@ func (g *backend) ltClose() {
 	l.order = nil
 	l.call(ltDestroy, l.h)
 	g.lt = nil
-	g.ltReason = "kapatıldı"
+	g.ltReason = messages.Text(messages.H4063)
 }
 
 func (l *ltGemm) call(f int, args ...uintptr) int32 {

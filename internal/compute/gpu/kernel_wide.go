@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // ============================================================================
@@ -54,7 +55,7 @@ func (k *emitter) unaryExprWide(op tensor.UnOp, x reg) reg {
 		k.e("mov.b32", y, b)
 		return y
 	}
-	none(fmt.Sprintf("tekli işlem %d", op))
+	none(messages.H4058, op)
 	return ""
 }
 
@@ -100,7 +101,7 @@ func (k *emitter) unaryGradWide(op tensor.UnOp, x, y reg) reg {
 	case tensor.OpAbs:
 		return k.signF(x) // 0'da 0, NaN'da NaN (CPU ile aynı)
 	default:
-		none(fmt.Sprintf("tekli işlemin türevi %d", op))
+		none(messages.H4059, op)
 	}
 	return d
 }
@@ -121,7 +122,7 @@ func (k *emitter) binaryExpr(op tensor.BinOp, a, b reg) reg {
 	if op == tensor.OpAtan2 {
 		return k.arctan2(a, b)
 	}
-	none(fmt.Sprintf("ikili işlem %d", op))
+	none(messages.H4060, op)
 	return ""
 }
 

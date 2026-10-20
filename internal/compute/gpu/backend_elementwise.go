@@ -5,6 +5,7 @@ import (
 	"math/bits"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Arka uç: eleman bazlı işlemler, gradyan biriktirme ve genel indirgeme planı.
@@ -56,7 +57,7 @@ func (g *backend) reduce(is reduceJob) {
 	checkSize(K)
 	checkSize(R)
 	if len(kSh) > maxAxis || len(rSh) > maxAxis {
-		none(fmt.Sprintf("%d korunan, %d indirgenen eksenli indirgeme (en çok %d)", len(kSh), len(rSh), maxAxis))
+		none(messages.H4051, len(kSh), len(rSh), maxAxis)
 	}
 	config := reduceConfig{nk: len(kSh), nr: len(rSh), term: is.term, add: is.add}
 	for i, d := range []*storage{is.a, is.o, is.y, is.output} {
@@ -199,7 +200,7 @@ func (g *backend) Binary(op tensor.BinOp, out tensor.Storage, outShape []int, a,
 		nd = 0 // üçü de düz bitişik
 	}
 	if nd > maxAxis {
-		none(fmt.Sprintf("%d eksenli yayınlamalı ikili işlem (en çok %d)", nd, maxAxis))
+		none(messages.H4052, nd, maxAxis)
 	}
 	var meta []int
 	if nd > 0 {

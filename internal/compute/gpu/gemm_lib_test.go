@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // TestGemmLibraryMatchesOwnKernel gerçek GPU'da kitaplık bulunduysa onun sonucunu
@@ -114,7 +115,7 @@ func TestGemmLibraryMissingUsesOwnKernel(t *testing.T) {
 	if g.lt != nil {
 		t.Skip("bu makinede kitaplık bulundu")
 	}
-	if y := g.gemmPath(); !strings.HasPrefix(y, "kendi çekirdeği") {
+	if y := g.gemmPath(); !strings.HasPrefix(y, messages.Text(messages.H4036)) {
 		t.Fatalf("çarpım yolu: %q", y)
 	}
 }
@@ -129,7 +130,7 @@ func TestGemmLibrarySearchPath(t *testing.T) {
 		}
 	}
 	t.Setenv("TR_GPU_CUBLASLT", "libcublasLt.so.12")
-	if _, _, err := gemmLibCandidates(); err == nil || !strings.Contains(err.Error(), "tam yol") {
+	if _, _, err := gemmLibCandidates(); !messages.Has(err, messages.H4026) {
 		t.Fatalf("göreli yol reddedilmedi: %v", err)
 	}
 	if searchPathSafe("/usr/lib::/opt") || searchPathSafe("lib") || searchPathSafe("/a;.") ||
