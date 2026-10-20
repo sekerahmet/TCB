@@ -1,8 +1,6 @@
 package gpu
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -10,5 +8,5 @@ import (
 // değişmezi bozması) iç hata olarak bildirir: kullanıcı ortak "lütfen bildirin" iletisini görür,
 // İngilizce ayrıntı geliştirici içindir.
 func internalf(form string, a ...any) *messages.Error {
-	return messages.Internal(fmt.Sprintf(form, a...))
+	return messages.Internalf(form, a...)
 }

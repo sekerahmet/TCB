@@ -53,3 +53,14 @@ func TestParseCode(t *testing.T) {
 		}
 	}
 }
+
+func TestInternalfAndHasAny(t *testing.T) {
+	err := Internalf("bad %s %d", "x", 3)
+	if !Has(err, H9000) || !strings.Contains(err.Error(), "bad x 3") {
+		t.Fatalf("Internalf: %v", err)
+	}
+	wrapped := New(H2000, "f", New(H2010, "a", "b"))
+	if !HasAny(wrapped, H9000, H2010) || HasAny(wrapped, H9000, H2001) || HasAny(nil, H2000) {
+		t.Fatal("HasAny zinciri yanlış okuyor")
+	}
+}

@@ -160,12 +160,7 @@ func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (int
 // isUnsupported err'in, parçalayıcı dosyasındaki desteklenmeyen bir özelliği bildirip bildirmediğini
 // söyler.
 func isUnsupported(err error) bool {
-	for _, c := range []messages.Code{messages.H5202, messages.H5257, messages.H5275, messages.H5276} {
-		if messages.Has(err, c) {
-			return true
-		}
-	}
-	return false
+	return messages.HasAny(err, messages.H5202, messages.H5257, messages.H5275, messages.H5276)
 }
 
 func loadError(path string, err error, tried []string) error {

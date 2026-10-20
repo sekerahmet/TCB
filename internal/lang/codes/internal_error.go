@@ -1,8 +1,6 @@
 package codes
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -10,5 +8,5 @@ import (
 // error: only a bug in TR itself can make an embedded file invalid, so the user sees the
 // shared "please report" message and the English detail is for developers.
 func internalf(form string, a ...any) error {
-	return messages.Internal(fmt.Sprintf(form, a...))
+	return messages.Internalf(form, a...)
 }

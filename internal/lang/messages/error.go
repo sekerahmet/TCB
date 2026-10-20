@@ -1,6 +1,9 @@
 package messages
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // Error is a coded message used as an error. Args are the parameter values in the order of
 // the code's definition; the text is built in the active language when Error is called.
@@ -55,6 +58,19 @@ func Has(err error, c Code) bool {
 // Internal reports a state that only a bug in TR itself can reach. The user sees one shared
 // message asking them to report it; detail is for developers and is written in English.
 func Internal(detail string) *Error { return New(H9000, detail) }
+
+// Internalf is Internal with a formatted English detail.
+func Internalf(form string, a ...any) *Error { return Internal(fmt.Sprintf(form, a...)) }
+
+// HasAny reports whether err's chain carries any of the codes.
+func HasAny(err error, codes ...Code) bool {
+	for _, c := range codes {
+		if Has(err, c) {
+			return true
+		}
+	}
+	return false
+}
 
 // As returns the first coded message in err's chain.
 func As(err error) (*Error, bool) {
