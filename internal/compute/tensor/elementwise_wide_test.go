@@ -371,18 +371,15 @@ var knownEdgeGradIssues = []struct {
 	op     string
 	x      func(float32) bool
 	reason string
-}{
-	{"expm1", func(x float32) bool { return x < -9 },
-		"türev y+1 ile bulunur (y=expm1(x) float32): x<-9'da y+1 iptali göreli hatayı büyütür, x≲-17'de y=-1 olur ve türev 0 çıkar; doğrusu exp(x)"},
-}
+}{}
 
 // TestUnaryGradEdges türevin sıfırlar, alt-normaller, büyük ve sonsuz girdilerdeki değeri float64
 // başvuruyla uyuşur (silu'nun alt-normal bölgesi hariç mutlak hata 1e-38).
 func TestUnaryGradEdges(t *testing.T) {
 	type edge struct {
-		ad  string
-		f   func(*Tensor) *Tensor
-		d   func(float64) float64
+		ad   string
+		f    func(*Tensor) *Tensor
+		d    func(float64) float64
 		atol float64 // ulp tutmasa da kabul edilen mutlak hata
 	}
 	var cases []edge

@@ -382,7 +382,7 @@ func (b cpuBackend) UnaryGrad(op UnOp, p float32, gx, g Storage, x View, y Stora
 // (unaryGradLoop ve unaryGradLoopWide ile uyumlu).
 func unaryGradReads(op UnOp, p float32) (x, y bool) {
 	switch op {
-	case OpExp, OpSqrt, OpTanh, OpSigmoid, OpTan, OpExpm1:
+	case OpExp, OpSqrt, OpTanh, OpSigmoid, OpTan:
 		return false, true
 	case OpRDivScalar:
 		return true, true

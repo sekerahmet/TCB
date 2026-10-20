@@ -21,7 +21,8 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 | Ad | `internal/lang/codes/tr.json` | `"T204": { "ad": "silu", "aile": ..., "açıklama": ..., "örnek": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` |
 | İmza | `internal/lang/codes/definitions.json` | `"T204": { "tür": "fonksiyon", "param": ["A212\|A200\|A201"], "dönüş": "A212\|A201" }` |
 | Üret | — | `go generate ./internal/lang/codes`: Go sabitleri, `docs/kodlar.md`, düzenleyici renklendirmesi |
-| İşlem | `internal/compute/tensor/device.go` | `UnOp` listesinin **sonuna** `OpSilu` |
+| İşlem | `internal/compute/tensor/device.go` | `UnOp` listesinin sonuna, `numUnOps` sayacının **önüne** `OpSilu` (sayaç her zaman son kalır; kapsam testi işlemleri onunla sayar) |
+| Türev testi | `internal/compute/tensor/elementwise_wide_test.go` | `registerGrad` ile bir `gradSpec` kaydı: float64 başvuru işlevi ve türevi |
 | Ad | `internal/compute/tensor/elementwise.go` | `unopName` tablosuna `OpSilu: "silu"` |
 | Yöntem | `internal/compute/tensor/elementwise_wide.go` | `func (t *Tensor) Silu() *Tensor { return unary(t, OpSilu, 0) }` |
 | CPU | `internal/compute/tensor/cpu_elementwise_wide.go` | ileri kolu (`unaryLoopWide`) ve türev kolu (`unaryGradLoopWide`) |

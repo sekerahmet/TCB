@@ -154,7 +154,8 @@ func unaryGradLoopWide(op UnOp, gx, g, x, y []float32) {
 	case OpLog10:
 		f64(func(x, _ float64) float64 { return 1 / (x * math.Ln10) })
 	case OpExpm1:
-		f64(func(_, y float64) float64 { return y + 1 })
+		// exp(x), y+1 değil: x çok negatifken y = -1'e yuvarlanır ve y+1 türevi sıfırlardı.
+		f64(func(x, _ float64) float64 { return math.Exp(x) })
 	case OpAbs:
 		// Türev işaret(x): 0'da (±0) çarpan sıfırdır, NaN'da NaN.
 		for i, v := range g {

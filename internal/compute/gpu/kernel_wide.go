@@ -97,7 +97,7 @@ func (k *emitter) unaryGradWide(op tensor.UnOp, x, y reg) reg {
 		k.e("mul.rn.f32", d, x, c)
 		k.e("div.rn.f32", d, float32(1), d)
 	case tensor.OpExpm1:
-		k.e("add.rn.f32", d, y, float32(1))
+		return k.exponential(x) // exp(x): y+1, x çok negatifken 0'a iptal olurdu (CPU ile aynı)
 	case tensor.OpAbs:
 		return k.signF(x) // 0'da 0, NaN'da NaN (CPU ile aynı)
 	default:
