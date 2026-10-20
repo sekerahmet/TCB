@@ -20,7 +20,7 @@ Program dosyasından sonraki argümanlar her zamanki gibi programa gider (`komut
 
 **GPU.** GPU kullanan programda iki komut GPU'nun çekirdek ölçümünü de açar: çekirdeklerin cihazda geçen süresi (`çekirdekler %63 meşgul`), adım başına GPU süresi ve en pahalı çekirdek aileleri (`carpim`, `dikkat`, `cok_adamw` ...). GPU işleri eşzamansızdır: tensör tablosunda GPU işlemlerinin süresi konakta geçen başlatma süresidir, programın GPU'yu beklediği zaman `konağa okuma` satırında görünür (`.değer`, yazdırma, `ç.güncelle({kayıp: kayıp})`). Çekirdek ölçümü her başlatmaya iki zamanlama olayı ekler; GPU'yu tam hızda ölçmek için ölçümsüz bir koşuyla karşılaştırın.
 
-**Bellek.** Go yığını (CPU tensörleri dahil), CPU tensör işlemlerinin adım başına ayırdığı bellek, GPU'da tensörlerin kullandığı, sürücüden ayrılmış ve en yüksek (tepe) bellek; çöp toplayıcının kaç kez çalıştığı ve programı ne kadar durdurduğu.
+**Bellek.** Go yığını (CPU tensörleri dahil), CPU tensör işlemlerinin adım başına ayırdığı bellek, GPU'da tensörlerin kullandığı, sürücüden ayrılmış ve en yüksek (tepe) bellek; çöp toplayıcının kaç kez çalıştığı ve programı ne kadar durdurduğu. `tr profil` raporu ayrıca GPU belleğinin tepesinde canlı olan tensörleri onları ayıran satıra göre sıralar (PyTorch'un bellek anlık görüntüsünün karşılığı): hangi satırın tepe belleğin ne kadarını tuttuğu görünür. Geri yayılımda ayrılan gradyanlar `geri_yayılım(...)` satırında sayılır; aktarılan modüldeki satır `dosya:satır` diye yazılır.
 
 ## `tr izle`
 

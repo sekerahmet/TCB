@@ -34,6 +34,7 @@ func ReportText(g *Snapshot) string {
 		b.WriteString("\n")
 		reportLines(&b, o)
 	}
+	reportGPUPeak(&b, g)
 	b.WriteString("\n")
 	write(messages.Text(messages.H8236,
 		nBytes(int64(g.Memory.GoHeap)), nBytes(int64(g.Memory.GoSys)), nBytes(g.Memory.CPUTensorAlloc), gpuMemory(g.GPU)))
@@ -81,6 +82,18 @@ func reportLines(b *strings.Builder, o *SamplingInfo) {
 			break
 		}
 		fmt.Fprintf(b, "  %s  %s  %s\n", right(percent(f.Share), 5), left(functionName(f.Name), 30), durationText(f.Seconds))
+	}
+}
+
+// reportGPUPeak tepe GPU belleği anında canlı tensörleri ayıran satırlardır (en büyük 15):
+// pay, bayt, konum ve satırın metni. Satır örneklemesi kapalıysa ya da GPU yoksa yazılmaz.
+func reportGPUPeak(b *strings.Builder, g *Snapshot) {
+	if len(g.gpuPeak) == 0 {
+		return
+	}
+	b.WriteString("\n" + messages.Text(messages.H8283, nBytes(int64(g.gpuPeakTotal))) + "\n")
+	for _, s := range g.gpuPeak {
+		fmt.Fprintf(b, "  %s  %s  %s  %s\n", right(percent(s.Share), 5), right(nBytes(int64(s.Bytes)), 9), left(linePos(s.Line), 30), trim(lineText(s.Line), 70))
 	}
 }
 

@@ -89,6 +89,11 @@ type pool struct {
 	reserved, pooled, live uint64
 	peakLive, peakReserved uint64
 	gcRuns, driverAllocs   int64
+	// Konuma göre canlı bellek (yalnızca SetAllocSite açıkken; profile_api.go): her canlı
+	// bloğun ayrıldığı konum, konum başına canlı bayt ve izlemenin tepesindeki dağılım.
+	sites              map[uint64]uint64
+	liveBy, peakBy     map[uint64]uint64
+	siteLive, sitePeak uint64
 }
 
 // classSize ayırmanın yuvarlandığı boy: 256 bayta kadar 256; 1 MB'ye kadar ikinin
@@ -114,6 +119,47 @@ func (h *pool) release2(addr, class uint64) {
 	h.empty[class] = append(h.empty[class], addr)
 	h.pooled += class
 	h.live -= class
+	if s, ok := h.sites[addr]; ok {
+		delete(h.sites, addr)
+		h.liveBy[s] -= class
+		h.siteLive -= class
+	}
+	h.mu.Unlock()
+}
+
+// track tensöre verilen bloğu ayıran konumu kaydeder (izleme kapalıyken yalnızca bir atomik
+// okuma). İzlenen canlı bellek yeni bir tepeye çıkınca konum başına dağılımın kopyası alınır;
+// kopya konum sayısı kadardır (yüzlerce) ve tepe ilk adımdan sonra seyrek yükselir.
+func (h *pool) track(addr, class uint64) {
+	f := allocSite.Load()
+	if f == nil {
+		return
+	}
+	site := (*f)()
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.sites == nil {
+		h.sites, h.liveBy, h.peakBy = map[uint64]uint64{}, map[uint64]uint64{}, map[uint64]uint64{}
+	}
+	h.sites[addr] = site
+	h.liveBy[site] += class
+	h.siteLive += class
+	if h.siteLive > h.sitePeak {
+		h.sitePeak = h.siteLive
+		clear(h.peakBy)
+		for s, n := range h.liveBy {
+			if n > 0 {
+				h.peakBy[s] = n
+			}
+		}
+	}
+}
+
+// resetSites konum izlemesini sıfırlar (izleme yeniden açılınca önceki dağılım silinir).
+func (h *pool) resetSites() {
+	h.mu.Lock()
+	h.sites, h.liveBy, h.peakBy = nil, nil, nil
+	h.siteLive, h.sitePeak = 0, 0
 	h.mu.Unlock()
 }
 
@@ -186,6 +232,7 @@ func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
 		addr = g.driverAlloc(d.class, byteN)
 	}
 	d.addr = addr
+	g.pool.track(addr, d.class)
 	d.clean = runtime.AddCleanup(d, func(t cleanupInfo) { t.h.release2(t.addr, t.class) }, cleanupInfo{&g.pool, addr, d.class})
 	if reset {
 		g.reset(d)

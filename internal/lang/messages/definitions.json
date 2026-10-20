@@ -1403,6 +1403,7 @@
 "H8280": { "param": ["count"] },
 "H8281": { "param": ["pos", "share"] },
 "H8282": { "param": ["heap", "count", "pause"] },
+"H8283": { "param": ["peak"] },
 "H8400": { "param": ["detail"] },
 "H8401": { "param": ["error"] },
 "H8402": { "param": [] },

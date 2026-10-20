@@ -72,6 +72,11 @@ type Profile struct {
 	// açıktı, gpuSummary arka ucun son raporu (BeforeClose).
 	gpuOpened, gpuPrev, gpuMeasured bool
 	gpuSummary                      string
+	// Tepe GPU belleğinin ayıran satıra göre dağılımı (satır örneklemesi açıkken; gpu.go):
+	// program bitince bir kez okunur, izleme kapatılır.
+	gpuPeakTaken bool
+	gpuPeakSites map[uint64]uint64
+	gpuPeak      uint64
 
 	stop   chan struct{}
 	done   sync.WaitGroup
@@ -115,6 +120,7 @@ func Start(m *interp.VM, s Options) *Profile {
 		p.smp = newSampler()
 		m.Debugger = p.smp
 		p.smp.start()
+		gpu.SetAllocSite(p.smp.site)
 	}
 	if s.GPUMeasure {
 		// Ölçüm zaten açıksa (TR_GPU_PROFIL=1) dokunulmaz: arka uç raporunu kendisi yazar.
@@ -198,6 +204,7 @@ func (p *Profile) Finish(code int) *Snapshot {
 		if p.smp != nil {
 			p.smp.halt()
 		}
+		p.takeGPUPeak()
 		logging.SetStepHook(nil)
 		p.mu.Lock()
 		if p.gpuOpened {

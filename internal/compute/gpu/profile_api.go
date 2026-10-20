@@ -60,6 +60,40 @@ func registeredAll() []*backend {
 	return append([]*backend(nil), registered.uc...)
 }
 
+// allocSite GPU belleği ayrılırken o anki konumu veren işlevdir (nil: izleme kapalı).
+var allocSite atomic.Pointer[func() uint64]
+
+// SetAllocSite tensör belleğini ayıran konumu bildiren işlevi kurar; nil izlemeyi kapatır.
+// Konum, çağıranın anlamlandırdığı bir sayıdır (profil: fonksiyon<<32 | satır); 0 bilinmeyen
+// konumdur. Kurulunca bütün GPU'ların önceki dağılımı silinir ve izleme o andan başlar.
+// PyTorch'un bellek geçmişinin (torch.cuda.memory._record_memory_history) karşılığıdır:
+// yığın yerine tek konum tutar.
+func SetAllocSite(f func() uint64) {
+	for _, g := range registeredAll() {
+		g.pool.resetSites()
+	}
+	if f == nil {
+		allocSite.Store(nil)
+		return
+	}
+	allocSite.Store(&f)
+}
+
+// PeakLiveBySite izlenen GPU belleğinin tepe anındaki konum başına canlı baytlarını ve o
+// tepeyi verir (bütün GPU'ların toplamı; her GPU kendi tepesindeki dağılımıyla).
+func PeakLiveBySite() (bySite map[uint64]uint64, peak uint64) {
+	bySite = map[uint64]uint64{}
+	for _, g := range registeredAll() {
+		g.pool.mu.Lock()
+		for s, n := range g.pool.peakBy {
+			bySite[s] += n
+		}
+		peak += g.pool.sitePeak
+		g.pool.mu.Unlock()
+	}
+	return bySite, peak
+}
+
 // EnableProfile GPU çekirdek ölçümünü açar ya da kapatır (TR_GPU_PROFIL=1 ile başlangıçta
 // açıktır). Kapalıyken maliyet başlatma başına tek bir atomik okumadır.
 func EnableProfile(open bool) { profileOn.Store(open) }

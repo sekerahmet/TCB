@@ -39,6 +39,10 @@ type Snapshot struct {
 	GC       GCInfo        `json:"çöp_toplama"`
 	// Window son birkaç saniyenin ölçüleridir (yalnızca canlı görüntüde).
 	Window *WindowInfo `json:"son_pencere,omitempty"`
+	// gpuPeak tepe GPU belleğini ayıran satırlar ve tepe (yalnızca son raporda ve satır
+	// örneklemesi açıkken; metin raporu içindir, dosya biçiminde yoktur).
+	gpuPeak      []PeakLine
+	gpuPeakTotal uint64
 }
 
 // StepInfo eğitim adımlarıdır (ilerleme(...).güncelle(...) çağrıları).
@@ -130,6 +134,14 @@ type LineInfo struct {
 	Seconds     float64 `json:"süre_sn"`
 	Share       float64 `json:"pay"`
 	TensorShare float64 `json:"tensör_payı"`
+}
+
+// PeakLine tepe GPU belleği anında bir satırın ayırdığı canlı bellektir. Yalnızca metin
+// raporundadır (dosya biçimine sürüm 2 ile girer).
+type PeakLine struct {
+	Line  LineInfo
+	Bytes uint64
+	Share float64 // tepenin payı
 }
 
 // FunctionInfo bir fonksiyonun öz süresidir (kendi satırlarında geçen süre).

@@ -110,3 +110,31 @@ func runWithClose(t *testing.T, code string, s Options) (*Snapshot, *Profile) {
 	})
 	return g, pr
 }
+
+// Satır örneklemesi açıkken rapor tepe GPU belleği anında canlı tensörleri ayıran satıra göre
+// verir: en büyük tensörü ayıran satır en üsttedir; örnekleme kapalıyken bölüm yoktur.
+func TestProfileGPUPeakByLine(t *testing.T) {
+	setupGPU(t)
+	const code = `varsayılan_cihaz("gpu")
+değişken büyük = rastgele_normal([512, 512], tohum: 1)
+değişken küçük = rastgele_normal([16, 16], tohum: 2)
+değişken t = toplam(büyük) + toplam(küçük)
+varsayılan_cihaz("cpu")
+`
+	g, _ := runWithClose(t, code, Options{SampleLines: true})
+	if len(g.gpuPeak) == 0 || g.gpuPeakTotal == 0 {
+		t.Fatalf("tepe bellek satırları yok")
+	}
+	top := g.gpuPeak[0]
+	if top.Line.Line != 2 || !strings.Contains(top.Line.Text, "büyük") || top.Bytes < 512*512*4 {
+		t.Errorf("en üstte büyük tensörün satırı beklenirdi: %+v", top)
+	}
+	text := ReportText(g)
+	if !strings.Contains(text, "ayıran satıra göre") || !strings.Contains(text, "rastgele_normal([512, 512]") {
+		t.Errorf("raporda tepe bellek bölümü yok:\n%s", text)
+	}
+	g, _ = runWithClose(t, code, Options{})
+	if len(g.gpuPeak) != 0 || strings.Contains(ReportText(g), "ayıran satıra göre") {
+		t.Errorf("örnekleme kapalıyken tepe bellek bölümü olmamalı")
+	}
+}

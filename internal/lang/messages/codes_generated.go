@@ -1408,6 +1408,7 @@ const (
 	H8280 Code = 8280 // adım {count}
 	H8281 Code = 8281 // satır {pos} {share}
 	H8282 Code = 8282 // Go yığını {heap} · çöp toplama {count} ({pause})
+	H8283 Code = 8283 // GPU belleğinin tepesinde ({peak}) canlı tensörler, ayıran satıra göre (geri yayılımda ayrılanlar geri yayılımı başlatan satırdadır):
 	H8400 Code = 8400 // biçimlendirme programın anlamını değiştirecekti, dosyaya dokunulmadı ({detail})
 	H8401 Code = 8401 // sözdizimi hatası olan kod biçimlenmez: {error}
 	H8402 Code = 8402 // dosyanın biçimi (kodlu ya da Türkçe yazım) değişti

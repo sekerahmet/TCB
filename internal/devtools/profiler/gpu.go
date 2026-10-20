@@ -124,6 +124,41 @@ func (p *Profile) gpuInfo(a gpuSnap) GPUInfo {
 	return g
 }
 
+// takeGPUPeak tepe GPU belleğinin ayıran satıra göre dağılımını bir kez okur ve konum
+// izlemesini kapatır (satır örneklemesi açık değilse izleme hiç açılmamıştır). Motorlar
+// kapanmadan (BeforeClose) ya da en geç Finish'te çağrılır.
+func (p *Profile) takeGPUPeak() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.smp == nil || p.gpuPeakTaken {
+		return
+	}
+	p.gpuPeakTaken = true
+	p.gpuPeakSites, p.gpuPeak = gpu.PeakLiveBySite()
+	gpu.SetAllocSite(nil)
+}
+
+// gpuPeakLines tepe anındaki canlı GPU belleğini ayıran satırlara göre, büyükten küçüğe verir
+// (en çok maxPeakLines satır).
+func (p *Profile) gpuPeakLines() (lines []PeakLine, peak uint64) {
+	p.mu.Lock()
+	sites, peak := p.gpuPeakSites, p.gpuPeak
+	p.mu.Unlock()
+	for k, n := range sites {
+		lines = append(lines, PeakLine{Line: p.lineInfo(p.smp.resolve(k), 0), Bytes: n, Share: ratio(float64(n), float64(peak))})
+	}
+	sort.Slice(lines, func(i, j int) bool {
+		if lines[i].Bytes != lines[j].Bytes {
+			return lines[i].Bytes > lines[j].Bytes
+		}
+		return linePos(lines[i].Line) < linePos(lines[j].Line)
+	})
+	return lines[:min(len(lines), maxPeakLines)], peak
+}
+
+// maxPeakLines rapordaki tepe bellek satırı sayısıdır.
+const maxPeakLines = 15
+
 // maxKernels dosyaya yazılan çekirdek sayısıdır (aileler hep tam).
 const maxKernels = 30
 
@@ -136,6 +171,7 @@ func (p *Profile) BeforeClose() {
 	ac := p.gpuOpened
 	p.gpuOpened = false
 	p.mu.Unlock()
+	p.takeGPUPeak()
 	if !ac {
 		return
 	}

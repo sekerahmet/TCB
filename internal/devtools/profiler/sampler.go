@@ -205,6 +205,22 @@ type posSample struct {
 	dur, tensor time.Duration
 }
 
+// site son deyimin konumudur (fonksiyon<<32 | satır); GPU belleğini ayıran konum olarak
+// okunur (gpu.SetAllocSite). Geri yayılım sırasında ayrılan bellek geri yayılımı başlatan
+// satırdadır.
+func (o *sampler) site() uint64 { return loadPos(&o.pos) }
+
+// resolve bir konumu fonksiyonu, dosyası ve satırıyla verir.
+func (o *sampler) resolve(k uint64) posSample {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	f := funcKey{}
+	if n := k >> 32; n < uint64(len(o.names)) {
+		f = o.names[n]
+	}
+	return posSample{function: f.name, src: f.src, line: int(uint32(k))}
+}
+
 // snapshot biriken örneklerin kopyasını verir.
 func (o *sampler) snapshot() (positions []posSample, total time.Duration, sample int64) {
 	o.mu.Lock()

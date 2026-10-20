@@ -43,6 +43,9 @@ func (p *Profile) setup(a snap, before *snap, last bool) *Snapshot {
 		PauseSec: float64(a.memory.PauseTotalNs-p.base.memory.PauseTotalNs) / 1e9}
 	if p.smp != nil {
 		g.Sampling = p.samplingInfo(a.positions, nil, a.sampleTime, a.sample)
+		if last {
+			g.gpuPeak, g.gpuPeakTotal = p.gpuPeakLines()
+		}
 	}
 	if !last && before != nil && a.time2.Sub(before.time2) > 0 {
 		g.Window = p.window(a, before)

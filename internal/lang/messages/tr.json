@@ -1403,6 +1403,7 @@
 "H8280": "adım {count}",
 "H8281": "satır {pos} {share}",
 "H8282": "Go yığını {heap} · çöp toplama {count} ({pause})",
+"H8283": "GPU belleğinin tepesinde ({peak}) canlı tensörler, ayıran satıra göre (geri yayılımda ayrılanlar geri yayılımı başlatan satırdadır):",
 "H8400": "biçimlendirme programın anlamını değiştirecekti, dosyaya dokunulmadı ({detail})",
 "H8401": "sözdizimi hatası olan kod biçimlenmez: {error}",
 "H8402": "dosyanın biçimi (kodlu ya da Türkçe yazım) değişti",

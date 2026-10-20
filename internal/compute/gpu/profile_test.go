@@ -131,3 +131,36 @@ func TestClassSize(t *testing.T) {
 		}
 	}
 }
+
+// TestPeakLiveBySite konum izlemesi açıkken tepe anındaki canlı belleğin ayıran konuma göre
+// dağılımını verdiğini denetler: tepeden sonra bırakılan blok tepede sayılır, tepeden sonra
+// ayrılan küçük blok sayılmaz; izleme kapanınca ayırmalar kaydedilmez.
+func TestPeakLiveBySite(t *testing.T) {
+	site := uint64(0)
+	SetAllocSite(func() uint64 { return site })
+	g := gpuBackend()
+	g.enter()
+	site = 1
+	a := g.allocate(1<<20, tensor.Float32, false) // 4 MB
+	site = 2
+	b := g.allocate(1<<18, tensor.Float32, false) // 1 MB
+	g.release(a)
+	site = 3
+	c := g.allocate(1<<16, tensor.Float32, false) // 256 KB
+	g.exit()
+	by, peak := PeakLiveBySite()
+	ca, cb := classSize(4<<20), classSize(1<<20)
+	if by[1] != ca || by[2] != cb || by[3] != 0 || peak != ca+cb {
+		t.Fatalf("tepe dağılımı %v (tepe %d); beklenen 1:%d 2:%d, tepe %d", by, peak, ca, cb, ca+cb)
+	}
+	SetAllocSite(nil)
+	g.enter()
+	d := g.allocate(1<<20, tensor.Float32, false)
+	g.release(b)
+	g.release(c)
+	g.release(d)
+	g.exit()
+	if by, peak := PeakLiveBySite(); len(by) != 0 || peak != 0 {
+		t.Fatalf("izleme kapalıyken dağılım kalmamalı: %v (tepe %d)", by, peak)
+	}
+}
