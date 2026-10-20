@@ -80,7 +80,7 @@ func registerMath(v *interp.VM) {
 	unit(v, codes.T200, (*tensor.Tensor).Relu, relu64)
 	unit(v, codes.T201, (*tensor.Tensor).Sigmoid, sigmoid64)
 	unit(v, codes.T202, (*tensor.Tensor).Tanh, math.Tanh)
-	unit(v, codes.T203, (*tensor.Tensor).Gelu, gelu64)
+	registerGelu(v)
 	unit(v, codes.G404, (*tensor.Tensor).Sqrt, nil) // karekök
 	unit(v, codes.T220, (*tensor.Tensor).Exp, math.Exp)
 	unit(v, codes.T221, (*tensor.Tensor).Log, math.Log)

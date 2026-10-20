@@ -211,7 +211,7 @@ var unopName = map[UnOp]string{
 	OpRSubScalar: "rsub_scalar", OpRDivScalar: "rdiv_scalar", OpSin: "sin", OpCos: "cos",
 	OpSilu: "silu", OpTan: "tan", OpAsin: "asin", OpAcos: "acos", OpAtan: "atan", OpSinh: "sinh",
 	OpCosh: "cosh", OpLog1p: "log1p", OpLog2: "log2", OpLog10: "log10", OpExpm1: "expm1",
-	OpFloor: "floor", OpCeil: "ceil", OpSign: "sign", OpAbs: "abs",
+	OpFloor: "floor", OpCeil: "ceil", OpSign: "sign", OpAbs: "abs", OpGeluExact: "gelu_exact",
 }
 
 // unaryNoGrad türevi her yerde 0 olan (parçalı sabit) tekli işlemlerdir: geri yayılım
@@ -297,3 +297,9 @@ func (t *Tensor) Sigmoid() *Tensor { return unary(t, OpSigmoid, 0) }
 // Gelu tanh yaklaşımlı Gauss hata doğrusal birimi:
 // 0.5·x·(1 + tanh(√(2/π)·(x + 0.044715·x³))).
 func (t *Tensor) Gelu() *Tensor { return unary(t, OpGelu, 0) }
+
+// GeluExact tam (erf tabanlı) Gauss hata doğrusal birimi: x·Φ(x) = 0.5·x·(1 + erf(x/√2)).
+// PyTorch'un gelu(approximate="none") ve TensorFlow'un approximate=False karşılığıdır;
+// tanh yaklaşımlı Gelu'dan en çok ~5e-4 farklıdır. Gelu(-∞) = 0 ve Gelu(+∞) = +∞ gibi
+// GeluExact(-∞) = 0 ve GeluExact(+∞) = +∞ alınır.
+func (t *Tensor) GeluExact() *Tensor { return unary(t, OpGeluExact, 0) }

@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 292 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 99 fonksiyon, 1 sabit, 38 metot, 21 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 293 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 99 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -1575,12 +1575,12 @@ yazdır(tanh(0.5), tanh(tensör([-1.0, 1.0])).değer)
 
 #### T203 `gelu`
 
-    gelu(Tensör | Tam | Ondalık) → Tensör | Ondalık
+    gelu(Tensör | Tam | Ondalık, yaklaşık: Mantık = doğru) → Tensör | Ondalık
 
-Eleman bazlı GELU etkinleştirmesidir (tanh yaklaşımıyla hesaplanır). Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
+Eleman bazlı GELU etkinleştirmesidir; varsayılan tanh yaklaşımıyla hesaplanır, yaklaşık: yanlış tam (erf tabanlı) GELU verir. Tensörde türev izleyen tensör, sayıda Ondalık döndürür; listede çalışmaz (tensör(...) ile çevrilir).
 
 ```tr
-yazdır(gelu(tensör([-1.0, 0.0, 1.0])).değer)
+yazdır(gelu(tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlış))
 ```
 
 İlişkili: T200 `relu`
@@ -2452,6 +2452,16 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_nokt
 ```
 
 Kullananlar: T702 `kontrol_noktası` · İlişkili: T984 `her_dakika`
+
+#### T990 `yaklaşık`
+
+gelu'nun hangi biçimde hesaplanacağını seçer: doğru (varsayılan) tanh yaklaşımı, yanlış tam (erf tabanlı) GELU. Mantık olmalıdır.
+
+```tr
+yazdır(gelu(tensör([-1.0, 0.0, 1.0]), yaklaşık: yanlış).değer)
+```
+
+Kullananlar: T203 `gelu` · İlişkili: T203 `gelu`
 
 ## V — Veri ve parçalayıcı
 

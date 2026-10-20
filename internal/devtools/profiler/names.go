@@ -76,6 +76,7 @@ var opCode = map[tensor.OpKind]codes.Code{
 	tensor.OpKindTanh:         codes.T202,
 	tensor.OpKindRelu:         codes.T200,
 	tensor.OpKindGelu:         codes.T203,
+	tensor.OpKindGeluExact:    codes.T203,
 	tensor.OpKindSigmoid:      codes.T201,
 	tensor.OpKindSin:          codes.T222,
 	tensor.OpKindCos:          codes.T223,

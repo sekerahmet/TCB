@@ -54,9 +54,38 @@ func unaryLoopWide(op UnOp, y, x []float32) {
 		for i, v := range x {
 			y[i] = abs32(v)
 		}
+	case OpGeluExact:
+		f64(geluExactValue)
 	default:
 		panic(messages.Internal(fmt.Sprintf("unknown unary op %d", op)))
 	}
+}
+
+const (
+	invSqrt2   = 0.70710678118654752440 // 1/√2
+	invSqrt2Pi = 0.39894228040143267794 // 1/√(2π)
+)
+
+// geluExactValue x·Φ(x), Φ(x) = ½·erfc(−x/√2). erfc kullanılır, 1+erf değil: x çok
+// negatifken Φ(x) 1'e yakın iki sayının farkı olarak değil, kuyruk olarak göreli
+// doğrulukla bulunur. Φ(x) = 0 olan uçta (x → −∞) sonuç 0'dır (−∞·0 NaN üretirdi).
+func geluExactValue(x float64) float64 {
+	phi := 0.5 * math.Erfc(-x*invSqrt2)
+	if phi == 0 {
+		return 0
+	}
+	return x * phi
+}
+
+// geluExactSlope x·Φ(x)'in türevi Φ(x) + x·φ(x), φ standart normal yoğunluğu. φ(x) = 0
+// iken (|x| büyük ya da sonsuz) türev Φ(x)'tir: x·0 sonsuzda NaN üretirdi.
+func geluExactSlope(x float64) float64 {
+	phi := 0.5 * math.Erfc(-x*invSqrt2)
+	density := invSqrt2Pi * math.Exp(-0.5*x*x)
+	if density == 0 {
+		return phi
+	}
+	return phi + x*density
 }
 
 // sign32 x > 0 ise 1, x < 0 ise −1, sıfırda (işaretiyle) sıfır, NaN'da NaN.
@@ -161,6 +190,8 @@ func unaryGradLoopWide(op UnOp, gx, g, x, y []float32) {
 		for i, v := range g {
 			gx[i] += v * sign32(x[i])
 		}
+	case OpGeluExact:
+		f64(func(x, _ float64) float64 { return geluExactSlope(x) })
 	case OpFloor, OpCeil, OpSign:
 		// Türev 0 (tensör katmanı bu işlemlerin geri yayılımını arka uca göndermez).
 	default:

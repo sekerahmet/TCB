@@ -18,6 +18,8 @@ func (k *emitter) unaryExprWide(op tensor.UnOp, x reg) reg {
 	switch op {
 	case tensor.OpSilu:
 		return k.silu(x)
+	case tensor.OpGeluExact:
+		return k.geluExact(x)
 	case tensor.OpTan:
 		return k.tangent(x)
 	case tensor.OpAsin:
@@ -66,6 +68,8 @@ func (k *emitter) unaryGradWide(op tensor.UnOp, x, y reg) reg {
 	switch op {
 	case tensor.OpSilu:
 		return k.siluGrad(x)
+	case tensor.OpGeluExact:
+		return k.geluExactGrad(x)
 	case tensor.OpTan:
 		k.e("fma.rn.f32", d, y, y, float32(1))
 	case tensor.OpAsin, tensor.OpAcos:

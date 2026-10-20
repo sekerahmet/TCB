@@ -232,6 +232,7 @@ const (
 	T983 Code = T + 983 // tol · tolerans
 	T984 Code = T + 984 // every_minutes · her_dakika
 	T985 Code = T + 985 // keep · tut
+	T990 Code = T + 990 // approximate · yaklaşık
 	V100 Code = V + 100 // dataset · veri_kümesi
 	V200 Code = V + 200 // load_tokenizer · parçalayıcı_yükle
 	V900 Code = V + 900 // cache · önbellek

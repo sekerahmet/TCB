@@ -85,6 +85,7 @@ const (
 	OpKindCeil
 	OpKindSign
 	OpKindAbs
+	OpKindGeluExact
 	// Diğer işlemler.
 	OpKindMatMul
 	OpKindSum
@@ -127,7 +128,7 @@ var opCodes = [OpKindCount]string{
 	"buyuk_esit", "ustel", "log", "karekok", "us", "tanh", "relu", "gelu", "sigmoid",
 	"skaler_toplama", "skaler_carpma", "skalerden_cikarma", "skaler_bolme", "sinus", "kosinus",
 	"silu", "tanjant", "arksinus", "arkkosinus", "arktanjant", "sinh", "cosh", "log1p", "log2",
-	"log10", "ustel_eksi_bir", "taban", "tavan", "isaret", "mutlak", "matris_carpimi", "toplam",
+	"log10", "ustel_eksi_bir", "taban", "tavan", "isaret", "mutlak", "gelu_tam", "matris_carpimi", "toplam",
 	"ortalama", "en_buyuk", "en_buyuk_indeks", "softmax", "log_softmax", "gomme", "capraz_entropi",
 	"katman_normu", "rms_normu", "dikkat", "sinirlama", "kosullu_secim", "birikimli_toplam",
 	"en_buyuk_k", "siralama_indeksi", "birlestirme", "gorunum", "kopya", "tur_donusumu",

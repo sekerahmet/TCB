@@ -39,6 +39,23 @@ func silu64(x float64) float64 {
 	return x / (1 + math.Exp(-x))
 }
 
+// geluExact64 tam GELU'nun float64 başvurusu: x·½·erfc(−x/√2); −∞'da 0.
+func geluExact64(x float64) float64 {
+	if math.IsInf(x, -1) {
+		return 0
+	}
+	return x * 0.5 * math.Erfc(-x/math.Sqrt2)
+}
+
+// geluExactSlope64 türev başvurusu: Φ(x) + x·φ(x); sonsuzlarda x·φ(x) → 0 alınır.
+func geluExactSlope64(x float64) float64 {
+	phi := 0.5 * math.Erfc(-x/math.Sqrt2)
+	if math.IsInf(x, 0) {
+		return phi
+	}
+	return phi + x*math.Exp(-x*x/2)/math.Sqrt(2*math.Pi)
+}
+
 func sign64(x float64) float64 {
 	switch {
 	case x > 0:
@@ -57,6 +74,7 @@ var unaryRefs = []unaryRef{
 		s := 1 / (1 + math.Exp(-x))
 		return s * (1 + x*(1-s))
 	}},
+	{"gelu_exact", (*Tensor).GeluExact, geluExact64, 1, geluExactSlope64},
 	{"tan", (*Tensor).Tan, math.Tan, 1, func(x float64) float64 { t := math.Tan(x); return 1 + t*t }},
 	{"asin", (*Tensor).Asin, math.Asin, 1, func(x float64) float64 { return 1 / math.Sqrt(1-x*x) }},
 	{"acos", (*Tensor).Acos, math.Acos, 1, func(x float64) float64 { return -1 / math.Sqrt(1-x*x) }},
@@ -139,6 +157,11 @@ func TestUnaryWideEdges(t *testing.T) {
 		{"cosh(-sonsuz)", (*Tensor).Cosh, negInf32, posInf32},
 		{"silu(-sonsuz)", (*Tensor).Silu, negInf32, 0},
 		{"silu(+sonsuz)", (*Tensor).Silu, posInf32, posInf32},
+		{"gelu_exact(-sonsuz)", (*Tensor).GeluExact, negInf32, 0},
+		{"gelu_exact(+sonsuz)", (*Tensor).GeluExact, posInf32, posInf32},
+		{"gelu_exact(NaN)", (*Tensor).GeluExact, nan32, nan32},
+		{"gelu_exact(-100)", (*Tensor).GeluExact, -100, 0},
+		{"gelu_exact(0)", (*Tensor).GeluExact, 0, 0},
 		{"floor(-2.5)", (*Tensor).Floor, -2.5, -3},
 		{"ceil(-2.5)", (*Tensor).Ceil, -2.5, -2},
 		{"sign(NaN)", (*Tensor).Sign, nan32, nan32},
@@ -325,6 +348,7 @@ func init() {
 	}
 	w := []gradSpec{
 		unarySpec("silu", (*Tensor).Silu, silu64, -3, 3, 0),
+		unarySpec("gelu_exact", (*Tensor).GeluExact, geluExact64, -3, 3, 0),
 		unarySpec("tan", (*Tensor).Tan, math.Tan, -1.2, 1.2, 0),
 		unarySpec("asin", (*Tensor).Asin, math.Asin, -0.9, 0.9, 0),
 		unarySpec("acos", (*Tensor).Acos, math.Acos, -0.9, 0.9, 0),
@@ -434,4 +458,40 @@ func knownEdgeIssue(op string, x float32) string {
 		}
 	}
 	return ""
+}
+
+// TestGeluExactErfFormula tam GELU, tanım olan 0.5·x·(1 + erf(x/√2)) ile (iptalin zararsız
+// olduğu x > −3'te) uyuşur; tanh yaklaşımından en çok ~5e-4 farklıdır, ama farklıdır.
+func TestGeluExactErfFormula(t *testing.T) {
+	var xs []float32
+	for v := float32(-3); v <= 8; v += 0.0625 {
+		xs = append(xs, v)
+	}
+	exact := New(xs, len(xs)).GeluExact().Data()
+	approx := New(xs, len(xs)).Gelu().Data()
+	worst := 0.0
+	for i, v := range xs {
+		x := float64(v)
+		want := float32(0.5 * x * (1 + math.Erf(x/math.Sqrt2)))
+		if want != 0 && ulpDistance(exact[i], want) > 2 {
+			t.Fatalf("gelu_exact(%v) = %v, 0.5·x·(1+erf) = %v", v, exact[i], want)
+		}
+		worst = math.Max(worst, math.Abs(float64(exact[i]-approx[i])))
+	}
+	if worst < 1e-4 || worst > 6e-4 {
+		t.Errorf("tam ve tanh yaklaşımlı GELU arasındaki en büyük fark %g; ~4.7e-4 beklenir", worst)
+	}
+}
+
+// TestGeluExactGradEdges türev uçlarda: −∞'da 0, +∞'da 1, NaN'da NaN; x·φ(x) terimi ∞·0
+// NaN üretmez.
+func TestGeluExactGradEdges(t *testing.T) {
+	x := New([]float32{negInf32, posInf32, nan32, -100, 100, 0}, 6).SetRequiresGrad(true)
+	x.GeluExact().SumAll().Backward()
+	want := []float32{0, 1, nan32, 0, 1, 0.5}
+	for i, g := range x.Grad().Data() {
+		if ulpDistance(g, want[i]) > 1 {
+			t.Errorf("gelu_exact'(%v) = %v, beklenen %v", x.Data()[i], g, want[i])
+		}
+	}
 }

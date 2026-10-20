@@ -79,6 +79,7 @@ Yeniden ölçmek (CPU, tablo basar): `TR_MEASURE_BF16=1 go test ./internal/compu
 | elementwise_wide/cosh | 0.0029 | 0.006 |
 | elementwise_wide/expm1 | 0.0031 | 0.007 |
 | elementwise_wide/floor | 0.0000 | 0.004 |
+| elementwise_wide/gelu_exact | 0.0035 | 0.008 |
 | elementwise_wide/log10 | 0.0029 | 0.006 |
 | elementwise_wide/log1p | 0.0036 | 0.008 |
 | elementwise_wide/log2 | 0.0031 | 0.007 |

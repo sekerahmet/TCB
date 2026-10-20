@@ -17,6 +17,55 @@ func gelu64(x float64) float64 {
 	return 0.5 * x * (1 + math.Tanh(math.Sqrt(2/math.Pi)*(x+0.044715*x*x*x)))
 }
 
+// geluExact64 tam (erf tabanlı) GELU: x·½·erfc(−x/√2); −∞'da 0 (tensör yoluyla aynı).
+func geluExact64(x float64) float64 {
+	phi := 0.5 * math.Erfc(-x/math.Sqrt2)
+	if phi == 0 {
+		return 0
+	}
+	return x * phi
+}
+
+// registerGelu gelu(x, yaklaşık: doğru) yerleşiğini kaydeder: yaklaşık: doğru (varsayılan)
+// tanh yaklaşımlı, yanlış tam (erf tabanlı) GELU'dur. Öteki eleman bazlı fonksiyonlar gibi
+// tensörde türev izleyen tensör, sayıda Ondalık verir, listede yol gösteren hata verir.
+func registerGelu(v *interp.VM) {
+	ad := codes.Name(codes.T203)
+	wrap(v, codes.T203, func(interp.BuiltinFunc) interp.BuiltinFunc {
+		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+			if err := bind.CheckNamed(ad+"()", named, nameApproximate); err != nil {
+				return nil, err
+			}
+			if len(args) != 1 {
+				return nil, messages.New(messages.H6101, ad, len(args))
+			}
+			approximate, err := namedBool(ad, named, nameApproximate, true)
+			if err != nil {
+				return nil, err
+			}
+			if !isTensor(args) {
+				if approximate {
+					return applyToNumber(ad, args[0], gelu64)
+				}
+				return applyToNumber(ad, args[0], geluExact64)
+			}
+			t, err := toTensor(ad, args[0])
+			if err != nil {
+				return nil, err
+			}
+			fn := (*tensor.Tensor).Gelu
+			if !approximate {
+				fn = (*tensor.Tensor).GeluExact
+			}
+			r, err := safe(func() *tensor.Tensor { return fn(t) })
+			if err != nil {
+				return nil, err
+			}
+			return New(r), nil
+		}
+	})
+}
+
 func relu64(x float64) float64 {
 	if x > 0 || x != x { // NaN yayılır (tensör relu'suyla aynı)
 		return x
