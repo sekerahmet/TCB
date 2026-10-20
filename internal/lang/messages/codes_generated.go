@@ -1288,7 +1288,7 @@ const (
 	H8063 Code = 8063 // Bilinmeyen komut. Yardım için 'yardım' yazın.
 	H8070 Code = 8070 // TR HATA AYIKLAYICI  | Dosya: {file}
 	H8071 Code = 8071 // Durum: {reason}
-	H8072 Code = 8072 // SİSTEM: SY-LINNO={line} | SY-STEP={step} | YIĞIN_DERİNLİĞİ={depth}
+	H8072 Code = 8072 // Durum: satır {line} · adım {step} · çağrı derinliği {depth}
 	H8073 Code = 8073 // DEĞİŞKENLER: (Henüz kullanıcı değişkeni tanımlanmadı)
 	H8074 Code = 8074 // DEĞİŞKENLER (Canlı değiştirmek için: 'değiştir ad = değer'):
 	H8075 Code = 8075 // {name|q} adında bir değişken bulunamadı.
