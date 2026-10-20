@@ -44,6 +44,30 @@ func NewBody(input string, coded bool) *Lexer {
 	return l
 }
 
+// ViewEdit is one change the file's view makes to a coded body: the runes [Start, End) are
+// shown as Len runes (a code as its name, a user name as '$name').
+type ViewEdit struct {
+	Start, End, Len int
+}
+
+// NewBodyView returns the lexer for a coded body whose columns follow a view built from edits
+// (internal/lang/source builds the view and passes its edits). Unlike NewBody's pre-scan, the
+// edits also carry the '$' of user names that the view escapes, so every position matches the
+// text the person sees exactly.
+func NewBodyView(input string, edits []ViewEdit) *Lexer {
+	l := newLexer(input)
+	l.coded = true
+	k := make([]shift, 0, len(edits))
+	for _, e := range edits {
+		if d := e.Len - (e.End - e.Start); d != 0 {
+			k = append(k, shift{off: int32(e.End), d: int32(d)})
+		}
+	}
+	l.buildShifts(k)
+	l.checkBidi()
+	return l
+}
+
 // maxInterpolationNesting is how deep the pre-scan follows interpolations inside
 // interpolations. It equals the parser's nesting limit: deeper code is a parse error anyway,
 // and without a limit each level copies the text below it (quadratic time).

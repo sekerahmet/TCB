@@ -3,6 +3,7 @@ package source
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/checker"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
@@ -53,15 +54,18 @@ type Result struct {
 func Prepare(text string, s Options) *Result {
 	b, err := Split(text)
 	r := &Result{Parts: b, Text: b.Body}
+	lex := b.Lexer
 	if b.Coded {
-		r.Text = view(b)
+		var viewLexer *lexer.Lexer
+		r.Text, viewLexer = view(b)
+		lex = func() *lexer.Lexer { return viewLexer }
 	}
 	if err != nil {
 		r.Program = &ast.Program{}
 		r.Stage, r.Errors = StageSyntax, []error{err}
 		return r
 	}
-	p := parser.New(b.Lexer())
+	p := parser.New(lex())
 	if s.Module {
 		r.Program = p.ParseModule()
 	} else {

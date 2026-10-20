@@ -32,6 +32,12 @@ func TestCodedFilePrepares(t *testing.T) {
 		t.Fatalf("yerleştirmedeki ad bildirilmeli: %v", s.Errors)
 	}
 	wantPos(t, s.Errors[0], 1, 24)
+	// Gösterimde '$' ile kaçırılan kullanıcı adı da sütunu kaydırır: konum gösterimdeki metne göredir.
+	s = Prepare(Header+"\nA030 eğer = 1 + tanımsız\n", Options{TypeCheck: true})
+	if s.Text != "değişken $eğer = 1 + tanımsız\n" || len(s.Errors) != 1 {
+		t.Fatalf("gösterim %q, hatalar %v", s.Text, s.Errors)
+	}
+	wantPos(t, s.Errors[0], 1, 22)
 	// Kod olmayan her ad kullanıcının adıdır, anahtar kelime yazımında bile.
 	s = Prepare(Header+"\nA030 eğer = 1\nG100(eğer)\n", Options{TypeCheck: true})
 	if s.Stage != "" {

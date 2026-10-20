@@ -104,8 +104,20 @@ func (b Parts) Join() string {
 	return sb.String()
 }
 
-// Lexer returns the body's lexer: for a coded file, one that recognizes codes.
+// Lexer returns the body's lexer: for a coded file, one that recognizes codes and whose
+// positions follow the file's view (17.5), the '$' of escaped user names included.
 func (b Parts) Lexer() *lexer.Lexer {
+	if !b.Coded {
+		return lexer.NewBody(b.Body, false)
+	}
+	_, l := view(b)
+	return l
+}
+
+// scanLexer kodları tanıyan, sütunları yalnızca kod adlarına göre kayan çözümleyicidir:
+// gösterimi kuran çözümleme (analyze) bunu kullanır, gösterim henüz yoktur. Aralıklar
+// (Record.Start/End) Lexer'ınkiyle aynıdır.
+func (b Parts) scanLexer() *lexer.Lexer {
 	return lexer.NewBody(b.Body, b.Coded)
 }
 

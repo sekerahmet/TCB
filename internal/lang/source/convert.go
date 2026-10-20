@@ -123,7 +123,11 @@ func reencodesBody(view, codedBody string) bool {
 }
 
 // viewBody kodlu gövdenin c.dil'deki yazımıdır.
-func (c *analysis) viewBody() string {
+func (c *analysis) viewBody() string { return apply(c.input, c.viewChanges()) }
+
+// viewChanges gövdeyi gösterime çeviren değişimlerdir: kodlar adlarına, dilin bir sözcüğü
+// gibi okunacak kullanıcı adları '$ad' yazımına.
+func (c *analysis) viewChanges() []change {
 	var d []change
 	for _, r := range c.records {
 		switch {
@@ -133,17 +137,19 @@ func (c *analysis) viewBody() string {
 			d = append(d, change{r.Start, r.End, "$" + r.Literal})
 		}
 	}
-	return apply(c.input, d)
+	return d
 }
 
 // view kodlu bir gövdenin etkin dildeki yazımıdır: hata çerçeveleri ve hata ayıklayıcı
-// bu metni gösterir (konumlar ona göredir, 17.5). Gövde ayrıştırılamıyorsa yalnızca dosya
-// düzeyindeki kodlar adlarına çevrilir (yerleştirmelerdekiler kod kalır).
-func view(b Parts) string {
+// bu metni gösterir (17.5). Gövde ayrıştırılamıyorsa yalnızca dosya düzeyindeki kodlar
+// adlarına çevrilir (yerleştirmelerdekiler kod kalır). İkinci değer gösterimin sütunlarını
+// veren sözcük çözümleyicidir: konumlar tam bu metne göredir, '$ad' kaçışları dahil.
+func view(b Parts) (string, *lexer.Lexer) {
 	if c, err := analyze(b, codes.Active()); err == nil {
-		return c.viewBody()
+		d := c.viewChanges()
+		return apply(c.input, d), lexer.NewBodyView(b.Body, viewEdits(d))
 	}
-	l := b.Lexer()
+	l := b.scanLexer()
 	l.StartRecording()
 	for l.NextToken().Type != lexer.TokEOF {
 	}
@@ -153,7 +159,23 @@ func view(b Parts) string {
 			d = append(d, change{r.Start, r.End, langName(codes.Active(), r.Code)})
 		}
 	}
-	return apply(l.Input(), d)
+	return apply(l.Input(), d), lexer.NewBodyView(b.Body, viewEdits(d))
+}
+
+// viewEdits değişimleri sözcük çözümleyicinin sütun kaymalarına çevirir; apply gibi aynı
+// aralığı bir kez sayar.
+func viewEdits(d []change) []lexer.ViewEdit {
+	sort.SliceStable(d, func(i, j int) bool { return d[i].start < d[j].start })
+	var out []lexer.ViewEdit
+	prev := 0
+	for _, x := range d {
+		if x.start < prev {
+			continue
+		}
+		out = append(out, lexer.ViewEdit{Start: x.start, End: x.end, Len: utf8.RuneCountInString(x.text)})
+		prev = x.end
+	}
+	return out
 }
 
 // langName kodun dil'deki adıdır; dil kodu tanımıyorsa (başka dillerde ölü kodlar isteğe
@@ -183,7 +205,7 @@ func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 	if !utf8.ValidString(b.Body) {
 		return nil, ErrUTF8
 	}
-	l := b.Lexer()
+	l := b.scanLexer()
 	l.StartRecording()
 	p := parser.New(l)
 	p.RecordRoles()
@@ -205,7 +227,7 @@ func analyze(b Parts, lang *codes.Language) (*analysis, error) {
 // konumlarıyla atlanır; kodlu sözcükler etkin dilin adlarıyla okunduğu için ağaçlar birebir
 // aynı olmalıdır).
 func (c *analysis) sameMeaning(coded Parts) error {
-	p := parser.New(coded.Lexer())
+	p := parser.New(coded.scanLexer())
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 || ast.Dump(prog) != ast.Dump(c.prog) {
 		return ErrLossy
