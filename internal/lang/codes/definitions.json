@@ -133,7 +133,7 @@
   "K014": { "tür": "komut" },
   "K100": { "tür": "komut" },
   "K101": { "tür": "komut" },
-  "K102": { "tür": "komut" },
+  "K102": { "tür": "komut", "kaldırıldı": true },
   "K103": { "tür": "komut" },
   "K104": { "tür": "komut" },
   "K105": { "tür": "komut" },

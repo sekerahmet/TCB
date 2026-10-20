@@ -370,3 +370,27 @@ func TestInvalidLanguageFallsBack(t *testing.T) {
 		t.Fatalf("alt süreç: %v\n%s", err, out)
 	}
 }
+
+// Komut satırı adları her yazım dilinde bulunur ve ad alanları ayrıdır: 'kontrol' komut olarak
+// K004, seçenek olarak K101; 'izle' komut olarak K012, hata ayıklayıcıda K307.
+func TestCommandLineNamesInEveryLanguage(t *testing.T) {
+	for _, d := range []struct {
+		find func(string) (Code, bool)
+		name string
+		want Code
+	}{
+		{FindCommand, "çalıştır", K + 3}, {FindCommand, "run", K + 3}, {FindCommand, "kontrol", K + 4},
+		{FindOption, "kontrol", K + 101}, {FindOption, "check", K + 101}, {FindOption, "go_profile", K + 104},
+		{FindCommand, "izle", K + 12}, {FindDebuggerCommand, "izle", K + 307}, {FindDebuggerCommand, "continue", K + 303},
+		{FindCommand, "çıkış", K + 200}, {FindCommand, "exit", K + 200},
+	} {
+		if got, ok := d.find(d.name); !ok || got != d.want {
+			t.Errorf("%q: %v %v, %v bekleniyordu", d.name, got, ok, d.want)
+		}
+	}
+	for _, name := range []string{"calistir", "--kontrol", "adım"} {
+		if k, ok := FindCommand(name); ok {
+			t.Errorf("%q komut sayılmamalı: %v", name, k)
+		}
+	}
+}

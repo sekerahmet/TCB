@@ -131,7 +131,6 @@ const (
 	K014 Code = K + 14  // dap
 	K100 Code = K + 100 // lang · dil
 	K101 Code = K + 101 // check · kontrol
-	K102 Code = K + 102 // web
 	K103 Code = K + 103 // json
 	K104 Code = K + 104 // go_profile · go_profili
 	K105 Code = K + 105 // output · çıktı
@@ -326,6 +325,7 @@ var removedSet = map[Code]bool{
 	A + 240: true, // A240 Veritabanı
 	A + 241: true, // A241 WebSunucu
 	A + 242: true, // A242 GörselArayüz
+	K + 102: true, // K102 web
 	T + 511: true, // T511 kayıp_mse
 	T + 520: true, // T520 sinir_ağı
 	T + 521: true, // T521 model_yükle

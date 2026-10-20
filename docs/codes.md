@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 293 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 99 fonksiyon, 1 sabit, 38 metot, 21 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 292 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 99 fonksiyon, 1 sabit, 38 metot, 21 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -1285,13 +1285,9 @@ Dosyayı değiştirmeden biçiminin standart olup olmadığını denetler (tr bi
 tr biçimle --kontrol eğit.tr
 ```
 
-#### K102 `web`
+#### K102 `web` — kaldırıldı
 
-Canlı tabloyu terminal yerine tarayıcıda açar (tr izle).
-
-```tr
-tr izle --web
-```
+Kaldırıldı: tarayıcıdaki hata ayıklayıcının bayrağıydı (tr hata_ayıkla --web); yerine geçen bir kod yoktur, düzenleyicide F5 ile hata ayıklanır.
 
 #### K103 `json`
 
@@ -1306,7 +1302,7 @@ tr profil --json
 Yorumlayıcının kendi Go profilini de yazar (tr profil).
 
 ```tr
-tr profil --go_profili
+tr profil --go-profili go.prof eğit.tr
 ```
 
 #### K105 `çıktı`

@@ -438,11 +438,36 @@ func buildLanguage(langCode string) (*Language, error) {
 	return Load(langCode, data)
 }
 
-// FindCommand finds a command or option (K) by its name in any embedded writing language: the
-// active language first, then the others. Command lines and scripts then work on every machine
-// whatever TR_DIL is (unlike the language's source, a command line has no coded form).
-func FindCommand(name string) (Code, bool) {
-	if k, ok := active.Find(NamespaceCommand, name); ok {
+// FindCommand finds a tr command or a shell command (K0xx, K2xx) by its name in any embedded
+// writing language: the active language first, then the others. Command lines and scripts then
+// work on every machine whatever TR_DIL is (unlike the language's source, a command line has no
+// coded form).
+func FindCommand(name string) (Code, bool) { return findInLanguages(NamespaceCommand, name) }
+
+// FindOption finds a command-line option (K1xx) by its name without the leading "--", in any
+// embedded writing language, as FindCommand does.
+func FindOption(name string) (Code, bool) { return findInLanguages(NamespaceOption, name) }
+
+// FindDebuggerCommand finds a debugger command (K3xx) by its name in any embedded writing
+// language, as FindCommand does.
+func FindDebuggerCommand(name string) (Code, bool) {
+	return findInLanguages(NamespaceDebugger, name)
+}
+
+// FindRemovedCommandLine finds a removed or moved command-line name (a K code of namespace ns
+// that is dead) in any embedded writing language, so the command line can name what replaced it.
+func FindRemovedCommandLine(ns Namespace, name string) (Code, bool) {
+	return searchLanguages(func(l *Language) (Code, bool) { return l.FindDead(ns, name) })
+}
+
+// findInLanguages adı önce etkin dilde, sonra öbür gömülü dillerde arar.
+func findInLanguages(ns Namespace, name string) (Code, bool) {
+	return searchLanguages(func(l *Language) (Code, bool) { return l.Find(ns, name) })
+}
+
+// searchLanguages find'ı önce etkin dilde, sonra öbür gömülü dillerde dener.
+func searchLanguages(find func(*Language) (Code, bool)) (Code, bool) {
+	if k, ok := find(active); ok {
 		return k, true
 	}
 	for _, lc := range Languages() {
@@ -450,7 +475,7 @@ func FindCommand(name string) (Code, bool) {
 			continue
 		}
 		if l, err := LoadLanguage(lc); err == nil {
-			if k, ok := l.Find(NamespaceCommand, name); ok {
+			if k, ok := find(l); ok {
 				return k, true
 			}
 		}
