@@ -116,6 +116,7 @@ func TestMissingGraphFile(t *testing.T) {
 }
 
 func TestBuildCommandWritesGraph(t *testing.T) {
+	slowFixture(t)
 	out := filepath.Join(t.TempDir(), "sub", "graph.json")
 	var so, se bytes.Buffer
 	code := run([]string{"build", "--root", filepath.Join("testdata", "mod"), "--out", out}, &so, &se)

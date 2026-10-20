@@ -76,3 +76,12 @@ func cli(t *testing.T, args ...string) (code int, out, errOut string) {
 	code = run(args, &so, &se)
 	return code, so.String(), se.String()
 }
+
+// slowFixture geçici git deposunda grafik kuran (her biri birkaç saniye süren) testleri
+// `-short`'ta atlar. Tam denetim -short koşar; bu testler `--kip=uzun`da (CI) koşar.
+func slowFixture(t *testing.T) {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("kısa kipte atlandı: geçici git deposunda grafik kuruyor (uzun kipte koşar)")
+	}
+}
