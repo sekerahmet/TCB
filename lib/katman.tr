@@ -79,38 +79,76 @@ fonksiyon döner_konum_uygula(x, kos, sin) {
 // öncekilere bakar. kv_baş < baş gruplu sorgu dikkatidir (GQA): anahtar ve değer başları
 // ardışık baş gruplarınca paylaşılır, anahtar/değer katmanları küçülür. Hesap birleşik
 // `dikkat` yerleşiğindedir (T×T puan matrisi tutulmaz).
+// Seçenekler (varsayılanlar eski davranıştır):
+//   pencere: w > 0 ise yerel dikkat; her konum yalnızca son w konuma (kendisi dahil) bakar
+//            (`dikkat(..., pencere: w)`); 0 tam nedensel. Pencere katmanın özelliğidir:
+//            yerel/genel katman düzeni, her bloğa kendi penceresi verilerek kurulur.
+//   qk_normu: q ve k'ya baş boyutunda RMS normu (q_norm, k_norm; döner konumdan ÖNCE).
+//   birleşik_kv: anahtar ve değer tek `kv_katmanı` ([boyut, 2·kv_boyut], [K | V]) olur ve
+//            `.böl(2)` ile ayrılır; Muon K ve V'yi birlikte dikleştirir. Aksi hâlde
+//            anahtar_katmanı ve değer_katmanı ayrıdır (kv_katmanı yok'tur; birleşikte tersi).
+//   epsilon: qk normlarının epsilon'u.
 yapı NedenselDikkat {
     baş
     kv_baş
     baş_boyutu
+    pencere
     sorgu_katmanı
     anahtar_katmanı
     değer_katmanı
+    kv_katmanı
+    q_norm
+    k_norm
     çıkış_katmanı
-    fonksiyon kurucu(boyut, baş, kv_baş = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1) {
+    fonksiyon kurucu(boyut, baş, kv_baş = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, epsilon = 0.00001) {
         eğer kv_baş == yok { kv_baş = baş }
         doğrula(boyut % baş == 0, "boyut ({boyut}) baş sayısına ({baş}) bölünmeli")
         doğrula(baş % kv_baş == 0, "baş sayısı ({baş}) kv_baş sayısına ({kv_baş}) bölünmeli")
+        doğrula(pencere >= 0, "pencere negatif olamaz, {pencere} verildi")
         kendi.baş = baş
         kendi.kv_baş = kv_baş
         kendi.baş_boyutu = boyut / baş
+        kendi.pencere = pencere
         değişken kv_boyut = kv_baş * kendi.baş_boyutu
         kendi.sorgu_katmanı = Doğrusal(boyut, boyut, sapmalı: sapmalı, std: std, tohum: tohum)
-        kendi.anahtar_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
-        kendi.değer_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 2)
+        eğer birleşik_kv {
+            kendi.anahtar_katmanı = yok
+            kendi.değer_katmanı = yok
+            kendi.kv_katmanı = Doğrusal(boyut, 2 * kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
+        } değilse {
+            kendi.anahtar_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
+            kendi.değer_katmanı = Doğrusal(boyut, kv_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 2)
+            kendi.kv_katmanı = yok
+        }
+        kendi.q_norm = eğer qk_normu { RMSNormKatmanı(kendi.baş_boyutu, epsilon: epsilon) } değilse { yok }
+        kendi.k_norm = eğer qk_normu { RMSNormKatmanı(kendi.baş_boyutu, epsilon: epsilon) } değilse { yok }
         kendi.çıkış_katmanı = Doğrusal(boyut, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 3)
     }
     // x [B, T, D]; kos/sin döner_konum_tablosu'ndan.
     fonksiyon ileri(x, kos, sin) {
         değişken B = x.şekil[0]
         değişken T = x.şekil[1]
+        değişken k_ham = yok
+        değişken v_ham = yok
+        eğer kendi.kv_katmanı != yok {
+            değişken kv = kendi.kv_katmanı.ileri(x).böl(2, eksen: -1) // [K | V]
+            k_ham = kv[0]
+            v_ham = kv[1]
+        } değilse {
+            k_ham = kendi.anahtar_katmanı.ileri(x)
+            v_ham = kendi.değer_katmanı.ileri(x)
+        }
         // [B, T, baş · baş_boyutu] → [B, baş, T, baş_boyutu]
         değişken q = kendi.sorgu_katmanı.ileri(x).şekillendir([B, T, kendi.baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
-        değişken k = kendi.anahtar_katmanı.ileri(x).şekillendir([B, T, kendi.kv_baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
-        değişken v = kendi.değer_katmanı.ileri(x).şekillendir([B, T, kendi.kv_baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
+        değişken k = k_ham.şekillendir([B, T, kendi.kv_baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
+        değişken v = v_ham.şekillendir([B, T, kendi.kv_baş, kendi.baş_boyutu]).eksenleri_sırala([0, 2, 1, 3])
+        eğer kendi.q_norm != yok {
+            q = kendi.q_norm.ileri(q)
+            k = kendi.k_norm.ileri(k)
+        }
         q = döner_konum_uygula(q, kos, sin)
         k = döner_konum_uygula(k, kos, sin)
-        değişken y = dikkat(q, k, v, nedensel: doğru) // [B, baş, T, baş_boyutu]
+        değişken y = dikkat(q, k, v, nedensel: doğru, pencere: kendi.pencere) // [B, baş, T, baş_boyutu]
         sonuç kendi.çıkış_katmanı.ileri(y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, kendi.baş * kendi.baş_boyutu]))
     }
 }
@@ -122,37 +160,141 @@ fonksiyon swiglu_ara_boyutu(boyut) {
 }
 
 // SwiGLU: kapılı ileri besleme. aşağı(silu(kapı(x)) * yukarı(x)).
+// birleşik: doğru ise kapı ve yukarı tek `kapı_yukarı` katmanıdır ([boyut, 2·ara], [G | U]) ve
+// `.böl(2)` ile ayrılır (Muon ikisini birlikte dikleştirir); kapı ve yukarı o zaman yok'tur.
+// sapmalı: bütün katmanların sapması (birleşikte kapı_yukarı'nın sapması [2·ara]).
 yapı SwiGLU {
     kapı
     yukarı
+    kapı_yukarı
     aşağı
-    fonksiyon kurucu(boyut, ara_boyut = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1) {
+    fonksiyon kurucu(boyut, ara_boyut = yok, sapmalı = yanlış, std = 0.02, çıkış_std = 0.02, tohum = 1, birleşik = yanlış) {
         eğer ara_boyut == yok { ara_boyut = swiglu_ara_boyutu(boyut) }
-        kendi.kapı = Doğrusal(boyut, ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum)
-        kendi.yukarı = Doğrusal(boyut, ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
+        eğer birleşik {
+            kendi.kapı = yok
+            kendi.yukarı = yok
+            kendi.kapı_yukarı = Doğrusal(boyut, 2 * ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum)
+        } değilse {
+            kendi.kapı = Doğrusal(boyut, ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum)
+            kendi.yukarı = Doğrusal(boyut, ara_boyut, sapmalı: sapmalı, std: std, tohum: tohum + 1)
+            kendi.kapı_yukarı = yok
+        }
         kendi.aşağı = Doğrusal(ara_boyut, boyut, sapmalı: sapmalı, std: çıkış_std, tohum: tohum + 2)
     }
     fonksiyon ileri(x) {
+        eğer kendi.kapı_yukarı != yok {
+            değişken gu = kendi.kapı_yukarı.ileri(x).böl(2, eksen: -1)
+            sonuç kendi.aşağı.ileri(silu(gu[0]) * gu[1])
+        }
         sonuç kendi.aşağı.ileri(silu(kendi.kapı.ileri(x)) * kendi.yukarı.ileri(x))
     }
 }
 
-// TransformerBloğu (ön-norm): x + dikkat(norm(x)), ardından x + ileri_besleme(norm(x)).
+// ple_gelu PLE'nin etkinleştirmesidir. GELU çağrısı kitaplıkta yalnızca burada durur: tam (erf)
+// GELU seçeneği geldiğinde yalnızca bu satır değişir.
+fonksiyon ple_gelu(x) { sonuç gelu(x) }
+
+// PLEBağlamı: katman başına kelime gömmesinin (PLE, Gemma 3n) modele ortak bağlam yarısı.
+// Gömme çıktısı x [B, T, D] tek matrisle [B, T, katman · P]'ye çevrilir, √D'ye bölünür,
+// katman başına P'lik parçalara bölünür ve her parça ortak bir RMS normundan geçer:
+//   bağlam_i = RMSNorm_P((x @ W_ctx) / √D)_i
+// `ileri(x)` katman sayısı kadar [B, T, P] tensörlük bir liste verir; i. eleman i. bloğun
+// PLEBloğu.ileri'sine girer.
+yapı PLEBağlamı {
+    boyut
+    katman
+    ple_boyutu
+    ctx_katmanı
+    norm
+    fonksiyon kurucu(boyut, katman, ple_boyutu, epsilon = 0.00001, std = 0.02, tohum = 1) {
+        kendi.boyut = boyut
+        kendi.katman = katman
+        kendi.ple_boyutu = ple_boyutu
+        kendi.ctx_katmanı = Doğrusal(boyut, katman * ple_boyutu, std: std, tohum: tohum)
+        kendi.norm = RMSNormKatmanı(ple_boyutu, epsilon: epsilon)
+    }
+    fonksiyon ileri(x) {
+        değişken h = kendi.ctx_katmanı.ileri(x) / karekök(kendi.boyut)
+        sonuç [kendi.norm.ileri(parça) döngü parça içinde h.böl(kendi.katman, eksen: -1)]
+    }
+}
+
+// PLEBloğu: bir katmanın PLE yarısı (blok sonunda çalışır). Katmanın kendi tablosu
+// ([dağarcık, P], N(0, std)) kelime kimliğiyle okunur ve ortak bağlamla karışır:
+//   e = (bağlam_i + √P · tablo_i[kelime]) / √2
+//   H ← H + RMSNorm_D(W_p · (GELU(W_g · H) ⊙ e))
+// W_g (kapı) [D, P], W_p (izdüşüm) [P, D]; izdüşüm artık yola yazar, çıkış_std ile başlar.
+yapı PLEBloğu {
+    ple_boyutu
+    tablo
+    kapı
+    izdüşüm
+    norm
+    fonksiyon kurucu(boyut, dağarcık, ple_boyutu, epsilon = 0.00001, std = 0.02, çıkış_std = 0.02, tohum = 1) {
+        kendi.ple_boyutu = ple_boyutu
+        kendi.tablo = ağırlık_başlat([dağarcık, ple_boyutu], std, tohum)
+        kendi.kapı = Doğrusal(boyut, ple_boyutu, std: std, tohum: tohum + 1)
+        kendi.izdüşüm = Doğrusal(ple_boyutu, boyut, std: çıkış_std, tohum: tohum + 2)
+        kendi.norm = RMSNormKatmanı(boyut, epsilon: epsilon)
+    }
+    // h [B, T, D]; kimlikler [B, T]; bağlam bu katmanın PLEBağlamı çıktısı [B, T, P].
+    fonksiyon ileri(h, kimlikler, bağlam) {
+        değişken e = (bağlam + karekök(kendi.ple_boyutu) * gömme(kendi.tablo, kimlikler)) / karekök(2.0)
+        sonuç h + kendi.norm.ileri(kendi.izdüşüm.ileri(ple_gelu(kendi.kapı.ileri(h)) * e))
+    }
+}
+
+// TransformerBloğu (ön-norm): x + dikkat(norm(x)), ardından x + ileri_besleme(norm(x)); ple_boyutu
+// verilirse blok sonunda PLEBloğu'nun katkısı eklenir.
+// Seçenekler (varsayılanlar eski davranıştır):
+//   epsilon: blok içindeki bütün RMS normlarının (norm1, norm2, qk normları, PLE normu) epsilon'u.
+//   pencere, qk_normu, birleşik_kv: NedenselDikkat'e iletilir (katman başına farklı pencere).
+//   sapmalı: dikkat katmanlarının sapması; ileri_sapmalı: SwiGLU'nun sapması.
+//   birleşik_kapı: SwiGLU'da [G | U] tek matris.
+//   ple_boyutu (P) ve dağarcık: PLE için ikisi de verilmeli; yoksa blokta PLE yoktur (ple = yok).
+// ileri(x, kos, sin, kimlikler, bağlam): kimlikler ve bağlam yalnızca PLE varken kullanılır.
 yapı TransformerBloğu {
     norm1
     dikkat
     norm2
     ileri_besleme
-    fonksiyon kurucu(boyut, baş, kv_baş = yok, ara_boyut = yok, std = 0.02, çıkış_std = 0.02, tohum = 1) {
-        kendi.norm1 = RMSNormKatmanı(boyut)
-        kendi.dikkat = NedenselDikkat(boyut, baş, kv_baş: kv_baş, std: std, çıkış_std: çıkış_std, tohum: tohum)
-        kendi.norm2 = RMSNormKatmanı(boyut)
-        kendi.ileri_besleme = SwiGLU(boyut, ara_boyut: ara_boyut, std: std, çıkış_std: çıkış_std, tohum: tohum + 10)
+    ple
+    fonksiyon kurucu(boyut, baş, kv_baş = yok, ara_boyut = yok, std = 0.02, çıkış_std = 0.02, tohum = 1, epsilon = 0.00001, pencere = 0, qk_normu = yanlış, birleşik_kv = yanlış, sapmalı = yanlış, ileri_sapmalı = yanlış, birleşik_kapı = yanlış, ple_boyutu = yok, dağarcık = yok) {
+        kendi.norm1 = RMSNormKatmanı(boyut, epsilon: epsilon)
+        kendi.dikkat = NedenselDikkat(boyut, baş, kv_baş: kv_baş, sapmalı: sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum, pencere: pencere, qk_normu: qk_normu, birleşik_kv: birleşik_kv, epsilon: epsilon)
+        kendi.norm2 = RMSNormKatmanı(boyut, epsilon: epsilon)
+        kendi.ileri_besleme = SwiGLU(boyut, ara_boyut: ara_boyut, sapmalı: ileri_sapmalı, std: std, çıkış_std: çıkış_std, tohum: tohum + 10, birleşik: birleşik_kapı)
+        eğer ple_boyutu != yok {
+            doğrula(dağarcık != yok, "TransformerBloğu: ple_boyutu için dağarcık da verilmeli")
+            kendi.ple = PLEBloğu(boyut, dağarcık, ple_boyutu, epsilon: epsilon, std: std, çıkış_std: çıkış_std, tohum: tohum + 20)
+        } değilse {
+            kendi.ple = yok
+        }
     }
-    fonksiyon ileri(x, kos, sin) {
+    fonksiyon ileri(x, kos, sin, kimlikler = yok, bağlam = yok) {
         değişken h = x + kendi.dikkat.ileri(kendi.norm1.ileri(x), kos, sin)
-        sonuç h + kendi.ileri_besleme.ileri(kendi.norm2.ileri(h))
+        h = h + kendi.ileri_besleme.ileri(kendi.norm2.ileri(h))
+        eğer kendi.ple != yok { sonuç kendi.ple.ileri(h, kimlikler, bağlam) }
+        sonuç h
     }
+}
+
+// katman_pencereleri "YYGYGYYG" gibi bir düzen metninden katman başına pencere listesi kurar:
+// G (genel) katman 0 (tam nedensel); Y (yerel) katmanlar `pencereler`i sırayla (döngüyle) alır.
+// katman_pencereleri("YYGYGYYG", [32, 64]) → [32, 64, 0, 32, 0, 64, 32, 0]
+fonksiyon katman_pencereleri(düzen, pencereler) {
+    değişken liste = []
+    değişken y = 0
+    döngü harf içinde düzen {
+        doğrula(harf == "Y" veya harf == "G", "katman düzeni yalnızca Y ve G içerir, {harf} bulundu")
+        eğer harf == "G" {
+            liste.ekle(0)
+        } değilse {
+            liste.ekle(pencereler[y % pencereler.uzunluk])
+            y += 1
+        }
+    }
+    sonuç liste
 }
 
 // GPT: yalnızca kod çözücülü dil modeli. gömme → katman sayısı kadar blok → son norm →
@@ -160,27 +302,49 @@ yapı TransformerBloğu {
 // (logit = h @ tablo.devrik(); ayrı çıkış ağırlığı yoktur).
 // Ayarlar: dağarcık (parça sayısı), bağlam (en uzun dizi), boyut, katman, baş, kv_baş (yok:
 // baş ile aynı), ara_boyut (yok: swiglu_ara_boyutu), paylaşımlı, tohum.
+// Blok seçenekleri (varsayılanlar eski modeli verir; ayrıntı TransformerBloğu'nda):
+//   pencereler: katman başına pencere listesi (uzunluğu katman; 0 = genel, yok = hepsi genel);
+//               yerel/genel düzen katman_pencereleri("YYGYGYYG", [32, 64]) ile kurulur.
+//   qk_normu, birleşik_kv, birleşik_kapı, ileri_sapmalı, epsilon: her bloğa iletilir.
+//   ple_boyutu: verilirse her blokta PLE vardır; modelde ortak PLEBağlamı (`ple_bağlamı`) gömme
+//               çıktısından katman başına bağlamı üretir ve i. bloğa i. parçayı verir.
+// RGN-512 gibi bir model bu yapıyla tek çağrıdır:
+//   GPT(40000, bağlam: 1024, boyut: 512, katman: 8, baş: 8, kv_baş: 4, ara_boyut: 672, paylaşımlı: doğru,
+//       pencereler: katman_pencereleri("YYGYGYYG", [32, 64]), qk_normu: doğru, birleşik_kv: doğru,
+//       birleşik_kapı: doğru, ileri_sapmalı: doğru, epsilon: 0.000001, ple_boyutu: 512)
+// Neden GPT'ye seçenek, ayrı bir model yapısı değil: gömme → bloklar → norm → logit iskeleti,
+// başlatma kuralı ve `üret` aynıdır; fark yalnızca blok ayarıdır, bir kopya ikinci bakım yükü olurdu.
 yapı GPT {
     ayar
     gömme
     bloklar
     son_norm
     çıkış
+    ple_bağlamı
     kos
     sin
-    fonksiyon kurucu(dağarcık, bağlam = 256, boyut = 256, katman = 4, baş = 4, kv_baş = yok, ara_boyut = yok, paylaşımlı = yanlış, tohum = 1) {
+    fonksiyon kurucu(dağarcık, bağlam = 256, boyut = 256, katman = 4, baş = 4, kv_baş = yok, ara_boyut = yok, paylaşımlı = yanlış, tohum = 1, pencereler = yok, qk_normu = yanlış, birleşik_kv = yanlış, birleşik_kapı = yanlış, ileri_sapmalı = yanlış, epsilon = 0.00001, ple_boyutu = yok) {
         kendi.ayar = {dağarcık: dağarcık, bağlam: bağlam, boyut: boyut, katman: katman, baş: baş,
-            kv_baş: kv_baş, ara_boyut: ara_boyut, paylaşımlı: paylaşımlı, tohum: tohum}
+            kv_baş: kv_baş, ara_boyut: ara_boyut, paylaşımlı: paylaşımlı, tohum: tohum,
+            pencereler: pencereler, qk_normu: qk_normu, birleşik_kv: birleşik_kv, birleşik_kapı: birleşik_kapı,
+            ileri_sapmalı: ileri_sapmalı, epsilon: epsilon, ple_boyutu: ple_boyutu}
+        eğer pencereler != yok {
+            doğrula(pencereler.uzunluk == katman, "pencereler ({pencereler.uzunluk} eleman) katman sayısına ({katman}) eşit olmalı")
+        }
         değişken std = 0.02
         değişken çıkış_std = std / karekök(2 * katman)
         kendi.gömme = GömmeKatmanı(dağarcık, boyut, std: std, tohum: tohum)
         kendi.bloklar = []
         döngü i içinde 0..katman {
             kendi.bloklar.ekle(TransformerBloğu(boyut, baş, kv_baş: kv_baş, ara_boyut: ara_boyut,
-                std: std, çıkış_std: çıkış_std, tohum: tohum + 100 * (i + 1)))
+                std: std, çıkış_std: çıkış_std, tohum: tohum + 100 * (i + 1), epsilon: epsilon,
+                pencere: eğer pencereler == yok { 0 } değilse { pencereler[i] }, qk_normu: qk_normu,
+                birleşik_kv: birleşik_kv, birleşik_kapı: birleşik_kapı, ileri_sapmalı: ileri_sapmalı,
+                ple_boyutu: ple_boyutu, dağarcık: dağarcık))
         }
-        kendi.son_norm = RMSNormKatmanı(boyut)
+        kendi.son_norm = RMSNormKatmanı(boyut, epsilon: epsilon)
         kendi.çıkış = eğer paylaşımlı { yok } değilse { Doğrusal(boyut, dağarcık, std: std, tohum: tohum + 1) }
+        kendi.ple_bağlamı = eğer ple_boyutu == yok { yok } değilse { PLEBağlamı(boyut, katman, ple_boyutu, epsilon: epsilon, std: std, tohum: tohum + 2) }
         değişken tablolar = döner_konum_tablosu(bağlam, boyut / baş)
         kendi.kos = tablolar[0]
         kendi.sin = tablolar[1]
@@ -188,7 +352,10 @@ yapı GPT {
     // kimlikler [B, T] (T ≤ bağlam) → logit [B, T, dağarcık]
     fonksiyon ileri(kimlikler) {
         değişken x = kendi.gömme.ileri(kimlikler)
-        döngü blok içinde kendi.bloklar { x = blok.ileri(x, kendi.kos, kendi.sin) }
+        değişken bağlamlar = eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }
+        döngü i, blok içinde kendi.bloklar {
+            x = blok.ileri(x, kendi.kos, kendi.sin, kimlikler, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] })
+        }
         x = kendi.son_norm.ileri(x)
         eğer kendi.çıkış == yok { sonuç x @ kendi.gömme.tablo.devrik() }
         sonuç kendi.çıkış.ileri(x)
@@ -196,10 +363,11 @@ yapı GPT {
     // kayıp: bir sonraki parçayı tahmin etmenin ortalama çapraz entropisi.
     fonksiyon kayıp(girdi, hedef) { sonuç çapraz_entropi(kendi.ileri(girdi), hedef) }
     // üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi
-    // verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. Model bağlamdan
-    // uzun diziyi görmez: son `bağlam` parça kullanılır. (Önbelleksizdir: her parçada bütün
-    // diziyi yeniden hesaplar; örnek üretmek içindir.)
-    fonksiyon üret(başlangıç, adet, sıcaklık = 1.0, en_iyi_k = 0, tohum = yok) {
+    // verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos verilirse (bir
+    // parça kimliği) o parça örneklenince eklenir ve üretim durur (adetten önce). Model
+    // bağlamdan uzun diziyi görmez: son `bağlam` parça kullanılır. (Önbelleksizdir: her parçada
+    // bütün diziyi yeniden hesaplar; örnek üretmek içindir.)
+    fonksiyon üret(başlangıç, adet, sıcaklık = 1.0, en_iyi_k = 0, tohum = yok, eos = yok) {
         değişken kimlikler = [k döngü k içinde başlangıç]
         türevsiz {
             döngü i içinde 0..adet {
@@ -207,7 +375,9 @@ yapı GPT {
                 değişken logit = kendi.ileri([kimlikler[bas..kimlikler.uzunluk]])
                 değişken son = logit[0][-1]
                 değişken t = eğer tohum == yok { yok } değilse { tohum + i }
-                kimlikler.ekle(örnekle(son, sıcaklık: sıcaklık, en_iyi_k: en_iyi_k, tohum: t).değer)
+                değişken yeni = örnekle(son, sıcaklık: sıcaklık, en_iyi_k: en_iyi_k, tohum: t).değer
+                kimlikler.ekle(yeni)
+                eğer eos != yok ve yeni == eos { çık }
             }
         }
         sonuç kimlikler

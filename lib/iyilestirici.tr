@@ -69,6 +69,8 @@ fonksiyon yalnızca_2b(ad, ağırlıklar) {
 // Ölçek düzeltmesi √max(1, çıkış/giriş), [çıkış, giriş] düzenindeki √max(1, satır/sütun)'un bu düzendeki
 // karşılığıdır. Yalnızca gizli katmanların 2 boyutlu ağırlıkları içindir; varsayılan öğrenme
 // oranı 0.02'dir (güncellemenin büyüklüğü AdamW'ninkinden farklıdır, oranlar ayrı ayarlanır).
+// ölçek: "oran" (varsayılan) yukarıdaki √max(1, çıkış/giriş); "rms" güncellemenin RMS'ini AdamW'ninki
+// kadar tutan 0.2·√max(giriş, çıkış) (RGN-512 tarifi; oran AdamW ölçeğindedir, ör. 0.002).
 yapı Muon {
     ağırlıklar
     öğrenme_oranı = 0.02
@@ -78,15 +80,16 @@ yapı Muon {
     ns_adımı = 5
     ölçekler
     durum
-    fonksiyon kurucu(ağırlıklar, öğrenme_oranı = 0.02, momentum = 0.95, nesterov = doğru, ağırlık_çürümesi = 0.0, ns_adımı = 5) {
+    fonksiyon kurucu(ağırlıklar, öğrenme_oranı = 0.02, momentum = 0.95, nesterov = doğru, ağırlık_çürümesi = 0.0, ns_adımı = 5, ölçek = "oran") {
         yalnızca_2b("Muon", ağırlıklar)
+        doğrula(ölçek == "oran" veya ölçek == "rms", "Muon: ölçek \"oran\" ya da \"rms\" olmalı, {ölçek} verildi")
         kendi.ağırlıklar = ağırlıklar
         kendi.öğrenme_oranı = öğrenme_oranı
         kendi.momentum = momentum
         kendi.nesterov = nesterov
         kendi.ağırlık_çürümesi = ağırlık_çürümesi
         kendi.ns_adımı = ns_adımı
-        kendi.ölçekler = [karekök(maks(1.0, p.şekil[1] / p.şekil[0])) döngü p içinde ağırlıklar]
+        kendi.ölçekler = [eğer ölçek == "rms" { 0.2 * karekök(maks(p.şekil[0], p.şekil[1])) } değilse { karekök(maks(1.0, p.şekil[1] / p.şekil[0])) } döngü p içinde ağırlıklar]
         kendi.durum = {momentum: [durum_tensörü(p.şekil, p.cihaz) döngü p içinde ağırlıklar]}
     }
     fonksiyon adım() {
@@ -162,42 +165,163 @@ yapı NorMuon {
     fonksiyon sıfırla() { gradyanları_sıfırla(kendi.ağırlıklar) }
 }
 
+// ad_uyar_mı ad'ın (parametreler(model, adlarıyla: doğru) adı, "bloklar.3.ple_tablo") `desen`e uyup
+// uymadığını söyler. Desen noktalı yoldur ve ad üzerinde yol parçaları (nokta ile ayrılan) olarak
+// eşleşir; üç biçim vardır:
+//   tam      "gömme.tablo"   adın kendisi
+//   önek     "gömme"         adın ilk parçaları ("gömme.tablo", "bloklar.0" → "bloklar.0.norm1.ağırlık")
+//   sonek    "ple_tablo"     adın son parçaları ("bloklar.3.ple_tablo", "dikkat.kv_katmanı.ağırlık")
+// Parça sınırında eşleşir: "gömme", "gömme_x.tablo"ya uymaz; "tablo", "ple_tablo"ya uymaz.
+fonksiyon ad_uyar_mı(ad, desen) {
+    değişken a = ad.böl(".")
+    değişken d = desen.böl(".")
+    eğer d.uzunluk > a.uzunluk { sonuç yanlış }
+    sonuç a[0..d.uzunluk] == d veya a[a.uzunluk - d.uzunluk..a.uzunluk] == d
+}
+
+// bir_desen_uyar_mı ad `desenler`den herhangi birine uyuyorsa doğrudur.
+fonksiyon bir_desen_uyar_mı(ad, desenler) {
+    döngü d içinde desenler {
+        eğer ad_uyar_mı(ad, d) { sonuç doğru }
+    }
+    sonuç yanlış
+}
+
 // parametre_grupları modelin parametrelerini ikiye ayırır: {gizli: [...], diğer: [...]}.
 // gizli: 2 boyutlu ağırlıklar (Muon/NorMuon'a); diğer: 2 boyutlu olmayanlar (norm ağırlıkları,
-// sapmalar) ve adı `ayrı`daki bir alanla başlayanlar (gömme tablosu, çıkış katmanı: AdamW'ye).
-// Adlar parametreler(model, adlarıyla: doğru) adlarıdır ("gömme.tablo", "çıkış.ağırlık").
+// sapmalar) ve adı `ayrı`daki bir desene uyanlar (gömme tablosu, çıkış katmanı: AdamW'ye).
+// Adlar parametreler(model, adlarıyla: doğru) adlarıdır ("gömme.tablo", "çıkış.ağırlık"); desenler
+// ad_uyar_mı'daki gibi yol parçalarıdır (önek "gömme", sonek "ple_tablo", tam "gömme.tablo").
 fonksiyon parametre_grupları(model, ayrı = ["gömme", "çıkış"]) {
     değişken gizli = []
     değişken diğer = []
     döngü ad, p içinde parametreler(model, adlarıyla: doğru) {
-        eğer p.şekil.uzunluk == 2 ve değil ayrı.içerir(ad.böl(".")[0]) { gizli.ekle(p) } değilse { diğer.ekle(p) }
+        eğer p.şekil.uzunluk == 2 ve değil bir_desen_uyar_mı(ad, ayrı) { gizli.ekle(p) } değilse { diğer.ekle(p) }
     }
     sonuç {gizli: gizli, diğer: diğer}
 }
 
+// parametre_kümeleri parametre_grupları'nın ayrıntılı hâlidir: {gizli, sönümlü, sönümsüz, seyrek, diğer}.
+//   seyrek:    adı `seyrek`teki bir desene uyanlar (PLE tabloları: SatırRMS'e); önceliği en yüksektir
+//   gizli:     öbür 2 boyutlu ağırlıklar, adı `ayrı`ya uymayanlar (Muon/NorMuon'a)
+//   sönümlü:   adı `ayrı`ya uyan 2 boyutlu ağırlıklar (gömme, ple_ctx: ağırlık çürümeli AdamW'ye)
+//   sönümsüz:  2 boyutlu olmayanlar (norm ağırlıkları, sapmalar: çürümesiz AdamW'ye)
+//   diğer:     sönümlü + sönümsüz, modeldeki sırayla
+fonksiyon parametre_kümeleri(model, ayrı = ["gömme", "çıkış"], seyrek = []) {
+    değişken gizli = []
+    değişken sönümlü = []
+    değişken sönümsüz = []
+    değişken seyrek_p = []
+    değişken diğer = []
+    döngü ad, p içinde parametreler(model, adlarıyla: doğru) {
+        eğer bir_desen_uyar_mı(ad, seyrek) {
+            seyrek_p.ekle(p)
+            devam
+        }
+        eğer p.şekil.uzunluk != 2 {
+            sönümsüz.ekle(p)
+            diğer.ekle(p)
+        } değilse {
+            eğer bir_desen_uyar_mı(ad, ayrı) {
+                sönümlü.ekle(p)
+                diğer.ekle(p)
+            } değilse {
+                gizli.ekle(p)
+            }
+        }
+    }
+    sonuç {gizli: gizli, sönümlü: sönümlü, sönümsüz: sönümsüz, seyrek: seyrek_p, diğer: diğer}
+}
+
+// SatırRMS: satır seyrek RMS iyileştiricisi (RGN-512'nin PLE tabloları için). Tablo [satır, sütun]
+// (kelime × P); yalnızca o adımda gradyanı sıfırdan farklı satırlar güncellenir (tabloya o adımda
+// kelimesi giren satırlar). Satır başına tek ikinci moment ve tek sayaç vardır:
+//   n ← n + 1;  v ← β2·v + (1 − β2)·ortalama(g²)   (satırın P elemanı üzerinden)
+//   W ← W − η · g / (√(v / (1 − β2ⁿ)) + ε)
+// Sapma düzeltmesi satırın KENDİ sayacıyla yapılır: ilk kez görülen kelime, adımın kaçıncı olduğuna
+// bakmadan doğru ölçekle başlar. Gradyanı sıfır olan satırın v'si, sayacı ve ağırlığı değişmez.
+// Bu sürüm YOĞUN MASKELİdir: gradyan ve durum tam [satır, sütun]/[satır, 1] tensörleridir, maliyet
+// O(satır · sütun)'dur; anlam seyrek sürümle aynıdır (satır kümesini adım() bulur). Gerçek seyrek yol
+// (yalnızca geçen satırlara dokunan yerleşik) geldiğinde arayüz değişmez. Momentum yoktur.
+yapı SatırRMS {
+    ağırlıklar
+    öğrenme_oranı = 0.003
+    beta2 = 0.95
+    epsilon = 0.00000001
+    durum
+    fonksiyon kurucu(ağırlıklar, öğrenme_oranı = 0.003, beta2 = 0.95, epsilon = 0.00000001) {
+        yalnızca_2b("SatırRMS", ağırlıklar)
+        kendi.ağırlıklar = ağırlıklar
+        kendi.öğrenme_oranı = öğrenme_oranı
+        kendi.beta2 = beta2
+        kendi.epsilon = epsilon
+        kendi.durum = {
+            ikinci_moment: [durum_tensörü([p.şekil[0], 1], p.cihaz) döngü p içinde ağırlıklar],
+            sayaç: [durum_tensörü([p.şekil[0], 1], p.cihaz) döngü p içinde ağırlıklar]
+        }
+    }
+    fonksiyon adım() {
+        değişken b2 = kendi.beta2
+        türevsiz {
+            döngü i, p içinde kendi.ağırlıklar {
+                değişken g = p.gradyan
+                eğer g == yok { devam }
+                değişken satırlar = p.şekil[0]
+                değişken v = kendi.durum.ikinci_moment[i]
+                değişken n = kendi.durum.sayaç[i]
+                değişken geçti = toplam(mutlak(g), eksen: 1, boyutu_koru: doğru) > 0 // [satır, 1] 0/1
+                n[0..satırlar] = n + geçti
+                v[0..satırlar] = koşullu(geçti, b2 * v + (1 - b2) * ortalama(g * g, eksen: 1, boyutu_koru: doğru), v)
+                değişken düzeltme = 1 - üstel(koşullu(n > 0, n, 1.0) * log(b2)) // 1 − β2ⁿ (n = 0 satırı maskeli)
+                p[0..satırlar] -= kendi.öğrenme_oranı * geçti * g / (karekök(v / düzeltme) + kendi.epsilon)
+            }
+        }
+    }
+    fonksiyon sıfırla() { gradyanları_sıfırla(kendi.ağırlıklar) }
+}
+
 // MuonVeAdamW: gizli 2B ağırlıklar Muon (ya da normuon: doğru ile NorMuon), öbürleri AdamW ile.
-// oran_çarpanı (planın çarpanı, oran_planı; pozitif) iki grubun öğrenme oranını birlikte
-// ölçekler: her adımda Muon'un ve AdamW'nin oranı (op.adamw.öğrenme_oranı, dil tanımı 15.39)
-// taban oranla çarpanın çarpımına ayarlanır.
+// oran_çarpanı (planın çarpanı, oran_planı; pozitif) bütün grupların öğrenme oranını birlikte
+// ölçekler: her adımda Muon'un, AdamW'lerin ve SatırRMS'in oranı (op.adamw.öğrenme_oranı, dil
+// tanımı 15.39) taban oranla çarpanın çarpımına ayarlanır.
+// Seçenekler (varsayılanlar eski davranıştır: tek çürümesiz AdamW, seyrek grup yok):
+//   adamw_çürümesi: > 0 ise AdamW iki gruba ayrılır: `adamw` ayrı'ya uyan 2B ağırlıkları (gömme,
+//                   ple_ctx) bu çürümeyle, `adamw_sönümsüz` normları ve sapmaları çürümesiz günceller.
+//   muon_ölçeği: Muon'un ölçeği, "oran" ya da "rms" (Muon'a bakın); ağırlık_çürümesi Muon'undur.
+//   seyrek: SatırRMS'e verilecek parametre adı desenleri (ör. ["ple_tablo"]); öğrenme oranı
+//           seyrek_oranı (yok: adamw_oranı). Desenler ad_uyar_mı'daki yol parçalarıdır.
+// Kontrol noktasına op.adamw, (varsa) op.adamw_sönümsüz, op.muon.durum ve (varsa) op.satır_rms.durum verilir.
 yapı MuonVeAdamW {
     muon
     adamw
+    adamw_sönümsüz
+    satır_rms
     diğer // AdamW'ye giden ağırlıklar
     muon_oranı
     adamw_oranı
+    seyrek_oranı
     oran_çarpanı = 1.0
-    fonksiyon kurucu(model, muon_oranı = yok, adamw_oranı = 0.003, ağırlık_çürümesi = 0.0, normuon = yanlış, ayrı = ["gömme", "çıkış"], beta2 = 0.95) {
-        değişken gruplar = parametre_grupları(model, ayrı: ayrı)
+    fonksiyon kurucu(model, muon_oranı = yok, adamw_oranı = 0.003, ağırlık_çürümesi = 0.0, normuon = yanlış, ayrı = ["gömme", "çıkış"], beta2 = 0.95, adamw_çürümesi = 0.0, muon_ölçeği = "oran", seyrek = [], seyrek_oranı = yok) {
+        değişken gruplar = parametre_kümeleri(model, ayrı: ayrı, seyrek: seyrek)
         eğer muon_oranı == yok { muon_oranı = eğer normuon { 0.003 } değilse { 0.02 } }
+        eğer seyrek_oranı == yok { seyrek_oranı = adamw_oranı }
         kendi.muon_oranı = muon_oranı
         kendi.adamw_oranı = adamw_oranı
+        kendi.seyrek_oranı = seyrek_oranı
         kendi.muon = eğer normuon {
             NorMuon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi)
         } değilse {
-            Muon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi)
+            Muon(gruplar.gizli, öğrenme_oranı: muon_oranı, ağırlık_çürümesi: ağırlık_çürümesi, ölçek: muon_ölçeği)
         }
         kendi.diğer = gruplar.diğer
-        kendi.adamw = AdamW(gruplar.diğer, öğrenme_oranı: adamw_oranı, ağırlık_çürümesi: 0.0, beta1: 0.9, beta2: beta2)
+        eğer adamw_çürümesi > 0 {
+            kendi.adamw = AdamW(gruplar.sönümlü, öğrenme_oranı: adamw_oranı, ağırlık_çürümesi: adamw_çürümesi, beta1: 0.9, beta2: beta2)
+            kendi.adamw_sönümsüz = AdamW(gruplar.sönümsüz, öğrenme_oranı: adamw_oranı, ağırlık_çürümesi: 0.0, beta1: 0.9, beta2: beta2)
+        } değilse {
+            kendi.adamw = AdamW(gruplar.diğer, öğrenme_oranı: adamw_oranı, ağırlık_çürümesi: 0.0, beta1: 0.9, beta2: beta2)
+            kendi.adamw_sönümsüz = yok
+        }
+        kendi.satır_rms = eğer gruplar.seyrek.uzunluk > 0 { SatırRMS(gruplar.seyrek, öğrenme_oranı: seyrek_oranı, beta2: beta2) } değilse { yok }
     }
     fonksiyon çarpan_ayarla(çarpan) {
         doğrula(çarpan > 0, "MuonVeAdamW: oran çarpanı pozitif olmalı, {çarpan} verildi")
@@ -209,10 +333,20 @@ yapı MuonVeAdamW {
         kendi.adamw.öğrenme_oranı = kendi.adamw_oranı * c
         kendi.muon.adım()
         kendi.adamw.adım()
+        eğer kendi.adamw_sönümsüz != yok {
+            kendi.adamw_sönümsüz.öğrenme_oranı = kendi.adamw_oranı * c
+            kendi.adamw_sönümsüz.adım()
+        }
+        eğer kendi.satır_rms != yok {
+            kendi.satır_rms.öğrenme_oranı = kendi.seyrek_oranı * c
+            kendi.satır_rms.adım()
+        }
     }
     fonksiyon sıfırla() {
         kendi.muon.sıfırla()
         kendi.adamw.sıfırla()
+        eğer kendi.adamw_sönümsüz != yok { kendi.adamw_sönümsüz.sıfırla() }
+        eğer kendi.satır_rms != yok { kendi.satır_rms.sıfırla() }
     }
 }
 

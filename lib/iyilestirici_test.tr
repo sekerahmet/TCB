@@ -195,3 +195,155 @@ test "Muon ve NorMuon küçük bir görevde AdamW'den kötü değildir" {
     doğrula(muon[1] <= adamw[1] * 1.05, "Muon AdamW'den kötü olmamalı: Muon {muon[1]}, AdamW {adamw[1]}")
     doğrula(normuon[1] <= adamw[1] * 1.05, "NorMuon AdamW'den kötü olmamalı: NorMuon {normuon[1]}, AdamW {adamw[1]}")
 }
+
+// ---- Hedef model (RGN) için seçenekler: ad desenleri, ayrı çürümeli AdamW, Muon ölçeği, SatırRMS ----
+
+fonksiyon fark_en_büyük(a, b) { sonuç maks(mutlak(a - b)).değer }
+
+test "ad_uyar_mı: tam, önek ve sonek eşleşmesi yol parçası sınırındadır" {
+    doğrula(ad_uyar_mı("gömme.tablo", "gömme.tablo"))
+    doğrula(ad_uyar_mı("gömme.tablo", "gömme"))
+    doğrula(ad_uyar_mı("bloklar.3.ple.tablo", "bloklar.3"))
+    doğrula(ad_uyar_mı("bloklar.3.ple.tablo", "tablo"))
+    doğrula(ad_uyar_mı("bloklar.3.ple.tablo", "ple.tablo"))
+    doğrula(değil ad_uyar_mı("bloklar.3.ple.tablo", "ple"))
+    doğrula(değil ad_uyar_mı("gömme_x.tablo", "gömme"))
+    doğrula(değil ad_uyar_mı("bloklar.3.ple_tablo", "tablo"))
+    doğrula(değil ad_uyar_mı("a", "a.b"))
+    doğrula(bir_desen_uyar_mı("çıkış.ağırlık", ["gömme", "çıkış"]))
+    doğrula(değil bir_desen_uyar_mı("çıkış.ağırlık", []))
+}
+
+fonksiyon ple_modeli() {
+    sonuç GPT(10, bağlam: 4, boyut: 8, katman: 2, baş: 2, ara_boyut: 8, tohum: 1, ple_boyutu: 4, ileri_sapmalı: doğru)
+}
+
+test "parametre_kümeleri: seyrek, gizli, sönümlü ve sönümsüz gruplar ada göre ayrılır" {
+    değişken m = ple_modeli()
+    değişken k = parametre_kümeleri(m, ayrı: ["gömme", "ple_bağlamı.ctx_katmanı"], seyrek: ["ple.tablo"])
+    eşit_mi(2, k.seyrek.uzunluk) // bloklar.0.ple.tablo, bloklar.1.ple.tablo
+    doğrula(k.seyrek.içerir(m.bloklar[1].ple.tablo))
+    eşit_mi(2, k.sönümlü.uzunluk) // gömme.tablo, ple_bağlamı.ctx_katmanı.ağırlık
+    doğrula(k.sönümlü.içerir(m.gömme.tablo) ve k.sönümlü.içerir(m.ple_bağlamı.ctx_katmanı.ağırlık))
+    // sönümsüz: 2B olmayanlar: normlar (blok başına 2 + son norm + ple_bağlamı normu + blok ple normu) ve sapmalar
+    doğrula(k.sönümsüz.içerir(m.son_norm.ağırlık) ve k.sönümsüz.içerir(m.bloklar[0].ileri_besleme.aşağı.sapma))
+    doğrula(k.sönümsüz.içerir(m.bloklar[0].ple.norm.ağırlık))
+    doğrula(değil k.gizli.içerir(m.bloklar[0].ple.tablo), "seyrek parametre gizliye girmez")
+    doğrula(k.gizli.içerir(m.bloklar[0].ple.kapı.ağırlık) ve k.gizli.içerir(m.bloklar[1].ileri_besleme.kapı.ağırlık))
+    eşit_mi(parametreler(m).uzunluk, k.gizli.uzunluk + k.sönümlü.uzunluk + k.sönümsüz.uzunluk + k.seyrek.uzunluk)
+    eşit_mi(k.sönümlü.uzunluk + k.sönümsüz.uzunluk, k.diğer.uzunluk)
+    // seyrek verilmezse tablolar da gizli gruba girer (eski davranış)
+    değişken g = parametre_grupları(m, ayrı: ["gömme", "ple_bağlamı"])
+    doğrula(g.gizli.içerir(m.bloklar[0].ple.tablo))
+    // sonek deseni parametre_grupları'nda da çalışır
+    doğrula(değil parametre_grupları(m, ayrı: ["gömme", "ple.tablo"]).gizli.içerir(m.bloklar[0].ple.tablo))
+}
+
+test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) ile ölçekler" {
+    değişken W = tensör(rastgele_normal([4, 8], tohum: 1), türev_izle: doğru)
+    değişken önce = tensör(W)
+    değişken op = Muon([W], öğrenme_oranı: 0.1, momentum: 0.9, nesterov: yanlış, ölçek: "rms")
+    eşit_mi([0.2 * karekök(8.0)], op.ölçekler)
+    değişken G = rastgele_normal([4, 8], tohum: 2)
+    geri_yayılım(toplam(W * G))
+    op.adım()
+    değişken beklenen = önce - 0.1 * 0.2 * karekök(8.0) * dikleştir(G)
+    doğrula(fark_en_büyük(W, beklenen) < 0.00001, "rms ölçeği: {fark_en_büyük(W, beklenen)}")
+    eşit_mi([karekök(2.0)], Muon([W]).ölçekler) // varsayılan "oran": √max(1, 8/4)
+    değişken mesaj = ""
+    dene { Muon([W], ölçek: "x") } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("ölçek \"oran\" ya da \"rms\" olmalı"), mesaj)
+}
+
+// bir_adım: model parametrelerine sabit gradyan basıp op.adım() çalıştırır (kayıp = Σ p · G).
+fonksiyon sabit_gradyanla_adım(model, op) {
+    op.sıfırla()
+    değişken k = 0.0
+    döngü p içinde parametreler(model) { k = k + toplam(p * (0.01 + 0 * p)) }
+    geri_yayılım(k)
+    op.adım()
+}
+
+test "MuonVeAdamW: adamw_çürümesi yalnızca sönümlü gruba uygulanır; normlar çürümez" {
+    değişken a = ple_modeli()
+    değişken b = ple_modeli()
+    değişken oa = MuonVeAdamW(a, adamw_oranı: 0.1, ayrı: ["gömme"], adamw_çürümesi: 0.0)
+    değişken ob = MuonVeAdamW(b, adamw_oranı: 0.1, ayrı: ["gömme"], adamw_çürümesi: 0.5)
+    eşit_mi(yok, oa.adamw_sönümsüz)
+    doğrula(ob.adamw_sönümsüz != yok)
+    sabit_gradyanla_adım(a, oa)
+    sabit_gradyanla_adım(b, ob)
+    doğrula(fark_en_büyük(a.gömme.tablo, b.gömme.tablo) > 0.001, "gömme çürümeli: ağırlıklar farklı")
+    doğrula(fark_en_büyük(a.son_norm.ağırlık, b.son_norm.ağırlık) < 0.0000001, "norm çürümemeli")
+    doğrula(fark_en_büyük(a.bloklar[0].ileri_besleme.aşağı.sapma, b.bloklar[0].ileri_besleme.aşağı.sapma) < 0.0000001, "sapma çürümemeli")
+    // çarpan üç AdamW/SatırRMS grubuna da ulaşır
+    ob.çarpan_ayarla(0.5)
+    ob.adım()
+    eşit_mi(0.05, ob.adamw.öğrenme_oranı)
+    eşit_mi(0.05, ob.adamw_sönümsüz.öğrenme_oranı)
+}
+
+test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; satır sayacıyla sapma düzeltmesi" {
+    değişken W = tensör([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [1.0, 1.0, 1.0]], türev_izle: doğru)
+    değişken önce = tensör(W)
+    değişken op = SatırRMS([W], öğrenme_oranı: 0.1, beta2: 0.9)
+    // 1. adım: yalnızca 1. ve 3. satırın gradyanı var
+    değişken G1 = tensör([[0.0, 0.0, 0.0], [1.0, -2.0, 2.0], [0.0, 0.0, 0.0], [3.0, 0.0, 4.0]])
+    geri_yayılım(toplam(W * G1))
+    op.adım()
+    değişken ağırlık1 = W.değer
+    eşit_mi(önce.değer[0], ağırlık1[0]) // geçmeyen satırlar aynen
+    eşit_mi(önce.değer[2], ağırlık1[2])
+    eşit_mi([0.0, 0.0, 0.0, 0.0], [op.durum.sayaç[0].değer[0][0], op.durum.sayaç[0].değer[2][0], op.durum.ikinci_moment[0].değer[0][0], op.durum.ikinci_moment[0].değer[2][0]])
+    eşit_mi([1.0, 1.0], [op.durum.sayaç[0].değer[1][0], op.durum.sayaç[0].değer[3][0]])
+    // elle: ilk adımda v = (1 − β2)·ms, düzeltme 1 − β2 → v̂ = ms; güncelleme g / (√ms + ε)
+    değişken ms1 = (1.0 + 4.0 + 4.0) / 3
+    değişken beklenen1 = [4.0 - 0.1 * 1.0 / (karekök(ms1) + 0.00000001), 5.0 - 0.1 * -2.0 / (karekök(ms1) + 0.00000001), 6.0 - 0.1 * 2.0 / (karekök(ms1) + 0.00000001)]
+    doğrula(fark_en_büyük(tensör(ağırlık1[1]), tensör(beklenen1)) < 0.00001, "1. satır, 1. adım: {ağırlık1[1]} ≠ {beklenen1}")
+    // 2. adım: yalnızca 1. satırın gradyanı var; sayaç 2 olur, 3. satırın sayacı 1 kalır
+    op.sıfırla()
+    değişken G2 = tensör([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+    geri_yayılım(toplam(W * G2))
+    op.adım()
+    eşit_mi([2.0, 1.0], [op.durum.sayaç[0].değer[1][0], op.durum.sayaç[0].değer[3][0]])
+    değişken ms2 = 4.0 / 3
+    değişken v2 = 0.9 * (0.1 * ms1) + 0.1 * ms2
+    değişken v_şapka = v2 / (1 - 0.9 * 0.9)
+    değişken x = ağırlık1[1][0] - 0.1 * 2.0 / (karekök(v_şapka) + 0.00000001)
+    doğrula(mutlak(W.değer[1][0] - x) < 0.00001, "1. satır, 2. adım: {W.değer[1][0]} ≠ {x}")
+    eşit_mi(ağırlık1[3], W.değer[3]) // gradyanı olmayan satır (3.) değişmedi
+    // gradyan sıfırlandıktan sonra adım hiçbir şey değiştirmez
+    değişken öncesi = tensör(W)
+    op.sıfırla()
+    op.adım()
+    eşit_mi(öncesi.değer, W.değer)
+    // gradyan almayan ağırlık güncellenmez; yalnızca 2B kabul eder
+    değişken U = tensör(birler([2, 2]), türev_izle: doğru)
+    SatırRMS([U]).adım()
+    eşit_mi(birler([2, 2]), türevsiz(U))
+    değişken mesaj = ""
+    dene { SatırRMS([tensör(birler([4]), türev_izle: doğru)]) } yakala h { mesaj = h }
+    doğrula(mesaj.içerir("SatırRMS yalnızca 2 boyutlu ağırlıklar içindir"), mesaj)
+}
+
+test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeyen kelimelerin satırı değişmez" {
+    değişken m = ple_modeli()
+    değişken op = MuonVeAdamW(m, muon_oranı: 0.002, adamw_oranı: 0.002, ağırlık_çürümesi: 0.1, adamw_çürümesi: 0.1, muon_ölçeği: "rms",
+        ayrı: ["gömme", "ple_bağlamı.ctx_katmanı"], seyrek: ["ple.tablo"], seyrek_oranı: 0.01)
+    eşit_mi(2, op.satır_rms.ağırlıklar.uzunluk)
+    eşit_mi(0.01, op.satır_rms.öğrenme_oranı)
+    değişken önce = tensör(m.bloklar[0].ple.tablo)
+    // kayıp yalnızca 1, 2, 3 kimliklerini görür: tabloda yalnızca bu satırların gradyanı sıfırdan farklıdır
+    op.çarpan_ayarla(0.5)
+    op.sıfırla()
+    geri_yayılım(m.kayıp([[1, 2, 3]], [[2, 3, 4]]))
+    op.adım()
+    eşit_mi(0.005, op.satır_rms.öğrenme_oranı)
+    değişken sonra = m.bloklar[0].ple.tablo.değer
+    döngü satır içinde [0, 4, 5, 6, 7, 8, 9] { eşit_mi(önce.değer[satır], sonra[satır]) }
+    doğrula(önce.değer[1] != sonra[1] ve önce.değer[2] != sonra[2] ve önce.değer[3] != sonra[3], "geçen kelimelerin satırı değişmeli")
+    eşit_mi(op.satır_rms.durum.sayaç[0].değer[1][0], 1.0)
+    eşit_mi(op.satır_rms.durum.sayaç[0].değer[9][0], 0.0)
+    // seyrek verilmezse SatırRMS yok ve tablolar Muon'a girer
+    doğrula(MuonVeAdamW(ple_modeli()).satır_rms == yok)
+}
