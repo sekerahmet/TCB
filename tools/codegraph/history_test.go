@@ -63,6 +63,7 @@ func TestHistoryOfFunctionListsOnlyCommitsThatChangedIt(t *testing.T) {
 }
 
 func TestHistoryOfCodeMarksAddedAndRemoved(t *testing.T) {
+	slowFixture(t)
 	root := gitFixture(t)
 	tr := filepath.Join(root, "internal", "lang", "messages", "tr.json")
 	defs := filepath.Join(root, "internal", "lang", "messages", "definitions.json")
@@ -98,6 +99,7 @@ func TestHistoryOfCodeMarksAddedAndRemoved(t *testing.T) {
 }
 
 func TestHistoryUnsupportedKind(t *testing.T) {
+	slowFixture(t)
 	root := gitFixture(t)
 	graph := buildInto(t, root)
 	code, _, errOut := runCmdIn(root, graph, "history", "Empty shapes fail")

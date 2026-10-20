@@ -162,11 +162,21 @@ source, not compiled). Queries read the JSON file and answer in well under a sec
 ## Tests
 
 The fixture is a small module in `testdata/mod` (packages, an interface, message and name
-dictionaries, a README with rules, a doc with links, a broken link).
+dictionaries, a README with rules, a doc with links, a broken link). Tests that build a graph in
+a temporary git repository take several seconds each, so they call `slowFixture` and are skipped
+by `-short`: `go test -short ./tools/codegraph` takes about 17 s, the full run about 45 s. The
+full check (`tools/full_check.sh`) runs Go tests with `-short`; the skipped ones run in the
+`--kip=uzun` mode (CI).
 
+- `extractor_digest_test.go`: `testdata/extractor_digest.txt` records the extractor revision and a
+  digest of the extractor sources (comments and formatting do not count). If the code changes,
+  the test fails and says what to do: raise `extractorRevision` (graph.go) when `graph.json`'s
+  content changes, then write the printed lines into the file.
 - `graph_test.go`: nodes with file:line, `calls`, `implements`, `imports`, `uses_message`,
   `uses_name`, the three kinds of `tests` edge, `guarded_by` with its labels, headings, links, the
   broken-link and missing-test warnings, label and endpoint invariants, determinism, schema version.
 - `query_test.go`: `query`, ambiguity (exit 3), not found (exit 4), `path`, `who-uses`,
   `tests-for` (direct and indirect, depth limit), text search, flags after names, usage errors,
   missing graph, `build`.
+- `fresh_test.go`, `root_test.go`, `history_test.go`, `changed_test.go`, `deleted_test.go`: the
+  stamp and automatic rebuild, finding the repository root, and the three git commands.

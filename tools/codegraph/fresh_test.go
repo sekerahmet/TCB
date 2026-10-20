@@ -122,6 +122,7 @@ func TestQueryRebuildsStaleGraph(t *testing.T) {
 }
 
 func TestQueryKeepsOldGraphWhenRebuildFails(t *testing.T) {
+	slowFixture(t)
 	root := gitFixture(t)
 	graph := buildInto(t, root)
 	if err := os.WriteFile(filepath.Join(root, "shape", "broken.go"), []byte("package shape\n\nfunc {\n"), 0o644); err != nil {
@@ -137,6 +138,7 @@ func TestQueryKeepsOldGraphWhenRebuildFails(t *testing.T) {
 }
 
 func TestQueryWarnsWhenGitFails(t *testing.T) {
+	slowFixture(t)
 	root := gitFixture(t)
 	graph := buildInto(t, root)
 	notRepo := t.TempDir()

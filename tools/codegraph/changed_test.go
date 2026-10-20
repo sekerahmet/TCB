@@ -62,6 +62,7 @@ func TestChangedMapsHunksTestsAndOtherBranches(t *testing.T) {
 }
 
 func TestChangedOnCheckedOutBranchMapsNewSide(t *testing.T) {
+	slowFixture(t)
 	root := branchFixture(t)
 	gitMust(t, root, "checkout", "-q", "claude/a")
 	graph := buildInto(t, root)
@@ -73,6 +74,7 @@ func TestChangedOnCheckedOutBranchMapsNewSide(t *testing.T) {
 }
 
 func TestChangedAcceptsRangeAndRejectsUnknownRef(t *testing.T) {
+	slowFixture(t)
 	root := branchFixture(t)
 	graph := buildInto(t, root)
 	code, out, _ := commandIn("changed", root, graph, "main..claude/c")
@@ -96,6 +98,7 @@ func TestParseDiff(t *testing.T) {
 // Eski bir sürümün kurduğu grafik (düğümlerde son satır yok) imzası aynı olsa da yeniden
 // kurulur: aksi halde hunk'lar yalnızca bildirim satırına denk gelen düğümlere eşlenirdi.
 func TestChangedRebuildsGraphFromOlderExtractor(t *testing.T) {
+	slowFixture(t)
 	root := branchFixture(t)
 	graph := buildInto(t, root)
 	g, err := readGraph(graph)
