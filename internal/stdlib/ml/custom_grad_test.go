@@ -11,6 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
@@ -59,29 +60,32 @@ yazdır(görülen)`)
 func TestCustomGradErrorMessages(t *testing.T) {
 	prefixVal := `değişken x = tensör([[1.0, 2.0]], türev_izle: doğru)
 `
-	cases := []struct{ code, expected string }{
+	cases := []struct {
+		code string
+		want messages.Code
+	}{
 		{`özel_türev(ileri: fonksiyon(x) { sonuç x }, geri: fonksiyon(k, g) { sonuç [g] })(x)`,
-			"özel_türev: ileri [çıktı, saklananlar] döndürmeli (ör. sonuç [x * x, [x]]"},
+			messages.H6409},
 		{`özel_türev(ileri: fonksiyon(x) { sonuç [[x, 3], []] }, geri: fonksiyon(k, g) { sonuç [g] })(x)`,
-			"ileri'nin çıktı listesinin 2. öğesi tensör olmalıdır, Tam verildi"},
+			messages.H6412},
 		{`geri_yayılım(toplam(özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(k, g) { sonuç g })(x)))`,
-			"geri her girdi için bir gradyan (ya da yok) içeren bir liste döndürmeli"},
+			messages.H6414},
 		{`geri_yayılım(toplam(özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(k, g) { sonuç [g.şekillendir([2, 1])] })(x)))`,
-			"geri 1. girdi için [2, 1] şeklinde gradyan döndürdü, beklenen [1, 2] (girdinin şekli); gradyan girdiyle aynı şekilde olmalı, yayınlama yapılmaz"},
+			messages.H6418},
 		{`geri_yayılım(toplam(özel_türev(ileri: fonksiyon(x) { sonuç [x, []] }, geri: fonksiyon(k, g) { sonuç [3] })(x)))`,
-			"geri'nin 1. öğesi (1. girdinin gradyanı) tensör ya da yok olmalıdır, Tam verildi"},
-		{`özel_türev(fonksiyon(x) { sonuç [x, []] })`, "özel_türev yalnızca adlı argüman alır (ileri: ve geri:)"},
-		{`özel_türev()`, "özel_türev: ileri: ve geri: eksik"},
-		{`türev_denetle(x, [x])`, "türev_denetle: ilk parametre bir fonksiyon olmalıdır, Tensör verildi"},
-		{`türev_denetle((a) => a, x)`, "türev_denetle: girdiler bir liste olmalıdır"},
-		{`türev_denetle((a) => 3, [x])`, "türev_denetle: f bir tensör ya da tensör listesi döndürmeli, 3 (Tam) verildi"},
-		{`türev_denetle((a) => a, [x], tolerans: -1)`, "türev_denetle: tolerans pozitif bir sayı olmalıdır"},
-		{`türevsiz { türev_denetle((a) => a, [x]) }`, "türev_denetle türevsiz { ... } bloğu içinde çalışamaz"},
+			messages.H6416},
+		{`özel_türev(fonksiyon(x) { sonuç [x, []] })`, messages.H6405},
+		{`özel_türev()`, messages.H6431},
+		{`türev_denetle(x, [x])`, messages.H6420},
+		{`türev_denetle((a) => a, x)`, messages.H6421},
+		{`türev_denetle((a) => 3, [x])`, messages.H6428},
+		{`türev_denetle((a) => a, [x], tolerans: -1)`, messages.H6429},
+		{`türevsiz { türev_denetle((a) => a, [x]) }`, messages.H6422},
 	}
 	for _, d := range cases {
 		_, err := run(t, prefixVal+d.code)
-		if err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", d.code, err, d.expected)
+		if err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", d.code, err, d.want)
 		}
 	}
 }
@@ -93,7 +97,7 @@ func TestCustomGradBackwardError(t *testing.T) {
     sonuç [g @ g]
 })
 geri_yayılım(toplam(f(tensör([[1.0, 2.0]], türev_izle: doğru))))`)
-	if err == nil || !strings.Contains(err.Error(), "Satır 2:") || !strings.Contains(err.Error(), "matris çarpımı yapılamaz") {
+	if err == nil || !strings.Contains(err.Error(), "Satır 2:") || !messages.Has(err, messages.H6126) {
 		t.Fatalf("geri'deki hata satırıyla gelmeli: %v", err)
 	}
 }

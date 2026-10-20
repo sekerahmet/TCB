@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestSinCos(t *testing.T) {
@@ -43,19 +44,22 @@ eşit_mi([[5.0, 6.0], [7.0, 8.0]], s[1].değer)
 // Metin'in .böl'ü değişmedi.
 eşit_mi(["a", "b"], "a,b".böl(","))
 `)
-	errs := []struct{ code, expected string }{
-		{"birleştir([])", "liste boş"},
-		{"birleştir(tensör([1]))", "tensörlerin listesi olmalıdır"},
-		{"birleştir([tensör([[1, 2]]), tensör([[1, 2, 3]])], eksen: 0)", "0. eksen dışındaki eksenler eşit olmalı (1. eksende 3 ≠ 2)"},
-		{"birleştir([tensör([[1, 2]]), tensör([1, 2])])", "1 boyutlu ([2]), 1. tensör 2 boyutlu"},
-		{"birleştir([tensör([1]), tensör([2])], eksen: 3)", "eksen 3"},
-		{"birleştir([tensör([1])], axis: 0)", "Bunu mu demek istediniz: 'eksen'?"},
-		{"tensör([1, 2, 3]).böl(2)", "3, 2 eşit parçaya bölünemez"},
-		{"tensör([1, 2]).böl(0)", "pozitif bir tam sayı"},
+	errs := []struct {
+		code string
+		want messages.Code
+	}{
+		{"birleştir([])", messages.H6307},
+		{"birleştir(tensör([1]))", messages.H6306},
+		{"birleştir([tensör([[1, 2]]), tensör([[1, 2, 3]])], eksen: 0)", messages.H6311},
+		{"birleştir([tensör([[1, 2]]), tensör([1, 2])])", messages.H6309},
+		{"birleştir([tensör([1]), tensör([2])], eksen: 3)", messages.H6016},
+		{"birleştir([tensör([1])], axis: 0)", messages.H7900},
+		{"tensör([1, 2, 3]).böl(2)", messages.H6318},
+		{"tensör([1, 2]).böl(0)", messages.H6317},
 	}
 	for _, h := range errs {
-		if _, err := run(t, h.code); err == nil || !strings.Contains(err.Error(), h.expected) {
-			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.expected)
+		if _, err := run(t, h.code); err == nil || !messages.Has(err, h.want) {
+			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.want)
 		}
 	}
 }
@@ -78,12 +82,15 @@ eşit_mi([[0.25, 0.75]], n.değer)
 geri_yayılım(toplam(n * tensör([1, 0])))
 doğrula(mutlak(w.gradyan.değer[0][0] - 0.1875) < 0.000001)
 `)
-	for _, h := range []struct{ code, expected string }{
-		{"toplam([1, 2], boyutu_koru: doğru)", "boyutu_koru: yalnızca tensörlerde"},
-		{"toplam(tensör([1, 2]), boyutu_koru: 1)", "boyutu_koru doğru ya da yanlış olmalıdır"},
+	for _, h := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"toplam([1, 2], boyutu_koru: doğru)", messages.H6218},
+		{"toplam(tensör([1, 2]), boyutu_koru: 1)", messages.H7905},
 	} {
-		if _, err := run(t, h.code); err == nil || !strings.Contains(err.Error(), h.expected) {
-			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.expected)
+		if _, err := run(t, h.code); err == nil || !messages.Has(err, h.want) {
+			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.want)
 		}
 	}
 }
@@ -152,20 +159,23 @@ yazdır(dikkat(q, k, v, maske: yok).şekil)
 	if out != want {
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
 	}
-	for _, h := range []struct{ code, expected string }{
-		{"dikkat(tensör([1.0]), tensör([1.0]), tensör([1.0]))", "q en az 2 boyutlu"},
-		{"dikkat(sıfırlar([3, 4, 2]), sıfırlar([2, 4, 2]), sıfırlar([2, 4, 2]))", "q'nun baş sayısı (3), k/v baş sayısının (2) katı"},
-		{"dikkat(sıfırlar([2, 4, 2]), sıfırlar([2, 4, 3]), sıfırlar([2, 4, 3]))", "son ekseni (dh) eşit"},
-		{"dikkat(sıfırlar([2, 4, 2]), sıfırlar([2, 4, 2]), sıfırlar([2, 5, 2]))", "anahtar sayısı"},
-		{"dikkat(sıfırlar([1, 2, 4, 2]), sıfırlar([2, 2, 4, 2]), sıfırlar([2, 2, 4, 2]))", "öndeki (toplu) eksenler"},
-		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]), sıfırlar([4, 2]), maske: birler([3, 4]))", "maske [3, 4], puan şekline [4, 4] yayınlanamaz"},
-		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]), sıfırlar([4, 2]), pencere: -1)", "pencere negatif olmayan"},
-		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]), sıfırlar([4, 2]), ölçek: 2)", "'ölçek' adında bir parametre almaz"},
-		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]))", "3 konumlu parametre"},
-		{"dikkat([[1.0]], sıfırlar([1, 1]), sıfırlar([1, 1]))", "q bir tensör olmalıdır"},
+	for _, h := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"dikkat(tensör([1.0]), tensör([1.0]), tensör([1.0]))", messages.H6327},
+		{"dikkat(sıfırlar([3, 4, 2]), sıfırlar([2, 4, 2]), sıfırlar([2, 4, 2]))", messages.H6333},
+		{"dikkat(sıfırlar([2, 4, 2]), sıfırlar([2, 4, 3]), sıfırlar([2, 4, 3]))", messages.H6330},
+		{"dikkat(sıfırlar([2, 4, 2]), sıfırlar([2, 4, 2]), sıfırlar([2, 5, 2]))", messages.H6331},
+		{"dikkat(sıfırlar([1, 2, 4, 2]), sıfırlar([2, 2, 4, 2]), sıfırlar([2, 2, 4, 2]))", messages.H6329},
+		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]), sıfırlar([4, 2]), maske: birler([3, 4]))", messages.H6335},
+		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]), sıfırlar([4, 2]), pencere: -1)", messages.H6326},
+		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]), sıfırlar([4, 2]), ölçek: 2)", messages.H7901},
+		{"dikkat(sıfırlar([4, 2]), sıfırlar([4, 2]))", messages.H6321},
+		{"dikkat([[1.0]], sıfırlar([1, 1]), sıfırlar([1, 1]))", messages.H6324},
 	} {
-		if _, err := run(t, h.code); err == nil || !strings.Contains(err.Error(), h.expected) {
-			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.expected)
+		if _, err := run(t, h.code); err == nil || !messages.Has(err, h.want) {
+			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.want)
 		}
 	}
 }
@@ -230,16 +240,19 @@ değişken cikti = s`)
 			t.Fatalf("sınıf %d: oran %.4f, beklenen %.4f", i, got, want)
 		}
 	}
-	for _, h := range []struct{ code, expected string }{
-		{"örnekle(tensör([1.0]), sıcaklık: -1)", "sıcaklık negatif olmayan"},
-		{"örnekle(tensör([1.0]), en_iyi_k: -2)", "en_iyi_k negatif olmayan"},
-		{"örnekle(tensör(1.0))", "en az 1 boyutlu"},
-		{"örnekle([1.0, 2.0])", "logit bir tensör olmalıdır"},
-		{"örnekle(tensör([1.0]), tohum: 1.5)", "tohum tam sayı olmalıdır"},
-		{"örnekle(tensör([1.0]), temperature: 1)", "'temperature' adında bir parametre almaz"},
+	for _, h := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"örnekle(tensör([1.0]), sıcaklık: -1)", messages.H6340},
+		{"örnekle(tensör([1.0]), en_iyi_k: -2)", messages.H6341},
+		{"örnekle(tensör(1.0))", messages.H6338},
+		{"örnekle([1.0, 2.0])", messages.H6337},
+		{"örnekle(tensör([1.0]), tohum: 1.5)", messages.H6342},
+		{"örnekle(tensör([1.0]), temperature: 1)", messages.H7901},
 	} {
-		if _, err := run(t, h.code); err == nil || !strings.Contains(err.Error(), h.expected) {
-			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.expected)
+		if _, err := run(t, h.code); err == nil || !messages.Has(err, h.want) {
+			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.want)
 		}
 	}
 }
@@ -286,7 +299,7 @@ yazdır(parametreler(l).uzunluk)
 	if _, err := run(t, "parametreler([], adlariyla: doğru, x: 1)"); err == nil {
 		t.Fatal("bilinmeyen adlı argüman hata vermeliydi")
 	}
-	if _, err := run(t, `parametreler({"a.b": tensör([1.0], türev_izle: doğru), "a": {"b": tensör([1.0], türev_izle: doğru)}}, adlarıyla: doğru)`); err == nil || !strings.Contains(err.Error(), "aynı yol adına") {
+	if _, err := run(t, `parametreler({"a.b": tensör([1.0], türev_izle: doğru), "a": {"b": tensör([1.0], türev_izle: doğru)}}, adlarıyla: doğru)`); err == nil || !messages.Has(err, messages.H6505) {
 		t.Fatalf("çakışan ad hata vermeliydi: %v", err)
 	}
 }
@@ -310,7 +323,7 @@ değişken cikti = x`)
 func TestSampleUndefinedDistribution(t *testing.T) {
 	for _, logits := range []string{"tensör([nan, 1.0, 2.0])", "tensör([-1e40, -1e40])", "tensör([1e40, 1.0])"} {
 		_, err := run(t, "değişken nan = log(tensör([-1.0])).değer[0]\nörnekle("+logits+", tohum: 1)")
-		if err == nil || !strings.Contains(err.Error(), "dağılım kurulamıyor") {
+		if err == nil || !messages.Has(err, messages.H6343) {
 			t.Fatalf("%s: hata beklenirdi: %v", logits, err)
 		}
 	}

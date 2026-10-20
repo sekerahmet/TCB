@@ -4,8 +4,9 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestTensorSaveLoad(t *testing.T) {
@@ -51,31 +52,37 @@ yazdır(z["sapma"].gradyan.değer)`)
 	dtype := append([]byte{}, data...)
 	// İlk girdinin tür baytı: başlık (14) + ad uzunluğu (4) + "gömme" (6 bayt).
 	dtype[14+4+len("gömme")] = 7
-	cases := []struct{ fpath, expected string }{
-		{write("eksik.trt", data[:len(data)-20]), "dosya bozuk ya da eksik"},
-		{write("bozuk.trt", broken), "sağlama toplamı tutmuyor"},
-		{write("baslik.trt", []byte("merhaba dünya, bu bir tensör dosyası değil")), "bir TR tensör dosyası değil"},
-		{write("kisa.trt", []byte("TRT")), "bir TR tensör dosyası değil"},
-		{write("surum.trt", version), "dosya biçimi sürümü 9; bu TR sürümü yalnızca sürüm 2 okur"},
-		{write("tur.trt", dtype), "desteklenmeyen veri türü kodu 7"},
-		{write("fazla.trt", append(append([]byte{}, data...), 0)), "fazladan veri"},
-		{filepath.ToSlash(filepath.Join(dir, "yok.trt")), "yüklenemedi: böyle bir dosya ya da klasör yok"},
-		{filepath.ToSlash(dir), "bir klasör"},
+	cases := []struct {
+		fpath string
+		want  messages.Code
+	}{
+		{write("eksik.trt", data[:len(data)-20]), messages.H6601},
+		{write("bozuk.trt", broken), messages.H6627},
+		{write("baslik.trt", []byte("merhaba dünya, bu bir tensör dosyası değil")), messages.H6610},
+		{write("kisa.trt", []byte("TRT")), messages.H6610},
+		{write("surum.trt", version), messages.H6611},
+		{write("tur.trt", dtype), messages.H6616},
+		{write("fazla.trt", append(append([]byte{}, data...), 0)), messages.H6628},
+		{filepath.ToSlash(filepath.Join(dir, "yok.trt")), messages.H2120},
+		{filepath.ToSlash(dir), messages.H6629},
 	}
 	for _, d := range cases {
 		_, err := run(t, `tensör_yükle("`+d.fpath+`")`)
-		if err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s: %v (içermeli: %s)", filepath.Base(d.fpath), err, d.expected)
+		if err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", filepath.Base(d.fpath), err, d.want)
 		}
 	}
-	for _, d := range []struct{ code, expected string }{
-		{`tensör_kaydet("` + fpath + `", {"a": 1})`, "\"a\" değeri bir tensör olmalıdır, Tam verildi"},
-		{`tensör_kaydet("` + fpath + `", {1: tensör([1])})`, "sözlük anahtarları metin olmalıdır"},
-		{`tensör_kaydet("` + fpath + `", [tensör([1])])`, "adları tensör olan bir sözlük olmalıdır"},
-		{`tensör_kaydet("", {})`, "dosya yolu boş"},
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{`tensör_kaydet("` + fpath + `", {"a": 1})`, messages.H6608},
+		{`tensör_kaydet("` + fpath + `", {1: tensör([1])})`, messages.H6606},
+		{`tensör_kaydet("` + fpath + `", [tensör([1])])`, messages.H6605},
+		{`tensör_kaydet("", {})`, messages.H6603},
 	} {
-		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.expected)
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
 		}
 	}
 }

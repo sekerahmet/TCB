@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Matris ayrı bir tür değildir: matris 2 boyutlu tensördür (tensör([[...]]), birim_matris,
@@ -32,11 +33,21 @@ yazdır(tensör(G) == G)`)
 		t.Fatalf("matris:\n%q\nbeklenen:\n%q", out, want)
 	}
 	// Kaldırılan matris üyeleri tensördeki karşılıklarını önerir.
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"tensör([[1]]).boyut", messages.H7903},
+		{"tensör([[1]]).T", messages.H7903},
+		{"değişken A = tensör([[1]])\nA.devrik @ A", messages.H6033},
+	} {
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%q: %v (beklenen: %s)", d.code, err, d.want)
+		}
+	}
+	// Kaldırılmış adın iletisi dil çekirdeğindedir (henüz kodsuz).
 	for _, d := range []struct{ code, expected string }{
-		{"tensör([[1]]).boyut", "\"boyut\" özelliği ya da metodu bulunamadı. Bunu mu demek istediniz: 'şekil'?"},
-		{"tensör([[1]]).T", "Bunu mu demek istediniz: 'devrik()'?"},
 		{"tensör([[1]]).toplam", "'tensör.toplam()' TR'de yok; 'toplam(tensör)' yazın"},
-		{"değişken A = tensör([[1]])\nA.devrik @ A", "metodu çağırmak için parantez ekleyin: devrik()"},
 	} {
 		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
 			t.Errorf("%q: %v (içermeli: %s)", d.code, err, d.expected)
@@ -78,12 +89,22 @@ yazdır(w.değer)`)
 	if out != want {
 		t.Fatalf("indeks ve atama:\n%q\nbeklenen:\n%q", out, want)
 	}
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"değişken M = tensör([[1, 2], [3, 4]])\nM[0][0] = \"a\"", messages.H6032},
+		{"değişken t = tensör(1.0)\nt[0] = 2", messages.H6704},
+	} {
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%q: %v (beklenen: %s)", d.code, err, d.want)
+		}
+	}
+	// Satır öneki iletinin başındadır (biçim denetimi).
 	for _, d := range []struct{ code, expected string }{
 		{"değişken M = tensör([[1, 2], [3, 4]])\nM[2][0] = 1", "Satır 2: tensör indeksi sınır dışı: 2"},
 		{"değişken M = tensör([[1, 2], [3, 4]])\nM[0] = [1, 2, 3]", "Satır 2: tensör ataması: [2] şeklindeki yere [3] şeklinde veri atanamaz"},
-		{"değişken M = tensör([[1, 2], [3, 4]])\nM[0][0] = \"a\"", "tensör ataması: Metin tipi tensöre dönüştürülemez"},
 		{"değişken w = tensör([1.0], türev_izle: doğru)\nw[0] = 2", "Satır 2: türev izlenen tensöre indeksle atama yapılamaz"},
-		{"değişken t = tensör(1.0)\nt[0] = 2", "skaler (0 boyutlu) tensör indekslenemez"},
 	} {
 		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
 			t.Errorf("%q: %v (içermeli: %s)", d.code, err, d.expected)

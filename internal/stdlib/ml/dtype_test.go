@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Tensör başına tür: oluşturucular, .tür, .türe ve yazdırma.
@@ -44,19 +44,22 @@ yazdır(w.gradyan.değer, w.gradyan.tür)`)
 	if e := New(tensor.New([]float32{1, 2}, 2)).WatchLabel(); e != "Tensör [2]" {
 		t.Errorf("izleme etiketi (float32): %q", e)
 	}
-	for _, d := range []struct{ code, expected string }{
-		{`tensör([1], tür: "bfloat16")`, `tensör: bilinmeyen veri türü "bfloat16"; geçerli türler: "float32", "bf16", "fp16". Bunu mu demek istediniz: "bf16"?`},
-		{`tensör([1], tür: "bf61")`, `Bunu mu demek istediniz: "bf16"?`},
-		{`birler([1], tür: "half")`, `Bunu mu demek istediniz: "fp16"?`},
-		{`sıfırlar([1], tür: "float64")`, `sıfırlar: bilinmeyen veri türü "float64"`},
-		{`tensör([1.0]).türe("fp32")`, `türe: bilinmeyen veri türü "fp32"; geçerli türler: "float32", "bf16", "fp16". Bunu mu demek istediniz: "float32"?`},
-		{`tensör([1.0]).türe()`, `türe("bf16") 1 parametre (tür adı) bekler`},
-		{`tensör([1], tür: yok)`, `tür metin olmalıdır`},
-		{`tensör([1], dtype: "bf16")`, `'dtype' adında bir parametre almaz`},
-		{`tensör([1.0]).tür_`, `Bunu mu demek istediniz: 'tür'?`},
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{`tensör([1], tür: "bfloat16")`, messages.H6811},
+		{`tensör([1], tür: "bf61")`, messages.H6811},
+		{`birler([1], tür: "half")`, messages.H6811},
+		{`sıfırlar([1], tür: "float64")`, messages.H6811},
+		{`tensör([1.0]).türe("fp32")`, messages.H6811},
+		{`tensör([1.0]).türe()`, messages.H6806},
+		{`tensör([1], tür: yok)`, messages.H6803},
+		{`tensör([1], dtype: "bf16")`, messages.H7901},
+		{`tensör([1.0]).tür_`, messages.H7903},
 	} {
-		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.expected)
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
 		}
 	}
 }
@@ -80,14 +83,17 @@ yazdır(karışık_hassasiyet("bf16") { 5 }, karışık_hassasiyet("bf16") {})`)
 	if out != want {
 		t.Fatalf("karışık_hassasiyet:\n%q\nbeklenen:\n%q", out, want)
 	}
-	for _, d := range []struct{ code, expected string }{
-		{`karışık_hassasiyet("bf16")`, `karışık_hassasiyet("bf16") bir blok bekler: karışık_hassasiyet("bf16") { ... }`},
-		{`karışık_hassasiyet("bf17") { 1 }`, `bilinmeyen veri türü "bf17"`},
-		{`karışık_hassasiyet("bf16", 3)`, `ikinci parametre bir blok olmalıdır, Tam verildi`},
-		{`karışık_hassasiyet() { 1 }`, `bir tür adı ve bir blok bekler`},
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{`karışık_hassasiyet("bf16")`, messages.H6807},
+		{`karışık_hassasiyet("bf17") { 1 }`, messages.H6811},
+		{`karışık_hassasiyet("bf16", 3)`, messages.H6809},
+		{`karışık_hassasiyet() { 1 }`, messages.H6808},
 	} {
-		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.expected)
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
 		}
 	}
 }
@@ -191,11 +197,11 @@ yazdır(y["b"].gradyan, y["b"])`)
 	if err := os.WriteFile(filepath.FromSlash(v1Path), v1, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := run(t, `tensör_yükle("`+v1Path+`")`); err == nil || !strings.Contains(err.Error(), "dosya biçimi sürümü 1; bu TR sürümü yalnızca sürüm 2 okur") {
+	if _, err := run(t, `tensör_yükle("`+v1Path+`")`); err == nil || !messages.Has(err, messages.H6611) {
 		t.Errorf("sürüm 1 dosyası reddedilmeli: %v", err)
 	}
 	// Eksik 16 bitlik veri bayt sayısıyla bildirilir.
-	if _, err := run(t, `tensör_yükle("`+writeClipped(t, dir, data, 14+4+1+2+16+4)+`")`); err == nil || !strings.Contains(err.Error(), "8 bayt veri bekliyor") {
+	if _, err := run(t, `tensör_yükle("`+writeClipped(t, dir, data, 14+4+1+2+16+4)+`")`); err == nil || !messages.Has(err, messages.H6623) {
 		t.Errorf("eksik bf16 verisi: %v", err)
 	}
 }
@@ -248,7 +254,7 @@ yazdır(eğit("SGD", yanlış), eğit("AdamW", yanlış), eğit("SGD", doğru) <
 	if out != "1.0 1.0 doğru doğru\n" {
 		t.Fatalf("ana_kopya: %q", out)
 	}
-	if _, err := run(t, `AdamW([tensör([1.0], türev_izle: doğru)], ana_kopya: "evet")`); err == nil || !strings.Contains(err.Error(), "ana_kopya doğru ya da yanlış olmalıdır") {
+	if _, err := run(t, `AdamW([tensör([1.0], türev_izle: doğru)], ana_kopya: "evet")`); err == nil || !messages.Has(err, messages.H7905) {
 		t.Errorf("ana_kopya türü: %v", err)
 	}
 }

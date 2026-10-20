@@ -9,6 +9,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
@@ -62,13 +63,16 @@ yazdır(tensör_yükle("`+sub+`/t.trt")["w"].değer)
 // metni sızmaz, okumada bakılan yerler gösterilir.
 func TestFileOpsTurkishError(t *testing.T) {
 	dir := t.TempDir()
-	for _, d := range []struct{ code, expected string }{
-		{`tensör_yükle("yok_12345.trt")`, `tensör_yükle: "yok_12345.trt" yüklenemedi: böyle bir dosya ya da klasör yok`},
-		{`tensör_kaydet("olmayan_klasör_12345/t.trt", {"w": tensör([1])})`, `tensör_kaydet: "olmayan_klasör_12345/t.trt" yazılamadı: "olmayan_klasör_12345" klasörü yok`},
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{`tensör_yükle("yok_12345.trt")`, messages.H2120},
+		{`tensör_kaydet("olmayan_klasör_12345/t.trt", {"w": tensör([1])})`, messages.H2120},
 	} {
 		_, err := fromProgram(t, dir, d.code)
-		if err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.expected)
+		if err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
 			continue
 		}
 		if strings.Contains(d.code, "yok_12345") && !strings.Contains(err.Error(), "bakılan yerler: ") {

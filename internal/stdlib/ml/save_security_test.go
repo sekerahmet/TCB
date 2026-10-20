@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // fileBytes girdileri tensör dosyası baytlarına çevirir (bulanıklaştırma tohumları için).
@@ -31,7 +32,7 @@ func TestSaveZeroAxisLimit(t *testing.T) {
 		{ad: "b1", shape: []int{1 << 20, 1, 0}, dtype: tensor.Float32, data: []float32{}},
 		{ad: "W2", shape: []int{1 << 20, 0, 8192}, dtype: tensor.Float32, data: []float32{}},
 	})
-	if _, err := decodeFile(bytes.NewReader(bad), int64(len(bad))); err == nil || !strings.Contains(err.Error(), "çok büyük") {
+	if _, err := decodeFile(bytes.NewReader(bad), int64(len(bad))); err == nil || !messages.Has(err, messages.H6621) {
 		t.Fatalf("sıfır eksenle dev şekil reddedilmeliydi: %v", err)
 	}
 
@@ -51,7 +52,7 @@ func TestSaveZeroAxisLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = run(t, `değişken p = tensör_yükle("`+filepath.ToSlash(fpath)+`")`)
-	if err == nil || !strings.Contains(err.Error(), "tensör çok büyük") {
+	if err == nil || !messages.Has(err, messages.H6621) {
 		t.Fatalf("tensör_yükle açık bir hata vermeli: %v", err)
 	}
 }

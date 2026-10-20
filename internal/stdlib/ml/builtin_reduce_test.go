@@ -1,8 +1,9 @@
 package ml
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func TestArgMax(t *testing.T) {
@@ -22,14 +23,17 @@ yazdır(tip((i * 2).değer[0][0]), tip(tensör(i).değer[0][0]))`)
 	if out != want {
 		t.Fatalf("maks_indeks:\n%q\nbeklenen:\n%q", out, want)
 	}
-	for _, d := range []struct{ code, expected string }{
-		{"maks_indeks([1, 2])", "maks_indeks: bir tensör bekler, Liste verildi"},
-		{"maks_indeks(tensör([1, 2]), 0)", "maks_indeks(x, eksen: 0): eksen adlı verilir"},
-		{"maks_indeks(tensör([1, 2]), eksen: 1)", "eksen 1, [2] şeklindeki 1 boyutlu tensör için geçersiz"},
-		{"maks_indeks(sıfırlar([0]))", "boş"},
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{
+		{"maks_indeks([1, 2])", messages.H6217},
+		{"maks_indeks(tensör([1, 2]), 0)", messages.H6215},
+		{"maks_indeks(tensör([1, 2]), eksen: 1)", messages.H6016},
+		{"maks_indeks(sıfırlar([0]))", messages.H6209},
 	} {
-		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.expected)
+		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
 		}
 	}
 }
@@ -50,27 +54,30 @@ yazdır(toplam([1, 2, 3]), maks(4, 9), min([3, 1]), ortalama([1, 2, 3]))`)
 	data, _ := tensorData(t, v)
 	near(t, "ortalama listesi", data, []float32{2, 3}, 1e-6)
 
-	errs := []struct{ code, expected string }{
-		{"toplam([[1, 2], [3, 4]])", "toplam: iç içe liste indirgenemez"},
-		{"maks([[1, 2], [3, 4]])", "maks: iç içe liste indirgenemez"},
-		{"ortalama([[1, 2]])", "ortalama: iç içe liste indirgenemez"},
-		{"maks([tensör([1]), tensör([2])])", "maks: tensör listesinin en büyük elemanı tanımsız"},
-		{"toplam([1, 2], eksen: 0)", "toplam: eksen: yalnızca tensörlerde kullanılır, Liste verildi"},
-		{"maks(tensör([1, 2]), 0)", "maks(x, 0): eksen için maks(x, eksen: 0) yazın; eleman bazlı sınır için sınırla(x, en_az: 0) kullanın"},
-		{"min(tensör([1, 2]), 0)", "min(x, 0): eksen için min(x, eksen: 0) yazın"},
-		{"sıfırlar(2, 3, türev_izle: doğru)", "sıfırlar(2, 3): şekil liste olarak verilir; sıfırlar([2, 3]) yazın"},
-		{"rastgele_normal(2, 3)", "rastgele_normal(2, 3): şekil liste olarak verilir; rastgele_normal([2, 3]) yazın"},
-		{"AdamW([tensör([1.0], türev_izle: doğru)], lr: 0.1)", "AdamW 'lr' adında bir parametre almaz. Bunu mu demek istediniz: 'öğrenme_oranı'?"},
-		{"AdamW([tensör([1.0], türev_izle: doğru)], weight_decay: 0.1)", "Bunu mu demek istediniz: 'ağırlık_çürümesi'?"},
-		{"toplam(tensör([1.0]), axis: 0)", "Bunu mu demek istediniz: 'eksen'?"},
-		{"sıfırlar([2], requires_grad: doğru)", "Bunu mu demek istediniz: 'türev_izle'?"},
-		{"rastgele_normal([2], seed: 1)", "Bunu mu demek istediniz: 'tohum'?"},
-		{"katman_normu(birler([1, 2]), eps: 0.1)", "Bunu mu demek istediniz: 'epsilon'?"},
+	errs := []struct {
+		code string
+		want messages.Code
+	}{
+		{"toplam([[1, 2], [3, 4]])", messages.H6220},
+		{"maks([[1, 2], [3, 4]])", messages.H6220},
+		{"ortalama([[1, 2]])", messages.H6220},
+		{"maks([tensör([1]), tensör([2])])", messages.H6224},
+		{"toplam([1, 2], eksen: 0)", messages.H6219},
+		{"maks(tensör([1, 2]), 0)", messages.H6205},
+		{"min(tensör([1, 2]), 0)", messages.H6205},
+		{"sıfırlar(2, 3, türev_izle: doğru)", messages.H6020},
+		{"rastgele_normal(2, 3)", messages.H6020},
+		{"AdamW([tensör([1.0], türev_izle: doğru)], lr: 0.1)", messages.H7900},
+		{"AdamW([tensör([1.0], türev_izle: doğru)], weight_decay: 0.1)", messages.H7900},
+		{"toplam(tensör([1.0]), axis: 0)", messages.H7900},
+		{"sıfırlar([2], requires_grad: doğru)", messages.H7900},
+		{"rastgele_normal([2], seed: 1)", messages.H7900},
+		{"katman_normu(birler([1, 2]), eps: 0.1)", messages.H7900},
 	}
 	for _, d := range errs {
 		_, err := run(t, d.code)
-		if err == nil || !strings.Contains(err.Error(), d.expected) {
-			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", d.code, err, d.expected)
+		if err == nil || !messages.Has(err, d.want) {
+			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", d.code, err, d.want)
 		}
 	}
 	// toplam/ortalama için konumlu eksen kalır.
