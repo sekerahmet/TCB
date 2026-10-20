@@ -79,6 +79,12 @@ async function targetDocument(uri) {
     return editor ? editor.document : undefined;
 }
 
+// languageEnvironment, yorumlayıcıya başlattığımız her süreçte yazım dilini (TR_DIL) ayara göre
+// verir; böylece çalışan program ve hata ayıklayıcı iletileri ayarla aynı dilde gösterir.
+function languageEnvironment() {
+    return { TR_DIL: vscode.workspace.getConfiguration('tr').get('yazimDili', 'tr') };
+}
+
 function createTask(def, documentUri, interpreter, extra) {
     const file = documentUri.fsPath;
     const folder = vscode.workspace.getWorkspaceFolder(documentUri);
@@ -89,7 +95,7 @@ function createTask(def, documentUri, interpreter, extra) {
         folder || vscode.TaskScope.Workspace,
         `${def.title}: ${path.basename(file)}`,
         'TR',
-        new vscode.ProcessExecution(interpreter, def.args(file, extra), { cwd }),
+        new vscode.ProcessExecution(interpreter, def.args(file, extra), { cwd, env: languageEnvironment() }),
         []
     );
     // Görev terminali odaklanır; hata ayıklayıcının komutları buradan yazılır.
@@ -161,6 +167,7 @@ function runInTerminal(def, documentUri, interpreter, extra) {
         shellPath: interpreter,
         shellArgs: def.args(file, extra),
         cwd: path.dirname(file),
+        env: languageEnvironment(),
         isTransient: true
     });
     terminal.show(false);
@@ -270,7 +277,7 @@ const debugAdapterFactory = {
             interpreterNotFound(message);
             throw new Error(message);
         }
-        return new vscode.DebugAdapterExecutable(found.filePath, ['dap'], { cwd: config.cwd || path.dirname(program) });
+        return new vscode.DebugAdapterExecutable(found.filePath, ['dap'], { cwd: config.cwd || path.dirname(program), env: languageEnvironment() });
     }
 };
 

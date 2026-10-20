@@ -81,6 +81,26 @@ test('F5: yapılandırma olduğu gibi kalır, yorumlayıcı "dap" ile başlar', 
     assert.strictEqual(log.tasks.length + log.terminals.length, 0);
 });
 
+test('yazım dili ayarı çalıştırma, terminal ve hata ayıklama süreçlerine TR_DIL olarak geçer', async () => {
+    for (const lang of ['tr', 'en']) {
+        const settings = { yazimDili: lang };
+        const task = setup({ setting: INTERPRETER, folder: FOLDER, settings });
+        const y = { type: 'tr', request: 'launch', name: 'TR', program: FILE, noDebug: true };
+        task.provider.resolveDebugConfigurationWithSubstitutedVariables(undefined, await task.provider.resolveDebugConfiguration(undefined, y));
+        await wait();
+        assert.strictEqual(task.log.tasks[0].execution.options.env.TR_DIL, lang, 'görev');
+
+        const terminal = setup({ setting: INTERPRETER, settings });
+        terminal.provider.resolveDebugConfigurationWithSubstitutedVariables(undefined, await terminal.provider.resolveDebugConfiguration(undefined, y));
+        await wait();
+        assert.strictEqual(terminal.log.terminals[0].env.TR_DIL, lang, 'terminal');
+
+        const debug = setup({ setting: INTERPRETER, folder: FOLDER, settings });
+        const d = debug.adapterFactory.createDebugAdapterDescriptor({ configuration: { program: FILE, cwd: FOLDER } });
+        assert.strictEqual(d.options.env.TR_DIL, lang, 'hata ayıklayıcı');
+    }
+});
+
 test('yanlış "args" Türkçe bir mesajla durdurulur', async () => {
     const { log, provider } = setup({ setting: INTERPRETER, folder: FOLDER });
     const y = { type: 'tr', request: 'launch', name: 'TR', program: FILE, args: '--adım 5' };
