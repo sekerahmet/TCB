@@ -382,6 +382,7 @@
 "H3102": "dikkat",
 "H3103": "gradyan",
 "H3104": "arka uç",
+"H3105": "bu makinede",
 "H4000": "LoadLibraryExW bulunamadı: {error}",
 "H4001": "NVIDIA sürücüsü ({library}) yüklenemedi: {error}",
 "H4002": "bu TR derlemesinde GPU desteği yok (işletim sistemi desteklenmiyor ya da ikili GPU'suz derlendi)",

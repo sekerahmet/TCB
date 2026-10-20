@@ -387,6 +387,7 @@ const (
 	H3102 Code = 3102 // dikkat
 	H3103 Code = 3103 // gradyan
 	H3104 Code = 3104 // arka uç
+	H3105 Code = 3105 // bu makinede
 	H4000 Code = 4000 // LoadLibraryExW bulunamadı: {error}
 	H4001 Code = 4001 // NVIDIA sürücüsü ({library}) yüklenemedi: {error}
 	H4002 Code = 4002 // bu TR derlemesinde GPU desteği yok (işletim sistemi desteklenmiyor ya da ikili GPU'suz derlendi)

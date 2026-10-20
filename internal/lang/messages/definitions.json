@@ -382,6 +382,7 @@
 "H3102": { "param": [] },
 "H3103": { "param": [] },
 "H3104": { "param": [] },
+"H3105": { "param": [] },
 "H4000": { "param": ["error"] },
 "H4001": { "param": ["library", "error"] },
 "H4002": { "param": [] },
