@@ -124,15 +124,15 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 | Klasör | İçerik |
 | :-- | :-- |
 | `cmd/tr` | `tr` komutu: çalıştırma, kabuk, `kontrol`, `derle`, `test`, `biçimle`, `kodla`, `çöz`, `göster`, `izle`, `profil`, `hata_ayıkla`, `yardım`, `sürüm`, `dap` (VS Code için) |
-| `internal/lang` | Dil çekirdeği: kod listesi (`kod`, [`docs/kodlar.md`](docs/kodlar.md)), sözcük çözümleyici (`sozcuk`), sözdizimi ağacı (`agac`), ayrıştırıcı (`ayristir`), tip denetimi (`denetci`), yorumlayıcı (`yurut`), Türkçe ekler (`turkce`) |
-| `internal/stdlib` | Tensör ve öğrenme, parçalayıcı, veri, JSON/CSV yerleşiklerini dile bağlayan motorlar |
-| `internal/compute` | Dili bilmeyen hesap çekirdekleri: tensör ve CPU çekirdekleri (`tensor`), parçalayıcı (`parca`), veri yükleyici (`veriyolu`) |
-| `internal/devtools` | Hata ayıklayıcı (`ayikla`), biçimlendirici (`bicim`), `tr test` çekirdeği (`testkosucu`), canlı profil (`profil`: `tr izle`, `tr profil`) |
+| `internal/lang` | Dil çekirdeği: iletiler (`messages`), Türkçe ekler ve dosya hataları (`turkish`), kod listesi (`codes`, [`docs/kodlar.md`](docs/kodlar.md)), ad ipuçları (`hint`), sözcük çözümleyici (`lexer`), sözdizimi ağacı (`ast`), ayrıştırıcı (`parser`), tip denetimi (`checker`), kaynak ve kodlu biçim (`source`), yorumlayıcı (`interp`) |
+| `internal/stdlib` | Standart kitaplık: tensör ve öğrenme (`ml`), veri (`dataset`), parçalayıcı (`tokenizer`), dosyalar (`files`), JSON/CSV (`formats`), komut satırı (`process`), günlük ve ilerleme (`logging`), kontrol noktası (`checkpoint`) |
+| `internal/compute` | Dili bilmeyen hesap çekirdekleri: tensör, otomatik türev ve CPU çekirdekleri (`tensor`), GPU arka ucu (`gpu`), parçalayıcı (`tokenize`), veri yükleyici (`dataload`) |
+| `internal/devtools` | Hata ayıklayıcı (`debugger`), biçimlendirici (`formatter`), `tr test` çekirdeği (`testrunner`), canlı profil (`profiler`: `tr izle`, `tr profil`) |
 | `lib/` | TR ile yazılan standart kitaplık, ikiliye gömülü: transformer katmanları ve GPT (`aktar "tr/katman"`), Muon/NorMuon (`aktar "tr/iyilestirici"`) |
 | `editors/vscode/` | VS Code eklentisi |
-| `docs/` | Belgeler ([dizin](docs/README.md)) |
+| `docs/` | Belgeler ([dizin](docs/README.md)); kod kuralları [`internal/README.md`](internal/README.md), ekleme tarifleri [`docs/tarifler.md`](docs/tarifler.md) |
 | `examples/`, `tests/` | Örnek programlar ve dil tanımının kural testleri |
-| `tools/` | Depo bakımı: `tam_denetim.sh`, `bulaniklastir.sh`, üreteçler (`uret/`), hız kıyas seti (`kiyas/`) |
+| `tools/` | Depo bakımı: `tam_denetim.sh`, `bulaniklastir.sh`, üreteçler (`gen/`), hız kıyas seti (`bench/`), GPU ölçümleri (`gpu/`), etki sorgusu (`impact/`) |
 
 Katmanlar, aralarındaki bağımlılık kuralı ve her paketin görevi: [`docs/mimari.md`](docs/mimari.md).
 
