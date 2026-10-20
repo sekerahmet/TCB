@@ -10,7 +10,6 @@ package formats
 
 import (
 	"encoding/csv"
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"io"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
@@ -31,11 +31,11 @@ func Register(v *interp.VM) {
 		}
 		s, ok := args[0].(*interp.StringVal)
 		if !ok {
-			return nil, fmt.Errorf("%s: JSON metni (%s) bekler, %s verildi", codes.Name(codes.G600), codes.Name(codes.A202), args[0].Type())
+			return nil, messages.New(messages.H7000, codes.Name(codes.G600), codes.Name(codes.A202), args[0].Type())
 		}
 		val, err := interp.JSONToTR([]byte(stripBOM(s.Val)))
 		if err != nil {
-			return nil, fmt.Errorf("JSON çözümleme hatası: %v", err)
+			return nil, messages.New(messages.H7001, err)
 		}
 		return val, nil
 	})
@@ -46,7 +46,7 @@ func Register(v *interp.VM) {
 		}
 		b, err := jsonwrite.Write(args[0])
 		if err != nil {
-			return nil, fmt.Errorf("%s: %v", codes.Name(codes.G601), err)
+			return nil, messages.New(messages.H2000, codes.Name(codes.G601), err)
 		}
 		return &interp.StringVal{Val: string(b)}, nil
 	})
@@ -57,7 +57,7 @@ func Register(v *interp.VM) {
 		}
 		if _, ok := args[0].(*interp.StringVal); !ok {
 			if _, isPath := args[0].(interp.PathValuer); !isPath {
-				return nil, fmt.Errorf("%s: dosya yolu ya da CSV metni (%s ya da %s) bekler, %s verildi", codes.Name(codes.G602), codes.Name(codes.A202), codes.Name(codes.A250), args[0].Type())
+				return nil, messages.New(messages.H7002, codes.Name(codes.G602), codes.Name(codes.A202), codes.Name(codes.A250), args[0].Type())
 			}
 		}
 		// Dosya okuma ve ayrıştırma yorumlayıcı kilidi bırakılarak yapılır (TR değerlerine
@@ -92,7 +92,7 @@ func csvInput(p csvPath) (string, error) {
 	info, statErr := os.Stat(p.path)
 	if statErr == nil {
 		if info.IsDir() {
-			return "", fmt.Errorf("%s: %q bir klasör; CSV dosyasının yolunu verin", fn, p.arg)
+			return "", messages.New(messages.H7003, fn, p.arg)
 		}
 		data, err := interp.ReadFileContent(p.path)
 		if err != nil {
@@ -155,10 +155,10 @@ func parseCSV(input string) ([][]string, error) {
 			return records, nil
 		}
 		if err != nil {
-			return nil, fmt.Errorf("CSV okuma hatası: %v", err)
+			return nil, messages.New(messages.H7004, err)
 		}
 		if cells += len(rec); cells > interp.MaxCollectionSize {
-			return nil, fmt.Errorf("%s: tablo çok büyük (en fazla %d hücre)", codes.Name(codes.G602), interp.MaxCollectionSize)
+			return nil, messages.New(messages.H7005, codes.Name(codes.G602), interp.MaxCollectionSize)
 		}
 		records = append(records, rec)
 	}

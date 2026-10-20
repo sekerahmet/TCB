@@ -10,6 +10,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
 )
@@ -134,8 +135,8 @@ func TestCSVReadFileTextAndMissingPath(t *testing.T) {
 
 	// Klasör yolu da sessizce metin sayılmamalı.
 	_, _, err = run(t, fmt.Sprintf(`sonuç csv_oku(%q)`, filepath.ToSlash(dir)))
-	if err == nil || !strings.Contains(err.Error(), "klasör") {
-		t.Fatalf("klasör hatası bekleniyordu, alınan: %v", err)
+	if !messages.Has(err, messages.H7003) {
+		t.Fatalf("klasör hatası (H7003) bekleniyordu, alınan: %v", err)
 	}
 }
 
@@ -238,9 +239,12 @@ func TestJSONTextOrderNaNAndCycle(t *testing.T) {
 // json_çöz ve csv_oku metin olmayan argümanı görünüşüyle ayrıştırmaz, açık hata verir
 // (json_çöz(5) eskiden 5'i, json_çöz([1]) listenin TR yazımını çözüyordu).
 func TestDecodersRequireText(t *testing.T) {
-	for _, code := range []string{`json_çöz(5)`, `json_çöz([1, 2])`, `csv_oku(5)`, `csv_oku([1])`} {
-		if _, _, err := run(t, code); err == nil || !strings.Contains(err.Error(), "bekler") {
-			t.Fatalf("%s: tip hatası beklenirdi: %v", code, err)
+	for _, d := range []struct {
+		code string
+		want messages.Code
+	}{{`json_çöz(5)`, messages.H7000}, {`json_çöz([1, 2])`, messages.H7000}, {`csv_oku(5)`, messages.H7002}, {`csv_oku([1])`, messages.H7002}} {
+		if _, _, err := run(t, d.code); !messages.Has(err, d.want) {
+			t.Fatalf("%s: %s beklenirdi: %v", d.code, d.want, err)
 		}
 	}
 	out, _, err := run(t, `yazdır(json_çöz("[1, 2]"), csv_oku("a,b\n1,2"))`)

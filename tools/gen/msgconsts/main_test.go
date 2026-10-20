@@ -1,0 +1,168 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"testing"
+)
+
+// migrated ileti kodlarına geçirilmiş paketlerdir: test dışı kodlarında fmt.Errorf ve errors.New
+// kullanılmaz (her ileti bir koddur). Geçiş ilerledikçe liste büyür; bkz.
+// internal/lang/messages/README.md.
+var migrated = []string{
+	"internal/stdlib/formats",
+}
+
+// Üretilmiş sabitler katalogla aynıdır.
+func TestGeneratedUpToDate(t *testing.T) {
+	root := repoRoot()
+	fresh, err := Generate(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old, err := os.ReadFile(filepath.Join(root, outputPath))
+	if err != nil || !bytes.Equal(old, fresh) {
+		t.Fatalf("%s güncel değil: go run ./tools/gen/msgconsts", outputPath)
+	}
+}
+
+// call bir ileti çağrısıdır (messages.New / messages.Text; paketin kendi içinde New / Text).
+type call struct {
+	code string
+	args int
+	pos  string
+}
+
+// Depodaki her ileti çağrısı tanımdaki kadar değer verir; tanımlı her kod kullanılır;
+// geçirilmiş paketlerde fmt.Errorf ve errors.New yoktur.
+func TestMessageUsage(t *testing.T) {
+	root := repoRoot()
+	data, err := os.ReadFile(filepath.Join(root, "internal", "lang", "messages", "definitions.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var defs map[string]struct {
+		Param []string `json:"param"`
+	}
+	if err := json.Unmarshal(data, &defs); err != nil {
+		t.Fatal(err)
+	}
+	calls, banned := scan(t, root)
+	used := map[string]bool{}
+	for _, c := range calls {
+		d, ok := defs[c.code]
+		if !ok {
+			t.Errorf("%s: %s tanımlı değil", c.pos, c.code)
+			continue
+		}
+		used[c.code] = true
+		if c.args != len(d.Param) {
+			t.Errorf("%s: %s %d değer bekler (%v), %d verildi", c.pos, c.code, len(d.Param), d.Param, c.args)
+		}
+	}
+	var unused []string
+	for k := range defs {
+		if !used[k] {
+			unused = append(unused, k)
+		}
+	}
+	sort.Strings(unused)
+	if len(unused) > 0 {
+		t.Errorf("kullanılmayan ileti kodları (silin ya da numarayı boş bırakın): %v", unused)
+	}
+	for _, b := range banned {
+		t.Errorf("%s: ileti kodlarına geçirilmiş pakette %s; messages.New(messages.Hxxxx, ...) yazın", b.pos, b.code)
+	}
+}
+
+// scan depodaki test dışı Go dosyalarını gezer.
+func scan(t *testing.T, root string) (calls, banned []call) {
+	t.Helper()
+	fset := token.NewFileSet()
+	err := filepath.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		name := e.Name()
+		if e.IsDir() {
+			if path != root && (strings.HasPrefix(name, ".") || name == "scratch" || name == "testdata" || name == "node_modules") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			return nil
+		}
+		f, err := parser.ParseFile(fset, path, nil, 0)
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(root, filepath.Dir(path))
+		rel = filepath.ToSlash(rel)
+		inMessages := rel == "internal/lang/messages"
+		isMigrated := false
+		for _, m := range migrated {
+			isMigrated = isMigrated || rel == m
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			c, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			pos := fset.Position(c.Pos()).String()
+			pkg, fn := callee(c)
+			if isMigrated && (pkg == "fmt" && fn == "Errorf" || pkg == "errors" && fn == "New") {
+				banned = append(banned, call{code: pkg + "." + fn, pos: pos})
+			}
+			if (pkg == "messages" || inMessages && pkg == "") && (fn == "New" || fn == "Text") && len(c.Args) > 0 {
+				if code := codeArg(c.Args[0]); code != "" {
+					calls = append(calls, call{code: code, args: len(c.Args) - 1, pos: pos})
+				}
+			}
+			return true
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return calls, banned
+}
+
+// callee çağrılan fonksiyonun paket seçicisini ve adını verir (pkg.Fn ya da Fn).
+func callee(c *ast.CallExpr) (pkg, fn string) {
+	switch f := c.Fun.(type) {
+	case *ast.SelectorExpr:
+		if x, ok := f.X.(*ast.Ident); ok {
+			return x.Name, f.Sel.Name
+		}
+	case *ast.Ident:
+		return "", f.Name
+	}
+	return "", ""
+}
+
+// codeArg ilk argüman bir ileti sabitiyse (messages.H7003 ya da H7003) adını verir.
+func codeArg(e ast.Expr) string {
+	var name string
+	switch x := e.(type) {
+	case *ast.SelectorExpr:
+		if p, ok := x.X.(*ast.Ident); ok && p.Name == "messages" {
+			name = x.Sel.Name
+		}
+	case *ast.Ident:
+		name = x.Name
+	}
+	if len(name) == 5 && name[0] == 'H' && strings.Trim(name[1:], "0123456789") == "" {
+		return name
+	}
+	return ""
+}

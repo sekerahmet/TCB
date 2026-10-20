@@ -1,0 +1,10 @@
+{
+"H2000": { "param": ["fn", "error"] },
+"H7000": { "param": ["fn", "text", "given"] },
+"H7001": { "param": ["error"] },
+"H7002": { "param": ["fn", "text", "path", "given"] },
+"H7003": { "param": ["fn", "path"] },
+"H7004": { "param": ["error"] },
+"H7005": { "param": ["fn", "limit"] },
+"H9000": { "param": ["detail"] }
+}

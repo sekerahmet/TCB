@@ -41,11 +41,12 @@ var layers = []struct {
 // yorumlayıcıyı bilmez). Döngüye en yakın katman burasıdır; yeni bir dil paketi listeye
 // yerine göre eklenir. Ayrıntı: docs/mimari.md.
 var langOrder = []string{
-	"internal/lang/turkish", // Türkçe ek, harf ve hata çerçevesi yardımcıları
-	"internal/lang/codes",   // kod listesi (adlar ve tanımlar)
-	"internal/lang/hint",    // ad ipuçları (kaldırılan, taşınan, ASCII yazılan adlar)
-	"internal/lang/lexer",   // sözcük çözümleyici
-	"internal/lang/ast",     // sözdizimi ağacı
+	"internal/lang/messages", // ileti kodları ve metinleri (en alt: yalnızca standart kitaplık)
+	"internal/lang/turkish",  // Türkçe ek, harf ve hata çerçevesi yardımcıları
+	"internal/lang/codes",    // kod listesi (adlar ve tanımlar)
+	"internal/lang/hint",     // ad ipuçları (kaldırılan, taşınan, ASCII yazılan adlar)
+	"internal/lang/lexer",    // sözcük çözümleyici
+	"internal/lang/ast",      // sözdizimi ağacı
 	"internal/lang/parser",
 	"internal/lang/checker",
 	"internal/lang/source", // kaynaktan programa giriş noktası, kodlu biçim ve çevirici

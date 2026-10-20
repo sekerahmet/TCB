@@ -1,0 +1,10 @@
+{
+"H2000": "{fn}: {error}",
+"H7000": "{fn}: JSON metni ({text}) bekler, {given} verildi",
+"H7001": "JSON çözümleme hatası: {error}",
+"H7002": "{fn}: dosya yolu ya da CSV metni ({text} ya da {path}) bekler, {given} verildi",
+"H7003": "{fn}: {path|q} bir klasör; CSV dosyasının yolunu verin",
+"H7004": "CSV okuma hatası: {error}",
+"H7005": "{fn}: tablo çok büyük (en fazla {limit} hücre)",
+"H9000": "TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}"
+}

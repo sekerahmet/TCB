@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 //go:embed tr.json
@@ -25,7 +27,7 @@ var languages = map[string][]byte{"tr": trJSON, "en": enJSON}
 // tables are built once from the active language while packages initialize, so the language
 // can be chosen only at process start; 'tr kodla --dil en' re-executes itself with this
 // variable.
-const LanguageEnvVar = "TR_DIL"
+const LanguageEnvVar = messages.LanguageEnvVar
 
 // AcceptASCII is the SINGLE switch that decides whether the ASCII-folded forms of names
 // (yazdir, sonuc, degisken) are accepted like the names themselves, and it is OFF: every

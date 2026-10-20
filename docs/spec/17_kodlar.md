@@ -12,7 +12,7 @@ Kod bir harf ve üç basamaklı bir sayıdır; harf aileyi, yüzler basamağı a
 | `V` | Veri ve parçalayıcı | `V1xx` veri kümesi · `V2xx` parçalayıcı · `V9xx` adlı argümanlar |
 | `W` | Web, veritabanı, arayüz | kaldırıldı; kodları bir daha kullanılmaz |
 | `Y` | Yöntemler: metot ve özellikler (`x.ad`) | `Y0xx` birden çok tipte ortak (`uzunluk`, `içerir` ...) · `Y1xx` Metin · `Y2xx` Liste · `Y3xx` Sözlük ve standart kitaplık nesneleri (`Y300` Sözlük, `Y31x` Yol) · `Y4xx` Tensör · `Y5xx` iyileştirici · `Y6xx` veri kümesi, okuyucu, parçalayıcı · (`Y7xx`–`Y9xx` veritabanı, web, arayüz: kaldırıldı) |
-| `H` | Hata mesajları | ayrılmış; henüz kullanılmıyor |
+| `H` | İletiler (hata, uyarı, bilgi) | `H` ve **dört** basamak; ayrı katalogdadır: `internal/lang/messages` (`definitions.json` parametre adları, `tr.json` metinler). Binler alanı gösterir: `H0` sözdizimi · `H1` tip denetimi · `H2` yorumlayıcı · `H3` tensör · `H4` GPU · `H5` veri ve parçalayıcı · `H6` ml · `H7` standart kitaplığın geri kalanı · `H8` araçlar · `H9` iç hatalar. Metinde parametreler adlıdır (`{fn}: {path\|q} bir klasör`). Geçiş sürüyor: iletilerin bir kısmı henüz kod içinde |
 
 **Dil dosyası** (`tr.json`): her kod bir satırdır ve kodlar artan sıradadır:
 

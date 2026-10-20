@@ -1,0 +1,270 @@
+package messages
+
+import (
+	"bytes"
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+	"sync"
+)
+
+//go:embed definitions.json
+var definitionsFile []byte
+
+//go:embed tr.json
+var trFile []byte
+
+// languageFiles gömülü dil dosyalarıdır; tr kaynak dildir ve her kodun metni oradadır. Başka
+// bir dilde metni olmayan kod Türkçe gösterilir.
+var languageFiles = map[string][]byte{"tr": trFile}
+
+// segment bir ileti şablonunun parçasıdır: düz metin ya da bir parametre.
+type segment struct {
+	text  string
+	arg   int  // parametrenin sırası; düz metinde -1
+	quote bool // {ad|q}: Go'nun %q biçimiyle tırnaklı (denetim karakterleri kaçırılır)
+}
+
+// Catalog is one language's message templates, checked against the definitions.
+type Catalog struct {
+	Language  string
+	templates map[Code][]segment
+}
+
+// Definitions is the language-independent part: the parameter names of every code, in the
+// order New takes their values.
+type Definitions struct {
+	Params map[Code][]string
+	Codes  []Code // artan sırada
+}
+
+var (
+	loadOnce    sync.Once
+	definitions *Definitions
+	catalogs    map[string]*Catalog
+)
+
+// load gömülü dosyaları ilk iletide bir kez okur. Dosyalar depoyla birlikte gelir ve testlerle
+// denetlenir; okunamazlarsa bu TR'nin kendi hatasıdır (panik).
+func load() {
+	loadOnce.Do(func() {
+		d, err := ParseDefinitions(definitionsFile)
+		if err != nil {
+			panic(fmt.Sprintf("messages: definitions.json: %v", err))
+		}
+		definitions = d
+		catalogs = map[string]*Catalog{}
+		for lang, data := range languageFiles {
+			c, err := ParseCatalog(lang, data, d)
+			if err != nil {
+				panic(fmt.Sprintf("messages: %s.json: %v", lang, err))
+			}
+			catalogs[lang] = c
+		}
+	})
+}
+
+// activeCatalog etkin dilin kataloğudur (LanguageEnvVar; bilinmeyen dilde Türkçe).
+func activeCatalog() *Catalog {
+	load()
+	if c, ok := catalogs[os.Getenv(LanguageEnvVar)]; ok {
+		return c
+	}
+	return catalogs["tr"]
+}
+
+// ParseDefinitions reads definitions.json: {"H7003": {"param": ["fn", "path"]}, ...}, codes
+// in ascending order, parameter names unique and non-empty.
+func ParseDefinitions(data []byte) (*Definitions, error) {
+	var raw map[string]struct {
+		Param []string `json:"param"`
+	}
+	if err := strictUnmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+	keys, err := orderedKeys(data)
+	if err != nil {
+		return nil, err
+	}
+	d := &Definitions{Params: make(map[Code][]string, len(raw))}
+	for _, k := range keys {
+		c, err := Parse(k)
+		if err != nil {
+			return nil, err
+		}
+		seen := map[string]bool{}
+		for _, p := range raw[k].Param {
+			if p == "" || seen[p] || strings.ContainsAny(p, "{}| ") {
+				return nil, fmt.Errorf("%s: parametre adı %q boş, yinelenmiş ya da geçersiz", k, p)
+			}
+			seen[p] = true
+		}
+		d.Params[c] = raw[k].Param
+		d.Codes = append(d.Codes, c)
+	}
+	return d, nil
+}
+
+// ParseCatalog reads a language file ({"H7003": "metin", ...}) and compiles every template
+// against the definitions: placeholders must name a parameter of the code; in the source
+// language (tr) every code has a text that uses every parameter.
+func ParseCatalog(lang string, data []byte, d *Definitions) (*Catalog, error) {
+	var raw map[string]string
+	if err := strictUnmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+	keys, err := orderedKeys(data)
+	if err != nil {
+		return nil, err
+	}
+	c := &Catalog{Language: lang, templates: make(map[Code][]segment, len(raw))}
+	for _, k := range keys {
+		code, err := Parse(k)
+		if err != nil {
+			return nil, err
+		}
+		params, ok := d.Params[code]
+		if !ok {
+			return nil, fmt.Errorf("%s: definitions.json'da tanımlı değil", k)
+		}
+		segs, used, err := compile(raw[k], params)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %v", k, err)
+		}
+		if lang == "tr" {
+			for i, p := range params {
+				if !used[i] {
+					return nil, fmt.Errorf("%s: %q parametresi metinde kullanılmıyor", k, p)
+				}
+			}
+		}
+		c.templates[code] = segs
+	}
+	if lang == "tr" {
+		for _, code := range d.Codes {
+			if _, ok := c.templates[code]; !ok {
+				return nil, fmt.Errorf("%s: tanımlı ama Türkçe metni yok", code)
+			}
+		}
+	}
+	return c, nil
+}
+
+// compile şablonu parçalara ayırır: {ad} ve {ad|q} parametredir, {{ ve }} düz parantezdir.
+func compile(text string, params []string) ([]segment, []bool, error) {
+	index := map[string]int{}
+	for i, p := range params {
+		index[p] = i
+	}
+	used := make([]bool, len(params))
+	var segs []segment
+	var lit strings.Builder
+	flush := func() {
+		if lit.Len() > 0 {
+			segs = append(segs, segment{text: lit.String(), arg: -1})
+			lit.Reset()
+		}
+	}
+	for i := 0; i < len(text); i++ {
+		switch ch := text[i]; {
+		case ch == '{' && i+1 < len(text) && text[i+1] == '{', ch == '}' && i+1 < len(text) && text[i+1] == '}':
+			lit.WriteByte(ch)
+			i++
+		case ch == '{':
+			end := strings.IndexByte(text[i:], '}')
+			if end < 0 {
+				return nil, nil, fmt.Errorf("kapanmamış parametre: %q", text[i:])
+			}
+			name, mod, _ := strings.Cut(text[i+1:i+end], "|")
+			n, ok := index[name]
+			if !ok {
+				return nil, nil, fmt.Errorf("{%s}: tanımda böyle bir parametre yok (parametreler: %v)", name, params)
+			}
+			if mod != "" && mod != "q" {
+				return nil, nil, fmt.Errorf("{%s|%s}: bilinmeyen biçim (yalnızca |q)", name, mod)
+			}
+			flush()
+			segs = append(segs, segment{arg: n, quote: mod == "q"})
+			used[n] = true
+			i += end
+		case ch == '}':
+			return nil, nil, fmt.Errorf("eşi olmayan '}' (düz parantez için }} yazın)")
+		default:
+			lit.WriteByte(ch)
+		}
+	}
+	flush()
+	return segs, used, nil
+}
+
+// render şablonu değerlerle doldurur. Eksik değer {ad?} olarak görünür (denetim testi çağrı
+// yerlerindeki değer sayısını tanımla karşılaştırır; bu yalnızca bir güvence).
+func (c *Catalog) render(code Code, args []any) string {
+	segs, ok := c.templates[code]
+	if !ok {
+		if c.Language != "tr" {
+			return catalogs["tr"].render(code, args)
+		}
+		return fmt.Sprintf("%s %v", code, args) // tanımsız kod: derleme sabitleriyle olmamalı
+	}
+	var b strings.Builder
+	for _, s := range segs {
+		switch {
+		case s.arg < 0:
+			b.WriteString(s.text)
+		case s.arg >= len(args):
+			fmt.Fprintf(&b, "{%s?}", definitions.Params[code][s.arg])
+		case s.quote:
+			fmt.Fprintf(&b, "%q", args[s.arg])
+		default:
+			fmt.Fprint(&b, args[s.arg])
+		}
+	}
+	return b.String()
+}
+
+// strictUnmarshal bilinmeyen alanları ve sondaki fazlalığı reddeder.
+func strictUnmarshal(data []byte, v any) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(v); err != nil {
+		return err
+	}
+	if dec.More() {
+		return fmt.Errorf("JSON nesnesinden sonra fazladan veri var")
+	}
+	return nil
+}
+
+// orderedKeys üst düzey nesnenin anahtarlarını dosyadaki sırayla verir; kodlar artan sırada
+// ve tekil olmalıdır (her kod bir satır, aranınca bulunsun).
+func orderedKeys(data []byte) ([]string, error) {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	if _, err := dec.Token(); err != nil {
+		return nil, err
+	}
+	var keys []string
+	for dec.More() {
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, t.(string))
+		var skip json.RawMessage
+		if err := dec.Decode(&skip); err != nil {
+			return nil, err
+		}
+	}
+	if !sort.StringsAreSorted(keys) {
+		return nil, fmt.Errorf("kodlar artan sırada olmalı")
+	}
+	for i := 1; i < len(keys); i++ {
+		if keys[i] == keys[i-1] {
+			return nil, fmt.Errorf("%s iki kez tanımlı", keys[i])
+		}
+	}
+	return keys, nil
+}
