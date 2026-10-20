@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"hash"
 	"hash/crc32"
 	"io"
@@ -127,14 +126,14 @@ func (k *fileReader) header() (uint32, error) {
 	}
 	version := binary.LittleEndian.Uint16(k.read(2))
 	if k.failure != nil {
-		return 0, k.missing("sürüm")
+		return 0, k.missing(messages.Text(messages.H6630))
 	}
 	if version != fileVersion {
 		return 0, messages.New(messages.H6611, version, fileVersion, codes.Name(codes.T700))
 	}
 	number := binary.LittleEndian.Uint32(k.read(4))
 	if k.failure != nil {
-		return 0, k.missing("girdi sayısı")
+		return 0, k.missing(messages.Text(messages.H6631))
 	}
 	// Her girdi en az 4+1+1 bayt tutar; bozuk sayının dev ayırmaya yol açmasını önler.
 	if int64(number)*6 > k.remaining {
@@ -145,17 +144,17 @@ func (k *fileReader) header() (uint32, error) {
 
 // input gi. girdiyi (ad, tür, şekil, veri) okur; adlar aynı adın iki kez geçmesini yakalar.
 func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
-	order := fmt.Sprintf("%d. girdi", gi+1)
+	order := messages.Text(messages.H6636, gi+1)
 	nameLen := binary.LittleEndian.Uint32(k.read(4))
 	if k.failure != nil {
-		return fileEntry{}, k.missing(order + " adı")
+		return fileEntry{}, k.missing(messages.Text(messages.H6632, order))
 	}
 	if nameLen > maxNameLen || int64(nameLen) > k.remaining {
 		return fileEntry{}, messages.New(messages.H6613, order, nameLen)
 	}
 	nameB := make([]byte, nameLen)
 	if !k.integer(nameB) {
-		return fileEntry{}, k.missing(order + " adı")
+		return fileEntry{}, k.missing(messages.Text(messages.H6632, order))
 	}
 	ad := string(nameB)
 	if !utf8.ValidString(ad) {
@@ -165,10 +164,10 @@ func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
 		return fileEntry{}, messages.New(messages.H6615, ad)
 	}
 	names[ad] = true
-	order = fmt.Sprintf("%d. girdi (%q)", gi+1, ad)
+	order = messages.Text(messages.H6637, gi+1, ad)
 	tb := k.read(2)
 	if k.failure != nil {
-		return fileEntry{}, k.missing(order + " türü")
+		return fileEntry{}, k.missing(messages.Text(messages.H6633, order))
 	}
 	code, dim := tb[0], int(tb[1])
 	dtype, known := dtypeFromCode(code)
@@ -200,7 +199,7 @@ func (k *fileReader) shape(order string, dim int) ([]int, int64, error) {
 	for i := range shape {
 		d := binary.LittleEndian.Uint64(k.read(8))
 		if k.failure != nil {
-			return nil, 0, k.missing(order + " şekli")
+			return nil, 0, k.missing(messages.Text(messages.H6634, order))
 		}
 		if d > uint64(interp.MaxCollectionSize) || (d > 0 && limit > int64(interp.MaxCollectionSize)/int64(d)) {
 			return nil, 0, messages.New(messages.H6621, order, d, interp.MaxCollectionSize)
@@ -224,7 +223,7 @@ func (k *fileReader) data(order string, dtype tensor.DType, shape []int, n int64
 	for i := 0; i < len(data); {
 		part := min(len(buffer)/eb, len(data)-i)
 		if !k.integer(buffer[:part*eb]) {
-			return nil, k.missing(order + " verisi")
+			return nil, k.missing(messages.Text(messages.H6635, order))
 		}
 		for j := 0; j < part; j++ {
 			if eb == 2 {

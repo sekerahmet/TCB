@@ -112,11 +112,10 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 	if v, ok, err := o.stateMember(kd); ok {
 		return v, err // durum, durumu_yükle (iyilestirici_durum.go)
 	}
-	suggestion := ""
 	if s := turkish.Closest(prop, optimizerMembers); s != "" {
-		suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", s)
+		return nil, messages.New(messages.H6530, o.ad, prop, s)
 	}
-	return nil, fmt.Errorf("%s üzerinde %q metodu bulunamadı%s", o.ad, prop, suggestion)
+	return nil, messages.New(messages.H6529, o.ad, prop)
 }
 
 // parameters iyileştiriciye verilen tensör ya da tensör listesini denetler.
@@ -172,7 +171,7 @@ func namedRate(fn string, named map[string]interp.Value, defaultVal float64, min
 		return 0, messages.New(messages.H6519, fn, ad.TR, v.Inspect())
 	}
 	if f < minVal {
-		return 0, fmt.Errorf("%s: %s en az %g olmalıdır, %g verildi", fn, ad.TR, minVal, f)
+		return 0, messages.New(messages.H6528, fn, ad.TR, fmt.Sprintf("%g", minVal), fmt.Sprintf("%g", f))
 	}
 	return float32(f), nil
 }

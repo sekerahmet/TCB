@@ -56,6 +56,15 @@ func panicError(r any) error {
 	return messages.New(messages.H6006, msg)
 }
 
+// panicReason panicError iletisinin nedenini (çekirdeğin bildirdiği hata) verir; başka bir
+// hatada hatanın kendisini verir. Kendi önekiyle yeniden yazan çağıranlar içindir.
+func panicReason(err error) any {
+	if m, ok := err.(*messages.Error); ok && m.Code == messages.H6006 {
+		return m.Args[0]
+	}
+	return err
+}
+
 // intNumber bir TR değerini tam sayıya çevirir (tam değerli ondalıklar da kabul edilir).
 func intNumber(v interp.Value) (int, bool) {
 	n, ok := bind.Int(v)

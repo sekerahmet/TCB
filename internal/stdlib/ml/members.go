@@ -1,7 +1,6 @@
 package ml
 
 import (
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -78,17 +77,16 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	case memberSplit:
 		return d.namedMethod(memberSplit, d.split), nil
 	}
-	suggestion := ""
 	if k, _, old := codes.FindOld(codes.NamespaceMember, prop, isTensorMember); old {
 		o := codes.Name(k)
 		if k == memberTranspose {
 			o += "()" // metot
 		}
-		suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+		return nil, messages.New(messages.H7903, interp.VAL_TENSOR, prop, o)
 	} else if o := turkish.Closest(prop, tensorMembers); o != "" {
-		suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+		return nil, messages.New(messages.H7903, interp.VAL_TENSOR, prop, o)
 	}
-	return nil, fmt.Errorf("%s üzerinde %q özelliği ya da metodu bulunamadı%s", interp.VAL_TENSOR, prop, suggestion)
+	return nil, messages.New(messages.H6721, interp.VAL_TENSOR, prop)
 }
 
 // method adlı argüman almayan bir tensör metodunun bağlı değeridir; namedMethod adlı

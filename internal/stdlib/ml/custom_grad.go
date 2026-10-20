@@ -100,13 +100,14 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 	forward, ok1 := bind.GetNamed(named, nameForward)
 	backward, ok2 := bind.GetNamed(named, nameBackward)
 	if !ok1 || !ok2 {
-		missing := nameForward.TR + ":"
-		if ok1 {
-			missing = nameBackward.TR + ":"
-		} else if !ok2 {
-			missing = nameForward.TR + ": ve " + nameBackward.TR + ":"
+		if !ok1 && !ok2 {
+			return nil, messages.New(messages.H6431, fn, nameForward.TR, nameBackward.TR, customGradExample)
 		}
-		return nil, fmt.Errorf("%s: %s eksik; örnek: %s", fn, missing, customGradExample)
+		missing := nameForward.TR
+		if ok1 {
+			missing = nameBackward.TR
+		}
+		return nil, messages.New(messages.H6430, fn, missing, customGradExample)
 	}
 	if !isCallable(forward) {
 		return nil, messages.New(messages.H6406, fn, nameForward.TR, typeName(forward))
@@ -488,8 +489,8 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		}
 	}
 	if bad.rate > tol {
-		return nil, fmt.Errorf("%s: analitik (geri yayılım) ve sayısal gradyan uyuşmuyor; en büyük fark %d. girdinin %s elemanında: analitik %.6g, sayısal %.6g (fark %.3g, tolerans %g); geri hesabını denetleyin",
-			fn, bad.input+1, shapeText(bad.index), bad.an, bad.count, bad.diff, tol)
+		return nil, messages.New(messages.H6432, fn, bad.input+1, shapeText(bad.index), fmt.Sprintf("%.6g", bad.an),
+			fmt.Sprintf("%.6g", bad.count), fmt.Sprintf("%.3g", bad.diff), fmt.Sprintf("%g", tol))
 	}
 	return interp.TRUE, nil
 }

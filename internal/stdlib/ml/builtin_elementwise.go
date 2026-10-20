@@ -68,7 +68,7 @@ func applyToNumber(ad string, v interp.Value, f func(float64) float64) (interp.V
 	if s, ok := interp.ToFloat(v); ok {
 		return &interp.FloatVal{Val: f(s)}, nil
 	}
-	if err := listError(ad, v, "tensörde ve sayıda", ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+	if err := listError(ad, v, messages.Text(messages.H6131), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 		return nil, err
 	}
 	return nil, messages.New(messages.H6103, ad, typeName(v))
@@ -115,7 +115,7 @@ func registerSoftmax(v *interp.VM, kd codes.Code, logMode bool) {
 				if len(args) == 0 {
 					return nil, messages.New(messages.H6109, ad, nameAxis.TR)
 				}
-				if err := listError(ad, args[0], "tensörde", ad+"("+codes.Name(codes.T100)+"(...), "+nameAxis.TR+": -1)"); err != nil {
+				if err := listError(ad, args[0], messages.Text(messages.H6132), ad+"("+codes.Name(codes.T100)+"(...), "+nameAxis.TR+": -1)"); err != nil {
 					return nil, err
 				}
 				return nil, messages.New(messages.H6110, ad, typeName(args[0]))

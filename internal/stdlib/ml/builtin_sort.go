@@ -28,7 +28,7 @@ func axisTensor(ad, usage string, args []interp.Value, n int, named map[string]i
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		if err := listError(ad, args[0], "tensörde", ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
+		if err := listError(ad, args[0], messages.Text(messages.H6132), ad+"("+codes.Name(codes.T100)+"(...))"); err != nil {
 			return nil, 0, err
 		}
 		return nil, 0, messages.New(messages.H6203, ad, typeName(args[0]))

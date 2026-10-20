@@ -2,7 +2,6 @@ package ml
 
 import (
 	"errors"
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -29,11 +28,10 @@ func toTensor(fn string, v interp.Value) (*tensor.Tensor, error) {
 		}
 		return tensor.New(data, sh...), nil
 	}
-	hintMsg := ""
 	if b, ok := v.(*interp.BuiltinVal); ok {
-		hintMsg = fmt.Sprintf("; metodu çağırmak için parantez ekleyin: %s()", b.Name)
+		return nil, messages.New(messages.H6033, fn, typeName(v), b.Name)
 	}
-	return nil, fmt.Errorf("%s: %s tipi tensöre dönüştürülemez (sayı, iç içe liste ya da tensör bekleniyor)%s", fn, typeName(v), hintMsg)
+	return nil, messages.New(messages.H6032, fn, typeName(v))
 }
 
 // toTensorOn toTensor gibidir; ancak sayı ve listeden oluşan tensör, işlemin

@@ -1,7 +1,6 @@
 package ml
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 	"sort"
@@ -65,7 +64,7 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	ts := make([]*tensor.Tensor, len(l.Elements))
 	ints := true // hepsi tam sayılı tensörse (ör. token kimlikleri) sonuç da tam sayılıdır
 	for i, el := range l.Elements {
-		t, err := toTensor(fmt.Sprintf("%s: %d. eleman", fn, i+1), el)
+		t, err := toTensor(messages.Text(messages.H6344, fn, i+1), el)
 		if err != nil {
 			return nil, err
 		}

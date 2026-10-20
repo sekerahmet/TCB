@@ -1,7 +1,6 @@
 package ml
 
 import (
-	"fmt"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -184,7 +183,10 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 		}
 		if hasTensor {
 			if kd != codes.G400 && kd != codes.G410 { // toplam, ortalama
-				return nil, fmt.Errorf("%s: tensör listesinin en %s elemanı tanımsız; tek bir tensör verin: %s(x) ya da %s(x, %s: 0)", ad, map[bool]string{true: "büyük", false: "küçük"}[kd == codes.G402], ad, ad, nameAxis.TR)
+				if kd == codes.G402 {
+					return nil, messages.New(messages.H6224, ad, nameAxis.TR)
+				}
+				return nil, messages.New(messages.H6225, ad, nameAxis.TR)
 			}
 			return sumTensorList(ad, kd == codes.G410, l.Elements)
 		}

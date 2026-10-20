@@ -1,7 +1,6 @@
 package ml
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -81,11 +80,10 @@ func parseDTypeName(fn, ad string) (tensor.DType, error) {
 			suggestion = "float32"
 		}
 	}
-	ek := ""
 	if suggestion != "" {
-		ek = fmt.Sprintf(". Bunu mu demek istediniz: \"%s\"?", suggestion)
+		return 0, messages.New(messages.H6811, fn, ad, suggestion)
 	}
-	return 0, fmt.Errorf("%s: bilinmeyen veri türü %q; geçerli türler: \"float32\", \"bf16\", \"fp16\"%s", fn, ad, ek)
+	return 0, messages.New(messages.H6810, fn, ad)
 }
 
 // parseDTypeValue metin olması gereken tür argümanını çözer.

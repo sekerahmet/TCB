@@ -63,12 +63,11 @@ func availableDevice(fn string, v interp.Value) (tensor.Device, error) {
 		return dev, err
 	}
 	if !tensor.HasDevice(dev) {
-		m := fmt.Sprintf("%s cihazı kullanılamıyor; bu makinede kullanılabilir cihazlar: %s (%s())",
-			dev, strings.Join(deviceNames(), ", "), codes.Name(codes.T721))
+		names := strings.Join(deviceNames(), ", ")
 		if dev.Kind == tensor.KindGPU {
-			m += ". " + gpu.Status()
+			return dev, messages.New(messages.H6813, dev, names, codes.Name(codes.T721), gpu.Status())
 		}
-		return dev, fmt.Errorf("%s", m)
+		return dev, messages.New(messages.H6812, dev, names, codes.Name(codes.T721))
 	}
 	return dev, nil
 }

@@ -15,7 +15,19 @@ import (
 // İşleçler (VM kancaları yurutucu_kancalari.go'dadır)
 // ----------------------------------------------------------------------------
 
-var opName = map[string]string{"+": "toplama", "-": "çıkarma", "*": "çarpma", "/": "bölme"}
+// opName dört işlemin hata iletilerindeki adıdır (toplama, çıkarma, çarpma, bölme).
+var opName = map[string]messages.Code{"+": messages.H6119, "-": messages.H6120, "*": messages.H6121, "/": messages.H6122}
+
+// operationName işlecin adını verir; adı olmayan işleç olduğu gibi yazılır.
+func operationName(op string) string {
+	if c, ok := opName[op]; ok {
+		return messages.Text(c)
+	}
+	return op
+}
+
+// tensorOperation hata iletilerinde tensör işlemini adlandırır ("tensör toplama").
+func tensorOperation(op string) string { return messages.Text(messages.H6123, operationName(op)) }
 
 // axisFromEnd tensörün sondan i. (1'den başlayarak) ekseninin uzunluğunu verir; o eksen
 // yoksa yayınlama kuralı gereği 1 sayılır. Şekil kopyalanmaz.
@@ -35,10 +47,7 @@ func checkBroadcast(op string, a, b *tensor.Tensor) error {
 	for i := 1; i <= nd; i++ {
 		da, db := axisFromEnd(a, i), axisFromEnd(b, i)
 		if da != db && da != 1 && db != 1 {
-			ad, ok := opName[op]
-			if !ok {
-				ad = op
-			}
+			ad := operationName(op)
 			return messages.New(messages.H6100, shapeText(a.Shape()), shapeText(b.Shape()), ad, i, da, db)
 		}
 	}
@@ -101,7 +110,7 @@ func broadcastWarning(op string, a, b *tensor.Tensor) {
 	if len(givenWarning) >= maxBroadcastWarnings {
 		if !warningSilenced {
 			warningSilenced = true
-			fmt.Fprintf(warningOutput, "Uyarı: %d farklı yayın uyarısı gösterildi; sonraki yayın uyarıları gösterilmeyecek.\n", maxBroadcastWarnings)
+			fmt.Fprintln(warningOutput, messages.Text(messages.H6127, maxBroadcastWarnings))
 		}
 		return
 	}
@@ -110,8 +119,7 @@ func broadcastWarning(op string, a, b *tensor.Tensor) {
 	for i := 1; i <= len(result); i++ {
 		result[len(result)-i] = max(axisFromEnd(a, i), axisFromEnd(b, i))
 	}
-	fmt.Fprintf(warningOutput, "Uyarı: %s ile %s yayınlanarak %s üretildi (iki taraf da genişletildi); bilerek yapmadıysanız şekilleri kontrol edin.\n",
-		as, bs, shapeText(result))
+	fmt.Fprintln(warningOutput, messages.Text(messages.H6128, as, bs, shapeText(result)))
 }
 
 func (d *TensorValue) binary(op string, other interp.Value) (interp.Value, error) {
@@ -142,7 +150,7 @@ func (d *TensorValue) binary(op string, other interp.Value) (interp.Value, error
 		o = od.t
 	} else {
 		var err error
-		if o, err = toTensorOn("tensör "+opName[op], other, d.t); err != nil {
+		if o, err = toTensorOn(tensorOperation(op), other, d.t); err != nil {
 			return nil, err
 		}
 	}
@@ -150,7 +158,7 @@ func (d *TensorValue) binary(op string, other interp.Value) (interp.Value, error
 		return nil, err
 	}
 	if d.t.Device() != o.Device() {
-		return nil, checkDevice("tensör "+opName[op], d.t, o)
+		return nil, checkDevice(tensorOperation(op), d.t, o)
 	}
 	if bothWiden(d.t, o) {
 		broadcastWarning(op, d.t, o)
@@ -183,7 +191,7 @@ func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error
 	if len(as) == 0 || len(bs) == 0 {
 		return nil, messages.New(messages.H6114, shapeText(as), shapeText(bs))
 	}
-	if err := checkDevice("matris çarpımı (@)", a, b); err != nil {
+	if err := checkDevice(messages.Text(messages.H6124), a, b); err != nil {
 		return nil, err
 	}
 	K := as[len(as)-1]
@@ -193,9 +201,11 @@ func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error
 	} else {
 		bK = bs[len(bs)-2]
 	}
+	if K != bK && len(bs) == 1 {
+		return nil, messages.New(messages.H6125, shapeText(as), shapeText(bs), K, bK)
+	}
 	if K != bK {
-		return nil, fmt.Errorf("%s ile %s matris çarpımı yapılamaz; %d ≠ %d (soldakinin son ekseni sağdakinin %s eksenine eşit olmalı)",
-			shapeText(as), shapeText(bs), K, bK, map[bool]string{true: "tek", false: "sondan ikinci"}[len(bs) == 1])
+		return nil, messages.New(messages.H6126, shapeText(as), shapeText(bs), K, bK)
 	}
 	if len(as) >= 2 && len(bs) > 2 {
 		onA, onB := as[:len(as)-2], bs[:len(bs)-2]

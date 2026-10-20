@@ -22,7 +22,7 @@ func whereBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, messages.New(messages.H6201, ad, len(args))
 	}
 	for _, a := range args {
-		if err := listError(ad, a, "tensörde, sayıda ve "+codes.Name(codes.A203)+" değerinde", ad+"("+codes.Name(codes.T100)+"(...), a, b)"); err != nil {
+		if err := listError(ad, a, messages.Text(messages.H6133, codes.Name(codes.A203)), ad+"("+codes.Name(codes.T100)+"(...), a, b)"); err != nil {
 			return nil, err
 		}
 	}

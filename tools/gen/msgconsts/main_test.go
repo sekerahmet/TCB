@@ -21,6 +21,7 @@ var migrated = []string{
 	"internal/lang/turkish",
 	"internal/stdlib/common/bind",
 	"internal/stdlib/formats",
+	"internal/stdlib/ml",
 }
 
 // Üretilmiş sabitler katalogla aynıdır.

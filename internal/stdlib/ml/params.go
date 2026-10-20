@@ -1,10 +1,8 @@
 package ml
 
 import (
-	"fmt"
 	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -155,11 +153,10 @@ func CheckParamShapes(fn string, names []string, found []*TensorValue, src map[s
 		}
 	}
 	slices.Sort(extra)
-	suggestion := ""
 	if o := turkish.Closest(extra[0], names); o != "" {
-		suggestion = fmt.Sprintf(". Bunu mu demek istediniz: '%s'?", o)
+		return messages.New(messages.H6532, fn, srcName, len(extra), extra[0], o)
 	}
-	return fmt.Errorf("%s: %s %d fazla ad var, ilki %q modelde bir parametre değil%s", fn, srcName, len(extra), extra[0], suggestion)
+	return messages.New(messages.H6531, fn, srcName, len(extra), extra[0])
 }
 
 // CopyInto kaynağın değerlerini p'ye yerinde yazar: kaynak p'nin cihazına taşınır, türü
@@ -212,7 +209,7 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		}
 		src[k], shapes[k] = d.t, d.t.Shape()
 	}
-	if err := CheckParamShapes(fn, names, found, shapes, "sözlükte"); err != nil {
+	if err := CheckParamShapes(fn, names, found, shapes, messages.Text(messages.H6533)); err != nil {
 		return nil, err
 	}
 	if _, err := safe(func() bool {
@@ -221,7 +218,7 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		}
 		return true
 	}); err != nil {
-		return nil, fmt.Errorf("%s: %s", fn, strings.TrimPrefix(err.Error(), "tensör işlemi başarısız: "))
+		return nil, messages.New(messages.H2000, fn, panicReason(err))
 	}
 	return interp.NewInt(int64(len(names))), nil
 }

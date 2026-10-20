@@ -77,7 +77,7 @@ func (d *TensorValue) TaskOperator(m *interp.VM, op string, otherVal interp.Valu
 	if op != "@" {
 		return d.Operator(op, otherVal, onRight)
 	}
-	o, err := toTensorOn("matris çarpımı (@)", otherVal, d.t)
+	o, err := toTensorOn(messages.Text(messages.H6124), otherVal, d.t)
 	if err != nil {
 		return nil, true, err
 	}
@@ -120,14 +120,14 @@ func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (
 			}
 			return New(r), true, nil
 		}
-		o, err := toTensorOn("tensör "+opName[op], otherVal, d.t)
+		o, err := toTensorOn(tensorOperation(op), otherVal, d.t)
 		if err != nil {
 			return nil, true, err
 		}
 		if err := checkBroadcast(op, o, d.t); err != nil {
 			return nil, true, err
 		}
-		if err := checkDevice("tensör "+opName[op], o, d.t); err != nil {
+		if err := checkDevice(tensorOperation(op), o, d.t); err != nil {
 			return nil, true, err
 		}
 		r, err := safe(func() *tensor.Tensor {
@@ -142,7 +142,7 @@ func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (
 		return New(r), true, nil
 
 	case "@":
-		o, err := toTensorOn("matris çarpımı (@)", otherVal, d.t)
+		o, err := toTensorOn(messages.Text(messages.H6124), otherVal, d.t)
 		if err != nil {
 			return nil, true, err
 		}
@@ -190,7 +190,7 @@ func (d *TensorValue) compare(op string, otherVal interp.Value, onRight bool) (i
 		}
 		return New(r), nil
 	}
-	ad := "tensör karşılaştırması (" + op + ")"
+	ad := messages.Text(messages.H6129, op)
 	o, err := toTensorOn(ad, otherVal, d.t)
 	if err != nil {
 		return nil, err
@@ -320,7 +320,7 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	if f, ok := interp.ToFloat(value); ok {
 		src = tensor.Scalar(float32(f)) // hedefin tüm elemanlarına yayınlanır
 	} else {
-		if src, err = toTensor("tensör ataması", value); err != nil {
+		if src, err = toTensor(messages.Text(messages.H6130), value); err != nil {
 			return err
 		}
 		if ks := src.Shape(); shapeText(ks) != shapeText(sh) {
