@@ -40,7 +40,6 @@ import (
 var bareNameAllowances = map[string]map[string]string{
 	// Komut arayüzü: komut satırının alt komutları ve hata ayıklayıcının komutları dilin
 	// adları değil, aracın komutlarıdır. Kod listesine (K ailesi) çevirici işinde girecekler.
-	"cmd/tr/main.go":                              {"test": "komut satırı alt komutu (tr test)"},
 	"internal/devtools/debugger/debugger.go":      {"devam": "hata ayıklayıcı komutu (devam); A014 anahtar kelimesi değil"},
 	"internal/devtools/debugger/command_guide.go": {"devam": "hata ayıklayıcı komutu (devam); eski eşlerin ipucu tablosu"},
 	// Eklentiyle konuşulan iletinin alan adları ve değer türleri: protokolün sabit anahtarları

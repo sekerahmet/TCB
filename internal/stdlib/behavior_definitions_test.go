@@ -91,7 +91,8 @@ func TestExamplesRun(t *testing.T) {
 	chdirTemp(t)
 	for _, k := range codes.Codes() {
 		g, _ := codes.Active().Entry(k)
-		if g.Example == "" {
+		// Komutların (K) örneği bir komut satırıdır, TR programı değil; komut satırı testleri sınar.
+		if g.Example == "" || k.Letter() == 'K' {
 			continue
 		}
 		prog, example := exampleProgram(t, k)

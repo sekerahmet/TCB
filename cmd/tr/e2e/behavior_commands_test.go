@@ -25,13 +25,14 @@ func TestHelpAndVersion(t *testing.T) {
 	}
 }
 
-// Her komutun tek Türkçe adı vardır: Türkçe karaktersiz ve İngilizce yazımlar dosya adı
-// sanılmaz, asıl komutu öneren bir hatayla 1 koduyla çıkar.
+// Komut adları ad kodlarıdır: her yazım dilinin adı kabul edilir (tr çalıştır da tr run da her
+// makinede çalışır; betikler TR_DIL'den bağımsızdır). Türkçe karaktersiz yazımlar ve --help,
+// --version dosya adı sanılmaz, asıl komutu öneren bir hatayla 1 koduyla çıkar.
 func TestCommandsHaveOneName(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "a.tr", "yazdır(\"çalıştı\")\n")
 	for ad, actual := range map[string]string{
-		"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla", "debug": "hata_ayıkla",
+		"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla",
 		"yardim": "yardım", "--help": "yardım", "surum": "sürüm", "--version": "sürüm",
 	} {
 		s := tr(t, dir, ad, "a.tr")
@@ -41,6 +42,10 @@ func TestCommandsHaveOneName(t *testing.T) {
 		}
 	}
 	wait(t, tr(t, dir, "biçimle", "--check", "a.tr"), 1, nil, []string{"'--check' TR'de bir bayrak değil; '--kontrol'"})
+	// İngilizce yazım dilinin adları da her makinede komuttur.
+	wait(t, tr(t, dir, "run", "a.tr"), 0, []string{"çalıştı"}, nil)
+	wait(t, tr(t, dir, "version"), 0, []string{"v" + trVersion(t)}, nil)
+	wait(t, tr(t, dir, "help"), 0, []string{"Kullanım:"}, nil)
 }
 
 func TestRemovedCommands(t *testing.T) {

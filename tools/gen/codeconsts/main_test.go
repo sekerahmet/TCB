@@ -9,8 +9,22 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
+
+// Üretecin aile harfleri kod listesindekiyle aynı sıradadır: yeni bir aile (ör. K) eklenince bu
+// kopya da güncellenmezse üreteç o ailenin kodlarını geçersiz sayardı.
+func TestAileHarfleriAyni(t *testing.T) {
+	for i := 0; i < len(aileHarfleri); i++ {
+		if got := codes.Code(1000 * (i + 1)).Letter(); got != aileHarfleri[i] {
+			t.Errorf("%d. aile: üreteçte %c, kod listesinde %c", i+1, aileHarfleri[i], got)
+		}
+	}
+	if codes.Code(1000*(len(aileHarfleri)+1)).Letter() != 0 {
+		t.Error("kod listesinde üretecin bilmediği bir aile var")
+	}
+}
 
 // Üretilen sabit dosyası kod listesinden üretilenle aynı olmalı: bir kod eklendiğinde,
 // kaldırıldığında ya da taşındığında `go run ./tools/gen/codeconsts` çalıştırılmadıysa

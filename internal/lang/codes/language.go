@@ -442,6 +442,26 @@ func buildLanguage(langCode string) (*Language, error) {
 	return Load(langCode, data)
 }
 
+// FindCommand finds a command or option (K) by its name in any embedded writing language: the
+// active language first, then the others. Command lines and scripts then work on every machine
+// whatever TR_DIL is (unlike the language's source, a command line has no coded form).
+func FindCommand(name string) (Code, bool) {
+	if k, ok := active.Find(NamespaceCommand, name); ok {
+		return k, true
+	}
+	for _, lc := range Languages() {
+		if lc == active.Code {
+			continue
+		}
+		if l, err := LoadLanguage(lc); err == nil {
+			if k, ok := l.Find(NamespaceCommand, name); ok {
+				return k, true
+			}
+		}
+	}
+	return None, false
+}
+
 // Languages returns the codes of the embedded writing languages, sorted.
 func Languages() []string {
 	var r []string

@@ -55,6 +55,9 @@ const (
 	KindMethod   Kind = "metot"
 	KindProperty Kind = "özellik"
 	KindNamedArg Kind = "adlı_argüman"
+	// KindCommand is a command or option of tr, the shell or the debugger (K); it is not a
+	// name in the language, so programs cannot use it.
+	KindCommand Kind = "komut"
 )
 
 // ExpectedKind is the kind implied by the code's family and group (for Y members it returns
@@ -71,6 +74,8 @@ func (k Code) ExpectedKind() Kind {
 		return KindMethod
 	case k.Namespace() == NamespaceParam:
 		return KindNamedArg
+	case k.Letter() == 'K':
+		return KindCommand
 	}
 	return KindFunction
 }

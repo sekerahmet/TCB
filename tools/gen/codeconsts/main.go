@@ -93,7 +93,7 @@ func depoKoku() string {
 }
 
 // aileHarfleri internal/lang/codes'daki sırayla aynıdır (A=1000, G=2000, H=3000 ...).
-const aileHarfleri = "AGHTVWY"
+const aileHarfleri = "AGHKTVWY"
 
 type kod struct {
 	harf  byte

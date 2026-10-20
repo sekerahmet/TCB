@@ -8,12 +8,13 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 257 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 99 fonksiyon, 1 sabit, 38 metot, 21 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 293 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 99 fonksiyon, 1 sabit, 38 metot, 21 özellik, 39 adlı argüman; ayrıca 9 taşınmış ve 64 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
 - A — Dilin çekirdeği: Anahtar kelimeler (A0xx) · Bağlamsal sözcükler (A1xx) · Tip adları (A2xx)
 - G — Genel yerleşikler: Giriş, çıkış ve dosya (G1xx) · Değer, tip ve dönüşüm (G2xx) · Liste (G3xx) · Matematik ve istatistik (G4xx) · Zaman ve eşzamanlılık (G5xx) · Veri biçimleri (G6xx) · Test (G7xx)
+- K — Komutlar (tr, kabuk, hata ayıklayıcı): tr alt komutları (K0xx) · Komut satırı seçenekleri (K1xx) · Kabuk komutları (K2xx) · Hata ayıklayıcı komutları (K3xx)
 - T — Tensör ve yapay zekâ: Tensör oluşturma ve görünüm (T1xx) · Etkinleştirme ve eleman bazlı matematik (T2xx) · Türev (T3xx) · İyileştiriciler (T4xx) · Katmanlar, kayıplar, hazır model (T5xx) · Vektör yardımcıları ve dil modeli (T6xx) · Kaydetme, yükleme, veri türleri (T7xx) · Adlı argümanlar (T9xx)
 - V — Veri ve parçalayıcı: Veri kümesi (V1xx) · Parçalayıcı (V2xx) · Adlı argümanlar (V9xx)
 - W — Web, veritabanı, arayüz (kaldırıldı): Web istemcisi ve sunucusu (W1xx) · Veritabanı (W2xx) · Görsel arayüz (W3xx) · Adlı argümanlar (W9xx)
@@ -1149,6 +1150,304 @@ eşit_mi(4, 2 + 2); yazdır("eşit")
 ```
 
 İlişkili: G700 `doğrula`, A101 `test`
+
+## K — Komutlar (tr, kabuk, hata ayıklayıcı)
+
+### tr alt komutları (K0xx)
+
+#### K001 `yardım`
+
+Komutların ve seçeneklerin kısa yardımını yazar.
+
+```tr
+tr yardım
+```
+
+#### K002 `sürüm`
+
+TR'nin sürümünü yazar.
+
+```tr
+tr sürüm
+```
+
+#### K003 `çalıştır`
+
+Bir TR programını çalıştırır; komut adı yazılmadan verilen dosya da çalıştırılır.
+
+```tr
+tr çalıştır eğit.tr
+```
+
+#### K004 `kontrol`
+
+Programı çalıştırmadan ayrıştırır ve tip denetiminden geçirir.
+
+```tr
+tr kontrol eğit.tr
+```
+
+#### K005 `derle`
+
+Programı yorumlayıcıyla birlikte tek bir çalıştırılabilir dosyaya paketler.
+
+```tr
+tr derle eğit.tr
+```
+
+#### K006 `hata_ayıkla`
+
+Programı terminal hata ayıklayıcısında başlatır.
+
+```tr
+tr hata_ayıkla eğit.tr
+```
+
+#### K007 `test`
+
+Bir dosyadaki ya da klasördeki *_test.tr testlerini koşar.
+
+```tr
+tr test tests
+```
+
+#### K008 `biçimle`
+
+TR dosyalarını standart biçime getirir.
+
+```tr
+tr biçimle eğit.tr
+```
+
+#### K009 `kodla`
+
+Dosyayı dilden bağımsız kodlu biçime çevirir.
+
+```tr
+tr kodla eğit.tr
+```
+
+#### K010 `çöz`
+
+Kodlu dosyayı etkin yazım dilindeki biçime geri çevirir.
+
+```tr
+tr çöz eğit.tr
+```
+
+#### K011 `göster`
+
+Kodlu dosyayı değiştirmeden etkin yazım dilinde yazar.
+
+```tr
+tr göster eğit.tr
+```
+
+#### K012 `izle`
+
+Çalışan bir eğitimin canlı profil tablosunu gösterir.
+
+```tr
+tr izle
+```
+
+#### K013 `profil`
+
+Biten ya da süren bir eğitimin profil raporunu yazar.
+
+```tr
+tr profil
+```
+
+#### K014 `dap`
+
+Düzenleyicinin hata ayıklama protokolü (DAP) sunucusunu başlatır; düzenleyiciler kullanır.
+
+```tr
+tr dap
+```
+
+### Komut satırı seçenekleri (K1xx)
+
+#### K100 `dil`
+
+Yazım dilini seçer (tr, en); --dil biçiminde yazılır.
+
+```tr
+tr göster --dil en eğit.tr
+```
+
+#### K101 `kontrol`
+
+Dosyayı değiştirmeden biçiminin standart olup olmadığını denetler (tr biçimle).
+
+```tr
+tr biçimle --kontrol eğit.tr
+```
+
+#### K102 `web`
+
+Canlı tabloyu terminal yerine tarayıcıda açar (tr izle).
+
+```tr
+tr izle --web
+```
+
+#### K103 `json`
+
+Profil raporunu JSON olarak yazar (tr profil).
+
+```tr
+tr profil --json
+```
+
+#### K104 `go_profili`
+
+Yorumlayıcının kendi Go profilini de yazar (tr profil).
+
+```tr
+tr profil --go_profili
+```
+
+#### K105 `çıktı`
+
+Canlı tablonun yazılacağı dosyayı seçer (tr izle).
+
+```tr
+tr izle --çıktı tablo.txt
+```
+
+#### K106 `yardım`
+
+Programın komut satırı seçeneklerinin yardımını yazar (komut_satırı ile tanımlanan seçenekler).
+
+```tr
+tr eğit.tr --yardım
+```
+
+### Kabuk komutları (K2xx)
+
+#### K200 `çıkış`
+
+Etkileşimli kabuktan çıkar.
+
+```tr
+çıkış
+```
+
+### Hata ayıklayıcı komutları (K3xx)
+
+#### K300 `adım`
+
+Tek adım ilerler; fonksiyonların içine girer (F11).
+
+```tr
+adım
+```
+
+#### K301 `geç`
+
+Üstten geçer: fonksiyonu tek adımda çalıştırır (F10).
+
+```tr
+geç
+```
+
+#### K302 `dön`
+
+Çalışan fonksiyondan çıkana kadar çalıştırır (Shift+F11).
+
+```tr
+dön
+```
+
+#### K303 `devam`
+
+Sonraki kesme ya da izleme noktasına kadar devam eder (F5).
+
+```tr
+devam
+```
+
+#### K304 `değiştir`
+
+Çalışma anında bir değişkenin değerini değiştirir.
+
+```tr
+değiştir x = 100
+```
+
+#### K305 `zıpla`
+
+Çalışma sırasını verilen satıra taşır.
+
+```tr
+zıpla 15
+```
+
+#### K306 `kesme`
+
+Bir satıra kesme noktası koyar ya da kaldırır.
+
+```tr
+kesme 12
+```
+
+#### K307 `izle`
+
+Bir ifadeyi izleme listesine ekler; değeri her durakta gösterilir.
+
+```tr
+izle kayıp
+```
+
+#### K308 `tablo`
+
+Değişkenlerin tablosunu gösterir.
+
+```tr
+tablo
+```
+
+#### K309 `yığın`
+
+Çağrı yığınını gösterir.
+
+```tr
+yığın
+```
+
+#### K310 `hesapla`
+
+Bir ifadeyi o anki ortamda hesaplar ve yazar.
+
+```tr
+hesapla x * 2
+```
+
+#### K311 `ekran`
+
+Kaynak kodun duraklanan satır çevresini gösterir.
+
+```tr
+ekran
+```
+
+#### K312 `yardım`
+
+Hata ayıklayıcı komutlarının yardımını yazar.
+
+```tr
+yardım
+```
+
+#### K313 `çıkış`
+
+Hata ayıklayıcıdan ve programdan çıkar.
+
+```tr
+çıkış
+```
 
 ## T — Tensör ve yapay zekâ
 

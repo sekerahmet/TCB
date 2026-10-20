@@ -64,27 +64,27 @@ func main() {
 		startREPL()
 		return
 	}
-	if replacement, ok := removedCommands[args[0]]; ok {
-		exitWithError(messages.Text(messages.H8602, args[0], replacement))
+	command := commandCode(args[0])
+	if command == codes.None {
+		if replacement, ok := oldCommand(args[0]); ok {
+			exitWithError(messages.Text(messages.H8602, args[0], replacement))
+		}
 	}
-
-	if command, ok := commandsWithArguments[args[0]]; ok {
-		command(args[1:])
+	if run, ok := commandsWithArguments[command]; ok {
+		run(args[1:])
 		return
 	}
-	switch args[0] {
-	case "yardım", "-h":
+	switch command {
+	case codes.K001:
 		printHelp()
-	case "sürüm", "-v":
+	case codes.K002:
 		fmt.Println(messages.Text(messages.H8603, VERSION))
-	case "bytecode", "baytkod":
-		exitWithError(messages.Text(messages.H8604))
-	case "kontrol":
+	case codes.K004:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, "kontrol", "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, codes.Name(codes.K004), "ornek.tr"))
 		}
 		checkFile(args[1])
-	case "derle":
+	case codes.K005:
 		if len(args) < 2 {
 			exitWithError(messages.Text(messages.H8606))
 		}
@@ -93,7 +93,7 @@ func main() {
 			outPath = args[2]
 		}
 		compileToExe(args[1], outPath)
-	case "dap":
+	case codes.K014:
 		// Düzenleyicinin hata ayıklama oturumu: iletiler standart giriş/çıkış üzerinden gelir.
 		// Oturum bitince motorların açık kaynakları kapanır, geçici klasörler silinir.
 		err := debugger.ServeDAP(os.Stdin, os.Stdout)
@@ -102,30 +102,55 @@ func main() {
 			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8607, err))
 			os.Exit(1)
 		}
-	case "çalıştır":
+	case codes.K003:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, "çalıştır", "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, codes.Name(codes.K003), "ornek.tr"))
 		}
 		runFile(args[1], args[2:])
 	default:
+		if args[0] == "bytecode" || args[0] == "baytkod" {
+			exitWithError(messages.Text(messages.H8604))
+		}
 		runFile(args[0], args[1:])
 	}
 }
 
-// commandsWithArguments argümanlarını kendisi ayrıştıran alt komutlardır (komut adından
-// sonrakiler verilir).
-var commandsWithArguments = map[string]func([]string){
-	"hata_ayıkla": debugCommand, "test": testCommand, "biçimle": formatCommand, "kodla": encodeCommand,
-	"çöz": decodeCommand, "göster": showCommand, "izle": watchCommand, "profil": profileCommand,
+// commandCode komut satırının ilk argümanını bir tr komutunun koduna çevirir: kısa bayraklar
+// (-h, -v) simgedir; adlar her yazım dilinde aranır (tr çalıştır da tr run da her makinede
+// çalışır, betikler TR_DIL'den bağımsızdır). Komut değilse codes.None (dosya adıdır).
+func commandCode(arg string) codes.Code {
+	switch arg {
+	case "-h":
+		return codes.K001
+	case "-v":
+		return codes.K002
+	}
+	if k, ok := codes.FindCommand(arg); ok {
+		return k
+	}
+	return codes.None
 }
 
-// removedCommands kaldırılan komut adlarının (Türkçe karaktersiz ve İngilizce yazımlar)
-// asıl adlarıdır. Her komutun tek Türkçe adı vardır; kısa bayraklar -h ve -v simgedir, kalır.
-// Bu adlar KABUL EDİLMEZ: dosya adı sanılıp çalıştırılmaya çalışılmaz, asıl komut önerilir.
-var removedCommands = map[string]string{
-	"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla", "debug": "hata_ayıkla",
-	"yardim": "yardım", "--help": "yardım", "help": "yardım", "surum": "sürüm", "--version": "sürüm",
-	"version": "sürüm", "coz": "çöz", "goster": "göster", "watch": "izle", "profile": "profil",
+// oldCommand bir komutun eski yazımını (Türkçe harfsiz biçim, --help ve --version) tanır ve
+// asıl adını verir. Eski yazım KABUL EDİLMEZ: dosya adı sanılıp çalıştırılmaya çalışılmaz.
+func oldCommand(arg string) (string, bool) {
+	switch arg {
+	case "--help":
+		return codes.Name(codes.K001), true
+	case "--version":
+		return codes.Name(codes.K002), true
+	}
+	if k, ok := codes.Active().Suggest(codes.NamespaceCommand, arg, nil); ok {
+		return codes.Name(k), true
+	}
+	return "", false
+}
+
+// commandsWithArguments argümanlarını kendisi ayrıştıran alt komutlardır (komut adından
+// sonrakiler verilir).
+var commandsWithArguments = map[codes.Code]func([]string){
+	codes.K006: debugCommand, codes.K007: testCommand, codes.K008: formatCommand, codes.K009: encodeCommand,
+	codes.K010: decodeCommand, codes.K011: showCommand, codes.K012: watchCommand, codes.K013: profileCommand,
 }
 
 // exitWithError iletiyi "Hata: ..." olarak standart hataya yazar ve 1 koduyla çıkar.

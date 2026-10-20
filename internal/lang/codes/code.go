@@ -20,6 +20,7 @@ const (
 	A Code = 1000 * (iota + 1) // dilin çekirdeği: anahtar kelimeler, tip adları
 	G                          // genel yerleşikler
 	H                          // hata mesajları (ikinci aşama)
+	K                          // komutlar: tr alt komutları, seçenekler, kabuk ve hata ayıklayıcı
 	T                          // tensör ve yapay zekâ
 	V                          // veri ve parçalayıcı
 	W                          // web, veritabanı, arayüz (kaldırıldı)
@@ -28,7 +29,7 @@ const (
 
 // familyLetters alfabe sırasındadır; böylece kodların sayısal sırası dil dosyasındaki
 // (harf, sayı) sırasıyla aynıdır.
-const familyLetters = "AGHTVWY"
+const familyLetters = "AGHKTVWY"
 
 // None is the zero value returned for a name that has no code.
 const None Code = 0
@@ -103,11 +104,14 @@ func IsCodeForm(s string) bool {
 type Namespace uint8
 
 const (
-	NamespaceNone   Namespace = iota // a code with no namespace (H: error messages)
-	NamespaceGlobal                  // keywords, contextual words, G/T/V/W builtins
-	NamespaceType                    // type names (A2xx)
-	NamespaceMember                  // methods and properties (Y)
-	NamespaceParam                   // named arguments (the x9xx groups in G/T/V/W)
+	NamespaceNone     Namespace = iota // a code with no namespace (H: error messages)
+	NamespaceGlobal                    // keywords, contextual words, G/T/V/W builtins
+	NamespaceType                      // type names (A2xx)
+	NamespaceMember                    // methods and properties (Y)
+	NamespaceParam                     // named arguments (the x9xx groups in G/T/V/W)
+	NamespaceCommand                   // commands of tr and the shell (K0xx, K2xx)
+	NamespaceOption                    // command-line options, written --name (K1xx): 'kontrol' there is not 'tr kontrol'
+	NamespaceDebugger                  // terminal debugger commands (K3xx): its 'izle' is not 'tr izle'
 	namespaceCount
 )
 
@@ -121,6 +125,12 @@ func (a Namespace) String() string {
 		return "üyeler"
 	case NamespaceParam:
 		return "adlı argümanlar"
+	case NamespaceCommand:
+		return "komutlar"
+	case NamespaceOption:
+		return "komut satırı seçenekleri"
+	case NamespaceDebugger:
+		return "hata ayıklayıcı komutları"
 	}
 	return "ad alanı yok"
 }
@@ -140,6 +150,14 @@ func (k Code) Namespace() Namespace {
 		return NamespaceGlobal
 	case 'Y':
 		return NamespaceMember
+	case 'K':
+		switch k.Group() {
+		case 1:
+			return NamespaceOption
+		case 3:
+			return NamespaceDebugger
+		}
+		return NamespaceCommand
 	}
 	return NamespaceNone
 }

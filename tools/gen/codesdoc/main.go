@@ -88,6 +88,12 @@ var aileler = []struct {
 		{'G', 6, "Veri biçimleri (G6xx)"},
 		{'G', 7, "Test (G7xx)"},
 	}},
+	{'K', "K — Komutlar (tr, kabuk, hata ayıklayıcı)", []bolum{
+		{'K', 0, "tr alt komutları (K0xx)"},
+		{'K', 1, "Komut satırı seçenekleri (K1xx)"},
+		{'K', 2, "Kabuk komutları (K2xx)"},
+		{'K', 3, "Hata ayıklayıcı komutları (K3xx)"},
+	}},
 	{'T', "T — Tensör ve yapay zekâ", []bolum{
 		{'T', 1, "Tensör oluşturma ve görünüm (T1xx)"},
 		{'T', 2, "Etkinleştirme ve eleman bazlı matematik (T2xx)"},
