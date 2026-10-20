@@ -53,6 +53,8 @@ func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	}
 	if !*noRebuild {
 		g = refresh(g, *root, *graphPath, stderr)
+	} else if g.Extractor != extractorRevision {
+		fmt.Fprintf(stderr, "codegraph: warning: the graph was built by an older codegraph (extractor %d, now %d); results may be incomplete; run build\n", g.Extractor, extractorRevision)
 	}
 	ix := newIndex(g)
 	nodes := make([]*Node, 0, want)

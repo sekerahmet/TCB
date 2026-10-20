@@ -40,6 +40,9 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 	}
 	fmt.Fprintf(stdout, "changed %s: %d hunks in %d files\n  mapping: %s\n", rng, len(hs), len(main.files), mapping)
 	ix.printTouched(stdout, main, o.limit)
+	if main == oldSide { // grafik dalın ağacı değil: dalda yeni olan bildirimleri dalın kendi dosyalarından adlandır
+		printBranchDecls(stdout, branchDecls(o.root, right, main.unmappedHunks), o.limit)
+	}
 	ix.printTestsToRun(stdout, main, o.limit)
 	ix.printOverlaps(stdout, o, ref, oldSide)
 	return exitOK
@@ -242,4 +245,18 @@ func mergePreview(root, a, b string) string {
 		names = append(names, strings.TrimSpace(l))
 	}
 	return "CONFLICT in " + strings.Join(trimIDs(names, 4), ", ")
+}
+
+// printBranchDecls grafikte düğümü olmayan, dalda eklenen ya da değişen bildirimleri yazar.
+func printBranchDecls(w io.Writer, decls map[string][]string, limit int) {
+	var lines []string
+	for file, names := range decls {
+		lines = append(lines, file+": "+strings.Join(names, ", "))
+	}
+	sort.Strings(lines)
+	if len(lines) == 0 {
+		return
+	}
+	fmt.Fprintf(w, "  declarations on the branch that the graph does not have (%d files; new functions, new tests):\n", len(lines))
+	printLimited(w, lines, limit, "    ")
 }

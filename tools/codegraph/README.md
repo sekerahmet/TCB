@@ -111,7 +111,10 @@ repository (a failing git is an error, exit 1).
   `git merge-tree --write-tree` trial merge (`clean` or the conflicting files). The graph is of
   the checked-out tree: when the ref is the checked-out HEAD the new-side lines are mapped (new
   functions included), otherwise the old-side lines, which is exact only while the tree equals the
-  merge base. Added code with no old-side counterpart shows as "mapped to no node" (by file).
+  merge base. Added code with no old-side counterpart is counted under "mapped to no node" (by file) and,
+  for Go files, named from the branch's own copy of the file ("declarations on the branch that the
+  graph does not have": new functions, new tests, new test files). A graph written by an older
+  codegraph (`extractor` below the tool's) is rebuilt by the next query even when its stamp matches.
 - `deleted [--retired-json] [--family messages|names]`: message and name codes that were in the
   dictionary files in the past and are gone today, with the commit that removed them and the one
   that added them, and codes that were defined again after a deletion (a bug: numbers are never
