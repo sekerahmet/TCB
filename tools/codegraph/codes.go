@@ -47,7 +47,7 @@ func extractCodes(root string, b *builder) {
 		lines := jsonKeyLines(filepath.Join(dir, "tr.json"))
 		for code, text := range texts {
 			b.addNode(Node{ID: "msg:" + code, Kind: kindMessage, Name: code, File: rel,
-				Line: lines[code], Detail: text, Params: defs[code].Param})
+				Line: lines[code], End: lines[code], Detail: text, Params: defs[code].Param})
 		}
 	}
 	names := map[string]struct {
@@ -60,7 +60,7 @@ func extractCodes(root string, b *builder) {
 		lines := jsonKeyLines(filepath.Join(cdir, "tr.json"))
 		for code, n := range names {
 			b.addNode(Node{ID: "name:" + code, Kind: kindName, Name: code, File: rel,
-				Line: lines[code], Detail: n.Ad + " (" + n.Aile + ")"})
+				Line: lines[code], End: lines[code], Detail: n.Ad + " (" + n.Aile + ")"})
 		}
 	}
 }

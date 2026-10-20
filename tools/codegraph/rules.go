@@ -11,6 +11,8 @@ var (
 	backtick  = regexp.MustCompile("`([^`]+)`")
 	boldLead  = regexp.MustCompile(`\*\*([^*]+)\*\*`)
 	identOnly = regexp.MustCompile(`^\w+$`)
+	// listMarker madde işaretidir ("- ", "* ", "1. "); kural adı ondan sonra başlar.
+	listMarker = regexp.MustCompile(`^([-*+]|\d+\.)\s+`)
 )
 
 // addRules d'deki her "Denetim:" maddesini ve "Kural | Test" tablosu satırını kural düğümü
@@ -38,10 +40,15 @@ func addRules(b *builder, idx *goIndex, set *docSet, d *mdDoc) {
 
 // ruleName kuralın kısa adıdır: kalın başlık varsa o (sondaki nokta atılır), yoksa ilk sözcükler.
 func ruleName(text string) string {
-	if m := boldLead.FindStringSubmatch(text); m != nil {
+	text = strings.TrimSpace(listMarker.ReplaceAllString(strings.TrimSpace(text), ""))
+	if m := boldLead.FindStringSubmatch(text); m != nil && strings.HasPrefix(text, "**") {
 		return strings.TrimRight(strings.TrimSpace(m[1]), ".:")
 	}
-	text = strings.ReplaceAll(text, "`", "")
+	// Başta kalın ad yoksa ilk cümle (en çok 70 karakter); ortadaki kalın sözcükler ad değildir.
+	text = strings.NewReplacer("`", "", "**", "").Replace(text)
+	if i := strings.Index(text, ". "); i > 0 {
+		text = text[:i]
+	}
 	return truncate(strings.TrimSpace(text), 70)
 }
 

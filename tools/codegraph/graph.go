@@ -52,6 +52,7 @@ type Node struct {
 	Name   string   `json:"name"`
 	File   string   `json:"file,omitempty"`
 	Line   int      `json:"line,omitempty"`
+	End    int      `json:"end,omitempty"` // son satır (işlev/tip/başlık bölümü): hunk'ları düğüme eşlemek için
 	Detail string   `json:"detail,omitempty"`
 	Params []string `json:"params,omitempty"`
 }
@@ -72,6 +73,7 @@ type Edge struct {
 type Graph struct {
 	SchemaVersion int      `json:"schema_version"`
 	Module        string   `json:"module"`
+	Stamp         string   `json:"stamp,omitempty"` // kurulduğu andaki kaynak imzası (fresh.go); yoksa denetlenmez
 	Nodes         []Node   `json:"nodes"`
 	Edges         []Edge   `json:"edges"`
 	Warnings      []string `json:"warnings,omitempty"`
@@ -152,7 +154,24 @@ func writeGraph(path string, g *Graph) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(data, '\n'), 0o644)
+	// Geçici dosyaya yazıp yer değiştirmek: aynı anda çalışan iki sorgu yarım dosya okumaz.
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".graph-*.json")
+	if err != nil {
+		return err
+	}
+	_, werr := tmp.Write(append(data, '\n'))
+	if cerr := tmp.Close(); werr == nil {
+		werr = cerr
+	}
+	if werr != nil {
+		os.Remove(tmp.Name())
+		return werr
+	}
+	if err := os.Rename(tmp.Name(), path); err != nil {
+		os.Remove(tmp.Name())
+		return err
+	}
+	return nil
 }
 
 // readGraph graph.json'ı okur ve sürümünü denetler.

@@ -74,10 +74,13 @@ go run ./tools/codegraph build                   # .codegraph/graph.json (git'e 
 go run ./tools/codegraph query messages.New      # düğüm + komşuları
 go run ./tools/codegraph who-uses H2100          # ileti/ad kodunu ya da işlevi kullananlar
 go run ./tools/codegraph tests-for interp.VM.Run # sınayan testler ve koruduğu kurallar
+go run ./tools/codegraph history H2100          # kodun/işlevin/dosyanın commit geçmişi (git'ten, graph.json'a yazılmaz)
+go run ./tools/codegraph changed claude/dal      # dalın dokunduğu düğümler, testleri, aynı yere dokunan öbür claude/ dalları
+go run ./tools/codegraph deleted                 # geçmişte olup silinmiş ileti/ad kodları
 go run ./tools/codegraph path interp.VM H2100    # iki düğüm arası en kısa yol
 ```
 
-Belirsiz ad çıkış kodu 3 ve aday listesi, bulunamayan ad 4 verir. `[INFERRED]` etiketli kenar tahmindir, etiketsiz kenar koddan okunmuştur. Kod değişince grafiği yeniden kurun; `build` çözülemeyen `Denetim:` testlerini ve kırık belge bağlantılarını uyarı olarak yazar. Bir adın her kullanımı için değişiklik öncesi sorgu hâlâ [`tools/impact`](../tools/impact/main.go)'tır.
+Belirsiz ad çıkış kodu 3 ve aday listesi, bulunamayan ad 4 verir. `[INFERRED]` etiketli kenar tahmindir, etiketsiz kenar koddan okunmuştur. Sorgular grafik eskiyse (git HEAD'i ya da değişen `.go`/`.json`/`.md` dosyaları kurulduğundan farklıysa) önce kendisi kurar ve stderr'e `graph rebuilt (N s)` yazar; `--no-rebuild` bunu kapatır, `build`'i elle çalıştırmak gerekmez. `build` çözülemeyen `Denetim:` testlerini ve kırık belge bağlantılarını uyarı olarak yazar. Bir adın her kullanımı için değişiklik öncesi sorgu hâlâ [`tools/impact`](../tools/impact/main.go)'tır.
 
 ## Ölçüm disiplini
 

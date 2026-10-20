@@ -76,10 +76,17 @@ func ownerID(d *mdDoc, owner int) string {
 func addDocNodes(b *builder, d *mdDoc, set *docSet) {
 	b.addNode(Node{ID: docID(d.rel), Kind: kindDoc, Name: d.rel, File: d.rel, Line: 1})
 	set.slug[d.rel] = map[string]string{}
-	for _, h := range d.headings {
+	for i, h := range d.headings {
 		id := headingID(d.rel, h.slug)
+		end := d.lines // bölüm, aynı ya da üst düzeyden sonraki başlığa kadar sürer
+		for _, next := range d.headings[i+1:] {
+			if next.level <= h.level {
+				end = next.line - 1
+				break
+			}
+		}
 		set.slug[d.rel][h.slug] = id
-		b.addNode(Node{ID: id, Kind: kindHeading, Name: h.text, File: d.rel, Line: h.line,
+		b.addNode(Node{ID: id, Kind: kindHeading, Name: h.text, File: d.rel, Line: h.line, End: end,
 			Detail: d.rel + " h" + strconv.Itoa(h.level)})
 		b.addEdge(ownerID(d, h.owner), id, edgeContains, extracted, d.rel, h.line)
 	}

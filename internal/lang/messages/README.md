@@ -10,7 +10,7 @@ iletiler için bu pakettir.
 `H0` sözdizimi · `H1` tip denetimi · `H2` yorumlayıcı (ortak `H2000` = `{fn}: {error}`) · `H3`
 tensör ve CPU · `H4` GPU · `H5` veri ve parçalayıcı · `H6` stdlib/ml · `H7` standart kitaplığın
 geri kalanı · `H8` araçlar ve `tr` komutu · `H9` iç hatalar. Silinen bir kodun numarası bir daha
-kullanılmaz. Denetim: `TestParseCode`, `TestCatalogErrors`, `TestMessageUsage` (tools/gen/msgconsts: kullanılmayan kod).
+kullanılmaz: silinenler `retired.json`'dadır (numara → commit ve gerekçe; ilk liste `go run ./tools/codegraph deleted --retired-json` ile üretildi), katalogda ya da tanımlarda yeniden bulunursa üreteç çalışmaz. Denetim: `TestParseCode`, `TestCatalogErrors`, `TestMessageUsage` (tools/gen/msgconsts: kullanılmayan kod), `TestRetiredCodesStayRetired`, `TestGenerateRejectsRetiredCode` (tools/gen/msgconsts).
 
 **Go kodu metin yazmaz, kod yazar.** `messages.New(messages.H7003, fn, path)` bir hata,
 `messages.Text(...)` hata olmayan çıktı (uyarı, not) verir. Değerler tanımdaki parametre sırasıyla

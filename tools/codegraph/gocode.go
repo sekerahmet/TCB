@@ -182,7 +182,7 @@ func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
 	if recv != "" {
 		qual += "." + recv
 	}
-	x.b.addNode(Node{ID: id, Kind: kind, Name: qual + "." + name, File: fc.rel, Line: x.line(d.Pos()),
+	x.b.addNode(Node{ID: id, Kind: kind, Name: qual + "." + name, File: fc.rel, Line: x.line(d.Pos()), End: x.line(d.End()),
 		Detail: types.ObjectString(obj, func(p *types.Package) string { return p.Name() })})
 	x.b.addEdge(fileID(fc.rel), id, edgeContains, extracted, fc.rel, x.line(d.Pos()))
 	if recv != "" {
@@ -251,7 +251,7 @@ func (x *goExtractor) typeSpec(fc *fileCtx, ts *ast.TypeSpec, obj *types.TypeNam
 		}
 	}
 	line := x.line(ts.Pos())
-	x.b.addNode(Node{ID: id, Kind: kindType, Name: path.Base(pkg) + "." + obj.Name(), File: fc.rel, Line: line, Detail: detail})
+	x.b.addNode(Node{ID: id, Kind: kindType, Name: path.Base(pkg) + "." + obj.Name(), File: fc.rel, Line: line, End: x.line(ts.End()), Detail: detail})
 	x.b.addEdge(fileID(fc.rel), id, edgeContains, extracted, fc.rel, line)
 	if !fc.isTest {
 		x.addSym(fc.base, obj.Name(), id)
@@ -265,7 +265,7 @@ func (x *goExtractor) typeSpec(fc *fileCtx, ts *ast.TypeSpec, obj *types.TypeNam
 		mid := memberID(pkg, obj.Name(), mth.Name())
 		ml := x.line(mth.Pos())
 		x.b.addNode(Node{ID: mid, Kind: kindMethod, Name: path.Base(pkg) + "." + obj.Name() + "." + mth.Name(),
-			File: fc.rel, Line: ml, Detail: types.ObjectString(mth, func(p *types.Package) string { return p.Name() })})
+			File: fc.rel, Line: ml, End: ml, Detail: types.ObjectString(mth, func(p *types.Package) string { return p.Name() })})
 		x.b.addEdge(id, mid, edgeContains, extracted, fc.rel, ml)
 		if !fc.isTest {
 			x.addSym(fc.base, obj.Name()+"."+mth.Name(), mid)

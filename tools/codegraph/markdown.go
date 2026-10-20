@@ -38,6 +38,7 @@ type mdDoc struct {
 	headings []mdHeading
 	links    []mdLink
 	rules    []mdRule
+	lines    int // dosyanın satır sayısı
 }
 
 var (
@@ -91,6 +92,7 @@ func parseMarkdown(rel, text string) *mdDoc {
 		p.line(n, line, trimmed)
 	}
 	p.flush()
+	d.lines = strings.Count(text, "\n") + 1
 	return d
 }
 
