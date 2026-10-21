@@ -188,8 +188,10 @@ func (n *object) checkMatch(fn string, y *pending, version int) error {
 			shapes[i] = y.shapes[name]
 		}
 		err := n.op.CheckState(messages.Text(messages.H7441, fn, n.name), y.order, shapes)
-		if err != nil && badCounter(y) {
-			return corruptContent{err} // sayaçların şekli sabittir: iyileştirici değişmiş değil, kayıt bozuk
+		if err != nil && (badCounter(y) || messages.Has(err, messages.H6516)) {
+			// Sayaçların şekli sabittir; tür ve parametre sayısı tuttuğu halde bilinmeyen bir
+			// durum anahtarı da iyileştiricinin değiştiğini değil, kaydın bozuk olduğunu söyler.
+			return corruptContent{err}
 		}
 		return err
 	case kindStateful, kindPlain:

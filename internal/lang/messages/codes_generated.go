@@ -713,6 +713,8 @@ const (
 	H5543 Code = 5543 // {fn}: durumun {name|q} alanı 0 ya da pozitif bir {type} olmalı, {given} verildi
 	H5544 Code = 5544 // {fn}: kayıttaki okuyucunun {name} değeri {recorded}, bu okuyucununki {now}; aynı ayarla sürdürün ya da yeni bir koşu klasörü verin
 	H5545 Code = 5545 // {fn}: atlanacak toplu iş sayısı negatif olamaz, {given} verildi
+	H5546 Code = 5546 // {fn}: durumun {name|q} alanı {given|q}; okuyucu türü {valid} olmalı (kayıt bozuk)
+	H5547 Code = 5547 // {fn}: durumun {name|q} alanı pozitif bir {type} olmalı, {given} verildi (kayıt bozuk)
 	H5600 Code = 5600 // {type}(dağarcık {size}, {file})
 	H5601 Code = 5601 // {type} (dağarcık {size})
 	H5602 Code = 5602 // bu parçalayıcıda eklenmiş (özel) parça yok; dağarcık boyutu {size}
@@ -1015,6 +1017,8 @@ const (
 	H6651 Code = 6651 // safetensors başlığından sonra fazladan JSON verisi var
 	H6652 Code = 6652 // safetensors tensörü {name|q}: dtype, shape ve data_offsets (iki sayı) alanları gerekli
 	H6653 Code = 6653 // safetensors tensörü {name|q} okunamadı: {error}
+	H6654 Code = 6654 // safetensors tensörü {name|q}: bilinmeyen alan {field|q} (alanlar tam olarak dtype, shape ve data_offsets yazılır)
+	H6655 Code = 6655 // safetensors tensörü {name|q}: {field} alanı yanlış türde (dtype metin; shape ve data_offsets 0 ya da pozitif tam sayılardan oluşan dizi olmalı)
 	H6700 Code = 6700 // bu tensör ({shape}) bir işlemin sonucu; gradyan yalnızca {requiresGradArg}: {trueValue} ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici ({adamWFn}, {sgdFn}) kullanın ya da yeni değeri {noGradFn} {{ }} içinde hesaplayıp {example} ile yeniden oluşturun
 	H6701 Code = 6701 // tablo görünümü yalnızca 1 ve 2 boyutlu tensörler için kullanılabilir (bu tensör: {shape})
 	H6702 Code = 6702 // tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için {expFn}({logFn}(t) * u) kullanın

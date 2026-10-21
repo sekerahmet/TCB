@@ -126,13 +126,17 @@ func (o *Reader) PrepareState(m *interp.VM, s *interp.DictVal) (commit, discard 
 	fn := interp.CallPrefix(memberLoadState)
 	d := stateReader{fn: fn, s: s}
 	kind := d.text(sKind)
+	if d.failure == nil && kind != kindSampler && kind != kindSequential {
+		// Hiçbir okuyucunun yazmadığı tür: kullanıcının programındaki fark değil, kayıt bozuk.
+		d.failure = messages.New(messages.H5546, fn, sKind, kind, kindSampler+", "+kindSequential)
+	}
 	if d.failure == nil && kind != o.kindName() {
 		d.failure = messages.New(messages.H5538, fn, kind, o.kindName())
 	}
-	d.same(sBatch, nameBatch.TR, int64(o.b))
-	d.same(sContext, nameContext.TR, int64(o.t))
+	d.same(sBatch, nameBatch.TR, int64(o.b), true)
+	d.same(sContext, nameContext.TR, int64(o.t), true)
 	if !o.sequential {
-		d.same(sSeed, nameSeed.TR, int64(o.seed))
+		d.same(sSeed, nameSeed.TR, int64(o.seed), false) // tohum 0 olabilir
 	}
 	if k := d.text(sDataset); d.failure == nil && k != datasetDigest(o.ds.k) {
 		d.failure = messages.New(messages.H5539, fn, o.ds.path)
@@ -245,9 +249,14 @@ func (d *stateReader) boolean(name string) bool {
 	return b.Val
 }
 
-// same durumdaki bir ayarın okuyucununkiyle aynı olmasını ister.
-func (d *stateReader) same(name, shown string, now int64) {
-	if n := d.integer(name); d.failure == nil && n != now {
+// same durumdaki bir ayarın okuyucununkiyle aynı olmasını ister. positive ise (toplu, bağlam)
+// pozitif olmayan değeri hiçbir okuyucu yazmaz: bu uyumsuzluk değil bozukluktur.
+func (d *stateReader) same(name, shown string, now int64, positive bool) {
+	n := d.integer(name)
+	if d.failure == nil && positive && n < 1 {
+		d.failure = messages.New(messages.H5547, d.fn, name, codes.DisplayName(codes.A200), n)
+	}
+	if d.failure == nil && n != now {
 		d.failure = messages.New(messages.H5544, d.fn, shown, n, now)
 	}
 }

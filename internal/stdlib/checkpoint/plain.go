@@ -243,61 +243,70 @@ func toTagged(x map[string]any, depth int) (interp.Value, error) {
 // refreshInPlace kaydedilen değeri kullanıcının değerine yerinde ve iç içe yazar (20.2):
 // Sözlük'ün ve Liste'nin içi değişir, değerin kendisi (kullanıcının değişkeni) aynı kalır; iç
 // içe kaplar da aynı yerde aynı türdense yerinde yenilenir, başka değişkenlerin onlara tuttuğu
-// bağlar kopmaz.
+// bağlar kopmaz. Aynı iç kap birden çok yerden bağlıysa ({a: l, b: l}) yalnızca ilk yerde
+// (anahtar sırasıyla) yerinde yenilenir; öbür yerler kayıttaki kendi değerlerini alır. Kayıt
+// (JSON) paylaşımı tutmadığı için iki yer ayrı değerlerdir; ikinci yenileme birinciyi ezmez.
 func refreshInPlace(name string, target, record interp.Value) error {
+	r := refresher{seen: map[interp.Value]bool{}}
 	switch h := target.(type) {
 	case *interp.DictVal:
 		k, ok := record.(*interp.DictVal)
 		if !ok {
 			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.DisplayName(codes.A206))
 		}
-		refreshDict(h, k)
+		r.dict(h, k)
 	case *interp.ListVal:
 		k, ok := record.(*interp.ListVal)
 		if !ok {
 			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.DisplayName(codes.A205))
 		}
-		refreshList(h, k)
+		r.list(h, k)
 	default:
 		return messages.New(messages.H7468, name, interp.TypeAndSummary(target))
 	}
 	return nil
 }
 
-// refreshDict h'nin içini k'ninkiyle değiştirir; aynı anahtarda iki tarafta da aynı türden kap
-// varsa h'deki nesne korunup yerinde yenilenir.
-func refreshDict(h, k *interp.DictVal) {
-	for key, v := range k.Pairs {
+// refresher bir yenilemede yerinde yenilenmiş kapları tutar.
+type refresher struct{ seen map[interp.Value]bool }
+
+// dict h'nin içini k'ninkiyle değiştirir; aynı anahtarda iki tarafta da aynı türden kap varsa
+// h'deki nesne korunup yerinde yenilenir. Anahtarlar sırayla gezilir (belirlenimci).
+func (r refresher) dict(h, k *interp.DictVal) {
+	r.seen[h] = true
+	for _, key := range k.Order {
 		if old, ok := h.Pairs[key]; ok {
-			k.Pairs[key] = refreshNested(old, v)
+			k.Pairs[key] = r.nested(old, k.Pairs[key])
 		}
 	}
 	*h = *k
 }
 
-// refreshList h'nin elemanlarını k'ninkilerle değiştirir; aynı sırada aynı türden kaplar
-// yerinde yenilenir.
-func refreshList(h, k *interp.ListVal) {
+// list h'nin elemanlarını k'ninkilerle değiştirir; aynı sırada aynı türden kaplar yerinde
+// yenilenir.
+func (r refresher) list(h, k *interp.ListVal) {
+	r.seen[h] = true
 	for i, v := range k.Elements {
 		if i < len(h.Elements) {
-			k.Elements[i] = refreshNested(h.Elements[i], v)
+			k.Elements[i] = r.nested(h.Elements[i], v)
 		}
 	}
 	h.Elements = k.Elements
 }
 
-// refreshNested eski değer yeniyle aynı türden bir kapsa onu yerinde yenileyip döndürür, değilse
-// yeni değeri döndürür (düz değerler döngüsüzdür ve derinliği sınırlıdır, 20.2).
-func refreshNested(old, fresh interp.Value) interp.Value {
+// nested eski değer yeniyle aynı türden ve bu yenilemede henüz yenilenmemiş bir kapsa onu yerinde
+// yenileyip döndürür, değilse yeni değeri döndürür (düz değerler döngüsüzdür ve derinliği
+// sınırlıdır, 20.2).
+func (r refresher) nested(old, fresh interp.Value) interp.Value {
 	switch o := old.(type) {
 	case *interp.DictVal:
-		if f, ok := fresh.(*interp.DictVal); ok {
-			refreshDict(o, f)
+		if f, ok := fresh.(*interp.DictVal); ok && !r.seen[o] {
+			r.dict(o, f)
 			return o
 		}
 	case *interp.ListVal:
-		if f, ok := fresh.(*interp.ListVal); ok {
-			refreshList(o, f)
+		if f, ok := fresh.(*interp.ListVal); ok && !r.seen[o] {
+			r.list(o, f)
 			return o
 		}
 	}

@@ -129,6 +129,16 @@ func (k *Dataset) Sampler(s SamplerOptions) (*Sampler, error) {
 			return nil, messages.New(messages.H5077, fmt.Sprintf("%+v", *b), o.groupN)
 		}
 		o.epoch, o.order, o.window = b.Epoch, b.Pos, b.Window
+		// Pencere, grubun pencere sayısını aşamaz (sona eşitse grup bitmiştir, sonraki toplu iş
+		// sonraki gruptan gelir). Sayı parça boylarından hesaplanır; parçalar açılmaz.
+		o.prepareOrder()
+		var windows int64
+		for _, idx := range o.groupShards(o.sortFn, o.order) {
+			windows += o.k.shards[idx].Token / row
+		}
+		if b.Window > windows {
+			return nil, messages.New(messages.H5077, fmt.Sprintf("%+v", *b), o.groupN)
+		}
 	}
 	return o, nil
 }
