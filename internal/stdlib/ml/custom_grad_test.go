@@ -248,3 +248,105 @@ func BenchmarkGatedNeuron(b *testing.B) {
 		}
 	}
 }
+
+type auditSecondDevice struct {
+	tensor.Backend
+	released int
+}
+
+func (d *auditSecondDevice) Device() tensor.Device { return tensor.GPU(99) }
+
+func (d *auditSecondDevice) Release(s tensor.Storage) {
+	d.released++
+	if r, ok := d.Backend.(tensor.Releaser); ok {
+		r.Release(s)
+	}
+}
+
+// türev_denetle varsayılan cihazdan farklı bir cihazdaki tensörlerle çağrıldığında
+// girdi kopyalarını ve yön vektörlerini tensörün kendi cihazında oluşturmalıdır.
+func TestAuditCheckGradNonDefaultDevice(t *testing.T) {
+	tensor.RegisterBackend(&auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)})
+	out, err := run(t, `değişken w = tensör([2.0, 3.0]).cihaza("gpu:99")
+değişken x = tensör([1.0, 4.0], türev_izle: doğru).cihaza("gpu:99")
+yazdır(türev_denetle((a) => a * w, [x]))`)
+	if err != nil || out != "doğru\n" {
+		t.Fatalf("varsayılan dışı cihazda türev_denetle başarısız: err=%v out=%q", err, out)
+	}
+}
+
+// Adlı argümanla yapılan saf tensör metodu çağrısı (x.böl(2, eksen: 0)) alıcı
+// tensörü kaçırmamalı ve kapsam sonunda belirlenimci olarak bırakmalıdır (15.44).
+func TestAuditNamedArgMethodCallDropsReceiverAtScopeExit(t *testing.T) {
+	m := interp.New()
+	m.Out = &bytes.Buffer{}
+	var captured *tensor.Tensor
+	m.GlobalEnv.Define("izle", &interp.BuiltinVal{
+		Name: "izle",
+		Pure: true,
+		Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			captured = args[0].(*TensorValue).t
+			return interp.Null, nil
+		},
+	}, true)
+	p := parser.New(lexer.New(`
+fonksiyon sına() {
+    değişken x = sıfırlar([4, 4])
+    izle(x)
+    değişken parça = x.böl(2, eksen: 0)
+}
+sına()
+`))
+	if _, err := m.Run(p.ParseProgram()); err != nil {
+		t.Fatalf("beklenmeyen hata: %v", err)
+	}
+	if captured == nil || !captured.IsDropped() {
+		t.Fatal("adlı argümanla metot çağrılan yerel tensör kapsam sonunda bırakılmadı")
+	}
+}
+
+// x.cihaza("cpu") (aynı cihazda) ve toplam([x]) (tek elemanlı listede) var olan
+// başlığı sarmalarken sahipliği bozmamalı, kapsam sonunda başlık düşmelidir.
+func TestAuditSameDeviceToDeviceAndSingleTensorListSumDropAtScopeExit(t *testing.T) {
+	for _, expr := range []string{`x.cihaza("cpu")`, `toplam([x])`} {
+		m := interp.New()
+		m.Out = &bytes.Buffer{}
+		var captured *tensor.Tensor
+		m.GlobalEnv.Define("izle", &interp.BuiltinVal{
+			Name: "izle",
+			Pure: true,
+			Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+				captured = args[0].(*TensorValue).t
+				return interp.Null, nil
+			},
+		}, true)
+		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    izle(x)\n    değişken y = %s\n}\nsına()\n", expr)
+		p := parser.New(lexer.New(code))
+		if _, err := m.Run(p.ParseProgram()); err != nil {
+			t.Fatalf("%s: %v", expr, err)
+		}
+		if captured == nil || !captured.IsDropped() {
+			t.Errorf("%s: aynı başlığı yeniden saran işlem yerel tensörün bırakılmasını engelledi", expr)
+		}
+	}
+}
+
+// x[0] indekslemesi ve maks(x) ara görünüm başlıklarını düşürmediği için
+// yerel tensör kapsam sonunda bırakılsa bile depolaması arka uca iade edilmez (15.44).
+func TestAuditTensorIndexAndWholeMaxLeakStorageHold(t *testing.T) {
+	for _, stmt := range []string{`değişken y = x[0]`, `değişken y = maks(x)`} {
+		dev := &auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)}
+		tensor.RegisterBackend(dev)
+		tensor.SetDefaultDevice(tensor.GPU(99))
+		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    %s\n}\nsına()\n", stmt)
+		_, err := run(t, code)
+		tensor.SetDefaultDevice(tensor.CPU)
+		if err != nil {
+			t.Fatalf("%s: %v", stmt, err)
+		}
+		if dev.released == 0 {
+			t.Errorf("%s: kapsam bittikten sonra x'in depolaması arka uca iade edilmedi", stmt)
+		}
+	}
+}
+

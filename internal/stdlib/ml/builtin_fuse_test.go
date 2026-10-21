@@ -33,3 +33,42 @@ func TestFuseComparisons(t *testing.T) {
 		}
 	}
 }
+
+// Argümansız çağrılan kaynaştır fonksiyonu args[0] erişimiyle çalışma zamanı
+// paniği (H9001 iç hata) yerine normal kullanıcı hatası (H6434) döndürmelidir.
+func TestAuditFuseZeroArgsPanicsWithOutOfRange(t *testing.T) {
+	_, err := run(t, `değişken kf = kaynaştır(() => tensör([1.0]))
+kf()`)
+	if err == nil {
+		t.Fatal("argümansız kaynaştır çağrısı hata vermeli")
+	}
+	msg := err.Error()
+	for i := 0; i+len("index out of range") <= len(msg); i++ {
+		if msg[i:i+len("index out of range")] == "index out of range" {
+			t.Fatalf("kullanıcı hatası yerine dilim sınırı paniği (H9001): %v", err)
+		}
+	}
+}
+
+// Boş liste döndüren kaynaştır fonksiyonu (dil tanımı 15.45'e aykırı) kabul edilmemelidir.
+func TestAuditFuseEmptyListReturnRejected(t *testing.T) {
+	if out, err := run(t, `değişken kf = kaynaştır((x) => [])
+yazdır(kf(tensör([1.0])))`); err == nil {
+		t.Fatalf("boş liste döndüren kaynaştır fonksiyonu hata vermeliydi, çıktı: %q", out)
+	}
+}
+
+// kaynaştır önbelleği etkin karışık_hassasiyet türünü (hesap_türü()) anahtara dahil etmelidir.
+func TestAuditFuseCacheRespectsMixedPrecisionDType(t *testing.T) {
+	out := mustRun(t, `değişken kf = kaynaştır((x) => x.türe(hesap_türü()))
+değişken t = tensör([1.0])
+yazdır(kf(t).tür)
+karışık_hassasiyet("bf16") {
+    yazdır(kf(t).tür)
+}`)
+	want := "float32\nbfloat16\n"
+	if out != want {
+		t.Fatalf("kaynaştır önbelleği karışık_hassasiyet türünü yok saydı:\n%q\nbeklenen:\n%q", out, want)
+	}
+}
+
