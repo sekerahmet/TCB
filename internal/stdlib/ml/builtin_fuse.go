@@ -116,6 +116,10 @@ func (f *fusedFn) trace(m *interp.VM, be tensor.Backend, info []tensor.FuseInput
 			single = true
 			return []*tensor.Tensor{r.t}
 		case *interp.ListVal:
+			if len(r.Elements) == 0 {
+				callErr = messages.New(messages.H6436, fn)
+				return nil
+			}
 			out := make([]*tensor.Tensor, len(r.Elements))
 			for i, e := range r.Elements {
 				d, ok := e.(*TensorValue)

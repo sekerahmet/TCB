@@ -36,7 +36,7 @@ func TestFuseComparisons(t *testing.T) {
 
 // Argümansız çağrılan kaynaştır fonksiyonu args[0] erişimiyle çalışma zamanı
 // paniği (H9001 iç hata) yerine normal kullanıcı hatası (H6434) döndürmelidir.
-func TestAuditFuseZeroArgsPanicsWithOutOfRange(t *testing.T) {
+func TestFuseZeroArgsIsAnArgumentError(t *testing.T) {
 	_, err := run(t, `değişken kf = kaynaştır(() => tensör([1.0]))
 kf()`)
 	if err == nil {
@@ -51,7 +51,7 @@ kf()`)
 }
 
 // Boş liste döndüren kaynaştır fonksiyonu (dil tanımı 15.45'e aykırı) kabul edilmemelidir.
-func TestAuditFuseEmptyListReturnRejected(t *testing.T) {
+func TestFuseEmptyListReturnRejected(t *testing.T) {
 	if out, err := run(t, `değişken kf = kaynaştır((x) => [])
 yazdır(kf(tensör([1.0])))`); err == nil {
 		t.Fatalf("boş liste döndüren kaynaştır fonksiyonu hata vermeliydi, çıktı: %q", out)
@@ -59,7 +59,7 @@ yazdır(kf(tensör([1.0])))`); err == nil {
 }
 
 // kaynaştır önbelleği etkin karışık_hassasiyet türünü (hesap_türü()) anahtara dahil etmelidir.
-func TestAuditFuseCacheRespectsMixedPrecisionDType(t *testing.T) {
+func TestFuseCacheRespectsMixedPrecisionDType(t *testing.T) {
 	out := mustRun(t, `değişken kf = kaynaştır((x) => x.türe(hesap_türü()))
 değişken t = tensör([1.0])
 yazdır(kf(t).tür)
