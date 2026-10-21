@@ -5,6 +5,7 @@
 // Çalıştırma (proje kökünden): tr examples/tr/06_girdi.tr
 //   Etkileşimli çalıştırın ve soruları yanıtlayın; Enter'a boş basarsanız varsayılan değer kullanılır.
 //   Girdi gelmeyen ortamlarda (standart giriş boş ya da kapalı) program varsayılanlarla sürer.
+//   Hata ayıklayıcıda (F5) girdi() çalışmaz: oturumda standart giriş yoktur; Ctrl+F5 ya da terminalde çalıştırın.
 
 // girdi(soru) soruyu yazar ve kullanıcının yazdığı satırı Metin olarak verir.
 // Hiçbir şey yazılmazsa boş metin ("") gelir.
