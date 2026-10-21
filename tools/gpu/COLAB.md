@@ -280,7 +280,7 @@ göredir (bellek kopyaları sayılmaz); `nsys stats --report cuda_gpu_kern_sum` 
 çekirdek toplamlarını verir ve çapraz denetim için çalıştırılabilir. Rapor boşsa
 (`pencerede çekirdek yok`) 8. hücredeki notu uygulayıp çıktıyı aynen gönderin.
 
-## 11. Hedef model defteri (hücre 1–10)
+## 11. Hedef model defteri (hücre 1–10, 15–17)
 
 Hedef modelin (`tools/gpu/rgn512.py` ↔ `tools/gpu/rgn512.tr`) hız, bellek, eşleşme ve gerçek veride
 kalite ölçümleri için kullanılan defter. Colab defteri kalıcı olmadığından hücreler buradadır; defter
@@ -455,6 +455,79 @@ print("|---|---|---|---|---|---|")
 for i in [0, 1, 2, 4, 9, 19, 29, 49, 74, 99]:
     a, b = r[i], t[i]
     print(f"| {i+1} | {a['loss']:.4f} | {b['loss']:.4f} | {b['loss']-a['loss']:+.4f} | {a['grad_norm']:.3f} | {b['grad_norm']:.3f} |")
+PY
+```
+
+### Hücre 15 · BELİRLENİMCİ BIRAKMA SINAMASI · GPU
+
+Dil tanımı 15.44'ün GPU sınaması: GPU arka ucunun testleri, hedef modelde bırakma açık ve kapalı
+(`TR_BIRAKMA=0`) hız ve tepe bellek, PyTorch ile eşleşme (hücre 9 ile aynı) ve bellek dökümlü profil.
+Hücre 1'in GPU sınama ikilisini de derlemesi gerekir (`go test -c ... -o /content/tr/gpu_sinama
+./internal/compute/gpu`, bölüm 1).
+
+```bash
+# 15 · BELİRLENİMCİ BIRAKMA SINAMASI: GPU TESTLERİ, HIZ+BELLEK (AÇIK/KAPALI), EŞLEŞME, PROFİL (ARKA PLANDA) · GPU
+# Hücre hemen döner; koşu ayrı oturumda (setsid). Durum: hücre 16. Önce hücre 1 (DAL=gpu-dogrulama).
+mkdir -p /content/rgn/trveri /content/rgn/bir && cd /content/rgn
+[ -f trveri/train.npy ] || python -c "import numpy as np; np.save('trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
+rm -f bir/*
+cat > bir/kos.sh <<'EOF'
+cd /content/TCB/internal/compute/gpu && /content/tr/gpu_sinama -test.count=1 > /content/rgn/bir/gpu_test.log 2>&1; echo "gpu testleri çıkış $?" >> /content/rgn/bir/sonuc.txt
+cd /content/rgn
+for B in 1 0; do
+  nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > bir/mem_$B.log & P=$!
+  TR_BIRAKMA=$B /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı bir/hiz_$B.json > bir/tr_$B.log 2>&1
+  kill $P; sleep 1
+  printf "bırakma %s | tepe %.2f GiB | ortanca %s ms/adım | son kayıp %s\n" $([ $B = 1 ] && echo açık || echo kapalı) $(echo "$(sort -n bir/mem_$B.log | tail -1)/1024" | bc -l) $(python3 -c "import json;print(round(json.load(open('bir/hiz_$B.json'))['measured']['median_ms'],1))") "$(grep -o 'kayıp [0-9.]*' bir/tr_$B.log | tail -1)" >> bir/sonuc.txt
+done
+rm -rf /content/par && mkdir /content/par && cd /content/TCB/tools/gpu
+python rgn_reference.py --out /content/par --steps 100 --micro 32 --accum 2 --seq 1024 --device cuda --bf16 --ns-bf16 > /content/par/py.log 2>&1
+cd /content/par && /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --ağırlık init.trt --sıralı --adım 100 --kayıplar tr.json --günlük 100 > tr.log 2>&1
+python - >> /content/rgn/bir/sonuc.txt <<'PY'
+import json
+r = json.load(open("reference.json"))["steps"]; t = json.load(open("tr.json"))["steps"]
+d = max(abs(a["loss"] - b["loss"]) for a, b in zip(r, t)); g = max(abs(a["grad_norm"] - b["grad_norm"]) for a, b in zip(r, t))
+print(f"eşleşme (100 adım, bf16): en büyük kayıp farkı {d:.4f}, grad farkı {g:.4f}; son kayıp PT {r[-1]['loss']:.4f} TR {t[-1]['loss']:.4f}")
+PY
+cd /content/rgn && /content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 20 --günlük 20 > bir/profil.txt 2>&1
+echo bitti > bir/bitti
+EOF
+setsid nohup bash bir/kos.sh > /dev/null 2>&1 < /dev/null &
+echo "başladı (durum: hücre 16)"
+```
+
+### Hücre 16 · BIRAKMA SINAMASI DURUMU · CPU
+
+```bash
+# 16 · BIRAKMA SINAMASI DURUMU (ANINDA BİTER, BEKLEMEZ) · CPU
+cd /content/rgn/bir 2>/dev/null || { echo "koşu yok (hücre 15)"; exit 0; }
+cat sonuc.txt 2>/dev/null
+grep -E "^(--- FAIL|FAIL|ok|PASS)" gpu_test.log 2>/dev/null | head -5
+if [ -f bitti ]; then
+  echo "== PROFİL"; grep -E "^bellek|Çöp toplama|Bellek:" profil.txt; grep -A16 "ayıran satıra göre" profil.txt
+else L=$(ls -t *.log /content/par/*.log 2>/dev/null | head -1); echo "sürüyor: $L → $(tail -1 $L 2>/dev/null | cut -c1-150)"; fi
+```
+
+### Hücre 17 · EŞLEŞMEYİ BIRAKMA KAPALI TEKRARLA · GPU
+
+Hücre 15'in PyTorch referansıyla TR'yi `TR_BIRAKMA=0` ile yeniden koşar: bırakma sonucu değiştirmez
+(iki TR koşusunun kayıpları aynı olmalıdır); PyTorch'a karşı fark bf16'nın koşudan koşuya
+belirlenimsizliğidir.
+
+```bash
+# 17 · EŞLEŞMEYİ BIRAKMA KAPALI TEKRARLA (AYNI PYTORCH REFERANSI, ~2 DK) · GPU
+cd /content/par
+TR_BIRAKMA=0 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --ağırlık init.trt --sıralı --adım 100 --kayıplar tr0.json --günlük 100 > tr0.log 2>&1
+python - <<'PY'
+import json
+r = json.load(open("reference.json"))["steps"]
+for ad in ["tr.json", "tr0.json"]:
+    t = json.load(open(ad))["steps"]
+    d = [abs(a["loss"] - b["loss"]) for a, b in zip(r, t)]
+    i = max(range(len(d)), key=d.__getitem__)
+    print(f"{ad}: en büyük kayıp farkı {d[i]:.4f} (adım {i+1}), ortalama {sum(d)/len(d):.4f}")
+a = json.load(open("tr.json"))["steps"]; b = json.load(open("tr0.json"))["steps"]
+print("bırakma açık / kapalı TR kayıpları en çok", max(abs(x["loss"] - y["loss"]) for x, y in zip(a, b)), "farklı")
 PY
 ```
 
