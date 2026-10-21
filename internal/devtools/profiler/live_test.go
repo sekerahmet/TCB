@@ -33,7 +33,7 @@ func TestScreenLines(t *testing.T) {
 		"300/1 000 · 40 ms/adım · 25 adım/sn · kalan ~28 sn",
 		"tensör işlemleri %75",
 		"matris çarpımı (@)", "ms/adım", "çağrı/adım",
-		"çekirdekler %75 meşgul · 30,0 ms/adım · carpim %60 · dikkat %30",
+		"kerneller %75 meşgul · 30,0 ms/adım · carpim %60 · dikkat %30",
 		"egit.tr:12", "geri_yayılım(kayıp)",
 		"Go yığını 200 MB", "CPU tensör ayırması 1 MB/adım", "GPU canlı 3 GB (ayrılmış 4 GB, tepe 3 GB)",
 		"Programın çıktısı (tamamı: c.txt)", "│ adım 300",
@@ -53,8 +53,8 @@ func TestScreenLines(t *testing.T) {
 // Ölçüm kapalıyken GPU satırı nedenini söyler; GPU kullanılmadıysa GPU satırı yoktur.
 func TestScreenGPUStates(t *testing.T) {
 	g := sampleSnapshot()
-	g.GPU.Measured, g.GPU.Note = false, "çekirdek süreleri ölçülmüyor"
-	if m := strings.Join(ScreenLines(g, Screen{Width: 200}), "\n"); !strings.Contains(m, "GPU        çekirdek süreleri ölçülmüyor") {
+	g.GPU.Measured, g.GPU.Note = false, "kernel süreleri ölçülmüyor"
+	if m := strings.Join(ScreenLines(g, Screen{Width: 200}), "\n"); !strings.Contains(m, "GPU        kernel süreleri ölçülmüyor") {
 		t.Errorf("ölçüm kapalı notu yok:\n%s", m)
 	}
 	g.GPU = GPUInfo{Note: "GPU kullanılmadı"}

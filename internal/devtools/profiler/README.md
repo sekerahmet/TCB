@@ -2,7 +2,7 @@
 
 `tr izle` ve `tr profil` komutlarının ortak çekirdeği: çalışan bir TR programının canlı
 profilini çıkarır. Tensör sayaçlarını (işlem, süre, bayt), isteğe bağlı satır ve fonksiyon
-örneklemesini, eğitim adımı sınırlarını, GPU çekirdek sürelerini ve belleği tek bir görüntüde
+örneklemesini, eğitim adımı sınırlarını, GPU kernel sürelerini ve belleği tek bir görüntüde
 toplar; terminale canlı yazar, dosyaya rapor olarak kaydeder.
 
 ## Standartlar

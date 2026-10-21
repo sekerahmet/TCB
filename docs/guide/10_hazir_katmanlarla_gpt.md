@@ -13,7 +13,7 @@ değişken kayıp = model.kayıp([[1, 2, 3]], [[2, 3, 4]]) // ortalama çapraz e
 yazdır(parametreler(model, adlarıyla: doğru).anahtarlar()[0..3])
 ```
 
-`GPT` sıradan bir `yapı`dır: `model.bloklar[0].dikkat.sorgu_katmanı.ağırlık` bir tensördür, `parametreler(model)` bütün ağırlıkları bulur, `tensör_kaydet(yol, parametreler(model, adlarıyla: doğru))` kaydeder. İçinde döner konumlu (RoPE) nedensel çok başlı dikkat (`kv_bakış_sayısı:` ile gruplu sorgu), SwiGLU ileri besleme ve ön-norm RMS normu vardır. Ağırlıklar N(0, 0.02) ile, artık yola yazan çıkış katmanları `0.02 / √(2 · katman)` ile başlar.
+`GPT` sıradan bir `yapı`dır: `model.bloklar[0].dikkat.sorgu_katmanı.ağırlık` bir tensördür, `parametreler(model)` bütün ağırlıkları bulur, `tensör_kaydet(yol, parametreler(model, adlarıyla: doğru))` kaydeder. İçinde döner konumlu (RoPE) nedensel çok bakışlı dikkat (İngilizce *multi-head attention*; `kv_bakış_sayısı:` ile gruplu sorgu), SwiGLU ileri besleme ve ön-norm RMS normu vardır. Ağırlıklar N(0, 0.02) ile, artık yola yazan çıkış katmanları `0.02 / √(2 · katman)` ile başlar.
 
 Modeli değiştirmek isterseniz `lib/katman.tr`'yi kendi klasörünüze kopyalayıp `aktar "katman"` yazın: kopyanız sizindir, kitaplık değişmez. Tek bir katmanı da kullanabilirsiniz: `Doğrusal(giriş, çıkış)`, `GömmeKatmanı`, `RMSNormKatmanı`, `NedenselDikkat`, `SwiGLU`, `TransformerBloğu`; hepsinin ileri hesabı `ileri` metodudur.
 

@@ -197,7 +197,7 @@ func TestProfileAndWatchGPU(t *testing.T) {
 				t.Fatalf("çıkış kodu %d\nçıktı:\n%s\nhata:\n%s", s.code, s.stdout, s.stderr)
 			}
 			all := s.stdout + s.stderr
-			for _, p := range []string{"gpu eğitimi bitti", "GPU çekirdekleri: cihazda", "carpim", "GPU canlı"} {
+			for _, p := range []string{"gpu eğitimi bitti", "GPU kernelleri: cihazda", "carpim", "GPU canlı"} {
 				if !strings.Contains(all, p) {
 					t.Errorf("çıktıda %q yok:\n%s", p, all)
 				}

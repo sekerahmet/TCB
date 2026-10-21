@@ -73,7 +73,7 @@ func TestProfileGPUKernelsAndMemory(t *testing.T) {
 		t.Errorf("GPU'da matris çarpımı: %+v; 6 çağrı beklenirdi", m)
 	}
 	text := ReportText(g)
-	for _, p := range []string{"GPU çekirdekleri: cihazda", "carpim", "GPU canlı", "GPU profili"} {
+	for _, p := range []string{"GPU kernelleri: cihazda", "carpim", "GPU canlı", "GPU profili"} {
 		if !strings.Contains(text, p) {
 			t.Errorf("raporda %q yok:\n%s", p, text)
 		}

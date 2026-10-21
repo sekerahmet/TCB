@@ -401,8 +401,8 @@ const (
 	H4004 Code = 4004 // sürücüde {function} işlevi yok (sürücü çok eski olabilir): {error}
 	H4005 Code = 4005 // {call} başarısız: {name}
 	H4007 Code = 4007 // {call} başarısız: {name} ({status})
-	H4008 Code = 4008 // {call} başarısız: {name} ({status}); son başlatılan çekirdek: {kernel}
-	H4009 Code = 4009 // {call} başarısız: {name} ({status}); son başlatılan çekirdek: {kernel} (hata daha önceki bir çekirdekten de olabilir; yerini bulmak için TR_GPU_ESZAMANLI=1 ile çalıştırın)
+	H4008 Code = 4008 // {call} başarısız: {name} ({status}); son başlatılan kernel: {kernel}
+	H4009 Code = 4009 // {call} başarısız: {name} ({status}); son başlatılan kernel: {kernel} (hata daha önceki bir kernelden de olabilir; yerini bulmak için TR_GPU_ESZAMANLI=1 ile çalıştırın)
 	H4010 Code = 4010 // {error}\n{detail}
 	H4011 Code = 4011 // {kernel} çekirdeği derlenemedi: {name} ({status})
 	H4012 Code = 4012 // {error}\nPTX derleyici günlüğü:\n{log}
@@ -433,12 +433,12 @@ const (
 	H4037 Code = 4037 // kendi çekirdeği ({reasons})
 	H4038 Code = 4038 // cuBLASLt durum {status} ({m}×{n}×{k}, toplu {batch})
 	H4039 Code = 4039 // == GPU profili ({device}: {card}; matris çarpımı: {path}) ==
-	H4040 Code = 4040 // adım başına ({steps} adım): duvar {wall} ms · GPU çekirdek {gpu} ms · GPU boşluğu {idle} ms · başlatma {launches} · konakta arka uç {host} ms · eşzamanlama beklemesi {wait} ms · çöp toplama {collections} kez, {collection_time} ms
+	H4040 Code = 4040 // adım başına ({steps} adım): duvar {wall} ms · GPU kernel {gpu} ms · GPU boşluğu {idle} ms · başlatma {launches} · konakta arka uç {host} ms · eşzamanlama beklemesi {wait} ms · çöp toplama {collections} kez, {collection_time} ms
 	H4041 Code = 4041 // adım başına: adım bilgisi yok ({marked} adım işaretlendi; ilk iki adım ısınmadır, en az üç tamamlanmış adım gerekir; adımlar iyileştiricinin adımıyla işaretlenir)
 	H4043 Code = 4043 // toplam ms
 	H4044 Code = 4044 // ort µs
 	H4045 Code = 4045 // aile
-	H4046 Code = 4046 // çekirdek (ilk 25)
+	H4046 Code = 4046 // kernel (ilk 25)
 	H4047 Code = 4047 // bellek: ayrılmış {reserved} · havuzda {pooled} · canlı {live} · tepe canlı {peak_live} · tepe ayrılmış {peak_reserved} · sürücü ayırma {driver_allocs} · çöp toplama {collections}
 	H4050 Code = 4050 // bu işlem GPU'da henüz yok: {dtype} türünde depolama
 	H4051 Code = 4051 // bu işlem GPU'da henüz yok: {kept} korunan, {reduced} indirgenen eksenli indirgeme (en çok {max})
@@ -1371,8 +1371,8 @@ const (
 	H8201 Code = 8201 // (aktarılan modülde)
 	H8202 Code = 8202 // (üst düzey)
 	H8203 Code = 8203 // GPU kullanılmadı
-	H8204 Code = 8204 // çekirdek süreleri ölçülmüyor (tr {watch} ve tr {profile} ölçer; ya da TR_GPU_PROFIL=1)
-	H8205 Code = 8205 // henüz çekirdek ölçümü yok
+	H8204 Code = 8204 // kernel süreleri ölçülmüyor (tr {watch} ve tr {profile} ölçer; ya da TR_GPU_PROFIL=1)
+	H8205 Code = 8205 // henüz kernel ölçümü yok
 	H8206 Code = 8206 // {type} işlemleri
 	H8207 Code = 8207 // toplama (+)
 	H8208 Code = 8208 // çıkarma (-)
@@ -1416,8 +1416,8 @@ const (
 	H8246 Code = 8246 // En çok zaman alan satırlar (öz süre; tensör: satırın tensör işleminde geçen payı):
 	H8247 Code = 8247 // tensör {share}
 	H8248 Code = 8248 // Fonksiyonlar (öz süre):
-	H8249 Code = 8249 // GPU çekirdekleri: {note}
-	H8250 Code = 8250 // GPU çekirdekleri: cihazda {duration} (program süresine oranı {ratio})
+	H8249 Code = 8249 // GPU kernelleri: {note}
+	H8250 Code = 8250 // GPU kernelleri: cihazda {duration} (program süresine oranı {ratio})
 	H8251 Code = 8251 // {ms} ms/adım
 	H8252 Code = 8252 // konağa okuma
 	H8253 Code = 8253 // gradyan sıfırlama
@@ -1436,8 +1436,8 @@ const (
 	H8272 Code = 8272 // Sıcak satırlar: henüz örnek yok
 	H8273 Code = 8273 // Sıcak satırlar (öz süre)
 	H8274 Code = 8274 // tensörde
-	H8275 Code = 8275 // çekirdekler: bu pencerede ölçüm yok
-	H8276 Code = 8276 // çekirdekler {share} meşgul
+	H8275 Code = 8275 // kerneller: bu pencerede ölçüm yok
+	H8276 Code = 8276 // kerneller {share} meşgul
 	H8277 Code = 8277 // {bytes}/adım
 	H8278 Code = 8278 // {bytes}/sn
 	H8279 Code = 8279 // {device} canlı {live} (ayrılmış {allocated}, tepe {peak})

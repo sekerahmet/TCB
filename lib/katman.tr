@@ -93,7 +93,7 @@ fonksiyon döner_konum_hesapla(x, kos, sin) {
 }
 değişken döner_konum_uygula = kaynaştır(döner_konum_hesapla)
 
-// NedenselDikkat: döner konumlu, nedensel çok başlı dikkat. Her konum yalnızca kendisine ve
+// NedenselDikkat: döner konumlu, nedensel çok bakışlı dikkat. Her konum yalnızca kendisine ve
 // öncekilere bakar. kv_bakış_sayısı < bakış_sayısı gruplu sorgu dikkatidir (GQA): anahtar ve değer bakışları
 // ardışık bakış gruplarınca paylaşılır, anahtar/değer katmanları küçülür. Hesap birleşik
 // `dikkat` yerleşiğindedir (T×T puan matrisi tutulmaz).

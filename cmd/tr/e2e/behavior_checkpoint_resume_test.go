@@ -43,11 +43,11 @@ fonksiyon param(şekil, ölçek) {
 değişken model = {E: param([V, D], 0.05), g: tensör(birler([D]), türev_izle: doğru), Wq: param([D, D], 0.1), Wk: param([D, D], 0.1),
     Wv: param([D, D], 0.1), W1: param([D, H], 0.1), W2: param([H, V], 0.1)}
 değişken op = AdamW(parametreler(model), öğrenme_oranı: 0.003)
-fonksiyon başlar(x) { sonuç x.şekillendir([8, 32, 4, 16]).eksenleri_sırala([0, 2, 1, 3]) }
+fonksiyon bakışlara_ayır(x) { sonuç x.şekillendir([8, 32, 4, 16]).eksenleri_sırala([0, 2, 1, 3]) }
 fonksiyon ileri(giriş) {
     değişken x = gömme(model.E, giriş)
     değişken h = rms_normu(x, model.g)
-    değişken y = dikkat(başlar(h @ model.Wq), başlar(h @ model.Wk), başlar(h @ model.Wv), nedensel: doğru)
+    değişken y = dikkat(bakışlara_ayır(h @ model.Wq), bakışlara_ayır(h @ model.Wk), bakışlara_ayır(h @ model.Wv), nedensel: doğru)
     x = x + y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([8, 32, D])
     sonuç gelu(x @ model.W1) @ model.W2
 }
