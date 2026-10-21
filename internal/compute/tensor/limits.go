@@ -106,7 +106,9 @@ func LayerNorm(x, gamma, beta *Tensor, eps float32) *Tensor {
 }
 
 // LayerNormAs LayerNorm'dur, çıktısı dt türündedir: hesap her türde float32'dir, çıktı yazılırken
-// dt'ye yuvarlanır (ardından gelen çarpım için ayrı bir dönüşüm gerekmez; 15.13).
+// dt'ye yuvarlanır (ardından gelen çarpım için ayrı bir dönüşüm gerekmez; 15.13). float32
+// girdinin daraltılmış çıktısının gradyanı float32 tutulur: ileri ve geri yön, float32 normun
+// ardından ayrı dönüşümle bit düzeyinde aynıdır.
 func LayerNormAs(x, gamma, beta *Tensor, eps float32, dt DType) *Tensor {
 	checkNormDims("LayerNorm", x)
 	D := x.shape[len(x.shape)-1]
@@ -123,6 +125,9 @@ func LayerNormAs(x, gamma, beta *Tensor, eps float32, dt DType) *Tensor {
 	r := track(out, "layer_norm", []*Tensor{x, gamma, beta}, func(o *node) {
 		be.LayerNormGrad(optGrad(o.parents[0]), optGrad(o.parents[1]), optGrad(o.parents[2]), o.grad, xv, gv, mean, rstd, D)
 	}, x, gamma)
+	if x.dtyp == Float32 {
+		widenGrad(r)
+	}
 	sy.finish()
 	return r
 }
@@ -147,6 +152,9 @@ func RMSNormAs(x, gamma *Tensor, eps float32, dt DType) *Tensor {
 	r := track(out, "rms_norm", []*Tensor{x, gamma}, func(o *node) {
 		be.RMSNormGrad(optGrad(o.parents[0]), optGrad(o.parents[1]), o.grad, xv, gv, rinv, D)
 	}, x, gamma)
+	if x.dtyp == Float32 {
+		widenGrad(r)
+	}
 	sy.finish()
 	return r
 }

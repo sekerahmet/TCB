@@ -167,6 +167,35 @@ func TestFusedGradientAccumulates(t *testing.T) {
 	}
 }
 
+// Kaynaşık programın son düğümü float32'den 16 bite dönüşümse (lib'deki döner konum: bf16 x,
+// float32 tablolar, sonuç x'in türünde) çıktının gradyanı float32 tutulur: iki tüketicili
+// geri yön, kaynaşmamış hesap + ayrı dönüşümle bit düzeyinde aynıdır (node.wideGrad).
+func TestFusedNarrowingOutputKeepsFloat32Grad(t *testing.T) {
+	ropeCast := func(a []*Tensor) []*Tensor { return []*Tensor{rope(a)[0].Cast(a[0].DType())} }
+	rng := rand.New(rand.NewSource(8))
+	xv := Randn(rng, 2, 3, 5, 8)
+	c1, c2 := Randn(rng, 8, 6).Cast(BFloat16), Randn(rng, 8, 4).Cast(BFloat16)
+	loss := func(y *Tensor) *Tensor {
+		return y.MatMul(c1).Cast(Float32).SumAll().Add(y.MatMul(c2).Cast(Float32).SumAll())
+	}
+	ins := func() []*Tensor {
+		x := xv.Detach().SetRequiresGrad(true)
+		r := fuseInputs(Float32, false)
+		return []*Tensor{x, r[1], r[2]}
+	}
+	a, b := ins(), ins()
+	xa, xb := a[0], b[0]
+	a[0], b[0] = xa.Cast(BFloat16), xb.Cast(BFloat16)
+	fa, ub := runFusedFn(ropeCast, a)[0], ropeCast(b)[0]
+	if fa.DType() != BFloat16 {
+		t.Fatalf("çıktının türü %s", fa.DType())
+	}
+	sameBits(t, "ileri", fa, ub)
+	loss(fa).Backward()
+	loss(ub).Backward()
+	sameBits(t, "gradyan", xa.Grad(), xb.Grad())
+}
+
 func TestFusedErrors(t *testing.T) {
 	rng := rand.New(rand.NewSource(6))
 	x := Randn(rng, 4, 6)

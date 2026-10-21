@@ -298,10 +298,12 @@ func TestCrossEntropyForward(t *testing.T) {
 }
 
 // Normun çıktı türü (RMSNormAs, LayerNormAs; 15.13): hesap float32'dir; çıktı float32 normun o
-// türe dönüşümüyle bit düzeyinde aynıdır, girdinin gradyanı da dönüşüm yolununkiyle aynıdır.
+// türe dönüşümüyle bit düzeyinde aynıdır, girdinin gradyanı da dönüşüm yolununkiyle aynıdır:
+// iki tüketicinin gradyanı float32'de toplanır (dönüşümün gradyanı gibi; node.wideGrad).
 func TestNormOutputDType(t *testing.T) {
 	rng := rand.New(rand.NewSource(9))
 	xv, gv := Randn(rng, 3, 40), Randn(rng, 40)
+	c1, c2 := Randn(rng, 40, 7), Randn(rng, 40, 5)
 	for _, dt := range []DType{BFloat16, Float16} {
 		for _, layer := range []bool{false, true} {
 			norm := func(x, g *Tensor, out DType) *Tensor {
@@ -317,8 +319,11 @@ func TestNormOutputDType(t *testing.T) {
 				t.Fatalf("çıktının türü %s, beklenen %s", ya.DType(), dt)
 			}
 			sameBits(t, fmt.Sprintf("%s norm (katman %v)", dt, layer), ya, yb)
-			ya.Mul(ya).SumAll().Backward()
-			yb.Mul(yb).SumAll().Backward()
+			loss := func(y *Tensor) *Tensor {
+				return y.MatMul(c1.Cast(dt)).Cast(Float32).SumAll().Add(y.MatMul(c2.Cast(dt)).Cast(Float32).SumAll())
+			}
+			loss(ya).Backward()
+			loss(yb).Backward()
 			sameBits(t, "girdinin gradyanı", a.Grad(), b.Grad())
 			sameBits(t, "ağırlığın gradyanı", ga.Grad(), gb.Grad())
 		}
