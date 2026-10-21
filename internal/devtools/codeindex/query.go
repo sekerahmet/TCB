@@ -2,7 +2,6 @@ package codeindex
 
 import (
 	"sort"
-	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
@@ -269,20 +268,4 @@ func (r *Reader) importClosure(module string) []string {
 	}
 	sort.Strings(out)
 	return out
-}
-
-// Short bir düğümü tek satırda yazar: "tür ad dosya:satır:sütun".
-func Short(n Node) string {
-	name := n.Qualified
-	if name == "" {
-		name = n.Name
-	}
-	if n.Display != "" {
-		name = n.Display + " (" + n.Name + ")"
-	}
-	s := string(n.Kind) + " " + name
-	if n.Pos != nil {
-		s += "  " + n.Pos.String()
-	}
-	return strings.TrimSpace(s)
 }

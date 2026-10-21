@@ -16,6 +16,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_doc_code_blocks_test.go`: belgelerdeki TR kod bloklarının ve eklenti şablonlarının derlenmesi, kaldırılmış adların belgede kalmaması
 - `behavior_doc_links_test.go`: belgelerdeki bağlantıların ve başlık çapalarının geçerliliği
 - `behavior_file_formats_language_test.go`: dosya biçimlerinin (kontrol noktası, günlük) yazım diline göre değişmemesi: TR_DIL=en ile aynı dosya adları ve anahtarlar
+- `behavior_index_test.go`: `tr dizin` ve alt komutları (tanım, kullananlar, sınayanlar, etki): sonuçlar, her dilin alt komut adı, üst düzeyde komut olmaması, çıkış kodları 3/4, `--json`, proje kökü bulma
 - `behavior_example_errors_test.go`: hata örneklerinin (`examples/tr/hatalar`, `examples/en/errors`) beklenen ileti kodunu üretmesi, iki yazımın aynı kodu söylemesi ve çıkış kodu 1
 - `behavior_examples_coverage_test.go`: dilin her canlı adının bir örnekte geçmesi (kodlarla) ve komut satırı adlarının `examples/README.md`'de bulunması
 - `behavior_examples_test.go`: öğrenme yolundaki örneklerin (`examples/tr`, `examples/en`) eşleşmesi, kodlu iskeletlerinin aynılığı ve çıktılarının sayılarının eşitliği

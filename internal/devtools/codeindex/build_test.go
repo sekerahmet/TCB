@@ -248,3 +248,34 @@ func TestOccurrencePositionsPointAtNames(t *testing.T) {
 		}
 	}
 }
+
+func TestFindRootAndClearCache(t *testing.T) {
+	top := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(top, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	deep := filepath.Join(top, "a", "b")
+	if err := os.MkdirAll(deep, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	want, _ := filepath.EvalSymlinks(top)
+	if got, _ := filepath.EvalSymlinks(FindRoot(deep)); got != want {
+		t.Errorf("FindRoot(%s) = %s, want the folder with .git %s", deep, got, want)
+	}
+	plain := t.TempDir()
+	if got, _ := filepath.EvalSymlinks(FindRoot(plain)); got == "" {
+		t.Error("without .git the starting folder itself is the root")
+	}
+	if removed, err := ClearCache(top); err != nil || removed {
+		t.Errorf("no cache yet: %v %v", removed, err)
+	}
+	if err := os.MkdirAll(filepath.Join(top, CacheDir, "x"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if removed, err := ClearCache(top); err != nil || !removed {
+		t.Errorf("the cache is removed: %v %v", removed, err)
+	}
+	if _, err := os.Stat(filepath.Join(top, CacheDir)); err == nil {
+		t.Error("the cache folder is gone")
+	}
+}

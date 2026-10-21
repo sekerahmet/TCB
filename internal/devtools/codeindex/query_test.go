@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func fixtureReader(t *testing.T) *Reader {
@@ -92,7 +94,7 @@ func TestAmbiguousAndNotFound(t *testing.T) {
 	if miss.Status != StatusNotFound || len(miss.DidYouMean) == 0 {
 		t.Fatalf("a near miss gets suggestions: %+v", miss)
 	}
-	if !strings.Contains(Text(miss), "did you mean") || !strings.Contains(Text(res), "is ambiguous") {
+	if !strings.Contains(Text(miss), messages.Text(messages.H8783)) || !strings.Contains(Text(res), messages.Text(messages.H8780, "ileri", 2)) {
 		t.Error("text output for the two non-ok statuses")
 	}
 }
@@ -207,9 +209,13 @@ func TestCommandOutputGolden(t *testing.T) {
 
 func TestTextOutput(t *testing.T) {
 	text := Text(fixtureReader(t).References("alan", QueryOptions{}))
-	for _, want := range []string{"method geo.Kare.alan", "users (", "call", "[INFERRED]", "geo.yaz_alan"} {
+	for _, want := range []string{KindLabel(KindMethod) + " geo.Kare.alan", RoleLabel(RoleCall), "[INFERRED]", "geo.yaz_alan", "lib/geo.tr:"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("text lacks %q:\n%s", want, text)
 		}
+	}
+	// Başlıklar ileti kodlarından gelir (okuyanın dilinde).
+	if !strings.Contains(text, strings.SplitN(messages.Text(messages.H8785, 1, ""), "1", 2)[0]) {
+		t.Errorf("the users heading comes from H8785:\n%s", text)
 	}
 }

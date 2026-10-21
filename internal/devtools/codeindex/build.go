@@ -265,3 +265,34 @@ func (x *indexer) finish() *Index {
 	})
 	return idx
 }
+
+// FindRoot başlangıç klasöründen yukarı doğru proje kökünü arar: `.git` (klasör ya da dosya)
+// bulunan ilk klasör; yoksa başlangıç klasörünün kendisi. `--kök` verilmediğinde kullanılır.
+func FindRoot(start string) string {
+	abs, err := filepath.Abs(start)
+	if err != nil {
+		return start
+	}
+	for dir := abs; ; {
+		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return abs
+		}
+		dir = parent
+	}
+}
+
+// CacheDir dizin önbelleğinin proje köküne göre klasörüdür (git'e girmez).
+const CacheDir = ".tr-dizin"
+
+// ClearCache önbellek klasörünü siler; vardıysa true döner.
+func ClearCache(root string) (bool, error) {
+	dir := filepath.Join(root, CacheDir)
+	if _, err := os.Stat(dir); err != nil {
+		return false, nil
+	}
+	return true, os.RemoveAll(dir)
+}

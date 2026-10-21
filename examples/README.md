@@ -29,6 +29,16 @@ tr examples/en/01_hello.tr          # aynı program, İngilizce yazım
 | `izle` | Çalışan bir eğitimin canlı profil tablosunu gösterir | `tr izle examples/tr/40_kontrol_noktasi.tr` |
 | `profil` | Biten ya da süren bir eğitimin profil raporunu yazar | `tr profil examples/tr/28_egitim_dongusu.tr` |
 | `dap` | Düzenleyicinin hata ayıklama protokolü sunucusu (düzenleyiciler kullanır) | VS Code F5 |
+| `dizin` | TR kodunun dizinini kurar ve özetler; altındaki alt komutlarla ona sorulur | `tr dizin` |
+
+`dizin` komutunun alt komutları yalnızca onun altında geçerlidir (`tr tanım` bir komut değildir):
+
+| Alt komut | Ne yapar | Örnek |
+| :-- | :-- | :-- |
+| `tanım` | Bir adın tanımı: nerede, imzası, belge yorumu, üyeleri | `tr dizin tanım Doğrusal` |
+| `kullananlar` | Bir ada başvuranlar: çağrı, okuma, yazma, aktarma, test | `tr dizin kullananlar Doğrusal` |
+| `sınayanlar` | Bir adı sınayan test blokları (doğrudan, sonra çağrı zinciriyle dolaylı) | `tr dizin sınayanlar Doğrusal` |
+| `etki` | Bir ad ya da dosya değişirse etkilenenler | `tr dizin etki lib/katman.tr` |
 
 Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılır):
 
@@ -39,6 +49,13 @@ Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılı
 | `--json` | `profil` raporunu JSON olarak yazar | `tr profil --json rapor.json examples/tr/28_egitim_dongusu.tr` |
 | `--go-profili` | `profil` ile yorumlayıcının kendi Go profilini de yazar | `tr profil --go-profili examples/tr/28_egitim_dongusu.tr` |
 | `--çıktı` | `izle` tablosunun yazılacağı dosyayı seçer | `tr izle --çıktı canli.txt examples/tr/40_kontrol_noktasi.tr` |
+| `--sınır` | `dizin` sorgularında bir listedeki en çok satır (varsayılan 12) | `tr dizin kullananlar Doğrusal --sınır 5` |
+| `--tümü` | `dizin` sorgularında satır sınırını kaldırır | `tr dizin kullananlar Doğrusal --tümü` |
+| `--kök` | `dizin` için proje kökü (verilmezse `.git` bulunan üst klasör) | `tr dizin tanım Doğrusal --kök .` |
+| `--tür` | `dizin` sorgu adını yalnızca bu türdeki düğümlere çözer | `tr dizin tanım ileri --tür method` |
+| `--dizin-yok` | `dizin` sorgusunda önbellekteki dizini olduğu gibi kullanır (tazelemez) | `tr dizin tanım Doğrusal --dizin-yok` |
+| `--durum` | `dizin` komutunda dizin önbelleğinin durumunu gösterir | `tr dizin --durum` |
+| `--temizle` | `dizin` komutunda dizin önbelleğini siler | `tr dizin --temizle` |
 | `--yardım` | Programın `komut_satırı` ile tanımlanan seçeneklerinin yardımı | `tr examples/tr/39_veri_ile_egitim.tr --yardım` |
 
 Etkileşimli kabuk `tr` ile açılır (dosya verilmeden); kabuktan `çıkış` ile çıkılır.
