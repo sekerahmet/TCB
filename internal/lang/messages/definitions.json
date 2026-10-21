@@ -570,6 +570,7 @@
 "H5090": { "param": ["path", "reason"] },
 "H5091": { "param": ["reason"] },
 "H5092": { "param": [] },
+"H5093": { "param": ["shard", "tokens", "bytes"] },
 "H5200": { "param": ["component", "error"] },
 "H5201": { "param": ["component"] },
 "H5202": { "param": ["component", "kind", "supported"] },

@@ -166,6 +166,11 @@ func OpenDataset(dir string, s DatasetOptions) (*Dataset, error) {
 			}
 			pb.Token = n
 		}
+		// Her token en az 1 bayttır: dosyadan çok token bildiren meta.json (ya da başlık) bozuktur;
+		// bu sınır aynı zamanda token toplamının int64'ü taşmasını önler.
+		if pb.Token > pb.Bytes && pb.Bytes > 0 {
+			return nil, messages.New(messages.H5093, ad, pb.Token, pb.Bytes)
+		}
 		k.shards = append(k.shards, pb)
 		k.total += pb.Token
 	}

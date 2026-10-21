@@ -575,6 +575,7 @@ const (
 	H5090 Code = 5090 // veri: {path}: geçersiz .npy dosyası: {reason}
 	H5091 Code = 5091 // veri: geçersiz .npy dosyası: {reason}
 	H5092 Code = 5092 // geçersiz
+	H5093 Code = 5093 // veri: meta.json'daki {shard} parçasının token sayısı ({tokens}) dosya boyutuna ({bytes} bayt) sığmıyor (her token en az 1 bayttır); meta.json bozuk ya da başka bir veriye ait
 	H5200 Code = 5200 // {component} tanımı çözümlenemedi: {error}
 	H5201 Code = 5201 // {component} tanımında "type" alanı yok
 	H5202 Code = 5202 // desteklenmeyen {component} türü {kind|q} (desteklenenler: {supported})
