@@ -43,10 +43,19 @@ func TestMultiBatchGemm(t *testing.T) {
 	rng := rand.New(rand.NewSource(20))
 	b := 65535 + 3
 	av, bv := random(rng, b*2, 1), random(rng, b*2, 1)
-	compare(t, fmt.Sprintf("%d toplu çarpım", b), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
-		x, y := twin(av, true, b, 1, 2)[c], twin(bv, true, b, 2, 1)[c]
-		return tensor.MatMul(x, y), []*tensor.Tensor{x, y}
-	})
+	// M = 1: döşemeli yol (gemv kapalı) ve gemv'nin kendi ızgara parçalaması. Benzetimde gemv
+	// atlanır: 65538 bloğun her biri 512 iş parçacığıdır (yarış dedektörüyle dakikalar sürer).
+	defer func() { g.gemvOff = false }()
+	for _, off := range []bool{true, false} {
+		if !off && inSim() {
+			continue
+		}
+		g.gemvOff = off
+		compare(t, fmt.Sprintf("%d toplu çarpım (gemv kapalı %v)", b, off), 2e-5, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+			x, y := twin(av, true, b, 1, 2)[c], twin(bv, true, b, 2, 1)[c]
+			return tensor.MatMul(x, y), []*tensor.Tensor{x, y}
+		})
+	}
 }
 
 func TestLargeTileAuto(t *testing.T) {
