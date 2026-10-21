@@ -416,7 +416,7 @@ yazdır(oku(r), bırakılan().uzunluk)
 
 // Varsayılan parametre ifadesindeki kapanış fonksiyon ortamını yakaladığında,
 // yakalanan kaynağın erken bırakılmaması ve ortam havuzunun sıfırlanmaması gerekir.
-func TestAuditDefaultParamClosureCapturesEnv(t *testing.T) {
+func TestDefaultParamClosureCapturesEnv(t *testing.T) {
 	expectOut(t, `
 fonksiyon kur(x = yeni(), g = () => oku(x)) {
     sonuç g

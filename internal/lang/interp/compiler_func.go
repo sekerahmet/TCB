@@ -117,6 +117,12 @@ func (c *compiler) function(k *compilerScope, params []ast.Param, body *ast.Bloc
 			break
 		}
 	}
+	for _, p := range params {
+		// Varsayılan ifadeler fonksiyonun ortamında hesaplanır; içlerindeki kapanış onu yakalar.
+		if fk.pooled && p.DefaultValue != nil && c.blocks.exprCaptures(p.DefaultValue) {
+			fk.pooled = false
+		}
+	}
 	fk.info.local = fk.pooled // kapanışsız gövdenin ortamı yereldir (ownership.go)
 	return fk
 }
