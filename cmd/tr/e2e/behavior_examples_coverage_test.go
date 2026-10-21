@@ -21,8 +21,7 @@ import (
 
 // uncoveredNames bilerek ya da henüz örneği yazılmamış adlardır ve gerekçesiyle durur. Liste
 // yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
-var uncoveredNames = map[string]string{
-}
+var uncoveredNames = map[string]string{}
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.
 func exampleTexts(t *testing.T) map[string]string {
@@ -69,22 +68,24 @@ func usedCodes(t *testing.T) map[string]bool {
 	return used
 }
 
-var commentLine = regexp.MustCompile(`(?m)^\s*//.*$`)
-
-// commandLineText K ailesinin adlarının aranacağı metindir: örneklerin yorum satırları ve
-// examples/README.md.
-func commandLineText(t *testing.T) string {
+// commandLineSection K ailesinin adlarının aranacağı metindir: examples/README.md'nin "Komut satırı" bölümü
+// (bir sonraki "## " başlığına kadar).
+func commandLineSection(t *testing.T) string {
 	t.Helper()
-	var b strings.Builder
-	for _, text := range exampleTexts(t) {
-		for _, l := range commentLine.FindAllString(text, -1) {
-			b.WriteString(l + "\n")
-		}
+	data, err := os.ReadFile(reporoot.Path("examples", "README.md"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if data, err := os.ReadFile(reporoot.Path("examples", "README.md")); err == nil {
-		b.Write(data)
+	text := string(data)
+	start := strings.Index(text, "\n## Komut satırı")
+	if start < 0 {
+		t.Fatal("examples/README.md'de '## Komut satırı' bölümü yok")
 	}
-	return b.String()
+	rest := text[start+1:]
+	if end := strings.Index(rest[3:], "\n## "); end >= 0 {
+		rest = rest[:end+3]
+	}
+	return rest
 }
 
 func TestExamplesCoverNames(t *testing.T) {
@@ -120,10 +121,10 @@ func TestExamplesCoverNames(t *testing.T) {
 	}
 }
 
-// K ailesi: komut, seçenek, kabuk ve hata ayıklayıcı adları örneklerin Çalıştırma satırlarında ya da
-// examples/README.md'de tam sözcük olarak geçer (TR ya da İngilizce adıyla).
+// K ailesi: komut, seçenek, kabuk ve hata ayıklayıcı adları examples/README.md'nin "Komut satırı"
+// bölümünde tam sözcük olarak geçer (seçenek adlarının sözcükleri tireyle de yazılabilir).
 func TestExamplesCoverCommandLine(t *testing.T) {
-	text := commandLineText(t)
+	text := commandLineSection(t)
 	var missing []string
 	for _, k := range codes.Codes() {
 		if k.String()[0] != 'K' {
@@ -131,21 +132,18 @@ func TestExamplesCoverCommandLine(t *testing.T) {
 		}
 		found := false
 		for _, name := range codes.Spellings(k) {
-			if regexp.MustCompile(`(^|[^\p{L}\p{N}_])` + regexp.QuoteMeta(name) + `($|[^\p{L}\p{N}_])`).MatchString(text) {
-				found = true
-				break
+			for _, form := range []string{name, strings.ReplaceAll(name, "_", "-")} {
+				word := regexp.MustCompile(`(^|[^\p{L}\p{N}_])` + regexp.QuoteMeta(form) + `($|[^\p{L}\p{N}_])`)
+				if word.MatchString(text) {
+					found = true
+				}
 			}
 		}
 		if !found {
 			missing = append(missing, k.String()+" "+codes.Name(k))
 		}
 	}
-	t.Logf("K ailesinde henüz geçmeyen: %d", len(missing))
-	if len(missing) > 0 && !commandLineExempt(missing) {
-		t.Errorf("örneklerde ya da examples/README.md'de geçmeyen komut satırı adları: %s", strings.Join(missing, ", "))
+	if len(missing) > 0 {
+		t.Errorf("examples/README.md'nin Komut satırı bölümünde geçmeyen adlar: %s", strings.Join(missing, ", "))
 	}
 }
-
-// commandLineExempt K ailesi için henüz yazılmamış adları geçici olarak kabul eder; README
-// yazıldıkça kaldırılır.
-func commandLineExempt(missing []string) bool { return len(missing) >= 0 }
