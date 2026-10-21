@@ -2219,7 +2219,7 @@ tensör_kaydet("agirliklar.trt", {"w": tensör([[1.0, 2.0]]), "b": tensör([0.5]
 
     tensör_yükle(Metin, türev_izle: Mantık = yanlış) → Sözlük
 
-tensör_kaydet ile yazılmış dosyayı aynı sırayla ad → tensör sözlüğü olarak okur; tensörler kaydedildikleri türdedir. Bozuk, eksik ya da başka türden dosya açık bir hatayla reddedilir.
+tensör_kaydet ile yazılmış dosyayı ya da safetensors dosyasını (Hugging Face, PyTorch; biçim içerikten anlaşılır) ad → tensör sözlüğü olarak, dosyadaki sırayla okur; tensörler kaydedildikleri türdedir (F32, BF16, F16). Bozuk, eksik ya da başka türden dosya açık bir hatayla reddedilir.
 
 ```tr
 tensör_kaydet("a.trt", {"w": tensör([1.0])}); yazdır(tensör_yükle("a.trt", türev_izle: doğru)["w"].gradyan)

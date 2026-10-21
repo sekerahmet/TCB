@@ -291,6 +291,6 @@ func readFromFile(fpath string) ([]fileEntry, error, error) {
 	if info.IsDir() {
 		return nil, messages.New(messages.H6629), nil
 	}
-	inputs, err := decodeFile(f, info.Size())
+	inputs, err := decodeTensorFile(f, info.Size())
 	return inputs, err, nil
 }

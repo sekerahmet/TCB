@@ -158,3 +158,13 @@ op.sıfırla()
 ```
 
 Karşılaştırma ve karar: Keras `TerminateOnNaN` ve Lightning `EarlyStopping(check_finite=True)` NaN'da eğitimi durdurur; PyTorch `GradScaler` inf/NaN gradyanlı adımı atlar; Megatron-LM NaN ve kaybın ilk değerlerin en büyüğünün 10 katını aşmasını yakalayıp adımı yeniden koşar; OLMo-core kayıp ve gradyan normunun son 128 adıma göre 6 standart sapmalık sıçramasını yalnızca kaydeder; PaLM kayıp sıçramasında yaklaşık 100 adım önceki kontrol noktasına dönüp 200–500 toplu işi atlamıştır (Chowdhery ve ark. 2022, §5.1). Hiçbiri tek doğru politika değildir; TR bu yüzden politikayı dile gömmez, parçalarını verir: denetim (`sonlu_mu`, `sonlu_değilse_hata`), geri dönme ve toplu iş atlama (**20.14**, **20.15**), sıçrama bekçisi (`tr/egitim`).
+
+**15.47** `tensör_yükle(yol)` safetensors dosyasını da okur (Hugging Face ve PyTorch ağırlıklarının biçimi). Biçim uzantıdan değil içerikten anlaşılır: `TRTENSOR` ile başlayan dosya TR biçimidir (**15.10**); 9. baytı `{` olan dosya safetensors'tur (8 baytlık başlık boyundan sonra JSON başlık; belirtim: başlık `{` ile başlamak zorundadır); ikisi de değilse hata iki biçimi de anar. Tensörler dosyadaki veri sırasıyla gelir; F32, BF16 ve F16 kendi türünde, `__metadata__` tensör değildir. Okuma kuralları (dosya güvenilmeyen girdidir; denetimler veri okunmadan yapılır, dosya boyunu aşan ayırma olmaz):
+
+- başlık boyu en çok 100 000 000 bayt ve dosyadan kısa; başlık geçerli UTF-8 JSON, sonunda yalnızca boşluk;
+- yinelenen anahtar, bilinmeyen alan ve eksik alan (`dtype`, `shape`, iki sayılık `data_offsets`) hatadır; `__metadata__` yalnızca metin değer tutar;
+- desteklenen türler F32, BF16, F16; öbürleri (I64, U8, F8 ...) açık hatadır;
+- veri aralıkları `[başlangıç, bitiş)` sıralanınca ilki 0'da başlar, her biri öncekinin bittiği yerde başlar (boşluk ve örtüşme yok) ve sonuncusu veri alanının sonunda biter; her aralığın boyu şeklin eleman sayısı × tür boyudur;
+- **15.10**'un eksen (en çok 32), eleman ve ad sınırları geçerlidir; boş ve 0 boyutlu tensör geçerlidir.
+
+Karşılaştırma ve karar: kurallar safetensors'un kendi okuyucusundan alındı (safetensors README "Format"; `safetensors/src/tensor.rs`: `MAX_HEADER_SIZE: usize = 100_000_000`, `validate` içinde `if s != start || e < s` ve `if e - s != size`, `MetadataIncompleteBuffer`). Yinelenen anahtarı README "her ayrıştırıcı uymayabilir" diye bırakır; TR reddeder, çünkü Go'nun JSON çözücüsü sessizce sonuncuyu alırdı. Yazma (`tensör_kaydet`'in safetensors'a geçmesi) yol haritası Evre 4'tedir. Go testleri ve bulanıklaştırma: `internal/stdlib/ml` `TestSafetensorsLoad`, `TestSafetensorsRejects`, `FuzzSafetensorsDecode`.
