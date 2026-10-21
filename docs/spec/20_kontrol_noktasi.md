@@ -65,6 +65,24 @@ Düz bir `Tam`, `Ondalık`, `Metin` ya da `Mantık` doğrudan verilemez (geri y�
 
 **20.13** `ö.durum` okuyucunun kaldığı yeri düz değerli bir sözlük olarak verir: `tür` (`örnekleyici`, `sıralı`), `toplu`, `bağlam`, (örnekleyicide) `tohum`, `küme` (veri kümesinin kimliği), (örnekleyicide) `dönem`, `sıra`, `pencere`, `sayaç` (okunan toplu iş sayısı), (sıralıda) `bitti`. Konum, `.sonraki()` ile alınan son toplu işten sonraki konumdur (önden yüklenip bekleyen toplu işler sayılmaz). `ö.durumu_yükle(sözlük)` aynı ayarla kurulmuş bir okuyucuyu o konuma getirir ve `doğru` verir: sonraki `.sonraki()` kaydedilen okuyucunun vereceği toplu işi verir. Türü, `toplu`, `bağlam`, `tohum` ya da veri kümesi farklı kayıt ve eksik alan hatadır (okuyucu değişmez).
 
+**20.14** `kn.geri_dön()` en yeni geçerli noktayı aynı programda yerinde yükler ve noktanın adımını (`Tam`) verir. Yükleme kurulumdakiyle aynı yoldur (**20.6**, **20.7**, **20.9**): parametreler, iyileştirici durumları, okuyucular ve düz değerler noktadaki hallerine döner, günlüklere devam kaydı yazılır (geri dönülen adımdan sonraki kayıtlar geçersiz sayılır, 19). Standart hataya `Son kontrol noktasına dönüldü: adım N (...)` yazılır. `kaldığı_adım` değişmez (kurulumun adımıdır); eğitim döngüsü dönen adımdan sürer. Nokta yoksa açık hatadır; argüman almaz. Bozuk bir adımdan geri dönüp sürdürülen eğitim, hiç bozulmamış eğitimle bit düzeyinde aynı biter (Go testi: `internal/stdlib/checkpoint` `TestRollbackAfterNaNSameAsUninterrupted`). Bozuk adım kaydedilmeden önce dönülmelidir: aralıklı kayıt (`güncelle`) bozulmuş durumu da kaydeder, bu yüzden denetim `güncelle`'den önce yapılır:
+
+```tr
+değişken adım = kn.kaldığı_adım
+döngü adım < toplam_adım {
+    // ... ileri, geri_yayılım, op.adım()
+    eğer değil sonlu_mu(kayıp.değer) {
+        adım = kn.geri_dön()
+        ö.atla(200)
+        devam
+    }
+    adım += 1
+    kn.güncelle(adım)
+}
+```
+
+**20.15** `ö.atla(n)` okuyucunun (örnekleyici ya da sıralı) sıradaki `n` toplu işini tensör kurmadan atlar ve atladığı sayıyı (`Tam`) verir: sonraki `.sonraki()`, `n` tane `.sonraki()` çağrısından sonra gelecek toplu işin aynısıdır ve durumun `sayaç`ı `n` artar (**20.13**). Sıralı okuyucu biterse kalan kadar atlar, sonra `.sonraki()` `yok` verir. `n = 0` bir şey yapmaz; negatif sayı, `Tam` olmayan değer ve eksik ya da fazla argüman hatadır. Kayıp sıçramasından sonra son noktaya dönen eğitim, sıçramayı tetikleyen toplu işleri böyle atlar (PaLM bunu 200–500 toplu işle yapmıştır; Chowdhery ve ark. 2022, §5.1).
+
 ## Durdurma, belirlenimcilik ve sınırlar
 
 **Durdurma isteği** (Go testleri: `cmd/tr/e2e`, `internal/stdlib/checkpoint`). Kontrol noktası kurulduktan sonra gelen ilk Ctrl+C (Unix'te ayrıca SIGTERM, SIGHUP; Windows'ta Ctrl+Break ve konsol kapatma olayları) programı hemen durdurmaz: `Durduruluyor: adım bitince kontrol noktası kaydedilip çıkılacak (hemen çıkmak için Ctrl+C'ye yeniden basın)`. Sıradaki `kn.güncelle` (ya da `kn.kaydet()`) noktayı kaydeder (`Kontrol noktası kaydedildi: adım N (...)`) ve programı nazikçe durdurur: ertelenen işler çalışır, `dene/yakala` durdurmayı yakalamaz, çıkış kodu **3**'tür ("durduruldu, sürdürülebilir", 8.3). Bu kayıt yazılamazsa uyarı verilir ve program yine durur; sürdürülünce son geçerli noktadan devam edilir. İkinci Ctrl+C süreci hemen bitirir (çıkış kodu 130; son düzenli nokta kalır). Kontrol noktası kurulmadan gelen istek bugünkü gibi programı hemen durdurur. Sınır: Windows'ta konsol penceresi kapatılınca işletim sistemi süreci birkaç saniye içinde öldürür, uzun bir adım bitmeyebilir; gerçek güvence düzenli kayıttır (`her_dakika`). Süreç öldürülürse (elektrik kesintisi, not defterinin çalışma makinesi geri alındığında) en son düzenli noktadan sürülür.

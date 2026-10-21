@@ -707,6 +707,7 @@ const (
 	H5542 Code = 5542 // {fn}: durumun {name|q} alanı {type} olmalı, {given} verildi
 	H5543 Code = 5543 // {fn}: durumun {name|q} alanı 0 ya da pozitif bir {type} olmalı, {given} verildi
 	H5544 Code = 5544 // {fn}: kayıttaki okuyucunun {name} değeri {recorded}, bu okuyucununki {now}; aynı ayarla sürdürün ya da yeni bir koşu klasörü verin
+	H5545 Code = 5545 // {fn}: atlanacak toplu iş sayısı negatif olamaz, {given} verildi
 	H5600 Code = 5600 // {type}(dağarcık {size}, {file})
 	H5601 Code = 5601 // {type} (dağarcık {size})
 	H5602 Code = 5602 // bu parçalayıcıda eklenmiş (özel) parça yok; dağarcık boyutu {size}
@@ -1239,6 +1240,8 @@ const (
 	H7483 Code = 7483 // {file} çok büyük (en çok {max} bayt)
 	H7484 Code = 7484 // değer
 	H7485 Code = 7485 // Uyarı: {error} ({count}/{max}; eğitim sürüyor, sonraki {method}'de yeniden denenecek). {last}
+	H7486 Code = 7486 // {fn}: {dir|q} içinde dönülecek bir kontrol noktası yok; önce {save}() ya da {update}(adım) ile kaydedin
+	H7487 Code = 7487 // Son kontrol noktasına dönüldü: adım {step} ({dir}/{name})
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

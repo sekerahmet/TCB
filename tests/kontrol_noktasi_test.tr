@@ -359,3 +359,44 @@ test "20.13 okuyucunun durumu alınıp aynı ayarla kurulmuş okuyucuya yükleni
     eşit_mi(sb, s2.sonraki()[0].değer)
     doğrula(hata_metni(() => s2.durumu_yükle({tür: "sıralı"})).içerir("durumda \"toplu\" alanı yok"))
 }
+
+test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını verir; nokta yoksa hatadır" {
+    ertele { temizle() }
+    değişken w = param([3], 2)
+    değişken op = AdamW([w], öğrenme_oranı: 0.1)
+    değişken izlenen = {sayaç: 0}
+    değişken kn = kontrol_noktası(koşu("geri"), {w: w, op: op, izlenen: izlenen})
+    doğrula(hata_metni(() => kn.geri_dön()).içerir("dönülecek bir kontrol noktası yok"))
+    geri_yayılım(toplam(w * w))
+    op.adım()
+    op.sıfırla()
+    izlenen.sayaç = 1
+    kn.güncelle(1)
+    kn.kaydet()
+    değişken kayıtlı = w.değer
+    değişken kayıtlı_durum = op.durum["m.0"].değer
+    geri_yayılım(toplam(w * ondalık("nan")))
+    op.adım()
+    op.sıfırla()
+    izlenen.sayaç = 2
+    doğrula(değil sonlu_mu(toplam(w).değer))
+    eşit_mi(1, kn.geri_dön())
+    eşit_mi(kayıtlı, w.değer)
+    eşit_mi(kayıtlı_durum, op.durum["m.0"].değer)
+    eşit_mi(1, izlenen.sayaç)
+    eşit_mi(0, kn.kaldığı_adım)
+    doğrula(hata_metni(() => kn.geri_dön(1)).içerir("0 argüman"))
+}
+
+test "20.15 atla sıradaki toplu işleri tensör kurmadan atlar" {
+    değişken küme = veri_kümesi("data/text")
+    değişken a = küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 7)
+    döngü i içinde 0..3 { a.sonraki() }
+    değişken beklenen = a.sonraki()[0].değer
+    değişken b = küme.örnekleyici(toplu: 2, bağlam: 4, tohum: 7)
+    eşit_mi(0, b.atla(0))
+    eşit_mi(3, b.atla(3))
+    eşit_mi(3, b.durum["sayaç"])
+    eşit_mi(beklenen, b.sonraki()[0].değer)
+    doğrula(hata_metni(() => b.atla(-1)).içerir("negatif olamaz"))
+}

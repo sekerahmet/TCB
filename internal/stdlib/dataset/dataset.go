@@ -356,12 +356,14 @@ func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 		return o.StateDict(nil)
 	case memberLoadState:
 		return method(codes.Name(memberLoadState), o.loadStateTR), nil
+	case memberSkip:
+		return method(codes.Name(memberSkip), o.skipTR), nil
 	}
 	what := SamplerType
 	if o.sequential {
 		what = messages.Text(messages.H5526)
 	}
-	return nil, bind.MemberError(what, prop, codes.Names(memberNext, memberState, memberLoadState))
+	return nil, bind.MemberError(what, prop, codes.Names(memberNext, memberSkip, memberState, memberLoadState))
 }
 
 // readerArgs toplu, bağlam ve (örnekleyicide) tohum argümanlarını okur. Konumlu
@@ -535,6 +537,50 @@ func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]inte
 	gt := ml.NewInt(tensor.New(input, b, t))
 	ht := ml.NewInt(tensor.New(target, b, t))
 	return &interp.ListVal{Elements: []interp.Value{gt, ht}}, nil
+}
+
+// skipTR ö.atla(n) metodudur (20.15): sıradaki n toplu işi önden yükleyiciden alıp tensör
+// kurmadan bırakır, durumu .sonraki()'deki gibi ilerletir ve atlanan sayıyı verir; sıralı
+// okuyucu biterse kalan kadar atlar.
+func (o *Reader) skipTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	fn := codes.DisplayName(memberSkip)
+	if err := bind.CheckNamed(fn+"()", named); err != nil {
+		return nil, err
+	}
+	if len(args) != 1 {
+		return nil, interp.ArgCountError(memberSkip, "1", len(args))
+	}
+	n, ok := args[0].(*interp.IntVal)
+	if !ok {
+		return nil, interp.ArgTypeError(memberSkip, 1, args[0], codes.A200)
+	}
+	if n.Val < 0 {
+		return nil, messages.New(messages.H5545, fn, n.Val)
+	}
+	skipped := int64(0)
+	var err error
+	m.Blocking(func() {
+		o.mu.Lock()
+		defer o.mu.Unlock()
+		for ; skipped < n.Val && !o.done; skipped++ {
+			err = o.pf.Take(&o.ti)
+			if errors.Is(err, io.EOF) {
+				o.done, err = true, nil
+				_ = o.resource.Close(0)
+				return
+			}
+			if err != nil {
+				return
+			}
+			o.counter++
+			o.epoch = o.ti.State.Epoch
+			o.pos = o.ti.State
+		}
+	})
+	if err != nil {
+		return nil, dataError(fn, o.ds.path, err)
+	}
+	return interp.NewInt(skipped), nil
 }
 
 var _ interp.Stream = (*Reader)(nil)

@@ -36,31 +36,42 @@ type loadedCkpt struct {
 
 // load klasörde nokta varsa en yenisini yükler; yoksa bir şey yapmaz (yeni koşu).
 func (kn *Checkpoint) load(m *interp.VM, fn string) error {
+	o, err := kn.loadNewest(m, fn)
+	if err != nil || o == nil {
+		return err
+	}
+	kn.resumed = o.step
+	m.WriteOutput(m.Err, messages.Text(messages.H7469, o.step, kn.shown, o.name)+"\n")
+	return nil
+}
+
+// loadNewest en yeni noktayı doğrular, nesnelerin uyumunu denetler ve yerinde yükler; nokta
+// yoksa nil döner. Kurulum (load) ve geri dönme (rollback, 20.14) aynı yoldan yükler.
+func (kn *Checkpoint) loadNewest(m *interp.VM, fn string) (*loadedCkpt, error) {
 	if _, err := os.Stat(kn.dir); errors.Is(err, fs.ErrNotExist) {
-		return nil
+		return nil, nil
 	}
 	cleanLeftovers(kn.dir)
 	ckpts, err := listCkpts(kn.dir)
 	if err != nil {
-		return turkish.FileError(fn, kn.shown, messages.H2100, err)
+		return nil, turkish.FileError(fn, kn.shown, messages.H2100, err)
 	}
 	if len(ckpts) == 0 {
-		return nil
+		return nil, nil
 	}
 	o, err := verifyCkpt(kn.dir, ckpts[0])
 	if err != nil {
-		return kn.brokenCheckpointError(fn, ckpts, err)
+		return nil, kn.brokenCheckpointError(fn, ckpts, err)
 	}
 	if err := kn.checkMatch(fn, o); err != nil {
-		return err
+		return nil, err
 	}
 	if err := kn.apply(m, fn, o); err != nil {
-		return err
+		return nil, err
 	}
-	kn.resumed, kn.step, kn.lastValid = o.step, o.step, o.step
+	kn.step, kn.lastValid = o.step, o.step
 	kn.compareSettings(m, o.state)
-	m.WriteOutput(m.Err, messages.Text(messages.H7469, o.step, kn.shown, o.name)+"\n")
-	return nil
+	return o, nil
 }
 
 // brokenCheckpointError en yeni nokta bozuksa açık hatadır; bir önceki geçerli nokta varsa onu

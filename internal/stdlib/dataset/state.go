@@ -23,6 +23,7 @@ import (
 const (
 	memberState     = codes.Y502
 	memberLoadState = codes.Y503
+	memberSkip      = codes.Y603
 )
 
 // Durum sözlüğünün anahtarları ve okuyucu türleri dosya biçiminin (kontrol noktasının

@@ -298,9 +298,11 @@ const (
 	Y504 Code = Y + 504 // lr · öğrenme_oranı
 	Y520 Code = Y + 520 // resume_step · kaldığı_adım
 	Y521 Code = Y + 521 // save · kaydet
+	Y522 Code = Y + 522 // rollback · geri_dön
 	Y600 Code = Y + 600 // sampler · örnekleyici
 	Y601 Code = Y + 601 // sequential · sıralı
 	Y602 Code = Y + 602 // next · sonraki
+	Y603 Code = Y + 603 // skip · atla
 	Y610 Code = Y + 610 // encode · kodla
 	Y611 Code = Y + 611 // decode · çöz
 	Y612 Code = Y + 612 // vocab_size · dağarcık_boyutu

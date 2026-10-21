@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 298 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 38 metot, 21 özellik, 41 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 300 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 103 fonksiyon, 1 sabit, 40 metot, 21 özellik, 41 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -547,7 +547,7 @@ Veri kümesinden tohuma göre rastgele [girdi, hedef] tensör çiftleri üreten 
 değişken ö = veri_kümesi("tests/data/numbers").örnekleyici(toplu: 2, bağlam: 4, tohum: 1); yazdır(tip(ö) == Örnekleyici)
 ```
 
-Üyeleri: Y502 `durum`, Y503 `durumu_yükle`, Y602 `sonraki` · İlişkili: Y600 `örnekleyici`, A233 `SıralıOkuyucu`
+Üyeleri: Y502 `durum`, Y503 `durumu_yükle`, Y602 `sonraki`, Y603 `atla` · İlişkili: Y600 `örnekleyici`, A233 `SıralıOkuyucu`
 
 #### A233 `SıralıOkuyucu`
 
@@ -557,7 +557,7 @@ Veri kümesini pencereler hâlinde sırayla okuyan okuyucunun tipidir; veri biti
 değişken s = veri_kümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4); yazdır(tip(s) == SıralıOkuyucu)
 ```
 
-Üyeleri: Y502 `durum`, Y503 `durumu_yükle`, Y602 `sonraki` · İlişkili: Y601 `sıralı`, A232 `Örnekleyici`
+Üyeleri: Y502 `durum`, Y503 `durumu_yükle`, Y602 `sonraki`, Y603 `atla` · İlişkili: Y601 `sıralı`, A232 `Örnekleyici`
 
 #### A234 `Parçalayıcı`
 
@@ -629,7 +629,7 @@ kontrol_noktası(...) ile kurulan, eğitimin bütün durumunu (parametreler, iyi
 değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_a258", {w: w}); yazdır(tip(kn) == KontrolNoktası)
 ```
 
-Üyeleri: Y010 `güncelle`, Y520 `kaldığı_adım`, Y521 `kaydet` · İlişkili: T702 `kontrol_noktası`, Y010 `güncelle`, Y520 `kaldığı_adım`, Y521 `kaydet`
+Üyeleri: Y010 `güncelle`, Y520 `kaldığı_adım`, Y521 `kaydet`, Y522 `geri_dön` · İlişkili: T702 `kontrol_noktası`, Y010 `güncelle`, Y520 `kaldığı_adım`, Y521 `kaydet`, Y522 `geri_dön`
 
 ## G — Genel yerleşikler
 
@@ -3374,6 +3374,18 @@ değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_nokt
 
 İlişkili: Y520 `kaldığı_adım`, Y010 `güncelle`
 
+#### Y522 `geri_dön`
+
+    KontrolNoktası.geri_dön() → Tam
+
+En yeni geçerli kontrol noktasını aynı programda yerinde yükler (parametreler, iyileştiriciler, okuyucular, düz değerler; günlüklere devam kaydı yazılır) ve noktanın adımını Tam olarak verir; eğitim döngüsü o adımdan sürer. Kayıp NaN olunca ya da sıçrayınca son sağlam noktaya dönmek içindir. Nokta yoksa hatadır.
+
+```tr
+değişken w = tensör([1.0], türev_izle: doğru); değişken kn = kontrol_noktası("koşu_y522", {w: w}); kn.güncelle(1); kn.kaydet(); yazdır(kn.geri_dön())
+```
+
+İlişkili: Y521 `kaydet`, Y520 `kaldığı_adım`, G415 `sonlu_mu`
+
 ### Veri kümesi, okuyucu, parçalayıcı (Y6xx)
 
 #### Y600 `örnekleyici`
@@ -3413,6 +3425,19 @@ değişken girdi, hedef = veri_kümesi("tests/data/numbers").sıralı(toplu: 2, 
 ```
 
 İlişkili: Y600 `örnekleyici`, Y601 `sıralı`, G112 `dosya_satırları`
+
+#### Y603 `atla`
+
+    Örnekleyici.atla(Tam) → Tam
+    SıralıOkuyucu.atla(Tam) → Tam
+
+Sıradaki n toplu işi tensör kurmadan atlar ve atladığı sayıyı Tam olarak verir; sonraki .sonraki() n tane sonraki() çağrısından sonra gelecek toplu işi verir, okuyucunun durumu (sayaç) n artar. Sıralı okuyucu biterse kalan kadar atlar. Kayıp sıçramasından sonra son kontrol noktasına dönen eğitim, sıçramayı tetikleyen toplu işleri böyle atlar.
+
+```tr
+değişken ö = veri_kümesi("tests/data/text").örnekleyici(toplu: 2, bağlam: 8, tohum: 1); yazdır(ö.atla(3), ö.durum.sayaç)
+```
+
+İlişkili: Y602 `sonraki`, Y502 `durum`, Y522 `geri_dön`
 
 #### Y610 `kodla`
 

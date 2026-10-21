@@ -117,8 +117,12 @@ func (kn *Checkpoint) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return &interp.BuiltinVal{Name: codes.Name(codes.Y521), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			return bind.Safe(interp.CallName(codes.Y521), func() (interp.Value, error) { return kn.saveTR(m, args) })
 		}}, nil
+	case codes.Y522:
+		return &interp.BuiltinVal{Name: codes.Name(codes.Y522), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			return bind.Safe(interp.CallName(codes.Y522), func() (interp.Value, error) { return kn.rollback(m, args) })
+		}}, nil
 	}
-	return nil, bind.MemberError(string(CheckpointType), prop, codes.Names(codes.Y010, codes.Y520, codes.Y521))
+	return nil, bind.MemberError(string(CheckpointType), prop, codes.Names(codes.Y010, codes.Y520, codes.Y521, codes.Y522))
 }
 
 // setup kontrol_noktası(koşu, nesneler, her_dakika:, tut:) yerleşiğidir.
@@ -267,6 +271,24 @@ func (kn *Checkpoint) saveTR(m *interp.VM, args []interp.Value) (interp.Value, e
 		kn.halt(m)
 	}
 	return files.NewPath(fpath), nil
+}
+
+// rollback kn.geri_dön() metodudur (20.14): en yeni geçerli noktayı aynı programda yerinde
+// yükler ve adımını verir; nokta yoksa açık hatadır. kaldığı_adım değişmez (kurulumun adımıdır).
+func (kn *Checkpoint) rollback(m *interp.VM, args []interp.Value) (interp.Value, error) {
+	if len(args) != 0 {
+		return nil, interp.ArgCountError(codes.Y522, "0", len(args))
+	}
+	fn := interp.CallName(codes.Y522)
+	o, err := kn.loadNewest(m, fn)
+	if err != nil {
+		return nil, err
+	}
+	if o == nil {
+		return nil, messages.New(messages.H7486, fn, kn.shown, codes.DisplayName(codes.Y521), codes.DisplayName(codes.Y010))
+	}
+	m.WriteOutput(m.Err, messages.Text(messages.H7487, o.step, kn.shown, o.name)+"\n")
+	return interp.NewInt(o.step), nil
 }
 
 // halt ertelenen kesme isteğini karşılar: noktayı kaydeder (hata uyarıdır) ve programı
