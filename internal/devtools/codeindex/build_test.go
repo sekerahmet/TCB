@@ -58,10 +58,11 @@ func TestBuildDeclarations(t *testing.T) {
 	want := map[string]Pos{
 		"struct:lib/geo.tr#Kare":            {File: "lib/geo.tr", Line: 5, Col: 1, EndLine: 13},
 		"method:lib/geo.tr#Kare.alan":       {File: "lib/geo.tr", Line: 10, Col: 5, EndLine: 12},
-		"field:lib/geo.tr#Kare.kenar":       {File: "lib/geo.tr", Line: 6, Col: 5},
+		"field:lib/geo.tr#Kare.kenar":       {File: "lib/geo.tr", Line: 6, Col: 5, EndLine: 6},
 		"function:lib/geo.tr#çevre_hesapla": {File: "lib/geo.tr", Line: 15, Col: 1, EndLine: 17},
-		"constant:lib/geo.tr#PI2":           {File: "lib/geo.tr", Line: 2, Col: 1},
-		"variable:lib/geo.tr#sayaç":         {File: "lib/geo.tr", Line: 3, Col: 1},
+		"constant:lib/geo.tr#PI2":           {File: "lib/geo.tr", Line: 2, Col: 1, EndLine: 2},
+		"variable:lib/geo.tr#sayaç":         {File: "lib/geo.tr", Line: 3, Col: 1, EndLine: 3},
+		"constant:lib/geo.tr#KATSAYILAR":    {File: "lib/geo.tr", Line: 24, Col: 1, EndLine: 27}, // çok satırlı değer
 		"test:lib/geo_test.tr#3":            {File: "lib/geo_test.tr", Line: 3, Col: 1, EndLine: 6},
 	}
 	got := map[string]Node{}

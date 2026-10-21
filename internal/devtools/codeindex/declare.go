@@ -42,6 +42,9 @@ func (x *indexer) declare(f *file) {
 func (x *indexer) def(f *file, parent string, kind Kind, idName, name, qualified, signature string, line, col int) string {
 	id := NodeID(kind, f.rel, idName)
 	end, endCol := x.blockEnd(f, line)
+	if kind == KindConstant || kind == KindVariable || kind == KindField {
+		end, endCol = valueEnd(f, line) // değer bildiriminin sonu, sonraki bloğun sonu değil
+	}
 	pos := &Pos{File: f.rel, Line: line, Col: col, EndLine: end, EndCol: endCol}
 	x.nodes[id] = &Node{ID: id, Kind: kind, Name: name, Pos: pos, Signature: signature, Qualified: qualified}
 	x.addEdge(parent, id, EdgeDefines, Extracted, Pos{File: f.rel, Line: line})
@@ -139,6 +142,40 @@ func (x *indexer) blockEnd(f *file, start int) (line, endCol int) {
 		}
 		if !opened && i > start && i-start > 3 {
 			break
+		}
+	}
+	return start, lineLen(f, start)
+}
+
+// valueEnd bir değer bildiriminin (sabit, değişken, alan) son satırıdır: başladığı satırdan, açılan
+// ([{ parantezlerin hepsi kapanana kadar (metin ve yorumların içindekiler sayılmaz); parantezi
+// olmayan bildirim tek satırdır.
+func valueEnd(f *file, start int) (line, endCol int) {
+	depth := 0
+	for i := start - 1; i < len(f.lines); i++ {
+		text := f.lines[i]
+		inStr := false
+		for j := 0; j < len(text); j++ {
+			c := text[j]
+			switch {
+			case inStr:
+				if c == '\\' {
+					j++
+				} else if c == '"' {
+					inStr = false
+				}
+			case c == '"':
+				inStr = true
+			case c == '/' && j+1 < len(text) && text[j+1] == '/':
+				j = len(text)
+			case c == '(' || c == '[' || c == '{':
+				depth++
+			case c == ')' || c == ']' || c == '}':
+				depth--
+			}
+		}
+		if depth <= 0 {
+			return i + 1, lineLen(f, i+1)
 		}
 	}
 	return start, lineLen(f, start)

@@ -20,3 +20,8 @@ fonksiyon yaz_alan(k) {
     yazdır(k.alan())
     sonuç çevre_hesapla(k)
 }
+
+sabit KATSAYILAR = [
+    1,
+    2,
+]

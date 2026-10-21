@@ -29,8 +29,8 @@ edge tr:test:lib/geo_test.tr:8 calls tr:struct:lib/geo.tr:Kare EXTRACTED @lib/ge
 edge tr:test:lib/geo_test.tr:8 tests tr:func:lib/geo.tr:çevre_hesapla EXTRACTED @lib/geo_test.tr:11 x1
 edge tr:test:lib/geo_test.tr:8 tests tr:struct:lib/geo.tr:Kare EXTRACTED @lib/geo_test.tr:11 x1
 edge tr:var:examples/ana.tr:k calls tr:struct:lib/geo.tr:Kare EXTRACTED @examples/ana.tr:3 x1
-node tr:const:lib/geo.tr:PI2 tr_const geo.PI2 @lib/geo.tr:2-13 "const PI2"
-node tr:field:lib/geo.tr:Kare.kenar tr_field geo.Kare.kenar @lib/geo.tr:6-9 "kenar"
+node tr:const:lib/geo.tr:PI2 tr_const geo.PI2 @lib/geo.tr:2-2 "const PI2"
+node tr:field:lib/geo.tr:Kare.kenar tr_field geo.Kare.kenar @lib/geo.tr:6-6 "kenar"
 node tr:file:examples/ana.tr file examples/ana.tr @examples/ana.tr:1-0 "tr"
 node tr:file:examples/broken.tr file examples/broken.tr @examples/broken.tr:1-0 "tr"
 node tr:file:examples/coded.tr file examples/coded.tr @examples/coded.tr:1-0 "tr, coded"
@@ -45,4 +45,4 @@ node tr:struct:lib/geo.tr:Kare tr_struct geo.Kare @lib/geo.tr:5-13 "yapı Kare"
 node tr:test:lib/geo_test.tr:3 tr_test geo_test: kare alanı yazılır @lib/geo_test.tr:3-6 "test \"kare alanı yazılır\""
 node tr:test:lib/geo_test.tr:8 tr_test geo_test: çevre @lib/geo_test.tr:8-12 "test \"çevre\""
 node tr:var:examples/ana.tr:k tr_var ana.k @examples/ana.tr:3-3 "var k"
-node tr:var:lib/geo.tr:sayaç tr_var geo.sayaç @lib/geo.tr:3-13 "var sayaç"
+node tr:var:lib/geo.tr:sayaç tr_var geo.sayaç @lib/geo.tr:3-3 "var sayaç"
