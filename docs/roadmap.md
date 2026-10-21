@@ -229,7 +229,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
 ## Evre 5: Geliştirici deneyimi
 
 - **Not defteri:** Jupyter çekirdeği ya da VS Code defteri; TR, Colab'da ve not defterinde hücre hücre çalışır. Yapay zekâ geliştiricileri not defterinde çalışır.
-- **VS Code dil sunucusu** `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır):
+- **VS Code dil sunucusu** `tr` programının içinde (ayrıştırıcı, tip denetleyicisi ve kod listesi yeniden kullanılır; tanıma git, kullanımları bul, yeniden adlandır ve anlamsal renklendirme [`internal/devtools/codeindex`](../internal/devtools/codeindex/README.md) dizininin üstüne kurulur, istek eşlemesi o README'nin "Dil sunucusu sözleşmesi" bölümündedir):
   - yazarken hata gösterimi, tek tıkla düzeltme;
   - üzerine gelince belge, adlı argüman ipuçları, tamamlama;
   - tanıma git (Ctrl+tık ya da çift tıkla başka dosyadaki tanıma ve `aktar "..."` satırından modül dosyasına), kullanımları bul, yeniden adlandır;

@@ -56,6 +56,33 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 
 Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`, `query_test.go` → `query.go`, `cache_test.go` → `cache.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
 
+## Dil sunucusu sözleşmesi (yol haritası, Evre 5)
+
+Dil sunucusu bu paketin üstüne kurulur; ayrı bir dizin ya da ayrı bir ad çözümlemesi yazılmaz. Her LSP isteği bu pakette bir karşılığa eşlenir:
+
+| LSP isteği | Bu paketteki karşılık | Not |
+| :-- | :-- | :-- |
+| `textDocument/definition` | `Reader.At(dosya, satır, sütun)` → düğümün `Pos`'u | `aktar "..."` satırında `At` modül düğümünü verir: modül dosyasına atlama |
+| `textDocument/references` | `Reader.Occurrences(düğümKimliği)` | rol ve güven her başvuruda; tanım dahil/hariç seçilir |
+| `textDocument/hover` | düğümün `Signature`, `Doc`, `Display` alanları | yerleşik adın okuyanın dilindeki adı `Display`'dedir |
+| `textDocument/documentSymbol` | `Index.Nodes` (dosyaya göre) | tür `Kind`'dan, aralık `Pos` ve bitiş satırından |
+| `workspace/symbol` | `Reader.Suggest` / `Resolve` | Türkçe büyük-küçük harf katlama burada hazırdır |
+| `textDocument/rename` | `Occurrences(id)` ve her `Pos`'un ad aralığı | başvurular adın tam aralığını gösterir (`TestOccurrencePositionsPointAtNames`); yerleşik ad yeniden adlandırılamaz |
+| `textDocument/prepareRename` | `At(...)` boşsa ya da düğüm `builtin` ise reddet | |
+| `textDocument/semanticTokens` | `Occurrences` rolleri (`call`, `read`, `write`, `definition`) | |
+| test gezgini | `Kind == test_block` düğümleri, `TestedBy` | |
+
+**Uyum kuralları.**
+
+- **Konum çevirisi sunucuda yapılır.** Burada satır 1 tabanlı, sütun Unicode kod noktasıdır, Türkçe gösterime göredir; LSP satırı 0 tabanlı, sütunu varsayılan olarak UTF-16 birimi sayar. Sunucu `Pos`'u LSP konumuna çevirir (satırdan 1 çıkar, sütunu satır metni üzerinden UTF-16'ya çevir); dizinin kendisi LSP'ye uydurulmaz. Kodlu dosyada satırlar her gösterimde aynıdır (17.5), sütunlar yalnızca Türkçe gösterimin satırında geçerlidir: kodlu dosya açıkken sunucu editörde görünen metinle Türkçe gösterimi eşlemelidir.
+- **Dizin editörün kaydedilmemiş içeriğini bilmez.** Sunucu açık dosyanın içeriğini diske yazılmış haliyle görür; yarım yazılmış dosya `Skipped` olur ve modül düğümü kalır, yani bozuk dosya diğer dosyaların sorgusunu bozmaz. Kaydedilmemiş içerik için sunucu o dosyayı kendi ayrıştırmasıyla ayrıca işler.
+- **Bayatlık.** Her sorgudan önce `BuildCached` çağrılabilir; hiçbir şey değişmediyse dosya içeriğine bakmadan önbellekten döner. Sürekli çalışan sunucu dizini bellekte tutar, dosya izleyicisi gelince yalnızca o dosya ve onu aktaranlar yenilenir (`dirtyClosure`).
+- **Çözülemeyen ad** kırmızı çizgi değildir: `Unresolved` dizin kalitesinin ölçüsüdür, tanılama (hata) üretimi ayrıştırıcıya ve tip denetleyicisine aittir.
+- **Tür bilgisi sonra gelir.** Dizin ad çözümlemesidir; alıcı tipi bilinmeyen `x.metot()` çağrıları `INFERRED` kalır. Tip denetleyicisinin çıkarımı bağlandığında bu kenarlar `EXTRACTED` olur; arayüz değişmez, yalnızca `confidence` yükselir.
+- **Çıkış biçimi.** Sunucu `Result` ve `Index` Go türlerini doğrudan kullanır (JSON'a çevirmeden); `--json` yalnızca komut satırı ve ajanlar içindir.
+
+Bu bölüm [`docs/roadmap.md`](../../../docs/roadmap.md) Evre 5'teki "VS Code dil sunucusu" maddesine bağlıdır; sunucu yazılırken buradaki eşleme esas alınır, eksik bir istek çıkarsa önce bu pakette (testle) eklenir.
+
 ## Başka dillerin ve araçların kod dizinleri: karşılaştırma ve kararlar
 
 Her satır, kaynağın resmi belgesinden okunmuştur (okuma tarihi 2026-10-21). Sürüm, sayfanın kendisinde görünüyorsa yazılıdır; görünmüyorsa "sürüm sayfada yok" denir. **Al** = TR'ye olduğu gibi ya da küçük uyarlamayla girer; **Uyarla** = fikri alır, biçimi TR'ye göre değiştiririz; **Alma** = bilerek almıyoruz (gerekçesiyle).
