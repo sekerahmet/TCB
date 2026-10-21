@@ -84,6 +84,10 @@ type node struct {
 	// passGrad, gradyanı girdisine olduğu gibi aktaran işlemin (dönüşüm, görünüm, kopya,
 	// cihaz değiştirme) düğümünü işaretler: gradyanının türü girdininkidir (bkz. gradDType).
 	passGrad bool
+	// wideGrad, float32 bir hesabın sonunda 16 bite daraltılmış çıktının düğümünü işaretler
+	// (normun tür:'ü, kaynaşık programın son dönüşümü): gradyanı float32 tutulur; daraltma ayrı
+	// bir dönüşümle yapılsaydı (passGrad) gradyan da float32 olurdu, sonuç aynı kalır.
+	wideGrad bool
 
 	// Hesap çizgesi: düğümü üreten işlemin girdilerinin düğümleri (gradyan istemeyen girdi
 	// nil) ve geri hesap. Geri hesap kendi düğümünü alır; girdilerin düğümlerine parents
@@ -169,6 +173,14 @@ func track(out *Tensor, op string, parents []*Tensor, bw func(o *node), save ...
 	return out
 }
 
+// widenGrad float32 bir hesabın 16 bite daraltılmış çıktısının gradyanını float32 tutar
+// (bkz. node.wideGrad).
+func widenGrad(t *Tensor) {
+	if t.n != nil && t.dtyp != Float32 {
+		t.n.wideGrad = true
+	}
+}
+
 // trackPass, gradyanı tek girdisine olduğu gibi aktaran (dönüşüm, görünüm, kopya)
 // bir işlemi track ile kaydeder ve düğümü işaretler: çıktının gradyanı girdinin
 // gradyan türünde tutulur (bkz. gradDType).
@@ -186,12 +198,13 @@ func trackPass(out *Tensor, op string, t *Tensor, bw func(o *node)) *Tensor {
 //   - gradyanı girdisine olduğu gibi aktaran işlemin çıktısında girdinin gradyan
 //     türü (ör. float32 ağırlığın bfloat16 dönüşümünün gradyanı float32'dir; çarpımın
 //     geri yönü ağırlık gradyanını yuvarlamadan float32 yazar);
+//   - float32 hesabın daraltılmış çıktısında (wideGrad) float32;
 //   - diğer 16 bitlik ara sonuçlarda kendi türü (PyTorch autocast gibi; geri yöndeki
 //     çarpımlar gelen gradyanı dönüştürmeden 16 bitlik girdiyle yapılır).
 func (n *node) gradDType() DType {
 	for {
 		switch {
-		case n.dtyp == Float32:
+		case n.dtyp == Float32, n.wideGrad:
 			return Float32
 		case n.backward == nil:
 			return GradDType()

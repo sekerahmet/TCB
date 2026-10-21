@@ -1,0 +1,30 @@
+// 03 — Tipler: her değerin bir tipi vardır.
+// Ne öğretir: Tam, Ondalık, Metin, Mantık, yok; tip(); tam()/ondalık()/metin() dönüşümleri;
+// işleçler ve karşılaştırma; yok olabilen değer için ??.
+// Önceki örnekten: değişken, sabit ve atama (02).
+// Çalıştırma (proje kökünden): tr examples/tr/03_tipler.tr
+
+değişken yaş = 30 // Tam: ondalık noktası olmayan sayı
+değişken boy = 1.75 // Ondalık: noktalı sayı
+değişken ad = "Ayşe" // Metin
+değişken öğrenci_mi = doğru // Mantık: doğru ya da yanlış
+yazdır(tip(yaş), tip(boy), tip(ad), tip(öğrenci_mi))
+
+// Dönüşümler: metin sayıya, sayı metne, ondalık tama çevrilir.
+yazdır(tam("42") + 1, ondalık("2.5") * 2, metin(7) + "8")
+yazdır(tam(3.9), yuvarla(3.14159, 2)) // tam() noktadan sonrasını atar
+
+// Hesap işleçleri. / her zaman ondalık verir; % kalandır; ** kuvvettir.
+yazdır(7 + 2, 7 - 2, 7 * 2, 7 / 2, 7 % 2, 2 ** 10)
+
+// Karşılaştırma Mantık verir; ve, veya, değil mantıkları birleştirir.
+yazdır(yaş >= 18, yaş == 30, yaş != 30)
+yazdır(yaş >= 18 ve öğrenci_mi, değil öğrenci_mi, yaş < 18 veya boy > 1.7)
+
+// yok "değer yok" demektir (kendi tipi Yok). ?? soldaki yoksa sağdakini alır.
+değişken kullanıcı = yok
+yazdır(tip(kullanıcı), kullanıcı ?? "Misafir")
+
+// --- Kendin dene ---
+// 1. tip(2 ** 10) ve tip(2 ** 0.5) ne yazar? Önce tahmin et, sonra çalıştır.
+// 2. "12" + 1 ile tam("12") + 1 sonuçlarını karşılaştır: biri metin birleştirir, öbürü sayı toplar.

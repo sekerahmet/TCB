@@ -1,0 +1,36 @@
+//! tr kodlu 1
+// 21 — CSV, environment variables and time: taking data from the outside world.
+// What it teaches: reading a table with parse_csv and read_csv, taking a setting from the environment with env,
+// measuring time with time_ms.
+// Builds on: files and JSON (19), paths (20), lists (09), none and ?? (03).
+// Run (from the project root): tr examples/en/21_csv_and_environment.tr
+// The CSV file is written to a temporary folder (deleted when the program ends).
+
+// parse_csv turns CSV text into lists of rows (it does not read a file). A cell in strict number form becomes a
+// number; a cell like "007" with a leading zero stays a String.
+A030 rows = G603("name,age,code\nAli,30,007\nAyse,25,008")
+G100(rows[0], rows[1])
+G100(rows[1][1] + 1, G201(rows[1][1]), G201(rows[1][2]))
+
+// read_csv does the same for a file.
+A030 file = G120(G126(), "table.csv")
+G111(file, "product,count\napple,3\nbanana,5")
+A030 lines = G602(file)
+G100("number of rows:", lines.Y001)
+A010 line A011 lines {
+    G100(line)
+}
+// The count in the header row is a String, in data rows an Int: we sum only the numbers.
+G100("total count:", G400([line[1] A010 line A011 lines A001 G201(line[1]) == A200]))
+
+// env gives none if the variable is not defined; the default is written with ??.
+G100(G800("TR_EXAMPLE_MISSING_VARIABLE") ?? "default value")
+
+// time_ms is the milliseconds since 1970; the difference of two measurements is a duration.
+A030 start = G502()
+G500(0.05)
+G100("at least 50 ms passed:", G502() - start >= 50)
+
+// --- Try it yourself ---
+// 1. Parse your own CSV text and compute the mean of the age column.
+// 2. Measure how many ms a loop takes with time_ms.

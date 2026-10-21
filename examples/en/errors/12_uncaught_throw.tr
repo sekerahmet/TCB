@@ -1,0 +1,18 @@
+//! tr kodlu 1
+// Error 12 — Uncaught throw.
+// Message code: H2441
+// What happens: If an error raised with throw reaches no catch block the program stops and the error message is written.
+// Why: There is no try/catch to receive the error.
+// Fixed version:
+//     try {
+//         print(check_age(-3))
+//     } catch e {
+//         print("caught: {e}")
+//     }
+// Run (from the project root): tr examples/en/errors/12_uncaught_throw.tr   (exit code 1)
+
+A020 check_age(age) {
+    A001 age < 0 { A062 "age cannot be negative" }
+    A021 age
+}
+G100(check_age(-3))

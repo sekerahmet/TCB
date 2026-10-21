@@ -19,8 +19,8 @@ import (
 // contextWords bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki
 // bloğun parametresi, indirge bloğunun birikimi) yazımları ve 'kendi'nin adıdır; kod
 // listesinden, sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes: A101, A100,
-// A103, A104, A105, A051, Y207). Türkçe yazılmış dosya etkin dil ne olursa olsun Türkçe
-// okunur (lexer.NewBodyIn).
+// A103, A104, A105, A051, Y207). Programlar kanonik dilde (Türkçe) okunur; başka bir yazım
+// dilindeki metin kendi dilinde okunur (lexer.NewBodyIn).
 type contextWords struct {
 	test, as, reduce   []string
 	self, err, it, acc string

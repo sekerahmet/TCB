@@ -118,10 +118,10 @@ var Turkish = sync.OnceValue(func() *codes.Language {
 
 // Lexer returns the body's lexer: for a coded file, one that recognizes codes and whose
 // positions follow the file's view (17.5), the '$' of escaped user names included; for a file
-// written in Turkish, one that reads Turkish keywords whatever the active language is.
+// written in Turkish, one that reads it in Turkish (the canonical language, whatever TR_DIL is).
 func (b Parts) Lexer() *lexer.Lexer {
 	if !b.Coded {
-		return lexer.NewBodyIn(b.Body, Turkish())
+		return lexer.NewBody(b.Body, false)
 	}
 	_, l := view(b)
 	return l
@@ -129,12 +129,14 @@ func (b Parts) Lexer() *lexer.Lexer {
 
 // scanLexer kodları tanıyan, sütunları yalnızca kod adlarına göre kayan çözümleyicidir:
 // gösterimi kuran çözümleme (analyze) bunu kullanır, gösterim henüz yoktur. Aralıklar
-// (Record.Start/End) Lexer'ınkiyle aynıdır. Kodsuz gövde lang'de yazılmış okunur.
+// (Record.Start/End) Lexer'ınkiyle aynıdır. Kodsuz gövde lang'de yazılmış okunur; kodlu
+// gövdenin kodları kanonik adlarıyla okunur (gösterimin kaçışları kanonik ağaçtan, adlar
+// lang'de aranarak bulunur; checker.NameBindings).
 func (b Parts) scanLexer(lang *codes.Language) *lexer.Lexer {
 	if b.Coded {
 		return lexer.NewBody(b.Body, true)
 	}
-	return lexer.NewBodyIn(b.Body, lang)
+	return lexer.NewBodyIn(b.Body, false, lang)
 }
 
 // findEOL bir gövdenin satır sonu biçimidir: ilk satır sonu CRLF ise "\r\n", yoksa "\n".

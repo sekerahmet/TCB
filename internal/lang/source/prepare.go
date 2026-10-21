@@ -31,8 +31,8 @@ type Options struct {
 	InGlobalScope bool
 	GlobalNames   []string
 	GlobalDynamic bool
-	// Typed says the text is not a file but a line typed in the active language (the REPL);
-	// a file without the coded header is written in Turkish (17.7).
+	// Typed says the text is not a file but a line typed in the person's writing language
+	// (codes.Display; the REPL); a file without the coded header is written in Turkish (17.7).
 	Typed bool
 }
 
@@ -40,10 +40,10 @@ type Options struct {
 // the tree built up to that stage (it may be incomplete after a syntax error).
 type Result struct {
 	Parts
-	// Text is the source text for error frames, the debugger and the interpreter: the view of
-	// the body in the active language (for a file written in Turkish while the active language
-	// is Turkish, the body itself). Lines and columns in error messages refer to this text
-	// (17.5).
+	// Text is the source text for error frames, the debugger and the interpreter: the body of
+	// a file written in Turkish, the Turkish (canonical) view of a coded body or of a REPL
+	// line typed in another writing language. Lines and columns in error messages refer to
+	// this text (17.5).
 	Text    string
 	Program *ast.Program
 	Stage   string
@@ -61,14 +61,14 @@ func Prepare(text string, s Options) *Result {
 	r := &Result{Parts: b, Text: b.Body}
 	lex := b.Lexer
 	coded := b
-	switch {
-	case s.Typed && !b.Coded:
-		lex = func() *lexer.Lexer { return lexer.NewBody(b.Body, false) }
-	case err == nil && !b.Coded && codes.Active().Code != codes.SourceLanguage:
-		// Türkçe yazılmış dosya etkin dilde çalışır: önce kodlu biçime, oradan etkin dildeki
-		// görünümüne çevrilir (kodlu dosya gibi). Ayrıştırılamayan dosya Türkçe okunur; sözdizimi
-		// hataları dosyanın kendi metnine göredir.
-		coded, _ = turkishToCoded(b)
+	if lang := codes.Display(); s.Typed && !b.Coded && lang.Code != codes.SourceLanguage && err == nil {
+		// Kabuğa yazılan satır kişinin yazım dilindedir: kodlu biçime, oradan kanonik
+		// görünümüne çevrilir (kodlu dosya gibi). Ayrıştırılamayan satır o dilde okunur;
+		// sözdizimi hataları satırın kendi metnine göredir.
+		if coded, err = toCoded(b, lang); err != nil {
+			coded, err = b, nil
+			lex = func() *lexer.Lexer { return lexer.NewBodyIn(b.Body, false, lang) }
+		}
 	}
 	if coded.Coded {
 		var viewLexer *lexer.Lexer

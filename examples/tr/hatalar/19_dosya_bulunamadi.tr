@@ -1,0 +1,11 @@
+// Hata 19 — Dosya bulunamadı.
+// İleti kodu: H2100
+// Ne olur: Olmayan bir dosya okunursa çalışma anında hata alınır; ileti bakılan yerleri sayar.
+// Neden: Yol yanlış yazılmış ya da dosya bulunduğunuz klasörde değil.
+// Düzeltilmiş hâli:
+//     eğer yol("olmayan_dosya.txt").var_mı {
+//         yazdır(dosya_oku("olmayan_dosya.txt"))
+//     }
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/19_dosya_bulunamadi.tr   (çıkış kodu 1)
+
+yazdır(dosya_oku("olmayan_dosya.txt"))

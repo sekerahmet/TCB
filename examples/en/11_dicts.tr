@@ -1,0 +1,44 @@
+//! tr kodlu 1
+// 11 — Dicts: keeping values under keys.
+// What it teaches: building a dict, reading/writing by key, a missing key (none), keys() and
+// values(), contains, a list of dicts.
+// Builds on: lists (09), arrow functions (10), none and ?? (03).
+// Run (from the project root): tr examples/en/11_dicts.tr
+
+// A dict is written in braces: "key": value pairs.
+A030 prices = {"apple": 12, "banana": 30}
+G100(prices, prices.Y001)
+
+// It is read and written by key; a missing key is added.
+G100(prices["banana"])
+prices["cherry"] = 45
+prices["apple"] = 15
+G100(prices)
+
+// A missing key gives none; ?? falls back to a default.
+G100(prices["pear"], prices["pear"] ?? 0)
+G100(prices.Y002("banana"), prices.Y002("pear"))
+
+// Keys and values are taken as lists.
+G100(prices.Y300(), prices.Y301())
+A010 product A011 prices.Y300() {
+    G100("{product}: {prices[product]} TL")
+}
+G100("total: {G400(prices.Y301())} TL")
+
+// The value of a dict can be a list or another dict.
+A030 student = {"name": "Ayse", "grades": [70, 85, 90], "address": {"city": "Ankara"}}
+G100("{student["name"]} {student["address"]["city"]}, mean {G405(G410(student["grades"]), 1)}")
+
+// A list of dicts works like a table.
+A030 orders = [
+    {"customer": "Ayse", "amount": 450},
+    {"customer": "Mehmet", "amount": 280},
+    {"customer": "Elif", "amount": 35}
+]
+G100(orders.Y200 { A104["amount"] > 100 }.Y201 { A104["customer"] })
+G100("total amount: {orders.Y201 { A104["amount"] } |> G400}")
+
+// --- Try it yourself ---
+// 1. Count how many times each letter occurs in a text, in a dict.
+// 2. Add a new order to the orders list and find the largest amount.

@@ -1,0 +1,35 @@
+//! tr kodlu 1
+// 13 — Math: built-ins that calculate with numbers.
+// What it teaches: min/max/abs/sign, rounding (floor, ceil, clamp), statistics (median, std), pi and
+// trigonometry, exponential and logarithm functions.
+// Builds on: lists (09), function calls (08), named arguments (08).
+// Run (from the project root): tr examples/en/13_math.tr
+
+// Smallest, largest, absolute value and sign. min/max take a list or several numbers.
+G100(G401([3, 1, 2]), G402([3, 1, 2]), G401(4, 2.5), G402(4, 2.5))
+G100(G403(-5), G403(-2.5), G408(-4), G408(0.0), G408(9))
+
+// floor rounds down, ceil rounds up; clamp keeps a value between two limits (named arguments).
+G100(G406(3.7), G407(3.2), G406(-2.5), G407(-2.5))
+G100(G409(15, T904: 10), G409(-3.5, T907: 0.0), G409(5, T907: 0, T904: 3))
+
+// Statistics: mean, median and the (population) standard deviation.
+A030 marks = [2, 4, 4, 4, 5, 5, 7, 9]
+G100(G410(marks), G412(marks), G411(marks))
+G100(G412([3, 1, 4, 2]), G404(16))
+
+// pi is a constant (not called). Trigonometry works in radians: 180 degrees is pi radians.
+G100(G405(G414, 4), G405(T222(G414 / 2), 4), G405(T223(G414), 4), G405(T224(G414 / 4), 4))
+G100(G405(T225(1.0), 4), G405(T226(0.0), 4), G405(T227(1.0), 4))
+G100(G405(T228(1.0, -1.0), 4)) // the angle of the point (x, y) = (-1, 1)
+
+// Exponential and logarithm: exp is e^x, log the natural logarithm; log2 and log10 other bases.
+G100(G405(T220(1.0), 4), T221(1.0), T243(8), T244(1000))
+// log1p and expm1 are precise for small numbers: log(1 + x), e^x - 1.
+G100(T242(0.000001), T245(0.000001))
+// Hyperbolic sine and cosine.
+G100(G405(T240(1.0), 4), T241(0.0))
+
+// --- Try it yourself ---
+// 1. Compare the mean, median and standard deviation of a list: which is affected least by an outlier?
+// 2. Find the angle from the legs of a triangle (3 and 4) with atan2 and turn it into degrees (with 180 / pi).

@@ -1,0 +1,49 @@
+// 05 — Koşullar: programın karar vermesi.
+// Ne öğretir: eğer / değilse eğer / değilse, ve/veya/değil ile birleşik koşul, iç içe koşul, eşle.
+// Önceki örnekten: karşılaştırma ve Mantık değerleri (03), metne değer yerleştirme (04).
+// Çalıştırma (proje kökünden): tr examples/tr/05_kosullar.tr
+
+değişken sıcaklık = 31
+
+// Koşul doğruysa süslü parantezli blok çalışır; sırayla denenir, ilk doğru olan seçilir.
+eğer sıcaklık > 30 {
+    yazdır("sıcak")
+} değilse eğer sıcaklık > 15 {
+    yazdır("ılık")
+} değilse {
+    yazdır("soğuk")
+}
+
+// Birleşik koşul: ve ikisi de doğruysa, veya biri doğruysa, değil tersi.
+değişken yaş = 20
+değişken ehliyet_var = doğru
+eğer yaş >= 18 ve ehliyet_var {
+    yazdır("araç kullanabilir")
+}
+eğer yaş < 18 veya değil ehliyet_var {
+    yazdır("araç kullanamaz")
+}
+
+// Koşullar iç içe yazılabilir.
+eğer yaş >= 18 {
+    eğer yaş >= 65 {
+        yazdır("{yaş}: emekli")
+    } değilse {
+        yazdır("{yaş}: yetişkin")
+    }
+}
+
+// eşle: bir değeri sırayla kalıplarla karşılaştırır, ilk uyan kolu çalıştırır.
+// varsayılan hiçbiri uymazsa çalışır. eşle değer de üretir.
+değişken gün = 3
+değişken gün_adı = eşle gün {
+    1 => "pazartesi"
+    2 => "salı"
+    3 => "çarşamba"
+    varsayılan => "başka bir gün"
+}
+yazdır("{gün}. gün: {gün_adı}")
+
+// --- Kendin dene ---
+// 1. Bir notu (0-100) değişkene yaz; 50'nin altına "kaldı", 50-84'e "geçti", 85 ve üstüne "pekiyi" yazdır.
+// 2. gün değişkenini 6 yap: hangi kol çalışır?

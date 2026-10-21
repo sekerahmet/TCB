@@ -36,7 +36,7 @@ func fuseGradients(p *FuseProgram) []*FuseNode {
 		adj[n] = g
 	}
 	for i, o := range p.Outputs {
-		add(o, fuseInput(len(p.Inputs)+i, o.Shape, o.DType))
+		add(o, fuseInput(len(p.Inputs)+i, o.Shape, outGradDType(o)))
 	}
 	grads := make([]*FuseNode, len(p.Inputs))
 	for i := len(order) - 1; i >= 0; i-- {

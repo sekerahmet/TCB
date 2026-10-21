@@ -1,0 +1,12 @@
+// Hata 01 — Kapatılmayan blok.
+// İleti kodu: H0156
+// Ne olur: Program hiç çalışmaz; ileti, açılan '{' için kapatan '}' bulunamadığını söyler.
+// Neden: Her '{' bir '}' ile kapanmalıdır; eğer, döngü ve fonksiyon bloklarında kapanışı yazmayı unutmak yaygın bir hatadır.
+// Düzeltilmiş hâli:
+//     eğer 1 < 2 {
+//         yazdır("kapandı")
+//     }
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/01_sozdizimi_kapanmayan_blok.tr   (çıkış kodu 1)
+
+eğer 1 < 2 {
+    yazdır("açık kaldı")

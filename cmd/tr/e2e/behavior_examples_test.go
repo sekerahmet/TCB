@@ -18,6 +18,9 @@ import (
 // Türkçe dosya düz Türkçe, İngilizce dosya kodlu saklanır (17.7: başka dilde yazılan metin
 // yalnızca kodlanarak saklanır; `tr göster --dil en` onu İngilizce gösterir).
 
+// errorsDir hata örneklerinin klasör adıdır (behavior_example_errors_test.go).
+var errorsDir = map[string]string{"tr": "hatalar", "en": "errors"}
+
 var exampleNumber = regexp.MustCompile(`^(\d\d)_[a-z0-9_]+\.tr$`)
 
 // exampleFiles bir yazım klasöründeki örnekleri numarasıyla verir ("01" → "01_hello.tr").
@@ -30,8 +33,8 @@ func exampleFiles(t *testing.T, lang string) map[string]string {
 	out := map[string]string{}
 	for _, e := range entries {
 		if e.IsDir() {
-			if e.Name() != "helpers" {
-				t.Errorf("examples/%s/%s: yalnızca helpers/ klasörü olabilir", lang, e.Name())
+			if e.Name() != "helpers" && e.Name() != errorsDir[lang] {
+				t.Errorf("examples/%s/%s: yalnızca helpers/ ve %s/ klasörleri olabilir", lang, e.Name(), errorsDir[lang])
 			}
 			continue
 		}
@@ -267,6 +270,8 @@ var (
 	exampleNumbers = regexp.MustCompile(`-?\d+(?:[.,]\d+)?`)
 	exampleRunPath = regexp.MustCompile(`examples/(?:tr|en)/\S*`)
 	exampleRunDir  = regexp.MustCompile(`runs/[a-z_]+`)
+	// İlerleme çubuğunun kapanış satırındaki süre ("· 3 sn sürdü") çalıştırmadan çalıştırmaya değişir.
+	exampleElapsed = regexp.MustCompile(`\d+(?:[.,]\d+)? sn sürdü`)
 )
 
 // numberBag bir çıktının sayılarını sıralı verir: metinler dile göre değişir, sayılar aynı
@@ -274,6 +279,7 @@ var (
 func numberBag(out, root string) []string {
 	out = strings.ReplaceAll(strings.ReplaceAll(out, filepath.ToSlash(root), ""), root, "")
 	out = progressLine.ReplaceAllString(out, "")
+	out = exampleElapsed.ReplaceAllString(out, "")
 	out = exampleRunPath.ReplaceAllString(out, "")
 	out = exampleRunDir.ReplaceAllString(out, "")
 	bag := exampleNumbers.FindAllString(out, -1)
@@ -284,11 +290,13 @@ func numberBag(out, root string) []string {
 // runExample örneği kendi (temiz) kök klasöründe çalıştırır: çıkış kodu 0, uyarı yok.
 func runExample(t *testing.T, root, lang, name string) []string {
 	t.Helper()
-	s := tr(t, root, filepath.ToSlash(filepath.Join("examples", lang, name)))
+	// Her yazım kendi dilinin etkin olduğu ortamda koşar (VS Code'da tr.yazimDili): yerleşik adı
+	// gölgeleyen kullanıcı adı uyarısı etkin dile bağlıdır (input, sample ... İngilizce yerleşiklerdir).
+	s := run(t, trBinary, root, "", []string{"TR_DIL=" + lang}, filepath.ToSlash(filepath.Join("examples", lang, name)))
 	if s.code != 0 {
 		t.Fatalf("examples/%s/%s çıkış kodu %d\n%s%s", lang, name, s.code, s.stdout, s.stderr)
 	}
-	if strings.Contains(s.stderr, "Uyar") {
+	if strings.Contains(s.stderr, "Uyar") || strings.Contains(s.stderr, "Warning") {
 		t.Errorf("examples/%s/%s uyarı verdi: %s", lang, name, s.stderr)
 	}
 	return numberBag(s.stdout+s.stderr, root)
@@ -314,5 +322,28 @@ func TestExamplesSameOutput(t *testing.T) {
 				t.Errorf("%s ile %s farklı sayılar üretti (%d. sayı)\ntr: %v\nen: %v", name, enName, i, a, b)
 			}
 		})
+	}
+}
+
+// Kök README'deki örnek tablosu her örneği (iki yazımıyla) ve her hata örneğini listeler.
+func TestExamplesListedInReadme(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path("README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	readme := string(data)
+	for _, lang := range []string{"tr", "en"} {
+		for _, name := range exampleFiles(t, lang) {
+			if !strings.Contains(readme, "(examples/"+lang+"/"+name+")") {
+				t.Errorf("README.md örnek tablosunda examples/%s/%s yok", lang, name)
+			}
+		}
+	}
+	for lang, dir := range errorsDir {
+		for _, p := range errorExamples(t, lang, dir) {
+			if !strings.Contains(readme, "(examples/"+lang+"/"+dir+"/"+filepath.Base(p)+")") {
+				t.Errorf("README.md hata örnekleri tablosunda examples/%s/%s/%s yok", lang, dir, filepath.Base(p))
+			}
+		}
 	}
 }

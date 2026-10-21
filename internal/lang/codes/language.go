@@ -398,36 +398,78 @@ func (d *Language) Suggest(ns Namespace, spelling string, accept func(Code) bool
 	return None, false
 }
 
-// active programın kullandığı dildir (LanguageEnvVar; varsayılan Türkçe). Değişken geçersiz
-// bir dil seçiyorsa paket süreci kapatmaz (paketi kullanan dil sunucusu, testler ya da TR'yi
-// gömen bir program da kapanırdı): Türkçeye düşülür ve hata LanguageError ile okunur; tr
-// komutu başlarken onu bildirip çıkar.
-var active = func() *Language {
+// İki dil vardır (dil tanımı 17.7):
+//   - active, programın okunduğu ve çalıştığı dildir: her zaman Türkçe (kanonik). Sözcük
+//     çözümleyicinin anahtar kelimeleri, yerleşiklerin ve üyelerin kayıt adları, kurucu,
+//     'kendi', örtük blok adları, tür adları ve çalışma anı değerlerinin adları (doğru, tip())
+//     buradan gelir. Böylece bir programın anlamı ve çıktısı onu çalıştıranın yazım diline
+//     bağlı değildir (aynı program her makinede aynı adlara, sözlük anahtarlarına ve dosyalara
+//     ulaşır).
+//   - display, kişinin yazım dilidir (LanguageEnvVar; varsayılan Türkçe): tanı iletileri,
+//     yardım ve komut satırı çıktısı ile kodlu dosyanın görünümü bu dildedir (DisplayName).
+// Karşılaştırma: Python ve Swift çalışma anı değerlerini (True, tür adları) hiç yerelleştirmez;
+// Excel formülü kanonik saklar, yalnızca ekranda yerelleştirir. TR de anlamı kanonik tutar,
+// yalnızca gösterimi yerelleştirir. Başka bir yazım dilinde yazılmış metin (tr kodla - --dil en,
+// kabuk satırı) dili açıkça verilerek okunur (lexer.NewBodyIn) ve kanonik biçime çevrilir.
+
+// display LanguageEnvVar'ın seçtiği gösterim dilidir. Değişken geçersiz bir dil seçiyorsa paket
+// süreci kapatmaz (paketi kullanan dil sunucusu, testler ya da TR'yi gömen bir program da
+// kapanırdı): Türkçeye düşülür ve hata LanguageError ile okunur; tr komutu başlarken onu
+// bildirip çıkar.
+var display = func() *Language {
 	langCode := messages.ActiveLanguage()
 	d, err := buildLanguage(langCode)
 	if err != nil {
-		activeErr = messages.New(messages.H2509, LanguageEnvVar, langCode, err)
-		if d, err = buildLanguage("tr"); err != nil {
+		displayErr = messages.New(messages.H2509, LanguageEnvVar, langCode, err)
+		if d, err = buildLanguage(SourceLanguage); err != nil {
 			panic(fmt.Sprintf("codes: the embedded Turkish code list cannot be built: %v", err))
 		}
 	}
 	return d
 }()
 
-// activeErr LanguageEnvVar'ın seçtiği dil kurulamadıysa hatasıdır (dil Türkçeye düşmüştür).
-var activeErr error
+// active programın okunduğu ve çalıştığı kanonik dildir: her zaman Türkçe.
+var active = func() *Language {
+	if display.Code == SourceLanguage {
+		return display
+	}
+	d, err := buildLanguage(SourceLanguage)
+	if err != nil {
+		panic(fmt.Sprintf("codes: the embedded Turkish code list cannot be built: %v", err))
+	}
+	return d
+}()
+
+// displayErr LanguageEnvVar'ın seçtiği dil kurulamadıysa hatasıdır (dil Türkçeye düşmüştür).
+var displayErr error
 
 // LanguageError reports why the language selected by LanguageEnvVar could not be built (the
-// active language then fell back to Turkish); nil when the selection is valid.
-func LanguageError() error { return activeErr }
+// display language then fell back to Turkish); nil when the selection is valid.
+func LanguageError() error { return displayErr }
 
-// LoadLanguage builds the code list of an embedded writing language; for the active language
-// it returns the one already built.
+// LoadLanguage builds the code list of an embedded writing language; for the canonical and
+// the display language it returns the one already built.
 func LoadLanguage(langCode string) (*Language, error) {
 	if active != nil && active.Code == langCode {
 		return active, nil
 	}
+	if display != nil && display.Code == langCode {
+		return display, nil
+	}
 	return buildLanguage(langCode)
+}
+
+// Display returns the person's writing language (LanguageEnvVar): the language of diagnostics,
+// help and command-line output, and of a coded file's view.
+func Display() *Language { return display }
+
+// DisplayName returns k's name in the display language; a code the display language does not
+// name (dead codes are optional outside Turkish, 17.6) keeps its canonical name.
+func DisplayName(k Code) string {
+	if g, ok := display.Entry(k); ok {
+		return g.Name
+	}
+	return active.Name(k)
 }
 
 func buildLanguage(langCode string) (*Language, error) {
@@ -493,7 +535,8 @@ func Languages() []string {
 	return r
 }
 
-// Active returns the language the program uses.
+// Active returns the canonical language programs are read and run in: always Turkish (see
+// display for the person's writing language).
 func Active() *Language { return active }
 
 // TRData returns the embedded Turkish language file (for tests and tools).

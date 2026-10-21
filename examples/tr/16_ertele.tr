@@ -1,0 +1,32 @@
+// 16 — Ertele: temizliği her durumda yapmak.
+// Ne öğretir: ertele ile bir işi fonksiyondan çıkarken (hata olsa da olmasa da) ters sırayla çalıştırmak.
+// Önceki örnekten: fonksiyonlar (08), hata yönetimi (15).
+// Çalıştırma (proje kökünden): tr examples/tr/16_ertele.tr
+
+// ertele ifadesi hemen çalışmaz; fonksiyon bitince çalışır. Birden çoksa sonuncu önce çalışır.
+// Açılan her şeyin (dosya, bağlantı) kapatılması bu sayede unutulmaz.
+fonksiyon dosya_işlemi() {
+    ertele yazdır("  [ertele 1] bağlantı kapatıldı")
+    ertele yazdır("  [ertele 2] önbellek temizlendi") // önce bu çalışır
+    yazdır("  [işlem] veri işleniyor...")
+    sonuç "başarılı"
+}
+yazdır("dönüş: {dosya_işlemi()}")
+
+// Hata çıksa da ertelenen işler çalışır.
+fonksiyon başarısız_işlem() {
+    ertele yazdır("  [ertele] hata olsa da temizlik yapıldı")
+    fırlat "işlem başarısız"
+}
+dene { başarısız_işlem() } yakala h { yazdır("yakalandı: {h}") }
+
+// Döngü içinde fonksiyon çağrısıyla her tur için ertele çalıştırılabilir.
+fonksiyon tur(n) {
+    ertele yazdır("  tur {n} bitti")
+    yazdır("tur {n} başladı")
+}
+döngü n içinde 1..=3 { tur(n) }
+
+// --- Kendin dene ---
+// 1. Üç ertele yaz ve hangi sırayla çalıştıklarını gözle.
+// 2. Hata fırlatan bir fonksiyona ertele ekle ve hatayı dışarıda yakala: temizlik hata iletisinden önce mi sonra mı?

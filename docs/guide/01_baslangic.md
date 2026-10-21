@@ -33,7 +33,7 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 
 Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr hata_ayıkla' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `çıkış` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `çıkış` yazmanızı söyler.
 
-Öğrenmeye `examples/` klasöründeki numaralı örneklerle başlayın (`examples/tr/01_merhaba.tr` … `20_hata_ayiklama_alistirmasi.tr`; her örneğin İngilizce yazımı `examples/en/` altında aynı numarayla durur; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
+Öğrenmeye `examples/` klasöründeki numaralı örneklerle başlayın (`examples/tr/01_merhaba.tr` … `43_hata_ayiklama_alistirmasi.tr`; her örneğin İngilizce yazımı `examples/en/` altında aynı numarayla durur; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
 
 ## Kodlu dosyalar: düzenleyici ve git farkları
 

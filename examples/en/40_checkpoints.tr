@@ -1,0 +1,72 @@
+//! tr kodlu 1
+// 40 — Checkpoints: resuming a long training where you left off.
+// What it teaches: Checkpoint, keep: (how many checkpoints are kept), writing every training to a run folder; saving the whole state of the training with checkpoint
+// (model, optimizer, sampler, log, your own counters) at regular intervals; stopping with Ctrl+C and resuming with the same
+// command. A resumed training gives a bit-for-bit identical result to one that was never interrupted.
+// Builds on: training with data (39): command_line, progress, dataset.
+// Details: docs/guide/09_uzun_egitim.md, docs/spec/20_kontrol_noktasi.md §20.
+//
+// Run (from the project root): tr examples/en/40_checkpoints.tr
+//   Press Ctrl+C while it trains: that step finishes, a checkpoint is saved, the program stops.
+//   Run the same command again: it prints "Resuming from: step ..." and goes on from there.
+//   To lengthen the training: tr examples/en/40_checkpoints.tr --step 1000
+//   To start over delete the run folder or give another one: --run runs/trial2
+// In a cloud notebook keep the run folder on the local disk and copy it to Drive now and then (guide §9).
+
+A030 config = G801({Y500: 200, run: "runs/checkpoint_example", every_minutes: 5.0, Y504: 0.01},
+    G910: "Trains a small language model with checkpoints; if interrupted the same command resumes",
+    G911: {Y500: "total training steps", run: "run folder (settings, log, weights, checkpoints)",
+        every_minutes: "checkpoint interval (minutes)"})
+A030 RUN = config.run
+
+// --- Data and model (the small model of examples/en/39_training_with_data.tr) ---
+A030 p = V200("../../tests/data/tokenizer.json")
+A030 V = p.Y612
+A030 sampler = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 1)
+A030 param_seed = 0
+A020 param(shape, scale) {
+    param_seed += 1
+    A021 T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
+}
+A030 model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
+A020 forward(tokens) {
+    A021 T203(T500(model.E, tokens) @ model.W1) @ model.W2
+}
+A030 opt = T400(T530(model), T910: config.Y504, T911: 0.0)
+
+// --- Run folder: settings, log and checkpoint ---
+G122(RUN)
+G111(G120(RUN, "config.json"), G601(config))
+A030 run_log = G810(G120(RUN, "metrics.jsonl"))
+A030 tracked = {best_loss: 99.0}
+// Everything in the dict is saved; if the folder holds a checkpoint it is loaded here.
+A030 ckpt = T702(RUN, {model: model, opt: opt, reader: sampler, run_log: run_log, tracked: tracked}, T984: config.every_minutes, T985: 3)
+G100(G201(ckpt) == A258)
+
+// --- Training: the loop starts from the step where it stopped ---
+A001 ckpt.Y520 < config.Y500 {
+    A030 bar = G811(config.Y500, G912: run_log)
+    A010 step A011 ckpt.Y520..config.Y500 {
+        A030 tokens, target = sampler.Y602()
+        opt.Y501()
+        A030 loss = T510(forward(tokens), target)
+        T300(loss)
+        opt.Y500()
+        A001 loss.Y404 < tracked.best_loss { tracked.best_loss = loss.Y404 }
+        bar.Y010({loss: loss}, T982: step + 1)
+        ckpt.Y010(step + 1) // saves here when every_minutes is up and when Ctrl+C arrives
+    }
+    G100("last checkpoint:", ckpt.Y521())
+} A002 {
+    G100("Training already finished at step {ckpt.Y520}; to lengthen it give a larger number with --step")
+}
+
+// --- Results into the run folder ---
+T700(G120(RUN, "model.trt"), T530(model, T970: A040))
+A030 last_step = A001 ckpt.Y520 < config.Y500 { config.Y500 } A002 { ckpt.Y520 }
+G111(G120(RUN, "results.json"), G601({Y500: last_step, best_loss: tracked.best_loss}))
+G100("best loss: {G405(tracked.best_loss, 3)}; run folder: {G120(RUN).Y314}")
+
+// --- Try it yourself ---
+// 1. Run with --step 100, then run again with --step 200: does the training start from 100?
+// 2. Add your own counter to the tracked dict and see that it is kept after resuming.

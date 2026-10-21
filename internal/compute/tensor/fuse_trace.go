@@ -157,11 +157,28 @@ func (p *FuseProgram) Run(op string, inputs []*Tensor) []*Tensor {
 		return outs
 	}
 	if len(outs) == 1 {
-		return []*Tensor{p.trackSingle(inputs, outs[0], views, be)}
+		outs[0] = p.trackSingle(inputs, outs[0], views, be)
+	} else {
+		outs = CustomOp(op, inputs, outs, inputs, func(_ any, grads []*Tensor) []*Tensor {
+			return p.backward(be, views, grads)
+		})
 	}
-	return CustomOp(op, inputs, outs, inputs, func(_ any, grads []*Tensor) []*Tensor {
-		return p.backward(be, views, grads)
-	})
+	for i, n := range p.Outputs {
+		if outGradDType(n) == Float32 {
+			widenGrad(outs[i])
+		}
+	}
+	return outs
+}
+
+// outGradDType çıktının gradyan türüdür: float32 hesabın sonunda daraltılan çıktıda (son
+// düğüm float32'den dönüşüm) float32, ayrı bir dönüşümdeki gibi (node.wideGrad); öbürlerinde
+// çıktının türü.
+func outGradDType(n *FuseNode) DType {
+	if n.Kind == FuseCast && n.Args[0].DType == Float32 {
+		return Float32
+	}
+	return n.DType
 }
 
 // trackSingle tek çıktılı programın sonucunu kendi düğümüyle çizgeye bağlar: geri hesap her

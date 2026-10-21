@@ -29,7 +29,7 @@ func isOption(arg string, k codes.Code) bool {
 
 // optionName seçeneğin etkin dildeki yazımıdır (--dil, --go-profili).
 func optionName(k codes.Code) string {
-	return "--" + strings.ReplaceAll(codes.Name(k), "_", "-")
+	return "--" + strings.ReplaceAll(codes.DisplayName(k), "_", "-")
 }
 
 // removedOption argümanın kaldırılmış bir seçenek olduğudur (ör. --web); çağıran yerine

@@ -1,0 +1,40 @@
+// 33 — Cihaz ve hassasiyet: tensörlerin nerede ve hangi sayı türüyle yaşadığı.
+// Ne öğretir: cihazlar(), varsayılan_cihaz(), .cihaz ve .cihaza(), tür: / .tür / .türe(), karışık_hassasiyet, hesap_türü(),
+// 16 bitlik parametrede ana_kopya.
+// Önceki örnekten: tensörler (23), iyileştiriciler (29), ağırlıkları kaydetmek (32).
+// Çalıştırma (proje kökünden): tr examples/tr/33_cihaz_ve_hassasiyet.tr
+// Bu örnek her makinede CPU'da çalışır; GPU varsa "gpu" cihazı da seçilebilir.
+
+// cihazlar() bu makinedeki cihaz adlarını verir; ilk eleman her zaman "cpu"dur.
+yazdır("ilk cihaz:", cihazlar()[0], "| gpu var mı:", cihazlar().içerir("gpu"))
+
+// varsayılan_cihaz() geçerli cihazı söyler; argümanla ("cpu", "gpu", "gpu:1") bundan sonra kurulan
+// bütün tensörlerin cihazını seçer. GPU'da eğitim için model kurulmadan önce çağrılır.
+yazdır(varsayılan_cihaz())
+varsayılan_cihaz("cpu")
+değişken t = tensör([1.0, 2.0])
+yazdır(t.cihaz, t.cihaza("cpu").cihaz) // cihaza tensörü başka cihaza taşır
+
+// Sayı türü: "float32" (varsayılan), "bf16" ya da "fp16". Kurarken tür: ile seçilir, .tür ile okunur,
+// .türe(...) ile çevrilir (gradyan kaynak tensöre akar).
+yazdır(t.tür, sıfırlar([2, 2], tür: "fp16").tür, t.türe("bf16").tür)
+
+// karışık_hassasiyet(tür) { ... }: blokta @ girdileri bu türe çevrilir, hesap daha hızlı ve hafızada daha ucuz olur;
+// ağırlıkların türü değişmez. Bloğun son ifadesi sonuç olur.
+değişken y = karışık_hassasiyet("bf16") { tensör([[1.0, 2.0]]) @ tensör([[3.0], [4.0]]) }
+yazdır(y.değer)
+// hesap_türü() etkin bloğun hesap türünü verir (blok dışında "float32"). Çıktısını yalnızca
+// çarpımlar okuyan bir normu doğrudan o türde yazmak için: rms_normu(x, w, tür: hesap_türü()).
+yazdır(hesap_türü(), karışık_hassasiyet("bf16") { hesap_türü() })
+
+// 16 bitlik parametreyi AdamW ile eğitirken ana_kopya: doğru (varsayılan) float32 bir ana kopya tutar;
+// güncelleme orada yapılıp parametreye yuvarlanır, böylece küçük adımlar kaybolmaz.
+değişken w = tensör([1.0], türev_izle: doğru, tür: "bf16")
+değişken op = AdamW([w], ana_kopya: doğru)
+geri_yayılım(toplam(w * w))
+op.adım()
+yazdır(w.tür, yuvarla(w.değer[0], 2))
+
+// --- Kendin dene ---
+// 1. Bir tensörü "fp16"ya çevir ve geri float32'ye al: değerde ne kaybolur?
+// 2. cihazlar() sonucunu döngüyle gez ve her birini yazdır.

@@ -20,4 +20,4 @@ test "toplama doğru" {
 
 **12.6** Test gövdesinde, gövdedeki bir fonksiyonun dışında yazılan `sonuç` derleme hatasıdır: test her zaman sonuna kadar çalışır, bir doğrulamayı atlayarak sessizce "geçmez". (Döngü dışındaki `çık`/`devam` da her yerde olduğu gibi hatadır, 5.13.)
 
-`tr test` kullanımı ve çıktı biçimi için `docs/guide/07_testler.md`'ye bakın; kısa bir örnek: `examples/tr/08_testler_test.tr`.
+`tr test` kullanımı ve çıktı biçimi için `docs/guide/07_testler.md`'ye bakın; kısa bir örnek: `examples/tr/17_testler_test.tr`.

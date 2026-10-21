@@ -19,15 +19,16 @@ içi hiçbir zaman çevrilmez. Denetim: `TestEncodeEdgeCases`, `TestEncodeBOMAnd
 
 **Çeviri kayıpsız olmalıdır, değilse dosyaya dokunulmaz.** Her çeviri denetlenir: anlam (sözdizimi
 ağacı) aynı kalmalı, çevrilen metin geri çevrilince özgününe dönmelidir. Kodlu metnin bir yazım
-diline çevrilmesinde bu denetim, sözcük çözümleyicinin okuyabildiği dil olan etkin dilde yapılır. Sözdizimi hatası, bozuk
+diline çevrilmesinde gösterim o dilde geri okunur ve aynı kodlu biçimi vermelidir. Sözdizimi hatası, bozuk
 UTF-8 ya da kayıp durumunda hata döner ve dosya yazılmaz. Depodaki bütün `.tr` dosyaları ve
 belgelerdeki kod blokları bu denetimden geçmelidir. Denetim: `TestDecodeRefusesLossyView`, `TestEscapeInOtherLanguage`, `TestRepoTRFilesEncodeLossless`, `TestDocCodeBlocksEncodeLossless`.
 
-**Kodsuz dosya Türkçedir.** Başlıksız dosya etkin dil (`TR_DIL`) ne olursa olsun Türkçe okunur
-(17.7): sözcük çözümleyici ve ayrıştırıcının bağlamsal sözcükleri Türkçedir (`lexer.NewBodyIn`).
-Etkin dil Türkçe değilse dosya önce kodlu biçime, oradan etkin dildeki görünümüne çevrilip
-çalışır (kodlu dosya gibi). Kabuğa yazılan satır ise etkin dildedir (`Options.Typed`). Dosyaya
-yazan `tr kodla` ve `tr çöz` Türkçeyle çalışır. Denetim: `TestUncodedFileIsTurkishInEveryLanguage`
+**Program kanonik biçimiyle çalışır.** Programlar her zaman Türkçe (kanonik) okunur ve çalışır
+(17.7; `codes.Active`): kodsuz dosya olduğu gibi, kodlu dosya Türkçe görünümüyle. Kişinin yazım
+dili (`TR_DIL`, `codes.Display`) yalnızca gösterimdir. Başka bir dilde yazılmış metin dili açıkça
+verilerek okunur (`lexer.NewBodyIn`, `EncodeIn`, `Show`): `tr kodla - --dil en`, kişinin dilinde
+yazılmış kabuk satırı (`Options.Typed`). Denetim: `TestUncodedFileIsTurkishInEveryLanguage`,
+`TestAuditUncodedTurkishNamesCollideWithActiveLanguageWords`, `TestAuditDictMemberKeysChangeWithWritingLanguage`
 (cmd/tr/e2e), `TestBodyInLanguage` (lexer), `TestContextWordsFollowLexer` (parser).
 
 **Satırlar her gösterimde aynıdır.** Satır numaraları başlıktan sonra sayılır: kodlu dosyanın 1.

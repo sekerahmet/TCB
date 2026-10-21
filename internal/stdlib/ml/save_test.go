@@ -102,7 +102,7 @@ func fileBytes(tb testing.TB, inputs []fileEntry) []byte {
 
 // Güvenlik denetimi (2026-10-18), bulgu: sıfır uzunluklu bir eksen tensör dosyasındaki
 // eleman sınırını (interp.MaxCollectionSize) devre dışı bırakıyordu. 126 baytlık bir dosya
-// [2, 0], [1048576, 1, 0] ve [1048576, 0, 8192] şekilli tensörler bildirebiliyor, examples/tr/12_tensor_ve_turev.tr
+// [2, 0], [1048576, 1, 0] ve [1048576, 0, 8192] şekilli tensörler bildirebiliyor, examples/tr/30_xor_agi.tr
 // tarzı bir ileri geçiş (X @ W1 + b1 ... @ W2) 137 GB ayırmaya çalışıp süreci
 // kurtarılamaz biçimde ("fatal error: out of memory") çökertiyordu.
 func TestSaveZeroAxisLimit(t *testing.T) {

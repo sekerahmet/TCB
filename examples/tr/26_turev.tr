@@ -1,0 +1,37 @@
+// 26 — Otomatik türev: gradyanı bilgisayara hesaplatmak.
+// Ne öğretir: türev_izle: doğru ile tensörü izletmek, geri_yayılım(sonuç), .gradyan,
+// gradyanın biriktiği (sıfırlanması gerektiği), türevsiz { ... } ile türev izlemeden hesap.
+// Önceki örnekten: tensörler (23).
+// Çalıştırma (proje kökünden): tr examples/tr/26_turev.tr
+// Ayrıntılar: docs/spec/15_tensorler.md §15.
+
+// Model eğitimi, bir kayıp değerinin ağırlıklara göre türevini (gradyan) ister.
+// TR işlem zincirini izler ve geri_yayılım ile bütün türevleri tek seferde hesaplar.
+
+// y = x² + 2x + 1  →  dy/dx = 2x + 2; x = 3 için 8.
+değişken x = tensör(3.0, türev_izle: doğru) // türev_izle: bu tensörün gradyanı istenir
+değişken y = x * x + 2 * x + 1
+geri_yayılım(y)
+yazdır("y = {y.değer}, dy/dx = {x.gradyan.değer} (beklenen 8.0)")
+
+// Birden çok girdi: her biri kendi gradyanını alır. f(a, b) = a * b + b²
+değişken a = tensör(2.0, türev_izle: doğru)
+değişken b = tensör(5.0, türev_izle: doğru)
+değişken f = a * b + b * b
+geri_yayılım(f)
+yazdır("df/da = {a.gradyan.değer} (beklenen 5.0), df/db = {b.gradyan.değer} (beklenen 12.0)")
+
+// Gradyanlar birikir: geri_yayılım her çağrıda gradyana ekler. Bu yüzden eğitimde her
+// adımdan önce gradyanlar sıfırlanır (bir sonraki örnekte iyileştiricinin .sıfırla() yöntemi).
+değişken c = tensör(1.0, türev_izle: doğru)
+geri_yayılım(c * 3)
+geri_yayılım(c * 3)
+yazdır("iki çağrıdan sonra dc = {c.gradyan.değer} (3 + 3)")
+
+// türevsiz { ... } işlemleri izlemeden hesaplar: tahmin yaparken belleği ve zamanı korur.
+değişken z = türevsiz { x * 10 }
+yazdır("türevsiz sonuç: {z.değer}")
+
+// --- Kendin dene ---
+// 1. y = x³ için x = 2'deki türevi hesaplat ve elle bulduğunla (3x² = 12) karşılaştır.
+// 2. geri_yayılım(z) çağırmayı dene: türevsiz içinde kurulan tensör neden gradyan vermez?

@@ -1,0 +1,12 @@
+// Hata 08 — Eksik argüman.
+// İleti kodu: H2414
+// Ne olur: Program çalışırken fonksiyon çağrısında eksik argümanı söyleyen bir hata alınır.
+// Neden: topla() iki parametre ister, bir tane verildi.
+// Düzeltilmiş hâli:
+//     yazdır(topla(1, 2)) // ya da: fonksiyon topla(a, b = 0)
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/08_eksik_arguman.tr   (çıkış kodu 1)
+
+fonksiyon topla(a, b) {
+    sonuç a + b
+}
+yazdır(topla(1))

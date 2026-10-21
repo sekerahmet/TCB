@@ -167,6 +167,35 @@ func TestNorms16Bit(t *testing.T) {
 	}
 }
 
+// TestNormsOutputDType float32 girdili normun çıktısını 16 bitte yazar (RMSNormAs, LayerNormAs;
+// dil tanımı 15.13): değer float32 normun o türe dönüşümüyle bit düzeyinde aynıdır, ileri ve
+// geri yön CPU ile karşılaştırılır.
+func TestNormsOutputDType(t *testing.T) {
+	rng := rand.New(rand.NewSource(24))
+	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+		for _, d := range [][2]int{{3, 8}, {5, 129}, {2, 600}} {
+			R, D := d[0], d[1]
+			xv, gv, bv := random(rng, R*D, 2), random(rng, D, 1), random(rng, D, 1)
+			x, gm, bt := tensor.NewOn(gpuDevice, xv, R, D), tensor.NewOn(gpuDevice, gv, D), tensor.NewOn(gpuDevice, bv, D)
+			name := fmt.Sprintf("%s %d×%d", dt, R, D)
+			bitsEqual(t, "rms normu çıktısı "+name, tensor.RMSNormAs(x, gm, 1e-5, dt), tensor.RMSNorm(x, gm, 1e-5).Cast(dt))
+			bitsEqual(t, "katman normu çıktısı "+name, tensor.LayerNormAs(x, gm, bt, 1e-5, dt), tensor.LayerNorm(x, gm, bt, 1e-5).Cast(dt))
+			compare(t, "rms normu "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+				x, gm := twin(xv, true, R, D)[c], twin(gv, true, D)[c]
+				y := tensor.RMSNormAs(x, gm, 1e-5, dt)
+				if y.DType() != dt {
+					t.Fatalf("normun türü %s olmalıydı, %s", dt, y.DType())
+				}
+				return y.Cast(tensor.Float32), []*tensor.Tensor{x, gm}
+			})
+			compare(t, "katman normu "+name, 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+				x, gm, bt := twin(xv, true, R, D)[c], twin(gv, true, D)[c], twin(bv, true, D)[c]
+				return tensor.LayerNormAs(x, gm, bt, 1e-5, dt).Cast(tensor.Float32), []*tensor.Tensor{x, gm, bt}
+			})
+		}
+	}
+}
+
 // TestSoftmax16Bit 16 bitlik girdiyle softmax ve log_softmax'ı, son ve iç eksende, ileri ve
 // geri yönde denetler.
 func TestSoftmax16Bit(t *testing.T) {

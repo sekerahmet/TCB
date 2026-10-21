@@ -1,0 +1,27 @@
+// 22 — Eşzamanlı görevler: işleri aynı anda yürütmek.
+// Ne öğretir: eşzamanlı ile arka planda iş başlatmak, bekle_hepsi() ile hepsinin bitmesini beklemek.
+// Sonuç sıradan bağımsız olarak aynıdır.
+// Önceki örnekten: döngüler (07), fonksiyonlar (08).
+// Çalıştırma (proje kökünden): tr examples/tr/22_eszamanli_gorevler.tr
+
+değişken kareler_toplamı = 0
+döngü i içinde 1..=100 {
+    eşzamanlı { kareler_toplamı += i * i }
+}
+bekle_hepsi() // başlatılan bütün görevlerin bitmesini bekle
+yazdır("1..100 karelerinin toplamı: {kareler_toplamı}")
+
+// Bekleyen görevler iç içe ilerler: 4 görev 0.05 sn beklemeyi birlikte yapar
+değişken biten = 0
+döngü i içinde 0..4 {
+    eşzamanlı {
+        bekle(0.05)
+        biten += 1
+    }
+}
+bekle_hepsi()
+yazdır("biten görev sayısı: {biten}")
+
+// --- Kendin dene ---
+// 1. bekle(0.05) süresini 0.2 yap: toplam süre görev sayısıyla mı, tek bir görevin süresiyle mi artar?
+// 2. 1..=1000 sayılarının toplamını 10 eşzamanlı görevde parçalara bölerek hesapla.

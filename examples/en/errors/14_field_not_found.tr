@@ -1,0 +1,18 @@
+//! tr kodlu 1
+// Error 14 — A field that does not exist.
+// Message code: H2468
+// What happens: Reaching a field the struct does not define raises an error at run time.
+// Why: The fields of the Point struct are x and y; there is no field z.
+// Fixed version:
+//     struct Point {
+//         x
+//         y
+//         z = 0 // add the field to the struct if you need it
+//     }
+// Run (from the project root): tr examples/en/errors/14_field_not_found.tr   (exit code 1)
+
+A050 Point {
+    x
+    y
+}
+G100(Point(1, 2).z)

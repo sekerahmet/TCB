@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -37,21 +36,18 @@ const exitSyntax = 2
 // encodeCommand 'tr kodla' komutudur; zaten kodlu dosyalara dokunulmaz.
 func encodeCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
-		// Kodlanacak metin yazım dilinde yazılmıştır. Dilin sözcük tabloları süreç başında etkin
-		// dilden kurulduğu için başka bir dil, süreci o dille yeniden çalıştırarak okunur.
-		if language := languageArgument(args[1:], "kodla"); language.Code != codes.Active().Code {
-			rerunWithLanguage(language.Code)
-		}
-		convertFromInput(source.Encode)
+		// Kodlanacak metin verilen yazım dilinde yazılmıştır (varsayılan kişinin dili).
+		language := languageArgument(args[1:], "kodla")
+		convertFromInput(language, func(text string) (string, error) { return source.EncodeIn(text, language) })
 		return
 	}
 	convertCommand(args, "kodla", messages.Text(messages.H8704), source.Encode)
 }
 
-// languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa etkin dil) ve yazım
-// dilini doğrular; başka bir argüman ya da bilinmeyen dil hatadır.
+// languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (yoksa kişinin yazım
+// dili, codes.Display) ve yazım dilini doğrular; başka bir argüman ya da bilinmeyen dil hatadır.
 func languageArgument(args []string, command string) *codes.Language {
-	languageCode := codes.Active().Code
+	languageCode := codes.Display().Code
 	for i := 0; i < len(args); i++ {
 		switch {
 		case isOption(args[i], codes.K100) && i+1 < len(args):
@@ -71,8 +67,9 @@ func languageArgument(args []string, command string) *codes.Language {
 }
 
 // convertFromInput standart girişin tamamını cevir ile çevirip standart çıktıya yazar. Metin
-// ayrıştırılamıyorsa hataları kod çerçeveleriyle standart hataya yazıp exitSyntax ile çıkar.
-func convertFromInput(convert func(string) (string, error)) {
+// ayrıştırılamıyorsa hataları kod çerçeveleriyle standart hataya yazıp exitSyntax ile çıkar;
+// kodsuz girdi language'de yazılmıştır.
+func convertFromInput(language *codes.Language, convert func(string) (string, error)) {
 	content, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		exitWithError(messages.Text(messages.H8702, err))
@@ -81,8 +78,12 @@ func convertFromInput(convert func(string) (string, error)) {
 	if err != nil {
 		var sh *source.SyntaxError
 		if errors.As(err, &sh) {
-			// Çerçeve kişinin gördüğü metni gösterir: kodlu girdide Türkçe gösterimi, konumlar
-			// da ona göre (17.5).
+			// Çerçeve kişinin gördüğü metni gösterir: kodsuz girdide kendisini, kodlu girdide
+			// Türkçe gösterimini; konumlar da ona göre (17.5).
+			if b, _ := source.Split(string(content)); !b.Coded {
+				writeDiags(syntaxHeader, sh.Errors, b.Body)
+				os.Exit(exitSyntax)
+			}
 			r := source.Prepare(string(content), source.Options{})
 			writeDiags(syntaxHeader, r.Errors, r.Text)
 			os.Exit(exitSyntax)
@@ -95,8 +96,8 @@ func convertFromInput(convert func(string) (string, error)) {
 
 // decodeCommand 'tr çöz' komutudur; Türkçe yazılmış dosyalara dokunulmaz.
 func decodeCommand(args []string) {
-	convertCommand(args, codes.Name(codes.K010), messages.Text(messages.H8705), func(text string) (string, error) {
-		return source.Decode(text, codes.Active())
+	convertCommand(args, codes.DisplayName(codes.K010), messages.Text(messages.H8705), func(text string) (string, error) {
+		return source.Decode(text, source.Turkish())
 	})
 }
 
@@ -105,12 +106,6 @@ func decodeCommand(args []string) {
 func convertCommand(args []string, command, verb string, convert func(string) (string, error)) {
 	if len(args) == 0 {
 		exitWithError(messages.Text(messages.H8703, command))
-	}
-	// Kodsuz dosyalar Türkçe yazılmıştır (17.7): kodlama onları, çözme de dosyaya yazdığı metni
-	// Türkçe okur. Dilin sözcük tabloları süreç başında kurulduğu için başka bir etkin dilde
-	// süreç Türkçeyle yeniden çalışır.
-	if codes.Active().Code != codes.SourceLanguage {
-		rerunWithLanguage(codes.SourceLanguage)
 	}
 	var files []string
 	for _, h := range args {
@@ -165,50 +160,43 @@ func writeInPlace(filePath, text string) error {
 }
 
 // showCommand 'tr göster <dosya.tr> [--dil tr]' komutudur: dosya verilen yazım dilinde
-// (varsayılan etkin dil) standart çıktıya yazılır; kodsuz dosya Türkçedir, Türkçede olduğu
-// gibi kalır (source.Show). Dosya yerine '-'
-// verilirse metin standart girişten okunur (düzenleyiciler için; çıkış kodları yukarıda).
+// (varsayılan kişinin yazım dili) standart çıktıya yazılır; kodsuz dosya Türkçedir, Türkçede
+// olduğu gibi kalır (source.Show). Dosya yerine '-' verilirse metin standart girişten okunur
+// (düzenleyiciler için; çıkış kodları yukarıda).
 func showCommand(args []string) {
 	if len(args) > 0 && args[0] == "-" {
-		// Gösterimin geri okunduğu denetim (source.Decode) etkin dilde yapılabilir: başka bir
-		// dil, süreci o dille yeniden çalıştırarak gösterilir ('tr kodla -' gibi).
-		if language := languageArgument(args[1:], codes.Name(codes.K011)); language.Code != codes.Active().Code {
-			rerunWithLanguage(language.Code)
-		}
-		convertFromInput(func(text string) (string, error) { return source.Show(text, codes.Active()) })
+		language := languageArgument(args[1:], codes.DisplayName(codes.K011))
+		convertFromInput(source.Turkish(), func(text string) (string, error) { return source.Show(text, language) })
 		return
 	}
 	var file, languageCode string
-	languageCode = codes.Active().Code
+	languageCode = codes.Display().Code
 	for i := 0; i < len(args); i++ {
 		switch {
 		case isOption(args[i], codes.K100) && i+1 < len(args):
 			languageCode = args[i+1]
 			i++
 		case isOption(args[i], codes.K100):
-			exitWithError(messages.Text(messages.H8708, optionName(codes.K100), codes.Name(codes.K011)))
+			exitWithError(messages.Text(messages.H8708, optionName(codes.K100), codes.DisplayName(codes.K011)))
 		case file == "":
 			file = args[i]
 		default:
-			exitWithError(messages.Text(messages.H8709, codes.Name(codes.K011), args[i]))
+			exitWithError(messages.Text(messages.H8709, codes.DisplayName(codes.K011), args[i]))
 		}
 	}
 	if file == "" {
-		exitWithError(messages.Text(messages.H8710, codes.Name(codes.K011), optionName(codes.K100)))
+		exitWithError(messages.Text(messages.H8710, codes.DisplayName(codes.K011), optionName(codes.K100)))
 	}
 	language, err := writingLanguage(languageCode)
 	if err != nil {
 		exitWithError(err)
-	}
-	if language.Code != codes.Active().Code {
-		rerunWithLanguage(language.Code)
 	}
 	content, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8657, turkish.FileError("", file, messages.H2100, err)))
 		os.Exit(1)
 	}
-	text, err := source.Show(string(content), codes.Active())
+	text, err := source.Show(string(content), language)
 	if err != nil {
 		var sh *source.SyntaxError
 		if errors.As(err, &sh) {
@@ -224,24 +212,4 @@ func showCommand(args []string) {
 // writingLanguage bir yazım dili kodunun (ISO 639-1) kod listesidir.
 func writingLanguage(langCode string) (*codes.Language, error) {
 	return codes.LoadLanguage(langCode)
-}
-
-// rerunWithLanguage aynı komutu etkin dil olarak languageCode ile yeniden çalıştırır (standart
-// giriş, çıkış ve hata aynen geçer) ve onun çıkış koduyla çıkar.
-func rerunWithLanguage(languageCode string) {
-	self, err := os.Executable()
-	if err != nil {
-		exitWithError(messages.Text(messages.H8711, languageCode, err))
-	}
-	c := exec.Command(self, os.Args[1:]...)
-	c.Env = append(os.Environ(), codes.LanguageEnvVar+"="+languageCode)
-	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
-	if err := c.Run(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			os.Exit(exitErr.ExitCode())
-		}
-		exitWithError(messages.Text(messages.H8711, languageCode, err))
-	}
-	os.Exit(0)
 }

@@ -1,0 +1,41 @@
+//! tr kodlu 1
+// 12 — Type names: asking for the type of a value and declaring types.
+// What it teaches: type() and type names as values in an expression (Bool, None, List, Dict, Range, Function,
+// BuiltinFunction, Any, Type), declaring a type with name: Type.
+// Builds on: types (03), lists (09), arrow functions (10), dicts (11).
+// Run (from the project root): tr examples/en/12_type_names.tr
+
+// type(value) gives the type; type names are values in an expression too, compared with ==.
+A030 items = [1, "two", 3.0]
+G100(G201(items) == A205, G201(items))
+A030 record = {"name": "Ali"}
+G100(G201(record) == A206, record["name"])
+G100(G201(A040) == A203, G201(A042) == A204)
+
+// A range is the type of a..b (end excluded) or a..=b (end included); range(n) gives a List.
+G100(G201(1..5) == A207, G201(G305(5)) == A205, G305(5))
+
+// Functions are first-class values: an arrow function and a func are a Function,
+// the language's own functions are of the type BuiltinFunction.
+A030 square = x => x * x
+G100(G201(square) == A208, G201(G100) == A209, square(7))
+
+// Type declaration: name: Type. The type checker catches a wrong assignment before the program runs.
+A030 ready: A203 = A040
+A030 empty: A204 = A042
+A030 numbers: A205 = [1, 2, 3]
+G100(ready, empty, numbers)
+
+// Any: every value may be given; it is for values whose type is not known.
+A020 identity(x: A213) {
+    A021 x
+}
+G100(identity(5), identity("five"), identity([1, 2]))
+
+// The type of type() results is Type too, and it can be kept in a variable.
+A030 t: A215 = G201(42)
+G100(t == A200, t, G201(t))
+
+// --- Try it yourself ---
+// 1. Print the value of type(type(1)) == Type.
+// 2. Filter the values of a list with type(x) == Int to keep only the integers.

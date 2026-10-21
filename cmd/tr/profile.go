@@ -88,7 +88,7 @@ func startMeasuredProfile(machine *interp.VM, path, code string, prog *ast.Progr
 // programı satır örneklemesiyle çalıştırır, bitince (hata ya da kesmeyle bitse de) metin
 // raporu standart çıktıya, istenmişse JSON raporu dosyaya yazar.
 func profileCommand(args []string) {
-	s, path, arguments := profileArguments(codes.Name(codes.K013), args, codes.K103, codes.K104)
+	s, path, arguments := profileArguments(codes.DisplayName(codes.K013), args, codes.K103, codes.K104)
 	machine, prog, code := prepareProgram(path, arguments)
 	if s.goProfile != "" {
 		startGoProfile(s.goProfile)

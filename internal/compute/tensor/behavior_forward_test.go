@@ -1,6 +1,7 @@
 package tensor
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"testing"
@@ -294,6 +295,39 @@ func TestCrossEntropyForward(t *testing.T) {
 	}
 	expectPanic(t, "hedef sayısı", func() { CrossEntropy(l, []int{1}) })
 	expectPanic(t, "hedef aralığı", func() { CrossEntropy(l, []int{1, 3}) })
+}
+
+// Normun çıktı türü (RMSNormAs, LayerNormAs; 15.13): hesap float32'dir; çıktı float32 normun o
+// türe dönüşümüyle bit düzeyinde aynıdır, girdinin gradyanı da dönüşüm yolununkiyle aynıdır:
+// iki tüketicinin gradyanı float32'de toplanır (dönüşümün gradyanı gibi; node.wideGrad).
+func TestNormOutputDType(t *testing.T) {
+	rng := rand.New(rand.NewSource(9))
+	xv, gv := Randn(rng, 3, 40), Randn(rng, 40)
+	c1, c2 := Randn(rng, 40, 7), Randn(rng, 40, 5)
+	for _, dt := range []DType{BFloat16, Float16} {
+		for _, layer := range []bool{false, true} {
+			norm := func(x, g *Tensor, out DType) *Tensor {
+				if layer {
+					return LayerNormAs(x, g, nil, 1e-5, out)
+				}
+				return RMSNormAs(x, g, 1e-5, out)
+			}
+			a, ga := xv.Detach().SetRequiresGrad(true), gv.Detach().SetRequiresGrad(true)
+			b, gb := xv.Detach().SetRequiresGrad(true), gv.Detach().SetRequiresGrad(true)
+			ya, yb := norm(a, ga, dt), norm(b, gb, Float32).Cast(dt)
+			if ya.DType() != dt {
+				t.Fatalf("çıktının türü %s, beklenen %s", ya.DType(), dt)
+			}
+			sameBits(t, fmt.Sprintf("%s norm (katman %v)", dt, layer), ya, yb)
+			loss := func(y *Tensor) *Tensor {
+				return y.MatMul(c1.Cast(dt)).Cast(Float32).SumAll().Add(y.MatMul(c2.Cast(dt)).Cast(Float32).SumAll())
+			}
+			loss(ya).Backward()
+			loss(yb).Backward()
+			sameBits(t, "girdinin gradyanı", a.Grad(), b.Grad())
+			sameBits(t, "ağırlığın gradyanı", ga.Grad(), gb.Grad())
+		}
+	}
 }
 
 func TestNormsForward(t *testing.T) {

@@ -725,6 +725,28 @@ test "15.13 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
     doğrula(mutlak(kbf - k32) <= 0.1 * k32 + 0.01, "float32 kaybı {k32}, bf16 kaybı {kbf}")
 }
 
+test "15.13 normun çıktı türü (tür:) ve hesap_türü()" {
+    eşit_mi("float32", hesap_türü())
+    eşit_mi(["bf16", "fp16", "float32"], [karışık_hassasiyet("bf16") { hesap_türü() }, karışık_hassasiyet("fp16") { hesap_türü() },
+        karışık_hassasiyet("bf16") { karışık_hassasiyet("float32") { hesap_türü() } }])
+    // tür: yalnızca çıktının türüdür: değer float32 normun o türe bir kez yuvarlanmışıdır
+    // (çarpımın kendi dönüşümüyle aynı); gradyan girdiye kendi türünde akar.
+    değişken x = tensör([[1.0, -2.0, 3.0, 0.5], [0.1, 0.2, -0.3, 4.0]], türev_izle: doğru)
+    değişken w = tensör([1.0, 0.5, 2.0, 1.5], türev_izle: doğru)
+    değişken a = rms_normu(x, w, tür: "bf16")
+    değişken b = rms_normu(x, w)
+    eşit_mi(["bf16", "float32"], [a.tür, b.tür])
+    eşit_mi(b.türe("bf16").değer, a.değer)
+    geri_yayılım(toplam(a.türe("float32")))
+    eşit_mi("float32", x.gradyan.tür)
+    eşit_mi("fp16", katman_normu(x, tür: "fp16").tür)
+    karışık_hassasiyet("bf16") {
+        eşit_mi("bf16", rms_normu(x, w, tür: hesap_türü()).tür)
+        eşit_mi("float32", rms_normu(x, w).tür)
+    }
+    dene { rms_normu(x, tür: "int3") } yakala h { doğrula(h.içerir("int3")) }
+}
+
 test "15.13 karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     değişken x = tensör([[1.001]])
     değişken y = tensör([[1.0]])

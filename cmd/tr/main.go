@@ -31,7 +31,7 @@ const Version = "1.0.0"
 // gcTarget çöp toplayıcının varsayılan hedefi (yığın, canlı belleğin bu yüzdesi kadar
 // büyüyünce toplama başlar; Go'nun varsayılanı 100). Eğitimde her adım çok sayıda
 // büyük ara tensör ayırır; 100'de karakter modeli adım başına ~0,8 toplama yapıyordu.
-// Ölçüm (examples/tr/15_karakter_modeli.tr, GOMAXPROCS=2, eşli dönüşümlü 26 tur): 200 ile 20/26 turda
+// Ölçüm (examples/tr/36_karakter_modeli.tr, GOMAXPROCS=2, eşli dönüşümlü 26 tur): 200 ile 20/26 turda
 // hızlı, ortanca −0,9…−1,5 ms/adım (~%6); tepe bellek 71 → 105 MB. Kullanıcının GOGC
 // env değişkeni her zaman önceliklidir.
 const gcTarget = 200
@@ -82,12 +82,12 @@ func main() {
 		fmt.Println(messages.Text(messages.H8603, Version))
 	case codes.K004:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, codes.Name(codes.K004), "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, codes.DisplayName(codes.K004), "ornek.tr"))
 		}
 		checkFile(args[1])
 	case codes.K005:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8606, codes.Name(codes.K005)))
+			exitWithError(messages.Text(messages.H8606, codes.DisplayName(codes.K005)))
 		}
 		outPath := ""
 		if len(args) >= 3 {
@@ -105,7 +105,7 @@ func main() {
 		}
 	case codes.K003:
 		if len(args) < 2 {
-			exitWithError(messages.Text(messages.H8605, codes.Name(codes.K003), "ornek.tr"))
+			exitWithError(messages.Text(messages.H8605, codes.DisplayName(codes.K003), "ornek.tr"))
 		}
 		runFile(args[1], args[2:])
 	default:
@@ -137,12 +137,12 @@ func commandCode(arg string) codes.Code {
 func oldCommand(arg string) (string, bool) {
 	switch arg {
 	case "--help":
-		return codes.Name(codes.K001), true
+		return codes.DisplayName(codes.K001), true
 	case "--version":
-		return codes.Name(codes.K002), true
+		return codes.DisplayName(codes.K002), true
 	}
-	if k, ok := codes.Active().Suggest(codes.NamespaceCommand, arg, nil); ok {
-		return codes.Name(k), true
+	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, arg, nil); ok {
+		return codes.DisplayName(k), true
 	}
 	return "", false
 }
@@ -189,22 +189,22 @@ func printHelp() {
 	for _, row := range []string{
 		messages.Text(messages.H8612),
 		messages.Text(messages.H8613),
-		messages.Text(messages.H8614, codes.Name(codes.K003)),
-		messages.Text(messages.H8615, codes.Name(codes.K006)),
-		messages.Text(messages.H8616, codes.Name(codes.K004)),
-		messages.Text(messages.H8617, codes.Name(codes.K005)),
-		messages.Text(messages.H8618, codes.Name(codes.K007)),
-		messages.Text(messages.H8619, codes.Name(codes.K008), optionName(codes.K101)),
-		messages.Text(messages.H8620, codes.Name(codes.K009)),
-		messages.Text(messages.H8621, codes.Name(codes.K010)),
-		messages.Text(messages.H8622, codes.Name(codes.K011), lang),
-		messages.Text(messages.H8623, codes.Name(codes.K011), lang),
-		messages.Text(messages.H8624, codes.Name(codes.K009), lang),
-		messages.Text(messages.H8625, codes.Name(codes.K012)),
-		messages.Text(messages.H8626, codes.Name(codes.K013), optionName(codes.K103)),
-		messages.Text(messages.H8627, codes.Name(codes.K014)),
-		messages.Text(messages.H8628, codes.Name(codes.K001)),
-		messages.Text(messages.H8629, codes.Name(codes.K002)),
+		messages.Text(messages.H8614, codes.DisplayName(codes.K003)),
+		messages.Text(messages.H8615, codes.DisplayName(codes.K006)),
+		messages.Text(messages.H8616, codes.DisplayName(codes.K004)),
+		messages.Text(messages.H8617, codes.DisplayName(codes.K005)),
+		messages.Text(messages.H8618, codes.DisplayName(codes.K007)),
+		messages.Text(messages.H8619, codes.DisplayName(codes.K008), optionName(codes.K101)),
+		messages.Text(messages.H8620, codes.DisplayName(codes.K009)),
+		messages.Text(messages.H8621, codes.DisplayName(codes.K010)),
+		messages.Text(messages.H8622, codes.DisplayName(codes.K011), lang),
+		messages.Text(messages.H8623, codes.DisplayName(codes.K011), lang),
+		messages.Text(messages.H8624, codes.DisplayName(codes.K009), lang),
+		messages.Text(messages.H8625, codes.DisplayName(codes.K012)),
+		messages.Text(messages.H8626, codes.DisplayName(codes.K013), optionName(codes.K103)),
+		messages.Text(messages.H8627, codes.DisplayName(codes.K014)),
+		messages.Text(messages.H8628, codes.DisplayName(codes.K001)),
+		messages.Text(messages.H8629, codes.DisplayName(codes.K002)),
 	} {
 		fmt.Fprintln(w, "  "+row)
 	}
@@ -229,11 +229,11 @@ func runFile(path string, arguments []string) {
 // sonraki argümanlar programındır.
 func debugCommand(args []string) {
 	if len(args) < 1 {
-		exitWithError(messages.Text(messages.H8608, codes.Name(codes.K006)))
+		exitWithError(messages.Text(messages.H8608, codes.DisplayName(codes.K006)))
 	}
 	for _, a := range args[:min(2, len(args))] {
 		if a == "-w" || removedOption(a) { // --web (K102, kaldırıldı)
-			exitWithError(messages.Text(messages.H8609, codes.Name(codes.K006)))
+			exitWithError(messages.Text(messages.H8609, codes.DisplayName(codes.K006)))
 		}
 	}
 	debugFile(args[0], args[1:])
@@ -261,7 +261,7 @@ func checkFile(path string) {
 func startREPL() {
 	defer stdlib.Close() // açık dosyalar kapanır, geçici klasörler silinir
 	fmt.Println("🇹🇷 " + messages.Text(messages.H8633, Version))
-	fmt.Println(messages.Text(messages.H8634, codes.Name(codes.K200)))
+	fmt.Println(messages.Text(messages.H8634, codes.DisplayName(codes.K200)))
 	machine := interp.New()
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
@@ -285,7 +285,7 @@ func startREPL() {
 			break
 		}
 		if exitHint(line) {
-			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line, codes.Name(codes.K200)))
+			fmt.Fprintln(os.Stderr, messages.Text(messages.H8636, line, codes.DisplayName(codes.K200)))
 			continue
 		}
 		if line == "/h" || line == "/H" {
@@ -332,9 +332,10 @@ func startREPL() {
 	}
 }
 
-// startsWithPrint satır yazdır yerleşiğinin (G100) bir yazımıyla mı başlıyor?
+// startsWithPrint satır yazdır yerleşiğinin (G100) kanonik ya da kişinin yazım dilindeki bir
+// yazımıyla mı başlıyor (kabuk satırı kişinin dilinde yazılır)?
 func startsWithPrint(ln string) bool {
-	for _, y := range codes.Spellings(codes.G100) {
+	for _, y := range append(codes.Spellings(codes.G100), codes.Display().Spellings(codes.G100)...) {
 		if strings.HasPrefix(ln, y) {
 			return true
 		}
@@ -346,7 +347,7 @@ func startsWithPrint(ln string) bool {
 // adın Türkçe harfsiz biçimi (cikis) ya da hata ayıklayıcının çıkış komutu (K313, quit).
 // Böyle bir satır program sanılıp çalıştırılmaz; asıl komut önerilir.
 func exitHint(line string) bool {
-	if k, ok := codes.Active().Suggest(codes.NamespaceCommand, line, nil); ok && k == codes.K200 {
+	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, line, nil); ok && k == codes.K200 {
 		return true
 	}
 	k, ok := codes.FindDebuggerCommand(line)

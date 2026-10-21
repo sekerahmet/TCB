@@ -94,7 +94,7 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	}
 	// Karakter modelinin eğitimi kısaltılır (iki kopyada da aynı biçimde).
 	for _, root := range []string{tr1, tr2} {
-		filePath := filepath.Join(root, "examples", "tr", "15_karakter_modeli.tr")
+		filePath := filepath.Join(root, "examples", "tr", "36_karakter_modeli.tr")
 		data, err := os.ReadFile(filePath)
 		if err != nil {
 			t.Fatal(err)
@@ -250,8 +250,10 @@ func TestEnglishWritingLanguage(t *testing.T) {
 	if s := run(t, trBinary, "", back.stdout, nil, "göster", "-"); s.code != 0 || s.stdout != turkish {
 		t.Errorf("İngilizceden kodlanan metnin Türkçesi özgün değil: %q", s.stdout)
 	}
-	// İletiler de yazım dilindedir: İngilizce yazımda başlık İngilizce kataloğundan gelir.
-	wait(t, run(t, trBinary, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
+	// Metin --dil'in dilinde okunur; iletiler kişinin yazım dilindedir (TR_DIL): İngilizce
+	// metnin sözdizimi hatası TR_DIL=en ile İngilizce başlıkla, yoksa Türkçe bildirilir.
+	wait(t, run(t, trBinary, "", "if {\n", []string{"TR_DIL=en"}, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
+	wait(t, run(t, trBinary, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Sözdizimi"})
 	// Gösterim de o dilde yeniden kodlanabilmeli: G200'ün İngilizce adı yok, "G200(l)" diye bir
 	// gösterim geri okunamaz; komut onu vermez (dosyayla da standart girişle de).
 	lossy := source.Header + "\nA030 l = [1]\nG200(l)\n"
@@ -274,8 +276,8 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 	var files []string
 	for _, k := range []string{"tests", "examples", "lib", "tools"} {
 		filepath.WalkDir(reporoot.Path(k), func(filePath string, g fs.DirEntry, err error) error {
-			if err == nil && g.IsDir() && g.Name() == "negative" {
-				return filepath.SkipDir // bilerek hatalı dosyalar (ölü kodlar, bozuk başlıklar)
+			if err == nil && g.IsDir() && (g.Name() == "negative" || g.Name() == errorsDir["tr"] || g.Name() == errorsDir["en"]) {
+				return filepath.SkipDir // bilerek hatalı dosyalar (ölü kodlar, bozuk başlıklar, hata örnekleri)
 			}
 			if err == nil && !g.IsDir() && strings.HasSuffix(filePath, ".tr") && !trFilesWithData[g.Name()] {
 				files = append(files, filePath)
@@ -371,6 +373,10 @@ func TestUncodedFileIsTurkishInEveryLanguage(t *testing.T) {
 	if got := readFile(t, filepath.Join(dir, "ana.tr")); got != program {
 		t.Errorf("TR_DIL=en ile 'tr çöz' Türkçe yazmadı:\n%s", got)
 	}
+	// Kabuğa yazılan satır kişinin yazım dilindedir; kanonik biçime çevrilip çalışır: değerlerin
+	// adları (tip()) kanoniktir.
+	repl := run(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, type(x))\nexit\n", []string{"TR_DIL=en"})
+	wait(t, repl, 0, []string{"[10, 20] Liste"}, nil)
 }
 
 // readFile dosyanın metnidir.

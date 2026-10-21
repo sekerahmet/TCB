@@ -1,0 +1,11 @@
+//! tr kodlu 1
+// Error 22 — Invalid axis.
+// Message code: H6016
+// What happens: Asking for an axis the tensor does not have raises an error at run time.
+// Why: In a 2-dimensional tensor the axes are 0, 1 (or -1, -2); there is no 5.
+// Fixed version:
+//     print(sum(m, dim: 1))
+// Run (from the project root): tr examples/en/errors/22_tensor_axis.tr   (exit code 1)
+
+A030 m = T100([[1, 2], [3, 4]])
+G100(G400(m, T902: 5))

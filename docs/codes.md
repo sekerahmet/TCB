@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`). Kaldırılan kodların numarası bir daha kullanılmaz; adları yazılınca hata yeni biçimi önerir.
 
-Toplam 295 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 101 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
+Toplam 296 kod: 28 anahtar kelime, 6 bağlamsal sözcük, 25 tip, 102 fonksiyon, 1 sabit, 38 metot, 21 özellik, 40 adlı argüman; ayrıca 9 taşınmış ve 65 kaldırılmış kod (numaraları bir daha kullanılmaz).
 
 ## İçindekiler
 
@@ -1977,7 +1977,7 @@ değişken tablo = tensör([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]); yazdır(gömme
 
 #### T501 `katman_normu`
 
-    katman_normu(Tensör | Liste, [Tensör | Liste | Yok], [Tensör | Liste | Yok], epsilon: Tam | Ondalık = 1e-05, ağırlık: Tensör | Liste | Yok = yok, sapma: Tensör | Liste | Yok = yok) → Tensör
+    katman_normu(Tensör | Liste, [Tensör | Liste | Yok], [Tensör | Liste | Yok], epsilon: Tam | Ondalık = 1e-05, ağırlık: Tensör | Liste | Yok = yok, sapma: Tensör | Liste | Yok = yok, tür: Metin = yok) → Tensör
 
 Girdiyi son eksende ortalaması 0, varyansı 1 olacak biçimde normalleştirir; isteğe bağlı ağırlık ve sapma [D] şeklinde olmalıdır. Konumlu ya da adlı verilebilirler; epsilon varsayılanı 0.00001'dir.
 
@@ -1989,7 +1989,7 @@ yazdır(katman_normu(tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sapma:
 
 #### T502 `rms_normu`
 
-    rms_normu(Tensör | Liste, [Tensör | Liste | Yok], epsilon: Tam | Ondalık = 1e-05, ağırlık: Tensör | Liste | Yok = yok) → Tensör
+    rms_normu(Tensör | Liste, [Tensör | Liste | Yok], epsilon: Tam | Ondalık = 1e-05, ağırlık: Tensör | Liste | Yok = yok, tür: Metin = yok) → Tensör
 
 Girdiyi son eksende karelerinin ortalamasının köküne bölerek normalleştirir (ortalama çıkarılmaz). İsteğe bağlı ağırlık [D] şeklinde olmalıdır; epsilon varsayılanı 0.00001'dir.
 
@@ -1997,7 +1997,7 @@ Girdiyi son eksende karelerinin ortalamasının köküne bölerek normalleştiri
 yazdır(rms_normu(tensör([[3.0, 4.0]]), ağırlık: birler([2])).değer)
 ```
 
-İlişkili: T501 `katman_normu`
+İlişkili: T501 `katman_normu`, T711 `hesap_türü`
 
 #### T503 `dikkat`
 
@@ -2147,13 +2147,25 @@ değişken m = {w: tensör([1.0, 2.0], türev_izle: doğru)}; tensör_kaydet("m.
 
     karışık_hassasiyet(Metin, Fonksiyon | YerleşikFonksiyon) → Herhangi
 
-Bloğu verilen hesap türüyle ("bf16", "fp16" ya da kapatmak için "float32") çalıştırır ve bloğun son ifadesinin değerini döndürür. Blok içinde @ girdileri bu türe çevrilir ama sonuç float32'dir; ağırlıkların türü değişmez.
+Bloğu verilen hesap türüyle ("bf16", "fp16" ya da kapatmak için "float32") çalıştırır ve bloğun son ifadesinin değerini döndürür. Blok içinde @ ve dikkat girdileri bu türe çevrilir; biriktirme float32'dir, sonuç bu türdedir (dil tanımı 15.13); ağırlıkların türü değişmez.
 
 ```tr
 değişken y = karışık_hassasiyet("bf16") { tensör([[1.0, 2.0]]) @ tensör([[3.0], [4.0]]) }; yazdır(y.değer, y.tür)
 ```
 
-İlişkili: T901 `tür`
+İlişkili: T901 `tür`, T711 `hesap_türü`
+
+#### T711 `hesap_türü`
+
+    hesap_türü() → Metin
+
+Etkin karışık_hassasiyet bloğunun hesap türünün adını verir ("bf16", "fp16"); blok dışında "float32". Çıktısını yalnızca çarpımların okuyacağı bir işlem sonucunu doğrudan o türde yazmak için kullanılır (ör. rms_normu(x, w, tür: hesap_türü())).
+
+```tr
+yazdır(hesap_türü(), karışık_hassasiyet("bf16") { hesap_türü() })
+```
+
+İlişkili: T710 `karışık_hassasiyet`, T502 `rms_normu`, T901 `tür`
 
 #### T720 `varsayılan_cihaz`
 
@@ -2193,13 +2205,13 @@ Kullananlar: T100 `tensör`, T101 `sıfırlar`, T102 `birler`, T103 `rastgele_no
 
 #### T901 `tür`
 
-Oluşturulan tensörün veri türünü seçer: "float32" (varsayılan), "bf16" ya da "fp16". Başka bir ad en yakın geçerli adı öneren bir hatadır.
+Oluşturulan tensörün veri türünü seçer: "float32" (varsayılan), "bf16" ya da "fp16". Normlarda (katman_normu, rms_normu) çıktının türüdür; hesap yine float32'dir, verilmezse çıktı girdinin türündedir. Başka bir ad en yakın geçerli adı öneren bir hatadır.
 
 ```tr
 yazdır(sıfırlar([2, 2], tür: "fp16").tür)
 ```
 
-Kullananlar: T100 `tensör`, T101 `sıfırlar`, T102 `birler`, T103 `rastgele_normal`
+Kullananlar: T100 `tensör`, T101 `sıfırlar`, T102 `birler`, T103 `rastgele_normal`, T501 `katman_normu`, T502 `rms_normu`
 
 #### T902 `eksen`
 

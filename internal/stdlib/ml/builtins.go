@@ -40,6 +40,7 @@ func Register(v *interp.VM) {
 
 	// --- Veri türleri (veri_turu.go) ---
 	wrap(v, codes.T710, newBuiltin(mixedPrecision))
+	wrap(v, codes.T711, newBuiltin(computeDType))
 
 	// --- Cihazlar (cihaz.go) ---
 	wrap(v, codes.T720, newBuiltin(defaultDeviceBuiltin))

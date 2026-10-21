@@ -76,7 +76,7 @@ Kullanıcıya görünen her ad ve her ileti sabit bir koda bağlıdır; Go kodu 
 | Dilden bağımsız | `definitions.json`: tür, imza, dönüş tipi, örnek | `definitions.json`: her kodun parametre adları |
 | Dile bağlı | `tr.json` (kaynak dil), `en.json` | `tr.json`; eksik kod Türkçe gösterilir |
 | Go'dan kullanım | `codes.Name(codes.G100)`, `codes.Find`, `codes.Active` | `messages.New(messages.H7003, ...)`, `messages.Text`, `messages.Has`, `messages.Internal` |
-| Etkin dil | `TR_DIL` ortam değişkeni (`codes.LoadLanguage`) | aynı değişken (`messages.LanguageEnvVar`) |
+| Dil | Okuma ve çalışma dili her zaman Türkçe (`codes.Active`); kişinin yazım dili `TR_DIL` (`codes.Display`, `codes.DisplayName`) yalnızca gösterimdir (17.7) | iletilerin dili `TR_DIL` (`messages.LanguageEnvVar`) |
 
 Yazım kuralları (kod değişmez, ad değişebilir; her işin tek adı; parametreler adlıdır; iç hata `H9000`) paketlerin README'lerindedir: [`codes`](../internal/lang/codes/README.md), [`messages`](../internal/lang/messages/README.md). Yeni ad için [`development.md`](development.md#yeni-kod-ad-isteği), yeni ileti için [`recipes.md`](recipes.md).
 
@@ -247,7 +247,7 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
     "bellek": [{"cihaz": 0, "canlı_bayt": 109568, "ayrılmış_bayt": 114176, "havuzda_bayt": 4608,
       "tepe_canlı_bayt": 113664, "tepe_ayrılmış_bayt": 114176, "çöp_toplama": 0}]},
   "örnekleme": {"aralık_ms": 1, "örnek": 11800, "süre_sn": 11.8, "tensör_payı": 0.95,  // kapalıysa null
-    "satırlar": [{"dosya": "examples/tr/17_gpt.tr", "satır": 49, "fonksiyon": "",
+    "satırlar": [{"dosya": "examples/tr/41_gpt.tr", "satır": 49, "fonksiyon": "",
       "metin": "geri_yayılım(kayıp)", "süre_sn": 4.6, "pay": 0.39, "tensör_payı": 0.99}],
     "fonksiyonlar": [{"ad": "dikleştir", "süre_sn": 3.9, "pay": 0.33}]},
   "bellek": {"go_yığını_bayt": 7864320, "go_sistem_bayt": 44564480, "cpu_tensör_ayrılan_bayt": 7642211100},

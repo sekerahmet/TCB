@@ -15,7 +15,8 @@ const schemaVersion = 1
 // eşleme). Eski bir sürümün kurduğu grafik, imzası aynı olsa da bir sorguda yeniden kurulur.
 // 2: düğümlere son satır (end) eklendi. 3: paket düzeyi const/var düğümleri ve `uses`, `denotes` kenarları. 4: ad kodu düğümlerinde dildeki adlar (aliases). 5: .tr kaynakları (tr_* düğümleri, TR çağrı, kullanım ve ad kodu kenarları).
 // 6: struct alanı düğümleri ve okuma/yazma erişim yerleri, func literal düğümleri ve yakaladıkları değişkenler.
-const extractorRevision = 6
+// 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_DIL=en grafiği eksik bırakıyordu).
+const extractorRevision = 7
 
 // Düğüm türleri.
 const (

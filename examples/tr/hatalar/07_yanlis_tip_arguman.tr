@@ -1,0 +1,12 @@
+// Hata 07 — Yanlış tipte argüman.
+// İleti kodu: H1004
+// Ne olur: Tipi bildirilmiş parametreye başka tipte değer verildiğini tip denetimi çağrı yerinde yakalar.
+// Neden: alan() parametresini Ondalık bekler, bir Metin verildi.
+// Düzeltilmiş hâli:
+//     yazdır(alan(3.0))
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/07_yanlis_tip_arguman.tr   (çıkış kodu 1)
+
+fonksiyon alan(kenar: Ondalık) -> Ondalık {
+    sonuç kenar * kenar
+}
+yazdır(alan("üç"))

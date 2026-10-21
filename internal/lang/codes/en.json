@@ -196,6 +196,7 @@
   "T702": { "ad": "checkpoint" },
   "T703": { "ad": "load_parameters" },
   "T710": { "ad": "mixed_precision" },
+  "T711": { "ad": "compute_dtype" },
   "T720": { "ad": "default_device" },
   "T721": { "ad": "devices" },
   "T900": { "ad": "requires_grad" },

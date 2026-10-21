@@ -1,0 +1,43 @@
+// 11 — Sözlükler: değerleri anahtarla saklamak.
+// Ne öğretir: sözlük kurmak, anahtarla okumak/yazmak, olmayan anahtar (yok), anahtarlar() ve
+// değerler(), içerir, sözlük listesi.
+// Önceki örnekten: listeler (09), ok fonksiyonları (10), yok ve ?? (03).
+// Çalıştırma (proje kökünden): tr examples/tr/11_sozlukler.tr
+
+// Sözlük süslü parantezle yazılır: "anahtar": değer çiftleri.
+değişken fiyatlar = {"elma": 12, "muz": 30}
+yazdır(fiyatlar, fiyatlar.uzunluk)
+
+// Anahtarla okunur ve yazılır; olmayan anahtar eklenir.
+yazdır(fiyatlar["muz"])
+fiyatlar["kiraz"] = 45
+fiyatlar["elma"] = 15
+yazdır(fiyatlar)
+
+// Olmayan anahtar yok verir; ?? ile varsayılana düşülür.
+yazdır(fiyatlar["armut"], fiyatlar["armut"] ?? 0)
+yazdır(fiyatlar.içerir("muz"), fiyatlar.içerir("armut"))
+
+// Anahtarlar ve değerler liste olarak alınır.
+yazdır(fiyatlar.anahtarlar(), fiyatlar.değerler())
+döngü ürün içinde fiyatlar.anahtarlar() {
+    yazdır("{ürün}: {fiyatlar[ürün]} TL")
+}
+yazdır("toplam: {toplam(fiyatlar.değerler())} TL")
+
+// Sözlüğün değeri liste ya da başka bir sözlük olabilir.
+değişken öğrenci = {"ad": "Ayşe", "notlar": [70, 85, 90], "adres": {"şehir": "Ankara"}}
+yazdır("{öğrenci["ad"]} {öğrenci["adres"]["şehir"]}, ortalama {yuvarla(ortalama(öğrenci["notlar"]), 1)}")
+
+// Sözlük listesi tablo gibi kullanılır.
+değişken siparişler = [
+    {"müşteri": "Ayşe", "tutar": 450},
+    {"müşteri": "Mehmet", "tutar": 280},
+    {"müşteri": "Elif", "tutar": 35}
+]
+yazdır(siparişler.filtrele { o["tutar"] > 100 }.haritala { o["müşteri"] })
+yazdır("toplam tutar: {siparişler.haritala { o["tutar"] } |> toplam}")
+
+// --- Kendin dene ---
+// 1. Bir metindeki her harfin kaç kez geçtiğini sözlükte say.
+// 2. siparişler listesine yeni bir sipariş ekle ve en büyük tutarı bul.
