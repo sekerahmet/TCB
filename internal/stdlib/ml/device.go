@@ -93,6 +93,9 @@ func (d *TensorValue) toDevice(_ *interp.VM, args []interp.Value, _ map[string]i
 	if err != nil {
 		return nil, err
 	}
+	if r == d.t {
+		return d, nil // aynı cihaz: başlık yeniden sarılmaz (sahiplik tek değerde kalır)
+	}
 	result := New(r)
 	result.hasInts = d.hasInts
 	return result, nil

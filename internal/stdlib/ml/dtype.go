@@ -109,10 +109,10 @@ func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[strin
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6806, codes.DisplayName(memberToDType), len(args))
 	}
-	if err := bind.CheckNamed(codes.Name(memberToDType)+"()", named); err != nil {
+	if err := bind.CheckNamed(codes.DisplayName(memberToDType)+"()", named); err != nil {
 		return nil, err
 	}
-	dt, err := parseDTypeValue(codes.Name(memberToDType), args[0])
+	dt, err := parseDTypeValue(codes.DisplayName(memberToDType), args[0])
 	if err != nil {
 		return nil, err
 	}

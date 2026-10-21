@@ -307,7 +307,7 @@ sına()
 
 // x.cihaza("cpu") (aynı cihazda) ve toplam([x]) (tek elemanlı listede) var olan
 // başlığı sarmalarken sahipliği bozmamalı, kapsam sonunda başlık düşmelidir.
-func TestAuditSameDeviceToDeviceAndSingleTensorListSumDropAtScopeExit(t *testing.T) {
+func TestSameDeviceToDeviceAndSingleTensorListSumDropAtScopeExit(t *testing.T) {
 	for _, expr := range []string{`x.cihaza("cpu")`, `toplam([x])`} {
 		m := interp.New()
 		m.Out = &bytes.Buffer{}
@@ -320,7 +320,7 @@ func TestAuditSameDeviceToDeviceAndSingleTensorListSumDropAtScopeExit(t *testing
 				return interp.Null, nil
 			},
 		}, true)
-		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    izle(x)\n    değişken y = %s\n}\nsına()\n", expr)
+		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    izle(x)\n    değişken y = %s\n    yazdır(1)\n}\nsına()\n", expr)
 		p := parser.New(lexer.New(code))
 		if _, err := m.Run(p.ParseProgram()); err != nil {
 			t.Fatalf("%s: %v", expr, err)

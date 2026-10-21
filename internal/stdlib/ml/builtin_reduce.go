@@ -203,12 +203,13 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 // ortalama için eleman sayısına böler. Sonuç türev izlenen girdilere bağlı kalır.
 func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error) {
 	var acc *tensor.Tensor
+	var first *TensorValue
 	fixed := 0.0
 	for i, e := range el {
 		switch x := e.(type) {
 		case *TensorValue:
 			if acc == nil {
-				acc = x.t
+				acc, first = x.t, x
 				continue
 			}
 			if err := checkBroadcast("+", acc, x.t); err != nil {
@@ -240,6 +241,9 @@ func sumTensorList(ad string, mean bool, el []interp.Value) (interp.Value, error
 	})
 	if err != nil {
 		return nil, err
+	}
+	if r == acc && first != nil && first.t == r {
+		return first, nil // tek tensörlü liste: başlık yeniden sarılmaz
 	}
 	return New(r), nil
 }
