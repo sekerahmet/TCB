@@ -1,0 +1,80 @@
+//! tr kodlu 1
+// 44 — Training stability: catching NaN and loss spikes, rolling back to the last checkpoint.
+// What it teaches: is_finite (on numbers and tensors), clip_grad(..., error_if_nonfinite:), ckpt.rollback(),
+// sampler.skip(n) and the library's spike watcher (import "tr/egitim": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
+// One day a long training falls into NaN through a broken gradient, or its loss suddenly spikes; this example
+// does that on purpose once and shows the training resuming from the last sound checkpoint, skipping the troublesome batches.
+// Builds on: checkpoints (40), the ready-made library (41).
+// Details: docs/spec/15_tensorler.md §15.46, docs/spec/20_kontrol_noktasi.md §20.14–20.15.
+//
+// Run (from the project root): tr examples/en/44_training_stability.tr
+
+A070 "tr/egitim"
+
+// --- is_finite: NaN and infinity are "not finite" ---
+G100(G415(2.5), G415(G211("nan")), G415(G211("inf")))
+G100(G415(T100([1.0, G211("nan"), -G211("inf")])).Y404) // element-wise: [1.0, 0.0, 0.0]
+
+// --- A small model and data (the model of example 40) ---
+A030 tok = V200("../../tests/data/tokenizer.json")
+A030 V = tok.Y612
+A030 sampler = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 1)
+A030 param_seed = 0
+A020 param(shape, scale) {
+    param_seed += 1
+    A021 T100(T301(T103(shape, T903: param_seed) * scale), T900: A040)
+}
+A030 model = {E: param([V, 32], 0.1), W1: param([32, 64], 0.1), W2: param([64, V], 0.1)}
+A020 forward(inputs) {
+    A021 T203(T500(model.E, inputs) @ model.W1) @ model.W2
+}
+A030 opt = T400(T530(model), T910: 0.01, T911: 0.0)
+
+// --- clip_grad: always returns the norm; with error_if_nonfinite it can also fail on a broken gradient ---
+A030 first_inputs, first_targets = sampler.Y602()
+T300(T510(forward(first_inputs), first_targets) * G211("nan"))
+A060 {
+    T402(T530(model), T904: 1.0, T986: A040)
+} A061 e {
+    G100("broken gradient, no step taken")
+}
+opt.Y501() // the broken gradients are cleared, the model did not change
+
+// --- Training: a checkpoint every 10 steps, the watcher looks at every step ---
+// The run folder is in the system's temporary folder: the example writes nothing into the repository.
+A030 ckpt = T702(G120(G126(), "stability"), {model: model, opt: opt, Y600: sampler}, T984: 0)
+A030 watcher = SıçramaBekçisi(pencere: 20, eşik: 6.0)
+A030 TOTAL = 60
+A030 broken_step = 35 // the loss turns NaN once, on purpose, at this step
+A030 step = 0
+A010 step < TOTAL {
+    A030 inputs, targets = sampler.Y602()
+    opt.Y501()
+    A030 loss = T510(forward(inputs), targets)
+    A001 step == broken_step {
+        loss = loss * G211("nan")
+        broken_step = -1
+    }
+    T300(loss)
+    A030 norm = T402(T530(model), T904: 1.0)
+    A030 verdict = watcher.gözle(loss.Y404, norm.Y404)
+    A001 verdict != TAMAM {
+        // A broken or spiking step is not applied: back to the last sound checkpoint, the troublesome batches are skipped.
+        G100("step {step + 1}: {verdict}")
+        step = ckpt.Y522()
+        G100("  rolled back to step {step}, skipped {sampler.Y603(3)} batches")
+        A014
+    }
+    opt.Y500()
+    step += 1
+    A001 step % 10 == 0 {
+        ckpt.Y010(step)
+        G100("step {step}: loss {G405(loss.Y404, 3)}")
+    }
+}
+G100("model sound:", G415(G400(model.W2).Y404), "| spikes:", watcher.sıçrama_sayısı)
+
+// --- Try it yourself ---
+// 1. Set broken_step to 5: what does rollback say while there is no checkpoint yet?
+// 2. Lower eşik to 2.0: does the watcher count ordinary noise as spikes too?
+// 3. Call the watcher after opt.step(): the NaN now gets into the model; does rollback still save it?

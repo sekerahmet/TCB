@@ -15,17 +15,26 @@
 // kurar), --hassasiyet fp32 bf16'yı kapatır, --kayıplar adım başına kaybı ve gradyan normunu yazar.
 // Kalite: --doğrulama valid.npy her --değerlendirme adımda ve sonda doğrulama kaybını hedefin yöntemiyle
 // ölçer (dosyanın başından --değerlendirme_parça kadar ardışık pencere; rgn512.py evaluate).
+// Kararlılık (dil tanımı 15.46, 20.14, 20.15; tr/egitim): her adımın kaybını ve gradyan normunu bir
+// sıçrama bekçisi izler (son --bekçi_pencere sağlam adıma göre --bekçi_eşik standart sapma). --koşu
+// KLASÖR verilince kontrol noktası kurulur (her --kayıt_dakika dakikada bir; yeniden çalıştırılınca
+// kaldığı adımdan sürer): NaN, sonsuz ya da sıçramada son noktaya dönülür ve --atla toplu iş atlanır.
+// --koşu yoksa NaN ya da sonsuzda eğitim açık bir hatayla durur, sıçramada uyarı yazılır. Bekçi değeri
+// adımın sonunda zaten okunan kayıp ve normdan okur: adıma bekleme eklemez. --nan_adımı N (sınama
+// için) N. adımın kaybını bir kez NaN yapar.
 
 değişken arg = komut_satırı({veri: "", adım: 120, toplu: 64, mikro: 32, bağlam: 1024, oran: 0.002,
         cihaz: "gpu", tohum: 0, günlük: 50, çıktı: "", ağırlık: "", sıralı: yanlış, hassasiyet: "bf16",
         kayıplar: "", dağarcık: 40000, boyut: 512, katman: 8, baş: 8, kv_baş: 4, ara: 672,
-        doğrulama: "", değerlendirme: 1000, değerlendirme_parça: 4194304},
+        doğrulama: "", değerlendirme: 1000, değerlendirme_parça: 4194304,
+        koşu: "", kayıt_dakika: 15, bekçi_pencere: 128, bekçi_eşik: 6.0, atla: 200, nan_adımı: -1},
     açıklama: "Hedef modelin TR karşılığı (PyTorch: rgn512.py)")
 doğrula(arg.veri != "", "--veri ile .npy klasörü verilmeli")
 varsayılan_cihaz(arg.cihaz)
 
 aktar "tr/katman" olarak katman
 aktar "tr/iyilestirici" olarak iyileştirici
+aktar "tr/egitim" olarak eğitim
 
 // Boyutlar hedefin varsayılanlarıdır; küçük boyutlar yalnızca hızlı doğruluk testi içindir (8 katman ve
 // düzen sabittir, PLE boyutu = boyut).
@@ -86,7 +95,18 @@ değişken doğrulama_kaydı = []
 değişken süreler = []
 değişken pencere = []
 değişken kayıt = []
-döngü adım içinde 0..arg.adım {
+değişken bekçi = eğitim.SıçramaBekçisi(pencere: arg.bekçi_pencere, eşik: arg.bekçi_eşik)
+değişken izlenen = {kayıt: kayıt, doğrulama: doğrulama_kaydı}
+değişken kn = yok
+eğer arg.koşu != "" {
+    değişken nesneler = {model: model, adamw: op.adamw, muon: op.muon.durum, örnekler: örnekler, izlenen: izlenen}
+    eğer op.adamw_sönümsüz != yok { nesneler["adamw_sönümsüz"] = op.adamw_sönümsüz }
+    eğer op.satır_rms != yok { nesneler["satır_rms"] = op.satır_rms.durum }
+    kn = kontrol_noktası(arg.koşu, nesneler, her_dakika: arg.kayıt_dakika)
+}
+değişken adım = eğer kn == yok { 0 } değilse { kn.kaldığı_adım }
+değişken nan_adımı = arg.nan_adımı
+döngü adım < arg.adım {
     op.çarpan_ayarla(maks(0.000001, iyileştirici.oran_planı(adım, arg.adım, ısınma: ısınma, azalma: 0.2)))
     değişken t0 = zaman_ms()
     değişken toplam_kayıp = 0.0
@@ -100,6 +120,10 @@ döngü adım içinde 0..arg.adım {
                 kayıp = model.kayıp(xy[0], xy[1]) / birikim
             }
         }
+        eğer adım + 1 == nan_adımı {
+            kayıp = kayıp * ondalık("nan")
+            nan_adımı = -1
+        }
         geri_yayılım(kayıp)
         toplam_kayıp += kayıp.değer
     }
@@ -107,6 +131,16 @@ döngü adım içinde 0..arg.adım {
     op.adım()
     op.sıfırla()
     değişken ms = zaman_ms() - t0
+    değişken karar = bekçi.gözle(toplam_kayıp, norm.değer)
+    eğer karar != eğitim.TAMAM {
+        yazdır("  {karar} adım {adım + 1}: kayıp {toplam_kayıp}, grad {norm.değer}")
+        eğer kn != yok {
+            adım = kn.geri_dön()
+            yazdır("  {adım}. adıma dönüldü, {örnekler.atla(arg.atla)} toplu iş atlandı")
+            devam
+        }
+        doğrula(karar != eğitim.SONLU_DEĞİL, "eğitim bozuldu (NaN ya da sonsuz) ve dönülecek kontrol noktası yok; --koşu KLASÖR ile kontrol noktası kurun")
+    }
     süreler.ekle(ms)
     pencere.ekle(ms)
     kayıt.ekle({loss: toplam_kayıp, grad_norm: norm.değer})
@@ -120,6 +154,8 @@ döngü adım içinde 0..arg.adım {
         doğrulama_kaydı.ekle({step: adım + 1, loss: d})
         yazdır("  DEĞERLENDİRME adım {adım + 1}: kayıp {yuvarla(d, 4)}")
     }
+    adım += 1
+    eğer kn != yok { kn.güncelle(adım) }
 }
 
 eğer arg.çıktı != "" {

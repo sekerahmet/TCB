@@ -151,7 +151,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
    - Kalanlar H4 olarak Evre 6'da.
    - Gerçek verideki ~10 ms'lik fark: giderildi (gömme geri yönü, yukarıda "Hız yolu").
 6. **Eğitim gözlemlenebilirliği.**
-   - **Kalan (kapanış şartı):** NaN/Inf'te ya da kayıp hareketli ortalamasının k katını aşınca durma ya da son kontrol noktasına dönme.
+   - NaN/Inf ve kayıp sıçramasında durma ya da son kontrol noktasına dönme: yapıldı (2026-10-21). Dil parçaları verir, politikayı döngü seçer: `sonlu_mu`, `gradyan_kırp(..., sonlu_değilse_hata:)` (dil tanımı 15.46), `kn.geri_dön()` ve `ö.atla(n)` (20.14, 20.15), kitaplıkta `tr/egitim`'in sıçrama bekçisi (OLMo-core ölçütü: son 128 sağlam adıma göre 6σ). `rgn512.tr --koşu` NaN ya da sıçramada son noktaya döner ve 200 toplu iş atlar (PaLM §5.1); kontrol noktası yoksa NaN'de açık hatayla durur. Bekçi adımın sonunda zaten okunan değerleri kullanır, adıma bekleme eklemez. Örnek 44.
    - Günlüğe kırpma öncesi ve sonrası gradyan normu, saniyede parça ve kontrol noktası bugün yazılıyor.
    - Uzun eğitimin öbür ölçüleri ve seçenekleri Evre 6'da: parametre normu, etkinleşme RMS'i, log Z, MFU, z-loss, toplu iş atlama, eşzamansız kontrol noktası.
 7. **Belirlenimci veri sırası.** Sıralı ve tohumlu örnekleyiciyle sağlanıyor. Çoklu GPU'da (Evre 6) yeniden doğrulanır.
@@ -175,7 +175,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 - Hız en çok 1,2 × `torch.compile`'dır (H3). **Sağlandı (162 / 136 ms).** Gerçek verideki ~10 ms'lik fark giderildi; gerçek veride 162 / 134 ms (1,21; compile'ın gerçek veri sayısı tek koşudan, yeniden ölçülecek).
 - Bellek en çok 1,1 × `torch.compile`'dır. **Sağlandı (10,81 / 10,8 GiB).**
 - Baş boyu 128 tensör çekirdeğiyle ileri ve geri çalışır; baş boyu gizli boyuttan bağımsızdır.
-- Eğitim bir NaN'de ya da kayıp sıçramasında kendiliğinden durur ya da son kontrol noktasına döner.
+- Eğitim bir NaN'de ya da kayıp sıçramasında kendiliğinden durur ya da son kontrol noktasına döner. **Sağlandı** (`TestTargetModelRollsBackOnNaN`).
 - Ölçümler ve GPU testleri en az iki kart türünde geçer.
 
 ## Evre 4: Hazır modeller ve üretim yolu

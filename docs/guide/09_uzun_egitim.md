@@ -61,3 +61,22 @@ Oturum kapanınca klasörü Drive'dan yerel diske geri kopyalayıp aynı komutu 
 **Elle kaydetmek.** Kontrol noktası kullanmadan da parçaları kendiniz kaydedebilirsiniz: `tensör_kaydet("op.trt", op.durum)` ile iyileştiricinin durumu, `ö.durum` ile okuyucunun konumu (düz bir sözlük, `json_metin` ile yazılır) alınır; `op.durumu_yükle(tensör_yükle("op.trt"))` ve `ö.durumu_yükle(...)` geri yükler. Hazır ağırlıklarla ince ayar için `parametreleri_yükle(model, tensör_yükle("model.trt"))` ağırlıkları modelin var olan parametrelerine yazar; iyileştirici aynı tensörleri güncellemeyi sürdürür.
 
 **GPU.** Model GPU'daysa her şey aynı çalışır: ağırlıklar ve iyileştiricinin durumu kaydedilirken konağa indirilir, yüklenirken aynı cihaza konur. Kesintisiz ve sürdürülen eğitim aynı cihaz türünde bit düzeyinde aynıdır; CPU'da kaydedip GPU'da sürdürmek çalışır ama son bitte farklı sonuç verebilir. Rastgeleliği (`rastgele_normal`, `örnekle`) her zaman `tohum:` ile verin; kontrol noktası kurulduktan sonra tohumsuz rastgelelik kullanılırsa TR bir kez uyarır.
+
+**NaN ve kayıp sıçraması.** Uzun bir eğitim bir gün bozuk bir gradyanla NaN'e düşebilir ya da kaybı birden sıçrayabilir. TR bunu yakalamanın parçalarını verir, ne yapılacağına siz karar verirsiniz:
+
+- `sonlu_mu(x)` bir sayının ya da tensörün elemanlarının NaN ve sonsuz olmadığını söyler.
+- `gradyan_kırp(..., sonlu_değilse_hata: doğru)` normu bozuk gradyanda hata verir.
+- `aktar "tr/egitim"` ile gelen `SıçramaBekçisi` her adımın kaybını ve gradyan normunu son 128 sağlam adımla karşılaştırır ve `TAMAM`, `SONLU_DEĞİL` ya da `SIÇRAMA` der.
+- `kn.geri_dön()` son kontrol noktasını yerinde yükleyip adımını verir; `ö.atla(n)` sorunlu toplu işleri atlar.
+
+```tr
+değişken karar = bekçi.gözle(kayıp.değer, norm.değer)
+eğer karar != TAMAM {
+    adım = kn.geri_dön()
+    ö.atla(200)
+    devam
+}
+op.adım()
+```
+
+Denetimi `op.adım()`'dan ve `kn.güncelle`'den önce yapın: bozuk adım modele ve kontrol noktasına girmesin. Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../../examples/tr/44_egitim_kararliligi.tr).

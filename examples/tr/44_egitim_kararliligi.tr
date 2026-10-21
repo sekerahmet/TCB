@@ -1,0 +1,79 @@
+// 44 — Eğitimin kararlılığı: NaN'i ve kayıp sıçramasını yakalamak, son kontrol noktasına dönmek.
+// Ne öğretir: sonlu_mu (sayı ve tensörde), gradyan_kırp(..., sonlu_değilse_hata:), kn.geri_dön(),
+// ö.atla(n) ve kitaplığın sıçrama bekçisi (aktar "tr/egitim": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
+// Uzun bir eğitim bir gün bozuk bir gradyanla NaN'e düşer ya da kaybı birden sıçrar; bu örnek bunu
+// bilerek bir kez yapar ve eğitimin son sağlam noktadan, sorunlu toplu işleri atlayarak sürdüğünü gösterir.
+// Önceki örnekten: kontrol noktası (40), hazır kitaplık (41).
+// Ayrıntılar: docs/spec/15_tensorler.md §15.46, docs/spec/20_kontrol_noktasi.md §20.14–20.15.
+//
+// Çalıştırma (proje kökünden): tr examples/tr/44_egitim_kararliligi.tr
+
+aktar "tr/egitim"
+
+// --- sonlu_mu: NaN ve sonsuz "sonlu değil"dir ---
+yazdır(sonlu_mu(2.5), sonlu_mu(ondalık("nan")), sonlu_mu(ondalık("inf")))
+yazdır(sonlu_mu(tensör([1.0, ondalık("nan"), -ondalık("inf")])).değer) // eleman bazlı: [1.0, 0.0, 0.0]
+
+// --- Küçük model ve veri (40. örnekteki model) ---
+değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
+değişken V = p.dağarcık_boyutu
+değişken ö = veri_kümesi("../../tests/data/text").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
+değişken parametre_tohumu = 0
+fonksiyon parametre(şekil, ölçek) {
+    parametre_tohumu += 1
+    sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: parametre_tohumu) * ölçek), türev_izle: doğru)
+}
+değişken model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
+fonksiyon ileri(giriş) {
+    sonuç gelu(gömme(model.E, giriş) @ model.W1) @ model.W2
+}
+değişken op = AdamW(parametreler(model), öğrenme_oranı: 0.01, ağırlık_çürümesi: 0.0)
+
+// --- gradyan_kırp: normu hep verir; sonlu_değilse_hata ile bozuk gradyanda hata da verebilir ---
+değişken ilk_giriş, ilk_hedef = ö.sonraki()
+geri_yayılım(çapraz_entropi(ileri(ilk_giriş), ilk_hedef) * ondalık("nan"))
+dene {
+    gradyan_kırp(parametreler(model), en_fazla: 1.0, sonlu_değilse_hata: doğru)
+} yakala h {
+    yazdır("gradyan bozuk, adım atılmadı")
+}
+op.sıfırla() // bozuk gradyanlar silinir, model değişmedi
+
+// --- Eğitim: her 10 adımda bir kontrol noktası, bekçi her adımı izler ---
+// Koşu klasörü sistemin geçici klasöründe: örnek depoya bir şey yazmaz.
+değişken kn = kontrol_noktası(yol(geçici_klasör(), "kararlilik"), {model: model, op: op, ö: ö}, her_dakika: 0)
+değişken bekçi = SıçramaBekçisi(pencere: 20, eşik: 6.0)
+değişken TOPLAM = 60
+değişken bozulacak_adım = 35 // bu adımda kayıp bilerek bir kez NaN olur
+değişken adım = 0
+döngü adım < TOPLAM {
+    değişken giriş, hedef = ö.sonraki()
+    op.sıfırla()
+    değişken kayıp = çapraz_entropi(ileri(giriş), hedef)
+    eğer adım == bozulacak_adım {
+        kayıp = kayıp * ondalık("nan")
+        bozulacak_adım = -1
+    }
+    geri_yayılım(kayıp)
+    değişken norm = gradyan_kırp(parametreler(model), en_fazla: 1.0)
+    değişken karar = bekçi.gözle(kayıp.değer, norm.değer)
+    eğer karar != TAMAM {
+        // Bozuk ya da sıçrayan adım uygulanmaz: son sağlam noktaya dönülür, sorunlu toplu işler atlanır.
+        yazdır("adım {adım + 1}: {karar}")
+        adım = kn.geri_dön()
+        yazdır("  {adım}. adıma dönüldü, {ö.atla(3)} toplu iş atlandı")
+        devam
+    }
+    op.adım()
+    adım += 1
+    eğer adım % 10 == 0 {
+        kn.güncelle(adım)
+        yazdır("adım {adım}: kayıp {yuvarla(kayıp.değer, 3)}")
+    }
+}
+yazdır("model sağlam mı:", sonlu_mu(toplam(model.W2).değer), "| sıçrama sayısı:", bekçi.sıçrama_sayısı)
+
+// --- Kendin dene ---
+// 1. bozulacak_adım'ı 5 yap: henüz kontrol noktası yokken geri_dön ne der?
+// 2. eşik'i 2.0'a indir: bekçi olağan gürültüyü de sıçrama sayar mı?
+// 3. Bekçiyi op.adım()'dan sonra çağır: NaN artık modele girer; geri_dön onu yine kurtarır mı?

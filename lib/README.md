@@ -6,8 +6,9 @@ TR ile yazılmış, `tr` ikilisine gömülü kitaplık. Modüller `aktar "tr/...
 | :-- | :-- | :-- |
 | `tr/katman` | [`katman.tr`](katman.tr) | Transformer katmanları ve yalnızca kod çözücülü `GPT` |
 | `tr/iyilestirici` | [`iyilestirici.tr`](iyilestirici.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
+| `tr/egitim` | [`egitim.tr`](egitim.tr) | Uzun eğitimin kararlılığı: kayıp ve gradyan normu sıçrama bekçisi |
 
-Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
+Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`, `egitim_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
 ```tr
 aktar "tr/katman"
@@ -98,3 +99,25 @@ değişken rgn = GPT(40000, bağlam: 1024, boyut: 512, katman: 8, baş: 8, kv_ba
 Kitaplığın adları kullanıcı düzeyi TR adlarıdır; dilin kodu değildir, `internal/lang/codes/tr.json`'a girmez. Yerleşiklerle karışmasın diye katmanlar büyük harfli ve ayırt edicidir (`gömme` yerleşiği ↔ `GömmeKatmanı`, `rms_normu` ↔ `RMSNormKatmanı`, `dikkat` ↔ `NedenselDikkat`).
 
 **Açık konu (Ç3, yazım dilleri):** kodlu saklamada (dil tanımı [17](../docs/spec/17_kodlar.md)) kitaplığın adları kullanıcı adı gibi çevrilmeden kalır: İngilizce yazım dilinde de `GPT`, `Doğrusal`, `MuonVeAdamW` yazılır. Kitaplık adlarının çevirisi (kitaplığın kendi ad listesi mi, ayrı bir kod aralığı mı) İngilizce aşamasında ayrıca ele alınacaktır.
+
+## `tr/egitim`
+
+`SıçramaBekçisi(pencere: 128, eşik: 6.0)` her adımın kaybını ve gradyan normunu izler; `gözle(kayıp, norm)` (sayılar) `TAMAM`, `SONLU_DEĞİL` ya da `SIÇRAMA` verir. Sıçrama: değerin son `pencere` sağlam adımın ortalamasından `eşik` standart sapma yukarıda olması (OLMo-core `StabilityMonitor`'ın ölçütü; değişmeyen dizide sapma ortalamanın %1'inden küçük alınmaz). Pencere dolana kadar yalnızca sonlu olmayan değer yakalanır; sıçrama ve sonlu olmayan değer geçmişe girmez. `sıçrama_sayısı` sayar, `geçmiş_uzunluğu()` geçmişin boyudur.
+
+Bekçi yalnızca karar verir; ne yapılacağını döngü seçer (dil tanımı 15.46, 20.14, 20.15):
+
+```tr
+aktar "tr/egitim"
+değişken bekçi = SıçramaBekçisi()
+// ... geri_yayılım(kayıp); değişken norm = gradyan_kırp(ağırlıklar, en_fazla: 1.0)
+değişken karar = bekçi.gözle(kayıp.değer, norm.değer)
+eğer karar != TAMAM {
+    adım = kn.geri_dön()   // son sağlam kontrol noktası
+    ö.atla(200)            // sorunlu toplu işleri atla (PaLM §5.1)
+    devam
+}
+op.adım()
+```
+
+Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_kararliligi.tr); hedef modelde: [`tools/gpu/rgn512.tr`](../tools/gpu/rgn512.tr) (`--koşu`, `--atla`, `--bekçi_pencere`, `--bekçi_eşik`).
+

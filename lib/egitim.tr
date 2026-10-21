@@ -1,0 +1,67 @@
+// tr/egitim — uzun eğitimin kararlılığı: kayıp ve gradyan normu sıçrama bekçisi.
+//
+// Kullanım:   aktar "tr/egitim"
+//             değişken bekçi = SıçramaBekçisi(pencere: 128, eşik: 6.0)
+//             değişken karar = bekçi.gözle(kayıp.değer, norm.değer)   // TAMAM, SONLU_DEĞİL ya da SIÇRAMA
+//
+// Bekçi yalnızca karar verir; ne yapılacağını (adımı atlamak, son kontrol noktasına dönüp toplu
+// işleri atlamak, durmak) eğitim döngüsü seçer (dil tanımı 15.46, 20.14, 20.15). Örnek:
+//
+//     eğer karar == SONLU_DEĞİL { op.sıfırla(); devam }          // adımı atla (GradScaler gibi)
+//     eğer karar == SIÇRAMA { adım = kn.geri_dön(); ö.atla(200); devam }   // PaLM §5.1
+//
+// Yöntem: OLMo-core'un StabilityMonitor'ı gibi kayıp ve normun her biri son `pencere` sağlam
+// değerin ortalamasıyla karşılaştırılır; ortalamanın `eşik` standart sapma üstündeki değer
+// sıçramadır (OLMo-core: pencere 128, eşik 6). Sıçrama ve sonlu olmayan değer geçmişe girmez:
+// geçmiş sağlam eğitimin ölçüsü kalır. Değişmeyen dizide (σ ≈ 0) sapma, ortalamanın %1'inden
+// küçük alınmaz; OLMo-core bu durumda denetlemez, bekçi ise her ani artışı sıçrama sayar.
+// Pencere dolmadan yalnızca sonlu olmayan değer yakalanır (eğitimin başı hızlı düşer).
+
+sabit TAMAM = "tamam"
+sabit SONLU_DEĞİL = "sonlu_değil"
+sabit SIÇRAMA = "sıçrama"
+
+// Değişmeyen dizide sapmanın ortalamaya göre en küçük oranı.
+sabit EN_KÜÇÜK_GÖRELİ_SAPMA = 0.01
+
+yapı SıçramaBekçisi {
+    pencere
+    eşik
+    kayıplar
+    normlar
+    sıçrama_sayısı = 0
+    fonksiyon kurucu(pencere = 128, eşik = 6.0) {
+        eğer pencere < 2 { fırlat "SıçramaBekçisi: pencere en az 2 olmalıdır, {pencere} verildi" }
+        eğer değil (eşik > 0) { fırlat "SıçramaBekçisi: eşik pozitif olmalıdır, {eşik} verildi" }
+        kendi.pencere = pencere
+        kendi.eşik = eşik
+        kendi.kayıplar = []
+        kendi.normlar = []
+    }
+    // gözle bir adımın kaybını ve gradyan normunu (sayı) değerlendirir; TAMAM, SONLU_DEĞİL ya da
+    // SIÇRAMA verir. Yalnızca TAMAM olan değerler geçmişe girer.
+    fonksiyon gözle(kayıp, norm) {
+        eğer değil sonlu_mu(kayıp) veya değil sonlu_mu(norm) { sonuç SONLU_DEĞİL }
+        eğer kendi.kayıplar.uzunluk >= kendi.pencere {
+            eğer kendi.aşıyor(kendi.kayıplar, kayıp) veya kendi.aşıyor(kendi.normlar, norm) {
+                kendi.sıçrama_sayısı += 1
+                sonuç SIÇRAMA
+            }
+        }
+        kendi.kayıplar = kendi.ekle(kendi.kayıplar, kayıp)
+        kendi.normlar = kendi.ekle(kendi.normlar, norm)
+        sonuç TAMAM
+    }
+    // geçmiş_uzunluğu geçmişteki sağlam adım sayısıdır (en çok pencere).
+    fonksiyon geçmiş_uzunluğu() { sonuç kendi.kayıplar.uzunluk }
+    fonksiyon aşıyor(geçmiş, değer) {
+        değişken o = ortalama(geçmiş)
+        değişken s = maks(standart_sapma(geçmiş), EN_KÜÇÜK_GÖRELİ_SAPMA * mutlak(o))
+        sonuç değer > o + kendi.eşik * s
+    }
+    fonksiyon ekle(geçmiş, değer) {
+        geçmiş.ekle(değer)
+        eğer geçmiş.uzunluk > kendi.pencere { sonuç geçmiş[1..geçmiş.uzunluk] }
+        sonuç geçmiş
+    }
+}

@@ -1,0 +1,56 @@
+// tr/egitim testleri: sıçrama bekçisinin kararları (pencere dolmadan karar yok, sonlu olmayan
+// değer, z-skoru eşiği), sıçramanın geçmişe girmemesi ve kayan pencere. Koşturma: tr test lib
+aktar "tr/egitim"
+
+// Hafif gürültülü, sabit bir kayıp ve norm dizisi (her biri 1,0 ± 0,01).
+fonksiyon besle(b, n) {
+    döngü i içinde 0..n {
+        değişken g = eğer i % 2 == 0 { 0.01 } değilse { -0.01 }
+        eşit_mi(TAMAM, b.gözle(1.0 + g, 1.0 - g))
+    }
+}
+
+test "SıçramaBekçisi: pencere dolana kadar yalnızca sonlu olmayanı yakalar" {
+    değişken b = SıçramaBekçisi(pencere: 8, eşik: 6.0)
+    eşit_mi(TAMAM, b.gözle(1.0, 1.0))
+    eşit_mi(TAMAM, b.gözle(100.0, 1.0)) // pencere dolmadı: karar yok
+    eşit_mi(SONLU_DEĞİL, b.gözle(ondalık("nan"), 1.0))
+    eşit_mi(SONLU_DEĞİL, b.gözle(1.0, ondalık("inf")))
+    eşit_mi(2, b.geçmiş_uzunluğu())
+}
+
+test "SıçramaBekçisi: kayıp ya da norm eşik kadar standart sapma yukarıdaysa sıçramadır" {
+    değişken b = SıçramaBekçisi(pencere: 16, eşik: 6.0)
+    besle(b, 16)
+    eşit_mi(TAMAM, b.gözle(1.05, 1.0))  // 5σ: eşiğin altında
+    eşit_mi(SIÇRAMA, b.gözle(1.2, 1.0)) // kayıp 20σ
+    eşit_mi(SIÇRAMA, b.gözle(1.0, 1.5)) // norm 50σ
+    eşit_mi(TAMAM, b.gözle(0.5, 1.0))   // aşağı yönde düşüş sıçrama değildir
+    eşit_mi(2, b.sıçrama_sayısı)
+}
+
+test "SıçramaBekçisi: sıçrama ve sonlu olmayan değer geçmişe girmez; pencere kayar" {
+    değişken b = SıçramaBekçisi(pencere: 4, eşik: 6.0)
+    besle(b, 4)
+    eşit_mi(SIÇRAMA, b.gözle(9.0, 1.0))
+    eşit_mi(SONLU_DEĞİL, b.gözle(ondalık("nan"), 1.0))
+    eşit_mi(4, b.geçmiş_uzunluğu())
+    besle(b, 10)
+    eşit_mi(4, b.geçmiş_uzunluğu())
+}
+
+test "SıçramaBekçisi: değişmeyen dizide (σ = 0) eşik yerine en küçük sapma kullanılır" {
+    değişken b = SıçramaBekçisi(pencere: 4, eşik: 6.0)
+    döngü i içinde 0..4 { b.gözle(2.0, 1.0) }
+    eşit_mi(TAMAM, b.gözle(2.0, 1.0))
+    eşit_mi(SIÇRAMA, b.gözle(3.0, 1.0))
+}
+
+test "SıçramaBekçisi: geçersiz ayar hatadır" {
+    değişken hata_verdi = yanlış
+    dene { SıçramaBekçisi(pencere: 1) } yakala h { hata_verdi = doğru }
+    doğrula(hata_verdi)
+    hata_verdi = yanlış
+    dene { SıçramaBekçisi(eşik: 0) } yakala h { hata_verdi = doğru }
+    doğrula(hata_verdi)
+}
