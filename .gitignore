@@ -8,7 +8,7 @@ bin/
 # Örnek programların çalışırken ürettiği dosyalar
 examples/agirliklar.trt
 examples/xor_agirliklari.trt
-# Koşu klasörleri (eğitimin ayarları, günlüğü, ağırlıkları ve kontrol noktaları; examples/10)
+# Koşu klasörleri (eğitimin ayarları, günlüğü, ağırlıkları ve kontrol noktaları; examples/tr/18_kontrol_noktasi.tr)
 runs/
 
 # Kullanıcının verisi, ağırlıkları, parçalayıcısı ve gizli değerleri depoya girmez
@@ -22,7 +22,7 @@ tokenizer*.json
 !tests/data/**
 !**/testdata/**
 
-# Kişisel deneme klasörü (examples/01_merhaba.tr buraya kopyalanıp değiştirilir)
+# Kişisel deneme klasörü (examples/tr/01_merhaba.tr buraya kopyalanıp değiştirilir)
 scratch/
 
 # Go araç çıktıları

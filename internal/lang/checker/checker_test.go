@@ -518,9 +518,9 @@ func TestKnownLimitations(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestExamplesCheckWithoutErrors(t *testing.T) {
-	files, _ := filepath.Glob(reporoot.Path("examples/*.tr"))
+	files, _ := filepath.Glob(reporoot.Path("examples/tr/*.tr"))
 	if len(files) == 0 {
-		t.Fatal("examples/*.tr bulunamadı")
+		t.Fatal("examples/tr/*.tr bulunamadı")
 	}
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
@@ -534,7 +534,7 @@ func TestExamplesCheckWithoutErrors(t *testing.T) {
 	// Depodaki programlar (örnekler, dil tanımı testleri ve kıyas programları)
 	// uyarısız denetlenmeli: yerleşik adları gölgeleyen kullanıcı adı olmamalı.
 	var all []string
-	for _, pattern := range []string{"examples/*.tr", "examples/*/*.tr", "tests/*.tr", "tools/bench/tr/*.tr"} {
+	for _, pattern := range []string{"examples/tr/*.tr", "examples/tr/helpers/*.tr", "tests/*.tr", "tools/bench/tr/*.tr"} {
 		d, _ := filepath.Glob(reporoot.Path(pattern))
 		all = append(all, d...)
 	}

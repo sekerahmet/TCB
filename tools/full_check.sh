@@ -237,9 +237,10 @@ run_examples() {
 			echo "$output"
 			echo "!! KALDI: tr test examples"
 		fi
-		for f in examples/*.tr; do
-			name=$(basename "$f")
-			case " ${ATLANACAK_ORNEKLER:-} " in *" $name "*)
+		# Her örnek iki yazımıyla koşar: examples/tr (Türkçe) ve examples/en (İngilizce, kodlu saklanır).
+		for f in examples/tr/*.tr examples/en/*.tr; do
+			name=${f#examples/}
+			case " ${ATLANACAK_ORNEKLER:-} " in *" $name "* | *" $(basename "$f") "*)
 				echo "↷ $name atlandı"
 				continue
 				;;

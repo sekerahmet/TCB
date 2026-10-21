@@ -12,7 +12,7 @@
 - `csv_oku` / `csv_çöz`: `csv_oku(yol)` bir CSV dosyasını okur, `csv_çöz(metin)` CSV metninin kendisini ayrıştırır (`csv_çöz("ad,yaş\nAli,30")`). `csv_oku`'ya CSV metni verilirse hata `csv_çöz`'ü önerir. Göreli yollar önce çalışma klasörüne, orada yoksa programın bulunduğu klasöre göre çözülür. Baştaki bayt sırası işareti (BOM) atılır. Hücreler boşlukları kırpılarak **yalnızca katı sayı biçimindeyse** sayıya çevrilir: `42`, `-7` `Tam`; `1.0`, `2.5e3`, `1E-3` `Ondalık`. Öteki her hücre olduğu gibi `Metin` kalır, böylece hiçbir değer sessizce bozulmaz: baştaki sıfırlı `007` (posta kodu, kimlik), `Tam` aralığını aşan `12345678901234567890`, `NaN`, `Inf`, `0x10`, `1_000`, `+5`, `.5`.
 - `json_çöz` / `json_metin`: `json_çöz` sözlük anahtarlarının sırasını korur ve baştaki BOM'u atar; tam sayı değerli ondalıklar (`1.0`, `1e2`) `Tam` olur, `Tam` aralığını aşan tam sayılar (`12345678901234567890`) en yakın `Ondalık`'a yaklaşık çevrilir. `json_metin` anahtarları sözlükteki sırayla yazar (``json_metin(json_çöz(`{"b": 1, "a": 2}`))`` → `{"b":1,"a":2}`; JSON metni ham metinle `` `...` `` yazılınca `{` ve `"` kaçış istemez). JSON'da karşılığı olmayan değerler `dene/yakala` ile yakalanan Türkçe bir hata verir: Tanımsız ve sonsuz sayılar (`NaN sayısı JSON'a yazılamaz ...`), kendini içeren liste/sözlük (`değer kendini içeriyor ...`), 1000 seviyeden derin iç içe değerler ve `1` ile `"1"` gibi JSON'da aynı anahtara düşen iki anahtar.
 ## C. Tensörler ve Otomatik Türev
-Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`; `bf16` ve `fp16` de seçilebilir, bkz. **Veri türleri**); yapay zekâ modellerinin ağırlıkları, girdileri ve ara sonuçları tensördür. Her işlem hesap çizgesine kaydedilir; `geri_yayılım(kayıp)` tüm gradyanları hesaplar. Çalıştırılabilir örnekler: `examples/05_tensor_ve_turev.tr`, `examples/06_transformer.tr`, `examples/07_karakter_modeli.tr`.
+Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`; `bf16` ve `fp16` de seçilebilir, bkz. **Veri türleri**); yapay zekâ modellerinin ağırlıkları, girdileri ve ara sonuçları tensördür. Her işlem hesap çizgesine kaydedilir; `geri_yayılım(kayıp)` tüm gradyanları hesaplar. Çalıştırılabilir örnekler: `examples/tr/12_tensor_ve_turev.tr`, `examples/tr/14_transformer.tr`, `examples/tr/15_karakter_modeli.tr`.
 
 - **Oluşturma:** `tensör(veri, türev_izle: doğru)` (veri: iç içe liste, tek sayı ya da tensör), `sıfırlar([2, 3])`, `birler([2, 3])`, `rastgele_normal([2, 3], tohum: 42)`. Şekil **liste** olarak verilir; `sıfırlar(2, 3)` gibi iki tam sayı da aynı 2 boyutlu tensörü verir. Matris 2 boyutlu tensördür: `tensör([[1, 2], [3, 4]])`, `birim_matris(n)` ve `rastgele_normal([satır, sütun], tohum: 7)` ile oluşturulur. Kaldırılan `matris(...)` ve `rastgele_matris(...)` yazılırsa hata karşılığı önerir (`'matris' TR'de yok; 'tensör' yazmak mı istediniz?`). `türev_izle` varsayılanı her zaman (tek sayıda da) `yanlış`tır: `tensör(3.0)` 0 boyutlu (skaler) bir tensördür (`.şekil` `[]`, `.değer` `3.0`, `.gradyan` `yok`); türevi izlenecekse `tensör(3.0, türev_izle: doğru)` yazın.
 - **Sayı hassasiyeti:** Tensör hesapları `float32` ile (yaklaşık 7 anlamlı basamak) yapılır; `Ondalık` ise 64 bitliktir. Bu yüzden `(tensör([1.0]) / 3).değer[0]` `0.33333334` verir ve `1 / 3`e eşit değildir; `tensör([16777217.0])` 16777216 olarak saklanır. Kesin karşılaştırma yerine `yuvarla(...)` ya da küçük bir tolerans kullanın.
@@ -151,7 +151,7 @@ cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/compare_gpu.
 - Kurallar: `docs/spec/15_tensorler.md` **15.26–15.30**.
 
 ## D. Veri ve Parçalayıcı
-Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` veri dosyalarını okuyan **veri kümesi**. Uçtan uca örnek: `examples/08_veri_ile_egitim.tr`.
+Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` veri dosyalarını okuyan **veri kümesi**. Uçtan uca örnek: `examples/tr/16_veri_ile_egitim.tr`.
 
 **Parçalayıcı**
 - `değişken p = parçalayıcı_yükle("tokenizer.json")` yaygın `tokenizer.json` biçimini okur (BPE, WordPiece, WordLevel, Unigram modelleri; bayt düzeyi, Metaspace, BERT tarzı bileşenler). Desteklenmeyen bir bileşen türü, hangi bileşenin hangi türü olduğunu söyleyen bir hatayla bildirilir. Tip adı `Parçalayıcı`.
@@ -217,7 +217,7 @@ yazdır("{n} satır")
 ```
 
 ## F. Eğitimde ayarlar, günlük ve ilerleme
-Uzun bir eğitimi izlemek için üç yerleşik yeter: betiğin ayarlarını komut satırından alan `komut_satırı`, her adımı gösteren `ilerleme` çubuğu ve sonradan bakılacak `günlük` dosyası. Kurallar: [`docs/spec/19_surec_ve_kayit.md`](../spec/19_surec_ve_kayit.md). Uçtan uca örnek: `examples/08_veri_ile_egitim.tr`.
+Uzun bir eğitimi izlemek için üç yerleşik yeter: betiğin ayarlarını komut satırından alan `komut_satırı`, her adımı gösteren `ilerleme` çubuğu ve sonradan bakılacak `günlük` dosyası. Kurallar: [`docs/spec/19_surec_ve_kayit.md`](../spec/19_surec_ve_kayit.md). Uçtan uca örnek: `examples/tr/16_veri_ile_egitim.tr`.
 
 ```tr
 değişken ayar = komut_satırı({adım: 2000, öğrenme_oranı: 0.001, günlük_dosyası: yok},
