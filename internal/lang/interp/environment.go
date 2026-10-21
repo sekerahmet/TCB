@@ -19,6 +19,10 @@ import (
 type scopeInfo struct {
 	nameList []string
 	index    map[string]int
+	// local: derleyici bu kapsamın ortamlarını hiçbir kapanışın göremeyeceğini bilir; yuvalara
+	// yazılan sahipli değerler bağlanır, ortam kapanınca bağ kalkar (ownership.go). Diğer
+	// ortamlara yazılan değer kaçar.
+	local bool
 }
 
 // slot adın indeksini döndürür; ad tabloda yoksa ekler.
@@ -81,8 +85,10 @@ func newEnv(outer *Environment, k *scopeInfo) *Environment {
 	return e
 }
 
-// clear, turlar arasında yeniden kullanılan bir döngü ortamını yeni açılmış gibi boşaltır.
+// clear, turlar arasında yeniden kullanılan bir döngü ortamını yeni açılmış gibi boşaltır
+// (yuvalardaki bağlar kalkar).
 func (e *Environment) clear() {
+	e.closeEnv()
 	clear(e.vals)
 	if e.extra != nil {
 		clear(e.extra.consts)
@@ -103,7 +109,7 @@ func (e *Environment) define(i int, val Value, isConst bool) {
 	if _, wasBuiltin := e.vals[i].(*BuiltinVal); wasBuiltin && !isConst && e.isConstant(i) {
 		e.extra.consts[i] = false
 	}
-	e.vals[i] = val
+	e.store(i, val)
 	if isConst {
 		if e.extra == nil {
 			e.extra = &envExtra{}
@@ -206,7 +212,7 @@ func (e *Environment) Assign(name string, val Value) error {
 			if cur.isConstant(i) {
 				return messages.New(messages.H2447, name, codes.Name(codes.A031))
 			}
-			cur.vals[i] = val
+			cur.store(i, val)
 			return nil
 		}
 	}

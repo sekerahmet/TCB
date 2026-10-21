@@ -29,7 +29,7 @@ func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal
 			if i < len(o.vals) {
 				if cur := o.vals[i]; cur != nil && !o.isConstant(i) {
 					if !compound {
-						o.vals[i] = rhs
+						o.store(i, rhs)
 						return nil
 					}
 					if li, ok := cur.(*IntVal); ok {
@@ -40,11 +40,11 @@ func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal
 							}
 						}
 					}
-					fresh, err := v.evalInfixKod(codeVal, opText, cur, rhs, line)
+					fresh, err := v.infix(codeVal, opText, cur, rhs, line)
 					if err != nil {
 						return err
 					}
-					o.vals[i] = fresh
+					o.store(i, fresh)
 					return nil
 				}
 			}

@@ -117,6 +117,7 @@ func (c *compiler) function(k *compilerScope, params []ast.Param, body *ast.Bloc
 			break
 		}
 	}
+	fk.info.local = fk.pooled // kapanışsız gövdenin ortamı yereldir (ownership.go)
 	return fk
 }
 

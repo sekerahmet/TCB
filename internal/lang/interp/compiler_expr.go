@@ -96,7 +96,9 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 				}
 				elems = append(elems, val)
 			}
-			return &ListVal{Elements: elems}, nil
+			l := &ListVal{Elements: elems}
+			v.ownList(l)
+			return l, nil
 		}
 
 	case *ast.ListComprehension:
@@ -123,6 +125,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 				if err := DictKeyError(kVal); err != nil {
 					return nil, messages.At(e.Line(), 0, err)
 				}
+				escape(vVal) // sözlüğe yazılan değer kaçar (ownership.go)
 				dict.SetValue(kVal, vVal)
 			}
 			return dict, nil
@@ -157,10 +160,10 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		return c.binary(k, e)
 
 	case *ast.IfExpression:
-		return noSignal(c.ifExpr(k, e))
+		return nestedStatements(noSignal(c.ifExpr(k, e)))
 
 	case *ast.MatchExpression:
-		return noSignal(c.matchExpr(k, e))
+		return nestedStatements(noSignal(c.matchExpr(k, e)))
 
 	case *ast.FunctionLiteral:
 		fk := c.function(k, e.Parameters, e.Body, false)
@@ -205,7 +208,12 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			return v.indexValue(left, idx, line)
+			newOp()
+			res, err := v.indexValue(left, idx, line)
+			if err == nil {
+				v.afterIndex(res, left, idx)
+			}
+			return res, err
 		}
 
 	case *ast.MemberExpression:
@@ -216,7 +224,11 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			return v.memberValue(obj, e, u)
+			res, err := v.memberValue(obj, e, u)
+			if _, method := res.(*BuiltinVal); method {
+				escape(obj) // bağlı metot değeri alıcıyı tutar (ownership.go)
+			}
+			return res, err
 		}
 	}
 	return nullCode

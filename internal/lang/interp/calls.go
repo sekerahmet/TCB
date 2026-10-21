@@ -123,6 +123,58 @@ func suggestParam(name string, params []ast.Param) string {
 }
 
 func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, line int) (Value, error) {
+	res, err := v.apply(fnVal, args, named, line)
+	if err == nil {
+		// Sonuç Go koduna geçer; orada saklanabilir (ownership.go: kaçış).
+		escape(res)
+	}
+	return res, err
+}
+
+// applyCompiled derlenmiş TR kodunun yaptığı çağrıdır: yerleşiğin taze sonucu çalışan
+// çağrının olur (callBuiltin), kullanıcı fonksiyonunun sonucu çağırana geçer (callPrepared).
+func (v *VM) applyCompiled(fnVal Value, args []Value, named map[string]Value, line int) (Value, error) {
+	if fn, ok := fnVal.(*BuiltinVal); ok {
+		return v.callBuiltin(fn, args, named, line)
+	}
+	return v.apply(fnVal, args, named, line)
+}
+
+// callBuiltin derlenmiş koddan bir yerleşiği çağırır. Argümanlarını saklayabilecek (saf
+// olmayan) yerleşiğin argümanları kaçar; saf yerleşiğin taze sonucu sahiplenilir ve
+// argümanlarından ara sonuç olanlar hemen bırakılır (ownership.go).
+func (v *VM) callBuiltin(fn *BuiltinVal, args []Value, named map[string]Value, line int) (Value, error) {
+	if fn.NoNamedArgs && len(named) > 0 {
+		return nil, lineSuffix(line, NoNamedArgsError(fn.Name, named))
+	}
+	if !fn.Pure {
+		escapeAll(args, named)
+	}
+	newOp()
+	res, err := fn.Fn(v, args, named)
+	if err != nil {
+		return nil, lineSuffix(line, err)
+	}
+	v.afterBuiltin(fn, res, args, named)
+	return res, nil
+}
+
+// afterBuiltin yerleşik çağrısından sonra sonucu sahiplenir, saf yerleşiğin ara sonuç
+// argümanlarını bırakır.
+func (v *VM) afterBuiltin(fn *BuiltinVal, res Value, args []Value, named map[string]Value) {
+	v.adopt(res)
+	if !fn.Pure {
+		return
+	}
+	for _, a := range args {
+		v.releaseTemp(a, res)
+	}
+	for _, a := range named {
+		v.releaseTemp(a, res)
+	}
+}
+
+func (v *VM) apply(fnVal Value, args []Value, named map[string]Value, line int) (Value, error) {
 	switch fn := fnVal.(type) {
 	case *FuncVal:
 		fk := fn.codeVal
@@ -177,6 +229,7 @@ func (v *VM) ApplyFunction(fnVal Value, args []Value, named map[string]Value, li
 			} else {
 				inst.Fields[f.Name] = Null
 			}
+			escape(inst.Fields[f.Name]) // nesne alanına yazılan değer kaçar
 		}
 		if withCtor {
 			// kurucu varsa argümanlar onun imzasına göre denetlenir
@@ -234,10 +287,14 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 		Line:     line,
 		Source:   v.source,
 	})
+	depth := len(v.CallStack)
+	v.beginCall(depth)
 	val, err = v.functionBody(fn, fk, fnEnv, self, args, nargs, named)
+	fnEnv.closeEnv()
 	if len(v.CallStack) > 0 {
 		v.CallStack = v.CallStack[:len(v.CallStack)-1]
 	}
+	v.endCall(depth, val)
 	if !fk.hasDefer {
 		if derr := fnEnv.RunDefers(); derr != nil {
 			val, err = nil, addDeferError(err, derr)
@@ -253,7 +310,7 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Value, args []Value, nargs int, named map[string]Value) (Value, error) {
 	if self != nil {
 		if fk.self >= 0 {
-			fnEnv.vals[fk.self] = self
+			fnEnv.store(fk.self, self)
 		} else {
 			fnEnv.Define(selfName, self, false)
 		}
@@ -265,18 +322,18 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 		slot := fk.param[i]
 		if i < nargs {
 			if args != nil {
-				fnEnv.vals[slot] = args[i]
+				fnEnv.store(slot, args[i])
 			}
 		} else if named != nil && named[param.Name] != nil {
-			fnEnv.vals[slot] = named[param.Name]
+			fnEnv.store(slot, named[param.Name])
 		} else if param.DefaultValue != nil && fk.defaultVal[i] != nil {
 			defVal, err := fk.defaultVal[i](v, fnEnv)
 			if err != nil {
 				return nil, err
 			}
-			fnEnv.vals[slot] = defVal
+			fnEnv.store(slot, defVal)
 		} else {
-			fnEnv.vals[slot] = Null
+			fnEnv.store(slot, Null)
 		}
 	}
 	val, _, err := fk.bodyBlock.run(v, fnEnv)

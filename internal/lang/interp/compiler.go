@@ -165,6 +165,11 @@ func (b *blockCode) run(v *VM, env *Environment) (Value, flowSignal, error) {
 	var lastVal Value = Null
 	codeList := b.codeList
 	for i := 0; i < len(codeList); i++ {
+		if i > 0 {
+			// Önceki deyimin değeri kullanılmayacak: bağı kalmayan sahipli değerler
+			// bırakılır (ownership.go).
+			v.boundary()
+		}
 		if v.Debugger != nil {
 			if j, jump := b.consultDebugger(v, i, env); jump {
 				i = j - 1 // döngü sonunda i++ olacağı için j-1
@@ -258,8 +263,12 @@ func (c *compiler) blockStatement(k *compilerScope, b *ast.BlockStatement) state
 	sub.predefine(b.Statements)
 	bk := c.statements(sub, b.Statements)
 	info := sub.info
+	info.local = c.blockFlags(b)&blockCaptures == 0
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		return bk.run(v, newEnv(env, info))
+		e := newEnv(env, info)
+		val, sig, err := bk.run(v, e)
+		e.closeEnv()
+		return val, sig, err
 	}
 }
 

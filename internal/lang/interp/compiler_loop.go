@@ -24,6 +24,22 @@ func (d *loopScope) fresh() *Environment {
 	return d.env
 }
 
+// turn yeni bir turun ortamını verir; önceki turun bağı kalmayan sahipli değerleri bırakılır
+// (ownership.go).
+func (d *loopScope) turn(v *VM) *Environment {
+	e := d.fresh()
+	v.boundary()
+	return e
+}
+
+// close son turun ortamındaki bağları kaldırır ve gezilen kaynağın korumasını bırakır.
+func (d *loopScope) close(iter Value) {
+	if d.env != nil {
+		d.env.closeEnv()
+	}
+	unpin(iter)
+}
+
 // inLoop 'döngü x içinde ...' deyimini derler. Döngü değişkenleri ve gövdenin
 // tanımları her turun kendi ortamındadır.
 func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode {
@@ -45,6 +61,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 	sub.predefine(bodyStatements)
 	bodyBlock := c.statements(sub, bodyStatements)
 	info := sub.info
+	info.local = again
 	line := s.Line()
 
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
@@ -53,6 +70,8 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			return nil, signalNone, err
 		}
 		kind := loopScope{outerEnv: env, info: info, again: again}
+		pin(iterVal) // gövdenin deyim sınırları gezilen kaynağı bırakmasın
+		defer kind.close(iterVal)
 		var lastVal Value = Null
 		var handoff uint32
 		switch it := iterVal.(type) {
@@ -67,7 +86,8 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				if handoff++; handoff&255 == 0 {
 					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
 				}
-				loopEnv := kind.fresh()
+				loopEnv := kind.turn(v)
+				// Tam sayılar sahiplenilemez: yuvaya doğrudan yazılır (ownership.go).
 				if keySlot >= 0 {
 					loopEnv.vals[keySlot] = NewInt(idx)
 				}
@@ -94,11 +114,11 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				if handoff++; handoff&255 == 0 {
 					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
 				}
-				loopEnv := kind.fresh()
+				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
-					loopEnv.vals[keySlot] = NewInt(int64(idx))
+					loopEnv.store(keySlot, NewInt(int64(idx)))
 				}
-				loopEnv.vals[valueSlot] = item
+				loopEnv.store(valueSlot, item)
 				val, sig, err := bodyBlock.run(v, loopEnv)
 				if err != nil {
 					return nil, signalNone, err
@@ -117,12 +137,12 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				if handoff++; handoff&255 == 0 {
 					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
 				}
-				loopEnv := kind.fresh()
+				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
-					loopEnv.vals[keySlot] = it.KeyValue(key)
-					loopEnv.vals[valueSlot] = it.Pairs[key]
+					loopEnv.store(keySlot, it.KeyValue(key))
+					loopEnv.store(valueSlot, it.Pairs[key])
 				} else {
-					loopEnv.vals[valueSlot] = it.KeyValue(key)
+					loopEnv.store(valueSlot, it.KeyValue(key))
 				}
 				val, sig, err := bodyBlock.run(v, loopEnv)
 				if err != nil {
@@ -142,11 +162,11 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				if handoff++; handoff&255 == 0 {
 					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
 				}
-				loopEnv := kind.fresh()
+				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
-					loopEnv.vals[keySlot] = NewInt(int64(idx))
+					loopEnv.store(keySlot, NewInt(int64(idx)))
 				}
-				loopEnv.vals[valueSlot] = &StringVal{Val: string(ch)}
+				loopEnv.store(valueSlot, &StringVal{Val: string(ch)})
 				val, sig, err := bodyBlock.run(v, loopEnv)
 				if err != nil {
 					return nil, signalNone, err
@@ -174,11 +194,11 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				if err != nil {
 					return nil, signalNone, lineSuffix(line, err)
 				}
-				loopEnv := kind.fresh()
+				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
-					loopEnv.vals[keySlot] = NewInt(int64(idx))
+					loopEnv.store(keySlot, NewInt(int64(idx)))
 				}
-				loopEnv.vals[valueSlot] = item
+				loopEnv.store(valueSlot, item)
 				val, sig, err := bodyBlock.run(v, loopEnv)
 				if err != nil {
 					return nil, signalNone, err
@@ -218,11 +238,11 @@ func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyB
 		if !cont {
 			return lastVal, signalNone, nil
 		}
-		loopEnv := kind.fresh()
+		loopEnv := kind.turn(v)
 		if keySlot >= 0 {
-			loopEnv.vals[keySlot] = NewInt(idx)
+			loopEnv.store(keySlot, NewInt(idx))
 		}
-		loopEnv.vals[valueSlot] = item
+		loopEnv.store(valueSlot, item)
 		val, sig, err := bodyBlock.run(v, loopEnv)
 		if err != nil {
 			return nil, signalNone, err
@@ -253,6 +273,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 				if handoff++; handoff&255 == 0 {
 					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
 				}
+				v.boundary()
 				cond, err := condition(v, env)
 				if err != nil {
 					return nil, signalNone, err
@@ -280,9 +301,11 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 	bodyBlock := c.statements(sub, bodyStatements)
 	info := sub.info
 	again := c.blockFlags(s.Body)&blockCaptures == 0
+	info.local = again
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		var lastVal Value = Null
 		kind := loopScope{outerEnv: env, info: info, again: again}
+		defer kind.close(nil)
 		var handoff uint32
 		for {
 			if handoff++; handoff&255 == 0 {
@@ -295,7 +318,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 			if !isTrue(cond) {
 				break
 			}
-			val, sig, err := bodyBlock.run(v, kind.fresh())
+			val, sig, err := bodyBlock.run(v, kind.turn(v))
 			if err != nil {
 				return nil, signalNone, err
 			}
@@ -335,6 +358,7 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 	info := sub.info
 	// Çıktı ya da koşul fonksiyon oluşturmuyorsa ortam yakalanamaz; tek ortam yeterlidir.
 	again := !c.blocks.exprCaptures(lc.Output) && !c.blocks.exprCaptures(lc.Condition)
+	info.local = again
 	line := lc.Line()
 	return func(v *VM, env *Environment) (Value, error) {
 		iterVal, err := source(v, env)
@@ -347,13 +371,17 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 		}
 		var results []Value
 		kind := loopScope{outerEnv: env, info: info, again: again}
+		// Üretecin turları deyim sınırı değildir (bir ifadenin içindedir); sonuçlar liste
+		// kurulunca ona bağlanır.
+		pin(iterVal)
+		defer kind.close(iterVal)
 		var handoff uint32
 		for _, item := range items {
 			if handoff++; handoff&255 == 0 {
 				v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
 			}
 			compEnv := kind.fresh()
-			compEnv.vals[varSlot] = item
+			compEnv.store(varSlot, item)
 			if condition != nil {
 				condVal, err := condition(v, compEnv)
 				if err != nil {
@@ -367,8 +395,14 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 			if err != nil {
 				return nil, err
 			}
+			pin(outVal) // liste kurulana kadar
 			results = append(results, outVal)
 		}
-		return &ListVal{Elements: results}, nil
+		l := &ListVal{Elements: results}
+		v.ownList(l)
+		for _, r := range results {
+			unpin(r)
+		}
+		return l, nil
 	}
 }

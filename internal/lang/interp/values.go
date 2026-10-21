@@ -114,6 +114,9 @@ var (
 
 type ListVal struct {
 	Elements []Value
+	// own listenin sahiplik durumu: liste yazımının, liste üretecinin ya da bir motor
+	// işleminin kurduğu liste elemanlarının sahibidir (ownership.go).
+	own Ownership
 }
 
 func (l *ListVal) Type() ValueType { return ValList }
@@ -352,6 +355,11 @@ type BuiltinVal struct {
 	// arguments is rejected before the body runs with an "adlı argüman almaz" error (never
 	// silently ignored).
 	NoNamedArgs bool
+	// Pure, when true, means the builtin neither keeps its arguments after it returns nor
+	// returns them inside its result (tensor operations). The interpreter then releases
+	// argument temporaries right after the call; arguments of other builtins escape
+	// (ownership.go).
+	Pure bool
 }
 
 func (b *BuiltinVal) Type() ValueType { return ValBuiltin }

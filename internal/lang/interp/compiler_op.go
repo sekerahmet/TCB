@@ -39,7 +39,12 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 			case *FloatVal:
 				return &FloatVal{Val: -rv.Val}, nil
 			case Negatable:
+				newOp()
 				val, err := rv.Negate()
+				if err == nil {
+					v.adopt(val)
+					v.releaseTemp(right, val)
+				}
 				return val, lineSuffix(line, err)
 			}
 			return nil, messages.At(line, 0, messages.New(messages.H2445, right.Type()))
@@ -198,7 +203,7 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 								return nil, err
 							}
 						}
-						return v.evalInfixKod(codeVal, op, left, rightValue, line)
+						return v.infix(codeVal, op, left, rightValue, line)
 					}
 				}
 			}
@@ -212,7 +217,7 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 						return x, nil
 					}
 				}
-				return v.evalInfixKod(codeVal, op, left, rightValue, line)
+				return v.infix(codeVal, op, left, rightValue, line)
 			}
 		}
 		return func(v *VM, env *Environment) (Value, error) {
@@ -231,7 +236,7 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 					}
 				}
 			}
-			return v.evalInfixKod(codeVal, op, left, right, line)
+			return v.infix(codeVal, op, left, right, line)
 		}
 	}
 	return func(v *VM, env *Environment) (Value, error) {
@@ -243,7 +248,7 @@ func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 		if err != nil {
 			return nil, err
 		}
-		return v.evalInfixKod(codeVal, op, left, right, line)
+		return v.infix(codeVal, op, left, right, line)
 	}
 }
 
@@ -290,7 +295,7 @@ func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Express
 			if err := checkArity(fnVal, len(args), named, line); err != nil {
 				return nil, err
 			}
-			return v.ApplyFunction(fnVal, args, named, line)
+			return v.applyCompiled(fnVal, args, named, line)
 		}
 	}
 
@@ -309,6 +314,6 @@ func (c *compiler) pipe(k *compilerScope, left ast.Expression, right ast.Express
 		if err := checkArity(fnVal, 1, nil, line); err != nil {
 			return nil, err
 		}
-		return v.ApplyFunction(fnVal, []Value{leftVal}, nil, line)
+		return v.applyCompiled(fnVal, []Value{leftVal}, nil, line)
 	}
 }

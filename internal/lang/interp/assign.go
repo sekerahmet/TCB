@@ -12,13 +12,18 @@ import (
 func (v *VM) assignOp(codeVal uint8, cur Value, rhs Value, line int) (Value, error) {
 	switch codeVal {
 	case opAdd, opSub, opMul, opDiv:
-		return v.evalInfixKod(codeVal, assignOpText(codeVal), cur, rhs, line)
+		return v.infix(codeVal, assignOpText(codeVal), cur, rhs, line)
 	}
 	return rhs, nil
 }
 
 // setIndex kap[idx] = değer atamasını yapar.
 func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line int) error {
+	if _, copies := left.(AssignCopier); !copies {
+		// Kaba yazılan değer kaçar; değişen sahip liste de (ownership.go).
+		escape(left)
+		escape(rightVal)
+	}
 	switch container := left.(type) {
 	case *ListVal:
 		iv, ok := idx.(*IntVal)
@@ -36,6 +41,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		if err != nil {
 			return err
 		}
+		escape(finalVal)
 		container.Elements[pos] = finalVal
 		return nil
 	case *DictVal:
@@ -55,6 +61,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		if err != nil {
 			return err
 		}
+		escape(finalVal)
 		container.SetValue(idx, finalVal)
 		return nil
 	case IndexAssignable:
@@ -80,6 +87,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 
 // setMember nesne.alan = değer atamasını yapar; u adın derleme anında çözülmüş kodudur.
 func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, rightVal Value, line int) error {
+	escape(rightVal) // alana yazılan değer kaçar (ownership.go)
 	switch inst := obj.(type) {
 	case *StructInstanceVal:
 		// Nesnenin alanları her zaman yapı tanımındakilerdir (7.5): tanımda olmayan alana ve
@@ -98,6 +106,7 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 		if err != nil {
 			return err
 		}
+		escape(finalVal)
 		inst.Fields[prop] = finalVal
 		return nil
 	case *DictVal:
@@ -114,6 +123,7 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 		if err != nil {
 			return err
 		}
+		escape(finalVal)
 		inst.Set(prop, finalVal)
 		return nil
 	case MemberAssignable:

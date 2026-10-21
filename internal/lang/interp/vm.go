@@ -192,6 +192,10 @@ type VM struct {
 	// interruptThrown bu görevin kesilme paniğini attığını söyler: yığın çözülürken çalışan
 	// 'ertele' blokları yeniden kesilmez (bkz. kesilmeyiDenetle).
 	interruptThrown bool
+
+	// owners çağrı derinliğine göre sahiplik çerçeveleri (0: üst düzey); yalnızca görevin
+	// kendi goroutine'i kullanır (ownership.go).
+	owners []*ownerFrame
 }
 
 // TaskValue returns the engine state bound to this task (VM view) under a key, or nil. The

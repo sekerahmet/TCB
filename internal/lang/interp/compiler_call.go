@@ -33,11 +33,15 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 						}
 					}
 				} else if m := findMethod(obj, u.core); m != nil {
+					// Metin/Liste/Sözlük metotları alıcıyı ve argümanları başka listelere
+					// koyabilir: sahip liste ve argümanlar kaçar (ownership.go).
+					escape(obj)
 					if l, listVal := obj.(*ListVal); listVal && add && nargs == 1 {
 						av, err := argCode[0](v, env)
 						if err != nil {
 							return nil, err
 						}
+						escape(av)
 						l.Elements = append(l.Elements, av)
 						return l, nil
 					}
@@ -46,6 +50,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 					if err != nil {
 						return nil, err
 					}
+					escapeAll(args, nil)
 					res, err := m.f(v, obj, args, memberLine)
 					if err != nil {
 						return nil, lineSuffix(line, err)
@@ -98,7 +103,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 		if err := checkArity(fnVal, len(args), named, line); err != nil {
 			return nil, err
 		}
-		return v.ApplyFunction(fnVal, args, named, line)
+		return v.applyCompiled(fnVal, args, named, line)
 	}
 }
 
@@ -127,7 +132,7 @@ func (v *VM) callMethod(meth *FuncVal, inst Value, argCode []exprCode, env *Envi
 			if err != nil {
 				return nil, err
 			}
-			fnEnv.vals[fk.param[i]] = av
+			fnEnv.store(fk.param[i], av)
 		}
 		return v.callPrepared(meth, fk, fnEnv, inst, nil, nargs, nil, line)
 	}
@@ -155,7 +160,7 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 				if err != nil {
 					return nil, err
 				}
-				fnEnv.vals[fk.param[i]] = av
+				fnEnv.store(fk.param[i], av)
 			}
 			return v.callPrepared(fn, fk, fnEnv, fn.BoundSelf, nil, nargs, nil, line)
 		}
@@ -166,10 +171,15 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 			if err != nil {
 				return nil, err
 			}
+			if !fn.Pure {
+				escape(av)
+			}
+			newOp()
 			res, err := fn.Single(v, av)
 			if err != nil {
 				return nil, lineSuffix(line, err)
 			}
+			v.afterBuiltin(fn, res, []Value{av}, nil)
 			return res, nil
 		}
 	}
@@ -180,7 +190,7 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 	if err := checkArity(fnVal, len(args), nil, line); err != nil {
 		return nil, err
 	}
-	return v.ApplyFunction(fnVal, args, nil, line)
+	return v.applyCompiled(fnVal, args, nil, line)
 }
 
 // defaultsSuffice verilmeyen her parametrenin varsayılanı var mı (checkArity'nin hızlı yolu)?
