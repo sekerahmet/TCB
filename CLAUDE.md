@@ -13,6 +13,7 @@ TR, yapay zekâ modeli geliştirmek ve eğitmek için Türkçe bir programlama d
 | Dilin davranışı | [`docs/spec/`](docs/spec/README.md) |
 | Bir paketin kendi standartları ve davranış testleri | o paketin `README.md`'si |
 | Bir şeyi bulmak: çağıranlar, kullanım yerleri, ileti/ad kodları, kuralı koruyan test, bir fonksiyonun testleri | önce `go run ./tools/codegraph build`, sonra `query <ad>`, `who-uses H2100`, `tests-for <fonksiyon>`, `path A B` ([`tools/codegraph/README.md`](tools/codegraph/README.md)); dosya okumadan önce buna sor |
+| TR kodunda (`.tr`: `lib/`, `examples/`, `tests/`, `tools/`) bir adın tanımı, kullananları, testleri, etkisi | `tr dizin tanım <ad>`, `tr dizin kullananlar <ad>`, `tr dizin sınayanlar <ad>`, `tr dizin etki <ad>` (`--json` ile makine okunur; [`internal/devtools/codeindex/README.md`](internal/devtools/codeindex/README.md)) |
 
 ## İlkeler
 
