@@ -32,6 +32,9 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 	for _, n := range []int{M * K, K * N, M * N} {
 		checkSize(n)
 	}
+	if M == 1 && g.gemv(batch, N, K, a, b, transB, c, cOf, over) {
+		return
+	}
 	if g.ltMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over, ltR32F, ltR32F) {
 		c.host = nil
 		return
@@ -51,6 +54,61 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 		p := g.param().read(ad, a.Offset+z0*M*K).read(bd, b.Offset+z0*K*N).write(c, cOf+z0*M*N).u32(M).u32(N).u32(K)
 		g.launch(pull, [3]uint32{blocks(N, ay.BN), blocks(M, ay.BM), uint32(nz)}, [3]uint32{uint32(ay.is()), 1, 1}, p)
 	}
+}
+
+// gemv M = 1 çarpımını tek satırlık çekirdekle yapar (kernel_gemv.go); kapalıysa ya da K = 0
+// ise yanlış döner. M = 1'de transA önemsizdir: A [1, K] de [K, 1] de bitişik K elemandır.
+// Dört float32'lik vektörel okuma, satırlar 16 bayta hizalıysa seçilir (devrik değilken
+// B'nin satırları: N 4'ün katı; devrikken A ile B'nin satırları: K 4'ün katı).
+func (g *backend) gemv(batch, N, K int, a tensor.View, b tensor.View, transB bool, c *storage, cOf int, over bool) bool {
+	if g.gemvOff || K == 0 {
+		return false
+	}
+	ad, bd := g.storageOf(a.S), g.storageOf(b.S)
+	alignA, alignB := align(g.addressOf(a)) >= 16, align(g.addressOf(b)) >= 16
+	vw := 1
+	var pull *kernel
+	var cfg gemvConfig
+	if transB {
+		if K%4 == 0 && alignA && alignB {
+			vw = 4
+		}
+		pull = g.takeKernel(fmt.Sprintf("gemv_t:%d:%v", vw, over), gemvTKernel(vw, over))
+	} else {
+		if N%4 == 0 && alignB {
+			vw = 4
+		}
+		cfg = g.pickGemv(batch, N, vw)
+		pull = g.takeKernel(fmt.Sprintf("gemv:%+v:%d:%v", cfg, vw, over), gemvKernel(cfg, vw, over))
+	}
+	for z0 := 0; z0 < batch; z0 += 65535 {
+		nz := min(batch-z0, 65535)
+		p := g.param().read(ad, a.Offset+z0*K).read(bd, b.Offset+z0*K*N).write(c, cOf+z0*N).u32(N).u32(K)
+		if transB {
+			g.launch(pull, [3]uint32{blocks(N, gemvTWarps), uint32(nz), 1}, [3]uint32{32 * gemvTWarps, 1, 1}, p)
+		} else {
+			g.launch(pull, [3]uint32{blocks(N, cfg.L*vw), uint32(nz), 1}, [3]uint32{uint32(cfg.T), 1, 1}, p)
+		}
+	}
+	return true
+}
+
+// pickGemv devrik olmayan tek satırlık çarpımın ayarı: blok önce 32 sütun (satır başına 128
+// bayt) okur; bloklar SM sayısının iki katını doldurmuyorsa sütun sayısı 8'e kadar
+// yarılanır (satır başına en az bir 32 baytlık kesim).
+func (g *backend) pickGemv(batch, N, vw int) gemvConfig {
+	if a := g.gemvConst; a != nil {
+		if a.L < 1 || a.L > 32 || a.L&(a.L-1) != 0 || a.T < 32 || a.T > 1024 || a.T%32 != 0 {
+			panic(internalf("invalid matrix-vector setting %+v", *a))
+		}
+		return *a
+	}
+	_, sm := g.sr.capability()
+	L := 32 / vw
+	for L*vw > 8 && int(blocks(N, L*vw))*batch < 2*max(sm, 1) {
+		L /= 2
+	}
+	return gemvConfig{L: L, T: 256}
 }
 
 // Gemm (Backend) her toplu eleman için C += op(A)·op(B).

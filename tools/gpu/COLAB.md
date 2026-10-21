@@ -664,6 +664,8 @@ from google.colab import runtime; runtime.unassign()
   üreten kernelde bildirilir. Yavaştır; yalnızca teşhis için.
 - `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12`: matris çarpımı kitaplığının yolu.
 - `TR_GPU_KENDI_CARPIM=1`: kitaplık bulunsa da kendi matris çarpımı çekirdeğimiz.
+- `TR_GPU_GEMV=0`: tek satırlık çarpımlar (M = 1) gemv çekirdeği yerine kitaplığa ya da döşemeli
+  çekirdeğe gider (karşılaştırma; mikro kıyas üç yolu da ölçer, `gemv ...` satırları).
 - `TR_GPU_DIKKAT=carpim`: dikkat birleşik kernel yerine matris çarpımı yolundan (karşılaştırma;
   mikro kıyas iki yolu da ölçer, `dikkat ... (matris yolu)` satırları).
 - `TR_GPU_MIKRO=1`: gpu_sinama'da mikro kıyasları açar (`TR_GPU_MIKRO_BANT` kuramsal bant

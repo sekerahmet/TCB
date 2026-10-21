@@ -40,6 +40,11 @@ type backend struct {
 	gemm2      gemmConfig
 	// gemmConst doluysa matris çarpımı döşemesi otomatik seçilmez (sınama).
 	gemmConst *gemmConfig
+	// gemvOff tek satırlık çarpım çekirdeğini kapatır (TR_GPU_GEMV=0; karşılaştırma): M = 1
+	// çarpımları da kitaplığa ya da döşemeli çekirdeğe gider. gemvConst doluysa tek satırlık
+	// çarpımın ayarı otomatik seçilmez (sınama ve ölçüm).
+	gemvOff   bool
+	gemvConst *gemvConfig
 	// profiler çekirdek ölçümleri (bkz. profile.go).
 	profiler profile
 	// volume son çöp toplamadan bu yana verilen depolama baytı (havuzdan gelenler dahil).
@@ -138,6 +143,7 @@ func newBackend(dev tensor.Device, sr driver) *backend {
 	g.concurrent = os.Getenv("TR_GPU_ESZAMANLI") == "1"
 	g.attnPath = os.Getenv("TR_GPU_DIKKAT")
 	g.gemm2 = defaultGemm
+	g.gemvOff = os.Getenv("TR_GPU_GEMV") == "0"
 	g.gcThreshold = pickGCThreshold(sr.totalMemory(), os.Getenv("TR_GPU_COP_ESIGI"))
 	return g
 }

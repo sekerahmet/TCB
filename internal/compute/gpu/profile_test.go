@@ -107,7 +107,7 @@ func TestKernelFamily(t *testing.T) {
 	for ad, family := range map[string]string{
 		"carpim_128_128_8_8_8_false_true_false": "carpim", "tekli_turev_3_": "tekli_turev",
 		"ce_ileri_256": "ce_ileri", "gomme": "gomme", "softmax_256_true": "softmax", "surucu_kopya": "surucu_kopya",
-		"cublaslt_carpim_nt": "carpim",
+		"cublaslt_carpim_nt": "carpim", "gemv_8_256_4_false": "carpim", "gemv_t_4_true": "carpim",
 	} {
 		if a := kernelFamily(ad); a != family {
 			t.Fatalf("%s: aile %q, %q bekleniyordu", ad, a, family)

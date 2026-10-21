@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 )
@@ -52,6 +53,7 @@ func TestMicroBenchSmall(t *testing.T) {
 // microAll bütün mikro kıyasları boylar bol'e bölünmüş olarak koşturur (1: gerçek boylar).
 func microAll(g *backend, peak, band float64, divide int) {
 	microGemms(g, peak, divide)
+	microGemv(g, band, divide)
 	microAttn(g, divide)
 	microCE(g, divide)
 	microAdamW(g, divide)
@@ -130,6 +132,66 @@ func microGemms(g *backend, peak float64, divide int) {
 		g.Release(a)
 		g.Release(b)
 		g.Release(out)
+	}
+}
+
+// microGemv tek satırlık çarpımları (M = 1: çıkarımda bir parça) SmolLM2-135M ve Qwen3-0.6B
+// boylarında ölçer: gemv çekirdeği (otomatik ve elle verilen ayarlar), kitaplık ve döşemeli
+// çekirdek. Değer okunan ağırlık bandıdır (GB/s); konak satırı n çağrının sıraya konma
+// süresidir (çağrı başına µs): GPU süresine yakınsa çağrı konakla sınırlıdır.
+func microGemv(g *backend, band float64, divide int) {
+	rng := rand.New(rand.NewSource(4))
+	type shape struct {
+		ad   string
+		N, K int
+		tb   bool
+	}
+	list := []shape{
+		{"smol q/o", 576, 576, false}, {"smol k/v", 192, 576, false}, {"smol kapı", 1536, 576, false},
+		{"smol aşağı", 576, 1536, false}, {"smol logit", 49152, 576, true},
+		{"qwen q", 2048, 1024, false}, {"qwen kapı", 3072, 1024, false}, {"qwen aşağı", 1024, 3072, false},
+		{"qwen logit", 151936, 1024, true},
+	}
+	lt, off := g.lt, g.gemvOff
+	defer func() { g.lt, g.gemvOff, g.gemvConst = lt, off, nil }()
+	for _, c := range list {
+		N, K := max(c.N/divide, 1), max(c.K/divide, 1)
+		a := randomStorage(g, rng, K, 1)
+		b := randomStorage(g, rng, K*N, 1)
+		out := g.AllocUninit(N, tensor.Float32)
+		av := tensor.View{S: a, Shape: []int{K}, Strides: []int{1}}
+		bv := tensor.View{S: b, Shape: []int{K * N}, Strides: []int{1}}
+		f := func() { g.GemmSet(1, 1, N, K, av, false, bv, c.tb, out) }
+		gb := 4 * float64(N) * float64(K) / 1e9
+		ad := fmt.Sprintf("gemv %s %dx%d", c.ad, K, N)
+		run := func(path string) {
+			n := 200 / divide
+			ms := microMeasure(g, n, f)
+			begin := time.Now()
+			for i := 0; i < n; i++ {
+				f()
+			}
+			host := time.Since(begin).Seconds() * 1e6 / float64(n)
+			microWrite(ad, path, ms, gb/(ms/1e3), fmt.Sprintf("GB/s (bant %%%.0f; konak %.1f µs/çağrı)", 100*gb/(ms/1e3)/band, host))
+		}
+		g.gemvOff, g.lt = false, lt
+		run("gemv")
+		if !c.tb {
+			for _, cfg := range []gemvConfig{{2, 256}, {4, 256}, {8, 256}, {2, 512}, {4, 512}, {8, 512}, {4, 128}} {
+				g.gemvConst = &cfg
+				run(fmt.Sprintf("gemv L%d T%d", cfg.L, cfg.T))
+			}
+			g.gemvConst = nil
+		}
+		g.gemvOff = true
+		if lt != nil {
+			run("cublaslt")
+		}
+		g.lt = nil
+		run("kendi")
+		for _, s := range []tensor.Storage{a, b, out} {
+			g.Release(s)
+		}
 	}
 }
 

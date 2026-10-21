@@ -264,9 +264,10 @@ func (g *backend) equalFinish() {
 
 // kernelFamily çekirdek adının ailesi: ilk "_<rakam>" ya da "_true/_false" ekinden önceki
 // kısım (ör. "carpim_128_128_8" → "carpim", "tekli_turev_3_" → "tekli_turev"). Kitaplığın
-// matris çarpımları da "carpim" ailesindedir (çekirdek tablosunda adlarıyla ayrılırlar).
+// matris çarpımları ve tek satırlık çarpımlar (gemv) da "carpim" ailesindedir (çekirdek
+// tablosunda adlarıyla ayrılırlar).
 func kernelFamily(ad string) string {
-	if strings.HasPrefix(ad, "cublaslt_carpim") {
+	if strings.HasPrefix(ad, "cublaslt_carpim") || strings.HasPrefix(ad, "gemv_") {
 		return "carpim"
 	}
 	part := strings.Split(ad, "_")
