@@ -77,7 +77,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 | | PyTorch eager | `torch.compile` | TR |
 | :-- | --: | --: | --: |
 | ms/adım, sentetik veri | 347 | 136 | **162** |
-| ms/adım, gerçek veri | — | 134 | 173 |
+| ms/adım, gerçek veri | — | 134 | **162** |
 | tepe bellek (nvidia-smi, GiB) | 17,0 | 10,8 | **10,81** |
 | doğrulama kaybı, 2000. adım (gerçek veri) | — | 3,9113 | **3,8816** |
 
@@ -90,7 +90,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 **Doğruluk.**
 - PyTorch'un başlangıç ağırlıkları TR'ye yüklenir (`tools/gpu/trt_io.py`, `rgn_reference.py`); aynı toplu işlerle her adımın kaybı ve gradyan normu eşittir.
 - float32 ve CPU'da, hedef boyutta, 4 adım: kayıp farkı ≤ 1·10⁻⁷. Küçük boyutlu sürümü `TestTargetModelMatchesPyTorch` her değişiklikte sınar.
-- GPU ve bf16'da, 100 adım: kayıp farkı ≤ 0,0043, gradyan normu farkı ≤ 0,0041.
+- GPU ve bf16'da, 100 adım: kayıp farkı ≤ 0,0045, gradyan normu farkı ≤ 0,0041.
 
 **Kalite.**
 - Veri: Türkçe FineWeb-2, TR BPE 40k (250M parça); 2000 adım; doğrulama `valid.npy`'nin başından 4,2M parça.
@@ -115,6 +115,10 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 - **H3 (162 ms):** normların ve kaynaşık zincirlerin çıktısı doğrudan çarpımın türünde yazılır.
   - Dil tanımı 15.13: `tür:`, `hesap_türü()`.
   - float32'den daraltılan çıktının gradyanı float32 tutulur; ileri ve geri yön bit düzeyinde aynıdır.
+- **Gerçek veri (173 → 162 ms):** gömmenin geri yönü sık geçen parçaların satırını tek blokta topluyordu.
+  - Gerçek metinde parça sıklığı Zipf dağılımlıdır; aynı satıra binlerce konum düşer. Tekdüze sentetik veride bu görünmez: Zipf verisinde adım 196, tekdüzede 163 ms ölçüldü.
+  - Çözüm: 32'den çok konumu olan satır parçalara bölünür, parçalar paralel toplanır, sonra sırayla eklenir (PyTorch `EmbeddingBackwardKernel.cu`, belirlenimci yol). CPU aynı sırayla toplar; CPU ve GPU bit düzeyinde eşittir.
+  - Sonra: Zipf 163, gerçek veri 162 ms.
 - **Profil (adım başına):**
   - çarpım 53, kopya 21 ms (dikkat başları 6, float32→bf16 5,6),
   - indirgeme 15, ikili işlemler 14, norm geri yönü 14, kaynaşık çekirdekler 13 ms,
@@ -145,7 +149,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 5. **Hız.**
    - Yapıldı: dönüşüm kopyalarının azaltılması, RoPE ve SwiGLU zincirleri, kural tabanlı birleştirici (`kaynaştır`).
    - Kalanlar H4 olarak Evre 6'da.
-   - **Kalan (kapanış şartı):** gerçek veride sentetik veriye göre ~10 ms'lik farkın (173 / 162 ms) nedeni bulunur ve giderilir ya da açıklanır.
+   - Gerçek verideki ~10 ms'lik fark: giderildi (gömme geri yönü, yukarıda "Hız yolu").
 6. **Eğitim gözlemlenebilirliği.**
    - **Kalan (kapanış şartı):** NaN/Inf'te ya da kayıp hareketli ortalamasının k katını aşınca durma ya da son kontrol noktasına dönme.
    - Günlüğe kırpma öncesi ve sonrası gradyan normu, saniyede parça ve kontrol noktası bugün yazılıyor.
@@ -168,7 +172,7 @@ H4 (compile ile başa baş) süren bir hedef olarak Evre 6'ya taşındı. Kalan 
 **Bitiş ölçütü:**
 - Hedef model TR'de PyTorch sürümüyle aynı kalitede eğitilir. **Sağlandı (2000 adım).**
 - Kalite uzun koşuda da tutar: en az 0,8 milyar parça, iki tohum. Doğrulama kaybı PyTorch'la gürültü düzeyinde aynıdır.
-- Hız en çok 1,2 × `torch.compile`'dır (H3). **Sağlandı (162 / 136 ms).** Gerçek verideki ~10 ms'lik fark açıklanmıştır.
+- Hız en çok 1,2 × `torch.compile`'dır (H3). **Sağlandı (162 / 136 ms).** Gerçek verideki ~10 ms'lik fark giderildi; gerçek veride 162 / 134 ms (1,21; compile'ın gerçek veri sayısı tek koşudan, yeniden ölçülecek).
 - Bellek en çok 1,1 × `torch.compile`'dır. **Sağlandı (10,81 / 10,8 GiB).**
 - Baş boyu 128 tensör çekirdeğiyle ileri ve geri çalışır; baş boyu gizli boyuttan bağımsızdır.
 - Eğitim bir NaN'de ya da kayıp sıçramasında kendiliğinden durur ya da son kontrol noktasına döner.
