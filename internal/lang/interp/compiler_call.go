@@ -83,7 +83,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 			if err != nil {
 				return nil, err
 			}
-			if u.core != nil {
+			if u.core != nil && findMethod(obj, u.core) != nil {
 				escape(obj) // Metin/Liste/Sözlük metotları alıcıyı başka yere koyabilir (ownership.go)
 			}
 			return v.memberValue(obj, mem, u)
