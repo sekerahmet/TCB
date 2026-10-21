@@ -59,8 +59,17 @@ func (d *TensorValue) Equal(otherVal interp.Value) bool {
 	return true
 }
 
-// Negate tekli eksidir (-t); türev izlenir.
+// Negate tekli eksidir (-t); türev izlenir. Sonuç tazedir (yorumlayıcı sahiplenir).
 func (d *TensorValue) Negate() (interp.Value, error) {
+	start := tensor.Created()
+	res, err := d.negate()
+	if err == nil {
+		markFresh(res, start)
+	}
+	return res, err
+}
+
+func (d *TensorValue) negate() (interp.Value, error) {
 	r, err := safe(func() *tensor.Tensor { return d.t.Neg() })
 	if err != nil {
 		return nil, err
@@ -74,6 +83,15 @@ const supportedOps = "+ - * / @ ** < > <= >= == !="
 // TaskOperator işleci yapan görevle birlikte çağrılır: '@' görevin karışık hassasiyet
 // türüne göre (bkz. karışık_hassasiyet) hesaplanır; diğer işleçler Islec'e gider.
 func (d *TensorValue) TaskOperator(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
+	start := tensor.Created()
+	res, ok, err := d.taskOperator(m, op, otherVal, onRight)
+	if err == nil {
+		markFresh(res, start)
+	}
+	return res, ok, err
+}
+
+func (d *TensorValue) taskOperator(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
 	if op != "@" {
 		return d.Operator(op, otherVal, onRight)
 	}
@@ -96,6 +114,15 @@ func (d *TensorValue) TaskOperator(m *interp.VM, op string, otherVal interp.Valu
 // diğer işlenen sayı, liste ya da tensör) ve '@' (matris çarpımı) her iki yönde; '**' sol
 // işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (0/1 maskesi).
 func (d *TensorValue) Operator(op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
+	start := tensor.Created()
+	res, ok, err := d.operator(op, otherVal, onRight)
+	if err == nil {
+		markFresh(res, start)
+	}
+	return res, ok, err
+}
+
+func (d *TensorValue) operator(op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
 	switch op {
 	case "+", "*":
 		// Değişmeli: yön sonucu değiştirmez.
@@ -215,6 +242,15 @@ func (d *TensorValue) compare(op string, otherVal interp.Value, onRight bool) (i
 // Index t[i] (ilk eksende i. eleman; bir eksen eksilir) ve t[baş..son] (ilk eksende
 // dilim) okumasını yapar. Sonuç veriyi kopyalamayan bir görünümdür ve türev izlenir.
 func (d *TensorValue) Index(idx interp.Value) (interp.Value, error) {
+	start := tensor.Created()
+	res, err := d.index(idx)
+	if err == nil {
+		markFresh(res, start)
+	}
+	return res, err
+}
+
+func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
 	sh := d.t.Shape()
 	if len(sh) == 0 {
 		return nil, messages.New(messages.H6704)

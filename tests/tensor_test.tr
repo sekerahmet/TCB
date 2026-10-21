@@ -128,6 +128,40 @@ test "15.42 gelu: varsayılan tanh yaklaşımı, yaklaşık: yanlış tam (erf) 
     doğrula(hata_metni(() => gelu(t, yaklasik: yanlış)).içerir("yaklaşık"))
 }
 
+// 15.44: bırakma görünmezdir; ara sonuçlar, yereller ve kaydedilenler bırakılsa da dönen,
+// görünümü alınan, kaçan ve geri yayılımın okuyacağı değerler doğru kalır.
+yapı Önbellek15_44 {
+    t
+}
+fonksiyon döndür15_44(x) {
+    değişken a, b = x.böl(2, eksen: -1)
+    değişken geçici = a * 3.0
+    sonuç birleştir([a * 2.0 - b, a + b * 2.0], eksen: -1)
+}
+fonksiyon görünüm15_44() {
+    değişken yerel = tensör([[1.0, 2.0], [3.0, 4.0]])
+    sonuç yerel.devrik()
+}
+fonksiyon kapanış15_44() {
+    değişken gizli = tensör([5.0, 6.0])
+    sonuç () => toplam(gizli).değer
+}
+test "15.44 tensör belleğinin ömrü: bırakılan ara sonuçlar sonucu değiştirmez" {
+    değişken x = tensör([[1.0, 2.0, 3.0, 4.0]], türev_izle: doğru)
+    değişken y = döndür15_44(x)
+    eşit_mi([[-1.0, 0.0, 7.0, 10.0]], y.değer)
+    geri_yayılım(toplam(y * y))
+    // a = x[:2], b = x[2:]; y = [2a - b, a + 2b]; d(Σy²)/da = 4·y₁ + 2·y₂, d/db = -2·y₁ + 4·y₂
+    eşit_mi([[10.0, 20.0, 30.0, 40.0]], x.gradyan.değer)
+    eşit_mi([[1.0, 3.0], [2.0, 4.0]], görünüm15_44().değer)
+    eşit_mi(11.0, kapanış15_44()())
+    değişken ö = Önbellek15_44(yok)
+    döngü i içinde 0..3 { ö.t = tensör([i * 1.0]) * 2.0 }
+    eşit_mi([4.0], ö.t.değer)
+    değişken l = [tensör([1.0]) + 1.0, tensör([2.0]) + 1.0]
+    eşit_mi([3.0], l[1].değer)
+}
+
 test "15.43 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile aynı kayıp ve gradyanlar" {
     değişken x = tensör(rastgele_normal([6, 4], tohum: 1), türev_izle: doğru)
     değişken w = tensör(rastgele_normal([4, 5], tohum: 2), türev_izle: doğru)

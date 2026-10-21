@@ -28,11 +28,53 @@ type TensorValue struct {
 	// hasInts, değerlerin tam sayı olduğunu (ör. maks_indeks sonucu) gösterir: .değer
 	// Tam döndürür, yazdırma ondalıksız yapılır. İşlem sonuçlarına geçmez.
 	hasInts bool
+	// own yorumlayıcının sahiplik durumudur: değer bırakılınca başlığın bu sarıcısı düşer
+	// (dil tanımı 15.44; internal/lang/interp/ownership.go).
+	own interp.Ownership
 }
 
-// New çekirdek tensörünü TR değeri olarak sarar.
+// New çekirdek tensörünü TR değeri olarak sarar. Aynı başlığı birden çok değer sarabilir;
+// başlık hepsi bırakılınca düşer (tensor.Wrap).
 func New(t *tensor.Tensor) *TensorValue {
+	t.Wrap()
 	return &TensorValue{t: t, intermediate: t.RequiresGrad() && !t.IsLeaf()}
+}
+
+var (
+	_ interp.Owned        = (*TensorValue)(nil)
+	_ interp.AssignCopier = (*TensorValue)(nil)
+)
+
+// Ownership (interp.Owned) değerin sahiplik durumu.
+func (d *TensorValue) Ownership() *interp.Ownership { return &d.own }
+
+// Release (interp.Owned) yorumlayıcı değere artık ulaşılamayacağını bildiğinde çağırır:
+// başlığın bu sarıcısı düşer, son sarıcıysa depolamanın sahibi azalır.
+func (d *TensorValue) Release() { d.t.Unwrap() }
+
+// CopiesAssigned (interp.AssignCopier) t[i] = değer atanan değeri kopyalar, saklamaz.
+func (d *TensorValue) CopiesAssigned() {}
+
+// markFresh v'yi (tensör ya da tensör listesi) start'tan sonra oluşturulmuş başlıkları
+// taşıyorsa taze işaretler: yorumlayıcı onu çalışan çağrının sahipliğine alır.
+func markFresh(v interp.Value, start uint64) {
+	switch x := v.(type) {
+	case *TensorValue:
+		if x.t.Serial() > start {
+			interp.MarkFresh(x)
+		}
+	case *interp.ListVal:
+		fresh := false
+		for _, e := range x.Elements {
+			if d, ok := e.(*TensorValue); ok && d.t.Serial() > start {
+				interp.MarkFresh(d)
+				fresh = true
+			}
+		}
+		if fresh {
+			interp.MarkFresh(x)
+		}
+	}
 }
 
 // NewInt değerleri tam sayı olan (ör. token kimlikleri) bir tensörü sarar: .değer Tam

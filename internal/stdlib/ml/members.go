@@ -92,11 +92,23 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 // method adlı argüman almayan bir tensör metodunun bağlı değeridir; namedMethod adlı
 // argümanlarını kendisi denetleyen bir metodunkidir.
 func (d *TensorValue) method(kd codes.Code, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: fn, NoNamedArgs: true}
+	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: freshResult(fn), NoNamedArgs: true, Pure: true}
 }
 
 func (d *TensorValue) namedMethod(kd codes.Code, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: fn}
+	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: freshResult(fn), Pure: true}
+}
+
+// freshResult tensör metodunun sonucunu (yeni görünüm ya da tensör) taze işaretler.
+func freshResult(fn interp.BuiltinFunc) interp.BuiltinFunc {
+	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		start := tensor.Created()
+		res, err := fn(m, args, named)
+		if err == nil {
+			markFresh(res, start)
+		}
+		return res, err
+	}
 }
 
 func intList(sh []int) *interp.ListVal {

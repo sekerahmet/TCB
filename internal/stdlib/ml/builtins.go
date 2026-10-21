@@ -148,7 +148,20 @@ func wrap(v *interp.VM, kd codes.Code, setup func(old interp.BuiltinFunc) interp
 	if b := v.Builtin(kd); b != nil {
 		old = b.Fn
 	}
-	v.DefineBuiltin(kd, &interp.BuiltinVal{Name: codes.Name(kd), Fn: guarded(setup(old))})
+	v.DefineBuiltin(kd, &interp.BuiltinVal{Name: codes.Name(kd), Fn: guarded(setup(old)), Pure: !retaining[kd]})
+}
+
+// retaining argümanlarını (ya da onlardan kurduğu değerleri) saklayan veya TR geri
+// çağrıları yapan yerleşiklerdir; argümanları kaçar. Diğer tensör yerleşikleri saftır:
+// argümanlarını saklamaz, sonucunda döndürmez (interp.BuiltinVal.Pure).
+var retaining = map[codes.Code]bool{
+	codes.T300: true, // geri_yayılım: özel türevlerin geri çağrıları
+	codes.T301: true, // türevsiz
+	codes.T310: true, // özel_türev: ileri ve geri fonksiyonlarını saklar
+	codes.T311: true, // türev_denetle
+	codes.T400: true, // AdamW: parametre listesini saklar
+	codes.T401: true, // SGD
+	codes.T710: true, // karışık_hassasiyet: blok
 }
 
 // guarded fn'i safe içinde çağırır: çekirdeğin paniği (ör. GPU belleği yetmedi) dene/yakala ile
@@ -166,7 +179,12 @@ func guarded(fn interp.BuiltinFunc) interp.BuiltinFunc {
 				result, err = nil, panicError(r)
 			}
 		}()
-		return fn(m, args, named)
+		start := tensor.Created()
+		result, err = fn(m, args, named)
+		if err == nil {
+			markFresh(result, start)
+		}
+		return result, err
 	}
 }
 
