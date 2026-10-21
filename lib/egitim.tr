@@ -15,6 +15,9 @@
 // sıçramadır (OLMo-core: pencere 128, eşik 6). Sıçrama ve sonlu olmayan değer geçmişe girmez:
 // geçmiş sağlam eğitimin ölçüsü kalır. Değişmeyen dizide (σ ≈ 0) sapma, ortalamanın %1'inden
 // küçük alınmaz; OLMo-core bu durumda denetlemez, bekçi ise her ani artışı sıçrama sayar.
+// Geçmiş tamamen sıfırsa (σ ve ortalama 0) karar verilmez: değer geçmişe girer, bekçi
+// kilitlenmez. Ortalama ve sapma, penceredeki en büyük mutlak değere bölünmüş değerlerle
+// hesaplanır: ölçekten bağımsızdır ve çok büyük sonlu değerlerde (1e155) taşmaz.
 // Pencere dolmadan yalnızca sonlu olmayan değer yakalanır (eğitimin başı hızlı düşer).
 
 sabit TAMAM = "tamam"
@@ -31,8 +34,8 @@ yapı SıçramaBekçisi {
     normlar
     sıçrama_sayısı = 0
     fonksiyon kurucu(pencere = 128, eşik = 6.0) {
-        eğer pencere < 2 { fırlat "SıçramaBekçisi: pencere en az 2 olmalıdır, {pencere} verildi" }
-        eğer değil (eşik > 0) { fırlat "SıçramaBekçisi: eşik pozitif olmalıdır, {eşik} verildi" }
+        eğer tip(pencere) != Tam veya pencere < 2 { fırlat "SıçramaBekçisi: pencere en az 2 olan bir Tam olmalıdır, {pencere} verildi" }
+        eğer değil sonlu_mu(eşik) veya değil (eşik > 0) { fırlat "SıçramaBekçisi: eşik sonlu ve pozitif olmalıdır, {eşik} verildi" }
         kendi.pencere = pencere
         kendi.eşik = eşik
         kendi.kayıplar = []
@@ -55,9 +58,14 @@ yapı SıçramaBekçisi {
     // geçmiş_uzunluğu geçmişteki sağlam adım sayısıdır (en çok pencere).
     fonksiyon geçmiş_uzunluğu() { sonuç kendi.kayıplar.uzunluk }
     fonksiyon aşıyor(geçmiş, değer) {
-        değişken o = ortalama(geçmiş)
-        değişken s = maks(standart_sapma(geçmiş), EN_KÜÇÜK_GÖRELİ_SAPMA * mutlak(o))
-        sonuç değer > o + kendi.eşik * s
+        değişken m = mutlak(değer)
+        döngü x içinde geçmiş { m = maks(m, mutlak(x)) }
+        eğer m == 0 { sonuç yanlış }
+        değişken g = [x / m döngü x içinde geçmiş]
+        değişken o = ortalama(g)
+        değişken s = maks(standart_sapma(g), EN_KÜÇÜK_GÖRELİ_SAPMA * mutlak(o))
+        eğer s == 0 { sonuç yanlış } // geçmiş tamamen sıfır: karar yok
+        sonuç değer / m > o + kendi.eşik * s
     }
     fonksiyon ekle(geçmiş, değer) {
         geçmiş.ekle(değer)

@@ -86,3 +86,18 @@ func TestTargetModelLossLogSurvivesResumeAndRollback(t *testing.T) {
 		t.Fatalf("kayıp kaydı %d adım, 8 bekleniyordu", len(k.Steps))
 	}
 }
+
+// Kural (Evre 3 bitiş ölçütü): sorun kalıcıysa (aynı kontrol noktasına art arda üçüncü dönüş)
+// hedef modelin eğitimi sonsuz döngüye girmez, açık bir hatayla durur. Çok düşük bir bekçi eşiği
+// olağan dalgalanmayı da sıçrama sayar ve kalıcı bir sorunu taklit eder.
+func TestTargetModelStopsWhenRollbackRepeats(t *testing.T) {
+	script := reporoot.Path("tools/gpu/rgn512.tr")
+	data := reporoot.Path("tests/data/text")
+	s := run(t, trBinary, t.TempDir(), "", nil, script, "--veri", data, "--cihaz", "cpu", "--hassasiyet", "fp32",
+		"--adım", "12", "--toplu", "4", "--mikro", "2", "--bağlam", "32", "--günlük", "4", "--dağarcık", "1000",
+		"--boyut", "64", "--bakış_sayısı", "4", "--kv_bakış_sayısı", "2", "--ara", "96", "--koşu", "koşu",
+		"--kayıt_dakika", "0", "--atla", "1", "--bekçi_pencere", "2", "--bekçi_eşik", "0.0001")
+	if s.code == 0 || !strings.Contains(s.stdout+s.stderr, "üç kez dönüldü") {
+		t.Fatalf("aynı noktaya üçüncü dönüşte durmalıydı (çıkış %d):\n%s\n%s", s.code, s.stdout, s.stderr)
+	}
+}

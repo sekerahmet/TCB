@@ -19,7 +19,8 @@
 // sıçrama bekçisi izler (son --bekçi_pencere sağlam adıma göre --bekçi_eşik standart sapma). --koşu
 // KLASÖR verilince kontrol noktası kurulur (her --kayıt_dakika dakikada bir; yeniden çalıştırılınca
 // kaldığı adımdan sürer): NaN, sonsuz ya da sıçramada son noktaya dönülür ve --atla toplu iş atlanır.
-// --koşu yoksa NaN ya da sonsuzda eğitim açık bir hatayla durur, sıçramada uyarı yazılır. Bekçi değeri
+// --koşu yoksa NaN ya da sonsuzda eğitim açık bir hatayla durur, sıçramada uyarı yazılır. Aynı
+// noktaya üçüncü kez dönülürse (sorun kalıcı) eğitim açık bir hatayla durur. Bekçi değeri
 // adımın sonunda zaten okunan kayıp ve normdan okur: adıma bekleme eklemez. --nan_adımı N (sınama
 // için) N. adımın kaybını bir kez NaN yapar.
 
@@ -106,6 +107,8 @@ eğer arg.koşu != "" {
 }
 değişken adım = eğer kn == yok { 0 } değilse { kn.kaldığı_adım }
 değişken nan_adımı = arg.nan_adımı
+değişken son_dönüş = -1 // aynı noktaya art arda dönüşler sayılır: kalıcı bir bozulmada sonsuz döngü olmasın
+değişken dönüş_sayısı = 0
 döngü adım < arg.adım {
     op.çarpan_ayarla(maks(0.000001, iyileştirici.oran_planı(adım, arg.adım, ısınma: ısınma, azalma: 0.2)))
     değişken t0 = zaman_ms()
@@ -136,6 +139,8 @@ döngü adım < arg.adım {
         yazdır("  {karar} adım {adım + 1}: kayıp {toplam_kayıp}, grad {norm.değer}")
         eğer kn != yok {
             adım = kn.geri_dön()
+            eğer adım == son_dönüş { dönüş_sayısı += 1 } değilse { son_dönüş = adım; dönüş_sayısı = 1 }
+            doğrula(dönüş_sayısı < 3, "aynı kontrol noktasına ({adım}. adım) üç kez dönüldü ve sorun sürüyor; eğitim durduruldu (öğrenme oranını, veriyi ya da --bekçi_eşik'i inceleyin)")
             yazdır("  {adım}. adıma dönüldü, {örnekler.atla(arg.atla)} toplu iş atlandı")
             devam
         }

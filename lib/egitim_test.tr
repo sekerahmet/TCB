@@ -54,3 +54,29 @@ test "SıçramaBekçisi: geçersiz ayar hatadır" {
     dene { SıçramaBekçisi(eşik: 0) } yakala h { hata_verdi = doğru }
     doğrula(hata_verdi)
 }
+
+test "SıçramaBekçisi: ölçekten bağımsızdır; çok büyük sonlu değerlerde taşmaz" {
+    değişken b = SıçramaBekçisi(pencere: 2, eşik: 6.0)
+    b.gözle(1e155, 1.0)
+    b.gözle(2e155, 1.0)
+    eşit_mi(SIÇRAMA, b.gözle(1e308, 1.0))
+    değişken k = SıçramaBekçisi(pencere: 4, eşik: 6.0)
+    döngü i içinde 0..4 { k.gözle(2e-30, 1.0) }
+    eşit_mi(SIÇRAMA, k.gözle(3e-30, 1.0))
+}
+
+test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitlenmez" {
+    değişken b = SıçramaBekçisi(pencere: 3, eşik: 6.0)
+    döngü i içinde 0..3 { b.gözle(0.0, 0.0) }
+    eşit_mi(TAMAM, b.gözle(0.000000000001, 0.0))
+    eşit_mi(3, b.geçmiş_uzunluğu())
+}
+
+test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
+    değişken hata_verdi = yanlış
+    dene { SıçramaBekçisi(pencere: 2.5) } yakala h { hata_verdi = doğru }
+    doğrula(hata_verdi)
+    hata_verdi = yanlış
+    dene { SıçramaBekçisi(eşik: ondalık("inf")) } yakala h { hata_verdi = doğru }
+    doğrula(hata_verdi)
+}
