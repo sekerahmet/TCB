@@ -287,6 +287,10 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 	if batch == 0 || M == 0 || N == 0 || K == 0 {
 		return
 	}
+	if M == 1 && N*K >= gemvMinWork {
+		gemv(batch, N, K, a, b, transB, c) // a [1, K]: transA aynı bellek düzenidir
+		return
+	}
 	bpLen := (N + nr - 1) / nr * K * nr
 	part := batch
 	if batch*bpLen > bufMaxB {

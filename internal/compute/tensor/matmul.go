@@ -9,9 +9,11 @@ import (
 //   - (..., M, K) @ (K, N) -> (..., M, N)   (ör. doğrusal katman, öndeki eksenler satıra katlanır)
 //   - (..., M, K) @ (..., K, N) -> (..., M, N)  (toplu; öndeki eksenler eşit olmalı)
 //
-// Bitişik olmayan girdiler (ör. devrik görünümler) arka uca verilmeden önce
-// bitişik hale getirilir. Geri yayılım devrikleri kopyalamaz; arka ucun
-// transA/transB bayraklarını kullanır.
+// Bitişik olmayan girdiler arka uca verilmeden önce bitişik hale getirilir; yalnız sağ taraf
+// bitişik bir matrisin devriği olan tek matrisse (paylaşımlı gömme: x @ tablo.devrik()) kopya
+// çıkarılmaz, arka uca devrik bayrağıyla verilir (dil modelinin çıkış katmanında her parçada
+// 113 MB'lık kopya kalkar). Geri yayılım devrikleri kopyalamaz; arka ucun transA/transB
+// bayraklarını kullanır.
 func MatMul(a, b *Tensor) *Tensor { return MatMulOut(a, b, resultDType(a.dtyp, b.dtyp)) }
 
 // MatMulOut çıktı türü açıkça verilen matris çarpımı (karışık hassasiyet: ör.
@@ -44,7 +46,8 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	}
 
 	sy := counterStart(be, OpKindMatMul).start()
-	av, bv := a.contigView(), b.contigView()
+	av := a.contigView()
+	bv, tb := b.contigView2DTransposed()
 	// Bitişik kopyalar geri yönde de okunur; geri yön bitince (türev izlenmiyorsa hemen) iade edilir.
 	ra, rb := copyRelease(a, av), copyRelease(b, bv)
 	release := func() { ra(); rb() }
@@ -53,10 +56,10 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 	var out *Tensor
 	if writer {
 		out = emptyOf(isMatMul, be, outShape, outType)
-		gs.GemmSet(batch, M, N, K, av, false, bv, false, out.storage)
+		gs.GemmSet(batch, M, N, K, av, false, bv, tb, out.storage)
 	} else {
 		out = zerosOf(isMatMul, be, outShape, outType)
-		be.Gemm(batch, M, N, K, av, false, bv, false, out.storage)
+		be.Gemm(batch, M, N, K, av, false, bv, tb, out.storage)
 	}
 
 	// carp gradyanın ilkiyse (taze) üzerine yazar, değilse ekler.
@@ -81,8 +84,8 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 			g = View{S: s, Shape: g.Shape, Strides: g.Strides}
 		}
 		if an.wants() {
-			// dA (M×K) += dC (M×N) · Bᵀ
-			mulFn(an, M, K, N, g, false, bv, true)
+			// dA (M×K) += dC (M×N) · Bᵀ (bv devrik saklıysa Bᵀ'nin kendisidir)
+			mulFn(an, M, K, N, g, false, bv, !tb)
 		}
 		if bn.wants() {
 			// dB (K×N) += Aᵀ · dC
@@ -98,3 +101,13 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 
 // MatMul yöntem biçimi.
 func (t *Tensor) MatMul(o *Tensor) *Tensor { return MatMul(t, o) }
+
+// contigView2DTransposed sağ taraf için görünümü verir: bitişik bir [N, K] matrisin devriği olan
+// [K, N] görünümse (adımlar [1, K]) depolamayı kopyasız, devrik bayrağıyla (true) verir; değilse
+// contigView'dür.
+func (t *Tensor) contigView2DTransposed() (View, bool) {
+	if len(t.shape) == 2 && !t.IsContiguous() && t.strides[0] == 1 && t.strides[1] == t.shape[0] && t.shape[0] > 1 && t.shape[1] > 1 {
+		return View{S: t.storage, Offset: t.offset, Shape: []int{t.shape[1], t.shape[0]}, Strides: []int{t.shape[0], 1}}, true
+	}
+	return t.contigView(), false
+}
