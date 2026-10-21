@@ -1,12 +1,12 @@
-// 39 — Hazır katmanlarla GPT: dilin kitaplığındaki katmanlar ve iyileştiricilerle küçük bir dil modeli.
+// 41 — Hazır katmanlarla GPT: dilin kitaplığındaki katmanlar ve iyileştiricilerle küçük bir dil modeli.
 // Ne öğretir: `aktar "tr/katman"` ile GPT kurmak, gizli ağırlıkları Muon'a öbürlerini AdamW'ye vermek
 // (MuonVeAdamW), ısınma–sabit–azalma öğrenme oranı planı, kontrol noktasıyla sürdürmek, metin üretmek.
-// Önceki örnekten: kontrol noktası (38) ve transformer (35): 35'te elle yazılanın kitaplık karşılığı.
+// Önceki örnekten: kontrol noktası (40) ve transformer (35): 35'te elle yazılanın kitaplık karşılığı.
 // Kitaplığın kodu: lib/katman.tr ve lib/iyilestirici.tr (kopyalayıp değiştirebilirsiniz).
 // Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
 //
-// Çalıştırma (proje kökünden): tr examples/tr/39_gpt.tr
-//   Ayarlar komut satırından: tr examples/tr/39_gpt.tr --adım 300 --boyut 64 --koşu runs/gpt2
+// Çalıştırma (proje kökünden): tr examples/tr/41_gpt.tr
+//   Ayarlar komut satırından: tr examples/tr/41_gpt.tr --adım 300 --boyut 64 --koşu runs/gpt2
 //   Yarıda kesilirse (Ctrl+C) aynı komut kaldığı yerden sürer; baştan başlamak için koşu
 //   klasörünü silin ya da başka bir --koşu verin.
 // GPU'da: model kurulmadan önce varsayılan cihazı seçin (aşağıdaki satırın yorumunu kaldırın)
@@ -22,7 +22,7 @@ değişken ayar = komut_satırı({adım: 100, toplu: 8, bağlam: 32, boyut: 32, 
     açıklamalar: {adım: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
         normuon: "gizli ağırlıklar için Muon yerine NorMuon"})
 
-// --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/tr/37_veri_ile_egitim.tr) ---
+// --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/tr/39_veri_ile_egitim.tr) ---
 değişken p = parçalayıcı_yükle("../../tests/data/tokenizer.json")
 değişken ö = veri_kümesi("../../tests/data/text").örnekleyici(toplu: ayar.toplu, bağlam: ayar.bağlam, tohum: 1)
 

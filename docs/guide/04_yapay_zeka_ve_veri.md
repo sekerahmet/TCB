@@ -151,7 +151,7 @@ cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/compare_gpu.
 - Kurallar: `docs/spec/15_tensorler.md` **15.26–15.30**.
 
 ## D. Veri ve Parçalayıcı
-Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` veri dosyalarını okuyan **veri kümesi**. Uçtan uca örnek: `examples/tr/37_veri_ile_egitim.tr`.
+Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `tokenizer.json` dosyalarını okuyan **parçalayıcı** ve `.npy` veri dosyalarını okuyan **veri kümesi**. Uçtan uca örnek: `examples/tr/39_veri_ile_egitim.tr`.
 
 **Parçalayıcı**
 - `değişken p = parçalayıcı_yükle("tokenizer.json")` yaygın `tokenizer.json` biçimini okur (BPE, WordPiece, WordLevel, Unigram modelleri; bayt düzeyi, Metaspace, BERT tarzı bileşenler). Desteklenmeyen bir bileşen türü, hangi bileşenin hangi türü olduğunu söyleyen bir hatayla bildirilir. Tip adı `Parçalayıcı`.
@@ -217,7 +217,7 @@ yazdır("{n} satır")
 ```
 
 ## F. Eğitimde ayarlar, günlük ve ilerleme
-Uzun bir eğitimi izlemek için üç yerleşik yeter: betiğin ayarlarını komut satırından alan `komut_satırı`, her adımı gösteren `ilerleme` çubuğu ve sonradan bakılacak `günlük` dosyası. Kurallar: [`docs/spec/19_surec_ve_kayit.md`](../spec/19_surec_ve_kayit.md). Uçtan uca örnek: `examples/tr/37_veri_ile_egitim.tr`.
+Uzun bir eğitimi izlemek için üç yerleşik yeter: betiğin ayarlarını komut satırından alan `komut_satırı`, her adımı gösteren `ilerleme` çubuğu ve sonradan bakılacak `günlük` dosyası. Kurallar: [`docs/spec/19_surec_ve_kayit.md`](../spec/19_surec_ve_kayit.md). Uçtan uca örnek: `examples/tr/39_veri_ile_egitim.tr`.
 
 ```tr
 değişken ayar = komut_satırı({adım: 2000, öğrenme_oranı: 0.001, günlük_dosyası: yok},

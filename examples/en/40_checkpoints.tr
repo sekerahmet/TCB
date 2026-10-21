@@ -1,15 +1,15 @@
 //! tr kodlu 1
-// 38 — Checkpoints: resuming a long training where you left off.
+// 40 — Checkpoints: resuming a long training where you left off.
 // What it teaches: Checkpoint, keep: (how many checkpoints are kept), writing every training to a run folder; saving the whole state of the training with checkpoint
 // (model, optimizer, sampler, log, your own counters) at regular intervals; stopping with Ctrl+C and resuming with the same
 // command. A resumed training gives a bit-for-bit identical result to one that was never interrupted.
-// Builds on: training with data (37): command_line, progress, dataset.
+// Builds on: training with data (39): command_line, progress, dataset.
 // Details: docs/guide/09_uzun_egitim.md, docs/spec/20_kontrol_noktasi.md §20.
 //
-// Run (from the project root): tr examples/en/38_checkpoints.tr
+// Run (from the project root): tr examples/en/40_checkpoints.tr
 //   Press Ctrl+C while it trains: that step finishes, a checkpoint is saved, the program stops.
 //   Run the same command again: it prints "Resuming from: step ..." and goes on from there.
-//   To lengthen the training: tr examples/en/38_checkpoints.tr --step 1000
+//   To lengthen the training: tr examples/en/40_checkpoints.tr --step 1000
 //   To start over delete the run folder or give another one: --run runs/trial2
 // In a cloud notebook keep the run folder on the local disk and copy it to Drive now and then (guide §9).
 
@@ -19,7 +19,7 @@ A030 config = G801({Y500: 200, run: "runs/checkpoint_example", every_minutes: 5.
         every_minutes: "checkpoint interval (minutes)"})
 A030 RUN = config.run
 
-// --- Data and model (the small model of examples/en/37_training_with_data.tr) ---
+// --- Data and model (the small model of examples/en/39_training_with_data.tr) ---
 A030 p = V200("../../tests/data/tokenizer.json")
 A030 V = p.Y612
 A030 sampler = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 1)

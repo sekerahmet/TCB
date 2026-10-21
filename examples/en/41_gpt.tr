@@ -1,15 +1,15 @@
 //! tr kodlu 1
-// 39 — GPT with ready-made layers: a small language model built from the layers and optimizers of the language library.
+// 41 — GPT with ready-made layers: a small language model built from the layers and optimizers of the language library.
 // What it teaches: building a GPT with `import "tr/katman"`, giving the hidden weights to Muon and the rest to AdamW
 // (MuonVeAdamW), a warm-up–constant–decay learning-rate schedule, resuming with a checkpoint, generating text.
-// Builds on: checkpoints (38) and the transformer (35): the library counterpart of what 35 wrote by hand.
+// Builds on: checkpoints (40) and the transformer (35): the library counterpart of what 35 wrote by hand.
 // The library's own names (GPT, MuonVeAdamW, oran_planı, boyut, katman ...) are not translated yet
 // (docs/spec/17_kodlar.md, 17.2): they stay in Turkish in every spelling.
 // Library code: lib/katman.tr and lib/iyilestirici.tr (you can copy and change it).
 // Details: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
 //
-// Run (from the project root): tr examples/en/39_gpt.tr
-//   Settings come from the command line: tr examples/en/39_gpt.tr --step 300 --width 64 --run runs/gpt2
+// Run (from the project root): tr examples/en/41_gpt.tr
+//   Settings come from the command line: tr examples/en/41_gpt.tr --step 300 --width 64 --run runs/gpt2
 //   If it is interrupted (Ctrl+C) the same command goes on where it left off; to start over delete
 //   the run folder or give another --run.
 // On a GPU: pick the default device before the model is built (uncomment the line below)
@@ -25,7 +25,7 @@ A030 config = G801({Y500: 100, batch: 8, context: 32, width: 32, layers: 2, head
     G911: {Y500: "total training steps", run: "run folder (settings, log, checkpoints)",
         normuon: "NorMuon instead of Muon for the hidden weights"})
 
-// --- Data: the synthetic text in the repository and its tokenizer (for your own data see examples/en/37_training_with_data.tr) ---
+// --- Data: the synthetic text in the repository and its tokenizer (for your own data see examples/en/39_training_with_data.tr) ---
 A030 p = V200("../../tests/data/tokenizer.json")
 A030 sampler = V100("../../tests/data/text").Y600(V902: config.batch, V903: config.context, T903: 1)
 

@@ -81,7 +81,7 @@ değişken ö = küme.örnekleyici(toplu: 8, bağlam: 256, tohum: 1)
 değişken girdi, hedef = ö.sonraki()                              // [8, 256] tensörler
 ```
 
-`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`examples/tr/37_veri_ile_egitim.tr`](examples/tr/37_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md#d-veri-ve-parçalayıcı).
+`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`examples/tr/39_veri_ile_egitim.tr`](examples/tr/39_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md#d-veri-ve-parçalayıcı).
 
 ## VS Code eklentisi ve hata ayıklama
 
@@ -120,11 +120,11 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | 23 | [`23_agirliklari_kaydet.tr`](examples/tr/32_agirliklari_kaydet.tr) | [`23_saving_weights.tr`](examples/en/32_saving_weights.tr) | `tensör_kaydet/tensör_yükle`, `maks_indeks` |
 | 24 | [`24_transformer.tr`](examples/tr/35_transformer.tr) | [`24_transformer.tr`](examples/en/35_transformer.tr) | Elle yazılmış küçük transformer: çok başlı nedensel dikkat, katman normu |
 | 25 | [`25_karakter_modeli.tr`](examples/tr/36_karakter_modeli.tr) | [`25_char_model.tr`](examples/en/36_char_model.tr) | Projenin belgeleriyle eğitilen karakter düzeyi dil modeli ve metin üretimi |
-| 26 | [`26_veri_ile_egitim.tr`](examples/tr/37_veri_ile_egitim.tr) | [`26_training_with_data.tr`](examples/en/37_training_with_data.tr) | `tokenizer.json` parçalayıcısı ve `.npy` veri kümesiyle uçtan uca eğitim ve doğrulama |
-| 27 | [`27_kontrol_noktasi.tr`](examples/tr/38_kontrol_noktasi.tr) | [`27_checkpoints.tr`](examples/en/38_checkpoints.tr) | Uzun eğitim: koşu klasörü, `kontrol_noktası`, Ctrl+C ile durdurup aynı komutla kaldığı yerden (bit düzeyinde aynı) sürdürme |
-| 28 | [`28_gpt.tr`](examples/tr/39_gpt.tr) | [`28_gpt.tr`](examples/en/39_gpt.tr) | Hazır katmanlarla GPT, Muon + AdamW, öğrenme oranı planı |
-| 29 | [`29_hata_ayiklama.tr`](examples/tr/40_hata_ayiklama.tr) | [`29_debugging.tr`](examples/en/40_debugging.tr) | `kesme_noktası` ile hata ayıklama, değeri çalışırken değiştirme (etkileşimli) |
-| 30 | [`30_hata_ayiklama_alistirmasi.tr`](examples/tr/41_hata_ayiklama_alistirmasi.tr) | [`30_debugging_exercise.tr`](examples/en/41_debugging_exercise.tr) | VS Code hata ayıklayıcısıyla adım adım ilerleme: kesme noktası, tablo görünümü, değeri çalışırken değiştirme (F5) |
+| 26 | [`26_veri_ile_egitim.tr`](examples/tr/39_veri_ile_egitim.tr) | [`26_training_with_data.tr`](examples/en/39_training_with_data.tr) | `tokenizer.json` parçalayıcısı ve `.npy` veri kümesiyle uçtan uca eğitim ve doğrulama |
+| 27 | [`27_kontrol_noktasi.tr`](examples/tr/40_kontrol_noktasi.tr) | [`27_checkpoints.tr`](examples/en/40_checkpoints.tr) | Uzun eğitim: koşu klasörü, `kontrol_noktası`, Ctrl+C ile durdurup aynı komutla kaldığı yerden (bit düzeyinde aynı) sürdürme |
+| 28 | [`28_gpt.tr`](examples/tr/41_gpt.tr) | [`28_gpt.tr`](examples/en/41_gpt.tr) | Hazır katmanlarla GPT, Muon + AdamW, öğrenme oranı planı |
+| 29 | [`29_hata_ayiklama.tr`](examples/tr/42_hata_ayiklama.tr) | [`29_debugging.tr`](examples/en/42_debugging.tr) | `kesme_noktası` ile hata ayıklama, değeri çalışırken değiştirme (etkileşimli) |
+| 30 | [`30_hata_ayiklama_alistirmasi.tr`](examples/tr/43_hata_ayiklama_alistirmasi.tr) | [`30_debugging_exercise.tr`](examples/en/43_debugging_exercise.tr) | VS Code hata ayıklayıcısıyla adım adım ilerleme: kesme noktası, tablo görünümü, değeri çalışırken değiştirme (F5) |
 
 Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oraya kopyalayabilirsiniz (ör. `examples/tr/01_merhaba.tr`); bu klasör depoya girmez.
 

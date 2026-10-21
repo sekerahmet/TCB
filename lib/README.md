@@ -7,7 +7,7 @@ TR ile yazılmış, `tr` ikilisine gömülü kitaplık. Modüller `aktar "tr/...
 | `tr/katman` | [`katman.tr`](katman.tr) | Transformer katmanları ve yalnızca kod çözücülü `GPT` |
 | `tr/iyilestirici` | [`iyilestirici.tr`](iyilestirici.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
 
-Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/39_gpt.tr`](../examples/tr/39_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
+Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
 ```tr
 aktar "tr/katman"
@@ -91,7 +91,7 @@ değişken rgn = GPT(40000, bağlam: 1024, boyut: 512, katman: 8, baş: 8, kv_ba
 
 **Öğrenme oranı çarpanı.** `çarpan_ayarla(c)` (c pozitif) sonraki adımda iki grubun oranını birlikte ölçekler: `MuonVeAdamW` her adımda `op.muon.öğrenme_oranı`'nı ve `op.adamw.öğrenme_oranı`'nı (dil tanımı [15.39](../docs/spec/15_tensorler.md)) taban oran × c yapar. Kopya ya da ek bellek yoktur; c = 1 iken AdamW'nin adımı planı olmayan AdamW'ninkiyle bit düzeyinde aynıdır (`iyilestirici_test.tr` sınar).
 
-**Kontrol noktası.** Muon'un durum tensörleri `op.muon.durum` sözlüğündedir ve türev izlemez (parametre değildir, yalnızca türevsiz blokta yerinde güncellenir); `kontrol_noktası` bir nesnenin türev izlemeyen tensörlerini de saklayıp yerinde geri yazar (dil tanımı [20.2](../docs/spec/20_kontrol_noktasi.md)). Kontrol noktasına modelin yanında `op.adamw` ve `op.muon.durum` da verilir (örnek: `examples/tr/39_gpt.tr`); sürdürülen eğitim kesintisizle aynıdır (`iyilestirici_test.tr`).
+**Kontrol noktası.** Muon'un durum tensörleri `op.muon.durum` sözlüğündedir ve türev izlemez (parametre değildir, yalnızca türevsiz blokta yerinde güncellenir); `kontrol_noktası` bir nesnenin türev izlemeyen tensörlerini de saklayıp yerinde geri yazar (dil tanımı [20.2](../docs/spec/20_kontrol_noktasi.md)). Kontrol noktasına modelin yanında `op.adamw` ve `op.muon.durum` da verilir (örnek: `examples/tr/41_gpt.tr`); sürdürülen eğitim kesintisizle aynıdır (`iyilestirici_test.tr`).
 
 ## Adlar ve açık konular
 

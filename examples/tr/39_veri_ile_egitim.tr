@@ -1,4 +1,4 @@
-// 37 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
+// 39 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
 // Ne öğretir: tokenizer.json yükleyip metni kodlamak/çözmek (Parçalayıcı, parça_kimliği, özel_parçalar, ikinci), .npy veri dosyalarından örnekleyiciyle
 // rastgele toplu işler almak, sıralı okuyucuyla doğrulamak, komut_satırı ve ilerleme çubuğu.
 // Önceki örnekten: transformer ve çapraz_entropi (35), eğitim döngüsü (28).
@@ -13,10 +13,10 @@
 // varsa veri dosyalarının parça sayıları oradan okunur. Veri yavaş bir sürücüdeyse (ağ ya da bulut)
 // yerel önbellek kullanın: veri_kümesi(VERİ_YOLU, önbellek: "onbellek/veri", kota_gb: 20)
 // Göreli yollar önce çalışma klasörüne, sonra bu dosyanın klasörüne göre çözülür.
-// Çalıştırma (proje kökünden): tr examples/tr/37_veri_ile_egitim.tr
+// Çalıştırma (proje kökünden): tr examples/tr/39_veri_ile_egitim.tr
 // Ayarlar komut satırından değişir (docs/guide/04_yapay_zeka_ve_veri.md §4.E):
-//     tr examples/tr/37_veri_ile_egitim.tr --adım 500 --günlük_dosyası kayit/egitim.jsonl
-//     tr examples/tr/37_veri_ile_egitim.tr --yardım
+//     tr examples/tr/39_veri_ile_egitim.tr --adım 500 --günlük_dosyası kayit/egitim.jsonl
+//     tr examples/tr/39_veri_ile_egitim.tr --yardım
 
 değişken PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
 değişken VERİ_YOLU = "../../tests/data/text"
