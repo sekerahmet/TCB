@@ -67,6 +67,10 @@ func (kn *Checkpoint) loadNewest(m *interp.VM, fn string) (*loadedCkpt, error) {
 		return nil, err
 	}
 	if err := kn.apply(m, fn, o); err != nil {
+		var bad corruptContent
+		if errors.As(err, &bad) {
+			return nil, kn.brokenCheckpointError(fn, ckpts, bad.err)
+		}
 		return nil, err
 	}
 	kn.step, kn.lastValid = o.step, o.step

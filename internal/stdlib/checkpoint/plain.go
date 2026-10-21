@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"strconv"
 	"strings"
@@ -156,6 +157,9 @@ func readPlain(b []byte) (interp.Value, error) {
 	var raw any
 	if err := d.Decode(&raw); err != nil {
 		return nil, err
+	}
+	if _, err := d.Token(); !errors.Is(err, io.EOF) {
+		return nil, messages.New(messages.H7420) // fazladan veri (decodeJSON'daki gibi)
 	}
 	return toPlain(raw, 0)
 }

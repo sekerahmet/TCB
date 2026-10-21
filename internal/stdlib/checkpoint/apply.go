@@ -14,20 +14,42 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
 
-// apply doğrulanmış ve uyumu denetlenmiş noktayı nesnelere yükler. Sıra önemlidir:
-// okuyucular önce (kendi denetimleri hatayla dönerse parametrelere dokunulmamış olur),
-// parametreler iyileştiricilerden önce (16 bitlik parametrelerin ana kopyaları parametrenin
-// yüklemeden sonraki sürümüne bağlanır).
+// apply doğrulanmış ve uyumu denetlenmiş noktayı nesnelere iki aşamada yükler (dil tanımı 20.7):
+// önce hiçbir nesne değişmeden iyileştirici durumları toplanıp bütün kurallarıyla denetlenir ve
+// okuyucular hazırlanır; hepsi geçerse okuyucular, parametreler (yerinde), iyileştiriciler, düz
+// değerler yazılır ve günlüklere devam kaydı düşülür. Parametreler iyileştiricilerden önce yazılır:
+// 16 bitlik parametrelerin ana kopyaları parametrenin yüklemeden sonraki sürümüne bağlanır.
+// Noktanın içeriği bozuksa (ör. geçersiz adım sayacı) hata corruptContent'tir: çağıran bir önceki
+// geçerli noktayı önerir.
 func (kn *Checkpoint) apply(m *interp.VM, fn string, o *loadedCkpt) error {
+	states, err := kn.readStates(o)
+	if err != nil {
+		return messages.New(messages.H5620, fn, kn.shown+"/"+o.name, err)
+	}
 	for _, n := range kn.objects {
-		if n.kind == kindStateful {
-			if err := n.stateful.LoadState(m, o.objects[n.name].value.(*interp.DictVal)); err != nil {
-				return messages.New(messages.H6626, fn, n.name, err)
+		if n.kind == kindOptimizer {
+			if err := n.op.CheckLoad(messages.Text(messages.H7441, fn, n.name), states[n.name]); err != nil {
+				return corruptContent{err}
 			}
 		}
 	}
-	states, err := kn.loadTensors(o)
-	if err != nil {
+	var commits, discards []func()
+	for _, n := range kn.objects {
+		if n.kind == kindStateful {
+			commit, discard, err := n.stateful.PrepareState(m, o.objects[n.name].value.(*interp.DictVal))
+			if err != nil {
+				for _, d := range discards {
+					d()
+				}
+				return messages.New(messages.H6626, fn, n.name, err)
+			}
+			commits, discards = append(commits, commit), append(discards, discard)
+		}
+	}
+	for _, c := range commits {
+		c()
+	}
+	if err := kn.writeParams(o); err != nil {
 		return messages.New(messages.H5620, fn, kn.shown+"/"+o.name, err)
 	}
 	for _, n := range kn.objects {
@@ -47,33 +69,56 @@ func (kn *Checkpoint) apply(m *interp.VM, fn string, o *loadedCkpt) error {
 	return nil
 }
 
-// loadTensors tensör dosyasını ikinci kez, girdi girdi okur: model parametrelerine
-// yerinde yazar (parametrenin cihazına taşıyarak), iyileştirici durumlarını nesneye göre
-// toplar. Çekirdek panikleri (cihaz belleği) hataya çevrilir.
-func (kn *Checkpoint) loadTensors(o *loadedCkpt) (map[string]map[string]*tensor.Tensor, error) {
-	models := map[string]map[string]*ml.TensorValue{}
+// corruptContent noktanın dosyaları sağlam (özetler tutuyor) ama içeriği kurallara uymuyor
+// demektir; yükleme hiçbir nesneyi değiştirmeden durmuştur.
+type corruptContent struct{ err error }
+
+func (c corruptContent) Error() string { return c.err.Error() }
+func (c corruptContent) Unwrap() error { return c.err }
+
+// readStates tensör dosyasını girdi girdi okur ve yalnızca iyileştirici durumlarını nesneye
+// göre toplar; model parametrelerine dokunmaz. Çekirdek panikleri (bellek) hataya çevrilir.
+func (kn *Checkpoint) readStates(o *loadedCkpt) (map[string]map[string]*tensor.Tensor, error) {
 	states := map[string]map[string]*tensor.Tensor{}
 	for _, n := range kn.objects {
-		switch n.kind {
-		case kindModel:
+		if n.kind == kindOptimizer {
+			states[n.name] = map[string]*tensor.Tensor{}
+		}
+	}
+	err := kn.walk(o, func(objectName, tensorName string, g ml.TensorEntry) {
+		if d, ok := states[objectName]; ok {
+			d[tensorName] = tensor.NewOn(tensor.CPU, g.Veri, g.Sekil...)
+		}
+	})
+	return states, err
+}
+
+// writeParams tensör dosyasını yeniden, girdi girdi okuyup model parametrelerine yerinde
+// yazar (parametrenin cihazına taşıyarak); büyük modelde bellekte ikinci kopya toplanmaz.
+func (kn *Checkpoint) writeParams(o *loadedCkpt) error {
+	models := map[string]map[string]*ml.TensorValue{}
+	for _, n := range kn.objects {
+		if n.kind == kindModel {
 			p := make(map[string]*ml.TensorValue, len(n.names))
 			for i, name := range n.names {
 				p[name] = n.params[i]
 			}
 			models[n.name] = p
-		case kindOptimizer:
-			states[n.name] = map[string]*tensor.Tensor{}
 		}
 	}
+	return kn.walk(o, func(objectName, tensorName string, g ml.TensorEntry) {
+		if p, ok := models[objectName][tensorName]; ok {
+			ml.CopyInto(p.Tensor(), tensor.NewOn(tensor.CPU, g.Veri, g.Sekil...))
+		}
+	})
+}
+
+// walk tensör dosyasının girdilerini sırayla f'ye verir; çekirdek panikleri hataya çevrilir.
+func (kn *Checkpoint) walk(o *loadedCkpt, f func(objectName, tensorName string, g ml.TensorEntry)) error {
 	var walkErr error
 	_, err := bind.Recover(func() bool {
 		walkErr = o.walkTensors(func(objectName, tensorName string, g ml.TensorEntry) error {
-			src := tensor.NewOn(tensor.CPU, g.Veri, g.Sekil...)
-			if p, ok := models[objectName][tensorName]; ok {
-				ml.CopyInto(p.Tensor(), src)
-			} else if d, ok := states[objectName]; ok {
-				d[tensorName] = src
-			}
+			f(objectName, tensorName, g)
 			return nil
 		})
 		return true
@@ -81,7 +126,7 @@ func (kn *Checkpoint) loadTensors(o *loadedCkpt) (map[string]map[string]*tensor.
 	if err == nil {
 		err = walkErr
 	}
-	return states, err
+	return err
 }
 
 // writeLogResume günlüğe devam kaydını yazar; günlük kayıttakinden kısaysa (silinmiş ya da

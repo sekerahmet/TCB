@@ -534,7 +534,7 @@ func (o *AdamW) state(dup bool) map[string]*Tensor {
 
 // LoadState State ile alınmış durumu yükler; parametre sayısı ve şekilleri aynı olmalıdır.
 func (o *AdamW) LoadState(st map[string]*Tensor) {
-	checkStateKeys(st, len(o.Params), "m", "v", "adim", "ana")
+	o.CheckState(st)
 	o.step = 0
 	if t, ok := st["adim"]; ok {
 		o.step = readCounter("adim", t)
@@ -558,6 +558,42 @@ func (o *AdamW) LoadState(st map[string]*Tensor) {
 	o.master.loadFn(st, o.Params)
 }
 
+// CheckState durumu yüklemeden, LoadState'in bütün kurallarıyla denetler: anahtarlar, şekiller,
+// adım sayaçları, moment çiftleri ve momentli parametrenin sayacı. Uymazsa LoadState gibi
+// paniğe geçer. LoadState önce bunu çağırır, böylece yükleme ya hiç olmaz ya tam olur; kontrol
+// noktası da bütün nesneleri yazmadan önce çağırır (dil tanımı 20.7).
+func (o *AdamW) CheckState(st map[string]*Tensor) {
+	checkStateKeys(st, len(o.Params), "m", "v", "adim", "ana")
+	if t, ok := st["adim"]; ok {
+		readCounter("adim", t)
+	}
+	for k, p := range o.Params {
+		m := checkStateShape(st, fmt.Sprintf("m.%d", k), p)
+		v := checkStateShape(st, fmt.Sprintf("v.%d", k), p)
+		checkStateShape(st, fmt.Sprintf("ana.%d", k), p)
+		if m != v {
+			panic(messages.New(messages.H3061, k))
+		}
+		steps := 0
+		if t, ok := st[fmt.Sprintf("adim.%d", k)]; ok {
+			steps = readCounter(fmt.Sprintf("adim.%d", k), t)
+		}
+		if m && steps == 0 {
+			panic(messages.New(messages.H3062, k))
+		}
+	}
+}
+
+// checkStateShape durumda ad varsa şeklinin p'ninkiyle aynı olduğunu denetler ve var mı
+// sorusunu yanıtlar.
+func checkStateShape(st map[string]*Tensor, ad string, p *Tensor) bool {
+	t, ok := st[ad]
+	if ok && !sameShape(t.shape, p.shape) {
+		panic(messages.New(messages.H3058, ad, t.shape, p.shape))
+	}
+	return ok
+}
+
 // State SGD'nin durumunu (momentum hızları ve ana kopyalar) verir.
 func (o *SGD) State() map[string]*Tensor { return o.state(true) }
 
@@ -575,9 +611,18 @@ func (o *SGD) state(dup bool) map[string]*Tensor {
 	return st
 }
 
+// CheckState durumu yüklemeden denetler (anahtarlar ve şekiller; bkz. AdamW.CheckState).
+func (o *SGD) CheckState(st map[string]*Tensor) {
+	checkStateKeys(st, len(o.Params), "hiz", "ana")
+	for k, p := range o.Params {
+		checkStateShape(st, fmt.Sprintf("hiz.%d", k), p)
+		checkStateShape(st, fmt.Sprintf("ana.%d", k), p)
+	}
+}
+
 // LoadState State ile alınmış durumu yükler; parametre sayısı ve şekilleri aynı olmalıdır.
 func (o *SGD) LoadState(st map[string]*Tensor) {
-	checkStateKeys(st, len(o.Params), "hiz", "ana")
+	o.CheckState(st)
 	for k, p := range o.Params {
 		o.speed[k] = loadState(st, fmt.Sprintf("hiz.%d", k), p)
 	}

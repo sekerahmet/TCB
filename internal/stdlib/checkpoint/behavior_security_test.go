@@ -1,6 +1,8 @@
 package checkpoint_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -189,4 +191,85 @@ func FuzzCheckpointFiles(f *testing.F) {
 			}
 		}
 	})
+}
+
+// Kural (20.7, 20.9): noktanın dosyaları sağlam ama içeriği kurallara uymuyorsa (geçersiz
+// iyileştirici adım sayacı) yükleme hiçbir nesneyi değiştirmez ve hata bir önceki geçerli noktayı
+// önerir. Yükleme iki aşamalıdır: önce her şey denetlenir, sonra yazılır.
+// Neden: eskiden parametreler iyileştiriciden önce yerinde yazılıyor, iyileştiricinin hatası
+// modeli yarı yüklenmiş bırakıyordu (Gemini güvenlik denetimi, bulgu 3).
+func TestCorruptOptimizerStateChangesNothingAndSuggestsPrevious(t *testing.T) {
+	runDir := buildCkpt(t)
+	step2Dir := filepath.Join(runDir, "kontrol_noktalari", "adim_0000000002")
+
+	// adim_0000000002/tensorler.trt içine w=[99, 99, 99] ve geçersiz op/adim=[-1, 0]
+	// yazıp ozet.json'daki boy ve SHA-256 özetini güncelliyoruz.
+	trtPath := filepath.Join(step2Dir, "tensorler.trt")
+	_, err := run(t, fmt.Sprintf(`
+tensör_kaydet(%q, {
+    "w/0": tensör([99.0, 99.0, 99.0]),
+    "op/adim": tensör([-1.0, 0.0])
+})
+`, trPath(trtPath)))
+	if err != nil {
+		t.Fatalf("tensör_kaydet başarısız: %v", err)
+	}
+
+	trtBytes, err := os.ReadFile(trtPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	durumBytes, err := os.ReadFile(filepath.Join(step2Dir, "durum.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	trtSum := sha256.Sum256(trtBytes)
+	durumSum := sha256.Sum256(durumBytes)
+	ozet := fmt.Sprintf(`{
+  "sürüm": 2,
+  "adım": 2,
+  "dosyalar": {
+    "durum.json": {"bayt": %d, "sha256": %q},
+    "tensorler.trt": {"bayt": %d, "sha256": %q}
+  }
+}
+`, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
+	if err := os.WriteFile(filepath.Join(step2Dir, "ozet.json"), []byte(ozet), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Başlangıçta w = [1.0, 2.0, 3.0]. Yükleme hata verdiğinde w hiç değişmemiş
+	// olmalı ve hata mesajı bir önceki sağlam noktayı (adim_0000000001) önermelidir.
+	output, err := run(t, fmt.Sprintf(`
+değişken w = tensör([1.0, 2.0, 3.0], türev_izle: doğru)
+değişken hata_metni = ""
+dene {
+    kontrol_noktası(%q, {w: w, op: AdamW([w]), d: {a: 1}})
+} yakala h {
+    hata_metni = metin(h)
+}
+yazdır("W:", w.değer)
+yazdır("HATA:", hata_metni)
+`, trPath(runDir)))
+	if err != nil {
+		t.Fatalf("beklenmeyen çalışma hatası: %v\n%s", err, output)
+	}
+	if !strings.Contains(output, "W: [1.0, 2.0, 3.0]") {
+		t.Errorf("kontrol_noktası yükleme hatasında model parametresi w yerinde bozuldu (atomiklik ihlali):\n%s", output)
+	}
+	wantHint := messages.Text(messages.H7471, "adim_0000000001", 1)
+	if !strings.Contains(output, wantHint) {
+		t.Errorf("bozuk son noktada bir önceki sağlam nokta (%s) önerilmedi:\n%s", wantHint, output)
+	}
+}
+
+// Kural (20, Biçim ve güvenlik): düz değerin JSON'u da katı çözülür; ilk değerden sonra
+// fazladan veri hatadır (ozet.json ve durum.json gibi).
+// Neden: kurcalanmış bir durum.json'da ikinci bir değer sessizce yok sayılmasın (Gemini
+// güvenlik denetimi, bulgu 10).
+func TestPlainValueRejectsTrailingData(t *testing.T) {
+	v, err := checkpoint.ReadPlain([]byte(`42 {"fazladan": "veri"}`))
+	if err == nil {
+		t.Fatalf("ReadPlain fazladan JSON verisini reddetmeliydi; alınan değer: %v", v)
+	}
 }

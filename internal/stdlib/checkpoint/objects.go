@@ -24,9 +24,10 @@ type Stateful interface {
 	// StateDict değerin durumunu yalnızca düz değerlerden (Tam, Ondalık, Metin, Mantık,
 	// yok, Liste, Sözlük) oluşan bir sözlük olarak verir.
 	StateDict(m *interp.VM) (*interp.DictVal, error)
-	// LoadState durumu geri yükler; kayıt bu değere uymuyorsa (başka küme, tohum ...) yol
-	// gösterici bir hata verir ve değeri değiştirmez.
-	LoadState(m *interp.VM, s *interp.DictVal) error
+	// PrepareState kaydı denetler ve yüklemeyi hazırlar, değeri değiştirmez; kayıt bu değere
+	// uymuyorsa (başka küme, tohum ...) yol gösterici bir hata verir. commit yüklemeyi hatasız
+	// bitirir, discard hazırlığı bırakır; ikisinden biri çağrılır (dil tanımı 20.7).
+	PrepareState(m *interp.VM, s *interp.DictVal) (commit, discard func(), err error)
 }
 
 // object kontrol_noktası sözlüğündeki bir girdidir.

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"io"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/dataload"
@@ -107,6 +108,19 @@ func (o *Reader) loadStateTR(m *interp.VM, args []interp.Value, named map[string
 // okuyucununkilerle aynı olmalıdır, değilse yol gösterici bir hata verir ve okuyucuyu
 // değiştirmez. Önden yükleme hattı durdurulur, okuyucu kaydedilen konumdan yeniden kurulur.
 func (o *Reader) LoadState(m *interp.VM, s *interp.DictVal) error {
+	commit, _, err := o.PrepareState(m, s)
+	if err != nil {
+		return err
+	}
+	commit()
+	return nil
+}
+
+// PrepareState durumu denetler ve okuyucuyu kaydedilen konumdan kuracak kaynağı hazırlar;
+// okuyucuyu değiştirmez. commit yüklemeyi hatasız bitirir (önden yükleme hattını değiştirir),
+// discard hazırlanan kaynağı bırakır; ikisinden biri çağrılmalıdır. Kontrol noktası bütün
+// nesneleri önce hazırlar, hepsi geçerse yazar (dil tanımı 20.7).
+func (o *Reader) PrepareState(m *interp.VM, s *interp.DictVal) (commit, discard func(), err error) {
 	fn := interp.CallPrefix(memberLoadState)
 	d := stateReader{fn: fn, s: s}
 	kind := d.text(sKind)
@@ -129,15 +143,9 @@ func (o *Reader) LoadState(m *interp.VM, s *interp.DictVal) error {
 	counter := int(d.integer(sCounter))
 	done := o.sequential && d.boolean(sDone)
 	if d.failure != nil {
-		return d.failure
+		return nil, nil, d.failure
 	}
-	return o.seekTo(m, fn, pos, counter, done)
-}
-
-// seekTo okuyucuyu verilen konumdan yeniden kurar ve eski önden yükleme hattını kapatır.
-func (o *Reader) seekTo(m *interp.VM, fn string, pos dataload.State, counter int, done bool) error {
 	var goSource dataload.Source
-	var err error
 	m.Blocking(func() {
 		if o.sequential {
 			goSource, err = o.ds.k.Sequential(dataload.SequentialOptions{B: o.b, T: o.t, Start: &pos})
@@ -146,8 +154,20 @@ func (o *Reader) seekTo(m *interp.VM, fn string, pos dataload.State, counter int
 		}
 	})
 	if err != nil {
-		return messages.New(messages.H5540, fn, o.ds.path, clean(err.Error()))
+		return nil, nil, messages.New(messages.H5540, fn, o.ds.path, clean(err.Error()))
 	}
+	commit = func() { o.seekTo(m, goSource, pos, counter, done) }
+	discard = func() {
+		if c, ok := goSource.(io.Closer); ok {
+			_ = c.Close()
+		}
+	}
+	return commit, discard, nil
+}
+
+// seekTo okuyucuyu hazırlanmış kaynakla kaydedilen konumdan yeniden kurar ve eski önden
+// yükleme hattını kapatır.
+func (o *Reader) seekTo(m *interp.VM, goSource dataload.Source, pos dataload.State, counter int, done bool) {
 	o.mu.Lock()
 	pf := dataload.Prefetch(context.Background(), goSource, prefetchDepth)
 	old := o.resource
@@ -164,7 +184,6 @@ func (o *Reader) seekTo(m *interp.VM, fn string, pos dataload.State, counter int
 			_ = fresh.Close(0)
 		}
 	})
-	return nil
 }
 
 // stateReader durum sözlüğünden alan okur; ilk hatayı tutar (sonraki okumalar boş döner).

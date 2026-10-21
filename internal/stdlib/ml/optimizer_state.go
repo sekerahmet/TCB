@@ -121,10 +121,8 @@ func (o *Optimizer) stateTensors(dup bool) ([]string, []*tensor.Tensor) {
 // denetlenir). Kontrol noktasında parametreler bundan ÖNCE yüklenmelidir: ana kopyalar
 // parametrenin o anki sürümüne bağlanır.
 func (o *Optimizer) LoadState(fn string, st map[string]*tensor.Tensor) error {
-	for ad, t := range st {
-		if err := o.checkStateEntry(fn, ad, t.Shape()); err != nil {
-			return err
-		}
+	if err := o.CheckLoad(fn, st); err != nil {
+		return err
 	}
 	moved := make(map[string]*tensor.Tensor, len(st))
 	_, err := bind.Recover(func() bool {
@@ -138,6 +136,28 @@ func (o *Optimizer) LoadState(fn string, st map[string]*tensor.Tensor) error {
 			o.adamw.LoadState(moved)
 		} else {
 			o.sgd.LoadState(moved)
+		}
+		return true
+	}, func(r any) error {
+		return messages.New(messages.H6507, fn, strings.TrimPrefix(fmt.Sprint(r), "tensor: "), o.ad, len(o.params))
+	})
+	return err
+}
+
+// CheckLoad durumu yüklemeden, LoadState'in bütün kurallarıyla denetler: anahtarlar ve
+// şekiller (CheckState) ile adım sayaçları ve moment çiftleri. Kontrol noktası hiçbir nesneyi
+// yazmadan önce bununla sınar (dil tanımı 20.7).
+func (o *Optimizer) CheckLoad(fn string, st map[string]*tensor.Tensor) error {
+	for ad, t := range st {
+		if err := o.checkStateEntry(fn, ad, t.Shape()); err != nil {
+			return err
+		}
+	}
+	_, err := bind.Recover(func() bool {
+		if o.adamw != nil {
+			o.adamw.CheckState(st)
+		} else {
+			o.sgd.CheckState(st)
 		}
 		return true
 	}, func(r any) error {
