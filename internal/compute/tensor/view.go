@@ -107,7 +107,14 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 	} else if g, ok := viewStrides(t.shape, t.strides, sh); ok {
 		st = g
 	} else {
-		return t.Contiguous().Reshape(sh...)
+		// Ara kopya yalnızca sonuç görünümünün depolamasıdır: başlığı bırakılır (türev
+		// izleniyorsa başlık çizgenin ebeveynidir, bırakılmaz).
+		c := t.Contiguous()
+		r := c.Reshape(sh...)
+		if c != t && !(GradEnabled() && c.RequiresGrad()) {
+			c.Drop()
+		}
+		return r
 	}
 	return reshaped(t, sh, st)
 }

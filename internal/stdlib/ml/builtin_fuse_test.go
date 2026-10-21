@@ -33,3 +33,44 @@ func TestFuseComparisons(t *testing.T) {
 		}
 	}
 }
+
+// Kural: argümansız çağrılan kaynaştırılmış fonksiyon kullanıcı hatası verir (argüman sayısı).
+// Neden: boş args'a erişmek iç hataya (H9001) dönüşür.
+func TestFuseCallWithoutArgumentsIsUserError(t *testing.T) {
+	_, err := run(t, `değişken kf = kaynaştır(() => tensör([1.0]))
+kf()`)
+	if err == nil {
+		t.Fatal("argümansız kaynaştır çağrısı hata vermeli")
+	}
+	msg := err.Error()
+	for i := 0; i+len("index out of range") <= len(msg); i++ {
+		if msg[i:i+len("index out of range")] == "index out of range" {
+			t.Fatalf("kullanıcı hatası yerine dilim sınırı paniği (H9001): %v", err)
+		}
+	}
+}
+
+// Kural: kaynaştırılan fonksiyon en az bir tensör döndürür (15.45); boş liste hatadır (H6436),
+// türevli ve türevsiz kipte aynı. Neden: türevli kipte çekirdek iç hata (H3028) verirdi.
+func TestFuseRejectsFunctionReturningEmptyList(t *testing.T) {
+	if out, err := run(t, `değişken kf = kaynaştır((x) => [])
+yazdır(kf(tensör([1.0])))`); err == nil {
+		t.Fatalf("boş liste döndüren kaynaştır fonksiyonu hata vermeliydi, çıktı: %q", out)
+	}
+}
+
+// Kural: kaynaştır önbellek anahtarı etkin hesap türünü (hesap_türü()) içerir (15.45). Neden:
+// iz hesap türünü sabitler; anahtarda yoksa blok içindeki çağrı blok dışındaki programı çalıştırır.
+func TestFuseCacheKeyIncludesComputeDType(t *testing.T) {
+	out := mustRun(t, `değişken kf = kaynaştır((x) => x.türe(hesap_türü()))
+değişken t = tensör([1.0])
+yazdır(kf(t).tür)
+karışık_hassasiyet("bf16") {
+    yazdır(kf(t).tür)
+}`)
+	want := "float32\nbf16\n"
+	if out != want {
+		t.Fatalf("kaynaştır önbelleği karışık_hassasiyet türünü yok saydı:\n%q\nbeklenen:\n%q", out, want)
+	}
+}
+

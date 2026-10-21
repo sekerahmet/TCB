@@ -103,11 +103,10 @@ func init() {
 
 func TestGradLinearCE(t *testing.T) { runGradGroup(t, "linear_ce") }
 
-// Denetim (2026-10-21): bütün hedefleri yok sayılan dilim atlanır (vc == 0), ama x'in
-// gradyan tamponu gx allocUninit ile ayrılmıştır; atlanan dilimin satırları hiç yazılmaz
-// ve havuzdan (GPU'da önbellekli ayırıcıdan) gelen eski veri gradyana karışır. Beklenen:
-// yok sayılan satırların gradyanı 0 (CrossEntropy(MatMul(x, w)) gibi).
-func TestAuditLinearCEIgnoredChunkLeavesStaleXGrad(t *testing.T) {
+// Kural: bütün hedefleri yok sayılan dilimin x gradyanı satırları 0'dır (CrossEntropy(MatMul(x, w))
+// gibi). Neden: gx sıfırsız ayrılır ve dilim atlanır (vc == 0); satırlar yazılmazsa havuzdan
+// (GPU'da önbellekli ayırıcıdan) gelen eski veri gradyana karışır.
+func TestLinearCEIgnoredChunkHasZeroXGrad(t *testing.T) {
 	const R, D, C, chunk = 8, 512, 3, 4 // R*D = 4096: gx havuzdan gelebilir
 	// Havuza eski veriyle dolu, gx ile aynı boyda bir depolama bırak.
 	be := BackendFor(CPU)

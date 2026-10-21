@@ -73,6 +73,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 		}
 	}
 
+	fun = c.namedCallee(k, e, fun)
 	nameList := make([]string, len(e.NamedArgs))
 	namedCode := make([]exprCode, len(e.NamedArgs))
 	for i, na := range e.NamedArgs {
@@ -107,6 +108,28 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 	}
 }
 
+// namedCallee adlı argümanlı çağrının çağrılanını verir. x.metot(a, ad: b) için bağlı metot
+// değeri bir değişkene verilmediğinden alıcı kaçmaz (konumlu çağrıdaki gibi); yalnızca üye
+// değeri okunup çağrılır.
+func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun exprCode) exprCode {
+	mem, ok := e.Function.(*ast.MemberExpression)
+	if !ok {
+		return fun
+	}
+	object := c.expression(k, mem.Object)
+	u := resolveMember(mem.Property)
+	return func(v *VM, env *Environment) (Value, error) {
+		obj, err := object(v, env)
+		if err != nil {
+			return nil, err
+		}
+		if u.core != nil && findMethod(obj, u.core) != nil {
+			escape(obj) // Metin/Liste/Sözlük metotları alıcıyı başka yere koyabilir (ownership.go)
+		}
+		return v.memberValue(obj, mem, u)
+	}
+}
+
 // arguments argüman kodlarını sırayla hesaplar.
 func arguments(v *VM, env *Environment, argCode []exprCode) ([]Value, error) {
 	args := make([]Value, 0, len(argCode))
@@ -130,6 +153,7 @@ func (v *VM) callMethod(meth *FuncVal, inst Value, argCode []exprCode, env *Envi
 		for i, a := range argCode {
 			av, err := a(v, env)
 			if err != nil {
+				v.abandonEnv(fk, fnEnv)
 				return nil, err
 			}
 			fnEnv.store(fk.param[i], av)
@@ -146,6 +170,15 @@ func (v *VM) callMethod(meth *FuncVal, inst Value, argCode []exprCode, env *Envi
 	return v.callPrepared(meth, fk, fk.getEnv(meth.Env), inst, args, len(args), nil, line)
 }
 
+// abandonEnv bir argümanı hata verdiği için hiç çalıştırılmayan çağrının ortamını kapatır:
+// önceki argümanların bağları kalkar ve ortam (havuzlanabilirse) havuza döner.
+func (v *VM) abandonEnv(fk *funcCode, fnEnv *Environment) {
+	fnEnv.closeEnv()
+	if fk.pooled && v.Debugger == nil {
+		fk.release(fnEnv)
+	}
+}
+
 // callAt fnVal'ı (adlı argümansız) konumlu argümanlarla çağırır.
 func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int) (Value, error) {
 	nargs := len(argCode)
@@ -158,6 +191,7 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 			for i, a := range argCode {
 				av, err := a(v, env)
 				if err != nil {
+					v.abandonEnv(fk, fnEnv)
 					return nil, err
 				}
 				fnEnv.store(fk.param[i], av)

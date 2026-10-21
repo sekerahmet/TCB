@@ -347,7 +347,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	for i, e := range list.Elements {
 		inputs[i] = e
 		if d, ok := e.(*TensorValue); ok && d.t.RequiresGrad() {
-			c := tensor.New(d.t.Data(), d.t.Shape()...).SetRequiresGrad(true)
+			c := tensor.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...).SetRequiresGrad(true)
 			copies[i] = c
 			inputs[i] = New(c)
 			checked++
@@ -384,7 +384,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 			if !y.RequiresGrad() {
 				continue
 			}
-			v := tensor.FromFloat64(dirs[k], y.Shape()...)
+			v := tensor.FromFloat64(dirs[k], y.Shape()...).To(y.Device())
 			p := y.Cast(tensor.Float32).Mul(v).SumAll()
 			if loss == nil {
 				loss = p

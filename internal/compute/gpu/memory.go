@@ -304,14 +304,18 @@ func (g *backend) driverAlloc(class, requested uint64) uint64 {
 		}
 	}
 	addr, s := g.sr.allocate(class)
+	fromPool := false
 	if s == errNoMemory {
-		addr, s = g.reclaimMemory(class)
+		addr, s, fromPool = g.reclaimMemory(class)
 	}
 	if s == errNoMemory {
 		empty, total, _ := g.sr.freeMemory()
 		panic(messages.New(messages.H4014, bytesText(requested), bytesText(empty), bytesText(total), g.sr.errName(s)))
 	}
 	g.try_("cuMemAlloc", s)
+	if fromPool {
+		return addr // havuzdan alındı: al() sayaçları zaten işledi
+	}
 	g.pool.fresh2 += class
 	g.pool.newBlock(class)
 	return addr
@@ -353,12 +357,13 @@ func (g *backend) BackwardDone() {
 }
 
 // reclaimMemory çöp toplayıcıyı çalıştırır, temizliklerin havuza dönmesini kısa süre
-// bekler, havuzdaki bütün blokları sürücüye geri verir ve ayırmayı yeniden dener.
-func (g *backend) reclaimMemory(class uint64) (uint64, result) {
+// bekler, havuzdaki bütün blokları sürücüye geri verir ve ayırmayı yeniden dener. Blok
+// havuzdan geldiyse (fromPool) sayaçlar al() ile işlenmiştir; yeni sürücü ayırması değildir.
+func (g *backend) reclaimMemory(class uint64) (addr uint64, s result, fromPool bool) {
 	runtime.GC()
 	for i := 0; i < 20; i++ {
 		if addr, ok := g.pool.al(class); ok {
-			return addr, succeeded
+			return addr, succeeded, true
 		}
 		time.Sleep(5 * time.Millisecond)
 		runtime.Gosched()
@@ -366,7 +371,8 @@ func (g *backend) reclaimMemory(class uint64) (uint64, result) {
 	g.equalize()
 	g.releaseSmall()
 	g.releaseEmptySegments()
-	return g.sr.allocate(class)
+	addr, s = g.sr.allocate(class)
+	return addr, s, false
 }
 
 // releaseSmall havuzdaki boş küçük blokları sürücüye geri verir (cihaz eşzamanlanmış olmalı).

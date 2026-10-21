@@ -917,6 +917,7 @@
 "H6433": { "param": ["fn", "given"] },
 "H6434": { "param": ["fn", "index", "given"] },
 "H6435": { "param": ["fn", "given"] },
+"H6436": { "param": ["fn"] },
 "H6500": { "param": ["fn", "withNamesArg", "falseValue", "given"] },
 "H6501": { "param": ["fn", "stateMethod", "stringType", "tensorType", "key", "given"] },
 "H6502": { "param": ["optimizer", "member", "lrMember"] },

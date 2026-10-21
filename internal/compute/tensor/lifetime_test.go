@@ -118,3 +118,39 @@ func TestCastMemoSkipsDroppedEntry(t *testing.T) {
 		t.Fatal("bırakılmış dönüşüm önbellekten verildi")
 	}
 }
+
+// Kural: bitişik olmayan tensörün Reshape'i ara kopyasının başlığını bırakır; sonuç bırakılınca
+// depolama havuza döner (15.44). Neden: ara başlık sahip kalırsa depolama hiç dönmez.
+func TestReshapeOfNonContiguousReturnsStorageOnDrop(t *testing.T) {
+	log := watchReturns(t)
+	x := big(rand.New(rand.NewSource(1)))
+	v := x.Transpose(0, 1)
+	r := v.Reshape(64 * 64)
+	v.Drop()
+	x.Drop()
+	r.Drop()
+	if !log.returned(r) {
+		t.Fatal("bitişik olmayan tensörün Reshape çıktısı bırakılınca depolaması havuza dönmedi")
+	}
+}
+
+// Kural: CustomOp geri hesabının gelen gradyanları ve ürettiği ara gradyanlar geri hesaptan
+// sonra havuza döner (15.44). Neden: bu başlıkları kimse bırakmazsa depolamaları çöp
+// toplayıcıya kalır.
+func TestCustomOpBackwardReturnsItsTemporaryGradients(t *testing.T) {
+	x := big(rand.New(rand.NewSource(1))).SetRequiresGrad(true)
+	var g0, g1, gx *Tensor
+	outs := CustomOp("test_iki_cikti", []*Tensor{x}, []*Tensor{x.MulScalar(2), x.MulScalar(3)}, nil, func(_ any, grads []*Tensor) []*Tensor {
+		g0, g1 = grads[0], grads[1]
+		gx = grads[0].Add(grads[1])
+		return []*Tensor{gx}
+	})
+	loss := outs[0].Add(outs[1]).SumAll()
+	log := watchReturns(t)
+	loss.Backward()
+	if !log.returned(g0) || !log.returned(g1) || !log.returned(gx) {
+		t.Fatalf("CustomOp geri yayılım ara gradyan depoları havuza dönmedi: g0=%v g1=%v gx=%v",
+			log.returned(g0), log.returned(g1), log.returned(gx))
+	}
+}
+

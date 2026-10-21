@@ -413,3 +413,41 @@ yazdır(oku(r), bırakılan().uzunluk)
 `, `
 7 6`)
 }
+
+// Kural: varsayılan parametre ifadesindeki kapanış fonksiyonun ortamını yakalar; ortam havuzlanmaz
+// ve yakalanan kaynak çağrı dönünce bırakılmaz. Neden: yoksa kaynak erken bırakılır ve ortam
+// havuza sıfırlanarak verilir, kapanışı çağırmak 'ad yok' hatası verir.
+func TestDefaultParamClosureKeepsFunctionEnvironment(t *testing.T) {
+	expectOut(t, `
+fonksiyon kur(x = yeni(), g = () => oku(x)) {
+    sonuç g
+}
+değişken f = kur()
+yazdır(bırakılan())
+yazdır(f())
+`, `
+[]
+1`)
+}
+
+// Kural: hızlı çağrı yolunda sonraki bir argüman hata verirse önceki argümanların bağı çözülür
+// ve kaynakları kapsam sonunda bırakılır. Neden: hata yakalansa bile bağ sayacı kalırsa
+// kaynak hiç bırakılmaz.
+func TestFailingCallArgumentReleasesEarlierArguments(t *testing.T) {
+	expectOut(t, `
+fonksiyon hedef(a, b) { sonuç a }
+fonksiyon patla() { fırlat "hata" }
+fonksiyon sına() {
+    değişken x = yeni()
+    dene {
+        hedef(x, patla())
+    } yakala {
+    }
+}
+sına()
+yazdır(bırakılan())
+`, `
+[1]`)
+}
+
+

@@ -248,3 +248,107 @@ func BenchmarkGatedNeuron(b *testing.B) {
 		}
 	}
 }
+
+type auditSecondDevice struct {
+	tensor.Backend
+	released int
+}
+
+func (d *auditSecondDevice) Device() tensor.Device { return tensor.GPU(99) }
+
+func (d *auditSecondDevice) Release(s tensor.Storage) {
+	d.released++
+	if r, ok := d.Backend.(tensor.Releaser); ok {
+		r.Release(s)
+	}
+}
+
+// Kural: türev_denetle girdi kopyalarını ve yön vektörlerini tensörlerin kendi cihazında kurar.
+// Neden: varsayılan cihazda kurulursa başka cihazdaki tensörlerle işlem cihaz uyuşmazlığı verir.
+func TestCheckGradBuildsCopiesOnTheInputDevice(t *testing.T) {
+	tensor.RegisterBackend(&auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)})
+	out, err := run(t, `değişken w = tensör([2.0, 3.0]).cihaza("gpu:99")
+değişken x = tensör([1.0, 4.0], türev_izle: doğru).cihaza("gpu:99")
+yazdır(türev_denetle((a) => a * w, [x]))`)
+	if err != nil || out != "doğru\n" {
+		t.Fatalf("varsayılan dışı cihazda türev_denetle başarısız: err=%v out=%q", err, out)
+	}
+}
+
+// Kural: adlı argümanlı tensör metodu çağrısı (x.böl(2, eksen: 0)) alıcıyı kaçırmaz; yerel tensör
+// kapsam sonunda konumlu çağrıdaki gibi bırakılır (15.44).
+func TestNamedArgumentMethodCallReleasesReceiverAtScopeExit(t *testing.T) {
+	m := interp.New()
+	m.Out = &bytes.Buffer{}
+	var captured *tensor.Tensor
+	m.GlobalEnv.Define("izle", &interp.BuiltinVal{
+		Name: "izle",
+		Pure: true,
+		Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			captured = args[0].(*TensorValue).t
+			return interp.Null, nil
+		},
+	}, true)
+	p := parser.New(lexer.New(`
+fonksiyon sına() {
+    değişken x = sıfırlar([4, 4])
+    izle(x)
+    değişken parça = x.böl(2, eksen: 0)
+}
+sına()
+`))
+	if _, err := m.Run(p.ParseProgram()); err != nil {
+		t.Fatalf("beklenmeyen hata: %v", err)
+	}
+	if captured == nil || !captured.IsDropped() {
+		t.Fatal("adlı argümanla metot çağrılan yerel tensör kapsam sonunda bırakılmadı")
+	}
+}
+
+// Kural: var olan başlığı aynen döndüren işlemler (aynı cihaza cihaza, tek tensörlü toplam)
+// başlığı ikinci kez sarmaz; yerel tensör kapsam sonunda bırakılır (15.44). Neden: ikinci
+// sarıcı sahipliği alamaz ve başlık hiç düşmez.
+func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
+	for _, expr := range []string{`x.cihaza("cpu")`, `toplam([x])`} {
+		m := interp.New()
+		m.Out = &bytes.Buffer{}
+		var captured *tensor.Tensor
+		m.GlobalEnv.Define("izle", &interp.BuiltinVal{
+			Name: "izle",
+			Pure: true,
+			Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+				captured = args[0].(*TensorValue).t
+				return interp.Null, nil
+			},
+		}, true)
+		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    izle(x)\n    değişken y = %s\n    yazdır(1)\n}\nsına()\n", expr)
+		p := parser.New(lexer.New(code))
+		if _, err := m.Run(p.ParseProgram()); err != nil {
+			t.Fatalf("%s: %v", expr, err)
+		}
+		if captured == nil || !captured.IsDropped() {
+			t.Errorf("%s: aynı başlığı yeniden saran işlem yerel tensörün bırakılmasını engelledi", expr)
+		}
+	}
+}
+
+// Kural: x[i] ve maks(x) ara görünüm başlıklarını bırakır; yerel tensör bırakılınca depolaması
+// arka uca iade edilir (15.44). Not: sondaki 'değişken' deyimi dönüş değeridir, bu yüzden
+// fonksiyonun son satırı başka bir deyimdir.
+func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
+	for _, stmt := range []string{`değişken y = x[0]`, `değişken y = maks(x)`} {
+		dev := &auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)}
+		tensor.RegisterBackend(dev)
+		tensor.SetDefaultDevice(tensor.GPU(99))
+		code := fmt.Sprintf("fonksiyon sına() {\n    değişken x = sıfırlar([4, 4])\n    %s\n    yazdır(1)\n}\nsına()\n", stmt) // sondaki 'değişken' deyimi dönüş değeridir: son satır başka olmalı
+		_, err := run(t, code)
+		tensor.SetDefaultDevice(tensor.CPU)
+		if err != nil {
+			t.Fatalf("%s: %v", stmt, err)
+		}
+		if dev.released == 0 {
+			t.Errorf("%s: kapsam bittikten sonra x'in depolaması arka uca iade edilmedi", stmt)
+		}
+	}
+}
+

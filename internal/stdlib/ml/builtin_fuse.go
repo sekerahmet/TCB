@@ -51,6 +51,7 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 	var inputs []*tensor.Tensor
 	var info []tensor.FuseInputInfo
 	var key strings.Builder
+	fmt.Fprintf(&key, "%s|", mixedDType(m)) // hesap_türü() izde sabitlenir (15.45)
 	for i, a := range args {
 		if x, ok := interp.ToFloat(a); ok {
 			fmt.Fprintf(&key, "#%T%v;", a, x)
@@ -65,6 +66,9 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 		fmt.Fprintf(&key, "%v:%s:%v:%v;", in.Shape, in.DType, in.RequiresGrad, d.t.Device().Kind)
 	}
 	if len(inputs) == 0 {
+		if len(args) == 0 {
+			return nil, interp.ArgCountError(codes.T312, "1+", 0)
+		}
 		return nil, messages.New(messages.H6434, fn, 1, typeName(args[0]))
 	}
 	p := f.cache[key.String()]
@@ -112,6 +116,10 @@ func (f *fusedFn) trace(m *interp.VM, be tensor.Backend, info []tensor.FuseInput
 			single = true
 			return []*tensor.Tensor{r.t}
 		case *interp.ListVal:
+			if len(r.Elements) == 0 {
+				callErr = messages.New(messages.H6436, fn)
+				return nil
+			}
 			out := make([]*tensor.Tensor, len(r.Elements))
 			for i, e := range r.Elements {
 				d, ok := e.(*TensorValue)

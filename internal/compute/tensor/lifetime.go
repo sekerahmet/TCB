@@ -72,6 +72,14 @@ func (t *Tensor) Drop() {
 	unholdStorage(t.be, t.storage)
 }
 
+// dropTemp, after'dan sonra oluşmuş (after = 0: her) ve hiçbir değerin sarmadığı başlığı
+// bırakır; geri hesaplar ara tensörlerini böyle iade eder.
+func (t *Tensor) dropTemp(after uint64) {
+	if t.serial > after && t.wraps.Load() == 0 {
+		t.Drop()
+	}
+}
+
 // IsDropped başlığın bırakılıp bırakılmadığı.
 func (t *Tensor) IsDropped() bool { return t.dropped.Load() }
 

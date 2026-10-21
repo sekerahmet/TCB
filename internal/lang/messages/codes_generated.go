@@ -922,6 +922,7 @@ const (
 	H6433 Code = 6433 // {fn}: kaynaştırılacak bir fonksiyon verilmelidir, {given} verildi
 	H6434 Code = 6434 // {fn}: kaynaştırılmış fonksiyonun {index}. argümanı tensör olmalıdır, {given} verildi
 	H6435 Code = 6435 // {fn}: kaynaştırılan fonksiyon bir tensör ya da tensör listesi döndürmelidir, {given} döndürdü
+	H6436 Code = 6436 // {fn}: kaynaştırılan fonksiyon boş liste döndürdü; en az bir tensör döndürmelidir
 	H6500 Code = 6500 // {fn}(model, {withNamesArg}: {falseValue}) 1 konumlu parametre bekler, {given} verildi
 	H6501 Code = 6501 // {fn}: sözlük {stateMethod} ile alınmış olmalı (anahtarları {stringType}, değerleri {tensorType}); {key|q} girdisi {given}
 	H6502 Code = 6502 // {optimizer} üzerinde {member|q} üyesine atama yapılamaz; atanabilen üye: {lrMember}

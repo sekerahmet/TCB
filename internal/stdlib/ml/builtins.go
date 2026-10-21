@@ -109,7 +109,10 @@ func registerMath(v *interp.VM) {
 	})
 	reduction(v, codes.G402, func(t *tensor.Tensor, e int, whole, keep bool) *tensor.Tensor {
 		if whole {
-			return t.Reshape(-1).Max(0, false)
+			flat := t.Reshape(-1)
+			r := flat.Max(0, false)
+			dropTemp(t, flat)
+			return r
 		}
 		return t.Max(e, keep)
 	})
@@ -117,8 +120,23 @@ func registerMath(v *interp.VM) {
 		if whole {
 			return minAll(t)
 		}
-		return t.Neg().Max(e, keep).Neg()
+		neg := t.Neg()
+		mx := neg.Max(e, keep)
+		r := mx.Neg()
+		dropTemp(t, neg, mx)
+		return r
 	})
+}
+
+// dropTemp bir hesabın ara başlıklarını bırakır (sonuç başka başlıktır; keep çağıranın
+// girdisidir, dokunulmaz). Türev izlenen ara başlık çizgenin ebeveynidir, bırakılmaz
+// (bkz. tensor/lifetime.go).
+func dropTemp(keep *tensor.Tensor, temps ...*tensor.Tensor) {
+	for _, t := range temps {
+		if t != keep && !(tensor.GradEnabled() && t.RequiresGrad()) {
+			t.Drop()
+		}
+	}
 }
 
 // minAll tüm elemanların en küçüğünü 0 boyutlu tensör olarak verir. Çekirdekte Min
@@ -126,7 +144,7 @@ func registerMath(v *interp.VM) {
 // Türev gerekmiyorsa ara tensör ayırmadan konakta tek geçişle bulunur.
 func minAll(t *tensor.Tensor) *tensor.Tensor {
 	if t.RequiresGrad() && tensor.GradEnabled() {
-		return t.Neg().Reshape(-1).Max(0, false).Neg()
+		return t.Neg().Reshape(-1).Max(0, false).Neg() // türev izlenir: ara başlıklar çizgededir
 	}
 	data := t.Data()
 	m := data[0]
