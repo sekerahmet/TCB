@@ -1079,3 +1079,15 @@ test "15.41 sayı olmayan işlenen tensörle işleme girmez" {
     doğrula(hata_metni(() => t + doğru).içerir("Mantık"))
 }
 
+
+test "15.47 tensör_yükle safetensors dosyasını da okur; biçim içerikten anlaşılır" {
+    // small.safetensors: safetensors.torch.save_file ile yazılmış (F32, BF16, F16, boş tensör, __metadata__).
+    değişken y = tensör_yükle("data/small.safetensors")
+    eşit_mi(["e", "w", "b", "h"], y.anahtarlar())
+    eşit_mi([[1.0, 2.0], [3.0, 4.0]], y["w"].değer)
+    eşit_mi("bf16", y["b"].tür)
+    eşit_mi([1.5, -2.0], y["b"].değer)
+    eşit_mi("fp16", y["h"].tür)
+    eşit_mi(3.0, y["h"].değer)
+    eşit_mi([0, 2], y["e"].şekil)
+}
