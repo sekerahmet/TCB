@@ -102,3 +102,27 @@ func init() {
 }
 
 func TestGradLinearCE(t *testing.T) { runGradGroup(t, "linear_ce") }
+
+// Denetim (2026-10-21): bütün hedefleri yok sayılan dilim atlanır (vc == 0), ama x'in
+// gradyan tamponu gx allocUninit ile ayrılmıştır; atlanan dilimin satırları hiç yazılmaz
+// ve havuzdan (GPU'da önbellekli ayırıcıdan) gelen eski veri gradyana karışır. Beklenen:
+// yok sayılan satırların gradyanı 0 (CrossEntropy(MatMul(x, w)) gibi).
+func TestAuditLinearCEIgnoredChunkLeavesStaleXGrad(t *testing.T) {
+	const R, D, C, chunk = 8, 512, 3, 4 // R*D = 4096: gx havuzdan gelebilir
+	// Havuza eski veriyle dolu, gx ile aynı boyda bir depolama bırak.
+	be := BackendFor(CPU)
+	stale := be.Alloc(R*D, Float32)
+	be.Fill(stale, 7)
+	giveBack(be, stale)
+	rng := rand.New(rand.NewSource(5))
+	x := Randn(rng, R, D).SetRequiresGrad(true)
+	w := Randn(rng, D, C)
+	targets := []int{0, 1, 2, 0, -1, -1, -1, -1} // ikinci dilimin hepsi yok sayılır
+	LinearCrossEntropyChunked(x, w, targets, chunk).Backward()
+	g := x.Grad().Data()
+	for i := 4 * D; i < R*D; i++ {
+		if g[i] != 0 {
+			t.Fatalf("yok sayılan satırın gradyanı 0 değil: g[%d] = %v (eski veri)", i, g[i])
+		}
+	}
+}
