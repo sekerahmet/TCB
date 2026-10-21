@@ -54,7 +54,7 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 	wait(t, run(t, exit, other, "", nil), 0, []string{expected}, nil)
 
 	writeFile(t, project, "hatali.tr", "aktar \"tr/olmayan\"\n")
-	wait(t, tr(t, project, "kontrol", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/egitim, tr/iyilestirici, tr/katman`})
+	wait(t, tr(t, project, "kontrol", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/egitim, tr/hazir, tr/iyilestirici, tr/katman`})
 	wait(t, tr(t, project, "derle", "hatali.tr", exit), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok`})
 }
 
