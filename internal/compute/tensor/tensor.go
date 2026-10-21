@@ -49,6 +49,9 @@ type Tensor struct {
 	serial  uint64
 	dropped atomic.Bool
 	wraps   atomic.Int32
+	// sym iz tensörünün (kaynaştırma, fuse_trace.go) program düğümüdür; iz tensörünün
+	// depolaması yoktur.
+	sym *FuseNode
 }
 
 // ----------------------------------------------------------------------------
@@ -248,6 +251,9 @@ func Rand(rng *rand.Rand, lo, hi float32, shape ...int) *Tensor {
 // view tensörün arka uca verilecek görünüm tanımı.
 func (t *Tensor) view() View {
 	t.mustLive()
+	if t.sym != nil {
+		panic(messages.New(messages.H3107)) // kaynaştırılamayan işlem verinin kendisini istedi
+	}
 	return View{S: t.storage, Offset: t.offset, Shape: t.shape, Strides: t.strides}
 }
 
@@ -315,6 +321,9 @@ func (t *Tensor) Version() uint64 { return t.storage.Version() }
 // Data elemanların mantıksal sırayla (satır öncelikli) konaktaki bir kopyasını verir.
 func (t *Tensor) Data() []float32 {
 	t.mustLive()
+	if t.sym != nil {
+		panic(messages.New(messages.H3107))
+	}
 	sy := counterStart(t.be, OpKindToHost).start()
 	d := t.be.ToHost(t.view())
 	sy.finish()

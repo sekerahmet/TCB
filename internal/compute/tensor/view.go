@@ -98,6 +98,9 @@ func (t *Tensor) Reshape(shape ...int) *Tensor {
 	if product != n {
 		panic(messages.New(messages.H3076, t.shape, shape))
 	}
+	if t.sym != nil {
+		return symReshape(t, sh)
+	}
 	var st []int
 	if t.IsContiguous() {
 		st = contiguousStrides(sh)
@@ -189,6 +192,9 @@ func (t *Tensor) Unsqueeze(axis int) *Tensor {
 	if axis < len(t.shape) {
 		step = t.strides[axis] * t.shape[axis]
 	}
+	if t.sym != nil {
+		return symReshape(t, sh)
+	}
 	st := make([]int, 0, nd)
 	st = append(st, t.strides[:axis]...)
 	st = append(st, step)
@@ -205,6 +211,9 @@ func (t *Tensor) Squeeze(axis int) *Tensor {
 	sh := make([]int, 0, len(t.shape)-1)
 	sh = append(sh, t.shape[:axis]...)
 	sh = append(sh, t.shape[axis+1:]...)
+	if t.sym != nil {
+		return symReshape(t, sh)
+	}
 	// Saf görünüm: boyutu 1 olan eksen ve adımı düşürülür; bitişik olmayan tensörde de
 	// kopya yok (t[i] ve döngü öğeleri buradan geçer).
 	st := make([]int, 0, len(t.shape)-1)
@@ -236,6 +245,10 @@ func (t *Tensor) Permute(dims ...int) *Tensor {
 		sh[i] = t.shape[d]
 		st[i] = t.strides[d]
 		gst[i] = cst[d]
+	}
+	if t.sym != nil {
+		sy.finish()
+		return symPermute(t, ax)
 	}
 	out := viewOf(t, t.offset, sh, st)
 	r := trackPass(out, "permute", t, permuteBackward(ax, gst))
@@ -295,6 +308,10 @@ func (t *Tensor) SliceStep(axis, start, end, step int) *Tensor {
 	m := 0
 	if end > start {
 		m = 1 + (end-start-1)/step
+	}
+	if t.sym != nil {
+		sy.finish()
+		return symSlice(t, axis, start, m, step)
 	}
 	sh := copyInts(t.shape)
 	sh[axis] = m

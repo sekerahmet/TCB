@@ -48,6 +48,10 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 	}
 	outShape := copyInts(first.shape)
 	outShape[axis] = total
+	if anySym(ts...) {
+		sy.finish()
+		return symConcat(ts, axis, outShape, dt)
+	}
 	ost := contiguousStrides(outShape)
 
 	// Girdiler float32 bir tampona eklenir; 16 bitlik çıktıda tek kez yuvarlanır. Tampon -0

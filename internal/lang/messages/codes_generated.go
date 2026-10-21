@@ -389,6 +389,10 @@ const (
 	H3103 Code = 3103 // gradyan
 	H3104 Code = 3104 // arka uç
 	H3106 Code = 3106 // LinearCrossEntropy: girdi {x} ile ağırlık {w} uyumsuz; ağırlık [girdinin son ekseni, sınıf sayısı] şeklinde olmalı
+	H3107 Code = 3107 // kaynaştırılan fonksiyonda kaynaştırılamayan bir tensör işlemi var: kaynaştırma eleman bazlı işlemleri, dilimi, .böl'ü, birleştir'i, boyu 1 eksen ekleyip çıkarmayı ve tür dönüşümünü kapsar
+	H3108 Code = 3108 // kaynaştırılan fonksiyon dışarıdan bir tensör ({shape}) kullanıyor; onu argüman olarak verin
+	H3109 Code = 3109 // kaynaştırılan fonksiyonda türev isteyen {shape} şekilli girdi {out} şekline yayınlanıyor; gradyanı indirgeme gerektirdiğinden kaynaştırılamaz
+	H3110 Code = 3110 // kaynaştırılan fonksiyonda {from} → {to} yeniden şekillendirmesi kaynaştırılamaz; yalnızca boyu 1 eksen eklenip çıkarılabilir
 	H4000 Code = 4000 // LoadLibraryExW bulunamadı: {error}
 	H4001 Code = 4001 // NVIDIA sürücüsü ({library}) yüklenemedi: {error}
 	H4002 Code = 4002 // bu TR derlemesinde GPU desteği yok (işletim sistemi desteklenmiyor ya da ikili GPU'suz derlendi)
@@ -915,6 +919,9 @@ const (
 	H6430 Code = 6430 // {fn}: {argName}: eksik; örnek: {example}
 	H6431 Code = 6431 // {fn}: {forwardArg}: ve {backwardArg}: eksik; örnek: {example}
 	H6432 Code = 6432 // {fn}: analitik (geri yayılım) ve sayısal gradyan uyuşmuyor; en büyük fark {input}. girdinin {index} elemanında: analitik {analytic}, sayısal {numeric} (fark {diff}, tolerans {tol}); geri hesabını denetleyin
+	H6433 Code = 6433 // {fn}: kaynaştırılacak bir fonksiyon verilmelidir, {given} verildi
+	H6434 Code = 6434 // {fn}: kaynaştırılmış fonksiyonun {index}. argümanı tensör olmalıdır, {given} verildi
+	H6435 Code = 6435 // {fn}: kaynaştırılan fonksiyon bir tensör ya da tensör listesi döndürmelidir, {given} döndürdü
 	H6500 Code = 6500 // {fn}(model, {withNamesArg}: {falseValue}) 1 konumlu parametre bekler, {given} verildi
 	H6501 Code = 6501 // {fn}: sözlük {stateMethod} ile alınmış olmalı (anahtarları {stringType}, değerleri {tensorType}); {key|q} girdisi {given}
 	H6502 Code = 6502 // {optimizer} üzerinde {member|q} üyesine atama yapılamaz; atanabilen üye: {lrMember}

@@ -85,6 +85,9 @@ func binary(a, b *Tensor, op BinOp) *Tensor {
 // bir kez yuvarlanır).
 func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	be := sameDevice(binopName[op], a, b)
+	if anySym(a, b) {
+		return symBinary(a, b, op, dt)
+	}
 	outShape := broadcastShapes(a.shape, b.shape)
 	sy := counterStart(be, OpKindAdd+OpKind(op)).start()
 	out := emptyOf(binopOp[op], be, outShape, dt)
@@ -228,6 +231,9 @@ var unopName = map[UnOp]string{
 func unaryNoGrad(op UnOp) bool { return op == OpFloor || op == OpCeil || op == OpSign }
 
 func unary(t *Tensor, op UnOp, p float32) *Tensor {
+	if t.sym != nil {
+		return symUnary(t, op, p)
+	}
 	sy := counterStart(t.be, OpKindExp+OpKind(op)).start()
 	out := emptyOf(isElementwise, t.be, t.shape, t.dtyp)
 	t.be.Unary(op, p, out.storage, t.view())
@@ -270,6 +276,9 @@ func (t *Tensor) MulScalar(s float32) *Tensor { return unary(t, OpMulScalar, s) 
 // farkı olmaz) ve sonuç t'nin türündedir (16 bitlik tensör 16 bitlik kalır; diğer
 // skaler işlemlerle tutarlı).
 func (t *Tensor) DivScalar(s float32) *Tensor {
+	if t.sym != nil {
+		return symTensor(t.be, fuseBinary(OpDiv, t.sym, fuseConst(s, nil), t.shape, t.dtyp))
+	}
 	return binaryKind(t, fromStorage(t.be, t.be.FromHost([]float32{s}, Float32), nil), OpDiv, t.dtyp)
 }
 

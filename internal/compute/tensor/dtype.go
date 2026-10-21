@@ -76,6 +76,9 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	if !dt.IsFloat() {
 		panic(messages.New(messages.H3036, dt))
 	}
+	if t.sym != nil {
+		return symCast(t, dt)
+	}
 	sy := counterStart(t.be, OpKindCast).start()
 	out := emptyOf(isCast, t.be, t.shape, dt)
 	t.be.Copy(out.storage, 0, t.view())
