@@ -1,0 +1,13 @@
+//! tr kodlu 1
+// Error 07 — Argument of the wrong type.
+// Message code: H1004
+// What happens: The type checker catches at the call that a value of another type was given to a parameter with a declared type.
+// Why: area() expects a Float parameter but a String was given.
+// Fixed version:
+//     print(area(3.0))
+// Run (from the project root): tr examples/en/errors/07_wrong_type_argument.tr   (exit code 1)
+
+A020 area(side: A201) -> A201 {
+    A021 side * side
+}
+G100(area("three"))

@@ -1,0 +1,10 @@
+//! tr kodlu 1
+// Error 03 — Unterminated text.
+// Message code: H0010
+// What happens: The program does not run at all; the message says that the opened double quote was never closed.
+// Why: A string literal opened by a " needs a closing ".
+// Fixed version:
+//     print("hello")
+// Run (from the project root): tr examples/en/errors/03_syntax_unterminated_text.tr   (exit code 1)
+
+G100("hello)

@@ -1,0 +1,38 @@
+//! tr kodlu 1
+// 33 — Devices and precision: where tensors live and with which number type.
+// What it teaches: devices(), default_device(), .device and .to_device(), dtype: / .dtype / .to_dtype(), mixed_precision,
+// master_weights for 16-bit parameters.
+// Builds on: tensors (23), optimizers (29), saving weights (32).
+// Run (from the project root): tr examples/en/33_devices_and_precision.tr
+// This example runs on the CPU of every machine; if a GPU exists the "gpu" device can be chosen too.
+
+// devices() gives the device names on this machine; the first element is always "cpu".
+G100("first device:", T721()[0], "| gpu present:", T721().Y002("gpu"))
+
+// default_device() tells the current device; with an argument ("cpu", "gpu", "gpu:1") it chooses the device of all
+// tensors built from then on. For training on a GPU it is called before the model is built.
+G100(T720())
+T720("cpu")
+A030 t = T100([1.0, 2.0])
+G100(t.Y401, t.Y414("cpu").Y401) // to_device moves the tensor to another device
+
+// Number type: "float32" (default), "bf16" or "fp16". It is chosen with dtype: when building, read with .dtype,
+// converted with .to_dtype(...) (the gradient flows to the source tensor).
+G100(t.Y402, T101([2, 2], T901: "fp16").Y402, t.Y415("bf16").Y402)
+
+// mixed_precision(type) { ... }: in the block the @ inputs are converted to this type, the calculation is faster and cheaper in
+// memory; the type of the weights does not change. The last expression of the block is the result.
+A030 y = T710("bf16") { T100([[1.0, 2.0]]) @ T100([[3.0], [4.0]]) }
+G100(y.Y404)
+
+// When training a 16-bit parameter with AdamW, master_weights: true (default) keeps a float32 master copy;
+// the update is done there and rounded into the parameter, so small steps do not get lost.
+A030 w = T100([1.0], T900: A040, T901: "bf16")
+A030 op = T400([w], T915: A040)
+T300(G400(w * w))
+op.Y500()
+G100(w.Y402, G405(w.Y404[0], 2))
+
+// --- Try it yourself ---
+// 1. Convert a tensor to "fp16" and back to float32: what is lost in the values?
+// 2. Walk through the result of devices() with a loop and print each one.

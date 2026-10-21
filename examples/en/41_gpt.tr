@@ -1,0 +1,78 @@
+//! tr kodlu 1
+// 41 — GPT with ready-made layers: a small language model built from the layers and optimizers of the language library.
+// What it teaches: building a GPT with `import "tr/katman"`, giving the hidden weights to Muon and the rest to AdamW
+// (MuonVeAdamW), a warm-up–constant–decay learning-rate schedule, resuming with a checkpoint, generating text.
+// Builds on: checkpoints (40) and the transformer (35): the library counterpart of what 35 wrote by hand.
+// The library's own names (GPT, MuonVeAdamW, oran_planı, boyut, katman ...) are not translated yet
+// (docs/spec/17_kodlar.md, 17.2): they stay in Turkish in every spelling.
+// Library code: lib/katman.tr and lib/iyilestirici.tr (you can copy and change it).
+// Details: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
+//
+// Run (from the project root): tr examples/en/41_gpt.tr
+//   Settings come from the command line: tr examples/en/41_gpt.tr --step 300 --width 64 --run runs/gpt2
+//   If it is interrupted (Ctrl+C) the same command goes on where it left off; to start over delete
+//   the run folder or give another --run.
+// On a GPU: pick the default device before the model is built (uncomment the line below)
+// and scale the settings up, e.g. --width 512 --layers 8 --heads 8 --context 512 --batch 64.
+// default_device("gpu")
+
+A070 "tr/katman"
+A070 "tr/iyilestirici"
+
+A030 config = G801({Y500: 100, batch: 8, context: 32, width: 32, layers: 2, heads: 4,
+    muon_rate: 0.02, adamw_rate: 0.01, normuon: A041, run: "runs/gpt_example"},
+    G910: "Trains a small GPT built from ready-made layers with Muon + AdamW",
+    G911: {Y500: "total training steps", run: "run folder (settings, log, checkpoints)",
+        normuon: "NorMuon instead of Muon for the hidden weights"})
+
+// --- Data: the synthetic text in the repository and its tokenizer (for your own data see examples/en/39_training_with_data.tr) ---
+A030 p = V200("../../tests/data/tokenizer.json")
+A030 sampler = V100("../../tests/data/text").Y600(V902: config.batch, V903: config.context, T903: 1)
+
+// --- Model and optimizer ---
+A030 model = GPT(p.Y612, bağlam: config.context, boyut: config.width, katman: config.layers,
+    baş: config.heads, paylaşımlı: A040, tohum: 1)
+A030 opt = MuonVeAdamW(model, muon_oranı: config.muon_rate, adamw_oranı: config.adamw_rate, normuon: config.normuon)
+G100("model: {T530(model).Y001} weight tensors; {opt.muon.ağırlıklar.Y001} in Muon, {opt.diğer.Y001} in AdamW")
+
+// --- Run folder and checkpoint: model, the state of AdamW and Muon, the reader, the log ---
+G122(config.run)
+G111(G120(config.run, "config.json"), G601(config))
+A030 run_log = G810(G120(config.run, "metrics.jsonl"))
+A030 ckpt = T702(config.run, {model: model, adamw: opt.adamw, muon: opt.muon.Y502, reader: sampler, run_log: run_log}, T984: 5)
+
+// --- Training: 10% warm-up first, 30% decay at the end ---
+A001 ckpt.Y520 < config.Y500 {
+    A030 bar = G811(config.Y500, G912: run_log)
+    A010 step A011 ckpt.Y520..config.Y500 {
+        opt.çarpan_ayarla(oran_planı(step, config.Y500, ısınma: G210(config.Y500 / 10), azalma: 0.3))
+        A030 tokens, target = sampler.Y602()
+        opt.Y501()
+        A030 loss = model.kayıp(tokens, target)
+        T300(loss)
+        opt.Y500()
+        bar.Y010({loss: loss}, T982: step + 1)
+        ckpt.Y010(step + 1)
+    }
+    ckpt.Y521()
+}
+
+// --- Validation loss and text generation ---
+A030 validation = V100("../../tests/data/text").Y601(V902: config.batch, V903: config.context)
+A030 total_loss = 0.0
+A030 count = 0
+T301 {
+    A010 {
+        A030 job = validation.Y602()
+        A001 job == A042 A044 count == 10 { A013 }
+        total_loss += model.kayıp(job[0], job[1]).Y404
+        count += 1
+    }
+}
+G100("validation loss ({count} batches): {G405(total_loss / count, 3)}")
+A030 generated = model.üret(p.Y610("Bugün"), 12, sıcaklık: 0.8, en_iyi_k: 20, tohum: 1)
+G100("the model wrote: {p.Y611(generated)}")
+
+// --- Try it yourself ---
+// 1. Run with --layers 4 --width 64: how does the validation loss change?
+// 2. Set the temperature of generate to 0.2 and to 1.5 and watch how the text changes.

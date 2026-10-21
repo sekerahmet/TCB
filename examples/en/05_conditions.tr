@@ -1,0 +1,50 @@
+//! tr kodlu 1
+// 05 — Conditions: the program making decisions.
+// What it teaches: if / else if / else, combining conditions with and/or/not, nested conditions, match.
+// Builds on: comparison and Bool values (03), interpolation (04).
+// Run (from the project root): tr examples/en/05_conditions.tr
+
+A030 temperature = 31
+
+// If the condition is true the braced block runs; they are tried in order, the first true one wins.
+A001 temperature > 30 {
+    G100("hot")
+} A002 A001 temperature > 15 {
+    G100("mild")
+} A002 {
+    G100("cold")
+}
+
+// Combined condition: and needs both, or needs one, not reverses.
+A030 age = 20
+A030 has_license = A040
+A001 age >= 18 A043 has_license {
+    G100("can drive")
+}
+A001 age < 18 A044 A045 has_license {
+    G100("cannot drive")
+}
+
+// Conditions can be nested.
+A001 age >= 18 {
+    A001 age >= 65 {
+        G100("{age}: retired")
+    } A002 {
+        G100("{age}: adult")
+    }
+}
+
+// match: compares a value with patterns in order and runs the first arm that fits.
+// default runs if none fits. match also produces a value.
+A030 day = 3
+A030 day_name = A003 day {
+    1 => "Monday"
+    2 => "Tuesday"
+    3 => "Wednesday"
+    A004 => "some other day"
+}
+G100("day {day}: {day_name}")
+
+// --- Try it yourself ---
+// 1. Keep a grade (0-100) in a variable; print "fail" below 50, "pass" for 50-84 and "excellent" for 85 and above.
+// 2. Set day to 6: which arm runs?

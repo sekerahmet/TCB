@@ -1,0 +1,52 @@
+// 09 — Listeler: birçok değeri sıralı tutmak.
+// Ne öğretir: liste kurmak, indeksle okumak ve yazmak (negatif indeks sondan sayar), ekle, uzunluk,
+// döngüyle gezmek, sırala, ters_çevir, toplam/ortalama, liste üreteci, birleştir, varsa_al, çoklu atama ve takas.
+// Önceki örnekten: döngüler (07), fonksiyonlar (08), metin (04).
+// Çalıştırma (proje kökünden): tr examples/tr/09_listeler.tr
+
+// Liste köşeli parantezle yazılır; elemanlar farklı tipte olabilir.
+değişken meyveler = ["elma", "armut", "kiraz"]
+yazdır(meyveler, meyveler.uzunluk)
+
+// İndeks 0'dan başlar; -1 son elemandır.
+yazdır(meyveler[0], meyveler[2], meyveler[-1])
+meyveler[1] = "erik" // elemanı değiştir
+meyveler.ekle("muz") // sona ekle
+yazdır(meyveler)
+
+// Liste bir döngüyle gezilir.
+döngü meyve içinde meyveler {
+    yazdır("- {meyve}")
+}
+
+// Sayı listeleri için hazır işlemler.
+değişken sayılar = [5, 2, 8, 2, 1, 9, 5, 4]
+yazdır("sıralı:", sayılar.sırala(), "ters:", sayılar.sırala().ters_çevir())
+yazdır("ilk: {sayılar.ilk}, son: {sayılar.son}, benzersiz: {sayılar.benzersiz()}")
+yazdır("toplam: {toplam(sayılar)}, ortalama: {ortalama(sayılar)}, en büyük: {maks(sayılar)}")
+
+// Liste üreteci: bir döngüden yeni liste kurar; eğer ile elenebilir.
+yazdır("kareler: {[x * x döngü x içinde 1..=6]}")
+yazdır("çift kareler: {[x * x döngü x içinde 1..=10 eğer x % 2 == 0]}")
+
+// Fonksiyon birden çok değeri liste olarak verebilir; çoklu atama listeyi açar.
+fonksiyon bölüm_ve_kalan(a, b) {
+    sonuç [a / b, a % b]
+}
+değişken bölüm, kalan = bölüm_ve_kalan(17, 5)
+yazdır("17 / 5 = {bölüm}, kalan {kalan}")
+
+// Çoklu atamayla iki değişken yer değiştirir (takas).
+değişken a, b = 10, 20
+a, b = b, a
+yazdır("a = {a}, b = {b}")
+
+// birleştir elemanları aralarına ayırıcı koyarak tek metin yapar.
+yazdır(["a", "b", "c"].birleştir(", "))
+
+// l[i] sınır dışında hata verir; varsa_al ise yok verir, ?? ile varsayılana düşülür.
+yazdır(sayılar.varsa_al(1), sayılar.varsa_al(99) ?? 0, "ab".varsa_al(-1))
+
+// --- Kendin dene ---
+// 1. Bir not listesi kur; en yüksek, en düşük ve ortalamayı yazdır.
+// 2. 1..=30 arasında 3'e bölünen sayıların listesini üreteçle çıkar.

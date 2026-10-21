@@ -1,0 +1,58 @@
+// 14 — Yapılar ve metotlar: ilişkili verileri ve onlara bağlı işleri bir arada tutmak.
+// Ne öğretir: yapı tanımı, alanlar ve varsayılan değerler, metot, kendi, nesne oluşturma
+// (konumlu ve adlı), alan güncellemek, kurucu, YapıTanımı ve Nesne.
+// Önceki örnekten: fonksiyonlar (08), listeler (09), sözlükler (11).
+// Çalıştırma (proje kökünden): tr examples/tr/14_yapilar_ve_metotlar.tr
+
+// yapı, kendi alanları olan yeni bir tip tanımlar. Sözlükten farkı: alanları ve tipleri baştan bellidir.
+yapı Geliştirici {
+    ad: Metin
+    deneyim: Tam = 1 // varsayılan değer
+
+    // Yapının içindeki fonksiyon metottur; kendi, üzerinde çalışılan nesnedir.
+    fonksiyon tanıt() {
+        sonuç "{kendi.ad} ({kendi.deneyim} yıl)"
+    }
+
+    fonksiyon deneyim_ekle(yıl) {
+        kendi.deneyim += yıl
+    }
+}
+
+değişken dev = Geliştirici("Ahmet", 5) // alanlar tanım sırasıyla verilir
+dev.deneyim += 1 // alan doğrudan güncellenir
+yazdır(dev.tanıt())
+yazdır(Geliştirici(ad: "Zeynep").tanıt()) // adlı argüman; deneyim varsayılan kalır
+dev.deneyim_ekle(4)
+yazdır(dev.tanıt())
+
+// Yapılar listede de tutulur.
+yapı Nokta {
+    x: Ondalık
+    y: Ondalık
+
+    fonksiyon uzaklık() {
+        sonuç karekök(kendi.x ** 2 + kendi.y ** 2)
+    }
+}
+değişken noktalar = [Nokta(3.0, 4.0), Nokta(6.0, 8.0)]
+yazdır(noktalar.haritala { o.uzaklık() })
+
+// kurucu adlı metot nesne oluşturulurken çağrılır; alanları hesaplayarak başlatabilir.
+yapı Hesap {
+    bakiye
+
+    fonksiyon kurucu(ilk) {
+        kendi.bakiye = ilk * 2
+    }
+}
+yazdır(Hesap(5).bakiye)
+
+// Yapının kendisi YapıTanımı tipindedir; nesnenin tipi yapının kendisidir.
+// Nesne, yapıdan oluşan her değerin genel adıdır (tip bildirimlerinde kullanılır).
+değişken hesap: Nesne = Hesap(1)
+yazdır(tip(Hesap) == YapıTanımı, tip(hesap) == Hesap)
+
+// --- Kendin dene ---
+// 1. Dikdörtgen yapısı yaz (en, boy) ve alan() ile çevre() metotlarını ekle.
+// 2. Geliştirici nesnelerinden oluşan bir liste kur ve deneyimi en yüksek olanın adını bul.

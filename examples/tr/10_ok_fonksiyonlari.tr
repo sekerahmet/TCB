@@ -1,0 +1,41 @@
+// 10 — Ok fonksiyonları ve zincirleme: fonksiyonu değer olarak kullanmak.
+// Ne öğretir: (x) => ifade ok fonksiyonu, fonksiyonu parametre olarak geçirmek, sondaki blok ve o,
+// filtrele/haritala/indirge, boru hattı (|>).
+// Önceki örnekten: fonksiyonlar (08) ve listeler (09).
+// Çalıştırma (proje kökünden): tr examples/tr/10_ok_fonksiyonlari.tr
+
+// Ok fonksiyonu adsız, tek ifadelik bir fonksiyondur; bir değişkende saklanabilir.
+değişken iki_katı = (x) => x * 2
+yazdır(iki_katı(21))
+
+// Fonksiyon bir değerdir: başka fonksiyona parametre olarak verilir.
+fonksiyon uygula(f, değer) {
+    sonuç f(değer)
+}
+yazdır(uygula(iki_katı, 8))
+yazdır(uygula((x) => x + 1, 8))
+
+// Listelerin metotları fonksiyon alır: haritala her elemanı dönüştürür,
+// filtrele koşulu sağlayanları bırakır, indirge hepsini tek değere toplar.
+değişken sayılar = [1, 2, 3, 4, 5, 6]
+yazdır(sayılar.haritala((x) => x * x))
+yazdır(sayılar.filtrele((x) => x % 2 == 0))
+yazdır(sayılar.indirge(0, (t, x) => t + x))
+
+// Son parametre fonksiyonsa süslü parantezle yazılabilir (sondaki blok).
+// Blokta sıradaki eleman o adıyla gelir; indirge'de önceki sonuç birikim'dir.
+yazdır(sayılar.haritala { o * 10 })
+yazdır(sayılar.filtrele { o > 3 })
+yazdır(sayılar.indirge(1) { birikim * o })
+
+// Metotlar zincirlenir: her adımın sonucu bir sonrakinin girdisi olur.
+değişken ham = [5, 2, 8, 2, 1, 9, 5, 4]
+yazdır(ham.benzersiz().filtrele { o > 2 }.sırala().ters_çevir())
+
+// Boru hattı |>: soldaki değeri sağdaki fonksiyona verir.
+değişken çift_kareler = ham.filtrele { o % 2 == 0 }.haritala { o * o }
+yazdır("çift kareler: {çift_kareler}, toplamı {çift_kareler |> toplam}")
+
+// --- Kendin dene ---
+// 1. Bir kelime listesinden yalnızca 4 harften uzun olanları büyük harfe çevir.
+// 2. 1'den 10'a kadar sayıların çarpımını (10!) indirge ile bul.

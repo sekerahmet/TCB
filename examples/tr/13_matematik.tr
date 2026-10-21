@@ -1,0 +1,34 @@
+// 13 — Matematik: sayılarla hesap yapan yerleşikler.
+// Ne öğretir: min/maks/mutlak/işaret, yuvarlama (taban, tavan, sınırla), istatistik (ortanca,
+// standart_sapma), pi ve trigonometri, üstel ve logaritma fonksiyonları.
+// Önceki örnekten: listeler (09), fonksiyon çağrıları (08), adlı argüman (08).
+// Çalıştırma (proje kökünden): tr examples/tr/13_matematik.tr
+
+// En küçük, en büyük, mutlak değer ve işaret. min/maks bir liste ya da birden çok sayı alır.
+yazdır(min([3, 1, 2]), maks([3, 1, 2]), min(4, 2.5), maks(4, 2.5))
+yazdır(mutlak(-5), mutlak(-2.5), işaret(-4), işaret(0.0), işaret(9))
+
+// taban aşağı, tavan yukarı yuvarlar; sınırla değeri iki sınır arasında tutar (adlı argümanlar).
+yazdır(taban(3.7), tavan(3.2), taban(-2.5), tavan(-2.5))
+yazdır(sınırla(15, en_fazla: 10), sınırla(-3.5, en_az: 0.0), sınırla(5, en_az: 0, en_fazla: 3))
+
+// İstatistik: ortalama, ortanca ve (popülasyon) standart sapma.
+değişken notlar = [2, 4, 4, 4, 5, 5, 7, 9]
+yazdır(ortalama(notlar), ortanca(notlar), standart_sapma(notlar))
+yazdır(ortanca([3, 1, 4, 2]), karekök(16))
+
+// pi bir sabittir (çağrılmaz). Trigonometri radyanla çalışır: 180 derece pi radyandır.
+yazdır(yuvarla(pi, 4), yuvarla(sinüs(pi / 2), 4), yuvarla(kosinüs(pi), 4), yuvarla(tanjant(pi / 4), 4))
+yazdır(yuvarla(arksinüs(1.0), 4), yuvarla(arkkosinüs(0.0), 4), yuvarla(arktanjant(1.0), 4))
+yazdır(yuvarla(arktanjant2(1.0, -1.0), 4)) // (x, y) = (-1, 1) noktasının açısı
+
+// Üstel ve logaritma: üstel e^x, log doğal logaritma; log2 ve log10 öbür tabanlar.
+yazdır(yuvarla(üstel(1.0), 4), log(1.0), log2(8), log10(1000))
+// log1p ve üstel_eksi_bir küçük sayılarda hassastır: log(1 + x), e^x - 1.
+yazdır(log1p(0.000001), üstel_eksi_bir(0.000001))
+// Hiperbolik sinüs ve kosinüs.
+yazdır(yuvarla(sinh(1.0), 4), cosh(0.0))
+
+// --- Kendin dene ---
+// 1. Bir listenin ortalamasını, ortancasını ve standart sapmasını karşılaştır: hangisi uç değerden en az etkilenir?
+// 2. Bir üçgenin dik kenarlarından (3 ve 4) açıyı arktanjant2 ile bul ve dereceye (180 / pi ile) çevir.

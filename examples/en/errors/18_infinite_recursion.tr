@@ -1,0 +1,16 @@
+//! tr kodlu 1
+// Error 18 — Infinite recursion.
+// Message code: H2422
+// What happens: A function that keeps calling itself passes the limit of nested calls and the program stops.
+// Why: The function has no condition that stops it.
+// Fixed version:
+//     func count(n) {
+//         if n >= 10 { return n }
+//         return count(n + 1)
+//     }
+// Run (from the project root): tr examples/en/errors/18_infinite_recursion.tr   (exit code 1)
+
+A020 count(n) {
+    A021 count(n + 1)
+}
+G100(count(0))

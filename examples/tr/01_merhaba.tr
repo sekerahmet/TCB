@@ -1,18 +1,21 @@
 // 01 — Merhaba: ilk TR programı.
-// Öğrettikleri: değişken tanımlamak, yazdır ile metne değer yerleştirmek ({ad}),
-// listeler, sondaki blok ile filtreleme/dönüştürme (o = sıradaki eleman) ve fonksiyon.
+// Ne öğretir: yazdır ile ekrana yazmak, metin sabiti, birden çok değer, satır sonu ve yorum.
+// Önceki örnekten: — (ilk örnek).
 // Çalıştırma (proje kökünden): tr examples/tr/01_merhaba.tr
 // Kendi denemeleriniz için bu dosyayı scratch/ klasörüne kopyalayıp değiştirebilirsiniz
 // (scratch/ depoya girmez).
 
-değişken ad = "dünya"
-yazdır("Merhaba, {ad}!")
+// İki eğik çizgiyle başlayan satır yorumdur: program onu çalıştırmaz, okuyana not düşer.
+yazdır("Merhaba, dünya!")
+yazdır("Bu ikinci satır.")
 
-değişken sayılar = [1, 2, 3, 4, 5, 6]
-yazdır("Çift sayılar: {sayılar.filtrele { o % 2 == 0 }}")
-yazdır("Kareleri: {sayılar.haritala { o * o }}")
+// Virgülle ayrılan değerler aynı satıra, aralarına birer boşluk konarak yazılır.
+yazdır("Üç", "değer", "yan yana")
+yazdır(2026) // sayı da yazdırılır; tırnak yalnızca metin içindir
 
-fonksiyon selamla(isim) {
-    sonuç "Hoş geldin, {isim}"
-}
-yazdır(selamla("TR dili"))
+// Metnin içindeki \n satır sonu demektir.
+yazdır("Birinci satır\nİkinci satır")
+
+// --- Kendin dene ---
+// 1. Kendi adınla bir selamlama yazdır.
+// 2. Üç ayrı yazdır yerine tek bir yazdır içinde üç metin yaz.

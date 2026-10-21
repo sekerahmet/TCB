@@ -94,7 +94,7 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	}
 	// Karakter modelinin eğitimi kısaltılır (iki kopyada da aynı biçimde).
 	for _, root := range []string{tr1, tr2} {
-		filePath := filepath.Join(root, "examples", "tr", "15_karakter_modeli.tr")
+		filePath := filepath.Join(root, "examples", "tr", "36_karakter_modeli.tr")
 		data, err := os.ReadFile(filePath)
 		if err != nil {
 			t.Fatal(err)
@@ -274,8 +274,8 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 	var files []string
 	for _, k := range []string{"tests", "examples", "lib", "tools"} {
 		filepath.WalkDir(reporoot.Path(k), func(filePath string, g fs.DirEntry, err error) error {
-			if err == nil && g.IsDir() && g.Name() == "negative" {
-				return filepath.SkipDir // bilerek hatalı dosyalar (ölü kodlar, bozuk başlıklar)
+			if err == nil && g.IsDir() && (g.Name() == "negative" || g.Name() == errorsDir["tr"] || g.Name() == errorsDir["en"]) {
+				return filepath.SkipDir // bilerek hatalı dosyalar (ölü kodlar, bozuk başlıklar, hata örnekleri)
 			}
 			if err == nil && !g.IsDir() && strings.HasSuffix(filePath, ".tr") && !trFilesWithData[g.Name()] {
 				files = append(files, filePath)

@@ -1,0 +1,11 @@
+//! tr kodlu 1
+// Error 10 — Index out of range.
+// Message code: H2515
+// What happens: Reading a position the list does not have raises an error at run time; the message tells the length and the fix.
+// Why: The list has 3 items (indices 0, 1, 2); there is no index 5.
+// Fixed version:
+//     print(items.get(5) ?? 0) // if the item may be missing; or check the length: if 5 < items.length { ... }
+// Run (from the project root): tr examples/en/errors/10_index_out_of_range.tr   (exit code 1)
+
+A030 items = [10, 20, 30]
+G100(items[5])

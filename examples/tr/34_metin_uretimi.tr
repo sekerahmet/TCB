@@ -1,0 +1,32 @@
+// 34 — Metin üretimi: modelin çıktısından örnek seçmek.
+// Ne öğretir: örnekle ile logit dağılımından bir indeks seçmek, sıcaklık: ve en_iyi_k: ile rastgeleliği ayarlamak,
+// tohum: ile sonucu tekrar üretilebilir yapmak.
+// Önceki örnekten: softmax (23), seçme ve sıralama (25), döngüler (07).
+// Çalıştırma (proje kökünden): tr examples/tr/34_metin_uretimi.tr
+
+// Bir dil modeli her adımda bütün sözcükler için puan (logit) üretir. En olasıyı almak (maks_indeks) hep aynı
+// metni verir; örnekle, puanlardan olasılıkla bir indeks seçer.
+değişken logit = tensör([1.0, 3.0, 0.5])
+yazdır("olasılıklar:", softmax(logit).değer)
+
+// sıcaklık: logitleri böler. 0 her zaman en olasıyı seçer; küçük değer en olasıya yaklaştırır, büyük değer dağıtır.
+yazdır("sıcaklık 0 ->", örnekle(logit, sıcaklık: 0).değer)
+
+// tohum: aynı tohum aynı sonucu verir (tekrar üretilebilirlik).
+yazdır(örnekle(logit, tohum: 7).değer, örnekle(logit, tohum: 7).değer)
+
+// en_iyi_k: seçimi en olası k sınıfla sınırlar; 1 yalnızca en olasıyı bırakır.
+yazdır("en_iyi_k 1 ->", örnekle(logit, en_iyi_k: 1).değer)
+yazdır(örnekle(logit, sıcaklık: 0.8, en_iyi_k: 2, tohum: 7).değer)
+
+// Bir toplu üretim: tohumu değiştirerek 8 örnek alıp hangi sınıfın kaç kez geldiğini sayalım.
+değişken sayım = [0, 0, 0]
+döngü tohum içinde 1..=8 { // yüksek sıcaklıkta dağılım yayılır
+    değişken seçilen = örnekle(logit, sıcaklık: 3.0, tohum: tohum).değer
+    sayım[seçilen] += 1
+}
+yazdır("8 örnekte (sıcaklık 3) sınıf sayıları:", sayım)
+
+// --- Kendin dene ---
+// 1. sıcaklık: 5.0 ile 8 örnek al: dağılım nasıl değişir?
+// 2. en_iyi_k: 2 ile en az olası sınıfın hiç seçilmediğini doğrula.

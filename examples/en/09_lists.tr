@@ -1,0 +1,53 @@
+//! tr kodlu 1
+// 09 — Lists: keeping many values in order.
+// What it teaches: building a list, reading and writing by index (a negative index counts from the end), append,
+// length, walking with a loop, sort, reverse, sum/mean, list comprehensions, join, get, multiple assignment and swap.
+// Builds on: loops (07), functions (08), text (04).
+// Run (from the project root): tr examples/en/09_lists.tr
+
+// A list is written in square brackets; its elements can be of different types.
+A030 fruits = ["apple", "pear", "cherry"]
+G100(fruits, fruits.Y001)
+
+// The index starts at 0; -1 is the last element.
+G100(fruits[0], fruits[2], fruits[-1])
+fruits[1] = "plum" // change an element
+fruits.Y004("banana") // add to the end
+G100(fruits)
+
+// A list is walked with a loop.
+A010 fruit A011 fruits {
+    G100("- {fruit}")
+}
+
+// Ready-made operations for number lists.
+A030 numbers = [5, 2, 8, 2, 1, 9, 5, 4]
+G100("sorted:", numbers.Y202(), "reversed:", numbers.Y202().Y003())
+G100("first: {numbers.Y210}, last: {numbers.Y211}, unique: {numbers.Y204()}")
+G100("sum: {G400(numbers)}, mean: {G410(numbers)}, largest: {G402(numbers)}")
+
+// List comprehension: builds a new list from a loop; if filters elements out.
+G100("squares: {[x * x A010 x A011 1..=6]}")
+G100("even squares: {[x * x A010 x A011 1..=10 A001 x % 2 == 0]}")
+
+// A function can give several values as a list; multiple assignment unpacks it.
+A020 quotient_and_remainder(a, b) {
+    A021 [a / b, a % b]
+}
+A030 quotient, remainder = quotient_and_remainder(17, 5)
+G100("17 / 5 = {quotient}, remainder {remainder}")
+
+// With multiple assignment two variables trade places (swap).
+A030 a, b = 10, 20
+a, b = b, a
+G100("a = {a}, b = {b}")
+
+// join puts a separator between the elements and makes one text.
+G100(["a", "b", "c"].Y203(", "))
+
+// l[i] fails out of range; get gives none instead, and ?? falls back to a default.
+G100(numbers.Y013(1), numbers.Y013(99) ?? 0, "ab".Y013(-1))
+
+// --- Try it yourself ---
+// 1. Build a list of grades; print the highest, the lowest and the mean.
+// 2. Produce the list of numbers divisible by 3 between 1..=30 with a comprehension.

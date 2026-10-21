@@ -280,8 +280,9 @@ func TestRepoTRFilesEncodeLossless(t *testing.T) {
 	}
 	t.Logf("%d .tr dosyası sınandı; ayrıştırılamadığı için atlanan %d: %v", tested, len(skipped), skipped)
 	for _, d := range skipped {
-		// Bilerek hatalı dosyalar: dilin olumsuz testleri ve araçların testdata fikstürleri.
-		if !strings.HasPrefix(d, "tests/negative/") && !strings.Contains(d, "/testdata/") {
+		// Bilerek hatalı dosyalar: dilin olumsuz testleri, araçların testdata fikstürleri ve hata örnekleri.
+		if !strings.HasPrefix(d, "tests/negative/") && !strings.Contains(d, "/testdata/") &&
+			!strings.HasPrefix(d, "examples/tr/hatalar/") && !strings.HasPrefix(d, "examples/en/errors/") {
 			t.Errorf("%s ayrıştırılamadı; yalnızca bilerek hatalı olumsuz test dosyaları atlanabilir", d)
 		}
 	}

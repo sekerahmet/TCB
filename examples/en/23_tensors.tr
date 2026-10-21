@@ -1,0 +1,48 @@
+//! tr kodlu 1
+// 23 — Tensors: the number arrays of artificial intelligence.
+// What it teaches: creating tensors, the Tensor type, shape, transpose, slice, concat, @ (matrix product), broadcasting, relu/softmax, reading with .tolist.
+// Builds on: lists (09) and function calls (08); a tensor is built from nested lists.
+// Run (from the project root): tr examples/en/23_tensors.tr
+// Details: docs/guide/04_yapay_zeka_ve_veri.md §4.C, docs/spec/15_tensorler.md §15.
+
+// A tensor is an n-dimensional array of numbers: one-dimensional (vector), two-dimensional (matrix) ...
+A030 v = T100([1.0, 2.0, 3.0])
+A030 A = T100([[1.0, 2.0], [3.0, 4.0]])
+A030 W = T100([[0.5, -0.5], [1.0, 2.0]]) // a matrix: a 2-dimensional tensor
+G100("v.shape = {v.Y400}, A.shape = {A.Y400}")
+G100("A.tolist = {A.Y404}") // .tolist turns the tensor into a plain TR list
+
+// Ready-made tensor builders.
+G100(T101([2, 3]))
+G100(T102([3]))
+G100(T111(3))
+
+// Element-wise operations work on same-shaped tensors one element at a time.
+G100("A + A =", A + A)
+G100("A * W =", A * W)
+
+// @ is the matrix product (rows × columns).
+G100("A @ W =", A @ W)
+
+// Broadcasting: a smaller tensor is stretched to the shape of the bigger one by itself.
+G100("A + [10, 20] (added to every row) =", A + T100([10.0, 20.0]))
+G100("A * 2 =", A * 2)
+
+// Activation functions: relu zeroes the negatives, softmax gives probabilities that sum to 1.
+G100("relu(A @ W - 4) =", T200(A @ W - 4))
+G100("softmax([2, 1, 0.1]) =", T210(T100([2.0, 1.0, 0.1])))
+G100("sum:", G400(A), "mean:", G410(A))
+
+// Type declaration: Tensor. The shape is a property of a tensor (number type and device in 33).
+A030 t: A212 = T100([[1, 2, 3], [4, 5, 6]])
+G100(G201(t) == A212, t.Y400)
+
+// transpose swaps the last two axes; slice(axis, start, end) cuts a range;
+// concat joins a list of tensors end to end along an axis.
+G100(t.Y411().Y404)
+G100(t.Y413(1, 0, 2).Y404)
+G100(T121([T102([2, 1]), T101([2, 2])], T902: -1).Y400)
+
+// --- Try it yourself ---
+// 1. Build a 3x3 matrix and multiply it by eye(3): what is the result?
+// 2. Compare the relu and sigmoid results for tensor([-2.0, 0.0, 3.0]).

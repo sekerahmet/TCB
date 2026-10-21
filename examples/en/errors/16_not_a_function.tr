@@ -1,0 +1,14 @@
+//! tr kodlu 1
+// Error 16 — Calling something that is not a function.
+// Message code: H2421
+// What happens: Calling a value that is not a function raises an error at run time.
+// Why: x is an Int; an Int cannot be called like a function.
+// Fixed version:
+//     func x() {
+//         return 5
+//     }
+//     print(x())
+// Run (from the project root): tr examples/en/errors/16_not_a_function.tr   (exit code 1)
+
+A030 x = 5
+x()

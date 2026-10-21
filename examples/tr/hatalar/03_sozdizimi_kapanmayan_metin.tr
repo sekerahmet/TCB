@@ -1,0 +1,9 @@
+// Hata 03 — Kapatılmayan metin.
+// İleti kodu: H0010
+// Ne olur: Program hiç çalışmaz; ileti, açılan çift tırnağın kapanmadığını söyler.
+// Neden: Metin sabiti açan " işaretinin bir kapanış " işareti olmalıdır.
+// Düzeltilmiş hâli:
+//     yazdır("merhaba")
+// Çalıştırma (proje kökünden): tr examples/tr/hatalar/03_sozdizimi_kapanmayan_metin.tr   (çıkış kodu 1)
+
+yazdır("merhaba)

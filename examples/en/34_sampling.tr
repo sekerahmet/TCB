@@ -1,0 +1,33 @@
+//! tr kodlu 1
+// 34 — Sampling: choosing from the output of a model.
+// What it teaches: choosing an index from a logit distribution with sample, adjusting the randomness with temperature: and
+// top_k:, making the result reproducible with seed:.
+// Builds on: softmax (23), selecting and sorting (25), loops (07).
+// Run (from the project root): tr examples/en/34_sampling.tr
+
+// A language model produces a score (logit) for every word at each step. Taking the most likely (argmax) always gives
+// the same text; sample picks an index from the scores with probability.
+A030 logit = T100([1.0, 3.0, 0.5])
+G100("probabilities:", T210(logit).Y404)
+
+// temperature: divides the logits. 0 always picks the most likely; a small value pulls toward the most likely, a large one spreads.
+G100("temperature 0 ->", T611(logit, T960: 0).Y404)
+
+// seed: the same seed gives the same result (reproducibility).
+G100(T611(logit, T903: 7).Y404, T611(logit, T903: 7).Y404)
+
+// top_k: limits the choice to the k most likely classes; 1 leaves only the most likely.
+G100("top_k 1 ->", T611(logit, T961: 1).Y404)
+G100(T611(logit, T960: 0.8, T961: 2, T903: 7).Y404)
+
+// A batch of samples: change the seed, take 8 samples and count how often each class comes.
+A030 counts = [0, 0, 0]
+A010 trial A011 1..=8 { // at a high temperature the distribution spreads
+    A030 chosen = T611(logit, T960: 3.0, T903: trial).Y404
+    counts[chosen] += 1
+}
+G100("class counts in 8 samples (temperature 3):", counts)
+
+// --- Try it yourself ---
+// 1. Take 8 samples with temperature: 5.0: how does the distribution change?
+// 2. Check with top_k: 2 that the least likely class is never chosen.

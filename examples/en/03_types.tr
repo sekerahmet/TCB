@@ -1,0 +1,31 @@
+//! tr kodlu 1
+// 03 — Types: every value has a type.
+// What it teaches: Int, Float, String, Bool, none; type(); the int()/float()/str() conversions;
+// operators and comparison; ?? for a value that may be none.
+// Builds on: var, const and assignment (02).
+// Run (from the project root): tr examples/en/03_types.tr
+
+A030 age = 30 // Int: a number without a decimal point
+A030 height = 1.75 // Float: a number with a point
+A030 city = "Ayse" // String
+A030 is_student = A040 // Bool: true or false
+G100(G201(age), G201(height), G201(city), G201(is_student))
+
+// Conversions: text to number, number to text, float to int.
+G100(G210("42") + 1, G211("2.5") * 2, G212(7) + "8")
+G100(G210(3.9), G405(3.14159, 2)) // int() drops what follows the point
+
+// Arithmetic operators. / always gives a float; % is the remainder; ** is the power.
+G100(7 + 2, 7 - 2, 7 * 2, 7 / 2, 7 % 2, 2 ** 10)
+
+// Comparison gives a Bool; and, or, not combine conditions.
+G100(age >= 18, age == 30, age != 30)
+G100(age >= 18 A043 is_student, A045 is_student, age < 18 A044 height > 1.7)
+
+// none means "no value" (its own type, None). ?? takes the right side when the left is none.
+A030 user = A042
+G100(G201(user), user ?? "Guest")
+
+// --- Try it yourself ---
+// 1. What do type(2 ** 10) and type(2 ** 0.5) print? Guess first, then run it.
+// 2. Compare the results of "12" + 1 and int("12") + 1: one joins text, the other adds numbers.

@@ -1,0 +1,47 @@
+// 15 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
+// Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek,
+// hatanın nerede ele alınacağına karar vermek, ad verilmeyen yakala'da hata değişkeni.
+// Önceki örnekten: fonksiyonlar (08), koşullar (05); 06'da tam("abc") hata verirdi, burada yönetilir.
+// Çalıştırma (proje kökünden): tr examples/tr/15_hata_yonetimi.tr
+
+// Hata oluşunca program durur. dene bloğundaki hata yakala bloğuna gider, program sürer.
+dene {
+    değişken x = 10 / 0
+    yazdır("buraya gelinmez")
+} yakala hata {
+    yazdır("yakalandı: {hata}")
+}
+
+// fırlat: kendi hatanı üret. Fonksiyon kuralı bozan girdiyi kabul etmez.
+fonksiyon yaş_denetle(yaş) {
+    eğer yaş < 0 { fırlat "yaş negatif olamaz" }
+    sonuç yaş
+}
+dene { yaş_denetle(-3) } yakala h { yazdır("yakalandı: {h}") }
+yazdır("geçerli yaş: {yaş_denetle(30)}")
+
+// Hata, çağrı zincirinde yukarı çıkar; ilk yakala onu ele alır.
+fonksiyon sayıya_çevir(yazı) {
+    sonuç tam(yazı)
+}
+fonksiyon güvenli_çevir(yazı, varsayılan_değer) {
+    dene {
+        sonuç sayıya_çevir(yazı)
+    } yakala h {
+        yazdır("  '{yazı}' sayı değil, {varsayılan_değer} kullanılıyor")
+        sonuç varsayılan_değer
+    }
+}
+yazdır(güvenli_çevir("42", 0))
+yazdır(güvenli_çevir("abc", 0))
+
+// yakala'ya ad verilmezse hata iletisi hata adlı değişkende gelir.
+dene {
+    fırlat "patladı"
+} yakala {
+    yazdır("yakalandı: {hata}")
+}
+
+// --- Kendin dene ---
+// 1. Boş listenin ortalamasını isteyen bir fonksiyon yaz; boşsa fırlat ile hata ver ve yakala.
+// 2. Bir listedeki metinlerin hepsini sayıya çevir; çevrilemeyenleri atla.

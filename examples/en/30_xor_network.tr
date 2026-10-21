@@ -1,0 +1,34 @@
+//! tr kodlu 1
+// 30 — A small neural network: a two-layer network learns XOR.
+// What it teaches: a hidden layer and non-linear activation (tanh, sigmoid), building the weights as
+// gradient-tracking tensors, the training loop in a multi-layer network.
+// Builds on: the training loop (28); XOR cannot be solved with a single linear layer, the hidden layer makes it possible.
+// Run (from the project root): tr examples/en/30_xor_network.tr
+
+// The hidden layer is tanh, the output sigmoid; the weights are tensors trained with AdamW.
+A030 x_data = T100([[0, 0], [0, 1], [1, 0], [1, 1]])
+A030 y_target = T100([[0], [1], [1], [0]])
+A030 W1 = T100(T103([2, 8], T903: 42) * 0.5, T900: A040)
+A030 b1 = T100(T101([8]), T900: A040)
+A030 W2 = T100(T103([8, 1], T903: 7) * 0.5, T900: A040)
+A030 b2 = T100(T101([1]), T900: A040)
+A020 net(X) {
+    A021 T201(T202(X @ W1 + b1) @ W2 + b2)
+}
+A030 opt = T400([W1, b1, W2, b2], T910: 0.05, T911: 0)
+A030 first_loss = 0.0
+A010 step A011 0..800 {
+    opt.Y501()
+    A030 loss = G410((net(x_data) - y_target) ** 2)
+    A001 step == 0 { first_loss = loss.Y404 }
+    T300(loss)
+    opt.Y500()
+}
+A030 last_loss = T301 { G410((net(x_data) - y_target) ** 2) }.Y404
+G100("first loss {G405(first_loss, 4)} → last loss {G405(last_loss, 6)}")
+
+G100("XOR predictions (expected 0, 1, 1, 0): {[G405(t[0], 2) A010 t A011 T301 { net(x_data) }.Y404]}")
+
+// --- Try it yourself ---
+// 1. Cut the hidden layer from 8 to 2 neurons: does the network still learn?
+// 2. Print the predictions without rounding and see how close they get to 0/1.
