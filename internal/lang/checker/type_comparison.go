@@ -26,7 +26,7 @@ func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 	if !ok || !c.isTypeCall(call) {
 		return
 	}
-	c.addError(e.Line(), 0, hint.TypeTextComparisonError(e.Operator, text.Value, codes.Name(codes.A200)))
+	c.addError(e.Line(), 0, hint.TypeTextComparisonError(e.Operator, text.Value, codes.DisplayName(codes.A200)))
 }
 
 // isTypeCall ifade, kullanıcının gölgelemediği yerleşik tip()'in bir çağrısı mı?

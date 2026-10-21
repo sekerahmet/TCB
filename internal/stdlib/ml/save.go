@@ -93,7 +93,7 @@ func yolArg(fn string, v interp.Value) (string, error) {
 
 // tensorSave adları tensör olan bir sözlüğü dosyaya yazar: tensör_kaydet(yol, sözlük).
 func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T700)
+	fn := codes.DisplayName(codes.T700)
 	if len(args) != 2 {
 		return nil, messages.New(messages.H6604, fn, len(args))
 	}
@@ -237,7 +237,7 @@ func (y *TensorWriter) Finish() error {
 
 // tensorLoad tensör_kaydet ile yazılmış dosyayı sözlük olarak okur.
 func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T701)
+	fn := codes.DisplayName(codes.T701)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H5608, fn, len(args))
 	}

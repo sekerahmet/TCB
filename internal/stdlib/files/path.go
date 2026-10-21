@@ -172,7 +172,7 @@ func (y *Path) size(m *interp.VM) (interp.Value, error) {
 		return nil, interp.ReadError(fn, y.fpath, messages.H2100, err, tried)
 	}
 	if b.IsDir() {
-		return nil, messages.New(messages.H7140, fn, y.fpath, codes.Name(codes.G121))
+		return nil, messages.New(messages.H7140, fn, y.fpath, codes.DisplayName(codes.G121))
 	}
 	return interp.NewInt(b.Size()), nil
 }

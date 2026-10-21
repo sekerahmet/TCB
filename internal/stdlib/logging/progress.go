@@ -111,7 +111,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 			return nil, interp.ArgTypeError(codes.G811, 1, args[0], codes.A200, codes.A204)
 		}
 		if n <= 0 {
-			return nil, messages.New(messages.H7313, fn, n, codes.Name(codes.A042))
+			return nil, messages.New(messages.H7313, fn, n, codes.DisplayName(codes.A042))
 		}
 		total = n
 	}
@@ -119,7 +119,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 	if v, ok := bind.GetNamed(named, nameLog); ok && v != interp.Null {
 		g, ok := v.(*Log)
 		if !ok {
-			return nil, messages.New(messages.H7314, fn, nameLog.TR, LogType, codes.Name(codes.G810), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H7314, fn, nameLog.TR, LogType, codes.DisplayName(codes.G810), interp.TypeAndSummary(v))
 		}
 		c.log = g
 		g.setTotal(total)
@@ -185,7 +185,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 	if v, ok := bind.GetNamed(named, nameStep); ok {
 		n, ok := bind.Int(v)
 		if !ok || n < 0 {
-			return nil, messages.New(messages.H7315, fn, nameStep.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H7315, fn, nameStep.TR, codes.DisplayName(codes.A200), interp.TypeAndSummary(v))
 		}
 		newStep = n
 	}
@@ -210,7 +210,7 @@ func (c *Progress) advance(fn string, now time.Time, newStep int64, metrics []me
 	if c.stopped {
 		text := c.stepText()
 		c.mu.Unlock()
-		return false, messages.New(messages.H7316, fn, text, codes.Name(codes.G811))
+		return false, messages.New(messages.H7316, fn, text, codes.DisplayName(codes.G811))
 	}
 	measure := true
 	switch {

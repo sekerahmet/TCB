@@ -243,13 +243,13 @@ func refreshInPlace(name string, target, record interp.Value) error {
 	case *interp.DictVal:
 		k, ok := record.(*interp.DictVal)
 		if !ok {
-			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.Name(codes.A206))
+			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.DisplayName(codes.A206))
 		}
 		*h = *k
 	case *interp.ListVal:
 		k, ok := record.(*interp.ListVal)
 		if !ok {
-			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.Name(codes.A205))
+			return messages.New(messages.H7467, name, interp.TypeAndSummary(record), codes.DisplayName(codes.A205))
 		}
 		h.Elements = k.Elements
 	default:

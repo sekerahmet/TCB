@@ -22,9 +22,9 @@ import (
 // sırası) toplar. Aynı tensör bir kez yer alır. adlarıyla: doğru yol adı → tensör sözlüğü
 // verir ("bloklar.0.dikkat.Wq"); bu sözlük tensör_kaydet ile kaydedilebilir.
 func paramsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T530)
+	fn := codes.DisplayName(codes.T530)
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6500, fn, nameWithNames.TR, codes.Name(codes.A041), len(args))
+		return nil, messages.New(messages.H6500, fn, nameWithNames.TR, codes.DisplayName(codes.A041), len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameWithNames); err != nil {
 		return nil, err
@@ -175,7 +175,7 @@ func CopyInto(p, src *tensor.Tensor) {
 // sözlüğünü (tensör_yükle sonucu) modelin var olan parametrelerine yerinde yazar ve yazılan
 // parametre sayısını verir.
 func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T703)
+	fn := codes.DisplayName(codes.T703)
 	if len(args) != 2 {
 		return nil, interp.ArgCountError(codes.T703, "2", len(args), messages.Text(messages.H2327), messages.Text(messages.H2328))
 	}
@@ -201,11 +201,11 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H6522, fn, codes.Name(codes.A202), s.DisplayKey(k))
+			return nil, messages.New(messages.H6522, fn, codes.DisplayName(codes.A202), s.DisplayKey(k))
 		}
 		d, ok := v.(*TensorValue)
 		if !ok {
-			return nil, messages.New(messages.H6524, fn, k, codes.Name(codes.A212), typeName(v))
+			return nil, messages.New(messages.H6524, fn, k, codes.DisplayName(codes.A212), typeName(v))
 		}
 		src[k], shapes[k] = d.t, d.t.Shape()
 	}

@@ -48,7 +48,7 @@ func panicError(r any) error { return panicValue{r} }
 
 // save noktayı kn.adim adımıyla yazar ve kullanıcıya gösterilecek yolunu verir.
 func (kn *Checkpoint) save(m *interp.VM) (string, error) {
-	fn := codes.Name(codes.T702)
+	fn := codes.DisplayName(codes.T702)
 	state, plan, err := kn.collect(m)
 	if err != nil {
 		return "", collectError{messages.New(messages.H2000, fn, err)}

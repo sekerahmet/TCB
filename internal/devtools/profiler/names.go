@@ -7,7 +7,7 @@ import (
 )
 
 // tensorOps tablo başlığıdır ("Tensör işlemleri"; tip adı kod listesinden).
-func tensorOps() string { return messages.Text(messages.H8206, codes.Name(codes.A212)) }
+func tensorOps() string { return messages.Text(messages.H8206, codes.DisplayName(codes.A212)) }
 
 // opName tensör işleminin raporda görünen adıdır. Dildeki bir yerleşiğe ya da metoda
 // karşılık gelen işlemler o adla (kod listesinden) yazılır: kullanıcı kendi kodunda gördüğü

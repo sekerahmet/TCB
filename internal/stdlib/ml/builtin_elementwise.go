@@ -30,7 +30,7 @@ func geluExact64(x float64) float64 {
 // tanh yaklaşımlı, yanlış tam (erf tabanlı) GELU'dur. Öteki eleman bazlı fonksiyonlar gibi
 // tensörde türev izleyen tensör, sayıda Ondalık verir, listede yol gösteren hata verir.
 func registerGelu(v *interp.VM) {
-	ad := codes.Name(codes.T203)
+	ad := codes.DisplayName(codes.T203)
 	wrap(v, codes.T203, func(interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if err := bind.CheckNamed(ad+"()", named, nameApproximate); err != nil {
@@ -80,7 +80,7 @@ func sigmoid64(x float64) float64 { return 1.0 / (1.0 + math.Exp(-x)) }
 // o çağrılır; yoksa sayı Ondalık verir (sayi64 ile). Liste kabul edilmez (karar 15): yol
 // gösteren hata tensör(...) ile çevirmeyi önerir.
 func unit(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor, number64 func(float64) float64) {
-	ad := codes.Name(kd)
+	ad := codes.DisplayName(kd)
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 1 || !isTensor(args) {
@@ -129,7 +129,7 @@ func listError(ad string, v interp.Value, accept, suggestion string) error {
 	if _, ok := v.(*interp.ListVal); !ok {
 		return nil
 	}
-	return messages.New(messages.H6104, ad, accept, codes.Name(codes.T100), suggestion)
+	return messages.New(messages.H6104, ad, accept, codes.DisplayName(codes.T100), suggestion)
 }
 
 // axisArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.
@@ -157,7 +157,7 @@ func axisArg(fn string, args []interp.Value, named map[string]interp.Value) (int
 // registerSoftmax softmax/log_softmax'ı kaydeder: tensörde (matris dahil) verilen eksende
 // (varsayılan son eksen) çalışır; liste ve başka değerler yol gösteren hatadır.
 func registerSoftmax(v *interp.VM, kd codes.Code, logMode bool) {
-	ad := codes.Name(kd)
+	ad := codes.DisplayName(kd)
 	wrap(v, kd, func(interp.BuiltinFunc) interp.BuiltinFunc {
 		return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) == 0 || !isTensor(args[:1]) {

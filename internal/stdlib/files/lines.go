@@ -92,9 +92,9 @@ func openFileError(fn, raw, real string) error {
 		return nil
 	}
 	if samePath(open, real) {
-		return messages.New(messages.H7125, fn, raw, LineReaderType, codes.Name(codes.Y012))
+		return messages.New(messages.H7125, fn, raw, LineReaderType, codes.DisplayName(codes.Y012))
 	}
-	return messages.New(messages.H7154, fn, raw, filepath.ToSlash(open), LineReaderType, codes.Name(codes.Y012))
+	return messages.New(messages.H7154, fn, raw, filepath.ToSlash(open), LineReaderType, codes.DisplayName(codes.Y012))
 }
 
 // CloseAll açık kalmış satır okuyucularının dosyalarını kapatır, ardından geçici_klasör()
@@ -169,7 +169,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 	if kd == codes.Y602 {
 		b := &interp.BuiltinVal{Name: codes.Name(codes.Y602), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H2014, codes.Name(codes.Y602), len(args))
+				return nil, messages.New(messages.H2014, codes.DisplayName(codes.Y602), len(args))
 			}
 			d, cont, err := o.Next(m)
 			if err != nil || !cont {
@@ -189,7 +189,7 @@ func (o *LineReader) GetProperty(kd codes.Code, prop string) (interp.Value, erro
 func (o *LineReader) closeMethod() *interp.BuiltinVal {
 	b := &interp.BuiltinVal{Name: codes.Name(codes.Y012), Fn: func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 0 {
-			return nil, messages.New(messages.H2014, codes.Name(codes.Y012), len(args))
+			return nil, messages.New(messages.H2014, codes.DisplayName(codes.Y012), len(args))
 		}
 		var didClose bool
 		m.Blocking(func() {
@@ -207,7 +207,7 @@ func (o *LineReader) closeMethod() *interp.BuiltinVal {
 
 // closedError kapatılmış okuyucudan satır istenince verilen hatadır.
 func (o *LineReader) closedError() error {
-	return messages.New(messages.H7134, LineReaderType, o.fpath, codes.Name(codes.Y012), codes.Name(codes.G112))
+	return messages.New(messages.H7134, LineReaderType, o.fpath, codes.DisplayName(codes.Y012), codes.DisplayName(codes.G112))
 }
 
 // Next sıradaki satırı verir; dosya bitince devam=false. Satır tamponda hazırsa yorumlayıcı
@@ -278,7 +278,7 @@ func (o *LineReader) read() (line string, last bool, err error) {
 		if errors.Is(err, bufio.ErrBufferFull) {
 			if len(long)+len(part) > lineLimit {
 				o.close()
-				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.Name(codes.G110))
+				return "", false, turkish.NewReason(messages.H7105, o.counter+1, codes.DisplayName(codes.G110))
 			}
 			long = append(long, part...)
 			continue

@@ -154,7 +154,7 @@ func resolveCacheDir(m *interp.VM, fn string, named map[string]interp.Value) (st
 }
 
 func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.V100)
+	fn := codes.DisplayName(codes.V100)
 	if err := bind.CheckNamed(fn+"()", named, nameCache, nameQuota); err != nil {
 		return nil, err
 	}
@@ -345,7 +345,7 @@ func (o *Reader) WatchLabel() string {
 
 // TableData okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.
 func (o *Reader) TableData() ([]string, [][]string, error) {
-	return nil, nil, messages.New(messages.H5525, codes.Name(memberNext))
+	return nil, nil, messages.New(messages.H5525, codes.DisplayName(memberNext))
 }
 
 func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
@@ -426,7 +426,7 @@ func readerArgs(fn string, args []interp.Value, named map[string]interp.Value, s
 }
 
 func (k *Dataset) sampler(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(memberSampler)
+	fn := codes.DisplayName(memberSampler)
 	b, t, seed, err := readerArgs(fn, args, named, true)
 	if err != nil {
 		return nil, err
@@ -442,7 +442,7 @@ func (k *Dataset) sampler(m *interp.VM, args []interp.Value, named map[string]in
 }
 
 func (k *Dataset) sequentialTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(memberSequential)
+	fn := codes.DisplayName(memberSequential)
 	b, t, _, err := readerArgs(fn, args, named, false)
 	if err != nil {
 		return nil, err
@@ -491,7 +491,7 @@ func prefetcherCloser(pf *dataload.Prefetcher) func(time.Duration) error {
 
 // nextTR bir sonraki toplu işi [girdi, hedef] olarak verir; sıralı okuyucu bitince yok.
 func (o *Reader) nextTR(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(memberNext)
+	fn := codes.DisplayName(memberNext)
 	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
@@ -544,7 +544,7 @@ var _ interp.Stream = (*Reader)(nil)
 // Örnekleyici sonsuz ürettiği için döngüyle gezilmez.
 func (o *Reader) Next(m *interp.VM) (interp.Value, bool, error) {
 	if !o.sequential {
-		return nil, false, messages.New(messages.H5535, codes.Name(memberNext), codes.Name(memberSequential))
+		return nil, false, messages.New(messages.H5535, codes.DisplayName(memberNext), codes.DisplayName(memberSequential))
 	}
 	d, err := o.nextTR(m, nil, nil)
 	if err != nil || d == interp.Null {

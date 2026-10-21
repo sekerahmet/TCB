@@ -52,7 +52,7 @@ func splitObjects(fn string, s *interp.DictVal) ([]*object, error) {
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H7434, fn, codes.Name(codes.A202), s.DisplayKey(k))
+			return nil, messages.New(messages.H7434, fn, codes.DisplayName(codes.A202), s.DisplayKey(k))
 		}
 		if err := checkObjectName(k); err != nil {
 			return nil, messages.New(messages.H2000, fn, err)

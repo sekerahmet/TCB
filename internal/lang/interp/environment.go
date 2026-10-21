@@ -159,7 +159,7 @@ func (h *deferError) Error() string {
 	for i, e := range h.extras {
 		pieces[i] = e.Error()
 	}
-	return messages.Text(messages.H2519, h.mainSrc, codes.Name(codes.A081), strings.Join(pieces, "; "))
+	return messages.Text(messages.H2519, h.mainSrc, codes.DisplayName(codes.A081), strings.Join(pieces, "; "))
 }
 
 func (h *deferError) Unwrap() error { return h.mainSrc }
@@ -210,7 +210,7 @@ func (e *Environment) Assign(name string, val Value) error {
 	for cur := e; cur != nil; cur = cur.outer {
 		if i, old := cur.local(name); old != nil {
 			if cur.isConstant(i) {
-				return messages.New(messages.H2447, name, codes.Name(codes.A031))
+				return messages.New(messages.H2447, name, codes.DisplayName(codes.A031))
 			}
 			cur.store(i, val)
 			return nil
@@ -229,7 +229,7 @@ func (e *UndefinedVarError) Error() string { return e.Unwrap().Error() }
 
 // Unwrap returns the coded message, so messages.Has finds it in the chain.
 func (e *UndefinedVarError) Unwrap() error {
-	return messages.New(messages.H2448, e.Name, codes.Name(codes.A030))
+	return messages.New(messages.H2448, e.Name, codes.DisplayName(codes.A030))
 }
 
 // Names returns every name visible from this scope and the outer scopes (for suggestions).

@@ -186,7 +186,7 @@ func (d *TensorValue) operator(op string, otherVal interp.Value, onRight bool) (
 	case "**":
 		s, ok := interp.ToFloat(otherVal)
 		if onRight || !ok {
-			return nil, true, messages.New(messages.H6702, codes.Name(codes.T220), codes.Name(codes.T221))
+			return nil, true, messages.New(messages.H6702, codes.DisplayName(codes.T220), codes.DisplayName(codes.T221))
 		}
 		f := float32(s)
 		r, err := safe(func() *tensor.Tensor { return d.t.Pow(f) })
@@ -309,7 +309,7 @@ func (d *TensorValue) view(r *tensor.Tensor) *TensorValue {
 func (d *TensorValue) IterLen() (int, error) {
 	sh := d.t.Shape()
 	if len(sh) == 0 {
-		return 0, messages.New(messages.H6711, codes.Name(memberValue))
+		return 0, messages.New(messages.H6711, codes.DisplayName(memberValue))
 	}
 	return sh[0], nil
 }

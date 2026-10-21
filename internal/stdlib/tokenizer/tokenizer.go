@@ -118,7 +118,7 @@ func Register(v *interp.VM) {
 var warned sync.Map
 
 func load(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.V200)
+	fn := codes.DisplayName(codes.V200)
 	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func isUnsupported(err error) bool {
 }
 
 func loadError(path string, err error, tried []string) error {
-	fn := codes.Name(codes.V200)
+	fn := codes.DisplayName(codes.V200)
 	if bind.IsNotExist(err) {
 		return turkish.FileError(fn, path, messages.H2107, err,
 			messages.Text(messages.H5612), interp.SearchedPlaces(tried))
@@ -237,7 +237,7 @@ func stepError(fn string, err error) error {
 }
 
 func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(memberEncode)
+	fn := codes.DisplayName(memberEncode)
 	if err := bind.CheckNamed(fn+"()", named, nameSpecial, nameSecond); err != nil {
 		return nil, err
 	}
@@ -418,7 +418,7 @@ func idList32(ids []int32) *interp.ListVal {
 // ----------------------------------------------------------------------------
 
 func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(memberDecode)
+	fn := codes.DisplayName(memberDecode)
 	if err := bind.CheckNamed(fn+"()", named, nameSpecial); err != nil {
 		return nil, err
 	}
@@ -474,7 +474,7 @@ func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]inte
 // idSeqs çöz'ün argümanını kimlik dizilerine çevirir. tek doğruysa argüman tek
 // bir dizidir (sonuç metin), değilse dizilerin listesidir (sonuç metin listesi).
 func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
-	fn := codes.Name(memberDecode)
+	fn := codes.DisplayName(memberDecode)
 	switch x := v.(type) {
 	case *interp.ListVal:
 		if len(x.Elements) == 0 {
@@ -529,7 +529,7 @@ func intList(what string, elems []interp.Value) ([]int, error) {
 	for i, e := range elems {
 		n, ok := bind.Int(e)
 		if !ok {
-			return nil, messages.New(messages.H5639, codes.Name(memberDecode), what, i+1, e.Inspect())
+			return nil, messages.New(messages.H5639, codes.DisplayName(memberDecode), what, i+1, e.Inspect())
 		}
 		out[i] = int(n)
 	}
@@ -545,11 +545,11 @@ func (n *Object) tokenID(_ *interp.VM, args []interp.Value, named map[string]int
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, messages.New(messages.H5640, codes.Name(codes.Y613), len(args))
+		return nil, messages.New(messages.H5640, codes.DisplayName(codes.Y613), len(args))
 	}
 	s, ok := args[0].(*interp.StringVal)
 	if !ok {
-		return nil, messages.New(messages.H5641, codes.Name(codes.Y613), args[0].Type())
+		return nil, messages.New(messages.H5641, codes.DisplayName(codes.Y613), args[0].Type())
 	}
 	id, ok := n.p.TokenToID(s.Val)
 	if !ok {

@@ -49,7 +49,7 @@ func (o *Optimizer) stateMember(kd codes.Code) (interp.Value, bool, error) {
 func (o *Optimizer) loadStateTR(args []interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(memberLoadState)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(memberLoadState, "1", len(args), messages.Text(messages.H2326, codes.Name(memberState)))
+		return nil, interp.ArgCountError(memberLoadState, "1", len(args), messages.Text(messages.H2326, codes.DisplayName(memberState)))
 	}
 	s, ok := args[0].(*interp.DictVal)
 	if !ok {
@@ -63,7 +63,7 @@ func (o *Optimizer) loadStateTR(args []interp.Value) (interp.Value, error) {
 		}
 		d, ok := v.(*TensorValue)
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text || !ok {
-			return nil, messages.New(messages.H6501, fn, codes.Name(memberState), codes.Name(codes.A202), codes.Name(codes.A212), s.DisplayKey(k), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H6501, fn, codes.DisplayName(memberState), codes.DisplayName(codes.A202), codes.DisplayName(codes.A212), s.DisplayKey(k), interp.TypeAndSummary(v))
 		}
 		st[k] = d.t
 	}
@@ -183,7 +183,7 @@ func (o *Optimizer) checkStateEntry(fn, ad string, shape []int) error {
 	case ad == "adim" && o.adamw != nil:
 		k = -1
 	case !sorted || !slices.Contains(valid, prefix):
-		return messages.New(messages.H6516, fn, ad, o.ad, len(o.params), codes.Name(memberState))
+		return messages.New(messages.H6516, fn, ad, o.ad, len(o.params), codes.DisplayName(memberState))
 	}
 	expected := []int{2} // adım sayaçları
 	if k >= 0 && prefix != "adim" {

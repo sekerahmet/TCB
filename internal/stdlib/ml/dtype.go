@@ -107,7 +107,7 @@ func castTo(t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 // gradyan kaynak tensöre (kendi türünde) geri akar. Tür zaten aynıysa tensörün kendisi döner.
 func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6806, codes.Name(memberToDType), len(args))
+		return nil, messages.New(messages.H6806, codes.DisplayName(memberToDType), len(args))
 	}
 	if err := bind.CheckNamed(codes.Name(memberToDType)+"()", named); err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func mixedDType(m *interp.VM) tensor.DType {
 // türüyle çalıştırır ve bloğun son ifadesinin değerini döndürür. "float32" iç içe bir blokta
 // karışık hassasiyeti kapatır. Blok bitince (hata ile bitse de) önceki tür geri gelir.
 func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T710)
+	fn := codes.DisplayName(codes.T710)
 	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 // blok dışında "float32". PyTorch'ta torch.get_autocast_dtype, Flax'ta modülün dtype'ı: bir
 // sonucu doğrudan çarpımın okuyacağı türde yazmak için (normların tür: argümanı, 15.13).
 func computeDType(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.Name(codes.T711)
+	fn := codes.DisplayName(codes.T711)
 	if err := bind.CheckNamed(fn+"()", named); err != nil {
 		return nil, err
 	}

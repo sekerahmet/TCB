@@ -90,7 +90,7 @@ func parseInt(s string) (int64, error) {
 	}
 	n, err := strconv.ParseInt(clean, 10, 64)
 	if err != nil {
-		return 0, messages.New(messages.H7217, codes.Name(codes.A200))
+		return 0, messages.New(messages.H7217, codes.DisplayName(codes.A200))
 	}
 	return n, nil
 }
@@ -103,7 +103,7 @@ func parseFloat(s string) (float64, error) {
 	}
 	f, err := strconv.ParseFloat(clean, 64)
 	if err != nil {
-		return 0, messages.New(messages.H7217, codes.Name(codes.A201))
+		return 0, messages.New(messages.H7217, codes.DisplayName(codes.A201))
 	}
 	return f, nil
 }

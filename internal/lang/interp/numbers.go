@@ -115,7 +115,7 @@ func sumNumbers(name string, elems []Value) (Value, error) {
 			}
 			s := intNum + x.Val
 			if (s > intNum) != (x.Val > 0) {
-				return nil, messages.New(messages.H2485, name, codes.Name(codes.A200), intNum, x.Val, i+1, codes.Name(codes.G211))
+				return nil, messages.New(messages.H2485, name, codes.DisplayName(codes.A200), intNum, x.Val, i+1, codes.DisplayName(codes.G211))
 			}
 			intNum = s
 		case *FloatVal:

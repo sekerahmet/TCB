@@ -299,7 +299,7 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	} else {
 		data, err := os.ReadFile(dest.Path)
 		if err != nil {
-			return nil, messages.At(s.Line(), 0, ReadError(codes.Name(codes.A070), path, messages.H2112, err, searched))
+			return nil, messages.At(s.Line(), 0, ReadError(codes.DisplayName(codes.A070), path, messages.H2112, err, searched))
 		}
 		dest.Code = string(data)
 	}

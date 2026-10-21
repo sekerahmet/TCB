@@ -431,3 +431,16 @@ func TestAuditDictMemberKeysChangeWithWritingLanguage(t *testing.T) {
 		}
 	}
 }
+
+// Tanı iletilerindeki dil adları kişinin yazım dilinde gösterilir (17.7): TR_DIL=en ile bir
+// yerleşiğe yanlış adlı argüman veren program İngilizce adla (rms_norm) bildirilir; TR_DIL=tr
+// ile Türkçe adla (rms_normu).
+func TestDiagnosticsUseDisplayNames(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "yanlis.tr", "rms_normu(1, yanlis: 2)\n")
+	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "yanlis.tr"), 1, nil, []string{"rms_norm()", "eps, dtype, weight"})
+	if s := run(t, trBinary, dir, "", []string{"TR_DIL=en"}, "yanlis.tr"); strings.Contains(s.stderr+s.stdout, "rms_normu()") {
+		t.Errorf("TR_DIL=en iletisinde Türkçe ad var:\n%s%s", s.stdout, s.stderr)
+	}
+	wait(t, run(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "yanlis.tr"), 1, nil, []string{"rms_normu()"})
+}

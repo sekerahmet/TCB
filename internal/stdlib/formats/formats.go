@@ -31,7 +31,7 @@ func Register(v *interp.VM) {
 		}
 		s, ok := args[0].(*interp.StringVal)
 		if !ok {
-			return nil, messages.New(messages.H7000, codes.Name(codes.G600), codes.Name(codes.A202), args[0].Type())
+			return nil, messages.New(messages.H7000, codes.DisplayName(codes.G600), codes.DisplayName(codes.A202), args[0].Type())
 		}
 		val, err := interp.JSONToTR([]byte(stripBOM(s.Val)))
 		if err != nil {
@@ -46,7 +46,7 @@ func Register(v *interp.VM) {
 		}
 		b, err := jsonwrite.Write(args[0])
 		if err != nil {
-			return nil, messages.New(messages.H2000, codes.Name(codes.G601), err)
+			return nil, messages.New(messages.H2000, codes.DisplayName(codes.G601), err)
 		}
 		return &interp.StringVal{Val: string(b)}, nil
 	})
@@ -97,7 +97,7 @@ func Register(v *interp.VM) {
 // dosya açılarak okunur (bkz. interp.ReadFileContent). CSV metninin kendisi csv_çöz ile
 // ayrıştırılır: dosya yoksa ve argüman virgül içeriyorsa hata csv_çöz'ü önerir.
 func csvInput(p csvPath) (string, error) {
-	fn := codes.Name(codes.G602)
+	fn := codes.DisplayName(codes.G602)
 	info, statErr := os.Stat(p.path)
 	if statErr != nil {
 		err := interp.ReadError(fn, p.arg, messages.H2100, statErr, p.tried)
@@ -161,7 +161,7 @@ func parseCSV(kd codes.Code, input string) ([][]string, error) {
 			return nil, messages.New(messages.H7004, err)
 		}
 		if cells += len(rec); cells > interp.MaxCollectionSize {
-			return nil, messages.New(messages.H7005, codes.Name(kd), interp.MaxCollectionSize)
+			return nil, messages.New(messages.H7005, codes.DisplayName(kd), interp.MaxCollectionSize)
 		}
 		records = append(records, rec)
 	}

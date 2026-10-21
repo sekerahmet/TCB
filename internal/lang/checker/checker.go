@@ -228,7 +228,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 				continue
 			}
 			if info, found := c.scope.Resolve(ident.Value); found && info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.Name(codes.A031)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.DisplayName(codes.A031)))
 			}
 		}
 
@@ -410,7 +410,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 				valType = arithmeticType(op, info.TypeName, valType, false)
 			}
 			if info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.Name(codes.A031)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.DisplayName(codes.A031)))
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
 				c.addError(s.Line(), 0, messages.New(messages.H1005,
