@@ -70,6 +70,8 @@ func (b *simDriver) eventTime(begin, last uintptr) (float32, result) {
 
 func (b *simDriver) flushTools() {}
 
+func (b *simDriver) streamHandle() uintptr { return 0 }
+
 func (b *simDriver) bind() result        { return b.failure }
 func (b *simDriver) cardName() string    { return messages.Text(messages.H4064) }
 func (b *simDriver) totalMemory() uint64 { return b.memory }

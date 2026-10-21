@@ -228,7 +228,7 @@ func (g *backend) ltMul(batch, M, N, K int, a uint64, ta bool, b uint64, tb bool
 	ev := g.measureStart()
 	s := l.call(ltMul, l.h, p.def, uintptr(unsafe.Pointer(&o.alpha)), uintptr(b), p.layout[0], uintptr(a), p.layout[1],
 		uintptr(unsafe.Pointer(&o.beta)), uintptr(c), p.layout[2], uintptr(c), p.layout[2],
-		uintptr(unsafe.Pointer(&p.algo[0])), uintptr(l.space.addr), uintptr(p.space), 0)
+		uintptr(unsafe.Pointer(&p.algo[0])), uintptr(l.space.addr), uintptr(p.space), g.sr.streamHandle())
 	runtime.KeepAlive(p)
 	g.measureEnd(l.names[ad], ev)
 	if s != 0 {

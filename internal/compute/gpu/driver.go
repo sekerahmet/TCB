@@ -12,8 +12,8 @@ import (
 //
 // Arka uç sürücüye bu dar arayüzden erişir. İki uygulaması vardır: gerçek NVIDIA sürücüsü
 // (cuda.go; Linux'ta libcuda.so, Windows'ta nvcuda.dll, cgo'suz) ve PTX benzetimi
-// (benzetim.go; donanımsız sınama). Bütün işler tek akışta (varsayılan akış) sırayla
-// yürür; "eşzamansız" yöntemler sıraya ekler ve hemen döner, konağa okuma (indir) ve
+// (benzetim.go; donanımsız sınama). Bütün işler tek akışta (sürücünün oluşturduğu akış;
+// kayıt için gerekir, varsayılan akış kaydedilemez) sırayla yürür; "eşzamansız" yöntemler sıraya ekler ve hemen döner, konağa okuma (indir) ve
 // esitle sıradaki her işin bitmesini bekler.
 
 // result sürücü dönüş kodudur (CUresult).
@@ -51,6 +51,8 @@ type driver interface {
 	sharedMemOptIn(fn uintptr, byteN int) result
 	sharedMemLimit() int
 	equalize() result
+	// streamHandle işlerin sıraya konduğu akış (kitaplık çağrıları da ona konur; 0: varsayılan).
+	streamHandle() uintptr
 	// errName sonuc kodunun adı (CUDA_ERROR_...).
 	errName(s result) string
 	// detail son hatanın sürücüye özgü açıklaması (benzetimde çekirdek ve komut).

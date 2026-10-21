@@ -75,11 +75,11 @@ const (
 	fCount
 )
 
-// cudaOptionalNames bulunamazsa yalnızca ilgili özelliği (profil, araç boşaltma)
-// kapatan sürücü işlevleri.
+// cudaOptionalNames bulunamazsa yalnızca ilgili özelliği (profil, araç boşaltma, kendi akış ve
+// kayıt) kapatan sürücü işlevleri.
 var cudaOptionalNames = [...]string{
 	"cuEventCreate", "cuEventRecord", "cuEventQuery", "cuEventElapsedTime", "cuProfilerStop",
-	"cuFuncSetAttribute",
+	"cuFuncSetAttribute", "cuStreamCreate",
 }
 
 const (
@@ -89,6 +89,7 @@ const (
 	iEventElapsed
 	iProfilerStop
 	iFuncSetAttribute
+	iStreamCreate
 	iCount
 )
 
@@ -205,6 +206,10 @@ type cudaDriver struct {
 	paramBuf  []byte
 	paramPtr  []uintptr
 	jit       *jitSpace
+	// stream işlerin sıraya konduğu akış (cuStreamCreate, bayraksız: engelleyen akış; varsayılan
+	// akıştaki eşzamanlı kopyalar ve cuCtxSynchronize onu bekler). Varsayılan (legacy) akış
+	// kaydedilemez (cuStreamBeginCapture belgesi); oluşturulamazsa 0: varsayılan akış.
+	stream uintptr
 	// text sürücüye verilen C metinlerinin (PTX, çekirdek adı) kalıcı tamponu: nesnenin
 	// yığın (heap) alanıdır, gorutin yığıtında değildir (yığıt büyürken taşınabilirdi).
 	text []byte
@@ -273,6 +278,9 @@ func openCUDA(order int) (*cudaDriver, error) {
 		c.call(fPrimaryCtxRelease, uintptr(s.device)) // tutulan bağlam bırakılır
 		return nil, messages.New(messages.H2000, "cuCtxSetCurrent", c.errName(r))
 	}
+	if s.invoke(iStreamCreate, uintptr(unsafe.Pointer(&o.handle)), 0) == succeeded {
+		s.stream = o.handle
+	}
 	return s, nil
 }
 
@@ -314,7 +322,7 @@ func (s *cudaDriver) hostAlloc(byteN int) (unsafe.Pointer, result) {
 func (s *cudaDriver) load(target uint64, source unsafe.Pointer, byteN uint64, concurrent2 bool) result {
 	var r result
 	if concurrent2 {
-		r = s.call(fMemcpyHtoDAsync, uintptr(target), uintptr(source), uintptr(byteN), 0)
+		r = s.call(fMemcpyHtoDAsync, uintptr(target), uintptr(source), uintptr(byteN), s.stream)
 	} else {
 		r = s.call(fMemcpyHtoD, uintptr(target), uintptr(source), uintptr(byteN))
 	}
@@ -330,15 +338,15 @@ func (s *cudaDriver) download(target unsafe.Pointer, source uint64, byteN uint64
 }
 
 func (s *cudaDriver) copyFn(target, source, byteN uint64) result {
-	return s.call(fMemcpyDtoDAsync, uintptr(target), uintptr(source), uintptr(byteN), 0)
+	return s.call(fMemcpyDtoDAsync, uintptr(target), uintptr(source), uintptr(byteN), s.stream)
 }
 
 func (s *cudaDriver) fill32(target uint64, value uint32, n uint64) result {
-	return s.call(fMemsetD32Async, uintptr(target), uintptr(value), uintptr(n), 0)
+	return s.call(fMemsetD32Async, uintptr(target), uintptr(value), uintptr(n), s.stream)
 }
 
 func (s *cudaDriver) fill16(target uint64, value uint16, n uint64) result {
-	return s.call(fMemsetD16Async, uintptr(target), uintptr(value), uintptr(n), 0)
+	return s.call(fMemsetD16Async, uintptr(target), uintptr(value), uintptr(n), s.stream)
 }
 
 // module PTX'i cuModuleLoadDataEx ile derler; derleyicinin bilgi ve hata günlüklerini
@@ -387,7 +395,7 @@ func (s *cudaDriver) launch(fn uintptr, grid, block [3]uint32, sharedMem uint32,
 		s.paramPtr = append(s.paramPtr, 0)
 	}
 	r := s.call(fLaunchKernel, fn, uintptr(grid[0]), uintptr(grid[1]), uintptr(grid[2]),
-		uintptr(block[0]), uintptr(block[1]), uintptr(block[2]), uintptr(sharedMem), 0, uintptr(unsafe.Pointer(&s.paramPtr[0])), 0)
+		uintptr(block[0]), uintptr(block[1]), uintptr(block[2]), uintptr(sharedMem), s.stream, uintptr(unsafe.Pointer(&s.paramPtr[0])), 0)
 	runtime.KeepAlive(buf)
 	return r
 }
@@ -436,7 +444,9 @@ func (s *cudaDriver) createEvent() (uintptr, result) {
 	return s.output.handle, r
 }
 
-func (s *cudaDriver) recordEvent(ev uintptr) result { return s.invoke(iEventRecord, ev, 0) }
+func (s *cudaDriver) recordEvent(ev uintptr) result { return s.invoke(iEventRecord, ev, s.stream) }
+
+func (s *cudaDriver) streamHandle() uintptr { return s.stream }
 
 func (s *cudaDriver) eventReady(ev uintptr) bool { return s.invoke(iEventQuery, ev) == succeeded }
 
