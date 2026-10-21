@@ -529,7 +529,7 @@ func intList(what string, elems []interp.Value) ([]int, error) {
 	for i, e := range elems {
 		n, ok := bind.Int(e)
 		if !ok {
-			return nil, messages.New(messages.H5639, codes.Name(memberDecode), what, i+1, e.Inspect())
+			return nil, messages.New(messages.H5639, codes.DisplayName(memberDecode), what, i+1, e.Inspect())
 		}
 		out[i] = int(n)
 	}
@@ -545,11 +545,11 @@ func (n *Object) tokenID(_ *interp.VM, args []interp.Value, named map[string]int
 		return nil, err
 	}
 	if len(args) != 1 {
-		return nil, messages.New(messages.H5640, codes.Name(codes.Y613), len(args))
+		return nil, messages.New(messages.H5640, codes.DisplayName(codes.Y613), len(args))
 	}
 	s, ok := args[0].(*interp.StringVal)
 	if !ok {
-		return nil, messages.New(messages.H5641, codes.Name(codes.Y613), args[0].Type())
+		return nil, messages.New(messages.H5641, codes.DisplayName(codes.Y613), args[0].Type())
 	}
 	id, ok := n.p.TokenToID(s.Val)
 	if !ok {

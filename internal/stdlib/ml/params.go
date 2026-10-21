@@ -24,7 +24,7 @@ import (
 func paramsBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.Name(codes.T530)
 	if len(args) != 1 {
-		return nil, messages.New(messages.H6500, fn, nameWithNames.TR, codes.Name(codes.A041), len(args))
+		return nil, messages.New(messages.H6500, fn, nameWithNames.TR, codes.DisplayName(codes.A041), len(args))
 	}
 	if err := bind.CheckNamed(fn+"()", named, nameWithNames); err != nil {
 		return nil, err
@@ -201,11 +201,11 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H6522, fn, codes.Name(codes.A202), s.DisplayKey(k))
+			return nil, messages.New(messages.H6522, fn, codes.DisplayName(codes.A202), s.DisplayKey(k))
 		}
 		d, ok := v.(*TensorValue)
 		if !ok {
-			return nil, messages.New(messages.H6524, fn, k, codes.Name(codes.A212), typeName(v))
+			return nil, messages.New(messages.H6524, fn, k, codes.DisplayName(codes.A212), typeName(v))
 		}
 		src[k], shapes[k] = d.t, d.t.Shape()
 	}

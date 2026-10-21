@@ -417,7 +417,7 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	}
 	if fn, ok := f.(*FuncVal); ok && len(fn.Parameters) != 2 {
 		b := codes.Name(codes.A105)
-		return nil, messages.New(messages.H2476, name, fun, b, len(fn.Parameters), codes.Name(codes.A104))
+		return nil, messages.New(messages.H2476, name, fun, b, len(fn.Parameters), codes.DisplayName(codes.A104))
 	}
 	var acc Value
 	begin := 0

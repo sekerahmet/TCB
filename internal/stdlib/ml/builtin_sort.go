@@ -74,7 +74,7 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	k, ok := args[1].(*interp.IntVal)
 	L := d.t.Shape()[e]
 	if !ok {
-		return nil, messages.New(messages.H6208, ad, codes.Name(codes.A200), typeName(args[1]))
+		return nil, messages.New(messages.H6208, ad, codes.DisplayName(codes.A200), typeName(args[1]))
 	}
 	if k.Val < 0 || k.Val > int64(L) {
 		return nil, messages.New(messages.H6210, ad, k.Val, shapeText(d.t.Shape()), e, L)

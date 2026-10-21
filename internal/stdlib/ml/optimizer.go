@@ -62,7 +62,7 @@ func (o *Optimizer) rateField() *float32 {
 // ve 32 bite sığan bir Tam ya da Ondalık kabul edilir.
 func (o *Optimizer) SetMember(kd codes.Code, ad string, value interp.Value) error {
 	if kd != memberLR {
-		return messages.New(messages.H6502, o.ad, ad, codes.Name(memberLR))
+		return messages.New(messages.H6502, o.ad, ad, codes.DisplayName(memberLR))
 	}
 	var f float64
 	switch x := value.(type) {
@@ -71,12 +71,12 @@ func (o *Optimizer) SetMember(kd codes.Code, ad string, value interp.Value) erro
 	case *interp.FloatVal:
 		f = x.Val
 	default:
-		return messages.New(messages.H6503, o.ad, codes.Name(memberLR), codes.Name(codes.A200), codes.Name(codes.A201), typeName(value))
+		return messages.New(messages.H6503, o.ad, codes.DisplayName(memberLR), codes.DisplayName(codes.A200), codes.DisplayName(codes.A201), typeName(value))
 	}
 	// 0 geçerlidir (kurucudaki gibi): oran planları eğitimin sonunda orana 0'a iner. Sıfır olmayan
 	// ama 32 bitte 0'a yuvarlanan değer reddedilir (sessizce dondurmasın).
 	if !(f >= 0) || math.IsInf(float64(float32(f)), 0) || (f != 0 && float32(f) == 0) {
-		return messages.New(messages.H6504, o.ad, codes.Name(memberLR), value.Inspect())
+		return messages.New(messages.H6504, o.ad, codes.DisplayName(memberLR), value.Inspect())
 	}
 	*o.rateField() = float32(f)
 	return nil
@@ -90,7 +90,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 	case memberStep:
 		return &interp.BuiltinVal{Name: codes.Name(memberStep), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H6506, codes.Name(memberStep))
+				return nil, messages.New(messages.H6506, codes.DisplayName(memberStep))
 			}
 			if _, err := safe(func() bool { o.opt.Step(); return true }); err != nil {
 				return nil, err
@@ -100,7 +100,7 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 	case memberZeroGrad:
 		return &interp.BuiltinVal{Name: codes.Name(memberZeroGrad), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
-				return nil, messages.New(messages.H6506, codes.Name(memberZeroGrad))
+				return nil, messages.New(messages.H6506, codes.DisplayName(memberZeroGrad))
 			}
 			o.opt.ZeroGrad()
 			return interp.Null, nil

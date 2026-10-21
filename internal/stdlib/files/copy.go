@@ -135,13 +135,13 @@ func (job *moveJob) findTarget(m *interp.VM, targetRaw string, wantDir bool) err
 		job.last, job.lastRaw = filepath.Join(target, name), path.Join(clean(targetRaw), name)
 		return nil
 	case err == nil && isLink(b.Mode()):
-		return messages.New(messages.H7110, job.fn, targetRaw, codes.Name(codes.G123))
+		return messages.New(messages.H7110, job.fn, targetRaw, codes.DisplayName(codes.G123))
 	case err == nil && wantDir:
 		return messages.New(messages.H7111, job.fn, targetRaw)
 	case err != nil && !bind.IsNotExist(err):
 		return turkish.FileError(job.fn, targetRaw, messages.H2103, err)
 	case err != nil && wantDir:
-		return messages.New(messages.H7112, job.fn, targetRaw, codes.Name(codes.G122), strings.TrimRight(targetRaw, `/\`))
+		return messages.New(messages.H7112, job.fn, targetRaw, codes.DisplayName(codes.G122), strings.TrimRight(targetRaw, `/\`))
 	}
 	if _, err := os.Stat(filepath.Dir(target)); err != nil {
 		var pe *fs.PathError
@@ -175,7 +175,7 @@ func (job *moveJob) checkConflict(m *interp.VM, overwrite bool) error {
 	case !overwrite:
 		return messages.New(messages.H7115, job.fn, job.lastRaw, nameOverwrite.TR+":")
 	case isLink(v.Mode()):
-		return messages.New(messages.H7116, job.fn, job.lastRaw, codes.Name(codes.G123))
+		return messages.New(messages.H7116, job.fn, job.lastRaw, codes.DisplayName(codes.G123))
 	case v.IsDir() && !job.srcInfo.IsDir():
 		return messages.New(messages.H7117, job.fn, job.lastRaw)
 	case !v.IsDir() && job.srcInfo.IsDir():

@@ -89,7 +89,7 @@ func removedMemberHint(name string) string {
 	if !ok {
 		return ""
 	}
-	return hint.NotInTRHint(name, codes.Name(k))
+	return hint.NotInTRHint(name, codes.DisplayName(k))
 }
 
 // memberSuggestionError motor tiplerinde (Tensör, Parçalayıcı, VeriKümesi ...) bulunamayan bir üye
@@ -108,5 +108,5 @@ func memberSuggestionError(pg PropertyGetter, obj Value, prop string, err error)
 	if _, e := pg.GetProperty(k, codes.Name(k)); e != nil {
 		return err
 	}
-	return messages.New(messages.H2428, obj.Type(), prop, hint.NotInTRHint(prop, codes.Name(k)))
+	return messages.New(messages.H2428, obj.Type(), prop, hint.NotInTRHint(prop, codes.DisplayName(k)))
 }

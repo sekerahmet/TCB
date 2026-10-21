@@ -132,7 +132,7 @@ func typesCompatible(expected, actual string) bool {
 // numberHint Tam beklenen yere Tam ya da Ondalık olabilen bir değer verildiğinde yol gösterir.
 func numberHint(expected, given string) string {
 	if normalizeTypeName(expected) == typeInt && given == typeNumber {
-		return messages.Text(messages.H1008, typeFloat, typeInt, codes.Name(codes.G210))
+		return messages.Text(messages.H1008, typeFloat, typeInt, codes.DisplayName(codes.G210))
 	}
 	return ""
 }

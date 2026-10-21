@@ -345,7 +345,7 @@ func (o *Reader) WatchLabel() string {
 
 // TableData okuyucuyu tablo olarak açmaz; toplu işler .sonraki() ile alınır.
 func (o *Reader) TableData() ([]string, [][]string, error) {
-	return nil, nil, messages.New(messages.H5525, codes.Name(memberNext))
+	return nil, nil, messages.New(messages.H5525, codes.DisplayName(memberNext))
 }
 
 func (o *Reader) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
@@ -544,7 +544,7 @@ var _ interp.Stream = (*Reader)(nil)
 // Örnekleyici sonsuz ürettiği için döngüyle gezilmez.
 func (o *Reader) Next(m *interp.VM) (interp.Value, bool, error) {
 	if !o.sequential {
-		return nil, false, messages.New(messages.H5535, codes.Name(memberNext), codes.Name(memberSequential))
+		return nil, false, messages.New(messages.H5535, codes.DisplayName(memberNext), codes.DisplayName(memberSequential))
 	}
 	d, err := o.nextTR(m, nil, nil)
 	if err != nil || d == interp.Null {

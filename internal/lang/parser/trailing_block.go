@@ -39,6 +39,6 @@ func (p *Parser) oldReduceBlock(tok lexer.Token, begin int) {
 	}
 	if o0 && o1 {
 		reduce := codes.MemberName(codes.Y207)
-		p.recordError(tok, messages.New(messages.H0163, reduce, codes.Name(codes.A105), codes.Name(codes.A104)))
+		p.recordError(tok, messages.New(messages.H0163, reduce, codes.DisplayName(codes.A105), codes.DisplayName(codes.A104)))
 	}
 }

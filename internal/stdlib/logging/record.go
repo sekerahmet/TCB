@@ -185,7 +185,7 @@ func addMetrics(fn string, record, dict *interp.DictVal, reserved ...string) err
 		}
 		if a := dict.KeyValue(k); a != nil {
 			if _, text := a.(*interp.StringVal); !text {
-				return messages.New(messages.H7320, fn, codes.Name(codes.A202), interp.TypeAndSummary(a))
+				return messages.New(messages.H7320, fn, codes.DisplayName(codes.A202), interp.TypeAndSummary(a))
 			}
 		}
 		for _, r := range reserved {

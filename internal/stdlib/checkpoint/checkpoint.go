@@ -178,7 +178,7 @@ func options(fn string, named map[string]interp.Value) (time.Duration, int, erro
 	if v, ok := bind.GetNamed(named, nameKeep); ok {
 		n, integer := v.(*interp.IntVal)
 		if !integer || n.Val < 1 || n.Val > 1000 {
-			return 0, 0, messages.New(messages.H7409, fn, nameKeep.TR, codes.Name(codes.A200), interp.TypeAndSummary(v))
+			return 0, 0, messages.New(messages.H7409, fn, nameKeep.TR, codes.DisplayName(codes.A200), interp.TypeAndSummary(v))
 		}
 		keep = int(n.Val)
 	}
@@ -204,7 +204,7 @@ func stepArg(kd codes.Code, args []interp.Value) (int64, error) {
 	}
 	n, ok := args[0].(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		return 0, messages.New(messages.H7411, interp.CallPrefix(kd), codes.Name(codes.A200), interp.TypeAndSummary(args[0]))
+		return 0, messages.New(messages.H7411, interp.CallPrefix(kd), codes.DisplayName(codes.A200), interp.TypeAndSummary(args[0]))
 	}
 	return n.Val, nil
 }
@@ -244,7 +244,7 @@ func (kn *Checkpoint) saveOnInterval(m *interp.VM) (interp.Value, error) {
 	}
 	// Süreli kayıtta yeniden deneme bir süre sonradır, yoksa sonraki kaydet çağrısında: iki
 	// ayrı cümle, iki kod.
-	warning := messages.Text(messages.H7485, err, kn.failures, maxFailures, codes.Name(codes.Y010), kn.lastValidText())
+	warning := messages.Text(messages.H7485, err, kn.failures, maxFailures, codes.DisplayName(codes.Y010), kn.lastValidText())
 	if kn.interval > 0 {
 		warning = messages.Text(messages.H7413, err, kn.failures, maxFailures, durationText(kn.interval), kn.lastValidText())
 	}

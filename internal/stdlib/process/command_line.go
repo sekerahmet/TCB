@@ -103,7 +103,7 @@ func buildOptions(m *interp.VM, fn string, dict *interp.DictVal) ([]*option, err
 		}
 		if key := dict.KeyValue(k); key != nil {
 			if _, text := key.(*interp.StringVal); !text {
-				return nil, messages.New(messages.H7219, fn, codes.Name(codes.A202), interp.TypeAndSummary(key))
+				return nil, messages.New(messages.H7219, fn, codes.DisplayName(codes.A202), interp.TypeAndSummary(key))
 			}
 		}
 		if err := checkOptionName(fn, k); err != nil {
@@ -134,7 +134,7 @@ func checkOptionName(fn, name string) error {
 	}
 	if k, ok := codes.Find(codes.NamespaceMember, name); ok {
 		if tn, ok := codes.DefinitionOf(k); ok && slices.Contains(tn.Types(), codes.A206) {
-			return messages.New(messages.H7222, fn, name, codes.Name(codes.A206))
+			return messages.New(messages.H7222, fn, name, codes.DisplayName(codes.A206))
 		}
 	}
 	return nil
@@ -194,7 +194,7 @@ func readDescriptions(fn string, named map[string]interp.Value, options []*optio
 	if v, ok := bind.GetNamed(named, nameDesc); ok {
 		s, ok := v.(*interp.StringVal)
 		if !ok {
-			return "", messages.New(messages.H7226, fn, nameDesc.TR, codes.Name(codes.A202), interp.TypeAndSummary(v))
+			return "", messages.New(messages.H7226, fn, nameDesc.TR, codes.DisplayName(codes.A202), interp.TypeAndSummary(v))
 		}
 		description = s.Val
 	}
@@ -204,7 +204,7 @@ func readDescriptions(fn string, named map[string]interp.Value, options []*optio
 	}
 	dict, ok := v.(*interp.DictVal)
 	if !ok {
-		return "", messages.New(messages.H7227, fn, nameDescs.TR, codes.Name(codes.A206), interp.TypeAndSummary(v))
+		return "", messages.New(messages.H7227, fn, nameDescs.TR, codes.DisplayName(codes.A206), interp.TypeAndSummary(v))
 	}
 	names := make([]string, len(options))
 	for i, s := range options {
@@ -224,7 +224,7 @@ func readDescriptions(fn string, named map[string]interp.Value, options []*optio
 		}
 		s, ok := value.(*interp.StringVal)
 		if !ok {
-			return "", messages.New(messages.H7230, fn, nameDescs.TR, k, codes.Name(codes.A202), interp.TypeAndSummary(value))
+			return "", messages.New(messages.H7230, fn, nameDescs.TR, k, codes.DisplayName(codes.A202), interp.TypeAndSummary(value))
 		}
 		options[i].description = s.Val
 	}

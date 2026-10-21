@@ -59,7 +59,7 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		// Türü değiştirmenin tek yazımı t.türe(...)'dir; tür: yalnızca listeden ya da
 		// sayıdan oluştururken verilir (karar 14).
 		if _, given := bind.GetNamed(named, nameDType); given {
-			return nil, messages.New(messages.H6008, fn, codes.Name(codes.Y415), nameDType.TR)
+			return nil, messages.New(messages.H6008, fn, codes.DisplayName(codes.Y415), nameDType.TR)
 		}
 		// Var olan tensörden çizgeden bağımsız, kendi verisine sahip yeni bir yaprak (aynı tür).
 		dt := d.t.DType()
@@ -171,7 +171,7 @@ func randomNormal(sh []int, named map[string]interp.Value) (*tensor.Tensor, erro
 	if s, ok := bind.GetNamed(named, nameSeed); ok {
 		seed, ok := s.(*interp.IntVal)
 		if !ok {
-			return nil, messages.New(messages.H6031, codes.Name(codes.T103), nameSeed.TR, typeName(s))
+			return nil, messages.New(messages.H6031, codes.DisplayName(codes.T103), nameSeed.TR, typeName(s))
 		}
 		return tensor.Randn(rand.New(rand.NewSource(seed.Val)), sh...), nil
 	}

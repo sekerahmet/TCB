@@ -79,7 +79,7 @@ func (p *Parser) checkReturn(tok lexer.Token) {
 	}
 	switch {
 	case p.ctx.test:
-		p.syntaxError(tok, messages.H0153, tok.Literal, codes.Name(codes.A001))
+		p.syntaxError(tok, messages.H0153, tok.Literal, codes.DisplayName(codes.A001))
 	case p.module:
 		p.syntaxError(tok, messages.H0154, tok.Literal)
 	}

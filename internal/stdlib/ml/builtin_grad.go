@@ -28,10 +28,10 @@ func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.
 	}
 	t := d.t
 	if t.Numel() != 1 {
-		return nil, messages.New(messages.H6401, fn, shapeText(t.Shape()), codes.Name(codes.G400), codes.Name(codes.G410))
+		return nil, messages.New(messages.H6401, fn, shapeText(t.Shape()), codes.DisplayName(codes.G400), codes.DisplayName(codes.G410))
 	}
 	if !t.RequiresGrad() {
-		return nil, messages.New(messages.H6402, fn, gradExample("..."), codes.Name(codes.T301))
+		return nil, messages.New(messages.H6402, fn, gradExample("..."), codes.DisplayName(codes.T301))
 	}
 	// Dış düğümlerin (özel_türev) geri hesapları bu görevle çalışır.
 	if err := backprop(m, t, nil); err != nil {

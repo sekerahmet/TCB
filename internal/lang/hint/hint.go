@@ -51,7 +51,7 @@ func KeywordSpellingHint(name string) string {
 	if !ok {
 		return ""
 	}
-	return messages.Text(messages.H1103, name, codes.Name(k))
+	return messages.Text(messages.H1103, name, codes.DisplayName(k))
 }
 
 // BuiltinSpellingHint returns the hint to append to an error message when ad is the ASCII
@@ -64,7 +64,7 @@ func BuiltinSpellingHint(name string) string {
 	if !ok {
 		return ""
 	}
-	return NotInTRHint(name, codes.Name(k))
+	return NotInTRHint(name, codes.DisplayName(k))
 }
 
 // NameSuggestion returns the suggestion to append to the error message for an undefined name:
@@ -94,11 +94,11 @@ func TypeTextComparison(op, text, example string) string {
 // TypeTextComparisonError is TypeTextComparison as a coded error (H1105).
 func TypeTextComparisonError(op, text, example string) *messages.Error {
 	if k, ok := codes.Find(codes.NamespaceType, text); ok {
-		example = codes.Name(k)
+		example = codes.DisplayName(k)
 	} else if k, ok := codes.Suggest(codes.NamespaceType, text, nil); ok {
-		example = codes.Name(k)
+		example = codes.DisplayName(k)
 	}
-	g := codes.Name(codes.G201)
+	g := codes.DisplayName(codes.G201)
 	return messages.New(messages.H1105, g, op, text, example)
 }
 

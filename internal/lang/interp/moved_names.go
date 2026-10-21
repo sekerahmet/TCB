@@ -35,5 +35,5 @@ func movedMemberError(obj Value, prop string) string {
 		return ""
 	}
 	a := codes.ReceiverName(typ)
-	return messages.Text(messages.H2518, a, prop, codes.Name(fresh))
+	return messages.Text(messages.H2518, a, prop, codes.DisplayName(fresh))
 }

@@ -122,7 +122,7 @@ func customGrad(_ *interp.VM, args []interp.Value, named map[string]interp.Value
 			}
 		}
 		if len(f.Parameters) < 2 || required > 2 {
-			return nil, messages.New(messages.H6408, fn, nameBackward.TR, codes.Name(codes.A020), len(f.Parameters))
+			return nil, messages.New(messages.H6408, fn, nameBackward.TR, codes.DisplayName(codes.A020), len(f.Parameters))
 		}
 	}
 	o := &customOp{forward: forward, backward: backward}
@@ -264,7 +264,7 @@ func backwardResult(v interp.Value, args []interp.Value) ([]*tensor.Tensor, erro
 	fn, backward, none := codes.Name(codes.T310), nameBackward.TR, codes.Name(codes.A042)
 	l, ok := v.(*interp.ListVal)
 	if !ok {
-		return nil, messages.New(messages.H6414, fn, backward, none, codes.Name(codes.A021), shortForm(v))
+		return nil, messages.New(messages.H6414, fn, backward, none, codes.DisplayName(codes.A021), shortForm(v))
 	}
 	if len(l.Elements) != len(args) {
 		return nil, messages.New(messages.H6415, fn, backward, len(l.Elements), len(args), none)
@@ -326,7 +326,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	}
 	list, ok := args[1].(*interp.ListVal)
 	if !ok {
-		return nil, messages.New(messages.H6421, fn, codes.Name(codes.T100), codes.Name(codes.T900), codes.Name(codes.A040), typeName(args[1]))
+		return nil, messages.New(messages.H6421, fn, codes.DisplayName(codes.T100), codes.DisplayName(codes.T900), codes.DisplayName(codes.A040), typeName(args[1]))
 	}
 	step, err := positiveInt(fn, named, nameStep, 1e-3)
 	if err != nil {
@@ -337,7 +337,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, err
 	}
 	if !tensor.GradEnabled() {
-		return nil, messages.New(messages.H6422, fn, codes.Name(codes.T301))
+		return nil, messages.New(messages.H6422, fn, codes.DisplayName(codes.T301))
 	}
 
 	// Türev izleyen girdilerin float32 yaprak kopyaları.
@@ -354,7 +354,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		}
 	}
 	if checked == 0 {
-		return nil, messages.New(messages.H6423, fn, codes.Name(codes.T100), codes.Name(codes.T900), codes.Name(codes.A040))
+		return nil, messages.New(messages.H6423, fn, codes.DisplayName(codes.T100), codes.DisplayName(codes.T900), codes.DisplayName(codes.A040))
 	}
 
 	// Analitik gradyan: L = Σ_k <v_k, y_k> üzerinden geri yayılım.

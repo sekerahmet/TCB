@@ -90,7 +90,7 @@ func (o *Reader) loadStateTR(m *interp.VM, args []interp.Value, named map[string
 		if len(named) > 0 {
 			return nil, messages.New(messages.H5537, interp.CallPrefix(memberLoadState))
 		}
-		return nil, interp.ArgCountError(memberLoadState, "1", len(args), messages.Text(messages.H2315, codes.Name(memberState)))
+		return nil, interp.ArgCountError(memberLoadState, "1", len(args), messages.Text(messages.H2315, codes.DisplayName(memberState)))
 	}
 	s, ok := args[0].(*interp.DictVal)
 	if !ok {
@@ -179,7 +179,7 @@ func (d *stateReader) get(name string) (interp.Value, bool) {
 	}
 	v, ok := d.s.Pairs[name]
 	if !ok {
-		d.failure = messages.New(messages.H5541, d.fn, name, codes.Name(memberState))
+		d.failure = messages.New(messages.H5541, d.fn, name, codes.DisplayName(memberState))
 	}
 	return v, ok
 }
@@ -191,7 +191,7 @@ func (d *stateReader) text(name string) string {
 	}
 	m, ok := v.(*interp.StringVal)
 	if !ok {
-		d.failure = messages.New(messages.H5542, d.fn, name, codes.Name(codes.A202), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5542, d.fn, name, codes.DisplayName(codes.A202), interp.TypeAndSummary(v))
 		return ""
 	}
 	return m.Val
@@ -204,7 +204,7 @@ func (d *stateReader) integer(name string) int64 {
 	}
 	n, ok := v.(*interp.IntVal)
 	if !ok || n.Val < 0 {
-		d.failure = messages.New(messages.H5543, d.fn, name, codes.Name(codes.A200), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5543, d.fn, name, codes.DisplayName(codes.A200), interp.TypeAndSummary(v))
 		return 0
 	}
 	return n.Val
@@ -217,7 +217,7 @@ func (d *stateReader) boolean(name string) bool {
 	}
 	b, ok := v.(*interp.BoolVal)
 	if !ok {
-		d.failure = messages.New(messages.H5542, d.fn, name, codes.Name(codes.A203), interp.TypeAndSummary(v))
+		d.failure = messages.New(messages.H5542, d.fn, name, codes.DisplayName(codes.A203), interp.TypeAndSummary(v))
 		return false
 	}
 	return b.Val
