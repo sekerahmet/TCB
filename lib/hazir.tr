@@ -1,0 +1,126 @@
+// tr/hazir — Hugging Face biçiminde kaydedilmiş hazır modelleri (config.json + model.safetensors)
+// TR'nin GPT'sine (tr/katman) yükler.
+//
+// Kullanım:   aktar "tr/hazir"
+//             değişken model = hazır_model("modeller/SmolLM2-135M")
+//             değişken p = parçalayıcı_yükle("modeller/SmolLM2-135M/tokenizer.json")
+//
+// Desteklenen mimariler (model_type): llama (Llama, SmolLM2, TinyLlama ...) ve qwen3. İkisi de TR'nin
+// GPT'siyle aynı iskelettir (transformers modeling_llama.py, modeling_qwen3.py): ön-norm blok
+// x + dikkat(norm1(x)), + mlp(norm2(x)); RMSNorm; dikkat GQA ve RoPE (yarı döndürme, rotate_half);
+// MLP aşağı(silu(kapı(x)) · yukarı(x)); qwen3'te q ve k bakış boyutunda RMS normundan RoPE'dan önce
+// geçer (qk_normu). Desteklenmeyen bir ayar (sapmalı katmanlar, RoPE ölçekleme, başka etkinleştirme)
+// açık hatadır; sessizce yanlış model kurulmaz.
+//
+// Ağırlıklar safetensors'tan (tensör_yükle, dil tanımı 15.47) bir ad eşlemesiyle parametrelere
+// yazılır (parametreleri_yükle, 20.11). Hugging Face nn.Linear ağırlığı [çıkış, giriş], TR'nin
+// Doğrusal'ı [giriş, çıkış] tutar: doğrusal katmanlar devrilir. Eşlenmeyen ya da eksik ad hatadır.
+
+aktar "tr/katman"
+
+sabit DESTEKLENEN_MİMARİLER = ["llama", "qwen3"]
+
+// ayar_değeri sözlükte anahtar varsa ve değeri yok (JSON null) değilse onu, yoksa öntanımlıyı verir.
+fonksiyon ayar_değeri(ayar, anahtar, öntanımlı) {
+    eğer ayar.içerir(anahtar) ve ayar[anahtar] != yok { sonuç ayar[anahtar] }
+    sonuç öntanımlı
+}
+
+// hazır_model klasördeki config.json'dan modeli kurar ve model.safetensors'ı yükler.
+fonksiyon hazır_model(klasör) {
+    değişken k = yol(klasör)
+    değişken ayar = json_çöz(dosya_oku(yol(k, "config.json")))
+    değişken model = hazır_model_kur(ayar)
+    değişken ağırlıklar = tensör_yükle(yol(k, "model.safetensors"))
+    parametreleri_yükle(model, hugging_face_eşle(ağırlıklar, ayar))
+    sonuç model
+}
+
+// hazır_model_kur config.json sözlüğünden (ağırlıklar yüklenmeden) GPT'yi kurar.
+fonksiyon hazır_model_kur(ayar) {
+    değişken tür = ayar_değeri(ayar, "model_type", "")
+    eğer değil DESTEKLENEN_MİMARİLER.içerir(tür) {
+        fırlat "hazır_model: {tür} mimarisi desteklenmiyor (desteklenenler: {DESTEKLENEN_MİMARİLER})"
+    }
+    eğer ayar_değeri(ayar, "attention_bias", yanlış) veya ayar_değeri(ayar, "mlp_bias", yanlış) {
+        fırlat "hazır_model: sapmalı dikkat ya da MLP katmanları desteklenmiyor"
+    }
+    eğer ayar_değeri(ayar, "hidden_act", "silu") != "silu" {
+        fırlat "hazır_model: {ayar_değeri(ayar, \"hidden_act\", \"\")} etkinleştirmesi desteklenmiyor (silu bekleniyordu)"
+    }
+    eğer rope_ölçekleme_var_mı(ayar) {
+        fırlat "hazır_model: RoPE ölçekleme (rope_scaling) desteklenmiyor"
+    }
+    eğer ayar_değeri(ayar, "use_sliding_window", yanlış) {
+        fırlat "hazır_model: kayan pencereli dikkat (use_sliding_window) henüz desteklenmiyor"
+    }
+    değişken boyut = ayar["hidden_size"]
+    değişken bakış = ayar["num_attention_heads"]
+    sonuç GPT(ayar["vocab_size"], bağlam: ayar_değeri(ayar, "max_position_embeddings", 2048), boyut: boyut,
+        katman: ayar["num_hidden_layers"], bakış_sayısı: bakış,
+        kv_bakış_sayısı: ayar_değeri(ayar, "num_key_value_heads", bakış), ara_boyut: ayar["intermediate_size"],
+        paylaşımlı: ayar_değeri(ayar, "tie_word_embeddings", yanlış), epsilon: ayar_değeri(ayar, "rms_norm_eps", 0.000001),
+        qk_normu: tür == "qwen3", bakış_boyutu: ayar_değeri(ayar, "head_dim", tam(boyut / bakış)),
+        rope_tabanı: rope_tabanı(ayar))
+}
+
+// rope_tabanı: üst düzeyde rope_theta (eski transformers) ya da rope_parameters.rope_theta (5.x);
+// ikisi de yoksa Llama'nın varsayılanı 10000.
+fonksiyon rope_tabanı(ayar) {
+    eğer ayar.içerir("rope_theta") { sonuç ondalık(ayar["rope_theta"]) }
+    değişken p = ayar_değeri(ayar, "rope_parameters", yok)
+    eğer p != yok ve p.içerir("rope_theta") { sonuç ondalık(p["rope_theta"]) }
+    sonuç 10000.0
+}
+
+fonksiyon rope_ölçekleme_var_mı(ayar) {
+    değişken ölçek = ayar_değeri(ayar, "rope_scaling", yok)
+    eğer ölçek != yok { sonuç doğru }
+    değişken p = ayar_değeri(ayar, "rope_parameters", yok)
+    sonuç p != yok ve ayar_değeri(p, "rope_type", "default") != "default"
+}
+
+// Blok içi Hugging Face adı → [TR adı, devrik mi].
+sabit BLOK_ADLARI = {
+    "self_attn.q_proj.weight": ["dikkat.sorgu_katmanı.ağırlık", doğru],
+    "self_attn.k_proj.weight": ["dikkat.anahtar_katmanı.ağırlık", doğru],
+    "self_attn.v_proj.weight": ["dikkat.değer_katmanı.ağırlık", doğru],
+    "self_attn.o_proj.weight": ["dikkat.çıkış_katmanı.ağırlık", doğru],
+    "self_attn.q_norm.weight": ["dikkat.q_norm.ağırlık", yanlış],
+    "self_attn.k_norm.weight": ["dikkat.k_norm.ağırlık", yanlış],
+    "mlp.gate_proj.weight": ["ileri_besleme.kapı.ağırlık", doğru],
+    "mlp.up_proj.weight": ["ileri_besleme.yukarı.ağırlık", doğru],
+    "mlp.down_proj.weight": ["ileri_besleme.aşağı.ağırlık", doğru],
+    "input_layernorm.weight": ["norm1.ağırlık", yanlış],
+    "post_attention_layernorm.weight": ["norm2.ağırlık", yanlış]
+}
+
+// hugging_face_eşle Hugging Face adlı ağırlık sözlüğünü TR parametre adlarına çevirir. Paylaşımlı
+// gömmede lm_head.weight varsa gömmeyle aynı olmalıdır ve atlanır; dönüş tabloları
+// (rotary_emb.inv_freq) hesaplanır, atlanır. Tanınmayan ad hatadır.
+fonksiyon hugging_face_eşle(ağırlıklar, ayar) {
+    değişken paylaşımlı = ayar_değeri(ayar, "tie_word_embeddings", yanlış)
+    değişken sonuç_sözlük = {}
+    döngü ad, t içinde ağırlıklar {
+        eğer ad.biter("rotary_emb.inv_freq") { devam }
+        eğer ad == "model.embed_tokens.weight" {
+            sonuç_sözlük["gömme.tablo"] = t
+        } değilse eğer ad == "model.norm.weight" {
+            sonuç_sözlük["son_norm.ağırlık"] = t
+        } değilse eğer ad == "lm_head.weight" {
+            eğer değil paylaşımlı { sonuç_sözlük["çıkış.ağırlık"] = t.devrik() }
+        } değilse eğer ad.başlar("model.layers.") {
+            değişken parçalar = ad.böl(".")
+            değişken iç = parçalar[3..parçalar.uzunluk].birleştir(".")
+            eğer değil BLOK_ADLARI.içerir(iç) { fırlat "hazır_model: tanınmayan ağırlık {ad}" }
+            değişken hedef = BLOK_ADLARI[iç]
+            değişken tr_ad = "bloklar.{parçalar[2]}.{hedef[0]}"
+            değişken w = t
+            eğer hedef[1] { w = t.devrik() }
+            sonuç_sözlük[tr_ad] = w
+        } değilse {
+            fırlat "hazır_model: tanınmayan ağırlık {ad}"
+        }
+    }
+    sonuç sonuç_sözlük
+}

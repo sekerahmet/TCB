@@ -351,6 +351,8 @@ fonksiyon katman_pencereleri(düzen, pencereler) {
 //               yerel/genel düzen katman_pencereleri("YYGYGYYG", [32, 64]) ile kurulur.
 //   qk_normu, birleşik_kv, birleşik_kapı, ileri_sapmalı, epsilon, bakış_boyutu: her bloğa iletilir
 //               (bakış_boyutu döner konum tablolarının da boyudur; yok ise boyut / bakış_sayısı).
+//   rope_tabanı: döner konumun frekans tabanı (Hugging Face rope_theta; Llama 2 10000, SmolLM2
+//               100000, Qwen3 1000000).
 //   ple_boyutu: verilirse her blokta PLE vardır; modelde ortak PLEBağlamı (`ple_bağlamı`) gömme
 //               çıktısından katman başına bağlamı üretir ve i. bloğa i. parçayı verir.
 // RGN-512 gibi bir model bu yapıyla tek çağrıdır:
@@ -368,11 +370,11 @@ yapı GPT {
     ple_bağlamı
     kos
     sin
-    fonksiyon kurucu(dağarcık, bağlam = 256, boyut = 256, katman = 4, bakış_sayısı = 4, kv_bakış_sayısı = yok, ara_boyut = yok, paylaşımlı = yanlış, tohum = 1, pencereler = yok, qk_normu = yanlış, birleşik_kv = yanlış, birleşik_kapı = yanlış, ileri_sapmalı = yanlış, epsilon = 0.00001, ple_boyutu = yok, bakış_boyutu = yok) {
+    fonksiyon kurucu(dağarcık, bağlam = 256, boyut = 256, katman = 4, bakış_sayısı = 4, kv_bakış_sayısı = yok, ara_boyut = yok, paylaşımlı = yanlış, tohum = 1, pencereler = yok, qk_normu = yanlış, birleşik_kv = yanlış, birleşik_kapı = yanlış, ileri_sapmalı = yanlış, epsilon = 0.00001, ple_boyutu = yok, bakış_boyutu = yok, rope_tabanı = 10000.0) {
         kendi.ayar = {dağarcık: dağarcık, bağlam: bağlam, boyut: boyut, katman: katman, bakış_sayısı: bakış_sayısı, bakış_boyutu: bakış_boyutu,
             kv_bakış_sayısı: kv_bakış_sayısı, ara_boyut: ara_boyut, paylaşımlı: paylaşımlı, tohum: tohum,
             pencereler: pencereler, qk_normu: qk_normu, birleşik_kv: birleşik_kv, birleşik_kapı: birleşik_kapı,
-            ileri_sapmalı: ileri_sapmalı, epsilon: epsilon, ple_boyutu: ple_boyutu}
+            ileri_sapmalı: ileri_sapmalı, epsilon: epsilon, ple_boyutu: ple_boyutu, rope_tabanı: rope_tabanı}
         eğer pencereler != yok {
             doğrula(pencereler.uzunluk == katman, "pencereler ({pencereler.uzunluk} eleman) katman sayısına ({katman}) eşit olmalı")
         }
@@ -390,7 +392,7 @@ yapı GPT {
         kendi.son_norm = RMSNormKatmanı(boyut, epsilon: epsilon)
         kendi.çıkış = eğer paylaşımlı { yok } değilse { Doğrusal(boyut, dağarcık, std: std, tohum: tohum + 1) }
         kendi.ple_bağlamı = eğer ple_boyutu == yok { yok } değilse { PLEBağlamı(boyut, katman, ple_boyutu, epsilon: epsilon, std: std, tohum: tohum + 2) }
-        değişken tablolar = döner_konum_tablosu(bağlam, eğer bakış_boyutu == yok { boyut / bakış_sayısı } değilse { bakış_boyutu })
+        değişken tablolar = döner_konum_tablosu(bağlam, eğer bakış_boyutu == yok { boyut / bakış_sayısı } değilse { bakış_boyutu }, taban: rope_tabanı)
         kendi.kos = tablolar[0]
         kendi.sin = tablolar[1]
     }

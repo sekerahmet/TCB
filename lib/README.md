@@ -7,8 +7,9 @@ TR ile yazılmış, `tr` ikilisine gömülü kitaplık. Modüller `aktar "tr/...
 | `tr/katman` | [`katman.tr`](katman.tr) | Transformer katmanları ve yalnızca kod çözücülü `GPT` |
 | `tr/iyilestirici` | [`iyilestirici.tr`](iyilestirici.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
 | `tr/egitim` | [`egitim.tr`](egitim.tr) | Uzun eğitimin kararlılığı: kayıp ve gradyan normu sıçrama bekçisi |
+| `tr/hazir` | [`hazir.tr`](hazir.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
 
-Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`, `egitim_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
+Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`, `egitim_test.tr`, `hazir_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
 ```tr
 aktar "tr/katman"
@@ -42,7 +43,7 @@ Her katman sıradan bir `yapı`dır: ağırlıklar alanlarındadır, ileri hesap
 | `PLEBağlamı`, `PLEBloğu`, `ple_gelu` | katman başına kelime gömmesi (PLE, Gemma 3n): ortak bağlam ve katman başına tablo/kapı/izdüşüm | `PLEBağlamı(boyut, katman, ple_boyutu, epsilon:, std:, tohum:)`, `PLEBloğu(boyut, dağarcık, ple_boyutu, epsilon:, std:, çıkış_std:, tohum:)` |
 | `TransformerBloğu` | ön-norm blok: `x + dikkat(norm(x))`, `+ ileri_besleme(norm(x))`, (PLE varsa) `+ PLE katkısı` | `TransformerBloğu(boyut, bakış_sayısı, kv_bakış_sayısı:, ara_boyut:, std:, çıkış_std:, tohum:, epsilon:, pencere:, qk_normu:, birleşik_kv:, sapmalı:, ileri_sapmalı:, birleşik_kapı:, ple_boyutu:, dağarcık:, bakış_boyutu:)` |
 | `katman_pencereleri` | `"YYGYGYYG"` düzeninden katman başına pencere listesi | `katman_pencereleri(düzen, pencereler)` |
-| `GPT` | gömme → bloklar → son norm → logit; `ileri`, `kayıp`, `üret` | `GPT(dağarcık, bağlam: 256, boyut: 256, katman: 4, bakış_sayısı: 4, kv_bakış_sayısı: yok, ara_boyut: yok, paylaşımlı: yanlış, tohum: 1, pencereler: yok, qk_normu:, birleşik_kv:, birleşik_kapı:, ileri_sapmalı:, epsilon:, ple_boyutu: yok, bakış_boyutu: yok)` |
+| `GPT` | gömme → bloklar → son norm → logit; `ileri`, `kayıp`, `üret` | `GPT(dağarcık, bağlam: 256, boyut: 256, katman: 4, bakış_sayısı: 4, kv_bakış_sayısı: yok, ara_boyut: yok, paylaşımlı: yanlış, tohum: 1, pencereler: yok, qk_normu:, birleşik_kv:, birleşik_kapı:, ileri_sapmalı:, epsilon:, ple_boyutu: yok, bakış_boyutu: yok, rope_tabanı: 10000.0)` |
 | `ağırlık_başlat` | N(0, std) ile başlayan, türev izleyen ağırlık | `ağırlık_başlat(şekil, std, tohum)` |
 
 **Başlatma.** Bütün ağırlık matrisleri N(0, 0.02) ile başlar. Artık yola yazan çıkış katmanları (dikkatin `çıkış_katmanı`, ileri beslemenin `aşağı`sı) `0.02 / √(2 · katman)` ile küçültülür: her blok artık yola iki katkı ekler, katkıların varyansı katman sayısıyla büyümesin. Norm ağırlıkları 1, sapmalar 0 ile başlar. Her ağırlığın sabit bir tohumu vardır (blok `i` için `tohum + 100·(i+1)` ve ardışıkları): aynı `tohum` aynı modeli verir. `paylaşımlı: doğru` çıkışta gömme tablosunu kullanır (`logit = h @ tablo.devrik()`).
@@ -134,4 +135,15 @@ döngü adım < 1000 {
 ```
 
 Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_kararliligi.tr); hedef modelde: [`tools/gpu/rgn512.tr`](../tools/gpu/rgn512.tr) (`--koşu`, `--atla`, `--bekçi_pencere`, `--bekçi_eşik`).
+
+## `tr/hazir`
+
+`hazır_model(klasör)` Hugging Face biçiminde kaydedilmiş bir modeli (`config.json` + `model.safetensors`) TR'nin `GPT`'si olarak kurar ve ağırlıklarını yükler; parçalayıcı `parçalayıcı_yükle(yol(klasör, "tokenizer.json"))` ile ayrıca açılır.
+
+- **Mimariler:** `llama` (Llama, SmolLM2, TinyLlama ...) ve `qwen3`. İkisi de `GPT`'nin iskeletidir (transformers `modeling_llama.py`, `modeling_qwen3.py`): ön-norm blok, RMSNorm, GQA ve yarı döndürmeli RoPE, `aşağı(silu(kapı(x)) · yukarı(x))`; qwen3'te QK-norm.
+- **Ayarlar:** `hidden_size` → `boyut`, `num_attention_heads` → `bakış_sayısı`, `num_key_value_heads` → `kv_bakış_sayısı`, `head_dim` → `bakış_boyutu` (yoksa `boyut / bakış_sayısı`), `intermediate_size` → `ara_boyut`, `rms_norm_eps` → `epsilon`, `tie_word_embeddings` → `paylaşımlı`, `rope_theta` (ya da transformers 5.x'te `rope_parameters.rope_theta`) → `rope_tabanı`. Sapmalı katmanlar, RoPE ölçekleme, kayan pencere ve `silu` dışı etkinleştirme açık hatadır; sessizce yanlış model kurulmaz.
+- **Ağırlıklar:** `hugging_face_eşle` adları TR parametre adlarına çevirir; Hugging Face `nn.Linear` ağırlığı `[çıkış, giriş]`, TR `Doğrusal` `[giriş, çıkış]` tuttuğu için doğrusal katmanlar devrilir. Tanınmayan ad hatadır.
+- **Doğruluk:** küçük rastgele Llama ve Qwen3 modellerinde transformers'la en büyük logit farkı ~3·10⁻⁷ (`cmd/tr/e2e` `TestReadyModelMatchesTransformers`, `tools/hf/`).
+
+`hazır_model_kur(ayar)` yalnızca kurar (ağırlıksız); `hugging_face_eşle(ağırlıklar, ayar)` yalnızca eşler.
 

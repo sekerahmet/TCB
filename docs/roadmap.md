@@ -193,6 +193,7 @@ Modeli kullanan geliştiricinin ilk sorusu: "Hugging Face'teki modeli yükleyip 
    KV önbellek, örnekleme, maske ve LoRA yükleme bunlara dayanır.
 2. **safetensors yerel ağırlık biçimi olur.**
    - `.trt`'nin kullanıcıya safetensors'un vermediği bir şey vermediği için TR'nin kendi biçimi bırakılır; TR'ye özgü bilgi `__metadata__`'da durur.
+   - **Okuma yapıldı (2026-10-21, öne çekildi):** `tensör_yükle` safetensors'u okur (dil tanımı 15.47); `tr/hazir` Llama ve Qwen3 biçimindeki modelleri `GPT`'ye yükler, küçük modellerde transformers'la logit farkı ~3·10⁻⁷. Kalan: yazma, bölünmüş dizin, gerçek bir hazır modelle (SmolLM2-135M, Qwen3-0.6B) karşılaştırma ve hız.
    - Okuma kuralları ileti kodu, dil kuralı ve bulanıklaştırma testi olur:
      - başlık sınırı (100 MB);
      - sıralı ve çakışmasız bayt aralıkları;

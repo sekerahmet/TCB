@@ -507,3 +507,10 @@ test "GPT: bakış_boyutu bloklara ve döner konum tablosuna iletilir; varsayıl
     değişken b = GPT(12, bağlam: 6, boyut: 8, katman: 2, bakış_sayısı: 2, bakış_boyutu: 4, tohum: 3)
     eşit_mi(a.ileri(tensör([[1, 2, 3]])).değer, b.ileri(tensör([[1, 2, 3]])).değer)
 }
+
+test "GPT: rope_tabanı döner konum tablolarının tabanıdır; varsayılan 10000 (Hugging Face rope_theta)" {
+    değişken m = GPT(12, bağlam: 6, boyut: 8, katman: 1, bakış_sayısı: 2, rope_tabanı: 100000.0)
+    eşit_mi(döner_konum_tablosu(6, 4, taban: 100000.0)[0].değer, m.kos.değer)
+    değişken v = GPT(12, bağlam: 6, boyut: 8, katman: 1, bakış_sayısı: 2)
+    eşit_mi(döner_konum_tablosu(6, 4)[1].değer, v.sin.değer)
+}
