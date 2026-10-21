@@ -73,22 +73,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 		}
 	}
 
-	if mem, ok := e.Function.(*ast.MemberExpression); ok {
-		// x.metot(a, ad: b): bağlı metot değeri bir değişkene verilmediğinden alıcı kaçmaz
-		// (konumlu çağrıdaki gibi); yalnızca üye değeri okunup çağrılır.
-		object := c.expression(k, mem.Object)
-		u := resolveMember(mem.Property)
-		fun = func(v *VM, env *Environment) (Value, error) {
-			obj, err := object(v, env)
-			if err != nil {
-				return nil, err
-			}
-			if u.core != nil && findMethod(obj, u.core) != nil {
-				escape(obj) // Metin/Liste/Sözlük metotları alıcıyı başka yere koyabilir (ownership.go)
-			}
-			return v.memberValue(obj, mem, u)
-		}
-	}
+	fun = c.namedCallee(k, e, fun)
 	nameList := make([]string, len(e.NamedArgs))
 	namedCode := make([]exprCode, len(e.NamedArgs))
 	for i, na := range e.NamedArgs {
@@ -120,6 +105,28 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 			return nil, err
 		}
 		return v.applyCompiled(fnVal, args, named, line)
+	}
+}
+
+// namedCallee adlı argümanlı çağrının çağrılanını verir. x.metot(a, ad: b) için bağlı metot
+// değeri bir değişkene verilmediğinden alıcı kaçmaz (konumlu çağrıdaki gibi); yalnızca üye
+// değeri okunup çağrılır.
+func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun exprCode) exprCode {
+	mem, ok := e.Function.(*ast.MemberExpression)
+	if !ok {
+		return fun
+	}
+	object := c.expression(k, mem.Object)
+	u := resolveMember(mem.Property)
+	return func(v *VM, env *Environment) (Value, error) {
+		obj, err := object(v, env)
+		if err != nil {
+			return nil, err
+		}
+		if u.core != nil && findMethod(obj, u.core) != nil {
+			escape(obj) // Metin/Liste/Sözlük metotları alıcıyı başka yere koyabilir (ownership.go)
+		}
+		return v.memberValue(obj, mem, u)
 	}
 }
 
