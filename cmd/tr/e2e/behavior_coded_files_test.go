@@ -407,3 +407,21 @@ func TestAuditUncodedTurkishNamesCollideWithActiveLanguageWords(t *testing.T) {
 		}
 	}
 }
+
+// Denetim (2026-10-21): sözlükte üye erişimi (s.adım, s.tür) ve tırnaksız anahtar ({adım: 2})
+// üye koduna (Y500, Y402) çevrilir ve TR_DIL=en ile İngilizce adıyla (step, dtype) okunur:
+// Türkçe yazılmış dosyada sözlüğün anahtarı yazım diline göre değişir; okuma yok verir, yazma
+// yeni bir "step" anahtarı ekler (JSON'a, kontrol noktasına giden veri değişir). Dil tanımı
+// 17.7'nin testi de ("Kodlu dosyada üyenin adıyla aynı sözlük anahtarı Türkçe adıyla okunur",
+// tests/kodlu_saklama_test.tr) TR_DIL=en ile kalır.
+func TestAuditDictMemberKeysChangeWithWritingLanguage(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "d.tr", "değişken s = {\"tür\": 1, \"adım\": 2}\nyazdır(s.tür, s.adım)\ns.adım = 5\n"+
+		"değişken k = {adım: 3}\nyazdır(s, k.anahtarlar())\n")
+	want := "1 2\n{\"tür\": 1, \"adım\": 5} [\"adım\"]\n"
+	for _, lang := range []string{"TR_DIL=tr", "TR_DIL=en"} {
+		if s := run(t, trBinary, dir, "", []string{lang}, "d.tr"); s.code != 0 || s.stdout != want {
+			t.Errorf("%s: çıktı (kod %d) %q, beklenen %q\nhata:\n%s", lang, s.code, s.stdout, want, s.stderr)
+		}
+	}
+}
