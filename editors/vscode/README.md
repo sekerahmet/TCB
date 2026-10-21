@@ -101,7 +101,7 @@ Unicode işaretleme: VS Code kısıtlı kipte ASCII dışındaki her harfi sarı
 
 ## Notlar
 
-- En iyi deneyim için tek dosya yerine proje **klasörünü** açın (Dosya → Klasör Aç). Klasör açılmadan da çalıştırma çalışır: program bu durumda dosyanın bulunduğu klasörde, ayrı bir terminalde başlatılır.
+- En iyi deneyim için tek dosya yerine proje **klasörünü** açın (Dosya → Klasör Aç). Klasör açılmadan da çalıştırma çalışır: program bu durumda dosyanın bulunduğu klasörde, ayrı bir terminalde başlatılır; program bitince terminal açık kalır, çıkış kodu yazılır, bir tuşa basınca kapanır. `girdi()` bu terminalde de çalışır (Enter satırı yollar, Ctrl+C programı durdurur).
 - `.tr` dosyalarında VS Code'un "belirsiz karakter" uyarısı kapalıdır; Türkçe `ı` harfi artık Latin `i` ile karıştırılabilir diye sarı kutuyla işaretlenmez.
 - Bu depoyu klasör olarak açtığınızda `.vscode/tasks.json` görevleri de kullanılabilir: `Ctrl+Shift+B` açık dosyayı `bin/tr.exe` ile çalıştırır; denetleme ve terminal hata ayıklama görevleri de aynı `bin/tr.exe`'yi kullanır. Bu görevler ve eklenti komutları (▶, F5) yorumlayıcıyı **derlemez** (açık bir `tr.exe` Windows'ta dosyayı kilitlediği için otomatik derleme bilerek kapalıdır); Go kodunu değiştirdiyseniz önce "Tasks: Run Task" → **TR: yorumlayıcıyı derle** (`go build -o bin/tr.exe ./cmd/tr`) görevini çalıştırın.
 - `launch.json` ile özelleştirme: `"program"`, `"cwd"`, `"args"` (programa iletilen komut satırı argümanları, ör. `["--adım", "5"]`; F5'te de Ctrl+F5'te de iletilir) ve `"stopOnEntry": true` (ilk satırda dur) desteklenir.

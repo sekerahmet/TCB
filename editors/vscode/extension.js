@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { resolveWatchCommand } = require('./watch_commands');
 const { findInterpreter: findInterpreterRule, interpreterName, BIN_FOLDER } = require('./find_interpreter');
 const { programArguments } = require('./program_arguments');
+const { programTerminal } = require('./program_terminal');
 const codedFormat = require('./coded_format');
 const codedViewModule = require('./coded_view');
 
@@ -158,16 +159,13 @@ async function run(def, uri, extra) {
     await vscode.tasks.executeTask(createTask(def, local, found.filePath, extra));
 }
 
-// runInTerminal yorumlayıcıyı kabuk kullanmadan doğrudan bir terminal sürecinde başlatır
-// (tırnak/kaçış sorunu olmaz). Program bitince terminal açık kalır, çıktı okunabilir.
+// runInTerminal yorumlayıcıyı kabuk kullanmadan eklentinin terminalinde başlatır (tırnak/kaçış
+// sorunu olmaz). Program bitince terminal açık kalır, çıktı okunabilir (program_terminal.js).
 function runInTerminal(def, documentUri, interpreter, extra) {
     const file = documentUri.fsPath;
     const terminal = vscode.window.createTerminal({
         name: `TR ${def.title}: ${path.basename(file)}`,
-        shellPath: interpreter,
-        shellArgs: def.args(file, extra),
-        cwd: path.dirname(file),
-        env: languageEnvironment(),
+        pty: programTerminal({ command: interpreter, args: def.args(file, extra), cwd: path.dirname(file), env: languageEnvironment() }),
         isTransient: true
     });
     terminal.show(false);

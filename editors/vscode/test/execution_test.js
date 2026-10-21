@@ -52,8 +52,14 @@ test('Ctrl+F5 klasörsüz pencerede: argümanlar terminale de gider', async () =
     provider.resolveDebugConfigurationWithSubstitutedVariables(undefined, await provider.resolveDebugConfiguration(undefined, y));
     await wait();
     assert.strictEqual(log.terminals.length, 1);
-    assert.strictEqual(log.terminals[0].shellPath, INTERPRETER);
-    assert.deepStrictEqual(log.terminals[0].shellArgs, [FILE, 'a b', 'ç']);
+    // Yorumlayıcı terminalin kabuğu olmaz (bitince terminal kapanırdı); eklentinin terminalinde
+    // çalışır (program_terminal_test.js).
+    assert.strictEqual(log.terminals[0].shellPath, undefined);
+    const p = log.terminals[0].pty;
+    assert.ok(p, 'sahte terminal verilmeli');
+    assert.strictEqual(p.command, INTERPRETER);
+    assert.deepStrictEqual(p.args, [FILE, 'a b', 'ç']);
+    assert.strictEqual(p.cwd, FOLDER);
 });
 
 test('Ctrl+F5 launch.json olmadan: açık dosya çalışır, hata ayıklama başlamaz', async () => {
@@ -93,7 +99,7 @@ test('yazım dili ayarı çalıştırma, terminal ve hata ayıklama süreçlerin
         const terminal = setup({ setting: INTERPRETER, settings });
         terminal.provider.resolveDebugConfigurationWithSubstitutedVariables(undefined, await terminal.provider.resolveDebugConfiguration(undefined, y));
         await wait();
-        assert.strictEqual(terminal.log.terminals[0].env.TR_DIL, lang, 'terminal');
+        assert.strictEqual(terminal.log.terminals[0].pty.env.TR_DIL, lang, 'terminal');
 
         const debug = setup({ setting: INTERPRETER, folder: FOLDER, settings });
         const d = debug.adapterFactory.createDebugAdapterDescriptor({ configuration: { program: FILE, cwd: FOLDER } });
