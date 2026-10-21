@@ -142,6 +142,9 @@ varsayılan_cihaz("cpu")
 // Bir fonksiyondan dönüldükten sonra aynı satırda ayrılan bellek çağıran satırda sayılır
 // (çağrılan fonksiyonun son satırında değil).
 func TestProfileGPUPeakAfterCallReturn(t *testing.T) {
+	if !hasDepth {
+		t.Skip("yarış denetimli derlemede çağrı derinliği okunmaz")
+	}
 	setupGPU(t)
 	const code = `varsayılan_cihaz("gpu")
 fonksiyon küçük() { sonuç rastgele_normal([4, 4], tohum: 1) }
