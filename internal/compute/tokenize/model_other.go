@@ -95,7 +95,7 @@ func (w *wordPiece) Encode(dst []int32, p Piece) []int32 {
 		}
 		wasFound := int32(-1)
 		for begin < last {
-			p.budget.charge(1, messages.H5291) // her sözlük araması bir adım
+			p.budget.charge(1, messages.H5290) // her sözlük araması bir adım
 			sub := m[begin:last]
 			if begin > 0 {
 				sub = w.prefix + sub
@@ -290,7 +290,7 @@ func (u *unigram) encode(dst []int32, m string, budget *reBudget) []int32 {
 		hasSingle := false
 		d := u.root
 		for k := begin; k < n && d != nil; k++ {
-			budget.charge(1, messages.H5291) // ağaçta her ilerleme bir adım
+			budget.charge(1, messages.H5290) // ağaçta her ilerleme bir adım
 			d = d.child[m[k]]
 			if d == nil {
 				break

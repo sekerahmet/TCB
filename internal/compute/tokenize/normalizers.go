@@ -207,7 +207,7 @@ func (d *replacer) apply(m string, b *reBudget) string {
 		}
 		if grow := len(d.content) - len(d.plain); grow > 0 {
 			// Üretmeden önce düşülür: çıktı hiç ayrılmadan bütçe aşımı bildirilir.
-			b.charge(int64(strings.Count(m, d.plain))*int64(grow), messages.H5290)
+			b.charge(int64(strings.Count(m, d.plain))*int64(grow), messages.H5289)
 		}
 		return strings.ReplaceAll(m, d.plain, d.content)
 	}
@@ -215,7 +215,7 @@ func (d *replacer) apply(m string, b *reBudget) string {
 	prev := 0
 	d.expr.allMatches(m, func(begin, last int) {
 		if grow := len(d.content) - (last - begin); grow > 0 {
-			b.charge(int64(grow), messages.H5290)
+			b.charge(int64(grow), messages.H5289)
 		}
 		sb.WriteString(m[prev:begin])
 		sb.WriteString(d.content)

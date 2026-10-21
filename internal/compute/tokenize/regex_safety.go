@@ -84,7 +84,7 @@ type StepLimitError struct {
 
 func (e *StepLimitError) Error() string {
 	if e.Work != 0 {
-		return messages.Text(messages.H5289, messages.Text(e.Work), e.Budget)
+		return messages.Text(e.Work, e.Budget)
 	}
 	if e.Memory {
 		return messages.Text(messages.H5269, reShorten(e.Pattern), e.Pos, CurrentRegexSettings().BacktrackLimit)

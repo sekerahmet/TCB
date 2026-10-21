@@ -128,7 +128,7 @@ func preTokenizeStream(o PreTokenizer, p Piece, f func(Piece)) {
 	count := func(x Piece) {
 		sum += len(x.Text)
 		if sum > in && sum-in > grown {
-			p.budget.charge(int64(sum-in-grown), messages.H5290)
+			p.budget.charge(int64(sum-in-grown), messages.H5289)
 			grown = sum - in
 		}
 		f(x)

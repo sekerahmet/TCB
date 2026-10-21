@@ -531,7 +531,7 @@ func (b *reBudget) charge(n int64, work messages.Code) {
 // aynı boy ücretsizdir): bayt başına bir adım.
 func (b *reBudget) chargeGrowth(in, out int) {
 	if out > in {
-		b.charge(int64(out-in), messages.H5290)
+		b.charge(int64(out-in), messages.H5289)
 	}
 }
 

@@ -95,6 +95,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 	s.mu.Unlock()
 	s.respond(msg, nil)
 }
+
 // sessionExists oturumun programı zaten kurulmuş ya da başlamış mı: ikinci launch reddedilir.
 func (s *dapServer) sessionExists() bool {
 	s.mu.Lock()
