@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Durumlu değerler arayüzle bağlanır: StateDict ve LoadState yöntemlerini birlikte yazan her
+// Durumlu değerler arayüzle bağlanır: StateDict ve PrepareState yöntemlerini birlikte yazan her
 // motor tipi, derleme anında `var _ Stateful = (*T)(nil)` ile arayüzü sağladığını bildirmelidir;
 // yöntemlerden biri yeniden adlandırılırsa tip kontrol noktasından sessizce düşmesin.
 func TestStatefulImplementersAreAsserted(t *testing.T) {
@@ -31,7 +31,7 @@ func TestStatefulImplementersAreAsserted(t *testing.T) {
 		for _, decl := range f.Decls {
 			switch x := decl.(type) {
 			case *ast.FuncDecl:
-				if x.Recv == nil || (x.Name.Name != "StateDict" && x.Name.Name != "LoadState") {
+				if x.Recv == nil || (x.Name.Name != "StateDict" && x.Name.Name != "PrepareState") {
 					continue
 				}
 				if name := receiverName(x.Recv.List[0].Type); name != "" {
@@ -60,12 +60,12 @@ func TestStatefulImplementersAreAsserted(t *testing.T) {
 	}
 	found := 0
 	for name, m := range methods {
-		if !m["StateDict"] || !m["LoadState"] {
+		if !m["StateDict"] || !m["PrepareState"] {
 			continue
 		}
 		found++
 		if !asserted[name] {
-			t.Errorf("%s StateDict ve LoadState yazıyor ama `var _ Stateful = (*%s)(nil)` denetimi yok", name, name)
+			t.Errorf("%s StateDict ve PrepareState yazıyor ama `var _ Stateful = (*%s)(nil)` denetimi yok", name, name)
 		}
 	}
 	if found == 0 {

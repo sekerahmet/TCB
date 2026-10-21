@@ -32,5 +32,6 @@ Denetim: `TestStatefulImplementersAreAsserted` (yöntemleri yazan her tipin `var
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
-- `behavior_security_test.go`: kurcalanmış, yarım ve daha yeni biçimli kontrol noktası dosyalarının reddi
-- `behavior_stateful_test.go`: durumlu motor tiplerinin (`StateDict` + `LoadState`) `Stateful` arayüzünü derleme anında denetlemesi
+- `behavior_rollback_test.go`: `geri_dön` ile NaN'la bozulan adımdan geri dönülen eğitimin kesintisizle bit düzeyinde aynı bitmesi; nokta yokken açık hata
+- `behavior_security_test.go`: kurcalanmış, yarım ve daha yeni biçimli kontrol noktası dosyalarının reddi; içeriği bozuk noktanın hiçbir nesneyi değiştirmeden reddedilip önceki noktayı önermesi; düz değerde fazladan JSON
+- `behavior_stateful_test.go`: durumlu motor tiplerinin (`StateDict` + `PrepareState`) `Stateful` arayüzünü derleme anında denetlemesi

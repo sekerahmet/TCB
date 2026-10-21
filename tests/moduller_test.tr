@@ -100,7 +100,7 @@ test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gö
     eşit_mi([4, 3], k.Doğrusal(4, 3).ağırlık.şekil)
     değişken mesaj = ""
     dene { aktar "tr/olmayan_modul" } yakala h { mesaj = h }
-    doğrula(mesaj.içerir("\"tr/olmayan_modul\" dilin kitaplığında yok; kitaplıktaki modüller: tr/iyilestirici, tr/katman"), mesaj)
+    doğrula(mesaj.içerir("\"tr/olmayan_modul\" dilin kitaplığında yok; kitaplıktaki modüller: tr/egitim, tr/iyilestirici, tr/katman"), mesaj)
     mesaj = ""
     dene { aktar "tr/iyileştirici" } yakala h { mesaj = h }
     doğrula(mesaj.içerir("Bunu mu demek istediniz: \"tr/iyilestirici\"?"), mesaj)

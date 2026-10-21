@@ -70,13 +70,29 @@ Oturum kapanınca klasörü Drive'dan yerel diske geri kopyalayıp aynı komutu 
 - `kn.geri_dön()` son kontrol noktasını yerinde yükleyip adımını verir; `ö.atla(n)` sorunlu toplu işleri atlar.
 
 ```tr
-değişken karar = bekçi.gözle(kayıp.değer, norm.değer)
-eğer karar != TAMAM {
-    adım = kn.geri_dön()
-    ö.atla(200)
-    devam
+aktar "tr/egitim"
+değişken w = tensör([1.0, 2.0], türev_izle: doğru)
+değişken op = AdamW([w])
+değişken ö = veri_kümesi("veri").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
+değişken kn = kontrol_noktası("koşu", {w: w, op: op, ö: ö})
+değişken bekçi = SıçramaBekçisi()
+değişken adım = kn.kaldığı_adım
+döngü adım < 1000 {
+    değişken giriş, hedef = ö.sonraki()
+    op.sıfırla()
+    değişken kayıp = toplam(w * w)
+    geri_yayılım(kayıp)
+    değişken norm = gradyan_kırp([w], en_fazla: 1.0)
+    değişken karar = bekçi.gözle(kayıp.değer, norm.değer)
+    eğer karar != TAMAM {
+        adım = kn.geri_dön()
+        ö.atla(200)
+        devam
+    }
+    op.adım()
+    adım += 1
+    kn.güncelle(adım)
 }
-op.adım()
 ```
 
 Denetimi `op.adım()`'dan ve `kn.güncelle`'den önce yapın: bozuk adım modele ve kontrol noktasına girmesin. Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../../examples/tr/44_egitim_kararliligi.tr).

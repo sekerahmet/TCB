@@ -108,15 +108,28 @@ Bekçi yalnızca karar verir; ne yapılacağını döngü seçer (dil tanımı 1
 
 ```tr
 aktar "tr/egitim"
+değişken w = tensör([1.0, 2.0], türev_izle: doğru)
+değişken op = AdamW([w])
+değişken ö = veri_kümesi("veri").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
+değişken kn = kontrol_noktası("koşu", {w: w, op: op, ö: ö})
 değişken bekçi = SıçramaBekçisi()
-// ... geri_yayılım(kayıp); değişken norm = gradyan_kırp(ağırlıklar, en_fazla: 1.0)
-değişken karar = bekçi.gözle(kayıp.değer, norm.değer)
-eğer karar != TAMAM {
-    adım = kn.geri_dön()   // son sağlam kontrol noktası
-    ö.atla(200)            // sorunlu toplu işleri atla (PaLM §5.1)
-    devam
+değişken adım = kn.kaldığı_adım
+döngü adım < 1000 {
+    değişken giriş, hedef = ö.sonraki()
+    op.sıfırla()
+    değişken kayıp = toplam(w * w)
+    geri_yayılım(kayıp)
+    değişken norm = gradyan_kırp([w], en_fazla: 1.0)
+    değişken karar = bekçi.gözle(kayıp.değer, norm.değer)
+    eğer karar != TAMAM {
+        adım = kn.geri_dön()   // son sağlam kontrol noktası
+        ö.atla(200)            // sorunlu toplu işleri atla (PaLM §5.1)
+        devam
+    }
+    op.adım()
+    adım += 1
+    kn.güncelle(adım)
 }
-op.adım()
 ```
 
 Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_kararliligi.tr); hedef modelde: [`tools/gpu/rgn512.tr`](../tools/gpu/rgn512.tr) (`--koşu`, `--atla`, `--bekçi_pencere`, `--bekçi_eşik`).

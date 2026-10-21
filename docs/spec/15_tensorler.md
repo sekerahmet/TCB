@@ -149,7 +149,10 @@ Karşılaştırma ve karar: PyTorch `torch.compile` ve JAX `jit` bütün program
 - Adımı atlamak isteyen döngü normu kendisi denetler; atlanan adımda iyileştirici çalışmaz, gradyanlar sıfırlanır (PyTorch `GradScaler`'ın inf/NaN gradyanda `optimizer.step()`'i atlaması):
 
 ```tr
-değişken norm = gradyan_kırp(ağırlıklar, en_fazla: 1.0)
+değişken w = tensör([1.0, 2.0], türev_izle: doğru)
+değişken op = AdamW([w])
+geri_yayılım(toplam(w * w))
+değişken norm = gradyan_kırp([w], en_fazla: 1.0)
 eğer sonlu_mu(norm.değer) { op.adım() }
 op.sıfırla()
 ```

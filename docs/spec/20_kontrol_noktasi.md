@@ -68,9 +68,17 @@ Düz bir `Tam`, `Ondalık`, `Metin` ya da `Mantık` doğrudan verilemez (geri y�
 **20.14** `kn.geri_dön()` en yeni geçerli noktayı aynı programda yerinde yükler ve noktanın adımını (`Tam`) verir. Yükleme kurulumdakiyle aynı yoldur (**20.6**, **20.7**, **20.9**): parametreler, iyileştirici durumları, okuyucular ve düz değerler noktadaki hallerine döner, günlüklere devam kaydı yazılır (geri dönülen adımdan sonraki kayıtlar geçersiz sayılır, 19). Standart hataya `Son kontrol noktasına dönüldü: adım N (...)` yazılır. `kaldığı_adım` değişmez (kurulumun adımıdır); eğitim döngüsü dönen adımdan sürer. Nokta yoksa açık hatadır; argüman almaz. Bozuk bir adımdan geri dönüp sürdürülen eğitim, hiç bozulmamış eğitimle bit düzeyinde aynı biter (Go testi: `internal/stdlib/checkpoint` `TestRollbackAfterNaNSameAsUninterrupted`). Bozuk adım kaydedilmeden önce dönülmelidir: aralıklı kayıt (`güncelle`) bozulmuş durumu da kaydeder, bu yüzden denetim `güncelle`'den önce yapılır:
 
 ```tr
+değişken w = tensör([1.0, 2.0], türev_izle: doğru)
+değişken op = AdamW([w])
+değişken ö = veri_kümesi("veri").örnekleyici(toplu: 8, bağlam: 32, tohum: 1)
+değişken kn = kontrol_noktası("koşu", {w: w, op: op, ö: ö})
 değişken adım = kn.kaldığı_adım
-döngü adım < toplam_adım {
-    // ... ileri, geri_yayılım, op.adım()
+döngü adım < 1000 {
+    değişken giriş, hedef = ö.sonraki()
+    op.sıfırla()
+    değişken kayıp = toplam(w * w)
+    geri_yayılım(kayıp)
+    op.adım()
     eğer değil sonlu_mu(kayıp.değer) {
         adım = kn.geri_dön()
         ö.atla(200)

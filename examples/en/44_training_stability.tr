@@ -1,7 +1,7 @@
 //! tr kodlu 1
 // 44 — Training stability: catching NaN and loss spikes, rolling back to the last checkpoint.
 // What it teaches: is_finite (on numbers and tensors), clip_grad(..., error_if_nonfinite:), ckpt.rollback(),
-// sampler.skip(n) and the library's spike watcher (import "tr/egitim": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
+// batches.skip(n) and the library's spike watcher (import "tr/egitim": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
 // One day a long training falls into NaN through a broken gradient, or its loss suddenly spikes; this example
 // does that on purpose once and shows the training resuming from the last sound checkpoint, skipping the troublesome batches.
 // Builds on: checkpoints (40), the ready-made library (41).
@@ -18,7 +18,7 @@ G100(G415(T100([1.0, G211("nan"), -G211("inf")])).Y404) // element-wise: [1.0, 0
 // --- A small model and data (the model of example 40) ---
 A030 tok = V200("../../tests/data/tokenizer.json")
 A030 V = tok.Y612
-A030 sampler = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 1)
+A030 batches = V100("../../tests/data/text").Y600(V902: 8, V903: 32, T903: 1)
 A030 param_seed = 0
 A020 param(shape, scale) {
     param_seed += 1
@@ -31,7 +31,7 @@ A020 forward(inputs) {
 A030 opt = T400(T530(model), T910: 0.01, T911: 0.0)
 
 // --- clip_grad: always returns the norm; with error_if_nonfinite it can also fail on a broken gradient ---
-A030 first_inputs, first_targets = sampler.Y602()
+A030 first_inputs, first_targets = batches.Y602()
 T300(T510(forward(first_inputs), first_targets) * G211("nan"))
 A060 {
     T402(T530(model), T904: 1.0, T986: A040)
@@ -41,14 +41,16 @@ A060 {
 opt.Y501() // the broken gradients are cleared, the model did not change
 
 // --- Training: a checkpoint every 10 steps, the watcher looks at every step ---
-// The run folder is in the system's temporary folder: the example writes nothing into the repository.
-A030 ckpt = T702(G120(G126(), "stability"), {model: model, opt: opt, Y600: sampler}, T984: 0)
+// The run folder is deleted on every run: the example always starts from scratch.
+A030 RUN = G120("runs/stability_example")
+A001 RUN.Y315 { G123(RUN, G901: A040) }
+A030 ckpt = T702(RUN, {model: model, opt: opt, batches: batches}, T984: 0)
 A030 watcher = SıçramaBekçisi(pencere: 20, eşik: 6.0)
 A030 TOTAL = 60
 A030 broken_step = 35 // the loss turns NaN once, on purpose, at this step
 A030 step = 0
 A010 step < TOTAL {
-    A030 inputs, targets = sampler.Y602()
+    A030 inputs, targets = batches.Y602()
     opt.Y501()
     A030 loss = T510(forward(inputs), targets)
     A001 step == broken_step {
@@ -62,7 +64,7 @@ A010 step < TOTAL {
         // A broken or spiking step is not applied: back to the last sound checkpoint, the troublesome batches are skipped.
         G100("step {step + 1}: {verdict}")
         step = ckpt.Y522()
-        G100("  rolled back to step {step}, skipped {sampler.Y603(3)} batches")
+        G100("  rolled back to step {step}, skipped {batches.Y603(3)} batches")
         A014
     }
     opt.Y500()
