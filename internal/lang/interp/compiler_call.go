@@ -130,6 +130,7 @@ func (v *VM) callMethod(meth *FuncVal, inst Value, argCode []exprCode, env *Envi
 		for i, a := range argCode {
 			av, err := a(v, env)
 			if err != nil {
+				v.abandonEnv(fk, fnEnv)
 				return nil, err
 			}
 			fnEnv.store(fk.param[i], av)
@@ -146,6 +147,15 @@ func (v *VM) callMethod(meth *FuncVal, inst Value, argCode []exprCode, env *Envi
 	return v.callPrepared(meth, fk, fk.getEnv(meth.Env), inst, args, len(args), nil, line)
 }
 
+// abandonEnv bir argümanı hata verdiği için hiç çalıştırılmayan çağrının ortamını kapatır:
+// önceki argümanların bağları kalkar ve ortam (havuzlanabilirse) havuza döner.
+func (v *VM) abandonEnv(fk *funcCode, fnEnv *Environment) {
+	fnEnv.closeEnv()
+	if fk.pooled && v.Debugger == nil {
+		fk.release(fnEnv)
+	}
+}
+
 // callAt fnVal'ı (adlı argümansız) konumlu argümanlarla çağırır.
 func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int) (Value, error) {
 	nargs := len(argCode)
@@ -158,6 +168,7 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 			for i, a := range argCode {
 				av, err := a(v, env)
 				if err != nil {
+					v.abandonEnv(fk, fnEnv)
 					return nil, err
 				}
 				fnEnv.store(fk.param[i], av)

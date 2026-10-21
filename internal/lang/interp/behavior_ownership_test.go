@@ -431,7 +431,7 @@ yazdır(f())
 
 // Hızlı çağrı yolunda sonraki bir argüman hata verdiğinde, daha önce fnEnv'e
 // bağlanmış argümanların bağ sayacı çözülmeli ve kapsam sonunda bırakılmalıdır.
-func TestAuditCallArgErrorUnbindsEarlierArgs(t *testing.T) {
+func TestCallArgErrorUnbindsEarlierArgs(t *testing.T) {
 	expectOut(t, `
 fonksiyon hedef(a, b) { sonuç a }
 fonksiyon patla() { fırlat "hata" }
