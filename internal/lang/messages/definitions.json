@@ -1630,5 +1630,6 @@
 "H8863": { "param": ["command", "rename"] },
 "H8864": { "param": ["command", "subcommand", "example"] },
 "H8865": { "param": [] },
+"H8866": { "param": [] },
 "H9000": { "param": ["detail"] }
 }

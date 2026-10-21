@@ -94,6 +94,7 @@ type Result struct {
 	Likely       []Change   `json:"likely,omitempty"`
 	Conflicts    []Conflict `json:"conflicts,omitempty"`
 	SkippedWords int        `json:"skipped_other_words,omitempty"`
+	Mode         string     `json:"mode,omitempty"` // "term": sembol aranmadı, yalnızca metin
 }
 
 // NewResult şema adı yazılmış boş bir sonuç kurar.
@@ -110,3 +111,6 @@ func EncodeJSON(r *Result) ([]byte, error) {
 	}
 	return append(data, '\n'), nil
 }
+
+// ModeTerm yeniden adlandırma etkisinin terim kipidir (Result.Mode).
+const ModeTerm = "term"

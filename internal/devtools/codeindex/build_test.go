@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -214,8 +216,16 @@ func TestCodedEqualsPlain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a, b := strings.Join(facts(plain), "\n"), strings.Join(facts(coded), "\n"); a != b {
-		t.Errorf("coded and plain differ:\nplain:\n%s\ncoded:\n%s", a, b)
+	shiftLines(coded, -1) // kodlu dosyada başlık satırı bir satır ekler: konumlar dosyadaki gerçek satırdır
+	if a, b := strings.Join(facts(plain), "\n"), shiftTestIDs(strings.Join(facts(coded), "\n"), -1); a != b {
+		pa, pb := strings.Split(a, "\n"), strings.Split(b, "\n")
+		for i := range pa {
+			if i < len(pb) && pa[i] != pb[i] {
+				t.Errorf("first difference:\nplain: %s\ncoded: %s", pa[i], pb[i])
+				break
+			}
+		}
+		t.Errorf("coded and plain differ (%d and %d facts)", len(pa), len(pb))
 	}
 }
 
@@ -278,4 +288,62 @@ func TestFindRootAndClearCache(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(top, CacheDir)); err == nil {
 		t.Error("the cache folder is gone")
 	}
+}
+
+// shiftLines dizinin bütün konumlarının satırını d kadar kaydırır (kodlu ve düz dosya karşılaştırması).
+func shiftLines(idx *Index, d int) {
+	move := func(p *Pos) {
+		if p == nil {
+			return
+		}
+		p.Line += d
+		if p.EndLine != 0 {
+			p.EndLine += d
+		}
+	}
+	for i := range idx.Nodes {
+		if idx.Nodes[i].Kind != KindModule { // modülün konumu dosyanın başıdır (satır 1)
+			move(idx.Nodes[i].Pos)
+		}
+	}
+	for i := range idx.Edges {
+		move(idx.Edges[i].Pos)
+	}
+	for i := range idx.Occurrences {
+		move(&idx.Occurrences[i].Pos)
+	}
+}
+
+// Kodlu dosyada konumlar dosyadaki gerçek satırdır (başlık satırı sayılır): düzenleyicide ve grep -n'de
+// aynı numara görünür.
+func TestCodedFilePositionsAreFileLines(t *testing.T) {
+	idx := buildFixture(t)
+	data, err := os.ReadFile(filepath.Join(fixtureDir, "examples", "coded.tr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(string(data), "\n")
+	found := false
+	for _, n := range idx.Nodes {
+		if n.Pos != nil && n.Pos.File == "examples/coded.tr" && n.Kind == KindFunction {
+			found = true
+			if !strings.Contains(lines[n.Pos.Line-1], "kodlu_işlev") {
+				t.Errorf("%s is at %s but that file line is %q", n.Name, n.Pos, lines[n.Pos.Line-1])
+			}
+		}
+	}
+	if !found {
+		t.Fatal("the coded fixture has no function")
+	}
+}
+
+var testBlockID = regexp.MustCompile(`(test_block:[^# ]+#)(\d+)`)
+
+// shiftTestIDs test bloklarının kimliğindeki satır numarasını d kadar kaydırır.
+func shiftTestIDs(s string, d int) string {
+	return testBlockID.ReplaceAllStringFunc(s, func(m string) string {
+		sub := testBlockID.FindStringSubmatch(m)
+		n, _ := strconv.Atoi(sub[2])
+		return sub[1] + strconv.Itoa(n+d)
+	})
 }

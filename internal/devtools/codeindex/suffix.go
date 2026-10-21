@@ -150,3 +150,43 @@ func copulas(f suffixForm) []string {
 	four := string(f.h.four)
 	return []string{"d" + four + "r", "t" + four + "r"}
 }
+
+// soften çok heceli bir sözcüğün sondaki sert ünsüzünün ünlüyle başlayan ekten önceki yumuşak biçimini
+// verir (çekirdek -> çekirdeğ, kitap -> kitab, ağaç -> ağac, kanat -> kanad; -nk -> -ng); tek heceli
+// sözcükler (ok -> oku) ve yumuşamayan ünsüzler için ok=false. Yumuşamayan çok heceli istisnalar
+// (ahenk, hukuk...) kapsam dışıdır: yalnızca fazladan bir aday üretir.
+func soften(word string) (string, bool) {
+	runes := []rune(word)
+	vowels := 0
+	for _, r := range runes {
+		if isVowel(r) {
+			vowels++
+		}
+	}
+	if vowels < 2 || len(runes) < 2 {
+		return "", false
+	}
+	last := runes[len(runes)-1]
+	switch last {
+	case 'k':
+		if runes[len(runes)-2] == 'n' {
+			return string(runes[:len(runes)-1]) + "g", true
+		}
+		return string(runes[:len(runes)-1]) + string('ğ'), true
+	case 'p':
+		return string(runes[:len(runes)-1]) + "b", true
+	case 'ç':
+		return string(runes[:len(runes)-1]) + "c", true
+	case 't':
+		return string(runes[:len(runes)-1]) + "d", true
+	}
+	return "", false
+}
+
+// vowelStart s bir ünlüyle mi başlıyor.
+func vowelStart(s string) bool {
+	for _, r := range s {
+		return isVowel(r)
+	}
+	return false
+}

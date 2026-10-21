@@ -91,22 +91,26 @@ func displayText(text string) string {
 		return text
 	}
 	if parts.Coded {
+		// Başlık satırının yerine boş satır: satır numaraları dosyadaki gerçek satırdır (read.go ile aynı).
 		if turkish, err := source.Decode(text, source.Turkish()); err == nil {
 			if p, err := source.Split(turkish); err == nil {
-				return p.Body
+				return "\n" + p.Body
 			}
 		}
+		return "\n" + parts.Body
 	}
 	return parts.Body
 }
 
 // wordMatcher aranan sözcüğü ve ekli biçimlerini tanır.
 type wordMatcher struct {
-	word    string // Türkçe katlanmış
-	suffix  map[string]bool
-	derived map[string]bool
-	repl    string // yeni sözcük
-	harmOK  bool   // yeni sözcüğün ünlü uyumu eskisiyle aynı
+	word     string // Türkçe katlanmış
+	suffix   map[string]bool
+	derived  map[string]bool
+	repl     string // yeni sözcük
+	soft     string // aranan sözcüğün ünsüzü yumuşamış kökü (çekirdek -> çekirdeğ); yoksa ""
+	replSoft string // yeni sözcüğün yumuşamış kökü (yeni sözcük de yumuşuyorsa)
+	harmOK   bool   // yeni sözcüğün ünlü uyumu eskisiyle aynı
 }
 
 func newWordMatcher(word, repl string) *wordMatcher {
@@ -114,6 +118,8 @@ func newWordMatcher(word, repl string) *wordMatcher {
 	oldH, _ := lastHarmony(fold(word))
 	newH, ok := lastHarmony(fold(repl))
 	m.harmOK = ok && oldH == newH
+	m.soft, _ = soften(m.word)
+	m.replSoft, _ = soften(fold(repl))
 	return m
 }
 
@@ -141,6 +147,19 @@ func (m *wordMatcher) classify(token string) (match, suggestion, check string, o
 				parts[i] = m.repl
 				return MatchCompound, strings.Join(parts, "_"), "", false
 			}
+		}
+	}
+	if m.soft != "" {
+		if tail, ok := strings.CutPrefix(t, m.soft); ok && vowelStart(tail) && m.suffix[tail] {
+			repl := m.repl
+			if m.replSoft != "" {
+				repl = m.replSoft // çekirdeği -> kernel'e uymaz: yeni sözcük de yumuşuyorsa onun yumuşak kökü
+			}
+			chk := ""
+			if !m.harmOK {
+				chk = "vowel_harmony"
+			}
+			return MatchSuffixed, repl + tail, chk, false
 		}
 	}
 	if tail, ok := strings.CutPrefix(t, m.word); ok && tail != "" {
@@ -179,7 +198,12 @@ func ScanText(root, word, repl string, exclude map[string]bool) (hits []TextHit,
 			text = displayText(text)
 		}
 		h, o := scanFile(rel, ext, text, m, exclude)
-		hits = append(hits, h...)
+		for _, hit := range h {
+			// Go kodundaki adlar İngilizcedir; Go'da yalnızca yorum ve metin sabiti aranır.
+			if ext != ".go" || hit.Where != WhereCode {
+				hits = append(hits, hit)
+			}
+		}
 		other += o
 	}
 	return hits, other
@@ -259,7 +283,7 @@ func scanFile(rel, ext, text string, m *wordMatcher, exclude map[string]bool) ([
 		line = strings.TrimRight(line, "\r")
 		runes := []rune(line)
 		where := state.line(runes) // durum her satırda ilerler (blok yorum ve ham metin)
-		if !strings.Contains(fold(line), m.word) {
+		if folded := fold(line); !strings.Contains(folded, m.word) && (m.soft == "" || !strings.Contains(folded, m.soft)) {
 			continue
 		}
 		for i := 0; i < len(runes); i++ {

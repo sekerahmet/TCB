@@ -103,13 +103,13 @@ func TestTRQueries(t *testing.T) {
 	mustContain(t, out, "geo_test: kare alanı yazılır [tr_test]")
 }
 
-// Kodlu biçimli (başlıklı) dosya gösterim metniyle okunur: satırlar başlıktan sonra sayılır.
+// Kodlu biçimli (başlıklı) dosya gösterim metniyle okunur: satırlar dosyadaki gerçek satırdır (başlık satırı sayılır).
 func TestTRCodedFile(t *testing.T) {
 	g := fixture(t)
 	const fn = "tr:func:examples/coded.tr:kodlu_işlev"
 	found := false
 	for _, n := range g.Nodes {
-		if n.ID == fn && n.Line == 1 && n.End == 4 && strings.Contains(n.Detail, "kodlu_işlev(x)") {
+		if n.ID == fn && n.Line == 2 && n.End == 5 && strings.Contains(n.Detail, "kodlu_işlev(x)") {
 			found = true
 		}
 		if n.ID == "tr:file:examples/coded.tr" && n.Detail != "tr, coded" {
