@@ -283,6 +283,8 @@ for mode in $modes; do
 		if build_tr; then
 			summarize "tr test tests" "$TR" test tests
 			summarize "tr test lib" "$TR" test lib
+			# Örnekler öğrenme yoludur: standart biçimde olmalı (iki yazım da; kodlu dosya kodlu biçimlenir).
+			summarize "tr biçimle --kontrol examples" "$TR" biçimle --kontrol examples
 			run_examples
 			[ "$mode" = v3 ] || extension_tests
 		else

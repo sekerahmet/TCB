@@ -94,7 +94,7 @@ func TestCodedFilesGiveSameOutput(t *testing.T) {
 	}
 	// Karakter modelinin eğitimi kısaltılır (iki kopyada da aynı biçimde).
 	for _, root := range []string{tr1, tr2} {
-		filePath := filepath.Join(root, "examples", "tr", "15_karakter_modeli.tr")
+		filePath := filepath.Join(root, "examples", "tr", "25_karakter_modeli.tr")
 		data, err := os.ReadFile(filePath)
 		if err != nil {
 			t.Fatal(err)

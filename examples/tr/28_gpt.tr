@@ -17,7 +17,7 @@ aktar "tr/katman"
 aktar "tr/iyilestirici"
 
 değişken ayar = komut_satırı({adım: 100, toplu: 8, bağlam: 32, boyut: 32, katman: 2, baş: 4,
-        muon_oranı: 0.02, adamw_oranı: 0.01, normuon: yanlış, koşu: "runs/gpt_ornegi"},
+    muon_oranı: 0.02, adamw_oranı: 0.01, normuon: yanlış, koşu: "runs/gpt_ornegi"},
     açıklama: "Hazır katmanlarla küçük bir GPT'yi Muon + AdamW ile eğitir",
     açıklamalar: {adım: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
         normuon: "gizli ağırlıklar için Muon yerine NorMuon"})

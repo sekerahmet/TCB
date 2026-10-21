@@ -1,4 +1,4 @@
-"""examples/tr/15_karakter_modeli.tr ile aynı model ve eğitim (karşılaştırma için).
+"""examples/tr/25_karakter_modeli.tr ile aynı model ve eğitim (karşılaştırma için).
 
 Aynı veri, aynı karakter sözlüğü sırası, aynı boyutlar (V, T=64, D=64, H=4, 2 katman),
 aynı toplu iş örnekleme (aynı sözde rastgele üreteç) ve aynı iyileştirici ayarları.
@@ -13,7 +13,7 @@ if len(sys.argv) > 2:
     torch.set_num_threads(int(sys.argv[2]))
 torch.manual_seed(1)
 
-# examples/tr/15_karakter_modeli.tr'deki BELGELER listesiyle aynı dosyalar, aynı sırayla.
+# examples/tr/25_karakter_modeli.tr'deki BELGELER listesiyle aynı dosyalar, aynı sırayla.
 BELGELER = [f"docs/guide/{a}.md" for a in (
     "01_baslangic", "02_anahtar_kelimeler", "03_zincirleme_metotlar", "04_yapay_zeka_ve_veri",
     "05_hata_ayiklayici", "06_vscode_kisayollari", "07_testler", "08_bicimlendirme")] + [

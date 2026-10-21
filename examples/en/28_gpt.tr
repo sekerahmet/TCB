@@ -20,7 +20,7 @@ A070 "tr/katman"
 A070 "tr/iyilestirici"
 
 A030 config = G801({Y500: 100, batch: 8, context: 32, width: 32, layers: 2, heads: 4,
-        muon_rate: 0.02, adamw_rate: 0.01, normuon: A041, run: "runs/gpt_example"},
+    muon_rate: 0.02, adamw_rate: 0.01, normuon: A041, run: "runs/gpt_example"},
     G910: "Trains a small GPT built from ready-made layers with Muon + AdamW",
     G911: {Y500: "total training steps", run: "run folder (settings, log, checkpoints)",
         normuon: "NorMuon instead of Muon for the hidden weights"})

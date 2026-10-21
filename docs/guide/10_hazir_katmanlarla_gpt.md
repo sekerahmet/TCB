@@ -1,6 +1,6 @@
 # 10. Hazır katmanlarla GPT
 
-Bir dil modelini her seferinde ağırlık ağırlık yazmak gerekmez ([`examples/tr/14_transformer.tr`](../../examples/tr/14_transformer.tr) bunu öğretmek için yapar). Dilin kitaplığı hazır katmanlar ve iyileştiricilerle gelir; TR ile yazılmıştır, `tr` ikilisine gömülüdür ve `aktar "tr/..."` ile alınır ([dil tanımı 11.6](../spec/11_moduller.md)). Kitaplığın kodu okunur: [`lib/katman.tr`](../../lib/katman.tr), [`lib/iyilestirici.tr`](../../lib/iyilestirici.tr); bütün adlar [`lib/README.md`](../../lib/README.md)'de. Uçtan uca örnek: [`examples/tr/17_gpt.tr`](../../examples/tr/17_gpt.tr).
+Bir dil modelini her seferinde ağırlık ağırlık yazmak gerekmez ([`examples/tr/24_transformer.tr`](../../examples/tr/24_transformer.tr) bunu öğretmek için yapar). Dilin kitaplığı hazır katmanlar ve iyileştiricilerle gelir; TR ile yazılmıştır, `tr` ikilisine gömülüdür ve `aktar "tr/..."` ile alınır ([dil tanımı 11.6](../spec/11_moduller.md)). Kitaplığın kodu okunur: [`lib/katman.tr`](../../lib/katman.tr), [`lib/iyilestirici.tr`](../../lib/iyilestirici.tr); bütün adlar [`lib/README.md`](../../lib/README.md)'de. Uçtan uca örnek: [`examples/tr/28_gpt.tr`](../../examples/tr/28_gpt.tr).
 
 ## Model
 

@@ -30,6 +30,10 @@ Go test dosyalarının düzeni (birim testi `x_test.go`, davranış testi `behav
 | `editors/vscode/test/*_test.js` | VS Code eklentisi: çalıştırma, hata ayıklama yolları, kodlu görünüm, İzleme Masası komutları (sahte `vscode` modülüyle) | `node editors/vscode/test/<ad>_test.js`; hepsi gerçek yorumlayıcıyla: `go test ./cmd/tr/e2e -run EklentiJSTestleri` |
 | `Fuzz*` testleri | Dış girdi okuyan kod (dosya biçimleri, gömülü paket) | `bash tools/fuzz.sh 2s '^FuzzAd$'` |
 
+## Örnek eklemek
+
+`examples/` basitten zora numaralı bir öğrenme yoludur (`examples/tr/NN_ad.tr`, `examples/en/NN_name.tr`; aynı numara aynı program). Kurallar: her örnek **tek bir yeni kavram** getirir ve önceki örneklerde öğretilmemiş hiçbir şeyi kullanmaz; başta ne öğrettiği, önceki örnekten ne aldığı ve nasıl çalıştırıldığı yazılır, sonda "Kendin dene" alıştırmaları durur; çıktıda süre ya da başka çalıştırmadan çalıştırmaya değişen bir değer yazdırılmaz; dosya yazan örnek `geçici_klasör()` kullanır. Önce Türkçe yazılır; İngilizce eşi `bash tools/example_english.sh draft <tr-dosyası>` taslağından elle çevrilir (satır düzeni korunur, kullanıcı adları dilin üye adlarıyla çakışmaz) ve `store` ile kodlu saklanır. Numara değişirse belgelerdeki yollar da güncellenir (`go run ./tools/codegraph who-uses` yerine `grep -rn examples/`). Sınama: `go test ./cmd/tr/e2e -run TestExamples` (eşleşme, aynı iskelet, aynı sayılar) ve `tr biçimle --kontrol examples`.
+
 ## Yeni kod (ad) isteği
 
 Yeni bir yerleşik, metot, anahtar kelime ya da adlı argüman yeni bir **kod** ister. Kodu yalnızca baş geliştirici verir:

@@ -38,7 +38,7 @@ func BenchmarkAttention(b *testing.B) {
 	}
 }
 
-// Karakter modelinin (examples/tr/15_karakter_modeli.tr) dikkat şekli: toplu 16, H 4, T 64, dh 16.
+// Karakter modelinin (examples/tr/25_karakter_modeli.tr) dikkat şekli: toplu 16, H 4, T 64, dh 16.
 func BenchmarkAttentionCharModel(b *testing.B) {
 	rng := rand.New(rand.NewSource(1))
 	q := Randn(rng, 16, 4, 64, 16).SetRequiresGrad(true)

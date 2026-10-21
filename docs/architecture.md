@@ -247,7 +247,7 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
     "bellek": [{"cihaz": 0, "canlı_bayt": 109568, "ayrılmış_bayt": 114176, "havuzda_bayt": 4608,
       "tepe_canlı_bayt": 113664, "tepe_ayrılmış_bayt": 114176, "çöp_toplama": 0}]},
   "örnekleme": {"aralık_ms": 1, "örnek": 11800, "süre_sn": 11.8, "tensör_payı": 0.95,  // kapalıysa null
-    "satırlar": [{"dosya": "examples/tr/17_gpt.tr", "satır": 49, "fonksiyon": "",
+    "satırlar": [{"dosya": "examples/tr/28_gpt.tr", "satır": 49, "fonksiyon": "",
       "metin": "geri_yayılım(kayıp)", "süre_sn": 4.6, "pay": 0.39, "tensör_payı": 0.99}],
     "fonksiyonlar": [{"ad": "dikleştir", "süre_sn": 3.9, "pay": 0.33}]},
   "bellek": {"go_yığını_bayt": 7864320, "go_sistem_bayt": 44564480, "cpu_tensör_ayrılan_bayt": 7642211100},

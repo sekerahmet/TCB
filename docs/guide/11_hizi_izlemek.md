@@ -25,7 +25,7 @@ Program dosyasından sonraki argümanlar her zamanki gibi programa gider (`komut
 ## `tr izle`
 
 ```text
-⏱ izleniyor: examples/tr/17_gpt.tr · 12 sn · durdurmak için Ctrl+C
+⏱ izleniyor: examples/tr/28_gpt.tr · 12 sn · durdurmak için Ctrl+C
 Adım       715/1 500 · 17,1 ms/adım · 58,3 adım/sn · kalan ~13,5 sn
 Zaman      tensör işlemleri %96 · geri kalanı (TR kodu, bekleme) %4,2   (son 5 sn)
 
@@ -34,7 +34,7 @@ Tensör işlemleri (en pahalı)             pay   ms/adım  çağrı/adım  ciha
   geri · matris çarpımı (@)              %25      4,08        15,1    cpu
   ...
 Sıcak satırlar (öz süre)             pay tensörde
-  17_gpt.tr:49                       %39      %99  geri_yayılım(kayıp)
+  28_gpt.tr:49                       %39      %99  geri_yayılım(kayıp)
   dikleştir():34                     %21      %96  (aktarılan modülde)
   ...
 Bellek     Go yığını 7,5 MB · CPU tensör ayırması 10,2 MB/adım
@@ -44,7 +44,7 @@ Bellek     Go yığını 7,5 MB · CPU tensör ayırması 10,2 MB/adım
 Tablonun hız satırları **son 5 saniyenin** ölçüleridir; program bitince bütün koşunun raporu yazılır. Terminalde tablo ekranın üstünde yeniden çizilir; programınızın kendi çıktısı (yazdır, ilerleme çubuğu, hatalar) tabloyla karışmasın diye bir dosyaya yazılır, son satırları tablonun altında görünür ve program bitince yeniden gösterilir. Dosyanın yerini `--çıktı yol.txt` ile seçebilirsiniz (verilmezse geçici klasördedir; tablo yolunu yazar). Çıktı bir terminal değilse (bir dosyaya yönlendirildiyse ya da not defteri hücresindeyse) programın çıktısı olduğu gibi akar ve 10 saniyede bir tek satırlık özet eklenir:
 
 ```text
-⏱ 10 sn · adım 607/1 500 · 15,8 ms/adım · tensör %96 (matris çarpımı (@) %44, geri · matris çarpımı (@) %24, dikkat %3,7) · satır 17_gpt.tr:49 %37 · Go yığını 9,1 MB · çöp toplama 361 (84,3 ms)
+⏱ 10 sn · adım 607/1 500 · 15,8 ms/adım · tensör %96 (matris çarpımı (@) %44, geri · matris çarpımı (@) %24, dikkat %3,7) · satır 28_gpt.tr:49 %37 · Go yığını 9,1 MB · çöp toplama 361 (84,3 ms)
 ```
 
 Ctrl+C her zamanki gibi programı nazikçe durdurur (kontrol noktası varsa kaydedilir); rapor yine yazılır.
