@@ -4,10 +4,9 @@ bin/
 *.exe~
 *.test
 *.out
+# Python'un derlenmiş önbelleği (tools/gpu, tools/bench/py)
+__pycache__/
 
-# Örnek programların çalışırken ürettiği dosyalar
-examples/agirliklar.trt
-examples/xor_agirliklari.trt
 # Koşu klasörleri (eğitimin ayarları, günlüğü, ağırlıkları ve kontrol noktaları; examples/tr/18_kontrol_noktasi.tr)
 runs/
 
