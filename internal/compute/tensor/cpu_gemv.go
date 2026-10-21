@@ -1,45 +1,71 @@
 package tensor
 
-// gemvMinWork tek satırlık çarpımın gemv yoluna gitmesi için en az çarpım sayısıdır (N·K).
-// Küçük çarpımlarda (576 × 1536 gibi katman ağırlıkları) paketleme ucuzdur ve mikro çekirdek
-// daha hızlıdır (ölçüldü); büyük N'de (dil modelinin
-// çıkış katmanı, 576 × 49 152) B'yi her çağrıda paketlemek işi kendisinden pahalı yapar.
-const gemvMinWork = 1 << 22
+// gemvMinWork tek satırlık çarpımın gemv yoluna gitmesi için en az çarpım sayısıdır (N·K);
+// altındaki çarpımlar paketli mikro çekirdeğe gider (çağrı ve iş parçacığı başlatma yükü
+// baskın kalır).
+const gemvMinWork = 1 << 12
 
-// gemv tek satırlık çarpımdır (M = 1; çıkarımda bir parça): c[b, n] = Σ_k a[b, k]·op(B)[b, k, n].
-// B paketlenmez, ağırlık bir kez okunur; iş B'nin sütunları (çıktı elemanları) üzerinden
-// çekirdeklere bölünür. transB'de (B [N, K] satır öncelikli: paylaşımlı gömmenin devriği)
-// her çıktı bitişik bir satırla nokta çarpımdır; değilse (B [K, N]) sütun dilimi boyunca
-// satırlar birikir. Her çıktı tek bir parçada, sabit sırayla hesaplanır: sonuç parça
-// sınırlarından bağımsızdır (belirlenimci).
+// gemvStripN gemv'nin bir parçasındaki sütun sayısıdır (gemvStrip, 64 sütunluk şerit).
+const gemvStripN = 64
+
+// gemv tek satırlık çarpımdır (M = 1; çıkarımda bir parça): c[b, n] += Σ_k a[b, k]·op(B)[b, k, n]
+// (gemm gibi ekler: geri yayılım gradyanı biriktirir).
+// B paketlenmez, ağırlık bir kez okunur; iş çıktı sütunları üzerinden çekirdeklere bölünür.
+// transB'de (B [N, K] satır öncelikli: paylaşımlı gömmenin devriği) her çıktı bitişik bir
+// satırla nokta çarpımdır (dotF32). Değilse (B [K, N]: doğrusal katman x @ W) 64 sütunluk
+// şeritler biriktiricilerde tutulur, her k adımında W satırının şerit parçası okunur
+// (gemvStrip; AVX2/FMA'da assembly). Her çıktı tek bir parçada, k sırasıyla hesaplanır:
+// sonuç parça sınırlarından bağımsızdır (belirlenimci).
 func gemv(batch, N, K int, a, b []float32, transB bool, c []float32) {
 	if transB {
 		parallelFor(batch*N, K, func(lo, hi int) {
 			for t := lo; t < hi; t++ {
 				bi, n := t/N, t%N
-				c[bi*N+n] = dot32(a[bi*K:(bi+1)*K], b[bi*N*K+n*K:bi*N*K+(n+1)*K])
+				c[bi*N+n] += dotF32(a[bi*K:(bi+1)*K], b[bi*N*K+n*K:bi*N*K+(n+1)*K])
 			}
 		})
 		return
 	}
-	// Sütun dilimleri: her parça [lo, hi) çıktısını sıfırdan biriktirir (B'nin satır parçaları
-	// bitişik okunur).
-	const chunk = 256
-	chunks := (N + chunk - 1) / chunk
-	parallelFor(batch*chunks, K*chunk, func(lo, hi int) {
+	strips := (N + gemvStripN - 1) / gemvStripN
+	parallelFor(batch*strips, K*gemvStripN, func(lo, hi int) {
+		var tail [gemvStripN]float32
 		for t := lo; t < hi; t++ {
-			bi, j0 := t/chunks, (t%chunks)*chunk
-			j1 := min(j0+chunk, N)
-			out := c[bi*N+j0 : bi*N+j1]
+			bi, j0 := t/strips, (t%strips)*gemvStripN
+			ab, bb := a[bi*K:(bi+1)*K], b[bi*K*N:(bi+1)*K*N]
+			if j0+gemvStripN <= N {
+				gemvStrip(ab, bb[j0:], N, c[bi*N+j0:bi*N+j0+gemvStripN])
+				continue
+			}
+			// Son şerit kısa: geçerli sütunlar Go ile (şerit çekirdeği 64 sütun okur).
+			out := tail[:N-j0]
 			clear(out)
-			for k, s := range a[bi*K : (bi+1)*K] {
-				row := b[bi*K*N+k*N+j0 : bi*K*N+k*N+j1]
+			for k, s := range ab {
+				row := bb[k*N+j0 : k*N+N]
 				for j, v := range row {
 					out[j] += s * v
 				}
 			}
+			for j, v := range out {
+				c[bi*N+j0+j] += v
+			}
 		}
 	})
+}
+
+// gemvStripGo gemvStrip'in Go eşidir: y[j] += Σ_k a[k]·b[k*ldb + j] (j < len(y)); şerit önce
+// sıfırdan biriktirilir, sonra eklenir (assembly ile aynı sıra).
+func gemvStripGo(a, b []float32, ldb int, y []float32) {
+	var acc [gemvStripN]float32
+	t := acc[:len(y)]
+	for k, s := range a {
+		row := b[k*ldb : k*ldb+len(y)]
+		for j, v := range row {
+			t[j] += s * v
+		}
+	}
+	for j, v := range t {
+		y[j] += v
+	}
 }
 
 // dot32 iki eşit uzunluklu dilimin nokta çarpımıdır; sekiz ayrı toplayıcı (bağımlılık zinciri
