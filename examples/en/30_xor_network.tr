@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 22 — A small neural network: a two-layer network learns XOR.
+// 30 — A small neural network: a two-layer network learns XOR.
 // What it teaches: a hidden layer and non-linear activation (tanh, sigmoid), building the weights as
 // gradient-tracking tensors, the training loop in a multi-layer network.
-// Builds on: the training loop (21); XOR cannot be solved with a single linear layer, the hidden layer makes it possible.
-// Run (from the project root): tr examples/en/22_xor_network.tr
+// Builds on: the training loop (28); XOR cannot be solved with a single linear layer, the hidden layer makes it possible.
+// Run (from the project root): tr examples/en/30_xor_network.tr
 
 // The hidden layer is tanh, the output sigmoid; the weights are tensors trained with AdamW.
 A030 x_data = T100([[0, 0], [0, 1], [1, 0], [1, 1]])

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # example_english.sh: examples/tr dosyasından examples/en eşini üretmeye yardım eder.
 #
-#   bash tools/example_english.sh draft examples/tr/05_kosullar.tr
+#   bash tools/example_english.sh draft examples/tr/06_kosullar.tr
 #       Türkçe örneğin İngilizce gösterimini (dilin sözcükleri İngilizce, kullanıcı adları,
 #       yorumlar ve metinler Türkçe) standart çıktıya yazar. Elle çevirmek için taslaktır.
-#   bash tools/example_english.sh store ceviri.tr examples/en/05_conditions.tr
+#   bash tools/example_english.sh store ceviri.tr examples/en/06_conditions.tr
 #       Elle çevrilmiş İngilizce gösterimi kodlu saklama biçimine çevirip hedefe yazar.
 #
 # Çevirirken satır düzenini koruyun (aynı sayıda satır) ve kullanıcı adlarını dilin üye

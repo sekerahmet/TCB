@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 18 — Concurrent tasks: running jobs at the same time.
+// 22 — Concurrent tasks: running jobs at the same time.
 // What it teaches: starting background work with async, waiting for all of it to finish with wait_all().
 // The result is the same whatever the order.
-// Builds on: loops (07), functions (08).
-// Run (from the project root): tr examples/en/18_concurrent_tasks.tr
+// Builds on: loops (08), functions (09).
+// Run (from the project root): tr examples/en/22_concurrent_tasks.tr
 
 A030 sum_of_squares = 0
 A010 i A011 1..=100 {

@@ -1,8 +1,8 @@
-// 09 — Listeler: birçok değeri sıralı tutmak.
+// 10 — Listeler: birçok değeri sıralı tutmak.
 // Ne öğretir: liste kurmak, indeksle okumak ve yazmak (negatif indeks sondan sayar), ekle, uzunluk,
 // döngüyle gezmek, sırala, ters_çevir, toplam/ortalama, liste üreteci, çoklu atama ve takas.
-// Önceki örnekten: döngüler (07), fonksiyonlar (08), metin (04).
-// Çalıştırma (proje kökünden): tr examples/tr/09_listeler.tr
+// Önceki örnekten: döngüler (08), fonksiyonlar (09), metin (05).
+// Çalıştırma (proje kökünden): tr examples/tr/10_listeler.tr
 
 // Liste köşeli parantezle yazılır; elemanlar farklı tipte olabilir.
 değişken meyveler = ["elma", "armut", "kiraz"]

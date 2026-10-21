@@ -1,8 +1,8 @@
-// 18 — Eşzamanlı görevler: işleri aynı anda yürütmek.
+// 22 — Eşzamanlı görevler: işleri aynı anda yürütmek.
 // Ne öğretir: eşzamanlı ile arka planda iş başlatmak, bekle_hepsi() ile hepsinin bitmesini beklemek.
 // Sonuç sıradan bağımsız olarak aynıdır.
-// Önceki örnekten: döngüler (07), fonksiyonlar (08).
-// Çalıştırma (proje kökünden): tr examples/tr/18_eszamanli_gorevler.tr
+// Önceki örnekten: döngüler (08), fonksiyonlar (09).
+// Çalıştırma (proje kökünden): tr examples/tr/22_eszamanli_gorevler.tr
 
 değişken kareler_toplamı = 0
 döngü i içinde 1..=100 {

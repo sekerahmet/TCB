@@ -25,7 +25,7 @@ Program dosyasından sonraki argümanlar her zamanki gibi programa gider (`komut
 ## `tr izle`
 
 ```text
-⏱ izleniyor: examples/tr/28_gpt.tr · 12 sn · durdurmak için Ctrl+C
+⏱ izleniyor: examples/tr/39_gpt.tr · 12 sn · durdurmak için Ctrl+C
 Adım       715/1 500 · 17,1 ms/adım · 58,3 adım/sn · kalan ~13,5 sn
 Zaman      tensör işlemleri %96 · geri kalanı (TR kodu, bekleme) %4,2   (son 5 sn)
 

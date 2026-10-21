@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 12 — Structs and methods: keeping related data and the work tied to it together.
+// 14 — Structs and methods: keeping related data and the work tied to it together.
 // What it teaches: struct definitions, fields and default values, methods, self, creating
 // objects (positional and named), updating fields.
-// Builds on: functions (08), lists (09), dicts (11).
-// Run (from the project root): tr examples/en/12_structs_and_methods.tr
+// Builds on: functions (09), lists (10), dicts (12).
+// Run (from the project root): tr examples/en/14_structs_and_methods.tr
 
 // A struct defines a new type with its own fields. Unlike a dict its fields and types are known up front.
 A050 Developer {

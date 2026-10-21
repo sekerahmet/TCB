@@ -1,10 +1,10 @@
 //! tr kodlu 1
-// 25 — Character model: a small language model trained on real text (~100 thousand parameters).
+// 36 — Character model: a small language model trained on real text (~100 thousand parameters).
 // What it teaches: building a character vocabulary from text, a deep (2-layer) model with a list of layers, counting
 // parameters, greedy text generation with argmax. The same model in another language for a speed comparison: tools/bench/README.md.
-// Builds on: the transformer (24), dicts (11), reading files (17).
+// Builds on: the transformer (35), dicts (12), reading files (19).
 // Data: TR's own Turkish documents. The model learns to predict the next character.
-// Run (from the project root): tr examples/en/25_char_model.tr
+// Run (from the project root): tr examples/en/36_char_model.tr
 
 A030 STEPS = 300
 // Training text: the sections of the user guide and the language definition, in order.

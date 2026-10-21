@@ -1,10 +1,10 @@
-// 29 — Hata ayıklama: koddaki kesme noktasıyla bir hesap hatasını çalışırken bulup düzeltmek.
+// 40 — Hata ayıklama: koddaki kesme noktasıyla bir hesap hatasını çalışırken bulup düzeltmek.
 // ETKİLEŞİMLİDİR: `kesme_noktası eğer ...` satırında program durur ve hata ayıklayıcı
 // komut bekler (değişkenleri gösterir; standart giriş boşsa ya da kapalıysa devam eder).
 // Ne öğretir: koşullu kesme noktası, değişkenleri ve tensörleri incelemek, değeri
 // çalışırken değiştirmek. Hata ayıklayıcı komutları: docs/guide/05_hata_ayiklayici.md §5.
-// Önceki örnekten: fonksiyonlar (08), sözlük listeleri (11), tensörler (19).
-// Çalıştırma (proje kökünden): tr examples/tr/29_hata_ayiklama.tr   (VS Code'da F5)
+// Önceki örnekten: fonksiyonlar (09), sözlük listeleri (12), tensörler (23).
+// Çalıştırma (proje kökünden): tr examples/tr/40_hata_ayiklama.tr   (VS Code'da F5)
 // Program durduğunda deneyin:
 //   tablo siparisler            → sipariş listesini tablo olarak gösterir
 //   değiştir vergi_orani = 0.20 → hatalı oranı çalışırken düzeltir

@@ -1,8 +1,8 @@
-// 20 — Otomatik türev: gradyanı bilgisayara hesaplatmak.
+// 26 — Otomatik türev: gradyanı bilgisayara hesaplatmak.
 // Ne öğretir: türev_izle: doğru ile tensörü izletmek, geri_yayılım(sonuç), .gradyan,
 // gradyanın biriktiği (sıfırlanması gerektiği), türevsiz { ... } ile türev izlemeden hesap.
-// Önceki örnekten: tensörler (19).
-// Çalıştırma (proje kökünden): tr examples/tr/20_turev.tr
+// Önceki örnekten: tensörler (23).
+// Çalıştırma (proje kökünden): tr examples/tr/26_turev.tr
 // Ayrıntılar: docs/spec/15_tensorler.md §15.
 
 // Model eğitimi, bir kayıp değerinin ağırlıklara göre türevini (gradyan) ister.

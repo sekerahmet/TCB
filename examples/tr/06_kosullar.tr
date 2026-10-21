@@ -1,7 +1,7 @@
-// 05 — Koşullar: programın karar vermesi.
+// 06 — Koşullar: programın karar vermesi.
 // Ne öğretir: eğer / değilse eğer / değilse, ve/veya/değil ile birleşik koşul, iç içe koşul, eşle.
-// Önceki örnekten: karşılaştırma ve Mantık değerleri (03), metne değer yerleştirme (04).
-// Çalıştırma (proje kökünden): tr examples/tr/05_kosullar.tr
+// Önceki örnekten: karşılaştırma ve Mantık değerleri (03), metne değer yerleştirme (05).
+// Çalıştırma (proje kökünden): tr examples/tr/06_kosullar.tr
 
 değişken sıcaklık = 31
 

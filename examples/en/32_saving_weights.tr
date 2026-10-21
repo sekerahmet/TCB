@@ -1,8 +1,8 @@
 //! tr kodlu 1
-// 23 — Saving weights: writing a trained model to disk and loading it back.
+// 32 — Saving weights: writing a trained model to disk and loading it back.
 // What it teaches: save_tensors(path, dict), load_tensors(path), picking the most likely class with argmax.
-// Builds on: the training loop (21), the XOR network (22), dicts (11), file paths (17).
-// Run (from the project root): tr examples/en/23_saving_weights.tr
+// Builds on: the training loop (28), the XOR network (30), dicts (12), file paths (19).
+// Run (from the project root): tr examples/en/32_saving_weights.tr
 // The weights file is written to a temporary folder (deleted when the program ends, no trace in the repo).
 
 // A small classifier: from two features (like height, weight) it picks one of three classes.

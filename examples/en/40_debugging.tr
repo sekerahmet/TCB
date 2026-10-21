@@ -1,11 +1,11 @@
 //! tr kodlu 1
-// 29 — Debugging: finding and fixing a calculation error while running, with a breakpoint in the code.
+// 40 — Debugging: finding and fixing a calculation error while running, with a breakpoint in the code.
 // INTERACTIVE: at the `breakpoint if ...` line the program stops and the debugger
 // waits for a command (it shows the variables; if standard input is empty or closed it goes on).
 // What it teaches: conditional breakpoints, inspecting variables and tensors, changing a value
 // while running. Debugger commands: docs/guide/05_hata_ayiklayici.md §5.
-// Builds on: functions (08), lists of dicts (11), tensors (19).
-// Run (from the project root): tr examples/en/29_debugging.tr   (F5 in VS Code)
+// Builds on: functions (09), lists of dicts (12), tensors (23).
+// Run (from the project root): tr examples/en/40_debugging.tr   (F5 in VS Code)
 // Try these when the program stops:
 //   table orders             → shows the order list as a table
 //   set tax_rate = 0.20      → fixes the wrong rate while running

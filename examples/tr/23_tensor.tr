@@ -1,7 +1,7 @@
-// 19 — Tensörler: yapay zekânın sayı dizileri.
+// 23 — Tensörler: yapay zekânın sayı dizileri.
 // Ne öğretir: tensör oluşturmak, şekil, @ (matris çarpımı), yayınlama, relu/softmax, .değer ile okumak.
-// Önceki örnekten: listeler (09) ve işlev çağrıları (08); tensör, iç içe listelerden kurulur.
-// Çalıştırma (proje kökünden): tr examples/tr/19_tensor.tr
+// Önceki örnekten: listeler (10) ve işlev çağrıları (09); tensör, iç içe listelerden kurulur.
+// Çalıştırma (proje kökünden): tr examples/tr/23_tensor.tr
 // Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.C, docs/spec/15_tensorler.md §15.
 
 // Tensör, n boyutlu bir sayı dizisidir: tek boyutlu (vektör), iki boyutlu (matris) ...

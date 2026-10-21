@@ -15,7 +15,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// tests/data altındaki sentetik test verisi (TR testleri ve examples/tr/26_veri_ile_egitim.tr
+// tests/data altındaki sentetik test verisi (TR testleri ve examples/tr/37_veri_ile_egitim.tr
 // kullanır) bu dosyadaki üreteçle oluşturulur. Varsayılan olarak test, depodaki dosyaların
 // üreteçle birebir aynı olduğunu denetler; yeniden üretmek için:
 //

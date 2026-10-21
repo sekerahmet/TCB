@@ -31,7 +31,7 @@ const Version = "1.0.0"
 // gcTarget çöp toplayıcının varsayılan hedefi (yığın, canlı belleğin bu yüzdesi kadar
 // büyüyünce toplama başlar; Go'nun varsayılanı 100). Eğitimde her adım çok sayıda
 // büyük ara tensör ayırır; 100'de karakter modeli adım başına ~0,8 toplama yapıyordu.
-// Ölçüm (examples/tr/25_karakter_modeli.tr, GOMAXPROCS=2, eşli dönüşümlü 26 tur): 200 ile 20/26 turda
+// Ölçüm (examples/tr/36_karakter_modeli.tr, GOMAXPROCS=2, eşli dönüşümlü 26 tur): 200 ile 20/26 turda
 // hızlı, ortanca −0,9…−1,5 ms/adım (~%6); tepe bellek 71 → 105 MB. Kullanıcının GOGC
 // env değişkeni her zaman önceliklidir.
 const gcTarget = 200

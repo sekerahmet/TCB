@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 17 — Files and JSON: writing data to disk and reading it back.
+// 19 — Files and JSON: writing data to disk and reading it back.
 // What it teaches: temp_dir, path, write_file/read_file, read_lines, .exists, json_string to turn a value
 // into text, json_parse to turn text into a value.
-// Builds on: text (04), dicts (11), error handling (13).
-// Run (from the project root): tr examples/en/17_files_and_json.tr
+// Builds on: text (05), dicts (12), error handling (15).
+// Run (from the project root): tr examples/en/19_files_and_json.tr
 // Files are written to a temporary folder (deleted when the program ends, no trace in the repo).
 
 A030 folder = G126()

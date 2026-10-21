@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 21 — The training loop: a model learning from data.
+// 28 — The training loop: a model learning from data.
 // What it teaches: giving the weights fixed starting values, the AdamW optimizer, the loop
 // prediction → loss → backward → step, zero_grad, reading the learned values.
-// Builds on: tensors (19), automatic differentiation (20), loops (07).
-// Run (from the project root): tr examples/en/21_training_loop.tr
+// Builds on: tensors (23), automatic differentiation (26), loops (08).
+// Run (from the project root): tr examples/en/28_training_loop.tr
 
 // Task: find the line y = 2x - 1 from points. Model: y_pred = x @ w + b.
 A030 X = T100([[0], [1], [2], [3]])

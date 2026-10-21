@@ -1,7 +1,7 @@
-// 14 — Ertele: temizliği her durumda yapmak.
+// 16 — Ertele: temizliği her durumda yapmak.
 // Ne öğretir: ertele ile bir işi fonksiyondan çıkarken (hata olsa da olmasa da) ters sırayla çalıştırmak.
-// Önceki örnekten: fonksiyonlar (08), hata yönetimi (13).
-// Çalıştırma (proje kökünden): tr examples/tr/14_ertele.tr
+// Önceki örnekten: fonksiyonlar (09), hata yönetimi (15).
+// Çalıştırma (proje kökünden): tr examples/tr/16_ertele.tr
 
 // ertele ifadesi hemen çalışmaz; fonksiyon bitince çalışır. Birden çoksa sonuncu önce çalışır.
 // Açılan her şeyin (dosya, bağlantı) kapatılması bu sayede unutulmaz.

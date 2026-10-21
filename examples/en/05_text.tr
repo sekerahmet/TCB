@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 04 — Text: putting values into text and working with it.
+// 05 — Text: putting values into text and working with it.
 // What it teaches: interpolating expressions with {...}, the \" escape, length, upper/lower,
 // strip, contains, starts_with, replace.
 // Builds on: variables and types (02, 03).
-// Run (from the project root): tr examples/en/04_text.tr
+// Run (from the project root): tr examples/en/05_text.tr
 
 A030 person = "Ayse"
 A030 age = 30

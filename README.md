@@ -81,7 +81,7 @@ değişken ö = küme.örnekleyici(toplu: 8, bağlam: 256, tohum: 1)
 değişken girdi, hedef = ö.sonraki()                              // [8, 256] tensörler
 ```
 
-`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`examples/tr/26_veri_ile_egitim.tr`](examples/tr/26_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md#d-veri-ve-parçalayıcı).
+`parçalayıcı_yükle` yaygın `tokenizer.json` biçimini okur; `veri_kümesi` büyük derlemleri belleğe almadan parça parça okur, sonraki toplu işleri arka planda hazırlar. Uçtan uca örnek: [`examples/tr/37_veri_ile_egitim.tr`](examples/tr/37_veri_ile_egitim.tr); ayrıntılar: [Kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md#d-veri-ve-parçalayıcı).
 
 ## VS Code eklentisi ve hata ayıklama
 
@@ -98,33 +98,33 @@ Bu depoyu VS Code'da klasör olarak açtığınızda `Ctrl+Shift+B` açık dosya
 | 01 | [`01_merhaba.tr`](examples/tr/01_merhaba.tr) | [`01_hello.tr`](examples/en/01_hello.tr) | `yazdır`: ekrana yazmak, yorum |
 | 02 | [`02_degiskenler.tr`](examples/tr/02_degiskenler.tr) | [`02_variables.tr`](examples/en/02_variables.tr) | `değişken`, atama, `+=`, `sabit` |
 | 03 | [`03_tipler.tr`](examples/tr/03_tipler.tr) | [`03_types.tr`](examples/en/03_types.tr) | `Tam`, `Ondalık`, `Metin`, `Mantık`, `yok`, dönüşümler, işleçler, `??` |
-| 04 | [`04_metin.tr`](examples/tr/04_metin.tr) | [`04_text.tr`](examples/en/04_text.tr) | Metne değer yerleştirme (`{...}`), metin metotları |
-| 05 | [`05_kosullar.tr`](examples/tr/05_kosullar.tr) | [`05_conditions.tr`](examples/en/05_conditions.tr) | `eğer/değilse`, `ve/veya/değil`, `eşle` |
-| 06 | [`06_girdi.tr`](examples/tr/06_girdi.tr) | [`06_input.tr`](examples/en/06_input.tr) | `girdi()` ile kullanıcıdan veri okumak |
-| 07 | [`07_donguler.tr`](examples/tr/07_donguler.tr) | [`07_loops.tr`](examples/en/07_loops.tr) | `döngü`, aralıklar, `çık/devam`, `iken` |
-| 08 | [`08_fonksiyonlar.tr`](examples/tr/08_fonksiyonlar.tr) | [`08_functions.tr`](examples/en/08_functions.tr) | `fonksiyon/sonuç`, tip bildirimi, varsayılan ve adlı argüman, özyineleme |
-| 09 | [`09_listeler.tr`](examples/tr/09_listeler.tr) | [`09_lists.tr`](examples/en/09_lists.tr) | Liste, indeks, `ekle`, `sırala`, liste üreteci, çoklu atama |
-| 10 | [`10_ok_fonksiyonlari.tr`](examples/tr/10_ok_fonksiyonlari.tr) | [`10_lambdas.tr`](examples/en/10_lambdas.tr) | Ok fonksiyonu, sondaki blok, `filtrele/haritala/indirge`, `\|>` |
-| 11 | [`11_sozlukler.tr`](examples/tr/11_sozlukler.tr) | [`11_dicts.tr`](examples/en/11_dicts.tr) | Sözlük, `anahtarlar()/değerler()`, sözlük listesi |
-| 12 | [`12_yapilar_ve_metotlar.tr`](examples/tr/12_yapilar_ve_metotlar.tr) | [`12_structs_and_methods.tr`](examples/en/12_structs_and_methods.tr) | `yapı`, alanlar, metotlar, `kendi` |
-| 13 | [`13_hata_yonetimi.tr`](examples/tr/13_hata_yonetimi.tr) | [`13_error_handling.tr`](examples/en/13_error_handling.tr) | `dene/yakala`, `fırlat` |
-| 14 | [`14_ertele.tr`](examples/tr/14_ertele.tr) | [`14_defer.tr`](examples/en/14_defer.tr) | `ertele`: her durumda temizlik |
-| 15 | [`15_testler_test.tr`](examples/tr/15_testler_test.tr) | [`15_tests_test.tr`](examples/en/15_tests_test.tr) | `test` blokları, `doğrula`, `eşit_mi`; `tr test examples/tr/15_testler_test.tr` ile çalışır |
-| 16 | [`16_moduller.tr`](examples/tr/16_moduller.tr) | [`16_modules.tr`](examples/en/16_modules.tr) | `aktar`, `olarak` ile takma ad |
-| 17 | [`17_dosya_ve_json.tr`](examples/tr/17_dosya_ve_json.tr) | [`17_files_and_json.tr`](examples/en/17_files_and_json.tr) | Dosya okuma/yazma, `json_metin`, `json_çöz`, geçici klasör |
-| 18 | [`18_eszamanli_gorevler.tr`](examples/tr/18_eszamanli_gorevler.tr) | [`18_concurrent_tasks.tr`](examples/en/18_concurrent_tasks.tr) | `eşzamanlı`, `bekle_hepsi` |
-| 19 | [`19_tensor.tr`](examples/tr/19_tensor.tr) | [`19_tensors.tr`](examples/en/19_tensors.tr) | Tensörler, şekil, `@`, yayınlama, `relu/softmax` |
-| 20 | [`20_turev.tr`](examples/tr/20_turev.tr) | [`20_autodiff.tr`](examples/en/20_autodiff.tr) | Otomatik türev: `geri_yayılım`, `.gradyan`, `türevsiz` |
-| 21 | [`21_egitim_dongusu.tr`](examples/tr/21_egitim_dongusu.tr) | [`21_training_loop.tr`](examples/en/21_training_loop.tr) | AdamW ile doğrusal regresyon: tahmin → kayıp → türev → adım |
-| 22 | [`22_xor_agi.tr`](examples/tr/22_xor_agi.tr) | [`22_xor_network.tr`](examples/en/22_xor_network.tr) | Gizli katmanlı küçük sinir ağı (XOR) |
-| 23 | [`23_agirliklari_kaydet.tr`](examples/tr/23_agirliklari_kaydet.tr) | [`23_saving_weights.tr`](examples/en/23_saving_weights.tr) | `tensör_kaydet/tensör_yükle`, `maks_indeks` |
-| 24 | [`24_transformer.tr`](examples/tr/24_transformer.tr) | [`24_transformer.tr`](examples/en/24_transformer.tr) | Elle yazılmış küçük transformer: çok başlı nedensel dikkat, katman normu |
-| 25 | [`25_karakter_modeli.tr`](examples/tr/25_karakter_modeli.tr) | [`25_char_model.tr`](examples/en/25_char_model.tr) | Projenin belgeleriyle eğitilen karakter düzeyi dil modeli ve metin üretimi |
-| 26 | [`26_veri_ile_egitim.tr`](examples/tr/26_veri_ile_egitim.tr) | [`26_training_with_data.tr`](examples/en/26_training_with_data.tr) | `tokenizer.json` parçalayıcısı ve `.npy` veri kümesiyle uçtan uca eğitim ve doğrulama |
-| 27 | [`27_kontrol_noktasi.tr`](examples/tr/27_kontrol_noktasi.tr) | [`27_checkpoints.tr`](examples/en/27_checkpoints.tr) | Uzun eğitim: koşu klasörü, `kontrol_noktası`, Ctrl+C ile durdurup aynı komutla kaldığı yerden (bit düzeyinde aynı) sürdürme |
-| 28 | [`28_gpt.tr`](examples/tr/28_gpt.tr) | [`28_gpt.tr`](examples/en/28_gpt.tr) | Hazır katmanlarla GPT, Muon + AdamW, öğrenme oranı planı |
-| 29 | [`29_hata_ayiklama.tr`](examples/tr/29_hata_ayiklama.tr) | [`29_debugging.tr`](examples/en/29_debugging.tr) | `kesme_noktası` ile hata ayıklama, değeri çalışırken değiştirme (etkileşimli) |
-| 30 | [`30_hata_ayiklama_alistirmasi.tr`](examples/tr/30_hata_ayiklama_alistirmasi.tr) | [`30_debugging_exercise.tr`](examples/en/30_debugging_exercise.tr) | VS Code hata ayıklayıcısıyla adım adım ilerleme: kesme noktası, tablo görünümü, değeri çalışırken değiştirme (F5) |
+| 04 | [`04_metin.tr`](examples/tr/05_metin.tr) | [`04_text.tr`](examples/en/05_text.tr) | Metne değer yerleştirme (`{...}`), metin metotları |
+| 05 | [`05_kosullar.tr`](examples/tr/06_kosullar.tr) | [`05_conditions.tr`](examples/en/06_conditions.tr) | `eğer/değilse`, `ve/veya/değil`, `eşle` |
+| 06 | [`06_girdi.tr`](examples/tr/07_girdi.tr) | [`06_input.tr`](examples/en/07_input.tr) | `girdi()` ile kullanıcıdan veri okumak |
+| 07 | [`07_donguler.tr`](examples/tr/08_donguler.tr) | [`07_loops.tr`](examples/en/08_loops.tr) | `döngü`, aralıklar, `çık/devam`, `iken` |
+| 08 | [`08_fonksiyonlar.tr`](examples/tr/09_fonksiyonlar.tr) | [`08_functions.tr`](examples/en/09_functions.tr) | `fonksiyon/sonuç`, tip bildirimi, varsayılan ve adlı argüman, özyineleme |
+| 09 | [`09_listeler.tr`](examples/tr/10_listeler.tr) | [`09_lists.tr`](examples/en/10_lists.tr) | Liste, indeks, `ekle`, `sırala`, liste üreteci, çoklu atama |
+| 10 | [`10_ok_fonksiyonlari.tr`](examples/tr/11_ok_fonksiyonlari.tr) | [`10_lambdas.tr`](examples/en/11_lambdas.tr) | Ok fonksiyonu, sondaki blok, `filtrele/haritala/indirge`, `\|>` |
+| 11 | [`11_sozlukler.tr`](examples/tr/12_sozlukler.tr) | [`11_dicts.tr`](examples/en/12_dicts.tr) | Sözlük, `anahtarlar()/değerler()`, sözlük listesi |
+| 12 | [`12_yapilar_ve_metotlar.tr`](examples/tr/14_yapilar_ve_metotlar.tr) | [`12_structs_and_methods.tr`](examples/en/14_structs_and_methods.tr) | `yapı`, alanlar, metotlar, `kendi` |
+| 13 | [`13_hata_yonetimi.tr`](examples/tr/15_hata_yonetimi.tr) | [`13_error_handling.tr`](examples/en/15_error_handling.tr) | `dene/yakala`, `fırlat` |
+| 14 | [`14_ertele.tr`](examples/tr/16_ertele.tr) | [`14_defer.tr`](examples/en/16_defer.tr) | `ertele`: her durumda temizlik |
+| 15 | [`15_testler_test.tr`](examples/tr/17_testler_test.tr) | [`15_tests_test.tr`](examples/en/17_tests_test.tr) | `test` blokları, `doğrula`, `eşit_mi`; `tr test examples/tr/17_testler_test.tr` ile çalışır |
+| 16 | [`16_moduller.tr`](examples/tr/18_moduller.tr) | [`16_modules.tr`](examples/en/18_modules.tr) | `aktar`, `olarak` ile takma ad |
+| 17 | [`17_dosya_ve_json.tr`](examples/tr/19_dosya_ve_json.tr) | [`17_files_and_json.tr`](examples/en/19_files_and_json.tr) | Dosya okuma/yazma, `json_metin`, `json_çöz`, geçici klasör |
+| 18 | [`18_eszamanli_gorevler.tr`](examples/tr/22_eszamanli_gorevler.tr) | [`18_concurrent_tasks.tr`](examples/en/22_concurrent_tasks.tr) | `eşzamanlı`, `bekle_hepsi` |
+| 19 | [`19_tensor.tr`](examples/tr/23_tensor.tr) | [`19_tensors.tr`](examples/en/23_tensors.tr) | Tensörler, şekil, `@`, yayınlama, `relu/softmax` |
+| 20 | [`20_turev.tr`](examples/tr/26_turev.tr) | [`20_autodiff.tr`](examples/en/26_autodiff.tr) | Otomatik türev: `geri_yayılım`, `.gradyan`, `türevsiz` |
+| 21 | [`21_egitim_dongusu.tr`](examples/tr/28_egitim_dongusu.tr) | [`21_training_loop.tr`](examples/en/28_training_loop.tr) | AdamW ile doğrusal regresyon: tahmin → kayıp → türev → adım |
+| 22 | [`22_xor_agi.tr`](examples/tr/30_xor_agi.tr) | [`22_xor_network.tr`](examples/en/30_xor_network.tr) | Gizli katmanlı küçük sinir ağı (XOR) |
+| 23 | [`23_agirliklari_kaydet.tr`](examples/tr/32_agirliklari_kaydet.tr) | [`23_saving_weights.tr`](examples/en/32_saving_weights.tr) | `tensör_kaydet/tensör_yükle`, `maks_indeks` |
+| 24 | [`24_transformer.tr`](examples/tr/35_transformer.tr) | [`24_transformer.tr`](examples/en/35_transformer.tr) | Elle yazılmış küçük transformer: çok başlı nedensel dikkat, katman normu |
+| 25 | [`25_karakter_modeli.tr`](examples/tr/36_karakter_modeli.tr) | [`25_char_model.tr`](examples/en/36_char_model.tr) | Projenin belgeleriyle eğitilen karakter düzeyi dil modeli ve metin üretimi |
+| 26 | [`26_veri_ile_egitim.tr`](examples/tr/37_veri_ile_egitim.tr) | [`26_training_with_data.tr`](examples/en/37_training_with_data.tr) | `tokenizer.json` parçalayıcısı ve `.npy` veri kümesiyle uçtan uca eğitim ve doğrulama |
+| 27 | [`27_kontrol_noktasi.tr`](examples/tr/38_kontrol_noktasi.tr) | [`27_checkpoints.tr`](examples/en/38_checkpoints.tr) | Uzun eğitim: koşu klasörü, `kontrol_noktası`, Ctrl+C ile durdurup aynı komutla kaldığı yerden (bit düzeyinde aynı) sürdürme |
+| 28 | [`28_gpt.tr`](examples/tr/39_gpt.tr) | [`28_gpt.tr`](examples/en/39_gpt.tr) | Hazır katmanlarla GPT, Muon + AdamW, öğrenme oranı planı |
+| 29 | [`29_hata_ayiklama.tr`](examples/tr/40_hata_ayiklama.tr) | [`29_debugging.tr`](examples/en/40_debugging.tr) | `kesme_noktası` ile hata ayıklama, değeri çalışırken değiştirme (etkileşimli) |
+| 30 | [`30_hata_ayiklama_alistirmasi.tr`](examples/tr/41_hata_ayiklama_alistirmasi.tr) | [`30_debugging_exercise.tr`](examples/en/41_debugging_exercise.tr) | VS Code hata ayıklayıcısıyla adım adım ilerleme: kesme noktası, tablo görünümü, değeri çalışırken değiştirme (F5) |
 
 Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oraya kopyalayabilirsiniz (ör. `examples/tr/01_merhaba.tr`); bu klasör depoya girmez.
 

@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 09 — Lists: keeping many values in order.
+// 10 — Lists: keeping many values in order.
 // What it teaches: building a list, reading and writing by index (a negative index counts from the end), append,
 // length, walking with a loop, sort, reverse, sum/mean, list comprehensions, multiple assignment and swap.
-// Builds on: loops (07), functions (08), text (04).
-// Run (from the project root): tr examples/en/09_lists.tr
+// Builds on: loops (08), functions (09), text (05).
+// Run (from the project root): tr examples/en/10_lists.tr
 
 // A list is written in square brackets; its elements can be of different types.
 A030 fruits = ["apple", "pear", "cherry"]

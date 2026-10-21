@@ -1,8 +1,8 @@
 //! tr kodlu 1
-// 26 — Training with data: a small language model end to end with a tokenizer and a data loader.
+// 37 — Training with data: a small language model end to end with a tokenizer and a data loader.
 // What it teaches: loading tokenizer.json and encoding/decoding text, taking random batches from .npy data files with a
 // sampler, validating with a sequential reader, command_line and the progress bar.
-// Builds on: the transformer and cross_entropy (24), the training loop (21).
+// Builds on: the transformer and cross_entropy (35), the training loop (28).
 // Details: docs/guide/04_yapay_zeka_ve_veri.md §4.D, docs/spec/16_veri_parcalayici.md §16.
 //
 // By default it uses the synthetic test data in the repository (tests/data). To run it with
@@ -14,10 +14,10 @@
 // exists the token counts of the data files are read from it. If the data is on a slow drive (network or cloud)
 // use a local cache: dataset(DATA_PATH, cache: "cache/data", quota_gb: 20)
 // Relative paths are resolved first against the working folder, then against this file's folder.
-// Run (from the project root): tr examples/en/26_training_with_data.tr
+// Run (from the project root): tr examples/en/37_training_with_data.tr
 // The settings change from the command line (docs/guide/04_yapay_zeka_ve_veri.md §4.E):
-//     tr examples/en/26_training_with_data.tr --step 500 --log-file logs/training.jsonl
-//     tr examples/en/26_training_with_data.tr --help
+//     tr examples/en/37_training_with_data.tr --step 500 --log-file logs/training.jsonl
+//     tr examples/en/37_training_with_data.tr --help
 
 A030 TOKENIZER_PATH = "../../tests/data/tokenizer.json"
 A030 DATA_PATH = "../../tests/data/text"
@@ -48,7 +48,7 @@ G100(corpus)
 A030 sampler = corpus.Y600(V902: BATCH, V903: CONTEXT, T903: 1)
 
 // --- Model: embedding → middle layer → distribution over the vocabulary (the next token is
-// predicted from the current token only; for a model with attention see examples/en/24_transformer.tr) ---
+// predicted from the current token only; for a model with attention see examples/en/35_transformer.tr) ---
 A030 weights = []
 A030 param_seed = 0
 A020 param(shape, scale) {

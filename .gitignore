@@ -7,7 +7,7 @@ bin/
 # Python'un derlenmiş önbelleği (tools/gpu, tools/bench/py)
 __pycache__/
 
-# Koşu klasörleri (eğitimin ayarları, günlüğü, ağırlıkları ve kontrol noktaları; examples/tr/27_kontrol_noktasi.tr)
+# Koşu klasörleri (eğitimin ayarları, günlüğü, ağırlıkları ve kontrol noktaları; examples/tr/38_kontrol_noktasi.tr)
 runs/
 
 # Kullanıcının verisi, ağırlıkları, parçalayıcısı ve gizli değerleri depoya girmez

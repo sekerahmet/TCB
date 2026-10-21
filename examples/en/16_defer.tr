@@ -1,8 +1,8 @@
 //! tr kodlu 1
-// 14 — Defer: doing the cleanup in every case.
+// 16 — Defer: doing the cleanup in every case.
 // What it teaches: defer runs a job when leaving the function (error or not), in reverse order.
-// Builds on: functions (08), error handling (13).
-// Run (from the project root): tr examples/en/14_defer.tr
+// Builds on: functions (09), error handling (15).
+// Run (from the project root): tr examples/en/16_defer.tr
 
 // A defer statement does not run at once; it runs when the function ends. With several, the last runs first.
 // Closing everything that was opened (files, connections) is not forgotten this way.

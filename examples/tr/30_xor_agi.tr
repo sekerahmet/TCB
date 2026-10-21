@@ -1,8 +1,8 @@
-// 22 — Küçük sinir ağı: iki katmanlı bir ağ XOR'u öğrenir.
+// 30 — Küçük sinir ağı: iki katmanlı bir ağ XOR'u öğrenir.
 // Ne öğretir: gizli katman ve doğrusal olmayan etkinleştirme (tanh, sigmoid), ağırlıkları
 // türev izleyen tensörler olarak kurmak, çok katmanlı ağda eğitim döngüsü.
-// Önceki örnekten: eğitim döngüsü (21); XOR tek doğrusal katmanla çözülemez, gizli katman bunu mümkün kılar.
-// Çalıştırma (proje kökünden): tr examples/tr/22_xor_agi.tr
+// Önceki örnekten: eğitim döngüsü (28); XOR tek doğrusal katmanla çözülemez, gizli katman bunu mümkün kılar.
+// Çalıştırma (proje kökünden): tr examples/tr/30_xor_agi.tr
 
 // Gizli katman tanh, çıkış sigmoid; ağırlıklar tensördür, AdamW ile eğitilir.
 değişken X_veri = tensör([[0, 0], [0, 1], [1, 0], [1, 1]])

@@ -1,9 +1,9 @@
-// 24 — Transformer: elle yazılmış küçük bir transformer.
+// 35 — Transformer: elle yazılmış küçük bir transformer.
 // Ne öğretir: gömme ve konum gömmesi, çok başlı nedensel dikkat (şekillendir, eksenleri_sırala ve
 // birleşik dikkat(...)), katman normu, gelu ile ileri besleme, çapraz_entropi kaybı.
-// Önceki örnekten: tensörler ve türev (19–21), çok katmanlı ağ (22).
+// Önceki örnekten: tensörler ve türev (23–28), çok katmanlı ağ (30).
 // Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki parçayı tahmin etmek.
-// Çalıştırma (proje kökünden): tr examples/tr/24_transformer.tr
+// Çalıştırma (proje kökünden): tr examples/tr/35_transformer.tr
 
 değişken V = 8 // sözlük boyutu
 değişken T = 8 // bağlam uzunluğu

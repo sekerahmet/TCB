@@ -1,9 +1,9 @@
 //! tr kodlu 1
-// 20 — Automatic differentiation: having the computer compute the gradient.
+// 26 — Automatic differentiation: having the computer compute the gradient.
 // What it teaches: tracking a tensor with requires_grad: true, backward(result), .grad,
 // gradients accumulating (and needing to be reset), no_grad { ... } for computing without tracking.
-// Builds on: tensors (19).
-// Run (from the project root): tr examples/en/20_autodiff.tr
+// Builds on: tensors (23).
+// Run (from the project root): tr examples/en/26_autodiff.tr
 // Details: docs/spec/15_tensorler.md §15.
 
 // Model training asks for the derivative (gradient) of a loss value with respect to the weights.

@@ -1,8 +1,8 @@
-// 17 — Dosya ve JSON: veriyi diske yazıp geri okumak.
+// 19 — Dosya ve JSON: veriyi diske yazıp geri okumak.
 // Ne öğretir: geçici_klasör, yol, dosya_yaz/dosya_oku, dosya_satırları, .var_mı, json_metin ile
 // değeri metne, json_çöz ile metni değere çevirmek.
-// Önceki örnekten: metin (04), sözlükler (11), hata yönetimi (13).
-// Çalıştırma (proje kökünden): tr examples/tr/17_dosya_ve_json.tr
+// Önceki örnekten: metin (05), sözlükler (12), hata yönetimi (15).
+// Çalıştırma (proje kökünden): tr examples/tr/19_dosya_ve_json.tr
 // Dosyalar geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
 
 değişken klasör = geçici_klasör()

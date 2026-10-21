@@ -1,7 +1,7 @@
-// 26 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
+// 37 — Veri ile eğitim: parçalayıcı ve veri yükleyiciyle uçtan uca küçük bir dil modeli.
 // Ne öğretir: tokenizer.json yükleyip metni kodlamak/çözmek, .npy veri dosyalarından örnekleyiciyle
 // rastgele toplu işler almak, sıralı okuyucuyla doğrulamak, komut_satırı ve ilerleme çubuğu.
-// Önceki örnekten: transformer ve çapraz_entropi (24), eğitim döngüsü (21).
+// Önceki örnekten: transformer ve çapraz_entropi (35), eğitim döngüsü (28).
 // Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.D, docs/spec/16_veri_parcalayici.md §16.
 //
 // Varsayılan olarak depodaki sentetik test verisini (tests/data) kullanır. Kendi
@@ -13,10 +13,10 @@
 // varsa veri dosyalarının parça sayıları oradan okunur. Veri yavaş bir sürücüdeyse (ağ ya da bulut)
 // yerel önbellek kullanın: veri_kümesi(VERİ_YOLU, önbellek: "onbellek/veri", kota_gb: 20)
 // Göreli yollar önce çalışma klasörüne, sonra bu dosyanın klasörüne göre çözülür.
-// Çalıştırma (proje kökünden): tr examples/tr/26_veri_ile_egitim.tr
+// Çalıştırma (proje kökünden): tr examples/tr/37_veri_ile_egitim.tr
 // Ayarlar komut satırından değişir (docs/guide/04_yapay_zeka_ve_veri.md §4.E):
-//     tr examples/tr/26_veri_ile_egitim.tr --adım 500 --günlük_dosyası kayit/egitim.jsonl
-//     tr examples/tr/26_veri_ile_egitim.tr --yardım
+//     tr examples/tr/37_veri_ile_egitim.tr --adım 500 --günlük_dosyası kayit/egitim.jsonl
+//     tr examples/tr/37_veri_ile_egitim.tr --yardım
 
 değişken PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
 değişken VERİ_YOLU = "../../tests/data/text"
@@ -47,7 +47,7 @@ yazdır(küme)
 değişken ö = küme.örnekleyici(toplu: TOPLU, bağlam: BAĞLAM, tohum: 1)
 
 // --- Model: gömme → ara katman → dağarcık üzerinde dağılım (bir sonraki parça yalnızca
-// şimdiki parçaya bakılarak tahmin edilir; dikkatli bir model için examples/tr/24_transformer.tr) ---
+// şimdiki parçaya bakılarak tahmin edilir; dikkatli bir model için examples/tr/35_transformer.tr) ---
 değişken ağırlıklar = []
 değişken parametre_tohumu = 0
 fonksiyon parametre(şekil, ölçek) {

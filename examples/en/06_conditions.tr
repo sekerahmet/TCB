@@ -1,8 +1,8 @@
 //! tr kodlu 1
-// 05 — Conditions: the program making decisions.
+// 06 — Conditions: the program making decisions.
 // What it teaches: if / else if / else, combining conditions with and/or/not, nested conditions, match.
-// Builds on: comparison and Bool values (03), interpolation (04).
-// Run (from the project root): tr examples/en/05_conditions.tr
+// Builds on: comparison and Bool values (03), interpolation (05).
+// Run (from the project root): tr examples/en/06_conditions.tr
 
 A030 temperature = 31
 
