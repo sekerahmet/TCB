@@ -382,3 +382,28 @@ func readFile(t *testing.T, filePath string) string {
 	}
 	return string(data)
 }
+
+// Denetim (2026-10-21): kodsuz Türkçe dosya etkin dil ne olursa olsun aynı sonucu vermeli
+// (17.7), ama TR_DIL=en ile dosya İngilizce görünümüyle çalışır ve görünümde kaçışla
+// ($ad) ayrılan bir kullanıcı adı çalışma anında etkin dilin bağlamsal sözcüğüyle aynı ada
+// düşer: 'it' adlı değişken sondaki bloğun örtük parametresine (o), 'acc' birikime yakalanır
+// (sessizce yanlış sonuç), 'init' adlı metot kurucu sayılır, 'print' adlı değişken yazdır'ı
+// gölgeler. Kodlu dosyada da aynıdır (tr kodla sonrası TR_DIL=en).
+func TestAuditUncodedTurkishNamesCollideWithActiveLanguageWords(t *testing.T) {
+	dir := t.TempDir()
+	cases := map[string]string{
+		"it.tr":    "değişken it = 4\nyazdır([1, 2].haritala { o + it })\n",
+		"acc.tr":   "değişken acc = 1\nyazdır([1, 2].indirge(0) { birikim + o + acc })\n",
+		"init.tr":  "yapı K {\n    a\n    fonksiyon init() { sonuç 5 }\n}\nyazdır(K(1).init())\n",
+		"print.tr": "değişken print = 5\nyazdır(print)\n",
+	}
+	for name, program := range cases {
+		writeFile(t, dir, name, program)
+		want := run(t, trBinary, dir, "", []string{"TR_DIL=tr"}, name)
+		got := run(t, trBinary, dir, "", []string{"TR_DIL=en"}, name)
+		if got.code != want.code || got.stdout != want.stdout {
+			t.Errorf("%s: TR_DIL=en sonucu (kod %d) %q, TR_DIL=tr (kod %d) %q\nhata:\n%s",
+				name, got.code, got.stdout, want.code, want.stdout, got.stderr)
+		}
+	}
+}
