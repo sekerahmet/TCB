@@ -101,7 +101,7 @@ func TestScanTextDerivedFormsAndGoLexicalState(t *testing.T) {
 	got := strings.Join(hitSummary(hits), "\n")
 	want := strings.Join([]string{"a.md:1:5 doc/derived", "a.md:1:18 doc/derived",
 		"x.go:1:4 comment/exact", "x.go:2:10 string/exact", "x.go:3:4 comment/exact", "x.go:4:2 comment/exact",
-		"x.go:6:1 string/exact", "x.go:7:5 code/exact"}, "\n")
+		"x.go:6:1 string/exact"}, "\n")
 	if got != want || other != 1 {
 		t.Errorf("hits:\n%s\nwant:\n%s\nother=%d", got, want, other)
 	}

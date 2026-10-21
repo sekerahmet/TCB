@@ -32,6 +32,7 @@ type indexOptions struct {
 	status  bool   // K112 (--durum)
 	clear   bool   // K113 (--temizle)
 	noText  bool   // K114 (--metin-yok)
+	term    bool   // K115 (--terim)
 
 	limitSet bool // --sınır açıkça verildi
 }
@@ -102,7 +103,7 @@ func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string)
 	case codes.None:
 		allowed = []codes.Code{codes.K109, codes.K112, codes.K113}
 	case codes.K020:
-		allowed = []codes.Code{codes.K103, codes.K107, codes.K108, codes.K109, codes.K111, codes.K114}
+		allowed = []codes.Code{codes.K103, codes.K107, codes.K108, codes.K109, codes.K111, codes.K114, codes.K115}
 	}
 	command := codes.DisplayName(codes.K015)
 	for len(args) > 0 {
@@ -165,6 +166,8 @@ func applyIndexOption(o *indexOptions, k codes.Code, value string) {
 		o.clear = true
 	case codes.K114:
 		o.noText = true
+	case codes.K115:
+		o.term = true
 	}
 }
 
@@ -238,7 +241,7 @@ func runIndexQuery(r *codeindex.Reader, sub codes.Code, names []string, root str
 	case codes.K019:
 		res = r.Impact(query, qo)
 	case codes.K020:
-		ro := codeindex.RenameOptions{Root: root, NoText: o.noText}
+		ro := codeindex.RenameOptions{Root: root, NoText: o.noText, Term: o.term}
 		if o.limitSet {
 			ro.Limit = o.limit
 		}

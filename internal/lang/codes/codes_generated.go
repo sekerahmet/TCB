@@ -150,6 +150,7 @@ const (
 	K112 Code = K + 112 // status · durum
 	K113 Code = K + 113 // clear · temizle
 	K114 Code = K + 114 // no_text · metin_yok
+	K115 Code = K + 115 // term · terim
 	K200 Code = K + 200 // exit · çıkış
 	K300 Code = K + 300 // step · adım
 	K301 Code = K + 301 // next · geç

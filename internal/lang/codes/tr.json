@@ -153,6 +153,7 @@
   "K112": { "ad": "durum", "aile": "komut satırı seçeneği", "açıklama": "Dizin komutunda dizini kurmadan durumunu gösterir.", "örnek": "tr dizin --durum" },
   "K113": { "ad": "temizle", "aile": "komut satırı seçeneği", "açıklama": "Dizin komutunda dizin önbelleğini siler.", "örnek": "tr dizin --temizle" },
   "K114": { "ad": "metin_yok", "aile": "komut satırı seçeneği", "açıklama": "Yeniden adlandırma etkisinde belge, yorum ve ileti metni taramasını kapatır; yalnızca kodun anlamsal yerleri listelenir.", "örnek": "tr dizin yeniden_adlandır baş bakış_sayısı --metin-yok" },
+  "K115": { "ad": "terim", "aile": "komut satırı seçeneği", "açıklama": "Yeniden adlandırma etkisinde sembol aramaz, verilen sözcüğü (ve Türkçe ekli biçimlerini) yalnızca metinde arar: bir terimin çevirisi değişince belge, yorum ve ileti metinlerini listelemek için. Sözcüğün birden çok anlamı varsa araç ayıramaz, her satırın bağlamı gösterilir.", "örnek": "tr dizin yeniden_adlandır çekirdek kernel --terim" },
   "K200": { "ad": "çıkış", "aile": "kabuk komutu", "açıklama": "Etkileşimli kabuktan çıkar.", "örnek": "çıkış" },
   "K300": { "ad": "adım", "aile": "hata ayıklayıcı komutu", "açıklama": "Tek adım ilerler; fonksiyonların içine girer (F11).", "örnek": "adım" },
   "K301": { "ad": "geç", "aile": "hata ayıklayıcı komutu", "açıklama": "Üstten geçer: fonksiyonu tek adımda çalıştırır (F10).", "örnek": "geç" },

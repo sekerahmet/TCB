@@ -120,8 +120,7 @@ of other types never mix), and keyed composite literals `T{f: v}` too. The acces
 ## TR sources
 
 `.tr` files under `lib/`, `tools/` and `examples/` are read with TR's own parser
-(through `internal/devtools/codeindex`, the TR code index package, which uses `internal/lang/source` and `parser`; coded files with a header are read too, lines counted as
-everywhere else). The graph does not depend on the active writing language (`TR_DIL`): a file without
+(through `internal/devtools/codeindex`, the TR code index package, which uses `internal/lang/source` and `parser`; coded files with a header are read too, lines are the file's real lines, the header line counts). The graph does not depend on the active writing language (`TR_DIL`): a file without
 the header is always read as Turkish, a coded one is first decoded to Turkish (`source.Decode` with
 `source.Turkish()`), never through `source.Prepare`, which follows the active language; the test
 `TestTRGraphIsIndependentOfTheActiveLanguage` builds the fixture graph under `TR_DIL=tr` and `TR_DIL=en`

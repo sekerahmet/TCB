@@ -64,9 +64,9 @@
       "confidence": "EXTRACTED",
       "pos": {
         "file": "examples/coded.tr",
-        "line": 2,
+        "line": 3,
         "col": 5,
-        "end_line": 2,
+        "end_line": 3,
         "end_col": 11
       },
       "in": {
@@ -75,9 +75,9 @@
         "name": "kodlu_işlev",
         "pos": {
           "file": "examples/coded.tr",
-          "line": 1,
+          "line": 2,
           "col": 1,
-          "end_line": 4,
+          "end_line": 5,
           "end_col": 2
         },
         "signature": "fonksiyon kodlu_işlev(x)",

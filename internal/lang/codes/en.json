@@ -142,6 +142,7 @@
   "K112": { "ad": "status" },
   "K113": { "ad": "clear" },
   "K114": { "ad": "no_text" },
+  "K115": { "ad": "term" },
   "K200": { "ad": "exit" },
   "K300": { "ad": "step" },
   "K301": { "ad": "next" },

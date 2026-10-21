@@ -203,10 +203,22 @@ func RenameText(r *Result) string {
 		}
 		return b.String()
 	case StatusRejected:
+		if r.Reason == ReasonAmbiguous {
+			fmt.Fprintln(&b, messages.Text(messages.H8780, r.Query.Text, len(r.Candidates)))
+			for _, n := range r.Candidates {
+				fmt.Fprintf(&b, "  %s\n", messages.Text(messages.H8781, Short(n), n.ID))
+			}
+			return b.String()
+		}
 		fmt.Fprintln(&b, rejectionText(r))
 		return b.String()
 	}
 	fmt.Fprintln(&b, messages.Text(messages.H8835, r.Query.Text, r.NewName))
+	if r.Mode == ModeTerm {
+		fmt.Fprintln(&b, messages.Text(messages.H8866))
+		writeLikely(&b, r)
+		return b.String()
+	}
 	fmt.Fprintln(&b, messages.Text(messages.H8836, len(r.Targets)))
 	for _, n := range r.Targets {
 		fmt.Fprintf(&b, "  %s\n", Short(n))
@@ -218,17 +230,22 @@ func RenameText(r *Result) string {
 	for _, c := range r.Certain {
 		writeChange(&b, c)
 	}
-	fmt.Fprintln(&b, messages.Text(messages.H8838, len(r.Likely)))
+	writeLikely(&b, r)
+	return b.String()
+}
+
+// writeLikely olası yerleri, atlanan başka sözcük sayısını ve kesilmişse sınır notunu yazar.
+func writeLikely(b *strings.Builder, r *Result) {
+	fmt.Fprintln(b, messages.Text(messages.H8838, len(r.Likely)))
 	for _, c := range r.Likely {
-		writeChange(&b, c)
+		writeChange(b, c)
 	}
 	if r.SkippedWords > 0 {
-		fmt.Fprintln(&b, messages.Text(messages.H8840, r.SkippedWords))
+		fmt.Fprintln(b, messages.Text(messages.H8840, r.SkippedWords))
 	}
 	if r.Truncated {
-		fmt.Fprintf(&b, "... %s\n", messages.Text(messages.H8791, optionName(codes.K107), optionName(codes.K108)))
+		fmt.Fprintf(b, "... %s\n", messages.Text(messages.H8791, optionName(codes.K107), optionName(codes.K108)))
 	}
-	return b.String()
 }
 
 // rejectionText reddedilen yeniden adlandırmanın nedenidir.

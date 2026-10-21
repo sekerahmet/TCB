@@ -97,16 +97,19 @@ func TestIndexRename(t *testing.T) {
 	writeFile(t, dir, ".git/HEAD", "ref: refs/heads/main\n")
 	writeFile(t, dir, "m.tr", "yapı Dikkat {\n    baş\n    fonksiyon say() {\n        sonuç kendi.baş\n    }\n}\n\nfonksiyon yap(baş) {\n    değişken d = Dikkat()\n    sonuç d.baş + baş\n}\n\ndeğişken e = yap(baş: 4)\nyazdır(e)\n")
 	writeFile(t, dir, "doc.md", "Dikkatin başı ve başka şey.\n")
-	r := tr(t, dir, "dizin", "yeniden_adlandır", "baş", "bakış_sayısı", "--metin-yok")
-	wait(t, r, 0, []string{"kesin (", "olası (", "m.tr:2:5", "m.tr:4:21", "m.tr:13:18", "hiçbir dosya değiştirilmedi"}, nil)
+	r := tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.baş", "bakış_sayısı", "--metin-yok")
+	wait(t, r, 0, []string{"kesin (", "olası (", "m.tr:2:5", "m.tr:4:21", "hiçbir dosya değiştirilmedi"}, nil)
 	if strings.Contains(r.stdout, "doc.md") {
 		t.Error("--metin-yok: no text scan")
 	}
 	wait(t, tr(t, dir, "rename", "baş", "bakış_sayısı"), 1, nil, nil) // alt komut yalnızca 'dizin' altında
-	wait(t, tr(t, dir, "index", "rename", "baş", "bakış_sayısı", "--json"), 0, []string{`"command": "rename"`, `"doc.md"`, `"suffixed"`}, nil)
-	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "baş", "yazdır"), 2, nil, nil)
+	wait(t, tr(t, dir, "index", "rename", "Dikkat.baş", "bakış_sayısı", "--json"), 0, []string{`"command": "rename"`, `"doc.md"`, `"suffixed"`}, nil)
+	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.baş", "yazdır"), 2, nil, nil)
 	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "yazdır", "yaz"), 2, nil, nil)
-	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "baş"), 1, nil, []string{"eski ve yeni ad"})
-	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "yok_boyle_ad", "x"), 4, nil, nil)
-	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "baş", "bakış", "--sınır", "1"), 0, []string{"--tümü"}, nil)
+	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.baş"), 1, nil, []string{"eski ve yeni ad"})
+	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.yok_boyle", "x"), 4, nil, nil)
+	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.baş", "bakış", "--sınır", "1"), 0, []string{"--tümü"}, nil)
+	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "baş", "bakış_sayısı"), 2, []string{"birden çok", "field:m.tr#Dikkat.baş", "parameter:m.tr#yap.baş"}, nil)
+	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "başka_yok", "x"), 0, []string{"terim kipi"}, nil)
+	wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "baş", "bakış", "--terim"), 0, []string{"terim kipi", "doc.md:1:10"}, nil)
 }

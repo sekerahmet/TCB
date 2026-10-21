@@ -9,7 +9,7 @@ import (
 // parsed bir .tr dosyasının Türkçe okunmuş hâlidir.
 type parsed struct {
 	program *ast.Program
-	text    string // Türkçe gösterim metni; satır numaraları buna göredir (17.5)
+	text    string // Türkçe gösterim metni; kodlu dosyada başlık satırı yerine boş satır konur, böylece satır numaraları dosyadaki gerçek satırdır (dil iletileri 17.5 gereği gövde satırını sayar)
 	coded   bool   // dosya kodlu biçimdeydi
 	errs    []error
 }
@@ -35,6 +35,9 @@ func readTurkish(text string, module bool) *parsed {
 			res.errs = []error{err}
 			return res
 		}
+	}
+	if res.coded {
+		b.Body = "\n" + b.Body // başlık satırının yerine boş satır: konumlar dosyadaki gerçek satır olur
 	}
 	res.text = b.Body
 	p := parser.New(b.Lexer())

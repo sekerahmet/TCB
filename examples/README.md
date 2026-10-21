@@ -58,6 +58,7 @@ Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılı
 | `--durum` | `dizin` komutunda dizin önbelleğinin durumunu gösterir | `tr dizin --durum` |
 | `--temizle` | `dizin` komutunda dizin önbelleğini siler | `tr dizin --temizle` |
 | `--metin-yok` | `yeniden_adlandır` sorgusunda belge, yorum ve ileti metni taramasını kapatır | `tr dizin yeniden_adlandır baş bakış --metin-yok` |
+| `--terim` | `yeniden_adlandır` sorgusunda sembol aramaz, sözcüğü yalnızca metinde arar | `tr dizin yeniden_adlandır çekirdek kernel --terim` |
 | `--yardım` | Programın `komut_satırı` ile tanımlanan seçeneklerinin yardımı | `tr examples/tr/39_veri_ile_egitim.tr --yardım` |
 
 Etkileşimli kabuk `tr` ile açılır (dosya verilmeden); kabuktan `çıkış` ile çıkılır.

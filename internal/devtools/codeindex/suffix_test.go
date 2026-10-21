@@ -35,3 +35,34 @@ func TestSuffixRecognisesTurkishInflections(t *testing.T) {
 		t.Error("a word without a vowel has no harmony: no inflections")
 	}
 }
+
+// Ünsüz yumuşaması: çok heceli sözcüğün sondaki sert ünsüzü ünlüyle başlayan ekten önce yumuşar
+// (çekirdek → çekirdeği); tek heceliler (ok → oku) yumuşamaz.
+func TestSoftenedStems(t *testing.T) {
+	for word, want := range map[string]string{"çekirdek": "çekirdeğ", "kitap": "kitab", "ağaç": "ağac", "kanat": "kanad", "ahenk": "aheng"} {
+		if got, ok := soften(word); !ok || got != want {
+			t.Errorf("%s -> %q %v, want %q", word, got, ok, want)
+		}
+	}
+	for _, word := range []string{"ok", "baş", "kernel", "göz"} {
+		if got, ok := soften(word); ok {
+			t.Errorf("%s must not soften: %q", word, got)
+		}
+	}
+	m := newWordMatcher("çekirdek", "kernel")
+	for token, suggestion := range map[string]string{"çekirdeği": "kerneli", "çekirdeğe": "kernele", "çekirdekler": "kernelzler"} {
+		match, got, _, _ := m.classify(token)
+		if token == "çekirdekler" {
+			if match != MatchSuffixed || got != "kerneller" {
+				t.Errorf("%s: %s %q", token, match, got)
+			}
+			continue
+		}
+		if match != MatchSuffixed || got != suggestion {
+			t.Errorf("%s: %s %q, want %q", token, match, got, suggestion)
+		}
+	}
+	if match, _, _, other := m.classify("çekirdeksiz"); match != MatchDerived && !other {
+		t.Errorf("çekirdeksiz is a derived form: %s", match)
+	}
+}

@@ -30,21 +30,32 @@ func changeAt(list []Change, pos string) *Change {
 	return nil
 }
 
-// Çıplak ad o adı taşıyan bütün bildirimlerdir; kesin bölüm anlamsal yerleri, olası bölüm tahminleri
-// ve metni taşır; hiçbir dosya değişmez.
+// Çıplak ad birden çok bildirime uyuyorsa hata (çıkış 2) ve adaylar; her aday kimliğiyle tek tek
+// sorulur. Kesin bölüm anlamsal yerleri, olası bölüm tahminleri ve metni taşır; hiçbir dosya değişmez.
 func TestRenameImpactSplitsCertainAndLikely(t *testing.T) {
 	r, dir := renameProject(t)
 	before, _ := os.ReadFile(filepath.Join(dir, "m.tr"))
-	res := r.RenameImpact("baş", "bakış_sayısı", RenameOptions{Root: dir})
-	if res.Status != StatusOK || res.Reason != "" {
-		t.Fatalf("%+v", res)
+	amb := r.RenameImpact("baş", "bakış_sayısı", RenameOptions{Root: dir})
+	if amb.Status != StatusRejected || amb.Reason != ReasonAmbiguous || ExitCode(amb.Status) != ExitUsage {
+		t.Fatalf("a bare name with several meanings is an error: %+v", amb)
+	}
+	if text := RenameText(amb); !strings.Contains(text, "parameter:m.tr#yap.baş") || !strings.Contains(text, "field:m.tr#Dikkat.baş") {
+		t.Errorf("the candidates are listed with their ids:\n%s", text)
 	}
 	kinds := map[Kind]int{}
-	for _, n := range res.Targets {
+	res := &Result{Status: StatusOK}
+	for _, n := range amb.Candidates {
 		kinds[n.Kind]++
+		one := r.RenameImpact(n.ID, "bakış_sayısı", RenameOptions{Root: dir})
+		if one.Status != StatusOK || len(one.Targets) != 1 {
+			t.Fatalf("%s: %+v", n.ID, one)
+		}
+		res.Certain = append(res.Certain, one.Certain...)
+		res.Likely = append(res.Likely, one.Likely...)
+		res.SkippedWords += one.SkippedWords
 	}
 	if kinds[KindField] != 1 || kinds[KindParameter] != 3 || kinds[KindOption] != 1 {
-		t.Errorf("targets: the field, three parameters (kurucu, yap, gölge) and the option: %v", kinds)
+		t.Errorf("candidates: the field, three parameters (kurucu, yap, gölge) and the option: %v", kinds)
 	}
 	for pos, role := range map[string]Role{
 		"m.tr:2:5":   RoleDefinition, // alanın tanımı
@@ -73,7 +84,7 @@ func TestRenameImpactSplitsCertainAndLikely(t *testing.T) {
 	if c := changeAt(res.Likely, "doc.md:1:10"); c == nil || c.Match != MatchSuffixed || c.Replacement != "bakış_sayısıı" {
 		t.Errorf("başı in the document: %+v", c)
 	}
-	if res.SkippedWords != 1 {
+	if res.SkippedWords < 1 {
 		t.Errorf("başka is another word: %d", res.SkippedWords)
 	}
 	after, _ := os.ReadFile(filepath.Join(dir, "m.tr"))
@@ -103,11 +114,11 @@ func TestRenameImpactNarrowedByAQualifiedName(t *testing.T) {
 func TestRenameImpactRejections(t *testing.T) {
 	r, dir := renameProject(t)
 	cases := []struct{ q, name, reason string }{
-		{"baş", "yazdır", ReasonLanguageWord},
-		{"baş", "döngü", ReasonLanguageWord},
-		{"baş", "9x", ReasonInvalidName},
-		{"baş", "a-b", ReasonInvalidName},
-		{"baş", "BAŞ", ReasonSameName},
+		{"Dikkat.baş", "yazdır", ReasonLanguageWord},
+		{"Dikkat.baş", "döngü", ReasonLanguageWord},
+		{"Dikkat.baş", "9x", ReasonInvalidName},
+		{"Dikkat.baş", "a-b", ReasonInvalidName},
+		{"Dikkat.baş", "BAŞ", ReasonSameName},
 		{"yazdır", "yaz", ReasonBuiltin},
 		{"m.tr", "n", ReasonModule},
 	}
@@ -117,7 +128,7 @@ func TestRenameImpactRejections(t *testing.T) {
 			t.Errorf("%s -> %s: %s %s", c.q, c.name, res.Status, res.Reason)
 		}
 	}
-	miss := r.RenameImpact("bulunmayan", "x", RenameOptions{Root: dir})
+	miss := r.RenameImpact("bulunmayan", "x", RenameOptions{Root: dir, NoText: true})
 	if miss.Status != StatusNotFound || ExitCode(miss.Status) != ExitNotFound {
 		t.Errorf("%+v", miss)
 	}
@@ -154,7 +165,7 @@ func TestPrepareRename(t *testing.T) {
 // Çıktı örnekle sabittir (-update ile yeniden yazılır).
 func TestRenameImpactGolden(t *testing.T) {
 	r, dir := renameProject(t)
-	got, err := EncodeJSON(r.RenameImpact("baş", "bakış_sayısı", RenameOptions{Root: dir}))
+	got, err := EncodeJSON(r.RenameImpact("Dikkat.baş", "bakış_sayısı", RenameOptions{Root: dir}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,4 +183,44 @@ func TestRenameImpactGolden(t *testing.T) {
 	if strings.ReplaceAll(string(want), "\r\n", "\n") != string(got) {
 		t.Errorf("rename_bas.json changed (go test -update to rewrite):\n%s", got)
 	}
+}
+
+// Terim kipi sembol aramaz: yalnızca metin eşleşmeleri (belge, yorum, metin), Go'da kod adları hariç.
+func TestRenameTermMode(t *testing.T) {
+	dir := writeTree(t, map[string]string{
+		"m.tr":   "// çekirdek derlenir\nfonksiyon çekirdek_ekle() {\n    sonuç 1\n}\n",
+		"doc.md": "GPU çekirdeği ve işlemci çekirdeği.\n",
+		"k.go":   "package k\n\n// çekirdek başlatılır\nvar çekirdek = 1\nvar s = \"çekirdek\"\n",
+	})
+	idx, err := Build(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := NewReader(idx)
+	for _, term := range []bool{true, false} { // sembol yoksa kip kendiliğinden terim olur
+		res := r.RenameImpact("çekirdek", "kernel", RenameOptions{Root: dir, Term: term})
+		if res.Status != StatusOK || res.Mode != ModeTerm || len(res.Certain) != 0 || len(res.Targets) != 0 {
+			t.Fatalf("term=%v: %+v", term, res)
+		}
+		got := strings.Join(hitSummaryOfChanges(res.Likely), "\n")
+		want := strings.Join([]string{"doc.md:1:5 doc/suffixed", "doc.md:1:26 doc/suffixed", "k.go:3:4 comment/exact", "k.go:5:10 string/exact",
+			"m.tr:1:4 comment/exact", "m.tr:2:11 code/compound"}, "\n")
+		if got != want {
+			t.Errorf("term=%v hits:\n%s\nwant:\n%s", term, got, want)
+		}
+	}
+	if res := r.RenameImpact("çekirdek", "9", RenameOptions{Root: dir, Term: true}); res.Reason != ReasonInvalidName {
+		t.Errorf("%+v", res)
+	}
+	if res := r.RenameImpact("yok_boyle", "x", RenameOptions{Root: dir, NoText: true}); res.Status != StatusNotFound {
+		t.Errorf("without text there is nothing to list: %+v", res)
+	}
+}
+
+func hitSummaryOfChanges(list []Change) []string {
+	var out []string
+	for _, c := range list {
+		out = append(out, c.Pos.String()+" "+c.Where+"/"+c.Match)
+	}
+	return out
 }

@@ -25,6 +25,7 @@ const (
 	ReasonInvalidName  = "invalid_identifier" // yeni ad geçerli bir tanımlayıcı değil
 	ReasonLanguageWord = "language_word"      // yeni ad dilin sözcüğü
 	ReasonSameName     = "same_name"          // yeni ad eskisiyle aynı
+	ReasonAmbiguous    = "ambiguous_name"     // ad birden çok bildirime uyuyor; Candidates adaylardır
 )
 
 // Conflict yeni adın aynı kapsamda zaten bulunduğu bir bildirimdir.
@@ -58,6 +59,7 @@ const (
 // RenameOptions yeniden adlandırma etkisinin seçenekleridir.
 type RenameOptions struct {
 	Root   string // proje kökü (satır metni ve metin taraması için); boşsa ikisi de yok
+	Term   bool   // terim kipi: sembol aranmaz, yalnızca metin eşleşmeleri listelenir
 	NoText bool   // metin taramasını (olası belge/yorum/ileti bölümünü) kapat
 	Limit  int    // her listenin en çok satırı (0: hepsi); toplam sayı ve Truncated korunur
 }
@@ -140,15 +142,25 @@ func validateNewName(old, name string) string {
 func (r *Reader) RenameImpact(q, newName string, o RenameOptions) *Result {
 	res := NewResult(CommandRename, Query{Text: q, Language: codes.Display().Code})
 	res.NewName = newName
+	if o.Term {
+		return r.renameTerm(res, q, newName, o)
+	}
 	targets, rejected := r.renameTargets(q)
 	if len(targets) == 0 {
 		if rejected != "" {
 			res.Status, res.Reason = StatusRejected, rejected
 			return res
 		}
+		if o.Root != "" && !o.NoText && !strings.ContainsAny(q, ".:/#") {
+			return r.renameTerm(res, q, newName, o) // sembol yok: terim olarak yalnızca metin
+		}
 		res.Status = StatusNotFound
 		res.DidYouMean = r.suggestNodes(q)
 		return res
+	}
+	if len(targets) > 1 {
+		// Çıplak ad birden çok anlamda: hangisinin kastedildiği sessizce seçilmez (çıkış 2).
+		return r.ambiguousRename(res, targets)
 	}
 	words := map[string]string{} // katlanmış sözcük -> yazıldığı gibi
 	for _, n := range targets {
@@ -300,4 +312,41 @@ func (s *lineSource) at(p Pos) string {
 		return ""
 	}
 	return clip(strings.TrimRight(lines[p.Line-1], "\r"))
+}
+
+// renameTerm terim kipidir: sembol aranmaz, q sözcüğü (ve ekli biçimleri) yalnızca metinde aranır.
+// Bir terimin birden çok anlamı olabilir (GPU "çekirdek" yazılım kernel'ı ve donanım çekirdeği); araç
+// anlamları ayıramaz, her eşleşme satırın metniyle verilir ve seçim elle yapılır.
+func (r *Reader) renameTerm(res *Result, q, newName string, o RenameOptions) *Result {
+	res.Mode = ModeTerm
+	switch {
+	case !identifierPattern.MatchString(newName):
+		res.Status, res.Reason = StatusRejected, ReasonInvalidName
+		return res
+	case fold(newName) == fold(q):
+		res.Status, res.Reason = StatusRejected, ReasonSameName
+		return res
+	}
+	if o.Root != "" && !o.NoText {
+		hits, other := ScanText(o.Root, q, newName, nil)
+		res.SkippedWords = other
+		for _, h := range hits {
+			res.Likely = append(res.Likely, Change{Pos: h.Pos, Where: h.Where, Match: h.Match, Word: h.Word,
+				Context: h.Context, Replacement: h.Suggestion, Check: h.Check})
+		}
+	}
+	res.Counts = &Counts{Total: len(res.Likely)}
+	if o.Limit > 0 {
+		res.Likely, res.Truncated = limit(res.Likely, o.Limit)
+	}
+	return res
+}
+
+// ambiguousRename birden çok bildirime uyan çıplak adı reddeder ve adayları listeler.
+func (r *Reader) ambiguousRename(res *Result, targets []*Node) *Result {
+	res.Status, res.Reason = StatusRejected, ReasonAmbiguous
+	for _, n := range targets {
+		res.Candidates = append(res.Candidates, r.display(*n))
+	}
+	return res
 }
