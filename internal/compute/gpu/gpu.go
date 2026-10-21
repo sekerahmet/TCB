@@ -47,6 +47,9 @@ type backend struct {
 	gemvConst *gemvConfig
 	// capturing süren kaydın havuzu (kayıt yoksa nil; graph.go).
 	capturing *privatePool
+	// ints şekillerden hesaplanan küçük, değişmeyen tam sayı tabloları (ör. dikkat maskesinin
+	// ofsetleri): bir kez yüklenir, cihazda kalır (bkz. constInts).
+	ints map[string]*storage
 	// profiler çekirdek ölçümleri (bkz. profile.go).
 	profiler profile
 	// volume son çöp toplamadan bu yana verilen depolama baytı (havuzdan gelenler dahil).

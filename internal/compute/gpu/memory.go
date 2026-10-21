@@ -3,6 +3,8 @@ package gpu
 import (
 	"math/bits"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -506,6 +508,34 @@ func (g *backend) loadInt(v []int32) *storage {
 	if len(v) > 0 {
 		g.loadHost(d, unsafe.Pointer(&v[0]), 4*len(v))
 	}
+	return d
+}
+
+// constIntLimit cihazda tutulan değişmeyen tablo sayısının sınırı; aşılınca tablo her çağrıda
+// geçici olarak yüklenir.
+const constIntLimit = 1024
+
+// constInts değişmeyen bir tam sayı tablosunu (şekillerden hesaplanan ofsetler) cihazda bir kez
+// yükler ve sonraki çağrılarda aynı depolamayı verir: kayıt sırasında konaktan yükleme yapılamaz
+// (graph.go), ısınma çağrısı tabloyu yüklemiş olur. Tablolar süreç boyunca kalır (küçüktürler).
+func (g *backend) constInts(gt *temp, v []int) *storage {
+	var sb strings.Builder
+	for _, x := range v {
+		sb.WriteString(strconv.Itoa(x))
+		sb.WriteByte(',')
+	}
+	key := sb.String()
+	if d, ok := g.ints[key]; ok {
+		return d
+	}
+	if len(g.ints) >= constIntLimit {
+		return gt.loadInt(v)
+	}
+	if g.ints == nil {
+		g.ints = map[string]*storage{}
+	}
+	d := g.loadInt(ints(v))
+	g.ints[key] = d
 	return d
 }
 

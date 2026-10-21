@@ -260,7 +260,7 @@ func (g *backend) prepareAttn(gt *temp, mask tensor.Storage, p tensor.AttentionP
 	if mask != nil {
 		md = gt.readD(mask)
 		checkSize(md.n) // maske dizini 32 bit
-		mo = gt.loadInt(p.MaskOffsets)
+		mo = g.constInts(gt, p.MaskOffsets)
 	}
 	return md, mo
 }

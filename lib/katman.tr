@@ -176,12 +176,19 @@ yapı NedenselDikkat {
         }
         q = döner_konum_uygula(q, kos, sin)
         k = döner_konum_uygula(k, kos, sin)
-        eğer önbellek != yok {
+        değişken y = yok
+        eğer önbellek != yok ve önbellek.adım_konumu != yok {
+            // Cihaz adımı (GPT.tek_adım): konum cihazdadır, sorgu bütün tampona maskeyle bakar.
             değişken kv = önbellek.ekle(no, k, v)
-            k = kv[0]
-            v = kv[1]
+            y = dikkat(q, kv[0], kv[1], nedensel: yanlış, maske: önbellek.maske(kendi.pencere))
+        } değilse {
+            eğer önbellek != yok {
+                değişken kv = önbellek.ekle(no, k, v)
+                k = kv[0]
+                v = kv[1]
+            }
+            y = dikkat(q, k, v, nedensel: doğru, pencere: kendi.pencere) // [B, bakış, T, bakış_boyutu]
         }
-        değişken y = dikkat(q, k, v, nedensel: doğru, pencere: kendi.pencere) // [B, bakış, T, bakış_boyutu]
         sonuç kendi.çıkış_katmanı.ileri(y.eksenleri_sırala([0, 2, 1, 3]).şekillendir([B, T, kendi.bakış_sayısı * kendi.bakış_boyutu]))
     }
 }
@@ -358,12 +365,20 @@ fonksiyon katman_pencereleri(düzen, pencereler) {
 // Düzen bakış önceliklidir ([B, kv_bakış, T, bakış_boyutu]): dikkat'in beklediği düzen, GQA'da
 // kv bakışları çoğaltılmaz. konum önbellekteki parça sayısıdır (sonraki parçanın konumu).
 // kırp(n) son parçaları geri alır (ör. reddedilen taslak); sabitte yazılı veri kalır ama okunmaz.
+// Cihaz adımı (yalnızca sabit; GPT.tek_adım, tekrar_oynat ile kaydedilen üretim adımı):
+// cihaz_adımı(konum) ile konum cihazdaki bir tensör olur ([1]); ekle yeni anahtarları o konuma
+// yazar (yerine_yaz) ve bütün tamponu verir, maske(pencere) bakılacak konumları seçer (0/1:
+// konum ve öncesi, pencere varsa son pencere kadarı). Kaydedilen adım konakta durum
+// değiştirmez: konum sayacını çağıran ilerletir. Sabit boylu tampon ve cihazdaki konum
+// transformers'ın sabit önbelleğiyle (cache_position) aynı yoldur.
 yapı KVÖnbellek {
     tür
     en_çok
     konum
     anahtarlar
     değerler
+    adım_konumu
+    pozisyonlar
     fonksiyon kurucu(katman, tür = "sabit", en_çok = 0) {
         doğrula(tür == "sabit" veya tür == "büyüyen", "önbellek türü \"sabit\" ya da \"büyüyen\" olmalı, {tür} verildi")
         doğrula(tür != "sabit" veya en_çok > 0, "sabit önbellek en_çok > 0 ister")
@@ -372,6 +387,19 @@ yapı KVÖnbellek {
         kendi.konum = 0
         kendi.anahtarlar = [yok döngü _ içinde 0..katman]
         kendi.değerler = [yok döngü _ içinde 0..katman]
+        kendi.adım_konumu = yok
+        kendi.pozisyonlar = yok
+    }
+    // cihaz_adımı: sonraki ekle'ler konumu (cihazdaki [1] tensörü; yok: konak konumu) kullanır.
+    fonksiyon cihaz_adımı(konum) {
+        doğrula(konum == yok veya kendi.tür == "sabit", "cihaz adımı yalnızca sabit önbellekte")
+        kendi.adım_konumu = konum
+    }
+    // maske: cihaz adımında bakılacak konumlar ([en_çok], 0/1).
+    fonksiyon maske(pencere = 0) {
+        değişken m = kendi.pozisyonlar <= kendi.adım_konumu
+        eğer pencere > 0 { m = m * (kendi.pozisyonlar > kendi.adım_konumu - pencere) }
+        sonuç m
     }
     // ekle: katman no'nun yeni anahtar ve değerlerini ([B, kv_bakış, T, bakış_boyutu]) konumdan
     // başlayarak ekler; o katmanın 0..konum+T anahtar ve değerlerini verir.
@@ -388,10 +416,18 @@ yapı KVÖnbellek {
             }
             sonuç [kendi.anahtarlar[no], kendi.değerler[no]]
         }
+        eğer kendi.adım_konumu != yok {
+            yerine_yaz(kendi.anahtarlar[no], k, eksen: 2, başlangıç: kendi.adım_konumu[0])
+            yerine_yaz(kendi.değerler[no], v, eksen: 2, başlangıç: kendi.adım_konumu[0])
+            sonuç [kendi.anahtarlar[no], kendi.değerler[no]]
+        }
         doğrula(son <= kendi.en_çok, "sabit önbellek dolu: {son} konum, en çok {kendi.en_çok}")
         eğer kendi.anahtarlar[no] == yok {
             kendi.anahtarlar[no] = sıfırlar([k.şekil[0], k.şekil[1], kendi.en_çok, k.şekil[3]], tür: k.tür).cihaza(k.cihaz)
             kendi.değerler[no] = sıfırlar([v.şekil[0], v.şekil[1], kendi.en_çok, v.şekil[3]], tür: v.tür).cihaza(v.cihaz)
+            eğer kendi.pozisyonlar == yok {
+                kendi.pozisyonlar = tensör([i * 1.0 döngü i içinde 0..kendi.en_çok]).cihaza(k.cihaz)
+            }
         }
         değişken B = k.şekil[0]
         kendi.anahtarlar[no].dilim(2, kendi.konum, son)[0..B] = k
@@ -485,6 +521,22 @@ yapı GPT {
         // Gizli durumu yalnızca çıkış çarpımı (ya da doğrusal_çapraz_entropi) okur.
         sonuç kendi.son_norm.ileri(x, çıktı_türü: hesap_türü())
     }
+    // tek_adım: bir parçalık üretim adımı, konum cihazdadır: kimlik [1, 1] ve konum [1]
+    // tensörleri → son konumun logiti [dağarcık]. Konakta hiçbir şey değiştirmez (önbelleğin
+    // konum sayacını çağıran ilerletir); bu yüzden tekrar_oynat ile kaydedilip oynatılabilir
+    // (dil tanımı 15.48). Önbellek sabit olmalı ve ilk parçalar gizli_durum ile işlenmiş olmalı.
+    fonksiyon tek_adım(kimlik, konum, önbellek) {
+        değişken x = kendi.gömme.ileri(kimlik)
+        değişken bağlamlar = eğer kendi.ple_bağlamı == yok { yok } değilse { kendi.ple_bağlamı.ileri(x) }
+        değişken kos = gömme(kendi.kos, konum)
+        değişken sin = gömme(kendi.sin, konum)
+        önbellek.cihaz_adımı(konum)
+        döngü i, blok içinde kendi.bloklar {
+            x = blok.ileri(x, kos, sin, kimlik, eğer bağlamlar == yok { yok } değilse { bağlamlar[i] }, önbellek: önbellek, no: i)
+        }
+        önbellek.cihaz_adımı(yok)
+        sonuç kendi.logit(kendi.son_norm.ileri(x, çıktı_türü: hesap_türü()))[0][0]
+    }
     // kimlikler [B, T] (T ≤ bağlam) → logit [B, T, dağarcık]; önbellek: gizli_durum.
     fonksiyon ileri(kimlikler, önbellek = yok) {
         sonuç kendi.logit(kendi.gizli_durum(kimlikler, önbellek: önbellek))
@@ -520,26 +572,43 @@ yapı GPT {
     // (konumlar kaydığı için önbellek baştan kurulur). önbellek: yok her parçada bütün diziyi
     // yeniden hesaplar. Sonuç önbellekli ve önbelleksiz aynıdır (float32 yuvarlama düzeyinde).
     // Yalnızca son konumun logiti hesaplanır (transformers generate'in logits_to_keep'i gibi).
-    fonksiyon üret(başlangıç, adet, sıcaklık = 1.0, en_iyi_k = 0, tohum = yok, eos = yok, önbellek = "sabit") {
+    // çizge: doğru (varsayılan) ise GPU'da sabit önbellekle her adım tek_adım'dır ve
+    // tekrar_oynat ile kaydedilip oynatılır (kernel başlatmalarının konak yükü kalkar); sonuç
+    // kayıtsızla aynı parçalardır. Sabit önbellek en çok başlangıç + adet konum tutar.
+    fonksiyon üret(başlangıç, adet, sıcaklık = 1.0, en_iyi_k = 0, tohum = yok, eos = yok, önbellek = "sabit", çizge = doğru) {
         değişken kimlikler = [k döngü k içinde başlangıç]
         değişken bağlam = kendi.ayar.bağlam
         değişken ö = yok
+        değişken adım = yok
+        değişken cihaz = kendi.gömme.tablo.cihaz
+        değişken oynat = çizge ve önbellek == "sabit" ve cihaz != "cpu"
         türevsiz {
             döngü i içinde 0..adet {
                 değişken x = yok
+                değişken son = yok
                 eğer önbellek == yok {
                     değişken bas = maks(0, kimlikler.uzunluk - bağlam)
                     x = kendi.gizli_durum([kimlikler[bas..kimlikler.uzunluk]])
-                } değilse eğer ö == yok veya ö.konum >= bağlam {
-                    // İlk adım ya da bağlam doldu: son `bağlam` parça baştan işlenir.
-                    ö = kendi.önbellek_kur(tür: önbellek, en_çok: bağlam)
+                } değilse eğer ö == yok veya ö.konum >= ö.en_çok {
+                    // İlk adım ya da önbellek doldu: son `bağlam` parça baştan işlenir.
+                    ö = kendi.önbellek_kur(tür: önbellek, en_çok: min(bağlam, kimlikler.uzunluk + adet - i))
+                    adım = yok // yeni önbellek: yeni kayıt
                     değişken bas = maks(0, kimlikler.uzunluk - bağlam)
                     x = kendi.gizli_durum([kimlikler[bas..kimlikler.uzunluk]], önbellek: ö)
+                } değilse eğer oynat {
+                    eğer adım == yok {
+                        değişken öö = ö
+                        adım = tekrar_oynat((kimlik, konum) => kendi.tek_adım(kimlik, konum, öö))
+                    }
+                    son = adım(tensör([[kimlikler[-1] * 1.0]]).cihaza(cihaz), tensör([ö.konum * 1.0]).cihaza(cihaz))
+                    ö.ilerle(1)
                 } değilse {
                     x = kendi.gizli_durum([[kimlikler[-1]]], önbellek: ö)
                 }
-                değişken T = x.şekil[1]
-                değişken son = kendi.logit(x.dilim(1, T - 1, T))[0][0]
+                eğer son == yok {
+                    değişken T = x.şekil[1]
+                    son = kendi.logit(x.dilim(1, T - 1, T))[0][0]
+                }
                 değişken t = eğer tohum == yok { yok } değilse { tohum + i }
                 değişken yeni = örnekle(son, sıcaklık: sıcaklık, en_iyi_k: en_iyi_k, tohum: t).değer
                 kimlikler.ekle(yeni)

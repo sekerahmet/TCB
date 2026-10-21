@@ -279,6 +279,24 @@ test "GPT: üret önbellekli ve önbelleksiz aynı parçaları verir, bağlam do
     eşit_mi(m.üret([1], 7, tohum: 4, önbellek: yok), m.üret([1], 7, tohum: 4, önbellek: "sabit"))
 }
 
+test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile aynı logiti verir (pencere dahil); üret çizgeyle ve çizgesiz aynı" {
+    değişken m = GPT(16, bağlam: 8, boyut: 16, katman: 2, bakış_sayısı: 2, kv_bakış_sayısı: 1, pencereler: [2, 0], tohum: 8)
+    türevsiz {
+        değişken ö1 = m.önbellek_kur(en_çok: 8)
+        değişken ö2 = m.önbellek_kur(en_çok: 8)
+        m.gizli_durum([[1, 2, 3]], önbellek: ö1)
+        m.gizli_durum([[1, 2, 3]], önbellek: ö2)
+        döngü i, id içinde [5, 7, 2, 9] {
+            değişken x = m.gizli_durum([[id]], önbellek: ö1)
+            değişken beklenen = m.logit(x)[0][0]
+            değişken l = m.tek_adım(tensör([[id * 1.0]]), tensör([ö2.konum * 1.0]), ö2)
+            ö2.ilerle(1)
+            doğrula(maks(mutlak(l - beklenen)).değer < 0.00001, "adım {i}: tek_adım farklı")
+        }
+    }
+    eşit_mi(m.üret([1, 2, 3], 9, sıcaklık: 0, çizge: yanlış), m.üret([1, 2, 3], 9, sıcaklık: 0))
+}
+
 // Kopyalama görevi: [a b c d | a b c d]; ikinci yarı ilk yarıdan tahmin edilebilir.
 değişken kopya_tohumu = 11
 fonksiyon kopya_toplu(B, V, yarım) {
