@@ -72,6 +72,13 @@ func LinearCrossEntropyChunked(x, w *Tensor, targets []int, chunk int) *Tensor {
 			}
 		}
 		if vc == 0 {
+			// Tamamen yok sayılan dilimin x gradyanı sıfırdır; gx sıfırsız ayrıldığından
+			// yalnızca bu satırlar yazılır (bütün gx'i sıfırlı ayırmaktan ucuz).
+			if gx != nil {
+				z := be.Alloc(n*D, gx.DType())
+				be.Copy(gx, r0*D, DenseView(z, []int{n, D}))
+				giveBack(be, z)
+			}
 			continue
 		}
 		xc := View{S: xv.S, Offset: xv.Offset + r0*D, Shape: []int{n, D}, Strides: []int{D, 1}}
