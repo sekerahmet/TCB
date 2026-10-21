@@ -1,0 +1,108 @@
+{
+  "schema": "tr-codeindex/1",
+  "command": "references",
+  "status": "ok",
+  "query": {
+    "text": "Kare",
+    "language": "tr"
+  },
+  "target": {
+    "id": "struct:lib/geo.tr#Kare",
+    "kind": "struct",
+    "name": "Kare",
+    "pos": {
+      "file": "lib/geo.tr",
+      "line": 5,
+      "col": 1,
+      "end_line": 13,
+      "end_col": 2
+    },
+    "signature": "yapı Kare",
+    "qualified": "geo.Kare"
+  },
+  "users": [
+    {
+      "role": "call",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "examples/ana.tr",
+        "line": 3,
+        "col": 16,
+        "end_line": 3,
+        "end_col": 20
+      },
+      "in": {
+        "id": "variable:examples/ana.tr#k",
+        "kind": "variable",
+        "name": "k",
+        "pos": {
+          "file": "examples/ana.tr",
+          "line": 3,
+          "col": 1,
+          "end_line": 3,
+          "end_col": 23
+        },
+        "signature": "var k",
+        "qualified": "ana.k"
+      }
+    },
+    {
+      "role": "test",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "lib/geo_test.tr",
+        "line": 4,
+        "col": 18,
+        "end_line": 4,
+        "end_col": 22
+      },
+      "in": {
+        "id": "test:lib/geo_test.tr#3",
+        "kind": "test",
+        "name": "kare alanı yazılır",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 3,
+          "col": 1,
+          "end_line": 6,
+          "end_col": 2
+        },
+        "signature": "test \"kare alanı yazılır\"",
+        "qualified": "geo_test: kare alanı yazılır"
+      }
+    },
+    {
+      "role": "test",
+      "confidence": "EXTRACTED",
+      "pos": {
+        "file": "lib/geo_test.tr",
+        "line": 11,
+        "col": 19,
+        "end_line": 11,
+        "end_col": 23
+      },
+      "in": {
+        "id": "test:lib/geo_test.tr#8",
+        "kind": "test",
+        "name": "çevre",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 8,
+          "col": 1,
+          "end_line": 12,
+          "end_col": 2
+        },
+        "signature": "test \"çevre\"",
+        "qualified": "geo_test: çevre"
+      }
+    }
+  ],
+  "counts": {
+    "total": 3,
+    "by_role": {
+      "call": 1,
+      "test": 2
+    }
+  },
+  "truncated": false
+}

@@ -108,6 +108,8 @@ type Node struct {
 	// Aliases bir modülün başka adlarıdır (içe aktarma yolu "tr/katman").
 	Aliases []string `json:"aliases,omitempty"`
 	Coded   bool     `json:"coded,omitempty"` // modül: dosya kodlu biçimdeydi
+	// Doc bildirimin üstündeki yorum satırlarıdır.
+	Doc string `json:"doc,omitempty"`
 }
 
 // Edge iki düğümü bağlar. Pos bağın ilk görüldüğü yerdir (öbürleri başvurulardır).

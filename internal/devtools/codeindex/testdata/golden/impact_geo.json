@@ -1,0 +1,287 @@
+{
+  "schema": "tr-codeindex/1",
+  "command": "impact",
+  "status": "ok",
+  "query": {
+    "text": "lib/geo.tr",
+    "language": "tr"
+  },
+  "target": {
+    "id": "module:lib/geo.tr",
+    "kind": "module",
+    "name": "lib/geo.tr",
+    "pos": {
+      "file": "lib/geo.tr",
+      "line": 1
+    },
+    "aliases": [
+      "geo",
+      "tr/geo"
+    ]
+  },
+  "affected": {
+    "modules": [
+      {
+        "id": "module:examples/ana.tr",
+        "kind": "module",
+        "name": "examples/ana.tr",
+        "pos": {
+          "file": "examples/ana.tr",
+          "line": 1
+        },
+        "aliases": [
+          "ana"
+        ]
+      },
+      {
+        "id": "module:lib/geo_test.tr",
+        "kind": "module",
+        "name": "lib/geo_test.tr",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 1
+        },
+        "aliases": [
+          "geo_test",
+          "tr/geo_test"
+        ]
+      }
+    ],
+    "users": [
+      {
+        "role": "call",
+        "confidence": "EXTRACTED",
+        "pos": {
+          "file": "examples/ana.tr",
+          "line": 3,
+          "col": 16,
+          "end_line": 3,
+          "end_col": 20
+        },
+        "in": {
+          "id": "variable:examples/ana.tr#k",
+          "kind": "variable",
+          "name": "k",
+          "pos": {
+            "file": "examples/ana.tr",
+            "line": 3,
+            "col": 1,
+            "end_line": 3,
+            "end_col": 23
+          },
+          "signature": "var k",
+          "qualified": "ana.k"
+        }
+      },
+      {
+        "role": "call",
+        "confidence": "EXTRACTED",
+        "pos": {
+          "file": "examples/ana.tr",
+          "line": 4,
+          "col": 10,
+          "end_line": 4,
+          "end_col": 23
+        },
+        "in": {
+          "id": "module:examples/ana.tr",
+          "kind": "module",
+          "name": "examples/ana.tr",
+          "pos": {
+            "file": "examples/ana.tr",
+            "line": 1
+          },
+          "aliases": [
+            "ana"
+          ]
+        }
+      },
+      {
+        "role": "read",
+        "confidence": "EXTRACTED",
+        "pos": {
+          "file": "examples/ana.tr",
+          "line": 5,
+          "col": 10,
+          "end_line": 5,
+          "end_col": 13
+        },
+        "in": {
+          "id": "module:examples/ana.tr",
+          "kind": "module",
+          "name": "examples/ana.tr",
+          "pos": {
+            "file": "examples/ana.tr",
+            "line": 1
+          },
+          "aliases": [
+            "ana"
+          ]
+        }
+      },
+      {
+        "role": "write",
+        "confidence": "EXTRACTED",
+        "pos": {
+          "file": "examples/ana.tr",
+          "line": 6,
+          "col": 3,
+          "end_line": 6,
+          "end_col": 8
+        },
+        "in": {
+          "id": "module:examples/ana.tr",
+          "kind": "module",
+          "name": "examples/ana.tr",
+          "pos": {
+            "file": "examples/ana.tr",
+            "line": 1
+          },
+          "aliases": [
+            "ana"
+          ]
+        }
+      },
+      {
+        "role": "test",
+        "confidence": "EXTRACTED",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 4,
+          "col": 18,
+          "end_line": 4,
+          "end_col": 22
+        },
+        "in": {
+          "id": "test:lib/geo_test.tr#3",
+          "kind": "test",
+          "name": "kare alanı yazılır",
+          "pos": {
+            "file": "lib/geo_test.tr",
+            "line": 3,
+            "col": 1,
+            "end_line": 6,
+            "end_col": 2
+          },
+          "signature": "test \"kare alanı yazılır\"",
+          "qualified": "geo_test: kare alanı yazılır"
+        }
+      },
+      {
+        "role": "test",
+        "confidence": "EXTRACTED",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 5,
+          "col": 5,
+          "end_line": 5,
+          "end_col": 13
+        },
+        "in": {
+          "id": "test:lib/geo_test.tr#3",
+          "kind": "test",
+          "name": "kare alanı yazılır",
+          "pos": {
+            "file": "lib/geo_test.tr",
+            "line": 3,
+            "col": 1,
+            "end_line": 6,
+            "end_col": 2
+          },
+          "signature": "test \"kare alanı yazılır\"",
+          "qualified": "geo_test: kare alanı yazılır"
+        }
+      },
+      {
+        "role": "test",
+        "confidence": "EXTRACTED",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 11,
+          "col": 5,
+          "end_line": 11,
+          "end_col": 18
+        },
+        "in": {
+          "id": "test:lib/geo_test.tr#8",
+          "kind": "test",
+          "name": "çevre",
+          "pos": {
+            "file": "lib/geo_test.tr",
+            "line": 8,
+            "col": 1,
+            "end_line": 12,
+            "end_col": 2
+          },
+          "signature": "test \"çevre\"",
+          "qualified": "geo_test: çevre"
+        }
+      },
+      {
+        "role": "test",
+        "confidence": "EXTRACTED",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 11,
+          "col": 19,
+          "end_line": 11,
+          "end_col": 23
+        },
+        "in": {
+          "id": "test:lib/geo_test.tr#8",
+          "kind": "test",
+          "name": "çevre",
+          "pos": {
+            "file": "lib/geo_test.tr",
+            "line": 8,
+            "col": 1,
+            "end_line": 12,
+            "end_col": 2
+          },
+          "signature": "test \"çevre\"",
+          "qualified": "geo_test: çevre"
+        }
+      }
+    ],
+    "tests": [
+      {
+        "id": "test:lib/geo_test.tr#3",
+        "kind": "test",
+        "name": "kare alanı yazılır",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 3,
+          "col": 1,
+          "end_line": 6,
+          "end_col": 2
+        },
+        "signature": "test \"kare alanı yazılır\"",
+        "qualified": "geo_test: kare alanı yazılır"
+      },
+      {
+        "id": "test:lib/geo_test.tr#8",
+        "kind": "test",
+        "name": "çevre",
+        "pos": {
+          "file": "lib/geo_test.tr",
+          "line": 8,
+          "col": 1,
+          "end_line": 12,
+          "end_col": 2
+        },
+        "signature": "test \"çevre\"",
+        "qualified": "geo_test: çevre"
+      }
+    ]
+  },
+  "counts": {
+    "total": 8,
+    "by_role": {
+      "call": 2,
+      "read": 1,
+      "test": 4,
+      "write": 1
+    }
+  },
+  "truncated": false
+}

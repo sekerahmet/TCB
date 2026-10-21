@@ -46,7 +46,7 @@ func (x *indexer) def(f *file, parent string, kind Kind, idName, name, qualified
 		end, endCol = valueEnd(f, line) // değer bildiriminin sonu, sonraki bloğun sonu değil
 	}
 	pos := &Pos{File: f.rel, Line: line, Col: col, EndLine: end, EndCol: endCol}
-	x.nodes[id] = &Node{ID: id, Kind: kind, Name: name, Pos: pos, Signature: signature, Qualified: qualified}
+	x.nodes[id] = &Node{ID: id, Kind: kind, Name: name, Pos: pos, Signature: signature, Qualified: qualified, Doc: docAbove(f, line)}
 	x.addEdge(parent, id, EdgeDefines, Extracted, Pos{File: f.rel, Line: line})
 	x.occurrence(id, RoleDefinition, Extracted, namePos(f, kind, name, line, col), parent)
 	if parent == NodeID(KindModule, f.rel, "") && kind != KindTest {
@@ -286,4 +286,18 @@ func namePos(f *file, kind Kind, name string, line, col int) Pos {
 		p.EndLine, p.EndCol = line, p.Col+utf8.RuneCountInString(short)
 	}
 	return p
+}
+
+// docAbove bildirimin hemen üstündeki yorum satırlarıdır ("// " önekleri atılır, bitişik satırlar
+// bir araya gelir); boş satır ya da yorum olmayan satır blokta durur.
+func docAbove(f *file, line int) string {
+	var parts []string
+	for i := line - 2; i >= 0 && i < len(f.lines); i-- {
+		t := strings.TrimSpace(f.lines[i])
+		if !strings.HasPrefix(t, "//") {
+			break
+		}
+		parts = append([]string{strings.TrimSpace(strings.TrimPrefix(t, "//"))}, parts...)
+	}
+	return strings.Join(parts, "\n")
 }

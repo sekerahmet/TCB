@@ -38,9 +38,15 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 
 **Gömülü kitaplık görünür.** Projede `lib/ad.tr` yoksa `aktar "tr/ad"` verilen gömülü kitaplığa (`Options.Library`) çözülür; modül `tr:lib/ad.tr` sanal yoluyla dizine girer. Denetim: `TestEmbeddedLibraryModule`.
 
+**Sorgu adı akıllı çözülür.** Sorgu sırayla konum (`dosya.tr:satır:sütun`), kimlik, modül yolu/adı (`geo`, `tr/geo`), kanonik ad, modülle nitelenmiş ad (`geo.Kare.alan`), yerleşik adı (her gömülü dilde ve okuyanın dilinde: `yazdır`, `print`, `G100` aynı düğüm) ve nitelenmiş adın sonu (`Kare.alan`) ile aranır; ilk eşleşme veren basamak kazanır. Sorguda büyük harf yoksa büyük-küçük harf **Türkçe kuralıyla** yok sayılır (`ışık` = `Işık`, `isik` ≠ `Işık`), varsa tam eşleşir (`go doc` ile aynı akıllı harf kuralı). Birden çok düğüme uyan ad sessizce seçilmez: adaylar listelenir (`ambiguous`, çıkış 3); hiçbirine uymayan ad için yakın adlar önerilir (`not_found`, çıkış 4). Denetim: `TestResolveTiers`, `TestTurkishCaseFolding`, `TestAmbiguousAndNotFound`.
+
+**Sorgular dört sorudur.** `Definition` (tanım, belge yorumu, üyeler), `References` (kullananlar: rol, güven, konum, içeren bildirim; `Limit` listeyi keser ama toplam sayı ve `truncated` korunur), `TestedBy` (önce doğrudan testler, sonra çağrı zinciriyle en çok 4 adım uzaktaki dolaylı testler: INFERRED, `steps`), `Impact` (değişirse etkilenenler: adı ya da modüldeki bütün bildirimleri dışarıdan kullananlar, modülü dolaylı da aktaran modüller, bunları sınayan testler). Denetim: `TestDefinition`, `TestReferences`, `TestBuiltinReferencesCarryDisplayNames`, `TestTestedByDirectBeforeIndirect`, `TestImpactOfAModule`.
+
+**Çıktı örnekle sabittir.** Her komutun JSON çıktısı `testdata/golden/*.json` ile birebirdir; düz metin çıktısı `Text` ile üretilir. Denetim: `TestCommandOutputGolden`, `TestTextOutput`.
+
 ## Testler
 
-Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
+Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`, `query_test.go` → `query.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
 
 ## Başka dillerin ve araçların kod dizinleri: karşılaştırma ve kararlar
 

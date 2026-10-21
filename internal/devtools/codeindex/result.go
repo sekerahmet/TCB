@@ -50,6 +50,7 @@ type Use struct {
 	Confidence Confidence `json:"confidence"`
 	Pos        Pos        `json:"pos"`
 	In         *Node      `json:"in,omitempty"`
+	Steps      int        `json:"steps,omitempty"` // dolaylı sınama: kaç çağrı adımı uzakta (0: doğrudan)
 }
 
 // Counts sonuç sayılarıdır.
@@ -73,6 +74,7 @@ type Result struct {
 	Query      Query     `json:"query"`
 	Target     *Node     `json:"target,omitempty"`
 	Docs       string    `json:"docs,omitempty"`
+	Members    []Node    `json:"members,omitempty"` // tanım: yapının alanları ve metotları, modülün bildirimleri
 	Users      []Use     `json:"users,omitempty"`
 	Tests      []Use     `json:"tests,omitempty"`
 	Affected   *Affected `json:"affected,omitempty"`

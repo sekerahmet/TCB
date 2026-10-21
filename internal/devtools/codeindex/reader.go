@@ -9,6 +9,10 @@ type Reader struct {
 	Index  *Index
 	byID   map[string]*Node
 	byFile map[string][]int // dosya -> Index.Occurrences sıraları (satır, sütun sırasıyla)
+	// builtins yerleşik adı (her gömülü dilde) -> düğüm kimlikleri.
+	builtins  map[string][]string
+	callers   map[string][]string // düğüm -> onu çağıran düğümler (calls kenarları, ters)
+	importers map[string][]string // modül -> onu aktaran modüller (imports kenarları, ters)
 }
 
 // NewReader dizinden bir Reader kurar.
@@ -16,6 +20,16 @@ func NewReader(idx *Index) *Reader {
 	r := &Reader{Index: idx, byID: make(map[string]*Node, len(idx.Nodes)), byFile: map[string][]int{}}
 	for i := range idx.Nodes {
 		r.byID[idx.Nodes[i].ID] = &idx.Nodes[i]
+	}
+	r.builtins = builtinNames(idx)
+	r.callers, r.importers = map[string][]string{}, map[string][]string{}
+	for _, e := range idx.Edges {
+		switch e.Kind {
+		case EdgeCalls:
+			r.callers[e.To] = append(r.callers[e.To], e.From)
+		case EdgeImports:
+			r.importers[e.To] = append(r.importers[e.To], e.From)
+		}
 	}
 	for i, o := range idx.Occurrences {
 		r.byFile[o.Pos.File] = append(r.byFile[o.Pos.File], i)

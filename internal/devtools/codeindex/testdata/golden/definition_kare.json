@@ -1,0 +1,68 @@
+{
+  "schema": "tr-codeindex/1",
+  "command": "definition",
+  "status": "ok",
+  "query": {
+    "text": "Kare",
+    "language": "tr"
+  },
+  "target": {
+    "id": "struct:lib/geo.tr#Kare",
+    "kind": "struct",
+    "name": "Kare",
+    "pos": {
+      "file": "lib/geo.tr",
+      "line": 5,
+      "col": 1,
+      "end_line": 13,
+      "end_col": 2
+    },
+    "signature": "yapı Kare",
+    "qualified": "geo.Kare"
+  },
+  "members": [
+    {
+      "id": "field:lib/geo.tr#Kare.kenar",
+      "kind": "field",
+      "name": "Kare.kenar",
+      "pos": {
+        "file": "lib/geo.tr",
+        "line": 6,
+        "col": 5,
+        "end_line": 6,
+        "end_col": 14
+      },
+      "signature": "kenar",
+      "qualified": "geo.Kare.kenar"
+    },
+    {
+      "id": "method:lib/geo.tr#Kare.kurucu",
+      "kind": "method",
+      "name": "Kare.kurucu",
+      "pos": {
+        "file": "lib/geo.tr",
+        "line": 7,
+        "col": 5,
+        "end_line": 9,
+        "end_col": 6
+      },
+      "signature": "fonksiyon kurucu(kenar = …)",
+      "qualified": "geo.Kare.kurucu"
+    },
+    {
+      "id": "method:lib/geo.tr#Kare.alan",
+      "kind": "method",
+      "name": "Kare.alan",
+      "pos": {
+        "file": "lib/geo.tr",
+        "line": 10,
+        "col": 5,
+        "end_line": 12,
+        "end_col": 6
+      },
+      "signature": "fonksiyon alan()",
+      "qualified": "geo.Kare.alan"
+    }
+  ],
+  "truncated": false
+}
